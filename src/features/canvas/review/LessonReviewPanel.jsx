@@ -11,6 +11,7 @@ import NoteDialog from './NoteDialog.jsx'
 import NotesWindow from './NotesWindow.jsx'
 import { useReviewNotes } from './useReviewNotes.js'
 import { nodeCopyText } from './nodeCopyText.js'
+import { changedRefs } from './reviewNotes.js'
 
 // «Разбор урока» — окно на весь экран ПК: слева копия ленты плеера (вся история сразу, на заданиях переключатель веток «верно / неверно»),
 // посередине полноценный холст, сфокусированный на выбранной ноде (редактируешь как обычно), справа замечания и правила.
@@ -28,7 +29,6 @@ export default function LessonReviewPanel({ nodes: initialNodes, zones: initialZ
   const store = useReviewNotes()
   const [noteFor, setNoteFor] = useState(null) // ref ноды, к которой пишем замечание
   const [notesOpen, setNotesOpen] = useState(false)
-  const noteCounts = useMemo(() => { const m = new Map(); for (const n of store.notes) m.set(n.ref, (m.get(n.ref) ?? 0) + 1); return m }, [store.notes])
 
   // Холст при монтировании сам приводит ноды к своему виду (служебные переходы) — первое его сообщение берём за точку отсчёта для «Применить»,
   // иначе эта нормализация выглядела бы как 13 «правок» без единого действия автора
@@ -40,6 +40,10 @@ export default function LessonReviewPanel({ nodes: initialNodes, zones: initialZ
   const nodes = useMemo(() => fromCanvasNodes(draft), [draft])
   const canvasById = useMemo(() => new Map(draft.map(n => [n.id, n])), [draft])
   const items = useMemo(() => buildTranscript(nodes, choices), [nodes, choices])
+  // Сколько нод в списке замечаний: с замечанием ИЛИ с правкой текста (правка без комментария тоже считается)
+  const edited = changedRefs(store.originalTexts(), nodes)
+  const noted = new Set([...store.notes.map(n => n.ref), ...edited]).size + store.general.length
+  const noteCounts = useMemo(() => { const m = new Map(); for (const n of store.notes) m.set(n.ref, (m.get(n.ref) ?? 0) + 1); for (const r of edited) if (!m.has(r)) m.set(r, 1); return m }, [store.notes, edited])
   const warnMap = useMemo(() => warningsByRef(lintLesson(nodes), nodes), [nodes])
   const sel = nodes.find(n => n.ref === selRef) ?? null
   const diff = useMemo(() => diffNodes(base, draft), [base, draft])
@@ -57,10 +61,10 @@ export default function LessonReviewPanel({ nodes: initialNodes, zones: initialZ
   const close = useCallback(() => {
     const lost = []
     if (diff.changed.length) lost.push(`неприменённые правки (нод: ${diff.changed.length})`)
-    if (store.notes.length + store.general.length) lost.push(`замечания (${store.notes.length + store.general.length}), которые не скопированы в JSON`)
+    if (noted) lost.push(`замечания и правки (${noted}), которые не скопированы в JSON`)
     if (lost.length && !window.confirm(`Есть ${lost.join(' и ')}. Закрыть?`)) return
     onClose()
-  }, [diff, onClose, store.notes.length, store.general.length])
+  }, [diff, onClose, noted])
 
   useEffect(() => {
     const onKey = e => { if (e.key === 'Escape' && !e.target.closest?.('input, textarea, [contenteditable]')) close() }
@@ -97,7 +101,7 @@ export default function LessonReviewPanel({ nodes: initialNodes, zones: initialZ
         <span className="rvwSpacer" />
         {(diff.added > 0 || diff.removed > 0) && <span className="rvwInfo rvwInfoWarn" title="Добавленные и удалённые ноды автоматически не переносятся — сделай это на основном холсте">+{diff.added} / −{diff.removed} нод не переносятся</span>}
         {applied && <span className="rvwInfo rvwInfoOk">{applied}</span>}
-        <button className="rvwBtn" onClick={() => setNotesOpen(true)}>✎ Замечания{store.notes.length + store.general.length ? ` (${store.notes.length + store.general.length})` : ''}</button>
+        <button className="rvwBtn" onClick={() => setNotesOpen(true)}>✎ Замечания{noted ? ` (${noted})` : ''}</button>
         <button className="rvwBtn rvwBtnPrimary" disabled={!diff.changed.length} onClick={apply}>
           Применить{diff.changed.length ? ` (${diff.changed.length})` : ''}
         </button>

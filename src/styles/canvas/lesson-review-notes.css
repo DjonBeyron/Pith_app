@@ -43,3 +43,4 @@
 .rvwCopyIcon, .rvwTool { padding: 0; box-sizing: border-box; }
 .rvwTool { padding: 0 6px; }
 .rvwCopyIcon svg, .rvwTool svg { flex: 0 0 auto; }
+.rvwNtRow { display: flex; align-items: center; justify-content: space-between; gap: 8px; width: 100%; }

@@ -19,36 +19,38 @@ export const NOTE_TEMPLATES = [
 let seq = 0
 export const newNoteId = () => `note-${Date.now().toString(36)}-${(seq++).toString(36)}`
 
+/** Ноды, текст которых автор изменил относительно оригинала (originals: Map ref → текст до правок) */
+export function changedRefs(originals, nodes) {
+  const byRef = new Map(nodes.map(n => [n.ref, n]))
+  return [...originals.keys()].filter(r => byRef.has(r) && originals.get(r) !== nodeCopyText(byRef.get(r), { markup: true }))
+}
+
 /**
- * JSON замечаний: notes — по порядку ленты, у каждого ref/seq/тип/ветка, before (оригинал, разметка {g:..} видна) и after (как стало после правок автора),
- * шаблон и комментарий; edits_without_note — ноды, которые автор правил без замечания; general — замечания ко всему уроку.
- * originals: Map ref → текст ноды до правок (фиксируется при первом открытии окна замечания)
+ * JSON замечаний: notes — по порядку ленты, одна запись на ноду, у которой есть замечание ИЛИ правка текста (или и то и другое):
+ * ref/seq/тип/ветка, before (оригинал, разметка {g:..} видна), after (как стало), changed, comments — список замечаний (шаблон + текст, может быть пуст,
+ * если автор только поправил текст). general — замечания ко всему уроку. originals: Map ref → текст ноды до правок
  */
 export function buildNotesJson({ notes, general, items, nodes, originals = new Map(), lessonTitle = '' }) {
   const byRef = new Map(nodes.map(n => [n.ref, n]))
   const pos = new Map()
   items.forEach((it, i) => { if (it.kind === 'node' && !pos.has(it.ref)) pos.set(it.ref, { i, wrong: it.wrongBranch }) })
   const rank = ref => pos.get(ref)?.i ?? 1e9
-  const sorted = [...notes].sort((a, b) => rank(a.ref) - rank(b.ref))
-  const view = ref => {
-    const node = byRef.get(ref)
-    const after = node ? nodeCopyText(node, { markup: true }) : ''
-    const before = originals.get(ref) ?? after
-    return { node, before, after }
-  }
-  const head = (ref, node) => ({ ref, seq: node?.seq ?? null, type: node?.type ?? null, branch: pos.get(ref)?.wrong ? 'ветка ошибки' : 'основная' })
-  const noted = new Set(notes.map(n => n.ref))
+  const refs = [...new Set([...notes.map(n => n.ref), ...changedRefs(originals, nodes)])].sort((a, b) => rank(a) - rank(b))
   return {
     format: 'pithy-review-notes',
-    version: 2,
+    version: 3,
     lesson: lessonTitle,
-    hint: 'notes: замечания к нодам по порядку ленты (ref и seq: идентификаторы ноды в JSON урока). before: текст ноды как был (с разметкой {g:}, {u:}…), after: как автор исправил (равен before, если не менял), changed: менял ли. edits_without_note: правки без замечания. general: замечания ко всему уроку',
-    notes: sorted.map((n, k) => {
-      const { node, before, after } = view(n.ref)
-      return { order: k + 1, ...head(n.ref, node), before, after, changed: before !== after, template: n.template || '', comment: n.text || '' }
+    hint: 'notes: по одной записи на ноду (ref и seq: идентификаторы ноды в JSON урока), по порядку ленты. before: текст ноды как был (с разметкой {g:}, {u:}…), after: как автор исправил (равен before, если не менял), changed: менял ли, comments: замечания автора (может быть пусто, если он только поправил текст). general: замечания ко всему уроку',
+    notes: refs.map((ref, k) => {
+      const node = byRef.get(ref)
+      const after = node ? nodeCopyText(node, { markup: true }) : ''
+      const before = originals.get(ref) ?? after
+      return {
+        order: k + 1, ref, seq: node?.seq ?? null, type: node?.type ?? null, branch: pos.get(ref)?.wrong ? 'ветка ошибки' : 'основная',
+        before, after, changed: before !== after,
+        comments: notes.filter(n => n.ref === ref).map(n => ({ template: n.template || '', comment: n.text || '' })),
+      }
     }),
-    edits_without_note: [...originals.keys()].filter(r => !noted.has(r) && view(r).before !== view(r).after).sort((a, b) => rank(a) - rank(b))
-      .map(r => { const { node, before, after } = view(r); return { ...head(r, node), before, after } }),
     general: general.map(g => ({ template: g.template || '', comment: g.text || '' })),
   }
 }

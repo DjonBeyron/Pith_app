@@ -12,7 +12,9 @@ export function useReviewNotes() {
   const addGeneral = useCallback((template, text) => setGeneral(l => [...l, { id: newNoteId(), template, text }]), [])
   const removeNote = useCallback(id => setNotes(l => l.filter(n => n.id !== id)), [])
   const removeGeneral = useCallback(id => setGeneral(l => l.filter(n => n.id !== id)), [])
-  const clear = useCallback(() => { setNotes([]); setGeneral([]) }, [])
+  const [, bump] = useState(0)
+  const forget = useCallback(ref => { originals.current.delete(ref); bump(n => n + 1) }, [])
+  const clear = useCallback(() => { setNotes([]); setGeneral([]); originals.current = new Map() }, [])
   const originalTexts = () => new Map([...originals.current].map(([k, v]) => [k, v.text]))
-  return { notes, general, originals, remember, originalTexts, addNote, addGeneral, removeNote, removeGeneral, clear }
+  return { notes, general, originals, remember, forget, originalTexts, addNote, addGeneral, removeNote, removeGeneral, clear }
 }
