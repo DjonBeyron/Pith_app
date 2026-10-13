@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { memo, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import PlayerMessage from '../../player/PlayerMessage.jsx'
 import PhraseBank from '../../player/panels/phrase-assembly/PhraseBank.jsx'
 import PhraseAnswerRow from '../../player/panels/phrase-assembly/PhraseAnswerRow.jsx'
@@ -128,16 +128,37 @@ export function SlotBody({ item, canvasNode, canvasNodes, files, teacherName = '
   return msg(undefined)
 }
 
+const ITEM_KEYS = ['kind', 'ref', 'picked', 'pickedText', 'choice', 'ok', 'wrongBranch', 'hasWrong']
+// Слот перерисовывается, только если изменилась его нода или его состояние: набор текста в одной ноде не перерисовывает остальные 200
+const sameSlot = (a, b) => a.node === b.node && a.on === b.on && a.warns === b.warns && a.count === b.count && a.mark === b.mark && a.files === b.files && a.teacherName === b.teacherName
+  && a.onNote === b.onNote && a.onSelect === b.onSelect && a.onPick === b.onPick && a.onChoice === b.onChoice && ITEM_KEYS.every(k => a.item[k] === b.item[k])
+
+const FeedSlot = memo(function FeedSlot({ item: it, node, on, warns, count, mark, canvasNodes, files, teacherName, onNote, onSelect, onPick, onChoice }) {
+  if (it.kind === 'student') {
+    return <div data-ref={it.ref} className={`rvwSlot${on ? ' on' : ''}`} onClick={() => onSelect(it.ref)}><StudentRow item={it} /></div>
+  }
+  return (
+    <div data-ref={it.ref} className={`rvwSlot${on ? ' on' : ''}${it.wrongBranch ? ' wrong' : ''}${mark ? ' rvwChg' : ''}`} onClick={() => onSelect(it.ref)}>
+      <div className="rvwSlotMeta">
+        <span>{node.seq}</span>{it.wrongBranch && <span className="rvwTagWrong">ветка ошибки</span>}{mark && <span className="rvwTagChg">{mark === 'new' ? 'новая' : 'изменена'}</span>}{warns > 0 && <span className="rvwWarn">⚠ {warns}</span>}
+      </div>
+      <SlotTools item={it} count={count} onNote={onNote} />
+      <SlotBody item={it} canvasNode={node} canvasNodes={canvasNodes} files={files} teacherName={teacherName} onPick={onPick} onChoice={onChoice} />
+    </div>
+  )
+}, sameSlot)
+
 export default function PlayerLikeFeed({ items, canvasById, canvasNodes, files = [], selRef, selTick, warnMap, noteCounts, changeMarks, teacherName, onNote, onSelect, onChoice, onPick }) {
   const outerRef = useRef(null)
   const phoneRef = useRef(null)
   // Переключили «верно/неверно» или выбрали вариант — под заданием меняется лента; само задание остаётся на экране там же, где было (история не «едет»)
   const anchorRef = useRef(null)
-  const anchored = fn => (ref, ...rest) => {
+  const markAnchor = useCallback(ref => {
     const el = outerRef.current?.querySelector(`[data-ref="${CSS.escape(ref)}"]`)
     if (el) anchorRef.current = { ref, top: el.getBoundingClientRect().top }
-    fn(ref, ...rest)
-  }
+  }, [])
+  const onPickA = useCallback((ref, ...rest) => { markAnchor(ref); onPick(ref, ...rest) }, [markAnchor, onPick])
+  const onChoiceA = useCallback((ref, ...rest) => { markAnchor(ref); onChoice(ref, ...rest) }, [markAnchor, onChoice])
   useLayoutEffect(() => {
     const a = anchorRef.current
     if (!a) return
@@ -174,20 +195,7 @@ export default function PlayerLikeFeed({ items, canvasById, canvasNodes, files =
               {items.map((it, i) => {
                 const node = canvasById.get(it.ref)
                 if (!node) return null
-                const on = it.ref === selRef
-                const warns = warnMap.get(it.ref)?.length ?? 0
-                if (it.kind === 'student') {
-                  return <div key={`s-${it.ref}-${i}`} data-ref={it.ref} className={`rvwSlot${on ? ' on' : ''}`} onClick={() => onSelect(it.ref)}><StudentRow item={it} /></div>
-                }
-                return (
-                  <div key={`n-${it.ref}-${i}`} data-ref={it.ref} className={`rvwSlot${on ? ' on' : ''}${it.wrongBranch ? ' wrong' : ''}${changeMarks?.has(it.ref) ? ' rvwChg' : ''}`} onClick={() => onSelect(it.ref)}>
-                    <div className="rvwSlotMeta">
-                      <span>{node.seq}</span>{it.wrongBranch && <span className="rvwTagWrong">ветка ошибки</span>}{changeMarks?.has(it.ref) && <span className="rvwTagChg">{changeMarks.get(it.ref) === 'new' ? 'новая' : 'изменена'}</span>}{warns > 0 && <span className="rvwWarn">⚠ {warns}</span>}
-                    </div>
-                    <SlotTools item={it} count={noteCounts?.get(it.ref) ?? 0} onNote={onNote} />
-                    <SlotBody item={it} canvasNode={node} canvasNodes={canvasNodes} files={files} teacherName={teacherName} onPick={anchored(onPick)} onChoice={anchored(onChoice)} />
-                  </div>
-                )
+                return <FeedSlot key={`${it.kind === 'student' ? 's' : 'n'}-${it.ref}-${i}`} item={it} node={node} on={it.ref === selRef} warns={warnMap.get(it.ref)?.length ?? 0} count={noteCounts?.get(it.ref) ?? 0} mark={changeMarks?.get(it.ref) ?? null} canvasNodes={canvasNodes} files={files} teacherName={teacherName} onNote={onNote} onSelect={onSelect} onPick={onPickA} onChoice={onChoiceA} />
               })}
             </div>
           </div>

@@ -14,6 +14,15 @@ function auditAudio(node) {
   return { item: { key: node.id, nodeId: node.id, seq: node.seq, kind: 'audio', text } }
 }
 
+// Авто-таблица (dictator) со сценарием озвучки, но без записи: озвучка + автомонтаж по таймингам слов
+function auditTable(node) {
+  const d = node.typeData?.table ?? {}
+  if (d.mode !== 'dictator' || d.file_id) return null
+  const text = (d.script ?? '').trim()
+  if (!text) return null
+  return { item: { key: node.id, nodeId: node.id, seq: node.seq, kind: 'audio', isTable: true, text } }
+}
+
 function auditImageNode(node) {
   const d = node.typeData?.[node.type] ?? {}
   if (d.file_id) return null
@@ -50,6 +59,9 @@ export function buildBatchPlan(nodes) {
       const r = auditAudio(node)
       if (r?.item) items.push(r.item)
       if (r?.skip) skipped.push(r.skip)
+    } else if (node.type === 'table') {
+      const r = auditTable(node)
+      if (r?.item) items.push(r.item)
     } else if (node.type === 'photo' || node.type === 'sticker') {
       const r = auditImageNode(node)
       if (r?.item) items.push(r.item)

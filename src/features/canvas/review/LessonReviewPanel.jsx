@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useRef, useCallback } from 'react'
+import { useState, useMemo, useEffect, useRef, useCallback, useDeferredValue } from 'react'
 import { createPortal } from 'react-dom'
 import { fromCanvasNodes, lintLesson } from '../lesson-io/lessonLint.js'
 import { useLessonRules } from '../lesson-io/useLessonRules.js'
@@ -20,6 +20,8 @@ import { reviewKey, loadReview, saveReview } from './reviewStorage.js'
 // «Разбор урока» — окно на весь экран ПК: слева копия ленты плеера (вся история сразу, на заданиях переключатель веток «верно / неверно»),
 // посередине полноценный холст, сфокусированный на выбранной ноде (редактируешь как обычно), справа замечания и правила.
 // Холст здесь — СВОЯ копия нод: правки попадают в основной урок только по кнопке «Применить».
+const NO_FILES = []
+
 export default function LessonReviewPanel({ nodes: initialNodes, zones: initialZones, boardApiRef, boardProps, storageId, teacherName, onClose }) {
   const [draft, setDraft] = useState(initialNodes)
   const [base, setBase] = useState(initialNodes) // с чем сравниваем при «Применить» (основной холст на момент открытия / последнего применения)
@@ -48,8 +50,10 @@ export default function LessonReviewPanel({ nodes: initialNodes, zones: initialZ
     setDraft(list)
   }, [saved])
 
-  const nodes = useMemo(() => fromCanvasNodes(draft), [draft])
-  const canvasById = useMemo(() => new Map(draft.map(n => [n.id, n])), [draft])
+  // Тяжёлое (линтеры, расшифровка ленты) считаем по «отложенной» копии: набор текста не ждёт пересчёта ленты
+  const dDraft = useDeferredValue(draft)
+  const nodes = useMemo(() => fromCanvasNodes(dDraft), [dDraft])
+  const canvasById = useMemo(() => new Map(dDraft.map(n => [n.id, n])), [dDraft])
   const items = useMemo(() => buildTranscript(nodes, choices), [nodes, choices])
   // Сколько нод в списке замечаний: с замечанием ИЛИ с правкой текста (правка без комментария тоже считается)
   const edited = changedRefs(store.originalTexts(), nodes)
@@ -69,7 +73,7 @@ export default function LessonReviewPanel({ nodes: initialNodes, zones: initialZ
   const [rulesOff, setRulesOff] = useState(() => { try { return localStorage.getItem('pithy-review-rules-off') === '1' } catch { return false } })
   const toggleRules = () => setRulesOff(v => { try { localStorage.setItem('pithy-review-rules-off', v ? '0' : '1') } catch { /* нет хранилища */ } return !v })
   const sel = nodes.find(n => n.ref === selRef) ?? null
-  const diff = useMemo(() => diffNodes(base, draft), [base, draft])
+  const diff = useMemo(() => diffNodes(base, dDraft), [base, dDraft])
   const switched = Object.keys(choices).length
 
   // «До» фиксируется при первом открытии окна замечания к ноде и дальше не меняется (даже если правишь и открываешь снова)
@@ -105,8 +109,8 @@ export default function LessonReviewPanel({ nodes: initialNodes, zones: initialZ
   }, [])
 
   // Клик по варианту «Выбери слово»: выбираем реальный ответ (повторный клик по нему — снять); ветка идёт по варианту
-  const pickOption = (ref, id) => setChoices(c => { const n = { ...c }; if (n[ref] === optChoice(id)) delete n[ref]; else n[ref] = optChoice(id); return n })
-  const setChoice = (ref, v) => setChoices(c => { const n = { ...c }; if (v === 'wrong') n[ref] = 'wrong'; else delete n[ref]; return n })
+  const pickOption = useCallback((ref, id) => setChoices(c => { const n = { ...c }; if (n[ref] === optChoice(id)) delete n[ref]; else n[ref] = optChoice(id); return n }), [])
+  const setChoice = useCallback((ref, v) => setChoices(c => { const n = { ...c }; if (v === 'wrong') n[ref] = 'wrong'; else delete n[ref]; return n }), [])
 
   // Отложенный набор из открытого окна замечания сначала доходит до копии урока, и только потом применяем
   const applyRef = useRef(null)
@@ -118,12 +122,16 @@ export default function LessonReviewPanel({ nodes: initialNodes, zones: initialZ
     session.keep() // окно замечания закрывается само, как только правки применены (его правки остаются)
     setNotesOpen(false)
     for (const { id, patch } of diff.changed) boardApiRef.current?.updateNode(id, patch)
-    setBase(draft)
+    setBase(dDraft)
     setApplied(`Применено: ${diff.changed.length} ${diff.changed.length === 1 ? 'нода' : 'нод'}. Не забудь сохранить урок (💾)`)
     setTimeout(() => setApplied(''), 5000)
   }
 
   useEffect(() => { applyRef.current = applyNow })
+  // Стабильный обработчик для мемо-слотов ленты: всегда зовёт свежий openNote
+  const openNoteRef = useRef(null)
+  useEffect(() => { openNoteRef.current = openNote })
+  const onNote = useCallback(ref => openNoteRef.current?.(ref), [])
 
   const shown = new Set(items.filter(i => i.kind === 'node').map(i => i.ref)).size
   return createPortal(
@@ -151,7 +159,7 @@ export default function LessonReviewPanel({ nodes: initialNodes, zones: initialZ
           {!rulesOff && <RulesPane node={sel} warnings={sel ? warnMap.get(sel.ref) ?? [] : []} rules={rules} busy={busy} onAdd={addFull} />}
         </div>
         <div className="rvwFeedCol">
-          <PlayerLikeFeed items={items} canvasById={canvasById} canvasNodes={draft} files={boardProps?.lessonFiles ?? []} selRef={selRef} selTick={selTick} warnMap={warnMap} noteCounts={noteCounts} changeMarks={versions.marks} teacherName={teacherName} onNote={openNote} onSelect={select} onChoice={setChoice} onPick={pickOption} />
+          <PlayerLikeFeed items={items} canvasById={canvasById} canvasNodes={draft} files={boardProps?.lessonFiles ?? NO_FILES} selRef={selRef} selTick={selTick} warnMap={warnMap} noteCounts={noteCounts} changeMarks={versions.marks} teacherName={teacherName} onNote={onNote} onSelect={select} onChoice={setChoice} onPick={pickOption} />
         </div>
         <div className="rvwCanvasCol">
           <EmbeddedCanvas ref={canvasRef} initialNodes={initialNodes} initialZones={initialZones} boardProps={boardProps} onNodesChange={onBoardNodes} />

@@ -2,6 +2,7 @@ import { useState, useMemo, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { useWordAudioLibrary } from './useWordAudioLibrary.js'
 import WordAudioRow from './WordAudioRow.jsx'
+import { isAutoWordAudio, setAutoWordAudio } from './autoWordAudio.js'
 
 const TABS = [
   { id: 'lesson', label: 'Этот урок' },
@@ -18,6 +19,7 @@ export default function WordAudioPanel({ lessonId, onClose }) {
   const L = useWordAudioLibrary(lessonId)
   const [tab,   setTab]   = useState('lesson')
   const [query, setQuery] = useState('')
+  const [auto,  setAuto]  = useState(isAutoWordAudio)
   const fileRef   = useRef(null)
   const uploadFor = useRef(null)   // { key, text } — для какого слова выбирают файл
   const playerRef = useRef(null)
@@ -78,6 +80,9 @@ export default function WordAudioPanel({ lessonId, onClose }) {
         <div className="bgpSummary">
           <span className="bgpSummaryItem">слов: {items.length}</span>
           <span className={`bgpSummaryItem${missing.length ? ' bgpSummarySkip' : ''}`}>не озвучено: {missing.length}</span>
+          <label className="lioMeta" title="После сохранения урока недостающие слова озвучиваются сами и попадают в общую базу">
+            <input type="checkbox" checked={auto} onChange={e => { setAuto(e.target.checked); setAutoWordAudio(e.target.checked) }} /> пополнять базу при сохранении
+          </label>
           {tab === 'all' && !L.scanReady && <span className="lioMeta">сканирую уроки…</span>}
           {tab === 'all' && L.scanReady && !L.busy && (
             <button className="warLink" onClick={L.refreshScan}>обновить</button>

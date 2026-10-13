@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from 'react'
 import WordAudioPanel from './WordAudioPanel.jsx'
 import { listWordAudio, cachedWordAudio, subscribeWordAudio, missingWordAudio } from '../../../shared/lib/wordAudio/wordAudioApi.js'
-import { scanAllLessons, subscribeWordScan, setLessonWords, clearLiveLesson, allLessonWords, wordScanReady } from '../../../shared/lib/wordAudio/wordAudioScan.js'
+import { scanAllLessons, subscribeWordScan, setLessonWords, clearLiveLesson, allLessonWords, wordScanReady, lessonWords } from '../../../shared/lib/wordAudio/wordAudioScan.js'
+import { isAutoWordAudio, fillMissingWords } from './autoWordAudio.js'
 import { onLessonSaved } from '../../../shared/lib/lessonSavedBus.js'
 
 // Кнопка 🔊 в шапке канваса (только админ) с бейджем — сколько слов из ВСЕХ
@@ -35,8 +36,14 @@ export default function WordAudioButton({ lessonId, title, boardApiRef, loading 
 
   useEffect(() => {
     syncLive()
-    const off = onLessonSaved(saved => { if (saved.id === lessonId) syncLive() })
-    return () => { off(); clearLiveLesson(lessonId) }
+    // Новые слова в канвасе видны в бейдже сразу (раз в 10 с), а после сохранения урока сами уходят в общую базу
+    const timer = setInterval(syncLive, 10000)
+    const off = onLessonSaved(saved => {
+      if (saved.id !== lessonId) return
+      syncLive()
+      if (isAutoWordAudio()) fillMissingWords(lessonWords(lessonId))
+    })
+    return () => { off(); clearInterval(timer); clearLiveLesson(lessonId) }
   }, [syncLive, lessonId])
 
   return (

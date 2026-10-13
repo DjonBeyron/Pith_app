@@ -173,10 +173,11 @@ export default function NodeTablePicker({
       </div>
 
       {/* Режим */}
+      {/* авто-таблица по умолчанию уходит в чат (sendToChat) */}
       <div className="nodeTableModeRow">
         <button
           className={`nodeTableModeBtn${mode === 'dictator' ? ' nodeTableModeBtnActive' : ''}`}
-          onClick={() => onDataChange({ mode: 'dictator' })}
+          onClick={() => onDataChange({ mode: 'dictator', ...(tData.sendToChat === undefined ? { sendToChat: true } : {}) })}
         >♪ Авто</button>
         <button
           className={`nodeTableModeBtn${mode === 'manual' ? ' nodeTableModeBtnActive' : ''}`}
