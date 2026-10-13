@@ -148,17 +148,49 @@ export function useLessonFiles(lessonId) {
   // реального смысла синка и «запекал» в урок либо пустой, либо прошлый
   // r2Url — отсюда расхождение данных на сервере с тем, что видно в редакторе.
   async function syncToServer() {
-    const toUpload = files.filter(f => f.status === 'local' && f.localFile)
-    const toDelete = files.filter(f => f.status === 'toDelete')
-    const stuck = files.filter(f => f.status === 'local' && !f.localFile)
-    if (!toUpload.length && !toDelete.length && !stuck.length) return files
+    let working = files
+    const st = f => (f.status === 'local' ? (f.localFile ? 'local+копия' : 'local БЕЗ копии') : f.status)
+    const counts = {}
+    for (const f of files) counts[st(f)] = (counts[st(f)] ?? 0) + 1
+    const stuckAtStart = files.filter(f => f.status === 'local' && !f.localFile)
+    if (!files.some(f => f.status === 'local' || f.status === 'toDelete')) return files
     setUploadLog([])
-    addLog(`Сохранение: к загрузке ${toUpload.length}, к удалению ${toDelete.length}${stuck.length ? `, без локальной копии ${stuck.length}` : ''}`)
-    for (const f of stuck) addLog(`⚠ ${f.name}: локальной копии нет (не восстановилась в браузере), загружать нечего`)
-    if (!toUpload.length && !toDelete.length) return files
+    addLog(`Урок ${String(lessonId).slice(0, 8)}: файлов ${files.length} (${Object.entries(counts).map(([k, v]) => `${k}: ${v}`).join(', ')})`)
+
+    // Файл «локальный», но копии в памяти нет: сначала ищем её в хранилище браузера (IndexedDB), потом — не загружен ли он уже на сервер
+    // (отметка в браузере могла отстать). Только если нигде нет — файл действительно потерян
+    if (stuckAtStart.length) {
+      addLog(`Без локальной копии: ${stuckAtStart.length}. Ищу копию в хранилище браузера и файл на сервере…`)
+      let noBlob = []
+      for (const f of stuckAtStart) {
+        const blob = await lfGet(IDB_KEY(lessonId, f.id)).catch(err => { addLog(`  ${f.name}: ошибка чтения хранилища браузера: ${err?.message ?? err}`); return null })
+        if (blob) {
+          working = working.map(x => (x.id === f.id ? { ...x, localFile: blob } : x))
+          addLog(`  ✓ ${f.name} (id ${String(f.id).slice(0, 8)}): копия найдена в хранилище браузера (${Math.round(blob.size / 1024)} КБ), будет загружена`)
+        } else noBlob.push(f)
+      }
+      if (noBlob.length) {
+        let server = []
+        try { server = await getFilesByIds(noBlob.map(f => f.id)) } catch (err) { addLog(`  ✗ не удалось спросить сервер: ${err?.message ?? err}`) }
+        const byId = Object.fromEntries(server.map(x => [x.id, x]))
+        for (const f of noBlob) {
+          const row = byId[f.id]
+          if (row?.r2Url) {
+            working = working.map(x => (x.id === f.id ? { ...x, status: 'synced', r2Url: row.r2Url, localFile: null } : x))
+            addLog(`  ✓ ${f.name} (id ${String(f.id).slice(0, 8)}): уже есть на сервере, помечен как загруженный`)
+          } else addLog(`  ✗ ${f.name} (id ${String(f.id).slice(0, 8)}): нет ни копии в браузере, ни файла на сервере${row ? ' (строка есть, но без ссылки)' : ''} — файл потерян, у ноды нажмите «Сбросить файл» и озвучьте заново`)
+        }
+      }
+      setFiles(working)
+    }
+
+    const toUpload = working.filter(f => f.status === 'local' && f.localFile)
+    const toDelete = working.filter(f => f.status === 'toDelete')
+    addLog(`К загрузке ${toUpload.length}, к удалению ${toDelete.length}`)
+    if (!toUpload.length && !toDelete.length) return working
     setSyncing(true)
 
-    let result = files
+    let result = working
 
     let doneCount = 0
     for (const f of toUpload) {
