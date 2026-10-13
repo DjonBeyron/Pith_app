@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import PlayerMessage from '../../player/PlayerMessage.jsx'
 import PhraseBank from '../../player/panels/phrase-assembly/PhraseBank.jsx'
 import PhraseAnswerRow from '../../player/panels/phrase-assembly/PhraseAnswerRow.jsx'
@@ -121,6 +121,20 @@ export function SlotBody({ item, canvasNode, canvasNodes, files, onPick = NOOP, 
 export default function PlayerLikeFeed({ items, canvasById, canvasNodes, files = [], selRef, selTick, warnMap, noteCounts, onNote, onSelect, onChoice, onPick }) {
   const outerRef = useRef(null)
   const phoneRef = useRef(null)
+  // Переключили «верно/неверно» или выбрали вариант — под заданием меняется лента; само задание остаётся на экране там же, где было (история не «едет»)
+  const anchorRef = useRef(null)
+  const anchored = fn => (ref, ...rest) => {
+    const el = outerRef.current?.querySelector(`[data-ref="${CSS.escape(ref)}"]`)
+    if (el) anchorRef.current = { ref, top: el.getBoundingClientRect().top }
+    fn(ref, ...rest)
+  }
+  useLayoutEffect(() => {
+    const a = anchorRef.current
+    if (!a) return
+    anchorRef.current = null
+    const el = outerRef.current?.querySelector(`[data-ref="${CSS.escape(a.ref)}"]`)
+    if (el && outerRef.current) outerRef.current.scrollTop += el.getBoundingClientRect().top - a.top
+  }, [items])
   // Колесо всей рамкой телефона крутит ленту само (не зависит от того, на какой элемент попал курсор — границы сообщений, промежутки, панели плеера
   // с pointer-events: none): иначе на таких местах скролл «залипал», пока не сдвинешь мышь
   useEffect(() => {
@@ -161,7 +175,7 @@ export default function PlayerLikeFeed({ items, canvasById, canvasNodes, files =
                       <span>{node.seq}</span>{it.wrongBranch && <span className="rvwTagWrong">ветка ошибки</span>}{warns > 0 && <span className="rvwWarn">⚠ {warns}</span>}
                     </div>
                     <SlotTools item={it} count={noteCounts?.get(it.ref) ?? 0} onNote={onNote} />
-                    <SlotBody item={it} canvasNode={node} canvasNodes={canvasNodes} files={files} onPick={onPick} onChoice={onChoice} />
+                    <SlotBody item={it} canvasNode={node} canvasNodes={canvasNodes} files={files} onPick={anchored(onPick)} onChoice={anchored(onChoice)} />
                   </div>
                 )
               })}

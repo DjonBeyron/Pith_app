@@ -15,6 +15,7 @@ export function useReviewNotes(saved = null) {
   const removeGeneral = useCallback(id => setGeneral(l => l.filter(n => n.id !== id)), [])
   const forget = useCallback(ref => { originals.current.delete(ref); bump(n => n + 1) }, [])
   const clear = useCallback(() => { setNotes([]); setGeneral([]); originals.current = new Map() }, [])
-  const originalTexts = () => new Map([...originals.current].map(([k, v]) => [k, v.text]))
+  // ref → { text, type } оригинала (для сравнения «до / после»)
+  const originalTexts = () => new Map([...originals.current].map(([k, v]) => [k, { text: v.text, type: v.item?.node?.type ?? null }]))
   return { version, notes, general, originals, remember, forget, originalTexts, addNote, addGeneral, removeNote, removeGeneral, clear }
 }

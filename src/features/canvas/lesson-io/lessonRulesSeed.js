@@ -121,6 +121,10 @@ const PRINCIPLE_META = [
   ['«кста» — хотя бы раз за урок', T, 'auto', 'warn', '(15 текстовых реплик, ни одного «кста»)', 'text: мы кста в субботу с Машей идём на тренировку 💪'],
   ['В голосовых — без смайликов', T, 'auto', 'error', 'audio: Я тут ужин готовлю))\naudio: Скажи вслух 😄', 'audio: Я тут ужин сейчас готовлю'],
   ['Авто-таблица — переход table_correct', C, 'auto', 'error', 'table (dictator): triggers [{ if: timer, then: n15 }]', 'table (dictator): triggers [{ if: table_correct, then: n15 }, { if: table_wrong, then: null }]'],
+  ['Озвучка без слов про стиль', T, 'auto', 'error', 'table (script): Ещё раз и неформально. В I\'m trying to cook…', 'table (script): Ещё раз. В I\'m trying to cook, to нужен, чтобы связать два глагола…'],
+  ['Восклицания — редко', T, 'judge', 'warn', 'text: о май гащ! (в каждой второй реплике)', 'text: да)) о май гащ! 😩'],
+  ['После исключения — почему, просто', Z, 'judge', 'warn', 'audio: после can мостик не нужен\nphoto: скажи «я умею плавать»', 'audio: после can мостик не нужен\naudio: потому что can уже сам говорит, что ты умеешь\nphoto: скажи «я умею плавать»'],
+  ['40% реплик — с маленькой буквы', T, 'auto', 'warn', 'text: Теперь Маша.\ntext: Теперь ты.\ntext: Теперь вместе.', 'text: а теперь Маша\ntext: Теперь ты\ntext: ну вот вместе'],
 ]
 
 const CHECKLIST_META = [

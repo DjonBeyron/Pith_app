@@ -50,4 +50,13 @@ describe('lessonLintMix', () => {
     expect(checkMix([tb('dictator', 'table_correct')]).join()).not.toMatch(/R-table-trigger/)
     expect(checkMix([tb('demo', 'timer')]).join()).not.toMatch(/R-table-trigger/)
   })
+  it('R-lowercase: все реплики с большой — замечание; около 40% с маленькой — нет', () => {
+    const caps = Array.from({ length: 12 }, (_, i) => T('t' + i, 'Реплика ' + i))
+    expect(checkMix(caps).join()).toMatch(/R-lowercase/)
+    const mixed = Array.from({ length: 12 }, (_, i) => T('t' + i, (i % 5 < 2 ? 'реплика ' : 'Реплика ') + i))
+    expect(checkMix(mixed).join()).not.toMatch(/R-lowercase/)
+  })
+  it('R-voice-smiley: озвучка авто-таблицы тоже без смайликов', () => {
+    expect(checkMix([{ ref: 't', type: 'table', data: { mode: 'dictator', script: 'Помнишь про to))' }, triggers: [{ if: 'table_correct', then: null }] }]).join()).toMatch(/R-voice-smiley/)
+  })
 })

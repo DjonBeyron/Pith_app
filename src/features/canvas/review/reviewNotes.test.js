@@ -25,4 +25,9 @@ describe('buildNotesJson', () => {
     expect(j.notes).toHaveLength(1)
     expect(j.notes[0]).toMatchObject({ changed: true, comments: [{ template: '', comment: 'y' }] })
   })
+  it('смена вида ноды тоже правка: type_before и changed', () => {
+    const originals = new Map([['a', { text: 'привет', type: 'audio' }]])
+    const j = buildNotesJson({ notes: [], general: [], items, nodes, originals })
+    expect(j.notes[0]).toMatchObject({ ref: 'a', type: 'text', type_before: 'audio', changed: true })
+  })
 })

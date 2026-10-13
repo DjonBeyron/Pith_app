@@ -11,6 +11,7 @@ import NoteDialog from './NoteDialog.jsx'
 import NotesWindow from './NotesWindow.jsx'
 import { useReviewNotes } from './useReviewNotes.js'
 import { nodeCopyText } from './nodeCopyText.js'
+import { applyTypeChange } from '../nodeDefaults.js'
 import { changedRefs } from './reviewNotes.js'
 import { reviewKey, loadReview, saveReview } from './reviewStorage.js'
 
@@ -39,7 +40,7 @@ export default function LessonReviewPanel({ nodes: initialNodes, zones: initialZ
     if (firstEmit.current) {
       firstEmit.current = false; setBase(list)
       // Правки текста, сохранённые до перезагрузки, возвращаем в копию урока — уже после того, как холст поднялся (base остаётся оригиналом)
-      setTimeout(() => { for (const [id, typeData] of Object.entries(saved?.edits ?? {})) canvasRef.current?.updateNode(id, () => ({ typeData })) }, 0)
+      setTimeout(() => { for (const [id, e] of Object.entries(saved?.edits ?? {})) canvasRef.current?.updateNode(id, () => (e.typeData ? { ...(e.type ? { type: e.type } : {}), ...(e.triggers ? { triggers: e.triggers } : {}), typeData: e.typeData } : { typeData: e })) }, 0)
     }
     setDraft(list)
   }, [saved])
@@ -51,8 +52,11 @@ export default function LessonReviewPanel({ nodes: initialNodes, zones: initialZ
   const edited = changedRefs(store.originalTexts(), nodes)
   // Сохраняем замечания, оригиналы и правки в localStorage — после перезагрузки всё на месте
   useEffect(() => {
-    const edits = Object.fromEntries(edited.map(r => [r, canvasById.get(r)?.typeData]).filter(([, v]) => v))
-    saveReview(key, { notes: store.notes, general: store.general, originals: [...store.originals.current], edits })
+    const id = setTimeout(() => {
+      const edits = Object.fromEntries(edited.map(r => [r, { type: canvasById.get(r)?.type, typeData: canvasById.get(r)?.typeData, triggers: canvasById.get(r)?.triggers }]).filter(([, v]) => v.typeData))
+      saveReview(key, { notes: store.notes, general: store.general, originals: [...store.originals.current], edits })
+    }, 600) // не на каждую букву: запись больших снимков тормозила набор
+    return () => clearTimeout(id)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key, store.notes, store.general, store.version, draft])
   const noted = new Set([...store.notes.map(n => n.ref), ...edited]).size + store.general.length
@@ -69,6 +73,8 @@ export default function LessonReviewPanel({ nodes: initialNodes, zones: initialZ
     setNoteFor(ref)
   }
   // Правка ноды прямо из окна замечания: функция (data) => data для typeData[type] — идёт в копию урока разбора
+  // Смена вида ноды из окна замечания — тем же правилом, что на холсте (триггеры под новый тип, текст переезжает)
+  const changeType = type => canvasRef.current?.updateNode(noteFor, n => applyTypeChange(n, type))
   const patchNode = fn => canvasRef.current?.updateNode(noteFor, n => ({ typeData: { ...n.typeData, [n.type]: fn(n.typeData?.[n.type] ?? {}) } }))
 
   const close = useCallback(() => {
@@ -131,7 +137,7 @@ export default function LessonReviewPanel({ nodes: initialNodes, zones: initialZ
       </div>
       {noteFor && (
         <NoteDialog title={`Замечание к №${nodes.find(n => n.ref === noteFor)?.seq} (${noteFor})`} existing={store.notes.filter(n => n.ref === noteFor)} before={store.originals.current.get(noteFor)}
-          item={items.find(i => i.kind === 'node' && i.ref === noteFor)} canvasNode={canvasById.get(noteFor)} canvasNodes={draft} files={boardProps?.lessonFiles ?? []} onPatch={patchNode}
+          item={items.find(i => i.kind === 'node' && i.ref === noteFor)} canvasNode={canvasById.get(noteFor)} canvasNodes={draft} files={boardProps?.lessonFiles ?? []} onPatch={patchNode} onType={changeType}
           onSave={(t, x) => store.addNote(noteFor, t, x)} onRemove={store.removeNote} onClose={() => setNoteFor(null)} />
       )}
       {notesOpen && <NotesWindow store={store} items={items} nodes={nodes} lessonTitle={boardProps?.lessonTitle ?? ''} onFocus={r => { select(r); setNotesOpen(false) }} onClose={() => setNotesOpen(false)} />}

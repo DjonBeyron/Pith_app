@@ -73,10 +73,24 @@ function checkKsta(nodes) {
 
 const EMOJI_ANY = /\p{Extended_Pictographic}/u
 const BRACKET_SMILEY = /\){2,}|\({2,}|[)(]\s*$/
-/** В голосовых нет смайликов вообще: ни эмодзи, ни скобок-смайлов («))», «(» в конце) — голос их не произнесёт */
+/** В голосовых и в озвучке авто-таблиц (script) нет смайликов вообще: ни эмодзи, ни скобок-смайлов («))», «(» в конце) — голос их не произнесёт */
 function checkVoiceSmileys(nodes) {
-  return nodes.filter(n => n.type === 'audio' && (EMOJI_ANY.test(textOf(n)) || BRACKET_SMILEY.test(textOf(n))))
-    .map(n => `[R-voice-smiley] ${n.ref}: в голосовом сообщении смайлик (эмодзи или скобки) — в голосе их быть не должно, убери`)
+  const spoken = n => (n.type === 'audio' ? textOf(n) : n.type === 'table' ? String(n.data?.script ?? '') : '')
+  return nodes.filter(n => EMOJI_ANY.test(spoken(n)) || BRACKET_SMILEY.test(spoken(n)))
+    .map(n => `[R-voice-smiley] ${n.ref}: в ${n.type === 'table' ? 'озвучке таблицы (script)' : 'голосовом сообщении'} смайлик (эмодзи или скобки) — в голосе их быть не должно, убери`)
+}
+
+const LOWER_SHARE = [0.25, 0.55] // неформальность: ~40% реплик начинаются не с большой буквы
+/** Текстовые и голосовые реплики основного потока: около 40% начинаются с маленькой буквы (подсказки ветки ошибки не считаем: они всегда с маленькой) */
+function checkLowercase(nodes) {
+  const wrong = wrongOnlySet(nodes, /wrong|skip/)
+  const msgs = nodes.filter(n => (n.type === 'text' || n.type === 'audio') && !wrong.has(n.ref) && !isEmojiOnly(n))
+    .map(n => textOf(n).replace(/^[^\p{L}]+/u, '')).filter(t => t)
+  if (msgs.length < 12) return []
+  const share = msgs.filter(t => t[0] === t[0].toLowerCase() && t[0] !== t[0].toUpperCase()).length / msgs.length
+  return share < LOWER_SHARE[0] || share > LOWER_SHARE[1]
+    ? [`[R-lowercase] с маленькой буквы начинается ${Math.round(share * 100)}% реплик, нужно примерно 40% (неформально: «а теперь…», «ну как сказать…», «мы кста…»), остальные с большой`]
+    : []
 }
 
 /** В подсказке ветки ошибки нет «, уже слово»: итоговое слово называется просто, как продолжение фразы */
@@ -93,5 +107,5 @@ function checkTableTriggers(nodes) {
 }
 
 export function checkMix(nodes) {
-  return [...checkTableTriggers(nodes), ...checkKsta(nodes), ...checkVoiceSmileys(nodes), ...checkHintUzhe(nodes), ...checkVoiceShare(nodes), ...checkWrongAudio(nodes), ...checkEmojiShare(nodes), ...checkRepeats(nodes), ...checkTableTitles(nodes)]
+  return [...checkTableTriggers(nodes), ...checkLowercase(nodes), ...checkKsta(nodes), ...checkVoiceSmileys(nodes), ...checkHintUzhe(nodes), ...checkVoiceShare(nodes), ...checkWrongAudio(nodes), ...checkEmojiShare(nodes), ...checkRepeats(nodes), ...checkTableTitles(nodes)]
 }

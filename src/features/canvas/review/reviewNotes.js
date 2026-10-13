@@ -19,16 +19,23 @@ export const NOTE_TEMPLATES = [
 let seq = 0
 export const newNoteId = () => `note-${Date.now().toString(36)}-${(seq++).toString(36)}`
 
-/** Ноды, текст которых автор изменил относительно оригинала (originals: Map ref → текст до правок) */
+const asView = v => (typeof v === 'string' ? { text: v, type: null } : v)
+
+/** Ноды, которые автор изменил относительно оригинала: текст или вид (originals: Map ref → { text, type } до правок; строка тоже годится) */
 export function changedRefs(originals, nodes) {
   const byRef = new Map(nodes.map(n => [n.ref, n]))
-  return [...originals.keys()].filter(r => byRef.has(r) && originals.get(r) !== nodeCopyText(byRef.get(r), { markup: true }))
+  return [...originals.keys()].filter(r => {
+    const n = byRef.get(r)
+    if (!n) return false
+    const o = asView(originals.get(r))
+    return o.text !== nodeCopyText(n, { markup: true }) || (o.type && o.type !== n.type)
+  })
 }
 
 /**
- * JSON замечаний: notes — по порядку ленты, одна запись на ноду, у которой есть замечание ИЛИ правка текста (или и то и другое):
- * ref/seq/тип/ветка, before (оригинал, разметка {g:..} видна), after (как стало), changed, comments — список замечаний (шаблон + текст, может быть пуст,
- * если автор только поправил текст). general — замечания ко всему уроку. originals: Map ref → текст ноды до правок
+ * JSON замечаний: notes — по порядку ленты, одна запись на ноду с замечанием ИЛИ правкой (текста или вида ноды):
+ * ref/seq/тип/ветка, before (оригинал, разметка {g:..} видна), after (как стало), type_before (если вид меняли), changed, comments — список замечаний
+ * (шаблон + текст, может быть пуст, если автор только поправил). general — замечания ко всему уроку. originals: Map ref → { text, type } до правок
  */
 export function buildNotesJson({ notes, general, items, nodes, originals = new Map(), lessonTitle = '' }) {
   const byRef = new Map(nodes.map(n => [n.ref, n]))
@@ -40,14 +47,16 @@ export function buildNotesJson({ notes, general, items, nodes, originals = new M
     format: 'pithy-review-notes',
     version: 3,
     lesson: lessonTitle,
-    hint: 'notes: по одной записи на ноду (ref и seq: идентификаторы ноды в JSON урока), по порядку ленты. before: текст ноды как был (с разметкой {g:}, {u:}…), after: как автор исправил (равен before, если не менял), changed: менял ли, comments: замечания автора (может быть пусто, если он только поправил текст). general: замечания ко всему уроку',
+    hint: 'notes: по одной записи на ноду (ref и seq: идентификаторы ноды в JSON урока), по порядку ленты. before: текст ноды как был (с разметкой {g:}, {u:}…), after: как автор исправил (равен before, если не менял), type: вид ноды сейчас, type_before: каким был (есть, только если автор сменил вид), changed: менял ли текст или вид, comments: замечания автора (может быть пусто, если он только поправил). general: замечания ко всему уроку',
     notes: refs.map((ref, k) => {
       const node = byRef.get(ref)
       const after = node ? nodeCopyText(node, { markup: true }) : ''
-      const before = originals.get(ref) ?? after
+      const o = originals.has(ref) ? asView(originals.get(ref)) : { text: after, type: null }
+      const typeChanged = !!(o.type && node && o.type !== node.type)
       return {
-        order: k + 1, ref, seq: node?.seq ?? null, type: node?.type ?? null, branch: pos.get(ref)?.wrong ? 'ветка ошибки' : 'основная',
-        before, after, changed: before !== after,
+        order: k + 1, ref, seq: node?.seq ?? null, type: node?.type ?? null, ...(typeChanged ? { type_before: o.type } : {}),
+        branch: pos.get(ref)?.wrong ? 'ветка ошибки' : 'основная',
+        before: o.text, after, changed: o.text !== after || typeChanged,
         comments: notes.filter(n => n.ref === ref).map(n => ({ template: n.template || '', comment: n.text || '' })),
       }
     }),

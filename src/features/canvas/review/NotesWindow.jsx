@@ -33,6 +33,7 @@ export default function NotesWindow({ store, items, nodes, lessonTitle, onFocus,
               <div className="rvwNtLink" onClick={() => onFocus(n.ref)} title="Показать в ленте">№{n.seq} · {n.type} · {n.ref}{n.branch === 'ветка ошибки' ? ' · ветка ошибки' : ''}</div>
               {n.changed ? (
                 <>
+                  {n.type_before && <div className="rvwNtQuote"><b>Вид:</b> {n.type_before} → {n.type}</div>}
                   <div className="rvwNtQuote"><b>До:</b> {n.before.slice(0, 200)}</div>
                   <div className="rvwNtQuote"><b>После:</b> {n.after.slice(0, 200)}</div>
                 </>
