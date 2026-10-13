@@ -123,6 +123,14 @@ function checkKeyMarks(nodes) {
   return marked < need ? [`[R-key-mark] подчёркнутых главных мыслей ${marked}, нужно хотя бы ${need}: в каждом объяснении выдели ключевое слово или мысль белым подчёркиванием {l:..} (текст остаётся серым)`] : []
 }
 
+/** Урок (от 30 нод) открывается мягким выбором пути в первых 10 нодах: «сначала объясни основу» / «сразу к практике» (word_choice-меню с переходами variant) */
+function checkStartMenu(nodes) {
+  if (nodes.length < 30) return []
+  const first = [...nodes].sort((a, b) => (a.seq ?? 0) - (b.seq ?? 0)).slice(0, 10)
+  const ok = first.some(n => n.type === 'word_choice' && (n.triggers ?? []).filter(x => x.if === 'variant').length >= 2)
+  return ok ? [] : ['[R-start-menu] в первых 10 нодах нет меню выбора пути — после короткой завязки спроси мягко: «сначала объясни основу» или «сразу к практике» (word_choice с двумя вариантами-переходами, обе опции верные)']
+}
+
 export function checkMix(nodes) {
-  return [...checkKeyMarks(nodes), ...checkPinSystem(nodes), ...checkTableTriggers(nodes), ...checkLowercase(nodes), ...checkKsta(nodes), ...checkVoiceSmileys(nodes), ...checkHintUzhe(nodes), ...checkVoiceShare(nodes), ...checkWrongAudio(nodes), ...checkEmojiShare(nodes), ...checkRepeats(nodes), ...checkTableTitles(nodes)]
+  return [...checkStartMenu(nodes), ...checkKeyMarks(nodes), ...checkPinSystem(nodes), ...checkTableTriggers(nodes), ...checkLowercase(nodes), ...checkKsta(nodes), ...checkVoiceSmileys(nodes), ...checkHintUzhe(nodes), ...checkVoiceShare(nodes), ...checkWrongAudio(nodes), ...checkEmojiShare(nodes), ...checkRepeats(nodes), ...checkTableTitles(nodes)]
 }

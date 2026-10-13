@@ -59,4 +59,10 @@ describe('lessonLintMix', () => {
   it('R-voice-smiley: озвучка авто-таблицы тоже без смайликов', () => {
     expect(checkMix([{ ref: 't', type: 'table', data: { mode: 'dictator', script: 'Помнишь про to))' }, triggers: [{ if: 'table_correct', then: null }] }]).join()).toMatch(/R-voice-smiley/)
   })
+  it('R-start-menu: в уроке от 30 нод без меню пути в начале — замечание', () => {
+    const many = Array.from({ length: 30 }, (_, i) => ({ ref: 'n' + i, seq: i + 1, type: 'text', data: { content: 'реплика ' + i }, triggers: [] }))
+    expect(checkMix(many).join()).toMatch(/R-start-menu/)
+    const menu = { ref: 'm', seq: 3, type: 'word_choice', data: { options: [] }, triggers: [{ if: 'variant', then: 'a' }, { if: 'variant', then: 'b' }] }
+    expect(checkMix([...many.slice(0, 2), menu, ...many.slice(3)]).join()).not.toMatch(/R-start-menu/)
+  })
 })
