@@ -1,10 +1,21 @@
 import { useState, useEffect, useMemo } from 'react'
 import { makeSnapshot, diffSnapshots, pushVersion, markCommented } from './lessonVersions.js'
+import { fromCanvasNodes } from '../lesson-io/lessonLint.js'
 
 const SHOW_KEY = 'pithy-review-showchanges'
 const read = (k, d) => { try { return localStorage.getItem(k) ?? d } catch { return d } }
 const write = (k, v) => { try { localStorage.setItem(k, v) } catch { /* хранилище недоступно */ } }
 const load = key => { try { const v = JSON.parse(localStorage.getItem(key) ?? '[]'); return Array.isArray(v) ? v : [] } catch { return [] } }
+
+/**
+ * Записать версию урока в стопку вне окна разбора: при загрузке урока (первая, базовая) и вокруг импорта JSON (старое состояние → новое). Без этого
+ * «предыдущей версии» не было бы до тех пор, пока разбор не открыли хотя бы раз на старом уроке
+ */
+export function recordLessonVersion(storageId, canvasNodes) {
+  if (!storageId || !canvasNodes?.length) return
+  const key = `pithy-versions:${storageId}`
+  try { localStorage.setItem(key, JSON.stringify(pushVersion(load(key), makeSnapshot(fromCanvasNodes(canvasNodes))))) } catch { /* хранилище недоступно */ }
+}
 
 /**
  * Версии урока в разборе (локально): при открытии текущий урок кладётся в стопку версий (если он отличается от последней), «предыдущая версия» — та, что была до

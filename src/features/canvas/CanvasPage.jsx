@@ -5,6 +5,7 @@ import NodeTypeMenu from './NodeTypeMenu.jsx'
 import CanvasPageToolsMenu from './CanvasPageToolsMenu.jsx'
 import LessonIoPanel from './lesson-io/LessonIoPanel.jsx'
 import LessonReviewPanel from './review/LessonReviewPanel.jsx'
+import { recordLessonVersion } from './review/useLessonVersions.js'
 import BatchGeneratePanel from './batch-gen/BatchGeneratePanel.jsx'
 import CanvasHeaderActions from './CanvasHeaderActions.jsx'
 import { checkNodes, formatIntegrity } from './canvasIntegrity.js'
@@ -102,6 +103,13 @@ export default function CanvasPage({ lessonId, moduleLessons = [], module = null
   const {
     title, setTitle, loading, serverNodes, serverZones, lessonXp, setLessonXp, syncStatus, setSyncStatus,
   } = useCanvasLessonLoad(lessonId, module, applyServerData)
+
+  // Базовая версия для «Изменений» в разборе: состояние урока, с которым открыли страницу (дальше версии пишет импорт и открытие разбора)
+  useEffect(() => {
+    if (loading || !lessonId) return undefined
+    const t = setTimeout(() => recordLessonVersion(lessonId, boardApiRef.current?.getNodes()), 1500)
+    return () => clearTimeout(t)
+  }, [loading, lessonId])
 
   // Сохранение урока на сервер — useCanvasSave.js
   const { isSaving, handleSave: saveToServer } = useCanvasSave({
@@ -256,7 +264,9 @@ export default function CanvasPage({ lessonId, moduleLessons = [], module = null
           title={title}
           lessonId={lessonId}
           onImport={(nodes, zones, mode, links) => {
+            recordLessonVersion(lessonId, boardApiRef.current?.getNodes()) // состояние до импорта — «предыдущая версия» для кнопки «Изменения» в разборе
             boardApiRef.current?.importNodes(nodes, zones, mode)
+            setTimeout(() => recordLessonVersion(lessonId, boardApiRef.current?.getNodes()), 800) // и после
             // Итог виден и после закрытия окна: если связей 0 — это сразу видно,
             // а не выясняется по пустому холсту
             setSyncStatus(`Импортировано: ${nodes.length} нод · ${links} связей` +

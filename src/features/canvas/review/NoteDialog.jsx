@@ -24,12 +24,18 @@ function Side({ label, hint, item, canvasNode, canvasNodes, files, ro, onPatch, 
 export default function NoteDialog({ title, before, item, canvasNode, canvasNodes, files, onPatch, onType, session, existing = [], onSave, onRemove, onClose, onKeep }) {
   const [template, setTemplate] = useState('')
   const [text, setText] = useState('')
+  // Комментарий и шаблон — своя цепочка отмены (фокус в поле комментария)
+  const cmtRef = useRef({ text: '', template: '' })
+  useEffect(() => { cmtRef.current = { text, template } })
+  useEffect(() => { session?.bindComment({ get: () => cmtRef.current, set: (t, tpl) => { setText(t); setTemplate(tpl) } }) }, [session])
+  const typeComment = v => { session?.recordComment(); setText(v) }
+  const pickTemplate = t => { session?.recordComment(); setTemplate(t) }
   const save = () => { onSave(template, text.trim()); (onKeep ?? onClose)() } // замечание добавлено — окно закрывается, правки остаются
   const withNode = !!(item && canvasNode && before)
   const dirty = withNode && session?.dirty()
   // «Закрыть» отменяет всё, что сделано в редакторе (после подтверждения, если что-то менялось); «Сохранить правку» оставляет правки без замечания
   const cancel = () => { if (!dirty || window.confirm('Закрыть? Всё, что вы изменили в редакторе, будет отменено.')) onClose() }
-  // Ctrl/Cmd+Z — отмена, Ctrl+Shift+Z / Ctrl+Y — повтор (в поле комментария работает обычная отмена браузера). Слушаем на документе: после отмены
+  // Ctrl/Cmd+Z — отмена, Ctrl+Shift+Z / Ctrl+Y — повтор: в редакторе ноды откатываются правки ноды, в поле комментария — набор комментария (у каждого своя цепочка). Слушаем на документе: после отмены
   // поля редактора перечитываются и фокус из них уходит — клавиши должны продолжать работать
   const keyRef = useRef(null)
   const dataSeen = item?.node?.data
@@ -37,10 +43,11 @@ export default function NoteDialog({ title, before, item, canvasNode, canvasNode
   useEffect(() => { session?.consumeRestore(dataSeen) }, [dataSeen, typeSeen]) // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     keyRef.current = e => {
-      if (!session || !withNode || !(e.ctrlKey || e.metaKey) || e.target.closest?.('.rvwNtText')) return
+      if (!session || !withNode || !(e.ctrlKey || e.metaKey)) return
       const k = e.key.toLowerCase()
-      if (k === 'z' && !e.shiftKey) { e.preventDefault(); session.undo() }
-      else if ((k === 'z' && e.shiftKey) || k === 'y') { e.preventDefault(); session.redo() }
+      const kind = e.target.closest?.('.rvwNtText') ? 'c' : 'n' // фокус в комментарии — отменяем набор комментария, иначе — правки ноды
+      if (k === 'z' && !e.shiftKey) { e.preventDefault(); session.undo(kind) }
+      else if ((k === 'z' && e.shiftKey) || k === 'y') { e.preventDefault(); session.redo(kind) }
     }
   })
   useEffect(() => {
@@ -56,8 +63,8 @@ export default function NoteDialog({ title, before, item, canvasNode, canvasNode
           <span className="rvwNtHeadBtns">
             {withNode && session && (
               <>
-                <button className="rvwBtn rvwNtIconBtn" title="Отменить (Ctrl+Z), до 30 правок" disabled={!session.counts.u} onClick={session.undo}><Undo2 size={14} />{session.counts.u > 0 && <span>{session.counts.u}</span>}</button>
-                <button className="rvwBtn rvwNtIconBtn" title="Повторить (Ctrl+Shift+Z)" disabled={!session.counts.r} onClick={session.redo}><Redo2 size={14} /></button>
+                <button className="rvwBtn rvwNtIconBtn" title="Отменить (Ctrl+Z), до 30 правок" disabled={!session.counts.u} onClick={() => session.undo('n')}><Undo2 size={14} />{session.counts.u > 0 && <span>{session.counts.u}</span>}</button>
+                <button className="rvwBtn rvwNtIconBtn" title="Повторить (Ctrl+Shift+Z)" disabled={!session.counts.r} onClick={() => session.redo('n')}><Redo2 size={14} /></button>
               </>
             )}
             {dirty && <button className="rvwBtn" title="Оставить правки в тексте без замечания" onClick={onKeep}>Сохранить правку</button>}
@@ -80,9 +87,9 @@ export default function NoteDialog({ title, before, item, canvasNode, canvasNode
             </div>
           )}
           <div className="rvwNtChips">
-            {NOTE_TEMPLATES.map(t => <button key={t} className={`rvwNtChip${template === t ? ' on' : ''}`} onClick={() => setTemplate(template === t ? '' : t)}>{t}</button>)}
+            {NOTE_TEMPLATES.map(t => <button key={t} className={`rvwNtChip${template === t ? ' on' : ''}`} onClick={() => pickTemplate(template === t ? '' : t)}>{t}</button>)}
           </div>
-          <textarea className="rvwNtText" rows={3} autoFocus placeholder="Допиши, как нужно (можно оставить пустым, если хватает шаблона)" value={text} onChange={e => setText(e.target.value)} />
+          <textarea className="rvwNtText" rows={3} autoFocus placeholder="Допиши, как нужно (можно оставить пустым, если хватает шаблона)" value={text} onChange={e => typeComment(e.target.value)} />
           <div className="rvwNtBtns">
             <button className="rvwBtn rvwBtnPrimary" disabled={!template && !text.trim()} onClick={save}>Добавить замечание</button>
           </div>

@@ -134,6 +134,8 @@ const PRINCIPLE_META = [
   ['Живой переход от правила к событию', T, 'judge', 'warn', 'table\ntext: я ночью лезу в холодильник))', 'table\ntext: я кстати ночью постоянно лезу в холодильник))'],
   ['Закрепы и системные сообщения нужны', Q, 'auto', 'warn', '(90 нод, ни одного pin_message)', 'pin_message: {g:trying} / {g:want} + {g:to} + {w:действие}'],
   ['Ответ на очевидный вопрос новичка', Z, 'judge', 'warn', 'assembly: I talk to Masha\n(новичок: а почему не with?)', 'assembly: I talk to Masha\naudio: with тоже значит «с», только про вместе с\nlesson_ref: With'],
+  ['Русская буква-слово со значением — белым жирным', S, 'judge', 'warn', 'audio: with тоже значит с', 'audio: with тоже значит {w:«С»}'],
+  ['Голосовое — одна мысль', Q, 'judge', 'warn', 'audio: to ведёт к человеку. А with тоже значит с, но про вместе с, разберём отдельно', 'audio: to ведёт к человеку\naudio: А with тоже значит с, но про вместе с, разберём отдельно'],
 ]
 
 const CHECKLIST_META = [
