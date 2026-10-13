@@ -3904,7 +3904,7 @@
       "needs": "audio — озвучка реплики",
       "data": {
         "text": "{g:to the park}",
-        "showText": true
+        "showText": false
       },
       "triggers": [
         {
@@ -4014,7 +4014,7 @@
       "needs": "audio — озвучка реплики",
       "data": {
         "text": "{g:go to the park}",
-        "showText": true
+        "showText": false
       },
       "triggers": [
         {

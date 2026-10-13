@@ -40,3 +40,10 @@ describe('checkMedia: шаблон «скажи» и вводные слова',
     expect(checkMedia(nodes).join()).toContain('R-opener')
   })
 })
+
+describe('checkMedia: образец «повтори за мной»', () => {
+  it('голос равен фразе следующего say_phrase — скрытый текст допустим', () => {
+    const nodes = [{ ref: 'a', type: 'audio', data: { text: 'to the park', showText: false }, triggers: [{ if: 'played', then: 's' }] }, { ref: 's', type: 'say_phrase', data: { phrase: 'To the park' }, triggers: [] }]
+    expect(checkMedia(nodes)).toEqual([])
+  })
+})

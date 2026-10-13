@@ -12,7 +12,10 @@ const nextOf = (nodes, n) => nodes.find(x => x.ref === n.triggers?.[0]?.then)
 function checkAudioShowText(nodes) {
   const out = []
   for (const n of nodes.filter(x => x.type === 'audio')) {
-    const listen = LISTEN_NEXT.has(nextOf(nodes, n)?.type)
+    const nx = nextOf(nodes, n)
+    // образец «повтори за мной»: голос равен фразе следующего say_phrase — текст скрыт, ученик слушает
+    const sample = nx?.type === 'say_phrase' && String(n.data?.text ?? '').trim().toLowerCase() === String(nx.data?.phrase ?? '').trim().toLowerCase()
+    const listen = LISTEN_NEXT.has(nx?.type) || sample
     if (!listen && n.data?.showText === false) out.push(`[R-audio-showtext] ${n.ref} (audio): голосовое не «на слух», а текст скрыт — включи «Печатать текст в чате под голосовым» (showText: true)`)
   }
   return out
