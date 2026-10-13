@@ -26,3 +26,17 @@ describe('checkMedia', () => {
     expect(checkMedia([ok])).toEqual([])
   })
 })
+
+describe('checkMedia: шаблон «скажи» и вводные слова', () => {
+  it('R-say-any: нет «любое» в подсказке', () => {
+    const bad = [{ ref: 's', type: 'say_phrase', data: { pattern: 'I can **', hintMismatch: 'Скажи по-своему)' }, triggers: [] }]
+    expect(checkMedia(bad).join()).toContain('R-say-any')
+    const ok = [{ ref: 's', type: 'say_phrase', data: { pattern: 'I can **', hintMismatch: 'Начни с I can и добавь любое слово)' }, triggers: [] }]
+    expect(checkMedia(ok)).toEqual([])
+  })
+  it('R-opener: одно вводное слово в большинстве веток ошибки', () => {
+    const nodes = [{ ref: 'q', type: 'word_choice', data: {}, triggers: Array.from({ length: 6 }, (_, i) => ({ if: 'word_wrong', then: 'w' + i })) }]
+    for (let i = 0; i < 6; i++) nodes.push({ ref: 'w' + i, type: 'text', data: { content: 'хм) подсказка' }, triggers: [] })
+    expect(checkMedia(nodes).join()).toContain('R-opener')
+  })
+})

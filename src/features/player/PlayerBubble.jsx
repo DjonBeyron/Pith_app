@@ -104,7 +104,7 @@ function hDetail(el) {
   return parts.join(' ')
 }
 
-export default function PlayerBubble({ className, children, follow = false }) {
+export default function PlayerBubble({ className, children, follow = false, style }) {
   const ref       = useRef(null)
   const stRef     = useRef({ prevH: null, tid: null, target: null, retries: 0, gaveUp: false, frozen: false })
   const readyRef  = useRef(false)
@@ -275,5 +275,5 @@ export default function PlayerBubble({ className, children, follow = false }) {
   // у пузыря: на пузыре может висеть эмодзи-реакция за краем); внутри него
   // ::before едет transform'ом, см. text.css
   const sheen = className?.includes('playerMsgBubble--responseOk')
-  return <div ref={ref} className={className}>{children}{sheen && <i className="playerSheen" aria-hidden="true" />}</div>
+  return <div ref={ref} className={className} style={style}>{children}{sheen && <i className="playerSheen" aria-hidden="true" />}</div>
 }

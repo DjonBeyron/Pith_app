@@ -153,7 +153,7 @@ export default function LessonReviewPanel({ nodes: initialNodes, zones: initialZ
           Применить{diff.changed.length ? ` (${diff.changed.length})` : ''}
         </button>
       </div>
-      <div className={`rvwCols${rulesOff ? ' rvwRulesOff' : ''}`}>
+      <div className={`rvwCols${rulesOff ? ' rvwRulesOff' : ''}${noteFor ? ' rvwColsBehind' : ''}`}>
         <div className="rvwRight">
           <button className="rvwRulesToggle" onClick={toggleRules} title={rulesOff ? 'Развернуть правила' : 'Свернуть правила'}>{rulesOff ? '›' : '‹ Правила'}</button>
           {!rulesOff && <RulesPane node={sel} warnings={sel ? warnMap.get(sel.ref) ?? [] : []} rules={rules} busy={busy} onAdd={addFull} />}

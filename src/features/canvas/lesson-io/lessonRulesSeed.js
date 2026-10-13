@@ -148,6 +148,10 @@ const PRINCIPLE_META = [
   ['Голосовое: печатать текст', V, 'auto', 'warn', 'audio (showText: false)\nword_choice? — нет, это не на слух', 'audio (showText: true) → текст виден\naudio (showText: false) → word_choice на слух'],
   ['Авто-таблица — в чат', Z, 'auto', 'warn', 'table dictator без sendToChat\nзаголовок «Дальше»', 'table dictator + sendToChat: true\nзаголовок «Действие»'],
   ['Зелёная фраза на новой строке', S, 'auto', 'warn', 'text: давай проверим, где прячется мостик: {g:I love ___ travel}', 'text (hardWrap): давай проверим, где прячется мостик:\n{g:I love ___ travel}'],
+  ['Задание не подсказывает ответ', Z, 'judge', 'warn', 'text: напечатай «идти на работу»: go, мостик и work', 'text: напечатай «идти на работу»: сначала go, потом мостик, а слово дальше найди сам'],
+  ['Говорение: любое слово дальше', Z, 'auto', 'warn', 'say_phrase pattern «I have to **»\nhint: начни с I have to', 'say_phrase pattern «I have to **»\nhint: начни с I have to и добавь любое слово, например work'],
+  ['Практика без повторов и не слишком лёгкая', Z, 'judge', 'warn', 'choice: I need ___ eat (to / too / at)\nснова фраза из объяснения', 'choice: выбери верную фразу «мне нужно позвонить маме»\nновая фраза уровня'],
+  ['Вводные слова веток ошибки чередуются', T, 'auto', 'warn', 'хм) …\nхм) …\nхм) …\nэээмм) …', 'не совсем) …\nблизко) …\nне то) …\nнеа) …'],
 ]
 
 const CHECKLIST_META = [

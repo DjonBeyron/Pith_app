@@ -9,7 +9,7 @@ import MgLessonBody from './MgLessonBody.jsx'
 import { wordKey } from '../../shared/lib/wordAudio/wordKey.js'
 import { useLessonsProgress } from './useLessonsProgress.js'
 import LessonLockedHint from './LessonLockedHint.jsx'
-import { preloadSounds, playSound } from '../../shared/lib/sounds.js'
+import { preloadSounds, playSound, unlockAudio } from '../../shared/lib/sounds.js'
 import { useChainScroll } from './useChainScroll.js'
 import { useChainArcs } from './useChainArcs.js'
 import { MgBtns, MgRenameInput } from './MgControls.jsx'
@@ -222,7 +222,7 @@ export default function ModuleGraph({
     // play() вне жеста у свежего элемента стартовал с задержкой ~700 мс.
     // preloadSounds() идемпотентен — создаст элемент, если первого касания
     // (usePreloadSoundsOnTap) ещё не было
-    if (!isAdmin && id !== start.id && !startDoneShown && !unlocked) { preloadSounds(); playSound('lesson-locked', 'тап по закрытому уроку'); setLockedHint(true); return }
+    if (!isAdmin && id !== start.id && !startDoneShown && !unlocked) { preloadSounds(); unlockAudio(); playSound('lesson-locked', 'тап по закрытому уроку'); setLockedHint(true); return }
     // У не-админа нет управляющих кнопок — клик по блоку сразу запускает урок.
     if (!isAdmin) { onPlay(id); return }
     if (window.matchMedia('(hover: none)').matches) setTapped(p => p === id ? null : id)

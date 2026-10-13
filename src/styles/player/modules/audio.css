@@ -44,7 +44,7 @@
   background: transparent !important;
   border-radius: 4px 18px 18px 18px;
   width: fit-content;
-  min-width: min(30vw, 168px);
+  min-width: min(94%, calc(min(30vw, 168px) + var(--audio-dur, 0) * 8px));
   max-width: 94%;
   display: flex;
   flex-direction: column;
@@ -60,8 +60,11 @@
    всё равно проще и предсказуемее. min(30vw,168px) — см. комментарий выше,
    значение держим в паре с min-width там же. */
 .playerMsgBubble--audioNoText {
-  width: min(30vw, 168px);
+  width: min(94%, calc(min(30vw, 168px) + var(--audio-dur, 0) * 8px));
 }
+
+/* Ширина голосового растёт с длиной записи: минимум min(30vw,168px), +8px на секунду (до 20 с), максимум 94% ряда.
+   --audio-dur выставляет AudioModule из длительности записи */
 
 .playerAudioTextGhost {
   height: 0;

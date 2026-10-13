@@ -465,7 +465,7 @@
         480
       ],
       "data": {
-        "content": "близко) после {g:want} нужен мостик {g:to}, а потом действие, {g:sleep}",
+        "content": "не то) после {g:want} нужен мостик {g:to}, а потом действие, {g:sleep}",
         "hardWrap": false
       },
       "triggers": [
@@ -786,7 +786,7 @@
         480
       ],
       "data": {
-        "content": "не то) после {g:need} нужен мостик {g:to}, а потом действие, {g:eat}, без окончаний",
+        "content": "не совсем) после {g:need} нужен мостик {g:to}, а потом действие, {g:eat}, без окончаний",
         "hardWrap": false
       },
       "triggers": [
@@ -903,7 +903,7 @@
         480
       ],
       "data": {
-        "content": "хм) {g:need} значит {t:нужно}, поэтому {g:We need to leave} это {t:нам нужно уйти}",
+        "content": "не то) {g:need} значит {t:нужно}, поэтому {g:We need to leave} это {t:нам нужно уйти}",
         "hardWrap": false
       },
       "triggers": [
@@ -1022,7 +1022,7 @@
         480
       ],
       "data": {
-        "content": "близко) после {g:have} тоже нужен мостик {g:to}, а потом действие, {g:work}",
+        "content": "но нет) после {g:have} тоже нужен мостик {g:to}, а потом действие, {g:work}",
         "hardWrap": false
       },
       "triggers": [
@@ -1118,7 +1118,7 @@
         480
       ],
       "data": {
-        "content": "хм) после {g:love} тоже нужен мостик {g:to}, получится {g:I love to travel}",
+        "content": "не то) после {g:love} тоже нужен мостик {g:to}, получится {g:I love to travel}",
         "hardWrap": false
       },
       "triggers": [
@@ -1297,7 +1297,7 @@
         480
       ],
       "data": {
-        "content": "близко) нужны оба слова: мостик {g:to} и ещё {g:the}, получится {g:We go to the gym}. Про {g:the} ты можешь узнать в отдельном уроке",
+        "content": "но нет) нужны оба слова: мостик {g:to} и ещё {g:the}, получится {g:We go to the gym}. Про {g:the} ты можешь узнать в отдельном уроке",
         "hardWrap": false
       },
       "triggers": [
@@ -2053,7 +2053,7 @@
         480
       ],
       "data": {
-        "content": "неа) сначала {g:go}, потом мостик {g:to}, потом {g:bed}",
+        "content": "но нет) сначала {g:go}, потом мостик {g:to}, потом {g:bed}",
         "hardWrap": false
       },
       "triggers": [
@@ -2170,7 +2170,7 @@
         480
       ],
       "data": {
-        "content": "не то) {g:listen to} это {t:слушать}, поэтому {g:I listen to music} это {t:я слушаю музыку}",
+        "content": "близко) {g:listen to} это {t:слушать}, поэтому {g:I listen to music} это {t:я слушаю музыку}",
         "hardWrap": false
       },
       "triggers": [
@@ -2309,7 +2309,7 @@
         480
       ],
       "data": {
-        "content": "близко) после {g:can} мостик {g:to} не нужен, просто {g:I can swim}",
+        "content": "неа) после {g:can} мостик {g:to} не нужен, просто {g:I can swim}",
         "hardWrap": false
       },
       "triggers": [
@@ -2372,7 +2372,7 @@
       "data": {
         "voiceReply": false,
         "hintSilence": "Не слышу тебя) говори чуть громче и ближе к микрофону",
-        "hintMismatch": "Начни с I want to, а дальше что угодно, не бойся)",
+        "hintMismatch": "Начни с I want to и добавь любое слово, например dance)",
         "hintPartial": "Близко) верно: {ok}, не хватило: {missed}",
         "phrase": "I want to dance",
         "translation": "Я хочу танцевать",
@@ -2418,7 +2418,7 @@
         480
       ],
       "data": {
-        "content": "эээмм... начни с {g:I want to}, дальше что угодно)",
+        "content": "близко) начни с {g:I want to} и добавь любое слово)",
         "hardWrap": false
       },
       "triggers": [
@@ -2461,7 +2461,7 @@
       "data": {
         "voiceReply": false,
         "hintSilence": "Не слышу тебя) говори чуть громче и ближе к микрофону",
-        "hintMismatch": "Начни с I'm trying to, а дальше что угодно)",
+        "hintMismatch": "Начни с I'm trying to и добавь любое слово, например relax)",
         "hintPartial": "Близко) верно: {ok}, не хватило: {missed}",
         "phrase": "I'm trying to relax",
         "translation": "Я пытаюсь расслабиться",
@@ -2507,7 +2507,7 @@
         480
       ],
       "data": {
-        "content": "близко) нужно сказать {g:I'm trying to} и любое действие)",
+        "content": "неа) нужно сказать {g:I'm trying to} и любое действие)",
         "hardWrap": false
       },
       "triggers": [
@@ -2859,7 +2859,7 @@
         0
       ],
       "data": {
-        "content": "ну что, с {g:to} ты уже дружишь, давай проверим, как оно работает в деле",
+        "content": "ну что, с {g:to} ты уже знаком, давай проверим, как оно работает в деле",
         "hardWrap": false
       },
       "triggers": [
@@ -3014,7 +3014,7 @@
         480
       ],
       "data": {
-        "content": "близко) после {g:want} нужен {l:мостик} {g:to}, а потом действие, {g:travel}",
+        "content": "не совсем) после {g:want} нужен {l:мостик} {g:to}, а потом действие, {g:travel}",
         "hardWrap": false
       },
       "triggers": [
@@ -3110,7 +3110,7 @@
         480
       ],
       "data": {
-        "content": "не то) после {g:needs} тоже нужен {l:мостик} {g:to}, получится {g:She needs to rest}",
+        "content": "неа) после {g:needs} тоже нужен {l:мостик} {g:to}, получится {g:She needs to rest}",
         "hardWrap": false
       },
       "triggers": [
@@ -3227,7 +3227,7 @@
         480
       ],
       "data": {
-        "content": "хм) {g:love to} это {t:любить делать что-то}, поэтому {g:We love to dance} это {t:мы любим танцевать}",
+        "content": "не совсем) {g:love to} это {t:любить делать что-то}, поэтому {g:We love to dance} это {t:мы любим танцевать}",
         "hardWrap": false
       },
       "triggers": [
@@ -3247,7 +3247,7 @@
         0
       ],
       "data": {
-        "content": "теперь напечатай {t:«идти на работу»}: {g:go}, мостик и {g:work}, три слова",
+        "content": "теперь напечатай {t:«идти на работу»}: сначала {g:go}, потом мостик, а слово дальше найди сам",
         "hardWrap": false
       },
       "triggers": [
@@ -3311,7 +3311,7 @@
         480
       ],
       "data": {
-        "content": "неа) сначала {g:go}, потом мостик {g:to}, потом {g:work}",
+        "content": "не то) сначала {g:go}, потом мостик {g:to}, потом {g:work}",
         "hardWrap": false
       },
       "triggers": [
@@ -3647,7 +3647,7 @@
         480
       ],
       "data": {
-        "content": "близко) после {g:trying} нужен {l:мостик} {g:to}, а потом действие, {g:relax}",
+        "content": "не совсем) после {g:trying} нужен {l:мостик} {g:to}, а потом действие, {g:relax}",
         "hardWrap": false
       },
       "triggers": [
@@ -3666,10 +3666,10 @@
         66780,
         0
       ],
-      "note": "ОЗВУЧКА: Теперь скажи сам: что тебе нужно сделать сегодня, начни с I have to",
+      "note": "ОЗВУЧКА: Теперь скажи сам: что тебе нужно сделать сегодня, начни с I have to, а дальше добавь любое слово",
       "needs": "audio — озвучка реплики",
       "data": {
-        "text": "Теперь скажи сам: что тебе нужно сделать сегодня, начни с {g:I have to}",
+        "text": "Теперь скажи сам: что тебе нужно сделать сегодня, начни с {g:I have to}, а дальше добавь любое слово",
         "showText": true
       },
       "triggers": [
@@ -3690,7 +3690,7 @@
       "data": {
         "voiceReply": false,
         "hintSilence": "Не слышу тебя) говори чуть громче и ближе к микрофону",
-        "hintMismatch": "Начни с I have to, а дальше что угодно, не бойся)",
+        "hintMismatch": "Начни с I have to и добавь любое слово, например work)",
         "hintPartial": "Близко) верно: {ok}, не хватило: {missed}",
         "phrase": "I have to work",
         "translation": "Мне нужно работать",
@@ -3736,7 +3736,7 @@
         480
       ],
       "data": {
-        "content": "эээмм... начни с {g:I have to}, дальше что угодно)",
+        "content": "не то) начни с {g:I have to} и добавь любое слово)",
         "hardWrap": false
       },
       "triggers": [
@@ -3756,7 +3756,7 @@
         0
       ],
       "data": {
-        "content": "теперь напечатай {t:«говорить с Машей»}: {g:talk}, мостик и {g:Masha}",
+        "content": "теперь напечатай {t:«говорить с Машей»}: сначала {g:talk}, потом мостик, а имя допиши сам",
         "hardWrap": false
       },
       "triggers": [
@@ -3820,7 +3820,7 @@
         480
       ],
       "data": {
-        "content": "хм) {g:talk}, потом мостик {g:to}, потом {g:Masha}",
+        "content": "но нет) {g:talk}, потом мостик {g:to}, потом {g:Masha}",
         "hardWrap": false
       },
       "triggers": [
@@ -3839,10 +3839,10 @@
         80580,
         0
       ],
-      "note": "ОЗВУЧКА: Ты уже уверенно строишь фразы, а теперь будем повторять за мной",
+      "note": "ОЗВУЧКА: Ты уже уверенно строишь фразы, а теперь повторяй за мной",
       "needs": "audio — озвучка реплики",
       "data": {
-        "text": "Ты уже уверенно строишь фразы, а теперь будем повторять за мной",
+        "text": "Ты уже уверенно строишь фразы, а теперь повторяй за мной",
         "showText": true
       },
       "triggers": [
@@ -3879,10 +3879,10 @@
         72000,
         0
       ],
-      "note": "ОЗВУЧКА: Соберём длинную фразу с конца, кусок за куском, а ты копируй мой ритм и ударение",
+      "note": "ОЗВУЧКА: Соберём длинную фразу с конца, кусок за куском: я говорю кусочек, а ты повторяешь его вслух за мной, копируя ритм и ударение",
       "needs": "audio — озвучка реплики",
       "data": {
-        "text": "Соберём длинную фразу с конца, кусок за куском, а ты копируй мой ритм и ударение",
+        "text": "Соберём длинную фразу с конца, кусок за куском: я говорю кусочек, а ты повторяешь его вслух за мной, копируя ритм и ударение",
         "showText": true
       },
       "triggers": [
@@ -3905,8 +3905,8 @@
         "hintSilence": "Не слышу тебя) говори чуть громче и ближе к микрофону",
         "hintMismatch": "Послушай и повтори с тем же ритмом)",
         "hintPartial": "Близко) верно: {ok}, не хватило: {missed}",
-        "phrase": "to the gym",
-        "translation": "в спортзал",
+        "phrase": "to the park",
+        "translation": "в парк",
         "listenAudio": true
       },
       "triggers": [
@@ -3949,7 +3949,7 @@
         480
       ],
       "data": {
-        "content": "не совсем) копируй ритм, {g:to the gym}",
+        "content": "не то) копируй ритм, {g:to the park}",
         "hardWrap": false
       },
       "triggers": [
@@ -3994,8 +3994,8 @@
         "hintSilence": "Не слышу тебя) говори чуть громче и ближе к микрофону",
         "hintMismatch": "Те же слова и тот же ритм, повтори за мной)",
         "hintPartial": "Близко) верно: {ok}, не хватило: {missed}",
-        "phrase": "go to the gym",
-        "translation": "идти в спортзал",
+        "phrase": "go to the park",
+        "translation": "идти в парк",
         "listenAudio": true
       },
       "triggers": [
@@ -4038,7 +4038,7 @@
         480
       ],
       "data": {
-        "content": "неа) добавь {g:go} в начало:\n{g:go to the gym}",
+        "content": "но нет) добавь {g:go} в начало:\n{g:go to the park}",
         "hardWrap": true
       },
       "triggers": [
@@ -4081,8 +4081,8 @@
       "note": "ФОТО: сгенерировать в редакторе по imagePrompt",
       "needs": "photo",
       "data": {
-        "caption": "собери {t:«мы идём в спортзал»}",
-        "imagePrompt": "Мультяшные парень и девушка с сумками весело идут по улице к спортзалу, утро, без текста на картинке"
+        "caption": "собери {t:«мы идём в парк»}",
+        "imagePrompt": "Мультяшные парень и девушка с сумками весело идут по улице к парку, утро, без текста на картинке"
       },
       "triggers": [
         {
@@ -4106,7 +4106,7 @@
           "go",
           "to",
           "the",
-          "gym"
+          "park"
         ],
         "distractors": [
           {
@@ -4116,7 +4116,7 @@
             "text": "goes"
           }
         ],
-        "responseWrong": "не совсем) нужны слова: мы, идём, мостик, артикль и спортзал"
+        "responseWrong": "не совсем) нужны слова: мы, идём, мостик, артикль и парк"
       },
       "triggers": [
         {
@@ -4158,7 +4158,7 @@
         480
       ],
       "data": {
-        "content": "близко) {g:We go to the gym}, мостик {g:to} и артикль {g:the}",
+        "content": "близко) {g:We go to the park}, мостик {g:to} и артикль {g:the}",
         "hardWrap": false
       },
       "triggers": [
@@ -4256,7 +4256,7 @@
         480
       ],
       "data": {
-        "content": "близко) склей два куска: {g:I want to} и {g:talk to Masha}",
+        "content": "но нет) склей два куска: {g:I want to} и {g:talk to Masha}",
         "hardWrap": false
       },
       "triggers": [
@@ -4294,13 +4294,13 @@
         81700,
         0
       ],
-      "note": "ОЗВУЧКА таблицы: А вот три случая без мостика. После can просто действие, I can help. После will тоже просто действие, I will call you. И домой это просто home, без to, we go home",
+      "note": "ОЗВУЧКА таблицы: Ещё помнишь три случая без мостика. После can просто действие, I can help. После will тоже просто действие, I will call you. И домой это просто home, без to, we go home",
       "needs": "audio — озвучка таблицы по script, дорожки подсветки нарезать в редакторе",
       "data": {
         "mode": "dictator",
         "sendToChat": true,
         "chatCaption": "когда мостик не нужен",
-        "script": "А вот три случая без мостика. После can просто действие, I can help. После will тоже просто действие, I will call you. И домой это просто home, без to, we go home",
+        "script": "Ещё помнишь три случая без мостика. После can просто действие, I can help. После will тоже просто действие, I will call you. И домой это просто home, без to, we go home",
         "table": {
           "rows": [
             {
@@ -4742,7 +4742,7 @@
         480
       ],
       "data": {
-        "content": "не то) после {g:will} мостик {g:to} тоже не нужен, просто {g:I will call you}",
+        "content": "неа) после {g:will} мостик {g:to} тоже не нужен, просто {g:I will call you}",
         "hardWrap": false
       },
       "triggers": [
@@ -4762,7 +4762,7 @@
         0
       ],
       "data": {
-        "content": "без {g:to}: после {g:can}, {g:will} и в слове {g:home}"
+        "content": "мостик не нужен: {g:can} + действие, {g:will} + действие, {g:go home}"
       },
       "triggers": [
         {
@@ -4940,7 +4940,7 @@
         480
       ],
       "data": {
-        "content": "близко) {g:need to}, а потом ещё один {g:to}: {g:I need to talk to Masha}, сначала мостик к действию, потом к человеку",
+        "content": "неа) {g:need to}, а потом ещё один {g:to}: {g:I need to talk to Masha}, сначала мостик к действию, потом к человеку",
         "hardWrap": false
       },
       "triggers": [
@@ -4983,7 +4983,7 @@
       "data": {
         "voiceReply": false,
         "hintSilence": "Не слышу тебя) говори чуть громче и ближе к микрофону",
-        "hintMismatch": "Начни с I need to talk to, а потом имя)",
+        "hintMismatch": "Начни с I need to talk to и добавь любое имя)",
         "hintPartial": "Близко) верно: {ok}, не хватило: {missed}",
         "phrase": "I need to talk to Masha",
         "translation": "Мне нужно поговорить с Машей",
@@ -5029,7 +5029,7 @@
         480
       ],
       "data": {
-        "content": "хм) нужно сказать {g:I need to talk to} и любое имя)",
+        "content": "не совсем) нужно сказать {g:I need to talk to} и добавить любое имя)",
         "hardWrap": false
       },
       "triggers": [
@@ -5167,7 +5167,7 @@
         480
       ],
       "data": {
-        "content": "но нет) {g:has to} значит {t:нужно}, а {g:late} это {t:поздно}, поэтому {g:She has to work late} это {t:ей нужно работать допоздна}",
+        "content": "неа) {g:has to} значит {t:нужно}, а {g:late} это {t:поздно}, вместе {g:She has to work late} это {t:ей нужно работать допоздна}",
         "hardWrap": false
       },
       "triggers": [
@@ -5227,7 +5227,7 @@
         0
       ],
       "data": {
-        "content": "на скорость ⏱ {g:I need ___ eat}",
+        "content": "на скорость ⏱ выбери верную фразу: {t:«мне нужно позвонить маме»}",
         "hardWrap": false
       },
       "triggers": [
@@ -5249,15 +5249,15 @@
       "data": {
         "options": [
           {
-            "text": "to",
+            "text": "I need to call mom",
             "isCorrect": true
           },
           {
-            "text": "too",
+            "text": "I need call mom",
             "isCorrect": false
           },
           {
-            "text": "at",
+            "text": "I need too call mom",
             "isCorrect": false
           }
         ],
@@ -5304,7 +5304,7 @@
         480
       ],
       "data": {
-        "content": "эээмм... после {g:need} нужен мостик {g:to}:\n{g:I need to eat}",
+        "content": "не совсем) после {g:need} нужен мостик {g:to}:\n{g:I need to call mom}",
         "hardWrap": true
       },
       "triggers": [
@@ -5401,7 +5401,7 @@
         480
       ],
       "data": {
-        "content": "близко) {g:We try to help}, после {g:try} тоже нужен мостик {g:to}",
+        "content": "не то) {g:We try to help}, после {g:try} тоже нужен мостик {g:to}",
         "hardWrap": false
       },
       "triggers": [
@@ -5421,7 +5421,7 @@
         0
       ],
       "data": {
-        "content": "и ещё быстрее ⏱ {g:She wants ___ sleep}",
+        "content": "и ещё быстрее ⏱ {t:«она хочет спать»}",
         "hardWrap": false
       },
       "triggers": [
@@ -5443,15 +5443,15 @@
       "data": {
         "options": [
           {
-            "text": "to",
+            "text": "She wants to sleep",
             "isCorrect": true
           },
           {
-            "text": "too",
+            "text": "She want to sleep",
             "isCorrect": false
           },
           {
-            "text": "at",
+            "text": "She wants sleep",
             "isCorrect": false
           }
         ],
@@ -5498,7 +5498,7 @@
         480
       ],
       "data": {
-        "content": "хм) после {g:wants} тоже нужен {g:to}:\n{g:She wants to sleep}",
+        "content": "не совсем) после {g:wants} тоже нужен {g:to}:\n{g:She wants to sleep}",
         "hardWrap": true
       },
       "triggers": [
@@ -5580,7 +5580,7 @@
       "data": {
         "voiceReply": false,
         "hintSilence": "Не слышу тебя) говори чуть громче и ближе к микрофону",
-        "hintMismatch": "Скажи по-своему)",
+        "hintMismatch": "Начни с I can и добавь любое слово, например help)",
         "hintPartial": "Близко) верно: {ok}, не хватило: {missed}",
         "phrase": "I can help you",
         "translation": "Я могу тебе помочь",
@@ -5626,7 +5626,7 @@
         480
       ],
       "data": {
-        "content": "эээмм... скажи {g:I can} и что-то дальше)",
+        "content": "не то) начни так: {g:I can}, это {t:я могу}, и добавь любое слово, например {g:help you}",
         "hardWrap": false
       },
       "triggers": [
@@ -5755,7 +5755,7 @@
       "data": {
         "voiceReply": false,
         "hintSilence": "Не слышу тебя) говори чуть громче и ближе к микрофону",
-        "hintMismatch": "Начни с I need to talk to)",
+        "hintMismatch": "Начни с I need to talk to и добавь любое слово, например you)",
         "hintPartial": "Близко) верно: {ok}, не хватило: {missed}",
         "phrase": "I need to talk to you",
         "translation": "Мне нужно с тобой поговорить",
@@ -5801,7 +5801,7 @@
         480
       ],
       "data": {
-        "content": "хм) нужно сказать {g:I need to talk to} и кому)",
+        "content": "не то) начни так: {g:I need to talk to}, это {t:мне нужно поговорить с}, и добавь любое слово, например {g:you}",
         "hardWrap": false
       },
       "triggers": [
@@ -5860,7 +5860,7 @@
         0
       ],
       "data": {
-        "content": "Супер, теперь {g:to} у тебя в кармане, а я кста пойду готовить 😄",
+        "content": "вот и всё, с {g:to} теперь всё понятно) кста, пока ты тренировался, я проголодался, пойду готовить 😄",
         "hardWrap": false
       },
       "triggers": [

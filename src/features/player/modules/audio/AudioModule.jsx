@@ -340,7 +340,7 @@ export default function AudioModule({ node, file, onDone, adminPreview = false, 
 
   return (
     <div className="playerMsgRow">
-      <PlayerBubble className={bubbleClass}>
+      <PlayerBubble className={bubbleClass} style={duration ? { '--audio-dur': Math.min(duration, 20) } : undefined}>
         {/* data-voice: это речь, а не немая петля — для useSoloMedia при «без звука» */}
         {src && <audio key={elKey} ref={audioRef} src={src} preload="auto" muted={muted} data-voice="" />}
         <div className="playerAudio">

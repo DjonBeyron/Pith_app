@@ -72,8 +72,6 @@ const asHistory = node => {
   let c = HISTORY.get(node)
   if (!c) {
     c = { ...node, isHistory: true }
-    // Голосовое со скрытой расшифровкой в разборе показываем с текстом: автор должен видеть, что в нём сказано
-    if (node.type === 'audio' && node.typeData?.audio?.showText === false) c.typeData = { ...node.typeData, audio: { ...node.typeData.audio, showText: true } }
     HISTORY.set(node, c)
   }
   return c
@@ -125,6 +123,9 @@ export function SlotBody({ item, canvasNode, canvasNodes, files, teacherName = '
       </div>
     )
   }
+  // Голосовое без печати (showText: false): у ученика текста нет, поэтому в разборе он отдельной серой строкой под пузырём — автор видит, что сказано
+  const hiddenText = canvasNode.type === 'audio' && canvasNode.typeData?.audio?.showText === false
+  if (hiddenText) return <>{msg(undefined)}<div className="rvwHiddenText" title="У ученика этот текст не печатается (голос «на слух»)">🔇 {nodeCopyText(item.node)}</div></>
   return msg(undefined)
 }
 

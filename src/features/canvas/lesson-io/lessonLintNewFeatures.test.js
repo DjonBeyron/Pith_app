@@ -41,7 +41,7 @@ describe('линтер: свободная фраза и сигнал у «Ск�
   ]
 
   it('чистая нода с шаблоном и сигналом на слот 0', () => {
-    expect(lintLesson(say({ pattern: 'I (try|am trying) to **', signals: [{ slot: 0, ref: 'n4' }] }))).toEqual([])
+    expect(lintLesson(say({ pattern: 'I (try|am trying) to **', hintMismatch: 'Добавь любое слово', signals: [{ slot: 0, ref: 'n4' }] }))).toEqual([])
   })
 
   it('подсказка-сигнал не должна произносить всю фразу: слово можно, фразу целиком нет', () => {

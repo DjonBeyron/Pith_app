@@ -1,6 +1,8 @@
 // Проверки голоса, таблиц и мелочей текста: печать голосового, «отправить в чат» у авто-таблиц, опечатки, перенос зелёной фразы.
 // Чистые функции на формате обмена ({ ref, type, data, triggers }) после applyMarkup, возвращают строки-замечания.
 
+import { wrongOnlySet } from './lessonLintFlow.js'
+
 const LISTEN_NEXT = new Set(['word_choice', 'type_word', 'phrase_assembly']) // задания «на слух»: текст голоса скрыт
 const TYPOS = /сказажи|скажы|праверь|правельно|пожалуста|нармально|ашибк|скозать|щас\b|чтоб\s+бы/i
 
@@ -40,6 +42,24 @@ function checkGreenWrap(nodes) {
   return out
 }
 
+/** Задание «скажи с шаблоном» (pattern с **): подсказка при ошибке мягко говорит, что можно добавить любое слово */
+function checkSayAny(nodes) {
+  return nodes.filter(n => n.type === 'say_phrase' && String(n.data?.pattern ?? '').includes('**') && !/любо[еой]/i.test(String(n.data?.hintMismatch ?? '')))
+    .map(n => `[R-say-any] ${n.ref} (say_phrase): в задании с шаблоном hintMismatch не говорит, что можно добавить любое слово — допиши («начни с … и добавь любое слово»)`)
+}
+
+/** Вводные слова веток ошибки («хм)», «не совсем)»…) чередуются: одно слово — не больше четверти веток; «хм»/«эээмм» — не больше двух */
+function checkOpeners(nodes) {
+  const wrong = wrongOnlySet(nodes, /wrong|skip/)
+  const open = nodes.filter(n => n.type === 'text' && wrong.has(n.ref)).map(n => ({ ref: n.ref, w: (String(n.data?.content ?? '').match(/^\s*([а-яёa-z.… ]+?)\)/i)?.[1] ?? '').toLowerCase().replace(/[.…]+$/, '') })).filter(o => o.w)
+  if (open.length < 6) return []
+  const cnt = new Map()
+  for (const o of open) cnt.set(o.w, (cnt.get(o.w) ?? 0) + 1)
+  const cap = Math.ceil(open.length / 4)
+  return [...cnt].filter(([w, c]) => c > cap || (/^(хм+|э+м+)$/.test(w) && c > 2))
+    .map(([w, c]) => `[R-opener] вводное «${w})» в ${c} из ${open.length} веток ошибки — чередуй: «не совсем», «близко», «не то», «неа», «но нет»`)
+}
+
 export function checkMedia(nodes) {
-  return [...checkAudioShowText(nodes), ...checkTableChat(nodes), ...checkTypos(nodes), ...checkGreenWrap(nodes)]
+  return [...checkSayAny(nodes), ...checkOpeners(nodes), ...checkAudioShowText(nodes), ...checkTableChat(nodes), ...checkTypos(nodes), ...checkGreenWrap(nodes)]
 }
