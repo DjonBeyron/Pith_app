@@ -5,7 +5,7 @@ describe('разметка выделений', () => {
   it('метки превращаются в чистый текст и highlights с правильными позициями', () => {
     const { text, highlights } = parseMarkup('Форма {g:tries} здесь')
     expect(text).toBe('Форма tries здесь')
-    expect(highlights[0]).toMatchObject({ start: 0, end: 17, mode: 'text', color: '#ffffff', opacity: 0.75 })
+    expect(highlights[0]).toMatchObject({ start: 0, end: 17, mode: 'text', color: '#c6c6c6', opacity: 1 })
     expect(highlights.filter(h => h.start === 6 && h.end === 11).map(h => h.mode)).toEqual(['text', 'bold'])
   })
   it('цвет всегда идёт вместе с bold; подчёркнутое тоже bold', () => {
@@ -29,7 +29,7 @@ describe('разметка выделений', () => {
     const d = { content: 'привет', highlights: [{ start: 0, end: 3, mode: 'bold' }] }
     expect(applyMarkup(d)).toBe(d)
     expect(hasMarkup('привет')).toBe(false)
-    expect(applyMarkup({ content: 'привет' }).highlights).toEqual([{ start: 0, end: 6, mode: 'text', color: '#ffffff', opacity: 0.75 }])
+    expect(applyMarkup({ content: 'привет' }).highlights).toEqual([{ start: 0, end: 6, mode: 'text', color: '#c6c6c6', opacity: 1 }])
     expect(applyMarkup({ emoji: '👍' })).toEqual({ emoji: '👍' })
   })
   it('applyMarkup: подставляет текст в нужное поле (content / text / caption)', () => {

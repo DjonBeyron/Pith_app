@@ -3,7 +3,7 @@
   "version": 1,
   "lesson": {
     "title": "Что такое to",
-    "nodeCount": 90
+    "nodeCount": 93
   },
   "nodes": [
     {
@@ -108,7 +108,7 @@
     {
       "ref": "n5",
       "type": "text",
-      "seq": 90,
+      "seq": 93,
       "pos": [
         1680,
         480
@@ -395,7 +395,7 @@
     {
       "ref": "n14",
       "type": "text",
-      "seq": 89,
+      "seq": 92,
       "pos": [
         7460,
         480
@@ -579,20 +579,19 @@
     },
     {
       "ref": "n17",
-      "type": "text",
+      "type": "pin_message",
       "seq": 15,
       "pos": [
         9140,
         0
       ],
       "data": {
-        "content": "я ночью постоянно лезу в холодильник))",
-        "hardWrap": false
+        "content": "{g:trying} / {g:want} / {g:need} + {g:to} + {w:действие}"
       },
       "triggers": [
         {
           "if": "timer",
-          "ms": 2000,
+          "ms": 1200,
           "then": "n18"
         }
       ]
@@ -606,13 +605,13 @@
         0
       ],
       "data": {
-        "content": "😋",
+        "content": "я кстати ночью постоянно лезу в холодильник))",
         "hardWrap": false
       },
       "triggers": [
         {
           "if": "timer",
-          "ms": 1200,
+          "ms": 2000,
           "then": "n19"
         }
       ]
@@ -626,6 +625,26 @@
         0
       ],
       "data": {
+        "content": "😋",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1200,
+          "then": "n20"
+        }
+      ]
+    },
+    {
+      "ref": "n20",
+      "type": "text",
+      "seq": 18,
+      "pos": [
+        10820,
+        0
+      ],
+      "data": {
         "content": "ну как сказать {t:«мне нужно поесть»}? после {g:need} тоже нужен мостик",
         "hardWrap": false
       },
@@ -633,16 +652,16 @@
         {
           "if": "timer",
           "ms": 2400,
-          "then": "n20"
+          "then": "n21"
         }
       ]
     },
     {
-      "ref": "n20",
+      "ref": "n21",
       "type": "phrase_assembly",
-      "seq": 18,
+      "seq": 19,
       "pos": [
-        10820,
+        11380,
         0
       ],
       "data": {
@@ -665,20 +684,20 @@
       "triggers": [
         {
           "if": "phrase_correct",
-          "then": "n21"
+          "then": "n22"
         },
         {
           "if": "phrase_wrong",
-          "then": "n22"
+          "then": "n23"
         }
       ]
     },
     {
-      "ref": "n21",
+      "ref": "n22",
       "type": "reaction",
-      "seq": 19,
+      "seq": 20,
       "pos": [
-        11380,
+        11940,
         0
       ],
       "data": {
@@ -689,16 +708,16 @@
         {
           "if": "timer",
           "ms": 1400,
-          "then": "n23"
+          "then": "n24"
         }
       ]
     },
     {
-      "ref": "n22",
+      "ref": "n23",
       "type": "text",
-      "seq": 88,
+      "seq": 91,
       "pos": [
-        11380,
+        11940,
         480
       ],
       "data": {
@@ -709,16 +728,16 @@
         {
           "if": "timer",
           "ms": 2800,
-          "then": "n23"
+          "then": "n24"
         }
       ]
     },
     {
-      "ref": "n23",
+      "ref": "n24",
       "type": "text",
-      "seq": 20,
+      "seq": 21,
       "pos": [
-        11940,
+        12500,
         0
       ],
       "data": {
@@ -729,16 +748,16 @@
         {
           "if": "timer",
           "ms": 1400,
-          "then": "n24"
+          "then": "n25"
         }
       ]
     },
     {
-      "ref": "n24",
+      "ref": "n25",
       "type": "audio",
-      "seq": 21,
+      "seq": 22,
       "pos": [
-        12500,
+        13060,
         0
       ],
       "note": "ОЗВУЧКА: We need to leave",
@@ -750,16 +769,16 @@
       "triggers": [
         {
           "if": "played",
-          "then": "n25"
+          "then": "n26"
         }
       ]
     },
     {
-      "ref": "n25",
+      "ref": "n26",
       "type": "word_choice",
-      "seq": 22,
+      "seq": 23,
       "pos": [
-        13060,
+        13620,
         0
       ],
       "data": {
@@ -782,20 +801,20 @@
       "triggers": [
         {
           "if": "word_correct",
-          "then": "n26"
+          "then": "n27"
         },
         {
           "if": "word_wrong",
-          "then": "n27"
+          "then": "n28"
         }
       ]
     },
     {
-      "ref": "n26",
+      "ref": "n27",
       "type": "text",
-      "seq": 23,
+      "seq": 24,
       "pos": [
-        13620,
+        14180,
         0
       ],
       "data": {
@@ -806,16 +825,16 @@
         {
           "if": "timer",
           "ms": 1400,
-          "then": "n28"
+          "then": "n29"
         }
       ]
     },
     {
-      "ref": "n27",
+      "ref": "n28",
       "type": "text",
-      "seq": 87,
+      "seq": 90,
       "pos": [
-        13620,
+        14180,
         480
       ],
       "data": {
@@ -826,59 +845,59 @@
         {
           "if": "timer",
           "ms": 2800,
-          "then": "n28"
-        }
-      ]
-    },
-    {
-      "ref": "n28",
-      "type": "audio",
-      "seq": 24,
-      "pos": [
-        14180,
-        0
-      ],
-      "note": "ОЗВУЧКА: Ой, а у меня завтра ранний подъём",
-      "needs": "audio — озвучка реплики",
-      "data": {
-        "text": "Ой, а у меня завтра ранний подъём",
-        "showText": false
-      },
-      "triggers": [
-        {
-          "if": "played",
           "then": "n29"
         }
       ]
     },
     {
       "ref": "n29",
-      "type": "photo",
+      "type": "audio",
       "seq": 25,
       "pos": [
         14740,
         0
       ],
-      "note": "ФОТО: сгенерировать в редакторе по imagePrompt",
-      "needs": "photo",
+      "note": "ОЗВУЧКА: Ой, а у меня завтра рабочий день",
+      "needs": "audio — озвучка реплики",
       "data": {
-        "caption": "а ну-ка скажи {t:«мне нужно рано вставать»}, тут {g:have} и {g:to} идут вместе",
-        "imagePrompt": "Мультяшный будильник на тумбочке показывает 6:00, рядом сонный парень под одеялом, раннее утро, без текста на картинке"
+        "text": "Ой, а у меня завтра рабочий день",
+        "showText": false
       },
       "triggers": [
         {
-          "if": "timer",
-          "ms": 2400,
+          "if": "played",
           "then": "n30"
         }
       ]
     },
     {
       "ref": "n30",
-      "type": "phrase_assembly",
+      "type": "photo",
       "seq": 26,
       "pos": [
         15300,
+        0
+      ],
+      "note": "ФОТО: сгенерировать в редакторе по imagePrompt",
+      "needs": "photo",
+      "data": {
+        "caption": "а ну-ка скажи {t:«мне нужно работать»}, тут {g:have} и {g:to} идут вместе",
+        "imagePrompt": "Мультяшный парень сидит за столом с ноутбуком и чашкой кофе, усталый взгляд, без текста на картинке"
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 2400,
+          "then": "n31"
+        }
+      ]
+    },
+    {
+      "ref": "n31",
+      "type": "phrase_assembly",
+      "seq": 27,
+      "pos": [
+        15860,
         0
       ],
       "data": {
@@ -886,9 +905,7 @@
           "I",
           "have",
           "to",
-          "get",
-          "up",
-          "early"
+          "work"
         ],
         "distractors": [
           {
@@ -898,25 +915,25 @@
             "text": "too"
           }
         ],
-        "responseWrong": "не совсем) нужны слова: я, должен, мостик и вставать рано"
+        "responseWrong": "не совсем) нужны слова: я, должен, мостик и работать"
       },
       "triggers": [
         {
           "if": "phrase_correct",
-          "then": "n31"
+          "then": "n32"
         },
         {
           "if": "phrase_wrong",
-          "then": "n32"
+          "then": "n33"
         }
       ]
     },
     {
-      "ref": "n31",
+      "ref": "n32",
       "type": "text",
-      "seq": 27,
+      "seq": 28,
       "pos": [
-        15860,
+        16420,
         0
       ],
       "data": {
@@ -927,36 +944,36 @@
         {
           "if": "timer",
           "ms": 1400,
-          "then": "n33"
-        }
-      ]
-    },
-    {
-      "ref": "n32",
-      "type": "text",
-      "seq": 86,
-      "pos": [
-        15860,
-        480
-      ],
-      "data": {
-        "content": "близко) после {g:have} тоже нужен мостик {g:to}, а потом действие, {g:get up early}",
-        "hardWrap": false
-      },
-      "triggers": [
-        {
-          "if": "timer",
-          "ms": 2800,
-          "then": "n33"
+          "then": "n34"
         }
       ]
     },
     {
       "ref": "n33",
       "type": "text",
-      "seq": 28,
+      "seq": 89,
       "pos": [
         16420,
+        480
+      ],
+      "data": {
+        "content": "близко) после {g:have} тоже нужен мостик {g:to}, а потом действие, {g:work}",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 2800,
+          "then": "n34"
+        }
+      ]
+    },
+    {
+      "ref": "n34",
+      "type": "text",
+      "seq": 29,
+      "pos": [
+        16980,
         0
       ],
       "data": {
@@ -967,16 +984,16 @@
         {
           "if": "timer",
           "ms": 2200,
-          "then": "n34"
+          "then": "n35"
         }
       ]
     },
     {
-      "ref": "n34",
+      "ref": "n35",
       "type": "word_choice",
-      "seq": 29,
+      "seq": 30,
       "pos": [
-        16980,
+        17540,
         0
       ],
       "data": {
@@ -999,20 +1016,20 @@
       "triggers": [
         {
           "if": "word_correct",
-          "then": "n35"
+          "then": "n36"
         },
         {
           "if": "word_wrong",
-          "then": "n36"
+          "then": "n37"
         }
       ]
     },
     {
-      "ref": "n35",
+      "ref": "n36",
       "type": "text",
-      "seq": 30,
+      "seq": 31,
       "pos": [
-        17540,
+        18100,
         0
       ],
       "data": {
@@ -1023,16 +1040,16 @@
         {
           "if": "timer",
           "ms": 1400,
-          "then": "n37"
+          "then": "n38"
         }
       ]
     },
     {
-      "ref": "n36",
+      "ref": "n37",
       "type": "text",
-      "seq": 85,
+      "seq": 88,
       "pos": [
-        17540,
+        18100,
         480
       ],
       "data": {
@@ -1043,16 +1060,16 @@
         {
           "if": "timer",
           "ms": 2800,
-          "then": "n37"
+          "then": "n38"
         }
       ]
     },
     {
-      "ref": "n37",
+      "ref": "n38",
       "type": "system",
-      "seq": 31,
+      "seq": 32,
       "pos": [
-        19400,
+        19960,
         0
       ],
       "data": {
@@ -1062,16 +1079,16 @@
         {
           "if": "timer",
           "ms": 1600,
-          "then": "n38"
+          "then": "n39"
         }
       ]
     },
     {
-      "ref": "n38",
+      "ref": "n39",
       "type": "audio",
-      "seq": 32,
+      "seq": 33,
       "pos": [
-        19960,
+        20520,
         0
       ],
       "note": "ОЗВУЧКА: У to есть и вторая работа: оно {l:показывает направление}",
@@ -1083,16 +1100,16 @@
       "triggers": [
         {
           "if": "played",
-          "then": "n39"
+          "then": "n40"
         }
       ]
     },
     {
-      "ref": "n39",
+      "ref": "n40",
       "type": "sticker",
-      "seq": 33,
+      "seq": 34,
       "pos": [
-        20520,
+        21080,
         0
       ],
       "note": "СТИКЕР: сгенерировать в редакторе по imagePrompt",
@@ -1104,36 +1121,36 @@
         {
           "if": "timer",
           "ms": 1600,
-          "then": "n40"
-        }
-      ]
-    },
-    {
-      "ref": "n40",
-      "type": "text",
-      "seq": 34,
-      "pos": [
-        21080,
-        0
-      ],
-      "data": {
-        "content": "вот кста пример, где to показывает направление: мы в субботу с Машей идём на тренировку 💪",
-        "hardWrap": false
-      },
-      "triggers": [
-        {
-          "if": "timer",
-          "ms": 2000,
           "then": "n41"
         }
       ]
     },
     {
       "ref": "n41",
-      "type": "photo",
+      "type": "text",
       "seq": 35,
       "pos": [
         21640,
+        0
+      ],
+      "data": {
+        "content": "вот кста пример, где {g:to} показывает направление: мы с Машей идём на тренировку 💪",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 2000,
+          "then": "n42"
+        }
+      ]
+    },
+    {
+      "ref": "n42",
+      "type": "photo",
+      "seq": 36,
+      "pos": [
+        22200,
         0
       ],
       "note": "ФОТО: сгенерировать в редакторе по imagePrompt",
@@ -1146,16 +1163,16 @@
         {
           "if": "timer",
           "ms": 2400,
-          "then": "n42"
+          "then": "n43"
         }
       ]
     },
     {
-      "ref": "n42",
+      "ref": "n43",
       "type": "word_choice",
-      "seq": 36,
+      "seq": 37,
       "pos": [
-        22200,
+        22760,
         0
       ],
       "data": {
@@ -1178,20 +1195,20 @@
       "triggers": [
         {
           "if": "word_correct",
-          "then": "n43"
+          "then": "n44"
         },
         {
           "if": "word_wrong",
-          "then": "n44"
+          "then": "n45"
         }
       ]
     },
     {
-      "ref": "n43",
+      "ref": "n44",
       "type": "reaction",
-      "seq": 37,
+      "seq": 38,
       "pos": [
-        22760,
+        23320,
         0
       ],
       "data": {
@@ -1202,16 +1219,16 @@
         {
           "if": "timer",
           "ms": 1400,
-          "then": "n46"
+          "then": "n47"
         }
       ]
     },
     {
-      "ref": "n44",
+      "ref": "n45",
       "type": "text",
-      "seq": 83,
+      "seq": 86,
       "pos": [
-        22760,
+        23320,
         480
       ],
       "data": {
@@ -1222,16 +1239,16 @@
         {
           "if": "timer",
           "ms": 3000,
-          "then": "n45"
+          "then": "n46"
         }
       ]
     },
     {
-      "ref": "n45",
+      "ref": "n46",
       "type": "lesson_ref",
-      "seq": 84,
+      "seq": 87,
       "pos": [
-        23320,
+        23880,
         0
       ],
       "note": "ССЫЛКА: в редакторе выбрать урок «The» (targetId)",
@@ -1246,16 +1263,16 @@
         {
           "if": "timer",
           "ms": 2000,
-          "then": "n46"
+          "then": "n47"
         }
       ]
     },
     {
-      "ref": "n46",
+      "ref": "n47",
       "type": "table",
-      "seq": 38,
+      "seq": 39,
       "pos": [
-        23880,
+        24440,
         0
       ],
       "note": "Таблица to, шаг 3: добавилось We go to the gym. ОЗВУЧКА таблицы: Ещё раз. В I'm trying to cook, to нужен, чтобы связать два глагола. В I want to sleep он играет ту же роль, мостик между хочу и спать. А вот в We go to the gym, to ещё помогает показать направление, куда мы идём",
@@ -1417,7 +1434,7 @@
       "triggers": [
         {
           "if": "table_correct",
-          "then": "n47"
+          "then": "n48"
         },
         {
           "if": "table_wrong",
@@ -1426,11 +1443,11 @@
       ]
     },
     {
-      "ref": "n47",
+      "ref": "n48",
       "type": "text",
-      "seq": 39,
+      "seq": 40,
       "pos": [
-        24440,
+        25000,
         0
       ],
       "data": {
@@ -1441,16 +1458,16 @@
         {
           "if": "timer",
           "ms": 2200,
-          "then": "n48"
+          "then": "n49"
         }
       ]
     },
     {
-      "ref": "n48",
+      "ref": "n49",
       "type": "sticker",
-      "seq": 40,
+      "seq": 41,
       "pos": [
-        25000,
+        25560,
         0
       ],
       "note": "СТИКЕР: сгенерировать в редакторе по imagePrompt",
@@ -1462,16 +1479,16 @@
         {
           "if": "timer",
           "ms": 1600,
-          "then": "n49"
+          "then": "n50"
         }
       ]
     },
     {
-      "ref": "n49",
+      "ref": "n50",
       "type": "audio",
-      "seq": 41,
+      "seq": 42,
       "pos": [
-        25560,
+        26120,
         0
       ],
       "note": "ОЗВУЧКА: Ты быстро справляешься с заданиями, и сейчас всё поймёшь без объяснения",
@@ -1483,16 +1500,16 @@
       "triggers": [
         {
           "if": "played",
-          "then": "n50"
+          "then": "n51"
         }
       ]
     },
     {
-      "ref": "n50",
+      "ref": "n51",
       "type": "photo",
-      "seq": 42,
+      "seq": 43,
       "pos": [
-        26120,
+        26680,
         0
       ],
       "note": "ФОТО: сгенерировать в редакторе по imagePrompt",
@@ -1505,16 +1522,16 @@
         {
           "if": "timer",
           "ms": 2400,
-          "then": "n51"
+          "then": "n52"
         }
       ]
     },
     {
-      "ref": "n51",
+      "ref": "n52",
       "type": "phrase_assembly",
-      "seq": 43,
+      "seq": 44,
       "pos": [
-        26680,
+        27240,
         0
       ],
       "data": {
@@ -1537,20 +1554,20 @@
       "triggers": [
         {
           "if": "phrase_correct",
-          "then": "n52"
+          "then": "n53"
         },
         {
           "if": "phrase_wrong",
-          "then": "n53"
+          "then": "n54"
         }
       ]
     },
     {
-      "ref": "n52",
+      "ref": "n53",
       "type": "reaction",
-      "seq": 44,
+      "seq": 45,
       "pos": [
-        27240,
+        27800,
         0
       ],
       "data": {
@@ -1561,16 +1578,16 @@
         {
           "if": "timer",
           "ms": 1400,
-          "then": "n54"
+          "then": "n55"
         }
       ]
     },
     {
-      "ref": "n53",
+      "ref": "n54",
       "type": "text",
-      "seq": 82,
+      "seq": 85,
       "pos": [
-        27240,
+        27800,
         480
       ],
       "data": {
@@ -1581,37 +1598,61 @@
         {
           "if": "timer",
           "ms": 2800,
-          "then": "n54"
-        }
-      ]
-    },
-    {
-      "ref": "n54",
-      "type": "audio",
-      "seq": 45,
-      "pos": [
-        27800,
-        0
-      ],
-      "note": "ОЗВУЧКА: Вот тут to ведёт к человеку, с которым ты говоришь, а не к месту, но мостик всё тот же",
-      "needs": "audio — озвучка реплики",
-      "data": {
-        "text": "Вот тут {g:to} ведёт к человеку, с которым ты говоришь, а не к месту, но мостик всё тот же",
-        "showText": false
-      },
-      "triggers": [
-        {
-          "if": "played",
           "then": "n55"
         }
       ]
     },
     {
       "ref": "n55",
-      "type": "table",
+      "type": "audio",
       "seq": 46,
       "pos": [
         28360,
+        0
+      ],
+      "note": "ОЗВУЧКА: Вот тут to ведёт к человеку, с которым ты говоришь, а не к месту, но мостик всё тот же. А with тоже значит с, только про вместе с, подробнее про него в отдельном уроке",
+      "needs": "audio — озвучка реплики",
+      "data": {
+        "text": "Вот тут {g:to} ведёт к человеку, с которым ты говоришь, а не к месту, но мостик всё тот же. А {g:with} тоже значит с, только про вместе с, подробнее про него в отдельном уроке",
+        "showText": false
+      },
+      "triggers": [
+        {
+          "if": "played",
+          "then": "n56"
+        }
+      ]
+    },
+    {
+      "ref": "n56",
+      "type": "lesson_ref",
+      "seq": 47,
+      "pos": [
+        28920,
+        0
+      ],
+      "note": "ССЫЛКА: в редакторе выбрать урок «With» (targetId)",
+      "needs": "id урока",
+      "data": {
+        "caption": "Про with, откроешь позже",
+        "isModule": false,
+        "targetId": "",
+        "targetTitle": "With"
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 2000,
+          "then": "n57"
+        }
+      ]
+    },
+    {
+      "ref": "n57",
+      "type": "table",
+      "seq": 48,
+      "pos": [
+        29480,
         0
       ],
       "note": "Таблица to, шаг 4: все четыре строки. ОЗВУЧКА таблицы: Ох, что только to не делает! Давай ещё раз по порядку. Сначала to связывает два глагола, как в I'm trying to cook и I want to sleep. Потом показывает направление, как в We go to the gym. И наконец ведёт к человеку, как в I talk to Masha",
@@ -1804,7 +1845,7 @@
       "triggers": [
         {
           "if": "table_correct",
-          "then": "n56"
+          "then": "n58"
         },
         {
           "if": "table_wrong",
@@ -1813,66 +1854,21 @@
       ]
     },
     {
-      "ref": "n56",
-      "type": "text",
-      "seq": 47,
-      "pos": [
-        28920,
-        0
-      ],
-      "data": {
-        "content": "Уже ночь, а я всё ещё не лёг((",
-        "hardWrap": false
-      },
-      "triggers": [
-        {
-          "if": "timer",
-          "ms": 2000,
-          "then": "n57"
-        }
-      ]
-    },
-    {
-      "ref": "n57",
-      "type": "text",
-      "seq": 48,
-      "pos": [
-        29480,
-        0
-      ],
-      "data": {
-        "content": "напечатай {t:«иди спать»}: {g:go}, мостик и {g:bed}, всего три слова",
-        "hardWrap": false
-      },
-      "triggers": [
-        {
-          "if": "timer",
-          "ms": 2200,
-          "then": "n58"
-        }
-      ]
-    },
-    {
       "ref": "n58",
-      "type": "type_word",
+      "type": "pin_message",
       "seq": 49,
       "pos": [
         30040,
         0
       ],
       "data": {
-        "word": "go to bed",
-        "extraLetters": "pl",
-        "responseWrong": "не то) нужно слово иди, мостик и кровать"
+        "content": "{g:to}: к {w:действию}, {w:месту} и {w:человеку}"
       },
       "triggers": [
         {
-          "if": "type_correct",
+          "if": "timer",
+          "ms": 1200,
           "then": "n59"
-        },
-        {
-          "if": "type_wrong",
-          "then": "n60"
         }
       ]
     },
@@ -1885,6 +1881,70 @@
         0
       ],
       "data": {
+        "content": "У меня уже ночь, а я всё ещё не лёг((",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 2000,
+          "then": "n60"
+        }
+      ]
+    },
+    {
+      "ref": "n60",
+      "type": "text",
+      "seq": 51,
+      "pos": [
+        31160,
+        0
+      ],
+      "data": {
+        "content": "напечатай {t:«иди спать»}: {g:go}, мостик и {g:bed}, всего три слова",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 2200,
+          "then": "n61"
+        }
+      ]
+    },
+    {
+      "ref": "n61",
+      "type": "type_word",
+      "seq": 52,
+      "pos": [
+        31720,
+        0
+      ],
+      "data": {
+        "word": "go to bed",
+        "extraLetters": "pl",
+        "responseWrong": "не то) нужно слово иди, мостик и кровать"
+      },
+      "triggers": [
+        {
+          "if": "type_correct",
+          "then": "n62"
+        },
+        {
+          "if": "type_wrong",
+          "then": "n63"
+        }
+      ]
+    },
+    {
+      "ref": "n62",
+      "type": "text",
+      "seq": 53,
+      "pos": [
+        32280,
+        0
+      ],
+      "data": {
         "content": "Отлично, всё на месте)",
         "hardWrap": false
       },
@@ -1892,16 +1952,16 @@
         {
           "if": "timer",
           "ms": 1500,
-          "then": "n61"
+          "then": "n64"
         }
       ]
     },
     {
-      "ref": "n60",
+      "ref": "n63",
       "type": "text",
-      "seq": 81,
+      "seq": 84,
       "pos": [
-        30600,
+        32280,
         480
       ],
       "data": {
@@ -1912,16 +1972,16 @@
         {
           "if": "timer",
           "ms": 2600,
-          "then": "n61"
+          "then": "n64"
         }
       ]
     },
     {
-      "ref": "n61",
+      "ref": "n64",
       "type": "text",
-      "seq": 51,
+      "seq": 54,
       "pos": [
-        31160,
+        32840,
         0
       ],
       "data": {
@@ -1932,16 +1992,16 @@
         {
           "if": "timer",
           "ms": 1400,
-          "then": "n62"
+          "then": "n65"
         }
       ]
     },
     {
-      "ref": "n62",
+      "ref": "n65",
       "type": "audio",
-      "seq": 52,
+      "seq": 55,
       "pos": [
-        31720,
+        33400,
         0
       ],
       "note": "ОЗВУЧКА: I listen to music",
@@ -1953,16 +2013,16 @@
       "triggers": [
         {
           "if": "played",
-          "then": "n63"
+          "then": "n66"
         }
       ]
     },
     {
-      "ref": "n63",
+      "ref": "n66",
       "type": "word_choice",
-      "seq": 53,
+      "seq": 56,
       "pos": [
-        32280,
+        33960,
         0
       ],
       "data": {
@@ -1985,20 +2045,20 @@
       "triggers": [
         {
           "if": "word_correct",
-          "then": "n64"
+          "then": "n67"
         },
         {
           "if": "word_wrong",
-          "then": "n65"
+          "then": "n68"
         }
       ]
     },
     {
-      "ref": "n64",
+      "ref": "n67",
       "type": "text",
-      "seq": 54,
+      "seq": 57,
       "pos": [
-        32840,
+        34520,
         0
       ],
       "data": {
@@ -2009,16 +2069,16 @@
         {
           "if": "timer",
           "ms": 1400,
-          "then": "n66"
+          "then": "n69"
         }
       ]
     },
     {
-      "ref": "n65",
+      "ref": "n68",
       "type": "text",
-      "seq": 80,
+      "seq": 83,
       "pos": [
-        32840,
+        34520,
         480
       ],
       "data": {
@@ -2029,16 +2089,16 @@
         {
           "if": "timer",
           "ms": 2800,
-          "then": "n66"
+          "then": "n69"
         }
       ]
     },
     {
-      "ref": "n66",
+      "ref": "n69",
       "type": "audio",
-      "seq": 55,
+      "seq": 58,
       "pos": [
-        33400,
+        35080,
         0
       ],
       "note": "ОЗВУЧКА: а теперь маленькая хитрость: после can мостик не нужен, мы говорим просто I can swim",
@@ -2050,16 +2110,16 @@
       "triggers": [
         {
           "if": "played",
-          "then": "n67"
+          "then": "n70"
         }
       ]
     },
     {
-      "ref": "n67",
+      "ref": "n70",
       "type": "audio",
-      "seq": 56,
+      "seq": 59,
       "pos": [
-        33960,
+        35640,
         0
       ],
       "note": "ОЗВУЧКА: Потому что can уже сам говорит, что ты умеешь, и второй мостик просто {l:не нужен}",
@@ -2071,16 +2131,16 @@
       "triggers": [
         {
           "if": "played",
-          "then": "n68"
+          "then": "n71"
         }
       ]
     },
     {
-      "ref": "n68",
+      "ref": "n71",
       "type": "photo",
-      "seq": 57,
+      "seq": 60,
       "pos": [
-        34520,
+        36200,
         0
       ],
       "note": "ФОТО: сгенерировать в редакторе по imagePrompt",
@@ -2093,16 +2153,16 @@
         {
           "if": "timer",
           "ms": 2400,
-          "then": "n69"
+          "then": "n72"
         }
       ]
     },
     {
-      "ref": "n69",
+      "ref": "n72",
       "type": "phrase_assembly",
-      "seq": 58,
+      "seq": 61,
       "pos": [
-        35080,
+        36760,
         0
       ],
       "data": {
@@ -2124,20 +2184,20 @@
       "triggers": [
         {
           "if": "phrase_correct",
-          "then": "n70"
+          "then": "n73"
         },
         {
           "if": "phrase_wrong",
-          "then": "n71"
+          "then": "n74"
         }
       ]
     },
     {
-      "ref": "n70",
+      "ref": "n73",
       "type": "text",
-      "seq": 59,
+      "seq": 62,
       "pos": [
-        35640,
+        37320,
         0
       ],
       "data": {
@@ -2148,16 +2208,16 @@
         {
           "if": "timer",
           "ms": 1600,
-          "then": "n72"
+          "then": "n75"
         }
       ]
     },
     {
-      "ref": "n71",
+      "ref": "n74",
       "type": "text",
-      "seq": 79,
+      "seq": 82,
       "pos": [
-        35640,
+        37320,
         480
       ],
       "data": {
@@ -2168,16 +2228,16 @@
         {
           "if": "timer",
           "ms": 2800,
-          "then": "n72"
+          "then": "n75"
         }
       ]
     },
     {
-      "ref": "n72",
+      "ref": "n75",
       "type": "text",
-      "seq": 60,
+      "seq": 63,
       "pos": [
-        37500,
+        39180,
         0
       ],
       "data": {
@@ -2188,37 +2248,37 @@
         {
           "if": "timer",
           "ms": 2000,
-          "then": "n73"
+          "then": "n76"
         }
       ]
     },
     {
-      "ref": "n73",
+      "ref": "n76",
       "type": "audio",
-      "seq": 61,
+      "seq": 64,
       "pos": [
-        38060,
+        39740,
         0
       ],
-      "note": "ОЗВУЧКА: Скажи что хочешь, ваще что угодно, начни с I want to, а я послушаю только как ты произносишь",
+      "note": "ОЗВУЧКА: Скажи вообще что угодно, начни с I want to, а я послушаю только как ты произносишь",
       "needs": "audio — озвучка реплики",
       "data": {
-        "text": "Скажи что хочешь, ваще что угодно, начни с {g:I want to}, а я послушаю только как ты произносишь",
+        "text": "Скажи вообще что угодно, начни с {g:I want to}, а я послушаю только как ты произносишь",
         "showText": false
       },
       "triggers": [
         {
           "if": "played",
-          "then": "n74"
+          "then": "n77"
         }
       ]
     },
     {
-      "ref": "n74",
+      "ref": "n77",
       "type": "say_phrase",
-      "seq": 62,
+      "seq": 65,
       "pos": [
-        38620,
+        40300,
         0
       ],
       "data": {
@@ -2233,20 +2293,20 @@
       "triggers": [
         {
           "if": "say_done",
-          "then": "n75"
+          "then": "n78"
         },
         {
           "if": "say_wrong",
-          "then": "n76"
+          "then": "n79"
         }
       ]
     },
     {
-      "ref": "n75",
+      "ref": "n78",
       "type": "text",
-      "seq": 63,
+      "seq": 66,
       "pos": [
-        39180,
+        40860,
         0
       ],
       "data": {
@@ -2257,16 +2317,16 @@
         {
           "if": "timer",
           "ms": 1400,
-          "then": "n77"
+          "then": "n80"
         }
       ]
     },
     {
-      "ref": "n76",
+      "ref": "n79",
       "type": "text",
-      "seq": 78,
+      "seq": 81,
       "pos": [
-        39180,
+        40860,
         480
       ],
       "data": {
@@ -2277,16 +2337,16 @@
         {
           "if": "timer",
           "ms": 2400,
-          "then": "n77"
+          "then": "n80"
         }
       ]
     },
     {
-      "ref": "n77",
+      "ref": "n80",
       "type": "audio",
-      "seq": 64,
+      "seq": 67,
       "pos": [
-        39740,
+        41420,
         0
       ],
       "note": "ОЗВУЧКА: Ещё про себя: скажи, что ты пытаешься сделать прямо сейчас, начни с I'm trying to",
@@ -2298,16 +2358,16 @@
       "triggers": [
         {
           "if": "played",
-          "then": "n78"
+          "then": "n81"
         }
       ]
     },
     {
-      "ref": "n78",
+      "ref": "n81",
       "type": "say_phrase",
-      "seq": 65,
+      "seq": 68,
       "pos": [
-        40300,
+        41980,
         0
       ],
       "data": {
@@ -2322,20 +2382,20 @@
       "triggers": [
         {
           "if": "say_done",
-          "then": "n79"
+          "then": "n82"
         },
         {
           "if": "say_wrong",
-          "then": "n80"
+          "then": "n83"
         }
       ]
     },
     {
-      "ref": "n79",
+      "ref": "n82",
       "type": "reaction",
-      "seq": 66,
+      "seq": 69,
       "pos": [
-        40860,
+        42540,
         0
       ],
       "data": {
@@ -2346,16 +2406,16 @@
         {
           "if": "timer",
           "ms": 1400,
-          "then": "n81"
+          "then": "n84"
         }
       ]
     },
     {
-      "ref": "n80",
+      "ref": "n83",
       "type": "text",
-      "seq": 77,
+      "seq": 80,
       "pos": [
-        40860,
+        42540,
         480
       ],
       "data": {
@@ -2366,16 +2426,16 @@
         {
           "if": "timer",
           "ms": 2400,
-          "then": "n81"
+          "then": "n84"
         }
       ]
     },
     {
-      "ref": "n81",
+      "ref": "n84",
       "type": "text",
-      "seq": 67,
+      "seq": 70,
       "pos": [
-        42720,
+        44400,
         0
       ],
       "data": {
@@ -2386,16 +2446,16 @@
         {
           "if": "timer",
           "ms": 2600,
-          "then": "n82"
+          "then": "n85"
         }
       ]
     },
     {
-      "ref": "n82",
+      "ref": "n85",
       "type": "audio",
-      "seq": 68,
+      "seq": 71,
       "pos": [
-        43280,
+        44960,
         0
       ],
       "note": "ОЗВУЧКА: А чтобы не забыть про to, давай соберём всю формулу вместе",
@@ -2407,16 +2467,16 @@
       "triggers": [
         {
           "if": "played",
-          "then": "n83"
+          "then": "n86"
         }
       ]
     },
     {
-      "ref": "n83",
+      "ref": "n86",
       "type": "table",
-      "seq": 69,
+      "seq": 72,
       "pos": [
-        43840,
+        45520,
         0
       ],
       "note": "ОЗВУЧКА таблицы-формулы: Смотри, всё вместе. Хочешь что-то сделать, например I'm trying to cook или I want to sleep, это trying, want, need, потом мостик to и действие. Идёшь куда-то, как в We go to the gym, это go и to, а потом место. А говоришь с кем-то, как в I talk to Masha, это talk и тот же to, а потом человек. И не забудь хитрость: после can мостик не нужен, просто I can swim.",
@@ -2609,7 +2669,7 @@
       "triggers": [
         {
           "if": "table_correct",
-          "then": "n84"
+          "then": "n87"
         },
         {
           "if": "table_wrong",
@@ -2618,11 +2678,11 @@
       ]
     },
     {
-      "ref": "n84",
+      "ref": "n87",
       "type": "text",
-      "seq": 70,
+      "seq": 73,
       "pos": [
-        44400,
+        46080,
         0
       ],
       "data": {
@@ -2633,16 +2693,16 @@
         {
           "if": "timer",
           "ms": 2400,
-          "then": "n85"
+          "then": "n88"
         }
       ]
     },
     {
-      "ref": "n85",
+      "ref": "n88",
       "type": "word_choice",
-      "seq": 71,
+      "seq": 74,
       "pos": [
-        44960,
+        46640,
         0
       ],
       "note": "Меню-развилка, не тест: «Закончить» — прощание, «Ещё потренируюсь» — доп практика",
@@ -2663,7 +2723,7 @@
       "triggers": [
         {
           "if": "word_correct",
-          "then": "n86"
+          "then": "n89"
         },
         {
           "if": "word_wrong",
@@ -2672,21 +2732,21 @@
         {
           "if": "variant",
           "variantLabel": "Закончить ✅",
-          "then": "n86"
+          "then": "n89"
         },
         {
           "if": "variant",
           "variantLabel": "Ещё потренируюсь 💪",
-          "then": "n87"
+          "then": "n90"
         }
       ]
     },
     {
-      "ref": "n86",
+      "ref": "n89",
       "type": "text",
-      "seq": 72,
+      "seq": 75,
       "pos": [
-        45520,
+        47200,
         0
       ],
       "data": {
@@ -2702,11 +2762,11 @@
       ]
     },
     {
-      "ref": "n87",
+      "ref": "n90",
       "type": "text",
-      "seq": 73,
+      "seq": 76,
       "pos": [
-        47380,
+        49060,
         0
       ],
       "data": {
@@ -2717,16 +2777,16 @@
         {
           "if": "timer",
           "ms": 2400,
-          "then": "n88"
+          "then": "n91"
         }
       ]
     },
     {
-      "ref": "n88",
+      "ref": "n91",
       "type": "phrase_assembly",
-      "seq": 74,
+      "seq": 77,
       "pos": [
-        47940,
+        49620,
         0
       ],
       "data": {
@@ -2750,20 +2810,20 @@
       "triggers": [
         {
           "if": "phrase_correct",
-          "then": "n89"
+          "then": "n92"
         },
         {
           "if": "phrase_wrong",
-          "then": "n90"
+          "then": "n93"
         }
       ]
     },
     {
-      "ref": "n89",
+      "ref": "n92",
       "type": "reaction",
-      "seq": 75,
+      "seq": 78,
       "pos": [
-        48500,
+        50180,
         0
       ],
       "data": {
@@ -2774,16 +2834,16 @@
         {
           "if": "timer",
           "ms": 1400,
-          "then": "n85"
+          "then": "n88"
         }
       ]
     },
     {
-      "ref": "n90",
+      "ref": "n93",
       "type": "text",
-      "seq": 76,
+      "seq": 79,
       "pos": [
-        48500,
+        50180,
         480
       ],
       "data": {
@@ -2794,7 +2854,7 @@
         {
           "if": "timer",
           "ms": 2600,
-          "then": "n85"
+          "then": "n88"
         }
       ]
     }
@@ -2813,23 +2873,23 @@
       "id": "zone-to-2",
       "x": 3390,
       "y": -150,
-      "width": 14608,
+      "width": 15168,
       "height": 1040,
       "label": "Часть 1 · to + действие",
       "color": "#5fb8ff"
     },
     {
       "id": "zone-to-3",
-      "x": 19250,
+      "x": 19810,
       "y": -150,
-      "width": 16848,
+      "width": 17968,
       "height": 1040,
       "label": "Часть 2 · to + место, человек",
       "color": "#ff9f5f"
     },
     {
       "id": "zone-to-4",
-      "x": 37350,
+      "x": 39030,
       "y": -150,
       "width": 3968,
       "height": 1040,
@@ -2838,7 +2898,7 @@
     },
     {
       "id": "zone-to-5",
-      "x": 42570,
+      "x": 44250,
       "y": -150,
       "width": 3408,
       "height": 560,
@@ -2847,7 +2907,7 @@
     },
     {
       "id": "zone-to-6",
-      "x": 47230,
+      "x": 48910,
       "y": -150,
       "width": 1728,
       "height": 1040,

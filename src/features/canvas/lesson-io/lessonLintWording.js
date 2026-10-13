@@ -56,15 +56,24 @@ function checkWording(nodes) {
 }
 
 const LATIN = /[A-Za-z][A-Za-z'’-]*/g
-/** В голосовых (audio) правила выделений те же: английские слова в расшифровке размечены ({g:..}), даже если текст скрыт от ученика */
+const MARKED_TYPES = new Set(['text', 'audio', 'photo', 'pin_message'])
+/** Английские слова выделены везде: и в тексте, и в голосовых (расшифровка), и в подписях — {g:..}, даже если расшифровка скрыта от ученика */
 function checkAudioMarkup(nodes) {
   const out = []
-  for (const n of nodes.filter(m => m.type === 'audio')) {
-    const t = String(n.data?.text ?? '')
+  if (!nodes.some(n => (n.data?.highlights ?? []).some(h => h.mode === 'bold'))) return out // урок вообще без раскраски (черновик) — не требуем
+  for (const n of nodes.filter(m => MARKED_TYPES.has(m.type))) {
+    const t = textOf(n)
     const bad = [...t.matchAll(LATIN)].filter(m => !covered(n, m.index, m.index + m[0].length, 'bold'))
-    if (bad.length) out.push(`[R-audio-markup] ${n.ref}: в расшифровке голосового английское «${bad[0][0]}» не выделено — разметь {g:..} так же, как в тексте (даже если расшифровка скрыта)`)
+    if (bad.length) out.push(`[R-audio-markup] ${n.ref} (${n.type}): английское «${bad[0][0]}» не выделено — разметь {g:..} (в тексте, подписи и голосовом одинаково)`)
   }
   return out
+}
+
+const SLANG = /(^|[^а-яё])(ваще|чё|чо|щас|тока|шо|нафиг)(?![а-яё])/i
+/** Слишком безграмотный сленг («ваще», «чё», «щас») запрещён: живо, но грамотно («кста» и «ну» можно) */
+function checkSlang(nodes) {
+  return nodes.filter(n => MARKED_TYPES.has(n.type) && SLANG.test(textOf(n)))
+    .map(n => `[R-slang] ${n.ref}: слишком безграмотное слово («${SLANG.exec(textOf(n))[2]}») — скажи грамотно («вообще», «что», «сейчас»); живость дают «кста», «ну», «короче»`)
 }
 
 const MAX_DEMO_CELLS = 5
@@ -76,5 +85,5 @@ function checkBigDemoTable(nodes) {
 }
 
 export function checkWordingRules(nodes) {
-  return [...checkQuotes(nodes), ...checkTense(nodes), ...checkRetry(nodes), ...checkWording(nodes), ...checkAudioMarkup(nodes), ...checkBigDemoTable(nodes)]
+  return [...checkQuotes(nodes), ...checkTense(nodes), ...checkRetry(nodes), ...checkWording(nodes), ...checkAudioMarkup(nodes), ...checkSlang(nodes), ...checkBigDemoTable(nodes)]
 }

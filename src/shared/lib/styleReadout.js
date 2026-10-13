@@ -1,6 +1,6 @@
 // Что за стиль у выделенного текста — для панели раскраски (RichTextToolbar): цвет, прозрачность, жирный/курсив/подчёркнутый/зачёркнутый,
 // плашка, и если сочетание стандартное — название метки {g:..}/{t:..} (lessonMarkup.js). Чистая функция, без React.
-import { classifyStyle, MARK_NAMES } from './lessonMarkup.js'
+import { classifyStyle, MARK_NAMES, isBaseHighlight } from './lessonMarkup.js'
 
 const hasMode = (hs, i, m) => hs.some(h => h.mode === m && h.start <= i && h.end > i)
 
@@ -27,6 +27,6 @@ export function describeStyle(highlights, start, end) {
   for (let i = start + 1; i < end && !mixed; i++) mixed = JSON.stringify(charStyle(hs, i)) !== JSON.stringify(first)
   const flags = ['bold', 'italic', 'underline', 'strike'].filter(f => first[f])
   const mark = classifyStyle({ color: first.color, bold: first.bold, italic: first.italic, underline: first.underline, strike: first.strike, pin: !!first.bg?.pin })
-  const isBase = String(first.color ?? '').toLowerCase() === '#ffffff' && first.opacity === 0.75 && !flags.length && !first.bg
+  const isBase = isBaseHighlight({ mode: 'text', color: first.color, opacity: first.opacity }) && !flags.length && !first.bg
   return { mixed, color: first.color, opacity: first.opacity, bg: first.bg, flags, mark, markName: mark ? MARK_NAMES[mark] : null, isBase }
 }

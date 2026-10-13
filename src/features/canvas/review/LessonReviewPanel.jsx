@@ -13,13 +13,14 @@ import { useReviewNotes } from './useReviewNotes.js'
 import { nodeCopyText } from './nodeCopyText.js'
 import { applyTypeChange } from '../nodeDefaults.js'
 import { useNoteSession } from './useNoteSession.js'
+import { useLessonVersions } from './useLessonVersions.js'
 import { changedRefs } from './reviewNotes.js'
 import { reviewKey, loadReview, saveReview } from './reviewStorage.js'
 
 // «Разбор урока» — окно на весь экран ПК: слева копия ленты плеера (вся история сразу, на заданиях переключатель веток «верно / неверно»),
 // посередине полноценный холст, сфокусированный на выбранной ноде (редактируешь как обычно), справа замечания и правила.
 // Холст здесь — СВОЯ копия нод: правки попадают в основной урок только по кнопке «Применить».
-export default function LessonReviewPanel({ nodes: initialNodes, zones: initialZones, boardApiRef, boardProps, onClose }) {
+export default function LessonReviewPanel({ nodes: initialNodes, zones: initialZones, boardApiRef, boardProps, storageId, onClose }) {
   const [draft, setDraft] = useState(initialNodes)
   const [base, setBase] = useState(initialNodes) // с чем сравниваем при «Применить» (основной холст на момент открытия / последнего применения)
   const canvasRef = useRef(null)
@@ -64,6 +65,9 @@ export default function LessonReviewPanel({ nodes: initialNodes, zones: initialZ
   const noted = new Set([...store.notes.map(n => n.ref), ...edited]).size + store.general.length
   const noteCounts = useMemo(() => { const m = new Map(); for (const n of store.notes) m.set(n.ref, (m.get(n.ref) ?? 0) + 1); for (const r of edited) if (!m.has(r)) m.set(r, 1); return m }, [store.notes, edited])
   const warnMap = useMemo(() => warningsByRef(lintLesson(nodes), nodes), [nodes])
+  const versions = useLessonVersions(storageId ?? initialNodes[0]?.id ?? 'lesson', nodes, new Set(store.notes.map(n => n.ref)))
+  const [rulesOff, setRulesOff] = useState(() => { try { return localStorage.getItem('pithy-review-rules-off') === '1' } catch { return false } })
+  const toggleRules = () => setRulesOff(v => { try { localStorage.setItem('pithy-review-rules-off', v ? '0' : '1') } catch { /* нет хранилища */ } return !v })
   const sel = nodes.find(n => n.ref === selRef) ?? null
   const diff = useMemo(() => diffNodes(base, draft), [base, draft])
   const switched = Object.keys(choices).length
@@ -132,19 +136,26 @@ export default function LessonReviewPanel({ nodes: initialNodes, zones: initialZ
         <span className="rvwSpacer" />
         {(diff.added > 0 || diff.removed > 0) && <span className="rvwInfo rvwInfoWarn" title="Добавленные и удалённые ноды автоматически не переносятся — сделай это на основном холсте">+{diff.added} / −{diff.removed} нод не переносятся</span>}
         {applied && <span className="rvwInfo rvwInfoOk">{applied}</span>}
+        <button className={`rvwBtn rvwBtnChg${versions.show ? ' on' : ''}`} disabled={!versions.canCompare} onClick={() => versions.setShow(!versions.show)}
+          title={versions.canCompare ? 'Розовая полоска у сообщений, которые отличаются от предыдущей версии (новые, изменённые и те, к которым были замечания)' : 'Предыдущей версии урока ещё нет: она появится, когда урок изменится и разбор откроют снова'}>
+          Изменения{versions.show ? ` (${versions.marks.size})` : ''}
+        </button>
         <button className="rvwBtn" onClick={() => setNotesOpen(true)}>✎ Замечания{noted ? ` (${noted})` : ''}</button>
         <button className="rvwBtn rvwBtnPrimary" disabled={!diff.changed.length} onClick={apply}>
           Применить{diff.changed.length ? ` (${diff.changed.length})` : ''}
         </button>
       </div>
-      <div className="rvwCols">
+      <div className={`rvwCols${rulesOff ? ' rvwRulesOff' : ''}`}>
+        <div className="rvwRight">
+          <button className="rvwRulesToggle" onClick={toggleRules} title={rulesOff ? 'Развернуть правила' : 'Свернуть правила'}>{rulesOff ? '›' : '‹ Правила'}</button>
+          {!rulesOff && <RulesPane node={sel} warnings={sel ? warnMap.get(sel.ref) ?? [] : []} rules={rules} busy={busy} onAdd={addFull} />}
+        </div>
         <div className="rvwFeedCol">
-          <PlayerLikeFeed items={items} canvasById={canvasById} canvasNodes={draft} files={boardProps?.lessonFiles ?? []} selRef={selRef} selTick={selTick} warnMap={warnMap} noteCounts={noteCounts} onNote={openNote} onSelect={select} onChoice={setChoice} onPick={pickOption} />
+          <PlayerLikeFeed items={items} canvasById={canvasById} canvasNodes={draft} files={boardProps?.lessonFiles ?? []} selRef={selRef} selTick={selTick} warnMap={warnMap} noteCounts={noteCounts} changeMarks={versions.marks} onNote={openNote} onSelect={select} onChoice={setChoice} onPick={pickOption} />
         </div>
         <div className="rvwCanvasCol">
           <EmbeddedCanvas ref={canvasRef} initialNodes={initialNodes} initialZones={initialZones} boardProps={boardProps} onNodesChange={onBoardNodes} />
         </div>
-        <div className="rvwRight"><RulesPane node={sel} warnings={sel ? warnMap.get(sel.ref) ?? [] : []} rules={rules} busy={busy} onAdd={addFull} /></div>
       </div>
       {noteFor && (
         <NoteDialog title={`Замечание к №${nodes.find(n => n.ref === noteFor)?.seq} (${noteFor})`} existing={store.notes.filter(n => n.ref === noteFor)} before={store.originals.current.get(noteFor)}

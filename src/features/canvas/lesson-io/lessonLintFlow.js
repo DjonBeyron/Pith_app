@@ -1,5 +1,6 @@
 // Проверки «ритма» урока (главная формула: каждая нода должна менять ученика — дать новое знание или потребовать нового действия).
 // Чистые функции на формате обмена ({ ref, seq, type, data, triggers }), возвращают строки-замечания, как остальные lessonLint*.
+import { isBaseHighlight } from '../../../shared/lib/lessonMarkup.js'
 import { tokenize } from '../../../shared/lib/speech/speechMatch.js'
 
 const MAX_TEXT_RUN = 2   // больше двух текстовых нод подряд — ученик просто листает, а не учится
@@ -88,9 +89,9 @@ function checkTautology(nodes) {
   return out
 }
 
-const BASE = h => h.mode === 'text' && String(h.color).toLowerCase() === '#ffffff' && h.opacity === 0.75
+const BASE = isBaseHighlight
 
-/** У каждой ноды с текстом базовый серый highlight (#ffffff, 0.75) покрывает весь текст (если нет — importLesson/редактор покажут текст без подложки) */
+/** У каждой ноды с текстом базовый серый highlight (#c6c6c6) покрывает весь текст (если нет — importLesson/редактор покажут текст без подложки) */
 function checkBaseHighlight(nodes) {
   const out = []
   // Урок совсем без раскраски (черновик/тестовый набросок) не трогаем: правило про единообразие стиля там не к месту
@@ -101,7 +102,7 @@ function checkBaseHighlight(nodes) {
     if (typeof text !== 'string' || !text.length || (n.type === 'audio' && d.showText === false)) continue
     const covered = new Array(text.length).fill(false)
     for (const h of (d.highlights ?? []).filter(BASE)) for (let i = Math.max(0, h.start); i < Math.min(text.length, h.end); i++) covered[i] = true
-    if (covered.some(c => !c)) out.push(`[R-base] ${n.ref} (${n.type}): нет базового серого highlight на весь текст — используй разметку {g:..} (она добавит подложку) или добавь {mode:text,color:#ffffff,opacity:0.75}`)
+    if (covered.some(c => !c)) out.push(`[R-base] ${n.ref} (${n.type}): нет базового серого highlight на весь текст — используй разметку {g:..} (она добавит подложку) или добавь {mode:text,color:#c6c6c6}`)
   }
   return out
 }

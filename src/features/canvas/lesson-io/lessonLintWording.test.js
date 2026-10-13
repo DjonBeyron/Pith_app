@@ -27,7 +27,7 @@ describe('lessonLintWording', () => {
   })
   it('R-audio-markup: английское слово в голосовом без выделения', () => {
     const A = (c) => ({ ref: 'a', type: 'audio', data: applyMarkup({ text: c }), triggers: [] })
-    expect(checkWordingRules([A('На русский to часто не переводят')]).join()).toMatch(/R-audio-markup/)
+    expect(checkWordingRules([A('На русский to часто не переводят'), T('z', '{g:go}')]).join()).toMatch(/R-audio-markup/)
     expect(checkWordingRules([A('На русский {g:to} часто не переводят')])).toEqual([])
   })
   it('R-table-big: таблица-показ больше 5 ячеек', () => {
@@ -36,5 +36,13 @@ describe('lessonLintWording', () => {
     expect(checkWordingRules([tb('demo', 6)]).join()).toMatch(/R-table-big/)
     expect(checkWordingRules([tb('demo', 5)])).toEqual([])
     expect(checkWordingRules([tb('dictator', 12)])).toEqual([])
+  })
+  it('R-audio-markup: и в текстовых репликах английское должно быть выделено', () => {
+    expect(checkWordingRules([T('a', 'вот пример, где to показывает направление'), T('z', '{g:go}')]).join()).toMatch(/R-audio-markup/)
+    expect(checkWordingRules([T('a', 'вот пример, где {g:to} показывает направление')])).toEqual([])
+  })
+  it('R-slang: «ваще» и подобное запрещены', () => {
+    expect(checkWordingRules([T('a', 'скажи ваще что угодно')]).join()).toMatch(/R-slang/)
+    expect(checkWordingRules([T('a', 'скажи вообще что угодно')])).toEqual([])
   })
 })

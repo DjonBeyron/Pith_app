@@ -146,6 +146,16 @@ export default function RichTextToolbar({ rect, range, highlights, onApply, onCl
       : addHighlight(highlights, { start: range.start, end: range.end, mode: m, color, opacity }))
   }
 
+  // Готовые стили проекта: «главное» — только белое подчёркивание (текст остаётся серым), «лишнее» — красный и зачёркнутый
+  function applyPreset(kind) {
+    if (kind === 'l') {
+      onApply(addHighlight(highlights, { start: range.start, end: range.end, mode: 'underline', color: '#ffffff', opacity: 1 }))
+    } else {
+      onApply(addHighlight(addHighlight(highlights, { start: range.start, end: range.end, mode: 'text', color: '#ff5a5a', opacity: 1 }),
+        { start: range.start, end: range.end, mode: 'strike', color: '#ff5a5a', opacity: 1 }))
+    }
+  }
+
   function applyFavorite(fav) {
     setColor(fav.color); setMode(fav.mode); setOutline(!!fav.outline); setOpacity(fav.opacity ?? 1)
     let next = addHighlight(highlights, {
@@ -221,6 +231,10 @@ export default function RichTextToolbar({ rect, range, highlights, onApply, onCl
           onClick={() => applyFavorite(BRAND_GREEN)}
           title="Фирменный зелёный"
         >А</button>
+        <button className="richTextFavSwatch" style={{ color: '#c6c6c6', textDecoration: 'underline', textDecorationColor: '#ffffff' }}
+          onClick={() => applyPreset('l')} title="Главное: белое подчёркивание, текст остаётся серым ({l:})">А</button>
+        <button className="richTextFavSwatch" style={{ color: '#ff5a5a', textDecoration: 'line-through' }}
+          onClick={() => applyPreset('x')} title="Лишнее: красный и зачёркнутый ({x:})">А</button>
         {favs.map((fav, i) => (
           <button
             key={i}

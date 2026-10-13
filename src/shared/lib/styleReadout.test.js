@@ -10,11 +10,11 @@ describe('стиль выделенного текста', () => {
     expect(d).toMatchObject({ mixed: false, color: '#b6fe3b', mark: 'g', markName: 'английская форма' })
     expect(d.flags).toEqual(['bold'])
   })
-  it('перевод — курсив #fdfcfc; базовый текст — серый 75%', () => {
+  it('перевод — курсив #fdfcfc; базовый текст — серый', () => {
     const { highlights } = parseMarkup('{t:«привет»} мир')
     expect(describeStyle(highlights, 0, 3)).toMatchObject({ mark: 't', color: '#fdfcfc' })
     const base = describeStyle(highlights, 9, 12)
-    expect(base).toMatchObject({ isBase: true, opacity: 0.75, mark: null })
+    expect(base).toMatchObject({ isBase: true, opacity: 1, mark: null })
   })
   it('участок из двух стилей — mixed', () => {
     const { highlights } = parseMarkup('a{g:b}')

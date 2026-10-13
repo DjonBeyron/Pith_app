@@ -7,6 +7,11 @@
 //   {x:слово}  лишнее / неверное: красный + зачёркнутый
 //   {p:i}      плашка на 1–2 буквах внутри слова (y → i)       Метки не вкладываются друг в друга.
 // Чистые функции, без React. Если разметки в тексте нет — данные возвращаются как есть (ручные highlights не трогаем).
+/** Базовый серый всего текста нод: реальный серый цвет (раньше — белый с прозрачностью .75: это тяжелее в отрисовке и «гасило» белое подчёркивание) */
+export const BASE_GRAY = '#c6c6c6'
+const LEGACY_BASE = h => String(h.color).toLowerCase() === '#ffffff' && h.opacity === 0.75 // старый базовый: тоже считается базовым
+/** Базовая подложка текста (новая или старая) */
+export const isBaseHighlight = h => h.mode === 'text' && (String(h.color).toLowerCase() === BASE_GRAY || LEGACY_BASE(h))
 const GREEN = '#b6fe3b', WHITE = '#ffffff', CYAN = '#6bfabc', DARK = '#12140d', TRANSLATION = '#fdfcfc', RED = '#ff5a5a'
 const TEXT_KEYS = ['content', 'text', 'caption']
 const MARK = /\{([gwtubplx]):([^}]*)\}/g
@@ -30,7 +35,7 @@ export function parseMarkup(src) {
     last = re.lastIndex
   }
   text += src.slice(last)
-  const highlights = [hl(0, text.length, 'text', WHITE, 0.75)]
+  const highlights = [hl(0, text.length, 'text', BASE_GRAY, 1)]
   for (const s of segs) {
     const { kind: k, start: a, end: b } = s
     if (a === b) continue
@@ -58,7 +63,7 @@ export function applyMarkup(data) {
     return { ...data, [key]: text, highlights }
   }
   const plain = TEXT_KEYS.find(k => typeof data[k] === 'string' && data[k].length)
-  if (plain && !(data.highlights?.length)) return { ...data, highlights: [hl(0, data[plain].length, 'text', WHITE, 0.75)] }
+  if (plain && !(data.highlights?.length)) return { ...data, highlights: [hl(0, data[plain].length, 'text', BASE_GRAY, 1)] }
   return data
 }
 
@@ -85,7 +90,7 @@ export const MARK_NAMES = { l: 'главное: белое подчёркива�
 export function toMarkup(text, highlights = []) {
   const byRange = new Map()
   for (const h of highlights) {
-    if (h.mode === 'text' && h.opacity === 0.75) continue // базовая подложка
+    if (isBaseHighlight(h)) continue // базовая подложка
     const k = `${h.start}:${h.end}`
     byRange.set(k, [...(byRange.get(k) ?? []), h])
   }

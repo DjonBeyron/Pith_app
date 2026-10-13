@@ -106,6 +106,15 @@ function checkTableTriggers(nodes) {
     .map(n => `[R-table-trigger] ${n.ref}: таблица в режиме «${n.data?.mode ?? 'dictator'}» без перехода table_correct — поставь {if:'table_correct', then:…} (timer/played здесь не работают, цепочка оборвётся)`)
 }
 
+/** Закрепы и системные сообщения нужны в уроке: pin_message — главное правило/формула раздела, system — смена части и события (в уроке от 20 нод) */
+function checkPinSystem(nodes) {
+  if (nodes.length < 20) return []
+  const out = []
+  if (!nodes.some(n => n.type === 'pin_message')) out.push('[R-pin] в уроке нет ни одного закрепа (pin_message) — закрепи главное правило или формулу раздела, чтобы ученик мог к нему вернуться')
+  if (!nodes.some(n => n.type === 'system')) out.push('[R-system] в уроке нет системных сообщений (system) — отмечай ими смену частей и события («Часть 2», «Маша написала»)')
+  return out
+}
+
 export function checkMix(nodes) {
-  return [...checkTableTriggers(nodes), ...checkLowercase(nodes), ...checkKsta(nodes), ...checkVoiceSmileys(nodes), ...checkHintUzhe(nodes), ...checkVoiceShare(nodes), ...checkWrongAudio(nodes), ...checkEmojiShare(nodes), ...checkRepeats(nodes), ...checkTableTitles(nodes)]
+  return [...checkPinSystem(nodes), ...checkTableTriggers(nodes), ...checkLowercase(nodes), ...checkKsta(nodes), ...checkVoiceSmileys(nodes), ...checkHintUzhe(nodes), ...checkVoiceShare(nodes), ...checkWrongAudio(nodes), ...checkEmojiShare(nodes), ...checkRepeats(nodes), ...checkTableTitles(nodes)]
 }

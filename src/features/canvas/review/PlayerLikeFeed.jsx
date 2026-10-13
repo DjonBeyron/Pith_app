@@ -118,7 +118,7 @@ export function SlotBody({ item, canvasNode, canvasNodes, files, onPick = NOOP, 
   return msg(undefined)
 }
 
-export default function PlayerLikeFeed({ items, canvasById, canvasNodes, files = [], selRef, selTick, warnMap, noteCounts, onNote, onSelect, onChoice, onPick }) {
+export default function PlayerLikeFeed({ items, canvasById, canvasNodes, files = [], selRef, selTick, warnMap, noteCounts, changeMarks, onNote, onSelect, onChoice, onPick }) {
   const outerRef = useRef(null)
   const phoneRef = useRef(null)
   // Переключили «верно/неверно» или выбрали вариант — под заданием меняется лента; само задание остаётся на экране там же, где было (история не «едет»)
@@ -170,9 +170,9 @@ export default function PlayerLikeFeed({ items, canvasById, canvasNodes, files =
                   return <div key={`s-${it.ref}-${i}`} data-ref={it.ref} className={`rvwSlot${on ? ' on' : ''}`} onClick={() => onSelect(it.ref)}><StudentRow item={it} /></div>
                 }
                 return (
-                  <div key={`n-${it.ref}-${i}`} data-ref={it.ref} className={`rvwSlot${on ? ' on' : ''}${it.wrongBranch ? ' wrong' : ''}`} onClick={() => onSelect(it.ref)}>
+                  <div key={`n-${it.ref}-${i}`} data-ref={it.ref} className={`rvwSlot${on ? ' on' : ''}${it.wrongBranch ? ' wrong' : ''}${changeMarks?.has(it.ref) ? ' rvwChg' : ''}`} onClick={() => onSelect(it.ref)}>
                     <div className="rvwSlotMeta">
-                      <span>{node.seq}</span>{it.wrongBranch && <span className="rvwTagWrong">ветка ошибки</span>}{warns > 0 && <span className="rvwWarn">⚠ {warns}</span>}
+                      <span>{node.seq}</span>{it.wrongBranch && <span className="rvwTagWrong">ветка ошибки</span>}{changeMarks?.has(it.ref) && <span className="rvwTagChg">{changeMarks.get(it.ref) === 'new' ? 'новая' : 'изменена'}</span>}{warns > 0 && <span className="rvwWarn">⚠ {warns}</span>}
                     </div>
                     <SlotTools item={it} count={noteCounts?.get(it.ref) ?? 0} onNote={onNote} />
                     <SlotBody item={it} canvasNode={node} canvasNodes={canvasNodes} files={files} onPick={anchored(onPick)} onChoice={anchored(onChoice)} />

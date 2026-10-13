@@ -8,10 +8,15 @@
 .rvwBtn { padding: 6px 12px; background: #1a1d22; border: 1px solid #2a2d35; border-radius: 8px; color: #ccc; font-size: 12px; cursor: pointer; white-space: nowrap; }
 .rvwBtn:disabled { opacity: 0.35; cursor: default; }
 .rvwBtnPrimary { background: #b6fe3b; border-color: #b6fe3b; color: #0e1013; font-weight: 600; }
-.rvwCols { flex: 1 1 0; min-height: 0; overflow: hidden; display: grid; grid-template-rows: minmax(0, 1fr); grid-template-columns: minmax(430px, 470px) minmax(420px, 1fr) minmax(320px, 380px); }
+.rvwCols { flex: 1 1 0; min-height: 0; overflow: hidden; display: grid; grid-template-rows: minmax(0, 1fr); grid-template-columns: minmax(300px, 360px) minmax(430px, 470px) minmax(420px, 1fr); }
+.rvwCols.rvwRulesOff { grid-template-columns: 38px minmax(430px, 470px) minmax(420px, 1fr); }
 .rvwFeedCol, .rvwCanvasCol, .rvwRight { min-height: 0; overflow: hidden; }
 .rvwRight { overflow-y: auto; padding: 12px 14px; scrollbar-width: thin; scrollbar-color: #4a5064 #14161c; }
-.rvwFeedCol, .rvwCanvasCol { border-right: 1px solid #22252c; position: relative; }
+.rvwFeedCol, .rvwRight { border-right: 1px solid #22252c; position: relative; }
+.rvwCanvasCol { position: relative; }
+.rvwRulesToggle { background: transparent; border: none; color: #8a90a0; font-size: 12px; font-weight: 700; cursor: pointer; padding: 2px 4px; margin-bottom: 8px; text-align: left; }
+.rvwRulesToggle:hover { color: #b6fe3b; }
+.rvwCols.rvwRulesOff .rvwRight { padding: 12px 4px; }
 .rvwEmpty { color: #6a6f78; font-size: 13px; padding: 14px 0; }
 .rvwSpacer { flex: 1; }
 .rvwInfoWarn { color: #ffd75f; }
@@ -93,3 +98,9 @@
 .rvwTool { padding: 0 6px; }
 .rvwTool svg { flex: 0 0 auto; }
 .rvwSlot:hover .rvwSlotTools, .rvwSlot.on .rvwSlotTools, .rvwSlotTools.keep, .rvwSlotTools:focus-within { opacity: 1; pointer-events: auto; }
+
+/* «Изменения»: розовая полоска слева от сообщения, с отступом, не прилипает к нему */
+.rvwBtnChg.on { background: #3a1a2c; border-color: #ff5fa2; color: #ff8fc0; }
+.rvwPhone .rvwPlayerFeed { padding-left: 16px; }
+.rvwSlot.rvwChg::before { content: ''; position: absolute; left: -12px; top: 8px; bottom: 8px; width: 3px; border-radius: 2px; background: #ff5fa2; pointer-events: none; }
+.rvwTagChg { color: #ff8fc0; }

@@ -1,14 +1,14 @@
 // Примеры «нельзя / можно» у правил: последовательность «пузырей» (нод) — [{ type, content, highlights, hardWrap }].
 // В базе лежит строкой (колонки bad_example / good_example): либо JSON такого массива (сохранено окном правил), либо простой текст
 // с метками {g:..} и строками «тип: содержимое» (так записан стандартный набор). Чистые функции, без React.
-import { parseMarkup, toMarkup, hasMarkup } from '../../../shared/lib/lessonMarkup.js'
+import { parseMarkup, toMarkup, hasMarkup, BASE_GRAY } from '../../../shared/lib/lessonMarkup.js'
 
 export const EXAMPLE_TYPES = [
   ['text', 'Текст'], ['reaction', 'Реакция'], ['audio', 'Голос'], ['pin_message', 'Закреп'], ['system', 'Заголовок'],
   ['photo', 'Фото'], ['word_choice', 'Выбор слова'], ['phrase_assembly', 'Собери фразу'], ['type_word', 'Напечатай'], ['say_phrase', 'Скажи'],
 ]
 const KNOWN = new Set(EXAMPLE_TYPES.map(([t]) => t))
-const BASE = len => ({ start: 0, end: len, mode: 'text', color: '#ffffff', opacity: 0.75 })
+const BASE = len => ({ start: 0, end: len, mode: 'text', color: BASE_GRAY, opacity: 1 })
 
 const bubble = (type, raw) => {
   const { text, highlights } = hasMarkup(raw) ? parseMarkup(raw) : { text: raw, highlights: [BASE(raw.length)] }
