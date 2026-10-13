@@ -145,6 +145,9 @@ const PRINCIPLE_META = [
   ['Повтор слова в ответе — намёк и объяснение', Z, 'judge', 'warn', 'assembly: I need to talk to Masha (без пояснений)', 'text: тут аж два to\nassembly: I need to talk to Masha\naudio: первый to связывает need и talk, второй ведёт к человеку'],
   ['После слуха — что значит фраза', Z, 'judge', 'warn', 'text: именно так)', 'text: именно так) {g:has to} это {t:нужно}, а {g:late} это {t:поздно}'],
   ['Практика: говорение и приёмы', V, 'judge', 'warn', 'choice\nchoice\nchoice (практика только выбором)', 'say_phrase (с конца)\nsay_phrase\nassembly\nsay_phrase (сцена без подсказок)'],
+  ['Голосовое: печатать текст', V, 'auto', 'warn', 'audio (showText: false)\nword_choice? — нет, это не на слух', 'audio (showText: true) → текст виден\naudio (showText: false) → word_choice на слух'],
+  ['Авто-таблица — в чат', Z, 'auto', 'warn', 'table dictator без sendToChat\nзаголовок «Дальше»', 'table dictator + sendToChat: true\nзаголовок «Действие»'],
+  ['Зелёная фраза на новой строке', S, 'auto', 'warn', 'text: давай проверим, где прячется мостик: {g:I love ___ travel}', 'text (hardWrap): давай проверим, где прячется мостик:\n{g:I love ___ travel}'],
 ]
 
 const CHECKLIST_META = [

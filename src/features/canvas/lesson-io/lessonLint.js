@@ -16,6 +16,7 @@ import { checkFlow } from './lessonLintFlow.js'
 import { checkStyle } from './lessonLintStyle.js'
 import { checkWordingRules } from './lessonLintWording.js'
 import { checkMix } from './lessonLintMix.js'
+import { checkMedia } from './lessonLintMedia.js'
 import { checkAnswersAndLimits } from './lessonLintAnswers.js'
 
 const WRONG_TRIGGERS = new Set(['word_wrong', 'phrase_wrong', 'photo_wrong', 'table_wrong', 'type_wrong', 'say_wrong', 'say_skip'])
@@ -189,6 +190,7 @@ export function lintLesson(rawNodes) {
   warnings.push(...checkStyle(nodes))
   warnings.push(...checkWordingRules(nodes))
   warnings.push(...checkMix(nodes))
+  warnings.push(...checkMedia(nodes))
   warnings.push(...checkAnswersAndLimits(nodes))
 
   for (const n of nodes) {

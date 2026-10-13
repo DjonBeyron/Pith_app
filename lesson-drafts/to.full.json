@@ -18,7 +18,7 @@
       "needs": "audio — озвучка реплики",
       "data": {
         "text": "Я тут ужин сейчас готовлю, а друг как раз написал: {g:what are you doing}?",
-        "showText": false
+        "showText": true
       },
       "triggers": [
         {
@@ -240,7 +240,7 @@
       "needs": "audio — озвучка реплики",
       "data": {
         "text": "На русский кстати {g:to} часто не переводят, он просто связывает два глагола",
-        "showText": false
+        "showText": true
       },
       "triggers": [
         {
@@ -313,7 +313,7 @@
               "id": "h2",
               "col": 2,
               "row": 0,
-              "value": "Дальше",
+              "value": "Действие",
               "colspan": 1,
               "rowspan": 1,
               "fontSize": 11,
@@ -369,7 +369,7 @@
       "needs": "audio — озвучка реплики",
       "data": {
         "text": "Смотри: сначала {g:trying}, потом мостик {g:to}, и только потом {l:действие}, которое мы делаем",
-        "showText": false
+        "showText": true
       },
       "triggers": [
         {
@@ -488,7 +488,7 @@
       "needs": "audio — озвучка реплики",
       "data": {
         "text": "Видишь? После {g:want} мостик {g:to} {l:работает точно так же}, как после {g:trying}",
-        "showText": false
+        "showText": true
       },
       "triggers": [
         {
@@ -510,6 +510,7 @@
       "data": {
         "mode": "dictator",
         "script": "Смотри, теперь тут две фразы. I'm trying to cook, я пытаюсь готовить, и I want to sleep, я хочу спать. И в обеих to стоит на одном и том же месте, как мостик между двумя глаголами",
+        "sendToChat": true,
         "chatCaption": "выражаем желание",
         "table": {
           "rows": [
@@ -567,7 +568,7 @@
               "id": "h2",
               "col": 2,
               "row": 0,
-              "value": "Дальше",
+              "value": "Действие",
               "colspan": 1,
               "rowspan": 1,
               "fontSize": 11,
@@ -925,7 +926,7 @@
       "needs": "audio — озвучка реплики",
       "data": {
         "text": "Ой, а у меня завтра рабочий день",
-        "showText": false
+        "showText": true
       },
       "triggers": [
         {
@@ -1041,8 +1042,8 @@
         0
       ],
       "data": {
-        "content": "давай проверим, где прячется мостик: {g:I love ___ travel}",
-        "hardWrap": false
+        "content": "давай проверим, где прячется мостик:\n{g:I love ___ travel}",
+        "hardWrap": true
       },
       "triggers": [
         {
@@ -1159,7 +1160,7 @@
       "needs": "audio — озвучка реплики",
       "data": {
         "text": "У {g:to} есть и вторая работа: оно {l:показывает направление}",
-        "showText": false
+        "showText": true
       },
       "triggers": [
         {
@@ -1344,6 +1345,7 @@
       "data": {
         "mode": "dictator",
         "script": "Ещё раз. В I'm trying to cook, to нужен, чтобы связать два глагола. В I want to sleep он играет ту же роль, мостик между хочу и спать. А вот в We go to the gym, to ещё помогает показать направление, куда мы идём",
+        "sendToChat": true,
         "chatCaption": "когда идём куда-то",
         "table": {
           "rows": [
@@ -1405,7 +1407,7 @@
               "id": "h2",
               "col": 2,
               "row": 0,
-              "value": "Дальше",
+              "value": "Действие",
               "colspan": 1,
               "rowspan": 1,
               "fontSize": 11,
@@ -1559,7 +1561,7 @@
       "needs": "audio — озвучка реплики",
       "data": {
         "text": "Ты быстро справляешься с заданиями, и сейчас всё поймёшь без объяснения",
-        "showText": false
+        "showText": true
       },
       "triggers": [
         {
@@ -1678,7 +1680,7 @@
       "needs": "audio — озвучка реплики",
       "data": {
         "text": "Вот тут {g:to} {l:ведёт к человеку}, с которым ты говоришь, а не к месту, но мостик всё тот же",
-        "showText": false
+        "showText": true
       },
       "triggers": [
         {
@@ -1699,7 +1701,7 @@
       "needs": "audio — озвучка реплики",
       "data": {
         "text": "А {g:with} тоже значит {w:«С»}, но когда кто-то рядом с тобой или вы что-то делаете вместе. Разберём его в отдельном уроке",
-        "showText": false
+        "showText": true
       },
       "triggers": [
         {
@@ -1745,6 +1747,7 @@
       "data": {
         "mode": "dictator",
         "script": "Ох, что только to не делает! Давай ещё раз по порядку. Сначала to связывает два глагола, как в I'm trying to cook и I want to sleep. Потом показывает направление, как в We go to the gym. И наконец ведёт к человеку, как в I talk to Masha",
+        "sendToChat": true,
         "chatCaption": "вся картина целиком",
         "table": {
           "rows": [
@@ -1810,7 +1813,7 @@
               "id": "h2",
               "col": 2,
               "row": 0,
-              "value": "Дальше",
+              "value": "Действие",
               "colspan": 1,
               "rowspan": 1,
               "fontSize": 11,
@@ -2190,7 +2193,7 @@
       "needs": "audio — озвучка реплики",
       "data": {
         "text": "а теперь маленькая хитрость: после {g:can} мостик не нужен, мы говорим просто {g:I can swim}",
-        "showText": false
+        "showText": true
       },
       "triggers": [
         {
@@ -2211,7 +2214,7 @@
       "needs": "audio — озвучка реплики",
       "data": {
         "text": "Потому что {g:can} уже сам говорит, что ты умеешь, и второй мостик просто {l:не нужен}",
-        "showText": false
+        "showText": true
       },
       "triggers": [
         {
@@ -2349,7 +2352,7 @@
       "needs": "audio — озвучка реплики",
       "data": {
         "text": "Скажи вообще что угодно, начни с {g:I want to}, а я послушаю только как ты произносишь",
-        "showText": false
+        "showText": true
       },
       "triggers": [
         {
@@ -2438,7 +2441,7 @@
       "needs": "audio — озвучка реплики",
       "data": {
         "text": "Ещё про себя: скажи, что ты пытаешься сделать прямо сейчас, начни с {g:I'm trying to}",
-        "showText": false
+        "showText": true
       },
       "triggers": [
         {
@@ -2547,7 +2550,7 @@
       "needs": "audio — озвучка реплики",
       "data": {
         "text": "А чтобы не забыть про {g:to}, давай соберём всю формулу вместе",
-        "showText": false
+        "showText": true
       },
       "triggers": [
         {
@@ -2568,6 +2571,7 @@
       "needs": "audio — озвучка таблицы по script, дорожки подсветки нарезать в редакторе",
       "data": {
         "mode": "dictator",
+        "sendToChat": true,
         "chatCaption": "вся формула to, чтобы не забыть",
         "script": "Смотри, всё вместе. Хочешь что-то сделать, например I'm trying to cook или I want to sleep, это trying, want, need, потом мостик to и действие. Идёшь куда-то, как в We go to the gym, это go и to, а потом место. А говоришь с кем-то, как в I talk to Masha, это talk и тот же to, а потом человек. И не забудь хитрость: после can мостик не нужен, просто I can swim.",
         "table": {
@@ -2878,7 +2882,7 @@
       "needs": "audio — озвучка реплики",
       "data": {
         "text": "Будет пять уровней, и каждый чуть сложнее предыдущего",
-        "showText": false
+        "showText": true
       },
       "triggers": [
         {
@@ -3030,8 +3034,8 @@
         0
       ],
       "data": {
-        "content": "Маше нужно отдохнуть, вставь пропущенное слово: {g:She needs ___ rest}",
-        "hardWrap": false
+        "content": "Маше нужно отдохнуть, вставь пропущенное слово:\n{g:She needs ___ rest}",
+        "hardWrap": true
       },
       "triggers": [
         {
@@ -3330,7 +3334,7 @@
       "needs": "audio — озвучка реплики",
       "data": {
         "text": "Первый уровень позади, идём дальше",
-        "showText": false
+        "showText": true
       },
       "triggers": [
         {
@@ -3370,7 +3374,7 @@
       "needs": "audio — озвучка реплики",
       "data": {
         "text": "Теперь фразы подлиннее, но мостик всё тот же",
-        "showText": false
+        "showText": true
       },
       "triggers": [
         {
@@ -3391,6 +3395,7 @@
       "needs": "audio — озвучка таблицы по script, дорожки подсветки нарезать в редакторе",
       "data": {
         "mode": "dictator",
+        "sendToChat": true,
         "chatCaption": "вспоминаем: когда нужен мостик",
         "script": "Давай вспомним. Хочу и пытаюсь, это want и try, потом мостик to и действие. Нужно и должен, это need и have, тоже с мостиком. И love to, когда любишь что-то делать",
         "table": {
@@ -3665,7 +3670,7 @@
       "needs": "audio — озвучка реплики",
       "data": {
         "text": "Теперь скажи сам: что тебе нужно сделать сегодня, начни с {g:I have to}",
-        "showText": false
+        "showText": true
       },
       "triggers": [
         {
@@ -3838,7 +3843,7 @@
       "needs": "audio — озвучка реплики",
       "data": {
         "text": "Ты уже уверенно строишь фразы, а теперь будем повторять за мной",
-        "showText": false
+        "showText": true
       },
       "triggers": [
         {
@@ -3878,7 +3883,7 @@
       "needs": "audio — озвучка реплики",
       "data": {
         "text": "Соберём длинную фразу с конца, кусок за куском, а ты копируй мой ритм и ударение",
-        "showText": false
+        "showText": true
       },
       "triggers": [
         {
@@ -3967,7 +3972,7 @@
       "needs": "audio — озвучка реплики",
       "data": {
         "text": "Теперь добавим кусок спереди",
-        "showText": false
+        "showText": true
       },
       "triggers": [
         {
@@ -4033,8 +4038,8 @@
         480
       ],
       "data": {
-        "content": "неа) добавь {g:go} в начало: {g:go to the gym}",
-        "hardWrap": false
+        "content": "неа) добавь {g:go} в начало:\n{g:go to the gym}",
+        "hardWrap": true
       },
       "triggers": [
         {
@@ -4056,7 +4061,7 @@
       "needs": "audio — озвучка реплики",
       "data": {
         "text": "А теперь соберём всю фразу целиком",
-        "showText": false
+        "showText": true
       },
       "triggers": [
         {
@@ -4293,6 +4298,7 @@
       "needs": "audio — озвучка таблицы по script, дорожки подсветки нарезать в редакторе",
       "data": {
         "mode": "dictator",
+        "sendToChat": true,
         "chatCaption": "когда мостик не нужен",
         "script": "А вот три случая без мостика. После can просто действие, I can help. После will тоже просто действие, I will call you. И домой это просто home, без to, we go home",
         "table": {
@@ -4545,7 +4551,7 @@
       "needs": "audio — озвучка реплики",
       "data": {
         "text": "Слово {g:home} уже само значит домой, поэтому мостик {l:не нужен}",
-        "showText": false
+        "showText": true
       },
       "triggers": [
         {
@@ -4660,8 +4666,8 @@
         0
       ],
       "data": {
-        "content": "и ещё одна ловушка, {t:«я тебе позвоню»}: {g:I will ___ you}",
-        "hardWrap": false
+        "content": "и ещё одна ловушка, {t:«я тебе позвоню»}:\n{g:I will ___ you}",
+        "hardWrap": true
       },
       "triggers": [
         {
@@ -4778,7 +4784,7 @@
       "needs": "audio — озвучка реплики",
       "data": {
         "text": "Ловушки пройдены, теперь будем говорить своими словами",
-        "showText": false
+        "showText": true
       },
       "triggers": [
         {
@@ -4796,8 +4802,8 @@
         480
       ],
       "data": {
-        "content": "близко) со словом {g:home} мостик {g:to} не нужен: {g:We go home}",
-        "hardWrap": false
+        "content": "близко) со словом {g:home} мостик {g:to} не нужен:\n{g:We go home}",
+        "hardWrap": true
       },
       "triggers": [
         {
@@ -4916,7 +4922,7 @@
       "needs": "audio — озвучка реплики",
       "data": {
         "text": "Первый {g:to} связывает {g:need} и {g:talk}, а второй {l:ведёт к человеку}, к Маше",
-        "showText": false
+        "showText": true
       },
       "triggers": [
         {
@@ -4957,7 +4963,7 @@
       "needs": "audio — озвучка реплики",
       "data": {
         "text": "Скажи вслух, что тебе нужно поговорить с Машей или с другом: начни с {g:I need to talk to} и назови имя",
-        "showText": false
+        "showText": true
       },
       "triggers": [
         {
@@ -5143,7 +5149,7 @@
       "needs": "audio — озвучка реплики",
       "data": {
         "text": "{g:Has to} значит нужно, а {g:late} значит поздно, вместе ей нужно работать допоздна",
-        "showText": false
+        "showText": true
       },
       "triggers": [
         {
@@ -5184,7 +5190,7 @@
       "needs": "audio — озвучка реплики",
       "data": {
         "text": "Ничего себе, как ты быстро, остался последний рывок на скорость",
-        "showText": false
+        "showText": true
       },
       "triggers": [
         {
@@ -5298,8 +5304,8 @@
         480
       ],
       "data": {
-        "content": "эээмм... после {g:need} нужен мостик {g:to}: {g:I need to eat}",
-        "hardWrap": false
+        "content": "эээмм... после {g:need} нужен мостик {g:to}:\n{g:I need to eat}",
+        "hardWrap": true
       },
       "triggers": [
         {
@@ -5492,8 +5498,8 @@
         480
       ],
       "data": {
-        "content": "хм) после {g:wants} тоже нужен {g:to}: {g:She wants to sleep}",
-        "hardWrap": false
+        "content": "хм) после {g:wants} тоже нужен {g:to}:\n{g:She wants to sleep}",
+        "hardWrap": true
       },
       "triggers": [
         {
@@ -5554,7 +5560,7 @@
       "needs": "audio — озвучка реплики",
       "data": {
         "text": "Ответь ей вслух, что ты можешь помочь, и говори по-своему, без подсказок",
-        "showText": false
+        "showText": true
       },
       "triggers": [
         {
@@ -5729,7 +5735,7 @@
       "needs": "audio — озвучка реплики",
       "data": {
         "text": "Неожиданность: Маша говорит, что ей срочно уезжать, а тебе с ней нужно поговорить прямо сейчас. Скажи ей это вслух",
-        "showText": false
+        "showText": true
       },
       "triggers": [
         {
