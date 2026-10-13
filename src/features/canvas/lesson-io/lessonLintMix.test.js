@@ -74,4 +74,9 @@ describe('lessonLintMix', () => {
     expect(checkMix([{ ref: 'a', type: 'text', data: { content: 'один и два', highlights: [u(0, 4), u(6, 9)] }, triggers: [] }]).join()).toMatch(/R-underline-many/)
     expect(checkMix([{ ref: 'a', type: 'text', data: { content: 'один и два', highlights: [u(0, 4)] }, triggers: [] }]).join()).not.toMatch(/R-underline-many/)
   })
+  it('R-start-menu: после импорта переходы вариантов ссылаются на id опций — тоже считаются', () => {
+    const many = Array.from({ length: 30 }, (_, i) => ({ ref: 'n' + i, seq: i + 1, type: 'text', data: { content: 'реплика ' + i }, triggers: [] }))
+    const menu = { ref: 'm', seq: 3, type: 'word_choice', data: { options: [{ id: 'o1', text: 'a' }, { id: 'o2', text: 'b' }] }, triggers: [{ if: 'o1', then: 'a' }, { if: 'o2', then: 'b' }] }
+    expect(checkMix([...many.slice(0, 2), menu, ...many.slice(3)]).join()).not.toMatch(/R-start-menu/)
+  })
 })
