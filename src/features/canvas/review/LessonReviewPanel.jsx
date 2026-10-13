@@ -12,6 +12,7 @@ import NotesWindow from './NotesWindow.jsx'
 import { useReviewNotes } from './useReviewNotes.js'
 import { nodeCopyText } from './nodeCopyText.js'
 import { applyTypeChange } from '../nodeDefaults.js'
+import { useNoteSession } from './useNoteSession.js'
 import { changedRefs } from './reviewNotes.js'
 import { reviewKey, loadReview, saveReview } from './reviewStorage.js'
 
@@ -33,6 +34,7 @@ export default function LessonReviewPanel({ nodes: initialNodes, zones: initialZ
   const store = useReviewNotes(saved)
   const [noteFor, setNoteFor] = useState(null) // ref ноды, к которой пишем замечание
   const [notesOpen, setNotesOpen] = useState(false)
+  const session = useNoteSession(canvasRef, noteFor, setNoteFor)
 
   // Холст при монтировании сам приводит ноды к своему виду (служебные переходы) — первое его сообщение берём за точку отсчёта для «Применить»,
   // иначе эта нормализация выглядела бы как 13 «правок» без единого действия автора
@@ -71,11 +73,11 @@ export default function LessonReviewPanel({ nodes: initialNodes, zones: initialZ
     const it = items.find(i => i.kind === 'node' && i.ref === ref)
     if (it) store.remember(ref, { item: it, canvasNode: canvasById.get(ref), text: nodeCopyText(it.node, { markup: true }) })
     setNoteFor(ref)
+    session.open(ref)
   }
   // Правка ноды прямо из окна замечания: функция (data) => data для typeData[type] — идёт в копию урока разбора
   // Смена вида ноды из окна замечания — тем же правилом, что на холсте (триггеры под новый тип, текст переезжает)
-  const changeType = type => canvasRef.current?.updateNode(noteFor, n => applyTypeChange(n, type))
-  const patchNode = fn => canvasRef.current?.updateNode(noteFor, n => ({ typeData: { ...n.typeData, [n.type]: fn(n.typeData?.[n.type] ?? {}) } }))
+  const changeType = type => session.patchRaw(n => applyTypeChange(n, type))
 
   const close = useCallback(() => {
     const lost = []
@@ -102,13 +104,22 @@ export default function LessonReviewPanel({ nodes: initialNodes, zones: initialZ
   const pickOption = (ref, id) => setChoices(c => { const n = { ...c }; if (n[ref] === optChoice(id)) delete n[ref]; else n[ref] = optChoice(id); return n })
   const setChoice = (ref, v) => setChoices(c => { const n = { ...c }; if (v === 'wrong') n[ref] = 'wrong'; else delete n[ref]; return n })
 
+  // Отложенный набор из открытого окна замечания сначала доходит до копии урока, и только потом применяем
+  const applyRef = useRef(null)
   function apply() {
-    setNoteFor(null); setNotesOpen(false) // окно замечания закрывается само, как только правки применены
+    if (noteFor && session.flushAll()) { setTimeout(() => applyRef.current?.(), 80); return }
+    applyNow()
+  }
+  function applyNow() {
+    session.keep() // окно замечания закрывается само, как только правки применены (его правки остаются)
+    setNotesOpen(false)
     for (const { id, patch } of diff.changed) boardApiRef.current?.updateNode(id, patch)
     setBase(draft)
     setApplied(`Применено: ${diff.changed.length} ${diff.changed.length === 1 ? 'нода' : 'нод'}. Не забудь сохранить урок (💾)`)
     setTimeout(() => setApplied(''), 5000)
   }
+
+  useEffect(() => { applyRef.current = applyNow })
 
   const shown = new Set(items.filter(i => i.kind === 'node').map(i => i.ref)).size
   return createPortal(
@@ -137,8 +148,8 @@ export default function LessonReviewPanel({ nodes: initialNodes, zones: initialZ
       </div>
       {noteFor && (
         <NoteDialog title={`Замечание к №${nodes.find(n => n.ref === noteFor)?.seq} (${noteFor})`} existing={store.notes.filter(n => n.ref === noteFor)} before={store.originals.current.get(noteFor)}
-          item={items.find(i => i.kind === 'node' && i.ref === noteFor)} canvasNode={canvasById.get(noteFor)} canvasNodes={draft} files={boardProps?.lessonFiles ?? []} onPatch={patchNode} onType={changeType}
-          onSave={(t, x) => store.addNote(noteFor, t, x)} onRemove={store.removeNote} onClose={() => setNoteFor(null)} />
+          item={items.find(i => i.kind === 'node' && i.ref === noteFor)} canvasNode={canvasById.get(noteFor)} canvasNodes={draft} files={boardProps?.lessonFiles ?? []} onPatch={session.patch} onType={changeType} session={session}
+          onSave={(t, x) => store.addNote(noteFor, t, x)} onRemove={store.removeNote} onClose={session.cancel} onKeep={session.keep} />
       )}
       {notesOpen && <NotesWindow store={store} items={items} nodes={nodes} lessonTitle={boardProps?.lessonTitle ?? ''} onFocus={r => { select(r); setNotesOpen(false) }} onClose={() => setNotesOpen(false)} />}
     </div>,

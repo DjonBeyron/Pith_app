@@ -42,7 +42,7 @@ import { useCanvasBoardPointer } from './useCanvasBoardPointer.js'
 const EMPTY_NODES = []
 
 const CanvasBoard = forwardRef(function CanvasBoard({
-  initialNodes, lessonFiles = [], onPickLessonFile, onRemoveLessonFile, lessonId, onNodesChange,
+  initialNodes, lessonFiles = [], onPickLessonFile, onRemoveLessonFile, lessonId, onNodesChange, emitDelayMs,
   moduleLessons = [],
   onPlayFrom, // админ: прогнать сценарий начиная с этой ноды
   // Фильтр в шапке (админ): типы, которые показываем в полную силу.
@@ -64,7 +64,7 @@ const CanvasBoard = forwardRef(function CanvasBoard({
   // Ноды/зоны/offset/scale + вся локальная персистентность (черновик, сверка
   // с сервером, память позиции обзора) — useCanvasBoardState.js
   const { nodes, setNodes, zones, setZones, offset, setOffset, scale, setScale, scaleRef } =
-    useCanvasBoardState(lessonId, initialNodes, initialZones, onNodesChange, onZonesChange)
+    useCanvasBoardState(lessonId, initialNodes, initialZones, onNodesChange, onZonesChange, emitDelayMs)
 
   const [triggerMeasures, setTriggerMeasures] = useState({})
   // Кнопка «пройти с этой ноды» в меню ноды — только для админа, это

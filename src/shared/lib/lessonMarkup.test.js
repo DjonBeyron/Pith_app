@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { parseMarkup, applyMarkup, hasMarkup } from './lessonMarkup.js'
+import { parseMarkup, applyMarkup, hasMarkup, toMarkup } from './lessonMarkup.js'
 
 describe('разметка выделений', () => {
   it('метки превращаются в чистый текст и highlights с правильными позициями', () => {
@@ -35,5 +35,13 @@ describe('разметка выделений', () => {
   it('applyMarkup: подставляет текст в нужное поле (content / text / caption)', () => {
     expect(applyMarkup({ caption: 'Это {g:tea}' })).toMatchObject({ caption: 'Это tea' })
     expect(applyMarkup({ text: '{w:он}' }).text).toBe('он')
+  })
+
+  it('{l:} белое подчёркивание и {x:} красное зачёркнутое: разбор и обратно', () => {
+    const { text, highlights } = parseMarkup('нужно {l:действие} и {x:лишний}')
+    expect(text).toBe('нужно действие и лишний')
+    expect(highlights.filter(h => h.mode === 'underline')).toHaveLength(1)
+    expect(highlights.filter(h => h.mode === 'strike')).toHaveLength(1)
+    expect(toMarkup(text, highlights)).toBe('нужно {l:действие} и {x:лишний}')
   })
 })

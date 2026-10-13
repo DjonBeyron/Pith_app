@@ -41,3 +41,6 @@
 
 .rvwCopyIcon { padding: 0; box-sizing: border-box; }
 .rvwCopyIcon svg { flex: 0 0 auto; }
+.rvwNtHeadBtns { display: inline-flex; align-items: center; gap: 6px; }
+.rvwNtIconBtn { display: inline-flex; align-items: center; gap: 3px; }
+.rvwNtIconBtn span { font-size: 10px; color: #b6fe3b; }

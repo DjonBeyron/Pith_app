@@ -1,6 +1,8 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState } from 'react'
 import { toMarkup } from '../../../shared/lib/lessonMarkup.js'
 import CopyIcon from './CopyIcon.jsx'
+import EdField from './EdField.jsx'
+import { useDebouncedPatch } from './useDebouncedPatch.js'
 import TableEditor from './TableEditor.jsx'
 import { onlyEmoji } from './onlyEmoji.js'
 import { NODE_TYPES } from '../nodeTypes.js'
@@ -12,8 +14,8 @@ const PROMPT_TYPES = new Set(['photo', 'sticker', 'photo_choice'])
 
 // «До» (ro): текст с разметкой {g:..}, только чтение. «После»: то же поле, что на холсте (RichTextField) — выделил слово, всплыла панель раскраски;
 // покраска и текст идут в копию ноды, а в JSON замечаний видны разметкой {g:..}/{u:..}
-function MarkupField({ data, field, label, onPatch, ro }) {
-  if (!ro) return <EditableMarkup data={data} field={field} label={label} onPatch={onPatch} />
+function MarkupField({ data, field, label, onPatch, reg, ro }) {
+  if (!ro) return <EditableMarkup data={data} field={field} label={label} onPatch={onPatch} reg={reg} />
   const val = toMarkup(data[field] ?? '', data.highlights ?? [])
   return (
     <div className="rvwEdBlock">
@@ -24,23 +26,13 @@ function MarkupField({ data, field, label, onPatch, ro }) {
 }
 
 // Поле «После»: набор идёт в ЛОКАЛЬНОЕ состояние (сразу, без лагов и без прыжков курсора), а в копию урока разбора уходит с задержкой 300 мс — иначе
-// каждая буква перерисовывала бы весь разбор (ленту, линтер, холст). При закрытии окна несброшенное доходит само
-function EditableMarkup({ data, field, label, onPatch }) {
+// каждая буква перерисовывала бы весь разбор (ленту, линтер, холст)
+function EditableMarkup({ data, field, label, onPatch, reg }) {
   const [local, setLocal] = useState(() => ({ value: data[field] ?? '', highlights: data.highlights ?? [] }))
-  const timer = useRef(null)
-  const pending = useRef(null)
-  const patchRef = useRef(onPatch)
-  useEffect(() => { patchRef.current = onPatch })
-  const flush = () => {
-    clearTimeout(timer.current)
-    if (pending.current) { const p = pending.current; pending.current = null; patchRef.current(d => ({ ...d, ...p })) }
-  }
-  useEffect(() => flush, [])
+  const commit = useDebouncedPatch(onPatch, reg)
   const change = patch => {
     setLocal({ value: patch[field] ?? '', highlights: patch.highlights ?? [] })
-    pending.current = patch
-    clearTimeout(timer.current)
-    timer.current = setTimeout(flush, 300)
+    commit(d => ({ ...d, ...patch }))
   }
   return (
     <div className="rvwEdBlock">
@@ -50,18 +42,12 @@ function EditableMarkup({ data, field, label, onPatch }) {
   )
 }
 
-const Plain = ({ label, value, rows = 0, onChange, ro }) => (
-  <div className="rvwEdBlock">
-    <label className="rvwEdLbl">{label} <CopyIcon text={value} /></label>
-    {rows ? <textarea className="rvwEdIn" readOnly={ro} rows={rows} value={value} onChange={e => onChange(e.target.value)} /> : <input className="rvwEdIn" readOnly={ro} value={value} onChange={e => onChange(e.target.value)} />}
-  </div>
-)
-
 // Редактор ноды в окне замечания: правит ту же копию нод, что и холст разбора (до «Применить» основной урок не меняется)
 // ro — режим «только чтение» (колонка «До»: оригинал не меняется, но текст можно выделить и скопировать)
-export default function NodeEditor({ node, onPatch, onType, ro = false }) {
+export default function NodeEditor({ node, onPatch, onType, reg, ro = false }) {
   const d = node.data ?? {}
-  const set = (k, v) => onPatch(x => ({ ...x, [k]: v }))
+  const set = k => v => x => ({ ...x, [k]: v })
+  const f = { ro, reg, onPatch }
   return (
     <div className="rvwEd">
       <div className="rvwEdBlock">
@@ -70,19 +56,19 @@ export default function NodeEditor({ node, onPatch, onType, ro = false }) {
           ? <div className="rvwEdIn">{NODE_TYPES.find(t => t.value === node.type)?.label ?? node.type}</div>
           : <select className="rvwEdIn" value={node.type} onChange={e => onType(e.target.value)}>{NODE_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}</select>}
       </div>
-      {(TEXT_KEYS[node.type] ?? []).map(([k, l]) => <MarkupField key={k} data={d} field={k} label={l} onPatch={onPatch} ro={ro} />)}
-      {PROMPT_TYPES.has(node.type) && <Plain ro={ro} label="Текст для генерации (imagePrompt)" value={d.imagePrompt ?? ''} rows={3} onChange={v => set('imagePrompt', v)} />}
-      {node.type === 'table' && <TableEditor data={d} onPatch={onPatch} ro={ro} />}
+      {(TEXT_KEYS[node.type] ?? []).map(([k, l]) => <MarkupField key={k} data={d} field={k} label={l} onPatch={onPatch} reg={reg} ro={ro} />)}
+      {PROMPT_TYPES.has(node.type) && <EdField {...f} label="Текст для генерации (imagePrompt)" value={d.imagePrompt ?? ''} rows={3} apply={set('imagePrompt')} />}
+      {node.type === 'table' && <TableEditor data={d} onPatch={onPatch} reg={reg} ro={ro} />}
       {node.type === 'word_choice' && (d.options ?? []).map((o, i) => (
-        <Plain ro={ro} key={o.id ?? i} label={`Вариант ${i + 1}${o.isCorrect ? ' ✓' : ''}`} value={o.text ?? ''} onChange={v => onPatch(x => ({ ...x, options: x.options.map((m, k) => (k === i ? { ...m, text: v } : m)) }))} />
+        <EdField {...f} key={o.id ?? i} label={`Вариант ${i + 1}${o.isCorrect ? ' ✓' : ''}`} value={o.text ?? ''} apply={v => x => ({ ...x, options: x.options.map((m, k) => (k === i ? { ...m, text: v } : m)) })} />
       ))}
-      {node.type === 'phrase_assembly' && <Plain ro={ro} label="Слова фразы (через пробел)" value={(d.words ?? []).join(' ')} onChange={v => set('words', v.split(/\s+/).filter(Boolean))} />}
-      {node.type === 'type_word' && <Plain ro={ro} label="Слово / фраза для печати" value={d.word ?? ''} onChange={v => set('word', v)} />}
+      {node.type === 'phrase_assembly' && <EdField {...f} label="Слова фразы (через пробел)" value={(d.words ?? []).join(' ')} apply={v => set('words')(v.split(/\s+/).filter(Boolean))} />}
+      {node.type === 'type_word' && <EdField {...f} label="Слово / фраза для печати" value={d.word ?? ''} apply={set('word')} />}
       {node.type === 'say_phrase' && <>
-        <Plain ro={ro} label="Фраза" value={d.phrase ?? ''} onChange={v => set('phrase', v)} />
-        <Plain ro={ro} label="Перевод" value={d.translation ?? ''} onChange={v => set('translation', v)} />
+        <EdField {...f} label="Фраза" value={d.phrase ?? ''} apply={set('phrase')} />
+        <EdField {...f} label="Перевод" value={d.translation ?? ''} apply={set('translation')} />
       </>}
-      {node.type === 'reaction' && <Plain ro={ro} label="Эмодзи (только эмодзи, текст пиши в замечании)" value={d.emoji ?? ''} onChange={v => set('emoji', onlyEmoji(v))} />}
+      {node.type === 'reaction' && <EdField {...f} label="Эмодзи (только эмодзи, текст пиши в замечании)" value={d.emoji ?? ''} clean={onlyEmoji} apply={set('emoji')} />}
     </div>
   )
 }

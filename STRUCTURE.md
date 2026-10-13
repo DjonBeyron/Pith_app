@@ -1054,6 +1054,9 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | `src/features/canvas/review/TableEditor.jsx` | Редактор таблицы: заголовок в чате, текст озвучки авто-таблицы, каждая ячейка с иконкой копировать. |
 | `src/features/canvas/review/reviewStorage.js` (+`.test.js`) | Замечания, оригиналы нод и правки разбора в localStorage (ключ по нодам урока): после перезагрузки всё на месте. |
 | `src/features/canvas/review/onlyEmoji.js` (+`.test.js`) | Фильтр «только эмодзи» для поля модуля-реакции (текст туда нельзя). |
+| `src/features/canvas/review/EdField.jsx` | Поле редактора в окне замечания (однострочное/многострочное/ячейка таблицы): локальное значение + отложенная запись в копию урока, иконка копировать. |
+| `src/features/canvas/review/useDebouncedPatch.js` | Накопление правок поля с задержкой 300 мс и реестр сброса окна замечания (flushAll / discard). |
+| `src/features/canvas/review/useNoteSession.js` | Сессия окна замечания: отмена/повтор (до 30 правок, Ctrl+Z), снимок «на момент открытия» для кнопки «Закрыть» (откат всего), keep/cancel. |
 | `src/features/canvas/review/CopyIcon.jsx` | Иконка «копировать» с галочкой-подтверждением. |
 | `src/features/canvas/review/NotesWindow.jsx` | Окно со всеми замечаниями: список, удалить/очистить, общее замечание, копировать или скачать JSON. |
 | `src/styles/canvas/lesson-review-notes.css` | Стили замечаний и мини-кнопок в углу сообщения в разборе (классы `rvwNt*`, `rvwTool`, `rvwSlotTools`). |

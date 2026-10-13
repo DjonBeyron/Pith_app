@@ -3,11 +3,13 @@
 //   {g:слово}  зелёный + bold — английское слово/форма         {t:перевод} белый курсив (#fdfcfc), БЕЗ bold — русский перевод
 //   {w:слово}  белый + bold — русский термин/заголовок (НЕ перевод)
 //   {u:слово}  голубой + bold + подчёркивание — главный акцент {b:буква}  bold без цвета — буква внутри прозы
+//   {l:слово}  главная мысль: текст остаётся серым, под ним белое подчёркивание (БЕЗ цвета и bold)
+//   {x:слово}  лишнее / неверное: красный + зачёркнутый
 //   {p:i}      плашка на 1–2 буквах внутри слова (y → i)       Метки не вкладываются друг в друга.
 // Чистые функции, без React. Если разметки в тексте нет — данные возвращаются как есть (ручные highlights не трогаем).
-const GREEN = '#b6fe3b', WHITE = '#ffffff', CYAN = '#6bfabc', DARK = '#12140d', TRANSLATION = '#fdfcfc'
+const GREEN = '#b6fe3b', WHITE = '#ffffff', CYAN = '#6bfabc', DARK = '#12140d', TRANSLATION = '#fdfcfc', RED = '#ff5a5a'
 const TEXT_KEYS = ['content', 'text', 'caption']
-const MARK = /\{([gwtubp]):([^}]*)\}/g
+const MARK = /\{([gwtubplx]):([^}]*)\}/g
 
 const hl = (start, end, mode, color, opacity = 1, extra = {}) => ({ end, mode, ...(color ? { color } : {}), start, ...(opacity != null ? { opacity } : {}), ...extra })
 
@@ -37,6 +39,8 @@ export function parseMarkup(src) {
     if (k === 't') highlights.push(hl(a, b, 'text', TRANSLATION), hl(a, b, 'italic', null, null))
     if (k === 'u') highlights.push(hl(a, b, 'text', CYAN), hl(a, b, 'bold', CYAN), hl(a, b, 'underline', CYAN))
     if (k === 'b') highlights.push(hl(a, b, 'bold', null, null))
+    if (k === 'l') highlights.push(hl(a, b, 'underline', WHITE))
+    if (k === 'x') highlights.push(hl(a, b, 'text', RED), hl(a, b, 'strike', RED))
     if (k === 'p') highlights.push(hl(a, b, 'bg', GREEN, 1, { pin: true }), hl(a, b, 'text', DARK))
   }
   return { text, highlights }
@@ -59,17 +63,19 @@ export function applyMarkup(data) {
 }
 
 /** Какой метке {g:..}/{t:..}… соответствует сочетание стилей (null — нестандартное). Общая логика для toMarkup и подписи в панели раскраски */
-export function classifyStyle({ color, bold, italic, underline, pin }) {
+export function classifyStyle({ color, bold, italic, underline, strike, pin }) {
   if (pin) return 'p'
   const eq = c => String(color ?? '').toLowerCase() === c
   if (eq(GREEN) && bold) return 'g'
   if (eq(TRANSLATION) || italic) return 't'
   if (eq(CYAN) && (underline || bold)) return 'u'
   if (eq(WHITE) && bold) return 'w'
+  if (eq(WHITE) && underline && !bold) return 'l'
+  if (eq(RED) && strike) return 'x'
   if (!color && bold) return 'b'
   return null
 }
-export const MARK_NAMES = { g: 'английская форма', t: 'перевод', w: 'русский термин', u: 'главный акцент', b: 'буква в прозе', p: 'плашка на букве' }
+export const MARK_NAMES = { l: 'главное: белое подчёркивание', x: 'лишнее: красное зачёркнутое', g: 'английская форма', t: 'перевод', w: 'русский термин', u: 'главный акцент', b: 'буква в прозе', p: 'плашка на букве' }
 
 /**
  * Обратное преобразование: текст + highlights → строка с метками {g:..}. Нужен, чтобы пример, раскрашенный в редакторе (тем же
@@ -88,7 +94,7 @@ export function toMarkup(text, highlights = []) {
     const [start, end] = k.split(':').map(Number)
     const has = m => hs.some(h => h.mode === m)
     const color = (hs.find(h => h.mode === 'text' && h.color) ?? hs.find(h => h.color))?.color
-    const kind = classifyStyle({ color, bold: has('bold'), italic: has('italic'), underline: has('underline'), pin: hs.some(h => h.pin) })
+    const kind = classifyStyle({ color, bold: has('bold'), italic: has('italic'), underline: has('underline'), strike: has('strike'), pin: hs.some(h => h.pin) })
     if (kind && start < end) marks.push({ start, end, kind })
   }
   marks.sort((a, b) => a.start - b.start)

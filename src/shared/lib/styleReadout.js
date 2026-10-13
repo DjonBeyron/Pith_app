@@ -26,7 +26,7 @@ export function describeStyle(highlights, start, end) {
   let mixed = false
   for (let i = start + 1; i < end && !mixed; i++) mixed = JSON.stringify(charStyle(hs, i)) !== JSON.stringify(first)
   const flags = ['bold', 'italic', 'underline', 'strike'].filter(f => first[f])
-  const mark = classifyStyle({ color: first.color, bold: first.bold, italic: first.italic, underline: first.underline, pin: !!first.bg?.pin })
+  const mark = classifyStyle({ color: first.color, bold: first.bold, italic: first.italic, underline: first.underline, strike: first.strike, pin: !!first.bg?.pin })
   const isBase = String(first.color ?? '').toLowerCase() === '#ffffff' && first.opacity === 0.75 && !flags.length && !first.bg
   return { mixed, color: first.color, opacity: first.opacity, bg: first.bg, flags, mark, markName: mark ? MARK_NAMES[mark] : null, isBase }
 }

@@ -19,6 +19,7 @@ const EmbeddedCanvas = forwardRef(function EmbeddedCanvas({ initialNodes, initia
         initialNodes={initialNodes}
         initialZones={initialZones}
         onNodesChange={onNodesChange}
+        emitDelayMs={60} /* разбор: правки нужны ленте и окну замечания почти сразу, а не через 0,5 с */
         onZonesChange={onZonesChange}
         {...boardProps}
       />

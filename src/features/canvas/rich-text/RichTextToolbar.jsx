@@ -41,7 +41,21 @@ function favSwatchStyle(fav) {
 // шапка сверху позволяет перетащить панель вручную, если авто-место не
 // устраивает (сбрасывается на новом выделении — тулбар монтируется заново).
 export default function RichTextToolbar({ rect, range, highlights, onApply, onClose }) {
-  const { color, setColor, mode, setMode, outline, setOutline, opacity, setOpacity } = useHighlightPrefs()
+  const prefs = useHighlightPrefs()
+  const { mode, setMode, outline, setOutline } = prefs
+  // Активный цвет — цвет самого выделенного текста (а не «последний выбранный»): панель открывается с ним, и свотч/hex/прозрачность показывают его.
+  // Базовый серый (#ffffff 75%) тоже активный цвет, но при выборе нового берём обычную прозрачность из настроек, а не серую
+  const [active, setActive] = useState(() => {
+    const st = range ? describeStyle(highlights, range.start, range.end) : null
+    return st && !st.mixed && st.color ? { color: st.color, opacity: st.opacity ?? 1, base: st.isBase } : null
+  })
+  const color = active?.color ?? prefs.color
+  const opacity = active?.opacity ?? prefs.opacity
+  const setColor = c => {
+    prefs.setColor(c)
+    setActive(a => ({ color: c, opacity: a && !a.base ? a.opacity : prefs.opacity, base: false }))
+  }
+  const setOpacity = v => { prefs.setOpacity(v); setActive(a => ({ color: a?.color ?? prefs.color, opacity: v, base: false })) }
   const [favs, updateFavs] = useRichTextFavorites(RICH_TEXT_FAV_ID)
   const { history, push: pushHistory, clear: clearHistory } = useColorHistory()
   const [opacityOpen, setOpacityOpen] = useState(false)
@@ -112,6 +126,20 @@ export default function RichTextToolbar({ rect, range, highlights, onApply, onCl
     historyTimerRef.current = setTimeout(() => pushHistory(c), HISTORY_COMMIT_DELAY)
   }
 
+  // Ползунок прозрачности сразу перекрашивает выделение с новой прозрачностью (раньше менял только настройку на будущее, текст не менялся)
+  function paintOpacity(v) {
+    setOpacity(v)
+    let next = addHighlight(highlights, {
+      start: range.start, end: range.end, color, mode, opacity: v,
+      ...(mode === 'bg' && outline ? { outline: true } : {}),
+    })
+    // Начертания (жирный, подчёркивание…) несут свой цвет и прозрачность — иначе они перекрывали бы новую прозрачность текста
+    for (const m of DECOR_MODES) {
+      if (isOn(m)) next = addHighlight(removeRange(next, range.start, range.end, m), { start: range.start, end: range.end, mode: m, color, opacity: v })
+    }
+    onApply(next)
+  }
+
   function toggleDecor(m) {
     onApply(isOn(m)
       ? removeRange(highlights, range.start, range.end, m)
@@ -159,10 +187,8 @@ export default function RichTextToolbar({ rect, range, highlights, onApply, onCl
       {/* Проверка стиля выделенного: какой цвет и какие начертания у него сейчас (во всех полях канваса) */}
       {style && (
         <div className="richTextStyleReadout" title="Стиль выделенного текста">
-          <span className="richTextStyleDot" style={{ background: style.color ? hexToRgba(style.color, style.opacity ?? 1) : 'transparent' }} />
           <span>
-            {style.mixed ? 'разные стили (показан первый)' : style.color ? `${style.color} · ${Math.round((style.opacity ?? 1) * 100)}%` : 'цвет по умолчанию'}
-            {style.flags.length > 0 && ` · ${style.flags.map(f => ({ bold: 'жирный', italic: 'курсив', underline: 'подчёркнут', strike: 'зачёркнут' })[f]).join(', ')}`}
+            {style.mixed ? 'разные стили (показан первый)' : style.flags.length ? style.flags.map(f => ({ bold: 'жирный', italic: 'курсив', underline: 'подчёркнут', strike: 'зачёркнут' })[f]).join(', ') : 'без начертаний'}
             {style.bg && ` · плашка ${style.bg.color}${style.bg.outline ? ' (обводка)' : ''}`}
           </span>
           {!style.mixed && style.isBase && <span className="richTextStyleTag">базовый серый</span>}
@@ -240,7 +266,7 @@ export default function RichTextToolbar({ rect, range, highlights, onApply, onCl
       {opacityOpen && (
         <div className="richTextToolbarRow">
           <input type="range" min="0.1" max="1" step="0.05" value={opacity}
-            onChange={e => setOpacity(+e.target.value)} className="textHLOpacitySlider" />
+            onChange={e => paintOpacity(+e.target.value)} className="textHLOpacitySlider" />
         </div>
       )}
       {history.length > 0 && (

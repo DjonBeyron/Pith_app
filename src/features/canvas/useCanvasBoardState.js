@@ -33,7 +33,7 @@ function loadView(lessonId) {
 // Зоны (визуальная группировка нод, см. features/canvas/zones/) живут в ТОМ
 // ЖЕ черновике, что и ноды — отдельный localStorage-ключ для них не заводим:
 // это одна и та же «несохранённая правка урока».
-export function useCanvasBoardState(lessonId, initialNodes, initialZones, onNodesChange, onZonesChange) {
+export function useCanvasBoardState(lessonId, initialNodes, initialZones, onNodesChange, onZonesChange, emitDelayMs = 500) {
   // true, если начальные ноды взяты из локального черновика — он может
   // оказаться СТАРЕЕ того, что реально лежит на сервере (правки с другого
   // устройства/вкладки, о которых этот браузер не знает); проверяем это
@@ -123,9 +123,9 @@ export function useCanvasBoardState(lessonId, initialNodes, initialZones, onNode
 
   useEffect(() => {
     if (!onNodesChange) return
-    const t = setTimeout(() => onNodesChange(nodes), 500)
+    const t = setTimeout(() => onNodesChange(nodes), emitDelayMs)
     return () => clearTimeout(t)
-  }, [nodes, onNodesChange])
+  }, [nodes, onNodesChange, emitDelayMs])
 
   useEffect(() => {
     if (!onZonesChange) return
