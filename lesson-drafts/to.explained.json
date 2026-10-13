@@ -568,9 +568,12 @@
       },
       "triggers": [
         {
-          "if": "timer",
-          "ms": 2400,
+          "if": "table_correct",
           "then": "n17"
+        },
+        {
+          "if": "table_wrong",
+          "then": null
         }
       ]
     },
@@ -1413,9 +1416,12 @@
       },
       "triggers": [
         {
-          "if": "timer",
-          "ms": 2400,
+          "if": "table_correct",
           "then": "n47"
+        },
+        {
+          "if": "table_wrong",
+          "then": null
         }
       ]
     },
@@ -1797,9 +1803,12 @@
       },
       "triggers": [
         {
-          "if": "timer",
-          "ms": 2600,
+          "if": "table_correct",
           "then": "n56"
+        },
+        {
+          "if": "table_wrong",
+          "then": null
         }
       ]
     },
@@ -2578,9 +2587,12 @@
       },
       "triggers": [
         {
-          "if": "timer",
-          "ms": 2800,
+          "if": "table_correct",
           "then": "n83"
+        },
+        {
+          "if": "table_wrong",
+          "then": null
         }
       ]
     },

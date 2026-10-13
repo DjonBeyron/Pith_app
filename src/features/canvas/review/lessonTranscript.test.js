@@ -49,3 +49,10 @@ describe('выбор конкретного варианта в «Выбери �
     expect(buildTranscript(lesson2, { w: optChoice('o3') }).map(i => i.ref)).toEqual(['a', 'w', 'w', 'v', 'z'])
   })
 })
+
+describe('авто-таблица в ленте', () => {
+  it('идёт по table_correct дальше, без пузыря «ответа ученика»', () => {
+    const tb = { ref: 'tb', seq: 1, type: 'table', data: { mode: 'dictator' }, triggers: [{ if: 'table_correct', then: 'z' }, { if: 'table_wrong', then: null }] }
+    expect(buildTranscript([tb, t('z')]).map(i => `${i.kind}:${i.ref}`)).toEqual(['node:tb', 'node:z'])
+  })
+})

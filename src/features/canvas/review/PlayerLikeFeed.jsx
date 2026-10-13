@@ -103,11 +103,37 @@ function SlotTools({ item, count, onNote }) {
 export function SlotBody({ item, canvasNode, canvasNodes, files, onPick = NOOP, onChoice = NOOP }) {
   if (EXERCISE_TYPES.has(canvasNode.type)) return <ExercisePanel node={item.node} item={item} onPick={onPick} onChoice={onChoice} />
   if (canvasNode.type === 'reaction') return <div className="playerMsgRow"><span className="rvwEmoji">{canvasNode.typeData?.reaction?.emoji}</span></div>
-  return <PlayerMessage node={asHistory(canvasNode)} file={files.find(f => f.id === nodeFileKey(canvasNode)) ?? null} lessonFiles={files} lessonNodes={canvasNodes} teacherName="" adminPreview pending={false} onDone={NOOP} onTrReveal={NOOP} />
+  const msg = tableSent => <PlayerMessage node={asHistory(canvasNode)} file={files.find(f => f.id === nodeFileKey(canvasNode)) ?? null} lessonFiles={files} lessonNodes={canvasNodes} teacherName="" adminPreview pending={false} tableSent={tableSent} onDone={NOOP} onTrReveal={NOOP} />
+  // «Авто»/«ручной» таблица в плеере — панель снизу, в ленте её нет. В разборе рисуем её итоговый вид (как «таблица в чате») в карточке и показываем текст озвучки
+  const t = canvasNode.type === 'table' ? canvasNode.typeData?.table ?? {} : null
+  if (t && (t.mode ?? 'dictator') !== 'demo') {
+    return (
+      <div className="rvwPanel" style={{ '--rvw-accent': TYPE_COLOR.table ?? '#7a7a96' }}>
+        <div className="rvwPanelHead"><span>Таблица · {t.mode === 'manual' ? 'ручной режим' : 'авто (по озвучке)'}</span></div>
+        {msg(true)}
+        {t.script && <div className="rvwTypeLine">🔊 {t.script}</div>}
+      </div>
+    )
+  }
+  return msg(undefined)
 }
 
 export default function PlayerLikeFeed({ items, canvasById, canvasNodes, files = [], selRef, selTick, warnMap, noteCounts, onNote, onSelect, onChoice, onPick }) {
   const outerRef = useRef(null)
+  const phoneRef = useRef(null)
+  // Колесо всей рамкой телефона крутит ленту само (не зависит от того, на какой элемент попал курсор — границы сообщений, промежутки, панели плеера
+  // с pointer-events: none): иначе на таких местах скролл «залипал», пока не сдвинешь мышь
+  useEffect(() => {
+    const box = phoneRef.current
+    const onWheel = e => {
+      const feed = outerRef.current
+      if (!feed || e.ctrlKey) return
+      e.preventDefault()
+      feed.scrollTop += e.deltaMode === 1 ? e.deltaY * 40 : e.deltaY
+    }
+    box?.addEventListener('wheel', onWheel, { passive: false })
+    return () => box?.removeEventListener('wheel', onWheel)
+  }, [])
   // К выбранному сообщению — каждый раз при выборе (в том числе повторном: selTick растёт при каждом клике)
   useEffect(() => {
     if (!selRef) return
@@ -116,8 +142,7 @@ export default function PlayerLikeFeed({ items, canvasById, canvasNodes, files =
 
   return (
     <PlayerMutedContext.Provider value={false}>
-      {/* Колесо над промежутками и рамками (где у элементов плеера pointer-events: none) попадает мимо ленты — докручиваем её сами */}
-      <div className="rvwPhone" onWheel={e => { const feed = outerRef.current; if (feed && !feed.contains(e.target)) feed.scrollTop += e.deltaY }}>
+      <div className="rvwPhone" ref={phoneRef}>
         <div className="lessonPlayer rvwLessonPlayer">
           {/* Классы ленты настоящие, но переворот scaleY(-1) отключён (rvwPlayerFeed): колесо идёт в обычную сторону, лента начинается сверху */}
           <div className="playerFeed rvwPlayerFeed" ref={outerRef}>

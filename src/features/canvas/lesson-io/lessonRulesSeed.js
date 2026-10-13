@@ -120,6 +120,7 @@ const PRINCIPLE_META = [
   ['Задание согласовано с историей', Z, 'judge', 'warn', 'text: мы идём с Машей на тренировку\nphoto: как сказать {t:«я иду в спортзал»}?', 'text: мы идём с Машей на тренировку\nphoto: как сказать {t:«мы идём в спортзал»}?'],
   ['«кста» — хотя бы раз за урок', T, 'auto', 'warn', '(15 текстовых реплик, ни одного «кста»)', 'text: мы кста в субботу с Машей идём на тренировку 💪'],
   ['В голосовых — без смайликов', T, 'auto', 'error', 'audio: Я тут ужин готовлю))\naudio: Скажи вслух 😄', 'audio: Я тут ужин сейчас готовлю'],
+  ['Авто-таблица — переход table_correct', C, 'auto', 'error', 'table (dictator): triggers [{ if: timer, then: n15 }]', 'table (dictator): triggers [{ if: table_correct, then: n15 }, { if: table_wrong, then: null }]'],
 ]
 
 const CHECKLIST_META = [

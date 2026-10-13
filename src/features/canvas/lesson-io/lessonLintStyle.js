@@ -61,7 +61,7 @@ const CORRECT_IF = /correct|say_done/
 function checkReactionLength(nodes) {
   const byRef = new Map(nodes.map(n => [n.ref, n]))
   const out = []
-  for (const ex of nodes) {
+  for (const ex of nodes.filter(n => n.type !== 'table')) { // у авто-таблицы table_correct — просто «дальше по уроку», не ответ ученика
     for (const t of ex.triggers ?? []) {
       const r = CORRECT_IF.test(t.if) ? byRef.get(t.then) : null
       // нода после верного ответа может быть уже следующим заданием/сценой (вопрос, «скажи/собери/переведи…») — это не реакция

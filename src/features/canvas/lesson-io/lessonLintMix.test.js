@@ -25,7 +25,7 @@ describe('lessonLintMix', () => {
     expect(checkMix([T('a', 'а ну-ка на слух 👂'), T('b', 'а ну-ка на слух 👂')]).join()).toMatch(/R-repeat/)
   })
   it('R-table-title: одинаковые chatCaption', () => {
-    const tb = (ref, c) => ({ ref, type: 'table', data: { chatCaption: c }, triggers: [] })
+    const tb = (ref, c) => ({ ref, type: 'table', data: { chatCaption: c }, triggers: [{ if: 'table_correct', then: null }] })
     expect(checkMix([tb('a', 'x'), tb('b', 'x')]).join()).toMatch(/R-table-title/)
     expect(checkMix([tb('a', 'x'), tb('b', 'y')])).toEqual([])
   })
@@ -43,5 +43,11 @@ describe('lessonLintMix', () => {
   })
   it('R-hint-uzhe: «, уже» в подсказке ветки ошибки', () => {
     expect(checkMix([W('q', 'h'), T('h', 'близко) нужен мостик, уже to')]).join()).toMatch(/R-hint-uzhe/)
+  })
+  it('R-table-trigger: авто-таблица с таймером вместо table_correct', () => {
+    const tb = (mode, ifKey) => ({ ref: 't', type: 'table', data: { mode }, triggers: [{ if: ifKey, then: 'z' }] })
+    expect(checkMix([tb('dictator', 'timer')]).join()).toMatch(/R-table-trigger/)
+    expect(checkMix([tb('dictator', 'table_correct')]).join()).not.toMatch(/R-table-trigger/)
+    expect(checkMix([tb('demo', 'timer')]).join()).not.toMatch(/R-table-trigger/)
   })
 })

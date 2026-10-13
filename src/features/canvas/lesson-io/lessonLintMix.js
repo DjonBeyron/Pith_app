@@ -86,6 +86,12 @@ function checkHintUzhe(nodes) {
     .map(n => `[R-hint-uzhe] ${n.ref}: в подсказке «, уже …» — слово «уже» лишнее, назови итоговое слово без него`)
 }
 
+/** Таблица в режиме авто/ручной идёт дальше только по table_correct: с таймером или played переход потеряется при открытии на холсте */
+function checkTableTriggers(nodes) {
+  return nodes.filter(n => n.type === 'table' && (n.data?.mode ?? 'dictator') !== 'demo' && !(n.triggers ?? []).some(t => /^table_(correct|wrong)$/.test(t.if)))
+    .map(n => `[R-table-trigger] ${n.ref}: таблица в режиме «${n.data?.mode ?? 'dictator'}» без перехода table_correct — поставь {if:'table_correct', then:…} (timer/played здесь не работают, цепочка оборвётся)`)
+}
+
 export function checkMix(nodes) {
-  return [...checkKsta(nodes), ...checkVoiceSmileys(nodes), ...checkHintUzhe(nodes), ...checkVoiceShare(nodes), ...checkWrongAudio(nodes), ...checkEmojiShare(nodes), ...checkRepeats(nodes), ...checkTableTitles(nodes)]
+  return [...checkTableTriggers(nodes), ...checkKsta(nodes), ...checkVoiceSmileys(nodes), ...checkHintUzhe(nodes), ...checkVoiceShare(nodes), ...checkWrongAudio(nodes), ...checkEmojiShare(nodes), ...checkRepeats(nodes), ...checkTableTitles(nodes)]
 }

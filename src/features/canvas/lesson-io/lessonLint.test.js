@@ -149,7 +149,7 @@ describe('lintLesson', () => {
   })
 
   it('не ругается на manual-таблицу без script (там оно и не нужно)', () => {
-    const nodes = [node('n1', 1, 'table', { mode: 'manual', answer: 'I try tea' }, [])]
+    const nodes = [node('n1', 1, 'table', { mode: 'manual', answer: 'I try tea' }, [{ if: 'table_correct', then: null }])]
     expect(lintLesson(nodes)).toEqual([])
   })
 
