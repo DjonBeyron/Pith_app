@@ -23,7 +23,7 @@ function Side({ label, hint, item, canvasNode, canvasNodes, files, ro, onPatch }
 export default function NoteDialog({ title, before, item, canvasNode, canvasNodes, files, onPatch, existing = [], onSave, onRemove, onClose }) {
   const [template, setTemplate] = useState('')
   const [text, setText] = useState('')
-  const save = () => { onSave(template, text.trim()); setTemplate(''); setText('') }
+  const save = () => { onSave(template, text.trim()); onClose() } // замечание добавлено — окно закрывается
   const withNode = !!(item && canvasNode && before)
   return createPortal(
     <div className="rvwNtBack" onMouseDown={e => { e.stopPropagation(); if (e.target === e.currentTarget) onClose() }}>

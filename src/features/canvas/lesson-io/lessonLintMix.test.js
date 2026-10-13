@@ -29,4 +29,19 @@ describe('lessonLintMix', () => {
     expect(checkMix([tb('a', 'x'), tb('b', 'x')]).join()).toMatch(/R-table-title/)
     expect(checkMix([tb('a', 'x'), tb('b', 'y')])).toEqual([])
   })
+  it('R-ksta: нет «кста» в длинном уроке — замечание; в голосовом не считается', () => {
+    const many = Array.from({ length: 15 }, (_, i) => T('t' + i, 'реплика номер ' + i))
+    expect(checkMix(many).join()).toMatch(/R-ksta/)
+    expect(checkMix([...many, A('a')].map(n => (n.ref === 'a' ? { ...n, data: { text: 'кста тут' } } : n))).join()).toMatch(/R-ksta/)
+    expect(checkMix([...many, T('k', 'мы кста идём')]).join()).not.toMatch(/R-ksta/)
+  })
+  it('R-voice-smiley: смайлики и скобки в голосовом', () => {
+    const A2 = text => ({ ref: 'a', type: 'audio', data: { text }, triggers: [] })
+    expect(checkMix([A2('привет 😄')]).join()).toMatch(/R-voice-smiley/)
+    expect(checkMix([A2('привет))')]).join()).toMatch(/R-voice-smiley/)
+    expect(checkMix([A2('Привет, как дела?')])).toEqual([])
+  })
+  it('R-hint-uzhe: «, уже» в подсказке ветки ошибки', () => {
+    expect(checkMix([W('q', 'h'), T('h', 'близко) нужен мостик, уже to')]).join()).toMatch(/R-hint-uzhe/)
+  })
 })

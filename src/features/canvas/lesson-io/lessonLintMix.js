@@ -63,6 +63,29 @@ function checkTableTitles(nodes) {
     .map(([c, refs]) => `[R-table-title] ${refs.join(', ')}: у таблиц одинаковый заголовок «${c}» — назови каждую по контексту шага`)
 }
 
+const KSTA = /(^|[^а-яё])кста(?![а-яё])/i
+/** «кста» — фирменная связка Пита: в уроке из 15+ текстовых реплик минимум раз (в текстовых сообщениях, не в голосовых) */
+function checkKsta(nodes) {
+  const texts = nodes.filter(n => n.type === 'text' && !isEmojiOnly(n))
+  if (texts.length < 15 || texts.some(n => KSTA.test(textOf(n)))) return []
+  return [`[R-ksta] в уроке (${texts.length} текстовых реплик) ни разу нет «кста» — добавь связку хотя бы в одну текстовую реплику («мы кста в субботу идём…»), в голосовых её не считаем`]
+}
+
+const EMOJI_ANY = /\p{Extended_Pictographic}/u
+const BRACKET_SMILEY = /\){2,}|\({2,}|[)(]\s*$/
+/** В голосовых нет смайликов вообще: ни эмодзи, ни скобок-смайлов («))», «(» в конце) — голос их не произнесёт */
+function checkVoiceSmileys(nodes) {
+  return nodes.filter(n => n.type === 'audio' && (EMOJI_ANY.test(textOf(n)) || BRACKET_SMILEY.test(textOf(n))))
+    .map(n => `[R-voice-smiley] ${n.ref}: в голосовом сообщении смайлик (эмодзи или скобки) — в голосе их быть не должно, убери`)
+}
+
+/** В подсказке ветки ошибки нет «, уже слово»: итоговое слово называется просто, как продолжение фразы */
+function checkHintUzhe(nodes) {
+  const wrong = wrongOnlySet(nodes, /wrong|skip/)
+  return nodes.filter(n => n.type === 'text' && wrong.has(n.ref) && /,\s*уже\s/i.test(textOf(n)))
+    .map(n => `[R-hint-uzhe] ${n.ref}: в подсказке «, уже …» — слово «уже» лишнее, назови итоговое слово без него`)
+}
+
 export function checkMix(nodes) {
-  return [...checkVoiceShare(nodes), ...checkWrongAudio(nodes), ...checkEmojiShare(nodes), ...checkRepeats(nodes), ...checkTableTitles(nodes)]
+  return [...checkKsta(nodes), ...checkVoiceSmileys(nodes), ...checkHintUzhe(nodes), ...checkVoiceShare(nodes), ...checkWrongAudio(nodes), ...checkEmojiShare(nodes), ...checkRepeats(nodes), ...checkTableTitles(nodes)]
 }

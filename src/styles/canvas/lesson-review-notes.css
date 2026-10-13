@@ -1,5 +1,5 @@
 /* ── Замечания в окне «Разбор урока» (canvas/review/NoteDialog, NotesWindow, редакторы). Классы rvwNt*, rvwEd*, rvwCopyIcon — только здесь; иконки в углу сообщения — в lesson-review.css */
-.rvwNtBack { position: fixed; left: 0; right: 0; top: 0; bottom: 0; z-index: 1600; background: #00000038; display: flex; align-items: center; justify-content: center; padding: 16px; }
+.rvwNtBack { position: fixed; left: 0; right: 0; top: 0; bottom: 0; z-index: 1450; background: #00000038; display: flex; align-items: center; justify-content: center; padding: 16px; }
 .rvwNtBox { width: min(520px, 100%); max-height: 90dvh; overflow: auto; background: #14161c; border: 1px solid #2a2d35; border-radius: 14px; padding: 14px; display: flex; flex-direction: column; gap: 10px; color: #dfe2ea; }
 .rvwNtWide { width: min(760px, 100%); }
 .rvwNtHead { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 14px; }

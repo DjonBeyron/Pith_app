@@ -116,7 +116,8 @@ export default function PlayerLikeFeed({ items, canvasById, canvasNodes, files =
 
   return (
     <PlayerMutedContext.Provider value={false}>
-      <div className="rvwPhone">
+      {/* Колесо над промежутками и рамками (где у элементов плеера pointer-events: none) попадает мимо ленты — докручиваем её сами */}
+      <div className="rvwPhone" onWheel={e => { const feed = outerRef.current; if (feed && !feed.contains(e.target)) feed.scrollTop += e.deltaY }}>
         <div className="lessonPlayer rvwLessonPlayer">
           {/* Классы ленты настоящие, но переворот scaleY(-1) отключён (rvwPlayerFeed): колесо идёт в обычную сторону, лента начинается сверху */}
           <div className="playerFeed rvwPlayerFeed" ref={outerRef}>
