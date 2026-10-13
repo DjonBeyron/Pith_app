@@ -153,6 +153,7 @@ export function useLessonFiles(lessonId) {
     let result = files
 
     for (const f of toUpload) {
+      for (let attempt = 1; attempt <= 2; attempt++) { // одна повторная попытка: на пакете из десятков файлов сеть/квота иногда подводят
       try {
         // Дедуп: файл с таким же содержимым (SHA-256) уже лежит в R2 —
         // переиспользуем его r2Url вместо повторной загрузки байт (та же
@@ -172,9 +173,12 @@ export function useLessonFiles(lessonId) {
         result = result.map(x => x.id === f.id ? { ...x, status: 'synced', r2Url, localFile: null } : x)
         setFiles(result)
         if (lessonId) lfDelete(IDB_KEY(lessonId, f.id)).catch(() => {})
+        break
       } catch (err) {
         pLog('syncToServer ERROR:', err.message)
-        console.error('[lessonFiles] upload failed', f.name, err)
+        console.error('[lessonFiles] upload failed', f.name, 'попытка', attempt, err)
+        if (attempt < 2) await new Promise(r => setTimeout(r, 800))
+      }
       }
     }
 

@@ -19,3 +19,18 @@ export function injectR2Urls(nodes, files) {
     return { ...node, typeData: { ...node.typeData, [node.type]: { ...node.typeData[node.type], r2Url: f.r2Url } } }
   })
 }
+
+/** Ноды, у которых указан файл (file_id / fileId варианта), а ссылки r2Url нет: пользователь такое медиа не получит. Возвращает «тип#seq» */
+export function findUnlinkedMedia(nodes) {
+  const out = []
+  for (const n of nodes ?? []) {
+    if (n.type === 'photo_choice') {
+      const bad = (n.typeData?.photo_choice?.photos ?? []).some(p => p.fileId && !p.photoUrl)
+      if (bad) out.push(`${n.type}#${n.seq}`)
+      continue
+    }
+    const d = n.typeData?.[n.type]
+    if (d?.file_id && !d.r2Url) out.push(`${n.type}#${n.seq}`)
+  }
+  return out
+}
