@@ -131,6 +131,19 @@ function checkStartMenu(nodes) {
   return ok ? [] : ['[R-start-menu] в первых 10 нодах нет меню выбора пути — после короткой завязки спроси мягко: «сначала объясни основу» или «сразу к практике» (word_choice с двумя вариантами-переходами, обе опции верные)']
 }
 
+const TEACHER = /(^|[^а-яё])учител[а-яё]*/i
+/** Вместо слова «учитель» — имя учителя из урока («Пит закрепил сообщение», «Пит пишет»): в репликах и подписях слово «учитель» не нужно */
+function checkTeacherWord(nodes) {
+  return nodes.filter(n => ['text', 'audio', 'system', 'pin_message', 'photo'].includes(n.type) && TEACHER.test(textOf(n)))
+    .map(n => `[R-teacher-name] ${n.ref} (${n.type}): слово «учитель» — пиши имя учителя из урока (Пит), а не «учитель»`)
+}
+
+/** В одном сообщении не больше одного подчёркивания {l:..} / {u:..}: много подчёркнутого = ничего не главное */
+function checkManyUnderlines(nodes) {
+  return nodes.filter(n => (n.data?.highlights ?? []).filter(h => h.mode === 'underline').length > 1)
+    .map(n => `[R-underline-many] ${n.ref} (${n.type}): в сообщении больше одного подчёркивания — оставь одно, самое главное`)
+}
+
 export function checkMix(nodes) {
-  return [...checkStartMenu(nodes), ...checkKeyMarks(nodes), ...checkPinSystem(nodes), ...checkTableTriggers(nodes), ...checkLowercase(nodes), ...checkKsta(nodes), ...checkVoiceSmileys(nodes), ...checkHintUzhe(nodes), ...checkVoiceShare(nodes), ...checkWrongAudio(nodes), ...checkEmojiShare(nodes), ...checkRepeats(nodes), ...checkTableTitles(nodes)]
+  return [...checkTeacherWord(nodes), ...checkManyUnderlines(nodes), ...checkStartMenu(nodes), ...checkKeyMarks(nodes), ...checkPinSystem(nodes), ...checkTableTriggers(nodes), ...checkLowercase(nodes), ...checkKsta(nodes), ...checkVoiceSmileys(nodes), ...checkHintUzhe(nodes), ...checkVoiceShare(nodes), ...checkWrongAudio(nodes), ...checkEmojiShare(nodes), ...checkRepeats(nodes), ...checkTableTitles(nodes)]
 }

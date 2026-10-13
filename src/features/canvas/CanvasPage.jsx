@@ -252,6 +252,7 @@ export default function CanvasPage({ lessonId, moduleLessons = [], module = null
           zones={reviewNodes.zones}
           boardApiRef={boardApiRef}
           storageId={lessonId}
+          teacherName={effectiveTeacher.name}
           boardProps={{ lessonFiles: files, onPickLessonFile: pickFile, onRemoveLessonFile: removeFile, moduleLessons: linkableLessons, lessonXp }}
           onClose={() => setReviewNodes(null)}
         />

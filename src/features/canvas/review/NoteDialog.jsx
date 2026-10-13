@@ -6,12 +6,12 @@ import NodeEditor from './NodeEditor.jsx'
 import { SlotBody } from './PlayerLikeFeed.jsx'
 
 // Одно и то же сообщение: превью «как в плеере» + поля. ro — только чтение
-function Side({ label, hint, item, canvasNode, canvasNodes, files, ro, onPatch, onType, reg, rev = 0 }) {
+function Side({ label, hint, item, canvasNode, canvasNodes, files, teacherName, ro, onPatch, onType, reg, rev = 0 }) {
   return (
     <div className="rvwNtSide">
       <div className="rvwNtLabel">{label}<span>{hint}</span></div>
       <div className="rvwNtPreview"><div className="rvwPhone"><div className="lessonPlayer rvwLessonPlayer"><div className="playerFeed rvwPlayerFeed"><div className="playerFeedInner">
-        <SlotBody item={item} canvasNode={canvasNode} canvasNodes={canvasNodes} files={files} />
+        <SlotBody item={item} canvasNode={canvasNode} canvasNodes={canvasNodes} files={files} teacherName={teacherName} />
       </div></div></div></div></div>
       <NodeEditor key={`${item.ref}${label}${item.node.type}${rev}`} node={item.node} onPatch={onPatch} onType={onType} reg={reg} ro={ro} />
     </div>
@@ -21,7 +21,7 @@ function Side({ label, hint, item, canvasNode, canvasNodes, files, ro, onPatch, 
 // Окно «Замечание». Слева «До» — оригинал, как был при первом открытии (не меняется), справа «После» — то же сообщение, которое можно править
 // (текст, таблица, озвучка, промпт; правки идут в копию урока разбора). Снизу шаблон и комментарий; в JSON уходит и «до», и «после».
 // Без item — общее замечание ко всему уроку (только нижняя часть)
-export default function NoteDialog({ title, before, item, canvasNode, canvasNodes, files, onPatch, onType, session, existing = [], onSave, onRemove, onClose, onKeep }) {
+export default function NoteDialog({ title, before, item, canvasNode, canvasNodes, files, teacherName, onPatch, onType, session, existing = [], onSave, onRemove, onClose, onKeep }) {
   const [template, setTemplate] = useState('')
   const [text, setText] = useState('')
   // Комментарий и шаблон — своя цепочка отмены (фокус в поле комментария)
@@ -73,8 +73,8 @@ export default function NoteDialog({ title, before, item, canvasNode, canvasNode
         </div>
         {withNode && (
           <div className="rvwNtCols">
-            <Side label="До" hint=" · оригинал, не меняется" item={before.item} canvasNode={before.canvasNode} canvasNodes={canvasNodes} files={files} ro />
-            <Side label="После" hint=" · можно править" item={item} canvasNode={canvasNode} canvasNodes={canvasNodes} files={files} onPatch={onPatch} onType={onType} reg={session?.reg.current} rev={session?.rev} />
+            <Side label="До" hint=" · оригинал, не меняется" item={before.item} canvasNode={before.canvasNode} canvasNodes={canvasNodes} files={files} teacherName={teacherName} ro />
+            <Side label="После" hint=" · можно править" item={item} canvasNode={canvasNode} canvasNodes={canvasNodes} files={files} teacherName={teacherName} onPatch={onPatch} onType={onType} reg={session?.reg.current} rev={session?.rev} />
           </div>
         )}
         <div className="rvwNtHalf">

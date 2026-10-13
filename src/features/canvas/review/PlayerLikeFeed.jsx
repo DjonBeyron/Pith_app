@@ -100,10 +100,20 @@ function SlotTools({ item, count, onNote }) {
 }
 
 /** Само сообщение «как в плеере»: панель задания, реакция или настоящий PlayerMessage (без триггеров). Общее для ленты и окна замечания */
-export function SlotBody({ item, canvasNode, canvasNodes, files, onPick = NOOP, onChoice = NOOP }) {
+export function SlotBody({ item, canvasNode, canvasNodes, files, teacherName = '', onPick = NOOP, onChoice = NOOP }) {
   if (EXERCISE_TYPES.has(canvasNode.type)) return <ExercisePanel node={item.node} item={item} onPick={onPick} onChoice={onChoice} />
   if (canvasNode.type === 'reaction') return <div className="playerMsgRow"><span className="rvwEmoji">{canvasNode.typeData?.reaction?.emoji}</span></div>
-  const msg = tableSent => <PlayerMessage node={asHistory(canvasNode)} file={files.find(f => f.id === nodeFileKey(canvasNode)) ?? null} lessonFiles={files} lessonNodes={canvasNodes} teacherName="" adminPreview pending={false} tableSent={tableSent} onDone={NOOP} onTrReveal={NOOP} />
+  // Закреп: строка «<имя учителя> закрепил сообщение» (имя берётся из настроек урока, не «учитель») + что именно закреплено
+  if (canvasNode.type === 'pin_message') {
+    const pinned = canvasNode.typeData?.pin_message?.content ?? ''
+    return (
+      <div className="rvwPin">
+        <div className="playerMsgRow pinSystemRow"><span className="pinSystemText">{teacherName || '⚠ имя учителя не задано'} закрепил сообщение</span></div>
+        {pinned && <div className="rvwPinned"><span className="rvwPinIcon">📌</span><span>{pinned}</span></div>}
+      </div>
+    )
+  }
+  const msg = tableSent => <PlayerMessage node={asHistory(canvasNode)} file={files.find(f => f.id === nodeFileKey(canvasNode)) ?? null} lessonFiles={files} lessonNodes={canvasNodes} teacherName={teacherName} adminPreview pending={false} tableSent={tableSent} onDone={NOOP} onTrReveal={NOOP} />
   // «Авто»/«ручной» таблица в плеере — панель снизу, в ленте её нет. В разборе рисуем её итоговый вид (как «таблица в чате») в карточке и показываем текст озвучки
   const t = canvasNode.type === 'table' ? canvasNode.typeData?.table ?? {} : null
   if (t && (t.mode ?? 'dictator') !== 'demo') {
@@ -118,7 +128,7 @@ export function SlotBody({ item, canvasNode, canvasNodes, files, onPick = NOOP, 
   return msg(undefined)
 }
 
-export default function PlayerLikeFeed({ items, canvasById, canvasNodes, files = [], selRef, selTick, warnMap, noteCounts, changeMarks, onNote, onSelect, onChoice, onPick }) {
+export default function PlayerLikeFeed({ items, canvasById, canvasNodes, files = [], selRef, selTick, warnMap, noteCounts, changeMarks, teacherName, onNote, onSelect, onChoice, onPick }) {
   const outerRef = useRef(null)
   const phoneRef = useRef(null)
   // Переключили «верно/неверно» или выбрали вариант — под заданием меняется лента; само задание остаётся на экране там же, где было (история не «едет»)
@@ -175,7 +185,7 @@ export default function PlayerLikeFeed({ items, canvasById, canvasNodes, files =
                       <span>{node.seq}</span>{it.wrongBranch && <span className="rvwTagWrong">ветка ошибки</span>}{changeMarks?.has(it.ref) && <span className="rvwTagChg">{changeMarks.get(it.ref) === 'new' ? 'новая' : 'изменена'}</span>}{warns > 0 && <span className="rvwWarn">⚠ {warns}</span>}
                     </div>
                     <SlotTools item={it} count={noteCounts?.get(it.ref) ?? 0} onNote={onNote} />
-                    <SlotBody item={it} canvasNode={node} canvasNodes={canvasNodes} files={files} onPick={anchored(onPick)} onChoice={anchored(onChoice)} />
+                    <SlotBody item={it} canvasNode={node} canvasNodes={canvasNodes} files={files} teacherName={teacherName} onPick={anchored(onPick)} onChoice={anchored(onChoice)} />
                   </div>
                 )
               })}

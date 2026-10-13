@@ -65,4 +65,13 @@ describe('lessonLintMix', () => {
     const menu = { ref: 'm', seq: 3, type: 'word_choice', data: { options: [] }, triggers: [{ if: 'variant', then: 'a' }, { if: 'variant', then: 'b' }] }
     expect(checkMix([...many.slice(0, 2), menu, ...many.slice(3)]).join()).not.toMatch(/R-start-menu/)
   })
+  it('R-teacher-name: слово «учитель» в реплике', () => {
+    expect(checkMix([T('a', 'учитель закрепил сообщение')]).join()).toMatch(/R-teacher-name/)
+    expect(checkMix([T('a', 'Пит закрепил сообщение')]).join()).not.toMatch(/R-teacher-name/)
+  })
+  it('R-underline-many: два подчёркивания в одном сообщении', () => {
+    const u = (a, b) => ({ mode: 'underline', start: a, end: b, color: '#ffffff' })
+    expect(checkMix([{ ref: 'a', type: 'text', data: { content: 'один и два', highlights: [u(0, 4), u(6, 9)] }, triggers: [] }]).join()).toMatch(/R-underline-many/)
+    expect(checkMix([{ ref: 'a', type: 'text', data: { content: 'один и два', highlights: [u(0, 4)] }, triggers: [] }]).join()).not.toMatch(/R-underline-many/)
+  })
 })

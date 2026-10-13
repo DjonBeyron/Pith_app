@@ -109,3 +109,8 @@
 .rvwSlot.rvwChg::after { content: ''; position: absolute; left: -30px; top: 8px; bottom: 8px; width: 30px; pointer-events: none;
   background: radial-gradient(ellipse 60% 50% at 30% 50%, #ff5fa255, transparent 75%); filter: blur(5px); z-index: -1; }
 .rvwTagChg { color: #ff8fc0; }
+
+/* Закреп в ленте разбора: кто закрепил (имя учителя из урока) и что именно */
+.rvwPin { display: flex; flex-direction: column; gap: 6px; align-items: center; }
+.rvwPinned { display: flex; gap: 8px; align-items: flex-start; max-width: 88%; padding: 8px 12px; background: #2a2412; border: 1px solid #5a4a1a; border-radius: 12px; color: #f0e2b0; font-size: 13px; line-height: 1.4; }
+.rvwPinIcon { flex: 0 0 auto; }
