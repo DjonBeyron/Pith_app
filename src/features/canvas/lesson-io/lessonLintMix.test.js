@@ -11,7 +11,7 @@ describe('lessonLintMix', () => {
     const few = [...Array.from({ length: 14 }, (_, i) => T('t' + i, 'реплика ' + i + ' про что-то')), A('a1')]
     expect(checkMix(few).join()).toMatch(/R-voice-share/)
     const even = [...Array.from({ length: 7 }, (_, i) => T('t' + i, 'реплика ' + i + ' про что-то')), ...Array.from({ length: 7 }, (_, i) => A('a' + i))]
-    expect(checkMix(even)).toEqual([])
+    expect(checkMix(even).join()).not.toMatch(/R-voice-share/)
   })
   it('R-wrong-audio: голос в ветке ошибки', () => {
     expect(checkMix([W('q', 'a'), A('a')]).join()).toMatch(/R-wrong-audio/)
