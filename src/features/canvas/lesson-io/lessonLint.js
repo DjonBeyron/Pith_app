@@ -18,6 +18,7 @@ import { checkWordingRules } from './lessonLintWording.js'
 import { checkMix } from './lessonLintMix.js'
 import { checkMedia } from './lessonLintMedia.js'
 import { checkAnswersAndLimits } from './lessonLintAnswers.js'
+import { checkScene } from './lessonLintScene.js'
 
 const WRONG_TRIGGERS = new Set(['word_wrong', 'phrase_wrong', 'photo_wrong', 'table_wrong', 'type_wrong', 'say_wrong', 'say_skip'])
 const PRAISE_RE = /три из трёх|ни одной ошибки|без единой ошибки|все верно|всё верно/i
@@ -192,6 +193,7 @@ export function lintLesson(rawNodes) {
   warnings.push(...checkMix(nodes))
   warnings.push(...checkMedia(nodes))
   warnings.push(...checkAnswersAndLimits(nodes))
+  warnings.push(...checkScene(nodes))
 
   for (const n of nodes) {
     const d = n.data ?? {}

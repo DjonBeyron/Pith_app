@@ -1,0 +1,94 @@
+/* Редактор ноды «Сцена» (NodeScenePicker.jsx): превью кадром, кнопки,
+   режим пузырь/кружок, индикатор линтера, список библиотеки. Префикс nodeScene. */
+
+.nodeScenePicker { display: flex; flex-direction: column; gap: 8px; margin-top: 6px; font-size: 12px; color: #c9c9d2; }
+.nodeSceneTop { display: flex; gap: 10px; align-items: flex-start; }
+
+.nodeScenePreview {
+  flex: 0 0 auto;
+  width: 72px;
+  aspect-ratio: 9 / 16;
+  border-radius: 4px 10px 10px 10px;
+  overflow: hidden;
+  background: #e8eef5;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+.nodeScenePreview--circle {
+  width: 84px;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  position: relative;
+}
+/* Кружок: тот же сдвиг на головы котов, что у плеера (sceneCircleFit: ширина 360/340, центр y=410) */
+.nodeScenePreview--circle .scn { position: absolute; width: 105.9%; height: auto; left: -2.95%; top: -70.6%; }
+.nodeScenePreview .scn { font-size: 0; }
+.nodeScenePreviewEmpty { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 26px; background: #1a1d24; }
+
+.nodeSceneMeta { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.nodeSceneTitle { font-weight: 600; color: #ececf2; font-size: 13px; line-height: 1.3; overflow-wrap: anywhere; }
+.nodeSceneSub { color: #8f8fa3; font-size: 11px; }
+.nodeSceneBtns { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+
+.nodeSceneBtn {
+  padding: 5px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  color: #e6e6ec;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.nodeSceneBtn:hover { background: rgba(255, 255, 255, 0.1); }
+.nodeSceneBtn:disabled { opacity: 0.5; cursor: default; }
+.nodeSceneBtnPrimary { background: rgba(212, 160, 58, 0.22); border-color: rgba(212, 160, 58, 0.55); }
+.nodeSceneBtnPrimary:hover { background: rgba(212, 160, 58, 0.34); }
+.nodeSceneBtnDanger { color: #ffb4b4; border-color: rgba(255, 90, 90, 0.35); }
+
+.nodeSceneRow { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.nodeSceneSeg { display: inline-flex; border: 1px solid rgba(255, 255, 255, 0.14); border-radius: 8px; overflow: hidden; }
+.nodeSceneSegBtn { padding: 5px 12px; border: 0; background: transparent; color: #c9c9d2; font: inherit; font-size: 12px; cursor: pointer; }
+.nodeSceneSegBtn + .nodeSceneSegBtn { border-left: 1px solid rgba(255, 255, 255, 0.14); }
+.nodeSceneSegBtnOn { background: rgba(212, 160, 58, 0.28); color: #fff; }
+.nodeSceneCheck { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
+
+.nodeSceneHint { margin: 0; color: #9a9aad; font-size: 11px; line-height: 1.4; }
+.nodeSceneOk { color: #9fd36a; }
+.nodeSceneErr { margin: 0; color: #ffb4b4; font-size: 11px; line-height: 1.4; }
+.nodeSceneUpdRow { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; color: #ffd38a; }
+
+.nodeSceneLint { border-radius: 8px; padding: 6px 8px; font-size: 11px; line-height: 1.4; }
+.nodeSceneLint--err { background: rgba(255, 90, 90, 0.12); color: #ffb4b4; }
+.nodeSceneLint--warn { background: rgba(255, 176, 32, 0.12); color: #ffd38a; }
+.nodeSceneLintHead { background: none; border: 0; padding: 0; color: inherit; font: inherit; font-weight: 600; cursor: pointer; }
+.nodeSceneLint ul { margin: 4px 0 0; padding-left: 16px; }
+.nodeSceneLintErr { color: #ffb4b4; }
+
+/* Список библиотеки */
+.nodeSceneLib { border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 10px; padding: 8px; background: #15171e; display: flex; flex-direction: column; gap: 6px; }
+.nodeSceneLibHead { display: flex; gap: 6px; align-items: center; }
+.nodeSceneLibSearch { flex: 1 1 auto; padding: 6px 10px; border-radius: 8px; font-size: 12px; }
+.nodeSceneLibList { list-style: none; margin: 0; padding: 0; max-height: 220px; overflow: auto; display: flex; flex-direction: column; gap: 2px; }
+.nodeSceneLibRow {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 1fr auto auto auto;
+  gap: 8px;
+  align-items: center;
+  padding: 6px 8px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #e6e6ec;
+  font: inherit;
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+}
+.nodeSceneLibRow:hover { background: rgba(255, 255, 255, 0.07); }
+.nodeSceneLibRowOn { background: rgba(212, 160, 58, 0.18); }
+.nodeSceneLibTitle { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nodeSceneLibStatus { font-size: 10px; padding: 1px 6px; border-radius: 999px; background: rgba(255, 255, 255, 0.08); color: #b5b5c4; }
+.nodeSceneLibStatus-published { background: rgba(159, 211, 106, 0.18); color: #c8f09a; }
+.nodeSceneLibDate { font-size: 10px; color: #8f8fa3; }

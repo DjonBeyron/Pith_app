@@ -17,6 +17,7 @@ import RegistrationModule    from './registration/RegistrationModule.jsx'
 import TableModule           from './table/TableModule.jsx'
 import LessonRefModule       from './lesson-ref/LessonRefModule.jsx'
 import RotatePhoneModule     from './rotate-phone/RotatePhoneModule.jsx'
+import SceneModule           from './scene/SceneModule.jsx'
 
 const MODULE_MAP = {
   audio:        AudioModule,
@@ -38,6 +39,7 @@ const MODULE_MAP = {
   table:           TableModule,
   lesson_ref:      LessonRefModule,
   rotate_phone:    RotatePhoneModule,
+  scene:           SceneModule,
 }
 
 // Returns the component for a given node type, or null if unknown.

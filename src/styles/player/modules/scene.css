@@ -1,0 +1,99 @@
+/* ── Нода «сцена» (SceneModule): пузырь, кружок, фолбэк ──────────────────
+   Пузырь переиспользует подложку видео (.playerMsgBubble--video, video.css),
+   кружок — классы кружка (.circleWrap/.circleFrame/.circleRingSvg, circle.css).
+   Здесь — только своё: рамка 9:16, кнопка ▶, кадрирование в круг, фолбэк. */
+
+.playerSceneFrame {
+  width: min(60vw, 230px);
+  aspect-ratio: 9 / 16;
+  border-radius: 4px 14px 14px 14px;
+  overflow: hidden;
+  position: relative;
+  flex-shrink: 0;
+  background: #e8eef5;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+}
+.playerSceneFrame .scn { position: absolute; inset: 0; width: 100%; height: 100%; }
+
+/* Кнопка ▶ поверх сцены на паузе / до старта / после конца — только подсказка,
+   тап ловит сама сцена (SceneRenderer onTap) или круг */
+.playerScenePlay {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 44px;
+  height: 44px;
+  margin: -22px 0 0 -22px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-left: 3px;
+  pointer-events: none;
+  z-index: 2;
+  animation: playerScenePlayIn 0.18s ease-out;
+}
+@keyframes playerScenePlayIn {
+  from { opacity: 0; transform: scale(0.8); }
+  to { opacity: 1; transform: none; }
+}
+.playerSceneFrame[data-status="ended"] .playerScenePlay,
+.playerSceneCircle[data-status="ended"] .playerScenePlay { background: rgba(0, 0, 0, 0.28); }
+
+/* Кружок: сцена крупнее круга и сдвинута на головы котов (sceneCircleFit.js).
+   Облачко — не у края сцены (его бы срезала окружность), а по центру над
+   головами, мельче и без имени: низ 40% высоты сцены (y≈384), ширина 16%…84% */
+.playerSceneCircle .circleFrame { background: #e8eef5; }
+.playerSceneCircleInner { pointer-events: none; }
+.playerSceneCircleInner .scn { width: 100%; height: 100%; }
+.playerSceneCircleInner .scn-bubble,
+.nodeScenePreview--circle .scn-bubble {
+  left: 16%;
+  right: 16%;
+  bottom: 40%;
+  max-width: none;
+  padding: 6px 10px 7px;
+  font-size: clamp(11px, 3.4cqw, 14px);
+  line-height: 1.25;
+  border-bottom-left-radius: 12px;
+  border-bottom-right-radius: 12px;
+}
+.playerSceneCircleInner .scn-bubble__name { display: none; }
+.playerSceneCircleInner .scn-bubble__tail { left: 50%; right: auto; margin-left: -12px; border-width: 12px; border-left-width: 6px; border-right-width: 6px; bottom: -12px; }
+.playerSceneCircle .circleRingSvg { opacity: 1; }
+.playerSceneRingArc { transition: stroke-dashoffset 0.4s ease; }
+.playerSceneCircle[data-status="idle"] .circleRingSvg,
+.playerSceneCircle[data-status="history"] .circleRingSvg { opacity: 0; }
+
+/* Фолбэк: реплики текстом + «Дальше» */
+.playerMsgBubble--sceneFallback { max-width: min(78vw, 320px); }
+.playerSceneFb { display: flex; flex-direction: column; gap: 6px; padding: 2px 0; }
+.playerSceneFbLine { margin: 0; font-size: 14px; line-height: 1.35; color: #e6e6ea; }
+.playerSceneFbLine--b { color: #c9d4ff; }
+.playerSceneFbLine b { font-weight: 700; opacity: 0.8; }
+.playerSceneFbErrors {
+  margin: 2px 0 0;
+  padding: 6px 8px 6px 20px;
+  border-radius: 8px;
+  background: rgba(255, 90, 90, 0.12);
+  color: #ffb4b4;
+  font-size: 11px;
+  line-height: 1.35;
+}
+.playerSceneFbNext {
+  align-self: flex-end;
+  margin-top: 4px;
+  padding: 7px 16px;
+  border: 0;
+  border-radius: 999px;
+  background: #b6fe3b;
+  color: #12140d;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}

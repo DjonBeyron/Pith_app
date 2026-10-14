@@ -35,6 +35,7 @@ const DEFAULT_TRIGGER = {
   audio:       { if: 'played' },
   video:       { if: 'played' },
   circle:      { if: 'played' },
+  scene:       { if: 'played' }, // сцена доиграла последнюю реплику (SceneModule)
   text:        { if: 'timer', ms: 2000 },
   photo:       { if: 'timer', ms: 2000 },
   sticker:     { if: 'timer', ms: 2000 },

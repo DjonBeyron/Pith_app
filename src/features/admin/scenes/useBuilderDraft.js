@@ -13,9 +13,11 @@ import { saveBackup, loadBackup, clearBackup } from './draftBackup.js'
 
 const BACKUP_DELAY = 400
 
-export function useBuilderDraft() {
-  const [restored] = useState(() => loadBackup())
-  const [scene, setScene] = useState(() => restored?.scene ?? M.newDraft())
+// initialScene — управляемый режим (сцена для ноды урока, NodeScenePicker): старт с неё,
+// без восстановления и без записи резервной копии (backup=false) — черновик админа не трогаем
+export function useBuilderDraft({ initialScene = null, backup = true } = {}) {
+  const [restored] = useState(() => (initialScene || !backup ? null : loadBackup()))
+  const [scene, setScene] = useState(() => (initialScene ? M.fromScene(initialScene) : (restored?.scene ?? M.newDraft())))
   const [saved, setSaved] = useState(() => ({ id: restored?.savedId ?? null, status: 'draft', snapshot: null }))
   const [restoredAt, setRestoredAt] = useState(restored?.at ?? null)
   const timer = useRef(null)
@@ -30,11 +32,12 @@ export function useBuilderDraft() {
   // из latest (ref обновляется в эффекте, не в рендере)
   useEffect(() => {
     latest.current = { scene, savedId: saved.id }
+    if (!backup) return undefined
     clearTimeout(timer.current)
     timer.current = setTimeout(() => saveBackup(latest.current), BACKUP_DELAY)
     return () => clearTimeout(timer.current)
-  }, [scene, saved.id])
-  useEffect(() => () => { if (latest.current) saveBackup(latest.current) }, [])
+  }, [scene, saved.id, backup])
+  useEffect(() => () => { if (backup && latest.current) saveBackup(latest.current) }, [backup])
 
   const patch = useCallback(fn => setScene(s => fn(s)), [])
   const tl = useCallback(fn => setScene(s => M.setTimeline(s, fn(s.timeline))), [])
@@ -65,12 +68,12 @@ export function useBuilderDraft() {
       setRestoredAt(null)
     },
     // Новая сцена — отвязана от библиотеки
-    reset: location => { setScene(M.newDraft(location)); setSaved({ id: null, status: 'draft', snapshot: null }); setRestoredAt(null); clearBackup() },
+    reset: location => { setScene(M.newDraft(location)); setSaved({ id: null, status: 'draft', snapshot: null }); setRestoredAt(null); if (backup) clearBackup() },
     // После успешного сохранения в библиотеку
     markSaved: row => setSaved({ id: row.id, status: row.status, snapshot: M.fromScene(row.scene) }),
     detach: () => setSaved({ id: null, status: 'draft', snapshot: null }),
     dismissRestored: () => setRestoredAt(null),
-  }), [patch, tl])
+  }), [patch, tl, backup])
 
   // Текст JSON → { ok, errors }; при успехе грузится в черновик (связь с библиотекой сохраняется)
   const applyJson = useCallback(text => {

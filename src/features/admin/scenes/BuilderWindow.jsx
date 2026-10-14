@@ -19,11 +19,14 @@ import '../../../styles/admin-scenes-preview.css'
 // подсказка «?», затем окно). Окно размонтируется сразу, без pointer-events:none —
 // клики не проваливаются вниз; вложенные кнопки останавливают всплытие сами.
 // Черновик — useBuilderDraft (бэкап в localStorage), библиотека — useSceneLibrary.
+// Управляемый режим (нода урока, canvas/NodeSceneBuilderHost): initialScene — стартовая
+// сцена, onApply(scene) — кнопка «Применить к ноде» (без записи в библиотеку; бэкап
+// черновика админа при этом не трогается), title — заголовок окна.
 const THEME_KEY = 'pithy_admin_scenes_theme_v1'
 const VIEWS = [['settings', 'Настройки'], ['scene', 'Сцена'], ['panel', 'Панель']]
 
-export default function BuilderWindow({ onClose }) {
-  const draft = useBuilderDraft()
+export default function BuilderWindow({ onClose, initialScene = null, onApply = null, title = 'Сборщик сцен' }) {
+  const draft = useBuilderDraft({ initialScene, backup: !onApply })
   const library = useSceneLibrary()
   const [view, setView] = useState('scene')
   const [theme, setTheme] = useState(() => { try { return localStorage.getItem(THEME_KEY) === 'light' ? 'light' : 'dark' } catch { return 'dark' } })
@@ -84,10 +87,11 @@ export default function BuilderWindow({ onClose }) {
   }
 
   const win = (
-    <div ref={winRef} className="fsWin scbWin" data-theme={theme} role="dialog" aria-modal="true" aria-label="Сборщик сцен">
+    <div ref={winRef} className="fsWin scbWin" data-theme={theme} role="dialog" aria-modal="true" aria-label={title}>
       <BuilderToolbar
-        draft={draft} library={library} status={status} setStatus={setStatus}
-        onSave={save} onClose={onClose} closeRef={closeRef} theme={theme} onToggleTheme={toggleTheme}
+        draft={draft} library={library} status={status} setStatus={setStatus} title={title}
+        onSave={save} onApply={onApply ? () => onApply(draft.scene) : null}
+        onClose={onClose} closeRef={closeRef} theme={theme} onToggleTheme={toggleTheme}
       />
       <div className="fsViewTabs" role="tablist" aria-label="Разделы окна">
         {VIEWS.map(([id, label]) => (

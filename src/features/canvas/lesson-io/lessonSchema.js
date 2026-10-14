@@ -51,6 +51,16 @@ export const NODE_DOCS = {
     needs: 'video',
     fields: { crop: 'Кадрирование {x,y,scale}' },
   },
+  scene: {
+    label: 'Сцена (два кота)',
+    what: 'SVG-сцена «два кота говорят» вместо видео: векторные персонажи, облачки реплик, озвучка синтезом речи устройства (или файлами, если у реплик есть audioUrl). Файлов не требует — сама сцена лежит в data целиком. Переход дальше — по played (сцена доиграла последнюю реплику). Формат самой сцены — отдельная легенда (sceneLegendText из scene/v2/sceneLegend.js, `node scripts/lint-scene.mjs --legend`); сцена должна проходить её линтер без ошибок, иначе ученик увидит текст реплик с кнопкой «Дальше».',
+    fields: {
+      scene: 'Снимок сцены формата v2 целиком ({version: 2, id, title, location, characters: {a, b}, slots, timeline: [{who, text, emotion, pose?, translation?, audioUrl?}], options}) — не ссылка, а сам JSON (≤ 64 КБ): урок работает офлайн и не зависит от библиотеки сцен. Пример: {"version":2,"id":"coffee","title":"Кофе","location":"cafe","characters":{"a":{"kind":"cat","gender":"female","name":"Мурка"},"b":{"kind":"cat","gender":"male","name":"Барсик"}},"slots":{"table":"table","table-left":"coffee-cup"},"timeline":[{"who":"a","text":"Ты опять взял большой капучино?","emotion":"surprised"},{"who":"b","text":"Это нормальный. Чашка маленькая.","emotion":"happy"}],"options":{"bubbles":true}}',
+      sceneId: 'Необязательно: uuid строки библиотеки сцен (таблица scenes), откуда взят снимок — чтобы редактор предложил обновить его при новой версии. Нейросети не нужен',
+      mode: 'bubble — пузырь 9:16 как у видео (по умолчанию); circle — круглая вставка как видеосообщение, кадр на головах котов',
+      showBubbles: 'false — без облачков с текстом реплик (только голос и рты). По умолчанию true: сцена читается и без звука',
+    },
+  },
   photo: {
     label: 'Фото',
     what: 'Картинка в ленте, можно с подписью.',
@@ -228,7 +238,7 @@ export const NODE_DOCS = {
 
 // Условия перехода (triggers[].if). then указывает на ref следующей ноды.
 export const TRIGGER_DOCS = {
-  played: 'Медиа доиграло до конца (audio/video/circle). offsetMs — пауза после конца, отрицательный — переход раньше конца',
+  played: 'Медиа доиграло до конца (audio/video/circle; у scene — последняя реплика). offsetMs — пауза после конца, отрицательный — переход раньше конца (у scene не действует)',
   timer: 'Через ms миллисекунд после показа ноды',
   timer_after_play: 'Через ms миллисекунд после конца воспроизведения',
   photo_shown: 'Фото появилось на экране',

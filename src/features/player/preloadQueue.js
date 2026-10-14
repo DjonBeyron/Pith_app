@@ -54,6 +54,12 @@ export function nodeFileKey(node) {
 }
 
 export function nodeDownloads(node, files) {
+  // Сцена (SceneModule): файлов у ноды нет, кроме заранее записанной озвучки
+  // реплик (audioUrl); без неё список пуст — нода «прогрета» сразу
+  if (node.type === 'scene') {
+    const urls = [...new Set((node.typeData?.scene?.scene?.timeline ?? []).map(l => l?.audioUrl).filter(isValidUrl))]
+    return urls.map(url => ({ id: url, url, size: 0, nodeType: 'scene' }))
+  }
   if (node.type === 'photo_choice') {
     return (node.typeData?.photo_choice?.photos ?? [])
       .map(ph => {

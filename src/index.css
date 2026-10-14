@@ -62,6 +62,7 @@
 @import './styles/canvas/page-menus.css';
 @import './styles/canvas/page-debug.css';
 @import './styles/canvas/lesson-io.css';
+@import './styles/canvas/scene-picker.css';
 @import './styles/canvas/lesson-rules.css';
 @import './styles/canvas/lesson-review.css';
 @import './styles/canvas/lesson-review-notes.css';
@@ -118,6 +119,7 @@
 @import './styles/player/modules/say-voice.css';
 @import './styles/player/modules/photo.css';
 @import './styles/player/modules/video.css';
+@import './styles/player/modules/scene.css';
 @import './styles/player/modules/pin-message.css';
 @import './styles/player/modules/sticker.css';
 @import './styles/player/modules/reaction.css';

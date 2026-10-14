@@ -1,0 +1,39 @@
+/* Мини-инструкция «Как работать» в разделе «Для дизайнера» (DesignerHowTo). Префикс scdh.
+   Токены — .scWrap (admin-scenes.css): работают в тёмной и светлой теме. */
+
+.scdh { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; min-width: 0; }
+.scdhToggle { align-self: flex-start; }
+.scdhToggle:focus-visible { outline: 2px solid var(--sc-accent-fig, #e0564e); outline-offset: 2px; }
+.scdhBody {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid var(--sc-border);
+  border-radius: 12px;
+  background: var(--sc-bg);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.scdhH { margin: 0; font-size: 14px; font-weight: 700; }
+.scdhSteps { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 8px; font-size: 13px; line-height: 1.5; }
+.scdhExport { margin: 4px 0 0; padding-left: 18px; display: flex; flex-direction: column; gap: 2px; }
+.scdhApp { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 6px; font-size: 13px; line-height: 1.45; }
+.scdhApp li { display: flex; gap: 8px; align-items: flex-start; }
+.scdhIco { flex: 0 0 22px; text-align: center; }
+
+.scdhPair { display: flex; flex-wrap: wrap; gap: 8px; }
+.scdhCard {
+  flex: 1 1 240px;
+  min-width: 0;
+  margin: 0;
+  padding: 8px 10px;
+  border: 1px solid var(--sc-border);
+  border-radius: 10px;
+  font-size: 12px;
+  color: var(--sc-text);
+}
+.scdhCard figcaption { margin-top: 4px; }
+.scdhGood { border-left: 3px solid var(--sc-ok, #3aa56a); }
+.scdhBad { border-left: 3px solid var(--sc-error, #e0564e); }
+.scdhFig { display: block; width: 100%; max-width: 260px; height: auto; color: var(--sc-text); }

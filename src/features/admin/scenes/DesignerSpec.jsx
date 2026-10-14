@@ -2,6 +2,7 @@ import { TEMPLATE_FILES } from './designerTemplates.js'
 import { downloadText } from './fileUtils.js'
 import DesignerSections from './DesignerSections.jsx'
 import SvgChecker from './SvgChecker.jsx'
+import DesignerHowTo from './DesignerHowTo.jsx'
 import '../../../styles/admin-scenes-designer.css'
 
 // Раздел «Для дизайнера»: спецификация простым языком с картинками-схемами (DesignerSections),
@@ -26,6 +27,7 @@ export default function DesignerSpec() {
           ))}
           <a className="scBtn scdJump" href="#scd-check">Проверить SVG ↓</a>
         </div>
+        <DesignerHowTo />
       </div>
       <DesignerSections />
       <SvgChecker />

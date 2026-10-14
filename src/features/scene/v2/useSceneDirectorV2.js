@@ -17,14 +17,16 @@ import { getSceneAudioElement } from './sceneAudioUnlock.js'
 
 const IDLE = { index: 0, status: 'idle', run: 0, total: 0, line: null }
 
-export function useSceneDirectorV2(scene, { enabled = true, sound = true, active = true, paused = false, mouthEls } = {}) {
+// rate — множитель скорости речи поверх voice.rate персонажа (скорость голоса
+// урока, lessonVolume.js); читается на старте каждой реплики, сцену не пересоздаёт
+export function useSceneDirectorV2(scene, { enabled = true, sound = true, active = true, paused = false, rate = 1, mouthEls } = {}) {
   const [state, setState] = useState({ ...IDLE, total: scene?.timeline?.length ?? 0 })
   const [mode, setMode] = useState('timer')
   const [hidden, setHidden] = useState(() => typeof document !== 'undefined' && document.hidden)
   const dirRef = useRef(null)
   const autoPausedRef = useRef(false)
-  const optsRef = useRef({ sound, mouthEls })
-  useEffect(() => { optsRef.current = { sound, mouthEls } }, [sound, mouthEls])
+  const optsRef = useRef({ sound, rate, mouthEls })
+  useEffect(() => { optsRef.current = { sound, rate, mouthEls } }, [sound, rate, mouthEls])
 
   // Смена сцены — состояние сбрасывается прямо в рендере (паттерн «подстроить
   // состояние под проп»), а не setState в эффекте
@@ -42,12 +44,17 @@ export function useSceneDirectorV2(scene, { enabled = true, sound = true, active
     function playLine(line, index, { onEnd }) {
       who = line.who
       driver.start()
-      const voice = scene.characters?.[line.who]?.voice
+      const baseVoice = scene.characters?.[line.who]?.voice
+      const k = optsRef.current.rate || 1
+      const voice = { ...baseVoice, rate: Math.min(10, Math.max(0.1, (baseVoice?.rate ?? 1) * k)) }
       const end = () => { driver.stop(); onEnd() }
       const cbs = { onWord: () => driver.onWord(), onEnd: end, onMode: setMode }
       let cancel
       if (line.audioUrl) {
-        cancel = playLineAudio(line, getSceneAudioElement(), {
+        const audio = getSceneAudioElement()
+        // Файл озвучки: «без звука» урока — muted (играет, но молчит), скорость голоса — playbackRate без «мультяшности»
+        if (audio) { try { audio.muted = !optsRef.current.sound; audio.preservesPitch = true; audio.playbackRate = k } catch { /* ignore */ } }
+        cancel = playLineAudio(line, audio, {
           ...cbs,
           onFail: () => { cancel = speakFallback(line.text, voice, { sound: optsRef.current.sound, ...cbs }) },
         })

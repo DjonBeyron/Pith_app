@@ -1,7 +1,7 @@
 import {
   MessageSquare, Mic, PlayCircle, Video, Image, Smile,
   Info, Pin, SpellCheck, Layers, Images, UserPlus, Table2, SmilePlus, Link2, Smartphone,
-  PenLine, Keyboard, Speech,
+  PenLine, Keyboard, Speech, Cat,
 } from 'lucide-react'
 
 // Справочник типов нод канваса (вынесен из NodeTypeSelect.jsx: react-refresh
@@ -14,6 +14,7 @@ export const NODE_TYPES = [
   { value: 'audio',           label: 'Голосовое сообщение', icon: Mic,           color: '#6a9ec4', group: 'content' },
   { value: 'circle',          label: 'Видеосообщение',      icon: PlayCircle,    color: '#c47e7e', group: 'content' },
   { value: 'video',           label: 'Видео',               icon: Video,         color: '#9a7abc', group: 'content' },
+  { value: 'scene',           label: 'Сцена (два кота)',    icon: Cat,           color: '#d4a03a', group: 'content' },
   { value: 'photo',           label: 'Фото',                icon: Image,         color: '#6aaa6a', group: 'content' },
   { value: 'sticker',         label: 'Стикер',              icon: Smile,         color: '#c87850', group: 'content' },
   { value: 'reaction',        label: 'Реакция на сообщение', icon: SmilePlus,    color: '#c85a8a', group: 'content' },
@@ -36,7 +37,7 @@ export const TYPE_COLOR = Object.fromEntries(NODE_TYPES.map(t => [t.value, t.col
 // Короткие имена — для подписи на дальнем зуме. Полные («Текстовое сообщение»)
 // туда не влезают: нода там шириной в палец, а подпись должна читаться целиком
 export const TYPE_SHORT = {
-  text: 'Текст', audio: 'Голос', circle: 'Кружок', video: 'Видео', photo: 'Фото',
+  text: 'Текст', audio: 'Голос', circle: 'Кружок', video: 'Видео', scene: 'Сцена', photo: 'Фото',
   sticker: 'Стикер', reaction: 'Реакция', system: 'Система', pin_message: 'Закреп',
   word_choice: 'Слово', phrase_assembly: 'Фраза', fill_blanks: 'Пропуски', type_word: 'Печать', say_phrase: 'Речь', table: 'Таблица',
   photo_choice: 'Фото-выбор', registration: 'Регистрация',

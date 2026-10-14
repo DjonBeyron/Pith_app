@@ -19,6 +19,7 @@ import { useTextareaHeight } from './useTextareaHeight.js'
 import RichTextField from './rich-text/RichTextField.jsx'
 import NodeLessonRefPicker from './NodeLessonRefPicker.jsx'
 import NodeRotatePhonePicker from './NodeRotatePhonePicker.jsx'
+import NodeScenePicker from './NodeScenePicker.jsx'
 import { NO_AUTOCORRECT } from '../../shared/lib/noAutoCorrectProps.js'
 
 const DEFAULT_CROP = { x: 0, y: 0, scale: 1 }
@@ -312,6 +313,7 @@ export default function NodeContentEditor({ lessonXp = 0,
       {node.type === 'lesson_ref' && (
         <NodeLessonRefPicker value={tData} onChange={patch => updateTypeData(patch)} />
       )}
+      {node.type === 'scene' && <NodeScenePicker tData={tData} onChange={patch => updateTypeData(patch)} />}
       {node.type === 'rotate_phone' && (
         <NodeRotatePhonePicker
           tData={tData}

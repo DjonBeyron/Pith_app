@@ -53,6 +53,9 @@ function exportData(node, refOf) {
     if (FILE_FIELDS.includes(k)) continue
     if (k === 'signals') continue // особая обработка ниже — ref, а не значение
     if (isEmpty(v)) continue
+    // Снимок сцены (нода scene) — как есть: это не файл, а сам контент; id сцены,
+    // пустые слоты (null) и wordTimings реплик — часть формата v2, их не вычищаем
+    if (node.type === 'scene' && k === 'scene') { data[k] = JSON.parse(JSON.stringify(v)); continue }
     data[k] = stripIds(v, keepIds)
   }
   const signals = exportSignals(raw, refOf)

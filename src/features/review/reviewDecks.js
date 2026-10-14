@@ -28,6 +28,13 @@ export function cardFiles(nodes) {
       }
       continue
     }
+    if (n.type === 'scene') {
+      // Сцена: файлов нет, кроме заранее записанной озвучки реплик (audioUrl)
+      for (const l of n.typeData?.scene?.scene?.timeline ?? []) {
+        if (typeof l?.audioUrl === 'string' && /^https?:\/\//.test(l.audioUrl)) out.set(l.audioUrl, { id: l.audioUrl, r2Url: l.audioUrl, size: 0 })
+      }
+      continue
+    }
     const d = n.typeData?.[n.type]
     if (d?.file_id && d.r2Url) out.set(d.file_id, { id: d.file_id, r2Url: d.r2Url, size: 0 })
   }

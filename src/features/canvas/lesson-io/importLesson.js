@@ -5,6 +5,7 @@ import { FORMAT } from './lessonSchema.js'
 import { NODE_TYPES } from '../nodeTypes.js'
 import { makeNode, renumber, findFreeSpot, NODE_SLOT } from '../nodeGraph.js'
 import { wordCardFromJson } from '../../wordCard/wordCardIo.js'
+import { validateSceneV2 } from '../../scene/v2/sceneValidate.js'
 
 // Обменный JSON → ноды урока. Обратная сторона exportLesson.js: восстанавливаем
 // сценарий целиком, кроме файлов — их автор подкладывает в редакторе, ноды
@@ -97,6 +98,11 @@ export function importLesson(input, { startX = 120, startY = 80 } = {}) {
     const node = makeNode(built.length + 1, x, y, raw.type)
     const data = withIds(raw.type, applyMarkup(raw.data ?? {}))
     node.typeData = { ...node.typeData, [raw.type]: { ...node.typeData[raw.type], ...data } }
+    // Сцена переносится как есть; битый снимок не отвергаем (нода покажет фолбэк), но предупреждаем
+    if (raw.type === 'scene' && data.scene != null) {
+      const errs = validateSceneV2(data.scene)
+      if (errs.length) warnings.push(`${ref}: сцена не проходит проверку формата v2 (${errs.slice(0, 2).join('; ')}${errs.length > 2 ? '; …' : ''})`)
+    }
     if (raw.size) node.size = raw.size
     if (raw.note != null) node.note = raw.note
     idByRef.set(ref, node.id)

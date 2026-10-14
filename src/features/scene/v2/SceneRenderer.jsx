@@ -19,6 +19,8 @@ import './scene-v2-cat.css'
 // Пауза анимаций: !active / paused / вне экрана / document.hidden /
 // data-scrolling у родителя (CSS). contain: layout paint на контейнере.
 // apiRef — ref, в который кладётся API режиссёра (play/pause/toggle/restart/goTo).
+// rate — множитель скорости речи (скорость голоса урока); onState({ status, index, total })
+// — только на границах реплик (нода урока ждёт 'ended' → onDone).
 
 function Cat({ who, character, emotion, talking, onEl }) {
   const sprite = catSprite(character.gender)
@@ -55,14 +57,16 @@ function Props({ scene }) {
 }
 
 export default function SceneRenderer({
-  scene, mode = 'live', active = true, paused = false, sound = true, lite, frameIndex = null,
-  showBubbles, showProgress = true, onTap, apiRef, className = '', children,
+  scene, mode = 'live', active = true, paused = false, sound = true, rate = 1, lite, frameIndex = null,
+  showBubbles, showProgress = true, onTap, apiRef, onState, className = '', children,
 }) {
   const live = mode === 'live'
   const mouthEls = useRef({ a: null, b: null })
   const rootRef = useRef(null)
   const [onScreen, setOnScreen] = useState(true)
-  const director = useSceneDirectorV2(scene, { enabled: live, sound, active: active && onScreen, paused, mouthEls })
+  const director = useSceneDirectorV2(scene, { enabled: live, sound, rate, active: active && onScreen, paused, mouthEls })
+  const { status: dStatus, index: dIndex, total: dTotal } = director
+  useEffect(() => { if (live) onState?.({ status: dStatus, index: dIndex, total: dTotal }) }, [live, onState, dStatus, dIndex, dTotal])
 
   // Рот переключает mouthDriver прямо на корне кота (data-mouth), минуя React
   const onCatEl = useCallback((who, el) => {

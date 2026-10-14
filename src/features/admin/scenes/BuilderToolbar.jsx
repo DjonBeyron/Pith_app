@@ -5,10 +5,13 @@ import { formatBackupTime } from './draftBackup.js'
 // Верхняя панель сборщика: название и id сцены, индикатор несохранённого, «Сохранить»
 // (в библиотеку; при отсутствии таблицы — только локальный бэкап), «Новая», тема, закрыть
 // (Esc), строка статуса и плашка «восстановлен черновик из резервной копии».
-export default function BuilderToolbar({ draft, library, status, setStatus, onSave, onClose, closeRef, theme, onToggleTheme }) {
+// onApply (управляемый режим, сцена для ноды урока) — «Применить к ноде» первой кнопкой;
+// сохранение в библиотеку остаётся отдельной, необязательной кнопкой.
+export default function BuilderToolbar({ draft, library, status, setStatus, title = 'Сборщик сцен', onSave, onApply = null, onClose, closeRef, theme, onToggleTheme }) {
   const { scene, saved, dirty, errors, restoredAt, actions } = draft
   const [askNew, setAskNew] = useState(false)
   const canSave = !library.busy && !library.missingTable
+  const canApply = !!onApply && errors.length === 0
   // confirm() браузер может блокировать — подтверждение прямо в тулбаре
   const reset = () => {
     if (dirty && !askNew) { setAskNew(true); return }
@@ -20,7 +23,7 @@ export default function BuilderToolbar({ draft, library, status, setStatus, onSa
   return (
     <header className="fsBar">
       <div className="fsBarRow">
-        <h1 className="fsTitle">Сборщик сцен</h1>
+        <h1 className="fsTitle">{title}</h1>
         <button className="fsIconBtn" onClick={onToggleTheme} aria-label={theme === 'dark' ? 'Светлая тема окна' : 'Тёмная тема окна'} title="Тема окна">
           {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
         </button>
@@ -42,7 +45,12 @@ export default function BuilderToolbar({ draft, library, status, setStatus, onSa
           </span>
         </div>
         <div className="fsBtnBox" style={{ gap: 6 }}>
-          <button className="fsBtn fsBtnPrimary" onClick={() => onSave()} disabled={!canSave} title={library.missingTable ? 'Таблицы scenes нет — черновик хранится только на этом устройстве' : ''}>
+          {onApply && (
+            <button className="fsBtn fsBtnPrimary" onClick={onApply} disabled={!canApply} title={canApply ? 'Положить сцену в ноду урока и закрыть' : 'Сначала исправьте ошибки линтера'}>
+              Применить к ноде
+            </button>
+          )}
+          <button className={onApply ? 'fsBtn' : 'fsBtn fsBtnPrimary'} onClick={() => onSave()} disabled={!canSave} title={library.missingTable ? 'Таблицы scenes нет — черновик хранится только на этом устройстве' : ''}>
             {library.busy ? 'Сохраняю…' : saved.id ? 'Сохранить' : 'Сохранить в библиотеку'}
           </button>
           {!askNew && <button className="fsBtn" onClick={reset}>Новая</button>}

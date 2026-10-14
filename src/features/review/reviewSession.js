@@ -11,12 +11,16 @@ import { reviewOutcome } from '../../shared/lib/memory/reviewOutcome.js'
 // Сессия длиннее плана максимум на число ошибок.
 
 // Карточки со звуком/голосом — на них стоит «Не могу слушать»
-const AUDIO_TYPES = new Set(['audio', 'circle', 'video'])
+const AUDIO_TYPES = new Set(['audio', 'circle', 'video', 'scene'])
 export const cardHasAudio = card => (card?.nodes ?? []).some(n => AUDIO_TYPES.has(n.type))
 
 // Без звука не обойтись — такие карточки «Не могу слушать» убирает. Голосовое сообщение с текстом
-// (текст в нём печатается под голос) просто играет беззвучно: карточка остаётся
-const needsSound = n => AUDIO_TYPES.has(n.type) && !(n.type === 'audio' && n.typeData?.audio?.text?.trim())
+// (текст в нём печатается под голос) просто играет беззвучно: карточка остаётся.
+// Сцена с облачками (showBubbles не false) — то же: реплики читаются, звук не обязателен
+const readableMuted = n =>
+  (n.type === 'audio' && !!n.typeData?.audio?.text?.trim()) ||
+  (n.type === 'scene' && n.typeData?.scene?.showBubbles !== false)
+const needsSound = n => AUDIO_TYPES.has(n.type) && !readableMuted(n)
 export const cardNeedsSound = card => (card?.nodes ?? []).some(needsSound)
 
 // Карточки слова начиная со следующей после показанной в прошлый раз
