@@ -24,7 +24,7 @@ function SlideMedia({ sceneId = null, ...props }) {
     )
   }
   const { videoUrl: _v, onSoundBlocked: _b, fallback: _f, ...sceneProps } = props
-  return <SlideScene {...sceneProps} scene={scene} />
+  return <SlideScene {...sceneProps} scene={scene} sceneId={sceneId} />
 }
 
 export default memo(SlideMedia)

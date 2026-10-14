@@ -2,12 +2,13 @@ import { LOCATIONS, BACKGROUNDS } from '../../scene/v2/sprites/backgrounds.js'
 import SlotsGrid from './SlotsGrid.jsx'
 import CharacterForm from './CharacterForm.jsx'
 import TimelineEditor from './TimelineEditor.jsx'
+import SceneTaskSection from './SceneTaskSection.jsx'
 import ScTip from './ScTip.jsx'
 
 // Левая область сборщика: локация, ячейки предметов (SlotsGrid), персонажи A и B
-// (CharacterForm), реплики (TimelineEditor), options. id вида f-… нужны подсветке
-// замечаний линтера (lintFieldMap.js).
-export default function BuilderSettings({ scene, actions }) {
+// (CharacterForm), реплики (TimelineEditor), задание после сцены (SceneTaskSection), options.
+// id вида f-… нужны подсветке замечаний линтера (lintFieldMap.js).
+export default function BuilderSettings({ scene, actions, savedId = null, setStatus }) {
   return (
     <div className="scbSettings">
       <section className="scbBlock" id="f-location" aria-labelledby="scb-loc-h">
@@ -45,6 +46,8 @@ export default function BuilderSettings({ scene, actions }) {
         <h2 id="scb-tl-h" className="scbH">Реплики <span className="scbCount">{scene.timeline.length} / 12</span></h2>
         <TimelineEditor scene={scene} actions={actions} />
       </section>
+
+      <SceneTaskSection scene={scene} actions={actions} savedId={savedId} setStatus={setStatus} />
 
       <section className="scbBlock" id="f-options" aria-labelledby="scb-opt-h">
         <h2 id="scb-opt-h" className="scbH">Параметры воспроизведения</h2>

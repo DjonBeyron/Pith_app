@@ -1,6 +1,7 @@
 import { useMemo, useRef, useState } from 'react'
 import { localToday } from '../../review/reviewDecks.js'
 import { canOfferCatch, shownCatchToday, markCatchShown, CATCH_GAP } from './feedCatch.js'
+import { sceneTaskGate } from '../scene/sceneTaskLimits.js'
 
 // «Ловля слов» на уровне всей ленты — зеркало useFeedRecall.js, только лимиты показа:
 // onSlide(moduleId) зовёт лента при смене слайда — считаются только настоящие смены фразы (перенос круга
@@ -21,6 +22,7 @@ export function useFeedCatch() {
     setLocked,
     onSlide(moduleId) {
       setLocked(false)
+      sceneTaskGate().onSlide(moduleId) // тот же счёт смен слайда нужен лимиту задания «О чём диалог» на слайде-сцене
       const s = state.current
       if (!moduleId || moduleId === s.last) return
       s.last = moduleId

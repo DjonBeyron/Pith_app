@@ -102,7 +102,7 @@ export default function BuilderWindow({ onClose, initialScene = null, initialRow
       </div>
       <div className="scbBody" data-view={view}>
         <section className="scbCol scbColSettings" aria-label="Настройки сцены">
-          <BuilderSettings scene={draft.scene} actions={draft.actions} />
+          <BuilderSettings scene={draft.scene} actions={draft.actions} savedId={draft.saved.id} setStatus={setStatus} />
         </section>
         <section className="scbCol scbColScene" aria-label="Предпросмотр сцены">
           <PhonePreview scene={draft.scene} lint={draft.lint} budget={draft.budget} onHighlight={highlight} />

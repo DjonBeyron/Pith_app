@@ -19,10 +19,15 @@ export function sceneLayerMode({ active, near, noVideo = false }) {
   return 'skeleton'
 }
 
-// Сцена в ленте крутится по кругу, как зацикленное видео
+// Сцена в ленте крутится по кругу, как зацикленное видео. Если у сцены есть задание «О чём диалог» (sceneTask.js) —
+// переводы под репликами в облачках не показываются: иначе ответ был бы перед глазами (ответ проверяется по
+// исходной сцене — useSceneTask получает её, а не эту копию)
 export function loopedScene(scene) {
   if (!scene) return null
-  return { ...scene, options: { ...(scene.options ?? {}), loop: true } }
+  const timeline = scene.task && Array.isArray(scene.timeline)
+    ? scene.timeline.map(l => { if (!l?.translation) return l; const { translation: _t, ...rest } = l; return rest })
+    : scene.timeline
+  return { ...scene, timeline, options: { ...(scene.options ?? {}), loop: true } }
 }
 
 // Режиссёру можно играть: живой режим, вкладка видна, пользователь не ставил паузу

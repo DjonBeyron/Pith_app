@@ -16,6 +16,7 @@ export function createDirector({ timeline = [], playLine, onChange, loop = false
   let run = 0 // счётчик запусков — различает повторный старт той же реплики
   let cancel = null
   let destroyed = false
+  let once = false // playOnce: после конца реплики — пауза, а не следующая
 
   const state = () => ({ index, status, run, total: timeline.length, line: timeline[index] ?? null })
   const emit = () => { if (!destroyed) onChange?.(state()) }
@@ -38,6 +39,7 @@ export function createDirector({ timeline = [], playLine, onChange, loop = false
         // Поздний onEnd отменённой/перезапущенной реплики игнорируем
         if (destroyed || myRun !== run || status !== 'playing') return
         cancel = null
+        if (once) { once = false; status = 'paused'; emit(); return }
         advance()
       },
     }) ?? null
@@ -59,6 +61,16 @@ export function createDirector({ timeline = [], playLine, onChange, loop = false
     play() {
       if (destroyed || status === 'playing') return
       if (status === 'ended') { index = 0 }
+      once = false
+      status = 'playing'
+      startLine()
+    },
+    // Проиграть одну реплику i и встать на паузу на ней («Послушать ещё раз» в задании ленты)
+    playOnce(i) {
+      if (destroyed || i < 0 || i >= timeline.length) return
+      stopCurrent()
+      index = i
+      once = true
       status = 'playing'
       startLine()
     },
@@ -74,6 +86,7 @@ export function createDirector({ timeline = [], playLine, onChange, loop = false
     },
     restart() {
       stopCurrent()
+      once = false
       index = 0
       status = 'playing'
       startLine()

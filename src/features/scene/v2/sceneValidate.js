@@ -4,6 +4,7 @@ import { getSprite } from './sprites/spriteRegistry.js'
 import {
   SCENE_VERSION_V2, CHARACTER_KEYS, GENDERS, EMOTIONS, POSES, LIMITS, isObj,
 } from './sceneConstants.js'
+import { validateTask } from './sceneTask.js'
 
 // Валидация сцены v2: список ошибок по-русски с путями (characters.a.name,
 // timeline[3].text…). Пустой список — сцена годная. Проверяет форму и
@@ -110,5 +111,7 @@ export function validateSceneV2(scene) {
     if (!isObj(scene.options)) errors.push('options — объект { bubbles, autoplay, loop }')
     else for (const [k, v] of Object.entries(scene.options)) if (typeof v !== 'boolean') errors.push(`options.${k} — true/false`)
   }
+  // Задание после сцены (sceneTask.js) — необязательное; смысловые проверки (есть ли перевод) — в sceneLint
+  validateTask(scene.task, Array.isArray(scene.timeline) ? scene.timeline.length : undefined, errors)
   return errors
 }

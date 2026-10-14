@@ -7,7 +7,8 @@
 //   characters: { a: Character, b: Character },     // ровно два: a слева, b справа
 //   slots: { [slotId]: spriteId | null },             // ячейки предметов локации (sprites/slots.js)
 //   timeline: [Line, ...],                            // 2…12 реплик
-//   options: { bubbles: true, autoplay: false, loop: false }
+//   options: { bubbles: true, autoplay: false, loop: false },
+//   task?: { kind: 'translate', lineIndex, prompt?, accept[], hint? }   // задание «О чём диалог» (sceneTask.js)
 // }
 // Character: { kind: 'cat', gender: 'male' | 'female', name, palette: { fur, accent, belly?, eye?, stripe? },
 //              stripes: true, voice: { pitch 0…2, rate 0.1…10, voiceId? } }
@@ -23,6 +24,7 @@ import {
   SCENE_VERSION_V2, GENDERS, EMOTIONS, POSES, DEFAULT_VOICE, DEFAULT_OPTIONS, PALETTE_PRESETS, isObj,
 } from './sceneConstants.js'
 import { validateSceneV2 } from './sceneValidate.js'
+import { normalizeTask } from './sceneTask.js'
 
 export * from './sceneConstants.js'
 export { LOCATIONS }
@@ -72,7 +74,7 @@ export function normalizeSceneV2(scene) {
     }
   }
   const chars = isObj(s.characters) ? s.characters : {}
-  return {
+  const out = {
     version: SCENE_VERSION_V2,
     id: typeof s.id === 'string' && s.id ? s.id : 'scene',
     title: typeof s.title === 'string' ? s.title.trim() : '',
@@ -82,6 +84,9 @@ export function normalizeSceneV2(scene) {
     timeline: Array.isArray(s.timeline) ? s.timeline.map(normalizeLine) : [],
     options: { ...DEFAULT_OPTIONS, ...(isObj(s.options) ? s.options : {}) },
   }
+  const task = normalizeTask(s.task)
+  if (task) out.task = task // без задания поля нет вовсе — старые сцены не меняются
+  return out
 }
 
 // Текст JSON → { scene, errors }: разбор, затем валидация, затем нормализация

@@ -11,11 +11,12 @@ import ScTip from './ScTip.jsx'
 // «Загрузить в сборщик». Загрузить можно и с предупреждениями, но не с ошибками.
 export default function AiPanel({ draft, setStatus }) {
   const [topic, setTopic] = useState('')
+  const [withTask, setWithTask] = useState(false) // просить заодно задание «О чём диалог» (translation + task)
   const [answer, setAnswer] = useState('')
   const [report, setReport] = useState(null) // { errors, lint, scene }
   const [note, setNote] = useState('')
   const legend = useMemo(() => sceneLegendText(), [])
-  const prompt = buildPrompt(topic)
+  const prompt = buildPrompt(topic, { withTask })
 
   const copy = async (text, label) => setNote((await copyText(text)) ? `${label} — скопировано` : 'Не удалось скопировать')
   const check = () => {
@@ -41,6 +42,7 @@ export default function AiPanel({ draft, setStatus }) {
         <span className="scbFieldLabel">Тема сцены</span>
         <input className="fsNote" value={topic} onChange={e => setTopic(e.target.value)} placeholder="например: понедельник и кофе" />
       </label>
+      <label className="scCheck"><input type="checkbox" checked={withTask} onChange={e => setWithTask(e.target.checked)} /> с заданием «О чём диалог» (translation у реплик + task) <ScTip help="task" /></label>
       <textarea className="fsNote scbCode scbCodeSmall" value={prompt} readOnly aria-label="Промпт-заготовка" rows={6} />
       <div className="scbCtlRow">
         <button type="button" className="fsBtn fsBtnSmall" onClick={() => copy(prompt, 'Промпт')}>Скопировать промпт</button>

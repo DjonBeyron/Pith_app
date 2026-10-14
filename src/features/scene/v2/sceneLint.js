@@ -3,6 +3,7 @@ import { sceneNodeBudget, NODE_BUDGET } from './sceneBudget.js'
 import { slotsFor } from './sprites/slots.js'
 import { getSprite } from './sprites/spriteRegistry.js'
 import { isObj } from './sceneConstants.js'
+import { taskTargetLine, taskAnswers, keyTokens } from './sceneTask.js'
 
 // Линтер сцен v2 — детерминированная проверка поверх валидатора: бюджет
 // узлов, предметы без опоры, пустые слоты, качество диалога. Возвращает
@@ -58,6 +59,21 @@ function lintTimeline(scene, out) {
   if (tl.length >= 2 && tl.every(l => l?.emotion === tl[0]?.emotion)) out.push({ level: 'warn', text: 'timeline — одна эмоция на всю сцену: лица не меняются' })
 }
 
+// Задание «О чём диалог» (sceneTask.js): ответ проверять нечем — ошибка; остальное — советы
+const MIN_TASK_LINES = 3
+function lintTask(scene, out) {
+  if (scene.task === undefined || scene.task === null) return
+  const target = taskTargetLine(scene)
+  if (!target) return
+  const answers = taskAnswers(scene.task, target.line)
+  if (!answers.length) { out.push({ level: 'error', text: `task — у реплики №${target.index + 1} нет перевода (translation) и нет accept: ответ проверить нечем` }); return }
+  const tl = Array.isArray(scene.timeline) ? scene.timeline : []
+  if (tl.length < MIN_TASK_LINES) out.push({ level: 'warn', text: `task — диалог короче ${MIN_TASK_LINES} реплик: задание «о чём говорили» почти не о чём` })
+  if (keyTokens(answers[0]).length < 2) out.push({ level: 'warn', text: `task — эталон «${answers[0]}» из одного значимого слова: ответ засчитается слишком легко` })
+  if (answers.length === 1) out.push({ level: 'warn', text: 'task.accept — нет синонимичных переводов: засчитается только дословный ответ' })
+  if (scene.task.lineIndex === null || scene.task.lineIndex === undefined) out.push({ level: 'warn', text: `task.lineIndex — реплика не выбрана, спрашивается №${target.index + 1} (последняя с переводом)` })
+}
+
 // nodeBudget — потолок узлов (по умолчанию NODE_BUDGET; админка сможет
 // ужесточить для «слабого» тира)
 export function lintScene(scene, { nodeBudget = NODE_BUDGET } = {}) {
@@ -72,6 +88,7 @@ export function lintScene(scene, { nodeBudget = NODE_BUDGET } = {}) {
   }
   lintCharacters(scene, out)
   lintTimeline(scene, out)
+  lintTask(scene, out)
   return out
 }
 

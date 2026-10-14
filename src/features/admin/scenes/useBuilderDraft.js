@@ -4,6 +4,7 @@ import { sceneNodeBreakdown } from '../../scene/v2/sceneBudget.js'
 import { parseSceneV2 } from '../../scene/v2/sceneSchemaV2.js'
 import * as M from './builderModel.js'
 import * as T from './timelineOps.js'
+import * as TK from './taskModel.js'
 import { saveBackup, loadBackup, clearBackup } from './draftBackup.js'
 
 // Состояние сборщика сцен: черновик (нормализованная сцена v2), привязка к строке
@@ -63,6 +64,12 @@ export function useBuilderDraft({ initialScene = null, initialRow = null, backup
     moveLine: (i, d) => tl(t => T.moveLine(t, i, d)),
     updateLine: (i, p) => tl(t => T.updateLine(t, i, p)),
     duplicateLine: i => tl(t => T.duplicateLine(t, i)),
+    // Задание после сцены «О чём диалог» (taskModel.js)
+    setTaskKind: k => patch(s => TK.setTaskKind(s, k)),
+    updateTask: p => patch(s => TK.updateTask(s, p)),
+    addAccept: text => patch(s => TK.addAccept(s, text)),
+    updateAccept: (i, v) => patch(s => TK.updateAccept(s, i, v)),
+    removeAccept: i => patch(s => TK.removeAccept(s, i)),
     clearScene: () => patch(M.clearScene),
     // Загрузить сцену целиком (из JSON, нейросети, библиотеки): row — строка библиотеки, если есть
     load: (next, row = null) => {

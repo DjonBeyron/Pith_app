@@ -204,6 +204,16 @@
 .scbAudio-timed { background: var(--fs-accent); color: var(--fs-accent-ink); }
 .scbOptions { display: flex; flex-wrap: wrap; gap: 8px 16px; }
 
+/* Задание после сцены (SceneTaskSection, TaskAnswerTester): список допустимых вариантов и тестер ответа */
+.scbAccepts { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 6px; }
+.scbAcceptRow { display: flex; align-items: center; gap: 6px; }
+.scbAcceptRow .fsNote { flex: 1 1 auto; width: auto; min-width: 0; }
+.scbAcceptRow > button { flex: none; }
+.scbTester { display: flex; flex-direction: column; gap: 4px; padding: 10px; border: 1px dashed var(--fs-border); border-radius: 12px; background: var(--fs-panel-2); }
+.scbTestOut { margin: 0; font-size: 12.5px; line-height: 1.4; color: var(--fs-muted); }
+.scbTestOut.scOk { color: var(--fs-ok); }
+.scbTestOut.scBad { color: var(--fs-error); }
+
 /* ── Телефон / узкий экран: вкладки вместо областей ── */
 @media (max-width: 1099px) {
   .scbWin .fsBarRow { gap: 6px 8px; }

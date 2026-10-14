@@ -116,5 +116,7 @@ export function useSceneDirectorV2(scene, { enabled = true, sound = true, active
     toggle: useCallback(() => call('toggle'), [call]),
     restart: useCallback(() => call('restart'), [call]),
     goTo: useCallback(i => call('goTo', i), [call]),
+    // Одна реплика и пауза на ней (не блокируется авто-паузой: задание ленты зовёт её, пока сцена заморожена)
+    playOnce: useCallback(i => call('playOnce', i), [call]),
   }
 }

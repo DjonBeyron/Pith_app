@@ -137,6 +137,7 @@ export default function FeedSlide({
         onSoundOff={onSoundOff}
         onSoundBlocked={onSoundBlocked}
         fallback={VIDEO_FALLBACK}
+        onLock={onLock} // задание «О чём диалог» на слайде-сцене блокирует свайп, как «Ловля» (scene/useSceneTask.js)
       />
 
       <div className="feedPauseGuard" aria-hidden="true" />

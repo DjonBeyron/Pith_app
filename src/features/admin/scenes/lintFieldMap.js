@@ -15,7 +15,7 @@ export function lintPath(text) {
   const path = m[1]
   // Отсекаем случайные слова: путь обязан начинаться с поля верхнего уровня
   const root = path.split(/[.[]/)[0]
-  return ['version', 'id', 'title', 'location', 'characters', 'slots', 'timeline', 'options'].includes(root) ? path : null
+  return ['version', 'id', 'title', 'location', 'characters', 'slots', 'timeline', 'options', 'task'].includes(root) ? path : null
 }
 
 export function fieldId(path) {
@@ -41,6 +41,7 @@ export function fieldSection(text) {
   if (root === 'timeline') return 'timeline'
   if (root === 'characters') return 'characters'
   if (root === 'slots') return 'slots'
+  if (root === 'task') return 'task'
   return 'scene'
 }
 
