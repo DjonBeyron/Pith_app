@@ -1,0 +1,75 @@
+/* Идл-анимации кота (CatCharacter.jsx): дыхание тела, покачивание головы, моргание,
+   хвост. Только transform/opacity на <g> — без SVG-фильтров, масок и feTurbulence
+   (лагают на iPhone). transform-box: fill-box — чтобы origin считался от фигуры. */
+
+.cat { display: block; }
+
+/* Тело «дышит» — лёгкое растяжение вверх от нижней точки */
+.cat .cat-body {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  animation: catBreath 3.6s ease-in-out infinite;
+  animation-delay: var(--idle-delay, 0s);
+}
+
+/* Голова покачивается; у говорящего — чуть живее */
+.cat .cat-head {
+  transform-box: fill-box;
+  transform-origin: 50% 85%;
+  animation: catSway 4.4s ease-in-out infinite;
+  animation-delay: var(--idle-delay, 0s);
+}
+.cat--talking .cat-head { animation: catTalkSway 0.9s ease-in-out infinite; }
+.cat--lean .cat-head { animation: catLean 1.6s ease-in-out infinite alternate; }
+
+/* Моргание: глаза схлопываются по вертикали на пару кадров */
+.cat .cat-eyes {
+  transform-box: fill-box;
+  transform-origin: 50% 50%;
+  animation: catBlink 4.2s linear infinite;
+  animation-delay: var(--blink-delay, 0s);
+}
+
+/* Хвост качается от основания — у него внешний <g> уже сдвинут в точку основания,
+   поэтому origin 0 0 локальной системы и есть корень хвоста */
+.cat .cat-tail {
+  transform-origin: 0 0;
+  transform-box: view-box;
+  animation: catTail 2.8s ease-in-out infinite;
+  animation-delay: var(--idle-delay, 0s);
+}
+.cat--talking .cat-tail { animation-duration: 1.6s; }
+
+@keyframes catBreath {
+  0%, 100% { transform: scale(1, 1); }
+  50% { transform: scale(1.01, 1.025); }
+}
+
+@keyframes catSway {
+  0%, 100% { transform: rotate(-1.4deg); }
+  50% { transform: rotate(1.4deg); }
+}
+
+@keyframes catTalkSway {
+  0%, 100% { transform: rotate(-1.8deg) translateY(0); }
+  50% { transform: rotate(1.8deg) translateY(-2px); }
+}
+
+@keyframes catLean {
+  from { transform: rotate(-4deg) translateX(-4px); }
+  to { transform: rotate(-1deg) translateX(-2px); }
+}
+
+@keyframes catBlink {
+  0%, 93%, 100% { transform: scaleY(1); }
+  95%, 97% { transform: scaleY(0.08); }
+}
+
+@keyframes catTail {
+  0%, 100% { transform: rotate(-9deg); }
+  50% { transform: rotate(10deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cat .cat-body, .cat .cat-head, .cat .cat-tail { animation: none; }
+}

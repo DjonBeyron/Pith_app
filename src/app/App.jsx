@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { lazy, Suspense, useEffect } from 'react'
 import { warmSoundFiles } from '../shared/lib/sounds.js'
 import { installAudioRestore } from '../shared/lib/audioRestore.js'
 // Личные настройки звука из шестерёнки урока: при загрузке регистрируют фильтр звуков (lessonPrefs.js)
@@ -11,6 +11,12 @@ import { useIdlePrewarm } from './useIdlePrewarm.js'
 import { useResumeHeal } from './resumeHeal.js'
 import { useVoskBackground } from '../shared/lib/vosk/useVoskBackground.js'
 import { confirmBoot } from '../shared/lib/shellClient.js'
+
+// Стенд «SVG-сцена» (features/scene) — прототип замены видео: открывается по ?scene=1
+// вместо оболочки, отдельным ленивым чанком. Вкладки ShellV2 не трогаем, в обычной
+// сборке чанк не грузится. Данных не читает и не пишет — поэтому без проверки админа
+const SceneLab = lazy(() => import('../features/scene/SceneLab.jsx'))
+const SCENE_LAB = new URLSearchParams(location.search).get('scene') === '1'
 
 // Этап 6 миграции завершён: старая оболочка вынесена в old/ (вне git и
 // сборки), приложение — это новая оболочка ShellV2.
@@ -51,6 +57,14 @@ export default function App() {
       import('../features/debugTools/mountDebugTools.jsx').then(m => m.mountDebugTools())
     }
   }, [])
+
+  if (SCENE_LAB) {
+    return (
+      <Suspense fallback={null}>
+        <SceneLab />
+      </Suspense>
+    )
+  }
 
   return (
     <>

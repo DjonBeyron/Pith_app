@@ -1,0 +1,171 @@
+/* Сцена 9:16: контейнер, фон, расстановка котов, облачко, оверлеи, панель кнопок.
+   Анимации кота — в scene-cat.css, страница стенда — в scene-lab.css. */
+
+.scene {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  max-width: 100%;
+}
+
+.scene__stage {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 9 / 16;
+  max-height: calc(100dvh - 160px);
+  container-type: inline-size; /* для cqw в размере шрифта облачка */
+  margin: 0 auto;
+  border-radius: 18px;
+  overflow: hidden;
+  background: #e8eef5;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.18);
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  outline: none;
+}
+
+.scene-bg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* Коты: ширина 46% сцены; стоят на полу (пол начинается на 67% высоты) */
+.scene-cat {
+  position: absolute;
+  width: 46%;
+  height: auto;
+  bottom: 9%;
+  overflow: visible;
+}
+.scene-cat--left { left: 3%; }
+.scene-cat--right { right: 3%; }
+
+/* Облачко */
+.scene-bubble {
+  position: absolute;
+  bottom: 47%; /* сразу над головами котов (головы на ~40% от низа) */
+  max-width: 68%;
+  padding: 10px 14px 12px;
+  background: #fff;
+  color: #1f2430;
+  border-radius: 16px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.16);
+  font-size: clamp(13px, 3.8cqw, 17px);
+  line-height: 1.3;
+  animation: sceneBubbleIn 0.22s ease-out;
+  pointer-events: none;
+}
+.scene-bubble--left { left: 5%; border-bottom-left-radius: 6px; }
+.scene-bubble--right { right: 5%; border-bottom-right-radius: 6px; }
+.scene-bubble__name {
+  font-size: 0.78em;
+  font-weight: 700;
+  opacity: 0.55;
+  margin-bottom: 3px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.scene-bubble__text { font-weight: 500; }
+.scene-bubble__tail {
+  position: absolute;
+  bottom: -12px;
+  width: 0;
+  height: 0;
+  border: 12px solid transparent;
+  border-top-color: #fff;
+  border-bottom: 0;
+}
+.scene-bubble--left .scene-bubble__tail { left: 22%; border-right-width: 4px; }
+.scene-bubble--right .scene-bubble__tail { right: 22%; border-left-width: 4px; }
+
+@keyframes sceneBubbleIn {
+  from { opacity: 0; transform: translateY(6px) scale(0.96); }
+  to { opacity: 1; transform: none; }
+}
+
+/* Оверлеи: старт / пауза / конец */
+.scene__overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background: rgba(20, 24, 32, 0.45);
+  color: #fff;
+}
+.scene__overlay--soft { background: rgba(20, 24, 32, 0.25); }
+.scene__start {
+  appearance: none;
+  border: 0;
+  border-radius: 999px;
+  padding: 14px 28px;
+  font-size: 18px;
+  font-weight: 700;
+  background: #fff;
+  color: #1f2430;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
+  cursor: pointer;
+}
+.scene__start:active { transform: scale(0.97); }
+.scene__hint { font-size: 13px; opacity: 0.85; }
+.scene__pauseIcon {
+  font-size: 40px;
+  letter-spacing: -4px;
+  opacity: 0.9;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+/* Прогресс реплик — точки внизу */
+.scene__progress {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 10px;
+  display: flex;
+  justify-content: center;
+  gap: 5px;
+  pointer-events: none;
+}
+.scene__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.5);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.12);
+}
+.scene__dot.is-done { background: rgba(255, 255, 255, 0.9); }
+.scene__dot.is-on { background: #ffb020; transform: scale(1.3); }
+
+/* Панель управления под сценой */
+.scene__bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+.scene__btn {
+  appearance: none;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 999px;
+  padding: 7px 12px;
+  font-size: 13px;
+  background: #fff;
+  color: #1f2430;
+  cursor: pointer;
+}
+.scene__btn.is-on { background: #e8f3ff; border-color: #8fbdf0; }
+.scene__btn:active { transform: scale(0.97); }
+.scene__status {
+  margin-left: auto;
+  font-size: 12px;
+  opacity: 0.65;
+  white-space: nowrap;
+}
