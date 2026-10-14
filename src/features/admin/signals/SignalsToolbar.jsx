@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { X, Sun, Moon } from 'lucide-react'
 import { ENGINE_LABEL } from './signalTexts.js'
+import HelpTip from './HelpTip.jsx'
 
 // Верхняя панель окна «Сигналы ленты»: движок legacy ⇄ weighted (аварийный выключатель),
 // индикатор несохранённого, заметка и «Сохранить как новую версию», сброс черновика,
@@ -31,18 +32,34 @@ export default function SignalsToolbar({ model, onEngine, onClose, closeRef, the
             Взвешенный
           </button>
         </div>
+        <HelpTip help="engine_mode" />
         <span className="fsEngineHint">{legacy ? 'Лента в старом режиме — как до изменений, веса не влияют' : ENGINE_LABEL.weighted}</span>
-        <span className={dirty ? 'fsDirty fsDirtyOn' : 'fsDirty'} aria-live="polite">{dirty ? 'Есть несохранённые изменения' : 'Черновик совпадает с активной версией'}</span>
+        <span className="fsDirtyBox">
+          <span className={dirty ? 'fsDirty fsDirtyOn' : 'fsDirty'} aria-live="polite">{dirty ? 'Есть несохранённые изменения' : 'Черновик совпадает с активной версией'}</span>
+          <HelpTip help="dirty_state" />
+        </span>
       </div>
       <div className="fsBarRow fsBarActions">
-        <input
-          className="fsNote" value={note} onChange={e => setNote(e.target.value.slice(0, 200))}
-          placeholder="Заметка к версии (что и зачем поменял)" aria-label="Заметка к версии"
-          onKeyDown={e => { if (e.key === 'Enter' && dirty && !busy) save() }}
-        />
-        <button className="fsBtn fsBtnPrimary" onClick={save} disabled={!dirty || busy}>{busy ? 'Сохраняю…' : 'Сохранить как новую версию'}</button>
-        <button className="fsBtn" onClick={actions.reset} disabled={!dirty || busy}>Сбросить черновик</button>
-        <button className="fsBtn" onClick={actions.defaults} disabled={busy}>Вернуть дефолты</button>
+        <div className="fsNoteBox">
+          <input
+            className="fsNote" value={note} onChange={e => setNote(e.target.value.slice(0, 200))}
+            placeholder="Заметка к версии (что и зачем поменял)" aria-label="Заметка к версии"
+            onKeyDown={e => { if (e.key === 'Enter' && dirty && !busy) save() }}
+          />
+          <HelpTip help="version_note" />
+        </div>
+        <span className="fsBtnBox">
+          <button className="fsBtn fsBtnPrimary" onClick={save} disabled={!dirty || busy}>{busy ? 'Сохраняю…' : 'Сохранить как новую версию'}</button>
+          <HelpTip help="save_version" />
+        </span>
+        <span className="fsBtnBox">
+          <button className="fsBtn" onClick={actions.reset} disabled={!dirty || busy}>Сбросить черновик</button>
+          <HelpTip help="reset_draft" />
+        </span>
+        <span className="fsBtnBox">
+          <button className="fsBtn" onClick={actions.defaults} disabled={busy}>Вернуть дефолты</button>
+          <HelpTip help="reset_defaults" />
+        </span>
       </div>
       {(warnings.length > 0 || status) && (
         <div className="fsMessages" aria-live="polite">

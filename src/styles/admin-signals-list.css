@@ -6,6 +6,7 @@
 .slSummary { margin: 0; font-size: 12px; color: var(--fs-muted); }
 
 .slGroup { display: flex; flex-direction: column; gap: 8px; }
+.slGroupHead { display: flex; align-items: center; gap: 2px; }
 .slGroupTitle {
   display: flex;
   align-items: center;
@@ -37,12 +38,8 @@
 .slRowOff .slRowTitle, .slRowLocked .slRowTitle { color: var(--fs-muted); }
 .slRowLocked { opacity: 0.8; }
 
-.slRowHead {
-  grid-area: head;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 6px 8px;
+.slRowHead { grid-area: head; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; min-width: 0; }
+.slRowSelect {
   min-width: 0;
   padding: 0;
   border: 0;
@@ -66,7 +63,8 @@
 .slBadge-collecting { color: var(--fs-warn); border-color: color-mix(in srgb, var(--fs-warn) 40%, transparent); }
 
 /* Тумблер — как avToggleSwitch в админке, но на токенах окна */
-.slSwitch { grid-area: switch; position: relative; width: 42px; height: 24px; cursor: pointer; }
+.slSwitchBox { grid-area: switch; display: flex; align-items: center; justify-content: flex-end; }
+.slSwitch { position: relative; flex: none; width: 42px; height: 24px; cursor: pointer; }
 .slSwitch input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
 .slSwitch input:disabled { cursor: not-allowed; }
 .slTrack {
@@ -109,7 +107,8 @@
 }
 .slNum:disabled { opacity: 0.4; }
 
-.slShare { grid-area: share; position: relative; display: flex; align-items: center; height: 14px; border-radius: 7px; background: var(--fs-bg); overflow: hidden; }
+.slShareLine { grid-area: share; display: flex; align-items: center; min-width: 0; }
+.slShare { flex: 1; min-width: 0; position: relative; display: flex; align-items: center; height: 14px; border-radius: 7px; background: var(--fs-bg); overflow: hidden; }
 .slShareBar { position: absolute; left: 0; top: 0; bottom: 0; background: var(--sl-color, var(--fs-accent)); opacity: 0.55; }
 .slSharePct { position: relative; padding-left: 6px; font-size: 10.5px; font-weight: 700; color: var(--fs-text); }
 

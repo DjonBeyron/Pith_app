@@ -1,6 +1,8 @@
 import { GROUPS } from '../../../shared/lib/ranking/signalRegistry.js'
 import { weightShares } from './draftModel.js'
 import { GROUP_COLORS } from './signalTexts.js'
+import { groupHelpKey } from './helpTexts.js'
+import HelpTip from './HelpTip.jsx'
 import SignalRow from './SignalRow.jsx'
 import RulesBlock from './RulesBlock.jsx'
 
@@ -15,15 +17,18 @@ export default function SignalList({ metas, draft, selectedId, onSelect, actions
   return (
     <div className="slWrap">
       <p className="slSummary">
-        Включено живых сигналов: <b>{liveOn}</b> · сумма весов: <b>{total}</b>. Вес — сила сигнала в сумме; доля показывает, сколько
+        Включено живых сигналов: <span className="htNw"><b>{liveOn}</b><HelpTip help="live_count" /></span> · сумма весов: <span className="htNw"><b>{total}</b><HelpTip help="weights_sum" />.</span> Вес — сила сигнала в сумме; доля показывает, сколько
         он решает относительно остальных. Клавиши ↑↓ на ползунке — шаг 1.
       </p>
       {groups.map(g => (
         <section key={g.id} className="slGroup" aria-labelledby={`slGroup-${g.id}`}>
-          <h2 id={`slGroup-${g.id}`} className="slGroupTitle">
-            <span className="slGroupDot" style={{ background: GROUP_COLORS[g.id] }} aria-hidden="true" />
-            {g.title}
-          </h2>
+          <div className="slGroupHead">
+            <h2 id={`slGroup-${g.id}`} className="slGroupTitle">
+              <span className="slGroupDot" style={{ background: GROUP_COLORS[g.id] }} aria-hidden="true" />
+              {g.title}
+            </h2>
+            <HelpTip help={groupHelpKey(g.id)} />
+          </div>
           {g.items.map(m => (
             <SignalRow
               key={m.id} meta={m} state={draft.signals[m.id]} share={shares[m.id] ?? 0} selected={m.id === selectedId}

@@ -75,6 +75,7 @@
 .fsEngineBtn:disabled { opacity: 0.5; cursor: default; }
 .fsEngineHint { flex: 1 1 200px; min-width: 0; font-size: 12px; color: var(--fs-muted); }
 
+.fsDirtyBox, .fsBtnBox { display: inline-flex; align-items: center; }
 .fsDirty { font-size: 12px; color: var(--fs-muted); white-space: nowrap; }
 .fsDirty::before { content: ''; display: inline-block; width: 8px; height: 8px; margin-right: 6px; border-radius: 50%; background: var(--fs-border); vertical-align: middle; }
 .fsDirtyOn { color: var(--fs-warn); }
@@ -97,8 +98,9 @@
 .fsIconBtn:hover { border-color: var(--fs-muted); }
 
 .fsBarActions { gap: 8px; }
+.fsNoteBox { flex: 1 1 240px; min-width: 0; display: flex; align-items: center; gap: 2px; }
 .fsNote {
-  flex: 1 1 240px;
+  flex: 1;
   min-width: 0;
   padding: 8px 12px;
   border: 1px solid var(--fs-border);
@@ -168,8 +170,8 @@
   .fsTitle { flex: 1; font-size: 16px; }
   .fsIconBtn { order: 0; width: 32px; height: 32px; }
   .fsEngineHint { display: none; } /* режим виден по самой кнопке */
-  .fsDirty { flex-basis: 100%; }
-  .fsNote { flex-basis: 100%; }
+  .fsDirtyBox { flex-basis: 100%; }
+  .fsNoteBox { flex-basis: 100%; }
   .fsBtn { padding: 7px 11px; font-size: 12px; }
   .fsViewTabs { display: flex; flex: none; padding: 8px 12px 0; }
   .fsViewTab { flex: 1; text-align: center; }

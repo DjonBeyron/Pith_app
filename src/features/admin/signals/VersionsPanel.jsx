@@ -1,4 +1,5 @@
 import { configDiff } from './draftModel.js'
+import HelpTip from './HelpTip.jsx'
 
 // Вкладка «История» средней колонки: активная версия и до 20 прежних
 // (feed_signals_history) — дата, автор, заметка, что изменила версия относительно
@@ -10,8 +11,10 @@ const fmt = iso => {
 }
 
 function DiffList({ diff }) {
-  if (!diff.length) return <p className="vpDiff vpMuted">веса и тумблеры без изменений</p>
-  return <ul className="vpDiff">{diff.slice(0, 6).map(d => <li key={d.kind + (d.id ?? '')}>{d.text}</li>)}{diff.length > 6 && <li>…ещё {diff.length - 6}</li>}</ul>
+  const list = !diff.length
+    ? <p className="vpDiff vpMuted">веса и тумблеры без изменений</p>
+    : <ul className="vpDiff">{diff.slice(0, 6).map(d => <li key={d.kind + (d.id ?? '')}>{d.text}</li>)}{diff.length > 6 && <li>…ещё {diff.length - 6}</li>}</ul>
+  return <div className="vpDiffRow">{list}<HelpTip help="history_diff" /></div>
 }
 
 export default function VersionsPanel({ history, active, busy, onReload, onPreview, onRollback, previewingAt }) {
@@ -21,11 +24,11 @@ export default function VersionsPanel({ history, active, busy, onReload, onPrevi
   return (
     <div className="vpWrap">
       <div className="vpHead">
-        <span className="vpTitle">Версии конфига</span>
+        <span className="vpTitle">Версии конфига<HelpTip help="history_versions" /></span>
         <button className="fsBtn fsBtnSmall" onClick={onReload} disabled={loading}>{loading ? 'Загружаю…' : 'Обновить'}</button>
       </div>
       <div className="vpItem vpItemActive">
-        <div className="vpMeta"><b>Активная</b> · {fmt(active.updatedAt)} · {active.updatedBy || 'автор неизвестен'} · движок <b>{active.engine}</b></div>
+        <div className="vpMeta"><b>Активная</b> · {fmt(active.updatedAt)} · {active.updatedBy || 'автор неизвестен'} · движок <b>{active.engine}</b><HelpTip help="history_active" /></div>
         {active.note && <p className="vpNote">«{active.note}»</p>}
         <DiffList diff={configDiff(list[0] ?? active, active)} />
       </div>
@@ -33,7 +36,7 @@ export default function VersionsPanel({ history, active, busy, onReload, onPrevi
       {!loading && !error && !list.length && <p className="fpHint">Прежних версий нет — история появится после первого сохранения.</p>}
       {list.map((v, i) => (
         <div key={v.updatedAt ?? i} className={previewingAt && previewingAt === v.updatedAt ? 'vpItem vpItemPreview' : 'vpItem'}>
-          <div className="vpMeta">{fmt(v.updatedAt)} · {v.updatedBy || 'автор неизвестен'} · движок <b>{v.engine}</b></div>
+          <div className="vpMeta">{fmt(v.updatedAt)} · {v.updatedBy || 'автор неизвестен'} · движок <b>{v.engine}</b><HelpTip help="history_meta" /></div>
           {v.note && <p className="vpNote">«{v.note}»</p>}
           <DiffList diff={configDiff(chain[i + 2] ?? v, v)} />
           <div className="vpBtns">

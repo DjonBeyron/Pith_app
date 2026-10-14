@@ -14,6 +14,7 @@ import SignalDetail from './SignalDetail.jsx'
 import FeedPreview from './FeedPreview.jsx'
 import VersionsPanel from './VersionsPanel.jsx'
 import ConfigJsonPanel from './ConfigJsonPanel.jsx'
+import { closeOpenHelp } from './helpOpenState.js'
 import '../../../styles/admin-signals.css'
 import '../../../styles/admin-signals-list.css'
 import '../../../styles/admin-signals-preview.css'
@@ -59,6 +60,7 @@ export default function SignalsWindow({ learnView, onClose }) {
     const onKey = e => {
       if (e.key !== 'Escape') return
       e.stopPropagation()
+      if (closeOpenHelp(true)) return // открытая подсказка «?» закрывается первой
       if (confirmEngine) setConfirmEngine(false); else onClose()
     }
     document.addEventListener('keydown', onKey, true)

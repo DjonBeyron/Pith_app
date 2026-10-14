@@ -1,0 +1,67 @@
+/* Окно «Сигналы ленты» — пояснялки «?» (HelpTip.jsx): маленькая кнопка и всплывающая
+   подсказка. Префикс ht. Токены темы — на .fsWin (подсказка живёт внутри него). */
+
+.htBtn {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  margin: 0 0 0 3px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--fs-muted);
+  vertical-align: middle;
+  opacity: 0.8;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.htBtn:hover, .htBtn[aria-expanded="true"] { opacity: 1; color: var(--fs-focus); }
+
+/* Телефон: зона касания не меньше 32px, значок остаётся мелким */
+@media (pointer: coarse) {
+  .htBtn { width: 32px; height: 32px; margin-left: 0; }
+  /* В строках текста зона касания не раздувает межстрочный интервал */
+  p > .htBtn, .htNw > .htBtn, li > .htBtn, dd > .htBtn, .fpLegendItem > .htBtn { margin-block: -7px; }
+}
+
+.htPop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 800; /* выше диалога подтверждения внутри .fsWin */
+  box-sizing: border-box;
+  width: min(300px, calc(100vw - 16px));
+  max-height: 60vh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 10px 12px;
+  border: 1px solid var(--fs-muted);
+  border-radius: 12px;
+  background: var(--fs-panel-2);
+  color: var(--fs-text);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  font-size: 12.5px;
+  font-weight: 400;
+  line-height: 1.45;
+  letter-spacing: 0;
+  text-align: left;
+  text-transform: none;
+  animation: htIn 0.12s ease-out;
+}
+.htPop p { margin: 0; }
+.htTitle { margin-bottom: 4px !important; font-size: 13px; font-weight: 700; }
+.htBody { color: var(--fs-text); }
+.htExample { margin-top: 6px !important; padding-top: 6px; border-top: 1px dashed var(--fs-border); color: var(--fs-muted); }
+.htExample b { color: var(--fs-text); }
+
+@keyframes htIn { from { opacity: 0; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) {
+  .htPop { animation: none; }
+}
+
+/* Число и «?» не разрываются переносом строки */
+.htNw { white-space: nowrap; }

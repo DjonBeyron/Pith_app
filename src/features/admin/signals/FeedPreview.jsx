@@ -2,13 +2,20 @@ import { GROUPS } from '../../../shared/lib/ranking/signalRegistry.js'
 import { orderShift, topDifference } from './orderDiff.js'
 import { PREVIEW_TOP } from './usePreviewOrders.js'
 import { GROUP_COLORS } from './signalTexts.js'
+import { groupHelpKey } from './helpTexts.js'
+import HelpTip from './HelpTip.jsx'
 import PreviewRow from './PreviewRow.jsx'
 
 // Правая колонка: топ-20 ленты по выбранному порядку — черновик (взвешенно),
 // активная версия, legacy или версия из истории. У строки — score, вклады сигналов
 // (stacked bar цветами групп), причины, сдвиги позиции к активной и к legacy.
 // Подсветка — фразы, сдвинувшиеся после последней правки черновика.
-const MODES = [['draft', 'Черновик'], ['active', 'Активная версия'], ['legacy', 'Legacy']]
+const MODES = [
+  { id: 'draft', label: 'Черновик', help: 'mode_draft' },
+  { id: 'active', label: 'Активная версия', help: 'mode_active' },
+  { id: 'legacy', label: 'Legacy', help: 'mode_legacy' },
+]
+const VERSION_MODE = { id: 'version', label: 'Версия из истории', help: 'mode_version' }
 
 export default function FeedPreview({ orders, changed, mode, setMode, hasVersion, draftEngine, loading, error, noMemory }) {
   const list = (orders[mode] ?? orders.draft) ?? []
@@ -21,20 +28,20 @@ export default function FeedPreview({ orders, changed, mode, setMode, hasVersion
   return (
     <div className="fpWrap">
       <div className="fpModes" role="tablist" aria-label="Какой порядок показать">
-        {MODES.map(([id, label]) => (
-          <button key={id} role="tab" aria-selected={mode === id} className={mode === id ? 'fpMode fpModeOn' : 'fpMode'} onClick={() => setMode(id)}>{label}</button>
+        {(hasVersion ? [...MODES, VERSION_MODE] : MODES).map(m => (
+          <span key={m.id} className="fpModeBox" role="none">
+            <button role="tab" aria-selected={mode === m.id} className={mode === m.id ? 'fpMode fpModeOn' : 'fpMode'} onClick={() => setMode(m.id)}>{m.label}</button>
+            <HelpTip help={m.help} />
+          </span>
         ))}
-        {hasVersion && (
-          <button role="tab" aria-selected={mode === 'version'} className={mode === 'version' ? 'fpMode fpModeOn' : 'fpMode'} onClick={() => setMode('version')}>Версия из истории</button>
-        )}
       </div>
       <p className="fpSummary">
-        Черновик отличается от активной версии в <b>{diffActive}</b> из {PREVIEW_TOP} позиций, от legacy — в <b>{diffLegacy}</b>.
+        Черновик отличается от активной версии в <span className="htNw"><b>{diffActive}</b><HelpTip help="preview_diff_active" /></span> из {PREVIEW_TOP} позиций, от legacy — в <span className="htNw"><b>{diffLegacy}</b><HelpTip help="preview_diff_legacy" />.</span>
         {mode === 'draft' && draftEngine === 'legacy' && ' Движок в черновике — старый: лента так НЕ пойдёт, здесь показано, как было бы при взвешенном расчёте.'}
       </p>
       <div className="fpLegend" aria-label="Цвета групп сигналов">
         {Object.entries(GROUPS).map(([g, title]) => (
-          <span key={g} className="fpLegendItem"><span className="fpLegendDot" style={{ background: GROUP_COLORS[g] }} aria-hidden="true" />{title}</span>
+          <span key={g} className="fpLegendItem"><span className="fpLegendDot" style={{ background: GROUP_COLORS[g] }} aria-hidden="true" />{title}<HelpTip help={groupHelpKey(g)} /></span>
         ))}
       </div>
       {loading && <p className="fpHint">Загружаю фразы…</p>}
