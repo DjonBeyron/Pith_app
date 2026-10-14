@@ -16,6 +16,7 @@ import { createAudioSession } from '../../../../shared/lib/speech/speechAudioSes
 import { sayAudioSessionType } from '../../../../shared/lib/speech/sayAudioSession.js'
 import { stopWord } from '../../word-audio/wordAudioPlayer.js'
 import { pauseSayVoices } from '../../../../shared/lib/speech/sayVoicePause.js'
+import { SAY_TRY } from '../../../../shared/lib/analytics/eventNames.js'
 
 const nowMs = () => (typeof performance !== 'undefined' ? performance.now() : Date.now())
 
@@ -38,7 +39,8 @@ const nowMs = () => (typeof performance !== 'undefined' ? performance.now() : Da
 // Вид круга «нет доступа / доступ выдан» (sayMicState.js) считает панель из access = perm.access() (ответ Permissions API, флаг «микрофон уже открывался» в localStorage, «работал в этом запуске», «вводный попап видели»):
 // флаг ставит markMicOk (запись реально пошла), сбрасывает markDenied (not-allowed) и query=denied; ответ query приходит асинхронно — bumpAccess перерисовывает панель.
 // После третьей засчитанной неудачи (exhausted, счёт — sayFlow.js) тап игнорируется: панель сама уходит по ветке «неверный».
-export function useSayPhrase({ data, onEvent, perm = sayPermission }) {
+// lessonId — проходимый урок: только для say_attempt (засчитанная попытка: прошла/не прошла, каким движком); null — не пишем
+export function useSayPhrase({ data, onEvent, perm = sayPermission, lessonId = null }) {
   const [s, dispatch] = useReducer(sayReducer, perm, p => initialSayState(p.decide()))
   const [, bumpAccess] = useReducer(n => n + 1, 0) // перерисовка после ответа Permissions API (он асинхронный): вид круга считается из perm.access() при рендере
   const [voice] = useState(createVoiceLevel)
@@ -82,7 +84,15 @@ export function useSayPhrase({ data, onEvent, perm = sayPermission }) {
     if (s.fallbackReason === 'denied') perm.markDenied() // отказ — запоминаем до конца запуска, start() больше не зовём
     Promise.resolve(perm.refresh()).then(bumpAccess).catch(() => {}) // обновить кэш разрешения после попытки и пересчитать вид круга (нет доступа / доступ выдан)
   }, [s.settledRun]) // eslint-disable-line react-hooks/exhaustive-deps
-  useEffect(() => { if (s.event) emit(s.event.name, s.event.extra) }, [s.event]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (!s.event) return
+    emit(s.event.name, s.event.extra)
+    // Журнал поведения: засчитанная попытка (итог захода), без отмен («стоп» до речи) и отказа микрофона
+    const reason = s.event.extra?.reason
+    if (lessonId && s.event.name === SAY_EVENTS.result && reason !== 'stopped' && reason !== 'denied') {
+      eventRef.current?.(SAY_TRY, { lesson_id: lessonId, ok: !!s.event.extra?.passed, engine: s.engine?.engine ?? 'system' })
+    }
+  }, [s.event]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Попытка кончилась: эквалайзер гаснет (источник уровня сбрасываем, реальный поток микрофона закрываем); таймер защиты от двойного тапа больше не нужен
   useEffect(() => {

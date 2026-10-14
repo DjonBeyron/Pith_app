@@ -6,6 +6,8 @@ import DifficultyBadge from './DifficultyBadge.jsx'
 import FeedSlowStrip from './FeedSlowStrip.jsx'
 import SlowHint from './SlowHint.jsx'
 import { useTapPop } from './useTapPop.js'
+import { track } from '../../shared/lib/analytics/track.js'
+import { FEED_REPOST } from '../../shared/lib/analytics/eventNames.js'
 
 const SLOW_HINT_SEEN_MS = 400 // сколько держать зону, чтобы подсказка засчиталась «увиденной»
 
@@ -34,7 +36,7 @@ function FeedHud({
   const liked = !!reaction?.liked
   const saved = !!reaction?.saved
 
-  const { slowMotion, startSlowMotion, stopSlowMotion } = useSlowMotion(slideKey, active, soundOn)
+  const { slowMotion, startSlowMotion, stopSlowMotion } = useSlowMotion(slideKey, active, soundOn, mod.id)
   // Подсказка про замедление гаснет не от касания, а только когда пользователь
   // реально удержал зону и застал эффект (не мгновенный тап) — SLOW_HINT_SEEN_MS
   // держим меньше, чем длится сам жест, чтобы «увидеть» замедление успело
@@ -68,6 +70,7 @@ function FeedHud({
     popShare()
     const url = `${location.origin}/?m=${mod.id}`
     logRepost(mod.id)
+    track(FEED_REPOST, { module_id: mod.id, on: true })
     if (navigator.share) {
       navigator.share({ title: mod.title, url }).catch(() => {})
     } else {

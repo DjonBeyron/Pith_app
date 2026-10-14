@@ -1,0 +1,41 @@
+/* Фолбэк неизвестного типа ноды (UnknownNodeFallback.jsx): компактный пузырь
+   «требует обновления» с кнопками «Пропустить» / «Обновить» */
+.playerUnknownNode {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: 260px;
+}
+
+.playerUnknownText {
+  font-size: 14px;
+  line-height: 1.3;
+  color: #e0e0e0;
+}
+
+.playerUnknownBtns {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+}
+
+.playerUnknownSkip,
+.playerUnknownUpdate {
+  border: none;
+  border-radius: 9px;
+  padding: 7px 11px;
+  font-size: 12px;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-user-select: none;
+  user-select: none;
+  transition: filter .15s, transform .09s;
+}
+
+.playerUnknownSkip { background: none; color: #8b8f99; }
+.playerUnknownUpdate { background: #b6fe3b; color: #0d0f14; }
+.playerUnknownSkip:active,
+.playerUnknownUpdate:active { transform: scale(0.94); filter: brightness(0.94); }

@@ -106,6 +106,7 @@
 @import './styles/player/resume-lesson.css';
 @import './styles/player/lesson-ref.css';
 @import './styles/player/modules/rotate-phone.css';
+@import './styles/player/modules/unknown-node.css';
 @import './styles/player/modules/speech-lane-overlay.css';
 @import './styles/player/message.css';
 @import './styles/player/modules/audio.css';

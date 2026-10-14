@@ -1,5 +1,7 @@
 import { useRef, useCallback } from 'react'
 import { pLog } from '../../shared/lib/debug.js'
+import { track } from '../../shared/lib/analytics/track.js'
+import { LESSON_ANSWER } from '../../shared/lib/analytics/eventNames.js'
 
 // Сбор событий ответов для анализа знаний (SKILL_ANALYSIS.md §4).
 // Копит события в памяти за одну сессию плеера; сохранение — этап 3.
@@ -39,11 +41,12 @@ export function useAnswerStats({ sourceLessonId = null, enabled = true } = {}) {
     shownAtRef.current[nodeId] = performance.now()
   }, [])
 
-  const record = useCallback(({ nodeId, lessonId, type, option = '' }) => {
+  // nodeType — тип ноды-задания (word_choice, type_word, ...) — только для журнала поведения (lesson_answer);
+  // он пишется и без привязки «→ Урок» (lesson_id — проходимый урок), статистика знаний — как раньше, только с привязкой
+  const record = useCallback(({ nodeId, lessonId, type, option = '', nodeType = null }) => {
     if (!enabled) return
-    if (!lessonId || !type) {
-      // Диагностика для админа: почему ответ не дал события
-      pLog(`[stats] пропущено (${!lessonId ? 'нет привязки «→ Урок»' : 'нет ✓-варианта и нет сигнала'}) «${option}»`)
+    if (!type) {
+      pLog(`[stats] пропущено (нет ✓-варианта и нет сигнала) «${option}»`)
       return
     }
     const shownAt = shownAtRef.current[nodeId]
@@ -52,8 +55,21 @@ export function useAnswerStats({ sourceLessonId = null, enabled = true } = {}) {
 
     let attempt = 1
     if (type === 'correct' || type === 'wrong') {
-      attempt = (attemptRef.current[lessonId] ?? 0) + 1
-      attemptRef.current[lessonId] = attempt
+      const key = lessonId ?? nodeId // без привязки к уроку попытки считаем по ноде
+      attempt = (attemptRef.current[key] ?? 0) + 1
+      attemptRef.current[key] = attempt
+    }
+
+    if (nodeType) {
+      const ev = { lesson_id: sourceLessonId ?? lessonId, node_type: nodeType, ok: type === 'correct' || type === 'know', attempt }
+      if (timeMs != null) ev.ms = timeMs
+      track(LESSON_ANSWER, ev)
+    }
+
+    if (!lessonId) {
+      // Диагностика для админа: почему ответ не попал в анализ знаний
+      pLog(`[stats] пропущено (нет привязки «→ Урок») «${option}»`)
+      return
     }
 
     eventsRef.current.push({

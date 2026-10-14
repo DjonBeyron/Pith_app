@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { reviewWord } from '../../shared/api/memoryApi.js'
 import { fireBurst } from '../../shared/lib/burstParticles.js'
 import { tokenLevel } from './feedKnowledge.js'
+import { track } from '../../shared/lib/analytics/track.js'
+import { FEED_RECALL_ANSWER } from '../../shared/lib/analytics/eventNames.js'
 import {
   pickRecallWord, quizOptions, recallOutcome, recallState, recallResult, recallColor, recallHoldMs,
 } from './feedRecall.js'
@@ -91,6 +93,7 @@ export function useSlideRecall({ recall, mod, active, revealed, knowledge, wp, o
     const outcome = recallOutcome(right, timeMs)
     const phase = recallState(outcome)
     patch(id, p => ({ recall: { ...p.recall, phase } }))
+    track(FEED_RECALL_ANSWER, { word: String(r.key).slice(0, 64), ok: right, ms: timeMs })
     if (phase === 'ok') fireBurst({ count: 30, size: 4 })
 
     const asked = reviewWord({

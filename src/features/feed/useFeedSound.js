@@ -1,5 +1,7 @@
 import { useRef, useState } from 'react'
 import { fdbg } from '../../shared/lib/feedDebug.js'
+import { trackDedup } from '../../shared/lib/analytics/trackDedup.js'
+import { FEED_SOUND } from '../../shared/lib/analytics/eventNames.js'
 
 // Звук ленты: первый тап по чипу включает его для всех слайдов и
 // запоминается между запусками. Если при холодном старте iOS заблокирует
@@ -35,6 +37,8 @@ export function useFeedSound() {
   const [soundGesture, setSoundGesture] = useState(false)
   function handleSoundOn() {
     fdbg('sound: user tapped chip')
+    // Аналитика: только реальное включение (звук ещё не играл в этой сессии), повтор в 1,5 с не пишем
+    if (!(soundOn && soundGesture)) trackDedup(FEED_SOUND, { on: true }, 'on')
     soundGestureRef.current = true
     setSoundGesture(true)
     setSoundOn(true)
@@ -43,6 +47,7 @@ export function useFeedSound() {
   // жест уже был дан раньше (soundGestureRef не трогаем), просто гасим звук
   function handleSoundOff() {
     fdbg('sound: user muted from pause overlay')
+    trackDedup(FEED_SOUND, { on: false }, 'off')
     setSoundOn(false)
   }
   function handleSoundBlocked() {

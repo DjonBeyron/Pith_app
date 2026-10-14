@@ -18,6 +18,10 @@ import { createTracker } from './tracker.js'
 //   review_start { words, cards }          review_answer { word, result, attempt, ms }
 //   review_finish { words, cards, errors, ms, xp }   review_abandon { answered, total, ms }
 //   (повторение — features/review/reviewTracker.js)
+//   Журнал поведения в ленте и уроке (feed_swipe, feed_pause, feed_sound, feed_slow,
+//   feed_phrase_open, feed_reveal, feed_recall_answer, feed_like/save/repost, feed_search,
+//   feed_filter, lesson_answer, say_attempt) — имена и props в eventNames.js;
+//   дребезг переключателей гасит trackDedup.js
 
 const URL_ = import.meta.env.VITE_SUPABASE_URL
 const KEY = import.meta.env.VITE_SUPABASE_ANON_KEY

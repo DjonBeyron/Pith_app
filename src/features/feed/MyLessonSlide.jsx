@@ -18,6 +18,7 @@ export default function MyLessonSlide({
         videoUrl={m.videoUrl}
         posterUrl={m.posterUrl}
         slideKey={`ml-${m.id}`}
+        moduleId={m.id}
         active={active}
         near={near}
         tabVisible={tabVisible}

@@ -8,6 +8,8 @@ import { VIDEO_CANVAS } from '../../shared/lib/videoCanvasMode.js'
 import { fdbg } from '../../shared/lib/feedDebug.js'
 import { useFeedPaused, getFeedPaused } from './feedPauseState.js'
 import { countHeavyRender } from './spoilerStats.js'
+import { trackDedup } from '../../shared/lib/analytics/trackDedup.js'
+import { FEED_PAUSE } from '../../shared/lib/analytics/eventNames.js'
 
 const SOUND_TOGGLE_COOLDOWN_MS = 500 // защита от дребезга при частых тапах по чипу звука
 
@@ -17,8 +19,9 @@ const SOUND_TOGGLE_COOLDOWN_MS = 500 // защита от дребезга пр�
 // видео загруженным и на первом кадре — поэтому при свайпе старт мгновенный,
 // без ожидания загрузки. Элементы пула не пересоздаются, звук не гаснет.
 // Тап по видео — пауза/продолжить (сбрасывается при уходе со слайда).
+// moduleId — только для аналитики паузы (feed_pause); на поведение не влияет
 function SlideVideo({
-  videoUrl, posterUrl, slideKey, active = false, near = false, tabVisible = true,
+  videoUrl, posterUrl, slideKey, moduleId = null, active = false, near = false, tabVisible = true,
   soundOn = false, soundEverOn = false, onSoundOn, onSoundOff, onSoundBlocked, fallback = null,
 }) {
   countHeavyRender() // DBG: рендеры видео-слоя, пока открыта «Ловля» (spoilerStats.js)
@@ -280,7 +283,9 @@ function SlideVideo({
   // обратно тем же тапом — путаница, которую и убрали).
   function onRootClick() {
     if (!active) return
-    setPaused(p => !p)
+    const on = !getFeedPaused()
+    trackDedup(FEED_PAUSE, { module_id: moduleId, on }, `${moduleId}:${on}`)
+    setPaused(on)
   }
 
   if (!hasVideo) return fallback

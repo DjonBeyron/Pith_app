@@ -328,7 +328,7 @@ export default function LessonPlayer({
           onSignalFired={(node, release, exerciseNodeId) =>
             signalMessages.fireForExercise(node, release, exerciseNodeId, visibleNodes)}
           hasSignalFired={signalMessages.hasFired}
-          record={record}
+          record={record} lessonId={lessonId}
           wrongRef={wrongRef}
           handleWordAnswer={handleWordAnswer} handleWordPick={handleWordPick} handleWordReveal={handleWordReveal}
           handlePhraseAnswer={handlePhraseAnswer} revealPhraseAnswers={revealPhraseAnswers}

@@ -1,8 +1,11 @@
 import { useEffect, useState } from 'react'
 import { displayDifficulty } from '../../shared/api/difficultyApi.js'
+import { track } from '../../shared/lib/analytics/track.js'
+import { FEED_FILTER } from '../../shared/lib/analytics/eventNames.js'
 
 const LS_KEY = 'pithy_feed_diff_filter_v1'
 const ALL_LEVELS = [1, 2, 3]
+const LEVEL_CODE = { 1: 'g', 2: 'y', 3: 'r' } // для аналитики: набор чипов строкой 'gyr' ('' — все)
 
 function loadSelected() {
   try {
@@ -26,11 +29,10 @@ export function useFeedFilter() {
   const active = !isAll // фильтр реально что-то прячет — кнопка 🔍 должна это показать
 
   function toggle(level) {
-    setSelected(prev => {
-      const next = new Set(prev)
-      if (next.has(level)) next.delete(level); else next.add(level)
-      return next
-    })
+    const next = new Set(selected)
+    if (next.has(level)) next.delete(level); else next.add(level)
+    setSelected(next)
+    track(FEED_FILTER, { levels: ALL_LEVELS.filter(v => next.has(v)).map(v => LEVEL_CODE[v]).join('') })
   }
 
   function reset() { setSelected(new Set()) }

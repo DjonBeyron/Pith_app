@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react'
 import { fetchFeedSocial, setLike, setBookmark, fetchStartedModules } from '../../shared/api/moduleSocialApi.js'
 import { fetchMyDifficultyVotes, setDifficultyVote } from '../../shared/api/difficultyApi.js'
 import { fdbg } from '../../shared/lib/feedDebug.js'
+import { track } from '../../shared/lib/analytics/track.js'
+import { FEED_LIKE, FEED_SAVE } from '../../shared/lib/analytics/eventNames.js'
 
 // Соц-данные ленты: лайки/закладки/сложность/начатые модули + обработчики
 // тапа (гостю — форма входа, юзеру — оптимистичное переключение + сервер)
@@ -59,6 +61,7 @@ export function useFeedSocial({ visible, view, user, authLoading, onRequireAuth 
     if (authLoading) return
     if (!user) { onRequireAuth?.(); return }
     const on = !reactions[id]?.[key]
+    track(key === 'liked' ? FEED_LIKE : FEED_SAVE, { module_id: id, on })
     setReactions(r => ({ ...r, [id]: { ...r[id], [key]: on } }))
     if (key === 'liked') {
       setSocial(s => s && ({

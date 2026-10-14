@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { createRubDetector } from './rubDetector.js'
+import { track } from '../../shared/lib/analytics/track.js'
+import { FEED_REVEAL } from '../../shared/lib/analytics/eventNames.js'
 
 // Перевод фразы в ленте (2026-10-03): подписи «перевести» больше нет — перевод появляется под фразой, когда её
 // потёрли пальцем туда-сюда (rubDetector.js: уверенные штрихи, без ложных срабатываний от тапов и свайпов).
@@ -49,6 +51,7 @@ export function useTranslationReveal({ active, modId, enabled, onRubbed }) {
       guardUntil.current = Date.now() + CLICK_GUARD_MS
       try { navigator.vibrate?.(12) } catch { /* нет вибрации — переживём */ }
       setSt({ modId: live.current.modId, phase: 'open' })
+      track(FEED_REVEAL, { module_id: live.current.modId }) // перевод открыт трением
       live.current.onRubbed?.()
     }
     const onMove = ev => {
@@ -83,6 +86,7 @@ export function useTranslationReveal({ active, modId, enabled, onRubbed }) {
   }
 
   function toggle() {
+    if (phase !== 'open') track(FEED_REVEAL, { module_id: modId }) // открыл стрелкой заново
     setSt(s => ({ modId, phase: s.phase === 'open' ? 'closed' : 'open' }))
   }
 

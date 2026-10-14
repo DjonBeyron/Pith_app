@@ -1,10 +1,18 @@
+import { supabase } from '../api/supabase.js'
+
 const SUPABASE_URL      = import.meta.env.VITE_SUPABASE_URL
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY
 const FUNCTION_URL      = `${SUPABASE_URL}/functions/v1/transcribe-audio`
 
-const BASE_HEADERS = {
-  Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
-  apikey:        SUPABASE_ANON_KEY,
+// Функция пускает только админа: в Authorization — access-token пользователя,
+// anon-ключ идёт только в apikey (нужен шлюзу Supabase).
+async function baseHeaders() {
+  const { data: { session } } = await supabase.auth.getSession()
+  if (!session?.access_token) throw new Error('[transcribeAudio] требуется вход в аккаунт')
+  return {
+    Authorization: `Bearer ${session.access_token}`,
+    apikey:        SUPABASE_ANON_KEY,
+  }
 }
 
 /**
@@ -33,7 +41,7 @@ export async function transcribeAudio({ file, url }) {
 
   const res = await fetch(FUNCTION_URL, {
     method:  'POST',
-    headers: { ...BASE_HEADERS, ...extraHeaders },
+    headers: { ...(await baseHeaders()), ...extraHeaders },
     body,
   })
 

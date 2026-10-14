@@ -54,10 +54,11 @@ const WRONG_PAUSE_MS = 700
 // Вид круга по доступу к микрофону (нет доступа / доступ выдан / запись / «Готово») — micVisualState (sayMicState.js), класс на корне круга (SayStage); «доступ выдан» ученик видит с небольшой задержкой (useDelayedMicState). Попап перед запросом микрофона — SayMicPopup (карточка над модулем: полный в первый раз, короткий дальше; сам показывается через секунду, useSayAutoPopup). Админская палочка «засчитать» — слева вверху
 // (side="left"). Админская строка «что услышал движок» — плашка НАД панелью (вне модуля, высоту не меняет), остаётся до новой записи.
 // data-no-unlock на корне панели ЦЕЛИКОМ: ни одно касание внутри неё (микрофон, «Послушать», «Я не могу говорить») не запускает беззвучный wav/resume — аудиосессию iOS не трогаем.
-export default function SayPhrasePanel({ node, onDone, onAnswered, onRevealAnswer, onHeightChange, xpAmount = 0, onXpEarned }) {
+// lessonId — проходимый урок, только для аналитики попыток (say_attempt в useSayPhrase)
+export default function SayPhrasePanel({ node, lessonId = null, onDone, onAnswered, onRevealAnswer, onHeightChange, xpAmount = 0, onXpEarned }) {
   const raw = node.typeData?.say_phrase
   const data = useMemo(() => readSayData(raw), [raw])
-  const sp = useSayPhrase({ data, onEvent: track })
+  const sp = useSayPhrase({ data, onEvent: track, lessonId })
   const { phase } = sp
   const { isAdmin } = useAdmin()
   const pop = useHudPopupExit(phase === 'explain')

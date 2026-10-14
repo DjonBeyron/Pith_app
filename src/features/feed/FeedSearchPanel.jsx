@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { fetchLessonTitles } from '../../shared/lib/lessonsApi.js'
 import { displayDifficulty } from '../../shared/api/difficultyApi.js'
+import { track } from '../../shared/lib/analytics/track.js'
+import { FEED_SEARCH } from '../../shared/lib/analytics/eventNames.js'
 
 const LEVELS = [
   { v: 1, label: 'Легко',  cls: 'diffEasy' },
@@ -36,6 +38,17 @@ export default function FeedSearchPanel({ modules, diffSelected, onToggleDiff, o
     })
   }, [modules])
 
+  // Аналитика feed_search: длина запроса (не текст) и выбрал ли результат. Закрыли панель с непустым запросом — picked:false
+  const qLen = query.trim().length
+  function pickResult(id) {
+    track(FEED_SEARCH, { len: qLen, picked: true })
+    onJumpToModule(id)
+  }
+  function close() {
+    if (qLen > 0) track(FEED_SEARCH, { len: qLen, picked: false })
+    onClose()
+  }
+
   const results = useMemo(() => {
     const q = query.trim().toLowerCase()
     if (!q) return []
@@ -50,7 +63,7 @@ export default function FeedSearchPanel({ modules, diffSelected, onToggleDiff, o
 
   return (
     <>
-      <div className="fsBackdrop" onClick={onClose} />
+      <div className="fsBackdrop" onClick={close} />
       <div className="fsPanel">
         <div className="fsHead">
           <span className="fsHeadTitle">Фильтры</span>
@@ -78,7 +91,7 @@ export default function FeedSearchPanel({ modules, diffSelected, onToggleDiff, o
           results.length > 0 ? (
             <div className="fsResults">
               {results.map(r => (
-                <button key={r.id} className="fsResultRow" onClick={() => onJumpToModule(r.id)}>
+                <button key={r.id} className="fsResultRow" onClick={() => pickResult(r.id)}>
                   <span className={`fsResultDot ${r.level ? DOT_CLASS[r.level] : 'fsDotGrey'}`} />
                   <span className="fsResultTitle">{r.title}</span>
                 </button>

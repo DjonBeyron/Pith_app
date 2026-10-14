@@ -11,6 +11,7 @@ export function pickPhoto({ nodes, wrongRef, record, setPhotoChoiceStates, xpMap
   const variantId = pcNode?.typeData?.photo_choice?.photos?.[idx]?.id ?? null
   record({
     nodeId,
+    nodeType: pcNode?.type ?? 'photo_choice',
     lessonId: pcNode?.typeData?.photo_choice?.statLessonId ?? null,
     type: isCorrect ? 'correct' : 'wrong',
     option: `фото #${idx + 1}`,

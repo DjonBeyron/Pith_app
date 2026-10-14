@@ -8,6 +8,8 @@ import { swipeEvent, swipeProgrammatic, swipeTraceAttach, swipeTraceDetach, swip
 import { FEEL } from './feedSwipeFeel.js'
 import { useSwipeGesture } from './useSwipeGesture.js'
 import { setFeedActive } from '../../shared/lib/netBusy.js'
+import { trackDedup } from '../../shared/lib/analytics/trackDedup.js'
+import { FEED_SWIPE } from '../../shared/lib/analytics/eventNames.js'
 
 // Вертикальная лента на Swiper (замена нативного скролла со scroll-snap).
 //
@@ -53,8 +55,31 @@ export default function FeedSwiper({ feedModules, pinnedId, active, locked = fal
   // иначе середина круга. Swiper читает его один раз — при создании
   const [initialSlide] = useState(() => (activeIdx >= 0 && activeIdx < total ? activeIdx : midSlide(len, cycles)))
 
+  // Аналитика feed_swipe: где лента стояла и с какого момента. Программные
+  // переходы (jump) свайпом не считаются — только двигают отметку; перенос
+  // круга оставляет тот же модуль, поэтому отсчёт времени не сбивает
+  const standRef = useRef({ idx: -1, at: 0 })
+  function noteSwipe(nextIdx) {
+    const prev = standRef.current
+    const now = Date.now()
+    const ids = idsRef.current
+    const L = ids.length
+    if (prev.idx >= 0 && prev.idx !== nextIdx) {
+      const from = ids[moduleOf(prev.idx, L)]
+      const to = ids[moduleOf(nextIdx, L)]
+      if (from && to && from !== to) {
+        trackDedup(FEED_SWIPE, { from, to, dir: nextIdx > prev.idx ? 'next' : 'prev', ms_prev: now - prev.at }, `${from}>${to}`)
+      }
+    }
+    standRef.current = { idx: nextIdx, at: now }
+  }
+
   function jump(s, target, why) {
     swipeProgrammatic(why, () => s.slideTo(target, 0, false))
+    const ids = idsRef.current
+    const prev = standRef.current
+    const same = prev.idx >= 0 && ids[moduleOf(prev.idx, ids.length)] === ids[moduleOf(target, ids.length)]
+    standRef.current = { idx: target, at: same ? prev.at : Date.now() }
     onActiveRef.current(target)
   }
 
@@ -98,6 +123,7 @@ export default function FeedSwiper({ feedModules, pinnedId, active, locked = fal
   function handleTransitionEnd(s) {
     clearTimeout(endTimerRef.current)
     s.el.dataset.scrolling = '' // анимация закончилась — сторож стоп-кадра видео снова работает
+    noteSwipe(s.activeIndex) // аналитика: слайд сменился жестом/колесом (jump сюда не приходит — runCallbacks=false)
     onActiveRef.current(s.activeIndex) // слайд встал — теперь активируем (см. handleSlideChange)
     const L = idsRef.current.length
     const target = recentreTarget(s.activeIndex, L, circleCycles(L))
@@ -190,7 +216,7 @@ export default function FeedSwiper({ feedModules, pinnedId, active, locked = fal
       preventInteractionOnTransition
       mousewheel={{ forceToAxis: true, thresholdDelta: 12 }}
       keyboard={{ enabled: true }}
-      onSwiper={s => { swiperRef.current = s; swipeTraceAttach(s); handleSlideChange(s); onActiveRef.current(s.activeIndex) }}
+      onSwiper={s => { swiperRef.current = s; swipeTraceAttach(s); handleSlideChange(s); standRef.current = { idx: s.activeIndex, at: Date.now() }; onActiveRef.current(s.activeIndex) }}
       onSlideChange={handleSlideChange}
       onTransitionStart={handleTransitionStart}
       onTransitionEnd={handleTransitionEnd}

@@ -3,7 +3,7 @@ import { viewSession } from '../api/viewSession.js'
 import { pLog } from './debug.js'
 
 // Хранение событий ответов (SKILL_ANALYSIS.md §6).
-// Залогинен → lesson_results.answers (jsonb, строка своя по RLS).
+// Залогинен → lesson_results.answers (jsonb) через RPC append_lesson_answers.
 // Гость → localStorage. Хранилища не смешиваются.
 
 const LS_KEY     = 'pithy_skill_events_v1'
@@ -24,10 +24,26 @@ export function clearLocalEvents(sourceLessonIds) {
   localStorage.setItem(LS_KEY, JSON.stringify(keep))
 }
 
-// Дописывает события в lesson_results.answers. Строку создаёт complete_lesson,
-// поэтому вызывать строго ПОСЛЕ него. Фильтра по user_id нет намеренно —
-// RLS-политика results_own сама скоупит запрос до строк текущего пользователя.
+// Дописывает события в lesson_results.answers через RPC append_lesson_answers
+// (прямая запись в таблицу закрыта миграцией lesson_results_lockdown). Строку
+// создаёт complete_lesson, поэтому вызывать строго ПОСЛЕ него.
+// Мягкая деградация: если RPC ещё не применён в БД — старый прямой путь.
 async function appendServerEvents(sourceLessonId, events) {
+  const { data: total, error } = await supabase.rpc('append_lesson_answers', {
+    p_lesson_id: sourceLessonId, p_events: events.slice(-MAX_EVENTS),
+  })
+  if (!error) {
+    if (total < 0) { pLog('[stats] сервер: строка lesson_results не найдена (нет прохождения)'); return false }
+    pLog(`[stats] сервер: сохранено +${events.length} событий (всего ${total})`)
+    return true
+  }
+  const missing = error.code === 'PGRST202' || error.code === '42883'
+  if (!missing) { pLog(`[stats] сервер: ошибка append_lesson_answers: ${error.message}`); return false }
+  console.warn('[stats] RPC append_lesson_answers не применён в БД — прямая запись (устаревший путь)')
+  return appendServerEventsLegacy(sourceLessonId, events)
+}
+
+async function appendServerEventsLegacy(sourceLessonId, events) {
   const { data, error } = await supabase
     .from('lesson_results')
     .select('id, answers')

@@ -22,6 +22,7 @@ import { wordOptionEvent } from './useAnswerStats.js'
 export default function PlayerPanels({
   wcNode, paNode, fbNode, twNode, spNode, pcNode, regNode, tableNode,
   showRegPanel, photoChoiceStates, filesWithBlobs, xpMap,
+  lessonId = null, // проходимый урок — только для аналитики «Сказать фразу» (say_attempt)
   // Сигналы ошибок (см. PROJECT.md) — table-manual, «Собери фразу» и «Напечатай слово» резолвят
   // signals[].ref по полному списку нод урока; onSignalFired(node, release,
   // exerciseNodeId) — мост до ленты (LessonPlayer/useSignalMessages.js),
@@ -59,7 +60,7 @@ export default function PlayerPanels({
           onPicked={(opt) => {
             const ev = wordOptionEvent(wcNode, opt)
             if (ev.type === 'wrong') wrongRef.current += 1
-            record({ nodeId: wcNode.id, ...ev })
+            record({ nodeId: wcNode.id, nodeType: wcNode.type, ...ev })
           }}
           /* Галочка в редакторе ноды: выбранный вариант уходит в чат отдельным
              пузырём справа. Момент выбирает панель — вместе с репликой, после
@@ -89,6 +90,7 @@ export default function PlayerPanels({
             if (result === 'wrong') wrongRef.current += 1
             record({
               nodeId: paNode.id,
+              nodeType: paNode.type,
               lessonId: paNode.typeData?.phrase_assembly?.statLessonId ?? null,
               type: result,
               option: text,
@@ -118,6 +120,7 @@ export default function PlayerPanels({
             if (result === 'wrong') wrongRef.current += 1
             record({
               nodeId: fbNode.id,
+              nodeType: fbNode.type,
               lessonId: fbNode.typeData?.fill_blanks?.statLessonId ?? null,
               type: result,
             })
@@ -144,6 +147,7 @@ export default function PlayerPanels({
             if (result === 'wrong') wrongRef.current += 1
             record({
               nodeId: twNode.id,
+              nodeType: twNode.type,
               lessonId: twNode.typeData?.type_word?.statLessonId ?? null,
               type: result,
               option: text,
@@ -157,6 +161,7 @@ export default function PlayerPanels({
         <SayPhrasePanelLazy
           key={`${spNode.id}:${epoch}:${spNode.visit ?? 0}`}
           node={spNode}
+          lessonId={lessonId}
           xpAmount={xpMap.get(spNode.id) ?? 0}
           onDone={trigger => { setSpPanelHeight(0); onNodeDone(spNode.id, trigger) }}
           /* Сказанная фраза уходит пузырём справа (как «Напечатай слово»); третий аргумент — arriving, четвёртый — voiceId

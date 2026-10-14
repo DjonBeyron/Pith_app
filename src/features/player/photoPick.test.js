@@ -22,7 +22,7 @@ describe('ответ «выбери фото»', () => {
     const c = ctx()
     pickPhoto(c, 'pc', 0, true)
     expect(c.wrongRef.current).toBe(0)
-    expect(c.record).toHaveBeenCalledWith({ nodeId: 'pc', lessonId: 'L1', type: 'correct', option: 'фото #1' })
+    expect(c.record).toHaveBeenCalledWith({ nodeId: 'pc', nodeType: 'photo_choice', lessonId: 'L1', type: 'correct', option: 'фото #1' })
     expect(c.getStates()).toEqual({ pc: { selected: 0, result: 'correct' } })
     expect(c.handleXpEarned).toHaveBeenCalledWith(10, 'pc')
     expect(c.onNodeDone).toHaveBeenCalledWith('pc', 'photo_correct', 'ph0')

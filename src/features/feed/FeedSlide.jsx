@@ -19,6 +19,8 @@ import CatchOverChip from './catch/CatchOverChip.jsx'
 import CatchCover from './catch/CatchCover.jsx'
 import { useCatchSlowHint } from './catch/useCatchSlowHint.js'
 import { countKeyRender, setCatchMounted } from './spoilerStats.js'
+import { track } from '../../shared/lib/analytics/track.js'
+import { FEED_PHRASE_OPEN } from '../../shared/lib/analytics/eventNames.js'
 
 // Один слайд ленты: видео-слой (SlideVideo), фраза под спойлером (перевод фразы появляется, когда её потёрли пальцем —
 // useTranslationReveal), HUD (лайк/закладка/репост/сложность — FeedHud), кнопка «Изучить фразу».
@@ -152,6 +154,7 @@ export default function FeedSlide({
         videoUrl={mod.videoUrl}
         posterUrl={mod.posterUrl}
         slideKey={slideKey}
+        moduleId={mod.id}
         active={active}
         near={near}
         tabVisible={tabVisible}
@@ -187,7 +190,7 @@ export default function FeedSlide({
               <CatchOverChip hidden={ct.open || ct.done} onOpen={ct.openSheet} />
             </div>
           ) : (
-            <PhraseBubbleSpoiler active={active} tabVisible={tabVisible} onUnlock={() => { setRevealed(true); onPhraseOpened?.() }}>
+            <PhraseBubbleSpoiler active={active} tabVisible={tabVisible} onUnlock={() => { setRevealed(true); track(FEED_PHRASE_OPEN, { module_id: mod.id }); onPhraseOpened?.() }}>
               <div className="feedPhrase" {...rubProps}>{phraseWords}</div>
             </PhraseBubbleSpoiler>
           )}
