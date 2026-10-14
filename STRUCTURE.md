@@ -203,6 +203,7 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | `scripts/make-brand-assets.mjs` | Перерисовка иконок (headless Edge/Chrome) и стартовых экранов iOS из `public/logo.svg`: `node scripts/make-brand-assets.mjs`. Стартовые экраны по умолчанию — однотонный чёрный PNG, собранный напрямую (`ONLY_SPLASH=1` — только их, браузер не нужен); `SPLASH_LOGO=1` — старый вид с лого. Иконки — запускать после смены логотипа |
 | `scripts/e2e-local.sh` | Полный E2E на локальном Supabase в Docker: поднимает стек (только БД/auth/REST), `db reset` (миграции + сид), подставляет локальные ключи и тест-аккаунты, гонит `playwright test` с переданными аргументами. Прод не трогает |
 | `scripts/lint-lesson.mjs` | Проверка готового JSON-экспорта урока по правилам легенды, без входа в приложение и без админки: `node scripts/lint-lesson.mjs путь/к/уроку.json`. Тонкая обёртка над `lesson-io/lessonLint.js` — выход 0/список замечаний и код 1, если есть хоть одно |
+| `scripts/lint-scene.mjs` | Проверка JSON сцены v2 («два кота говорят») через `scene/v2/sceneLint.js`: `node scripts/lint-scene.mjs сцена.json` (код 1 при ошибках, предупреждения допускаются), `--demo` — встроенные демо-сцены с бюджетом узлов, `--legend` — печать легенды для нейросети |
 | `public/design/index.html` | Хаб прототипа интерфейса: все экраны-макеты в мини-рамах телефонов со ссылками на полные версии |
 | `public/design/proto.css` | Общие стили прототипа: тёмные токены, рама «телефона», верхние вкладки, нижний бар, кнопки, полосы прогресса |
 | `public/design/feed.html` | Макет ленты «Рекомендации»: видео-заглушка, HUD (лайк/закладка/репост), кнопка «Изучить фразу», чип «Включить звук» |
@@ -1601,6 +1602,46 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | `scene.css` | Стили сцены: контейнер 9:16, расстановка котов, облачко, оверлеи, прогресс, панель кнопок |
 | `scene-cat.css` | Идл-анимации кота (дыхание, покачивание головы, моргание, хвост) — только CSS transform на `<g>`, без SVG-фильтров |
 | `scene-lab.css` | Стили страницы стенда: шапка, редактор JSON, mobile-first; на ширине ≥ 900px сцена слева, редактор справа |
+
+### `src/features/scene/v2/` — конструктор сцен, этап 1: ядро (формат v2, спрайты, рендерер, линтер)
+Ядро для ленты, уроков (нода «сцена» — позже), карточек повтора. От файлов стенда (`scene/*.jsx`) НЕ зависит — стенд `?scene=1` живёт отдельно. UI админки (подвкладки «Спрайты», «Сборщик сцен», «Шаблон для дизайнера») — этап 2. См. PROJECT.md «Конструктор сцен, этап 1».
+| Файл | Зачем нужен |
+|------|-------------|
+| `sceneConstants.js` | Константы формата v2 без циклических импортов: версия, ключи персонажей a/b, полы, эмоции, позы, лимиты (2…12 реплик, ≤ 140 символов), голос/options по умолчанию, пресеты палитр (ginger/grey/cream/black) |
+| `sceneSchemaV2.js` | Точка входа формата сцены v2 (описание JSON в шапке): `normalizeSceneV2` (дефолты, пустые слоты локации, отбрасывание неизвестных слотов), `parseSceneV2(text)`; реэкспорт `validateSceneV2`, `migrateScene`, `sceneNodeBudget`, констант |
+| `sceneValidate.js` | `validateSceneV2(scene)` — список ошибок по-русски с путями (`characters.a.palette.fur`, `timeline[3].text`…): версия, локация, ровно два персонажа, цвета #rrggbb, голос, слоты (существование, известный предмет, совместимость), реплики (кто/текст/эмоция/поза/audioUrl/wordTimings) |
+| `sceneMigrate.js` | `migrateScene(v1 → v2)` из формата стенда: characters[] → a/b, colors → palette, пол по pitch, `kitchen → cafe`, слоты по умолчанию `DEFAULT_SLOTS`/`defaultSlots(location)` (повторяют фон стенда) |
+| `sceneBudget.js` | `sceneNodeBudget(scene)` — число SVG-узлов, которые окажутся в DOM (фон + два кота по полу + занятые слоты), `NODE_BUDGET = 250`, `sceneNodeBreakdown` для подсказки сборщика |
+| `sceneLint.js` | Линтер поверх валидатора: `lintScene(scene, { nodeBudget }) → [{ level: 'error' \| 'warn', text }]` — бюджет узлов, предмет на столе без стола, пустые/повторяющиеся слоты, неразличимые персонажи, диалог (3 реплики подряд, молчащий персонаж, длинные реплики, без знака, одна эмоция, audioUrl без wordTimings); `lintErrors`, `lintSceneText` |
+| `sceneLegend.js` | Легенда формата для нейросети/человека (по образцу `NODE_DOCS` урока): `SCENE_FIELD_DOCS`, `DIALOGUE_RULES`, `sceneLegendText()` — единый текст (поля, пресеты, список id предметов, слоты обеих локаций с якорями, правила диалога, пример-сцена), `sceneLegend()` — JSON |
+| `spriteCheck.js` | `checkSpriteSvg(svgText, kind: 'cat' \| 'prop' \| 'background')` — проверка SVG дизайнера без DOMParser: запрещённые теги (filter/mask/clipPath/foreignObject/script/image/use/градиенты…), число узлов по типу, viewBox, обязательные `data-part` (кот: tail/body/head/eyes/mouth + три `data-viseme`), цвета fill/stroke, внешние ссылки/url()/on*; `spriteCheckSummary` для бейджа |
+| `demoScenes.js` | Две демо-сцены v2: «Про работу» (office, Рыжик ♂ и Дымка ♀, 6 реплик) и «Кофе-брейк» (cafe, Мурка ♀ и Барсик ♂, 5 реплик) — обе проходят линтер без замечаний |
+| `directorCore.js` | Режиссёр без React: `createDirector({ timeline, playLine, onChange, loop })` — play/pause/toggle/restart/goTo/destroy, статусы idle/playing/paused/ended, поздний onEnd отменённой реплики игнорируется |
+| `mouthDriver.js` | Рот без перерендера: `createMouthDriver(apply, timers)` крутит цикл визем (open/half/closed/half, 110 мс), `onWord()` перезапускает цикл на границе слова; `setMouth(el, shape)` пишет `data-mouth` в DOM только при смене |
+| `linePlayback.js` | Запасная озвучка реплики (нет audioUrl): `speakFallback` через speechSynthesis ru-RU с `onboundary` либо `timerSpeak` ~65 мс/символ; `unlockSpeech()` для iOS. Своя копия логики стенда, чтобы v2 не зависел от `scene/sceneSpeech.js` |
+| `audioLine.js` | Озвучка файлом (задел под ElevenLabs): `playLineAudio(line, audioEl, …)` через HTMLAudio (не WebAudio), границы слов из `wordTimings` rAF-опросом `currentTime` (`wordsPassed` — чистая функция), без таймингов — таймер; запрет автозапуска/ошибка → `onFail` (уход в запасной вариант) |
+| `sceneAudioUnlock.js` | Один `<audio>` на все сцены, прогреваемый беззвучным wav В ЖЕСТЕ (`unlockSceneAudio()` — тот же приём, что `primedAudio.js`/`unlockLessonAudio`): дальше реплики с audioUrl играют через него из эффектов; заодно открывает speechSynthesis |
+| `useSceneDirectorV2.js` | Хук-режиссёр: оборачивает `directorCore` в состояние React (меняется только на границах реплик), подключает рот (`mouthDriver` → DOM-группа кота) и озвучку (audioUrl → `audioLine`, иначе `linePlayback`); авто-пауза при `!active`/`paused`/`document.hidden` с возвратом; `enabled=false` для static |
+| `renderTree.js` | Дерево `svgTree` → React-элементы (`class` → `className`), ключи порядковые |
+| `SceneBubbleV2.jsx` | HTML-облачко над говорящим: имя, текст, необязательный `translation`, хвостик слева (a)/справа (b) |
+| `SceneRenderer.jsx` | Быстрый рендерер 9:16: один `<svg>` (фон → предметы по слотам в порядке слоёв → два кота по `CAT_PLACEMENT`), облачко HTML поверх, точки прогресса. Режимы `live`/`static` (+`frameIndex` — реплика кадром), `lite` (по умолчанию `deviceTier.isWeakDevice()`), `active`/`paused`, IntersectionObserver (вне экрана — пауза), `onTap`, `apiRef` (API режиссёра), `children` — оверлей |
+| `scene-v2.css` | Контейнер сцены (`contain: layout paint`, 9:16, container-query для шрифта), облачко (над предметами на столе), точки прогресса |
+| `scene-v2-cat.css` | Виземы рта по `data-mouth` (CSS, три формы лежат в DOM), идл-анимации только в `.scn--live` (дыхание, покачивание, моргание, хвост, пар) через transform/opacity; `.scn--paused` и `[data-scrolling="1"]` родителя — `animation-play-state: paused`; `.scn--lite` и `prefers-reduced-motion` — только рот |
+| `*.test.js(x)` | Тесты: схема/нормализация/миграция (`sceneSchemaV2.test.js`), линтер и легенда (`sceneLint.test.js`), spriteCheck на хороших и плохих SVG, режиссёр (`directorCore.test.js`), рот без setState (`mouthDriver.test.js`), озвучка файлом и таймером (`audioLine.test.js`), статичный/живой кадр через `renderToStaticMarkup` (`SceneRenderer.test.jsx`) |
+
+#### `src/features/scene/v2/sprites/` — библиотека спрайтов
+| Файл | Зачем нужен |
+|------|-------------|
+| `svgTree.js` | Формат спрайта как данных `{ tag, attrs, children }` (`el`, `part`), разрешённые теги, `countNodes`, `treeToString`/`treeToSvgDocument` (строка SVG для spriteCheck, экспорта дизайнеру, контактного листа) |
+| `catSprite.js` | Кот (viewBox 0 0 200 240) из групп `data-part` tail/body/paws/head/ears + лицо; цвета из палитры; пол: male — шире, кисточки на щеках, ошейник с жетоном; female — стройнее, бантик, ресницы; `stripes`, `flip`; `DEFAULT_PALETTE`, `CAT_PARTS` |
+| `catFaceSprite.js` | Лицо: глаза с веками по 4 эмоциям, брови (у кота гуще), ресницы у кошки, щёчки, нос, усы одним path, рот — три `data-viseme` (closed/half/open) одновременно в DOM |
+| `propsOffice.js` | 5 предметов офиса: ноутбук, кружка с паром, стопка бумаг, доска-флипчарт, настенные часы (≤ 8 узлов каждый, координаты относительно якоря) |
+| `propsCafe.js` | 5 предметов кафе: кофемашина, чашка кофе на блюдце, тарелка с выпечкой, меню-доска, подвесная лампа |
+| `propsCommon.js` | 5 общих предметов: стол, окно, растение в горшке, торшер, картина в рамке |
+| `backgrounds.js` | Фоны office/cafe как слои стена/пол (кафе — ещё стойка у правой стены под кофемашину), `SCENE_VIEWBOX` 0 0 360 640, `LOCATIONS` |
+| `slots.js` | Слоты-ячейки с якорями: 5 общих (window, wall-art, floor-left, floor-right, table) + 5 офиса (wall-board, wall-clock, desk-left/center/right) + 5 кафе (wall-menu, ceiling, counter, table-left/right); `accepts` — совместимые предметы, `needs: 'table'` у настольных, слои отрисовки; `CAT_PLACEMENT` |
+| `spriteRegistry.js` | Реестр `SPRITES` (id, title, category, kind, viewBox, size, anchor, slots, nodeCount, status-бейдж, build): 2 кота, 15 предметов, 2 фона; `getSprite`, `catSprite(gender)`, `backgroundSprite`, `spritesForSlot`, `PROP_IDS` |
+| `spriteRegistry.test.js` | Состав реестра, каждый спрайт проходит `spriteCheck` и лимит узлов, слоты ↔ спрайты, пол кота, бюджет сцены при самых тяжёлых предметах во всех слотах |
 
 ### `src/features/auth/` — вкладка «Войти»
 | Файл | Зачем нужен |

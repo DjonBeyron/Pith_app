@@ -1,0 +1,99 @@
+/* Сцена v2 (SceneRenderer.jsx): контейнер 9:16, SVG, облачко, прогресс.
+   Анимации котов и визем рта — в scene-v2-cat.css. */
+
+.scn {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 9 / 16;
+  container-type: inline-size; /* cqw в размере шрифта облачка */
+  overflow: hidden;
+  background: #e8eef5;
+  /* Слой изолирован: перерисовки рта/облачка не трогают остальную страницу */
+  contain: layout paint;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  outline: none;
+}
+.scn[role="button"] { cursor: pointer; }
+
+.scn__svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* Облачко над говорящим: над предметами на столе (их верх ~41% от низа) */
+.scn-bubble {
+  position: absolute;
+  bottom: 43%;
+  max-width: 68%;
+  padding: 10px 14px 12px;
+  background: #fff;
+  color: #1f2430;
+  border-radius: 16px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.16);
+  font-size: clamp(13px, 3.8cqw, 17px);
+  line-height: 1.3;
+  pointer-events: none;
+}
+.scn--live .scn-bubble { animation: scnBubbleIn 0.22s ease-out; }
+.scn-bubble--a { left: 5%; border-bottom-left-radius: 6px; }
+.scn-bubble--b { right: 5%; border-bottom-right-radius: 6px; }
+.scn-bubble__name {
+  font-size: 0.78em;
+  font-weight: 700;
+  opacity: 0.55;
+  margin-bottom: 3px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.scn-bubble__text { font-weight: 500; }
+.scn-bubble__tr {
+  margin-top: 4px;
+  font-size: 0.85em;
+  opacity: 0.6;
+}
+.scn-bubble__tail {
+  position: absolute;
+  bottom: -16px;
+  width: 0;
+  height: 0;
+  border: 16px solid transparent;
+  border-top-color: #fff;
+  border-bottom: 0;
+}
+.scn-bubble--a .scn-bubble__tail { left: 22%; border-right-width: 4px; }
+.scn-bubble--b .scn-bubble__tail { right: 22%; border-left-width: 4px; }
+
+@keyframes scnBubbleIn {
+  from { opacity: 0; transform: translateY(6px) scale(0.96); }
+  to { opacity: 1; transform: none; }
+}
+
+/* Прогресс реплик — точки внизу */
+.scn__progress {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 10px;
+  display: flex;
+  justify-content: center;
+  gap: 5px;
+  pointer-events: none;
+}
+.scn__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.5);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.12);
+}
+.scn__dot.is-done { background: rgba(255, 255, 255, 0.9); }
+.scn__dot.is-on { background: #ffb020; transform: scale(1.3); }
+
+@media (prefers-reduced-motion: reduce) {
+  .scn--live .scn-bubble { animation: none; }
+}

@@ -1,0 +1,85 @@
+/* Коты сцены v2: виземы рта (переключаются атрибутом data-mouth на группе
+   кота — без React) и идл-анимации только через transform/opacity на <g>
+   (без SVG-фильтров/масок). Анимации есть ТОЛЬКО в .scn--live; static —
+   чистый кадр. .scn--lite (слабое устройство) — только рот и облачко.
+   Паузы: .scn--paused, скрытие вкладки, data-scrolling у родителя. */
+
+/* Рот: три виземы лежат в DOM, видна одна */
+.scn [data-viseme] { display: none; }
+.scn [data-mouth="closed"] [data-viseme="closed"],
+.scn [data-mouth="half"] [data-viseme="half"],
+.scn [data-mouth="open"] [data-viseme="open"] { display: inline; }
+
+/* Идл-анимации — только live */
+.scn--live .cat-body {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  animation: scnBreath 3.6s ease-in-out infinite;
+  animation-delay: var(--idle-delay, 0s);
+}
+.scn--live .cat-head {
+  transform-box: fill-box;
+  transform-origin: 50% 85%;
+  animation: scnSway 4.4s ease-in-out infinite;
+  animation-delay: var(--idle-delay, 0s);
+}
+.scn--live .scn-cat.is-talking .cat-head { animation: scnTalkSway 0.9s ease-in-out infinite; }
+.scn--live .cat-eyes {
+  transform-box: fill-box;
+  transform-origin: 50% 50%;
+  animation: scnBlink 4.2s linear infinite;
+  animation-delay: var(--blink-delay, 0s);
+}
+/* Хвост: внешний <g> уже сдвинут в точку основания — origin 0 0 и есть корень */
+.scn--live .cat-tail {
+  transform-origin: 0 0;
+  transform-box: view-box;
+  animation: scnTail 2.8s ease-in-out infinite;
+  animation-delay: var(--idle-delay, 0s);
+}
+.scn--live .scn-cat.is-talking .cat-tail { animation-duration: 1.6s; }
+.scn--live .prop-steam {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  animation: scnSteam 2.4s ease-in-out infinite;
+}
+
+@keyframes scnBreath {
+  0%, 100% { transform: scale(1, 1); }
+  50% { transform: scale(1.01, 1.025); }
+}
+@keyframes scnSway {
+  0%, 100% { transform: rotate(-1.4deg); }
+  50% { transform: rotate(1.4deg); }
+}
+@keyframes scnTalkSway {
+  0%, 100% { transform: rotate(-1.8deg) translateY(0); }
+  50% { transform: rotate(1.8deg) translateY(-2px); }
+}
+@keyframes scnBlink {
+  0%, 93%, 100% { transform: scaleY(1); }
+  95%, 97% { transform: scaleY(0.08); }
+}
+@keyframes scnTail {
+  0%, 100% { transform: rotate(-9deg); }
+  50% { transform: rotate(10deg); }
+}
+@keyframes scnSteam {
+  0%, 100% { opacity: 0.3; transform: translateY(0); }
+  50% { opacity: 0.8; transform: translateY(-3px); }
+}
+
+/* Пауза: кадр замирает, а не сбрасывается */
+.scn--paused .cat-body, .scn--paused .cat-head, .scn--paused .cat-eyes, .scn--paused .cat-tail, .scn--paused .prop-steam,
+[data-scrolling="1"] .scn .cat-body, [data-scrolling="1"] .scn .cat-head, [data-scrolling="1"] .scn .cat-eyes,
+[data-scrolling="1"] .scn .cat-tail, [data-scrolling="1"] .scn .prop-steam {
+  animation-play-state: paused;
+}
+
+/* Слабое устройство / reduced-motion: остаётся только рот (CSS-визема) и облачко */
+.scn--lite .cat-body, .scn--lite .cat-head, .scn--lite .cat-eyes, .scn--lite .cat-tail, .scn--lite .prop-steam {
+  animation: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .scn .cat-body, .scn .cat-head, .scn .cat-eyes, .scn .cat-tail, .scn .prop-steam { animation: none; }
+}
