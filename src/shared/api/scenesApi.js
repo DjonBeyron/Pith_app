@@ -37,6 +37,17 @@ export async function getScene(id) {
   return must(res, 'get')
 }
 
+// Сцены для ленты (feed/scene/feedSceneStore.js): только нужные id одним запросом и только
+// опубликованные — черновик в ленту не попадает и у админа (как с модулями). Строки, которых
+// нет в ответе (не опубликована, удалена, RLS) — лента считает «нет сцены» и показывает видео
+export async function fetchScenesByIds(ids) {
+  const list = [...new Set((ids ?? []).filter(Boolean))]
+  if (!list.length) return []
+  dbg('[DB READ] scenes by ids', list.length)
+  const res = await supabase.from(SCENES_TABLE).select('id, scene, updated_at').in('id', list).eq('status', 'published')
+  return must(res, 'byIds') ?? []
+}
+
 // Новая строка; возвращает её целиком. Без .select() RLS-отказ выглядел бы как успех
 export async function createScene({ title, scene, status = 'draft' }) {
   dbg('[DB WRITE] scenes insert')

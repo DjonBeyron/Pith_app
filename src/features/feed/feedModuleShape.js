@@ -13,6 +13,9 @@ export function rowToFeedModule(r) {
     videoUrl: r.video_url ?? null,
     posterUrl: r.poster_url ?? null,
     posterCrop: r.poster_crop ?? null,
+    // Сцена библиотеки вместо видео (curricula.scene_id; нет колонки/сцены — null).
+    // Слайд грузит сцену сам по id; у ученика draft-сцена не придёт (RLS) — покажет видео
+    sceneId: r.scene_id ?? null,
     difficulty: r.difficulty ?? null,
     difficultyVotes: r.difficulty_votes ?? 0,
     saveCount: r.save_count ?? 0,

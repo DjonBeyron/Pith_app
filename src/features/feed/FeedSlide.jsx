@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { Zap } from 'lucide-react'
 import { plural } from '../../shared/lib/plural.js'
-import SlideVideo from './SlideVideo.jsx'
+import SlideMedia from './scene/SlideMedia.jsx'
 import PhraseBubbleSpoiler from './PhraseBubbleSpoiler.jsx'
 import PhraseWords from './PhraseWords.jsx'
 import PhraseTranslationRow from './PhraseTranslationRow.jsx'
@@ -121,7 +121,9 @@ export default function FeedSlide({
       className={`feedSlide feedGrad${gradIdx}${ct.open ? ' feedSlideCatchOpen' : ''}`}
       ref={rootRef}
     >
-      <SlideVideo
+      {/* Медиа слайда: сцена «два кота» (mod.sceneId) главнее видео, нет/не загрузилась → видео (scene/SlideMedia.jsx) */}
+      <SlideMedia
+        sceneId={mod.sceneId ?? null}
         videoUrl={mod.videoUrl}
         posterUrl={mod.posterUrl}
         slideKey={slideKey}

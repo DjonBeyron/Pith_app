@@ -1,30 +1,33 @@
 import { useState, useEffect, useRef } from 'react'
-import { supabase } from '../../shared/api/supabase.js'
 import { uploadToR2, deleteFromR2 } from '../../shared/lib/r2.js'
-import { updateCurriculumVideo, updateCurriculumPosterCrop } from '../../shared/lib/curriculaApi.js'
+import { updateCurriculumVideo, updateCurriculumPosterCrop, loadCurriculumMedia } from '../../shared/lib/curriculaApi.js'
 import ModulePosterCrop from './ModulePosterCrop.jsx'
+import ModuleScenePanel from './ModuleScenePanel.jsx'
+import { mediaButtonMeta } from './moduleSceneModel.js'
 import { capturePosterFrame } from '../../shared/lib/videoFrame.js'
 import { checkMp4Faststart } from '../../shared/lib/videoCheck.js'
 import { fdbg } from '../../shared/lib/feedDebug.js'
 
 const MAX_FEED_VIDEO_MB = 8
+const MODES = [['video', 'Видео'], ['scene', 'Сцена']]
 
-// Кнопка «🎬» в тулбаре схемы модуля (только админ): загрузка видео фразы
-// для ленты. Постер-кадр захватывается из видео автоматически, оба файла
-// уходят в R2, ссылки — в curricula.video_url / poster_url.
+// Кнопка «🎬» (со сценой — «🎭») в тулбаре схемы модуля (только админ): медиа фразы
+// для ленты. Режим «Видео» — загрузка видео: постер-кадр захватывается автоматически,
+// оба файла уходят в R2, ссылки — в curricula.video_url / poster_url. Режим «Сцена» —
+// привязка сцены библиотеки (ModuleScenePanel, curricula.scene_id); сцена в ленте
+// заменяет видео. Стартовый режим — по тому, что уже есть у модуля.
 export default function ModuleVideoPanel({ curriculumId }) {
   const [open, setOpen] = useState(false)
-  const [row,  setRow]  = useState(null) // { video_url, poster_url }
+  const [row,  setRow]  = useState(null) // { video_url, poster_url, poster_crop, scene_id? }
+  const [mode, setMode] = useState(null) // null — выбрать по данным при загрузке
   const [busy, setBusy] = useState('')
   const [err,  setErr]  = useState('')
   const fileRef = useRef(null)
 
   useEffect(() => {
-    supabase.from('curricula')
-      .select('video_url, poster_url, poster_crop')
-      .eq('id', curriculumId)
-      .single()
-      .then(({ data }) => setRow(data ?? {}))
+    loadCurriculumMedia(curriculumId)
+      .then(data => { setRow(data); setMode(m => m ?? (data.scene_id ? 'scene' : 'video')) })
+      .catch(e => { setRow({}); setErr(e?.message || 'Не удалось загрузить') })
   }, [curriculumId])
 
   async function handleFile(e) {
@@ -81,7 +84,7 @@ export default function ModuleVideoPanel({ curriculumId }) {
 
       await updateCurriculumVideo(curriculumId, videoUrl, posterUrl)
       fdbg('[video] БД обновлена: poster =', posterUrl ? 'есть' : 'NULL')
-      setRow({ video_url: videoUrl, poster_url: posterUrl })
+      setRow(r => ({ ...r, video_url: videoUrl, poster_url: posterUrl, poster_crop: null }))
       setBusy('')
     } catch (e2) {
       fdbg('[video] ОШИБКА:', e2.message)
@@ -98,7 +101,7 @@ export default function ModuleVideoPanel({ curriculumId }) {
       if (row?.video_url)  await deleteFromR2(row.video_url)
       if (row?.poster_url) deleteFromR2(row.poster_url).catch(() => {})
       await updateCurriculumVideo(curriculumId, null, null)
-      setRow({})
+      setRow(r => ({ ...r, video_url: null, poster_url: null, poster_crop: null }))
       setBusy('')
     } catch (e2) {
       setBusy('')
@@ -107,20 +110,36 @@ export default function ModuleVideoPanel({ curriculumId }) {
   }
 
   const has = !!row?.video_url
+  const sceneId = row?.scene_id ?? null
+  const meta = mediaButtonMeta({ sceneId, videoUrl: row?.video_url })
   return (
     <div className="mvWrap">
       <button
-        className={has ? 'saveBtn mvBtn mvBtnOn' : 'saveBtn mvBtn'}
+        className={meta.on ? 'saveBtn mvBtn mvBtnOn' : 'saveBtn mvBtn'}
         onClick={() => setOpen(o => !o)}
-        title={has ? 'Видео фразы загружено' : 'Видео фразы не загружено'}>
-        🎬
+        title={meta.title}>
+        {meta.icon}
       </button>
 
       {open && (
-        <div className="mvPanel">
-          <div className="mvTitle">Видео фразы для ленты</div>
+        <div className={mode === 'scene' ? 'mvPanel mvPanelWide' : 'mvPanel'}>
+          <div className="mvTitle">Медиа фразы для ленты</div>
+          <div className="mvSeg" role="radiogroup" aria-label="Что показывать в ленте">
+            {MODES.map(([id, label]) => (
+              <button
+                key={id} type="button" role="radio" aria-checked={mode === id}
+                className={mode === id ? 'mvSegBtn mvSegBtnOn' : 'mvSegBtn'}
+                onClick={() => setMode(id)}
+              >{label}{id === 'scene' && sceneId ? ' 🎭' : ''}{id === 'video' && has ? ' ●' : ''}</button>
+            ))}
+          </div>
           {row === null ? (
             <div className="mvHint">Загрузка...</div>
+          ) : mode === 'scene' ? (
+            <ModuleScenePanel
+              curriculumId={curriculumId} sceneId={sceneId} hasVideo={has}
+              onChange={id => setRow(r => ({ ...r, scene_id: id }))}
+            />
           ) : has ? (
             <>
               {row.poster_url && <img className="mvPoster" src={row.poster_url} alt="постер видео" />}
@@ -145,6 +164,7 @@ export default function ModuleVideoPanel({ curriculumId }) {
               Выбрать видео…
             </button>
           )}
+          {mode === 'video' && sceneId && <div className="mvHint">К модулю привязана сцена — в ленте она показывается вместо видео</div>}
           {busy && <div className="mvHint">{busy}</div>}
           {err && <div className="mvErr">{err}</div>}
           <input ref={fileRef} type="file" accept="video/*" hidden onChange={handleFile} />

@@ -25,6 +25,7 @@
 @import './styles/feed-catch-fact.css';
 @import './styles/feed-catch-confirm.css';
 @import './styles/feed-media.css';
+@import './styles/feed-scene.css';
 @import './styles/feed-swiper.css';
 @import './styles/feed-video-loader.css';
 @import './styles/difficulty.css';
@@ -39,6 +40,7 @@
 @import './styles/energy-cells.css';
 @import './styles/pro.css';
 @import './styles/module-video.css';
+@import './styles/module-scene.css';
 @import './styles/admin-v2.css';
 @import './styles/admin-toggles.css';
 @import './styles/admin-achievements.css';

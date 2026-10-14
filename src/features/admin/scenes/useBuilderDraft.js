@@ -14,11 +14,15 @@ import { saveBackup, loadBackup, clearBackup } from './draftBackup.js'
 const BACKUP_DELAY = 400
 
 // initialScene — управляемый режим (сцена для ноды урока, NodeScenePicker): старт с неё,
-// без восстановления и без записи резервной копии (backup=false) — черновик админа не трогаем
-export function useBuilderDraft({ initialScene = null, backup = true } = {}) {
+// без восстановления и без записи резервной копии (backup=false) — черновик админа не трогаем.
+// initialRow — строка библиотеки, из которой взята initialScene (сцена ленты): «Сохранить»
+// тогда обновляет её, а не создаёт новую
+export function useBuilderDraft({ initialScene = null, initialRow = null, backup = true } = {}) {
   const [restored] = useState(() => (initialScene || !backup ? null : loadBackup()))
   const [scene, setScene] = useState(() => (initialScene ? M.fromScene(initialScene) : (restored?.scene ?? M.newDraft())))
-  const [saved, setSaved] = useState(() => ({ id: restored?.savedId ?? null, status: 'draft', snapshot: null }))
+  const [saved, setSaved] = useState(() => (initialScene && initialRow?.id
+    ? { id: initialRow.id, status: initialRow.status ?? 'draft', snapshot: M.fromScene(initialScene) }
+    : { id: restored?.savedId ?? null, status: 'draft', snapshot: null }))
   const [restoredAt, setRestoredAt] = useState(restored?.at ?? null)
   const timer = useRef(null)
   const latest = useRef(null)

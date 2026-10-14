@@ -129,11 +129,49 @@ export async function updateCurriculumVideo(id, videoUrl, posterUrl) {
   }
 }
 
+// Сцена в ленте вместо видео (curricula.scene_id → scenes.id, миграция
+// 20261014150000); null — сцены нет. Приоритет «сцена выше видео» решает слайд
+export async function updateCurriculumScene(id, sceneId) {
+  dbg('[DB WRITE] curricula scene_id', id, sceneId)
+  const { error } = await supabase
+    .from('curricula')
+    .update({ scene_id: sceneId ?? null })
+    .eq('id', id)
+  if (error) {
+    dbg('[DB ERROR] curricula scene_id', error.message)
+    throw error
+  }
+}
+
 const CURRICULA_COLS = 'id, title, lesson_ids, created_at, video_url, poster_url, poster_crop, published, preview_only, difficulty, difficulty_votes, save_count, repost_count, is_pro'
 // Колонки переводов названия появляются миграцией 20260725140000, флаг «Ловля
-// слов в ленте» — миграцией 20261008120000; пока они не применены, читаем
-// список без них (иначе вся лента падала бы на 400)
+// слов в ленте» — миграцией 20261008120000, сцена ленты — 20261014150000; пока они
+// не применены, читаем список без них (иначе вся лента падала бы на 400):
+// ярусы от полного набора к базовому, спуск — только по ошибке «нет колонки»
 const CURRICULA_COLS_TR = `${CURRICULA_COLS}, title_translation, word_translations, feed_catch_enabled`
+const CURRICULA_COL_TIERS = [
+  { cols: `${CURRICULA_COLS_TR}, scene_id`, missing: /scene_id/, warn: 'нет колонки scene_id — применить миграцию 20261014150000_curricula_scene_id.sql' },
+  { cols: CURRICULA_COLS_TR, missing: /title_translation|word_translations|feed_catch_enabled/, warn: 'нет колонок переводов / ловли слов — применить миграции 20260725140000_module_translations.sql, 20261008130000_feed_catch.sql' },
+  { cols: CURRICULA_COLS, missing: null },
+]
+
+// Медиа одного модуля для панели админа: видео/постер/кадр + сцена ленты
+// (без колонки scene_id — читаем без неё, в ответе её не будет)
+const MEDIA_COLS = 'video_url, poster_url, poster_crop'
+export async function loadCurriculumMedia(id) {
+  dbg('[DB READ] curricula media', id)
+  const q = cols => supabase.from('curricula').select(cols).eq('id', id).single()
+  let { data, error } = await q(`${MEDIA_COLS}, scene_id`)
+  if (error && /scene_id/.test(error.message)) {
+    dbg('[DB WARN]', CURRICULA_COL_TIERS[0].warn)
+    ;({ data, error } = await q(MEDIA_COLS))
+  }
+  if (error) {
+    dbg('[DB ERROR] curricula media', error.message)
+    throw error
+  }
+  return data ?? {}
+}
 
 // В каком модуле лежит урок. Нужно для «назад» из редактора: урок можно
 // открыть и не из схемы модуля (всплывашка «продолжить редактирование» после
@@ -147,16 +185,14 @@ export async function findLessonModule(lessonId) {
 
 async function fetchCurriculaRows() {
   dbg('[DB READ] curricula list')
-  let { data, error } = await supabase
-    .from('curricula')
-    .select(CURRICULA_COLS_TR)
-    .order('created_at', { ascending: false })
-  if (error && /title_translation|word_translations|feed_catch_enabled/.test(error.message)) {
-    dbg('[DB WARN] нет колонок переводов / ловли слов — применить миграции 20260725140000_module_translations.sql, 20261008130000_feed_catch.sql')
+  let data = null, error = null
+  for (const tier of CURRICULA_COL_TIERS) {
     ;({ data, error } = await supabase
       .from('curricula')
-      .select(CURRICULA_COLS)
+      .select(tier.cols)
       .order('created_at', { ascending: false }))
+    if (!error || !tier.missing?.test(error.message)) break
+    dbg('[DB WARN]', tier.warn)
   }
   if (error) {
     dbg('[DB ERROR] curricula load', error.message)

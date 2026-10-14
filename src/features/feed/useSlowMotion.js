@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { leaseVideo } from './videoPool.js'
 import { track } from '../../shared/lib/analytics/track.js'
 import { FEED_SLOW } from '../../shared/lib/analytics/eventNames.js'
+import { setFeedSlow } from './feedSlowState.js'
 
 // Замедленное воспроизведение 0.5x: держим палец в зоне (feedSlowZone) —
 // playbackRate уходит на 0.5, preservesPitch сам держит высоту голоса
@@ -26,6 +27,7 @@ export function useSlowMotion(slideKey, active, soundOn, modId = null) {
     v.playbackRate = 0.5
     v.preservesPitch = true
     v.webkitPreservesPitch = true
+    setFeedSlow(slideKey, true) // слайд-сцена (SlideScene) читает замедление отсюда — у неё нет элемента пула
     if (!onRef.current && modId) track(FEED_SLOW, { module_id: modId, on: true })
     onRef.current = true
     setSlowMotion(true)
@@ -34,6 +36,7 @@ export function useSlowMotion(slideKey, active, soundOn, modId = null) {
   function stopSlowMotion() {
     const v = leaseVideo(slideKey)
     v.playbackRate = 1
+    setFeedSlow(slideKey, false)
     if (onRef.current && modId) track(FEED_SLOW, { module_id: modId, on: false })
     onRef.current = false
     setSlowMotion(false)
@@ -45,6 +48,7 @@ export function useSlowMotion(slideKey, active, soundOn, modId = null) {
     if (active || !slowMotion) return
     const v = leaseVideo(slideKey)
     v.playbackRate = 1
+    setFeedSlow(slideKey, false)
     onRef.current = false // ушли со слайда — не действие пользователя, feed_slow off не пишем
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setSlowMotion(false)

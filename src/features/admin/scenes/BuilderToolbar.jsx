@@ -7,7 +7,7 @@ import { formatBackupTime } from './draftBackup.js'
 // (Esc), строка статуса и плашка «восстановлен черновик из резервной копии».
 // onApply (управляемый режим, сцена для ноды урока) — «Применить к ноде» первой кнопкой;
 // сохранение в библиотеку остаётся отдельной, необязательной кнопкой.
-export default function BuilderToolbar({ draft, library, status, setStatus, title = 'Сборщик сцен', onSave, onApply = null, onClose, closeRef, theme, onToggleTheme }) {
+export default function BuilderToolbar({ draft, library, status, setStatus, title = 'Сборщик сцен', onSave, onApply = null, applyLabel = 'Применить к ноде', onClose, closeRef, theme, onToggleTheme }) {
   const { scene, saved, dirty, errors, restoredAt, actions } = draft
   const [askNew, setAskNew] = useState(false)
   const canSave = !library.busy && !library.missingTable
@@ -46,8 +46,8 @@ export default function BuilderToolbar({ draft, library, status, setStatus, titl
         </div>
         <div className="fsBtnBox" style={{ gap: 6 }}>
           {onApply && (
-            <button className="fsBtn fsBtnPrimary" onClick={onApply} disabled={!canApply} title={canApply ? 'Положить сцену в ноду урока и закрыть' : 'Сначала исправьте ошибки линтера'}>
-              Применить к ноде
+            <button className="fsBtn fsBtnPrimary" onClick={onApply} disabled={!canApply} title={canApply ? 'Применить сцену и закрыть' : 'Сначала исправьте ошибки линтера'}>
+              {applyLabel}
             </button>
           )}
           <button className={onApply ? 'fsBtn' : 'fsBtn fsBtnPrimary'} onClick={() => onSave()} disabled={!canSave} title={library.missingTable ? 'Таблицы scenes нет — черновик хранится только на этом устройстве' : ''}>

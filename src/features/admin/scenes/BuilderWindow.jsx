@@ -20,13 +20,15 @@ import '../../../styles/admin-scenes-preview.css'
 // клики не проваливаются вниз; вложенные кнопки останавливают всплытие сами.
 // Черновик — useBuilderDraft (бэкап в localStorage), библиотека — useSceneLibrary.
 // Управляемый режим (нода урока, canvas/NodeSceneBuilderHost): initialScene — стартовая
-// сцена, onApply(scene) — кнопка «Применить к ноде» (без записи в библиотеку; бэкап
-// черновика админа при этом не трогается), title — заголовок окна.
+// сцена, onApply(scene, saved) — кнопка «Применить к ноде» (без записи в библиотеку; бэкап
+// черновика админа при этом не трогается; saved — { id, status } строки библиотеки, если
+// черновик к ней привязан), title — заголовок окна, applyLabel — подпись кнопки,
+// initialRow — строка библиотеки, из которой взята initialScene (сцена ленты).
 const THEME_KEY = 'pithy_admin_scenes_theme_v1'
 const VIEWS = [['settings', 'Настройки'], ['scene', 'Сцена'], ['panel', 'Панель']]
 
-export default function BuilderWindow({ onClose, initialScene = null, onApply = null, title = 'Сборщик сцен' }) {
-  const draft = useBuilderDraft({ initialScene, backup: !onApply })
+export default function BuilderWindow({ onClose, initialScene = null, initialRow = null, onApply = null, applyLabel, title = 'Сборщик сцен' }) {
+  const draft = useBuilderDraft({ initialScene, initialRow, backup: !onApply })
   const library = useSceneLibrary()
   const [view, setView] = useState('scene')
   const [theme, setTheme] = useState(() => { try { return localStorage.getItem(THEME_KEY) === 'light' ? 'light' : 'dark' } catch { return 'dark' } })
@@ -90,7 +92,7 @@ export default function BuilderWindow({ onClose, initialScene = null, onApply = 
     <div ref={winRef} className="fsWin scbWin" data-theme={theme} role="dialog" aria-modal="true" aria-label={title}>
       <BuilderToolbar
         draft={draft} library={library} status={status} setStatus={setStatus} title={title}
-        onSave={save} onApply={onApply ? () => onApply(draft.scene) : null}
+        onSave={save} onApply={onApply ? () => onApply(draft.scene, draft.saved) : null} applyLabel={applyLabel}
         onClose={onClose} closeRef={closeRef} theme={theme} onToggleTheme={toggleTheme}
       />
       <div className="fsViewTabs" role="tablist" aria-label="Разделы окна">

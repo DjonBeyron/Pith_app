@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { loadCurricula, saveCurriculum, deleteCurriculumFromServer, updateCurriculumStatus } from '../../shared/lib/curriculaApi.js'
 import { supabase } from '../../shared/api/supabase.js'
+import { moduleMediaChip } from '../lessons/moduleSceneModel.js'
 import { findEnabledTemplate } from '../../shared/api/pushTemplatesApi.js'
 import { sendPush } from '../../shared/api/pushApi.js'
 import CurriculumView from '../lessons/CurriculumView.jsx'
@@ -127,8 +128,8 @@ export default function AdminModulesTab({ onOpenCanvas, onOpenProduction, module
             <span className="amChips">
               {m.is_pro
                 ? <span className="amChip amChipPro">PRO</span>
-                : <span className={m.video_url ? 'amChip amChipOk' : 'amChip amChipWarn'}>
-                    {m.video_url ? 'видео есть' : 'нет видео'}
+                : <span className={moduleMediaChip(m).tone === 'ok' ? 'amChip amChipOk' : 'amChip amChipWarn'}>
+                    {moduleMediaChip(m).text}
                   </span>}
             </span>
           </button>

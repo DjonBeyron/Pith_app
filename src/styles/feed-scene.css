@@ -1,0 +1,53 @@
+/* ── Слайд-сцена ленты (features/feed/scene/SlideScene.jsx) ───────────────
+   Сцена v2 (SceneRenderer, .scn) на месте видео: на весь слайд, тап — пауза/пуск.
+   Иконка паузы и чипы звука — общие с видео (.slidePauseIcon / .feedSoundChip,
+   feed-media.css), им нужна та же --pause-y. */
+
+.slideSceneRoot {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  /* Пол локации (--scene-floor ставит SlideScene по сцене): SVG 9:16 лежит по верху слайда, а на телефоне 9:19.5
+     внизу остаётся полоса — она того же цвета, что пол сцены, и под кнопкой «Изучить фразу» читается как продолжение пола */
+  background: var(--scene-floor, #c9a27a);
+  /* Иконка паузы и чип — между облачком (выше) и головами котов: у видео центр приподнят, здесь — ровно середина */
+  --pause-y: 50%;
+}
+
+/* .scn сам держит 9:16 по ширине — в слайде это и нужно: коты (низ кадра) оказываются выше блока фразы со спойлером,
+   лица не под шариками; .scn растягиваем на весь слайд (облачко/чипы позиционируются от него), SVG — по верху 9:16 */
+.slideSceneRoot .scn {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  aspect-ratio: auto;
+  background: transparent;
+}
+.slideSceneRoot .scn__svg {
+  top: 0;
+  bottom: auto;
+  height: auto;
+  aspect-ratio: 9 / 16;
+}
+
+/* Облачко — над иконкой паузы/чипом (--pause-y 50%: иконка 32px выше середины, хвост облачка — ещё выше) */
+.slideSceneRoot .scn-bubble {
+  bottom: 58%;
+  max-width: 66%;
+}
+
+/* Чипы и иконка паузы — поверх SVG и облачка */
+.slideSceneRoot .slidePauseIcon,
+.slideSceneRoot .feedSoundChip { z-index: 5; }
+
+/* Статичный кадр соседнего слайда (и активного при скрытой вкладке / perfFlags.noVideo): идл-анимаций нет вовсе —
+   в ленте одновременно живёт одна сцена, соседи не нагружают композитор */
+.slideSceneRoot .scn--static .cat-body, .slideSceneRoot .scn--static .cat-head, .slideSceneRoot .scn--static .cat-eyes,
+.slideSceneRoot .scn--static .cat-tail, .slideSceneRoot .scn--static .prop-steam { animation: none; }
+
+/* Скрытый вид ленты / другая вкладка: идл-анимации котов стоят (как блик скелетона) */
+.feedViewHidden .scn .cat-body, .feedViewHidden .scn .cat-head, .feedViewHidden .scn .cat-eyes,
+.feedViewHidden .scn .cat-tail, .feedViewHidden .scn .prop-steam,
+.feedV2--paused .scn .cat-body, .feedV2--paused .scn .cat-head, .feedV2--paused .scn .cat-eyes,
+.feedV2--paused .scn .cat-tail, .feedV2--paused .scn .prop-steam { animation-play-state: paused; }
