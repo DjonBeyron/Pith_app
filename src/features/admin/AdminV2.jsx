@@ -13,6 +13,7 @@ import AdminCatchTab from './AdminCatchTab.jsx'
 import AdminAchievementsTab from './AdminAchievementsTab.jsx'
 import AdminSpeechTab from './speech/AdminSpeechTab.jsx'
 import AdminStartTab from './start/AdminStartTab.jsx'
+import AdminSignalsTab from './signals/AdminSignalsTab.jsx'
 import AdminToggles from './AdminToggles.jsx'
 import VersionStamp from './VersionStamp.jsx'
 
@@ -22,7 +23,8 @@ import VersionStamp from './VersionStamp.jsx'
 // (ошибки клиентов из client_errors), «Аналитика» (отчёт по app_events) и
 // «Колоды» (слова без колоды карточек повтора, AdminDecksTab), «Повторение»
 // (временный вход в плеер повторения + своя память слов, AdminReviewTab), «Ловля» (песочница «Ловли слов», AdminCatchTab) и «Достижения» (выдать/снять себе достижение,
-// AdminAchievementsTab) и «Голос» (проба Web Speech API на телефонах, speech/AdminSpeechTab) и «Старт» (журнал запуска приложения на этом устройстве, start/AdminStartTab). Открытая субвкладка запоминается
+// AdminAchievementsTab) и «Голос» (проба Web Speech API на телефонах, speech/AdminSpeechTab) и «Старт» (журнал запуска приложения на этом устройстве, start/AdminStartTab)
+// и «Сигналы» (движок порядка ленты: карточка состояния + полноэкранное окно, signals/AdminSignalsTab; learnView — память админа из ShellV2 для предпросмотра). Открытая субвкладка запоминается
 // на устройстве; тумблеры («Режим пользователя», «Я новенький» — имитация первого входа, newbieSim.js, и др.) — в одном
 // сворачиваемом блоке «Переключатели» (AdminToggles).
 // openModule — { id, title, isPro }: просьба снаружи открыть схему этого
@@ -30,13 +32,13 @@ import VersionStamp from './VersionStamp.jsx'
 // через onModuleOpened, чтобы повторный заход в админку не открывал её снова
 // Какая субвкладка открыта — запоминается на этом устройстве: админка открывается там же, где её оставили
 const SUB_KEY = 'pithy_admin_sub_v1'
-const SUBS = ['modules', 'files', 'push', 'race', 'streak', 'teacher', 'errors', 'analytics', 'decks', 'review', 'catch', 'achievements', 'speech', 'start']
+const SUBS = ['modules', 'files', 'push', 'race', 'streak', 'teacher', 'errors', 'analytics', 'decks', 'review', 'catch', 'achievements', 'speech', 'start', 'signals']
 function storedSub() {
   try { const v = localStorage.getItem(SUB_KEY); return SUBS.includes(v) ? v : 'modules' } catch { return 'modules' }
 }
 
-export default function AdminV2({ onOpenCanvas, onOpenProduction, onOpenCards, openModule = null, onModuleOpened }) {
-  const [sub, setSubState] = useState(storedSub) // modules | files | push | race | streak | teacher | errors | analytics | decks | review | catch | achievements | speech | start
+export default function AdminV2({ onOpenCanvas, onOpenProduction, onOpenCards, openModule = null, onModuleOpened, learnView = null }) {
+  const [sub, setSubState] = useState(storedSub) // modules | files | push | race | streak | teacher | errors | analytics | decks | review | catch | achievements | speech | start | signals
   const setSub = id => {
     setSubState(id)
     try { localStorage.setItem(SUB_KEY, id) } catch { /* приватный режим — запомнится до перезагрузки */ }
@@ -97,6 +99,9 @@ export default function AdminV2({ onOpenCanvas, onOpenProduction, onOpenCards, o
         <button className={sub === 'start' ? 'avTab avTabActive' : 'avTab'} onClick={() => setSub('start')}>
           Старт
         </button>
+        <button className={sub === 'signals' ? 'avTab avTabActive' : 'avTab'} onClick={() => setSub('signals')}>
+          Сигналы
+        </button>
       </div>
       <VersionStamp />
       {sub === 'modules' && (
@@ -120,6 +125,7 @@ export default function AdminV2({ onOpenCanvas, onOpenProduction, onOpenCards, o
       {sub === 'achievements' && <div className="shellV2Panel"><AdminAchievementsTab /></div>}
       {sub === 'speech' && <div className="shellV2Panel"><AdminSpeechTab /></div>}
       {sub === 'start' && <div className="shellV2Panel"><AdminStartTab /></div>}
+      {sub === 'signals' && <div className="shellV2Panel"><AdminSignalsTab learnView={learnView} /></div>}
     </div>
   )
 }

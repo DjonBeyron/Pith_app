@@ -207,7 +207,7 @@ export default function ShellV2() {
                 onOpenCards={setCardsLesson}
                 openModule={moduleRequest}
                 onModuleOpened={() => setModuleRequest(null)}
-              />
+                learnView={learn.view} /* память админа — предпросмотр в окне «Сигналы ленты», без второго запроса */ />
             </Suspense>
           </div>
         )}

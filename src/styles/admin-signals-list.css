@@ -1,0 +1,128 @@
+/* Окно «Сигналы ленты» — левая колонка (SignalList/SignalRow/RulesBlock): группы,
+   строки сигналов с тумблером, ползунком веса и долей, жёсткие правила. Префикс sl.
+   Токены темы — на .fsWin (admin-signals.css). */
+
+.slWrap { display: flex; flex-direction: column; gap: 14px; }
+.slSummary { margin: 0; font-size: 12px; color: var(--fs-muted); }
+
+.slGroup { display: flex; flex-direction: column; gap: 8px; }
+.slGroupTitle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--fs-muted);
+}
+.slGroupDot { width: 10px; height: 10px; border-radius: 50%; }
+
+.slRow {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-areas:
+    'head switch'
+    'weight weight'
+    'share share';
+  gap: 6px 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--fs-border);
+  border-left: 3px solid var(--sl-color, var(--fs-border));
+  border-radius: 12px;
+  background: var(--fs-panel);
+}
+.slRowSel { border-color: var(--fs-accent); border-left-color: var(--sl-color, var(--fs-accent)); background: var(--fs-panel-2); }
+.slRowOff .slRowTitle, .slRowLocked .slRowTitle { color: var(--fs-muted); }
+.slRowLocked { opacity: 0.8; }
+
+.slRowHead {
+  grid-area: head;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.slRowTitle { font-size: 14px; font-weight: 700; color: var(--fs-text); }
+
+.slBadge {
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--fs-border);
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--fs-muted);
+  white-space: nowrap;
+}
+.slBadge-live { color: var(--fs-ok); border-color: color-mix(in srgb, var(--fs-ok) 40%, transparent); }
+.slBadge-collecting { color: var(--fs-warn); border-color: color-mix(in srgb, var(--fs-warn) 40%, transparent); }
+
+/* Тумблер — как avToggleSwitch в админке, но на токенах окна */
+.slSwitch { grid-area: switch; position: relative; width: 42px; height: 24px; cursor: pointer; }
+.slSwitch input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
+.slSwitch input:disabled { cursor: not-allowed; }
+.slTrack {
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  background: var(--fs-border);
+  transition: background 0.15s ease;
+}
+.slTrack::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #fff;
+  transition: transform 0.15s ease;
+}
+.slSwitch input:checked + .slTrack { background: var(--fs-accent); }
+.slSwitch input:checked + .slTrack::after { transform: translateX(18px); }
+.slSwitch input:disabled + .slTrack { opacity: 0.4; }
+.slSwitch input:focus-visible + .slTrack { outline: 2px solid var(--fs-focus); outline-offset: 2px; }
+
+.slWeight { grid-area: weight; display: flex; align-items: center; gap: 10px; }
+.slRange { flex: 1; min-width: 0; height: 24px; margin: 0; accent-color: var(--fs-accent); cursor: pointer; }
+.slRange:disabled { cursor: not-allowed; opacity: 0.4; }
+.slNum {
+  flex: none;
+  width: 56px;
+  padding: 5px 6px;
+  border: 1px solid var(--fs-border);
+  border-radius: 8px;
+  background: var(--fs-bg);
+  color: var(--fs-text);
+  font-size: 13px;
+  font-weight: 600;
+  text-align: center;
+}
+.slNum:disabled { opacity: 0.4; }
+
+.slShare { grid-area: share; position: relative; display: flex; align-items: center; height: 14px; border-radius: 7px; background: var(--fs-bg); overflow: hidden; }
+.slShareBar { position: absolute; left: 0; top: 0; bottom: 0; background: var(--sl-color, var(--fs-accent)); opacity: 0.55; }
+.slSharePct { position: relative; padding-left: 6px; font-size: 10.5px; font-weight: 700; color: var(--fs-text); }
+
+/* Жёсткие правила */
+.slRules { padding-top: 6px; border-top: 1px dashed var(--fs-border); }
+.slRule {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border: 1px solid var(--fs-border);
+  border-radius: 12px;
+  background: var(--fs-panel);
+}
+.slRuleText { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.slRuleHint { font-size: 11px; color: var(--fs-muted); }

@@ -1,0 +1,229 @@
+/* Окно «Сигналы ленты» (features/admin/signals): каркас окна, токены темы, тулбар,
+   вкладки, диалог подтверждения, карточка подвкладки «Сигналы» в админке (.asCard).
+   Список сигналов — admin-signals-list.css, карточка/предпросмотр/история/JSON —
+   admin-signals-preview.css. Префиксы: fs (окно), as (карточка подвкладки). */
+
+.fsWin {
+  --fs-bg: #0f1115;
+  --fs-panel: #14171c;
+  --fs-panel-2: #1a1e25;
+  --fs-border: #232932;
+  --fs-text: #e8e8ea;
+  --fs-muted: #8b94a1;
+  --fs-accent: #b6fe3b;
+  --fs-accent-ink: #0d1500;
+  --fs-warn: #ffc861;
+  --fs-error: #f87171;
+  --fs-ok: #b6fe3b;
+  --fs-focus: #7ab0e0;
+  position: fixed;
+  inset: 0;
+  z-index: 700; /* выше слоя урока (600) и редакторов (100), ниже дебаг-тулбара (1300+) */
+  display: flex;
+  flex-direction: column;
+  background: var(--fs-bg);
+  color: var(--fs-text);
+  font-size: 13px;
+  line-height: 1.4;
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+.fsWin[data-theme="light"] {
+  --fs-bg: #f4f6f8;
+  --fs-panel: #ffffff;
+  --fs-panel-2: #eef1f4;
+  --fs-border: #d5dbe3;
+  --fs-text: #161a20;
+  --fs-muted: #5c6673;
+  --fs-accent: #4f9a00;
+  --fs-accent-ink: #ffffff;
+  --fs-warn: #a86400;
+  --fs-error: #c62828;
+  --fs-ok: #2e7d32;
+  --fs-focus: #1565c0;
+}
+
+.fsWin :focus-visible { outline: 2px solid var(--fs-focus); outline-offset: 2px; }
+.fsWin button, .fsWin input, .fsWin textarea { font-family: inherit; }
+
+/* ── Тулбар ── */
+.fsBar {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: calc(10px + env(safe-area-inset-top, 0px)) 16px 10px;
+  border-bottom: 1px solid var(--fs-border);
+  background: var(--fs-panel);
+}
+.fsBarRow { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.fsTitle { margin: 0; font-size: 17px; font-weight: 700; }
+
+.fsEngine { display: inline-flex; border: 1px solid var(--fs-border); border-radius: 999px; overflow: hidden; }
+.fsEngineBtn {
+  padding: 7px 14px;
+  border: 0;
+  background: transparent;
+  color: var(--fs-muted);
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.fsEngineBtnOn { background: var(--fs-panel-2); color: var(--fs-text); }
+.fsEngineBtnW.fsEngineBtnOn { background: var(--fs-accent); color: var(--fs-accent-ink); }
+.fsEngineBtn:disabled { opacity: 0.5; cursor: default; }
+.fsEngineHint { flex: 1 1 200px; min-width: 0; font-size: 12px; color: var(--fs-muted); }
+
+.fsDirty { font-size: 12px; color: var(--fs-muted); white-space: nowrap; }
+.fsDirty::before { content: ''; display: inline-block; width: 8px; height: 8px; margin-right: 6px; border-radius: 50%; background: var(--fs-border); vertical-align: middle; }
+.fsDirtyOn { color: var(--fs-warn); }
+.fsDirtyOn::before { background: var(--fs-warn); }
+
+.fsIconBtn {
+  flex: none;
+  order: 10; /* ПК: в конец строки; телефон — рядом с заголовком (см. медиа ниже) */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--fs-border);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--fs-text);
+  cursor: pointer;
+}
+.fsIconBtn:hover { border-color: var(--fs-muted); }
+
+.fsBarActions { gap: 8px; }
+.fsNote {
+  flex: 1 1 240px;
+  min-width: 0;
+  padding: 8px 12px;
+  border: 1px solid var(--fs-border);
+  border-radius: 10px;
+  background: var(--fs-bg);
+  color: var(--fs-text);
+  font-size: 13px;
+}
+
+.fsBtn {
+  padding: 8px 14px;
+  border: 1px solid var(--fs-border);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--fs-text);
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.fsBtn:hover:not(:disabled) { border-color: var(--fs-muted); }
+.fsBtn:disabled { opacity: 0.45; cursor: default; }
+.fsBtnPrimary { background: var(--fs-accent); border-color: var(--fs-accent); color: var(--fs-accent-ink); }
+.fsBtnSmall { padding: 5px 10px; font-size: 12px; }
+
+.fsMessages { display: flex; flex-direction: column; gap: 4px; }
+.fsMsg { margin: 0; font-size: 12.5px; }
+.fsMsgWarn, .fsMsg-warn { color: var(--fs-warn); }
+.fsMsg-ok { color: var(--fs-ok); }
+.fsMsg-error { color: var(--fs-error); }
+
+/* ── Тело: три колонки на ПК ── */
+.fsBody {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(320px, 1.1fr) minmax(300px, 1fr) minmax(340px, 1.2fr);
+}
+.fsCol {
+  min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 12px 16px calc(16px + env(safe-area-inset-bottom, 0px));
+  border-right: 1px solid var(--fs-border);
+}
+.fsCol:last-child { border-right: 0; }
+
+.fsTabs, .fsViewTabs { display: flex; gap: 6px; flex-wrap: wrap; }
+.fsTabs { margin-bottom: 10px; }
+.fsTab, .fsViewTab {
+  padding: 6px 12px;
+  border: 1px solid var(--fs-border);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--fs-muted);
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.fsTabOn, .fsViewTabOn { background: var(--fs-panel-2); color: var(--fs-text); border-color: var(--fs-muted); }
+.fsViewTabs { display: none; }
+
+/* ── Телефон / узкий экран: вкладки вместо колонок ── */
+@media (max-width: 1099px) {
+  .fsBar { padding-left: 12px; padding-right: 12px; gap: 6px; }
+  .fsBarRow { gap: 6px 8px; }
+  .fsTitle { flex: 1; font-size: 16px; }
+  .fsIconBtn { order: 0; width: 32px; height: 32px; }
+  .fsEngineHint { display: none; } /* режим виден по самой кнопке */
+  .fsDirty { flex-basis: 100%; }
+  .fsNote { flex-basis: 100%; }
+  .fsBtn { padding: 7px 11px; font-size: 12px; }
+  .fsViewTabs { display: flex; flex: none; padding: 8px 12px 0; }
+  .fsViewTab { flex: 1; text-align: center; }
+  .fsBody { grid-template-columns: 1fr; }
+  .fsCol { display: none; border-right: 0; padding: 10px 12px calc(16px + env(safe-area-inset-bottom, 0px)); }
+  .fsBody[data-view="list"] .fsColList,
+  .fsBody[data-view="detail"] .fsColDetail,
+  .fsBody[data-view="preview"] .fsColPreview { display: block; }
+}
+
+/* ── Подтверждение включения weighted ── */
+.fsConfirmBack {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(0, 0, 0, 0.55);
+}
+.fsConfirm {
+  width: min(480px, 100%);
+  padding: 18px;
+  border: 1px solid var(--fs-border);
+  border-radius: 16px;
+  background: var(--fs-panel);
+}
+.fsConfirmTitle { margin: 0 0 8px; font-size: 16px; }
+.fsConfirmText { margin: 0 0 14px; color: var(--fs-muted); }
+.fsConfirmBtns { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
+
+/* ── Карточка подвкладки «Сигналы» в админке (AdminSignalsTab) ── */
+.asCard {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 14px;
+  border: 1px solid #232932;
+  border-radius: 14px;
+  background: #14171c;
+}
+.asCardW { border-color: #b6fe3b; }
+.asRow { display: flex; gap: 10px; font-size: 13px; }
+.asKey { flex: none; width: 72px; color: #8b94a1; }
+.asVal { min-width: 0; color: #e8e8ea; overflow-wrap: anywhere; }
+.asOpen {
+  align-self: flex-start;
+  margin-top: 4px;
+  padding: 10px 16px;
+  border: 0;
+  border-radius: 12px;
+  background: linear-gradient(180deg, #ceff73, #a9f335);
+  color: #0d1500;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}

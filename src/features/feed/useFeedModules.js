@@ -5,6 +5,7 @@ import { fdbg } from '../../shared/lib/feedDebug.js'
 import { useFeedSignals } from '../../shared/lib/ranking/feedSignalsStore.js'
 import { latchRank } from './feedKnowledge.js'
 import { rankFeedByConfig } from './feedRankEngine.js'
+import { publishedFeedModules } from './feedModuleShape.js'
 import { onFeedJump } from './catch/catchForce.js'
 
 // Загрузка модулей (curricula) + «пин» на фразу (deep-link репоста /?m=<id>,
@@ -52,32 +53,14 @@ export function useFeedModules(startedIds, visible = true, freshRank = null) {
             localStorage.setItem(key, JSON.stringify(r.lesson_ids))
           }
         })
-        // Черновики в ленту не попадают (и у админа тоже — честное превью)
-        const published = rows.filter(r => r.published)
+        // Черновики в ленту не попадают; форма модуля — общая с предпросмотром
+        // в окне «Сигналы ленты» (feedModuleShape.js)
+        const published = publishedFeedModules(rows)
         // Приоритетно готовим первый кадр ленты: прелоадим постер первого
         // модуля — чтобы за анимацией стартового сплэша уже был контент
-        const firstPoster = published.find(r => r.poster_url)?.poster_url
+        const firstPoster = published.find(r => r.posterUrl)?.posterUrl
         if (firstPoster) { const im = new Image(); im.src = firstPoster }
-        setModules(published.map(r => ({
-          id: r.id,
-          title: r.title,
-          // Переводы названия: полный (раскрывается под фразой) и пословный
-          // ([{ w, t }] — тап по слову, см. WordTranslateLine)
-          titleTranslation: r.title_translation ?? '',
-          wordTranslations: r.word_translations ?? [],
-          lessonIds: r.lesson_ids ?? [],
-          videoUrl: r.video_url ?? null,
-          posterUrl: r.poster_url ?? null,
-          posterCrop: r.poster_crop ?? null,
-          difficulty: r.difficulty ?? null,
-          difficultyVotes: r.difficulty_votes ?? 0,
-          saveCount: r.save_count ?? 0,
-          repostCount: r.repost_count ?? 0,
-          // Превью-статус: виден в ленте, но «Изучить фразу» скрыта (см. FeedSlide)
-          previewOnly: !!r.preview_only,
-          // «Ловля слов в ленте» на этой фразе (feed_catch_enabled; нет колонки — включено)
-          feedCatchEnabled: r.feed_catch_enabled !== false,
-        })))
+        setModules(published)
       })
       // Сбой перезагрузки (сеть) — существующий список НЕ стираем
       .catch(e => { setError(e.message); setModules(prev => prev ?? []) })
