@@ -1,0 +1,96 @@
+/* Окно «Сборщик сцен» — центр (телефонная рамка, управление, бюджет, линтер) и правая
+   панель (JSON, нейросеть, библиотека). Префикс scb; токены — .fsWin (admin-signals.css). */
+
+/* ── Телефонная рамка ── */
+.scbPreview { display: flex; flex-direction: column; gap: 10px; }
+.scbPhoneWrap { display: flex; justify-content: center; }
+.scbPhone {
+  /* 9:16 по высоте окна: занимаем ≈ 55vh, но не шире колонки */
+  width: min(100%, calc(55vh * 9 / 16), 420px);
+  padding: 10px;
+  border: 1px solid var(--fs-border);
+  border-radius: 28px;
+  background: #0b0d10;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+}
+.scbPhone .scn { border-radius: 18px; }
+.scbCtl { display: flex; flex-direction: column; gap: 8px; }
+.scbCtlRow { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
+.scbCtlRow .scCheck { color: var(--fs-text); }
+.scbCtlGroup { display: inline-flex; align-items: center; gap: 2px; white-space: nowrap; }
+
+/* ── Бюджет узлов ── */
+.scbBudget { display: flex; flex-direction: column; gap: 5px; padding: 10px 12px; border: 1px solid var(--fs-border); border-radius: 12px; background: var(--fs-panel); }
+.scbBudgetHead { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 12.5px; }
+.scbBudgetOver .scbBudgetHead b { color: var(--fs-error); }
+.scbBar { display: flex; height: 10px; overflow: hidden; border-radius: 999px; background: var(--fs-panel-2); }
+.scbBar span { display: block; height: 100%; }
+.scbBarBg, .scbDotBg { background: #7ab0e0; }
+.scbBarCats, .scbDotCats { background: #f2a65a; }
+.scbBarProps, .scbDotProps { background: #5bb37a; }
+.scbBudgetOver .scbBar span { background: var(--fs-error); }
+.scbBudgetLegend { margin: 0; font-size: 11.5px; color: var(--fs-muted); }
+.scbDot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; vertical-align: middle; }
+
+/* ── Линтер ── */
+.scbLint { display: flex; flex-direction: column; gap: 6px; padding: 10px 12px; border: 1px solid var(--fs-border); border-radius: 12px; background: var(--fs-panel); }
+.scbLintHead { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 6px; font-size: 12.5px; }
+.scbLintCount { font-size: 12px; color: var(--fs-muted); }
+.scbLintOk { margin: 0; font-size: 12.5px; color: var(--fs-ok); }
+.scbLintList { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 4px; }
+.scbLintItem {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid var(--fs-border);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--fs-text);
+  font-size: 12px;
+  line-height: 1.35;
+  text-align: left;
+  cursor: pointer;
+}
+.scbLintItem:hover { border-color: var(--fs-muted); }
+.scbLintLvl { flex: none; width: 64px; font-weight: 700; }
+.scbLint-error .scbLintLvl, li.scbLint-error { color: var(--fs-error); }
+.scbLint-warn .scbLintLvl, li.scbLint-warn { color: var(--fs-warn); }
+.scbLintText { overflow-wrap: anywhere; }
+
+/* ── Правая панель ── */
+.scbSide { display: flex; flex-direction: column; gap: 8px; }
+.scbJson, .scbAi, .scbLib { display: flex; flex-direction: column; gap: 8px; }
+.scbCode {
+  min-height: 200px;
+  resize: vertical;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11.5px;
+  line-height: 1.4;
+  white-space: pre;
+  overflow: auto;
+}
+.scbCodeSmall { min-height: 90px; white-space: pre-wrap; }
+.scbErrors { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 3px; font-size: 12px; color: var(--fs-error); }
+.scbWarns li { color: var(--fs-muted); }
+.scbReport { display: flex; flex-direction: column; gap: 6px; padding: 10px; border: 1px solid var(--fs-border); border-radius: 12px; background: var(--fs-panel); }
+.scbReport p { margin: 0; font-size: 12.5px; }
+
+/* Библиотека */
+.scbMissing { margin: 0; padding: 10px 12px; border: 1px solid var(--fs-warn); border-radius: 12px; font-size: 12.5px; color: var(--fs-text); }
+.scbLibList { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 6px; }
+.scbLibRow { display: flex; flex-direction: column; gap: 6px; padding: 8px 10px; border: 1px solid var(--fs-border); border-radius: 12px; background: var(--fs-panel); }
+.scbLibRowOn { border-color: var(--fs-accent); }
+.scbLibMain { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
+.scbLibTitle { padding: 0; border: 0; background: none; color: var(--fs-text); font-size: 13.5px; font-weight: 700; text-align: left; cursor: pointer; }
+.scbLibTitle:hover { text-decoration: underline; }
+.scbStatus { padding: 1px 8px; border-radius: 999px; font-size: 11.5px; font-weight: 600; }
+.scbStatus-draft { background: var(--fs-panel-2); color: var(--fs-muted); }
+.scbStatus-published { background: var(--fs-accent); color: var(--fs-accent-ink); }
+.scbLibBtns { display: flex; flex-wrap: wrap; gap: 4px; }
+.scbLibRename { display: flex; gap: 6px; align-items: center; }
+.scbDanger:hover:not(:disabled) { color: var(--fs-error); border-color: var(--fs-error); }
+
+@media (max-width: 1099px) {
+  .scbPhone { width: min(100%, calc(60vh * 9 / 16)); }
+}
