@@ -142,6 +142,17 @@ export function useCanvasBoardApi(ref, {
       const n = nodes.find(x => x.id === nodeId)
       if (n) centerOn(n, true)
     },
+    // «Разбор урока»: нода целиком в колонке — по центру по горизонтали и верхним краем у верха холста (высокая нода раскрыта вниз, а не
+    // уезжает за край, как при centerOn), масштаб 1. Повторный вызов возвращает ноду на место, даже если холст сдвинули
+    focusNodeTop(nodeId) {
+      const n = nodes.find(x => x.id === nodeId)
+      if (!n) return
+      const rect = boardRef.current?.getBoundingClientRect() ?? { width: 600 }
+      scaleRef.current = 1
+      setScale(1)
+      setOffset({ x: rect.width / 2 - n.x - 155, y: 36 - n.y })
+      selectOnly(n.id)
+    },
   }), [nodes, setNodes, zones, setZones, updateNode, centerOn, boardRef, onRemoveLessonFile])
 
   return spotlightId

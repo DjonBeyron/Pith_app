@@ -10,7 +10,6 @@ const MEDIA_LABEL = {
   circle:           'Видеосообщение',
   sticker:          'Стикер',
   audio:            'Голосовое сообщение',
-  voice_record:     'Голосовое сообщение',
   word_choice:      'Выбор слова',
   photo_choice:     'Выбор фото',
   phrase_assembly:  'Собрать фразу',

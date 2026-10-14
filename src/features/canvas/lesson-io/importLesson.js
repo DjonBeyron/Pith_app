@@ -1,5 +1,6 @@
 import { dbg } from '../../../shared/lib/debug.js'
 import { checkNodes, formatIntegrity } from '../canvasIntegrity.js'
+import { applyMarkup } from '../../../shared/lib/lessonMarkup.js'
 import { FORMAT } from './lessonSchema.js'
 import { NODE_TYPES } from '../nodeTypes.js'
 import { makeNode, renumber, findFreeSpot, NODE_SLOT } from '../nodeGraph.js'
@@ -56,6 +57,8 @@ function variantIdByLabel(type, data, label) {
   return found?.id ?? null
 }
 
+const TABLE_PAIR = ['table_correct', 'table_wrong']
+
 export function importLesson(input, { startX = 120, startY = 80 } = {}) {
   const json = typeof input === 'string' ? JSON.parse(input) : input
   if (!json || typeof json !== 'object') throw new Error('Это не JSON-объект')
@@ -92,7 +95,7 @@ export function importLesson(input, { startX = 120, startY = 80 } = {}) {
     const { x, y } = findFreeSpot(built.map(b => b.node), rawX, rawY)
     if (y !== rawY) nudged++
     const node = makeNode(built.length + 1, x, y, raw.type)
-    const data = withIds(raw.type, raw.data ?? {})
+    const data = withIds(raw.type, applyMarkup(raw.data ?? {}))
     node.typeData = { ...node.typeData, [raw.type]: { ...node.typeData[raw.type], ...data } }
     if (raw.size) node.size = raw.size
     if (raw.note != null) node.note = raw.note
@@ -115,8 +118,15 @@ export function importLesson(input, { startX = 120, startY = 80 } = {}) {
         .filter(s => s.ref != null)
     }
 
-    const list = Array.isArray(raw.triggers) ? raw.triggers : []
+    let list = Array.isArray(raw.triggers) ? raw.triggers : []
     if (!list.length) continue
+    // Таблица в режиме авто/ручной ходит дальше по table_correct/table_wrong: холст при открытии пересобирает её триггеры именно в эту пару и
+    // теряет любой другой (timer, played) вместе с переходом — цепочка урока обрывалась на этой ноде. Приводим к паре сразу
+    if (node.type === 'table' && (data?.mode ?? 'dictator') !== 'demo' && !list.some(t => TABLE_PAIR.includes(t.if))) {
+      const go = list.find(t => t.then)?.then ?? null
+      list = [{ if: 'table_correct', then: go }, { if: 'table_wrong', then: null }]
+      warnings.push(`${ref}: у таблицы в режиме «${data?.mode ?? 'dictator'}» переход заменён на table_correct (иначе холст теряет связь)`)
+    }
     node.triggers = list.map(t => {
       const ifKey = t.if === 'variant'
         ? variantIdByLabel(node.type, data, t.variantLabel)

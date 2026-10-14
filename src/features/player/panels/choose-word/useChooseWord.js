@@ -7,6 +7,7 @@ import { wordChoiceVoice } from '../../../../shared/lib/wordChoiceVoice.js'
 export function useChooseWord(node) {
   const [selectedId, setSelectedId] = useState(null)
   const [result,     setResult]     = useState(null) // 'correct' | 'wrong' | null
+  const [timedOut,   setTimedOut]   = useState(false) // время на ответ вышло (timeLimitSec): итог «неверно» без выбора
 
   // Порядок строк: ученику случайный, админу — верные первыми (useAnswerOrder.js)
   const options    = useAnswerOrder(node.typeData?.word_choice?.options ?? [], o => !!o.isCorrect)
@@ -20,5 +21,12 @@ export function useChooseWord(node) {
     setResult(option.isCorrect ? 'correct' : 'wrong')
   }
 
-  return { options, selectedId, result, isAnswered, handlePick }
+  // Время вышло: никто не выбран, итог «неверно» (выход word_wrong). В статистику ошибок это не идёт — панель зовёт onPicked только по тапу
+  function handleTimeout() {
+    if (result !== null) return
+    setTimedOut(true)
+    setResult('wrong')
+  }
+
+  return { options, selectedId, result, isAnswered, timedOut, handlePick, handleTimeout }
 }

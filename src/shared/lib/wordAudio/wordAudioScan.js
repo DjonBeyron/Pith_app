@@ -49,8 +49,12 @@ export async function scanAllLessons(force = false) {
   return pending
 }
 
+const sameWords = (a, b) => a.size === b.size && [...a.keys()].every(k => b.has(k))
+
 export function setLessonWords(lessonId, title, nodes) {
   const entry = { title, words: collectLessonWords(nodes) }
+  const prev = live.get(lessonId)
+  if (prev && prev.title === title && sameWords(prev.words, entry.words)) return // набор слов не изменился — не будим подписчиков
   live.set(lessonId, entry)
   if (byLesson) { byLesson = new Map(byLesson); byLesson.set(lessonId, entry) }
   notify()

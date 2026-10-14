@@ -3,6 +3,9 @@ import NodeCorrectWrongTriggers from './NodeCorrectWrongTriggers.jsx'
 import NodeSayHints from './NodeSayHints.jsx'
 import NodeSayCantSpeakNote from './NodeSayCantSpeakNote.jsx'
 import NodeSayVoiceReply from './NodeSayVoiceReply.jsx'
+import NodeSayPattern from './NodeSayPattern.jsx'
+import NodeSignalsPicker from './NodeSignalsPicker.jsx'
+import { sayPhraseSlots } from '../../shared/lib/signalSlots.js'
 import InfoPopup from '../../shared/ui/InfoPopup.jsx'
 import { NO_AUTOCORRECT } from '../../shared/lib/noAutoCorrectProps.js'
 import {
@@ -28,7 +31,7 @@ const stop = e => e.stopPropagation()
 
 export default function NodeSayPhrasePicker({
   phrase = '', translation = '', keywords = '', threshold = THRESHOLD_DEFAULT, lang = LANG_DEFAULT, listenAudio = true, strict = false, voiceReply = false,
-  hintsOn = true, hints = {}, onChange, triggers = [], allNodes = [], nodeId, onTriggersChange, onTriggerMeasure,
+  hintsOn = true, hints = {}, pattern = '', signals = [], onSignalsChange, onSignalMeasure, onChange, triggers = [], allNodes = [], nodeId, onTriggersChange, onTriggerMeasure,
 }) {
   const rowRefs = useRef(new Map())
 
@@ -149,8 +152,11 @@ export default function NodeSayPhrasePicker({
           <p>Ученик может послушать озвучку фразы — она берётся из базы слов.</p>
         </InfoPopup>
       </div>
+      <NodeSayPattern pattern={pattern} strict={strict} onChange={onChange} />
       <NodeSayVoiceReply voiceReply={voiceReply} onChange={onChange} />
       <NodeSayHints hintsOn={hintsOn} values={hints} onChange={onChange} />
+      {/* Сигнал: нода (обычно голосовое учителя с эталоном), которая приходит на первой неудачной попытке вместо текстовой подсказки — один раз за урок */}
+      <NodeSignalsPicker slots={sayPhraseSlots()} signals={signals} onChange={onSignalsChange} otherNodes={others} onSignalMeasure={onSignalMeasure} />
       <NodeSayCantSpeakNote />
       <NodeCorrectWrongTriggers
         correctThen={doneThen} wrongThen={wrongThen}

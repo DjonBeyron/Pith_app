@@ -31,7 +31,7 @@ export default function AudioModule({ node, file, onDone, adminPreview = false, 
   // в чат уже растушёванным. Раньше растушёвка включалась по старту печати —
   // сообщение появлялось с резким низом и щёлкало в размытый через секунду.
   // Ленивая инициализация, потому что node.typeData разбирается ниже
-  const [isFading,        setIsFading]        = useState(() => !!node.typeData?.audio?.text && node.typeData?.audio?.showText !== false)
+  const [isFading,        setIsFading]        = useState(() => !node.isHistory && !!node.typeData?.audio?.text && node.typeData?.audio?.showText !== false)
   const [buffering,       setBuffering]       = useState(false) // звук пошёл, но данные не успевают (слабая сеть)
   const [textStarted,     setTextStarted]     = useState(false)
   const [revealedCharIdx, setRevealedCharIdx] = useState(-1)
@@ -86,6 +86,8 @@ export default function AudioModule({ node, file, onDone, adminPreview = false, 
   // Аудио ещё не загружено, а сценарий смотрит админ: показываем текст, будто
   // сообщение звучит, и по окончании заглушки отпускаем цепочку дальше
   const stubMode = adminPreview && !src
+  // История/разбор (isHistory): расшифровка сразу целиком, без печати и растушёвки — как в уже прочитанном чате
+  const staticText = !!node.isHistory && !!text
   // Текст начинает печататься не сразу, а когда пузырь доехал до места
   useMissingMediaFallback(stubMode && !pending, onDone, {
     onStart: () => setTextStarted(true),
@@ -340,7 +342,7 @@ export default function AudioModule({ node, file, onDone, adminPreview = false, 
 
   return (
     <div className="playerMsgRow">
-      <PlayerBubble className={bubbleClass}>
+      <PlayerBubble className={bubbleClass} style={duration ? { '--audio-dur': Math.min(duration, 20) } : undefined}>
         {/* data-voice: это речь, а не немая петля — для useSoloMedia при «без звука» */}
         {src && <audio key={elKey} ref={audioRef} src={src} preload="auto" muted={muted} data-voice="" />}
         <div className="playerAudio">
@@ -374,7 +376,7 @@ export default function AudioModule({ node, file, onDone, adminPreview = false, 
             </div>
           </div>
 
-          {text && textStarted && (
+          {text && (textStarted || staticText) && (
             <div className="playerAudioTextSection">
               <PlayerTypingText
                 text={text}
@@ -382,9 +384,9 @@ export default function AudioModule({ node, file, onDone, adminPreview = false, 
                 /* Печать ведёт tick() по часам звука (тайминги слов или доля
                    прогресса речи). Только в заглушке без файла — свой таймер,
                    ровно на её длительность, чтобы текст закончился к переходу */
-                revealedCharIdx={!stubMode ? revealedCharIdx : undefined}
-                speed={stubMode ? stubSpeed : undefined}
-                onTypingChange={active => { if (active) setIsFading(true) }}
+                revealedCharIdx={staticText ? text.length : !stubMode ? revealedCharIdx : undefined}
+                speed={stubMode && !staticText ? stubSpeed : undefined}
+                onTypingChange={staticText ? undefined : active => { if (active) setIsFading(true) }}
               />
             </div>
           )}

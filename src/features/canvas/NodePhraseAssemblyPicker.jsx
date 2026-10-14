@@ -3,13 +3,14 @@ import { getVariantList, syncTriggers, triggersNeedSync, migrateDistractors } fr
 import NodeSignalsPicker from './NodeSignalsPicker.jsx'
 import { phraseAssemblySlots } from '../../shared/lib/signalSlots.js'
 import NodeDistractorList from './NodeDistractorList.jsx'
+import NodeAnswerVariants from './NodeAnswerVariants.jsx'
 import NodeCorrectWrongTriggers from './NodeCorrectWrongTriggers.jsx'
 import { NO_AUTOCORRECT } from '../../shared/lib/noAutoCorrectProps.js'
 
 const BASE_PAIR = ['phrase_correct', 'phrase_wrong']
 
 export default function NodePhraseAssemblyPicker({
-  words = [], distractors = [],
+  words = [], distractors = [], answers = [], onAnswersChange,
   responseCorrect = '', responseWrong = '',
   onWordsChange, onDistractorsChange,
   onResponseCorrectChange, onResponseWrongChange,
@@ -136,6 +137,8 @@ export default function NodePhraseAssemblyPicker({
           ))}
         </div>
       )}
+      {/* другие верные порядки слов (answers): засчитывается любой */}
+      <NodeAnswerVariants answers={answers} onChange={onAnswersChange} />
       {/* лишние слова */}
       <p className="nodePaLabel">Лишние слова</p>
       <NodeDistractorList

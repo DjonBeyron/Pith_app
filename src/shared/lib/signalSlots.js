@@ -25,6 +25,12 @@ export function typeWordSlots(word) {
   return wordLetters(word).map((ch, i) => ({ index: i, label: ch }))
 }
 
+// say_phrase («Сказать фразу»): один слот — первая неудачная попытка, на которой учитель присылает голосовую подсказку
+// (useSayPhrase/SayPhrasePanel: сработает один раз за урок, вместо текстовой подсказки). Сигнал не привязан к месту фразы
+export function sayPhraseSlots() {
+  return [{ index: 0, label: 'первая неудачная попытка' }]
+}
+
 // table (ручной режим): один слот на ячейку-токен ИЛИ слово вне таблицы —
 // ровно то же разбиение, что уже использует сборка ответа в TableManualPanel
 export function tableSlots(answer, cells) {

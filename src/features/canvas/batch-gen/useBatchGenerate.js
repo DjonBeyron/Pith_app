@@ -2,6 +2,7 @@ import { useState, useCallback, useRef } from 'react'
 import { buildBatchPlan } from './batchGenPlan.js'
 import { generateSpeech } from '../../../shared/lib/ttsApi.js'
 import { generateImage } from '../../../shared/lib/imageGenApi.js'
+import { buildAutoTimeline } from '../table-editor/autoTimeline.js'
 import { analyzeWaveform, probeAudioDuration } from '../../../shared/lib/audioUtils.js'
 
 const DEFAULT_CROP = { x: 0, y: 0, scale: 1 }
@@ -44,7 +45,10 @@ export function useBatchGenerate(boardApiRef, pickFile) {
         URL.revokeObjectURL(blobUrl)
       }
       boardApiRef.current.patchNodeTypeData(item.nodeId, data => (
-        { ...data, file_id: fileId, waveformData, wordTimings, duration }
+        item.isTable
+          // Авто-таблица: сразу монтируем ячейки под голос и отправляем таблицу в чат
+          ? { ...data, file_id: fileId, waveformData, wordTimings, duration, sendToChat: true, ...buildAutoTimeline({ cells: data.table?.cells, wordTimings, duration }) }
+          : { ...data, file_id: fileId, waveformData, wordTimings, duration }
       ))
     }
 

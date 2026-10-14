@@ -7,7 +7,8 @@ import { setSoundFilter } from '../../shared/lib/sounds.js'
 // Для всех (по умолчанию всё ВКЛЮЧЕНО):
 //   typing — звук «учитель печатает» (typing-1 / typing-2);
 //   xp     — звук получения XP (xp-gain: в уроке и каждый шарик в итогах);
-//   equalizer — свечение-эквалайзер снизу чата (AudioGlow).
+//   equalizer — свечение-эквалайзер снизу чата (AudioGlow);
+//   timer  — таймеры на быстрых вопросах (лимит времени ноды, useAnswerTimer): выключил — ответы без отсчёта.
 // Только для админа:
 //   hud — датчик fps и штамп версии поверх урока.
 //
@@ -21,6 +22,7 @@ export const PREF_KEYS = {
   typing:    'pithy_pref_typing_sound',
   xp:        'pithy_pref_xp_sound',
   equalizer: 'pithy_pref_equalizer',
+  timer:     'pithy_pref_answer_timer',
   hud:       'pithy_lesson_hud',
 }
 

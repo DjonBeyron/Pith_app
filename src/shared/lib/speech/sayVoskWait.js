@@ -9,9 +9,9 @@ export const WAIT_TICK_MS = 1000
 const NOT_READY = ['no-model', 'loading', 'not-loaded', 'no-lib', 'broken']
 
 /** Нужно ли ждать Vosk на этот тап: режим «Только Vosk», фраза годится для Vosk, но он не готов. data — readSayData шага; snap — runtime.snapshot() */
-export function needsVoskWait({ mode, phrase, snap, now }) {
+export function needsVoskWait({ mode, phrase, free = false, snap, now }) {
   if (mode !== 'vosk') return false
-  const p = pickEngine({ mode, phrase, ...snap, now })
+  const p = pickEngine({ mode, phrase, free, ...snap, now })
   return p.engine === 'system' && NOT_READY.includes(p.reason)
 }
 

@@ -52,7 +52,7 @@ describe('«Не могу слушать»: что убирается', () => {
     expect(cardNeedsSound(voice('v', 'Hello'))).toBe(false)
     expect(cardNeedsSound(voice('v', '   '))).toBe(true) // текста нет — слушать нечего без звука
     expect(cardNeedsSound(voice('v', undefined))).toBe(true)
-    for (const type of ['video', 'circle', 'voice_record']) expect(cardNeedsSound(withTypes('x', type))).toBe(true)
+    for (const type of ['video', 'circle']) expect(cardNeedsSound(withTypes('x', type))).toBe(true)
     expect(cardNeedsSound(card('plain'))).toBe(false)
   })
 

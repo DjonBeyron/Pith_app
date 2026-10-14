@@ -2,6 +2,7 @@
 // слов для озвучки видят одни и те же значения по умолчанию (в т.ч. подсказки в чат: hintsOn, hintSilence, hintMismatch, hintPartial). Старое поле showPhrase (фраза пузырём в чате) убрано: в данных
 // ноды оно может встретиться — его просто никто не читает. Чистые функции, без React.
 import { tokenize } from './speechMatch.js'
+import { parsePattern } from './sayPattern.js'
 import { HINT_DEFAULTS } from './sayTexts.js'
 
 export const THRESHOLD_MIN = 50
@@ -45,6 +46,8 @@ export function readSayData(data) {
   const threshold = strict ? THRESHOLD_MAX : clampThreshold(d.threshold)
   return {
     phrase: String(d.phrase ?? '').trim(),
+    // Шаблон свободной фразы (sayPattern.js): задан и разобрался — ученик говорит своё, фраза-эталон остаётся примером. Битый шаблон молча игнорируется (проверка по эталону), линтер его покажет
+    pattern: d.pattern && parsePattern(d.pattern).ok ? String(d.pattern).trim() : '',
     translation: String(d.translation ?? '').trim(),
     keywords: parseKeywords(d.keywords),
     threshold,

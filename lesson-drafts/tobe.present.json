@@ -1,0 +1,1650 @@
+{
+  "format": "pithy-lesson",
+  "version": 1,
+  "lesson": {
+    "title": "To be · I'm",
+    "nodeCount": 53
+  },
+  "nodes": [
+    {
+      "ref": "n1",
+      "type": "text",
+      "seq": 1,
+      "pos": [
+        0,
+        0
+      ],
+      "data": {
+        "content": "я попал на вечеринку, где никого не знаю 😅",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 2200,
+          "then": "n2"
+        }
+      ]
+    },
+    {
+      "ref": "n2",
+      "type": "audio",
+      "seq": 2,
+      "pos": [
+        560,
+        0
+      ],
+      "note": "ОЗВУЧКА: Как сказать по-английски: я Пит?",
+      "needs": "audio — озвучка реплики",
+      "data": {
+        "text": "Как сказать по-английски: я Пит?",
+        "showText": false
+      },
+      "triggers": [
+        {
+          "if": "played",
+          "then": "n3"
+        }
+      ]
+    },
+    {
+      "ref": "n3",
+      "type": "word_choice",
+      "seq": 3,
+      "pos": [
+        1120,
+        0
+      ],
+      "data": {
+        "options": [
+          {
+            "text": "I Pit",
+            "isCorrect": false
+          },
+          {
+            "text": "I'm Pit",
+            "isCorrect": true
+          },
+          {
+            "text": "Me Pit",
+            "isCorrect": false
+          }
+        ],
+        "sendPickToChat": true
+      },
+      "triggers": [
+        {
+          "if": "word_correct",
+          "then": "n4"
+        },
+        {
+          "if": "word_wrong",
+          "then": "n5"
+        }
+      ]
+    },
+    {
+      "ref": "n4",
+      "type": "text",
+      "seq": 4,
+      "pos": [
+        1680,
+        0
+      ],
+      "data": {
+        "content": "да)) именно так!",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1500,
+          "then": "n6"
+        }
+      ]
+    },
+    {
+      "ref": "n5",
+      "type": "text",
+      "seq": 53,
+      "pos": [
+        1680,
+        480
+      ],
+      "data": {
+        "content": "не совсем) между {w:я} и именем нужно ещё маленькое слово",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 2400,
+          "then": "n6"
+        }
+      ]
+    },
+    {
+      "ref": "n6",
+      "type": "system",
+      "seq": 5,
+      "pos": [
+        3540,
+        0
+      ],
+      "data": {
+        "content": "Часть 1 · I'm"
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1600,
+          "then": "n7"
+        }
+      ]
+    },
+    {
+      "ref": "n7",
+      "type": "text",
+      "seq": 6,
+      "pos": [
+        4100,
+        0
+      ],
+      "data": {
+        "content": "{g:I'm} это сокращение от {g:I} + {g:am}, переводится как {t:я есть, я нахожусь}, это {u:настоящее время}",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 2800,
+          "then": "n8"
+        }
+      ]
+    },
+    {
+      "ref": "n8",
+      "type": "table",
+      "seq": 7,
+      "pos": [
+        4660,
+        0
+      ],
+      "note": "Таблица to be, шаг 1: пока только форма am",
+      "data": {
+        "mode": "demo",
+        "chatCaption": "пока только am",
+        "table": {
+          "rows": [
+            {
+              "id": "r0",
+              "heightPct": 50
+            },
+            {
+              "id": "r1",
+              "heightPct": 50
+            }
+          ],
+          "columns": [
+            {
+              "id": "c0",
+              "widthPct": 50
+            },
+            {
+              "id": "c1",
+              "widthPct": 50
+            }
+          ],
+          "colCount": 2,
+          "rowCount": 2,
+          "cells": [
+            {
+              "id": "h0",
+              "col": 0,
+              "row": 0,
+              "value": "Кто",
+              "colspan": 1,
+              "rowspan": 1,
+              "fontSize": 11,
+              "isHeader": true
+            },
+            {
+              "id": "h1",
+              "col": 1,
+              "row": 0,
+              "value": "Форма",
+              "colspan": 1,
+              "rowspan": 1,
+              "fontSize": 11,
+              "isHeader": true
+            },
+            {
+              "id": "r0c0",
+              "col": 0,
+              "row": 1,
+              "value": "I",
+              "colspan": 1,
+              "rowspan": 1,
+              "fontSize": 14
+            },
+            {
+              "id": "r0c1",
+              "col": 1,
+              "row": 1,
+              "value": "am",
+              "colspan": 1,
+              "rowspan": 1,
+              "fontSize": 14
+            }
+          ]
+        }
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 2200,
+          "then": "n9"
+        }
+      ]
+    },
+    {
+      "ref": "n9",
+      "type": "audio",
+      "seq": 8,
+      "pos": [
+        5220,
+        0
+      ],
+      "note": "ОЗВУЧКА: Смотри: после I всегда идёт am, а в живой речи его сжимают до I'm",
+      "needs": "audio — озвучка реплики",
+      "data": {
+        "text": "Смотри: после {g:I} всегда идёт {g:am}, а в живой речи его сжимают до {g:I'm}",
+        "showText": false
+      },
+      "triggers": [
+        {
+          "if": "played",
+          "then": "n10"
+        }
+      ]
+    },
+    {
+      "ref": "n10",
+      "type": "table",
+      "seq": 9,
+      "pos": [
+        5780,
+        0
+      ],
+      "note": "Таблица to be, шаг 2: добавилась короткая форма I'm",
+      "data": {
+        "mode": "demo",
+        "chatCaption": "и короче, I'm",
+        "table": {
+          "rows": [
+            {
+              "id": "r0",
+              "heightPct": 50
+            },
+            {
+              "id": "r1",
+              "heightPct": 50
+            }
+          ],
+          "columns": [
+            {
+              "id": "c0",
+              "widthPct": 36
+            },
+            {
+              "id": "c1",
+              "widthPct": 24
+            },
+            {
+              "id": "c2",
+              "widthPct": 40
+            }
+          ],
+          "colCount": 3,
+          "rowCount": 2,
+          "cells": [
+            {
+              "id": "h0",
+              "col": 0,
+              "row": 0,
+              "value": "Кто",
+              "colspan": 1,
+              "rowspan": 1,
+              "fontSize": 11,
+              "isHeader": true
+            },
+            {
+              "id": "h1",
+              "col": 1,
+              "row": 0,
+              "value": "Форма",
+              "colspan": 1,
+              "rowspan": 1,
+              "fontSize": 11,
+              "isHeader": true
+            },
+            {
+              "id": "h2",
+              "col": 2,
+              "row": 0,
+              "value": "Коротко",
+              "colspan": 1,
+              "rowspan": 1,
+              "fontSize": 11,
+              "isHeader": true
+            },
+            {
+              "id": "r0c0",
+              "col": 0,
+              "row": 1,
+              "value": "I",
+              "colspan": 1,
+              "rowspan": 1,
+              "fontSize": 14
+            },
+            {
+              "id": "r0c1",
+              "col": 1,
+              "row": 1,
+              "value": "am",
+              "colspan": 1,
+              "rowspan": 1,
+              "fontSize": 14
+            },
+            {
+              "id": "r0c2",
+              "col": 2,
+              "row": 1,
+              "value": "I'm",
+              "colspan": 1,
+              "rowspan": 1,
+              "fontSize": 14
+            }
+          ]
+        }
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 2400,
+          "then": "n11"
+        }
+      ]
+    },
+    {
+      "ref": "n11",
+      "type": "text",
+      "seq": 10,
+      "pos": [
+        6340,
+        0
+      ],
+      "data": {
+        "content": "ночь, а я всё ещё на вечеринке((",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1800,
+          "then": "n12"
+        }
+      ]
+    },
+    {
+      "ref": "n12",
+      "type": "text",
+      "seq": 11,
+      "pos": [
+        6900,
+        0
+      ],
+      "data": {
+        "content": "😭",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1200,
+          "then": "n13"
+        }
+      ]
+    },
+    {
+      "ref": "n13",
+      "type": "photo",
+      "seq": 12,
+      "pos": [
+        7460,
+        0
+      ],
+      "note": "ФОТО: сгенерировать в редакторе по imagePrompt",
+      "needs": "photo",
+      "data": {
+        "caption": "как сказать {t:«я без сил»}?",
+        "imagePrompt": "Мультяшный парень в уютной комнате с гирляндами, глаза слипаются, в руке стакан сока, поздний вечер, без текста на картинке"
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 2400,
+          "then": "n14"
+        }
+      ]
+    },
+    {
+      "ref": "n14",
+      "type": "phrase_assembly",
+      "seq": 13,
+      "pos": [
+        8020,
+        0
+      ],
+      "data": {
+        "words": [
+          "I'm",
+          "tired"
+        ],
+        "distractors": [
+          {
+            "text": "tires"
+          },
+          {
+            "text": "be"
+          }
+        ],
+        "responseWrong": "не совсем) нужно слово я есть и слово без сил"
+      },
+      "triggers": [
+        {
+          "if": "phrase_correct",
+          "then": "n15"
+        },
+        {
+          "if": "phrase_wrong",
+          "then": "n16"
+        }
+      ]
+    },
+    {
+      "ref": "n15",
+      "type": "reaction",
+      "seq": 14,
+      "pos": [
+        8580,
+        0
+      ],
+      "data": {
+        "emoji": "🔥",
+        "target": "student"
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1400,
+          "then": "n17"
+        }
+      ]
+    },
+    {
+      "ref": "n16",
+      "type": "text",
+      "seq": 52,
+      "pos": [
+        8580,
+        480
+      ],
+      "data": {
+        "content": "близко) сейчас {u:настоящее время}: после {g:I} нужно {g:am}, или коротко {g:I'm}, а потом {g:tired}",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 2800,
+          "then": "n17"
+        }
+      ]
+    },
+    {
+      "ref": "n17",
+      "type": "text",
+      "seq": 15,
+      "pos": [
+        9140,
+        0
+      ],
+      "data": {
+        "content": "а потом заиграла скучная музыка",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1800,
+          "then": "n18"
+        }
+      ]
+    },
+    {
+      "ref": "n18",
+      "type": "text",
+      "seq": 16,
+      "pos": [
+        9700,
+        0
+      ],
+      "data": {
+        "content": "🥱",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1200,
+          "then": "n19"
+        }
+      ]
+    },
+    {
+      "ref": "n19",
+      "type": "text",
+      "seq": 17,
+      "pos": [
+        10260,
+        0
+      ],
+      "data": {
+        "content": "напечатай {t:«мне скучно»}: можно {g:I am} или короче {g:I'm}, мы возьмём полную, тапай по буквам",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 2600,
+          "then": "n20"
+        }
+      ]
+    },
+    {
+      "ref": "n20",
+      "type": "type_word",
+      "seq": 18,
+      "pos": [
+        10820,
+        0
+      ],
+      "data": {
+        "word": "I am bored",
+        "extraLetters": "pt",
+        "responseWrong": "не то) нужно слово я есть и слово скучно"
+      },
+      "triggers": [
+        {
+          "if": "type_correct",
+          "then": "n21"
+        },
+        {
+          "if": "type_wrong",
+          "then": "n22"
+        }
+      ]
+    },
+    {
+      "ref": "n21",
+      "type": "text",
+      "seq": 19,
+      "pos": [
+        11380,
+        0
+      ],
+      "data": {
+        "content": "отлично, всё на месте)",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1500,
+          "then": "n23"
+        }
+      ]
+    },
+    {
+      "ref": "n22",
+      "type": "text",
+      "seq": 51,
+      "pos": [
+        11380,
+        480
+      ],
+      "data": {
+        "content": "но нет) там {g:I} и {g:am}, а дальше слово про скуку",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 2600,
+          "then": "n23"
+        }
+      ]
+    },
+    {
+      "ref": "n23",
+      "type": "text",
+      "seq": 20,
+      "pos": [
+        11940,
+        0
+      ],
+      "data": {
+        "content": "а ну-ка на слух 👂",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1400,
+          "then": "n24"
+        }
+      ]
+    },
+    {
+      "ref": "n24",
+      "type": "audio",
+      "seq": 21,
+      "pos": [
+        12500,
+        0
+      ],
+      "note": "ОЗВУЧКА: I'm hungry",
+      "needs": "audio — озвучка реплики",
+      "data": {
+        "text": "{g:I'm hungry}",
+        "showText": false
+      },
+      "triggers": [
+        {
+          "if": "played",
+          "then": "n25"
+        }
+      ]
+    },
+    {
+      "ref": "n25",
+      "type": "word_choice",
+      "seq": 22,
+      "pos": [
+        13060,
+        0
+      ],
+      "data": {
+        "options": [
+          {
+            "text": "Я хочу есть",
+            "isCorrect": true
+          },
+          {
+            "text": "Мне холодно",
+            "isCorrect": false
+          },
+          {
+            "text": "Мне скучно",
+            "isCorrect": false
+          }
+        ],
+        "sendPickToChat": true
+      },
+      "triggers": [
+        {
+          "if": "word_correct",
+          "then": "n26"
+        },
+        {
+          "if": "word_wrong",
+          "then": "n27"
+        }
+      ]
+    },
+    {
+      "ref": "n26",
+      "type": "text",
+      "seq": 23,
+      "pos": [
+        13620,
+        0
+      ],
+      "data": {
+        "content": "в точку)",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1400,
+          "then": "n28"
+        }
+      ]
+    },
+    {
+      "ref": "n27",
+      "type": "text",
+      "seq": 50,
+      "pos": [
+        13620,
+        480
+      ],
+      "data": {
+        "content": "не то) {g:hungry} значит {t:голодный}, поэтому {g:I'm hungry} это {t:я хочу есть}",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 2800,
+          "then": "n28"
+        }
+      ]
+    },
+    {
+      "ref": "n28",
+      "type": "system",
+      "seq": 24,
+      "pos": [
+        15480,
+        0
+      ],
+      "data": {
+        "content": "Часть 2 · говорим про себя 🎤"
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1600,
+          "then": "n29"
+        }
+      ]
+    },
+    {
+      "ref": "n29",
+      "type": "audio",
+      "seq": 25,
+      "pos": [
+        16040,
+        0
+      ],
+      "note": "ОЗВУЧКА: Ко мне подошли и спросили: how are you?",
+      "needs": "audio — озвучка реплики",
+      "data": {
+        "text": "Ко мне подошли и спросили: {g:how are you}?",
+        "showText": false
+      },
+      "triggers": [
+        {
+          "if": "played",
+          "then": "n30"
+        }
+      ]
+    },
+    {
+      "ref": "n30",
+      "type": "audio",
+      "seq": 26,
+      "pos": [
+        16600,
+        0
+      ],
+      "note": "ОЗВУЧКА: Скажи вслух по-английски: я в порядке",
+      "needs": "audio — озвучка реплики",
+      "data": {
+        "text": "Скажи вслух по-английски: я в порядке",
+        "showText": false
+      },
+      "triggers": [
+        {
+          "if": "played",
+          "then": "n31"
+        }
+      ]
+    },
+    {
+      "ref": "n31",
+      "type": "say_phrase",
+      "seq": 27,
+      "pos": [
+        17160,
+        0
+      ],
+      "data": {
+        "voiceReply": true,
+        "hintSilence": "Не слышу тебя) говори чуть громче и ближе к микрофону",
+        "hintMismatch": "Не совсем) скажи чуть медленнее и чётче",
+        "hintPartial": "Близко) верно: {ok}, не хватило: {missed}",
+        "phrase": "I'm fine",
+        "translation": "Я в порядке",
+        "keywords": "fine"
+      },
+      "triggers": [
+        {
+          "if": "say_done",
+          "then": "n32"
+        },
+        {
+          "if": "say_wrong",
+          "then": "n33"
+        }
+      ]
+    },
+    {
+      "ref": "n32",
+      "type": "text",
+      "seq": 28,
+      "pos": [
+        17720,
+        0
+      ],
+      "data": {
+        "content": "звучит чётко)",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1400,
+          "then": "n34"
+        }
+      ]
+    },
+    {
+      "ref": "n33",
+      "type": "text",
+      "seq": 49,
+      "pos": [
+        17720,
+        480
+      ],
+      "data": {
+        "content": "не совсем) нужно сказать {g:I'm} и слово {g:fine}",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 2400,
+          "then": "n34"
+        }
+      ]
+    },
+    {
+      "ref": "n34",
+      "type": "photo",
+      "seq": 29,
+      "pos": [
+        18280,
+        0
+      ],
+      "note": "ФОТО: сгенерировать в редакторе по imagePrompt",
+      "needs": "photo",
+      "data": {
+        "caption": "расскажи, как ты сегодня 😄",
+        "imagePrompt": "Дружелюбный мультяшный человек машет рукой в камеру, светлый фон, без текста на картинке"
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 2400,
+          "then": "n35"
+        }
+      ]
+    },
+    {
+      "ref": "n35",
+      "type": "audio",
+      "seq": 30,
+      "pos": [
+        18840,
+        0
+      ],
+      "note": "ОЗВУЧКА: Скажи что угодно про себя, начни с I'm, я проверю только произношение",
+      "needs": "audio — озвучка реплики",
+      "data": {
+        "text": "Скажи что угодно про себя, начни с {g:I'm}, я проверю только произношение",
+        "showText": false
+      },
+      "triggers": [
+        {
+          "if": "played",
+          "then": "n36"
+        }
+      ]
+    },
+    {
+      "ref": "n36",
+      "type": "say_phrase",
+      "seq": 31,
+      "pos": [
+        19400,
+        0
+      ],
+      "data": {
+        "voiceReply": false,
+        "hintSilence": "Не слышу тебя) говори чуть громче и ближе к микрофону",
+        "hintMismatch": "Начни с I'm, а дальше что угодно, не бойся)",
+        "hintPartial": "Близко) верно: {ok}, не хватило: {missed}",
+        "phrase": "I'm here",
+        "translation": "Я здесь",
+        "pattern": "(i'm|i am) **"
+      },
+      "triggers": [
+        {
+          "if": "say_done",
+          "then": "n37"
+        },
+        {
+          "if": "say_wrong",
+          "then": "n38"
+        }
+      ]
+    },
+    {
+      "ref": "n37",
+      "type": "text",
+      "seq": 32,
+      "pos": [
+        19960,
+        0
+      ],
+      "data": {
+        "content": "вооо, круто)))",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1400,
+          "then": "n39"
+        }
+      ]
+    },
+    {
+      "ref": "n38",
+      "type": "text",
+      "seq": 48,
+      "pos": [
+        19960,
+        480
+      ],
+      "data": {
+        "content": "хм, начни с {g:I'm}, дальше что угодно)",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 2400,
+          "then": "n39"
+        }
+      ]
+    },
+    {
+      "ref": "n39",
+      "type": "system",
+      "seq": 33,
+      "pos": [
+        21820,
+        0
+      ],
+      "data": {
+        "content": "Часть 3 · про других"
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1600,
+          "then": "n40"
+        }
+      ]
+    },
+    {
+      "ref": "n40",
+      "type": "table",
+      "seq": 34,
+      "pos": [
+        22380,
+        0
+      ],
+      "note": "Таблица to be, шаг 3: добавилась строка he, she, it. ОЗВУЧКА таблицы: Смотри, теперь тут две строки. С I идёт am, то есть я есть, и коротко I'm. А с he, she, it идёт is, например she's, это она есть. Всё это настоящее время",
+      "needs": "audio — озвучка таблицы по script",
+      "data": {
+        "mode": "dictator",
+        "script": "Смотри, теперь тут две строки. С I идёт am, то есть я есть, и коротко I'm. А с he, she, it идёт is, например she's, это она есть. Всё это настоящее время",
+        "chatCaption": "теперь про других",
+        "table": {
+          "rows": [
+            {
+              "id": "r0",
+              "heightPct": 33
+            },
+            {
+              "id": "r1",
+              "heightPct": 33
+            },
+            {
+              "id": "r2",
+              "heightPct": 33
+            }
+          ],
+          "columns": [
+            {
+              "id": "c0",
+              "widthPct": 36
+            },
+            {
+              "id": "c1",
+              "widthPct": 24
+            },
+            {
+              "id": "c2",
+              "widthPct": 40
+            }
+          ],
+          "colCount": 3,
+          "rowCount": 3,
+          "cells": [
+            {
+              "id": "h0",
+              "col": 0,
+              "row": 0,
+              "value": "Кто",
+              "colspan": 1,
+              "rowspan": 1,
+              "fontSize": 11,
+              "isHeader": true
+            },
+            {
+              "id": "h1",
+              "col": 1,
+              "row": 0,
+              "value": "Форма",
+              "colspan": 1,
+              "rowspan": 1,
+              "fontSize": 11,
+              "isHeader": true
+            },
+            {
+              "id": "h2",
+              "col": 2,
+              "row": 0,
+              "value": "Коротко",
+              "colspan": 1,
+              "rowspan": 1,
+              "fontSize": 11,
+              "isHeader": true
+            },
+            {
+              "id": "r0c0",
+              "col": 0,
+              "row": 1,
+              "value": "I",
+              "colspan": 1,
+              "rowspan": 1,
+              "fontSize": 14
+            },
+            {
+              "id": "r0c1",
+              "col": 1,
+              "row": 1,
+              "value": "am",
+              "colspan": 1,
+              "rowspan": 1,
+              "fontSize": 14
+            },
+            {
+              "id": "r0c2",
+              "col": 2,
+              "row": 1,
+              "value": "I'm",
+              "colspan": 1,
+              "rowspan": 1,
+              "fontSize": 14
+            },
+            {
+              "id": "r1c0",
+              "col": 0,
+              "row": 2,
+              "value": "he, she, it",
+              "colspan": 1,
+              "rowspan": 1,
+              "fontSize": 13
+            },
+            {
+              "id": "r1c1",
+              "col": 1,
+              "row": 2,
+              "value": "is",
+              "colspan": 1,
+              "rowspan": 1,
+              "fontSize": 13
+            },
+            {
+              "id": "r1c2",
+              "col": 2,
+              "row": 2,
+              "value": "he's, she's, it's",
+              "colspan": 1,
+              "rowspan": 1,
+              "fontSize": 13
+            }
+          ]
+        }
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 2400,
+          "then": "n41"
+        }
+      ]
+    },
+    {
+      "ref": "n41",
+      "type": "audio",
+      "seq": 35,
+      "pos": [
+        22940,
+        0
+      ],
+      "note": "ОЗВУЧКА: Маша выиграла конкурс!",
+      "needs": "audio — озвучка реплики",
+      "data": {
+        "text": "Маша выиграла конкурс!",
+        "showText": false
+      },
+      "triggers": [
+        {
+          "if": "played",
+          "then": "n42"
+        }
+      ]
+    },
+    {
+      "ref": "n42",
+      "type": "photo",
+      "seq": 36,
+      "pos": [
+        23500,
+        0
+      ],
+      "note": "ФОТО: сгенерировать в редакторе по imagePrompt",
+      "needs": "photo",
+      "data": {
+        "caption": "как сказать про неё по-английски {t:«она счастлива»}?",
+        "imagePrompt": "Мультяшная девушка с кубком поднимает руки от радости, конфетти, без текста на картинке"
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 2400,
+          "then": "n43"
+        }
+      ]
+    },
+    {
+      "ref": "n43",
+      "type": "phrase_assembly",
+      "seq": 37,
+      "pos": [
+        24060,
+        0
+      ],
+      "data": {
+        "words": [
+          "She's",
+          "happy"
+        ],
+        "distractors": [
+          {
+            "text": "he's"
+          },
+          {
+            "text": "are"
+          }
+        ],
+        "responseWrong": "не совсем) про Машу нужно слово она есть"
+      },
+      "triggers": [
+        {
+          "if": "phrase_correct",
+          "then": "n44"
+        },
+        {
+          "if": "phrase_wrong",
+          "then": "n46"
+        }
+      ]
+    },
+    {
+      "ref": "n44",
+      "type": "reaction",
+      "seq": 38,
+      "pos": [
+        24620,
+        0
+      ],
+      "data": {
+        "emoji": "👏",
+        "target": "student"
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1400,
+          "then": "n45"
+        }
+      ]
+    },
+    {
+      "ref": "n45",
+      "type": "table",
+      "seq": 39,
+      "pos": [
+        25180,
+        0
+      ],
+      "note": "Таблица to be, шаг 4: полная таблица настоящего времени. ОЗВУЧКА таблицы: Ещё раз, всё вместе, без паники. С I идёт am, и говорим коротко I'm. С he, she, it идёт is, например she's. А с you, we, they идёт are, например we're. Это всё настоящее время",
+      "needs": "audio — озвучка таблицы по script",
+      "data": {
+        "mode": "dictator",
+        "script": "Ещё раз, всё вместе, без паники. С I идёт am, и говорим коротко I'm. С he, she, it идёт is, например she's. А с you, we, they идёт are, например we're. Это всё настоящее время",
+        "chatCaption": "вся таблица целиком",
+        "table": {
+          "rows": [
+            {
+              "id": "r0",
+              "heightPct": 25
+            },
+            {
+              "id": "r1",
+              "heightPct": 25
+            },
+            {
+              "id": "r2",
+              "heightPct": 25
+            },
+            {
+              "id": "r3",
+              "heightPct": 25
+            }
+          ],
+          "columns": [
+            {
+              "id": "c0",
+              "widthPct": 36
+            },
+            {
+              "id": "c1",
+              "widthPct": 24
+            },
+            {
+              "id": "c2",
+              "widthPct": 40
+            }
+          ],
+          "colCount": 3,
+          "rowCount": 4,
+          "cells": [
+            {
+              "id": "h0",
+              "col": 0,
+              "row": 0,
+              "value": "Кто",
+              "colspan": 1,
+              "rowspan": 1,
+              "fontSize": 11,
+              "isHeader": true
+            },
+            {
+              "id": "h1",
+              "col": 1,
+              "row": 0,
+              "value": "Форма",
+              "colspan": 1,
+              "rowspan": 1,
+              "fontSize": 11,
+              "isHeader": true
+            },
+            {
+              "id": "h2",
+              "col": 2,
+              "row": 0,
+              "value": "Коротко",
+              "colspan": 1,
+              "rowspan": 1,
+              "fontSize": 11,
+              "isHeader": true
+            },
+            {
+              "id": "r0c0",
+              "col": 0,
+              "row": 1,
+              "value": "I",
+              "colspan": 1,
+              "rowspan": 1,
+              "fontSize": 14
+            },
+            {
+              "id": "r0c1",
+              "col": 1,
+              "row": 1,
+              "value": "am",
+              "colspan": 1,
+              "rowspan": 1,
+              "fontSize": 14
+            },
+            {
+              "id": "r0c2",
+              "col": 2,
+              "row": 1,
+              "value": "I'm",
+              "colspan": 1,
+              "rowspan": 1,
+              "fontSize": 14
+            },
+            {
+              "id": "r1c0",
+              "col": 0,
+              "row": 2,
+              "value": "he, she, it",
+              "colspan": 1,
+              "rowspan": 1,
+              "fontSize": 13
+            },
+            {
+              "id": "r1c1",
+              "col": 1,
+              "row": 2,
+              "value": "is",
+              "colspan": 1,
+              "rowspan": 1,
+              "fontSize": 13
+            },
+            {
+              "id": "r1c2",
+              "col": 2,
+              "row": 2,
+              "value": "he's, she's, it's",
+              "colspan": 1,
+              "rowspan": 1,
+              "fontSize": 13
+            },
+            {
+              "id": "r2c0",
+              "col": 0,
+              "row": 3,
+              "value": "you, we, they",
+              "colspan": 1,
+              "rowspan": 1,
+              "fontSize": 13
+            },
+            {
+              "id": "r2c1",
+              "col": 1,
+              "row": 3,
+              "value": "are",
+              "colspan": 1,
+              "rowspan": 1,
+              "fontSize": 13
+            },
+            {
+              "id": "r2c2",
+              "col": 2,
+              "row": 3,
+              "value": "you're, we're, they're",
+              "colspan": 1,
+              "rowspan": 1,
+              "fontSize": 13
+            }
+          ]
+        }
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 2600,
+          "then": "n47"
+        }
+      ]
+    },
+    {
+      "ref": "n46",
+      "type": "text",
+      "seq": 47,
+      "pos": [
+        24620,
+        480
+      ],
+      "data": {
+        "content": "почти)) про Машу нужно {g:she's}, как {g:I'm}, только для неё",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 2800,
+          "then": "n45"
+        }
+      ]
+    },
+    {
+      "ref": "n47",
+      "type": "text",
+      "seq": 40,
+      "pos": [
+        25740,
+        0
+      ],
+      "data": {
+        "content": "а ну-ка на слух, про нас с Машей 👂",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1800,
+          "then": "n48"
+        }
+      ]
+    },
+    {
+      "ref": "n48",
+      "type": "audio",
+      "seq": 41,
+      "pos": [
+        26300,
+        0
+      ],
+      "note": "ОЗВУЧКА: We're friends",
+      "needs": "audio — озвучка реплики",
+      "data": {
+        "text": "{g:We're friends}",
+        "showText": false
+      },
+      "triggers": [
+        {
+          "if": "played",
+          "then": "n49"
+        }
+      ]
+    },
+    {
+      "ref": "n49",
+      "type": "word_choice",
+      "seq": 42,
+      "pos": [
+        26860,
+        0
+      ],
+      "data": {
+        "options": [
+          {
+            "text": "Мы друзья",
+            "isCorrect": true
+          },
+          {
+            "text": "Я друг",
+            "isCorrect": false
+          },
+          {
+            "text": "Они друзья",
+            "isCorrect": false
+          }
+        ],
+        "sendPickToChat": true
+      },
+      "triggers": [
+        {
+          "if": "word_correct",
+          "then": "n50"
+        },
+        {
+          "if": "word_wrong",
+          "then": "n51"
+        }
+      ]
+    },
+    {
+      "ref": "n50",
+      "type": "reaction",
+      "seq": 43,
+      "pos": [
+        27420,
+        0
+      ],
+      "data": {
+        "emoji": "👍",
+        "target": "student"
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1400,
+          "then": "n52"
+        }
+      ]
+    },
+    {
+      "ref": "n51",
+      "type": "text",
+      "seq": 46,
+      "pos": [
+        27420,
+        480
+      ],
+      "data": {
+        "content": "не то) в начале слышно {g:we're}, а это {w:мы есть}",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 2600,
+          "then": "n52"
+        }
+      ]
+    },
+    {
+      "ref": "n52",
+      "type": "text",
+      "seq": 44,
+      "pos": [
+        29280,
+        0
+      ],
+      "data": {
+        "content": "Мы повторили, как говорить о себе и о других:\n{g:I'm}, {g:she's}, {g:you're}, {g:we're}",
+        "hardWrap": true
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 3000,
+          "then": "n53"
+        }
+      ]
+    },
+    {
+      "ref": "n53",
+      "type": "text",
+      "seq": 45,
+      "pos": [
+        29840,
+        0
+      ],
+      "data": {
+        "content": "И самое главное: теперь ты можешь сказать о себе почти что угодно)",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 2200,
+          "then": null
+        }
+      ]
+    }
+  ],
+  "zones": [
+    {
+      "id": "zone-tobe-1",
+      "x": -150,
+      "y": -150,
+      "width": 2288,
+      "height": 1040,
+      "label": "Вход",
+      "color": "#b6fe3b"
+    },
+    {
+      "id": "zone-tobe-2",
+      "x": 3390,
+      "y": -150,
+      "width": 10688,
+      "height": 1040,
+      "label": "Часть 1 · I'm",
+      "color": "#5fb8ff"
+    },
+    {
+      "id": "zone-tobe-3",
+      "x": 15330,
+      "y": -150,
+      "width": 5088,
+      "height": 1040,
+      "label": "Часть 2 · говорим про себя",
+      "color": "#ff9f5f"
+    },
+    {
+      "id": "zone-tobe-4",
+      "x": 21670,
+      "y": -150,
+      "width": 6208,
+      "height": 1040,
+      "label": "Часть 3 · про других",
+      "color": "#ff6fae"
+    },
+    {
+      "id": "zone-tobe-5",
+      "x": 29130,
+      "y": -150,
+      "width": 1168,
+      "height": 560,
+      "label": "Итог",
+      "color": "#ffd75f"
+    }
+  ]
+}

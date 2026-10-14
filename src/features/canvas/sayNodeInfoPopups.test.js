@@ -28,10 +28,10 @@ describe('say_phrase в редакторе — пояснения только �
     for (const a of [...attrs(html, 'placeholder'), ...attrs(html, 'aria-label')]) expect(a.length, a).toBeLessThanOrEqual(MAX_VISIBLE)
   })
 
-  it('в панели есть кнопки «Пояснение»: фраза, ключевые слова, порог, «Строго», «Послушать», «Голосовое с текстом», подсказки (+3 поля), два выхода', () => {
+  it('в панели есть кнопки «Пояснение»: фраза, ключевые слова, порог, «Строго», «Послушать», «Голосовое с текстом», свободная фраза (шаблон), подсказки (+3 поля), два выхода', () => {
     const html = panel()
-    expect((html.match(/aria-label="Пояснение"/g) ?? []).length).toBe(11)
-    for (const id of ['phrase', 'keywords', 'threshold', 'strict', 'listen', 'voice', 'hints', 'hintSilence', 'hintMismatch', 'hintPartial', 'exits']) {
+    expect((html.match(/aria-label="Пояснение"/g) ?? []).length).toBe(12)
+    for (const id of ['phrase', 'keywords', 'threshold', 'strict', 'listen', 'voice', 'pattern', 'hints', 'hintSilence', 'hintMismatch', 'hintPartial', 'exits']) {
       expect(html, id).toContain(`data-testid="say-info-${id}"`)
     }
     expect(html).toContain('data-testid="say-cant-speak-note"')

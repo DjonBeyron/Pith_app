@@ -8,6 +8,7 @@ import { useHighlightPrefs } from '../useHighlightPrefs.js'
 import { useColorHistory } from './useColorHistory.js'
 import { useRichTextFavorites, RICH_TEXT_FAV_ID } from './useRichTextFavorites.js'
 import { positionToolbar } from './positionToolbar.js'
+import { describeStyle } from '../../../shared/lib/styleReadout.js'
 
 const TOOLBAR_W = 280
 const LINE_H = 18 // .richTextField: font-size 12px * line-height 1.5
@@ -40,7 +41,29 @@ function favSwatchStyle(fav) {
 // шапка сверху позволяет перетащить панель вручную, если авто-место не
 // устраивает (сбрасывается на новом выделении — тулбар монтируется заново).
 export default function RichTextToolbar({ rect, range, highlights, onApply, onClose }) {
-  const { color, setColor, mode, setMode, outline, setOutline, opacity, setOpacity } = useHighlightPrefs()
+  const prefs = useHighlightPrefs()
+  const { mode, setMode, outline, setOutline } = prefs
+  // Активный цвет — цвет самого выделенного текста (а не «последний выбранный»): панель открывается с ним, и свотч/hex/прозрачность показывают его.
+  // Базовый серый (#ffffff 75%) тоже активный цвет, но при выборе нового берём обычную прозрачность из настроек, а не серую
+  const [active, setActive] = useState(() => {
+    const st = range ? describeStyle(highlights, range.start, range.end) : null
+    return st && !st.mixed && st.color ? { color: st.color, opacity: st.opacity ?? 1, base: st.isBase } : null
+  })
+  // «Цвет линии»: красим только линию подчёркивания (текст остаётся как есть) — например, белое подчёркивание под серым текстом
+  const [lineOn, setLineOn] = useState(false)
+  const [lineC, setLineC] = useState(() => {
+    const u = range ? highlights.find(h => h.mode === 'underline' && h.start <= range.start && h.end >= range.end) : null
+    return u?.color ?? '#ffffff'
+  })
+  const baseColor = active?.color ?? prefs.color
+  const color = lineOn ? lineC : baseColor
+  const opacity = active?.opacity ?? prefs.opacity
+  const setColor = c => {
+    if (lineOn) { setLineC(c); return }
+    prefs.setColor(c)
+    setActive(a => ({ color: c, opacity: a && !a.base ? a.opacity : prefs.opacity, base: false }))
+  }
+  const setOpacity = v => { prefs.setOpacity(v); setActive(a => ({ color: a?.color ?? prefs.color, opacity: v, base: false })) }
   const [favs, updateFavs] = useRichTextFavorites(RICH_TEXT_FAV_ID)
   const { history, push: pushHistory, clear: clearHistory } = useColorHistory()
   const [opacityOpen, setOpacityOpen] = useState(false)
@@ -72,8 +95,9 @@ export default function RichTextToolbar({ rect, range, highlights, onApply, onCl
 
   if (!rect || !range) return null
   const isOn = m => rangeHasStyle(highlights, range.start, range.end, m)
+  const style = describeStyle(highlights, range.start, range.end)
 
-  const barH = 30 + 40 + 34 + (mode === 'bg' ? 32 : 0) + 34 +
+  const barH = 30 + 40 + 34 + 44 + (mode === 'bg' ? 32 : 0) + 34 +
     (opacityOpen ? 26 : 0) + (history.length ? 34 : 0)
   const autoPos = positionToolbar(rect, TOOLBAR_W, barH, { width: window.innerWidth, height: window.innerHeight }, LINE_H)
   if (!autoPos) return null
@@ -101,6 +125,11 @@ export default function RichTextToolbar({ rect, range, highlights, onApply, onCl
   // на котором реально остановились — иначе туда улетают все промежуточные
   // оттенки, через которые курсор проехал по пути
   function paintColor(c) {
+    if (lineOn) { // только линия подчёркивания
+      setLineC(c)
+      onApply(addHighlight(highlights, { start: range.start, end: range.end, mode: 'underline', color: c, opacity: 1 }))
+      return
+    }
     setColor(c)
     onApply(addHighlight(highlights, {
       start: range.start, end: range.end, color: c, mode, opacity,
@@ -110,10 +139,34 @@ export default function RichTextToolbar({ rect, range, highlights, onApply, onCl
     historyTimerRef.current = setTimeout(() => pushHistory(c), HISTORY_COMMIT_DELAY)
   }
 
+  // Ползунок прозрачности сразу перекрашивает выделение с новой прозрачностью (раньше менял только настройку на будущее, текст не менялся)
+  function paintOpacity(v) {
+    setOpacity(v)
+    let next = addHighlight(highlights, {
+      start: range.start, end: range.end, color, mode, opacity: v,
+      ...(mode === 'bg' && outline ? { outline: true } : {}),
+    })
+    // Начертания (жирный, подчёркивание…) несут свой цвет и прозрачность — иначе они перекрывали бы новую прозрачность текста
+    for (const m of DECOR_MODES) {
+      if (isOn(m)) next = addHighlight(removeRange(next, range.start, range.end, m), { start: range.start, end: range.end, mode: m, color, opacity: v })
+    }
+    onApply(next)
+  }
+
   function toggleDecor(m) {
     onApply(isOn(m)
       ? removeRange(highlights, range.start, range.end, m)
       : addHighlight(highlights, { start: range.start, end: range.end, mode: m, color, opacity }))
+  }
+
+  // Готовые стили проекта: «главное» — только белое подчёркивание (текст остаётся серым), «лишнее» — красный и зачёркнутый
+  function applyPreset(kind) {
+    if (kind === 'l') {
+      onApply(addHighlight(highlights, { start: range.start, end: range.end, mode: 'underline', color: '#ffffff', opacity: 1 }))
+    } else {
+      onApply(addHighlight(addHighlight(highlights, { start: range.start, end: range.end, mode: 'text', color: '#ff5a5a', opacity: 1 }),
+        { start: range.start, end: range.end, mode: 'strike', color: '#ff5a5a', opacity: 1 }))
+    }
   }
 
   function applyFavorite(fav) {
@@ -145,7 +198,7 @@ export default function RichTextToolbar({ rect, range, highlights, onApply, onCl
     <div
       ref={boxRef}
       className="richTextToolbar"
-      style={{ position: 'fixed', top: pos.top, left: pos.left, width: TOOLBAR_W, zIndex: 399 }}
+      style={{ position: 'fixed', top: pos.top, left: pos.left, width: TOOLBAR_W, zIndex: 1500 }}
       onMouseDown={e => { e.preventDefault(); e.stopPropagation() }}
     >
       <div className="richTextToolbarHeader" onMouseDown={onHandleMouseDown}>
@@ -153,6 +206,18 @@ export default function RichTextToolbar({ rect, range, highlights, onApply, onCl
         <button className="richTextIconBtn richTextIconBtnClose" title="Закрыть"
           onMouseDown={e => e.stopPropagation()} onClick={onClose}><X size={13} /></button>
       </div>
+
+      {/* Проверка стиля выделенного: какой цвет и какие начертания у него сейчас (во всех полях канваса) */}
+      {style && (
+        <div className="richTextStyleReadout" title="Стиль выделенного текста">
+          <span>
+            {style.mixed ? 'разные стили (показан первый)' : style.flags.length ? style.flags.map(f => ({ bold: 'жирный', italic: 'курсив', underline: 'подчёркнут', strike: 'зачёркнут' })[f]).join(', ') : 'без начертаний'}
+            {style.bg && ` · плашка ${style.bg.color}${style.bg.outline ? ' (обводка)' : ''}`}
+          </span>
+          {!style.mixed && style.isBase && <span className="richTextStyleTag">базовый серый</span>}
+          {!style.mixed && style.mark && <span className="richTextStyleTag">{`{${style.mark}:} ${style.markName}`}</span>}
+        </div>
+      )}
 
       <div className="richTextToolbarRow">
         <button className={`richTextIconBtn${mode === 'text' ? ' active' : ''}`} title="Цвет текста"
@@ -164,6 +229,8 @@ export default function RichTextToolbar({ rect, range, highlights, onApply, onCl
           onClick={() => toggleDecor('bold')}><Bold size={15} /></button>
         <button className={`richTextIconBtn${isOn('italic') ? ' active' : ''}`} title="Курсив (Ctrl+I)"
           onClick={() => toggleDecor('italic')}><Italic size={15} /></button>
+        <button className={`richTextIconBtn${lineOn ? ' active' : ''}`} title="Цвет линии подчёркивания: следующий выбранный цвет красит только линию, текст не трогает"
+          onClick={() => { setLineOn(v => !v); if (!lineOn && !isOn('underline')) onApply(addHighlight(highlights, { start: range.start, end: range.end, mode: 'underline', color: lineC, opacity: 1 })) }}><span className="richTextIconLetter" style={{ color: lineC, textDecoration: 'underline' }}>Л</span></button>
         <button className={`richTextIconBtn${isOn('underline') ? ' active' : ''}`} title="Подчеркнуть (Ctrl+U)"
           onClick={() => toggleDecor('underline')}><Underline size={15} /></button>
         <button className={`richTextIconBtn${isOn('strike') ? ' active' : ''}`} title="Зачеркнуть"
@@ -179,6 +246,10 @@ export default function RichTextToolbar({ rect, range, highlights, onApply, onCl
           onClick={() => applyFavorite(BRAND_GREEN)}
           title="Фирменный зелёный"
         >А</button>
+        <button className="richTextFavSwatch" style={{ color: '#c6c6c6', textDecoration: 'underline', textDecorationColor: '#ffffff' }}
+          onClick={() => applyPreset('l')} title="Главное: белое подчёркивание, текст остаётся серым ({l:})">А</button>
+        <button className="richTextFavSwatch" style={{ color: '#ff5a5a', textDecoration: 'line-through' }}
+          onClick={() => applyPreset('x')} title="Лишнее: красный и зачёркнутый ({x:})">А</button>
         {favs.map((fav, i) => (
           <button
             key={i}
@@ -224,7 +295,7 @@ export default function RichTextToolbar({ rect, range, highlights, onApply, onCl
       {opacityOpen && (
         <div className="richTextToolbarRow">
           <input type="range" min="0.1" max="1" step="0.05" value={opacity}
-            onChange={e => setOpacity(+e.target.value)} className="textHLOpacitySlider" />
+            onChange={e => paintOpacity(+e.target.value)} className="textHLOpacitySlider" />
         </div>
       )}
       {history.length > 0 && (

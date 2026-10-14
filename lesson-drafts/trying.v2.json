@@ -1,0 +1,3571 @@
+{
+  "format": "pithy-lesson",
+  "version": 1,
+  "lesson": {
+    "title": "Trying",
+    "nodeCount": 140
+  },
+  "nodes": [
+    {
+      "ref": "n1",
+      "type": "circle",
+      "seq": 1,
+      "pos": [
+        0,
+        0
+      ],
+      "note": "ЗАПИСЬ КРУЖКА (10-15 сек). try — пытаться. Слово не меняется само по себе, меняется то, что вокруг него: время и кто действует. Разберём это сегодня. Своими словами, не по бумажке.",
+      "data": {
+        "crop": {
+          "x": 23,
+          "y": 61,
+          "scale": 1.18
+        },
+        "r2Url": "https://pub-045dc128a8954174a6d82f218e0836b9.r2.dev/chat/c3fd5f30-65ed-4ab1-b435-897e8395ed6e.mp4"
+      },
+      "triggers": [
+        {
+          "if": "played",
+          "then": "n2"
+        }
+      ]
+    },
+    {
+      "ref": "n2",
+      "type": "text",
+      "seq": 2,
+      "pos": [
+        560,
+        0
+      ],
+      "data": {
+        "content": "Хочешь сразу к делу или разберём всё по порядку?",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1600,
+          "then": "n3"
+        }
+      ]
+    },
+    {
+      "ref": "n3",
+      "type": "word_choice",
+      "seq": 3,
+      "pos": [
+        1120,
+        0
+      ],
+      "note": "Меню-развилка, не тест: обе опции верные, маршрут через variant",
+      "data": {
+        "reward": false,
+        "options": [
+          {
+            "text": "Сначала объясни 📖",
+            "isCorrect": true
+          },
+          {
+            "text": "Сразу к практике 💪",
+            "isCorrect": true
+          }
+        ],
+        "sendPickToChat": true
+      },
+      "triggers": [
+        {
+          "if": "word_correct",
+          "then": "n4"
+        },
+        {
+          "if": "word_wrong",
+          "then": null
+        },
+        {
+          "if": "variant",
+          "variantLabel": "Сначала объясни 📖",
+          "then": "n4"
+        },
+        {
+          "if": "variant",
+          "variantLabel": "Сразу к практике 💪",
+          "then": "n112"
+        }
+      ]
+    },
+    {
+      "ref": "n4",
+      "type": "system",
+      "seq": 4,
+      "pos": [
+        2980,
+        0
+      ],
+      "data": {
+        "content": "Часть 1 · try (I, you, we, they)"
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1600,
+          "then": "n5"
+        }
+      ]
+    },
+    {
+      "ref": "n5",
+      "type": "text",
+      "seq": 5,
+      "pos": [
+        3540,
+        0
+      ],
+      "data": {
+        "content": "Начнём с глагола 🌱 {t:пытаюсь, пытаешься, пытаемся, пытаются}, для всех этих слов форма одна",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 2200,
+          "then": "n7"
+        }
+      ]
+    },
+    {
+      "ref": "n6",
+      "type": "pin_message",
+      "seq": 9,
+      "pos": [
+        5780,
+        0
+      ],
+      "data": {
+        "content": "{g:I, you, we, they} → {g:try}"
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1200,
+          "then": "n12"
+        }
+      ]
+    },
+    {
+      "ref": "n7",
+      "type": "text",
+      "seq": 6,
+      "pos": [
+        4100,
+        0
+      ],
+      "data": {
+        "content": "Давай попробуем печатать ⌨️ тапай по светящимся буквам внизу, как будет {t:«я пытаюсь»}? звучит как {w:ай трай}",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1800,
+          "then": "n8"
+        }
+      ]
+    },
+    {
+      "ref": "n8",
+      "type": "type_word",
+      "seq": 7,
+      "pos": [
+        4660,
+        0
+      ],
+      "data": {
+        "word": "I try",
+        "extraLetters": "ae",
+        "responseWrong": "мимо), два коротких слова, всего четыре буквы",
+        "signals": [
+          {
+            "slot": 3,
+            "ref": "n9"
+          }
+        ]
+      },
+      "triggers": [
+        {
+          "if": "type_correct",
+          "then": "n11"
+        },
+        {
+          "if": "type_wrong",
+          "then": "n10"
+        }
+      ]
+    },
+    {
+      "ref": "n9",
+      "type": "text",
+      "seq": 134,
+      "pos": [
+        5780,
+        960
+      ],
+      "data": {
+        "content": "Звучит почти как {w:ай}, но через {b:i} это слово не пишется, ищи букву, похожую на русскую {w:у}",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 2000,
+          "then": null
+        }
+      ]
+    },
+    {
+      "ref": "n10",
+      "type": "text",
+      "seq": 133,
+      "pos": [
+        5220,
+        480
+      ],
+      "data": {
+        "content": "бывает, к клавиатуре надо привыкнуть))) в конце {g:try} стоит {b:y}, она похожа на русскую {w:у}",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 2400,
+          "then": "n6"
+        }
+      ]
+    },
+    {
+      "ref": "n11",
+      "type": "reaction",
+      "seq": 8,
+      "pos": [
+        5220,
+        0
+      ],
+      "data": {
+        "emoji": "👌",
+        "target": "student"
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1400,
+          "then": "n6"
+        }
+      ]
+    },
+    {
+      "ref": "n12",
+      "type": "text",
+      "seq": 10,
+      "pos": [
+        6340,
+        0
+      ],
+      "data": {
+        "content": "А теперь важное: у {g:try} два значения 👇\n{g:try} + что-то → {t:пробовать}\n{g:try} {u:to} + действие → {t:пытаться}",
+        "hardWrap": true
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 3200,
+          "then": "n14"
+        }
+      ]
+    },
+    {
+      "ref": "n14",
+      "type": "photo",
+      "seq": 11,
+      "pos": [
+        7460,
+        0
+      ],
+      "data": {
+        "crop": {
+          "x": 0,
+          "y": 0,
+          "scale": 1
+        },
+        "r2Url": "https://pub-045dc128a8954174a6d82f218e0836b9.r2.dev/chat/a80f7e46-f50d-45d7-bbb7-58f38a934dbc.png",
+        "caption": "Кстати, моя подруга каждую пятницу тащит меня на танцпол 😄 Собери фразу {t:«ты пытаешься танцевать»}"
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 2400,
+          "then": "n15"
+        }
+      ]
+    },
+    {
+      "ref": "n15",
+      "type": "phrase_assembly",
+      "seq": 12,
+      "pos": [
+        8020,
+        0
+      ],
+      "data": {
+        "words": [
+          "You",
+          "try",
+          "to",
+          "dance"
+        ],
+        "distractors": [
+          {
+            "text": "music"
+          },
+          {
+            "text": "we"
+          }
+        ],
+        "responseWrong": "глянь на фразу ещё раз, где-то слово не то или пропущено)",
+        "signals": [
+          {
+            "slot": 2,
+            "ref": "n16"
+          }
+        ]
+      },
+      "triggers": [
+        {
+          "if": "phrase_correct",
+          "then": "n18"
+        },
+        {
+          "if": "phrase_wrong",
+          "then": "n17"
+        }
+      ]
+    },
+    {
+      "ref": "n16",
+      "type": "text",
+      "seq": 135,
+      "pos": [
+        9140,
+        960
+      ],
+      "data": {
+        "content": "{g:to} тут просто связывает два глагола подряд, {g:try} и {g:dance} 🌉",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 2000,
+          "then": null
+        }
+      ]
+    },
+    {
+      "ref": "n17",
+      "type": "text",
+      "seq": 132,
+      "pos": [
+        8580,
+        480
+      ],
+      "data": {
+        "content": "С {g:you} глагол остаётся без окончания, а между глаголами нужен {g:to}: {g:You try to dance}",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 2800,
+          "then": "n19"
+        }
+      ]
+    },
+    {
+      "ref": "n18",
+      "type": "reaction",
+      "seq": 13,
+      "pos": [
+        8580,
+        0
+      ],
+      "data": {
+        "emoji": "👍",
+        "target": "student"
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1400,
+          "then": "n19"
+        }
+      ]
+    },
+    {
+      "ref": "n19",
+      "type": "text",
+      "seq": 14,
+      "pos": [
+        9140,
+        0
+      ],
+      "data": {
+        "content": "{g:to} это мостик между двумя глаголами 🌉 подробно вот тут",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 2000,
+          "then": "n20"
+        }
+      ]
+    },
+    {
+      "ref": "n20",
+      "type": "lesson_ref",
+      "seq": 15,
+      "pos": [
+        9700,
+        0
+      ],
+      "data": {
+        "caption": "Открой сейчас или сохрани на потом",
+        "isModule": false,
+        "targetId": "c4a1cd3a-c6df-4ffe-aaa6-e3f4255b7e24",
+        "targetTitle": "To"
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "then": "n21"
+        }
+      ]
+    },
+    {
+      "ref": "n21",
+      "type": "text",
+      "seq": 16,
+      "pos": [
+        10260,
+        0
+      ],
+      "data": {
+        "content": "Теперь вслух 🎤 Скажи по-английски: {t:«Ты пытаешься танцевать»}",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1800,
+          "then": "n22"
+        }
+      ]
+    },
+    {
+      "ref": "n22",
+      "type": "say_phrase",
+      "seq": 17,
+      "pos": [
+        10820,
+        0
+      ],
+      "data": {
+        "voiceReply": true,
+        "hintSilence": "Не слышу тебя) говори чуть громче и ближе к микрофону",
+        "hintMismatch": "Почти! Не бойся, скажи ещё раз, можно медленнее",
+        "hintPartial": "Почти получилось) верно: {ok}, не хватило: {missed}",
+        "phrase": "You try to dance",
+        "translation": "Ты пытаешься танцевать",
+        "keywords": "try",
+        "strict": true
+      },
+      "triggers": [
+        {
+          "if": "say_done",
+          "then": "n23"
+        },
+        {
+          "if": "say_wrong",
+          "then": "n24"
+        }
+      ]
+    },
+    {
+      "ref": "n23",
+      "type": "text",
+      "seq": 18,
+      "pos": [
+        11380,
+        0
+      ],
+      "data": {
+        "content": "Получилось))",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1400,
+          "then": "n25"
+        }
+      ]
+    },
+    {
+      "ref": "n24",
+      "type": "text",
+      "seq": 131,
+      "pos": [
+        11380,
+        480
+      ],
+      "data": {
+        "content": "не страшно), главное без окончания: {g:You try to dance}",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 2400,
+          "then": "n25"
+        }
+      ]
+    },
+    {
+      "ref": "n25",
+      "type": "text",
+      "seq": 19,
+      "pos": [
+        11940,
+        0
+      ],
+      "data": {
+        "content": "давай теперь на слух, без подсказок 👂",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1400,
+          "then": "n26"
+        }
+      ]
+    },
+    {
+      "ref": "n26",
+      "type": "audio",
+      "seq": 20,
+      "pos": [
+        12500,
+        0
+      ],
+      "note": "ОЗВУЧКА: I try to listen",
+      "data": {
+        "r2Url": "https://pub-045dc128a8954174a6d82f218e0836b9.r2.dev/chat/d3e63856-9c0d-4801-9a56-548b9757d9df.mp3"
+      },
+      "triggers": [
+        {
+          "if": "played",
+          "then": "n27"
+        }
+      ]
+    },
+    {
+      "ref": "n27",
+      "type": "word_choice",
+      "seq": 21,
+      "pos": [
+        13060,
+        0
+      ],
+      "data": {
+        "options": [
+          {
+            "text": "I try to look",
+            "isCorrect": false
+          },
+          {
+            "text": "I try to leave",
+            "isCorrect": false
+          },
+          {
+            "text": "I try to listen",
+            "isCorrect": true
+          }
+        ],
+        "sendPickToChat": true
+      },
+      "triggers": [
+        {
+          "if": "word_correct",
+          "then": "n29"
+        },
+        {
+          "if": "word_wrong",
+          "then": "n28"
+        }
+      ]
+    },
+    {
+      "ref": "n28",
+      "type": "text",
+      "seq": 130,
+      "pos": [
+        13620,
+        480
+      ],
+      "data": {
+        "content": "Это {g:I try to listen}: {t:я пытаюсь слушать}",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 2400,
+          "then": "n30"
+        }
+      ]
+    },
+    {
+      "ref": "n29",
+      "type": "reaction",
+      "seq": 22,
+      "pos": [
+        13620,
+        0
+      ],
+      "data": {
+        "emoji": "🎧",
+        "target": "student"
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1400,
+          "then": "n30"
+        }
+      ]
+    },
+    {
+      "ref": "n30",
+      "type": "system",
+      "seq": 23,
+      "pos": [
+        15480,
+        0
+      ],
+      "data": {
+        "content": "Часть 2 · tries (he, she, it)"
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1600,
+          "then": "n147"
+        }
+      ]
+    },
+    {
+      "ref": "n31",
+      "type": "pin_message",
+      "seq": 25,
+      "pos": [
+        16600,
+        0
+      ],
+      "data": {
+        "content": "{g:he, she, it} → {g:tries}"
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1200,
+          "then": "n32"
+        }
+      ]
+    },
+    {
+      "ref": "n32",
+      "type": "text",
+      "seq": 26,
+      "pos": [
+        17160,
+        0
+      ],
+      "data": {
+        "content": "С he, she, it у {g:try} буква {b:y} меняется на {b:i}, и в конце добавляется {g:es}",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 3000,
+          "then": "n33"
+        }
+      ]
+    },
+    {
+      "ref": "n33",
+      "type": "text",
+      "seq": 27,
+      "pos": [
+        17720,
+        0
+      ],
+      "data": {
+        "content": "Маша каждое утро пытается встать пораньше 🌅 Напечатай по-английски: {t:«она пытается»}",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1800,
+          "then": "n34"
+        }
+      ]
+    },
+    {
+      "ref": "n34",
+      "type": "type_word",
+      "seq": 28,
+      "pos": [
+        18280,
+        0
+      ],
+      "data": {
+        "word": "she tries",
+        "extraLetters": "yc",
+        "responseWrong": "не то), вспомни, как глагол ведёт себя с he / she / it",
+        "signals": [
+          {
+            "slot": 5,
+            "ref": "n35"
+          }
+        ]
+      },
+      "triggers": [
+        {
+          "if": "type_correct",
+          "then": "n37"
+        },
+        {
+          "if": "type_wrong",
+          "then": "n36"
+        }
+      ]
+    },
+    {
+      "ref": "n35",
+      "type": "text",
+      "seq": 136,
+      "pos": [
+        19400,
+        960
+      ],
+      "data": {
+        "content": "С he, she, it у слова меняется последняя буква 🤔",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 2000,
+          "then": null
+        }
+      ]
+    },
+    {
+      "ref": "n36",
+      "type": "text",
+      "seq": 129,
+      "pos": [
+        18840,
+        480
+      ],
+      "data": {
+        "content": "непросто, согласен))) с he / she / it в {g:try} меняем {b:y} на {b:i} и добавляем {b:es}",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 2400,
+          "then": "n38"
+        }
+      ]
+    },
+    {
+      "ref": "n37",
+      "type": "reaction",
+      "seq": 29,
+      "pos": [
+        18840,
+        0
+      ],
+      "data": {
+        "emoji": "🙌",
+        "target": "student"
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1400,
+          "then": "n38"
+        }
+      ]
+    },
+    {
+      "ref": "n38",
+      "type": "photo",
+      "seq": 30,
+      "pos": [
+        19400,
+        0
+      ],
+      "data": {
+        "crop": {
+          "x": 0,
+          "y": 0,
+          "scale": 1
+        },
+        "r2Url": "https://pub-045dc128a8954174a6d82f218e0836b9.r2.dev/chat/54726837-f1c3-4621-9f7f-db6e27b7344a.png",
+        "caption": "Моя подруга сегодня впервые на корте 🎾 Собери фразу {t:«она пробует теннис»}"
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 2400,
+          "then": "n39"
+        }
+      ]
+    },
+    {
+      "ref": "n39",
+      "type": "phrase_assembly",
+      "seq": 31,
+      "pos": [
+        19960,
+        0
+      ],
+      "data": {
+        "words": [
+          "She",
+          "tries",
+          "tennis"
+        ],
+        "distractors": [
+          {
+            "text": "try"
+          },
+          {
+            "text": "to"
+          },
+          {
+            "text": "he"
+          }
+        ],
+        "responseWrong": "глянь на фразу ещё раз, где-то слово или форма не сходится)"
+      },
+      "triggers": [
+        {
+          "if": "phrase_correct",
+          "then": "n41"
+        },
+        {
+          "if": "phrase_wrong",
+          "then": "n40"
+        }
+      ]
+    },
+    {
+      "ref": "n40",
+      "type": "text",
+      "seq": 128,
+      "pos": [
+        20520,
+        480
+      ],
+      "data": {
+        "content": "с she форма {g:tr}{p:i}{g:es}: {b:y} меняется на {b:i} и добавляется {g:es}, вот так: {g:she tries tennis}",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 2600,
+          "then": "n42"
+        }
+      ]
+    },
+    {
+      "ref": "n41",
+      "type": "reaction",
+      "seq": 32,
+      "pos": [
+        20520,
+        0
+      ],
+      "data": {
+        "emoji": "🎾",
+        "target": "student"
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1400,
+          "then": "n42"
+        }
+      ]
+    },
+    {
+      "ref": "n42",
+      "type": "text",
+      "seq": 33,
+      "pos": [
+        21080,
+        0
+      ],
+      "data": {
+        "content": "А теперь скажи сам 🎤 По-английски: {t:«Она пробует теннис»}",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1800,
+          "then": "n43"
+        }
+      ]
+    },
+    {
+      "ref": "n43",
+      "type": "say_phrase",
+      "seq": 34,
+      "pos": [
+        21640,
+        0
+      ],
+      "data": {
+        "voiceReply": true,
+        "hintSilence": "Не слышу тебя) говори чуть громче и ближе к микрофону",
+        "hintMismatch": "Почти! Не бойся, скажи ещё раз, можно медленнее",
+        "hintPartial": "Почти получилось) верно: {ok}, не хватило: {missed}",
+        "phrase": "She tries tennis",
+        "translation": "Она пробует теннис",
+        "keywords": "tries",
+        "strict": true
+      },
+      "triggers": [
+        {
+          "if": "say_done",
+          "then": "n44"
+        },
+        {
+          "if": "say_wrong",
+          "then": "n45"
+        }
+      ]
+    },
+    {
+      "ref": "n44",
+      "type": "text",
+      "seq": 35,
+      "pos": [
+        22200,
+        0
+      ],
+      "data": {
+        "content": "Вышло)",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1400,
+          "then": "n46"
+        }
+      ]
+    },
+    {
+      "ref": "n45",
+      "type": "text",
+      "seq": 127,
+      "pos": [
+        22200,
+        480
+      ],
+      "data": {
+        "content": "почти) следи за окончанием: {g:She tries tennis}",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 2400,
+          "then": "n46"
+        }
+      ]
+    },
+    {
+      "ref": "n46",
+      "type": "audio",
+      "seq": 36,
+      "pos": [
+        22760,
+        0
+      ],
+      "data": {
+        "text": "Теперь без таблицы. {t:Он пробует один раз}",
+        "r2Url": "https://pub-045dc128a8954174a6d82f218e0836b9.r2.dev/chat/1dd6ac01-31b0-427d-97e8-e61cc75c0593.mp3",
+        "showText": false
+      },
+      "triggers": [
+        {
+          "if": "played",
+          "then": "n47"
+        }
+      ]
+    },
+    {
+      "ref": "n47",
+      "type": "phrase_assembly",
+      "seq": 37,
+      "pos": [
+        23320,
+        0
+      ],
+      "data": {
+        "words": [
+          "He",
+          "tries",
+          "once"
+        ],
+        "distractors": [
+          {
+            "text": "try"
+          },
+          {
+            "text": "again"
+          },
+          {
+            "text": "she"
+          }
+        ],
+        "responseWrong": "once значит один раз) и проверь форму глагола"
+      },
+      "triggers": [
+        {
+          "if": "phrase_correct",
+          "then": "n49"
+        },
+        {
+          "if": "phrase_wrong",
+          "then": "n48"
+        }
+      ]
+    },
+    {
+      "ref": "n48",
+      "type": "text",
+      "seq": 126,
+      "pos": [
+        23880,
+        480
+      ],
+      "data": {
+        "content": "вот как надо: {g:He tries once}, {g:once} это {t:один раз}",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 2600,
+          "then": "n51"
+        }
+      ]
+    },
+    {
+      "ref": "n49",
+      "type": "reaction",
+      "seq": 38,
+      "pos": [
+        23880,
+        0
+      ],
+      "data": {
+        "emoji": "👏",
+        "target": "student"
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1400,
+          "then": "n50"
+        }
+      ]
+    },
+    {
+      "ref": "n50",
+      "type": "text",
+      "seq": 39,
+      "pos": [
+        24440,
+        0
+      ],
+      "data": {
+        "content": "{g:once} → {t:один раз}\n{g:twice} → {t:дважды}",
+        "hardWrap": true
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 2600,
+          "then": "n51"
+        }
+      ]
+    },
+    {
+      "ref": "n51",
+      "type": "system",
+      "seq": 40,
+      "pos": [
+        26300,
+        0
+      ],
+      "data": {
+        "content": "Часть 3 · tried (уже было)"
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1600,
+          "then": "n52"
+        }
+      ]
+    },
+    {
+      "ref": "n52",
+      "type": "audio",
+      "seq": 41,
+      "pos": [
+        26860,
+        0
+      ],
+      "note": "Тон: расслабленно, как будто выдыхаешь с облегчением — наконец что-то простое.",
+      "data": {
+        "text": "В {u:прошедшем времени} одна форма для всех местоимений. Это {g:tried}",
+        "r2Url": "https://pub-045dc128a8954174a6d82f218e0836b9.r2.dev/chat/7db3f118-ffd8-44fa-a1e5-49b9f9110a0d.mp3"
+      },
+      "triggers": [
+        {
+          "if": "played",
+          "then": "n53"
+        }
+      ]
+    },
+    {
+      "ref": "n53",
+      "type": "pin_message",
+      "seq": 42,
+      "pos": [
+        27420,
+        0
+      ],
+      "data": {
+        "content": "{g:tried} → прошедшее, для всех местоимений"
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1200,
+          "then": "n54"
+        }
+      ]
+    },
+    {
+      "ref": "n54",
+      "type": "photo",
+      "seq": 43,
+      "pos": [
+        27980,
+        0
+      ],
+      "data": {
+        "crop": {
+          "x": 0,
+          "y": 0,
+          "scale": 1
+        },
+        "r2Url": "https://pub-045dc128a8954174a6d82f218e0836b9.r2.dev/chat/79fe420a-ab44-4010-a3f2-507bafa34ea0.png",
+        "caption": "Мы с другом вчера решили в первый раз сыграть в шахматы ♟ Собери фразу {t:«мы попробовали шахматы»}"
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 2400,
+          "then": "n55"
+        }
+      ]
+    },
+    {
+      "ref": "n55",
+      "type": "phrase_assembly",
+      "seq": 44,
+      "pos": [
+        28540,
+        0
+      ],
+      "data": {
+        "words": [
+          "We",
+          "tried",
+          "chess"
+        ],
+        "distractors": [
+          {
+            "text": "tries"
+          },
+          {
+            "text": "tea"
+          },
+          {
+            "text": "to"
+          },
+          {
+            "text": "he"
+          }
+        ],
+        "responseWrong": "проверь фразу целиком, форма или слово где-то не то)",
+        "signals": [
+          {
+            "slot": 1,
+            "ref": "n56"
+          }
+        ]
+      },
+      "triggers": [
+        {
+          "if": "phrase_correct",
+          "then": "n58"
+        },
+        {
+          "if": "phrase_wrong",
+          "then": "n57"
+        }
+      ]
+    },
+    {
+      "ref": "n56",
+      "type": "text",
+      "seq": 137,
+      "pos": [
+        29100,
+        960
+      ],
+      "data": {
+        "content": "форма не подходит, посмотри ещё раз на время",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 2000,
+          "then": null
+        }
+      ]
+    },
+    {
+      "ref": "n57",
+      "type": "text",
+      "seq": 125,
+      "pos": [
+        29100,
+        480
+      ],
+      "data": {
+        "content": "{g:tried} это про то, что уже было, одна форма для всех местоимений",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 2600,
+          "then": "n59"
+        }
+      ]
+    },
+    {
+      "ref": "n58",
+      "type": "text",
+      "seq": 45,
+      "pos": [
+        29100,
+        0
+      ],
+      "data": {
+        "content": "в точку))",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1600,
+          "then": "n59"
+        }
+      ]
+    },
+    {
+      "ref": "n59",
+      "type": "text",
+      "seq": 46,
+      "pos": [
+        29660,
+        0
+      ],
+      "data": {
+        "content": "Давай вслух 🎤 Как будет по-английски: {t:«Мы пробовали шахматы»}",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1800,
+          "then": "n60"
+        }
+      ]
+    },
+    {
+      "ref": "n60",
+      "type": "say_phrase",
+      "seq": 47,
+      "pos": [
+        30220,
+        0
+      ],
+      "data": {
+        "voiceReply": true,
+        "hintSilence": "Не слышу тебя) говори чуть громче и ближе к микрофону",
+        "hintMismatch": "Почти! Не бойся, скажи ещё раз, можно медленнее",
+        "hintPartial": "Почти получилось) верно: {ok}, не хватило: {missed}",
+        "phrase": "We tried chess",
+        "translation": "Мы попробовали шахматы",
+        "keywords": "tried",
+        "strict": true
+      },
+      "triggers": [
+        {
+          "if": "say_done",
+          "then": "n61"
+        },
+        {
+          "if": "say_wrong",
+          "then": "n62"
+        }
+      ]
+    },
+    {
+      "ref": "n61",
+      "type": "reaction",
+      "seq": 48,
+      "pos": [
+        30780,
+        0
+      ],
+      "data": {
+        "emoji": "🔥",
+        "target": "student"
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1400,
+          "then": "n63"
+        }
+      ]
+    },
+    {
+      "ref": "n62",
+      "type": "text",
+      "seq": 124,
+      "pos": [
+        30780,
+        480
+      ],
+      "data": {
+        "content": "не страшно), главное {g:tried}, а не {g:try}: {g:We tried chess}",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 2400,
+          "then": "n63"
+        }
+      ]
+    },
+    {
+      "ref": "n63",
+      "type": "text",
+      "seq": 49,
+      "pos": [
+        31340,
+        0
+      ],
+      "data": {
+        "content": "а ну-ка проверим твой слух",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1600,
+          "then": "n64"
+        }
+      ]
+    },
+    {
+      "ref": "n64",
+      "type": "audio",
+      "seq": 50,
+      "pos": [
+        31900,
+        0
+      ],
+      "note": "ОЗВУЧКА: He tried twice",
+      "data": {
+        "r2Url": "https://pub-045dc128a8954174a6d82f218e0836b9.r2.dev/chat/00161218-f215-4151-8895-3f017bf8375d.mp3"
+      },
+      "triggers": [
+        {
+          "if": "played",
+          "then": "n65"
+        }
+      ]
+    },
+    {
+      "ref": "n65",
+      "type": "audio",
+      "seq": 51,
+      "pos": [
+        32460,
+        0
+      ],
+      "data": {
+        "text": "Что это значит? Напомню, {g:twice} — {t:дважды}",
+        "r2Url": "https://pub-045dc128a8954174a6d82f218e0836b9.r2.dev/chat/c9c7b5d9-9288-4633-8236-dc75ccd5a148.mp3"
+      },
+      "triggers": [
+        {
+          "if": "played",
+          "then": "n66"
+        }
+      ]
+    },
+    {
+      "ref": "n66",
+      "type": "word_choice",
+      "seq": 52,
+      "pos": [
+        33020,
+        0
+      ],
+      "data": {
+        "options": [
+          {
+            "text": "Он пробовал дважды",
+            "isCorrect": true
+          },
+          {
+            "text": "Он попробует дважды",
+            "isCorrect": false
+          },
+          {
+            "text": "Он пробует дважды",
+            "isCorrect": false
+          }
+        ],
+        "sendPickToChat": true
+      },
+      "triggers": [
+        {
+          "if": "word_correct",
+          "then": "n68"
+        },
+        {
+          "if": "word_wrong",
+          "then": "n67"
+        }
+      ]
+    },
+    {
+      "ref": "n67",
+      "type": "text",
+      "seq": 123,
+      "pos": [
+        33580,
+        480
+      ],
+      "data": {
+        "content": "смотри: {t:он пробовал дважды}, {g:tried} это {u:прошедшее время}",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 2600,
+          "then": "n69"
+        }
+      ]
+    },
+    {
+      "ref": "n68",
+      "type": "text",
+      "seq": 53,
+      "pos": [
+        33580,
+        0
+      ],
+      "data": {
+        "content": "Ага)",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1500,
+          "then": "n69"
+        }
+      ]
+    },
+    {
+      "ref": "n69",
+      "type": "system",
+      "seq": 54,
+      "pos": [
+        35440,
+        0
+      ],
+      "data": {
+        "content": "Часть 4 · will try (будет)"
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1600,
+          "then": "n70"
+        }
+      ]
+    },
+    {
+      "ref": "n70",
+      "type": "audio",
+      "seq": 55,
+      "pos": [
+        36000,
+        0
+      ],
+      "note": "Тон: легко, почти скороговоркой — и всё, дело в шляпе.",
+      "data": {
+        "text": "В будущем тоже одна форма для всех. Просто ставим {g:will} перед {g:try}",
+        "r2Url": "https://pub-045dc128a8954174a6d82f218e0836b9.r2.dev/chat/beb30cc6-6a9e-40aa-9ac8-77fa0588c33c.mp3"
+      },
+      "triggers": [
+        {
+          "if": "played",
+          "then": "n71"
+        }
+      ]
+    },
+    {
+      "ref": "n71",
+      "type": "pin_message",
+      "seq": 56,
+      "pos": [
+        36560,
+        0
+      ],
+      "data": {
+        "content": "{g:will try} → будущее, для всех местоимений"
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1200,
+          "then": "n72"
+        }
+      ]
+    },
+    {
+      "ref": "n72",
+      "type": "photo",
+      "seq": 57,
+      "pos": [
+        37120,
+        0
+      ],
+      "data": {
+        "crop": {
+          "x": 0,
+          "y": 0,
+          "scale": 1
+        },
+        "r2Url": "https://pub-045dc128a8954174a6d82f218e0836b9.r2.dev/chat/d86e0c95-3bd6-4be8-b1a4-d627c66eef60.png",
+        "caption": "Кстати, Маша с Андреем завтра впервые идут в караоке 😄 Собери фразу {t:«они попробуют караоке»}"
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 2400,
+          "then": "n73"
+        }
+      ]
+    },
+    {
+      "ref": "n73",
+      "type": "phrase_assembly",
+      "seq": 58,
+      "pos": [
+        37680,
+        0
+      ],
+      "data": {
+        "words": [
+          "They",
+          "will",
+          "try",
+          "karaoke"
+        ],
+        "distractors": [
+          {
+            "text": "tried"
+          },
+          {
+            "text": "now"
+          },
+          {
+            "text": "to"
+          },
+          {
+            "text": "we"
+          }
+        ],
+        "responseWrong": "проверь фразу целиком, форма или слово где-то не сходится)"
+      },
+      "triggers": [
+        {
+          "if": "phrase_correct",
+          "then": "n75"
+        },
+        {
+          "if": "phrase_wrong",
+          "then": "n74"
+        }
+      ]
+    },
+    {
+      "ref": "n74",
+      "type": "text",
+      "seq": 122,
+      "pos": [
+        38240,
+        480
+      ],
+      "data": {
+        "content": "после {g:will} глагол остаётся простым, это {g:will try}",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 2600,
+          "then": "n76"
+        }
+      ]
+    },
+    {
+      "ref": "n75",
+      "type": "reaction",
+      "seq": 59,
+      "pos": [
+        38240,
+        0
+      ],
+      "data": {
+        "emoji": "🔥",
+        "target": "student"
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1400,
+          "then": "n76"
+        }
+      ]
+    },
+    {
+      "ref": "n76",
+      "type": "text",
+      "seq": 60,
+      "pos": [
+        38800,
+        0
+      ],
+      "data": {
+        "content": "Теперь ты 🎤 Скажи по-английски: {t:«Они попробуют караоке»}",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1800,
+          "then": "n77"
+        }
+      ]
+    },
+    {
+      "ref": "n77",
+      "type": "say_phrase",
+      "seq": 61,
+      "pos": [
+        39360,
+        0
+      ],
+      "data": {
+        "voiceReply": true,
+        "hintSilence": "Не слышу тебя) говори чуть громче и ближе к микрофону",
+        "hintMismatch": "Почти! Не бойся, скажи ещё раз, можно медленнее",
+        "hintPartial": "Почти получилось) верно: {ok}, не хватило: {missed}",
+        "phrase": "They will try karaoke",
+        "translation": "Они попробуют караоке",
+        "keywords": "will",
+        "strict": true
+      },
+      "triggers": [
+        {
+          "if": "say_done",
+          "then": "n78"
+        },
+        {
+          "if": "say_wrong",
+          "then": "n79"
+        }
+      ]
+    },
+    {
+      "ref": "n78",
+      "type": "text",
+      "seq": 62,
+      "pos": [
+        39920,
+        0
+      ],
+      "data": {
+        "content": "Ну вот, звучит 🙌",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1400,
+          "then": "n80"
+        }
+      ]
+    },
+    {
+      "ref": "n79",
+      "type": "text",
+      "seq": 121,
+      "pos": [
+        39920,
+        480
+      ],
+      "data": {
+        "content": "хм, тут два слова: {g:will try}, {g:They will try karaoke}",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 2600,
+          "then": "n80"
+        }
+      ]
+    },
+    {
+      "ref": "n80",
+      "type": "text",
+      "seq": 63,
+      "pos": [
+        40480,
+        0
+      ],
+      "data": {
+        "content": "ещё раз на слух) собери, что услышишь 👂",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1700,
+          "then": "n81"
+        }
+      ]
+    },
+    {
+      "ref": "n81",
+      "type": "audio",
+      "seq": 64,
+      "pos": [
+        41040,
+        0
+      ],
+      "note": "ОЗВУЧКА: только английская фраза, ровным темпом, один раз. She will try soon",
+      "data": {
+        "r2Url": "https://pub-045dc128a8954174a6d82f218e0836b9.r2.dev/chat/93d70018-496c-426e-b591-65cf6d96bcae.mp3"
+      },
+      "triggers": [
+        {
+          "if": "played",
+          "then": "n82"
+        }
+      ]
+    },
+    {
+      "ref": "n82",
+      "type": "phrase_assembly",
+      "seq": 65,
+      "pos": [
+        41600,
+        0
+      ],
+      "data": {
+        "words": [
+          "She",
+          "will",
+          "try",
+          "soon"
+        ],
+        "distractors": [
+          {
+            "text": "tried"
+          },
+          {
+            "text": "now"
+          },
+          {
+            "text": "he"
+          }
+        ],
+        "responseWrong": "Сначала местоимение, потом will, потом сам глагол"
+      },
+      "triggers": [
+        {
+          "if": "phrase_correct",
+          "then": "n85"
+        },
+        {
+          "if": "phrase_wrong",
+          "then": "n83"
+        }
+      ]
+    },
+    {
+      "ref": "n83",
+      "type": "text",
+      "seq": 120,
+      "pos": [
+        42160,
+        480
+      ],
+      "data": {
+        "content": "вот как надо: {g:She will try soon}, это {t:она попробует скоро}",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 2600,
+          "then": "n85"
+        }
+      ]
+    },
+    {
+      "ref": "n85",
+      "type": "system",
+      "seq": 66,
+      "pos": [
+        44020,
+        0
+      ],
+      "data": {
+        "content": "Часть 5 · trying (прямо сейчас)"
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1600,
+          "then": "n86"
+        }
+      ]
+    },
+    {
+      "ref": "n86",
+      "type": "text",
+      "seq": 67,
+      "pos": [
+        44580,
+        0
+      ],
+      "data": {
+        "content": "{u:Прямо сейчас}, это пара из двух слов:\n{g:I am trying}\n{g:he, she, it is trying}\n{g:you, we, they are trying}",
+        "hardWrap": true
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 3400,
+          "then": "n88"
+        }
+      ]
+    },
+    {
+      "ref": "n88",
+      "type": "text",
+      "seq": 68,
+      "pos": [
+        45700,
+        0
+      ],
+      "data": {
+        "content": "про {g:am / is / are} есть отдельный урок, тут просто запомни пару) ну что, на слух?",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1600,
+          "then": "n89"
+        }
+      ]
+    },
+    {
+      "ref": "n89",
+      "type": "audio",
+      "seq": 69,
+      "pos": [
+        46260,
+        0
+      ],
+      "note": "ОЗВУЧКА: She is trying",
+      "data": {
+        "text": "{g:She is trying}",
+        "r2Url": "https://pub-045dc128a8954174a6d82f218e0836b9.r2.dev/chat/16204083-0554-448e-8483-fd46e02fcf66.mp3",
+        "showText": false
+      },
+      "triggers": [
+        {
+          "if": "played",
+          "then": "n90"
+        }
+      ]
+    },
+    {
+      "ref": "n90",
+      "type": "word_choice",
+      "seq": 70,
+      "pos": [
+        46820,
+        0
+      ],
+      "data": {
+        "options": [
+          {
+            "text": "She is trying",
+            "isCorrect": true
+          },
+          {
+            "text": "She tries",
+            "isCorrect": false
+          },
+          {
+            "text": "She tried",
+            "isCorrect": false
+          }
+        ],
+        "sendPickToChat": true
+      },
+      "triggers": [
+        {
+          "if": "word_correct",
+          "then": "n92"
+        },
+        {
+          "if": "word_wrong",
+          "then": "n91"
+        }
+      ]
+    },
+    {
+      "ref": "n91",
+      "type": "text",
+      "seq": 119,
+      "pos": [
+        47380,
+        480
+      ],
+      "data": {
+        "content": "смотри: {g:She is trying}, {t:она пытается}, рядом с {g:trying} стоит {g:is}",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 2600,
+          "then": "n93"
+        }
+      ]
+    },
+    {
+      "ref": "n92",
+      "type": "reaction",
+      "seq": 71,
+      "pos": [
+        47380,
+        0
+      ],
+      "data": {
+        "emoji": "👏",
+        "target": "student"
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1400,
+          "then": "n93"
+        }
+      ]
+    },
+    {
+      "ref": "n93",
+      "type": "photo",
+      "seq": 72,
+      "pos": [
+        47940,
+        0
+      ],
+      "data": {
+        "crop": {
+          "x": 0,
+          "y": 0,
+          "scale": 1
+        },
+        "r2Url": "https://pub-045dc128a8954174a6d82f218e0836b9.r2.dev/chat/a050a2d9-da7e-47f7-8de6-fb69055099ec.png",
+        "caption": "ну и последнее) собери фразу: {t:«я сейчас стараюсь изо всех сил»}"
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 2400,
+          "then": "n94"
+        }
+      ]
+    },
+    {
+      "ref": "n94",
+      "type": "phrase_assembly",
+      "seq": 73,
+      "pos": [
+        48500,
+        0
+      ],
+      "data": {
+        "words": [
+          "I",
+          "am",
+          "trying",
+          "my",
+          "best"
+        ],
+        "distractors": [
+          {
+            "text": "will"
+          },
+          {
+            "text": "tried"
+          },
+          {
+            "text": "she"
+          }
+        ],
+        "responseWrong": "Действие идёт прямо сейчас. Значит нужна пара из двух слов"
+      },
+      "triggers": [
+        {
+          "if": "phrase_correct",
+          "then": "n96"
+        },
+        {
+          "if": "phrase_wrong",
+          "then": "n95"
+        }
+      ]
+    },
+    {
+      "ref": "n95",
+      "type": "text",
+      "seq": 118,
+      "pos": [
+        49060,
+        480
+      ],
+      "data": {
+        "content": "{g:my best} это {t:изо всех сил}, и помни: рядом стоит {g:am}, {g:is} или {g:are}",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 2800,
+          "then": "n97"
+        }
+      ]
+    },
+    {
+      "ref": "n96",
+      "type": "text",
+      "seq": 74,
+      "pos": [
+        49060,
+        0
+      ],
+      "data": {
+        "content": "ого, быстро)))",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1400,
+          "then": "n97"
+        }
+      ]
+    },
+    {
+      "ref": "n97",
+      "type": "photo",
+      "seq": 75,
+      "pos": [
+        49620,
+        0
+      ],
+      "data": {
+        "caption": "Теперь печатаем ⌨️ {t:«я сейчас пытаюсь»} по-английски, тапай по светящимся буквам",
+        "imagePrompt": "Дружелюбная иллюстрация: парень сосредоточенно печатает на ноутбуке в уютной комнате, рядом чашка кофе, тёплый свет, мультяшный стиль без текста на картинке"
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 2400,
+          "then": "n98"
+        }
+      ],
+      "needs": "photo",
+      "note": "ФОТО: сгенерировать в редакторе по imagePrompt"
+    },
+    {
+      "ref": "n98",
+      "type": "type_word",
+      "seq": 76,
+      "pos": [
+        50180,
+        0
+      ],
+      "data": {
+        "word": "I am trying",
+        "extraLetters": "ed",
+        "responseWrong": "мимо), подумай про окончание после am, is, are",
+        "signals": [
+          {
+            "slot": 5,
+            "ref": "n99"
+          },
+          {
+            "slot": 6,
+            "ref": "n100"
+          }
+        ]
+      },
+      "triggers": [
+        {
+          "if": "type_correct",
+          "then": "n102"
+        },
+        {
+          "if": "type_wrong",
+          "then": "n101"
+        }
+      ]
+    },
+    {
+      "ref": "n99",
+      "type": "text",
+      "seq": 138,
+      "pos": [
+        51300,
+        960
+      ],
+      "data": {
+        "content": "В этом слове {b:y} остаётся на своём месте и не меняется",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 2000,
+          "then": null
+        }
+      ]
+    },
+    {
+      "ref": "n100",
+      "type": "text",
+      "seq": 139,
+      "pos": [
+        51860,
+        960
+      ],
+      "data": {
+        "content": "Окончание {b:ing} пишется целиком, все три буквы на месте",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 2000,
+          "then": null
+        }
+      ]
+    },
+    {
+      "ref": "n101",
+      "type": "text",
+      "seq": 117,
+      "pos": [
+        50740,
+        480
+      ],
+      "data": {
+        "content": "не страшно))) тут {b:y} остаётся на месте, а дальше просто {b:ing}: {g:try → trying}",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 2400,
+          "then": "n103"
+        }
+      ]
+    },
+    {
+      "ref": "n102",
+      "type": "reaction",
+      "seq": 77,
+      "pos": [
+        50740,
+        0
+      ],
+      "data": {
+        "emoji": "🤩",
+        "target": "student"
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1400,
+          "then": "n103"
+        }
+      ]
+    },
+    {
+      "ref": "n103",
+      "type": "text",
+      "seq": 78,
+      "pos": [
+        51300,
+        0
+      ],
+      "data": {
+        "content": "И вслух 🎤 По-английски: {t:«Я сейчас стараюсь изо всех сил»}",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1800,
+          "then": "n104"
+        }
+      ]
+    },
+    {
+      "ref": "n104",
+      "type": "say_phrase",
+      "seq": 79,
+      "pos": [
+        51860,
+        0
+      ],
+      "data": {
+        "voiceReply": true,
+        "hintSilence": "Не слышу тебя) говори чуть громче и ближе к микрофону",
+        "hintMismatch": "Почти! Не бойся, скажи ещё раз, можно медленнее",
+        "hintPartial": "Почти получилось) верно: {ok}, не хватило: {missed}",
+        "phrase": "I am trying my best",
+        "translation": "Я стараюсь изо всех сил",
+        "keywords": "trying",
+        "threshold": 70
+      },
+      "triggers": [
+        {
+          "if": "say_done",
+          "then": "n105"
+        },
+        {
+          "if": "say_wrong",
+          "then": "n106"
+        }
+      ]
+    },
+    {
+      "ref": "n105",
+      "type": "text",
+      "seq": 80,
+      "pos": [
+        52420,
+        0
+      ],
+      "data": {
+        "content": "Вот это уже речь 😏",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1600,
+          "then": "n108"
+        }
+      ]
+    },
+    {
+      "ref": "n106",
+      "type": "text",
+      "seq": 116,
+      "pos": [
+        52420,
+        480
+      ],
+      "data": {
+        "content": "бывает) {u:прямо сейчас} это {g:am trying}: {g:I am trying my best}",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 2800,
+          "then": "n108"
+        }
+      ]
+    },
+    {
+      "ref": "n108",
+      "type": "text",
+      "seq": 81,
+      "pos": [
+        54840,
+        0
+      ],
+      "data": {
+        "content": "{g:tried} → {u:прошедшее}\n{g:will try} → {u:будущее}\n{g:am / is / are trying} → {u:прямо сейчас}",
+        "hardWrap": true
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 2800,
+          "then": "n109"
+        }
+      ]
+    },
+    {
+      "ref": "n109",
+      "type": "table",
+      "seq": 82,
+      "pos": [
+        55400,
+        0
+      ],
+      "note": "Жёсткая тренировка, шаг 1: полная таблица со всеми временами (кроме trying), demo-режим, без прогона.",
+      "data": {
+        "mode": "demo",
+        "table": {
+          "rows": [
+            {
+              "id": "r-g0",
+              "heightPct": 25
+            },
+            {
+              "id": "r-g1",
+              "heightPct": 25
+            },
+            {
+              "id": "r-g2",
+              "heightPct": 25
+            },
+            {
+              "id": "r-g3",
+              "heightPct": 25
+            }
+          ],
+          "cells": [
+            {
+              "id": "g-h0",
+              "col": 0,
+              "row": 0,
+              "value": "Местоимения",
+              "colspan": 1,
+              "rowspan": 1,
+              "fontSize": 11,
+              "isHeader": true
+            },
+            {
+              "id": "g-h1",
+              "col": 1,
+              "row": 0,
+              "value": "Прошедшее",
+              "colspan": 1,
+              "rowspan": 1,
+              "fontSize": 11,
+              "isHeader": true
+            },
+            {
+              "id": "g-h2",
+              "col": 2,
+              "row": 0,
+              "value": "Настоящее",
+              "colspan": 1,
+              "rowspan": 1,
+              "fontSize": 11,
+              "isHeader": true
+            },
+            {
+              "id": "g-h3",
+              "col": 3,
+              "row": 0,
+              "value": "Будущее",
+              "colspan": 1,
+              "rowspan": 1,
+              "fontSize": 11,
+              "isHeader": true
+            },
+            {
+              "id": "g-i",
+              "col": 0,
+              "row": 1,
+              "value": "I",
+              "colspan": 1,
+              "rowspan": 1,
+              "fontSize": 13
+            },
+            {
+              "id": "g-he",
+              "col": 0,
+              "row": 2,
+              "value": "he, she, it",
+              "colspan": 1,
+              "rowspan": 1,
+              "fontSize": 13
+            },
+            {
+              "id": "g-you",
+              "col": 0,
+              "row": 3,
+              "value": "you, we, they",
+              "colspan": 1,
+              "rowspan": 1,
+              "fontSize": 13
+            },
+            {
+              "id": "g-tried",
+              "col": 1,
+              "row": 1,
+              "value": "tried",
+              "colspan": 1,
+              "rowspan": 3,
+              "fontSize": 12
+            },
+            {
+              "id": "g-try1",
+              "col": 2,
+              "row": 1,
+              "value": "try",
+              "colspan": 1,
+              "rowspan": 1,
+              "fontSize": 12
+            },
+            {
+              "id": "g-tries",
+              "col": 2,
+              "row": 2,
+              "value": "tries",
+              "colspan": 1,
+              "rowspan": 1,
+              "fontSize": 12
+            },
+            {
+              "id": "g-try2",
+              "col": 2,
+              "row": 3,
+              "value": "try",
+              "colspan": 1,
+              "rowspan": 1,
+              "fontSize": 12
+            },
+            {
+              "id": "g-will",
+              "col": 3,
+              "row": 1,
+              "value": "will try",
+              "colspan": 1,
+              "rowspan": 3,
+              "fontSize": 12
+            }
+          ],
+          "columns": [
+            {
+              "id": "c-g0",
+              "widthPct": 30
+            },
+            {
+              "id": "c-g1",
+              "widthPct": 23
+            },
+            {
+              "id": "c-g2",
+              "widthPct": 23
+            },
+            {
+              "id": "c-g3",
+              "widthPct": 24
+            }
+          ],
+          "colCount": 4,
+          "rowCount": 4
+        },
+        "chatCaption": "Полная карта времён: try"
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 2600,
+          "then": "n110"
+        }
+      ]
+    },
+    {
+      "ref": "n110",
+      "type": "text",
+      "seq": 83,
+      "pos": [
+        55960,
+        0
+      ],
+      "data": {
+        "content": "это основа) дальше {t:говорить смело}: на практике страх проходит быстрее всего",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 2800,
+          "then": "n111"
+        }
+      ]
+    },
+    {
+      "ref": "n111",
+      "type": "word_choice",
+      "seq": 84,
+      "pos": [
+        56520,
+        0
+      ],
+      "note": "Меню-развилка, не тест: «Закончить» — конец урока, «Ещё потренируюсь» — доп тренировка",
+      "data": {
+        "reward": false,
+        "options": [
+          {
+            "text": "Закончить ✅",
+            "isCorrect": true
+          },
+          {
+            "text": "Ещё потренируюсь 💪",
+            "isCorrect": true
+          }
+        ],
+        "sendPickToChat": true
+      },
+      "triggers": [
+        {
+          "if": "word_correct",
+          "then": null
+        },
+        {
+          "if": "word_wrong",
+          "then": null
+        },
+        {
+          "if": "variant",
+          "variantLabel": "Закончить ✅",
+          "then": null
+        },
+        {
+          "if": "variant",
+          "variantLabel": "Ещё потренируюсь 💪",
+          "then": "n112"
+        }
+      ]
+    },
+    {
+      "ref": "n112",
+      "type": "system",
+      "seq": 85,
+      "pos": [
+        58380,
+        0
+      ],
+      "data": {
+        "content": "Доп тренировка · говорим смело 🎤"
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1600,
+          "then": "n113"
+        }
+      ]
+    },
+    {
+      "ref": "n113",
+      "type": "text",
+      "seq": 86,
+      "pos": [
+        58940,
+        0
+      ],
+      "data": {
+        "content": "правило тут одно: {t:лучше сказать с ошибкой, чем промолчать}, тебя всё равно поймут))",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 2800,
+          "then": "n114"
+        }
+      ]
+    },
+    {
+      "ref": "n114",
+      "type": "rotate_phone",
+      "seq": 87,
+      "pos": [
+        59500,
+        0
+      ],
+      "note": "ОЗВУЧКА: диктор по script, каждую фразу трижды, после каждой — пауза для повтора ученика",
+      "needs": "audio — озвучка диктора по script (с паузами для повторов ученика — их автор нарежет в тренажёре)",
+      "data": {
+        "content": "Переверни телефон и повторяй вслух за голосом 🎧",
+        "script": "try. try. try. I try. I try. I try. tries. tries. tries. She tries. She tries. She tries. tried. tried. tried. We tried. We tried. We tried. will try. will try. will try. They will try. They will try. They will try."
+      },
+      "triggers": [
+        {
+          "if": "shown",
+          "then": "n115"
+        }
+      ]
+    },
+    {
+      "ref": "n115",
+      "type": "text",
+      "seq": 88,
+      "pos": [
+        60060,
+        0
+      ],
+      "data": {
+        "content": "Давай разомнёмся, для начала скажи что-нибудь своё с {g:try})) Любая форма, любое время, я проверю лишь произношение",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 2800,
+          "then": "n116"
+        }
+      ]
+    },
+    {
+      "ref": "n116",
+      "type": "say_phrase",
+      "seq": 89,
+      "pos": [
+        60620,
+        0
+      ],
+      "data": {
+        "hintSilence": "Не слышу тебя) говори чуть громче и ближе к микрофону",
+        "hintMismatch": "Начни с «I», «we» или «she», потом любая форма try, а дальше своё. Скажи ещё раз, не бойся",
+        "hintPartial": "Почти получилось) верно: {ok}, не хватило: {missed}",
+        "phrase": "I try to cook",
+        "translation": "Я пытаюсь готовить",
+        "pattern": "(I|you|we|they|he|she|it) (try|tries|tried|will try|am trying|is trying|are trying) **"
+      },
+      "triggers": [
+        {
+          "if": "say_done",
+          "then": "n117"
+        },
+        {
+          "if": "say_wrong",
+          "then": "n118"
+        }
+      ]
+    },
+    {
+      "ref": "n117",
+      "type": "text",
+      "seq": 90,
+      "pos": [
+        61180,
+        0
+      ],
+      "data": {
+        "content": "Отлично): главное, что ты уже говоришь по-английски))",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 2400,
+          "then": "n120"
+        }
+      ]
+    },
+    {
+      "ref": "n118",
+      "type": "text",
+      "seq": 115,
+      "pos": [
+        61180,
+        480
+      ],
+      "data": {
+        "content": "смотри, например {g:I try to cook}, своё слово после {g:try to} любое",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 2800,
+          "then": "n120"
+        }
+      ]
+    },
+    {
+      "ref": "n120",
+      "type": "text",
+      "seq": 91,
+      "pos": [
+        62300,
+        0
+      ],
+      "data": {
+        "content": "давай на время, я сделаю вид, что не заметил, если не успеешь)))\nпереведи {t:«он каждое утро пытается встать пораньше»}",
+        "hardWrap": true
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1000,
+          "then": "n121"
+        }
+      ]
+    },
+    {
+      "ref": "n121",
+      "type": "word_choice",
+      "seq": 92,
+      "pos": [
+        62860,
+        0
+      ],
+      "data": {
+        "options": [
+          {
+            "text": "He tried to wake up early",
+            "isCorrect": false
+          },
+          {
+            "text": "He tries to wake up early",
+            "isCorrect": true
+          },
+          {
+            "text": "He will try to wake up early",
+            "isCorrect": false
+          }
+        ],
+        "sendPickToChat": true,
+        "timeLimitSec": 8
+      },
+      "triggers": [
+        {
+          "if": "word_correct",
+          "then": "n123"
+        },
+        {
+          "if": "word_wrong",
+          "then": "n122"
+        }
+      ]
+    },
+    {
+      "ref": "n122",
+      "type": "text",
+      "seq": 114,
+      "pos": [
+        63420,
+        480
+      ],
+      "data": {
+        "content": "каждое утро, это привычка, значит {g:tries} {u:to wake up early}",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 2400,
+          "then": "n123"
+        }
+      ]
+    },
+    {
+      "ref": "n123",
+      "type": "text",
+      "seq": 93,
+      "pos": [
+        63420,
+        0
+      ],
+      "data": {
+        "content": "а ну-ка на слух 👂",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1000,
+          "then": "n124"
+        }
+      ]
+    },
+    {
+      "ref": "n124",
+      "type": "audio",
+      "seq": 94,
+      "pos": [
+        63980,
+        0
+      ],
+      "note": "ОЗВУЧКА (тест на слух): They try hard",
+      "data": {
+        "r2Url": "https://pub-045dc128a8954174a6d82f218e0836b9.r2.dev/chat/50035ee2-bed7-4c81-9d61-308cf95fead0.mp3"
+      },
+      "triggers": [
+        {
+          "if": "played",
+          "then": "n125"
+        }
+      ]
+    },
+    {
+      "ref": "n125",
+      "type": "word_choice",
+      "seq": 95,
+      "pos": [
+        64540,
+        0
+      ],
+      "data": {
+        "options": [
+          {
+            "text": "Они стараются изо всех сил",
+            "isCorrect": true
+          },
+          {
+            "text": "Они постараются изо всех сил",
+            "isCorrect": false
+          },
+          {
+            "text": "Они пытались изо всех сил",
+            "isCorrect": false
+          }
+        ],
+        "sendPickToChat": true,
+        "timeLimitSec": 8
+      },
+      "triggers": [
+        {
+          "if": "word_correct",
+          "then": "n127"
+        },
+        {
+          "if": "word_wrong",
+          "then": "n126"
+        }
+      ]
+    },
+    {
+      "ref": "n126",
+      "type": "text",
+      "seq": 113,
+      "pos": [
+        65100,
+        480
+      ],
+      "data": {
+        "content": "{g:They try hard} это {t:они стараются изо всех сил}, {u:настоящее время}, без {g:-s}",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 2400,
+          "then": "n127"
+        }
+      ]
+    },
+    {
+      "ref": "n127",
+      "type": "text",
+      "seq": 96,
+      "pos": [
+        65100,
+        0
+      ],
+      "data": {
+        "content": "а теперь переведи {t:«завтра она попробует суп»}",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1000,
+          "then": "n128"
+        }
+      ]
+    },
+    {
+      "ref": "n128",
+      "type": "phrase_assembly",
+      "seq": 97,
+      "pos": [
+        65660,
+        0
+      ],
+      "data": {
+        "words": [
+          "She",
+          "will",
+          "try",
+          "soup"
+        ],
+        "distractors": [
+          {
+            "text": "tried"
+          },
+          {
+            "text": "tries"
+          },
+          {
+            "text": "he"
+          }
+        ],
+        "responseWrong": "для «завтра» нужно will)",
+        "answers": [
+          [
+            "Tomorrow",
+            "she",
+            "will",
+            "try",
+            "soup"
+          ],
+          [
+            "She",
+            "will",
+            "try",
+            "soup",
+            "tomorrow"
+          ]
+        ],
+        "timeLimitSec": 15
+      },
+      "triggers": [
+        {
+          "if": "phrase_correct",
+          "then": "n131"
+        },
+        {
+          "if": "phrase_wrong",
+          "then": "n129"
+        }
+      ]
+    },
+    {
+      "ref": "n129",
+      "type": "text",
+      "seq": 112,
+      "pos": [
+        66220,
+        480
+      ],
+      "data": {
+        "content": "если мы говорим про завтра, это будущее, значит используем {g:will try}, то есть {g:She will try soup}",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 2400,
+          "then": "n131"
+        }
+      ]
+    },
+    {
+      "ref": "n131",
+      "type": "text",
+      "seq": 98,
+      "pos": [
+        66780,
+        0
+      ],
+      "data": {
+        "content": "Представь, Маша пишет, а ты отвечаешь по ситуации 😄\nМаша: завтра идём на боулинг, ты с нами? 🎳",
+        "hardWrap": true
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 2200,
+          "then": "n133"
+        }
+      ]
+    },
+    {
+      "ref": "n134",
+      "type": "say_phrase",
+      "seq": 100,
+      "pos": [
+        68460,
+        0
+      ],
+      "data": {
+        "voiceReply": true,
+        "hintSilence": "Не слышу тебя) говори чуть громче и ближе к микрофону",
+        "hintMismatch": "Почти! Не бойся, скажи ещё раз, можно медленнее",
+        "hintPartial": "Почти получилось) верно: {ok}, не хватило: {missed}",
+        "phrase": "We will try bowling",
+        "translation": "Мы попробуем боулинг",
+        "keywords": "bowling",
+        "threshold": 70,
+        "signals": [
+          {
+            "slot": 0,
+            "ref": "n135"
+          }
+        ]
+      },
+      "triggers": [
+        {
+          "if": "say_done",
+          "then": "n136"
+        },
+        {
+          "if": "say_wrong",
+          "then": "n137"
+        }
+      ]
+    },
+    {
+      "ref": "n135",
+      "type": "audio",
+      "seq": 140,
+      "pos": [
+        68460,
+        960
+      ],
+      "note": "ОЗВУЧКА: Гончарное дело по-английски — pottery. Слушай слово: pottery",
+      "needs": "audio — озвучка реплики",
+      "data": {
+        "text": "Боулинг по-английски {g:bowling}, слушай слово: {g:bowling}",
+        "showText": true
+      },
+      "triggers": [
+        {
+          "if": "played",
+          "then": null
+        }
+      ]
+    },
+    {
+      "ref": "n136",
+      "type": "text",
+      "seq": 101,
+      "pos": [
+        69020,
+        0
+      ],
+      "data": {
+        "content": "Маша в восторге 🎉",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1800,
+          "then": "n138"
+        }
+      ]
+    },
+    {
+      "ref": "n137",
+      "type": "text",
+      "seq": 111,
+      "pos": [
+        69020,
+        480
+      ],
+      "data": {
+        "content": "слово непростое, не страшно) вся фраза: {g:We will try bowling}",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 2800,
+          "then": "n138"
+        }
+      ]
+    },
+    {
+      "ref": "n138",
+      "type": "text",
+      "seq": 102,
+      "pos": [
+        69580,
+        0
+      ],
+      "data": {
+        "content": "Маша каждый вечер пытается мне помочь с английским 😅 скажи по-английски: {t:«она пытается помочь»}",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 3000,
+          "then": "n139"
+        }
+      ]
+    },
+    {
+      "ref": "n139",
+      "type": "say_phrase",
+      "seq": 103,
+      "pos": [
+        70140,
+        0
+      ],
+      "data": {
+        "hintSilence": "Не слышу тебя) говори чуть громче и ближе к микрофону",
+        "hintMismatch": "С she глагол с окончанием: she tries. Скажи ещё раз, не бойся",
+        "hintPartial": "Почти получилось) верно: {ok}, не хватило: {missed}",
+        "phrase": "She tries to help",
+        "translation": "Она пытается помочь"
+      },
+      "triggers": [
+        {
+          "if": "say_done",
+          "then": "n140"
+        },
+        {
+          "if": "say_wrong",
+          "then": "n141"
+        }
+      ]
+    },
+    {
+      "ref": "n140",
+      "type": "text",
+      "seq": 104,
+      "pos": [
+        70700,
+        0
+      ],
+      "data": {
+        "content": "вот так, с окончанием, и звучит по-настоящему))",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 2400,
+          "then": "n142"
+        }
+      ]
+    },
+    {
+      "ref": "n141",
+      "type": "text",
+      "seq": 110,
+      "pos": [
+        70700,
+        480
+      ],
+      "data": {
+        "content": "почти) вот пример: {g:She tries to help}, с she добавляем {g:-s}",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 2800,
+          "then": "n142"
+        }
+      ]
+    },
+    {
+      "ref": "n142",
+      "type": "text",
+      "seq": 105,
+      "pos": [
+        71260,
+        0
+      ],
+      "data": {
+        "content": "и последнее) а теперь про тебя: скажи по-английски {t:«я пытаюсь расслабиться»}",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 2800,
+          "then": "n143"
+        }
+      ]
+    },
+    {
+      "ref": "n143",
+      "type": "say_phrase",
+      "seq": 106,
+      "pos": [
+        71820,
+        0
+      ],
+      "data": {
+        "hintSilence": "Не слышу тебя) говори чуть громче и ближе к микрофону",
+        "hintMismatch": "Нужна пара из двух слов: «I am trying», потом to relax. Скажи ещё раз",
+        "hintPartial": "Почти получилось) верно: {ok}, не хватило: {missed}",
+        "phrase": "I am trying to relax",
+        "translation": "Я пытаюсь расслабиться"
+      },
+      "triggers": [
+        {
+          "if": "say_done",
+          "then": "n144"
+        },
+        {
+          "if": "say_wrong",
+          "then": "n145"
+        }
+      ]
+    },
+    {
+      "ref": "n144",
+      "type": "text",
+      "seq": 107,
+      "pos": [
+        72380,
+        0
+      ],
+      "data": {
+        "content": "Вооу, это очень хорошо))",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 2400,
+          "then": "n146"
+        }
+      ]
+    },
+    {
+      "ref": "n145",
+      "type": "text",
+      "seq": 109,
+      "pos": [
+        72380,
+        480
+      ],
+      "data": {
+        "content": "ничего), держи пример: {g:I am trying to relax}",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 2600,
+          "then": "n146"
+        }
+      ]
+    },
+    {
+      "ref": "n146",
+      "type": "text",
+      "seq": 108,
+      "pos": [
+        72940,
+        0
+      ],
+      "data": {
+        "content": "Мы повторили все формы глагола {g:try}: {g:try}, {g:tries}, {g:tried}, {g:will try}, {g:am trying}\nИ самое главное: ты уже используешь их в речи!",
+        "hardWrap": true
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 2000,
+          "then": null
+        }
+      ]
+    },
+    {
+      "ref": "n133",
+      "type": "text",
+      "seq": 99,
+      "pos": [
+        67900,
+        0
+      ],
+      "data": {
+        "content": "Ответь вслух: {t:«мы попробуем боулинг»}",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 2200,
+          "then": "n134"
+        }
+      ]
+    },
+    {
+      "ref": "n147",
+      "type": "table",
+      "seq": 24,
+      "pos": [
+        16040,
+        0
+      ],
+      "note": "Таблица в начале Части 2: формы настоящего времени по лицам, demo-режим",
+      "data": {
+        "mode": "demo",
+        "chatCaption": "Настоящее время: форма по лицам",
+        "table": {
+          "rows": [
+            {
+              "id": "r0",
+              "heightPct": 34
+            },
+            {
+              "id": "r1",
+              "heightPct": 33
+            },
+            {
+              "id": "r2",
+              "heightPct": 33
+            }
+          ],
+          "columns": [
+            {
+              "id": "c0",
+              "widthPct": 60
+            },
+            {
+              "id": "c1",
+              "widthPct": 40
+            }
+          ],
+          "colCount": 2,
+          "rowCount": 3,
+          "cells": [
+            {
+              "id": "h0",
+              "col": 0,
+              "row": 0,
+              "value": "Кто",
+              "colspan": 1,
+              "rowspan": 1,
+              "fontSize": 11,
+              "isHeader": true
+            },
+            {
+              "id": "h1",
+              "col": 1,
+              "row": 0,
+              "value": "Форма",
+              "colspan": 1,
+              "rowspan": 1,
+              "fontSize": 11,
+              "isHeader": true
+            },
+            {
+              "id": "a0",
+              "col": 0,
+              "row": 1,
+              "value": "I, you, we, they",
+              "colspan": 1,
+              "rowspan": 1,
+              "fontSize": 13
+            },
+            {
+              "id": "a1",
+              "col": 1,
+              "row": 1,
+              "value": "try",
+              "colspan": 1,
+              "rowspan": 1,
+              "fontSize": 14
+            },
+            {
+              "id": "b0",
+              "col": 0,
+              "row": 2,
+              "value": "he, she, it",
+              "colspan": 1,
+              "rowspan": 1,
+              "fontSize": 13
+            },
+            {
+              "id": "b1",
+              "col": 1,
+              "row": 2,
+              "value": "tries",
+              "colspan": 1,
+              "rowspan": 1,
+              "fontSize": 14
+            }
+          ]
+        }
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 2600,
+          "then": "n31"
+        }
+      ]
+    }
+  ],
+  "zones": [
+    {
+      "id": "zone-trying2-1",
+      "x": -150,
+      "y": -150,
+      "width": 1728,
+      "height": 560,
+      "label": "Вход",
+      "color": "#b6fe3b"
+    },
+    {
+      "id": "zone-trying2-2",
+      "x": 2830,
+      "y": -150,
+      "width": 11248,
+      "height": 1520,
+      "label": "Часть 1 · try",
+      "color": "#b6fe3b"
+    },
+    {
+      "id": "zone-trying2-3",
+      "x": 15330,
+      "y": -150,
+      "width": 9568,
+      "height": 1520,
+      "label": "Часть 2 · tries",
+      "color": "#5fb8ff"
+    },
+    {
+      "id": "zone-trying2-4",
+      "x": 26150,
+      "y": -150,
+      "width": 7888,
+      "height": 1520,
+      "label": "Часть 3 · tried",
+      "color": "#ff9f5f"
+    },
+    {
+      "id": "zone-trying2-5",
+      "x": 35290,
+      "y": -150,
+      "width": 7328,
+      "height": 1040,
+      "label": "Часть 4 · will try",
+      "color": "#ff6fae"
+    },
+    {
+      "id": "zone-trying2-6",
+      "x": 43870,
+      "y": -150,
+      "width": 9008,
+      "height": 1520,
+      "label": "Часть 5 · trying",
+      "color": "#a07fd4"
+    },
+    {
+      "id": "zone-trying2-7",
+      "x": 54130,
+      "y": -150,
+      "width": 2848,
+      "height": 560,
+      "label": "Итог и выбор",
+      "color": "#ffd75f"
+    },
+    {
+      "id": "zone-trying2-8",
+      "x": 58230,
+      "y": -150,
+      "width": 15168,
+      "height": 1520,
+      "label": "Доп тренировка · говорим смело",
+      "color": "#6bd4a0"
+    }
+  ]
+}

@@ -1,5 +1,5 @@
 import { useState, useMemo, useRef, useEffect } from 'react'
-import { firstMismatchSlot } from '../../../../shared/lib/signalMismatch.js'
+import { phraseVariants, chipWords, judgeAssembly } from '../../../../shared/lib/phraseVariants.js'
 import { signalForSlot } from '../../../../shared/lib/signalSlots.js'
 import { useSignalState } from '../signal-overlay/useSignalState.js'
 import { useAnswerOrder } from '../../useAnswerOrder.js'
@@ -10,8 +10,6 @@ import { snapshotWrongIds } from './wrongChips.js'
 // Сколько держится итог неверной проверки (тряска строки + красные слова снимка)
 const WRONG_SHOW_MS = 700
 
-const wordMatches = (word, expected) => (word ?? '').toLowerCase() === expected.toLowerCase()
-
 // nodes — все ноды урока (не только видимые): нужны, чтобы резолвить ref
 // сигнала ошибки (см. PROJECT.md, «Сигналы ошибок») в живую ноду.
 // onSignalFired(node, release, exerciseNodeId) — мост до ленты
@@ -19,7 +17,9 @@ const wordMatches = (word, expected) => (word ?? '').toLowerCase() === expected.
 // обычным сообщением вместо прежнего оверлея, release === signalState.dismissOverlay
 // ниже. hasSignalFired(nodeId) — та же нода-сигнал срабатывает один раз за урок.
 export function usePhraseAssembly(node, nodes = [], onSignalFired, hasSignalFired) {
-  const words       = node.typeData?.phrase_assembly?.words       ?? []
+  const pa          = node.typeData?.phrase_assembly ?? {}
+  // Верных порядков слов может быть несколько (answers рядом с words, phraseVariants.js): засчитывается любой
+  const variants    = phraseVariants(pa)
   const distractors = node.typeData?.phrase_assembly?.distractors ?? []
   const signals      = node.typeData?.phrase_assembly?.signals    ?? []
 
@@ -30,7 +30,7 @@ export function usePhraseAssembly(node, nodes = [], onSignalFired, hasSignalFire
   // попало в фразу (особый переход конкретного варианта, nodeVariants.js),
   // null у настоящих слов
   const shuffled = useAnswerOrder([
-    ...words.map(w => ({ text: w, distractorId: null })),
+    ...chipWords(variants).map(w => ({ text: w, distractorId: null })),
     ...distractors.map(d => ({ text: d.text, distractorId: d.id })),
   ])
 
@@ -92,14 +92,14 @@ export function usePhraseAssembly(node, nodes = [], onSignalFired, hasSignalFire
     if (placed.length === 0 || isAnswered || signalState.freeze) return null
     clearTimeout(wrongTimer.current) // таймер сброса прошлой неверной проверки не должен пережить эту
     const placedWords = placed.map(p => p.word)
-    const full = placedWords.length === words.length
+    const verdict = judgeAssembly(placedWords, variants)
 
     // Сигнал ошибки смотрим ТОЛЬКО на полностью собранном ответе — частичная
     // попытка (кнопка «Проверить» доступна и до конца сборки) идёт обычным
     // путём ниже, как и раньше
-    if (full) {
-      const mismatchIdx = firstMismatchSlot(placedWords, words, wordMatches)
-      if (mismatchIdx == null) {
+    if (verdict.full) {
+      const mismatchIdx = verdict.mismatchIdx
+      if (verdict.correct) {
         setResult('correct')
         return 'correct'
       }

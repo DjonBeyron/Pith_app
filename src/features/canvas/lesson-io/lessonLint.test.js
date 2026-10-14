@@ -47,7 +47,7 @@ describe('lintLesson', () => {
 
   it('нода-сигнал (signals[].ref) достижима и не считается «недостижимой от старта»', () => {
     const nodes = [
-      node('n1', 1, 'type_word', { word: 'tries', signals: [{ slot: 2, ref: 'n3' }] }, [
+      node('n1', 1, 'type_word', { word: 'she tries', signals: [{ slot: 2, ref: 'n3' }] }, [
         { if: 'type_correct', then: 'n2' }, { if: 'type_wrong', then: 'n2' },
       ]),
       node('n2', 2, 'text', { content: 'Дальше' }, []),
@@ -58,7 +58,7 @@ describe('lintLesson', () => {
 
   it('сигнал на ноду без ссылки на неё ниоткуда остаётся недостижимым; счётная похвала в сигнале ловится', () => {
     const nodes = [
-      node('n1', 1, 'type_word', { word: 'tries', signals: [{ slot: 2, ref: 'n3' }] }, []),
+      node('n1', 1, 'type_word', { word: 'she tries', signals: [{ slot: 2, ref: 'n3' }] }, []),
       node('n2', 2, 'text', { content: 'Лишняя' }, []),
       node('n3', 3, 'text', { content: 'Ни одной ошибки!' }, []),
     ]
@@ -149,7 +149,7 @@ describe('lintLesson', () => {
   })
 
   it('не ругается на manual-таблицу без script (там оно и не нужно)', () => {
-    const nodes = [node('n1', 1, 'table', { mode: 'manual', answer: 'I try tea' }, [])]
+    const nodes = [node('n1', 1, 'table', { mode: 'manual', answer: 'I try tea' }, [{ if: 'table_correct', then: null }])]
     expect(lintLesson(nodes)).toEqual([])
   })
 

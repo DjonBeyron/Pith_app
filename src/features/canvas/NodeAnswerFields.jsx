@@ -7,6 +7,7 @@ import NodeTablePicker          from './NodeTablePicker.jsx'
 import NodePhotoChoicePicker    from './NodePhotoChoicePicker.jsx'
 import NodeLessonLink           from './NodeLessonLink.jsx'
 import NodeRewardCheckbox       from './NodeRewardCheckbox.jsx'
+import NodeTimeLimit            from './NodeTimeLimit.jsx'
 import { isRewardOn }           from '../../shared/lib/nodeReward.js'
 
 // Поля интерактивных типов-ответов (word_choice/phrase_assembly/fill_blanks/type_word/say_phrase/
@@ -43,6 +44,7 @@ export default function NodeAnswerFields({
           onStatLessonChange={v => updateTypeData({ statLessonId: v })}
           moduleLessons={moduleLessons}
         />
+        <NodeTimeLimit value={tData.timeLimitSec} onChange={v => updateTypeData({ timeLimitSec: v })} />
         <NodeRewardCheckbox lessonXp={lessonXp} checked={tData.reward !== false} onChange={v => updateTypeData({ reward: v })} />
       </>
     )
@@ -57,6 +59,8 @@ export default function NodeAnswerFields({
           responseCorrect={tData.responseCorrect ?? ''}
           responseWrong={tData.responseWrong ?? ''}
           onWordsChange={w => updateTypeData({ words: w })}
+          answers={tData.answers ?? []}
+          onAnswersChange={a => updateTypeData({ answers: a })}
           onDistractorsChange={d => updateTypeData({ distractors: d })}
           onResponseCorrectChange={txt => updateTypeData({ responseCorrect: txt })}
           onResponseWrongChange={txt => updateTypeData({ responseWrong: txt })}
@@ -69,6 +73,7 @@ export default function NodeAnswerFields({
           onTriggerMeasure={onTriggerMeasure}
           onSignalMeasure={onSignalMeasure}
         />
+        <NodeTimeLimit value={tData.timeLimitSec} onChange={v => updateTypeData({ timeLimitSec: v })} />
         <NodeLessonLink
           value={tData.statLessonId ?? null}
           onChange={v => updateTypeData({ statLessonId: v })}
@@ -156,6 +161,10 @@ export default function NodeAnswerFields({
           voiceReply={tData.voiceReply === true}
           hintsOn={tData.hintsOn !== false}
           hints={{ hintSilence: tData.hintSilence, hintMismatch: tData.hintMismatch, hintPartial: tData.hintPartial }}
+          pattern={tData.pattern ?? ''}
+          signals={tData.signals ?? []}
+          onSignalsChange={s => updateTypeData({ signals: s })}
+          onSignalMeasure={onSignalMeasure}
           onChange={patch => updateTypeData(patch)}
           triggers={node.triggers ?? []}
           allNodes={allNodes}

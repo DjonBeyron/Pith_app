@@ -3,7 +3,7 @@ import { dbg } from '../../shared/lib/debug.js'
 import { canvasLsKey } from './canvasStorageKeys.js'
 import { loadScript, saveLesson } from '../../shared/lib/lessonsApi.js'
 import { notifyLessonSaved } from '../../shared/lib/lessonSavedBus.js'
-import { injectR2Urls } from './injectR2Urls.js'
+import { injectR2Urls, findUnlinkedMedia } from './injectR2Urls.js'
 
 // Сохранение урока на сервер: догрузка несинхронизированных файлов, инъекция
 // r2Url в ноды, запись + контрольное чтение сразу после (не доверяем «раз не
@@ -11,7 +11,7 @@ import { injectR2Urls } from './injectR2Urls.js'
 // ноды + настройки учителя) после успеха. Вынесено из CanvasPage.jsx.
 export function useCanvasSave({
   lessonId, title, lessonXp, nodesRef, zonesRef, hasUnsynced, files, syncToServer,
-  prepareForSave, clearTeacherDraft, setSyncStatus,
+  prepareForSave, clearTeacherDraft, setSyncStatus, onUnlinkedMedia,
 }) {
   const [isSaving, setIsSaving] = useState(false)
 
@@ -62,7 +62,12 @@ export function useCanvasSave({
           .map(n => `${n.type}#${n.seq}:${(n.typeData[n.type].file_id ?? '').slice(0, 8)}→${n.typeData[n.type].r2Url ? 'r2Url✓' : 'r2Url✗НЕТ'}`)
           .join(', ')
         if (checkFiles) dbg('[CANVAS] verify: server files:', checkFiles)
-        setSyncStatus(checkNodes.length !== nodesForSave.length
+        const serverUnlinked = findUnlinkedMedia(checkNodes)
+        if (serverUnlinked.length) {
+          const list = serverUnlinked.slice(0, 12).join(', ') + (serverUnlinked.length > 12 ? '…' : '')
+          setSyncStatus(`⚠ Сохранено, но у ${serverUnlinked.length} нод нет ссылки на файл — пользователь их не увидит (в редакторе они играют с локальной копии): ${list} · ${stamp}`)
+          onUnlinkedMedia?.(serverUnlinked) // открыть окно файлов: там видно причину по каждой ноде и можно сбросить потерянный файл
+        } else setSyncStatus(checkNodes.length !== nodesForSave.length
           ? `⚠ Сохранено ${nodesForSave.length}, но сервер вернул ${checkNodes.length} — id ${lessonId.slice(0, 8)} · ${stamp}`
           : `✓ Сохранено и проверено: ${checkNodes.length} нод · id ${lessonId.slice(0, 8)} · ${stamp}`)
       } catch (e) {

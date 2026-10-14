@@ -1,6 +1,6 @@
 import {
   MessageSquare, Mic, PlayCircle, Video, Image, Smile,
-  Info, Pin, SpellCheck, Layers, Images, MicVocal, UserPlus, Table2, SmilePlus, Link2, Smartphone,
+  Info, Pin, SpellCheck, Layers, Images, UserPlus, Table2, SmilePlus, Link2, Smartphone,
   PenLine, Keyboard, Speech,
 } from 'lucide-react'
 
@@ -28,7 +28,6 @@ export const NODE_TYPES = [
   { value: 'say_phrase',      label: 'Сказать фразу',       icon: Speech,        color: '#d4684a', group: 'interactive' },
   { value: 'table',           label: 'Таблица',             icon: Table2,        color: '#8a6fd4', group: 'interactive' },
   { value: 'photo_choice',    label: 'Выбрать фото',        icon: Images,        color: '#2a94b4', group: 'interactive' },
-  { value: 'voice_record',    label: 'Запись голоса',       icon: MicVocal,      color: '#a84a84', group: 'interactive' },
   { value: 'registration',   label: 'Регистрация',          icon: UserPlus,      color: '#4a8ab4', group: 'interactive' },
 ]
 
@@ -40,7 +39,7 @@ export const TYPE_SHORT = {
   text: 'Текст', audio: 'Голос', circle: 'Кружок', video: 'Видео', photo: 'Фото',
   sticker: 'Стикер', reaction: 'Реакция', system: 'Система', pin_message: 'Закреп',
   word_choice: 'Слово', phrase_assembly: 'Фраза', fill_blanks: 'Пропуски', type_word: 'Печать', say_phrase: 'Речь', table: 'Таблица',
-  photo_choice: 'Фото-выбор', voice_record: 'Запись', registration: 'Регистрация',
+  photo_choice: 'Фото-выбор', registration: 'Регистрация',
   lesson_ref: 'Ссылка', rotate_phone: 'Поверни',
 }
 

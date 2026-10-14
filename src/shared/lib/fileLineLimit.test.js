@@ -65,8 +65,8 @@ describe('лимит размера файлов (CLAUDE.md)', () => {
     const soft = files.filter(f => f.lines > SOFT_LIMIT).length
     // Не запрет, а счётчик: растёт — значит проект снова копит большие файлы.
     // Поднимать это число можно, но только вместе с решением, что так надо.
-    // 2026-10-14: 61 — FeedSlide.jsx дорос до 253 строк (две строки импорта аналитики feed_phrase_open);
-    // кандидат на разделение (шарики/ловля/перевод — три ветки поверхности фразы)
-    expect(soft).toBeLessThanOrEqual(61)
+    // 2026-10-14: FeedSlide.jsx (253) и useLessonFiles.js (272) разделены (useCatchSlideGlue.js, lessonFilesRecover.js),
+    // чтобы не поднимать счётчик при слиянии веток
+    expect(soft).toBeLessThanOrEqual(60)
   })
 })

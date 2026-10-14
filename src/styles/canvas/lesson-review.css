@@ -1,0 +1,120 @@
+/* ── Окно «Разбор урока» (canvas/review/*): на весь экран, 3 колонки: лента · нода · правила. Префикс rvw — уникальный (см. rulesWindowCssIsolation) */
+.rvwFull { position: fixed; left: 0; right: 0; top: 0; bottom: 0; z-index: 300; height: 100dvh; box-sizing: border-box; padding-top: env(safe-area-inset-top, 0px);
+  background: #0e1013; color: #dfe2ea; display: flex; flex-direction: column; overflow: hidden; }
+.rvwTop { flex: 0 0 auto; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 12px 16px; border-bottom: 1px solid #22252c; margin-bottom: 12px; }
+.rvwBack { padding: 8px 14px; background: #b6fe3b; border: none; border-radius: 8px; color: #0e1013; font-size: 14px; font-weight: 700; cursor: pointer; white-space: nowrap; }
+.rvwTitle { font-weight: 700; font-size: 15px; }
+.rvwInfo { color: #8a90a0; font-size: 12px; }
+.rvwBtn { padding: 6px 12px; background: #1a1d22; border: 1px solid #2a2d35; border-radius: 8px; color: #ccc; font-size: 12px; cursor: pointer; white-space: nowrap; }
+.rvwBtn:disabled { opacity: 0.35; cursor: default; }
+.rvwBtnPrimary { background: #b6fe3b; border-color: #b6fe3b; color: #0e1013; font-weight: 600; }
+.rvwCols { flex: 1 1 0; min-height: 0; overflow: hidden; display: grid; grid-template-rows: minmax(0, 1fr); grid-template-columns: minmax(300px, 360px) minmax(430px, 470px) minmax(420px, 1fr); }
+.rvwCols.rvwRulesOff { grid-template-columns: 38px minmax(430px, 470px) minmax(420px, 1fr); }
+.rvwFeedCol, .rvwCanvasCol, .rvwRight { min-height: 0; overflow: hidden; }
+.rvwRight { overflow-y: auto; padding: 12px 14px; scrollbar-width: thin; scrollbar-color: #4a5064 #14161c; }
+.rvwFeedCol, .rvwRight { border-right: 1px solid #22252c; position: relative; }
+.rvwCanvasCol { position: relative; }
+.rvwRulesToggle { background: transparent; border: none; color: #8a90a0; font-size: 12px; font-weight: 700; cursor: pointer; padding: 2px 4px; margin-bottom: 8px; text-align: left; }
+.rvwRulesToggle:hover { color: #b6fe3b; }
+.rvwCols.rvwRulesOff .rvwRight { padding: 12px 4px; }
+.rvwEmpty { color: #6a6f78; font-size: 13px; padding: 14px 0; }
+.rvwSpacer { flex: 1; }
+.rvwInfoWarn { color: #ffd75f; }
+.rvwInfoOk { color: #b6fe3b; }
+
+/* Копия плеера: рамка как у «телефона» (.playerPhone) — transform делает её containing block для position:fixed внутри (.lessonPlayer) */
+.rvwPhone { position: relative; width: 100%; height: 100%; overflow: hidden; transform: translateZ(0); background: #000; }
+.rvwPhone .rvwPlayerFeed { transform: none; padding: 14px 0 120px; }
+.rvwPhone .rvwPlayerFeed .playerFeedInner { transform: none; }
+/* Панели ответа в ленте: те же классы, но не прижаты к низу экрана (в плеере они fixed) и в цвете типа ноды, как на холсте */
+.rvwPanel { margin: 6px 8px; background: #1a1d22; border: 1px solid #2a2d35; border-left: 3px solid var(--rvw-accent, #7a7a96); border-radius: 12px; overflow: hidden; }
+.rvwPanelHead { padding: 6px 12px 0; font-size: 11px; font-weight: 700; color: var(--rvw-accent, #8a90a0); }
+.rvwPanel .phraseInner, .rvwPanel .chooseWordInner { position: static; transform: none; opacity: 1; pointer-events: none; padding: 4px 8px 8px; gap: 6px; }
+.rvwPanel .chooseWordInner { display: flex; flex-wrap: wrap; justify-content: center; }
+.rvwPanel .chooseWordBtn, .rvwPanel .phraseChip { padding: 5px 12px; font-size: 13px; min-height: 0; }
+.rvwPanelHead { display: flex; justify-content: space-between; align-items: center; padding-bottom: 2px; }
+.rvwOpt { pointer-events: auto; cursor: pointer; border-radius: 16px; outline: 2px solid transparent; }
+.rvwOpt.ok { outline-color: #3a5a20; }
+.rvwOpt.picked { outline-color: var(--rvw-accent, #b6fe3b); }
+.rvwOpt .chooseWordBtn { pointer-events: none; }
+.rvwTypeLine { padding: 4px 12px 8px; font-size: 14px; color: #dfe2ea; }
+.rvwHiddenText { padding: 2px 12px 6px; font-size: 12px; color: #8a8fa0; font-style: italic; }
+.rvwSay { display: flex; align-items: center; gap: 8px; padding: 2px 12px 8px; }
+.rvwMic { display: inline-flex; width: 26px; height: 26px; align-items: center; justify-content: center; border-radius: 50%; background: #2a2d35; color: #b8bdca; }
+.rvwBoardWrap { position: absolute; left: 0; right: 0; top: 0; bottom: 0; }
+.rvwBoardWrap .canvasBoard { position: absolute; left: 0; right: 0; top: 0; bottom: 0; width: 100%; height: 100%; }
+.rvwSlot { position: relative; border-radius: 12px; outline: 2px solid transparent; cursor: pointer; }
+.rvwSlot:hover { outline-color: #2a2d35; }
+.rvwSlot.on { outline-color: #b6fe3b; }
+.rvwSlot.wrong .playerMsgBubble, .rvwSlot.wrong .playerMsgBubble--text { background: #3a2124; }
+.rvwSlotMeta { display: flex; gap: 6px; font-size: 10px; color: #6a6f78; padding: 0 4px; }
+.rvwStudentRow.bad .playerMsgBubble { background: #4a1f1f; }
+.rvwTagWrong { color: #f87171; }
+
+.rvwTagWrong { border-color: #5a2a2a; color: #f87171; }
+.rvwWarn { color: #ffd75f; }
+.rvwEmoji { font-size: 34px; line-height: 1.2; }
+.rvwOpts { display: flex; flex-wrap: wrap; gap: 6px; padding: 4px 0; }
+.rvwOpt { padding: 4px 10px; border: 1px solid #2a2d35; border-radius: 14px; font-size: 13px; color: #b8bdca; }
+.rvwOpt.ok { border-color: #3a5a20; color: #b6fe3b; }
+.rvwSwitch { display: flex; gap: 6px; }
+.rvwSwitch button { padding: 4px 10px; background: #1a1d22; border: 1px solid #2a2d35; border-radius: 12px; color: #8a90a0; font-size: 12px; cursor: pointer; }
+.rvwSwitch button.on { background: #1f2d10; border-color: #b6fe3b; color: #b6fe3b; }
+.rvwSwitch button.on.bad { background: #2d1010; border-color: #f87171; color: #f87171; }
+.rvwSwitch button:disabled { opacity: 0.35; cursor: default; }
+
+
+/* Правила */
+.rvwRules { display: flex; flex-direction: column; gap: 14px; }
+.rvwSection { display: flex; flex-direction: column; gap: 6px; }
+.rvwSectionHead { color: #8a90a0; font-size: 12px; font-weight: 700; }
+.rvwWarnRow { display: flex; align-items: center; gap: 8px; justify-content: space-between; padding: 6px 8px; background: #2a2412; border-radius: 8px; color: #ffd75f; font-size: 12px; }
+.rvwRule { border: 1px solid #22252c; border-radius: 8px; }
+.rvwRule.open { border-color: #3a4050; }
+.rvwRuleHead { display: flex; align-items: center; gap: 8px; padding: 7px 10px; cursor: pointer; font-size: 13px; }
+.rvwRuleTitle { flex: 1; }
+.rvwSev { font-size: 11px; padding: 2px 6px; border-radius: 6px; background: #1a1d22; color: #9aa0b4; }
+.rvwSev.error { background: #3a1a1a; color: #f87171; }
+.rvwRuleBody { padding: 4px 10px 10px; font-size: 13px; color: #b8bdca; display: flex; flex-direction: column; gap: 6px; }
+.rvwRuleBody p { margin: 0; line-height: 1.5; }
+.rvwRuleLbl { font-size: 12px; color: #8a90a0; }
+.rvwSearch, .rvwNew input, .rvwNew textarea, .rvwNew select { background: #0a0c10; border: 1px solid #1e2030; border-radius: 8px; color: #dfe2ea; font-size: 13px; padding: 7px 10px; width: 100%; box-sizing: border-box; font-family: inherit; }
+.rvwNew { display: flex; flex-direction: column; gap: 8px; padding: 10px; border: 1px solid #2a2d35; border-radius: 10px; }
+.rvwNewEx { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: #8a90a0; }
+.rvwNewBtns { display: flex; gap: 8px; }
+
+@media (max-width: 900px) {
+  .rvwCols { grid-template-columns: 1fr; grid-template-rows: none; overflow-y: auto; }
+}
+
+/* Кнопка «Разбор» в шапке канваса: текстовая, не квадратная — со своим отступом от соседних иконок */
+.canvasPageReview { width: auto; padding: 0 10px; margin: 0 8px; font-size: 12px; white-space: nowrap; }
+
+/* Мини-иконки в углу сообщения ленты (копировать / замечание): видны при наведении и на выбранном */
+.rvwSlotTools { opacity: 0; pointer-events: none; position: absolute; top: -2px; right: 6px; z-index: 5; display: flex; gap: 4px; }
+.rvwTool { display: inline-flex; align-items: center; gap: 3px; min-width: 26px; height: 26px; justify-content: center; padding: 0 6px; background: #1a1d22ee; border: 1px solid #3a4050; border-radius: 13px; color: #dfe2ea; cursor: pointer; }
+.rvwToolCount { font-size: 10px; font-weight: 700; color: #b6fe3b; }
+.rvwTool:hover { border-color: #b6fe3b; color: #b6fe3b; }
+.rvwTool { box-sizing: border-box; }
+.rvwTool { padding: 0 6px; }
+.rvwTool svg { flex: 0 0 auto; }
+.rvwSlot:hover .rvwSlotTools, .rvwSlot.on .rvwSlotTools, .rvwSlotTools.keep, .rvwSlotTools:focus-within { opacity: 1; pointer-events: auto; }
+
+/* «Изменения»: розовая полоска слева от сообщения, с отступом, не прилипает к нему */
+.rvwBtnChg.on { background: #3a1a2c; border-color: #ff5fa2; color: #ff8fc0; }
+.rvwPhone .rvwPlayerFeed { padding-left: 30px; }
+/* Одна фигура: толстая линия (6px) с треугольником-стрелкой по центру, чуть левее сообщения, со свечением под ней, чтобы выделялась */
+.rvwSlot.rvwChg { isolation: isolate; }
+.rvwSlot.rvwChg::before { content: ''; position: absolute; left: -22px; top: 8px; bottom: 8px; width: 16px; background: #ff5fa2; pointer-events: none;
+  clip-path: polygon(0 0, 6px 0, 6px calc(50% - 10px), 16px 50%, 6px calc(50% + 10px), 6px 100%, 0 100%); }
+.rvwSlot.rvwChg::after { content: ''; position: absolute; left: -30px; top: 8px; bottom: 8px; width: 30px; pointer-events: none;
+  background: radial-gradient(ellipse 60% 50% at 30% 50%, #ff5fa255, transparent 75%); filter: blur(5px); z-index: -1; }
+.rvwTagChg { color: #ff8fc0; }
+
+/* Закреп в ленте разбора: кто закрепил (имя учителя из урока) и что именно */
+.rvwPin { display: flex; flex-direction: column; gap: 6px; align-items: center; }
+.rvwPinned { display: flex; gap: 8px; align-items: flex-start; max-width: 88%; padding: 8px 12px; background: #2a2412; border: 1px solid #5a4a1a; border-radius: 12px; color: #f0e2b0; font-size: 13px; line-height: 1.4; }
+.rvwPinIcon { flex: 0 0 auto; }
+
+/* Пока открыто окно замечания, лента и холст за ним не рисуются и не пересчитываются (content-visibility): набор текста в окне перестаёт лагать */
+.rvwColsBehind .rvwFeedCol, .rvwColsBehind .rvwCanvasCol { content-visibility: hidden; }

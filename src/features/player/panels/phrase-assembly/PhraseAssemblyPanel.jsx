@@ -11,6 +11,9 @@ import { isRewardOn } from '../../../../shared/lib/nodeReward.js'
 import SolveCorrectButton from '../../admin/SolveCorrectButton.jsx'
 import { correctPlacement } from './solveCorrect.js'
 import { useSolveAfterRender } from '../useSolveAfterRender.js'
+import { phraseVariants } from '../../../../shared/lib/phraseVariants.js'
+import { useAnswerTimer } from '../answer-timer/useAnswerTimer.js'
+import AnswerTimerBar from '../answer-timer/AnswerTimerBar.jsx'
 
 // Ученик видит итог в панели (зелёный/красный, тряска), потом панель уезжает
 const SEE_RESULT_MS = 700
@@ -41,6 +44,7 @@ export default function PhraseAssemblyPanel({
   } = usePhraseAssembly(node, nodes, onSignalFired, hasSignalFired)
   const [show, setShow]               = useState(false)
   const [showCounter, setShowCounter] = useState(false)
+  const [expired, setExpired]         = useState(false) // время на ответ вышло (timeLimitSec): ввод закрыт, панель уходит по «неверно»
   const panelRef    = useRef(null)
   const wrongCount  = useRef(0)
   const xpFiredRef  = useRef(false)
@@ -50,6 +54,7 @@ export default function PhraseAssemblyPanel({
   const pa              = node.typeData?.phrase_assembly ?? {}
   const words           = pa.words ?? []
   const wordsTotal      = words.length
+  const multi           = phraseVariants(pa).length > 1 // верных порядков несколько: «из N слов» ни к чему
   const responseWrong   = pa.responseWrong   ?? ''
   const responseCorrect = pa.responseCorrect ?? ''
 
@@ -77,6 +82,22 @@ export default function PhraseAssemblyPanel({
     setShow(false)
   }
 
+  // Лимит времени ноды: вышло — что собрано, уходит в чат как неверная фраза, выход phrase_wrong, без счётчика ошибок и штрафа.
+  // Пока играет сигнал (freeze) или идёт проверка, отсчёт стоит
+  const timer = useAnswerTimer({
+    seconds: pa.timeLimitSec, active: show && !isAnswered && !expired && !freeze,
+    onExpire: () => {
+      if (isAnswered || expired) return
+      setExpired(true)
+      playSound('answer-wrong', 'собери фразу: время вышло')
+      const phrase = placed.map(p => p.word).join(' ')
+      closeTimers.current.forEach(clearTimeout)
+      closeTimers.current = [setTimeout(() => closeWith('phrase_wrong', null, () => {
+        if (phrase.trim()) onAnswered?.(phrase, 'wrong_final', true)
+      }), SEE_RESULT_MS)]
+    },
+  })
+
   useEffect(() => {
     if (result !== 'wrong') return
     wrongCount.current += 1
@@ -92,7 +113,7 @@ export default function PhraseAssemblyPanel({
     if (wc === 1) {
       if (responseWrong.trim()) onAnswered?.(responseWrong, 'hint')
     } else if (wc === 2) {
-      onAnswered?.(`Собери фразу из ${wordsTotal} ${wordFormGenitive(wordsTotal)}`, 'hint')
+      onAnswered?.(multi ? 'Подумай над порядком слов' : `Собери фразу из ${wordsTotal} ${wordFormGenitive(wordsTotal)}`, 'hint')
       setTimeout(() => setShowCounter(true), 350)
     } else if (wc >= 3) {
       // Особый переход конкретного слова-ловушки (nodeVariants.js) — если в
@@ -177,22 +198,23 @@ export default function PhraseAssemblyPanel({
         ref={panelRef}
         className={`phrasePanel${show ? ' phrasePanelVisible' : ''}`}
       >
-        <SolveCorrectButton onSolve={solveCorrect} disabled={isAnswered || freeze} />
+        <AnswerTimerBar timer={timer} />
+        <SolveCorrectButton onSolve={solveCorrect} disabled={isAnswered || freeze || expired} />
         <div className="phraseInner">
           <div className={`phraseCounter${showCounter ? ' phraseCounterVisible' : ''}`}>
-            выбрано {placed.length} {wordForm(placed.length)} из {wordsTotal}
+            выбрано {placed.length} {wordForm(placed.length)}{multi ? '' : ` из ${wordsTotal}`}
           </div>
-          <PhraseAnswerRow placed={placed} result={result} wrongIds={wrongIds} blinkIndex={blinkIndex} freeze={freeze} onRemove={removePlaced} />
+          <PhraseAnswerRow placed={placed} result={result} wrongIds={wrongIds} blinkIndex={blinkIndex} freeze={freeze || expired} onRemove={removePlaced} />
           <PhraseBank
             chips={shuffled}
             usedIdxs={usedIdxs}
-            disabled={isAnswered || freeze}
+            disabled={isAnswered || freeze || expired}
             onPick={(i, rect) => { rememberTap(rect); pickChip(i) }}
           />
           <button
             className="phraseCheckBtn"
             onClick={handleCheck}
-            disabled={placed.length === 0 || isAnswered || freeze}
+            disabled={placed.length === 0 || isAnswered || freeze || expired}
           >
             Проверить
           </button>

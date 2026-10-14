@@ -11,7 +11,7 @@ import { reviewOutcome } from '../../shared/lib/memory/reviewOutcome.js'
 // Сессия длиннее плана максимум на число ошибок.
 
 // Карточки со звуком/голосом — на них стоит «Не могу слушать»
-const AUDIO_TYPES = new Set(['audio', 'voice_record', 'circle', 'video'])
+const AUDIO_TYPES = new Set(['audio', 'circle', 'video'])
 export const cardHasAudio = card => (card?.nodes ?? []).some(n => AUDIO_TYPES.has(n.type))
 
 // Без звука не обойтись — такие карточки «Не могу слушать» убирает. Голосовое сообщение с текстом

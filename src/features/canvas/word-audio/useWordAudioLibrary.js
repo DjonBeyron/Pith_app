@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { listWordAudio, cachedWordAudio, subscribeWordAudio, saveWordAudio, deleteWordAudio } from '../../../shared/lib/wordAudio/wordAudioApi.js'
 import { scanAllLessons, subscribeWordScan, lessonWords, allLessonWords, wordScanReady } from '../../../shared/lib/wordAudio/wordAudioScan.js'
-import { generateSpeech, getElevenLabsQuota } from '../../../shared/lib/ttsApi.js'
+import { getElevenLabsQuota } from '../../../shared/lib/ttsApi.js'
+import { generateWordAudio } from '../../../shared/lib/wordAudio/wordAudioGenerate.js'
 import { probeAudioDuration } from '../../../shared/lib/audioUtils.js'
 import { dbg } from '../../../shared/lib/debug.js'
 
@@ -30,15 +31,6 @@ export function useWordAudioLibrary(lessonId) {
 
   const refreshScan = useCallback(() => scanAllLessons(true), [])
 
-  // Одно слово: mp3 из TTS → длительность → R2 + база
-  async function generateOne(key, text) {
-    const { file } = await generateSpeech(text)
-    const url = URL.createObjectURL(file)
-    const duration = await probeAudioDuration(url).catch(() => null)
-    URL.revokeObjectURL(url)
-    await saveWordAudio({ key, text, blob: file, duration, source: 'tts' })
-  }
-
   // items — [{ key, text }]; идёт по очереди, ошибки копятся по словам
   async function generateMany(items) {
     if (busy || !items.length) return
@@ -49,7 +41,7 @@ export function useWordAudioLibrary(lessonId) {
       if (cancelRef.current) break
       setBusy({ key, done, total: items.length })
       try {
-        await generateOne(key, text)
+        await generateWordAudio(key, text)
         setErrors(e => { if (!e[key]) return e; const n = { ...e }; delete n[key]; return n })
       } catch (e) {
         dbg('[word tts]', key, e.message)

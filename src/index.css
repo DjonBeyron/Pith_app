@@ -63,6 +63,8 @@
 @import './styles/canvas/page-debug.css';
 @import './styles/canvas/lesson-io.css';
 @import './styles/canvas/lesson-rules.css';
+@import './styles/canvas/lesson-review.css';
+@import './styles/canvas/lesson-review-notes.css';
 @import './styles/canvas/batch-gen.css';
 @import './styles/canvas/word-audio.css';
 @import './styles/canvas/audio-meta-backfill.css';
@@ -158,13 +160,13 @@
 @import './styles/player/panels/say-phrase-mic.css';
 @import './styles/player/panels/say-phrase-state.css';
 @import './styles/player/panels/say-phrase-ring.css';
+@import './styles/player/panels/answer-timer.css';
 @import './styles/player/panels/say-phrase-waves.css';
 @import './styles/player/panels/say-phrase-popup.css';
 @import './styles/player/panels/say-phrase-diag.css';
 @import './styles/player/panels/signal-blink-chip.css';
 @import './styles/player/panels/registration.css';
 @import './styles/player/panels/push-prompt.css';
-@import './styles/player/modules/voice-record.css';
 @import './styles/player/hints.css';
 @import './styles/player/audio-glow.css';
 /* после стилей плеера: review.css переопределяет плеер внутри карточки */

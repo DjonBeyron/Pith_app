@@ -30,7 +30,7 @@ describe('say_phrase — три неудачи → say_wrong', () => {
 
   it('после третьей неудачи микрофон заблокирован: и в хуке (тап игнорируется), и в круге (disabled), и в reducer (begin не начинает запись)', () => {
     expect(hook).toMatch(/const tapMic = useCallback\(\(\) => \{\s*if \(s\.exhausted\) return/)
-    expect(body).toContain("disabled={closing || phase === 'passed' || sp.exhausted}")
+    expect(body).toContain("disabled={closing || phase === 'passed' || sp.exhausted || signalBusy}")
     expect(hook).toContain('exhausted: s.exhausted')
   })
 

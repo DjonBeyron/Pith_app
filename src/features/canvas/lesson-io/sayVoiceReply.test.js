@@ -57,7 +57,7 @@ describe('say_phrase — voiceReply (голосовое с текстом)', () 
   })
 
   it('линтер не ругается на voiceReply (ни true, ни false)', () => {
-    const task = ex('n1', 1, 'text', { content: 'Скажите: I am trying to please both' }, [{ if: 'next', then: 'n2' }])
+    const task = ex('n1', 1, 'text', { content: 'Теперь скажи это вслух' }, [{ if: 'next', then: 'n2' }])
     const done = ex('n3', 3, 'text', { content: 'Получилось!' })
     for (const v of [true, false]) {
       const say = ex('n2', 2, 'say_phrase', { phrase: 'I am trying to please both', voiceReply: v }, [{ if: 'say_done', then: 'n3' }, { if: 'say_wrong', then: 'n3' }])

@@ -325,8 +325,8 @@ export default function LessonPlayer({
           onNodeDone={onNodeDone}
           // exerciseNodeId — id ноды упражнения (не ноды-сигнала) — сигнал
           // встаёт ПЕРЕД её слотом, см. fireForExercise/useSignalMessages.js
-          onSignalFired={(node, release, exerciseNodeId) =>
-            signalMessages.fireForExercise(node, release, exerciseNodeId, visibleNodes)}
+          onSignalFired={(node, release, exerciseNodeId, after) =>
+            signalMessages.fireForExercise(node, release, exerciseNodeId, visibleNodes, after)}
           hasSignalFired={signalMessages.hasFired}
           record={record} lessonId={lessonId}
           wrongRef={wrongRef}

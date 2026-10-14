@@ -9,6 +9,8 @@ import { isRewardOn } from '../../../../shared/lib/nodeReward.js'
 import { usePanelRiseDrop } from '../usePanelRiseDrop.js'
 import SolveCorrectButton from '../../admin/SolveCorrectButton.jsx'
 import { pickCorrectOption } from './solveCorrect.js'
+import { useAnswerTimer } from '../answer-timer/useAnswerTimer.js'
+import AnswerTimerBar from '../answer-timer/AnswerTimerBar.jsx'
 
 // Порядок после тапа (PROJECT.md, «история знает высоту ответа заранее»):
 // 700мс ученик видит цвет варианта → ОДНИМ тиком: салют, пузыри ответа встают
@@ -28,7 +30,7 @@ const SEE_RESULT_MS = 700
 export default function ChooseWordPanel({
   node, onDone, onAnswered, onRevealAnswer, onPicked, onPickToChat, onHeightChange, xpAmount = 0, onXpEarned,
 }) {
-  const { options, selectedId, result, isAnswered, handlePick } = useChooseWord(node)
+  const { options, selectedId, result, isAnswered, timedOut, handlePick, handleTimeout } = useChooseWord(node)
   const [show, setShow] = useState(false)
   const [panelHeight, setPanelHeight] = useState(0)
   const panelRef   = useRef(null)
@@ -52,6 +54,12 @@ export default function ChooseWordPanel({
 
   // Подъём/спуск с историей — общий хук (usePanelRiseDrop.js → panelRise.js)
   const rise = usePanelRiseDrop({ show, panelRef, spacerSel: '.chooseWordSpacer', panelH: panelHeight, label: 'wc' })
+
+  // Лимит времени ноды (timeLimitSec): вышло — «неверно» без штрафа, верный вариант подсвечивается (getState)
+  const timer = useAnswerTimer({
+    seconds: wcData.timeLimitSec, active: show && !isAnswered,
+    onExpire: () => { playSound('answer-wrong', 'выбор слова: время вышло'); handleTimeout() },
+  })
 
   useEffect(() => {
     if (!isAnswered) return
@@ -81,6 +89,7 @@ export default function ChooseWordPanel({
   function getState(opt) {
     if (!isAnswered) return 'default'
     if (opt.id === selectedId) return result
+    if (timedOut && opt.isCorrect) return 'correct' // не успел — показываем, какой вариант был верный
     return 'dimmed'
   }
 
@@ -120,6 +129,7 @@ export default function ChooseWordPanel({
         ref={panelRef}
         className={`chooseWordPanel${show ? ' chooseWordPanelVisible' : ''}`}
       >
+        <AnswerTimerBar timer={timer} />
         <SolveCorrectButton onSolve={solveCorrect} disabled={isAnswered || !pickCorrectOption(options)} />
         <div className="chooseWordInner">
           {options.map(opt => (

@@ -10,7 +10,7 @@ import { historyPageIds } from './feedWindow.js'
 const LOOKAHEAD    = 3
 const CONCURRENCY  = 2
 export const CHAT_BUFFER_SIZE = 5
-const MEDIA_TYPES  = new Set(['audio', 'voice_record', 'video', 'circle', 'photo', 'sticker', 'photo_choice', 'table'])
+const MEDIA_TYPES  = new Set(['audio', 'video', 'circle', 'photo', 'sticker', 'photo_choice', 'table'])
 // POSTER_TYPES / EVICT_TYPES — в preloadFetchOne.js (там же и загрузка файла)
 
 // opts.historyIds — id нод, показанных ДО точки входа (useLessonResume /
@@ -288,7 +288,9 @@ export function usePlayerPreload(nodes, files, visibleNodes, opts = {}) {
       })
     }, SAFETY_MS)
 
-    if (queueRef.current.length && files.length) pump(gen)
+    // Как и раньше, ждём таблицу files (files.length) — НО урок из JSON-импорта держит медиа по ссылке r2Url без записей в files (nodeFileKey):
+    // там таблица пуста всегда и без этого исключения карточка запуска висела вечно. Исключение узкое: вся очередь ключена URL-ами
+    if (queueRef.current.length && (files.length || queueRef.current.every(i => /^https?:/i.test(String(i.id))))) pump(gen)
     return () => {
       genRef.current++
       clearTimeout(safetyTimer)

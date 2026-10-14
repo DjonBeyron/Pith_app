@@ -43,7 +43,7 @@ describe('настройки шестерёнки: состояние', () => {
     const m = await load()
     expect(m.PREF_KEYS).toEqual({
       typing: 'pithy_pref_typing_sound', xp: 'pithy_pref_xp_sound',
-      equalizer: 'pithy_pref_equalizer', hud: 'pithy_lesson_hud',
+      equalizer: 'pithy_pref_equalizer', timer: 'pithy_pref_answer_timer', hud: 'pithy_lesson_hud',
     })
   })
 

@@ -72,7 +72,7 @@
   .slStageTranslation--out { opacity: 0; }
 }
 
-/* Круг по центру — три кольца, как в записи голоса (VoiceRecordBar):
+/* Круг по центру — три кольца:
    раздуваются от громкости (--sl-level 0..1). Цвет — по роли активного слова */
 .slStageRing {
   position: absolute;

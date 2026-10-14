@@ -18,7 +18,7 @@ import { useCatchPrepare } from './catch/useCatchPrepare.js'
 import CatchOverChip from './catch/CatchOverChip.jsx'
 import CatchCover from './catch/CatchCover.jsx'
 import { useCatchSlowHint } from './catch/useCatchSlowHint.js'
-import { countKeyRender, setCatchMounted } from './spoilerStats.js'
+import { useCatchSlideGlue } from './catch/useCatchSlideGlue.js'
 import { track } from '../../shared/lib/analytics/track.js'
 import { FEED_PHRASE_OPEN } from '../../shared/lib/analytics/eventNames.js'
 
@@ -34,7 +34,6 @@ import { FEED_PHRASE_OPEN } from '../../shared/lib/analytics/eventNames.js'
 // клавиша перерисовывает FeedSlide. Тяжёлые дети обёрнуты в React.memo (SlideVideo, FeedHud, PhraseWords; внутри накрытия —
 // CatchStripPhrase и CatchSheet), а их пропсы стабильны: действия хука — стабильные обёртки, onPick слов — обёртка над
 // ref, заглушка видео — константа. На клавише реально перерисовывается только оболочка слайда и строка набранного.
-const PHRASE_OPENED_DELAY_MS = 260 // после размонтирования накрытия: тяжёлые побочные эффекты открытия (onPhraseOpened) — не в кадрах ухода
 // Заглушка видео — один элемент на модуль: новый JSX в пропсе ломал бы React.memo у SlideVideo на каждой клавише «Ловли»
 const VIDEO_FALLBACK = <div className="feedSlideHint">здесь будет видео фразы</div>
 
@@ -69,13 +68,6 @@ export default function FeedSlide({
   // Пока накрытие открыто, правая полоса видео над ним — зона замедления (FeedSlowStrip в FeedHud, едет по --catch-cover-h);
   // подсказка о ней — свой счётчик (useCatchSlowHint)
   const slowHint = useCatchSlowHint(ct.open && active, soundOn)
-  // Счётчики для DBG-сводки (spoilerStats): рендеры слайда, пока накрытие открыто (после коммита — не в теле рендера)
-  useEffect(() => { if (ct.mounted) countKeyRender() })
-  useEffect(() => {
-    if (!ct.mounted) return
-    setCatchMounted(true)
-    return () => setCatchMounted(false)
-  }, [ct.mounted])
   // onPick слов фразы — стабильная обёртка (rc.onPick каждый рендер новая функция и ломала бы memo у PhraseWords)
   const rcRef = useRef(rc)
   useEffect(() => { rcRef.current = rc })
@@ -89,30 +81,9 @@ export default function FeedSlide({
   const revealed = opened || ct.finished
   useCatchPrepare({ ct, opened, rootRef, onPrepare: () => setRevealed(true) })
   const rise = ct.mounted && ct.done && opened // накрытие заливается и гаснет над уже подготовленной фразой
-  // Админ отправил эту фразу в ленту принудительно (Админ → «Ловля» → «Отправить в ленту»), а фраза в этой сессии
-  // уже была открыта — закрываем её обратно, иначе задание негде показать (чип живёт только над шариками)
-  useEffect(() => {
-    if (!ct.forced || !opened || ct.done) return
-    const t = setTimeout(() => setRevealed(false), 0)
-    return () => clearTimeout(t)
-  }, [ct.forced]) // eslint-disable-line react-hooks/exhaustive-deps
-  // Сигнал ленте «фраза открыта» (и состояние, если не успели подготовить) — после ухода накрытия (setState через таймер, правило react-hooks)
-  useEffect(() => {
-    if (!ct.finished) return
-    const t = setTimeout(() => { setRevealed(true); onPhraseOpened?.() }, PHRASE_OPENED_DELAY_MS)
-    return () => clearTimeout(t)
-  }, [ct.finished]) // eslint-disable-line react-hooks/exhaustive-deps
-  // Высота накрытия (шторка + полоска) — в CSS-переменную слайда прямо через style.setProperty, без setState:
-  // иначе каждое измерение перерисовывало бы весь слайд (видео, HUD, фраза). CatchCover шлёт 0 при закрытии/размонтировании,
-  // до первого открытия переменной нет — в CSS fallback 0px
-  // follow=true — высота меняется кадр за кадром (клавиатура сворачивается на «Проверить»): иконки едут без собственного
-  // перехода (--catch-icon-ms: 0), иначе — плавно 260мс (feed-catch.css)
-  const setCoverH = useCallback((h, follow = false) => {
-    const st = rootRef.current?.style
-    if (!st) return
-    st.setProperty('--catch-cover-h', `${h}px`)
-    st.setProperty('--catch-icon-ms', follow ? '0ms' : '260ms')
-  }, [])
+  // Склейка с накрытием (счётчики DBG, --catch-cover-h без setState, принудительное задание админа на открытой фразе,
+  // сигнал «фраза открыта» после ухода накрытия) — useCatchSlideGlue
+  const { setCoverH } = useCatchSlideGlue({ ct, rootRef, opened, setRevealed, onPhraseOpened })
   // Перевод фразы: спрятан, пока её не потёрли; стрелка прячет его обратно, подпись «перевести» остаётся до ухода со слайда
   const { phase: trPhase, setSub, rubProps, toggle: toggleTr } = useTranslationReveal({ active, modId: mod.id, enabled: revealed && !!mod.titleTranslation, onRubbed: onRubHintSeen })
   // Подложка под фразой: проступает, когда фраза открыта; с открытым переводом накрывает и его (feed-phrase-plate.css).

@@ -4,6 +4,9 @@ import CanvasBoard from './CanvasBoard.jsx'
 import NodeTypeMenu from './NodeTypeMenu.jsx'
 import CanvasPageToolsMenu from './CanvasPageToolsMenu.jsx'
 import LessonIoPanel from './lesson-io/LessonIoPanel.jsx'
+import LessonReviewPanel from './review/LessonReviewPanel.jsx'
+import { recordLessonVersion } from './review/useLessonVersions.js'
+import { diagnoseMedia } from './injectR2Urls.js'
 import BatchGeneratePanel from './batch-gen/BatchGeneratePanel.jsx'
 import CanvasHeaderActions from './CanvasHeaderActions.jsx'
 import { checkNodes, formatIntegrity } from './canvasIntegrity.js'
@@ -70,6 +73,7 @@ export default function CanvasPage({ lessonId, moduleLessons = [], module = null
   // Панель обмена уроком: снимок нод и зон берём в момент открытия (сами они
   // живут в CanvasBoard, наружу отдаются через boardApi)
   const [ioNodes, setIoNodes] = useState(null)
+  const [reviewNodes, setReviewNodes] = useState(null) // «Разбор урока» — окно на весь экран
   const [ioZones, setIoZones] = useState([])
   // Панель «⚡ Массовая генерация» — сама читает ноды/пишет файлы через
   // boardApiRef/pickFile, состояние открытия держим здесь же, рядом с ioNodes
@@ -78,7 +82,7 @@ export default function CanvasPage({ lessonId, moduleLessons = [], module = null
   // «нет» — сразу видно, строятся они вообще или дело в отображении
   const [debugLinks, setDebugLinks] = useState(false)
 
-  const { files, syncing, hasUnsynced, pickFile, removeFile, syncToServer, fetchMissingFiles } =
+  const { files, syncing, uploadLog, hasUnsynced, pickFile, removeFile, syncToServer, fetchMissingFiles } =
     useLessonFiles(lessonId)
 
   const {
@@ -101,17 +105,28 @@ export default function CanvasPage({ lessonId, moduleLessons = [], module = null
     title, setTitle, loading, serverNodes, serverZones, lessonXp, setLessonXp, syncStatus, setSyncStatus,
   } = useCanvasLessonLoad(lessonId, module, applyServerData)
 
+  // Базовая версия для «Изменений» в разборе: состояние урока, с которым открыли страницу (дальше версии пишет импорт и открытие разбора)
+  useEffect(() => {
+    if (loading || !lessonId) return undefined
+    const t = setTimeout(() => recordLessonVersion(lessonId, boardApiRef.current?.getNodes()), 1500)
+    return () => clearTimeout(t)
+  }, [loading, lessonId])
+
   // Сохранение урока на сервер — useCanvasSave.js
   const { isSaving, handleSave: saveToServer } = useCanvasSave({
     lessonId, title, lessonXp, nodesRef, zonesRef, hasUnsynced, files, syncToServer,
-    prepareForSave, clearTeacherDraft, setSyncStatus,
+    prepareForSave, clearTeacherDraft, setSyncStatus, onUnlinkedMedia: () => setShowPanel(true),
   })
 
   // Куда вернёт «назад»: модуль урока (если открыли не из схемы — найдём сами)
   const backModule = useLessonModule(lessonId, module)
 
   // Мигающая точка на «Сохранить» — useCanvasDirty.js
-  const { dirty, markDirty, syncDirty, save: handleSave } = useCanvasDirty(lessonId, saveToServer)
+  const { dirty, markDirty, syncDirty, save: saveDirty } = useCanvasDirty(lessonId, saveToServer)
+  // Если есть файлы к загрузке — окно файлов открывается само и показывает ход загрузки (какие файлы уже на сервере)
+  const handleSave = (...a) => { if (hasUnsynced) setShowPanel(true); return saveDirty(...a) }
+  const mediaProblems = useMemo(() => diagnoseMedia(panelNodes, files), [panelNodes, files])
+  const resetNodeFile = (nodeId) => boardApiRef.current?.patchNodeTypeData(nodeId, d => ({ ...d, file_id: null, r2Url: null }))
 
   // Голосовые без волны/длительности (импорт, подложенные файлы) — досчёт в
   // фоне по одной, результат в ноды через boardApiRef; индикатор в шапке
@@ -215,7 +230,7 @@ export default function CanvasPage({ lessonId, moduleLessons = [], module = null
           unsaved={unsaved} isSaving={isSaving} loading={loading} handleSave={handleSave}
           isAdmin={isAdmin} filter={filter} menuClosedAt={menuClosedAt}
           setFilterPos={setFilterPos} setToolsPos={setToolsPos}
-          setPlayFrom={setPlayFrom} setShowPlayer={setShowPlayer} setIoNodes={setIoNodes}
+          setPlayFrom={setPlayFrom} setShowPlayer={setShowPlayer} setIoNodes={setIoNodes} setReviewNodes={setReviewNodes}
           setIoZones={setIoZones}
           setShowBatchGen={setShowBatchGen} boardApiRef={boardApiRef} lessonId={lessonId} title={title}
           lessonXp={lessonXp} setLessonXp={setLessonXp} markDirty={markDirty}
@@ -236,6 +251,18 @@ export default function CanvasPage({ lessonId, moduleLessons = [], module = null
         onResetToServer={handleResetToServer}
       />
 
+      {reviewNodes && (
+        <LessonReviewPanel
+          nodes={reviewNodes.nodes}
+          zones={reviewNodes.zones}
+          boardApiRef={boardApiRef}
+          storageId={lessonId}
+          teacherName={effectiveTeacher.name}
+          boardProps={{ lessonFiles: files, onPickLessonFile: pickFile, onRemoveLessonFile: removeFile, moduleLessons: linkableLessons, lessonXp }}
+          onClose={() => setReviewNodes(null)}
+        />
+      )}
+
       {ioNodes && (
         <LessonIoPanel
           nodes={ioNodes}
@@ -243,7 +270,9 @@ export default function CanvasPage({ lessonId, moduleLessons = [], module = null
           title={title}
           lessonId={lessonId}
           onImport={(nodes, zones, mode, links) => {
+            recordLessonVersion(lessonId, boardApiRef.current?.getNodes()) // состояние до импорта — «предыдущая версия» для кнопки «Изменения» в разборе
             boardApiRef.current?.importNodes(nodes, zones, mode)
+            setTimeout(() => recordLessonVersion(lessonId, boardApiRef.current?.getNodes()), 800) // и после
             // Итог виден и после закрытия окна: если связей 0 — это сразу видно,
             // а не выясняется по пустому холсту
             setSyncStatus(`Импортировано: ${nodes.length} нод · ${links} связей` +
@@ -303,6 +332,9 @@ export default function CanvasPage({ lessonId, moduleLessons = [], module = null
           syncing={syncing}
           hasUnsyncedLogo={hasUnsyncedLogo}
           onRemove={removeFile}
+          problems={mediaProblems}
+          uploadLog={uploadLog}
+          onResetFile={resetNodeFile}
           onClose={() => setShowPanel(false)}
           chatTitle={chatTitle}
           onChatTitleChange={setChatTitle}

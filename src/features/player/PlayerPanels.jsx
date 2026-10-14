@@ -16,6 +16,7 @@ import { wordOptionEvent } from './useAnswerStats.js'
 // ноде своего типа и живёт до ответа. Вынесены из LessonPlayer.jsx —
 // самодостаточный кусок разметки, который упирался в потолок размера файла.
 //
+// «Сказать фразу» знает один сигнал — голосовую подсказку учителя на первой неудачной попытке (SayPhrasePanel).
 // fill_blanks (FillBlanksPanel) сигналов ошибок не знает вовсе (см.
 // PROJECT.md) — nodes/onSignalFired/hasSignalFired ей не нужны, в отличие от
 // PhraseAssemblyPanel/TypeWordPanel/TableManualPanel.
@@ -162,6 +163,9 @@ export default function PlayerPanels({
           key={`${spNode.id}:${epoch}:${spNode.visit ?? 0}`}
           node={spNode}
           lessonId={lessonId}
+          nodes={nodes}
+          onSignalFired={onSignalFired}
+          hasSignalFired={hasSignalFired}
           xpAmount={xpMap.get(spNode.id) ?? 0}
           onDone={trigger => { setSpPanelHeight(0); onNodeDone(spNode.id, trigger) }}
           /* Сказанная фраза уходит пузырём справа (как «Напечатай слово»); третий аргумент — arriving, четвёртый — voiceId

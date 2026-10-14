@@ -367,3 +367,17 @@ describe('сводка по холсту', () => {
     expect(conn).toContain("n.size === 'max' && (n.triggers ?? []).length > 0")
   })
 })
+
+describe('разметка выделений {g:..} при импорте и в линтере', () => {
+  const lesson = { format: 'pithy-lesson', nodes: [{ ref: 'a', type: 'text', seq: 1, data: { content: 'Форма {g:tries}', hardWrap: false }, triggers: [] }] }
+  it('importLesson строит highlights и убирает метки из текста', async () => {
+    const { importLesson } = await import('./importLesson.js')
+    const d = importLesson(lesson).nodes[0].typeData.text
+    expect(d.content).toBe('Форма tries')
+    expect(d.highlights.some(h => h.mode === 'bold' && h.start === 6 && h.end === 11)).toBe(true)
+  })
+  it('lintLesson не ругается на метки и считает подсветки по чистому тексту', async () => {
+    const { lintLesson } = await import('./lessonLint.js')
+    expect(lintLesson(lesson.nodes).filter(w => /подсветка/.test(w))).toEqual([])
+  })
+})

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { buildAuthorPrompt } from './authorPrompt.js'
 import { exportLessonText } from './exportLesson.js'
 import { useLessonRules } from './useLessonRules.js'
 import { ALL_PARTS, exportFileName } from './lessonParts.js'
@@ -18,7 +19,15 @@ export default function LessonIoExport({ nodes, zones, title, lessonId, deck, wo
   // зашитого в код списка — правки в LessonRulesPanel видны сразу в этом же
   // экспорте, без пересборки приложения. Пока правила ещё грузятся (busy,
   // rules == []), exportLesson тихо падает на встроенный дефолт в buildLegend.
-  const { principles, checklist } = useLessonRules()
+  const { rules, principles, checklist } = useLessonRules()
+  const [promptCopied, setPromptCopied] = useState(false)
+  async function copyPrompt() {
+    try {
+      await navigator.clipboard.writeText(buildAuthorPrompt(rules, { topic: window.prompt('Тема урока (можно пусто):', '') ?? '' }))
+      setPromptCopied(true)
+      setTimeout(() => setPromptCopied(false), 2000)
+    } catch { onError?.('Не удалось скопировать промпт') }
+  }
   const activePrinciples = principles.filter(r => r.active).map(r => r.text)
   const activeChecklist  = checklist.filter(r => r.active).map(r => r.text)
   // Колода и справка приходят с сервера — пока их нет, копировать рано: файл вышел бы без них
@@ -80,9 +89,14 @@ export default function LessonIoExport({ nodes, zones, title, lessonId, deck, wo
         Приложить легенду формата (нужна для разбора со стороны)
       </label>
       {withLegend && (
+        <>
         <button className="lioRulesLink" onClick={onOpenRules}>
           Править правила ({activePrinciples.length} + {activeChecklist.length} в чек-листе)
         </button>
+        <button className="lioRulesLink" disabled={!rules.length} onClick={copyPrompt} title="Готовый промпт для ИИ из актуальных правил">
+          {promptCopied ? 'Промпт скопирован ✓' : 'Скопировать промпт для ИИ'}
+        </button>
+        </>
       )}
       <textarea className="lioText" readOnly value={shareText} onFocus={e => e.target.select()} />
       <div className="lioActions">

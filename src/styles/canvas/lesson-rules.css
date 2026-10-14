@@ -1,99 +1,87 @@
-/* ── Панель «Правила формирования урока» (lesson-io/LessonRulesPanel.jsx) ─
-   Переиспользует .lio* базовые классы окна (lesson-io.css: оверлей,
-   заголовок, кнопки, подсказка) — здесь только то, что специфично
-   для списка строк-правил. */
+/* ── Окно «Правила формирования урока» (lesson-io/LessonRulesPanel.jsx, RuleCard.jsx) ─ на весь экран, 3 колонки.
+   Базовые .lio* классы (заголовок, закрыть, мета) — из lesson-io.css. */
 
-.lrModal {
-  width: min(760px, 100%);
-  max-height: 88vh;
+.rwFull {
+  position: fixed; left: 0; right: 0; bottom: 0; top: 0; z-index: 1400; /* выше окна «Поделиться» (.lioOverlay 1300), из которого открывается; панель раскраски — 1500 */
+  height: 100dvh; box-sizing: border-box; padding-top: env(safe-area-inset-top, 0px);
+  background: #0e1013; color: #dfe2ea;
+  display: flex; flex-direction: column; overflow: hidden;
 }
-
-/* Оба раздела скроллятся ОДНИМ общим скроллом (а не каждая строка своим,
-   см. .lrTextarea ниже) — так весь список читается как одна лента сверху
-   вниз, а не как набор отдельных окошек. Скроллбар специально светлее
-   стандартного тёмного (ср. .lioText) — тонкий тёмный на тёмном фоне почти
-   не виден, а тут список — основной способ ориентироваться в правилах. */
-.lrSections {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  overflow-y: auto;
-  min-height: 0;
-  padding-right: 6px;
-  scrollbar-width: thin;
-  scrollbar-color: #4a5064 #14161c;
+.rwTop { display: flex; flex-direction: column; gap: 8px; padding: 12px 16px; border-bottom: 1px solid #22252c; margin-bottom: 12px; }
+.rwTopRow { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.rwBack { padding: 8px 14px; background: #b6fe3b; border: none; border-radius: 8px; color: #0e1013; font-size: 14px; font-weight: 700; cursor: pointer; white-space: nowrap; }
+.rwTop { flex: 0 0 auto; }
+.rwItemOn { min-width: 62px; padding: 3px 8px; font-size: 12px; background: #1a1d22; border: 1px solid #2a2d35; border-radius: 12px; color: #8a90a0; cursor: pointer; white-space: nowrap; }
+.rwItemOn.on { color: #b6fe3b; border-color: #3a4a20; }
+.rwToggle { padding: 7px 12px; background: #0a0c10; border: 1px solid #1e2030; border-radius: 8px; color: #b8bdca; font-size: 13px; cursor: pointer; }
+.rwToggle.on { background: #b6fe3b; border-color: #b6fe3b; color: #0e1013; font-weight: 700; }
+.rwErr { padding: 8px 16px; background: #3a1a1a; color: #f87171; font-size: 13px; }
+.rwTop select, .rwSearch, .rwMetaRow select, .rwMetaRow input[list], .rwTitleInput {
+  background: #0a0c10; border: 1px solid #1e2030; border-radius: 8px; color: #dfe2ea; font-size: 13px; padding: 7px 10px;
 }
-.lrSections::-webkit-scrollbar { width: 10px; }
-.lrSections::-webkit-scrollbar-track { background: #14161c; border-radius: 5px; }
-.lrSections::-webkit-scrollbar-thumb { background: #4a5064; border-radius: 5px; }
-.lrSections::-webkit-scrollbar-thumb:hover { background: #5c6478; }
-
-.lrSection {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+.rwSearch { flex: 1 1 220px; min-width: 160px; max-width: 420px; }
+.rwCols { flex: 1 1 0; min-height: 0; overflow: hidden; display: grid; grid-template-rows: minmax(0, 1fr); grid-template-columns: 200px minmax(280px, 1fr) minmax(360px, 1.3fr); }
+.rwGroups, .rwListCol, .rwCardCol { overflow-y: auto; min-height: 0; padding: 12px; scrollbar-width: thin; scrollbar-color: #4a5064 #14161c; }
+.rwGroups { border-right: 1px solid #22252c; display: flex; flex-direction: column; gap: 4px; }
+.rwListCol { border-right: 1px solid #22252c; display: flex; flex-direction: column; gap: 6px; }
+.rwGroupBtn {
+  display: flex; justify-content: space-between; text-align: left; padding: 8px 10px;
+  background: transparent; border: 1px solid transparent; border-radius: 8px; color: #b8bdca; font-size: 13px; cursor: pointer;
 }
-
-.lrSectionHead {
-  color: #e0e0e0;
-  font-size: 13px;
-  font-weight: 700;
+.rwGroupBtn b { color: #6a6f78; font-weight: 600; }
+.rwGroupBtn:hover, .rwGroupBtn.on { background: #1a1d22; border-color: #2a2d35; color: #b6fe3b; }
+.rwItem {
+  display: flex; align-items: center; gap: 8px; padding: 8px 10px; cursor: pointer;
+  border: 1px solid #22252c; border-radius: 8px; font-size: 13px;
 }
+.rwItem:hover { border-color: #3a4050; }
+.rwItem.on { border-color: #b6fe3b; background: #14180d; }
+.rwItem.off { opacity: 0.45; }
+.rwItemTitle { flex: 1; min-width: 0; line-height: 1.35; }
+.rwItemCat { color: #6a6f78; font-size: 11px; }
+.rwSev { font-size: 11px; padding: 2px 6px; border-radius: 6px; background: #1a1d22; color: #9aa0b4; }
+.rwSev.error { background: #3a1a1a; color: #f87171; }
+.rwItemMove { display: flex; gap: 2px; }
+.rwItemMove button { width: 22px; height: 22px; padding: 0; background: #1a1d22; border: 1px solid #2a2d35; border-radius: 6px; color: #9aa0b4; cursor: pointer; }
+.rwItemMove button:hover:not(:disabled) { border-color: #b6fe3b; color: #b6fe3b; }
+.rwCard { display: flex; flex-direction: column; gap: 10px; }
+.rwTitleInput { font-size: 16px; font-weight: 700; width: 100%; }
+.rwMetaRow { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; }
+.rwMetaRow label { display: flex; flex-direction: column; gap: 4px; font-size: 11px; color: #8a90a0; }
+.rwMetaRow .rwActiveCheck { flex-direction: row; align-items: center; gap: 6px; font-size: 12px; margin: 0 0 6px; }
+.rwLabel { color: #8a90a0; font-size: 12px; margin-bottom: 4px; }
+.rwExamples { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.rwEx { display: flex; flex-direction: column; gap: 8px; min-width: 0; padding: 10px; border-radius: 10px; border: 1px solid #22252c; }
+.rwEx--bad { border-color: #4a2424; background: #140e0e; }
+.rwEx--good { border-color: #2c4a24; background: #0e140e; }
+/* Предпросмотр «как придёт в чат»: пузыри — те же классы, что в плеере */
+.rwChat { display: flex; flex-direction: column; gap: 6px; padding: 10px; background: #0f1115; border-radius: 10px; }
+.rwPv { display: flex; flex-direction: column; align-items: flex-start; gap: 3px; }
+.rwPv--reaction .rwPvEmoji { font-size: 34px; line-height: 1.2; }
+.rwPvTag { font-size: 10px; color: #8a90a0; padding: 1px 6px; border: 1px solid #2a2d35; border-radius: 6px; }
+.rwExRow { display: grid; grid-template-columns: 110px minmax(0, 1fr) auto; gap: 6px; align-items: start; }
+.rwExRow select { background: #0a0c10; border: 1px solid #1e2030; border-radius: 8px; color: #dfe2ea; font-size: 12px; padding: 6px; }
+.rwExField { min-width: 0; }
+.rwExField .richTextField { min-height: 40px; }
+.rwCardActions { display: flex; gap: 8px; flex-wrap: wrap; padding-top: 4px; }
+.rwBtnDanger:hover:not(:disabled) { border-color: #f87171; color: #f87171; }
+.rwActiveCheck { display: flex; cursor: pointer; }
 
-.lrHint {
-  color: #8a90a0;
-  font-size: 12px;
-  line-height: 1.5;
+/* Баннер «в базе нет правил» */
+.rwSeed { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 10px 16px; background: #1a1d12; border-bottom: 1px solid #3a4020; color: #d6dcae; font-size: 13px; }
+
+/* Телефон / узкое окно: колонки в одну, карточка под списком */
+@media (max-width: 900px) {
+  .rwCols { grid-template-columns: 1fr; grid-template-rows: none; overflow-y: auto; }
+  .rwGroups { flex-direction: row; flex-wrap: wrap; border-right: none; }
+  .rwExamples { grid-template-columns: 1fr; }
+  .rwExRow { grid-template-columns: 1fr auto; }
 }
-
-.lrList {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.lrRow {
-  display: grid;
-  grid-template-columns: auto 1fr auto;
-  gap: 10px;
-  align-items: flex-start;
-  padding: 10px;
-  border: 1px solid #22252c;
-  border-radius: 10px;
-}
-
-/* Выключенное правило — видно в списке, но приглушено: не участвует в
-   экспорте, пока галочка не вернётся */
-.lrRowInactive { opacity: 0.45; }
-
-.lrRowSide {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  padding-top: 2px;
-}
-
-.lrActiveCheck { display: flex; margin-top: 4px; cursor: pointer; }
-
-.lrIconBtn {
-  width: 22px; height: 22px; padding: 0;
-  background: #1a1d22;
-  border: 1px solid #2a2d35;
-  border-radius: 6px;
-  color: #9aa0b4;
-  font-size: 12px;
-  line-height: 1;
-  cursor: pointer;
-}
-.lrIconBtn:hover:not(:disabled) { border-color: #b6fe3b; color: #b6fe3b; }
-.lrIconBtn:disabled { opacity: 0.3; cursor: default; }
-.lrIconBtnDanger:hover:not(:disabled) { border-color: #f87171; color: #f87171; }
 
 /* Растёт под весь текст (высоту выставляет AutoTextarea в JS) — никакого
    внутреннего скролла: правило целиком видно сразу, крутить приходится
-   только общий список (.lrSections), а не каждую строку отдельно. */
-.lrTextarea {
+   только общий список (.rwSections), а не каждую строку отдельно. */
+.rwTextarea {
   width: 100%;
   padding: 10px 12px;
   background: #0a0c10;
@@ -105,16 +93,16 @@
   resize: none;
   overflow: hidden;
 }
-.lrTextarea:focus { outline: none; border-color: #3a4050; }
+.rwTextarea:focus { outline: none; border-color: #3a4050; }
 
-.lrRowActions {
+.rwRowActions {
   display: flex;
   flex-direction: column;
   gap: 6px;
   align-items: flex-end;
 }
 
-.lrBtn {
+.rwBtn {
   padding: 6px 12px;
   background: #1a1d22;
   border: 1px solid #2a2d35;
@@ -124,13 +112,13 @@
   cursor: pointer;
   white-space: nowrap;
 }
-.lrBtn:disabled { opacity: 0.35; cursor: default; }
-.lrBtnPrimary { background: #b6fe3b; border-color: #b6fe3b; color: #0e1013; font-weight: 600; }
-.lrBtnPrimary:hover:not(:disabled) { background: #c6ff5b; }
+.rwBtn:disabled { opacity: 0.35; cursor: default; }
+.rwBtnPrimary { background: #b6fe3b; border-color: #b6fe3b; color: #0e1013; font-weight: 600; }
+.rwBtnPrimary:hover:not(:disabled) { background: #c6ff5b; }
 
-.lrEmpty { color: #6a6f78; font-size: 12px; padding: 12px 0; text-align: center; }
+.rwEmpty { color: #6a6f78; font-size: 12px; padding: 12px 0; text-align: center; }
 
-.lrAddRow {
+.rwAddRow {
   display: flex;
   gap: 8px;
   align-items: flex-start;

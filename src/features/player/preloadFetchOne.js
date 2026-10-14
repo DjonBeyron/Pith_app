@@ -8,7 +8,7 @@ import { getAudioMeta, setAudioMeta } from '../../shared/lib/audioMetaCache.js'
 // окна чата (usePlayerPreload.js берёт отсюда же)
 export const POSTER_TYPES = new Set(['video', 'circle', 'sticker'])
 // Only heavy media is evicted — photos/stickers are small, photo_choice panels are special
-export const EVICT_TYPES  = new Set(['audio', 'voice_record', 'video', 'circle', 'table'])
+export const EVICT_TYPES  = new Set(['audio', 'video', 'circle', 'table'])
 // Картинки декодируем заранее (Image.decode): иначе blob готов, а пузырь всё
 // равно выходит пустым на первый кадр — декодирование шло уже в чате
 export const DECODE_TYPES = new Set(['photo', 'sticker', 'photo_choice'])

@@ -7,8 +7,7 @@
 // decodeAudioData на устройстве. Пишут её NodeAudioPicker/NodeAudioTts при
 // выборе/генерации, а у уроков из импорта или с подложенными файлами её нет.
 
-// Только «Голосовое»: у voice_record файл — запись ученика, у остальных типов
-// волна не рисуется
+// Только «Голосовое»: у остальных типов волна не рисуется
 export const BACKFILL_TYPES = new Set(['audio'])
 
 function isValidUrl(url) {

@@ -84,7 +84,7 @@ describe('замок и его снятие', () => {
   it('замок снимается со всех уроков модуля разом', () => {
     expect(graph).toContain('const locked = !startDoneShown && !unlocked')
     expect(graph).toContain(
-      'if (!isAdmin && id !== start.id && !startDoneShown && !unlocked) { preloadSounds(); playSound(')
+      'if (!isAdmin && id !== start.id && !startDoneShown && !unlocked) { preloadSounds(); unlockAudio(); playSound(')
     expect(graph).toContain("'тап по закрытому уроку'); setLockedHint(true); return }")
   })
 
@@ -98,7 +98,7 @@ describe('замок и его снятие', () => {
   it('звук закрытого урока — синхронно в тапе (жест), не в эффекте окна', () => {
     // Эффект при монтировании — не жест: на iOS первый play() опаздывал на
     // ~700 мс, а в StrictMode-dev звучал дважды
-    expect(graph).toContain("preloadSounds(); playSound('lesson-locked', 'тап по закрытому уроку'); setLockedHint(true); return }")
+    expect(graph).toContain("preloadSounds(); unlockAudio(); playSound('lesson-locked', 'тап по закрытому уроку'); setLockedHint(true); return }")
     expect(hint).not.toContain('playSound')
     expect(hint).not.toContain('useEffect')
     // К первому тапу элемент уже создан и load()-нут — по окончании первого ТАПА по схеме; не на
