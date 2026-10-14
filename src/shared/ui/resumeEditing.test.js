@@ -86,6 +86,19 @@ describe('всплывашка «продолжить редактировани
     expect(css).toMatch(/@media \(hover: hover\) \{[\s\S]*\.resumeToastClose:hover/)
   })
 
+  // Баг: закрытие по pointerup → плашка получала pointer-events: none → синтетический click
+  // проваливался на карточку урока под ней и открывал редактор
+  it('закрытие не пропускает тап сквозь плашку и не вызывает «перейти»', () => {
+    const css = read('../../styles/resume-toast.css')
+    const out = css.match(/\.resumeToastOut \{[^}]*\}/)[0].replace(/\/\*[\s\S]*?\*\//g, '')
+    expect(out).not.toMatch(/pointer-events:\s*none/)
+    // крестик вызывает только dismiss, «перейти» (onOpen) — только go
+    expect(toast).toMatch(/className="resumeToastClose"[^>]*onPointerUp=\{e => \{ if \(e\.pointerType === 'touch'\) dismiss\(\) \}\} onClick=\{dismiss\}/)
+    expect(toast).not.toMatch(/dismiss = \(\) => \{[^}]*onOpen/)
+    // повторный click/pointerup после закрытия гасится
+    expect(toast).toMatch(/const go = \(\) => \{\s*if \(closingRef\.current\) return/)
+  })
+
   it('показывается только админу, только во вкладке «Админ» и только когда редактор закрыт', () => {
     const base = { isAdmin: true, tab: 'admin', resumeClosed: false, editorOpen: false }
     expect(shouldShowResumeToast(base)).toBe(true)

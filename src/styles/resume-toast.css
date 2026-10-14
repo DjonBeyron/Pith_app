@@ -34,7 +34,9 @@
 
 .resumeToastOut {
   animation: resumeToastOut 0.24s ease forwards;
-  pointer-events: none;
+  /* НЕ ставить pointer-events: none: закрытие идёт по pointerup, а следом приходит синтетический click.
+     Если плашка уже «прозрачна для тапов», click падает на то, что под ней (карточку урока в админке)
+     и открывает редактор. Пока плашка в DOM, click должен попасть в неё (dismiss/go ловит closingRef) */
 }
 
 @keyframes resumeToastOut {
