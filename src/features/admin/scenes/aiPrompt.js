@@ -12,6 +12,7 @@ export function buildPrompt(topic, { withTask = false } = {}) {
       'Добавь задание «О чём диалог»: у КАЖДОЙ реплики заполни translation (перевод на русский), а в поле task укажи kind "translate",',
       'lineIndex реплики с поворотом или развязкой, prompt вида «Что сказал(а) <имя>?», 2–4 accept (другие верные формулировки перевода) и hint без самого ответа.',
     ] : []),
+    'Поля озвучки (audioUrl, wordTimings, audioMeta, voiceId и настройки голоса ElevenLabs) не заполняй — их ставит сборщик.',
     'Ответ — только JSON сцены (version 2) без пояснений и без markdown.',
   ].join('\n')
 }

@@ -5,14 +5,16 @@ import SpritePreview from './SpritePreview.jsx'
 import PaletteEditor from './PaletteEditor.jsx'
 import { GENDER_LABEL } from './sceneLabels.js'
 import ScTip from './ScTip.jsx'
+import VoicePicker from './voice/VoicePicker.jsx'
 
-// Форма персонажа A/B в сборщике: имя, пол, палитра (PaletteEditor), полоски, голос
-// (pitch/rate/voiceId). id полей — f-characters-<who>-… для подсветки линтера.
-export default function CharacterForm({ who, character, actions }) {
+// Форма персонажа A/B в сборщике: имя, пол, палитра (PaletteEditor), полоски, запасной
+// голос устройства (pitch/rate) и голос ElevenLabs (VoicePicker: пресет/свой voiceId,
+// настройки, «Прослушать»). id полей — f-characters-<who>-… для подсветки линтера.
+export default function CharacterForm({ who, character, actions, voice = null }) {
   const p = `f-characters-${who}`
   const sprite = catSprite(character.gender)
   const props = useMemo(() => ({ palette: character.palette, stripes: character.stripes !== false }), [character.palette, character.stripes])
-  const voice = character.voice ?? {}
+  const fb = character.voice ?? {} // pitch/rate запасного синтеза устройства
 
   return (
     <div className="scbChar" id={p}>
@@ -44,19 +46,16 @@ export default function CharacterForm({ who, character, actions }) {
         <ScTip help="stripes" />
       </div>
       <div className="scbVoice" id={`${p}-voice`}>
-        <span className="scbCtlGroup"><span className="scLabel">Голос</span> <ScTip help="voice" /></span>
+        <span className="scbCtlGroup"><span className="scLabel">Запасной голос устройства</span> <ScTip help="voice" /></span>
         <label className="scbRange">
-          <span>высота {Number(voice.pitch ?? 1).toFixed(2)}</span>
-          <input id={`${p}-voice-pitch`} type="range" min="0" max="2" step="0.05" value={voice.pitch ?? 1} onChange={e => actions.setVoice(who, { pitch: Number(e.target.value) })} aria-label="Высота голоса (pitch)" />
+          <span>высота {Number(fb.pitch ?? 1).toFixed(2)}</span>
+          <input id={`${p}-voice-pitch`} type="range" min="0" max="2" step="0.05" value={fb.pitch ?? 1} onChange={e => actions.setVoice(who, { pitch: Number(e.target.value) })} aria-label="Высота голоса (pitch)" />
         </label>
         <label className="scbRange">
-          <span>темп {Number(voice.rate ?? 1).toFixed(2)}</span>
-          <input id={`${p}-voice-rate`} type="range" min="0.5" max="2" step="0.05" value={voice.rate ?? 1} onChange={e => actions.setVoice(who, { rate: Number(e.target.value) })} aria-label="Темп речи (rate)" />
+          <span>темп {Number(fb.rate ?? 1).toFixed(2)}</span>
+          <input id={`${p}-voice-rate`} type="range" min="0.5" max="2" step="0.05" value={fb.rate ?? 1} onChange={e => actions.setVoice(who, { rate: Number(e.target.value) })} aria-label="Темп речи (rate)" />
         </label>
-        <label className="scbField">
-          <span className="scbFieldLabel">voiceId (необязательно)</span>
-          <input id={`${p}-voice-voiceId`} className="fsNote scbMono" value={voice.voiceId ?? ''} placeholder="ElevenLabs — позже" onChange={e => actions.setVoice(who, { voiceId: e.target.value })} spellCheck={false} />
-        </label>
+        <VoicePicker who={who} character={character} actions={actions} voice={voice} />
       </div>
     </div>
   )

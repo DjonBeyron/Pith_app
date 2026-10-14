@@ -5,6 +5,8 @@ import {
   SCENE_VERSION_V2, CHARACTER_KEYS, GENDERS, EMOTIONS, POSES, LIMITS, isObj,
 } from './sceneConstants.js'
 import { validateTask } from './sceneTask.js'
+import { validateLineAudio } from './sceneValidateAudio.js'
+import { VOICE_RANGE } from './sceneVoice.js'
 
 // Валидация сцены v2: список ошибок по-русски с путями (characters.a.name,
 // timeline[3].text…). Пустой список — сцена годная. Проверяет форму и
@@ -31,12 +33,17 @@ function validateCharacter(c, key, errors) {
   }
   if (c.stripes !== undefined && typeof c.stripes !== 'boolean') errors.push(`${p}.stripes — true/false`)
   if (c.voice !== undefined) {
-    if (!isObj(c.voice)) errors.push(`${p}.voice — объект { pitch, rate, voiceId? }`)
+    if (!isObj(c.voice)) errors.push(`${p}.voice — объект { pitch, rate, voiceId?, stability?, similarity?, speed? }`)
     else {
       const { pitch, rate, voiceId } = c.voice
       if (pitch !== undefined && !(typeof pitch === 'number' && pitch >= 0 && pitch <= 2)) errors.push(`${p}.voice.pitch — число 0…2`)
       if (rate !== undefined && !(typeof rate === 'number' && rate >= 0.1 && rate <= 10)) errors.push(`${p}.voice.rate — число 0.1…10`)
       if (voiceId !== undefined && typeof voiceId !== 'string') errors.push(`${p}.voice.voiceId — строка`)
+      // Настройки ElevenLabs (sceneVoice.js): в hash озвучки и в запрос TTS
+      for (const [k, [lo, hi]] of Object.entries(VOICE_RANGE)) {
+        const v = c.voice[k]
+        if (v !== undefined && !(typeof v === 'number' && v >= lo && v <= hi)) errors.push(`${p}.voice.${k} — число ${lo}…${hi}`)
+      }
     }
   }
 }
@@ -57,17 +64,6 @@ function validateSlots(slots, location, errors) {
   }
 }
 
-function validateTimings(t, p, errors) {
-  if (!Array.isArray(t)) { errors.push(`${p}.wordTimings — массив [{ start, end }]`); return }
-  let prev = -1
-  t.forEach((w, i) => {
-    if (!isObj(w) || typeof w.start !== 'number' || typeof w.end !== 'number' || w.end < w.start || w.start < prev) {
-      errors.push(`${p}.wordTimings[${i}] — { start, end } в секундах, по возрастанию`)
-    }
-    if (isObj(w) && typeof w.start === 'number') prev = w.start
-  })
-}
-
 function validateLine(l, i, errors) {
   const p = `timeline[${i}]`
   if (!isObj(l)) { errors.push(`${p} — объект реплики`); return }
@@ -77,10 +73,7 @@ function validateLine(l, i, errors) {
   if (l.emotion !== undefined && !EMOTIONS.includes(l.emotion)) errors.push(`${p}.emotion — ${EMOTIONS.join(' | ')}`)
   if (l.pose !== undefined && !POSES.includes(l.pose)) errors.push(`${p}.pose — ${POSES.join(' | ')}`)
   if (l.translation !== undefined && typeof l.translation !== 'string') errors.push(`${p}.translation — строка`)
-  if (l.audioUrl !== undefined && (typeof l.audioUrl !== 'string' || !/^(https?:\/\/|\/|blob:|data:audio\/)/.test(l.audioUrl))) {
-    errors.push(`${p}.audioUrl — адрес аудио (https://… или /…)`)
-  }
-  if (l.wordTimings !== undefined) validateTimings(l.wordTimings, p, errors)
+  validateLineAudio(l, p, errors) // audioUrl (только https на R2), wordTimings, audioMeta — sceneValidateAudio.js
 }
 
 export function validateSceneV2(scene) {

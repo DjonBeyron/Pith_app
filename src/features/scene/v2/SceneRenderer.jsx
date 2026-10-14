@@ -58,13 +58,14 @@ function Props({ scene }) {
 
 export default function SceneRenderer({
   scene, mode = 'live', active = true, paused = false, sound = true, rate = 1, lite, frameIndex = null,
-  showBubbles, showProgress = true, onTap, apiRef, onState, className = '', children,
+  showBubbles, showProgress = true, onTap, apiRef, onState, audioSrcOf = null, className = '', children,
 }) {
   const live = mode === 'live'
   const mouthEls = useRef({ a: null, b: null })
   const rootRef = useRef(null)
   const [onScreen, setOnScreen] = useState(true)
-  const director = useSceneDirectorV2(scene, { enabled: live, sound, rate, active: active && onScreen, paused, mouthEls })
+  // audioSrcOf(url) — подмена ссылки озвучки реплики (blob прогрева ноды урока), иначе null
+  const director = useSceneDirectorV2(scene, { enabled: live, sound, rate, active: active && onScreen, paused, mouthEls, audioSrcOf })
   const { status: dStatus, index: dIndex, total: dTotal } = director
   useEffect(() => { if (live) onState?.({ status: dStatus, index: dIndex, total: dTotal }) }, [live, onState, dStatus, dIndex, dTotal])
 

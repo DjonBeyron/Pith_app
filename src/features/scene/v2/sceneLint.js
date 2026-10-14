@@ -4,6 +4,7 @@ import { slotsFor } from './sprites/slots.js'
 import { getSprite } from './sprites/spriteRegistry.js'
 import { isObj } from './sceneConstants.js'
 import { taskTargetLine, taskAnswers, keyTokens } from './sceneTask.js'
+import { lineAudioState, sceneVoiceStats } from './sceneVoice.js'
 
 // Линтер сцен v2 — детерминированная проверка поверх валидатора: бюджет
 // узлов, предметы без опоры, пустые слоты, качество диалога. Возвращает
@@ -57,6 +58,20 @@ function lintTimeline(scene, out) {
     if (l.audioUrl && !l.wordTimings) out.push({ level: 'warn', text: `timeline[${i}] — есть audioUrl, но нет wordTimings: рот пойдёт по таймеру` })
   })
   if (tl.length >= 2 && tl.every(l => l?.emotion === tl[0]?.emotion)) out.push({ level: 'warn', text: 'timeline — одна эмоция на всю сцену: лица не меняются' })
+  lintVoice(scene, tl, out)
+}
+
+// Озвучка ElevenLabs (sceneVoice.js): hash не сходится с текстом/голосом — файл устарел;
+// озвучена часть реплик — остальные пойдут синтезом устройства, голоса будут разные
+function lintVoice(scene, tl, out) {
+  tl.forEach((l, i) => {
+    if (isObj(l) && lineAudioState(l, scene.characters?.[l.who]) === 'stale') {
+      out.push({ level: 'warn', text: `timeline[${i}].audioUrl — озвучка устарела: текст или голос изменили после генерации, переозвучьте` })
+    }
+  })
+  const st = sceneVoiceStats(scene)
+  const voiced = st.ready + st.stale
+  if (voiced > 0 && voiced < st.total) out.push({ level: 'warn', text: `timeline — озвучено ${voiced} из ${st.total} реплик: остальные прозвучат синтезом устройства` })
 }
 
 // Задание «О чём диалог» (sceneTask.js): ответ проверять нечем — ошибка; остальное — советы

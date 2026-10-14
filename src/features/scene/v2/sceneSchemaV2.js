@@ -11,10 +11,12 @@
 //   task?: { kind: 'translate', lineIndex, prompt?, accept[], hint? }   // задание «О чём диалог» (sceneTask.js)
 // }
 // Character: { kind: 'cat', gender: 'male' | 'female', name, palette: { fur, accent, belly?, eye?, stripe? },
-//              stripes: true, voice: { pitch 0…2, rate 0.1…10, voiceId? } }
-// Line: { who: 'a' | 'b', text (≤ 140), emotion, pose?, translation?, audioUrl?, wordTimings?: [{ word?, start, end }] }
-// audioUrl/wordTimings — задел под заранее записанную озвучку (ElevenLabs);
-// пусто — играет запасной вариант (speechSynthesis ru-RU или таймер).
+//              stripes: true, voice: { pitch 0…2, rate 0.1…10, voiceId?, stability?, similarity?, speed? } }
+// Line: { who: 'a' | 'b', text (≤ 140), emotion, pose?, translation?,
+//         audioUrl?, wordTimings?: [{ word?, start, end }], audioMeta?: { hash, voiceId, durationMs? } }
+// audioUrl/wordTimings/audioMeta — заранее записанная озвучка ElevenLabs, ставит
+// только сборщик (sceneVoice.js: hash → «устарело» и кэш); пусто — запасной
+// вариант (speechSynthesis ru-RU или таймер).
 //
 // Этот файл — точка входа: нормализация здесь, остальное реэкспортом.
 
@@ -57,6 +59,7 @@ function normalizeLine(l) {
   if (typeof src.translation === 'string' && src.translation.trim()) out.translation = src.translation.trim()
   if (typeof src.audioUrl === 'string' && src.audioUrl) out.audioUrl = src.audioUrl
   if (Array.isArray(src.wordTimings) && src.wordTimings.length) out.wordTimings = src.wordTimings
+  if (isObj(src.audioMeta) && typeof src.audioMeta.hash === 'string') out.audioMeta = src.audioMeta
   return out
 }
 

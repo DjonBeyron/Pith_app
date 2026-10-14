@@ -42,29 +42,59 @@ async function requireAdmin(req: Request): Promise<Response | null> {
   return null;
 }
 
-type Alignment = { characters: string[]; character_start_times_seconds: number[] };
+type Alignment = {
+  characters: string[];
+  character_start_times_seconds: number[];
+  character_end_times_seconds?: number[];
+};
 
-// Символьные тайминги ElevenLabs → тайминги слов в формате {w, t}, который
+// Символьные тайминги ElevenLabs → тайминги слов в формате {w, t, e}, который
 // понимает charTimings.js (сопоставляет их с текстом ПО САМОМУ СЛОВУ, поэтому
 // нормализация произносимого на стороне ElevenLabs печать не ломает).
 // Округляем до сотых: до десятых давало дрожание ±50мс на каждом слове —
-// на глаз печать то опережала звук, то отставала.
+// на глаз печать то опережала звук, то отставала. e — конец слова (для сцен
+// «два кота»: wordTimings { word, start, end } и длительность реплики).
 function wordTimingsFromAlignment(alignment: Alignment) {
-  const { characters, character_start_times_seconds: starts } = alignment;
-  const out: { w: string; t: number }[] = [];
+  const { characters, character_start_times_seconds: starts, character_end_times_seconds: ends } = alignment;
+  const r = (v: number) => Math.round(v * 100) / 100;
+  const out: { w: string; t: number; e: number }[] = [];
   let word = "";
   let wordStart = 0;
+  let wordEnd = 0;
   for (let i = 0; i < characters.length; i++) {
     const ch = characters[i];
     if (/\s/.test(ch)) {
-      if (word) { out.push({ w: word, t: Math.round(wordStart * 100) / 100 }); word = ""; }
+      if (word) { out.push({ w: word, t: r(wordStart), e: r(wordEnd) }); word = ""; }
       continue;
     }
     if (!word) wordStart = starts[i];
+    wordEnd = ends?.[i] ?? starts[i];
     word += ch;
   }
-  if (word) out.push({ w: word, t: Math.round(wordStart * 100) / 100 });
+  if (word) out.push({ w: word, t: r(wordStart), e: r(wordEnd) });
   return out;
+}
+
+// Необязательные параметры голоса от клиента (сцены «два кота»: у каждого
+// персонажа свой голос и настройки; аудио-ноды уроков их не шлют — остаётся
+// голос из секрета ELEVENLABS_VOICE_ID). Всё, что не прошло проверку, отбрасывается.
+const MODELS = ["eleven_multilingual_v2", "eleven_turbo_v2_5", "eleven_flash_v2_5", "eleven_v3"];
+const clamp = (v: unknown, lo: number, hi: number) =>
+  typeof v === "number" && Number.isFinite(v) ? Math.min(hi, Math.max(lo, v)) : undefined;
+
+function voiceParams(body: Record<string, unknown>) {
+  const voiceId = typeof body.voiceId === "string" && /^[A-Za-z0-9_-]{8,64}$/.test(body.voiceId)
+    ? body.voiceId : ELEVENLABS_VOICE_ID;
+  const modelId = typeof body.modelId === "string" && MODELS.includes(body.modelId) ? body.modelId : ELEVENLABS_MODEL_ID;
+  const vs = (body.voiceSettings ?? {}) as Record<string, unknown>;
+  const settings: Record<string, number> = {};
+  const stability = clamp(vs.stability, 0, 1);
+  const similarity = clamp(vs.similarity_boost ?? vs.similarity, 0, 1);
+  const speed = clamp(vs.speed, 0.7, 1.2);
+  if (stability !== undefined) settings.stability = stability;
+  if (similarity !== undefined) settings.similarity_boost = similarity;
+  if (speed !== undefined) settings.speed = speed;
+  return { voiceId, modelId, settings: Object.keys(settings).length ? settings : null };
 }
 
 Deno.serve(async (req) => {
@@ -82,9 +112,11 @@ Deno.serve(async (req) => {
   }
 
   let text: string;
+  let voice: ReturnType<typeof voiceParams>;
   try {
     const body = await req.json();
     text = (body.text ?? "").trim();
+    voice = voiceParams(body);
   } catch (e) {
     return json({ error: (e as Error).message }, 400);
   }
@@ -92,11 +124,15 @@ Deno.serve(async (req) => {
   if (text.length > 2000) return json({ error: "Текст слишком длинный (лимит 2000 символов за раз)" }, 400);
 
   try {
-    console.log("[tts-elevenlabs] calling ElevenLabs...", { chars: text.length });
-    const elRes = await fetch(ELEVENLABS_URL(ELEVENLABS_VOICE_ID), {
+    console.log("[tts-elevenlabs] calling ElevenLabs...", { chars: text.length, voiceId: voice.voiceId, modelId: voice.modelId });
+    const elRes = await fetch(ELEVENLABS_URL(voice.voiceId), {
       method:  "POST",
       headers: { "xi-api-key": ELEVENLABS_API_KEY, "Content-Type": "application/json" },
-      body:    JSON.stringify({ text, model_id: ELEVENLABS_MODEL_ID }),
+      body:    JSON.stringify({
+        text,
+        model_id: voice.modelId,
+        ...(voice.settings ? { voice_settings: voice.settings } : {}),
+      }),
     });
 
     if (!elRes.ok) {
@@ -109,7 +145,7 @@ Deno.serve(async (req) => {
     const wordTimings = wordTimingsFromAlignment(result.alignment);
     console.log("[tts-elevenlabs] OK, words:", wordTimings.length);
 
-    return json({ audioBase64: result.audio_base64, contentType: "audio/mpeg", wordTimings });
+    return json({ audioBase64: result.audio_base64, contentType: "audio/mpeg", wordTimings, voiceId: voice.voiceId, modelId: voice.modelId });
   } catch (e) {
     console.error("[tts-elevenlabs] unexpected error:", (e as Error).message);
     return json({ error: (e as Error).message }, 500);

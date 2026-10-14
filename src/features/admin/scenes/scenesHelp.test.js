@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest'
 import { SCENES_HELP, SCENES_HELP_KEYS, helpContent } from './scenesHelp.js'
 
-// Компоненты подвкладки «Сцены» ссылаются на ключи через <ScTip help="ключ" /> (или tip="ключ" у Seg)
-const sources = import.meta.glob('./*.jsx', { query: '?raw', import: 'default', eager: true })
+// Компоненты подвкладки «Сцены» (и подпапок, например voice/) ссылаются на ключи через <ScTip help="ключ" /> (или tip="ключ" у Seg)
+const sources = import.meta.glob(['./*.jsx', './*/*.jsx'], { query: '?raw', import: 'default', eager: true })
 const used = new Set()
 for (const text of Object.values(sources)) {
   for (const m of text.matchAll(/\b(?:help|tip)=["']([a-z_]+)["']/g)) used.add(m[1])

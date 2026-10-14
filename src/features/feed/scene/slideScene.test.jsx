@@ -6,6 +6,7 @@ import SlideSceneChips from './SlideSceneChips.jsx'
 import { normalizeSceneV2 } from '../../scene/v2/sceneSchemaV2.js'
 import { demoOfficeScene } from '../../scene/v2/demoScenes.js'
 import { setFeedSlow, getFeedSlowKey } from '../feedSlowState.js'
+import { shouldPrefetchNear, firstAudioUrl } from './useSceneAudioPrefetch.js'
 
 // deviceTier щупает WebGL/localStorage при импорте — в node не нужен
 vi.mock('../../../shared/lib/deviceTier.js', () => ({ isWeakDevice: () => false }))
@@ -99,5 +100,20 @@ describe('feedSlowState — замедление по slideKey', () => {
     expect(getFeedSlowKey()).toBe(3)
     setFeedSlow(3, false)
     expect(getFeedSlowKey()).toBeNull()
+  })
+})
+
+describe('useSceneAudioPrefetch — подкачка озвучки соседнего слайда (чистые правила)', () => {
+  it('первая реплика соседа: только near и не active, сеть не в экономии, видео не буферизуется', () => {
+    const url = 'https://r2/a.mp3'
+    expect(shouldPrefetchNear({ url, active: false, near: true, allowed: true, videoActive: false })).toBe(true)
+    expect(shouldPrefetchNear({ url, active: true, near: true, allowed: true, videoActive: false })).toBe(false) // активный — сам режиссёр
+    expect(shouldPrefetchNear({ url, active: false, near: false, allowed: true, videoActive: false })).toBe(false) // далёкий — ничего
+    expect(shouldPrefetchNear({ url, active: false, near: true, allowed: false, videoActive: false })).toBe(false) // saveData/2g
+    expect(shouldPrefetchNear({ url, active: false, near: true, allowed: true, videoActive: true })).toBe(false)
+    expect(shouldPrefetchNear({ url: null, active: false, near: true, allowed: true, videoActive: false })).toBe(false)
+    expect(firstAudioUrl({ timeline: [{ audioUrl: url }, { audioUrl: 'https://r2/b.mp3' }] })).toBe(url)
+    expect(firstAudioUrl({ timeline: [{ text: 'без файла' }] })).toBeNull()
+    expect(firstAudioUrl(null)).toBeNull()
   })
 })

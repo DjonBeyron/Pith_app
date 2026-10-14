@@ -8,9 +8,12 @@ import BuilderToolbar from './BuilderToolbar.jsx'
 import BuilderSettings from './BuilderSettings.jsx'
 import PhonePreview from './PhonePreview.jsx'
 import SidePanel from './SidePanel.jsx'
+import { useSceneVoice } from './voice/useSceneVoice.js'
+import VoiceAllDialog from './voice/VoiceAllDialog.jsx'
 import '../../../styles/admin-signals.css'
 import '../../../styles/admin-scenes-builder.css'
 import '../../../styles/admin-scenes-preview.css'
+import '../../../styles/admin-scenes-voice.css'
 
 // Полноэкранное окно «Сборщик сцен» (этап 2). Портал в body поверх оболочки (класс fsWin
 // из окна сигналов: z-index 700, токены темы --fs-*, тёмная/светлая). ПК — три области:
@@ -24,18 +27,27 @@ import '../../../styles/admin-scenes-preview.css'
 // черновика админа при этом не трогается; saved — { id, status } строки библиотеки, если
 // черновик к ней привязан), title — заголовок окна, applyLabel — подпись кнопки,
 // initialRow — строка библиотеки, из которой взята initialScene (сцена ленты).
+// Озвучка ElevenLabs — useSceneVoice (voice/): пока идёт генерация, окно не закрывается
+// (Esc и крестик дают предупреждение в строке статуса), диалог «Озвучить всё» — VoiceAllDialog.
 const THEME_KEY = 'pithy_admin_scenes_theme_v1'
 const VIEWS = [['settings', 'Настройки'], ['scene', 'Сцена'], ['panel', 'Панель']]
 
-export default function BuilderWindow({ onClose, initialScene = null, initialRow = null, onApply = null, applyLabel, title = 'Сборщик сцен' }) {
+export default function BuilderWindow({ onClose: onCloseProp, initialScene = null, initialRow = null, onApply = null, applyLabel, title = 'Сборщик сцен' }) {
   const draft = useBuilderDraft({ initialScene, initialRow, backup: !onApply })
   const library = useSceneLibrary()
+  const voice = useSceneVoice(draft)
+  const voiceBusy = voice.busy
   const [view, setView] = useState('scene')
   const [theme, setTheme] = useState(() => { try { return localStorage.getItem(THEME_KEY) === 'light' ? 'light' : 'dark' } catch { return 'dark' } })
   const [status, setStatus] = useState(null) // { kind: 'ok' | 'warn' | 'error', text }
   const closeRef = useRef(null)
   const openerRef = useRef(null)
   const winRef = useRef(null)
+
+  const onClose = useCallback(() => {
+    if (voiceBusy) { setStatus({ kind: 'warn', text: 'Идёт озвучка — остановите её или дождитесь конца, потом закрывайте окно' }); return }
+    onCloseProp()
+  }, [voiceBusy, onCloseProp])
 
   useEffect(() => {
     openerRef.current = document.activeElement
@@ -102,7 +114,7 @@ export default function BuilderWindow({ onClose, initialScene = null, initialRow
       </div>
       <div className="scbBody" data-view={view}>
         <section className="scbCol scbColSettings" aria-label="Настройки сцены">
-          <BuilderSettings scene={draft.scene} actions={draft.actions} savedId={draft.saved.id} setStatus={setStatus} />
+          <BuilderSettings scene={draft.scene} actions={draft.actions} savedId={draft.saved.id} setStatus={setStatus} voice={voice} />
         </section>
         <section className="scbCol scbColScene" aria-label="Предпросмотр сцены">
           <PhonePreview scene={draft.scene} lint={draft.lint} budget={draft.budget} onHighlight={highlight} />
@@ -111,6 +123,10 @@ export default function BuilderWindow({ onClose, initialScene = null, initialRow
           <SidePanel draft={draft} library={library} onOpenRow={openRow} onSave={save} setStatus={setStatus} />
         </section>
       </div>
+      <VoiceAllDialog
+        all={voice.all} quota={voice.quota} names={{ a: draft.scene.characters.a.name, b: draft.scene.characters.b.name }}
+        onStart={voice.startAll} onStop={voice.stopAll} onClose={voice.closeAll}
+      />
     </div>
   )
   return createPortal(win, document.body)

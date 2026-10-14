@@ -4,6 +4,7 @@ import { resolveModule } from '../index.js'
 import SceneModule from './SceneModule.jsx'
 import { sceneCircleFit, ringOffset, CIRCLE_CENTER_Y } from './sceneCircleFit.js'
 import { shouldSceneYield } from './useSceneSolo.js'
+import { sceneAudioSrcOf } from './sceneNodeAudio.js'
 import { demoOfficeScene } from '../../../scene/v2/demoScenes.js'
 
 // deviceTier щупает WebGL/localStorage при импорте — в node не нужен
@@ -103,5 +104,23 @@ describe('useSceneSolo — чужой звук ставит сцену на па
     expect(shouldSceneYield(media(true, true), own)).toBe(true) // голосовое при mute урока — всё равно речь
     expect(shouldSceneYield(own, own)).toBe(false)
     expect(shouldSceneYield({}, own)).toBe(false)
+  })
+})
+
+describe('sceneAudioSrcOf — blob прогрева для озвучки реплик', () => {
+  it('ссылка → blob из lessonFiles (ключ — сама ссылка); выгружен/ошибка/нет → null; без записей — null', () => {
+    const files = [
+      { id: 'f1', blobUrl: 'blob:voice' },
+      { id: 'https://r2/a.mp3', blobUrl: 'blob:a' },
+      { id: 'https://r2/b.mp3', blobUrl: 'blob:b', evicted: true },
+      { id: 'https://r2/c.mp3', blobUrl: null, error: true },
+    ]
+    const srcOf = sceneAudioSrcOf(files)
+    expect(srcOf('https://r2/a.mp3')).toBe('blob:a')
+    expect(srcOf('https://r2/b.mp3')).toBeNull()
+    expect(srcOf('https://r2/c.mp3')).toBeNull()
+    expect(srcOf('https://r2/zzz.mp3')).toBeNull()
+    expect(sceneAudioSrcOf([{ id: 'f1', blobUrl: 'blob:voice' }])).toBeNull()
+    expect(sceneAudioSrcOf(null)).toBeNull()
   })
 })

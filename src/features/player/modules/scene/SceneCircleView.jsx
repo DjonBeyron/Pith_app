@@ -13,7 +13,7 @@ const RING_C = 2 * Math.PI * RING_R
 // Раскрытия на весь экран нет (useCircleExpand завязан на <video>).
 // rootRef — корень круга (его же меряем: размер = ширина круга).
 export default function SceneCircleView({
-  scene, showBubbles, isHistory, pending, status, index, total, paused, sound, rate, apiRef, rootRef, onState, onTap,
+  scene, showBubbles, isHistory, pending, status, index, total, paused, sound, rate, audioSrcOf = null, apiRef, rootRef, onState, onTap,
 }) {
   const [size, setSize] = useState(() => (typeof window !== 'undefined' ? getSmallPx() : 200))
   useLayoutEffect(() => {
@@ -40,7 +40,7 @@ export default function SceneCircleView({
                 ? <SceneRenderer scene={scene} mode="static" frameIndex={last} showBubbles={showBubbles} showProgress={false} />
                 : (
                   <SceneRenderer
-                    scene={scene} mode="live" active={!pending} paused={paused} sound={sound} rate={rate}
+                    scene={scene} mode="live" active={!pending} paused={paused} sound={sound} rate={rate} audioSrcOf={audioSrcOf}
                     showBubbles={showBubbles} showProgress={false} apiRef={apiRef} onState={onState}
                   />
                 )}

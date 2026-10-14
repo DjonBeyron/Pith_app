@@ -1,15 +1,18 @@
 import { ArrowUp, ArrowDown, Copy, Trash2 } from 'lucide-react'
 import { EMOTIONS, POSES } from '../../scene/v2/sceneConstants.js'
-import { audioStatus, AUDIO_STATUS_LABEL, charsLeft, MAX_TEXT, MIN_LINES } from './timelineOps.js'
+import { charsLeft, MAX_TEXT, MIN_LINES } from './timelineOps.js'
 import { EMOTION_LABEL, POSE_LABEL } from './sceneLabels.js'
+import LineVoiceControls from './voice/LineVoiceControls.jsx'
 
 // Одна реплика таймлайна: кто говорит (A/B с именами), эмоция, поза, текст со счётчиком,
-// перевод, статус аудио; кнопки вверх/вниз/дублировать/удалить. id — f-timeline-<i>-<поле>.
+// перевод, озвучка (LineVoiceControls: статус + Озвучить/Прослушать/Переозвучить/Удалить);
+// кнопки вверх/вниз/дублировать/удалить (заблокированы, пока идёт озвучка — индексы плана).
+// id — f-timeline-<i>-<поле>. characters — для статуса «устарело» (hash по голосу персонажа).
 
-export default function TimelineLine({ index: i, line, names, total, actions }) {
+export default function TimelineLine({ index: i, line, names, total, actions, characters = null, voice = null }) {
   const p = `f-timeline-${i}`
   const left = charsLeft(line.text)
-  const audio = audioStatus(line)
+  const lock = !!voice?.busy
   return (
     <li className={`scbLine scbLine-${line.who}`} id={p}>
       <div className="scbLineTop">
@@ -22,10 +25,10 @@ export default function TimelineLine({ index: i, line, names, total, actions }) 
           ))}
         </div>
         <div className="scbLineBtns">
-          <button type="button" className="scbIcon" onClick={() => actions.moveLine(i, -1)} disabled={i === 0} aria-label="Выше"><ArrowUp size={14} /></button>
-          <button type="button" className="scbIcon" onClick={() => actions.moveLine(i, 1)} disabled={i === total - 1} aria-label="Ниже"><ArrowDown size={14} /></button>
-          <button type="button" className="scbIcon" onClick={() => actions.duplicateLine(i)} aria-label="Дублировать"><Copy size={14} /></button>
-          <button type="button" className="scbIcon scbIconDanger" onClick={() => actions.removeLine(i)} disabled={total <= MIN_LINES} aria-label="Удалить реплику" title={total <= MIN_LINES ? `Минимум ${MIN_LINES} реплики` : 'Удалить'}><Trash2 size={14} /></button>
+          <button type="button" className="scbIcon" onClick={() => actions.moveLine(i, -1)} disabled={lock || i === 0} aria-label="Выше"><ArrowUp size={14} /></button>
+          <button type="button" className="scbIcon" onClick={() => actions.moveLine(i, 1)} disabled={lock || i === total - 1} aria-label="Ниже"><ArrowDown size={14} /></button>
+          <button type="button" className="scbIcon" onClick={() => actions.duplicateLine(i)} disabled={lock} aria-label="Дублировать"><Copy size={14} /></button>
+          <button type="button" className="scbIcon scbIconDanger" onClick={() => actions.removeLine(i)} disabled={lock || total <= MIN_LINES} aria-label="Удалить реплику" title={total <= MIN_LINES ? `Минимум ${MIN_LINES} реплики` : 'Удалить'}><Trash2 size={14} /></button>
         </div>
       </div>
       <div className="scbLineSel">
@@ -50,10 +53,7 @@ export default function TimelineLine({ index: i, line, names, total, actions }) 
         <span className="scbFieldLabel">Перевод / подсказка</span>
         <input id={`${p}-translation`} className="fsNote" value={line.translation ?? ''} onChange={e => actions.updateLine(i, { translation: e.target.value })} placeholder="необязательно" />
       </label>
-      <p className="scbAudio" id={`${p}-audioUrl`}>
-        Аудио: <span className={`scbAudioTag scbAudio-${audio}`}>{AUDIO_STATUS_LABEL[audio]}</span>
-        {audio === 'none' && <span className="scbSub"> — озвучка файлом появится позже; пока синтез речи устройства</span>}
-      </p>
+      <LineVoiceControls index={i} line={line} character={characters?.[line.who]} voice={voice} idPrefix={p} />
     </li>
   )
 }

@@ -9,7 +9,7 @@ import SceneRenderer from '../../../scene/v2/SceneRenderer.jsx'
 // Пропсы плоские (не объект хука): так компилятор React видит, что рефы в
 // рендере не читаются.
 export default function SceneBubbleView({
-  scene, showBubbles, isHistory, pending, status, paused, sound, rate, apiRef, rootRef, onState, onTap,
+  scene, showBubbles, isHistory, pending, status, paused, sound, rate, audioSrcOf = null, apiRef, rootRef, onState, onTap,
 }) {
   const last = Math.max(0, (scene.timeline?.length ?? 1) - 1)
   const idle = !isHistory && status !== 'playing'
@@ -21,7 +21,7 @@ export default function SceneBubbleView({
             ? <SceneRenderer scene={scene} mode="static" frameIndex={last} showBubbles={showBubbles} />
             : (
               <SceneRenderer
-                scene={scene} mode="live" active={!pending} paused={paused} sound={sound} rate={rate}
+                scene={scene} mode="live" active={!pending} paused={paused} sound={sound} rate={rate} audioSrcOf={audioSrcOf}
                 showBubbles={showBubbles} apiRef={apiRef} onState={onState} onTap={onTap}
               />
             )}

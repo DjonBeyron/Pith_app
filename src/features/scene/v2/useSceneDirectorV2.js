@@ -1,32 +1,33 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { createDirector } from './directorCore.js'
-import { createMouthDriver, setMouth } from './mouthDriver.js'
-import { speakFallback } from './linePlayback.js'
-import { playLineAudio } from './audioLine.js'
+import { makeScenePlayLine } from './scenePlayLine.js'
 import { getSceneAudioElement } from './sceneAudioUnlock.js'
+import { isWeakDevice } from '../../../shared/lib/deviceTier.js'
 
 // Хук-режиссёр v2: оборачивает directorCore в состояние React и подключает
-// рот (mouthDriver → setAttribute на DOM-группе кота, без перерендера на тик)
-// и озвучку (audioUrl → HTMLAudio с wordTimings; иначе speechSynthesis/таймер).
+// воспроизведение реплик (scenePlayLine.js: файл audioUrl через общий HTMLAudio
+// с ртом по wordTimings, иначе speechSynthesis/таймер с ртом по словам; рот —
+// setAttribute на DOM-группе кота, без перерендера на тик).
 // Состояние React меняется только на границах реплик (index/status/mode).
 //
 // mouthEls — ref { current: { a: <g>, b: <g> } } из SceneRenderer.
 // enabled=false (режим static) — режиссёр не создаётся вовсе.
 // !active / paused / document.hidden → авто-пауза с возвратом к игре, когда
 // условие снято (пауза пользователя через pause() авто-возвратом не снимается).
+// audioSrcOf(url) → подмена ссылки озвучки (blob прогрева урока) или null.
 
 const IDLE = { index: 0, status: 'idle', run: 0, total: 0, line: null }
 
 // rate — множитель скорости речи поверх voice.rate персонажа (скорость голоса
 // урока, lessonVolume.js); читается на старте каждой реплики, сцену не пересоздаёт
-export function useSceneDirectorV2(scene, { enabled = true, sound = true, active = true, paused = false, rate = 1, mouthEls } = {}) {
+export function useSceneDirectorV2(scene, { enabled = true, sound = true, active = true, paused = false, rate = 1, mouthEls, audioSrcOf = null } = {}) {
   const [state, setState] = useState({ ...IDLE, total: scene?.timeline?.length ?? 0 })
   const [mode, setMode] = useState('timer')
   const [hidden, setHidden] = useState(() => typeof document !== 'undefined' && document.hidden)
   const dirRef = useRef(null)
   const autoPausedRef = useRef(false)
-  const optsRef = useRef({ sound, rate, mouthEls })
-  useEffect(() => { optsRef.current = { sound, rate, mouthEls } }, [sound, rate, mouthEls])
+  const optsRef = useRef({ sound, rate, mouthEls, audioSrcOf, lowPower: false })
+  useEffect(() => { optsRef.current = { sound, rate, mouthEls, audioSrcOf, lowPower: isWeakDevice() } }, [sound, rate, mouthEls, audioSrcOf])
 
   // Смена сцены — состояние сбрасывается прямо в рендере (паттерн «подстроить
   // состояние под проп»), а не setState в эффекте
@@ -38,41 +39,26 @@ export function useSceneDirectorV2(scene, { enabled = true, sound = true, active
 
   useEffect(() => {
     if (!enabled || !scene) return undefined
-    let who = null
-    const driver = createMouthDriver(shape => setMouth(optsRef.current.mouthEls?.current?.[who], shape))
-
-    function playLine(line, index, { onEnd }) {
-      who = line.who
-      driver.start()
-      const baseVoice = scene.characters?.[line.who]?.voice
-      const k = optsRef.current.rate || 1
-      const voice = { ...baseVoice, rate: Math.min(10, Math.max(0.1, (baseVoice?.rate ?? 1) * k)) }
-      const end = () => { driver.stop(); onEnd() }
-      const cbs = { onWord: () => driver.onWord(), onEnd: end, onMode: setMode }
-      let cancel
-      if (line.audioUrl) {
-        const audio = getSceneAudioElement()
-        // Файл озвучки: «без звука» урока — muted (играет, но молчит), скорость голоса — playbackRate без «мультяшности»
-        if (audio) { try { audio.muted = !optsRef.current.sound; audio.preservesPitch = true; audio.playbackRate = k } catch { /* ignore */ } }
-        cancel = playLineAudio(line, audio, {
-          ...cbs,
-          onFail: () => { cancel = speakFallback(line.text, voice, { sound: optsRef.current.sound, ...cbs }) },
-        })
-      } else {
-        cancel = speakFallback(line.text, voice, { sound: optsRef.current.sound, ...cbs })
-      }
-      return () => { cancel?.(); driver.stop() }
-    }
-
+    const player = makeScenePlayLine({
+      scene, opts: () => optsRef.current, setMode,
+      getMouthEl: who => optsRef.current.mouthEls?.current?.[who] ?? null,
+    })
     const director = createDirector({
       timeline: scene.timeline ?? [],
       loop: !!scene.options?.loop,
-      playLine,
+      playLine: player.playLine,
       onChange: setState,
     })
     dirRef.current = director
-    return () => { director.destroy(); driver.stop(); dirRef.current = null }
+    return () => { director.destroy(); player.stop(); dirRef.current = null }
   }, [scene, enabled])
+
+  // «Без звука» переключили посреди реплики-файла — muted сразу, не с следующей
+  useEffect(() => {
+    if (!enabled || dirRef.current?.getState().status !== 'playing') return
+    const a = getSceneAudioElement()
+    if (a) { try { a.muted = !sound } catch { /* ignore */ } }
+  }, [sound, enabled])
 
   useEffect(() => {
     if (!enabled || typeof document === 'undefined') return undefined

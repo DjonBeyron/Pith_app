@@ -7,6 +7,7 @@ import { useSlideScenePlay } from './useSlideScenePlay.js'
 import SlideSceneChips from './SlideSceneChips.jsx'
 import SceneTaskCover from './SceneTaskCover.jsx'
 import { useSceneTask } from './useSceneTask.js'
+import { useSceneAudioPrefetch } from './useSceneAudioPrefetch.js'
 import { sceneLayerMode, loopedScene, sceneSound, sceneRate } from './slideSceneRules.js'
 
 // Слой сцены «два кота говорят» на слайде ленты — тот же контракт, что у
@@ -32,6 +33,7 @@ function SlideScene({
   const slow = useFeedSlow(slideKey)
   const pb = useSlideScenePlay({ live, active, moduleId, onSoundOn, onSoundOff })
   const task = useSceneTask({ scene, sceneId, active, live, apiRef: pb.apiRef, onLock })
+  useSceneAudioPrefetch({ scene, active, near }) // сосед: первая реплика в кэш озвучки заранее (useSceneAudioPrefetch.js)
   // SVG 9:16 лежит по верху слайда во всю ширину (коты выше блока фразы, лица не под шариками); остаток снизу —
   // цвет пола локации (feed-scene.css), полос нет
   const floor = backgroundSprite(scene?.location)?.colors?.floor ?? '#c9a27a'

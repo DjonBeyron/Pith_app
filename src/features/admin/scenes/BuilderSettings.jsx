@@ -8,7 +8,8 @@ import ScTip from './ScTip.jsx'
 // Левая область сборщика: локация, ячейки предметов (SlotsGrid), персонажи A и B
 // (CharacterForm), реплики (TimelineEditor), задание после сцены (SceneTaskSection), options.
 // id вида f-… нужны подсветке замечаний линтера (lintFieldMap.js).
-export default function BuilderSettings({ scene, actions, savedId = null, setStatus }) {
+// voice — API озвучки ElevenLabs (useSceneVoice) для персонажей и реплик
+export default function BuilderSettings({ scene, actions, savedId = null, setStatus, voice = null }) {
   return (
     <div className="scbSettings">
       <section className="scbBlock" id="f-location" aria-labelledby="scb-loc-h">
@@ -37,14 +38,14 @@ export default function BuilderSettings({ scene, actions, savedId = null, setSta
       <section className="scbBlock" id="f-characters" aria-labelledby="scb-chars-h">
         <h2 id="scb-chars-h" className="scbH">Персонажи</h2>
         <div className="scbChars">
-          <CharacterForm who="a" character={scene.characters.a} actions={actions} />
-          <CharacterForm who="b" character={scene.characters.b} actions={actions} />
+          <CharacterForm who="a" character={scene.characters.a} actions={actions} voice={voice} />
+          <CharacterForm who="b" character={scene.characters.b} actions={actions} voice={voice} />
         </div>
       </section>
 
       <section className="scbBlock" id="f-timeline" aria-labelledby="scb-tl-h">
         <h2 id="scb-tl-h" className="scbH">Реплики <span className="scbCount">{scene.timeline.length} / 12</span></h2>
-        <TimelineEditor scene={scene} actions={actions} />
+        <TimelineEditor scene={scene} actions={actions} voice={voice} />
       </section>
 
       <SceneTaskSection scene={scene} actions={actions} savedId={savedId} setStatus={setStatus} />
