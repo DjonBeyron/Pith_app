@@ -1,8 +1,10 @@
 import { isLessonOpen } from '../../shared/lib/lessonOpen.js'
-import { useEffect, useState, useRef, useCallback } from 'react'
+import { useEffect, useState, useRef, useCallback, useMemo } from 'react'
 import { loadCurricula } from '../../shared/lib/curriculaApi.js'
 import { fdbg } from '../../shared/lib/feedDebug.js'
-import { rankFeed, latchRank } from './feedKnowledge.js'
+import { useFeedSignals } from '../../shared/lib/ranking/feedSignalsStore.js'
+import { latchRank } from './feedKnowledge.js'
+import { rankFeedByConfig } from './feedRankEngine.js'
 import { onFeedJump } from './catch/catchForce.js'
 
 // Загрузка модулей (curricula) + «пин» на фразу (deep-link репоста /?m=<id>,
@@ -21,6 +23,12 @@ export function useFeedModules(startedIds, visible = true, freshRank = null) {
   const [latched, setLatched] = useState(freshRank)
   const rank = latchRank(latched, freshRank, visible)
   if (rank !== latched) setLatched(rank)
+  // Конфиг движка (app_settings.feed_signals) — тем же латчем: новый конфиг тоже
+  // меняет порядок только пока лента скрыта
+  const freshConfig = useFeedSignals()
+  const [latchedConfig, setLatchedConfig] = useState(freshConfig)
+  const config = latchRank(latchedConfig, freshConfig, visible)
+  if (config !== latchedConfig) setLatchedConfig(config)
   const [loaded, setModules] = useState(null) // null = загрузка
   const [error, setError] = useState('')
   const [rankWaitOver, setRankWaitOver] = useState(false)
@@ -117,8 +125,13 @@ export function useFeedModules(startedIds, visible = true, freshRank = null) {
   // Лента скрыта — pinnedId всё равно обновится, круг пересоберётся от него и покажет фразу первой
   useEffect(() => onFeedJump(d => { if (d?.moduleId) setPinnedId(d.moduleId) }), [])
 
-  // Круг рекомендаций — только не начатые модули, по карте памяти
-  let feedModules = rankFeed((modules ?? []).filter(m => !startedIds.has(m.id)), rank ?? undefined)
+  // Круг рекомендаций — только не начатые модули, по карте памяти. Считается при
+  // сборке списка (useMemo), не на каждый рендер; движок — по конфигу (feedRankEngine.js)
+  const ranked = useMemo(
+    () => rankFeedByConfig((modules ?? []).filter(m => !startedIds.has(m.id)), rank, config),
+    [modules, startedIds, rank, config],
+  )
+  let feedModules = ranked
   if (pinnedId) {
     const dlIdx = feedModules.findIndex(m => m.id === pinnedId)
     if (dlIdx > 0) {

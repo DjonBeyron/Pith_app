@@ -1,6 +1,7 @@
 import { wordKey } from '../../shared/lib/wordAudio/wordKey.js'
 import { KNOW_STEP } from '../learn/learnView.js'
 import { levelOf } from '../learn/memoryLadder.js'
+import { seeded } from '../../shared/lib/ranking/seeded.js'
 
 // Лента и память слов (этап 6 системы повторения, PROJECT.md → «Лента»):
 // что во фразе знакомо, подсветка слов и порядок рекомендаций. Чистые функции:
@@ -39,17 +40,8 @@ export function tokenLevel(text, stepOf, settledOf = null) {
 // пока лента скрыта (иначе круг пересобирается под пальцем и слайд пересоздаётся)
 export const latchRank = (held, fresh, visible) => (held == null || !visible ? fresh : held)
 
-// Детерминированный генератор: порядок ленты не прыгает в течение дня
-function seeded(seed) {
-  let a = seed >>> 0
-  return () => {
-    a = (a + 0x6D2B79F5) >>> 0
-    let t = a
-    t = Math.imul(t ^ (t >>> 15), t | 1)
-    t ^= t + Math.imul(t ^ (t >>> 7), t | 61)
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296
-  }
-}
+// Детерминированный генератор (shared/lib/ranking/seeded.js — общий с взвешенным движком):
+// порядок ленты не прыгает в течение дня
 export const daySeed = today => [...today].reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 7)
 
 // Порядок рекомендаций по карте памяти (без ML):
