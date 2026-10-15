@@ -15,7 +15,7 @@ const MODES = [
   { id: 'link', label: 'Привязать к модулю ленты' },
 ]
 
-export default function FeedTestDialog({ draft, library, save, onClose, onLeave, setStatus }) {
+export default function FeedTestDialog({ draft, library, save, onClose, onLeave, setStatus, origin = 'admin' }) {
   const [mode, setMode] = useState('sandbox')
   const onKey = e => { if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); onClose() } }
   return (
@@ -31,7 +31,7 @@ export default function FeedTestDialog({ draft, library, save, onClose, onLeave,
           ))}
         </div>
         {mode === 'sandbox'
-          ? <FeedTestSandbox draft={draft} onClose={onClose} onLeave={onLeave} setStatus={setStatus} />
+          ? <FeedTestSandbox draft={draft} onClose={onClose} onLeave={onLeave} setStatus={setStatus} origin={origin} />
           : <FeedTestLink draft={draft} library={library} save={save} onClose={onClose} onLeave={onLeave} setStatus={setStatus} />}
         <FeedTestHowTo />
       </div>

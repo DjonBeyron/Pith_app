@@ -2,6 +2,7 @@ import { normalizeSceneV2, PALETTE_PRESETS, LIMITS } from '../../scene/v2/sceneS
 import { emptySlots, slotsFor, COMMON_SLOT_IDS } from '../../scene/v2/sprites/slots.js'
 import { defaultSlots } from '../../scene/v2/sceneMigrate.js'
 import { demoOfficeScene } from '../../scene/v2/demoScenes.js'
+import { removeLine as removeLineOp } from './timelineOps.js'
 
 // Модель черновика сборщика сцен (этап 2). Черновик — это нормализованная сцена v2
 // (sceneSchemaV2.js); все операции чистые: принимают сцену, возвращают новую, исходник
@@ -107,6 +108,29 @@ export function setOption(scene, name, value) {
 
 export function setTimeline(scene, timeline) {
   return { ...scene, timeline }
+}
+
+// Номер реплики задания после правки таймлайна: ссылка не должна повиснуть за краем (валидатор ругнулся бы
+// «task.lineIndex — реплики №N нет»). removed — какую реплику убрали (сдвиг), null — только обрезка по длине.
+// «Автоматически» (null) остаётся как есть
+function fixTaskLine(scene, removed = null) {
+  const li = scene.task?.lineIndex
+  if (!Number.isInteger(li)) return scene
+  const next = removed != null && li > removed ? li - 1 : removed === li ? null : li
+  const lineIndex = next != null && next >= scene.timeline.length ? null : next
+  return lineIndex === li ? scene : { ...scene, task: { ...scene.task, lineIndex } }
+}
+
+// Удалить реплику. Можно удалить любую, в том числе последнюю: пустой таймлайн — допустимое состояние ЧЕРНОВИКА
+// (линтер покажет ошибку «минимум 2 реплики», сохранение в библиотеку как публикация/«Применить»/тест заблокированы)
+export function removeLine(scene, index) {
+  const tl = removeLineOp(scene.timeline, index)
+  return tl === scene.timeline ? scene : fixTaskLine({ ...scene, timeline: tl }, index)
+}
+
+// «Удалить все реплики»: таймлайн пустой, задание остаётся (его реплика снова «автоматически»)
+export function clearTimeline(scene) {
+  return scene.timeline.length ? fixTaskLine({ ...scene, timeline: [] }) : scene
 }
 
 // Сравнение по смыслу (для флага «есть несохранённое»)

@@ -42,6 +42,14 @@
   font-weight: 700;
   cursor: pointer;
 }
+.sbxBtnBack { flex-basis: 100%; background: #fff7c2; }
+.sbxBtnBack svg { width: 13px; height: 13px; vertical-align: -2px; }
+/* Строка статуса задания: ждём / показано / пропущено и почему (sandboxTaskStatus.taskStatusText) */
+.sbxStatus { margin: 0; font-size: 11.5px; line-height: 1.3; font-weight: 700; overflow-wrap: anywhere; }
+.sbxStatus-wait { color: #3d3000; }
+.sbxStatus-ok { color: #0b5a1d; }
+.sbxStatus-bad { color: #8a1010; }
+.sbxStatus-off { color: #5a4a00; font-weight: 600; }
 .sbxBtnClose { background: #1c1500; border-color: #1c1500; color: #ffd60a; }
 .sbxBtn:disabled { opacity: 0.45; cursor: default; }
 

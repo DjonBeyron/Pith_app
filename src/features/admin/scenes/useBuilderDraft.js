@@ -68,7 +68,8 @@ export function useBuilderDraft({ initialScene = null, initialRow = null, backup
     setFeedFrame: f => patch(s => setFeedFrame(s, f)), // options.feedFrame — кадрирование в ленте (feedFrame/)
     applyModes: override => patch(s => MD.applyOverrideToScene(s, override)),
     addLine: after => tl(t => T.addLine(t, after)),
-    removeLine: i => tl(t => T.removeLine(t, i)),
+    removeLine: i => patch(s => M.removeLine(s, i)), // задание сдвигается вместе с репликами (builderModel.removeLine)
+    clearTimeline: () => patch(M.clearTimeline),
     moveLine: (i, d) => tl(t => T.moveLine(t, i, d)),
     updateLine: (i, p) => tl(t => T.updateLine(t, i, p)),
     duplicateLine: i => tl(t => T.duplicateLine(t, i)),

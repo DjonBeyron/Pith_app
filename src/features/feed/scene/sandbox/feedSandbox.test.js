@@ -121,11 +121,19 @@ describe('принудительное задание песочницы', () =>
     expect(session.has(TASK_FORCE_KEY)).toBe(false) // force снят
     expect(gate.claim(SANDBOX_ID)).toBe(false)
   })
-  it('без force песочница подчиняется обычным правилам (сцена раз в сутки)', () => {
+  it('без force песочница подчиняется лимитам, но счётчики сама не пишет: тест можно повторять сколько угодно', () => {
     const { local, gate } = mk()
     expect(gate.claim(SANDBOX_ID)).toBe(true)
-    expect(JSON.parse(local.getItem(TASK_KEY)).scenes[SANDBOX_ID]).toBe('2026-10-15')
+    expect(local.getItem(TASK_KEY)).toBe(null) // «сцена раз в сутки» и счётчик дня не тронуты
     gate.onSlide('a'); gate.onSlide('b'); gate.onSlide('c')
+    expect(gate.claim(SANDBOX_ID)).toBe(true)
+  })
+  it('лимит дня исчерпан → отказ с видимой причиной; паузу «Спроси позже» песочница не пишет', () => {
+    const { local, gate } = mk()
+    local.setItem(TASK_KEY, JSON.stringify({ date: '2026-10-15', count: TASK_PER_DAY, scenes: {} }))
     expect(gate.claim(SANDBOX_ID)).toBe(false)
+    expect(gate.why(SANDBOX_ID)).toMatch(/лимит/)
+    gate.later(SANDBOX_ID)
+    expect(local.getItem('pithy_scene_task_later_v1')).toBe(null)
   })
 })

@@ -1,5 +1,6 @@
 import { useState, useEffect, lazy, Suspense } from 'react'
 import { lazyRetry } from '../../shared/lib/lazyRetry.js'
+import { useSceneBuilderRequest } from '../../shared/lib/useSceneBuilderRequest.js'
 import AdminModulesTab from './AdminModulesTab.jsx'
 import AdminTab from './AdminTab.jsx'
 import AdminNotificationsTab from './AdminNotificationsTab.jsx'
@@ -55,6 +56,13 @@ export default function AdminV2({ onOpenCanvas, onOpenProduction, onOpenCards, o
     // eslint-disable-next-line react-hooks/set-state-in-effect
     if (openModule?.id) setSub('modules')
   }, [openModule])
+
+  // «← Вернуться в сборщик» с тестового слайда ленты: субвкладка «Сцены» (окно сборщика откроет ScenesTab)
+  const sceneBuilderRequest = useSceneBuilderRequest()
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (sceneBuilderRequest) setSub('scenes')
+  }, [sceneBuilderRequest])
 
   return (
     <div className="avWrap">

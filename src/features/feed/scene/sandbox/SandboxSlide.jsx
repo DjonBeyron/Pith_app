@@ -1,10 +1,12 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import SlideMedia from '../SlideMedia.jsx'
 import SandboxBar from './SandboxBar.jsx'
 import { useFeedScene } from '../useFeedScene.js'
 import { feedTaskOf } from '../sceneTaskPlay.js'
 import { setForcedSceneTask } from '../sceneTaskLimits.js'
 import { SANDBOX_ID, clearSandbox } from './feedSandbox.js'
+import { sandboxTask, useSandboxTask, taskStatusText } from './sandboxTaskStatus.js'
+import { requestOpenSceneBuilder } from '../../../../shared/lib/openSceneBuilderEvent.js'
 
 // Заглушка, если сцена песочницы не прошла проверку или запись пропала (стор отдал 'invalid' / 'missing')
 const BAD = <div className="sbxBad">Сцена не прошла проверку — откройте её в сборщике и исправьте ошибки линтера</div>
@@ -13,15 +15,24 @@ const BAD = <div className="sbxBad">Сцена не прошла проверк�
 // диалог» / голосовое по обычным правилам) и плашка «ТЕСТ». Остальных слоёв FeedSlide здесь нет вовсе: фразы со спойлером,
 // «Изучить фразу», HUD (лайк/закладка/репост/сложность/замедление), «Ловли слов» и «Помнишь?» — их не нужно «отключать»,
 // компонент их просто не монтирует. «Показать задание ещё раз» выставляет принудительный показ и пересоздаёт медиа-слой
-// (сцена играет с начала, после первого круга выезжает задание). Новая запись песочницы (sandboxAt) тоже пересоздаёт слой.
+// (сцена играет с начала, задание выезжает сразу после первого полного проигрывания). Новая запись песочницы (sandboxAt) тоже пересоздаёт слой.
+// Принудительный показ записи (taskForce) взводится заново при каждом монтировании слоя: он одноразовый (снимается при показе),
+// а слайд могли пересобрать. Строка статуса задания (sandboxTaskStatus) говорит админу, что происходит и почему задание пропущено.
+// «← Вернуться в сборщик» — просьба открыть сборщик админки с тем же черновиком (openSceneBuilderEvent.js).
 export default function SandboxSlide({
   module: mod, slideKey, active = false, near = false, tabVisible = true,
   soundOn, soundEverOn, onSoundOn, onSoundOff, onSoundBlocked, onLock,
 }) {
   const [again, setAgain] = useState(0)
   const { scene } = useFeedScene(SANDBOX_ID, { enabled: active || near })
-  const hasTask = useMemo(() => !!feedTaskOf(scene), [scene])
-  const replay = () => { setForcedSceneTask(SANDBOX_ID); setAgain(n => n + 1) }
+  const info = useMemo(() => feedTaskOf(scene), [scene])
+  const status = useSandboxTask()
+  useEffect(() => {
+    if (mod.taskForce) setForcedSceneTask(SANDBOX_ID)
+    return () => sandboxTask.reset()
+  }, [mod.sandboxAt, mod.taskForce])
+  const replay = () => { setForcedSceneTask(SANDBOX_ID); sandboxTask.reset(); setAgain(n => n + 1) }
+  const back = () => requestOpenSceneBuilder({ from: 'sandbox', origin: mod.origin, scene: mod.origin === 'admin' ? null : scene })
   return (
     <section className="feedSlide feedGrad0 feedSandbox" data-sandbox="1">
       <SlideMedia
@@ -31,7 +42,10 @@ export default function SandboxSlide({
         onSoundOn={onSoundOn} onSoundOff={onSoundOff} onSoundBlocked={onSoundBlocked} fallback={BAD} onLock={onLock}
       />
       <div className="feedPauseGuard" aria-hidden="true" />
-      <SandboxBar hasTask={hasTask} onClose={() => clearSandbox()} onAgain={replay} />
+      <SandboxBar
+        hasTask={!!info} status={scene ? taskStatusText({ task: scene.task, info, status }) : null}
+        onClose={() => clearSandbox()} onAgain={replay} onBack={back}
+      />
     </section>
   )
 }

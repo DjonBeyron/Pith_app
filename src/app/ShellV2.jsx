@@ -35,7 +35,7 @@ import LearnTab from '../features/learn/LearnTab.jsx'
 import { useLearnData } from '../features/learn/useLearnData.js'
 import { useMemoryFresh } from '../features/learn/memoryFresh.js'
 import MinutesAsk from '../features/learn/MinutesAsk.jsx'
-import { onOpenModule } from '../shared/lib/openModuleEvent.js'
+import { useShellOpenEvents } from './useShellOpenEvents.js'
 import { onProfileHome } from '../shared/lib/profileHomeEvent.js'
 
 // Код-сплиттинг: админка нужна только is_admin — обычный пользователь этот
@@ -92,7 +92,7 @@ export default function ShellV2() {
   const rewardsDot = useRewardsDot(!!user) // есть неполученная ежедневная награда — значок «Профиль» мерцает
   // Мостик «Продолжить фразу» из итога повторения: модуль откроет FeedTab,
   // здесь — только переход на вкладку «Уроки» (openModuleEvent.js)
-  useEffect(() => onOpenModule(() => setTab('feed')), [])
+  useShellOpenEvents(setTab, isRealAdmin)
   // Нажатие на активный «Профиль» закрывает и настройки гостя (у залогиненного это делает ProfileV2)
   useEffect(() => onProfileHome(() => setGuestSettings(false)), [])
   // ?tab= прочитан при старте — убираем из адреса (перезагрузка не должна

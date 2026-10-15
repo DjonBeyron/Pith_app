@@ -83,3 +83,8 @@
 .scbSoundStatus-fail { color: var(--fs-error); }
 .scbSoundOff { display: inline-flex; align-items: center; gap: 5px; padding: 3px 9px; border: 1px solid var(--fs-warn); border-radius: 999px; background: color-mix(in srgb, var(--fs-warn) 18%, transparent); color: var(--fs-warn); font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; }
 .scbSoundOff:hover { background: color-mix(in srgb, var(--fs-warn) 30%, transparent); }
+
+/* Шапка блока реплик: счётчик и «Удалить все реплики» (TimelineEditor) */
+.scbLinesHead { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 10px; }
+.scbLinkDanger { color: var(--fs-error); }
+.scbLinesEmpty { padding: 10px 12px; border: 1px dashed var(--fs-border); border-radius: 12px; }

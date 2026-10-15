@@ -1,5 +1,7 @@
-import { useState, lazy, Suspense } from 'react'
+import { useState, useEffect, lazy, Suspense } from 'react'
 import { lazyRetry } from '../../../shared/lib/lazyRetry.js'
+import { useSceneBuilderRequest } from '../../../shared/lib/useSceneBuilderRequest.js'
+import { consumeSceneBuilderRequest } from '../../../shared/lib/openSceneBuilderEvent.js'
 import SpritesPanel from './SpritesPanel.jsx'
 import DesignerSpec from './DesignerSpec.jsx'
 import FeedTestPanel from './feedTest/FeedTestPanel.jsx'
@@ -21,6 +23,13 @@ const storedSection = () => {
 export default function ScenesTab() {
   const [section, setSectionState] = useState(storedSection)
   const [open, setOpen] = useState(false)
+  // «← Вернуться в сборщик» с тестового слайда ленты (openSceneBuilderEvent.js): открываем окно сборщика с тем же черновиком.
+  // Запрос заводится в состояние прямо при рендере (паттерн «подстроить состояние под проп»), затем забирается
+  const req = useSceneBuilderRequest()
+  const [fromTest, setFromTest] = useState(null)
+  const [seen, setSeen] = useState(0)
+  if (req && req.id !== seen) { setSeen(req.id); setFromTest(req); setSectionState('builder'); setOpen(true) }
+  useEffect(() => { if (req) consumeSceneBuilderRequest(req.id) }, [req])
   const setSection = id => { setSectionState(id); try { localStorage.setItem(SECTION_KEY, id) } catch { /* приватный режим */ } }
 
   return (
@@ -47,7 +56,7 @@ export default function ScenesTab() {
       {section === 'designer' && <DesignerSpec />}
       {open && (
         <Suspense fallback={<p className="scHint">Загрузка сборщика…</p>}>
-          <BuilderWindow onClose={() => setOpen(false)} />
+          <BuilderWindow onClose={() => { setOpen(false); setFromTest(null) }} fromTest={fromTest} />
         </Suspense>
       )}
     </div>

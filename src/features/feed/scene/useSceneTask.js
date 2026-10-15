@@ -4,7 +4,8 @@ import { trackDedup } from '../../../shared/lib/analytics/trackDedup.js'
 import { SCENE_TASK_SHOWN, SCENE_TASK_ANSWER, SCENE_TASK_SKIP } from '../../../shared/lib/analytics/eventNames.js'
 import { feedTaskOf, initialPlay, trackPlay, taskAllowed } from './sceneTaskPlay.js'
 import { sceneTaskGate } from './sceneTaskLimits.js'
-import { voiceTaskAvailable } from './sceneVoiceData.js'
+import { voiceTaskBlockReason } from './sceneVoiceData.js'
+import { sandboxTask, isSandboxScene, micReason, limitReason, inactiveReason } from './sandbox/sandboxTaskStatus.js'
 import { useSceneVoiceWarm } from './useSceneVoiceWarm.js'
 import * as ts from './sceneTaskState.js'
 import * as vs from './sceneVoiceState.js'
@@ -40,18 +41,31 @@ export function useSceneTask({ scene, sceneId, active, live, apiRef, onLock, gat
 
   // Детектор полного круга живёт, пока режиссёр жив; уход в static (live=false) — с нуля
   const playRef = useRef(initialPlay())
-  useEffect(() => { if (!live) playRef.current = initialPlay() }, [live])
+  const sandbox = isSandboxScene(sceneId) // песочница админа: ход круга и причины пропуска видны на тестовом слайде (sandboxTaskStatus)
+  useEffect(() => {
+    if (!live) playRef.current = initialPlay()
+    if (sandbox) { if (live) sandboxTask.waiting(0, scene?.timeline?.length ?? 0); else sandboxTask.idle() }
+  }, [live, sandbox]) // eslint-disable-line react-hooks/exhaustive-deps
   const onState = useCallback(state => {
     const prev = playRef.current
     const next = trackPlay(prev, state)
     playRef.current = next
     const { info: i, active: a, live: l, sceneId: id } = latest.current
     if (next.sawLast && !prev.sawLast && i?.voice && a && l) warmVoice()
-    if (!next.done || prev.done) return
-    if (!taskAllowed({ info: i, active: a, live: l }) || (i.voice && !voiceTaskAvailable()) || !gate.claim(id)) return
+    if (!next.done || prev.done) {
+      if (sandbox && !next.done) sandboxTask.waiting(state.index, state.total)
+      return
+    }
+    // Песочница: каждый отказ показа записывается с причиной (в обычной ленте пропуск тихий)
+    const skip = reason => { if (sandbox) sandboxTask.skipped(reason) }
+    if (!taskAllowed({ info: i, active: a, live: l })) return skip(inactiveReason())
+    const mic = i.voice ? voiceTaskBlockReason() : null
+    if (mic) return skip(micReason(mic))
+    if (!gate.claim(id)) return skip(limitReason(gate.why?.(id)))
     update(ts.open)
+    if (sandbox) sandboxTask.shown()
     trackDedup(SCENE_TASK_SHOWN, { scene_id: id, kind: i.task.kind }, id)
-  }, [gate, warmVoice]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [gate, warmVoice, sandbox]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Панель открылась — сцена замирает на последней реплике (режиссёр уже на авто-паузе: эффекты ребёнка раньше наших)
   const total = scene?.timeline?.length ?? 0

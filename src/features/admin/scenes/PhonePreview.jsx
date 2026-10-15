@@ -32,6 +32,7 @@ export default function PhonePreview({ scene, lint, budget, onHighlight, modes =
   const [sndSt, setSndSt] = useState({ mode: null, fail: null }) // чем звучит реплика и почему файл не завёлся (sceneAudioFail.js)
   const apiRef = useRef(null)
   const total = scene.timeline.length
+  const empty = total === 0 // реплик нет (черновик на полпути): живой режиссёр играть нечего — всегда статичный кадр
   const safeFrame = Math.min(frame, Math.max(0, total - 1))
   const errors = lint.filter(x => x.level === 'error').length
   const warns = lint.length - errors
@@ -65,13 +66,15 @@ export default function PhonePreview({ scene, lint, budget, onHighlight, modes =
             <div className="scbPhoneWrap">
               <div className="scbPhone">
                 <SceneRenderer
-                  key={mode} scene={scene} mode={mode} frameIndex={mode === 'static' ? safeFrame : null}
+                  key={empty ? 'empty' : mode} scene={scene} mode={empty ? 'static' : mode} frameIndex={empty || mode === 'static' ? safeFrame : null}
                   display={ov.display} voice={ov.voice} lite={lite} sound={sound} apiRef={apiRef} active
                 />
               </div>
             </div>
             <div className="scbCtl">
-              {mode === 'live' ? (
+              {empty ? (
+                <p className="scbSub" role="status">Реплик нет — показан статичный кадр. Добавьте реплики в блоке «Реплики».</p>
+              ) : mode === 'live' ? (
                 <div className="scbCtlRow">
                   <button type="button" className="fsBtn fsBtnPrimary" onClick={() => call(status === 'playing' ? 'pause' : 'play')}>
                     {status === 'playing' ? 'Пауза' : status === 'paused' ? 'Продолжить' : 'Старт'}

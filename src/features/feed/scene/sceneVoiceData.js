@@ -34,5 +34,11 @@ export function voiceSayData(info) {
   }
 }
 
+/** Почему голосовое задание нельзя показать: 'browser' (Firefox) | 'unsupported' (нет распознавания) | 'cant_speak' | 'denied' | null — можно */
+export const voiceTaskBlockReason = (perm = sayPermission) => {
+  const d = perm.decide()
+  return d.action === 'fallback' ? (d.reason ?? 'unsupported') : null
+}
+
 /** Голосовое задание можно показывать: микрофон допустим (не Firefox, есть распознавание, не отказали, не «не могу говорить»). Иначе панель тихо пропускается */
-export const voiceTaskAvailable = (perm = sayPermission) => perm.decide().action !== 'fallback'
+export const voiceTaskAvailable = (perm = sayPermission) => voiceTaskBlockReason(perm) === null

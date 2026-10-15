@@ -4,7 +4,7 @@ import { sandboxState, sandboxSteps, SANDBOX_STEP_TEXT, openSceneInSandbox, lint
 // Вариант «Тест без привязки (песочница)» — по умолчанию. Берёт ТЕКУЩИЙ черновик сборщика как есть: библиотека, публикация и
 // модуль не нужны, в БД ничего не пишется. Лента получит обособленный слайд «ТЕСТ» (виден только вам, на этом устройстве,
 // до закрытия вкладки). Ошибки линтера блокируют запуск, предупреждения — нет.
-export default function FeedTestSandbox({ draft, onClose, onLeave, setStatus }) {
+export default function FeedTestSandbox({ draft, onClose, onLeave, setStatus, origin = 'admin' }) {
   const [force, setForce] = useState(true)
   const [open, setOpen] = useState(true)
   const [error, setError] = useState('')
@@ -12,7 +12,7 @@ export default function FeedTestSandbox({ draft, onClose, onLeave, setStatus }) 
 
   const run = () => {
     setError('')
-    const res = openSceneInSandbox(draft.scene, { force, open, close: onLeave })
+    const res = openSceneInSandbox(draft.scene, { force, open, close: onLeave, origin })
     if (res.ok) {
       setStatus({ kind: 'ok', text: open ? 'Открываю ленту на тестовом слайде' : 'Тестовый слайд готов: он первый в вашей ленте' })
       if (!open) onClose()
@@ -30,6 +30,7 @@ export default function FeedTestSandbox({ draft, onClose, onLeave, setStatus }) 
       <p className={`scbSub scbFtState scbFtState-${state.kind}`} role="status">{state.text}</p>
       <label className="scbCheck"><input type="checkbox" checked={force} onChange={e => setForce(e.target.checked)} /><span>Показать задание сразу (принудительно, лимиты не тратить)</span></label>
       <label className="scbCheck"><input type="checkbox" checked={open} onChange={e => setOpen(e.target.checked)} /><span>Открыть ленту на этом слайде (окно сборщика закроется)</span></label>
+      <p className="scbSub">На тестовом слайде будет кнопка «← Вернуться в сборщик» — вернётесь к этому же черновику.</p>
       <p className="scbSub">Шаги: {sandboxSteps({ force, open }).map((s, i) => `${i + 1}. ${SANDBOX_STEP_TEXT[s]}`).join(' → ')}</p>
       {error && <p className="fsMsg fsMsg-error" role="alert">{error}</p>}
       <div className="scbHBtns">

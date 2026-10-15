@@ -18,6 +18,7 @@ import { usePreviewModes } from './modes/usePreviewModes.js'
 import VoiceAllDialog from './voice/VoiceAllDialog.jsx'
 import FeedTestDialog from './feedTest/FeedTestDialog.jsx'
 import { useBuilderBack } from './useBuilderBack.js'
+import { returnNotice } from './feedTest/feedTestSandbox.js'
 import BackConfirm from './toolbar/BackConfirm.jsx'
 import '../../../styles/admin-signals.css'
 import '../../../styles/admin-scenes.css'
@@ -52,8 +53,12 @@ import '../../../styles/admin-scenes-task.css'
 // показа/озвучки предпросмотра — usePreviewModes (modes/): тулбар переключает, PhonePreview показывает.
 const VIEWS = [['settings', 'Настройки'], ['scene', 'Сцена'], ['panel', 'Панель']]
 
-export default function BuilderWindow({ onClose: onCloseProp, initialScene = null, initialRow = null, onApply = null, applyLabel, title = 'Сборщик сцен', useMode = null }) {
-  const draft = useBuilderDraft({ initialScene, initialRow, backup: !onApply })
+export default function BuilderWindow({ onClose: onCloseProp, initialScene = null, initialRow = null, onApply = null, applyLabel, title = 'Сборщик сцен', useMode = null, fromTest = null }) {
+  // fromTest — окно открыто кнопкой «← Вернуться в сборщик» с тестового слайда ленты ({ origin, scene }). Обычный сборщик (origin 'admin'):
+  // тот же черновик восстановится из резервной копии. Тест запускали из ноды/модуля: управляемый режим не пишет копию, поэтому окно
+  // открывается с копией сцены из теста, а резервная копия админа не перезаписывается (backup=false)
+  const testCopy = fromTest && fromTest.origin !== 'admin' ? fromTest.scene : null
+  const draft = useBuilderDraft({ initialScene: initialScene ?? testCopy, initialRow, backup: !onApply && !testCopy })
   const library = useSceneLibrary()
   const voice = useSceneVoice(draft)
   const modes = usePreviewModes(draft)
@@ -64,7 +69,7 @@ export default function BuilderWindow({ onClose: onCloseProp, initialScene = nul
   const bodyRef = useRef(null)
   const mode = sceneUseMode({ onApply, useMode })
 
-  const act = useBuilderActions({ draft, library })
+  const act = useBuilderActions({ draft, library, initialStatus: fromTest ? { kind: 'ok', text: returnNotice(fromTest.origin) } : null })
   const { status, setStatus } = act
   const [feedTest, setFeedTest] = useState(false)
   const openFeedTest = useCallback(() => {
@@ -131,7 +136,7 @@ export default function BuilderWindow({ onClose: onCloseProp, initialScene = nul
           onChoose={back.choose}
         />
         {feedTest && (
-          <FeedTestDialog draft={draft} library={library} save={act.save} setStatus={setStatus} onClose={() => setFeedTest(false)} onLeave={onCloseProp} />
+          <FeedTestDialog draft={draft} library={library} save={act.save} setStatus={setStatus} onClose={() => setFeedTest(false)} onLeave={onCloseProp} origin={testCopy ? fromTest.origin : mode} />
         )}
         <VoiceAllDialog
           all={voice.all} quota={voice.quota} names={{ a: draft.scene.characters.a.name, b: draft.scene.characters.b.name }}

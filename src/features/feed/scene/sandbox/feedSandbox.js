@@ -4,7 +4,8 @@ import { SANDBOX_ID } from '../../../../shared/lib/analytics/sandboxGuard.js'
 // и ни к чему не привязана (ни curricula.scene_id, ни библиотека scenes, ни запись в БД).
 // Живёт в sessionStorage: до закрытия вкладки браузера и только на этом устройстве. Не localStorage — чтобы забытый
 // тестовый слайд не появлялся у админа в ленте неделями; нужен снова — «Открыть в песочнице» ставит его за секунду.
-// Запись: { v: 1, scene: <сцена v2 целиком>, taskForce: boolean, createdAt: number }.
+// Запись: { v: 1, scene: <сцена v2 целиком>, taskForce: boolean, origin: 'admin' | 'node' | 'module', createdAt: number }.
+// origin — откуда запущен тест (кнопка «← Вернуться в сборщик» на тестовом слайде; admin — обычный сборщик админки).
 // Любое обращение к хранилищу — в try/catch (приватный режим, переполнение, нет window).
 export const SANDBOX_KEY = 'pithy_feed_sandbox_v1'
 export const SANDBOX_EVENT = 'pithy:feed-sandbox'
@@ -12,6 +13,8 @@ export { SANDBOX_ID }
 
 const MAX_CHARS = 1_500_000 // сцена v2 — десятки КБ; больше — явно мусор, sessionStorage ~5 МБ
 
+export const SANDBOX_ORIGINS = ['admin', 'node', 'module']
+const originOf = v => (SANDBOX_ORIGINS.includes(v) ? v : 'admin')
 const isObj = v => !!v && typeof v === 'object' && !Array.isArray(v)
 const ss = () => { try { return typeof sessionStorage !== 'undefined' ? sessionStorage : null } catch { return null } }
 
@@ -24,7 +27,7 @@ export function parseSandbox(raw) {
   try {
     const d = JSON.parse(raw)
     if (!isObj(d) || d.v !== 1 || !isObj(d.scene) || !Number.isFinite(d.createdAt)) return null
-    return { scene: d.scene, taskForce: !!d.taskForce, createdAt: d.createdAt }
+    return { scene: d.scene, taskForce: !!d.taskForce, origin: originOf(d.origin), createdAt: d.createdAt }
   } catch { return null }
 }
 
@@ -39,10 +42,10 @@ export function readSandbox(storage = ss()) {
 const emit = () => { try { window.dispatchEvent(new CustomEvent(SANDBOX_EVENT)) } catch { /* нет window */ } }
 
 // → true, если записали. Сцена — объект (полный JSON v2 из черновика сборщика); валидность проверит стор сцен ленты
-export function writeSandbox({ scene, taskForce = false }, { storage = ss(), now = Date.now } = {}) {
+export function writeSandbox({ scene, taskForce = false, origin = 'admin' }, { storage = ss(), now = Date.now } = {}) {
   if (!storage || !isObj(scene)) return false
   try {
-    const raw = JSON.stringify({ v: 1, scene, taskForce: !!taskForce, createdAt: now() })
+    const raw = JSON.stringify({ v: 1, scene, taskForce: !!taskForce, origin: originOf(origin), createdAt: now() })
     if (raw.length > MAX_CHARS) return false
     storage.setItem(SANDBOX_KEY, raw)
   } catch { return false }

@@ -55,10 +55,10 @@ export function runSandbox({ scene, force = true, open = true, deps }) {
 }
 
 // С настоящими зависимостями: положить сцену в песочницу, (по желанию) принудительно показать задание и повернуть ленту
-export function openSceneInSandbox(scene, { force = true, open = true, close } = {}) {
+export function openSceneInSandbox(scene, { force = true, open = true, close, origin = 'admin' } = {}) {
   return runSandbox({
     scene, force, open,
-    deps: { write: writeSandbox, force: setForcedSceneTask, jump: sendToFeed, close },
+    deps: { write: o => writeSandbox({ ...o, origin }), force: setForcedSceneTask, jump: sendToFeed, close },
   })
 }
 
@@ -70,3 +70,8 @@ export function backupForSandbox(load = loadBackup, lint = lintScene) {
   if (!b?.scene) return null
   return { scene: b.scene, at: b.at, ...lintCounts(lint(b.scene)) }
 }
+
+// Строка статуса окна сборщика после «← Вернуться в сборщик» с тестового слайда (origin — где сборщик был открыт до теста)
+export const returnNotice = origin => (origin === 'node' || origin === 'module'
+  ? 'Открыто из теста в ленте: это копия сцены из ноды/модуля (резервная копия вашего черновика не тронута). «Применить» здесь нет — скопируйте JSON или сохраните в библиотеку'
+  : 'Открыто из теста в ленте: тот же черновик, правки не потерялись')

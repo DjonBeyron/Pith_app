@@ -1,6 +1,6 @@
 import { ArrowUp, ArrowDown, Copy, Trash2 } from 'lucide-react'
 import { EMOTIONS, POSES } from '../../scene/v2/sceneConstants.js'
-import { charsLeft, MAX_TEXT, MIN_LINES } from './timelineOps.js'
+import { charsLeft, MAX_TEXT } from './timelineOps.js'
 import { EMOTION_LABEL, POSE_LABEL } from './sceneLabels.js'
 import Panel from './ui/Panel.jsx'
 import LineVoiceControls from './voice/LineVoiceControls.jsx'
@@ -33,7 +33,7 @@ export default function TimelineLine({ index: i, line, names, total, actions, ch
       <button type="button" className="scbIcon" onClick={() => actions.moveLine(i, -1)} disabled={lock || i === 0} aria-label="Выше"><ArrowUp size={14} /></button>
       <button type="button" className="scbIcon" onClick={() => actions.moveLine(i, 1)} disabled={lock || i === total - 1} aria-label="Ниже"><ArrowDown size={14} /></button>
       <button type="button" className="scbIcon" onClick={() => actions.duplicateLine(i)} disabled={lock} aria-label="Дублировать"><Copy size={14} /></button>
-      <button type="button" className="scbIcon scbIconDanger" onClick={() => actions.removeLine(i)} disabled={lock || total <= MIN_LINES} aria-label="Удалить реплику" title={total <= MIN_LINES ? `Минимум ${MIN_LINES} реплики` : 'Удалить'}><Trash2 size={14} /></button>
+      <button type="button" className="scbIcon scbIconDanger" onClick={() => actions.removeLine(i)} disabled={lock} aria-label="Удалить реплику" title="Удалить (можно удалить все — черновик без реплик допустим, линтер напомнит про минимум)"><Trash2 size={14} /></button>
     </div>
   )
   return (

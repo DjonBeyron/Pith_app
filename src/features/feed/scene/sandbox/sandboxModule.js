@@ -22,6 +22,8 @@ export function sandboxModule(sb) {
     feedCatchEnabled: false,
     isSandbox: true,
     sandboxAt: sb.createdAt,
+    taskForce: !!sb.taskForce,
+    origin: sb.origin ?? 'admin',
   }
 }
 

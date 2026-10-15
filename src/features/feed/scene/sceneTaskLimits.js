@@ -1,5 +1,6 @@
 import { localToday } from '../../review/reviewDecks.js'
 import { applyLater, isLaterPaused, pruneUntil, pruneStreak } from '../catch/catchLater.js'
+import { SANDBOX_ID } from '../../../shared/lib/analytics/sandboxGuard.js'
 
 // Лимиты показа задания «О чём диалог» на слайде-сцене ленты — по образцу «Ловли слов» (feedCatch.js / catchLater.js),
 // свои ключи. Чистые функции над объектами + тонкие обёртки над localStorage/sessionStorage.
@@ -33,6 +34,16 @@ export function canOfferTask({ swipes, state, sceneId, paused = false, forced = 
   return state.scenes[sceneId] !== state.date
 }
 
+// Почему задание не покажется (для строки статуса песочницы): null — можно. Порядок тот же, что в canOfferTask
+export function offerBlockReason({ swipes, state, sceneId, paused = false, forced = false }) {
+  if (forced) return null
+  if (paused) return 'пауза «Спроси позже» (3 часа)'
+  if (swipes < TASK_GAP) return `лимит: ещё не прошло ${TASK_GAP} слайда с прошлого задания`
+  if (state.count >= TASK_PER_DAY) return `лимит: ${TASK_PER_DAY} заданий в день уже показано`
+  if (state.scenes[sceneId] === state.date) return 'лимит: эта сцена уже спрашивала сегодня'
+  return null
+}
+
 // Отметить показ → новое состояние
 export function markTaskShown(state, sceneId) {
   return { ...state, count: state.count + 1, scenes: { ...state.scenes, [sceneId]: state.date } }
@@ -62,24 +73,34 @@ export function createTaskGate({ storage = ls, session = ss, now = () => Date.no
       const f = read(TASK_FORCE_KEY, session() ?? { getItem: () => null })
       return !!f && f.sceneId === sceneId
     },
-    // Решение «показать» с учётом всех лимитов; при true — показ сразу записан (принудительный снимается)
-    claim(sceneId) {
-      if (!sceneId) return false
+    // Решение «показать» с учётом всех лимитов; при true — показ сразу записан (принудительный снимается).
+    // Песочница админа (SANDBOX_ID) счётчики НЕ трогает: ни день, ни «сцена раз в сутки», ни слайды — иначе тест съедал бы
+    // боевые лимиты и сам глох после первого показа за день
+    decide(sceneId) {
       const st = storage()
       const forced = this.forced(sceneId)
-      const t = today()
-      const state = dayState(st ? read(TASK_KEY, st) : null, t)
+      const state = dayState(st ? read(TASK_KEY, st) : null, today())
       const paused = st ? isLaterPaused(read(TASK_LATER_KEY, st), sceneId, now()) : false
-      if (!canOfferTask({ swipes, state, sceneId, paused, forced })) return false
+      return { forced, state, st, reason: offerBlockReason({ swipes, state, sceneId, paused, forced }) }
+    },
+    // Причина отказа (или null) без побочных эффектов — для строки статуса песочницы
+    why(sceneId) {
+      return sceneId ? this.decide(sceneId).reason : 'нет id сцены'
+    },
+    claim(sceneId) {
+      if (!sceneId) return false
+      const { forced, state, st, reason } = this.decide(sceneId)
+      if (reason) return false
       if (forced) { try { session()?.removeItem(TASK_FORCE_KEY) } catch { /* ignore */ } }
-      else if (st) write(TASK_KEY, markTaskShown(state, sceneId), st)
+      if (sceneId === SANDBOX_ID) return true
+      if (!forced && st) write(TASK_KEY, markTaskShown(state, sceneId), st)
       swipes = 0
       return true
     },
     // «Спроси позже»: пауза сцены (3 ч; 3 подряд — 7 суток) → { n, long }
     later(sceneId) {
       const st = storage()
-      if (!st) return { n: 1, long: false }
+      if (!st || sceneId === SANDBOX_ID) return { n: 1, long: false }
       const r = applyLater(pruneUntil(read(TASK_LATER_KEY, st), now()), pruneStreak(read(TASK_LATER_STREAK_KEY, st), now()), sceneId, now())
       write(TASK_LATER_KEY, r.until, st)
       write(TASK_LATER_STREAK_KEY, r.streak, st)
