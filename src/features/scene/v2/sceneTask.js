@@ -12,8 +12,11 @@ import { isObj } from './sceneConstants.js'
 // speechMatch.js — те же пороги, что у «Сказать фразу»); засчитано, если совпало
 // ≥ PASS_RATIO ключевых слов лучшего из эталонов. Пустой ответ — не ок.
 
-export const TASK_KINDS = ['translate']
-export const TASK_LIMITS = { maxPrompt: 80, maxAccept: 8, maxAcceptLen: 140, maxHint: 140 }
+// Виды: translate — печатать перевод; say — ответить голосом своими словами (answers/keywords);
+// repeat — повторить голосом оригинал реплики. Голосовая проверка — sceneTaskVoice.js
+export const TASK_KINDS = ['translate', 'say', 'repeat']
+export const VOICE_KINDS = ['say', 'repeat']
+export const TASK_LIMITS = { maxPrompt: 80, maxAccept: 8, maxAcceptLen: 140, maxHint: 140, maxAnswers: 8, maxKeywords: 12, maxKeywordLen: 40, minPass: 0.5, maxPass: 1 }
 export const PASS_RATIO = 0.7
 
 // Служебные слова, которые не несут смысла: их отсутствие или замена ответ не портят
@@ -39,7 +42,49 @@ export function normalizeTask(raw) {
       .slice(0, TASK_LIMITS.maxAccept)
   }
   if (typeof raw.hint === 'string' && raw.hint.trim()) out.hint = raw.hint.trim().slice(0, TASK_LIMITS.maxHint)
+  if (VOICE_KINDS.includes(raw.kind)) normalizeVoiceFields(raw, out)
   return out
+}
+
+const strList = (v, max, len) => (Array.isArray(v)
+  ? [...new Set(v.filter(a => typeof a === 'string' && a.trim()).map(a => a.trim().slice(0, len)))].slice(0, max) : [])
+
+// Поля голосовых видов: answers (только say), keywords (только say), passRatio 0.5..1, strict
+function normalizeVoiceFields(raw, out) {
+  if (raw.kind === 'say') {
+    out.answers = strList(raw.answers, TASK_LIMITS.maxAnswers, TASK_LIMITS.maxAcceptLen)
+    const keywords = strList(raw.keywords, TASK_LIMITS.maxKeywords, TASK_LIMITS.maxKeywordLen)
+    if (keywords.length) out.keywords = keywords
+  }
+  if (typeof raw.passRatio === 'number' && raw.passRatio >= TASK_LIMITS.minPass && raw.passRatio <= TASK_LIMITS.maxPass) out.passRatio = raw.passRatio
+  if (raw.strict === true) out.strict = true
+}
+
+function validateVoiceFields(task, errors) {
+  if (task.answers !== undefined) {
+    if (!Array.isArray(task.answers)) errors.push('task.answers — массив строк (ожидаемые ответы)')
+    else {
+      if (task.answers.length > TASK_LIMITS.maxAnswers) errors.push(`task.answers — не больше ${TASK_LIMITS.maxAnswers} ответов (сейчас ${task.answers.length})`)
+      task.answers.forEach((a, i) => {
+        if (typeof a !== 'string' || !a.trim()) errors.push(`task.answers[${i}] — непустая строка`)
+        else if (a.length > TASK_LIMITS.maxAcceptLen) errors.push(`task.answers[${i}] — не длиннее ${TASK_LIMITS.maxAcceptLen} символов`)
+      })
+    }
+  }
+  if (task.keywords !== undefined) {
+    if (!Array.isArray(task.keywords)) errors.push('task.keywords — массив ключевых слов')
+    else {
+      if (task.keywords.length > TASK_LIMITS.maxKeywords) errors.push(`task.keywords — не больше ${TASK_LIMITS.maxKeywords} слов (сейчас ${task.keywords.length})`)
+      task.keywords.forEach((k, i) => {
+        if (typeof k !== 'string' || !k.trim()) errors.push(`task.keywords[${i}] — непустая строка`)
+        else if (k.length > TASK_LIMITS.maxKeywordLen) errors.push(`task.keywords[${i}] — не длиннее ${TASK_LIMITS.maxKeywordLen} символов`)
+      })
+    }
+  }
+  if (task.passRatio !== undefined && !(typeof task.passRatio === 'number' && task.passRatio >= TASK_LIMITS.minPass && task.passRatio <= TASK_LIMITS.maxPass)) {
+    errors.push(`task.passRatio — число от ${TASK_LIMITS.minPass} до ${TASK_LIMITS.maxPass}`)
+  }
+  if (task.strict !== undefined && typeof task.strict !== 'boolean') errors.push('task.strict — true или false')
 }
 
 // Ошибки формата поля task (вызывает validateSceneV2); timelineLen — для проверки lineIndex
@@ -63,6 +108,7 @@ export function validateTask(task, timelineLen, errors) {
     }
   }
   if (task.hint !== undefined && (typeof task.hint !== 'string' || task.hint.length > TASK_LIMITS.maxHint)) errors.push(`task.hint — строка до ${TASK_LIMITS.maxHint} символов`)
+  validateVoiceFields(task, errors)
 }
 
 // Какая реплика спрашивается → { index, line } | null (нет задания или реплик)
@@ -75,10 +121,12 @@ export function taskTargetLine(scene) {
   return { index: tl.length - 1, line: tl[tl.length - 1] }
 }
 
-// Все эталоны ответа: перевод реплики + синонимы (без пустых и повторов)
+// Все эталоны ответа (без пустых и повторов): translate — перевод реплики + accept;
+// repeat — оригинал реплики (text) + accept; say — answers + accept
 export function taskAnswers(task, line) {
   const t = normalizeTask(task)
-  const list = [typeof line?.translation === 'string' ? line.translation.trim() : '', ...(t?.accept ?? [])]
+  const own = t?.kind === 'repeat' ? line?.text : t?.kind === 'say' ? null : line?.translation
+  const list = [...(t?.kind === 'say' ? t.answers : [typeof own === 'string' ? own.trim() : '']), ...(t?.accept ?? [])]
   return [...new Set(list.filter(Boolean))]
 }
 
@@ -87,6 +135,8 @@ export function taskPrompt(task, scene, line) {
   const t = normalizeTask(task)
   if (t?.prompt) return t.prompt
   const ch = scene?.characters?.[line?.who]
+  if (t?.kind === 'repeat') return ch?.name ? `Повтори за ${ch.name}` : 'Повтори за диктором'
+  if (t?.kind === 'say') return ch?.name ? `Ответь ${ch.name}` : 'Ответь коту'
   const verb = ch?.gender === 'female' ? 'сказала' : 'сказал'
   return ch?.name ? `Что ${verb} ${ch.name}?` : 'Что было сказано?'
 }

@@ -1,4 +1,4 @@
-import { Mic, ChevronsDownUp, ChevronsUpDown, Sun, Moon, Pin, Volume2, VolumeX } from 'lucide-react'
+import { Mic, Send, ChevronsDownUp, ChevronsUpDown, Sun, Moon, Pin, Volume2, VolumeX } from 'lucide-react'
 import { DISPLAY_OPTIONS, VOICE_LABEL } from '../modes/sceneModes.js'
 
 // Раскладка тулбара сборщика сцен — чистая функция без React (тесты: toolbar.test.jsx, toolbarModes.test.jsx).
@@ -56,7 +56,7 @@ function voiceActions(voice, list) {
 
 // Режимы окна: admin — обычная админка, node — сцена для ноды урока, module — для модуля ленты
 // (режим определяет sceneUseMode). «Применить» есть только в node/module.
-export function buildToolbarActions({ mode, voice = null, modes = null, save, apply = null, onNew, panels = null, theme, onToggleTheme }) {
+export function buildToolbarActions({ mode, voice = null, modes = null, save, apply = null, feedTest = null, onNew, panels = null, theme, onToggleTheme }) {
   const embedded = mode === 'node' || mode === 'module'
   const list = []
   modesActions(modes, list)
@@ -68,6 +68,7 @@ export function buildToolbarActions({ mode, voice = null, modes = null, save, ap
     id: 'save', group: 'scene', label: save.label, shortLabel: 'Сохранить', hint: save.hint, run: save.run, disabled: save.disabled,
     primary: !embedded, pinned: !embedded,
   })
+  if (feedTest) list.push({ id: 'feedTest', group: 'scene', label: 'Проверить в ленте', shortLabel: 'В ленте', hint: feedTest.hint, run: feedTest.run, disabled: feedTest.disabled, Icon: Send })
   list.push({ id: 'new', group: 'scene', label: 'Новая', hint: 'Начать новую сцену с чистого листа', run: onNew })
   if (panels?.has) {
     const all = panels.allCollapsed

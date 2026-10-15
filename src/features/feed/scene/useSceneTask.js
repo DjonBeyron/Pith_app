@@ -4,10 +4,13 @@ import { trackDedup } from '../../../shared/lib/analytics/trackDedup.js'
 import { SCENE_TASK_SHOWN, SCENE_TASK_ANSWER, SCENE_TASK_SKIP } from '../../../shared/lib/analytics/eventNames.js'
 import { feedTaskOf, initialPlay, trackPlay, taskAllowed } from './sceneTaskPlay.js'
 import { sceneTaskGate } from './sceneTaskLimits.js'
+import { voiceTaskAvailable } from './sceneVoiceData.js'
+import { useSceneVoiceWarm } from './useSceneVoiceWarm.js'
 import * as ts from './sceneTaskState.js'
+import * as vs from './sceneVoiceState.js'
 
 export const TASK_COVER_OUT_MS = 500 // страховка размонтирования панели после ухода (transitionend — в SceneTaskCover)
-const ACTIONS = ['press', 'backspace', 'check', 'giveUp', 'later', 'finish', 'replay', 'coverGone']
+const ACTIONS = ['press', 'backspace', 'check', 'giveUp', 'later', 'finish', 'replay', 'coverGone', 'voiceListen', 'voiceUnlisten', 'voiceResult', 'voiceSkip']
 
 // Задание «О чём диалог» на слайде-сцене ленты (SlideScene.jsx). После ПЕРВОГО полного проигрывания диалога на активном
 // слайде (детектор trackPlay по состояниям режиссёра — только границы реплик, без тиков) и если лимиты разрешают
@@ -17,7 +20,10 @@ const ACTIONS = ['press', 'backspace', 'check', 'giveUp', 'later', 'finish', 're
 // панель уйдёт — «loop продолжается как раньше»); сцена показывает последнюю реплику (goTo), «Послушать ещё раз» —
 // playOnce целевой реплики. setState — только на границах: показ, клавиша, проверка, закрытие.
 // onLock(mounted) — лента не свайпается, пока панель в DOM (как у «Ловли»).
-// → { info, open, mounted, freeze, state, onState, press, backspace, check, giveUp, later, finish, replay, coverGone }
+// Голосовые виды ('say' / 'repeat', info.voice): тот же показ, лимиты, заморозка и закрытие; вместо клавиш — voiceListen / voiceUnlisten /
+// voiceResult / voiceSkip (переходы — sceneVoiceState.js, микрофон ведёт SceneVoicePanel). Нет микрофона (Firefox, отказ) — тихий пропуск
+// ДО лимитов; Vosk греется на последней реплике круга (useSceneVoiceWarm).
+// → { info, open, mounted, freeze, state, onState, press, backspace, check, giveUp, later, finish, replay, coverGone, voice* }
 export function useSceneTask({ scene, sceneId, active, live, apiRef, onLock, gate = sceneTaskGate() }) {
   const info = useMemo(() => feedTaskOf(scene), [scene])
   const [st, setSt] = useState(() => ts.initialTask(sceneId))
@@ -30,6 +36,7 @@ export function useSceneTask({ scene, sceneId, active, live, apiRef, onLock, gat
   const open = active && ts.isOpen(s)
   const latest = useRef({ info, active, live, sceneId, onLock })
   useEffect(() => { latest.current = { info, active, live, sceneId, onLock } })
+  const warmVoice = useSceneVoiceWarm({ voice: !!info?.voice, active, live, open })
 
   // Детектор полного круга живёт, пока режиссёр жив; уход в static (live=false) — с нуля
   const playRef = useRef(initialPlay())
@@ -38,12 +45,13 @@ export function useSceneTask({ scene, sceneId, active, live, apiRef, onLock, gat
     const prev = playRef.current
     const next = trackPlay(prev, state)
     playRef.current = next
-    if (!next.done || prev.done) return
     const { info: i, active: a, live: l, sceneId: id } = latest.current
-    if (!taskAllowed({ info: i, active: a, live: l }) || !gate.claim(id)) return
+    if (next.sawLast && !prev.sawLast && i?.voice && a && l) warmVoice()
+    if (!next.done || prev.done) return
+    if (!taskAllowed({ info: i, active: a, live: l }) || (i.voice && !voiceTaskAvailable()) || !gate.claim(id)) return
     update(ts.open)
     trackDedup(SCENE_TASK_SHOWN, { scene_id: id, kind: i.task.kind }, id)
-  }, [gate]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [gate, warmVoice]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Панель открылась — сцена замирает на последней реплике (режиссёр уже на авто-паузе: эффекты ребёнка раньше наших)
   const total = scene?.timeline?.length ?? 0
@@ -88,11 +96,27 @@ export function useSceneTask({ scene, sceneId, active, live, apiRef, onLock, gat
   }
   const finish = () => update(ts.close)
   const replay = () => { if (info) apiRef?.current?.playOnce?.(info.index) }
+  // Голосовые виды: запись началась / прервана; итог попытки ({ ok, heard, spoke, quiet, engine }); «Не могу говорить» — пропуск без штрафа
+  const voiceListen = () => update(vs.listen)
+  const voiceUnlisten = () => update(vs.unlisten)
+  function voiceResult(res) {
+    if (!info) return
+    const next = res.ok ? vs.pass(s, res) : vs.fail(s, res)
+    if (next === s) return
+    setSt(next)
+    if (vs.countedAnswer(res, next)) track(SCENE_TASK_ANSWER, vs.voiceAnswerProps({ sceneId, kind, next, openedAt: s.openedAt, engine: res.engine }))
+  }
+  function voiceSkip() {
+    if (!ts.isOpen(s)) return
+    update(ts.close)
+    track(SCENE_TASK_SKIP, { scene_id: sceneId, kind, reason: 'cant' })
+  }
   const coverGone = () => setClosing(false)
 
   // Стабильные действия (пропсы мемо-панели не меняются на каждую клавишу)
-  const fns = useRef({ press, backspace, check, giveUp, later, finish, replay, coverGone })
-  useEffect(() => { fns.current = { press, backspace, check, giveUp, later, finish, replay, coverGone } })
+  const all = { press, backspace, check, giveUp, later, finish, replay, coverGone, voiceListen, voiceUnlisten, voiceResult, voiceSkip }
+  const fns = useRef(all)
+  useEffect(() => { fns.current = all })
   const [stable] = useState(() => Object.fromEntries(ACTIONS.map(n => [n, (...args) => fns.current[n](...args)])))
 
   return { info, open, mounted, freeze: open, state: s, onState, ...stable }

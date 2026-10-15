@@ -1,0 +1,9 @@
+/* Админ → Сцены → «Тест в ленте» (feedTest/FeedTestPanel): список модулей со сценой, сброс лимитов */
+.scFtList { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 6px; }
+.scFtRow { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; padding: 8px 10px; border: 1px solid var(--sc-border); border-radius: 10px; background: var(--sc-panel-2); }
+.scFtInfo { flex: 1 1 200px; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.scFtTitle { font-size: 13px; font-weight: 600; overflow-wrap: anywhere; }
+.scFtBtn { border-color: var(--sc-accent); }
+.scFtBtn:disabled { border-color: var(--sc-border); opacity: 0.5; cursor: default; }
+.scFtReset { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; padding-top: 8px; border-top: 1px dashed var(--sc-border); }
+.scFt .scbFtHow { margin: 0; padding: 8px 10px 8px 28px; border-radius: 10px; background: var(--sc-panel-2); font-size: 12px; line-height: 1.45; color: var(--sc-muted); display: flex; flex-direction: column; gap: 4px; }

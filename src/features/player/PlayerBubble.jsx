@@ -104,13 +104,17 @@ function hDetail(el) {
   return parts.join(' ')
 }
 
-export default function PlayerBubble({ className, children, follow = false, style }) {
+// fixed — пузырь заведомо не растёт (сцена: рамка 9:16 фиксированного размера) —
+// ResizeObserver, таймер и расчёты высоты не создаются вовсе (по одному RO на
+// сообщение в длинной ленте). Значение читается один раз на маунте
+export default function PlayerBubble({ className, children, follow = false, style, fixed = false }) {
   const ref       = useRef(null)
   const stRef     = useRef({ prevH: null, tid: null, target: null, retries: 0, gaveUp: false, frozen: false })
   const readyRef  = useRef(false)
   const reactedRef = useRef(false) // реакцию в этот пузырь уже вставляли
   const idRef     = useRef(0) // номер пузыря для дебаг-лога
   const followRef = useRef(false)
+  const fixedRef  = useRef(fixed)
 
   useEffect(() => {
     followRef.current = !!follow
@@ -130,7 +134,7 @@ export default function PlayerBubble({ className, children, follow = false, styl
 
   useEffect(() => {
     const el = ref.current
-    if (!el) return
+    if (!el || fixedRef.current) return
     const st = stRef.current
 
     function scheduleCleanup(target) {

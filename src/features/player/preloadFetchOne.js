@@ -137,13 +137,14 @@ export function makePreloadFetch(ctx) {
     inFlightRef.current--
 
     // Publish blobUrl so already-visible modules can start using it immediately
-    blobUrlsRef.current[id] = { blobUrl, posterUrl: null }
+    blobUrlsRef.current[id] = { blobUrl, posterUrl: null, size: blob.size }
     setBlobMap(prev => ({ ...prev, [id]: { blobUrl, posterUrl: null } }))
     pump(gen)
     if (nodeType === 'audio') analyzeAudioMeta(id, blobUrl, gen, nodeId)
     if (DECODE_TYPES.has(nodeType)) decodeImage(id, blobUrl)
 
-    if (EVICT_TYPES.has(nodeType)) await evictFarthestIfNeeded(gen, id)
+    // Сцена в EVICT_TYPES не входит (см. sceneBlobBudget.js), но уходит в тот же вызов: там у неё свой счёт в байтах
+    if (EVICT_TYPES.has(nodeType) || nodeType === 'scene') await evictFarthestIfNeeded(gen, id)
 
     // Node is ready as soon as bytes are in memory. Poster capture must NOT gate
     // readiness — slow Android decoders take seconds per file and froze the launch bar.

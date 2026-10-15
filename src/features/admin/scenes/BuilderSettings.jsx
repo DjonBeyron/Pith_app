@@ -13,7 +13,7 @@ import PlaybackOptions from './modes/PlaybackOptions.jsx'
 // (location, slots, characters, timeline, task, options) — те же, что в lintPanelMap.js;
 // id вида f-… нужны подсветке замечаний линтера (lintFieldMap.js).
 // voice — API озвучки ElevenLabs (useSceneVoice) для персонажей и реплик
-export default function BuilderSettings({ scene, actions, savedId = null, setStatus, voice = null }) {
+export default function BuilderSettings({ scene, actions, savedId = null, setStatus, voice = null, onFeedTest = null }) {
   return (
     <div className="scbSettings">
       <Panel id="location" title="Локация" fieldId="f-location">
@@ -50,7 +50,7 @@ export default function BuilderSettings({ scene, actions, savedId = null, setSta
         <TimelineEditor scene={scene} actions={actions} voice={voice} />
       </Panel>
 
-      <SceneTaskSection scene={scene} actions={actions} savedId={savedId} setStatus={setStatus} />
+      <SceneTaskSection scene={scene} actions={actions} savedId={savedId} setStatus={setStatus} onFeedTest={onFeedTest} />
 
       <Panel id="options" title="Параметры воспроизведения" fieldId="f-options">
         <PlaybackOptions scene={scene} actions={actions} voice={voice} />

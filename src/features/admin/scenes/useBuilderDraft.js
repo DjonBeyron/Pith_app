@@ -76,6 +76,9 @@ export function useBuilderDraft({ initialScene = null, initialRow = null, backup
     addAccept: text => patch(s => TK.addAccept(s, text)),
     updateAccept: (i, v) => patch(s => TK.updateAccept(s, i, v)),
     removeAccept: i => patch(s => TK.removeAccept(s, i)),
+    addTaskItem: (f, text) => patch(s => TK.addItem(s, f, text)),
+    updateTaskItem: (f, i, v) => patch(s => TK.updateItem(s, f, i, v)),
+    removeTaskItem: (f, i) => patch(s => TK.removeItem(s, f, i)),
     clearScene: () => patch(M.clearScene),
     // Загрузить сцену целиком (из JSON, нейросети, библиотеки): row — строка библиотеки, если есть
     load: (next, row = null) => {

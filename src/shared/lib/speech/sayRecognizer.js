@@ -38,7 +38,7 @@ export function createSayRecognizer({
   const engine = () => (active === 'vosk' ? vosk : system)
 
   /** Какой движок пойдёт на эту попытку и почему: { engine: 'vosk'|'system', reason }. Синхронно, без ожидания */
-  const choose = data => pickEngine({ mode: getMode(), phrase: data?.phrase, free: !!data?.pattern, ...runtime.snapshot(), now: now() })
+  const choose = data => pickEngine({ mode: getMode(), phrase: data?.phrase, free: !!(data?.pattern || data?.open), ...runtime.snapshot(), now: now() })
 
   return {
     choose,
@@ -56,7 +56,7 @@ export function createSayRecognizer({
     /** Панель смонтирована: прогреть Vosk (модель из кэша в память, фоном). Режим «Только системное» runtime читает сам (владелец считается, модель не грузится — смена режима потом сработает). Возвращает release() — звать при закрытии панели */
     warm: (why = 'panel') => { try { return runtime.acquire(why) } catch { return () => {} } }, // прогрев никогда не роняет урок
     /** Режим «Только Vosk» (админ) и Vosk не готов: НЕ идём на системное — прогреваем и ждём до 20 с, этап виден в плашке админа (onNote). null — ждать не нужно, пусть идёт обычная попытка. Возвращает cancel() */
-    waitVosk: (data, onNote) => (needsVoskWait({ mode: getMode(), phrase: data?.phrase, free: !!data?.pattern, snap: runtime.snapshot(), now: now() }) ? startVoskWait({ runtime, onNote, now }) : null),
+    waitVosk: (data, onNote) => (needsVoskWait({ mode: getMode(), phrase: data?.phrase, free: !!(data?.pattern || data?.open), snap: runtime.snapshot(), now: now() }) ? startVoskWait({ runtime, onNote, now }) : null),
     stop: () => { attempts.userStop(); engine().stop() },
     reset() { system.reset(); vosk.reset(); level.reset() },
     isAudioActive: () => engine().isAudioActive(),

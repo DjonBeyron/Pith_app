@@ -35,11 +35,15 @@ export const SCENE_FIELD_DOCS = {
   'timeline[].audioMeta': 'НЕ ЗАПОЛНЯТЬ: { hash (sha-256 от текста + голоса + настроек + модели), voiceId, durationMs } — по hash сборщик видит, что текст изменили после озвучки, и не озвучивает одно и то же дважды',
   'timeline[].translationAudioUrl / translationWordTimings / translationAudioMeta': 'НЕ ЗАПОЛНЯТЬ: такой же комплект для озвучки перевода (translation) — ставит сборщик',
   options: 'bubbles (показывать облачки, по умолчанию true), autoplay (false), loop (false); display — режим показа текста: none (без облачков), text (оригинал; по умолчанию), both (оригинал + перевод под ним); voice: { original (озвучивать оригинал, по умолчанию true), translation (после оригинала озвучивать перевод «диктором», по умолчанию false) }. display и voice можно выставить по теме: учебный диалог на иностранном — display both и voice.translation true; translationVoiceId — НЕ ЗАПОЛНЯТЬ',
-  task: `Необязательное задание после сцены «О чём диалог»: { kind: "translate", lineIndex, prompt?, accept, hint? }. Зритель слушает диалог, затем печатает по-русски, что сказал персонаж; ответ сверяется по смыслу (ключевые слова, опечатки прощаются) с translation реплики и списком accept`,
-  'task.kind': `Пока только "translate"`,
+  task: `Необязательное задание после сцены: { kind: "translate" | "say" | "repeat", lineIndex, prompt?, accept, hint?, … }. translate («О чём диалог») — зритель печатает по-русски, что сказал персонаж; ответ сверяется по смыслу с translation реплики и accept. repeat («Повтори за диктором») — зритель вслух повторяет text реплики. say («Ответь коту») — зритель вслух отвечает на реплику-вопрос своими словами на языке оригинала (answers / keywords)`,
+  'task.kind': `"translate" (печатать перевод), "say" (ответить голосом) или "repeat" (повторить голосом)`,
   'task.lineIndex': 'Номер спрашиваемой реплики (с 0) или null — тогда последняя реплика с translation. Лучше брать реплику с поворотом сюжета или развязкой',
   'task.prompt': `Вопрос зрителю до ${TASK_LIMITS.maxPrompt} символов; по умолчанию «Что сказал(а) <имя>?»`,
   'task.accept': `До ${TASK_LIMITS.maxAccept} дополнительных допустимых переводов (синонимы, другой порядок слов, разговорная форма), каждый до ${TASK_LIMITS.maxAcceptLen} символов`,
+  'task.answers': `Только для kind "say": 1–${TASK_LIMITS.maxAnswers} ожидаемых ответов на языке оригинала (каждый до ${TASK_LIMITS.maxAcceptLen} символов), короткие и естественные; accept — их синонимы`,
+  'task.keywords': `Только для kind "say", необязательно: до ${TASK_LIMITS.maxKeywords} ключевых слов; если заданы, ответ засчитывается и по ним (достаточно доли passRatio)`,
+  'task.passRatio': 'Для say/repeat, необязательно: доля совпавших слов 0.5..1 (рекомендуется 0.6..0.85, по умолчанию 0.7)',
+  'task.strict': 'Для say/repeat, необязательно: true — «Строго», слова должны совпасть точно, без прощения опечаток распознавания',
   'task.hint': `Подсказка после первой неверной попытки, до ${TASK_LIMITS.maxHint} символов (например, о чём реплика в двух словах, без самого ответа)`,
 }
 
@@ -57,6 +61,16 @@ export const TASK_EXAMPLE = {
   },
 }
 
+// Голосовые виды: say — ответ коту, repeat — повтор за диктором (реплики без translation допустимы)
+export const TASK_EXAMPLE_SAY = {
+  timeline: [{ who: 'a', text: 'What would you like to drink?', emotion: 'happy' }, { who: 'b', text: 'Tea, please.', emotion: 'neutral' }],
+  task: { kind: 'say', lineIndex: 0, prompt: 'Ответь Барсику', answers: ['Tea, please', 'I would like a coffee'], accept: ['Coffee, please'], keywords: ['tea', 'coffee'], hint: 'Назови любой напиток' },
+}
+export const TASK_EXAMPLE_REPEAT = {
+  timeline: [{ who: 'a', text: 'Nice to meet you!', emotion: 'happy' }, { who: 'b', text: 'Nice to meet you too.', emotion: 'happy' }],
+  task: { kind: 'repeat', lineIndex: 1, accept: ['Nice to meet you'], hint: 'Скажи так же, как кот' },
+}
+
 export const DIALOGUE_RULES = [
   'Два персонажа чередуются; один и тот же кот не говорит больше двух реплик подряд.',
   'Каждая реплика — живая разговорная фраза до 140 символов, лучше до 110: облачко должно читаться с телефона за 2–3 секунды.',
@@ -67,6 +81,7 @@ export const DIALOGUE_RULES = [
   'Персонажи должны отличаться: разный пол или цвет шерсти, разные имена и голоса (pitch).',
   `Бюджет SVG-узлов сцены ≤ ${NODE_BUDGET}: это ограничивает число занятых слотов (каждый предмет 4–8 узлов, коты ~55 каждый, фон ~10).`,
   'Если просят задание «О чём диалог»: у каждой реплики заполни translation (русский перевод), в task выбери реплику с поворотом или развязкой, дай 2–4 accept с другими формулировками и hint без самого ответа.',
+  'Если просят голосовое задание: kind "repeat" — выбери короткую реплику (до 12 слов) для повтора; kind "say" — выбери реплику-вопрос, дай 1–3 ожидаемых ответа в answers на языке оригинала, при желании keywords и hint. Для голосовых видов translation не обязателен.',
   'Поля озвучки audioUrl, wordTimings, audioMeta (и translationAudioUrl, translationWordTimings, translationAudioMeta) и voiceId/translationVoiceId/stability/similarity/speed у голоса не заполняй — их ставит сборщик после генерации ElevenLabs.',
   'Если реплики на иностранном языке — заполни translation у каждой; режим показа и озвучки задавай в options: display "both" (текст + перевод) и voice { translation: true }, когда зрителю нужен перевод, display "text"/"none" — когда это тренировка понимания на слух.',
 ]
@@ -103,6 +118,10 @@ export function sceneLegendText() {
     '## Пример задания «О чём диалог» (фрагмент: реплики с translation + поле task в той же сцене)',
     JSON.stringify(TASK_EXAMPLE, null, 2),
     '',
+    '## Примеры голосовых заданий (kind "say" и "repeat")',
+    JSON.stringify(TASK_EXAMPLE_SAY, null, 2),
+    JSON.stringify(TASK_EXAMPLE_REPEAT, null, 2),
+    '',
     '## Пример валидной сцены',
     JSON.stringify(demoCafeScene, null, 2),
   ].join('\n')
@@ -121,5 +140,6 @@ export function sceneLegend() {
     rules: DIALOGUE_RULES,
     example: demoCafeScene,
     taskExample: TASK_EXAMPLE,
+    taskExamples: { translate: TASK_EXAMPLE, say: TASK_EXAMPLE_SAY, repeat: TASK_EXAMPLE_REPEAT },
   }
 }

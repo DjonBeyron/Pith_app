@@ -1,15 +1,29 @@
 import { taskTargetLine, taskAnswers, taskPrompt, normalizeTask } from '../../scene/v2/sceneTask.js'
+import { taskNeedsMic } from './sceneVoiceData.js'
 
 // Чистая часть проводки задания «О чём диалог» в слайд-сцену (useSceneTask.js связывает с React).
 
-// Задание сцены для ленты: { task, index, line, answers, prompt } | null, если задания нет или ответ проверять нечем
+// Задание сцены для ленты: { task, index, line, answers, prompt, voice } | null, если задания нет или ответ проверять нечем.
+// voice — голосовой вид ('say' / 'repeat': панель с микрофоном); у «Ответь коту» без готовых ответов хватает ключевых слов
 export function feedTaskOf(scene) {
   const task = normalizeTask(scene?.task)
   const target = task ? taskTargetLine(scene) : null
   if (!task || !target) return null
   const answers = taskAnswers(task, target.line)
-  if (!answers.length) return null
-  return { task, index: target.index, line: target.line, answers, prompt: taskPrompt(task, scene, target.line) }
+  const voice = taskNeedsMic(task)
+  if (!answers.length && !(voice && task.keywords?.length)) return null
+  return { task, index: target.index, line: target.line, answers, prompt: taskPrompt(task, scene, target.line), voice }
+}
+
+// Какая панель выезжает для задания: 'voice' — микрофон (SceneVoicePanel), 'keyboard' — клавиатура (SceneTaskSheet)
+export const taskPanelKind = info => (info?.voice ? 'voice' : 'keyboard')
+
+// Остановить озвучку сцены (реплика «Ещё раз» не должна попасть в микрофон) и оставить режиссёра на последней реплике: pause() гасит
+// ручной возврат, поэтому play(last) под заморозкой снова «запоминает желание» — после закрытия панели круг продолжится сам
+export function silenceScene(api, total) {
+  if (!api) return
+  api.pause?.()
+  if (total > 0) api.play?.(total - 1)
 }
 
 // Детектор ПЕРВОГО полного проигрывания по состояниям режиссёра ({ status, index, total }), которые приходят только на

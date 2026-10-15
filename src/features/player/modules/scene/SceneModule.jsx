@@ -41,7 +41,7 @@ export default function SceneModule({ node, lessonFiles = null, onDone, adminPre
   return (
     <>
       <View
-        {...common} isHistory={isHistory} pending={pending}
+        {...common} isHistory={isHistory} ended={pb.ended} pending={pending}
         status={pb.state.status} index={pb.state.index} total={pb.state.total}
         paused={pb.paused || pb.fsOpen} sound={pb.sound} rate={pb.rate}
         soundChip={pb.soundChip} onEnableSound={pb.enableSound}

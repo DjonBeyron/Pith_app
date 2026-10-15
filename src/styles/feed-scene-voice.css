@@ -1,0 +1,46 @@
+/* Голосовая панель задания на слайде-сцене ленты (features/feed/scene/SceneVoiceSheet.jsx + SceneVoicePanel.jsx): «Ответь коту» (say) и
+   «Повтори за диктором» (repeat). Накрытие, шапка с вопросом и «Ещё раз», строка-заметка и вердикт — общие с клавиатурной панелью
+   (feed-scene-task.css, feed-catch*.css). Круг-микрофон, кольцо, волны и попап — компоненты «Сказать фразу» (say-phrase*.css, классы
+   .sayPanel / .sayInner / .sayBody): здесь только высота тела и свои строки. Анимируются только opacity и transform. */
+
+/* Текст реплики, которую нужно повторить (kind repeat) */
+.stVoiceLine {
+  max-width: 600px;
+  margin: 8px auto 0;
+  padding: 0 14px;
+  color: #fff;
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
+/* Заметка: до двух строк без прыжка высоты панели; отказ микрофона — тёплый жёлтый, а не красный (это не ошибка ученика) */
+.stVoiceNote { min-height: 34px; margin-top: 4px; }
+.stNoteOff { color: #f5c26b; }
+
+/* Тело с кругом: ниже, чем в уроке (206px) — панель в ленте не должна закрывать сцену; центр круга считает say-phrase.css от высоты тела */
+.stVoice .stVoiceBody { height: 168px; }
+.stVoiceMic { width: 100%; max-width: 600px; margin: 0 auto; box-sizing: border-box; } /* .catchSheetInner — flex: без width блок схлопывается до содержимого */
+
+/* Тихие кнопки под кругом: на время записи гаснут (место остаётся — высота не прыгает) */
+.stVoiceBtns { transition: opacity 180ms ease; }
+.stVoiceBtnsHidden { opacity: 0; pointer-events: none; }
+.stCantBtn { display: inline-flex; align-items: center; gap: 6px; }
+
+/* Вердикт: что услышали и что можно было сказать */
+.stVerdictHeard {
+  margin-top: 6px !important;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 13.5px;
+  font-style: italic;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+.stVerdictExpected { margin-top: 8px; }
+.stVerdictExpected .stVerdictLine { margin-top: 0 !important; font-style: normal; }
+.stVerdictExpected .stVerdictAnswer { margin-top: 4px !important; font-size: 16px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .stVoiceBtns { transition: none; }
+}

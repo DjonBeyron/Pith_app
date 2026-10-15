@@ -8,6 +8,7 @@ import ModuleSceneLibrary from './ModuleSceneLibrary.jsx'
 import { sceneLinkState, sceneLinkText, sceneLinkTone, builderSavePayload } from './moduleSceneModel.js'
 import { modesSummary } from '../admin/scenes/modes/sceneModes.js'
 import { voiceSummary } from '../canvas/scenePickerModel.js'
+import { openSceneInFeed } from '../admin/scenes/feedTest/openInFeed.js'
 
 // Режим «Сцена» панели медиа модуля (ModuleVideoPanel): привязка сцены библиотеки к
 // модулю ленты (curricula.scene_id). Проверяет привязанную строку (getScene): опубликована /
@@ -15,6 +16,7 @@ import { voiceSummary } from '../canvas/scenePickerModel.js'
 // библиотеки» (только published, ModuleSceneLibrary), «Создать / править в сборщике»
 // (тот же BuilderWindow, что у ноды канваса; «Применить» = сохранить в библиотеку как
 // published и привязать), «Убрать сцену». Сцена в ленте заменяет видео — видео остаётся запасным.
+// «Открыть в ленте с заданием» (сцена опубликована): тест — принудительный показ задания и поворот ленты к модулю (feedTest/openInFeed).
 // Режимы показа/озвучки лента берёт из options сцены — здесь только сводка и ссылка «править в сборщике».
 export default function ModuleScenePanel({ curriculumId, sceneId, hasVideo, onChange }) {
   // Ответ getScene помечен id, для которого получен: сменился sceneId — старый ответ
@@ -85,6 +87,7 @@ export default function ModuleScenePanel({ curriculumId, sceneId, hasVideo, onCh
         <button type="button" className="mvAction msPrimary" onClick={() => setBuilder(true)} disabled={!!busy}>
           {row?.scene ? 'Править в сборщике' : 'Создать в сборщике'}
         </button>
+        {state === 'published' && <button type="button" className="mvAction" onClick={() => { if (!openSceneInFeed({ moduleId: curriculumId, sceneId })) setActErr('Не удалось выставить принудительный показ задания') }} disabled={!!busy} title="Лента откроется на этом модуле, задание сцены (если есть) покажется сразу, без лимитов">Открыть в ленте с заданием</button>}
         {sceneId && <button type="button" className="mvAction mvDanger" onClick={unlink} disabled={!!busy}>Убрать сцену</button>}
       </div>
       {busy && <div className="mvHint">{busy}</div>}

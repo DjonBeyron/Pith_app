@@ -40,6 +40,7 @@
   gap: 14px;
   pointer-events: all;
 }
+.playerSceneFsControls .videoFullClose { top: max(16px, calc(env(safe-area-inset-top, 0px) + 8px)); } /* iPhone: не под статус-баром/вырезом */
 .playerSceneFsBtn {
   width: 44px;
   height: 44px;

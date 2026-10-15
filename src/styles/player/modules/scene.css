@@ -17,6 +17,15 @@
   touch-action: manipulation;
 }
 .playerSceneFrame .scn { position: absolute; inset: 0; width: 100%; height: 100%; }
+/* Плашка вместо SVG замороженной сцены далеко от экрана (SceneBody.jsx): один div
+   без детей, размер держит рамка (9:16 / круг) — высота ленты не прыгает. Два мягких
+   пятна на местах котов, чтобы при быстром скролле не мигало пустым */
+.scn--ph {
+  background:
+    radial-gradient(ellipse 18% 11% at 28% 66%, rgba(120, 140, 165, 0.35), transparent 70%),
+    radial-gradient(ellipse 18% 11% at 72% 66%, rgba(120, 140, 165, 0.35), transparent 70%),
+    linear-gradient(#e8eef5, #d5dfeb);
+}
 
 /* Кнопка ▶ поверх сцены на паузе / до старта / после конца — только подсказка,
    тап ловит сама сцена (SceneRenderer onTap) или круг */

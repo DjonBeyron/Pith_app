@@ -38,13 +38,13 @@ const WEAK_GPU_PATTERNS = [
   /powervr rogue.*(ge8100|ge8300)/i, // младшие Rogue (MediaTek Helio A-серия)
   /mali-4\d\d/i,
   /mali-t6\d\d/i,
-  /mali-t7\d\d/i,
+  /mali-t[78]\d\d/i, // T7xx/T8xx (Galaxy J-серия: T830/T720, Helio P20: T880)
   /adreno \(tm\) 3\d\d/i,
   /adreno \(tm\) 4\d\d/i,
   // Бюджетные и старые средние (2016–2020): полноценные шарики на canvas
   // на них лагали — рассыпание не играло или шло рывками (Mali-G72,
   // Android 10). Вместе с «видео через canvas» на Android нагрузка выше
-  /mali-g(31|51|52|71|72)\b/i,
+  /mali-g(31|51|52|71|72)(?!\d)/i, // «Mali-G72», «Mali-G72MP3», «ANGLE (ARM, Mali-G72, …)»
   /adreno \(tm\) 5(0\d|1[0-2])\b/i,
   /adreno \(tm\) 6(0\d|10)\b/i,
   /powervr rogue.*ge83\d\d/i,

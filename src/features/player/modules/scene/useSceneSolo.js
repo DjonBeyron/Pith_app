@@ -27,26 +27,35 @@ export function claimSceneSolo(myToken) {
   listeners.forEach(fn => fn(myToken))
 }
 
+// Подписка сцены на «звучит что-то одно»; возвращает отписку (всё, что повесила, снимает).
+// Вынесено из хука ради проверки утечек без DOM-рендера (sceneLeaks.test.js): doc — документ
+export function attachSceneSolo({ rootEl, pause, doc = document, own = getSceneAudioElement() }) {
+  // 1. Заглушить всё, что звучит в плеере
+  const player = rootEl?.closest?.('.lessonPlayer') ?? doc
+  player.querySelectorAll('audio, video').forEach(m => {
+    if (m !== own && !m.paused && !isSilentMedia(m)) m.pause()
+  })
+  // 2. Другие сцены — на паузу
+  const my = ++token
+  claimSceneSolo(my)
+  const onClaim = t => { if (t !== my) pause() }
+  listeners.add(onClaim)
+  // 3. Чужой звук стартовал — эта сцена на паузу
+  const onPlay = e => { if (shouldSceneYield(e.target, own)) pause() }
+  doc.addEventListener('play', onPlay, true)
+  return () => {
+    listeners.delete(onClaim)
+    doc.removeEventListener('play', onPlay, true)
+  }
+}
+
+export function sceneSoloListeners() {
+  return listeners.size
+}
+
 export function useSceneSolo(rootRef, playing, pause) {
   useEffect(() => {
     if (!playing) return undefined
-    const my = ++token
-    const own = getSceneAudioElement()
-    // 1. Заглушить всё, что звучит в плеере
-    const player = rootRef.current?.closest?.('.lessonPlayer') ?? document
-    player.querySelectorAll('audio, video').forEach(m => {
-      if (m !== own && !m.paused && !isSilentMedia(m)) m.pause()
-    })
-    // 2. Другие сцены — на паузу
-    claimSceneSolo(my)
-    const onClaim = t => { if (t !== my) pause() }
-    listeners.add(onClaim)
-    // 3. Чужой звук стартовал — эта сцена на паузу
-    const onPlay = e => { if (shouldSceneYield(e.target, own)) pause() }
-    document.addEventListener('play', onPlay, true)
-    return () => {
-      listeners.delete(onClaim)
-      document.removeEventListener('play', onPlay, true)
-    }
+    return attachSceneSolo({ rootEl: rootRef.current, pause })
   }, [rootRef, playing, pause])
 }

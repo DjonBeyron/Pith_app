@@ -41,6 +41,10 @@ export function useScenePlayback({ resolved, pending, isHistory, onDone }) {
   const stRef = useRef(IDLE)
   const [st, setSt] = useState(IDLE)
   const [fsOpen, setFsOpen] = useState(false)
+  // Защёлка «доиграла»: после конца рамка ленты замирает в статичный кадр (SceneBody.jsx) и
+  // не оживает, даже когда полноэкранный режиссёр снова играет (состояние берётся у него)
+  const [ended, setEnded] = useState(false)
+  if (st.status === 'ended' && !ended) setEnded(true)
   const [soundBlocked, setSoundBlocked] = useState(false)
   const [cmd, setCmd] = useState(null) // команда режиссёру отложенным эффектом (см. ниже)
   const frozen = usePlayerFrozen()
@@ -168,7 +172,7 @@ export function useScenePlayback({ resolved, pending, isHistory, onDone }) {
   return {
     apiRef, fsApiRef, rootRef, onState, onFsState, state: st,
     paused: frozen, sound: !muted && !soundBlocked, muted, rate,
-    playing: st.status === 'playing',
+    playing: st.status === 'playing', ended,
     soundChip: soundBlocked && !muted && st.status === 'playing' && !fsOpen,
     manualIdle: start === 'manual' && st.status === 'idle',
     handleTap, startInPlace, enableSound, togglePause,

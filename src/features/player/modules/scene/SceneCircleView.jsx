@@ -1,6 +1,7 @@
 import { useLayoutEffect, useState } from 'react'
 import { Play, VolumeX } from 'lucide-react'
-import SceneRenderer from '../../../scene/v2/SceneRenderer.jsx'
+import SceneBody from './SceneBody.jsx'
+import { useSceneNear } from './useSceneNear.js'
 import { getSmallPx } from '../circle/useCircleExpand.js'
 import { sceneCircleFit, ringOffset } from './sceneCircleFit.js'
 import SceneSoundChip from './SceneSoundChip.jsx'
@@ -16,7 +17,7 @@ const RING_C = 2 * Math.PI * RING_R
 // rootRef — корень круга (его же меряем: размер = ширина круга).
 // display/voice — переопределения ноды (режим показа текста / флаги озвучки) поверх options сцены.
 export default function SceneCircleView({
-  scene, showBubbles, display = null, voice = null, isHistory, pending, status, index, total, paused, sound, rate,
+  scene, showBubbles, display = null, voice = null, isHistory, ended = false, pending, status, index, total, paused, sound, rate,
   audioSrcOf = null, soundChip = false, onEnableSound, apiRef, rootRef, onState, onTap,
 }) {
   const [size, setSize] = useState(() => (typeof window !== 'undefined' ? getSmallPx() : 200))
@@ -25,6 +26,7 @@ export default function SceneCircleView({
     if (w) setSize(w)
   }, [rootRef])
   const last = Math.max(0, (scene.timeline?.length ?? 1) - 1)
+  const near = useSceneNear(rootRef, isHistory || ended)
   const idle = !isHistory && status !== 'playing'
   const dash = isHistory ? 0 : ringOffset({ status, index, total }, RING_C)
 
@@ -40,14 +42,11 @@ export default function SceneCircleView({
         >
           <div className="circleFrame">
             <div className="playerSceneCircleInner" style={sceneCircleFit(size)}>
-              {isHistory
-                ? <SceneRenderer scene={scene} mode="static" frameIndex={last} showBubbles={showBubbles} display={display} showProgress={false} />
-                : (
-                  <SceneRenderer
-                    scene={scene} mode="live" active={!pending} paused={paused} sound={sound} rate={rate} audioSrcOf={audioSrcOf}
-                    showBubbles={showBubbles} display={display} voice={voice} showProgress={false} apiRef={apiRef} onState={onState}
-                  />
-                )}
+              <SceneBody
+                scene={scene} isHistory={isHistory} ended={ended} near={near} last={last} showBubbles={showBubbles}
+                display={display} voice={voice} showProgress={false}
+                live={{ active: !pending, paused, sound, rate, audioSrcOf, apiRef, onState }}
+              />
             </div>
           </div>
           <svg className="circleRingSvg" viewBox="0 0 218 218" aria-hidden="true">

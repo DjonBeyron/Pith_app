@@ -18,9 +18,9 @@ export const FEED_SEARCH = 'feed_search'             // { len, picked } — дл
 export const FEED_FILTER = 'feed_filter'             // { levels: 'g'|'gy'|'gyr'|'' } — фильтр сложности после тапа по чипу ('' — все)
 //
 // Задание «О чём диалог» на слайде-сцене (features/feed/scene/useSceneTask.js); scene_id — uuid строки scenes
-export const SCENE_TASK_SHOWN = 'scene_task_shown'   // { scene_id, kind } — панель выехала после первого полного проигрывания
-export const SCENE_TASK_ANSWER = 'scene_task_answer' // { scene_id, kind, ok, attempt, ms } — «Проверить»; ms — от показа панели
-export const SCENE_TASK_SKIP = 'scene_task_skip'     // { scene_id, kind } — «Спроси позже» или «Не знаю» (без попытки)
+export const SCENE_TASK_SHOWN = 'scene_task_shown'   // { scene_id, kind: 'translate'|'say'|'repeat' } — панель выехала после первого полного проигрывания
+export const SCENE_TASK_ANSWER = 'scene_task_answer' // { scene_id, kind, ok, attempt, ms[, engine: 'vosk'|'system'] } — «Проверить» / итог голосовой попытки; ms — от показа панели; транскрипта нет
+export const SCENE_TASK_SKIP = 'scene_task_skip'     // { scene_id, kind[, reason: 'cant'] } — «Спроси позже», «Не знаю» или «Не могу говорить» (без попытки)
 //
 // Урок
 export const LESSON_ANSWER = 'lesson_answer'         // { lesson_id, node_type, ok, attempt, ms } — ответ на задание (тип ноды обязателен)

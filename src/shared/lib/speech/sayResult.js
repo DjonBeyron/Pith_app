@@ -35,6 +35,7 @@ export function sayOutcome({ kind }) {
 export function judgeRun(view, data) {
   const alts = (view?.alternatives?.length ? view.alternatives : view?.final ? [view.final] : [])
     .map(a => a.text).filter(Boolean)
+  if (typeof data.judge === 'function') return data.judge(alts, view) // своя проверка (задание сцены в ленте: scene/v2/sceneTaskVoice.checkSpeechAnswer), вердикт той же формы
   if (data.pattern) { // свободная фраза: сверяем с шаблоном, а не с эталоном; «Строго» — только точные слова
     const m = matchPattern(data.pattern, alts[0] ?? '', { exact: data.strict })
     return { ...m, index: alts.length ? 0 : -1, text: alts[0] ?? '', consensus: false, engineFixed: [], ratioPct: Math.round(m.ratio * 100), heard: alts[0] ?? '' }

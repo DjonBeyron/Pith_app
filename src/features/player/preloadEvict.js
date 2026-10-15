@@ -1,5 +1,6 @@
 import { capturePosterFrame } from '../../shared/lib/videoFrame.js'
 import { POSTER_TYPES, EVICT_TYPES } from './preloadFetchOne.js'
+import { SCENE_BLOB_BUDGET, pickSceneEvictions } from './sceneBlobBudget.js'
 
 // Выгрузка (eviction) дальних blob-ов прогрева — вынесено из
 // usePlayerPreload.js (упирался в потолок 400 строк) без изменения логики.
@@ -78,5 +79,31 @@ export function makeEvict(ctx) {
     }
   }
 
-  return evictFarthestIfNeeded
+  // Озвучка сцен — свой счёт в байтах (sceneBlobBudget.js): старые показанные сцены
+  // отдают blob, голосовые/видео при этом не страдают
+  function evictScenesOverBudget(justLoadedId) {
+    const order = new Map(visibleNodesRef.current.map((n, i) => [n.id, i]))
+    const files = []
+    for (const [id, entry] of Object.entries(blobUrlsRef.current)) {
+      if (!entry?.blobUrl || evictingIdsRef.current.has(id)) continue
+      const item = queueRef.current.find(i => i.id === id)
+      if (item?.nodeType !== 'scene' || !order.has(item.nodeId)) continue
+      files.push({ id, size: entry.size ?? 0, rank: order.get(item.nodeId), nodeId: item.nodeId })
+    }
+    const loaded = justLoadedId ? queueRef.current.find(i => i.id === justLoadedId)?.nodeId ?? null : null
+    for (const id of pickSceneEvictions(files, { budget: SCENE_BLOB_BUDGET, protectNodeId: loaded })) {
+      const entry = blobUrlsRef.current[id]
+      const item = queueRef.current.find(i => i.id === id)
+      evictLogRef.current = [...evictLogRef.current, { ts: ts(), id, seq: item?.nodeSeq, type: 'scene' }]
+      setEvictLog([...evictLogRef.current])
+      blobUrlsRef.current[id] = { blobUrl: null, evicted: true }
+      setBlobMap(prev => ({ ...prev, [id]: blobUrlsRef.current[id] }))
+      setTimeout(() => URL.revokeObjectURL(entry.blobUrl), 1000)
+    }
+  }
+
+  return async (gen, justLoadedId) => {
+    await evictFarthestIfNeeded(gen, justLoadedId)
+    if (genRef.current === gen) evictScenesOverBudget(justLoadedId)
+  }
 }

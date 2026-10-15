@@ -1,0 +1,18 @@
+/* Задание после сцены, голосовые виды и «Проверить в ленте» (SceneTaskSection, TaskVoiceFields, TaskKeywords, FeedTestDialog) */
+.scbRef { margin: 0; padding: 8px 10px; border-radius: 10px; background: var(--fs-panel-2); border: 1px solid var(--fs-border); font-size: 13px; font-weight: 600; line-height: 1.4; overflow-wrap: anywhere; }
+.scbChips { margin: 0; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 6px; }
+.scbChip { display: inline-flex; align-items: center; gap: 4px; padding: 3px 4px 3px 10px; border-radius: 999px; border: 1px solid var(--fs-border); background: var(--fs-panel-2); font-size: 12.5px; }
+.scbChipX { display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; padding: 0; border: 0; border-radius: 50%; background: transparent; color: var(--fs-muted); cursor: pointer; }
+.scbChipX:hover { color: var(--fs-error); background: rgba(127, 127, 127, 0.16); }
+.scbRange { flex: 1 1 auto; min-width: 0; accent-color: var(--fs-accent); }
+.scbCheck { display: flex; align-items: flex-start; gap: 8px; font-size: 12.5px; line-height: 1.4; cursor: pointer; }
+.scbCheck input { flex: none; width: 16px; height: 16px; margin: 1px 0 0; accent-color: var(--fs-accent); }
+.scbFtState { margin: 0; padding: 6px 10px; border-radius: 10px; border: 1px solid var(--fs-border); }
+.scbFtState-ready { color: var(--fs-ok); }
+.scbFtState-save, .scbFtState-publish { color: var(--fs-warn); }
+.scbFtState-blocked { color: var(--fs-error); }
+.scbFtList { max-height: 220px; overflow-y: auto; }
+.scbFtHow { margin: 0; padding: 8px 10px 8px 28px; border-radius: 10px; background: var(--fs-panel-2, rgba(127, 127, 127, 0.1)); font-size: 12px; line-height: 1.45; color: var(--fs-muted, #8b94a1); display: flex; flex-direction: column; gap: 4px; }
+@media (max-width: 480px) {
+  .scbFtList { max-height: 160px; }
+}

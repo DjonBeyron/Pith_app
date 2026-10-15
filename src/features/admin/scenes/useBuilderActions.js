@@ -9,12 +9,12 @@ export function useBuilderActions({ draft, library }) {
   const [status, setStatus] = useState(null) // { kind: 'ok' | 'warn' | 'error', text }
 
   return useMemo(() => {
-    // true — сохранено (нужно диалогу «Назад»: выйти только после успешного сохранения)
+    // строка библиотеки (truthy) — сохранено (нужно диалогу «Назад»: выйти только после успешного сохранения)
     const save = async statusOverride => {
       const { scene, saved } = draft
       const title = scene.title?.trim() || 'Без названия'
       const row = await library.save({ id: saved.id, title, scene, status: statusOverride ?? saved.status })
-      if (row) { draft.actions.markSaved(row); setStatus({ kind: 'ok', text: `Сохранено в библиотеку: «${row.title}» (${row.status === 'published' ? 'опубликована' : 'черновик'})` }); return true }
+      if (row) { draft.actions.markSaved(row); setStatus({ kind: 'ok', text: `Сохранено в библиотеку: «${row.title}» (${row.status === 'published' ? 'опубликована' : 'черновик'})` }); return row }
       setStatus({ kind: 'error', text: library.error || 'Не удалось сохранить' })
       return false
     }

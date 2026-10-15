@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback } from 'react'
+import { useEffect, useRef, useCallback, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useBuilderDraft } from './useBuilderDraft.js'
 import { useSceneLibrary } from './useSceneLibrary.js'
@@ -16,6 +16,7 @@ import SidePanel from './SidePanel.jsx'
 import { useSceneVoice } from './voice/useSceneVoice.js'
 import { usePreviewModes } from './modes/usePreviewModes.js'
 import VoiceAllDialog from './voice/VoiceAllDialog.jsx'
+import FeedTestDialog from './feedTest/FeedTestDialog.jsx'
 import { useBuilderBack } from './useBuilderBack.js'
 import BackConfirm from './toolbar/BackConfirm.jsx'
 import '../../../styles/admin-signals.css'
@@ -29,6 +30,7 @@ import '../../../styles/admin-scenes-layout.css'
 import '../../../styles/admin-scenes-use.css'
 import '../../../styles/admin-scenes-icons.css'
 import '../../../styles/admin-scenes-toolbar.css'
+import '../../../styles/admin-scenes-task.css'
 
 // Полноэкранное окно «Сборщик сцен» (этап 2). Портал в body поверх оболочки (класс fsWin
 // из окна сигналов: z-index 700, токены темы --fs-*, тёмная/светлая). ПК — три колонки с
@@ -64,6 +66,11 @@ export default function BuilderWindow({ onClose: onCloseProp, initialScene = nul
 
   const act = useBuilderActions({ draft, library })
   const { status, setStatus } = act
+  const [feedTest, setFeedTest] = useState(false)
+  const openFeedTest = useCallback(() => {
+    if (voiceBusy) setStatus({ kind: 'warn', text: 'Идёт озвучка — дождитесь конца, потом проверяйте в ленте' })
+    else setFeedTest(true)
+  }, [voiceBusy, setStatus])
 
   const onClose = useCallback(() => {
     if (voiceBusy) { setStatus({ kind: 'warn', text: 'Идёт озвучка — остановите её или дождитесь конца, потом закрывайте окно' }); return }
@@ -89,7 +96,7 @@ export default function BuilderWindow({ onClose: onCloseProp, initialScene = nul
         <BuilderToolbar
           draft={draft} library={library} status={status} setStatus={setStatus} title={title}
           onSave={act.save} onApply={onApply ? () => onApply(draft.scene, draft.saved) : null} applyLabel={applyLabel} useMode={useMode}
-          onBack={back.requestBack} backRef={backRef} unsaved={back.unsaved} voice={voice} modes={modes} theme={ui.theme} onToggleTheme={ui.toggleTheme}
+          onBack={back.requestBack} backRef={backRef} unsaved={back.unsaved} voice={voice} modes={modes} theme={ui.theme} onToggleTheme={ui.toggleTheme} onFeedTest={openFeedTest}
         />
         <div className="fsViewTabs" role="tablist" aria-label="Разделы окна">
           {VIEWS.map(([id, label]) => (
@@ -100,7 +107,7 @@ export default function BuilderWindow({ onClose: onCloseProp, initialScene = nul
           <PanelColumn name="settings">
             <section className="scbCol scbColSettings" aria-label="Настройки сцены">
               <div className="scbColTools"><CollapseAllButton column="settings" /></div>
-              <BuilderSettings scene={draft.scene} actions={draft.actions} savedId={draft.saved.id} setStatus={setStatus} voice={voice} />
+              <BuilderSettings scene={draft.scene} actions={draft.actions} savedId={draft.saved.id} setStatus={setStatus} voice={voice} onFeedTest={openFeedTest} />
             </section>
           </PanelColumn>
           <ColumnResizer index={0} bodyRef={bodyRef} fractions={columns.fractions} onCommit={columns.commit} onReset={columns.reset} />
@@ -123,6 +130,9 @@ export default function BuilderWindow({ onClose: onCloseProp, initialScene = nul
           reason={library.missingTable ? 'Таблицы scenes нет в базе — сохранить в библиотеку нельзя, черновик остаётся на этом устройстве.' : ''}
           onChoose={back.choose}
         />
+        {feedTest && (
+          <FeedTestDialog draft={draft} library={library} save={act.save} setStatus={setStatus} onClose={() => setFeedTest(false)} onLeave={onCloseProp} />
+        )}
         <VoiceAllDialog
           all={voice.all} quota={voice.quota} names={{ a: draft.scene.characters.a.name, b: draft.scene.characters.b.name }}
           onStart={voice.startAll} onStop={voice.stopAll} onClose={voice.closeAll} onSets={voice.setSets}

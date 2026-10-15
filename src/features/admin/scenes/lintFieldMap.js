@@ -9,8 +9,10 @@
 // options.display → f-options-display, options.voice.translation → f-options-voice-translation,
 // options.translationVoiceId → f-options-translationVoiceId (modes/PlaybackOptions),
 // characters.a.voice.translationVoiceId → f-characters-a-voice-translationVoiceId (TranslationVoicePicker).
+// Задание (SceneTaskSection): task.accept[1] → f-task-accept-1, task.answers[0] → f-task-answers-0, task.keywords[2] → f-task-keywords-2
+// (иначе f-task-answers / f-task-keywords), task.passRatio → f-task-passRatio, task.strict → f-task-strict, task.lineIndex / prompt / hint.
 
-const PATH_RE = /^([a-zA-Z]+(?:\[\d+\])?(?:\.[\w-]+)*)/
+const PATH_RE = /^([a-zA-Z]+(?:\[\d+\])?(?:\.[\w-]+(?:\[\d+\])?)*)/
 const BUDGET_RE = /^Бюджет узлов/
 
 export function lintPath(text) {

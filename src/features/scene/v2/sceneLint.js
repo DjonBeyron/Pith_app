@@ -3,7 +3,7 @@ import { sceneNodeBudget, NODE_BUDGET } from './sceneBudget.js'
 import { slotsFor } from './sprites/slots.js'
 import { getSprite } from './sprites/spriteRegistry.js'
 import { isObj } from './sceneConstants.js'
-import { taskTargetLine, taskAnswers, keyTokens } from './sceneTask.js'
+import { lintTask } from './sceneLintTask.js'
 import { lineAudioState, translationAudioState, sceneVoiceStats } from './sceneVoice.js'
 import { displayOfOptions, normalizeVoiceFlags } from './sceneOptions.js'
 import { sceneByteSize, SCENE_MAX_BYTES } from './sceneNode.js'
@@ -92,21 +92,6 @@ function lintTranslationVoice(scene, tl, st, out) {
   if (displayOfOptions(scene.options) === 'both' && tl.length && !st.withText) {
     out.push({ level: 'warn', text: 'options.display — режим «текст + перевод» (both), но у реплик нет translation: покажется только оригинал' })
   }
-}
-
-// Задание «О чём диалог» (sceneTask.js): ответ проверять нечем — ошибка; остальное — советы
-const MIN_TASK_LINES = 3
-function lintTask(scene, out) {
-  if (scene.task === undefined || scene.task === null) return
-  const target = taskTargetLine(scene)
-  if (!target) return
-  const answers = taskAnswers(scene.task, target.line)
-  if (!answers.length) { out.push({ level: 'error', text: `task — у реплики №${target.index + 1} нет перевода (translation) и нет accept: ответ проверить нечем` }); return }
-  const tl = Array.isArray(scene.timeline) ? scene.timeline : []
-  if (tl.length < MIN_TASK_LINES) out.push({ level: 'warn', text: `task — диалог короче ${MIN_TASK_LINES} реплик: задание «о чём говорили» почти не о чём` })
-  if (keyTokens(answers[0]).length < 2) out.push({ level: 'warn', text: `task — эталон «${answers[0]}» из одного значимого слова: ответ засчитается слишком легко` })
-  if (answers.length === 1) out.push({ level: 'warn', text: 'task.accept — нет синонимичных переводов: засчитается только дословный ответ' })
-  if (scene.task.lineIndex === null || scene.task.lineIndex === undefined) out.push({ level: 'warn', text: `task.lineIndex — реплика не выбрана, спрашивается №${target.index + 1} (последняя с переводом)` })
 }
 
 // Размер сцены (CHECK таблицы scenes ≤ 64 КБ): тайминги двух комплектов озвучки — самое тяжёлое

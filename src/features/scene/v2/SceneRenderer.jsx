@@ -7,6 +7,7 @@ import { slotsInDrawOrder, CAT_PLACEMENT } from './sprites/slots.js'
 import { SCENE_VIEWBOX } from './sprites/backgrounds.js'
 import { isWeakDevice } from '../../../shared/lib/deviceTier.js'
 import { bubbleDisplay } from './sceneOptions.js'
+import { sceneStaticMarkup } from './staticMarkup.js'
 import './scene-v2.css'
 import './scene-v2-cat.css'
 
@@ -101,7 +102,7 @@ export default function SceneRenderer({
   const phase = live ? director.phase : null
   const bubbleVisible = !!line && shown !== 'none' && (live ? director.status !== 'idle' : true)
   const bg = backgroundSprite(scene.location)
-  const bgTree = useMemo(() => bg.build(), [bg])
+  const bgTree = useMemo(() => (live ? bg.build() : null), [bg, live])
   // Идл-анимации идут в idle и playing; на паузе/в конце — замирают
   const animPaused = live && (!active || paused || !onScreen || (director.status !== 'playing' && director.status !== 'idle'))
 
@@ -118,13 +119,21 @@ export default function SceneRenderer({
       onClick={onTap} role={onTap ? 'button' : undefined} tabIndex={onTap ? 0 : undefined}
       onKeyDown={onTap ? e => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); onTap(e) } } : undefined}
     >
-      <svg className="scn__svg" viewBox={SCENE_VIEWBOX} preserveAspectRatio="xMidYMid slice" aria-label={scene.title || 'Сцена'} role="img">
-        {renderTree(bgTree)}
-        <Props scene={scene} />
-        {/* Пока звучит перевод («диктор»), кот не «говорит»: рот закрыт, покачивания головы нет */}
-        <Cat who="a" character={scene.characters.a} emotion={emotionOf('a')} talking={speaking === 'a' && phase !== 'translation'} onEl={onCatEl} />
-        <Cat who="b" character={scene.characters.b} emotion={emotionOf('b')} talking={speaking === 'b' && phase !== 'translation'} onEl={onCatEl} />
-      </svg>
+      {live ? (
+        <svg className="scn__svg" viewBox={SCENE_VIEWBOX} preserveAspectRatio="xMidYMid slice" aria-label={scene.title || 'Сцена'} role="img">
+          {renderTree(bgTree)}
+          <Props scene={scene} />
+          {/* Пока звучит перевод («диктор»), кот не «говорит»: рот закрыт, покачивания головы нет */}
+          <Cat who="a" character={scene.characters.a} emotion={emotionOf('a')} talking={speaking === 'a' && phase !== 'translation'} onEl={onCatEl} />
+          <Cat who="b" character={scene.characters.b} emotion={emotionOf('b')} talking={speaking === 'b' && phase !== 'translation'} onEl={onCatEl} />
+        </svg>
+      ) : (
+        // Статика — готовой строкой (staticMarkup.js): без fiber-ов на ~190 узлов
+        <svg
+          className="scn__svg" viewBox={SCENE_VIEWBOX} preserveAspectRatio="xMidYMid slice" aria-label={scene.title || 'Сцена'} role="img"
+          dangerouslySetInnerHTML={{ __html: sceneStaticMarkup(scene, line, frameIndex ?? -1) }}
+        />
+      )}
 
       <SceneBubbleV2
         line={line} name={line ? scene.characters[line.who]?.name : ''} side={line?.who ?? 'a'}

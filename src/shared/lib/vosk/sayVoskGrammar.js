@@ -43,8 +43,9 @@ function varyGroups(words, keywords) {
     .map(w => ({ word: w, forms: formsOfWord(w).slice(0, MAX_FORMS_PER_WORD) })).filter(x => x.forms.length))
 }
 
-/** Фразы словаря: [верная (основное прочтение), другие верные прочтения чисел, …ошибочные] (чистый текст в нижнем регистре, без знаков), не больше `limit` */
+/** Фразы словаря (data.grammar — готовый список, иначе из phrase/keywords): [верная (основное прочтение), другие верные прочтения чисел, …ошибочные] (чистый текст в нижнем регистре, без знаков), не больше `limit` */
 export function sayGrammarPhrases(data, limit = MAX_GRAMMAR_PHRASES) {
+  if (Array.isArray(data?.grammar) && data.grammar.length) return [...new Set(data.grammar.map(clean).filter(Boolean))] // готовый список фраз (задание сцены в ленте: несколько допустимых ответов)
   const readings = (readingsOfText(String(data?.phrase ?? '')) ?? [data?.phrase]).map(clean)
   const correct = readings[0]
   if (!correct) return []
@@ -73,6 +74,7 @@ export function buildSayGrammar(data) {
 
 /** Проверка «вся фраза услышана»: text → true, если его слова (tokenize: «i'm» = «i am», числа словами) в точности равны одному из верных прочтений фразы. Для быстрой остановки (voskTiming.AUTOSTOP_FULL) и открытия затвора тишины */
 export function sayCompleteCheck(data) {
+  if (Array.isArray(data?.grammar) && data.grammar.length) { const all = new Set(sayGrammarPhrases(data).map(p => tokenize(p).join(' ')).filter(Boolean)); return text => all.has(tokenize(text).join(' ')) }
   const readings = readingsOfText(String(data?.phrase ?? '')) ?? [data?.phrase]
   const ok = new Set(readings.slice(0, 1 + MAX_ALT_READINGS).map(r => tokenize(r).join(' ')).filter(Boolean))
   return text => ok.size > 0 && ok.has(tokenize(text).join(' '))

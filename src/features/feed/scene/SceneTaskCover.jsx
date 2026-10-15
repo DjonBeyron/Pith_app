@@ -7,8 +7,8 @@ import SceneTaskSheet from './SceneTaskSheet.jsx'
 // onClosed (родитель размонтирует; страховка — таймер в useSceneTask). Без React-состояния на высоту: высота блока из
 // ResizeObserver кладётся в --catch-cover-h ближайшего .feedSlide (иконка паузы и чипы звука уезжают вверх, как при «Ловле»),
 // и на слайд ставится data-scene-task — блок фразы под панелью гаснет (feed-scene-task.css). Клики внутри не всплывают
-// к слою сцены (там тап = пауза/пуск).
-export default function SceneTaskCover({ open, onClosed, ...sheet }) {
+// к слою сцены (там тап = пауза/пуск). children — своё тело вместо клавиатурной шторки (голосовая панель, SceneTaskPanel.jsx).
+export default function SceneTaskCover({ open, onClosed, children = null, ...sheet }) {
   const ref = useRef(null)
   const [ticked, setTicked] = useState(false)
   if (!open && ticked) setTicked(false)
@@ -55,7 +55,7 @@ export default function SceneTaskCover({ open, onClosed, ...sheet }) {
       className={`catchCover stCover${shown ? ' catchCoverShown' : ''}${shown !== settled ? ' catchCoverMoving' : ''}`}
       ref={ref} onTransitionEnd={onTransitionEnd} onClick={e => e.stopPropagation()}
     >
-      <SceneTaskSheet {...sheet} />
+      {children ?? <SceneTaskSheet {...sheet} />}
       <i className="catchCoverVeil" aria-hidden="true" />
     </div>
   )

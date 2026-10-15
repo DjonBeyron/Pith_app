@@ -2,16 +2,18 @@ import { useState, lazy, Suspense } from 'react'
 import { lazyRetry } from '../../../shared/lib/lazyRetry.js'
 import SpritesPanel from './SpritesPanel.jsx'
 import DesignerSpec from './DesignerSpec.jsx'
+import FeedTestPanel from './feedTest/FeedTestPanel.jsx'
 import '../../../styles/admin-scenes.css'
 
-// Админ → «Сцены» (конструктор сцен, этап 2): три раздела — «Спрайты» (галерея реестра),
-// «Сборщик» (карточка + полноэкранное окно BuilderWindow, ленивый chunk), «Для дизайнера»
+// Админ → «Сцены» (конструктор сцен, этап 2): четыре раздела — «Спрайты» (галерея реестра),
+// «Сборщик» (карточка + полноэкранное окно BuilderWindow, ленивый chunk), «Тест в ленте» (feedTest/FeedTestPanel: модули со сценой,
+// открыть ленту с заданием, сброс лимитов), «Для дизайнера»
 // (спецификация, шаблоны, проверка SVG). Сам ScenesTab — тоже ленивый chunk из AdminV2.
 // Открытый раздел запоминается на устройстве.
 const BuilderWindow = lazy(() => lazyRetry(() => import('./BuilderWindow.jsx'), 'scene-builder'))
 
 const SECTION_KEY = 'pithy_admin_scenes_section_v1'
-const SECTIONS = [['sprites', 'Спрайты'], ['builder', 'Сборщик'], ['designer', 'Для дизайнера']]
+const SECTIONS = [['sprites', 'Спрайты'], ['builder', 'Сборщик'], ['feedtest', 'Тест в ленте'], ['designer', 'Для дизайнера']]
 const storedSection = () => {
   try { const v = localStorage.getItem(SECTION_KEY); return SECTIONS.some(([id]) => id === v) ? v : 'sprites' } catch { return 'sprites' }
 }
@@ -41,6 +43,7 @@ export default function ScenesTab() {
           <button className="scPrimary" onClick={() => setOpen(true)}>Открыть сборщик</button>
         </div>
       )}
+      {section === 'feedtest' && <FeedTestPanel />}
       {section === 'designer' && <DesignerSpec />}
       {open && (
         <Suspense fallback={<p className="scHint">Загрузка сборщика…</p>}>

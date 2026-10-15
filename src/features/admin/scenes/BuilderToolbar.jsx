@@ -25,7 +25,7 @@ export const NARROW_PX = 860
 
 export default function BuilderToolbar({
   draft, library, status, setStatus, title = 'Сборщик сцен', onSave, onApply = null, applyLabel = 'Применить к ноде', useMode = null,
-  onBack, backRef, theme, onToggleTheme, unsaved = null, voice = null, modes = null, forceNarrow = null, menuOpen = false,
+  onBack, backRef, theme, onToggleTheme, unsaved = null, voice = null, modes = null, forceNarrow = null, menuOpen = false, onFeedTest = null,
 }) {
   const { scene, saved, dirty, errors, restoredAt, actions } = draft
   const [askNew, setAskNew] = useState(false)
@@ -54,6 +54,7 @@ export default function BuilderToolbar({
       hint: library.missingTable ? 'Таблицы scenes нет — черновик хранится только на этом устройстве' : 'Сохранить сцену в библиотеку',
     },
     apply: onApply ? { label: applyLabel, run: onApply, disabled: !canApply, hint: canApply ? 'Применить сцену и закрыть' : 'Сначала исправьте ошибки линтера' } : null,
+    feedTest: onFeedTest ? { run: onFeedTest, hint: 'Привязать сцену к модулю ленты и открыть ленту с заданием' } : null,
     onNew,
     panels: panels?.hasPanels(null) ? { has: true, allCollapsed: all, toggle: () => panels.setAll(null, !all) } : null,
     theme, onToggleTheme,

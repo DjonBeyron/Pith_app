@@ -5,7 +5,7 @@ import { perfFlags } from '../../../shared/lib/perfFlags.js'
 import { useFeedSlow } from '../feedSlowState.js'
 import { useSlideScenePlay } from './useSlideScenePlay.js'
 import SlideSceneChips from './SlideSceneChips.jsx'
-import SceneTaskCover from './SceneTaskCover.jsx'
+import SceneTaskPanel from './SceneTaskPanel.jsx'
 import { useSceneTask } from './useSceneTask.js'
 import { useSceneAudioPrefetch } from './useSceneAudioPrefetch.js'
 import { sceneLayerMode, loopedScene, sceneSound, sceneRate } from './slideSceneRules.js'
@@ -50,14 +50,7 @@ function SlideScene({
           sound={sceneSound(soundOn)} rate={sceneRate(slow)} showProgress={false} apiRef={pb.apiRef} onState={task.onState}
         />
       )}
-      {task.mounted && task.info && (
-        <SceneTaskCover
-          open={task.open} onClosed={task.coverGone} {...task.state}
-          prompt={task.info.prompt} lineText={task.info.line.text} hint={task.info.task.hint ?? ''} answer={task.info.answers[0]}
-          onKey={task.press} onBackspace={task.backspace} onCheck={task.check} onGiveUp={task.giveUp}
-          onLater={task.later} onFinish={task.finish} onReplay={task.replay}
-        />
-      )}
+      {task.mounted && task.info && <SceneTaskPanel task={task} apiRef={pb.apiRef} total={scene?.timeline?.length ?? 0} />}
       <SlideSceneChips
         paused={pb.paused} active={active} soundOn={soundOn} soundEverOn={soundEverOn}
         onSoundOn={pb.soundOn} onSoundOff={pb.soundOff}
