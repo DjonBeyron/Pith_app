@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { displayDifficulty } from '../../shared/api/difficultyApi.js'
 import CurriculumView from '../lessons/CurriculumView.jsx'
-import FeedSlide from './FeedSlide.jsx'
+import FeedSlide from './scene/sandbox/FeedSlideEntry.jsx' // обычный слайд или слайд-песочница админа (по mod.isSandbox)
 import FeedSwiper from './FeedSwiper.jsx'
 import MyLessons from './MyLessons.jsx'
 import DebugPanel from './DebugPanel.jsx'
@@ -89,7 +89,7 @@ export default function FeedTab({ visible = true, onOpenCanvas, onRequireAuth, l
   // Закреплённая фраза (deep-link/поворот из поиска) видна всегда — фильтр
   // её не прячет, как и настоящий deep-link
   const feedModules = useMemo(
-    () => circleModules.filter(m => m.id === pinnedId || passesFeed(m, overallIdx.get(m.id) ?? 0)),
+    () => circleModules.filter(m => m.id === pinnedId || m.isSandbox || passesFeed(m, overallIdx.get(m.id) ?? 0)),
     [circleModules, pinnedId, passesFeed, overallIdx],
   )
   const len = feedModules.length

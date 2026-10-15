@@ -3,6 +3,7 @@ import { SPRITE_KINDS } from '../../scene/v2/spriteCheck.js'
 import { LIMITS } from '../../scene/v2/sceneConstants.js'
 import { TASK_LIMITS } from '../../scene/v2/sceneTask.js'
 import { TASK_HELP } from './scenesHelpTask.js'
+import { FEED_FRAME_HELP } from './scenesHelpFeed.js'
 
 // Пояснялки «?» подвкладки «Сцены» (HelpTip из signals/, проп content). Ключ → { title,
 // body, example? }, простыми словами. scenesHelp.test.js проверяет, что записи непустые
@@ -10,6 +11,7 @@ import { TASK_HELP } from './scenesHelpTask.js'
 
 export const SCENES_HELP = {
   ...TASK_HELP,
+  ...FEED_FRAME_HELP,
   slot: {
     title: 'Слот (ячейка предмета)',
     body: 'Именованное место на сцене, куда можно поставить предмет: «окно на стене слева», «на столе справа». У каждого слота есть точка на холсте (якорь), слой отрисовки и список предметов, которые туда встают. Пустой слот — ничего не рисуется.',

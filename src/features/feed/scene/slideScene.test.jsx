@@ -30,6 +30,12 @@ describe('SlideScene — окно ленты', () => {
     expect(html).toContain('Включить звук')
   })
 
+  it('корень сцены знает цвета стены и пола — вне сцены кадр заливается градиентом, полос нет', () => {
+    const html = renderToStaticMarkup(<SlideScene {...base} active near />)
+    expect(html).toContain('--scene-wall:#e8eef5')
+    expect(html).toContain('--scene-floor:#c9a27a')
+  })
+
   it('сосед — статичный кадр без облачка, без чипов; далёкий — скелетон (или постер)', () => {
     const near = renderToStaticMarkup(<SlideScene {...base} near />)
     expect(near).toContain('data-mode="static"')

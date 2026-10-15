@@ -1,4 +1,6 @@
-// Модель «Проверить в ленте» (диалог FeedTestDialog) — чистая логика без React, с тестами.
+// Модель варианта «Привязать к модулю ленты» (боевой) диалога «Проверить в ленте» (FeedTestDialog) — чистая логика без React.
+// Вариант по умолчанию — «Тест без привязки» (песочница): feedTestSandbox.js. Привязка = сцена показывается ВСЕМ пользователям
+// в ленте вместо видео этого модуля; требует миграции curricula.scene_id.
 // Цель: админ в два клика видит голосовое/любое задание сцены в настоящей ленте. Нужно: сцена в библиотеке и опубликована
 // (ученик получает только published), привязана к модулю ленты (curricula.scene_id), принудительный показ задания
 // (sceneTaskLimits.setForcedSceneTask — лимиты не тратятся) и переход в ленту на слайд модуля (catchForce.sendToFeed).
@@ -30,6 +32,15 @@ export function feedTestSteps({ state, module, savedId = null, force = true, ope
   if (open) steps.push('open')
   return steps
 }
+
+// Колонки curricula.scene_id нет в базе (миграция 20261014150000_curricula_scene_id.sql не применена) — PostgREST/Postgres
+// отвечают «Could not find the 'scene_id' column of 'curricula' in the schema cache» / «column ... scene_id does not exist»
+export const MISSING_SCENE_COLUMN_TEXT = 'В базе нет колонки scene_id — примените миграцию 20261014150000_curricula_scene_id.sql'
+export function isMissingSceneColumn(err) {
+  const msg = typeof err === 'string' ? err : err?.message ?? ''
+  return (/scene_id/i.test(msg) && /could not find|does not exist|schema cache/i.test(msg)) || err?.code === 'PGRST204'
+}
+export const linkErrorText = err => (isMissingSceneColumn(err) ? MISSING_SCENE_COLUMN_TEXT : err?.message || 'Не удалось выполнить шаг')
 
 export const STEP_TEXT = {
   save: 'сохранить и опубликовать сцену', link: 'привязать к модулю', force: 'принудительно показать задание (лимиты не тратятся)', open: 'открыть ленту на этом слайде',
@@ -70,7 +81,7 @@ export async function runFeedTest({ state, module, savedId = null, force = true,
       done.push(step)
     }
   } catch (e) {
-    return fail(steps[done.length], e?.message || 'Не удалось выполнить шаг')
+    return fail(steps[done.length], linkErrorText(e))
   }
   return { ok: true, done, sceneId }
 }
@@ -78,6 +89,7 @@ export async function runFeedTest({ state, module, savedId = null, force = true,
 // Инструкция «как проверить голосовое задание» — в диалоге и в блоке «Тест в ленте»
 export const FEED_TEST_HOWTO = [
   'Чтобы проверить голосовое задание на телефоне, откройте приложение и разрешите микрофон в браузере (иконка замка у адреса → Микрофон → Разрешить).',
-  'Лента покажет модуль на нужном слайде; дождитесь, пока диалог проиграется один раз — снизу выедет панель задания.',
-  'Скажите ответ или повторите реплику вслух; результат совпадёт с тестером в сборщике. Лимиты показа при тесте не тратятся.',
+  'Тест без привязки: в сборщике «Проверить в ленте» → «Открыть в ленте (тест)». Лента первым слайдом покажет сцену с жёлтой плашкой «ТЕСТ»; дождитесь, пока диалог проиграется один раз — снизу выедет панель задания. Тест виден только вам, на этом устройстве, до закрытия вкладки.',
+  'Скажите ответ или повторите реплику вслух; результат совпадёт с тестером в сборщике. Лимиты показа при тесте не тратятся. «Показать задание ещё раз» — на плашке, «Закрыть тест» убирает слайд.',
+  'Телефон не видит ваш компьютер: песочница живёт в браузере устройства, где её открыли. Для проверки на телефоне откройте сборщик на нём или используйте привязку к модулю (её видят все).',
 ]

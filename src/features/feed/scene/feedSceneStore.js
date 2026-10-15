@@ -1,6 +1,7 @@
 import { fetchScenesByIds } from '../../../shared/api/scenesApi.js'
 import { resolveSceneNode } from '../../scene/v2/sceneNode.js'
 import { createSceneCache } from './feedSceneCache.js'
+import { SANDBOX_ID, readSandbox, onSandboxChange } from './sandbox/feedSandbox.js'
 
 // Стор сцен ленты: по id строки `scenes` отдаёт { status, scene }.
 //   status: 'idle' (не просили) | 'loading' | 'ready' | 'missing' | 'invalid'
@@ -10,7 +11,9 @@ import { createSceneCache } from './feedSceneCache.js'
 // готов сразу, а сетевой ответ лишь подменяет сцену, если updated_at новее.
 // Деградация: ошибка сети/нет таблицы/RLS не отдала → 'missing' (лента
 // показывает видео), сцена не прошла validateSceneV2 → 'invalid'.
-// Фабрика — чтобы тесты подставляли свой fetch/кэш/планировщик.
+// Особый id SANDBOX_ID ('__sandbox__') — песочница админа (sandbox/feedSandbox.js): сцена из sessionStorage, status 'ready'
+// без запроса в Supabase и без кэша; запись меняется — подписчики уведомляются.
+// Фабрика — чтобы тесты подставляли свой fetch/кэш/планировщик/песочницу.
 
 export const IDLE = Object.freeze({ status: 'idle', scene: null, updatedAt: null })
 const LOADING = Object.freeze({ status: 'loading', scene: null, updatedAt: null })
@@ -26,6 +29,7 @@ export function resolveRow(row, resolve = resolveSceneNode) {
 
 export function createFeedSceneStore({
   fetch = fetchScenesByIds, cache = createSceneCache(), schedule = fn => queueMicrotask(fn), resolve = resolveSceneNode,
+  sandbox = { read: readSandbox, subscribe: onSandboxChange },
 } = {}) {
   const entries = new Map()
   const requested = new Set()
@@ -63,8 +67,17 @@ export function createFeedSceneStore({
     notify()
   }
 
+  // Состояние песочницы: один объект на одну запись (useSyncExternalStore требует стабильный снимок)
+  const sandboxStates = new WeakMap()
+  function sandboxState() {
+    const sb = sandbox.read()
+    if (!sb) return MISSING
+    if (!sandboxStates.has(sb)) sandboxStates.set(sb, resolveRow({ scene: sb.scene, updated_at: String(sb.createdAt) }, resolve))
+    return sandboxStates.get(sb)
+  }
+
   function request(id) {
-    if (!id || requested.has(id)) return
+    if (!id || id === SANDBOX_ID || requested.has(id)) return
     requested.add(id)
     const cached = cache.get(id)
     entries.set(id, cached ? resolveRow(cached, resolve) : LOADING)
@@ -75,8 +88,12 @@ export function createFeedSceneStore({
 
   return {
     request,
-    get: id => entries.get(id) ?? IDLE,
-    subscribe(fn) { subs.add(fn); return () => subs.delete(fn) },
+    get: id => (id === SANDBOX_ID ? sandboxState() : entries.get(id) ?? IDLE),
+    subscribe(fn) {
+      subs.add(fn)
+      const off = sandbox.subscribe(fn)
+      return () => { subs.delete(fn); off() }
+    },
     stats: () => ({ fetches, entries: entries.size }),
   }
 }

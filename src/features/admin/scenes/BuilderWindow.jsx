@@ -114,7 +114,7 @@ export default function BuilderWindow({ onClose: onCloseProp, initialScene = nul
           <PanelColumn name="scene">
             <section className="scbCol scbColScene" aria-label="Предпросмотр сцены">
               <div className="scbColTools"><CollapseAllButton column="scene" /></div>
-              <PhonePreview scene={draft.scene} lint={draft.lint} budget={draft.budget} onHighlight={highlight} modes={modes} />
+              <PhonePreview scene={draft.scene} lint={draft.lint} budget={draft.budget} onHighlight={highlight} modes={modes} actions={draft.actions} />
             </section>
           </PanelColumn>
           <ColumnResizer index={1} bodyRef={bodyRef} fractions={columns.fractions} onCommit={columns.commit} onReset={columns.reset} />

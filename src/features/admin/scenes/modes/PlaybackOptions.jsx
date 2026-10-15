@@ -1,6 +1,7 @@
 import { sceneModes, DISPLAY_OPTIONS, VOICE_KEYS, VOICE_LABEL } from './sceneModes.js'
 import TranslationVoicePicker from '../voice/TranslationVoicePicker.jsx'
 import ScTip from '../ScTip.jsx'
+import { feedFrameSummary } from '../feedFrame/feedFrameModel.js'
 
 // Содержимое панели «Параметры воспроизведения» (BuilderSettings): режим показа текста (сегмент
 // «Без текста | С текстом | Текст + перевод» → options.display, вместо старого чекбокса «облачки»;
@@ -47,6 +48,13 @@ export default function PlaybackOptions({ scene, actions, voice = null }) {
             <input type="checkbox" checked={!!scene.options[k]} onChange={e => actions.setOption(k, e.target.checked)} /> {label}
           </label>
         ))}
+      </div>
+      <div className="scbField" id="f-options-feedFrame">
+        <span className="scbFieldLabel">Кадр в ленте <ScTip help="feed_frame" /></span>
+        <p className="scbSub">
+          {feedFrameSummary(scene.options?.feedFrame)}. Положение и масштаб меняются в предпросмотре «Как в ленте» (центральная колонка).
+          {scene.options?.feedFrame && <> <button type="button" className="fsBtn fsBtnSmall" onClick={() => actions.setFeedFrame(null)}>Сбросить</button></>}
+        </p>
       </div>
     </div>
   )

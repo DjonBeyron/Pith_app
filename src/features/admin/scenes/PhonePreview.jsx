@@ -9,6 +9,7 @@ import ScTip from './ScTip.jsx'
 import { modesSummary } from './modes/sceneModes.js'
 import { soundStatusText } from '../../scene/v2/sceneAudioFail.js'
 import SoundCheck from './voice/SoundCheck.jsx'
+import FeedFramePanel from './feedFrame/FeedFramePanel.jsx'
 
 // Центр сборщика — три панели (ui/Panel): «Предпросмотр» (телефонная рамка 9:16 с живым
 // SceneRenderer, Старт/Пауза/Заново, звук (снята галка — индикатор «звук выключен», клик включает;
@@ -20,7 +21,8 @@ import SoundCheck from './voice/SoundCheck.jsx'
 // Сцена с ошибками валидации всё равно рисуется (нормализованная), чтобы было видно, что чинить.
 // SceneRenderer не пересоздаётся при ресайзе колонок/панелей — размер рамки задаёт только CSS.
 // modes — usePreviewModes (переопределения display/voice предпросмотра; null — как в сцене)
-export default function PhonePreview({ scene, lint, budget, onHighlight, modes = null }) {
+export default function PhonePreview({ scene, lint, budget, onHighlight, modes = null, actions = null }) {
+  const [view, setView] = useState('phone') // 'phone' — сцена в рамке 9:16 | 'feed' — слайд ленты (feedFrame/)
   const [mode, setMode] = useState('live')
   const [frame, setFrame] = useState(0)
   const [lite, setLite] = useState(false)
@@ -50,64 +52,76 @@ export default function PhonePreview({ scene, lint, budget, onHighlight, modes =
   return (
     <div className="scbPreview">
       <Panel id="preview" title="Предпросмотр" className="scbPreviewPanel">
-        <div className="scbPhoneWrap">
-          <div className="scbPhone">
-            <SceneRenderer
-              key={mode} scene={scene} mode={mode} frameIndex={mode === 'static' ? safeFrame : null}
-              display={ov.display} voice={ov.voice} lite={lite} sound={sound} apiRef={apiRef} active
-            />
+        {actions && (
+          <div className="scSegBtns" role="radiogroup" aria-label="Вид предпросмотра">
+            {[['phone', 'Телефон (сцена)'], ['feed', 'Как в ленте']].map(([id, label]) => (
+              <button key={id} type="button" role="radio" aria-checked={view === id} className={view === id ? 'scSegBtn scSegBtnOn' : 'scSegBtn'} onClick={() => setView(id)}>{label}</button>
+            ))}
+            <ScTip help="feed_frame" />
           </div>
-        </div>
-        <div className="scbCtl">
-          {mode === 'live' ? (
-            <div className="scbCtlRow">
-              <button type="button" className="fsBtn fsBtnPrimary" onClick={() => call(status === 'playing' ? 'pause' : 'play')}>
-                {status === 'playing' ? 'Пауза' : status === 'paused' ? 'Продолжить' : 'Старт'}
-              </button>
-              <button type="button" className="fsBtn" onClick={() => call('restart')}>Заново</button>
-              <label className="scCheck"><input type="checkbox" checked={sound} onChange={e => setSound(e.target.checked)} /> звук</label>
-              {!sound && (
-                <button type="button" className="scbSoundOff" onClick={() => setSound(true)} title="Включить звук предпросмотра">
-                  <VolumeX size={14} aria-hidden="true" /> звук выключен — включите галку «звук»
-                </button>
-              )}
-              {status !== 'idle' && (
-                <span className={`scbSoundStatus${sndSt.fail ? ' scbSoundStatus-fail' : ''}`} role="status" data-sound-mode={sound ? (sndSt.mode ?? '') : 'off'}>
-                  {soundStatusText(sndSt.mode, sndSt.fail, sound)}
-                  <ScTip help="sound_status" />
-                  {sndSt.fail && <SoundCheck url={sndSt.fail.url} />}
-                </span>
-              )}
-            </div>
-          ) : (
-            <div className="scbCtlRow">
-              <label className="scbField scbFieldInline">
-                <span className="scbFieldLabel">Реплика</span>
-                <select className="fsNote" value={safeFrame} onChange={e => setFrame(Number(e.target.value))} aria-label="Номер реплики для статичного кадра">
-                  {scene.timeline.map((l, i) => <option key={i} value={i}>{i + 1}. {l.who.toUpperCase()}: {String(l.text).slice(0, 28)}{l.text.length > 28 ? '…' : ''}</option>)}
-                </select>
-              </label>
-            </div>
-          )}
-          <div className="scbCtlRow">
-            <span className="scbCtlGroup">
-              <div className="scSegBtns" role="radiogroup" aria-label="Режим кадра">
-                {[['live', 'Живой'], ['static', 'Статичный кадр']].map(([id, label]) => (
-                  <button key={id} type="button" role="radio" aria-checked={mode === id} className={mode === id ? 'scSegBtn scSegBtnOn' : 'scSegBtn'} onClick={() => setMode(id)}>{label}</button>
-                ))}
+        )}
+        {actions && view === 'feed' ? <FeedFramePanel scene={scene} actions={actions} /> : (
+          <>
+            <div className="scbPhoneWrap">
+              <div className="scbPhone">
+                <SceneRenderer
+                  key={mode} scene={scene} mode={mode} frameIndex={mode === 'static' ? safeFrame : null}
+                  display={ov.display} voice={ov.voice} lite={lite} sound={sound} apiRef={apiRef} active
+                />
               </div>
-              <ScTip help="frame_mode" />
-            </span>
-            <span className="scbCtlGroup scbPreviewModes" title="Режим показа и озвучка предпросмотра — переключаются в верхней панели">
-              <span className="scbSub">{modesSummary(scene, modes?.override)}{modes?.overridden?.any ? ' · предпросмотр' : ''}</span>
-              <ScTip help="display_mode" />
-            </span>
-            <span className="scbCtlGroup">
-              <label className="scCheck"><input type="checkbox" checked={lite} onChange={e => setLite(e.target.checked)} /> lite</label>
-              <ScTip help="lite" />
-            </span>
-          </div>
-        </div>
+            </div>
+            <div className="scbCtl">
+              {mode === 'live' ? (
+                <div className="scbCtlRow">
+                  <button type="button" className="fsBtn fsBtnPrimary" onClick={() => call(status === 'playing' ? 'pause' : 'play')}>
+                    {status === 'playing' ? 'Пауза' : status === 'paused' ? 'Продолжить' : 'Старт'}
+                  </button>
+                  <button type="button" className="fsBtn" onClick={() => call('restart')}>Заново</button>
+                  <label className="scCheck"><input type="checkbox" checked={sound} onChange={e => setSound(e.target.checked)} /> звук</label>
+                  {!sound && (
+                    <button type="button" className="scbSoundOff" onClick={() => setSound(true)} title="Включить звук предпросмотра">
+                      <VolumeX size={14} aria-hidden="true" /> звук выключен — включите галку «звук»
+                    </button>
+                  )}
+                  {status !== 'idle' && (
+                    <span className={`scbSoundStatus${sndSt.fail ? ' scbSoundStatus-fail' : ''}`} role="status" data-sound-mode={sound ? (sndSt.mode ?? '') : 'off'}>
+                      {soundStatusText(sndSt.mode, sndSt.fail, sound)}
+                      <ScTip help="sound_status" />
+                      {sndSt.fail && <SoundCheck url={sndSt.fail.url} />}
+                    </span>
+                  )}
+                </div>
+              ) : (
+                <div className="scbCtlRow">
+                  <label className="scbField scbFieldInline">
+                    <span className="scbFieldLabel">Реплика</span>
+                    <select className="fsNote" value={safeFrame} onChange={e => setFrame(Number(e.target.value))} aria-label="Номер реплики для статичного кадра">
+                      {scene.timeline.map((l, i) => <option key={i} value={i}>{i + 1}. {l.who.toUpperCase()}: {String(l.text).slice(0, 28)}{l.text.length > 28 ? '…' : ''}</option>)}
+                    </select>
+                  </label>
+                </div>
+              )}
+              <div className="scbCtlRow">
+                <span className="scbCtlGroup">
+                  <div className="scSegBtns" role="radiogroup" aria-label="Режим кадра">
+                    {[['live', 'Живой'], ['static', 'Статичный кадр']].map(([id, label]) => (
+                      <button key={id} type="button" role="radio" aria-checked={mode === id} className={mode === id ? 'scSegBtn scSegBtnOn' : 'scSegBtn'} onClick={() => setMode(id)}>{label}</button>
+                    ))}
+                  </div>
+                  <ScTip help="frame_mode" />
+                </span>
+                <span className="scbCtlGroup scbPreviewModes" title="Режим показа и озвучка предпросмотра — переключаются в верхней панели">
+                  <span className="scbSub">{modesSummary(scene, modes?.override)}{modes?.overridden?.any ? ' · предпросмотр' : ''}</span>
+                  <ScTip help="display_mode" />
+                </span>
+                <span className="scbCtlGroup">
+                  <label className="scCheck"><input type="checkbox" checked={lite} onChange={e => setLite(e.target.checked)} /> lite</label>
+                  <ScTip help="lite" />
+                </span>
+              </div>
+            </div>
+          </>
+        )}
       </Panel>
       <Panel id="budget" title={<>Бюджет узлов <span className="scbCount">{budget.total} / {budget.limit}</span></>} label="Бюджет узлов" tip="budget" fieldId="f-budget" fullscreenable={false}>
         <BudgetBar budget={budget} />

@@ -11,8 +11,13 @@
 .scbFtState-ready { color: var(--fs-ok); }
 .scbFtState-save, .scbFtState-publish { color: var(--fs-warn); }
 .scbFtState-blocked { color: var(--fs-error); }
-.scbFtList { max-height: 220px; overflow-y: auto; }
+.scbFtList { max-height: 220px; overflow-y: auto; flex: none; } /* flex: none — иначе в узком диалоге (длинная инструкция) список сжимался до нуля */
 .scbFtHow { margin: 0; padding: 8px 10px 8px 28px; border-radius: 10px; background: var(--fs-panel-2, rgba(127, 127, 127, 0.1)); font-size: 12px; line-height: 1.45; color: var(--fs-muted, #8b94a1); display: flex; flex-direction: column; gap: 4px; }
+/* Переключатель вариантов «Проверить в ленте»: песочница (по умолчанию) / привязка к модулю */
+.scbFtModes { display: flex; flex-wrap: wrap; gap: 6px; }
+.scbFtMode { flex: 1 1 auto; min-height: 34px; padding: 6px 10px; border: 1px solid var(--fs-border); border-radius: 10px; background: var(--fs-panel-2); color: var(--fs-text); font: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer; }
+.scbFtModeOn { border-color: var(--fs-accent); background: transparent; box-shadow: inset 0 0 0 1px var(--fs-accent); }
+.scbFtWarn { margin: 0; padding: 6px 10px; border-radius: 10px; border: 1px dashed var(--fs-warn); }
 @media (max-width: 480px) {
   .scbFtList { max-height: 160px; }
 }

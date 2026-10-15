@@ -1,4 +1,4 @@
-import { memo, useMemo } from 'react'
+import { memo, useMemo, useRef } from 'react'
 import SceneRenderer from '../../scene/v2/SceneRenderer.jsx'
 import { backgroundSprite } from '../../scene/v2/sprites/spriteRegistry.js'
 import { perfFlags } from '../../../shared/lib/perfFlags.js'
@@ -8,6 +8,7 @@ import SlideSceneChips from './SlideSceneChips.jsx'
 import SceneTaskPanel from './SceneTaskPanel.jsx'
 import { useSceneTask } from './useSceneTask.js'
 import { useSceneAudioPrefetch } from './useSceneAudioPrefetch.js'
+import { useFeedFrame } from './useFeedFrame.js'
 import { sceneLayerMode, loopedScene, sceneSound, sceneRate } from './slideSceneRules.js'
 
 // Слой сцены «два кота говорят» на слайде ленты — тот же контракт, что у
@@ -24,7 +25,7 @@ import { sceneLayerMode, loopedScene, sceneSound, sceneRate } from './slideScene
 // пока она открыта — режиссёр на паузе (freeze → paused), свайп заблокирован (onLock), после «Готово» круг продолжается.
 function SlideScene({
   scene, sceneId = null, posterUrl = null, slideKey, moduleId = null, active = false, near = false, tabVisible = true,
-  soundOn = false, soundEverOn = false, onSoundOn, onSoundOff, onLock,
+  soundOn = false, soundEverOn = false, onSoundOn, onSoundOff, onLock, frameIndex = null,
 }) {
   const wanted = sceneLayerMode({ active, near, noVideo: !!perfFlags.noVideo })
   const live = wanted === 'live' && tabVisible // скрытая вкладка: активный слайд стоит статичным кадром, речи нет
@@ -34,12 +35,16 @@ function SlideScene({
   const pb = useSlideScenePlay({ live, active, moduleId, onSoundOn, onSoundOff })
   const task = useSceneTask({ scene, sceneId, active, live, apiRef: pb.apiRef, onLock })
   useSceneAudioPrefetch({ scene, active, near }) // сосед: первая реплика в кэш озвучки заранее (useSceneAudioPrefetch.js)
-  // SVG 9:16 лежит по верху слайда во всю ширину (коты выше блока фразы, лица не под шариками); остаток снизу —
-  // цвет пола локации (feed-scene.css), полос нет
-  const floor = backgroundSprite(scene?.location)?.colors?.floor ?? '#c9a27a'
+  // Кадр сцены (useFeedFrame / feedFrameCalc.js): ноги котов — над блоком фразы и кнопкой, лишний верх уходит за край;
+  // вне сцены — стена выше линии пола, пол ниже (градиент корня, feed-scene.css), полос нет
+  const colors = backgroundSprite(scene?.location)?.colors
+  const floor = colors?.floor ?? '#c9a27a'
+  const wall = colors?.wall ?? '#e8eef5'
+  const rootRef = useRef(null)
+  useFeedFrame(rootRef, scene?.options?.feedFrame) // кадрирование (options.feedFrame + размер слайда) → CSS-переменные
 
   return (
-    <div className="slideSceneRoot" data-mode={mode} style={{ '--scene-floor': floor }} onClick={pb.onTap}>
+    <div ref={rootRef} className="slideSceneRoot" data-mode={mode} style={{ '--scene-floor': floor, '--scene-wall': wall }} onClick={pb.onTap}>
       {mode === 'skeleton' ? (
         posterUrl
           ? <div className="feedPosterBg" style={{ backgroundImage: `url("${posterUrl}")` }} />
@@ -47,7 +52,7 @@ function SlideScene({
       ) : (
         <SceneRenderer
           scene={looped} mode={mode} active={active && tabVisible} paused={pb.paused || task.freeze}
-          sound={sceneSound(soundOn)} rate={sceneRate(slow)} showProgress={false} apiRef={pb.apiRef} onState={task.onState}
+          frameIndex={frameIndex} sound={sceneSound(soundOn)} rate={sceneRate(slow)} showProgress={false} apiRef={pb.apiRef} onState={task.onState}
         />
       )}
       {task.mounted && task.info && <SceneTaskPanel task={task} apiRef={pb.apiRef} total={scene?.timeline?.length ?? 0} />}

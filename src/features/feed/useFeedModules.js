@@ -7,6 +7,10 @@ import { latchRank } from './feedKnowledge.js'
 import { rankFeedByConfig } from './feedRankEngine.js'
 import { publishedFeedModules } from './feedModuleShape.js'
 import { onFeedJump } from './catch/catchForce.js'
+import { useAdmin } from '../../app/AdminContext.jsx'
+import { SANDBOX_ID } from './scene/sandbox/feedSandbox.js'
+import { useSandboxModule } from './scene/sandbox/useFeedSandbox.js'
+import { mixSandbox } from './scene/sandbox/sandboxModule.js'
 
 // Загрузка модулей (curricula) + «пин» на фразу (deep-link репоста /?m=<id>,
 // либо программный поворот из поиска — см. jumpTo) + расчёт круга
@@ -106,7 +110,18 @@ export function useFeedModules(startedIds, visible = true, freshRank = null) {
 
   // Поворот извне (Админ → Ловля → «Отправить в ленту», catchForce.sendToFeed): событие pithy:feed-jump.
   // Лента скрыта — pinnedId всё равно обновится, круг пересоберётся от него и покажет фразу первой
-  useEffect(() => onFeedJump(d => { if (d?.moduleId) setPinnedId(d.moduleId) }), [])
+  // Песочница, уже закреплённая, но ушедшая из виду: повторное «Открыть в песочнице» снимает закрепление на кадр и ставит заново —
+  // иначе pinnedId не меняется и лента остаётся там, куда её пролистали
+  const pinnedRef = useRef(pinnedId)
+  useEffect(() => { pinnedRef.current = pinnedId })
+  useEffect(() => {
+    let t = null
+    const off = onFeedJump(d => {
+      if (!d?.moduleId) return
+      if (d.moduleId === SANDBOX_ID && pinnedRef.current === SANDBOX_ID) { setPinnedId(null); t = setTimeout(() => setPinnedId(SANDBOX_ID), 0) } else setPinnedId(d.moduleId)
+    })
+    return () => { off(); clearTimeout(t) }
+  }, [])
 
   // Круг рекомендаций — только не начатые модули, по карте памяти. Считается при
   // сборке списка (useMemo), не на каждый рендер; движок — по конфигу (feedRankEngine.js)
@@ -114,7 +129,11 @@ export function useFeedModules(startedIds, visible = true, freshRank = null) {
     () => rankFeedByConfig((modules ?? []).filter(m => !startedIds.has(m.id)), rank, config),
     [modules, startedIds, rank, config],
   )
-  let feedModules = ranked
+  // Песочница админа (scene/sandbox/): один синтетический модуль В НАЧАЛО круга, мимо ранжирования и латча
+  const { isAdmin } = useAdmin()
+  const sandboxMod = useSandboxModule(isAdmin)
+  const withSandbox = useMemo(() => mixSandbox(ranked, sandboxMod), [sandboxMod, ranked])
+  let feedModules = withSandbox
   if (pinnedId) {
     const dlIdx = feedModules.findIndex(m => m.id === pinnedId)
     if (dlIdx > 0) {

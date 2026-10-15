@@ -1,0 +1,50 @@
+/* Предпросмотр «Как в ленте» в сборщике сцен (admin/scenes/feedFrame/): слайд ленты нужного размера в масштабе колонки,
+   плашки опасных зон, слой перетаскивания, ползунки. Сам слайд рисуют настоящие классы ленты (feed-v2.css, feed-hud.css,
+   feed-scene.css) — здесь только обвязка. Префикс ffp. */
+
+.ffpPanel { display: flex; flex-direction: column; gap: 10px; }
+.ffpStage { display: flex; justify-content: center; }
+
+/* Рамка размером с уменьшенный слайд; внутри — слайд в натуральную величину, уменьшенный transform'ом (размеры
+   для измерения кадра остаются настоящими: clientWidth/Height не зависят от transform) */
+.ffpBox {
+  position: relative;
+  overflow: hidden;
+  border-radius: 14px;
+  border: 1px solid var(--fs-border);
+  background: #000;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+}
+.ffpScale { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
+.ffpSlide { width: 100%; height: 100%; font-family: 'Montserrat', 'Comfortaa', sans-serif; color: #f2f5f7; }
+
+/* Слои ленты в макете не кликаются; нижняя панель — внутри слайда, а не fixed к окну */
+.ffpSlide .feedPhraseBlock, .ffpSlide .feedHud, .ffpSlide .feedLearnBtn, .ffpSlide .feedPauseGuard { pointer-events: none; }
+.ffpSlide .ffpNav { position: absolute; pointer-events: none; }
+
+/* Слой перетаскивания — поверх всего; плашки зон под ним и мимо курсора */
+.ffpDrag { position: absolute; inset: 0; z-index: 9; cursor: grab; touch-action: none; }
+.ffpDrag:active { cursor: grabbing; }
+.ffpZones { position: absolute; inset: 0; z-index: 8; pointer-events: none; }
+.ffpZone {
+  position: absolute;
+  box-sizing: border-box;
+  border: 1px dashed rgba(255, 255, 255, 0.85);
+  background: rgba(255, 176, 32, 0.22);
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-start;
+}
+.ffpZone b { font-size: 11px; font-weight: 700; line-height: 1.2; padding: 2px 5px; color: #fff; background: rgba(0, 0, 0, 0.55); border-radius: 0 0 6px 0; }
+.ffpZone[data-zone="hud"] b { writing-mode: vertical-rl; border-radius: 0 0 0 6px; }
+.ffpZoneHit { background: rgba(255, 60, 60, 0.38); border-color: #ff5a5a; }
+
+.ffpVerdict { font-size: 12.5px; line-height: 1.35; padding: 7px 10px; border-radius: 8px; border: 1px solid var(--fs-border); }
+.ffpVerdictOk { color: var(--fs-text); }
+.ffpVerdictBad { color: var(--fs-error); border-color: var(--fs-error); }
+
+.ffpControls { display: flex; flex-direction: column; gap: 8px; }
+.ffpSliderRow { display: flex; align-items: center; gap: 8px; }
+.ffpSliderRow input[type="range"] { flex: 1; min-width: 0; }
+.ffpSliderRow output { min-width: 3.4em; text-align: right; font-variant-numeric: tabular-nums; font-size: 12.5px; }
+.ffpDevices { flex-wrap: wrap; }

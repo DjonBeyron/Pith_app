@@ -6,6 +6,7 @@ import * as M from './builderModel.js'
 import * as T from './timelineOps.js'
 import * as TK from './taskModel.js'
 import * as MD from './modes/sceneModes.js'
+import { setFeedFrame } from './feedFrame/feedFrameModel.js'
 import { saveBackup, loadBackup, clearBackup } from './draftBackup.js'
 
 // Состояние сборщика сцен: черновик (нормализованная сцена v2), привязка к строке
@@ -64,6 +65,7 @@ export function useBuilderDraft({ initialScene = null, initialRow = null, backup
     setDisplay: m => patch(s => MD.setDisplay(s, m)),
     setVoiceFlag: (k, v) => patch(s => MD.setVoiceFlag(s, k, v)),
     setTranslationVoiceId: id => patch(s => MD.setTranslationVoiceId(s, id)),
+    setFeedFrame: f => patch(s => setFeedFrame(s, f)), // options.feedFrame — кадрирование в ленте (feedFrame/)
     applyModes: override => patch(s => MD.applyOverrideToScene(s, override)),
     addLine: after => tl(t => T.addLine(t, after)),
     removeLine: i => tl(t => T.removeLine(t, i)),

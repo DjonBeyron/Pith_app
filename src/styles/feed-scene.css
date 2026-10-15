@@ -7,15 +7,21 @@
   position: absolute;
   inset: 0;
   overflow: hidden;
-  /* Пол локации (--scene-floor ставит SlideScene по сцене): SVG 9:16 лежит по верху слайда, а на телефоне 9:19.5
-     внизу остаётся полоса — она того же цвета, что пол сцены, и под кнопкой «Изучить фразу» читается как продолжение пола */
-  background: var(--scene-floor, #c9a27a);
-  /* Иконка паузы и чип — между облачком (выше) и головами котов: у видео центр приподнят, здесь — ровно середина */
+  box-sizing: border-box;
+  /* Padding корня никого не двигает (дети абсолютные от рамки padding), но даёт useFeedFrame высоту нижней панели и
+     safe-area сверху уже раскрытыми в px: браузер сам считает env() и calc() */
+  padding: var(--feed-sat, env(safe-area-inset-top, 0px)) 0 var(--v2-nav-h, 0px);
+  /* Вне сцены: стена выше линии пола, пол ниже (--sf-floor-y ставит useFeedFrame; цвета — --scene-wall/--scene-floor по
+     локации, SlideScene). Без измерения (SSR/тест) — сплошной пол, как раньше */
+  background: linear-gradient(to bottom, var(--scene-wall, #e8eef5) var(--sf-floor-y, 0px), var(--scene-floor, #c9a27a) var(--sf-floor-y, 0px));
+  /* Иконка паузы и чип — над котами, под облачком (useFeedFrame пишет --pause-y в px; 50% — запас до измерения) */
   --pause-y: 50%;
 }
 
-/* .scn сам держит 9:16 по ширине — в слайде это и нужно: коты (низ кадра) оказываются выше блока фразы со спойлером,
-   лица не под шариками; .scn растягиваем на весь слайд (облачко/чипы позиционируются от него), SVG — по верху 9:16 */
+/* .scn сам держит 9:16 по ширине — в слайде это и нужно: .scn растягиваем на весь слайд (облачко/чипы позиционируются
+   от него), SVG остаётся 9:16 во всю ширину, а положение и масштаб задаёт кадр (feedFrameCalc.js): сдвиг вверх, чтобы ноги
+   котов встали над блоком фразы и кнопкой «Изучить», и scale вокруг ног — options.feedFrame. Только transform: без
+   перерисовки на тик; на слабых устройствах тот же CSS */
 .slideSceneRoot .scn {
   position: absolute;
   inset: 0;
@@ -29,13 +35,17 @@
   bottom: auto;
   height: auto;
   aspect-ratio: 9 / 16;
+  transform-origin: var(--sf-ox, 50%) var(--sf-oy, 0px);
+  transform: translate(var(--sf-tx, 0px), var(--sf-ty, 0px)) scale(var(--sf-k, 1));
 }
 
-/* Облачко — над иконкой паузы/чипом (--pause-y 50%: иконка 32px выше середины, хвост облачка — ещё выше) */
+/* Облачко — над макушками котов (--sf-bubble: низ облачка от низа слайда; BUBBLE_GAP оставляет место иконке паузы и
+   хвосту). Правое облачко не заходит под HUD (--sf-hud-w) */
 .slideSceneRoot .scn-bubble {
-  bottom: 58%;
+  bottom: var(--sf-bubble, 58%);
   max-width: 66%;
 }
+.slideSceneRoot .scn-bubble--b { right: max(5%, var(--sf-hud-w, 0px)); }
 
 /* Чипы и иконка паузы — поверх SVG и облачка */
 .slideSceneRoot .slidePauseIcon,

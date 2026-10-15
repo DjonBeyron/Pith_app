@@ -2,6 +2,7 @@ import { supabase } from '../../api/supabase.js'
 import { APP_VERSION } from '../version.js'
 import { dbg } from '../debug.js'
 import { createTracker } from './tracker.js'
+import { isSandboxEvent } from './sandboxGuard.js'
 
 // Журнал продуктовой аналитики: track(name, props) из любого места
 // приложения. События копятся в очереди (tracker.js) и уходят пачкой в RPC
@@ -78,6 +79,7 @@ const tracker = createTracker({ send, storage: safeStorage(), newId })
 let timer = null
 
 export function track(name, props = null) {
+  if (isSandboxEvent(props)) return // песочница сцены в ленте (админ) — не продуктовое поведение
   const size = tracker.push(name, props)
   if (size >= FLUSH_AT) { flushNow(); return }
   if (!timer) timer = setTimeout(flushNow, FLUSH_DELAY)

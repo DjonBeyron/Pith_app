@@ -4,7 +4,7 @@ import { feedTestState, feedTestSteps, feedDeepLink, runFeedTest, moduleNote, fe
 import { resetSceneTaskLimits } from './resetTaskLimits.js'
 import { testRows, resetMessage } from './feedTestList.js'
 import { TASK_KEY, TASK_LATER_KEY, TASK_LATER_STREAK_KEY, TASK_FORCE_KEY } from '../../../feed/scene/sceneTaskLimits.js'
-import FeedTestDialog from './FeedTestDialog.jsx'
+import FeedTestLink from './FeedTestLink.jsx'
 import FeedTestHowTo from './FeedTestHowTo.jsx'
 import { buildToolbarActions } from '../toolbar/toolbarModel.js'
 
@@ -144,18 +144,18 @@ describe('блок «Тест в ленте»: строки', () => {
 
 describe('разметка и тулбар', () => {
   const draft = { saved: { id: null, status: 'draft' }, dirty: false, errors: [] }
-  it('диалог: состояние сцены, чекбокс подтверждения сохранения, две галки, инструкция про микрофон, кнопка заблокирована без модуля', () => {
-    const html = renderToStaticMarkup(<FeedTestDialog draft={draft} library={{ busy: false, missingTable: false }} save={async () => true} onClose={() => {}} onLeave={() => {}} setStatus={() => {}} />)
-    expect(html).toContain('role="dialog"')
+  it('вариант «Привязать к модулю»: пояснение, состояние сцены, чекбокс сохранения, две галки, кнопка заблокирована без модуля', () => {
+    const html = renderToStaticMarkup(<FeedTestLink draft={draft} library={{ busy: false, missingTable: false }} save={async () => true} onClose={() => {}} onLeave={() => {}} setStatus={() => {}} />)
+    expect(html).toContain('Привязка = сцена показывается всем пользователям в ленте вместо видео этого модуля. Требует миграции curricula.scene_id.')
     expect(html).toContain('сохраню и опубликую одним шагом')
     expect(html).toContain('Да, сохранить и опубликовать сцену')
     expect(html).toContain('Показать задание сразу (принудительно, лимиты не тратить)')
     expect(html).toContain('Открыть ленту на этом слайде')
-    expect(html).toContain('разрешите микрофон')
-    expect(html).toMatch(/<button[^>]*disabled=""[^>]*>Проверить в ленте<\/button>/)
+    expect(html).toMatch(/<button[^>]*disabled=""[^>]*>Привязать и проверить в ленте<\/button>/)
   })
-  it('инструкция: три шага, первый про микрофон', () => {
-    expect(FEED_TEST_HOWTO).toHaveLength(3)
+  it('инструкция: первый шаг про микрофон, второй про тест без привязки', () => {
+    expect(FEED_TEST_HOWTO).toHaveLength(4)
+    expect(FEED_TEST_HOWTO[1]).toContain('Тест без привязки')
     expect(renderToStaticMarkup(<FeedTestHowTo />)).toContain('микрофон')
   })
   it('тулбар: кнопка «Проверить в ленте» появляется только когда передана', () => {
