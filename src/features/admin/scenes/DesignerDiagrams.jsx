@@ -43,7 +43,7 @@ export function SceneLayersDiagram() {
       <rect x="0" y="0" width="360" height="430" fill="currentColor" opacity="0.05" />
       <text x="8" y="22" {...T}>слой wall (стена): y 0…430</text>
       <rect x="0" y="430" width="360" height="210" fill="currentColor" opacity="0.12" />
-      <text x="8" y="452" {...T}>слой floor (пол): y 430…640</text>
+      <text x="8" y="452" {...T}>слой floor (пол): y 430…640, дальше вниз — тот же пол</text>
       <rect x="105" y="410" width="150" height="60" {...L} />
       <text x="112" y="404" {...T}>table (стол) якорь 180,470</text>
       <circle cx="142" cy="412" r="3" fill="var(--sc-accent, #e0564e)" /><circle cx="180" cy="412" r="3" fill="var(--sc-accent, #e0564e)" /><circle cx="220" cy="412" r="3" fill="var(--sc-accent, #e0564e)" />

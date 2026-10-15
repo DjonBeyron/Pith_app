@@ -11,7 +11,7 @@
   /* Padding корня никого не двигает (дети абсолютные от рамки padding), но даёт useFeedFrame высоту нижней панели и
      safe-area сверху уже раскрытыми в px: браузер сам считает env() и calc() */
   padding: var(--feed-sat, env(safe-area-inset-top, 0px)) 0 var(--v2-nav-h, 0px);
-  /* Вне сцены: стена выше линии пола, пол ниже (--sf-floor-y ставит useFeedFrame; цвета — --scene-wall/--scene-floor по
+  /* Запасной фон (скелетон, до первого кадра SVG): стена выше линии пола, пол ниже (--sf-floor-y ставит useFeedFrame; цвета — --scene-wall/--scene-floor по
      локации, SlideScene). Без измерения (SSR/тест) — сплошной пол, как раньше */
   background: linear-gradient(to bottom, var(--scene-wall, #e8eef5) var(--sf-floor-y, 0px), var(--scene-floor, #c9a27a) var(--sf-floor-y, 0px));
   /* Иконка паузы и чип — над котами, под облачком (useFeedFrame пишет --pause-y в px; 50% — запас до измерения) */
@@ -37,6 +37,9 @@
   aspect-ratio: 9 / 16;
   transform-origin: var(--sf-ox, 50%) var(--sf-oy, 0px);
   transform: translate(var(--sf-tx, 0px), var(--sf-ty, 0px)) scale(var(--sf-k, 1));
+  /* Фон сцены продолжается за viewBox (backgrounds.js, BLEED): пол — вниз под блок фразы и кнопку, стена — вверх, оба — в стороны.
+     Обрезает слайд (.slideSceneRoot / .scn: overflow hidden), поэтому за экран ничего не вылезает */
+  overflow: visible;
 }
 
 /* Облачко — над макушками котов (--sf-bubble: низ облачка от низа слайда; BUBBLE_GAP оставляет место иконке паузы и

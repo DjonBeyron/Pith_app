@@ -26,7 +26,7 @@ export default function DesignerSections({ print = false }) {
       <Section id="scd-canvas" title="1. Размеры холста" tip="viewbox" print={print}>
         <ul className="scList">
           <li><b>Кот</b> — viewBox <code>{CAT_VIEWBOX}</code> (ширина 200, высота 240). Кот стоит на нижнем краю, голова — круг радиусом ≈ 48 с центром (100, 96).</li>
-          <li><b>Фон</b> — viewBox <code>{SCENE_VIEWBOX}</code>, вертикальный 9:16, как экран телефона. Линия пола — y = 430.</li>
+          <li><b>Фон</b> — viewBox <code>{SCENE_VIEWBOX}</code>, вертикальный 9:16, как экран телефона. Линия пола — y = 430. Пол и стена в ленте продолжаются за кадр: нижняя часть кадра (y 430…640) — «безопасный пол», ниже и по бокам фон просто тянется тем же узором. За пределами 360×640 ничего важного не рисуйте.</li>
           <li><b>Предмет</b> — свой viewBox по габариту, не больше {K.prop.maxW}×{K.prop.maxH}; точка (0,0) — якорь (см. раздел 4).</li>
         </ul>
         <div className="scdFigs"><CatCanvasDiagram /><SceneLayersDiagram /></div>

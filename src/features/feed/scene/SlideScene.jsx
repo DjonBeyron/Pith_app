@@ -38,7 +38,7 @@ function SlideScene({
   const task = useSceneTask({ scene, sceneId, active, live, apiRef: pb.apiRef, onLock })
   useSceneAudioPrefetch({ scene, active, near }) // сосед: первая реплика в кэш озвучки заранее (useSceneAudioPrefetch.js)
   // Кадр сцены (useFeedFrame / feedFrameCalc.js): ноги котов — над блоком фразы и кнопкой, лишний верх уходит за край;
-  // вне сцены — стена выше линии пола, пол ниже (градиент корня, feed-scene.css), полос нет
+  // пол сцены продолжается вниз за viewBox (backgrounds.js), градиент корня (feed-scene.css) — только запасной фон под скелетоном
   const colors = backgroundSprite(scene?.location)?.colors
   const floor = colors?.floor ?? '#c9a27a'
   const wall = colors?.wall ?? '#e8eef5'

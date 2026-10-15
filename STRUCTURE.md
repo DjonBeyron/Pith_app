@@ -1767,6 +1767,7 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | `slots.js` | Слоты-ячейки с якорями: 5 общих (window, wall-art, floor-left, floor-right, table) + 5 офиса (wall-board, wall-clock, desk-left/center/right) + 5 кафе (wall-menu, ceiling, counter, table-left/right); `accepts` — совместимые предметы, `needs: 'table'` у настольных, слои отрисовки; `CAT_PLACEMENT` |
 | `spriteRegistry.js` | Реестр `SPRITES` (id, title, category, kind, viewBox, size, anchor, slots, nodeCount, status-бейдж, build): 2 кота, 15 предметов, 2 фона; `getSprite`, `catSprite(gender)`, `backgroundSprite`, `spritesForSlot`, `PROP_IDS` |
 | `spriteRegistry.test.js` | Состав реестра, каждый спрайт проходит `spriteCheck` и лимит узлов, слоты ↔ спрайты, пол кота, бюджет сцены при самых тяжёлых предметах во всех слотах |
+| `sceneBleed.test.js` | Стражи стандарта «пол продолжается вниз»: фон шире кадра (пол вниз, стена вверх), `overflow: visible` у SVG ленты, настенные слоты не пересекаются и собраны к центру, бюджет узлов |
 
 ### `src/features/auth/` — вкладка «Войти»
 | Файл | Зачем нужен |

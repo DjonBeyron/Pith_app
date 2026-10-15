@@ -2,7 +2,7 @@ import { el, part } from './svgTree.js'
 
 // Предметы кафе. Координаты — относительно якоря (см. propsOffice.js):
 // на столе/стойке — нижняя середина, настенные — центр, потолочные — верхняя
-// середина (лампа висит вниз от точки крепления).
+// середина (лампа висит вниз от точки крепления; шнур тянется вверх за кадр — потолка в кадре нет).
 
 export const CAFE_PROPS = [
   {
@@ -47,7 +47,7 @@ export const CAFE_PROPS = [
   {
     id: 'pendant-lamp', title: 'Подвесная лампа', category: 'cafe', anchor: 'top', size: { w: 44, h: 70 },
     build: () => part('pendant-lamp', {}, [
-      el('line', { x1: 0, y1: 0, x2: 0, y2: 38, stroke: '#4a4a52', strokeWidth: 2 }),
+      el('line', { x1: 0, y1: -600, x2: 0, y2: 38, stroke: '#4a4a52', strokeWidth: 2 }),
       el('path', { d: 'M-22 64 l8 -26 h28 l8 26 z', fill: '#2f3640' }),
       el('path', { d: 'M-16 64 h32', stroke: '#f6c94b', strokeWidth: 3, strokeLinecap: 'round' }),
       el('ellipse', { cy: 70, rx: 9, ry: 4, fill: '#fff3b0', opacity: 0.9 }),
