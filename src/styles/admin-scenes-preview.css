@@ -90,7 +90,9 @@
 .scbStatus { padding: 1px 8px; border-radius: 999px; font-size: 11.5px; font-weight: 600; }
 .scbStatus-draft { background: var(--fs-panel-2); color: var(--fs-muted); }
 .scbStatus-published { background: var(--fs-accent); color: var(--fs-accent-ink); }
-.scbLibBtns { display: flex; flex-wrap: wrap; gap: 4px; }
+.scbLibBtns { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
+.scbLibIcons { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 4px; } /* иконочный ряд строки (ui/IconBtn), зона касания 32px */
+.scbWin .scbLibBtns .scbIcon, .scbWin .scbCtlRow .scbIcon { width: 32px; height: 32px; }
 .scbLibRename { display: flex; gap: 6px; align-items: center; }
 .scbDanger:hover:not(:disabled) { color: var(--fs-error); border-color: var(--fs-error); }
 

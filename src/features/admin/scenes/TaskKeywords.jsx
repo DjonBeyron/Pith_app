@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { X } from 'lucide-react'
+import { X, Plus } from 'lucide-react'
+import IconBtn from './ui/IconBtn.jsx'
 import { TASK_LISTS } from './taskModel.js'
 import ScTip from './ScTip.jsx'
 
@@ -24,8 +25,8 @@ export default function TaskKeywords({ items, actions }) {
         </ul>
       )}
       <div className="scbAcceptRow">
-        <input className="fsNote" value={draft} maxLength={rule.len} onChange={e => setDraft(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); add() } }} placeholder="слово, Enter — добавить" aria-label="Новое ключевое слово" disabled={full} />
-        <button type="button" className="fsBtn fsBtnSmall" onClick={add} disabled={!draft.trim() || full}>Добавить</button>
+        <input className="fsNote" data-native-undo="1" value={draft} maxLength={rule.len} onChange={e => setDraft(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); add() } }} placeholder="слово, Enter — добавить" aria-label="Новое ключевое слово" disabled={full} />
+        <IconBtn Icon={Plus} label="Добавить слово" onClick={add} disabled={!draft.trim() || full} />
       </div>
     </div>
   )

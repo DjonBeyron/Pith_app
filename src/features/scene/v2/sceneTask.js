@@ -1,5 +1,5 @@
 import { levenshtein, tolerance } from '../../../shared/lib/speech/speechMatch.js'
-import { isObj } from './sceneConstants.js'
+import { isObj, LIMITS } from './sceneConstants.js'
 
 // Задание после сцены «О чём диалог» — необязательное поле сцены v2 (версия формата
 // остаётся 2, старые сцены без поля валидны):
@@ -18,6 +18,12 @@ export const TASK_KINDS = ['translate', 'say', 'repeat']
 export const VOICE_KINDS = ['say', 'repeat']
 export const TASK_LIMITS = { maxPrompt: 80, maxAccept: 8, maxAcceptLen: 140, maxHint: 140, maxAnswers: 8, maxKeywords: 12, maxKeywordLen: 40, minPass: 0.5, maxPass: 1 }
 export const PASS_RATIO = 0.7
+
+// Минимум реплик сцены зависит от задания: say/repeat — одна («кот сказал — ты повторил/ответил»),
+// без задания и translate («О чём диалог», нужен контекст) — две. Единственное место правила.
+export function minLinesFor(scene) {
+  return VOICE_KINDS.includes(scene?.task?.kind) ? LIMITS.minLinesVoice : LIMITS.minLines
+}
 
 // Служебные слова, которые не несут смысла: их отсутствие или замена ответ не портят
 const STOP_WORDS = new Set([

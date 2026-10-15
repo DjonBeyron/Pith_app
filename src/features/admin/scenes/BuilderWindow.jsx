@@ -20,6 +20,7 @@ import FeedTestDialog from './feedTest/FeedTestDialog.jsx'
 import { useBuilderBack } from './useBuilderBack.js'
 import { returnNotice } from './feedTest/feedTestSandbox.js'
 import BackConfirm from './toolbar/BackConfirm.jsx'
+import { useUndoControls } from './history/useUndoControls.js'
 import '../../../styles/admin-signals.css'
 import '../../../styles/admin-scenes.css'
 import '../../../styles/admin-scenes-builder.css'
@@ -83,6 +84,8 @@ export default function BuilderWindow({ onClose: onCloseProp, initialScene = nul
   }, [voiceBusy, onCloseProp, setStatus])
 
   const back = useBuilderBack({ draft, voiceBusy, onClose, save: act.save })
+  // Отмена/повтор правок черновика: кнопки тулбара + Ctrl/Cmd+Z; пока открыт диалог поверх окна — клавиши выключены
+  const undoCtl = useUndoControls({ history: draft.history, setStatus, enabled: !feedTest && !back.ask })
   const ui = useBuilderUi({ lint: draft.lint, onClose, winRef })
   const { view, setView, panels, columns } = ui
 
@@ -101,7 +104,7 @@ export default function BuilderWindow({ onClose: onCloseProp, initialScene = nul
         <BuilderToolbar
           draft={draft} library={library} status={status} setStatus={setStatus} title={title}
           onSave={act.save} onApply={onApply ? () => onApply(draft.scene, draft.saved) : null} applyLabel={applyLabel} useMode={useMode}
-          onBack={back.requestBack} backRef={backRef} unsaved={back.unsaved} voice={voice} modes={modes} theme={ui.theme} onToggleTheme={ui.toggleTheme} onFeedTest={openFeedTest}
+          onBack={back.requestBack} backRef={backRef} undoCtl={undoCtl} unsaved={back.unsaved} voice={voice} modes={modes} theme={ui.theme} onToggleTheme={ui.toggleTheme} onFeedTest={openFeedTest}
         />
         <div className="fsViewTabs" role="tablist" aria-label="Разделы окна">
           {VIEWS.map(([id, label]) => (

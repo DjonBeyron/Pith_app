@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { Trash2 } from 'lucide-react'
+import { Trash2, Plus } from 'lucide-react'
+import IconBtn from './ui/IconBtn.jsx'
 import { TASK_LISTS } from './taskModel.js'
 import ScTip from './ScTip.jsx'
 
@@ -23,8 +24,8 @@ export default function TaskStringList({ field, label, tip, items, actions, note
         ))}
       </ol>
       <div className="scbAcceptRow">
-        <input className="fsNote" value={draft} maxLength={rule.len} onChange={e => setDraft(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); add() } }} placeholder={placeholder} aria-label={`Новый: ${itemLabel.toLowerCase()}`} disabled={full} />
-        <button type="button" className="fsBtn fsBtnSmall" onClick={add} disabled={!draft.trim() || full}>Добавить</button>
+        <input className="fsNote" data-native-undo="1" value={draft} maxLength={rule.len} onChange={e => setDraft(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); add() } }} placeholder={placeholder} aria-label={`Новый: ${itemLabel.toLowerCase()}`} disabled={full} />
+        <IconBtn Icon={Plus} label={`Добавить: ${itemLabel.toLowerCase()}`} onClick={add} disabled={!draft.trim() || full} />
       </div>
     </div>
   )

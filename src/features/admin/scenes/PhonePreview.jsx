@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
-import { VolumeX } from 'lucide-react'
+import { VolumeX, RotateCcw } from 'lucide-react'
+import IconBtn from './ui/IconBtn.jsx'
 import SceneRenderer from '../../scene/v2/SceneRenderer.jsx'
 import { unlockSceneAudio } from '../../scene/v2/sceneAudioUnlock.js'
 import Panel from './ui/Panel.jsx'
@@ -79,7 +80,7 @@ export default function PhonePreview({ scene, lint, budget, onHighlight, modes =
                   <button type="button" className="fsBtn fsBtnPrimary" onClick={() => call(status === 'playing' ? 'pause' : 'play')}>
                     {status === 'playing' ? 'Пауза' : status === 'paused' ? 'Продолжить' : 'Старт'}
                   </button>
-                  <button type="button" className="fsBtn" onClick={() => call('restart')}>Заново</button>
+                  <IconBtn Icon={RotateCcw} label="Заново" title="Проиграть сцену заново" onClick={() => call('restart')} />
                   <label className="scCheck"><input type="checkbox" checked={sound} onChange={e => setSound(e.target.checked)} /> звук</label>
                   {!sound && (
                     <button type="button" className="scbSoundOff" onClick={() => setSound(true)} title="Включить звук предпросмотра">

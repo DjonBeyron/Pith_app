@@ -9,9 +9,11 @@ import { useNarrow } from './toolbar/useNarrow.js'
 import ToolbarActions from './toolbar/ToolbarActions.jsx'
 import ToolbarStatus from './toolbar/ToolbarStatus.jsx'
 import ScTip from './ScTip.jsx'
+import UndoRedoButtons from './history/UndoRedoButtons.jsx'
 
 // Верхняя панель сборщика, слева направо: «← Назад» (закрытие окна; при несохранённых правках —
-// диалог BackConfirm в BuilderWindow; в нодe/модуле — возврат без применения), название окна,
+// диалог BackConfirm в BuilderWindow; в нодe/модуле — возврат без применения), «↶ Отменить»/«↷ Повторить»
+// (history/UndoRedoButtons), название окна,
 // поля «Название»/«id» сцены, индикаторы (ToolbarStatus), группа действий (ToolbarActions:
 // режимы предпросмотра (сегмент показа, тумблеры озвучки, «Сделать по умолчанию» — modes из
 // usePreviewModes) | «Озвучить ▾» (всё / текст / перевод) | «Применить»/«Сохранить»/«Новая» |
@@ -19,13 +21,13 @@ import ScTip from './ScTip.jsx'
 // описывает toolbar/toolbarModel.js — добавить новую можно только там. Окно уже NARROW_PX —
 // остаются главное действие и меню «⋯». Крестика нет: «Назад» его заменяет, Esc работает как раньше.
 // Ниже — «Новая» с подтверждением прямо в тулбаре (confirm() браузер может блокировать),
-// строка статуса и плашка «восстановлен черновик из резервной копии».
+// строка статуса (status.action — кнопка в строке, например «Отменить» после удаления сцены) и плашка «восстановлен черновик из резервной копии».
 // onApply (нода/модуль) — «Применить» первой кнопкой; «Сохранить в библиотеку» остаётся отдельной.
 export const NARROW_PX = 860
 
 export default function BuilderToolbar({
   draft, library, status, setStatus, title = 'Сборщик сцен', onSave, onApply = null, applyLabel = 'Применить к ноде', useMode = null,
-  onBack, backRef, theme, onToggleTheme, unsaved = null, voice = null, modes = null, forceNarrow = null, menuOpen = false, onFeedTest = null,
+  onBack, backRef, theme, onToggleTheme, undoCtl = null, unsaved = null, voice = null, modes = null, forceNarrow = null, menuOpen = false, onFeedTest = null,
 }) {
   const { scene, saved, dirty, errors, restoredAt, actions } = draft
   const [askNew, setAskNew] = useState(false)
@@ -67,6 +69,7 @@ export default function BuilderToolbar({
         <button ref={backRef} type="button" className="fsBtn scbBack" onClick={onBack} title="Назад: закрыть сборщик (Esc)">
           <ArrowLeft size={15} aria-hidden="true" />Назад
         </button>
+        {undoCtl && <UndoRedoButtons ctl={undoCtl} />}
         <h1 className="fsTitle">{title}</h1>
         <label className="scbField scbFieldTitle">
           <span className="scbFieldLabel">Название</span>
@@ -95,7 +98,12 @@ export default function BuilderToolbar({
           )}
           {library.missingTable && <p className="fsMsg fsMsg-warn">Библиотека недоступна: таблицы scenes нет в базе — примените миграцию. Черновик сохраняется на этом устройстве.</p>}
           {errors.length > 0 && <p className="fsMsg fsMsg-error">Ошибок линтера: {errors.length} — сохранить черновик можно, опубликовать нельзя</p>}
-          {status && <p className={`fsMsg fsMsg-${status.kind}`} role="status">{status.text}</p>}
+          {status && (
+            <p className={`fsMsg fsMsg-${status.kind}`} role="status">
+              {status.text}
+              {status.action && <> <button type="button" className="scbLink" data-action="status-action" onClick={status.action.run}>{status.action.label}</button></>}
+            </p>
+          )}
         </div>
       )}
     </header>

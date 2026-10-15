@@ -3,6 +3,7 @@ import { Volume2 } from 'lucide-react'
 import { VOICE_PRESETS, CUSTOM_VOICE, selectValue, presetOf, VOICE_SLIDERS, sliderValue, PREVIEW_PHRASE, charCost, defaultVoiceFor } from './voicePresets.js'
 import { DEFAULT_VOICE_ID } from '../../../scene/v2/sceneVoice.js'
 import ScTip from '../ScTip.jsx'
+import IconBtn from '../ui/IconBtn.jsx'
 
 // Голос ElevenLabs персонажа в CharacterForm: выпадающий список пресетов (с полом и
 // характером), поле своего voiceId, ползунки stability/similarity/speed и «Прослушать
@@ -65,9 +66,8 @@ export default function VoicePicker({ who, character, actions, voice = null }) {
       </div>
       {voice && (
         <div className="scbVoiceListen">
-          <button type="button" className="fsBtn fsBtnSmall" onClick={listen} disabled={!!voice.busy} title={`Фраза: «${PREVIEW_PHRASE}»`}>
-            <Volume2 size={13} /> {busy ? 'Генерирую…' : playing ? 'Играет…' : 'Прослушать голос'}
-          </button>
+          <IconBtn Icon={Volume2} label="Прослушать голос" title={`Прослушать голос. Фраза: «${PREVIEW_PHRASE}»`} onClick={listen} disabled={!!voice.busy} />
+          {(busy || playing) && <span className="scbSub" role="status">{busy ? 'Генерирую…' : 'Играет…'}</span>}
           <span className="scbSub">≈ {charCost(PREVIEW_PHRASE)} симв. квоты, файл не сохраняется</span>
           {err && <span className="scbVoiceErr" role="alert">{err}</span>}
         </div>

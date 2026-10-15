@@ -1,10 +1,12 @@
 import { useState } from 'react'
+import { RefreshCw, Copy, Download } from 'lucide-react'
+import IconBtn from './ui/IconBtn.jsx'
 import { copyText, downloadText } from './fileUtils.js'
 import ScTip from './ScTip.jsx'
 
 // Вкладка «JSON»: текст сцены v2 — экспорт (копировать, скачать), правка и «Применить»
 // (parseSceneV2 → ошибки по-русски с путями). Текст обновляется из черновика кнопкой
-// «Обновить из сборщика», чтобы не затирать то, что админ печатает.
+// значком «Обновить» (круговая стрелка), чтобы не затирать то, что админ печатает.
 export default function JsonPanel({ draft, setStatus }) {
   const [text, setText] = useState(() => draft.exportJson())
   const [errors, setErrors] = useState([])
@@ -23,9 +25,9 @@ export default function JsonPanel({ draft, setStatus }) {
     <div className="scbJson">
       <p className="scbSub">Полный JSON сцены <ScTip help="json" /> — его читает лента и хранит библиотека. Правьте и нажмите «Применить».</p>
       <div className="scbCtlRow">
-        <button type="button" className="fsBtn fsBtnSmall" onClick={refresh}>Обновить из сборщика</button>
-        <button type="button" className="fsBtn fsBtnSmall" onClick={copy}>Скопировать</button>
-        <button type="button" className="fsBtn fsBtnSmall" onClick={download}>Скачать .json</button>
+        <IconBtn Icon={RefreshCw} label="Обновить текст из сборщика" onClick={refresh} />
+        <IconBtn Icon={Copy} label="Скопировать JSON" onClick={copy} />
+        <IconBtn Icon={Download} label="Скачать .json" onClick={download} />
       </div>
       <textarea className="fsNote scbCode" value={text} onChange={e => setText(e.target.value)} spellCheck={false} aria-label="JSON сцены" rows={18} />
       <div className="scbCtlRow">

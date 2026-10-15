@@ -42,10 +42,10 @@ describe('удаление всех реплик: модель', () => {
     expect(saveBackup({ scene: s, savedId: null }, st)).toBe(true)
     expect(loadBackup(st).scene.timeline).toEqual([])
   })
-  it('линтер: пустой таймлайн — ошибка «минимум 2 реплики»; тест в ленте и «Применить» заблокированы как при любой ошибке', () => {
+  it('линтер: пустой таймлайн — ошибка «минимум N реплик» (у say/repeat — 1, иначе 2); тест в ленте и «Применить» заблокированы как при любой ошибке', () => {
     const lint = lintScene(clearTimeline(base()))
     const errs = lint.filter(x => x.level === 'error')
-    expect(errs.map(x => x.text)).toContain('timeline — минимум 2 реплики')
+    expect(errs.some(x => /^timeline — минимум [12] реплик/.test(x.text))).toBe(true)
     const st = sandboxState({ ...lintCounts(lint), hasScene: true })
     expect(st.canRun).toBe(false)
     // одна реплика — тоже ошибка, две валидные — годная сцена

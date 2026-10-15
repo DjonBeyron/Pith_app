@@ -13,7 +13,7 @@ export default function TemplatesGroup({ draft, setStatus }) {
   const use = t => {
     if (ask !== t.id && needsTemplateConfirm(draft)) { setAsk(t.id); return }
     setAsk(null)
-    draft.actions.load(fromScene(templateScene(t)))
+    draft.actions.load(fromScene(templateScene(t)), null, `шаблон «${t.title}»`)
     setStatus({ kind: 'ok', text: `Шаблон «${t.title}» загружен в сборщик — это копия, сохраните её как новую сцену` })
   }
   return (

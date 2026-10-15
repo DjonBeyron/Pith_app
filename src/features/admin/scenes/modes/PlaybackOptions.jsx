@@ -1,6 +1,8 @@
+import { RotateCcw } from 'lucide-react'
 import { sceneModes, DISPLAY_OPTIONS, VOICE_KEYS, VOICE_LABEL } from './sceneModes.js'
 import TranslationVoicePicker from '../voice/TranslationVoicePicker.jsx'
 import ScTip from '../ScTip.jsx'
+import IconBtn from '../ui/IconBtn.jsx'
 import { feedFrameSummary } from '../feedFrame/feedFrameModel.js'
 
 // Содержимое панели «Параметры воспроизведения» (BuilderSettings): режим показа текста (сегмент
@@ -53,7 +55,7 @@ export default function PlaybackOptions({ scene, actions, voice = null }) {
         <span className="scbFieldLabel">Кадр в ленте <ScTip help="feed_frame" /></span>
         <p className="scbSub">
           {feedFrameSummary(scene.options?.feedFrame)}. Положение и масштаб меняются в предпросмотре «Как в ленте» (центральная колонка).
-          {scene.options?.feedFrame && <> <button type="button" className="fsBtn fsBtnSmall" onClick={() => actions.setFeedFrame(null)}>Сбросить</button></>}
+          {scene.options?.feedFrame && <> <IconBtn Icon={RotateCcw} label="Сбросить кадр в ленте" onClick={() => actions.setFeedFrame(null)} /></>}
         </p>
       </div>
     </div>

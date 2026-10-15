@@ -126,7 +126,7 @@ describe('FeedFrameControls', () => {
     expect(out).toContain('min="0.6"')
     expect(out).toContain('max="1.6"')
     expect(out).toContain('min="-1"')
-    expect(out).toMatch(/Сбросить<\/button>/)
+    expect(out).toContain('aria-label="Сбросить кадрирование"')
     expect(out).toContain('disabled')
   })
 })

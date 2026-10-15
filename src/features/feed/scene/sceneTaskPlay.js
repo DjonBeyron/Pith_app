@@ -28,12 +28,19 @@ export function silenceScene(api, total) {
 
 // Детектор ПЕРВОГО полного проигрывания по состояниям режиссёра ({ status, index, total }), которые приходят только на
 // границах реплик. Сцена в ленте зациклена: 'ended' не наступает, а полный круг виден как «играла последняя реплика →
-// снова играет нулевая». Без loop — 'ended'. → { sawLast, done }; done ставится один раз
+// снова играет нулевая» (при одной реплике — «второе playing подряд»). Без loop — 'ended'. → { sawLast, done }; done ставится один раз
 export const initialPlay = () => ({ sawLast: false, done: false })
 
 export function trackPlay(p, { status, index, total }) {
   if (p.done || !total) return p
   if (status === 'ended') return { ...p, done: true }
+  // Одна реплика (повтори/ответь коту): последняя = нулевая. 1-е «playing» — реплика пошла, 2-е — loop начал её заново, т.е. она
+  // доиграла целиком. Пауза посреди реплики обнуляет счёт: продолжение играет реплику с начала
+  if (total === 1) {
+    if (status === 'paused') return p.sawLast ? initialPlay() : p
+    if (status !== 'playing') return p
+    return p.sawLast ? { ...p, done: true } : { ...p, sawLast: true }
+  }
   if (status !== 'playing') return p
   if (index === total - 1) return p.sawLast ? p : { ...p, sawLast: true }
   if (index === 0 && p.sawLast) return { ...p, done: true }

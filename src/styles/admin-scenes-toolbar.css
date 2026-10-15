@@ -26,6 +26,8 @@
 /* Действия: группы с разделителями, справа */
 .scbTbActions { margin-left: auto; display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px; }
 .scbTbGroup { display: inline-flex; align-items: center; gap: 6px; }
+.scbTbUndo { flex: none; gap: 4px; }
+@media (max-width: 480px) { .scbTb .fsTitle { display: none; } .scbTb .scbTbUndo { margin-right: auto; } } /* телефон: вместо урезанного «С…» — место под Отменить/Повторить */ /* «Отменить»/«Повторить» после «Назад» (history/UndoRedoButtons) */
 .scbTbGroup .fsBtn { display: inline-flex; align-items: center; gap: 5px; }
 .scbTbSep { align-self: stretch; width: 1px; min-height: 22px; background: var(--fs-border); }
 .scbTbMenu { position: relative; display: inline-flex; }

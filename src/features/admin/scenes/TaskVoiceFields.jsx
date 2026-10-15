@@ -1,7 +1,9 @@
+import { RotateCcw } from 'lucide-react'
 import { RATIO_MIN, RATIO_MAX, taskRatio } from './taskModelVoice.js'
 import TaskStringList from './TaskStringList.jsx'
 import TaskKeywords from './TaskKeywords.jsx'
 import ScTip from './ScTip.jsx'
+import IconBtn from './ui/IconBtn.jsx'
 
 // Поля голосовых заданий (kind say | repeat) в SceneTaskSection:
 //  · repeat — эталон (text целевой реплики, только показ) + допустимые варианты accept;
@@ -36,7 +38,7 @@ export default function TaskVoiceFields({ task, preview, actions }) {
         <span className="scbFieldLabel">Порог засчитывания <ScTip help="task_pass_ratio" /> <span className="scbCounter">{Math.round(ratio * 100)}%</span></span>
         <div className="scbAcceptRow">
           <input type="range" className="scbRange" min={RATIO_MIN} max={RATIO_MAX} step="0.05" value={ratio} onChange={e => actions.updateTask({ passRatio: Number(e.target.value) })} aria-label="Порог засчитывания" />
-          <button type="button" className="fsBtn fsBtnSmall" onClick={() => actions.updateTask({ passRatio: null })} disabled={task.passRatio == null}>Сбросить</button>
+          <IconBtn Icon={RotateCcw} label="Сбросить порог к 0.7" onClick={() => actions.updateTask({ passRatio: null })} disabled={task.passRatio == null} />
         </div>
         <p className="scbSub">0.7 — как в уроке «Сказать фразу». Выше — строже, ниже — прощает больше.</p>
       </div>

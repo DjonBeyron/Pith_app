@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import { useSoftRemove } from './history/useSoftRemove.js'
 import {
   listScenes, getScene, saveScene, duplicateScene, deleteScene, renameScene, setSceneStatus, isMissingTable, isRightsError,
 } from '../../../shared/api/scenesApi.js'
@@ -16,7 +17,7 @@ const errText = e => {
 }
 
 export function useSceneLibrary() {
-  const [items, setItems] = useState([])
+  const [rawItems, setItems] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [missingTable, setMissingTable] = useState(false)
@@ -46,12 +47,19 @@ export function useSceneLibrary() {
     } finally { setBusy(false) }
   }, [refresh])
 
+  // «Удалить» из библиотеки — мягко: строка прячется, в базе удаляется через 8 с, «Отменить» возвращает (useSoftRemove)
+  const soft = useSoftRemove({ commit: id => run(() => deleteScene(id)) })
+  const items = soft.hidden.length ? rawItems.filter(r => !soft.hidden.includes(r.id)) : rawItems
+
   return {
     items, loading, error, missingTable, busy, refresh,
     save: ({ id, title, scene, status }) => run(() => saveScene({ id, title, scene, status })),
     open: id => run(() => getScene(id)),
     duplicate: id => run(() => duplicateScene(id)),
     remove: id => run(() => deleteScene(id)),
+    removeSoon: soft.schedule,
+    undoRemove: soft.cancel,
+    pendingRemoval: soft.pending,
     rename: (id, title) => run(() => renameScene(id, title)),
     setStatus: (id, status) => run(() => setSceneStatus(id, status)),
     clearError: () => setError(''),

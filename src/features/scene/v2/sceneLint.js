@@ -48,7 +48,8 @@ function lintCharacters(scene, out) {
 function lintTimeline(scene, out) {
   const tl = Array.isArray(scene.timeline) ? scene.timeline : []
   const speakers = new Set(tl.map(l => l?.who))
-  for (const k of ['a', 'b']) if (tl.length && !speakers.has(k)) out.push({ level: 'warn', text: `timeline — персонаж '${k}' ни разу не говорит` })
+  // Одна реплика (задание «Повтори»/«Ответь коту»): второй кот просто слушает — это нормально
+  for (const k of ['a', 'b']) if (tl.length > 1 && !speakers.has(k)) out.push({ level: 'warn', text: `timeline — персонаж '${k}' ни разу не говорит` })
   let run = 0
   tl.forEach((l, i) => {
     if (!isObj(l)) return

@@ -57,22 +57,23 @@ describe('UseSceneMenu (разметка)', () => {
 })
 
 describe('шаблоны', () => {
-  it('две демо-сцены и пустая; копия получает свой id', () => {
+  it('четыре демо-сцены (две — из одной реплики) и пустая; копия получает свой id', () => {
     const list = templateList()
-    expect(list.map(t => t.title)).toEqual(['Про работу', 'Кофе-брейк', 'Пустая сцена'])
-    expect(list[2].scene.timeline).toHaveLength(2)
-    expect(Object.values(list[2].scene.slots).every(v => v === null)).toBe(true)
+    expect(list.map(t => t.title)).toEqual(['Про работу', 'Кофе-брейк', 'Одна реплика: Повтори', 'Одна реплика: Ответь коту', 'Пустая сцена'])
+    expect(list[4].scene.timeline).toHaveLength(2)
+    expect(list[2].scene.timeline).toHaveLength(1)
+    expect(Object.values(list[4].scene.slots).every(v => v === null)).toBe(true)
     expect(templateScene(list[0]).id).toBe(`${list[0].scene.id}-copy`)
-    expect(templateScene(list[2]).id).toBe('new-scene')
+    expect(templateScene(list[4]).id).toBe('new-scene')
   })
   it('подтверждение нужно только при реальных правках', () => {
     expect(needsTemplateConfirm({ dirty: true, scene: newDraft() })).toBe(false)
     expect(needsTemplateConfirm({ dirty: false, scene: { ...newDraft(), title: 'x' } })).toBe(false)
     expect(needsTemplateConfirm({ dirty: true, scene: { ...newDraft(), title: 'x' } })).toBe(true)
   })
-  it('разметка группы: три строки с «Использовать как основу» и «?»', () => {
+  it('разметка группы: пять строк с «Использовать как основу» и «?»', () => {
     const html = renderToStaticMarkup(<TemplatesGroup draft={{ dirty: false, scene: newDraft(), actions: {} }} setStatus={() => {}} />)
-    expect(html.match(/Использовать как основу/g)).toHaveLength(3)
+    expect(html.match(/Использовать как основу/g)).toHaveLength(5)
     expect(html).toContain('Шаблоны')
     expect(html).toContain('Кофе-брейк')
   })

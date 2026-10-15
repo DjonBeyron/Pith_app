@@ -4,7 +4,7 @@ import { getSprite } from './sprites/spriteRegistry.js'
 import {
   SCENE_VERSION_V2, CHARACTER_KEYS, GENDERS, EMOTIONS, POSES, LIMITS, isObj,
 } from './sceneConstants.js'
-import { validateTask } from './sceneTask.js'
+import { validateTask, minLinesFor } from './sceneTask.js'
 import { validateLineAudio } from './sceneValidateAudio.js'
 import { VOICE_RANGE } from './sceneVoice.js'
 import { validateSceneOptions } from './sceneOptions.js'
@@ -99,7 +99,10 @@ export function validateSceneV2(scene) {
 
   if (!Array.isArray(scene.timeline)) errors.push('timeline — массив реплик')
   else {
-    if (scene.timeline.length < LIMITS.minLines) errors.push(`timeline — минимум ${LIMITS.minLines} реплики`)
+    const minLines = minLinesFor(scene)
+    if (scene.timeline.length < minLines) {
+      errors.push(`timeline — минимум ${minLines} ${minLines === 1 ? 'реплика' : 'реплики'}${minLines > 1 ? ' (для задания «Повтори»/«Ответь коту» достаточно одной)' : ''}`)
+    }
     if (scene.timeline.length > LIMITS.maxLines) errors.push(`timeline — максимум ${LIMITS.maxLines} реплик (сейчас ${scene.timeline.length})`)
     scene.timeline.forEach((l, i) => validateLine(l, i, errors))
   }

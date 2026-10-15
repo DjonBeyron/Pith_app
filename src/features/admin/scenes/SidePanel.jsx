@@ -25,7 +25,7 @@ export default function SidePanel({ draft, library, onOpenRow, onSave, setStatus
     </div>
   )
   return (
-    <div className="scbSide">
+    <div className="scbSide" data-native-undo="1">
       <Panel id="side" title={label} extra={tabs}>
         {tab === 'json' && <JsonPanel draft={draft} setStatus={setStatus} />}
         {tab === 'ai' && <AiPanel draft={draft} setStatus={setStatus} />}

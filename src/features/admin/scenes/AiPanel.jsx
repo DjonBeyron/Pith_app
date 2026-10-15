@@ -25,7 +25,7 @@ export default function AiPanel({ draft, setStatus }) {
   }
   const load = () => {
     if (!report?.scene) return
-    draft.actions.load(report.scene)
+    draft.actions.load(report.scene, null, 'сцена от нейросети')
     setStatus({ kind: 'ok', text: 'Сцена нейросети загружена в сборщик (не в библиотеке — нажмите «Сохранить»)' })
   }
   const lintErrors = report?.lint.filter(x => x.level === 'error') ?? []

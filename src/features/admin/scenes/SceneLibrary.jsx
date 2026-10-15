@@ -1,17 +1,20 @@
 import { useState } from 'react'
+import { FolderOpen, Globe, EyeOff, Pencil, Copy, Trash2, RefreshCw, Check, X, Save } from 'lucide-react'
 import { STATUS_LABEL } from './sceneLabels.js'
 import ScTip from './ScTip.jsx'
+import IconBtn from './ui/IconBtn.jsx'
 import UseSceneMenu from './ui/UseSceneMenu.jsx'
 import TemplatesGroup from './ui/TemplatesGroup.jsx'
 import LinkModuleDialog from './ui/LinkModuleDialog.jsx'
 import { useSceneUse } from './ui/useSceneUse.js'
 
 // Вкладка «Мои сцены»: библиотека из таблицы scenes — список, открыть, создать (текущий
-// черновик как новую строку), дублировать, удалить (с подтверждением в строке),
-// переименовать, статус черновик/опубликована (публикация — только без ошибок линтера).
+// черновик как новую строку), дублировать, удалить (подтверждение в строке + «Отменить» в строке статуса
+// 8 секунд — мягкое удаление, history/useSoftRemove), переименовать, статус черновик/опубликована (публикация — только без ошибок линтера).
 // «Использовать» у каждой строки (ui/UseSceneMenu: в ноде урока / модуле ленты — прямое
 // действие через onApplyScene, в админке — меню: открыть, копия, привязать к модулю ленты
-// (LinkModuleDialog), скопировать id/JSON); группа «Шаблоны» (TemplatesGroup) внизу.
+// (LinkModuleDialog), скопировать id/JSON); остальные действия строки — иконочный ряд (IconBtn: открыть,
+// опубликовать/в черновик, переименовать, дублировать, удалить; подписи в aria-label/title); группа «Шаблоны» (TemplatesGroup) внизу.
 // Таблицы нет (миграция не применена) — понятное сообщение; сборщик живёт на локальном бэкапе.
 const fmt = iso => {
   const d = new Date(iso)
@@ -36,10 +39,26 @@ export default function SceneLibrary({ draft, library, onOpenRow, onSave, setSta
     const r = await library.setStatus(row.id, next)
     if (r && row.id === currentId) draft.actions.markSaved(r)
   }
-  const remove = async id => {
+  // Мягкое удаление: строка прячется сразу, в базе удаляется через 8 с; «Отменить» в строке статуса возвращает.
+  // Открытая сцена сразу отвязывается от строки (иначе «Сохранить» писало бы в удаляемую), при отмене привязка возвращается
+  const remove = row => {
     setAskDelete(null)
-    const ok = await library.remove(id)
-    if (ok && id === currentId) draft.actions.detach()
+    const prevSaved = draft.saved
+    const wasCurrent = row.id === currentId
+    const key = `undoDelete:${row.id}`
+    if (wasCurrent) draft.actions.detach()
+    library.removeSoon(row, () => setStatus(st => (st?.action?.id === key ? null : st)))
+    setStatus({
+      kind: 'ok', text: `Удалено: «${row.title}»`,
+      action: {
+        id: key, label: 'Отменить',
+        run: () => {
+          if (!library.undoRemove()) return
+          if (wasCurrent) draft.actions.restoreSaved(prevSaved)
+          setStatus({ kind: 'ok', text: `Сцена «${row.title}» возвращена в библиотеку` })
+        },
+      },
+    })
   }
   const rename = async () => {
     const title = renaming.title.trim()
@@ -53,8 +72,8 @@ export default function SceneLibrary({ draft, library, onOpenRow, onSave, setSta
   return (
     <div className="scbLib">
       <div className="scbCtlRow">
-        <button type="button" className="fsBtn fsBtnPrimary" onClick={createNew} disabled={busy || missingTable}>Сохранить как новую</button>
-        <button type="button" className="fsBtn fsBtnSmall" onClick={library.refresh} disabled={loading}>Обновить</button>
+        <button type="button" className="fsBtn fsBtnPrimary" onClick={createNew} disabled={busy || missingTable}><Save size={14} aria-hidden="true" /> Сохранить как новую</button>
+        <IconBtn Icon={RefreshCw} label="Обновить список сцен" onClick={library.refresh} disabled={loading} />
         <ScTip help="library_status" />
       </div>
       {missingTable && (
@@ -71,9 +90,9 @@ export default function SceneLibrary({ draft, library, onOpenRow, onSave, setSta
           <li key={row.id} className={`scbLibRow${row.id === currentId ? ' scbLibRowOn' : ''}`}>
             {renaming?.id === row.id ? (
               <form className="scbLibRename" onSubmit={e => { e.preventDefault(); rename() }}>
-                <input className="fsNote" value={renaming.title} maxLength={80} autoFocus onChange={e => setRenaming({ ...renaming, title: e.target.value })} aria-label="Новое название" />
-                <button type="submit" className="fsBtn fsBtnSmall">Ок</button>
-                <button type="button" className="fsBtn fsBtnSmall" onClick={() => setRenaming(null)}>Отмена</button>
+                <input className="fsNote" data-native-undo="1" value={renaming.title} maxLength={80} autoFocus onChange={e => setRenaming({ ...renaming, title: e.target.value })} aria-label="Новое название" />
+                <button type="submit" className="scbIcon" aria-label="Сохранить название" title="Сохранить название"><Check size={15} aria-hidden="true" /></button>
+                <IconBtn Icon={X} label="Отменить переименование" onClick={() => setRenaming(null)} />
               </form>
             ) : (
               <div className="scbLibMain">
@@ -84,17 +103,23 @@ export default function SceneLibrary({ draft, library, onOpenRow, onSave, setSta
             )}
             <div className="scbLibBtns">
               <UseSceneMenu row={row} mode={mode} onAction={use.act} disabled={busy} />
-              <button type="button" className="fsBtn fsBtnSmall" onClick={() => toggleStatus(row)} disabled={busy}>{row.status === 'published' ? 'В черновик' : 'Опубликовать'}</button>
-              <button type="button" className="fsBtn fsBtnSmall" onClick={() => setRenaming({ id: row.id, title: row.title })} disabled={busy}>Переименовать</button>
-              <button type="button" className="fsBtn fsBtnSmall" onClick={() => library.duplicate(row.id)} disabled={busy}>Дублировать</button>
-              {askDelete === row.id ? (
-                <span className="scbAsk" role="alert">
-                  Удалить? <button type="button" className="fsBtn fsBtnSmall scbDanger" onClick={() => remove(row.id)}>Да</button>
-                  <button type="button" className="fsBtn fsBtnSmall" onClick={() => setAskDelete(null)}>Нет</button>
-                </span>
-              ) : (
-                <button type="button" className="fsBtn fsBtnSmall scbDanger" onClick={() => setAskDelete(row.id)} disabled={busy}>Удалить</button>
-              )}
+              <span className="scbLibIcons" role="group" aria-label={`Действия со сценой «${row.title}»`}>
+                <IconBtn Icon={FolderOpen} label="Открыть в сборщике" onClick={() => onOpenRow(row.id)} disabled={busy} />
+                <IconBtn
+                  Icon={row.status === 'published' ? EyeOff : Globe} label={row.status === 'published' ? 'Снять с публикации (в черновик)' : 'Опубликовать в ленту'}
+                  onClick={() => toggleStatus(row)} disabled={busy}
+                />
+                <IconBtn Icon={Pencil} label="Переименовать" onClick={() => setRenaming({ id: row.id, title: row.title })} disabled={busy} />
+                <IconBtn Icon={Copy} label="Дублировать" onClick={() => library.duplicate(row.id)} disabled={busy} />
+                {askDelete === row.id ? (
+                  <span className="scbAsk" role="alert">
+                    Удалить? <button type="button" className="fsBtn fsBtnSmall scbDanger" onClick={() => remove(row)}>Да</button>
+                    <button type="button" className="fsBtn fsBtnSmall" onClick={() => setAskDelete(null)}>Нет</button>
+                  </span>
+                ) : (
+                  <IconBtn Icon={Trash2} danger label="Удалить" title="Удалить сцену (8 секунд можно отменить)" onClick={() => setAskDelete(row.id)} disabled={busy} />
+                )}
+              </span>
             </div>
           </li>
         ))}

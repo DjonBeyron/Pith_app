@@ -1,7 +1,8 @@
 import { PALETTE_PRESETS } from './sceneConstants.js'
 
-// Демо-сцены v2 — пример для админки, нейросети (легенда) и тестов. Обе
-// проходят lintScene без ошибок (см. sceneLint.test.js).
+// Демо-сцены v2 — пример для админки, нейросети (легенда) и тестов. Все
+// проходят lintScene без ошибок (см. sceneLint.test.js). Две последние — из одной реплики
+// (задания «Повтори» и «Ответь коту»: кот сказал — зритель повторил/ответил).
 
 export const demoOfficeScene = {
   version: 2,
@@ -66,4 +67,31 @@ export const demoCafeScene = {
   options: { bubbles: true, autoplay: false, loop: false },
 }
 
-export const DEMO_SCENES = [demoOfficeScene, demoCafeScene]
+const cafeCats = demoCafeScene.characters
+const cafeSlots = demoCafeScene.slots
+
+export const demoRepeatOneLineScene = {
+  version: 2,
+  id: 'demo-one-line-repeat',
+  title: 'Одна реплика: Повтори',
+  location: 'cafe',
+  characters: cafeCats,
+  slots: cafeSlots,
+  timeline: [{ who: 'a', text: 'Coffee, please!', emotion: 'happy' }],
+  options: { bubbles: true, autoplay: false, loop: false },
+  task: { kind: 'repeat', lineIndex: 0, accept: ['A coffee, please'], hint: 'Скажи так же, как кот' },
+}
+
+export const demoSayOneLineScene = {
+  version: 2,
+  id: 'demo-one-line-say',
+  title: 'Одна реплика: Ответь коту',
+  location: 'cafe',
+  characters: cafeCats,
+  slots: cafeSlots,
+  timeline: [{ who: 'b', text: 'What would you like to drink?', emotion: 'happy' }],
+  options: { bubbles: true, autoplay: false, loop: false },
+  task: { kind: 'say', lineIndex: 0, answers: ['Tea, please', 'I would like a coffee'], accept: ['Coffee, please'], keywords: ['tea', 'coffee'], hint: 'Назови любой напиток' },
+}
+
+export const DEMO_SCENES = [demoOfficeScene, demoCafeScene, demoRepeatOneLineScene, demoSayOneLineScene]

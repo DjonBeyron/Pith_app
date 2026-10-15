@@ -3,6 +3,7 @@ import { Volume2 } from 'lucide-react'
 import { VOICE_PRESETS, CUSTOM_VOICE, presetOf, voiceName, TRANSLATION_PREVIEW_PHRASE, charCost, TRANSLATION_VOICE_HINT, SUGGESTED_TRANSLATION_VOICE } from './voicePresets.js'
 import { translationVoiceSpec, DEFAULT_VOICE_ID } from '../../../scene/v2/sceneVoice.js'
 import ScTip from '../ScTip.jsx'
+import IconBtn from '../ui/IconBtn.jsx'
 
 // Голос ПЕРЕВОДА (диктор между репликами). Два места: у персонажа (who='a'|'b', value —
 // voice.translationVoiceId, пусто = «как у сцены») и общий для сцены (who=null, value —
@@ -58,9 +59,8 @@ export default function TranslationVoicePicker({ who = null, value, onChange, sc
       </p>
       {voice && (
         <div className="scbVoiceListen">
-          <button type="button" className="fsBtn fsBtnSmall" onClick={listen} disabled={!!voice.busy} title={`Фраза: «${TRANSLATION_PREVIEW_PHRASE}»`}>
-            <Volume2 size={13} /> {busy ? 'Генерирую…' : playing ? 'Играет…' : 'Прослушать голос перевода'}
-          </button>
+          <IconBtn Icon={Volume2} label="Прослушать голос перевода" title={`Прослушать голос перевода. Фраза: «${TRANSLATION_PREVIEW_PHRASE}»`} onClick={listen} disabled={!!voice.busy} />
+          {(busy || playing) && <span className="scbSub" role="status">{busy ? 'Генерирую…' : 'Играет…'}</span>}
           <span className="scbSub">≈ {charCost(TRANSLATION_PREVIEW_PHRASE)} симв. квоты, файл не сохраняется</span>
           {err && <span className="scbVoiceErr" role="alert">{err}</span>}
         </div>

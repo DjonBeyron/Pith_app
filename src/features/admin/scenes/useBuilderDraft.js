@@ -3,10 +3,10 @@ import { lintScene } from '../../scene/v2/sceneLint.js'
 import { sceneNodeBreakdown } from '../../scene/v2/sceneBudget.js'
 import { parseSceneV2 } from '../../scene/v2/sceneSchemaV2.js'
 import * as M from './builderModel.js'
-import * as T from './timelineOps.js'
-import * as TK from './taskModel.js'
-import * as MD from './modes/sceneModes.js'
-import { setFeedFrame } from './feedFrame/feedFrameModel.js'
+import * as H from './draftHistory.js'
+import * as D from './history/draftState.js'
+import { buildDraftActions } from './history/draftActions.js'
+import { sceneLoadLabel } from './history/historyLabels.js'
 import { saveBackup, loadBackup, clearBackup } from './draftBackup.js'
 
 // Состояние сборщика сцен: черновик (нормализованная сцена v2), привязка к строке
@@ -22,10 +22,15 @@ const BACKUP_DELAY = 400
 // тогда обновляет её, а не создаёт новую
 export function useBuilderDraft({ initialScene = null, initialRow = null, backup = true } = {}) {
   const [restored] = useState(() => (initialScene || !backup ? null : loadBackup()))
-  const [scene, setScene] = useState(() => (initialScene ? M.fromScene(initialScene) : (restored?.scene ?? M.newDraft())))
-  const [saved, setSaved] = useState(() => (initialScene && initialRow?.id
-    ? { id: initialRow.id, status: initialRow.status ?? 'draft', snapshot: M.fromScene(initialScene) }
-    : { id: restored?.savedId ?? null, status: 'draft', snapshot: null }))
+  // Одно состояние: сцена, привязка к библиотеке (saved) и история правок (hist) меняются атомарно
+  const [st, setSt] = useState(() => {
+    const scene = initialScene ? M.fromScene(initialScene) : (restored?.scene ?? M.newDraft())
+    const saved = initialScene && initialRow?.id
+      ? { id: initialRow.id, status: initialRow.status ?? 'draft', snapshot: M.fromScene(initialScene) }
+      : { id: restored?.savedId ?? null, status: 'draft', snapshot: null }
+    return D.initialState(scene, saved)
+  })
+  const { scene, saved, hist } = st
   const [restoredAt, setRestoredAt] = useState(restored?.at ?? null)
   const timer = useRef(null)
   const latest = useRef(null)
@@ -35,8 +40,8 @@ export function useBuilderDraft({ initialScene = null, initialRow = null, backup
   const errors = lint.filter(x => x.level === 'error')
   const dirty = saved.snapshot ? !M.sameScene(saved.snapshot, scene) : true
 
-  // Резервная копия — после паузы в правках; при размонтировании (закрыли окно) — сразу,
-  // из latest (ref обновляется в эффекте, не в рендере)
+  // Резервная копия — после паузы в правках (и после отмены/повтора — они меняют scene); при размонтировании
+  // (закрыли окно) — сразу, из latest (ref обновляется в эффекте, не в рендере)
   useEffect(() => {
     latest.current = { scene, savedId: saved.id }
     if (!backup) return undefined
@@ -46,64 +51,46 @@ export function useBuilderDraft({ initialScene = null, initialRow = null, backup
   }, [scene, saved.id, backup])
   useEffect(() => () => { if (backup && latest.current) saveBackup(latest.current) }, [backup])
 
-  const patch = useCallback(fn => setScene(s => fn(s)), [])
-  const tl = useCallback(fn => setScene(s => M.setTimeline(s, fn(s.timeline))), [])
+  // Правка сцены отдельным шагом истории / замена сцены целиком (history/draftState.js — чистые переходы)
+  const edit = useCallback((label, fn, key = null) => {
+    const at = Date.now()
+    setSt(s => D.editState(s, label, fn, key, at))
+  }, [])
+  const swap = useCallback((label, next, nextSaved = null) => {
+    const at = Date.now()
+    setSt(s => D.swapState(s, label, next, nextSaved, at))
+  }, [])
 
   const actions = useMemo(() => ({
-    setTitle: v => patch(s => M.setTitle(s, v)),
-    setId: v => patch(s => M.setId(s, v)),
-    setLocation: v => patch(s => M.setLocation(s, v)),
-    setSlot: (slotId, spriteId) => patch(s => M.setSlot(s, slotId, spriteId)),
-    clearSlots: () => patch(M.clearSlots),
-    fillDefaultSlots: () => patch(M.fillDefaultSlots),
-    updateCharacter: (k, p) => patch(s => M.updateCharacter(s, k, p)),
-    setPaletteColor: (k, c, v) => patch(s => M.setPaletteColor(s, k, c, v)),
-    applyPreset: (k, id) => patch(s => M.applyPalettePreset(s, k, id)),
-    setVoice: (k, p) => patch(s => M.setVoice(s, k, p)),
-    setOption: (n, v) => patch(s => M.setOption(s, n, v)),
-    // Режимы показа и озвучки (modes/sceneModes.js): пишутся в options только при вызове
-    setDisplay: m => patch(s => MD.setDisplay(s, m)),
-    setVoiceFlag: (k, v) => patch(s => MD.setVoiceFlag(s, k, v)),
-    setTranslationVoiceId: id => patch(s => MD.setTranslationVoiceId(s, id)),
-    setFeedFrame: f => patch(s => setFeedFrame(s, f)), // options.feedFrame — кадрирование в ленте (feedFrame/)
-    applyModes: override => patch(s => MD.applyOverrideToScene(s, override)),
-    addLine: after => tl(t => T.addLine(t, after)),
-    removeLine: i => patch(s => M.removeLine(s, i)), // задание сдвигается вместе с репликами (builderModel.removeLine)
-    clearTimeline: () => patch(M.clearTimeline),
-    moveLine: (i, d) => tl(t => T.moveLine(t, i, d)),
-    updateLine: (i, p) => tl(t => T.updateLine(t, i, p)),
-    duplicateLine: i => tl(t => T.duplicateLine(t, i)),
-    // Задание после сцены «О чём диалог» (taskModel.js)
-    setTaskKind: k => patch(s => TK.setTaskKind(s, k)),
-    updateTask: p => patch(s => TK.updateTask(s, p)),
-    addAccept: text => patch(s => TK.addAccept(s, text)),
-    updateAccept: (i, v) => patch(s => TK.updateAccept(s, i, v)),
-    removeAccept: i => patch(s => TK.removeAccept(s, i)),
-    addTaskItem: (f, text) => patch(s => TK.addItem(s, f, text)),
-    updateTaskItem: (f, i, v) => patch(s => TK.updateItem(s, f, i, v)),
-    removeTaskItem: (f, i) => patch(s => TK.removeItem(s, f, i)),
-    clearScene: () => patch(M.clearScene),
-    // Загрузить сцену целиком (из JSON, нейросети, библиотеки): row — строка библиотеки, если есть
-    load: (next, row = null) => {
+    ...buildDraftActions(edit),
+    // Загрузить сцену целиком (из JSON, нейросети, библиотеки): row — строка библиотеки, если есть; label — подпись шага отмены
+    load: (next, row = null, label = null) => {
       const s = M.fromScene(next)
-      setScene(s)
-      setSaved(row ? { id: row.id, status: row.status, snapshot: s } : { id: null, status: 'draft', snapshot: null })
+      swap(label ?? sceneLoadLabel(s.title), s, row ? { id: row.id, status: row.status, snapshot: s } : { id: null, status: 'draft', snapshot: null })
       setRestoredAt(null)
     },
     // Новая сцена — отвязана от библиотеки
-    reset: location => { setScene(M.newDraft(location)); setSaved({ id: null, status: 'draft', snapshot: null }); setRestoredAt(null); if (backup) clearBackup() },
+    reset: location => { swap('новая сцена', M.newDraft(location), { id: null, status: 'draft', snapshot: null }); setRestoredAt(null); if (backup) clearBackup() },
     // После успешного сохранения в библиотеку
-    markSaved: row => setSaved({ id: row.id, status: row.status, snapshot: M.fromScene(row.scene) }),
-    detach: () => setSaved({ id: null, status: 'draft', snapshot: null }),
+    markSaved: row => setSt(s => ({ ...s, saved: { id: row.id, status: row.status, snapshot: M.fromScene(row.scene) } })),
+    detach: () => setSt(s => ({ ...s, saved: { id: null, status: 'draft', snapshot: null } })),
+    restoreSaved: prev => setSt(s => ({ ...s, saved: prev })), // отмена удаления сцены из библиотеки
     dismissRestored: () => setRestoredAt(null),
-  }), [patch, tl, backup])
+  }), [edit, swap, backup])
 
   // Текст JSON → { ok, errors }; при успехе грузится в черновик (связь с библиотекой сохраняется)
   const applyJson = useCallback(text => {
     const r = parseSceneV2(text)
-    if (r.scene) setScene(r.scene)
+    if (r.scene) swap('применение JSON', r.scene)
     return { ok: !!r.scene, errors: r.errors }
-  }, [])
+  }, [swap])
 
-  return { scene, saved, dirty, lint, errors, budget, restoredAt, actions, applyJson, exportJson: () => M.exportJson(scene) }
+  // Отмена/повтор (draftHistory.js); подпись шага для строки статуса берёт вызывающий из history.undoLabel/redoLabel
+  const stepBy = useCallback(op => setSt(s => D.stepState(s, op)), [])
+  const history = useMemo(() => ({
+    canUndo: H.canUndo(hist), canRedo: H.canRedo(hist), undoLabel: H.undoLabel(hist), redoLabel: H.redoLabel(hist),
+    undo: () => stepBy(H.undo), redo: () => stepBy(H.redo),
+  }), [hist, stepBy])
+
+  return { scene, saved, dirty, lint, errors, budget, restoredAt, actions, applyJson, history, exportJson: () => M.exportJson(scene) }
 }

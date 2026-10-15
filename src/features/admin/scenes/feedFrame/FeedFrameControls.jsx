@@ -1,4 +1,6 @@
+import { RotateCcw } from 'lucide-react'
 import ScTip from '../ScTip.jsx'
+import IconBtn from '../ui/IconBtn.jsx'
 import { FEED_FRAME_LIMITS, FEED_FRAME_ANCHORS } from '../../../scene/v2/sceneFeedFrame.js'
 import { FEED_DEVICES } from '../../../feed/scene/feedSlideGeometry.js'
 
@@ -43,7 +45,7 @@ export default function FeedFrameControls({ device, onDevice, frame, onChange, o
         </div>
       </div>
       <div className="scbCtlRow">
-        <button type="button" className="fsBtn" onClick={onReset} disabled={isDefault}>Сбросить</button>
+        <IconBtn Icon={RotateCcw} label="Сбросить кадрирование" onClick={onReset} disabled={isDefault} />
         <label className="scCheck"><input type="checkbox" checked={showZones} onChange={e => onZones(e.target.checked)} /> опасные зоны</label>
         <ScTip help="feed_frame_zones" />
       </div>
