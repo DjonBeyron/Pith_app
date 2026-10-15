@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import TimelineLine from './TimelineLine.jsx'
-import { MAX_LINES, MIN_LINES } from './timelineOps.js'
+import { MAX_LINES } from './timelineOps.js'
+import { minLinesFor } from '../../scene/v2/sceneTask.js'
 import { sceneVoiceStats } from '../../scene/v2/sceneVoice.js'
 import { speakerVars } from './ui/colorContrast.js'
 import ScTip from './ScTip.jsx'
@@ -13,6 +14,7 @@ import ScTip from './ScTip.jsx'
 export default function TimelineEditor({ scene, actions, voice = null }) {
   const [askAll, setAskAll] = useState(false) // подтверждение «Удалить все реплики» — в строке, не confirm()
   const tl = scene.timeline
+  const minLines = minLinesFor(scene) // 1 для заданий say/repeat, иначе 2
   const names = { a: scene.characters.a.name, b: scene.characters.b.name }
   const st = sceneVoiceStats(scene)
   const remaining = voice?.quota ? Math.max(0, voice.quota.limit - voice.quota.used) : null
@@ -37,7 +39,7 @@ export default function TimelineEditor({ scene, actions, voice = null }) {
         </div>
       )}
       <div className="scbLinesHead">
-        <span className="scbSub">Реплик: <b>{tl.length}</b>{tl.length < MIN_LINES && <span className="scWarnTxt"> · нужно минимум {MIN_LINES}: пока их меньше, сцену нельзя ни применить, ни проверить в ленте</span>}</span>
+        <span className="scbSub">Реплик: <b>{tl.length}</b>{tl.length < minLines && <span className="scWarnTxt"> · нужно минимум {minLines}: пока их меньше, сцену нельзя ни применить, ни проверить в ленте</span>}</span>
         {askAll ? (
           <span className="scbAsk" role="alert">
             Удалить все {tl.length}? Вернуть можно только вручную.
@@ -50,7 +52,7 @@ export default function TimelineEditor({ scene, actions, voice = null }) {
           </button>
         )}
       </div>
-      {!tl.length && <p className="scbSub scbLinesEmpty" role="status">Реплик нет. Нажмите «+ Добавить реплику» — две первые уже сделают сцену годной.</p>}
+      {!tl.length && <p className="scbSub scbLinesEmpty" role="status">Реплик нет. Нажмите «+ Добавить реплику» — {minLines === 1 ? 'одна реплика уже сделает' : 'две первые уже сделают'} сцену годной.</p>}
       <ol className="scbLines">
         {tl.map((line, i) => (
           <TimelineLine

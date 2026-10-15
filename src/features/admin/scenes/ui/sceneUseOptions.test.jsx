@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { sceneUseMode, sceneUseOptions, USE_IN_LESSON_HINT } from './sceneUseOptions.js'
-import { templateList, needsTemplateConfirm, templateScene } from './sceneTemplates.js'
+import { templateList, needsTemplateConfirm, templateScene, linesNote } from './sceneTemplates.js'
 import { newDraft } from '../builderModel.js'
 import UseSceneMenu from './UseSceneMenu.jsx'
 import TemplatesGroup from './TemplatesGroup.jsx'
@@ -76,5 +76,16 @@ describe('шаблоны', () => {
     expect(html.match(/Использовать как основу/g)).toHaveLength(5)
     expect(html).toContain('Шаблоны')
     expect(html).toContain('Кофе-брейк')
+  })
+})
+
+describe('linesNote — склонение «реплика»', () => {
+  it('1 / 2 / 5 / 11 / 21 / 22', () => {
+    expect(linesNote(1)).toBe('1 реплика')
+    expect(linesNote(2)).toBe('2 реплики')
+    expect(linesNote(5)).toBe('5 реплик')
+    expect(linesNote(11)).toBe('11 реплик')
+    expect(linesNote(21)).toBe('21 реплика')
+    expect(linesNote(22)).toBe('22 реплики')
   })
 })

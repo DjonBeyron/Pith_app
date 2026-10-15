@@ -7,7 +7,6 @@ import { LIMITS, EMOTIONS, POSES } from '../../scene/v2/sceneConstants.js'
 
 export const MAX_TEXT = LIMITS.maxTextLen
 export const MAX_LINES = LIMITS.maxLines
-export const MIN_LINES = LIMITS.minLines
 
 // Новая реплика после afterIndex (по умолчанию — в конец): говорит тот, кто не говорил
 // в предыдущей, эмоция нейтральная

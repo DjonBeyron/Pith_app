@@ -73,9 +73,22 @@ describe('удаление всех реплик: интерфейс', () => {
     expect(full).not.toMatch(/disabled=""[^>]*>\s*Удалить все реплики/)
     const empty = renderToStaticMarkup(<TimelineEditor scene={clearTimeline(base())} actions={actions} />)
     expect(empty).toContain('Реплик нет')
-    expect(empty).toContain('нужно минимум 2')
+    expect(empty).toContain('нужно минимум 1')
     expect(empty).toMatch(/disabled=""[^>]*>\s*Удалить все реплики/)
     expect(empty).toMatch(/\+ Добавить реплику/)
     expect(empty).not.toMatch(/disabled=""[^>]*>\s*\+ Добавить реплику/)
+  })
+})
+
+describe('TimelineEditor — минимум реплик по заданию', () => {
+  const noop = () => {}
+  const actions = { clearTimeline: noop }
+  const one = s => ({ ...s, timeline: s.timeline.slice(0, 1) })
+  it('say: одна реплика достаточна, без задания — нужно минимум 2', () => {
+    const b = one(base())
+    const say = renderToStaticMarkup(<TimelineEditor scene={{ ...b, task: { kind: 'say' } }} actions={actions} />)
+    expect(say).not.toContain('нужно минимум')
+    const none = renderToStaticMarkup(<TimelineEditor scene={{ ...b, task: undefined }} actions={actions} />)
+    expect(none).toContain('нужно минимум 2')
   })
 })
