@@ -4,6 +4,11 @@
 // f-characters-a-name, f-slots. Компоненты формы ставят такие id на свои поля/блоки.
 // Если точного элемента нет (например, f-characters-a-palette-fur), ищется ближайший
 // предок по пути (f-characters-a-palette → f-characters-a).
+// Пути озвучки перевода и режимов (ядро sceneLint/sceneOptions) ведут к реальным id формы:
+// timeline[i].translationAudioUrl → f-timeline-i-translationAudioUrl (LineVoiceControls set=translation),
+// options.display → f-options-display, options.voice.translation → f-options-voice-translation,
+// options.translationVoiceId → f-options-translationVoiceId (modes/PlaybackOptions),
+// characters.a.voice.translationVoiceId → f-characters-a-voice-translationVoiceId (TranslationVoicePicker).
 
 const PATH_RE = /^([a-zA-Z]+(?:\[\d+\])?(?:\.[\w-]+)*)/
 const BUDGET_RE = /^Бюджет узлов/

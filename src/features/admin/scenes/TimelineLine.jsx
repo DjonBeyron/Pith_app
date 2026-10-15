@@ -9,14 +9,17 @@ import LineVoiceControls from './voice/LineVoiceControls.jsx'
 // текста», свёрнутая показывает только его). Кто говорит — кнопки «A · Рыжик / B · Дымка»:
 // выбранная ЗАЛИТА цветом персонажа (--spk-a/--spk-b с контрастным текстом, ставит
 // TimelineEditor), левая полоса карточки — тем же цветом. Эмоция, поза, текст со счётчиком,
-// перевод, озвучка (LineVoiceControls); кнопки вверх/вниз/дублировать/удалить в шапке панели
+// перевод (≤ 140, счётчик), два блока озвучки — текст и перевод (LineVoiceControls set=original|translation);
+// кнопки вверх/вниз/дублировать/удалить в шапке панели
 // (заблокированы, пока идёт озвучка — индексы плана). id — f-timeline-<i>-<поле>.
 // characters — для статуса «устарело» (hash по голосу персонажа).
 const snippet = text => { const t = String(text ?? '').trim(); return t.length > 36 ? `${t.slice(0, 36)}…` : t }
 
-export default function TimelineLine({ index: i, line, names, total, actions, characters = null, voice = null }) {
+export default function TimelineLine({ index: i, line, names, total, actions, characters = null, voice = null, scene = null }) {
   const p = `f-timeline-${i}`
   const left = charsLeft(line.text)
+  const trLen = String(line.translation ?? '').trim().length
+  const trLeft = MAX_TEXT - trLen
   const lock = !!voice?.busy
   const title = (
     <>
@@ -64,10 +67,13 @@ export default function TimelineLine({ index: i, line, names, total, actions, ch
           <textarea id={`${p}-text`} className="fsNote scbText" rows={2} value={line.text} maxLength={MAX_TEXT} onChange={e => actions.updateLine(i, { text: e.target.value })} placeholder="Реплика по-русски, со знаком в конце." />
         </label>
         <label className="scbField">
-          <span className="scbFieldLabel">Перевод / подсказка</span>
-          <input id={`${p}-translation`} className="fsNote" value={line.translation ?? ''} onChange={e => actions.updateLine(i, { translation: e.target.value })} placeholder="необязательно" />
+          <span className="scbFieldLabel">Перевод / подсказка <span className={trLeft < 0 ? 'scbCounter scbCounterBad' : trLeft < 30 ? 'scbCounter scbCounterWarn' : 'scbCounter'}>{trLen} / {MAX_TEXT}</span></span>
+          <input id={`${p}-translation`} className="fsNote" value={line.translation ?? ''} maxLength={MAX_TEXT} onChange={e => actions.updateLine(i, { translation: e.target.value })} placeholder="необязательно; озвучивается отдельным голосом" />
         </label>
-        <LineVoiceControls index={i} line={line} character={characters?.[line.who]} voice={voice} idPrefix={p} />
+        <div className="scbVoiceSets">
+          <LineVoiceControls index={i} line={line} character={characters?.[line.who]} voice={voice} idPrefix={p} set="original" scene={scene} />
+          <LineVoiceControls index={i} line={line} character={characters?.[line.who]} voice={voice} idPrefix={p} set="translation" scene={scene} />
+        </div>
       </Panel>
     </li>
   )

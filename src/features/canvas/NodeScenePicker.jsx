@@ -5,10 +5,12 @@ import { getScene } from '../../shared/api/scenesApi.js'
 import { demoOfficeScene } from '../scene/v2/demoScenes.js'
 import NodeSceneLibraryList from './NodeSceneLibraryList.jsx'
 import NodeSceneBuilderHost from './NodeSceneBuilderHost.jsx'
-import { pickRowPatch, applyBuilderPatch, clearScenePatch, sceneCheck, voiceLabel } from './scenePickerModel.js'
+import { pickRowPatch, applyBuilderPatch, clearScenePatch, sceneCheck, voiceLabel, voiceSummary } from './scenePickerModel.js'
+import NodeSceneModes from './NodeSceneModes.jsx'
 
 // Редактор ноды `scene` (канвас и продакшен-список): мини-превью статичным
-// кадром, название/реплики/бюджет, режим «Пузырь / Кружок», «Облачки»,
+// кадром, название/реплики/бюджет, сводка озвучки по наборам, режим «Пузырь / Кружок»,
+// переопределения показа/озвучки ноды (NodeSceneModes — вместо чекбокса «Облачки»),
 // библиотека сцен (снимок копируется в ноду, sceneId запоминается), сборщик
 // поверх канваса (NodeSceneBuilderHost → BuilderWindow в управляемом режиме),
 // «Обновить из библиотеки» (есть новая версия — предложить обновить снимок),
@@ -47,6 +49,7 @@ export default function NodeScenePicker({ tData, onChange }) {
         <div className="nodeSceneMeta">
           <div className="nodeSceneTitle">{preview ? sceneSummary(preview) : (raw ? 'Сцена повреждена' : 'Сцена не выбрана')}</div>
           {preview && <div className="nodeSceneSub">{voiceLabel(preview)} · {Math.round(check.bytes / 1024)} КБ{tData.sceneId ? ' · из библиотеки' : ''}</div>}
+          {preview && <div className="nodeSceneSub">{voiceSummary(preview)}</div>}
           <div className="nodeSceneBtns">
             <button type="button" className="nodeSceneBtn" onClick={() => { setLib(v => !v); setUpd(null) }}>Из библиотеки</button>
             <button type="button" className="nodeSceneBtn nodeSceneBtnPrimary" onClick={() => setBuilder(true)}>
@@ -79,11 +82,8 @@ export default function NodeScenePicker({ tData, onChange }) {
             >{label}</button>
           ))}
         </div>
-        <label className="nodeSceneCheck">
-          <input type="checkbox" checked={resolved.showBubbles} onChange={e => onChange({ showBubbles: e.target.checked })} />
-          Облачки с текстом
-        </label>
       </div>
+      {preview && <NodeSceneModes tData={tData} scene={preview} onChange={onChange} />}
 
       {(check.errors.length > 0 || check.warns.length > 0) && (
         <div className={`nodeSceneLint ${check.errors.length ? 'nodeSceneLint--err' : 'nodeSceneLint--warn'}`}>

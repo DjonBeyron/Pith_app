@@ -92,3 +92,9 @@
 .nodeSceneLibStatus { font-size: 10px; padding: 1px 6px; border-radius: 999px; background: rgba(255, 255, 255, 0.08); color: #b5b5c4; }
 .nodeSceneLibStatus-published { background: rgba(159, 211, 106, 0.18); color: #c8f09a; }
 .nodeSceneLibDate { font-size: 10px; color: #8f8fa3; }
+
+/* Переопределения ноды: показ текста, озвучка оригинала/перевода (NodeSceneModes.jsx) */
+.nodeSceneModes { display: flex; flex-direction: column; gap: 6px; }
+.nodeSceneModeRow { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.nodeSceneModeLabel { flex: 0 0 130px; color: #9a9aad; font-size: 11px; }
+.nodeSceneModes .nodeSceneSegBtn { padding: 4px 9px; font-size: 11px; }

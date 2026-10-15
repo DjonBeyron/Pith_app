@@ -5,18 +5,21 @@ import Panel from './ui/Panel.jsx'
 import BudgetBar from './BudgetBar.jsx'
 import LintPanel from './LintPanel.jsx'
 import ScTip from './ScTip.jsx'
+import { modesSummary } from './modes/sceneModes.js'
 
 // Центр сборщика — три панели (ui/Panel): «Предпросмотр» (телефонная рамка 9:16 с живым
-// SceneRenderer, Старт/Пауза/Заново, звук, «Живой / Статичный кадр», облачки, lite; на весь
+// SceneRenderer, Старт/Пауза/Заново, звук, «Живой / Статичный кадр», сводка режима показа/озвучки
+// (сами переключатели — в тулбаре, пропы display/voice из usePreviewModes), lite; на весь
 // экран — рамка по высоте экрана, 9:16 по центру), «Бюджет узлов» (BudgetBar) и «Замечания
 // линтера» (LintPanel; клик — подсветка поля через onHighlight с раскрытием панелей).
 // Сцена с ошибками валидации всё равно рисуется (нормализованная), чтобы было видно, что чинить.
 // SceneRenderer не пересоздаётся при ресайзе колонок/панелей — размер рамки задаёт только CSS.
-export default function PhonePreview({ scene, lint, budget, onHighlight }) {
+// modes — usePreviewModes (переопределения display/voice предпросмотра; null — как в сцене)
+export default function PhonePreview({ scene, lint, budget, onHighlight, modes = null }) {
   const [mode, setMode] = useState('live')
   const [frame, setFrame] = useState(0)
-  const [bubbles, setBubbles] = useState(true)
   const [lite, setLite] = useState(false)
+  const ov = modes?.props ?? {}
   const [sound, setSound] = useState(true)
   const [status, setStatus] = useState('idle') // статус режиссёра для подписи кнопки
   const apiRef = useRef(null)
@@ -41,7 +44,7 @@ export default function PhonePreview({ scene, lint, budget, onHighlight }) {
           <div className="scbPhone">
             <SceneRenderer
               key={mode} scene={scene} mode={mode} frameIndex={mode === 'static' ? safeFrame : null}
-              showBubbles={bubbles} lite={lite} sound={sound} apiRef={apiRef} active
+              display={ov.display} voice={ov.voice} lite={lite} sound={sound} apiRef={apiRef} active
             />
           </div>
         </div>
@@ -73,9 +76,9 @@ export default function PhonePreview({ scene, lint, budget, onHighlight }) {
               </div>
               <ScTip help="frame_mode" />
             </span>
-            <span className="scbCtlGroup">
-              <label className="scCheck"><input type="checkbox" checked={bubbles} onChange={e => setBubbles(e.target.checked)} /> облачки</label>
-              <ScTip help="bubbles" />
+            <span className="scbCtlGroup scbPreviewModes" title="Режим показа и озвучка предпросмотра — переключаются в верхней панели">
+              <span className="scbSub">{modesSummary(scene, modes?.override)}{modes?.overridden?.any ? ' · предпросмотр' : ''}</span>
+              <ScTip help="display_mode" />
             </span>
             <span className="scbCtlGroup">
               <label className="scCheck"><input type="checkbox" checked={lite} onChange={e => setLite(e.target.checked)} /> lite</label>

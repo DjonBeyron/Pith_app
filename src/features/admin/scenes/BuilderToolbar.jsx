@@ -13,7 +13,9 @@ import ScTip from './ScTip.jsx'
 // Верхняя панель сборщика, слева направо: «← Назад» (закрытие окна; при несохранённых правках —
 // диалог BackConfirm в BuilderWindow; в нодe/модуле — возврат без применения), название окна,
 // поля «Название»/«id» сцены, индикаторы (ToolbarStatus), группа действий (ToolbarActions:
-// «Озвучить всё» | «Применить»/«Сохранить»/«Новая» | «Свернуть все»/тема, затем «?»). Кнопки
+// режимы предпросмотра (сегмент показа, тумблеры озвучки, «Сделать по умолчанию» — modes из
+// usePreviewModes) | «Озвучить ▾» (всё / текст / перевод) | «Применить»/«Сохранить»/«Новая» |
+// «Свернуть все»/тема, затем «?»). Кнопки
 // описывает toolbar/toolbarModel.js — добавить новую можно только там. Окно уже NARROW_PX —
 // остаются главное действие и меню «⋯». Крестика нет: «Назад» его заменяет, Esc работает как раньше.
 // Ниже — «Новая» с подтверждением прямо в тулбаре (confirm() браузер может блокировать),
@@ -23,7 +25,7 @@ export const NARROW_PX = 860
 
 export default function BuilderToolbar({
   draft, library, status, setStatus, title = 'Сборщик сцен', onSave, onApply = null, applyLabel = 'Применить к ноде', useMode = null,
-  onBack, backRef, theme, onToggleTheme, unsaved = null, voice = null, forceNarrow = null, menuOpen = false,
+  onBack, backRef, theme, onToggleTheme, unsaved = null, voice = null, modes = null, forceNarrow = null, menuOpen = false,
 }) {
   const { scene, saved, dirty, errors, restoredAt, actions } = draft
   const [askNew, setAskNew] = useState(false)
@@ -42,9 +44,11 @@ export default function BuilderToolbar({
   const onNew = () => { if (dirty) setAskNew(true); else reset() }
   const all = panels?.allCollapsed(null)
 
+  const allDone = st ? st.ready === st.total && st.translation.ready === st.translation.withText : false
   const list = buildToolbarActions({
     mode: sceneUseMode({ onApply, useMode }),
-    voice: voice ? { run: voice.openAll, disabled: voice.busy || st.ready === st.total, hint: st.ready === st.total ? 'Все реплики уже озвучены' : 'Озвучить реплики без актуального файла, по одной' } : null,
+    voice: voice ? { run: sets => voice.openAll(sets), disabled: !!voice.busy, stats: st, hint: allDone ? 'Все реплики уже озвучены (текст и перевод)' : 'Озвучить реплики без актуального файла, по одной; стрелка — только текст / только перевод' } : null,
+    modes,
     save: {
       label: library.busy ? 'Сохраняю…' : saved.id ? 'Сохранить' : 'Сохранить в библиотеку', run: () => onSave(), disabled: !canSave,
       hint: library.missingTable ? 'Таблицы scenes нет — черновик хранится только на этом устройстве' : 'Сохранить сцену в библиотеку',
@@ -71,7 +75,7 @@ export default function BuilderToolbar({
           <span className="scbFieldLabel">id</span>
           <input id="f-id" className="fsNote scbMono" value={scene.id} maxLength={40} onChange={e => actions.setId(e.target.value)} spellCheck={false} />
         </label>
-        <ToolbarStatus saved={saved} unsaved={hasUnsaved} voice={st} quotaLeft={remaining} />
+        <ToolbarStatus saved={saved} unsaved={hasUnsaved} voice={st} quotaLeft={remaining} modes={modes?.overridden ?? null} />
         <ToolbarActions actions={list} narrow={narrow} menuOpen={menuOpen} extra={<ScTip help="panels" />} />
       </div>
       {askNew && (

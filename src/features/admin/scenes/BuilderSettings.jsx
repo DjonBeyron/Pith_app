@@ -4,10 +4,12 @@ import SlotsGrid from './SlotsGrid.jsx'
 import CharacterForm from './CharacterForm.jsx'
 import TimelineEditor from './TimelineEditor.jsx'
 import SceneTaskSection from './SceneTaskSection.jsx'
+import PlaybackOptions from './modes/PlaybackOptions.jsx'
 
 // Левая колонка сборщика — сворачиваемые панели (ui/Panel): «Локация», «Ячейки предметов»
 // (SlotsGrid), «Персонажи» (CharacterForm A и B — вложенные панели), «Реплики» (TimelineEditor),
-// «Задание после сцены» (SceneTaskSection), «Параметры воспроизведения». Ключи панелей
+// «Задание после сцены» (SceneTaskSection), «Параметры воспроизведения» (modes/PlaybackOptions:
+// режим показа, озвучка оригинала/перевода, голос перевода, автозапуск/повтор). Ключи панелей
 // (location, slots, characters, timeline, task, options) — те же, что в lintPanelMap.js;
 // id вида f-… нужны подсветке замечаний линтера (lintFieldMap.js).
 // voice — API озвучки ElevenLabs (useSceneVoice) для персонажей и реплик
@@ -39,8 +41,8 @@ export default function BuilderSettings({ scene, actions, savedId = null, setSta
 
       <Panel id="characters" title="Персонажи" fieldId="f-characters">
         <div className="scbChars">
-          <CharacterForm who="a" character={scene.characters.a} actions={actions} voice={voice} />
-          <CharacterForm who="b" character={scene.characters.b} actions={actions} voice={voice} />
+          <CharacterForm who="a" character={scene.characters.a} actions={actions} voice={voice} scene={scene} />
+          <CharacterForm who="b" character={scene.characters.b} actions={actions} voice={voice} scene={scene} />
         </div>
       </Panel>
 
@@ -51,13 +53,7 @@ export default function BuilderSettings({ scene, actions, savedId = null, setSta
       <SceneTaskSection scene={scene} actions={actions} savedId={savedId} setStatus={setStatus} />
 
       <Panel id="options" title="Параметры воспроизведения" fieldId="f-options">
-        <div className="scbOptions">
-          {[['bubbles', 'облачки'], ['autoplay', 'автозапуск'], ['loop', 'повтор по кругу']].map(([k, label]) => (
-            <label key={k} className="scCheck" id={`f-options-${k}`}>
-              <input type="checkbox" checked={!!scene.options[k]} onChange={e => actions.setOption(k, e.target.checked)} /> {label}
-            </label>
-          ))}
-        </div>
+        <PlaybackOptions scene={scene} actions={actions} voice={voice} />
       </Panel>
     </div>
   )

@@ -6,6 +6,8 @@ import { getScene, saveScene } from '../../shared/api/scenesApi.js'
 import { updateCurriculumScene } from '../../shared/lib/curriculaApi.js'
 import ModuleSceneLibrary from './ModuleSceneLibrary.jsx'
 import { sceneLinkState, sceneLinkText, sceneLinkTone, builderSavePayload } from './moduleSceneModel.js'
+import { modesSummary } from '../admin/scenes/modes/sceneModes.js'
+import { voiceSummary } from '../canvas/scenePickerModel.js'
 
 // Режим «Сцена» панели медиа модуля (ModuleVideoPanel): привязка сцены библиотеки к
 // модулю ленты (curricula.scene_id). Проверяет привязанную строку (getScene): опубликована /
@@ -13,6 +15,7 @@ import { sceneLinkState, sceneLinkText, sceneLinkTone, builderSavePayload } from
 // библиотеки» (только published, ModuleSceneLibrary), «Создать / править в сборщике»
 // (тот же BuilderWindow, что у ноды канваса; «Применить» = сохранить в библиотеку как
 // published и привязать), «Убрать сцену». Сцена в ленте заменяет видео — видео остаётся запасным.
+// Режимы показа/озвучки лента берёт из options сцены — здесь только сводка и ссылка «править в сборщике».
 export default function ModuleScenePanel({ curriculumId, sceneId, hasVideo, onChange }) {
   // Ответ getScene помечен id, для которого получен: сменился sceneId — старый ответ
   // не считается (loaded = false), без синхронного сброса состояния в эффекте
@@ -68,7 +71,8 @@ export default function ModuleScenePanel({ curriculumId, sceneId, hasVideo, onCh
           </div>
           <div className="msCandMeta">
             <div className="msCandTitle">{row.title}</div>
-            <div className="mvHint">{(row.scene.timeline ?? []).length} реплик</div>
+            <div className="mvHint">{(row.scene.timeline ?? []).length} реплик · {voiceSummary(row.scene)}</div>
+            <div className="mvHint" title="Лента берёт режимы из options сцены; поменять — «Править в сборщике» → Параметры воспроизведения">{modesSummary(row.scene)} — <button type="button" className="msLink" onClick={() => setBuilder(true)} disabled={!!busy}>править в сборщике</button></div>
           </div>
         </div>
       )}

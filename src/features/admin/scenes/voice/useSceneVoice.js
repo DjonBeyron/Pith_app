@@ -1,25 +1,25 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import { getElevenLabsQuota } from '../../../../shared/lib/ttsApi.js'
-import { audioHash, voiceSpec } from '../../../scene/v2/sceneVoice.js'
-import { planVoiceAll, runVoicePlan, patchFromLine } from './voicePlan.js'
-import { generateLineAudio, removeOrphan, clearAudioPatch, defaultDeps, ttsRequest } from './voiceGenerate.js'
+import { audioHash, audioPartOf, translationVoiceSpec, voiceSpec } from '../../../scene/v2/sceneVoice.js'
+import { patchFromLine, toSetPatch, setSpec, setText } from './voicePlan.js'
+import { generateSetAudio, removeOrphan, clearAudioPatch, defaultDeps, ttsRequest } from './voiceAllDeps.js'
+import { useVoiceAll } from './useVoiceAll.js'
 import { createPreviewPlayer } from './audioPreview.js'
-import { PREVIEW_PHRASE } from './voicePresets.js'
+import { PREVIEW_PHRASE, TRANSLATION_PREVIEW_PHRASE } from './voicePresets.js'
+import { lineKey } from './voiceStatus.js'
 
-// Состояние озвучки в сборщике: по реплике (busy/error), прогон «Озвучить всё»
-// (confirm → running → done), квота ElevenLabs, предпрослушка. Правки сцены идут
-// через draft.actions.updateLine — поля озвучки сохраняются как обычные поля
-// (черновик → библиотека/нода). Пока идёт генерация, busy=true: окно не закрывается,
-// реплики не переставляются (иначе индексы плана уедут).
+// Состояние озвучки в сборщике: по реплике и набору (busy/error; оригинал — ключ i, перевод —
+// 't<i>', voiceStatus.lineKey), прогон «Озвучить всё» (useVoiceAll), квота ElevenLabs,
+// предпрослушка. Правки сцены идут через draft.actions.updateLine — поля озвучки сохраняются как
+// обычные поля (черновик → библиотека/нода). Пока идёт генерация, busy=true: окно не закрывается,
+// реплики не переставляются (иначе индексы плана уедут). set: 'original' | 'translation'.
 
 export function useSceneVoice(draft, deps = defaultDeps, { quotaFn = getElevenLabsQuota } = {}) {
-  const [lines, setLines] = useState({})     // index → { busy: true } | { error: строка }
-  const [all, setAll] = useState(null)       // null | { phase, plan, current?, progress?, result? }
+  const [lines, setLines] = useState({})     // lineKey → { busy: true } | { error: строка }
   const [quota, setQuota] = useState(null)   // { used, limit } | null — функция недоступна локально
   const [playing, setPlaying] = useState(null)
-  const [previewBusy, setPreviewBusy] = useState(null) // 'a' | 'b' | null
+  const [previewBusy, setPreviewBusy] = useState(null) // 'a' | 'b' | 'scene' | 'tr-a' … | null
   const sceneRef = useRef(draft.scene)
-  const stopRef = useRef(false)
   const playerRef = useRef(null)
   const actions = draft.actions
 
@@ -34,7 +34,10 @@ export function useSceneVoice(draft, deps = defaultDeps, { quotaFn = getElevenLa
   const refreshQuota = useCallback(() => { quotaFn().then(setQuota).catch(() => {}) }, [quotaFn])
   useEffect(() => { refreshQuota() }, [refreshQuota])
 
-  const busy = all?.phase === 'running' || previewBusy !== null || Object.values(lines).some(l => l.busy)
+  const setLine = useCallback((i, v, set = 'original') => setLines(s => { const k = lineKey(i, set); const n = { ...s }; if (v) n[k] = v; else delete n[k]; return n }), [])
+  const allApi = useVoiceAll({ sceneRef, deps, actions, setLine, refreshQuota })
+
+  const busy = allApi.running || previewBusy !== null || Object.values(lines).some(l => l.busy)
   useEffect(() => {
     if (!busy) return undefined
     const guard = e => { e.preventDefault(); e.returnValue = '' }
@@ -42,51 +45,63 @@ export function useSceneVoice(draft, deps = defaultDeps, { quotaFn = getElevenLa
     return () => window.removeEventListener('beforeunload', guard)
   }, [busy])
 
-  const setLine = useCallback((i, v) => setLines(s => { const n = { ...s }; if (v) n[i] = v; else delete n[i]; return n }), [])
-
-  // Озвучить одну реплику: force — заново, минуя кэш по hash
-  const voiceLine = useCallback(async (i, { force = false } = {}) => {
+  // Озвучить одну реплику (набор set): force — заново, минуя кэш по hash (кэш смотрит оба набора)
+  const voiceLine = useCallback(async (i, { force = false, set = 'original' } = {}) => {
     const scene = sceneRef.current
     const line = scene.timeline[i]
-    if (!line?.text?.trim() || lines[i]?.busy) return
-    setLine(i, { busy: true })
-    const oldUrl = line.audioUrl
+    const text = setText(set, line)
+    if (!text || lines[lineKey(i, set)]?.busy) return
+    setLine(i, { busy: true }, set)
+    const urlKey = set === 'translation' ? 'translationAudioUrl' : 'audioUrl'
+    const oldUrl = line[urlKey]
     try {
       const character = scene.characters[line.who]
-      const hash = audioHash(line.text, voiceSpec(character))
-      const cached = force ? null : scene.timeline.find((l, j) => j !== i && l?.audioUrl && l.audioMeta?.hash === hash)
-      const patch = cached ? patchFromLine(cached) : await generateLineAudio(line.text, character, deps)
+      const hash = audioHash(text, setSpec(set, character, scene))
+      let cached = null
+      if (!force) {
+        for (const s of ['original', 'translation']) {
+          const j = scene.timeline.findIndex((l, k) => !(k === i && s === set) && audioPartOf(l, s)?.audioUrl && audioPartOf(l, s)?.audioMeta?.hash === hash)
+          if (j >= 0) { cached = patchFromLine(scene.timeline[j], s); break }
+        }
+      }
+      const patch = toSetPatch(cached ?? await generateSetAudio(set, line, character, scene, deps), set)
       actions.updateLine(i, patch)
-      if (oldUrl && oldUrl !== patch.audioUrl) removeOrphan(scene.timeline, oldUrl, i, deps)
-      setLine(i, null)
+      if (oldUrl && oldUrl !== patch[urlKey]) removeOrphan(scene.timeline, oldUrl, i, deps, set)
+      setLine(i, null, set)
       if (!cached) refreshQuota()
     } catch (e) {
-      setLine(i, { error: e?.message || String(e) })
+      setLine(i, { error: e?.message || String(e) }, set)
     }
   }, [lines, deps, actions, setLine, refreshQuota])
 
-  const removeLineAudio = useCallback(i => {
+  const removeLineAudio = useCallback((i, set = 'original') => {
     const scene = sceneRef.current
-    const url = scene.timeline[i]?.audioUrl
-    actions.updateLine(i, clearAudioPatch())
-    setLine(i, null)
-    if (url) removeOrphan(scene.timeline, url, i, deps)
+    const url = audioPartOf(scene.timeline[i], set)?.audioUrl
+    actions.updateLine(i, clearAudioPatch(set))
+    setLine(i, null, set)
+    if (url) removeOrphan(scene.timeline, url, i, deps, set)
   }, [actions, deps, setLine])
 
-  const playLine = useCallback(i => {
-    const url = sceneRef.current.timeline[i]?.audioUrl
+  const playLine = useCallback((i, set = 'original') => {
+    const url = audioPartOf(sceneRef.current.timeline[i], set)?.audioUrl
     if (!url) return
-    if (playing === i) { playerRef.current?.stop(); return }
-    playerRef.current?.play(url, i).catch(e => setLine(i, { error: e.message }))
+    const key = lineKey(i, set)
+    if (playing === key) { playerRef.current?.stop(); return }
+    playerRef.current?.play(url, key).catch(e => setLine(i, { error: e.message }, set))
   }, [playing, setLine])
 
-  // «Прослушать голос» персонажа: тестовая фраза, файл не сохраняется (квота тратится)
-  const previewVoice = useCallback(async who => {
-    if (previewBusy) return
-    setPreviewBusy(who)
+  // «Прослушать голос»: who — персонаж ('a'/'b'), kind 'translation' — голос перевода (who null —
+  // общий голос сцены). Тестовая фраза, файл не сохраняется (квота тратится). Возвращает текст ошибки
+  const previewVoice = useCallback(async (who, kind = 'original') => {
+    if (previewBusy) return null
+    const key = kind === 'translation' ? `tr-${who ?? 'scene'}` : who
+    setPreviewBusy(key)
     try {
-      const { file } = await deps.tts(PREVIEW_PHRASE, ttsRequest(voiceSpec(sceneRef.current.characters[who])))
-      await playerRef.current?.play(file, `voice-${who}`)
+      const scene = sceneRef.current
+      const ch = who ? scene.characters[who] : null
+      const spec = kind === 'translation' ? translationVoiceSpec(ch, scene) : voiceSpec(ch)
+      const { file } = await deps.tts(kind === 'translation' ? TRANSLATION_PREVIEW_PHRASE : PREVIEW_PHRASE, ttsRequest(spec))
+      await playerRef.current?.play(file, `voice-${key}`)
       refreshQuota()
       return null
     } catch (e) {
@@ -94,38 +109,10 @@ export function useSceneVoice(draft, deps = defaultDeps, { quotaFn = getElevenLa
     } finally { setPreviewBusy(null) }
   }, [previewBusy, deps, refreshQuota])
 
-  // «Озвучить всё»: план → подтверждение (диалог) → последовательный прогон → итог
-  const openAll = useCallback(() => { setAll({ phase: 'confirm', plan: planVoiceAll(sceneRef.current) }); refreshQuota() }, [refreshQuota])
-  const stopAll = useCallback(() => { stopRef.current = true }, [])
-  const closeAll = useCallback(() => setAll(a => (a?.phase === 'running' ? a : null)), [])
-  const startAll = useCallback(async () => {
-    const plan = all?.plan
-    if (!plan || all.phase !== 'confirm' || !plan.items.length) return
-    stopRef.current = false
-    setAll({ phase: 'running', plan, current: null, progress: { done: 0, total: plan.items.length, ok: 0, failed: [] } })
-    const result = await runVoicePlan(plan, {
-      generate: item => { setAll(a => ({ ...a, current: item.index })); return generateLineAudio(item.text, sceneRef.current.characters[item.who], deps) },
-      reusePatch: j => patchFromLine(sceneRef.current.timeline[j]),
-      apply: (i, patch) => {
-        const tl = sceneRef.current.timeline
-        const old = tl[i]?.audioUrl
-        actions.updateLine(i, patch)
-        setLine(i, null)
-        if (old && old !== patch.audioUrl) removeOrphan(tl, old, i, deps)
-      },
-      onProgress: p => setAll(a => ({
-        ...a, current: null,
-        progress: { done: p.done, total: p.total, ok: a.progress.ok + (p.ok ? 1 : 0), failed: p.ok ? a.progress.failed : [...a.progress.failed, { index: p.index, error: p.error }] },
-      })),
-      isStopped: () => stopRef.current,
-    })
-    setAll(a => ({ ...a, phase: 'done', current: null, result }))
-    refreshQuota()
-  }, [all, deps, actions, setLine, refreshQuota])
-
+  const { all, openAll, setSets, startAll, stopAll, closeAll } = allApi
   return useMemo(() => ({
     lines, all, quota, busy, playing, previewBusy,
     voiceLine, removeLineAudio, playLine, previewVoice,
-    openAll, startAll, stopAll, closeAll, refreshQuota,
-  }), [lines, all, quota, busy, playing, previewBusy, voiceLine, removeLineAudio, playLine, previewVoice, openAll, startAll, stopAll, closeAll, refreshQuota])
+    openAll, setSets, startAll, stopAll, closeAll, refreshQuota,
+  }), [lines, all, quota, busy, playing, previewBusy, voiceLine, removeLineAudio, playLine, previewVoice, openAll, setSets, startAll, stopAll, closeAll, refreshQuota])
 }

@@ -56,6 +56,14 @@ export const sliderValue = (voice, key) => (typeof voice?.[key] === 'number' ? v
 
 // Тестовая фраза «Прослушать голос» — короткая, чтобы не тратить квоту
 export const PREVIEW_PHRASE = 'Привет! Я кот, и я говорю по-русски.'
+// «Прослушать голос перевода» — так звучит диктор между репликами
+export const TRANSLATION_PREVIEW_PHRASE = 'Это перевод реплики. Его читает диктор.'
+
+// Голос перевода: отдельного русскоязычного пресета у ElevenLabs нет — модель
+// eleven_multilingual_v2 читает русский любым голосом списка. Для диктора подсказываем ровный
+// рассказчик (Sam) — чтобы отличался от голосов котов
+export const TRANSLATION_VOICE_HINT = 'Русскоязычного пресета у ElevenLabs нет: модель eleven_multilingual_v2 читает русский любым голосом из списка. Для диктора подходит ровный «Sam» или спокойная «Rachel» — лишь бы отличался от голосов котов.'
+export const SUGGESTED_TRANSLATION_VOICE = 'yoZ06aMxZJJ28mfd3POQ' // Sam
 
 // ElevenLabs списывает квоту по символам текста (пробелы и знаки тоже)
 export function charCost(text) {

@@ -63,3 +63,12 @@
   .scbVoiceBtns { margin-left: 0; width: 100%; justify-content: flex-start; }
   .scbVoiceDlgWrap { padding: 10px; align-items: flex-end; }
 }
+
+/* Два набора озвучки у реплики (Текст / Перевод), выбор наборов в диалоге, голос перевода */
+.scbVoiceSets { display: flex; flex-direction: column; gap: 4px; }
+.scbVoiceSet { font-weight: 600; color: var(--fs-text); }
+.scbVoiceRow-empty { opacity: 0.7; }
+.scbVoiceTag-empty { background: var(--fs-panel); color: var(--fs-muted); border: 1px dashed var(--fs-border); }
+.scbVoiceSetsPick { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; padding: 8px 10px; border: 1px solid var(--fs-border); border-radius: 10px; background: var(--fs-panel-2); }
+.scbVoiceSetsPick .scbSub { display: inline-flex; align-items: center; gap: 2px; }
+.scbVoiceTr .scbSub b { color: var(--fs-text); }

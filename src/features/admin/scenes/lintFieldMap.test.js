@@ -25,6 +25,17 @@ describe('замечание линтера → поле формы', () => {
     expect(fieldSection('location — office | cafe')).toBe('scene')
   })
 
+  it('пути озвучки перевода и режимов ведут к id полей сборщика', () => {
+    expect(fieldIdCandidates('timeline[2].translationAudioUrl — озвучка перевода устарела')[0]).toBe('f-timeline-2-translationAudioUrl')
+    expect(fieldIdCandidates('options.voice.translation — включена озвучка перевода')).toEqual(['f-options-voice-translation', 'f-options-voice', 'f-options'])
+    expect(fieldIdCandidates('options.display — режим «текст + перевод»')[0]).toBe('f-options-display')
+    expect(fieldIdCandidates('options.translationVoiceId — непустая строка')[0]).toBe('f-options-translationVoiceId')
+    expect(fieldIdCandidates('characters.b.voice.translationVoiceId — строка')[0]).toBe('f-characters-b-voice-translationVoiceId')
+    expect(fieldIdCandidates('timeline[1].translation — не длиннее 140 символов')[0]).toBe('f-timeline-1-translation')
+    expect(fieldIdCandidates('timeline — сцена близка к лимиту 64 КБ (59 КБ, 92%)')).toEqual(['f-timeline'])
+    expect(fieldSection('options.display — x')).toBe('scene')
+  })
+
   it('findField берёт первый существующий кандидат', () => {
     const doc = { getElementById: id => (id === 'f-characters-a' ? { id } : null) }
     expect(findField('characters.a.palette.fur — x', doc)).toEqual({ id: 'f-characters-a' })

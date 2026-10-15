@@ -44,3 +44,28 @@
 .scbBackBtns { display: flex; flex-wrap: wrap; gap: 6px; }
 .scbAsk { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
 .scbLink:disabled { color: var(--fs-muted); cursor: default; text-decoration: none; }
+
+/* Режимы предпросмотра (toolbar/ToolbarModeControls): сегмент показа, тумблеры озвучки, пометка
+   «предпросмотр ≠ сцена» — пунктирная акцентная рамка и точка; чип в индикаторах */
+.scbTbSeg { position: relative; display: inline-flex; border: 1px solid var(--fs-border); border-radius: 10px; overflow: visible; }
+.scbTbSegBtn { padding: 6px 10px; border: 0; border-radius: 0; background: transparent; color: var(--fs-muted); font: inherit; font-size: 12px; white-space: nowrap; cursor: pointer; }
+.scbTbSegBtn:first-child { border-radius: 9px 0 0 9px; }
+.scbTbSegBtn:last-of-type { border-radius: 0 9px 9px 0; }
+.scbTbSegBtn + .scbTbSegBtn { border-left: 1px solid var(--fs-border); }
+.scbTbSegBtn:hover:not(:disabled) { color: var(--fs-text); background: var(--fs-panel-2); }
+.scbTbSegBtnOn { background: var(--fs-accent); color: var(--fs-accent-ink); font-weight: 600; }
+.scbTbToggle { position: relative; color: var(--fs-muted); padding-left: 10px; padding-right: 10px; }
+.scbTbToggleOn { color: var(--fs-text); border-color: var(--fs-accent); box-shadow: inset 0 0 0 1px var(--fs-accent); }
+.scbTbOverride { outline: 2px dashed var(--fs-accent); outline-offset: 2px; }
+.scbTbOverrideDot { position: absolute; top: -5px; right: -5px; width: 9px; height: 9px; border-radius: 50%; background: var(--fs-accent); box-shadow: 0 0 0 2px var(--fs-bg, #111); }
+.scbTbChipAccent { color: var(--fs-accent); border-color: var(--fs-accent); }
+
+/* Кнопка с выпадашкой «Озвучить ▾»: основная часть + стрелка */
+.scbTbSplit .scbTbSplitMain { display: inline-flex; align-items: center; gap: 5px; border-radius: 10px 0 0 10px; }
+.scbTbSplit .scbTbSplitArrow { padding: 8px 6px; border-left: 0; border-radius: 0 10px 10px 0; display: inline-flex; align-items: center; }
+.scbTbSplit .scbTbMenuList { right: 0; }
+.scbMenuItem:has(.scbMenuCheck) { position: relative; padding-left: 30px; }
+.scbMenuCheck { position: absolute; left: 9px; top: 50%; transform: translateY(-50%); display: inline-flex; width: 16px; justify-content: center; color: var(--fs-accent); }
+.scbMenuItemOn .scbMenuLabel { font-weight: 600; }
+.scbTb[data-narrow] .scbTbSeg, .scbTb[data-narrow] .scbTbToggle { display: none; }
+.scbTbIconAccent { color: var(--fs-accent); border-color: var(--fs-accent); }

@@ -6,6 +6,7 @@ import { isObj } from './sceneConstants.js'
 import { taskTargetLine, taskAnswers, keyTokens } from './sceneTask.js'
 import { lineAudioState, translationAudioState, sceneVoiceStats } from './sceneVoice.js'
 import { displayOfOptions, normalizeVoiceFlags } from './sceneOptions.js'
+import { sceneByteSize, SCENE_MAX_BYTES } from './sceneNode.js'
 
 // Линтер сцен v2 — детерминированная проверка поверх валидатора: бюджет
 // узлов, предметы без опоры, пустые слоты, качество диалога. Возвращает
@@ -108,6 +109,16 @@ function lintTask(scene, out) {
   if (scene.task.lineIndex === null || scene.task.lineIndex === undefined) out.push({ level: 'warn', text: `task.lineIndex — реплика не выбрана, спрашивается №${target.index + 1} (последняя с переводом)` })
 }
 
+// Размер сцены (CHECK таблицы scenes ≤ 64 КБ): тайминги двух комплектов озвучки — самое тяжёлое
+// в JSON. ≥ 90% лимита — предупреждение, больше лимита — ошибка (библиотека не примет)
+export const SIZE_WARN_SHARE = 0.9
+export function lintSize(scene, out) {
+  const bytes = sceneByteSize(scene)
+  const kb = Math.round(bytes / 1024)
+  if (bytes > SCENE_MAX_BYTES) out.push({ level: 'error', text: `timeline — сцена больше ${SCENE_MAX_BYTES / 1024} КБ (${kb} КБ): библиотека не примет, удалите часть озвучки или сократите реплики` })
+  else if (bytes >= SCENE_MAX_BYTES * SIZE_WARN_SHARE) out.push({ level: 'warn', text: `timeline — сцена близка к лимиту ${SCENE_MAX_BYTES / 1024} КБ (${kb} КБ, ${Math.round((bytes / SCENE_MAX_BYTES) * 100)}%) из-за таймингов озвучки` })
+}
+
 // nodeBudget — потолок узлов (по умолчанию NODE_BUDGET; админка сможет
 // ужесточить для «слабого» тира)
 export function lintScene(scene, { nodeBudget = NODE_BUDGET } = {}) {
@@ -115,6 +126,7 @@ export function lintScene(scene, { nodeBudget = NODE_BUDGET } = {}) {
   const errors = validateSceneV2(scene)
   errors.forEach(text => out.push({ level: 'error', text }))
   if (!isObj(scene)) return out
+  lintSize(scene, out)
   if (!errors.some(e => e.startsWith('location'))) {
     const nodes = sceneNodeBudget(scene)
     if (nodes > nodeBudget) out.push({ level: 'error', text: `Бюджет узлов SVG: ${nodes} > ${nodeBudget} — уберите предметы из слотов` })

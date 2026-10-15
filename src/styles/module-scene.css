@@ -108,3 +108,7 @@
 .msLibTitle { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .msLibTag { font-size: 10px; padding: 1px 6px; border-radius: 999px; background: rgba(182, 254, 59, 0.14); color: #c8f09a; }
 .msLibDate { font-size: 10px; color: #8f8fa3; }
+
+/* Ссылка-кнопка в сводке режимов («править в сборщике») */
+.msLink { padding: 0; border: 0; background: none; color: inherit; font: inherit; text-decoration: underline; cursor: pointer; }
+.msLink:disabled { opacity: 0.5; cursor: default; }

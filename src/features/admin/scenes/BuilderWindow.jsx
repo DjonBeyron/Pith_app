@@ -14,6 +14,7 @@ import BuilderSettings from './BuilderSettings.jsx'
 import PhonePreview from './PhonePreview.jsx'
 import SidePanel from './SidePanel.jsx'
 import { useSceneVoice } from './voice/useSceneVoice.js'
+import { usePreviewModes } from './modes/usePreviewModes.js'
 import VoiceAllDialog from './voice/VoiceAllDialog.jsx'
 import { useBuilderBack } from './useBuilderBack.js'
 import BackConfirm from './toolbar/BackConfirm.jsx'
@@ -45,13 +46,15 @@ import '../../../styles/admin-scenes-toolbar.css'
 // title — заголовок окна, applyLabel — подпись кнопки, initialRow — строка библиотеки, из
 // которой взята initialScene, useMode — что значит «Использовать» в «Моих сценах»
 // (node | module | admin, ui/sceneUseOptions). Озвучка ElevenLabs — useSceneVoice (voice/):
-// пока идёт генерация, окно не закрывается, диалог «Озвучить всё» — VoiceAllDialog.
+// пока идёт генерация, окно не закрывается, диалог «Озвучить всё» — VoiceAllDialog. Режимы
+// показа/озвучки предпросмотра — usePreviewModes (modes/): тулбар переключает, PhonePreview показывает.
 const VIEWS = [['settings', 'Настройки'], ['scene', 'Сцена'], ['panel', 'Панель']]
 
 export default function BuilderWindow({ onClose: onCloseProp, initialScene = null, initialRow = null, onApply = null, applyLabel, title = 'Сборщик сцен', useMode = null }) {
   const draft = useBuilderDraft({ initialScene, initialRow, backup: !onApply })
   const library = useSceneLibrary()
   const voice = useSceneVoice(draft)
+  const modes = usePreviewModes(draft)
   const voiceBusy = voice.busy
   const backRef = useRef(null)
   const openerRef = useRef(null)
@@ -86,7 +89,7 @@ export default function BuilderWindow({ onClose: onCloseProp, initialScene = nul
         <BuilderToolbar
           draft={draft} library={library} status={status} setStatus={setStatus} title={title}
           onSave={act.save} onApply={onApply ? () => onApply(draft.scene, draft.saved) : null} applyLabel={applyLabel} useMode={useMode}
-          onBack={back.requestBack} backRef={backRef} unsaved={back.unsaved} voice={voice} theme={ui.theme} onToggleTheme={ui.toggleTheme}
+          onBack={back.requestBack} backRef={backRef} unsaved={back.unsaved} voice={voice} modes={modes} theme={ui.theme} onToggleTheme={ui.toggleTheme}
         />
         <div className="fsViewTabs" role="tablist" aria-label="Разделы окна">
           {VIEWS.map(([id, label]) => (
@@ -104,7 +107,7 @@ export default function BuilderWindow({ onClose: onCloseProp, initialScene = nul
           <PanelColumn name="scene">
             <section className="scbCol scbColScene" aria-label="Предпросмотр сцены">
               <div className="scbColTools"><CollapseAllButton column="scene" /></div>
-              <PhonePreview scene={draft.scene} lint={draft.lint} budget={draft.budget} onHighlight={highlight} />
+              <PhonePreview scene={draft.scene} lint={draft.lint} budget={draft.budget} onHighlight={highlight} modes={modes} />
             </section>
           </PanelColumn>
           <ColumnResizer index={1} bodyRef={bodyRef} fractions={columns.fractions} onCommit={columns.commit} onReset={columns.reset} />
@@ -122,7 +125,7 @@ export default function BuilderWindow({ onClose: onCloseProp, initialScene = nul
         />
         <VoiceAllDialog
           all={voice.all} quota={voice.quota} names={{ a: draft.scene.characters.a.name, b: draft.scene.characters.b.name }}
-          onStart={voice.startAll} onStop={voice.stopAll} onClose={voice.closeAll}
+          onStart={voice.startAll} onStop={voice.stopAll} onClose={voice.closeAll} onSets={voice.setSets}
         />
       </PanelCtx.Provider>
     </div>

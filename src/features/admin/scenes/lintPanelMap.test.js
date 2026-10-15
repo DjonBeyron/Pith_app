@@ -23,6 +23,15 @@ describe('lintPanelMap', () => {
     expect(panelKeysFor('Сцена должна быть объектом')).toEqual([])
   })
 
+  it('озвучка перевода и режимы: панель реплики, «Параметры воспроизведения», «Голос» персонажа', () => {
+    expect(panelKeysFor('timeline[2].translationAudioUrl — озвучка перевода устарела')).toEqual(['timeline', 'timeline.2'])
+    expect(panelKeysFor('options.voice.translation — включена озвучка перевода')).toEqual(['options'])
+    expect(panelKeysFor('options.display — режим both')).toEqual(['options'])
+    expect(panelKeysFor('options.translationVoiceId — непустая строка')).toEqual(['options'])
+    expect(panelKeysFor('characters.a.voice.translationVoiceId — строка')).toEqual(['characters', 'characters.a', 'characters.a.voice'])
+    expect(panelKeysFor('timeline — сцена близка к лимиту 64 КБ')).toEqual(['timeline'])
+  })
+
   it('сводка: ошибка красит и подпанель, и родителя; warn не красный', () => {
     const lint = [
       { level: 'error', text: 'timeline[2].text — пусто' },

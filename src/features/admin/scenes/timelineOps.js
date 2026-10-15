@@ -43,8 +43,9 @@ export function updateLine(timeline, index, patch) {
     if (k === 'emotion') { if (EMOTIONS.includes(v)) cur.emotion = v; continue }
     if (k === 'pose') { if (POSES.includes(v)) cur.pose = v; continue }
     if (k === 'text') { cur.text = String(v ?? '').slice(0, MAX_TEXT); continue }
-    if (k === 'translation' || k === 'audioUrl') {
-      const s = String(v ?? '').trim()
+    if (k === 'translation' || k === 'audioUrl' || k === 'translationAudioUrl') {
+      // перевод — тот же лимит, что у текста (два комплекта таймингов должны влезть в 64 КБ сцены)
+      const s = (k === 'translation' ? String(v ?? '').slice(0, MAX_TEXT) : String(v ?? '')).trim()
       if (s) cur[k] = s; else delete cur[k]
       continue
     }

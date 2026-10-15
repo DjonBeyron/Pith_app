@@ -75,6 +75,8 @@ function validateLine(l, i, errors) {
   if (l.emotion !== undefined && !EMOTIONS.includes(l.emotion)) errors.push(`${p}.emotion — ${EMOTIONS.join(' | ')}`)
   if (l.pose !== undefined && !POSES.includes(l.pose)) errors.push(`${p}.pose — ${POSES.join(' | ')}`)
   if (l.translation !== undefined && typeof l.translation !== 'string') errors.push(`${p}.translation — строка`)
+  // Перевод ограничен как и текст: два комплекта таймингов на реплику должны уложить сцену в 64 КБ
+  else if (typeof l.translation === 'string' && l.translation.trim().length > LIMITS.maxTextLen) errors.push(`${p}.translation — не длиннее ${LIMITS.maxTextLen} символов (сейчас ${l.translation.trim().length})`)
   validateLineAudio(l, p, errors) // audioUrl/wordTimings/audioMeta и translation*-тройка — sceneValidateAudio.js
 }
 

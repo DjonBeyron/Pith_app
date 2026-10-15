@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from 'vitest'
 import { renderToStaticMarkup } from 'react-dom/server'
 import BuilderToolbar from '../BuilderToolbar.jsx'
 import BackConfirm from './BackConfirm.jsx'
-import { buildToolbarActions, splitByWidth, groupActions, backDecision, runBackChoice } from './toolbarModel.js'
+import { buildToolbarActions, splitByWidth, groupActions, menuItems, backDecision, runBackChoice } from './toolbarModel.js'
 import { demoCafeScene } from '../../../scene/v2/demoScenes.js'
 
 // Раскладка тулбара по режимам, «Назад» (решение и три исхода диалога), меню «⋯» на узком окне.
@@ -35,6 +35,7 @@ describe('toolbarModel — какие кнопки в каких режимах'
     const n = splitByWidth(l, true)
     expect(ids(n.bar)).toEqual(['save'])
     expect(ids(n.menu)).toEqual(['voiceAll', 'new', 'collapseAll', 'theme'])
+    expect(menuItems(n.menu).map(a => a.id)).toEqual(['voiceAll:voiceAllBoth', 'voiceAll:voiceText', 'voiceAll:voiceTranslation', 'new', 'collapseAll', 'theme'])
     const embedded = splitByWidth(buildToolbarActions({ ...base, mode: 'node', apply }), true)
     expect(ids(embedded.bar)).toEqual(['apply'])
   })
@@ -87,7 +88,8 @@ describe('BuilderToolbar — разметка', () => {
     expect(n).not.toContain('role="menu"')
     const open = render({ forceNarrow: true, menuOpen: true, voice: { busy: false, openAll() {}, quota: null } })
     expect(open).toContain('role="menu"')
-    expect(open).toContain('Озвучить всё')
+    expect(open).toContain('Озвучить: всё (текст и перевод)')
+    expect(open).toContain('Озвучить: только перевод')
     expect(open).toContain('role="menuitem"')
     expect(open).toContain('Новая')
   })

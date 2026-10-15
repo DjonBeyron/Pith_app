@@ -95,10 +95,12 @@ export function matchPreset(palette) {
 export function setVoice(scene, key, patch) {
   const cur = scene.characters[key]
   const voice = { ...cur.voice, ...patch }
-  if (voice.voiceId !== undefined && !String(voice.voiceId).trim()) delete voice.voiceId
+  // Пустой id голоса (ElevenLabs / голос перевода) — поле убирается: «голос проекта» / «как у сцены»
+  for (const k of ['voiceId', 'translationVoiceId']) if (voice[k] !== undefined && !String(voice[k]).trim()) delete voice[k]
   return updateCharacter(scene, key, { voice })
 }
 
+// Булевы опции (autoplay, loop, bubbles). Режимы показа/озвучки — modes/sceneModes.js
 export function setOption(scene, name, value) {
   return { ...scene, options: { ...scene.options, [name]: !!value } }
 }

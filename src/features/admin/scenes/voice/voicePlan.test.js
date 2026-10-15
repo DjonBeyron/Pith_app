@@ -79,6 +79,7 @@ describe('runVoicePlan', () => {
     expect(maxActive).toBe(1)
     expect(order).toEqual([0, 1, 2])
     expect(apply.mock.calls.map(c => c[0])).toEqual([0, 1, 2])
+    expect(apply.mock.calls[0][2]).toBe('original')
     expect(r).toEqual({ ok: [0, 1, 2], failed: [], stopped: false, skipped: [] })
   })
   it('ошибка одной реплики не обрывает остальные; итог — какие ок, какие нет и почему', async () => {
@@ -86,7 +87,7 @@ describe('runVoicePlan', () => {
     const progress = []
     const r = await runVoicePlan(plan([[0, 'a'], [1, 'b'], [2, 'c']]), { generate, apply: () => {}, onProgress: p => progress.push(p) })
     expect(r.ok).toEqual([0, 2])
-    expect(r.failed).toEqual([{ index: 1, error: 'ElevenLabs 429' }])
+    expect(r.failed).toEqual([{ index: 1, set: 'original', error: 'ElevenLabs 429' }])
     expect(progress.map(p => [p.done, p.ok])).toEqual([[1, true], [2, false], [3, true]])
     // Пустой результат — тоже ошибка реплики
     const r2 = await runVoicePlan(plan([[0, 'a']]), { generate: async () => ({}), apply: () => {} })
@@ -98,9 +99,9 @@ describe('runVoicePlan', () => {
     const reusePatch = vi.fn(j => ({ audioUrl: `https://pub-1.r2.dev/ready${j}.mp3` }))
     const r = await runVoicePlan(plan([[1, 'same'], [2, 'same', 1], [3, 'x', 0]]), { generate, apply, reusePatch })
     expect(generate).toHaveBeenCalledTimes(1)
-    expect(apply.mock.calls[1]).toEqual([2, patch(1)])
+    expect(apply.mock.calls[1]).toEqual([2, patch(1), 'original'])
     expect(apply.mock.calls[2][1].audioUrl).toBe('https://pub-1.r2.dev/ready0.mp3')
-    expect(reusePatch).toHaveBeenCalledWith(0)
+    expect(reusePatch).toHaveBeenCalledWith(0, 'original')
     expect(r.ok).toEqual([1, 2, 3])
   })
   it('остановка — между репликами: текущая доигрывает, остальные в skipped', async () => {

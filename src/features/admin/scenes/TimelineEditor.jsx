@@ -24,11 +24,12 @@ export default function TimelineEditor({ scene, actions, voice = null }) {
         <div className="scbVoiceHead" id="f-timeline-voice">
           <span className="scbVoiceStat">
             Озвучено <b>{st.ready}</b> из {st.total}
-            {st.stale > 0 && <span className="scWarnTxt"> · устарело {st.stale}</span>}
+            {st.translation.withText > 0 && <> · перевод <b>{st.translation.ready}</b> из {st.translation.withText}</>}
+            {st.stale + st.translation.stale > 0 && <span className="scWarnTxt"> · устарело {st.stale + st.translation.stale}</span>}
             {remaining != null && <span className="scbSub"> · квота ElevenLabs: {remaining.toLocaleString('ru-RU')} симв.</span>}
             {' '}<ScTip help="voice_all" />
           </span>
-          <button type="button" className="scbLink" onClick={voice.openAll} disabled={voice.busy || st.ready === st.total} title="Озвучить реплики без актуального файла, по одной (то же, что «Озвучить всё» в верхней панели)">
+          <button type="button" className="scbLink" onClick={() => voice.openAll()} disabled={voice.busy || (st.ready === st.total && st.translation.ready === st.translation.withText)} title="Озвучить реплики без актуального файла, по одной (то же, что «Озвучить всё» в верхней панели)">
             Озвучить всё
           </button>
         </div>
@@ -36,7 +37,7 @@ export default function TimelineEditor({ scene, actions, voice = null }) {
       <ol className="scbLines">
         {tl.map((line, i) => (
           <TimelineLine
-            key={i} index={i} line={line} names={names} total={tl.length} actions={actions} characters={scene.characters} voice={voice}
+            key={i} index={i} line={line} names={names} total={tl.length} actions={actions} characters={scene.characters} voice={voice} scene={scene}
           />
         ))}
       </ol>

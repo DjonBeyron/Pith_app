@@ -176,3 +176,7 @@
 @media (max-width: 480px) {
   .scbSlotGrid { grid-template-columns: 1fr; }
 }
+/* «Параметры воспроизведения» (modes/PlaybackOptions): режим показа, озвучка, голос перевода, флаги */
+.scbPlayback { display: flex; flex-direction: column; gap: 10px; }
+.scbPlayback .scbFieldLabel { display: inline-flex; align-items: center; gap: 2px; }
+.scbPreviewModes .scbSub { white-space: normal; }

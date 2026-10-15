@@ -116,6 +116,6 @@ describe('пресеты голосов и стоимость', () => {
     expect(lineVoiceStatus({ text: 'x' }, c, { busy: true })).toBe('busy')
     expect(lineVoiceStatus({ text: 'x', audioUrl: 'u' }, c, { error: 'boom' })).toBe('error')
     expect(lineVoiceStatus({ text: 'x', audioUrl: 'u', audioMeta: { hash: 'old' } }, c)).toBe('stale')
-    expect(Object.keys(STATE_LABEL).sort()).toEqual(['busy', 'error', 'none', 'ready', 'stale'])
+    expect(Object.keys(STATE_LABEL).sort()).toEqual(['busy', 'empty', 'error', 'none', 'ready', 'stale'])
   })
 })

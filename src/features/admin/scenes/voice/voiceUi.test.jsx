@@ -60,9 +60,9 @@ describe('VoiceAllDialog', () => {
   const names = { a: 'Рыжик', b: 'Дымка' }
   it('подтверждение: реплики, вызовы, символы, остаток квоты; не хватает — предупреждение', () => {
     const ok = renderToStaticMarkup(<VoiceAllDialog all={{ phase: 'confirm', plan }} quota={{ used: 500, limit: 1000 }} names={names} onStart={() => {}} onStop={() => {}} onClose={() => {}} />)
-    expect(ok).toContain('Озвучить: <b>2</b> из 6')
+    expect(ok).toContain('Итого: <b>2</b> записи')
     expect(ok).toContain('<b>1</b> — из кэша')
-    expect(ok).toContain('Вызовов ElevenLabs: <b>1</b>')
+    expect(ok).toContain('вызовов ElevenLabs: <b>1</b>')
     expect(ok).toContain('500 симв.</b>')
     expect(ok).not.toContain('не хватит')
     expect(ok).toContain('>Озвучить 2<')

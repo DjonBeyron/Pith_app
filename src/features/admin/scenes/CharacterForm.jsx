@@ -8,14 +8,16 @@ import { speakerColor, contrastInk } from './ui/colorContrast.js'
 import { GENDER_LABEL } from './sceneLabels.js'
 import ScTip from './ScTip.jsx'
 import VoicePicker from './voice/VoicePicker.jsx'
+import TranslationVoicePicker from './voice/TranslationVoicePicker.jsx'
 
 // Форма персонажа A/B в сборщике — вложенная панель (ключ characters.<who>, заголовок
 // «A · Имя» с кружком цвета шерсти): превью, имя, пол, палитра (PaletteEditor), полоски;
-// внутри — панель «Голос» (characters.<who>.voice): запасной голос устройства (pitch/rate)
-// и голос ElevenLabs (VoicePicker). Раскладка полей — сетка auto-fit с отступами по плотности
+// внутри — панель «Голос» (characters.<who>.voice): запасной голос устройства (pitch/rate),
+// голос ElevenLabs (VoicePicker) и голос перевода (TranslationVoicePicker, voice.translationVoiceId;
+// пусто — общий голос сцены). Раскладка полей — сетка auto-fit с отступами по плотности
 // панели (--gap/--pad из admin-scenes-character.css): в узкой колонке один столбец,
 // в широкой — несколько. id полей — f-characters-<who>-… для подсветки линтера.
-export default function CharacterForm({ who, character, actions, voice = null }) {
+export default function CharacterForm({ who, character, actions, voice = null, scene = null }) {
   const p = `f-characters-${who}`
   const sprite = catSprite(character.gender)
   const props = useMemo(() => ({ palette: character.palette, stripes: character.stripes !== false }), [character.palette, character.stripes])
@@ -75,6 +77,10 @@ export default function CharacterForm({ who, character, actions, voice = null })
           </label>
         </div>
         <VoicePicker who={who} character={character} actions={actions} voice={voice} />
+        <TranslationVoicePicker
+          who={who} value={character.voice?.translationVoiceId ?? ''} onChange={v => actions.setVoice(who, { translationVoiceId: v })}
+          scene={scene} character={character} voice={voice} idPrefix={`${p}-voice-translationVoiceId`}
+        />
       </Panel>
     </Panel>
   )

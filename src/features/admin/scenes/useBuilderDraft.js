@@ -5,6 +5,7 @@ import { parseSceneV2 } from '../../scene/v2/sceneSchemaV2.js'
 import * as M from './builderModel.js'
 import * as T from './timelineOps.js'
 import * as TK from './taskModel.js'
+import * as MD from './modes/sceneModes.js'
 import { saveBackup, loadBackup, clearBackup } from './draftBackup.js'
 
 // Состояние сборщика сцен: черновик (нормализованная сцена v2), привязка к строке
@@ -59,6 +60,11 @@ export function useBuilderDraft({ initialScene = null, initialRow = null, backup
     applyPreset: (k, id) => patch(s => M.applyPalettePreset(s, k, id)),
     setVoice: (k, p) => patch(s => M.setVoice(s, k, p)),
     setOption: (n, v) => patch(s => M.setOption(s, n, v)),
+    // Режимы показа и озвучки (modes/sceneModes.js): пишутся в options только при вызове
+    setDisplay: m => patch(s => MD.setDisplay(s, m)),
+    setVoiceFlag: (k, v) => patch(s => MD.setVoiceFlag(s, k, v)),
+    setTranslationVoiceId: id => patch(s => MD.setTranslationVoiceId(s, id)),
+    applyModes: override => patch(s => MD.applyOverrideToScene(s, override)),
     addLine: after => tl(t => T.addLine(t, after)),
     removeLine: i => tl(t => T.removeLine(t, i)),
     moveLine: (i, d) => tl(t => T.moveLine(t, i, d)),

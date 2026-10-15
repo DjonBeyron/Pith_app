@@ -1,19 +1,18 @@
-import { quotaVerdict } from './voicePlan.js'
+import { SET_LABEL } from './voicePlan.js'
+import VoiceAllFacts from './VoiceAllFacts.jsx'
 
-// Диалог «Озвучить всё» внутри окна сборщика (не confirm()): до запуска — сколько реплик
-// и вызовов, сколько символов уйдёт, остаток квоты ElevenLabs и предупреждение, если не
-// хватает; во время прогона — полоса и список по репликам с кнопкой «Остановить»; в
-// конце — итог (сколько ок, какие нет и почему). all — состояние из useSceneVoice.
+// Диалог «Озвучить всё» внутри окна сборщика (не confirm()): до запуска — выбор наборов
+// (Текст / Перевод) и расчёт (VoiceAllFacts); во время прогона — полоса и «реплика i из n»
+// с набором и кнопкой «Остановить»; в конце — итог (сколько ок, какие нет и почему).
+// all — состояние из useSceneVoice/useVoiceAll: { phase, plan, sets, current, progress, result }.
 
-const plural = (n, one, few, many) => (n % 10 === 1 && n % 100 !== 11 ? one : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20) ? few : many)
-const fmt = n => Number(n ?? 0).toLocaleString('ru-RU')
-
-export default function VoiceAllDialog({ all, quota, names, onStart, onStop, onClose }) {
+export default function VoiceAllDialog({ all, quota, names, onStart, onStop, onClose, onSets = () => {} }) {
   if (!all) return null
   const { phase, plan, progress, result, current } = all
-  const q = quotaVerdict(plan, quota)
-  const reuse = plan.items.length - plan.generate
+  const sets = all.sets ?? ['original']
   const running = phase === 'running'
+  const curItem = current && typeof current === 'object' ? current : (current !== null && current !== undefined ? { index: current, set: 'original' } : null)
+  const curLine = curItem ? plan.items.find(x => x.index === curItem.index && (x.set ?? 'original') === curItem.set) : null
 
   return (
     <div className="scbVoiceDlgWrap" role="presentation">
@@ -22,19 +21,7 @@ export default function VoiceAllDialog({ all, quota, names, onStart, onStop, onC
 
         {phase === 'confirm' && (
           <>
-            {plan.items.length === 0 ? (
-              <p className="scbSub">Все {plan.total} {plural(plan.total, 'реплика', 'реплики', 'реплик')} уже озвучены актуальными файлами — генерировать нечего.</p>
-            ) : (
-              <ul className="scbVoiceFacts">
-                <li>Озвучить: <b>{plan.items.length}</b> из {plan.total} реплик (актуальных уже {plan.ready}){reuse > 0 && <>, из них <b>{reuse}</b> — из кэша без вызова API (та же фраза тем же голосом)</>}</li>
-                <li>Вызовов ElevenLabs: <b>{plan.generate}</b>, символов в квоту: <b>{fmt(plan.chars)}</b></li>
-                <li>
-                  Остаток квоты: {q.known ? <b className={q.enough ? 'scOk' : 'scBad'}>{fmt(q.remaining)} симв.</b> : <span className="scbSub">неизвестен (функция квоты недоступна)</span>}
-                  {q.known && !q.enough && <span className="scbVoiceErr"> — не хватит: часть реплик вернётся с ошибкой</span>}
-                </li>
-                <li className="scbSub">Реплики озвучиваются по одной; ошибка одной не останавливает остальные. Пока идёт озвучка, окно не закрывайте.</li>
-              </ul>
-            )}
+            <VoiceAllFacts plan={plan} sets={sets} quota={quota} onSets={onSets} />
             <div className="fsBtnBox" style={{ gap: 6 }}>
               {plan.items.length > 0 && <button type="button" className="fsBtn fsBtnPrimary" onClick={onStart}>Озвучить {plan.items.length}</button>}
               <button type="button" className="fsBtn" onClick={onClose}>{plan.items.length ? 'Отмена' : 'Закрыть'}</button>
@@ -49,12 +36,12 @@ export default function VoiceAllDialog({ all, quota, names, onStart, onStop, onC
             </div>
             <p className="scbSub">
               {running
-                ? <>Реплика {Math.min(progress.done + 1, progress.total)} из {progress.total}{current !== null && current !== undefined ? ` — №${current + 1}, ${names?.[plan.items.find(x => x.index === current)?.who] ?? ''}` : ''}…</>
+                ? <>Реплика {Math.min(progress.done + 1, progress.total)} из {progress.total}{curItem ? ` — №${curItem.index + 1}, ${names?.[curLine?.who] ?? ''}${sets.length > 1 || curItem.set === 'translation' ? ` (${SET_LABEL[curItem.set].toLowerCase()})` : ''}` : ''}…</>
                 : <>{result?.stopped ? 'Остановлено. ' : 'Готово. '}Озвучено {progress.ok} из {progress.total}{progress.failed.length ? `, с ошибкой ${progress.failed.length}` : ''}{result?.skipped?.length ? `, пропущено ${result.skipped.length}` : ''}.</>}
             </p>
             {progress.failed.length > 0 && (
               <ul className="scbVoiceFails">
-                {progress.failed.map(f => <li key={f.index}><b>№{f.index + 1}</b>: {f.error}</li>)}
+                {progress.failed.map(f => <li key={`${f.set ?? 'o'}${f.index}`}><b>№{f.index + 1}{f.set === 'translation' ? ' (перевод)' : ''}</b>: {f.error}</li>)}
               </ul>
             )}
             <div className="fsBtnBox" style={{ gap: 6 }}>
