@@ -16,7 +16,7 @@
 }
 
 /* Заметка: до двух строк без прыжка высоты панели; отказ микрофона — тёплый жёлтый, а не красный (это не ошибка ученика) */
-.stVoiceNote { min-height: 34px; margin-top: 4px; }
+.stVoiceNote { height: 34px; margin-top: 4px; overflow: hidden; } /* ровно две строки: слот не растёт ни в одной фазе */
 .stNoteOff { color: #f5c26b; }
 
 /* Тело с кругом: ниже, чем в уроке (206px) — панель в ленте не должна закрывать сцену; центр круга считает say-phrase.css от высоты тела */
@@ -35,6 +35,28 @@
 .stVoiceBtnsHidden { opacity: 0; pointer-events: none; }
 .stCantBtn { display: inline-flex; align-items: center; gap: 6px; }
 
+/* Слот под строкой «повтори»: заметка + тело (круг и кнопки) ОДНОЙ высоты во всех фазах (idle/listening/checking/checked/fallback).
+   Вердикт — абсолютный слой поверх слота (inset: 0), его размер на высоту слота не влияет: высота панели и её фона в финале не меняется,
+   круг и кнопки стоят на месте (только гаснут). Прячем/показываем только opacity (visibility — после затухания), высоту не анимируем.
+   Текст вердикта прокручивается внутри слоя, «Готово» прижата к низу слоя и не уезжает */
+.stVoiceFlow { position: relative; }
+.stVoiceNote, .stVoiceMain { transition: opacity 160ms ease; }
+.stVoiceFlow[data-done] .stVoiceNote,
+.stVoiceFlow[data-done] .stVoiceMain { opacity: 0; visibility: hidden; transition: opacity 160ms ease, visibility 0s linear 160ms; }
+.stVoicePane {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 160ms ease, visibility 0s linear 160ms;
+}
+.stVoiceFlow[data-done] .stVoicePane { opacity: 1; visibility: visible; pointer-events: auto; transition: opacity 200ms ease 60ms, visibility 0s; }
+.stVoicePaneText { flex: 1 1 auto; min-height: 0; width: 100%; box-sizing: border-box; overflow-y: auto; overscroll-behavior: contain; }
+.stVoiceDoneRow { flex: none; width: 100%; max-width: 600px; margin: 0 auto; box-sizing: border-box; padding: 8px 14px 10px; }
+
 /* Вердикт: что услышали и что можно было сказать */
 .stVerdictHeard {
   margin-top: 6px !important;
@@ -49,5 +71,8 @@
 .stVerdictExpected .stVerdictAnswer { margin-top: 4px !important; font-size: 16px; }
 
 @media (prefers-reduced-motion: reduce) {
-  .stVoiceBtns { transition: none; }
+  .stVoiceBtns,
+  .stVoiceNote,
+  .stVoiceMain,
+  .stVoicePane { transition: none; }
 }

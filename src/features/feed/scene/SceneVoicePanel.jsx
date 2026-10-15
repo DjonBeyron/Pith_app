@@ -32,7 +32,7 @@ function SceneVoicePanel({ task, apiRef, total }) {
   const stage = (
     <SayStage
       label={mic.label} mode={mic.mode} state={micState} level={sp.level}
-      disabled={st.phase === 'checked' || !!sp.fallbackReason} onTap={tapMic}
+      disabled={st.phase === 'checked' || st.phase === 'closed' || !!sp.fallbackReason} onTap={tapMic}
     />
   )
   const popup = pop.shown ? <SayMicPopup kind={sp.explainKind} closing={pop.closing} onConfirm={sp.confirmExplain} onCancel={sp.cancelExplain} /> : null

@@ -3,6 +3,7 @@ import { Volume2 } from 'lucide-react'
 import TypeWordKeyboard from '../../player/panels/type-word/TypeWordKeyboard.jsx'
 import { TASK_KEYBOARD } from './sceneTaskKeyboard.js'
 import { MAX_ATTEMPTS } from './sceneTaskState.js'
+import { useFrozenPhase } from './useFrozenPhase.js'
 
 // Панель задания «О чём диалог» (внутри SceneTaskCover, стили — классы шторки «Ловли» feed-catch-sheet.css + свои в
 // feed-scene-task.css). Сверху вопрос и «Послушать ещё раз» (целевая реплика проигрывается ещё раз), строка набранного
@@ -11,10 +12,11 @@ import { MAX_ATTEMPTS } from './sceneTaskState.js'
 // тело складывается (.catchSheetFold), раскрывается вердикт — «Верно!» или верный перевод — с самой репликой и «Готово».
 // Все действия — стабильные обёртки useSceneTask, поэтому memo: клавиша перерисовывает только строку набранного.
 function SceneTaskSheet({
-  phase, typed = '', wrong = false, attempt = 0, ok = false, gaveUp = false, result = null,
+  phase: rawPhase, typed = '', wrong = false, attempt = 0, ok = false, gaveUp = false, result = null,
   prompt, lineText = '', hint = '', answer = '',
   onKey, onBackspace, onCheck, onGiveUp, onLater, onFinish, onReplay,
 }) {
+  const phase = useFrozenPhase(rawPhase) // «Готово» → closed: панель уезжает с тем же видом (useFrozenPhase.js)
   const done = phase === 'checked'
   const canCheck = phase === 'answering' && typed.trim().length > 0
   const shown = result?.matchedAnswer || answer

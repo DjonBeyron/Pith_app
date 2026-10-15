@@ -4,6 +4,7 @@ import { trackDedup } from '../../../shared/lib/analytics/trackDedup.js'
 import { SCENE_TASK_SHOWN, SCENE_TASK_ANSWER, SCENE_TASK_SKIP } from '../../../shared/lib/analytics/eventNames.js'
 import { feedTaskOf, initialPlay, trackPlay, taskAllowed, roundOver } from './sceneTaskPlay.js'
 import { sceneTaskGate } from './sceneTaskLimits.js'
+import { taskGateBlock } from './sceneTaskGates.js'
 import { voiceTaskBlockReason } from './sceneVoiceData.js'
 import { sandboxTask, isSandboxScene, micReason, limitReason, inactiveReason } from './sandbox/sandboxTaskStatus.js'
 import { useSceneVoiceWarm } from './useSceneVoiceWarm.js'
@@ -27,7 +28,7 @@ const ACTIONS = ['press', 'backspace', 'check', 'giveUp', 'later', 'finish', 're
 // voiceResult / voiceSkip (переходы — sceneVoiceState.js, микрофон ведёт SceneVoicePanel). Нет микрофона (Firefox, отказ) — тихий пропуск
 // ДО лимитов; Vosk греется на последней реплике круга (useSceneVoiceWarm).
 // → { info, open, mounted, freeze, state, onState, press, backspace, check, giveUp, later, finish, replay, coverGone, voice* }
-export function useSceneTask({ scene, sceneId, active, live, apiRef, onLock, gate = sceneTaskGate() }) {
+export function useSceneTask({ scene, sceneId, active, live, apiRef, onLock, soundOn = false, gate = sceneTaskGate() }) {
   const info = useMemo(() => feedTaskOf(scene), [scene])
   const [st, setSt] = useState(() => ts.initialTask(sceneId))
   // Лента подменила сцену в этой копии слайда — состояние с нуля; слайд ушёл с экрана — панель закрыта (сброс при рендере)
@@ -37,8 +38,8 @@ export function useSceneTask({ scene, sceneId, active, live, apiRef, onLock, gat
   const update = fn => setSt(p => (p.sceneKey === sceneId ? fn(p) : p))
 
   const open = active && ts.isOpen(s)
-  const latest = useRef({ info, active, live, sceneId, onLock })
-  useEffect(() => { latest.current = { info, active, live, sceneId, onLock } })
+  const latest = useRef({ info, active, live, sceneId, onLock, soundOn })
+  useEffect(() => { latest.current = { info, active, live, sceneId, onLock, soundOn } })
   const warmVoice = useSceneVoiceWarm({ voice: !!info?.voice, active, live, open })
 
   // Детектор полного круга живёт, пока режиссёр жив; уход в static (live=false) — с нуля
@@ -52,8 +53,9 @@ export function useSceneTask({ scene, sceneId, active, live, apiRef, onLock, gat
     const prev = playRef.current
     const next = trackPlay(prev, state)
     playRef.current = next
-    const { info: i, active: a, live: l, sceneId: id } = latest.current
-    if (next.sawLast && !prev.sawLast && i?.voice && a && l) warmVoice()
+    const { info: i, active: a, live: l, sceneId: id, soundOn: snd } = latest.current
+    const closed = taskGateBlock(i, { soundOn: snd, forced: gate.forced?.(id) }) // ворота (sceneTaskGates.js): нет звука — не греем распознавание
+    if (next.sawLast && !prev.sawLast && i?.voice && a && l && !closed) warmVoice()
     const again = () => { if (roundOver(state)) apiRef?.current?.play?.() } // круг без loop доиграл, панели нет — заново
     if (!next.done || prev.done) {
       if (sandbox && !next.done) sandboxTask.waiting(state.index, state.total)
@@ -62,6 +64,9 @@ export function useSceneTask({ scene, sceneId, active, live, apiRef, onLock, gat
     // Песочница: каждый отказ показа записывается с причиной (в обычной ленте пропуск тихий); без панели круг идёт заново
     const skip = reason => { if (sandbox) sandboxTask.skipped(reason); again() }
     if (!taskAllowed({ info: i, active: a, live: l })) return skip(inactiveReason())
+    // Ворота окружения (звук ленты выключен → голосовое не показываем) — ДО микрофона и лимитов: ничего не тратят. Звук могут включить:
+    // сбрасываем детектор круга, следующий полный круг решит заново (песочница — причина в строке статуса; принудительный показ обходит)
+    if (closed) { playRef.current = initialPlay(); return skip(closed) }
     const mic = i.voice ? voiceTaskBlockReason() : null
     if (mic) return skip(micReason(mic))
     if (!gate.claim(id)) return skip(limitReason(gate.why?.(id)))
@@ -90,12 +95,17 @@ export function useSceneTask({ scene, sceneId, active, live, apiRef, onLock, gat
 
   useEffect(() => { latest.current.onLock?.(mounted) }, [mounted])
   useEffect(() => () => latest.current.onLock?.(false), [])
-  // Панель ушла из DOM — круг заново (под уезжающей панелью сцена ещё стоит: freeze держится до размонтирования).
+  // Панель ушла из DOM — круг заново (под уезжающей панелью сцена ещё стоит: freeze держится до размонтирования, то есть до конца анимации
+  // ухода). Сам запуск (режиссёр, озвучка, облачки) — кадром позже: первый кадр после ухода занят размонтированием панели и снятием
+  // --catch-cover-h / data-scene-task, тяжёлый старт сцены в тот же кадр давал бы заметный рывок на слабом телефоне.
   // Вкладка скрыта / слайд не активен — режиссёра нет (apiRef пуст), запуск сделает useSlideScenePlay при возврате в live
   const wasMounted = useRef(false)
   useEffect(() => {
-    if (!mounted && wasMounted.current) apiRef?.current?.play?.()
+    const was = wasMounted.current
     wasMounted.current = mounted
+    if (mounted || !was) return undefined
+    const id = requestAnimationFrame(() => apiRef?.current?.play?.())
+    return () => cancelAnimationFrame(id)
   }, [mounted]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const kind = info?.task.kind ?? 'translate'

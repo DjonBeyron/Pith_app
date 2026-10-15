@@ -10,7 +10,7 @@ export const VOICE_LISTEN_REPLAY = 'Послушать ещё раз'
 export const VOICE_OK = '✓ Отлично!'
 export const VOICE_BAD = '✗ Не совсем'
 export const VOICE_DEAF = '✗ Не расслышал'
-export const VOICE_DENIED = 'Нет доступа к микрофону. Разреши его в настройках браузера или нажми «Не могу говорить»'
+export const VOICE_DENIED = 'Нет доступа к микрофону. Разреши его в настройках или нажми «Не могу говорить»'
 export const VOICE_OFF = 'Проверка голоса сейчас недоступна. Нажми «Не могу говорить»'
 
 const triesLeft = attempt => {

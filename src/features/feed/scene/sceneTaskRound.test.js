@@ -79,6 +79,7 @@ describe('панель задания не двигает сцену', () => {
     expect(cover).not.toMatch(/--sf-|scrollTop|scrollIntoView|\.focus\(/)
     expect(cover).toContain("closest('.feedSlide')")
     expect(cover).toContain("removeAttribute('data-scene-task')")
-    expect(cover).toMatch(/return \(\) => \{ ro\.disconnect\(\); set\(0\); slide\.removeAttribute\('data-scene-task'\) \}/)
+    // снятие — при размонтировании (после анимации ухода), а не в начале ухода (sceneTaskCloseOrder.test.js)
+    expect(cover).toMatch(/slide\.style\.setProperty\('--catch-cover-h', '0px'\)[\s\S]*slide\.removeAttribute\('data-scene-task'\)/)
   })
 })

@@ -1,5 +1,5 @@
 import { memo, useMemo, useRef } from 'react'
-import SceneRenderer from '../../scene/v2/SceneRenderer.jsx'
+import SceneRendererRaw from '../../scene/v2/SceneRenderer.jsx'
 import { backgroundSprite } from '../../scene/v2/sprites/spriteRegistry.js'
 import { perfFlags } from '../../../shared/lib/perfFlags.js'
 import { useFeedSlow } from '../feedSlowState.js'
@@ -11,6 +11,11 @@ import { useSceneAudioPrefetch } from './useSceneAudioPrefetch.js'
 import { useFeedFrame } from './useFeedFrame.js'
 import { isSolo } from '../../scene/v2/scenePit.js'
 import { sceneLayerMode, loopedScene, sceneSound, sceneRate } from './slideSceneRules.js'
+
+// SceneRenderer без memo перерисовывал всё SVG-дерево сцены на каждое изменение состояния задания (тап по микрофону, «Готово»: ~45 мс на
+// CPU 4× — ровно на первом кадре ухода панели). Его пропсы стабильны (scene — loopedScene из useMemo, onState/apiRef — стабильные, остальное
+// примитивы), поэтому рендер сцены пропускается, пока она сама не меняется.
+const SceneRenderer = memo(SceneRendererRaw)
 
 // Слой сцены «два кота говорят» на слайде ленты — тот же контракт, что у
 // SlideVideo (active/near/tabVisible/soundOn/…), вместо <video> — SceneRenderer:
@@ -35,7 +40,7 @@ function SlideScene({
   const looped = useMemo(() => loopedScene(scene), [scene])
   const slow = useFeedSlow(slideKey)
   const pb = useSlideScenePlay({ live, active, moduleId, onSoundOn, onSoundOff })
-  const task = useSceneTask({ scene, sceneId, active, live, apiRef: pb.apiRef, onLock })
+  const task = useSceneTask({ scene, sceneId, active, live, apiRef: pb.apiRef, onLock, soundOn })
   useSceneAudioPrefetch({ scene, active, near }) // сосед: первая реплика в кэш озвучки заранее (useSceneAudioPrefetch.js)
   // Кадр сцены (useFeedFrame / feedFrameCalc.js): ноги котов — над блоком фразы и кнопкой, лишний верх уходит за край;
   // пол сцены продолжается вниз за viewBox (backgrounds.js), градиент корня (feed-scene.css) — только запасной фон под скелетоном

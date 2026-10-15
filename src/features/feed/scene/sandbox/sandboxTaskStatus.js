@@ -26,7 +26,8 @@ export const sandboxTask = {
   subscribe: fn => { subs.add(fn); return () => subs.delete(fn) },
   reset: () => set(IDLE),
   idle: () => { if (cur !== IDLE) set(IDLE) },
-  waiting: (index, total) => { if (cur.phase !== 'waiting' || cur.index !== index || cur.total !== total) set({ phase: 'waiting', index, total, reason: null }) },
+  // Отказ ворот (gate:*, звук выключен) держится на экране, пока задание не покажут: круг идёт заново и перепроверит, но причину админ должен успеть прочитать
+  waiting: (index, total) => { if (cur.phase === 'skipped' && cur.reason?.code?.startsWith('gate:')) return; if (cur.phase !== 'waiting' || cur.index !== index || cur.total !== total) set({ phase: 'waiting', index, total, reason: null }) },
   shown: () => set({ ...cur, phase: 'shown', reason: null }),
   skipped: reason => set({ ...cur, phase: 'skipped', reason }),
 }
