@@ -38,6 +38,8 @@ describe('slideSceneRules — пауза, звук, loop, замедление',
     expect(demoOfficeScene.options.loop).toBe(false)
     expect(loopedScene(null)).toBeNull()
     expect(loopedScene({ version: 2 }).options).toEqual({ loop: true })
+    // С заданием — без loop: круг кончается 'ended' на последней реплике, панель выезжает до второго круга (useSceneTask)
+    expect(loopedScene({ ...demoOfficeScene, task: { kind: 'repeat', lineIndex: 0 } }).options.loop).toBe(false)
   })
 
   it('без звука ленты сцена молчит (таймер + рот + облачки), со звуком — голос; 0.5x → rate 0.5', () => {

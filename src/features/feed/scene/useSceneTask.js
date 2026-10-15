@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { track } from '../../../shared/lib/analytics/track.js'
 import { trackDedup } from '../../../shared/lib/analytics/trackDedup.js'
 import { SCENE_TASK_SHOWN, SCENE_TASK_ANSWER, SCENE_TASK_SKIP } from '../../../shared/lib/analytics/eventNames.js'
-import { feedTaskOf, initialPlay, trackPlay, taskAllowed } from './sceneTaskPlay.js'
+import { feedTaskOf, initialPlay, trackPlay, taskAllowed, roundOver } from './sceneTaskPlay.js'
 import { sceneTaskGate } from './sceneTaskLimits.js'
 import { voiceTaskBlockReason } from './sceneVoiceData.js'
 import { sandboxTask, isSandboxScene, micReason, limitReason, inactiveReason } from './sandbox/sandboxTaskStatus.js'
@@ -17,9 +17,11 @@ const ACTIONS = ['press', 'backspace', 'check', 'giveUp', 'later', 'finish', 're
 // слайде (детектор trackPlay по состояниям режиссёра — только границы реплик, без тиков) и если лимиты разрешают
 // (sceneTaskLimits: 5/день, раз в 3 слайда, сцена раз в сутки, пауза «позже», принудительный показ админа) — панель
 // открывается: состояние — чистые переходы sceneTaskState.js, здесь связка с React, аналитика и блокировка свайпа.
-// Пока панель открыта: freeze=true → SceneRenderer получает paused → режиссёр авто-паузой встаёт (и сам продолжит, когда
-// панель уйдёт — «loop продолжается как раньше»); сцена показывает последнюю реплику (goTo), «Послушать ещё раз» —
-// playOnce целевой реплики. setState — только на границах: показ, клавиша, проверка, закрытие.
+// Сцена с заданием у режиссёра не зациклена (loopedScene): круг кончается 'ended' на замершей последней реплике — панель
+// выезжает на стоящей сцене, второй круг под ней не стартует. Не открылась (лимиты, микрофон) — круг тут же идёт заново
+// (play). Пока панель в DOM: freeze=true → SceneRenderer получает paused (режиссёр не играет, идл-анимации стоят);
+// «Послушать ещё раз» — playOnce целевой реплики. Панель ушла (mounted=false) → play: круг заново.
+// setState — только на границах: показ, клавиша, проверка, закрытие.
 // onLock(mounted) — лента не свайпается, пока панель в DOM (как у «Ловли»).
 // Голосовые виды ('say' / 'repeat', info.voice): тот же показ, лимиты, заморозка и закрытие; вместо клавиш — voiceListen / voiceUnlisten /
 // voiceResult / voiceSkip (переходы — sceneVoiceState.js, микрофон ведёт SceneVoicePanel). Нет микрофона (Firefox, отказ) — тихий пропуск
@@ -52,12 +54,13 @@ export function useSceneTask({ scene, sceneId, active, live, apiRef, onLock, gat
     playRef.current = next
     const { info: i, active: a, live: l, sceneId: id } = latest.current
     if (next.sawLast && !prev.sawLast && i?.voice && a && l) warmVoice()
+    const again = () => { if (roundOver(state)) apiRef?.current?.play?.() } // круг без loop доиграл, панели нет — заново
     if (!next.done || prev.done) {
       if (sandbox && !next.done) sandboxTask.waiting(state.index, state.total)
-      return
+      return again()
     }
-    // Песочница: каждый отказ показа записывается с причиной (в обычной ленте пропуск тихий)
-    const skip = reason => { if (sandbox) sandboxTask.skipped(reason) }
+    // Песочница: каждый отказ показа записывается с причиной (в обычной ленте пропуск тихий); без панели круг идёт заново
+    const skip = reason => { if (sandbox) sandboxTask.skipped(reason); again() }
     if (!taskAllowed({ info: i, active: a, live: l })) return skip(inactiveReason())
     const mic = i.voice ? voiceTaskBlockReason() : null
     if (mic) return skip(micReason(mic))
@@ -65,9 +68,9 @@ export function useSceneTask({ scene, sceneId, active, live, apiRef, onLock, gat
     update(ts.open)
     if (sandbox) sandboxTask.shown()
     trackDedup(SCENE_TASK_SHOWN, { scene_id: id, kind: i.task.kind }, id)
-  }, [gate, warmVoice, sandbox]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [gate, warmVoice, sandbox, apiRef]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Панель открылась — сцена замирает на последней реплике (режиссёр уже на авто-паузе: эффекты ребёнка раньше наших)
+  // Панель открылась — сцена стоит на последней реплике (режиссёр на 'ended'; goTo — страховка для зацикленного пути)
   const total = scene?.timeline?.length ?? 0
   useEffect(() => { if (open && total) apiRef?.current?.goTo?.(total - 1) }, [open]) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -87,6 +90,13 @@ export function useSceneTask({ scene, sceneId, active, live, apiRef, onLock, gat
 
   useEffect(() => { latest.current.onLock?.(mounted) }, [mounted])
   useEffect(() => () => latest.current.onLock?.(false), [])
+  // Панель ушла из DOM — круг заново (под уезжающей панелью сцена ещё стоит: freeze держится до размонтирования).
+  // Вкладка скрыта / слайд не активен — режиссёра нет (apiRef пуст), запуск сделает useSlideScenePlay при возврате в live
+  const wasMounted = useRef(false)
+  useEffect(() => {
+    if (!mounted && wasMounted.current) apiRef?.current?.play?.()
+    wasMounted.current = mounted
+  }, [mounted]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const kind = info?.task.kind ?? 'translate'
   const press = ch => update(p => ts.press(p, ch))
@@ -133,5 +143,5 @@ export function useSceneTask({ scene, sceneId, active, live, apiRef, onLock, gat
   useEffect(() => { fns.current = all })
   const [stable] = useState(() => Object.fromEntries(ACTIONS.map(n => [n, (...args) => fns.current[n](...args)])))
 
-  return { info, open, mounted, freeze: open, state: s, onState, ...stable }
+  return { info, open, mounted, freeze: mounted, state: s, onState, ...stable }
 }

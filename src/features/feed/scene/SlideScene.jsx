@@ -21,8 +21,9 @@ import { sceneLayerMode, loopedScene, sceneSound, sceneRate } from './slideScene
 // (решает сам SceneRenderer по deviceTier). data-scrolling у .feedSwiper ставит
 // CSS-анимации котов на паузу (scene-v2-cat.css — селектор по любому предку).
 // Замедление 0.5x (зона над лайком) приходит через feedSlowState → rate.
-// Задание «О чём диалог» (useSceneTask): после первого полного круга диалога снизу выезжает панель (SceneTaskCover);
-// пока она открыта — режиссёр на паузе (freeze → paused), свайп заблокирован (onLock), после «Готово» круг продолжается.
+// Задание «О чём диалог» (useSceneTask): сцена с заданием у режиссёра не зациклена (loopedScene) — после первого полного
+// круга она стоит на последней реплике, снизу выезжает панель (SceneTaskCover); пока панель в DOM — режиссёр стоит
+// (freeze → paused), свайп заблокирован (onLock); панель ушла — круг заново (play из useSceneTask).
 function SlideScene({
   scene, sceneId = null, posterUrl = null, slideKey, moduleId = null, active = false, near = false, tabVisible = true,
   soundOn = false, soundEverOn = false, onSoundOn, onSoundOff, onLock, frameIndex = null,

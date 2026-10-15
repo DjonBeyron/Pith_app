@@ -27,8 +27,9 @@ export function silenceScene(api, total) {
 }
 
 // Детектор ПЕРВОГО полного проигрывания по состояниям режиссёра ({ status, index, total }), которые приходят только на
-// границах реплик. Сцена в ленте зациклена: 'ended' не наступает, а полный круг виден как «играла последняя реплика →
-// снова играет нулевая» (при одной реплике — «второе playing подряд»). Без loop — 'ended'. → { sawLast, done }; done ставится один раз
+// границах реплик. Сцена с заданием в ленте не зациклена (loopedScene): круг кончается 'ended' — ДО старта новой нулевой
+// реплики, сцена замирает на последней. Запасной путь для зацикленной сцены — «играла последняя реплика → снова играет
+// нулевая» (при одной реплике — «второе playing подряд»). → { sawLast, done }; done ставится один раз
 export const initialPlay = () => ({ sawLast: false, done: false })
 
 export function trackPlay(p, { status, index, total }) {
@@ -46,6 +47,9 @@ export function trackPlay(p, { status, index, total }) {
   if (index === 0 && p.sawLast) return { ...p, done: true }
   return p
 }
+
+// Круг без loop доиграл (loopedScene у сцены с заданием) — режиссёр стоит на 'ended'; если панель не открывается, круг идёт заново
+export const roundOver = state => state?.status === 'ended'
 
 // Панель уместна: активный живой слайд, у сцены есть проверяемое задание
 export function taskAllowed({ info, active, live }) {

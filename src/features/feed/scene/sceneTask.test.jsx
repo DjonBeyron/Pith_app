@@ -24,13 +24,14 @@ describe('feedTaskOf / loopedScene', () => {
     const bare = normalizeSceneV2({ ...demoCafeScene, task: { kind: 'translate' } })
     expect(feedTaskOf(bare)).toBeNull()
   })
-  it('в ленте переводы под облачками скрыты, если есть задание; без задания — остаются', () => {
+  it('в ленте переводы под облачками скрыты, если есть задание, и такую сцену режиссёр не зацикливает; без задания — loop', () => {
     const looped = loopedScene(scene)
-    expect(looped.options.loop).toBe(true)
+    expect(looped.options.loop).toBe(false)
     expect(looped.timeline.every(l => !('translation' in l))).toBe(true)
     expect(looped.task).toBe(scene.task)
     const plain = loopedScene(normalizeSceneV2({ ...demoCafeScene, timeline: demoCafeScene.timeline.map(l => ({ ...l, translation: 'т' })) }))
     expect(plain.timeline[0].translation).toBe('т')
+    expect(plain.options.loop).toBe(true)
   })
 })
 

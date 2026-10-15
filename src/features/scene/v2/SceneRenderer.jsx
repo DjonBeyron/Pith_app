@@ -72,6 +72,13 @@ export default function SceneRenderer({
   // audioSrcOf(url) — подмена ссылки озвучки реплики (blob прогрева ноды урока), иначе null
   const director = useSceneDirectorV2(scene, { enabled: live, sound, rate, active: active && onScreen, paused, mouthEls, audioSrcOf, voice })
   const { status: dStatus, index: dIndex, total: dTotal, mode: dMode, run: dRun } = director
+  // apiRef — ДО эффекта onState: объект director новый каждый рендер, эффект переустанавливает ref в каждом коммите
+  // (cleanup → null → заново), а onState может сразу звать apiRef.current.play() (лента: круг заново после 'ended')
+  useEffect(() => {
+    if (!apiRef) return undefined
+    apiRef.current = live ? director : null
+    return () => { apiRef.current = null }
+  }, [apiRef, director, live])
   // mode ('audio' | 'speech' | 'timer') — чем звучит текущая реплика (нода урока: чип «Включить звук»)
   // run — счётчик запусков реплик: у сцены из ОДНОЙ реплики с loop состояние (playing, 0) повторяется, и без run круг был бы не виден
   useEffect(() => { if (live) onState?.({ status: dStatus, index: dIndex, total: dTotal, mode: dMode, run: dRun }) }, [live, onState, dStatus, dIndex, dTotal, dMode, dRun])
@@ -80,12 +87,6 @@ export default function SceneRenderer({
   const onCatEl = useCallback((who, el) => {
     mouthEls.current[who] = el?.querySelector?.('[data-part="cat"]') ?? null
   }, [])
-
-  useEffect(() => {
-    if (!apiRef) return undefined
-    apiRef.current = live ? director : null
-    return () => { apiRef.current = null }
-  }, [apiRef, director, live])
 
   // Вне экрана — CSS-анимации стоят и режиссёр на авто-паузе
   useEffect(() => {

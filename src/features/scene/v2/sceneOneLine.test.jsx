@@ -131,8 +131,10 @@ describe('воспроизведение одной реплики', () => {
     expect(trackPlay(p, st('playing')).done).toBe(true)
     expect(trackPlay(initialPlay(), st('ended')).done).toBe(true) // без loop
   })
-  it('лента: loopedScene одной реплики зациклена, feedTaskOf отдаёт голосовое задание', () => {
-    expect(loopedScene(demoRepeatOneLineScene).options.loop).toBe(true)
+  it('лента: loopedScene одной реплики с заданием — без loop (круг кончается ended, панель до второго круга), feedTaskOf отдаёт голосовое задание', () => {
+    expect(loopedScene(demoRepeatOneLineScene).options.loop).toBe(false)
+    const { task: _t, ...noTask } = demoRepeatOneLineScene
+    expect(loopedScene(noTask).options.loop).toBe(true)
     const info = feedTaskOf(demoSayOneLineScene)
     expect(info).toMatchObject({ index: 0, voice: true })
   })

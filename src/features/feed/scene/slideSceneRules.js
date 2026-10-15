@@ -21,13 +21,15 @@ export function sceneLayerMode({ active, near, noVideo = false }) {
 
 // Сцена в ленте крутится по кругу, как зацикленное видео. Если у сцены есть задание «О чём диалог» (sceneTask.js) —
 // переводы под репликами в облачках не показываются: иначе ответ был бы перед глазами (ответ проверяется по
-// исходной сцене — useSceneTask получает её, а не эту копию)
+// исходной сцене — useSceneTask получает её, а не эту копию). И режиссёр такую сцену НЕ зацикливает: круг кончается
+// 'ended' на замершей последней реплике — панель задания выезжает до того, как кот заговорит снова (иначе второй круг
+// успевал стартовать и обрывался паузой); новый круг запускает useSceneTask (play по 'ended' / после ухода панели)
 export function loopedScene(scene) {
   if (!scene) return null
   const timeline = scene.task && Array.isArray(scene.timeline)
     ? scene.timeline.map(l => { if (!l?.translation) return l; const { translation: _t, ...rest } = l; return rest })
     : scene.timeline
-  return { ...scene, timeline, options: { ...(scene.options ?? {}), loop: true } }
+  return { ...scene, timeline, options: { ...(scene.options ?? {}), loop: !scene.task } }
 }
 
 // Режиссёру можно играть: живой режим, вкладка видна, пользователь не ставил паузу
