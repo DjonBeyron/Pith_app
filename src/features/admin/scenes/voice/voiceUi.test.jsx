@@ -101,12 +101,12 @@ describe('VoicePicker и шапка таймлайна', () => {
     expect(custom).toContain('value="myCustomVoice123"')
     expect(custom).not.toContain('Прослушать голос')
   })
-  it('TimelineEditor: «Озвучено X из N», квота, «Озвучить всё» (заблокирована, когда всё озвучено)', () => {
+  it('TimelineEditor: «Озвучено X из N», квота, ссылка «Озвучить всё» (в тулбаре — основная кнопка; заблокирована, когда всё озвучено)', () => {
     const actions = {}
     const html = renderToStaticMarkup(<TimelineEditor scene={demoOfficeScene} actions={actions} voice={voiceApi()} />)
     expect(html).toContain('Озвучено <b>0</b> из 6')
     expect(html).toContain('квота ElevenLabs: 900 симв.')
-    expect(html).toMatch(/<button[^>]*class="fsBtn fsBtnSmall"[^>]*>[\s\S]*?Озвучить всё/)
+    expect(html).toMatch(/<button[^>]*class="scbLink"[^>]*>[\s\S]*?Озвучить всё/)
     expect(html).not.toMatch(/<button[^>]*disabled[^>]*>[\s\S]*?Озвучить всё/)
     const all = { ...demoOfficeScene, timeline: demoOfficeScene.timeline.map(l => ({ ...l, audioUrl: URL_OK })) }
     expect(renderToStaticMarkup(<TimelineEditor scene={all} actions={actions} voice={voiceApi()} />)).toMatch(/<button[^>]*disabled[^>]*>[\s\S]*?Озвучить всё/)

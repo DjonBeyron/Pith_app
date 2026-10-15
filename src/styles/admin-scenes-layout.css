@@ -1,0 +1,56 @@
+/* Окно «Сборщик сцен» — три колонки на ПК (admin/scenes/BuilderWindow + ui/ColumnResizer):
+   ширины долями через CSS-переменные --scb-c1..3 (fr) на .scbBody (ставит useColumnWidths,
+   во время перетаскивания — прямо в style без перерисовки React), минимум колонки 240px
+   (columnResize.MIN_COL), между колонками — перетаскиваемые разделители .scbSplit.
+   Телефон (< 1100px) — одна колонка, вкладки «Настройки / Сцена / Панель», разделители скрыты. */
+
+.scbBody {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns:
+    minmax(240px, var(--scb-c1, 370fr)) 8px
+    minmax(240px, var(--scb-c2, 300fr)) 8px
+    minmax(240px, var(--scb-c3, 330fr));
+}
+.scbCol {
+  min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 10px 14px calc(16px + env(safe-area-inset-bottom, 0px));
+}
+.scbColTools { display: flex; justify-content: flex-end; align-items: center; gap: 6px; margin-bottom: 8px; min-height: 26px; }
+.scbColTools:empty { display: none; }
+.scbAllBtn { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
+.scbAllGroup { gap: 4px; }
+
+/* Разделитель колонок */
+.scbSplit {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: col-resize;
+  touch-action: none;
+  background: var(--fs-border);
+  transition: background 0.15s ease;
+}
+.scbSplit::before { content: ''; position: absolute; inset: 0 -5px; } /* зона захвата шире полоски */
+.scbSplit:hover, .scbSplit:focus-visible, .scbBody[data-resizing] .scbSplit { background: var(--fs-muted); }
+.scbSplitGrip { width: 2px; height: 36px; border-radius: 2px; background: var(--fs-muted); pointer-events: none; }
+.scbSplit:hover .scbSplitGrip, .scbSplit:focus-visible .scbSplitGrip { background: var(--fs-text); }
+
+/* Пока тянем: ничего не выделяется, колонки не ловят события (iframe/видео не перехватывают курсор) */
+.scbBody[data-resizing] { cursor: col-resize; user-select: none; -webkit-user-select: none; }
+.scbBody[data-resizing] .scbCol { pointer-events: none; }
+
+/* ── Телефон / узкий экран: вкладки вместо колонок ── */
+@media (max-width: 1099px) {
+  .scbBody { grid-template-columns: 1fr; }
+  .scbSplit { display: none; }
+  .scbCol { display: none; padding: 10px 12px calc(16px + env(safe-area-inset-bottom, 0px)); }
+  .scbBody[data-view="settings"] .scbColSettings,
+  .scbBody[data-view="scene"] .scbColScene,
+  .scbBody[data-view="panel"] .scbColPanel { display: block; }
+}

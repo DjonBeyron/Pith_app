@@ -1,10 +1,12 @@
 import { useState, useMemo } from 'react'
 import { spriteCheckSummary, SPRITE_KINDS } from '../../scene/v2/spriteCheck.js'
 import { readFileText, svgDataUrl } from './fileUtils.js'
+import { fixHintFor } from './designer-pack/fixHints.js'
 import ScTip from './ScTip.jsx'
 
 // «Проверить SVG»: файл с диска или вставленный текст → checkSpriteSvg по типу
-// (кот / предмет / фон) → отчёт: ок или список нарушений, число узлов, найденные группы
+// (кот / предмет / фон) → отчёт: ок или список нарушений (+ «как исправить» из designer-pack/fixHints —
+// те же подсказки, что в автономном проверщике дизайнера), число узлов, найденные группы
 // data-part и data-viseme; предпросмотр через <img src="data:…"> (скрипты в img не выполняются).
 const KINDS = [['cat', 'Кот'], ['prop', 'Предмет'], ['background', 'Фон']]
 const PART_RE = /data-part\s*=\s*["']([^"']+)["']/g
@@ -57,7 +59,11 @@ export default function SvgChecker() {
             <p className="scHint">Узлов: <b>{report.nodes}</b> из {SPRITE_KINDS[kind].maxNodes} · группы data-part: {report.parts.length ? report.parts.map(p => <code key={p}>{p}</code>) : '— нет —'}
               {kind === 'cat' && <> · виземы: {report.visemes.length ? report.visemes.map(v => <code key={v}>{v}</code>) : '— нет —'}</>}
             </p>
-            {!report.ok && <ul className="scProblems">{report.problems.map(p => <li key={p}>{p}</li>)}</ul>}
+            {!report.ok && (
+              <ul className="scProblems">
+                {report.problems.map(p => <li key={p}>{p}{fixHintFor(p) && <span className="scdFix">{fixHintFor(p)}</span>}</li>)}
+              </ul>
+            )}
           </div>
           <div className="scdPreview" aria-label="Предпросмотр файла">
             <img src={svgDataUrl(text)} alt="Предпросмотр SVG" onError={e => { e.currentTarget.alt = 'Браузер не смог отрисовать файл' }} />

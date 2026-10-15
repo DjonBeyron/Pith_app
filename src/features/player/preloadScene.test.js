@@ -31,4 +31,19 @@ describe('preload — нода scene', () => {
     expect(q).toHaveLength(2)
     expect(q[0]).toMatchObject({ nodeId: 's1', nodeSeq: 1 })
   })
+
+  it('файлы перевода — только когда озвучка перевода включена (сценой или переопределением ноды)', () => {
+    const tl = [{ who: 'a', text: 'Hi.', translation: 'Привет.', audioUrl: 'https://r2.dev/a.mp3', translationAudioUrl: 'https://r2.dev/a-tr.mp3' }]
+    const plain = sceneNode(tl)
+    expect(nodeDownloads(plain, []).map(i => i.url)).toEqual(['https://r2.dev/a.mp3'])
+    const bySceneRaw = sceneNode(tl)
+    bySceneRaw.typeData.scene.scene.options = { voice: { translation: true } }
+    expect(nodeDownloads(bySceneRaw, []).map(i => i.url)).toEqual(['https://r2.dev/a.mp3', 'https://r2.dev/a-tr.mp3'])
+    const byNode = sceneNode(tl)
+    byNode.typeData.scene.voice = { translation: true }
+    expect(nodeDownloads(byNode, []).map(i => i.url)).toEqual(['https://r2.dev/a.mp3', 'https://r2.dev/a-tr.mp3'])
+    byNode.typeData.scene.voice = { translation: false }
+    byNode.typeData.scene.scene.options = { voice: { translation: true } }
+    expect(nodeDownloads(byNode, []).map(i => i.url)).toEqual(['https://r2.dev/a.mp3'])
+  })
 })

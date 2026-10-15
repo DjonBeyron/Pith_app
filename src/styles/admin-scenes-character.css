@@ -1,0 +1,79 @@
+/* Сборщик сцен — персонажи и цвета говорящих (admin/scenes/CharacterForm, TimelineLine).
+   Форма персонажа — вложенная панель .scbPanel: поля в сетке auto-fit с отступами по
+   плотности (--gap/--pad из admin-scenes-panel.css): узкая колонка — один столбец, широкая —
+   несколько. Цвета говорящих --spk-a/--spk-b (+ контрастный текст --spk-a-ink/--spk-b-ink,
+   ui/colorContrast.js) ставит TimelineEditor на список реплик: выбранный говорящий залит
+   цветом персонажа, левая полоса карточки реплики — тем же цветом. */
+
+/* Персонажи */
+.scbChars { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: var(--gap, 10px); }
+.scbCharHead { display: flex; gap: var(--gap, 10px); align-items: flex-start; }
+.scbCharHead > svg { flex: none; border-radius: 8px; background: #e8eef5; }
+.scbCharFields { flex: 1; min-width: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 170px), 1fr)); gap: var(--gap, 8px); align-items: start; }
+.scbCharRow { display: flex; flex-wrap: wrap; align-items: flex-start; gap: var(--gap, 8px) calc(var(--gap, 8px) * 2); }
+.scbCharRow .scPalette { flex: 1 1 260px; min-width: 0; }
+.scbCharRow .scCheckRow { display: inline-flex; align-items: center; gap: 2px; padding-top: 2px; }
+.scbChar .scbVoice { margin-top: 2px; }
+.scbRanges { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 210px), 1fr)); gap: calc(var(--gap, 8px) / 2) var(--gap, 8px); }
+.scbRange { display: flex; align-items: center; gap: 8px; min-width: 0; font-size: 12px; color: var(--fs-muted); }
+.scbRange span { flex: none; width: 92px; }
+.scbRange input { flex: 1; min-width: 0; accent-color: var(--fs-accent); }
+.scbPanel[data-density="compact"] .scbCharHead > svg { width: 48px; height: auto; }
+
+/* Кружок персонажа в заголовках (панель персонажа, панель реплики) */
+.scbSpkDot {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--spk, var(--fs-muted));
+  color: var(--spk-ink, #fff);
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 800;
+  line-height: 1;
+}
+.scbSpkDot[data-who="a"], .scbWho[data-who="a"] { --spk: var(--spk-a, #f2a65a); --spk-ink: var(--spk-a-ink, #141414); }
+.scbSpkDot[data-who="b"], .scbWho[data-who="b"] { --spk: var(--spk-b, #8e97a8); --spk-ink: var(--spk-b-ink, #141414); }
+
+/* Карточка реплики: левая полоса цветом говорящего */
+.scbLine { list-style: none; }
+.scbLine > .scbPanel { border-left: 4px solid var(--fs-border); }
+.scbLine[data-who="a"] > .scbPanel { border-left-color: var(--spk-a, #f2a65a); }
+.scbLine[data-who="b"] > .scbPanel { border-left-color: var(--spk-b, #8e97a8); }
+.scbLine > .scbPanel[data-tone="error"] { border-left-color: var(--fs-error); }
+.scbLineN { flex: none; width: 20px; height: 20px; display: inline-flex; align-items: center; justify-content: center; border-radius: 50%; background: var(--fs-panel); font-size: 11px; font-weight: 700; }
+.scbLineSnippet { flex: 1 1 60px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 400; font-style: italic; }
+.scbLineBtns { display: inline-flex; gap: 3px; }
+.scbLineTop { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.scbLineSel { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 160px), 1fr)); gap: var(--gap, 8px); }
+
+/* Кто говорит: выбранный залит цветом персонажа, невыбранный приглушён */
+.scbWhoBtns { display: inline-flex; flex-wrap: wrap; gap: 6px; }
+.scbWho {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 13px;
+  border: 1px solid var(--fs-border);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--fs-muted);
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease, box-shadow 0.12s ease;
+}
+.scbWho:hover { border-color: var(--spk); color: var(--fs-text); }
+.scbWhoDot { flex: none; width: 10px; height: 10px; border-radius: 50%; background: var(--spk); }
+.scbWhoOn {
+  background: var(--spk);
+  border-color: var(--spk);
+  color: var(--spk-ink);
+  box-shadow: 0 0 0 2px var(--fs-panel-2), 0 0 0 3.5px var(--spk);
+}
+.scbWhoOn .scbWhoDot { background: var(--spk-ink); opacity: 0.7; }
+.scbWhoOn:hover { color: var(--spk-ink); }

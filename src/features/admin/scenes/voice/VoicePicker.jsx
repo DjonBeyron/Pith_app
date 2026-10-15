@@ -55,12 +55,14 @@ export default function VoicePicker({ who, character, actions, voice = null }) {
           <button type="button" className="scbLink" onClick={() => pick(defaultVoiceFor(character.gender))}>Подобрать по полу</button>
         </p>
       )}
-      {VOICE_SLIDERS.map(s => (
-        <label key={s.key} className="scbRange" title={s.hint}>
-          <span>{s.label} {sliderValue(v, s.key).toFixed(2)}</span>
-          <input id={`${p}-${s.key}`} type="range" min={s.range[0]} max={s.range[1]} step={s.step} value={sliderValue(v, s.key)} onChange={e => actions.setVoice(who, { [s.key]: Number(e.target.value) })} aria-label={`${s.label} голоса`} />
-        </label>
-      ))}
+      <div className="scbRanges">
+        {VOICE_SLIDERS.map(s => (
+          <label key={s.key} className="scbRange" title={s.hint}>
+            <span>{s.label} {sliderValue(v, s.key).toFixed(2)}</span>
+            <input id={`${p}-${s.key}`} type="range" min={s.range[0]} max={s.range[1]} step={s.step} value={sliderValue(v, s.key)} onChange={e => actions.setVoice(who, { [s.key]: Number(e.target.value) })} aria-label={`${s.label} голоса`} />
+          </label>
+        ))}
+      </div>
       {voice && (
         <div className="scbVoiceListen">
           <button type="button" className="fsBtn fsBtnSmall" onClick={listen} disabled={!!voice.busy} title={`Фраза: «${PREVIEW_PHRASE}»`}>

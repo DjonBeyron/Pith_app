@@ -11,18 +11,19 @@ import ScTip from './ScTip.jsx'
 
 // Текст спецификации для дизайнера: разделы с картинками. Числа и списки берутся из ядра
 // (spriteCheck, catSprite, slots, sceneBudget) — спецификация не расходится с проверкой.
-const Section = ({ id, title, tip, children }) => (
+// print=true — та же разметка для печатного документа (designer-pack/buildPrintDoc): без кнопок «?».
+const Section = ({ id, title, tip, print, children }) => (
   <section className="scdSec" id={id} aria-labelledby={`${id}-h`}>
-    <h2 id={`${id}-h`} className="scdH">{title}{tip && <> <ScTip help={tip} /></>}</h2>
+    <h2 id={`${id}-h`} className="scdH">{title}{tip && !print && <> <ScTip help={tip} /></>}</h2>
     {children}
   </section>
 )
 
-export default function DesignerSections() {
+export default function DesignerSections({ print = false }) {
   const K = SPRITE_KINDS
   return (
     <div className="scdSecs">
-      <Section id="scd-canvas" title="1. Размеры холста" tip="viewbox">
+      <Section id="scd-canvas" title="1. Размеры холста" tip="viewbox" print={print}>
         <ul className="scList">
           <li><b>Кот</b> — viewBox <code>{CAT_VIEWBOX}</code> (ширина 200, высота 240). Кот стоит на нижнем краю, голова — круг радиусом ≈ 48 с центром (100, 96).</li>
           <li><b>Фон</b> — viewBox <code>{SCENE_VIEWBOX}</code>, вертикальный 9:16, как экран телефона. Линия пола — y = 430.</li>
@@ -31,7 +32,7 @@ export default function DesignerSections() {
         <div className="scdFigs"><CatCanvasDiagram /><SceneLayersDiagram /></div>
       </Section>
 
-      <Section id="scd-parts" title="2. Обязательные именованные группы" tip="data_part">
+      <Section id="scd-parts" title="2. Обязательные именованные группы" tip="data_part" print={print}>
         <p>Каждая часть — отдельная группа <code>&lt;g data-part="имя"&gt;</code>. Имена латиницей, ровно такие:</p>
         <p className="scdChips">{CAT_PARTS.map(p => <code key={p} className={K.cat.requiredParts.includes(p) ? 'scdReq' : ''}>{p}</code>)}</p>
         <p className="scHint">Подчёркнутые — обязательные для кота (проверка не пропустит файл без них): {K.cat.requiredParts.join(', ')}. Группа <code>head</code>
@@ -40,15 +41,15 @@ export default function DesignerSections() {
         <p><b>Предмет</b>: одна группа <code>&lt;g data-part="id-предмета"&gt;</code> со всеми фигурами внутри. <b>Фон</b>: группы <code>wall</code> и <code>floor</code>.</p>
       </Section>
 
-      <Section id="scd-mouth" title="3. Три формы рта и четыре эмоции" tip="viseme">
+      <Section id="scd-mouth" title="3. Три формы рта и четыре эмоции" tip="viseme" print={print}>
         <p>Внутри <code>mouth</code> лежат одновременно три группы <code>&lt;g data-viseme="closed|half|open"&gt;</code> — приложение показывает одну из них, быстро переключая во время речи.</p>
         <VisemesDiagram />
-        <p>Эмоции <ScTip help="emotion" /> меняют глаза, брови и форму закрытого рта. В базовом файле нарисуйте <code>neutral</code>; остальные — либо отдельными файлами
+        <p>Эмоции {!print && <ScTip help="emotion" />} меняют глаза, брови и форму закрытого рта. В базовом файле нарисуйте <code>neutral</code>; остальные — либо отдельными файлами
           <code>cat-male-happy.svg</code> и т.д., либо описанием, как приложение дорисовывает веки (как у встроенных котов).</p>
         <EmotionsDiagram />
       </Section>
 
-      <Section id="scd-anchor" title="4. Якоря и слои" tip="anchor">
+      <Section id="scd-anchor" title="4. Якоря и слои" tip="anchor" print={print}>
         <ul className="scList">
           <li><b>Напольные и настольные предметы</b> (стол, растение, кружка): (0,0) — нижняя середина, рисунок уходит вверх в минус по y.</li>
           <li><b>Настенные</b> (картина, часы, доска, окно): (0,0) — центр.</li>
@@ -57,7 +58,7 @@ export default function DesignerSections() {
         <p>Слои отрисовки снизу вверх: {LAYERS.map((l, i) => <span key={l}><code>{l}</code> ({LAYER_LABEL[l]}){i < LAYERS.length - 1 ? ' → ' : ''}</span>)}. Коты рисуются после предметов пола и стола, облачко — поверх всего.</p>
       </Section>
 
-      <Section id="scd-color" title="5. Палитра и правила цвета" tip="current_color">
+      <Section id="scd-color" title="5. Палитра и правила цвета" tip="current_color" print={print}>
         <p>Цвет задаётся атрибутами <code>fill</code> и <code>stroke</code>: <code>#rrggbb</code>, <code>rgb()</code>, <code>currentColor</code> или <code>none</code>. Допустимые свойства:
           <code>opacity</code>, <code>stroke-width</code>, <code>stroke-linecap</code>, <code>stroke-linejoin</code>, <code>stroke-dasharray</code>, <code>transform</code>.</p>
         <p>Кот перекрашивается палитрой персонажа — используйте пять ролей цвета и пометьте в файле комментарием, какая фигура к какой роли относится:</p>
@@ -71,7 +72,7 @@ export default function DesignerSections() {
         </div>
       </Section>
 
-      <Section id="scd-forbidden" title="6. Чего в файле быть не должно" tip="forbidden">
+      <Section id="scd-forbidden" title="6. Чего в файле быть не должно" tip="forbidden" print={print}>
         <p className="scdChips">{FORBIDDEN_TAGS.map(t => <code key={t} className="scdBan">&lt;{t}&gt;</code>)}</p>
         <ul className="scList">
           <li>Никаких <code>url(…)</code> в атрибутах, <code>href</code>/<code>xlink:href</code>, обработчиков <code>on*</code>, <code>&lt;style&gt;</code> и анимаций внутри файла — анимирует приложение.</li>
@@ -80,14 +81,14 @@ export default function DesignerSections() {
         </ul>
       </Section>
 
-      <Section id="scd-budget" title="7. Бюджет узлов" tip="budget">
+      <Section id="scd-budget" title="7. Бюджет узлов" tip="budget" print={print}>
         <ul className="scList">
           <li>Кот ≤ <b>{K.cat.maxNodes}</b> узлов (встроенные — 53–58), предмет ≤ <b>{K.prop.maxNodes}</b> (лучше 4–8), фон ≤ <b>{K.background.maxNodes}</b>.</li>
           <li>Сцена целиком (фон + два кота + все предметы) ≤ <b>{NODE_BUDGET}</b>. Узел = любая фигура или группа. Объединяйте штрихи в один <code>path</code>.</li>
         </ul>
       </Section>
 
-      <Section id="scd-files" title="8. Имена файлов и чек-лист сдачи" tip="file_names">
+      <Section id="scd-files" title="8. Имена файлов и чек-лист сдачи" tip="file_names" print={print}>
         <ul className="scList">
           <li>Имена: <code>cat-male.svg</code>, <code>cat-female.svg</code>, предметы — <code>coffee-cup.svg</code>, фоны — <code>bg-cafe.svg</code>. Латиница, дефисы, нижний регистр.</li>
           <li>Чек-лист: ☐ viewBox верный ☐ группы data-part названы ☐ три виземы рта ☐ точка (0,0) = якорь ☐ цвета только fill/stroke ☐ запрещённых тегов нет

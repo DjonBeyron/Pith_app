@@ -1,0 +1,142 @@
+/* Панели сборщика сцен (admin/scenes/ui/Panel.jsx): крупный заголовок, кнопки «свернуть» и
+   «на весь экран», свёрнутый мини-блок в одну строку, вложенные панели, подсветка линтера
+   (data-tone: error — красная рамка и заголовок, warn — янтарная метка), полноэкранный режим
+   (position: fixed на месте — содержимое не перемонтируется; z-index 15 внутри .fsWin: ниже
+   диалога «Озвучить всё» (20) и подсказок «?» (800) — они открываются поверх панели),
+   плотность data-density (compact | normal | roomy → --gap/--pad/--row, ставит useDensity.js),
+   тонкие скроллбары всех прокручиваемых областей окна. Токены — .fsWin (--fs-*). */
+
+.scbPanel {
+  --gap: 8px;
+  --pad: 12px;
+  --row: 32px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap);
+  min-width: 0;
+  padding: var(--pad);
+  border: 1px solid var(--fs-border);
+  border-radius: 14px;
+  background: var(--fs-panel);
+  transition: border-color 0.15s ease;
+}
+.scbPanel[data-density="compact"] { --gap: 5px; --pad: 8px; --row: 28px; }
+.scbPanel[data-density="roomy"] { --gap: 12px; --pad: 16px; --row: 36px; }
+.scbPanelNested { border-radius: 12px; background: var(--fs-panel-2); padding: calc(var(--pad) - 2px); }
+.scbPanelNested .scbPanelNested { background: var(--fs-panel); }
+
+/* Шапка */
+/* Шапка — сетка: заголовок | кнопки; действия панели (extra) в узкой/обычной панели уходят на вторую
+   строку, в просторной (roomy) и у карточки реплики (.scbLinePanel) — в той же строке перед кнопками */
+.scbPanelHead { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 4px 8px; min-height: 28px; }
+.scbPanelHead > .scbPanelTitle { grid-column: 1; grid-row: 1; }
+.scbPanelHead > .scbPanelBtns { grid-column: 2; grid-row: 1; justify-self: end; }
+.scbPanelHead > .scbPanelExtra { grid-column: 1 / -1; grid-row: 2; }
+.scbPanel[data-density="roomy"] > .scbPanelHead, .scbLinePanel > .scbPanelHead { grid-template-columns: minmax(0, 1fr) auto auto; }
+.scbPanel[data-density="roomy"] > .scbPanelHead > .scbPanelExtra, .scbLinePanel > .scbPanelHead > .scbPanelExtra { grid-column: 2; grid-row: 1; justify-content: flex-end; }
+.scbPanel[data-density="roomy"] > .scbPanelHead > .scbPanelBtns, .scbLinePanel > .scbPanelHead > .scbPanelBtns { grid-column: 3; }
+.scbPanelTitle { min-width: 0; margin: 0; display: flex; align-items: center; gap: 6px; font-size: 15.5px; font-weight: 700; line-height: 1.25; }
+h3.scbPanelTitle { font-size: 14px; }
+h4.scbPanelTitle { font-size: 13.5px; }
+.scbPanelTitleBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  margin-left: -4px;
+  padding: 3px 6px 3px 4px;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.scbPanelTitleBtn:hover { background: rgba(128, 128, 128, 0.14); }
+.scbPanelTitleBtn > svg { flex: none; color: var(--fs-muted); }
+.scbPanelTitleText { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 2px 6px; min-width: 0; }
+.scbPanelTitleText > * { flex: none; }
+.scbPanelExtra { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; min-width: 0; }
+.scbPanelBtns { display: inline-flex; gap: 4px; }
+.scbPanelBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--fs-border);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--fs-muted);
+  cursor: pointer;
+} /* padding:0 и значок без сжатия — общая основа admin-scenes-icons.css */
+.scbPanelBtn:hover { border-color: var(--fs-muted); color: var(--fs-text); }
+.scbPanelBtn[aria-pressed="true"] { background: var(--fs-panel-2); color: var(--fs-text); }
+
+/* Метка линтера в заголовке */
+.scbPanelBadge {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+}
+.scbPanelBadge-error { background: var(--fs-error); color: #fff; }
+.scbPanelBadge-warn { background: var(--fs-warn); color: #000; }
+
+/* Тон: ошибка — красная рамка и красный заголовок (и у свёрнутого мини-блока, и у вложенных) */
+.scbPanel[data-tone="error"] { border-color: var(--fs-error); box-shadow: 0 0 0 1px var(--fs-error); }
+.scbPanel[data-tone="error"] > .scbPanelHead .scbPanelTitleBtn,
+.scbPanel[data-tone="error"] > .scbPanelHead .scbPanelTitleBtn > svg { color: var(--fs-error); }
+.scbPanel[data-tone="warn"] > .scbPanelHead .scbPanelTitleText::after { content: ''; width: 7px; height: 7px; border-radius: 50%; background: var(--fs-warn); }
+
+/* Тело; свёрнутая панель — мини-блок в одну строку */
+.scbPanelBody { display: flex; flex-direction: column; gap: var(--gap); min-width: 0; }
+.scbPanelBody[hidden] { display: none; }
+.scbPanel[data-collapsed="1"] { gap: 0; padding: 3px 8px 3px 8px; border-radius: 10px; }
+.scbPanel[data-collapsed="1"] > .scbPanelHead { min-height: 26px; grid-template-columns: minmax(0, 1fr) auto; }
+.scbPanel[data-collapsed="1"] > .scbPanelHead .scbPanelTitle { font-size: 14px; }
+.scbPanel[data-collapsed="1"] > .scbPanelHead .scbPanelTitleText { flex-wrap: nowrap; overflow: hidden; white-space: nowrap; }
+.scbPanel[data-collapsed="1"] > .scbPanelHead .scbPanelTitleText > .scbLineSnippet { flex: 1 1 40px; }
+.scbPanel[data-collapsed="1"] > .scbPanelHead .scbPanelBtn { width: 24px; height: 24px; border-color: transparent; }
+
+/* На весь экран: панель поверх окна (на месте, без портала — состояние полей и прокрутки то же) */
+.scbPanel[data-fullscreen="1"] {
+  position: fixed;
+  inset: 0;
+  z-index: 15;
+  padding: calc(12px + env(safe-area-inset-top, 0px)) 20px calc(14px + env(safe-area-inset-bottom, 0px));
+  border: 0;
+  border-radius: 0;
+  background: var(--fs-bg);
+  overflow: hidden;
+}
+.scbPanel[data-fullscreen="1"] > .scbPanelHead .scbPanelTitle { font-size: 18px; }
+.scbPanel[data-fullscreen="1"] > .scbPanelBody { flex: 1; min-height: 0; overflow-y: auto; padding-right: 2px; }
+.scbPanel[data-fullscreen="1"] .scbCode { min-height: 56vh; }
+.scbPanel[data-fullscreen="1"] .scbChars { grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr)); }
+.scbPanel[data-fullscreen="1"] .scbLines { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 520px), 1fr)); align-items: start; }
+.scbPreviewPanel[data-fullscreen="1"] > .scbPanelBody { align-items: center; }
+.scbPreviewPanel[data-fullscreen="1"] .scbPhoneWrap { flex: 1; min-height: 0; width: 100%; align-items: center; }
+.scbPreviewPanel[data-fullscreen="1"] .scbPhone { width: min(100%, calc((100vh - 190px) * 9 / 16)); }
+
+/* Тонкие скроллбары во всём окне сборщика (обе темы: ползунок — приглушённый цвет текста) */
+.scbWin ::-webkit-scrollbar { width: 6px; height: 6px; }
+.scbWin ::-webkit-scrollbar-track { background: transparent; }
+.scbWin ::-webkit-scrollbar-thumb { background: var(--fs-muted); border-radius: 999px; }
+.scbWin ::-webkit-scrollbar-thumb:hover { background: var(--fs-text); }
+@supports not selector(::-webkit-scrollbar) {
+  .scbWin, .scbWin * { scrollbar-width: thin; scrollbar-color: var(--fs-muted) transparent; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scbPanel { transition: none; }
+}

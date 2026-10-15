@@ -1,4 +1,5 @@
 import { reviewOutcome } from '../../shared/lib/memory/reviewOutcome.js'
+import { sceneNodeShowsText } from '../scene/v2/sceneNode.js'
 
 // Сессия повторения дня (этап 4 системы повторения, PROJECT.md → «Формат
 // повторения»). Чистая логика без сети и интерфейса:
@@ -16,10 +17,10 @@ export const cardHasAudio = card => (card?.nodes ?? []).some(n => AUDIO_TYPES.ha
 
 // Без звука не обойтись — такие карточки «Не могу слушать» убирает. Голосовое сообщение с текстом
 // (текст в нём печатается под голос) просто играет беззвучно: карточка остаётся.
-// Сцена с облачками (showBubbles не false) — то же: реплики читаются, звук не обязателен
+// Сцена с облачками (режим показа не 'none' — sceneNodeShowsText) — то же: реплики читаются, звук не обязателен
 const readableMuted = n =>
   (n.type === 'audio' && !!n.typeData?.audio?.text?.trim()) ||
-  (n.type === 'scene' && n.typeData?.scene?.showBubbles !== false)
+  (n.type === 'scene' && sceneNodeShowsText(n.typeData?.scene))
 const needsSound = n => AUDIO_TYPES.has(n.type) && !readableMuted(n)
 export const cardNeedsSound = card => (card?.nodes ?? []).some(needsSound)
 

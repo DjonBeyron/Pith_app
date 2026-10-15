@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { createDirector } from './directorCore.js'
 import { makeScenePlayLine } from './scenePlayLine.js'
 import { getSceneAudioElement } from './sceneAudioUnlock.js'
+import { resolveVoiceFlags } from './sceneOptions.js'
 import { isWeakDevice } from '../../../shared/lib/deviceTier.js'
 
 // Хук-режиссёр v2: оборачивает directorCore в состояние React и подключает
@@ -15,19 +16,25 @@ import { isWeakDevice } from '../../../shared/lib/deviceTier.js'
 // !active / paused / document.hidden → авто-пауза с возвратом к игре, когда
 // условие снято (пауза пользователя через pause() авто-возвратом не снимается).
 // audioSrcOf(url) → подмена ссылки озвучки (blob прогрева урока) или null.
+// voice — переопределение флагов озвучки { original?, translation? } поверх
+// options.voice сцены (sceneOptions.js); phase — что звучит сейчас
+// ('original' | 'translation' | null), меняется на границах шагов реплики.
 
 const IDLE = { index: 0, status: 'idle', run: 0, total: 0, line: null }
 
 // rate — множитель скорости речи поверх voice.rate персонажа (скорость голоса
 // урока, lessonVolume.js); читается на старте каждой реплики, сцену не пересоздаёт
-export function useSceneDirectorV2(scene, { enabled = true, sound = true, active = true, paused = false, rate = 1, mouthEls, audioSrcOf = null } = {}) {
+export function useSceneDirectorV2(scene, {
+  enabled = true, sound = true, active = true, paused = false, rate = 1, mouthEls, audioSrcOf = null, voice = null,
+} = {}) {
   const [state, setState] = useState({ ...IDLE, total: scene?.timeline?.length ?? 0 })
   const [mode, setMode] = useState('timer')
+  const [phase, setPhase] = useState(null)
   const [hidden, setHidden] = useState(() => typeof document !== 'undefined' && document.hidden)
   const dirRef = useRef(null)
   const autoPausedRef = useRef(false)
-  const optsRef = useRef({ sound, rate, mouthEls, audioSrcOf, lowPower: false })
-  useEffect(() => { optsRef.current = { sound, rate, mouthEls, audioSrcOf, lowPower: isWeakDevice() } }, [sound, rate, mouthEls, audioSrcOf])
+  const optsRef = useRef({ sound, rate, mouthEls, audioSrcOf, voice, lowPower: false })
+  useEffect(() => { optsRef.current = { sound, rate, mouthEls, audioSrcOf, voice, lowPower: isWeakDevice() } }, [sound, rate, mouthEls, audioSrcOf, voice])
 
   // Смена сцены — состояние сбрасывается прямо в рендере (паттерн «подстроить
   // состояние под проп»), а не setState в эффекте
@@ -40,7 +47,7 @@ export function useSceneDirectorV2(scene, { enabled = true, sound = true, active
   useEffect(() => {
     if (!enabled || !scene) return undefined
     const player = makeScenePlayLine({
-      scene, opts: () => optsRef.current, setMode,
+      scene, opts: () => optsRef.current, setMode, setPhase,
       getMouthEl: who => optsRef.current.mouthEls?.current?.[who] ?? null,
     })
     const director = createDirector({
@@ -54,11 +61,13 @@ export function useSceneDirectorV2(scene, { enabled = true, sound = true, active
   }, [scene, enabled])
 
   // «Без звука» переключили посреди реплики-файла — muted сразу, не с следующей
+  // (оригинал с выключенной озвучкой voice.original остаётся немым)
   useEffect(() => {
     if (!enabled || dirRef.current?.getState().status !== 'playing') return
     const a = getSceneAudioElement()
-    if (a) { try { a.muted = !sound } catch { /* ignore */ } }
-  }, [sound, enabled])
+    const silentOriginal = phase === 'original' && !resolveVoiceFlags(scene, voice).original
+    if (a) { try { a.muted = !sound || silentOriginal } catch { /* ignore */ } }
+  }, [sound, enabled, phase, scene, voice])
 
   useEffect(() => {
     if (!enabled || typeof document === 'undefined') return undefined
@@ -96,6 +105,7 @@ export function useSceneDirectorV2(scene, { enabled = true, sound = true, active
   return {
     ...state,
     mode,
+    phase: state.status === 'playing' ? phase : null,
     speakingWho: state.status === 'playing' && state.line ? state.line.who : null,
     play: useCallback(() => call('play'), [call]),
     pause: useCallback(() => call('pause'), [call]),

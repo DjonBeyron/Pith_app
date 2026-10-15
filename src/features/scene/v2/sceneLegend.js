@@ -22,7 +22,7 @@ export const SCENE_FIELD_DOCS = {
   'characters.*.name': `Имя по-русски, до ${LIMITS.maxNameLen} символов — показывается в облачке`,
   'characters.*.palette': 'Цвета #rrggbb: fur (шерсть), accent (ухо внутри, нос), belly (грудка/мордочка), eye (радужка), stripe (полоски). Можно взять готовый набор из presets',
   'characters.*.stripes': 'true/false — рисовать ли полоски на теле, лбу и хвосте',
-  'characters.*.voice': 'pitch 0…2 (1 — обычный; <1 ниже, >1 выше), rate 0.1…10 (1 — обычный темп) — для запасного синтеза устройства. voiceId, stability 0…1, similarity 0…1, speed 0.7…1.2 — голос ElevenLabs, выбирает админ в сборщике; нейросеть эти поля НЕ заполняет',
+  'characters.*.voice': 'pitch 0…2 (1 — обычный; <1 ниже, >1 выше), rate 0.1…10 (1 — обычный темп) — для запасного синтеза устройства. voiceId, stability 0…1, similarity 0…1, speed 0.7…1.2 — голос ElevenLabs, translationVoiceId — голос для озвучки перевода; выбирает админ в сборщике, нейросеть эти поля НЕ заполняет',
   slots: 'Объект { слот: id предмета | null }. Слоты зависят от локации (см. slots). Предмет можно поставить только в совместимый слот. Пустой слот — null',
   timeline: `Реплики по порядку: от ${LIMITS.minLines} до ${LIMITS.maxLines}`,
   'timeline[].who': '"a" или "b" — кто говорит',
@@ -33,7 +33,8 @@ export const SCENE_FIELD_DOCS = {
   'timeline[].audioUrl': 'НЕ ЗАПОЛНЯТЬ: адрес записанной озвучки ElevenLabs (https на R2 проекта) ставит сборщик кнопкой «Озвучить». Без него реплика озвучивается синтезом речи устройства или идёт по таймеру',
   'timeline[].wordTimings': 'НЕ ЗАПОЛНЯТЬ: [{ word, start, end }] в секундах (сотые) — границы слов для движения рта, приходят от ElevenLabs вместе с файлом',
   'timeline[].audioMeta': 'НЕ ЗАПОЛНЯТЬ: { hash (sha-256 от текста + голоса + настроек + модели), voiceId, durationMs } — по hash сборщик видит, что текст изменили после озвучки, и не озвучивает одно и то же дважды',
-  options: 'bubbles (показывать облачки, по умолчанию true), autoplay (false), loop (false)',
+  'timeline[].translationAudioUrl / translationWordTimings / translationAudioMeta': 'НЕ ЗАПОЛНЯТЬ: такой же комплект для озвучки перевода (translation) — ставит сборщик',
+  options: 'bubbles (показывать облачки, по умолчанию true), autoplay (false), loop (false); display — режим показа текста: none (без облачков), text (оригинал; по умолчанию), both (оригинал + перевод под ним); voice: { original (озвучивать оригинал, по умолчанию true), translation (после оригинала озвучивать перевод «диктором», по умолчанию false) }. display и voice можно выставить по теме: учебный диалог на иностранном — display both и voice.translation true; translationVoiceId — НЕ ЗАПОЛНЯТЬ',
   task: `Необязательное задание после сцены «О чём диалог»: { kind: "translate", lineIndex, prompt?, accept, hint? }. Зритель слушает диалог, затем печатает по-русски, что сказал персонаж; ответ сверяется по смыслу (ключевые слова, опечатки прощаются) с translation реплики и списком accept`,
   'task.kind': `Пока только "translate"`,
   'task.lineIndex': 'Номер спрашиваемой реплики (с 0) или null — тогда последняя реплика с translation. Лучше брать реплику с поворотом сюжета или развязкой',
@@ -66,7 +67,8 @@ export const DIALOGUE_RULES = [
   'Персонажи должны отличаться: разный пол или цвет шерсти, разные имена и голоса (pitch).',
   `Бюджет SVG-узлов сцены ≤ ${NODE_BUDGET}: это ограничивает число занятых слотов (каждый предмет 4–8 узлов, коты ~55 каждый, фон ~10).`,
   'Если просят задание «О чём диалог»: у каждой реплики заполни translation (русский перевод), в task выбери реплику с поворотом или развязкой, дай 2–4 accept с другими формулировками и hint без самого ответа.',
-  'Поля озвучки audioUrl, wordTimings, audioMeta и voiceId/stability/similarity/speed у голоса не заполняй — их ставит сборщик после генерации ElevenLabs.',
+  'Поля озвучки audioUrl, wordTimings, audioMeta (и translationAudioUrl, translationWordTimings, translationAudioMeta) и voiceId/translationVoiceId/stability/similarity/speed у голоса не заполняй — их ставит сборщик после генерации ElevenLabs.',
+  'Если реплики на иностранном языке — заполни translation у каждой; режим показа и озвучки задавай в options: display "both" (текст + перевод) и voice { translation: true }, когда зрителю нужен перевод, display "text"/"none" — когда это тренировка понимания на слух.',
 ]
 
 function slotLines(location) {

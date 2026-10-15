@@ -3,7 +3,8 @@
 // его в состояние компонента.
 //
 // createDirector({ timeline, playLine, onChange, loop })
-//   playLine(line, index, { onEnd }) → cancel()   — проигрывает одну реплику
+//   playLine(line, index, { onEnd, once }) → cancel()   — проигрывает одну реплику
+//     (once=true — это playOnce «Ещё раз»: scenePlayLine играет только оригинал)
 //   onChange({ index, status, run })                 — при каждом изменении
 // status: 'idle' | 'playing' | 'paused' | 'ended'.
 // Пауза отменяет текущую реплику; продолжение начинает её с начала
@@ -35,6 +36,7 @@ export function createDirector({ timeline = [], playLine, onChange, loop = false
     const myRun = run
     emit()
     cancel = playLine(line, index, {
+      once,
       onEnd: () => {
         // Поздний onEnd отменённой/перезапущенной реплики игнорируем
         if (destroyed || myRun !== run || status !== 'playing') return

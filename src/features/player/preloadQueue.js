@@ -1,3 +1,5 @@
+import { sceneNodeAudioUrls } from '../scene/v2/sceneNode.js'
+
 // Чистые функции построения очереди предзагрузки — без состояния и рефов,
 // ничего не знают про React. Вынесены из usePlayerPreload.js, который
 // вокруг них — уже сам стейт-менеджер закачки/вытеснения (eviction).
@@ -56,8 +58,9 @@ export function nodeFileKey(node) {
 export function nodeDownloads(node, files) {
   // Сцена (SceneModule): файлов у ноды нет, кроме заранее записанной озвучки
   // реплик (audioUrl); без неё список пуст — нода «прогрета» сразу
+  // (и озвучки перевода, если она включена у сцены/ноды — sceneNodeAudioUrls)
   if (node.type === 'scene') {
-    const urls = [...new Set((node.typeData?.scene?.scene?.timeline ?? []).map(l => l?.audioUrl).filter(isValidUrl))]
+    const urls = sceneNodeAudioUrls(node.typeData?.scene).filter(isValidUrl)
     return urls.map(url => ({ id: url, url, size: 0, nodeType: 'scene' }))
   }
   if (node.type === 'photo_choice') {

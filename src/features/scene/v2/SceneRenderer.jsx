@@ -6,6 +6,7 @@ import { backgroundSprite, catSprite, getSprite } from './sprites/spriteRegistry
 import { slotsInDrawOrder, CAT_PLACEMENT } from './sprites/slots.js'
 import { SCENE_VIEWBOX } from './sprites/backgrounds.js'
 import { isWeakDevice } from '../../../shared/lib/deviceTier.js'
+import { bubbleDisplay } from './sceneOptions.js'
 import './scene-v2.css'
 import './scene-v2-cat.css'
 
@@ -21,6 +22,9 @@ import './scene-v2-cat.css'
 // apiRef — ref, в который кладётся API режиссёра (play/pause/toggle/restart/goTo).
 // rate — множитель скорости речи (скорость голоса урока); onState({ status, index, total })
 // — только на границах реплик (нода урока ждёт 'ended' → onDone).
+// display ('none' | 'text' | 'both') и voice ({ original?, translation? }) — переопределения
+// поверх options сцены (sceneOptions.js); showBubbles — старый проп (false → 'none').
+// Задание scene.task скрывает переводы в облачке даже при 'both'.
 
 function Cat({ who, character, emotion, talking, onEl }) {
   const sprite = catSprite(character.gender)
@@ -58,14 +62,14 @@ function Props({ scene }) {
 
 export default function SceneRenderer({
   scene, mode = 'live', active = true, paused = false, sound = true, rate = 1, lite, frameIndex = null,
-  showBubbles, showProgress = true, onTap, apiRef, onState, audioSrcOf = null, className = '', children,
+  showBubbles, display, voice = null, showProgress = true, onTap, apiRef, onState, audioSrcOf = null, className = '', children,
 }) {
   const live = mode === 'live'
   const mouthEls = useRef({ a: null, b: null })
   const rootRef = useRef(null)
   const [onScreen, setOnScreen] = useState(true)
   // audioSrcOf(url) — подмена ссылки озвучки реплики (blob прогрева ноды урока), иначе null
-  const director = useSceneDirectorV2(scene, { enabled: live, sound, rate, active: active && onScreen, paused, mouthEls, audioSrcOf })
+  const director = useSceneDirectorV2(scene, { enabled: live, sound, rate, active: active && onScreen, paused, mouthEls, audioSrcOf, voice })
   const { status: dStatus, index: dIndex, total: dTotal } = director
   useEffect(() => { if (live) onState?.({ status: dStatus, index: dIndex, total: dTotal }) }, [live, onState, dStatus, dIndex, dTotal])
 
@@ -90,10 +94,11 @@ export default function SceneRenderer({
   }, [live])
 
   const isLite = lite ?? isWeakDevice()
-  const bubbles = showBubbles ?? scene.options?.bubbles ?? true
+  const shown = bubbleDisplay(scene, { display, showBubbles }) // 'none' | 'text' | 'both' (task → не 'both')
   const line = live ? director.line : (frameIndex !== null ? scene.timeline?.[frameIndex] ?? null : null)
   const speaking = live ? director.speakingWho : null
-  const bubbleVisible = !!line && bubbles && (live ? director.status !== 'idle' : true)
+  const phase = live ? director.phase : null
+  const bubbleVisible = !!line && shown !== 'none' && (live ? director.status !== 'idle' : true)
   const bg = backgroundSprite(scene.location)
   const bgTree = useMemo(() => bg.build(), [bg])
   // Идл-анимации идут в idle и playing; на паузе/в конце — замирают
@@ -108,17 +113,22 @@ export default function SceneRenderer({
   return (
     <div
       ref={rootRef} className={cls} data-speaking={speaking ?? ''} data-status={live ? director.status : 'static'}
+      data-display={shown} data-phase={phase ?? undefined}
       onClick={onTap} role={onTap ? 'button' : undefined} tabIndex={onTap ? 0 : undefined}
       onKeyDown={onTap ? e => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); onTap(e) } } : undefined}
     >
       <svg className="scn__svg" viewBox={SCENE_VIEWBOX} preserveAspectRatio="xMidYMid slice" aria-label={scene.title || 'Сцена'} role="img">
         {renderTree(bgTree)}
         <Props scene={scene} />
-        <Cat who="a" character={scene.characters.a} emotion={emotionOf('a')} talking={speaking === 'a'} onEl={onCatEl} />
-        <Cat who="b" character={scene.characters.b} emotion={emotionOf('b')} talking={speaking === 'b'} onEl={onCatEl} />
+        {/* Пока звучит перевод («диктор»), кот не «говорит»: рот закрыт, покачивания головы нет */}
+        <Cat who="a" character={scene.characters.a} emotion={emotionOf('a')} talking={speaking === 'a' && phase !== 'translation'} onEl={onCatEl} />
+        <Cat who="b" character={scene.characters.b} emotion={emotionOf('b')} talking={speaking === 'b' && phase !== 'translation'} onEl={onCatEl} />
       </svg>
 
-      <SceneBubbleV2 line={line} name={line ? scene.characters[line.who]?.name : ''} side={line?.who ?? 'a'} visible={bubbleVisible} />
+      <SceneBubbleV2
+        line={line} name={line ? scene.characters[line.who]?.name : ''} side={line?.who ?? 'a'}
+        visible={bubbleVisible} showTranslation={shown === 'both'} phase={phase}
+      />
 
       {live && showProgress && scene.timeline?.length > 1 && (
         <div className="scn__progress" aria-hidden="true">

@@ -3,12 +3,17 @@ import { downloadText } from './fileUtils.js'
 import DesignerSections from './DesignerSections.jsx'
 import SvgChecker from './SvgChecker.jsx'
 import DesignerHowTo from './DesignerHowTo.jsx'
+import DesignerPackButtons from './designer-pack/DesignerPackButtons.jsx'
+import DesignerDevSection from './designer-pack/DesignerDevSection.jsx'
+import SvgToCodeTool from './designer-pack/SvgToCodeTool.jsx'
 import '../../../styles/admin-scenes-designer.css'
+import '../../../styles/admin-scenes-designer-pack.css'
 
 // Раздел «Для дизайнера»: спецификация простым языком с картинками-схемами (DesignerSections),
-// кнопки «Скачать шаблон» (SVG-шаблоны кота и предметов — Blob + <a download>) и
-// «Проверить SVG» (SvgChecker → checkSpriteSvg). Страницу можно показать внешнему дизайнеру
-// с экрана админа или переслать текстом.
+// кнопки «Скачать шаблон» (SVG-шаблоны кота и предметов — Blob + <a download>),
+// «Проверить SVG» (SvgChecker → checkSpriteSvg), пакет для внешнего дизайнера (PDF/HTML-документ,
+// автономная проверка, шаблоны — designer-pack/) и раздел «Для программиста / админа» с
+// конвертером SVG → код реестра. Дизайнер админку не видит — ему уходит пакет.
 export default function DesignerSpec() {
   return (
     <div className="scd">
@@ -28,9 +33,11 @@ export default function DesignerSpec() {
           <a className="scBtn scdJump" href="#scd-check">Проверить SVG ↓</a>
         </div>
         <DesignerHowTo />
+        <DesignerPackButtons />
       </div>
       <DesignerSections />
       <SvgChecker />
+      <DesignerDevSection><SvgToCodeTool /></DesignerDevSection>
     </div>
   )
 }

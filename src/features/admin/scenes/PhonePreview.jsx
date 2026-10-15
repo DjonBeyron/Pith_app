@@ -1,14 +1,17 @@
 import { useState, useRef, useEffect } from 'react'
 import SceneRenderer from '../../scene/v2/SceneRenderer.jsx'
 import { unlockSceneAudio } from '../../scene/v2/sceneAudioUnlock.js'
+import Panel from './ui/Panel.jsx'
 import BudgetBar from './BudgetBar.jsx'
 import LintPanel from './LintPanel.jsx'
 import ScTip from './ScTip.jsx'
 
-// Центр сборщика: «телефонная рамка» 9:16 с живым SceneRenderer, Старт/Пауза/Заново,
-// тумблеры «Облачки» и «lite», режим «Живой / Статичный кадр» (номер реплики), индикатор
-// бюджета узлов и замечания линтера (клик — подсветка поля через onHighlight).
+// Центр сборщика — три панели (ui/Panel): «Предпросмотр» (телефонная рамка 9:16 с живым
+// SceneRenderer, Старт/Пауза/Заново, звук, «Живой / Статичный кадр», облачки, lite; на весь
+// экран — рамка по высоте экрана, 9:16 по центру), «Бюджет узлов» (BudgetBar) и «Замечания
+// линтера» (LintPanel; клик — подсветка поля через onHighlight с раскрытием панелей).
 // Сцена с ошибками валидации всё равно рисуется (нормализованная), чтобы было видно, что чинить.
+// SceneRenderer не пересоздаётся при ресайзе колонок/панелей — размер рамки задаёт только CSS.
 export default function PhonePreview({ scene, lint, budget, onHighlight }) {
   const [mode, setMode] = useState('live')
   const [frame, setFrame] = useState(0)
@@ -19,6 +22,8 @@ export default function PhonePreview({ scene, lint, budget, onHighlight }) {
   const apiRef = useRef(null)
   const total = scene.timeline.length
   const safeFrame = Math.min(frame, Math.max(0, total - 1))
+  const errors = lint.filter(x => x.level === 'error').length
+  const warns = lint.length - errors
 
   // Статус режиссёра приходит через apiRef без перерендера — опрашиваем редко, только для подписи кнопки
   useEffect(() => {
@@ -31,54 +36,63 @@ export default function PhonePreview({ scene, lint, budget, onHighlight }) {
 
   return (
     <div className="scbPreview">
-      <div className="scbPhoneWrap">
-        <div className="scbPhone">
-          <SceneRenderer
-            key={mode} scene={scene} mode={mode} frameIndex={mode === 'static' ? safeFrame : null}
-            showBubbles={bubbles} lite={lite} sound={sound} apiRef={apiRef} active
-          />
+      <Panel id="preview" title="Предпросмотр" className="scbPreviewPanel">
+        <div className="scbPhoneWrap">
+          <div className="scbPhone">
+            <SceneRenderer
+              key={mode} scene={scene} mode={mode} frameIndex={mode === 'static' ? safeFrame : null}
+              showBubbles={bubbles} lite={lite} sound={sound} apiRef={apiRef} active
+            />
+          </div>
         </div>
-      </div>
-      <div className="scbCtl">
-        {mode === 'live' ? (
-          <div className="scbCtlRow">
-            <button type="button" className="fsBtn fsBtnPrimary" onClick={() => call(status === 'playing' ? 'pause' : 'play')}>
-              {status === 'playing' ? 'Пауза' : status === 'paused' ? 'Продолжить' : 'Старт'}
-            </button>
-            <button type="button" className="fsBtn" onClick={() => call('restart')}>Заново</button>
-            <label className="scCheck"><input type="checkbox" checked={sound} onChange={e => setSound(e.target.checked)} /> звук</label>
-          </div>
-        ) : (
-          <div className="scbCtlRow">
-            <label className="scbField scbFieldInline">
-              <span className="scbFieldLabel">Реплика</span>
-              <select className="fsNote" value={safeFrame} onChange={e => setFrame(Number(e.target.value))} aria-label="Номер реплики для статичного кадра">
-                {scene.timeline.map((l, i) => <option key={i} value={i}>{i + 1}. {l.who.toUpperCase()}: {String(l.text).slice(0, 28)}{l.text.length > 28 ? '…' : ''}</option>)}
-              </select>
-            </label>
-          </div>
-        )}
-        <div className="scbCtlRow">
-          <span className="scbCtlGroup">
-            <div className="scSegBtns" role="radiogroup" aria-label="Режим кадра">
-              {[['live', 'Живой'], ['static', 'Статичный кадр']].map(([id, label]) => (
-                <button key={id} type="button" role="radio" aria-checked={mode === id} className={mode === id ? 'scSegBtn scSegBtnOn' : 'scSegBtn'} onClick={() => setMode(id)}>{label}</button>
-              ))}
+        <div className="scbCtl">
+          {mode === 'live' ? (
+            <div className="scbCtlRow">
+              <button type="button" className="fsBtn fsBtnPrimary" onClick={() => call(status === 'playing' ? 'pause' : 'play')}>
+                {status === 'playing' ? 'Пауза' : status === 'paused' ? 'Продолжить' : 'Старт'}
+              </button>
+              <button type="button" className="fsBtn" onClick={() => call('restart')}>Заново</button>
+              <label className="scCheck"><input type="checkbox" checked={sound} onChange={e => setSound(e.target.checked)} /> звук</label>
             </div>
-            <ScTip help="frame_mode" />
-          </span>
-          <span className="scbCtlGroup">
-            <label className="scCheck"><input type="checkbox" checked={bubbles} onChange={e => setBubbles(e.target.checked)} /> облачки</label>
-            <ScTip help="bubbles" />
-          </span>
-          <span className="scbCtlGroup">
-            <label className="scCheck"><input type="checkbox" checked={lite} onChange={e => setLite(e.target.checked)} /> lite</label>
-            <ScTip help="lite" />
-          </span>
+          ) : (
+            <div className="scbCtlRow">
+              <label className="scbField scbFieldInline">
+                <span className="scbFieldLabel">Реплика</span>
+                <select className="fsNote" value={safeFrame} onChange={e => setFrame(Number(e.target.value))} aria-label="Номер реплики для статичного кадра">
+                  {scene.timeline.map((l, i) => <option key={i} value={i}>{i + 1}. {l.who.toUpperCase()}: {String(l.text).slice(0, 28)}{l.text.length > 28 ? '…' : ''}</option>)}
+                </select>
+              </label>
+            </div>
+          )}
+          <div className="scbCtlRow">
+            <span className="scbCtlGroup">
+              <div className="scSegBtns" role="radiogroup" aria-label="Режим кадра">
+                {[['live', 'Живой'], ['static', 'Статичный кадр']].map(([id, label]) => (
+                  <button key={id} type="button" role="radio" aria-checked={mode === id} className={mode === id ? 'scSegBtn scSegBtnOn' : 'scSegBtn'} onClick={() => setMode(id)}>{label}</button>
+                ))}
+              </div>
+              <ScTip help="frame_mode" />
+            </span>
+            <span className="scbCtlGroup">
+              <label className="scCheck"><input type="checkbox" checked={bubbles} onChange={e => setBubbles(e.target.checked)} /> облачки</label>
+              <ScTip help="bubbles" />
+            </span>
+            <span className="scbCtlGroup">
+              <label className="scCheck"><input type="checkbox" checked={lite} onChange={e => setLite(e.target.checked)} /> lite</label>
+              <ScTip help="lite" />
+            </span>
+          </div>
         </div>
-      </div>
-      <BudgetBar budget={budget} />
-      <LintPanel lint={lint} onPick={onHighlight} />
+      </Panel>
+      <Panel id="budget" title={<>Бюджет узлов <span className="scbCount">{budget.total} / {budget.limit}</span></>} label="Бюджет узлов" tip="budget" fieldId="f-budget" fullscreenable={false}>
+        <BudgetBar budget={budget} />
+      </Panel>
+      <Panel
+        id="lint" label="Замечания линтера" tip="lint"
+        title={<>Замечания линтера <span className="scbCount"><b className={errors ? 'scBad' : 'scOk'}>{errors} ошибок</b> · {warns} предупреждений</span></>}
+      >
+        <LintPanel lint={lint} onPick={onHighlight} />
+      </Panel>
     </div>
   )
 }

@@ -8,12 +8,13 @@ import { lazyRetry } from '../../shared/lib/lazyRetry.js'
 // канваса (drag по mousedown, выделение по click, Esc доски): обёртка глушит
 // их здесь, чтобы клик в сборщике не тащил ноду и не проваливался в холст.
 // Переиспользуется панелью «Сцена» модуля ленты (lessons/ModuleScenePanel):
-// title/applyLabel — свои подписи, initialRow — строка библиотеки сцены.
+// title/applyLabel — свои подписи, initialRow — строка библиотеки сцены, useMode='module' —
+// «Использовать» в «Моих сценах» значит «привязать к фразе».
 const BuilderWindow = lazy(() => lazyRetry(() => import('../admin/scenes/BuilderWindow.jsx'), 'scene-builder'))
 
 const stop = e => e.stopPropagation()
 
-export default function NodeSceneBuilderHost({ initialScene, initialRow = null, onApply, onClose, title = 'Сцена для ноды', applyLabel }) {
+export default function NodeSceneBuilderHost({ initialScene, initialRow = null, onApply, onClose, title = 'Сцена для ноды', applyLabel, useMode = 'node' }) {
   return (
     <div
       className="nodeSceneBuilderHost"
@@ -21,7 +22,7 @@ export default function NodeSceneBuilderHost({ initialScene, initialRow = null, 
       onTouchStart={stop} onKeyDown={stop} onKeyUp={stop} onWheel={stop} onContextMenu={stop}
     >
       <Suspense fallback={null}>
-        <BuilderWindow title={title} applyLabel={applyLabel} initialScene={initialScene} initialRow={initialRow} onApply={onApply} onClose={onClose} />
+        <BuilderWindow title={title} applyLabel={applyLabel} useMode={useMode} initialScene={initialScene} initialRow={initialRow} onApply={onApply} onClose={onClose} />
       </Suspense>
     </div>
   )

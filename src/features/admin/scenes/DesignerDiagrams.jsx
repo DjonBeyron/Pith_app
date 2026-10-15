@@ -95,7 +95,7 @@ function Face({ x, emotion, label }) {
       <circle r="46" {...L} />
       {eye(-18)}{eye(18)}
       <path d={brow} {...L} strokeWidth="2.5" /><path d={mouth} {...L} strokeWidth="2.2" />
-      <text y="64" textAnchor="middle" {...T}>{label}</text>
+      <text y="64" textAnchor="middle" {...T} fontSize="9">{label}</text>
     </g>
   )
 }
@@ -104,9 +104,9 @@ export function EmotionsDiagram() {
   return (
     <svg className="scdFig scdFigRow" viewBox="0 0 420 122" role="img" aria-label="Четыре эмоции: neutral, happy, tired, surprised">
       <Face x={52} emotion="neutral" label="neutral — спокоен" />
-      <Face x={158} emotion="happy" label="happy — рад (нижнее веко)" />
-      <Face x={264} emotion="tired" label="tired — устал (верхнее веко)" />
-      <Face x={370} emotion="surprised" label="surprised — зрачки шире" />
+      <Face x={158} emotion="happy" label="happy — рад" />
+      <Face x={264} emotion="tired" label="tired — устал" />
+      <Face x={370} emotion="surprised" label="surprised — удивлён" />
     </svg>
   )
 }

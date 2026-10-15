@@ -1,5 +1,6 @@
 import { wordLessonsOf } from '../../shared/lib/memory/wordLessons.js'
 import { localDate } from '../../shared/lib/memory/dailyPick.js'
+import { sceneNodeAudioUrls } from '../scene/v2/sceneNode.js'
 
 // Колоды повторения по словам: карточки ВСЕХ уроков слова (одно слово в
 // разных модулях = одна память, PROJECT.md → «Память слова»). Фраза для
@@ -29,9 +30,9 @@ export function cardFiles(nodes) {
       continue
     }
     if (n.type === 'scene') {
-      // Сцена: файлов нет, кроме заранее записанной озвучки реплик (audioUrl)
-      for (const l of n.typeData?.scene?.scene?.timeline ?? []) {
-        if (typeof l?.audioUrl === 'string' && /^https?:\/\//.test(l.audioUrl)) out.set(l.audioUrl, { id: l.audioUrl, r2Url: l.audioUrl, size: 0 })
+      // Сцена: файлов нет, кроме заранее записанной озвучки реплик (и перевода, если он озвучивается)
+      for (const url of sceneNodeAudioUrls(n.typeData?.scene)) {
+        if (/^https?:\/\//.test(url)) out.set(url, { id: url, r2Url: url, size: 0 })
       }
       continue
     }

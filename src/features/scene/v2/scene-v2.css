@@ -55,7 +55,11 @@
   margin-top: 4px;
   font-size: 0.85em;
   opacity: 0.6;
+  transition: opacity 0.2s ease;
 }
+/* Звучит озвучка перевода («диктор»): перевод подсвечен, оригинал приглушён */
+.scn-bubble[data-phase="translation"] .scn-bubble__tr { opacity: 1; color: #1f4f8f; }
+.scn-bubble[data-phase="translation"] .scn-bubble__text { opacity: 0.55; }
 .scn-bubble__tail {
   position: absolute;
   bottom: -16px;

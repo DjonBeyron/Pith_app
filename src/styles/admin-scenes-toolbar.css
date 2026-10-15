@@ -1,0 +1,46 @@
+/* Тулбар окна «Сборщик сцен» (admin/scenes/BuilderToolbar + toolbar/*): «← Назад», название окна,
+   поля «Название»/«id», индикаторы, группы действий с разделителями, меню «⋯» на узком окне,
+   диалог «Назад». Узкое/широкое решает сама ширина окна (toolbar/useNarrow → data-narrow="1"),
+   а не ширина экрана. Токены — .fsWin (--fs-*). Иконочные кнопки — admin-scenes-icons.css. */
+
+.scbTb { position: relative; z-index: 20; }
+.scbTbRow { row-gap: 8px; }
+.scbBack { flex: none; display: inline-flex; align-items: center; gap: 5px; padding-left: 10px; }
+.scbTb .fsTitle { flex: 0 1 auto; max-width: 240px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.scbTb .scbFieldTitle { flex: 1 1 180px; max-width: 360px; }
+.scbTb .scbFieldId { flex: 0 1 150px; }
+
+/* Индикаторы */
+.scbTbStatus { margin: 0 0 0 auto; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 5px; }
+.scbTbChip {
+  padding: 2px 9px;
+  border: 1px solid var(--fs-border);
+  border-radius: 999px;
+  font-size: 11.5px;
+  white-space: nowrap;
+  color: var(--fs-text);
+}
+.scbTbChipMute { color: var(--fs-muted); }
+.scbTbChipWarn { color: var(--fs-warn); border-color: var(--fs-warn); }
+
+/* Действия: группы с разделителями, справа */
+.scbTbActions { margin-left: auto; display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px; }
+.scbTbGroup { display: inline-flex; align-items: center; gap: 6px; }
+.scbTbGroup .fsBtn { display: inline-flex; align-items: center; gap: 5px; }
+.scbTbSep { align-self: stretch; width: 1px; min-height: 22px; background: var(--fs-border); }
+.scbTbMenu { position: relative; display: inline-flex; }
+/* выпадашка под «⋯» на любой ширине (у общего .scbMenu на ≤480px — «шторка» снизу, здесь не нужна) */
+.scbTbMenuList { position: absolute; left: auto; right: 0; top: calc(100% + 6px); bottom: auto; z-index: 30; min-width: min(270px, calc(100vw - 24px)); max-width: calc(100vw - 24px); }
+
+/* Узкое окно: строка 1 — «Назад», название, главное действие, «⋯»; ниже поля и индикаторы */
+.scbTb[data-narrow] .scbBack { order: 0; }
+.scbTb[data-narrow] .fsTitle { order: 0; flex: 1 1 0; min-width: 0; max-width: none; font-size: 15px; }
+.scbTb[data-narrow] .scbTbActions { order: 1; margin-left: 0; flex-wrap: nowrap; gap: 6px; }
+.scbTb[data-narrow] .scbFieldTitle, .scbTb[data-narrow] .scbFieldId { order: 2; flex: 1 1 100%; }
+.scbTb[data-narrow] .scbTbStatus { order: 3; flex: 1 1 100%; }
+
+/* Диалог «Назад» и подтверждение «Новая» */
+.scbBackDlg { max-width: 440px; }
+.scbBackBtns { display: flex; flex-wrap: wrap; gap: 6px; }
+.scbAsk { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.scbLink:disabled { color: var(--fs-muted); cursor: default; text-decoration: none; }

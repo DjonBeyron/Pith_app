@@ -1,22 +1,30 @@
 import { useState } from 'react'
 import { STATUS_LABEL } from './sceneLabels.js'
 import ScTip from './ScTip.jsx'
+import UseSceneMenu from './ui/UseSceneMenu.jsx'
+import TemplatesGroup from './ui/TemplatesGroup.jsx'
+import LinkModuleDialog from './ui/LinkModuleDialog.jsx'
+import { useSceneUse } from './ui/useSceneUse.js'
 
 // Вкладка «Мои сцены»: библиотека из таблицы scenes — список, открыть, создать (текущий
 // черновик как новую строку), дублировать, удалить (с подтверждением в строке),
 // переименовать, статус черновик/опубликована (публикация — только без ошибок линтера).
+// «Использовать» у каждой строки (ui/UseSceneMenu: в ноде урока / модуле ленты — прямое
+// действие через onApplyScene, в админке — меню: открыть, копия, привязать к модулю ленты
+// (LinkModuleDialog), скопировать id/JSON); группа «Шаблоны» (TemplatesGroup) внизу.
 // Таблицы нет (миграция не применена) — понятное сообщение; сборщик живёт на локальном бэкапе.
 const fmt = iso => {
   const d = new Date(iso)
   return Number.isNaN(d.getTime()) ? '' : d.toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
 }
 
-export default function SceneLibrary({ draft, library, onOpenRow, onSave, setStatus }) {
+export default function SceneLibrary({ draft, library, onOpenRow, onSave, setStatus, mode = 'admin', onApplyScene = null }) {
   const [askDelete, setAskDelete] = useState(null)
   const [renaming, setRenaming] = useState(null) // { id, title }
   const { items, loading, error, missingTable, busy } = library
   const currentId = draft.saved.id
   const hasErrors = draft.errors.length > 0
+  const use = useSceneUse({ library, onOpenRow, onApply: onApplyScene, setStatus })
 
   const createNew = async () => {
     draft.actions.detach()
@@ -75,6 +83,7 @@ export default function SceneLibrary({ draft, library, onOpenRow, onSave, setSta
               </div>
             )}
             <div className="scbLibBtns">
+              <UseSceneMenu row={row} mode={mode} onAction={use.act} disabled={busy} />
               <button type="button" className="fsBtn fsBtnSmall" onClick={() => toggleStatus(row)} disabled={busy}>{row.status === 'published' ? 'В черновик' : 'Опубликовать'}</button>
               <button type="button" className="fsBtn fsBtnSmall" onClick={() => setRenaming({ id: row.id, title: row.title })} disabled={busy}>Переименовать</button>
               <button type="button" className="fsBtn fsBtnSmall" onClick={() => library.duplicate(row.id)} disabled={busy}>Дублировать</button>
@@ -90,6 +99,8 @@ export default function SceneLibrary({ draft, library, onOpenRow, onSave, setSta
           </li>
         ))}
       </ul>
+      <TemplatesGroup draft={draft} setStatus={setStatus} />
+      {use.linkRow && <LinkModuleDialog row={use.linkRow} onClose={use.closeLink} setStatus={setStatus} />}
     </div>
   )
 }

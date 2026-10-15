@@ -97,6 +97,7 @@ export default function ModuleScenePanel({ curriculumId, sceneId, hasVideo, onCh
         <NodeSceneBuilderHost
           title="Сцена для ленты"
           applyLabel="В библиотеку и в ленту"
+          useMode="module"
           initialScene={row?.scene ?? demoOfficeScene}
           initialRow={row?.scene ? row : null}
           onApply={applyFromBuilder}

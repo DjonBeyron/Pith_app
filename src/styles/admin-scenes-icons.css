@@ -1,0 +1,42 @@
+/* Иконочные кнопки окна «Сборщик сцен» — одна общая основа для всех:
+   .scbIcon (вверх/вниз/копия/удалить/прослушать), .scbPanelBtn (свернуть, на весь экран),
+   .fsIconBtn (тема, прочие иконки тулбара), .scbTbIcon (⋯ в тулбаре).
+   КОРНЕВАЯ ПРИЧИНА «пустых квадратов» (2026-10): глобальное base.css `button { padding: 8px 12px }`
+   + глобальный `* { box-sizing: border-box }`. У кнопки фиксированная ширина 28px, а padding 24px +
+   рамка 2px съедали её почти целиком — на svg оставалось ~2px, flex сжимал значок до чёрточки.
+   Поэтому ЛЮБАЯ новая кнопка фиксированного размера обязана обнулять padding — здесь это сделано
+   один раз для всех; новые иконочные кнопки берут класс из списка (или добавляются в него) и
+   проверяются тестом iconButtons.test.js. Размер значка не сжимается (flex: none). */
+
+.scbWin :is(.scbIcon, .scbPanelBtn, .fsIconBtn, .scbTbIcon) {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  padding: 0;
+  line-height: 1;
+  touch-action: manipulation;
+}
+.scbWin :is(.scbIcon, .scbPanelBtn, .fsIconBtn, .scbTbIcon) > svg { flex: none; }
+.scbWin :is(.scbIcon, .scbPanelBtn, .fsIconBtn, .scbTbIcon):hover:not(:disabled) { border-color: var(--fs-muted); background: var(--fs-panel-2); }
+.scbWin :is(.scbIcon, .scbPanelBtn, .fsIconBtn, .scbTbIcon):disabled { opacity: 0.4; cursor: not-allowed; }
+.scbWin .scbIconDanger:hover:not(:disabled) { color: var(--fs-error); border-color: var(--fs-error); background: transparent; }
+.scbTbIcon {
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--fs-border);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--fs-text);
+  cursor: pointer;
+}
+
+/* Телефон и сенсорные экраны: зона касания не меньше 32px (значок остаётся мелким) */
+@media (max-width: 1099px), (pointer: coarse) {
+  .scbWin :is(.scbIcon, .scbPanelBtn, .fsIconBtn, .scbTbIcon) { min-width: 32px; min-height: 32px; }
+  .scbWin .scbPanelBtns, .scbWin .scbLineBtns { gap: 4px; }
+  .scbWin .fsBtnSmall, .scbWin .scbPanelTitleBtn { min-height: 32px; }
+  .scbWin .scbLink { min-height: 32px; padding: 0 8px; }
+  .scbWin .scbPanel[data-collapsed="1"] > .scbPanelHead .scbPanelBtn { width: 32px; height: 32px; }
+}

@@ -8,7 +8,8 @@ import { sceneAudioSrcOf } from './sceneNodeAudio.js'
 
 // Нода урока `scene` — SVG-сцена «два кота говорят» вместо видео. Данные:
 // typeData.scene = { scene: снимок v2, sceneId?, mode: 'bubble' | 'circle',
-// showBubbles } (sceneNode.js). Одна нода — два вида: пузырь (SceneBubbleView)
+// showBubbles, display?, voice? } (sceneNode.js; display/voice — переопределения
+// режима показа текста и озвучки поверх options сцены). Одна нода — два вида: пузырь (SceneBubbleView)
 // и кружок (SceneCircleView); поведение общее (useScenePlayback.js). Триггер
 // графа — 'played' (сцена доиграла последнюю реплику). Невалидная сцена →
 // SceneFallback (текст реплик + «Дальше»), урок не зависает.
@@ -34,7 +35,8 @@ export default function SceneModule({ node, lessonFiles = null, onDone, adminPre
   const View = resolved.mode === 'circle' ? SceneCircleView : SceneBubbleView
   return (
     <View
-      scene={resolved.scene} showBubbles={resolved.showBubbles} isHistory={isHistory} pending={pending}
+      scene={resolved.scene} showBubbles={resolved.showBubbles} display={resolved.display} voice={resolved.voice}
+      isHistory={isHistory} pending={pending}
       status={pb.state.status} index={pb.state.index} total={pb.state.total}
       paused={pb.paused} sound={pb.sound} rate={pb.rate} audioSrcOf={audioSrcOf}
       apiRef={pb.apiRef} rootRef={pb.rootRef} onState={pb.onState} onTap={pb.handleTap}

@@ -51,13 +51,13 @@ describe('BuilderToolbar — кнопка «Применить к ноде»', (
   it('с onApply — кнопка есть и первая, заголовок свой; без onApply — нет', () => {
     const onApply = vi.fn()
     const html = renderToStaticMarkup(
-      <BuilderToolbar draft={draft()} library={library} status={null} setStatus={() => {}} title="Сцена для ноды" onSave={() => {}} onApply={onApply} onClose={() => {}} closeRef={{ current: null }} theme="dark" onToggleTheme={() => {}} />,
+      <BuilderToolbar draft={draft()} library={library} status={null} setStatus={() => {}} title="Сцена для ноды" onSave={() => {}} onApply={onApply} onBack={() => {}} backRef={{ current: null }} theme="dark" onToggleTheme={() => {}} />,
     )
     expect(html).toContain('Сцена для ноды')
     expect(html.indexOf('Применить к ноде')).toBeLessThan(html.indexOf('Сохранить в библиотеку'))
     expect(html).not.toContain('Применить к ноде" disabled')
     const plain = renderToStaticMarkup(
-      <BuilderToolbar draft={draft()} library={library} status={null} setStatus={() => {}} onSave={() => {}} onClose={() => {}} closeRef={{ current: null }} theme="dark" onToggleTheme={() => {}} />,
+      <BuilderToolbar draft={draft()} library={library} status={null} setStatus={() => {}} onSave={() => {}} onBack={() => {}} backRef={{ current: null }} theme="dark" onToggleTheme={() => {}} />,
     )
     expect(plain).toContain('Сборщик сцен')
     expect(plain).not.toContain('Применить к ноде')
@@ -65,7 +65,7 @@ describe('BuilderToolbar — кнопка «Применить к ноде»', (
 
   it('при ошибках линтера «Применить» заблокирована', () => {
     const html = renderToStaticMarkup(
-      <BuilderToolbar draft={draft([{ level: 'error', text: 'x' }])} library={library} status={null} setStatus={() => {}} onSave={() => {}} onApply={() => {}} onClose={() => {}} closeRef={{ current: null }} theme="dark" onToggleTheme={() => {}} />,
+      <BuilderToolbar draft={draft([{ level: 'error', text: 'x' }])} library={library} status={null} setStatus={() => {}} onSave={() => {}} onApply={() => {}} onBack={() => {}} backRef={{ current: null }} theme="dark" onToggleTheme={() => {}} />,
     )
     expect(html).toMatch(/<button[^>]*disabled[^>]*>Применить к ноде/)
   })

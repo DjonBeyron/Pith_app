@@ -89,6 +89,7 @@
   justify-content: center;
   width: 34px;
   height: 34px;
+  padding: 0; /* глобальный button { padding: 8px 12px } иначе съедает ширину и значок */
   border: 1px solid var(--fs-border);
   border-radius: 10px;
   background: transparent;

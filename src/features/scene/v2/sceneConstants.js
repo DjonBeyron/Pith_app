@@ -10,6 +10,10 @@ export const LIMITS = { minLines: 2, maxLines: 12, maxTextLen: 140, maxNameLen: 
 
 export const DEFAULT_VOICE = { pitch: 1, rate: 1 }
 export const DEFAULT_OPTIONS = { bubbles: true, autoplay: false, loop: false }
+// Режим показа текста в облачке (sceneOptions.js): без текста / оригинал / оригинал + перевод
+export const DISPLAY_MODES = ['none', 'text', 'both']
+// Что озвучивать у реплики (sceneOptions.js): оригинал (text) и/или перевод (translation)
+export const DEFAULT_VOICE_FLAGS = { original: true, translation: false }
 
 // Готовые палитры котов — чтобы два персонажа отличались даже без настройки
 export const PALETTE_PRESETS = {

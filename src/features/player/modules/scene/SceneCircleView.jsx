@@ -12,8 +12,10 @@ const RING_C = 2 * Math.PI * RING_R
 // котов и облачко (sceneCircleFit.js). Кольцо прогресса — по репликам.
 // Раскрытия на весь экран нет (useCircleExpand завязан на <video>).
 // rootRef — корень круга (его же меряем: размер = ширина круга).
+// display/voice — переопределения ноды (режим показа текста / флаги озвучки) поверх options сцены.
 export default function SceneCircleView({
-  scene, showBubbles, isHistory, pending, status, index, total, paused, sound, rate, audioSrcOf = null, apiRef, rootRef, onState, onTap,
+  scene, showBubbles, display = null, voice = null, isHistory, pending, status, index, total, paused, sound, rate,
+  audioSrcOf = null, apiRef, rootRef, onState, onTap,
 }) {
   const [size, setSize] = useState(() => (typeof window !== 'undefined' ? getSmallPx() : 200))
   useLayoutEffect(() => {
@@ -37,11 +39,11 @@ export default function SceneCircleView({
           <div className="circleFrame">
             <div className="playerSceneCircleInner" style={sceneCircleFit(size)}>
               {isHistory
-                ? <SceneRenderer scene={scene} mode="static" frameIndex={last} showBubbles={showBubbles} showProgress={false} />
+                ? <SceneRenderer scene={scene} mode="static" frameIndex={last} showBubbles={showBubbles} display={display} showProgress={false} />
                 : (
                   <SceneRenderer
                     scene={scene} mode="live" active={!pending} paused={paused} sound={sound} rate={rate} audioSrcOf={audioSrcOf}
-                    showBubbles={showBubbles} showProgress={false} apiRef={apiRef} onState={onState}
+                    showBubbles={showBubbles} display={display} voice={voice} showProgress={false} apiRef={apiRef} onState={onState}
                   />
                 )}
             </div>

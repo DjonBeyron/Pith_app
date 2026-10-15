@@ -1,0 +1,101 @@
+/* Сборщик сцен — «Использовать» сцену в другом месте (admin/scenes/ui/): кнопка и
+   выпадающее меню UseSceneMenu, диалог «Привязать к модулю ленты» LinkModuleDialog внутри
+   окна, группа «Шаблоны» TemplatesGroup в «Моих сценах». Токены — .fsWin (--fs-*). */
+
+/* Кнопка + меню */
+.scbUse { position: relative; display: inline-flex; align-items: center; gap: 2px; }
+.scbUseBtn { display: inline-flex; align-items: center; gap: 4px; }
+.scbMenu {
+  position: absolute;
+  left: 0;
+  top: calc(100% + 4px);
+  z-index: 7;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 280px;
+  max-width: min(380px, calc(100vw - 32px));
+  padding: 6px;
+  border: 1px solid var(--fs-muted);
+  border-radius: 12px;
+  background: var(--fs-panel-2);
+  color: var(--fs-text);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+.scbMenuItem {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  width: 100%;
+  padding: 6px 9px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--fs-text);
+  text-align: left;
+  cursor: pointer;
+}
+.scbMenuItem:hover:not(:disabled), .scbMenuItem:focus-visible { background: var(--fs-panel); }
+.scbMenuItem:disabled { opacity: 0.55; cursor: not-allowed; }
+.scbMenuLabel { font-size: 13px; font-weight: 600; }
+.scbMenuHint { font-size: 11.5px; color: var(--fs-muted); line-height: 1.3; }
+.scbMenuFoot { margin: 4px 0 0; padding: 6px 9px 2px; border-top: 1px dashed var(--fs-border); font-size: 11.5px; color: var(--fs-muted); line-height: 1.35; }
+.scbLibRow .scbUse { margin-right: 4px; }
+
+/* Диалог внутри окна (поверх колонок, под подсказками «?» и диалогом озвучки) */
+.scbDlgWrap {
+  position: fixed;
+  inset: 0;
+  z-index: 18;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(0, 0, 0, 0.45);
+}
+.scbDlg {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: min(560px, 100%);
+  max-height: 100%;
+  overflow-y: auto;
+  padding: 16px;
+  border: 1px solid var(--fs-border);
+  border-radius: 16px;
+  background: var(--fs-panel);
+  color: var(--fs-text);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.4);
+}
+.scbDlgTitle { margin: 0; flex: 1; min-width: 0; font-size: 15px; font-weight: 700; display: flex; align-items: center; gap: 4px; }
+.scbDlgList { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 4px; }
+.scbDlgRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--fs-border);
+  border-radius: 10px;
+  background: var(--fs-panel-2);
+  color: var(--fs-text);
+  text-align: left;
+  cursor: pointer;
+}
+.scbDlgRow:hover:not(:disabled) { border-color: var(--fs-muted); }
+.scbDlgRow:disabled { opacity: 0.6; cursor: default; }
+.scbDlgRowOn { border-color: var(--fs-accent); }
+.scbDlgRowTitle { font-size: 13px; font-weight: 600; }
+
+/* Шаблоны в «Моих сценах» */
+.scbTemplates { display: flex; flex-direction: column; gap: 6px; margin-top: 6px; padding-top: 8px; border-top: 1px dashed var(--fs-border); }
+.scbTemplates .scbGroupH { display: flex; align-items: center; gap: 2px; margin: 0; }
+.scbTplRow { background: var(--fs-panel-2); }
+.scbTplTitle { cursor: default; }
+.scbTplTitle:hover { text-decoration: none; }
+
+@media (max-width: 480px) {
+  .scbMenu { position: fixed; left: 12px; right: 12px; top: auto; bottom: 12px; min-width: 0; max-width: none; }
+  .scbDlgWrap { padding: 10px; align-items: flex-end; }
+}

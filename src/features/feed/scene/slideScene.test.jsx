@@ -6,7 +6,7 @@ import SlideSceneChips from './SlideSceneChips.jsx'
 import { normalizeSceneV2 } from '../../scene/v2/sceneSchemaV2.js'
 import { demoOfficeScene } from '../../scene/v2/demoScenes.js'
 import { setFeedSlow, getFeedSlowKey } from '../feedSlowState.js'
-import { shouldPrefetchNear, firstAudioUrl } from './useSceneAudioPrefetch.js'
+import { shouldPrefetchNear, firstAudioUrl, firstAudioUrls } from './useSceneAudioPrefetch.js'
 
 // deviceTier щупает WebGL/localStorage при импорте — в node не нужен
 vi.mock('../../../shared/lib/deviceTier.js', () => ({ isWeakDevice: () => false }))
@@ -115,5 +115,12 @@ describe('useSceneAudioPrefetch — подкачка озвучки соседн
     expect(firstAudioUrl({ timeline: [{ audioUrl: url }, { audioUrl: 'https://r2/b.mp3' }] })).toBe(url)
     expect(firstAudioUrl({ timeline: [{ text: 'без файла' }] })).toBeNull()
     expect(firstAudioUrl(null)).toBeNull()
+  })
+  it('firstAudioUrls: файл перевода первой реплики — только при включённой озвучке перевода у сцены', () => {
+    const tl = [{ audioUrl: 'https://r2/a.mp3', translationAudioUrl: 'https://r2/a-tr.mp3' }, { audioUrl: 'https://r2/b.mp3' }]
+    expect(firstAudioUrls({ timeline: tl })).toEqual(['https://r2/a.mp3'])
+    expect(firstAudioUrls({ timeline: tl, options: { voice: { translation: true } } })).toEqual(['https://r2/a.mp3', 'https://r2/a-tr.mp3'])
+    expect(firstAudioUrls({ timeline: [{ text: 'x', translationAudioUrl: 'https://r2/t.mp3' }], options: { voice: { translation: true } } })).toEqual(['https://r2/t.mp3'])
+    expect(firstAudioUrls(null)).toEqual([])
   })
 })

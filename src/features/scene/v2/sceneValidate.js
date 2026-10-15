@@ -7,6 +7,7 @@ import {
 import { validateTask } from './sceneTask.js'
 import { validateLineAudio } from './sceneValidateAudio.js'
 import { VOICE_RANGE } from './sceneVoice.js'
+import { validateSceneOptions } from './sceneOptions.js'
 
 // Валидация сцены v2: список ошибок по-русски с путями (characters.a.name,
 // timeline[3].text…). Пустой список — сцена годная. Проверяет форму и
@@ -33,12 +34,13 @@ function validateCharacter(c, key, errors) {
   }
   if (c.stripes !== undefined && typeof c.stripes !== 'boolean') errors.push(`${p}.stripes — true/false`)
   if (c.voice !== undefined) {
-    if (!isObj(c.voice)) errors.push(`${p}.voice — объект { pitch, rate, voiceId?, stability?, similarity?, speed? }`)
+    if (!isObj(c.voice)) errors.push(`${p}.voice — объект { pitch, rate, voiceId?, stability?, similarity?, speed?, translationVoiceId? }`)
     else {
-      const { pitch, rate, voiceId } = c.voice
+      const { pitch, rate, voiceId, translationVoiceId } = c.voice
       if (pitch !== undefined && !(typeof pitch === 'number' && pitch >= 0 && pitch <= 2)) errors.push(`${p}.voice.pitch — число 0…2`)
       if (rate !== undefined && !(typeof rate === 'number' && rate >= 0.1 && rate <= 10)) errors.push(`${p}.voice.rate — число 0.1…10`)
       if (voiceId !== undefined && typeof voiceId !== 'string') errors.push(`${p}.voice.voiceId — строка`)
+      if (translationVoiceId !== undefined && typeof translationVoiceId !== 'string') errors.push(`${p}.voice.translationVoiceId — строка`)
       // Настройки ElevenLabs (sceneVoice.js): в hash озвучки и в запрос TTS
       for (const [k, [lo, hi]] of Object.entries(VOICE_RANGE)) {
         const v = c.voice[k]
@@ -73,7 +75,7 @@ function validateLine(l, i, errors) {
   if (l.emotion !== undefined && !EMOTIONS.includes(l.emotion)) errors.push(`${p}.emotion — ${EMOTIONS.join(' | ')}`)
   if (l.pose !== undefined && !POSES.includes(l.pose)) errors.push(`${p}.pose — ${POSES.join(' | ')}`)
   if (l.translation !== undefined && typeof l.translation !== 'string') errors.push(`${p}.translation — строка`)
-  validateLineAudio(l, p, errors) // audioUrl (только https на R2), wordTimings, audioMeta — sceneValidateAudio.js
+  validateLineAudio(l, p, errors) // audioUrl/wordTimings/audioMeta и translation*-тройка — sceneValidateAudio.js
 }
 
 export function validateSceneV2(scene) {
@@ -100,10 +102,7 @@ export function validateSceneV2(scene) {
     scene.timeline.forEach((l, i) => validateLine(l, i, errors))
   }
 
-  if (scene.options !== undefined) {
-    if (!isObj(scene.options)) errors.push('options — объект { bubbles, autoplay, loop }')
-    else for (const [k, v] of Object.entries(scene.options)) if (typeof v !== 'boolean') errors.push(`options.${k} — true/false`)
-  }
+  validateSceneOptions(scene.options, errors) // bubbles/autoplay/loop, display, voice, translationVoiceId — sceneOptions.js
   // Задание после сцены (sceneTask.js) — необязательное; смысловые проверки (есть ли перевод) — в sceneLint
   validateTask(scene.task, Array.isArray(scene.timeline) ? scene.timeline.length : undefined, errors)
   return errors

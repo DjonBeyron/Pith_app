@@ -8,8 +8,10 @@ import SceneRenderer from '../../../scene/v2/SceneRenderer.jsx'
 // useVideoFullscreen завязан на <video>. История — статичный последний кадр.
 // Пропсы плоские (не объект хука): так компилятор React видит, что рефы в
 // рендере не читаются.
+// display/voice — переопределения ноды (режим показа текста / флаги озвучки) поверх options сцены.
 export default function SceneBubbleView({
-  scene, showBubbles, isHistory, pending, status, paused, sound, rate, audioSrcOf = null, apiRef, rootRef, onState, onTap,
+  scene, showBubbles, display = null, voice = null, isHistory, pending, status, paused, sound, rate, audioSrcOf = null,
+  apiRef, rootRef, onState, onTap,
 }) {
   const last = Math.max(0, (scene.timeline?.length ?? 1) - 1)
   const idle = !isHistory && status !== 'playing'
@@ -18,11 +20,11 @@ export default function SceneBubbleView({
       <PlayerBubble className="playerMsgBubble playerMsgBubble--video playerMsgBubble--scene">
         <div ref={rootRef} className="playerSceneFrame" data-status={isHistory ? 'history' : status}>
           {isHistory
-            ? <SceneRenderer scene={scene} mode="static" frameIndex={last} showBubbles={showBubbles} />
+            ? <SceneRenderer scene={scene} mode="static" frameIndex={last} showBubbles={showBubbles} display={display} />
             : (
               <SceneRenderer
                 scene={scene} mode="live" active={!pending} paused={paused} sound={sound} rate={rate} audioSrcOf={audioSrcOf}
-                showBubbles={showBubbles} apiRef={apiRef} onState={onState} onTap={onTap}
+                showBubbles={showBubbles} display={display} voice={voice} apiRef={apiRef} onState={onState} onTap={onTap}
               />
             )}
           {idle && (

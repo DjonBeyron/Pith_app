@@ -1,0 +1,60 @@
+/* «Для дизайнера» → пакет для дизайнера (admin/scenes/designer-pack): кнопки PDF/HTML/проверка/
+   шаблоны (DesignerPackButtons), раздел «Для программиста» (DesignerDevSection), конвертер
+   SVG → код (SvgToCodeTool), подсказки «как исправить» в проверке. Префикс scd (общий с
+   admin-scenes-designer.css), токены — .scWrap (admin-scenes.css). */
+
+.scdPack { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--sc-border); }
+.scdBtnTip { display: inline-flex; align-items: center; gap: 2px; }
+.scdPackMsg { margin: 0; padding: 8px 10px; border-radius: 10px; background: var(--sc-panel-2, var(--sc-bg)); color: var(--sc-text); font-size: 12.5px; }
+
+/* Раздел «Для программиста / админа» */
+.scdDevSteps { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; font-size: 13px; line-height: 1.5; }
+.scdDevH { margin: 6px 0 0; font-size: 13.5px; font-weight: 700; }
+.scdDevFiles { border-collapse: collapse; font-size: 12.5px; width: 100%; }
+.scdDevFiles td { padding: 3px 8px 3px 0; border-bottom: 1px solid var(--sc-border); vertical-align: top; }
+.scdDevFiles td:first-child { white-space: nowrap; }
+.scdCheckList { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 4px; font-size: 13px; }
+
+/* Конвертер SVG → код */
+.scdTool { display: flex; flex-direction: column; gap: 8px; padding: 10px 12px; border: 1px dashed var(--sc-border); border-radius: 12px; }
+.scdInput {
+  margin-left: 4px;
+  padding: 4px 8px;
+  border: 1px solid var(--sc-border);
+  border-radius: 8px;
+  background: var(--sc-bg);
+  color: var(--sc-text);
+  font: inherit;
+  font-size: 12.5px;
+  max-width: 160px;
+}
+.scdInput[aria-invalid="true"] { border-color: var(--sc-error); }
+.scdToolOut { display: flex; flex-direction: column; gap: 6px; }
+.scdToolOut p { margin: 0; }
+.scdWarn { color: var(--sc-warn, #e0a526); font-size: 12px; }
+.scdCode {
+  margin: 0;
+  padding: 8px 10px;
+  max-height: 320px;
+  overflow: auto;
+  border: 1px solid var(--sc-border);
+  border-radius: 10px;
+  background: var(--sc-bg);
+  color: var(--sc-text);
+  font: 11.5px/1.45 ui-monospace, SFMono-Regular, Menlo, monospace;
+  white-space: pre;
+}
+
+/* Подсказки «как исправить» в проверке SVG */
+.scProblems .scdFix { display: block; color: var(--sc-text); font-weight: 400; margin-top: 1px; }
+.scProblems .scdFix::before { content: 'Как исправить: '; font-weight: 700; }
+
+.scdDevFiles code { overflow-wrap: anywhere; white-space: normal; }
+
+@media (max-width: 600px) {
+  /* Таблица «где лежит» на телефоне — список: путь строкой, пояснение под ним */
+  .scdDevFiles, .scdDevFiles tbody, .scdDevFiles tr, .scdDevFiles td { display: block; }
+  .scdDevFiles td { border: 0; padding: 0; white-space: normal; }
+  .scdDevFiles tr { padding: 4px 0; border-bottom: 1px solid var(--sc-border); }
+  .scdInput { max-width: 100%; }
+}

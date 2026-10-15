@@ -1,0 +1,79 @@
+import { describe, it, expect, vi } from 'vitest'
+import { renderToStaticMarkup } from 'react-dom/server'
+import { sceneUseMode, sceneUseOptions, USE_IN_LESSON_HINT } from './sceneUseOptions.js'
+import { templateList, needsTemplateConfirm, templateScene } from './sceneTemplates.js'
+import { newDraft } from '../builderModel.js'
+import UseSceneMenu from './UseSceneMenu.jsx'
+import TemplatesGroup from './TemplatesGroup.jsx'
+
+// Меню «Использовать»: варианты по контексту (нода / модуль ленты / админка), шаблоны
+const row = (status = 'published') => ({ id: 'u1', title: 'Кофе', status })
+
+describe('sceneUseOptions', () => {
+  it('режим: явный useMode, иначе onApply → node, без → admin', () => {
+    expect(sceneUseMode({ onApply: () => {}, useMode: 'module' })).toBe('module')
+    expect(sceneUseMode({ onApply: () => {} })).toBe('node')
+    expect(sceneUseMode({ onApply: null })).toBe('admin')
+    expect(sceneUseMode({ onApply: null, useMode: 'мусор' })).toBe('admin')
+  })
+
+  it('нода и модуль — одно прямое действие; админка — меню', () => {
+    const node = sceneUseOptions('node', row())
+    expect(node.direct).toBe(true)
+    expect(node.items.map(i => i.id)).toEqual(['apply'])
+    expect(node.items[0].label).toBe('Применить к ноде')
+    const mod = sceneUseOptions('module', row('draft'))
+    expect(mod.direct).toBe(true)
+    expect(mod.items[0].label).toBe('Привязать к фразе')
+    expect(mod.items[0].hint).toMatch(/опубликуется/)
+    const admin = sceneUseOptions('admin', row())
+    expect(admin.direct).toBe(false)
+    expect(admin.items.map(i => i.id)).toEqual(['open', 'copy', 'link', 'copyId', 'copyJson'])
+    expect(admin.items.every(i => !i.disabled)).toBe(true)
+  })
+
+  it('черновик нельзя привязать к ленте — пункт заблокирован с причиной', () => {
+    const link = sceneUseOptions('admin', row('draft')).items.find(i => i.id === 'link')
+    expect(link.disabled).toBe(true)
+    expect(link.reason).toMatch(/опубликуйте/)
+  })
+})
+
+describe('UseSceneMenu (разметка)', () => {
+  it('прямой режим — одна кнопка «Использовать» с подсказкой действия и «?»', () => {
+    const html = renderToStaticMarkup(<UseSceneMenu row={row()} mode="node" onAction={vi.fn()} />)
+    expect(html).toContain('>Использовать<')
+    expect(html).toContain('title="Сцена уйдёт в ноду урока, окно закроется"')
+    expect(html).not.toContain('aria-haspopup')
+    expect(html).toContain('htBtn')
+  })
+  it('админка — кнопка с меню (закрыто по умолчанию)', () => {
+    const html = renderToStaticMarkup(<UseSceneMenu row={row()} mode="admin" onAction={vi.fn()} />)
+    expect(html).toContain('aria-haspopup="menu"')
+    expect(html).toContain('aria-expanded="false"')
+    expect(html).not.toContain('role="menu"')
+    expect(USE_IN_LESSON_HINT).toMatch(/Из библиотеки/)
+  })
+})
+
+describe('шаблоны', () => {
+  it('две демо-сцены и пустая; копия получает свой id', () => {
+    const list = templateList()
+    expect(list.map(t => t.title)).toEqual(['Про работу', 'Кофе-брейк', 'Пустая сцена'])
+    expect(list[2].scene.timeline).toHaveLength(2)
+    expect(Object.values(list[2].scene.slots).every(v => v === null)).toBe(true)
+    expect(templateScene(list[0]).id).toBe(`${list[0].scene.id}-copy`)
+    expect(templateScene(list[2]).id).toBe('new-scene')
+  })
+  it('подтверждение нужно только при реальных правках', () => {
+    expect(needsTemplateConfirm({ dirty: true, scene: newDraft() })).toBe(false)
+    expect(needsTemplateConfirm({ dirty: false, scene: { ...newDraft(), title: 'x' } })).toBe(false)
+    expect(needsTemplateConfirm({ dirty: true, scene: { ...newDraft(), title: 'x' } })).toBe(true)
+  })
+  it('разметка группы: три строки с «Использовать как основу» и «?»', () => {
+    const html = renderToStaticMarkup(<TemplatesGroup draft={{ dirty: false, scene: newDraft(), actions: {} }} setStatus={() => {}} />)
+    expect(html.match(/Использовать как основу/g)).toHaveLength(3)
+    expect(html).toContain('Шаблоны')
+    expect(html).toContain('Кофе-брейк')
+  })
+})

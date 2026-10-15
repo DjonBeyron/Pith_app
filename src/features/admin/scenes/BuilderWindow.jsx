@@ -1,132 +1,130 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useEffect, useRef, useCallback } from 'react'
 import { createPortal } from 'react-dom'
-import { closeOpenHelp } from '../signals/helpOpenState.js'
 import { useBuilderDraft } from './useBuilderDraft.js'
 import { useSceneLibrary } from './useSceneLibrary.js'
-import { findField, fieldSection } from './lintFieldMap.js'
+import { useBuilderUi } from './useBuilderUi.js'
+import { useBuilderActions } from './useBuilderActions.js'
+import { sceneUseMode } from './ui/sceneUseOptions.js'
+import { PanelCtx } from './ui/panelContext.js'
+import PanelColumn from './ui/PanelColumn.jsx'
+import ColumnResizer from './ui/ColumnResizer.jsx'
+import CollapseAllButton from './ui/CollapseAllButton.jsx'
 import BuilderToolbar from './BuilderToolbar.jsx'
 import BuilderSettings from './BuilderSettings.jsx'
 import PhonePreview from './PhonePreview.jsx'
 import SidePanel from './SidePanel.jsx'
 import { useSceneVoice } from './voice/useSceneVoice.js'
 import VoiceAllDialog from './voice/VoiceAllDialog.jsx'
+import { useBuilderBack } from './useBuilderBack.js'
+import BackConfirm from './toolbar/BackConfirm.jsx'
 import '../../../styles/admin-signals.css'
+import '../../../styles/admin-scenes.css'
 import '../../../styles/admin-scenes-builder.css'
+import '../../../styles/admin-scenes-character.css'
 import '../../../styles/admin-scenes-preview.css'
 import '../../../styles/admin-scenes-voice.css'
+import '../../../styles/admin-scenes-panel.css'
+import '../../../styles/admin-scenes-layout.css'
+import '../../../styles/admin-scenes-use.css'
+import '../../../styles/admin-scenes-icons.css'
+import '../../../styles/admin-scenes-toolbar.css'
 
 // Полноэкранное окно «Сборщик сцен» (этап 2). Портал в body поверх оболочки (класс fsWin
-// из окна сигналов: z-index 700, токены темы --fs-*, тёмная/светлая). ПК — три области:
-// настройки / телефонная рамка с живой сценой / панель (JSON, нейросеть, библиотека);
-// телефон (< 1100px) — вкладки. Закрытие: кнопка и Esc (сначала закрывается открытая
-// подсказка «?», затем окно). Окно размонтируется сразу, без pointer-events:none —
-// клики не проваливаются вниз; вложенные кнопки останавливают всплытие сами.
-// Черновик — useBuilderDraft (бэкап в localStorage), библиотека — useSceneLibrary.
-// Управляемый режим (нода урока, canvas/NodeSceneBuilderHost): initialScene — стартовая
-// сцена, onApply(scene, saved) — кнопка «Применить к ноде» (без записи в библиотеку; бэкап
-// черновика админа при этом не трогается; saved — { id, status } строки библиотеки, если
-// черновик к ней привязан), title — заголовок окна, applyLabel — подпись кнопки,
-// initialRow — строка библиотеки, из которой взята initialScene (сцена ленты).
-// Озвучка ElevenLabs — useSceneVoice (voice/): пока идёт генерация, окно не закрывается
-// (Esc и крестик дают предупреждение в строке статуса), диалог «Озвучить всё» — VoiceAllDialog.
-const THEME_KEY = 'pithy_admin_scenes_theme_v1'
+// из окна сигналов: z-index 700, токены темы --fs-*, тёмная/светлая). ПК — три колонки с
+// перетаскиваемыми разделителями (ui/ColumnResizer, ширины в localStorage): настройки /
+// телефонная рамка с живой сценой / панель (JSON, нейросеть, библиотека); телефон (< 1100px) —
+// вкладки. Все блоки — сворачиваемые панели ui/Panel (свёрнутость хранится локально,
+// «на весь экран» — нет). Закрытие: «← Назад» слева в тулбаре (при несохранённых правках —
+// диалог BackConfirm, useBuilderBack) и Esc (цепочка — useBuilderUi, закрывает сразу). Окно
+// размонтируется сразу, без pointer-events:none — клики не проваливаются вниз.
+// Черновик — useBuilderDraft (бэкап в localStorage), библиотека — useSceneLibrary,
+// сохранение/открытие/подсветка замечаний — useBuilderActions.
+// Управляемый режим (нода урока, canvas/NodeSceneBuilderHost; модуль ленты, ModuleScenePanel):
+// initialScene — стартовая сцена, onApply(scene, saved) — кнопка «Применить к ноде» (без записи
+// в библиотеку; бэкап черновика админа не трогается; saved — { id, status } строки библиотеки),
+// title — заголовок окна, applyLabel — подпись кнопки, initialRow — строка библиотеки, из
+// которой взята initialScene, useMode — что значит «Использовать» в «Моих сценах»
+// (node | module | admin, ui/sceneUseOptions). Озвучка ElevenLabs — useSceneVoice (voice/):
+// пока идёт генерация, окно не закрывается, диалог «Озвучить всё» — VoiceAllDialog.
 const VIEWS = [['settings', 'Настройки'], ['scene', 'Сцена'], ['panel', 'Панель']]
 
-export default function BuilderWindow({ onClose: onCloseProp, initialScene = null, initialRow = null, onApply = null, applyLabel, title = 'Сборщик сцен' }) {
+export default function BuilderWindow({ onClose: onCloseProp, initialScene = null, initialRow = null, onApply = null, applyLabel, title = 'Сборщик сцен', useMode = null }) {
   const draft = useBuilderDraft({ initialScene, initialRow, backup: !onApply })
   const library = useSceneLibrary()
   const voice = useSceneVoice(draft)
   const voiceBusy = voice.busy
-  const [view, setView] = useState('scene')
-  const [theme, setTheme] = useState(() => { try { return localStorage.getItem(THEME_KEY) === 'light' ? 'light' : 'dark' } catch { return 'dark' } })
-  const [status, setStatus] = useState(null) // { kind: 'ok' | 'warn' | 'error', text }
-  const closeRef = useRef(null)
+  const backRef = useRef(null)
   const openerRef = useRef(null)
   const winRef = useRef(null)
+  const bodyRef = useRef(null)
+  const mode = sceneUseMode({ onApply, useMode })
+
+  const act = useBuilderActions({ draft, library })
+  const { status, setStatus } = act
 
   const onClose = useCallback(() => {
     if (voiceBusy) { setStatus({ kind: 'warn', text: 'Идёт озвучка — остановите её или дождитесь конца, потом закрывайте окно' }); return }
     onCloseProp()
-  }, [voiceBusy, onCloseProp])
+  }, [voiceBusy, onCloseProp, setStatus])
+
+  const back = useBuilderBack({ draft, voiceBusy, onClose, save: act.save })
+  const ui = useBuilderUi({ lint: draft.lint, onClose, winRef })
+  const { view, setView, panels, columns } = ui
 
   useEffect(() => {
     openerRef.current = document.activeElement
-    closeRef.current?.focus()
+    backRef.current?.focus()
     return () => openerRef.current?.focus?.()
   }, [])
-  useEffect(() => {
-    const onKey = e => {
-      if (e.key !== 'Escape') return
-      // Слушатель capture срабатывает раньше React-обработчиков: открытая выпадашка
-      // слота закрывает себя сама (SlotCell), окно этот Esc пропускает
-      if (winRef.current?.querySelector('.scbSlotOpen')) return
-      e.stopPropagation()
-      if (closeOpenHelp(true)) return
-      onClose()
-    }
-    document.addEventListener('keydown', onKey, true)
-    return () => document.removeEventListener('keydown', onKey, true)
-  }, [onClose])
 
-  const toggleTheme = () => {
-    const next = theme === 'dark' ? 'light' : 'dark'
-    setTheme(next)
-    try { localStorage.setItem(THEME_KEY, next) } catch { /* приватный режим */ }
-  }
-
-  // Клик по замечанию линтера: подсветить поле (на телефоне — сперва открыть «Настройки»)
-  const highlight = useCallback(text => {
-    const go = () => {
-      const el = findField(text, document)
-      if (!el) return
-      el.scrollIntoView({ block: 'center', behavior: 'smooth' })
-      el.setAttribute('data-flash', '1')
-      setTimeout(() => el.removeAttribute('data-flash'), 1600)
-      if (typeof el.focus === 'function' && /^(INPUT|TEXTAREA|SELECT|BUTTON)$/.test(el.tagName)) el.focus({ preventScroll: true })
-    }
-    if (window.innerWidth < 1100 && fieldSection(text)) { setView('settings'); setTimeout(go, 60) } else go()
-  }, [])
-
-  const save = async (statusOverride) => {
-    const { scene, saved } = draft
-    const title = scene.title?.trim() || 'Без названия'
-    const row = await library.save({ id: saved.id, title, scene, status: statusOverride ?? saved.status })
-    if (row) { draft.actions.markSaved(row); setStatus({ kind: 'ok', text: `Сохранено в библиотеку: «${row.title}» (${row.status === 'published' ? 'опубликована' : 'черновик'})` }) }
-    else setStatus({ kind: 'error', text: library.error || 'Не удалось сохранить' })
-  }
-  const openRow = async id => {
-    const row = await library.open(id)
-    if (row?.scene) { draft.actions.load(row.scene, row); setStatus({ kind: 'ok', text: `Открыта «${row.title}»` }); if (window.innerWidth < 1100) setView('scene') }
-    else if (row === null) setStatus({ kind: 'error', text: library.error || 'Не удалось открыть' })
-  }
+  // Клик по замечанию линтера: развернуть панели на пути, подсветить поле (на телефоне — сперва «Настройки»)
+  const highlight = useCallback(text => act.highlight(text, { expand: panels.expand, setView }), [act, panels.expand, setView])
 
   const win = (
-    <div ref={winRef} className="fsWin scbWin" data-theme={theme} role="dialog" aria-modal="true" aria-label={title}>
-      <BuilderToolbar
-        draft={draft} library={library} status={status} setStatus={setStatus} title={title}
-        onSave={save} onApply={onApply ? () => onApply(draft.scene, draft.saved) : null} applyLabel={applyLabel}
-        onClose={onClose} closeRef={closeRef} theme={theme} onToggleTheme={toggleTheme}
-      />
-      <div className="fsViewTabs" role="tablist" aria-label="Разделы окна">
-        {VIEWS.map(([id, label]) => (
-          <button key={id} role="tab" aria-selected={view === id} className={view === id ? 'fsViewTab fsViewTabOn' : 'fsViewTab'} onClick={() => setView(id)}>{label}</button>
-        ))}
-      </div>
-      <div className="scbBody" data-view={view}>
-        <section className="scbCol scbColSettings" aria-label="Настройки сцены">
-          <BuilderSettings scene={draft.scene} actions={draft.actions} savedId={draft.saved.id} setStatus={setStatus} voice={voice} />
-        </section>
-        <section className="scbCol scbColScene" aria-label="Предпросмотр сцены">
-          <PhonePreview scene={draft.scene} lint={draft.lint} budget={draft.budget} onHighlight={highlight} />
-        </section>
-        <section className="scbCol scbColPanel" aria-label="JSON, нейросеть, библиотека">
-          <SidePanel draft={draft} library={library} onOpenRow={openRow} onSave={save} setStatus={setStatus} />
-        </section>
-      </div>
-      <VoiceAllDialog
-        all={voice.all} quota={voice.quota} names={{ a: draft.scene.characters.a.name, b: draft.scene.characters.b.name }}
-        onStart={voice.startAll} onStop={voice.stopAll} onClose={voice.closeAll}
-      />
+    <div ref={winRef} className="fsWin scbWin" data-theme={ui.theme} role="dialog" aria-modal="true" aria-label={title}>
+      <PanelCtx.Provider value={panels}>
+        <BuilderToolbar
+          draft={draft} library={library} status={status} setStatus={setStatus} title={title}
+          onSave={act.save} onApply={onApply ? () => onApply(draft.scene, draft.saved) : null} applyLabel={applyLabel} useMode={useMode}
+          onBack={back.requestBack} backRef={backRef} unsaved={back.unsaved} voice={voice} theme={ui.theme} onToggleTheme={ui.toggleTheme}
+        />
+        <div className="fsViewTabs" role="tablist" aria-label="Разделы окна">
+          {VIEWS.map(([id, label]) => (
+            <button key={id} role="tab" aria-selected={view === id} className={view === id ? 'fsViewTab fsViewTabOn' : 'fsViewTab'} onClick={() => setView(id)}>{label}</button>
+          ))}
+        </div>
+        <div ref={bodyRef} className="scbBody" data-view={view} style={columns.style}>
+          <PanelColumn name="settings">
+            <section className="scbCol scbColSettings" aria-label="Настройки сцены">
+              <div className="scbColTools"><CollapseAllButton column="settings" /></div>
+              <BuilderSettings scene={draft.scene} actions={draft.actions} savedId={draft.saved.id} setStatus={setStatus} voice={voice} />
+            </section>
+          </PanelColumn>
+          <ColumnResizer index={0} bodyRef={bodyRef} fractions={columns.fractions} onCommit={columns.commit} onReset={columns.reset} />
+          <PanelColumn name="scene">
+            <section className="scbCol scbColScene" aria-label="Предпросмотр сцены">
+              <div className="scbColTools"><CollapseAllButton column="scene" /></div>
+              <PhonePreview scene={draft.scene} lint={draft.lint} budget={draft.budget} onHighlight={highlight} />
+            </section>
+          </PanelColumn>
+          <ColumnResizer index={1} bodyRef={bodyRef} fractions={columns.fractions} onCommit={columns.commit} onReset={columns.reset} />
+          <PanelColumn name="panel">
+            <section className="scbCol scbColPanel" aria-label="JSON, нейросеть, библиотека">
+              <div className="scbColTools"><CollapseAllButton column="panel" /></div>
+              <SidePanel draft={draft} library={library} onOpenRow={act.openRow} onSave={act.save} setStatus={setStatus} mode={mode} onApplyScene={onApply} />
+            </section>
+          </PanelColumn>
+        </div>
+        <BackConfirm
+          open={back.ask} embedded={mode !== 'admin'} canSave={!library.busy && !library.missingTable} busy={back.saving}
+          reason={library.missingTable ? 'Таблицы scenes нет в базе — сохранить в библиотеку нельзя, черновик остаётся на этом устройстве.' : ''}
+          onChoose={back.choose}
+        />
+        <VoiceAllDialog
+          all={voice.all} quota={voice.quota} names={{ a: draft.scene.characters.a.name, b: draft.scene.characters.b.name }}
+          onStart={voice.startAll} onStop={voice.stopAll} onClose={voice.closeAll}
+        />
+      </PanelCtx.Provider>
     </div>
   )
   return createPortal(win, document.body)

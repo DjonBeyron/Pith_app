@@ -5,8 +5,9 @@ import { setForcedSceneTask } from '../../feed/scene/sceneTaskLimits.js'
 import { TASK_KIND_LABEL, taskKind, taskPreview } from './taskModel.js'
 import TaskAnswerTester from './TaskAnswerTester.jsx'
 import ScTip from './ScTip.jsx'
+import Panel from './ui/Panel.jsx'
 
-// Секция «Задание после сцены» в настройках сборщика: переключатель «Нет | Перевод», реплика из таймлайна, текст вопроса,
+// Панель «Задание после сцены» (ui/Panel, ключ task) в настройках сборщика: переключатель в шапке «Нет | Перевод», реплика из таймлайна, текст вопроса,
 // допустимые варианты ответа (≤ TASK_LIMITS.maxAccept), подсказка, тестер ответа (TaskAnswerTester) и «Показать в ленте»
 // (принудительный показ для теста, обходит лимиты один раз — sceneTaskLimits). id f-task-* — подсветка замечаний линтера.
 export default function SceneTaskSection({ scene, actions, savedId = null, setStatus }) {
@@ -24,16 +25,17 @@ export default function SceneTaskSection({ scene, actions, savedId = null, setSt
   }
 
   return (
-    <section className="scbBlock" id="f-task" aria-labelledby="scb-task-h">
-      <div className="scbHRow">
-        <h2 id="scb-task-h" className="scbH">Задание после сцены <ScTip help="task" /></h2>
+    <Panel
+      id="task" title="Задание после сцены" tip="task" fieldId="f-task"
+      extra={(
         <div className="scSegBtns" role="radiogroup" aria-label="Вид задания">
           <button type="button" role="radio" aria-checked={!kind} className={!kind ? 'scSegBtn scSegBtnOn' : 'scSegBtn'} onClick={() => actions.setTaskKind(null)}>Нет</button>
           {Object.entries(TASK_KIND_LABEL).map(([k, label]) => (
             <button key={k} type="button" role="radio" aria-checked={kind === k} className={kind === k ? 'scSegBtn scSegBtnOn' : 'scSegBtn'} onClick={() => actions.setTaskKind(k)}>{label}</button>
           ))}
         </div>
-      </div>
+      )}
+    >
       {!task ? (
         <p className="scbSub">Без задания сцена в ленте просто идёт по кругу. «Перевод» — после первого проигрывания зритель напишет по-русски, что сказал персонаж.</p>
       ) : (
@@ -81,6 +83,6 @@ export default function SceneTaskSection({ scene, actions, savedId = null, setSt
           </div>
         </>
       )}
-    </section>
+    </Panel>
   )
 }

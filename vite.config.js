@@ -61,5 +61,8 @@ export default defineConfig({
   // e2e/*.spec.js (Playwright) и падает — их гоняет отдельный `npm run e2e`.
   test: {
     include: ['src/**/*.{test,spec}.{js,jsx}'],
+    // Vitest подменяет любой импорт .css пустой строкой — даже `.css?raw`. Пакету для дизайнера
+    // (admin/scenes/designer-pack) нужен текст scene-v2-cat.css как строка — пропускаем ?raw как есть
+    css: { include: [/\?raw$/] },
   },
 })

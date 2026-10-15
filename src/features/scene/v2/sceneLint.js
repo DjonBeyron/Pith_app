@@ -4,7 +4,8 @@ import { slotsFor } from './sprites/slots.js'
 import { getSprite } from './sprites/spriteRegistry.js'
 import { isObj } from './sceneConstants.js'
 import { taskTargetLine, taskAnswers, keyTokens } from './sceneTask.js'
-import { lineAudioState, sceneVoiceStats } from './sceneVoice.js'
+import { lineAudioState, translationAudioState, sceneVoiceStats } from './sceneVoice.js'
+import { displayOfOptions, normalizeVoiceFlags } from './sceneOptions.js'
 
 // Линтер сцен v2 — детерминированная проверка поверх валидатора: бюджет
 // узлов, предметы без опоры, пустые слоты, качество диалога. Возвращает
@@ -72,6 +73,24 @@ function lintVoice(scene, tl, out) {
   const st = sceneVoiceStats(scene)
   const voiced = st.ready + st.stale
   if (voiced > 0 && voiced < st.total) out.push({ level: 'warn', text: `timeline — озвучено ${voiced} из ${st.total} реплик: остальные прозвучат синтезом устройства` })
+  lintTranslationVoice(scene, tl, st.translation, out)
+}
+
+// Озвучка перевода (sceneOptions.voice.translation, поля translationAudio* реплики) и режим показа 'both'
+function lintTranslationVoice(scene, tl, st, out) {
+  tl.forEach((l, i) => {
+    if (isObj(l) && translationAudioState(l, scene.characters?.[l.who], scene) === 'stale') {
+      out.push({ level: 'warn', text: `timeline[${i}].translationAudioUrl — озвучка перевода устарела: перевод или голос изменили после генерации (или перевод убрали), переозвучьте` })
+    }
+  })
+  const flags = normalizeVoiceFlags(scene.options?.voice)
+  if (flags.translation) {
+    if (!st.withText) out.push({ level: 'warn', text: 'options.voice.translation — включена озвучка перевода, но ни у одной реплики нет translation: озвучивать нечего' })
+    else if (st.ready + st.stale < st.withText) out.push({ level: 'warn', text: `options.voice.translation — включена озвучка перевода, но файлы перевода есть у ${st.ready + st.stale} из ${st.withText} реплик: остальные прозвучат синтезом устройства или промолчат` })
+  }
+  if (displayOfOptions(scene.options) === 'both' && tl.length && !st.withText) {
+    out.push({ level: 'warn', text: 'options.display — режим «текст + перевод» (both), но у реплик нет translation: покажется только оригинал' })
+  }
 }
 
 // Задание «О чём диалог» (sceneTask.js): ответ проверять нечем — ошибка; остальное — советы

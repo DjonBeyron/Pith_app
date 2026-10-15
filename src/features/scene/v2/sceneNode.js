@@ -1,12 +1,16 @@
 import { normalizeSceneV2 } from './sceneSchemaV2.js'
 import { validateSceneV2 } from './sceneValidate.js'
 import { isObj } from './sceneConstants.js'
+import { isDisplayMode, resolveDisplay, resolveVoiceFlags } from './sceneOptions.js'
 
 // Нода урока `scene` — формат typeData.scene (общий для плеера, канваса и
 // lesson-io):
 //   { scene: <снимок сцены v2 целиком>, sceneId?: uuid строки библиотеки,
 //     sceneUpdatedAt?: ISO updated_at строки на момент снимка,
-//     mode: 'bubble' | 'circle', showBubbles: boolean (по умолчанию true) }
+//     mode: 'bubble' | 'circle', showBubbles: boolean (по умолчанию true),
+//     display?: 'none' | 'text' | 'both', voice?: { original?, translation? } }
+// display/voice — необязательные переопределения на уровне ноды поверх options
+// сцены (sceneOptions.js); нет display → старый showBubbles (false → 'none').
 // Снимок встроен в урок намеренно: урок играет офлайн, экспортируется и не
 // зависит от статуса published в таблице scenes; sceneId — только связь
 // «откуда взяли», чтобы предложить обновить снимок из библиотеки.
@@ -27,22 +31,48 @@ export function sceneByteSize(scene) {
   try { return new TextEncoder().encode(JSON.stringify(scene ?? null)).length } catch { return 0 }
 }
 
-// Данные ноды → { scene: нормализованная сцена | null, errors: [строки], mode, showBubbles }.
+// Переопределения ноды для SceneRenderer: display (строка или null — решает сцена/showBubbles),
+// voice (неполный объект или null). Мусор отбрасывается
+export function sceneNodeOverrides(td) {
+  const data = isObj(td) ? td : {}
+  const voice = isObj(data.voice) && ['original', 'translation'].some(k => typeof data.voice[k] === 'boolean')
+    ? Object.fromEntries(Object.entries(data.voice).filter(([k, v]) => ['original', 'translation'].includes(k) && typeof v === 'boolean'))
+    : null
+  return { display: isDisplayMode(data.display) ? data.display : null, voice }
+}
+
+// Данные ноды → { scene: нормализованная сцена | null, errors: [строки], mode, showBubbles, display, voice }.
 // errors пустой и scene null — сцена просто не выбрана (пустая нода).
 export function resolveSceneNode(td) {
   const data = isObj(td) ? td : {}
   const mode = normalizeSceneMode(data.mode)
   const showBubbles = data.showBubbles !== false
-  if (!isObj(data.scene)) return { scene: null, errors: [], mode, showBubbles }
+  const base = { mode, showBubbles, ...sceneNodeOverrides(data) }
+  if (!isObj(data.scene)) return { scene: null, errors: [], ...base }
   const errors = validateSceneV2(data.scene)
   if (sceneByteSize(data.scene) > SCENE_MAX_BYTES) errors.push(`Сцена больше ${SCENE_MAX_BYTES / 1024} КБ`)
-  return { scene: errors.length ? null : normalizeSceneV2(data.scene), errors, mode, showBubbles }
+  return { scene: errors.length ? null : normalizeSceneV2(data.scene), errors, ...base }
 }
 
-// Ссылки на заранее записанную озвучку реплик (для прогрева плеера и файлов карточки повтора)
-export function sceneAudioUrls(scene) {
+// Ноде есть что читать без звука? (режим показа текста не 'none' — с учётом showBubbles/display ноды)
+export function sceneNodeShowsText(td) {
+  const data = isObj(td) ? td : {}
+  return resolveDisplay(data.scene, { display: sceneNodeOverrides(data).display, showBubbles: data.showBubbles }) !== 'none'
+}
+
+// Ссылки на заранее записанную озвучку реплик (для прогрева плеера и файлов карточки повтора):
+// оригинал всегда; файлы перевода — только когда озвучка перевода включена (voice ⊕ переопределение)
+export function sceneAudioUrls(scene, voiceOverride = null) {
   const tl = Array.isArray(scene?.timeline) ? scene.timeline : []
-  return [...new Set(tl.map(l => (typeof l?.audioUrl === 'string' ? l.audioUrl : null)).filter(Boolean))]
+  const withTr = resolveVoiceFlags(scene, voiceOverride).translation
+  const urls = tl.flatMap(l => [l?.audioUrl, withTr ? l?.translationAudioUrl : null])
+  return [...new Set(urls.filter(u => typeof u === 'string' && u))]
+}
+
+// То же по сырым данным ноды (прогрев плеера: typeData.scene целиком, с переопределением voice ноды)
+export function sceneNodeAudioUrls(td) {
+  const data = isObj(td) ? td : {}
+  return sceneAudioUrls(data.scene, sceneNodeOverrides(data).voice)
 }
 
 // Снимок для ноды из строки библиотеки (таблица scenes)

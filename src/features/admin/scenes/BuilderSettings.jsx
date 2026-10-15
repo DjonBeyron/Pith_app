@@ -1,19 +1,20 @@
 import { LOCATIONS, BACKGROUNDS } from '../../scene/v2/sprites/backgrounds.js'
+import Panel from './ui/Panel.jsx'
 import SlotsGrid from './SlotsGrid.jsx'
 import CharacterForm from './CharacterForm.jsx'
 import TimelineEditor from './TimelineEditor.jsx'
 import SceneTaskSection from './SceneTaskSection.jsx'
-import ScTip from './ScTip.jsx'
 
-// Левая область сборщика: локация, ячейки предметов (SlotsGrid), персонажи A и B
-// (CharacterForm), реплики (TimelineEditor), задание после сцены (SceneTaskSection), options.
+// Левая колонка сборщика — сворачиваемые панели (ui/Panel): «Локация», «Ячейки предметов»
+// (SlotsGrid), «Персонажи» (CharacterForm A и B — вложенные панели), «Реплики» (TimelineEditor),
+// «Задание после сцены» (SceneTaskSection), «Параметры воспроизведения». Ключи панелей
+// (location, slots, characters, timeline, task, options) — те же, что в lintPanelMap.js;
 // id вида f-… нужны подсветке замечаний линтера (lintFieldMap.js).
 // voice — API озвучки ElevenLabs (useSceneVoice) для персонажей и реплик
 export default function BuilderSettings({ scene, actions, savedId = null, setStatus, voice = null }) {
   return (
     <div className="scbSettings">
-      <section className="scbBlock" id="f-location" aria-labelledby="scb-loc-h">
-        <h2 id="scb-loc-h" className="scbH">Локация</h2>
+      <Panel id="location" title="Локация" fieldId="f-location">
         <div className="scSegBtns" role="radiogroup" aria-label="Локация">
           {LOCATIONS.map(loc => (
             <button key={loc} type="button" role="radio" aria-checked={scene.location === loc} className={scene.location === loc ? 'scSegBtn scSegBtnOn' : 'scSegBtn'} onClick={() => actions.setLocation(loc)}>
@@ -22,36 +23,34 @@ export default function BuilderSettings({ scene, actions, savedId = null, setSta
           ))}
         </div>
         <p className="scbSub">При смене локации общие слоты (окно, картина, пол, стол) переносятся, свои — очищаются.</p>
-      </section>
+      </Panel>
 
-      <section className="scbBlock" id="f-slots" aria-labelledby="scb-slots-h">
-        <div className="scbHRow">
-          <h2 id="scb-slots-h" className="scbH">Ячейки предметов <ScTip help="slot" /></h2>
+      <Panel
+        id="slots" title="Ячейки предметов" tip="slot" fieldId="f-slots"
+        extra={(
           <div className="scbHBtns">
             <button type="button" className="fsBtn fsBtnSmall" onClick={actions.fillDefaultSlots}>Набор по умолчанию</button>
             <button type="button" className="fsBtn fsBtnSmall" onClick={actions.clearSlots}>Очистить</button>
           </div>
-        </div>
+        )}
+      >
         <SlotsGrid scene={scene} onPick={actions.setSlot} />
-      </section>
+      </Panel>
 
-      <section className="scbBlock" id="f-characters" aria-labelledby="scb-chars-h">
-        <h2 id="scb-chars-h" className="scbH">Персонажи</h2>
+      <Panel id="characters" title="Персонажи" fieldId="f-characters">
         <div className="scbChars">
           <CharacterForm who="a" character={scene.characters.a} actions={actions} voice={voice} />
           <CharacterForm who="b" character={scene.characters.b} actions={actions} voice={voice} />
         </div>
-      </section>
+      </Panel>
 
-      <section className="scbBlock" id="f-timeline" aria-labelledby="scb-tl-h">
-        <h2 id="scb-tl-h" className="scbH">Реплики <span className="scbCount">{scene.timeline.length} / 12</span></h2>
+      <Panel id="timeline" title={<>Реплики <span className="scbCount">{scene.timeline.length} / 12</span></>} label="Реплики" fieldId="f-timeline">
         <TimelineEditor scene={scene} actions={actions} voice={voice} />
-      </section>
+      </Panel>
 
       <SceneTaskSection scene={scene} actions={actions} savedId={savedId} setStatus={setStatus} />
 
-      <section className="scbBlock" id="f-options" aria-labelledby="scb-opt-h">
-        <h2 id="scb-opt-h" className="scbH">Параметры воспроизведения</h2>
+      <Panel id="options" title="Параметры воспроизведения" fieldId="f-options">
         <div className="scbOptions">
           {[['bubbles', 'облачки'], ['autoplay', 'автозапуск'], ['loop', 'повтор по кругу']].map(([k, label]) => (
             <label key={k} className="scCheck" id={`f-options-${k}`}>
@@ -59,7 +58,7 @@ export default function BuilderSettings({ scene, actions, savedId = null, setSta
             </label>
           ))}
         </div>
-      </section>
+      </Panel>
     </div>
   )
 }

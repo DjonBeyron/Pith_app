@@ -7,26 +7,32 @@
 //   characters: { a: Character, b: Character },     // ровно два: a слева, b справа
 //   slots: { [slotId]: spriteId | null },             // ячейки предметов локации (sprites/slots.js)
 //   timeline: [Line, ...],                            // 2…12 реплик
-//   options: { bubbles: true, autoplay: false, loop: false },
+//   options: { bubbles: true, autoplay: false, loop: false,
+//              display?: 'none' | 'text' | 'both', voice?: { original: true, translation: false },
+//              translationVoiceId? }                       // режимы показа/озвучки — sceneOptions.js
 //   task?: { kind: 'translate', lineIndex, prompt?, accept[], hint? }   // задание «О чём диалог» (sceneTask.js)
 // }
 // Character: { kind: 'cat', gender: 'male' | 'female', name, palette: { fur, accent, belly?, eye?, stripe? },
-//              stripes: true, voice: { pitch 0…2, rate 0.1…10, voiceId?, stability?, similarity?, speed? } }
+//              stripes: true, voice: { pitch 0…2, rate 0.1…10, voiceId?, stability?, similarity?, speed?,
+//                                      translationVoiceId? } }
 // Line: { who: 'a' | 'b', text (≤ 140), emotion, pose?, translation?,
-//         audioUrl?, wordTimings?: [{ word?, start, end }], audioMeta?: { hash, voiceId, durationMs? } }
-// audioUrl/wordTimings/audioMeta — заранее записанная озвучка ElevenLabs, ставит
-// только сборщик (sceneVoice.js: hash → «устарело» и кэш); пусто — запасной
-// вариант (speechSynthesis ru-RU или таймер).
+//         audioUrl?, wordTimings?: [{ word?, start, end }], audioMeta?: { hash, voiceId, durationMs? },
+//         translationAudioUrl?, translationWordTimings?, translationAudioMeta? }   // то же для перевода
+// audioUrl/wordTimings/audioMeta (и translation*-тройка для перевода) — заранее записанная
+// озвучка ElevenLabs, ставит только сборщик (sceneVoice.js: hash → «устарело» и кэш);
+// пусто — запасной вариант (speechSynthesis ru-RU или таймер).
 //
 // Этот файл — точка входа: нормализация здесь, остальное реэкспортом.
 
 import { LOCATIONS } from './sprites/backgrounds.js'
 import { emptySlots, slotsFor } from './sprites/slots.js'
 import {
-  SCENE_VERSION_V2, GENDERS, EMOTIONS, POSES, DEFAULT_VOICE, DEFAULT_OPTIONS, PALETTE_PRESETS, isObj,
+  SCENE_VERSION_V2, GENDERS, EMOTIONS, POSES, DEFAULT_VOICE, PALETTE_PRESETS, isObj,
 } from './sceneConstants.js'
 import { validateSceneV2 } from './sceneValidate.js'
 import { normalizeTask } from './sceneTask.js'
+import { normalizeSceneOptions } from './sceneOptions.js'
+import { AUDIO_SETS } from './sceneVoice.js'
 
 export * from './sceneConstants.js'
 export { LOCATIONS }
@@ -57,14 +63,18 @@ function normalizeLine(l) {
     pose: POSES.includes(src.pose) ? src.pose : 'talk',
   }
   if (typeof src.translation === 'string' && src.translation.trim()) out.translation = src.translation.trim()
-  if (typeof src.audioUrl === 'string' && src.audioUrl) out.audioUrl = src.audioUrl
-  if (Array.isArray(src.wordTimings) && src.wordTimings.length) out.wordTimings = src.wordTimings
-  if (isObj(src.audioMeta) && typeof src.audioMeta.hash === 'string') out.audioMeta = src.audioMeta
+  // Два комплекта озвучки — оригинал (audioUrl…) и перевод (translationAudioUrl…), поля одинаковой формы
+  for (const set of Object.values(AUDIO_SETS)) {
+    if (typeof src[set.url] === 'string' && src[set.url]) out[set.url] = src[set.url]
+    if (Array.isArray(src[set.timings]) && src[set.timings].length) out[set.timings] = src[set.timings]
+    if (isObj(src[set.meta]) && typeof src[set.meta].hash === 'string') out[set.meta] = src[set.meta]
+  }
   return out
 }
 
 // Дополняет сцену значениями по умолчанию: палитры, голос, пустые слоты
-// локации (неизвестные слоты отбрасываются), эмоция/поза реплик, options.
+// локации (неизвестные слоты отбрасываются), эмоция/поза реплик, options
+// (sceneOptions.js: display дописывается только если был задан — старые сцены не меняются).
 // Не проверяет — для этого validateSceneV2; нормализовать можно и невалидное.
 export function normalizeSceneV2(scene) {
   const s = isObj(scene) ? scene : {}
@@ -85,7 +95,7 @@ export function normalizeSceneV2(scene) {
     characters: { a: normalizeCharacter(chars.a, 'a'), b: normalizeCharacter(chars.b, 'b') },
     slots,
     timeline: Array.isArray(s.timeline) ? s.timeline.map(normalizeLine) : [],
-    options: { ...DEFAULT_OPTIONS, ...(isObj(s.options) ? s.options : {}) },
+    options: normalizeSceneOptions(s.options),
   }
   const task = normalizeTask(s.task)
   if (task) out.task = task // без задания поля нет вовсе — старые сцены не меняются

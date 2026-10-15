@@ -8,7 +8,7 @@ import ScTip from './ScTip.jsx'
 
 // Вкладка «Для нейросети»: легенда формата (sceneLegendText) + промпт-заготовка с темой,
 // кнопки копирования; вставка JSON-ответа нейросети → проверка (валидатор + линтер) →
-// «Загрузить в сборщик». Загрузить можно и с предупреждениями, но не с ошибками.
+// «Использовать в сборщике». Загрузить можно и с предупреждениями, но не с ошибками.
 export default function AiPanel({ draft, setStatus }) {
   const [topic, setTopic] = useState('')
   const [withTask, setWithTask] = useState(false) // просить заодно задание «О чём диалог» (translation + task)
@@ -54,7 +54,8 @@ export default function AiPanel({ draft, setStatus }) {
       </label>
       <div className="scbCtlRow">
         <button type="button" className="fsBtn" onClick={check} disabled={!answer.trim()}>Проверить</button>
-        <button type="button" className="fsBtn fsBtnPrimary" onClick={load} disabled={!report?.scene || lintErrors.length > 0}>Загрузить в сборщик</button>
+        <button type="button" className="fsBtn fsBtnPrimary" onClick={load} disabled={!report?.scene || lintErrors.length > 0} title={report?.scene && !lintErrors.length ? 'Сцена нейросети станет черновиком сборщика' : 'Сначала «Проверить»; с ошибками загрузить нельзя'}>Использовать в сборщике</button>
+        <ScTip help="use_ai" />
       </div>
       {report && (
         <div className="scbReport" role="status">

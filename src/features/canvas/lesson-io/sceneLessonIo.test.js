@@ -79,6 +79,28 @@ describe('lintLesson — нода scene', () => {
     expect(w.some(x => x.includes('[R-scene-mode]'))).toBe(true)
   })
 
+  it('display/voice ноды: валидные — тихо; кривые — [R-scene-mode]; озвучка перевода нодой без файлов — [R-scene-voice]', () => {
+    const withTr = { ...demoCafeScene, timeline: demoCafeScene.timeline.map(l => ({ ...l, translation: 'Перевод.' })) }
+    expect(lintLesson(exch({ scene: withTr, display: 'both', voice: { original: true, translation: false } })).filter(x => x.includes('R-scene'))).toEqual([])
+    const bad = lintLesson(exch({ scene: withTr, display: 'all', voice: { narrator: true } }))
+    expect(bad.filter(x => x.includes('[R-scene-mode]'))).toHaveLength(2)
+    expect(lintLesson(exch({ scene: withTr, voice: { translation: 'yes' } })).some(x => x.includes('[R-scene-mode]') && x.includes('voice'))).toBe(true)
+    const w = lintLesson(exch({ scene: withTr, voice: { translation: true } }))
+    expect(w.some(x => x.includes('[R-scene-voice]') && x.includes('5 реплик') && x.includes('предупреждение'))).toBe(true)
+    // сцена сама включила перевод — об этом говорит линтер сцены (R-scene-lint), нодовое предупреждение не дублируется
+    const bySc = lintLesson(exch({ scene: { ...withTr, options: { ...withTr.options, voice: { translation: true } } } }))
+    expect(bySc.some(x => x.includes('[R-scene-lint]') && x.includes('озвучка перевода'))).toBe(true)
+    expect(bySc.some(x => x.includes('[R-scene-voice]'))).toBe(false)
+  })
+
+  it('экспорт → импорт переносит display/voice ноды как есть', () => {
+    const out = exportLesson([sceneNode({ display: 'none', voice: { translation: true } }), textNode], { title: 'Сцена' })
+    expect(out.nodes[0].data.display).toBe('none')
+    expect(out.nodes[0].data.voice).toEqual({ translation: true })
+    const back = importLesson(JSON.stringify(out))
+    expect(back.nodes.find(n => n.type === 'scene').typeData.scene).toMatchObject({ display: 'none', voice: { translation: true } })
+  })
+
   it('невалидная сцена — ошибка из lintScene; предупреждение сцены — предупреждение урока', () => {
     const bad = { ...demoCafeScene, timeline: demoCafeScene.timeline.map(l => ({ ...l, emotion: 'happy', text: l.text.replace(/[.?!]$/, '') })), slots: { ...demoCafeScene.slots, table: 'rocket' } }
     const w = lintLesson(exch({ scene: bad }))

@@ -1,8 +1,10 @@
 /* Окно «Сборщик сцен» — центр (телефонная рамка, управление, бюджет, линтер) и правая
-   панель (JSON, нейросеть, библиотека). Префикс scb; токены — .fsWin (admin-signals.css). */
+   панель (JSON, нейросеть, библиотека) — содержимое панелей .scbPanel (admin-scenes-panel.css).
+   Префикс scb; токены — .fsWin (admin-signals.css). */
 
 /* ── Телефонная рамка ── */
-.scbPreview { display: flex; flex-direction: column; gap: 10px; }
+.scbPreview { display: flex; flex-direction: column; gap: 12px; }
+.scbPreviewPanel > .scbPanelBody { gap: 10px; }
 .scbPhoneWrap { display: flex; justify-content: center; }
 .scbPhone {
   /* 9:16 по высоте окна: занимаем ≈ 55vh, но не шире колонки */
@@ -20,7 +22,7 @@
 .scbCtlGroup { display: inline-flex; align-items: center; gap: 2px; white-space: nowrap; }
 
 /* ── Бюджет узлов ── */
-.scbBudget { display: flex; flex-direction: column; gap: 5px; padding: 10px 12px; border: 1px solid var(--fs-border); border-radius: 12px; background: var(--fs-panel); }
+.scbBudget { display: flex; flex-direction: column; gap: 5px; } /* рамка — у панели «Бюджет узлов» */
 .scbBudgetHead { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 12.5px; }
 .scbBudgetOver .scbBudgetHead b { color: var(--fs-error); }
 .scbBar { display: flex; height: 10px; overflow: hidden; border-radius: 999px; background: var(--fs-panel-2); }
@@ -33,7 +35,7 @@
 .scbDot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; vertical-align: middle; }
 
 /* ── Линтер ── */
-.scbLint { display: flex; flex-direction: column; gap: 6px; padding: 10px 12px; border: 1px solid var(--fs-border); border-radius: 12px; background: var(--fs-panel); }
+.scbLint { display: flex; flex-direction: column; gap: 6px; } /* рамка — у панели «Замечания линтера» */
 .scbLintHead { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 6px; font-size: 12.5px; }
 .scbLintCount { font-size: 12px; color: var(--fs-muted); }
 .scbLintOk { margin: 0; font-size: 12.5px; color: var(--fs-ok); }
@@ -60,6 +62,7 @@
 
 /* ── Правая панель ── */
 .scbSide { display: flex; flex-direction: column; gap: 8px; }
+.scbSideTabs { margin-bottom: 0; }
 .scbJson, .scbAi, .scbLib { display: flex; flex-direction: column; gap: 8px; }
 .scbCode {
   min-height: 200px;

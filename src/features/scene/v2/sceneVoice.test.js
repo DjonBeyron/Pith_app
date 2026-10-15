@@ -52,7 +52,7 @@ describe('lineAudioState / sceneVoiceStats', () => {
     const s = clone(demoOfficeScene)
     s.timeline[0] = voiced('Первая.', s.characters.a)
     s.timeline[1] = { ...voiced('Вторая.', s.characters.a), text: 'Изменили.' }
-    expect(sceneVoiceStats(s)).toEqual({ total: 6, ready: 1, stale: 1, none: 4 })
+    expect(sceneVoiceStats(s)).toMatchObject({ total: 6, ready: 1, stale: 1, none: 4 }) // комплект перевода — ключ translation (см. sceneTranslationVoice.test.js)
   })
 })
 
