@@ -33,7 +33,7 @@ if (!Array.isArray(nodes) || !nodes.length) {
   process.exit(1)
 }
 
-const warnings = lintLesson(nodes)
+const warnings = lintLesson(nodes, { title: json.lesson?.title })
 
 if (!warnings.length) {
   console.log(`✅ Чисто — ${nodes.length} нод, нарушений не найдено`)

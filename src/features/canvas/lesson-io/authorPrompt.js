@@ -4,6 +4,9 @@
 import { buildLegend } from './lessonSchema.js'
 import { checkerOf, groupOf, ruleTitle } from './ruleMeta.js'
 import { exampleToPrompt } from './ruleExample.js'
+import { sceneLegendText } from '../../scene/v2/sceneLegend.js'
+
+export const SCENE_GROUP = 'Сцены'
 
 const SEV = { error: 'ОШИБКА — урок с этим нарушением не принимается', warn: 'совет' }
 
@@ -30,10 +33,21 @@ export function checklistSection(rules) {
   return rules.filter(r => r.active && r.category === 'checklist').map((r, i) => `C${i + 1}. ${r.text.trim()}`).join('\n')
 }
 
+/** Раздел про ноду scene: компактная легенда сцены + как ставить сцены. Пусто, если активных правил группы «Сцены» нет */
+export function sceneSection(rules) {
+  if (!rules.some(r => r.active && r.category === 'principle' && groupOf(r) === SCENE_GROUP)) return ''
+  return `СЦЕНЫ В УРОКЕ (нода scene). Правила группы «${SCENE_GROUP}» — выше, в ПРАВИЛАХ. Коротко: только в уроках-словах (не в Старте и Финале); открывающий и закрывающий кружок Пита (mode "circle", один кот a без b), в середине — диалог двух котов (mode "bubble"); без task; озвучку (audioUrl) не заполняй — реплики без неё озвучит админ. Сцену в data.scene пиши по легенде ниже; сначала проверь её отдельно (node scripts/lint-scene.mjs сцена.json).
+
+ЛЕГЕНДА СЦЕНЫ (поле data.scene):
+${sceneLegendText({ compact: true })}
+`
+}
+
 /** Полный промпт: роль, формула, правила, процесс, формат ответа, легенда формата нод (без дублирования принципов) */
 export function buildAuthorPrompt(rules, { topic = '' } = {}) {
   const { text: rulesText, count } = rulesSection(rules)
   const checklist = checklistSection(rules)
+  const scenes = sceneSection(rules)
   const { principles: _p, preSubmitChecklist: _c, ...legend } = buildLegend([], [])
   return `Ты автор уроков для приложения Pithy (формат pithy-lesson). Урок — живая переписка с другом Питом, а не учебник.
 
@@ -52,5 +66,5 @@ ${checklist ? `\nЧЕК-ЛИСТ ПЕРЕД СДАЧЕЙ (проверяется
 
 ФОРМАТ НОД (легенда):
 ${JSON.stringify(legend)}
-`
+${scenes ? `\n${scenes}` : ''}`
 }

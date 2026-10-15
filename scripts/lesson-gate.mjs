@@ -8,6 +8,7 @@ const store = new Map()
 globalThis.localStorage = { getItem: k => (store.has(k) ? store.get(k) : null), setItem: (k, v) => store.set(k, String(v)), removeItem: k => store.delete(k) }
 const { importLesson } = await import('../src/features/canvas/lesson-io/importLesson.js')
 const { lintLesson } = await import('../src/features/canvas/lesson-io/lessonLint.js')
+const { sceneVoiceNeeds } = await import('../src/features/canvas/lesson-io/lessonLintSceneRules.js')
 
 const [path, flag] = process.argv.slice(2)
 if (!path) { console.error('Использование: node scripts/lesson-gate.mjs урок.json [--fix-seq]'); process.exit(1) }
@@ -22,10 +23,13 @@ let seqDiff = 0
 for (const n of json.nodes) { const s = seqAt.get(`${n.pos?.[0]},${n.pos?.[1]}`); if (s != null && s !== n.seq) { seqDiff++; n.seq = s } }
 if (seqDiff && flag === '--fix-seq') { writeFileSync(path, JSON.stringify(json, null, 2) + '\n'); console.log(`seq исправлен у ${seqDiff} нод`) }
 else if (seqDiff) problems.push(`seq у ${seqDiff} нод не совпадает с редактором — запусти с --fix-seq`)
-lintLesson(json.nodes).forEach(w => problems.push(w))
+lintLesson(json.nodes, { title: json.lesson?.title }).forEach(w => problems.push(w))
 
 const needs = json.nodes.filter(n => n.needsVoice || n.needs?.length)
+// S8: реплики сцен без audioUrl — needsVoice, озвучивает админ в сборщике сцен (audioUrl не выдумывать)
+const sceneVoice = sceneVoiceNeeds(json.nodes)
 console.log(`Нод: ${json.nodes.length}, зон: ${json.zones?.length ?? 0}. Нужно озвучить/загрузить руками: ${needs.length}${needs.length ? ' — ' + needs.map(n => n.ref).join(', ') : ''}`)
+if (sceneVoice.length) console.log(`needsVoice (сцены, озвучит админ в сборщике): ${sceneVoice.map(x => `${x.ref} (${x.lines} реплик)`).join(', ')}`)
 if (!problems.length) { console.log('✅ Шлюз пройден: замечаний нет'); process.exit(0) }
 console.log(`❌ Замечаний: ${problems.length}\n`)
 problems.forEach((p, i) => console.log(`${i + 1}. ${p}`))

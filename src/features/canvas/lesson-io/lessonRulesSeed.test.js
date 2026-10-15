@@ -15,4 +15,10 @@ describe('стандартные правила для окна правил', (
       expect(['error', 'warn']).toContain(r.severity)
     }
   })
+  it('группа «Сцены»: S1–S8 по порядку, у каждой S-код в тексте, проверка и серьёзность по плану', () => {
+    const sc = SEED_RULES.filter(r => r.group === 'Сцены')
+    expect(sc.map(r => r.text.slice(0, 10))).toEqual([1, 2, 3, 4, 5, 6, 7, 8].map(n => `Сцены, S${n}.`))
+    expect(sc.map(r => `${r.checker}/${r.severity}`)).toEqual(['auto/error', 'auto/error', 'auto/warn', 'auto/error', 'judge/warn', 'judge/warn', 'auto/error', 'auto/warn'])
+    for (const r of sc) { expect(r.category).toBe('principle'); expect(r.bad).not.toBe(''); expect(r.good).not.toBe('') }
+  })
 })

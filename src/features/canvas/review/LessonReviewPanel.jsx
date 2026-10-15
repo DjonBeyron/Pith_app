@@ -68,7 +68,7 @@ export default function LessonReviewPanel({ nodes: initialNodes, zones: initialZ
   }, [key, store.notes, store.general, store.version, draft])
   const noted = new Set([...store.notes.map(n => n.ref), ...edited]).size + store.general.length
   const noteCounts = useMemo(() => { const m = new Map(); for (const n of store.notes) m.set(n.ref, (m.get(n.ref) ?? 0) + 1); for (const r of edited) if (!m.has(r)) m.set(r, 1); return m }, [store.notes, edited])
-  const warnMap = useMemo(() => warningsByRef(lintLesson(nodes), nodes), [nodes])
+  const warnMap = useMemo(() => warningsByRef(lintLesson(nodes, { title: boardProps?.lessonTitle }), nodes), [nodes, boardProps?.lessonTitle])
   const versions = useLessonVersions(storageId ?? initialNodes[0]?.id ?? 'lesson', nodes, new Set(store.notes.map(n => n.ref)))
   const [rulesOff, setRulesOff] = useState(() => { try { return localStorage.getItem('pithy-review-rules-off') === '1' } catch { return false } })
   const toggleRules = () => setRulesOff(v => { try { localStorage.setItem('pithy-review-rules-off', v ? '0' : '1') } catch { /* нет хранилища */ } return !v })

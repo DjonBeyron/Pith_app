@@ -160,3 +160,51 @@ cellId, плеер включает гейтинг текста (computeRevealed
 Когда уместна: диалог-пример на 2–6 реплик с живой интонацией (жалоба, шутка,
 договорённость), вместо «текст — голосовое — текст». Не ставить две сцены подряд
 и не делать сцену длиннее 8 реплик — облачко читается с телефона за 2–3 секунды.
+
+### Сцены в уроке (правила группы «Сцены», S1–S8; 2026-10-15)
+
+Сцены ставим только в уроки-слова (заголовок урока — слово латиницей); Старт и Финал
+модуля сцен не получают. Скелет: **кружок Пита** (открывает) → ноды урока →
+**диалог двух котов** → ноды урока → **кружок Пита** (закрывает). Всего 2–4 сцены, две
+подряд нельзя. Пит — кот `a`, сцена с одним котом: `characters: { a }` без `b`.
+В сцене 2–6 реплик (в кружке Пита ровно 2), в реплике ≤ 12 слов, целевое слово урока звучит
+в каждой сцене. Задания (`task`) в сценах урока не ставим — плеер урока их не играет.
+Озвучку не заполняем (`audioUrl`, `wordTimings`, `audioMeta`): реплики без `audioUrl`
+шлюз выведет в списке `needsVoice`, озвучит админ в сборщике сцен. Проверка:
+`node scripts/lint-scene.mjs сцена.json`, затем `node scripts/lesson-gate.mjs урок.json`
+(`[R-scene-open]` S1, `[R-scene-count]` S2, `[R-scene-word]` S3, `[R-scene-lines]` S4,
+`[R-scene-task]` / `[R-scene-middle]` S7, `[R-scene-voice]` S8). Урок без единой сцены правила
+сцен не затрагивают. Заголовок урока берётся из `lesson.title`: без него S1/S2 — только
+предупреждения. Образцы проверены шлюзом (урок «try», 5 нод: кружок — текст — диалог — текст — кружок).
+
+Открывающий (и закрывающий) кружок Пита — `mode: "circle"`, один кот:
+
+```json
+{ "ref": "n1", "type": "scene", "seq": 1, "triggers": [{"if": "played", "then": "n2"}],
+  "data": { "mode": "circle",
+    "scene": {
+      "version": 2, "id": "try-open", "title": "Кружок Пита", "location": "office",
+      "characters": {"a": {"kind": "cat", "gender": "male", "name": "Пит"}},
+      "slots": {"window": "window", "wall-art": "picture", "wall-board": "whiteboard", "wall-clock": "wall-clock", "floor-left": "floor-lamp", "floor-right": "plant", "table": "table", "desk-left": "laptop", "desk-center": "papers", "desk-right": "mug"},
+      "timeline": [
+        {"who": "a", "text": "Привет! Как сказать «я пытаюсь»?", "emotion": "happy"},
+        {"who": "a", "text": "Сегодня учим слово try.", "emotion": "neutral"}
+      ],
+      "options": { "bubbles": true } } } }
+```
+
+Середина урока — диалог двух котов в пузыре (`mode: "bubble"`):
+
+```json
+{ "ref": "n3", "type": "scene", "seq": 3, "triggers": [{"if": "played", "then": "n4"}],
+  "data": { "mode": "bubble",
+    "scene": {
+      "version": 2, "id": "try-duo", "title": "Кухня", "location": "cafe",
+      "characters": {"a": {"kind": "cat", "gender": "female", "name": "Мурка"}, "b": {"kind": "cat", "gender": "male", "name": "Барсик"}},
+      "slots": {"window": "window", "wall-art": "picture", "wall-menu": "menu-board", "ceiling": "pendant-lamp", "counter": "coffee-machine", "floor-left": "plant", "floor-right": "floor-lamp", "table": "table", "table-left": "coffee-cup", "table-right": "pastry-plate"},
+      "timeline": [
+        {"who": "a", "text": "I try to cook every day.", "emotion": "happy"},
+        {"who": "b", "text": "Do you try new recipes?", "emotion": "surprised"}
+      ],
+      "options": { "bubbles": true } } } }
+```

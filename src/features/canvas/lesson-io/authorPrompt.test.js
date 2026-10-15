@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { buildAuthorPrompt, rulesSection, checklistSection } from './authorPrompt.js'
+import { buildAuthorPrompt, rulesSection, checklistSection, sceneSection } from './authorPrompt.js'
+import { SEED_RULES } from './lessonRulesSeed.js'
 
 const rule = (o = {}) => ({ id: 'x', text: 'Правило про сигнал.', category: 'principle', active: true, title: '', group: '', checker: 'auto', severity: 'error', bad: '', good: '', ...o })
 
@@ -26,5 +27,20 @@ describe('промпт для ИИ-автора', () => {
   })
   it('без темы — заглушка для вставки', () => {
     expect(buildAuthorPrompt([rule()])).toContain('<впиши тему')
+  })
+  it('группа «Сцены»: правила блоком в ПРАВИЛАХ, компактная легенда сцены — только когда группа активна', () => {
+    const seed = SEED_RULES.map(r => ({ ...r, active: true }))
+    const p = buildAuthorPrompt(seed, { topic: 'try' })
+    expect(p).toContain('### Сцены')
+    expect(p).toContain('S1.')
+    expect(p).toContain('СЦЕНЫ В УРОКЕ')
+    expect(p).toContain('# Формат сцены Pithy v2')
+    expect(p).toContain('demo-pit-circle')
+    expect(p).not.toContain('Пример задания «О чём диалог»') // task в сценах урока запрещён — примеры не нужны
+    expect(p.indexOf('СЦЕНЫ В УРОКЕ')).toBeGreaterThan(p.indexOf('ФОРМАТ НОД'))
+    const off = seed.map(r => (r.group === 'Сцены' ? { ...r, active: false } : r))
+    expect(sceneSection(off)).toBe('')
+    expect(buildAuthorPrompt(off)).not.toContain('СЦЕНЫ В УРОКЕ')
+    expect(buildAuthorPrompt([rule()])).not.toContain('СЦЕНЫ В УРОКЕ')
   })
 })

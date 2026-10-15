@@ -19,6 +19,7 @@ import { checkMix } from './lessonLintMix.js'
 import { checkMedia } from './lessonLintMedia.js'
 import { checkAnswersAndLimits } from './lessonLintAnswers.js'
 import { checkScene } from './lessonLintScene.js'
+import { checkSceneRules } from './lessonLintSceneRules.js'
 
 const WRONG_TRIGGERS = new Set(['word_wrong', 'phrase_wrong', 'photo_wrong', 'table_wrong', 'type_wrong', 'say_wrong', 'say_skip'])
 const PRAISE_RE = /три из трёх|ни одной ошибки|без единой ошибки|все верно|всё верно/i
@@ -123,7 +124,7 @@ function reachability(nodes, startRef) {
   return { reached, reachedViaWrong }
 }
 
-export function lintLesson(rawNodes) {
+export function lintLesson(rawNodes, opts = {}) { // opts.title — заголовок: урок-слово или Старт/Финал (сцены S1–S8)
   // Метки {g:..} в тексте → чистый текст + highlights, как это делает импорт (иначе длина текста и подсветки считались бы с фигурными скобками)
   const nodes = rawNodes?.map(n => (n?.data ? { ...n, data: applyMarkup(n.data) } : n))
   const warnings = []
@@ -194,6 +195,7 @@ export function lintLesson(rawNodes) {
   warnings.push(...checkMedia(nodes))
   warnings.push(...checkAnswersAndLimits(nodes))
   warnings.push(...checkScene(nodes))
+  warnings.push(...checkSceneRules(nodes, opts))
 
   for (const n of nodes) {
     const d = n.data ?? {}

@@ -1,9 +1,12 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { exportLesson } from './exportLesson.js'
 import { importLesson } from './importLesson.js'
-import { lintLesson } from './lessonLint.js'
+import { lintLesson as lintLessonRaw } from './lessonLint.js'
 import { NODE_DOCS } from './lessonSchema.js'
 import { demoCafeScene } from '../../scene/v2/demoScenes.js'
+
+// Эти тесты — про формат ноды scene; правила S1–S8 урока-слова (lessonLintSceneRules.test.js) отключены заголовком «Старт»
+const lintLesson = nodes => lintLessonRaw(nodes, { title: 'Старт' })
 
 beforeEach(() => {
   const store = new Map()

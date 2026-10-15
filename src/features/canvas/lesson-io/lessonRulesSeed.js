@@ -4,7 +4,7 @@
 // Строка меты: [название, группа, кто проверяет (auto|judge|manual), серьёзность (error|warn), «нельзя», «можно»]
 import { PRINCIPLES, PRE_SUBMIT_CHECKLIST } from './lessonRulesDefaults.js'
 
-const Q = 'Последовательности', F = 'Формула и ритм', T = 'Тон и общение', S = 'Выделения и стиль', Z = 'Задания', V = 'Голос и сказать', G = 'Сигналы', C = 'Холст и раскладка', B = 'Таблицы'
+const Q = 'Последовательности', F = 'Формула и ритм', T = 'Тон и общение', S = 'Выделения и стиль', Z = 'Задания', V = 'Голос и сказать', G = 'Сигналы', C = 'Холст и раскладка', B = 'Таблицы', SC = 'Сцены'
 
 const PRINCIPLE_META = [
   ['Главная формула урока', F, 'judge', 'error', 'text: Для he, she, it пишем {g:tries}\ntype_word: tries', 'text: Для he, she, it форма меняется\ntype_word: Маша каждый день пытается встать пораньше → tries'],
@@ -154,6 +154,14 @@ const PRINCIPLE_META = [
   ['Вводные слова веток ошибки чередуются', T, 'auto', 'warn', 'хм) …\nхм) …\nхм) …\nэээмм) …', 'не совсем) …\nблизко) …\nне то) …\nнеа) …'],
   ['Повтори за мной — с образцом', V, 'judge', 'warn', 'audio: я говорю кусочек, а ты повторяй\nsay_phrase (образца нет)', 'audio: я говорю кусочек, а ты повторяй\naudio: to the park\nsay_phrase'],
   ['Естественные примеры', Z, 'judge', 'warn', 'напечатай «слушать её»', 'напечатай «ответить ей»'],
+  ['Сцены: кружок Пита в начале и в конце', SC, 'auto', 'error', 'scene mode: bubble (первая сцена урока, два кота)\nscene mode: circle, два кота (последняя)', 'scene mode: circle, characters: { a: Пит } (первая)\nscene mode: circle, characters: { a: Пит } (последняя)'],
+  ['Сцены: 2–4 на урок, не подряд', SC, 'auto', 'error', 'scene\nscene (две сцены подряд)\nscene\nscene\nscene (пять сцен)', 'scene (кружок Пита)\ntext\nscene (диалог)\ntext\nscene (кружок Пита)'],
+  ['Сцены: целевое слово в каждой', SC, 'auto', 'warn', 'сцена про trying: «Привет! Сегодня новое слово.» (слова нет)', 'сцена про trying: «Привет! Знаешь, как сказать «пытаюсь»? I\'m trying!»'],
+  ['Сцены: 2–6 реплик, ≤ 12 слов', SC, 'auto', 'error', 'кружок Пита: 3 реплики\nреплика на 20 слов', 'кружок Пита: 2 реплики\nреплика: I\'m trying to cook dinner now.'],
+  ['Сцены: знакомая лексика + целевое слово', SC, 'judge', 'warn', 'реплика: The meteorologist predicted a thunderstorm.', 'реплика: I\'m trying to cook. It\'s hard!'],
+  ['Сцены: Пит открывает вопросом, закрывает итогом', SC, 'judge', 'warn', 'открывающий кружок: «Сегодня вы обязаны выучить trying.»', 'открывающий кружок: «Привет! Как сказать «я пытаюсь»?»\nзакрывающий: «Теперь ты знаешь trying. Повторим?»'],
+  ['Сцены: без заданий, середина — диалог двух котов', SC, 'auto', 'error', 'scene mode: bubble, task: { kind: "translate" }\nсцена в середине: mode circle, один кот', 'scene mode: bubble, два кота a и b, без task'],
+  ['Сцены: озвучку не выдумывать', SC, 'auto', 'warn', 'timeline[0].audioUrl: https://example.com/fake.mp3 (без audioMeta)', 'timeline[0] без audioUrl — шлюз отметит needsVoice, озвучит админ'],
 ]
 
 const CHECKLIST_META = [

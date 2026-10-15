@@ -38,7 +38,7 @@ export default function LessonIoImport({ text, onText, readFile, title, lessonId
       // границей текста, счётная похвала после ошибки). Не совет модели —
       // код, который либо находит нарушение, либо нет; ни один пункт не
       // «забывается» независимо от того, как их формировала нейросеть.
-      const lint = r.nodes.length ? lintLesson(fromCanvasNodes(r.nodes)) : []
+      const lint = r.nodes.length ? lintLesson(fromCanvasNodes(r.nodes), { title: r.title }) : []
       setRes({
         forText: text,
         warnings: [...r.warnings, ...lint],

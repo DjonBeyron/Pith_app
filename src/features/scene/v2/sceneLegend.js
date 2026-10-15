@@ -96,9 +96,13 @@ function spriteLines() {
   return SPRITES.filter(s => s.kind === 'prop').map(s => `  - ${s.id} — ${s.title} (${s.category}, ${s.nodeCount} узлов)`)
 }
 
-// Единый текст легенды для вставки в чат с нейросетью
-export function sceneLegendText() {
-  const fields = Object.entries(SCENE_FIELD_DOCS).map(([k, v]) => `- ${k}: ${v}`)
+// Единый текст легенды для вставки в чат с нейросетью.
+// compact: true — для промпта автора УРОКА: без полей и примеров заданий task (плеер урока их не играет)
+// и с примерами в одну строку — остаются формат, предметы/слоты, правила диалога и оба примера
+// (одиночная сцена Пита, диалог двух котов)
+export function sceneLegendText({ compact = false } = {}) {
+  const docs = Object.entries(SCENE_FIELD_DOCS).filter(([k]) => !compact || !k.startsWith('task'))
+  const fields = docs.map(([k, v]) => `- ${k}: ${v}`)
   const presets = Object.entries(PALETTE_PRESETS).map(([k, p]) => `  - ${k}: ${JSON.stringify(p)}`)
   return [
     '# Формат сцены Pithy v2 («два кота говорят»)',
@@ -117,18 +121,20 @@ export function sceneLegendText() {
     '## Правила хорошего диалога',
     ...DIALOGUE_RULES.map((r, i) => `${i + 1}. ${r}`),
     '',
-    '## Пример задания «О чём диалог» (фрагмент: реплики с translation + поле task в той же сцене)',
-    JSON.stringify(TASK_EXAMPLE, null, 2),
-    '',
-    '## Примеры голосовых заданий (kind "say" и "repeat")',
-    JSON.stringify(TASK_EXAMPLE_SAY, null, 2),
-    JSON.stringify(TASK_EXAMPLE_REPEAT, null, 2),
-    '',
+    ...(compact ? [] : [
+      '## Пример задания «О чём диалог» (фрагмент: реплики с translation + поле task в той же сцене)',
+      JSON.stringify(TASK_EXAMPLE, null, 2),
+      '',
+      '## Примеры голосовых заданий (kind "say" и "repeat")',
+      JSON.stringify(TASK_EXAMPLE_SAY, null, 2),
+      JSON.stringify(TASK_EXAMPLE_REPEAT, null, 2),
+      '',
+    ]),
     `## Пример одиночной сцены — кружок Пита (один кот «${PIT.name}», без b)`,
-    JSON.stringify(demoPitCircleScene, null, 2),
+    JSON.stringify(demoPitCircleScene, null, compact ? 0 : 2),
     '',
     '## Пример валидной сцены',
-    JSON.stringify(demoCafeScene, null, 2),
+    JSON.stringify(demoCafeScene, null, compact ? 0 : 2),
   ].join('\n')
 }
 
