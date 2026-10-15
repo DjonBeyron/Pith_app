@@ -5,6 +5,7 @@ import { getSceneAudioElement } from './sceneAudioUnlock.js'
 import { sceneAudioCache, prefetchAllowed } from './sceneAudioCache.js'
 import { audioPartOf } from './sceneVoice.js'
 import { resolveVoiceFlags } from './sceneOptions.js'
+import { describeAudioFail } from './sceneAudioFail.js'
 
 // Один путь воспроизведения реплики для режиссёра (directorCore.playLine) —
 // им идут и обычная игра, и playOnce («Ещё раз» в задании ленты), и нода урока.
@@ -39,10 +40,17 @@ export function speakTranslationFallback(text, voice, { sound = true, onEnd, onM
   return speakFallback(text, voice, { sound, onEnd, onMode })
 }
 
+// Файл не завёлся → запись в консоль (чтобы откат на синтез/таймер не был невидимым)
+export function logAudioFallback(info) {
+  console.warn(`[scene] озвучка файлом не завелась → ${describeAudioFail(info.reason)}`, info.url)
+}
+
+// onFallback(info | null): null — реплика стартовала (сброс), иначе { url, reason, kind, index }
 export function makeScenePlayLine({
-  scene, opts, getMouthEl, setMode, setPhase = () => {},
+  scene, opts, getMouthEl, setMode, setPhase = () => {}, onFallback = null,
   cache = sceneAudioCache, getAudio = getSceneAudioElement, allowed = prefetchAllowed,
   speak = speakFallback, speakTranslation = speakTranslationFallback, playAudio = playLineAudio, timers = globalThis,
+  logFallback = logAudioFallback,
 }) {
   let who = null
   const apply = shape => setMouth(getMouthEl(who), shape)
@@ -72,7 +80,12 @@ export function makeScenePlayLine({
       const slot = cancels.push(null) - 1 // место файла — перед запасным вариантом, даже если onFail пришёл синхронно
       cancels[slot] = playAudio(part, audio, {
         src, muted: !sound, rate: k, lowPower: !!o.lowPower, applyMouth, timers,
-        onEnd: onDone, onMode: setMode, onFail: fallback,
+        onEnd: onDone, onMode: setMode,
+        onFail: reason => {
+          const info = { url: part.audioUrl, src, reason: reason ?? 'unknown', kind, index }
+          logFallback?.(info); onFallback?.(info)
+          fallback()
+        },
       })
     }
     const prefetch = url => { if (url && !o.audioSrcOf?.(url) && allowed()) cache.prefetch(url) }
@@ -89,6 +102,7 @@ export function makeScenePlayLine({
     const afterOriginal = () => { if (finished) return; driver.stop(); if (hasTr) playTranslation(); else finish() }
 
     setPhase('original')
+    onFallback?.(null)
     prefetch(nextAudioUrl(timeline, index, loop))
     if (hasTr) prefetch(line.translationAudioUrl)
     const soundOriginal = o.sound && flags.original

@@ -39,6 +39,17 @@ describe('нода scene в плеере', () => {
     expect(html).not.toContain('scn__progress')
   })
 
+  it('режим «вручную» и «авто» до старта рисуются одинаково: кадр стоит, ▶ поверх, полного экрана нет', () => {
+    const manual = renderToStaticMarkup(<SceneModule node={node({ scene: demoOfficeScene, start: 'manual' })} onDone={() => {}} />)
+    expect(manual).toContain('playerScenePlay')
+    expect(manual).toContain('data-status="idle"')
+    expect(manual).not.toContain('playerSceneFsStage')
+    expect(manual).not.toContain('data-scene-sound-chip')
+    const auto = renderToStaticMarkup(<SceneModule node={node({ scene: demoOfficeScene, start: 'auto', startDelayMs: 1200 })} onDone={() => {}} />)
+    expect(auto).toContain('playerScenePlay')
+    expect(auto).not.toContain('playerSceneFsStage')
+  })
+
   it('история — статичный последний кадр без режиссёра и без кнопки ▶', () => {
     const html = renderToStaticMarkup(<SceneModule node={node({ scene: demoOfficeScene }, { isHistory: true })} onDone={() => {}} />)
     expect(html).toContain('scn scn--static')

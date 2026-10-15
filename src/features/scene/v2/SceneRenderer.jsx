@@ -70,8 +70,9 @@ export default function SceneRenderer({
   const [onScreen, setOnScreen] = useState(true)
   // audioSrcOf(url) — подмена ссылки озвучки реплики (blob прогрева ноды урока), иначе null
   const director = useSceneDirectorV2(scene, { enabled: live, sound, rate, active: active && onScreen, paused, mouthEls, audioSrcOf, voice })
-  const { status: dStatus, index: dIndex, total: dTotal } = director
-  useEffect(() => { if (live) onState?.({ status: dStatus, index: dIndex, total: dTotal }) }, [live, onState, dStatus, dIndex, dTotal])
+  const { status: dStatus, index: dIndex, total: dTotal, mode: dMode } = director
+  // mode ('audio' | 'speech' | 'timer') — чем звучит текущая реплика (нода урока: чип «Включить звук»)
+  useEffect(() => { if (live) onState?.({ status: dStatus, index: dIndex, total: dTotal, mode: dMode }) }, [live, onState, dStatus, dIndex, dTotal, dMode])
 
   // Рот переключает mouthDriver прямо на корне кота (data-mouth), минуя React
   const onCatEl = useCallback((who, el) => {

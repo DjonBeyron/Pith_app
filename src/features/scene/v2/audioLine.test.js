@@ -92,6 +92,7 @@ describe('playLineAudio — файл озвучки', () => {
     playLineAudio(line, audio, { ...noRaf, timers: t, onFail, onEnd, applyMouth: s => shapes.push(s) })
     await flush()
     expect(onFail).toHaveBeenCalledTimes(1)
+    expect(onFail).toHaveBeenCalledWith('not-allowed') // причина уходит наверх — для лога и плашки предпросмотра
     expect(onEnd).not.toHaveBeenCalled()
     expect(audio.play).toHaveBeenCalledTimes(1)
     expect(audio.listeners()).toBe(0)
@@ -117,6 +118,7 @@ describe('playLineAudio — файл озвучки', () => {
     audio.error = { code: 4 }
     audio.fire('error')
     expect(onFail).toHaveBeenCalledTimes(1)
+    expect(onFail).toHaveBeenCalledWith('media-error-4')
     expect(audio.play).toHaveBeenCalledTimes(1)
   })
 
@@ -128,6 +130,7 @@ describe('playLineAudio — файл озвучки', () => {
     expect(audio.play).toHaveBeenCalledTimes(2)
     t.fire(LOAD_TIMEOUT_MS)
     expect(onFail).toHaveBeenCalledTimes(1)
+    expect(onFail).toHaveBeenCalledWith('load-timeout')
   })
 
   it('ошибка ПОСЛЕ начала звука → onEnd (диалог идёт дальше), не onFail', () => {

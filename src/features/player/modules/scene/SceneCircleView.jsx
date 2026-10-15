@@ -3,6 +3,7 @@ import { Play, VolumeX } from 'lucide-react'
 import SceneRenderer from '../../../scene/v2/SceneRenderer.jsx'
 import { getSmallPx } from '../circle/useCircleExpand.js'
 import { sceneCircleFit, ringOffset } from './sceneCircleFit.js'
+import SceneSoundChip from './SceneSoundChip.jsx'
 
 const RING_R = 106
 const RING_C = 2 * Math.PI * RING_R
@@ -10,12 +11,13 @@ const RING_C = 2 * Math.PI * RING_R
 // Режим 'circle' ноды scene: круглая вставка как видеосообщение (те же классы
 // circleWrap/circleFrame/кольцо, circle.css), сцена кадрирована на головы
 // котов и облачко (sceneCircleFit.js). Кольцо прогресса — по репликам.
-// Раскрытия на весь экран нет (useCircleExpand завязан на <video>).
+// Тап по кругу — до старта пуск, дальше полноэкранный пузырь 9:16 (вместо
+// раскрытия кружка: useCircleExpand завязан на <video>, а сцене в круге тесно).
 // rootRef — корень круга (его же меряем: размер = ширина круга).
 // display/voice — переопределения ноды (режим показа текста / флаги озвучки) поверх options сцены.
 export default function SceneCircleView({
   scene, showBubbles, display = null, voice = null, isHistory, pending, status, index, total, paused, sound, rate,
-  audioSrcOf = null, apiRef, rootRef, onState, onTap,
+  audioSrcOf = null, soundChip = false, onEnableSound, apiRef, rootRef, onState, onTap,
 }) {
   const [size, setSize] = useState(() => (typeof window !== 'undefined' ? getSmallPx() : 200))
   useLayoutEffect(() => {
@@ -62,9 +64,10 @@ export default function SceneCircleView({
               <Play size={22} color="white" fill="white" />
             </div>
           )}
-          {!isHistory && !sound && (
+          {!isHistory && !sound && !soundChip && (
             <div className="circleMutedIcon"><VolumeX size={14} color="white" /></div>
           )}
+          {soundChip && <SceneSoundChip onClick={onEnableSound} />}
         </div>
       </div>
     </div>

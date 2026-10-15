@@ -66,8 +66,9 @@ export function makeNode(seq, x, y, wantType) {
       photo:       { file_id: null, crop: { x: 0, y: 0, scale: 1 } },
       video:       { file_id: null, crop: { x: 0, y: 0, scale: 1 } },
       circle:      { file_id: null, crop: { x: 0, y: 0, scale: 1 } },
-      // Сцена «два кота»: встроенный снимок v2 (scene/v2/sceneNode.js), режим пузырь/кружок, облачки
-      scene:       { scene: null, sceneId: null, mode: 'bubble', showBubbles: true },
+      // Сцена «два кота»: встроенный снимок v2 (scene/v2/sceneNode.js), режим пузырь/кружок, облачки,
+      // запуск авто через 500 мс после появления сообщения (или вручную)
+      scene:       { scene: null, sceneId: null, mode: 'bubble', showBubbles: true, start: 'auto', startDelayMs: 500 },
       text:        { content: '', replyToSeq: null, hardWrap: false },
       word_choice:     { options: [], responseCorrect: '', responseWrong: '', sendPickToChat: false },
       phrase_assembly: { words: [], distractors: [], responseCorrect: '', responseWrong: '', replyToSeq: null },

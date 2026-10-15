@@ -60,9 +60,11 @@ export function createDirector({ timeline = [], playLine, onChange, loop = false
 
   const api = {
     getState: state,
-    play() {
+    // play(from) — начать с реплики from (перенос реплики между лентой и полным экраном ноды урока)
+    play(from = null) {
       if (destroyed || status === 'playing') return
       if (status === 'ended') { index = 0 }
+      if (Number.isInteger(from) && from >= 0 && from < timeline.length) index = from
       once = false
       status = 'playing'
       startLine()

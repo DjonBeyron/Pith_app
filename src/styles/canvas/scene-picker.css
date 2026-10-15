@@ -98,3 +98,10 @@
 .nodeSceneModeRow { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .nodeSceneModeLabel { flex: 0 0 130px; color: #9a9aad; font-size: 11px; }
 .nodeSceneModes .nodeSceneSegBtn { padding: 4px 9px; font-size: 11px; }
+
+/* Запуск сцены: сегмент «Вручную | Автоматически», задержка числом и ползунком (NodeSceneStart.jsx) */
+.nodeSceneStart { display: flex; flex-direction: column; gap: 6px; }
+.nodeSceneStart .nodeSceneSegBtn { padding: 4px 9px; font-size: 11px; }
+.nodeSceneStart .nodeSceneModeLabel { flex-basis: auto; min-width: 130px; }
+.nodeSceneNum { width: 68px; padding: 3px 6px; border: 1px solid rgba(255, 255, 255, 0.14); border-radius: 6px; background: rgba(255, 255, 255, 0.05); color: #e6e6ea; font: inherit; font-size: 12px; }
+.nodeSceneRange { flex: 1 1 90px; min-width: 90px; max-width: 220px; accent-color: #d4a03a; }

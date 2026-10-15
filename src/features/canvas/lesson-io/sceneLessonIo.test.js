@@ -101,6 +101,31 @@ describe('lintLesson — нода scene', () => {
     expect(back.nodes.find(n => n.type === 'scene').typeData.scene).toMatchObject({ display: 'none', voice: { translation: true } })
   })
 
+  it('[R-scene-start]: валидные start/startDelayMs — тихо; кривые — ошибка; задержка при manual — предупреждение', () => {
+    expect(lintLesson(exch({ scene: demoCafeScene, start: 'manual' })).filter(x => x.includes('R-scene'))).toEqual([])
+    expect(lintLesson(exch({ scene: demoCafeScene, start: 'auto', startDelayMs: 0 })).filter(x => x.includes('R-scene'))).toEqual([])
+    expect(lintLesson(exch({ scene: demoCafeScene, startDelayMs: 5000 })).filter(x => x.includes('R-scene'))).toEqual([])
+    const bad = lintLesson(exch({ scene: demoCafeScene, start: 'later', startDelayMs: 7000 }))
+    expect(bad.filter(x => x.includes('[R-scene-start]') && x.includes('ошибка'))).toHaveLength(2)
+    expect(lintLesson(exch({ scene: demoCafeScene, startDelayMs: 12.5 })).some(x => x.includes('[R-scene-start]') && x.includes('целое'))).toBe(true)
+    expect(lintLesson(exch({ scene: demoCafeScene, startDelayMs: '500' })).some(x => x.includes('[R-scene-start]'))).toBe(true)
+    const w = lintLesson(exch({ scene: demoCafeScene, start: 'manual', startDelayMs: 300 }))
+    expect(w.some(x => x.includes('[R-scene-start]') && x.includes('предупреждение') && x.includes('не действует'))).toBe(true)
+  })
+
+  it('экспорт → импорт переносит start/startDelayMs как есть (и 0); легенда описывает поля', () => {
+    expect(NODE_DOCS.scene.fields.start).toContain('manual')
+    expect(NODE_DOCS.scene.fields.startDelayMs).toContain('5000')
+    const out = exportLesson([sceneNode({ start: 'manual', startDelayMs: 0 }), textNode], { title: 'Сцена' })
+    expect(out.nodes[0].data.start).toBe('manual')
+    expect(out.nodes[0].data.startDelayMs).toBe(0)
+    const back = importLesson(JSON.stringify(out))
+    expect(back.nodes.find(n => n.type === 'scene').typeData.scene).toMatchObject({ start: 'manual', startDelayMs: 0 })
+    // без полей — дефолты новой ноды (auto · 500), как у старых уроков
+    const plain = importLesson(JSON.stringify(exportLesson([sceneNode(), textNode], { title: 'Сцена' })))
+    expect(plain.nodes.find(n => n.type === 'scene').typeData.scene).toMatchObject({ start: 'auto', startDelayMs: 500 })
+  })
+
   it('невалидная сцена — ошибка из lintScene; предупреждение сцены — предупреждение урока', () => {
     const bad = { ...demoCafeScene, timeline: demoCafeScene.timeline.map(l => ({ ...l, emotion: 'happy', text: l.text.replace(/[.?!]$/, '') })), slots: { ...demoCafeScene.slots, table: 'rocket' } }
     const w = lintLesson(exch({ scene: bad }))

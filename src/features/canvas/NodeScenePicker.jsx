@@ -5,11 +5,13 @@ import { getScene } from '../../shared/api/scenesApi.js'
 import { demoOfficeScene } from '../scene/v2/demoScenes.js'
 import NodeSceneLibraryList from './NodeSceneLibraryList.jsx'
 import NodeSceneBuilderHost from './NodeSceneBuilderHost.jsx'
-import { pickRowPatch, applyBuilderPatch, clearScenePatch, sceneCheck, voiceLabel, voiceSummary } from './scenePickerModel.js'
+import { pickRowPatch, applyBuilderPatch, clearScenePatch, sceneCheck, voiceLabel, voiceSummary, startSummary } from './scenePickerModel.js'
 import NodeSceneModes from './NodeSceneModes.jsx'
+import NodeSceneStart from './NodeSceneStart.jsx'
 
 // Редактор ноды `scene` (канвас и продакшен-список): мини-превью статичным
-// кадром, название/реплики/бюджет, сводка озвучки по наборам, режим «Пузырь / Кружок»,
+// кадром, название/реплики/бюджет, сводка озвучки по наборам и запуска, режим «Пузырь / Кружок»,
+// запуск «Вручную / Автоматически» + задержка (NodeSceneStart),
 // переопределения показа/озвучки ноды (NodeSceneModes — вместо чекбокса «Облачки»),
 // библиотека сцен (снимок копируется в ноду, sceneId запоминается), сборщик
 // поверх канваса (NodeSceneBuilderHost → BuilderWindow в управляемом режиме),
@@ -50,6 +52,7 @@ export default function NodeScenePicker({ tData, onChange }) {
           <div className="nodeSceneTitle">{preview ? sceneSummary(preview) : (raw ? 'Сцена повреждена' : 'Сцена не выбрана')}</div>
           {preview && <div className="nodeSceneSub">{voiceLabel(preview)} · {Math.round(check.bytes / 1024)} КБ{tData.sceneId ? ' · из библиотеки' : ''}</div>}
           {preview && <div className="nodeSceneSub">{voiceSummary(preview)}</div>}
+          {preview && <div className="nodeSceneSub">{startSummary(tData)}</div>}
           <div className="nodeSceneBtns">
             <button type="button" className="nodeSceneBtn" onClick={() => { setLib(v => !v); setUpd(null) }}>Из библиотеки</button>
             <button type="button" className="nodeSceneBtn nodeSceneBtnPrimary" onClick={() => setBuilder(true)}>
@@ -83,6 +86,7 @@ export default function NodeScenePicker({ tData, onChange }) {
           ))}
         </div>
       </div>
+      {preview && <NodeSceneStart tData={tData} onChange={onChange} />}
       {preview && <NodeSceneModes tData={tData} scene={preview} onChange={onChange} />}
 
       {(check.errors.length > 0 || check.warns.length > 0) && (

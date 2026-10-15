@@ -30,6 +30,7 @@ export function useSceneDirectorV2(scene, {
   const [state, setState] = useState({ ...IDLE, total: scene?.timeline?.length ?? 0 })
   const [mode, setMode] = useState('timer')
   const [phase, setPhase] = useState(null)
+  const [fail, setFail] = useState(null) // последний отказ файла { url, reason, kind, index } | null (sceneAudioFail.js)
   const [hidden, setHidden] = useState(() => typeof document !== 'undefined' && document.hidden)
   const dirRef = useRef(null)
   const autoPausedRef = useRef(false)
@@ -47,7 +48,7 @@ export function useSceneDirectorV2(scene, {
   useEffect(() => {
     if (!enabled || !scene) return undefined
     const player = makeScenePlayLine({
-      scene, opts: () => optsRef.current, setMode, setPhase,
+      scene, opts: () => optsRef.current, setMode, setPhase, onFallback: setFail,
       getMouthEl: who => optsRef.current.mouthEls?.current?.[who] ?? null,
     })
     const director = createDirector({
@@ -97,6 +98,7 @@ export function useSceneDirectorV2(scene, {
       // Нельзя играть, пока сцена неактивна: запомним желание и вернёмся сами
       autoPausedRef.current = true
       if (name === 'restart') d.goTo(0)
+      if (name === 'play' && Number.isInteger(args[0])) d.goTo(args[0])
       return
     }
     d[name](...args)
@@ -105,9 +107,11 @@ export function useSceneDirectorV2(scene, {
   return {
     ...state,
     mode,
+    fail, // почему последняя реплика не заиграла файлом (null — заиграла или ещё не стартовала)
     phase: state.status === 'playing' ? phase : null,
     speakingWho: state.status === 'playing' && state.line ? state.line.who : null,
-    play: useCallback(() => call('play'), [call]),
+    // play(from?) — с реплики from (целое), иначе с текущей
+    play: useCallback(from => call('play', from), [call]),
     pause: useCallback(() => call('pause'), [call]),
     toggle: useCallback(() => call('toggle'), [call]),
     restart: useCallback(() => call('restart'), [call]),

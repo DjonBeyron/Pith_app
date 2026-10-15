@@ -69,6 +69,32 @@
 .playerSceneCircle[data-status="idle"] .circleRingSvg,
 .playerSceneCircle[data-status="history"] .circleRingSvg { opacity: 0; }
 
+/* Чип «Включить звук» (SceneSoundChip.jsx): автозапуск без жеста пошёл немым —
+   тап по чипу открывает звук. Лежит внизу кадра, где у видео значок mute */
+.playerSceneSoundChip {
+  position: absolute;
+  left: 50%;
+  bottom: 10px;
+  transform: translateX(-50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  z-index: 3;
+  -webkit-tap-highlight-color: transparent;
+  animation: playerScenePlayIn 0.18s ease-out;
+}
+.playerSceneCircle .playerSceneSoundChip { bottom: 14%; }
+
 /* Фолбэк: реплики текстом + «Дальше» */
 .playerMsgBubble--sceneFallback { max-width: min(78vw, 320px); }
 .playerSceneFb { display: flex; flex-direction: column; gap: 6px; padding: 2px 0; }

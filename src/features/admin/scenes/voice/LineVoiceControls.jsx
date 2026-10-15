@@ -5,6 +5,7 @@ import { voiceName } from './voicePresets.js'
 import { STATE_LABEL, lineVoiceStatus, lineKey } from './voiceStatus.js'
 import { SET_LABEL } from './voicePlan.js'
 import ScTip from '../ScTip.jsx'
+import SoundCheck from './SoundCheck.jsx'
 
 // Строка озвучки одного НАБОРА реплики (set: 'original' — текст, 'translation' — перевод): бейдж
 // статуса (нет файла / озвучено + длительность · голос / устарело / озвучиваю… / ошибка / нет
@@ -57,6 +58,7 @@ export default function LineVoiceControls({ index: i, line, character, voice = n
               <Trash2 size={14} />
             </button>
           )}
+          {hasAudio && <SoundCheck url={part.audioUrl} tip={false} />}
         </span>
       )}
     </div>

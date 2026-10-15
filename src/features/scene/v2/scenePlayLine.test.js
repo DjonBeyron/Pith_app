@@ -102,4 +102,24 @@ describe('scenePlayLine — один путь воспроизведения р�
     expect(nextAudioUrl(scene.timeline, 2, false)).toBeNull()
     expect(nextAudioUrl([], 0, true)).toBeNull()
   })
+
+  it('откат на синтез/таймер больше не молчаливый: onFallback(null) на старте, { url, reason, kind, index } при отказе + лог', () => {
+    const onFallback = vi.fn(); const logFallback = vi.fn()
+    let cbs = null
+    const player = makeScenePlayLine({
+      scene, opts: () => ({ sound: true, rate: 1 }), getMouthEl: () => null, setMode: () => {}, onFallback, logFallback,
+      cache: { resolve: () => null, pin() {}, prefetch() {} }, getAudio: () => ({}), allowed: () => false,
+      speak: vi.fn(() => () => {}), playAudio: vi.fn((line, el, c) => { cbs = c; return () => {} }), timers: { setInterval: () => 1, clearInterval: () => {} },
+    })
+    player.playLine(scene.timeline[1], 1, { onEnd() {} })
+    expect(onFallback).toHaveBeenCalledWith(null)
+    cbs.onFail('media-error-4')
+    const info = { url: 'https://r2/1.mp3', src: null, reason: 'media-error-4', kind: 'original', index: 1 }
+    expect(onFallback).toHaveBeenLastCalledWith(info)
+    expect(logFallback).toHaveBeenCalledWith(info)
+    // без причины — 'unknown', чтобы плашка никогда не была пустой
+    player.playLine(scene.timeline[0], 0, { onEnd() {} })
+    cbs.onFail()
+    expect(onFallback.mock.calls.at(-1)[0].reason).toBe('unknown')
+  })
 })

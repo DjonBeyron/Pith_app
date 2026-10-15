@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
+import { VolumeX } from 'lucide-react'
 import SceneRenderer from '../../scene/v2/SceneRenderer.jsx'
 import { unlockSceneAudio } from '../../scene/v2/sceneAudioUnlock.js'
 import Panel from './ui/Panel.jsx'
@@ -6,9 +7,13 @@ import BudgetBar from './BudgetBar.jsx'
 import LintPanel from './LintPanel.jsx'
 import ScTip from './ScTip.jsx'
 import { modesSummary } from './modes/sceneModes.js'
+import { soundStatusText } from '../../scene/v2/sceneAudioFail.js'
+import SoundCheck from './voice/SoundCheck.jsx'
 
 // Центр сборщика — три панели (ui/Panel): «Предпросмотр» (телефонная рамка 9:16 с живым
-// SceneRenderer, Старт/Пауза/Заново, звук, «Живой / Статичный кадр», сводка режима показа/озвучки
+// SceneRenderer, Старт/Пауза/Заново, звук (снята галка — индикатор «звук выключен», клик включает;
+// в игре — статус «звук: файл / браузерный голос / таймер / без звука» + причина отказа файла и
+// «Проверить звук»), «Живой / Статичный кадр», сводка режима показа/озвучки
 // (сами переключатели — в тулбаре, пропы display/voice из usePreviewModes), lite; на весь
 // экран — рамка по высоте экрана, 9:16 по центру), «Бюджет узлов» (BudgetBar) и «Замечания
 // линтера» (LintPanel; клик — подсветка поля через onHighlight с раскрытием панелей).
@@ -22,6 +27,7 @@ export default function PhonePreview({ scene, lint, budget, onHighlight, modes =
   const ov = modes?.props ?? {}
   const [sound, setSound] = useState(true)
   const [status, setStatus] = useState('idle') // статус режиссёра для подписи кнопки
+  const [sndSt, setSndSt] = useState({ mode: null, fail: null }) // чем звучит реплика и почему файл не завёлся (sceneAudioFail.js)
   const apiRef = useRef(null)
   const total = scene.timeline.length
   const safeFrame = Math.min(frame, Math.max(0, total - 1))
@@ -31,7 +37,11 @@ export default function PhonePreview({ scene, lint, budget, onHighlight, modes =
   // Статус режиссёра приходит через apiRef без перерендера — опрашиваем редко, только для подписи кнопки
   useEffect(() => {
     if (mode !== 'live') return undefined
-    const id = setInterval(() => setStatus(apiRef.current?.status ?? 'idle'), 400)
+    const id = setInterval(() => {
+      const api = apiRef.current
+      setStatus(api?.status ?? 'idle')
+      setSndSt(s => (s.mode === (api?.mode ?? null) && s.fail === (api?.fail ?? null) ? s : { mode: api?.mode ?? null, fail: api?.fail ?? null }))
+    }, 400)
     return () => clearInterval(id)
   }, [mode])
 
@@ -56,6 +66,18 @@ export default function PhonePreview({ scene, lint, budget, onHighlight, modes =
               </button>
               <button type="button" className="fsBtn" onClick={() => call('restart')}>Заново</button>
               <label className="scCheck"><input type="checkbox" checked={sound} onChange={e => setSound(e.target.checked)} /> звук</label>
+              {!sound && (
+                <button type="button" className="scbSoundOff" onClick={() => setSound(true)} title="Включить звук предпросмотра">
+                  <VolumeX size={14} aria-hidden="true" /> звук выключен — включите галку «звук»
+                </button>
+              )}
+              {status !== 'idle' && (
+                <span className={`scbSoundStatus${sndSt.fail ? ' scbSoundStatus-fail' : ''}`} role="status" data-sound-mode={sound ? (sndSt.mode ?? '') : 'off'}>
+                  {soundStatusText(sndSt.mode, sndSt.fail, sound)}
+                  <ScTip help="sound_status" />
+                  {sndSt.fail && <SoundCheck url={sndSt.fail.url} />}
+                </span>
+              )}
             </div>
           ) : (
             <div className="scbCtlRow">

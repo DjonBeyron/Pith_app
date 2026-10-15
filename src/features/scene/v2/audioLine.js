@@ -46,7 +46,7 @@ export function playLineAudio(line, audio, {
   src = null, muted = false, rate = 1, applyMouth = () => {}, lowPower = false,
   onEnd, onFail, onMode, timers = globalThis, raf, caf, now, isHidden,
 } = {}) {
-  if (!audio || !line?.audioUrl) { onFail?.(); return () => {} }
+  if (!audio || !line?.audioUrl) { onFail?.(audio ? 'no-url' : 'no-element'); return () => {} }
   const token = ++seq
   owners.set(audio, token)
   const k = clampRate(rate)
@@ -86,12 +86,12 @@ export function playLineAudio(line, audio, {
     if (started) { finish(false); return }
     const code = audio.error?.code
     if (!retried && (code == null || code === MEDIA_ERR_NETWORK)) retry()
-    else finish(true)
+    else finish(true, `media-error-${code ?? '?'}`)
   }
   function onLoadTimeout() {
     if (done || started) return
     if (!retried) retry()
-    else finish(true)
+    else finish(true, 'load-timeout')
   }
 
   function retry() {
@@ -110,13 +110,14 @@ export function playLineAudio(line, audio, {
     try {
       try { audio.currentTime = 0 } catch { /* до метаданных может бросить */ }
       p = audio.play()
-    } catch { finish(true); return }
+    } catch { finish(true, 'play-threw'); return }
     if (p?.catch) {
       p.catch(e => {
         if (done || started) return
-        if (e?.name === 'NotAllowedError' || e?.name === 'NotSupportedError') finish(true)
+        if (e?.name === 'NotAllowedError') finish(true, 'not-allowed')
+        else if (e?.name === 'NotSupportedError') finish(true, 'not-supported')
         else if (!retried) retry()
-        else finish(true)
+        else finish(true, `play-rejected-${e?.name ?? '?'}`)
       })
     }
   }
@@ -128,10 +129,12 @@ export function playLineAudio(line, audio, {
     off('playing', onPlaying); off('ended', onEnded); off('error', onError); off('loadedmetadata', onMeta)
     if (owners.get(audio) === token) { try { audio.pause() } catch { /* ignore */ } }
   }
-  function finish(fail) {
+  // reason отказа (onFail): 'not-allowed' (нет жеста) | 'not-supported' (404/не аудио) |
+  // 'media-error-<code>' | 'load-timeout' | 'play-threw' | 'play-rejected-<name>' | 'no-url' | 'no-element'
+  function finish(fail, reason = 'unknown') {
     if (done) return
     teardown()
-    if (fail) onFail?.()
+    if (fail) onFail?.(reason)
     else onEnd?.()
   }
 

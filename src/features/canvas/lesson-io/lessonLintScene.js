@@ -1,5 +1,5 @@
 import { lintScene } from '../../scene/v2/sceneLint.js'
-import { SCENE_MODES, SCENE_MAX_BYTES, sceneByteSize } from '../../scene/v2/sceneNode.js'
+import { SCENE_MODES, SCENE_MAX_BYTES, SCENE_STARTS, SCENE_START_DELAY_MAX, sceneByteSize } from '../../scene/v2/sceneNode.js'
 import { DISPLAY_MODES } from '../../scene/v2/sceneConstants.js'
 import { resolveVoiceFlags } from '../../scene/v2/sceneOptions.js'
 
@@ -11,6 +11,8 @@ import { resolveVoiceFlags } from '../../scene/v2/sceneOptions.js'
 //  · [R-scene-size]     снимок больше 64 КБ (как CHECK таблицы scenes) — ошибка;
 //  · [R-scene-mode]     mode вне bubble | circle, showBubbles не boolean, display вне none | text | both,
 //                       voice не объект из true/false (original/translation) — ошибка;
+//  · [R-scene-start]    start вне manual | auto, startDelayMs не целое 0…5000 — ошибка; задержка при
+//                       manual — предупреждение (не действует);
 //  · [R-scene-voice]    озвучка перевода включена (сценой или нодой), а файлов перевода нет у части
 //                       реплик с translation — предупреждение (там пойдёт синтез устройства или тишина);
 //  · [R-scene-played]   выход played никуда не ведёт, а нода не последняя — предупреждение.
@@ -30,6 +32,10 @@ export function checkScene(nodes) {
     const badVoice = d.voice !== undefined && (!d.voice || typeof d.voice !== 'object' || Array.isArray(d.voice)
       || Object.entries(d.voice).some(([k, v]) => !['original', 'translation'].includes(k) || typeof v !== 'boolean'))
     if (badVoice) out.push(err(n.ref, 'R-scene-mode', 'voice — объект { original, translation } из true/false'))
+    if (d.start !== undefined && !SCENE_STARTS.includes(d.start)) out.push(err(n.ref, 'R-scene-start', `start «${d.start}» — допустимо ${SCENE_STARTS.join(' | ')}`))
+    const dl = d.startDelayMs
+    if (dl !== undefined && !(Number.isInteger(dl) && dl >= 0 && dl <= SCENE_START_DELAY_MAX)) out.push(err(n.ref, 'R-scene-start', `startDelayMs «${dl}» — целое 0…${SCENE_START_DELAY_MAX} мс`))
+    if (d.start === 'manual' && dl !== undefined) out.push(warn(n.ref, 'R-scene-start', 'startDelayMs при start = manual не действует'))
 
     if (!d.scene || typeof d.scene !== 'object') {
       out.push(err(n.ref, 'R-scene-missing', 'сцена не выбрана — ученик увидит пустой пузырь с кнопкой «Дальше»'))

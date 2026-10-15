@@ -72,3 +72,14 @@
 .scbVoiceSetsPick { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; padding: 8px 10px; border: 1px solid var(--fs-border); border-radius: 10px; background: var(--fs-panel-2); }
 .scbVoiceSetsPick .scbSub { display: inline-flex; align-items: center; gap: 2px; }
 .scbVoiceTr .scbSub b { color: var(--fs-text); }
+
+/* «Проверить звук» (voice/SoundCheck.jsx) и статус звука предпросмотра (PhonePreview) */
+.scbSoundCheck { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; }
+.scbSoundCheck .fsBtn { display: inline-flex; align-items: center; gap: 4px; }
+.scbSoundCheckOut { display: flex; flex-direction: column; gap: 2px; flex-basis: 100%; font-size: 12px; line-height: 1.35; }
+.scbSoundCheckOk { color: var(--fs-ok, #2e9e5b); }
+.scbSoundCheckBad { color: var(--fs-error); }
+.scbSoundStatus { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; font-size: 12px; color: var(--fs-muted); }
+.scbSoundStatus-fail { color: var(--fs-error); }
+.scbSoundOff { display: inline-flex; align-items: center; gap: 5px; padding: 3px 9px; border: 1px solid var(--fs-warn); border-radius: 999px; background: color-mix(in srgb, var(--fs-warn) 18%, transparent); color: var(--fs-warn); font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; }
+.scbSoundOff:hover { background: color-mix(in srgb, var(--fs-warn) 30%, transparent); }

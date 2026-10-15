@@ -1,5 +1,7 @@
 import { lintScene } from '../scene/v2/sceneLint.js'
-import { snapshotFromRow, sceneByteSize, SCENE_MAX_BYTES, sceneNodeOverrides } from '../scene/v2/sceneNode.js'
+import {
+  snapshotFromRow, sceneByteSize, SCENE_MAX_BYTES, sceneNodeOverrides, normalizeSceneStart, normalizeStartDelay,
+} from '../scene/v2/sceneNode.js'
 import { isDisplayMode } from '../scene/v2/sceneOptions.js'
 import { sceneVoiceStats } from '../scene/v2/sceneVoice.js'
 import { isObj } from '../scene/v2/sceneConstants.js'
@@ -62,6 +64,23 @@ export function nodeVoicePatch(td, key, value) {
 export function nodeModeState(td) {
   const o = sceneNodeOverrides(td)
   return { display: o.display, original: o.voice?.original ?? null, translation: o.voice?.translation ?? null }
+}
+
+// Запуск сцены (typeData.scene.start / .startDelayMs, контракт sceneNode.js): патчи пишут
+// нормализованные значения; состояние контролов — с дефолтами (auto · 500 мс)
+export function nodeStartPatch(start) {
+  return { start: normalizeSceneStart(start) }
+}
+export function nodeStartDelayPatch(ms) {
+  return { startDelayMs: normalizeStartDelay(ms) }
+}
+export function nodeStartState(td) {
+  return { start: normalizeSceneStart(td?.start), startDelayMs: normalizeStartDelay(td?.startDelayMs) }
+}
+// Строка сводки пикера: «запуск: автоматически · 500 мс» / «запуск: вручную»
+export function startSummary(td) {
+  const st = nodeStartState(td)
+  return st.start === 'auto' ? `запуск: автоматически · ${st.startDelayMs} мс` : 'запуск: вручную'
 }
 
 // Сводка озвучки по наборам: «озвучено: оригинал X/N · перевод Y/M» (M — реплик с переводом)

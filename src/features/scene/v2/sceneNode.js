@@ -8,6 +8,7 @@ import { isDisplayMode, resolveDisplay, resolveVoiceFlags } from './sceneOptions
 //   { scene: <снимок сцены v2 целиком>, sceneId?: uuid строки библиотеки,
 //     sceneUpdatedAt?: ISO updated_at строки на момент снимка,
 //     mode: 'bubble' | 'circle', showBubbles: boolean (по умолчанию true),
+//     start?: 'manual' | 'auto' (по умолчанию 'auto'), startDelayMs?: 0…5000 (по умолчанию 500),
 //     display?: 'none' | 'text' | 'both', voice?: { original?, translation? } }
 // display/voice — необязательные переопределения на уровне ноды поверх options
 // сцены (sceneOptions.js); нет display → старый showBubbles (false → 'none').
@@ -17,6 +18,23 @@ import { isDisplayMode, resolveDisplay, resolveVoiceFlags } from './sceneOptions
 
 export const SCENE_MODES = ['bubble', 'circle']
 export const SCENE_MAX_BYTES = 64 * 1024 // как CHECK в таблице scenes
+// Запуск сцены в ленте: 'auto' — сама стартует через startDelayMs после конца анимации появления
+// сообщения (по умолчанию — старые ноды ведут себя как раньше), 'manual' — стоит на паузе с ▶
+export const SCENE_STARTS = ['manual', 'auto']
+export const SCENE_START_DEFAULT = 'auto'
+export const SCENE_START_DELAY_DEFAULT = 500
+export const SCENE_START_DELAY_MAX = 5000
+
+export function normalizeSceneStart(start) {
+  return SCENE_STARTS.includes(start) ? start : SCENE_START_DEFAULT
+}
+
+// Задержка после появления, мс: число 0…5000 (целое); мусор → по умолчанию
+export function normalizeStartDelay(ms) {
+  const n = typeof ms === 'string' && ms.trim() !== '' ? Number(ms) : ms
+  if (typeof n !== 'number' || !Number.isFinite(n)) return SCENE_START_DELAY_DEFAULT
+  return Math.min(SCENE_START_DELAY_MAX, Math.max(0, Math.round(n)))
+}
 
 export function sceneDataOf(node) {
   const td = node?.typeData?.scene
@@ -47,7 +65,10 @@ export function resolveSceneNode(td) {
   const data = isObj(td) ? td : {}
   const mode = normalizeSceneMode(data.mode)
   const showBubbles = data.showBubbles !== false
-  const base = { mode, showBubbles, ...sceneNodeOverrides(data) }
+  const base = {
+    mode, showBubbles, start: normalizeSceneStart(data.start), startDelayMs: normalizeStartDelay(data.startDelayMs),
+    ...sceneNodeOverrides(data),
+  }
   if (!isObj(data.scene)) return { scene: null, errors: [], ...base }
   const errors = validateSceneV2(data.scene)
   if (sceneByteSize(data.scene) > SCENE_MAX_BYTES) errors.push(`Сцена больше ${SCENE_MAX_BYTES / 1024} КБ`)

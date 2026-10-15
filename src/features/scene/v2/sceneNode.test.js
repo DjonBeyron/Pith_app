@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   resolveSceneNode, sceneByteSize, sceneAudioUrls, sceneNodeAudioUrls, sceneNodeOverrides, sceneNodeShowsText,
-  snapshotFromRow, libraryHasNewer, sceneSummary, rawSceneLines, SCENE_MAX_BYTES,
+  snapshotFromRow, libraryHasNewer, sceneSummary, rawSceneLines, SCENE_MAX_BYTES, normalizeSceneStart, normalizeStartDelay,
 } from './sceneNode.js'
 import { demoCafeScene } from './demoScenes.js'
 
@@ -18,6 +18,19 @@ describe('sceneNode — данные ноды scene', () => {
   it('режим circle и showBubbles false читаются; мусорный режим → bubble', () => {
     expect(resolveSceneNode({ scene: demoCafeScene, mode: 'circle', showBubbles: false })).toMatchObject({ mode: 'circle', showBubbles: false })
     expect(resolveSceneNode({ scene: demoCafeScene, mode: 'fullscreen' }).mode).toBe('bubble')
+  })
+
+  it('запуск: по умолчанию auto · 500 мс (старые ноды — автозапуск); manual и задержка читаются; мусор → дефолты', () => {
+    expect(resolveSceneNode({ scene: demoCafeScene })).toMatchObject({ start: 'auto', startDelayMs: 500 })
+    expect(resolveSceneNode({ scene: demoCafeScene, start: 'manual', startDelayMs: 0 })).toMatchObject({ start: 'manual', startDelayMs: 0 })
+    expect(resolveSceneNode({ scene: demoCafeScene, start: 'later', startDelayMs: 'много' })).toMatchObject({ start: 'auto', startDelayMs: 500 })
+    expect(resolveSceneNode({ scene: demoCafeScene, startDelayMs: 7000 }).startDelayMs).toBe(5000)
+    expect(resolveSceneNode({ scene: demoCafeScene, startDelayMs: -5 }).startDelayMs).toBe(0)
+    expect(resolveSceneNode({ scene: demoCafeScene, startDelayMs: '250' }).startDelayMs).toBe(250)
+    expect(resolveSceneNode({ scene: demoCafeScene, startDelayMs: NaN }).startDelayMs).toBe(500)
+    expect(normalizeSceneStart(undefined)).toBe('auto')
+    expect(normalizeStartDelay(null)).toBe(500)
+    expect(resolveSceneNode({})).toMatchObject({ start: 'auto', startDelayMs: 500 })
   })
 
   it('нет сцены — scene null без ошибок (нода пустая)', () => {
