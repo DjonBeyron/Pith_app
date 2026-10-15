@@ -5,6 +5,7 @@ import FeedFrameControls from './FeedFrameControls.jsx'
 import '../../../../styles/admin-scenes-feedframe.css'
 import { useFeedFrameDraft } from './useFeedFrameDraft.js'
 import { deviceById, previewCalc, previewZoom, longestLineIndex } from './feedFrameModel.js'
+import { isSolo } from '../../../scene/v2/scenePit.js'
 
 // Содержимое центральной колонки сборщика в режиме «Как в ленте»: слайд ленты выбранного размера со слоями поверх сцены,
 // перетаскивание, ползунки, предупреждение «коты под кнопкой / обрезаны». Значения пишутся в options.feedFrame черновика
@@ -17,7 +18,8 @@ export default function FeedFramePanel({ scene, actions }) {
   const wrapRef = useRef(null)
   const device = deviceById(deviceId)
   const { frame, change, commit, reset, isDefault } = useFeedFrameDraft(scene, actions.setFeedFrame)
-  const calc = previewCalc(device, frame)
+  const solo = isSolo(scene)
+  const calc = previewCalc(device, frame, solo)
   const total = scene.timeline.length
   const line = Math.min(pickedLine ?? longestLineIndex(scene), Math.max(0, total - 1))
 

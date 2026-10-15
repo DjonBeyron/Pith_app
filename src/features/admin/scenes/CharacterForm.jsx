@@ -11,13 +11,14 @@ import VoicePicker from './voice/VoicePicker.jsx'
 import TranslationVoicePicker from './voice/TranslationVoicePicker.jsx'
 
 // Форма персонажа A/B в сборщике — вложенная панель (ключ characters.<who>, заголовок
-// «A · Имя» с кружком цвета шерсти): превью, имя, пол, палитра (PaletteEditor), полоски;
+// «A · Имя» с кружком цвета шерсти; solo — единственный кот одиночной сцены, «по центру»):
+// превью, имя, пол, палитра (PaletteEditor), полоски;
 // внутри — панель «Голос» (characters.<who>.voice): запасной голос устройства (pitch/rate),
 // голос ElevenLabs (VoicePicker) и голос перевода (TranslationVoicePicker, voice.translationVoiceId;
 // пусто — общий голос сцены). Раскладка полей — сетка auto-fit с отступами по плотности
 // панели (--gap/--pad из admin-scenes-character.css): в узкой колонке один столбец,
 // в широкой — несколько. id полей — f-characters-<who>-… для подсветки линтера.
-export default function CharacterForm({ who, character, actions, voice = null, scene = null }) {
+export default function CharacterForm({ who, character, actions, voice = null, scene = null, solo = false }) {
   const p = `f-characters-${who}`
   const sprite = catSprite(character.gender)
   const props = useMemo(() => ({ palette: character.palette, stripes: character.stripes !== false }), [character.palette, character.stripes])
@@ -27,7 +28,7 @@ export default function CharacterForm({ who, character, actions, voice = null, s
   const title = (
     <>
       <i className="scbSpkDot" style={{ '--spk': color, '--spk-ink': contrastInk(color) }} aria-hidden="true">{who.toUpperCase()}</i>
-      {name} <span className="scbCount">{who === 'a' ? 'слева' : 'справа'}</span>
+      {name} <span className="scbCount">{solo ? 'по центру' : who === 'a' ? 'слева' : 'справа'}</span>
     </>
   )
 

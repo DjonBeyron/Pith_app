@@ -5,13 +5,14 @@ import { useSceneNear } from './useSceneNear.js'
 import { getSmallPx } from '../circle/useCircleExpand.js'
 import { sceneCircleFit, ringOffset } from './sceneCircleFit.js'
 import SceneSoundChip from './SceneSoundChip.jsx'
+import { isSolo } from '../../../scene/v2/scenePit.js'
 
 const RING_R = 106
 const RING_C = 2 * Math.PI * RING_R
 
 // Режим 'circle' ноды scene: круглая вставка как видеосообщение (те же классы
 // circleWrap/circleFrame/кольцо, circle.css), сцена кадрирована на головы
-// котов и облачко (sceneCircleFit.js). Кольцо прогресса — по репликам.
+// котов и облачко (sceneCircleFit.js; одиночная сцена — одна голова по центру). Кольцо прогресса — по репликам.
 // Тап по кругу — до старта пуск, дальше полноэкранный пузырь 9:16 (вместо
 // раскрытия кружка: useCircleExpand завязан на <video>, а сцене в круге тесно).
 // rootRef — корень круга (его же меряем: размер = ширина круга).
@@ -41,7 +42,7 @@ export default function SceneCircleView({
           data-status={isHistory ? 'history' : status}
         >
           <div className="circleFrame">
-            <div className="playerSceneCircleInner" style={sceneCircleFit(size)}>
+            <div className="playerSceneCircleInner" style={sceneCircleFit(size, { solo: isSolo(scene) })}>
               <SceneBody
                 scene={scene} isHistory={isHistory} ended={ended} near={near} last={last} showBubbles={showBubbles}
                 display={display} voice={voice} showProgress={false}

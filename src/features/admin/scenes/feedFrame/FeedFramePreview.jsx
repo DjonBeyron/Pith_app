@@ -5,6 +5,7 @@ import { dragFeedFrame } from '../../../feed/scene/feedFrameCalc.js'
 import FeedSlideLayers from './FeedSlideLayers.jsx'
 import FeedZonePlates from './FeedZonePlates.jsx'
 import { previewSlideSpec } from './feedFrameModel.js'
+import { isSolo } from '../../../scene/v2/scenePit.js'
 
 // Слайд ленты в масштабе колонки: настоящий SlideScene (тот же кадр, что в ленте) в настоящем .feedSlide нужного размера,
 // поверх — слои ленты (FeedSlideLayers), плашки опасных зон (FeedZonePlates) и слой перетаскивания (pointer events: мышь и
@@ -18,8 +19,8 @@ export default function FeedFramePreview({ scene, device, frame, calc, zoom, lin
   // Кадр из локального состояния → DOM сцены (SlideScene сам применяет кадр сцены при монтировании и смене сохранённого)
   useLayoutEffect(() => {
     const el = boxRef.current?.querySelector('.slideSceneRoot')
-    if (el) applyFeedFrame(el, frame)
-  }, [frame, device])
+    if (el) applyFeedFrame(el, frame, isSolo(scene))
+  }, [frame, device, scene])
 
   function down(e) {
     e.currentTarget.setPointerCapture?.(e.pointerId)

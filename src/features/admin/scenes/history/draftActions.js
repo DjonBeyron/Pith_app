@@ -23,6 +23,7 @@ export function buildDraftActions(edit) {
     setPaletteColor: (k, c, v) => edit(`цвет персонажа ${k.toUpperCase()}`, s => M.setPaletteColor(s, k, c, v), `pal:${k}:${c}`),
     applyPreset: (k, id) => edit(`палитра персонажа ${k.toUpperCase()}`, s => M.applyPalettePreset(s, k, id)),
     setVoice: (k, p) => edit(`голос персонажа ${k.toUpperCase()}`, s => M.setVoice(s, k, p), `voice:${k}:${Object.keys(p).join(',')}`),
+    setSolo: v => edit(v ? 'один кот (Пит)' : 'два кота', s => M.setSolo(s, v)), // characters без b / с b (scenePit.js)
     setOption: (name, v) => edit(`опция «${name}»`, s => M.setOption(s, name, v)),
     // Режимы показа и озвучки (modes/sceneModes.js): пишутся в options только при вызове
     setDisplay: m => edit('режим показа', s => MD.setDisplay(s, m)),

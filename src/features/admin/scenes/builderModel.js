@@ -2,6 +2,7 @@ import { normalizeSceneV2, PALETTE_PRESETS, LIMITS } from '../../scene/v2/sceneS
 import { emptySlots, slotsFor, COMMON_SLOT_IDS } from '../../scene/v2/sprites/slots.js'
 import { defaultSlots } from '../../scene/v2/sceneMigrate.js'
 import { demoOfficeScene } from '../../scene/v2/demoScenes.js'
+import { isSolo, pitCharacter } from '../../scene/v2/scenePit.js'
 import { removeLine as removeLineOp } from './timelineOps.js'
 
 // Модель черновика сборщика сцен (этап 2). Черновик — это нормализованная сцена v2
@@ -18,16 +19,35 @@ export function newDraft(location = 'office') {
 }
 
 // Пустая сцена той же локации: слоты пустые, две реплики-заготовки, персонажи как были
+// (у одиночной сцены обе заготовки — от a)
 export function clearScene(scene) {
   return normalizeSceneV2({
     ...scene,
     slots: emptySlots(scene.location),
     timeline: [
       { who: 'a', text: 'Привет!', emotion: 'happy' },
-      { who: 'b', text: 'Привет. Как дела?', emotion: 'neutral' },
+      { who: isSolo(scene) ? 'a' : 'b', text: 'Привет. Как дела?', emotion: 'neutral' },
     ],
   })
 }
+
+// Переключатель «Два кота / Один кот (Пит)» (scenePit.js). Один кот: персонаж a становится Питом
+// (внешность и голос по умолчанию — дальше правятся в форме), b убирается, его реплики переходят к a
+// (их озвучка станет «устаревшей» — голос другой, линтер подскажет переозвучить). Два кота: b по умолчанию.
+export function setSolo(scene, solo) {
+  if (!!solo === isSolo(scene)) return scene
+  if (solo) {
+    return normalizeSceneV2({
+      ...scene,
+      characters: { a: pitCharacter() },
+      timeline: scene.timeline.map(l => (l.who === 'b' ? { ...l, who: 'a' } : l)),
+    })
+  }
+  return normalizeSceneV2({ ...scene, characters: { a: scene.characters.a, b: {} } })
+}
+
+// Сколько реплик говорит b — чтобы предупредить перед переключением на одного кота
+export const linesOfB = scene => (scene.timeline ?? []).filter(l => l.who === 'b').length
 
 export function fromScene(scene) {
   return normalizeSceneV2(scene)

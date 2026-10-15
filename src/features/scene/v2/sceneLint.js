@@ -7,11 +7,14 @@ import { lintTask } from './sceneLintTask.js'
 import { lineAudioState, translationAudioState, sceneVoiceStats } from './sceneVoice.js'
 import { displayOfOptions, normalizeVoiceFlags } from './sceneOptions.js'
 import { sceneByteSize, SCENE_MAX_BYTES } from './sceneNode.js'
+import { isSolo } from './scenePit.js'
 
 // Линтер сцен v2 — детерминированная проверка поверх валидатора: бюджет
 // узлов, предметы без опоры, пустые слоты, качество диалога. Возвращает
 // [{ level: 'error' | 'warn', text }]; error — сцену не публикуем, warn —
 // показать автору/нейросети и дать поправить. Все сообщения по-русски.
+// Одиночная сцена (один кот, scenePit.js): проверки про второго персонажа
+// («b не говорит», «подряд один говорящий», «котов не отличить») не применяются.
 // Ту же функцию зовёт scripts/lint-scene.mjs.
 
 const SOFT_TEXT_LEN = 110
@@ -47,14 +50,15 @@ function lintCharacters(scene, out) {
 
 function lintTimeline(scene, out) {
   const tl = Array.isArray(scene.timeline) ? scene.timeline : []
+  const solo = isSolo(scene)
   const speakers = new Set(tl.map(l => l?.who))
   // Одна реплика (задание «Повтори»/«Ответь коту»): второй кот просто слушает — это нормально
-  for (const k of ['a', 'b']) if (tl.length > 1 && !speakers.has(k)) out.push({ level: 'warn', text: `timeline — персонаж '${k}' ни разу не говорит` })
+  if (!solo) for (const k of ['a', 'b']) if (tl.length > 1 && !speakers.has(k)) out.push({ level: 'warn', text: `timeline — персонаж '${k}' ни разу не говорит` })
   let run = 0
   tl.forEach((l, i) => {
     if (!isObj(l)) return
     run = i > 0 && tl[i - 1]?.who === l.who ? run + 1 : 1
-    if (run === MAX_SAME_SPEAKER_IN_ROW + 1) out.push({ level: 'warn', text: `timeline[${i}] — '${l.who}' говорит ${run} реплики подряд: лучше чередовать` })
+    if (!solo && run === MAX_SAME_SPEAKER_IN_ROW + 1) out.push({ level: 'warn', text: `timeline[${i}] — '${l.who}' говорит ${run} реплики подряд: лучше чередовать` })
     const text = typeof l.text === 'string' ? l.text.trim() : ''
     if (text.length > SOFT_TEXT_LEN) out.push({ level: 'warn', text: `timeline[${i}].text — длинно (${text.length} символов), облачко займёт полэкрана` })
     if (text && !/[.!?…»)]$/.test(text)) out.push({ level: 'warn', text: `timeline[${i}].text — реплика без знака в конце` })

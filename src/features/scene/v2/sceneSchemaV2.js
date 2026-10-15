@@ -4,7 +4,8 @@
 //
 // {
 //   version: 2, id, title, location: 'office' | 'cafe',
-//   characters: { a: Character, b: Character },     // ровно два: a слева, b справа
+//   characters: { a: Character, b: Character },     // два: a слева, b справа — или { a } без b: один кот
+//                                                    // («Пит», по центру; scenePit.js — реплики только who 'a')
 //   slots: { [slotId]: spriteId | null },             // ячейки предметов локации (sprites/slots.js)
 //   timeline: [Line, ...],                            // 2…12 реплик
 //   options: { bubbles: true, autoplay: false, loop: false,
@@ -33,12 +34,14 @@ import { validateSceneV2 } from './sceneValidate.js'
 import { normalizeTask } from './sceneTask.js'
 import { normalizeSceneOptions } from './sceneOptions.js'
 import { AUDIO_SETS } from './sceneVoice.js'
+import { isSolo } from './scenePit.js'
 
 export * from './sceneConstants.js'
 export { LOCATIONS }
 export { validateSceneV2 }
 export { migrateScene } from './sceneMigrate.js'
 export { sceneNodeBudget, NODE_BUDGET } from './sceneBudget.js'
+export { PIT, isSolo, speakersOf } from './scenePit.js'
 
 function normalizeCharacter(c, key) {
   const src = isObj(c) ? c : {}
@@ -54,10 +57,10 @@ function normalizeCharacter(c, key) {
   }
 }
 
-function normalizeLine(l) {
+function normalizeLine(l, solo) {
   const src = isObj(l) ? l : {}
   const out = {
-    who: src.who === 'b' ? 'b' : 'a',
+    who: src.who === 'b' && !solo ? 'b' : 'a',
     text: typeof src.text === 'string' ? src.text.trim() : '',
     emotion: EMOTIONS.includes(src.emotion) ? src.emotion : 'neutral',
     pose: POSES.includes(src.pose) ? src.pose : 'talk',
@@ -75,6 +78,7 @@ function normalizeLine(l) {
 // Дополняет сцену значениями по умолчанию: палитры, голос, пустые слоты
 // локации (неизвестные слоты отбрасываются), эмоция/поза реплик, options
 // (sceneOptions.js: display дописывается только если был задан — старые сцены не меняются).
+// Одиночная сцена (characters без b) остаётся одиночной: b НЕ достраивается, who реплик → 'a'.
 // Не проверяет — для этого validateSceneV2; нормализовать можно и невалидное.
 export function normalizeSceneV2(scene) {
   const s = isObj(scene) ? scene : {}
@@ -87,14 +91,17 @@ export function normalizeSceneV2(scene) {
     }
   }
   const chars = isObj(s.characters) ? s.characters : {}
+  const solo = isSolo(s)
   const out = {
     version: SCENE_VERSION_V2,
     id: typeof s.id === 'string' && s.id ? s.id : 'scene',
     title: typeof s.title === 'string' ? s.title.trim() : '',
     location,
-    characters: { a: normalizeCharacter(chars.a, 'a'), b: normalizeCharacter(chars.b, 'b') },
+    characters: solo
+      ? { a: normalizeCharacter(chars.a, 'a') }
+      : { a: normalizeCharacter(chars.a, 'a'), b: normalizeCharacter(chars.b, 'b') },
     slots,
-    timeline: Array.isArray(s.timeline) ? s.timeline.map(normalizeLine) : [],
+    timeline: Array.isArray(s.timeline) ? s.timeline.map(l => normalizeLine(l, solo)) : [],
     options: normalizeSceneOptions(s.options),
   }
   const task = normalizeTask(s.task)

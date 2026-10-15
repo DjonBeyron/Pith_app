@@ -18,28 +18,29 @@ function observe(el, cb) {
   return () => { subs.delete(el); ro?.unobserve(el) }
 }
 
-// Применить кадр к элементу: меряет себя, считает, пишет переменные. Экспорт — для предпросмотра и тестов
-export function applyFeedFrame(el, frame) {
+// Применить кадр к элементу: меряет себя, считает, пишет переменные. Экспорт — для предпросмотра и тестов.
+// solo — сцена с одним котом (рамка одного кота по центру)
+export function applyFeedFrame(el, frame, solo = false) {
   const w = el.clientWidth
   const h = el.clientHeight
   if (!w || !h) return null
   const cs = getComputedStyle(el)
   const navH = parseFloat(cs.paddingBottom) || 0
   const safeTop = parseFloat(cs.paddingTop) || 0
-  const r = computeFeedFrame({ w, h, navH, safeTop, frame })
+  const r = computeFeedFrame({ w, h, navH, safeTop, frame, solo })
   const vars = feedFrameVars(r)
   for (const k of Object.keys(vars)) el.style.setProperty(k, vars[k])
   return r
 }
 
-export function useFeedFrame(rootRef, feedFrame) {
+export function useFeedFrame(rootRef, feedFrame, solo = false) {
   const key = feedFrame ? `${feedFrame.scale}|${feedFrame.x}|${feedFrame.y}|${feedFrame.anchor ?? ''}` : ''
   useLayoutEffect(() => {
     const el = rootRef.current
     if (!el) return undefined
     const frame = key ? feedFrame : undefined
-    applyFeedFrame(el, frame)
-    return observe(el, () => applyFeedFrame(el, frame))
+    applyFeedFrame(el, frame, solo)
+    return observe(el, () => applyFeedFrame(el, frame, solo))
     // feedFrame берётся по key: объект сцены пересоздаётся, значения — нет
-  }, [rootRef, key]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [rootRef, key, solo]) // eslint-disable-line react-hooks/exhaustive-deps
 }

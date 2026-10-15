@@ -3,8 +3,9 @@ import { SLOTS_BY_LOCATION } from './sprites/slots.js'
 import { LOCATIONS } from './sprites/backgrounds.js'
 import { EMOTIONS, POSES, GENDERS, LIMITS, PALETTE_PRESETS } from './sceneConstants.js'
 import { NODE_BUDGET } from './sceneBudget.js'
-import { demoCafeScene } from './demoScenes.js'
+import { demoCafeScene, demoPitCircleScene } from './demoScenes.js'
 import { TASK_LIMITS } from './sceneTask.js'
+import { PIT } from './scenePit.js'
 
 // Легенда формата сцены v2 для нейросети и для человека без доступа к коду
 // (по образцу NODE_DOCS урока): что за поля, допустимые значения, список
@@ -17,7 +18,7 @@ export const SCENE_FIELD_DOCS = {
   id: 'Короткий латинский идентификатор (буквы, цифры, дефис), например demo-office-work',
   title: `Название сцены по-русски, до ${LIMITS.maxTitleLen} символов`,
   location: `Локация: ${LOCATIONS.join(' | ')}. Задаёт фон и набор слотов для предметов`,
-  characters: 'Ровно два персонажа: a (стоит слева) и b (стоит справа). Оба — коты (kind: "cat")',
+  characters: `Два персонажа: a (стоит слева) и b (стоит справа), оба — коты (kind: "cat"). ИЛИ один кот: characters: { a } БЕЗ поля b — это одиночная сцена, кот стоит по центру. Одиночного кота зовут «${PIT.name}» (a = ${JSON.stringify(PIT)}); он используется в «кружке Пита» — сцене, которая открывает и закрывает урок (1–2 реплики, в ноде урока mode "circle")`,
   'characters.*.gender': `${GENDERS.join(' | ')}. Меняет силуэт и детали: male — шире, кисточки на щеках, ошейник с жетоном; female — стройнее, бантик на ухе, ресницы`,
   'characters.*.name': `Имя по-русски, до ${LIMITS.maxNameLen} символов — показывается в облачке`,
   'characters.*.palette': 'Цвета #rrggbb: fur (шерсть), accent (ухо внутри, нос), belly (грудка/мордочка), eye (радужка), stripe (полоски). Можно взять готовый набор из presets',
@@ -25,7 +26,7 @@ export const SCENE_FIELD_DOCS = {
   'characters.*.voice': 'pitch 0…2 (1 — обычный; <1 ниже, >1 выше), rate 0.1…10 (1 — обычный темп) — для запасного синтеза устройства. voiceId, stability 0…1, similarity 0…1, speed 0.7…1.2 — голос ElevenLabs, translationVoiceId — голос для озвучки перевода; выбирает админ в сборщике, нейросеть эти поля НЕ заполняет',
   slots: 'Объект { слот: id предмета | null }. Слоты зависят от локации (см. slots). Предмет можно поставить только в совместимый слот. Пустой слот — null',
   timeline: `Реплики по порядку: от ${LIMITS.minLines} до ${LIMITS.maxLines}; для задания «Повтори»/«Ответь коту» (task.kind repeat/say) достаточно ${LIMITS.minLinesVoice} реплики: кот сказал — зритель повторил или ответил`,
-  'timeline[].who': '"a" или "b" — кто говорит',
+  'timeline[].who': '"a" или "b" — кто говорит; в одиночной сцене (без b) — только "a"',
   'timeline[].text': `Реплика по-русски, до ${LIMITS.maxTextLen} символов, одно-два предложения, со знаком в конце`,
   'timeline[].emotion': `${EMOTIONS.join(' | ')} — лицо говорящего на время реплики (другой кот нейтрален)`,
   'timeline[].pose': `${POSES.join(' | ')} (необязательно; по умолчанию talk). lean — наклон к собеседнику`,
@@ -79,6 +80,7 @@ export const DIALOGUE_RULES = [
   'У сцены есть мини-сюжет: завязка (1–2 реплики), поворот, развязка-шутка или договорённость в конце.',
   'Предметы в слотах поддерживают тему: про кофе — чашка и кофемашина, про дедлайн — ноутбук и бумаги. Не оставлять все слоты пустыми.',
   'Персонажи должны отличаться: разный пол или цвет шерсти, разные имена и голоса (pitch).',
+  `Одиночная сцена (characters: { a } без b, кот «${PIT.name}» по центру) — только когда просят кружок Пита или сцену с одним котом: 1–2 коротких реплики от "a", без задания; Пит обращается к зрителю — открывает урок (тема, вопрос) или закрывает (итог, повтор). Правило чередования к ней не относится.`,
   `Бюджет SVG-узлов сцены ≤ ${NODE_BUDGET}: это ограничивает число занятых слотов (каждый предмет 4–8 узлов, коты ~55 каждый, фон ~10).`,
   'Если просят задание «О чём диалог»: у каждой реплики заполни translation (русский перевод), в task выбери реплику с поворотом или развязкой, дай 2–4 accept с другими формулировками и hint без самого ответа.',
   'Если просят голосовое задание: kind "repeat" — выбери короткую реплику (до 12 слов) для повтора; kind "say" — выбери реплику-вопрос, дай 1–3 ожидаемых ответа в answers на языке оригинала, при желании keywords и hint. Для голосовых видов translation не обязателен. Для repeat/say сцена может состоять из ОДНОЙ реплики (кот сказал — зритель повторил/ответил; говорить может любой из двух котов), диалог из 2+ реплик не обязателен; без задания и для «О чём диалог» нужно минимум 2 реплики.',
@@ -122,6 +124,9 @@ export function sceneLegendText() {
     JSON.stringify(TASK_EXAMPLE_SAY, null, 2),
     JSON.stringify(TASK_EXAMPLE_REPEAT, null, 2),
     '',
+    `## Пример одиночной сцены — кружок Пита (один кот «${PIT.name}», без b)`,
+    JSON.stringify(demoPitCircleScene, null, 2),
+    '',
     '## Пример валидной сцены',
     JSON.stringify(demoCafeScene, null, 2),
   ].join('\n')
@@ -139,6 +144,8 @@ export function sceneLegend() {
     slots: SLOTS_BY_LOCATION,
     rules: DIALOGUE_RULES,
     example: demoCafeScene,
+    soloExample: demoPitCircleScene,
+    pit: PIT,
     taskExample: TASK_EXAMPLE,
     taskExamples: { translate: TASK_EXAMPLE, say: TASK_EXAMPLE_SAY, repeat: TASK_EXAMPLE_REPEAT },
   }

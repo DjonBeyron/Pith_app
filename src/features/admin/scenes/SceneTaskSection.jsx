@@ -19,7 +19,7 @@ export default function SceneTaskSection({ scene, actions, savedId = null, setSt
   const task = scene.task
   const preview = taskPreview(scene)
   const voice = isVoiceKind(kind)
-  const names = { a: scene.characters.a.name, b: scene.characters.b.name }
+  const names = { a: scene.characters.a.name, b: scene.characters.b?.name }
 
   return (
     <Panel

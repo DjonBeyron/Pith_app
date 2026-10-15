@@ -5,15 +5,19 @@ import CharacterForm from './CharacterForm.jsx'
 import TimelineEditor from './TimelineEditor.jsx'
 import SceneTaskSection from './SceneTaskSection.jsx'
 import PlaybackOptions from './modes/PlaybackOptions.jsx'
+import CharactersModeSwitch from './CharactersModeSwitch.jsx'
+import { isSolo } from '../../scene/v2/scenePit.js'
 
 // Левая колонка сборщика — сворачиваемые панели (ui/Panel): «Локация», «Ячейки предметов»
-// (SlotsGrid), «Персонажи» (CharacterForm A и B — вложенные панели), «Реплики» (TimelineEditor),
+// (SlotsGrid), «Персонажи» (переключатель «Два кота / Один кот (Пит)» — CharactersModeSwitch;
+// CharacterForm A и B — вложенные панели, у одиночной сцены только A), «Реплики» (TimelineEditor),
 // «Задание после сцены» (SceneTaskSection), «Параметры воспроизведения» (modes/PlaybackOptions:
 // режим показа, озвучка оригинала/перевода, голос перевода, автозапуск/повтор). Ключи панелей
 // (location, slots, characters, timeline, task, options) — те же, что в lintPanelMap.js;
 // id вида f-… нужны подсветке замечаний линтера (lintFieldMap.js).
 // voice — API озвучки ElevenLabs (useSceneVoice) для персонажей и реплик
 export default function BuilderSettings({ scene, actions, savedId = null, setStatus, voice = null, onFeedTest = null }) {
+  const solo = isSolo(scene)
   return (
     <div className="scbSettings">
       <Panel id="location" title="Локация" fieldId="f-location">
@@ -39,10 +43,10 @@ export default function BuilderSettings({ scene, actions, savedId = null, setSta
         <SlotsGrid scene={scene} onPick={actions.setSlot} />
       </Panel>
 
-      <Panel id="characters" title="Персонажи" fieldId="f-characters">
+      <Panel id="characters" title="Персонажи" fieldId="f-characters" extra={<CharactersModeSwitch scene={scene} actions={actions} disabled={!!voice?.busy} />}>
         <div className="scbChars">
-          <CharacterForm who="a" character={scene.characters.a} actions={actions} voice={voice} scene={scene} />
-          <CharacterForm who="b" character={scene.characters.b} actions={actions} voice={voice} scene={scene} />
+          <CharacterForm who="a" solo={solo} character={scene.characters.a} actions={actions} voice={voice} scene={scene} />
+          {!solo && <CharacterForm who="b" character={scene.characters.b} actions={actions} voice={voice} scene={scene} />}
         </div>
       </Panel>
 

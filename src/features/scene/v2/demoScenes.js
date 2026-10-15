@@ -1,8 +1,10 @@
 import { PALETTE_PRESETS } from './sceneConstants.js'
+import { PIT } from './scenePit.js'
 
 // Демо-сцены v2 — пример для админки, нейросети (легенда) и тестов. Все
-// проходят lintScene без ошибок (см. sceneLint.test.js). Две последние — из одной реплики
-// (задания «Повтори» и «Ответь коту»: кот сказал — зритель повторил/ответил).
+// проходят lintScene без ошибок (см. sceneLint.test.js). Две — из одной реплики
+// (задания «Повтори» и «Ответь коту»: кот сказал — зритель повторил/ответил), последняя —
+// одиночная (один кот Пит, characters без b): кружок, открывающий/закрывающий урок.
 
 export const demoOfficeScene = {
   version: 2,
@@ -94,4 +96,19 @@ export const demoSayOneLineScene = {
   task: { kind: 'say', lineIndex: 0, answers: ['Tea, please', 'I would like a coffee'], accept: ['Coffee, please'], keywords: ['tea', 'coffee'], hint: 'Назови любой напиток' },
 }
 
-export const DEMO_SCENES = [demoOfficeScene, demoCafeScene, demoRepeatOneLineScene, demoSayOneLineScene]
+// Кружок Пита: один кот по центру, 1–2 реплики, без задания (mode 'circle' ноды урока)
+export const demoPitCircleScene = {
+  version: 2,
+  id: 'demo-pit-circle',
+  title: 'Кружок Пита',
+  location: 'office',
+  characters: { a: PIT },
+  slots: demoOfficeScene.slots,
+  timeline: [
+    { who: 'a', text: 'Привет! Сегодня разберём одно полезное слово.', emotion: 'happy' },
+    { who: 'a', text: 'Готов? Тогда поехали.', emotion: 'neutral' },
+  ],
+  options: { bubbles: true, autoplay: false, loop: false },
+}
+
+export const DEMO_SCENES = [demoOfficeScene, demoCafeScene, demoRepeatOneLineScene, demoSayOneLineScene, demoPitCircleScene]

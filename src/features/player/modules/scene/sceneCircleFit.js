@@ -5,14 +5,18 @@ import { SCENE_W, SCENE_H } from '../../../scene/v2/sprites/backgrounds.js'
 // viewBox 0 0 360 640, головы ≈ 444…520), облачко в режиме кружка — по
 // центру над головами (scene.css: низ ≈ y 384, верх ≈ 300). Круг диаметром D
 // показывает полосу сцены шириной SHOW_W единиц с центром в (180, CENTER_Y):
-// в кадре — обе головы и облачко, пол и потолок обрезаны. Возвращает стиль
-// абсолютно позиционированной обёртки сцены внутри круглой рамки (сама
-// сцена — width 100%, aspect-ratio 9/16).
+// в кадре — обе головы и облачко, пол и потолок обрезаны. Одиночная сцена
+// (один кот по центру, scenePit.js; solo: true) — кадр чуть ближе и ниже: одна
+// голова ровно в центре круга, облачко (в кружке оно уже — scene.css [data-solo])
+// целиком в круге. Те же числа в процентах — scene-picker.css (.nodeScenePreview--circle).
+// Возвращает стиль абсолютно позиционированной обёртки сцены внутри круглой
+// рамки (сама сцена — width 100%, aspect-ratio 9/16).
 
 export const CIRCLE_SHOW_W = 340
 export const CIRCLE_CENTER_Y = 410
+export const CIRCLE_SOLO = { showW: 320, centerY: 416 }
 
-export function sceneCircleFit(diameter, { showW = CIRCLE_SHOW_W, centerY = CIRCLE_CENTER_Y } = {}) {
+export function sceneCircleFit(diameter, { solo = false, showW = solo ? CIRCLE_SOLO.showW : CIRCLE_SHOW_W, centerY = solo ? CIRCLE_SOLO.centerY : CIRCLE_CENTER_Y } = {}) {
   const d = Math.max(0, Number(diameter) || 0)
   const w = d * SCENE_W / showW
   const h = w * SCENE_H / SCENE_W

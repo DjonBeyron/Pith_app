@@ -11,8 +11,14 @@
 
 export const LAYERS = ['wall', 'floor', 'table', 'tabletop']
 
-// Где стоят коты (viewBox сцены): a слева, b справа; масштаб кота 200×240 → 140×168
-export const CAT_PLACEMENT = { a: { x: 22, y: 444 }, b: { x: 198, y: 444 }, scale: 0.7 }
+// Где стоят коты (viewBox сцены): a слева, b справа; масштаб кота 200×240 → 140×168.
+// solo — одиночный кот (scenePit.js): центр головы (x 100 в спрайте → 70 после масштаба) ровно на оси сцены x 180
+export const CAT_PLACEMENT = { a: { x: 22, y: 444 }, b: { x: 198, y: 444 }, solo: { x: 110, y: 444 }, scale: 0.7 }
+
+// Позиция кота: у одиночной сцены единственный кот a стоит по центру
+export function catPlacement(who, solo = false) {
+  return solo ? CAT_PLACEMENT.solo : CAT_PLACEMENT[who]
+}
 
 const COMMON_SLOTS = [
   { id: 'window', title: 'Окно на стене слева', x: 111, y: 150, layer: 'wall', accepts: ['window'] },

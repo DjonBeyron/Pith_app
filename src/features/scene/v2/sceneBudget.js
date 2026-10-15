@@ -1,10 +1,11 @@
 import { countNodes } from './sprites/svgTree.js'
 import { backgroundSprite, catSprite, getSprite } from './sprites/spriteRegistry.js'
 import { slotsFor } from './sprites/slots.js'
+import { speakersOf } from './scenePit.js'
 
 // Бюджет узлов SVG на сцену — чтобы на слабых Android не лагало: персонажи
-// 2 × ~55, фон ~10, предметы — остальное. Считается то, что реально
-// окажется в DOM: фон + коты (по полу) + каждый занятый слот (обёртка
+// 2 × ~55 (у одиночной сцены — один, scenePit.js), фон ~10, предметы — остальное. Считается
+// то, что реально окажется в DOM: фон + коты (по полу) + каждый занятый слот (обёртка
 // <g transform> + дерево предмета). Корневой <svg> и облачки (HTML) не считаются.
 
 export const NODE_BUDGET = 250
@@ -14,7 +15,7 @@ export function sceneNodeBudget(scene) {
   const location = scene.location ?? 'office'
   let total = countNodes(backgroundSprite(location)?.build?.() ?? null)
   const chars = scene.characters ?? {}
-  for (const key of ['a', 'b']) {
+  for (const key of speakersOf(scene)) {
     const c = chars[key] ?? {}
     const sprite = catSprite(c.gender)
     if (sprite) total += countNodes(sprite.build({ palette: c.palette, stripes: c.stripes !== false, emotion: 'neutral' }))
@@ -33,7 +34,7 @@ export function sceneNodeBudget(scene) {
 export function sceneNodeBreakdown(scene) {
   const location = scene?.location ?? 'office'
   const background = countNodes(backgroundSprite(location)?.build?.() ?? null)
-  const characters = ['a', 'b'].reduce((n, k) => {
+  const characters = speakersOf(scene).reduce((n, k) => {
     const c = scene?.characters?.[k] ?? {}
     const s = catSprite(c.gender)
     return n + (s ? countNodes(s.build({ palette: c.palette, stripes: c.stripes !== false })) : 0)

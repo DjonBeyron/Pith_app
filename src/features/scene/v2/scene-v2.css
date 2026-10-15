@@ -42,6 +42,9 @@
 .scn--live .scn-bubble { animation: scnBubbleIn 0.22s ease-out; }
 .scn-bubble--a { left: 5%; border-bottom-left-radius: 6px; }
 .scn-bubble--b { right: 5%; border-bottom-right-radius: 6px; }
+/* Одиночный кот (data-solo на .scn): облачко по центру над головой; translate — отдельное
+   свойство, не transform, чтобы анимация появления (transform) его не перебивала */
+.scn-bubble--c { left: 50%; translate: -50% 0; }
 .scn-bubble__name {
   font-size: 0.78em;
   font-weight: 700;
@@ -71,6 +74,7 @@
 }
 .scn-bubble--a .scn-bubble__tail { left: 22%; border-right-width: 4px; }
 .scn-bubble--b .scn-bubble__tail { right: 22%; border-left-width: 4px; }
+.scn-bubble--c .scn-bubble__tail { left: 50%; margin-left: -10px; border-left-width: 10px; border-right-width: 10px; }
 
 @keyframes scnBubbleIn {
   from { opacity: 0; transform: translateY(6px) scale(0.96); }

@@ -9,6 +9,7 @@ import SceneTaskPanel from './SceneTaskPanel.jsx'
 import { useSceneTask } from './useSceneTask.js'
 import { useSceneAudioPrefetch } from './useSceneAudioPrefetch.js'
 import { useFeedFrame } from './useFeedFrame.js'
+import { isSolo } from '../../scene/v2/scenePit.js'
 import { sceneLayerMode, loopedScene, sceneSound, sceneRate } from './slideSceneRules.js'
 
 // Слой сцены «два кота говорят» на слайде ленты — тот же контракт, что у
@@ -42,7 +43,7 @@ function SlideScene({
   const floor = colors?.floor ?? '#c9a27a'
   const wall = colors?.wall ?? '#e8eef5'
   const rootRef = useRef(null)
-  useFeedFrame(rootRef, scene?.options?.feedFrame) // кадрирование (options.feedFrame + размер слайда) → CSS-переменные
+  useFeedFrame(rootRef, scene?.options?.feedFrame, isSolo(scene)) // кадрирование (options.feedFrame + размер слайда) → CSS-переменные
 
   return (
     <div ref={rootRef} className="slideSceneRoot" data-mode={mode} style={{ '--scene-floor': floor, '--scene-wall': wall }} onClick={pb.onTap}>

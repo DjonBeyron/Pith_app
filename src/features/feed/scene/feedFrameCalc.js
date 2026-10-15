@@ -1,4 +1,4 @@
-import { CAT_PLACEMENT } from '../../scene/v2/sprites/slots.js'
+import { CAT_PLACEMENT, catPlacement } from '../../scene/v2/sprites/slots.js'
 import { resolveFeedFrame } from '../../scene/v2/sceneFeedFrame.js'
 import {
   feedZones, ZONE_GAP, BUBBLE_GAP, HUD_RIGHT, HUD_W, HUD_CLEAR,
@@ -12,6 +12,7 @@ import {
 // вылезал за слайд, а блок фразы и кнопка «Изучить фразу» ложились поверх котов. Теперь «ноги» котов ставятся
 // прямо над самой высокой занятой зоной (блок фразы на 2 строки), а лишний верх сцены (небо, окно) уходит за край.
 // Масштаб — только по пользовательскому feedFrame.scale, вокруг ног котов: персонажей не режем, режется фон.
+// solo (одиночная сцена, scenePit.js) — рамка одного кота a по центру (CAT_PLACEMENT.solo), иначе обоих.
 
 export const SCENE_W = 360
 export const SCENE_H = 640
@@ -20,14 +21,18 @@ export const FLOOR_Y = 430 // линия пола фона (вьюбокс), с�
 // Чернила кота (getBBox спрайта 200×240 до масштаба/переворота): левый a — x 40…188, правый b (зеркальный) — x 9…156
 const CAT_INK = { a: { x: 40, w: 148 }, b: { x: 8.86, w: 147.14 }, y: 29.8, h: 204.2 }
 
-// Рамка чернил каждого кота во вьюбоксе сцены
-export function catsInkBox() {
+// Рамка чернил котов во вьюбоксе сцены (solo — только кот a по центру)
+export function catsInkBox(solo = false) {
   const s = CAT_PLACEMENT.scale
-  const box = who => ({
-    l: CAT_PLACEMENT[who].x + CAT_INK[who].x * s, r: CAT_PLACEMENT[who].x + (CAT_INK[who].x + CAT_INK[who].w) * s,
-    t: CAT_PLACEMENT[who].y + CAT_INK.y * s, b: CAT_PLACEMENT[who].y + (CAT_INK.y + CAT_INK.h) * s,
-  })
+  const box = who => {
+    const p = catPlacement(who, solo)
+    return {
+      l: p.x + CAT_INK[who].x * s, r: p.x + (CAT_INK[who].x + CAT_INK[who].w) * s,
+      t: p.y + CAT_INK.y * s, b: p.y + (CAT_INK.y + CAT_INK.h) * s,
+    }
+  }
   const a = box('a')
+  if (solo) return a
   const b = box('b')
   return { l: Math.min(a.l, b.l), r: Math.max(a.r, b.r), t: Math.min(a.t, b.t), b: Math.max(a.b, b.b) }
 }
@@ -45,11 +50,11 @@ const WARN_TEXT = {
 }
 
 // { w, h } — размер слайда; navH — высота нижней панели (с safe-area); safeTop — safe-area сверху;
-// frame — options.feedFrame (или undefined → умолчание). Результат: см. поля ниже (px слайда)
-export function computeFeedFrame({ w, h, navH, safeTop = 0, frame }) {
+// frame — options.feedFrame (или undefined → умолчание); solo — сцена с одним котом. Результат: см. поля ниже (px слайда)
+export function computeFeedFrame({ w, h, navH, safeTop = 0, frame, solo = false }) {
   const f = resolveFeedFrame({ feedFrame: frame })
   const s0 = w / SCENE_W
-  const ink = catsInkBox()
+  const ink = catsInkBox(solo)
   const zones = feedZones({ w, h, navH, safeTop })
   const zone = id => zones.find(z => z.id === id)
   const fbot = zone('phrase').t - ZONE_GAP // ниже ног котов быть не должно

@@ -8,10 +8,11 @@ import { validateTask, minLinesFor } from './sceneTask.js'
 import { validateLineAudio } from './sceneValidateAudio.js'
 import { VOICE_RANGE } from './sceneVoice.js'
 import { validateSceneOptions } from './sceneOptions.js'
+import { isSolo } from './scenePit.js'
 
 // Валидация сцены v2: список ошибок по-русски с путями (characters.a.name,
 // timeline[3].text…). Пустой список — сцена годная. Проверяет форму и
-// пределы; смысловые предупреждения (пустые слоты, подряд один говорящий,
+// пределы; у одиночной сцены (characters без b) реплики только от 'a'; смысловые предупреждения (пустые слоты, подряд один говорящий,
 // бюджет узлов) — в sceneLint.js.
 
 const HEX = /^#[0-9a-f]{3}([0-9a-f]{3})?$/i
@@ -66,10 +67,11 @@ function validateSlots(slots, location, errors) {
   }
 }
 
-function validateLine(l, i, errors) {
+function validateLine(l, i, errors, solo) {
   const p = `timeline[${i}]`
   if (!isObj(l)) { errors.push(`${p} — объект реплики`); return }
   if (!CHARACTER_KEYS.includes(l.who)) errors.push(`${p}.who — 'a' или 'b'`)
+  else if (solo && l.who !== 'a') errors.push(`${p}.who — в сцене один персонаж (Пит, 'a'), 'b' говорить не может`)
   if (typeof l.text !== 'string' || !l.text.trim()) errors.push(`${p}.text — непустая строка`)
   else if (l.text.trim().length > LIMITS.maxTextLen) errors.push(`${p}.text — не длиннее ${LIMITS.maxTextLen} символов (сейчас ${l.text.trim().length})`)
   if (l.emotion !== undefined && !EMOTIONS.includes(l.emotion)) errors.push(`${p}.emotion — ${EMOTIONS.join(' | ')}`)
@@ -89,9 +91,11 @@ export function validateSceneV2(scene) {
   else if (typeof scene.title === 'string' && scene.title.length > LIMITS.maxTitleLen) errors.push(`title — не длиннее ${LIMITS.maxTitleLen} символов`)
   if (!LOCATIONS.includes(scene.location)) errors.push(`location — ${LOCATIONS.join(' | ')}`)
 
-  if (!isObj(scene.characters)) errors.push('characters — объект { a, b }')
+  // Два кота { a, b } или один { a } без b (scenePit.js: Пит). b: null — это не «нет b», а сломанный персонаж
+  const solo = isSolo(scene)
+  if (!isObj(scene.characters)) errors.push('characters — объект { a, b } или { a } (один кот)')
   else {
-    for (const k of CHARACTER_KEYS) validateCharacter(scene.characters[k], k, errors)
+    for (const k of CHARACTER_KEYS) if (k === 'a' || !solo) validateCharacter(scene.characters[k], k, errors)
     for (const k of Object.keys(scene.characters)) if (!CHARACTER_KEYS.includes(k)) errors.push(`characters.${k} — лишний персонаж, допустимы только a и b`)
   }
 
@@ -104,7 +108,7 @@ export function validateSceneV2(scene) {
       errors.push(`timeline — минимум ${minLines} ${minLines === 1 ? 'реплика' : 'реплики'}${minLines > 1 ? ' (для задания «Повтори»/«Ответь коту» достаточно одной)' : ''}`)
     }
     if (scene.timeline.length > LIMITS.maxLines) errors.push(`timeline — максимум ${LIMITS.maxLines} реплик (сейчас ${scene.timeline.length})`)
-    scene.timeline.forEach((l, i) => validateLine(l, i, errors))
+    scene.timeline.forEach((l, i) => validateLine(l, i, errors, solo))
   }
 
   validateSceneOptions(scene.options, errors) // bubbles/autoplay/loop, display, voice, translationVoiceId — sceneOptions.js

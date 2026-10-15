@@ -25,10 +25,10 @@ export function previewSlideSpec(device) {
   }
 }
 
-// Расчёт кадра для экрана предпросмотра
-export function previewCalc(device, frame) {
+// Расчёт кадра для экрана предпросмотра (solo — сцена с одним котом)
+export function previewCalc(device, frame, solo = false) {
   const { w, h, navH, safeTop } = previewSlideSpec(device)
-  return computeFeedFrame({ w, h, navH, safeTop, frame })
+  return computeFeedFrame({ w, h, navH, safeTop, frame, solo })
 }
 
 // Реплика для облачка в статичном кадре: самая длинная (худший случай по высоте облачка)

@@ -12,7 +12,7 @@ import LineVoiceControls from './voice/LineVoiceControls.jsx'
 // перевод (≤ 140, счётчик), два блока озвучки — текст и перевод (LineVoiceControls set=original|translation);
 // кнопки вверх/вниз/дублировать/удалить в шапке панели
 // (заблокированы, пока идёт озвучка — индексы плана). id — f-timeline-<i>-<поле>.
-// characters — для статуса «устарело» (hash по голосу персонажа).
+// characters — для статуса «устарело» (hash по голосу персонажа) и списка говорящих (без b — одиночная сцена: только A).
 const snippet = text => { const t = String(text ?? '').trim(); return t.length > 36 ? `${t.slice(0, 36)}…` : t }
 
 export default function TimelineLine({ index: i, line, names, total, actions, characters = null, voice = null, scene = null }) {
@@ -21,6 +21,7 @@ export default function TimelineLine({ index: i, line, names, total, actions, ch
   const trLen = String(line.translation ?? '').trim().length
   const trLeft = MAX_TEXT - trLen
   const lock = !!voice?.busy
+  const whos = characters && !characters.b ? ['a'] : ['a', 'b']
   const title = (
     <>
       <i className="scbSpkDot" data-who={line.who} aria-hidden="true">{line.who.toUpperCase()}</i>
@@ -41,7 +42,7 @@ export default function TimelineLine({ index: i, line, names, total, actions, ch
       <Panel id={`timeline.${i}`} title={title} label={`Реплика ${i + 1} — ${names[line.who]}`} fieldId={p} extra={extra} nested as="h4" className="scbLinePanel">
         <div className="scbLineTop">
           <div className="scbWhoBtns" role="radiogroup" aria-label={`Кто говорит в реплике ${i + 1}`} id={`${p}-who`}>
-            {['a', 'b'].map(w => (
+            {whos.map(w => (
               <button key={w} type="button" role="radio" aria-checked={line.who === w} data-who={w} className={line.who === w ? 'scbWho scbWhoOn' : 'scbWho'} onClick={() => actions.updateLine(i, { who: w })}>
                 <i className="scbWhoDot" aria-hidden="true" />{w.toUpperCase()} · {names[w]}
               </button>

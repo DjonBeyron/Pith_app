@@ -15,7 +15,7 @@ export default function TimelineEditor({ scene, actions, voice = null }) {
   const [askAll, setAskAll] = useState(false) // подтверждение «Удалить все реплики» — в строке, не confirm()
   const tl = scene.timeline
   const minLines = minLinesFor(scene) // 1 для заданий say/repeat, иначе 2
-  const names = { a: scene.characters.a.name, b: scene.characters.b.name }
+  const names = { a: scene.characters.a.name, b: scene.characters.b?.name } // b нет у одиночной сцены
   const st = sceneVoiceStats(scene)
   const remaining = voice?.quota ? Math.max(0, voice.quota.limit - voice.quota.used) : null
   return (

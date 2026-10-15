@@ -3,7 +3,8 @@ import { renderTree } from './renderTree.js'
 import SceneBubbleV2 from './SceneBubbleV2.jsx'
 import { useSceneDirectorV2 } from './useSceneDirectorV2.js'
 import { backgroundSprite, catSprite, getSprite } from './sprites/spriteRegistry.js'
-import { slotsInDrawOrder, CAT_PLACEMENT } from './sprites/slots.js'
+import { slotsInDrawOrder, CAT_PLACEMENT, catPlacement } from './sprites/slots.js'
+import { isSolo } from './scenePit.js'
 import { SCENE_VIEWBOX } from './sprites/backgrounds.js'
 import { isWeakDevice } from '../../../shared/lib/deviceTier.js'
 import { bubbleDisplay } from './sceneOptions.js'
@@ -12,7 +13,8 @@ import './scene-v2.css'
 import './scene-v2-cat.css'
 
 // Быстрый рендерер сцены v2 (9:16, адаптивный). Один <svg>: фон → предметы
-// по слотам → два кота; облачко — HTML поверх. Режимы:
+// по слотам → два кота (или один по центру — одиночная сцена, scenePit.js: облачко
+// side 'c' по центру, корень несёт data-solo); облачко — HTML поверх. Режимы:
 //   live   — режиссёр играет реплики, рот через data-mouth на DOM (без
 //            перерендера), идл-анимации CSS (только transform/opacity);
 //   static — статичный кадр (соседний слайд ленты, постер): без режиссёра,
@@ -27,13 +29,13 @@ import './scene-v2-cat.css'
 // поверх options сцены (sceneOptions.js); showBubbles — старый проп (false → 'none').
 // Задание scene.task скрывает переводы в облачке даже при 'both'.
 
-function Cat({ who, character, emotion, talking, onEl }) {
+function Cat({ who, character, emotion, talking, onEl, solo = false }) {
   const sprite = catSprite(character.gender)
   const tree = useMemo(
     () => sprite.build({ palette: character.palette, stripes: character.stripes !== false, emotion, flip: who === 'b' }),
     [sprite, character.palette, character.stripes, emotion, who],
   )
-  const p = CAT_PLACEMENT[who]
+  const p = catPlacement(who, solo)
   return (
     <g
       data-who={who}
@@ -66,6 +68,7 @@ export default function SceneRenderer({
   showBubbles, display, voice = null, showProgress = true, onTap, apiRef, onState, audioSrcOf = null, className = '', children,
 }) {
   const live = mode === 'live'
+  const solo = isSolo(scene) // один кот (a) по центру, b не рисуется
   const mouthEls = useRef({ a: null, b: null })
   const rootRef = useRef(null)
   const [onScreen, setOnScreen] = useState(true)
@@ -117,7 +120,7 @@ export default function SceneRenderer({
   return (
     <div
       ref={rootRef} className={cls} data-speaking={speaking ?? ''} data-status={live ? director.status : 'static'}
-      data-display={shown} data-phase={phase ?? undefined}
+      data-display={shown} data-phase={phase ?? undefined} data-solo={solo ? '1' : undefined}
       onClick={onTap} role={onTap ? 'button' : undefined} tabIndex={onTap ? 0 : undefined}
       onKeyDown={onTap ? e => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); onTap(e) } } : undefined}
     >
@@ -126,8 +129,8 @@ export default function SceneRenderer({
           {renderTree(bgTree)}
           <Props scene={scene} />
           {/* Пока звучит перевод («диктор»), кот не «говорит»: рот закрыт, покачивания головы нет */}
-          <Cat who="a" character={scene.characters.a} emotion={emotionOf('a')} talking={speaking === 'a' && phase !== 'translation'} onEl={onCatEl} />
-          <Cat who="b" character={scene.characters.b} emotion={emotionOf('b')} talking={speaking === 'b' && phase !== 'translation'} onEl={onCatEl} />
+          <Cat who="a" solo={solo} character={scene.characters.a} emotion={emotionOf('a')} talking={speaking === 'a' && phase !== 'translation'} onEl={onCatEl} />
+          {!solo && <Cat who="b" character={scene.characters.b} emotion={emotionOf('b')} talking={speaking === 'b' && phase !== 'translation'} onEl={onCatEl} />}
         </svg>
       ) : (
         // Статика — готовой строкой (staticMarkup.js): без fiber-ов на ~190 узлов
@@ -138,7 +141,7 @@ export default function SceneRenderer({
       )}
 
       <SceneBubbleV2
-        line={line} name={line ? scene.characters[line.who]?.name : ''} side={line?.who ?? 'a'}
+        line={line} name={line ? scene.characters[line.who]?.name : ''} side={solo ? 'c' : line?.who ?? 'a'}
         visible={bubbleVisible} showTranslation={shown === 'both'} phase={phase}
       />
 

@@ -81,7 +81,8 @@ describe('validateSceneV2', () => {
 
 describe('normalizeSceneV2', () => {
   it('дефолты: палитры, голос, эмоция/поза, пустые слоты локации, options', () => {
-    const n = normalizeSceneV2({ version: 2, location: 'cafe', characters: { a: { name: 'А' } }, timeline: [{ who: 'a', text: ' Да. ' }, { who: 'b', text: 'Нет.' }] })
+    // b: {} — пустой, но есть: без b сцена стала бы одиночной (scenePit.js), и b не достраивался бы
+    const n = normalizeSceneV2({ version: 2, location: 'cafe', characters: { a: { name: 'А' }, b: {} }, timeline: [{ who: 'a', text: ' Да. ' }, { who: 'b', text: 'Нет.' }] })
     expect(n.characters.a.gender).toBe('male')
     expect(n.characters.b.gender).toBe('female')
     expect(n.characters.a.palette.fur).toMatch(/^#/)

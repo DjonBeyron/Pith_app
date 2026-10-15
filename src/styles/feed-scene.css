@@ -46,6 +46,8 @@
   max-width: 66%;
 }
 .slideSceneRoot .scn-bubble--b { right: max(5%, var(--sf-hud-w, 0px)); }
+/* Центральное облачко одиночного кота — не шире полосы между HUD слева и справа */
+.slideSceneRoot .scn-bubble--c { max-width: min(66%, calc(100% - 2 * var(--sf-hud-w, 0px))); }
 
 /* Чипы и иконка паузы — поверх SVG и облачка */
 .slideSceneRoot .slidePauseIcon,

@@ -142,7 +142,7 @@ export default function BuilderWindow({ onClose: onCloseProp, initialScene = nul
           <FeedTestDialog draft={draft} library={library} save={act.save} setStatus={setStatus} onClose={() => setFeedTest(false)} onLeave={onCloseProp} origin={testCopy ? fromTest.origin : mode} />
         )}
         <VoiceAllDialog
-          all={voice.all} quota={voice.quota} names={{ a: draft.scene.characters.a.name, b: draft.scene.characters.b.name }}
+          all={voice.all} quota={voice.quota} names={{ a: draft.scene.characters.a.name, b: draft.scene.characters.b?.name }}
           onStart={voice.startAll} onStop={voice.stopAll} onClose={voice.closeAll} onSets={voice.setSets}
         />
       </PanelCtx.Provider>

@@ -21,6 +21,8 @@
 }
 /* Кружок: тот же сдвиг на головы котов, что у плеера (sceneCircleFit: ширина 360/340, центр y=410) */
 .nodeScenePreview--circle .scn { position: absolute; width: 105.9%; height: auto; left: -2.95%; top: -70.6%; }
+/* Одиночный кот — те же числа, что CIRCLE_SOLO в sceneCircleFit.js (360/320, центр y 416) */
+.nodeScenePreview--circle .scn[data-solo] { width: 112.5%; left: -6.25%; top: -80%; }
 .nodeScenePreview .scn { font-size: 0; }
 .nodeScenePreviewEmpty { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 26px; background: #1a1d24; }
 
