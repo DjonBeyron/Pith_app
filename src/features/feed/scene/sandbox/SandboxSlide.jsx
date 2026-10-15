@@ -18,6 +18,7 @@ const BAD = <div className="sbxBad">Сцена не прошла проверк�
 // (сцена играет с начала, задание выезжает сразу после первого полного проигрывания). Новая запись песочницы (sandboxAt) тоже пересоздаёт слой.
 // Принудительный показ записи (taskForce) взводится заново при каждом монтировании слоя: он одноразовый (снимается при показе),
 // а слайд могли пересобрать. Строка статуса задания (sandboxTaskStatus) говорит админу, что происходит и почему задание пропущено.
+// Два макета (sbxStubPhrase / sbxStubLearn) держат нижнюю раскладку кадра сцены такой же, как в боевой ленте — чтобы панель задания и её уход оценивались на честном фоне.
 // «← Вернуться в сборщик» — просьба открыть сборщик админки с тем же черновиком (openSceneBuilderEvent.js).
 export default function SandboxSlide({
   module: mod, slideKey, active = false, near = false, tabVisible = true,
@@ -42,6 +43,10 @@ export default function SandboxSlide({
         onSoundOn={onSoundOn} onSoundOff={onSoundOff} onSoundBlocked={onSoundBlocked} fallback={BAD} onLock={onLock}
       />
       <div className="feedPauseGuard" aria-hidden="true" />
+      {/* Макеты нижних слоёв боевой ленты (блок фразы и кнопка урока) тех же размеров и мест: без них под котами голая полоса цвета
+          пола, а когда панель задания уезжает, внизу «пустота». Не кликаются; гаснут под панелью (feed-sandbox.css) */}
+      <div className="sbxStubPhrase" aria-hidden="true">Здесь в ленте стоит фраза урока</div>
+      <div className="sbxStubLearn" aria-hidden="true">Здесь кнопка урока</div>
       <SandboxBar
         hasTask={!!info} status={scene ? taskStatusText({ task: scene.task, info, status }) : null}
         onClose={() => clearSandbox()} onAgain={replay} onBack={back}
