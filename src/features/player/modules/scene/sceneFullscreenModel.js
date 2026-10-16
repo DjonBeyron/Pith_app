@@ -11,19 +11,21 @@
 import { SCENE_W, SCENE_H } from '../../../scene/v2/sprites/backgrounds.js'
 
 export const SCENE_FS_SWIPE_CLOSE_PX = 80
+// Пуск режиссёра после раскрытия кружка — через время его роста (как play() видео-кружка через 260 мс, useCircleExpand.js)
+export const SCENE_EXPAND_PLAY_DELAY_MS = 260
 export const SCENE_FS_Z = { bg: 10000, stage: 10001, controls: 10002 } // как у видео (useVideoFullscreen.jsx)
 
 // Кадр сцены на весь экран — «cover», как у видео (object-fit: cover): сцена не лежит 9:16 по центру
 // с пустыми полосами, а заполняет всю рамку плеера. Как: рамка сцены 360×640 единиц ставится в масштабе s,
 // фон за её краями продолжается сам (backgrounds.js, BLEED: стена вверх/в стороны, пол вниз — PROJECT.md
 // «пол сцены продолжается»), а сама рамка просто центрируется на «содержательной полосе»
-// FS_CONTENT (облачко … ноги котов, вьюбокс y 270…612) между кнопкой закрытия и нижней панелью.
+// FS_CONTENT (облачко … ноги котов, вьюбокс y 270…612) между кнопками сверху и полосой прогресса снизу.
 // s = min(w / 360, высота полосы / высота содержимого): по ширине сцена максимум во весь экран (коты
 // целиком по бокам), по высоте — облачко и коты целиком вмещаются (ландшафт, очень вытянутые окна).
 // Как у ленты (feedFrameCalc.js): масштаб от ширины слайда, ноги котов над занятой зоной, остальное — фон.
 // w/h — рамка плеера; safeTop/safeBottom — safe-area (px); возвращает { s, left, top, width, height } в px рамки.
 export const FS_CONTENT = { top: 270, bottom: 612 }
-export const FS_PAD = { top: 56, bottom: 76 } // кнопка закрытия сверху; панель (18 + 44 + 14) снизу, без safe-area
+export const FS_PAD = { top: 56, bottom: 16 } // кнопки закрытия/звука сверху; снизу только полоса прогресса (3 px) + зазор, без safe-area
 
 export function fsCoverFrame({ w, h }, { safeTop = 0, safeBottom = 0 } = {}) {
   const W = Math.max(0, w ?? 0), H = Math.max(0, h ?? 0)

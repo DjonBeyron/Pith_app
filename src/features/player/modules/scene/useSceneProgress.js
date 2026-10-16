@@ -2,8 +2,10 @@ import { useEffect, useRef } from 'react'
 import { createProgressTimeline } from './sceneProgressModel.js'
 import { planSceneDurations } from './sceneProgressPlan.js'
 
-// Плавный индикатор прогресса сцены по времени — кольцо кружка (kind 'ring': stroke-dashoffset дуги) и
-// полоса полного экрана (kind 'bar': scaleX на композиторе). Как у видео-кружка (circleRingProgress) это
+// Плавный индикатор прогресса сцены по времени — ОДИН хук и одна модель на три вида: кольцо кружка (kind 'ring':
+// stroke-dashoffset дуги), полоса пузыря в ленте и полоса полного экрана (kind 'bar': scaleX на композиторе). Все три
+// получают одни и те же события режиссёра (status/index/run/at) и считают их одной чистой моделью, поэтому идут синхронно
+// между собой и со сценой; своей копии логики у видов нет. Как у видео-кружка (circleRingProgress) это
 // линейная анимация с длительностью, а не тики setState: ни одного перерендера React на кадр. Состояние
 // режиссёра (status/index/run) приходит от useScenePlayback на границах реплик; модель
 // (sceneProgressModel.js) превращает его в шаги [{ to, ms }], мы запускаем их одной Web Animation на
@@ -13,6 +15,8 @@ import { planSceneDurations } from './sceneProgressPlan.js'
 // scene/rate/sound/voice читаются из рефа на старте реплики: оценка длительности (sceneProgressPlan.js)
 // не должна пересоздавать анимацию посреди реплики.
 // Возвращает ref для элемента (ring — <circle>, bar — <div>). enabled=false (история, замороженная) — ничего не делает.
+// Конец: по 'ended' значение доводится до ровно 1 (модель: фиксированный END_MS), а нода, перемонтированная уже доигравшей
+// (состояние старше индикатора), сразу рисуется полной — не пустой.
 
 const setValue = (el, kind, C, v) => {
   if (kind === 'ring') el.style.strokeDashoffset = String(Math.round(C * (1 - v) * 1000) / 1000)
@@ -37,7 +41,11 @@ export function useSceneProgress({ scene, voice = null, rate = 1, sound = true, 
     if (!enabled || !el) return
     if (!model.current) model.current = createProgressTimeline()
     const L = latest.current
-    if (typeof at === 'number' && mountAt.current != null && at < mountAt.current) return
+    if (typeof at === 'number' && mountAt.current != null && at < mountAt.current) {
+      // Состояние старше индикатора: доигравшая нода (перемонтирование) — сразу полное кольцо/полоса, не пустое
+      if (status === 'ended') { model.current.settle({ status, index, run }, 1); setValue(el, kind, circumference, 1) }
+      return
+    }
     const t = typeof at === 'number' ? at : performance.now()
     const { durations } = planSceneDurations(L.scene, { rate: L.rate, sound: L.sound, voice: L.voice })
     const { from, steps } = model.current.onState({ status, index, run }, { durations, now: t })

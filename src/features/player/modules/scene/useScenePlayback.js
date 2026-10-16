@@ -7,7 +7,7 @@ import { useSceneSolo, sceneSoloSeq, sceneSoloBusy, sceneGestureSeq, noteSceneGe
 import {
   startDecision, waitRowAppear, scheduleSceneStart, autoStartSound, pageHasBeenActive, autoStartYields,
 } from './sceneStartPlan.js'
-import { fsOpenTransition, fsCloseTransition, inlineTapAction, expandAction, expandStatusOf } from './sceneFullscreenModel.js'
+import { fsOpenTransition, fsCloseTransition, inlineTapAction, expandAction, expandStatusOf, SCENE_EXPAND_PLAY_DELAY_MS } from './sceneFullscreenModel.js'
 
 // Поведение живой сцены в ленте урока (общее для пузыря и кружка):
 //  · старт (sceneStartPlan.js): 'auto' — после конца анимации появления
@@ -40,6 +40,7 @@ export function useScenePlayback({ resolved, pending, isHistory, onDone, ready =
   const startedRef = useRef(false)
   const fsOpenRef = useRef(false)
   const fsStartRef = useRef(null)
+  const expandTimer = useRef(null)
   const stRef = useRef(IDLE)
   const [st, setSt] = useState(IDLE)
   const [fsOpen, setFsOpen] = useState(false)
@@ -101,10 +102,17 @@ export function useScenePlayback({ resolved, pending, isHistory, onDone, ready =
   // Команды режиссёру после того, как новое значение sound дошло до рендерера (эффекты
   // детей идут раньше родительского): play — автозапуск, replay — та же реплика со звуком
   useEffect(() => {
-    if (!cmd) return
+    if (!cmd) return undefined
+    // Живой рендерер доигравшей сцены монтируется после роста кружка (SceneCircleView, useSceneCircleExpand.grown) — если
+    // команда пришла раньше, чем он поставил apiRef, ждём его (до ~0,5 с), а не теряем пуск
+    if (!apiRef.current && cmd.type !== 'replay' && (cmd.tries ?? 0) < 10) {
+      const t = setTimeout(() => setCmd({ ...cmd, tries: (cmd.tries ?? 0) + 1 }), 50)
+      return () => clearTimeout(t)
+    }
     if (cmd.type === 'play') apiRef.current?.play()
     if (cmd.type === 'restart') apiRef.current?.restart()
     if (cmd.type === 'replay' && stRef.current.status === 'playing') activeApi()?.goTo(stRef.current.index)
+    return undefined
   }, [cmd, activeApi])
 
   const pause = useCallback(() => activeApi()?.pause(), [activeApi])
@@ -173,9 +181,15 @@ export function useScenePlayback({ resolved, pending, isHistory, onDone, ready =
     // Доигравшая сцена в свёрнутом кружке — статичный кадр без режиссёра: статус в stRef может быть любым
     // (свернули посреди повтора → 'playing'/'paused'), для запуска она — всегда «ended» (с начала)
     const action = expandAction(expandStatusOf(stRef.current.status, ended), soundBlocked)
-    gesture()
-    if (action) setCmd({ type: action })
+    gesture() // звук открывается СРАЗУ (жест), а тяжёлый пуск режиссёра — после роста кружка (см. ниже)
+    if (!action) return
+    // Пуск не в первом кадре: старт режиссёра (рендер облачка, аудио, таймеры) на слабом телефоне занимает основной поток на
+    // ~100+ мс ровно в начале transform-анимации — кружок и сдвиг истории стояли и затем «прыгали» (замер 4×: 3 long task по
+    // 130 мс, 5 кадров вместо 16). Как у видео-кружка (play через 260 мс) — ждём конец анимации
+    if (expandTimer.current) clearTimeout(expandTimer.current)
+    expandTimer.current = setTimeout(() => { expandTimer.current = null; setCmd({ type: action }) }, SCENE_EXPAND_PLAY_DELAY_MS)
   }, [gesture, soundBlocked, ready, ended])
+  useEffect(() => () => { if (expandTimer.current) clearTimeout(expandTimer.current) }, [])
 
   const handleTap = useCallback(e => {
     e?.stopPropagation?.()

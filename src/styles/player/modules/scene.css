@@ -55,6 +55,11 @@
 .playerSceneFrame[data-status="ended"] .playerScenePlay,
 .playerSceneCircle[data-status="ended"] .playerScenePlay { background: rgba(0, 0, 0, 0.28); }
 
+/* Полоса прогресса в пузыре (SceneBubbleView): те же классы, что у видео в полном экране (video.css: 3 px, #b5f542 на
+   полупрозрачной дорожке); низ кадра, тап проходит сквозь; до старта (idle) её нет. Движение — scaleX (scene-fs.css) */
+.playerSceneBubbleTrack { z-index: 2; pointer-events: none; transition: opacity 0.2s ease; }
+.playerSceneFrame[data-status="idle"] .playerSceneBubbleTrack { opacity: 0; }
+
 /* Кружок: сцена крупнее круга и сдвинута на головы котов (sceneCircleFit.js).
    Облачко — не у края сцены (его бы срезала окружность), а по центру над
    головами, мельче и без имени: низ 40% высоты сцены (y≈384), ширина 16%…84% */

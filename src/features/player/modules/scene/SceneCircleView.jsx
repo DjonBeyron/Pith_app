@@ -33,7 +33,7 @@ export default function SceneCircleView({
   }, [rootRef])
   const ex = useSceneCircleExpand({ rootRef, size, bottomOffset, onExpand, status, enabled: !isHistory })
   const open = ex.expanded || ex.collapsing
-  const frozenEnded = ended && !open
+  const frozenEnded = ended && !(open && ex.grown) // доигравшая: статичный кадр, пока кружок растёт (живой SVG — после роста)
   // Свернули повтор доигравшей сцены: рамка стала статичной, состояние ноды — «ended» (useScenePlayback.freeze)
   useEffect(() => { if (frozenEnded && status !== 'ended') onFreeze?.() }, [frozenEnded, status, onFreeze])
   const last = Math.max(0, (scene.timeline?.length ?? 1) - 1)

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { lineDurationMs, planSceneDurations, MIN_LINE_MS } from './sceneProgressPlan.js'
-import { createProgressTimeline, LAST_CAP, END_MS, REWIND_MS } from './sceneProgressModel.js'
+import { createProgressTimeline, LAST_CAP, CREEP_CAP, END_MS, REWIND_MS } from './sceneProgressModel.js'
 import { fallbackMs } from '../../../scene/v2/linePlayback.js'
 import { demoCafeScene } from '../../../scene/v2/demoScenes.js'
 
@@ -118,10 +118,10 @@ describe('sceneProgressModel — кольцо/полоса: плавно, мон
     expect(tr.at(-1)).toBe(1)
   })
 
-  it('реплики длиннее плана: кольцо ждёт на потолке отрезка, не убегает вперёд, на стыке продолжает', () => {
+  it('реплики длиннее плана: кольцо ждёт на потолке отрезка, не убегает вперёд, на стыке продолжает; хвост ползёт не выше CREEP_CAP', () => {
     const tr = simulate(D, [3500, 4500, 2500])
     for (let i = 1; i < tr.length; i += 1) expect(tr[i]).toBeGreaterThanOrEqual(tr[i - 1] - 1e-9)
-    expect(Math.max(...tr.slice(0, -30))).toBeLessThanOrEqual(LAST_CAP + 1e-9)
+    expect(Math.max(...tr.slice(0, -30))).toBeLessThanOrEqual(CREEP_CAP + 1e-9)
     expect(tr.at(-1)).toBe(1)
   })
 
@@ -169,7 +169,7 @@ describe('sceneProgressModel — кольцо/полоса: плавно, мон
     tl.onState({ status: 'idle', index: 2, run: 0 }, { durations: D, now: 0 })
     const r = tl.onState({ status: 'playing', index: 2, run: 1 }, { durations: D, now: 50 })
     expect(r.from).toBeCloseTo(5000 / 6500, 4)
-    expect(r.steps.at(-1).to).toBeLessThanOrEqual(LAST_CAP)
+    expect(r.steps.at(-1).to).toBeLessThanOrEqual(CREEP_CAP)
   })
 
   it('рассинхрон с идеальным режиссёром ≤ 100 мс: прогресс(t) совпадает с долей времени сцены', () => {

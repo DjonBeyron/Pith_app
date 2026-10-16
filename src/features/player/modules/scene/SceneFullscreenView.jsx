@@ -1,6 +1,6 @@
 import { useRef } from 'react'
 import { createPortal } from 'react-dom'
-import { Pause, Play, RotateCcw, Volume2, VolumeX } from 'lucide-react'
+import { Play, RotateCcw, Volume2, VolumeX } from 'lucide-react'
 import SceneRenderer from '../../../scene/v2/SceneRenderer.jsx'
 import { sceneBubbleCropStyle } from '../../../scene/v2/sceneCropStyle.js'
 import { setLessonMuted } from '../../lessonVolume.js'
@@ -14,8 +14,10 @@ import { useSceneProgress } from './useSceneProgress.js'
 // object-fit: cover: кадр 360×640 масштабируется по ширине/высоте (fsCoverFrame), а фон за его краями
 // продолжается (BLEED) — полос нет ни в портрете, ни в ландшафте, ни на узких экранах. Внутри — свой живой
 // SceneRenderer (apiRef/onState — экранные, см. useScenePlayback); crop ноды (масштаб/сдвиг, как у видео) —
-// слой вокруг сцены, те же проценты, что в ленте. Тап по любому месту экрана — пауза/пуск (после конца — заново),
-// снизу кнопки (пауза/пуск, звук) и тонкая полоса прогресса по времени (useSceneProgress, как videoFsProgressBar).
+// слой вокруг сцены, те же проценты, что в ленте. Раскладка — как у видео: ОДИН значок play по центру (на паузе/до
+// старта/после конца — тап по любому месту экрана пускает и ставит на паузу; отдельной нижней кнопки нет), сверху слева —
+// кнопка звука (вкл/выкл, общее состояние «без звука» урока — setLessonMuted: озвучка и синтез реплик, значок ноды),
+// сверху справа — крестик, снизу — тонкая полоса прогресса по времени (useSceneProgress, как videoFsProgressBar).
 // Закрытие: крестик, свайп вниз, Escape, фон за пределами окна плеера (useSceneFullscreen.js).
 export default function SceneFullscreenView({
   scene, showBubbles, display, voice, crop = null, paused, sound, muted, rate, audioSrcOf,
@@ -46,6 +48,7 @@ export default function SceneFullscreenView({
       <div
         className="playerSceneFsStage" data-scene-fs="" style={{ ...stageStyle, zIndex: SCENE_FS_Z.stage }}
         onTouchStart={fs.onTouchStart} onTouchEnd={fs.onTouchEnd} onClick={onTogglePause}
+        role="button" aria-label={playing ? 'Пауза' : (ended ? 'Заново' : 'Пуск')}
       >
         <div ref={probeRef} className="playerSceneFsProbe" aria-hidden="true" />
         <div className="playerSceneFsFrame" style={frameStyle} data-status={status}>
@@ -59,17 +62,12 @@ export default function SceneFullscreenView({
       </div>
       <div className="videoFsControls playerSceneFsControls" style={{ zIndex: SCENE_FS_Z.controls, WebkitTapHighlightColor: 'transparent' }}>
         <button type="button" className="videoFullClose" aria-label="Закрыть" onClick={onClose}>×</button>
-        <div className="playerSceneFsBar">
-          <button type="button" className="playerSceneFsBtn" aria-label={playing ? 'Пауза' : (ended ? 'Заново' : 'Пуск')} onClick={onTogglePause}>
-            {playing ? <Pause size={20} color="white" fill="white" /> : (ended ? <RotateCcw size={20} color="white" /> : <Play size={20} color="white" fill="white" />)}
-          </button>
-          <button
-            type="button" className="playerSceneFsBtn" aria-label={muted ? 'Включить звук' : 'Без звука'} aria-pressed={muted}
-            onClick={e => { e.stopPropagation(); setLessonMuted(!muted) }}
-          >
-            {muted ? <VolumeX size={20} color="white" /> : <Volume2 size={20} color="white" />}
-          </button>
-        </div>
+        <button
+          type="button" className="videoFullClose videoFsMute" aria-label={muted ? 'Включить звук' : 'Без звука'} aria-pressed={muted}
+          onClick={() => setLessonMuted(!muted)}
+        >
+          {muted ? <VolumeX size={18} color="white" /> : <Volume2 size={18} color="white" />}
+        </button>
         <div className="videoFsProgressTrack" role="progressbar" aria-label="Прогресс сцены">
           <div ref={barRef} className="videoFsProgressBar playerSceneFsProgress" />
         </div>

@@ -2,12 +2,41 @@ import { useState, useRef, useEffect } from 'react'
 import { getLessonMuted } from '../../lessonVolume.js'
 
 const EDGE_GAP = 24
+// Одна кривая и длительность на всё: сам кружок (.circleWrap, circle.css — те же 0.24s и кривая) и сдвиг сообщений
+// истории выше него. Рассинхрона по таймингу нет по построению
+export const CIRCLE_ANIM_MS = 240
+export const CIRCLE_ANIM_EASE = 'cubic-bezier(0.4,0,1,1)'
+const ROW_TRANSITION = `transform ${CIRCLE_ANIM_MS}ms ${CIRCLE_ANIM_EASE}`
 const NO_VIDEO = { current: null } // кружок без <video> (нода scene): видео-ветки ниже пропускаются
 const NO_DONE = { current: true }
 const NOOP = () => {}
 
 export function getSmallPx() {
   return Math.min(window.innerWidth * 0.5, 200)
+}
+
+// Сдвиг сообщений истории выше кружка. Анимируем (transition + слой композитора) только те строки, что реально видны
+// в рамке плеера ± сдвиг: в длинном чате выше кружка десятки строк, и transform с transition на каждой делал из них
+// отдельные слои — на слабом Android это лишние десятки текстур/растеров на каждый тап. Остальные (за экраном) получают то
+// же значение мгновенно, без transition: глазом не видно, слоя нет. Чтение прямоугольников — одной пачкой до записей стилей.
+// transform: строка значения ('' — вернуть на место).
+export function moveHistoryRows(rows, transform, { top, bottom, spread }) {
+  const rects = rows.map(el => el.getBoundingClientRect())
+  const animated = []
+  rows.forEach((el, i) => {
+    const r = rects[i]
+    const visible = r.bottom > top - spread && r.top < bottom + spread
+    if (visible) { el.style.willChange = 'transform'; el.style.transition = ROW_TRANSITION; animated.push(el) }
+    else el.style.transition = 'none'
+    el.style.transform = transform
+  })
+  return animated
+}
+
+// will-change живёт только на время анимации: после неё слой отпускается, и браузер перерастеризует кружок в итоговом
+// масштабе (с вечным will-change картинка осталась бы размытой, растянутой из маленькой текстуры)
+function releaseLayers(els) {
+  els.forEach(el => { if (el) el.style.willChange = '' })
 }
 
 // Раскрытие кружка на весь экран по тапу и обратно (свайпом вниз или тапом
@@ -31,7 +60,19 @@ export function useCircleExpand({
   const prevRowsRef   = useRef([])
   const flipObserver  = useRef(null)
   const collapseTimer = useRef(null)
+  const animRowsRef   = useRef([])
+  const releaseTimer  = useRef(null)
   const touchStartY   = useRef(0)
+
+  // Через время анимации снимаем will-change с кружка и анимированных строк
+  function scheduleRelease() {
+    if (releaseTimer.current) clearTimeout(releaseTimer.current)
+    releaseTimer.current = setTimeout(() => {
+      releaseTimer.current = null
+      releaseLayers([wrapRef.current, ...animRowsRef.current])
+      animRowsRef.current = []
+    }, CIRCLE_ANIM_MS + 80)
+  }
 
   function handleTap() {
     if (animatingRef.current || collapseTimer.current) return
@@ -54,6 +95,7 @@ export function useCircleExpand({
     const stage = wrapRef.current.closest('.lessonPlayer')
     const box = stage ? stage.getBoundingClientRect() : null
     const boxLeft   = box?.left   ?? 0
+    const boxTop    = box?.top    ?? 0
     const boxBottom = box?.bottom ?? window.innerHeight
     const boxWidth  = box?.width  ?? window.innerWidth
 
@@ -85,15 +127,13 @@ export function useCircleExpand({
     expandWRef.current = expandW
     halfGrowRef.current = halfGrow
 
+    wrapRef.current.style.willChange = 'transform'
     if (inner) {
       const rows = [...inner.querySelectorAll('.playerMsgRow')]
       const idx = rows.indexOf(row)
       const prev = rows.slice(0, idx)
       prevRowsRef.current = prev
-      prev.forEach(el => {
-        el.style.transition = 'transform 0.24s cubic-bezier(0.4,0,1,1)'
-        el.style.transform = `translateY(-${halfGrow}px)`
-      })
+      animRowsRef.current = moveHistoryRows(prev, `translateY(-${halfGrow}px)`, { top: boxTop, bottom: boxBottom, spread: halfGrow })
 
       if (flipObserver.current) flipObserver.current.disconnect()
       flipObserver.current = new MutationObserver(() => {
@@ -108,6 +148,7 @@ export function useCircleExpand({
       })
       flipObserver.current.observe(inner, { childList: true })
     }
+    scheduleRelease()
 
     setExpandTransform(ty !== 0
       ? `translateX(${tx}px) translateY(${ty}px) scale(${ratio})`
@@ -153,11 +194,13 @@ export function useCircleExpand({
     }
 
     if (flipObserver.current) { flipObserver.current.disconnect(); flipObserver.current = null }
-    prevRowsRef.current.forEach(el => {
-      el.style.transition = 'transform 0.24s cubic-bezier(0.4,0,1,1)'
-      el.style.transform = ''
+    if (wrapRef.current) wrapRef.current.style.willChange = 'transform'
+    const stage = wrapRef.current?.closest('.lessonPlayer')?.getBoundingClientRect()
+    animRowsRef.current = moveHistoryRows(prevRowsRef.current, '', {
+      top: stage?.top ?? 0, bottom: stage?.bottom ?? window.innerHeight, spread: halfGrowRef.current,
     })
     prevRowsRef.current = []
+    scheduleRelease()
 
     expandedRef.current = false
     setExpanded(false)
@@ -186,6 +229,7 @@ export function useCircleExpand({
   useEffect(() => () => {
     stopRaf()
     if (collapseTimer.current) clearTimeout(collapseTimer.current)
+    if (releaseTimer.current) clearTimeout(releaseTimer.current)
     if (flipObserver.current) { flipObserver.current.disconnect(); flipObserver.current = null }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])

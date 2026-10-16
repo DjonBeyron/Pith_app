@@ -1,7 +1,6 @@
 /* ── Нода «сцена»: полноэкранный показ (SceneFullscreenView.jsx) ──────────
-   Фон и крестик — классы видео (.videoFsBg / .videoFullClose, video.css), слои
-   10000+ те же. Здесь — своё: сцена на весь экран рамки плеера («cover», пустых полос нет) и нижняя
-   панель кнопок (пауза/пуск, звук) + полоса прогресса. Только transform/opacity в анимациях. */
+   Фон, крестик и кнопка звука — классы видео (.videoFsBg / .videoFullClose, video.css), слои
+   10000+ те же. Здесь — своё: сцена на весь экран рамки плеера («cover», пустых полос нет) + полоса прогресса. Только transform/opacity в анимациях. */
 
 .playerSceneFsStage {
   position: fixed;
@@ -42,33 +41,11 @@
   to { opacity: 1; }
 }
 
-/* Панель кнопок внизу экрана: поверх кадра, но вне его (кадр ловит тап = пауза) */
-.playerSceneFsBar {
-  position: absolute;
-  left: 50%;
-  bottom: max(18px, env(safe-area-inset-bottom, 0px));
-  transform: translateX(-50%);
-  display: flex;
-  gap: 14px;
-  pointer-events: all;
-}
-.playerSceneFsControls .videoFullClose { top: max(16px, calc(env(safe-area-inset-top, 0px) + 8px)); } /* iPhone: не под статус-баром/вырезом */
-.playerSceneFsBtn {
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  border: 0;
-  background: rgba(255, 255, 255, 0.15);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: background 0.15s;
-  -webkit-tap-highlight-color: transparent;
-  touch-action: manipulation;
-}
-.playerSceneFsBtn:hover { background: rgba(255, 255, 255, 0.28); }
-.playerSceneFsBtn[aria-pressed="true"] { background: rgba(255, 90, 90, 0.35); }
+/* Верхний ряд как у видео: крестик справа (.videoFullClose, video.css) и кнопка звука слева — тот же класс и размер,
+   зеркально; под статус-баром/вырезом iPhone оба опущены на safe-area */
+.playerSceneFsControls .videoFullClose { top: max(16px, calc(env(safe-area-inset-top, 0px) + 8px)); }
+.playerSceneFsControls .videoFsMute { right: auto; left: max(16px, env(safe-area-inset-left, 0px)); }
+.videoFsMute[aria-pressed="true"] { background: rgba(255, 90, 90, 0.35); }
 
 /* Полоса прогресса по времени (useSceneProgress, kind bar): scaleX на композиторе, вместо width как у видео
    (там её двигает rAF-цикл) — ни одного перерендера и пересчёта раскладки на кадр. Низ полосы — над safe-area */
