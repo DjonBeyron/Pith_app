@@ -84,7 +84,7 @@ describe('действия сборщика: отмена и повтор', () =
     const h = harness()
     h.actions.addVar()
     expect(Object.keys(h.scene.vars)).toHaveLength(2)
-    expect(H.undoLabel(h.st.hist)).toBe('добавление переменной')
+    expect(H.undoLabel(h.st.hist)).toBe('добавление слова пользователя')
     h.undo()
     expect(Object.keys(h.scene.vars)).toEqual(['food'])
     h.redo()
@@ -105,7 +105,7 @@ describe('действия сборщика: отмена и повтор', () =
     h.actions.updateVar('food', { pick: 'due' })
     h.actions.insertVar(0, 'text', 'food', 0, 0)
     expect(h.scene.timeline[0].text.startsWith('{food}')).toBe(true)
-    expect(H.undoLabel(h.st.hist)).toBe('вставка переменной в реплику 1')
+    expect(H.undoLabel(h.st.hist)).toBe('вставка слова в реплику 1')
     h.undo()
     expect(h.scene.timeline[0].text.startsWith('Can')).toBe(true)
     h.undo()
@@ -128,17 +128,20 @@ describe('действия сборщика: отмена и повтор', () =
 
 describe('разметка блоков шаблона', () => {
   const wrap = el => renderToStaticMarkup(<PanelCtx.Provider value={null}>{el}</PanelCtx.Provider>)
-  it('VarsPanel: поля переменной, подписи типов отбора, «Добавить»', () => {
+  it('VarsPanel: название блока, поля слова, подписи типов отбора по стандарту уровней, «Добавить слово»', () => {
     const html = wrap(<VarsPanel scene={base()} actions={{}} />)
-    expect(html).toContain('Слова-переменные')
-    for (const w of ['шатающиеся', 'на повтор', 'знакомые', 'Запасное слово', 'Его перевод']) expect(html).toContain(w)
+    expect(html).toContain('Слова пользователя')
+    expect(html).not.toContain('Слова-переменные')
+    for (const w of ['Слово №1', 'Ключ в репликах', 'Новые слова (уровень 1, зелёные)', 'Пора повторить (просрочены)', 'Знакомые и выше (уровни 2–4)', 'Запасное слово', 'Его перевод']) expect(html).toContain(w)
+    for (const w of ['шатающиеся', 'на повтор', 'ступен']) expect(html).not.toContain(w)
+    expect(html).toContain('background:var(--lvl1)')
     expect(html).toContain('id="f-vars-food-fallback-text"')
     expect(html).toContain('1 / 3')
   })
   it('VarsPanel без переменных — подсказка; на трёх «Добавить» заблокирована', () => {
-    expect(wrap(<VarsPanel scene={fromScene(demoOfficeScene)} actions={{}} />)).toContain('Переменных нет')
+    expect(wrap(<VarsPanel scene={fromScene(demoOfficeScene)} actions={{}} />)).toContain('Слов пользователя нет')
     const three = addVar(addVar(base()))
-    expect(wrap(<VarsPanel scene={three} actions={{}} />)).toMatch(/<button[^>]*disabled=""[^>]*>Добавить/)
+    expect(wrap(<VarsPanel scene={three} actions={{}} />)).toMatch(/<button[^>]*disabled=""[^>]*>Добавить слово/)
   })
   it('InsertVarSelect: список {name} / {name:ru}; без переменных — пусто', () => {
     const ref = { current: null }
@@ -156,8 +159,8 @@ describe('разметка блоков шаблона', () => {
     expect(fillSceneVars(scene, trial.values).timeline[0].text).toBe('Can I have cheese, please?')
     expect(scene.timeline[0].text).toBe('Can I have {food}, please?')
   })
-  it('шаблон есть в списке шаблонов сборщика с пометкой «со словами»', () => {
+  it('шаблон есть в списке шаблонов сборщика с пометкой «слова пользователя»', () => {
     const t = templateList().find(x => x.id === 'demo-template-food')
-    expect(t.note).toContain('со словами')
+    expect(t.note).toContain('слова пользователя')
   })
 })

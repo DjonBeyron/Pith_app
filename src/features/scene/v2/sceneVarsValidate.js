@@ -8,10 +8,10 @@ export function validateVars(vars, errors) {
   if (vars === undefined) return
   if (!isObj(vars)) { errors.push('vars — объект { имя: { pick, fallback } }'); return }
   const names = Object.keys(vars)
-  if (names.length > VAR_LIMITS.maxVars) errors.push(`vars — не больше ${VAR_LIMITS.maxVars} переменных (сейчас ${names.length})`)
+  if (names.length > VAR_LIMITS.maxVars) errors.push(`vars — не больше ${VAR_LIMITS.maxVars} слов пользователя (сейчас ${names.length})`)
   for (const name of names) {
     const p = `vars.${name}`
-    if (!VAR_NAME_RE.test(name)) { errors.push(`${p} — имя переменной: латиница, цифры и _, 1–${VAR_LIMITS.maxName} символов`); continue }
+    if (!VAR_NAME_RE.test(name)) { errors.push(`${p} — ключ слова: латиница, цифры и _, 1–${VAR_LIMITS.maxName} символов`); continue }
     const v = vars[name]
     if (!isObj(v)) { errors.push(`${p} — объект { pick, fallback }`); continue }
     if (!VAR_PICKS.includes(v.pick)) errors.push(`${p}.pick — ${VAR_PICKS.join(' | ')}`)
@@ -35,7 +35,7 @@ export function validateSegments(segments, path, varNames, errors) {
     const q = `${p}[${j}]`
     if (!isObj(s)) { errors.push(`${q} — объект { var } или { text, audioUrl?, … }`); return }
     if (s.var !== undefined) {
-      if (typeof s.var !== 'string' || !varNames.includes(s.var)) errors.push(`${q}.var — переменная '${s.var}' не объявлена в vars`)
+      if (typeof s.var !== 'string' || !varNames.includes(s.var)) errors.push(`${q}.var — слово пользователя '${s.var}' не объявлено в vars`)
       return
     }
     if (s.text !== undefined && typeof s.text !== 'string') errors.push(`${q}.text — строка`)

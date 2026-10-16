@@ -1,13 +1,16 @@
 import { VAR_LIMITS, VAR_PICKS, tokenizeTemplate, fillTemplate, sceneVarNames } from '../../scene/v2/sceneVars.js'
 import { LIMITS } from '../../scene/v2/sceneConstants.js'
 
-// Операции над слов-переменными сцены (vars) для сборщика — чистые функции scene → scene
+// Операции над словами пользователя в сцене (vars; блок «Слова пользователя») для сборщика — чистые функции scene → scene
 // (та же сцена, если менять нечего). Формат и подстановка — scene/v2/sceneVars.js, UI — VarsPanel.jsx.
 
 const MAX_TEXT = LIMITS.maxTextLen
 
-// Подписи типов отбора слов (pick) для интерфейса
-export const PICK_LABEL = { weak: 'шатающиеся', due: 'на повтор', known: 'знакомые' }
+// Подписи типов отбора слов (pick) для интерфейса — по стандарту уровней памяти (memoryLevels.js): weak = уровень 1,
+// due = просрочены, known = уровни 2–4. Логика отбора (step ≥ 3 и т.д.) не менялась, только названия
+export const PICK_LABEL = { weak: 'Новые слова (уровень 1, зелёные)', due: 'Пора повторить (просрочены)', known: 'Знакомые и выше (уровни 2–4)' }
+// Цветные кружки уровней у типа отбора (due — любой уровень, без кружков)
+export const PICK_LEVELS = { weak: [1], due: [], known: [2, 3, 4] }
 
 // Имя переменной: только латиница/цифры/_, до 16 символов
 export const cleanVarName = v => String(v ?? '').replace(/[^A-Za-z0-9_]/g, '').slice(0, VAR_LIMITS.maxName)

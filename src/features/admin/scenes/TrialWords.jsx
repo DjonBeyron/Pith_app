@@ -1,9 +1,9 @@
 import { VAR_LIMITS, sceneVarNames } from '../../scene/v2/sceneVars.js'
 import ScTip from './ScTip.jsx'
 
-// «Пробные слова» под предпросмотром: для каждой переменной — слово и перевод, чтобы увидеть, как выглядит
+// «Пробные слова» под предпросмотром: для каждого слова пользователя — слово и перевод, чтобы увидеть, как выглядит
 // реплика с другим словом. Только предпросмотр (usePreviewScene): в сцену не сохраняется; пустое поле — запасное слово.
-// Нет переменных — ничего не рисуется.
+// Нет слов — ничего не рисуется.
 export default function TrialWords({ scene, trial }) {
   const names = sceneVarNames(scene)
   if (!names.length) return null

@@ -85,7 +85,7 @@ export default function HelpTip({ help, content }) {
       {open && host && createPortal(
         <div ref={popRef} id={id} role="tooltip" className="htPop" onClick={stop} onPointerDown={stop} onKeyDown={stop}>
           <p className="htTitle">{data.title}</p>
-          <p className="htBody">{data.body}</p>
+          {String(data.body).split('\n\n').map((t, i) => <p key={i} className="htBody">{t}</p>)}
           {data.example && <p className="htExample"><b>Пример.</b> {data.example}</p>}
         </div>,
         host,

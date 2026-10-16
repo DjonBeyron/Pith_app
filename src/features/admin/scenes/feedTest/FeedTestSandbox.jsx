@@ -1,4 +1,6 @@
 import { useState } from 'react'
+import { usesVars } from '../../../scene/v2/sceneVars.js'
+import SandboxVarsPanel from './SandboxVarsPanel.jsx'
 import { sandboxState, sandboxSteps, SANDBOX_STEP_TEXT, openSceneInSandbox, lintCounts } from './feedTestSandbox.js'
 
 // Вариант «Тест без привязки (песочница)» — по умолчанию. Берёт ТЕКУЩИЙ черновик сборщика как есть: библиотека, публикация и
@@ -8,11 +10,12 @@ export default function FeedTestSandbox({ draft, onClose, onLeave, setStatus, or
   const [force, setForce] = useState(true)
   const [open, setOpen] = useState(true)
   const [error, setError] = useState('')
+  const [asUser, setAsUser] = useState(null) // сцена со словами «как у пользователя» (SandboxVarsPanel) | null — запасные слова
   const state = sandboxState({ ...lintCounts(draft.lint), hasScene: !!draft.scene })
 
   const run = () => {
     setError('')
-    const res = openSceneInSandbox(draft.scene, { force, open, close: onLeave, origin })
+    const res = openSceneInSandbox(asUser ?? draft.scene, { force, open, close: onLeave, origin })
     if (res.ok) {
       setStatus({ kind: 'ok', text: open ? 'Открываю ленту на тестовом слайде' : 'Тестовый слайд готов: он первый в вашей ленте' })
       if (!open) onClose()
@@ -28,6 +31,7 @@ export default function FeedTestSandbox({ draft, onClose, onLeave, setStatus, or
         другие пользователи её не видят. Живёт до закрытия вкладки.
       </p>
       <p className={`scbSub scbFtState scbFtState-${state.kind}`} role="status">{state.text}</p>
+      {usesVars(draft.scene) && <SandboxVarsPanel scene={draft.scene} onApply={setAsUser} />}
       <label className="scbCheck"><input type="checkbox" checked={force} onChange={e => setForce(e.target.checked)} /><span>Показать задание сразу (принудительно, лимиты не тратить)</span></label>
       <label className="scbCheck"><input type="checkbox" checked={open} onChange={e => setOpen(e.target.checked)} /><span>Открыть ленту на этом слайде (окно сборщика закроется)</span></label>
       <p className="scbSub">На тестовом слайде будет кнопка «← Вернуться в сборщик» — вернётесь к этому же черновику.</p>

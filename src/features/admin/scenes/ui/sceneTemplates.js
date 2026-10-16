@@ -15,7 +15,7 @@ export function templateList() {
   return [
     ...DEMO_SCENES.map(s => ({
       id: s.id, title: s.title, scene: s,
-      note: `${linesNote(s.timeline.length)} · ${s.location === 'cafe' ? 'кафе' : 'офис'}${isSolo(s) ? ' · один кот' : ''}${templateNote(s) ? ' · со словами' : ''}`,
+      note: `${linesNote(s.timeline.length)} · ${s.location === 'cafe' ? 'кафе' : 'офис'}${isSolo(s) ? ' · один кот' : ''}${templateNote(s) ? ' · слова пользователя' : ''}`,
     })),
     { id: 'empty', title: 'Пустая сцена', scene: clearScene(newDraft()), note: 'офис без предметов, две реплики-заготовки' },
   ]

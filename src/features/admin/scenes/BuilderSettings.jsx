@@ -11,7 +11,7 @@ import { isSolo } from '../../scene/v2/scenePit.js'
 
 // Левая колонка сборщика — сворачиваемые панели (ui/Panel): «Локация», «Ячейки предметов»
 // (SlotsGrid), «Персонажи» (переключатель «Два кота / Один кот (Пит)» — CharactersModeSwitch;
-// CharacterForm A и B — вложенные панели, у одиночной сцены только A), «Слова-переменные» (VarsPanel, шаблон под слова пользователя), «Реплики» (TimelineEditor),
+// CharacterForm A и B — вложенные панели, у одиночной сцены только A), «Слова пользователя» (VarsPanel, шаблон со словами из памяти), «Реплики» (TimelineEditor),
 // «Задание после сцены» (SceneTaskSection), «Параметры воспроизведения» (modes/PlaybackOptions:
 // режим показа, озвучка оригинала/перевода, голос перевода, автозапуск/повтор). Ключи панелей
 // (location, slots, characters, timeline, task, options) — те же, что в lintPanelMap.js;

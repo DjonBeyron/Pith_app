@@ -61,7 +61,7 @@ describe('шаблоны', () => {
     const list = templateList()
     expect(list.map(t => t.title)).toEqual(['Про работу', 'Кофе-брейк', 'Одна реплика: Повтори', 'Одна реплика: Ответь коту', 'Кружок Пита', 'Шаблон: закажи еду', 'Пустая сцена'])
     expect(list[6].scene.timeline).toHaveLength(2)
-    expect(list[5].note).toContain('со словами')
+    expect(list[5].note).toContain('слова пользователя')
     expect(list[2].scene.timeline).toHaveLength(1)
     expect(list[4].note).toContain('один кот')
     expect(list[4].scene.characters.b).toBeUndefined()

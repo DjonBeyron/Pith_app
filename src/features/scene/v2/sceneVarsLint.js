@@ -1,9 +1,9 @@
 import { isObj, LIMITS } from './sceneConstants.js'
 import { VAR_LIMITS, tokenizeTemplate, usesVars } from './sceneVars.js'
 
-// Линтер слов-переменных (дополняет sceneValidate: формат vars/segments проверен там). Плейсхолдеры:
-// объявлена ли переменная, правильный ли вид ({name} в тексте, {name:ru} в переводе), лишние скобки,
-// длина реплики в худшем случае, запрет плейсхолдеров в задании, неиспользуемые переменные.
+// Линтер слов пользователя (vars; дополняет sceneValidate: формат vars/segments проверен там). Плейсхолдеры:
+// объявлено ли слово, правильный ли вид ({name} в тексте, {name:ru} в переводе), лишние скобки,
+// длина реплики в худшем случае, запрет плейсхолдеров в задании, неиспользуемые слова.
 // Худший случай: каждое слово занимает VAR_LIMITS.maxWord символов (запасное слово и слово памяти — до 40).
 
 const err = text => ({ level: 'error', text })
@@ -27,13 +27,13 @@ function lintField(str, field, path, declared, used, out) {
   for (const t of tokens) {
     if (t.name) {
       used.add(t.name)
-      if (!declared.includes(t.name)) out.push(err(`${path}.${field} — плейсхолдер {${t.name}}: переменной '${t.name}' нет в vars`))
+      if (!declared.includes(t.name)) out.push(err(`${path}.${field} — плейсхолдер {${t.name}}: слова пользователя '${t.name}' нет в vars (блок «Слова пользователя»)`))
       else if (field === 'translation' && !t.ru) out.push(err(`${path}.translation — слово-перевод пишется {${t.name}:ru}; {${t.name}} в переводе — слово оригинала`))
       else if (field === 'text' && t.ru) out.push(err(`${path}.text — {${t.name}:ru} (перевод слова) допустим только в translation, в тексте пишите {${t.name}}`))
     } else if (t.stray) out.push(err(`${path}.${field} — одиночная фигурная скобка «${t.stray}»: литеральные скобки пишутся {{ и }}`))
   }
   if (hasVars && worstLength(str) > LIMITS.maxTextLen) {
-    out.push(err(`${path}.${field} — со словом-переменной реплика может не уместиться в ${LIMITS.maxTextLen} символов (худший случай ${worstLength(str)}: на каждое слово запас ${VAR_LIMITS.maxWord})`))
+    out.push(err(`${path}.${field} — со словом пользователя реплика может не уместиться в ${LIMITS.maxTextLen} символов (худший случай ${worstLength(str)}: на каждое слово запас ${VAR_LIMITS.maxWord})`))
   }
 }
 
@@ -42,7 +42,7 @@ function lintTaskVars(task, out) {
   for (const f of ['accept', 'answers']) {
     const list = Array.isArray(task[f]) ? task[f] : []
     list.forEach((s, i) => {
-      if (typeof s === 'string' && tokenizeTemplate(s).some(t => t.name)) out.push(err(`task.${f}[${i}] — в задании нельзя плейсхолдеры слов-переменных: ответ должен быть один и тот же`))
+      if (typeof s === 'string' && tokenizeTemplate(s).some(t => t.name)) out.push(err(`task.${f}[${i}] — в задании нельзя плейсхолдеры слов пользователя: ответ должен быть один и тот же`))
     })
   }
 }
@@ -61,8 +61,8 @@ export function lintVars(scene, out) {
     const onlyVars = (str, field) => (templated || tokenizeTemplate(str).some(t => t.name) ? lintField(str, field, p, declared, used, out) : null)
     onlyVars(l.text, 'text')
     onlyVars(l.translation, 'translation')
-    if (templated && isTemplateLine(l) && l.audioUrl) out.push(warn(`${p}.audioUrl — реплика со словом-переменной: озвучка целой реплики не используется (слово подставляется, озвучка по сегментам — позже)`))
+    if (templated && isTemplateLine(l) && l.audioUrl) out.push(warn(`${p}.audioUrl — реплика со словом пользователя: озвучка целой реплики не используется (слово подставляется, озвучка по сегментам — позже)`))
   })
-  for (const name of declared) if (!used.has(name)) out.push(warn(`vars.${name} — переменная объявлена, но не используется в репликах`))
+  for (const name of declared) if (!used.has(name)) out.push(warn(`vars.${name} — слово пользователя объявлено, но не используется в репликах`))
   lintTaskVars(scene.task, out)
 }

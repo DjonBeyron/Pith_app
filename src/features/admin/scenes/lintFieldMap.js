@@ -9,7 +9,7 @@
 // options.display → f-options-display, options.voice.translation → f-options-voice-translation,
 // options.translationVoiceId → f-options-translationVoiceId (modes/PlaybackOptions),
 // characters.a.voice.translationVoiceId → f-characters-a-voice-translationVoiceId (TranslationVoicePicker).
-// Слова-переменные (VarsPanel): vars.food.pick → f-vars-food-pick, vars.food.fallback.text → f-vars-food-fallback-text (иначе f-vars-food → f-vars).
+// Слова пользователя (VarsPanel): vars.food.pick → f-vars-food-pick, vars.food.fallback.text → f-vars-food-fallback-text (иначе f-vars-food → f-vars).
 // Задание (SceneTaskSection): task.accept[1] → f-task-accept-1, task.answers[0] → f-task-answers-0, task.keywords[2] → f-task-keywords-2
 // (иначе f-task-answers / f-task-keywords), task.passRatio → f-task-passRatio, task.strict → f-task-strict, task.lineIndex / prompt / hint.
 

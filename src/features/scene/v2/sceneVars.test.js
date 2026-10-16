@@ -82,8 +82,8 @@ describe('валидатор и нормализация', () => {
     const f = { pick: 'weak', fallback: { text: 'a' } }
     const bad = vars => validateSceneV2({ ...demoTemplateScene, vars }).join('|')
     expect(bad({ a: f, b: f, c: f, d: f })).toMatch(/не больше 3/)
-    expect(bad({ 'bad name': f })).toMatch(/имя переменной/)
-    expect(bad({ x234567890123456789: f })).toMatch(/имя переменной/)
+    expect(bad({ 'bad name': f })).toMatch(/ключ слова/)
+    expect(bad({ x234567890123456789: f })).toMatch(/ключ слова/)
     expect(bad({ a: { pick: 'weak' } })).toMatch(/vars\.a\.fallback — обязательное/)
     expect(bad({ a: { pick: 'zzz', fallback: { text: 'a' } } })).toMatch(/vars\.a\.pick/)
     expect(bad({ a: { pick: 'due', fallback: { text: 'x'.repeat(41) } } })).toMatch(/fallback\.text — не длиннее 40/)
@@ -95,22 +95,22 @@ describe('валидатор и нормализация', () => {
     expect(validateSceneV2(ok)).toEqual([])
     expect(lintTexts(ok, 'warn').join('|')).not.toMatch(/озвучено|audioUrl/)
     expect(normalizeSceneV2(ok).timeline[0].segments).toHaveLength(3)
-    expect(validateSceneV2(withTl([line('x.', { segments: [{ var: 'nope' }] })])).join()).toMatch(/segments\[0\]\.var — переменная 'nope'/)
+    expect(validateSceneV2(withTl([line('x.', { segments: [{ var: 'nope' }] })])).join()).toMatch(/segments\[0\]\.var — слово пользователя 'nope'/)
     expect(validateSceneV2(withTl([line('x.', { segments: [] })])).join()).toMatch(/непустой массив/)
     expect(validateSceneV2(withTl([line('x.', { segments: [5] })])).join()).toMatch(/объект/)
   })
 })
 
-describe('линтер слов-переменных', () => {
+describe('линтер слов пользователя', () => {
   it('чисто для демо-шаблона', () => {
     expect(lintScene(demoTemplateScene)).toEqual([])
     for (const s of DEMO_SCENES) expect(lintScene(s).filter(x => x.level === 'error'), s.id).toEqual([])
   })
   it('плейсхолдер без переменной (и в сцене без vars)', () => {
-    expect(lintTexts(withTl([line('Take {zzz}.')]), 'error').join()).toMatch(/переменной 'zzz' нет в vars/)
+    expect(lintTexts(withTl([line('Take {zzz}.')]), 'error').join()).toMatch(/слова пользователя 'zzz' нет в vars/)
     const plain = { ...clone(demoCafeScene) }
     plain.timeline[0].text = 'Hello {food}!'
-    expect(lintTexts(plain, 'error').join()).toMatch(/переменной 'food' нет в vars/)
+    expect(lintTexts(plain, 'error').join()).toMatch(/слова пользователя 'food' нет в vars/)
   })
   it('вид плейсхолдера: {name} в переводе и {name:ru} в тексте — ошибки', () => {
     expect(lintTexts(withTl([line('Have {food}.', { translation: 'Дай {food}.' })]), 'error').join()).toMatch(/translation — слово-перевод пишется \{food:ru\}/)
@@ -139,7 +139,7 @@ describe('линтер слов-переменных', () => {
   })
   it('неиспользуемая переменная — предупреждение', () => {
     const s = withTl([line('Just text.'), line('More text.')])
-    expect(lintTexts(s, 'warn').join()).toMatch(/vars\.food — переменная объявлена, но не используется/)
+    expect(lintTexts(s, 'warn').join()).toMatch(/vars\.food — слово пользователя объявлено, но не используется/)
   })
   it('озвучка целой шаблонной реплики — предупреждение, а не «озвучено N из M»', () => {
     const s = withTl([line('Have {food}.', { audioUrl: 'https://x/a.mp3' }), line('Plain line.')])

@@ -47,12 +47,12 @@ export function buildDraftActions(edit) {
     addTaskItem: (f, text) => edit(taskItemLabel('добавление', f), s => TK.addItem(s, f, text)),
     updateTaskItem: (f, i, v) => edit(taskItemLabel('правка', f), s => TK.updateItem(s, f, i, v), `item:${f}:${i}`),
     removeTaskItem: (f, i) => edit(taskItemLabel('удаление', f), s => TK.removeItem(s, f, i)),
-    // Слова-переменные шаблона (varsOps.js): ввод в одно поле склеивается в один шаг, имя — по номеру переменной
-    addVar: () => edit('добавление переменной', V.addVar),
-    removeVar: name => edit(`удаление переменной ${name}`, s => V.removeVar(s, name)),
-    renameVar: (i, v) => edit('имя переменной', s => V.renameVarAt(s, i, v), `varname:${i}`),
+    // Слова пользователя в шаблоне (varsOps.js): ввод в одно поле склеивается в один шаг, ключ — по номеру слова
+    addVar: () => edit('добавление слова пользователя', V.addVar),
+    removeVar: name => edit(`удаление слова ${name}`, s => V.removeVar(s, name)),
+    renameVar: (i, v) => edit('ключ слова', s => V.renameVarAt(s, i, v), `varname:${i}`),
     updateVar: (name, p) => { const [l, key] = varEditLabel(name, p); edit(l, s => V.updateVar(s, name, p), key) },
-    insertVar: (i, field, name, start, end) => edit(`вставка переменной в реплику ${n(i)}`, s => V.insertVarInLine(s, i, field, name, start, end)),
+    insertVar: (i, field, name, start, end) => edit(`вставка слова в реплику ${n(i)}`, s => V.insertVarInLine(s, i, field, name, start, end)),
     clearScene: () => edit('очистка сцены', M.clearScene),
   }
 }

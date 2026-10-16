@@ -12,7 +12,7 @@ import ScTip from './ScTip.jsx'
 export default function AiPanel({ draft, setStatus }) {
   const [topic, setTopic] = useState('')
   const [withTask, setWithTask] = useState(false) // просить заодно задание «О чём диалог» (translation + task)
-  const [withVars, setWithVars] = useState(false) // шаблон под слова пользователя (vars + плейсхолдеры)
+  const [withVars, setWithVars] = useState(false) // шаблон со словами пользователя (vars + плейсхолдеры)
   const [answer, setAnswer] = useState('')
   const [report, setReport] = useState(null) // { errors, lint, scene }
   const [note, setNote] = useState('')
@@ -44,7 +44,7 @@ export default function AiPanel({ draft, setStatus }) {
         <input className="fsNote" value={topic} onChange={e => setTopic(e.target.value)} placeholder="например: понедельник и кофе" />
       </label>
       <label className="scCheck"><input type="checkbox" checked={withTask} onChange={e => setWithTask(e.target.checked)} /> с заданием «О чём диалог» (translation у реплик + task) <ScTip help="task" /></label>
-      <label className="scCheck"><input type="checkbox" checked={withVars} onChange={e => setWithVars(e.target.checked)} /> шаблон под слова пользователя (vars: {'{слово}'} в репликах) <ScTip help="vars" /></label>
+      <label className="scCheck"><input type="checkbox" checked={withVars} onChange={e => setWithVars(e.target.checked)} /> шаблон со словами пользователя (vars: {'{ключ}'} в репликах) <ScTip help="vars" /></label>
       <textarea className="fsNote scbCode scbCodeSmall" value={prompt} readOnly aria-label="Промпт-заготовка" rows={6} />
       <div className="scbCtlRow">
         <button type="button" className="fsBtn fsBtnSmall" onClick={() => copy(prompt, 'Промпт')}>Скопировать промпт</button>
