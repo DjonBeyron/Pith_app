@@ -67,6 +67,11 @@ export function unlockSpeech() {
   } catch { /* не критично */ }
 }
 
+// Единственный синтез на странице: speechSynthesis общий для всех сцен. Свой cancel() отменяет ТОЛЬКО свою
+// реплику: прерванная сцена, ставясь на паузу уже после старта другой, иначе гасила бы чужой голос
+// (у той onerror → «реплика кончилась» → следующая реплика проскакивала без озвучки)
+let activeUtterance = null
+
 // Проиграть реплику без файла. voice: { pitch, rate, voiceId? }; sound=false →
 // всегда таймер. lang — язык синтеза ('en-US' | 'ru-RU'; по умолчанию detectLang(text)).
 // onMode('speech' | 'timer'). Возвращает cancel().
@@ -94,14 +99,17 @@ export function speakFallback(text, voice, { sound = true, lang = null, onWord, 
     if (finished || cancelled) return
     finished = true
     clearTimeout(guard)
+    if (activeUtterance === u) activeUtterance = null
     onEnd?.()
   }
   u.onend = finish
-  u.onerror = finish
+  // Нас вытеснил чужой speak() (другая сцена): это не конец реплики — сцену сейчас поставят на паузу (страховка guard — на случай, если нет)
+  u.onerror = () => { if (activeUtterance === null || activeUtterance === u) finish() }
   u.onboundary = (e) => { if (!e.name || e.name === 'word') onWord?.() }
 
   try {
     window.speechSynthesis.cancel()
+    activeUtterance = u
     window.speechSynthesis.speak(u)
   } catch {
     clearTimeout(guard)
@@ -111,6 +119,8 @@ export function speakFallback(text, voice, { sound = true, lang = null, onWord, 
   return () => {
     cancelled = true
     clearTimeout(guard)
+    if (activeUtterance !== u) return
+    activeUtterance = null
     try { window.speechSynthesis.cancel() } catch { /* ignore */ }
   }
 }

@@ -56,7 +56,7 @@ export default function SceneModule({ node, lessonFiles = null, onDone, adminPre
   return (
     <>
       {resolved.mode === 'circle'
-        ? <SceneCircleView {...common} {...live} bottomOffset={bottomOffset} onExpand={pb.expandPlay} />
+        ? <SceneCircleView {...common} {...live} bottomOffset={bottomOffset} onExpand={pb.expandPlay} onFreeze={pb.freeze} />
         : <SceneBubbleView {...common} {...live} onTap={pb.handleTap} />}
       {pb.fsOpen && (
         <SceneFullscreenView

@@ -110,3 +110,9 @@ export function pageHasBeenActive(nav = typeof navigator !== 'undefined' ? navig
   const ua = nav?.userActivation
   return ua ? !!ua.hasBeenActive : null
 }
+
+// Автозапуск, дождавшийся своего часа, не перебивает сцену, которой пользователь занялся, пока мы ждали:
+// жест по другой сцене (тап → запуск ещё в пути) или запуск другой сцены, которая играет до сих пор
+export function autoStartYields({ armedGesture = 0, gesture = 0, armedSeq, seq, busy }) {
+  return gesture !== armedGesture || (seq !== armedSeq && !!busy)
+}

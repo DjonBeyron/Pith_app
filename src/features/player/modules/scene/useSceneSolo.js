@@ -49,6 +49,16 @@ export function attachSceneSolo({ rootEl, pause, doc = document, own = getSceneA
   }
 }
 
+// Счётчик запусков и «звучит ли сейчас сцена»: автозапуск, отложенный задержкой ноды, не должен перебивать сцену,
+// которую пользователь запустил, пока кружок ждал своего часа (useScenePlayback → автозапуск). Запуск сцены
+// доходит до шины не сразу (тап → полный экран/раскрытие → состояние режиссёра → эффект: на слабом телефоне
+// ~0,5 с), поэтому намерение фиксируется в момент жеста (noteSceneGesture), а не когда сцена заиграла
+let gestureSeq = 0
+export const noteSceneGesture = () => { gestureSeq += 1 }
+export const sceneGestureSeq = () => gestureSeq
+export const sceneSoloSeq = () => token
+export const sceneSoloBusy = () => listeners.size > 0
+
 export function sceneSoloListeners() {
   return listeners.size
 }

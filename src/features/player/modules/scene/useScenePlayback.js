@@ -3,11 +3,11 @@ import { pLog } from '../../../../shared/lib/debug.js'
 import { usePlayerFrozen } from '../../playerFrozen.js'
 import { useLessonMuted, useVoiceRate } from '../../lessonVolume.js'
 import { unlockSceneAudio } from '../../../scene/v2/sceneAudioUnlock.js'
-import { useSceneSolo } from './useSceneSolo.js'
+import { useSceneSolo, sceneSoloSeq, sceneSoloBusy, sceneGestureSeq, noteSceneGesture } from './useSceneSolo.js'
 import {
-  startDecision, waitRowAppear, scheduleSceneStart, autoStartSound, pageHasBeenActive,
+  startDecision, waitRowAppear, scheduleSceneStart, autoStartSound, pageHasBeenActive, autoStartYields,
 } from './sceneStartPlan.js'
-import { fsOpenTransition, fsCloseTransition, inlineTapAction, expandAction } from './sceneFullscreenModel.js'
+import { fsOpenTransition, fsCloseTransition, inlineTapAction, expandAction, expandStatusOf } from './sceneFullscreenModel.js'
 
 // Поведение живой сцены в ленте урока (общее для пузыря и кружка):
 //  · старт (sceneStartPlan.js): 'auto' — после конца анимации появления
@@ -77,10 +77,15 @@ export function useScenePlayback({ resolved, pending, isHistory, onDone, ready =
   useEffect(() => {
     if (startDecision({ start, isHistory, pending, hasScene }) !== 'arm' || startedRef.current) return undefined
     const wait = waitRowAppear(rootRef.current, { onResolved: how => pLog(`[scene] появление: ${how}`) })
+    const armedSeq = sceneSoloSeq()
+    const armedGesture = sceneGestureSeq()
     return scheduleSceneStart({
       waitAppear: wait, delayMs: startDelayMs, log: m => pLog(`[scene] автозапуск: ${m}`),
       play: () => {
         if (startedRef.current) return
+        // Пока кружок ждал, пользователь запустил другую сцену (тап по сцене в ленте) и она ещё играет — не перебиваем её:
+        // кружок остаётся с ▶ и стартует по тапу
+        if (autoStartYields({ armedGesture, gesture: sceneGestureSeq(), armedSeq, seq: sceneSoloSeq(), busy: sceneSoloBusy() })) { pLog('[scene] автозапуск отменён: играет другая сцена'); return }
         startedRef.current = true
         const withSound = autoStartSound({ hasBeenActive: pageHasBeenActive() })
         pLog(`[scene] автозапуск play() sound=${withSound}`)
@@ -105,8 +110,16 @@ export function useScenePlayback({ resolved, pending, isHistory, onDone, ready =
   const pause = useCallback(() => activeApi()?.pause(), [activeApi])
   useSceneSolo(rootRef, st.status === 'playing', pause)
 
+  // Кружок доигравшей сцены свернули посреди повтора → он замирает в статичный кадр без режиссёра. Состояние
+  // фиксируем как «ended»: иначе 'playing' остался бы навсегда (кольцо едет, звук-чип, подписка solo)
+  const freeze = useCallback(() => {
+    const s = stRef.current
+    if (s.status !== 'ended') apply({ status: 'ended', index: s.index, total: s.total, run: s.run })
+  }, [apply])
+
   // Любой жест пользователя по сцене: звук разрешён, автозапуск больше не нужен
   const gesture = useCallback(() => {
+    noteSceneGesture()
     unlockSceneAudio()
     startedRef.current = true
     setSoundBlocked(false)
@@ -157,10 +170,12 @@ export function useScenePlayback({ resolved, pending, isHistory, onDone, ready =
   // с начала (рамка ленты в этот момент оживает, см. SceneCircleView), играла без звука — реплика заново со звуком
   const expandPlay = useCallback(() => {
     if (!ready) return
-    const action = expandAction(stRef.current.status, soundBlocked)
+    // Доигравшая сцена в свёрнутом кружке — статичный кадр без режиссёра: статус в stRef может быть любым
+    // (свернули посреди повтора → 'playing'/'paused'), для запуска она — всегда «ended» (с начала)
+    const action = expandAction(expandStatusOf(stRef.current.status, ended), soundBlocked)
     gesture()
     if (action) setCmd({ type: action })
-  }, [gesture, soundBlocked, ready])
+  }, [gesture, soundBlocked, ready, ended])
 
   const handleTap = useCallback(e => {
     e?.stopPropagation?.()
@@ -189,7 +204,7 @@ export function useScenePlayback({ resolved, pending, isHistory, onDone, ready =
     playing: st.status === 'playing', ended,
     soundChip: soundBlocked && !muted && st.status === 'playing' && !fsOpen,
     manualIdle: start === 'manual' && st.status === 'idle',
-    handleTap, expandPlay, startInPlace, enableSound, togglePause,
+    handleTap, expandPlay, freeze, startInPlace, enableSound, togglePause,
     fsOpen, openFs, closeFs,
   }
 }

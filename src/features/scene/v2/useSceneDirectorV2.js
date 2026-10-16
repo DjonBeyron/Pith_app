@@ -45,6 +45,16 @@ export function useSceneDirectorV2(scene, {
     setState({ ...IDLE, total: scene?.timeline?.length ?? 0 })
   }
 
+  // Рендерер стал статичным (enabled=false: сцена доиграла и замёрзла в кадр) — режиссёр уничтожен, а
+  // состояние осталось бы старым ('playing' на реплике N). Вернулся живым (кружок раскрыли «ещё раз»)
+  // новый режиссёр стоит в idle, и без сброса интерфейс считал бы, что сцена идёт: ни звука, ни рта,
+  // кольцо замирает. Сбрасываем в IDLE при выключении — включение даст честное idle → playing
+  const [prevEnabled, setPrevEnabled] = useState(enabled)
+  if (enabled !== prevEnabled) {
+    setPrevEnabled(enabled)
+    if (!enabled) { setState({ ...IDLE, total: scene?.timeline?.length ?? 0 }); setMode('timer'); setPhase(null) }
+  }
+
   useEffect(() => {
     if (!enabled || !scene) return undefined
     const player = makeScenePlayLine({

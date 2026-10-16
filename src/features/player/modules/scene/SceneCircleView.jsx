@@ -1,4 +1,4 @@
-import { useLayoutEffect, useState } from 'react'
+import { useEffect, useLayoutEffect, useState } from 'react'
 import { Play, VolumeX } from 'lucide-react'
 import SceneBody from './SceneBody.jsx'
 import { useSceneNear } from './useSceneNear.js'
@@ -24,7 +24,7 @@ const RING_C = 2 * Math.PI * RING_R
 // display/voice — переопределения ноды (режим показа текста / флаги озвучки) поверх options сцены.
 export default function SceneCircleView({
   scene, showBubbles, display = null, voice = null, crop = null, isHistory, ended = false, pending, status, index, run = 0, at,
-  paused, sound, rate, audioSrcOf = null, soundChip = false, bottomOffset = 0, onEnableSound, apiRef, rootRef, onState, onExpand,
+  paused, sound, rate, audioSrcOf = null, soundChip = false, bottomOffset = 0, onEnableSound, apiRef, rootRef, onState, onExpand, onFreeze,
 }) {
   const [size, setSize] = useState(() => (typeof window !== 'undefined' ? getSmallPx() : 200))
   useLayoutEffect(() => {
@@ -34,6 +34,8 @@ export default function SceneCircleView({
   const ex = useSceneCircleExpand({ rootRef, size, bottomOffset, onExpand, status, enabled: !isHistory })
   const open = ex.expanded || ex.collapsing
   const frozenEnded = ended && !open
+  // Свернули повтор доигравшей сцены: рамка стала статичной, состояние ноды — «ended» (useScenePlayback.freeze)
+  useEffect(() => { if (frozenEnded && status !== 'ended') onFreeze?.() }, [frozenEnded, status, onFreeze])
   const last = Math.max(0, (scene.timeline?.length ?? 1) - 1)
   const near = useSceneNear(rootRef, isHistory || frozenEnded)
   const idle = !isHistory && status !== 'playing'

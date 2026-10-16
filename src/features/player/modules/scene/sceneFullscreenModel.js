@@ -74,3 +74,10 @@ export function expandAction(status, soundBlocked = false) {
   if (status === 'playing' && soundBlocked) return 'replay'
   return null
 }
+
+// Статус сцены для решения «что делать при раскрытии кружка». Доигравшая сцена в свёрнутом кружке — статичный кадр
+// без режиссёра, её статус в состоянии ноды может быть устаревшим (свернули посреди повтора: 'playing' на реплике N,
+// режиссёр уже уничтожен) — для запуска она всегда «ended» (играть с начала). Иначе — как есть
+export function expandStatusOf(status, ended = false) {
+  return ended ? 'ended' : status
+}
