@@ -26,7 +26,7 @@ describe('черновик сборщика', () => {
   })
 
   it('setTitle режет по лимиту, setId — латиница/дефисы', () => {
-    expect(setTitle(newDraft(), 'а'.repeat(80)).title).toHaveLength(60)
+    expect(setTitle(newDraft(), 'а'.repeat(120)).title).toHaveLength(80)
     expect(setId(newDraft(), 'Моя Сцена! 2').id).toBe('2')
     expect(setId(newDraft(), '--my scene--').id).toBe('my-scene')
     expect(setId(newDraft(), 'Demo_Scene-1').id).toBe('demo_scene-1')

@@ -1,9 +1,10 @@
-import { normalizeSceneV2, PALETTE_PRESETS, LIMITS } from '../../scene/v2/sceneSchemaV2.js'
+import { normalizeSceneV2, PALETTE_PRESETS } from '../../scene/v2/sceneSchemaV2.js'
 import { emptySlots, slotsFor, COMMON_SLOT_IDS } from '../../scene/v2/sprites/slots.js'
 import { defaultSlots } from '../../scene/v2/sceneMigrate.js'
 import { demoOfficeScene } from '../../scene/v2/demoScenes.js'
 import { isSolo, pitCharacter } from '../../scene/v2/scenePit.js'
 import { removeLine as removeLineOp } from './timelineOps.js'
+import { retitle } from '../../scene/v2/sceneNaming.js'
 
 // Модель черновика сборщика сцен (этап 2). Черновик — это нормализованная сцена v2
 // (sceneSchemaV2.js); все операции чистые: принимают сцену, возвращают новую, исходник
@@ -53,8 +54,9 @@ export function fromScene(scene) {
   return normalizeSceneV2(scene)
 }
 
+// Название сцены (1–80, пробелы чистятся); служебный id следует за ним, пока он автоматический (sceneNaming.retitle)
 export function setTitle(scene, title) {
-  return { ...scene, title: String(title ?? '').slice(0, LIMITS.maxTitleLen) }
+  return retitle(scene, title)
 }
 
 export function setId(scene, id) {

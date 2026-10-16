@@ -1,6 +1,6 @@
 /* Счётчик во временной памяти (features/learn/MemoryCount.jsx): круглый блок по
    центру между шапкой и ступенями — тот же тёмный фон с текстурой, что у блоков
-   экрана (.lrMain, .memLvl); по краю — крупный пунктир цвета временной памяти
+   экрана (.lrMain, .memLvl); по краю — крупный пунктир цвета временной памяти (серый, нулевой уровень)
    (--temp, memory-ladder.css), что медленно вращается; внутри число, что загорается
    цветами ступеней, три точки на пересекающихся орбитах; окошко с пояснением. В круг
    справа входит линия от шапки, слева выходит ствол (слой линий .memWires под блоком:
@@ -73,7 +73,7 @@
 .memCountNum--3 { opacity: 0; animation: memCountCycle 9s ease-out infinite; }
 .memCountNum--1 { color: var(--lvl1); text-shadow: 0 0 10px rgba(var(--lvl1-rgb), 0.7); }
 .memCountNum--2 { color: var(--lvl2); text-shadow: 0 0 10px rgba(var(--lvl2-rgb), 0.7); animation-delay: 3s; }
-.memCountNum--3 { color: #f1bd3c; text-shadow: 0 0 10px rgba(241, 189, 60, 0.75); animation-delay: 6s; }
+.memCountNum--3 { color: var(--lvl3); text-shadow: 0 0 10px rgba(var(--lvl3-rgb), 0.75); animation-delay: 6s; }
 @keyframes memCountCycle {
   0% { opacity: 0; }
   5% { opacity: 1; }
@@ -159,7 +159,7 @@
 @keyframes memCountPopOut { to { transform: scale(0); } }
 .memCountPopTitle { margin: 0 0 3px; font-size: 16px; font-weight: 800; }
 .memCountPopLead { margin: 0 0 10px; font-size: 13px; line-height: 1.4; color: #aeb6bf; }
-/* Три коротких блока без номеров: слева полоска цвета (салатовый → небесный → фиолетовый — путь слова) */
+/* Три коротких блока без номеров: слева полоска цвета (зелёный → синий → фиолетовый — путь слова) */
 .memCountSteps { display: flex; flex-direction: column; gap: 6px; margin: 0; padding: 0; list-style: none; }
 .memCountStep {
   --c: var(--lvl1);
@@ -174,7 +174,7 @@
 .memCountStep b { font-weight: 800; color: var(--c); }
 .memCountStep--1 { --c: var(--lvl1); }
 .memCountStep--2 { --c: var(--lvl2); }
-.memCountStep--3 { --c: #a78bfa; }
+.memCountStep--3 { --c: var(--lvl3); }
 
 @media (prefers-reduced-motion: reduce) {
   .memOrbitX, .memOrbitY, .memCountNum--1, .memCountNum--2, .memCountNum--3, .memCount::before { animation: none; }

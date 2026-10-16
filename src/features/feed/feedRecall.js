@@ -1,7 +1,8 @@
 import { splitTitleTokens, wordTranslation } from '../../shared/lib/titleWords.js'
 import { wordKey } from '../../shared/lib/wordAudio/wordKey.js'
 import { reviewOutcome } from '../../shared/lib/memory/reviewOutcome.js'
-import { levelOf, LEVELS } from '../learn/memoryLadder.js'
+import { levelOf } from '../learn/memoryLadder.js'
+import { levelHex, LEVEL_PERM } from '../../shared/lib/memory/memoryLevels.js'
 
 // Повторение слова ВНУТРИ перевода по словам в ленте (PROJECT.md → «Лента»,
 // макет frazy-pomnish.html, утверждено 2026-10-01). Чистые функции без React:
@@ -15,8 +16,8 @@ const KEY = 'pithy_feed_recall_v1'
 export const RECALL_PER_DAY = 3
 export const RECALL_GAP = 5 // не чаще раза в 5 видео
 
-// Цвет ступени: салатовый / небесный / золотистый / фиолетовый (постоянная память) — как во вкладке «Память»
-export const LEVEL_COLOR = { 1: '#b6fe3b', 2: '#4fb3ee', 3: '#f1bd3c', P: '#a78bfa' }
+// Цвет уровня 1..4 — стандарт (memoryLevels.js), как во вкладке «Память»
+export const LEVEL_COLOR = Object.fromEntries([1, 2, 3, 4].map(n => [n, levelHex(n)]))
 
 // Слова к повтору сегодня — из выбора дня (вне отпуска, в пределах остатка бюджета, слово с колодой):
 // { due: Map слово → { step, due } } или null, если сегодня повторять нечего
@@ -99,8 +100,8 @@ export function recallResult({ outcome, step, wasSettled, res }) {
 // Цвет плашки и линии: до ответа — ступень слова, после — ступень, в которую оно пришло
 export function recallColor(r) {
   if (!r) return null
-  if (r.phase === 'quiz') return LEVEL_COLOR[r.wasSettled ? 'P' : levelOf(r.step)]
-  if (r.perm) return LEVEL_COLOR.P
+  if (r.phase === 'quiz') return LEVEL_COLOR[r.wasSettled ? LEVEL_PERM : levelOf(r.step)]
+  if (r.perm) return LEVEL_COLOR[LEVEL_PERM]
   return LEVEL_COLOR[levelOf(r.to ?? r.step)]
 }
 

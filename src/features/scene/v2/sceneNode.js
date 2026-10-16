@@ -116,7 +116,7 @@ export function sceneSummary(scene) {
   if (!scene) return 'сцена не выбрана'
   const n = scene.timeline?.length ?? 0
   const word = n % 10 === 1 && n % 100 !== 11 ? 'реплика' : (n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20)) ? 'реплики' : 'реплик'
-  return `${scene.title?.trim() || scene.id || 'Сцена'} · ${n} ${word}`
+  return `${scene.title?.trim() || 'Сцена'} · ${n} ${word}`
 }
 
 // Текст реплик для фолбэка (сцена невалидна — показываем диалог текстом):

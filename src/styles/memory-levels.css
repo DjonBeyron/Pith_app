@@ -1,0 +1,48 @@
+/* Единый стандарт уровней памяти слов — ЕДИНСТВЕННОЕ место цветов уровней в CSS (PROJECT.md → «Стандарт уровней
+   памяти»). Модель и названия — src/shared/lib/memory/memoryLevels.js (там же hex-копии цветов; тест сверяет их
+   с этим файлом). Уровни: 0 временные (серый), 1 новые (зелёный), 2 знакомые (синий), 3 усвоенные (фиолетовый),
+   4 постоянная память (золотистый). Все цвета ≥ 4.5:1 на тёмных поверхностях приложения (#14171c / #1a1d22). */
+:root {
+  --lvl0: #9aa3b2;
+  --lvl0-rgb: 154, 163, 178;
+  --lvl1: #b6fe3b;
+  --lvl1-rgb: 182, 254, 59;
+  --lvl2: #4fb3ee;
+  --lvl2-rgb: 79, 179, 238;
+  --lvl3: #9a76f8;
+  --lvl3-rgb: 154, 118, 248;
+  /* Золото — «сияние без анимации»: сплошной запасной цвет (--lvl4) и статичный многотональный градиент с одним
+     резким бликом (--lvl4-shine, вариант D стенда: тёмное → светлое → тёмное → резкая полоса → тёмное). Самый тёмный тон
+     (#a67c00) — только на кромках букв/полос, основной текст держится на #b8860b…#d4a017 */
+  --lvl4: #d4a017;
+  --lvl4-rgb: 212, 160, 23;
+  --lvl4-shine: linear-gradient(135deg, #a67c00 0%, #f4d675 22%, #b8860b 44%, #b8860b 48%, #fff1b8 52%, #d4a017 70%, #a67c00 100%);
+  /* Внутренний блик рамок и чипов — статичная тень, без blur/filter */
+  --lvl4-inset: inset 0 1px 0 rgba(255, 241, 184, 0.6), inset 0 -1px 0 rgba(120, 80, 0, 0.45);
+  /* Временная память (круг-счётчик «N слов») — цвет нулевого уровня */
+  --temp: var(--lvl0);
+  --temp-rgb: var(--lvl0-rgb);
+}
+/* Светлые поверхности (светлая тема окон админа): те же уровни, темнее — контраст ≥ 4.5:1 на белом */
+:root[data-theme='light'] {
+  --lvl0: #566070; --lvl0-rgb: 86, 96, 112;
+  --lvl1: #3f6b00; --lvl1-rgb: 63, 107, 0;
+  --lvl2: #0b64a0; --lvl2-rgb: 11, 100, 160;
+  --lvl3: #6a3fe0; --lvl3-rgb: 106, 63, 224;
+  --lvl4: #7a5a00; --lvl4-rgb: 122, 90, 0;
+}
+
+/* Золотой ТЕКСТ: сплошной цвет как запас; где есть background-clip: text (iOS Safari, Chrome Android) — градиент.
+   Без filter/blur/will-change. clone — градиент одинаково ложится на каждую строку при переносе слова */
+.fwKnown--4, .wcMemPerm, .memHead--4 b, .memIntroLv4, .reviewSettled { color: var(--lvl4); }
+@supports ((-webkit-background-clip: text) or (background-clip: text)) {
+  .fwKnown--4, .wcMemPerm, .memHead--4 b, .memSheetLevel--4 .memSheetLevelHead b, .memIntroLv4, .reviewSettled {
+    background: var(--lvl4-shine);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    -webkit-box-decoration-break: clone;
+    box-decoration-break: clone;
+    text-shadow: none; /* тень поверх прозрачной заливки темнила бы градиент */
+  }
+}

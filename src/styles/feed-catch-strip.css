@@ -41,12 +41,13 @@
 .catchStripPhrase.catchStripPhraseWrapText { white-space: normal; }
 .catchStripPhrase span { transition: color 320ms ease; }
 
-/* Цвет уровня слова для подчёркивания: 0 серый, 1 зелёный, 2 синий, 3 золотой, 4 фиолетовый */
-.catchLvl0 { --cu-c: #8b8f9a; }
-.catchLvl1 { --cu-c: #b6fe3b; }
-.catchLvl2 { --cu-c: #4fb3ee; }
-.catchLvl3 { --cu-c: #f1bd3c; }
-.catchLvl4 { --cu-c: #a78bfa; }
+/* Цвет уровня слова для подчёркивания — стандарт memory-levels.css: 0 серый, 1 зелёный, 2 синий, 3 фиолетовый, 4 золотистый */
+.catchLvl0 { --cu-c: var(--lvl0); }
+.catchLvl1 { --cu-c: var(--lvl1); }
+.catchLvl2 { --cu-c: var(--lvl2); }
+.catchLvl3 { --cu-c: var(--lvl3); }
+.catchLvl4 { --cu-c: var(--lvl4); }
+.catchUnderline.catchLvl4 { background: var(--lvl4-shine); }
 
 /* Подчёркивание активного слова: полоска 3px + треугольник вниз по центру (::after). Лежит в левом верхнем углу
    обёртки, на место под облачком его двигает transform (width — ширина облачка: слово + запас), оба — переход 200мс при смене слова.

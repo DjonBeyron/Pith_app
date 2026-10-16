@@ -5,11 +5,11 @@ import { useCatchSandbox } from './useCatchSandbox.js'
 import AdminCatchPhone from './AdminCatchPhone.jsx'
 import AdminCatchHelp from './AdminCatchHelp.jsx'
 import { setForcedCatch, sendToFeed } from '../feed/catch/catchForce.js'
+import { MEMORY_LEVELS } from '../../shared/lib/memory/memoryLevels.js'
 import { readCatchPrefs, writeCatchPrefs, resolveModuleId, withLevels } from './catchAdminPrefs.js'
 
-const LEVELS = [
-  [0, 'серый'], [1, 'зелёный'], [2, 'синий'], [3, 'золотой'], [4, 'фиолетовый'],
-]
+// Уровни 0–4 и цвета — стандарт памяти (memoryLevels.js)
+const LEVELS = MEMORY_LEVELS.map(l => [l.id, `${l.colorName} · ${l.name.toLowerCase()}`])
 // Ключ счётчиков попапов «Раскрыть»/«Подсказать» (catchConfirm.js его не экспортирует, файлы ленты не трогаем)
 const CONFIRM_KEY = 'pithy_catch_confirm_v1'
 

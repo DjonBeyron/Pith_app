@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
-import { levelOf, levelFill, LEVELS } from '../learn/memoryLadder.js'
+import { levelOf, levelFill } from '../learn/memoryLadder.js'
+import { LEVEL_PERM, levelClass, levelTitle } from '../../shared/lib/memory/memoryLevels.js'
 
 // Полоска слова в итоге — та же, что у слова во вкладке «Память» (.memChip): заливка и рамка цвета
 // ступени, заливка — путь к следующей ступени. Растёт от прежнего значения к новому МЕДЛЕННО (GROW_MS),
@@ -21,20 +22,19 @@ const EDGE_TAIL_MS = 500    // линия на границе мигает ещ�
 const FLASH_MS = 450        // полная полоска вспыхивает, прежде чем уехать
 const SLIDE_MS = 800        // трубки едут (CSS: .reviewBarRail--slide) и в новой растёт заливка
 const MIN_FILL = 0.06
-const RANK = { 1: 1, 2: 2, 3: 3, Perm: 4 }
 const look = (step, perm) => (perm
-  ? { lvl: 'Perm', fill: 1 }
+  ? { lvl: LEVEL_PERM, fill: 1 }
   : { lvl: levelOf(step), fill: Math.max(levelFill(step), MIN_FILL) })
 
 // Одна трубка: заливка, линия на границе, слово и название ступени
 function Tube({ word, t, next = false }) {
   const cls = ['grow', 'flash', 'kept', 'fast', 'still'].filter(k => t[k]).map(k => ` reviewBar--${k}`).join('') + (next ? ' reviewBar--next' : '')
   return (
-    <div className={`memChip memChip--${t.lvl} reviewBar${cls}`}>
+    <div className={`${levelClass('memChip', t.lvl)} memChip reviewBar${cls}`}>
       <span className="memChipFill" style={{ width: `${t.fill * 100}%` }} />
       <span className="reviewBarEdge" style={{ left: `${t.fill * 100}%` }} aria-hidden="true" />
       <span className="memChipWord">{word}</span>
-      <span className="reviewBarLevel">{t.lvl === 'Perm' ? 'Постоянная память' : LEVELS[t.lvl - 1].name}</span>
+      <span className="reviewBarLevel">{levelTitle(t.lvl)}</span>
     </div>
   )
 }
@@ -59,7 +59,7 @@ export default function ReviewWordBar({ word, from, to, settled = false, delay =
       at(delay, { cur: { ...b, kept: same, grow: up } })
       end = delay + (same ? KEPT_MS : GROW_MS)
       if (up) at(end + EDGE_TAIL_MS, { cur: { ...b } })
-    } else if (RANK[b.lvl] > RANK[a.lvl]) {
+    } else if (b.lvl > a.lvl) {
       const flashAt = delay + GROW_MS
       const nextAt = flashAt + FLASH_MS
       const slideAt = nextAt + 60 // кадр на то, чтобы пустая трубка встала справа — потом едем

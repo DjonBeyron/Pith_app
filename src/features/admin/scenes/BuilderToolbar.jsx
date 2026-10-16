@@ -6,28 +6,31 @@ import { sceneUseMode } from './ui/sceneUseOptions.js'
 import { usePanels } from './ui/panelContext.js'
 import { buildToolbarActions } from './toolbar/toolbarModel.js'
 import { useNarrow } from './toolbar/useNarrow.js'
+import SceneTitleField from './toolbar/SceneTitleField.jsx'
+import { copyText } from './fileUtils.js'
 import ToolbarActions from './toolbar/ToolbarActions.jsx'
 import ToolbarStatus from './toolbar/ToolbarStatus.jsx'
 import ScTip from './ScTip.jsx'
 import UndoRedoButtons from './history/UndoRedoButtons.jsx'
 
-// Верхняя панель сборщика, слева направо: «← Назад» (закрытие окна; при несохранённых правках —
-// диалог BackConfirm в BuilderWindow; в нодe/модуле — возврат без применения), «↶ Отменить»/«↷ Повторить»
-// (history/UndoRedoButtons), название окна,
-// поля «Название»/«id» сцены, индикаторы (ToolbarStatus), группа действий (ToolbarActions:
-// режимы предпросмотра (сегмент показа, тумблеры озвучки, «Сделать по умолчанию» — modes из
-// usePreviewModes) | «Озвучить ▾» (всё / текст / перевод) | «Применить»/«Сохранить»/«Новая» |
-// «Свернуть все»/тема, затем «?»). Кнопки
-// описывает toolbar/toolbarModel.js — добавить новую можно только там. Окно уже NARROW_PX —
-// остаются главное действие и меню «⋯». Крестика нет: «Назад» его заменяет, Esc работает как раньше.
-// Ниже — «Новая» с подтверждением прямо в тулбаре (confirm() браузер может блокировать),
-// строка статуса (status.action — кнопка в строке, например «Отменить» после удаления сцены) и плашка «восстановлен черновик из резервной копии».
+// Верхняя панель сборщика, слева направо. Группа навигации: «← Назад» (закрытие окна; при несохранённых
+// правках — диалог BackConfirm в BuilderWindow; в ноде/модуле — возврат без применения) и «↶ Отменить» /
+// «↷ Повторить» (history/UndoRedoButtons); название окна; НАЗВАНИЕ СЦЕНЫ со статусом «Черновик · не сохранена»
+// (toolbar/SceneTitleField, правка по клику; служебный id в шапке не показывается — «Копировать id сцены»
+// в меню «Ещё»); индикаторы озвучки (ToolbarStatus); группы действий (ToolbarActions, список —
+// toolbar/toolbarModel.js, добавить кнопку можно только там): Файл (Сохранить/Применить, Новая) | Просмотр и
+// тест (режимы предпросмотра, «Проверить в ленте») | Озвучка («Озвучить ▾»), затем «Ещё» (⋯, меню с подписями
+// по группам: Сохранить как…, Опубликовать/Снять, Свернуть все, тема, Копировать id) и «?». Окно уже
+// NARROW_PX — на панели остаются «Назад», «Отменить», главное действие и «Ещё». Крестика нет: «Назад» его
+// заменяет, Esc работает как раньше. Ниже — «Новая» с подтверждением прямо в тулбаре (confirm() браузер
+// может блокировать), строка статуса (status.action — кнопка в строке, например «Отменить» после удаления
+// сцены) и плашка «восстановлен черновик из резервной копии».
 // onApply (нода/модуль) — «Применить» первой кнопкой; «Сохранить в библиотеку» остаётся отдельной.
 export const NARROW_PX = 860
 
 export default function BuilderToolbar({
   draft, library, status, setStatus, title = 'Сборщик сцен', onSave, onApply = null, applyLabel = 'Применить к ноде', useMode = null,
-  onBack, backRef, theme, onToggleTheme, undoCtl = null, unsaved = null, voice = null, modes = null, forceNarrow = null, menuOpen = false, onFeedTest = null,
+  onBack, backRef, theme, onToggleTheme, onSaveAs = null, onTogglePublish = null, undoCtl = null, unsaved = null, voice = null, modes = null, forceNarrow = null, menuOpen = false, onFeedTest = null,
 }) {
   const { scene, saved, dirty, errors, restoredAt, actions } = draft
   const [askNew, setAskNew] = useState(false)
@@ -58,6 +61,12 @@ export default function BuilderToolbar({
     apply: onApply ? { label: applyLabel, run: onApply, disabled: !canApply, hint: canApply ? 'Применить сцену и закрыть' : 'Сначала исправьте ошибки линтера' } : null,
     feedTest: onFeedTest ? { run: onFeedTest, hint: 'Привязать сцену к модулю ленты и открыть ленту с заданием' } : null,
     onNew,
+    saveAs: onSaveAs ? { run: onSaveAs, disabled: !saved.id || !canSave, hint: saved.id ? 'Сохранить копию новой строкой: «Название (копия)»' : 'Сцены ещё нет в библиотеке — «Сохранить» создаст её' } : null,
+    publish: onTogglePublish ? {
+      label: saved.status === 'published' ? 'Снять с публикации' : 'Опубликовать', run: onTogglePublish, disabled: !saved.id || !canSave,
+      hint: !saved.id ? 'Сначала сохраните сцену в библиотеку' : saved.status === 'published' ? 'Вернуть сцену в черновики — ученики её не увидят' : 'Показать сцену в ленте (только без ошибок линтера)',
+    } : null,
+    copyId: { run: async () => setStatus((await copyText(scene.id)) ? { kind: 'ok', text: `Служебный id скопирован: ${scene.id}` } : { kind: 'error', text: 'Не удалось скопировать id' }), hint: `служебный id: ${scene.id}` },
     panels: panels?.hasPanels(null) ? { has: true, allCollapsed: all, toggle: () => panels.setAll(null, !all) } : null,
     theme, onToggleTheme,
   })
@@ -66,20 +75,16 @@ export default function BuilderToolbar({
   return (
     <header ref={barRef} className="fsBar scbTb" data-narrow={narrow ? '1' : undefined}>
       <div className="fsBarRow scbTbRow">
-        <button ref={backRef} type="button" className="fsBtn scbBack" onClick={onBack} title="Назад: закрыть сборщик (Esc)">
-          <ArrowLeft size={15} aria-hidden="true" />Назад
-        </button>
-        {undoCtl && <UndoRedoButtons ctl={undoCtl} />}
+        <div className="scbTbNav">
+          <button ref={backRef} type="button" className="fsBtn scbBack" onClick={onBack} title="Назад: закрыть сборщик (Esc)">
+            <ArrowLeft size={15} aria-hidden="true" />Назад
+          </button>
+          {undoCtl && <UndoRedoButtons ctl={undoCtl} />}
+        </div>
+        <span className="scbTbSep scbTbSepNav" role="separator" aria-orientation="vertical" />
         <h1 className="fsTitle">{title}</h1>
-        <label className="scbField scbFieldTitle">
-          <span className="scbFieldLabel">Название</span>
-          <input id="f-title" className="fsNote" value={scene.title} maxLength={60} onChange={e => actions.setTitle(e.target.value)} placeholder="Например: Кофе-брейк" />
-        </label>
-        <label className="scbField scbFieldId">
-          <span className="scbFieldLabel">id</span>
-          <input id="f-id" className="fsNote scbMono" value={scene.id} maxLength={40} onChange={e => actions.setId(e.target.value)} spellCheck={false} />
-        </label>
-        <ToolbarStatus saved={saved} unsaved={hasUnsaved} voice={st} quotaLeft={remaining} modes={modes?.overridden ?? null} />
+        <SceneTitleField title={scene.title} saved={saved} dirty={hasUnsaved} onChange={actions.setTitle} />
+        <ToolbarStatus voice={st} quotaLeft={remaining} modes={modes?.overridden ?? null} />
         <ToolbarActions actions={list} narrow={narrow} menuOpen={menuOpen} extra={<ScTip help="panels" />} />
       </div>
       {askNew && (

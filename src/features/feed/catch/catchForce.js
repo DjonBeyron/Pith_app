@@ -1,3 +1,4 @@
+import { MEMORY_LEVELS } from '../../../shared/lib/memory/memoryLevels.js'
 import { requestOpenModule } from '../../../shared/lib/openModuleEvent.js'
 
 // Принудительное задание «Ловли слов» (Админ → Ловля → «Отправить в ленту»): автор смотрит задание в настоящей ленте
@@ -9,7 +10,7 @@ const FORCE_EVENT = 'pithy:catch-force' // задание выставлено �
 const JUMP_EVENT = 'pithy:feed-jump' // повернуть ленту к фразе (useFeedModules.pinnedId)
 
 // Шаг и «постоянная память» для каждого уровня (0 — слова нет в памяти)
-const STEP_OF_LEVEL = { 1: 1, 2: 3, 3: 5, 4: 5 }
+const STEP_OF_LEVEL = Object.fromEntries([1, 2, 3, 4].map(n => [n, MEMORY_LEVELS[n].steps?.[0] ?? 5])) // 1→1, 2→3, 3→5, 4→5 (постоянная — шаг 5 + settled)
 
 // Знание из выбранных уровней: words — [{ index, key }] (catchWords), levels — { [index]: 0..4 }.
 // defaultIndex — слово, у которого без явного уровня стоит 2 (дефолт песочницы); -1 — нет такого. → { stepOf, settledOf }

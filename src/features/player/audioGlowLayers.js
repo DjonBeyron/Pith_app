@@ -7,8 +7,9 @@
 export const LAYER_COUNT = 8
 export const ALPHA_EDGE = 0.90
 export const ALPHA_INNER = 0.05
-const EDGE_RGB = [167, 139, 250]    // #a78bfa у кромки
-const INNER_RGB = [139, 92, 246]    // #8b5cf6 внутри
+// Золото постоянной памяти (стандарт уровней, memory-levels.css): светлый тон у кромки, --lvl4 внутри
+const EDGE_RGB = [244, 214, 117]    // #f4d675 у кромки
+const INNER_RGB = [212, 160, 23]    // #d4a017 (--lvl4) внутри
 const FALLOFF = 1.4
 
 // Целевая накопленная альфа слоя n (n=0 — самый толстый, внешний)

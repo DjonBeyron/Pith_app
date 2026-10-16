@@ -73,6 +73,8 @@ export function useBuilderDraft({ initialScene = null, initialRow = null, backup
     reset: location => { swap('новая сцена', M.newDraft(location), { id: null, status: 'draft', snapshot: null }); setRestoredAt(null); if (backup) clearBackup() },
     // После успешного сохранения в библиотеку
     markSaved: row => setSt(s => ({ ...s, saved: { id: row.id, status: row.status, snapshot: M.fromScene(row.scene) } })),
+    // «Сохранить как…»: копия сцены (новое название и id) становится черновиком, привязанным к новой строке библиотеки
+    adoptSaved: (next, row) => { const s = M.fromScene(next); swap('сохранить как…', s, { id: row.id, status: row.status, snapshot: M.fromScene(row.scene ?? s) }) },
     detach: () => setSt(s => ({ ...s, saved: { id: null, status: 'draft', snapshot: null } })),
     restoreSaved: prev => setSt(s => ({ ...s, saved: prev })), // отмена удаления сцены из библиотеки
     dismissRestored: () => setRestoredAt(null),

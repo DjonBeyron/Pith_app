@@ -1,6 +1,6 @@
 import { wordKey } from '../../shared/lib/wordAudio/wordKey.js'
 import { KNOW_STEP } from '../learn/learnView.js'
-import { levelOf } from '../learn/memoryLadder.js'
+import { levelOfStep } from '../../shared/lib/memory/memoryLevels.js'
 import { seeded } from '../../shared/lib/ranking/seeded.js'
 
 // Лента и память слов (этап 6 системы повторения, PROJECT.md → «Лента»):
@@ -13,7 +13,7 @@ export function moduleWords(lessonIds, lessonWord) {
   return [...new Set(ids.map(id => lessonWord?.get(id)).filter(Boolean))]
 }
 
-// { total, known (шаг ≥ 3), newWords (не в памяти), shaky (в памяти, шаг < 3) }
+// { total, known (шаг ≥ 3 — уровни 2–4), newWords (не в памяти — «временные», уровень 0), shaky (в памяти, шаг < 3 — уровень 1) }
 export function phraseInfo(words, stepOf) {
   const inMem = words.filter(w => stepOf.has(w))
   return {
@@ -27,13 +27,13 @@ export function phraseInfo(words, stepOf) {
 // Шаг памяти слова фразы или null
 export const tokenStep = (text, stepOf) => stepOf?.get(wordKey(text)) ?? null
 
-// Ступень цвета слова фразы — как во вкладке «Память»: 1 небесный, 2 салатовый, 3 золотистый, 'P' —
-// постоянная память (фиолетовый); слова нет в памяти — null (остаётся белым, серого нет)
+// Уровень слова фразы по стандарту (memoryLevels.js): 1 зелёный, 2 синий, 3 фиолетовый, 4 — постоянная память
+// (золотистый); слова нет в памяти (уровень 0) — null: в ленте остаётся белым, серым не красим (вопрос к владельцу)
 export function tokenLevel(text, stepOf, settledOf = null) {
   const key = wordKey(text)
   const step = key ? stepOf?.get(key) : null
   if (!step) return null
-  return settledOf?.has(key) ? 'P' : levelOf(step)
+  return levelOfStep(step, !!settledOf?.has(key))
 }
 
 // Какую карту памяти держать для порядка ленты: первую пришедшую берём сразу, дальнейшие — только
@@ -45,10 +45,11 @@ export const latchRank = (held, fresh, visible) => (held == null || !visible ? f
 export const daySeed = today => [...today].reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 7)
 
 // Порядок рекомендаций по карте памяти (без ML):
-//   0 — есть шатающееся слово; 1–2 новых слова при знакомых остальных — вверх
+//   0 — есть шатающееся слово (уровень 1, шаг < 3); 1–2 временных слова (уровень 0, ещё нет в памяти) при остальных
+//       знакомых и выше — вверх
 //   1 — прочее
 //   2 — фраза без слов-уроков
-//   3 — все слова новые — вниз, среди них проще — раньше (голоса сложности)
+//   3 — все слова временные (нет в памяти) — вниз, среди них проще — раньше (голоса сложности)
 //   +1 — быстро пролистанная фраза или похожая на неё (общее слово)
 // Среди равных — порядок админа. Каждая 6-я позиция — случайная фраза из
 // хвоста (чтобы лента не замыкалась на знакомом). Холодный старт (память

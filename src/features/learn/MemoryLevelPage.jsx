@@ -3,6 +3,7 @@ import MemoryWordChip from './MemoryWordChip.jsx'
 import MemoryLevelHead from './MemoryLevelHead.jsx'
 import { useWordVoice } from './useWordVoice.js'
 import { pageTabs } from './memoryLadder.js'
+import { levelClass, LEVEL_PERM } from '../../shared/lib/memory/memoryLevels.js'
 
 // Страница уровней памяти (по числу, названию или ⤢ ступени, по пятиугольнику).
 // Сверху — название уровня полностью: «Первый уровень памяти» … «Четвёртый
@@ -27,7 +28,7 @@ export default function MemoryLevelPage({ ladder, level, onLevel, onWord, onBack
       <div className="memTabs" role="tablist">
         {tabs.map(t => (
           <button key={t.id} role="tab" aria-selected={t.id === level}
-            className={`memTab memTab--${t.perm ? 'Perm' : t.id}`} onClick={() => onLevel(t.id)}>
+            className={`memTab ${levelClass('memTab', t.perm ? LEVEL_PERM : t.id)}`} onClick={() => onLevel(t.id)}>
             <b>{t.words.length}</b>{t.short}
           </button>
         ))}

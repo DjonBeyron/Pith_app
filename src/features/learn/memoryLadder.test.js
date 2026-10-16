@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest'
+import { levelHex } from '../../shared/lib/memory/memoryLevels.js'
 import { levelOf, levelFill, lineFills, findLadderWord, buildLadder, wordLevel, pageTabs, LEVEL_TITLES, LEVELS, LEVEL_COUNT, SETTLED_ABOUT } from './memoryLadder.js'
 import { orth, ladderLinks, flarePath, bulbR, ballPath, FIN_TOP, orthPoints, taper, mixColor, W_MIN, W_MAX, ballScale, haloScale, BALL_D, BALL_GROW, HALO_D, HALO_GROW, ENTRY_LEG, HERO_OUT } from './ladderWires.js'
 import { ladderWireSet } from './ladderWireSet.js'
@@ -246,9 +247,9 @@ describe('связи памяти: цвет и числа', () => {
   // Ствол (x = −11; к нему примешиваются вертикальные начала отводов — они сплошь цвета ступени) и строка круга
   const trunkOf = set => set.pieces.filter(p => p.x1 === p.x2 && p.x1 === -11)
   const rowOf = ps => ps.filter(p => Math.abs(p.y1 - 178) < 0.5 && Math.abs(p.y2 - 178) < 0.5)
-  const [GREEN, BLUE, GOLD, GRAY] = ['#b6fe3b', '#4fb3ee', '#f1bd3c', '#dbe6f5']
+  const [GREEN, BLUE, PURPLE, GRAY] = [1, 2, 3, 0].map(levelHex) // цвета уровней — стандарт memoryLevels.js
 
-  it('без сна: зелёная от шапки через круг до отвода в «Новые», дальше небесная, после отвода в «Знакомые» — золотистая', () => {
+  it('без сна: зелёная от шапки через круг до отвода в «Новые», дальше синяя, после отвода в «Знакомые» — фиолетовая', () => {
     const set = ladderWireSet(rects)
     const row = rowOf(set.pieces)
     expect(row.every(p => p.color === GREEN)).toBe(true) // шапка → круг и выход из круга → ствол
@@ -259,7 +260,7 @@ describe('связи памяти: цвет и числа', () => {
     // (≈ 64 px, плавный): до уровня отвода ствол чисто цвета его ступени
     expect(trunk.filter(p => p.y2 <= 290).every(p => p.color === GREEN)).toBe(true)
     expect(trunk.filter(p => p.y1 >= 356 && p.y2 <= 370).every(p => p.color === BLUE)).toBe(true)
-    expect(trunk.filter(p => p.y1 >= 434).every(p => p.color === GOLD)).toBe(true)
+    expect(trunk.filter(p => p.y1 >= 434).every(p => p.color === PURPLE)).toBe(true)
     // в переходе — смесь соседних цветов, без серого, и цвет меняется постепенно (не скачком)
     const mid = trunk.filter(p => p.y1 >= 292 && p.y2 <= 354)
     expect(mid.length).toBeGreaterThan(5)
@@ -267,16 +268,16 @@ describe('связи памяти: цвет и числа', () => {
     const red = c => Number(c.match(/\d+/)[0])
     expect(new Set(mid.map(p => p.color)).size).toBeGreaterThan(5)
     for (let i = 1; i < mid.length; i++) expect(Math.abs(red(mid[i].color) - red(mid[i - 1].color))).toBeLessThan(40)
-    // отводы и бутоны ступеней — сплошь цвета ступени; вход в «Усвоенные» золотистый
+    // отводы и бутоны ступеней — сплошь цвета ступени; вход в «Усвоенные» фиолетовый
     for (const [i, c] of [GREEN, BLUE].entries()) {
       const y = 290 + 80 * i
       expect(set.pieces.filter(p => Math.abs(p.y1 - y) < 0.5 && Math.abs(p.y2 - y) < 0.5 && p.x1 > -11).every(p => p.color === c)).toBe(true)
     }
-    expect(set.pieces.find(p => Math.abs(p.x2 - blocks[2].l) < 9 && Math.abs(p.y1 - 450) < 1).color).toBe(GOLD)
-    expect(set.dots.slice(3, 6).map(d => d.color)).toEqual([GREEN, BLUE, GOLD])
+    expect(set.pieces.find(p => Math.abs(p.x2 - blocks[2].l) < 9 && Math.abs(p.y1 - 450) < 1).color).toBe(PURPLE)
+    expect(set.dots.slice(3, 6).map(d => d.color)).toEqual([GREEN, BLUE, PURPLE])
   })
 
-  it('сон: «мёртвая» сторона от разрыва вверх к шапке серая, от разрыва вниз — зелёная/небесная/золотистая', () => {
+  it('сон: «мёртвая» сторона от разрыва вверх к шапке серая, от разрыва вниз — зелёная/синяя/фиолетовая', () => {
     const set = ladderWireSet(rects, { sleeping: true })
     const t = tearWire(set.pieces, set.tearAt)
     const xs = set.pieces.filter(p => !t.pieces.includes(p)).flatMap(p => [p.x1, p.x2])
@@ -290,9 +291,9 @@ describe('связи памяти: цвет и числа', () => {
     const trunk = trunkOf(set)
     expect(trunk.filter(p => p.y2 <= 290).every(p => p.color === GREEN)).toBe(true)
     expect(trunk.filter(p => p.y1 >= 356 && p.y2 <= 370).every(p => p.color === BLUE)).toBe(true)
-    expect(trunk.filter(p => p.y1 >= 434).every(p => p.color === GOLD)).toBe(true)
+    expect(trunk.filter(p => p.y1 >= 434).every(p => p.color === PURPLE)).toBe(true)
     // провода в разрыве — по-прежнему цвета ступеней
-    expect(new Set(t.strands.map(s => s.color))).toEqual(new Set([GREEN, BLUE, GOLD]))
+    expect(new Set(t.strands.map(s => s.color))).toEqual(new Set([GREEN, BLUE, PURPLE]))
   })
 
   it('вход в шапку — полуточка на нижней грани (центр на грани), без трубы-«капли»', () => {

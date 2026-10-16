@@ -1,4 +1,5 @@
 import { wordLevel, LEVEL_COUNT } from './memoryLadder.js'
+import { levelClass } from '../../shared/lib/memory/memoryLevels.js'
 
 // Окно слова «Моей памяти» (тап по слову). Сверху слово и откуда оно пришло —
 // урок-слово и фраза (модуль); ниже — уровень памяти: сколько уровней из
@@ -23,7 +24,7 @@ export default function LearnWordSheet({ word, perm, isPro, isAdmin = false, ste
             Из урока «{word.lessonTitle || word.word}»{word.phrase && <> · фраза «{word.phrase}»</>}
           </p>
         )}
-        <div className={`memSheetLevel memSheetLevel--${perm ? 'Perm' : level.n}`}>
+        <div className={`memSheetLevel ${levelClass('memSheetLevel', level.n)}`}>
           <div className="memSheetMeter" role="img" aria-label={`Уровень ${level.n} из ${LEVEL_COUNT}`}>
             {Array.from({ length: LEVEL_COUNT }, (_, i) => <i key={i} className={i < level.n ? 'memSheetSeg memSheetSegOn' : 'memSheetSeg'} />)}
           </div>

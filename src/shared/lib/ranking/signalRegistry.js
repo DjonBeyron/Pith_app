@@ -33,7 +33,7 @@ const LIVE_SIGNALS = [
   {
     id: 'memory_fit',
     title: 'Зона памяти',
-    description: 'Насколько фраза в «зоне ближайшего развития»: есть шатающееся слово или не больше двух новых при знакомых остальных — вверх; все слова новые — вниз; фраза без слов-уроков — посередине. Пока память пуста (холодный старт) — нейтрально.',
+    description: 'Насколько фраза в «зоне ближайшего развития»: есть шатающееся слово (уровень 1 «Новые», шаг < 3) или не больше двух временных (ещё нет в памяти, уровень 0) при остальных знакомых и выше (уровни 2–4) — вверх; все слова временные — вниз; фраза без слов-уроков — посередине. Пока память пуста (холодный старт) — нейтрально.',
     group: 'memory',
     source: 'word_memory (шаги слов) + lesson_ids модуля',
     status: 'live',
@@ -43,10 +43,10 @@ const LIVE_SIGNALS = [
       if (!ctx.stepOf?.size) return { value: 0.5, reason: 'память пуста' }
       const { words, info } = item
       if (!words.length) return { value: 1 / 3, reason: 'нет слов-уроков' }
-      if (info.newWords.length === words.length) return { value: 0, reason: 'все слова новые' }
+      if (info.newWords.length === words.length) return { value: 0, reason: 'все слова временные' }
       if (info.shaky.length) return { value: 1, reason: `шатается: ${info.shaky.slice(0, 2).join(', ')}` }
-      if (info.newWords.length <= 2) return { value: 1, reason: `новых слов: ${info.newWords.length}` }
-      return { value: 2 / 3, reason: `новых слов: ${info.newWords.length}` }
+      if (info.newWords.length <= 2) return { value: 1, reason: `временных слов: ${info.newWords.length}` }
+      return { value: 2 / 3, reason: `временных слов: ${info.newWords.length}` }
     },
   },
   {

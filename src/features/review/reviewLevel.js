@@ -1,6 +1,6 @@
 import { levelOf, findLadderWord } from '../learn/memoryLadder.js'
 
-// Цвет экрана повторения — по ступени памяти слова (1 новое, 2 знакомое, 3 усвоенное): класс на
+// Цвет экрана повторения — по ступени памяти слова (1 новое, 2 знакомое, 3 усвоенное — memoryLevels.js): класс на
 // .reviewScreen красит оттенок фона, точки закрытого слова и «худ» чата (review.css). Без ступени
 // класса нет — фон нейтральный, а не чужого цвета.
 export const levelClass = level => (level ? ` reviewScreen--lvl${level}` : '')

@@ -25,7 +25,7 @@ export default function MemoryIntro({ open }) {
         <p className="memIntroText">
           Сначала слова живут во временной памяти и с каждым повтором крепнут:{' '}
           <b className="memIntroLv1">новые</b> → <b className="memIntroLv2">знакомые</b> → <b className="memIntroLv3">усвоенные</b>.
-          Потом слово уходит в <b className="memIntroPerm">постоянную память</b> — и легко вспоминается.
+          Потом слово уходит в <b className="memIntroLv4">постоянную память</b> — и легко вспоминается.
         </p>
         <button className="lrCta memIntroCta" onClick={close}>Посмотреть мою память</button>
       </div>

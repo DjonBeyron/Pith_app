@@ -37,7 +37,7 @@ export default function ToolbarActions({ actions, narrow = false, extra = null, 
       {groupActions(bar).map((g, i) => (
         <Fragment key={g.id}>
           {i > 0 && <span className="scbTbSep" role="separator" aria-orientation="vertical" />}
-          <div className="scbTbGroup" role="group" aria-label={g.label} data-group={g.id}>
+          <div className="scbTbGroup" role="group" aria-label={g.label} title={g.hint} data-group={g.id}>
             {g.items.map(a => <ActionButton key={a.id} a={a} narrow={narrow} />)}
           </div>
         </Fragment>

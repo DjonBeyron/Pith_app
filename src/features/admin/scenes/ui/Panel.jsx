@@ -3,6 +3,7 @@ import { ChevronDown, ChevronRight, ChevronUp, Maximize2, Minimize2 } from 'luci
 import { usePanels, useColumnName } from './panelContext.js'
 import { useDensity } from './useDensity.js'
 import { panelTone } from '../lintPanelMap.js'
+import { panelHue } from './panelTones.js'
 import ScTip from '../ScTip.jsx'
 
 // Сворачиваемая панель сборщика сцен (любой блок: «Локация», «Реплики», реплика №3,
@@ -13,6 +14,7 @@ import ScTip from '../ScTip.jsx'
 // на весь экран (CSS position:fixed на месте) — поля, черновик и позиция прокрутки те же.
 // Линтер: data-tone="error" → красная рамка и красный заголовок (и у свёрнутого мини-блока),
 // "warn" — янтарная метка; счётчик в заголовке (lintPanelMap). data-density — useDensity.
+// data-hue — оттенок блока по id (panelTones.js, styles/admin-scenes-tones.css); он слабее data-tone линтера.
 // id — стабильный ключ панели («timeline.3»), fieldId — DOM id для подсветки поля (f-…).
 
 // label — текст заголовка для aria, когда title — разметка (со счётчиком); tip — ключ «?» (scenesHelp),
@@ -53,7 +55,7 @@ export default function Panel({ id, title, label, tip = null, fieldId, extra = n
   return (
     <section
       ref={rootRef} id={fieldId} className={`scbPanel${nested ? ' scbPanelNested' : ''}${className ? ` ${className}` : ''}`}
-      data-panel={id} data-collapsed={collapsed ? '1' : undefined} data-fullscreen={fs ? '1' : undefined} data-tone={tone ?? undefined} data-density="normal"
+      data-panel={id} data-collapsed={collapsed ? '1' : undefined} data-fullscreen={fs ? '1' : undefined} data-tone={tone ?? undefined} data-hue={panelHue(id)} data-density="normal"
       aria-labelledby={hid}
     >
       <div className="scbPanelHead">

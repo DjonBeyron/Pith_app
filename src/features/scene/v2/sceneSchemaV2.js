@@ -37,6 +37,7 @@ import { normalizeSceneOptions } from './sceneOptions.js'
 import { AUDIO_SETS } from './sceneVoice.js'
 import { isSolo } from './scenePit.js'
 import { normalizeVars, normalizeSegments } from './sceneVars.js'
+import { cleanTitle } from './sceneNaming.js'
 
 export * from './sceneConstants.js'
 export { LOCATIONS }
@@ -99,7 +100,7 @@ export function normalizeSceneV2(scene) {
   const out = {
     version: SCENE_VERSION_V2,
     id: typeof s.id === 'string' && s.id ? s.id : 'scene',
-    title: typeof s.title === 'string' ? s.title.trim() : '',
+    title: typeof s.title === 'string' ? cleanTitle(s.title) : '',
     location,
     characters: solo
       ? { a: normalizeCharacter(chars.a, 'a') }

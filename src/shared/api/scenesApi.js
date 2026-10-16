@@ -73,11 +73,13 @@ export function saveScene({ id, title, scene, status }) {
   return id ? updateScene(id, { title, scene, status }) : createScene({ title, scene, status })
 }
 
-export async function duplicateScene(id) {
+// Копия строки: makeCopy(scene) → сцена-копия (feature-слой решает название «… (копия)» и новый id, см. scene/v2/sceneNaming.js
+// asCopy); колонка title = scene.title копии. Без makeCopy — копия как есть
+export async function duplicateScene(id, makeCopy = s => s) {
   const row = await getScene(id)
   if (!row) throw new Error('Сцена не найдена')
-  const scene = { ...row.scene, id: `${row.scene?.id ?? 'scene'}-copy`.slice(0, 40) }
-  return createScene({ title: `${row.title} (копия)`.slice(0, 80), scene, status: 'draft' })
+  const scene = makeCopy({ ...row.scene, title: row.title })
+  return createScene({ title: scene.title, scene, status: 'draft' })
 }
 
 export async function deleteScene(id) {
@@ -87,7 +89,12 @@ export async function deleteScene(id) {
   if (!rows?.length) throw new Error('Удаление не применилось: сервер не подтвердил')
 }
 
-export const renameScene = (id, title) => updateScene(id, { title })
+// Переименование: колонка title и scene.title в JSON меняются вместе (иначе в списке одно, а в сцене другое);
+// title уже очищен вызывающим (cleanTitle)
+export async function renameScene(id, title) {
+  const row = await getScene(id)
+  return updateScene(id, row?.scene ? { title, scene: { ...row.scene, title } } : { title })
+}
 export const setSceneStatus = (id, status) => updateScene(id, { status })
 export const publishScene = id => setSceneStatus(id, 'published')
 export const unpublishScene = id => setSceneStatus(id, 'draft')

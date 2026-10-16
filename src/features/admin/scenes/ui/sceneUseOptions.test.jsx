@@ -66,8 +66,10 @@ describe('шаблоны', () => {
     expect(list[4].note).toContain('один кот')
     expect(list[4].scene.characters.b).toBeUndefined()
     expect(Object.values(list[6].scene.slots).every(v => v === null)).toBe(true)
-    expect(templateScene(list[0]).id).toBe(`${list[0].scene.id}-copy`)
-    expect(templateScene(list[6]).id).toBe('new-scene')
+    expect(templateScene(list[0]).title).toBe(list[0].title)
+    expect(templateScene(list[0]).id).not.toMatch(/copy/)
+    expect(templateScene(list[6]).title).toBe('Новая сцена')
+    expect(templateScene(list[6]).id).toBe('novaya-stsena')
   })
   it('подтверждение нужно только при реальных правках', () => {
     expect(needsTemplateConfirm({ dirty: true, scene: newDraft() })).toBe(false)

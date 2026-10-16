@@ -7,8 +7,8 @@
 .scbTbRow { row-gap: 8px; }
 .scbBack { flex: none; display: inline-flex; align-items: center; gap: 5px; padding-left: 10px; }
 .scbTb .fsTitle { flex: 0 1 auto; max-width: 240px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.scbTb .scbFieldTitle { flex: 1 1 180px; max-width: 360px; }
-.scbTb .scbFieldId { flex: 0 1 150px; }
+.scbTbNav { display: inline-flex; align-items: center; gap: 6px; flex: none; }
+.scbTbSepNav { min-height: 24px; }
 
 /* Индикаторы */
 .scbTbStatus { margin: 0 0 0 auto; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 5px; }
@@ -27,18 +27,19 @@
 .scbTbActions { margin-left: auto; display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px; }
 .scbTbGroup { display: inline-flex; align-items: center; gap: 6px; }
 .scbTbUndo { flex: none; gap: 4px; }
-@media (max-width: 480px) { .scbTb .fsTitle { display: none; } .scbTb .scbTbUndo { margin-right: auto; } } /* телефон: вместо урезанного «С…» — место под Отменить/Повторить */ /* «Отменить»/«Повторить» после «Назад» (history/UndoRedoButtons) */
+@media (max-width: 480px) { .scbTb .fsTitle { display: none; } .scbTb .scbTbNav { margin-right: auto; } } /* телефон: вместо урезанного «С…» — место под Отменить/Повторить */ /* «Отменить»/«Повторить» после «Назад» (history/UndoRedoButtons) */
 .scbTbGroup .fsBtn { display: inline-flex; align-items: center; gap: 5px; }
 .scbTbSep { align-self: stretch; width: 1px; min-height: 22px; background: var(--fs-border); }
 .scbTbMenu { position: relative; display: inline-flex; }
 /* выпадашка под «⋯» на любой ширине (у общего .scbMenu на ≤480px — «шторка» снизу, здесь не нужна) */
-.scbTbMenuList { position: absolute; left: auto; right: 0; top: calc(100% + 6px); bottom: auto; z-index: 30; min-width: min(270px, calc(100vw - 24px)); max-width: calc(100vw - 24px); }
+.scbTbMenuList { position: absolute; left: auto; right: 0; top: calc(100% + 6px); bottom: auto; z-index: 30; min-width: min(270px, calc(100vw - 24px)); max-width: calc(100vw - 24px); max-height: calc(100vh - 110px); max-height: calc(100dvh - 110px); overflow-y: auto; }
 
 /* Узкое окно: строка 1 — «Назад», название, главное действие, «⋯»; ниже поля и индикаторы */
 .scbTb[data-narrow] .scbBack { order: 0; }
 .scbTb[data-narrow] .fsTitle { order: 0; flex: 1 1 0; min-width: 0; max-width: none; font-size: 15px; }
 .scbTb[data-narrow] .scbTbActions { order: 1; margin-left: 0; flex-wrap: nowrap; gap: 6px; }
-.scbTb[data-narrow] .scbFieldTitle, .scbTb[data-narrow] .scbFieldId { order: 2; flex: 1 1 100%; }
+.scbTb[data-narrow] .scbSceneTitle { order: 2; flex: 1 1 100%; }
+.scbTb[data-narrow] .scbTbSepNav { display: none; }
 .scbTb[data-narrow] .scbTbStatus { order: 3; flex: 1 1 100%; }
 
 /* Диалог «Назад» и подтверждение «Новая» */
@@ -71,3 +72,47 @@
 .scbMenuItemOn .scbMenuLabel { font-weight: 600; }
 .scbTb[data-narrow] .scbTbSeg, .scbTb[data-narrow] .scbTbToggle { display: none; }
 .scbTbIconAccent { color: var(--fs-accent); border-color: var(--fs-accent); }
+
+/* Название сцены в шапке (toolbar/SceneTitleField): текст-кнопка → поле; рядом статус «Черновик · не сохранена» */
+.scbSceneTitle { flex: 1 1 220px; min-width: 0; max-width: 520px; display: flex; align-items: center; gap: 8px; }
+.scbSceneTitleBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  max-width: 100%;
+  min-height: 32px;
+  padding: 3px 8px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: none;
+  color: var(--fs-text);
+  font: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  text-align: left;
+  cursor: pointer;
+}
+.scbSceneTitleBtn:hover { border-color: var(--fs-border); background: var(--fs-panel-2); }
+.scbSceneTitleBtn > svg { flex: none; color: var(--fs-muted); }
+.scbSceneTitleText { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.scbSceneTitleEmpty .scbSceneTitleText { color: var(--fs-error); font-weight: 600; font-style: italic; }
+.scbSceneTitleInput { flex: 1 1 0; min-width: 0; font-weight: 600; }
+.scbSceneTitleInput[aria-invalid="true"] { border-color: var(--fs-error); }
+.scbSceneStatus {
+  flex: none;
+  padding: 2px 9px;
+  border: 1px solid var(--fs-border);
+  border-radius: 999px;
+  font-size: 11.5px;
+  white-space: nowrap;
+  color: var(--fs-muted);
+}
+.scbSceneStatus[data-state="published"] { color: var(--fs-ok); border-color: var(--fs-ok); }
+.scbSceneStatus[data-dirty] { color: var(--fs-warn); border-color: var(--fs-warn); }
+@media (max-width: 480px) { .scbSceneStatus { font-size: 11px; padding: 2px 7px; } }
+
+/* Меню «Ещё»: группы с подписью и линией между ними */
+.scbMenuGroup { display: flex; flex-direction: column; }
+.scbMenuGroupSep { margin-top: 4px; padding-top: 4px; border-top: 1px solid var(--fs-border); }
+.scbMenuHead { padding: 4px 12px 2px; font-size: 10.5px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--fs-muted); }

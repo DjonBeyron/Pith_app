@@ -8,6 +8,7 @@ import TemplatesGroup from './ui/TemplatesGroup.jsx'
 import LinkModuleDialog from './ui/LinkModuleDialog.jsx'
 import { useSceneUse } from './ui/useSceneUse.js'
 import { templateNote } from '../../scene/v2/sceneVarsNote.js'
+import { duplicateTitles, isDuplicateTitle, shortRef } from '../../scene/v2/sceneNaming.js'
 
 // Вкладка «Мои сцены»: библиотека из таблицы scenes — список, открыть, создать (текущий
 // черновик как новую строку), дублировать, удалить (подтверждение в строке + «Отменить» в строке статуса
@@ -24,17 +25,20 @@ const fmt = iso => {
   return Number.isNaN(d.getTime()) ? '' : d.toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
 }
 
-export default function SceneLibrary({ draft, library, onOpenRow, onSave, setStatus, mode = 'admin', onApplyScene = null }) {
+export default function SceneLibrary({ draft, library, onOpenRow, onSave, onSaveAs = null, setStatus, mode = 'admin', onApplyScene = null }) {
   const [askDelete, setAskDelete] = useState(null)
   const [renaming, setRenaming] = useState(null) // { id, title }
   const { items, loading, error, missingTable, busy } = library
   const currentId = draft.saved.id
   const hasErrors = draft.errors.length > 0
+  const dups = duplicateTitles(items) // одинаковые названия допустимы — у таких строк подпись с датой и кодом
   const use = useSceneUse({ library, onOpenRow, onApply: onApplyScene, setStatus })
 
+  // «Сохранить как новую»: сцена уже в библиотеке — копия «Название (копия)» новой строкой (раньше
+  // detach+save писали в старую строку); сцены в библиотеке ещё нет — обычное сохранение черновиком
   const createNew = async () => {
-    draft.actions.detach()
-    await onSave('draft')
+    if (currentId && onSaveAs) await onSaveAs()
+    else await onSave('draft')
   }
   const toggleStatus = async row => {
     const next = row.status === 'published' ? 'draft' : 'published'
@@ -103,6 +107,7 @@ export default function SceneLibrary({ draft, library, onOpenRow, onSave, setSta
                 <span className={`scbStatus scbStatus-${row.status}`}>{STATUS_LABEL[row.status]}</span>
                 {rowNote(row) && <span className="scbSub">{rowNote(row)}</span>}
                 <span className="scbSub">{fmt(row.updated_at)}</span>
+                {isDuplicateTitle(dups, row.title) && <span className="scbSub" title="В библиотеке есть сцена с таким же названием — различайте по дате и коду">· такое же название · №{shortRef(row.id)}</span>}
               </div>
             )}
             <div className="scbLibBtns">

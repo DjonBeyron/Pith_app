@@ -7,7 +7,7 @@ export const GENDERS = ['male', 'female']
 export const EMOTIONS = ['neutral', 'happy', 'tired', 'surprised']
 export const POSES = ['idle', 'talk', 'lean']
 // minLines — диалог (без задания или «О чём диалог»); minLinesVoice — задания «Повтори»/«Ответь коту»: хватает одной реплики
-export const LIMITS = { minLines: 2, minLinesVoice: 1, maxLines: 12, maxTextLen: 140, maxNameLen: 24, maxTitleLen: 60 }
+export const LIMITS = { minLines: 2, minLinesVoice: 1, maxLines: 12, maxTextLen: 140, maxNameLen: 24, maxTitleLen: 80 }
 
 export const DEFAULT_VOICE = { pitch: 1, rate: 1 }
 export const DEFAULT_OPTIONS = { bubbles: true, autoplay: false, loop: false }

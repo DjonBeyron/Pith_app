@@ -1,14 +1,25 @@
 import { useState, useRef, useEffect, useId } from 'react'
 import { Ellipsis, ChevronDown, Check } from 'lucide-react'
+import { menuKeyAction } from './menuKeys.js'
 
 // Меню тулбара. Два применения: «⋯» на узком окне (по умолчанию — сюда складываются действия, не
 // поместившиеся на панель, toolbarModel.splitByWidth → menuItems) и кнопка с выпадашкой (text —
 // «Озвучить ▾»: mainRun — клик по основной части, стрелка открывает пункты всё / только текст /
 // только перевод). Доступно с клавиатуры: Enter/Space/↓ на кнопке открывают и фокусируют первый пункт,
 // ↑/↓/Home/End ходят по пунктам, Esc закрывает и возвращает фокус (пока открыто — data-esc-own: Esc
-// окна его не трогает), Tab закрывает, клик вне — тоже. Пункт: { id, label, hint?, run, disabled?,
+// окна его не трогает), Tab закрывает, клик вне — тоже. Пункт с heading открывает блок группы (role=group, подпись, линия). Пункт: { id, label, hint?, run, disabled?,
 // role? ('menuitemradio' | 'menuitemcheckbox'), checked? }. Без пунктов не рендерится. initialOpen — тесты/снимки.
-export default function ToolbarOverflowMenu({ items, initialOpen = false, text = null, Icon = null, label = 'Ещё действия', hint = null, menuLabel = 'Действия окна', disabled = false, mainRun = null, actionId = null }) {
+// Пункты → блоки по подписям групп (item.heading открывает новый блок: заголовок + разделитель над ним)
+function chunks(items) {
+  const out = []
+  for (const it of items) {
+    if (it.heading || !out.length) out.push({ heading: it.heading ?? null, items: [] })
+    out.at(-1).items.push(it)
+  }
+  return out
+}
+
+export default function ToolbarOverflowMenu({ items, initialOpen = false, text = null, Icon = null, label = 'Ещё действия', hint = 'Ещё: сохранить как, публикация, тема, служебное', menuLabel = 'Действия окна', disabled = false, mainRun = null, actionId = null }) {
   const [open, setOpen] = useState(initialOpen)
   const rootRef = useRef(null)
   const btnRef = useRef(null)
@@ -33,13 +44,13 @@ export default function ToolbarOverflowMenu({ items, initialOpen = false, text =
     list[next]?.focus()
   }
   const onKey = e => {
-    if (!open) { if (e.key === 'ArrowDown') { e.preventDefault(); setOpen(true) } return }
-    if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); close(true) }
-    else if (e.key === 'ArrowDown') { e.preventDefault(); move(1) }
-    else if (e.key === 'ArrowUp') { e.preventDefault(); move(-1) }
-    else if (e.key === 'Home') { e.preventDefault(); move('first') }
-    else if (e.key === 'End') { e.preventDefault(); move('last') }
-    else if (e.key === 'Tab') setOpen(false)
+    const act = menuKeyAction(e.key, open)
+    if (!act) return
+    if (act === 'tab') { setOpen(false); return }
+    e.preventDefault()
+    if (act === 'open') setOpen(true)
+    else if (act === 'close') { e.stopPropagation(); close(true) }
+    else move(act === 'next' ? 1 : act === 'prev' ? -1 : act)
   }
   const split = !!text && !!mainRun
 
@@ -58,13 +69,22 @@ export default function ToolbarOverflowMenu({ items, initialOpen = false, text =
       </button>
       {open && (
         <div id={menuId} role="menu" className="scbMenu scbTbMenuList" aria-label={menuLabel}>
-          {items.map(it => (
-            <button key={it.id} type="button" role={it.role ?? 'menuitem'} aria-checked={it.role ? !!it.checked : undefined} className={`scbMenuItem${it.checked ? ' scbMenuItemOn' : ''}`} disabled={it.disabled} onClick={() => pick(it)} title={it.hint}>
-              {it.role && <span className="scbMenuCheck" aria-hidden="true">{it.checked ? <Check size={13} /> : null}</span>}
-              <span className="scbMenuLabel">{it.label}</span>
-              {it.hint && <span className="scbMenuHint">{it.hint}</span>}
-            </button>
-          ))}
+          {chunks(items).map((ch, i) => {
+            const rows = ch.items.map(it => (
+              <button key={it.id} type="button" role={it.role ?? 'menuitem'} aria-checked={it.role ? !!it.checked : undefined} className={`scbMenuItem${it.checked ? ' scbMenuItemOn' : ''}`} disabled={it.disabled} onClick={() => pick(it)} title={it.hint}>
+                {it.role && <span className="scbMenuCheck" aria-hidden="true">{it.checked ? <Check size={13} /> : null}</span>}
+                <span className="scbMenuLabel">{it.label}</span>
+                {it.hint && <span className="scbMenuHint">{it.hint}</span>}
+              </button>
+            ))
+            if (!ch.heading) return rows
+            return (
+              <div key={ch.heading} role="group" aria-label={ch.heading} className={`scbMenuGroup${i > 0 ? ' scbMenuGroupSep' : ''}`}>
+                <div className="scbMenuHead" aria-hidden="true">{ch.heading}</div>
+                {rows}
+              </div>
+            )
+          })}
         </div>
       )}
     </span>

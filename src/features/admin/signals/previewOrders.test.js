@@ -39,7 +39,7 @@ describe('previewOrders', () => {
     expect(s.high).toBe(1) // B
     expect(s.low).toBe(2) // A (0) и C (1/3)
     expect(s.mean).toBeCloseTo((1 + 0 + 1 / 3) / 3)
-    expect(s.reasons.map(r => r.text)).toContain('все слова новые')
+    expect(s.reasons.map(r => r.text)).toContain('все слова временные')
     expect(signalStats(mods, rank, 'review_urgency')).toBe(null)
     expect(signalStats(mods, null, 'memory_fit')).toBe(null)
   })

@@ -162,7 +162,7 @@ describe('разметка и тулбар', () => {
     const base = { mode: 'admin', save: { label: 'С', run() {} }, onNew() {}, theme: 'dark', onToggleTheme() {} }
     expect(buildToolbarActions(base).some(a => a.id === 'feedTest')).toBe(false)
     const l = buildToolbarActions({ ...base, feedTest: { run() {}, hint: 'x' } })
-    expect(l.map(a => a.id)).toEqual(['save', 'feedTest', 'new', 'theme'])
-    expect(l.find(a => a.id === 'feedTest').group).toBe('scene')
+    expect(l.map(a => a.id)).toEqual(['save', 'new', 'feedTest', 'theme'])
+    expect(l.find(a => a.id === 'feedTest').group).toBe('preview')
   })
 })

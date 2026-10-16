@@ -9,6 +9,7 @@ import { displayOfOptions, normalizeVoiceFlags } from './sceneOptions.js'
 import { sceneByteSize, SCENE_MAX_BYTES } from './sceneNode.js'
 import { isSolo } from './scenePit.js'
 import { lintVars, isTemplateLine } from './sceneVarsLint.js'
+import { titleProblem } from './sceneNaming.js'
 
 // Линтер сцен v2 — детерминированная проверка поверх валидатора: бюджет
 // узлов, предметы без опоры, пустые слоты, качество диалога. Возвращает
@@ -120,6 +121,8 @@ export function lintScene(scene, { nodeBudget = NODE_BUDGET } = {}) {
   errors.forEach(text => out.push({ level: 'error', text }))
   if (!isObj(scene)) return out
   lintSize(scene, out)
+  const noTitle = titleProblem(scene.title) // пустое название: в библиотеке и в списках сцену нечем назвать
+  if (noTitle) out.push({ level: 'error', text: noTitle })
   if (!errors.some(e => e.startsWith('location'))) {
     const nodes = sceneNodeBudget(scene)
     if (nodes > nodeBudget) out.push({ level: 'error', text: `Бюджет узлов SVG: ${nodes} > ${nodeBudget} — уберите предметы из слотов` })

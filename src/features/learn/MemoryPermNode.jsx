@@ -16,7 +16,7 @@ const RINGS = [
 ]
 const PERM_PATH = 'M 5.4 118.0 L 16.6 42.4 A 43.8 43.8 0 0 1 60.0 4.6 L 186.0 4.6 A 43.8 43.8 0 0 1 229.8 42.4 L 240.6 118.0 A 43.8 43.8 0 0 1 220.0 161.4 L 146.2 206.8 A 43.8 43.8 0 0 1 100.0 206.8 L 26.2 161.4 A 43.8 43.8 0 0 1 5.4 118.0 Z'
 
-// Фиолетовый пятиугольник «N Слов в постоянной памяти» под ступенями (форма
+// Золотистый пятиугольник «N Слов в постоянной памяти» под ступенями (форма
 // финала модуля): сюда уходят усвоенные слова, вспомненные на месячной
 // проверке. Четыре контура с затуханием наружу — как обводки ступеней (1 / 2 /
 // 3). В фоне, кроме узора приложения, — один крупный полупрозрачный нейрон под текстом (memory-perm.css,
@@ -30,14 +30,19 @@ export default function MemoryPermNode({ count, onOpen }) {
     <button className="memPerm" onClick={onOpen}>
       <svg viewBox="-32 -32 304 276" aria-hidden="true">
         <defs>
-          <linearGradient id={grad} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stopColor="#a78bfa" />
-            <stop offset="1" stopColor="#8b5cf6" stopOpacity=".35" />
+          {/* Золото (стандарт уровней, memory-levels.css --lvl4-shine): тот же статичный блик по диагонали, без анимации */}
+          <linearGradient id={grad} gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="240" y2="212">
+            <stop offset="0" stopColor="#a67c00" />
+            <stop offset=".22" stopColor="#f4d675" />
+            <stop offset=".44" stopColor="#b8860b" />
+            <stop offset=".5" stopColor="#fff1b8" />
+            <stop offset=".7" stopColor="#d4a017" />
+            <stop offset="1" stopColor="#a67c00" stopOpacity=".6" />
           </linearGradient>
           <linearGradient id={gradTop} gradientUnits="userSpaceOnUse" x1="52" y1="0" x2="194" y2="0">
-            <stop offset="0" stopColor="#c4b5fd" stopOpacity="0" />
-            <stop offset=".5" stopColor="#d9ccff" />
-            <stop offset="1" stopColor="#c4b5fd" stopOpacity="0" />
+            <stop offset="0" stopColor="#f4d675" stopOpacity="0" />
+            <stop offset=".5" stopColor="#fff1b8" />
+            <stop offset="1" stopColor="#f4d675" stopOpacity="0" />
           </linearGradient>
         </defs>
         <path d={PERM_PATH} stroke={`url(#${grad})`} />

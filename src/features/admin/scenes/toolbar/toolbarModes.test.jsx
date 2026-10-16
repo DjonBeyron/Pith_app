@@ -18,10 +18,10 @@ const modes = (over = {}) => ({
 const ids = l => l.map(a => a.id)
 
 describe('toolbarModel — режимы и озвучка по наборам', () => {
-  it.each(['admin', 'node', 'module'])('%s: группа modes впереди, затем voice/scene/view; «По умолчанию» заблокирована без переопределений', mode => {
+  it.each(['admin', 'node', 'module'])('%s: группы file → preview → voice → service; «По умолчанию» заблокирована без переопределений', mode => {
     const l = buildToolbarActions({ ...base, mode, voice, modes: modes(), apply: mode === 'admin' ? null : { label: 'Применить', run() {} } })
-    expect(ids(l).slice(0, 5)).toEqual(['display', 'voiceOriginal', 'voiceTranslation', 'makeDefault', 'voiceAll'])
-    expect(groupActions(l).map(g => g.id)).toEqual(['modes', 'voice', 'scene', 'view'])
+    expect(ids(l).filter(id => ['display', 'voiceOriginal', 'voiceTranslation', 'makeDefault', 'voiceAll'].includes(id))).toEqual(['display', 'voiceOriginal', 'voiceTranslation', 'makeDefault', 'voiceAll'])
+    expect(groupActions(l).map(g => g.id)).toEqual(['file', 'preview', 'voice', 'service'])
     expect(l.find(a => a.id === 'makeDefault').disabled).toBe(true)
     expect(l.find(a => a.id === 'display')).toMatchObject({ kind: 'segment', value: 'text' })
     expect(l.find(a => a.id === 'voiceOriginal')).toMatchObject({ kind: 'toggle', pressed: true })
@@ -68,8 +68,9 @@ describe('toolbarModel — режимы и озвучка по наборам', 
     const { bar, menu } = splitByWidth(l, true)
     expect(ids(bar)).toEqual(['save'])
     const items = menuItems(menu)
-    expect(items.slice(0, 3).map(i => [i.id, i.role, i.checked])).toEqual([['display:none', 'menuitemradio', false], ['display:text', 'menuitemradio', true], ['display:both', 'menuitemradio', false]])
-    expect(items[1].hint).toBe('предпросмотр ≠ сцена')
+    const seg = items.filter(i => i.id.startsWith('display:'))
+    expect(seg.map(i => [i.id, i.role, i.checked])).toEqual([['display:none', 'menuitemradio', false], ['display:text', 'menuitemradio', true], ['display:both', 'menuitemradio', false]])
+    expect(seg[1].hint).toBe('предпросмотр ≠ сцена')
     expect(items.find(i => i.id === 'voiceOriginal')).toMatchObject({ role: 'menuitemcheckbox', checked: true })
     expect(items.find(i => i.id === 'voiceAll:voiceText').label).toBe('Озвучить: только текст')
   })
@@ -86,7 +87,7 @@ describe('разметка тулбара с режимами', () => {
     expect(html).toContain('data-action="makeDefault"')
     expect(html).toContain('class="fsBtn scbTbSplitMain"')
     expect(html).toContain('aria-label="Озвучить: варианты"')
-    expect(html).not.toContain('Ещё действия')
+    expect(html).toContain('aria-label="Ещё действия"') // второстепенное (тема, свернуть все) всегда в «Ещё»
   })
   it('BuilderToolbar: с modes — сегмент на панели и чип «предпросмотр ≠ сцена»; на узком — только «⋯»', () => {
     const draft = { scene: { ...demoCafeScene }, saved: { id: null, status: 'draft' }, dirty: false, errors: [], restoredAt: null, actions: {} }

@@ -10,7 +10,7 @@ import { rowWords, formatCount, wordsLabel } from '../../shared/lib/ratingStats.
 
 // Уровень · XP · стрик — строкой, подписью под ником (UserBadge subtitle).
 // Порядок фиксирован: уровень, потом XP, потом дни подряд, в конце — сколько слов
-// знает игрок (фиолетовое; words_perm из get_leaderboard, null — сервер не прислал
+// знает игрок (золотистое — постоянная память; words_perm из get_leaderboard, null — сервер не прислал
 // или своя строка вне топа: тогда числа нет).
 function RatingStats({ level, xp, streak, words = null }) {
   return (

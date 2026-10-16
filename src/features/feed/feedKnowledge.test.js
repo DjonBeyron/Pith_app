@@ -23,7 +23,7 @@ describe('знание фразы', () => {
   it('цвет слова — ступень памяти: 1–2 небесный, 3–4 жёлтый, 5 салатовый, постоянная — P; нет в памяти — без цвета', () => {
     const steps = new Map([['a', 1], ['b', 2], ['c', 3], ['d', 4], ['e', 5], ['f', 5]])
     const settled = new Set(['f'])
-    expect(['a', 'b', 'c', 'd', 'e', 'f'].map(w => tokenLevel(w, steps, settled))).toEqual([1, 1, 2, 2, 3, 'P'])
+    expect(['a', 'b', 'c', 'd', 'e', 'f'].map(w => tokenLevel(w, steps, settled))).toEqual([1, 1, 2, 2, 3, 4])
     expect(tokenLevel('Trying', steps)).toBe(null)
     expect(tokenLevel('A', steps)).toBe(1)
     expect(tokenLevel('a', null)).toBe(null)

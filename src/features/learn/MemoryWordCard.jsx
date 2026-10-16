@@ -6,10 +6,8 @@ import { normalizeWordCard } from '../wordCard/wordCardModel.js'
 import { splitByWord } from '../review/reviewSession.js'
 import { useWordVoice } from './useWordVoice.js'
 import { levelOf, lineFills } from './memoryLadder.js'
+import { levelName, levelVar, LEVEL_PERM } from '../../shared/lib/memory/memoryLevels.js'
 import { dueLabel } from './learnView.js'
-
-const LEVEL_SHORT = ['Новые', 'Знакомые', 'Усвоенные']
-const LEVEL_COLOR = ['var(--lvl1)', 'var(--lvl2)', 'var(--lvl3)']
 
 // Карточка слова — справка для новичка (PROJECT.md → «Макет «Карточка слова»»): слово,
 // озвучка, перевод, где оно в фразе, блоки справки урока-слова (script.wordCard) и одна
@@ -42,7 +40,7 @@ export default function MemoryWordCard({ word, phrase, perm, today, onLesson, on
   // окно слова (onFallback), а мелькнувшая пустая карточка перед ним только путала бы
   if (state.status === 'loading') return null
   const card = state.card
-  const lvl = levelOf(word.step) - 1
+  const lvl = perm ? LEVEL_PERM : levelOf(word.step)
   const fills = lineFills(word.step)
   const when = perm ? '' : dueLabel(word.due, today)
   return (
@@ -73,9 +71,9 @@ export default function MemoryWordCard({ word, phrase, perm, today, onLesson, on
         </div>
         <div className="wcFoot">
           <div className="wcMem">
-            {!perm && <span className="wcLine">{fills.map((f, i) => <i key={i} style={{ '--c': LEVEL_COLOR[i], '--f': `${f * 100}%` }} />)}</span>}
+            {!perm && <span className="wcLine">{fills.map((f, i) => <i key={i} style={{ '--c': levelVar(i + 1), '--f': `${f * 100}%` }} />)}</span>}
             <span>
-              <b style={{ color: perm ? 'var(--lvlP)' : LEVEL_COLOR[lvl] }}>{perm ? 'Постоянная память' : LEVEL_SHORT[lvl]}</b>
+              <b className={lvl === LEVEL_PERM ? 'wcMemPerm' : undefined} style={lvl === LEVEL_PERM ? undefined : { color: levelVar(lvl) }}>{levelName(lvl)}</b>
               {!perm && ` · шаг ${word.step} из 5`}{when && ` · повтор ${when}`}
             </span>
           </div>

@@ -28,6 +28,7 @@ import '../../../styles/admin-scenes-character.css'
 import '../../../styles/admin-scenes-preview.css'
 import '../../../styles/admin-scenes-voice.css'
 import '../../../styles/admin-scenes-panel.css'
+import '../../../styles/admin-scenes-tones.css'
 import '../../../styles/admin-scenes-layout.css'
 import '../../../styles/admin-scenes-use.css'
 import '../../../styles/admin-scenes-icons.css'
@@ -104,7 +105,7 @@ export default function BuilderWindow({ onClose: onCloseProp, initialScene = nul
       <PanelCtx.Provider value={panels}>
         <BuilderToolbar
           draft={draft} library={library} status={status} setStatus={setStatus} title={title}
-          onSave={act.save} onApply={onApply ? () => onApply(draft.scene, draft.saved) : null} applyLabel={applyLabel} useMode={useMode}
+          onSave={act.save} onSaveAs={act.saveAs} onTogglePublish={act.togglePublish} onApply={onApply ? () => onApply(draft.scene, draft.saved) : null} applyLabel={applyLabel} useMode={useMode}
           onBack={back.requestBack} backRef={backRef} undoCtl={undoCtl} unsaved={back.unsaved} voice={voice} modes={modes} theme={ui.theme} onToggleTheme={ui.toggleTheme} onFeedTest={openFeedTest}
         />
         <div className="fsViewTabs" role="tablist" aria-label="Разделы окна">
@@ -130,7 +131,7 @@ export default function BuilderWindow({ onClose: onCloseProp, initialScene = nul
           <PanelColumn name="panel">
             <section className="scbCol scbColPanel" aria-label="JSON, нейросеть, библиотека">
               <div className="scbColTools"><CollapseAllButton column="panel" /></div>
-              <SidePanel draft={draft} library={library} onOpenRow={act.openRow} onSave={act.save} setStatus={setStatus} mode={mode} onApplyScene={onApply} />
+              <SidePanel draft={draft} library={library} onOpenRow={act.openRow} onSave={act.save} onSaveAs={act.saveAs} setStatus={setStatus} mode={mode} onApplyScene={onApply} />
             </section>
           </PanelColumn>
         </div>

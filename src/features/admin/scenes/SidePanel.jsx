@@ -13,7 +13,7 @@ import SceneLibrary from './SceneLibrary.jsx'
 const TABS = [['json', 'JSON'], ['ai', 'Для нейросети'], ['library', 'Мои сцены']]
 const isTab = v => TABS.some(([id]) => id === v)
 
-export default function SidePanel({ draft, library, onOpenRow, onSave, setStatus, mode = 'admin', onApplyScene = null }) {
+export default function SidePanel({ draft, library, onOpenRow, onSave, onSaveAs = null, setStatus, mode = 'admin', onApplyScene = null }) {
   const [tab, setTab] = useState(() => uiRead('tab', 'library', { validate: isTab }))
   useEffect(() => { uiWrite('tab', tab) }, [tab])
   const label = TABS.find(([id]) => id === tab)?.[1] ?? 'Панель'
@@ -29,7 +29,7 @@ export default function SidePanel({ draft, library, onOpenRow, onSave, setStatus
       <Panel id="side" title={label} extra={tabs}>
         {tab === 'json' && <JsonPanel draft={draft} setStatus={setStatus} />}
         {tab === 'ai' && <AiPanel draft={draft} setStatus={setStatus} />}
-        {tab === 'library' && <SceneLibrary draft={draft} library={library} onOpenRow={onOpenRow} onSave={onSave} setStatus={setStatus} mode={mode} onApplyScene={onApplyScene} />}
+        {tab === 'library' && <SceneLibrary draft={draft} library={library} onOpenRow={onOpenRow} onSave={onSave} onSaveAs={onSaveAs} setStatus={setStatus} mode={mode} onApplyScene={onApplyScene} />}
       </Panel>
     </div>
   )

@@ -35,7 +35,7 @@
 .memIntroStrong { font-weight: 700; color: #eef1f4; }
 .memIntroLv1 { color: var(--lvl1); }
 .memIntroLv2 { color: var(--lvl2); }
-.memIntroLv3 { color: #f1bd3c; }
-.memIntroPerm { color: #a78bfa; }
+.memIntroLv3 { color: var(--lvl3); }
+/* .memIntroLv4 — золото, memory-levels.css */
 /* Кнопка — как «Повторить», но без пульса: окно и так в фокусе */
 .memIntroCta { margin-top: 4px; animation: none; }

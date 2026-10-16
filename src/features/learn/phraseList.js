@@ -16,7 +16,7 @@ import { localDate } from '../../shared/lib/memory/dailyPick.js'
 //      lost: null | 'gone' | 'closed', videoUrl }], свежие выученные первыми. n — номер фразы в
 // коллекции по порядку выучивания (самая первая — 1), поэтому номера не меняются, пока коллекция растёт
 export function buildPhraseList(rows, moduleById, byWord, hasDeck) {
-  // perm — слово в постоянной памяти (settled_on): в карточке фразы оно фиолетовое, как в пятиугольнике
+  // perm — слово в постоянной памяти (settled_on): в карточке фразы оно золотистое, как в пятиугольнике
   const withMemory = w => ({
     ...w, step: byWord.get(w.word)?.step ?? null, due: byWord.get(w.word)?.due_on ?? null,
     hasDeck: hasDeck(w.word), perm: !!byWord.get(w.word)?.settled_on,

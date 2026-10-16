@@ -104,7 +104,7 @@ describe('LEVEL_CLASS', () => {
     expect(LEVEL_CLASS(1)).toBe('fwKnown fwKnown--1')
     expect(LEVEL_CLASS(2)).toBe('fwKnown fwKnown--2')
     expect(LEVEL_CLASS(3)).toBe('fwKnown fwKnown--3')
-    expect(LEVEL_CLASS(4)).toBe('fwKnown fwKnown--P')
+    expect(LEVEL_CLASS(4)).toBe('fwKnown fwKnown--4')
   })
 })
 

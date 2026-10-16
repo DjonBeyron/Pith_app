@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useSoftRemove } from './history/useSoftRemove.js'
+import { asCopy, cleanTitle } from '../../scene/v2/sceneNaming.js'
 import {
   listScenes, getScene, saveScene, duplicateScene, deleteScene, renameScene, setSceneStatus, isMissingTable, isRightsError,
 } from '../../../shared/api/scenesApi.js'
@@ -55,12 +56,12 @@ export function useSceneLibrary() {
     items, loading, error, missingTable, busy, refresh,
     save: ({ id, title, scene, status }) => run(() => saveScene({ id, title, scene, status })),
     open: id => run(() => getScene(id)),
-    duplicate: id => run(() => duplicateScene(id)),
+    duplicate: id => run(() => duplicateScene(id, asCopy)), // «Название (копия)», свой автоматический id
     remove: id => run(() => deleteScene(id)),
     removeSoon: soft.schedule,
     undoRemove: soft.cancel,
     pendingRemoval: soft.pending,
-    rename: (id, title) => run(() => renameScene(id, title)),
+    rename: (id, title) => run(() => renameScene(id, cleanTitle(title))), // колонка и scene.title вместе
     setStatus: (id, status) => run(() => setSceneStatus(id, status)),
     clearError: () => setError(''),
   }

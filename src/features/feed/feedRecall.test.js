@@ -137,12 +137,12 @@ describe('recallResult', () => {
 })
 
 describe('цвет и время плашки', () => {
-  it('до ответа — ступень слова, после — ступень, в которую пришло; постоянная — фиолетовая', () => {
+  it('до ответа — ступень слова, после — ступень, в которую пришло; постоянная — золотистая', () => {
     expect(recallColor({ phase: 'quiz', step: 2 })).toBe(LEVEL_COLOR[1])
     expect(recallColor({ phase: 'quiz', step: 4 })).toBe(LEVEL_COLOR[2])
-    expect(recallColor({ phase: 'quiz', step: 5, wasSettled: true })).toBe(LEVEL_COLOR.P)
+    expect(recallColor({ phase: 'quiz', step: 5, wasSettled: true })).toBe(LEVEL_COLOR[4])
     expect(recallColor({ phase: 'ok', step: 2, from: 2, to: 3 })).toBe(LEVEL_COLOR[2])
-    expect(recallColor({ phase: 'ok', step: 5, from: 5, to: 5, perm: true })).toBe(LEVEL_COLOR.P)
+    expect(recallColor({ phase: 'ok', step: 5, from: 5, to: 5, perm: true })).toBe(LEVEL_COLOR[4])
     expect(recallColor(null)).toBe(null)
   })
 

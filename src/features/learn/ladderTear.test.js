@@ -69,7 +69,7 @@ describe('tearWire — оборванный кабель в режиме сна'
     expect(tear.strands).toHaveLength(6)
     const colors = c => tear.strands.slice(c * 3, c * 3 + 3).map(s => s.color).sort()
     const levels = [...WIRE_COLORS.levels].sort()
-    expect(levels).toEqual(['#4fb3ee', '#b6fe3b', '#f1bd3c'].sort())
+    expect(levels).toEqual(['#4fb3ee', '#b6fe3b', '#9a76f8'].sort())
     expect(colors(0)).toEqual(levels) // справа от разрыва — все три цвета ступеней
     expect(colors(1)).toEqual(levels) // слева — тоже все три, но порядок другой
     expect(tear.strands.slice(0, 3).map(s => s.color)).not.toEqual(tear.strands.slice(3).map(s => s.color))

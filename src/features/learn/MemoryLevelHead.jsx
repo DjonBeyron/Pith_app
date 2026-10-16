@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { levelClass, LEVEL_PERM } from '../../shared/lib/memory/memoryLevels.js'
 
 // Шапка уровня на странице памяти: название, что за слова, когда спросим.
 // По умолчанию описание открыто; кнопка справа сверху — «Свернуть ⌃» — прячет его,
@@ -16,7 +17,7 @@ function readShut() {
 
 export default function MemoryLevelHead({ cur, level }) {
   const [shut, setShut] = useState(readShut)
-  const mod = `memHead--${cur.perm ? 'Perm' : level}`
+  const mod = levelClass('memHead', cur.perm ? LEVEL_PERM : level)
 
   function toggle() {
     const next = !shut

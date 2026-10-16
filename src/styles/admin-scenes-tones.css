@@ -1,0 +1,70 @@
+/* Оттенки блоков сборщика сцен (ui/panelTones.js → Panel data-hue). Цвета — цвета нод канваса
+   (canvas/nodeTypes.js NODE_TYPES.color); тест panelTones.test.js сверяет их с нодами и считает контраст
+   заголовка. Тёмная тема — цвет ноды как есть, светлая — тот же цвет, смешанный с чёрным (чтобы значок
+   и полоса читались на белом). Заголовок: полоса слева + лёгкая заливка (9%, у вложенных 6%).
+   Линтер главнее: красный блок красит и полосу, и заливку (admin-scenes-panel.css data-tone). */
+
+.fsWin {
+  --scb-tone-location: #d4a03a;   /* scene */
+  --scb-tone-slots: #6aaa6a;      /* photo */
+  --scb-tone-characters: #c85a8a; /* reaction */
+  --scb-tone-vars: #3a9888;       /* phrase_assembly */
+  --scb-tone-timeline: #6a9ec4;   /* audio */
+  --scb-tone-task: #c89050;       /* word_choice */
+  --scb-tone-options: #6a7a8a;    /* system */
+  --scb-tone-preview: #9a7abc;    /* video */
+  --scb-tone-budget: #aa8830;     /* pin_message */
+  --scb-tone-side: #5a9ac8;       /* lesson_ref */
+  --scb-tone-neutral: #8b94a1;
+  --scb-tint: 9%;
+}
+.fsWin[data-theme="light"] {
+  --scb-tone-location: color-mix(in srgb, #d4a03a 72%, #000);
+  --scb-tone-slots: color-mix(in srgb, #6aaa6a 72%, #000);
+  --scb-tone-characters: color-mix(in srgb, #c85a8a 72%, #000);
+  --scb-tone-vars: color-mix(in srgb, #3a9888 72%, #000);
+  --scb-tone-timeline: color-mix(in srgb, #6a9ec4 72%, #000);
+  --scb-tone-task: color-mix(in srgb, #c89050 72%, #000);
+  --scb-tone-options: color-mix(in srgb, #6a7a8a 72%, #000);
+  --scb-tone-preview: color-mix(in srgb, #9a7abc 72%, #000);
+  --scb-tone-budget: color-mix(in srgb, #aa8830 72%, #000);
+  --scb-tone-side: color-mix(in srgb, #5a9ac8 72%, #000);
+  --scb-tone-neutral: #5c6673;
+}
+
+.scbPanel { --scb-tone: var(--scb-tone-neutral); }
+.scbPanel[data-hue="location"] { --scb-tone: var(--scb-tone-location); }
+.scbPanel[data-hue="slots"] { --scb-tone: var(--scb-tone-slots); }
+.scbPanel[data-hue="characters"] { --scb-tone: var(--scb-tone-characters); }
+.scbPanel[data-hue="vars"] { --scb-tone: var(--scb-tone-vars); }
+.scbPanel[data-hue="timeline"] { --scb-tone: var(--scb-tone-timeline); }
+.scbPanel[data-hue="task"] { --scb-tone: var(--scb-tone-task); }
+.scbPanel[data-hue="options"] { --scb-tone: var(--scb-tone-options); }
+.scbPanel[data-hue="preview"] { --scb-tone: var(--scb-tone-preview); }
+.scbPanel[data-hue="budget"] { --scb-tone: var(--scb-tone-budget); }
+.scbPanel[data-hue="side"] { --scb-tone: var(--scb-tone-side); }
+.scbPanelNested { --scb-tint: 6%; }
+
+/* Шапка: полоса слева + заливка; значок «свернуть» и точка — в цвете оттенка */
+.scbPanel > .scbPanelHead {
+  padding: 2px 4px 2px 6px;
+  border-left: 3px solid var(--scb-tone);
+  border-radius: 4px 8px 8px 4px;
+  background: color-mix(in srgb, var(--scb-tone) var(--scb-tint), transparent);
+}
+.scbPanel > .scbPanelHead .scbPanelTitleBtn > svg { color: var(--scb-tone); }
+.scbPanel > .scbPanelHead .scbPanelTitleText::before {
+  content: '';
+  flex: none;
+  width: 7px;
+  height: 7px;
+  margin-right: 2px;
+  border-radius: 50%;
+  background: var(--scb-tone);
+}
+/* Ошибка линтера главнее оттенка: красная полоса и красная заливка шапки */
+.scbPanel[data-tone="error"] > .scbPanelHead {
+  border-left-color: var(--fs-error);
+  background: color-mix(in srgb, var(--fs-error) 12%, transparent);
+}
+.scbPanel[data-tone="error"] > .scbPanelHead .scbPanelTitleText::before { background: var(--fs-error); }

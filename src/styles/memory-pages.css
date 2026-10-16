@@ -1,6 +1,6 @@
 /* Страница уровней «Моей памяти» (features/learn/MemoryLevelPage.jsx): шапка
    «Первый уровень памяти» со стрелкой назад, четыре вкладки (три ступени и
-   фиолетовая «Постоянная»), шапка уровня «что за слова и когда спросим»
+   золотистая «Постоянная»), шапка уровня «что за слова и когда спросим»
    (сворачивается кнопкой справа в компактную «развернуть описание») и список слов */
 
 .memPage { display: flex; flex-direction: column; gap: 10px; }
@@ -27,8 +27,8 @@
 }
 .memTab b { display: block; font-size: 16px; }
 .memTab--2 { --c: var(--lvl2); }
-.memTab--3 { --c: #f1bd3c; }
-.memTab--Perm { --c: #a78bfa; }
+.memTab--3 { --c: var(--lvl3); }
+.memTab--4 { --c: var(--lvl4); }
 .memTab[aria-selected='true'] { background: #1a1d22; color: var(--c); box-shadow: inset 0 -2px 0 var(--c); }
 
 /* ── Шапка ступени ─────────────────────────────────────────────────── */
@@ -41,7 +41,7 @@
   background: linear-gradient(to bottom, var(--tint) 0, transparent 70px), var(--v2-dust), var(--v2-grain), var(--v2-tex) #14171c;
 }
 .memHead--2 { --c: var(--lvl2); --tint: rgba(var(--lvl2-rgb), 0.15); }
-.memHead--3 { --c: #f1bd3c; --tint: rgba(241, 189, 60, 0.18); }
+.memHead--3 { --c: var(--lvl3); --tint: rgba(var(--lvl3-rgb), 0.18); }
 .memHead b { display: block; margin-bottom: 4px; font-size: 16px; color: var(--c); }
 .memHead p { margin: 0; font-size: 13px; line-height: 1.4; color: #c9d0d7; }
 .memHeadWhen { margin-top: 6px; font-size: 12px; font-weight: 700; color: var(--c); }
@@ -55,8 +55,8 @@
 .memHeadWrap { --c: var(--lvl1); --tint: rgba(var(--lvl1-rgb), 0.16); --ease: cubic-bezier(0.4, 0, 0.2, 1); position: relative; padding-bottom: 0; transition: padding-bottom 0.32s var(--ease); }
 .memHeadWrap--shut { padding-bottom: 32px; }
 .memHeadWrap.memHead--2 { --c: var(--lvl2); --tint: rgba(var(--lvl2-rgb), 0.15); }
-.memHeadWrap.memHead--3 { --c: #f1bd3c; --tint: rgba(241, 189, 60, 0.18); }
-.memHeadWrap.memHead--Perm { --c: #8b5cf6; --tint: rgba(139, 92, 246, 0.22); }
+.memHeadWrap.memHead--3 { --c: var(--lvl3); --tint: rgba(var(--lvl3-rgb), 0.18); }
+.memHeadWrap.memHead--4 { --c: var(--lvl4); --tint: rgba(var(--lvl4-rgb), 0.2); }
 .memHeadFold { display: grid; grid-template-rows: 1fr; transition: grid-template-rows 0.32s var(--ease), opacity 0.25s ease 0.04s, visibility 0s; }
 .memHeadClip { min-height: 0; overflow: hidden; }
 .memHeadWrap--shut .memHeadFold { grid-template-rows: 0fr; opacity: 0; visibility: hidden; transition: grid-template-rows 0.32s var(--ease), opacity 0.2s ease, visibility 0s 0.32s; }
@@ -136,9 +136,12 @@
 .memChipNoteToday { color: var(--fill); } /* цвет ступени, в которой слово */
 .memListEmpty { margin: 6px 2px; font-size: 13px; color: #6b737d; }
 
-/* ── Постоянная память — фиолетовая ────────────────────────────────── */
-.memHead--Perm { --c: #8b5cf6; --tint: rgba(139, 92, 246, 0.22); }
-.memHead--Perm b { color: #c4b5fd; }
+/* ── Постоянная память — золотистая (текст заголовка — сияние, memory-levels.css) ── */
+.memHead.memHead--4 {
+  --c: var(--lvl4); --tint: rgba(var(--lvl4-rgb), 0.2);
+  border-top-color: transparent;
+  background: var(--lvl4-shine) top / 100% 3px no-repeat border-box border-box, linear-gradient(to bottom, var(--tint) 0, transparent 70px), var(--v2-dust), var(--v2-grain), var(--v2-tex) #14171c;
+}
 
 @media (prefers-reduced-motion: reduce) {
   .memHeadWrap, .memHeadFold, .memHeadWrap--shut .memHeadFold, .memHeadToggle, .memHeadToggle * { transition: none !important; }

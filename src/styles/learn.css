@@ -134,8 +134,9 @@
   background: rgba(255, 255, 255, 0.03);
 }
 .memSheetLevel--2 { --c: var(--lvl2); }
-.memSheetLevel--3 { --c: #f1bd3c; }
-.memSheetLevel--Perm { --c: #a78bfa; }
+.memSheetLevel--3 { --c: var(--lvl3); }
+.memSheetLevel--4 { --c: var(--lvl4); }
+.memSheetLevel--4 .memSheetSegOn { background: var(--lvl4-shine); }
 .memSheetMeter { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; }
 .memSheetSeg { height: 5px; border-radius: 3px; background: #262b33; }
 .memSheetSegOn { background: var(--c); }
