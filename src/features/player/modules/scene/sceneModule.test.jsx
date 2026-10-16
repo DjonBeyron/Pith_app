@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from 'vitest'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { resolveModule } from '../index.js'
 import SceneModule from './SceneModule.jsx'
-import { sceneCircleFit, ringOffset, CIRCLE_CENTER_Y } from './sceneCircleFit.js'
+import { sceneCircleFit, CIRCLE_CENTER_Y } from './sceneCircleFit.js'
 import { shouldSceneYield } from './useSceneSolo.js'
 import { sceneAudioSrcOf } from './sceneNodeAudio.js'
 import { demoOfficeScene } from '../../../scene/v2/demoScenes.js'
@@ -96,14 +96,6 @@ describe('sceneCircleFit — кадрирование 9:16 в круг', () => {
     expect(yOf(520)).toBeLessThan(200)
     expect(yOf(300)).toBeGreaterThan(0)
   })
-
-  it('кольцо прогресса: idle пусто, ended полное, середина — по репликам', () => {
-    const C = 100
-    expect(ringOffset({ status: 'idle', index: 0, total: 4 }, C)).toBe(C)
-    expect(ringOffset({ status: 'ended', index: 3, total: 4 }, C)).toBe(0)
-    expect(ringOffset({ status: 'playing', index: 1, total: 4 }, C)).toBeCloseTo(C * (1 - 1.5 / 4))
-    expect(ringOffset({ status: 'playing', index: 0, total: 0 }, C)).toBe(C)
-  })
 })
 
 describe('useSceneSolo — чужой звук ставит сцену на паузу', () => {
@@ -133,5 +125,44 @@ describe('sceneAudioSrcOf — blob прогрева для озвучки реп
     expect(srcOf('https://r2/zzz.mp3')).toBeNull()
     expect(sceneAudioSrcOf([{ id: 'f1', blobUrl: 'blob:voice' }])).toBeNull()
     expect(sceneAudioSrcOf(null)).toBeNull()
+  })
+})
+
+describe('crop ноды scene в плеере (масштаб/сдвиг как у видео)', () => {
+  it('bubble: без crop слоя нет (DOM как у старых нод); с crop — слой с transform вокруг сцены', () => {
+    const plain = renderToStaticMarkup(<SceneModule node={node({ scene: demoOfficeScene })} onDone={() => {}} />)
+    expect(plain).not.toContain('playerSceneCrop')
+    const html = renderToStaticMarkup(<SceneModule node={node({ scene: demoOfficeScene, crop: { x: 20, y: 0, scale: 1.5 } })} onDone={() => {}} />)
+    expect(html).toContain('playerSceneCrop')
+    expect(html).toContain('translate(10%, 0%) scale(1.5)')
+    // сцена внутри слоя, рамка снаружи
+    expect(html.indexOf('playerSceneFrame')).toBeLessThan(html.indexOf('playerSceneCrop'))
+    expect(html.indexOf('playerSceneCrop')).toBeLessThan(html.indexOf('scn scn--live'))
+  })
+
+  it('circle: crop сдвигает и масштабирует содержимое круга; умолчание не меняет разметку', () => {
+    const inner = h => h.match(/playerSceneCircleInner" style="([^"]*)"/)[1]
+    const base = renderToStaticMarkup(<SceneModule node={node({ scene: demoOfficeScene, mode: 'circle' })} onDone={() => {}} />)
+    const dflt = renderToStaticMarkup(<SceneModule node={node({ scene: demoOfficeScene, mode: 'circle', crop: { x: 0, y: 0, scale: 1 } })} onDone={() => {}} />)
+    const zoom = renderToStaticMarkup(<SceneModule node={node({ scene: demoOfficeScene, mode: 'circle', crop: { x: 0, y: 0, scale: 2 } })} onDone={() => {}} />)
+    expect(inner(dflt)).toBe(inner(base))
+    expect(inner(zoom)).not.toBe(inner(base))
+    expect(parseFloat(inner(zoom).match(/width:([\d.]+)px/)[1])).toBeCloseTo(parseFloat(inner(base).match(/width:([\d.]+)px/)[1]) * 2, 0)
+  })
+
+  it('circle: тап раскрывает кружок как видео (кнопка, кольцо-дуга без CSS-transition, нет полного экрана и подложки)', () => {
+    const html = renderToStaticMarkup(<SceneModule node={node({ scene: demoOfficeScene, mode: 'circle' })} onDone={() => {}} />)
+    expect(html).toContain('role="button"')
+    expect(html).toContain('playerSceneRingArc')
+    expect(html).toContain('stroke-dashoffset="666.01')
+    expect(html).not.toContain('circleBackdrop')
+    expect(html).not.toContain('playerMsgBubble--circle--expanded')
+    expect(html).not.toContain('playerSceneFsStage')
+  })
+
+  it('circle в истории: ни кнопки, ни обработчиков раскрытия', () => {
+    const html = renderToStaticMarkup(<SceneModule node={node({ scene: demoOfficeScene, mode: 'circle' }, { isHistory: true })} onDone={() => {}} />)
+    expect(html).not.toContain('role="button"')
+    expect(html).toContain('data-status="history"')
   })
 })

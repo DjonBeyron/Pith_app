@@ -1,0 +1,17 @@
+/* Масштаб и положение сцены в ноде (NodeSceneCrop.jsx): рамка превью и ползунок. Общие классы рамки и панели —
+   .mediaCropFrame / .mediaCropControls (crop.css), содержимое рамки — классы плеера (scene.css:
+   .playerSceneCircleInner, .playerSceneCrop), чтобы превью рисовалось так же, как в уроке. */
+
+.nodeSceneCrop { display: flex; flex-direction: column; gap: 6px; }
+.nodeSceneCrop .mediaCropControls { max-width: 260px; }
+.nodeSceneCropFrame { align-self: flex-start; flex: 0 0 auto; background: #e8eef5; }
+.nodeSceneCropFrame--bubble { aspect-ratio: 9 / 16; border-radius: 4px 12px 12px 12px; }
+.nodeSceneCropFrame--circle { aspect-ratio: 1; }
+/* Сцена пузыря заполняет слой кропа (как .playerSceneFrame .scn в scene.css) */
+.nodeSceneCropFrame--bubble .scn { position: absolute; inset: 0; width: 100%; height: 100%; font-size: 0; }
+.nodeSceneCropFrame .scn { pointer-events: none; }
+.nodeSceneCropLabel { color: #9a9aad; font-size: 11px; }
+/* Облачко в мелком превью — пропорционально плееру (там 13–17 px при кадре 200–230 px) */
+.nodeSceneCropFrame--bubble .scn .scn-bubble { font-size: 6.5px; padding: 4px 6px 5px; border-radius: 8px; }
+.nodeSceneCropFrame--circle .scn .scn-bubble { font-size: 9px; padding: 4px 7px 5px; }
+.mediaCropRange { flex: 1 1 70px; min-width: 60px; max-width: 160px; accent-color: #d4a03a; }

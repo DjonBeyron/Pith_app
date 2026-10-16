@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { sceneCircleFit, CIRCLE_SHOW_W, CIRCLE_CENTER_Y, CIRCLE_SOLO, ringOffset } from './sceneCircleFit.js'
+import { sceneCircleFit, CIRCLE_SHOW_W, CIRCLE_CENTER_Y, CIRCLE_SOLO } from './sceneCircleFit.js'
 import { SCENE_W, SCENE_H } from '../../../scene/v2/sprites/backgrounds.js'
 
 // Кадрирование сцены в кружок: две головы (по умолчанию) и одна голова одиночной сцены по центру
@@ -31,10 +31,45 @@ describe('sceneCircleFit', () => {
     expect(yPx(540)).toBeLessThan(d)
   })
 
-  it('мусорный диаметр → нули; ringOffset: idle пусто, ended полно', () => {
+  it('мусорный диаметр → нули', () => {
     expect(px(sceneCircleFit('x').width)).toBe(0)
-    expect(ringOffset({ status: 'idle', index: 0, total: 3 }, 100)).toBe(100)
-    expect(ringOffset({ status: 'ended', index: 2, total: 3 }, 100)).toBe(0)
-    expect(ringOffset({ status: 'playing', index: 0, total: 2 }, 100)).toBe(75)
+  })
+
+  it('crop по умолчанию (и мусор) не меняет кадр — старые ноды как раньше', () => {
+    const base = sceneCircleFit(200)
+    expect(sceneCircleFit(200, { crop: { x: 0, y: 0, scale: 1 } })).toEqual(base)
+    expect(sceneCircleFit(200, { crop: 'junk' })).toEqual(base)
+    expect(sceneCircleFit(200, { solo: true, crop: null })).toEqual(sceneCircleFit(200, { solo: true }))
+  })
+
+  it('crop.scale увеличивает содержимое вокруг центра круга: опорная точка кадра остаётся в центре', () => {
+    const d = 200
+    for (const solo of [false, true]) {
+      const cy = solo ? CIRCLE_SOLO.centerY : CIRCLE_CENTER_Y
+      const st = sceneCircleFit(d, { solo, crop: { x: 0, y: 0, scale: 2 } })
+      const base = sceneCircleFit(d, { solo })
+      expect(px(st.width)).toBeCloseTo(px(base.width) * 2, 1)
+      expect(px(st.left) + px(st.width) / 2).toBeCloseTo(d / 2, 1)
+      expect(px(st.top) + cy / SCENE_H * px(st.height)).toBeCloseTo(d / 2, 1)
+    }
+  })
+
+  it('crop.x/y — сдвиг в px круга диаметром 200: на другом диаметре пропорционально', () => {
+    const crop = { x: 20, y: -10, scale: 1 }
+    for (const d of [200, 150, 300]) {
+      const a = sceneCircleFit(d), b = sceneCircleFit(d, { crop })
+      expect(px(b.left) - px(a.left)).toBeCloseTo(20 * d / 200, 1)
+      expect(px(b.top) - px(a.top)).toBeCloseTo(-10 * d / 200, 1)
+      expect(px(b.width)).toBe(px(a.width))
+    }
+    // как у видео: scale и сдвиг независимы — сдвиг не масштабируется вместе с содержимым
+    const s2 = sceneCircleFit(200, { crop: { x: 20, y: 0, scale: 2 } })
+    const s2n = sceneCircleFit(200, { crop: { x: 0, y: 0, scale: 2 } })
+    expect(px(s2.left) - px(s2n.left)).toBeCloseTo(20, 1)
+  })
+
+  it('crop вне диапазона зажимается (scale 0.5…4)', () => {
+    expect(px(sceneCircleFit(200, { crop: { scale: 99 } }).width)).toBeCloseTo(px(sceneCircleFit(200, { crop: { scale: 4 } }).width), 1)
+    expect(px(sceneCircleFit(200, { crop: { scale: 0.01 } }).width)).toBeCloseTo(px(sceneCircleFit(200).width) * 0.5, 1)
   })
 })

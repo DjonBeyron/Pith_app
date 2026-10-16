@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest'
 import { renderToStaticMarkup } from 'react-dom/server'
 import {
-  fsFrameSize, fsOpenTransition, fsCloseTransition, isFsCloseGesture, inlineTapAction, SCENE_FS_Z, SCENE_FS_SWIPE_CLOSE_PX,
+  fsCoverFrame, FS_CONTENT, expandAction, fsOpenTransition, fsCloseTransition, isFsCloseGesture, inlineTapAction, SCENE_FS_Z, SCENE_FS_SWIPE_CLOSE_PX,
 } from './sceneFullscreenModel.js'
 import { createDirector } from '../../../scene/v2/directorCore.js'
 import SceneBubbleView from './SceneBubbleView.jsx'
@@ -13,10 +13,48 @@ vi.mock('../../../scene/v2/scene-v2.css', () => ({}))
 vi.mock('../../../scene/v2/scene-v2-cat.css', () => ({}))
 
 describe('полный экран сцены — чистая модель', () => {
-  it('кадр 9:16 по центру рамки: высокий экран — по ширине, широкий — по высоте', () => {
-    expect(fsFrameSize({ w: 390, h: 844 })).toEqual({ width: 390, height: 693 })
-    expect(fsFrameSize({ w: 1440, h: 900 })).toEqual({ width: 506, height: 900 })
-    expect(fsFrameSize({ w: 0, h: 0 })).toEqual({ width: 0, height: 0 })
+  it('cover: кадр сцены ≥ ширины на высоких экранах, содержимое (облачко…коты) целиком на любых', () => {
+    const screens = [[320, 568], [375, 812], [412, 915], [390, 844], [812, 375], [1024, 768], [420, 800], [1440, 900]]
+    for (const [w, h] of screens) {
+      const f = fsCoverFrame({ w, h }, { safeTop: 0, safeBottom: 0 })
+      expect(f.width).toBeCloseTo(360 * f.s, 1)
+      expect(f.height).toBeCloseTo(640 * f.s, 1)
+      expect(f.width).toBeLessThanOrEqual(w + 0.01) // коты по бокам не режутся
+      const yOf = v => f.top + v / 640 * f.height
+      expect(yOf(FS_CONTENT.top)).toBeGreaterThanOrEqual(0)
+      expect(yOf(FS_CONTENT.bottom)).toBeLessThanOrEqual(h)
+      // по горизонтали по центру
+      expect(f.left + f.width / 2).toBeCloseTo(w / 2, 1)
+    }
+  })
+
+  it('cover: узкий высокий экран — по ширине (весь экран шириной), широкий — по высоте; растёт с экраном, не ломается на нулях', () => {
+    const tall = fsCoverFrame({ w: 375, h: 812 })
+    expect(tall.s).toBeCloseTo(375 / 360, 2)
+    const wide = fsCoverFrame({ w: 812, h: 375 })
+    expect(wide.s).toBeLessThan(812 / 360)
+    expect(wide.s).toBeGreaterThan(0.4)
+    expect(fsCoverFrame({ w: 1024, h: 768 }).s).toBeGreaterThan(fsCoverFrame({ w: 812, h: 375 }).s)
+    expect(fsCoverFrame({ w: 0, h: 0 })).toEqual({ s: 0, left: 0, top: 0, width: 0, height: 0 })
+  })
+
+  it('cover: фон продолжается — запас BLEED покрывает экран с любой стороны кадра', async () => {
+    const { BLEED } = await import('../../../scene/v2/sprites/backgrounds.js')
+    for (const [w, h] of [[320, 568], [375, 812], [412, 915], [812, 375], [1024, 768]]) {
+      const f = fsCoverFrame({ w, h })
+      expect(f.left * -1 / f.s).toBeLessThan(BLEED.x) // слева до края экрана хватает фона
+      expect(-f.top / f.s).toBeLessThan(BLEED.top)
+      expect((h - f.top - f.height) / f.s).toBeLessThan(BLEED.bottom)
+      expect((f.left > 0 ? f.left : 0) / f.s).toBeLessThan(BLEED.x)
+      expect((f.top > 0 ? f.top : 0) / f.s).toBeLessThan(BLEED.top)
+    }
+  })
+
+  it('cover: safe-area сдвигает полосу содержимого от выреза и от панели кнопок', () => {
+    const plain = fsCoverFrame({ w: 375, h: 812 })
+    const notch = fsCoverFrame({ w: 375, h: 812 }, { safeTop: 50, safeBottom: 34 })
+    const mid = f => f.top + 441 / 640 * f.height
+    expect(mid(notch)).toBeCloseTo(mid(plain) + (50 - 34) / 2, 0)
   })
 
   it('открытие: та же реплика и play; после конца — с начала', () => {
@@ -48,6 +86,17 @@ describe('полный экран сцены — чистая модель', () 
     expect(inlineTapAction('ended')).toBe('fullscreen')
     expect(SCENE_FS_Z.bg).toBe(10000)
     expect(SCENE_FS_Z.controls).toBeGreaterThan(SCENE_FS_Z.stage)
+  })
+})
+
+describe('раскрытие кружка сцены — что делает режиссёр', () => {
+  it('до старта и на паузе — пуск; после конца — с начала; играла без звука — реплика заново; играет со звуком — ничего', () => {
+    expect(expandAction('idle')).toBe('play')
+    expect(expandAction('paused')).toBe('play')
+    expect(expandAction('ended')).toBe('restart')
+    expect(expandAction('playing', true)).toBe('replay')
+    expect(expandAction('playing', false)).toBeNull()
+    expect(expandAction(undefined)).toBeNull()
   })
 })
 

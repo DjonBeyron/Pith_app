@@ -7,7 +7,7 @@ import { useSceneSolo } from './useSceneSolo.js'
 import {
   startDecision, waitRowAppear, scheduleSceneStart, autoStartSound, pageHasBeenActive,
 } from './sceneStartPlan.js'
-import { fsOpenTransition, fsCloseTransition, inlineTapAction } from './sceneFullscreenModel.js'
+import { fsOpenTransition, fsCloseTransition, inlineTapAction, expandAction } from './sceneFullscreenModel.js'
 
 // Поведение живой сцены в ленте урока (общее для пузыря и кружка):
 //  · старт (sceneStartPlan.js): 'auto' — после конца анимации появления
@@ -17,8 +17,9 @@ import { fsOpenTransition, fsCloseTransition, inlineTapAction } from './sceneFul
 //    идёт без звука (облачки, рты по таймингам) и показывает чип «Включить
 //    звук» (soundChip); жест (чип, тап, полный экран) открывает звук
 //    (sceneAudioUnlock.js) и переигрывает текущую реплику уже со звуком;
-//  · тап по сцене: до старта — пуск на месте, иначе — на весь экран
-//    (sceneFullscreenModel.js, как у видео); экран — свой SceneRenderer,
+//  · тап по сцене-пузырю: до старта — пуск на месте, иначе — на весь экран
+//    (sceneFullscreenModel.js, как у видео); тап по кружку — он увеличивается как видео-кружок
+//    (useSceneCircleExpand.js, expandPlay ниже), полного экрана у кружка нет; экран — свой SceneRenderer,
 //    реплика переносится через состояние (fsApiRef / onFsState), в ленте
 //    режиссёр стоит на паузе — звучит всегда один;
 //  · заморозка шагового режима админа → paused у рендереров;
@@ -28,7 +29,7 @@ import { fsOpenTransition, fsCloseTransition, inlineTapAction } from './sceneFul
 // Состояние React меняется только на границах реплик (onState рендерера).
 
 const IDLE = { status: 'idle', index: 0, total: 0, mode: 'timer' }
-const same = (a, b) => a.status === b.status && a.index === b.index && a.total === b.total && a.mode === b.mode
+const same = (a, b) => a.status === b.status && a.index === b.index && a.total === b.total && a.mode === b.mode && a.run === b.run
 
 export function useScenePlayback({ resolved, pending, isHistory, onDone }) {
   const apiRef = useRef(null)
@@ -54,7 +55,8 @@ export function useScenePlayback({ resolved, pending, isHistory, onDone }) {
   const { start, startDelayMs } = resolved
 
   const apply = useCallback(next => {
-    const full = { mode: 'timer', ...next }
+    // at — когда состояние дошло: от него считает время индикатор прогресса (useSceneProgress.js)
+    const full = { mode: 'timer', at: performance.now(), ...next }
     stRef.current = full
     setSt(prev => (same(prev, full) ? prev : full))
   }, [])
@@ -95,6 +97,7 @@ export function useScenePlayback({ resolved, pending, isHistory, onDone }) {
   useEffect(() => {
     if (!cmd) return
     if (cmd.type === 'play') apiRef.current?.play()
+    if (cmd.type === 'restart') apiRef.current?.restart()
     if (cmd.type === 'replay' && stRef.current.status === 'playing') activeApi()?.goTo(stRef.current.index)
   }, [cmd, activeApi])
 
@@ -148,6 +151,14 @@ export function useScenePlayback({ resolved, pending, isHistory, onDone }) {
     else api.goTo(tr.index)
   }, [])
 
+  // Раскрытие кружка (useSceneCircleExpand.js) — жест: звук открыт; до старта/на паузе — пуск, после конца —
+  // с начала (рамка ленты в этот момент оживает, см. SceneCircleView), играла без звука — реплика заново со звуком
+  const expandPlay = useCallback(() => {
+    const action = expandAction(stRef.current.status, soundBlocked)
+    gesture()
+    if (action) setCmd({ type: action })
+  }, [gesture, soundBlocked])
+
   const handleTap = useCallback(e => {
     e?.stopPropagation?.()
     if (inlineTapAction(stRef.current.status) === 'start') startInPlace()
@@ -175,7 +186,7 @@ export function useScenePlayback({ resolved, pending, isHistory, onDone }) {
     playing: st.status === 'playing', ended,
     soundChip: soundBlocked && !muted && st.status === 'playing' && !fsOpen,
     manualIdle: start === 'manual' && st.status === 'idle',
-    handleTap, startInPlace, enableSound, togglePause,
+    handleTap, expandPlay, startInPlace, enableSound, togglePause,
     fsOpen, openFs, closeFs,
   }
 }

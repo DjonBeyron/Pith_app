@@ -2,6 +2,7 @@ import { lintScene } from '../../scene/v2/sceneLint.js'
 import { SCENE_MODES, SCENE_MAX_BYTES, SCENE_STARTS, SCENE_START_DELAY_MAX, sceneByteSize } from '../../scene/v2/sceneNode.js'
 import { DISPLAY_MODES } from '../../scene/v2/sceneConstants.js'
 import { resolveVoiceFlags } from '../../scene/v2/sceneOptions.js'
+import { checkSceneCrop } from '../../scene/v2/sceneNodeCrop.js'
 
 // Проверки ноды `scene` для lintLesson (формат обмена: { ref, type, data, triggers }):
 //  · [R-scene-missing]  сцены нет — нода покажет только «Дальше» (ошибка);
@@ -13,6 +14,7 @@ import { resolveVoiceFlags } from '../../scene/v2/sceneOptions.js'
 //                       voice не объект из true/false (original/translation) — ошибка;
 //  · [R-scene-start]    start вне manual | auto, startDelayMs не целое 0…5000 — ошибка; задержка при
 //                       manual — предупреждение (не действует);
+//  · [R-scene-crop]     crop не { x, y, scale } или вне диапазона (x, y ±400; scale 0.5…4) — ошибка;
 //  · [R-scene-voice]    озвучка перевода включена (сценой или нодой), а файлов перевода нет у части
 //                       реплик с translation — предупреждение (там пойдёт синтез устройства или тишина);
 //  · [R-scene-played]   выход played никуда не ведёт, а нода не последняя — предупреждение.
@@ -35,6 +37,7 @@ export function checkScene(nodes) {
     if (d.start !== undefined && !SCENE_STARTS.includes(d.start)) out.push(err(n.ref, 'R-scene-start', `start «${d.start}» — допустимо ${SCENE_STARTS.join(' | ')}`))
     const dl = d.startDelayMs
     if (dl !== undefined && !(Number.isInteger(dl) && dl >= 0 && dl <= SCENE_START_DELAY_MAX)) out.push(err(n.ref, 'R-scene-start', `startDelayMs «${dl}» — целое 0…${SCENE_START_DELAY_MAX} мс`))
+    for (const t of checkSceneCrop(d.crop)) out.push(err(n.ref, 'R-scene-crop', t))
     if (d.start === 'manual' && dl !== undefined) out.push(warn(n.ref, 'R-scene-start', 'startDelayMs при start = manual не действует'))
 
     if (!d.scene || typeof d.scene !== 'object') {

@@ -132,13 +132,13 @@ export default function PlayerFeedNodes({
           regState={states.regStates[node.id] ?? null}
           tableSent={states.tableSent[node.id] ?? null}
           tableArriving={!!states.tableArriving?.[node.id]}
-          // Высота панели снизу нужна ТОЛЬКО кружку (useCircleExpand: предел
+          // Высота панели снизу нужна ТОЛЬКО кружку (видео-кружок и сцена mode circle; useCircleExpand: предел
           // раскрытия). Остальным строкам проп не передаём: иначе каждое
           // открытие/закрытие панели (и каждый рост панели по ходу ответа —
           // usePanelHeight) меняло проп у ВСЕХ строк и сбрасывало их memo —
           // в замере 13 PlayerMessage + 9 PlayerBubble перерисовывались в
           // первые кадры подъёма панели
-          bottomOffset={node.type === 'circle' ? bottomOffset : 0}
+          bottomOffset={node.type === 'circle' || (node.type === 'scene' && node.typeData?.scene?.mode === 'circle') ? bottomOffset : 0}
           videoAutoSound={videoAutoSound}
           adminPreview={isAdmin}
           pending={isPending}

@@ -13,8 +13,9 @@ import { sceneAudioSrcOf } from './sceneNodeAudio.js'
 // (sceneNode.js; display/voice — переопределения режима показа текста и озвучки
 // поверх options сцены). Одна нода — два вида: пузырь (SceneBubbleView) и кружок
 // (SceneCircleView); поведение общее (useScenePlayback.js): старт после анимации
-// появления (+ задержка ноды) или вручную, тап → полный экран
-// (SceneFullscreenView — свой рендерер, реплика переносится состоянием). Триггер
+// появления (+ задержка ноды) или вручную; тап по пузырю → полный экран (SceneFullscreenView — свой
+// рендерер, реплика переносится состоянием), тап по кружку → он увеличивается как видео-кружок
+// (useSceneCircleExpand.js). crop ноды — масштаб/сдвиг кадра как у видео (sceneNodeCrop.js). Триггер
 // графа — 'played' (сцена доиграла последнюю реплику). Невалидная сцена →
 // SceneFallback (текст реплик + «Дальше»), урок не зависает.
 //
@@ -22,7 +23,7 @@ import { sceneAudioSrcOf } from './sceneNodeAudio.js'
 // а пересборка объекта сцены пересоздала бы режиссёра посреди реплики.
 // lessonFiles — файлы урока с прогревом (withBlobs): озвучка реплик (audioUrl)
 // играет из blob, если он уже скачан (sceneNodeAudio.js), иначе по ссылке.
-export default function SceneModule({ node, lessonFiles = null, onDone, adminPreview = false, pending = false }) {
+export default function SceneModule({ node, lessonFiles = null, onDone, adminPreview = false, pending = false, bottomOffset = 0 }) {
   const [resolved] = useState(() => resolveSceneNode(node.typeData?.scene))
   const isHistory = !!node.isHistory
   const pb = useScenePlayback({ resolved, pending, isHistory, onDone })
@@ -36,21 +37,25 @@ export default function SceneModule({ node, lessonFiles = null, onDone, adminPre
       />
     )
   }
-  const View = resolved.mode === 'circle' ? SceneCircleView : SceneBubbleView
-  const common = { scene: resolved.scene, showBubbles: resolved.showBubbles, display: resolved.display, voice: resolved.voice, audioSrcOf }
+  const common = {
+    scene: resolved.scene, showBubbles: resolved.showBubbles, display: resolved.display, voice: resolved.voice, crop: resolved.crop, audioSrcOf,
+  }
+  const st = pb.state
+  const live = {
+    isHistory, ended: pb.ended, pending, status: st.status, index: st.index, run: st.run, at: st.at, total: st.total,
+    paused: pb.paused || pb.fsOpen, sound: pb.sound, rate: pb.rate, soundChip: pb.soundChip, onEnableSound: pb.enableSound,
+    apiRef: pb.apiRef, rootRef: pb.rootRef, onState: pb.onState,
+  }
   return (
     <>
-      <View
-        {...common} isHistory={isHistory} ended={pb.ended} pending={pending}
-        status={pb.state.status} index={pb.state.index} total={pb.state.total}
-        paused={pb.paused || pb.fsOpen} sound={pb.sound} rate={pb.rate}
-        soundChip={pb.soundChip} onEnableSound={pb.enableSound}
-        apiRef={pb.apiRef} rootRef={pb.rootRef} onState={pb.onState} onTap={pb.handleTap}
-      />
+      {resolved.mode === 'circle'
+        ? <SceneCircleView {...common} {...live} bottomOffset={bottomOffset} onExpand={pb.expandPlay} />
+        : <SceneBubbleView {...common} {...live} onTap={pb.handleTap} />}
       {pb.fsOpen && (
         <SceneFullscreenView
           {...common} paused={pb.paused} sound={pb.sound} muted={pb.muted} rate={pb.rate}
-          status={pb.state.status} apiRef={pb.fsApiRef} onState={pb.onFsState} rootRef={pb.rootRef}
+          status={st.status} index={st.index} run={st.run} at={st.at}
+          apiRef={pb.fsApiRef} onState={pb.onFsState} rootRef={pb.rootRef}
           onTogglePause={pb.togglePause} onClose={pb.closeFs}
         />
       )}

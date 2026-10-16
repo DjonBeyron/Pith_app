@@ -68,6 +68,7 @@
 @import './styles/canvas/page-debug.css';
 @import './styles/canvas/lesson-io.css';
 @import './styles/canvas/scene-picker.css';
+@import './styles/canvas/scene-crop.css';
 @import './styles/canvas/lesson-rules.css';
 @import './styles/canvas/lesson-review.css';
 @import './styles/canvas/lesson-review-notes.css';

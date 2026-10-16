@@ -2,6 +2,9 @@ import { useState, useRef, useEffect } from 'react'
 import { getLessonMuted } from '../../lessonVolume.js'
 
 const EDGE_GAP = 24
+const NO_VIDEO = { current: null } // кружок без <video> (нода scene): видео-ветки ниже пропускаются
+const NO_DONE = { current: true }
+const NOOP = () => {}
 
 export function getSmallPx() {
   return Math.min(window.innerWidth * 0.5, 200)
@@ -12,7 +15,11 @@ export function getSmallPx() {
 // сообщения — FLIP-техника через MutationObserver) + собственно состояние
 // expanded/collapsing. Вынесено из CircleModule.jsx — там же остаются
 // воспроизведение видео и звуковая логика (handlePlaying/handleEnded).
-export function useCircleExpand({ wrapRef, vRef, dims, bottomOffset, doneFiredRef, stopRaf, onDone }) {
+// Кружок сцены (SceneCircleView) берёт ту же механику без видео: vRef/doneFiredRef/stopRaf не нужны,
+// а о раскрытии/закрытии сообщают onExpand/onCollapse (там — пуск/звук режиссёра сцены).
+export function useCircleExpand({
+  wrapRef, vRef = NO_VIDEO, dims, bottomOffset, doneFiredRef = NO_DONE, stopRaf = NOOP, onDone, onExpand, onCollapse,
+}) {
   const [expanded, setExpanded] = useState(false)
   const [collapsing, setCollapsing] = useState(false)
   const [expandTransform, setExpandTransform] = useState(null)
@@ -109,6 +116,7 @@ export function useCircleExpand({ wrapRef, vRef, dims, bottomOffset, doneFiredRe
     expandedRef.current = true
     animatingRef.current = true
     setTimeout(() => { animatingRef.current = false }, 300)
+    onExpand?.()
 
     const v = vRef.current
     if (v) {
@@ -133,6 +141,7 @@ export function useCircleExpand({ wrapRef, vRef, dims, bottomOffset, doneFiredRe
 
   function collapse() {
     stopRaf()
+    onCollapse?.()
 
     if (!doneFiredRef.current) {
       const v = vRef.current

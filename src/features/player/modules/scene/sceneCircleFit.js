@@ -1,4 +1,5 @@
 import { SCENE_W, SCENE_H } from '../../../scene/v2/sprites/backgrounds.js'
+import { normalizeSceneCrop, SCENE_CROP_REF_W } from '../../../scene/v2/sceneNodeCrop.js'
 
 // Кадрирование сцены 9:16 в круглую вставку (режим 'circle' ноды scene) —
 // чистая геометрия, без React. Коты стоят внизу сцены (их верх ≈ y 444 в
@@ -9,6 +10,8 @@ import { SCENE_W, SCENE_H } from '../../../scene/v2/sprites/backgrounds.js'
 // (один кот по центру, scenePit.js; solo: true) — кадр чуть ближе и ниже: одна
 // голова ровно в центре круга, облачко (в кружке оно уже — scene.css [data-solo])
 // целиком в круге. Те же числа в процентах — scene-picker.css (.nodeScenePreview--circle).
+// crop ({x, y, scale}, как у видео-кружка; sceneNodeCrop.js) — масштаб содержимого вокруг центра круга и сдвиг:
+// x/y заданы в px круга диаметром 200 и пересчитываются на фактический диаметр. Без crop — как раньше.
 // Возвращает стиль абсолютно позиционированной обёртки сцены внутри круглой
 // рамки (сама сцена — width 100%, aspect-ratio 9/16).
 
@@ -16,25 +19,19 @@ export const CIRCLE_SHOW_W = 340
 export const CIRCLE_CENTER_Y = 410
 export const CIRCLE_SOLO = { showW: 320, centerY: 416 }
 
-export function sceneCircleFit(diameter, { solo = false, showW = solo ? CIRCLE_SOLO.showW : CIRCLE_SHOW_W, centerY = solo ? CIRCLE_SOLO.centerY : CIRCLE_CENTER_Y } = {}) {
+export function sceneCircleFit(diameter, {
+  solo = false, showW = solo ? CIRCLE_SOLO.showW : CIRCLE_SHOW_W, centerY = solo ? CIRCLE_SOLO.centerY : CIRCLE_CENTER_Y, crop = null,
+} = {}) {
   const d = Math.max(0, Number(diameter) || 0)
-  const w = d * SCENE_W / showW
+  const c = normalizeSceneCrop(crop)
+  const u = d / SCENE_CROP_REF_W
+  const w = d * SCENE_W / showW * c.scale
   const h = w * SCENE_H / SCENE_W
   return {
     position: 'absolute',
     width: Math.round(w * 100) / 100 + 'px',
     height: Math.round(h * 100) / 100 + 'px',
-    left: Math.round(-(w - d) / 2 * 100) / 100 + 'px',
-    top: Math.round((d / 2 - centerY / SCENE_H * h) * 100) / 100 + 'px',
+    left: Math.round((-(w - d) / 2 + c.x * u) * 100) / 100 + 'px',
+    top: Math.round((d / 2 - centerY / SCENE_H * h + c.y * u) * 100) / 100 + 'px',
   }
-}
-
-// Кольцо прогресса по репликам (у сцены нет длительности в секундах):
-// доля пройденных реплик → stroke-dashoffset. ended — кольцо полное,
-// idle — пустое; playing/paused — текущая реплика считается наполовину.
-export function ringOffset({ status, index, total }, circumference) {
-  if (!total || status === 'idle') return circumference
-  if (status === 'ended') return 0
-  const done = Math.min(total, index + 0.5)
-  return circumference * (1 - done / total)
 }

@@ -4,6 +4,7 @@ import { isObj } from './sceneConstants.js'
 import { fillSceneVars, usesVars } from './sceneVars.js'
 import { hasVarParts, segmentUrls } from './sceneVarsSegments.js'
 import { isDisplayMode, resolveDisplay, resolveVoiceFlags } from './sceneOptions.js'
+import { normalizeSceneCrop } from './sceneNodeCrop.js'
 
 // Нода урока `scene` — формат typeData.scene (общий для плеера, канваса и
 // lesson-io):
@@ -11,7 +12,8 @@ import { isDisplayMode, resolveDisplay, resolveVoiceFlags } from './sceneOptions
 //     sceneUpdatedAt?: ISO updated_at строки на момент снимка,
 //     mode: 'bubble' | 'circle', showBubbles: boolean (по умолчанию true),
 //     start?: 'manual' | 'auto' (по умолчанию 'auto'), startDelayMs?: 0…5000 (по умолчанию 500),
-//     display?: 'none' | 'text' | 'both', voice?: { original?, translation? } }
+//     display?: 'none' | 'text' | 'both', voice?: { original?, translation? },
+//     crop?: { x, y, scale } }  — масштаб/сдвиг кадра как у видео (sceneNodeCrop.js; нет поля = { 0, 0, 1 })
 // display/voice — необязательные переопределения на уровне ноды поверх options
 // сцены (sceneOptions.js); нет display → старый showBubbles (false → 'none').
 // Снимок встроен в урок намеренно: урок играет офлайн, экспортируется и не
@@ -69,7 +71,7 @@ export function resolveSceneNode(td) {
   const showBubbles = data.showBubbles !== false
   const base = {
     mode, showBubbles, start: normalizeSceneStart(data.start), startDelayMs: normalizeStartDelay(data.startDelayMs),
-    ...sceneNodeOverrides(data),
+    crop: normalizeSceneCrop(data.crop), ...sceneNodeOverrides(data),
   }
   if (!isObj(data.scene)) return { scene: null, errors: [], ...base }
   const errors = validateSceneV2(data.scene)

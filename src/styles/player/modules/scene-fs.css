@@ -1,33 +1,45 @@
 /* ── Нода «сцена»: полноэкранный показ (SceneFullscreenView.jsx) ──────────
    Фон и крестик — классы видео (.videoFsBg / .videoFullClose, video.css), слои
-   10000+ те же. Здесь — своё: сцена-кадр 9:16 по центру рамки плеера и нижняя
-   панель кнопок (пауза/пуск, звук). Только transform/opacity в анимациях. */
+   10000+ те же. Здесь — своё: сцена на весь экран рамки плеера («cover», пустых полос нет) и нижняя
+   панель кнопок (пауза/пуск, звук) + полоса прогресса. Только transform/opacity в анимациях. */
 
 .playerSceneFsStage {
   position: fixed;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   overflow: hidden;
   touch-action: none;
+  cursor: pointer;
   -webkit-tap-highlight-color: transparent;
-}
-
-.playerSceneFsFrame {
-  position: relative;
-  flex-shrink: 0;
-  overflow: hidden;
-  border-radius: 12px;
-  background: #e8eef5;
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.55);
-  animation: playerSceneFsIn 0.2s ease-out;
   user-select: none;
   -webkit-user-select: none;
+  /* Только opacity: сцена «cover» во весь экран, масштаб-вход открыл бы край окна */
+  animation: playerSceneFsIn 0.2s ease-out;
 }
-.playerSceneFsFrame .scn { position: absolute; inset: 0; width: 100%; height: 100%; }
+
+/* Кадр сцены 360×640 единиц в масштабе fsCoverFrame (JS ставит left/top/width/height): сам он может быть
+   меньше или больше экрана, а фон за его краями продолжается (backgrounds.js BLEED) — поэтому .scn и SVG
+   здесь НЕ обрезают (overflow: visible, без contain: paint), обрезает только стейдж (рамка плеера). Облачко
+   — HTML внутри .scn, его проценты считаются от кадра. Радиуса и тени нет: сцена — это весь экран */
+.playerSceneFsFrame {
+  position: absolute;
+  background: transparent;
+}
+.playerSceneFsFrame .scn,
+.playerSceneFsFrame .scn__svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.playerSceneFsFrame .scn { contain: layout style; background: transparent; }
+/* Невидимый зонд safe-area: padding из env() браузер раскрывает в px, useSceneFullscreen их читает */
+.playerSceneFsProbe {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 0;
+  height: 0;
+  visibility: hidden;
+  padding: env(safe-area-inset-top, 0px) 0 env(safe-area-inset-bottom, 0px);
+  pointer-events: none;
+}
 @keyframes playerSceneFsIn {
-  from { opacity: 0; transform: scale(0.94); }
-  to { opacity: 1; transform: none; }
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 /* Панель кнопок внизу экрана: поверх кадра, но вне его (кадр ловит тап = пауза) */
@@ -58,6 +70,11 @@
 .playerSceneFsBtn:hover { background: rgba(255, 255, 255, 0.28); }
 .playerSceneFsBtn[aria-pressed="true"] { background: rgba(255, 90, 90, 0.35); }
 
+/* Полоса прогресса по времени (useSceneProgress, kind bar): scaleX на композиторе, вместо width как у видео
+   (там её двигает rAF-цикл) — ни одного перерендера и пересчёта раскладки на кадр. Низ полосы — над safe-area */
+.playerSceneFsControls .videoFsProgressTrack { bottom: 0; }
+.playerSceneFsProgress { width: 100%; transform: scaleX(0); transform-origin: left center; will-change: transform; }
+
 @media (prefers-reduced-motion: reduce) {
-  .playerSceneFsFrame { animation: none; }
+  .playerSceneFsStage { animation: none; }
 }

@@ -8,11 +8,13 @@ import NodeSceneBuilderHost from './NodeSceneBuilderHost.jsx'
 import { pickRowPatch, applyBuilderPatch, clearScenePatch, sceneCheck, voiceLabel, voiceSummary, startSummary } from './scenePickerModel.js'
 import NodeSceneModes from './NodeSceneModes.jsx'
 import NodeSceneStart from './NodeSceneStart.jsx'
+import NodeSceneCrop from './NodeSceneCrop.jsx'
 
 // Редактор ноды `scene` (канвас и продакшен-список): мини-превью статичным
 // кадром, название/реплики/бюджет, сводка озвучки по наборам и запуска, режим «Пузырь / Кружок»,
 // запуск «Вручную / Автоматически» + задержка (NodeSceneStart),
 // переопределения показа/озвучки ноды (NodeSceneModes — вместо чекбокса «Облачки»),
+// масштаб и положение сцены, как у видео (NodeSceneCrop — ползунок, перетаскивание кадра; typeData.scene.crop),
 // библиотека сцен (снимок копируется в ноду, sceneId запоминается), сборщик
 // поверх канваса (NodeSceneBuilderHost → BuilderWindow в управляемом режиме),
 // «Обновить из библиотеки» (есть новая версия — предложить обновить снимок),
@@ -88,6 +90,7 @@ export default function NodeScenePicker({ tData, onChange }) {
       </div>
       {preview && <NodeSceneStart tData={tData} onChange={onChange} />}
       {preview && <NodeSceneModes tData={tData} scene={preview} onChange={onChange} />}
+      {preview && <NodeSceneCrop tData={tData} scene={preview} mode={resolved.mode} onChange={onChange} />}
 
       {(check.errors.length > 0 || check.warns.length > 0) && (
         <div className={`nodeSceneLint ${check.errors.length ? 'nodeSceneLint--err' : 'nodeSceneLint--warn'}`}>
