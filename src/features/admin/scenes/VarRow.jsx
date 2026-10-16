@@ -4,6 +4,7 @@ import { VAR_LIMITS } from '../../scene/v2/sceneVars.js'
 import { cleanVarName, PICK_LABEL, PICK_LEVELS } from './varsOps.js'
 import ScTip from './ScTip.jsx'
 import LevelDot from './LevelDot.jsx'
+import VarWordAudio from './VarWordAudio.jsx'
 
 // Одно слово пользователя в блоке «Слова пользователя»: «слово №N», ключ ({ключ} в репликах), тип отбора, запасное слово
 // и его перевод. Ключ остаётся техническим именем в vars (food). Ключ пока вводят — хранится локально и применяется, когда непустое и не занято (иначе при уходе поля возвращается прежнее).
@@ -45,6 +46,7 @@ export default function VarRow({ index, name, def, actions, taken, lock = false 
           <input id={`${p}-fallback-translation`} className="fsNote" value={def.fallback?.translation ?? ''} maxLength={VAR_LIMITS.maxWord} disabled={lock} onChange={e => actions.updateVar(name, { translation: e.target.value })} placeholder="по-русски, для {ключ:ru}" />
         </label>
       </div>
+      <VarWordAudio text={def.fallback?.text} lock={lock} />
     </li>
   )
 }

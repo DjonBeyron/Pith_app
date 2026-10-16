@@ -1,4 +1,9 @@
 import { isObj } from './sceneConstants.js'
+import { tokenizeTemplate, placeholdersOf, fillTemplate } from './sceneVarsTokens.js'
+import { templateSegments } from './sceneVarsSegments.js'
+import { wordSegment } from './sceneWordSegments.js'
+
+export { tokenizeTemplate, placeholdersOf, fillTemplate }
 
 // Слова пользователя в сцене (vars; «Слова пользователя» в сборщике) — шаблон сцены под слова из памяти. Чистая логика без UI.
 //
@@ -9,8 +14,9 @@ import { isObj } from './sceneConstants.js'
 //          и в режимах «просто показать» (админ, предпросмотр, лента без пользователя).
 // Плейсхолдеры: {name} — слово (timeline[].text), {name:ru} — его перевод (timeline[].translation).
 // Скобки: {{ и }} — литеральные { и } (только в сцене с vars; в обычной сцене текст не трогаем).
-// Реплика может хранить segments (задел под озвучку по сегментам, шаг 4–5): текст реплики всегда
-// собирается из text-шаблона, segments при подстановке игнорируются и в итоговую сцену не попадают.
+// Реплика-шаблон может хранить segments (озвучка по частям, шаг 4б; sceneVarsSegments.js): текст реплики всегда
+// собирается из text-шаблона, а segments при подстановке пересобираются: {var} → сегмент-слово
+// { text, word: true, audioUrl? } (аудио слова — из библиотеки word_audio, sceneWordSegments.js).
 
 export const VAR_LIMITS = { maxVars: 3, maxName: 16, maxWord: 40, maxSegments: 12 }
 export const VAR_PICKS = ['weak', 'due', 'known']
@@ -18,37 +24,6 @@ export const VAR_NAME_RE = /^[A-Za-z0-9_]{1,16}$/
 // Озвучка/тайминги целой реплики (оригинал и перевод) — сбрасываются у реплик с подстановкой
 const ORIGINAL_AUDIO = ['audioUrl', 'wordTimings', 'audioMeta']
 const TRANSLATION_AUDIO = ['translationAudioUrl', 'translationWordTimings', 'translationAudioMeta']
-
-const TOKEN_RE = /\{\{|\}\}|\{([A-Za-z0-9_]{1,16})(:ru)?\}|[{}]/g
-
-// Разбор строки на части: { lit } литерал | { name, ru, raw } плейсхолдер | { stray } одиночная скобка.
-// {{ и }} уже превращены в литералы { и }
-export function tokenizeTemplate(str) {
-  const s = typeof str === 'string' ? str : ''
-  const out = []
-  let last = 0
-  for (const m of s.matchAll(TOKEN_RE)) {
-    if (m.index > last) out.push({ lit: s.slice(last, m.index) })
-    if (m[0] === '{{') out.push({ lit: '{', esc: true })
-    else if (m[0] === '}}') out.push({ lit: '}', esc: true })
-    else if (m[1]) out.push({ name: m[1], ru: !!m[2], raw: m[0] })
-    else out.push({ stray: m[0] })
-    last = m.index + m[0].length
-  }
-  if (last < s.length) out.push({ lit: s.slice(last) })
-  return out
-}
-
-// Плейсхолдеры строки: [{ name, ru }] в порядке появления
-export const placeholdersOf = str => tokenizeTemplate(str).filter(t => t.name).map(({ name, ru }) => ({ name, ru }))
-
-// Подстановка: pick(name, ru) → строка | null (null — оставить плейсхолдер как есть); {{ }} → { }
-export function fillTemplate(str, pick) {
-  return tokenizeTemplate(str).map(t => {
-    if (t.name) { const v = pick(t.name, t.ru); return typeof v === 'string' ? v : t.raw }
-    return t.lit ?? t.stray
-  }).join('')
-}
 
 export const usesVars = scene => isObj(scene) && isObj(scene.vars) && Object.keys(scene.vars).length > 0
 export const sceneVarNames = scene => (usesVars(scene) ? Object.keys(scene.vars) : [])
@@ -74,11 +49,14 @@ function wordOf(scene, values, name) {
 
 // Сцена, в которой плейсхолдеры заменены словами: values { name: { text, translation? } }, чего нет — из fallback.
 // Возвращает НОВУЮ сцену без vars; сцена без vars — та же ссылка. Реплика, чей text/translation изменился,
-// теряет озвучку целой реплики (audio*/translationAudio*): записанное под шаблон не подходит к новому слову —
-// звучит запасной синтез, озвучка по segments — следующий шаг. segments из реплик убираются.
+// теряет озвучку целой реплики (audio*/translationAudio*): записанное под шаблон не подходит к новому слову.
+// У реплики с segments озвучка идёт по частям: сегменты пересобираются по тексту (озвучка текстовых частей
+// сохраняется, пока текст части тот же), {var} становится сегментом-словом с аудио из opts.wordAudio.
+// opts.wordAudio — откуда брать аудио слов: Map/объект key → запись word_audio ({ url, duration }) либо функция;
+// не задано — кэш библиотеки (wordAudioLookup, регистрирует wordAudioEnsure), null — слова без аудио («просто показать»).
 // Неизвестная переменная и нет слова ({name} без vars) остаётся в тексте как есть.
-// {name:ru} без перевода слова даёт само слово.
-export function fillSceneVars(scene, values = {}) {
+// {name:ru} без перевода слова даёт само слово. Старые вызовы fillSceneVars(scene, values) работают как раньше.
+export function fillSceneVars(scene, values = {}, opts = {}) {
   if (!usesVars(scene)) return scene
   const { vars: _vars, ...rest } = scene
   const pick = (name, ru) => {
@@ -94,6 +72,13 @@ export function fillSceneVars(scene, values = {}) {
     if (tr !== undefined) out.translation = tr
     if (segments !== undefined || text !== l.text) for (const k of ORIGINAL_AUDIO) delete out[k]
     if (tr !== l.translation) for (const k of TRANSLATION_AUDIO) delete out[k]
+    if (Array.isArray(segments) && typeof l.text === 'string') {
+      out.segments = templateSegments(l).map(seg => {
+        if (seg.var === undefined) return seg
+        const w = pick(seg.var, false)
+        return w === null ? { text: `{${seg.var}}` } : wordSegment(w, opts.wordAudio)
+      })
+    }
     return out
   }) : scene.timeline
   return { ...rest, timeline }
@@ -113,13 +98,14 @@ export function normalizeVars(vars) {
   return Object.keys(out).length ? out : undefined
 }
 
-// Сегменты озвучки реплики (задел): [{ text?, audioUrl?, wordTimings?, audioMeta? } | { var }] — берём только годные элементы
+// Сегменты озвучки реплики: [{ text?, word?, audioUrl?, wordTimings?, audioMeta? } | { var }] — берём только годные элементы
 export function normalizeSegments(segments) {
   if (!Array.isArray(segments)) return undefined
   const out = segments.filter(isObj).map(s => {
     if (typeof s.var === 'string') return { var: s.var }
     const seg = {}
     if (typeof s.text === 'string') seg.text = s.text
+    if (s.word === true) seg.word = true // сегмент-слово подставленной реплики (sceneWordSegments.js)
     if (typeof s.audioUrl === 'string' && s.audioUrl) seg.audioUrl = s.audioUrl
     if (Array.isArray(s.wordTimings) && s.wordTimings.length) seg.wordTimings = s.wordTimings
     if (isObj(s.audioMeta) && typeof s.audioMeta.hash === 'string') seg.audioMeta = s.audioMeta

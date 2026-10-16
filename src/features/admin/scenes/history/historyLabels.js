@@ -14,6 +14,7 @@ export function lineEditLabel(i, p) {
   if (one === 'text') return [`ввод текста реплики ${n(i)}`, `line${i}:text`]
   if (one === 'translation') return [`ввод перевода реплики ${n(i)}`, `line${i}:translation`]
   if (ks.some(k => AUDIO_KEY.test(k))) return [`озвучка реплики ${n(i)}`, null]
+  if (one === 'segments') return [`озвучка частей реплики ${n(i)}`, null]
   if (one === 'who') return [`смена говорящего в реплике ${n(i)}`, `line${i}:who`]
   if (one === 'emotion') return [`смена эмоции реплики ${n(i)}`, `line${i}:emotion`]
   if (one === 'pose') return [`смена позы реплики ${n(i)}`, `line${i}:pose`]

@@ -5,13 +5,15 @@ import { charsLeft, MAX_TEXT } from './timelineOps.js'
 import { EMOTION_LABEL, POSE_LABEL } from './sceneLabels.js'
 import Panel from './ui/Panel.jsx'
 import LineVoiceControls from './voice/LineVoiceControls.jsx'
+import SegmentVoiceControls from './voice/SegmentVoiceControls.jsx'
+import { hasVarParts } from '../../scene/v2/sceneVarsSegments.js'
 import InsertVarSelect from './InsertVarSelect.jsx'
 
 // Одна реплика таймлайна — вложенная панель timeline.<i> (заголовок «3 · Имя — начало
 // текста», свёрнутая показывает только его). Кто говорит — кнопки «A · Рыжик / B · Дымка»:
 // выбранная ЗАЛИТА цветом персонажа (--spk-a/--spk-b с контрастным текстом, ставит
 // TimelineEditor), левая полоса карточки — тем же цветом. Эмоция, поза, текст со счётчиком,
-// перевод (≤ 140, счётчик), два блока озвучки — текст и перевод (LineVoiceControls set=original|translation);
+// перевод (≤ 140, счётчик), два блока озвучки — текст и перевод (LineVoiceControls set=original|translation; у реплики со словом пользователя блок текста — SegmentVoiceControls, озвучка по частям);
 // кнопки вверх/вниз/дублировать/удалить в шапке панели
 // (заблокированы, пока идёт озвучка — индексы плана). id — f-timeline-<i>-<поле>.
 // characters — для статуса «устарело» (hash по голосу персонажа) и списка говорящих (без b — одиночная сцена: только A).
@@ -78,7 +80,9 @@ export default function TimelineLine({ index: i, line, names, total, actions, ch
         </label>
         <InsertVarSelect scene={scene} index={i} field="translation" inputRef={trRef} actions={actions} disabled={lock} />
         <div className="scbVoiceSets">
-          <LineVoiceControls index={i} line={line} character={characters?.[line.who]} voice={voice} idPrefix={p} set="original" scene={scene} />
+          {hasVarParts(line.text)
+            ? <SegmentVoiceControls index={i} line={line} character={characters?.[line.who]} voice={voice} idPrefix={p} />
+            : <LineVoiceControls index={i} line={line} character={characters?.[line.who]} voice={voice} idPrefix={p} set="original" scene={scene} />}
           <LineVoiceControls index={i} line={line} character={characters?.[line.who]} voice={voice} idPrefix={p} set="translation" scene={scene} />
         </div>
       </Panel>

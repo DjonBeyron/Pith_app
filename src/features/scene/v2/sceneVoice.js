@@ -1,5 +1,12 @@
-import { sha256Hex } from '../../../shared/lib/sha256.js'
 import { isObj } from './sceneConstants.js'
+import { TTS_MODEL, DEFAULT_VOICE_ID, VOICE_RANGE, VOICE_DEFAULTS, voiceSpec, translationVoiceSpec, audioHash } from './sceneVoiceSpec.js'
+import { segmentsLineState } from './sceneSegmentsVoice.js'
+import { hasVarParts } from './sceneVarsSegments.js'
+
+export { TTS_MODEL, DEFAULT_VOICE_ID, VOICE_RANGE, VOICE_DEFAULTS, voiceSpec, translationVoiceSpec, audioHash }
+
+const r2 = v => Math.round(v * 100) / 100
+const str = v => (typeof v === 'string' && v.trim() ? v.trim() : null)
 
 // Озвучка реплик ElevenLabs — схемная часть (без сети и без React): какой голос у
 // персонажа (voiceSpec), hash озвучки (text + голос + настройки + модель), статус
@@ -19,11 +26,6 @@ import { isObj } from './sceneConstants.js'
 //                 персонажа → options.translationVoiceId сцены → 'default' (голос проекта);
 //                 stability/similarity/speed общие с голосом персонажа.
 
-export const TTS_MODEL = 'eleven_multilingual_v2'
-// 'default' — голос из серверного секрета ELEVENLABS_VOICE_ID (voiceId у персонажа пуст)
-export const DEFAULT_VOICE_ID = 'default'
-export const VOICE_RANGE = { stability: [0, 1], similarity: [0, 1], speed: [0.7, 1.2] }
-export const VOICE_DEFAULTS = { stability: 0.5, similarity: 0.75, speed: 1 }
 // Слов в реплике ≤ 140 символов больше 70 не бывает; потолок с запасом держит размер сцены
 export const MAX_WORD_TIMINGS = 80
 export const HASH_RE = /^[0-9a-f]{64}$/
@@ -35,39 +37,6 @@ export const AUDIO_HOSTS = [/(^|\.)r2\.dev$/i, /^media\.[a-z0-9-]+(\.[a-z0-9-]+)
 export const AUDIO_SETS = {
   original: { url: 'audioUrl', timings: 'wordTimings', meta: 'audioMeta', text: 'text' },
   translation: { url: 'translationAudioUrl', timings: 'translationWordTimings', meta: 'translationAudioMeta', text: 'translation' },
-}
-
-const num = (v, [lo, hi], dflt) => (typeof v === 'number' && Number.isFinite(v) ? Math.min(hi, Math.max(lo, v)) : dflt)
-const r2 = v => Math.round(v * 100) / 100
-const str = v => (typeof v === 'string' && v.trim() ? v.trim() : null)
-
-function specWith(v, voiceId) {
-  return {
-    voiceId,
-    stability: num(v.stability, VOICE_RANGE.stability, VOICE_DEFAULTS.stability),
-    similarity: num(v.similarity, VOICE_RANGE.similarity, VOICE_DEFAULTS.similarity),
-    speed: num(v.speed, VOICE_RANGE.speed, VOICE_DEFAULTS.speed),
-    model: TTS_MODEL,
-  }
-}
-
-// Голос персонажа в том виде, в каком он уходит в TTS и в hash
-export function voiceSpec(character) {
-  const v = isObj(character?.voice) ? character.voice : {}
-  return specWith(v, str(v.voiceId) ?? DEFAULT_VOICE_ID)
-}
-
-// Голос озвучки ПЕРЕВОДА: translationVoiceId персонажа → общий options.translationVoiceId сцены →
-// 'default' (серверный секрет); настройки (stability/similarity/speed) — как у голоса персонажа
-export function translationVoiceSpec(character, scene) {
-  const v = isObj(character?.voice) ? character.voice : {}
-  return specWith(v, str(v.translationVoiceId) ?? str(scene?.options?.translationVoiceId) ?? DEFAULT_VOICE_ID)
-}
-
-// Один и тот же текст тем же голосом с теми же настройками → тот же hash
-export function audioHash(text, spec) {
-  const s = spec ?? voiceSpec(null)
-  return sha256Hex(JSON.stringify([String(text ?? '').trim(), s.voiceId, s.stability, s.similarity, s.speed, s.model]))
 }
 
 // 'none' — файла нет; 'ready' — файл есть и hash совпадает (или у старого файла нет
@@ -103,7 +72,13 @@ export function sceneVoiceStats(scene) {
   const out = { total: tl.length, ready: 0, stale: 0, none: 0, translation: { total: tl.length, ready: 0, stale: 0, none: 0, withText: 0 } }
   for (const l of tl) {
     const ch = scene?.characters?.[l?.who]
-    out[lineAudioState(l, ch)] += 1
+    // Реплика-шаблон озвучивается по частям: «озвучена», когда озвучены все текстовые части; одни плейсхолдеры/знаки — не считаем
+    const tpl = hasVarParts(l?.text)
+    const st = tpl ? segmentsLineState(l, ch) : lineAudioState(l, ch)
+    if (st) out[st] += 1
+    else out.total -= 1
+    // Перевод со словом ({food:ru}) не озвучивается (читает синтез устройства) — в счёт файлов перевода не идёт
+    if (hasVarParts(l?.translation)) { out.translation.total -= 1; continue }
     out.translation[translationAudioState(l, ch, scene)] += 1
     if (str(l?.translation)) out.translation.withText += 1
   }

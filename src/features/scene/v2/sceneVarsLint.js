@@ -61,7 +61,7 @@ export function lintVars(scene, out) {
     const onlyVars = (str, field) => (templated || tokenizeTemplate(str).some(t => t.name) ? lintField(str, field, p, declared, used, out) : null)
     onlyVars(l.text, 'text')
     onlyVars(l.translation, 'translation')
-    if (templated && isTemplateLine(l) && l.audioUrl) out.push(warn(`${p}.audioUrl — реплика со словом пользователя: озвучка целой реплики не используется (слово подставляется, озвучка по сегментам — позже)`))
+    if (templated && isTemplateLine(l) && l.audioUrl) out.push(warn(`${p}.audioUrl — реплика со словом пользователя: озвучка целой реплики не используется (слово подставляется; звучат озвученные части segments и слово из библиотеки)`))
   })
   for (const name of declared) if (!used.has(name)) out.push(warn(`vars.${name} — слово пользователя объявлено, но не используется в репликах`))
   lintTaskVars(scene.task, out)

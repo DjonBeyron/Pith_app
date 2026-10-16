@@ -24,8 +24,17 @@ const MEDIA_ERR = {
   4: 'источник не поддерживается (MEDIA_ERR_SRC_NOT_SUPPORTED) — 404/403, неверный Content-Type или домен закрыт',
 }
 
-export function describeAudioFail(reason) {
+// Реплика-шаблон по частям не собралась в цепочку (scenePlayLine.playSegments): text — слово/часть без файла
+const SEGMENT_TEXT = {
+  'segments-word-no-audio': t => `слова «${t || '…'}» нет в библиотеке озвучки слов — реплика прочитана синтезом устройства целиком; озвучьте слово кнопкой «Озвучить слово» в блоке «Слова пользователя»`,
+  'segments-part-no-audio': t => `часть «${t || '…'}» не озвучена — нажмите «Озвучить части» у реплики; пока реплика читается синтезом устройства целиком`,
+  'segments-unfilled-var': () => 'в реплике остался неподставленный {плейсхолдер} — реплика читается синтезом устройства',
+  'segments-empty': () => 'в реплике нечего озвучивать файлами — читается синтезом устройства',
+}
+
+export function describeAudioFail(reason, text = '') {
   const r = String(reason ?? 'unknown')
+  if (SEGMENT_TEXT[r]) return SEGMENT_TEXT[r](text)
   if (REASON_TEXT[r]) return REASON_TEXT[r]
   const m = r.match(/^media-error-(\d)$/)
   if (m) return MEDIA_ERR[m[1]] ?? `ошибка медиа, код ${m[1]}`
@@ -38,5 +47,6 @@ export function describeAudioFail(reason) {
 export function soundStatusText(mode, fail, sound = true) {
   const src = sound ? (SOURCE_LABEL[mode] ?? SOURCE_LABEL.timer) : 'без звука'
   if (!fail) return `звук: ${src}`
+  if (String(fail.reason).startsWith('segments-')) return `звук: ${src} — ${describeAudioFail(fail.reason, fail.text)}`
   return `звук: ${src} — файл не завёлся: ${describeAudioFail(fail.reason)}`
 }

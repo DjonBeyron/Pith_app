@@ -12,7 +12,7 @@ export default function VoiceAllDialog({ all, quota, names, onStart, onStop, onC
   const sets = all.sets ?? ['original']
   const running = phase === 'running'
   const curItem = current && typeof current === 'object' ? current : (current !== null && current !== undefined ? { index: current, set: 'original' } : null)
-  const curLine = curItem ? plan.items.find(x => x.index === curItem.index && (x.set ?? 'original') === curItem.set) : null
+  const curLine = curItem ? plan.items.find(x => x.index === curItem.index && (x.set ?? 'original') === curItem.set && x.seg === curItem.seg) : null
 
   return (
     <div className="scbVoiceDlgWrap" role="presentation">
@@ -36,12 +36,12 @@ export default function VoiceAllDialog({ all, quota, names, onStart, onStop, onC
             </div>
             <p className="scbSub">
               {running
-                ? <>Реплика {Math.min(progress.done + 1, progress.total)} из {progress.total}{curItem ? ` — №${curItem.index + 1}, ${names?.[curLine?.who] ?? ''}${sets.length > 1 || curItem.set === 'translation' ? ` (${SET_LABEL[curItem.set].toLowerCase()})` : ''}` : ''}…</>
+                ? <>Реплика {Math.min(progress.done + 1, progress.total)} из {progress.total}{curItem ? ` — №${curItem.index + 1}, ${names?.[curLine?.who] ?? ''}${sets.length > 1 || curItem.set === 'translation' ? ` (${SET_LABEL[curItem.set].toLowerCase()})` : ''}${curLine?.seg !== undefined ? ` — часть «${curLine.text}»` : ''}` : ''}…</>
                 : <>{result?.stopped ? 'Остановлено. ' : 'Готово. '}Озвучено {progress.ok} из {progress.total}{progress.failed.length ? `, с ошибкой ${progress.failed.length}` : ''}{result?.skipped?.length ? `, пропущено ${result.skipped.length}` : ''}.</>}
             </p>
             {progress.failed.length > 0 && (
               <ul className="scbVoiceFails">
-                {progress.failed.map(f => <li key={`${f.set ?? 'o'}${f.index}`}><b>№{f.index + 1}{f.set === 'translation' ? ' (перевод)' : ''}</b>: {f.error}</li>)}
+                {progress.failed.map(f => <li key={`${f.set ?? 'o'}${f.index}-${f.seg ?? ''}`}><b>№{f.index + 1}{f.set === 'translation' ? ' (перевод)' : ''}{f.seg !== undefined ? ' (часть шаблона)' : ''}</b>: {f.error}</li>)}
               </ul>
             )}
             <div className="fsBtnBox" style={{ gap: 6 }}>

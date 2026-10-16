@@ -30,6 +30,14 @@ const MEDIA_ERR_NETWORK = 2
 const owners = new WeakMap() // элемент → токен текущего владельца
 let seq = 0
 
+// Цепочка сегментов (audioChain.js) занимает те же элементы: новый владелец — новый токен, чужую паузу не ставим
+export function claimAudio(elements) {
+  const token = ++seq
+  for (const el of elements) if (el) owners.set(el, token)
+  return token
+}
+export const ownsAudio = (el, token) => owners.get(el) === token
+
 export function clampRate(rate) {
   const r = Number(rate)
   return Number.isFinite(r) && r > 0 ? Math.min(4, Math.max(0.25, r)) : 1

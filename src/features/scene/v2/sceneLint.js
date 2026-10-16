@@ -8,7 +8,9 @@ import { lineAudioState, translationAudioState, sceneVoiceStats } from './sceneV
 import { displayOfOptions, normalizeVoiceFlags } from './sceneOptions.js'
 import { sceneByteSize, SCENE_MAX_BYTES } from './sceneNode.js'
 import { isSolo } from './scenePit.js'
-import { lintVars, isTemplateLine } from './sceneVarsLint.js'
+import { lintVars } from './sceneVarsLint.js'
+import { hasVarParts } from './sceneVarsSegments.js'
+import { segmentsStatus } from './sceneSegmentsVoice.js'
 import { titleProblem } from './sceneNaming.js'
 
 // Линтер сцен v2 — детерминированная проверка поверх валидатора: бюджет
@@ -71,25 +73,31 @@ function lintTimeline(scene, out) {
 }
 
 // Озвучка ElevenLabs (sceneVoice.js): hash не сходится с текстом/голосом — файл устарел;
-// озвучена часть реплик — остальные пойдут синтезом устройства, голоса будут разные
+// озвучена часть реплик — остальные прозвучат синтезом устройства, голоса будут разные.
+// Реплика-шаблон ({слово} в тексте) озвучивается по частям (segments, sceneSegmentsVoice.js): она «озвучена»,
+// когда озвучены все текстовые части, слово подставится из библиотеки word_audio; целиком её файл не нужен.
 function lintVoice(scene, tl, out) {
   tl.forEach((l, i) => {
-    if (isObj(l) && lineAudioState(l, scene.characters?.[l.who]) === 'stale') {
+    if (!isObj(l)) return
+    const ch = scene.characters?.[l.who]
+    if (hasVarParts(l.text)) {
+      const st = segmentsStatus(l, ch)
+      if (st.state === 'stale') out.push({ level: 'warn', text: `timeline[${i}].segments — озвучка частей реплики устарела: текст или голос изменили после генерации (или в segments остались файлы частей, которых в тексте нет), переозвучьте` })
+    } else if (lineAudioState(l, ch) === 'stale') {
       out.push({ level: 'warn', text: `timeline[${i}].audioUrl — озвучка устарела: текст или голос изменили после генерации, переозвучьте` })
     }
   })
-  // Шаблонные реплики (слова-переменные) целиком не озвучиваются — в счёт «озвучено N из M» не идут
-  const st = sceneVoiceStats(scene)
-  const own = sceneVoiceStats({ ...scene, timeline: tl.filter(l => !isTemplateLine(l)) })
+  const own = sceneVoiceStats(scene)
   const voiced = own.ready + own.stale
   if (voiced > 0 && voiced < own.total) out.push({ level: 'warn', text: `timeline — озвучено ${voiced} из ${own.total} реплик: остальные прозвучат синтезом устройства` })
-  lintTranslationVoice(scene, tl, st.translation, out)
+  // Перевод шаблонных реплик ({слово:ru}) не озвучивается (запасной синтез устройства) — sceneVoiceStats его не считает
+  lintTranslationVoice(scene, tl, own.translation, out)
 }
 
 // Озвучка перевода (sceneOptions.voice.translation, поля translationAudio* реплики) и режим показа 'both'
 function lintTranslationVoice(scene, tl, st, out) {
   tl.forEach((l, i) => {
-    if (isObj(l) && translationAudioState(l, scene.characters?.[l.who], scene) === 'stale') {
+    if (isObj(l) && !hasVarParts(l.translation) && translationAudioState(l, scene.characters?.[l.who], scene) === 'stale') {
       out.push({ level: 'warn', text: `timeline[${i}].translationAudioUrl — озвучка перевода устарела: перевод или голос изменили после генерации (или перевод убрали), переозвучьте` })
     }
   })

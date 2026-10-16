@@ -9,7 +9,7 @@
 .scbVoiceBtns { margin-left: auto; display: inline-flex; align-items: center; gap: 4px; }
 .scbVoiceBtns .fsBtn { display: inline-flex; align-items: center; gap: 4px; }
 .scbVoiceTag { padding: 1px 7px; border-radius: 999px; font-weight: 600; white-space: nowrap; }
-.scbVoiceTag-none { background: var(--fs-panel); color: var(--fs-muted); }
+.scbVoiceTag-none, .scbVoiceTag-tpl { background: var(--fs-panel); color: var(--fs-muted); }
 .scbVoiceTag-ready { background: var(--fs-accent); color: var(--fs-accent-ink); }
 .scbVoiceTag-stale { background: var(--fs-warn); color: #000; }
 .scbVoiceTag-busy { background: var(--fs-focus); color: #fff; animation: scbVoicePulse 1.2s ease-in-out infinite; }
@@ -88,3 +88,9 @@
 .scbLinesHead { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 10px; }
 .scbLinkDanger { color: var(--fs-error); }
 .scbLinesEmpty { padding: 10px 12px; border: 1px dashed var(--fs-border); border-radius: 12px; }
+
+/* Озвучка реплики-шаблона по частям (SegmentVoiceControls): список частей под статусом */
+.scbSegParts { flex: 1 0 100%; margin: 2px 0 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 3px; }
+.scbSegPart { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; font-size: 12px; }
+.scbSegPart q { color: var(--fs-text); }
+.scbSegVar code { padding: 0 5px; border-radius: 6px; background: var(--fs-panel-2); }

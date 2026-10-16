@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { isSilentMedia } from '../../useSoloMedia.js'
-import { getSceneAudioElement } from '../../../scene/v2/sceneAudioUnlock.js'
+import { getSceneAudioElement, peekSceneSpareElement } from '../../../scene/v2/sceneAudioUnlock.js'
 
 // «В переписке звучит что-то одно» для сцены. Общий перехват useSoloMedia
 // слушает play у <audio>/<video> внутри плеера, а сцена звучит через
@@ -18,7 +18,7 @@ let token = 0
 // Чужой элемент начал звучать — сцене пора на паузу?
 export function shouldSceneYield(target, ownAudio) {
   if (!target || typeof target.pause !== 'function') return false
-  if (target === ownAudio) return false
+  if (target === ownAudio || target === peekSceneSpareElement()) return false // второй <audio> цепочки сегментов — тоже «свой»
   return !isSilentMedia(target)
 }
 
@@ -33,7 +33,7 @@ export function attachSceneSolo({ rootEl, pause, doc = document, own = getSceneA
   // 1. Заглушить всё, что звучит в плеере
   const player = rootEl?.closest?.('.lessonPlayer') ?? doc
   player.querySelectorAll('audio, video').forEach(m => {
-    if (m !== own && !m.paused && !isSilentMedia(m)) m.pause()
+    if (m !== own && m !== peekSceneSpareElement() && !m.paused && !isSilentMedia(m)) m.pause()
   })
   // 2. Другие сцены — на паузу
   const my = ++token

@@ -39,7 +39,7 @@ export default function VoiceAllFacts({ plan, sets, quota, onSets }) {
             const cache = b.items - b.generate
             return (
               <li key={set}>
-                <b>{SET_LABEL[set]}:</b> озвучить {b.items} из {b.withText}{set === 'translation' && b.withText < b.total ? ` (перевод есть у ${b.withText} из ${b.total})` : ''}
+                <b>{SET_LABEL[set]}:</b> озвучить {b.items} из {b.withText}{b.parts > 0 ? ` (в т. ч. частей реплик-шаблонов: ${b.parts}; слово подставится из библиотеки озвучки слов, символы на него не тратятся)` : ''}{set === 'translation' && b.withText < b.total ? ` (перевод есть у ${b.withText} из ${b.total})` : ''}
                 {b.items > 0 && <> — вызовов {b.generate}, символов {fmt(b.chars)}{cache > 0 ? `, из кэша ${cache}` : ''}</>}
                 {b.items === 0 && b.withText > 0 && ' — всё актуально'}
                 {b.withText === 0 && ' — текста нет'}

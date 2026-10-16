@@ -1,7 +1,8 @@
 import { normalizeSceneV2 } from './sceneSchemaV2.js'
 import { validateSceneV2 } from './sceneValidate.js'
 import { isObj } from './sceneConstants.js'
-import { fillSceneVars } from './sceneVars.js'
+import { fillSceneVars, usesVars } from './sceneVars.js'
+import { hasVarParts, segmentUrls } from './sceneVarsSegments.js'
 import { isDisplayMode, resolveDisplay, resolveVoiceFlags } from './sceneOptions.js'
 
 // Нода урока `scene` — формат typeData.scene (общий для плеера, канваса и
@@ -83,12 +84,20 @@ export function sceneNodeShowsText(td) {
   return resolveDisplay(data.scene, { display: sceneNodeOverrides(data).display, showBubbles: data.showBubbles }) !== 'none'
 }
 
+// Файлы озвучки оригинала реплики: у реплики-шаблона (segments) — только файлы сегментов (целиком она не озвучена;
+// после подстановки сюда попадают и слова из word_audio); шаблонная реплика без segments — ничего (audioUrl сбросится при подстановке)
+export function lineOriginalUrls(scene, l) {
+  if (Array.isArray(l?.segments)) return segmentUrls(l)
+  if (usesVars(scene) && hasVarParts(l?.text)) return []
+  return [l?.audioUrl]
+}
+
 // Ссылки на заранее записанную озвучку реплик (для прогрева плеера и файлов карточки повтора):
 // оригинал всегда; файлы перевода — только когда озвучка перевода включена (voice ⊕ переопределение)
 export function sceneAudioUrls(scene, voiceOverride = null) {
   const tl = Array.isArray(scene?.timeline) ? scene.timeline : []
   const withTr = resolveVoiceFlags(scene, voiceOverride).translation
-  const urls = tl.flatMap(l => [l?.audioUrl, withTr ? l?.translationAudioUrl : null])
+  const urls = tl.flatMap(l => [...lineOriginalUrls(scene, l), withTr && !(usesVars(scene) && hasVarParts(l?.translation)) ? l?.translationAudioUrl : null])
   return [...new Set(urls.filter(u => typeof u === 'string' && u))]
 }
 

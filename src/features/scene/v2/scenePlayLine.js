@@ -1,7 +1,9 @@
-import { speakFallback, pickRuVoice } from './linePlayback.js'
+import { speakFallback, pickRuVoice, detectLang } from './linePlayback.js'
 import { playLineAudio, clampRate } from './audioLine.js'
+import { playSegmentChain } from './audioChain.js'
+import { planSegmentChain } from './audioChainPlan.js'
 import { createMouthDriver, setMouth } from './mouthDriver.js'
-import { getSceneAudioElement } from './sceneAudioUnlock.js'
+import { getSceneAudioElement, peekSceneSpareElement } from './sceneAudioUnlock.js'
 import { sceneAudioCache, prefetchAllowed } from './sceneAudioCache.js'
 import { audioPartOf } from './sceneVoice.js'
 import { resolveVoiceFlags } from './sceneOptions.js'
@@ -17,6 +19,10 @@ import { describeAudioFail } from './sceneAudioFail.js'
 //    или таймер (linePlayback.js), рот циклом по словам (mouthDriver);
 //    voice.original=false → то же, но без звука (muted/таймер): рот двигается,
 //    реплика длится как обычно;
+//  · оригинал реплики-шаблона (segments, озвучка по частям): у всех озвучиваемых частей есть audioUrl (части админа
+//    + слово из word_audio) → цепочка «часть → слово → часть» (audioChain.js: без склейки файлов, второй <audio>
+//    заранее подгружает следующую часть, рот и тайминги — общие на всю цепочку); у любой части нет файла или цепочка
+//    не завелась до начала звука → запасной синтез по ВСЕЙ строке text, язык по тексту (en-US для английского);
 //  · перевод (voice.translation=true и у реплики есть translation): после оригинала
 //    играет translationAudioUrl (рот закрыт — говорит «диктор»); файла нет → синтез
 //    ru-RU, а без синтеза или без звука — перевод пропускается сразу (не висим);
@@ -27,11 +33,19 @@ import { describeAudioFail } from './sceneAudioFail.js'
 // Без React: опции читаются через opts() на старте каждой реплики. Тесты —
 // scenePlayLine.test.js, scenePlayLineTranslation.test.js.
 
-// Ссылка озвучки следующей реплики (с учётом loop) или null
+// Ссылка озвучки следующей реплики (с учётом loop) или null; у реплики-шаблона — первой её части
 export function nextAudioUrl(timeline, index, loop) {
-  if (!timeline?.length) return null
+  return nextAudioUrls(timeline, index, loop)[0] ?? null
+}
+
+// Все ссылки следующей реплики: audioUrl либо файлы сегментов (реплика-шаблон целиком не озвучена)
+export function nextAudioUrls(timeline, index, loop) {
+  if (!timeline?.length) return []
   const n = index + 1 < timeline.length ? index + 1 : loop ? 0 : -1
-  return n >= 0 ? timeline[n]?.audioUrl ?? null : null
+  const l = n >= 0 ? timeline[n] : null
+  if (!l) return []
+  if (Array.isArray(l.segments)) return l.segments.map(s => s?.audioUrl).filter(u => typeof u === 'string' && u)
+  return l.audioUrl ? [l.audioUrl] : []
 }
 
 // Запасная озвучка перевода: только живой синтез со звуком; иначе — сразу конец (без таймера)
@@ -42,7 +56,7 @@ export function speakTranslationFallback(text, voice, { sound = true, onEnd, onM
 
 // Файл не завёлся → запись в консоль (чтобы откат на синтез/таймер не был невидимым)
 export function logAudioFallback(info) {
-  console.warn(`[scene] озвучка файлом не завелась → ${describeAudioFail(info.reason)}`, info.url)
+  console.warn(`[scene] озвучка файлом не завелась → ${describeAudioFail(info.reason, info.text)}`, info.url || info.text)
 }
 
 // onFallback(info | null): null — реплика стартовала (сброс), иначе { url, reason, kind, index }
@@ -50,7 +64,7 @@ export function makeScenePlayLine({
   scene, opts, getMouthEl, setMode, setPhase = () => {}, onFallback = null,
   cache = sceneAudioCache, getAudio = getSceneAudioElement, allowed = prefetchAllowed,
   speak = speakFallback, speakTranslation = speakTranslationFallback, playAudio = playLineAudio, timers = globalThis,
-  logFallback = logAudioFallback,
+  logFallback = logAudioFallback, playChain = playSegmentChain, getSpare = peekSceneSpareElement,
 }) {
   let who = null
   const apply = shape => setMouth(getMouthEl(who), shape)
@@ -90,6 +104,29 @@ export function makeScenePlayLine({
     }
     const prefetch = url => { if (url && !o.audioSrcOf?.(url) && allowed()) cache.prefetch(url) }
 
+    // Реплика-шаблон: цепочка частей, пока она годится, иначе (и при отказе до начала звука) — синтез всей строки
+    function playSegments({ sound, onDone, fallback }) {
+      const plan = planSegmentChain(line)
+      if (!plan.ok) {
+        const info = { url: '', text: plan.missing ?? '', src: null, reason: `segments-${plan.reason}`, kind: 'original', index }
+        logFallback?.(info); onFallback?.(info)
+        fallback()
+        return
+      }
+      for (const p of plan.parts) { prefetch(p.audioUrl); cache.pin(p.audioUrl) }
+      const srcOf = url => o.audioSrcOf?.(url) ?? cache.resolve(url) ?? null
+      const slot = cancels.push(null) - 1
+      cancels[slot] = playChain(plan, getAudio(), {
+        spare: getSpare(), srcOf, muted: !sound, rate: k, lowPower: !!o.lowPower, applyMouth: apply, timers,
+        onEnd: onDone, onMode: setMode,
+        onFail: reason => {
+          const info = { url: plan.parts[0].audioUrl, src: null, reason: reason ?? 'unknown', kind: 'original', index }
+          logFallback?.(info); onFallback?.(info)
+          fallback()
+        },
+      })
+    }
+
     function playTranslation() {
       driver.stop(); apply('closed') // рот закрыт — говорит «диктор»
       setPhase('translation')
@@ -103,16 +140,18 @@ export function makeScenePlayLine({
 
     setPhase('original')
     onFallback?.(null)
-    prefetch(nextAudioUrl(timeline, index, loop))
+    for (const u of nextAudioUrls(timeline, index, loop)) prefetch(u)
     if (hasTr) prefetch(line.translationAudioUrl)
     const soundOriginal = o.sound && flags.original
-    playPart('original', {
-      sound: soundOriginal, applyMouth: apply, onDone: afterOriginal,
-      fallback: () => {
-        driver.start()
-        cancels.push(speak(line.text, voice, { sound: soundOriginal, onWord: () => driver.onWord(), onEnd: afterOriginal, onMode: setMode }))
-      },
-    })
+    const speakOriginal = () => {
+      driver.start()
+      cancels.push(speak(line.text, voice, { sound: soundOriginal, lang: detectLang(line.text), onWord: () => driver.onWord(), onEnd: afterOriginal, onMode: setMode }))
+    }
+    if (Array.isArray(line.segments) && line.segments.length) {
+      playSegments({ sound: soundOriginal, onDone: afterOriginal, fallback: speakOriginal })
+    } else {
+      playPart('original', { sound: soundOriginal, applyMouth: apply, onDone: afterOriginal, fallback: speakOriginal })
+    }
 
     // Отмена (пауза, уход со слайда, новая реплика): гасит текущий шаг, поздние onEnd шагов игнорируются
     return () => { finished = true; for (const c of cancels) c?.(); driver.stop(); apply('closed'); setPhase(null) }

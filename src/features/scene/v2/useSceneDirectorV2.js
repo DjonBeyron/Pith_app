@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { createDirector } from './directorCore.js'
 import { makeScenePlayLine } from './scenePlayLine.js'
-import { getSceneAudioElement } from './sceneAudioUnlock.js'
+import { forEachSceneAudio } from './sceneAudioUnlock.js'
 import { resolveVoiceFlags } from './sceneOptions.js'
 import { isWeakDevice } from '../../../shared/lib/deviceTier.js'
 
@@ -65,9 +65,8 @@ export function useSceneDirectorV2(scene, {
   // (оригинал с выключенной озвучкой voice.original остаётся немым)
   useEffect(() => {
     if (!enabled || dirRef.current?.getState().status !== 'playing') return
-    const a = getSceneAudioElement()
     const silentOriginal = phase === 'original' && !resolveVoiceFlags(scene, voice).original
-    if (a) { try { a.muted = !sound || silentOriginal } catch { /* ignore */ } }
+    forEachSceneAudio(a => { try { a.muted = !sound || silentOriginal } catch { /* ignore */ } })
   }, [sound, enabled, phase, scene, voice])
 
   useEffect(() => {

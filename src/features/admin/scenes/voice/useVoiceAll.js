@@ -1,7 +1,8 @@
 import { useState, useRef, useCallback } from 'react'
 import { resolveVoiceFlags } from '../../../scene/v2/sceneOptions.js'
 import { planVoiceAll, runVoicePlan, patchFromLine } from './voicePlan.js'
-import { generateSetAudio, removeOrphan, AUDIO_SETS_ORDER } from './voiceAllDeps.js'
+import { generateItemAudio, removeOrphan, AUDIO_SETS_ORDER } from './voiceAllDeps.js'
+import { useSegmentApplier } from './voiceSegments.js'
 
 // Прогон «Озвучить всё» в сборщике (часть useSceneVoice): confirm (план по выбранным наборам —
 // Текст / Перевод) → running (строго последовательно, ошибка одной не обрывает) → done (итог).
@@ -11,6 +12,7 @@ import { generateSetAudio, removeOrphan, AUDIO_SETS_ORDER } from './voiceAllDeps
 export function useVoiceAll({ sceneRef, deps, actions, setLine, refreshQuota }) {
   const [all, setAll] = useState(null) // null | { phase, plan, sets, current?, progress?, result? }
   const stopRef = useRef(false)
+  const segApply = useSegmentApplier(sceneRef, actions, deps)
 
   const defaultSets = useCallback(() => {
     const f = resolveVoiceFlags(sceneRef.current)
@@ -33,15 +35,16 @@ export function useVoiceAll({ sceneRef, deps, actions, setLine, refreshQuota }) 
     const plan = all?.plan
     if (!plan || all.phase !== 'confirm' || !plan.items.length) return
     stopRef.current = false
+    segApply.reset()
     setAll(a => ({ ...a, phase: 'running', current: null, progress: { done: 0, total: plan.items.length, ok: 0, failed: [] } }))
     const result = await runVoicePlan(plan, {
       generate: item => {
-        setAll(a => ({ ...a, current: { index: item.index, set: item.set } }))
-        const scene = sceneRef.current
-        return generateSetAudio(item.set, scene.timeline[item.index], scene.characters[item.who], scene, deps)
+        setAll(a => ({ ...a, current: { index: item.index, set: item.set, seg: item.seg } }))
+        return generateItemAudio(item, sceneRef.current, deps)
       },
       reusePatch: (j, set) => patchFromLine(sceneRef.current.timeline[j], set),
-      apply: (i, patch, set) => {
+      apply: (i, patch, set, item) => {
+        if (item) { segApply.apply(item, patch); setLine(i, null, set); return } // часть реплики-шаблона
         const tl = sceneRef.current.timeline
         const urlKey = set === 'translation' ? 'translationAudioUrl' : 'audioUrl'
         const old = tl[i]?.[urlKey]
@@ -51,13 +54,13 @@ export function useVoiceAll({ sceneRef, deps, actions, setLine, refreshQuota }) 
       },
       onProgress: p => setAll(a => ({
         ...a, current: null,
-        progress: { done: p.done, total: p.total, ok: a.progress.ok + (p.ok ? 1 : 0), failed: p.ok ? a.progress.failed : [...a.progress.failed, { index: p.index, set: p.set, error: p.error }] },
+        progress: { done: p.done, total: p.total, ok: a.progress.ok + (p.ok ? 1 : 0), failed: p.ok ? a.progress.failed : [...a.progress.failed, { index: p.index, set: p.set, error: p.error, seg: p.seg }] },
       })),
       isStopped: () => stopRef.current,
     })
     setAll(a => ({ ...a, phase: 'done', current: null, result }))
     refreshQuota()
-  }, [all, deps, actions, setLine, refreshQuota, sceneRef])
+  }, [all, deps, actions, setLine, refreshQuota, sceneRef, segApply])
 
   return { all, openAll, setSets, startAll, stopAll, closeAll, running: all?.phase === 'running' }
 }

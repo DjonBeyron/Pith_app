@@ -33,10 +33,11 @@ export default function LineVoiceControls({ index: i, line, character, voice = n
         {status === 'error' && <span className="scbVoiceErr" role="alert"> {rt.error}</span>}
         {status === 'stale' && <span className="scbSub"> — {set === 'translation' ? 'перевод или голос перевода изменились (или перевод убрали)' : 'текст или голос изменились после озвучки'}</span>}
         {status === 'empty' && <span className="scbSub"> — впишите перевод, чтобы озвучить его отдельным голосом</span>}
+        {status === 'tpl' && <span className="scbSub"> — слово подставляется, готового файла перевода нет</span>}
         {status === 'none' && !hasAudio && set === 'original' && <ScTip help="audio_status" />}
         {(status === 'none' || status === 'empty') && !hasAudio && set === 'translation' && <ScTip help="voice_translation" />}
       </span>
-      {voice && status !== 'empty' && (
+      {voice && status !== 'empty' && status !== 'tpl' && (
         <span className="scbVoiceBtns">
           {hasAudio && (
             <button type="button" className="scbIcon" onClick={() => voice.playLine(i, set)} aria-label={isPlaying ? 'Остановить' : 'Прослушать'} title={isPlaying ? 'Остановить' : 'Прослушать'}>

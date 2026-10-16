@@ -56,6 +56,7 @@ describe('нода scene со словами-переменными', () => {
   it('плеер получает сцену со словами-запасными', () => {
     const r = resolveSceneNode({ scene: withSegments() })
     expect(r.scene.timeline[0].text).toBe('Can I have a sandwich, please?')
-    expect(r.scene.timeline[0].segments).toBeUndefined()
+    // сегменты пересобраны: текстовые части + сегмент-слово (без аудио в библиотеке — слово без audioUrl)
+    expect(r.scene.timeline[0].segments).toEqual([{ text: 'Can I have' }, { text: 'a sandwich', word: true }, { text: ', please?' }])
   })
 })

@@ -22,8 +22,8 @@ describe('имитация памяти по умолчанию', () => {
     expect(DEFAULT_MEMORY.map(w => w.level)).toEqual(MEMORY_LEVELS.map(l => l.id))
     expect(DEFAULT_MEMORY.find(w => w.level === 0).due).toBe(false)
   })
-  it('режимы: запасное слово / из памяти (имитация) / вручную', () => {
-    expect(Object.values(MODES)).toEqual(['Запасное слово', 'Из памяти (имитация)', 'Вручную'])
+  it('режимы: запасное слово / из памяти (имитация) / вручную / моя настоящая память', () => {
+    expect(Object.values(MODES)).toEqual(['Запасное слово', 'Из памяти (имитация)', 'Вручную', 'Моя настоящая память'])
   })
 })
 

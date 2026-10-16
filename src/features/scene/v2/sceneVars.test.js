@@ -53,14 +53,16 @@ describe('fillSceneVars', () => {
     expect(out.timeline[0].text).toBe('Use {braces} and {nope} and a sandwich')
     expect(out.timeline[0].translation).toBe('слово a sandwich')
   })
-  it('озвучка целой реплики сбрасывается только у шаблонных; segments убирается', () => {
+  it('озвучка целой реплики сбрасывается только у шаблонных; segments пересобираются (слово — сегмент)', () => {
     const audio = { audioUrl: 'https://x/a.mp3', wordTimings: [{ start: 0, end: 1 }], audioMeta: { hash: 'h' }, translationAudioUrl: 'https://x/t.mp3' }
     const s = withTl([line('Plain line.', audio), line('Have {food}.', { ...audio, segments: [{ text: 'Have ' }, { var: 'food' }] }), line('Plain {food}.', { translation: 'Просто.', ...audio })])
     const out = fillSceneVars(s).timeline
     expect(out[0].audioUrl).toBe('https://x/a.mp3')
     expect(out[1].audioUrl).toBeUndefined()
     expect(out[1].wordTimings).toBeUndefined()
-    expect(out[1].segments).toBeUndefined()
+    expect(out[1].segments.map(x => x.text)).toEqual(['Have', 'a sandwich', '.'])
+    expect(out[1].segments[1].word).toBe(true)
+    expect(out[0].segments).toBeUndefined() // обычной реплике segments не добавляются
     expect(out[2].audioMeta).toBeUndefined()
     expect(out[2].translationAudioUrl).toBe('https://x/t.mp3') // перевод без плейсхолдера не менялся
   })
@@ -91,7 +93,7 @@ describe('валидатор и нормализация', () => {
     expect(bad('str')).toMatch(/vars — объект/)
   })
   it('segments: структура и ссылки var; реплика с segments без audioUrl не ругается', () => {
-    const ok = withTl([line('Have {food}.', { segments: [{ text: 'Have ' }, { var: 'food' }, { text: '.', audioUrl: 'https://x/a.mp3' }] }), line('Ok.')])
+    const ok = withTl([line('Have {food}.', { segments: [{ text: 'Have ' }, { var: 'food' }, { text: '.' }] }), line('Ok.')])
     expect(validateSceneV2(ok)).toEqual([])
     expect(lintTexts(ok, 'warn').join('|')).not.toMatch(/озвучено|audioUrl/)
     expect(normalizeSceneV2(ok).timeline[0].segments).toHaveLength(3)

@@ -4,6 +4,7 @@ import { probeAudioDuration } from '../../../../shared/lib/audioUtils.js'
 import {
   voiceSpec, translationVoiceSpec, audioHash, timingsFromTts, durationMsFromTimings, DEFAULT_VOICE_ID, AUDIO_SETS,
 } from '../../../scene/v2/sceneVoice.js'
+import { segmentUrls } from '../../../scene/v2/sceneVarsSegments.js'
 
 // Генерация озвучки одной реплики: ElevenLabs (tts-elevenlabs, только админ — JWT в
 // authHeaders) → mp3 в R2 (uploadToR2 → r2-upload-url, как файлы уроков) → нейтральный patch
@@ -63,9 +64,23 @@ export function generateSetAudio(set, line, character, scene, deps = defaultDeps
 
 // Файл больше никому в сцене не нужен? Кэш по hash делит один файл между репликами и наборами,
 // поэтому смотрим url обоих наборов у всех реплик, кроме самого (exceptIndex, exceptSet)
+// (файлы частей реплик-шаблонов, segments, тоже считаются ссылками)
 export function isOrphanUrl(timeline, url, exceptIndex, exceptSet = 'original') {
   if (!url) return false
-  return !timeline.some((l, i) => Object.entries(AUDIO_SETS).some(([set, s]) => !(i === exceptIndex && set === exceptSet) && l?.[s.url] === url))
+  return !timeline.some((l, i) => segmentUrls(l).includes(url) || Object.entries(AUDIO_SETS).some(([set, s]) => !(i === exceptIndex && set === exceptSet) && l?.[s.url] === url))
+}
+
+// Файл части шаблона: timeline — УЖЕ с новыми segments реплики; удаляем из R2, если нигде не используется
+export async function removeOrphanIn(timeline, url, deps = defaultDeps) {
+  if (!isOrphanUrl(timeline, url, -1)) return false
+  try { await deps.remove(url); return true } catch (e) { console.warn('[sceneVoice] не удалось удалить файл в R2', url, e); return false }
+}
+
+// Пункт плана → нейтральный patch: часть шаблона (item.seg) — её текст голосом персонажа, иначе набор реплики целиком
+export function generateItemAudio(item, scene, deps = defaultDeps) {
+  const character = scene.characters?.[item.who]
+  if (item.seg !== undefined) return generateLineAudio(item.text, character, deps)
+  return generateSetAudio(item.set, scene.timeline[item.index], character, scene, deps)
 }
 
 // Удалить файл из R2, если на него не ссылается другая реплика. Best effort: ошибка

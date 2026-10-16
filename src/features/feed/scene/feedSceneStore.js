@@ -1,6 +1,7 @@
 import { fetchScenesByIds } from '../../../shared/api/scenesApi.js'
 import { resolveSceneNode } from '../../scene/v2/sceneNode.js'
 import { createSceneCache } from './feedSceneCache.js'
+import { warmSceneWords } from './warmSceneWords.js'
 import { SANDBOX_ID, readSandbox, onSandboxChange } from './sandbox/feedSandbox.js'
 
 // Стор сцен ленты: по id строки `scenes` отдаёт { status, scene }.
@@ -29,7 +30,7 @@ export function resolveRow(row, resolve = resolveSceneNode) {
 
 export function createFeedSceneStore({
   fetch = fetchScenesByIds, cache = createSceneCache(), schedule = fn => queueMicrotask(fn), resolve = resolveSceneNode,
-  sandbox = { read: readSandbox, subscribe: onSandboxChange },
+  sandbox = { read: readSandbox, subscribe: onSandboxChange }, warm = warmSceneWords,
 } = {}) {
   const entries = new Map()
   const requested = new Set()
@@ -38,6 +39,12 @@ export function createFeedSceneStore({
   let fetches = 0
 
   const notify = () => subs.forEach(fn => fn())
+
+  // Сцена-шаблон: озвучку слов (word_audio) подтягиваем после показа и подменяем сцену в записи (warmSceneWords.js)
+  function warmEntry(id, state) {
+    if (state.status === 'ready') warm(state.scene, next => { if (entries.get(id) === state) { entries.set(id, { ...state, scene: next }); notify() } })
+    return state
+  }
 
   async function flush() {
     const ids = pending
@@ -57,7 +64,7 @@ export function createFeedSceneStore({
       if (row) {
         if (cur?.status === 'ready' && cur.updatedAt && cur.updatedAt === row.updated_at) continue
         cache.put(id, row)
-        entries.set(id, resolveRow(row, resolve))
+        entries.set(id, warmEntry(id, resolveRow(row, resolve)))
       } else if (rows) {
         entries.set(id, MISSING) // сервер ответил, строки нет: снята с публикации/удалена/RLS — кэш не главнее
       } else if (!cur || cur.status === 'loading') {
@@ -72,7 +79,11 @@ export function createFeedSceneStore({
   function sandboxState() {
     const sb = sandbox.read()
     if (!sb) return MISSING
-    if (!sandboxStates.has(sb)) sandboxStates.set(sb, resolveRow({ scene: sb.scene, updated_at: String(sb.createdAt) }, resolve))
+    if (!sandboxStates.has(sb)) {
+      const st = resolveRow({ scene: sb.scene, updated_at: String(sb.createdAt) }, resolve)
+      sandboxStates.set(sb, st)
+      if (st.status === 'ready') warm(st.scene, next => { if (sandboxStates.get(sb) === st) { sandboxStates.set(sb, { ...st, scene: next }); notify() } })
+    }
     return sandboxStates.get(sb)
   }
 
@@ -80,7 +91,7 @@ export function createFeedSceneStore({
     if (!id || id === SANDBOX_ID || requested.has(id)) return
     requested.add(id)
     const cached = cache.get(id)
-    entries.set(id, cached ? resolveRow(cached, resolve) : LOADING)
+    entries.set(id, cached ? warmEntry(id, resolveRow(cached, resolve)) : LOADING)
     if (!pending.length) schedule(flush)
     pending.push(id)
     notify()

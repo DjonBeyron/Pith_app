@@ -94,7 +94,7 @@ export default function PhonePreview({ scene: draftScene, lint, budget, onHighli
                     <span className={`scbSoundStatus${sndSt.fail ? ' scbSoundStatus-fail' : ''}`} role="status" data-sound-mode={sound ? (sndSt.mode ?? '') : 'off'}>
                       {soundStatusText(sndSt.mode, sndSt.fail, sound)}
                       <ScTip help="sound_status" />
-                      {sndSt.fail && <SoundCheck url={sndSt.fail.url} />}
+                      {sndSt.fail?.url && <SoundCheck url={sndSt.fail.url} />}
                     </span>
                   )}
                 </div>

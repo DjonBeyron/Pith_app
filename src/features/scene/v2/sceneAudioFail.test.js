@@ -12,6 +12,12 @@ describe('sceneAudioFail — причина отката на синтез/та�
     expect(describeAudioFail('play-rejected-AbortError')).toBe('play() отклонён (AbortError)')
     expect(describeAudioFail('load-timeout')).toMatch(/7 с/)
   })
+  it('реплика-шаблон по частям: слова нет в библиотеке / часть не озвучена — подпись с самим словом и подсказкой, что делать', () => {
+    expect(describeAudioFail('segments-word-no-audio', 'cheese')).toMatch(/слова «cheese» нет в библиотеке озвучки слов.*Озвучить слово/)
+    expect(describeAudioFail('segments-part-no-audio', 'Can I have')).toMatch(/часть «Can I have» не озвучена.*Озвучить части/)
+    expect(soundStatusText('speech', { reason: 'segments-word-no-audio', text: 'cheese' })).toMatch(/^звук: браузерный голос — слова «cheese» нет/)
+    expect(soundStatusText('speech', { reason: 'segments-word-no-audio', text: 'cheese' })).not.toMatch(/файл не завёлся/)
+  })
   it('неизвестная/пустая причина не даёт пустую строку', () => {
     expect(describeAudioFail(undefined)).toBe('неизвестная причина (unknown)')
     expect(describeAudioFail('что-то')).toBe('неизвестная причина (что-то)')
