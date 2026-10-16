@@ -1,5 +1,7 @@
 import { useMemo, useState } from 'react'
 import { resolveSceneNode } from '../../../scene/v2/sceneNode.js'
+import { useSceneUserValues } from '../../../scene/v2/useSceneUserValues.js'
+import { sceneNodeKey } from '../../../scene/v2/warmUserScenes.js'
 import SceneFallback from './SceneFallback.jsx'
 import SceneBubbleView from './SceneBubbleView.jsx'
 import SceneCircleView from './SceneCircleView.jsx'
@@ -21,12 +23,17 @@ import { sceneAudioSrcOf } from './sceneNodeAudio.js'
 //
 // Сцена фиксируется на маунте (useState): typeData у ноды в уроке не меняется,
 // а пересборка объекта сцены пересоздала бы режиссёра посреди реплики.
+// Сцена-шаблон (vars): слова пользователя подставляются ДО старта режиссёра (useSceneUserValues: общий стор слов, зерно
+// «день + id сцены», ожидание ≤ 500 мс, потом запасное слово); пока значения не готовы, автозапуск и тап не работают, а после
+// готовности сцена больше не меняется. Нода в истории слов не грузит — запасное слово. Тот же модуль играет карточки повтора.
 // lessonFiles — файлы урока с прогревом (withBlobs): озвучка реплик (audioUrl)
 // играет из blob, если он уже скачан (sceneNodeAudio.js), иначе по ссылке.
 export default function SceneModule({ node, lessonFiles = null, onDone, adminPreview = false, pending = false, bottomOffset = 0 }) {
-  const [resolved] = useState(() => resolveSceneNode(node.typeData?.scene))
+  const [raw] = useState(() => resolveSceneNode(node.typeData?.scene, { fill: false }))
   const isHistory = !!node.isHistory
-  const pb = useScenePlayback({ resolved, pending, isHistory, onDone })
+  const user = useSceneUserValues(raw.scene, { key: sceneNodeKey(node), enabled: !isHistory })
+  const resolved = useMemo(() => (user.scene === raw.scene ? raw : { ...raw, scene: user.scene }), [raw, user.scene])
+  const pb = useScenePlayback({ resolved, pending, isHistory, onDone, ready: user.ready || isHistory })
   const audioSrcOf = useMemo(() => sceneAudioSrcOf(lessonFiles), [lessonFiles])
 
   if (!resolved.scene) {

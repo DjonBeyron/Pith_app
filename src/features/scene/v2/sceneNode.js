@@ -65,7 +65,8 @@ export function sceneNodeOverrides(td) {
 
 // Данные ноды → { scene: нормализованная сцена (шаблон с vars — со словами-запасными) | null, errors: [строки], mode, showBubbles, display, voice }.
 // errors пустой и scene null — сцена просто не выбрана (пустая нода).
-export function resolveSceneNode(td) {
+// opts.fill=false — шаблон остаётся с vars (без слов): слова пользователя подставляет useSceneUserValues (лента/урок/повтор).
+export function resolveSceneNode(td, opts = {}) {
   const data = isObj(td) ? td : {}
   const mode = normalizeSceneMode(data.mode)
   const showBubbles = data.showBubbles !== false
@@ -76,8 +77,9 @@ export function resolveSceneNode(td) {
   if (!isObj(data.scene)) return { scene: null, errors: [], ...base }
   const errors = validateSceneV2(data.scene)
   if (sceneByteSize(data.scene) > SCENE_MAX_BYTES) errors.push(`Сцена больше ${SCENE_MAX_BYTES / 1024} КБ`)
-  // vars: шаг 4 подставит слова пользователя — пока шаблон показывается со словами-запасными (fallback), «{name}» не виден
-  return { scene: errors.length ? null : fillSceneVars(normalizeSceneV2(data.scene)), errors, ...base }
+  // vars: по умолчанию шаблон показывается со словами-запасными (fallback), «{name}» не виден; fill=false — слова подставит вызывающий
+  const norm = errors.length ? null : normalizeSceneV2(data.scene)
+  return { scene: norm && opts.fill === false ? norm : norm && fillSceneVars(norm), errors, ...base }
 }
 
 // Ноде есть что читать без звука? (режим показа текста не 'none' — с учётом showBubbles/display ноды)

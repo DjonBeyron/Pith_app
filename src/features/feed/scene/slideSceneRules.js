@@ -3,9 +3,10 @@
 // Что рисовать на месте медиа слайда: сцена главнее видео, но лента не ждёт её
 // бесконечно: нет сцены / не загрузилась / невалидна / не опубликована → видео
 // (или прежняя заглушка). Пока грузится — 'wait' (постер/скелетон, без мигания).
-export function pickSlideMedia({ sceneId, status }) {
+// ready=false — сцена-шаблон ждёт слова пользователя (useSceneUserValues): режиссёр не стартует, показываем постер/скелетон
+export function pickSlideMedia({ sceneId, status, ready = true }) {
   if (!sceneId) return 'video'
-  if (status === 'ready') return 'scene'
+  if (status === 'ready') return ready ? 'scene' : 'wait'
   if (status === 'missing' || status === 'invalid') return 'video'
   return 'wait'
 }

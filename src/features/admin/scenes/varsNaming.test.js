@@ -12,11 +12,12 @@ describe('названия и пояснение блока «Слова пол�
     expect(all).not.toMatch(/Слова-переменные|шатающ|ступен/i)
     expect(SCENES_HELP.vars.title).toContain(VARS_BLOCK_NAME)
   })
-  it('«?» блока объясняет всё: что это, как писать, сейчас, у пользователя, чего не делать, пример до/после', () => {
+  it('«?» блока объясняет всё: что видит админ, что получит пользователь, ограничения, пример до/после', () => {
     const h = SCENES_HELP.vars
-    expect(VARS_HOW.map(s => s.key)).toEqual(['what', 'write', 'now', 'user', 'avoid'])
+    expect(VARS_HOW.map(s => s.key)).toEqual(['admin', 'user', 'limits'])
     expect(h.body).toBe(varsHowBody())
-    for (const w of ['{food}', '{food:ru}', 'запасное слово', 'следующий шаг', 'Новые слова', 'Пора повторить', 'Знакомые и выше', 'библиотеки', 'идиом']) expect(h.body).toContain(w)
+    for (const w of ['{food}', 'запасное слово', 'Прогнать как пользователь', 'библиотеки', 'роботизирован', 'cheese', 'soup', 'идиом']) expect(h.body).toContain(w)
+    expect(h.body).not.toMatch(/пока не подключ|следующий шаг|на следующем этапе/)
     expect(h.example).toContain('Can I have {food}, please? → Can I have cheese, please?')
     expect(VARS_EXAMPLES).toHaveLength(3)
     expect(SCENES_HELP.vars_sandbox.body).toContain('Прогнать как пользователь')

@@ -31,7 +31,8 @@ import { fsOpenTransition, fsCloseTransition, inlineTapAction, expandAction } fr
 const IDLE = { status: 'idle', index: 0, total: 0, mode: 'timer' }
 const same = (a, b) => a.status === b.status && a.index === b.index && a.total === b.total && a.mode === b.mode && a.run === b.run
 
-export function useScenePlayback({ resolved, pending, isHistory, onDone }) {
+// ready=false — сцена-шаблон ждёт слова пользователя: автозапуск и тапы отложены (сцена после старта не должна меняться)
+export function useScenePlayback({ resolved, pending, isHistory, onDone, ready = true }) {
   const apiRef = useRef(null)
   const fsApiRef = useRef(null)
   const rootRef = useRef(null)
@@ -51,7 +52,7 @@ export function useScenePlayback({ resolved, pending, isHistory, onDone }) {
   const frozen = usePlayerFrozen()
   const muted = useLessonMuted()
   const rate = useVoiceRate()
-  const hasScene = !!resolved.scene
+  const hasScene = !!resolved.scene && ready
   const { start, startDelayMs } = resolved
 
   const apply = useCallback(next => {
@@ -113,20 +114,21 @@ export function useScenePlayback({ resolved, pending, isHistory, onDone }) {
 
   const startInPlace = useCallback(e => {
     e?.stopPropagation?.()
+    if (!ready) return
     gesture()
     apiRef.current?.play()
-  }, [gesture])
+  }, [gesture, ready])
 
   const openFs = useCallback(e => {
     e?.stopPropagation?.()
-    if (fsOpenRef.current) return
+    if (fsOpenRef.current || !ready) return
     gesture()
     fsStartRef.current = fsOpenTransition(stRef.current)
     pLog(`[scene] полный экран: открыть с реплики ${fsStartRef.current.index}`)
     apiRef.current?.pause()
     fsOpenRef.current = true
     setFsOpen(true)
-  }, [gesture])
+  }, [gesture, ready])
 
   // Экран смонтирован (fsApiRef заполнил его SceneRenderer) → та же реплика, play
   useEffect(() => {
@@ -154,10 +156,11 @@ export function useScenePlayback({ resolved, pending, isHistory, onDone }) {
   // Раскрытие кружка (useSceneCircleExpand.js) — жест: звук открыт; до старта/на паузе — пуск, после конца —
   // с начала (рамка ленты в этот момент оживает, см. SceneCircleView), играла без звука — реплика заново со звуком
   const expandPlay = useCallback(() => {
+    if (!ready) return
     const action = expandAction(stRef.current.status, soundBlocked)
     gesture()
     if (action) setCmd({ type: action })
-  }, [gesture, soundBlocked])
+  }, [gesture, soundBlocked, ready])
 
   const handleTap = useCallback(e => {
     e?.stopPropagation?.()

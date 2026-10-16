@@ -37,25 +37,20 @@ describe('warmSceneWords', () => {
   })
 })
 
-describe('feedSceneStore — прогрев слов после загрузки', () => {
-  it('ready-сцена подменяется на версию с озвучкой слов, подписчики уведомляются; шаблон отдаётся сразу (не ждёт сеть)', async () => {
-    const queue = []
-    const warm = vi.fn((scene, apply) => { queue.push(() => apply({ ...scene, title: 'с озвучкой слов' })); return true })
+describe('feedSceneStore — сцены-шаблоны и прогрев слов', () => {
+  it('боевая сцена-шаблон отдаётся с vars (слова подставит слайд), стор её не прогревает', async () => {
+    const warm = vi.fn()
     const cache = createSceneCache({ storage: { getItem: () => null, setItem: () => {} }, now: () => 1, schedule: fn => fn() })
     const rows = [{ id: 't', scene: withSeg(), updated_at: '2026-10-16T10:00:00Z' }]
     const batch = []
     const store = createFeedSceneStore({ fetch: async ids => rows.filter(r => ids.includes(r.id)), cache, schedule: fn => batch.push(fn), warm })
-    const seen = vi.fn()
-    store.subscribe(seen)
     store.request('t')
     while (batch.length) await batch.shift()()
-    expect(store.get('t').status).toBe('ready')
-    expect(store.get('t').scene.timeline[0].segments[1]).toMatchObject({ word: true, text: 'a sandwich' })
-    expect(warm).toHaveBeenCalledTimes(1)
-    seen.mockClear()
-    queue.shift()()
-    expect(store.get('t').scene.title).toBe('с озвучкой слов')
-    expect(seen).toHaveBeenCalledTimes(1)
+    const st = store.get('t')
+    expect(st.status).toBe('ready')
+    expect(st.scene.vars.food.pick).toBe('weak')
+    expect(st.scene.timeline[0].segments[1]).toEqual({ var: 'food' })
+    expect(warm).not.toHaveBeenCalled()
   })
   it('песочница: сцена записи прогревается один раз на запись', () => {
     const warm = vi.fn()

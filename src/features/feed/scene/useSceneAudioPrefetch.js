@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { sceneAudioCache, prefetchAllowed } from '../../scene/v2/sceneAudioCache.js'
 import { resolveVoiceFlags } from '../../scene/v2/sceneOptions.js'
+import { segmentUrls } from '../../scene/v2/sceneVarsSegments.js'
 import { isVideoActive } from '../../../shared/lib/netBusy.js'
 
 // Лёгкая подкачка озвучки для СОСЕДНЕГО слайда-сцены ленты (near, не active):
@@ -14,13 +15,16 @@ import { isVideoActive } from '../../../shared/lib/netBusy.js'
 export const NEAR_DELAY_MS = 1200
 
 export function firstAudioUrl(scene) {
-  return scene?.timeline?.[0]?.audioUrl ?? null
+  const l = scene?.timeline?.[0]
+  return Array.isArray(l?.segments) ? segmentUrls(l)[0] ?? null : l?.audioUrl ?? null
 }
 
 // Файлы первой реплики: оригинал и, если озвучка перевода включена у сцены, её перевод
 export function firstAudioUrls(scene) {
   const l = scene?.timeline?.[0]
-  const urls = [l?.audioUrl, resolveVoiceFlags(scene).translation ? l?.translationAudioUrl : null]
+  // реплика-шаблон после подстановки озвучена частями (segments): текстовые части и слово из word_audio
+  const own = Array.isArray(l?.segments) ? segmentUrls(l) : [l?.audioUrl]
+  const urls = [...own, resolveVoiceFlags(scene).translation ? l?.translationAudioUrl : null]
   return urls.filter(u => typeof u === 'string' && u)
 }
 

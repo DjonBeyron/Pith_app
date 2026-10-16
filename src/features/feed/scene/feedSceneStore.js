@@ -14,6 +14,8 @@ import { SANDBOX_ID, readSandbox, onSandboxChange } from './sandbox/feedSandbox.
 // показывает видео), сцена не прошла validateSceneV2 → 'invalid'.
 // Особый id SANDBOX_ID ('__sandbox__') — песочница админа (sandbox/feedSandbox.js): сцена из sessionStorage, status 'ready'
 // без запроса в Supabase и без кэша; запись меняется — подписчики уведомляются.
+// Сцены-шаблоны (vars) стор отдаёт КАК ЕСТЬ, с vars: слова пользователя и прогрев их озвучки делает слайд (SlideMedia →
+// useSceneUserValues). Песочница админа получает сцену уже со словами режима админки (resolveSandbox) и прогревается здесь.
 // Фабрика — чтобы тесты подставляли свой fetch/кэш/планировщик/песочницу.
 
 export const IDLE = Object.freeze({ status: 'idle', scene: null, updatedAt: null })
@@ -21,7 +23,10 @@ const LOADING = Object.freeze({ status: 'loading', scene: null, updatedAt: null 
 const MISSING = Object.freeze({ status: 'missing', scene: null, updatedAt: null })
 
 // Строка/запись кэша → состояние: валидная сцена нормализуется, иначе 'invalid'
-export function resolveRow(row, resolve = resolveSceneNode) {
+// Шаблон (vars) остаётся с vars: слова пользователя подставляет слайд (useSceneUserValues), стор их не знает
+export const resolveFeedScene = td => resolveSceneNode(td, { fill: false })
+
+export function resolveRow(row, resolve = resolveFeedScene) {
   const { scene } = resolve({ scene: row?.scene })
   return scene
     ? { status: 'ready', scene, updatedAt: row.updated_at ?? null }
@@ -29,7 +34,8 @@ export function resolveRow(row, resolve = resolveSceneNode) {
 }
 
 export function createFeedSceneStore({
-  fetch = fetchScenesByIds, cache = createSceneCache(), schedule = fn => queueMicrotask(fn), resolve = resolveSceneNode,
+  fetch = fetchScenesByIds, cache = createSceneCache(), schedule = fn => queueMicrotask(fn), resolve = resolveFeedScene,
+  resolveSandbox = resolveSceneNode, // песочница админа: запасное слово или слова режимов админки — как раньше
   sandbox = { read: readSandbox, subscribe: onSandboxChange }, warm = warmSceneWords,
 } = {}) {
   const entries = new Map()
@@ -37,14 +43,9 @@ export function createFeedSceneStore({
   const subs = new Set()
   let pending = []
   let fetches = 0
+  let offSandbox = null
 
   const notify = () => subs.forEach(fn => fn())
-
-  // Сцена-шаблон: озвучку слов (word_audio) подтягиваем после показа и подменяем сцену в записи (warmSceneWords.js)
-  function warmEntry(id, state) {
-    if (state.status === 'ready') warm(state.scene, next => { if (entries.get(id) === state) { entries.set(id, { ...state, scene: next }); notify() } })
-    return state
-  }
 
   async function flush() {
     const ids = pending
@@ -64,7 +65,7 @@ export function createFeedSceneStore({
       if (row) {
         if (cur?.status === 'ready' && cur.updatedAt && cur.updatedAt === row.updated_at) continue
         cache.put(id, row)
-        entries.set(id, warmEntry(id, resolveRow(row, resolve)))
+        entries.set(id, resolveRow(row, resolve))
       } else if (rows) {
         entries.set(id, MISSING) // сервер ответил, строки нет: снята с публикации/удалена/RLS — кэш не главнее
       } else if (!cur || cur.status === 'loading') {
@@ -80,7 +81,7 @@ export function createFeedSceneStore({
     const sb = sandbox.read()
     if (!sb) return MISSING
     if (!sandboxStates.has(sb)) {
-      const st = resolveRow({ scene: sb.scene, updated_at: String(sb.createdAt) }, resolve)
+      const st = resolveRow({ scene: sb.scene, updated_at: String(sb.createdAt) }, resolveSandbox)
       sandboxStates.set(sb, st)
       if (st.status === 'ready') warm(st.scene, next => { if (sandboxStates.get(sb) === st) { sandboxStates.set(sb, { ...st, scene: next }); notify() } })
     }
@@ -91,7 +92,7 @@ export function createFeedSceneStore({
     if (!id || id === SANDBOX_ID || requested.has(id)) return
     requested.add(id)
     const cached = cache.get(id)
-    entries.set(id, cached ? warmEntry(id, resolveRow(cached, resolve)) : LOADING)
+    entries.set(id, cached ? resolveRow(cached, resolve) : LOADING)
     if (!pending.length) schedule(flush)
     pending.push(id)
     notify()
@@ -100,10 +101,14 @@ export function createFeedSceneStore({
   return {
     request,
     get: id => (id === SANDBOX_ID ? sandboxState() : entries.get(id) ?? IDLE),
+    // Слушатели песочницы (window) — ОДНА пара на стор, пока есть хоть один подписчик, а не по паре на каждый слайд ленты
     subscribe(fn) {
       subs.add(fn)
-      const off = sandbox.subscribe(fn)
-      return () => { subs.delete(fn); off() }
+      if (subs.size === 1) offSandbox = sandbox.subscribe(notify)
+      return () => {
+        subs.delete(fn)
+        if (!subs.size) { offSandbox?.(); offSandbox = null }
+      }
     },
     stats: () => ({ fetches, entries: entries.size }),
   }

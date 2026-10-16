@@ -108,6 +108,20 @@ describe('feedSceneStore — батч, дедуп, кэш, деградация'
     expect(spy.mock.calls.length).toBeGreaterThanOrEqual(2)
   })
 
+  it('слушатели песочницы — один на стор, а не по одному на каждый слайд', () => {
+    const off = vi.fn()
+    const sub = vi.fn(() => off)
+    const store = createFeedSceneStore({ fetch: async () => [], sandbox: { read: () => null, subscribe: sub } })
+    const a = store.subscribe(() => {}); const b = store.subscribe(() => {}); const c = store.subscribe(() => {})
+    expect(sub).toHaveBeenCalledTimes(1)
+    a(); b()
+    expect(off).not.toHaveBeenCalled()
+    c()
+    expect(off).toHaveBeenCalledTimes(1)
+    store.subscribe(() => {})
+    expect(sub).toHaveBeenCalledTimes(2)
+  })
+
   it('resolveRow нормализует сцену (options/voice подставлены)', () => {
     const r = resolveRow(ROW_A)
     expect(r.status).toBe('ready')

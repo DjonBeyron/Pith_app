@@ -6,6 +6,7 @@ import { isNodeWarm as isNodeWarmPure } from './preloadWarm.js'
 import { makePreloadFetch, EVICT_TYPES } from './preloadFetchOne.js'
 import { makeEvict } from './preloadEvict.js'
 import { historyPageIds } from './feedWindow.js'
+import { warmUserSceneNodes } from '../scene/v2/warmUserScenes.js'
 
 const LOOKAHEAD    = 3
 const CONCURRENCY  = 2
@@ -69,6 +70,8 @@ export function usePlayerPreload(nodes, files, visibleNodes, opts = {}) {
   const [initializedFor, setInitializedFor] = useState(null) // список нод, под который построена очередь
 
   useEffect(() => { visibleNodesRef.current = visibleNodes }, [visibleNodes])
+  // Сцены-шаблоны со словами пользователя: слова и их озвучка готовятся заранее (warmUserScenes.js) — к показу ноды ждать нечего
+  useEffect(() => { warmUserSceneNodes(nodes) }, [nodes])
 
   function ts() {
     const s = (Date.now() - startTimeRef.current) / 1000
