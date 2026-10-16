@@ -1,5 +1,6 @@
 import { DEMO_SCENES } from '../../../scene/v2/demoScenes.js'
 import { isSolo } from '../../../scene/v2/scenePit.js'
+import { templateNote } from '../../../scene/v2/sceneVarsNote.js'
 import { plural } from '../../../../shared/lib/plural.js'
 import { newDraft, clearScene, sameScene } from '../builderModel.js'
 
@@ -13,7 +14,7 @@ export function templateList() {
   return [
     ...DEMO_SCENES.map(s => ({
       id: s.id, title: s.title, scene: s,
-      note: `${linesNote(s.timeline.length)} · ${s.location === 'cafe' ? 'кафе' : 'офис'}${isSolo(s) ? ' · один кот' : ''}`,
+      note: `${linesNote(s.timeline.length)} · ${s.location === 'cafe' ? 'кафе' : 'офис'}${isSolo(s) ? ' · один кот' : ''}${templateNote(s) ? ' · со словами' : ''}`,
     })),
     { id: 'empty', title: 'Пустая сцена', scene: clearScene(newDraft()), note: 'офис без предметов, две реплики-заготовки' },
   ]

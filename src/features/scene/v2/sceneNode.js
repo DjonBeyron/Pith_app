@@ -1,6 +1,7 @@
 import { normalizeSceneV2 } from './sceneSchemaV2.js'
 import { validateSceneV2 } from './sceneValidate.js'
 import { isObj } from './sceneConstants.js'
+import { fillSceneVars } from './sceneVars.js'
 import { isDisplayMode, resolveDisplay, resolveVoiceFlags } from './sceneOptions.js'
 
 // Нода урока `scene` — формат typeData.scene (общий для плеера, канваса и
@@ -59,7 +60,7 @@ export function sceneNodeOverrides(td) {
   return { display: isDisplayMode(data.display) ? data.display : null, voice }
 }
 
-// Данные ноды → { scene: нормализованная сцена | null, errors: [строки], mode, showBubbles, display, voice }.
+// Данные ноды → { scene: нормализованная сцена (шаблон с vars — со словами-запасными) | null, errors: [строки], mode, showBubbles, display, voice }.
 // errors пустой и scene null — сцена просто не выбрана (пустая нода).
 export function resolveSceneNode(td) {
   const data = isObj(td) ? td : {}
@@ -72,7 +73,8 @@ export function resolveSceneNode(td) {
   if (!isObj(data.scene)) return { scene: null, errors: [], ...base }
   const errors = validateSceneV2(data.scene)
   if (sceneByteSize(data.scene) > SCENE_MAX_BYTES) errors.push(`Сцена больше ${SCENE_MAX_BYTES / 1024} КБ`)
-  return { scene: errors.length ? null : normalizeSceneV2(data.scene), errors, ...base }
+  // vars: шаг 4 подставит слова пользователя — пока шаблон показывается со словами-запасными (fallback), «{name}» не виден
+  return { scene: errors.length ? null : fillSceneVars(normalizeSceneV2(data.scene)), errors, ...base }
 }
 
 // Ноде есть что читать без звука? (режим показа текста не 'none' — с учётом showBubbles/display ноды)

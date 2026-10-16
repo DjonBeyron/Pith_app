@@ -33,6 +33,7 @@ import '../../../styles/admin-scenes-use.css'
 import '../../../styles/admin-scenes-icons.css'
 import '../../../styles/admin-scenes-toolbar.css'
 import '../../../styles/admin-scenes-task.css'
+import '../../../styles/admin-scenes-vars.css'
 
 // Полноэкранное окно «Сборщик сцен» (этап 2). Портал в body поверх оболочки (класс fsWin
 // из окна сигналов: z-index 700, токены темы --fs-*, тёмная/светлая). ПК — три колонки с

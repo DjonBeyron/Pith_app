@@ -11,12 +11,13 @@
 //   options: { bubbles: true, autoplay: false, loop: false,
 //              display?: 'none' | 'text' | 'both', voice?: { original: true, translation: false },
 //              translationVoiceId? }                       // режимы показа/озвучки — sceneOptions.js
+//   vars?: { [name]: { pick: 'weak'|'due'|'known', fallback: { text, translation? } } }   // шаблон под слова пользователя, ≤ 3 (sceneVars.js)
 //   task?: { kind: 'translate'|'say'|'repeat', lineIndex, prompt?, accept[], hint?, answers[]?, keywords[]?, passRatio?, strict? }   // задание (sceneTask.js; голосовые say/repeat — sceneTaskVoice.js)
 // }
 // Character: { kind: 'cat', gender: 'male' | 'female', name, palette: { fur, accent, belly?, eye?, stripe? },
 //              stripes: true, voice: { pitch 0…2, rate 0.1…10, voiceId?, stability?, similarity?, speed?,
 //                                      translationVoiceId? } }
-// Line: { who: 'a' | 'b', text (≤ 140), emotion, pose?, translation?,
+// Line: { who: 'a' | 'b', text (≤ 140; {name} — слово переменной), emotion, pose?, translation? ({name:ru} — перевод слова), segments?: [{ var } | { text?, audioUrl?, … }],
 //         audioUrl?, wordTimings?: [{ word?, start, end }], audioMeta?: { hash, voiceId, durationMs? },
 //         translationAudioUrl?, translationWordTimings?, translationAudioMeta? }   // то же для перевода
 // audioUrl/wordTimings/audioMeta (и translation*-тройка для перевода) — заранее записанная
@@ -35,6 +36,7 @@ import { normalizeTask } from './sceneTask.js'
 import { normalizeSceneOptions } from './sceneOptions.js'
 import { AUDIO_SETS } from './sceneVoice.js'
 import { isSolo } from './scenePit.js'
+import { normalizeVars, normalizeSegments } from './sceneVars.js'
 
 export * from './sceneConstants.js'
 export { LOCATIONS }
@@ -72,6 +74,8 @@ function normalizeLine(l, solo) {
     if (Array.isArray(src[set.timings]) && src[set.timings].length) out[set.timings] = src[set.timings]
     if (isObj(src[set.meta]) && typeof src[set.meta].hash === 'string') out[set.meta] = src[set.meta]
   }
+  const segments = normalizeSegments(src.segments)
+  if (segments) out.segments = segments // задел под озвучку по сегментам (sceneVars.js)
   return out
 }
 
@@ -106,6 +110,8 @@ export function normalizeSceneV2(scene) {
   }
   const task = normalizeTask(s.task)
   if (task) out.task = task // без задания поля нет вовсе — старые сцены не меняются
+  const vars = normalizeVars(s.vars)
+  if (vars) out.vars = vars // слова-переменные шаблона (sceneVars.js); без них поля нет
   return out
 }
 

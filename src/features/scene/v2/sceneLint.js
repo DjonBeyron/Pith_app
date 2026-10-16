@@ -8,6 +8,7 @@ import { lineAudioState, translationAudioState, sceneVoiceStats } from './sceneV
 import { displayOfOptions, normalizeVoiceFlags } from './sceneOptions.js'
 import { sceneByteSize, SCENE_MAX_BYTES } from './sceneNode.js'
 import { isSolo } from './scenePit.js'
+import { lintVars, isTemplateLine } from './sceneVarsLint.js'
 
 // Линтер сцен v2 — детерминированная проверка поверх валидатора: бюджет
 // узлов, предметы без опоры, пустые слоты, качество диалога. Возвращает
@@ -76,9 +77,11 @@ function lintVoice(scene, tl, out) {
       out.push({ level: 'warn', text: `timeline[${i}].audioUrl — озвучка устарела: текст или голос изменили после генерации, переозвучьте` })
     }
   })
+  // Шаблонные реплики (слова-переменные) целиком не озвучиваются — в счёт «озвучено N из M» не идут
   const st = sceneVoiceStats(scene)
-  const voiced = st.ready + st.stale
-  if (voiced > 0 && voiced < st.total) out.push({ level: 'warn', text: `timeline — озвучено ${voiced} из ${st.total} реплик: остальные прозвучат синтезом устройства` })
+  const own = sceneVoiceStats({ ...scene, timeline: tl.filter(l => !isTemplateLine(l)) })
+  const voiced = own.ready + own.stale
+  if (voiced > 0 && voiced < own.total) out.push({ level: 'warn', text: `timeline — озвучено ${voiced} из ${own.total} реплик: остальные прозвучат синтезом устройства` })
   lintTranslationVoice(scene, tl, st.translation, out)
 }
 
@@ -124,6 +127,7 @@ export function lintScene(scene, { nodeBudget = NODE_BUDGET } = {}) {
   }
   lintCharacters(scene, out)
   lintTimeline(scene, out)
+  lintVars(scene, out) // слова-переменные: плейсхолдеры, скобки, худший случай по длине (sceneVarsLint.js)
   lintTask(scene, out)
   return out
 }

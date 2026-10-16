@@ -6,6 +6,7 @@ import { NODE_BUDGET } from './sceneBudget.js'
 import { demoCafeScene, demoPitCircleScene } from './demoScenes.js'
 import { TASK_LIMITS } from './sceneTask.js'
 import { PIT } from './scenePit.js'
+import { VAR_LIMITS, VAR_PICKS } from './sceneVars.js'
 
 // Легенда формата сцены v2 для нейросети и для человека без доступа к коду
 // (по образцу NODE_DOCS урока): что за поля, допустимые значения, список
@@ -36,6 +37,9 @@ export const SCENE_FIELD_DOCS = {
   'timeline[].audioMeta': 'НЕ ЗАПОЛНЯТЬ: { hash (sha-256 от текста + голоса + настроек + модели), voiceId, durationMs } — по hash сборщик видит, что текст изменили после озвучки, и не озвучивает одно и то же дважды',
   'timeline[].translationAudioUrl / translationWordTimings / translationAudioMeta': 'НЕ ЗАПОЛНЯТЬ: такой же комплект для озвучки перевода (translation) — ставит сборщик',
   options: 'bubbles (показывать облачки, по умолчанию true), autoplay (false), loop (false); display — режим показа текста: none (без облачков), text (оригинал; по умолчанию), both (оригинал + перевод под ним); voice: { original (озвучивать оригинал, по умолчанию true), translation (после оригинала озвучивать перевод «диктором», по умолчанию false) }. display и voice можно выставить по теме: учебный диалог на иностранном — display both и voice.translation true; translationVoiceId — НЕ ЗАПОЛНЯТЬ',
+  vars: `Необязательно — ТОЛЬКО для шаблона сцены под слова пользователя (когда просят «шаблон», «сцену под слова»). Объект { имя: { pick, fallback } }, не больше ${VAR_LIMITS.maxVars} переменных; имя — латиница/цифры/_, 1–${VAR_LIMITS.maxName} символов (food, word1). pick — какие слова подставлять: ${VAR_PICKS.join(' | ')} (weak — шатающиеся, плохо выученные; due — пора повторить; known — знакомые). fallback обязателен: { text (до ${VAR_LIMITS.maxWord} символов), translation? } — запасное слово на изучаемом языке и его перевод, показывается, когда у пользователя нет подходящего слова`,
+  'vars.*.fallback': `Запасное слово: text — слово на языке оригинала (до ${VAR_LIMITS.maxWord} символов), translation — его русский перевод (необязательно, но лучше дать)`,
+  'timeline[].segments': 'НЕ ЗАПОЛНЯТЬ: зарезервировано под озвучку шаблонной реплики по частям (куски текста и { var }) — ставит сборщик',
   task: `Необязательное задание после сцены: { kind: "translate" | "say" | "repeat", lineIndex, prompt?, accept, hint?, … }. translate («О чём диалог») — зритель печатает по-русски, что сказал персонаж; ответ сверяется по смыслу с translation реплики и accept. repeat («Повтори за диктором») — зритель вслух повторяет text реплики. say («Ответь коту») — зритель вслух отвечает на реплику-вопрос своими словами на языке оригинала (answers / keywords)`,
   'task.kind': `"translate" (печатать перевод), "say" (ответить голосом) или "repeat" (повторить голосом)`,
   'task.lineIndex': 'Номер спрашиваемой реплики (с 0) или null — тогда последняя реплика с translation. Лучше брать реплику с поворотом сюжета или развязкой',
@@ -72,6 +76,21 @@ export const TASK_EXAMPLE_REPEAT = {
   task: { kind: 'repeat', lineIndex: 1, accept: ['Nice to meet you'], hint: 'Скажи так же, как кот' },
 }
 
+// Шаблон под слова (vars): плейсхолдеры {food} в text и {food:ru} в translation. Сцена целиком — демо-шаблон demoTemplateScene
+export const VARS_EXAMPLE = {
+  vars: { food: { pick: 'weak', fallback: { text: 'a sandwich', translation: 'бутерброд' } } },
+  timeline: [
+    { who: 'a', text: 'Can I have {food}, please?', emotion: 'happy', translation: 'Можно мне {food:ru}, пожалуйста?' },
+    { who: 'b', text: 'Of course! Here is your {food}.', emotion: 'happy', translation: 'Конечно! Вот твой {food:ru}.' },
+  ],
+}
+
+export const VARS_RULES = [
+  'Плейсхолдер {имя} в timeline[].text — слово переменной на языке оригинала; {имя:ru} в timeline[].translation — его перевод на русский. {имя} в translation и {имя:ru} в text — ошибки. Литеральные фигурные скобки в шаблоне пишутся {{ и }}; одиночная { или } — ошибка.',
+  `Каждый плейсхолдер должен быть объявлен в vars, у каждой переменной обязателен fallback. Слово занимает до ${VAR_LIMITS.maxWord} символов, поэтому реплика с плейсхолдером проверяется по худшему случаю: символы шаблона + ${VAR_LIMITS.maxWord} на каждое слово ≤ ${LIMITS.maxTextLen}. Пиши шаблон короче.`,
+  'Реплика читается правильно с ЛЮБЫМ подходящим словом (без артиклей и родов, которые зависят от слова: пиши «Can I have {food}?», а не «Can I have a {food}?» — артикль включай в слово). В task плейсхолдеры нельзя. Не используй объявленную переменную «про запас»: неиспользуемая — предупреждение.',
+]
+
 export const DIALOGUE_RULES = [
   'Два персонажа чередуются; один и тот же кот не говорит больше двух реплик подряд.',
   'Каждая реплика — живая разговорная фраза до 140 символов, лучше до 110: облачко должно читаться с телефона за 2–3 секунды.',
@@ -101,7 +120,7 @@ function spriteLines() {
 // и с примерами в одну строку — остаются формат, предметы/слоты, правила диалога и оба примера
 // (одиночная сцена Пита, диалог двух котов)
 export function sceneLegendText({ compact = false } = {}) {
-  const docs = Object.entries(SCENE_FIELD_DOCS).filter(([k]) => !compact || !k.startsWith('task'))
+  const docs = Object.entries(SCENE_FIELD_DOCS).filter(([k]) => !compact || !/^(task|vars|timeline\[\]\.segments)/.test(k))
   const fields = docs.map(([k, v]) => `- ${k}: ${v}`)
   const presets = Object.entries(PALETTE_PRESETS).map(([k, p]) => `  - ${k}: ${JSON.stringify(p)}`)
   return [
@@ -122,6 +141,10 @@ export function sceneLegendText({ compact = false } = {}) {
     ...DIALOGUE_RULES.map((r, i) => `${i + 1}. ${r}`),
     '',
     ...(compact ? [] : [
+      '## Шаблон сцены под слова пользователя (vars): правила и пример (фрагмент: поле vars + реплики с плейсхолдерами)',
+      ...VARS_RULES.map((r, i) => `${i + 1}. ${r}`),
+      JSON.stringify(VARS_EXAMPLE, null, 2),
+      '',
       '## Пример задания «О чём диалог» (фрагмент: реплики с translation + поле task в той же сцене)',
       JSON.stringify(TASK_EXAMPLE, null, 2),
       '',
@@ -152,6 +175,9 @@ export function sceneLegend() {
     example: demoCafeScene,
     soloExample: demoPitCircleScene,
     pit: PIT,
+    varsExample: VARS_EXAMPLE,
+    varsRules: VARS_RULES,
+    varsLimits: VAR_LIMITS,
     taskExample: TASK_EXAMPLE,
     taskExamples: { translate: TASK_EXAMPLE, say: TASK_EXAMPLE_SAY, repeat: TASK_EXAMPLE_REPEAT },
   }

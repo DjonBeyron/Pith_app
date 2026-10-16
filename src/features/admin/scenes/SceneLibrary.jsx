@@ -7,6 +7,7 @@ import UseSceneMenu from './ui/UseSceneMenu.jsx'
 import TemplatesGroup from './ui/TemplatesGroup.jsx'
 import LinkModuleDialog from './ui/LinkModuleDialog.jsx'
 import { useSceneUse } from './ui/useSceneUse.js'
+import { templateNote } from '../../scene/v2/sceneVarsNote.js'
 
 // Вкладка «Мои сцены»: библиотека из таблицы scenes — список, открыть, создать (текущий
 // черновик как новую строку), дублировать, удалить (подтверждение в строке + «Отменить» в строке статуса
@@ -16,6 +17,8 @@ import { useSceneUse } from './ui/useSceneUse.js'
 // (LinkModuleDialog), скопировать id/JSON); остальные действия строки — иконочный ряд (IconBtn: открыть,
 // опубликовать/в черновик, переименовать, дублировать, удалить; подписи в aria-label/title); группа «Шаблоны» (TemplatesGroup) внизу.
 // Таблицы нет (миграция не применена) — понятное сообщение; сборщик живёт на локальном бэкапе.
+// Пометка «шаблон · N слов»: список берёт только scene->vars (scene_vars), строка с целой сценой — её vars
+const rowNote = row => templateNote({ vars: row.scene_vars ?? row.scene?.vars })
 const fmt = iso => {
   const d = new Date(iso)
   return Number.isNaN(d.getTime()) ? '' : d.toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
@@ -98,6 +101,7 @@ export default function SceneLibrary({ draft, library, onOpenRow, onSave, setSta
               <div className="scbLibMain">
                 <button type="button" className="scbLibTitle" onClick={() => onOpenRow(row.id)} title="Открыть в сборщике">{row.title}</button>
                 <span className={`scbStatus scbStatus-${row.status}`}>{STATUS_LABEL[row.status]}</span>
+                {rowNote(row) && <span className="scbSub">{rowNote(row)}</span>}
                 <span className="scbSub">{fmt(row.updated_at)}</span>
               </div>
             )}

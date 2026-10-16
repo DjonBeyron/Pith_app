@@ -7,7 +7,7 @@ import { COMMON_SLOT_IDS } from '../../scene/v2/sprites/slots.js'
 // разворачивает всю цепочку и фокусирует поле (lintFieldMap.findField).
 // Ключи панелей: header (название/id в тулбаре), location, slots → slots.local | slots.common,
 // characters → characters.a | characters.b → characters.a.voice, timeline → timeline.<i>,
-// task, options (в т.ч. options.display / options.voice.* / options.translationVoiceId — панель
+// vars (слова-переменные), task, options (в т.ч. options.display / options.voice.* / options.translationVoiceId — панель
 // «Параметры воспроизведения»); timeline[i].translationAudioUrl — та же цепочка timeline → timeline.<i>,
 // characters.<who>.voice.translationVoiceId — до панели «Голос» персонажа.
 
@@ -21,6 +21,7 @@ export function panelKeysFor(text) {
     case 'location': return ['location']
     case 'options': return ['options']
     case 'task': return ['task']
+    case 'vars': return ['vars']
     case 'slots': {
       if (!parts[1]) return ['slots']
       return ['slots', COMMON_SLOT_IDS.includes(parts[1]) ? 'slots.common' : 'slots.local']

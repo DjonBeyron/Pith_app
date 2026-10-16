@@ -2,8 +2,9 @@ import * as M from '../builderModel.js'
 import * as T from '../timelineOps.js'
 import * as TK from '../taskModel.js'
 import * as MD from '../modes/sceneModes.js'
+import * as V from '../varsOps.js'
 import { setFeedFrame } from '../feedFrame/feedFrameModel.js'
-import { lineEditLabel, characterEditLabel, taskItemLabel } from './historyLabels.js'
+import { lineEditLabel, characterEditLabel, taskItemLabel, varEditLabel } from './historyLabels.js'
 
 // Правки сцены-черновика для useBuilderDraft: каждая — вызов edit(подпись, scene => scene, ключ склейки?).
 // Подпись попадает в подсказку «Отменить: …», ключ — для склейки ввода в одно поле в один шаг
@@ -46,6 +47,12 @@ export function buildDraftActions(edit) {
     addTaskItem: (f, text) => edit(taskItemLabel('добавление', f), s => TK.addItem(s, f, text)),
     updateTaskItem: (f, i, v) => edit(taskItemLabel('правка', f), s => TK.updateItem(s, f, i, v), `item:${f}:${i}`),
     removeTaskItem: (f, i) => edit(taskItemLabel('удаление', f), s => TK.removeItem(s, f, i)),
+    // Слова-переменные шаблона (varsOps.js): ввод в одно поле склеивается в один шаг, имя — по номеру переменной
+    addVar: () => edit('добавление переменной', V.addVar),
+    removeVar: name => edit(`удаление переменной ${name}`, s => V.removeVar(s, name)),
+    renameVar: (i, v) => edit('имя переменной', s => V.renameVarAt(s, i, v), `varname:${i}`),
+    updateVar: (name, p) => { const [l, key] = varEditLabel(name, p); edit(l, s => V.updateVar(s, name, p), key) },
+    insertVar: (i, field, name, start, end) => edit(`вставка переменной в реплику ${n(i)}`, s => V.insertVarInLine(s, i, field, name, start, end)),
     clearScene: () => edit('очистка сцены', M.clearScene),
   }
 }

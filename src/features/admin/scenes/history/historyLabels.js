@@ -28,3 +28,10 @@ export function characterEditLabel(k, p) {
 
 export const taskItemLabel = (verb, field) => `${verb} ${LIST_ITEM[field] ?? 'элемента'} задания`
 export const sceneLoadLabel = title => `загрузка сцены «${String(title || 'Без названия').slice(0, 40)}»`
+
+// [label, key] для updateVar(name, patch): тип отбора, запасное слово, его перевод
+export function varEditLabel(name, p) {
+  const k = Object.keys(p)[0]
+  const label = k === 'pick' ? `тип отбора слов переменной ${name}` : k === 'translation' ? `перевод запасного слова ${name}` : `запасное слово ${name}`
+  return [label, k === 'pick' ? null : `var:${name}:${k}`]
+}

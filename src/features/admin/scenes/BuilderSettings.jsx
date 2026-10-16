@@ -4,13 +4,14 @@ import SlotsGrid from './SlotsGrid.jsx'
 import CharacterForm from './CharacterForm.jsx'
 import TimelineEditor from './TimelineEditor.jsx'
 import SceneTaskSection from './SceneTaskSection.jsx'
+import VarsPanel from './VarsPanel.jsx'
 import PlaybackOptions from './modes/PlaybackOptions.jsx'
 import CharactersModeSwitch from './CharactersModeSwitch.jsx'
 import { isSolo } from '../../scene/v2/scenePit.js'
 
 // Левая колонка сборщика — сворачиваемые панели (ui/Panel): «Локация», «Ячейки предметов»
 // (SlotsGrid), «Персонажи» (переключатель «Два кота / Один кот (Пит)» — CharactersModeSwitch;
-// CharacterForm A и B — вложенные панели, у одиночной сцены только A), «Реплики» (TimelineEditor),
+// CharacterForm A и B — вложенные панели, у одиночной сцены только A), «Слова-переменные» (VarsPanel, шаблон под слова пользователя), «Реплики» (TimelineEditor),
 // «Задание после сцены» (SceneTaskSection), «Параметры воспроизведения» (modes/PlaybackOptions:
 // режим показа, озвучка оригинала/перевода, голос перевода, автозапуск/повтор). Ключи панелей
 // (location, slots, characters, timeline, task, options) — те же, что в lintPanelMap.js;
@@ -49,6 +50,8 @@ export default function BuilderSettings({ scene, actions, savedId = null, setSta
           {!solo && <CharacterForm who="b" character={scene.characters.b} actions={actions} voice={voice} scene={scene} />}
         </div>
       </Panel>
+
+      <VarsPanel scene={scene} actions={actions} voice={voice} />
 
       <Panel id="timeline" title={<>Реплики <span className="scbCount">{scene.timeline.length} / 12</span></>} label="Реплики" fieldId="f-timeline">
         <TimelineEditor scene={scene} actions={actions} voice={voice} />

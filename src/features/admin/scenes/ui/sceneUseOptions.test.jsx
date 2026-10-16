@@ -57,25 +57,26 @@ describe('UseSceneMenu (разметка)', () => {
 })
 
 describe('шаблоны', () => {
-  it('пять демо-сцен (две — из одной реплики, «Кружок Пита» — один кот) и пустая; копия получает свой id', () => {
+  it('шесть демо-сцен (две — из одной реплики, «Кружок Пита» — один кот, «Шаблон» — со словами) и пустая; копия получает свой id', () => {
     const list = templateList()
-    expect(list.map(t => t.title)).toEqual(['Про работу', 'Кофе-брейк', 'Одна реплика: Повтори', 'Одна реплика: Ответь коту', 'Кружок Пита', 'Пустая сцена'])
-    expect(list[5].scene.timeline).toHaveLength(2)
+    expect(list.map(t => t.title)).toEqual(['Про работу', 'Кофе-брейк', 'Одна реплика: Повтори', 'Одна реплика: Ответь коту', 'Кружок Пита', 'Шаблон: закажи еду', 'Пустая сцена'])
+    expect(list[6].scene.timeline).toHaveLength(2)
+    expect(list[5].note).toContain('со словами')
     expect(list[2].scene.timeline).toHaveLength(1)
     expect(list[4].note).toContain('один кот')
     expect(list[4].scene.characters.b).toBeUndefined()
-    expect(Object.values(list[5].scene.slots).every(v => v === null)).toBe(true)
+    expect(Object.values(list[6].scene.slots).every(v => v === null)).toBe(true)
     expect(templateScene(list[0]).id).toBe(`${list[0].scene.id}-copy`)
-    expect(templateScene(list[5]).id).toBe('new-scene')
+    expect(templateScene(list[6]).id).toBe('new-scene')
   })
   it('подтверждение нужно только при реальных правках', () => {
     expect(needsTemplateConfirm({ dirty: true, scene: newDraft() })).toBe(false)
     expect(needsTemplateConfirm({ dirty: false, scene: { ...newDraft(), title: 'x' } })).toBe(false)
     expect(needsTemplateConfirm({ dirty: true, scene: { ...newDraft(), title: 'x' } })).toBe(true)
   })
-  it('разметка группы: шесть строк с «Использовать как основу» и «?»', () => {
+  it('разметка группы: семь строк с «Использовать как основу» и «?»', () => {
     const html = renderToStaticMarkup(<TemplatesGroup draft={{ dirty: false, scene: newDraft(), actions: {} }} setStatus={() => {}} />)
-    expect(html.match(/Использовать как основу/g)).toHaveLength(6)
+    expect(html.match(/Использовать как основу/g)).toHaveLength(7)
     expect(html).toContain('Шаблоны')
     expect(html).toContain('Кофе-брейк')
   })

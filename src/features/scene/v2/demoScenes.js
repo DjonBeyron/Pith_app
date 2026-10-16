@@ -111,4 +111,21 @@ export const demoPitCircleScene = {
   options: { bubbles: true, autoplay: false, loop: false },
 }
 
-export const DEMO_SCENES = [demoOfficeScene, demoCafeScene, demoRepeatOneLineScene, demoSayOneLineScene, demoPitCircleScene]
+// Шаблон под слова пользователя (vars): Пит просит и получает еду; слово подставляется из памяти (шаги 4–5),
+// пока слов нет — запасное «a sandwich / бутерброд». {food} — слово, {food:ru} — его перевод
+export const demoTemplateScene = {
+  version: 2,
+  id: 'demo-template-food',
+  title: 'Шаблон: закажи еду',
+  location: 'cafe',
+  characters: { a: PIT },
+  slots: cafeSlots,
+  vars: { food: { pick: 'weak', fallback: { text: 'a sandwich', translation: 'бутерброд' } } },
+  timeline: [
+    { who: 'a', text: 'Can I have {food}, please?', emotion: 'happy', translation: 'Можно мне {food:ru}, пожалуйста?' },
+    { who: 'a', text: 'Thank you! {food} looks great.', emotion: 'surprised', translation: 'Спасибо! {food:ru} выглядит отлично.' },
+  ],
+  options: { bubbles: true, autoplay: false, loop: false },
+}
+
+export const DEMO_SCENES = [demoOfficeScene, demoCafeScene, demoRepeatOneLineScene, demoSayOneLineScene, demoPitCircleScene, demoTemplateScene]

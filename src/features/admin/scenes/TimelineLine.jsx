@@ -1,9 +1,11 @@
+import { useRef } from 'react'
 import { ArrowUp, ArrowDown, Copy, Trash2 } from 'lucide-react'
 import { EMOTIONS, POSES } from '../../scene/v2/sceneConstants.js'
 import { charsLeft, MAX_TEXT } from './timelineOps.js'
 import { EMOTION_LABEL, POSE_LABEL } from './sceneLabels.js'
 import Panel from './ui/Panel.jsx'
 import LineVoiceControls from './voice/LineVoiceControls.jsx'
+import InsertVarSelect from './InsertVarSelect.jsx'
 
 // Одна реплика таймлайна — вложенная панель timeline.<i> (заголовок «3 · Имя — начало
 // текста», свёрнутая показывает только его). Кто говорит — кнопки «A · Рыжик / B · Дымка»:
@@ -17,6 +19,8 @@ const snippet = text => { const t = String(text ?? '').trim(); return t.length >
 
 export default function TimelineLine({ index: i, line, names, total, actions, characters = null, voice = null, scene = null }) {
   const p = `f-timeline-${i}`
+  const textRef = useRef(null)
+  const trRef = useRef(null)
   const left = charsLeft(line.text)
   const trLen = String(line.translation ?? '').trim().length
   const trLeft = MAX_TEXT - trLen
@@ -65,12 +69,14 @@ export default function TimelineLine({ index: i, line, names, total, actions, ch
         </div>
         <label className="scbField">
           <span className="scbFieldLabel">Текст <span className={left < 0 ? 'scbCounter scbCounterBad' : left < 30 ? 'scbCounter scbCounterWarn' : 'scbCounter'}>{String(line.text ?? '').trim().length} / {MAX_TEXT}</span></span>
-          <textarea id={`${p}-text`} className="fsNote scbText" rows={2} value={line.text} maxLength={MAX_TEXT} onChange={e => actions.updateLine(i, { text: e.target.value })} placeholder="Реплика по-русски, со знаком в конце." />
+          <textarea ref={textRef} id={`${p}-text`} className="fsNote scbText" rows={2} value={line.text} maxLength={MAX_TEXT} onChange={e => actions.updateLine(i, { text: e.target.value })} placeholder="Реплика по-русски, со знаком в конце." />
         </label>
+        <InsertVarSelect scene={scene} index={i} field="text" inputRef={textRef} actions={actions} disabled={lock} />
         <label className="scbField">
           <span className="scbFieldLabel">Перевод / подсказка <span className={trLeft < 0 ? 'scbCounter scbCounterBad' : trLeft < 30 ? 'scbCounter scbCounterWarn' : 'scbCounter'}>{trLen} / {MAX_TEXT}</span></span>
-          <input id={`${p}-translation`} className="fsNote" value={line.translation ?? ''} maxLength={MAX_TEXT} onChange={e => actions.updateLine(i, { translation: e.target.value })} placeholder="необязательно; озвучивается отдельным голосом" />
+          <input ref={trRef} id={`${p}-translation`} className="fsNote" value={line.translation ?? ''} maxLength={MAX_TEXT} onChange={e => actions.updateLine(i, { translation: e.target.value })} placeholder="необязательно; озвучивается отдельным голосом" />
         </label>
+        <InsertVarSelect scene={scene} index={i} field="translation" inputRef={trRef} actions={actions} disabled={lock} />
         <div className="scbVoiceSets">
           <LineVoiceControls index={i} line={line} character={characters?.[line.who]} voice={voice} idPrefix={p} set="original" scene={scene} />
           <LineVoiceControls index={i} line={line} character={characters?.[line.who]} voice={voice} idPrefix={p} set="translation" scene={scene} />

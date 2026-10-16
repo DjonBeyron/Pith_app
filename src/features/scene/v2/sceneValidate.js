@@ -9,6 +9,7 @@ import { validateLineAudio } from './sceneValidateAudio.js'
 import { VOICE_RANGE } from './sceneVoice.js'
 import { validateSceneOptions } from './sceneOptions.js'
 import { isSolo } from './scenePit.js'
+import { validateVars, validateSegments } from './sceneVarsValidate.js'
 
 // Валидация сцены v2: список ошибок по-русски с путями (characters.a.name,
 // timeline[3].text…). Пустой список — сцена годная. Проверяет форму и
@@ -67,7 +68,7 @@ function validateSlots(slots, location, errors) {
   }
 }
 
-function validateLine(l, i, errors, solo) {
+function validateLine(l, i, errors, solo, varNames) {
   const p = `timeline[${i}]`
   if (!isObj(l)) { errors.push(`${p} — объект реплики`); return }
   if (!CHARACTER_KEYS.includes(l.who)) errors.push(`${p}.who — 'a' или 'b'`)
@@ -79,6 +80,7 @@ function validateLine(l, i, errors, solo) {
   if (l.translation !== undefined && typeof l.translation !== 'string') errors.push(`${p}.translation — строка`)
   // Перевод ограничен как и текст: два комплекта таймингов на реплику должны уложить сцену в 64 КБ
   else if (typeof l.translation === 'string' && l.translation.trim().length > LIMITS.maxTextLen) errors.push(`${p}.translation — не длиннее ${LIMITS.maxTextLen} символов (сейчас ${l.translation.trim().length})`)
+  validateSegments(l.segments, p, varNames, errors) // задел под озвучку по сегментам (sceneVars.js)
   validateLineAudio(l, p, errors) // audioUrl/wordTimings/audioMeta и translation*-тройка — sceneValidateAudio.js
 }
 
@@ -100,6 +102,7 @@ export function validateSceneV2(scene) {
   }
 
   validateSlots(scene.slots, scene.location, errors)
+  validateVars(scene.vars, errors) // слова-переменные шаблона сцены (sceneVars.js)
 
   if (!Array.isArray(scene.timeline)) errors.push('timeline — массив реплик')
   else {
@@ -108,7 +111,8 @@ export function validateSceneV2(scene) {
       errors.push(`timeline — минимум ${minLines} ${minLines === 1 ? 'реплика' : 'реплики'}${minLines > 1 ? ' (для задания «Повтори»/«Ответь коту» достаточно одной)' : ''}`)
     }
     if (scene.timeline.length > LIMITS.maxLines) errors.push(`timeline — максимум ${LIMITS.maxLines} реплик (сейчас ${scene.timeline.length})`)
-    scene.timeline.forEach((l, i) => validateLine(l, i, errors, solo))
+    const varNames = isObj(scene.vars) ? Object.keys(scene.vars) : []
+    scene.timeline.forEach((l, i) => validateLine(l, i, errors, solo, varNames))
   }
 
   validateSceneOptions(scene.options, errors) // bubbles/autoplay/loop, display, voice, translationVoiceId — sceneOptions.js

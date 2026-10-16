@@ -8,7 +8,8 @@ import { dbg } from '../lib/debug.js'
 // (миграция не применена) — сборщик тогда работает с локальным черновиком.
 
 export const SCENES_TABLE = 'scenes'
-const LIST_COLS = 'id, title, status, created_at, updated_at'
+// scene_vars — только слова-переменные сцены (jsonb-путь, не вся сцена): пометка «шаблон · N слов» в списке библиотеки
+const LIST_COLS = 'id, title, status, created_at, updated_at, scene_vars:scene->vars'
 
 export function isMissingTable(err) {
   if (!err) return false

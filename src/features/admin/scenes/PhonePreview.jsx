@@ -11,6 +11,8 @@ import { modesSummary } from './modes/sceneModes.js'
 import { soundStatusText } from '../../scene/v2/sceneAudioFail.js'
 import SoundCheck from './voice/SoundCheck.jsx'
 import FeedFramePanel from './feedFrame/FeedFramePanel.jsx'
+import TrialWords from './TrialWords.jsx'
+import { usePreviewScene } from './usePreviewScene.js'
 
 // Центр сборщика — три панели (ui/Panel): «Предпросмотр» (телефонная рамка 9:16 с живым
 // SceneRenderer, Старт/Пауза/Заново, звук (снята галка — индикатор «звук выключен», клик включает;
@@ -22,7 +24,8 @@ import FeedFramePanel from './feedFrame/FeedFramePanel.jsx'
 // Сцена с ошибками валидации всё равно рисуется (нормализованная), чтобы было видно, что чинить.
 // SceneRenderer не пересоздаётся при ресайзе колонок/панелей — размер рамки задаёт только CSS.
 // modes — usePreviewModes (переопределения display/voice предпросмотра; null — как в сцене)
-export default function PhonePreview({ scene, lint, budget, onHighlight, modes = null, actions = null }) {
+export default function PhonePreview({ scene: draftScene, lint, budget, onHighlight, modes = null, actions = null }) {
+  const { shown: scene, trial } = usePreviewScene(draftScene) // шаблон (vars) — со словами-запасными или пробными (usePreviewScene.js)
   const [view, setView] = useState('phone') // 'phone' — сцена в рамке 9:16 | 'feed' — слайд ленты (feedFrame/)
   const [mode, setMode] = useState('live')
   const [frame, setFrame] = useState(0)
@@ -105,6 +108,7 @@ export default function PhonePreview({ scene, lint, budget, onHighlight, modes =
                   </label>
                 </div>
               )}
+              <TrialWords scene={draftScene} trial={trial} />
               <div className="scbCtlRow">
                 <span className="scbCtlGroup">
                   <div className="scSegBtns" role="radiogroup" aria-label="Режим кадра">
