@@ -17,6 +17,7 @@
 // окне больше, чем элементов, переиспользуется самый давно не нужный (LRU).
 
 import { fdbg } from '../../shared/lib/feedDebug.js'
+import { strace } from '../../shared/lib/soundGestureTrace.js'
 import { VIDEO_CANVAS } from '../../shared/lib/videoCanvasMode.js'
 import { onLessonOpenChange } from '../../shared/lib/lessonOpen.js'
 
@@ -298,6 +299,7 @@ export function rebuildSurface(v) {
 export function unlockAllForSound() {
   ensure()
   fdbg('pool: unlock all (sound gesture)')
+  const poolOutcomes = []
   for (const s of slots) {
     const el = s.el
     // Проигрыш в момент жеста «благословляет» элемент — дальше ему можно играть
@@ -306,7 +308,13 @@ export function unlockAllForSound() {
     // чтобы не крутились беззвучно вхолостую.
     const parked = (holder && el.parentElement === holder) || el.dataset.parked === '1'
     const p = el.play()
-    if (p && p.catch) p.catch(() => {})
+    if (p && p.catch) { poolOutcomes.push(p.then(() => 'ok', e => e?.name ?? 'err')); p.catch(() => {}) }
     if (parked) { try { el.pause() } catch { /* play прервётся паузой — ок */ } }
   }
+  // Итог play() по всем элементам пула в трассу жеста (DBG): сколько ok и какие отказы (NotAllowedError/AbortError)
+  Promise.all(poolOutcomes).then(r => {
+    const n = {}
+    for (const x of r) n[x] = (n[x] || 0) + 1
+    strace(`пул видео: play() ${r.length} шт → ${Object.entries(n).map(([k, c]) => `${k}×${c}`).join(' ')}`)
+  })
 }

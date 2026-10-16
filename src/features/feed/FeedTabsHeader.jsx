@@ -1,6 +1,7 @@
 import { useRef } from 'react'
 import { Search, VolumeX } from 'lucide-react'
 import { unlockAllForSound } from './videoPool.js'
+import { straceGesture } from '../../shared/lib/soundGestureTrace.js'
 
 // Верхние вкладки ленты («Рекомендации»/«Мои уроки») + иконка звука слева
 // (только для тех, кто уже включал звук раньше — см. soundEverOn в
@@ -15,8 +16,10 @@ export default function FeedTabsHeader({
   // Тап по иконке — тот же жест-«бless» для всего пула, что и у чипа на
   // видео (activateSound в SlideVideo.jsx): звук включается сразу везде
   function handleHeaderSoundOn() {
-    unlockAllForSound()
+    straceGesture('иконка звука в шапке')
+    // Сначала то, что может побеспокоить аудиосессию (аудио сцен вне iOS), и только потом play() пула видео — он последний
     onSoundOn?.()
+    unlockAllForSound()
   }
 
   // Кнопка DBG скрыта (мешала в обычном просмотре); панель открывается

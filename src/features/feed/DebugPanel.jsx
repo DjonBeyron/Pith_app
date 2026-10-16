@@ -4,6 +4,7 @@ import { collectEnv, fdbgLog } from '../../shared/lib/feedDebug.js'
 import { getPlayerLines } from '../../shared/lib/debug.js'
 import { swipeTraceReport } from './feedSwipeReport.js'
 import { videoCanvasReport } from '../../shared/lib/videoCanvasMode.js'
+import { feedSoundReport } from './feedSoundReport.js'
 import { PERF_FLAG_DEFS, perfFlags, togglePerfFlag, perfFlagsSummary } from '../../shared/lib/perfFlags.js'
 
 // Панель дебага ленты: собирает отчёт (окружение + метрики ленты + трассировка
@@ -49,7 +50,7 @@ ${swipeTraceReport()}${monkey}`
   }
 
   function build() {
-    return `${collectEnv()}\nperfFlags: ${perfFlagsSummary()}\n${videoCanvasReport()}\n\n--- лента ---\n${getFeedInfo()}${scrollSection()}\n\n--- perf (датчик, 1 строка = 1 секунда) ---\n${perfLog()}\n\n--- лог ---\n${fdbgLog()}`
+    return `${collectEnv()}\nperfFlags: ${perfFlagsSummary()}\n${videoCanvasReport()}\n\n--- звук (жест) ---\n${feedSoundReport()}\n\n--- лента ---\n${getFeedInfo()}${scrollSection()}\n\n--- perf (датчик, 1 строка = 1 секунда) ---\n${perfLog()}\n\n--- лог ---\n${fdbgLog()}`
   }
 
   function share() {

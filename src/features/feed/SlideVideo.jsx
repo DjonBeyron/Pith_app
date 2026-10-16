@@ -6,6 +6,7 @@ import { perfFlags } from '../../shared/lib/perfFlags.js'
 import { useFeedVideoCanvas } from './useFeedVideoCanvas.js'
 import { VIDEO_CANVAS } from '../../shared/lib/videoCanvasMode.js'
 import { fdbg } from '../../shared/lib/feedDebug.js'
+import { straceGesture, straceOutcome, strace } from '../../shared/lib/soundGestureTrace.js'
 import { useFeedPaused, getFeedPaused } from './feedPauseState.js'
 import { countHeavyRender } from './spoilerStats.js'
 import { trackDedup } from '../../shared/lib/analytics/trackDedup.js'
@@ -243,14 +244,17 @@ function SlideVideo({
   // но мы тут же возвращаем паузу, чтобы кадр не уехал вперёд (баг: кадр
   // «плыл» при многократном тапе вкл/выкл звука на паузе)
   function activateSound() {
+    straceGesture('чип звука на видео')
+    // Порядок важен для iOS: сначала всё, что может тронуть аудиосессию (состояние звука, аудио сцен вне iOS),
+    // затем разблокировка пула, и play() САМОГО видео — последним в жесте
+    onSoundOn?.()
     unlockAllForSound()
     if (slideKey !== undefined) {
       const v = leaseVideo(slideKey)
       v.muted = false
-      if (paused) v.pause()
-      else v.play().catch(() => {})
+      if (paused) { v.pause(); strace('видео на ручной паузе — play() не зовём') }
+      else straceOutcome('видео слайда', v.play(), v)?.catch?.(() => {})
     }
-    onSoundOn?.()
   }
 
   // Общий стражник обоих чипов звука — первый тап проходит, следующие в

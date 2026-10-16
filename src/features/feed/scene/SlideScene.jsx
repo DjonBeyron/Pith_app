@@ -7,6 +7,8 @@ import { useSlideScenePlay } from './useSlideScenePlay.js'
 import SlideSceneChips from './SlideSceneChips.jsx'
 import SceneTaskPanel from './SceneTaskPanel.jsx'
 import { useSceneTask } from './useSceneTask.js'
+import { useAfterPaint } from './useAfterPaint.js'
+import { useSceneNeedsGesture } from './useSceneNeedsGesture.js'
 import { useSceneAudioPrefetch } from './useSceneAudioPrefetch.js'
 import { useFeedFrame } from './useFeedFrame.js'
 import { isSolo } from '../../scene/v2/scenePit.js'
@@ -35,12 +37,16 @@ function SlideScene({
   soundOn = false, soundEverOn = false, onSoundOn, onSoundOff, onLock, frameIndex = null,
 }) {
   const wanted = sceneLayerMode({ active, near, noVideo: !!perfFlags.noVideo })
-  const live = wanted === 'live' && tabVisible // скрытая вкладка: активный слайд стоит статичным кадром, речи нет
+  // скрытая вкладка: активный слайд стоит статичным кадром, речи нет. Режиссёр стартует ПОСЛЕ первого кадра нового слайда
+  // (useAfterPaint): HUD и панель действий уже на экране, тяжёлый запуск сцены их не задерживает
+  const live = useAfterPaint(wanted === 'live' && tabVisible)
   const mode = live ? 'live' : wanted === 'live' ? 'static' : wanted
   const looped = useMemo(() => loopedScene(scene), [scene])
   const slow = useFeedSlow(slideKey)
-  const pb = useSlideScenePlay({ live, active, moduleId, onSoundOn, onSoundOff })
-  const task = useSceneTask({ scene, sceneId, active, live, apiRef: pb.apiRef, onLock, soundOn })
+  // iOS: звук включён жестом на видео, а аудио сцен ещё закрыто — до первого жеста на сцене она звучит как «без звука», с чипом
+  const gestureLocked = useSceneNeedsGesture() && soundOn
+  const pb = useSlideScenePlay({ live, active, moduleId, soundOn, onSoundOn, onSoundOff })
+  const task = useSceneTask({ scene, sceneId, active, live, apiRef: pb.apiRef, onLock, soundOn: soundOn && !gestureLocked })
   useSceneAudioPrefetch({ scene, active, near }) // сосед: первая реплика в кэш озвучки заранее (useSceneAudioPrefetch.js)
   // Кадр сцены (useFeedFrame / feedFrameCalc.js): ноги котов — над блоком фразы и кнопкой, лишний верх уходит за край;
   // пол сцены продолжается вниз за viewBox (backgrounds.js), градиент корня (feed-scene.css) — только запасной фон под скелетоном
@@ -59,12 +65,12 @@ function SlideScene({
       ) : (
         <SceneRenderer
           scene={looped} mode={mode} active={active && tabVisible} paused={pb.paused || task.freeze}
-          frameIndex={frameIndex} sound={sceneSound(soundOn)} rate={sceneRate(slow)} showProgress={false} apiRef={pb.apiRef} onState={task.onState}
+          frameIndex={frameIndex} sound={sceneSound(soundOn && !gestureLocked)} rate={sceneRate(slow)} showProgress={false} apiRef={pb.apiRef} onState={task.onState}
         />
       )}
       {task.mounted && task.info && <SceneTaskPanel task={task} apiRef={pb.apiRef} total={scene?.timeline?.length ?? 0} />}
       <SlideSceneChips
-        paused={pb.paused} active={active} soundOn={soundOn} soundEverOn={soundEverOn}
+        paused={pb.paused} active={active} soundOn={soundOn && !gestureLocked} soundEverOn={soundEverOn && !gestureLocked}
         onSoundOn={pb.soundOn} onSoundOff={pb.soundOff}
       />
     </div>

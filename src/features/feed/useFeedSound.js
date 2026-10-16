@@ -2,7 +2,8 @@ import { useRef, useState } from 'react'
 import { fdbg } from '../../shared/lib/feedDebug.js'
 import { trackDedup } from '../../shared/lib/analytics/trackDedup.js'
 import { FEED_SOUND } from '../../shared/lib/analytics/eventNames.js'
-import { unlockSceneAudio } from '../scene/v2/sceneAudioUnlock.js'
+import { unlockSceneAudioFromVideoGesture } from '../scene/v2/sceneAudioUnlock.js'
+import { strace } from '../../shared/lib/soundGestureTrace.js'
 
 // Звук ленты: первый тап по чипу включает его для всех слайдов и
 // запоминается между запусками. Если при холодном старте iOS заблокирует
@@ -38,9 +39,10 @@ export function useFeedSound() {
   const [soundGesture, setSoundGesture] = useState(false)
   function handleSoundOn() {
     fdbg('sound: user tapped chip')
-    // Тот же жест открывает и аудио сцен ленты (общий <audio> + speechSynthesis, sceneAudioUnlock.js):
-    // чип звука на видео-слайде — а следующий слайд может быть сценой, и ей уже можно звучать
-    unlockSceneAudio()
+    // Аудио сцен (общий <audio> + speechSynthesis, sceneAudioUnlock.js) тем же жестом открываем только вне iOS: на iOS
+    // это могло глушить <video> — там их открывает первый жест на слайде-сцене (SCENE_AUDIO_EAGER_UNLOCK)
+    strace('handleSoundOn: состояние звука включено')
+    unlockSceneAudioFromVideoGesture()
     // Аналитика: только реальное включение (звук ещё не играл в этой сессии), повтор в 1,5 с не пишем
     if (!(soundOn && soundGesture)) trackDedup(FEED_SOUND, { on: true }, 'on')
     soundGestureRef.current = true
