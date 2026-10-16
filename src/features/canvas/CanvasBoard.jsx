@@ -223,6 +223,7 @@ const CanvasBoard = forwardRef(function CanvasBoard({
   // на ноде, к которой перешли из плеера
   const spotlightId = useCanvasBoardApi(ref, {
     nodes, setNodes, zones, setZones, updateNode, selectOnly, boardRef, scaleRef, setScale, setOffset, onRemoveLessonFile,
+    nodeOps: { insertAfterNode, duplicateNode, deleteNode: deleteNodeOp },
   })
 
   // Считается только когда отладка включена — на обычной работе холста ноль

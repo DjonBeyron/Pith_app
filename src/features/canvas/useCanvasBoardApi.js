@@ -3,7 +3,7 @@ import { dbg } from '../../shared/lib/debug.js'
 import { checkNodes, formatIntegrity } from './canvasIntegrity.js'
 import { spreadNodes } from './canvasSpread.js'
 import { compactLayout, graphSize } from './canvasCompact.js'
-import { renumber, NODE_SLOT } from './nodeGraph.js'
+import { renumber, makeNode, NODE_SLOT } from './nodeGraph.js'
 import { useBoardScrollGuard, checkBoardLayers } from './useBoardScrollGuard.js'
 import { carryOverFiles } from './lesson-io/fileCarryOver.js'
 
@@ -19,6 +19,7 @@ const SPOTLIGHT_MS = 1000
 // Возвращает id ноды, на которой сейчас «прожектор» (или null).
 export function useCanvasBoardApi(ref, {
   nodes, setNodes, zones, setZones, updateNode, selectOnly, boardRef, scaleRef, setScale, setOffset, onRemoveLessonFile,
+  nodeOps = null,
 }) {
   const [spotlightId, setSpotlightId] = useState(null)
   const spotTimerRef = useRef(null)
@@ -70,6 +71,17 @@ export function useCanvasBoardApi(ref, {
     // Обмен уроком в JSON (панель «Поделиться / Импорт», lesson-io/):
     // снимок нод/зон наружу и приём готового сценария обратно
     getNodes() { return nodes },
+    // Вкладка «Сцены» (scenesTab/): новая нода type с заготовкой typeData[type] после afterId
+    // (нет — после последней по seq; урок пуст — первая нода). Возвращает id новой ноды
+    addNode(afterId, type, td) {
+      const id = crypto.randomUUID()
+      const anchor = nodes.find(n => n.id === afterId) ?? nodes.slice().sort((a, b) => b.seq - a.seq)[0]
+      if (anchor) nodeOps?.insertAfterNode(anchor.id, type, { id, td })
+      else setNodes(() => { const n = makeNode(1, 120, 120, type); return [{ ...n, id, typeData: { ...n.typeData, [type]: { ...n.typeData[type], ...td } } }] })
+      return id
+    },
+    duplicateNode(nodeId) { nodeOps?.duplicateNode(nodeId) },
+    deleteNode(nodeId) { nodeOps?.deleteNode(nodeId) },
     getZones() { return zones },
     importNodes(list, zoneList = [], mode) {
       dbg('[IMPORT] на холст:', mode, `${list.length} нод`, `было ${nodes.length}`,
@@ -153,7 +165,7 @@ export function useCanvasBoardApi(ref, {
       setOffset({ x: rect.width / 2 - n.x - 155, y: 36 - n.y })
       selectOnly(n.id)
     },
-  }), [nodes, setNodes, zones, setZones, updateNode, centerOn, boardRef, onRemoveLessonFile])
+  }), [nodes, setNodes, zones, setZones, updateNode, centerOn, boardRef, onRemoveLessonFile, nodeOps])
 
   return spotlightId
 }

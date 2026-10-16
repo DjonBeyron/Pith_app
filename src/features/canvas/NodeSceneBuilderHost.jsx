@@ -14,7 +14,7 @@ const BuilderWindow = lazy(() => lazyRetry(() => import('../admin/scenes/Builder
 
 const stop = e => e.stopPropagation()
 
-export default function NodeSceneBuilderHost({ initialScene, initialRow = null, onApply, onClose, title = 'Сцена для ноды', applyLabel, useMode = 'node' }) {
+export default function NodeSceneBuilderHost({ initialScene, initialRow = null, onApply, onClose, title = 'Сцена для ноды', applyLabel, useMode = 'node', initialView = null }) {
   return (
     <div
       className="nodeSceneBuilderHost"
@@ -22,7 +22,7 @@ export default function NodeSceneBuilderHost({ initialScene, initialRow = null, 
       onTouchStart={stop} onKeyDown={stop} onKeyUp={stop} onWheel={stop} onContextMenu={stop}
     >
       <Suspense fallback={null}>
-        <BuilderWindow title={title} applyLabel={applyLabel} useMode={useMode} initialScene={initialScene} initialRow={initialRow} onApply={onApply} onClose={onClose} />
+        <BuilderWindow title={title} applyLabel={applyLabel} useMode={useMode} initialScene={initialScene} initialRow={initialRow} initialView={initialView} onApply={onApply} onClose={onClose} />
       </Suspense>
     </div>
   )

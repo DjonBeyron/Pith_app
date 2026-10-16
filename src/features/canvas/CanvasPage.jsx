@@ -25,6 +25,8 @@ import { useAudioMetaBackfill } from './useAudioMetaBackfill.js'
 import { setLastEditorMode } from '../../shared/lib/lastEditorMode.js'
 import { unlockLessonAudio } from '../../shared/lib/lessonAudioUnlock.js'
 import BackButton from '../../shared/ui/BackButton.jsx'
+import SceneTabPanel from './scenesTab/SceneTabPanel.jsx'
+import { useSceneRows, sceneTabBadge } from './scenesTab/useSceneRows.js'
 
 // module — { id, title, isPro } модуля, из схемы которого открыли урок:
 // по нему «назад» возвращает в этот модуль (ShellV2), в том числе после
@@ -42,6 +44,7 @@ export default function CanvasPage({ lessonId, moduleLessons = [], module = null
   // и в следующий раз открывает сразу его (см. lastEditorMode.js)
   useEffect(() => { setLastEditorMode('canvas') }, [])
   const [showPanel,   setShowPanel]   = useState(false)
+  const [showScenes,  setShowScenes]  = useState(false) // вкладка «Сцены» (scenesTab/)
   const [showPlayer,  setShowPlayer]  = useState(false)
   // Админский прогон с середины: id ноды, с которой начать сценарий
   const [playFrom,    setPlayFrom]    = useState(null)
@@ -120,6 +123,9 @@ export default function CanvasPage({ lessonId, moduleLessons = [], module = null
 
   // Куда вернёт «назад»: модуль урока (если открыли не из схемы — найдём сами)
   const backModule = useLessonModule(lessonId, module)
+  // Сцены урока для бейджа вкладки и самой вкладки (кэш по сцене — sceneRows.js)
+  const sceneData = useSceneRows(panelNodes, title)
+  const sceneTab = sceneTabBadge(sceneData.summary)
 
   // Мигающая точка на «Сохранить» — useCanvasDirty.js
   const { dirty, markDirty, syncDirty, save: saveDirty } = useCanvasDirty(lessonId, saveToServer)
@@ -237,7 +243,7 @@ export default function CanvasPage({ lessonId, moduleLessons = [], module = null
           switchToProduction={switchToProduction} switchToCards={switchToCards} switchToWordCard={switchToWordCard} hasUnsynced={hasUnsynced}
           hasUnsyncedLogo={hasUnsyncedLogo} setShowPanel={setShowPanel}
           zoneToolActive={zoneToolActive} onToggleZoneTool={() => setZoneToolActive(v => !v)}
-          audioBackfill={audioBackfill}
+          audioBackfill={audioBackfill} sceneTab={sceneTab} onOpenScenes={() => setShowScenes(true)}
         />
       </div>
 
@@ -279,6 +285,14 @@ export default function CanvasPage({ lessonId, moduleLessons = [], module = null
               (zones.length ? ` · зон: ${zones.length}` : ''))
           }}
           onClose={() => { setIoNodes(null); setIoZones([]) }}
+        />
+      )}
+
+      {showScenes && (
+        <SceneTabPanel
+          data={sceneData} lessonTitle={title} boardApiRef={boardApiRef} module={backModule}
+          onPlayFrom={id => { unlockLessonAudio(); setPlayFrom(id); setShowPlayer(true) }}
+          onClose={() => setShowScenes(false)}
         />
       )}
 

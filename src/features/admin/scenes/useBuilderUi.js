@@ -18,9 +18,10 @@ function readTheme() {
   try { return localStorage.getItem(LEGACY_THEME_KEY) === 'light' ? 'light' : 'dark' } catch { return 'dark' }
 }
 
-export function useBuilderUi({ lint, onClose, winRef }) {
+// initialView — вкладка окна на телефоне при открытии ('settings' | 'scene' | 'panel'; по умолчанию 'scene')
+export function useBuilderUi({ lint, onClose, winRef, initialView = null }) {
   const [theme, setTheme] = useState(readTheme)
-  const [view, setView] = useState('scene')
+  const [view, setView] = useState(['settings', 'scene', 'panel'].includes(initialView) ? initialView : 'scene')
   const panels = usePanelState(lint)
   const columns = useColumnWidths()
 

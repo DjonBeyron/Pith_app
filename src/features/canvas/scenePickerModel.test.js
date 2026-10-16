@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { filterSceneRows, pickRowPatch, applyBuilderPatch, clearScenePatch, sceneCheck, voiceLabel } from './scenePickerModel.js'
-import { demoCafeScene, demoOfficeScene } from '../scene/v2/demoScenes.js'
+import { filterSceneRows, pickRowPatch, applyBuilderPatch, builderInitialScene, clearScenePatch, sceneCheck, voiceLabel } from './scenePickerModel.js'
+import { demoCafeScene, demoOfficeScene, demoTemplateScene } from '../scene/v2/demoScenes.js'
 
 describe('scenePickerModel — пикер ноды scene', () => {
   const rows = [
@@ -43,5 +43,17 @@ describe('scenePickerModel — пикер ноды scene', () => {
     const tl = demoCafeScene.timeline.map((l, i) => (i === 0 ? { ...l, audioUrl: 'https://x/a.mp3' } : l))
     expect(voiceLabel({ timeline: tl })).toBe('озвучка: файлы у 1 из 5')
     expect(voiceLabel({ timeline: tl.map(l => ({ ...l, audioUrl: 'https://x/a.mp3' })) })).toBe('озвучка: файлы')
+  })
+})
+
+describe('builderInitialScene — что открывает сборщик из ноды', () => {
+  it('динамичная сцена отдаётся с vars (не подставленной копией)', () => {
+    const preview = { ...demoTemplateScene, vars: undefined }
+    expect(builderInitialScene(demoTemplateScene, preview, demoOfficeScene)).toBe(demoTemplateScene)
+  })
+  it('статичная — нормализованное превью; нет сцены — запасная', () => {
+    expect(builderInitialScene(demoCafeScene, demoOfficeScene, null)).toBe(demoOfficeScene)
+    expect(builderInitialScene({ broken: 1 }, null, demoOfficeScene)).toEqual({ broken: 1 })
+    expect(builderInitialScene(null, null, demoOfficeScene)).toBe(demoOfficeScene)
   })
 })

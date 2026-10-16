@@ -5,6 +5,7 @@ import {
 import { isDisplayMode } from '../scene/v2/sceneOptions.js'
 import { sceneVoiceStats } from '../scene/v2/sceneVoice.js'
 import { isObj } from '../scene/v2/sceneConstants.js'
+import { usesVars } from '../scene/v2/sceneVars.js'
 
 // Чистая логика пикера ноды scene (NodeScenePicker.jsx): поиск по библиотеке,
 // патчи typeData, сводка линтера — без React, чтобы тестировать отдельно.
@@ -29,6 +30,13 @@ export function pickRowPatch(row) {
 export function applyBuilderPatch(scene, { prevTd = null } = {}) {
   const unchanged = prevTd?.sceneId && JSON.stringify(prevTd.scene) === JSON.stringify(scene)
   return unchanged ? { scene } : { scene, sceneId: null, sceneUpdatedAt: null }
+}
+
+// Что отдать сборщику из ноды: шаблон со словами (vars) — как есть, иначе «Применить» превратил бы его
+// в статичную сцену (превью подставляет запасные слова и убирает vars); остальное — нормализованное превью
+export function builderInitialScene(raw, preview, fallback) {
+  if (usesVars(raw)) return raw
+  return preview ?? raw ?? fallback
 }
 
 export function clearScenePatch() {

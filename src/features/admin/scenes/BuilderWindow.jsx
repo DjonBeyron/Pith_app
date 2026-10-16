@@ -56,7 +56,7 @@ import '../../../styles/admin-scenes-vars.css'
 // показа/озвучки предпросмотра — usePreviewModes (modes/): тулбар переключает, PhonePreview показывает.
 const VIEWS = [['settings', 'Настройки'], ['scene', 'Сцена'], ['panel', 'Панель']]
 
-export default function BuilderWindow({ onClose: onCloseProp, initialScene = null, initialRow = null, onApply = null, applyLabel, title = 'Сборщик сцен', useMode = null, fromTest = null }) {
+export default function BuilderWindow({ onClose: onCloseProp, initialScene = null, initialRow = null, onApply = null, applyLabel, title = 'Сборщик сцен', useMode = null, fromTest = null, initialView = null }) {
   // fromTest — окно открыто кнопкой «← Вернуться в сборщик» с тестового слайда ленты ({ origin, scene }). Обычный сборщик (origin 'admin'):
   // тот же черновик восстановится из резервной копии. Тест запускали из ноды/модуля: управляемый режим не пишет копию, поэтому окно
   // открывается с копией сцены из теста, а резервная копия админа не перезаписывается (backup=false)
@@ -88,7 +88,7 @@ export default function BuilderWindow({ onClose: onCloseProp, initialScene = nul
   const back = useBuilderBack({ draft, voiceBusy, onClose, save: act.save })
   // Отмена/повтор правок черновика: кнопки тулбара + Ctrl/Cmd+Z; пока открыт диалог поверх окна — клавиши выключены
   const undoCtl = useUndoControls({ history: draft.history, setStatus, enabled: !feedTest && !back.ask })
-  const ui = useBuilderUi({ lint: draft.lint, onClose, winRef })
+  const ui = useBuilderUi({ lint: draft.lint, onClose, winRef, initialView })
   const { view, setView, panels, columns } = ui
 
   useEffect(() => {

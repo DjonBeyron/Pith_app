@@ -5,7 +5,7 @@ import { getScene } from '../../shared/api/scenesApi.js'
 import { demoOfficeScene } from '../scene/v2/demoScenes.js'
 import NodeSceneLibraryList from './NodeSceneLibraryList.jsx'
 import NodeSceneBuilderHost from './NodeSceneBuilderHost.jsx'
-import { pickRowPatch, applyBuilderPatch, clearScenePatch, sceneCheck, voiceLabel, voiceSummary, startSummary } from './scenePickerModel.js'
+import { pickRowPatch, applyBuilderPatch, builderInitialScene, clearScenePatch, sceneCheck, voiceLabel, voiceSummary, startSummary } from './scenePickerModel.js'
 import NodeSceneModes from './NodeSceneModes.jsx'
 import NodeSceneStart from './NodeSceneStart.jsx'
 import NodeSceneCrop from './NodeSceneCrop.jsx'
@@ -116,7 +116,7 @@ export default function NodeScenePicker({ tData, onChange }) {
       )}
       {builder && (
         <NodeSceneBuilderHost
-          initialScene={preview ?? raw ?? demoOfficeScene}
+          initialScene={builderInitialScene(raw, preview, demoOfficeScene)}
           onApply={scene => { onChange(applyBuilderPatch(scene, { prevTd: tData })); setBuilder(false) }}
           onClose={() => setBuilder(false)}
         />

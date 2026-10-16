@@ -84,7 +84,9 @@ export function useCanvasNodeOps(setNodes) {
     return copyId
   }
 
-  function insertAfterNode(nodeId, type) {
+  // extra — { id, td }: заранее известный id новой ноды и заготовка её typeData[type]
+  // (вкладка «Сцены»: нода сразу со сценой, id нужен, чтобы её потом выделить)
+  function insertAfterNode(nodeId, type, extra = null) {
     setNodes(prev => {
       const node = prev.find(n => n.id === nodeId)
       if (!node) return prev
@@ -93,6 +95,8 @@ export function useCanvasNodeOps(setNodes) {
       // Рядом с исходной, с отступом вправо; занято — ниже. Соседей не трогаем
       const spot      = findFreeSpot(prev, node.x + NODE_SLOT, node.y)
       const newNode   = makeNode(insertSeq, spot.x, spot.y, type)
+      if (extra?.id) newNode.id = extra.id
+      if (extra?.td) newNode.typeData = { ...newNode.typeData, [type]: { ...newNode.typeData[type], ...extra.td } }
       dbg('[NODE] вставка после #' + node.seq + ':', type,
         `в ${Math.round(spot.x)},${Math.round(spot.y)}`,
         `размер ${newNode.size}`, `триггеров ${newNode.triggers.length}`)

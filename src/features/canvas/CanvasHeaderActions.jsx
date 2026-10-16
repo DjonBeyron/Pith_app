@@ -16,7 +16,7 @@ export default function CanvasHeaderActions({
   switchToProduction, switchToCards, switchToWordCard, hasUnsynced, hasUnsyncedLogo, setShowPanel,
   zoneToolActive, onToggleZoneTool,
   lessonId, title,
-  audioBackfill,
+  audioBackfill, sceneTab = null, onOpenScenes,
 }) {
   return (
     <div className="canvasPageActions">
@@ -108,6 +108,16 @@ export default function CanvasHeaderActions({
           нижнего навбара), клик всё равно работает — просто сохраняет */}
       <button className="pageTabBtn pageTabBtnActive" onClick={handleSave} disabled={isSaving || loading}>
         Граф
+      </button>
+      {/* «Сцены» — вкладка со сценами урока (scenesTab/): окно поверх холста, сохранять не нужно;
+          бейдж — число сцен, цвет — линтер (красный ошибки / жёлтый предупреждения) */}
+      <button
+        className={`pageTabBtn scTabNavBtn${sceneTab?.tone ? ` scTabNavBtn--${sceneTab.tone}` : ''}`}
+        title="Сцены этого урока: динамичные и статичные, правила, открыть в редакторе"
+        aria-label={`Сцены урока: ${sceneTab?.count ?? 0}${sceneTab?.tone === 'err' ? ', есть ошибки' : sceneTab?.tone === 'warn' ? ', есть предупреждения' : ''}`}
+        onClick={onOpenScenes} disabled={loading}
+      >
+        Сцены<span className="scTabNavBadge">{sceneTab?.count ?? 0}</span>
       </button>
       <button className="pageTabBtn" onClick={switchToProduction} disabled={isSaving || loading}>
         Продакшен

@@ -1,0 +1,61 @@
+/* Строки вкладки «Сцены» (scenesTab/SceneTabRow): миниатюра, чипы, реплики, замечания, действия */
+.scTabList { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.scTabRow { display: flex; gap: 12px; padding: 10px; border: 1px solid #2a2d35; border-left-width: 4px; border-radius: 10px; background: #12151a; content-visibility: auto; contain-intrinsic-size: auto 150px; }
+.scTabRow--ok { border-left-color: #3a5a2a; }
+.scTabRow--warn { border-left-color: #d9a921; }
+.scTabRow--err { border-left-color: #c24545; }
+.scTabRow[data-added="1"] { box-shadow: 0 0 0 2px #b6fe3b; }
+
+/* Миниатюра: вид и кружок — .nodeScenePreview (scene-picker.css); здесь только место в строке */
+.scTabThumb { align-self: flex-start; width: 72px; }
+.scTabThumb.nodeScenePreview--circle { width: 72px; }
+
+.scTabBody { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.scTabHead { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.scTabNum { flex: none; padding: 1px 7px; border-radius: 6px; background: #23262e; color: #b6fe3b; font-size: 12px; font-weight: 700; }
+.scTabTitle { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 15px; font-weight: 700; color: #fff; }
+.scTabState { flex: none; width: 10px; height: 10px; border-radius: 50%; }
+.scTabState--ok { background: #5fb04a; }
+.scTabState--warn { background: #d9a921; }
+.scTabState--err { background: #c24545; }
+.scTabLib { flex: none; font-size: 11px; color: #8a90a0; }
+
+.scTabChips { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; }
+.scTabChip { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border: 1px solid #2a2d35; border-radius: 10px; background: #1a1d22; color: #b8bdca; font-size: 12px; line-height: 1.5; }
+.scTabChip--dyn { border-color: #3a5a2a; background: #182818; color: #b6fe3b; }
+.scTabChip--stat { border-color: #2f4a66; background: #14202c; color: #8fc4f0; }
+.scTabChip--warn, .scTabChip--v-stale { border-color: #6a5a24; color: #e8d38a; }
+.scTabChip--v-none { color: #8a90a0; }
+.scTabChip--v-ok { border-color: #3a5a2a; color: #9fd37a; }
+.scTabChip--var { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11.5px; }
+.scTabLvl { display: inline-block; width: 9px; height: 9px; border-radius: 50%; box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.35); }
+
+.scTabMore { align-self: flex-start; padding: 2px 0; background: none; border: none; color: #8fc4f0; font-size: 12px; cursor: pointer; }
+.scTabLines { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 3px; font-size: 13px; color: #cfd3dc; }
+.scTabLines b { color: #8a90a0; font-weight: 600; }
+.scTabSlot { padding: 0 4px; border-radius: 4px; background: #24331a; color: #b6fe3b; }
+.scTabSlot i { font-style: normal; color: #9fd37a; }
+.scTabIssues { font-size: 12.5px; line-height: 1.4; }
+
+/* Действия: иконка + подпись; padding задан явно, иконка не сжимается (прошлый баг: кнопки с padding:0 теряли иконки) */
+.scTabActions { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 2px; }
+.scTabBtn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 36px; padding: 6px 12px; background: transparent; border: 1px solid #2a2c33; border-radius: 8px; color: #cfd3dc; font: inherit; font-size: 13px; cursor: pointer; white-space: nowrap; }
+.scTabBtn:hover:not(:disabled) { background: #1a1c22; }
+.scTabBtn:disabled { opacity: 0.5; cursor: default; }
+.scTabBtn--primary { border-color: #3a5a2a; background: #182818; color: #b6fe3b; }
+.scTabBtn--danger { border-color: #4a2a2a; color: #e59a9a; }
+.scTabIconBtn svg { flex: none; width: 16px; height: 16px; }
+.scTabBtnLabel { display: none; }
+.scTabAskText { font-size: 13px; color: #e59a9a; }
+
+@media (min-width: 721px) {
+  .scTabIconBtn { padding: 6px 10px; }
+  .scTabBtn--primary .scTabBtnLabel { display: inline; }
+}
+/* Телефон: подписи у всех кнопок, миниатюра поменьше, кнопки на всю ширину рядами */
+@media (max-width: 720px) {
+  .scTabThumb, .scTabThumb.nodeScenePreview--circle { width: 60px; }
+  .scTabRow { padding: 8px; gap: 10px; }
+  .scTabBtnLabel { display: inline; }
+  .scTabActions .scTabBtn { flex: 1 1 calc(50% - 6px); }
+}
