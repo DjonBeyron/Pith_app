@@ -145,6 +145,14 @@ export function isWeakDevice() {
   return weak
 }
 
+// Классы на <html> для CSS-упрощений слабых устройств (styles/weak-device.css):
+// .weak-device + perf-no-textures (SVG-зерно на фонах). Зовётся при старте
+// (main.jsx) и когда FPS-монитор позже пометил устройство слабым
+export function applyWeakDeviceClasses() {
+  if (!weak || typeof document === 'undefined') return
+  document.documentElement.classList.add('weak-device', 'perf-no-textures')
+}
+
 // Для DBG: откуда взялось решение (gpu/static/bench/fps/cache/нет)
 export function weakDeviceReason() {
   return reason
@@ -157,5 +165,6 @@ export function markWeakDevice() {
   if (weak || isIOS()) return
   weak = true
   reason = 'fps'
+  applyWeakDeviceClasses()
   try { localStorage.setItem(KEY, '1') } catch { /* не критично */ }
 }
