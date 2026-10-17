@@ -13,6 +13,10 @@ globalThis.localStorage = {
 let registeredFilter = null
 vi.mock('../../shared/lib/sounds.js', () => ({ setSoundFilter: fn => { registeredFilter = fn } }))
 
+// Слабое устройство подменяем: решение deviceTier.js зависит от железа, на котором идёт тест
+let weakDevice = false
+vi.mock('../../shared/lib/deviceTier.js', () => ({ isWeakDevice: () => weakDevice }))
+
 async function load() {
   vi.resetModules()
   registeredFilter = null
@@ -20,7 +24,7 @@ async function load() {
 }
 
 describe('настройки шестерёнки: состояние', () => {
-  beforeEach(() => { store.clear(); failStorage = false })
+  beforeEach(() => { store.clear(); failStorage = false; weakDevice = false })
 
   it('по умолчанию всё включено', async () => {
     const m = await load()
@@ -167,5 +171,36 @@ describe('принудительный эквалайзер модуля «Ск�
     release()
     off()
     expect(n).toBe(2)
+  })
+})
+
+describe('эквалайзер на слабом устройстве', () => {
+  beforeEach(() => { store.clear(); failStorage = false; weakDevice = true })
+
+  it('без сохранённого выбора выключен, остальное включено', async () => {
+    const m = await load()
+    expect(m.getPref('equalizer')).toBe(false)
+    expect(m.getPref('typing')).toBe(true)
+    expect(m.getPref('xp')).toBe(true)
+  })
+
+  it('явное «включено» в шестерёнке сильнее умолчания', async () => {
+    store.set('pithy_pref_equalizer', '1')
+    const m = await load()
+    expect(m.getPref('equalizer')).toBe(true)
+  })
+
+  it('модуль «Сказать фразу» по-прежнему включает его принудительно', async () => {
+    const m = await load()
+    const release = m.forceEqualizer()
+    expect(m.equalizerOn(m.getPref('equalizer'), m.isEqualizerForced() ? 1 : 0)).toBe(true)
+    release()
+    expect(m.isEqualizerForced()).toBe(false)
+  })
+
+  it('на обычном устройстве умолчание — включён', async () => {
+    weakDevice = false
+    const m = await load()
+    expect(m.getPref('equalizer')).toBe(true)
   })
 })
