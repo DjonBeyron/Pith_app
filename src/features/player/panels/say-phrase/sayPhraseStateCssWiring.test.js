@@ -147,7 +147,7 @@ describe('say_phrase — состояния круга', () => {
     expect(body).toContain('useDelayedMicState(micTarget, { settled: sp.perm.isChecked(), noAccess') // картинка запаздывает, решения идут по настоящему micTarget
     expect(body).toContain("locked: micState === 'locked'")
     expect(body).toContain('state={micState}')
-    expect(hook).toContain('access: perm.access()')
+    expect(hook).toContain('access: { ...perm.access(), checked: perm.isChecked() }')
     expect(hook).toContain('onRefreshed: bumpAccess')
     expect(hook).toContain('.then(bumpAccess)')
     expect(stage).toContain('MIC_ALLOW_ARIA')

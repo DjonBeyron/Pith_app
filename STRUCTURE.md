@@ -2379,3 +2379,10 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | `GearIcon.jsx` | Шестерёнка настроек: сплошной диск с отверстием и шесть пухлых зубчиков (профиль и вход гостя) |
 | `ResumeEditingToast.jsx` | Всплывашка (только админу, только во вкладке «Админ»): вернуться в канвас последнего правленого урока; «Перейти», крестик (цель 44×44, касание по pointerup), сама не скрывается. Показывается только во вкладке «Админ» (`resumeToastVisible.js`) |
 | `EmojiPicker.jsx` | Окно смайликов: вкладки групп, сетка 8 колонок с прокруткой; рисуется порталом (+ `emojiInsert.test.js`) |
+| `shared/lib/typeWordWordHint.js` (+`.test.js`) | Автоподсказка «Напечатай слово» по первому неверному слову фразы из 2+ слов (слова урока по названию не подсказываются); приоритет: signals по букве → автоподсказка → `responseWrong`; отключается `wordHints: false` |
+| `shared/lib/tableCheckWindow.js` (+`.test.js`) | Окно «Проверить» у авто-таблицы: метка не раньше последнего клипа сборки + 0.6 с; при сдвиге проверка откладывается до конца озвучки (чинит таблицы, смонтированные на 1 с) |
+| `features/canvas/review/NoteComment.jsx` | Поле комментария, шаблоны и список замечаний окна заметки со своим состоянием — ввод буквы больше не перерисовывает превью и редактор ноды |
+| `shared/lib/speech/sayStartHint.js` (+`.test.js`) | Текст и строки подсказки «Начать можно так…» для «Сказать фразу» (таймер 10 с тишины, начало фразы с переводом) |
+| `features/player/panels/say-phrase/useSayStartHint.js` | Хук-таймер подсказки «Начать можно так…»: один раз за модуль, сброс при записи/попапе |
+| `shared/lib/speech/sayFlowSilenceExit.test.js`, `features/player/panels/say-phrase/sayPhraseStartHintWiring.test.js` | Тесты мягкого выхода после двух тишин и проводки подсказки в панели |
+| `supabase/migrations/20261018100000_say_phrase_rules_v6.sql`, `…110000_lesson_rules_to_review_notes.sql` | Правила урока: say_phrase v6 (startHint, тишина) и 10 новых принципов по замечаниям урока «To» |

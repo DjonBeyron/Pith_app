@@ -153,7 +153,7 @@ const PRINCIPLE_META = [
   ['Практика без повторов и не слишком лёгкая', Z, 'judge', 'warn', 'choice: I need ___ eat (to / too / at)\nснова фраза из объяснения', 'choice: выбери верную фразу «мне нужно позвонить маме»\nновая фраза уровня'],
   ['Вводные слова веток ошибки чередуются', T, 'auto', 'warn', 'хм) …\nхм) …\nхм) …\nэээмм) …', 'не совсем) …\nблизко) …\nне то) …\nнеа) …'],
   ['Повтори за мной — с образцом', V, 'judge', 'warn', 'audio: я говорю кусочек, а ты повторяй\nsay_phrase (образца нет)', 'audio: я говорю кусочек, а ты повторяй\naudio: to the park\nsay_phrase'],
-  ['Естественные примеры', Z, 'judge', 'warn', 'напечатай «слушать её»', 'напечатай «ответить ей»'],
+  ['Естественные примеры', Z, 'judge', 'warn', 'напечатай «слушать её»', 'напечатай «ответить Маше»'],
   ['Сцены: кружок Пита в начале и в конце', SC, 'auto', 'error', 'scene mode: bubble (первая сцена урока, два кота)\nscene mode: circle, два кота (последняя)', 'scene mode: circle, characters: { a: Пит } (первая)\nscene mode: circle, characters: { a: Пит } (последняя)'],
   ['Сцены: 2–4 на урок, не подряд', SC, 'auto', 'error', 'scene\nscene (две сцены подряд)\nscene\nscene\nscene (пять сцен)', 'scene (кружок Пита)\ntext\nscene (диалог)\ntext\nscene (кружок Пита)'],
   ['Сцены: целевое слово в каждой', SC, 'auto', 'warn', 'сцена про trying: «Привет! Сегодня новое слово.» (слова нет)', 'сцена про trying: «Привет! Знаешь, как сказать «пытаюсь»? I\'m trying!»'],
@@ -162,6 +162,15 @@ const PRINCIPLE_META = [
   ['Сцены: Пит открывает вопросом, закрывает итогом', SC, 'judge', 'warn', 'открывающий кружок: «Сегодня вы обязаны выучить trying.»', 'открывающий кружок: «Привет! Как сказать «я пытаюсь»?»\nзакрывающий: «Теперь ты знаешь trying. Повторим?»'],
   ['Сцены: без заданий, середина — диалог двух котов', SC, 'auto', 'error', 'scene mode: bubble, task: { kind: "translate" }\nсцена в середине: mode circle, один кот', 'scene mode: bubble, два кота a и b, без task'],
   ['Сцены: озвучку не выдумывать', SC, 'auto', 'warn', 'timeline[0].audioUrl: https://example.com/fake.mp3 (без audioMeta)', 'timeline[0] без audioUrl — шлюз отметит needsVoice, озвучит админ'],
+  ['Перевод после ответа, если не объявлен', Z, 'judge', 'warn', 'word_choice: to / too / at\ntext: В точку)', 'word_choice: to / too / at\ntext: даа)) это переводится как {t:«мне нужно отдохнуть»}'],
+  ['Реакция не описывает механику', T, 'auto', 'warn', 'text: Собрал фразу с конца 🔥', 'text: вот так оно и строится)'],
+  ['«Вот и всё» — только в финале', Q, 'judge', 'warn', 'text: вот кста и всё) (в середине урока)', 'text: ещё одна ловушка, «я тебе позвоню»'],
+  ['Обещали голос — собираем голосом', V, 'judge', 'warn', 'say_phrase: to the park\nsay_phrase: go to the park\nphrase_assembly: We go to the park', 'say_phrase: to the park\nsay_phrase: go to the park\nphoto: собери «мы идём в парк»\nsay_phrase: We go to the park'],
+  ['Задание на служебное слово — про само слово', Z, 'judge', 'warn', 'word_choice: I will ___ you (call / to call / calling)', 'word_choice: I will ___ call you (ничего не нужно / to)'],
+  ['Последний уровень — смайл-эмоция', T, 'judge', 'warn', 'system: Уровень 5 · своими словами\ntext: длинное предложение…', 'system: Уровень 5 · своими словами\nsticker: кот в шоке'],
+  ['type_word: города и имена без ловушек', Z, 'auto', 'warn', 'type_word: go to Paris (extraLetters: ln)', 'type_word: go to Paris (extraLetters не задан)'],
+  ['type_word: автоподсказка по слову', G, 'judge', 'warn', 'type_word: talk to Masha\nresponseWrong: не то) нужно слово говорить, мостик и имя', 'type_word: talk to Masha\nwordHints: по умолчанию, responseWrong — общий текст'],
+  ['Dictator: «Проверить» после озвучки', B, 'auto', 'warn', 'table (dictator): isCheck на 0.7 с при озвучке 11 с', 'table (dictator): isCheck после последней ячейки, timelineLen = длине озвучки'],
 ]
 
 const CHECKLIST_META = [

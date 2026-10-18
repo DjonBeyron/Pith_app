@@ -8,6 +8,7 @@ import { logDictatorConfig, logFileResolution, logAudioError } from './dictatorD
 import { tracePanelSync, tracePanelPaint, traceTableEdge } from '../tracePanelSync.js'
 import { useTableToChat } from '../useTableToChat.js'
 import { computeRevealedCellIds, buildFlashDurations } from '../../../../shared/lib/tableDictatorTiming.js'
+import { checkWindow } from '../../../../shared/lib/tableCheckWindow.js'
 import { deriveAnswerTokens } from '../../../../shared/lib/tableCellMatch.js'
 import { isDebugPaused } from '../../../debugTools/debugMedia.js'
 import { usePanelRiseDrop } from '../usePanelRiseDrop.js'
@@ -48,8 +49,12 @@ export default function TableDictatorPanel({ node, file, onDone, onHeightChange,
   // checkAt = начало клипа проверки (запуск проверки), checkOut = конец клипа (обратная анимация).
   // Клип может стоять ПОСЛЕ конца аудио — тогда события планируются таймерами в handleEnded.
   const checkLayer = useMemo(() => timeline?.layers?.find(l => l.isCheck && l.clips?.length > 0) ?? null, [timeline])
-  const checkAt  = checkLayer ? checkLayer.clips[0].start : (timeline?.checkAt ?? null)
-  const checkOut = checkLayer ? checkLayer.clips[0].end : null
+  const rawCheckAt  = checkLayer ? checkLayer.clips[0].start : (timeline?.checkAt ?? null)
+  const rawCheckOut = checkLayer ? checkLayer.clips[0].end : null
+  const { checkAt, checkOut, shifted: checkShifted } = useMemo(
+    () => checkWindow(timeline?.layers, rawCheckAt, rawCheckOut),
+    [timeline, rawCheckAt, rawCheckOut],
+  )
   const checkDelay = tData.checkDelay ?? 1500
 
   const tokens = useMemo(() => deriveAnswerTokens(answer, cells), [answer, cells])
@@ -233,7 +238,7 @@ export default function TableDictatorPanel({ node, file, onDone, onHeightChange,
   })
 
   useTableDictatorRaf({
-    playing, timeline, waveformData, cells, checkAt, checkOut, hasExtraLayers,
+    playing, timeline, waveformData, cells, checkAt, checkOut, hasExtraLayers, deferCheck: checkShifted,
     audioRef, rafRef, prevActiveRef, prevExtraRef, addedCellsRef, assembledRef, clearedRef,
     barElsRef, barSmoothRef, rfxPhaseRef, rfxChipsRef, rfxAssembRef, rfxCheckRef, rfxCloseRef, timers,
     extraFromAnswer, shuffledExtras, checkRef, closeRef,

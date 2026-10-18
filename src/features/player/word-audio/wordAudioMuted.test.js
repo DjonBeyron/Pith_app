@@ -12,7 +12,7 @@ class FakeAudio {
   load() {}
 }
 globalThis.Audio = FakeAudio
-const { playWord, stopWord, setWordAudioMuted, releaseWordAudio } = await import('./wordAudioPlayer.js')
+const { playWord, stopWord, setWordAudioMuted, releaseWordAudio, dropWordElements } = await import('./wordAudioPlayer.js')
 const { holdSilence, holdSoundQuiet, _resetSoundQuiet } = await import('../../../shared/lib/soundQuiet.js')
 
 describe('беззвучный режим повторения глушит озвучку слов', () => {
@@ -76,5 +76,16 @@ describe('озвучка молчит, пока идёт запись голос
     stopWord()
     release()
     expect(plays).toHaveLength(0)
+  })
+})
+
+describe('после сворачивания приложения слова снова звучат', () => {
+  beforeEach(() => { releaseWordAudio(); plays.length = 0 })
+
+  it('dropWordElements выбрасывает мёртвые элементы — следующий тап создаёт свежий и играет', () => {
+    expect(playWord('keep')).toBe(true)
+    dropWordElements()
+    expect(playWord('keep')).toBe(true)
+    expect(plays).toHaveLength(2)
   })
 })

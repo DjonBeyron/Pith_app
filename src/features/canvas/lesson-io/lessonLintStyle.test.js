@@ -31,6 +31,8 @@ describe('живой стиль реплик', () => {
     expect(checkStyle([t('a', 'успел) красота')]).join()).toContain('[R-gender] a')
     expect(checkStyle([t('a', 'ты угадал))')]).join()).toContain('[R-gender] a')
     expect(checkStyle([t('a', 'давай, я сделаю вид, что я не заметил)')]).filter(w => /gender/.test(w))).toEqual([])
+    expect(checkStyle([t('a', 'Собрал фразу с конца 🔥')]).join()).toContain('[R-gender] a')
+    expect(checkStyle([t('a', 'Ритм поймал 👌')]).join()).toContain('[R-gender] a')
     expect(checkStyle([t('a', 'в точку))')]).filter(w => /gender/.test(w))).toEqual([])
   })
   it('реакция на верный ответ: больше 8 слов — замечание, короткая — нет', () => {

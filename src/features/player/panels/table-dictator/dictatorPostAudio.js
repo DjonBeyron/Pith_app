@@ -162,7 +162,8 @@ export function schedulePostAudioCheck({
   // 'ended'. Раньше слайд срабатывал сразу же: таблица уезжала, а следующая
   // за ней ячейка (например «try») подсвечивалась уже после — ученик её не
   // видел вовсе, только что перепланированный ON успевал догнать закрытие
-  if (!rfxChipsRef.current) {
+  // Без слов вне таблицы уезжать нечему — таблица остаётся на месте до закрытия
+  if (!rfxChipsRef.current && (extraFromAnswer.length > 0 || extrasStart != null)) {
     rfxChipsRef.current = true
     const slideDelay = extrasStart != null ? Math.max(0, extrasStart - tEnd) : 0
     timers.current.push(setTimeout(() => { setPhase('extras'); setChipsVisible(true) }, toMs(slideDelay, rate)))

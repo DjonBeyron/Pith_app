@@ -23,6 +23,7 @@ import { wordOptionEvent } from './useAnswerStats.js'
 export default function PlayerPanels({
   wcNode, paNode, fbNode, twNode, spNode, pcNode, regNode, tableNode,
   showRegPanel, photoChoiceStates, filesWithBlobs, xpMap,
+  lessonTitle = '', // название урока — ориентир автоподсказки «Напечатай слово» (слово урока не подсказываем)
   lessonId = null, // проходимый урок — только для аналитики «Сказать фразу» (say_attempt)
   // Сигналы ошибок (см. PROJECT.md) — table-manual, «Собери фразу» и «Напечатай слово» резолвят
   // signals[].ref по полному списку нод урока; onSignalFired(node, release,
@@ -135,6 +136,7 @@ export default function PlayerPanels({
           key={`${twNode.id}:${epoch}:${twNode.visit ?? 0}`}
           node={twNode}
           nodes={nodes}
+          lessonTitle={lessonTitle}
           onSignalFired={onSignalFired}
           hasSignalFired={hasSignalFired}
           xpAmount={xpMap.get(twNode.id) ?? 0}

@@ -25,9 +25,9 @@ export default function TypeWordPanel({
   node, onDone, onAnswered, onRevealAnswer, onChecked, onHeightChange, xpAmount = 0, onXpEarned,
   // Сигналы ошибок: nodes — все ноды урока (резолв ref), onSignalFired(node, release,
   // exerciseNodeId) — рисует сигнал сообщением в ленте, hasSignalFired(nodeId) — один раз за урок
-  nodes = [], onSignalFired, hasSignalFired,
+  nodes = [], onSignalFired, hasSignalFired, lessonTitle = '',
 }) {
-  const tw = useTypeWord(node, nodes, onSignalFired, hasSignalFired)
+  const tw = useTypeWord(node, nodes, onSignalFired, hasSignalFired, lessonTitle)
   const d = node.typeData?.type_word ?? {}
   const { word, typed, result, frozen } = tw
   // В чат слово уходит с заглавной, как его печатает ученик (первая буква всегда заглавная)
@@ -94,7 +94,10 @@ export default function TypeWordPanel({
     // Напечатанное (неверное) — СПРАВА, красным, от лица ученика; подсказка учителя — следом
     if (wc < 3 && typed.trim()) onAnswered?.(typed, 'wrong_final')
     if (wc === 1) {
-      if (d.responseWrong?.trim()) onAnswered?.(d.responseWrong, 'hint')
+      // Подсказка по неверному слову (имя, город) важнее общего текста автора; нет её — responseWrong
+      const auto = tw.autoHint(typed)
+      if (auto) onAnswered?.(auto, 'hint')
+      else if (d.responseWrong?.trim()) onAnswered?.(d.responseWrong, 'hint')
     } else if (wc === 2) {
       const n = letterCount(word)
       onAnswered?.(`Слово из ${n} ${letterForm(n)}`, 'hint')
@@ -139,7 +142,7 @@ export default function TypeWordPanel({
           transition: show && !rise.opening ? 'height 0.26s cubic-bezier(0.16, 1, 0.3, 1)' : 'none',
         }}
       />
-      <div ref={panelRef} className={`phrasePanel${show ? ' phrasePanelVisible' : ''}`}>
+      <div ref={panelRef} className={`phrasePanel twPanel${show ? ' phrasePanelVisible' : ''}`}>
         <SolveCorrectButton onSolve={solveCorrect} disabled={frozen || !!result} />
         <div className="phraseInner">
           <div className={`phraseCounter${showCounter ? ' phraseCounterVisible' : ''}`}>

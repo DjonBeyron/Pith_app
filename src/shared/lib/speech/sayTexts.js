@@ -58,6 +58,9 @@ export const HINT_SILENCE_DEFAULT = 'Не слышу вас. Говорите г
 export const HINT_MISMATCH_DEFAULT = 'Не совсем. Попробуйте ещё раз, чуть медленнее.'
 export const HINT_PARTIAL_DEFAULT = 'Почти! Верно: {ok}. Не хватило: {missed}.'
 export const HINT_FALLBACK = 'Почти!'   // страховка, если шаблон «почти» после подстановки оказался пустым
+// Подсказка «начать можно так…» по таймеру (sayStartHint.js): заголовок и мягкая реплика, когда ученик молчит и после второй тишины подряд модуль отпускает дальше (sayFlow.SILENCE_EXIT_AT)
+export const START_HINT_TITLE = 'Начать можно так…'
+export const HINT_SILENCE_SKIP = 'Ничего страшного, если сейчас не получается: двигаемся дальше)'
 export const HINT_DEFAULTS = { silence: HINT_SILENCE_DEFAULT, mismatch: HINT_MISMATCH_DEFAULT, partial: HINT_PARTIAL_DEFAULT }
 
 /** Коды, после которых микрофон запрещён — запоминаем отказ до конца запуска и больше не зовём start() */

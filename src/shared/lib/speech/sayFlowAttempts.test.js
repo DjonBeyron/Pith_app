@@ -5,7 +5,7 @@ import { readSayData } from './sayPhraseData.js'
 
 // Счёт попыток «Сказать фразу» (sayFlow.js): внутренний, ученику не показывается. Распознано что-то (в том числе неверное) — попытка потрачена;
 // тишина — нет, но три тишины подряд = одна неудача; ошибки движка и микрофона не тратят. Третья засчитанная неудача → exhausted.
-const data = readSayData({ phrase: 'I am trying to please both', keywords: 'please', threshold: 70 })
+const data = readSayData({ phrase: 'I am trying to please both', keywords: 'please', threshold: 70, hintsOn: false }) // без подсказок: счёт тишин не упирается в мягкий выход после второй тишины (sayFlowSilenceExit.test.js)
 const alt = text => ({ text, confidence: 0.9 })
 const done = (text, extra = {}) => ({ ...emptyView, status: 'done', runNo: 1, attempt: 1, final: alt(text), alternatives: [alt(text)], ...extra })
 

@@ -36,7 +36,7 @@ const nowMs = () => (typeof performance !== 'undefined' ? performance.now() : Da
 // «глухая» попытка после успешной автоматически пересоздаётся один раз (speechDeaf.js).
 // Круг реагирует на тап СРАЗУ: 'begin' ставит phase 'run' в том же тапе. «Можно остановить» = isGo (движок слушает И прошла защита от
 // двойного тапа STOP_ARM_MS: таймер 'arm'). После неудачи круг сразу снова готов (никаких пауз-показов); реплика и подсказка уходят в чат (панель).
-// Вид круга «нет доступа / доступ выдан» (sayMicState.js) считает панель из access = perm.access() (ответ Permissions API, флаг «микрофон уже открывался» в localStorage, «работал в этом запуске», «вводный попап видели»):
+// Вид круга «нет доступа / доступ выдан» (sayMicState.js) считает панель из access = perm.access() + checked (Permissions API уже ответил: до ответа флаг «уже открывался» из localStorage зелёного круга не даёт — на iPhone диалог спрашивают на каждом запуске) (ответ Permissions API, флаг «микрофон уже открывался» в localStorage, «работал в этом запуске», «вводный попап видели»):
 // флаг ставит markMicOk (запись реально пошла), сбрасывает markDenied (not-allowed) и query=denied; ответ query приходит асинхронно — bumpAccess перерисовывает панель.
 // После третьей засчитанной неудачи (exhausted, счёт — sayFlow.js) тап игнорируется: панель сама уходит по ветке «неверный».
 // lessonId — проходимый урок: только для say_attempt (засчитанная попытка: прошла/не прошла, каким движком); null — не пишем
@@ -145,7 +145,7 @@ export function useSayPhrase({ data, onEvent, perm = sayPermission, lessonId = n
 
   // Тап по микрофону: «начали» и идёт запись — «стоп» (принять сказанное), иначе по решению sayPermission
   const tapMic = useCallback(() => {
-    if (s.exhausted) return // три неудачи уже были: панель уходит по ветке «неверный», новая запись не нужна
+    if (s.exhausted || s.silenceExit) return // три неудачи уже были: панель уходит по ветке «неверный», новая запись не нужна
     const plan = planTap({ view: s.view, decision: perm.decide(), go: isGo(s), running: s.phase === 'run' })
     if (plan.act === 'stop') { dispatch({ type: 'stop', reason: STOP_MANUAL }); ctrl.stop() } // причина «ученик остановил» — ДО ctrl.stop(): итог захода (settle) решает по ней, слать ли «не слышу вас…»
     else if (plan.act === 'fallback') dispatch({ type: 'fallback', reason: plan.reason })
@@ -172,8 +172,8 @@ export function useSayPhrase({ data, onEvent, perm = sayPermission, lessonId = n
 
   return {
     view: s.view, phase: s.phase, taps: s.taps, verdict: s.verdict, errorCode: s.errorCode,
-    fallbackReason: s.fallbackReason, autoRetries: s.autoRetries, failStreak: s.failStreak, exhausted: s.exhausted,
-    engine: s.engine?.engine ?? null, go: isGo(s), access: perm.access(), adminLine: waitNote ?? s.adminLine, hint: s.hint, reply: s.reply, level: levels, explainKind: s.explainKind,
+    fallbackReason: s.fallbackReason, autoRetries: s.autoRetries, failStreak: s.failStreak, exhausted: s.exhausted, silenceExit: s.silenceExit,
+    engine: s.engine?.engine ?? null, go: isGo(s), access: { ...perm.access(), checked: perm.isChecked() }, adminLine: waitNote ?? s.adminLine, hint: s.hint, reply: s.reply, level: levels, explainKind: s.explainKind,
     tapMic, openExplain, confirmExplain, cancelExplain, enableMic, emit, perm,
   }
 }

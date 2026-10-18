@@ -50,11 +50,16 @@ onLessonOpenChange(open => {
 // preloadSounds): так же, как при старте урока, — это проверенный путь.
 // Элемент, созданный в playSound вне жеста, на iOS стартует с задержкой
 // ~700 мс, а то и вовсе без разрешения
+const interruptListeners = new Set()
+// Подписка на прерывание аудиосессии: слова урока (wordAudioPlayer.js) держат СВОИ <audio>, и после прерывания они такие же мёртвые
+export function onAudioInterrupted(cb) { interruptListeners.add(cb); return () => interruptListeners.delete(cb) }
+
 function onCtxStateChange() {
   pLog(`[sound] AudioContext state → ${ctx.state}`)
   if (ctx.state !== 'interrupted') return
   evictAll('прерывание аудиосессии')
   resetPrimed()
+  for (const cb of interruptListeners) { try { cb() } catch { /* подписчик не должен ломать сброс */ } }
   if (isLessonOpen()) armGesture()
 }
 

@@ -42,7 +42,7 @@ describe('«Сказать фразу»: голосовая подсказка �
     expect(panel).toContain('!hasSignalFired?.(found.node.id)')
     expect(panel).toContain('onSignalFired(found.node, () => setSignalBusy(false), node.id, true)')
     expect(panel).toMatch(/if \(useSignal\) \{[\s\S]*\}\s*\n\s*else if \(hint\) onAnswered\?\.\(hint, 'hint'\)/)
-    expect(panel).toContain('sp.exhausted || signalBusy')
+    expect(panel).toContain('sp.exhausted || sp.silenceExit || signalBusy')
   })
 
   it('PlayerPanels отдаёт панели nodes/onSignalFired/hasSignalFired; холст знает сигнал у say_phrase', () => {

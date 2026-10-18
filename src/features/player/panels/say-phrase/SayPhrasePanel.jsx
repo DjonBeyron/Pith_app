@@ -4,6 +4,7 @@ import SayStage from './SayStage.jsx'
 import SayMicPopup from './SayMicPopup.jsx'
 import { useSayAutoPopup } from './useSayAutoPopup.js'
 import { useDelayedMicState } from './useDelayedMicState.js'
+import { useSayStartHint } from './useSayStartHint.js'
 import SayActions from './SayActions.jsx'
 import SayBrowserNote from './SayBrowserNote.jsx'
 import { listenKeys, playListen } from './sayListen.js'
@@ -70,11 +71,9 @@ export default function SayPhrasePanel({ node, lessonId = null, onDone, onAnswer
   const [listening, setListening] = useState(false) // играет эталон («Послушать»)
   const [signalBusy, setSignalBusy] = useState(false) // играет сигнал-подсказка учителя: микрофон ждёт
   const [, bumpLib] = useState(0)
-  const panelRef = useRef(null)
-  const closingRef = useRef(false)
+  const panelRef = useRef(null), closingRef = useRef(false)
   const stopListenRef = useRef(null)
-  const hintTimer = useRef(0)
-  const wrongTimer = useRef(0) // закрытие по ветке «неверный» после третьей неудачи
+  const hintTimer = useRef(0), wrongTimer = useRef(0) // wrongTimer — закрытие по ветке «неверный» (или мягкий выход после тишины) после последней реплики
   const pendingReply = useRef(null) // реплика ученика, ещё не ушедшая в чат (ждёт HINT_DELAY_MS)
   const pendingVoice = useRef(null) // её голосовое (voiceId из реестра) — уходит вместе с репликой
   const voiceOn = data.voiceReply === true
@@ -102,7 +101,7 @@ export default function SayPhrasePanel({ node, lessonId = null, onDone, onAnswer
     const hint = sp.hint?.text
     const voiceId = takeVoiceId() // клип попытки в реестр (или причина «только текст» в диагностику); реплики нет — клип не нужен
     if (!reply) revokeSayVoice(voiceId)
-    if (sp.exhausted) wrongTimer.current = setTimeout(() => finish('wrong'), (reply || hint ? HINT_DELAY_MS : 0) + WRONG_PAUSE_MS)
+    if (sp.exhausted || sp.silenceExit) wrongTimer.current = setTimeout(() => finish(sp.silenceExit ? 'skip' : 'wrong'), (reply || hint ? HINT_DELAY_MS : 0) + WRONG_PAUSE_MS)
     // Сигнал вместо текстовой подсказки: только на попытке, где что-то распознано, и только пока он не срабатывал за этот урок
     const found = reply ? signalForSlot(raw?.signals, 0, nodes) : null
     const useSignal = !!found && !hasSignalFired?.(found.node.id) && !!onSignalFired
@@ -150,7 +149,7 @@ export default function SayPhrasePanel({ node, lessonId = null, onDone, onAnswer
     stopListenRef.current?.()
     const out = sayOutcome({ kind })
     if (kind === 'skip') {
-      sp.emit(SAY_EVENTS.skip, { reason: sp.fallbackReason || 'user' })
+      sp.emit(SAY_EVENTS.skip, { reason: sp.silenceExit ? 'silence' : sp.fallbackReason || 'user' })
       closeWith(out.trigger) // say_cant: ветка «верный» без сообщения-успеха (sayPairSkip.sayExit), ничего не запоминается
       return
     }
@@ -197,6 +196,7 @@ export default function SayPhrasePanel({ node, lessonId = null, onDone, onAnswer
   // Попап разрешения сам появляется через секунду после появления модуля (условия — sayAutoPopup.autoPopupWanted, один раз за монтирование); микрофон не трогает
   useSayAutoPopup({ visible: show, phase, open: sp.openExplain, wanted: autoPopupWanted({ visible: show, closing, phase, taps: sp.taps, micState: micTarget, decision: sp.perm.decide() }) })
 
+  useSayStartHint({ data, active: show && !closing && !signalBusy && !sp.exhausted && !sp.silenceExit && (phase === 'idle' || phase === 'failed'), onFire: text => onAnswered?.(text, 'hint') }) // «Начать можно так…» через ~10 с ожидания
   if (!data.phrase) return null
 
   return (
@@ -226,7 +226,7 @@ export default function SayPhrasePanel({ node, lessonId = null, onDone, onAnswer
                 mode={mic.mode}
                 state={micState}
                 level={sp.level}
-                disabled={closing || phase === 'passed' || sp.exhausted || signalBusy}
+                disabled={closing || phase === 'passed' || sp.exhausted || sp.silenceExit || signalBusy}
                 onTap={tapMic}
               />
             )}

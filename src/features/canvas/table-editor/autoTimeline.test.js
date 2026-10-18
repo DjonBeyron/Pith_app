@@ -21,3 +21,11 @@ describe('buildAutoTimeline', () => {
     expect(chk.clips[0].end).toBe(4)
   })
 })
+
+describe('buildAutoTimeline без длины аудио', () => {
+  it('«Проверить» ложится после последнего слова, а не на 1-ю секунду', () => {
+    const { timeline } = buildAutoTimeline({ cells, wordTimings, duration: null })
+    const chk = timeline.layers.find(l => l.isCheck)
+    expect(chk.clips[0].start).toBeGreaterThan(2)
+  })
+})
