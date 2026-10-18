@@ -46,9 +46,12 @@
             "table-left": "pastry-plate",
             "window": "window",
             "wall-menu": "menu-board",
+            "wall-art": "picture",
             "ceiling": "pendant-lamp",
             "counter": "coffee-machine",
-            "floor-left": "plant"
+            "floor-left": "plant",
+            "floor-right": "floor-lamp",
+            "table-right": "laptop"
           },
           "timeline": [
             {
@@ -930,7 +933,7 @@
         "timeline": {
           "layers": [
             {
-              "id": "c20350e3-6413-4c30-b5c9-e2a2201a24f1",
+              "id": "d823b278-1f43-4d74-b6fb-8c710dc07782",
               "clips": [
                 {
                   "end": 1,
@@ -947,7 +950,7 @@
               "highlightOn": false
             },
             {
-              "id": "5e50db58-a401-4439-8738-453c2faa0982",
+              "id": "8d852549-e7df-4ce2-8cfa-ea2254dbf3fe",
               "clips": [
                 {
                   "end": 11.52,
@@ -964,7 +967,7 @@
               "highlightOn": true
             },
             {
-              "id": "d7933c91-cf30-463a-8f5d-d1dadb4bd30e",
+              "id": "be6a3b5f-8f54-4403-829a-176732957234",
               "clips": [
                 {
                   "end": 1,
@@ -981,7 +984,7 @@
               "highlightOn": false
             },
             {
-              "id": "98a96f15-0725-45e3-9d09-5aa828c0d03a",
+              "id": "cfb0522b-b42d-44e1-b1e1-85b2ef39e0ec",
               "clips": [
                 {
                   "end": 3,
@@ -998,7 +1001,7 @@
               "highlightOn": true
             },
             {
-              "id": "bf504e32-2990-4cca-b179-7d9ce61eb131",
+              "id": "0d9b15e0-74c2-47e7-bf81-c40013db144b",
               "clips": [
                 {
                   "end": 3.12,
@@ -1015,7 +1018,7 @@
               "highlightOn": true
             },
             {
-              "id": "da8b137f-1ced-424d-9ecd-9b652d77cdf3",
+              "id": "853c8ded-27a5-4d7d-9c6a-e2e1d5828520",
               "clips": [
                 {
                   "end": 3.77,
@@ -1032,7 +1035,7 @@
               "highlightOn": true
             },
             {
-              "id": "e264958c-05b1-4773-a500-73ae84827052",
+              "id": "09b04918-3fc9-4290-b5b1-0a0a93f320f9",
               "clips": [
                 {
                   "end": 5.77,
@@ -1049,7 +1052,7 @@
               "highlightOn": true
             },
             {
-              "id": "49bee264-16d0-48f0-83a7-5949a67f2804",
+              "id": "fe1ab39e-ccc9-4f25-8146-e3d1159c64ed",
               "clips": [
                 {
                   "end": 5.93,
@@ -1066,7 +1069,7 @@
               "highlightOn": true
             },
             {
-              "id": "4bae6609-8b6d-4658-a2e5-2337f168948c",
+              "id": "dd2f444a-90a8-4fc2-97bf-9b358d9dc667",
               "clips": [
                 {
                   "end": 6.63,
@@ -1083,7 +1086,7 @@
               "highlightOn": true
             },
             {
-              "id": "984de3d1-80fb-46ac-8465-e91d56cd6feb",
+              "id": "b1cf0e3f-7b0c-451d-a8b2-a939afbef85f",
               "clips": [
                 {
                   "end": 13.003175,
@@ -2300,7 +2303,7 @@
         "timeline": {
           "layers": [
             {
-              "id": "e2d23ae7-bcff-47ce-8d36-c5015cf2ab96",
+              "id": "83c07d90-7af9-4004-bdca-cf1c726b2895",
               "clips": [
                 {
                   "end": 1,
@@ -2317,7 +2320,7 @@
               "highlightOn": false
             },
             {
-              "id": "4ed51e1f-003a-4d70-91f7-af23b89f8722",
+              "id": "040a9e79-b537-4ebf-b232-53a29d87f040",
               "clips": [
                 {
                   "end": 10.22,
@@ -2334,7 +2337,7 @@
               "highlightOn": true
             },
             {
-              "id": "69dd781f-f64f-44b1-8a79-ee2c6442ad2d",
+              "id": "a59aef26-c123-46f9-b07c-a3426bc7920e",
               "clips": [
                 {
                   "end": 1,
@@ -2351,7 +2354,7 @@
               "highlightOn": false
             },
             {
-              "id": "aaf0da31-93d5-446a-b6de-ac936bb36c9d",
+              "id": "45c6da2f-d8cb-430e-b315-088f5814e193",
               "clips": [
                 {
                   "end": 2.11,
@@ -2368,7 +2371,7 @@
               "highlightOn": true
             },
             {
-              "id": "c77857b3-5d9a-439c-ab63-5fa3aa8815ec",
+              "id": "8d6ec422-0e71-40ed-aba4-3980cc52ce7b",
               "clips": [
                 {
                   "end": 2.31,
@@ -2385,7 +2388,7 @@
               "highlightOn": true
             },
             {
-              "id": "b809e4e1-b4fe-4eaa-9e94-bbc511db56b2",
+              "id": "933281a1-63b3-46f5-a9d6-5d5d33f16831",
               "clips": [
                 {
                   "end": 3.07,
@@ -2402,7 +2405,7 @@
               "highlightOn": true
             },
             {
-              "id": "ec105df2-9332-4334-b7dc-b30b3e0310f3",
+              "id": "9ccd3873-b6ac-48dd-b8f5-cfefa4f91e80",
               "clips": [
                 {
                   "end": 7.08,
@@ -2419,7 +2422,7 @@
               "highlightOn": true
             },
             {
-              "id": "4ad064ca-8b5a-461e-9355-ded0a0f638ef",
+              "id": "c7f0c0d6-994c-4594-b704-fa79b1247d94",
               "clips": [
                 {
                   "end": 7.22,
@@ -2436,7 +2439,7 @@
               "highlightOn": true
             },
             {
-              "id": "ff8bfc73-2c06-432f-8299-bc69fe8c3742",
+              "id": "60339430-1d5a-49c9-9fff-48db513b9c69",
               "clips": [
                 {
                   "end": 7.9,
@@ -2453,7 +2456,7 @@
               "highlightOn": true
             },
             {
-              "id": "4b36b162-23e9-48e5-a88b-174bdcd2f7a4",
+              "id": "7478e171-a145-4a51-9fa2-93132225ef31",
               "clips": [
                 {
                   "end": 13.42,
@@ -2470,7 +2473,7 @@
               "highlightOn": true
             },
             {
-              "id": "037257e5-3b19-422d-937f-7c5ea213c9bc",
+              "id": "889b5a7d-54ff-45fd-b32e-3a512ce0212d",
               "clips": [
                 {
                   "end": 13.56,
@@ -2487,7 +2490,7 @@
               "highlightOn": true
             },
             {
-              "id": "d16fa291-7ff1-4783-bf21-d91a78d1b386",
+              "id": "d48118e1-f23e-4e1d-9eff-24d1bc9827f0",
               "clips": [
                 {
                   "end": 14.4,
@@ -2504,7 +2507,7 @@
               "highlightOn": true
             },
             {
-              "id": "bd0ed98c-e76d-4632-8deb-9bfa5a32ded7",
+              "id": "3abb7de3-ac38-4ee5-8108-1e41c1042a77",
               "clips": [
                 {
                   "end": 18.343764,
@@ -3088,7 +3091,7 @@
         "timeline": {
           "layers": [
             {
-              "id": "38e94ff9-d13a-489d-817d-3d758ff732aa",
+              "id": "ea5fd8a1-be9f-4304-8bf1-d741a90d725d",
               "clips": [
                 {
                   "end": 1,
@@ -3105,7 +3108,7 @@
               "highlightOn": false
             },
             {
-              "id": "8371a912-5370-4313-9bda-454c976f663c",
+              "id": "11d58e9f-2644-4d54-a6cf-d559b131bf55",
               "clips": [
                 {
                   "end": 1,
@@ -3122,7 +3125,7 @@
               "highlightOn": false
             },
             {
-              "id": "40c92fb3-eaf9-46c6-aa19-853a6b2b0bc0",
+              "id": "6488022c-80a6-4002-8421-ed22d3042009",
               "clips": [
                 {
                   "end": 1,
@@ -3139,7 +3142,7 @@
               "highlightOn": false
             },
             {
-              "id": "57a41b89-11eb-4c97-b0ae-d27e3c051b52",
+              "id": "2781b10d-9448-47fd-b853-64992ee20550",
               "clips": [
                 {
                   "end": 8.57,
@@ -3156,7 +3159,7 @@
               "highlightOn": true
             },
             {
-              "id": "5d88a2b4-0b9c-4591-83ac-655b0c627121",
+              "id": "48fd4826-7fe7-432a-818b-df30bea38def",
               "clips": [
                 {
                   "end": 8.79,
@@ -3173,7 +3176,7 @@
               "highlightOn": true
             },
             {
-              "id": "64d78d0e-a441-4265-83d0-7faf6f2014ea",
+              "id": "a0be1cb0-8891-4976-a014-5c4e0410349b",
               "clips": [
                 {
                   "end": 9.25,
@@ -3190,7 +3193,7 @@
               "highlightOn": true
             },
             {
-              "id": "d94d54f7-ba99-4938-b4ec-e1e55539778b",
+              "id": "7ca1d8e5-e6e1-4a0d-b2f2-33f9f83d2bf6",
               "clips": [
                 {
                   "end": 10,
@@ -3207,7 +3210,7 @@
               "highlightOn": true
             },
             {
-              "id": "437bfdee-c535-405c-bcd0-ad3aff2ecc20",
+              "id": "2302ac69-7436-4721-8460-06645e901f3b",
               "clips": [
                 {
                   "end": 10.15,
@@ -3224,7 +3227,7 @@
               "highlightOn": true
             },
             {
-              "id": "dccd4a91-227b-4c3b-9a77-b32f8ed6e089",
+              "id": "ef28f41e-633f-4b8b-9c23-bcad6f8d3264",
               "clips": [
                 {
                   "end": 11.05,
@@ -3241,7 +3244,7 @@
               "highlightOn": true
             },
             {
-              "id": "8aa0c410-56ae-46bb-9aac-8092d1acc718",
+              "id": "9662a20d-eef2-411e-96cc-d2cd1f13cafe",
               "clips": [
                 {
                   "end": 14.3,
@@ -3258,7 +3261,7 @@
               "highlightOn": true
             },
             {
-              "id": "a5c08ffb-7d65-43b6-a479-2698869496ff",
+              "id": "b1d1ecd8-7e61-4a20-ae00-7989eeb7259d",
               "clips": [
                 {
                   "end": 14.48,
@@ -3275,7 +3278,7 @@
               "highlightOn": true
             },
             {
-              "id": "931207c8-d954-4d53-8b51-6e26f5c66ce5",
+              "id": "206bb615-70d8-4edc-964a-0d9a481fa30f",
               "clips": [
                 {
                   "end": 15.52,
@@ -3292,7 +3295,7 @@
               "highlightOn": true
             },
             {
-              "id": "a1068bfa-0dfb-4868-8115-1e26dd2f6b85",
+              "id": "d2072c9e-ae68-4a8f-a0b2-d734320c892e",
               "clips": [
                 {
                   "end": 18.55,
@@ -3309,7 +3312,7 @@
               "highlightOn": true
             },
             {
-              "id": "f22996da-3357-4aa3-9671-6d310efc0cf7",
+              "id": "12002bb3-d4cf-477f-87e0-b733eca7a75f",
               "clips": [
                 {
                   "end": 18.73,
@@ -3326,7 +3329,7 @@
               "highlightOn": true
             },
             {
-              "id": "fe564c8c-f6f4-478b-917b-3eabaed4e2a0",
+              "id": "7dea7382-1c5b-4b59-b29b-270237cb7801",
               "clips": [
                 {
                   "end": 30,
@@ -3343,7 +3346,7 @@
               "highlightOn": true
             },
             {
-              "id": "c20943bf-bf95-4fab-9170-d2d2053c463b",
+              "id": "0fa9f808-c4c6-44fa-8f69-57de445b8bb0",
               "clips": [
                 {
                   "end": 19.504762,
@@ -4102,7 +4105,7 @@
         "hintsOn": true,
         "pattern": "I want to **",
         "threshold": 70,
-        "voiceReply": false,
+        "voiceReply": true,
         "hintPartial": "Близко) верно: {ok}, не хватило: {missed}",
         "hintSilence": "Не слышу тебя) говори чуть громче и ближе к микрофону",
         "translation": "Я хочу танцевать",
@@ -4209,7 +4212,7 @@
         "hintsOn": true,
         "pattern": "I'm trying to **",
         "threshold": 70,
-        "voiceReply": false,
+        "voiceReply": true,
         "hintPartial": "Близко) верно: {ok}, не хватило: {missed}",
         "hintSilence": "Не слышу тебя) говори чуть громче и ближе к микрофону",
         "translation": "Я пытаюсь расслабиться",
@@ -4591,7 +4594,7 @@
         "timeline": {
           "layers": [
             {
-              "id": "afbe7313-1a46-43c3-8327-ee693369f553",
+              "id": "34d734e6-c060-42dd-a7ba-7f062edeea14",
               "clips": [
                 {
                   "end": 1,
@@ -4608,7 +4611,7 @@
               "highlightOn": false
             },
             {
-              "id": "2dfc228e-a2bb-465c-88a8-5db127a16f79",
+              "id": "962c18cf-769f-424d-ba93-f5d1e6e51a30",
               "clips": [
                 {
                   "end": 1,
@@ -4625,7 +4628,7 @@
               "highlightOn": false
             },
             {
-              "id": "4e0c6c5b-3d02-4301-825d-cff476e8e18e",
+              "id": "8c62f9c9-298c-483a-84fa-43bf6c7d0712",
               "clips": [
                 {
                   "end": 1,
@@ -4642,7 +4645,7 @@
               "highlightOn": false
             },
             {
-              "id": "8ec598f8-54c2-44a2-b856-45e689df9141",
+              "id": "7fb0e45b-8c66-49ae-ac78-524e61046bd6",
               "clips": [
                 {
                   "end": 1,
@@ -4659,7 +4662,7 @@
               "highlightOn": false
             },
             {
-              "id": "6bad2ff5-7942-458c-8046-3677fda0951e",
+              "id": "09d875e2-39d1-4061-b01a-d535f8ffea9a",
               "clips": [
                 {
                   "end": 4.8,
@@ -4676,7 +4679,7 @@
               "highlightOn": true
             },
             {
-              "id": "73284473-fde6-4e52-b5ca-9fe0191f6aaa",
+              "id": "279f5a76-e9ff-4732-9b1f-d116ee8d7762",
               "clips": [
                 {
                   "end": 7.3,
@@ -4693,7 +4696,7 @@
               "highlightOn": true
             },
             {
-              "id": "8228112f-1a2f-415c-9a4e-ce069e49d934",
+              "id": "997838e7-ae66-4c69-b39f-7503abb9c094",
               "clips": [
                 {
                   "end": 1,
@@ -4710,7 +4713,7 @@
               "highlightOn": false
             },
             {
-              "id": "561f2851-1820-4939-abe5-b5f872955b20",
+              "id": "ccb76bff-6771-4e19-b67c-e48b9e109561",
               "clips": [
                 {
                   "end": 1,
@@ -4727,7 +4730,7 @@
               "highlightOn": false
             },
             {
-              "id": "68507244-0422-4383-8023-b2a4e1a58027",
+              "id": "670fa01a-b9d2-4451-993a-0c961a51d3e0",
               "clips": [
                 {
                   "end": 14.79,
@@ -4744,7 +4747,7 @@
               "highlightOn": true
             },
             {
-              "id": "fc960358-d8b4-439b-9dae-27809af7e66f",
+              "id": "56b3ff9f-97c6-436d-afcc-a477bfb9ca0e",
               "clips": [
                 {
                   "end": 1,
@@ -4761,7 +4764,7 @@
               "highlightOn": false
             },
             {
-              "id": "f6b7ddf3-d130-4467-90c2-c4d76d7df324",
+              "id": "86eb7fa7-8fb7-461a-b41c-a2bab2bcbe61",
               "clips": [
                 {
                   "end": 1,
@@ -4778,7 +4781,7 @@
               "highlightOn": false
             },
             {
-              "id": "337ae82c-41ab-4b1a-8d55-2ee6b52069ee",
+              "id": "cd24a747-f5d9-4a67-b1d6-d4af53b1220e",
               "clips": [
                 {
                   "end": 20.59,
@@ -4795,7 +4798,7 @@
               "highlightOn": true
             },
             {
-              "id": "b15f9230-3c30-40a3-b8a8-5abcff787bdf",
+              "id": "160983e9-a5b7-4429-8cec-e3e12a33511c",
               "clips": [
                 {
                   "end": 1,
@@ -4812,7 +4815,7 @@
               "highlightOn": false
             },
             {
-              "id": "8b825c80-a64b-4a62-99dc-d0ceceed5e16",
+              "id": "4ec6182e-a4ce-4e10-8d1c-da4ec2ac51d6",
               "clips": [
                 {
                   "end": 1,
@@ -4829,7 +4832,7 @@
               "highlightOn": false
             },
             {
-              "id": "de1a0204-4414-4dbe-8a44-982438d25210",
+              "id": "b34402b2-4a63-4c15-9942-2e0d0b42c356",
               "clips": [
                 {
                   "end": 29.4,
@@ -4846,7 +4849,7 @@
               "highlightOn": true
             },
             {
-              "id": "835ebb52-63ce-4fdf-b528-13d236438259",
+              "id": "453cf001-cb7c-4806-a1b5-beff692016f4",
               "clips": [
                 {
                   "end": 30.2,
@@ -5889,7 +5892,7 @@
         "timeline": {
           "layers": [
             {
-              "id": "0c7ade49-8cf2-41d3-81c8-3593ff0868ca",
+              "id": "590f0cf3-9b4b-44ab-9acf-262b487dc496",
               "clips": [
                 {
                   "end": 1,
@@ -5906,7 +5909,7 @@
               "highlightOn": false
             },
             {
-              "id": "7ce3aa21-f098-4d1a-8052-b4d22a65fc56",
+              "id": "e4cd19d9-325e-45d6-82e7-6731f2a17903",
               "clips": [
                 {
                   "end": 1,
@@ -5923,7 +5926,7 @@
               "highlightOn": false
             },
             {
-              "id": "58963db8-12b8-414f-8c6b-4a5e857a9778",
+              "id": "a685146b-0bdc-44b4-8105-1aaf0139bb61",
               "clips": [
                 {
                   "end": 1,
@@ -5940,7 +5943,7 @@
               "highlightOn": false
             },
             {
-              "id": "066de68e-9120-4417-80ec-bf7b101f7b20",
+              "id": "088c7f00-d422-4853-a1bc-54e012ce46f2",
               "clips": [
                 {
                   "end": 1.88,
@@ -5957,7 +5960,7 @@
               "highlightOn": true
             },
             {
-              "id": "a71211c9-e8b7-47dd-809b-7f88f73c1245",
+              "id": "aa80b9ef-a587-436c-b1a3-b90de9cf8f3d",
               "clips": [
                 {
                   "end": 3.6,
@@ -5974,7 +5977,7 @@
               "highlightOn": true
             },
             {
-              "id": "649d598e-bb05-43a6-97cf-ae7c6723d44f",
+              "id": "bc4937a9-4a34-4da3-92d7-afff0355e079",
               "clips": [
                 {
                   "end": 1,
@@ -5991,7 +5994,7 @@
               "highlightOn": false
             },
             {
-              "id": "8baa2298-db32-4e0e-8f78-1a214162080c",
+              "id": "f096ee93-cb9c-4ec4-afc5-ad89501c5cae",
               "clips": [
                 {
                   "end": 7.04,
@@ -6008,7 +6011,7 @@
               "highlightOn": true
             },
             {
-              "id": "a998d09e-04fa-458d-a9be-52fef1f06af0",
+              "id": "386e8713-032b-4556-9f8a-c42b09ea95eb",
               "clips": [
                 {
                   "end": 8.44,
@@ -6025,7 +6028,7 @@
               "highlightOn": true
             },
             {
-              "id": "02358747-a633-475b-a929-485a92c3905f",
+              "id": "02e8b2fb-7153-432d-9106-6abccdc7c5f4",
               "clips": [
                 {
                   "end": 1,
@@ -6042,7 +6045,7 @@
               "highlightOn": false
             },
             {
-              "id": "c9919e65-644b-41fc-8d07-36764ffb1259",
+              "id": "fbd549fe-de41-4a62-b444-7f12f6da207d",
               "clips": [
                 {
                   "end": 1,
@@ -6059,7 +6062,7 @@
               "highlightOn": false
             },
             {
-              "id": "9a6802db-179c-4aa2-8366-532cc8a08756",
+              "id": "769bfcfb-b55e-47f1-b728-d7858a946750",
               "clips": [
                 {
                   "end": 1,
@@ -6076,7 +6079,7 @@
               "highlightOn": false
             },
             {
-              "id": "06d34ae4-1252-4236-a540-eff709cd7629",
+              "id": "d9c54c74-3807-4842-a1e6-7a05cfcae817",
               "clips": [
                 {
                   "end": 1,
@@ -6093,7 +6096,7 @@
               "highlightOn": false
             },
             {
-              "id": "7b1ae79b-5bf0-4ab5-8ebd-4c080cb7ee80",
+              "id": "7fb2e40c-1a01-4830-81e0-9488fb28a2cf",
               "clips": [
                 {
                   "end": 12.7,
@@ -6316,7 +6319,7 @@
         "hintsOn": true,
         "pattern": "I have to **",
         "threshold": 70,
-        "voiceReply": false,
+        "voiceReply": true,
         "hintPartial": "Близко) верно: {ok}, не хватило: {missed}",
         "hintSilence": "Не слышу тебя) говори чуть громче и ближе к микрофону",
         "translation": "Мне нужно работать",
@@ -6841,40 +6844,26 @@
           "scale": 1
         },
         "r2Url": "https://pub-045dc128a8954174a6d82f218e0836b9.r2.dev/chat/d994acd9-9244-448e-9025-17ef0923c7f5.png",
-        "caption": "а теперь вся фраза голосом: «мы идём в парк», We go to the park",
+        "caption": "а теперь соберём всю фразу голосом: «мы идём в парк»",
         "highlights": [
           {
-            "end": 63,
+            "end": 52,
             "mode": "text",
             "color": "#c6c6c6",
             "start": 0,
             "opacity": 1
           },
           {
-            "end": 44,
+            "end": 52,
             "mode": "text",
             "color": "#fdfcfc",
-            "start": 28,
+            "start": 36,
             "opacity": 1
           },
           {
-            "end": 44,
+            "end": 52,
             "mode": "italic",
-            "start": 28
-          },
-          {
-            "end": 63,
-            "mode": "text",
-            "color": "#b6fe3b",
-            "start": 46,
-            "opacity": 1
-          },
-          {
-            "end": 63,
-            "mode": "bold",
-            "color": "#b6fe3b",
-            "start": 46,
-            "opacity": 1
+            "start": 36
           }
         ],
         "imagePrompt": "Мультяшные парень и девушка с сумками весело идут по улице к парку, утро, без текста на картинке"
@@ -7271,7 +7260,7 @@
         "timeline": {
           "layers": [
             {
-              "id": "85ccc465-f7a7-4a3c-baf8-eededa3650a1",
+              "id": "c96b4a02-83d6-4ef7-b138-9fefe556e28b",
               "clips": [
                 {
                   "end": 1,
@@ -7288,7 +7277,7 @@
               "highlightOn": false
             },
             {
-              "id": "5ec73b45-950e-42d5-9e19-738336f6e778",
+              "id": "46dd4566-d924-4ab3-9b1b-595c6fa285a3",
               "clips": [
                 {
                   "end": 1,
@@ -7305,7 +7294,7 @@
               "highlightOn": false
             },
             {
-              "id": "720eae3b-94d4-470f-9f0e-a84d63fcf3b4",
+              "id": "a369090b-b6f4-46b1-b1fe-5525e4cd7f7f",
               "clips": [
                 {
                   "end": 1,
@@ -7322,7 +7311,7 @@
               "highlightOn": false
             },
             {
-              "id": "3e0cb995-d9d7-4b73-b3d1-7e5ade823ff8",
+              "id": "b4f614fd-42bc-468b-8c1c-cf5d24f4e7cc",
               "clips": [
                 {
                   "end": 1,
@@ -7339,7 +7328,7 @@
               "highlightOn": false
             },
             {
-              "id": "90a212e5-6eb1-426a-bf7e-229fa1940ec5",
+              "id": "2d1c7d2e-52eb-4f2b-b818-83e8cbd09992",
               "clips": [
                 {
                   "end": 1,
@@ -7356,7 +7345,7 @@
               "highlightOn": false
             },
             {
-              "id": "29b89653-2af8-49d6-a8e6-0f48b0c64e9a",
+              "id": "36f51f8a-e869-4200-b451-e72fc38d2673",
               "clips": [
                 {
                   "end": 6.2,
@@ -7373,7 +7362,7 @@
               "highlightOn": true
             },
             {
-              "id": "a8801db1-3b7a-4bf5-9ece-259f70eafa53",
+              "id": "db46f5e8-9e70-46d8-af5c-f4b716b33bd4",
               "clips": [
                 {
                   "end": 1,
@@ -7390,7 +7379,7 @@
               "highlightOn": false
             },
             {
-              "id": "ddceeb63-eccb-4827-9c81-19e2af0bc280",
+              "id": "f5598318-f781-47dc-a923-bc72e75ce7c0",
               "clips": [
                 {
                   "end": 1,
@@ -7407,7 +7396,7 @@
               "highlightOn": false
             },
             {
-              "id": "4d3303a1-2424-40af-bee9-053a5c70a267",
+              "id": "adc8a351-ae8d-4e0b-9b5a-b858e3bada2f",
               "clips": [
                 {
                   "end": 10.39,
@@ -7424,7 +7413,7 @@
               "highlightOn": true
             },
             {
-              "id": "92f58d01-ce07-4263-970b-7f563982e4bc",
+              "id": "e0fdce74-a701-4300-93d3-450ae2223fb5",
               "clips": [
                 {
                   "end": 11.02,
@@ -7441,7 +7430,7 @@
               "highlightOn": true
             },
             {
-              "id": "7060749c-0bd3-4cc5-8ace-99364348e1e5",
+              "id": "e17247f0-064b-4cf2-8b4d-71f996b16525",
               "clips": [
                 {
                   "end": 1,
@@ -7458,7 +7447,7 @@
               "highlightOn": false
             },
             {
-              "id": "d20b9681-a2fe-4954-9347-b350e5c68502",
+              "id": "402e894e-a765-4fe7-bb6c-771a8b9ce216",
               "clips": [
                 {
                   "end": 14.5,
@@ -7475,7 +7464,7 @@
               "highlightOn": true
             },
             {
-              "id": "7960a3e4-ced8-40f1-aadb-ef1b8957dfdf",
+              "id": "0934f969-8bca-4926-b641-66709f3be712",
               "clips": [
                 {
                   "end": 14.9,
@@ -8353,7 +8342,7 @@
         "hintsOn": true,
         "pattern": "I need to talk to **",
         "threshold": 70,
-        "voiceReply": false,
+        "voiceReply": true,
         "hintPartial": "Близко) верно: {ok}, не хватило: {missed}",
         "hintSilence": "Не слышу тебя) говори чуть громче и ближе к микрофону",
         "translation": "Мне нужно поговорить с Машей",
@@ -9138,7 +9127,7 @@
         "hintsOn": true,
         "pattern": "I can **",
         "threshold": 70,
-        "voiceReply": false,
+        "voiceReply": true,
         "hintPartial": "Близко) верно: {ok}, не хватило: {missed}",
         "hintSilence": "Не слышу тебя) говори чуть громче и ближе к микрофону",
         "translation": "Я могу тебе помочь",
@@ -9323,7 +9312,7 @@
         "hintsOn": true,
         "pattern": "I need to talk to **",
         "threshold": 70,
-        "voiceReply": false,
+        "voiceReply": true,
         "hintPartial": "Близко) верно: {ok}, не хватило: {missed}",
         "hintSilence": "Не слышу тебя) говори чуть громче и ближе к микрофону",
         "translation": "Мне нужно с тобой поговорить",
@@ -9428,9 +9417,12 @@
             "table-left": "pastry-plate",
             "window": "window",
             "wall-menu": "menu-board",
+            "wall-art": "picture",
             "ceiling": "pendant-lamp",
             "counter": "coffee-machine",
-            "floor-left": "plant"
+            "floor-left": "plant",
+            "floor-right": "floor-lamp",
+            "table-right": "laptop"
           },
           "timeline": [
             {

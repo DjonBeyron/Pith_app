@@ -31,7 +31,6 @@ export function checkSayPhrase(nodes, start) {
     if (startWords && tokenize(d.phrase).length >= 3 && startWords.includes(tokenize(d.phrase).join(' '))) out.push(`${n.ref} say_phrase: startHint содержит всю фразу «${d.phrase}» — подсказка должна давать только начало (1–2 слова), а не отвечать за ученика`)
     // Свободная фраза (pattern): битый шаблон молча заменяется проверкой по эталону; голосовое с текстом у неё не записывается (системное распознавание)
     if (d.pattern && !parsePattern(d.pattern).ok) out.push(`${n.ref} say_phrase: шаблон pattern не разобрался (${parsePattern(d.pattern).error}) — проверка пойдёт по эталону`)
-    if (readSayData(d).pattern && d.voiceReply === true) out.push(`${n.ref} say_phrase: у свободной фразы (pattern) voiceReply не работает — «голосовое с текстом» пишет только Vosk, а шаблон идёт на системное распознавание`)
     for (const s of d.signals ?? []) {
       if (s.slot !== 0) out.push(`${n.ref} say_phrase: у «Сказать фразу» один слот сигнала (0 — первая неудачная попытка), а указан ${s.slot}`)
       const hint = nodes.find(x => x.ref === s.ref)

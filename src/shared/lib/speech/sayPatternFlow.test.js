@@ -33,9 +33,10 @@ describe('«Сказать фразу» со свободной фразой (pa
     expect(buildHint(data, { verdict: v })).toEqual({ kind: 'partial', text: 'Почти! Верно: I, try. Не хватило: to.' })
   })
 
-  it('движок: свободная фраза всегда идёт на системное распознавание, обычная при готовом Vosk — на Vosk', () => {
+  it('движок: свободная фраза при готовом Vosk идёт на Vosk (переключатель вкл по умолчанию), при выключенном переключателе — на системное', () => {
     const ready = { cached: true, loaded: true, libReady: true }
-    expect(pickEngine({ phrase: free.phrase, free: true, ...ready })).toEqual({ engine: 'system', reason: 'free' })
+    expect(pickEngine({ phrase: free.phrase, free: true, ...ready })).toEqual({ engine: 'vosk', reason: 'ready' })
+    expect(pickEngine({ phrase: free.phrase, free: true, freeVosk: false, ...ready })).toEqual({ engine: 'system', reason: 'free' })
     expect(pickEngine({ phrase: free.phrase, ...ready })).toEqual({ engine: 'vosk', reason: 'ready' })
   })
 })

@@ -50,11 +50,11 @@ describe('линтер: свободная фраза и сигнал у «Ск�
     expect(lintLesson(withHint('Слушай: We will try pottery!')).join('\n')).toMatch(/произносит всю фразу/)
   })
 
-  it('битый шаблон, voiceReply у шаблона, чужой слот и сигнал в никуда', () => {
+  it('битый шаблон, voiceReply у шаблона разрешён (Vosk), чужой слот и сигнал в никуда', () => {
     const w = lintLesson(say({ pattern: 'I (try', signals: [{ slot: 2, ref: 'n9' }] })).join('\n')
     expect(w).toMatch(/шаблон pattern не разобрался/)
     expect(w).toMatch(/один слот сигнала/)
     expect(w).toMatch(/несуществующую ноду n9/)
-    expect(lintLesson(say({ pattern: 'I try to **', voiceReply: true })).join('\n')).toMatch(/voiceReply не работает/)
+    expect(lintLesson(say({ pattern: 'I try to **', voiceReply: true })).join('\n')).not.toMatch(/voiceReply/)
   })
 })

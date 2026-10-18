@@ -112,3 +112,17 @@ describe('подача заданий и таблицы', () => {
     expect(checkFlow([sys(1), sys(2), sys(3), sys(4), { ref: 'tb', type: 'table', data: {}, triggers: [] }]).filter(w => /R-table/.test(w))).toEqual([])
   })
 })
+
+describe('практика, в которую входят через пункт меню (variant у верного варианта)', () => {
+  const menu = { ref: 'm', type: 'word_choice', data: { options: [{ text: 'Практика', isCorrect: true }, { text: 'Объясни', isCorrect: true }] }, triggers: [
+    { if: 'variant', variantLabel: 'Практика', then: 't' }, { if: 'variant', variantLabel: 'Объясни', then: null }] }
+  const text = { ref: 't', type: 'text', data: { content: 'мы идём в парк: We go to the park' }, triggers: [{ if: 'timer', then: 's' }] }
+  const say = { ref: 's', type: 'say_phrase', data: { phrase: 'We go to the park' }, triggers: [] }
+  it('ветка практики не считается «веткой ошибки»: тавтология в ней ловится', () => {
+    expect(checkFlow([menu, text, say]).join()).toContain('[R-tautology] s')
+  })
+  it('а вход через вариант НЕВЕРНОГО ответа остаётся веткой ошибки (подсказка, не пояснение)', () => {
+    const wrongMenu = { ...menu, data: { options: [{ text: 'Практика', isCorrect: false }, { text: 'Объясни', isCorrect: true }] } }
+    expect(checkFlow([wrongMenu, text, say]).filter(w => /R-tautology/.test(w))).toEqual([])
+  })
+})

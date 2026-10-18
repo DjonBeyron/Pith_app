@@ -5,12 +5,12 @@ import { createVoskRecognizer } from '../vosk/voskRecognizer.js'
 
 const READY = { phrase: 'I want to dance', free: true, cached: true, loaded: true, libReady: true, now: 1000 }
 
-describe('свободные фразы на Vosk (эксперимент, по умолчанию выключен)', () => {
-  it('флаг: по умолчанию выкл, «1» включает, сброс выключает', () => {
+describe('свободные фразы на Vosk (по умолчанию включено)', () => {
+  it('флаг: по умолчанию вкл, «0» выключает, сброс снова включает', () => {
     const m = new Map(); const store = { getItem: k => m.get(k) ?? null, setItem: (k, v) => m.set(k, v), removeItem: k => m.delete(k) }
-    expect(isSayFreeVoskOn(store)).toBe(false)
-    setSayFreeVoskOn(true, store); expect(m.get(SAY_FREE_VOSK_KEY)).toBe('1'); expect(isSayFreeVoskOn(store)).toBe(true)
-    setSayFreeVoskOn(false, store); expect(isSayFreeVoskOn(store)).toBe(false)
+    expect(isSayFreeVoskOn(store)).toBe(true)
+    setSayFreeVoskOn(false, store); expect(m.get(SAY_FREE_VOSK_KEY)).toBe('0'); expect(isSayFreeVoskOn(store)).toBe(false)
+    setSayFreeVoskOn(true, store); expect(m.has(SAY_FREE_VOSK_KEY)).toBe(false); expect(isSayFreeVoskOn(store)).toBe(true)
   })
 
   it('выкл: pattern → системное; вкл и Vosk готов → Vosk; вкл, но Vosk не в памяти → системное (запасной путь)', () => {

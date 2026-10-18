@@ -27,10 +27,18 @@ export function answersOf(n) {
   return []
 }
 
+/** Переход — «ветка ошибки»: wrong/skip всегда; variant — только у неверного варианта (у верного, как пункты меню «Сразу к практике», это основной поток) */
+function isWrongEdge(m, t, re) {
+  if (!re.test(t.if)) return false
+  if (t.if !== 'variant') return true
+  const opt = (m.data?.options ?? []).find(o => o?.text === t.variantLabel)
+  return opt ? opt.isCorrect !== true : true
+}
+
 /** Ноды, в которые попадают только через ветку ошибки/пропуска (подсказки «Бывает, смотри ещё раз»): основной поток их не читает */
 export function wrongOnlySet(nodes, wrongRe = WRONG) {
   const incoming = new Map()
-  for (const m of nodes) for (const t of m.triggers ?? []) if (t.then) incoming.set(t.then, [...(incoming.get(t.then) ?? []), { from: m.ref, wrong: wrongRe.test(t.if) }])
+  for (const m of nodes) for (const t of m.triggers ?? []) if (t.then) incoming.set(t.then, [...(incoming.get(t.then) ?? []), { from: m.ref, wrong: isWrongEdge(m, t, wrongRe) }])
   const set = new Set()
   let grew = true
   while (grew) {
@@ -41,7 +49,7 @@ export function wrongOnlySet(nodes, wrongRe = WRONG) {
 }
 
 const WRONG = /wrong|skip|variant/
-const predecessors = (nodes, ref) => nodes.filter(m => (m.triggers ?? []).some(t => t.then === ref && !WRONG.test(t.if)))
+const predecessors = (nodes, ref) => nodes.filter(m => (m.triggers ?? []).some(t => t.then === ref && !isWrongEdge(m, t, WRONG)))
 
 /** Цепочки из подряд идущих text-нод длиннее MAX_TEXT_RUN (по основному потоку: триггер → следующая нода) */
 function checkTextRuns(nodes) {

@@ -51,7 +51,7 @@ export default function SpeechSayBlock() {
       <p className="aspHint">На время записи модуль ставит navigator.audioSession.type = «play-and-record» (до старта записи, в том же тапе) и возвращает «auto» после результата, ошибки или остановки. Лечит «глухие» вторые запуски, если их причина — аудиосессия iOS. Побочный эффект: звук на это время может идти через ресивер. Нужен iOS 16.4+ (иначе ничего не делает). В серой плашке админа над панелью — пометка «аудиосессия: play-and-record».</p>
       <div className="aspRow">
         <button type="button" className={`aspChip${freeVosk ? ' aspChipOn' : ''}`} onClick={toggleFree} aria-pressed={freeVosk} data-testid="say-free-vosk-toggle">
-          Свободные фразы на Vosk (эксперимент): {freeVosk ? 'вкл' : 'выкл'}
+          Свободные фразы на Vosk (по умолчанию вкл): {freeVosk ? 'вкл' : 'выкл'}
         </button>
       </div>
       <p className="aspHint">Фразы по шаблону («I want to **») распознаёт Vosk с открытым словарём, а не системное распознавание iPhone: у Vosk нет своих сигналов начала и конца записи, и они не мешают звуку верного ответа. Точность открытого словаря ниже закрытого — проверяй на своём голосе. Не готов Vosk — попытка идёт на системном, как раньше.</p>
