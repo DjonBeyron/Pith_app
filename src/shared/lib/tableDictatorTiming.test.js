@@ -86,3 +86,15 @@ describe('состояние таблицы в момент t', () => {
     expect([...computeRevealedCellIds(tl, 9)]).toEqual(['b'])
   })
 })
+
+describe('computeRevealedCellIds: длина композиции короче озвучки', () => {
+  const layer = (cellId, reveal) => ({ cellId, visible: true, clips: [{ start: 1, end: 20 }, reveal] })
+  it('клип проявления «с нуля до общего конца» не гасит текст после timelineLen', () => {
+    const layers = [layer('a', { start: 0, end: 11 }), layer('b', { start: 0, end: 11 })]
+    expect([...computeRevealedCellIds(layers, 15)].sort()).toEqual(['a', 'b'])
+  })
+  it('подрезанный автором клип проявления по-прежнему гасит текст', () => {
+    const layers = [layer('a', { start: 0, end: 11 }), layer('b', { start: 0, end: 4 })]
+    expect([...computeRevealedCellIds(layers, 15)]).toEqual(['a'])
+  })
+})

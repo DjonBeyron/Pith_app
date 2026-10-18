@@ -19,6 +19,7 @@ import { PERMISSION_GUARD_MS } from '../speech/speechPolicy.js'
 import { startListening } from './voskEngine.js'
 import { AUTOSTOP_PHRASE, AUTOSTOP_FULL } from './voskTiming.js'
 import { buildSayGrammar, sayCompleteCheck } from './sayVoskGrammar.js'
+import { matchPattern } from '../speech/sayPattern.js'
 import { cleanPartial, cleanResult, VOSK_MIN_CONF, VOSK_TAIL_MIN_CONF } from './voskResult.js'
 import { buildRaw } from './voskRaw.js'
 
@@ -71,8 +72,9 @@ export function createVoskRecognizer({
 
   function onResult(a, text, stats) {
     if (!live(a)) return
-    const r = cleanResult({ text, words: stats?.words, minConf, tailWord: a.tailWord })
-    const raw = buildRaw({ rawText: text, stats, cleaned: r, partial: a.text, minConf, tailWord: a.tailWord, tailMinConf: VOSK_TAIL_MIN_CONF })
+    const mc = a.open ? 0 : minConf // открытый словарь: уверенность слов не отсекаем (ученик говорит своё)
+    const r = cleanResult({ text, words: stats?.words, minConf: mc, tailWord: a.tailWord })
+    const raw = buildRaw({ rawText: text, stats, cleaned: r, partial: a.text, minConf: mc, tailWord: a.tailWord, tailMinConf: VOSK_TAIL_MIN_CONF })
     const t = since(a)
     const tStop = stats?.afterStopMs != null ? Math.max(0, t - stats.afterStopMs) : t
     dispose(a, true)
@@ -126,11 +128,14 @@ export function createVoskRecognizer({
       if (!model) { fail(a, 'vosk-error', 'модель не в памяти'); return }
       let p
       try {
-        const g = buildSayGrammar(data ?? { phrase: reference })
+        const open = !!(data?.pattern || data?.open) // свободная фраза (эксперимент sayFreeVosk.js): словарь открытый, «вся фраза» — по шаблону
+        a.open = open
+        const g = open ? { json: null, phrases: [] } : buildSayGrammar(data ?? { phrase: reference })
         a.tailWord = g.phrases[0]?.split(' ').at(-1) ?? ''
+        const isComplete = open ? (data.pattern ? text => matchPattern(data.pattern, text).passed : () => false) : sayCompleteCheck(data ?? { phrase: reference })
         p = listen(model, g.json, callbacks(a), {
           autoStopMs: SAY_AUTOSTOP_MS, completeMs: SAY_FULL_MS, maxMs: SAY_MAX_MS, session: getSession(), chunk: SAY_CHUNK,
-          gate: true, cleanPartial, isComplete: sayCompleteCheck(data ?? { phrase: reference }), record: !!record,
+          gate: true, cleanPartial, isComplete, record: !!record,
         })
       } catch (e) { p = Promise.reject(e) }
       Promise.resolve(p).then(h => {

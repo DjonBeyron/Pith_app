@@ -1,10 +1,15 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { pLog } from '../../../../shared/lib/debug.js'
 
-// Реакция на сообщение — как в мессенджере: своего пузыря у неё нет, эмодзи
-// садится в ЛЕВЫЙ НИЖНИЙ угол пузыря и наполовину выходит наружу. Пузырь при
-// этом не растёт: элемент абсолютный, из потока выключен (см. reaction.css).
+// Реакция на сообщение — как в мессенджере: своего пузыря у неё нет.
+// Два вида посадки (reaction.css):
+//  · «в пузыре» (flow) — у текстовых пузырей и ответов ученика: пузырь ПЛАВНО
+//    подрастает вниз на строку, и эмодзи-плашка лежит внутри него, как в
+//    Telegram. Рост рисует сам PlayerBubble (событие pbresize), историю он
+//    двигает ровно так же, как рост голосового;
+//  · угловой — у остальных пузырей (фото, голосовое...): эмодзи в левом нижнем
+//    углу наполовину наружу, пузырь не растёт (абсолют, из потока выключен).
 //
 // Поэтому портал, а не обычный рендер: пузырь рисует модуль сообщения-хозяина
 // (их полтора десятка — text, audio, photo, AnswerBubbles с ответом ученика...),
@@ -28,6 +33,7 @@ const SPARKS = [
 ]
 
 const SPRING = 'cubic-bezier(0.34, 1.56, 0.64, 1)'
+const FLOW_LAG_MS = 160
 
 // Ответ ученика — пузыри справа (AnswerBubbles / WordChoiceModule),
 // реплика учителя — все остальные, включая стикеры (нужны в селекторе,
@@ -45,15 +51,25 @@ const SEL_TEACHER = '.playerMsgBubble:not(.playerMsgBubble--response), .stickerB
 // значок вместо аккуратной реакции). Если самое свежее сообщение — стикер,
 // реакция просто не рисуется вовсе (а не переезжает на более старый пузырь,
 // который ей на самом деле не адресован).
-function findBubble(selector) {
+// anchor — режим разбора: все сообщения урока стоят в ленте разом, и «последний
+// подходящий пузырь» был бы последним во всём уроке. Берём ближайший ПЕРЕД
+// строкой самой реакции (в плеере у реакции строки нет, anchor = null)
+function findBubble(selector, anchor = null) {
   const feed = document.querySelector('.playerFeedInner')
   if (!feed) return null
   const found = [...feed.querySelectorAll(selector)]
     .filter(el => !el.closest('[data-pending]'))
+    .filter(el => !anchor || (anchor.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_PRECEDING))
   if (!found.length) return null
   const last = found[found.length - 1]
   return last.classList.contains('stickerBubble') ? null : last
 }
+
+// Пузыри, куда эмодзи садится «внутрь» (с ростом пузыря): текст учителя и ответ
+// ученика. Крупные одиночные эмодзи и голосовой ответ — со своей вёрсткой, им угловая посадка
+const FLOW_SEL = '.playerMsgBubble--response, .playerMsgBubble--text'
+const FLOW_NOT = '.playerMsgBubble--emojiOnly, .playerMsgBubble--voice'
+const isFlow = el => !!el && el.matches(FLOW_SEL) && !el.matches(FLOW_NOT)
 
 // Для лога: какой пузырь выбран (класс-модификатор + начало текста)
 function describe(el) {
@@ -76,7 +92,7 @@ const RETARGET_MS = 1000
 // этого флага эмодзи влетал в пузырь ещё в pending-фазе, а на reveal нода
 // переезжала из хвоста списка в основной (другой слот у React → ремаунт) и
 // влетал второй раз — то самое «анимация играет несколько раз».
-export default function ReactionModule({ node, onDone, pending = false }) {
+export default function ReactionModule({ node, onDone, pending = false, anchorRef = null }) {
   const data = node.typeData?.reaction ?? {}
   const emoji = (data.emoji ?? '👍').trim() || '👍'
   const toStudent = (data.target ?? 'student') === 'student'
@@ -110,14 +126,14 @@ export default function ReactionModule({ node, onDone, pending = false }) {
     // переезжает на него. Ждать «стабилизации» ленты тут нельзя — пока ответ
     // едет, количество пузырей как раз стабильно, и любое ожидание истекло бы
     // впустую, задержав реакцию там, где она и так на месте.
-    const first = findBubble(sel)
+    const first = findBubble(sel, anchorRef?.current)
     pLog(`${tag} цель: ${describe(first)}`)
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setTarget(first)
     const t0 = performance.now()
     let raf = 0
     const watch = () => {
-      const now = findBubble(sel)
+      const now = findBubble(sel, anchorRef?.current)
       setTarget(prev => {
         if (now && now !== prev) pLog(`${tag} ретаргет через ${Math.round(performance.now() - t0)}мс: ${describe(now)}`)
         return now && now !== prev ? now : prev
@@ -128,13 +144,25 @@ export default function ReactionModule({ node, onDone, pending = false }) {
     return () => cancelAnimationFrame(raf)
   }, [toStudent, pending]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Класс на пузыре: он якорь для абсолютного эмодзи и включает растушёвку
-  // низа — фон и обводка тают книзу, чтобы кромка не резала угол под реакцией
-  useEffect(() => {
+  // Класс на пузыре: он якорь для абсолютного эмодзи. flow-режим добавляет пузырю нижнее поле под плашку
+  // (reaction.css) и тут же сообщает PlayerBubble (pbresize), что высота выросла: тот ПЛАВНО довезёт высоту.
+  // layout-эффект — до отрисовки кадра, иначе на один кадр пузырь стал бы высоким рывком. История («Продолжить
+  // урок») и разбор — reactInstant: сразу в конечном виде, без роста
+  const flow = isFlow(target)
+  useLayoutEffect(() => {
     if (!target) return
     target.classList.add('playerMsgBubbleReacted')
-    return () => target.classList.remove('playerMsgBubbleReacted')
-  }, [target])
+    if (flow) {
+      if (node.isHistory) target.setAttribute('data-react-instant', '1')
+      target.classList.add('playerMsgBubbleReactedFlow')
+      target.dispatchEvent(new Event('pbresize'))
+    }
+    return () => {
+      target.classList.remove('playerMsgBubbleReacted', 'playerMsgBubbleReactedFlow')
+      target.removeAttribute('data-react-instant')
+      if (flow) target.dispatchEvent(new Event('pbresize'))
+    }
+  }, [target]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!target || hasAnimatedRef.current) return
@@ -144,6 +172,8 @@ export default function ReactionModule({ node, onDone, pending = false }) {
     // виде, без анимации появления (искры не нужны вовсе — opacity:0 по
     // умолчанию в reaction.css, без .animate() их и не видно)
     if (node.isHistory) return
+    // flow: эмодзи вылетает, когда пузырь уже тронулся вниз
+    const lag = isFlow(target) ? FLOW_LAG_MS : 0
     glyphRef.current?.animate(
       [
         { transform: 'translateY(10px) scale(0) rotate(-30deg)', opacity: 0, offset: 0 },
@@ -152,7 +182,7 @@ export default function ReactionModule({ node, onDone, pending = false }) {
         { transform: 'translateY(0) scale(1.07) rotate(2deg)', offset: 0.84 },
         { transform: 'translateY(0) scale(1) rotate(0deg)', opacity: 1, offset: 1 },
       ],
-      { duration: 760, easing: SPRING, fill: 'forwards' }
+      { duration: 760, delay: lag, easing: SPRING, fill: 'both' }
     )
     sparkRefs.current.forEach((el, i) => {
       if (!el) return
@@ -167,13 +197,13 @@ export default function ReactionModule({ node, onDone, pending = false }) {
           { transform: `translate(${tx * 0.45}px,${ty * 0.45}px) scale(1.05) rotate(${spin * 0.4}deg)`, opacity: 0.95, offset: 0.32 },
           { transform: `translate(${tx}px,${ty}px) scale(0.3) rotate(${spin}deg)`, opacity: 0, offset: 1 },
         ],
-        { duration: 900, delay: 140 + delay, easing: 'cubic-bezier(0.22, 1, 0.36, 1)', fill: 'forwards' }
+        { duration: 900, delay: 140 + delay + lag, easing: 'cubic-bezier(0.22, 1, 0.36, 1)', fill: 'forwards' }
       )
     })
   }, [target]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const badge = (
-    <span className="reactionInBubble">
+    <span className={`reactionInBubble${flow ? ' reactionInBubble--flow' : ''}`}>
       <span className="reactionGlyph" ref={glyphRef}>
         {emoji}
         {SPARKS.map((s, i) => (

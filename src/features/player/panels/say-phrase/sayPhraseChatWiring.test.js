@@ -112,7 +112,7 @@ describe('say_phrase — чат: реплика ученика и подсказ
     expect(body).toContain('[failNo]')
     expect(read('../../../../shared/lib/speech/sayHints.js')).toContain('HINT_DELAY_MS = QUIET_TAIL_MS + 60')
     // тот же путь и тот же тег, что у остальных модулей: handlePhraseAnswer → AnswerBubbles рисует wrong_final справа, hint — слева
-    expect(playerPanels).toContain('handlePhraseAnswer(spNode.id, text, result, arriving, voiceId)')
+    expect(playerPanels).toContain('handlePhraseAnswer(spNode.id, text, result, arriving, voiceId, autoPlay)')
     const bubbles = read('../../modules/AnswerBubbles.jsx')
     expect(bubbles).toMatch(/b\.result === 'wrong_final'\) return \(\s*<div key=\{i\} \{\.\.\.rowProps\(b, i, 'playerMsgRow playerMsgRowRight'\)\}>/)
     expect(bubbles).toMatch(/b\.result === 'hint'\) return \(\s*<div key=\{i\} \{\.\.\.rowProps\(b, i, 'playerMsgRow'\)\}>/)
@@ -123,7 +123,7 @@ describe('say_phrase — чат: реплика ученика и подсказ
     expect(body).toMatch(/function flushPending\(\) \{\s*clearTimeout\(hintTimer\.current\)\s*const reply = pendingReply\.current\s*const voiceId = pendingVoice\.current\s*pendingReply\.current = null\s*pendingVoice\.current = null\s*if \(reply\) onAnswered\?\.\(reply, 'wrong_final', false, voiceId\)/)
     expect(body).toMatch(/function tapMic\(\) \{\s*flushPending\(\)/)
     expect(body).toMatch(/closingRef\.current = true\s*clearTimeout\(wrongTimer\.current\)\s*flushPending\(\)/)
-    expect(body).toContain("onAnswered?.(kind === 'passed' ? successReply(sp.verdict, data.phrase) : data.phrase, 'correct', true, voiceId)") // после успеха — пузырь: эталон, если все слова услышаны, иначе услышанное (successReply); палочка админа — эталон
+    expect(body).toContain("onAnswered?.(kind === 'passed' ? successReply(sp.verdict, data.phrase) : data.phrase, 'correct', true, voiceId, !!voiceId && data.playOwnVoice)") // после успеха — пузырь: эталон, если все слова услышаны, иначе услышанное (successReply); палочка админа — эталон
     expect(body).toContain("import { successReply } from '../../../../shared/lib/speech/sayReply.js'")
   })
 })

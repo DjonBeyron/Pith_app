@@ -3,6 +3,9 @@ import { usePhraseAssembly } from './usePhraseAssembly.js'
 import PhraseBank from './PhraseBank.jsx'
 import PhraseAnswerRow from './PhraseAnswerRow.jsx'
 import { playSound } from '../../../../shared/lib/sounds.js'
+import { playCorrectWithVoice } from '../../../../shared/lib/correctVoiceScheduler.js'
+import { phraseAnswerVoiceKey } from '../../../../shared/lib/wordAudio/correctVoiceKeys.js'
+import { playWord } from '../../word-audio/wordAudioPlayer.js'
 import { rememberTap } from '../../xpAnchor.js'
 import { usePanelHeight } from '../usePanelHeight.js'
 import { usePanelRiseDrop } from '../usePanelRiseDrop.js'
@@ -163,7 +166,10 @@ export default function PhraseAssemblyPanel({
     // счётчик неверных, ни статистика её не видят, панель не закрылась
     if (!r || r === 'signal') return
     onChecked?.(r, placed.map(p => p.word).join(' '))
-    playSound(r === 'correct' ? 'answer-correct' : 'answer-wrong', 'собери фразу')
+    // Верный: звук интерфейса, затем (на 65% его длительности) озвучка собранной фразы целиком — чекбокс ноды voiceAnswer
+    const voiceKey = r === 'correct' ? phraseAnswerVoiceKey(pa, placed.map(p => p.word)) : null
+    if (voiceKey) playCorrectWithVoice('собери фразу', () => playWord(voiceKey))
+    else playSound(r === 'correct' ? 'answer-correct' : 'answer-wrong', 'собери фразу')
     if (r === 'correct' && xpAmount > 0 && !xpFiredRef.current) {
       xpFiredRef.current = true
       // Пузырь с фразой в чате будет всегда — XP ждёт его и летит от него

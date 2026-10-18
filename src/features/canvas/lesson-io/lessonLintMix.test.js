@@ -17,9 +17,9 @@ describe('lessonLintMix', () => {
     expect(checkMix([W('q', 'a'), A('a')]).join()).toMatch(/R-wrong-audio/)
     expect(checkMix([W('q', 't'), T('t', 'не совсем) подсказка')])).toEqual([])
   })
-  it('R-emoji-share: только текстовые смайлики — замечание, микс — нет', () => {
-    expect(checkMix(['1', '2', '3', '4', '5'].map(i => T('e' + i, '😋'))).join()).toMatch(/R-emoji-share/)
-    expect(checkMix([T('e1', '😋'), T('e2', '🥱'), S('s1'), S('s2'), S('s3')])).toEqual([])
+  it('R-emoji-sticker: одиночный смайлик текстом — замечание, стикер — нет', () => {
+    expect(checkMix([T('e1', '😋')]).join()).toMatch(/R-emoji-sticker\] e1/)
+    expect(checkMix([S('s1'), S('s2')])).toEqual([])
   })
   it('R-repeat: одинаковая реплика дословно', () => {
     expect(checkMix([T('a', 'а ну-ка на слух 👂'), T('b', 'а ну-ка на слух 👂')]).join()).toMatch(/R-repeat/)

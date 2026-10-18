@@ -77,6 +77,8 @@ describe('startListening: уровень голоса, готовность, о�
     expect(r.made.ctx.close).toHaveBeenCalledTimes(1)
     expect(r.rec.remove).toHaveBeenCalled()
     expect(r.proc.disconnect).toHaveBeenCalled()
+    expect(audioSession.type).toBe('play-and-record') // сессию возвращаем только ПОСЛЕ закрытия контекста
+    await vi.advanceTimersByTimeAsync(0)
     expect(audioSession.type).toBe('auto')
   })
 
@@ -92,6 +94,7 @@ describe('startListening: уровень голоса, готовность, о�
     h2.cancel(); h2.cancel()
     expect(r2.track.stop).toHaveBeenCalled()
     expect(r2.made.ctx.close).toHaveBeenCalledTimes(1)
+    await vi.advanceTimersByTimeAsync(0)
     expect(navigator.audioSession.type).toBe('auto')
     expect(r2.cb.onResult).not.toHaveBeenCalled() // после cancel итог не нужен
   })

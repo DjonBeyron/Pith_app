@@ -326,8 +326,8 @@ export default function TableDictatorPanel({ node, file, onDone, onHeightChange,
       waveformData={waveformData} hudVisible={hudVisible}
       assembled={assembled} extrasAssembled={extrasAssembled} result={result}
       audioSrc={audioSrc} phase={phase} table={table}
-      /* своя надпись верхнего бокса — только когда таблица уедет в чат */
-      caption={tData.sendToChat === true ? (tData.chatCaption ?? '') : ''}
+      /* надпись шапки из ноды стоит всю озвучку и не подменяется словами диктора */
+      caption={tData.chatCaption ?? ''}
       highlighted={highlighted} usedCells={usedCells} revealedIds={revealedIds}
       flashDur={flashDur} chipsVisible={chipsVisible}
       shuffledExtras={shuffledExtras} chipStyles={chipStyles}

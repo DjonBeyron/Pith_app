@@ -1,10 +1,9 @@
-// Проверки «баланса» урока: доля голоса и текста, одиночные смайлики (текст или стикер), повторы реплик, заголовки таблиц, голос в ветке ошибки.
+// Проверки «баланса» урока: доля голоса и текста, одиночные смайлики (только стикером), повторы реплик, заголовки таблиц, голос в ветке ошибки.
 // Чистые функции на формате обмена ({ ref, type, data, triggers }) после applyMarkup, возвращают строки-замечания.
 import { wrongOnlySet, isEmojiOnly } from './lessonLintFlow.js'
 
 const textOf = n => String(n.data?.content ?? n.data?.text ?? n.data?.caption ?? '').trim()
 const VOICE_SHARE = [0.3, 0.7]  // голосовые сообщения среди (текст + голос): 50% ± 20%
-const EMOJI_TEXT_SHARE = [0.25, 0.55] // среди одиночных смайликов текстом ~40%, стикером ~60%
 
 /** Голосовых (audio) и текстовых сообщений примерно поровну: 30–70% голоса */
 function checkVoiceShare(nodes) {
@@ -27,16 +26,10 @@ function checkWrongAudio(nodes) {
     .map(n => `[R-wrong-audio] ${n.ref}: голосовое сообщение в ветке ошибки — подсказку при ошибке пиши текстом`)
 }
 
-/** Одиночные смайлики: ~40% отдельным текстом, ~60% стикером (с imagePrompt) */
-function checkEmojiShare(nodes) {
-  const emoji = nodes.filter(isEmojiOnly).length
-  const stickers = nodes.filter(n => n.type === 'sticker').length
-  const total = emoji + stickers
-  if (total < 5) return []
-  const share = emoji / total
-  return share < EMOJI_TEXT_SHARE[0] || share > EMOJI_TEXT_SHARE[1]
-    ? [`[R-emoji-share] одиночных смайликов текстом ${Math.round(share * 100)}% (${emoji} из ${total}), нужно примерно 40% текстом и 60% стикерами (sticker + imagePrompt)`]
-    : []
+/** Одиночный смайлик — только стикером (нода sticker + imagePrompt), а не отдельным текстом */
+function checkEmojiSticker(nodes) {
+  return nodes.filter(isEmojiOnly)
+    .map(n => `[R-emoji-sticker] ${n.ref}: одиночный смайлик текстовым сообщением — ставь стикером (нода sticker с imagePrompt, большой стикер как в Telegram)`)
 }
 
 /** Одинаковые реплики дословно (кроме коротких) — чередуй формулировки: «а ну-ка на слух», «давай на слух» */
@@ -145,5 +138,5 @@ function checkManyUnderlines(nodes) {
 }
 
 export function checkMix(nodes) {
-  return [...checkTeacherWord(nodes), ...checkManyUnderlines(nodes), ...checkStartMenu(nodes), ...checkKeyMarks(nodes), ...checkPinSystem(nodes), ...checkTableTriggers(nodes), ...checkLowercase(nodes), ...checkKsta(nodes), ...checkVoiceSmileys(nodes), ...checkHintUzhe(nodes), ...checkVoiceShare(nodes), ...checkWrongAudio(nodes), ...checkEmojiShare(nodes), ...checkRepeats(nodes), ...checkTableTitles(nodes)]
+  return [...checkTeacherWord(nodes), ...checkManyUnderlines(nodes), ...checkStartMenu(nodes), ...checkKeyMarks(nodes), ...checkPinSystem(nodes), ...checkTableTriggers(nodes), ...checkLowercase(nodes), ...checkKsta(nodes), ...checkVoiceSmileys(nodes), ...checkHintUzhe(nodes), ...checkVoiceShare(nodes), ...checkWrongAudio(nodes), ...checkEmojiSticker(nodes), ...checkRepeats(nodes), ...checkTableTitles(nodes)]
 }

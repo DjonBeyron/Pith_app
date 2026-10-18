@@ -1,4 +1,4 @@
-import { useMemo, useRef } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import AudioWave from '../audio/AudioWave.jsx'
 import { PlayTriangle, PauseIcon } from '../audio/AudioPlayIcons.jsx'
 import { fmtAudioTime } from '../../../../shared/lib/audioUtils.js'
@@ -9,12 +9,20 @@ import { useSayVoicePlayer } from './useSayVoicePlayer.js'
 // Содержимое пузыря-голосового ученика («Сказать фразу», режим ноды «голосовое с текстом»): кнопка play/pause, статичная волна по peaks клипа, длительность (форма и пропорции — те же классы
 // и AudioWave, что у голосового учителя, AudioModule) и под ним текст распознанного. Клип берётся из реестра сессии по voiceId (sayVoiceStore.js); клипа нет — вызывающий (AnswerBubbles) сюда не заходит.
 // Знак ✓/✕ ставит не пузырь (его ::after в голосовом режиме скрыт, say-voice.css), а хвост текста (.sayVoiceText--ok/--err). Кнопка ≥44 px (36 + зона ::after у .playerAudioBtn); aria-label «Прослушать свой ответ».
-export default function SayVoiceReply({ voiceId, text, result }) {
+// autoPlay — верный ответ, пузырь уже на виду (не отложен), в ноде включён playOwnVoice: через AUTOPLAY_DELAY_MS играет СВОЙ записанный голос ученика (один раз).
+const AUTOPLAY_DELAY_MS = 350 // звук интерфейса «верно» успевает начаться раньше голоса
+export default function SayVoiceReply({ voiceId, text, result, autoPlay = false }) {
   const clip = getSayVoice(voiceId)
   const waveRef = useRef(null)
   const timeRef = useRef(null)
   const muted = usePlayerMuted() // «без звука» урока: играет как обычно (время, волна), но не слышно
   const { audioRef, playing, toggle } = useSayVoicePlayer(clip?.durationMs ?? 0, waveRef, timeRef)
+  const autoDone = useRef(false)
+  useEffect(() => {
+    if (!autoPlay || autoDone.current || !clip) return undefined
+    const t = setTimeout(() => { autoDone.current = true; toggle() }, AUTOPLAY_DELAY_MS)
+    return () => clearTimeout(t)
+  }, [autoPlay, clip, toggle])
   const wave = useMemo(() => (clip?.peaks ?? []).map(p => Math.round(p * 255)), [clip])
   if (!clip) return text
   return (

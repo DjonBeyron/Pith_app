@@ -65,11 +65,12 @@ describe('say_phrase в редакторе — пояснения только �
 
   it('NodeSayVoiceReply: только метка-чекбокс и «i»; галка шлёт voiceReply', () => {
     const html = renderToStaticMarkup(createElement(NodeSayVoiceReply, { voiceReply: true, onChange: noop }))
-    expect(texts(html)).toEqual(['Голосовое с текстом'])
+    expect(texts(html)).toEqual(['Голосовое с текстом', 'Проигрывать его голос при верном ответе']) // второй чекбокс (playOwnVoice) виден только при включённом voiceReply
+    expect(texts(renderToStaticMarkup(createElement(NodeSayVoiceReply, { voiceReply: false, onChange: noop })))).toEqual(['Голосовое с текстом'])
     expect(html).toContain('checked=""')
     expect((html.match(/aria-label="Пояснение"/g) ?? []).length).toBe(1)
     expect(read('./NodeSayVoiceReply.jsx')).toContain('onChange({ voiceReply: e.target.checked })')
-    expect(read('./NodeAnswerFields.jsx')).toContain('voiceReply={tData.voiceReply === true}')
+    expect(read('./NodeAnswerFields.jsx')).toContain('voiceReply={tData.voiceReply === true} playOwnVoice={tData.playOwnVoice !== false}')
   })
 
   it('NodeSayCantSpeakNote: только метка и «i»', () => {

@@ -8,6 +8,8 @@ import NodePhotoChoicePicker    from './NodePhotoChoicePicker.jsx'
 import NodeLessonLink           from './NodeLessonLink.jsx'
 import NodeRewardCheckbox       from './NodeRewardCheckbox.jsx'
 import NodeTimeLimit            from './NodeTimeLimit.jsx'
+import NodeVoiceCheckbox        from './NodeVoiceCheckbox.jsx'
+import { wordKey }              from '../../shared/lib/wordAudio/wordKey.js'
 import { isRewardOn }           from '../../shared/lib/nodeReward.js'
 
 // Поля интерактивных типов-ответов (word_choice/phrase_assembly/fill_blanks/type_word/say_phrase/
@@ -24,6 +26,7 @@ export default function NodeAnswerFields({
   lessonXp = 0,
 }) {
   if (node.type === 'word_choice') {
+    const english = (tData.options ?? []).some(o => o.isCorrect && wordKey(o.text)) // верный вариант английский — озвучка из библиотеки
     return (
       <>
         <NodeWordChoicePicker
@@ -45,6 +48,10 @@ export default function NodeAnswerFields({
           moduleLessons={moduleLessons}
         />
         <NodeTimeLimit value={tData.timeLimitSec} onChange={v => updateTypeData({ timeLimitSec: v })} />
+        <NodeVoiceCheckbox
+          checked={tData.voiceCorrect ?? english} onChange={v => updateTypeData({ voiceCorrect: v })}
+          phrase={tData.voicePhrase} onPhraseChange={english ? undefined : (v => updateTypeData({ voicePhrase: v }))}
+        />
         <NodeRewardCheckbox lessonXp={lessonXp} checked={tData.reward !== false} onChange={v => updateTypeData({ reward: v })} />
       </>
     )
@@ -74,6 +81,7 @@ export default function NodeAnswerFields({
           onSignalMeasure={onSignalMeasure}
         />
         <NodeTimeLimit value={tData.timeLimitSec} onChange={v => updateTypeData({ timeLimitSec: v })} />
+        <NodeVoiceCheckbox kind="phrase" checked={tData.voiceAnswer !== false} onChange={v => updateTypeData({ voiceAnswer: v })} />
         <NodeLessonLink
           value={tData.statLessonId ?? null}
           onChange={v => updateTypeData({ statLessonId: v })}
@@ -158,7 +166,7 @@ export default function NodeAnswerFields({
           lang={tData.lang ?? 'en-US'}
           listenAudio={tData.listenAudio !== false}
           strict={tData.strict === true}
-          voiceReply={tData.voiceReply === true}
+          voiceReply={tData.voiceReply === true} playOwnVoice={tData.playOwnVoice !== false}
           hintsOn={tData.hintsOn !== false}
           hints={{ hintSilence: tData.hintSilence, hintMismatch: tData.hintMismatch, hintPartial: tData.hintPartial, startHint: tData.startHint }}
           pattern={tData.pattern ?? ''}

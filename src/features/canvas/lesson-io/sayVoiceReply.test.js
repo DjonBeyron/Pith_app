@@ -75,8 +75,8 @@ describe('say_phrase — voiceReply (голосовое с текстом)', () 
     for (const w of ['voiceReply: true', 'голосовым сообщением', 'нет поля = только текст', 'Vosk']) expect(rule(), w).toContain(w)
   })
 
-  it('миграция v6 (текущая): текст правила дословно равен PRINCIPLES (одна копия в $rule$); update по префиксу, вставка, если строки нет; идемпотентно', () => {
-    const v5 = read('../../../../supabase/migrations/20261018100000_say_phrase_rules_v6.sql')
+  it('миграция v7 (текущая): текст правила дословно равен PRINCIPLES (одна копия в $rule$); update по префиксу, вставка, если строки нет; идемпотентно', () => {
+    const v5 = read('../../../../supabase/migrations/20261018120000_say_phrase_rules_v7.sql')
     expect(rule()).not.toContain('$rule$')
     expect(v5.split(`$rule$${rule()}$rule$`)).toHaveLength(2)
     expect(v5).toMatch(/update public\.lesson_rules\s+set rule_text = t\s+where rule_text like 'say_phrase \(«Сказать фразу»\) — ученик ПРОИЗНОСИТ%'/)

@@ -55,6 +55,7 @@ export function readSayData(data) {
     lang: SAY_LANGS.includes(d.lang) ? d.lang : LANG_DEFAULT,
     listenAudio: d.listenAudio !== false, // по умолчанию включено; false — отключить
     strict,
+    playOwnVoice: d.playOwnVoice !== false, // при верном ответе голосовое ученика проигрывается само (его реальный голос, не озвучка); нет поля = включено, играет только при voiceReply
     voiceReply: d.voiceReply === true, // «голосовое с текстом»: реплика ученика в чате ещё и голосовым (если речь распознаёт Vosk); нет поля = только текст
     // Подсказки в чат после неудачной попытки: hintsOn отсутствует = включены; пустой текст = стандартный (sayHints.js)
     hintsOn: d.hintsOn !== false,

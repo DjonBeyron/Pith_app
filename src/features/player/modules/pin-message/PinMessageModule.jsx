@@ -21,7 +21,7 @@ export default function PinMessageModule({ node, teacherName, onDone }) {
 
   const name = teacherName || 'Учитель'
   return (
-    <div className="playerMsgRow pinSystemRow" ref={rowRef}>
+    <div className="playerMsgRow pinSystemRow pinSystemRowGap" ref={rowRef}>
       <span className="pinSystemText">{name} закрепил сообщение</span>
     </div>
   )

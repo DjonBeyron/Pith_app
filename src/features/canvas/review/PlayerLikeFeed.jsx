@@ -1,12 +1,15 @@
 import { memo, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import PlayerMessage from '../../player/PlayerMessage.jsx'
+import ReactionModule from '../../player/modules/reaction/ReactionModule.jsx'
 import PhraseBank from '../../player/panels/phrase-assembly/PhraseBank.jsx'
 import PhraseAnswerRow from '../../player/panels/phrase-assembly/PhraseAnswerRow.jsx'
 import ChooseWordOption from '../../player/panels/choose-word/ChooseWordOption.jsx'
 import { nodeFileKey } from '../../player/preloadQueue.js'
+import { isSilentNode } from '../../player/skipNode.js'
 import { TYPE_COLOR } from '../nodeTypes.js'
 import { PlayerMutedContext } from '../../player/playerMuted.js'
-import { Mic, Copy, Check, MessageSquarePlus } from 'lucide-react'
+import { Copy, Check, MessageSquarePlus } from 'lucide-react'
+import SayPanelPreview from './SayPanelPreview.jsx'
 import { answerText } from './lessonTranscript.js'
 import { nodeCopyText } from './nodeCopyText.js'
 
@@ -37,7 +40,7 @@ function ExercisePanel({ node, item, onPick, onChoice }) {
       </div>
     )
   } else if (node.type === 'say_phrase') {
-    body = <div className="rvwSay"><span className="rvwMic"><Mic size={14} /></span><span className="rvwTypeLine">{answerText(node) || d.pattern || ''}</span></div>
+    body = <SayPanelPreview data={d} line={answerText(node) || d.pattern || ''} />
   } else {
     body = <div className="rvwTypeLine">{answerText(node) || LABEL[node.type]}</div>
   }
@@ -61,7 +64,8 @@ function ExercisePanel({ node, item, onPick, onChoice }) {
 function StudentRow({ item }) {
   return (
     <div className={`playerMsgRow playerMsgRowRight rvwStudentRow${item.ok ? '' : ' bad'}`}>
-      <div className="playerMsgBubble playerMsgBubble--text"><p className="playerText">{item.pickedText ?? (item.ok ? (answerText(item.node) || 'верный ответ') : 'неверный ответ')}</p></div>
+      {/* Те же классы, что у ответа ученика в плеере (AnswerBubbles): к такому пузырю липнет реакция (ReactionModule) */}
+      <div className={`playerMsgBubble playerMsgBubble--response ${item.ok ? 'playerMsgBubble--responseOk' : 'playerMsgBubble--responseErr'}`}>{item.pickedText ?? (item.ok ? (answerText(item.node) || 'верный ответ') : 'неверный ответ')}</div>
     </div>
   )
 }
@@ -97,16 +101,30 @@ function SlotTools({ item, count, onNote }) {
   )
 }
 
+function ReactionSlot({ node }) {
+  const ref = useRef(null)
+  return (
+    <div ref={ref} className="rvwReactMark">
+      <ReactionModule node={node} pending={false} onDone={NOOP} anchorRef={ref} />
+      реакция {node.typeData?.reaction?.emoji} · на {(node.typeData?.reaction?.target ?? 'student') === 'student' ? 'ответ ученика' : 'реплику учителя'}
+    </div>
+  )
+}
+
 /** Само сообщение «как в плеере»: панель задания, реакция или настоящий PlayerMessage (без триггеров). Общее для ленты и окна замечания */
 export function SlotBody({ item, canvasNode, canvasNodes, files, teacherName = '', onPick = NOOP, onChoice = NOOP }) {
   if (EXERCISE_TYPES.has(canvasNode.type)) return <ExercisePanel node={item.node} item={item} onPick={onPick} onChoice={onChoice} />
-  if (canvasNode.type === 'reaction') return <div className="playerMsgRow"><span className="rvwEmoji">{canvasNode.typeData?.reaction?.emoji}</span></div>
+  // Реакция — на самом сообщении, как в плеере: ReactionModule (тот же, что в уроке) садится в ближайший пузырь ПЕРЕД этой строкой,
+  // здесь остаётся только подпись (за неё берётся выделение/замечание к ноде)
+  if (canvasNode.type === 'reaction') return <ReactionSlot node={asHistory(canvasNode)} />
+  // Ссылка на урок без выбранного урока: в плеере такая нода пропускается целиком (player/skipNode.js) — тут пустая заглушка
+  if (isSilentNode(canvasNode)) return <div className="rvwPanel rvwEmptyRef" style={{ '--rvw-accent': TYPE_COLOR.lesson_ref ?? '#7a7a96' }}><div className="rvwPanelHead"><span>Ссылка на урок</span></div><div className="rvwTypeLine">урок не выбран — в плеере эта нода и точки «печатает» перед ней пропускаются</div></div>
   // Закреп: строка «<имя учителя> закрепил сообщение» (имя берётся из настроек урока, не «учитель») + что именно закреплено
   if (canvasNode.type === 'pin_message') {
     const pinned = canvasNode.typeData?.pin_message?.content ?? ''
     return (
       <div className="rvwPin">
-        <div className="playerMsgRow pinSystemRow"><span className="pinSystemText">{teacherName || '⚠ имя учителя не задано'} закрепил сообщение</span></div>
+        <div className="playerMsgRow pinSystemRow pinSystemRowGap"><span className="pinSystemText">{teacherName || '⚠ имя учителя не задано'} закрепил сообщение</span></div>
         {pinned && <div className="rvwPinned"><span className="rvwPinIcon">📌</span><span>{pinned}</span></div>}
       </div>
     )

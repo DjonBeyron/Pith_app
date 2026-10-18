@@ -48,11 +48,11 @@ export function usePlayerAnswers() {
   // пока панель не уехала (AnswerBubbles / useDeferredArrival.js);
   // revealPhraseAnswers снимает флаг со всех пузырей ноды
   // voiceId — клип «голосового с текстом» из реестра sayVoiceStore (у остальных модулей его нет)
-  function handlePhraseAnswer(nodeId, text, result, arriving = false, voiceId = null) {
+  function handlePhraseAnswer(nodeId, text, result, arriving = false, voiceId = null, autoPlay = false) {
     setPhraseStates(prev => {
       const arr = prev[nodeId] ?? []
       if (result === 'wrong' && arr.some(b => b.result === 'wrong')) return prev
-      return { ...prev, [nodeId]: [...arr, { text, result, ...(arriving ? { arriving: true } : {}), ...(voiceId ? { voiceId } : {}) }] }
+      return { ...prev, [nodeId]: [...arr, { text, result, ...(arriving ? { arriving: true } : {}), ...(voiceId ? { voiceId } : {}), ...(voiceId && autoPlay ? { autoPlay: true } : {}) }] }
     })
   }
 

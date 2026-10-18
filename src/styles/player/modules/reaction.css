@@ -47,3 +47,31 @@
 .playerMsgBubble--audio.playerMsgBubbleReacted {
   overflow: visible;
 }
+
+/* «В пузыре» (ReactionModule, flow): плашка с эмодзи лежит ВНУТРИ пузыря, у нижнего края слева, как в Telegram.
+   Пузырю добавляется нижнее поле, а рост до него рисует PlayerBubble (inline-высота + переход ~340 мс, событие
+   pbresize). Плашка абсолютная: ширину пузыря не меняет, а ✓/✕ ответа ученика (::after в строке текста) остаётся на месте.
+   Двойной класс — чтобы перебить padding самих пузырей (response: 6px 14px, text: 10px 14px), не завися от порядка файлов */
+.playerMsgBubble.playerMsgBubbleReactedFlow {
+  padding-bottom: 31px;
+  min-width: 58px;
+}
+
+.reactionInBubble--flow {
+  left: 10px;
+  bottom: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 20px;
+  min-width: 30px;
+  padding: 0 7px;
+  box-sizing: border-box;
+  border-radius: 10px;
+  background: rgb(255 255 255 / 9%);
+}
+
+.reactionInBubble--flow .reactionGlyph {
+  filter: none;
+  transform-origin: center;
+}

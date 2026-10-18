@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { isRealLevelOn, setRealLevelOn } from '../../../shared/lib/speech/sayRealLevel.js'
 import { resetMicHints } from '../../../shared/lib/speech/sayPermission.js'
 import { isSayAudioSessionOn, setSayAudioSessionOn } from '../../../shared/lib/speech/sayAudioSession.js'
+import { isSayFreeVoskOn, setSayFreeVoskOn } from '../../../shared/lib/speech/sayFreeVosk.js'
+import { isCtx16kOn, CTX16K_KEY } from '../../../shared/lib/vosk/voskCapture.js'
 import { readSayDwell, writeSayDwell } from '../../../shared/lib/speech/sayDwell.js'
 import { DWELL_PRESETS, DWELL_DEFAULT } from '../../../shared/lib/speech/flashDwell.js'
 import SpeechSayEngine from './SpeechSayEngine.jsx'
@@ -21,10 +23,14 @@ import SpeechSayEngine from './SpeechSayEngine.jsx'
 export default function SpeechSayBlock() {
   const [real, setReal] = useState(isRealLevelOn)
   const [sess, setSess] = useState(isSayAudioSessionOn)
+  const [freeVosk, setFreeVosk] = useState(isSayFreeVoskOn)
+  const [ctx16k, setCtx16k] = useState(isCtx16kOn)
   const [dwell, setDwell] = useState(readSayDwell)
   const [done, setDone] = useState(false)
   const toggle = () => { const next = !real; setRealLevelOn(next); setReal(next) }
   const toggleSess = () => { const next = !sess; setSayAudioSessionOn(next); setSess(next) }
+  const toggleFree = () => { const next = !freeVosk; setSayFreeVoskOn(next); setFreeVosk(next) }
+  const toggleCtx16k = () => { const next = !ctx16k; try { if (next) localStorage.setItem(CTX16K_KEY, '1'); else localStorage.removeItem(CTX16K_KEY) } catch { /* приватный режим */ } setCtx16k(next) }
   const pickDwell = v => setDwell(writeSayDwell(v))
   const reset = () => { resetMicHints(); setDone(true) }
   return (
@@ -43,6 +49,18 @@ export default function SpeechSayBlock() {
         </button>
       </div>
       <p className="aspHint">На время записи модуль ставит navigator.audioSession.type = «play-and-record» (до старта записи, в том же тапе) и возвращает «auto» после результата, ошибки или остановки. Лечит «глухие» вторые запуски, если их причина — аудиосессия iOS. Побочный эффект: звук на это время может идти через ресивер. Нужен iOS 16.4+ (иначе ничего не делает). В серой плашке админа над панелью — пометка «аудиосессия: play-and-record».</p>
+      <div className="aspRow">
+        <button type="button" className={`aspChip${freeVosk ? ' aspChipOn' : ''}`} onClick={toggleFree} aria-pressed={freeVosk} data-testid="say-free-vosk-toggle">
+          Свободные фразы на Vosk (эксперимент): {freeVosk ? 'вкл' : 'выкл'}
+        </button>
+      </div>
+      <p className="aspHint">Фразы по шаблону («I want to **») распознаёт Vosk с открытым словарём, а не системное распознавание iPhone: у Vosk нет своих сигналов начала и конца записи, и они не мешают звуку верного ответа. Точность открытого словаря ниже закрытого — проверяй на своём голосе. Не готов Vosk — попытка идёт на системном, как раньше.</p>
+      <div className="aspRow">
+        <button type="button" className={`aspChip${ctx16k ? ' aspChipOn' : ''}`} onClick={toggleCtx16k} aria-pressed={ctx16k} data-testid="say-ctx16k-toggle">
+          Запись на частоте 16 кГц (старое поведение, хрипы звука): {ctx16k ? 'вкл' : 'выкл'}
+        </button>
+      </div>
+      <p className="aspHint">По умолчанию запись идёт на родной частоте устройства — на iPhone частота 16 кГц переключала аудиосессию и портила звуки приложения («хрип как плёнка»). Включай только для сравнения.</p>
       <div className="aspRow" role="group" aria-label="Порог мелькания ошибочной формы">
         <span className="aspLabelInline">Порог мелькания ошибочной формы (мс)</span>
         {DWELL_PRESETS.map(v => (

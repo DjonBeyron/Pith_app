@@ -8,6 +8,7 @@ import { feedSilence, feedSamples } from './voskTail.js'
 import { createGate } from './voskGate.js'
 import { createRecorder } from './voskRecord.js'
 import { createAudioSession } from '../speech/speechAudioSession.js'
+import { createCaptureContext, releaseCapture } from './voskCapture.js'
 
 const CHUNK = 4096 // кадров на один вызов ScriptProcessor (по умолчанию; модуль «Сказать фразу» просит 2048 — уровень голоса чаще)
 const CHUNKS = [1024, 2048, 4096, 8192] // допустимые размеры opts.chunk
@@ -120,13 +121,10 @@ export async function startListening(model, grammar, cb, opts = {}) {
   const Ctx = window.AudioContext || window.webkitAudioContext
   let ctx, rec
   try {
-    try { ctx = new Ctx({ sampleRate: 16000 }) } catch { ctx = new Ctx() }
-    try { Promise.resolve(ctx.resume?.()).catch(() => {}) } catch { /* контекст и так работает */ }
-    rec = new model.KaldiRecognizer(ctx.sampleRate, grammar)
+    ctx = createCaptureContext(Ctx)
+    rec = grammar ? new model.KaldiRecognizer(ctx.sampleRate, grammar) : new model.KaldiRecognizer(ctx.sampleRate) // без словаря — открытый (свободные фразы)
   } catch (e) { // модель могли выгрузить, AudioContext не создался: микрофон и аудиосессию отпускаем
-    stream.getTracks().forEach(tr => tr.stop())
-    try { Promise.resolve(ctx?.close?.()).catch(() => {}) } catch { /* нечего закрывать */ }
-    release()
+    releaseCapture({ stream, ctx, done: release })
     throw e
   }
   try { rec.setWords(true) } catch { /* без пословных меток */ }
@@ -139,11 +137,8 @@ export async function startListening(model, grammar, cb, opts = {}) {
     st.done = true
     recorder?.reset()
     clearInterval(timer); clearTimeout(st.drain)
-    stream.getTracks().forEach(tr => tr.stop())
-    try { node.disconnect(); src.disconnect() } catch { /* уже отключены */ }
-    try { Promise.resolve(ctx.close()).catch(() => {}) } catch { /* уже закрыт */ }
     try { rec.remove() } catch { /* уже удалён */ }
-    release()
+    releaseCapture({ stream, nodes: [node, src], ctx, done: release }) // треки → узлы → close() → только потом аудиосессия 'auto'
   }
   rec.on('partialresult', m => {
     if (st.done || !m.result.partial) return

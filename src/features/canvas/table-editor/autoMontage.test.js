@@ -72,3 +72,31 @@ describe('сопоставление слов озвучки с ячейками
     expect(result.get('c2')).toEqual({ start: 0, end: null })
   })
 })
+
+describe('одинаковые ячейки («to» в каждой строке) и лишние упоминания в речи', () => {
+  const script = "Ещё раз. В I'm trying to cook, to нужен, чтобы связать два глагола. В I want to sleep он играет ту же роль, мостик между хочу и спать. А вот в We go to the gym, to ещё помогает показать направление, куда мы идём"
+  const timings = script.split(/\s+/).map((w, i) => ({ w, t: i }))
+  const at = word => (nth = 0) => timings.map((x, i) => [x.w.replace(/[^\p{L}\p{N}']/gu, ''), i]).filter(([w]) => w === word)[nth][1]
+  const cell = (id, value, extra) => ({ id, value, ...extra })
+  const cells = [cell('h0', 'Начало', { isHeader: true }), cell('h1', 'Мостик', { isHeader: true }), cell('h2', 'Действие', { isHeader: true }),
+    cell('r0c0', "I'm trying"), cell('r0c1', 'to'), cell('r0c2', 'cook'),
+    cell('r1c0', 'I want'), cell('r1c1', 'to'), cell('r1c2', 'sleep'),
+    cell('r2c0', 'We go'), cell('r2c1', 'to'), cell('r2c2', 'the gym')]
+
+  it('каждое «to» садится на «to» своей фразы, а не на «to нужен» из пояснения', () => {
+    const m = matchWordTimingsToTargets(timings, buildCellTargets(cells))
+    expect(m.get('r0c1').start).toBe(at('to')(0))
+    expect(m.get('r1c1').start).toBe(at('to')(2)) // «I want to»
+    expect(m.get('r2c1').start).toBe(at('to')(3)) // «We go to»
+    expect(m.get('r2c0').start).toBeLessThan(m.get('r2c1').start)
+  })
+
+  it('ячейки, которые диктор назвал не по порядку, находятся запасным проходом', () => {
+    const m = matchWordTimingsToTargets(
+      [{ w: 'sleep', t: 1 }, { w: 'cook', t: 2 }],
+      buildCellTargets([cell('a', 'cook'), cell('b', 'sleep')]),
+    )
+    expect(m.get('a').start).toBe(2)
+    expect(m.get('b').start).toBe(1)
+  })
+})

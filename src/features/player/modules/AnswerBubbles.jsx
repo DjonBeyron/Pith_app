@@ -49,7 +49,7 @@ export default function AnswerBubbles({ bubbles, nodeId = null, confetti = true,
   const list = bubbles ?? []
   const lines = keepLines ? ' playerMsgBubble--keepLines' : ''
   const voiceOf = b => (b.voiceId && getSayVoice(b.voiceId) ? b.voiceId : null) // есть ли у реплики живой клип
-  const body = b => (voiceOf(b) ? <SayVoiceReply voiceId={b.voiceId} text={b.text} result={b.result} /> : b.text)
+  const body = b => (voiceOf(b) ? <SayVoiceReply voiceId={b.voiceId} text={b.text} result={b.result} autoPlay={!!b.autoPlay && !b.arriving} /> : b.text)
   const voiceCls = b => (voiceOf(b) ? ' playerMsgBubble--voice' : '')
 
   if (!list.length) return null

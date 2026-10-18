@@ -30,7 +30,7 @@ const LANG_LABEL = { 'en-US': 'Американский (en-US)', 'en-GB': 'Бр
 const stop = e => e.stopPropagation()
 
 export default function NodeSayPhrasePicker({
-  phrase = '', translation = '', keywords = '', threshold = THRESHOLD_DEFAULT, lang = LANG_DEFAULT, listenAudio = true, strict = false, voiceReply = false,
+  phrase = '', translation = '', keywords = '', threshold = THRESHOLD_DEFAULT, lang = LANG_DEFAULT, listenAudio = true, strict = false, voiceReply = false, playOwnVoice = true,
   hintsOn = true, hints = {}, pattern = '', signals = [], onSignalsChange, onSignalMeasure, onChange, triggers = [], allNodes = [], nodeId, onTriggersChange, onTriggerMeasure,
 }) {
   const rowRefs = useRef(new Map())
@@ -153,7 +153,7 @@ export default function NodeSayPhrasePicker({
         </InfoPopup>
       </div>
       <NodeSayPattern pattern={pattern} strict={strict} onChange={onChange} />
-      <NodeSayVoiceReply voiceReply={voiceReply} onChange={onChange} />
+      <NodeSayVoiceReply voiceReply={voiceReply} playOwnVoice={playOwnVoice} onChange={onChange} />
       <NodeSayHints hintsOn={hintsOn} values={hints} onChange={onChange} />
       {/* Сигнал: нода (обычно голосовое учителя с эталоном), которая приходит на первой неудачной попытке вместо текстовой подсказки — один раз за урок */}
       <NodeSignalsPicker slots={sayPhraseSlots()} signals={signals} onChange={onSignalsChange} otherNodes={others} onSignalMeasure={onSignalMeasure} />

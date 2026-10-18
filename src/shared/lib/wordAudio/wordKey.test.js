@@ -76,7 +76,7 @@ describe('collectLessonWords — слова урока для озвучки', (
   it('собирает слова из четырёх типов нод, без дублей, только латиницу', () => {
     const m = collectLessonWords(nodes)
     expect([...m.keys()].sort()).toEqual([
-      'again', 'am', 'cook', 'cooks', 'goes', 'he', 'here', 'i', 'is', 'pizza', 'tried', 'tries', 'try', 'trys',
+      'again', 'am', 'cook', 'cooks', 'goes', 'he', 'here', 'i', 'i am here', 'is', 'pizza', 'tried', 'tries', 'try', 'trys',
     ])
     expect(m.get('here')).toBe('here')       // пунктуация снята
     expect(m.get('i')).toBe('I')             // показ — как в уроке

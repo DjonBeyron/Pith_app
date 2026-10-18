@@ -85,7 +85,7 @@ describe('голосовой ответ: проводка в модуле', () =
   })
 
   it('цепочка пузыря: PlayerPanels → handlePhraseAnswer(…, voiceId) → phraseStates → AnswerBubbles (оба исхода) → SayVoiceReply', () => {
-    expect(read('../../PlayerPanels.jsx')).toContain('onAnswered={(text, result, arriving, voiceId) => handlePhraseAnswer(spNode.id, text, result, arriving, voiceId)}')
+    expect(read('../../PlayerPanels.jsx')).toContain('onAnswered={(text, result, arriving, voiceId, autoPlay) => handlePhraseAnswer(spNode.id, text, result, arriving, voiceId, autoPlay)}')
     const answers = read('../../usePlayerAnswers.js')
     expect(answers).toContain('useEffect(() => clearSayVoices, [])')
     expect(answers).toContain('revokeSayVoices((prev[nodeId] ?? []).map(b => b.voiceId))')

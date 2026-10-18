@@ -98,6 +98,7 @@ describe('startListening: авто-стоп и тайминги', () => {
     expect(audioSession.type).toBe('play-and-record')
     await vi.advanceTimersByTimeAsync(100)
     r.handlers.result({ result: { text: 'try', result: [] } })
+    await vi.advanceTimersByTimeAsync(0) // 'auto' — после закрытия контекста
     expect(audioSession.type).toBe('auto')
     expect(r.cb.onResult.mock.calls[0][1].session).toBe('play-and-record')
   })

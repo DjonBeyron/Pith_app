@@ -6,12 +6,12 @@ import { parseTemplateSegments } from '../fillBlanksTemplate.js'
 // Какие слова урок хочет уметь озвучивать — единственный «сигнал» от уроков
 // библиотеке (PROJECT.md, «Озвучка слов»): никаких флагов в самих нодах,
 // список считается из скрипта. Берём ровно то, по чему ученик тапает:
-//  - phrase_assembly: слова фразы и ловушки;
+//  - phrase_assembly: слова фразы и ловушки, а ещё каждая верная фраза целиком (озвучка верного ответа, поле voiceAnswer);
 //  - table: значения ячеек, варианты меню ячейки, слова вне таблицы из
 //    ответа и ловушки;
 //  - fill_blanks: ЦЕЛОЕ слово для каждого варианта пропуска (для «tr___s» —
 //    «tries», а не «ie»: озвучивается слово, а не буквы);
-//  - word_choice: только верные варианты (озвучивается лишь верный ответ);
+//  - word_choice: только верные варианты (озвучивается лишь верный ответ) и английская фраза voicePhrase для русских вариантов;
 //  - type_word: само печатаемое слово (озвучивается, когда ученик напечатал верно);
 //  - say_phrase: вся фраза целиком и каждое её слово (кнопка «Послушать» играет фразу одной записью, а если её нет — слова
 //    по очереди); пока у ноды не выключено listenAudio.
@@ -51,7 +51,9 @@ function wordsOfNode(node) {
   switch (node.type) {
     case 'phrase_assembly': {
       const pa = td.phrase_assembly ?? {}
-      return [...phraseVariants(pa).flat(), ...(pa.distractors ?? []).map(d => d.text)] // слова всех верных порядков (answers) тоже лежат в банке
+      const variants = phraseVariants(pa)
+      // Слова всех верных порядков (answers) тоже лежат в банке; фраза целиком — для озвучки верного ответа (voiceAnswer)
+      return [...variants.flat(), ...(pa.voiceAnswer === false ? [] : variants.map(v => v.join(' '))), ...(pa.distractors ?? []).map(d => d.text)]
     }
     case 'table': {
       const t = td.table ?? {}
@@ -80,8 +82,10 @@ function wordsOfNode(node) {
       const phrase = String(sp.phrase ?? '')
       return sp.listenAudio === false ? [] : [phrase, ...phrase.split(/\s+/)]
     }
-    case 'word_choice':
-      return (td.word_choice?.options ?? []).filter(o => o.isCorrect).map(o => o.text)
+    case 'word_choice': {
+      const wc = td.word_choice ?? {}
+      return [...(wc.options ?? []).filter(o => o.isCorrect).map(o => o.text), ...(wc.voicePhrase ? [wc.voicePhrase] : [])] // voicePhrase — английская озвучка русского верного варианта
+    }
     default:
       return []
   }

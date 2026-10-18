@@ -159,7 +159,7 @@ export default function SayPhrasePanel({ node, lessonId = null, onDone, onAnswer
     if (xpAmount > 0) onXpEarned?.(xpAmount, { expectBubble: true })
     if (isRewardOn('say_phrase', raw)) fireBurst({ count: 30, size: 4, zIndex: 85, portalTo: '.lessonPlayer' })
     const voiceId = kind === 'passed' ? takeVoiceId() : null // голосовое — только к реальной попытке голосом; админская палочка («solve») звука не имеет
-    closeWith(out.trigger, () => onAnswered?.(kind === 'passed' ? successReply(sp.verdict, data.phrase) : data.phrase, 'correct', true, voiceId)) // успех с пропущенными словами — услышанное, а не эталон (sayReply.successReply)
+    closeWith(out.trigger, () => onAnswered?.(kind === 'passed' ? successReply(sp.verdict, data.phrase) : data.phrase, 'correct', true, voiceId, !!voiceId && data.playOwnVoice)) // успех с пропущенными словами — услышанное, а не эталон (sayReply.successReply)
   }
 
   // Проверка прошла → показываем «Верно!» и через паузу уезжаем

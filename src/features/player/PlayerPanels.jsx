@@ -173,7 +173,7 @@ export default function PlayerPanels({
           /* Сказанная фраза уходит пузырём справа (как «Напечатай слово»); третий аргумент — arriving, четвёртый — voiceId
              («голосовое с текстом»: клип в реестре сессии sayVoiceStore.js, в чекпойнт не пишется).
              Ошибок и штрафов у модуля нет (record/wrongRef не нужны) — речь тренировка, а не экзамен */
-          onAnswered={(text, result, arriving, voiceId) => handlePhraseAnswer(spNode.id, text, result, arriving, voiceId)}
+          onAnswered={(text, result, arriving, voiceId, autoPlay) => handlePhraseAnswer(spNode.id, text, result, arriving, voiceId, autoPlay)}
           onRevealAnswer={() => revealPhraseAnswers(spNode.id)}
           onXpEarned={(amount, opts) => handleXpEarned(amount, spNode.id, opts)}
           onHeightChange={setSpPanelHeight}

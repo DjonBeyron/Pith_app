@@ -67,6 +67,9 @@ function naturalH(el) {
   const cs  = getComputedStyle(el)
   let bottom = box.top + (parseFloat(cs.paddingTop) || 0)
   for (const child of el.children) {
+    // Абсолютные дети (плашка реакции, блик) в высоте контента не участвуют: их нижний край + нижний padding
+    // давал завышение на padding на каждом замере — пузырь с реакцией «в пузыре» рос без конца
+    if (getComputedStyle(child).position === 'absolute') continue
     const r = child.getBoundingClientRect()
     if (r.height && r.bottom > bottom) bottom = r.bottom
   }
@@ -217,7 +220,9 @@ export default function PlayerBubble({ className, children, follow = false, styl
       st.prevH = el.getBoundingClientRect().height
     }, 620)
 
-    const ro = new ResizeObserver(() => {
+    // ev — событие pbresize от ReactionModule («реакция в пузыре» добавила пузырю нижний padding: у ResizeObserver
+    // размер ВНУТРЕННЕЙ области не меняется, он молчит) либо записи ResizeObserver
+    const onResize = ev => {
       // Строка заморожена (useFeedRowFreeze.js: content-visibility hidden) —
       // у содержимого нет боксов, RO приносит ноль. Это не смена высоты:
       // молчим, а первое честное измерение после разморозки принимаем как
@@ -226,14 +231,18 @@ export default function PlayerBubble({ className, children, follow = false, styl
       const nextH = naturalH(el)
       if (st.frozen) { st.frozen = false; st.prevH = nextH; return }
       const prevH = st.prevH ?? nextH
-      if (!readyRef.current) { st.prevH = nextH; return }
+      const react = ev?.type === 'pbresize'
+      const flow = el.classList.contains('playerMsgBubbleReactedFlow')
+      // Восстановленная история / разбор: реакция уже «в пузыре», без анимации роста
+      if (react && el.dataset.reactInstant) { st.prevH = nextH; return }
+      if (!readyRef.current && !react) { st.prevH = nextH; return }
       // Реакция садится в угол пузыря абсолютом и наполовину торчит наружу
       // (ReactionModule): в поток она не входит, но scrollHeight из-за выступа
       // подрастает. Расти пузырю при этом не нужно — просто принимаем факт,
       // ничего не анимируя. Раньше анимация здесь ещё и ломала ленту: высота
       // ехала своим переходом, и следующее сообщение считало FLIP по плавающей
       // высоте.
-      if (!reactedRef.current && el.querySelector('.reactionInBubble')) {
+      if (!flow && !reactedRef.current && el.querySelector('.reactionInBubble')) {
         reactedRef.current = true
         clearTimeout(st.tid)
         st.tid = null
@@ -270,9 +279,11 @@ export default function PlayerBubble({ className, children, follow = false, styl
       } else {
         animateTo(st.prevH ?? 0, nextH)
       }
-    })
+    }
+    const ro = new ResizeObserver(onResize)
     ro.observe(el)
-    return () => { ro.disconnect(); clearTimeout(unlock); clearTimeout(st.tid) }
+    el.addEventListener('pbresize', onResize)
+    return () => { ro.disconnect(); el.removeEventListener('pbresize', onResize); clearTimeout(unlock); clearTimeout(st.tid) }
   }, [])
 
   // Блик верного ответа — свой обрезающий слой (overflow: hidden у него, а не

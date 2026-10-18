@@ -4,6 +4,7 @@ import TypeWordKeyboard from './TypeWordKeyboard.jsx'
 import TypeWordTyped from './TypeWordTyped.jsx'
 import { letterCount, letterForm, capitalizeFirst, needsShift } from '../../../../shared/lib/typeWordKeys.js'
 import { playSound } from '../../../../shared/lib/sounds.js'
+import { playCorrectWithVoice } from '../../../../shared/lib/correctVoiceScheduler.js'
 import { usePanelHeight } from '../usePanelHeight.js'
 import { usePanelRiseDrop } from '../usePanelRiseDrop.js'
 import { fireBurst } from '../../../../shared/lib/burstParticles.js'
@@ -72,10 +73,9 @@ export default function TypeWordPanel({
     if (r !== 'correct') playSound('answer-wrong', 'напечатай слово')
 
     if (r === 'correct') {
-      // Услышать слово целиком — награда за верно напечатанное; «верно» звучит
-      // ПОСЛЕ слова, а не поверх него (нет озвучки — сразу)
-      const correct = () => playSound('answer-correct', 'напечатай слово')
-      if (!playWord(wordKey(word), { onEnded: correct })) correct()
+      // Услышать слово целиком — награда за верно напечатанное; сначала звук интерфейса, слово — на 65% его длительности
+      const voiceKey = wordKey(word)
+      playCorrectWithVoice('напечатай слово', voiceKey ? () => playWord(voiceKey) : null)
       // Пузырь в чате будет всегда — XP ждёт его и летит от него
       if (xpAmount > 0) onXpEarned?.(xpAmount, { expectBubble: true })
       later(() => {

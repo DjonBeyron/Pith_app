@@ -101,7 +101,7 @@ const PRINCIPLE_META = [
   ['Заголовки таблиц разные, озвучка живая', B, 'auto', 'warn', 'table: «to: мостик»\ntable: «to: мостик»', 'table: «to: первый мостик»\ntable: «to: идём куда-то»'],
   ['Новое — мягко и с юмором', T, 'judge', 'warn', 'audio: А теперь запомни: to показывает не только место, но и человека', 'text: постараюсь тебя не запутать, но у to есть ещё одна функция)))\nsticker: кот в шоке'],
   ['Похвала перед блоком раз в три', T, 'judge', 'warn', '(три блока подряд без единого тёплого слова)', 'text: я вижу, как ты быстро справляешься, сейчас всё поймёшь без объяснения'],
-  ['Одиночные смайлики: 40% текст, 60% стикер', T, 'auto', 'warn', 'text: 😋\ntext: 🥱\ntext: 😭\ntext: 😅\ntext: 😏', 'text: 😋\nsticker: кот в шоке\nsticker: сонный котёнок'],
+  ['Одиночный смайлик — только стикером', T, 'auto', 'warn', 'text: 😋\ntext: 🥱', 'sticker: кот облизывается\nsticker: сонный котёнок'],
   ['Пояснение после ответа', Z, 'judge', 'warn', 'reaction: 🔥 (сразу дальше)', 'reaction: 🔥\ntext: вот тут {g:to} ведёт к человеку, с которым ты говоришь'],
   ['Финал: формула в виде таблицы', Q, 'judge', 'warn', 'text: итог: to нужен', 'table: Начало | Мостик | Дальше (все строки)'],
   ['Выделения и в голосовых', S, 'auto', 'warn', 'audio: На русский to часто не переводят (to не выделено)', 'audio: На русский {g:to} часто не переводят'],
@@ -171,6 +171,10 @@ const PRINCIPLE_META = [
   ['type_word: города и имена без ловушек', Z, 'auto', 'warn', 'type_word: go to Paris (extraLetters: ln)', 'type_word: go to Paris (extraLetters не задан)'],
   ['type_word: автоподсказка по слову', G, 'judge', 'warn', 'type_word: talk to Masha\nresponseWrong: не то) нужно слово говорить, мостик и имя', 'type_word: talk to Masha\nwordHints: по умолчанию, responseWrong — общий текст'],
   ['Dictator: «Проверить» после озвучки', B, 'auto', 'warn', 'table (dictator): isCheck на 0.7 с при озвучке 11 с', 'table (dictator): isCheck после последней ячейки, timelineLen = длине озвучки'],
+  ['phrase_assembly: озвучить собранную фразу', V, 'judge', 'warn', 'phrase_assembly (voiceAnswer: false без причины)', 'phrase_assembly (по умолчанию озвучивается)'],
+  ['word_choice: озвучка верного варианта', V, 'judge', 'warn', 'word_choice: Нам нужно уйти (voiceCorrect без voicePhrase)', 'word_choice: Нам нужно уйти (voicePhrase: We need to leave)'],
+  ['Dictator: порядок ячеек и шапка', B, 'judge', 'warn', 'table (dictator): «to нужен» в пояснении до строки с to; chatCaption пуст', 'table (dictator): ячейки по порядку речи; chatCaption: выражаем желание'],
+  ['lesson_ref только с выбранным уроком', C, 'judge', 'warn', 'lesson_ref без targetId', 'lesson_ref с targetId выбранного урока'],
 ]
 
 const CHECKLIST_META = [

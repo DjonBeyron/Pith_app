@@ -8,24 +8,19 @@ import { pLog } from '../../shared/lib/debug.js'
 import { freshNode } from './freshNode.js'
 import { HISTORY_PAGE } from './feedWindow.js'
 import { sayExit } from './sayPairSkip.js'
+import { skipSilent } from './skipNode.js'
 import { setCantSpeakSession } from '../../shared/lib/speech/cantSpeakFlag.js'
 
 // How long "teacher is typing" dots show before a new node appears
 const TYPING_DELAY_MS = 1400
-// Старт урока — тот же цикл, что у любой следующей ноды: лента пустая (или
-// только восстановленная история), точки «печатает» и первая нода въезжает
-// снизу со звуком. Раньше entry клалась в visibleNodes прямо при
-// инициализации — лента считала её «уже существующей» строкой, и ни въезда,
-// ни звука у первого сообщения не было (особенно заметно на кружке/видео).
-// Пауза короче обычной: ученик только что нажал «Начать», ждать 1,4 с
-// нечего. Отключается опцией firstTyping=false (повторение: у карточки свои
-// точки до монтирования плеера, см. ReviewTurn.jsx)
+// Старт урока — тот же цикл, что у любой следующей ноды: точки «печатает» и
+// первая нода въезжает снизу со звуком (раньше entry клалась в visibleNodes
+// прямо при инициализации — ни въезда, ни звука). Пауза короче обычной.
+// Отключается firstTyping=false (повторение: у карточки свои точки, ReviewTurn.jsx)
 export const FIRST_TYPING_MS = 1000
 // Реакция (эмодзи) не открывает новое сообщение — она прилипает к уже
-// показанному пузырю. Полный TYPING_DELAY_MS перед ней выглядит как
-// самостоятельный цикл «печатает», хотя на экране пока ничего не появляется:
-// студент видит два «печатает» подряд там, где реально появляется только
-// одно новое сообщение (следующее ЗА реакцией). См. scheduleReveal ниже.
+// показанному пузырю, поэтому вместо полного TYPING_DELAY_MS — короткая пауза
+// без точек (иначе два «печатает» подряд, а на экране появляется одно сообщение)
 const REACTION_DELAY_MS = 350
 
 // Чекпойнт «Продолжить урок» (useLessonResume.js): сколько РАЗНЫХ нод нужно
@@ -130,6 +125,12 @@ export function useGraphPlayer(nodes, { onFinish, onCheckpoint, startNodeId = nu
   // паузы переиграло её той же длины
   scheduleReveal.current = (nextNodeId, force = false, delayMs = null) => {
     const next = nodeMapRef.current[nextNodeId]
+    const hop = skipSilent(nodeMapRef.current, next) // тихая нода (lesson_ref без урока, skipNode.js): ни показа, ни точек — сразу по её связи
+    if (hop.skipped) {
+      if (hop.nextId) scheduleReveal.current(hop.nextId, force, delayMs)
+      else if (!finishedRef.current) { finishedRef.current = true; onFinishRef.current?.() }
+      return
+    }
     // Переход ведёт на ноду, которой в уроке нет — сценарий на этом встаёт.
     // Молча выходить нельзя: со стороны это выглядит как «плеер завис»
     if (!next) {

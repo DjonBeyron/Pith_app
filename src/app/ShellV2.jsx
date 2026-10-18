@@ -27,7 +27,6 @@ import { shouldShowResumeToast } from '../shared/lib/resumeToastVisible.js'
 import { prefetchPlayerDebugUi } from '../shared/lib/usePlayerDebugUi.js'
 import { prefetchAudioSettings } from '../shared/lib/audioSettings.js'
 import { prefetchAudioStaticWaveform } from '../shared/lib/useAudioStaticWaveform.js'
-import { wordChoiceVoice } from '../shared/lib/wordChoiceVoice.js'
 import { prefetchFeedSignals } from '../shared/lib/ranking/feedSignalsStore.js'
 import { armMotionOnGesture } from '../shared/lib/motionPermission.js'
 import ShellNav from './ShellNav.jsx'
@@ -116,7 +115,6 @@ export default function ShellV2() {
     prefetchAudioStaticWaveform() // заморозка спектра голосовых (тоже глобальная настройка) — по той же причине
     // Глобальные настройки звука (громкость звуков интерфейса, чувствительность эквалайзера)
     prefetchAudioSettings()
-    wordChoiceVoice.prefetch() // озвучка в «Выбери слово» — тоже глобальный флаг
     prefetchFeedSignals() // конфиг движка порядка ленты (app_settings.feed_signals) — один запрос на старт, дальше кэш
     // Датчик движения: согласие уже давали — тихо продлеваем на первом касании
     armMotionOnGesture()

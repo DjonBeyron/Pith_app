@@ -2,6 +2,9 @@ import { useState, useEffect, useRef } from 'react'
 import { useChooseWord } from './useChooseWord.js'
 import ChooseWordOption from './ChooseWordOption.jsx'
 import { playSound } from '../../../../shared/lib/sounds.js'
+import { playCorrectWithVoice } from '../../../../shared/lib/correctVoiceScheduler.js'
+import { wordChoiceVoiceKey } from '../../../../shared/lib/wordAudio/correctVoiceKeys.js'
+import { playWord } from '../../word-audio/wordAudioPlayer.js'
 import { rememberTap } from '../../xpAnchor.js'
 import { pLog } from '../../../../shared/lib/debug.js'
 import { fireBurst } from '../../../../shared/lib/burstParticles.js'
@@ -98,7 +101,10 @@ export default function ChooseWordPanel({
   function tapOption(opt, rect) {
     const snd = opt.isCorrect ? 'answer-correct' : 'answer-wrong'
     pLog(`[word-choice] tap isCorrect=${opt.isCorrect} → sound=${snd}`)
-    playSound(snd, 'выбор слова')
+    // Верный: сначала звук интерфейса, озвучка фразы — на 65% его длительности (чекбокс ноды voiceCorrect)
+    const voiceKey = wordChoiceVoiceKey(wcData, opt)
+    if (voiceKey) playCorrectWithVoice('выбор слова', () => playWord(voiceKey))
+    else playSound(snd, 'выбор слова')
     rememberTap(rect)
     if (opt.isCorrect && xpAmount > 0 && !xpFiredRef.current) {
       xpFiredRef.current = true

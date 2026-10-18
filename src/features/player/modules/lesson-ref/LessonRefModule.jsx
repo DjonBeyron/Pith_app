@@ -62,7 +62,9 @@ export default function LessonRefModule({ node, onDone, onOpenLessonRef }) {
   }
 
   useEffect(() => {
-    scheduleDone(BASE_DONE_MS)
+    // Без выбранного урока карточки нет (return null ниже; обычно плеер такую ноду пропускает ещё до показа, skipNode.js) —
+    // идти дальше сразу, а не через 2 секунды
+    scheduleDone(targetId ? BASE_DONE_MS : 0)
     return () => clearTimeout(doneTimerRef.current)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])

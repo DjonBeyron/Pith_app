@@ -4,7 +4,8 @@ import InfoPopup from '../../shared/ui/InfoPopup.jsx'
 // Метка короткая, всё объяснение — в попапе «i» (InfoPopup). Нет поля voiceReply = выключено, старые уроки не меняются.
 const stop = e => e.stopPropagation()
 
-export default function NodeSayVoiceReply({ voiceReply = false, onChange }) {
+// playOwnVoice (чекбокс виден при включённом voiceReply): при верном ответе голосовое ученика проигрывается само — его реальный голос, а не озвучка эталона; нет поля = включено.
+export default function NodeSayVoiceReply({ voiceReply = false, playOwnVoice = true, onChange }) {
   return (
     <div className="nodeSayCheckRow" onClick={stop}>
       <label className="nodeSayCheck">
@@ -17,6 +18,12 @@ export default function NodeSayVoiceReply({ voiceReply = false, onChange }) {
         <p>Голосовое доступно, когда речь распознаёт Vosk. Если Vosk не готов, у ученика Firefox или включено системное распознавание — придёт только текст.</p>
         <p>При «Продолжить урок» голосовые не восстанавливаются — остаётся текст. Голосовые приходят и у верных, и у неверных попыток.</p>
       </InfoPopup>
+      {voiceReply && (
+        <label className="nodeSayCheck" data-testid="say-play-own-voice">
+          <input type="checkbox" checked={playOwnVoice} onChange={e => onChange({ playOwnVoice: e.target.checked })} />
+          Проигрывать его голос при верном ответе
+        </label>
+      )}
     </div>
   )
 }
