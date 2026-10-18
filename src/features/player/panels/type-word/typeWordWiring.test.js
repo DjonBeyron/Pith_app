@@ -82,7 +82,9 @@ describe('type_word — плеер', () => {
     expect(hook).toContain('signalState.onRemoved(letters - 1)')
     // панель на 'signal' выходит до звука, счёта попыток и статистики
     expect(panel).toContain("if (!r || r === 'signal') return")
-    expect(panel).toContain('useTypeWord(node, nodes, onSignalFired, hasSignalFired)')
+    expect(panel).toContain('useTypeWord(node, nodes, onSignalFired, hasSignalFired, lessonTitle)')
+    // автоподсказка по неверному слову: первая неверная попытка берёт её, нет — responseWrong
+    expect(panel).toContain('tw.autoHint(typed)')
     expect(panel).toContain('<TypeWordTyped typed={typed} blinkIndex={tw.blinkIndex} caret={!frozen} />')
     expect(typed).toContain('signalBlinkChip')
   })

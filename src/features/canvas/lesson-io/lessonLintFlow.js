@@ -138,6 +138,14 @@ function checkTypePhrase(nodes) {
     .map(n => `[R-type-phrase] ${n.ref} (type_word): печатается одно слово «${n.data.word}» — напечатать только что объяснённое слово бессмысленно, дай мини-фразу из 2–3 слов в новой ситуации («I try», «she tries»)`)
 }
 
+/** type_word с именем/городом/страной (заглавное слово не первое: «go to Paris»): запутыватели на клавиатуре здесь не нужны — только буквы слова */
+function checkTypePlaceTraps(nodes) {
+  return nodes
+    .filter(n => n.type === 'type_word' && String(n.data?.extraLetters ?? '').trim()
+      && String(n.data?.word ?? '').trim().split(/\s+/).slice(1).some(w => /^\p{Lu}/u.test(w)))
+    .map(n => `[R-type-place] ${n.ref} (type_word): в «${n.data.word}» есть имя/город/страна, а extraLetters заданы («${n.data.extraLetters}») — для таких слов оставь extraLetters пустым: на клавиатуре только буквы слова, без запутывателей`)
+}
+
 const SOFT = new Set(['reaction', 'system', 'pin_message']) // не «анонс задания»: пропускаем при поиске того, кто вызвал задание
 
 /** Чем анонсируется каждое задание (ближайшая нода перед ним, кроме реакций/заголовков): по основному потоку, в порядке урока */
@@ -182,5 +190,5 @@ function checkTables(nodes) {
 }
 
 export function checkFlow(nodes) {
-  return [...checkTextRuns(nodes), ...checkTautology(nodes), ...checkBaseHighlight(nodes), ...checkSameType(nodes), ...checkTypePhrase(nodes), ...checkTaskVariety(nodes), ...checkTables(nodes)]
+  return [...checkTextRuns(nodes), ...checkTautology(nodes), ...checkBaseHighlight(nodes), ...checkSameType(nodes), ...checkTypePhrase(nodes), ...checkTypePlaceTraps(nodes), ...checkTaskVariety(nodes), ...checkTables(nodes)]
 }

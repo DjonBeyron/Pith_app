@@ -28,10 +28,10 @@ describe('say_phrase в редакторе — пояснения только �
     for (const a of [...attrs(html, 'placeholder'), ...attrs(html, 'aria-label')]) expect(a.length, a).toBeLessThanOrEqual(MAX_VISIBLE)
   })
 
-  it('в панели есть кнопки «Пояснение»: фраза, ключевые слова, порог, «Строго», «Послушать», «Голосовое с текстом», свободная фраза (шаблон), подсказки (+3 поля), два выхода', () => {
+  it('в панели есть кнопки «Пояснение»: фраза, ключевые слова, порог, «Строго», «Послушать», «Голосовое с текстом», свободная фраза (шаблон), подсказки (+3 поля и «Начать можно так…»), два выхода', () => {
     const html = panel()
-    expect((html.match(/aria-label="Пояснение"/g) ?? []).length).toBe(12)
-    for (const id of ['phrase', 'keywords', 'threshold', 'strict', 'listen', 'voice', 'pattern', 'hints', 'hintSilence', 'hintMismatch', 'hintPartial', 'exits']) {
+    expect((html.match(/aria-label="Пояснение"/g) ?? []).length).toBe(13)
+    for (const id of ['phrase', 'keywords', 'threshold', 'strict', 'listen', 'voice', 'pattern', 'hints', 'hintSilence', 'hintMismatch', 'hintPartial', 'startHint', 'exits']) {
       expect(html, id).toContain(`data-testid="say-info-${id}"`)
     }
     expect(html).toContain('data-testid="say-cant-speak-note"')
@@ -58,9 +58,9 @@ describe('say_phrase в редакторе — пояснения только �
 
   it('NodeSayHints: каждое текстовое поле подписано (aria-label), стандартный текст — placeholder', () => {
     const html = renderToStaticMarkup(createElement(NodeSayHints, { onChange: noop }))
-    expect((html.match(/<textarea/g) ?? []).length).toBe(3)
+    expect((html.match(/<textarea/g) ?? []).length).toBe(4)
     expect(attrs(html, 'aria-label').filter(a => /^\d\. /.test(a)).length).toBe(3)
-    expect((html.match(/placeholder="[^"]+"/g) ?? []).length).toBe(3)
+    expect((html.match(/placeholder="[^"]+"/g) ?? []).length).toBe(4)
   })
 
   it('NodeSayVoiceReply: только метка-чекбокс и «i»; галка шлёт voiceReply', () => {

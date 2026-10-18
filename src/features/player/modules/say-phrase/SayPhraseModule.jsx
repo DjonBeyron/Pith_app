@@ -15,6 +15,8 @@ export default function SayPhraseModule({
       nodeId={node?.id ?? null}
       /* салют даёт сама панель (SayPhrasePanel, fireBurst при уходе) */
       confetti={false}
+      /* подсказка «Начать можно так…» — по слову на строке (\n) */
+      keepLines
       lessonFiles={lessonFiles}
       teacherName={teacherName}
       allWordChoiceStates={allWordChoiceStates}

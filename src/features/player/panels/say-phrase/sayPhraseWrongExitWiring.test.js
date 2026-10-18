@@ -16,7 +16,7 @@ describe('say_phrase — три неудачи → say_wrong', () => {
     expect(pause).toBeLessThanOrEqual(900)
     expect(read('../type-word/TypeWordPanel.jsx')).toContain('const SEE_RESULT_MS = 700')
     // тайминг: пузыри через HINT_DELAY_MS (после окна тишины звуков), затем пауза; нет пузырей (подсказки выключены, тишина) — только пауза
-    expect(body).toContain("if (sp.exhausted) wrongTimer.current = setTimeout(() => finish('wrong'), (reply || hint ? HINT_DELAY_MS : 0) + WRONG_PAUSE_MS)")
+    expect(body).toContain("if (sp.exhausted || sp.silenceExit) wrongTimer.current = setTimeout(() => finish(sp.silenceExit ? 'skip' : 'wrong'), (reply || hint ? HINT_DELAY_MS : 0) + WRONG_PAUSE_MS)")
     expect(body.indexOf('wrongTimer.current = setTimeout')).toBeLessThan(body.indexOf("if (reply) onAnswered?.(reply, 'wrong_final', false, voiceId)"))
   })
 
@@ -29,8 +29,8 @@ describe('say_phrase — три неудачи → say_wrong', () => {
   })
 
   it('после третьей неудачи микрофон заблокирован: и в хуке (тап игнорируется), и в круге (disabled), и в reducer (begin не начинает запись)', () => {
-    expect(hook).toMatch(/const tapMic = useCallback\(\(\) => \{\s*if \(s\.exhausted\) return/)
-    expect(body).toContain("disabled={closing || phase === 'passed' || sp.exhausted || signalBusy}")
+    expect(hook).toMatch(/const tapMic = useCallback\(\(\) => \{\s*if \(s\.exhausted \|\| s\.silenceExit\) return/)
+    expect(body).toContain("disabled={closing || phase === 'passed' || sp.exhausted || sp.silenceExit || signalBusy}")
     expect(hook).toContain('exhausted: s.exhausted')
   })
 

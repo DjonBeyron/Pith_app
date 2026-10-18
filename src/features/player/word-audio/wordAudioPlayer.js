@@ -3,6 +3,7 @@ import { pLog } from '../../../shared/lib/debug.js'
 import { publishLevel, unpublishLevel, speechEnvelope } from '../audioLevel.js'
 import { getLessonMuted, applyVoiceRate, subscribeLessonVolume } from '../lessonVolume.js'
 import { isMicBusy } from '../../../shared/lib/soundQuiet.js'
+import { onAudioInterrupted } from '../../../shared/lib/sounds.js'
 import { logElementSound } from '../../../shared/lib/soundLog.js'
 import { begin as beginNetBusy } from '../../../shared/lib/netBusy.js'
 
@@ -42,6 +43,26 @@ subscribeLessonVolume(() => {
   applyVoiceRate(current)
 })
 
+// Сворачивание на минуты (iOS PWA) прерывает аудиосессию: каждый СУЩЕСТВУЮЩИЙ <audio> молча перестаёт играть, звуки интерфейса при
+// этом чинятся (sounds.js пересоздаёт свои), а слова — нет. Поэтому элементы выбрасываем (blob-URL остаются), а playWord создаёт
+// свежий из blob прямо в тапе — как при первом прогреве. Зовётся по прерыванию контекста и по возврату из фона после паузы
+const BG_RESET_MS = 20000
+let hiddenAt = 0
+export function dropWordElements() {
+  stopCurrent()
+  for (const a of players.values()) { try { a.pause(); a.removeAttribute?.('src'); a.load?.() } catch { /* уже выгружен */ } }
+  players.clear()
+  pLog('[word-audio] элементы слов сброшены (фон / прерывание аудиосессии) — пересоздаются из blob при тапе')
+}
+if (typeof document !== 'undefined') {
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) { hiddenAt = Date.now(); return }
+    if (hiddenAt && Date.now() - hiddenAt >= BG_RESET_MS) dropWordElements()
+    hiddenAt = 0
+  })
+  onAudioInterrupted(dropWordElements)
+}
+
 const GLOW_ID = 'word-audio' // ключ источника в audioLevel.js (слово играет одно, ключ один)
 
 function stopCurrent() {
@@ -55,13 +76,13 @@ function stopCurrent() {
 }
 
 async function prepare(key, url, myGen) {
-  let src = url
-  const endBusy = beginNetBusy() // сеть занята озвучкой — фоновая предзагрузка модели Vosk ждёт (netBusy.js)
+  let src = blobUrls.get(key) ?? url // после сброса элементов blob уже в памяти — не качаем повторно
+  const endBusy = blobUrls.has(key) ? () => {} : beginNetBusy() // сеть занята озвучкой — фоновая предзагрузка модели Vosk ждёт (netBusy.js)
   try {
     // Как файлы урока: blob в памяти → play() без сети. CORS на localhost
     // может не пустить — тогда прямой URL, браузер докачает при play()
-    const res = await fetch(url)
-    if (res.ok) {
+    const res = blobUrls.has(key) ? null : await fetch(url)
+    if (!res) { /* blob уже есть — сразу к созданию элемента */ } else if (res.ok) {
       const blob = await res.blob()
       if (myGen !== gen) return
       src = URL.createObjectURL(blob)
@@ -108,9 +129,9 @@ export function playWord(key, hooks = null) {
   if (!a) {
     const row = cachedWordAudio()?.get(key)
     if (!row?.url) { pLog(`[word-audio] тап «${key}» — в базе нет`); return false }
-    pLog(`[word-audio] тап «${key}» — не прогрето, с сервера`)
+    pLog(`[word-audio] тап «${key}» — ${blobUrls.has(key) ? 'элемент пересоздан из blob' : 'не прогрето, с сервера'}`)
     // Не прогрето (дорожка ещё не дошла) — играем с сервера и запоминаем
-    a = new Audio(row.url)
+    a = new Audio(blobUrls.get(key) ?? row.url)
     players.set(key, a)
   }
   current = a
@@ -127,7 +148,11 @@ export function playWord(key, hooks = null) {
   a.onplaying = () => { done(); pLog(`[word-audio] играет «${key}» (${a.src.startsWith('blob:') ? 'blob' : 'url'}, ${a.duration.toFixed(2)}с)`) }
   a.onended = ended
   logElementSound('audio-play', `word:${key}`, a)
-  a.play().then(done).catch(e => { done(); ended(); pLog(`[word-audio] play «${key}» не удался: ${e.message}`) })
+  a.play().then(done).catch(e => {
+    done(); ended(); pLog(`[word-audio] play «${key}» не удался: ${e.message}`)
+    // Элемент мог умереть без сигнала (прерывание без statechange): выбрасываем — следующий тап создаст свежий
+    if (players.get(key) === a && e?.name !== 'NotAllowedError') players.delete(key)
+  })
   return true
 }
 

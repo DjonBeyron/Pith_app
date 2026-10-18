@@ -160,7 +160,7 @@ export default function NodeAnswerFields({
           strict={tData.strict === true}
           voiceReply={tData.voiceReply === true}
           hintsOn={tData.hintsOn !== false}
-          hints={{ hintSilence: tData.hintSilence, hintMismatch: tData.hintMismatch, hintPartial: tData.hintPartial }}
+          hints={{ hintSilence: tData.hintSilence, hintMismatch: tData.hintMismatch, hintPartial: tData.hintPartial, startHint: tData.startHint }}
           pattern={tData.pattern ?? ''}
           signals={tData.signals ?? []}
           onSignalsChange={s => updateTypeData({ signals: s })}

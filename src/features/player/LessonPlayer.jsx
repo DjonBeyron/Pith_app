@@ -316,7 +316,7 @@ export default function LessonPlayer({
         <PlayerPanels
           wcNode={panels.node.wc} paNode={panels.node.pa} fbNode={panels.node.fb} twNode={panels.node.tw} spNode={panels.node.sp} pcNode={panels.node.pc}
           regNode={panels.node.reg} tableNode={panels.node.table}
-          nodes={nodes}
+          nodes={nodes} lessonTitle={lessonTitle}
           showRegPanel={panels.showRegPanel}
           epoch={step.epoch}
           photoChoiceStates={photoChoiceStates}

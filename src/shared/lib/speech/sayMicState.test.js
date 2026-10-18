@@ -175,3 +175,17 @@ describe('жизненный цикл: доступ → запись → воз�
     expect(q.access().sessionOk).toBe(true)
   })
 })
+
+describe('hasMicAccess: Permissions API ещё молчит (checked: false)', () => {
+  it('старый флаг «уже открывался» до ответа query не даёт зелёного круга (iPhone спрашивает на каждом запуске)', () => {
+    expect(hasMicAccess({ permission: 'unavailable', flag: true, checked: false })).toBe(false)
+    expect(micVisualState({ permission: 'unavailable', flag: true, checked: false, phase: 'idle' })).toBe('locked')
+  })
+  it('после ответа query — как раньше; «работал в этом запуске» доступ подтверждает и без ответа', () => {
+    expect(micVisualState({ permission: 'unavailable', flag: true, checked: true, phase: 'idle' })).toBe('ready')
+    expect(hasMicAccess({ permission: 'unavailable', sessionOk: true, checked: false })).toBe(true)
+  })
+  it('вызовы без поля checked работают как раньше', () => {
+    expect(hasMicAccess({ permission: 'unavailable', flag: true })).toBe(true)
+  })
+})

@@ -61,5 +61,7 @@ export function readSayData(data) {
     hintSilence: hintText(d.hintSilence, 'silence'),
     hintMismatch: hintText(d.hintMismatch, 'mismatch'),
     hintPartial: hintText(d.hintPartial, 'partial'),
+    // «Начать можно так…» по таймеру (sayStartHint.js): по строке «слово — перевод»; пусто — у свободной фразы (pattern) берутся первые слова шаблона, у остальных подсказки нет
+    startHint: String(d.startHint ?? '').split('\n').map(l => l.trim()).filter(Boolean).slice(0, 4).join('\n'),
   }
 }

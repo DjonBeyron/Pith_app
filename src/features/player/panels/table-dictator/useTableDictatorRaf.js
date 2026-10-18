@@ -13,7 +13,7 @@ const HUD_ALPHA_UP   = [0.60, 0.75, 0.50]
 const HUD_ALPHA_DOWN = [0.15, 0.28, 0.18]
 
 export function useTableDictatorRaf({
-  playing, timeline, waveformData, cells, checkAt, checkOut, hasExtraLayers,
+  playing, timeline, waveformData, cells, checkAt, checkOut, hasExtraLayers, deferCheck = false,
   audioRef, rafRef, prevActiveRef, prevExtraRef, addedCellsRef, assembledRef, clearedRef,
   barElsRef, barSmoothRef, rfxPhaseRef, rfxChipsRef, rfxAssembRef, rfxCheckRef, rfxCloseRef, timers,
   extraFromAnswer, shuffledExtras, checkRef, closeRef,
@@ -237,7 +237,9 @@ export function useTableDictatorRaf({
 
       // ── Проверка + (для случая БЕЗ word-слоёв) checkAt-driven слайд/чипы/сборка ──
       if (checkAt != null) {
-        if (!hasExtraLayers) {
+        // Слайд и чипы нужны, только если есть что показывать вне таблицы: без
+        // слов в ответе таблица раньше уезжала на старте, перед пустым списком
+        if (!hasExtraLayers && extraFromAnswer.length > 0) {
           const animStart = Math.max(0, checkAt - 0.75)
           const chipStart = Math.max(0, checkAt - 0.45)
           if (t >= animStart && !rfxPhaseRef.current) {
@@ -261,7 +263,9 @@ export function useTableDictatorRaf({
         // Слова не собрались, а их клипы уже прошли — проверяем как есть,
         // иначе панель висела бы до самого конца прогона
         const nothingLeftToWait = wordsEnd > 0 && t >= wordsEnd + 0.5
-        if (t >= checkAt && (rfxAssembRef.current || noExtras || nothingLeftToWait) && !rfxCheckRef.current) {
+        // deferCheck: метка проверки стояла раньше конца сборки — по ходу аудио
+        // её не запускаем, это сделает хвост после конца записи (dictatorPostAudio.js)
+        if (!deferCheck && t >= checkAt && (rfxAssembRef.current || noExtras || nothingLeftToWait) && !rfxCheckRef.current) {
           rfxCheckRef.current = true
           pLog(`[td-raf] CHECK (in) t=${t.toFixed(3)} checkAt=${checkAt} assembled=[${assembledRef.current.join('|')}]`)
           checkRef.current?.()
@@ -295,5 +299,5 @@ export function useTableDictatorRaf({
     barSmoothRef.current = [0, 0, 0]
     rafRef.current = requestAnimationFrame(tick)
     return () => { cancelAnimationFrame(rafRef.current); if (glowEl) unpublishLevel(glowEl) }
-  }, [playing, timeline, waveformData, cells, checkAt, checkOut, hasExtraLayers]) // eslint-disable-line
+  }, [playing, timeline, waveformData, cells, checkAt, checkOut, hasExtraLayers, deferCheck]) // eslint-disable-line
 }

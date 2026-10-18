@@ -53,6 +53,27 @@ export default function NodeSayHints({ hintsOn = true, values = {}, onChange }) 
           />
         </div>
       ))}
+      {hintsOn && (
+        <div className="nodeSayField">
+          <div className="nodeSayLabelRow">
+            <span className="nodeTwLabel">4. Начать можно так…</span>
+            <InfoPopup title="Начать можно так…" testId="say-info-startHint">
+              <p><b>Когда:</b> ученик ~10 секунд ничего не говорит. Приходит один раз, попытку не тратит.</p>
+              <p>По строке на слово: «I — я», «can — могу». Только начало фразы, не вся. Пусто: у свободной фразы (шаблон) — первые слова шаблона без перевода, у обычной — подсказки нет.</p>
+            </InfoPopup>
+          </div>
+          <textarea
+            className="nodeWcInput nodeSayHintInput"
+            rows={3}
+            value={values.startHint ?? ''}
+            onChange={e => onChange({ startHint: e.target.value })}
+            placeholder={'I — я\ncan — могу'}
+            aria-label="Начать можно так"
+            onClick={stop}
+            {...NO_AUTOCORRECT}
+          />
+        </div>
+      )}
     </div>
   )
 }

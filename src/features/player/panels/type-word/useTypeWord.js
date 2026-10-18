@@ -3,6 +3,7 @@ import {
   keyboardModel, typedMax, appendChar, removeLast, typedMatches, typedMismatchSlot, wordLetters,
 } from '../../../../shared/lib/typeWordKeys.js'
 import { signalForSlot } from '../../../../shared/lib/signalSlots.js'
+import { wordHint, wordHintText } from '../../../../shared/lib/typeWordWordHint.js'
 import { useSignalState } from '../signal-overlay/useSignalState.js'
 
 const WRONG_FLASH_MS = 700
@@ -17,7 +18,7 @@ const WRONG_FLASH_MS = 700
 // сообщение-сигнал уходит в ленту (onSignalFired), неверная буква мигает, клавиши молчат,
 // пока сигнал играет, попытка не тратится. nodes — все ноды урока (резолв ref сигнала),
 // hasSignalFired(nodeId) — та же нода-сигнал срабатывает один раз за урок.
-export function useTypeWord(node, nodes = [], onSignalFired, hasSignalFired) {
+export function useTypeWord(node, nodes = [], onSignalFired, hasSignalFired, lessonTitle = '') {
   const d = node.typeData?.type_word ?? {}
   const word  = d.word ?? ''
   const extra = d.extraLetters ?? ''
@@ -81,8 +82,18 @@ export function useTypeWord(node, nodes = [], onSignalFired, hasSignalFired) {
     return 'wrong'
   }
 
+  // Автоподсказка по первому неверному слову (typeWordWordHint.js): текст для чата или '' — тогда идёт responseWrong.
+  // Приоритет: сигнал автора на букву (бесплатный, выше) → эта подсказка → responseWrong. Если на ошибочную букву у автора
+  // есть сигнал (пусть уже сработавший) — автоподсказку не шлём, чтобы не дублировать его текст. Выключается wordHints: false
+  function autoHint(text) {
+    if (d.wordHints === false) return ''
+    const slot = typedMismatchSlot(text, word)
+    if (slot != null && signalForSlot(signals, slot, nodes)) return ''
+    return wordHintText(wordHint(text, word, lessonTitle))
+  }
+
   return {
-    typed, result, isAnswered, frozen, model, word,
+    typed, result, autoHint, isAnswered, frozen, model, word,
     blinkIndex: signalState.blinkIndex,
     press, backspace, setAll, check, lock: () => setLocked(true),
   }

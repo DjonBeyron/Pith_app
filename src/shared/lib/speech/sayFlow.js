@@ -24,12 +24,15 @@ import { adminHeardLine } from './sayAdmin.js'
 import { buildHint, heardAnything, silenceHintAllowed, STOP_MANUAL } from './sayHints.js'
 import { userReply } from './sayReply.js'
 import { isQuietCode } from './speechPolicy.js'
+import { HINT_SILENCE_SKIP } from './sayTexts.js'
 
 /** Защита от двойного тапа: столько мс после тапа повторный тап по кругу ещё НЕ останавливает запись */
 export const STOP_ARM_MS = 350
 /** Сколько засчитанных неудач до ветки «неверный» и сколько тишин подряд считаются одной неудачей */
 export const MAX_FAILED_ATTEMPTS = 3
 export const MAX_SILENCES = 3
+/** Сколько тишин ПОДРЯД (ученик вообще ничего не сказал) отпускают его из модуля: мягкая реплика «ничего страшного, двигаемся дальше» и выход как у «Я не могу говорить» (say_done без сообщения-успеха) */
+export const SILENCE_EXIT_AT = 2
 
 /**
  * Как итог неудачной попытки влияет на счёт. Чистая функция: { attempts, silences } до → после.
@@ -44,7 +47,7 @@ export function nextCounts({ attempts, silences }, { spoke, quiet }) {
 export function initialSayState(decision) {
   const base = {
     phase: 'idle', taps: 0, view: emptyView, verdict: null, errorCode: null, fallbackReason: null, autoRetries: 0,
-    explainer: false, explainKind: null, realLevel: null, audioSession: null, engine: null, data: null, settledRun: 0, event: null, failStreak: 0, attempts: 0, silences: 0, exhausted: false, armed: false, adminLine: null, hint: null, hintNo: 0, reply: null, stopReason: null,
+    explainer: false, explainKind: null, realLevel: null, audioSession: null, engine: null, data: null, settledRun: 0, event: null, failStreak: 0, attempts: 0, silences: 0, exhausted: false, armed: false, adminLine: null, hint: null, hintNo: 0, reply: null, stopReason: null, silenceExit: false,
   }
   return decision?.action === 'fallback' ? { ...base, phase: 'fallback', fallbackReason: decision.reason } : base
 }
@@ -57,14 +60,18 @@ function settle(s, v) {
   const failed = (errorCode, verdict) => {
     const failStreak = s.failStreak + 1
     const spoke = !!verdict?.heard?.trim()
-    const counts = nextCounts(s, { spoke, quiet: !spoke && (isQuietCode(errorCode) || (!errorCode && !!verdict)) })
+    const quiet = !spoke && (isQuietCode(errorCode) || (!errorCode && !!verdict))
+    const counts = nextCounts(s, { spoke, quiet })
     const exhausted = counts.attempts >= MAX_FAILED_ATTEMPTS
     const reason = failReason({ errorCode, verdict })
-    const h = buildHint(s.data, { errorCode, verdict })
+    const base = buildHint(s.data, { errorCode, verdict })
+    // Вторая тишина подряд: вместо «не слышу вас» — мягкая реплика, и модуль отпускает ученика (панель закрывается как «Я не могу говорить»). Только если подсказки включены
+    const silenceExit = quiet && base?.kind === 'silence' && s.silences + 1 >= SILENCE_EXIT_AT
+    const h = silenceExit ? { kind: 'silenceSkip', text: HINT_SILENCE_SKIP } : base
     const hintNo = h ? s.hintNo + 1 : s.hintNo
     const text = verdict ? userReply(verdict) : null
     return {
-      ...s, ...mark, ...counts, exhausted, phase: 'failed', verdict, errorCode, failStreak, hintNo, hint: h ? { ...h, n: hintNo } : null, reply: text ? { text, n: failStreak } : null,
+      ...s, ...mark, ...counts, exhausted, silenceExit, phase: 'failed', verdict, errorCode, failStreak, hintNo, hint: h ? { ...h, n: hintNo } : null, reply: text ? { text, n: failStreak } : null,
       event: ev({ passed: false, reason, failStreak, ratioPct: verdict?.ratioPct, engineFixed: verdict?.engineFixed?.length || undefined, hintKind: h?.kind, exhausted }),
     }
   }
@@ -104,7 +111,7 @@ export function sayReducer(s, a) {
       if (v.status === 'idle') return { ...s, view: v } // сброс контроллера не стирает строку админа
       return withAdminLine(s, { ...s, view: v })
     }
-    case 'begin': if (s.exhausted) return s // три неудачи уже были: панель уходит по ветке «неверный», новая запись не начинается
+    case 'begin': if (s.exhausted || s.silenceExit) return s // три неудачи уже были: панель уходит по ветке «неверный», новая запись не начинается
       return { ...s, phase: 'run', taps: s.taps + 1, verdict: null, errorCode: null, data: a.data, armed: false, realLevel: a.realLevel ?? null, audioSession: a.audioSession ?? null, engine: a.engine ?? null, adminLine: null, hint: null, reply: null, stopReason: null }
     case 'stop': return s.phase === 'run' ? { ...s, stopReason: a.reason === STOP_MANUAL ? STOP_MANUAL : null } : s // ученик нажал «стоп» (planTap → stop): запоминаем причину до итога захода
     case 'arm': return s.phase === 'run' ? { ...s, armed: true } : s

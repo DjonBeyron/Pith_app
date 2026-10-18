@@ -15,9 +15,11 @@ export const MIC_SCALE = { locked: 0.765, ready: 1, active: 1.15, done: 1, off: 
  *  flag — микрофон на этом устройстве уже успешно открывался (localStorage, sayPermission.MIC_GRANTED_KEY); sessionOk — работал в ЭТОМ запуске.
  * denied → нет; granted → да; prompt → да только если микрофон уже работал в этом запуске (иначе диалог ОС ещё будет — доступа нет);
  * unavailable/неизвестно → да по флагу «уже открывался» или по этому запуску.
+ * checked — Permissions API уже ответил (sayPermission.isChecked). Пока нет — доступ подтверждает только «работал в этом запуске» (по умолчанию true: вызовы без поля работают как раньше).
  */
-export function hasMicAccess({ permission, flag = false, sessionOk = false } = {}) {
+export function hasMicAccess({ permission, flag = false, sessionOk = false, checked = true } = {}) {
   if (permission === 'denied') return false
+  if (!checked) return !!sessionOk // Permissions API ещё молчит: старому флагу «уже открывался» верить рано (iPhone спрашивает на каждом запуске) — иначе при появлении модуля круг мигает зелёным
   if (permission === 'granted') return true
   if (permission === 'prompt') return !!sessionOk
   return !!(flag || sessionOk)
@@ -28,9 +30,9 @@ export function hasMicAccess({ permission, flag = false, sessionOk = false } = {
  * explain (идёт попап) и failed (неудача) — как «до нажатия»: locked или ready по доступу. Пока вводный попап не видели (introSeen=false), «до нажатия» — всегда locked,
  * даже если доступ уже есть (Android: отдельного шага разрешения нет). introSeen по умолчанию true: вызовы без поля работают как раньше.
  */
-export function micVisualState({ permission, flag = false, sessionOk = false, introSeen = true, phase = 'idle' } = {}) {
+export function micVisualState({ permission, flag = false, sessionOk = false, introSeen = true, checked = true, phase = 'idle' } = {}) {
   if (phase === 'fallback') return 'off'
   if (phase === 'passed') return 'done'
   if (phase === 'run') return 'active'
-  return introSeen && hasMicAccess({ permission, flag, sessionOk }) ? 'ready' : 'locked'
+  return introSeen && hasMicAccess({ permission, flag, sessionOk, checked }) ? 'ready' : 'locked'
 }

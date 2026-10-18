@@ -79,6 +79,9 @@
   touch-action: manipulation;
 }
 
+/* Клавиатура в плеере приподнята: между нижним рядом и «Проверить» зазор (лента «Ловля слов» свою раскладку не трогает) */
+.twPanel .twKeyboard { margin-bottom: 14px; }
+
 .twRow {
   position: relative;
   display: flex;

@@ -58,6 +58,7 @@ describe('sayFlow: ручная остановка', () => {
   })
 
   it('отмена не сбивает серию: две тишины, ручная остановка, ещё тишина — это третья, а не четвёртая', () => {
+    const data = readSayData({ phrase: 'I am trying to please both', keywords: 'please', threshold: 70, hintsOn: false }) // без подсказок: после второй тишины подсказки включены бы отпустили ученика (sayFlowSilenceExit.test.js)
     let s = run(start(), null, QUIET_ERR)
     s = run({ ...sayReducer(s, { type: 'begin', data }) }, null, { ...QUIET_ERR, runNo: 2 })
     expect(s.silences).toBe(2)

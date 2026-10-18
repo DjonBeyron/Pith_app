@@ -80,6 +80,15 @@ describe('type_word — мини-фраза', () => {
   })
 })
 
+describe('type_word — города и имена без запутывателей', () => {
+  const tw = (word, extraLetters) => [{ ref: 'a', type: 'type_word', data: { word, extraLetters }, triggers: [] }]
+  it('«go to Paris» с extraLetters — замечание; без них и без заглавного — нет', () => {
+    expect(checkFlow(tw('go to Paris', 'ln')).join()).toContain('[R-type-place] a')
+    expect(checkFlow(tw('go to Paris', ''))).toEqual([])
+    expect(checkFlow(tw('she tries', 'xz'))).toEqual([])
+  })
+})
+
 describe('подача заданий и таблицы', () => {
   const ex = (ref, then) => ({ ref, type: 'type_word', data: { word: 'she tries' }, triggers: then ? [{ if: 'type_correct', then }] : [] })
   const tx = (ref, then) => ({ ref, type: 'text', data: { content: 'вызов' }, triggers: [{ if: 'timer', then }] })

@@ -8,9 +8,14 @@ import { buildCellTargets, matchWordTimingsToTargets } from './autoMontage.js'
 const uid = () => crypto.randomUUID()
 
 export function buildAutoTimeline({ cells, wordTimings, duration }) {
-  const dur = duration || 1
-  const timelineLen = Math.max(1, Math.round(dur + 10))
   const matches = matchWordTimingsToTargets(wordTimings, buildCellTargets(cells))
+  // Длина аудио не определилась (проба не отдала число) — берём конец последнего
+  // сошедшегося слова. Раньше тут стояла 1с, и «Проверить» ложилась на 0.7–1с:
+  // таблица закрывалась на второй секунде, пока диктор ещё говорил
+  let lastEnd = 0
+  for (const m of matches.values()) lastEnd = Math.max(lastEnd, m.end ?? m.start ?? 0)
+  const dur = duration || (lastEnd > 0 ? lastEnd + 0.5 : 1)
+  const timelineLen = Math.max(1, Math.round(dur + 10))
   const layers = (cells ?? []).map(c => {
     const m = matches.get(c.id)
     const base = { id: uid(), cellId: c.id, visible: true, collect: true }
