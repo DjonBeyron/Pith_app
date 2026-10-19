@@ -101,7 +101,7 @@ export default function ChooseWordPanel({
   function tapOption(opt, rect) {
     const snd = opt.isCorrect ? 'answer-correct' : 'answer-wrong'
     pLog(`[word-choice] tap isCorrect=${opt.isCorrect} → sound=${snd}`)
-    // Верный: сначала звук интерфейса, озвучка фразы — на 65% его длительности (чекбокс ноды voiceCorrect)
+    // Верный: сначала звук интерфейса, озвучка фразы — на 40% его длительности (чекбокс ноды voiceCorrect)
     const voiceKey = wordChoiceVoiceKey(wcData, opt)
     if (voiceKey) playCorrectWithVoice('выбор слова', () => playWord(voiceKey))
     else playSound(snd, 'выбор слова')

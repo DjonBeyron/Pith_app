@@ -74,6 +74,8 @@ export function resolveSceneNode(td, opts = {}) {
     mode, showBubbles, start: normalizeSceneStart(data.start), startDelayMs: normalizeStartDelay(data.startDelayMs),
     crop: normalizeSceneCrop(data.crop), ...sceneNodeOverrides(data),
   }
+  // Кружок — строгое правило: облачков с текстом реплик в нём нет никогда (только кот, голос и кольцо), что бы ни стояло в showBubbles/display
+  if (mode === 'circle') { base.showBubbles = false; base.display = 'none' }
   if (!isObj(data.scene)) return { scene: null, errors: [], ...base }
   const errors = validateSceneV2(data.scene)
   if (sceneByteSize(data.scene) > SCENE_MAX_BYTES) errors.push(`Сцена больше ${SCENE_MAX_BYTES / 1024} КБ`)

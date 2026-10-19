@@ -166,7 +166,7 @@ export default function PhraseAssemblyPanel({
     // счётчик неверных, ни статистика её не видят, панель не закрылась
     if (!r || r === 'signal') return
     onChecked?.(r, placed.map(p => p.word).join(' '))
-    // Верный: звук интерфейса, затем (на 65% его длительности) озвучка собранной фразы целиком — чекбокс ноды voiceAnswer
+    // Верный: звук интерфейса, затем (на 40% его длительности) озвучка собранной фразы целиком — чекбокс ноды voiceAnswer
     const voiceKey = r === 'correct' ? phraseAnswerVoiceKey(pa, placed.map(p => p.word)) : null
     if (voiceKey) playCorrectWithVoice('собери фразу', () => playWord(voiceKey))
     else playSound(r === 'correct' ? 'answer-correct' : 'answer-wrong', 'собери фразу')

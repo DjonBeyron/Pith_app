@@ -14,7 +14,9 @@ describe('верный ответ: звук интерфейса, потом о�
   beforeEach(() => { vi.useFakeTimers(); h.subs.clear(); playSound.mockClear() })
   afterEach(() => vi.useRealTimers())
 
-  it('звук играет сразу, озвучка стартует на 65% его длительности, а не раньше', () => {
+  it('константа одна на все модули и равна 40% (чуть раньше прежних 65%)', () => { expect(VOICE_START_AT).toBe(0.4) })
+
+  it('звук играет сразу, озвучка стартует на 40% его длительности, а не раньше', () => {
     const voice = vi.fn()
     playCorrectWithVoice('тест', voice)
     expect(playSound).toHaveBeenCalledWith('answer-correct', 'тест')

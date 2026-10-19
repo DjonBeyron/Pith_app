@@ -112,3 +112,9 @@ export function resetSceneAudio() {
   unlocked = false
   emit()
 }
+
+// Жест запуска УРОКА (карточка запуска, ▶ в канвасе): открывает аудио сцен, только если в уроке есть нода scene — на iOS это тихий wav +
+// speechSynthesis.speak(' ') в самом тапе, иначе кружок/сцена в начале урока стартует без звука (политика автоплея)
+export function unlockSceneAudioForLesson(nodes) {
+  if (Array.isArray(nodes) && nodes.some(n => n?.type === 'scene')) unlockSceneAudio()
+}

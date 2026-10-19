@@ -17,6 +17,7 @@
 export const LAST_CAP = 0.99    // оценочный конец последней реплики (зазор ≈ 7 px кольца до 'ended')
 export const CREEP_CAP = 0.997  // потолок «ползучего» хвоста, если звук длиннее оценки (зазор ≈ 2 px кольца)
 export const CREEP_MIN_MS = 3000
+export const CREEP_SHARE = 0.4  // хвост не-последней реплики ползёт не дальше этой доли пути до конца следующего отрезка
 export const END_MS = 240       // доезд до 1 по сигналу 'ended' (фиксированный, не зависит от остатка)
 export const REWIND_MS = 300
 
@@ -93,6 +94,12 @@ export function createProgressTimeline() {
       const span = end - (T > 0 ? E / T : 0)
       const ms = to > curAfter && d > 0 ? Math.round(d * Math.min(1, span > 0 ? (to - curAfter) / span : 1)) : 0
       if (to > curAfter) list.push({ to, ms })
+      // Хвост: звук реплики длиннее оценки — кольцо не стоит на потолке отрезка (это и было «втыкается»), а медленно ползёт
+      // к ближайшей границе следующего отрезка (не дальше доли CREEP_SHARE пути, чтобы стык не давал скачка назад или вперёд)
+      const next = st.index + 1
+      const nextEnd = next >= durations.length - 1 ? LAST_CAP : clamp01(T > 0 ? (E + d + (durations[next] ?? 0)) / T : 1)
+      const tail = to + Math.max(0, nextEnd - to) * CREEP_SHARE
+      if (tail > to) list.push({ to: tail, ms: Math.max(CREEP_MIN_MS, Math.round(d * 3)) })
     }
     const f = fresh && !seeded ? value(now) : curAfter
     set(now, f, list)

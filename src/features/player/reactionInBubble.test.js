@@ -33,6 +33,13 @@ describe('реакция «в пузыре» (flow)', () => {
     expect(read('../canvas/review/PlayerLikeFeed.jsx')).toContain('anchorRef={ref}')
   })
 
+  it('плавный рост: нижнее поле растёт тем же переходом (иначе коробка ниже суммы полей прыгает и стоит)', () => {
+    expect(module_).toContain("target.setAttribute('data-pad-from', getComputedStyle(target).paddingBottom)")
+    expect(bubble).toContain('padding-bottom ${GROW_MS}ms')
+    expect(bubble).toContain("el.style.paddingBottom = ''")
+    expect(css).toContain('.reactionInBubble--in')
+  })
+
   it('CSS: нижнее поле у пузыря и абсолютная плашка внутри', () => {
     expect(css).toContain('.playerMsgBubble.playerMsgBubbleReactedFlow')
     expect(css).toContain('.reactionInBubble--flow')

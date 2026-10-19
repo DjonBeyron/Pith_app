@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { pLog } from '../../../../shared/lib/debug.js'
 import { usePlayerFrozen } from '../../playerFrozen.js'
 import { useLessonMuted, useVoiceRate } from '../../lessonVolume.js'
-import { unlockSceneAudio } from '../../../scene/v2/sceneAudioUnlock.js'
+import { unlockSceneAudio, sceneNeedsOwnGesture } from '../../../scene/v2/sceneAudioUnlock.js'
 import { useSceneSolo, sceneSoloSeq, sceneSoloBusy, sceneGestureSeq, noteSceneGesture } from './useSceneSolo.js'
 import {
   startDecision, waitRowAppear, scheduleSceneStart, autoStartSound, pageHasBeenActive, autoStartYields,
@@ -88,7 +88,7 @@ export function useScenePlayback({ resolved, pending, isHistory, onDone, ready =
         // кружок остаётся с ▶ и стартует по тапу
         if (autoStartYields({ armedGesture, gesture: sceneGestureSeq(), armedSeq, seq: sceneSoloSeq(), busy: sceneSoloBusy() })) { pLog('[scene] автозапуск отменён: играет другая сцена'); return }
         startedRef.current = true
-        const withSound = autoStartSound({ hasBeenActive: pageHasBeenActive() })
+        const withSound = autoStartSound({ hasBeenActive: pageHasBeenActive(), needsGesture: sceneNeedsOwnGesture() })
         pLog(`[scene] автозапуск play() sound=${withSound}`)
         // Не api.play() сразу: режиссёр читает sound из пропсов рендерера, и флаг
         // должен дойти до него до старта реплики — команда уходит эффектом ниже

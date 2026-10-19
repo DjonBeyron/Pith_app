@@ -1,4 +1,4 @@
-import { Play, Pause } from 'lucide-react'
+import { Play, Pause, RotateCcw } from 'lucide-react'
 
 // Значки кнопки. Цвет тут жёстко тёмный: кнопка и в лаймовом, и в сером
 // (на паузе) состоянии остаётся светлой подложкой под тёмным знаком
@@ -19,4 +19,9 @@ export function LoadRing() {
         strokeDasharray="14 30" />
     </svg>
   )
+}
+
+// Файл не загрузился (HTTP 404 / обрыв): тап повторяет загрузку один раз, см. useAudioLoadFail.js
+export function RetryIcon() {
+  return <RotateCcw size={11} color="#0e1013" strokeWidth={2.6} aria-hidden="true" />
 }

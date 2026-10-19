@@ -162,7 +162,7 @@ const PRINCIPLE_META = [
   ['Сцены: Пит открывает вопросом, закрывает итогом', SC, 'judge', 'warn', 'открывающий кружок: «Сегодня вы обязаны выучить trying.»', 'открывающий кружок: «Привет! Как сказать «я пытаюсь»?»\nзакрывающий: «Теперь ты знаешь trying. Повторим?»'],
   ['Сцены: без заданий, середина — диалог двух котов', SC, 'auto', 'error', 'scene mode: bubble, task: { kind: "translate" }\nсцена в середине: mode circle, один кот', 'scene mode: bubble, два кота a и b, без task'],
   ['Сцены: озвучку не выдумывать', SC, 'auto', 'warn', 'timeline[0].audioUrl: https://example.com/fake.mp3 (без audioMeta)', 'timeline[0] без audioUrl — шлюз отметит needsVoice, озвучит админ'],
-  ['Перевод после ответа, если не объявлен', Z, 'judge', 'warn', 'word_choice: to / too / at\ntext: В точку)', 'word_choice: to / too / at\ntext: даа)) это переводится как {t:«мне нужно отдохнуть»}'],
+  ['Перевод после ответа, если не объявлен', Z, 'judge', 'warn', 'word_choice: to / too / at\ntext: В точку)', 'word_choice: to / too / at\ntext: даа)) это переводится как {t:«мне нужно отдохнуть»}, а to тут мостик между needs и rest'],
   ['Реакция не описывает механику', T, 'auto', 'warn', 'text: Собрал фразу с конца 🔥', 'text: вот так оно и строится)'],
   ['«Вот и всё» — только в финале', Q, 'judge', 'warn', 'text: вот кста и всё) (в середине урока)', 'text: ещё одна ловушка, «я тебе позвоню»'],
   ['Обещали голос — собираем голосом', V, 'judge', 'warn', 'say_phrase: to the park\nsay_phrase: go to the park\nphrase_assembly: We go to the park', 'say_phrase: to the park\nsay_phrase: go to the park\nphoto: собери «мы идём в парк»\nsay_phrase: We go to the park'],
@@ -175,6 +175,7 @@ const PRINCIPLE_META = [
   ['word_choice: озвучка верного варианта', V, 'judge', 'warn', 'word_choice: Нам нужно уйти (voiceCorrect без voicePhrase)', 'word_choice: Нам нужно уйти (voicePhrase: We need to leave)'],
   ['Dictator: порядок ячеек и шапка', B, 'judge', 'warn', 'table (dictator): «to нужен» в пояснении до строки с to; chatCaption пуст', 'table (dictator): ячейки по порядку речи; chatCaption: выражаем желание'],
   ['lesson_ref только с выбранным уроком', C, 'judge', 'warn', 'lesson_ref без targetId', 'lesson_ref с targetId выбранного урока'],
+  ['Английские имена в уроке', Z, 'judge', 'warn', 'phrase_assembly: I talk to Masha', 'phrase_assembly: I talk to Kate'],
 ]
 
 const CHECKLIST_META = [

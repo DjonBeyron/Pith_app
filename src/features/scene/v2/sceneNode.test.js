@@ -98,3 +98,14 @@ describe('sceneNode — данные ноды scene', () => {
     expect(rawSceneLines(null)).toEqual([])
   })
 })
+
+describe('кружок: облачков с текстом нет никогда', () => {
+  it('mode circle: showBubbles и display игнорируются (false / none), в пузыре — как было', () => {
+    const c = resolveSceneNode({ scene: demoCafeScene, mode: 'circle', showBubbles: true, display: 'both' })
+    expect(c.showBubbles).toBe(false)
+    expect(c.display).toBe('none')
+    const b = resolveSceneNode({ scene: demoCafeScene, mode: 'bubble', showBubbles: true, display: 'both' })
+    expect(b.showBubbles).toBe(true)
+    expect(b.display).toBe('both')
+  })
+})

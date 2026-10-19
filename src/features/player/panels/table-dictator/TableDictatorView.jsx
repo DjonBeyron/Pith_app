@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import TableGrid from '../../../../shared/ui/TableGrid.jsx'
 import TableExtraChips from './TableExtraChips.jsx'
 import { spacerStyle } from '../spacerStyle.js'
@@ -14,6 +15,13 @@ export default function TableDictatorView({
   audioRef, onPlay, onPause, onEnded, onError,
   children = null, // поверх вёрстки панели (админская кнопка «собрать верный ответ»)
 }) {
+  // Заголовки столбцов («Мостик», «Начало») не участвуют в разборе: когда диктор произносит слово шапки (на таймлайне у неё
+  // может стоять слой подсветки), она «позже зеленела». В авто-таблице шапка остаётся нейтральной всегда
+  const gridHighlighted = useMemo(() => {
+    const heads = new Set(table.cells.filter(c => c.isHeader).map(c => c.id))
+    if (!heads.size || !highlighted) return highlighted
+    return { has: id => highlighted.has(id) && !heads.has(id) }
+  }, [highlighted, table.cells])
   const hudClass = ['tdHud', !waveformData && 'tdHudPulse', hudVisible && 'tdHudVisible']
     .filter(Boolean).join(' ')
 
@@ -25,8 +33,8 @@ export default function TableDictatorView({
   const boxCls = [
     'tdAssemblyBox',
     (!empty || caption) ? 'tdAssemblyBoxFilled' : '',
-    result === 'correct' ? 'tdAssemblyBoxOk'  : '',
-    result === 'wrong'   ? 'tdAssemblyBoxErr' : '',
+    // Авто-таблица: шапка нейтральная и после проверки (раньше слова/надпись «позже зеленели»); неверный итог — только тряска
+    result === 'wrong'   ? 'tdAssemblyBoxShake' : '',
   ].filter(Boolean).join(' ')
 
   return (
@@ -67,7 +75,7 @@ export default function TableDictatorView({
                   rows={table.rows}
                   cells={table.cells}
                   rowCount={table.rowCount}
-                  highlightedIds={highlighted}
+                  highlightedIds={gridHighlighted}
                   dimmedIds={usedCells}
                   revealedIds={revealedIds}
                   flashDurations={flashDur.cells}

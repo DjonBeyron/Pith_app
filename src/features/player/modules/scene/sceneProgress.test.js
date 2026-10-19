@@ -86,8 +86,9 @@ describe('sceneProgressModel — кольцо/полоса: плавно, мон
     expect(tl.onState({ status: 'idle', index: 0, run: 0 }, { durations: D, now: 0 })).toEqual({ from: 0, steps: [] })
     const r = tl.onState({ status: 'playing', index: 0, run: 1 }, { durations: D, now: 100 })
     expect(r.from).toBe(0)
-    expect(r.steps).toHaveLength(1)
+    expect(r.steps).toHaveLength(2) // основной шаг к концу реплики + медленный хвост (кольцо не стоит, если звук длиннее оценки)
     expect(r.steps[0].ms).toBe(2000)
+    expect(r.steps[1].to).toBeGreaterThan(r.steps[0].to)
     expect(r.steps[0].to).toBeCloseTo(2000 / 6500, 5)
     expect(tl.value(100)).toBe(0)
     expect(tl.value(1100)).toBeCloseTo(r.steps[0].to / 2, 5) // линейно
@@ -123,6 +124,15 @@ describe('sceneProgressModel — кольцо/полоса: плавно, мон
     for (let i = 1; i < tr.length; i += 1) expect(tr[i]).toBeGreaterThanOrEqual(tr[i - 1] - 1e-9)
     expect(Math.max(...tr.slice(0, -30))).toBeLessThanOrEqual(CREEP_CAP + 1e-9)
     expect(tr.at(-1)).toBe(1)
+  })
+
+  it('реплика длиннее плана: кольцо НЕ стоит на потолке отрезка — всё время ползёт (нет «стоянки» дольше 100 мс до конца)', () => {
+    const tr = simulate([2000, 2000], [6000, 6000])
+    let flat = 0
+    let maxFlat = 0
+    for (let i = 1; i < tr.length - 40; i += 1) { flat = tr[i] - tr[i - 1] > 1e-9 ? 0 : flat + 10; maxFlat = Math.max(maxFlat, flat) }
+    expect(maxFlat).toBeLessThanOrEqual(100)
+    for (let i = 1; i < tr.length; i += 1) expect(tr[i]).toBeGreaterThanOrEqual(tr[i - 1] - 1e-9)
   })
 
   it('пауза замораживает значение, продолжение идёт дальше от него (без отката и скачка)', () => {

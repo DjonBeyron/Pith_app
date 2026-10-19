@@ -4,7 +4,7 @@
   "lesson": {
     "title": "To",
     "lessonId": "c4a1cd3a-c6df-4ffe-aaa6-e3f4255b7e24",
-    "nodeCount": 215
+    "nodeCount": 216
   },
   "nodes": [
     {
@@ -15,12 +15,12 @@
         0,
         0
       ],
-      "note": "СЦЕНА: кружок Пита, один кот, средний план (не крупный и не общий); объединяет прежние n1 (голосовое) и n2 (фото). Озвучку записать кнопкой «Озвучить» в редакторе сцены; кадр подогнать ползунком crop.",
+      "note": "СЦЕНА: кружок Пита, один кот крупно, без облачков; объединяет прежние n1 (голосовое) и n2 (фото). Озвучку записать кнопкой «Озвучить» в редакторе сцены; кадр подогнать ползунком crop.",
       "data": {
         "scene": {
           "version": 2,
           "id": "to-intro",
-          "title": "Пит готовит ужин",
+          "title": "Кот на кухне",
           "location": "cafe",
           "characters": {
             "a": {
@@ -70,12 +70,12 @@
           }
         },
         "mode": "circle",
-        "showBubbles": true,
+        "showBubbles": false,
         "start": "auto",
         "crop": {
           "x": 0,
           "y": 0,
-          "scale": 0.75
+          "scale": 1
         }
       },
       "triggers": [
@@ -933,7 +933,7 @@
         "timeline": {
           "layers": [
             {
-              "id": "d823b278-1f43-4d74-b6fb-8c710dc07782",
+              "id": "7a95fb31-138a-4959-b5cc-10d17a638dfb",
               "clips": [
                 {
                   "end": 1,
@@ -950,7 +950,7 @@
               "highlightOn": false
             },
             {
-              "id": "8d852549-e7df-4ce2-8cfa-ea2254dbf3fe",
+              "id": "1c557a6e-4e9e-4138-9fd2-b1a076f46bbf",
               "clips": [
                 {
                   "end": 11.52,
@@ -967,7 +967,7 @@
               "highlightOn": true
             },
             {
-              "id": "be6a3b5f-8f54-4403-829a-176732957234",
+              "id": "9f65eaa7-ab73-4ae6-a8c1-6fd6bb812b5a",
               "clips": [
                 {
                   "end": 1,
@@ -984,7 +984,7 @@
               "highlightOn": false
             },
             {
-              "id": "cfb0522b-b42d-44e1-b1e1-85b2ef39e0ec",
+              "id": "31925f91-84a0-414f-b35a-397bbfb753ec",
               "clips": [
                 {
                   "end": 3,
@@ -1001,7 +1001,7 @@
               "highlightOn": true
             },
             {
-              "id": "0d9b15e0-74c2-47e7-bf81-c40013db144b",
+              "id": "264ccc5b-f632-4dd1-be64-4b6d42ca07a1",
               "clips": [
                 {
                   "end": 3.12,
@@ -1018,7 +1018,7 @@
               "highlightOn": true
             },
             {
-              "id": "853c8ded-27a5-4d7d-9c6a-e2e1d5828520",
+              "id": "10d8afec-78e6-44e5-8812-8b4bbdadc385",
               "clips": [
                 {
                   "end": 3.77,
@@ -1035,7 +1035,7 @@
               "highlightOn": true
             },
             {
-              "id": "09b04918-3fc9-4290-b5b1-0a0a93f320f9",
+              "id": "b18f2177-7225-4732-ad53-e5f1c565905f",
               "clips": [
                 {
                   "end": 5.77,
@@ -1052,7 +1052,7 @@
               "highlightOn": true
             },
             {
-              "id": "fe1ab39e-ccc9-4f25-8146-e3d1159c64ed",
+              "id": "05ae961e-6b27-4d6c-aafe-2b606d952089",
               "clips": [
                 {
                   "end": 5.93,
@@ -1069,7 +1069,7 @@
               "highlightOn": true
             },
             {
-              "id": "dd2f444a-90a8-4fc2-97bf-9b358d9dc667",
+              "id": "7542c8e7-0b52-4a75-a587-46e99d6bec9b",
               "clips": [
                 {
                   "end": 6.63,
@@ -1086,7 +1086,7 @@
               "highlightOn": true
             },
             {
-              "id": "b1cf0e3f-7b0c-451d-a8b2-a939afbef85f",
+              "id": "c1ea2643-761a-4994-aaa7-0149a4fb38c5",
               "clips": [
                 {
                   "end": 13.003175,
@@ -1850,14 +1850,14 @@
         {
           "if": "timer",
           "ms": 1400,
-          "then": "n34"
+          "then": "n218"
         }
       ]
     },
     {
       "ref": "n34",
       "type": "system",
-      "seq": 33,
+      "seq": 34,
       "pos": [
         21080,
         0
@@ -1885,7 +1885,7 @@
     {
       "ref": "n35",
       "type": "audio",
-      "seq": 34,
+      "seq": 35,
       "pos": [
         21640,
         0
@@ -1937,7 +1937,7 @@
     {
       "ref": "n36",
       "type": "sticker",
-      "seq": 35,
+      "seq": 36,
       "pos": [
         22200,
         0
@@ -1967,7 +1967,7 @@
     {
       "ref": "n37",
       "type": "text",
-      "seq": 36,
+      "seq": 37,
       "pos": [
         22760,
         0
@@ -2010,7 +2010,7 @@
     {
       "ref": "n38",
       "type": "photo",
-      "seq": 37,
+      "seq": 38,
       "pos": [
         23320,
         0
@@ -2059,7 +2059,7 @@
     {
       "ref": "n39",
       "type": "word_choice",
-      "seq": 38,
+      "seq": 39,
       "pos": [
         23880,
         0
@@ -2110,7 +2110,7 @@
     {
       "ref": "n40",
       "type": "reaction",
-      "seq": 39,
+      "seq": 40,
       "pos": [
         24440,
         0
@@ -2130,7 +2130,7 @@
     {
       "ref": "n41",
       "type": "table",
-      "seq": 40,
+      "seq": 41,
       "pos": [
         25560,
         0
@@ -2303,7 +2303,7 @@
         "timeline": {
           "layers": [
             {
-              "id": "83c07d90-7af9-4004-bdca-cf1c726b2895",
+              "id": "ebcda9dc-9a6d-43d8-acac-6ecca0b2a666",
               "clips": [
                 {
                   "end": 1,
@@ -2320,7 +2320,7 @@
               "highlightOn": false
             },
             {
-              "id": "040a9e79-b537-4ebf-b232-53a29d87f040",
+              "id": "7f8d9d2a-d4d3-4c40-bfea-aa7e9c80a8cb",
               "clips": [
                 {
                   "end": 10.22,
@@ -2337,7 +2337,7 @@
               "highlightOn": true
             },
             {
-              "id": "a59aef26-c123-46f9-b07c-a3426bc7920e",
+              "id": "9a4a44c1-329e-4c2f-bc2b-8f479699a90e",
               "clips": [
                 {
                   "end": 1,
@@ -2354,7 +2354,7 @@
               "highlightOn": false
             },
             {
-              "id": "45c6da2f-d8cb-430e-b315-088f5814e193",
+              "id": "4b847f5f-e7b5-4065-8b27-5a48a93843c3",
               "clips": [
                 {
                   "end": 2.11,
@@ -2371,7 +2371,7 @@
               "highlightOn": true
             },
             {
-              "id": "8d6ec422-0e71-40ed-aba4-3980cc52ce7b",
+              "id": "a9ff9aa9-3c3f-45c1-a5be-0b0b8df78138",
               "clips": [
                 {
                   "end": 2.31,
@@ -2388,7 +2388,7 @@
               "highlightOn": true
             },
             {
-              "id": "933281a1-63b3-46f5-a9d6-5d5d33f16831",
+              "id": "14ef98ab-f3b3-488c-ac40-5155df76eee1",
               "clips": [
                 {
                   "end": 3.07,
@@ -2405,7 +2405,7 @@
               "highlightOn": true
             },
             {
-              "id": "9ccd3873-b6ac-48dd-b8f5-cfefa4f91e80",
+              "id": "4f376c66-1ce0-4972-affb-da2d7124eb8a",
               "clips": [
                 {
                   "end": 7.08,
@@ -2422,7 +2422,7 @@
               "highlightOn": true
             },
             {
-              "id": "c7f0c0d6-994c-4594-b704-fa79b1247d94",
+              "id": "0d1cbef5-3b08-4271-9577-f1f3926da32e",
               "clips": [
                 {
                   "end": 7.22,
@@ -2439,7 +2439,7 @@
               "highlightOn": true
             },
             {
-              "id": "60339430-1d5a-49c9-9fff-48db513b9c69",
+              "id": "70d41090-911c-457f-9e36-53943a51f6d4",
               "clips": [
                 {
                   "end": 7.9,
@@ -2456,7 +2456,7 @@
               "highlightOn": true
             },
             {
-              "id": "7478e171-a145-4a51-9fa2-93132225ef31",
+              "id": "a11d83ea-d07b-42d5-858e-085ba414f4cb",
               "clips": [
                 {
                   "end": 13.42,
@@ -2473,7 +2473,7 @@
               "highlightOn": true
             },
             {
-              "id": "889b5a7d-54ff-45fd-b32e-3a512ce0212d",
+              "id": "6c6582c3-a75c-44da-846e-e0ed4bdaf59d",
               "clips": [
                 {
                   "end": 13.56,
@@ -2490,7 +2490,7 @@
               "highlightOn": true
             },
             {
-              "id": "d48118e1-f23e-4e1d-9eff-24d1bc9827f0",
+              "id": "be37215d-4355-44fe-a777-c289342600d3",
               "clips": [
                 {
                   "end": 14.4,
@@ -2507,7 +2507,7 @@
               "highlightOn": true
             },
             {
-              "id": "3abb7de3-ac38-4ee5-8108-1e41c1042a77",
+              "id": "e9da0ea7-1f88-4012-b712-763b2f159052",
               "clips": [
                 {
                   "end": 18.343764,
@@ -2527,7 +2527,7 @@
     {
       "ref": "n42",
       "type": "text",
-      "seq": 41,
+      "seq": 42,
       "pos": [
         26120,
         0
@@ -2570,7 +2570,7 @@
     {
       "ref": "n43",
       "type": "sticker",
-      "seq": 42,
+      "seq": 43,
       "pos": [
         26680,
         0
@@ -2599,7 +2599,7 @@
     {
       "ref": "n44",
       "type": "audio",
-      "seq": 43,
+      "seq": 44,
       "pos": [
         27240,
         0
@@ -2630,7 +2630,7 @@
     {
       "ref": "n45",
       "type": "photo",
-      "seq": 44,
+      "seq": 45,
       "pos": [
         27800,
         0
@@ -2679,7 +2679,7 @@
     {
       "ref": "n46",
       "type": "phrase_assembly",
-      "seq": 45,
+      "seq": 46,
       "pos": [
         28360,
         0
@@ -2725,7 +2725,7 @@
     {
       "ref": "n47",
       "type": "reaction",
-      "seq": 46,
+      "seq": 47,
       "pos": [
         28920,
         0
@@ -2745,7 +2745,7 @@
     {
       "ref": "n48",
       "type": "audio",
-      "seq": 47,
+      "seq": 48,
       "pos": [
         29480,
         0
@@ -2797,7 +2797,7 @@
     {
       "ref": "n49",
       "type": "audio",
-      "seq": 48,
+      "seq": 49,
       "pos": [
         30040,
         0
@@ -2856,7 +2856,7 @@
     {
       "ref": "n50",
       "type": "lesson_ref",
-      "seq": 49,
+      "seq": 50,
       "pos": [
         30600,
         0
@@ -2887,7 +2887,7 @@
     {
       "ref": "n51",
       "type": "table",
-      "seq": 50,
+      "seq": 51,
       "pos": [
         31160,
         0
@@ -3091,7 +3091,7 @@
         "timeline": {
           "layers": [
             {
-              "id": "ea5fd8a1-be9f-4304-8bf1-d741a90d725d",
+              "id": "8e073cb8-6277-4a8f-b99b-d533d0dda60c",
               "clips": [
                 {
                   "end": 1,
@@ -3108,7 +3108,7 @@
               "highlightOn": false
             },
             {
-              "id": "11d58e9f-2644-4d54-a6cf-d559b131bf55",
+              "id": "2425e206-ecfc-482d-a5f1-f57f9bb22513",
               "clips": [
                 {
                   "end": 1,
@@ -3125,7 +3125,7 @@
               "highlightOn": false
             },
             {
-              "id": "6488022c-80a6-4002-8421-ed22d3042009",
+              "id": "67a10fda-8c36-4a3a-9709-d31bff2d0251",
               "clips": [
                 {
                   "end": 1,
@@ -3142,7 +3142,7 @@
               "highlightOn": false
             },
             {
-              "id": "2781b10d-9448-47fd-b853-64992ee20550",
+              "id": "48e64d91-8f32-47c6-a7fa-36ab9d6bfff6",
               "clips": [
                 {
                   "end": 8.57,
@@ -3159,7 +3159,7 @@
               "highlightOn": true
             },
             {
-              "id": "48fd4826-7fe7-432a-818b-df30bea38def",
+              "id": "08cbc536-346a-4182-ba27-8f458a4d7f41",
               "clips": [
                 {
                   "end": 8.79,
@@ -3176,7 +3176,7 @@
               "highlightOn": true
             },
             {
-              "id": "a0be1cb0-8891-4976-a014-5c4e0410349b",
+              "id": "8768c895-256e-4256-a5bc-2946bc172367",
               "clips": [
                 {
                   "end": 9.25,
@@ -3193,7 +3193,7 @@
               "highlightOn": true
             },
             {
-              "id": "7ca1d8e5-e6e1-4a0d-b2f2-33f9f83d2bf6",
+              "id": "32f7d8e3-d392-4e42-b8c3-f81108c4c5ad",
               "clips": [
                 {
                   "end": 10,
@@ -3210,7 +3210,7 @@
               "highlightOn": true
             },
             {
-              "id": "2302ac69-7436-4721-8460-06645e901f3b",
+              "id": "35c13cb5-a490-47b7-bcfe-1dec9afbc40e",
               "clips": [
                 {
                   "end": 10.15,
@@ -3227,7 +3227,7 @@
               "highlightOn": true
             },
             {
-              "id": "ef28f41e-633f-4b8b-9c23-bcad6f8d3264",
+              "id": "d5b23052-0400-48a3-a9fb-0f92003156da",
               "clips": [
                 {
                   "end": 11.05,
@@ -3244,7 +3244,7 @@
               "highlightOn": true
             },
             {
-              "id": "9662a20d-eef2-411e-96cc-d2cd1f13cafe",
+              "id": "e2fa66a2-2a63-4f11-96a2-6e9a00852b28",
               "clips": [
                 {
                   "end": 14.3,
@@ -3261,7 +3261,7 @@
               "highlightOn": true
             },
             {
-              "id": "b1d1ecd8-7e61-4a20-ae00-7989eeb7259d",
+              "id": "04600dd8-4725-45c7-bc56-70d6af099e11",
               "clips": [
                 {
                   "end": 14.48,
@@ -3278,7 +3278,7 @@
               "highlightOn": true
             },
             {
-              "id": "206bb615-70d8-4edc-964a-0d9a481fa30f",
+              "id": "f2fe8a41-3947-4e8c-b934-ca0fd5d23003",
               "clips": [
                 {
                   "end": 15.52,
@@ -3295,7 +3295,7 @@
               "highlightOn": true
             },
             {
-              "id": "d2072c9e-ae68-4a8f-a0b2-d734320c892e",
+              "id": "5350da0d-9b6f-4394-8b1d-5450d4a19115",
               "clips": [
                 {
                   "end": 18.55,
@@ -3312,7 +3312,7 @@
               "highlightOn": true
             },
             {
-              "id": "12002bb3-d4cf-477f-87e0-b733eca7a75f",
+              "id": "394a6aa8-9e8c-4288-a4d1-898be5a77deb",
               "clips": [
                 {
                   "end": 18.73,
@@ -3329,7 +3329,7 @@
               "highlightOn": true
             },
             {
-              "id": "7dea7382-1c5b-4b59-b29b-270237cb7801",
+              "id": "8f2a38ff-0dc6-4d52-9f60-a4abebb7e9f8",
               "clips": [
                 {
                   "end": 30,
@@ -3346,7 +3346,7 @@
               "highlightOn": true
             },
             {
-              "id": "0fa9f808-c4c6-44fa-8f69-57de445b8bb0",
+              "id": "bcd14a9f-45f5-4936-9b42-62ef3693cfb2",
               "clips": [
                 {
                   "end": 19.504762,
@@ -3366,7 +3366,7 @@
     {
       "ref": "n52",
       "type": "pin_message",
-      "seq": 51,
+      "seq": 52,
       "pos": [
         31720,
         0
@@ -3450,7 +3450,7 @@
     {
       "ref": "n53",
       "type": "text",
-      "seq": 52,
+      "seq": 53,
       "pos": [
         32280,
         0
@@ -3479,7 +3479,7 @@
     {
       "ref": "n54",
       "type": "text",
-      "seq": 53,
+      "seq": 54,
       "pos": [
         32840,
         0
@@ -3548,7 +3548,7 @@
     {
       "ref": "n55",
       "type": "type_word",
-      "seq": 54,
+      "seq": 55,
       "pos": [
         33400,
         0
@@ -3572,7 +3572,7 @@
     {
       "ref": "n56",
       "type": "text",
-      "seq": 55,
+      "seq": 56,
       "pos": [
         33960,
         0
@@ -3601,7 +3601,7 @@
     {
       "ref": "n57",
       "type": "text",
-      "seq": 56,
+      "seq": 57,
       "pos": [
         34520,
         0
@@ -3630,7 +3630,7 @@
     {
       "ref": "n58",
       "type": "audio",
-      "seq": 57,
+      "seq": 58,
       "pos": [
         35080,
         0
@@ -3675,7 +3675,7 @@
     {
       "ref": "n59",
       "type": "word_choice",
-      "seq": 58,
+      "seq": 59,
       "pos": [
         35640,
         0
@@ -3728,7 +3728,7 @@
     {
       "ref": "n60",
       "type": "text",
-      "seq": 59,
+      "seq": 60,
       "pos": [
         36200,
         0
@@ -3757,7 +3757,7 @@
     {
       "ref": "n61",
       "type": "audio",
-      "seq": 60,
+      "seq": 61,
       "pos": [
         36760,
         0
@@ -3816,7 +3816,7 @@
     {
       "ref": "n62",
       "type": "audio",
-      "seq": 61,
+      "seq": 62,
       "pos": [
         37320,
         0
@@ -3868,7 +3868,7 @@
     {
       "ref": "n63",
       "type": "photo",
-      "seq": 62,
+      "seq": 63,
       "pos": [
         37880,
         0
@@ -3931,7 +3931,7 @@
     {
       "ref": "n64",
       "type": "phrase_assembly",
-      "seq": 63,
+      "seq": 64,
       "pos": [
         38440,
         0
@@ -3976,7 +3976,7 @@
     {
       "ref": "n65",
       "type": "text",
-      "seq": 64,
+      "seq": 65,
       "pos": [
         39000,
         0
@@ -4019,7 +4019,7 @@
     {
       "ref": "n66",
       "type": "text",
-      "seq": 65,
+      "seq": 66,
       "pos": [
         40860,
         0
@@ -4048,7 +4048,7 @@
     {
       "ref": "n67",
       "type": "audio",
-      "seq": 66,
+      "seq": 67,
       "pos": [
         41420,
         0
@@ -4093,7 +4093,7 @@
     {
       "ref": "n68",
       "type": "say_phrase",
-      "seq": 67,
+      "seq": 68,
       "pos": [
         41980,
         0
@@ -4126,7 +4126,7 @@
     {
       "ref": "n69",
       "type": "text",
-      "seq": 68,
+      "seq": 69,
       "pos": [
         42540,
         0
@@ -4155,7 +4155,7 @@
     {
       "ref": "n70",
       "type": "audio",
-      "seq": 69,
+      "seq": 70,
       "pos": [
         43100,
         0
@@ -4200,7 +4200,7 @@
     {
       "ref": "n71",
       "type": "say_phrase",
-      "seq": 70,
+      "seq": 71,
       "pos": [
         43660,
         0
@@ -4233,7 +4233,7 @@
     {
       "ref": "n72",
       "type": "reaction",
-      "seq": 71,
+      "seq": 72,
       "pos": [
         44220,
         0
@@ -4253,7 +4253,7 @@
     {
       "ref": "n73",
       "type": "text",
-      "seq": 72,
+      "seq": 73,
       "pos": [
         46080,
         0
@@ -4345,7 +4345,7 @@
     {
       "ref": "n74",
       "type": "audio",
-      "seq": 73,
+      "seq": 74,
       "pos": [
         46640,
         0
@@ -4390,7 +4390,7 @@
     {
       "ref": "n75",
       "type": "table",
-      "seq": 74,
+      "seq": 75,
       "pos": [
         47200,
         0
@@ -4594,7 +4594,7 @@
         "timeline": {
           "layers": [
             {
-              "id": "34d734e6-c060-42dd-a7ba-7f062edeea14",
+              "id": "8bb812ab-dbfe-47a4-a5ac-dff0f72321b5",
               "clips": [
                 {
                   "end": 1,
@@ -4611,7 +4611,7 @@
               "highlightOn": false
             },
             {
-              "id": "962c18cf-769f-424d-ba93-f5d1e6e51a30",
+              "id": "16744137-51ad-43f9-ab9a-431aff6f1e5b",
               "clips": [
                 {
                   "end": 1,
@@ -4628,7 +4628,7 @@
               "highlightOn": false
             },
             {
-              "id": "8c62f9c9-298c-483a-84fa-43bf6c7d0712",
+              "id": "894ab1be-61ba-49f3-82e4-a09634a6c9f1",
               "clips": [
                 {
                   "end": 1,
@@ -4645,7 +4645,7 @@
               "highlightOn": false
             },
             {
-              "id": "7fb0e45b-8c66-49ae-ac78-524e61046bd6",
+              "id": "73c9042b-4d1d-4277-808f-3e5db9a521a6",
               "clips": [
                 {
                   "end": 1,
@@ -4662,7 +4662,7 @@
               "highlightOn": false
             },
             {
-              "id": "09d875e2-39d1-4061-b01a-d535f8ffea9a",
+              "id": "175b0da1-d5bb-4261-b9a1-d12820f8a145",
               "clips": [
                 {
                   "end": 4.8,
@@ -4679,7 +4679,7 @@
               "highlightOn": true
             },
             {
-              "id": "279f5a76-e9ff-4732-9b1f-d116ee8d7762",
+              "id": "144a6f21-5431-4169-8476-cb88824711a4",
               "clips": [
                 {
                   "end": 7.3,
@@ -4696,7 +4696,7 @@
               "highlightOn": true
             },
             {
-              "id": "997838e7-ae66-4c69-b39f-7503abb9c094",
+              "id": "d56cb08e-2667-4cb1-95c4-1685849ea90f",
               "clips": [
                 {
                   "end": 1,
@@ -4713,7 +4713,7 @@
               "highlightOn": false
             },
             {
-              "id": "ccb76bff-6771-4e19-b67c-e48b9e109561",
+              "id": "d713d51f-a5ba-4859-b451-626e08ced01c",
               "clips": [
                 {
                   "end": 1,
@@ -4730,7 +4730,7 @@
               "highlightOn": false
             },
             {
-              "id": "670fa01a-b9d2-4451-993a-0c961a51d3e0",
+              "id": "3f1db9a8-33e3-4526-98bb-58c342946c68",
               "clips": [
                 {
                   "end": 14.79,
@@ -4747,7 +4747,7 @@
               "highlightOn": true
             },
             {
-              "id": "56b3ff9f-97c6-436d-afcc-a477bfb9ca0e",
+              "id": "901b05b3-a235-4db0-932a-936a891214d5",
               "clips": [
                 {
                   "end": 1,
@@ -4764,7 +4764,7 @@
               "highlightOn": false
             },
             {
-              "id": "86eb7fa7-8fb7-461a-b41c-a2bab2bcbe61",
+              "id": "109cc345-5de6-4837-af64-37840d5504ff",
               "clips": [
                 {
                   "end": 1,
@@ -4781,7 +4781,7 @@
               "highlightOn": false
             },
             {
-              "id": "cd24a747-f5d9-4a67-b1d6-d4af53b1220e",
+              "id": "62af055c-4a32-4962-9adb-8c967558780b",
               "clips": [
                 {
                   "end": 20.59,
@@ -4798,7 +4798,7 @@
               "highlightOn": true
             },
             {
-              "id": "160983e9-a5b7-4429-8cec-e3e12a33511c",
+              "id": "a3cff733-3e10-46b8-8869-5f28368ced8d",
               "clips": [
                 {
                   "end": 1,
@@ -4815,7 +4815,7 @@
               "highlightOn": false
             },
             {
-              "id": "4ec6182e-a4ce-4e10-8d1c-da4ec2ac51d6",
+              "id": "54803dc9-cbb6-465d-9c5a-9246f3df2b55",
               "clips": [
                 {
                   "end": 1,
@@ -4832,7 +4832,7 @@
               "highlightOn": false
             },
             {
-              "id": "b34402b2-4a63-4c15-9942-2e0d0b42c356",
+              "id": "e8be108d-2e60-414f-bcd0-7953413ba7cb",
               "clips": [
                 {
                   "end": 29.4,
@@ -4849,7 +4849,7 @@
               "highlightOn": true
             },
             {
-              "id": "453cf001-cb7c-4806-a1b5-beff692016f4",
+              "id": "be4cbb91-ab48-4fa5-bb61-5d7b7e2b01d1",
               "clips": [
                 {
                   "end": 30.2,
@@ -4869,7 +4869,7 @@
     {
       "ref": "n76",
       "type": "text",
-      "seq": 75,
+      "seq": 76,
       "pos": [
         47760,
         0
@@ -4912,7 +4912,7 @@
     {
       "ref": "n77",
       "type": "word_choice",
-      "seq": 76,
+      "seq": 77,
       "pos": [
         48320,
         0
@@ -4956,7 +4956,7 @@
     {
       "ref": "n78",
       "type": "text",
-      "seq": 77,
+      "seq": 78,
       "pos": [
         48880,
         0
@@ -4985,7 +4985,7 @@
     {
       "ref": "n79",
       "type": "text",
-      "seq": 78,
+      "seq": 79,
       "pos": [
         50740,
         0
@@ -5028,7 +5028,7 @@
     {
       "ref": "n80",
       "type": "audio",
-      "seq": 79,
+      "seq": 80,
       "pos": [
         51300,
         0
@@ -5059,7 +5059,7 @@
     {
       "ref": "n81",
       "type": "pin_message",
-      "seq": 80,
+      "seq": 81,
       "pos": [
         51860,
         0
@@ -5087,7 +5087,7 @@
     {
       "ref": "n82",
       "type": "system",
-      "seq": 81,
+      "seq": 82,
       "pos": [
         53720,
         0
@@ -5115,7 +5115,7 @@
     {
       "ref": "n83",
       "type": "text",
-      "seq": 82,
+      "seq": 83,
       "pos": [
         54280,
         0
@@ -5156,7 +5156,7 @@
     {
       "ref": "n84",
       "type": "phrase_assembly",
-      "seq": 83,
+      "seq": 84,
       "pos": [
         54840,
         0
@@ -5202,7 +5202,7 @@
     {
       "ref": "n85",
       "type": "text",
-      "seq": 84,
+      "seq": 85,
       "pos": [
         55400,
         0
@@ -5231,7 +5231,7 @@
     {
       "ref": "n86",
       "type": "text",
-      "seq": 85,
+      "seq": 86,
       "pos": [
         55960,
         0
@@ -5274,7 +5274,7 @@
     {
       "ref": "n87",
       "type": "word_choice",
-      "seq": 86,
+      "seq": 87,
       "pos": [
         56520,
         0
@@ -5325,7 +5325,7 @@
     {
       "ref": "n88",
       "type": "text",
-      "seq": 87,
+      "seq": 88,
       "pos": [
         57080,
         0
@@ -5366,7 +5366,7 @@
     {
       "ref": "n89",
       "type": "text",
-      "seq": 88,
+      "seq": 89,
       "pos": [
         57640,
         0
@@ -5395,7 +5395,7 @@
     {
       "ref": "n90",
       "type": "audio",
-      "seq": 89,
+      "seq": 90,
       "pos": [
         58200,
         0
@@ -5440,7 +5440,7 @@
     {
       "ref": "n91",
       "type": "word_choice",
-      "seq": 90,
+      "seq": 91,
       "pos": [
         58760,
         0
@@ -5493,7 +5493,7 @@
     {
       "ref": "n92",
       "type": "text",
-      "seq": 91,
+      "seq": 92,
       "pos": [
         59320,
         0
@@ -5522,7 +5522,7 @@
     {
       "ref": "n93",
       "type": "text",
-      "seq": 92,
+      "seq": 93,
       "pos": [
         59880,
         0
@@ -5577,7 +5577,7 @@
     {
       "ref": "n94",
       "type": "type_word",
-      "seq": 93,
+      "seq": 94,
       "pos": [
         60440,
         0
@@ -5600,7 +5600,7 @@
     {
       "ref": "n95",
       "type": "text",
-      "seq": 94,
+      "seq": 95,
       "pos": [
         61000,
         0
@@ -5629,7 +5629,7 @@
     {
       "ref": "n96",
       "type": "audio",
-      "seq": 95,
+      "seq": 96,
       "pos": [
         62860,
         0
@@ -5660,7 +5660,7 @@
     {
       "ref": "n97",
       "type": "system",
-      "seq": 96,
+      "seq": 97,
       "pos": [
         63420,
         0
@@ -5688,7 +5688,7 @@
     {
       "ref": "n98",
       "type": "audio",
-      "seq": 97,
+      "seq": 98,
       "pos": [
         63980,
         0
@@ -5719,7 +5719,7 @@
     {
       "ref": "n99",
       "type": "table",
-      "seq": 98,
+      "seq": 99,
       "pos": [
         64540,
         0
@@ -5892,7 +5892,7 @@
         "timeline": {
           "layers": [
             {
-              "id": "590f0cf3-9b4b-44ab-9acf-262b487dc496",
+              "id": "29fbae13-4ff1-4295-acd8-3b8be6816784",
               "clips": [
                 {
                   "end": 1,
@@ -5909,7 +5909,7 @@
               "highlightOn": false
             },
             {
-              "id": "e4cd19d9-325e-45d6-82e7-6731f2a17903",
+              "id": "f408dc9e-2b66-4d4b-a72a-6fdc8a5b7f37",
               "clips": [
                 {
                   "end": 1,
@@ -5926,7 +5926,7 @@
               "highlightOn": false
             },
             {
-              "id": "a685146b-0bdc-44b4-8105-1aaf0139bb61",
+              "id": "b4b0c8bd-6c25-45e3-997b-fe2bce3c4820",
               "clips": [
                 {
                   "end": 1,
@@ -5943,7 +5943,7 @@
               "highlightOn": false
             },
             {
-              "id": "088c7f00-d422-4853-a1bc-54e012ce46f2",
+              "id": "f133a4c5-33f8-4bdc-84b6-479ffd927e63",
               "clips": [
                 {
                   "end": 1.88,
@@ -5960,7 +5960,7 @@
               "highlightOn": true
             },
             {
-              "id": "aa80b9ef-a587-436c-b1a3-b90de9cf8f3d",
+              "id": "48f3a19f-f336-468a-a19b-7f8dab5a7e6c",
               "clips": [
                 {
                   "end": 3.6,
@@ -5977,7 +5977,7 @@
               "highlightOn": true
             },
             {
-              "id": "bc4937a9-4a34-4da3-92d7-afff0355e079",
+              "id": "054898f2-8120-4562-92f7-bd3215390892",
               "clips": [
                 {
                   "end": 1,
@@ -5994,7 +5994,7 @@
               "highlightOn": false
             },
             {
-              "id": "f096ee93-cb9c-4ec4-afc5-ad89501c5cae",
+              "id": "63d96658-b163-4372-94e8-536cb039a2c1",
               "clips": [
                 {
                   "end": 7.04,
@@ -6011,7 +6011,7 @@
               "highlightOn": true
             },
             {
-              "id": "386e8713-032b-4556-9f8a-c42b09ea95eb",
+              "id": "130a9d99-3be5-49c9-a112-9097c9b4b9bd",
               "clips": [
                 {
                   "end": 8.44,
@@ -6028,7 +6028,7 @@
               "highlightOn": true
             },
             {
-              "id": "02e8b2fb-7153-432d-9106-6abccdc7c5f4",
+              "id": "c40d67c7-ff09-47be-b424-14faa48ccdae",
               "clips": [
                 {
                   "end": 1,
@@ -6045,7 +6045,7 @@
               "highlightOn": false
             },
             {
-              "id": "fbd549fe-de41-4a62-b444-7f12f6da207d",
+              "id": "b9e5365f-b386-4518-a5cb-cd50bf77322f",
               "clips": [
                 {
                   "end": 1,
@@ -6062,7 +6062,7 @@
               "highlightOn": false
             },
             {
-              "id": "769bfcfb-b55e-47f1-b728-d7858a946750",
+              "id": "bc4a88e9-cff6-4009-83c9-b9e42306ebe6",
               "clips": [
                 {
                   "end": 1,
@@ -6079,7 +6079,7 @@
               "highlightOn": false
             },
             {
-              "id": "d9c54c74-3807-4842-a1e6-7a05cfcae817",
+              "id": "878efdbe-ecd1-42c9-b729-6382bcbc7385",
               "clips": [
                 {
                   "end": 1,
@@ -6096,7 +6096,7 @@
               "highlightOn": false
             },
             {
-              "id": "7fb2e40c-1a01-4830-81e0-9488fb28a2cf",
+              "id": "b83e4bdf-e8b0-4856-85ee-a3873350d133",
               "clips": [
                 {
                   "end": 12.7,
@@ -6116,7 +6116,7 @@
     {
       "ref": "n100",
       "type": "photo",
-      "seq": 99,
+      "seq": 100,
       "pos": [
         65100,
         0
@@ -6186,7 +6186,7 @@
     {
       "ref": "n101",
       "type": "phrase_assembly",
-      "seq": 100,
+      "seq": 101,
       "pos": [
         65660,
         0
@@ -6233,7 +6233,7 @@
     {
       "ref": "n102",
       "type": "text",
-      "seq": 101,
+      "seq": 102,
       "pos": [
         66220,
         0
@@ -6262,7 +6262,7 @@
     {
       "ref": "n103",
       "type": "audio",
-      "seq": 102,
+      "seq": 103,
       "pos": [
         66780,
         0
@@ -6307,7 +6307,7 @@
     {
       "ref": "n104",
       "type": "say_phrase",
-      "seq": 103,
+      "seq": 104,
       "pos": [
         67340,
         0
@@ -6340,7 +6340,7 @@
     {
       "ref": "n105",
       "type": "reaction",
-      "seq": 104,
+      "seq": 105,
       "pos": [
         67900,
         0
@@ -6360,7 +6360,7 @@
     {
       "ref": "n106",
       "type": "text",
-      "seq": 105,
+      "seq": 106,
       "pos": [
         68460,
         0
@@ -6415,7 +6415,7 @@
     {
       "ref": "n107",
       "type": "type_word",
-      "seq": 106,
+      "seq": 107,
       "pos": [
         69020,
         0
@@ -6438,7 +6438,7 @@
     {
       "ref": "n108",
       "type": "text",
-      "seq": 107,
+      "seq": 108,
       "pos": [
         69580,
         0
@@ -6467,7 +6467,7 @@
     {
       "ref": "n109",
       "type": "audio",
-      "seq": 108,
+      "seq": 109,
       "pos": [
         81700,
         0
@@ -6498,7 +6498,7 @@
     {
       "ref": "n110",
       "type": "system",
-      "seq": 109,
+      "seq": 110,
       "pos": [
         71440,
         0
@@ -6526,7 +6526,7 @@
     {
       "ref": "n111",
       "type": "audio",
-      "seq": 110,
+      "seq": 111,
       "pos": [
         72000,
         0
@@ -6557,7 +6557,7 @@
     {
       "ref": "n112",
       "type": "audio",
-      "seq": 111,
+      "seq": 112,
       "pos": [
         72560,
         0
@@ -6602,7 +6602,7 @@
     {
       "ref": "n113",
       "type": "say_phrase",
-      "seq": 112,
+      "seq": 113,
       "pos": [
         73120,
         0
@@ -6634,7 +6634,7 @@
     {
       "ref": "n114",
       "type": "text",
-      "seq": 113,
+      "seq": 114,
       "pos": [
         73680,
         0
@@ -6663,7 +6663,7 @@
     {
       "ref": "n115",
       "type": "text",
-      "seq": 114,
+      "seq": 115,
       "pos": [
         74240,
         0
@@ -6693,7 +6693,7 @@
     {
       "ref": "n116",
       "type": "audio",
-      "seq": 115,
+      "seq": 116,
       "pos": [
         74800,
         0
@@ -6738,7 +6738,7 @@
     {
       "ref": "n117",
       "type": "say_phrase",
-      "seq": 116,
+      "seq": 117,
       "pos": [
         75360,
         0
@@ -6770,7 +6770,7 @@
     {
       "ref": "n118",
       "type": "text",
-      "seq": 117,
+      "seq": 118,
       "pos": [
         75920,
         0
@@ -6799,7 +6799,7 @@
     {
       "ref": "n119",
       "type": "audio",
-      "seq": 118,
+      "seq": 119,
       "pos": [
         76480,
         0
@@ -6830,7 +6830,7 @@
     {
       "ref": "n120",
       "type": "photo",
-      "seq": 119,
+      "seq": 120,
       "pos": [
         77040,
         0
@@ -6879,7 +6879,7 @@
     {
       "ref": "n121",
       "type": "say_phrase",
-      "seq": 120,
+      "seq": 121,
       "pos": [
         77600,
         0
@@ -6912,7 +6912,7 @@
     {
       "ref": "n122",
       "type": "text",
-      "seq": 121,
+      "seq": 122,
       "pos": [
         78160,
         0
@@ -6941,7 +6941,7 @@
     {
       "ref": "n123",
       "type": "text",
-      "seq": 122,
+      "seq": 123,
       "pos": [
         78720,
         0
@@ -6982,7 +6982,7 @@
     {
       "ref": "n124",
       "type": "phrase_assembly",
-      "seq": 123,
+      "seq": 124,
       "pos": [
         79280,
         0
@@ -7030,7 +7030,7 @@
     {
       "ref": "n125",
       "type": "text",
-      "seq": 124,
+      "seq": 125,
       "pos": [
         79840,
         0
@@ -7059,7 +7059,7 @@
     {
       "ref": "n126",
       "type": "system",
-      "seq": 125,
+      "seq": 126,
       "pos": [
         82260,
         0
@@ -7087,7 +7087,7 @@
     {
       "ref": "n127",
       "type": "table",
-      "seq": 126,
+      "seq": 127,
       "pos": [
         82820,
         0
@@ -7260,7 +7260,7 @@
         "timeline": {
           "layers": [
             {
-              "id": "c96b4a02-83d6-4ef7-b138-9fefe556e28b",
+              "id": "bd5eb96e-0a6f-4e10-8818-33c1757418af",
               "clips": [
                 {
                   "end": 1,
@@ -7277,7 +7277,7 @@
               "highlightOn": false
             },
             {
-              "id": "46dd4566-d924-4ab3-9b1b-595c6fa285a3",
+              "id": "22111944-dab2-4be1-9a50-c5ecb1e20713",
               "clips": [
                 {
                   "end": 1,
@@ -7294,7 +7294,7 @@
               "highlightOn": false
             },
             {
-              "id": "a369090b-b6f4-46b1-b1fe-5525e4cd7f7f",
+              "id": "ac5ccb23-7300-4e7d-a905-5bbc78fe6f92",
               "clips": [
                 {
                   "end": 1,
@@ -7311,7 +7311,7 @@
               "highlightOn": false
             },
             {
-              "id": "b4f614fd-42bc-468b-8c1c-cf5d24f4e7cc",
+              "id": "3d10c322-efe4-42b8-bbc3-1047b5cb81c5",
               "clips": [
                 {
                   "end": 1,
@@ -7328,7 +7328,7 @@
               "highlightOn": false
             },
             {
-              "id": "2d1c7d2e-52eb-4f2b-b818-83e8cbd09992",
+              "id": "1d7dc25e-7a4c-4bd1-a726-f8066f7eebbf",
               "clips": [
                 {
                   "end": 1,
@@ -7345,7 +7345,7 @@
               "highlightOn": false
             },
             {
-              "id": "36f51f8a-e869-4200-b451-e72fc38d2673",
+              "id": "1fc13880-ec46-4ca9-845f-a942212520b6",
               "clips": [
                 {
                   "end": 6.2,
@@ -7362,7 +7362,7 @@
               "highlightOn": true
             },
             {
-              "id": "db46f5e8-9e70-46d8-af5c-f4b716b33bd4",
+              "id": "54eec9c1-dd00-4212-b84b-ff27e2bb795e",
               "clips": [
                 {
                   "end": 1,
@@ -7379,7 +7379,7 @@
               "highlightOn": false
             },
             {
-              "id": "f5598318-f781-47dc-a923-bc72e75ce7c0",
+              "id": "7a59d2aa-0bc1-414d-a1d9-6fb75502f810",
               "clips": [
                 {
                   "end": 1,
@@ -7396,7 +7396,7 @@
               "highlightOn": false
             },
             {
-              "id": "adc8a351-ae8d-4e0b-9b5a-b858e3bada2f",
+              "id": "4a8678ee-d73a-4254-a202-65212c87c2e5",
               "clips": [
                 {
                   "end": 10.39,
@@ -7413,7 +7413,7 @@
               "highlightOn": true
             },
             {
-              "id": "e0fdce74-a701-4300-93d3-450ae2223fb5",
+              "id": "1334d836-a3cf-472f-a854-e4cc1167bfa1",
               "clips": [
                 {
                   "end": 11.02,
@@ -7430,7 +7430,7 @@
               "highlightOn": true
             },
             {
-              "id": "e17247f0-064b-4cf2-8b4d-71f996b16525",
+              "id": "a66a915d-c8ca-4004-9dfc-71c855efab13",
               "clips": [
                 {
                   "end": 1,
@@ -7447,7 +7447,7 @@
               "highlightOn": false
             },
             {
-              "id": "402e894e-a765-4fe7-bb6c-771a8b9ce216",
+              "id": "68cd654e-a865-441d-88fa-867498ce83ec",
               "clips": [
                 {
                   "end": 14.5,
@@ -7464,7 +7464,7 @@
               "highlightOn": true
             },
             {
-              "id": "0934f969-8bca-4926-b641-66709f3be712",
+              "id": "22cdc97a-b8b3-4d8e-8c70-9645534df1b2",
               "clips": [
                 {
                   "end": 14.9,
@@ -7484,7 +7484,7 @@
     {
       "ref": "n128",
       "type": "text",
-      "seq": 127,
+      "seq": 128,
       "pos": [
         83380,
         0
@@ -7525,7 +7525,7 @@
     {
       "ref": "n129",
       "type": "word_choice",
-      "seq": 128,
+      "seq": 129,
       "pos": [
         83940,
         0
@@ -7576,7 +7576,7 @@
     {
       "ref": "n130",
       "type": "sticker",
-      "seq": 129,
+      "seq": 130,
       "pos": [
         84500,
         0
@@ -7606,7 +7606,7 @@
     {
       "ref": "n131",
       "type": "audio",
-      "seq": 130,
+      "seq": 131,
       "pos": [
         85060,
         0
@@ -7658,7 +7658,7 @@
     {
       "ref": "n132",
       "type": "photo",
-      "seq": 131,
+      "seq": 132,
       "pos": [
         85620,
         0
@@ -7721,7 +7721,7 @@
     {
       "ref": "n133",
       "type": "phrase_assembly",
-      "seq": 132,
+      "seq": 133,
       "pos": [
         86180,
         0
@@ -7766,7 +7766,7 @@
     {
       "ref": "n134",
       "type": "text",
-      "seq": 133,
+      "seq": 134,
       "pos": [
         86740,
         0
@@ -7809,7 +7809,7 @@
     {
       "ref": "n135",
       "type": "text",
-      "seq": 134,
+      "seq": 135,
       "pos": [
         87300,
         0
@@ -7864,7 +7864,7 @@
     {
       "ref": "n136",
       "type": "word_choice",
-      "seq": 135,
+      "seq": 136,
       "pos": [
         87860,
         0
@@ -7915,7 +7915,7 @@
     {
       "ref": "n137",
       "type": "text",
-      "seq": 136,
+      "seq": 137,
       "pos": [
         88420,
         0
@@ -7944,7 +7944,7 @@
     {
       "ref": "n138",
       "type": "pin_message",
-      "seq": 137,
+      "seq": 138,
       "pos": [
         88980,
         0
@@ -8014,7 +8014,7 @@
     {
       "ref": "n139",
       "type": "audio",
-      "seq": 138,
+      "seq": 139,
       "pos": [
         89540,
         0
@@ -8045,7 +8045,7 @@
     {
       "ref": "n140",
       "type": "system",
-      "seq": 139,
+      "seq": 140,
       "pos": [
         91400,
         0
@@ -8073,7 +8073,7 @@
     {
       "ref": "n141",
       "type": "text",
-      "seq": 141,
+      "seq": 142,
       "pos": [
         91960,
         0
@@ -8128,7 +8128,7 @@
     {
       "ref": "n142",
       "type": "phrase_assembly",
-      "seq": 142,
+      "seq": 143,
       "pos": [
         92520,
         0
@@ -8176,7 +8176,7 @@
     {
       "ref": "n143",
       "type": "text",
-      "seq": 143,
+      "seq": 144,
       "pos": [
         93080,
         0
@@ -8205,7 +8205,7 @@
     {
       "ref": "n144",
       "type": "audio",
-      "seq": 144,
+      "seq": 145,
       "pos": [
         93640,
         0
@@ -8285,7 +8285,7 @@
     {
       "ref": "n145",
       "type": "audio",
-      "seq": 145,
+      "seq": 146,
       "pos": [
         94200,
         0
@@ -8330,7 +8330,7 @@
     {
       "ref": "n146",
       "type": "say_phrase",
-      "seq": 146,
+      "seq": 147,
       "pos": [
         94760,
         0
@@ -8363,7 +8363,7 @@
     {
       "ref": "n147",
       "type": "text",
-      "seq": 147,
+      "seq": 148,
       "pos": [
         95320,
         0
@@ -8392,7 +8392,7 @@
     {
       "ref": "n148",
       "type": "text",
-      "seq": 148,
+      "seq": 149,
       "pos": [
         95880,
         0
@@ -8421,7 +8421,7 @@
     {
       "ref": "n149",
       "type": "audio",
-      "seq": 149,
+      "seq": 150,
       "pos": [
         96440,
         0
@@ -8466,7 +8466,7 @@
     {
       "ref": "n150",
       "type": "word_choice",
-      "seq": 150,
+      "seq": 151,
       "pos": [
         97000,
         0
@@ -8519,7 +8519,7 @@
     {
       "ref": "n151",
       "type": "text",
-      "seq": 151,
+      "seq": 152,
       "pos": [
         97560,
         0
@@ -8548,7 +8548,7 @@
     {
       "ref": "n152",
       "type": "audio",
-      "seq": 152,
+      "seq": 153,
       "pos": [
         98120,
         0
@@ -8607,7 +8607,7 @@
     {
       "ref": "n153",
       "type": "audio",
-      "seq": 153,
+      "seq": 154,
       "pos": [
         99980,
         0
@@ -8638,7 +8638,7 @@
     {
       "ref": "n154",
       "type": "system",
-      "seq": 154,
+      "seq": 155,
       "pos": [
         100540,
         0
@@ -8666,7 +8666,7 @@
     {
       "ref": "n155",
       "type": "text",
-      "seq": 155,
+      "seq": 156,
       "pos": [
         101100,
         0
@@ -8707,7 +8707,7 @@
     {
       "ref": "n156",
       "type": "word_choice",
-      "seq": 156,
+      "seq": 157,
       "pos": [
         101660,
         0
@@ -8759,7 +8759,7 @@
     {
       "ref": "n157",
       "type": "text",
-      "seq": 157,
+      "seq": 158,
       "pos": [
         102220,
         0
@@ -8788,7 +8788,7 @@
     {
       "ref": "n158",
       "type": "text",
-      "seq": 158,
+      "seq": 159,
       "pos": [
         102780,
         0
@@ -8829,7 +8829,7 @@
     {
       "ref": "n159",
       "type": "phrase_assembly",
-      "seq": 159,
+      "seq": 160,
       "pos": [
         103340,
         0
@@ -8876,7 +8876,7 @@
     {
       "ref": "n160",
       "type": "text",
-      "seq": 160,
+      "seq": 161,
       "pos": [
         103900,
         0
@@ -8905,7 +8905,7 @@
     {
       "ref": "n161",
       "type": "text",
-      "seq": 161,
+      "seq": 162,
       "pos": [
         104460,
         0
@@ -8946,7 +8946,7 @@
     {
       "ref": "n162",
       "type": "word_choice",
-      "seq": 162,
+      "seq": 163,
       "pos": [
         105020,
         0
@@ -8998,7 +8998,7 @@
     {
       "ref": "n163",
       "type": "text",
-      "seq": 163,
+      "seq": 164,
       "pos": [
         105580,
         0
@@ -9027,7 +9027,7 @@
     {
       "ref": "n164",
       "type": "system",
-      "seq": 164,
+      "seq": 165,
       "pos": [
         107440,
         0
@@ -9055,7 +9055,7 @@
     {
       "ref": "n165",
       "type": "text",
-      "seq": 165,
+      "seq": 166,
       "pos": [
         108000,
         0
@@ -9084,7 +9084,7 @@
     {
       "ref": "n166",
       "type": "audio",
-      "seq": 166,
+      "seq": 167,
       "pos": [
         108560,
         0
@@ -9115,7 +9115,7 @@
     {
       "ref": "n167",
       "type": "say_phrase",
-      "seq": 167,
+      "seq": 168,
       "pos": [
         109120,
         0
@@ -9148,7 +9148,7 @@
     {
       "ref": "n168",
       "type": "reaction",
-      "seq": 168,
+      "seq": 169,
       "pos": [
         109680,
         0
@@ -9168,7 +9168,7 @@
     {
       "ref": "n169",
       "type": "photo",
-      "seq": 169,
+      "seq": 170,
       "pos": [
         110240,
         0
@@ -9217,7 +9217,7 @@
     {
       "ref": "n170",
       "type": "type_word",
-      "seq": 170,
+      "seq": 171,
       "pos": [
         110800,
         0
@@ -9240,7 +9240,7 @@
     {
       "ref": "n171",
       "type": "text",
-      "seq": 171,
+      "seq": 172,
       "pos": [
         111360,
         0
@@ -9269,7 +9269,7 @@
     {
       "ref": "n172",
       "type": "audio",
-      "seq": 172,
+      "seq": 173,
       "pos": [
         111920,
         0
@@ -9300,7 +9300,7 @@
     {
       "ref": "n173",
       "type": "say_phrase",
-      "seq": 173,
+      "seq": 174,
       "pos": [
         112480,
         0
@@ -9333,7 +9333,7 @@
     {
       "ref": "n174",
       "type": "reaction",
-      "seq": 174,
+      "seq": 175,
       "pos": [
         113040,
         0
@@ -9353,7 +9353,7 @@
     {
       "ref": "n175",
       "type": "system",
-      "seq": 175,
+      "seq": 176,
       "pos": [
         114900,
         0
@@ -9381,7 +9381,7 @@
     {
       "ref": "n177",
       "type": "scene",
-      "seq": 176,
+      "seq": 177,
       "pos": [
         116020,
         0
@@ -9391,7 +9391,7 @@
         "scene": {
           "version": 2,
           "id": "to-outro",
-          "title": "Пит идёт готовить",
+          "title": "Кот уходит готовить",
           "location": "cafe",
           "characters": {
             "a": {
@@ -9441,12 +9441,12 @@
           }
         },
         "mode": "circle",
-        "showBubbles": true,
+        "showBubbles": false,
         "start": "auto",
         "crop": {
           "x": 0,
           "y": 0,
-          "scale": 0.75
+          "scale": 1
         }
       },
       "triggers": [
@@ -9459,7 +9459,7 @@
     {
       "ref": "n178",
       "type": "word_choice",
-      "seq": 177,
+      "seq": 178,
       "pos": [
         116580,
         0
@@ -9503,7 +9503,7 @@
     {
       "ref": "n179",
       "type": "text",
-      "seq": 178,
+      "seq": 179,
       "pos": [
         117140,
         0
@@ -9546,7 +9546,7 @@
     {
       "ref": "n180",
       "type": "text",
-      "seq": 179,
+      "seq": 180,
       "pos": [
         113040,
         480
@@ -9615,7 +9615,7 @@
     {
       "ref": "n181",
       "type": "text",
-      "seq": 180,
+      "seq": 181,
       "pos": [
         111360,
         480
@@ -9686,7 +9686,7 @@
     {
       "ref": "n182",
       "type": "text",
-      "seq": 181,
+      "seq": 182,
       "pos": [
         109680,
         480
@@ -9755,7 +9755,7 @@
     {
       "ref": "n183",
       "type": "text",
-      "seq": 182,
+      "seq": 183,
       "pos": [
         105580,
         480
@@ -9826,7 +9826,7 @@
     {
       "ref": "n184",
       "type": "text",
-      "seq": 183,
+      "seq": 184,
       "pos": [
         103900,
         480
@@ -9897,7 +9897,7 @@
     {
       "ref": "n185",
       "type": "text",
-      "seq": 184,
+      "seq": 185,
       "pos": [
         102220,
         480
@@ -9968,7 +9968,7 @@
     {
       "ref": "n186",
       "type": "text",
-      "seq": 185,
+      "seq": 186,
       "pos": [
         97560,
         480
@@ -10075,7 +10075,7 @@
     {
       "ref": "n187",
       "type": "text",
-      "seq": 186,
+      "seq": 187,
       "pos": [
         95320,
         480
@@ -10118,7 +10118,7 @@
     {
       "ref": "n188",
       "type": "text",
-      "seq": 187,
+      "seq": 188,
       "pos": [
         93080,
         480
@@ -10189,7 +10189,7 @@
     {
       "ref": "n189",
       "type": "text",
-      "seq": 188,
+      "seq": 189,
       "pos": [
         88420,
         480
@@ -10260,7 +10260,7 @@
     {
       "ref": "n190",
       "type": "text",
-      "seq": 189,
+      "seq": 190,
       "pos": [
         86740,
         480
@@ -10331,7 +10331,7 @@
     {
       "ref": "n191",
       "type": "text",
-      "seq": 190,
+      "seq": 191,
       "pos": [
         84500,
         480
@@ -10402,7 +10402,7 @@
     {
       "ref": "n192",
       "type": "text",
-      "seq": 191,
+      "seq": 192,
       "pos": [
         79840,
         480
@@ -10459,7 +10459,7 @@
     {
       "ref": "n193",
       "type": "text",
-      "seq": 192,
+      "seq": 193,
       "pos": [
         78160,
         480
@@ -10530,7 +10530,7 @@
     {
       "ref": "n194",
       "type": "text",
-      "seq": 193,
+      "seq": 194,
       "pos": [
         75920,
         480
@@ -10587,7 +10587,7 @@
     {
       "ref": "n195",
       "type": "text",
-      "seq": 194,
+      "seq": 195,
       "pos": [
         73680,
         480
@@ -10630,7 +10630,7 @@
     {
       "ref": "n196",
       "type": "text",
-      "seq": 195,
+      "seq": 196,
       "pos": [
         69580,
         480
@@ -10701,7 +10701,7 @@
     {
       "ref": "n197",
       "type": "text",
-      "seq": 196,
+      "seq": 197,
       "pos": [
         67900,
         480
@@ -10744,7 +10744,7 @@
     {
       "ref": "n198",
       "type": "text",
-      "seq": 197,
+      "seq": 198,
       "pos": [
         66220,
         480
@@ -10822,7 +10822,7 @@
     {
       "ref": "n199",
       "type": "text",
-      "seq": 198,
+      "seq": 199,
       "pos": [
         61000,
         480
@@ -10893,7 +10893,7 @@
     {
       "ref": "n200",
       "type": "text",
-      "seq": 199,
+      "seq": 200,
       "pos": [
         59320,
         480
@@ -10974,7 +10974,7 @@
     {
       "ref": "n201",
       "type": "text",
-      "seq": 200,
+      "seq": 201,
       "pos": [
         57080,
         480
@@ -11052,7 +11052,7 @@
     {
       "ref": "n202",
       "type": "text",
-      "seq": 201,
+      "seq": 202,
       "pos": [
         55400,
         480
@@ -11130,7 +11130,7 @@
     {
       "ref": "n203",
       "type": "text",
-      "seq": 202,
+      "seq": 203,
       "pos": [
         44220,
         480
@@ -11173,7 +11173,7 @@
     {
       "ref": "n204",
       "type": "text",
-      "seq": 203,
+      "seq": 204,
       "pos": [
         42540,
         480
@@ -11216,7 +11216,7 @@
     {
       "ref": "n205",
       "type": "text",
-      "seq": 204,
+      "seq": 205,
       "pos": [
         39000,
         480
@@ -11287,7 +11287,7 @@
     {
       "ref": "n206",
       "type": "text",
-      "seq": 205,
+      "seq": 206,
       "pos": [
         36200,
         480
@@ -11368,7 +11368,7 @@
     {
       "ref": "n207",
       "type": "text",
-      "seq": 206,
+      "seq": 207,
       "pos": [
         33960,
         480
@@ -11439,7 +11439,7 @@
     {
       "ref": "n208",
       "type": "text",
-      "seq": 207,
+      "seq": 208,
       "pos": [
         28920,
         480
@@ -11510,7 +11510,7 @@
     {
       "ref": "n209",
       "type": "text",
-      "seq": 208,
+      "seq": 209,
       "pos": [
         24440,
         480
@@ -11595,7 +11595,7 @@
     {
       "ref": "n210",
       "type": "lesson_ref",
-      "seq": 209,
+      "seq": 210,
       "pos": [
         25000,
         0
@@ -11626,7 +11626,7 @@
     {
       "ref": "n211",
       "type": "text",
-      "seq": 210,
+      "seq": 211,
       "pos": [
         19220,
         480
@@ -11697,7 +11697,7 @@
     {
       "ref": "n212",
       "type": "text",
-      "seq": 211,
+      "seq": 212,
       "pos": [
         17540,
         480
@@ -11768,7 +11768,7 @@
     {
       "ref": "n213",
       "type": "text",
-      "seq": 212,
+      "seq": 213,
       "pos": [
         15300,
         480
@@ -11849,7 +11849,7 @@
     {
       "ref": "n214",
       "type": "text",
-      "seq": 213,
+      "seq": 214,
       "pos": [
         13060,
         480
@@ -11920,7 +11920,7 @@
     {
       "ref": "n215",
       "type": "text",
-      "seq": 214,
+      "seq": 215,
       "pos": [
         8580,
         480
@@ -11991,7 +11991,7 @@
     {
       "ref": "n216",
       "type": "text",
-      "seq": 215,
+      "seq": 216,
       "pos": [
         1680,
         480
@@ -12028,6 +12028,77 @@
           "if": "timer",
           "ms": 2400,
           "then": "n5"
+        }
+      ]
+    },
+    {
+      "ref": "n218",
+      "type": "text",
+      "seq": 218,
+      "pos": [
+        19400,
+        240
+      ],
+      "data": {
+        "content": "а to тут мостик между love и travel",
+        "hardWrap": false,
+        "highlights": [
+          {
+            "end": 35,
+            "mode": "text",
+            "color": "#c6c6c6",
+            "start": 0,
+            "opacity": 1
+          },
+          {
+            "end": 4,
+            "mode": "text",
+            "color": "#b6fe3b",
+            "start": 2,
+            "opacity": 1
+          },
+          {
+            "end": 4,
+            "mode": "bold",
+            "color": "#b6fe3b",
+            "start": 2,
+            "opacity": 1
+          },
+          {
+            "end": 26,
+            "mode": "text",
+            "color": "#b6fe3b",
+            "start": 22,
+            "opacity": 1
+          },
+          {
+            "end": 26,
+            "mode": "bold",
+            "color": "#b6fe3b",
+            "start": 22,
+            "opacity": 1
+          },
+          {
+            "end": 35,
+            "mode": "text",
+            "color": "#b6fe3b",
+            "start": 29,
+            "opacity": 1
+          },
+          {
+            "end": 35,
+            "mode": "bold",
+            "color": "#b6fe3b",
+            "start": 29,
+            "opacity": 1
+          }
+        ]
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1400,
+          "then": "n34"
         }
       ]
     },

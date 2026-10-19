@@ -73,3 +73,16 @@ describe('sceneCircleFit', () => {
     expect(px(sceneCircleFit(200, { crop: { scale: 0.01 } }).width)).toBeCloseTo(px(sceneCircleFit(200).width) * 0.5, 1)
   })
 })
+
+describe('кружок Пита: кот в 3 раза крупнее прежнего кадра и без облачка', () => {
+  it('solo: показывается полоса 107 ед. (было 320) — кот шириной ≈104 ед. почти во всю ширину круга', () => {
+    expect(CIRCLE_SOLO.showW).toBeCloseTo(320 / 3, 0)
+    const st = sceneCircleFit(300, { solo: true })
+    expect(parseFloat(st.width)).toBeCloseTo(300 * SCENE_W / CIRCLE_SOLO.showW, 0)
+    expect(104 / CIRCLE_SOLO.showW).toBeGreaterThan(0.9)
+  })
+  it('crop.scale 0.75 (средний план) всё равно в 3 раза крупнее прежнего кадра с crop 0.75', () => {
+    const was = 300 * SCENE_W / 320 * 0.75
+    expect(parseFloat(sceneCircleFit(300, { solo: true, crop: { x: 0, y: 0, scale: 0.75 } }).width)).toBeCloseTo(was * 3, 0)
+  })
+})

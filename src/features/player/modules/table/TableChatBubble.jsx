@@ -7,7 +7,9 @@ import TableGrid from '../../../../shared/ui/TableGrid.jsx'
 // режимов — после разбора таблица остаётся в переписке.
 // nodeId нужен полёту панели (flyPanelToChat.js): по метке
 // data-table-bubble он находит, КУДА лететь, и прячет пузырь до посадки
-export default function TableChatBubble({ table, children, nodeId, arriving = false, sent = null, caption = '' }) {
+// auto — таблица «Авто» (диктор): шапка нейтральная всегда, зелёным/красным её не красим (проверка идёт сама, а цвет шапки
+// «позже зеленел» и читался как сбой). Ручная таблица красит собранную фразу по итогу, как раньше
+export default function TableChatBubble({ table, children, nodeId, arriving = false, sent = null, caption = '', auto = false }) {
   if (!table?.cells?.length) {
     return (
       <div className="playerMsgRow">
@@ -35,8 +37,8 @@ export default function TableChatBubble({ table, children, nodeId, arriving = fa
     // такого же пустого бокса в панели: ровно в момент превращения, когда
     // надпись внутри пропадала, обводка шапки становилась ярче
     hasText ? 'tdAssemblyBoxFilled' : '',
-    sent?.result === 'correct' ? 'tdAssemblyBoxOk'  : '',
-    sent?.result === 'wrong'   ? 'tdAssemblyBoxErr' : '',
+    !auto && sent?.result === 'correct' ? 'tdAssemblyBoxOk'  : '',
+    !auto && sent?.result === 'wrong'   ? 'tdAssemblyBoxErr' : '',
   ].filter(Boolean).join(' ')
 
   return (

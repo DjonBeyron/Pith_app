@@ -198,3 +198,13 @@ describe('политика звука автозапуска', () => {
     expect(pageHasBeenActive(null)).toBeNull()
   })
 })
+
+describe('автозапуск: звук сцен ещё закрыт (iOS) → идёт «без звука» с чипом, а не молча «со звуком»', () => {
+  it('needsGesture → false, иначе как раньше', async () => {
+    const { autoStartSound } = await import('./sceneStartPlan.js')
+    expect(autoStartSound({ hasBeenActive: true, needsGesture: true })).toBe(false)
+    expect(autoStartSound({ hasBeenActive: true, needsGesture: false })).toBe(true)
+    expect(autoStartSound({ hasBeenActive: null })).toBe(true)
+    expect(autoStartSound({ muted: true })).toBe(false)
+  })
+})

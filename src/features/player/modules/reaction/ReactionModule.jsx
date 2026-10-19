@@ -154,12 +154,15 @@ export default function ReactionModule({ node, onDone, pending = false, anchorRe
     target.classList.add('playerMsgBubbleReacted')
     if (flow) {
       if (node.isHistory) target.setAttribute('data-react-instant', '1')
+      // Прежнее нижнее поле — PlayerBubble растит его до нового вместе с высотой (иначе коробка не может быть ниже суммы полей)
+      else target.setAttribute('data-pad-from', getComputedStyle(target).paddingBottom)
       target.classList.add('playerMsgBubbleReactedFlow')
       target.dispatchEvent(new Event('pbresize'))
     }
     return () => {
       target.classList.remove('playerMsgBubbleReacted', 'playerMsgBubbleReactedFlow')
       target.removeAttribute('data-react-instant')
+      target.removeAttribute('data-pad-from')
       if (flow) target.dispatchEvent(new Event('pbresize'))
     }
   }, [target]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -203,7 +206,7 @@ export default function ReactionModule({ node, onDone, pending = false, anchorRe
   }, [target]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const badge = (
-    <span className={`reactionInBubble${flow ? ' reactionInBubble--flow' : ''}`}>
+    <span className={`reactionInBubble${flow ? ' reactionInBubble--flow' : ''}${flow && !node.isHistory ? ' reactionInBubble--in' : ''}`}>
       <span className="reactionGlyph" ref={glyphRef}>
         {emoji}
         {SPARKS.map((s, i) => (

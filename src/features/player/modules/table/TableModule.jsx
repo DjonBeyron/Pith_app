@@ -34,6 +34,7 @@ export default function TableModule(props) {
           /* своя надпись в верхнем боксе — задаётся у ноды рядом с галочкой
              «отправить таблицу в чат» (NodeTablePicker) */
           caption={tData.chatCaption ?? ''}
+          auto={mode === 'dictator'}
         />
       )}
     </>

@@ -37,7 +37,7 @@ export default function NodeSceneCrop({ tData, scene, mode, onChange }) {
   }, [mode])
 
   const preview = (
-    <SceneRenderer scene={scene} mode="static" frameIndex={0} showBubbles={tData?.showBubbles !== false} display={tData?.display} lite />
+    <SceneRenderer scene={scene} mode="static" frameIndex={0} showBubbles={circle ? false : tData?.showBubbles !== false} display={circle ? 'none' : tData?.display} lite />
   )
   return (
     <div className="nodeSceneCrop" aria-label="Масштаб и положение сцены">

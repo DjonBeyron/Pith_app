@@ -7,9 +7,8 @@ import { normalizeSceneCrop, SCENE_CROP_REF_W } from '../../../scene/v2/sceneNod
 // центру над головами (scene.css: низ ≈ y 384, верх ≈ 300). Круг диаметром D
 // показывает полосу сцены шириной SHOW_W единиц с центром в (180, CENTER_Y):
 // в кадре — обе головы и облачко, пол и потолок обрезаны. Одиночная сцена
-// (один кот по центру, scenePit.js; solo: true) — кадр чуть ближе и ниже: одна
-// голова ровно в центре круга, облачко (в кружке оно уже — scene.css [data-solo])
-// целиком в круге. Те же числа в процентах — scene-picker.css (.nodeScenePreview--circle).
+// (один кот по центру, scenePit.js; solo: true) — кадр в 3 раза крупнее: кот почти во всю ширину круга
+// (облачка в кружке нет никогда, sceneNode.js — кадру не нужно место над головой). Те же числа в процентах — scene-picker.css (.nodeScenePreview--circle).
 // crop ({x, y, scale}, как у видео-кружка; sceneNodeCrop.js) — масштаб содержимого вокруг центра круга и сдвиг:
 // x/y заданы в px круга диаметром 200 и пересчитываются на фактический диаметр. Без crop — как раньше.
 // Возвращает стиль абсолютно позиционированной обёртки сцены внутри круглой
@@ -17,7 +16,9 @@ import { normalizeSceneCrop, SCENE_CROP_REF_W } from '../../../scene/v2/sceneNod
 
 export const CIRCLE_SHOW_W = 340
 export const CIRCLE_CENTER_Y = 410
-export const CIRCLE_SOLO = { showW: 320, centerY: 416 }
+// Одиночный кот (кружок Пита, без облачка): кот ровно в 3 раза крупнее прежнего кадра (было showW 320, centerY 416 — кот в 1/3 диаметра):
+// круг показывает полосу шириной ≈107 ед. (320/3) (кот шириной ≈ 104 ед. почти во всю ширину), уши целиком, голова и плечи в круге
+export const CIRCLE_SOLO = { showW: 320 / 3, centerY: 520 }
 
 export function sceneCircleFit(diameter, {
   solo = false, showW = solo ? CIRCLE_SOLO.showW : CIRCLE_SHOW_W, centerY = solo ? CIRCLE_SOLO.centerY : CIRCLE_CENTER_Y, crop = null,

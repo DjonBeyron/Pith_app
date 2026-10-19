@@ -7,6 +7,7 @@ import TableEditor from './TableEditor.jsx'
 import { onlyEmoji } from './onlyEmoji.js'
 import { NODE_TYPES } from '../nodeTypes.js'
 import RichTextField from '../rich-text/RichTextField.jsx'
+import SceneEditor from './SceneEditor.jsx'
 
 // Поля текста по типам ноды: [ключ в data, подпись]
 const TEXT_KEYS = { text: [['content', 'Текст']], system: [['content', 'Текст']], pin_message: [['content', 'Текст']], audio: [['text', 'Расшифровка голосового']], photo: [['caption', 'Подпись']], sticker: [['caption', 'Подпись']], circle: [['caption', 'Подпись']], video: [['caption', 'Подпись']] }
@@ -58,6 +59,7 @@ export default function NodeEditor({ node, onPatch, onType, reg, ro = false }) {
       </div>
       {(TEXT_KEYS[node.type] ?? []).map(([k, l]) => <MarkupField key={k} data={d} field={k} label={l} onPatch={onPatch} reg={reg} ro={ro} />)}
       {PROMPT_TYPES.has(node.type) && <EdField {...f} label="Текст для генерации (imagePrompt)" value={d.imagePrompt ?? ''} rows={3} apply={set('imagePrompt')} />}
+      {node.type === 'scene' && <SceneEditor data={d} onPatch={onPatch} reg={reg} ro={ro} />}
       {node.type === 'table' && <TableEditor data={d} onPatch={onPatch} reg={reg} ro={ro} />}
       {node.type === 'word_choice' && (d.options ?? []).map((o, i) => (
         <EdField {...f} key={o.id ?? i} label={`Вариант ${i + 1}${o.isCorrect ? ' ✓' : ''}`} value={o.text ?? ''} apply={v => x => ({ ...x, options: x.options.map((m, k) => (k === i ? { ...m, text: v } : m)) })} />

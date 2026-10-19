@@ -146,7 +146,8 @@ export default function PlayerBubble({ className, children, follow = false, styl
       st.tid = setTimeout(() => {
         st.tid = null
         const t = st.target; st.target = null
-        el.style.height = el.style.overflow = el.style.transition = el.style.boxShadow = ''
+        el.style.height = el.style.overflow = el.style.transition = el.style.boxShadow = el.style.paddingBottom = ''
+        el.removeAttribute('data-pad-from')
         const actualH = el.scrollHeight
         const diff = actualH - t
         // Порог тот же, что у RO. Раньше здесь стояло 2px, и любая мелочь —
@@ -201,10 +202,16 @@ export default function PlayerBubble({ className, children, follow = false, styl
       const bg = grow ? getComputedStyle(el).backgroundColor : null
       if (grow) el.style.boxShadow = `0 ${Math.round(to - from)}px 0 0 ${bg}`
 
+      // «Реакция в пузыре» добавляет пузырю нижнее поле (reaction.css). Оно НЕ может быть меньше самого себя: стартовая высота
+      // from меньше суммы полей, и коробка в первом же кадре прыгала до неё (≈5px), затем 2–3 кадра стояла и «догоняла» с
+      // торможением — то самое дёрганье. Поэтому поле возвращаем к прежнему (data-pad-from) и растим тем же переходом
+      const padFrom = el.dataset.padFrom
+      if (padFrom) el.style.paddingBottom = padFrom
       el.style.height = from + 'px'
       void el.offsetWidth
-      el.style.transition = `height ${GROW_MS}ms ${GROW_EASE}, box-shadow ${GROW_MS}ms ${GROW_EASE}`
+      el.style.transition = `height ${GROW_MS}ms ${GROW_EASE}, box-shadow ${GROW_MS}ms ${GROW_EASE}${padFrom ? `, padding-bottom ${GROW_MS}ms ${GROW_EASE}` : ''}`
       el.style.height = to + 'px'
+      if (padFrom) el.style.paddingBottom = ''
       if (grow) el.style.boxShadow = `0 0 0 0 ${bg}`
       st.prevH = to
       scheduleCleanup(to)

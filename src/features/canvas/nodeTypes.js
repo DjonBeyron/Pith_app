@@ -14,7 +14,7 @@ export const NODE_TYPES = [
   { value: 'audio',           label: 'Голосовое сообщение', icon: Mic,           color: '#6a9ec4', group: 'content' },
   { value: 'circle',          label: 'Видеосообщение',      icon: PlayCircle,    color: '#c47e7e', group: 'content' },
   { value: 'video',           label: 'Видео',               icon: Video,         color: '#9a7abc', group: 'content' },
-  { value: 'scene',           label: 'Сцена (два кота)',    icon: Cat,           color: '#d4a03a', group: 'content' },
+  { value: 'scene',           label: 'Сцена',              icon: Cat,           color: '#d4a03a', group: 'content' },
   { value: 'photo',           label: 'Фото',                icon: Image,         color: '#6aaa6a', group: 'content' },
   { value: 'sticker',         label: 'Стикер',              icon: Smile,         color: '#c87850', group: 'content' },
   { value: 'reaction',        label: 'Реакция на сообщение', icon: SmilePlus,    color: '#c85a8a', group: 'content' },

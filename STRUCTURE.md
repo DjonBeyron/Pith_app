@@ -2397,3 +2397,13 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | `supabase/migrations/20261018120000_say_phrase_rules_v7.sql`, `…130000_lesson_rules_round2.sql` | Правила урока, раунд 2: say_phrase v7 (`playOwnVoice`, Vosk для свободных фраз), 4 новых принципа, правка правил про одиночные смайлики и сцену S1 |
 | `lesson-drafts/to.updated.json` | Урок «To» (215 нод) с учётом обоих раундов замечаний автора: открывающая и закрывающая сцены-кружки Пита, перевод после ответа, голосовая сборка фразы, «нужен ли to», типы слов без ловушек, стикеры вместо одиночных смайлов, исправленные таймлайны to; импорт: «Поделиться / Импорт» → «Заменить урок» |
 | `supabase/migrations/20261018140000_say_phrase_rules_v8.sql` | Правило say_phrase v8: свободные фразы (pattern) по умолчанию на Vosk, голосовое с текстом работает и у них (заменяет v7) |
+| `shared/lib/sfxCache.js` (+`.test.js`) | Звуки интерфейса в памяти и Cache Storage (`pithy-sfx-<версия>`) с приоритетной загрузкой и подменой источника у уже созданных элементов |
+| `shared/lib/netProfile.js` (+`.test.js`) | Профиль сети (2g/3g, saveData, узкий канал): сколько медиа качать параллельно; в Safari считается обычной |
+| `shared/lib/soundsStale.test.js`, `soundVolumeStale.test.js` | Тесты пропуска «устаревших» звуков (не стартовали за 300 мс) |
+| `features/player/modules/audio/useAudioLoadFail.js` | Состояния голосового: «не загрузилось», один повтор с `_r=`, сдача нода и переход дальше после второй ошибки |
+| `features/player/modules/audio/audioBubbleClass.js` | Классы пузыря голосового (вынесено из `AudioModule.jsx`, он стоял у потолка 400) |
+| `features/player/modules/audio/audioLoadFail.test.js`, `features/player/dictatorHeaderNeutral.test.js` | Тесты сбоя загрузки голосового и нейтральной шапки авто-таблицы |
+| `features/canvas/review/SceneEditor.jsx` (+`.test.jsx`) | Нода `scene` в окне замечания: реплики сцены «до» и «после», зум и позиция (crop) только в «после» |
+| `features/canvas/review/sceneLinesText.js` | Реплики сцены одним текстом для окна замечания |
+| `features/canvas/lesson-io/fileCarryOver.test.js` | Тесты переноса файлов при «Заменить урок»: сдвиг позиций не теряет файл, файл по `r2Url` нового урока не удаляется |
+| `supabase/migrations/20261019100000_lesson_rules_round3.sql` | Правила урока, раунд 3: английские имена, перевод после ответа + реплика про to, озвучка ~40%, сцена S1 (кружок крупно, без облачков) |

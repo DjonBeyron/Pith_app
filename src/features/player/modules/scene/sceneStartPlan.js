@@ -101,8 +101,11 @@ export function scheduleSceneStart({
 // Автозапуск со звуком можно, если пользователь уже взаимодействовал со страницей
 // (иначе <audio>/speechSynthesis откажут — политика автоплея) и урок не «без звука».
 // Нет API userActivation — считаем, что можно (откажет — реплика уйдёт в таймер)
-export function autoStartSound({ muted = false, hasBeenActive = null } = {}) {
+// needsGesture — звук сцен ещё не открыт жестом, а iOS открывает его только жестом (sceneAudioUnlock.sceneNeedsOwnGesture):
+// автозапуск тогда идёт «без звука» с видимым чипом «Включить звук», а не молча «со звуком» (раньше кружок в начале урока молчал без подсказки)
+export function autoStartSound({ muted = false, hasBeenActive = null, needsGesture = false } = {}) {
   if (muted) return false
+  if (needsGesture) return false
   return hasBeenActive !== false
 }
 

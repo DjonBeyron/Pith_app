@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
 import { usePlayerPreload } from '../player/usePlayerPreload.js'
 import { preloadSounds, unlockAudio } from '../../shared/lib/sounds.js'
+import { unlockSceneAudioForLesson } from '../scene/v2/sceneAudioUnlock.js'
 import { primeAudio } from '../../shared/lib/primedAudio.js'
 import { motionNeedsAsk } from '../../shared/lib/motionPermission.js'
 import LaunchMotionAsk from './LaunchMotionAsk.jsx'
@@ -84,6 +85,7 @@ export default function LaunchPreloader({
     preloadSounds()
     unlockAudio()
     primeAudio()
+    unlockSceneAudioForLesson(nodes)
     if (next === 'start') onRestartProgress()
     setPicked(true)
     setChoice(next)
@@ -184,6 +186,7 @@ export default function LaunchPreloader({
     // И прогреваем элемент под автозапуск таблиц: разрешение Safari даёт
     // конкретному <audio>, а у панели диктанта он рождается уже без жеста
     primeAudio()
+    unlockSceneAudioForLesson(nodes) // кружок/сцена в начале урока должен зазвучать (iOS открывает звук сцен только жестом)
     releaseBlobs()
     // Transfer logo blob ownership to player — clear ref so cleanup won't revoke it
     const logoForPlayer = logoBlobRef.current ?? teacherLogo

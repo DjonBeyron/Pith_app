@@ -7,6 +7,8 @@ import { makePreloadFetch, EVICT_TYPES } from './preloadFetchOne.js'
 import { makeEvict } from './preloadEvict.js'
 import { historyPageIds } from './feedWindow.js'
 import { warmUserSceneNodes } from '../scene/v2/warmUserScenes.js'
+import { preloadConcurrency } from '../../shared/lib/netProfile.js'
+import { sfxBlocking, onSfxSettled } from '../../shared/lib/sfxCache.js'
 
 const LOOKAHEAD    = 3
 const CONCURRENCY  = 2
@@ -106,9 +108,16 @@ export function usePlayerPreload(nodes, files, visibleNodes, opts = {}) {
   // Событийная очередь: pump добирает свободные слоты до CONCURRENCY. Вызывается
   // при старте, после каждого завершённого скачивания и при сдвиге гейта — без таймеров.
 
+  // Звуки интерфейса грузятся ПЕРВЫМИ (sfxCache.js, до SFX_HEAD_START_MS): на слабой сети фото по 1,5 МБ иначе съедали полосу, и «верно»
+  // звучало через секунды. На слабой сети (netProfile.js) медиа качаются по одному
+  const sfxWaitRef = useRef(false)
   function pump(gen) {
     if (genRef.current !== gen) return
-    while (inFlightRef.current < CONCURRENCY && cursorRef.current < queueRef.current.length) {
+    if (sfxBlocking()) {
+      if (!sfxWaitRef.current) { sfxWaitRef.current = true; onSfxSettled(() => { sfxWaitRef.current = false; pump(gen) }) }
+      return
+    }
+    while (inFlightRef.current < preloadConcurrency(CONCURRENCY) && cursorRef.current < queueRef.current.length) {
       const item = queueRef.current[cursorRef.current]
       // Гейт по BFS-индексу (nodeIdx) ИЛИ первые LOOKAHEAD элементов очереди
       // после курсора. Одного nodeIdx мало: в ветвящемся уроке (выбор, сигналы)

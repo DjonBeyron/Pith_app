@@ -48,7 +48,8 @@
 /* Обводки «верно/неверно» здесь НЕТ: правильность показывает значок в чате
    (галочка/крестик) и цвет самих слов, а рамка вокруг поля дублировала это
    третий раз и спорила с брендовым лаймом на английских словах. */
-.tdAssemblyBoxErr    { animation: tdShake 0.42s ease; }
+.tdAssemblyBoxErr,
+.tdAssemblyBoxShake  { animation: tdShake 0.42s ease; }
 
 @keyframes tdShake {
   0%,100% { transform: translateX(0); }

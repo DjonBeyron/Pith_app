@@ -96,9 +96,11 @@ export function useLessonFiles(lessonId) {
 
   // Local files: removed immediately. Synced files: marked toDelete, removed on next sync.
   // Clicking × on a toDelete file cancels the pending deletion.
-  function removeFile(id) {
+  // keepUrls — адреса, на которые новый (импортированный) урок ссылается напрямую: такой файл не трогаем (иначе 404 в плеере)
+  function removeFile(id, keepUrls) {
     const file = files.find(f => f.id === id)
     if (!file) return
+    if (keepUrls?.has(file.r2Url)) return
     if (file.status === 'local') {
       setFiles(prev => prev.filter(f => f.id !== id))
       if (lessonId) lfDelete(IDB_KEY(lessonId, id)).catch(console.error)

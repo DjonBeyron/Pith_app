@@ -73,7 +73,7 @@ export default function TypeWordPanel({
     if (r !== 'correct') playSound('answer-wrong', 'напечатай слово')
 
     if (r === 'correct') {
-      // Услышать слово целиком — награда за верно напечатанное; сначала звук интерфейса, слово — на 65% его длительности
+      // Услышать слово целиком — награда за верно напечатанное; сначала звук интерфейса, слово — на 40% его длительности
       const voiceKey = wordKey(word)
       playCorrectWithVoice('напечатай слово', voiceKey ? () => playWord(voiceKey) : null)
       // Пузырь в чате будет всегда — XP ждёт его и летит от него

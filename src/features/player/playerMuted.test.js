@@ -16,7 +16,7 @@ describe('беззвучный плеер', () => {
 
   it('LessonPlayer раздаёт флаг, голосовое ставит его на свой <audio> (и помечает себя речью для useSoloMedia)', () => {
     expect(read('./LessonPlayer.jsx')).toMatch(/PlayerMutedContext\.Provider value=\{muted\}/)
-    expect(read('./modules/audio/AudioModule.jsx')).toMatch(/<audio key=\{elKey\} ref=\{audioRef\} src=\{src\} preload="auto" muted=\{muted\} data-voice="" \/>/)
+    expect(read('./modules/audio/AudioModule.jsx')).toMatch(/<audio key=\{elKey\} ref=\{audioRef\} src=\{loadFail.elSrc\} preload="auto" muted=\{muted\} data-voice="" \/>/)
   })
 
   it('«Не могу слушать» глушит озвучку слов (не играет) и звуки интерфейса; кнопка «без звука» урока — только звуки интерфейса здесь (слова глушит сам wordAudioPlayer, muted)', () => {

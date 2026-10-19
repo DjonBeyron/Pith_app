@@ -180,6 +180,9 @@
   padding-left: 1px;
 }
 
+/* Файл не загрузился: вместо времени подпись, по тапу один повтор (useAudioLoadFail.js) */
+.playerAudioDurErr { color: #f87171; }
+
 /* ── Typing text section ───────────────────────────────────────────── */
 
 .playerAudioTextSection {

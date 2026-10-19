@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useMemo } from 'react'
 import PlayerBubble from '../../PlayerBubble.jsx'
 import AudioWave from './AudioWave.jsx'
 import { speechBounds } from './audioWaveParts.js'
-import { PlayTriangle, PauseIcon, LoadRing } from './AudioPlayIcons.jsx'
+import { PlayTriangle, PauseIcon, LoadRing, RetryIcon } from './AudioPlayIcons.jsx'
 import PlayerTypingText from '../../PlayerTypingText.jsx'
 import { fmtAudioTime, WAVEFORM_FPS } from '../../../../shared/lib/audioUtils.js'
 import { pLog } from '../../../../shared/lib/debug.js'
@@ -14,6 +14,8 @@ import { useAudioSource } from './useAudioSource.js'
 import { useAudioMeta } from './useAudioMeta.js'
 import { useAudioGlowSource } from '../../useAudioGlowSource.js'
 import { useStuckPlayRecovery } from './useStuckPlayRecovery.js'
+import { useAudioLoadFail } from './useAudioLoadFail.js'
+import { audioBubbleClass } from './audioBubbleClass.js'
 import { usePlayerMuted } from '../../playerMuted.js'
 import { useMediaVoiceRate } from '../../lessonVolume.js'
 import { logAudioMount, logAudioPlayStart, makeAudioHeartbeat, makeGapWatch, attachAudioEventLog, logAudioEnded } from './audioDebug.js'
@@ -77,6 +79,14 @@ export default function AudioModule({ node, file, onDone, adminPreview = false, 
   // Откуда берётся звук и почему адрес фиксируется — useAudioSource.js
   const { src, locked: srcLocked, lock: lockSrc, unlock: unlockSrc } = useAudioSource(node, file)
   const downloading = !!file && !file.blobUrl && !file.evicted && !file.error && !file.localFile && !srcLocked
+  // Файл не загрузился (404/обрыв): ↻ на кнопке, один повтор по тапу, потом урок идёт дальше (useAudioLoadFail.js)
+  const loadFail = useAudioLoadFail(audioRef, src, elKey, {
+    onFail: () => setBuffering(false),
+    onGiveUp: () => {
+      if (text) { fullyRevealedRef.current = true; setTextStarted(true); setRevealedCharIdx(text.length) }
+      setTimeout(() => onDone?.(), 900)
+    },
+  })
   // Волна, длительность, готовность волны — useAudioMeta.js (нода → прогрев → сами)
   const { waveData, duration, waveReady, adoptElementDuration } = useAudioMeta(node, file, src)
   // Скорость голоса из шапки урока (lessonVolume.js) — на элемент, при смене src/элемента и на лету
@@ -188,6 +198,8 @@ export default function AudioModule({ node, file, onDone, adminPreview = false, 
     const audio = audioRef.current
     pLog('AudioModule toggle — audio=', !!audio, 'src=', src ?? 'NULL', 'paused=', audio?.paused ?? 'n/a')
     if (!audio || !src) { pLog('AudioModule toggle: early return (no audio or no src)'); return }
+    if (loadFail.gaveUp() || (loadFail.failed && !loadFail.retry())) return // не загрузилось: один повтор в этом же касании
+    if (audio.paused && audio.readyState < 2) setBuffering(true) // тап на ещё не загруженном: сразу кольцо, а не «ничего»
 
     if (!audio.paused) {
       audio.pause()
@@ -314,7 +326,8 @@ export default function AudioModule({ node, file, onDone, adminPreview = false, 
       pLog('AudioModule: play() ERROR —', err.name, err.message)
       console.warn('[AudioModule] play failed:', err.message)
       audio.removeEventListener('ended', onEnded)
-      setIsPlaying(false)
+      setIsPlaying(false); setBuffering(false)
+      if (err.name === 'NotSupportedError') loadFail.fail('play()')
       // Держались за источник, который уже не играет (Safari мог выгрузить
       // буфер, а blob к этому времени освободили) — отпускаем: пересчёт возьмёт
       // то, что доступно сейчас, обычно прямую ссылку на тот же файл.
@@ -327,24 +340,13 @@ export default function AudioModule({ node, file, onDone, adminPreview = false, 
     })
   }
 
-  const bubbleClass = [
-    'playerMsgBubble', 'playerMsgBubble--audio',
-    // Без расшифровки — фиксированная ширина (25vw), а не fit-content по
-    // содержимому волны: без текста-«призрака» единственное, что могло бы
-    // влиять на fit-content, — сама дорожка волны, а её плотность (barCount)
-    // пересчитывается ПОСЛЕ первого кадра (ResizeObserver в AudioModule.jsx)
-    // и на момент первого paint ещё не знает финальную ширину — из-за этого
-    // пузырь долю секунды рисовался wider, потом скакал к 25vw. Явная
-    // фиксированная ширина убирает саму возможность этой обратной связи.
-    !text ? 'playerMsgBubble--audioNoText' : '',
-    isFading ? 'playerMsgBubbleFading' : '',
-  ].filter(Boolean).join(' ')
+  const bubbleClass = audioBubbleClass(!!text, isFading)
 
   return (
     <div className="playerMsgRow">
       <PlayerBubble className={bubbleClass} style={duration ? { '--audio-dur': Math.min(duration, 20) } : undefined}>
         {/* data-voice: это речь, а не немая петля — для useSoloMedia при «без звука» */}
-        {src && <audio key={elKey} ref={audioRef} src={src} preload="auto" muted={muted} data-voice="" />}
+        {src && <audio key={elKey} ref={audioRef} src={loadFail.elSrc} preload="auto" muted={muted} data-voice="" />}
         <div className="playerAudio">
           {/* Призрак полного текста — держит финальную ширину пузыря СРАЗУ,
               с первого рендера, даже пока сама расшифровка ещё не появилась
@@ -363,16 +365,16 @@ export default function AudioModule({ node, file, onDone, adminPreview = false, 
               className="playerAudioBtn"
               onClick={toggle}
               disabled={!src}
-              aria-label={isPlaying ? 'Пауза' : 'Воспроизвести'}
+              aria-label={loadFail.failed ? 'Не загрузилось, нажми ещё раз' : isPlaying ? 'Пауза' : 'Воспроизвести'}
             >
               {/* Файл ещё качается прогревом (blob нет, звук в элемент не загружен) —
                   вместо ▶ кольцо; то же — пока элемент буферизует после play().
                   Нажать можно и так: звук пойдёт потоком с сервера */}
-              {buffering || (downloading && !isPlaying) ? <LoadRing /> : isPlaying ? <PauseIcon /> : <PlayTriangle />}
+              {loadFail.failed ? <RetryIcon /> : buffering || (downloading && !isPlaying) ? <LoadRing /> : isPlaying ? <PauseIcon /> : <PlayTriangle />}
             </button>
             <div className="playerAudioWaveCol">
               <AudioWave ref={waveRef} waveData={waveData} ready={waveReady} />
-              <span ref={timeRef} className="playerAudioDur">{duration ? fmtAudioTime(duration) : '\u00a0'}</span>
+              <span ref={timeRef} className={`playerAudioDur${loadFail.failed ? ' playerAudioDurErr' : ''}`}>{loadFail.failed ? 'не загрузилось' : duration ? fmtAudioTime(duration) : '\u00a0'}</span>
             </div>
           </div>
 

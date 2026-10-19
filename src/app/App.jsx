@@ -43,7 +43,7 @@ export default function App() {
   useEffect(() => installAudioRestore(), [])
 
   useEffect(() => {
-    const id = setTimeout(warmSoundFiles, 2500)
+    const id = setTimeout(warmSoundFiles, 800)
     return () => clearTimeout(id)
   }, [])
 

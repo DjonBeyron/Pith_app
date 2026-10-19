@@ -32,33 +32,46 @@ function bySeq(nodes) {
 // removeFile — та же функция, что onRemoveLessonFile у NodeAudioTts/
 // NodeImageGen (см. useLessonFiles.js): помечает файл к удалению при синке,
 // не удаляет ничего мгновенно и необратимо.
+//
+// Сопоставление идёт в два прохода: сначала «нода на той же позиции с тем же
+// текстом», затем по тексту где угодно в новом уроке (позиции съезжают, когда
+// в сценарии добавили/убрали ноды, и файл нельзя терять только из-за сдвига).
+// Файл, на который новый урок ссылается по r2Url из JSON обмена, не удаляется
+// никогда: иначе озвучка в плеере отдаёт 404 (случай урока «To», 2026-10-19).
+const urlOf = n => n.typeData?.[n.type]?.r2Url
+
 export function carryOverFiles(prevNodes, nextNodes, removeFile) {
   const textField = { ...TEXT_FIELD }
   const prevSorted = bySeq(prevNodes)
   const nextSorted = bySeq(nextNodes)
   const patchById = new Map()
+  const usedPrev = new Set()
+  const keepUrls = new Set(nextSorted.map(urlOf).filter(Boolean))
+  const textOf = (n) => (n.typeData?.[n.type]?.[textField[n.type]] ?? '').trim()
+  const carryFrom = (prev, next) => {
+    const prevData = prev.typeData?.[prev.type] ?? {}
+    const carry = {}
+    for (const f of CARRY_FIELDS[prev.type]) carry[f] = prevData[f]
+    patchById.set(next.id, carry)
+    usedPrev.add(prev.id)
+  }
+  const hasFile = n => !!n.typeData?.[n.type]?.file_id
 
   const len = Math.min(prevSorted.length, nextSorted.length)
   for (let i = 0; i < len; i++) {
     const prev = prevSorted[i]
     const next = nextSorted[i]
-    if (prev.type !== next.type) continue
-    const field = textField[prev.type]
-    if (!field) continue
-
-    const prevData = prev.typeData?.[prev.type] ?? {}
-    const nextData = next.typeData?.[next.type] ?? {}
-    const oldFileId = prevData.file_id
-    if (!oldFileId) continue
-
-    const sameText = (prevData[field] ?? '').trim() === (nextData[field] ?? '').trim()
-    if (sameText) {
-      const carry = {}
-      for (const f of CARRY_FIELDS[prev.type]) carry[f] = prevData[f]
-      patchById.set(next.id, carry)
-    } else {
-      removeFile?.(oldFileId)
-    }
+    if (prev.type !== next.type || !textField[prev.type] || !hasFile(prev)) continue
+    if (textOf(prev) === textOf(next)) carryFrom(prev, next)
+  }
+  for (const prev of prevSorted) {
+    if (usedPrev.has(prev.id) || !textField[prev.type] || !hasFile(prev)) continue
+    const next = nextSorted.find(n => n.type === prev.type && !patchById.has(n.id) && !hasFile(n) && textOf(n) === textOf(prev))
+    if (next) carryFrom(prev, next)
+  }
+  for (const prev of prevSorted) {
+    if (usedPrev.has(prev.id) || !textField[prev.type] || !hasFile(prev)) continue
+    removeFile?.(prev.typeData[prev.type].file_id, keepUrls)
   }
 
   if (!patchById.size) return nextNodes

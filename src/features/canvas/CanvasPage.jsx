@@ -24,6 +24,7 @@ import { useCanvasLessonLoad } from './useCanvasLessonLoad.js'
 import { useAudioMetaBackfill } from './useAudioMetaBackfill.js'
 import { setLastEditorMode } from '../../shared/lib/lastEditorMode.js'
 import { unlockLessonAudio } from '../../shared/lib/lessonAudioUnlock.js'
+import { unlockSceneAudioForLesson } from '../scene/v2/sceneAudioUnlock.js'
 import BackButton from '../../shared/ui/BackButton.jsx'
 import SceneTabPanel from './scenesTab/SceneTabPanel.jsx'
 import { useSceneRows, sceneTabBadge } from './scenesTab/useSceneRows.js'
@@ -291,7 +292,7 @@ export default function CanvasPage({ lessonId, moduleLessons = [], module = null
       {showScenes && (
         <SceneTabPanel
           data={sceneData} lessonTitle={title} boardApiRef={boardApiRef} module={backModule}
-          onPlayFrom={id => { unlockLessonAudio(); setPlayFrom(id); setShowPlayer(true) }}
+          onPlayFrom={id => { unlockLessonAudio(); unlockSceneAudioForLesson(boardApiRef.current?.getNodes()); setPlayFrom(id); setShowPlayer(true) }}
           onClose={() => setShowScenes(false)}
         />
       )}
@@ -382,7 +383,7 @@ export default function CanvasPage({ lessonId, moduleLessons = [], module = null
           zoneToolActive={zoneToolActive}
           onZoneToolDone={() => setZoneToolActive(false)}
           moduleLessons={linkableLessons}
-          onPlayFrom={id => { unlockLessonAudio(); setPlayFrom(id); setShowPlayer(true) }}
+          onPlayFrom={id => { unlockLessonAudio(); unlockSceneAudioForLesson(boardApiRef.current?.getNodes()); setPlayFrom(id); setShowPlayer(true) }}
           visibleTypes={filter.types}
           onlyMissingMedia={filter.onlyMissingMedia}
           debugLinks={debugLinks}
