@@ -222,7 +222,7 @@ describe('«Продолжить урок» — решение и прогрев
   })
 
   it('LaunchCtaSlot — брендовая кнопка «Продолжить», рендерится вместо «Начать урок»', () => {
-    expect(launch).toContain('{resumeOffer ? (')
+    expect(launch).toContain('{resumeEntryNode ? (')
     expect(launch).toContain('<LaunchCtaSlot')
     expect(launch).toContain('primaryClassName="resumeLessonBtnPrimary"')
     expect(choice).toContain('className={primaryClassName}')

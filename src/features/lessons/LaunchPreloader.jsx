@@ -258,7 +258,8 @@ export default function LaunchPreloader({
           и обычная кнопка не резервирует под неё пустое место */}
       {/* Трасса тапов по зоне кнопок: тап по закрытой кнопке иначе не оставлял следа (display: contents — вёрстку не меняет) */}
       <div style={{ display: 'contents' }} onClickCapture={() => traceLaunch(`тап по зоне кнопки: canStart=${canStart}, picked=${picked}, choosing=${choosing}, forced=${forced}, dissolving=${!!dissolving}`)}>
-      {resumeOffer ? (
+      {/* Чекпойнт на ноду, которой в уроке уже нет (урок заменили/пересобрали), — не предложение: раньше choice сразу становился 'start', а кнопки «Продолжить/Сначала» оставались серыми и отключёнными — войти в урок было нечем */}
+      {resumeEntryNode ? (
         <LaunchCtaSlot
           showSecondRow
           pctLabel={`Дошёл примерно до ${Math.round(resumeOffer.pct ?? 0)}%`}
