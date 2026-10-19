@@ -91,11 +91,12 @@ export default function SceneRenderer({
     mouthEls.current[who] = el?.querySelector?.('[data-part="cat"]') ?? null
   }, [])
 
-  // Вне экрана — CSS-анимации стоят и режиссёр на авто-паузе
+  // Вне экрана — CSS-анимации стоят и режиссёр на авто-паузе. threshold 0 (любой видимый пиксель), не 0.05: рамка кружка Пита — кадр
+  // в ~20 раз больше круга (обрезан overflow), видимая доля ≈ 4 % — при пороге 5 % режиссёр считал сцену «вне экрана» и никогда не играл
   useEffect(() => {
     const el = rootRef.current
     if (!live || !el || typeof IntersectionObserver === 'undefined') return undefined
-    const io = new IntersectionObserver(([e]) => setOnScreen(e.isIntersecting), { threshold: 0.05 })
+    const io = new IntersectionObserver(([e]) => setOnScreen(e.isIntersecting), { threshold: 0 })
     io.observe(el)
     return () => io.disconnect()
   }, [live])
