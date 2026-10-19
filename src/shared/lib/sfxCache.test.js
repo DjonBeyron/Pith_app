@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { warmSfx, sfxBlobUrl, sfxBytes, sfxIsReady, sfxBlocking, onSfxReady, onSfxSettled, resetSfxCacheForTests, SFX_HEAD_START_MS } from './sfxCache.js'
+import { warmSfx, sfxBlobUrl, sfxBytes, sfxIsReady, sfxBlocking, sfxHeadStartLeft, onSfxReady, onSfxSettled, resetSfxCacheForTests, SFX_HEAD_START_MS } from './sfxCache.js'
 
 const res = (n, ok = true) => ({ ok, status: ok ? 200 : 404, blob: async () => new Blob([new Uint8Array(n)]), clone() { return res(n, ok) } })
 const makeCaches = () => {
@@ -63,5 +63,17 @@ describe('sfxCache: звуки интерфейса в памяти и Cache Sto
     expect(sfxBlobUrl('typing-1')).toBe('blob:x')
     expect(sfxBlobUrl('typing-1')).toBe('blob:x')
     expect(URL.createObjectURL).toHaveBeenCalledTimes(1)
+  })
+
+  it('sfxHeadStartLeft: пока идёт прогрев — сколько осталось головного старта, после срока и после конца — 0', async () => {
+    expect(sfxHeadStartLeft()).toBe(0)
+    let release
+    const fetchFn = vi.fn(() => new Promise(r => { release = () => r(res(10)) }))
+    const p = warmSfx(['answer-correct'], { fetchFn })
+    expect(sfxHeadStartLeft(Date.now())).toBeGreaterThan(SFX_HEAD_START_MS - 200)
+    expect(sfxHeadStartLeft(Date.now() + SFX_HEAD_START_MS + 1)).toBe(0)
+    await vi.waitFor(() => expect(release).toBeTypeOf('function'))
+    release(); await p
+    expect(sfxHeadStartLeft()).toBe(0)
   })
 })

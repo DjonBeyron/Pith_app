@@ -111,3 +111,20 @@ describe('замороженная сцена: ни одной CSS-анимац�
     expect(animatedSelectors(t).every(s => /playerScenePlay|playerSceneSoundChip/.test(s) && !s.includes('.scn'))).toBe(true)
   })
 })
+
+describe('режим разбора: правка crop и реплик в окне замечания видна сразу', () => {
+  const circle = crop => renderToStaticMarkup(
+    <SceneModule node={node({ isHistory: true }, { mode: 'circle', crop })} onDone={() => {}} adminPreview />,
+  )
+  it('другой crop.scale — другой кадр кружка (раньше сцена замораживалась на маунте и правка не доходила)', () => {
+    const a = circle({ x: 0, y: 0, scale: 1 })
+    const b = circle({ x: 0, y: 0, scale: 2 })
+    expect(a).toContain('width:211.76px')
+    expect(b).toContain('width:423.53px')
+  })
+  it('SceneModule не замораживает данные ноды на маунте: пересчёт по ссылке typeData.scene (useMemo, а не useState)', () => {
+    const src = css('./SceneModule.jsx')
+    expect(src).toMatch(/useMemo\(\(\) => resolveSceneNode\(sceneData, \{ fill: false \}\), \[sceneData\]\)/)
+    expect(src).not.toMatch(/useState\(\(\) => resolveSceneNode/)
+  })
+})

@@ -2407,3 +2407,8 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | `features/canvas/review/sceneLinesText.js` | Реплики сцены одним текстом для окна замечания |
 | `features/canvas/lesson-io/fileCarryOver.test.js` | Тесты переноса файлов при «Заменить урок»: сдвиг позиций не теряет файл, файл по `r2Url` нового урока не удаляется |
 | `supabase/migrations/20261019100000_lesson_rules_round3.sql` | Правила урока, раунд 3: английские имена, перевод после ответа + реплика про to, озвучка ~40%, сцена S1 (кружок крупно, без облачков) |
+| `features/canvas/review/SceneLinesAfter.jsx` | Поля реплик сцены (текст и перевод) в блоке «После» окна замечания, правка идёт в копию урока разбора |
+| `features/canvas/review/sceneLineEdit.js` (+`.test.js`) | Правка реплики снимка сцены со сбросом устаревшей озвучки (`audioUrl`, `wordTimings`, `audioMeta`, `segments`, `translationAudio*`) |
+| `features/player/preloadFetchPermanent.test.js` | Тест: постоянные ошибки HTTP (404/403) прогрева не повторяются, 503 повторяется |
+| `shared/api/startLessonSoft.test.js` | Тест старта урока без немого ожидания: быстрый ответ как есть, медленный приходит в `onLate` |
+| `supabase/migrations/20261019110000_lesson_rules_scene_s3.sql` | Правило S3: служебные слова (to, the, with…) в репликах сцены не требуются |

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { stepPct, FULL_MS } from './useSmoothPct.js'
+import { stepPct, FULL_MS, FULL_MS_DONE } from './useSmoothPct.js'
 
 // Сторож плавного процента карточки запуска: даже когда всё скачалось за
 // один кадр, бар и цифра идут 0→100 не быстрее чем за секунду
@@ -33,5 +33,12 @@ describe('stepPct', () => {
 describe('stepPct: отрицательный dt', () => {
   it('не двигает показанное назад', () => {
     expect(stepPct(40, 100, -8)).toBe(40)
+  })
+
+  it('когда всё готово (цель 100), шкала дотягивается быстрее: FULL_MS_DONE, а не секунда', () => {
+    let shown = 0, t = 0
+    while (shown < 100) { shown = stepPct(shown, 100, 16, FULL_MS_DONE); t += 16 }
+    expect(FULL_MS_DONE).toBeLessThan(FULL_MS)
+    expect(t).toBeLessThan(FULL_MS_DONE + 32)
   })
 })

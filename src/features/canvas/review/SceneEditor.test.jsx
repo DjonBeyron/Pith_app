@@ -18,9 +18,20 @@ describe('режим разбора: нода scene в окне замечани
       const h = html(ro)
       expect(h).toContain('Кот на кухне')
       expect(h).toContain('кружок, без облачков')
-      expect(h).toContain('Реплики сцены: что говорит код')
-      expect(h).toContain(sceneLinesText(scene).split('\n')[0].replace(/&/g, '&amp;'))
+      expect(h).toContain(sceneLinesText(scene).split('\n')[0].split(': ')[1].slice(0, 12).replace(/&/g, '&amp;'))
     }
+  })
+  it('«До» — реплики только для чтения, «После» — поле на каждую реплику (текст и перевод)', () => {
+    const before = html(true)
+    expect(before).toContain('Реплики сцены: что говорит код')
+    expect(before).toContain('readOnly')
+    const after = html(false)
+    expect(after).not.toContain('readOnly')
+    for (let i = 0; i < scene.timeline.length; i++) {
+      expect(after).toContain(`data-line-text="${i}"`)
+      expect(after).toContain(`data-line-tr="${i}"`)
+    }
+    expect(after).toContain('озвучка этой реплики сбрасывается')
   })
   it('контроллеры масштаба и положения — только в «После» (ro=false): рамка кружка, ползунок, «сбросить»', () => {
     expect(html(true)).not.toContain('data-scene-crop')

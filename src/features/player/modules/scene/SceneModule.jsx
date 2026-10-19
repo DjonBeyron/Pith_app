@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import { resolveSceneNode } from '../../../scene/v2/sceneNode.js'
 import { useSceneUserValues } from '../../../scene/v2/useSceneUserValues.js'
 import { sceneNodeKey } from '../../../scene/v2/warmUserScenes.js'
@@ -21,15 +21,16 @@ import { sceneAudioSrcOf } from './sceneNodeAudio.js'
 // графа — 'played' (сцена доиграла последнюю реплику). Невалидная сцена →
 // SceneFallback (текст реплик + «Дальше»), урок не зависает.
 //
-// Сцена фиксируется на маунте (useState): typeData у ноды в уроке не меняется,
-// а пересборка объекта сцены пересоздала бы режиссёра посреди реплики.
+// Сцена пересчитывается только при смене ССЫЛКИ на typeData.scene (useMemo): в уроке она не меняется, режиссёр посреди реплики
+// не пересоздаётся; в режиме разбора правка кадра (crop) и реплик в окне замечания применяется сразу.
 // Сцена-шаблон (vars): слова пользователя подставляются ДО старта режиссёра (useSceneUserValues: общий стор слов, зерно
 // «день + id сцены», ожидание ≤ 500 мс, потом запасное слово); пока значения не готовы, автозапуск и тап не работают, а после
 // готовности сцена больше не меняется. Нода в истории слов не грузит — запасное слово. Тот же модуль играет карточки повтора.
 // lessonFiles — файлы урока с прогревом (withBlobs): озвучка реплик (audioUrl)
 // играет из blob, если он уже скачан (sceneNodeAudio.js), иначе по ссылке.
 export default function SceneModule({ node, lessonFiles = null, onDone, adminPreview = false, pending = false, bottomOffset = 0 }) {
-  const [raw] = useState(() => resolveSceneNode(node.typeData?.scene, { fill: false }))
+  const sceneData = node.typeData?.scene
+  const raw = useMemo(() => resolveSceneNode(sceneData, { fill: false }), [sceneData])
   const isHistory = !!node.isHistory
   const user = useSceneUserValues(raw.scene, { key: sceneNodeKey(node), enabled: !isHistory })
   const resolved = useMemo(() => (user.scene === raw.scene ? raw : { ...raw, scene: user.scene }), [raw, user.scene])

@@ -1,5 +1,5 @@
 import { supabase } from './supabase.js'
-import { dbg } from '../lib/debug.js'
+import { dbg, pLog } from '../lib/debug.js'
 import { viewSession } from './viewSession.js'
 
 // real — настоящий профиль, даже в режиме «новенький» (newbieSim.js): так узнаём, админ ли это. Иначе в этом
@@ -41,6 +41,22 @@ export async function startLesson(lessonId) {
   }
   dbg('[ENERGY] start_lesson →', lessonId, data)
   return data ?? { ok: true }
+}
+
+// Старт урока без «немого» ожидания: карточка запуска уже показала 100 %, а на слабой сети ответ start_lesson идёт секундами —
+// урок «висел» после полной полосы. Ждём ответ не дольше waitMs; не успел — урок открывается, а решение сервера (нет энергии → пейволл)
+// приходит в onLate позже. Ответ ok:false при этом обработать надо так же, как обычный (закрыть плеер, показать пейволл)
+export async function startLessonSoft(lessonId, { waitMs = 1200, onLate } = {}) {
+  const t0 = Date.now()
+  const p = startLesson(lessonId)
+  let timer
+  const late = new Promise(r => { timer = setTimeout(() => r(null), waitMs) })
+  const first = await Promise.race([p, late])
+  clearTimeout(timer)
+  if (first) { pLog(`[launch] start_lesson ответил за ${Date.now() - t0} мс`); return first }
+  pLog(`[launch] ждём: start_lesson дольше ${waitMs} мс — урок открывается, ответ сервера придёт позже`)
+  p.then(res => { pLog(`[launch] start_lesson (поздний ответ) +${Date.now() - t0} мс: ok=${res?.ok}`); onLate?.(res) })
+  return { ok: true, late: true }
 }
 
 // Начисляет XP за урок через серверный RPC. Клиент передаёт только id урока —

@@ -22,6 +22,8 @@ const err = (ref, code, text) => `[${code}] ${ref} (scene): ошибка — ${t
 const warn = (ref, code, text) => `[${code}] ${ref} (scene): предупреждение — ${text}`
 
 const linesOf = n => (Array.isArray(n.data?.scene?.timeline) ? n.data.scene.timeline : [])
+// Служебные слова (to, the, with…) в репликах сцены не требуем: звучат неестественно, когда их вставляют ради линтера
+const FUNCTION_WORDS = new Set(['to', 'the', 'a', 'an', 'in', 'on', 'at', 'for', 'of', 'with', 'by', 'from', 'and', 'or', 'but', 'is', 'am', 'are'])
 const wordsIn = s => String(s ?? '').trim().split(/\s+/).filter(Boolean).length
 const isPitCircle = n => (n.data?.mode) === 'circle' && isSolo(n.data?.scene)
 
@@ -75,7 +77,7 @@ export function checkSceneRules(nodes, { title } = {}) {
   for (const n of scenes) {
     const tl = linesOf(n)
     // S3
-    if (word) {
+    if (word && !FUNCTION_WORDS.has(String(title).trim().toLowerCase())) {
       const all = tl.map(l => `${l?.text ?? ''} ${l?.translation ?? ''}`).join(' ')
       if (!wordInText(word, all)) out.push(warn(n.ref, 'R-scene-word', `S3: целевое слово «${title.trim()}» не звучит ни в одной реплике сцены`))
     }

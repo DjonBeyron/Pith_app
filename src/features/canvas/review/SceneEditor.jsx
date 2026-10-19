@@ -4,6 +4,7 @@ import { useDebouncedPatch } from './useDebouncedPatch.js'
 import NodeSceneCrop from '../NodeSceneCrop.jsx'
 import { resolveSceneNode, rawSceneLines } from '../../scene/v2/sceneNode.js'
 import { sceneLinesText } from './sceneLinesText.js'
+import SceneLinesAfter from './SceneLinesAfter.jsx'
 
 // Нода scene в окне замечания. Автор видит то, что «говорит код»: название и реплики сцены (в «До» и в «После» — текст,
 // озвучка, перевод), а контроллеры масштаба и положения кадра (crop) — только в «После» (в «До» оригинал не меняется).
@@ -30,10 +31,14 @@ export default function SceneEditor({ data, onPatch, reg, ro }) {
         <label className="rvwEdLbl">Название сцены (видит админ)</label>
         <div className="rvwEdIn">{(scene ?? raw)?.title || 'Без названия'}{resolved.mode === 'circle' ? ' · кружок, без облачков' : ' · пузырь'}</div>
       </div>
-      <div className="rvwEdBlock">
-        <label className="rvwEdLbl">Реплики сцены: что говорит код <CopyIcon text={() => text} /></label>
-        <textarea className="rvwEdIn" readOnly rows={Math.min(10, Math.max(3, text.split('\n').length))} value={text} />
-      </div>
+      {ro || !raw
+        ? (
+          <div className="rvwEdBlock">
+            <label className="rvwEdLbl">Реплики сцены: что говорит код <CopyIcon text={() => text} /></label>
+            <textarea className="rvwEdIn" readOnly rows={Math.min(10, Math.max(3, text.split('\n').length))} value={text} />
+          </div>
+        )
+        : <SceneLinesAfter raw={raw} onPatch={onPatch} reg={reg} />}
       {!ro && scene && <CropAfter d={data} scene={scene} mode={resolved.mode} onPatch={onPatch} reg={reg} />}
     </>
   )

@@ -4,7 +4,7 @@ import EnergyPaywall from './EnergyPaywall.jsx'
 import LessonPlayer from '../player/LessonPlayerLazy.jsx'
 import { revokePayloadBlobs } from '../player/preloadQueue.js'
 import { usePayloadBlobsRelease } from '../player/usePayloadBlobs.js'
-import { startLesson } from '../../shared/api/profileApi.js'
+import { startLessonSoft } from '../../shared/api/profileApi.js'
 import { refreshProfile } from '../../shared/api/profileCache.js'
 import { markLessonCompleted } from '../../shared/lib/completedLessons.js'
 
@@ -22,7 +22,9 @@ export default function StandaloneLessonRunner({ lessonId, lessonTitle = '', onE
   const [noEnergy,   setNoEnergy]   = useState(null)
 
   async function handleStart(data) {
-    const res = await startLesson(lessonId)
+    const res = await startLessonSoft(lessonId, { onLate: late => {
+      if (late?.ok === false) { setPlayerData(null); setNoEnergy({ nextAt: late.next_at }) } else refreshProfile()
+    } })
     if (res?.ok === false) { revokePayloadBlobs(data); setNoEnergy({ nextAt: res.next_at }); return }
     refreshProfile()
     setPlayerData(data)

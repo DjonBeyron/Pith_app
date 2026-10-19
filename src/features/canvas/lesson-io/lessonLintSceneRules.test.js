@@ -59,6 +59,7 @@ describe('правила сцен урока-слова (S1–S4, S7, S8)', () =
     const n = good()
     n[2] = sc('n3', 3, duo(['Hello there.', 'Hi, friend!']))
     expect(codes(n)).toEqual(['R-scene-word:w'])
+    expect(codes(n, { title: 'To' })).toEqual([]) // служебное слово (to, the, with…) в репликах не требуем
     expect(codes(good(), { title: 'Trying' })).toEqual([]) // регистр и форма: Trying → trying/try… «tr»
   })
   it('S4: 2–6 реплик, ≤ 12 слов; в кружке Пита ровно 2', () => {

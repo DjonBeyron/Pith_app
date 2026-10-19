@@ -8,7 +8,7 @@ import { makeEvict } from './preloadEvict.js'
 import { historyPageIds } from './feedWindow.js'
 import { warmUserSceneNodes } from '../scene/v2/warmUserScenes.js'
 import { preloadConcurrency } from '../../shared/lib/netProfile.js'
-import { sfxBlocking, onSfxSettled } from '../../shared/lib/sfxCache.js'
+import { sfxBlocking, sfxHeadStartLeft, onSfxSettled } from '../../shared/lib/sfxCache.js'
 
 const LOOKAHEAD    = 3
 const CONCURRENCY  = 2
@@ -114,7 +114,16 @@ export function usePlayerPreload(nodes, files, visibleNodes, opts = {}) {
   function pump(gen) {
     if (genRef.current !== gen) return
     if (sfxBlocking()) {
-      if (!sfxWaitRef.current) { sfxWaitRef.current = true; onSfxSettled(() => { sfxWaitRef.current = false; pump(gen) }) }
+      if (!sfxWaitRef.current) {
+        sfxWaitRef.current = true
+        // Просыпаемся по первому из двух: прогрев звуков закончился ИЛИ вышел срок головного старта (раньше ждали только конца
+        // всего прогрева: на слабой сети медиа урока стояло десятки секунд, а не обещанные 4)
+        const left = sfxHeadStartLeft()
+        pLog(`[launch] ждём: звуки интерфейса (до ${left} мс)`)
+        const go = () => { if (!sfxWaitRef.current) return; sfxWaitRef.current = false; pump(gen) }
+        onSfxSettled(go)
+        setTimeout(go, left + 20)
+      }
       return
     }
     while (inFlightRef.current < preloadConcurrency(CONCURRENCY) && cursorRef.current < queueRef.current.length) {

@@ -14,6 +14,10 @@ const FIRST_BYTE_TIMEOUT_MS = 8_000
 
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)) }
 
+// Постоянная ошибка сервера (файла нет / нет доступа): повторы бесполезны и только держат карточку запуска на «почти готово»
+// (3 попытки = 1,2 + 2,4 с пауз; случай урока «To», 2026-10-19: 404 у озвучки после «Заменить урок»). 408/425/429 — временные, их повторяем
+export const isPermanentHttp = status => status >= 400 && status < 500 && ![408, 425, 429].includes(status)
+
 // Скачивает файл в Blob с прогрессом и до MAX_ATTEMPTS попыток (задержка растёт с попыткой).
 // Watchdog перезапускается на каждом чанке: обрывает соединение, если байты не приходят
 // STALL_TIMEOUT_MS подряд — иначе зависший стрим на мобильной сети висит вечно и навсегда
@@ -35,6 +39,7 @@ async function fetchWithAttempts(url, { onProgress, isAlive }) {
       // В player-log — чтобы «бар стоял 20 секунд» потом можно было прочитать
       // по логу (обрыв на первом байте / посреди тела / HTTP), а не гадать
       pLog(`[preload] попытка ${attempt}/${MAX_ATTEMPTS} не удалась (${e.message}): ${url.split('/').pop()}`)
+      if (isPermanentHttp(e.httpStatus)) { pLog(`[launch] ${url.split('/').pop()}: HTTP ${e.httpStatus} — повторов нет`); break }
       if (attempt < MAX_ATTEMPTS && isAlive()) await sleep(RETRY_DELAY_MS * attempt)
     }
   }

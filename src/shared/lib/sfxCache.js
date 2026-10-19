@@ -34,6 +34,11 @@ export function sfxBlocking(now = Date.now()) {
   return !settled && now - startedAt < SFX_HEAD_START_MS
 }
 
+/** Сколько мс головного старта звуков осталось (0 — медиа уже можно качать); по таймеру предзагрузка просыпается сама, а не ждёт конца ВСЕГО прогрева */
+export function sfxHeadStartLeft(now = Date.now()) {
+  return settled ? 0 : Math.max(0, SFX_HEAD_START_MS - (now - startedAt))
+}
+
 export const sfxBlobUrl = name => {
   if (urls.has(name)) return urls.get(name)
   const b = blobs.get(name)

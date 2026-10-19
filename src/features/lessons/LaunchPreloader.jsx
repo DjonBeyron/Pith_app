@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
 import { usePlayerPreload } from '../player/usePlayerPreload.js'
+import { pLog } from '../../shared/lib/debug.js'
 import { preloadSounds, unlockAudio } from '../../shared/lib/sounds.js'
 import { unlockSceneAudioForLesson } from '../scene/v2/sceneAudioUnlock.js'
 import { primeAudio } from '../../shared/lib/primedAudio.js'
@@ -21,6 +22,8 @@ import useSmoothPct from './useSmoothPct.js'
 // списания энергии. Вынесено из LessonLaunchCard.jsx (тот упирался в потолок
 // 400 строк).
 const WARMUP_TARGET = 5
+// Постер/мета (preloadWarm.js) обязательны до старта только у первых нод: захват постеров идёт по одному (до 4 с на ролик), и ждать их все 5 нод — это секунды «всё загрузилось, а кнопки нет». Остальное доезжает в фоне (в плеере «печатает» держится до прогрева ноды)
+const WARM_GATE = 2
 const NO_NODES = [] // стабильный пустой список: до выбора прогрев не строит очередь
 const NO_IDS   = []
 
@@ -131,7 +134,8 @@ export default function LaunchPreloader({
   // без предрисовки — кружок без постера выходил в чат тёмным кругом и лишь
   // потом «оживал». Захват/мета ограничены таймаутами, зависнуть не могут
   const nodeTotal   = warmupNodeIds.length
-  const nodeReady   = warmupNodeIds.filter(id => readyNodeIds.has(id) && warmNodeIds.has(id)).length
+  const warmGate   = new Set(warmupNodeIds.slice(0, WARM_GATE))
+  const nodeReady   = warmupNodeIds.filter(id => readyNodeIds.has(id) && (warmNodeIds.has(id) || !warmGate.has(id))).length
   // initializedFor === preloadNodes — очередь уже пересобрана под выбранный
   // список (в первом рендере после выбора состояние прогрева ещё от пустой
   // очереди, и «готово» было бы ложным)
@@ -145,11 +149,25 @@ export default function LaunchPreloader({
   // Кнопка открывается вместе с ним: «Начать урок» при баре на 40 % — тот
   // же «мгновенный» скачок, только другой стороной
   const livePct = initializedFor === preloadNodes ? warmupPct : 0
+  // Метки «чего ждём» в debug-лог: сколько прошло от показа карточки до каждого этапа (читать вместе с [preload])
+  const t0Ref = useRef(Date.now())
+  const mark = txt => pLog(`[launch] ${txt} +${Date.now() - t0Ref.current} мс`)
+  const bytesDone = initialized && initializedFor === preloadNodes && warmupNodeIds.length > 0 && warmupNodeIds.every(id => readyNodeIds.has(id))
+  useEffect(() => { if (bytesDone) mark('файлы окна прогрева скачаны') }, [bytesDone])
+  useEffect(() => { if (loaded) mark('готово (файлы + постеры/мета первых нод)') }, [loaded])
+  useEffect(() => {
+    if (!bytesDone || loaded) return
+    const lacking = warmupNodeIds.filter(id => warmGate.has(id) && !warmNodeIds.has(id))
+    if (lacking.length) mark(`ждём: постер/мета у ${lacking.length} из первых нод`)
+    else if (!logoReady) mark('ждём: логотип учителя')
+  }, [bytesDone, loaded, logoReady]) // eslint-disable-line react-hooks/exhaustive-deps
   const { barRef, textRef, reached } = useSmoothPct(choosing ? 0 : loaded ? 100 : Math.min(livePct, 99), visible && !choosing)
   const canStart    = loaded && reached && !choosing
+  useEffect(() => { if (loaded && reached) mark('кнопка открыта (бар дошёл до 100%)') }, [loaded, reached])
 
   // Выбор сделан и прогрев готов — стартуем сами, второй тап не нужен
   const autoStartedRef = useRef(false)
+  const startedRef = useRef(false)
   useEffect(() => {
     if (!picked || choosing || !canStart || dissolving || autoStartedRef.current) return
     autoStartedRef.current = true
@@ -177,7 +195,10 @@ export default function LaunchPreloader({
   // гоняет свою собственную проверку чекпойнта (см. useLessonResume.js).
   // Выбора режима пересдачи больше нет: ответы только добавляются (PROJECT.md
   // → «Анализ знаний»), пересдача — обычное прохождение
+  const [starting, setStarting] = useState(false)
   function handleStart(resume = false) {
+    if (startedRef.current) return // двойной тап → второй start_lesson
+    startedRef.current = true; setStarting(true); mark('старт урока')
     // Preload + unlock in the same gesture context so iOS Safari decodes audio immediately.
     // preloadSounds() creates Audio objects; unlockAudio() does play+pause on them.
     // Both must run here (not in useEffect) — iOS only allows audio decode within a gesture.
@@ -267,14 +288,14 @@ export default function LaunchPreloader({
           // даёт высоту 0, а не высоту строки текста, и блок оказывается на
           // ~17px ниже, чем у showSecondRow — та самая «растяжка» на глаз
           pctLabel="Загрузка..."
-          primaryLabel={canStart ? '▶ Начать урок' : 'Загрузка...'}
+          primaryLabel={starting ? 'Запуск…' : canStart ? '▶ Начать урок' : 'Загрузка...'}
           primaryDisabled={!canStart || dissolving}
           primaryStyle={startBtnStyle}
           onPrimary={() => handleStart()}
         />
       ) : (
         <button onClick={() => handleStart()} disabled={!canStart || dissolving || picked} style={startBtnStyle}>
-          {canStart && !picked ? '▶ Начать урок' : 'Загрузка...'}
+          {starting ? 'Запуск…' : canStart && !picked ? '▶ Начать урок' : 'Загрузка...'}
         </button>
       )}
     </>

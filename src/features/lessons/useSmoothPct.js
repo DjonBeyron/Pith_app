@@ -4,13 +4,15 @@ import { useEffect, useRef, useState } from 'react'
 // почти нет) настоящий процент прыгал 0→100 за один кадр, и бар с цифрой
 // «мгновенно заполнялись» — читалось как дефект, а не как загрузка
 export const FULL_MS = 1000
+// Когда всё уже скачано и прогрето (цель 100), бар дотягивается втрое быстрее: ученик видит «готово», а полоса ещё ползёт — это и было «ждём чего-то после загрузки»
+export const FULL_MS_DONE = 350
 
 // Один шаг анимации: показанный процент догоняет цель со скоростью не выше
 // 100 %/с. Вниз (цель упала — не должно, но вдруг) — сразу к цели, без
 // «отката» на глазах. Чистая функция — её и тестируем
-export function stepPct(shown, target, dtMs) {
+export function stepPct(shown, target, dtMs, fullMs = FULL_MS) {
   if (target <= shown) return target
-  return Math.min(target, shown + Math.max(0, dtMs) * 100 / FULL_MS)
+  return Math.min(target, shown + Math.max(0, dtMs) * 100 / fullMs)
 }
 
 // Плавный процент для бара/цифры карточки запуска. Пишет ширину заливки
@@ -33,7 +35,7 @@ export default function useSmoothPct(target, active = true) {
     if (!active) return
     let raf, last = null
     const tick = now => {
-      const next = stepPct(shownRef.current, target, last == null ? 0 : now - last)
+      const next = stepPct(shownRef.current, target, last == null ? 0 : now - last, target >= 100 ? FULL_MS_DONE : FULL_MS)
       last = now
       shownRef.current = next
       if (barRef.current)  barRef.current.style.width = next + '%'

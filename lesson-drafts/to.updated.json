@@ -61,7 +61,7 @@
             },
             {
               "who": "a",
-              "text": "Как сказать «я пытаюсь готовить»? Там спрячется маленькое to.",
+              "text": "Как сказать по-английски «я пытаюсь готовить»?",
               "emotion": "surprised"
             }
           ],
@@ -933,7 +933,7 @@
         "timeline": {
           "layers": [
             {
-              "id": "7a95fb31-138a-4959-b5cc-10d17a638dfb",
+              "id": "be128534-abb2-4d0c-b675-4373b3fddeee",
               "clips": [
                 {
                   "end": 1,
@@ -950,7 +950,7 @@
               "highlightOn": false
             },
             {
-              "id": "1c557a6e-4e9e-4138-9fd2-b1a076f46bbf",
+              "id": "5104a977-14c7-4df1-b2d3-627506e23e6e",
               "clips": [
                 {
                   "end": 11.52,
@@ -967,7 +967,7 @@
               "highlightOn": true
             },
             {
-              "id": "9f65eaa7-ab73-4ae6-a8c1-6fd6bb812b5a",
+              "id": "48caa9cd-c53f-493c-bfc6-48ecf9344b52",
               "clips": [
                 {
                   "end": 1,
@@ -984,7 +984,7 @@
               "highlightOn": false
             },
             {
-              "id": "31925f91-84a0-414f-b35a-397bbfb753ec",
+              "id": "42309247-8d04-435e-a824-369763e558aa",
               "clips": [
                 {
                   "end": 3,
@@ -1001,7 +1001,7 @@
               "highlightOn": true
             },
             {
-              "id": "264ccc5b-f632-4dd1-be64-4b6d42ca07a1",
+              "id": "0dd58c54-9b07-4508-9da8-eee7e5558c0d",
               "clips": [
                 {
                   "end": 3.12,
@@ -1018,7 +1018,7 @@
               "highlightOn": true
             },
             {
-              "id": "10d8afec-78e6-44e5-8812-8b4bbdadc385",
+              "id": "5e9521f7-6cea-4563-b22d-5bfaf8f919ba",
               "clips": [
                 {
                   "end": 3.77,
@@ -1035,7 +1035,7 @@
               "highlightOn": true
             },
             {
-              "id": "b18f2177-7225-4732-ad53-e5f1c565905f",
+              "id": "9f43e1b6-b693-4682-8177-759724e8a527",
               "clips": [
                 {
                   "end": 5.77,
@@ -1052,7 +1052,7 @@
               "highlightOn": true
             },
             {
-              "id": "05ae961e-6b27-4d6c-aafe-2b606d952089",
+              "id": "bacad258-e4e4-4cf0-8317-d09ad8bcec3d",
               "clips": [
                 {
                   "end": 5.93,
@@ -1069,7 +1069,7 @@
               "highlightOn": true
             },
             {
-              "id": "7542c8e7-0b52-4a75-a587-46e99d6bec9b",
+              "id": "949aadd9-7b6c-4b1a-aa22-23bb910e1497",
               "clips": [
                 {
                   "end": 6.63,
@@ -1086,7 +1086,7 @@
               "highlightOn": true
             },
             {
-              "id": "c1ea2643-761a-4994-aaa7-0149a4fb38c5",
+              "id": "a8271f08-f3dd-4507-9adb-f73a279f5ff2",
               "clips": [
                 {
                   "end": 13.003175,
@@ -2303,7 +2303,7 @@
         "timeline": {
           "layers": [
             {
-              "id": "ebcda9dc-9a6d-43d8-acac-6ecca0b2a666",
+              "id": "70f49dd2-099e-4652-988f-a1355e258032",
               "clips": [
                 {
                   "end": 1,
@@ -2320,7 +2320,7 @@
               "highlightOn": false
             },
             {
-              "id": "7f8d9d2a-d4d3-4c40-bfea-aa7e9c80a8cb",
+              "id": "0c0dbb14-91ed-444d-9cd3-3d71baa3b076",
               "clips": [
                 {
                   "end": 10.22,
@@ -2337,7 +2337,7 @@
               "highlightOn": true
             },
             {
-              "id": "9a4a44c1-329e-4c2f-bc2b-8f479699a90e",
+              "id": "9104b385-07f8-4345-88a5-6dfaeb2e23b3",
               "clips": [
                 {
                   "end": 1,
@@ -2354,7 +2354,7 @@
               "highlightOn": false
             },
             {
-              "id": "4b847f5f-e7b5-4065-8b27-5a48a93843c3",
+              "id": "bb4317e9-45c7-4b38-8700-d22219616ba7",
               "clips": [
                 {
                   "end": 2.11,
@@ -2371,7 +2371,7 @@
               "highlightOn": true
             },
             {
-              "id": "a9ff9aa9-3c3f-45c1-a5be-0b0b8df78138",
+              "id": "0505af1e-6064-4ab5-830c-3faf75e66c4d",
               "clips": [
                 {
                   "end": 2.31,
@@ -2388,7 +2388,7 @@
               "highlightOn": true
             },
             {
-              "id": "14ef98ab-f3b3-488c-ac40-5155df76eee1",
+              "id": "24b83f54-524b-40cd-b741-c7f59cee13ab",
               "clips": [
                 {
                   "end": 3.07,
@@ -2405,7 +2405,7 @@
               "highlightOn": true
             },
             {
-              "id": "4f376c66-1ce0-4972-affb-da2d7124eb8a",
+              "id": "b20cfc29-71a4-4696-a56d-035b14775531",
               "clips": [
                 {
                   "end": 7.08,
@@ -2422,7 +2422,7 @@
               "highlightOn": true
             },
             {
-              "id": "0d1cbef5-3b08-4271-9577-f1f3926da32e",
+              "id": "9105ab1f-3cdb-42b1-8491-dfd7a1281084",
               "clips": [
                 {
                   "end": 7.22,
@@ -2439,7 +2439,7 @@
               "highlightOn": true
             },
             {
-              "id": "70d41090-911c-457f-9e36-53943a51f6d4",
+              "id": "b899e1d0-5693-4d1a-8a5a-d4c1532c1cfa",
               "clips": [
                 {
                   "end": 7.9,
@@ -2456,7 +2456,7 @@
               "highlightOn": true
             },
             {
-              "id": "a11d83ea-d07b-42d5-858e-085ba414f4cb",
+              "id": "cc2bf59e-2b39-4683-a622-cb1666d862e3",
               "clips": [
                 {
                   "end": 13.42,
@@ -2473,7 +2473,7 @@
               "highlightOn": true
             },
             {
-              "id": "6c6582c3-a75c-44da-846e-e0ed4bdaf59d",
+              "id": "84bf7441-1682-4527-a9c8-c9ffaa6ab309",
               "clips": [
                 {
                   "end": 13.56,
@@ -2490,7 +2490,7 @@
               "highlightOn": true
             },
             {
-              "id": "be37215d-4355-44fe-a777-c289342600d3",
+              "id": "d152c594-6028-4bff-9000-79506bdb1777",
               "clips": [
                 {
                   "end": 14.4,
@@ -2507,7 +2507,7 @@
               "highlightOn": true
             },
             {
-              "id": "e9da0ea7-1f88-4012-b712-763b2f159052",
+              "id": "34ceae8f-1a6e-4dcf-9187-b90a3d310b13",
               "clips": [
                 {
                   "end": 18.343764,
@@ -3091,7 +3091,7 @@
         "timeline": {
           "layers": [
             {
-              "id": "8e073cb8-6277-4a8f-b99b-d533d0dda60c",
+              "id": "ef2ce393-2959-4a04-aa60-e3dc5a028d29",
               "clips": [
                 {
                   "end": 1,
@@ -3108,7 +3108,7 @@
               "highlightOn": false
             },
             {
-              "id": "2425e206-ecfc-482d-a5f1-f57f9bb22513",
+              "id": "6793ba53-36ea-4454-ad57-0d9006fd526c",
               "clips": [
                 {
                   "end": 1,
@@ -3125,7 +3125,7 @@
               "highlightOn": false
             },
             {
-              "id": "67a10fda-8c36-4a3a-9709-d31bff2d0251",
+              "id": "ed1438ab-03df-45c6-af6a-28089ffe522d",
               "clips": [
                 {
                   "end": 1,
@@ -3142,7 +3142,7 @@
               "highlightOn": false
             },
             {
-              "id": "48e64d91-8f32-47c6-a7fa-36ab9d6bfff6",
+              "id": "0aa0052d-90d8-43e9-88e7-9ad000ac25ac",
               "clips": [
                 {
                   "end": 8.57,
@@ -3159,7 +3159,7 @@
               "highlightOn": true
             },
             {
-              "id": "08cbc536-346a-4182-ba27-8f458a4d7f41",
+              "id": "d4da2b55-431c-486f-8e5f-d931fe4fe61b",
               "clips": [
                 {
                   "end": 8.79,
@@ -3176,7 +3176,7 @@
               "highlightOn": true
             },
             {
-              "id": "8768c895-256e-4256-a5bc-2946bc172367",
+              "id": "b60525b4-8598-44c6-b109-6318b6340623",
               "clips": [
                 {
                   "end": 9.25,
@@ -3193,7 +3193,7 @@
               "highlightOn": true
             },
             {
-              "id": "32f7d8e3-d392-4e42-b8c3-f81108c4c5ad",
+              "id": "e9eef3f7-85e3-4eb5-8b1d-458e35f4daed",
               "clips": [
                 {
                   "end": 10,
@@ -3210,7 +3210,7 @@
               "highlightOn": true
             },
             {
-              "id": "35c13cb5-a490-47b7-bcfe-1dec9afbc40e",
+              "id": "9f086107-167c-4835-9dad-68072ca4a9e5",
               "clips": [
                 {
                   "end": 10.15,
@@ -3227,7 +3227,7 @@
               "highlightOn": true
             },
             {
-              "id": "d5b23052-0400-48a3-a9fb-0f92003156da",
+              "id": "b14dcf21-7979-4eb7-8682-7954b0ebbeef",
               "clips": [
                 {
                   "end": 11.05,
@@ -3244,7 +3244,7 @@
               "highlightOn": true
             },
             {
-              "id": "e2fa66a2-2a63-4f11-96a2-6e9a00852b28",
+              "id": "de7642ed-503a-4f26-b6ce-de036e0f47d7",
               "clips": [
                 {
                   "end": 14.3,
@@ -3261,7 +3261,7 @@
               "highlightOn": true
             },
             {
-              "id": "04600dd8-4725-45c7-bc56-70d6af099e11",
+              "id": "793608fb-c4b8-41fb-b973-996fef17b307",
               "clips": [
                 {
                   "end": 14.48,
@@ -3278,7 +3278,7 @@
               "highlightOn": true
             },
             {
-              "id": "f2fe8a41-3947-4e8c-b934-ca0fd5d23003",
+              "id": "3bc7e49d-f6fd-49ff-954d-972836e82d3c",
               "clips": [
                 {
                   "end": 15.52,
@@ -3295,7 +3295,7 @@
               "highlightOn": true
             },
             {
-              "id": "5350da0d-9b6f-4394-8b1d-5450d4a19115",
+              "id": "510ea7c2-07cf-4dbe-8bf6-4b25c1cce9d9",
               "clips": [
                 {
                   "end": 18.55,
@@ -3312,7 +3312,7 @@
               "highlightOn": true
             },
             {
-              "id": "394a6aa8-9e8c-4288-a4d1-898be5a77deb",
+              "id": "a920e279-f721-463a-94ad-7b0bf64e7627",
               "clips": [
                 {
                   "end": 18.73,
@@ -3329,7 +3329,7 @@
               "highlightOn": true
             },
             {
-              "id": "8f2a38ff-0dc6-4d52-9f60-a4abebb7e9f8",
+              "id": "25f17e90-c9ca-4e6b-b3f8-f5395f887b91",
               "clips": [
                 {
                   "end": 30,
@@ -3346,7 +3346,7 @@
               "highlightOn": true
             },
             {
-              "id": "bcd14a9f-45f5-4936-9b42-62ef3693cfb2",
+              "id": "2407f717-4a99-40f7-8847-37e4b0858820",
               "clips": [
                 {
                   "end": 19.504762,
@@ -4594,7 +4594,7 @@
         "timeline": {
           "layers": [
             {
-              "id": "8bb812ab-dbfe-47a4-a5ac-dff0f72321b5",
+              "id": "2ffff912-cf00-4000-b3e2-f8abe28e550b",
               "clips": [
                 {
                   "end": 1,
@@ -4611,7 +4611,7 @@
               "highlightOn": false
             },
             {
-              "id": "16744137-51ad-43f9-ab9a-431aff6f1e5b",
+              "id": "2f8fcfed-dd02-4a54-83b2-d6625f195f0d",
               "clips": [
                 {
                   "end": 1,
@@ -4628,7 +4628,7 @@
               "highlightOn": false
             },
             {
-              "id": "894ab1be-61ba-49f3-82e4-a09634a6c9f1",
+              "id": "03c2a1b9-2e1c-4756-bb99-44ae8ad2742c",
               "clips": [
                 {
                   "end": 1,
@@ -4645,7 +4645,7 @@
               "highlightOn": false
             },
             {
-              "id": "73c9042b-4d1d-4277-808f-3e5db9a521a6",
+              "id": "3ba3a5d1-850e-40af-8ab1-15fd87496713",
               "clips": [
                 {
                   "end": 1,
@@ -4662,7 +4662,7 @@
               "highlightOn": false
             },
             {
-              "id": "175b0da1-d5bb-4261-b9a1-d12820f8a145",
+              "id": "7151c6d4-a8aa-4d82-baec-9ec154c76e9d",
               "clips": [
                 {
                   "end": 4.8,
@@ -4679,7 +4679,7 @@
               "highlightOn": true
             },
             {
-              "id": "144a6f21-5431-4169-8476-cb88824711a4",
+              "id": "47f82220-eca2-4dd7-859c-cd02d0907d70",
               "clips": [
                 {
                   "end": 7.3,
@@ -4696,7 +4696,7 @@
               "highlightOn": true
             },
             {
-              "id": "d56cb08e-2667-4cb1-95c4-1685849ea90f",
+              "id": "43f8827e-880a-4a58-a349-f666896671aa",
               "clips": [
                 {
                   "end": 1,
@@ -4713,7 +4713,7 @@
               "highlightOn": false
             },
             {
-              "id": "d713d51f-a5ba-4859-b451-626e08ced01c",
+              "id": "96ee0338-df92-4bfe-b8c1-7bc2eb3a9cb3",
               "clips": [
                 {
                   "end": 1,
@@ -4730,7 +4730,7 @@
               "highlightOn": false
             },
             {
-              "id": "3f1db9a8-33e3-4526-98bb-58c342946c68",
+              "id": "b66d01b9-673c-40a5-9ff1-9227959ebc0e",
               "clips": [
                 {
                   "end": 14.79,
@@ -4747,7 +4747,7 @@
               "highlightOn": true
             },
             {
-              "id": "901b05b3-a235-4db0-932a-936a891214d5",
+              "id": "ab558180-a46e-4563-ae2c-31a5e5986548",
               "clips": [
                 {
                   "end": 1,
@@ -4764,7 +4764,7 @@
               "highlightOn": false
             },
             {
-              "id": "109cc345-5de6-4837-af64-37840d5504ff",
+              "id": "19da323b-4451-434c-85c4-18e3efef2951",
               "clips": [
                 {
                   "end": 1,
@@ -4781,7 +4781,7 @@
               "highlightOn": false
             },
             {
-              "id": "62af055c-4a32-4962-9adb-8c967558780b",
+              "id": "b3ea9870-556c-4e72-8ee6-2b7e1285db3e",
               "clips": [
                 {
                   "end": 20.59,
@@ -4798,7 +4798,7 @@
               "highlightOn": true
             },
             {
-              "id": "a3cff733-3e10-46b8-8869-5f28368ced8d",
+              "id": "bd6085d2-c062-4ccc-afc2-772a1e6175dd",
               "clips": [
                 {
                   "end": 1,
@@ -4815,7 +4815,7 @@
               "highlightOn": false
             },
             {
-              "id": "54803dc9-cbb6-465d-9c5a-9246f3df2b55",
+              "id": "049cfd00-4174-40d9-ac61-a6e66b7a7cd7",
               "clips": [
                 {
                   "end": 1,
@@ -4832,7 +4832,7 @@
               "highlightOn": false
             },
             {
-              "id": "e8be108d-2e60-414f-bcd0-7953413ba7cb",
+              "id": "ec404e9b-184a-49b5-9ea1-d92d69a4da1b",
               "clips": [
                 {
                   "end": 29.4,
@@ -4849,7 +4849,7 @@
               "highlightOn": true
             },
             {
-              "id": "be4cbb91-ab48-4fa5-bb61-5d7b7e2b01d1",
+              "id": "3170db2a-19a4-45fe-a6ad-9196dfb027b6",
               "clips": [
                 {
                   "end": 30.2,
@@ -5892,7 +5892,7 @@
         "timeline": {
           "layers": [
             {
-              "id": "29fbae13-4ff1-4295-acd8-3b8be6816784",
+              "id": "47b5f970-3de6-4aa0-85a2-e471f334af77",
               "clips": [
                 {
                   "end": 1,
@@ -5909,7 +5909,7 @@
               "highlightOn": false
             },
             {
-              "id": "f408dc9e-2b66-4d4b-a72a-6fdc8a5b7f37",
+              "id": "071a883d-a02d-48ba-af85-5abea284a206",
               "clips": [
                 {
                   "end": 1,
@@ -5926,7 +5926,7 @@
               "highlightOn": false
             },
             {
-              "id": "b4b0c8bd-6c25-45e3-997b-fe2bce3c4820",
+              "id": "3a26c793-58d9-4bd5-b9ea-595316f70d82",
               "clips": [
                 {
                   "end": 1,
@@ -5943,7 +5943,7 @@
               "highlightOn": false
             },
             {
-              "id": "f133a4c5-33f8-4bdc-84b6-479ffd927e63",
+              "id": "422165d5-d98f-48f0-a59d-8d5072268130",
               "clips": [
                 {
                   "end": 1.88,
@@ -5960,7 +5960,7 @@
               "highlightOn": true
             },
             {
-              "id": "48f3a19f-f336-468a-a19b-7f8dab5a7e6c",
+              "id": "bb7004a6-ac8f-4ba7-a8a2-9e882fadb75c",
               "clips": [
                 {
                   "end": 3.6,
@@ -5977,7 +5977,7 @@
               "highlightOn": true
             },
             {
-              "id": "054898f2-8120-4562-92f7-bd3215390892",
+              "id": "3e7478f9-05e5-4ec2-b455-d46f277a2444",
               "clips": [
                 {
                   "end": 1,
@@ -5994,7 +5994,7 @@
               "highlightOn": false
             },
             {
-              "id": "63d96658-b163-4372-94e8-536cb039a2c1",
+              "id": "ddf9a81a-94e9-4426-8c4e-b9d803dfce0b",
               "clips": [
                 {
                   "end": 7.04,
@@ -6011,7 +6011,7 @@
               "highlightOn": true
             },
             {
-              "id": "130a9d99-3be5-49c9-a112-9097c9b4b9bd",
+              "id": "0958324d-d26d-4411-a54e-ce0d2c6ea9a2",
               "clips": [
                 {
                   "end": 8.44,
@@ -6028,7 +6028,7 @@
               "highlightOn": true
             },
             {
-              "id": "c40d67c7-ff09-47be-b424-14faa48ccdae",
+              "id": "9cac8484-6f85-4394-958a-9810d2ff8281",
               "clips": [
                 {
                   "end": 1,
@@ -6045,7 +6045,7 @@
               "highlightOn": false
             },
             {
-              "id": "b9e5365f-b386-4518-a5cb-cd50bf77322f",
+              "id": "357cc7b6-54d3-428c-ba95-7f2e68373e70",
               "clips": [
                 {
                   "end": 1,
@@ -6062,7 +6062,7 @@
               "highlightOn": false
             },
             {
-              "id": "bc4a88e9-cff6-4009-83c9-b9e42306ebe6",
+              "id": "f5f1bff3-bfd2-4cfe-a4c6-0aa015064a8a",
               "clips": [
                 {
                   "end": 1,
@@ -6079,7 +6079,7 @@
               "highlightOn": false
             },
             {
-              "id": "878efdbe-ecd1-42c9-b729-6382bcbc7385",
+              "id": "c2778dc7-ddf4-48b7-9627-8db318d61585",
               "clips": [
                 {
                   "end": 1,
@@ -6096,7 +6096,7 @@
               "highlightOn": false
             },
             {
-              "id": "b83e4bdf-e8b0-4856-85ee-a3873350d133",
+              "id": "9726c615-a64d-4bea-88ca-b4f24265d62d",
               "clips": [
                 {
                   "end": 12.7,
@@ -7260,7 +7260,7 @@
         "timeline": {
           "layers": [
             {
-              "id": "bd5eb96e-0a6f-4e10-8818-33c1757418af",
+              "id": "72894971-7be2-4ecb-9e37-9dba731fae88",
               "clips": [
                 {
                   "end": 1,
@@ -7277,7 +7277,7 @@
               "highlightOn": false
             },
             {
-              "id": "22111944-dab2-4be1-9a50-c5ecb1e20713",
+              "id": "374d0e7e-1b93-40dd-937b-12f1a2280c44",
               "clips": [
                 {
                   "end": 1,
@@ -7294,7 +7294,7 @@
               "highlightOn": false
             },
             {
-              "id": "ac5ccb23-7300-4e7d-a905-5bbc78fe6f92",
+              "id": "932cf4c4-7dab-458f-bed3-bece6e258a9c",
               "clips": [
                 {
                   "end": 1,
@@ -7311,7 +7311,7 @@
               "highlightOn": false
             },
             {
-              "id": "3d10c322-efe4-42b8-bbc3-1047b5cb81c5",
+              "id": "f77d9347-8152-420c-892e-bc7ba1dd2eb0",
               "clips": [
                 {
                   "end": 1,
@@ -7328,7 +7328,7 @@
               "highlightOn": false
             },
             {
-              "id": "1d7dc25e-7a4c-4bd1-a726-f8066f7eebbf",
+              "id": "6f70b278-e590-48d2-84c9-2380f82fd3f9",
               "clips": [
                 {
                   "end": 1,
@@ -7345,7 +7345,7 @@
               "highlightOn": false
             },
             {
-              "id": "1fc13880-ec46-4ca9-845f-a942212520b6",
+              "id": "f425a9f0-e7ec-453f-8a91-8f5dfa9431b0",
               "clips": [
                 {
                   "end": 6.2,
@@ -7362,7 +7362,7 @@
               "highlightOn": true
             },
             {
-              "id": "54eec9c1-dd00-4212-b84b-ff27e2bb795e",
+              "id": "8ddc4047-495e-4ff3-b1cc-5fa8b2ddc816",
               "clips": [
                 {
                   "end": 1,
@@ -7379,7 +7379,7 @@
               "highlightOn": false
             },
             {
-              "id": "7a59d2aa-0bc1-414d-a1d9-6fb75502f810",
+              "id": "92bbde44-786a-46bb-9199-151802d1bb84",
               "clips": [
                 {
                   "end": 1,
@@ -7396,7 +7396,7 @@
               "highlightOn": false
             },
             {
-              "id": "4a8678ee-d73a-4254-a202-65212c87c2e5",
+              "id": "515350d2-9781-4247-a62e-78564fa04213",
               "clips": [
                 {
                   "end": 10.39,
@@ -7413,7 +7413,7 @@
               "highlightOn": true
             },
             {
-              "id": "1334d836-a3cf-472f-a854-e4cc1167bfa1",
+              "id": "ea495f33-5c77-426a-b793-8454a9225e1d",
               "clips": [
                 {
                   "end": 11.02,
@@ -7430,7 +7430,7 @@
               "highlightOn": true
             },
             {
-              "id": "a66a915d-c8ca-4004-9dfc-71c855efab13",
+              "id": "d693f2ea-1215-43ca-a42c-c3dae4d67b9a",
               "clips": [
                 {
                   "end": 1,
@@ -7447,7 +7447,7 @@
               "highlightOn": false
             },
             {
-              "id": "68cd654e-a865-441d-88fa-867498ce83ec",
+              "id": "d8c1df4f-2219-420a-ba59-fdf30581e4a9",
               "clips": [
                 {
                   "end": 14.5,
@@ -7464,7 +7464,7 @@
               "highlightOn": true
             },
             {
-              "id": "22cdc97a-b8b3-4d8e-8c70-9645534df1b2",
+              "id": "f50e01f5-b8f8-4c43-a80d-623ea8e6f41d",
               "clips": [
                 {
                   "end": 14.9,
