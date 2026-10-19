@@ -2397,9 +2397,6 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | `supabase/migrations/20261018120000_say_phrase_rules_v7.sql`, `…130000_lesson_rules_round2.sql` | Правила урока, раунд 2: say_phrase v7 (`playOwnVoice`, Vosk для свободных фраз), 4 новых принципа, правка правил про одиночные смайлики и сцену S1 |
 | `lesson-drafts/to.updated.json` | Урок «To» (215 нод) с учётом обоих раундов замечаний автора: открывающая и закрывающая сцены-кружки Пита, перевод после ответа, голосовая сборка фразы, «нужен ли to», типы слов без ловушек, стикеры вместо одиночных смайлов, исправленные таймлайны to; импорт: «Поделиться / Импорт» → «Заменить урок» |
 | `supabase/migrations/20261018140000_say_phrase_rules_v8.sql` | Правило say_phrase v8: свободные фразы (pattern) по умолчанию на Vosk, голосовое с текстом работает и у них (заменяет v7) |
-| `shared/lib/sfxCache.js` (+`.test.js`) | Звуки интерфейса в памяти и Cache Storage (`pithy-sfx-<версия>`) с приоритетной загрузкой и подменой источника у уже созданных элементов |
-| `shared/lib/netProfile.js` (+`.test.js`) | Профиль сети (2g/3g, saveData, узкий канал): сколько медиа качать параллельно; в Safari считается обычной |
-| `shared/lib/soundsStale.test.js`, `soundVolumeStale.test.js` | Тесты пропуска «устаревших» звуков (не стартовали за 300 мс) |
 | `features/player/modules/audio/useAudioLoadFail.js` | Состояния голосового: «не загрузилось», один повтор с `_r=`, сдача нода и переход дальше после второй ошибки |
 | `features/player/modules/audio/audioBubbleClass.js` | Классы пузыря голосового (вынесено из `AudioModule.jsx`, он стоял у потолка 400) |
 | `features/player/modules/audio/audioLoadFail.test.js`, `features/player/dictatorHeaderNeutral.test.js` | Тесты сбоя загрузки голосового и нейтральной шапки авто-таблицы |
@@ -2409,8 +2406,6 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | `supabase/migrations/20261019100000_lesson_rules_round3.sql` | Правила урока, раунд 3: английские имена, перевод после ответа + реплика про to, озвучка ~40%, сцена S1 (кружок крупно, без облачков) |
 | `features/canvas/review/SceneLinesAfter.jsx` | Поля реплик сцены (текст и перевод) в блоке «После» окна замечания, правка идёт в копию урока разбора |
 | `features/canvas/review/sceneLineEdit.js` (+`.test.js`) | Правка реплики снимка сцены со сбросом устаревшей озвучки (`audioUrl`, `wordTimings`, `audioMeta`, `segments`, `translationAudio*`) |
-| `features/player/preloadFetchPermanent.test.js` | Тест: постоянные ошибки HTTP (404/403) прогрева не повторяются, 503 повторяется |
-| `shared/api/startLessonSoft.test.js` | Тест старта урока без немого ожидания: быстрый ответ как есть, медленный приходит в `onLate` |
 | `supabase/migrations/20261019110000_lesson_rules_scene_s3.sql` | Правило S3: служебные слова (to, the, with…) в репликах сцены не требуются |
 | `features/lessons/useLaunchWatchdog.js` (+`.test.js`) | Сторож карточки запуска: через 8 с без открытия кнопки пишет в debug-лог снимок «что не готово» (ноды, постеры, логотип, бар), через 15 с открывает кнопку принудительно |
 | `features/lessons/launchUnlock.js` (+`.test.js`) | Разблокировка звука в жесте запуска, каждый шаг в своём try/catch: ошибка в одном (speechSynthesis на Safari) больше не обрывает тап «Начать/Продолжить» |

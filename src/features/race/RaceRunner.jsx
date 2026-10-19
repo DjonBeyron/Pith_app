@@ -4,7 +4,7 @@ import LessonPlayer from '../player/LessonPlayerLazy.jsx'
 import { revokePayloadBlobs } from '../player/preloadQueue.js'
 import { usePayloadBlobsRelease } from '../player/usePayloadBlobs.js'
 import EnergyPaywall from '../lessons/EnergyPaywall.jsx'
-import { startLessonSoft } from '../../shared/api/profileApi.js'
+import { startLesson } from '../../shared/api/profileApi.js'
 import { refreshProfile } from '../../shared/api/profileCache.js'
 import { dbg } from '../../shared/lib/debug.js'
 
@@ -33,9 +33,7 @@ export default function RaceRunner({ lessonIds = [], onRaceFinish, onClosed }) {
         allowResume={false}
         onStart={async (data) => {
           // Энергию решает сервер (новый урок → -1, пересдача бесплатно)
-          const res = await startLessonSoft(lessonId, { onLate: late => {
-            if (late?.ok === false) { setPlayerData(null); setNoEnergy({ nextAt: late.next_at }) } else refreshProfile()
-          } })
+          const res = await startLesson(lessonId)
           if (res?.ok === false) { revokePayloadBlobs(data); setNoEnergy({ nextAt: res.next_at }); return }
           refreshProfile()
           setPlayerData(data)

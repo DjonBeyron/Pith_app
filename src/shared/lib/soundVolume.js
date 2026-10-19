@@ -16,8 +16,6 @@
 // десктопе/Android оно доступно всегда, на iPhone — как и понижение, при
 // Audio Session API (canBoostPlay). Нет такого пути — звук играет как при 1.
 
-import { sfxBytes } from './sfxCache.js'
-
 export const VOLUME_MAX = 3
 const volumes = {}            // name → 0..VOLUME_MAX, кроме 1 (1 = нет ключа)
 const subs = new Set()
@@ -80,10 +78,8 @@ const buffers = new Map()     // name → Promise<AudioBuffer>; источник
 export function loadGainBuffer(ctx, name, url) {
   let p = buffers.get(name)
   if (!p) {
-    // звук уже в памяти (sfxCache.js) — сеть не нужна; иначе прежний путь
-    const bytes = sfxBytes(name) ?? fetch(url, { cache: 'force-cache' })
+    p = fetch(url, { cache: 'force-cache' })
       .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.arrayBuffer() })
-    p = Promise.resolve(bytes)
       .then(ab => ctx.decodeAudioData(ab))
       .catch(e => { buffers.delete(name); throw e })
     buffers.set(name, p)
@@ -99,16 +95,9 @@ async function ensureRunning(ctx) {
 
 // AudioBufferSource → GainNode(gain = volume) → destination. Возвращает
 // длительность звука (сек). Бросает, если ctx не запустился — звать HTMLAudio
-// opts.requestedAt (performance.now() в момент события) и opts.staleMs: звук, который не успел загрузиться за staleMs, НЕ играем
-// (бросаем ошибку с stale = true) — иначе на слабой сети «верно»/«сообщение» звучали бы через секунды после своего события
-export async function playWithGain(ctx, name, url, volume, opts = null) {
+export async function playWithGain(ctx, name, url, volume) {
   setPlaybackSession()
   const buffer = await loadGainBuffer(ctx, name, url)
-  if (opts?.staleMs > 0 && performance.now() - opts.requestedAt > opts.staleMs) {
-    const err = new Error(`звук не успел загрузиться за ${opts.staleMs} мс`)
-    err.stale = true
-    throw err
-  }
   await ensureRunning(ctx)
   const source = ctx.createBufferSource()
   source.buffer = buffer

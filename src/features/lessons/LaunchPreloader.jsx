@@ -22,8 +22,6 @@ import useSmoothPct from './useSmoothPct.js'
 // списания энергии. Вынесено из LessonLaunchCard.jsx (тот упирался в потолок
 // 400 строк).
 const WARMUP_TARGET = 5
-// Постер/мета (preloadWarm.js) обязательны до старта только у первых нод: захват постеров идёт по одному (до 4 с на ролик), и ждать их все 5 нод — это секунды «всё загрузилось, а кнопки нет». Остальное доезжает в фоне (в плеере «печатает» держится до прогрева ноды)
-const WARM_GATE = 2
 const NO_NODES = [] // стабильный пустой список: до выбора прогрев не строит очередь
 const NO_IDS   = []
 
@@ -134,8 +132,7 @@ export default function LaunchPreloader({
   // без предрисовки — кружок без постера выходил в чат тёмным кругом и лишь
   // потом «оживал». Захват/мета ограничены таймаутами, зависнуть не могут
   const nodeTotal   = warmupNodeIds.length
-  const warmGate   = new Set(warmupNodeIds.slice(0, WARM_GATE))
-  const nodeReady   = warmupNodeIds.filter(id => readyNodeIds.has(id) && (warmNodeIds.has(id) || !warmGate.has(id))).length
+  const nodeReady   = warmupNodeIds.filter(id => readyNodeIds.has(id) && warmNodeIds.has(id)).length
   // initializedFor === preloadNodes — очередь уже пересобрана под выбранный
   // список (в первом рендере после выбора состояние прогрева ещё от пустой
   // очереди, и «готово» было бы ложным)
@@ -149,34 +146,23 @@ export default function LaunchPreloader({
   // Кнопка открывается вместе с ним: «Начать урок» при баре на 40 % — тот
   // же «мгновенный» скачок, только другой стороной
   const livePct = initializedFor === preloadNodes ? warmupPct : 0
-  // Метки «чего ждём» в debug-лог: сколько прошло от показа карточки до каждого этапа (читать вместе с [preload])
+  // Сторож: кнопка не открылась за 8 с — в debug-лог снимок «что не готово», через 15 с — открываем принудительно (см. useLaunchWatchdog.js)
   const t0Ref = useRef(Date.now())
   const mark = txt => pLog(`[launch] ${txt} +${Date.now() - t0Ref.current} мс`)
-  const bytesDone = initialized && initializedFor === preloadNodes && warmupNodeIds.length > 0 && warmupNodeIds.every(id => readyNodeIds.has(id))
-  useEffect(() => { if (bytesDone) mark('файлы окна прогрева скачаны') }, [bytesDone])
-  useEffect(() => { if (loaded) mark('готово (файлы + постеры/мета первых нод)') }, [loaded])
-  useEffect(() => {
-    if (!bytesDone || loaded) return
-    const lacking = warmupNodeIds.filter(id => warmGate.has(id) && !warmNodeIds.has(id))
-    if (lacking.length) mark(`ждём: постер/мета у ${lacking.length} из первых нод`)
-    else if (!logoReady) mark('ждём: логотип учителя')
-  }, [bytesDone, loaded, logoReady]) // eslint-disable-line react-hooks/exhaustive-deps
-  const blockers = () => ({
-    initialized, forNodes: initializedFor === preloadNodes, logoReady, ready: `${nodeReady}/${nodeTotal}`, bytesDone, reached: reachedRef.current,
-    notReady: warmupNodeIds.filter(id => !readyNodeIds.has(id)).map(nodeLabel),
-    notWarm: warmupNodeIds.filter(id => warmGate.has(id) && !warmNodeIds.has(id)).map(nodeLabel),
-  })
-  const nodeLabel = id => { const n = nodes.find(x => x.id === id); return `${n?.type ?? '?'}#${n?.seq ?? '?'}` }
   const reachedRef = useRef(false)
+  const nodeLabel = id => { const n = nodes.find(x => x.id === id); return `${n?.type ?? '?'}#${n?.seq ?? '?'}` }
+  const blockers = () => ({
+    initialized, forNodes: initializedFor === preloadNodes, logoReady, ready: `${nodeReady}/${nodeTotal}`, reached: reachedRef.current,
+    notReady: warmupNodeIds.filter(id => !readyNodeIds.has(id)).map(nodeLabel),
+    notWarm: warmupNodeIds.filter(id => !warmNodeIds.has(id)).map(nodeLabel),
+  })
   const forced = useLaunchWatchdog({ active: !!visible && !choosing && !(loaded && reachedRef.current), snapshot: blockers, mark })
   const { barRef, textRef, reached } = useSmoothPct(choosing ? 0 : loaded || forced ? 100 : Math.min(livePct, 99), visible && !choosing)
   reachedRef.current = reached
   const canStart    = ((loaded && reached) || forced) && !choosing
-  useEffect(() => { if (loaded && reached) mark('кнопка открыта (бар дошёл до 100%)') }, [loaded, reached])
 
   // Выбор сделан и прогрев готов — стартуем сами, второй тап не нужен
   const autoStartedRef = useRef(false)
-  const startedRef = useRef(false)
   useEffect(() => {
     if (!picked || choosing || !canStart || dissolving || autoStartedRef.current) return
     autoStartedRef.current = true
@@ -204,20 +190,12 @@ export default function LaunchPreloader({
   // гоняет свою собственную проверку чекпойнта (см. useLessonResume.js).
   // Выбора режима пересдачи больше нет: ответы только добавляются (PROJECT.md
   // → «Анализ знаний»), пересдача — обычное прохождение
-  const [starting, setStarting] = useState(false)
-  function failStart(e) {
-    mark(`ОШИБКА старта: ${e?.message ?? e}`)
-    startedRef.current = false; autoStartedRef.current = false
-    setStarting(false); setPicked(false)
-  }
   function handleStart(resume = false) {
-    if (startedRef.current) return // двойной тап → второй start_lesson
-    startedRef.current = true; setStarting(true); mark('старт урока')
     // Preload + unlock in the same gesture context so iOS Safari decodes audio immediately.
     // preloadSounds() creates Audio objects; unlockAudio() does play+pause on them.
     // Both must run here (not in useEffect) — iOS only allows audio decode within a gesture.
-    // И прогреваем элемент под автозапуск таблиц: разрешение Safari даёт конкретному <audio>, а у панели диктанта он рождается уже без жеста;
-    // кружок/сцена в начале урока должен зазвучать (iOS открывает звук сцен только жестом). Любая ошибка разблокировки не должна ронять старт
+    // И прогреваем элемент под автозапуск таблиц (primeAudio) и открываем звук сцен: разрешение Safari даёт конкретному <audio>
+    // только в жесте. Каждый шаг в try/catch (launchUnlock.js): исключение больше не обрывает тап «Начать/Продолжить»
     unlockSafely(nodes)
     releaseBlobs()
     // Transfer logo blob ownership to player — clear ref so cleanup won't revoke it
@@ -230,11 +208,9 @@ export default function LaunchPreloader({
       resumedXp:   resume ? (resumeOffer.xp ?? 0) : 0,
     }
 
-    // Ошибка старта (start_lesson упал, исключение в onStart) не должна оставлять карточку на «Запуск…» навсегда и без следа в логе
+    // Ошибка старта не должна пропадать молча: пишем в debug-лог
     const run = () => {
-      try {
-        Promise.resolve(onStart(payload)).catch(failStart)
-      } catch (e) { failStart(e) }
+      try { Promise.resolve(onStart(payload)).catch(e => mark(`ОШИБКА старта: ${e?.message ?? e}`)) } catch (e) { mark(`ОШИБКА старта: ${e?.message ?? e}`) }
     }
     if (payingCase) {
       // Платный случай: сперва показываем растворение мигающей ячейки —
@@ -305,14 +281,14 @@ export default function LaunchPreloader({
           // даёт высоту 0, а не высоту строки текста, и блок оказывается на
           // ~17px ниже, чем у showSecondRow — та самая «растяжка» на глаз
           pctLabel="Загрузка..."
-          primaryLabel={starting ? 'Запуск…' : canStart ? '▶ Начать урок' : 'Загрузка...'}
+          primaryLabel={canStart ? '▶ Начать урок' : 'Загрузка...'}
           primaryDisabled={!canStart || dissolving}
           primaryStyle={startBtnStyle}
           onPrimary={() => handleStart()}
         />
       ) : (
         <button onClick={() => handleStart()} disabled={!canStart || dissolving || picked} style={startBtnStyle}>
-          {starting ? 'Запуск…' : canStart && !picked ? '▶ Начать урок' : 'Загрузка...'}
+          {canStart && !picked ? '▶ Начать урок' : 'Загрузка...'}
         </button>
       )}
     </>

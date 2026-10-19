@@ -15,7 +15,7 @@ import { seedGuestWordOf } from '../../shared/lib/memory/guestMemory.js'
 import { lessonWordOf } from '../../shared/lib/memory/wordLessons.js'
 import { refreshProfile, getCachedProfile } from '../../shared/api/profileCache.js'
 import ProPaywall from '../pro/ProPaywall.jsx'
-import { startLesson, startLessonSoft } from '../../shared/api/profileApi.js'
+import { startLesson } from '../../shared/api/profileApi.js'
 import EnergyPaywall from './EnergyPaywall.jsx'
 import ModuleVideoPanel from './ModuleVideoPanel.jsx'
 import { markModuleStarted } from '../../shared/api/moduleSocialApi.js'
@@ -310,9 +310,7 @@ export default function CurriculumView({ curriculumId, curriculumTitle, isPro = 
           onStart={async (data) => {
             // Энергия: сервер решает, бесплатный урок или -1; при нуле —
             // пейволл вместо плеера
-            const res = await startLessonSoft(launchId, { onLate: late => {
-              if (late?.ok === false) { setPlayingLessonId(null); setPlayerData(null); setNoEnergy({ nextAt: late.next_at }) } else refreshProfile()
-            } })
+            const res = await startLesson(launchId)
             if (res?.ok === false) {
               revokePayloadBlobs(data) // файлы прогрева плееру не достались — отпускаем
               setLaunchId(null)

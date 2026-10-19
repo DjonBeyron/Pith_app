@@ -7,8 +7,6 @@ import { makePreloadFetch, EVICT_TYPES } from './preloadFetchOne.js'
 import { makeEvict } from './preloadEvict.js'
 import { historyPageIds } from './feedWindow.js'
 import { warmUserSceneNodes } from '../scene/v2/warmUserScenes.js'
-import { preloadConcurrency } from '../../shared/lib/netProfile.js'
-import { sfxBlocking, sfxHeadStartLeft, onSfxSettled } from '../../shared/lib/sfxCache.js'
 
 const LOOKAHEAD    = 3
 const CONCURRENCY  = 2
@@ -108,25 +106,9 @@ export function usePlayerPreload(nodes, files, visibleNodes, opts = {}) {
   // Событийная очередь: pump добирает свободные слоты до CONCURRENCY. Вызывается
   // при старте, после каждого завершённого скачивания и при сдвиге гейта — без таймеров.
 
-  // Звуки интерфейса грузятся ПЕРВЫМИ (sfxCache.js, до SFX_HEAD_START_MS): на слабой сети фото по 1,5 МБ иначе съедали полосу, и «верно»
-  // звучало через секунды. На слабой сети (netProfile.js) медиа качаются по одному
-  const sfxWaitRef = useRef(false)
   function pump(gen) {
     if (genRef.current !== gen) return
-    if (sfxBlocking()) {
-      if (!sfxWaitRef.current) {
-        sfxWaitRef.current = true
-        // Просыпаемся по первому из двух: прогрев звуков закончился ИЛИ вышел срок головного старта (раньше ждали только конца
-        // всего прогрева: на слабой сети медиа урока стояло десятки секунд, а не обещанные 4)
-        const left = sfxHeadStartLeft()
-        pLog(`[launch] ждём: звуки интерфейса (до ${left} мс)`)
-        const go = () => { if (!sfxWaitRef.current) return; sfxWaitRef.current = false; pump(gen) }
-        onSfxSettled(go)
-        setTimeout(go, left + 20)
-      }
-      return
-    }
-    while (inFlightRef.current < preloadConcurrency(CONCURRENCY) && cursorRef.current < queueRef.current.length) {
+    while (inFlightRef.current < CONCURRENCY && cursorRef.current < queueRef.current.length) {
       const item = queueRef.current[cursorRef.current]
       // Гейт по BFS-индексу (nodeIdx) ИЛИ первые LOOKAHEAD элементов очереди
       // после курсора. Одного nodeIdx мало: в ветвящемся уроке (выбор, сигналы)

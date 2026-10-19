@@ -6,7 +6,6 @@ import { APP_VERSION } from './version.js'
 import { getSoundVolume, onSoundVolumeChange, needsGain, loadGainBuffer, playWithGain } from './soundVolume.js'
 import { suppressSound, isMicBusy, silenceReasons } from './soundQuiet.js'
 import { logSound, logElementSound } from './soundLog.js' // диагностика: любое воспроизведение страницей пишется в кольцо soundLog.js (корреляция с «глухим» микрофоном)
-import { warmSfx, sfxBlobUrl, onSfxReady } from './sfxCache.js'
 
 // Громкость звуков интерфейса — глобальная настройка админа (audioSettings.js →
 // soundVolume.js). Экспорт — для админского блока и тестов
@@ -99,29 +98,9 @@ export const ALL_SOUNDS = ['message-in', 'answer-correct', 'answer-wrong', 'pin-
 // жесту preloadSounds() создаёт Audio уже из кэша, без похода в сеть.
 // Зовётся из App.jsx с задержкой, чтобы не толкаться с первым видео ленты
 export function warmSoundFiles() {
-  warmSfx(WARM_ORDER).catch(() => {}) // sfxCache.js: в память на всю сессию + Cache Storage (со второго запуска — даже без сети)
+  if (typeof fetch !== 'function') return
+  for (const name of ALL_SOUNDS) fetch(soundUrl(name), { cache: 'force-cache' }).catch(() => {})
 }
-// Сначала то, что играет чаще всего и ближе всего к ответу ученика
-const WARM_ORDER = ['answer-correct', 'message-in', 'answer-wrong', 'typing-1', 'typing-2', 'pin-message', 'xp-gain', 'level-up', 'lesson-locked']
-
-// Звук интерфейса, который к своему событию не успел загрузиться за SOUND_STALE_MS, ПРОПУСКАЕМ, а не доигрываем через секунды:
-// на слабом интернете «верно» звучало на 5-й секунде, когда ученик уже ушёл на следующий шаг («догоняют»)
-export const SOUND_STALE_MS = 300
-const stats = { stale: 0, late: 0, lastLagMs: 0 }
-export const soundStats = () => ({ ...stats }) // диагностика: сколько звуков пропущено как устаревшие и сколько стартовало с опозданием > 400 мс
-const LATE_MS = 400
-const nowMs = () => (typeof performance !== 'undefined' ? performance.now() : Date.now())
-
-// Звук оказался в памяти после того, как элемент уже создан по сетевому адресу — подменяем источник на blob:, пока элемент не играет
-onSfxReady(name => {
-  const a = htmlCache[name]
-  const blob = sfxBlobUrl(name)
-  if (!a || !blob || !a.paused || warming.has(name) || String(a.src).startsWith('blob:')) return
-  if (a.readyState >= 4) return // уже загружен сам — не трогаем
-  a.src = blob
-  a.load?.()
-  pLog(`[sound] ${name}: источник заменён на звук из памяти`)
-})
 
 // Call during lesson warmup (no gesture needed).
 // Creates AudioContext (suspended) + HTMLAudioElements preloaded into memory.
@@ -137,13 +116,12 @@ export function preloadSounds() {
   }
   ALL_SOUNDS.forEach(name => {
     if (htmlCache[name]) return
-    const a = new Audio(sfxBlobUrl(name) ?? soundUrl(name))
+    const a = new Audio(soundUrl(name))
     a.preload = 'auto'
     a.load()
     htmlCache[name] = a
     pLog(`[sound] preload ${name}`)
   })
-  warmSoundFiles()
   warmGainBuffers()
 }
 
@@ -221,15 +199,13 @@ export function playSound(name, where = null, opts = null) {
 function playGain(name, where, volume) {
   const rec = traceSoundRequest(name, null, { откуда: where, состояниеCtx: ctx.state, путь: 'webaudio', громкость: volume })
   logSound('audiocontext', name)
-  const t0 = nowMs()
-  playWithGain(ctx, name, soundUrl(name), volume, { requestedAt: t0, staleMs: SOUND_STALE_MS })
+  playWithGain(ctx, name, soundUrl(name), volume)
     .then(duration => {
       traceSoundStarted(rec); rec.итог = 'прозвучал'
       notifyPlayed(name, duration)
-      pLog(`[sound] ${name} OK webaudio ×${volume}${where ? ` (${where})` : ''} +${noteLag(nowMs() - t0)} мс`)
+      pLog(`[sound] ${name} OK webaudio ×${volume}${where ? ` (${where})` : ''}`)
     })
     .catch(e => {
-      if (e?.stale) { skipStale(name, rec, where); return }
       traceSoundFailed(rec, e.message)
       pLog(`[sound] ${name} webaudio FAILED: ${e.message} — играем <audio> (громкость не применится)`)
       playHtml(name, where, volume)
@@ -258,34 +234,9 @@ function playHtml(name, where, volume) {
   // других уроках нет звуков». Выбрасывает кэш только прерывание сессии
   // (onCtxStateChange), пересоздаёт — следующий жест
   logElementSound('audio-play', name, audio)
-  // Файл ещё качается по сети (readyState < 3 и networkState = LOADING): ждём не дольше SOUND_STALE_MS, потом пропускаем звук.
-  // Холодный старт элемента без сети (iOS: readyState 0, networkState не LOADING) под это не попадает — он стартует с известной задержкой
-  const t0 = nowMs()
-  const downloading = audio.readyState < 3 && audio.networkState === 2 && typeof audio.pause === 'function'
-  let started = false
-  let stale = false
-  const staleTimer = downloading ? setTimeout(() => {
-    if (started) return
-    stale = true
-    audio.pause()
-    skipStale(name, rec, where)
-  }, SOUND_STALE_MS) : 0
   audio.play()
-    .then(() => { started = true; clearTimeout(staleTimer); traceSoundStarted(rec); notifyPlayed(name, audio.duration); pLog(`[sound] ${name} OK${where ? ` (${where})` : ''} +${noteLag(nowMs() - t0)} мс`) })
-    .catch(e => { clearTimeout(staleTimer); if (stale) return; traceSoundFailed(rec, e.message); pLog(`[sound] ${name} FAILED: ${e.message}`) })
-}
-
-// Диагностика задержки «событие → фактический старт»: больше LATE_MS — отдельная строка и счётчик
-function noteLag(ms) {
-  const lag = Math.max(0, Math.round(ms))
-  stats.lastLagMs = lag
-  if (lag > LATE_MS) { stats.late++; pLog(`[sound] ПОЗДНО: старт через ${lag} мс после события`) }
-  return lag
-}
-function skipStale(name, rec, where) {
-  stats.stale++
-  traceSoundFailed(rec, `пропущен: не загрузился за ${SOUND_STALE_MS} мс`)
-  pLog(`[sound] ${name} ПРОПУЩЕН${where ? ` (${where})` : ''}: не загрузился за ${SOUND_STALE_MS} мс (слабая сеть), всего пропусков ${stats.stale}`)
+    .then(() => { traceSoundStarted(rec); notifyPlayed(name, audio.duration); pLog(`[sound] ${name} OK${where ? ` (${where})` : ''}`) })
+    .catch(e => { traceSoundFailed(rec, e.message); pLog(`[sound] ${name} FAILED: ${e.message}`) })
 }
 
 // Прогрев звука БЕЗ слышимого звука: беззвучный play() → pause() → в начало. Зачем: на iOS первый
