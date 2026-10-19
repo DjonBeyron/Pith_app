@@ -246,16 +246,6 @@ export default function LaunchPreloader({
           отказ iOS помнит */}
       {nodes.some(n => n.type === 'rotate_phone') && motionNeedsAsk() && <LaunchMotionAsk />}
 
-      {isAdmin && (
-        <LaunchDebugPanel
-          weak={weak}
-          bufferSize={bufferSize}
-          warmupNodeIds={warmupNodeIds}
-          files={files}
-          debugItems={debugItems}
-          launchState={traceState}
-        />
-      )}
 
       {/* LaunchCtaSlot — одна и та же вёрстка для «Продолжить» и для обычного
           старта (showSecondRow включает вторую строку/кнопку), поэтому не
@@ -302,6 +292,25 @@ export default function LaunchPreloader({
         </button>
       )}
       </div>
+
+      {/* Админская отладка — ПОД кнопкой и свёрнута: раньше длинный список файлов выталкивал кнопку запуска за экран. Строка в заголовке всегда видна */}
+      {isAdmin && (
+        <details style={{ fontSize: 11, color: '#888' }}>
+          <summary style={{ cursor: 'pointer', color: canStart ? '#b6fe3b' : '#ffb74d' }}>
+            Отладка загрузки · canStart={String(canStart)} · файлы {traceState.ready}
+          </summary>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 8 }}>
+            <LaunchDebugPanel
+              weak={weak}
+              bufferSize={bufferSize}
+              warmupNodeIds={warmupNodeIds}
+              files={files}
+              debugItems={debugItems}
+              launchState={traceState}
+            />
+          </div>
+        </details>
+      )}
     </>
   )
 }

@@ -124,6 +124,9 @@ export default function LessonLaunchCard({ lessonId, lessonTitle = '', retake = 
         minWidth: 300, maxWidth: mayResume ? 460 : 420, width: '90%',
         display: 'flex', flexDirection: 'column', gap: 20,
         position: 'relative',
+        // Карточка выше экрана (админская панель отладки, длинный список скачиваемых файлов, мелкий экран iPhone) раньше обрезалась сверху и снизу,
+        // и кнопка «Начать/Продолжить» оказывалась ЗА экраном без прокрутки — canStart был true, а нажать нечего
+        maxHeight: 'calc(100dvh - 24px)', overflowY: 'auto', boxSizing: 'border-box',
       }}>
         <button
           onClick={onClose}
