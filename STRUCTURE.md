@@ -2409,3 +2409,5 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | `supabase/migrations/20261019110000_lesson_rules_scene_s3.sql` | Правило S3: служебные слова (to, the, with…) в репликах сцены не требуются |
 | `features/lessons/useLaunchWatchdog.js` (+`.test.js`) | Сторож карточки запуска: через 8 с без открытия кнопки пишет в debug-лог снимок «что не готово» (ноды, постеры, логотип, бар), через 15 с открывает кнопку принудительно |
 | `features/lessons/launchUnlock.js` (+`.test.js`) | Разблокировка звука в жесте запуска, каждый шаг в своём try/catch: ошибка в одном (speechSynthesis на Safari) больше не обрывает тап «Начать/Продолжить» |
+| `shared/lib/launchTrace.js` (+`.test.js`) | Трасса запуска урока: кольцевой буфер событий с временем, дубль в debug-лог (`[launch] …`), глобальный перехват `window.error`/`unhandledrejection` (след остаётся и после ухода с карточки); попадает в «Скачать лог загрузки» |
+| `features/lessons/useLaunchTrace.js` | Хук карточки запуска: пишет в трассу монтирование и каждый переход состояния условий готовности (кнопка, файлы, постеры, логотип, сторож) |

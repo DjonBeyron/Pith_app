@@ -4,6 +4,8 @@ import { pLog } from '../../shared/lib/debug.js'
 import { preloadSounds } from '../../shared/lib/sounds.js'
 import { unlockSafely } from './launchUnlock.js'
 import useLaunchWatchdog from './useLaunchWatchdog.js'
+import { traceLaunch } from '../../shared/lib/launchTrace.js'
+import useLaunchTrace from './useLaunchTrace.js'
 import { motionNeedsAsk } from '../../shared/lib/motionPermission.js'
 import LaunchMotionAsk from './LaunchMotionAsk.jsx'
 import { useAdmin } from '../../app/AdminContext.jsx'
@@ -83,6 +85,7 @@ export default function LaunchPreloader({
   // (onRestartProgress → resumeOffer=null), и по нему выбор не отличить
   const [picked, setPicked] = useState(false)
   function pick(next) {
+    traceLaunch(`тап: выбор «${next}»`)
     unlockSafely(nodes)
     if (next === 'start') onRestartProgress()
     setPicked(true)
@@ -160,6 +163,8 @@ export default function LaunchPreloader({
   const { barRef, textRef, reached } = useSmoothPct(choosing ? 0 : loaded || forced ? 100 : Math.min(livePct, 99), visible && !choosing)
   reachedRef.current = reached
   const canStart    = ((loaded && reached) || forced) && !choosing
+  const traceState = { visible: !!visible, choosing, choice, picked, ...blockers(), loaded, forced, canStart, dissolving }
+  useLaunchTrace(traceState)
 
   // Выбор сделан и прогрев готов — стартуем сами, второй тап не нужен
   const autoStartedRef = useRef(false)
@@ -194,6 +199,7 @@ export default function LaunchPreloader({
     // Preload + unlock in the same gesture context so iOS Safari decodes audio immediately.
     // preloadSounds() creates Audio objects; unlockAudio() does play+pause on them.
     // Both must run here (not in useEffect) — iOS only allows audio decode within a gesture.
+    traceLaunch(`handleStart: resume=${resume}, canStart=${canStart}, forced=${forced}`)
     // И прогреваем элемент под автозапуск таблиц (primeAudio) и открываем звук сцен: разрешение Safari даёт конкретному <audio>
     // только в жесте. Каждый шаг в try/catch (launchUnlock.js): исключение больше не обрывает тап «Начать/Продолжить»
     unlockSafely(nodes)
@@ -210,7 +216,8 @@ export default function LaunchPreloader({
 
     // Ошибка старта не должна пропадать молча: пишем в debug-лог
     const run = () => {
-      try { Promise.resolve(onStart(payload)).catch(e => mark(`ОШИБКА старта: ${e?.message ?? e}`)) } catch (e) { mark(`ОШИБКА старта: ${e?.message ?? e}`) }
+      traceLaunch('onStart(payload) вызван')
+      try { Promise.resolve(onStart(payload)).then(() => traceLaunch('onStart завершился'), e => traceLaunch(`ОШИБКА старта: ${e?.message ?? e}`)) } catch (e) { traceLaunch(`ОШИБКА старта: ${e?.message ?? e}`) }
     }
     if (payingCase) {
       // Платный случай: сперва показываем растворение мигающей ячейки —
@@ -246,6 +253,7 @@ export default function LaunchPreloader({
           warmupNodeIds={warmupNodeIds}
           files={files}
           debugItems={debugItems}
+          launchState={traceState}
         />
       )}
 
@@ -258,6 +266,8 @@ export default function LaunchPreloader({
           же место под вторую кнопку, что и каркас до неё — а когда его нет
           (пересдача/уже пройден/гонка), второй кнопки не будет никогда,
           и обычная кнопка не резервирует под неё пустое место */}
+      {/* Трасса тапов по зоне кнопок: тап по закрытой кнопке иначе не оставлял следа (display: contents — вёрстку не меняет) */}
+      <div style={{ display: 'contents' }} onClickCapture={() => traceLaunch(`тап по зоне кнопки: canStart=${canStart}, picked=${picked}, choosing=${choosing}, forced=${forced}, dissolving=${!!dissolving}`)}>
       {resumeOffer ? (
         <LaunchCtaSlot
           showSecondRow
@@ -291,6 +301,7 @@ export default function LaunchPreloader({
           {canStart && !picked ? '▶ Начать урок' : 'Загрузка...'}
         </button>
       )}
+      </div>
     </>
   )
 }

@@ -1,3 +1,4 @@
+import { traceLaunch } from '../lib/launchTrace.js'
 import { supabase } from './supabase.js'
 import { dbg } from '../lib/debug.js'
 import { viewSession } from './viewSession.js'
@@ -33,12 +34,24 @@ export async function saveAvatar(seed) {
 // пересдача/Старт/Финал) или списать энергию. Возвращает jsonb
 // { ok, energy?, reason: 'no_energy', next_at? }. Если RPC ещё не применён
 // в Supabase — не блокируем прохождение (ok: true).
-export async function startLesson(lessonId) {
-  const { data, error } = await supabase.rpc('start_lesson', { p_lesson_id: lessonId })
+// Ответ start_lesson ждём не бесконечно: если запрос завис (сеть, блокировка авторизации), урок открывается так же, как при ошибке RPC (ok: true);
+// раньше карточка запуска могла висеть на «Запуск…» вечно без следа в логе. Всё пишется в трассу запуска ([launch]).
+export const START_LESSON_TIMEOUT_MS = 8000
+export async function startLesson(lessonId, { timeoutMs = START_LESSON_TIMEOUT_MS } = {}) {
+  const t0 = Date.now()
+  traceLaunch(`start_lesson: запрос ${String(lessonId).slice(0, 8)}`)
+  let timer
+  const timeout = new Promise(r => { timer = setTimeout(() => r({ timedOut: true }), timeoutMs) })
+  const res = await Promise.race([supabase.rpc('start_lesson', { p_lesson_id: lessonId }), timeout])
+  clearTimeout(timer)
+  if (res?.timedOut) { traceLaunch(`start_lesson: НЕТ ОТВЕТА ${timeoutMs} мс — открываем урок (как при ошибке RPC)`); return { ok: true, timedOut: true } }
+  const { data, error } = res
   if (error) {
     console.error('[ENERGY] start_lesson RPC error:', error.message)
+    traceLaunch(`start_lesson: ошибка RPC за ${Date.now() - t0} мс: ${error.message} — открываем урок`)
     return { ok: true }
   }
+  traceLaunch(`start_lesson: ответ за ${Date.now() - t0} мс, ok=${data?.ok}`)
   dbg('[ENERGY] start_lesson →', lessonId, data)
   return data ?? { ok: true }
 }

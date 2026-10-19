@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { traceLaunch } from '../../shared/lib/launchTrace.js'
 import LessonLaunchCard from './LessonLaunchCard.jsx'
 import EnergyPaywall from './EnergyPaywall.jsx'
 import LessonPlayer from '../player/LessonPlayerLazy.jsx'
@@ -20,6 +21,7 @@ export default function StandaloneLessonRunner({ lessonId, lessonTitle = '', onE
   const [playerData, setPlayerData] = useState(null)
   usePayloadBlobsRelease(playerData) // blob логотипа — отзыв после закрытия плеера
   const [noEnergy,   setNoEnergy]   = useState(null)
+  useEffect(() => { if (playerData) traceLaunch(`плеер: LessonPlayer смонтирован, нод ${playerData.nodes?.length ?? '?'}`) }, [playerData])
 
   async function handleStart(data) {
     const res = await startLesson(lessonId)

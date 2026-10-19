@@ -1,8 +1,10 @@
+import { getLaunchTrace } from '../../shared/lib/launchTrace.js'
+
 // Админская часть окна старта урока: постатусный список скачиваемых файлов
 // и кнопка «Скачать лог загрузки». Обычный пользователь этого не видит.
 const STATUS_COLOR = { start: '#b6fe3b', ready: '#4caf50', error: '#ff5252' }
 
-export default function LaunchDebugPanel({ weak, bufferSize, warmupNodeIds, files, debugItems }) {
+export default function LaunchDebugPanel({ weak, bufferSize, warmupNodeIds, files, debugItems, launchState = null }) {
   function downloadDebugLog() {
     const payload = {
       ts: new Date().toISOString(),
@@ -15,6 +17,7 @@ export default function LaunchDebugPanel({ weak, bufferSize, warmupNodeIds, file
       weak,
       bufferSize,
       warmupNodeIds,
+      launch: { state: launchState, trace: getLaunchTrace() }, // трасса запуска: переходы состояния, тапы, start_lesson, ошибки страницы
       files: files.map(f => ({ id: f.id, name: f.file_name, hasUrl: !!f.r2Url })),
       downloads: debugItems.map(d => ({
         seq: d.seq, type: d.type,
@@ -38,6 +41,15 @@ export default function LaunchDebugPanel({ weak, bufferSize, warmupNodeIds, file
         <span style={{ color: '#666', fontSize: 11 }}>
           Режим экономии памяти (буфер {bufferSize})
         </span>
+      )}
+
+      {launchState && (
+        <div style={{ background: '#111', borderRadius: 8, padding: '8px 10px', fontSize: 11, color: launchState.canStart ? '#4caf50' : '#ffb74d', wordBreak: 'break-word' }}>
+          canStart={String(launchState.canStart)} · файлы {launchState.ready}
+          {launchState.notReady?.length ? ` · не скачано: ${launchState.notReady.join(', ')}` : ''}
+          {launchState.notWarm?.length ? ` · не прогрето: ${launchState.notWarm.join(', ')}` : ''}
+          {!launchState.logoReady ? ' · логотип' : ''}
+        </div>
       )}
 
       {debugItems.length > 0 && (
