@@ -2412,3 +2412,5 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | `features/player/preloadFetchPermanent.test.js` | Тест: постоянные ошибки HTTP (404/403) прогрева не повторяются, 503 повторяется |
 | `shared/api/startLessonSoft.test.js` | Тест старта урока без немого ожидания: быстрый ответ как есть, медленный приходит в `onLate` |
 | `supabase/migrations/20261019110000_lesson_rules_scene_s3.sql` | Правило S3: служебные слова (to, the, with…) в репликах сцены не требуются |
+| `features/lessons/useLaunchWatchdog.js` (+`.test.js`) | Сторож карточки запуска: через 8 с без открытия кнопки пишет в debug-лог снимок «что не готово» (ноды, постеры, логотип, бар), через 15 с открывает кнопку принудительно |
+| `features/lessons/launchUnlock.js` (+`.test.js`) | Разблокировка звука в жесте запуска, каждый шаг в своём try/catch: ошибка в одном (speechSynthesis на Safari) больше не обрывает тап «Начать/Продолжить» |

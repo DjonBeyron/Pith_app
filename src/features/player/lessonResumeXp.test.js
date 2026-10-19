@@ -212,7 +212,7 @@ describe('«Продолжить урок» — решение и прогрев
     expect(progress).toContain('{choosing ? (')
     expect(progress).toContain('className="launchSpinnerRow"')
     expect(launch).toContain('const livePct = initializedFor === preloadNodes ? warmupPct : 0')
-    expect(launch).toContain('useSmoothPct(choosing ? 0 : loaded ? 100 : Math.min(livePct, 99), visible && !choosing)')
+    expect(launch).toContain('useSmoothPct(choosing ? 0 : loaded || forced ? 100 : Math.min(livePct, 99), visible && !choosing)')
     expect(read('../../styles/launch-progress.css')).toContain('.launchSpinnerRow {\n  position: relative;\n  height: 6px;')
     expect(launch).toContain("preloadNodes, files, cardVisible, { initialLookahead: WARMUP_TARGET, bufferSize, entryNodeId: entryNode?.id ?? null, historyIds }")
     // История стартовой ленты греется вместе с точкой входа — только при «Продолжить»

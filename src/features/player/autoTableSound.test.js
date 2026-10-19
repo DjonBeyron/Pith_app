@@ -13,13 +13,13 @@ describe('авто-таблица звучит без свежего жеста'
   const primed = read('../../shared/lib/primedAudio.js')
   const auto   = read('./panels/table-dictator/useTableDictatorAutostart.js')
   // Карточка запуска — два файла подряд: LessonLaunchCard.jsx + LaunchPreloader.jsx (прогрев)
-  const card   = (read('../lessons/LessonLaunchCard.jsx') + read('../lessons/LaunchPreloader.jsx'))
+  const card   = (read('../lessons/LessonLaunchCard.jsx') + read('../lessons/LaunchPreloader.jsx') + read('../lessons/launchUnlock.js'))
 
   it('элемент прогревается настоящим жестом — стартом урока', () => {
     // «Начать урок» — единственный надёжный жест до того, как пойдут таблицы
-    expect(card).toContain('primeAudio()')
+    expect(card).toContain('primeAudio')
     const start = card.slice(card.indexOf('function handleStart'))
-    expect(start.slice(0, 700)).toContain('primeAudio()')
+    expect(start.slice(0, 1200)).toContain('unlockSafely(nodes)') // primeAudio вызывается внутри (launchUnlock.js, каждый шаг в try/catch)
     // Прогрев тишиной, без сети
     expect(primed).toContain("const SILENCE = 'data:audio/wav;base64,")
     expect(primed).toContain("el.setAttribute('playsinline', '')")

@@ -1,9 +1,9 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
 import { usePlayerPreload } from '../player/usePlayerPreload.js'
 import { pLog } from '../../shared/lib/debug.js'
-import { preloadSounds, unlockAudio } from '../../shared/lib/sounds.js'
-import { unlockSceneAudioForLesson } from '../scene/v2/sceneAudioUnlock.js'
-import { primeAudio } from '../../shared/lib/primedAudio.js'
+import { preloadSounds } from '../../shared/lib/sounds.js'
+import { unlockSafely } from './launchUnlock.js'
+import useLaunchWatchdog from './useLaunchWatchdog.js'
 import { motionNeedsAsk } from '../../shared/lib/motionPermission.js'
 import LaunchMotionAsk from './LaunchMotionAsk.jsx'
 import { useAdmin } from '../../app/AdminContext.jsx'
@@ -85,10 +85,7 @@ export default function LaunchPreloader({
   // (onRestartProgress → resumeOffer=null), и по нему выбор не отличить
   const [picked, setPicked] = useState(false)
   function pick(next) {
-    preloadSounds()
-    unlockAudio()
-    primeAudio()
-    unlockSceneAudioForLesson(nodes)
+    unlockSafely(nodes)
     if (next === 'start') onRestartProgress()
     setPicked(true)
     setChoice(next)
@@ -109,6 +106,7 @@ export default function LaunchPreloader({
     if (!teacherLogo) { setLogoReady(true); return }
     let cancelled = false
     const controller = new AbortController()
+    const logoTimer = setTimeout(() => controller.abort(), 5000) // логотип не должен держать кнопку запуска дольше 5 с
     fetch(teacherLogo, { signal: controller.signal })
       .then(r => r.blob())
       .then(blob => {
@@ -119,8 +117,10 @@ export default function LaunchPreloader({
         setLogoReady(true)
       })
       .catch(() => { if (!cancelled) setLogoReady(true) }) // skip logo on error, don't block
+      .finally(() => clearTimeout(logoTimer))
     return () => {
       cancelled = true
+      clearTimeout(logoTimer)
       controller.abort()
       // revoke only if not yet handed off to the player (releaseLogo clears the ref)
       if (logoBlobRef.current) { URL.revokeObjectURL(logoBlobRef.current); logoBlobRef.current = null }
@@ -161,8 +161,17 @@ export default function LaunchPreloader({
     if (lacking.length) mark(`ждём: постер/мета у ${lacking.length} из первых нод`)
     else if (!logoReady) mark('ждём: логотип учителя')
   }, [bytesDone, loaded, logoReady]) // eslint-disable-line react-hooks/exhaustive-deps
-  const { barRef, textRef, reached } = useSmoothPct(choosing ? 0 : loaded ? 100 : Math.min(livePct, 99), visible && !choosing)
-  const canStart    = loaded && reached && !choosing
+  const blockers = () => ({
+    initialized, forNodes: initializedFor === preloadNodes, logoReady, ready: `${nodeReady}/${nodeTotal}`, bytesDone, reached: reachedRef.current,
+    notReady: warmupNodeIds.filter(id => !readyNodeIds.has(id)).map(nodeLabel),
+    notWarm: warmupNodeIds.filter(id => warmGate.has(id) && !warmNodeIds.has(id)).map(nodeLabel),
+  })
+  const nodeLabel = id => { const n = nodes.find(x => x.id === id); return `${n?.type ?? '?'}#${n?.seq ?? '?'}` }
+  const reachedRef = useRef(false)
+  const forced = useLaunchWatchdog({ active: !!visible && !choosing && !(loaded && reachedRef.current), snapshot: blockers, mark })
+  const { barRef, textRef, reached } = useSmoothPct(choosing ? 0 : loaded || forced ? 100 : Math.min(livePct, 99), visible && !choosing)
+  reachedRef.current = reached
+  const canStart    = ((loaded && reached) || forced) && !choosing
   useEffect(() => { if (loaded && reached) mark('кнопка открыта (бар дошёл до 100%)') }, [loaded, reached])
 
   // Выбор сделан и прогрев готов — стартуем сами, второй тап не нужен
@@ -196,18 +205,20 @@ export default function LaunchPreloader({
   // Выбора режима пересдачи больше нет: ответы только добавляются (PROJECT.md
   // → «Анализ знаний»), пересдача — обычное прохождение
   const [starting, setStarting] = useState(false)
+  function failStart(e) {
+    mark(`ОШИБКА старта: ${e?.message ?? e}`)
+    startedRef.current = false; autoStartedRef.current = false
+    setStarting(false); setPicked(false)
+  }
   function handleStart(resume = false) {
     if (startedRef.current) return // двойной тап → второй start_lesson
     startedRef.current = true; setStarting(true); mark('старт урока')
     // Preload + unlock in the same gesture context so iOS Safari decodes audio immediately.
     // preloadSounds() creates Audio objects; unlockAudio() does play+pause on them.
     // Both must run here (not in useEffect) — iOS only allows audio decode within a gesture.
-    preloadSounds()
-    unlockAudio()
-    // И прогреваем элемент под автозапуск таблиц: разрешение Safari даёт
-    // конкретному <audio>, а у панели диктанта он рождается уже без жеста
-    primeAudio()
-    unlockSceneAudioForLesson(nodes) // кружок/сцена в начале урока должен зазвучать (iOS открывает звук сцен только жестом)
+    // И прогреваем элемент под автозапуск таблиц: разрешение Safari даёт конкретному <audio>, а у панели диктанта он рождается уже без жеста;
+    // кружок/сцена в начале урока должен зазвучать (iOS открывает звук сцен только жестом). Любая ошибка разблокировки не должна ронять старт
+    unlockSafely(nodes)
     releaseBlobs()
     // Transfer logo blob ownership to player — clear ref so cleanup won't revoke it
     const logoForPlayer = logoBlobRef.current ?? teacherLogo
@@ -219,14 +230,20 @@ export default function LaunchPreloader({
       resumedXp:   resume ? (resumeOffer.xp ?? 0) : 0,
     }
 
+    // Ошибка старта (start_lesson упал, исключение в onStart) не должна оставлять карточку на «Запуск…» навсегда и без следа в логе
+    const run = () => {
+      try {
+        Promise.resolve(onStart(payload)).catch(failStart)
+      } catch (e) { failStart(e) }
+    }
     if (payingCase) {
       // Платный случай: сперва показываем растворение мигающей ячейки —
       // пользователь видит, что энергия израсходована — и только потом
       // запускаем плеер. Реальное списание всё равно решает сервер (onStart→startLesson)
       onDissolve()
-      setTimeout(() => onStart(payload), 600)
+      setTimeout(run, 600)
     } else {
-      onStart(payload)
+      run()
     }
   }
 
