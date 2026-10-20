@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { sceneCircleFit, CIRCLE_SHOW_W, CIRCLE_CENTER_Y, CIRCLE_SOLO } from './sceneCircleFit.js'
+import { sceneCircleFit, sceneCircleViewBox, CIRCLE_SHOW_W, CIRCLE_CENTER_Y, CIRCLE_SOLO } from './sceneCircleFit.js'
 import { SCENE_W, SCENE_H } from '../../../scene/v2/sprites/backgrounds.js'
 
 // Кадрирование сцены в кружок: две головы (по умолчанию) и одна голова одиночной сцены по центру
@@ -84,5 +84,33 @@ describe('кружок Пита: кот в 3 раза крупнее прежн�
   it('crop.scale 0.75 (средний план) всё равно в 3 раза крупнее прежнего кадра с crop 0.75', () => {
     const was = 300 * SCENE_W / 320 * 0.75
     expect(parseFloat(sceneCircleFit(300, { solo: true, crop: { x: 0, y: 0, scale: 0.75 } }).width)).toBeCloseTo(was * 3, 0)
+  })
+})
+
+describe('sceneCircleViewBox — тот же кадр, что у обёртки sceneCircleFit, но окном viewBox (слой — с круг)', () => {
+  const parse = s => s.split(' ').map(Number)
+  it('умолчание: квадрат showW, центр по (180, centerY)', () => {
+    const [x, y, w, h] = parse(sceneCircleViewBox({}))
+    expect(w).toBeCloseTo(340, 2); expect(h).toBeCloseTo(340, 2)
+    expect(x + w / 2).toBeCloseTo(180, 2); expect(y + h / 2).toBeCloseTo(410, 2)
+  })
+  it('solo крупнее в 3 раза, scale 2 — вдвое уже, сдвиг x/y в px круга 200 уходит в единицы сцены', () => {
+    const solo = parse(sceneCircleViewBox({ solo: true }))
+    expect(solo[2]).toBeCloseTo(320 / 3, 2)
+    expect(solo[1] + solo[3] / 2).toBeCloseTo(520, 2)
+    const z = parse(sceneCircleViewBox({ solo: true, crop: { x: 0, y: 0, scale: 2 } }))
+    expect(z[2]).toBeCloseTo(solo[2] / 2, 2)
+    const sh = parse(sceneCircleViewBox({ solo: true, crop: { x: 20, y: -10, scale: 1 } }))
+    expect(sh[0] + sh[2] / 2).toBeCloseTo(180 - 20 * (320 / 3) / 200, 2) // сдвиг вправо = сцена уезжает вправо → видимая область смещается влево
+    expect(sh[1] + sh[3] / 2).toBeCloseTo(520 + 10 * (320 / 3) / 200, 2)
+  })
+  it('совпадает с геометрией обёртки: видимая область круга = окно viewBox', () => {
+    const d = 200, crop = { x: 30, y: -15, scale: 1.5 }
+    const fit = sceneCircleFit(d, { solo: true, crop })
+    const [left, top, w, h] = [fit.left, fit.top, fit.width, fit.height].map(parseFloat)
+    const [x, y, s] = parse(sceneCircleViewBox({ solo: true, crop }))
+    expect(x).toBeCloseTo(-left / w * 360, 1)
+    expect(y).toBeCloseTo(-top / h * 640, 1)
+    expect(s).toBeCloseTo(d / w * 360, 1)
   })
 })

@@ -12,7 +12,7 @@ import { sceneFrameKind } from './sceneNearModel.js'
 // экран / «ещё раз»); у истории тапа нет.
 function SceneBody({
   scene, isHistory, ended, near, showBubbles, display, voice, showProgress, last,
-  live, onTap,
+  live, onTap, viewBox = null,
 }) {
   const kind = sceneFrameKind({ isHistory, ended, near })
   if (kind === 'placeholder') return <div className="scn scn--ph" aria-hidden="true" />
@@ -20,11 +20,11 @@ function SceneBody({
     return (
       <SceneRenderer
         scene={scene} mode="static" frameIndex={last} showBubbles={showBubbles} display={display}
-        showProgress={false} onTap={isHistory ? undefined : onTap}
+        showProgress={false} viewBox={viewBox} onTap={isHistory ? undefined : onTap}
       />
     )
   }
-  return <SceneRenderer scene={scene} mode="live" {...live} showBubbles={showBubbles} display={display} voice={voice} showProgress={showProgress} onTap={onTap} />
+  return <SceneRenderer scene={scene} mode="live" {...live} showBubbles={showBubbles} display={display} voice={voice} showProgress={showProgress} viewBox={viewBox} onTap={onTap} />
 }
 
 // Рамка сцены перерисовывается только когда поменялось то, что она реально показывает. Родитель (кружок) ре-рендерится на

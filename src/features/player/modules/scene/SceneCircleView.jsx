@@ -1,14 +1,16 @@
-import { useEffect, useLayoutEffect, useState } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useState } from 'react'
 import { Play, VolumeX } from 'lucide-react'
 import SceneBody from './SceneBody.jsx'
 import { useSceneNear } from './useSceneNear.js'
 import { getSmallPx } from '../circle/useCircleExpand.js'
 import { useSceneCircleExpand } from './useSceneCircleExpand.js'
 import { useSceneProgress } from './useSceneProgress.js'
-import { sceneCircleFit } from './sceneCircleFit.js'
+import { sceneCircleViewBox } from './sceneCircleFit.js'
 import SceneSoundChip from './SceneSoundChip.jsx'
 import { isSolo } from '../../../scene/v2/scenePit.js'
 
+// Слой сцены — размером с круг (кадр задаёт viewBox, sceneCircleViewBox), а не гигантская обёртка, которую потом ещё и раздувает раскрытие
+const INNER_STYLE = { position: 'absolute', inset: 0 }
 const RING_R = 106
 const RING_C = 2 * Math.PI * RING_R
 
@@ -36,6 +38,7 @@ export default function SceneCircleView({
   const frozenEnded = ended && !(open && ex.grown) // доигравшая: статичный кадр, пока кружок растёт (живой SVG — после роста)
   // Свернули повтор доигравшей сцены: рамка стала статичной, состояние ноды — «ended» (useScenePlayback.freeze)
   useEffect(() => { if (frozenEnded && status !== 'ended') onFreeze?.() }, [frozenEnded, status, onFreeze])
+  const viewBox = useMemo(() => sceneCircleViewBox({ solo: isSolo(scene), crop }), [scene, crop])
   const last = Math.max(0, (scene.timeline?.length ?? 1) - 1)
   const near = useSceneNear(rootRef, isHistory || frozenEnded)
   const idle = !isHistory && status !== 'playing'
@@ -61,10 +64,10 @@ export default function SceneCircleView({
           data-status={isHistory ? 'history' : status} data-expanded={ex.expanded ? '' : undefined}
         >
           <div className="circleFrame">
-            <div className="playerSceneCircleInner" style={sceneCircleFit(size, { solo: isSolo(scene), crop })}>
+            <div className="playerSceneCircleInner" style={INNER_STYLE}>
               <SceneBody
                 scene={scene} isHistory={isHistory} ended={frozenEnded} near={near} last={last} showBubbles={showBubbles}
-                display={display} voice={voice} showProgress={false}
+                display={display} voice={voice} showProgress={false} viewBox={viewBox}
                 live={{ active: !pending, paused, sound, rate, audioSrcOf, apiRef, onState }}
               />
             </div>

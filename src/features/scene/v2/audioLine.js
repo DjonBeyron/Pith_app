@@ -25,6 +25,8 @@ import { validTimings, syntheticTimings, timingsEnd } from './mouthRhythm.js'
 export const LOAD_TIMEOUT_MS = 7000
 export const RETRY_DELAY_MS = 350
 export const GUARD_MARGIN_MS = 1500
+// Звук встал на буферизации (слабая сеть, файл тянется с R2 без blob прогрева) и не двигается столько — реплика считается сыгранной
+export const STALL_LIMIT_MS = 20000
 const MEDIA_ERR_NETWORK = 2
 
 const owners = new WeakMap() // элемент → токен текущего владельца
@@ -70,6 +72,7 @@ export function playLineAudio(line, audio, {
   let loadTimer = null
   let guardTimer = null
   let retryTimer = null
+  let stallTimer = null
 
   const on = (ev, fn) => audio.addEventListener(ev, fn)
   const off = (ev, fn) => audio.removeEventListener(ev, fn)
@@ -80,8 +83,24 @@ export function playLineAudio(line, audio, {
     timers.clearTimeout(loadTimer)
     sync.start()
     if (durationSec == null && Number.isFinite(audio.duration) && audio.duration > 0) durationSec = audio.duration
+    timers.clearTimeout(stallTimer)
+    armGuard()
+  }
+  // Запасной конец по МЕДИА-времени: сколько файлу осталось играть от текущей позиции (÷ скорость) + запас. Считается заново на каждом
+  // 'playing' (после буферизации/перемотки) и старый таймер снимается — раньше первый таймер от «первого playing» жил дальше и на слабой
+  // сети обрывал звук посреди реплики, пока файл ещё догружался, а сцена шла к следующей реплике
+  function armGuard() {
+    timers.clearTimeout(guardTimer)
     const baseMs = durationSec != null ? durationSec * 1000 : fallbackMs(text) * 2
-    guardTimer = timers.setTimeout(() => finish(false), Math.round(baseMs / k) + GUARD_MARGIN_MS)
+    const pos = Number.isFinite(audio.currentTime) ? Math.max(0, audio.currentTime * 1000) : 0
+    guardTimer = timers.setTimeout(() => finish(false), Math.round(Math.max(0, baseMs - pos) / k) + GUARD_MARGIN_MS)
+  }
+  // Буферизация: часы запаса стоят (звука нет — ждать конца по часам нечестно), но вечно висеть тоже нельзя
+  function onWaiting() {
+    if (done || !started) return
+    timers.clearTimeout(guardTimer)
+    timers.clearTimeout(stallTimer)
+    stallTimer = timers.setTimeout(() => finish(false), STALL_LIMIT_MS)
   }
   function onMeta() {
     if (done || timings || durationSec != null) return
@@ -132,9 +151,9 @@ export function playLineAudio(line, audio, {
 
   function teardown() {
     done = true
-    timers.clearTimeout(loadTimer); timers.clearTimeout(guardTimer); timers.clearTimeout(retryTimer)
+    timers.clearTimeout(loadTimer); timers.clearTimeout(guardTimer); timers.clearTimeout(retryTimer); timers.clearTimeout(stallTimer)
     sync.stop()
-    off('playing', onPlaying); off('ended', onEnded); off('error', onError); off('loadedmetadata', onMeta)
+    off('playing', onPlaying); off('waiting', onWaiting); off('ended', onEnded); off('error', onError); off('loadedmetadata', onMeta)
     if (owners.get(audio) === token) { try { audio.pause() } catch { /* ignore */ } }
   }
   // reason отказа (onFail): 'not-allowed' (нет жеста) | 'not-supported' (404/не аудио) |
@@ -146,7 +165,7 @@ export function playLineAudio(line, audio, {
     else onEnd?.()
   }
 
-  on('playing', onPlaying); on('ended', onEnded); on('error', onError); on('loadedmetadata', onMeta)
+  on('playing', onPlaying); on('waiting', onWaiting); on('ended', onEnded); on('error', onError); on('loadedmetadata', onMeta)
   try {
     audio.muted = !!muted
     audio.preservesPitch = true

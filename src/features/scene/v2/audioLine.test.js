@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
-import { playLineAudio, clampRate, knownDurationSec, LOAD_TIMEOUT_MS, RETRY_DELAY_MS, GUARD_MARGIN_MS } from './audioLine.js'
+import { playLineAudio, clampRate, knownDurationSec, LOAD_TIMEOUT_MS, RETRY_DELAY_MS, GUARD_MARGIN_MS, STALL_LIMIT_MS } from './audioLine.js'
 import { fallbackMs } from './linePlayback.js'
 
 // Поддельный <audio>: события через addEventListener, play() — промис; таймеры и rAF — руками
@@ -51,8 +51,8 @@ describe('playLineAudio — файл озвучки', () => {
     audio.currentTime = 0.2
     audio.fire('playing')
     expect(shapes.at(-1)).toBe('open')
-    // Запасной таймер конца: durationMs / rate + запас
-    expect(t.pendingMs()).toEqual([Math.round(1000 / 1.5) + GUARD_MARGIN_MS])
+    // Запасной таймер конца: остаток файла от текущей позиции (durationMs − 0,2 с) / rate + запас
+    expect(t.pendingMs()).toEqual([Math.round(800 / 1.5) + GUARD_MARGIN_MS])
     audio.fire('ended')
     expect(onEnd).toHaveBeenCalledTimes(1)
     expect(shapes.at(-1)).toBe('closed')
@@ -173,7 +173,7 @@ describe('playLineAudio — файл озвучки', () => {
     audio.currentTime = 0.1
     audio.fire('playing')
     expect(shapes.at(-1)).toBe('open')
-    expect(t.pendingMs()).toEqual([3000 + GUARD_MARGIN_MS])
+    expect(t.pendingMs()).toEqual([2900 + GUARD_MARGIN_MS]) // остаток от позиции 0,1 с
   })
 
   it('без элемента / без audioUrl — сразу onFail; clampRate и knownDurationSec', () => {
@@ -185,5 +185,30 @@ describe('playLineAudio — файл озвучки', () => {
     expect(knownDurationSec({ audioMeta: { durationMs: 1500 } }, null)).toBe(1.5)
     expect(knownDurationSec({}, timings)).toBe(0.9)
     expect(knownDurationSec({}, null)).toBeNull()
+  })
+})
+
+describe('playLineAudio — буферизация на слабой сети', () => {
+  it('повторный playing после буферизации заменяет запасной таймер (старый не живёт и не обрывает звук)', () => {
+    const audio = fakeAudio(); const t = fakeTimers(); const onEnd = vi.fn()
+    playLineAudio(line, audio, { ...noRaf, timers: t, onEnd })
+    audio.currentTime = 0.1
+    audio.fire('playing')
+    audio.fire('waiting')
+    audio.currentTime = 0.5
+    audio.fire('playing')
+    expect(t.pendingMs()).toEqual([Math.round(500) + GUARD_MARGIN_MS]) // один таймер — от текущей позиции
+    expect(onEnd).not.toHaveBeenCalled()
+  })
+
+  it('пока звук буферизуется, запасные часы стоят; дольше STALL_LIMIT_MS — реплика считается сыгранной', () => {
+    const audio = fakeAudio(); const t = fakeTimers(); const onEnd = vi.fn()
+    playLineAudio(line, audio, { ...noRaf, timers: t, onEnd })
+    audio.currentTime = 0.3
+    audio.fire('playing')
+    audio.fire('waiting')
+    expect(t.pendingMs()).toEqual([STALL_LIMIT_MS])
+    t.fire(STALL_LIMIT_MS)
+    expect(onEnd).toHaveBeenCalledTimes(1)
   })
 })

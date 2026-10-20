@@ -36,3 +36,17 @@ export function sceneCircleFit(diameter, {
     top: Math.round((d / 2 - centerY / SCENE_H * h + c.y * u) * 100) / 100 + 'px',
   }
 }
+
+// Тот же кадр, но НЕ гигантской обёрткой, а окном viewBox у самой сцены: видимая в круге область сцены, квадрат со стороной
+// showW / scale единиц, центр — (180 + сдвиг x, centerY + сдвиг y). Слой сцены при этом размером с круг, а не в ~20 раз больше
+// (обёртка sceneCircleFit — 3,4 d × 6 d, растёт ещё вдвое при раскрытии: на iPhone такой слой не помещается в текстуру, плитки
+// гаснут — «чёрные мелькания» при появлении и тапе). Сдвиг x/y в единицах сцены не зависит от диаметра (x px круга d=200 → showW/200 ед.)
+export function sceneCircleViewBox({
+  solo = false, showW = solo ? CIRCLE_SOLO.showW : CIRCLE_SHOW_W, centerY = solo ? CIRCLE_SOLO.centerY : CIRCLE_CENTER_Y, crop = null,
+} = {}) {
+  const c = normalizeSceneCrop(crop)
+  const side = showW / c.scale
+  const k = showW / (SCENE_CROP_REF_W * c.scale)
+  const r = v => Math.round(v * 1000) / 1000
+  return `${r(SCENE_W / 2 - side / 2 - c.x * k)} ${r(centerY - side / 2 - c.y * k)} ${r(side)} ${r(side)}`
+}

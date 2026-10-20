@@ -141,13 +141,16 @@ describe('crop ноды scene в плеере (масштаб/сдвиг как 
   })
 
   it('circle: crop сдвигает и масштабирует содержимое круга; умолчание не меняет разметку', () => {
-    const inner = h => h.match(/playerSceneCircleInner" style="([^"]*)"/)[1]
+    // Кадр круга — окно viewBox сцены (sceneCircleViewBox), слой сцены — размером с круг (inset:0), а не гигантская обёртка
+    const inner = h => h.match(/class="scn__svg" viewBox="([^"]*)"/)[1]
     const base = renderToStaticMarkup(<SceneModule node={node({ scene: demoOfficeScene, mode: 'circle' })} onDone={() => {}} />)
     const dflt = renderToStaticMarkup(<SceneModule node={node({ scene: demoOfficeScene, mode: 'circle', crop: { x: 0, y: 0, scale: 1 } })} onDone={() => {}} />)
     const zoom = renderToStaticMarkup(<SceneModule node={node({ scene: demoOfficeScene, mode: 'circle', crop: { x: 0, y: 0, scale: 2 } })} onDone={() => {}} />)
     expect(inner(dflt)).toBe(inner(base))
     expect(inner(zoom)).not.toBe(inner(base))
-    expect(parseFloat(inner(zoom).match(/width:([\d.]+)px/)[1])).toBeCloseTo(parseFloat(inner(base).match(/width:([\d.]+)px/)[1]) * 2, 0)
+    const side = h => parseFloat(inner(h).split(' ')[2])
+    expect(side(zoom)).toBeCloseTo(side(base) / 2, 1)
+    expect(base).toContain('class="playerSceneCircleInner" style="position:absolute;inset:0"')
   })
 
   it('circle: тап раскрывает кружок как видео (кнопка, кольцо-дуга без CSS-transition, нет полного экрана и подложки)', () => {

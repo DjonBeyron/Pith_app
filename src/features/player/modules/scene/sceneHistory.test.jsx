@@ -119,8 +119,10 @@ describe('режим разбора: правка crop и реплик в окн
   it('другой crop.scale — другой кадр кружка (раньше сцена замораживалась на маунте и правка не доходила)', () => {
     const a = circle({ x: 0, y: 0, scale: 1 })
     const b = circle({ x: 0, y: 0, scale: 2 })
-    expect(a).toContain('width:211.76px')
-    expect(b).toContain('width:423.53px')
+    // Кадр кружка — окно viewBox самой сцены (sceneCircleViewBox): масштаб 2 показывает вдвое меньше сцены (сторона 340 → 170)
+    const side = h => parseFloat(h.match(/class="scn__svg" viewBox="[-\d.]+ [-\d.]+ ([\d.]+) /)[1])
+    expect(side(a)).toBeCloseTo(340, 1)
+    expect(side(b)).toBeCloseTo(170, 1)
   })
   it('SceneModule не замораживает данные ноды на маунте: пересчёт по ссылке typeData.scene (useMemo, а не useState)', () => {
     const src = css('./SceneModule.jsx')

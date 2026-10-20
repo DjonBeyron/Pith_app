@@ -65,7 +65,7 @@ function Props({ scene }) {
 
 export default function SceneRenderer({
   scene, mode = 'live', active = true, paused = false, sound = true, rate = 1, lite, frameIndex = null,
-  showBubbles, display, voice = null, showProgress = true, onTap, apiRef, onState, audioSrcOf = null, className = '', children,
+  showBubbles, display, voice = null, showProgress = true, viewBox = null, onTap, apiRef, onState, audioSrcOf = null, className = '', children,
 }) {
   const live = mode === 'live'
   const solo = isSolo(scene) // один кот (a) по центру, b не рисуется
@@ -126,7 +126,7 @@ export default function SceneRenderer({
       onKeyDown={onTap ? e => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); onTap(e) } } : undefined}
     >
       {live ? (
-        <svg className="scn__svg" viewBox={SCENE_VIEWBOX} preserveAspectRatio="xMidYMid slice" aria-label={scene.title || 'Сцена'} role="img">
+        <svg className="scn__svg" viewBox={viewBox ?? SCENE_VIEWBOX} preserveAspectRatio="xMidYMid slice" aria-label={scene.title || 'Сцена'} role="img">
           {renderTree(bgTree)}
           <Props scene={scene} />
           {/* Пока звучит перевод («диктор»), кот не «говорит»: рот закрыт, покачивания головы нет */}
@@ -136,7 +136,7 @@ export default function SceneRenderer({
       ) : (
         // Статика — готовой строкой (staticMarkup.js): без fiber-ов на ~190 узлов
         <svg
-          className="scn__svg" viewBox={SCENE_VIEWBOX} preserveAspectRatio="xMidYMid slice" aria-label={scene.title || 'Сцена'} role="img"
+          className="scn__svg" viewBox={viewBox ?? SCENE_VIEWBOX} preserveAspectRatio="xMidYMid slice" aria-label={scene.title || 'Сцена'} role="img"
           dangerouslySetInnerHTML={{ __html: sceneStaticMarkup(scene, line, frameIndex ?? -1) }}
         />
       )}
