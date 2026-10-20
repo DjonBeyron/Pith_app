@@ -32,8 +32,9 @@ export function useSceneDirectorV2(scene, {
   const [mode, setMode] = useState('timer')
   const [phase, setPhase] = useState(null)
   const [fail, setFail] = useState(null) // последний отказ файла { url, reason, kind, index } | null (sceneAudioFail.js)
-  // Якорь: счётчик «файл оригинала реально зазвучал» — доходит до индикатора прогресса через onState (SceneRenderer) как новое `at`
-  const [anchor, setAnchor] = useState(0)
+  // Якорь: счётчик «файл оригинала реально зазвучал» + реальный остаток файла (мс, с учётом фактической скорости; null — неизвестен) —
+  // доходит до индикатора прогресса через onState (SceneRenderer) как новое `at` и точная длительность реплики
+  const [anchor, setAnchor] = useState({ seq: 0, ms: null })
   const [hidden, setHidden] = useState(() => typeof document !== 'undefined' && document.hidden)
   const dirRef = useRef(null)
   const autoPausedRef = useRef(false)
@@ -61,7 +62,7 @@ export function useSceneDirectorV2(scene, {
   useEffect(() => {
     if (!enabled || !scene) return undefined
     const player = makeScenePlayLine({
-      scene, opts: () => optsRef.current, setMode, setPhase, onFallback: setFail, onStarted: () => setAnchor(a => a + 1),
+      scene, opts: () => optsRef.current, setMode, setPhase, onFallback: setFail, onStarted: (_i, ms) => setAnchor(a => ({ seq: a.seq + 1, ms: Number.isFinite(ms) ? ms : null })),
       getMouthEl: who => optsRef.current.mouthEls?.current?.[who] ?? null,
     })
     const director = createDirector({
@@ -122,7 +123,8 @@ export function useSceneDirectorV2(scene, {
   return {
     ...state,
     mode,
-    anchor, // растёт, когда файл реплики реально зазвучал (индикатор прогресса заново отсчитывает её длительность)
+    anchor: anchor.seq, // растёт, когда файл реплики реально зазвучал (индикатор прогресса заново отсчитывает её длительность)
+    anchorMs: anchor.ms, // реальный остаток файла в этот момент (мс) или null
     fail, // почему последняя реплика не заиграла файлом (null — заиграла или ещё не стартовала)
     phase: state.status === 'playing' ? phase : null,
     speakingWho: state.status === 'playing' && state.line ? state.line.who : null,

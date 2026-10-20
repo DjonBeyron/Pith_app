@@ -28,7 +28,7 @@ const WRAP = { flexWrap: 'wrap' } // окно отладки админа (Scene
 // display/voice — переопределения ноды (режим показа текста / флаги озвучки) поверх options сцены.
 // trace/tag — трасса сцены (useScenePlayback → sceneTrace.js): сюда пишут раскрытие и кольцо, админ видит её в SceneCircleDebug под кружком.
 export default function SceneCircleView({
-  scene, showBubbles, display = null, voice = null, crop = null, isHistory, ended = false, pending, status, index, run = 0, at, total = 0, mode = 'timer',
+  scene, showBubbles, display = null, voice = null, crop = null, isHistory, ended = false, pending, status, index, run = 0, at, anchorMs = null, total = 0, mode = 'timer',
   paused, sound, rate, audioSrcOf = null, soundChip = false, bottomOffset = 0, onEnableSound, apiRef, rootRef, onState, onExpand, onFreeze,
   trace = null, tag = null,
 }) {
@@ -53,7 +53,7 @@ export default function SceneCircleView({
   const near = useSceneNear(rootRef, isHistory || frozenEnded)
   const idle = !isHistory && status !== 'playing'
   const ringRef = useSceneProgress({
-    scene, voice, rate, sound, status, index, run, at, kind: 'ring', circumference: RING_C, enabled: !isHistory, trace,
+    scene, voice, rate, sound, status, index, run, at, anchorMs, kind: 'ring', circumference: RING_C, enabled: !isHistory, trace,
   })
   const wrapStyle = {
     width: size + 'px', height: size + 'px',

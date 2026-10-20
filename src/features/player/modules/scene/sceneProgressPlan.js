@@ -47,6 +47,18 @@ export function lineDurationMs(scene, line, { rate = 1, sound = true, voice = nu
   return Math.max(MIN_LINE_MS, Math.round(ms))
 }
 
+// Якорь (useSceneDirectorV2.anchorMs): файл оригинала реплики index реально зазвучал, известен его остаток anchorMs (мс, по фактической
+// скорости). Длительность этой реплики = остаток + план на перевод (если озвучен); остальные — по плану. Оценка (durationMs / rate)
+// расходилась с реальностью (скорость не применилась, задержка старта) — и кольцо доезжало до края заранее
+export function withAnchorDuration(durations, scene, index, anchorMs, opts = {}) {
+  if (!Number.isFinite(anchorMs) || anchorMs < 0 || !durations[index]) return durations
+  const line = scene?.timeline?.[index]
+  const translationMs = Math.max(0, durations[index] - lineDurationMs(scene, line, { ...opts, once: true }))
+  const out = durations.slice()
+  out[index] = Math.max(MIN_LINE_MS, Math.round(anchorMs + translationMs))
+  return out
+}
+
 // Длительности всех реплик сцены (мс) и их сумма
 export function planSceneDurations(scene, opts = {}) {
   const tl = Array.isArray(scene?.timeline) ? scene.timeline : []

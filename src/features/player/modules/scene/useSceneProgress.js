@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { createProgressTimeline } from './sceneProgressModel.js'
-import { planSceneDurations } from './sceneProgressPlan.js'
+import { planSceneDurations, withAnchorDuration } from './sceneProgressPlan.js'
 
 // Плавный индикатор прогресса сцены по времени — ОДИН хук и одна модель на три вида: кольцо кружка (kind 'ring':
 // stroke-dashoffset дуги), полоса пузыря в ленте и полоса полного экрана (kind 'bar': scaleX на композиторе). Все три
@@ -28,8 +28,9 @@ const frame = (kind, C, v) => (kind === 'ring'
 
 // trace(msg) — строки в трассу сцены (sceneTrace.js; кружок передаёт её, чтобы видеть, где кольцо «подвисло»): шаги каждого
 // состояния, доезд анимации до цели, сколько кольцо стояло у края до 'ended', состояние старше индикатора
+// anchorMs — реальный остаток файла реплики в момент `at` (якорь useSceneDirectorV2): длительность текущей реплики берётся из него, а не из оценки
 export function useSceneProgress({
-  scene, voice = null, rate = 1, sound = true, status, index, run, at, kind = 'ring', circumference = 0, enabled = true, trace = null,
+  scene, voice = null, rate = 1, sound = true, status, index, run, at, anchorMs = null, kind = 'ring', circumference = 0, enabled = true, trace = null,
 }) {
   const elRef = useRef(null)
   const model = useRef(null)
@@ -54,7 +55,8 @@ export function useSceneProgress({
       return
     }
     const t = typeof at === 'number' ? at : performance.now()
-    const { durations } = planSceneDurations(L.scene, { rate: L.rate, sound: L.sound, voice: L.voice })
+    const planOpts = { rate: L.rate, sound: L.sound, voice: L.voice }
+    const durations = withAnchorDuration(planSceneDurations(L.scene, planOpts).durations, L.scene, index, status === 'playing' ? anchorMs : null, planOpts)
     const stood = doneAt.current != null ? Math.round(performance.now() - doneAt.current) : null
     const { from, steps } = model.current.onState({ status, index, run }, { durations, now: t })
     anim.current?.cancel()
@@ -63,7 +65,7 @@ export function useSceneProgress({
     const run1 = steps.filter(s => s.ms > 0)
     const finalV = steps.length ? steps[steps.length - 1].to : from
     traceRef.current?.(`${kind}: ${status} ${index + 1}/${durations.length} run=${run} от ${from.toFixed(3)} → [${steps.map(s => `${s.to.toFixed(3)} за ${s.ms} мс`).join(', ') || 'стоим'}]`
-      + `${stood != null ? ` (стояло у цели ${stood} мс)` : ''} оценки=[${durations.map(Math.round).join(',')}] lag=${Math.round(performance.now() - t)} мс`)
+      + `${stood != null ? ` (стояло у цели ${stood} мс)` : ''} оценки=[${durations.map(Math.round).join(',')}]${anchorMs != null ? ` (якорь ${anchorMs} мс)` : ''} lag=${Math.round(performance.now() - t)} мс`)
     if (!run1.length || typeof el.animate !== 'function') { setValue(el, kind, circumference, finalV); return }
     setValue(el, kind, circumference, from)
     const total = run1.reduce((a, s) => a + s.ms, 0)
@@ -79,7 +81,7 @@ export function useSceneProgress({
       traceRef.current?.(`${kind}: дошло до ${finalV.toFixed(3)} (${status} ${index + 1}), ждём следующее состояние`)
       setValue(el, kind, circumference, finalV); a.cancel(); anim.current = null
     }
-  }, [enabled, status, index, run, at, kind, circumference])
+  }, [enabled, status, index, run, at, anchorMs, kind, circumference])
 
   useEffect(() => () => {
     if (anim.current) traceRef.current?.('прогресс: индикатор размонтирован посреди анимации')

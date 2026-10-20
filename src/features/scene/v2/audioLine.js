@@ -53,8 +53,11 @@ export function knownDurationSec(line, timings) {
   return timingsEnd(timings)
 }
 
-// onStarted() — звук реально пошёл (первое 'playing'): по нему индикатор прогресса заново отсчитывает длительность реплики
-// (задержка play() → playing на телефоне 50–300 мс иначе копилась в «стоянку» кольца у края)
+// onStarted(remainingMs) — звук реально пошёл (первое 'playing'): по нему индикатор прогресса заново отсчитывает реплику, причём
+// по РЕАЛЬНОМУ остатку файла (duration − currentTime) / фактический playbackRate, а не по оценке (задержка play() → playing 50–300 мс
+// и неприменившаяся скорость иначе копились в «стоянку» кольца у края; null — длительность ещё неизвестна).
+// Скорость ставится ПОСЛЕ src и повторяется на loadedmetadata/playing: алгоритм загрузки медиа сбрасывает playbackRate в
+// defaultPlaybackRate при смене источника (на Android файл при 1,5× играл 1× — трасса 2026-10-20), как и lessonVolume.listenMediaReapply
 export function playLineAudio(line, audio, {
   src = null, muted = false, rate = 1, applyMouth = () => {}, lowPower = false,
   onEnd, onFail, onMode, onStarted, timers = globalThis, raf, caf, now, isHidden,
@@ -90,7 +93,8 @@ export function playLineAudio(line, audio, {
     else tr(`играет дальше после буферизации (${since()})`)
     const first = !started
     started = true
-    if (first) onStarted?.()
+    applyRate()
+    if (first) onStarted?.(remainingMs())
     timers.clearTimeout(loadTimer)
     sync.start()
     if (durationSec == null && Number.isFinite(audio.duration) && audio.duration > 0) durationSec = audio.duration
@@ -114,7 +118,17 @@ export function playLineAudio(line, audio, {
     timers.clearTimeout(stallTimer)
     stallTimer = timers.setTimeout(() => { tr('стояла на буферизации 20 с → считаем сыгранной'); finish(false) }, STALL_LIMIT_MS)
   }
+  function applyRate() {
+    try { if (audio.playbackRate !== k) audio.playbackRate = k } catch { /* ignore */ }
+  }
+  function remainingMs() {
+    const d = audio.duration, t = audio.currentTime
+    if (!Number.isFinite(d) || d <= 0) return null
+    const r = Number.isFinite(audio.playbackRate) && audio.playbackRate > 0 ? audio.playbackRate : k
+    return Math.max(0, Math.round((d - (Number.isFinite(t) ? t : 0)) * 1000 / r))
+  }
   function onMeta() {
+    applyRate()
     if (done || timings || durationSec != null) return
     const d = audio.duration
     if (Number.isFinite(d) && d > 0) { durationSec = d; sync.setTimings(synth(d)) }
@@ -187,9 +201,10 @@ export function playLineAudio(line, audio, {
     audio.muted = !!muted
     audio.preservesPitch = true
     audio.webkitPreservesPitch = true
-    audio.playbackRate = k
     const want = src || line.audioUrl
     if (audio.src !== want) audio.src = want
+    audio.defaultPlaybackRate = k // смена src сбрасывает playbackRate в defaultPlaybackRate — ставим оба и после src
+    audio.playbackRate = k
   } catch { /* ignore */ }
   onMode?.('audio')
   start()

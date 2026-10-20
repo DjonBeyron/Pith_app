@@ -62,7 +62,7 @@ export function logAudioFallback(info) {
 }
 
 // onFallback(info | null): null — реплика стартовала (сброс), иначе { url, reason, kind, index }
-// onStarted(index) — файл оригинала реально зазвучал (audioLine.onStarted): режиссёр отдаёт это индикатору прогресса как «якорь»
+// onStarted(index, remainingMs) — файл оригинала реально зазвучал (audioLine.onStarted) с реальным остатком: режиссёр отдаёт это индикатору прогресса как «якорь»
 export function makeScenePlayLine({
   scene, opts, getMouthEl, setMode, setPhase = () => {}, onFallback = null, onStarted = null,
   cache = sceneAudioCache, getAudio = getSceneAudioElement, allowed = prefetchAllowed,
@@ -98,7 +98,7 @@ export function makeScenePlayLine({
       const slot = cancels.push(null) - 1 // место файла — перед запасным вариантом, даже если onFail пришёл синхронно
       cancels[slot] = playAudio(part, audio, {
         src, muted: !sound, rate: k, lowPower: !!o.lowPower, applyMouth, timers,
-        onEnd: onDone, onMode: setMode, onStarted: kind === 'original' && onStarted ? () => onStarted(index) : undefined,
+        onEnd: onDone, onMode: setMode, onStarted: kind === 'original' && onStarted ? ms => onStarted(index, ms) : undefined,
         onFail: reason => {
           const info = { url: part.audioUrl, src, reason: reason ?? 'unknown', kind, index }
           logFallback?.(info); onFallback?.(info)

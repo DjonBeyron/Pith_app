@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { lineDurationMs, planSceneDurations, MIN_LINE_MS } from './sceneProgressPlan.js'
+import { lineDurationMs, planSceneDurations, withAnchorDuration, MIN_LINE_MS } from './sceneProgressPlan.js'
 import { createProgressTimeline, LAST_CAP, CREEP_CAP, END_MS, REWIND_MS } from './sceneProgressModel.js'
 import { fallbackMs } from '../../../scene/v2/linePlayback.js'
 import { demoCafeScene } from '../../../scene/v2/demoScenes.js'
@@ -75,6 +75,25 @@ describe('sceneProgressPlan — длительность реплик', () => {
     expect(p.durations).toHaveLength(demoCafeScene.timeline.length)
     expect(p.totalMs).toBe(p.durations.reduce((a, b) => a + b, 0))
     expect(planSceneDurations(null)).toEqual({ durations: [], totalMs: 0 })
+  })
+})
+
+describe('withAnchorDuration — реальный остаток файла вместо оценки', () => {
+  it('реплика с якорем берёт остаток (+ план на озвученный перевод), остальные — по плану; без якоря/вне диапазона — как было', () => {
+    const sc = scene([
+      L('Раз два три', { audioUrl: 'https://r2/0.mp3', audioMeta: { hash: 'h', durationMs: 3580 } }),
+      L('Четыре', { audioUrl: 'https://r2/1.mp3', audioMeta: { hash: 'h', durationMs: 3070 }, translation: 'Четыре', translationAudioUrl: 'https://r2/1t.mp3', translationAudioMeta: { hash: 'h', durationMs: 1000 } }),
+    ], { options: { voice: { translation: true } } })
+    const opts = { rate: 1.5 }
+    const plan = planSceneDurations(sc, opts).durations
+    expect(plan[0]).toBe(Math.round(3580 / 1.5))
+    expect(plan[1]).toBe(Math.round(3070 / 1.5 + 1000 / 1.5))
+    // скорость не применилась: файл реально идёт 3,5 с
+    expect(withAnchorDuration(plan, sc, 0, 3500, opts)).toEqual([3500, plan[1]])
+    expect(withAnchorDuration(plan, sc, 1, 3000, opts)).toEqual([plan[0], 3000 + (plan[1] - Math.round(3070 / 1.5))]) // остаток + план перевода
+    expect(withAnchorDuration(plan, sc, 0, null, opts)).toBe(plan)
+    expect(withAnchorDuration(plan, sc, 5, 1000, opts)).toBe(plan)
+    expect(withAnchorDuration(plan, sc, 0, 10, opts)[0]).toBe(MIN_LINE_MS)
   })
 })
 

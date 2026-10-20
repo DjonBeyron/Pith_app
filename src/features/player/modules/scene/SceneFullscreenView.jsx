@@ -21,11 +21,11 @@ import { useSceneProgress } from './useSceneProgress.js'
 // Закрытие: крестик, свайп вниз, Escape, фон за пределами окна плеера (useSceneFullscreen.js).
 export default function SceneFullscreenView({
   scene, showBubbles, display, voice, crop = null, paused, sound, muted, rate, audioSrcOf,
-  status, index, run, at, apiRef, onState, onTogglePause, onClose, rootRef,
+  status, index, run, at, anchorMs = null, apiRef, onState, onTogglePause, onClose, rootRef,
 }) {
   const probeRef = useRef(null)
   const fs = useSceneFullscreen({ open: true, rootRef, probeRef, onClose })
-  const barRef = useSceneProgress({ scene, voice, rate, sound, status, index, run, at, kind: 'bar' })
+  const barRef = useSceneProgress({ scene, voice, rate, sound, status, index, run, at, anchorMs, kind: 'bar' })
   const f = fs.frame
   const frameStyle = f
     ? { left: f.cover.left + 'px', top: f.cover.top + 'px', width: f.cover.width + 'px', height: f.cover.height + 'px' }

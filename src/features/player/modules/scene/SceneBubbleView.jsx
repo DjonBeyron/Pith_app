@@ -18,13 +18,13 @@ import { sceneBubbleCropStyle } from '../../../scene/v2/sceneCropStyle.js'
 // хук useSceneProgress (kind 'bar', scaleX на композиторе, без setState на кадр). Точки реплик SceneRenderer тут
 // выключены (showProgress=false) — они дублировали бы полосу.
 export default function SceneBubbleView({
-  scene, showBubbles, display = null, voice = null, crop = null, isHistory, ended = false, pending, status, index, run = 0, at, paused, sound, rate, audioSrcOf = null,
+  scene, showBubbles, display = null, voice = null, crop = null, isHistory, ended = false, pending, status, index, run = 0, at, anchorMs = null, paused, sound, rate, audioSrcOf = null,
   soundChip = false, onEnableSound, apiRef, rootRef, onState, onTap,
 }) {
   const last = Math.max(0, (scene.timeline?.length ?? 1) - 1)
   const near = useSceneNear(rootRef, isHistory || ended)
   const idle = !isHistory && status !== 'playing'
-  const barRef = useSceneProgress({ scene, voice, rate, sound, status, index, run, at, kind: 'bar', enabled: !isHistory })
+  const barRef = useSceneProgress({ scene, voice, rate, sound, status, index, run, at, anchorMs, kind: 'bar', enabled: !isHistory })
   // crop ноды — масштаб/сдвиг сцены внутри рамки, как у видео; умолчание → слоя нет, DOM как у старых нод
   const cropStyle = sceneBubbleCropStyle(crop)
   const body = (

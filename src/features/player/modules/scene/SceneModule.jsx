@@ -51,7 +51,7 @@ export default function SceneModule({ node, lessonFiles = null, onDone, adminPre
   }
   const st = pb.state
   const live = {
-    isHistory, ended: pb.frameFrozen, pending, status: st.status, index: st.index, run: st.run, at: st.at, total: st.total, mode: st.mode,
+    isHistory, ended: pb.frameFrozen, pending, status: st.status, index: st.index, run: st.run, at: st.at, anchorMs: st.anchorMs, total: st.total, mode: st.mode,
     paused: pb.paused || pb.fsOpen, sound: pb.sound, rate: pb.rate, soundChip: pb.soundChip, onEnableSound: pb.enableSound,
     apiRef: pb.apiRef, rootRef: pb.rootRef, onState: pb.onState,
   }
@@ -63,7 +63,7 @@ export default function SceneModule({ node, lessonFiles = null, onDone, adminPre
       {pb.fsOpen && (
         <SceneFullscreenView
           {...common} paused={pb.paused} sound={pb.sound} muted={pb.muted} rate={pb.rate}
-          status={st.status} index={st.index} run={st.run} at={st.at}
+          status={st.status} index={st.index} run={st.run} at={st.at} anchorMs={st.anchorMs}
           apiRef={pb.fsApiRef} onState={pb.onFsState} rootRef={pb.rootRef}
           onTogglePause={pb.togglePause} onClose={pb.closeFs}
         />

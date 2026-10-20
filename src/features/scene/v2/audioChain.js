@@ -51,10 +51,11 @@ export function playSegmentChain(plan, audio, {
       el.muted = !!muted
       el.preservesPitch = true
       el.webkitPreservesPitch = true
-      el.playbackRate = k
       el.preload = 'auto'
       const want = srcOf(it.audioUrl) || it.audioUrl
       if (el.src !== want) el.src = want
+      el.defaultPlaybackRate = k // после src: смена источника сбрасывает playbackRate в defaultPlaybackRate (audioLine.js)
+      el.playbackRate = k
     } catch { /* ignore */ }
   }
 
