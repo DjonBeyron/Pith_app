@@ -31,8 +31,9 @@ import { sceneAudioUnlocked } from '../../../scene/v2/sceneAudioUnlock.js'
 // Трасса (sceneTrace.js, метка tag «#n» у каждой сцены ленты): переходы состояния с временем от прошлого, автозапуск и его
 // звук, команды режиссёру (ждём рендерер / потеряна / ушла), раскрытие кружка (статус → действие), заморозка, жесты.
 
-const IDLE = { status: 'idle', index: 0, total: 0, mode: 'timer' }
-const same = (a, b) => a.status === b.status && a.index === b.index && a.total === b.total && a.mode === b.mode && a.run === b.run
+const IDLE = { status: 'idle', index: 0, total: 0, mode: 'timer', anchor: 0 }
+// anchor — «файл реально зазвучал» (useSceneDirectorV2): то же состояние с новым at, чтобы кольцо заново отсчитало длительность реплики
+const same = (a, b) => a.status === b.status && a.index === b.index && a.total === b.total && a.mode === b.mode && a.run === b.run && (a.anchor ?? 0) === (b.anchor ?? 0)
 
 // ready=false — сцена-шаблон ждёт слова пользователя: автозапуск и тапы отложены (сцена после старта не должна меняться)
 export function useScenePlayback({ resolved, pending, isHistory, onDone, ready = true }) {
@@ -63,9 +64,13 @@ export function useScenePlayback({ resolved, pending, isHistory, onDone, ready =
 
   const apply = useCallback(next => {
     // at — когда состояние дошло: от него считает время индикатор прогресса (useSceneProgress.js)
-    const full = { mode: 'timer', at: performance.now(), ...next }
+    const full = { mode: 'timer', anchor: 0, at: performance.now(), ...next }
     const prev = stRef.current
-    if (!same(prev, full)) trace(`состояние: ${full.status} ${full.index + 1}/${full.total} ${full.mode} run=${full.run ?? 0} (${prev.status} ${prev.index + 1} было ${ms(full.at - (prev.at ?? full.at))})`)
+    if (!same(prev, full)) {
+      const onlyAnchor = same(prev, { ...full, anchor: prev.anchor ?? 0 })
+      trace(onlyAnchor ? `якорь: файл реплики ${full.index + 1} зазвучал через ${ms(full.at - (prev.at ?? full.at))} после старта — кольцо отсчитывает заново`
+        : `состояние: ${full.status} ${full.index + 1}/${full.total} ${full.mode} run=${full.run ?? 0} (${prev.status} ${prev.index + 1} было ${ms(full.at - (prev.at ?? full.at))})`)
+    }
     stRef.current = full
     setSt(prev => (same(prev, full) ? prev : full))
   }, [trace])

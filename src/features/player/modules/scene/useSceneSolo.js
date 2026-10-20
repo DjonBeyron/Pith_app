@@ -16,9 +16,12 @@ const listeners = new Set()
 let token = 0
 
 // Чужой элемент начал звучать — сцене пора на паузу?
+// Прогрев звука в жесте (primedAudio.js, sounds.js, sceneAudioUnlock.js) играет беззвучный wav из data:-ссылки НЕ заглушённым (muted
+// ничего не открывает) — это не звук, а разблокировка: на iPhone она ставила играющую сцену на паузу за 20 мс до тапа по кружку
 export function shouldSceneYield(target, ownAudio) {
   if (!target || typeof target.pause !== 'function') return false
   if (target === ownAudio || target === peekSceneSpareElement()) return false // второй <audio> цепочки сегментов — тоже «свой»
+  if (String(target.currentSrc || target.src || '').startsWith('data:')) return false
   return !isSilentMedia(target)
 }
 

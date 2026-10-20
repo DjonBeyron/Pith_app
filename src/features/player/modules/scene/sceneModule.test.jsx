@@ -108,6 +108,13 @@ describe('useSceneSolo — чужой звук ставит сцену на па
     expect(shouldSceneYield(own, own)).toBe(false)
     expect(shouldSceneYield({}, own)).toBe(false)
   })
+  it('прогрев тишиной в жесте (data:-wav незаглушённый, primedAudio/sounds) — не чужой звук, сцену на паузу не ставит', () => {
+    const own = media(false)
+    const prime = { ...media(false), src: 'data:audio/wav;base64,UklGRiQAAABXQVZF' }
+    expect(shouldSceneYield(prime, own)).toBe(false)
+    expect(shouldSceneYield({ ...media(false), src: 'blob:x', currentSrc: 'data:audio/wav;base64,AA' }, own)).toBe(false)
+    expect(shouldSceneYield({ ...media(false), src: 'https://r2/voice.mp3' }, own)).toBe(true)
+  })
 })
 
 describe('sceneAudioSrcOf — blob прогрева для озвучки реплик', () => {

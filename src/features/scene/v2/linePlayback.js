@@ -7,6 +7,10 @@
 import { sceneTrace, shortText } from './sceneTrace.js'
 
 export const MS_PER_CHAR = 65
+// Синтез устройства (speechSynthesis) для сцен ВЫКЛЮЧЕН (решение автора, 2026-10-20): реплика без файла идёт таймером с ртом по
+// словам, беззвучно — озвучка сцен только файлами из сборщика (прогреваются с уроком). Причины: на iPhone первая реплика шла
+// таймером (список голосов ещё не загружен), голоса и темп у всех разные, кольцо не знает реальной длины. Включить обратно — true
+export const SCENE_DEVICE_SYNTH = false
 
 export function fallbackMs(text, rate = 1) {
   const base = Math.max(1200, (text?.length ?? 0) * MS_PER_CHAR + 500)
@@ -60,7 +64,7 @@ export function timerSpeak(text, rate, { onWord, onEnd }, timers = globalThis) {
 // iOS/Safari: speak() разрешён только после жеста — пустая реплика из тапа
 // открывает синтез для следующих вызовов из эффектов
 export function unlockSpeech() {
-  if (!speechSupported()) return
+  if (!SCENE_DEVICE_SYNTH || !speechSupported()) return
   try {
     const u = new window.SpeechSynthesisUtterance(' ')
     u.volume = 0
@@ -76,13 +80,13 @@ let activeUtterance = null
 
 // Проиграть реплику без файла. voice: { pitch, rate, voiceId? }; sound=false →
 // всегда таймер. lang — язык синтеза ('en-US' | 'ru-RU'; по умолчанию detectLang(text)).
-// onMode('speech' | 'timer'). Возвращает cancel().
-export function speakFallback(text, voice, { sound = true, lang = null, onWord, onEnd, onMode } = {}) {
+// onMode('speech' | 'timer'). Возвращает cancel(). synth — разрешён ли синтез устройства (по умолчанию SCENE_DEVICE_SYNTH)
+export function speakFallback(text, voice, { sound = true, lang = null, onWord, onEnd, onMode, synth = SCENE_DEVICE_SYNTH } = {}) {
   const rate = voice?.rate ?? 1
   const speechLang = lang || detectLang(text)
-  const deviceVoice = sound && speechSupported() ? pickVoiceFor(speechLang, voice?.voiceId) : null
+  const deviceVoice = sound && synth && speechSupported() ? pickVoiceFor(speechLang, voice?.voiceId) : null
   if (!deviceVoice) {
-    sceneTrace(`таймер «${shortText(text)}»: ${!sound ? 'без звука' : !speechSupported() ? 'speechSynthesis нет' : `нет голоса ${speechLang}`} (${fallbackMs(text, rate)} мс)`)
+    sceneTrace(`таймер «${shortText(text)}»: ${!synth ? 'нет файла, синтез выключен' : !sound ? 'без звука' : !speechSupported() ? 'speechSynthesis нет' : `нет голоса ${speechLang}`} (${fallbackMs(text, rate)} мс)`)
     onMode?.('timer')
     return timerSpeak(text, rate, { onWord, onEnd })
   }

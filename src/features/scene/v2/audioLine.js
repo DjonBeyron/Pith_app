@@ -53,9 +53,11 @@ export function knownDurationSec(line, timings) {
   return timingsEnd(timings)
 }
 
+// onStarted() — звук реально пошёл (первое 'playing'): по нему индикатор прогресса заново отсчитывает длительность реплики
+// (задержка play() → playing на телефоне 50–300 мс иначе копилась в «стоянку» кольца у края)
 export function playLineAudio(line, audio, {
   src = null, muted = false, rate = 1, applyMouth = () => {}, lowPower = false,
-  onEnd, onFail, onMode, timers = globalThis, raf, caf, now, isHidden,
+  onEnd, onFail, onMode, onStarted, timers = globalThis, raf, caf, now, isHidden,
 } = {}) {
   if (!audio || !line?.audioUrl) { onFail?.(audio ? 'no-url' : 'no-element'); return () => {} }
   const token = ++seq
@@ -86,7 +88,9 @@ export function playLineAudio(line, audio, {
     if (done) return
     if (!started) tr(`зазвучал через ${since()} (${audioState(audio)})`)
     else tr(`играет дальше после буферизации (${since()})`)
+    const first = !started
     started = true
+    if (first) onStarted?.()
     timers.clearTimeout(loadTimer)
     sync.start()
     if (durationSec == null && Number.isFinite(audio.duration) && audio.duration > 0) durationSec = audio.duration

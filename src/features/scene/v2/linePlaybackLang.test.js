@@ -47,25 +47,32 @@ describe('pickVoiceFor', () => {
 })
 
 describe('speakFallback — язык реплики', () => {
+  it('по умолчанию синтез устройства выключен (SCENE_DEVICE_SYNTH=false): без synth:true — таймер, speak не зовётся', () => {
+    const onMode = vi.fn()
+    const cancel = speakFallback('Can I have cheese, please?', { pitch: 1, rate: 1 }, { sound: true, onMode })
+    expect(onMode).toHaveBeenCalledWith('timer')
+    expect(spoken).toHaveLength(0)
+    cancel()
+  })
   const noTimers = { setInterval: () => 1, clearInterval: () => {} }
   it('английский текст: u.lang en-US и английский голос (раньше было жёстко ru-RU)', () => {
-    const cancel = speakFallback('Can I have cheese, please?', { pitch: 1, rate: 1 }, { sound: true, onMode: () => {} })
+    const cancel = speakFallback('Can I have cheese, please?', { pitch: 1, rate: 1 }, { sound: true, synth: true, onMode: () => {} })
     expect(spoken).toHaveLength(1)
     expect(spoken[0].lang).toBe('en-US')
     expect(spoken[0].voice.voiceURI).toBe('en-us')
     cancel()
   })
   it('перевод по-русски: ru-RU и русский голос; явный lang важнее определения', () => {
-    speakFallback('Можно мне сыр, пожалуйста?', { pitch: 1, rate: 1 }, { sound: true })
+    speakFallback('Можно мне сыр, пожалуйста?', { pitch: 1, rate: 1 }, { sound: true, synth: true })
     expect(spoken[0].lang).toBe('ru-RU')
     expect(spoken[0].voice.lang).toMatch(/^ru/)
-    speakFallback('Hello', { pitch: 1, rate: 1 }, { sound: true, lang: 'ru-RU' })
+    speakFallback('Hello', { pitch: 1, rate: 1 }, { sound: true, synth: true, lang: 'ru-RU' })
     expect(spoken[1].lang).toBe('ru-RU')
   })
   it('нет голоса нужного языка → таймер (onMode timer), синтез не вызывается', () => {
     globalThis.window.speechSynthesis.getVoices = () => [voices[0]]
     const onMode = vi.fn()
-    const cancel = speakFallback('Hello there', { rate: 1 }, { sound: true, onMode })
+    const cancel = speakFallback('Hello there', { rate: 1 }, { sound: true, synth: true, onMode })
     expect(onMode).toHaveBeenCalledWith('timer')
     expect(spoken).toHaveLength(0)
     cancel()

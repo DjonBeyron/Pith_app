@@ -46,21 +46,21 @@ describe('аудио сцен и жест на видео (iOS)', () => {
     expect(mod.sceneNeedsOwnGesture()).toBe(true)
     mod.unlockSceneAudio()
     expect(plays.length).toBeGreaterThan(0)
-    expect(speaks.length).toBe(1)
+    expect(speaks.length).toBe(0) // синтез устройства выключен (SCENE_DEVICE_SYNTH) — speechSynthesis не трогаем вовсе
     expect(mod.sceneNeedsOwnGesture()).toBe(false)
     expect(seen).toHaveBeenCalled()
   })
 })
 
 describe('вне iOS жест на видео открывает аудио сцен как раньше', () => {
-  it('Android: unlockSceneAudioFromVideoGesture играет wav и зовёт speak', async () => {
+  it('Android: unlockSceneAudioFromVideoGesture играет wav (speak не зовёт — синтез выключен)', async () => {
     stubEnv(ANDROID)
     vi.stubGlobal('navigator', { userAgent: ANDROID, platform: 'Linux armv8l', maxTouchPoints: 5 })
     await load()
     expect(mod.sceneUnlockDeferred()).toBe(false)
     expect(mod.unlockSceneAudioFromVideoGesture()).toBe(true)
     expect(plays.length).toBeGreaterThan(0)
-    expect(speaks.length).toBe(1)
+    expect(speaks.length).toBe(0)
     expect(mod.sceneNeedsOwnGesture()).toBe(false)
   })
 })

@@ -72,8 +72,8 @@ describe('озвучка синтезом: cancel() гасит только св
 
   it('прерванная сцена, ставшаяся на паузу ПОСЛЕ старта другой, не глушит чужой голос', () => {
     const endB = vi.fn(); const endA = vi.fn()
-    const cancelB = speakFallback('Hello from B', {}, { onEnd: endB })
-    const cancelA = speakFallback('Hello from A', {}, { onEnd: endA })
+    const cancelB = speakFallback('Hello from B', {}, { synth: true, onEnd: endB })
+    const cancelA = speakFallback('Hello from A', {}, { synth: true, onEnd: endA })
     const callsAfterStarts = synth.cancel.mock.calls.length
     cancelB() // B ставят на паузу, A уже говорит
     expect(synth.cancel.mock.calls.length).toBe(callsAfterStarts)
@@ -83,20 +83,20 @@ describe('озвучка синтезом: cancel() гасит только св
 
   it('вытесненная чужим speak() реплика не считается законченной (иначе её сцена пропустила бы реплику)', () => {
     const endB = vi.fn()
-    speakFallback('Hello from B', {}, { onEnd: endB })
+    speakFallback('Hello from B', {}, { synth: true, onEnd: endB })
     const uB = synth.speak.mock.calls[0][0]
-    speakFallback('Hello from A', {}, {})
+    speakFallback('Hello from A', {}, { synth: true })
     uB.onerror({ error: 'canceled' })
     expect(endB).not.toHaveBeenCalled()
   })
 
   it('обычный конец и ошибка своей реплики — onEnd как раньше', () => {
     const end = vi.fn()
-    speakFallback('Hi', {}, { onEnd: end })
+    speakFallback('Hi', {}, { synth: true, onEnd: end })
     synth.speak.mock.calls[0][0].onend()
     expect(end).toHaveBeenCalledTimes(1)
     const end2 = vi.fn()
-    speakFallback('Hi again', {}, { onEnd: end2 })
+    speakFallback('Hi again', {}, { synth: true, onEnd: end2 })
     synth.speak.mock.calls[1][0].onerror({ error: 'synthesis-failed' })
     expect(end2).toHaveBeenCalledTimes(1)
   })

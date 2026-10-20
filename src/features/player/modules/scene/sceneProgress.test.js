@@ -135,6 +135,23 @@ describe('sceneProgressModel — кольцо/полоса: плавно, мон
     for (let i = 1; i < tr.length; i += 1) expect(tr[i]).toBeGreaterThanOrEqual(tr[i - 1] - 1e-9)
   })
 
+  it('якорь: то же состояние playing ещё раз, когда файл реально зазвучал — конец отрезка сдвигается на задержку старта, без скачка', () => {
+    const D = [3000, 3000]
+    const tl = createProgressTimeline()
+    tl.onState({ status: 'playing', index: 0, run: 1 }, { durations: D, now: 0 })
+    const before = tl.value(300)
+    const r = tl.onState({ status: 'playing', index: 0, run: 1 }, { durations: D, now: 300 }) // файл пошёл через 300 мс
+    expect(r.from).toBeCloseTo(before, 9) // продолжаем с текущего значения
+    const end0 = D[0] / (D[0] + D[1])
+    expect(tl.value(3000)).toBeLessThan(end0) // к «старому» концу ещё не доехали
+    expect(tl.value(3300)).toBeGreaterThanOrEqual(end0 - 0.002) // к концу от реального старта — доехали
+    // Последняя реплика: якорь сдвигает приход к LAST_CAP ровно на задержку
+    tl.onState({ status: 'playing', index: 1, run: 2 }, { durations: D, now: 3300 })
+    tl.onState({ status: 'playing', index: 1, run: 2 }, { durations: D, now: 3500 })
+    expect(tl.value(6300)).toBeLessThan(LAST_CAP)
+    expect(tl.value(6500)).toBeCloseTo(LAST_CAP, 3)
+  })
+
   it('пауза замораживает значение, продолжение идёт дальше от него (без отката и скачка)', () => {
     const tr = simulate(D, D, { pauses: [{ line: 1, at: 1000, len: 2000 }] })
     for (let i = 1; i < tr.length; i += 1) expect(tr[i]).toBeGreaterThanOrEqual(tr[i - 1] - 1e-9)

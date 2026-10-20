@@ -14,8 +14,9 @@ import { wordKey } from '../../../shared/lib/wordAudio/wordKey.js'
 //  · [R-scene-lines]   S4: 2–6 реплик в сцене (в кружке Пита ровно 2: формат без task пропускает меньше двух), ≤ 12 слов в реплике;
 //  · [R-scene-task]    S7: у сцены урока нет task (плеер урока задания не играет);
 //  · [R-scene-middle]  S7: сцены между кружками — диалог двух котов, mode bubble;
-//  · [R-scene-voice]   S8: audioUrl без audioMeta — озвучку выдумали (предупреждение). Реплики БЕЗ
-//                      audioUrl — норма, это needsVoice (sceneVoiceNeeds ниже, шлюз выводит списком).
+//  · [R-scene-voice]   S8: audioUrl без audioMeta — озвучку выдумали (предупреждение); реплика БЕЗ audioUrl —
+//                      [R-scene-silent] предупреждение «прозвучит беззвучно»: синтез устройства в плеере выключен
+//                      (linePlayback.SCENE_DEVICE_SYNTH), звук сцен — только файлы из сборщика (sceneVoiceNeeds — тот же список для шлюза).
 
 export const MAX_WORDS = 12
 const err = (ref, code, text) => `[${code}] ${ref} (scene): ошибка — ${text}`
@@ -97,6 +98,9 @@ export function checkSceneRules(nodes, { title } = {}) {
     // S8
     const fake = tl.filter(l => l?.audioUrl && !l.audioMeta?.hash).length
     if (fake) out.push(warn(n.ref, 'R-scene-voice', `S8: у ${fake} реплик audioUrl без audioMeta — озвучку не выдумывают, убери: её ставит сборщик`))
+    // Синтез устройства в плеере выключен (linePlayback.SCENE_DEVICE_SYNTH): без файла реплика идёт беззвучно
+    const silent = tl.filter(l => l && !l.audioUrl).length
+    if (silent) out.push(warn(n.ref, 'R-scene-silent', `S8: ${silent} реплик без файла озвучки — в уроке прозвучат беззвучно (синтез устройства выключен), озвучь сцену в сборщике`))
   }
   return out
 }

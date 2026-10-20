@@ -13,7 +13,8 @@ const text = (ref, seq) => ({ ref, seq, type: 'text', data: { content: 'мост
 // Хороший урок-слово «try»: кружок Пита — текст — диалог — текст — кружок Пита
 const good = () => [sc('n1', 1, pit(), 'circle'), text('n2', 2), sc('n3', 3, duo()), text('n4', 4), sc('n5', 5, pit(['Now you try it.', 'Ready?']), 'circle')]
 const T = { title: 'try' }
-const codes = (nodes, opts = T) => checkSceneRules(nodes, opts).map(s => s.match(/^\[(R-[\w-]+)\]/)[1] + (s.includes('ошибка') ? ':e' : ':w'))
+// R-scene-silent (реплики без файла — беззвучно) есть почти у всех образцов ниже (они без озвучки) — проверяется отдельным тестом
+const codes = (nodes, opts = T) => checkSceneRules(nodes, opts).map(s => s.match(/^\[(R-[\w-]+)\]/)[1] + (s.includes('ошибка') ? ':e' : ':w')).filter(c => !c.startsWith('R-scene-silent'))
 
 describe('правила сцен урока-слова (S1–S4, S7, S8)', () => {
   it('образцы из демо проходят validateSceneV2 (на них держится AUTHORING_NOTES)', () => {
@@ -23,7 +24,7 @@ describe('правила сцен урока-слова (S1–S4, S7, S8)', () =
     }
   })
   it('хороший урок — чисто; урок без сцен и Старт/Финал не трогаем', () => {
-    expect(checkSceneRules(good(), T)).toEqual([])
+    expect(checkSceneRules(good(), T).filter(w => !w.includes('[R-scene-silent]'))).toEqual([]) // образец без озвучки: только R-scene-silent
     expect(checkSceneRules([text('n1', 1)], T)).toEqual([])
     expect(checkSceneRules([sc('n1', 1, duo(), 'bubble')], { title: 'Старт' })).toEqual([])
     expect(checkSceneRules([sc('n1', 1, duo(), 'bubble')], { title: 'Финал' })).toEqual([])
@@ -105,6 +106,14 @@ describe('правила сцен урока-слова (S1–S4, S7, S8)', () =
     expect(codes(real)).toEqual([])
     expect(sceneVoiceNeeds(real)).toEqual([{ ref: 'n1', lines: 2 }, { ref: 'n3', lines: 1 }, { ref: 'n5', lines: 2 }])
     expect(sceneVoiceNeeds([text('n1', 1)])).toEqual([])
+  })
+  it('S8: реплики без файла озвучки — предупреждение R-scene-silent (синтез устройства в плеере выключен)', () => {
+    const real = good()
+    real[2] = sc('n3', 3, { ...duo(), timeline: [{ ...line('try it'), audioUrl: 'https://x.y/a.mp3', audioMeta: { hash: 'h', voiceId: 'v' } }, { ...line('try', 'b'), audioUrl: 'https://x.y/b.mp3', audioMeta: { hash: 'h', voiceId: 'v' } }] })
+    const silent = checkSceneRules(real, T).filter(w => w.includes('[R-scene-silent]'))
+    expect(silent.map(w => w.split(' ')[1])).toEqual(['n1', 'n5']) // n3 озвучена полностью
+    expect(silent[0]).toContain('предупреждение')
+    expect(silent[0]).toContain('беззвучно')
   })
   it('подключено в lintLesson: заголовок решает, урок-слово это или Старт', () => {
     const nodes = [sc('n1', 1, duo(), 'bubble')]
