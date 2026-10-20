@@ -10,6 +10,14 @@
 .scn [data-mouth="half"] [data-viseme="half"],
 .scn [data-mouth="open"] [data-viseme="open"] { display: inline; }
 
+/* Говорящий кот (is-talking): амплитуда «кивка» головы и взмаха хвоста — через переменную --talk с плавным переходом, а не сменой
+   анимации или её длительности: смена animation-name перезапускала анимацию с 0 % (голова делала шаг до ~1,4 px на стыке реплик),
+   смена animation-duration сдвигала фазу хвоста. Список анимаций у части теперь постоянный — ничего не перезапускается.
+   @property даёт плавный переход переменной (Chrome 85+, Safari 16.4+); без него амплитуда меняется сразу (шаг ≤ 2 px). */
+@property --talk { syntax: '<number>'; inherits: true; initial-value: 0; }
+.scn-cat { --talk: 0; transition: --talk 0.3s ease-in-out; }
+.scn-cat.is-talking { --talk: 1; }
+
 /* Идл-анимации — только live */
 .scn--live .cat-body {
   transform-box: fill-box;
@@ -23,7 +31,18 @@
   animation: scnSway 4.4s ease-in-out infinite;
   animation-delay: var(--idle-delay, 0s);
 }
-.scn--live .scn-cat.is-talking .cat-head { animation: scnTalkSway 0.9s ease-in-out infinite; }
+/* Кивок при речи (0,9 с) — вторая, всегда идущая анимация, складывается с покачиванием (animation-composition: add); в покое её
+   амплитуда 0 (--talk). Без поддержки composition (старые WebView) — прежний вариант: смена анимации на время речи */
+@supports (animation-composition: add) {
+  .scn--live .cat-head {
+    animation: scnSway 4.4s ease-in-out infinite, scnTalkNod 0.9s ease-in-out infinite;
+    animation-delay: var(--idle-delay, 0s), 0s;
+    animation-composition: replace, add;
+  }
+}
+@supports not (animation-composition: add) {
+  .scn--live .scn-cat.is-talking .cat-head { animation: scnTalkSway 0.9s ease-in-out infinite; }
+}
 .scn--live .cat-eyes {
   transform-box: fill-box;
   transform-origin: 50% 50%;
@@ -37,7 +56,6 @@
   animation: scnTail 2.8s ease-in-out infinite;
   animation-delay: var(--idle-delay, 0s);
 }
-.scn--live .scn-cat.is-talking .cat-tail { animation-duration: 1.6s; }
 .scn--live .prop-steam {
   transform-box: fill-box;
   transform-origin: 50% 100%;
@@ -56,13 +74,17 @@
   0%, 100% { transform: rotate(-1.8deg) translateY(0); }
   50% { transform: rotate(1.8deg) translateY(-2px); }
 }
+@keyframes scnTalkNod {
+  0%, 100% { transform: rotate(calc(-0.4deg * var(--talk))) translateY(0); }
+  50% { transform: rotate(calc(0.4deg * var(--talk))) translateY(calc(-2px * var(--talk))); }
+}
 @keyframes scnBlink {
   0%, 93%, 100% { transform: scaleY(1); }
   95%, 97% { transform: scaleY(0.08); }
 }
 @keyframes scnTail {
-  0%, 100% { transform: rotate(-9deg); }
-  50% { transform: rotate(10deg); }
+  0%, 100% { transform: rotate(calc(-9deg - 4deg * var(--talk))); }
+  50% { transform: rotate(calc(10deg + 4deg * var(--talk))); }
 }
 @keyframes scnSteam {
   0%, 100% { opacity: 0.3; transform: translateY(0); }
