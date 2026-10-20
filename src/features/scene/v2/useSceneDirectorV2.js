@@ -4,6 +4,7 @@ import { makeScenePlayLine } from './scenePlayLine.js'
 import { forEachSceneAudio } from './sceneAudioUnlock.js'
 import { resolveVoiceFlags } from './sceneOptions.js'
 import { isWeakDevice } from '../../../shared/lib/deviceTier.js'
+import { sceneTrace } from './sceneTrace.js'
 
 // Хук-режиссёр v2: оборачивает directorCore в состояние React и подключает
 // воспроизведение реплик (scenePlayLine.js: файл audioUrl через общий HTMLAudio
@@ -52,7 +53,7 @@ export function useSceneDirectorV2(scene, {
   const [prevEnabled, setPrevEnabled] = useState(enabled)
   if (enabled !== prevEnabled) {
     setPrevEnabled(enabled)
-    if (!enabled) { setState({ ...IDLE, total: scene?.timeline?.length ?? 0 }); setMode('timer'); setPhase(null) }
+    if (!enabled) { sceneTrace('режиссёр: рендерер стал статичным → состояние сброшено в idle'); setState({ ...IDLE, total: scene?.timeline?.length ?? 0 }); setMode('timer'); setPhase(null) }
   }
 
   useEffect(() => {
@@ -68,7 +69,8 @@ export function useSceneDirectorV2(scene, {
       onChange: setState,
     })
     dirRef.current = director
-    return () => { director.destroy(); player.stop(); dirRef.current = null }
+    sceneTrace(`режиссёр создан: ${scene.timeline?.length ?? 0} реплик, loop=${!!scene.options?.loop}`)
+    return () => { sceneTrace(`режиссёр уничтожен (был ${director.getState().status} ${director.getState().index})`); director.destroy(); player.stop(); dirRef.current = null }
   }, [scene, enabled])
 
   // «Без звука» переключили посреди реплики-файла — muted сразу, не с следующей
@@ -92,12 +94,13 @@ export function useSceneDirectorV2(scene, {
     const d = dirRef.current
     if (!d) return
     if (shouldPause) {
-      if (d.getState().status === 'playing') { autoPausedRef.current = true; d.pause() }
+      if (d.getState().status === 'playing') { sceneTrace(`режиссёр: авто-пауза (active=${active} paused=${paused} hidden=${hidden})`); autoPausedRef.current = true; d.pause() }
     } else if (autoPausedRef.current) {
+      sceneTrace('режиссёр: условие паузы снято → играем дальше')
       autoPausedRef.current = false
       d.play()
     }
-  }, [shouldPause])
+  }, [shouldPause, active, paused, hidden])
 
   const call = useCallback((name, ...args) => {
     const d = dirRef.current
@@ -105,13 +108,14 @@ export function useSceneDirectorV2(scene, {
     if (name === 'pause') autoPausedRef.current = false
     if (shouldPause && (name === 'play' || name === 'toggle' || name === 'restart')) {
       // Нельзя играть, пока сцена неактивна: запомним желание и вернёмся сами
+      sceneTrace(`режиссёр: ${name} отложен — сцена неактивна (active=${active} paused=${paused} hidden=${hidden})`)
       autoPausedRef.current = true
       if (name === 'restart') d.goTo(0)
       if (name === 'play' && Number.isInteger(args[0])) d.goTo(args[0])
       return
     }
     d[name](...args)
-  }, [shouldPause])
+  }, [shouldPause, active, paused, hidden])
 
   return {
     ...state,

@@ -26,13 +26,19 @@ const frame = (kind, C, v) => (kind === 'ring'
   ? { strokeDashoffset: String(Math.round(C * (1 - v) * 1000) / 1000) }
   : { transform: `scaleX(${Math.round(v * 10000) / 10000})` })
 
-export function useSceneProgress({ scene, voice = null, rate = 1, sound = true, status, index, run, at, kind = 'ring', circumference = 0, enabled = true }) {
+// trace(msg) — строки в трассу сцены (sceneTrace.js; кружок передаёт её, чтобы видеть, где кольцо «подвисло»): шаги каждого
+// состояния, доезд анимации до цели, сколько кольцо стояло у края до 'ended', состояние старше индикатора
+export function useSceneProgress({
+  scene, voice = null, rate = 1, sound = true, status, index, run, at, kind = 'ring', circumference = 0, enabled = true, trace = null,
+}) {
   const elRef = useRef(null)
   const model = useRef(null)
   const anim = useRef(null)
   const latest = useRef(null)
   const mountAt = useRef(null)
-  useEffect(() => { latest.current = { scene, voice, rate, sound } }, [scene, voice, rate, sound])
+  const doneAt = useRef(null) // когда анимация текущего состояния дошла до цели (стоит у края)
+  const traceRef = useRef(trace)
+  useEffect(() => { latest.current = { scene, voice, rate, sound }; traceRef.current = trace }, [scene, voice, rate, sound, trace])
   // Состояние старше самого индикатора (экран открыли поверх играющей ленты: в пропсах ещё «чужой» playing) — не наше
   useEffect(() => { mountAt.current = performance.now() }, [])
 
@@ -43,16 +49,21 @@ export function useSceneProgress({ scene, voice = null, rate = 1, sound = true, 
     const L = latest.current
     if (typeof at === 'number' && mountAt.current != null && at < mountAt.current) {
       // Состояние старше индикатора: доигравшая нода (перемонтирование) — сразу полное кольцо/полоса, не пустое
+      traceRef.current?.(`${kind}: состояние ${status} ${index} старше индикатора (на ${Math.round(mountAt.current - at)} мс) → ${status === 'ended' ? 'полное' : 'пропущено'}`)
       if (status === 'ended') { model.current.settle({ status, index, run }, 1); setValue(el, kind, circumference, 1) }
       return
     }
     const t = typeof at === 'number' ? at : performance.now()
     const { durations } = planSceneDurations(L.scene, { rate: L.rate, sound: L.sound, voice: L.voice })
+    const stood = doneAt.current != null ? Math.round(performance.now() - doneAt.current) : null
     const { from, steps } = model.current.onState({ status, index, run }, { durations, now: t })
     anim.current?.cancel()
     anim.current = null
+    doneAt.current = null
     const run1 = steps.filter(s => s.ms > 0)
     const finalV = steps.length ? steps[steps.length - 1].to : from
+    traceRef.current?.(`${kind}: ${status} ${index + 1}/${durations.length} run=${run} от ${from.toFixed(3)} → [${steps.map(s => `${s.to.toFixed(3)} за ${s.ms} мс`).join(', ') || 'стоим'}]`
+      + `${stood != null ? ` (стояло у цели ${stood} мс)` : ''} оценки=[${durations.map(Math.round).join(',')}] lag=${Math.round(performance.now() - t)} мс`)
     if (!run1.length || typeof el.animate !== 'function') { setValue(el, kind, circumference, finalV); return }
     setValue(el, kind, circumference, from)
     const total = run1.reduce((a, s) => a + s.ms, 0)
@@ -62,9 +73,17 @@ export function useSceneProgress({ scene, voice = null, rate = 1, sound = true, 
     const lag = Math.max(0, performance.now() - t)
     const a = el.animate(kf, { duration: total, easing: 'linear', fill: 'forwards', delay: -Math.min(lag, total) })
     anim.current = a
-    a.onfinish = () => { if (anim.current !== a) return; setValue(el, kind, circumference, finalV); a.cancel(); anim.current = null }
+    a.onfinish = () => {
+      if (anim.current !== a) return
+      doneAt.current = performance.now()
+      traceRef.current?.(`${kind}: дошло до ${finalV.toFixed(3)} (${status} ${index + 1}), ждём следующее состояние`)
+      setValue(el, kind, circumference, finalV); a.cancel(); anim.current = null
+    }
   }, [enabled, status, index, run, at, kind, circumference])
 
-  useEffect(() => () => { anim.current?.cancel(); anim.current = null }, [])
+  useEffect(() => () => {
+    if (anim.current) traceRef.current?.('прогресс: индикатор размонтирован посреди анимации')
+    anim.current?.cancel(); anim.current = null
+  }, [])
   return elRef
 }

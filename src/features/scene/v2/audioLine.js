@@ -1,6 +1,7 @@
 import { fallbackMs } from './linePlayback.js'
 import { createMouthSync } from './mouthSync.js'
 import { validTimings, syntheticTimings, timingsEnd } from './mouthRhythm.js'
+import { sceneTrace, audioState, shortText, ms } from './sceneTrace.js'
 
 // Озвучка реплики заранее записанным файлом (audioUrl — mp3 ElevenLabs из
 // сборщика) через общий HTMLAudio (sceneAudioUnlock.js; не WebAudio: на iOS
@@ -73,12 +74,18 @@ export function playLineAudio(line, audio, {
   let guardTimer = null
   let retryTimer = null
   let stallTimer = null
+  // Трасса (sceneTrace.js): «файл: …» — откуда ссылка, play() вызван/ok/отказ, когда зазвучал, буферизация, чем кончился
+  const t0 = typeof now === 'function' ? now() : (typeof performance !== 'undefined' ? performance.now() : Date.now())
+  const since = () => ms((typeof now === 'function' ? now() : (typeof performance !== 'undefined' ? performance.now() : Date.now())) - t0)
+  const tr = m => sceneTrace(`файл «${shortText(text)}»: ${m}`)
 
   const on = (ev, fn) => audio.addEventListener(ev, fn)
   const off = (ev, fn) => audio.removeEventListener(ev, fn)
 
   function onPlaying() {
     if (done) return
+    if (!started) tr(`зазвучал через ${since()} (${audioState(audio)})`)
+    else tr(`играет дальше после буферизации (${since()})`)
     started = true
     timers.clearTimeout(loadTimer)
     sync.start()
@@ -93,30 +100,33 @@ export function playLineAudio(line, audio, {
     timers.clearTimeout(guardTimer)
     const baseMs = durationSec != null ? durationSec * 1000 : fallbackMs(text) * 2
     const pos = Number.isFinite(audio.currentTime) ? Math.max(0, audio.currentTime * 1000) : 0
-    guardTimer = timers.setTimeout(() => finish(false), Math.round(Math.max(0, baseMs - pos) / k) + GUARD_MARGIN_MS)
+    guardTimer = timers.setTimeout(() => { tr(`конец по запасному таймеру за ${since()} (ended не пришёл)`); finish(false) }, Math.round(Math.max(0, baseMs - pos) / k) + GUARD_MARGIN_MS)
   }
   // Буферизация: часы запаса стоят (звука нет — ждать конца по часам нечестно), но вечно висеть тоже нельзя
   function onWaiting() {
     if (done || !started) return
+    tr(`буферизация на ${since()} (${audioState(audio)})`)
     timers.clearTimeout(guardTimer)
     timers.clearTimeout(stallTimer)
-    stallTimer = timers.setTimeout(() => finish(false), STALL_LIMIT_MS)
+    stallTimer = timers.setTimeout(() => { tr('стояла на буферизации 20 с → считаем сыгранной'); finish(false) }, STALL_LIMIT_MS)
   }
   function onMeta() {
     if (done || timings || durationSec != null) return
     const d = audio.duration
     if (Number.isFinite(d) && d > 0) { durationSec = d; sync.setTimings(synth(d)) }
   }
-  function onEnded() { finish(false) }
+  function onEnded() { tr(`ended за ${since()}`); finish(false) }
   function onError() {
     if (done) return
-    if (started) { finish(false); return }
     const code = audio.error?.code
+    tr(`error code=${code ?? '?'} ${started ? 'после старта → конец реплики' : retried ? '→ отказ' : '→ повтор'}`)
+    if (started) { finish(false); return }
     if (!retried && (code == null || code === MEDIA_ERR_NETWORK)) retry()
     else finish(true, `media-error-${code ?? '?'}`)
   }
   function onLoadTimeout() {
     if (done || started) return
+    tr(`не зазвучал за ${LOAD_TIMEOUT_MS / 1000} с (${audioState(audio)}) ${retried ? '→ отказ' : '→ повтор'}`)
     if (!retried) retry()
     else finish(true, 'load-timeout')
   }
@@ -136,8 +146,10 @@ export function playLineAudio(line, audio, {
     let p
     try {
       try { audio.currentTime = 0 } catch { /* до метаданных может бросить */ }
+      tr(`play() ${retried ? 'повтор ' : ''}(${audioState(audio)}) rate=${k}`)
       p = audio.play()
-    } catch { finish(true, 'play-threw'); return }
+    } catch (e) { tr(`play() бросил ${e?.name ?? e}`); finish(true, 'play-threw'); return }
+    if (p?.then) p.then(() => tr(`play() ok (${audioState(audio)})`), e => tr(`play() ОТКАЗ ${e?.name ?? e} (${audioState(audio)})`))
     if (p?.catch) {
       p.catch(e => {
         if (done || started) return
@@ -160,6 +172,7 @@ export function playLineAudio(line, audio, {
   // 'media-error-<code>' | 'load-timeout' | 'play-threw' | 'play-rejected-<name>' | 'no-url' | 'no-element'
   function finish(fail, reason = 'unknown') {
     if (done) return
+    if (fail) tr(`отказ: ${reason} за ${since()}`)
     teardown()
     if (fail) onFail?.(reason)
     else onEnd?.()
@@ -177,5 +190,5 @@ export function playLineAudio(line, audio, {
   onMode?.('audio')
   start()
 
-  return () => { if (!done) teardown() }
+  return () => { if (!done) { tr(`отменена на ${since()} (${started ? 'звучала' : 'ещё не зазвучала'})`); teardown() } }
 }

@@ -1,13 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { pLog } from '../../../../shared/lib/debug.js'
 import { usePlayerFrozen } from '../../playerFrozen.js'
-import { useLessonMuted, useVoiceRate } from '../../lessonVolume.js'
+import { useLessonMuted, useVoiceRate, getLessonMuted } from '../../lessonVolume.js'
 import { unlockSceneAudio, sceneNeedsOwnGesture } from '../../../scene/v2/sceneAudioUnlock.js'
 import { useSceneSolo, sceneSoloSeq, sceneSoloBusy, sceneGestureSeq, noteSceneGesture } from './useSceneSolo.js'
 import {
   startDecision, waitRowAppear, scheduleSceneStart, autoStartSound, pageHasBeenActive, autoStartYields,
 } from './sceneStartPlan.js'
 import { fsOpenTransition, fsCloseTransition, inlineTapAction, expandAction, expandStatusOf, SCENE_EXPAND_PLAY_DELAY_MS } from './sceneFullscreenModel.js'
+import { sceneTrace, nextSceneTag, ms } from '../../../scene/v2/sceneTrace.js'
+import { sceneAudioUnlocked } from '../../../scene/v2/sceneAudioUnlock.js'
 
 // Поведение живой сцены в ленте урока (общее для пузыря и кружка):
 //  · старт (sceneStartPlan.js): 'auto' — после конца анимации появления
@@ -27,6 +28,8 @@ import { fsOpenTransition, fsCloseTransition, inlineTapAction, expandAction, exp
 //  · одна медиа-нода звучит разом (useSceneSolo.js);
 //  · доиграла последняя реплика (в ленте или на экране) → onDone('played') один раз.
 // Состояние React меняется только на границах реплик (onState рендерера).
+// Трасса (sceneTrace.js, метка tag «#n» у каждой сцены ленты): переходы состояния с временем от прошлого, автозапуск и его
+// звук, команды режиссёру (ждём рендерер / потеряна / ушла), раскрытие кружка (статус → действие), заморозка, жесты.
 
 const IDLE = { status: 'idle', index: 0, total: 0, mode: 'timer' }
 const same = (a, b) => a.status === b.status && a.index === b.index && a.total === b.total && a.mode === b.mode && a.run === b.run
@@ -42,6 +45,8 @@ export function useScenePlayback({ resolved, pending, isHistory, onDone, ready =
   const fsStartRef = useRef(null)
   const expandTimer = useRef(null)
   const stRef = useRef(IDLE)
+  const [tag] = useState(nextSceneTag) // метка сцены в трассе («#n»), одна на весь срок жизни ноды
+  const trace = useCallback(m => sceneTrace(`${tag} ${m}`), [tag])
   const [st, setSt] = useState(IDLE)
   const [fsOpen, setFsOpen] = useState(false)
   // Защёлка «доиграла»: после конца рамка ленты замирает в статичный кадр (SceneBody.jsx) и
@@ -59,9 +64,11 @@ export function useScenePlayback({ resolved, pending, isHistory, onDone, ready =
   const apply = useCallback(next => {
     // at — когда состояние дошло: от него считает время индикатор прогресса (useSceneProgress.js)
     const full = { mode: 'timer', at: performance.now(), ...next }
+    const prev = stRef.current
+    if (!same(prev, full)) trace(`состояние: ${full.status} ${full.index + 1}/${full.total} ${full.mode} run=${full.run ?? 0} (${prev.status} ${prev.index + 1} было ${ms(full.at - (prev.at ?? full.at))})`)
     stRef.current = full
     setSt(prev => (same(prev, full) ? prev : full))
-  }, [])
+  }, [trace])
   // Состояние берём только у живого сейчас рендерера: лента — пока экран закрыт, экран — пока открыт
   const onState = useCallback(next => { if (!fsOpenRef.current) apply(next) }, [apply])
   const onFsState = useCallback(next => { if (fsOpenRef.current) apply(next) }, [apply])
@@ -70,33 +77,33 @@ export function useScenePlayback({ resolved, pending, isHistory, onDone, ready =
   useEffect(() => {
     if (st.status !== 'ended' || doneRef.current) return
     doneRef.current = true
-    pLog('[scene] доиграла → onDone(played)')
+    trace('доиграла → onDone(played)')
     onDone?.('played')
-  }, [st.status, onDone])
+  }, [st.status, onDone, trace])
 
   // Автозапуск: после анимации появления + задержка ноды (sceneStartPlan.js)
   useEffect(() => {
     if (startDecision({ start, isHistory, pending, hasScene }) !== 'arm' || startedRef.current) return undefined
-    const wait = waitRowAppear(rootRef.current, { onResolved: how => pLog(`[scene] появление: ${how}`) })
+    const wait = waitRowAppear(rootRef.current, { onResolved: how => trace(`появление: ${how}`) })
     const armedSeq = sceneSoloSeq()
     const armedGesture = sceneGestureSeq()
     return scheduleSceneStart({
-      waitAppear: wait, delayMs: startDelayMs, log: m => pLog(`[scene] автозапуск: ${m}`),
+      waitAppear: wait, delayMs: startDelayMs, log: m => trace(`автозапуск: ${m}`),
       play: () => {
         if (startedRef.current) return
         // Пока кружок ждал, пользователь запустил другую сцену (тап по сцене в ленте) и она ещё играет — не перебиваем её:
         // кружок остаётся с ▶ и стартует по тапу
-        if (autoStartYields({ armedGesture, gesture: sceneGestureSeq(), armedSeq, seq: sceneSoloSeq(), busy: sceneSoloBusy() })) { pLog('[scene] автозапуск отменён: играет другая сцена'); return }
+        if (autoStartYields({ armedGesture, gesture: sceneGestureSeq(), armedSeq, seq: sceneSoloSeq(), busy: sceneSoloBusy() })) { trace('автозапуск отменён: играет другая сцена'); return }
         startedRef.current = true
         const withSound = autoStartSound({ hasBeenActive: pageHasBeenActive(), needsGesture: sceneNeedsOwnGesture() })
-        pLog(`[scene] автозапуск play() sound=${withSound}`)
+        trace(`автозапуск play() sound=${withSound} (hasBeenActive=${pageHasBeenActive()} needsGesture=${sceneNeedsOwnGesture()} unlocked=${sceneAudioUnlocked()} muted=${getLessonMuted()})`)
         // Не api.play() сразу: режиссёр читает sound из пропсов рендерера, и флаг
         // должен дойти до него до старта реплики — команда уходит эффектом ниже
         setSoundBlocked(!withSound)
         setCmd({ type: 'play' })
       },
     })
-  }, [start, startDelayMs, isHistory, pending, hasScene])
+  }, [start, startDelayMs, isHistory, pending, hasScene, trace])
 
   const activeApi = useCallback(() => (fsOpenRef.current ? fsApiRef.current : apiRef.current), [])
   // Команды режиссёру после того, как новое значение sound дошло до рендерера (эффекты
@@ -106,14 +113,18 @@ export function useScenePlayback({ resolved, pending, isHistory, onDone, ready =
     // Живой рендерер доигравшей сцены монтируется после роста кружка (SceneCircleView, useSceneCircleExpand.grown) — если
     // команда пришла раньше, чем он поставил apiRef, ждём его (до ~0,5 с), а не теряем пуск
     if (!apiRef.current && cmd.type !== 'replay' && (cmd.tries ?? 0) < 10) {
+      if (!cmd.tries) trace(`команда ${cmd.type}: живого рендерера ещё нет — ждём до 0,5 с`)
       const t = setTimeout(() => setCmd({ ...cmd, tries: (cmd.tries ?? 0) + 1 }), 50)
       return () => clearTimeout(t)
     }
-    if (cmd.type === 'play') apiRef.current?.play()
-    if (cmd.type === 'restart') apiRef.current?.restart()
-    if (cmd.type === 'replay' && stRef.current.status === 'playing') activeApi()?.goTo(stRef.current.index)
+    const api = cmd.type === 'replay' ? activeApi() : apiRef.current
+    if (!api) { trace(`команда ${cmd.type} ПОТЕРЯНА: рендерер так и не появился${cmd.tries ? ` за ${cmd.tries * 50} мс` : ''}`); return undefined }
+    trace(`команда ${cmd.type} → режиссёр${cmd.tries ? ` (ждали ${cmd.tries * 50} мс)` : ''} (статус ${stRef.current.status})`)
+    if (cmd.type === 'play') api.play()
+    if (cmd.type === 'restart') api.restart()
+    if (cmd.type === 'replay' && stRef.current.status === 'playing') api.goTo(stRef.current.index)
     return undefined
-  }, [cmd, activeApi])
+  }, [cmd, activeApi, trace])
 
   const pause = useCallback(() => activeApi()?.pause(), [activeApi])
   useSceneSolo(rootRef, st.status === 'playing', pause)
@@ -122,8 +133,8 @@ export function useScenePlayback({ resolved, pending, isHistory, onDone, ready =
   // фиксируем как «ended»: иначе 'playing' остался бы навсегда (кольцо едет, звук-чип, подписка solo)
   const freeze = useCallback(() => {
     const s = stRef.current
-    if (s.status !== 'ended') apply({ status: 'ended', index: s.index, total: s.total, run: s.run })
-  }, [apply])
+    if (s.status !== 'ended') { trace(`кружок свернули посреди повтора (${s.status} ${s.index + 1}) → фиксируем ended`); apply({ status: 'ended', index: s.index, total: s.total, run: s.run }) }
+  }, [apply, trace])
 
   // Любой жест пользователя по сцене: звук разрешён, автозапуск больше не нужен
   const gesture = useCallback(() => {
@@ -145,11 +156,11 @@ export function useScenePlayback({ resolved, pending, isHistory, onDone, ready =
     if (fsOpenRef.current || !ready) return
     gesture()
     fsStartRef.current = fsOpenTransition(stRef.current)
-    pLog(`[scene] полный экран: открыть с реплики ${fsStartRef.current.index}`)
+    trace(`полный экран: открыть с реплики ${fsStartRef.current.index}`)
     apiRef.current?.pause()
     fsOpenRef.current = true
     setFsOpen(true)
-  }, [gesture, ready])
+  }, [gesture, ready, trace])
 
   // Экран смонтирован (fsApiRef заполнил его SceneRenderer) → та же реплика, play
   useEffect(() => {
@@ -164,7 +175,7 @@ export function useScenePlayback({ resolved, pending, isHistory, onDone, ready =
   const closeFs = useCallback(() => {
     if (!fsOpenRef.current) return
     const tr = fsCloseTransition(stRef.current)
-    pLog(`[scene] полный экран: закрыть → лента с реплики ${tr.index}, ${tr.resume ? 'играет' : 'пауза'}`)
+    trace(`полный экран: закрыть → лента с реплики ${tr.index}, ${tr.resume ? 'играет' : 'пауза'}`)
     fsApiRef.current?.pause()
     fsOpenRef.current = false
     setFsOpen(false)
@@ -172,15 +183,16 @@ export function useScenePlayback({ resolved, pending, isHistory, onDone, ready =
     if (!api) return
     if (tr.resume) api.play(tr.index)
     else api.goTo(tr.index)
-  }, [])
+  }, [trace])
 
   // Раскрытие кружка (useSceneCircleExpand.js) — жест: звук открыт; до старта/на паузе — пуск, после конца —
   // с начала (рамка ленты в этот момент оживает, см. SceneCircleView), играла без звука — реплика заново со звуком
   const expandPlay = useCallback(() => {
-    if (!ready) return
+    if (!ready) { trace('раскрытие: сцена ещё не готова (слова пользователя) — ничего'); return }
     // Доигравшая сцена в свёрнутом кружке — статичный кадр без режиссёра: статус в stRef может быть любым
     // (свернули посреди повтора → 'playing'/'paused'), для запуска она — всегда «ended» (с начала)
     const action = expandAction(expandStatusOf(stRef.current.status, ended), soundBlocked)
+    trace(`раскрытие: статус=${stRef.current.status} ended=${ended} soundBlocked=${soundBlocked} → ${action ? `${action} через ${SCENE_EXPAND_PLAY_DELAY_MS} мс` : 'без команды (играет со звуком)'}`)
     gesture() // звук открывается СРАЗУ (жест), а тяжёлый пуск режиссёра — после роста кружка (см. ниже)
     if (!action) return
     // Пуск не в первом кадре: старт режиссёра (рендер облачка, аудио, таймеры) на слабом телефоне занимает основной поток на
@@ -188,7 +200,7 @@ export function useScenePlayback({ resolved, pending, isHistory, onDone, ready =
     // 130 мс, 5 кадров вместо 16). Как у видео-кружка (play через 260 мс) — ждём конец анимации
     if (expandTimer.current) clearTimeout(expandTimer.current)
     expandTimer.current = setTimeout(() => { expandTimer.current = null; setCmd({ type: action }) }, SCENE_EXPAND_PLAY_DELAY_MS)
-  }, [gesture, soundBlocked, ready, ended])
+  }, [gesture, soundBlocked, ready, ended, trace])
   useEffect(() => () => { if (expandTimer.current) clearTimeout(expandTimer.current) }, [])
 
   const handleTap = useCallback(e => {
@@ -200,9 +212,10 @@ export function useScenePlayback({ resolved, pending, isHistory, onDone, ready =
   // Чип «Включить звук»: жест → звук, текущая реплика с начала уже со звуком
   const enableSound = useCallback(e => {
     e?.stopPropagation?.()
+    trace('чип «Включить звук» → реплика заново со звуком')
     gesture()
     setCmd({ type: 'replay' })
-  }, [gesture])
+  }, [gesture, trace])
 
   const togglePause = useCallback(e => {
     e?.stopPropagation?.()
@@ -219,6 +232,6 @@ export function useScenePlayback({ resolved, pending, isHistory, onDone, ready =
     soundChip: soundBlocked && !muted && st.status === 'playing' && !fsOpen,
     manualIdle: start === 'manual' && st.status === 'idle',
     handleTap, expandPlay, freeze, startInPlace, enableSound, togglePause,
-    fsOpen, openFs, closeFs,
+    fsOpen, openFs, closeFs, trace, tag, soundBlocked,
   }
 }

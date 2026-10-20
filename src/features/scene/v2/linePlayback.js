@@ -4,6 +4,8 @@
 // кириллица → ru-RU (перевод, старые русские сцены); голос подбирается ТОГО ЖЕ языка. Самостоятельная копия подхода стенда: v2 не
 // зависит от файлов стенда (?scene=1), чтобы тот жил независимо.
 
+import { sceneTrace, shortText } from './sceneTrace.js'
+
 export const MS_PER_CHAR = 65
 
 export function fallbackMs(text, rate = 1) {
@@ -80,9 +82,11 @@ export function speakFallback(text, voice, { sound = true, lang = null, onWord, 
   const speechLang = lang || detectLang(text)
   const deviceVoice = sound && speechSupported() ? pickVoiceFor(speechLang, voice?.voiceId) : null
   if (!deviceVoice) {
+    sceneTrace(`таймер «${shortText(text)}»: ${!sound ? 'без звука' : !speechSupported() ? 'speechSynthesis нет' : `нет голоса ${speechLang}`} (${fallbackMs(text, rate)} мс)`)
     onMode?.('timer')
     return timerSpeak(text, rate, { onWord, onEnd })
   }
+  sceneTrace(`синтез «${shortText(text)}»: ${speechLang} голос=${deviceVoice.name ?? '?'} rate=${rate}`)
   onMode?.('speech')
 
   let finished = false
@@ -104,7 +108,10 @@ export function speakFallback(text, voice, { sound = true, lang = null, onWord, 
   }
   u.onend = finish
   // Нас вытеснил чужой speak() (другая сцена): это не конец реплики — сцену сейчас поставят на паузу (страховка guard — на случай, если нет)
-  u.onerror = () => { if (activeUtterance === null || activeUtterance === u) finish() }
+  u.onerror = e => {
+    sceneTrace(`синтез «${shortText(text)}»: onerror ${e?.error ?? ''} ${activeUtterance === null || activeUtterance === u ? '→ конец реплики' : '(вытеснен чужим speak, ждём)'}`)
+    if (activeUtterance === null || activeUtterance === u) finish()
+  }
   u.onboundary = (e) => { if (!e.name || e.name === 'word') onWord?.() }
 
   try {

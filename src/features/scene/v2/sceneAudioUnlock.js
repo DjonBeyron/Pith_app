@@ -1,6 +1,7 @@
 import { unlockSpeech } from './linePlayback.js'
 import { isWeakDevice } from '../../../shared/lib/deviceTier.js'
 import { strace, straceOutcome } from '../../../shared/lib/soundGestureTrace.js'
+import { sceneTrace, audioState } from './sceneTrace.js'
 
 // Переключатель для быстрого отката. false (по умолчанию): на iOS жест «Включить звук» на ВИДЕО-слайде НЕ трогает
 // аудио сцен (тихий wav + speechSynthesis.speak(' ') на iOS могут перехватить аудиосессию и оставить <video> без звука) —
@@ -66,7 +67,7 @@ function unlockOne(a, label) {
   a.src = SILENCE
   const p = a.play()
   straceOutcome(label, p, a)
-  if (p?.then) p.then(() => a.pause(), () => { unlocked = false; emit() })
+  if (p?.then) p.then(() => { sceneTrace(`${label}: прогрев тишиной ok`); a.pause() }, e => { sceneTrace(`${label}: прогрев тишиной ОТКАЗ ${e?.name ?? e} (${audioState(a)})`); unlocked = false; emit() })
 }
 
 // Зовётся только из обработчика пользовательского жеста
@@ -74,6 +75,7 @@ export function unlockSceneAudio() {
   strace('аудио сцен: unlockSpeech (speechSynthesis.speak)')
   unlockSpeech()
   const a = getSceneAudioElement()
+  sceneTrace(`жест: разблокировка аудио сцен (unlocked=${unlocked}, ios=${isIosWebKit()}, ${audioState(a)})`)
   if (!a || unlocked) return
   try {
     unlockOne(a, 'аудио сцен (общий <audio>)')

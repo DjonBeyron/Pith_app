@@ -50,14 +50,14 @@ export default function SceneModule({ node, lessonFiles = null, onDone, adminPre
   }
   const st = pb.state
   const live = {
-    isHistory, ended: pb.ended, pending, status: st.status, index: st.index, run: st.run, at: st.at, total: st.total,
+    isHistory, ended: pb.ended, pending, status: st.status, index: st.index, run: st.run, at: st.at, total: st.total, mode: st.mode,
     paused: pb.paused || pb.fsOpen, sound: pb.sound, rate: pb.rate, soundChip: pb.soundChip, onEnableSound: pb.enableSound,
     apiRef: pb.apiRef, rootRef: pb.rootRef, onState: pb.onState,
   }
   return (
     <>
       {resolved.mode === 'circle'
-        ? <SceneCircleView {...common} {...live} bottomOffset={bottomOffset} onExpand={pb.expandPlay} onFreeze={pb.freeze} />
+        ? <SceneCircleView {...common} {...live} bottomOffset={bottomOffset} onExpand={pb.expandPlay} onFreeze={pb.freeze} trace={pb.trace} tag={pb.tag} soundChip={pb.soundChip} />
         : <SceneBubbleView {...common} {...live} onTap={pb.handleTap} />}
       {pb.fsOpen && (
         <SceneFullscreenView

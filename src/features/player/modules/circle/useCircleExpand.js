@@ -46,8 +46,10 @@ function releaseLayers(els) {
 // воспроизведение видео и звуковая логика (handlePlaying/handleEnded).
 // Кружок сцены (SceneCircleView) берёт ту же механику без видео: vRef/doneFiredRef/stopRaf не нужны,
 // а о раскрытии/закрытии сообщают onExpand/onCollapse (там — пуск/звук режиссёра сцены).
+// onTrace(msg) — трасса решений по каждому тапу (кружок сцены: sceneTrace.js): раскрыть / свернуть (и почему) / пропущен (и почему),
+// геометрия роста, свайп. Видео-кружок трассу не передаёт — NOOP
 export function useCircleExpand({
-  wrapRef, vRef = NO_VIDEO, dims, bottomOffset, doneFiredRef = NO_DONE, stopRaf = NOOP, onDone, onExpand, onCollapse,
+  wrapRef, vRef = NO_VIDEO, dims, bottomOffset, doneFiredRef = NO_DONE, stopRaf = NOOP, onDone, onExpand, onCollapse, onTrace = NOOP,
 }) {
   const [expanded, setExpanded] = useState(false)
   const [collapsing, setCollapsing] = useState(false)
@@ -55,6 +57,7 @@ export function useCircleExpand({
 
   const expandedRef   = useRef(false)
   const animatingRef  = useRef(false)
+  const lastTapRef    = useRef(0)
   const expandWRef    = useRef(0)
   const halfGrowRef   = useRef(0)
   const prevRowsRef   = useRef([])
@@ -75,15 +78,18 @@ export function useCircleExpand({
   }
 
   function handleTap() {
-    if (animatingRef.current || collapseTimer.current) return
+    const now = performance.now()
+    const sinceLast = lastTapRef.current ? `через ${Math.round(now - lastTapRef.current)} мс после прошлого` : 'первый'
+    lastTapRef.current = now
+    const skip = why => onTrace(`тап (${sinceLast}): пропущен — ${why}`)
+    if (animatingRef.current || collapseTimer.current) return skip(animatingRef.current ? 'анимация раскрытия ещё идёт' : 'сворачивание ещё идёт')
     // Block tap while feed is animating new messages (190ms slide-in)
     const feedInner = wrapRef.current?.closest('.playerFeedInner')
     if (feedInner) {
-      const feedAnimating = [feedInner, ...feedInner.querySelectorAll('.playerMsgRow')]
-        .some(el => el.getAnimations().some(a => a.playState === 'running'))
-      if (feedAnimating) return
+      const busy = [feedInner, ...feedInner.querySelectorAll('.playerMsgRow')].filter(el => el.getAnimations().some(a => a.playState === 'running'))
+      if (busy.length) return skip(`лента анимирует ${busy.length} эл. (${busy.map(el => el.className.split(' ')[0]).join(', ')})`)
     }
-    if (expandedRef.current) { collapse(); return }
+    if (expandedRef.current) { onTrace(`тап (${sinceLast}) по раскрытому → свернуть`); collapse('повторный тап'); return }
 
     const s = dims?.w ?? getSmallPx()
     const rect = wrapRef.current.getBoundingClientRect()
@@ -153,6 +159,7 @@ export function useCircleExpand({
     setExpandTransform(ty !== 0
       ? `translateX(${tx}px) translateY(${ty}px) scale(${ratio})`
       : `translateX(${tx}px) scale(${ratio})`)
+    onTrace(`тап (${sinceLast}) → раскрыть: ${Math.round(s)}→${Math.round(expandW)} px (×${ratio.toFixed(2)}), tx=${Math.round(tx)} ty=${Math.round(ty)}, строк выше ${prevRowsRef.current.length}`)
     setExpanded(true)
     expandedRef.current = true
     animatingRef.current = true
@@ -180,7 +187,8 @@ export function useCircleExpand({
     }, 260)
   }
 
-  function collapse() {
+  function collapse(why) { // why — причина для трассы; из onClick подложки приходит событие → «тап по подложке»
+    onTrace(`свернуть: ${typeof why === 'string' ? why : 'тап по подложке'}${expandedRef.current ? '' : ' (уже свёрнут)'}`)
     stopRaf()
     onCollapse?.()
 
@@ -223,7 +231,9 @@ export function useCircleExpand({
 
   function onTouchStart(e) { touchStartY.current = e.touches[0].clientY }
   function onTouchEnd(e) {
-    if (e.changedTouches[0].clientY - touchStartY.current > 80) collapse()
+    const dy = e.changedTouches[0].clientY - touchStartY.current
+    if (dy > 80) collapse(`свайп вниз ${Math.round(dy)} px`)
+    else if (Math.abs(dy) > 24) onTrace(`касание со сдвигом ${Math.round(dy)} px (не свайп: порог 80)`)
   }
 
   useEffect(() => () => {

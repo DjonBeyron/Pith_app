@@ -11,6 +11,7 @@ import { bubbleDisplay } from './sceneOptions.js'
 import { sceneStaticMarkup } from './staticMarkup.js'
 import './scene-v2.css'
 import './scene-v2-cat.css'
+import { sceneTrace } from './sceneTrace.js'
 
 // Быстрый рендерер сцены v2 (9:16, адаптивный). Один <svg>: фон → предметы
 // по слотам → два кота (или один по центру — одиночная сцена, scenePit.js: облачко
@@ -96,7 +97,7 @@ export default function SceneRenderer({
   useEffect(() => {
     const el = rootRef.current
     if (!live || !el || typeof IntersectionObserver === 'undefined') return undefined
-    const io = new IntersectionObserver(([e]) => setOnScreen(e.isIntersecting), { threshold: 0 })
+    const io = new IntersectionObserver(([e]) => { sceneTrace(`рендерер: ${e.isIntersecting ? 'на экране' : 'ВНЕ экрана'} (ratio=${Math.round((e.intersectionRatio ?? 0) * 1000) / 1000})`); setOnScreen(e.isIntersecting) }, { threshold: 0 })
     io.observe(el)
     return () => io.disconnect()
   }, [live])

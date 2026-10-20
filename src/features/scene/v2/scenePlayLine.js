@@ -8,6 +8,7 @@ import { sceneAudioCache, prefetchAllowed } from './sceneAudioCache.js'
 import { audioPartOf } from './sceneVoice.js'
 import { resolveVoiceFlags } from './sceneOptions.js'
 import { describeAudioFail } from './sceneAudioFail.js'
+import { sceneTrace, srcKind, shortText } from './sceneTrace.js'
 
 // Один путь воспроизведения реплики для режиссёра (directorCore.playLine) —
 // им идут и обычная игра, и playOnce («Ещё раз» в задании ленты), и нода урока.
@@ -57,6 +58,7 @@ export function speakTranslationFallback(text, voice, { sound = true, onEnd, onM
 // Файл не завёлся → запись в консоль (чтобы откат на синтез/таймер не был невидимым)
 export function logAudioFallback(info) {
   console.warn(`[scene] озвучка файлом не завелась → ${describeAudioFail(info.reason, info.text)}`, info.url || info.text)
+  sceneTrace(`реплика ${info.index} ${info.kind}: файл не завёлся (${info.reason}) → синтез/таймер; ${srcKind(info.src || info.url)}`)
 }
 
 // onFallback(info | null): null — реплика стартовала (сброс), иначе { url, reason, kind, index }
@@ -90,6 +92,7 @@ export function makeScenePlayLine({
       if (!part.audioUrl) { fallback(); return }
       const audio = getAudio()
       const src = o.audioSrcOf?.(part.audioUrl) ?? cache.resolve(part.audioUrl) ?? null
+      sceneTrace(`реплика ${index} ${kind} «${shortText(part.text ?? line.text)}»: файл ${src ? (o.audioSrcOf?.(part.audioUrl) ? 'из blob прогрева' : 'из кэша подкачки') : 'по ссылке'} ${srcKind(part.audioUrl)} sound=${sound}`)
       cache.pin(part.audioUrl)
       const slot = cancels.push(null) - 1 // место файла — перед запасным вариантом, даже если onFail пришёл синхронно
       cancels[slot] = playAudio(part, audio, {

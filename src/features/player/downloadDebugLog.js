@@ -22,8 +22,10 @@ function buildDebugLogText({ nodeAppearLog, debugItems, events }) {
     ``,
   ]
   if (AUDIO_ONLY) {
-    lines.push(`--- Audio (события голосовых: mount / dur / play / hb / gap / ev / end) + предзагрузка ---`,
-      ...playerLines.filter(l => l.includes('[audio-') || l.includes('AudioModule') || l.includes('[preload]') || l.includes('[word-audio]')),
+    // `[scene]` — трасса сцен/кружка (sceneTrace.js: тапы, раскрытие, состояния режиссёра, файл/синтез, кольцо) — без неё разбор
+    // «кружок не звучит / кольцо висит / тап выбивает» по логу невозможен
+    lines.push(`--- Audio (события голосовых: mount / dur / play / hb / gap / ev / end) + предзагрузка + сцены [scene] ---`,
+      ...playerLines.filter(l => l.includes('[audio-') || l.includes('AudioModule') || l.includes('[preload]') || l.includes('[word-audio]') || l.includes('[scene]')),
       ``,
       // Загрузки — чтобы видеть, успел ли blob к моменту play() или голосовое
       // играло с сервера в лоб (start/ready относительно msg — момента показа)
