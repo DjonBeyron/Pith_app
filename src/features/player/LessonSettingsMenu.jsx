@@ -101,6 +101,8 @@ export default function LessonSettingsMenu({ onDownloadLog, onCopyLog }) {
                 <span className="smIcon" aria-hidden="true">{copyState === 'ok' ? '✓' : copyState === 'err' ? '✗' : '⧉'}</span>
               </button>
               <SwitchRow label="Показывать FPS и версию" pref="hud" />
+              <SwitchRow label="Номера нод в чате" pref="nodeNum" />
+              <SwitchRow label="Скипер нод (окно ▲▼)" pref="skipper" />
               <div className="smSub">Громкость и эквалайзер</div>
               <AdminAudioSliders />
             </section>

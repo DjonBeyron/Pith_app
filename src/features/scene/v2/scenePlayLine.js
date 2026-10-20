@@ -62,9 +62,10 @@ export function logAudioFallback(info) {
 }
 
 // onFallback(info | null): null — реплика стартовала (сброс), иначе { url, reason, kind, index }
-// onStarted(index, remainingMs) — файл оригинала реально зазвучал (audioLine.onStarted) с реальным остатком: режиссёр отдаёт это индикатору прогресса как «якорь»
+// onStarted(index, remainingMs) — файл оригинала реально зазвучал (audioLine.onStarted) с реальным остатком: режиссёр отдаёт это индикатору прогресса как «якорь»;
+// onClock(index, remainingMs) — часы файла по timeupdate (перепривязка при расхождении)
 export function makeScenePlayLine({
-  scene, opts, getMouthEl, setMode, setPhase = () => {}, onFallback = null, onStarted = null,
+  scene, opts, getMouthEl, setMode, setPhase = () => {}, onFallback = null, onStarted = null, onClock = null,
   cache = sceneAudioCache, getAudio = getSceneAudioElement, allowed = prefetchAllowed,
   speak = speakFallback, speakTranslation = speakTranslationFallback, playAudio = playLineAudio, timers = globalThis,
   logFallback = logAudioFallback, playChain = playSegmentChain, getSpare = peekSceneSpareElement,
@@ -99,6 +100,7 @@ export function makeScenePlayLine({
       cancels[slot] = playAudio(part, audio, {
         src, muted: !sound, rate: k, lowPower: !!o.lowPower, applyMouth, timers,
         onEnd: onDone, onMode: setMode, onStarted: kind === 'original' && onStarted ? ms => onStarted(index, ms) : undefined,
+        onClock: kind === 'original' && onClock ? ms => onClock(index, ms) : undefined,
         onFail: reason => {
           const info = { url: part.audioUrl, src, reason: reason ?? 'unknown', kind, index }
           logFallback?.(info); onFallback?.(info)

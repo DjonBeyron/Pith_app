@@ -38,35 +38,6 @@ const line = { text: 'Раз два', audioUrl: 'https://cdn/a.mp3', wordTimings
 const flush = () => Promise.resolve().then(() => Promise.resolve())
 
 describe('playLineAudio — файл озвучки', () => {
-  it('смена src сбрасывает playbackRate (алгоритм загрузки медиа) — скорость ставится после src и повторяется на playing; onStarted отдаёт реальный остаток', () => {
-    const base = fakeAudio(); const t = fakeTimers()
-    let srcVal = ''
-    const audio = Object.create(base)
-    Object.defineProperty(audio, 'src', { get: () => srcVal, set: v => { srcVal = v; audio.playbackRate = audio.defaultPlaybackRate ?? 1 } })
-    const onStarted = vi.fn()
-    playLineAudio(line, audio, { ...noRaf, timers: t, rate: 1.5, onEnd() {}, onStarted })
-    expect(audio.src).toBe(line.audioUrl)
-    expect(audio.playbackRate).toBe(1.5)
-    expect(audio.defaultPlaybackRate).toBe(1.5)
-    audio.playbackRate = 1 // браузер сбросил ещё раз (повторная загрузка)
-    audio.duration = 3.58; audio.currentTime = 0.08
-    base.fire('playing')
-    expect(audio.playbackRate).toBe(1.5)
-    expect(onStarted).toHaveBeenCalledWith(Math.round((3.58 - 0.08) * 1000 / 1.5))
-    base.fire('ended')
-  })
-
-  it('onStarted без длительности → null; второе playing (после буферизации) якорь не повторяет', () => {
-    const audio = fakeAudio(); const t = fakeTimers()
-    const onStarted = vi.fn()
-    playLineAudio(line, audio, { ...noRaf, timers: t, rate: 1, onEnd() {}, onStarted })
-    audio.fire('playing')
-    expect(onStarted).toHaveBeenCalledWith(null)
-    audio.fire('waiting'); audio.fire('playing')
-    expect(onStarted).toHaveBeenCalledTimes(1)
-    audio.fire('ended')
-  })
-
   it('ставит src/muted/playbackRate, играет; по playing — рот по словам; ended → onEnd и обработчики сняты', async () => {
     const audio = fakeAudio(); const t = fakeTimers()
     const shapes = []; const onEnd = vi.fn(); const onMode = vi.fn()

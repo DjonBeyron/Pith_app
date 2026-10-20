@@ -9,7 +9,7 @@ import { pLog } from '../../../../shared/lib/debug.js'
 import { buildCharTimings } from '../../../../shared/lib/charTimings.js'
 import { buildSpans, decorStyle } from '../../../../shared/lib/textHighlight.js'
 import { usePlayedOffset, playedOffsetMs } from '../../usePlayedOffset.js'
-import { useMissingMediaFallback, FALLBACK_MS } from '../../useMissingMediaFallback.js'
+import { useMissingMediaFallback, FALLBACK_MS, timerFallbackMs } from '../../useMissingMediaFallback.js'
 import { useAudioSource } from './useAudioSource.js'
 import { useAudioMeta } from './useAudioMeta.js'
 import { useAudioGlowSource } from '../../useAudioGlowSource.js'
@@ -79,14 +79,9 @@ export default function AudioModule({ node, file, onDone, adminPreview = false, 
   // Откуда берётся звук и почему адрес фиксируется — useAudioSource.js
   const { src, locked: srcLocked, lock: lockSrc, unlock: unlockSrc } = useAudioSource(node, file)
   const downloading = !!file && !file.blobUrl && !file.evicted && !file.error && !file.localFile && !srcLocked
-  // Файл не загрузился (404/обрыв): ↻ на кнопке, один повтор по тапу, потом урок идёт дальше (useAudioLoadFail.js)
-  const loadFail = useAudioLoadFail(audioRef, src, elKey, {
-    onFail: () => setBuffering(false),
-    onGiveUp: () => {
-      if (text) { fullyRevealedRef.current = true; setTextStarted(true); setRevealedCharIdx(text.length) }
-      setTimeout(() => onDone?.(), 900)
-    },
-  })
+  // Файл не загрузился (404/обрыв): ↻, автоповтор, потом «таймер» — текст печатается как у заглушки админа и нода идёт дальше (useAudioLoadFail.js)
+  const [timerMode, setTimerMode] = useState(false)
+  const loadFail = useAudioLoadFail(audioRef, src, elKey, { onFail: () => setBuffering(false), onGiveUp: () => setTimerMode(true), onRetry: () => toggle() })
   // Волна, длительность, готовность волны — useAudioMeta.js (нода → прогрев → сами)
   const { waveData, duration, waveReady, adoptElementDuration } = useAudioMeta(node, file, src)
   // Скорость голоса из шапки урока (lessonVolume.js) — на элемент, при смене src/элемента и на лету
@@ -95,17 +90,16 @@ export default function AudioModule({ node, file, onDone, adminPreview = false, 
 
   // Аудио ещё не загружено, а сценарий смотрит админ: показываем текст, будто
   // сообщение звучит, и по окончании заглушки отпускаем цепочку дальше
-  const stubMode = adminPreview && !src
+  const stubMode = (adminPreview && !src) || timerMode
+  const stubMs = timerMode ? timerFallbackMs(text, duration) : FALLBACK_MS
   // История/разбор (isHistory): расшифровка сразу целиком, без печати и растушёвки — как в уже прочитанном чате
   const staticText = !!node.isHistory && !!text
   // Текст начинает печататься не сразу, а когда пузырь доехал до места
-  useMissingMediaFallback(stubMode && !pending, onDone, {
-    onStart: () => setTextStarted(true),
-  })
+  useMissingMediaFallback(stubMode && !pending, onDone, { onStart: () => setTextStarted(true), ms: stubMs })
   // Печать растягивается ровно на длительность заглушки: длинный текст не
   // обрывается на середине, короткий не «выстреливает» мгновенно — выглядит
   // так, будто его в этот момент озвучивают
-  const stubSpeed = Math.max(12, Math.round(FALLBACK_MS / Math.max(1, text.length)))
+  const stubSpeed = Math.max(12, Math.round(stubMs / Math.max(1, text.length)))
 
   useEffect(() => {
     logAudioMount({ src, storedWaveform, storedDuration })

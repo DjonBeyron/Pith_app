@@ -245,6 +245,7 @@ export default function CanvasPage({ lessonId, moduleLessons = [], module = null
           hasUnsyncedLogo={hasUnsyncedLogo} setShowPanel={setShowPanel}
           zoneToolActive={zoneToolActive} onToggleZoneTool={() => setZoneToolActive(v => !v)}
           audioBackfill={audioBackfill} sceneTab={sceneTab} onOpenScenes={() => setShowScenes(true)}
+          nodes={panelNodes} files={files}
         />
       </div>
 

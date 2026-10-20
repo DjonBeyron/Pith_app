@@ -22,6 +22,7 @@ import { sceneTrace } from './sceneTrace.js'
 // ('original' | 'translation' | null), меняется на границах шагов реплики.
 
 const IDLE = { index: 0, status: 'idle', run: 0, total: 0, line: null }
+export const ANCHOR_DRIFT_MS = 120
 
 // rate — множитель скорости речи поверх voice.rate персонажа (скорость голоса
 // урока, lessonVolume.js); читается на старте каждой реплики, сцену не пересоздаёт
@@ -35,6 +36,13 @@ export function useSceneDirectorV2(scene, {
   // Якорь: счётчик «файл оригинала реально зазвучал» + реальный остаток файла (мс, с учётом фактической скорости; null — неизвестен) —
   // доходит до индикатора прогресса через onState (SceneRenderer) как новое `at` и точная длительность реплики
   const [anchor, setAnchor] = useState({ seq: 0, ms: null })
+  const anchorRef = useRef({ ms: null, at: 0 }) // последний якорь: чего индикатор ждёт от часов файла
+  const anchorNow = () => (typeof performance !== 'undefined' ? performance.now() : Date.now())
+  const setAnchorMs = (ms, why) => {
+    anchorRef.current = { ms, at: anchorNow() }
+    if (why) sceneTrace(`якорь: ${why}`)
+    setAnchor(a => ({ seq: a.seq + 1, ms }))
+  }
   const [hidden, setHidden] = useState(() => typeof document !== 'undefined' && document.hidden)
   const dirRef = useRef(null)
   const autoPausedRef = useRef(false)
@@ -62,7 +70,14 @@ export function useSceneDirectorV2(scene, {
   useEffect(() => {
     if (!enabled || !scene) return undefined
     const player = makeScenePlayLine({
-      scene, opts: () => optsRef.current, setMode, setPhase, onFallback: setFail, onStarted: (_i, ms) => setAnchor(a => ({ seq: a.seq + 1, ms: Number.isFinite(ms) ? ms : null })),
+      scene, opts: () => optsRef.current, setMode, setPhase, onFallback: setFail, onStarted: (_i, ms) => setAnchorMs(Number.isFinite(ms) ? ms : null),
+      // Часы файла разошлись с ожиданием больше ANCHOR_DRIFT_MS → новый якорь (иначе React не трогаем: timeupdate ≈ 4 Гц)
+      onClock: (_i, ms) => {
+        const a = anchorRef.current
+        if (a.ms == null) return
+        const expected = a.ms - (anchorNow() - a.at)
+        if (Math.abs(ms - expected) > ANCHOR_DRIFT_MS) setAnchorMs(ms, `часы файла разошлись с кольцом на ${Math.round(ms - expected)} мс → перепривязка (остаток ${ms} мс)`)
+      },
       getMouthEl: who => optsRef.current.mouthEls?.current?.[who] ?? null,
     })
     const director = createDirector({

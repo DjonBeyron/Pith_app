@@ -6,6 +6,7 @@ import { useShowDebugUi } from './useShowDebugUi.js'
 import { useAdmin } from '../../app/AdminContext.jsx'
 import { usePref, hudVisible } from './lessonPrefs.js'
 import { usePerfProbe } from './usePerfProbe.js'
+import PlayerSkipper from './admin/PlayerSkipper.jsx'
 
 // Номер версии виден прямо в плеере: после деплоя сразу понятно, что открыт
 // свежий код, а не кэш браузера (правило из CLAUDE.md)
@@ -33,6 +34,8 @@ export default function PlayerOverlays({
   const { isAdmin } = useAdmin()
   const hud = usePref('hud')
   const showHud = showDebugUi && hudVisible(isAdmin, hud)
+  // Скипер нод (шаг по ветке ▲/▼ плавающим окном) — админу по настройке из шестерёнки
+  const skipperOn = usePref('skipper')
 
   return (
     <>
@@ -50,6 +53,7 @@ export default function PlayerOverlays({
       )}
       {showHud && <div className="playerVersionStamp">{buildStamp()}</div>}
       {showHud && perfSummary && <div className="playerPerfStamp">{perfSummary}</div>}
+      {isAdmin && skipperOn && <PlayerSkipper />}
     </>
   )
 }

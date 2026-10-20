@@ -77,6 +77,7 @@
 @import './styles/canvas/batch-gen.css';
 @import './styles/canvas/word-audio.css';
 @import './styles/canvas/audio-meta-backfill.css';
+@import './styles/canvas/health.css';
 @import './styles/canvas/files-panel.css';
 @import './styles/canvas/lesson-settings.css';
 @import './styles/canvas/audio.css';
@@ -109,6 +110,7 @@
 @import './styles/player/layout.css';
 @import './styles/player/admin-edit.css';
 @import './styles/player/admin-solve.css';
+@import './styles/player/admin-skipper.css';
 @import './styles/player/topbar.css';
 @import './styles/player/volume-menu.css';
 @import './styles/player/settings-menu.css';

@@ -22,6 +22,15 @@ async function load() {
 describe('настройки шестерёнки: состояние', () => {
   beforeEach(() => { store.clear(); failStorage = false })
 
+  it('админские nodeNum/skipper по умолчанию выключены, включаются только записью «1»', async () => {
+    store.set('pithy_pref_skipper', '1')
+    const m = await load()
+    expect(m.getPref('nodeNum')).toBe(false)
+    expect(m.getPref('skipper')).toBe(true)
+    m.setPref('nodeNum', true)
+    expect(store.get('pithy_pref_node_num')).toBe('1')
+  })
+
   it('по умолчанию всё включено', async () => {
     const m = await load()
     for (const name of ['typing', 'xp', 'equalizer', 'hud']) expect(m.getPref(name)).toBe(true)
@@ -44,6 +53,8 @@ describe('настройки шестерёнки: состояние', () => {
     expect(m.PREF_KEYS).toEqual({
       typing: 'pithy_pref_typing_sound', xp: 'pithy_pref_xp_sound',
       equalizer: 'pithy_pref_equalizer', timer: 'pithy_pref_answer_timer', hud: 'pithy_lesson_hud',
+      nodeNum: 'pithy_pref_node_num',
+      skipper: 'pithy_pref_skipper',
     })
   })
 

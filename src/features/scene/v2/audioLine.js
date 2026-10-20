@@ -56,11 +56,13 @@ export function knownDurationSec(line, timings) {
 // onStarted(remainingMs) — звук реально пошёл (первое 'playing'): по нему индикатор прогресса заново отсчитывает реплику, причём
 // по РЕАЛЬНОМУ остатку файла (duration − currentTime) / фактический playbackRate, а не по оценке (задержка play() → playing 50–300 мс
 // и неприменившаяся скорость иначе копились в «стоянку» кольца у края; null — длительность ещё неизвестна).
+// onClock(remainingMs) — на каждом timeupdate после старта (≈4 Гц): часы элемента против ожидания индикатора (режиссёр перепривязывает
+// кольцо только при расхождении — на Android часы файла шли на ~300 мс дольше duration, трасса 2026-10-21).
 // Скорость ставится ПОСЛЕ src и повторяется на loadedmetadata/playing: алгоритм загрузки медиа сбрасывает playbackRate в
 // defaultPlaybackRate при смене источника (на Android файл при 1,5× играл 1× — трасса 2026-10-20), как и lessonVolume.listenMediaReapply
 export function playLineAudio(line, audio, {
   src = null, muted = false, rate = 1, applyMouth = () => {}, lowPower = false,
-  onEnd, onFail, onMode, onStarted, timers = globalThis, raf, caf, now, isHidden,
+  onEnd, onFail, onMode, onStarted, onClock, timers = globalThis, raf, caf, now, isHidden,
 } = {}) {
   if (!audio || !line?.audioUrl) { onFail?.(audio ? 'no-url' : 'no-element'); return () => {} }
   const token = ++seq
@@ -133,7 +135,13 @@ export function playLineAudio(line, audio, {
     const d = audio.duration
     if (Number.isFinite(d) && d > 0) { durationSec = d; sync.setTimings(synth(d)) }
   }
-  function onEnded() { tr(`ended за ${since()}`); finish(false) }
+  function onEnded() { tr(`ended за ${since()} (${audioState(audio)})`); finish(false) }
+  function onTime() {
+    if (done || !started) return
+    const r = remainingMs()
+    if (r != null && r < 400) tr(`часы: остаток ${r} мс (t=${Math.round((audio.currentTime ?? 0) * 100) / 100})`)
+    if (r != null) onClock?.(r)
+  }
   function onError() {
     if (done) return
     const code = audio.error?.code
@@ -183,7 +191,7 @@ export function playLineAudio(line, audio, {
     done = true
     timers.clearTimeout(loadTimer); timers.clearTimeout(guardTimer); timers.clearTimeout(retryTimer); timers.clearTimeout(stallTimer)
     sync.stop()
-    off('playing', onPlaying); off('waiting', onWaiting); off('ended', onEnded); off('error', onError); off('loadedmetadata', onMeta)
+    off('playing', onPlaying); off('waiting', onWaiting); off('ended', onEnded); off('error', onError); off('loadedmetadata', onMeta); off('timeupdate', onTime)
     if (owners.get(audio) === token) { try { audio.pause() } catch { /* ignore */ } }
   }
   // reason отказа (onFail): 'not-allowed' (нет жеста) | 'not-supported' (404/не аудио) |
@@ -196,7 +204,7 @@ export function playLineAudio(line, audio, {
     else onEnd?.()
   }
 
-  on('playing', onPlaying); on('waiting', onWaiting); on('ended', onEnded); on('error', onError); on('loadedmetadata', onMeta)
+  on('playing', onPlaying); on('waiting', onWaiting); on('ended', onEnded); on('error', onError); on('loadedmetadata', onMeta); on('timeupdate', onTime)
   try {
     audio.muted = !!muted
     audio.preservesPitch = true

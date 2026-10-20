@@ -6,6 +6,8 @@ import { buildTranscript, warningsByRef, optChoice } from './lessonTranscript.js
 import { diffNodes } from './applyChanges.js'
 import PlayerLikeFeed from './PlayerLikeFeed.jsx'
 import EmbeddedCanvas from './EmbeddedCanvas.jsx'
+import BrokenNodesBadge from '../health/BrokenNodesBadge.jsx'
+import { useLessonHealth } from '../health/useLessonHealth.js'
 import RulesPane from './RulesPane.jsx'
 import NoteDialog from './NoteDialog.jsx'
 import NotesWindow from './NotesWindow.jsx'
@@ -73,6 +75,7 @@ export default function LessonReviewPanel({ nodes: initialNodes, zones: initialZ
   const [rulesOff, setRulesOff] = useState(() => { try { return localStorage.getItem('pithy-review-rules-off') === '1' } catch { return false } })
   const toggleRules = () => setRulesOff(v => { try { localStorage.setItem('pithy-review-rules-off', v ? '0' : '1') } catch { /* нет хранилища */ } return !v })
   const sel = nodes.find(n => n.ref === selRef) ?? null
+  const health = useLessonHealth({ nodes: dDraft, files: boardProps?.lessonFiles ?? NO_FILES }) // сломанные ноды — тот же значок, что в шапке канваса
   const diff = useMemo(() => diffNodes(base, dDraft), [base, dDraft])
   const switched = Object.keys(choices).length
 
@@ -144,6 +147,7 @@ export default function LessonReviewPanel({ nodes: initialNodes, zones: initialZ
         <span className="rvwSpacer" />
         {(diff.added > 0 || diff.removed > 0) && <span className="rvwInfo rvwInfoWarn" title="Добавленные и удалённые ноды автоматически не переносятся — сделай это на основном холсте">+{diff.added} / −{diff.removed} нод не переносятся</span>}
         {applied && <span className="rvwInfo rvwInfoOk">{applied}</span>}
+        <BrokenNodesBadge health={health} onFocus={select} />
         <button className={`rvwBtn rvwBtnChg${versions.show ? ' on' : ''}`} disabled={!versions.canCompare} onClick={() => versions.setShow(!versions.show)}
           title={versions.canCompare ? 'Розовая полоска у сообщений, которые отличаются от предыдущей версии (новые, изменённые и те, к которым были замечания)' : 'Предыдущей версии урока ещё нет: она появится, когда урок изменится и разбор откроют снова'}>
           Изменения{versions.show ? ` (${versions.marks.size})` : ''}

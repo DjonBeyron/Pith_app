@@ -23,6 +23,14 @@ describe('голосовое, чей файл не загрузился (404)', 
     expect(hook).toContain('flushSync') // адрес обновлён синхронно — play() остаётся в том же касании
   })
 
+  it('автоповтор без тапа через AUTO_RETRY_MS, после второй ошибки — таймер: текст печатается, нода завершается (как заглушка админа)', () => {
+    expect(hook).toContain('AUTO_RETRY_MS')
+    expect(hook).toContain('cbRef.current.onRetry?.()')
+    expect(mod).toContain('onGiveUp: () => setTimerMode(true)')
+    expect(mod).toContain('(adminPreview && !src) || timerMode')
+    expect(mod).toContain('ms: stubMs')
+  })
+
   it('NotSupportedError от play() считается сбоем загрузки, AbortError — нет', () => {
     expect(mod).toContain("err.name === 'NotSupportedError') loadFail.fail('play()')")
     expect(mod).not.toMatch(/AbortError'\) loadFail/)

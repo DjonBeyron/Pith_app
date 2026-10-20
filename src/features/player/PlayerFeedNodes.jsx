@@ -5,6 +5,7 @@ import { mergeFeedOrder } from '../../shared/lib/feedOrder.js'
 import { useFeedWindow } from './useFeedWindow.js'
 import { entryKey } from './feedWindow.js'
 import { nodeFileKey } from './preloadQueue.js'
+import { usePref } from './lessonPrefs.js'
 
 // Сообщения ленты: видимые ноды графа урока + сигнальные сообщения
 // (useSignalMessages.js), вперемешку в хронологическом порядке (см.
@@ -46,6 +47,9 @@ const NOOP = () => {}
 
 const MemoMessage = memo(PlayerMessage)
 
+// Номер ноды (seq из канваса) мелкой меткой в углу сообщения — только админу и только по настройке «Номера нод в чате» (lessonPrefs)
+const NodeNum = ({ seq }) => <span className="playerNodeNum" aria-hidden="true">{seq}</span>
+
 export default function PlayerFeedNodes({
   visibleNodes, pendingNode, nodes, filesWithBlobs, teacherName,
   states, bottomOffset, videoAutoSound, isAdmin,
@@ -59,6 +63,7 @@ export default function PlayerFeedNodes({
   // HISTORY_PAGE) — кнопка сверху ленты подгружает более раннюю пачку
   hasMoreHistory = false, onLoadMoreHistory,
 }) {
+  const showNum = usePref('nodeNum') && !!isAdmin
   const merged = mergeFeedOrder(visibleNodes, signalItems)
   const feedWindow = useFeedWindow(merged, { hasMoreHistory, onLoadMoreHistory })
   const trailingPending = pendingNode && !visibleNodes.some(v => v.id === pendingNode.id)
@@ -90,9 +95,10 @@ export default function PlayerFeedNodes({
     return (
       <div
         key={node.id}
-        className={adminEdit?.enabled
-          ? `playerMsgSlot${adminEdit.editId === node.id ? ' playerMsgSlotActive' : ''}`
-          : undefined}
+        className={[
+          adminEdit?.enabled ? `playerMsgSlot${adminEdit.editId === node.id ? ' playerMsgSlotActive' : ''}` : '',
+          showNum ? 'playerNodeNumHost' : '',
+        ].filter(Boolean).join(' ') || undefined}
         data-pending={isPending ? 'true' : undefined}
         data-entry-key={node.id}
         // Восстановленная история («Продолжить урок») встаёт сразу на своё
@@ -111,6 +117,7 @@ export default function PlayerFeedNodes({
           pointerEvents: 'none', visibility: 'hidden',
         } : undefined}
       >
+        {showNum && !isPending && <NodeNum seq={node.seq} />}
         {adminEdit?.enabled && !isPending && (
           <NodeEditPencil
             onClick={() => adminEdit.open(node.id)}

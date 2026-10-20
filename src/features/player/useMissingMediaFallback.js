@@ -11,6 +11,8 @@ import { usePlayerFrozen } from './playerFrozen.js'
 // до конца ещё до загрузки файлов. Длительность заодно задаёт темп печати
 // текста у голосового (AudioModule): он допечатывается ровно к переходу.
 export const FALLBACK_MS = 1600
+// Голосовое, чей файл не загрузился и после повтора (useAudioLoadFail): длительность «таймера» — по мете файла, иначе по тексту (65 мс/символ), 1,6–8 с
+export const timerFallbackMs = (text, durationSec) => Math.round(Math.min(8000, Math.max(FALLBACK_MS, durationSec > 0 ? durationSec * 1000 : String(text ?? '').length * 65)))
 // Пузырь выезжает 190мс (PlayerFeed) — ждём приземления, иначе текст
 // печатается ещё в воздухе
 const APPEAR_MS = 280
@@ -19,7 +21,8 @@ const APPEAR_MS = 280
 // обязательно: ноды пре-рендерятся за экраном с заглушкой вместо onDone
 // (LessonPlayer), и сработавший там таймер просто пропал бы вникуда —
 // следующее сообщение не появлялось бы вовсе.
-export function useMissingMediaFallback(active, onDone, { onStart } = {}) {
+// ms — длительность заглушки (по умолчанию FALLBACK_MS; голосовое с несгрузившимся файлом — timerFallbackMs)
+export function useMissingMediaFallback(active, onDone, { onStart, ms = FALLBACK_MS } = {}) {
   // Шаговый режим админа: на заморозке заглушка не «доигрывает» и цепочку не
   // отпускает — иначе пауза не держала бы ноды без файла
   const frozen = usePlayerFrozen()
@@ -39,7 +42,7 @@ export function useMissingMediaFallback(active, onDone, { onStart } = {}) {
     const done = setTimeout(() => {
       firedRef.current = true
       onDoneRef.current?.()
-    }, APPEAR_MS + FALLBACK_MS)
+    }, APPEAR_MS + ms)
     return () => { clearTimeout(start); clearTimeout(done) }
-  }, [active, frozen])
+  }, [active, frozen, ms])
 }

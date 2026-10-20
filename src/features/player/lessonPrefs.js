@@ -10,7 +10,9 @@ import { setSoundFilter } from '../../shared/lib/sounds.js'
 //   equalizer — свечение-эквалайзер снизу чата (AudioGlow);
 //   timer  — таймеры на быстрых вопросах (лимит времени ноды, useAnswerTimer): выключил — ответы без отсчёта.
 // Только для админа:
-//   hud — датчик fps и штамп версии поверх урока.
+//   hud — датчик fps и штамп версии поверх урока;
+//   nodeNum — номер ноды (seq из канваса) мелкой меткой у каждого сообщения ленты (PlayerFeedNodes.jsx), по умолчанию ВЫКЛ;
+//   skipper — плавающее окно «скипер» (PlayerSkipper.jsx): шаг по ветке нод вверх/вниз, не дожидаясь, по умолчанию ВЫКЛ.
 //
 // «Выкл» гасит ТОЛЬКО вывод: звук не играет / свечение не рисуется. Анимации и
 // тайминги (точки печатанья, шарики XP, XpFloat) идут как обычно.
@@ -24,7 +26,11 @@ export const PREF_KEYS = {
   equalizer: 'pithy_pref_equalizer',
   timer:     'pithy_pref_answer_timer',
   hud:       'pithy_lesson_hud',
+  nodeNum:   'pithy_pref_node_num',
+  skipper:   'pithy_pref_skipper',
 }
+// По умолчанию выключены (включаются только записью '1'); остальные — включены, выключает только '0'
+export const PREF_DEFAULT_OFF = new Set(['nodeNum', 'skipper'])
 
 // Какой звук какой настройкой отключается; остальные звуки пользователь не
 // отключает (ответы, сообщения, уровень, закреп)
@@ -43,7 +49,7 @@ function writeStore(key, value) {
 
 // Записано '0' — выключено; нет записи, мусор, ошибка storage — включено
 const prefs = {}
-for (const name of Object.keys(PREF_KEYS)) prefs[name] = readStore(PREF_KEYS[name]) !== '0'
+for (const name of Object.keys(PREF_KEYS)) prefs[name] = PREF_DEFAULT_OFF.has(name) ? readStore(PREF_KEYS[name]) === '1' : readStore(PREF_KEYS[name]) !== '0'
 
 const listeners = new Set()
 function emit() { listeners.forEach(fn => fn()) }

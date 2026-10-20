@@ -1,6 +1,8 @@
 import CanvasXpField from './CanvasXpField.jsx'
 import WordAudioButton from './word-audio/WordAudioButton.jsx'
 import AudioMetaBackfillBadge from './AudioMetaBackfillBadge.jsx'
+import BrokenNodesBadge from './health/BrokenNodesBadge.jsx'
+import { useLessonHealth } from './health/useLessonHealth.js'
 import { computeMenuPos } from '../../shared/lib/menuPosition.js'
 import { unlockLessonAudio } from '../../shared/lib/lessonAudioUnlock.js'
 import { unlockSceneAudioForLesson } from '../scene/v2/sceneAudioUnlock.js'
@@ -18,7 +20,10 @@ export default function CanvasHeaderActions({
   zoneToolActive, onToggleZoneTool,
   lessonId, title,
   audioBackfill, sceneTab = null, onOpenScenes,
+  nodes = [], files = [],
 }) {
+  // Сломанные ноды (файл потерян / ссылка 404 / пустой файл) — проверка ссылок в фоне, значок ⚠ со списком и телепортом к ноде
+  const health = useLessonHealth({ nodes, files, enabled: !loading })
   return (
     <div className="canvasPageActions">
       {/* Мигающая точка — есть несохранённые правки */}
@@ -92,6 +97,7 @@ export default function CanvasHeaderActions({
       {/* «Спектр: 3/12…» — пока useAudioMetaBackfill.js досчитывает мету
           голосовых; когда всё есть — пусто */}
       <AudioMetaBackfillBadge progress={audioBackfill} />
+      <BrokenNodesBadge health={health} onFocus={id => boardApiRef.current?.focusNode(id)} />
       <button
         className="canvasPageTools"
         title="Ещё действия с холстом"
