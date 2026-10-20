@@ -12,6 +12,7 @@ import { sceneStaticMarkup } from './staticMarkup.js'
 import './scene-v2.css'
 import './scene-v2-cat.css'
 import { sceneTrace } from './sceneTrace.js'
+import { settleSceneIdle } from './sceneSettle.js'
 
 // Быстрый рендерер сцены v2 (9:16, адаптивный). Один <svg>: фон → предметы
 // по слотам → два кота (или один по центру — одиночная сцена, scenePit.js: облачко
@@ -67,6 +68,7 @@ function Props({ scene }) {
 export default function SceneRenderer({
   scene, mode = 'live', active = true, paused = false, sound = true, rate = 1, lite, frameIndex = null,
   showBubbles, display, voice = null, showProgress = true, viewBox = null, onTap, apiRef, onState, audioSrcOf = null, className = '', children,
+  settle = false, // родитель просит успокоить позу заранее (кружок сворачивает повтор доигравшей сцены — впереди замена статичным кадром)
 }) {
   const live = mode === 'live'
   const solo = isSolo(scene) // один кот (a) по центру, b не рисуется
@@ -104,6 +106,13 @@ export default function SceneRenderer({
   }, [live])
 
   const isLite = lite ?? isWeakDevice()
+  // Сцена доиграла: идл-анимации не замирают в случайной позе (а потом «прыгали» бы в нейтраль при замене статичным кадром), а плавно
+  // успокаиваются (sceneSettle.js). Повтор («ещё раз») снимает — анимации снова идут. На lite анимаций нет — нечего успокаивать
+  const settling = live && !isLite && (director.status === 'ended' || settle)
+  useEffect(() => {
+    if (!settling) return undefined
+    return settleSceneIdle(rootRef.current, { onDone: n => sceneTrace(`кадр: поза успокаивается (${n} частей) перед заморозкой`) })
+  }, [settling])
   const shown = bubbleDisplay(scene, { display, showBubbles }) // 'none' | 'text' | 'both' (task → не 'both')
   const line = live ? director.line : (frameIndex !== null ? scene.timeline?.[frameIndex] ?? null : null)
   const speaking = live ? director.speakingWho : null

@@ -1,14 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { usePlayerFrozen } from '../../playerFrozen.js'
-import { useLessonMuted, useVoiceRate, getLessonMuted } from '../../lessonVolume.js'
-import { unlockSceneAudio, sceneNeedsOwnGesture } from '../../../scene/v2/sceneAudioUnlock.js'
-import { useSceneSolo, sceneSoloSeq, sceneSoloBusy, sceneGestureSeq, noteSceneGesture } from './useSceneSolo.js'
-import {
-  startDecision, waitRowAppear, scheduleSceneStart, autoStartSound, pageHasBeenActive, autoStartYields,
-} from './sceneStartPlan.js'
+import { useLessonMuted, useVoiceRate } from '../../lessonVolume.js'
+import { unlockSceneAudio } from '../../../scene/v2/sceneAudioUnlock.js'
+import { useSceneSolo, noteSceneGesture } from './useSceneSolo.js'
+import { useSceneAutoStart } from './useSceneAutoStart.js'
 import { fsOpenTransition, fsCloseTransition, inlineTapAction, expandAction, expandStatusOf, SCENE_EXPAND_PLAY_DELAY_MS } from './sceneFullscreenModel.js'
 import { sceneTrace, nextSceneTag, ms } from '../../../scene/v2/sceneTrace.js'
-import { sceneAudioUnlocked } from '../../../scene/v2/sceneAudioUnlock.js'
+import { SETTLE_MS } from '../../../scene/v2/sceneSettle.js'
 
 // Поведение живой сцены в ленте урока (общее для пузыря и кружка):
 //  · старт (sceneStartPlan.js): 'auto' — после конца анимации появления
@@ -54,6 +52,14 @@ export function useScenePlayback({ resolved, pending, isHistory, onDone, ready =
   // не оживает, даже когда полноэкранный режиссёр снова играет (состояние берётся у него)
   const [ended, setEnded] = useState(false)
   if (st.status === 'ended' && !ended) setEnded(true)
+  // Заморозка кадра (live → static в SceneBody) — не в момент конца, а когда поза кота успокоилась (SceneRenderer + sceneSettle.js):
+  // иначе статичный кадр с нейтральной позой вставал скачком. Кружок к этому времени как раз сворачивается
+  const [frameFrozen, setFrameFrozen] = useState(false)
+  useEffect(() => {
+    if (!ended || frameFrozen) return undefined
+    const t = setTimeout(() => { trace('кадр: поза успокоилась → можно замораживать (static)'); setFrameFrozen(true) }, SETTLE_MS + 60)
+    return () => clearTimeout(t)
+  }, [ended, frameFrozen, trace])
   const [soundBlocked, setSoundBlocked] = useState(false)
   const [cmd, setCmd] = useState(null) // команда режиссёру отложенным эффектом (см. ниже)
   const frozen = usePlayerFrozen()
@@ -86,29 +92,10 @@ export function useScenePlayback({ resolved, pending, isHistory, onDone, ready =
     onDone?.('played')
   }, [st.status, onDone, trace])
 
-  // Автозапуск: после анимации появления + задержка ноды (sceneStartPlan.js)
-  useEffect(() => {
-    if (startDecision({ start, isHistory, pending, hasScene }) !== 'arm' || startedRef.current) return undefined
-    const wait = waitRowAppear(rootRef.current, { onResolved: how => trace(`появление: ${how}`) })
-    const armedSeq = sceneSoloSeq()
-    const armedGesture = sceneGestureSeq()
-    return scheduleSceneStart({
-      waitAppear: wait, delayMs: startDelayMs, log: m => trace(`автозапуск: ${m}`),
-      play: () => {
-        if (startedRef.current) return
-        // Пока кружок ждал, пользователь запустил другую сцену (тап по сцене в ленте) и она ещё играет — не перебиваем её:
-        // кружок остаётся с ▶ и стартует по тапу
-        if (autoStartYields({ armedGesture, gesture: sceneGestureSeq(), armedSeq, seq: sceneSoloSeq(), busy: sceneSoloBusy() })) { trace('автозапуск отменён: играет другая сцена'); return }
-        startedRef.current = true
-        const withSound = autoStartSound({ hasBeenActive: pageHasBeenActive(), needsGesture: sceneNeedsOwnGesture() })
-        trace(`автозапуск play() sound=${withSound} (hasBeenActive=${pageHasBeenActive()} needsGesture=${sceneNeedsOwnGesture()} unlocked=${sceneAudioUnlocked()} muted=${getLessonMuted()})`)
-        // Не api.play() сразу: режиссёр читает sound из пропсов рендерера, и флаг
-        // должен дойти до него до старта реплики — команда уходит эффектом ниже
-        setSoundBlocked(!withSound)
-        setCmd({ type: 'play' })
-      },
-    })
-  }, [start, startDelayMs, isHistory, pending, hasScene, trace])
+  // Автозапуск: после анимации появления + задержка ноды — useSceneAutoStart.js (план — sceneStartPlan.js)
+  // Не api.play() сразу: режиссёр читает sound из пропсов рендерера, и флаг должен дойти до него до старта реплики — команда уходит эффектом ниже
+  const onAutoPlay = useCallback(withSound => { setSoundBlocked(!withSound); setCmd({ type: 'play' }) }, [])
+  useSceneAutoStart({ start, startDelayMs, isHistory, pending, hasScene, rootRef, startedRef, trace, onPlay: onAutoPlay })
 
   const activeApi = useCallback(() => (fsOpenRef.current ? fsApiRef.current : apiRef.current), [])
   // Команды режиссёру после того, как новое значение sound дошло до рендерера (эффекты
@@ -233,7 +220,7 @@ export function useScenePlayback({ resolved, pending, isHistory, onDone, ready =
   return {
     apiRef, fsApiRef, rootRef, onState, onFsState, state: st,
     paused: frozen, sound: !muted && !soundBlocked, muted, rate,
-    playing: st.status === 'playing', ended,
+    playing: st.status === 'playing', ended, frameFrozen,
     soundChip: soundBlocked && !muted && st.status === 'playing' && !fsOpen,
     manualIdle: start === 'manual' && st.status === 'idle',
     handleTap, expandPlay, freeze, startInPlace, enableSound, togglePause,

@@ -42,6 +42,12 @@ export default function SceneCircleView({
   const frozenEnded = ended && !(open && ex.grown) // доигравшая: статичный кадр, пока кружок растёт (живой SVG — после роста)
   // Свернули повтор доигравшей сцены: рамка стала статичной, состояние ноды — «ended» (useScenePlayback.freeze)
   useEffect(() => { if (frozenEnded && status !== 'ended') onFreeze?.() }, [frozenEnded, status, onFreeze])
+  // Сворачивание повтора доигравшей сцены: в конце анимации живой SVG заменится статичным кадром — режиссёр на паузу сразу, а поза
+  // кота успокаивается за время сворачивания (SceneRenderer settle → sceneSettle.js), чтобы кадр встал без скачка
+  const settle = ended && ex.collapsing
+  useEffect(() => {
+    if (settle && status === 'playing') { trace?.('сворачивание повтора → режиссёр на паузу, поза успокаивается'); apiRef.current?.pause() }
+  }, [settle, status, apiRef, trace])
   const viewBox = useMemo(() => sceneCircleViewBox({ solo: isSolo(scene), crop }), [scene, crop])
   const last = Math.max(0, (scene.timeline?.length ?? 1) - 1)
   const near = useSceneNear(rootRef, isHistory || frozenEnded)
@@ -72,7 +78,7 @@ export default function SceneCircleView({
               <SceneBody
                 scene={scene} isHistory={isHistory} ended={frozenEnded} near={near} last={last} showBubbles={showBubbles}
                 display={display} voice={voice} showProgress={false} viewBox={viewBox}
-                live={{ active: !pending, paused, sound, rate, audioSrcOf, apiRef, onState }}
+                live={{ active: !pending, paused, sound, rate, audioSrcOf, apiRef, onState, settle }}
               />
             </div>
           </div>

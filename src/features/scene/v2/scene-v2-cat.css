@@ -76,6 +76,13 @@
   animation-play-state: paused;
 }
 
+/* Успокоение перед заморозкой (sceneSettle.js): сцена доиграла — анимации сняты, части из зафиксированной инлайном позы едут в
+   нейтраль за SETTLE_MS (450 мс), и статичный кадр встаёт без скачка. Важнее .scn--paused (ниже по каскаду и animation: none) */
+.scn--settle .cat-body, .scn--settle .cat-head, .scn--settle .cat-eyes, .scn--settle .cat-tail, .scn--settle .prop-steam {
+  animation: none;
+  transition: transform 450ms ease-out, opacity 450ms ease-out;
+}
+
 /* Слабое устройство / reduced-motion: остаётся только рот (CSS-визема) и облачко */
 .scn--lite .cat-body, .scn--lite .cat-head, .scn--lite .cat-eyes, .scn--lite .cat-tail, .scn--lite .prop-steam {
   animation: none;

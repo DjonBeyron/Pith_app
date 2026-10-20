@@ -26,6 +26,7 @@ import { sceneAudioSrcOf } from './sceneNodeAudio.js'
 // Сцена-шаблон (vars): слова пользователя подставляются ДО старта режиссёра (useSceneUserValues: общий стор слов, зерно
 // «день + id сцены», ожидание ≤ 500 мс, потом запасное слово); пока значения не готовы, автозапуск и тап не работают, а после
 // готовности сцена больше не меняется. Нода в истории слов не грузит — запасное слово. Тот же модуль играет карточки повтора.
+// ended у видов — pb.frameFrozen: защёлка конца с задержкой на успокоение позы (sceneSettle.js), а не сырое pb.ended.
 // lessonFiles — файлы урока с прогревом (withBlobs): озвучка реплик (audioUrl)
 // играет из blob, если он уже скачан (sceneNodeAudio.js), иначе по ссылке.
 export default function SceneModule({ node, lessonFiles = null, onDone, adminPreview = false, pending = false, bottomOffset = 0 }) {
@@ -50,7 +51,7 @@ export default function SceneModule({ node, lessonFiles = null, onDone, adminPre
   }
   const st = pb.state
   const live = {
-    isHistory, ended: pb.ended, pending, status: st.status, index: st.index, run: st.run, at: st.at, total: st.total, mode: st.mode,
+    isHistory, ended: pb.frameFrozen, pending, status: st.status, index: st.index, run: st.run, at: st.at, total: st.total, mode: st.mode,
     paused: pb.paused || pb.fsOpen, sound: pb.sound, rate: pb.rate, soundChip: pb.soundChip, onEnableSound: pb.enableSound,
     apiRef: pb.apiRef, rootRef: pb.rootRef, onState: pb.onState,
   }
