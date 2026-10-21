@@ -83,13 +83,25 @@
 .playerSceneCircleInner .scn[data-solo] .scn-bubble,
 .nodeScenePreview--circle .scn[data-solo] .scn-bubble { left: 21%; right: 21%; translate: none; }
 .playerSceneCircleInner .scn-bubble__tail { left: 50%; right: auto; margin-left: -12px; border-width: 12px; border-left-width: 6px; border-right-width: 6px; bottom: -12px; }
-.playerSceneCircle .circleRingSvg { opacity: 1; transition: opacity 0.35s ease; }
+.playerSceneCircle .playerSceneRing { opacity: 1; transition: opacity 0.35s ease; }
 /* Доиграла: кольцо доезжает до полного (240 мс) и уходит — не «висит» вокруг кружка (жалоба с iPhone, 2026-10-21); повтор тапом — снова с нуля */
-.playerSceneCircle[data-status="ended"] .circleRingSvg { opacity: 0; transition: opacity 0.4s ease 0.45s; }
-/* Дугу ведёт Web Animation (useSceneProgress.js) — плавность даёт она сама, transition тут сломал бы синхронность */
-.playerSceneRingArc { transition: none; }
-.playerSceneCircle[data-status="idle"] .circleRingSvg,
-.playerSceneCircle[data-status="history"] .circleRingSvg { opacity: 0; }
+.playerSceneCircle[data-status="ended"] .playerSceneRing { opacity: 0; transition: opacity 0.4s ease 0.45s; }
+/* Кольцо из двух половинок (sceneRingHalves.js): маски-половины с overflow:hidden, в каждой полная окружность-рамка с закрашенной
+   одной половиной (clip-path), центр на внутреннем крае маски; прогресс — transform: rotate дуг (композитор, главный поток не нужен) */
+.playerSceneRing { position: absolute; inset: -5px; border-radius: 50%; pointer-events: none; }
+.playerSceneRingTrack { position: absolute; inset: 0; border-radius: 50%; border: 1.5px solid rgba(255, 255, 255, 0.12); box-sizing: border-box; }
+.playerSceneRingHalf { position: absolute; top: 0; bottom: 0; width: 50%; overflow: hidden; }
+.playerSceneRingHalf--r { right: 0; }
+.playerSceneRingHalf--l { left: 0; }
+.playerSceneRingArc {
+  position: absolute; top: 0; width: 200%; height: 100%;
+  border-radius: 50%; border: 1.5px solid #b6fe3b; box-sizing: border-box;
+  transform-origin: 50% 50%; will-change: transform; transition: none;
+}
+.playerSceneRingHalf--r .playerSceneRingArc { left: -100%; clip-path: inset(0 50% 0 0); }
+.playerSceneRingHalf--l .playerSceneRingArc { left: 0; clip-path: inset(0 0 0 50%); }
+.playerSceneCircle[data-status="idle"] .playerSceneRing,
+.playerSceneCircle[data-status="history"] .playerSceneRing { opacity: 0; }
 
 /* Чип «Включить звук» (SceneSoundChip.jsx): автозапуск без жеста пошёл немым —
    тап по чипу открывает звук. Лежит внизу кадра, где у видео значок mute */

@@ -1,4 +1,4 @@
-import { useMemo, useState, useSyncExternalStore } from 'react'
+import { useCallback, useMemo, useState, useSyncExternalStore } from 'react'
 import { useAdmin } from '../../../../app/AdminContext.jsx'
 import { sceneTraceLines, sceneTraceSeq, subscribeSceneTrace, resetSceneTrace, audioState } from '../../../scene/v2/sceneTrace.js'
 import { getSceneAudioElement, sceneAudioUnlocked } from '../../../scene/v2/sceneAudioUnlock.js'
@@ -14,31 +14,28 @@ const btn = { padding: '3px 8px', borderRadius: 6, border: '1px solid #444', bac
 
 const mine = (l, tag) => l.includes(` ${tag} `) || !/\] #\d+ /.test(l)
 
-function ringPct(el, C) {
-  if (!el || !C || typeof getComputedStyle !== 'function') return '—'
-  const v = parseFloat(getComputedStyle(el).strokeDashoffset)
-  return Number.isFinite(v) ? `${Math.round((1 - v / C) * 1000) / 10}%` : '—'
-}
-
-// Кольцо читается из DOM (дуга в той же строке ленты, что и окно) в момент новой строки трассы — в подписке, не в рендере и без ref
-// (правила react-hooks/refs и компилятора); снимок отдаётся как внешний стор
+// Кольцо — из data-progress кольца в той же строке ленты (useSceneProgress пишет его на каждом состоянии): без getComputedStyle
+// и только пока окно раскрыто — свёрнутая панель ничего не читает и не перерисовывается на строки трассы (раньше каждая строка в
+// конце сцены заставляла её пересчитывать стиль — лишняя работа главного потока ровно там, где кольцо доезжает)
 function ringEl(tag) {
-  return document.querySelector(`[data-scene-debug="${tag}"]`)?.closest('.playerMsgRow')?.querySelector('.playerSceneRingArc') ?? null
+  return document.querySelector(`[data-scene-debug="${tag}"]`)?.closest('.playerMsgRow')?.querySelector('.playerSceneRing') ?? null
 }
-function makeRingStore(tag, C) {
+const ringPct = el => { const v = Number(el?.dataset?.progress); return Number.isFinite(v) ? `${Math.round(v * 1000) / 10}%` : '—' }
+function makeRingStore(tag) {
   let v = '—'
-  return { subscribe: cb => subscribeSceneTrace(() => { v = ringPct(ringEl(tag), C); cb() }), get: () => v }
+  return { subscribe: cb => subscribeSceneTrace(() => { v = ringPct(ringEl(tag)); cb() }), get: () => v }
 }
-function useRingPct(tag, C) {
-  const store = useMemo(() => makeRingStore(tag, C), [tag, C])
-  return useSyncExternalStore(store.subscribe, store.get, store.get)
-}
+const NO_SUB = () => () => {}
+const ZERO = () => 0
 
-function Panel({ tag, status, index, total, mode, sound, soundChip, ended, frozen, expanded, grown, circumference }) {
-  useSyncExternalStore(subscribeSceneTrace, sceneTraceSeq, sceneTraceSeq)
-  const ring = useRingPct(tag, circumference)
+function Panel({ tag, status, index, total, mode, sound, soundChip, ended, frozen, expanded, grown }) {
+  const [open, setOpen] = useState(false)
+  const subTrace = useCallback(cb => (open ? subscribeSceneTrace(cb) : NO_SUB()), [open])
+  useSyncExternalStore(subTrace, open ? sceneTraceSeq : ZERO, ZERO)
+  const store = useMemo(() => makeRingStore(tag), [tag])
+  const ring = useSyncExternalStore(open ? store.subscribe : NO_SUB, open ? store.get : () => '—', () => '—')
   const [copied, setCopied] = useState('')
-  const lines = sceneTraceLines().filter(l => mine(l, tag)).slice(-LAST)
+  const lines = open ? sceneTraceLines().filter(l => mine(l, tag)).slice(-LAST) : []
   const summary = `${tag} ${status} ${Math.min(index + 1, total || index + 1)}/${total || '?'} ${mode}`
     + ` · звук ${sound ? 'вкл' : 'ВЫКЛ'}${soundChip ? ' (чип)' : ''} · ${expanded ? `раскрыт${grown ? '+дорос' : ''}` : 'свёрнут'}`
     + ` · ${frozen ? 'статичный кадр' : 'живой'}${ended ? ' · ended-защёлка' : ''} · кольцо ${ring}`
@@ -47,7 +44,7 @@ function Panel({ tag, status, index, total, mode, sound, soundChip, ended, froze
     setTimeout(() => setCopied(''), 1500)
   }
   return (
-    <details style={box} onClick={e => e.stopPropagation()} data-scene-debug={tag}>
+    <details style={box} onClick={e => e.stopPropagation()} onToggle={e => setOpen(e.currentTarget.open)} data-scene-debug={tag}>
       <summary style={{ cursor: 'pointer', color: status === 'playing' ? '#b6fe3b' : '#9aa' }}>🐞 {summary}</summary>
       <div style={{ marginTop: 4, color: '#777' }}>
         audio: {audioState(getSceneAudioElement())} · unlocked={String(sceneAudioUnlocked())}

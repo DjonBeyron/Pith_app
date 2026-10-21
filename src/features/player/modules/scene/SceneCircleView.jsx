@@ -12,8 +12,7 @@ import { isSolo } from '../../../scene/v2/scenePit.js'
 
 // Слой сцены — размером с круг (кадр задаёт viewBox, sceneCircleViewBox), а не гигантская обёртка, которую потом ещё и раздувает раскрытие
 const INNER_STYLE = { position: 'absolute', inset: 0 }
-const RING_R = 106
-const RING_C = 2 * Math.PI * RING_R
+// Кольцо прогресса — две половинки на transform (sceneRingHalves.js, геометрия в scene.css), не SVG-дуга: анимация на композиторе
 const WRAP = { flexWrap: 'wrap' } // окно отладки админа (SceneCircleDebug) встаёт под кружком второй строкой; без него — один ребёнок, wrap ничего не меняет
 
 // Режим 'circle' ноды scene: круглая вставка как видеосообщение (те же классы circleWrap/circleFrame/кольцо,
@@ -53,7 +52,7 @@ export default function SceneCircleView({
   const near = useSceneNear(rootRef, isHistory || frozenEnded)
   const idle = !isHistory && status !== 'playing'
   const ringRef = useSceneProgress({
-    scene, voice, rate, sound, status, index, run, at, anchorMs, kind: 'ring', circumference: RING_C, enabled: !isHistory, trace,
+    scene, voice, rate, sound, status, index, run, at, anchorMs, kind: 'ring', enabled: !isHistory, trace,
   })
   const wrapStyle = {
     width: size + 'px', height: size + 'px',
@@ -82,15 +81,11 @@ export default function SceneCircleView({
               />
             </div>
           </div>
-          <svg className="circleRingSvg" viewBox="0 0 218 218" aria-hidden="true">
-            <circle cx="109" cy="109" r={RING_R} fill="none" stroke="rgba(255,255,255,.12)" strokeWidth="1.5" />
-            <circle
-              ref={ringRef} className="playerSceneRingArc" cx="109" cy="109" r={RING_R} fill="none"
-              stroke="#b6fe3b" strokeWidth="1.5" strokeLinecap="round"
-              strokeDasharray={`${RING_C} 9999`} strokeDashoffset={String(RING_C)}
-              transform="rotate(-90 109 109)"
-            />
-          </svg>
+          <div ref={ringRef} className="playerSceneRing" aria-hidden="true" data-progress="0">
+            <div className="playerSceneRingTrack" />
+            <div className="playerSceneRingHalf playerSceneRingHalf--r"><div className="playerSceneRingArc" data-arc="r" /></div>
+            <div className="playerSceneRingHalf playerSceneRingHalf--l"><div className="playerSceneRingArc" data-arc="l" /></div>
+          </div>
           {idle && (
             <div className="playerScenePlay" aria-hidden="true">
               <Play size={22} color="white" fill="white" />
@@ -106,7 +101,6 @@ export default function SceneCircleView({
         <SceneCircleDebug
           tag={tag} status={status} index={index} total={total || scene.timeline?.length || 0} mode={mode}
           sound={sound} soundChip={soundChip} ended={ended} frozen={frozenEnded} expanded={ex.expanded} grown={ex.grown}
-          circumference={RING_C}
         />
       )}
     </div>

@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { createProgressTimeline } from './sceneProgressModel.js'
 import { planSceneDurations, withAnchorDuration } from './sceneProgressPlan.js'
+import { setRingValue, animateRing } from './sceneRingHalves.js'
 
 // Плавный индикатор прогресса сцены по времени — ОДИН хук и одна модель на три вида: кольцо кружка (kind 'ring':
 // stroke-dashoffset дуги), полоса пузыря в ленте и полоса полного экрана (kind 'bar': scaleX на композиторе). Все три
@@ -18,13 +19,13 @@ import { planSceneDurations, withAnchorDuration } from './sceneProgressPlan.js'
 // Конец: по 'ended' значение доводится до ровно 1 (модель: фиксированный END_MS), а нода, перемонтированная уже доигравшей
 // (состояние старше индикатора), сразу рисуется полной — не пустой.
 
+// Кольцо — две половинки на transform: rotate (sceneRingHalves.js, композитор); полоса — scaleX (композитор). Ни того ни другого
+// главный поток не задерживает: раньше кольцо было дугой SVG на stroke-dashoffset и в конце сцены «втыкалось» на iPhone
 const setValue = (el, kind, C, v) => {
-  if (kind === 'ring') el.style.strokeDashoffset = String(Math.round(C * (1 - v) * 1000) / 1000)
+  if (kind === 'ring') setRingValue(el, v)
   else el.style.transform = `scaleX(${Math.round(v * 10000) / 10000})`
 }
-const frame = (kind, C, v) => (kind === 'ring'
-  ? { strokeDashoffset: String(Math.round(C * (1 - v) * 1000) / 1000) }
-  : { transform: `scaleX(${Math.round(v * 10000) / 10000})` })
+const frame = v => ({ transform: `scaleX(${Math.round(v * 10000) / 10000})` })
 
 // trace(msg) — строки в трассу сцены (sceneTrace.js; кружок передаёт её, чтобы видеть, где кольцо «подвисло»): шаги каждого
 // состояния, доезд анимации до цели, сколько кольцо стояло у края до 'ended', состояние старше индикатора
@@ -66,14 +67,20 @@ export function useSceneProgress({
     const finalV = steps.length ? steps[steps.length - 1].to : from
     traceRef.current?.(`${kind}: ${status} ${index + 1}/${durations.length} run=${run} от ${from.toFixed(3)} → [${steps.map(s => `${s.to.toFixed(3)} за ${s.ms} мс`).join(', ') || 'стоим'}]`
       + `${stood != null ? ` (стояло у цели ${stood} мс)` : ''} оценки=[${durations.map(Math.round).join(',')}]${anchorMs != null ? ` (якорь ${anchorMs} мс)` : ''} lag=${Math.round(performance.now() - t)} мс`)
-    if (!run1.length || typeof el.animate !== 'function') { setValue(el, kind, circumference, finalV); return }
+    if (!run1.length || (kind !== 'ring' && typeof el.animate !== 'function')) { setValue(el, kind, circumference, finalV); return }
     setValue(el, kind, circumference, from)
-    const total = run1.reduce((a, s) => a + s.ms, 0)
-    const kf = [{ ...frame(kind, circumference, from), offset: 0 }]
-    let acc = 0
-    for (const s of run1) { acc += s.ms; kf.push({ ...frame(kind, circumference, s.to), offset: acc / total }) }
     const lag = Math.max(0, performance.now() - t)
-    const a = el.animate(kf, { duration: total, easing: 'linear', fill: 'forwards', delay: -Math.min(lag, total) })
+    let a
+    if (kind === 'ring') {
+      a = animateRing(el, from, run1, { lag })
+      if (!a) { setValue(el, kind, circumference, finalV); return }
+    } else {
+      const total = run1.reduce((s0, s) => s0 + s.ms, 0)
+      const kf = [{ ...frame(from), offset: 0 }]
+      let acc = 0
+      for (const s of run1) { acc += s.ms; kf.push({ ...frame(s.to), offset: acc / total }) }
+      a = el.animate(kf, { duration: total, easing: 'linear', fill: 'forwards', delay: -Math.min(lag, total) })
+    }
     anim.current = a
     a.onfinish = () => {
       if (anim.current !== a) return
