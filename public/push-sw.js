@@ -225,7 +225,7 @@ async function resource(e, kind) {
 
 self.addEventListener('fetch', e => {
   const url = new URL(e.request.url)
-  if (url.pathname.startsWith('/lab/')) return // лаборатория запуска: ранний выход, без перехвата
+  if (url.pathname.startsWith('/lab/') || url.pathname.startsWith('/startlab/')) return // лаборатория запуска: ранний выход, без перехвата
   const kind = Core.route({ pathname: url.pathname, search: url.search, sameOrigin: url.origin === self.location.origin, method: e.request.method, mode: e.request.mode, cache: e.request.cache }, STATICS)
   if (kind === 'shell-nav' && ON) handleNav(e)
   else if (e.request.mode === 'navigate') e.respondWith(navigate(e.request))

@@ -88,10 +88,37 @@ describe('лаборатория запуска: список, воркеры, v
     expect(h).not.toMatch(/apple-mobile-web-app|apple-touch-startup-image/)
     for (const p of LAB_PAGES) expect(h, p.path).toContain(`href="${p.path}"`)
     expect(LAB_INDEX_PATH).toBe('/lab/index.html')
-    expect(LAB_PAGES).toHaveLength(5)
+    expect(LAB_PAGES).toHaveLength(7)
     for (const p of LAB_PAGES) expect(existsSync(resolve(PUB, p.path.slice(1))), p.path).toBe(true)
     expect(LAB_HOWTO.length).toBeGreaterThan(0)
-    expect(LAB_RESULTS.join(' ')).toMatch(/ЛАБ-1.*ЛАБ-2.*ЛАБ-3.*ЛАБ-4.*ЛАБ-5/)
+    expect(LAB_RESULTS.join(' ')).toMatch(/ЛАБ-1.*ЛАБ-2.*ЛАБ-3.*ЛАБ-4.*ЛАБ-5.*ЛАБ-6.*ЛАБ-7/)
+  })
+
+  // ЛАБ-6/7 (2026-10-21): страница из HTTP-кеша браузера (max-age) — без воркера вообще (6) и с воркером без fetch-обработчика (7).
+  // Лежат вне /lab/, потому что там no-cache
+  it('ЛАБ-6: веб-клип без скриптов и без воркера; ЛАБ-7: регистрирует /startlab/l7/sw.js без fetch-обработчика', () => {
+    for (const [n, file] of [[6, 'startlab/l6.html'], [7, 'startlab/l7/index.html']]) {
+      const h = read(file)
+      expect(h).toMatch(new RegExp(`<title>ЛАБ-${n} `))
+      expect(h).toMatch(new RegExp(`<meta name="apple-mobile-web-app-title" content="ЛАБ-${n}"`))
+      expect(h).toMatch(/<meta name="apple-mobile-web-app-status-bar-style" content="black"/)
+      expect(h).not.toMatch(/rel="manifest"|name="color-scheme"|name="theme-color"/)
+      expect(startupLinks(h)).toHaveLength(IPHONES.length)
+      for (const l of startupLinks(h)) expect(existsSync(resolve(PUB, l.href.slice(1))), l.href).toBe(true)
+    }
+    expect(read('startlab/l6.html')).not.toMatch(/<script|serviceWorker/)
+    expect(read('startlab/l7/index.html')).toMatch(/register\('\/startlab\/l7\/sw\.js'\)/)
+    const sw = read('startlab/l7/sw.js').replace(/\/\/.*|\/\*[\s\S]*?\*\//g, '') // без комментариев: в них слово «fetch» есть
+    expect(sw).not.toMatch(/fetch/)
+    expect(sw).toMatch(/skipWaiting/)
+    expect(sw).toMatch(/clients\.claim/)
+    expect(sw).toMatch(/'push'/)
+  })
+
+  it('vercel.json: /startlab/* кешируется браузером на сутки (HTTP-кеш — суть ЛАБ-6/7), sw.js ЛАБ-7 — no-cache', () => {
+    const cfg = JSON.parse(readFileSync(resolve(ROOT, 'vercel.json'), 'utf8'))
+    expect(cfg.headers.find(h => h.source === '/startlab/(.*)').headers).toEqual([{ key: 'Cache-Control', value: 'public, max-age=86400' }])
+    expect(cfg.headers.find(h => h.source === '/startlab/l7/sw.js').headers).toEqual([{ key: 'Cache-Control', value: 'no-cache' }])
   })
 
   it('lab-sw.js: cache-first только для /lab/l5.html, остальное не трогает', () => {
@@ -104,7 +131,7 @@ describe('лаборатория запуска: список, воркеры, v
   })
 
   it('основной push-sw.js не перехватывает /lab/', () => {
-    expect(read('push-sw.js')).toMatch(/startsWith\('\/lab\/'\)\) return/)
+    expect(read('push-sw.js')).toMatch(/startsWith\('\/lab\/'\) \|\| url\.pathname\.startsWith\('\/startlab\/'\)\) return/)
   })
 
   it('vercel.json: no-cache для /lab/*, Service-Worker-Allowed для lab-sw.js, нет rewrites на index.html', () => {
