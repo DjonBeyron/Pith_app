@@ -107,3 +107,17 @@ export function speechBounds(wd, fps) {
   if (end - start < fps * 0.3 || lead + tail > total * 0.6) return null
   return { lead, tail }
 }
+
+// Длительность для РАСЧЁТА ширины пузыря (--audio-dur), пока настоящей нет.
+// Ширина голосового растёт с длиной записи, а длительность может доехать уже
+// после появления пузыря (прогрев качает файл, на слабом Android — секунды), и
+// короткая реплика на глазах «подрастала» с ширины текста до минимума по
+// длительности. Поэтому AudioModule берёт то, что есть на первом кадре, и дальше
+// ширину не трогает: настоящая — если известна, иначе оценка по тексту (~13
+// знаков в секунду речи TTS), без текста — типовые 4 с
+const CHARS_PER_SEC = 13
+const NO_TEXT_SEC = 4
+export function estimateWidthDuration(text) {
+  const n = typeof text === 'string' ? text.length : 0
+  return n ? n / CHARS_PER_SEC : NO_TEXT_SEC
+}

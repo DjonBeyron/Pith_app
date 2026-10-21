@@ -1,0 +1,45 @@
+/* Упрощения для слабых устройств (класс .weak-device на <html> ставит
+   applyWeakDeviceClasses() из shared/lib/deviceTier.js, см. main.jsx).
+   Подключается после perf-flags.css. Меняет только дорогие эффекты —
+   макет, размеры и поведение те же. Текстуры отключает класс
+   perf-no-textures (его тот же вызов добавляет на <html>). */
+
+/* Размытие фона под слоем заменено более плотной заливкой */
+html.weak-device .lessonSummaryOverlay {
+  background: rgba(0, 0, 0, 0.85);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+html.weak-device .tdHud {
+  background: rgba(14, 16, 19, 0.94);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+html.weak-device .pinDialog {
+  background: rgba(0, 0, 0, 0.7);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+/* Тени-фильтры (drop-shadow) у мелких значков чата */
+html.weak-device .heartPermanent,
+html.weak-device .reactionGlyph,
+html.weak-device .hintBarTicket,
+html.weak-device .summaryStarOn {
+  filter: none;
+}
+
+/* Декоративные бесконечные анимации — на покой. Блики бегут за кадром
+   (базовый transform уводит их из кнопки/полосы), точки пропуска и скрепка
+   в покое тоже выглядят нормально. Остаются функциональные: индикатор
+   печати, спиннеры, мигание сигнала ошибки, полоски диктора */
+html.weak-device .playerTrBtn::after,
+html.weak-device .fbTrBtn::after,
+html.weak-device .summaryXpBarFillShimmer::after,
+html.weak-device .feedSkeleton::after,
+html.weak-device .fbBlankDots i::after,
+html.weak-device .pcAttachIcon {
+  animation: none;
+  will-change: auto;
+}
+html.weak-device .shim::after { display: none; }

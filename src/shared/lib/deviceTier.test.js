@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { decideWeak } from './deviceTier.js'
+import { decideWeak, applyWeakDeviceClasses, markWeakDevice, isWeakDevice } from './deviceTier.js'
 
 const slow = () => true
 const fast = () => false
@@ -33,5 +33,23 @@ describe('deviceTier.decideWeak', () => {
     for (const gpu of ['Mali-G720', 'Mali-G78', 'Mali-G710']) {
       expect(decideWeak({ ios: false, gpu, staticWeak: fast, benchSlow: fast })).toBe(null)
     }
+  })
+})
+
+describe('deviceTier.applyWeakDeviceClasses', () => {
+  it('слабое устройство → .weak-device и perf-no-textures на <html>; не слабое — классов нет', () => {
+    const added = new Set()
+    globalThis.document = { documentElement: { classList: { add: (...c) => c.forEach(x => added.add(x)) } } }
+    try {
+      applyWeakDeviceClasses()
+      const wasWeak = isWeakDevice()
+      expect(added.has('weak-device')).toBe(wasWeak)
+      expect(added.has('perf-no-textures')).toBe(wasWeak)
+      if (!wasWeak) {
+        // FPS-монитор позже помечает слабым — классы ставятся сразу (Android UA в тесте нет)
+        markWeakDevice()
+        expect(added.has('weak-device')).toBe(true)
+      }
+    } finally { delete globalThis.document }
   })
 })

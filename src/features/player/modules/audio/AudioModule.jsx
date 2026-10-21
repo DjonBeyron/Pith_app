@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
 import PlayerBubble from '../../PlayerBubble.jsx'
 import AudioWave from './AudioWave.jsx'
-import { speechBounds } from './audioWaveParts.js'
+import { speechBounds, estimateWidthDuration } from './audioWaveParts.js'
 import { PlayTriangle, PauseIcon, LoadRing, RetryIcon } from './AudioPlayIcons.jsx'
 import PlayerTypingText from '../../PlayerTypingText.jsx'
 import { fmtAudioTime, WAVEFORM_FPS } from '../../../../shared/lib/audioUtils.js'
@@ -84,6 +84,8 @@ export default function AudioModule({ node, file, onDone, adminPreview = false, 
   const loadFail = useAudioLoadFail(audioRef, src, elKey, { onFail: () => setBuffering(false), onGiveUp: () => setTimerMode(true), onRetry: () => toggle() })
   // Волна, длительность, готовность волны — useAudioMeta.js (нода → прогрев → сами)
   const { waveData, duration, waveReady, adoptElementDuration } = useAudioMeta(node, file, src)
+  // Ширина пузыря: длительность фиксируется на первом кадре, без дорастания (estimateWidthDuration)
+  const [widthDur] = useState(() => duration || estimateWidthDuration(text))
   // Скорость голоса из шапки урока (lessonVolume.js) — на элемент, при смене src/элемента и на лету
   useMediaVoiceRate(audioRef, [src, elKey])
   useAudioGlowSource(audioRef, waveData, src, elKey) // уровень речи → свечение-эквалайзер снизу чата (AudioGlow.jsx)
@@ -338,7 +340,7 @@ export default function AudioModule({ node, file, onDone, adminPreview = false, 
 
   return (
     <div className="playerMsgRow">
-      <PlayerBubble className={bubbleClass} style={duration ? { '--audio-dur': Math.min(duration, 20) } : undefined}>
+      <PlayerBubble className={bubbleClass} style={{ '--audio-dur': Math.min(widthDur, 20) }}>
         {/* data-voice: это речь, а не немая петля — для useSoloMedia при «без звука» */}
         {src && <audio key={elKey} ref={audioRef} src={loadFail.elSrc} preload="auto" muted={muted} data-voice="" />}
         <div className="playerAudio">

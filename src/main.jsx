@@ -10,6 +10,7 @@ import { initErrorTrap } from './shared/lib/errorTrap.js'
 import { startStallWatch, startViewportWatch } from './shared/lib/feedDebug.js'
 import { startTouchWatch } from './shared/lib/touchWatch.js'
 import { applyPerfFlagClasses } from './shared/lib/perfFlags.js'
+import { applyWeakDeviceClasses } from './shared/lib/deviceTier.js'
 import { initAnalytics } from './shared/lib/analytics/track.js'
 import { initShellClient } from './shared/lib/shellClient.js'
 import './index.css'
@@ -35,6 +36,8 @@ startViewportWatch()
 startTouchWatch()
 // Флаги бисекции лага сворачивания (классы на <html>, см. perf-flags.css)
 applyPerfFlagClasses()
+// Слабое устройство: класс .weak-device на <html> (см. styles/weak-device.css)
+applyWeakDeviceClasses()
 // Журнал продуктовой аналитики: открытие, открытие из пуша, отправка при
 // сворачивании (см. analytics/track.js)
 initAnalytics()

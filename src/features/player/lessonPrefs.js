@@ -1,5 +1,6 @@
 import { useSyncExternalStore } from 'react'
 import { setSoundFilter } from '../../shared/lib/sounds.js'
+import { isWeakDevice } from '../../shared/lib/deviceTier.js'
 
 // Личные настройки из шестерёнки в шапке урока (LessonSettingsMenu.jsx).
 // Общие для всех уроков и приложения, хранятся в localStorage устройства.
@@ -7,7 +8,8 @@ import { setSoundFilter } from '../../shared/lib/sounds.js'
 // Для всех (по умолчанию всё ВКЛЮЧЕНО):
 //   typing — звук «учитель печатает» (typing-1 / typing-2);
 //   xp     — звук получения XP (xp-gain: в уроке и каждый шарик в итогах);
-//   equalizer — свечение-эквалайзер снизу чата (AudioGlow);
+//   equalizer — свечение-эквалайзер снизу чата (AudioGlow); на слабом устройстве (deviceTier.js)
+//     по умолчанию ВЫКЛЮЧЕН, пока ученик сам не включил его в шестерёнке;
 //   timer  — таймеры на быстрых вопросах (лимит времени ноды, useAnswerTimer): выключил — ответы без отсчёта.
 // Только для админа:
 //   hud — датчик fps и штамп версии поверх урока;
@@ -49,9 +51,15 @@ function writeStore(key, value) {
   try { localStorage.setItem(key, value) } catch { /* приватный режим / нет storage */ }
 }
 
-// Записано '0' — выключено; нет записи, мусор, ошибка storage — включено
+// Записано '0' — выключено; нет записи, мусор, ошибка storage — включено. Исключение: эквалайзер без
+// записи на слабом устройстве выключен (явный выбор ученика в шестерёнке всегда сильнее)
+export function prefDefault(name, weak) { return !(name === 'equalizer' && weak) }
 const prefs = {}
-for (const name of Object.keys(PREF_KEYS)) prefs[name] = PREF_DEFAULT_OFF.has(name) ? readStore(PREF_KEYS[name]) === '1' : readStore(PREF_KEYS[name]) !== '0'
+for (const name of Object.keys(PREF_KEYS)) {
+  const raw = readStore(PREF_KEYS[name])
+  // по умолчанию выкл (PREF_DEFAULT_OFF) — включено только записью '1'; остальное — см. prefDefault
+  prefs[name] = PREF_DEFAULT_OFF.has(name) ? raw === '1' : raw === null ? prefDefault(name, isWeakDevice()) : raw !== '0'
+}
 
 const listeners = new Set()
 function emit() { listeners.forEach(fn => fn()) }
