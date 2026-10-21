@@ -99,6 +99,9 @@
   // нарисоваться раньше, чем iOS снимет стартовую картинку): до ответа — ОДНО чтение '/', и оно годится, если несёт заголовок
   // полноты с BUILD_ID этого воркера. Состояние, защита boot-ok и сверка — уже после ответа (afterFastNav)
   var fastShellHit = function (okHeader, buildId) { return !!okHeader && !!buildId && okHeader === buildId }
+  // Navigation preload: браузер шлёт запрос страницы сам, ещё до подъёма воркера, и берёт её из своего HTTP-кеша (vercel.json:
+  // '/' max-age=86400) — без Cache API. Ответ годится, если это настоящая страница: 200, без редиректа, HTML
+  var preloadUsable = function (r) { return !!r && r.ok === true && !r.redirected && /text\/html/i.test(r.ct || '') }
   // Бухгалтерия после ответа из кеша быстрым путём. Меняет st; результат { why, disableFor?, purge? }:
   // срок отключения вышел — снимаем; кеш отдан при действующем отключении (гонка с purge) — стереть; два запуска без boot-ok —
   // отключить на DISABLE_MS и стереть (сработает со СЛЕДУЮЩЕГО запуска, а не с этого); иначе — ждём boot-ok этого запуска
@@ -152,7 +155,7 @@
     DISABLE_MS: DISABLE_MS, BOOT_WAIT_MS: BOOT_WAIT_MS, BOOT_FAILS: BOOT_FAILS, BLOCK_MS: BLOCK_MS, MAX_SHELL_CACHES: MAX_SHELL_CACHES,
     OFFLINE_SHELL: OFFLINE_SHELL, configured: configured, cacheName: cacheName, isShellName: isShellName, isNosw: isNosw, route: route,
     normState: normState, isDisabled: isDisabled, isBlocked: isBlocked, disableState: disableState, enableState: enableState,
-    blockBuild: blockBuild, bootCheck: bootCheck, confirmBoot: confirmBoot, decideNav: decideNav, fastShellHit: fastShellHit, afterFastNav: afterFastNav, shellActive: shellActive,
+    blockBuild: blockBuild, bootCheck: bootCheck, confirmBoot: confirmBoot, decideNav: decideNav, fastShellHit: fastShellHit, preloadUsable: preloadUsable, afterFastNav: afterFastNav, shellActive: shellActive,
     planRotation: planRotation, fetchMode: fetchMode, validPrecache: validPrecache, precacheOrder: precacheOrder, statusView: statusView,
   }
 })

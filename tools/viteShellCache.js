@@ -58,6 +58,14 @@ export function applySwPlaceholders(src, { buildId, version, precache }) {
   return out
 }
 
+// sw-core.js — инлайном в собранный push-sw.js: холодный подъём воркера на iOS не тратит отдельное чтение на importScripts.
+// Исходник остаётся отдельным файлом (UMD, тесты через vm); в dist/sw-core.js тоже остаётся — безвредно
+export function inlineSwCore(sw, core) {
+  const call = "self.importScripts('/sw-core.js')"
+  if (!sw.includes(call)) throw new Error('push-sw.js: не найден importScripts sw-core.js')
+  return sw.replace(call, () => `/* sw-core.js — инлайн при сборке (tools/viteShellCache.js) */\n${core}\n/* /sw-core.js */`)
+}
+
 // Метка сборки в index.html: страница узнаёт «свой» BUILD_ID (плашка обновления, boot-ok)
 export const applyHtmlBuild = (html, buildId) => html.replaceAll(TOKENS.id, buildId)
 
@@ -78,7 +86,8 @@ export function shellCachePlugin({ version }) {
       for (const f of ['push-sw.js', 'sw-core.js']) entries.push({ path: '#' + f, hash: sha1(readFileSync(join(outDir, f))) })
       const buildId = computeBuildId(version, entries)
       writeFileSync(htmlPath, applyHtmlBuild(html, buildId))
-      writeFileSync(swPath, applySwPlaceholders(readFileSync(swPath, 'utf8'), { buildId, version, precache: urls }))
+      const swSrc = inlineSwCore(readFileSync(swPath, 'utf8'), readFileSync(join(outDir, 'sw-core.js'), 'utf8'))
+      writeFileSync(swPath, applySwPlaceholders(swSrc, { buildId, version, precache: urls }))
       writeFileSync(join(outDir, 'precache.json'), JSON.stringify({ buildId, version, bytes, total, lazyOmitted, files: urls }))
       console.log(`[shell-cache] ${buildId}: ${urls.length} файлов, ${(bytes / 1048576).toFixed(2)} МБ${lazyOmitted ? `, лениво: ${lazyOmitted}` : ''}`)
     },

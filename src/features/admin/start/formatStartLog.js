@@ -5,7 +5,7 @@ import { collapseTicks, collapseSame, rowText, thinEvents, fmtT, fullEvents } fr
 export const yn = v => (v === true ? 'да' : v === false ? 'нет' : '?')
 export const ms = v => (v === null || v === undefined ? '—' : `${fmtT(v)} мс`)
 // Оболочка приложения: из кеша service worker'а («быстрый старт») или с сети; build — BUILD_ID кеша; в скобках причина, если с сети
-export const shellText = c => (c.shell ? `${c.shell}${c.shellBuild ? ` (build ${c.shellBuild})` : ''}${c.shell !== 'cache' && c.shellWhy ? ` [${c.shellWhy}]` : ''}${typeof c.shellMs === 'number' ? ` ${c.shellMs}мс` : ''}${typeof c.shellBoot === 'number' ? ` воркер ${c.shellBoot < 1000 ? 'ХОЛОДНЫЙ' : 'тёплый'} (жил ${c.shellBoot}мс)` : ''}` : '?')
+export const shellText = c => (c.shell ? `${c.shell}${c.shellBuild ? ` (build ${c.shellBuild})` : ''}${c.shell !== 'cache' && c.shell !== 'preload' && c.shellWhy ? ` [${c.shellWhy}]` : ''}${typeof c.shellMs === 'number' ? ` ${c.shellMs}мс` : ''}${typeof c.shellBoot === 'number' ? ` воркер ${c.shellBoot < 1000 ? 'ХОЛОДНЫЙ' : 'тёплый'} (жил ${c.shellBoot}мс)` : ''}` : '?')
 export const gapText = g => {
   if (typeof g !== 'number' || Number.isNaN(g)) return null
   if (g < 120000) return `${Math.round(g / 1000)} с`

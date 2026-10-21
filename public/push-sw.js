@@ -5,8 +5,12 @@
 // кадром), /assets/* — cache-first. Новая версия подхватывается так: новый воркер (другой BUILD_ID) предзагружает свой кеш →
 // skipWaiting + clients.claim → шлёт страницам {type:'new-version'} → плашка «Доступна новая версия» → по тапу reload.
 // Остаются максимум 2 кеша (текущий и предыдущий: открытая страница старой версии не теряет ленивые чанки).
-// БЫСТРЫЙ ПУТЬ (холодный воркер iOS, +10 мс на каждое чтение холодного Cache API): до ответа — одно чтение '/', которое годится,
-// если несёт заголовок X-Pithy-Shell-Ok = BUILD_ID (кладётся последним при предзагрузке = кеш полный); состояние, boot-ok и сверка — после ответа.
+// БЫСТРЫЙ ПУТЬ (холодный воркер iOS: первое обращение к Cache API стоит ~35 мс, iOS снимает стартовую картинку раньше): гонка двух
+// источников, отвечаем первым годным. (1) navigation preload — браузер запросил '/' сам, до подъёма воркера, и берёт его из СВОЕГО
+// HTTP-кеша (vercel.json: max-age=86400; без сети/кеша — промах, ждём не его); (2) '/' из кеша оболочки, годный при заголовке
+// X-Pithy-Shell-Ok = BUILD_ID (кладётся последним при предзагрузке = кеш полный). Состояние, boot-ok и сверка — после ответа.
+// Страница из HTTP-кеша может быть старее/новее кеша воркера — это нормально: /assets/* cache-first по всем shell-*, промах — сеть,
+// новая версия приходит плашкой (reload обновляет HTTP-кеш), пропавший чанк — lazyRetry (purge + reload).
 // Защита от залипания: ?nosw=1, флаг «выключено на 24 ч», boot-ok (два запуска из кеша без boot-ok → выключаем), purge-shell
 // (ленивый чанк не загрузился). Логика решений — в sw-core.js (тесты: swCore.test.js). BUILD_ID/APP_VER/PRECACHE подставляет
 // vite-плагин при сборке (tools/viteShellCache.js); в dev и тестах остаются токены — кеш оболочки ВЫКЛЮЧЕН, воркер как раньше.
@@ -147,24 +151,36 @@ function shellResponse(hit) {
   return new Response(hit.body, { status: hit.status, statusText: hit.statusText, headers })
 }
 
-// Бухгалтерия быстрого пути — ПОСЛЕ того, как ответ уже ушёл странице
-async function afterFastNav(e, hit, t0, ms) { // hit — клон ответа (тело ещё не прочитано)
+// Бухгалтерия быстрого пути — ПОСЛЕ того, как ответ уже ушёл странице. hit — клон ответа из кеша (тело не прочитано) или null (preload)
+async function afterFastNav(e, source, hit, t0, ms) {
   const st = await loadState()
   const d = Core.afterFastNav(st, t0, BUILD_ID)
-  st.nav = { source: 'cache', why: d.why, build: BUILD_ID, ms, boot: t0 - BOOT_AT, fast: true, at: t0, cid: e.resultingClientId || '' }
-  await Promise.allSettled([saveState(), d.purge ? purgeShell() : revalidate(hit)])
+  st.nav = { source, why: d.why, build: BUILD_ID, ms, boot: t0 - BOOT_AT, fast: true, at: t0, cid: e.resultingClientId || '' }
+  await Promise.allSettled([saveState(), d.purge ? purgeShell() : hit ? revalidate(hit) : null])
+}
+
+// Гонка «preload из HTTP-кеша» против «'/' из кеша оболочки»: первый ГОДНЫЙ; оба негодные — null
+function fastShell(e) {
+  const pre = (e.preloadResponse || Promise.resolve(null))
+    .then(r => (r && Core.preloadUsable({ ok: r.ok, redirected: r.redirected, ct: r.headers.get('content-type') }) ? { source: 'preload', res: r } : null), () => null)
+  const hit = caches.match(Core.SHELL_KEY, { cacheName: SHELL, ignoreSearch: true, ignoreVary: true })
+    .then(r => (r && Core.fastShellHit(r.headers.get(Core.SHELL_OK_HEADER), BUILD_ID) ? { source: 'cache', res: r } : null), () => null)
+  return new Promise(resolve => {
+    let left = 2
+    const done = v => { if (v) resolve(v); else if (--left === 0) resolve(null) }
+    pre.then(done); hit.then(done)
+  })
 }
 
 async function shellNav(e, work) {
   const t0 = Date.now()
   const url = new URL(e.request.url)
   if (!Core.isNosw(url.search)) {
-    // БЫСТРЫЙ ПУТЬ: одно чтение кеша до ответа (см. шапку)
-    const fast = await caches.match(Core.SHELL_KEY, { cacheName: SHELL, ignoreSearch: true, ignoreVary: true })
-    if (fast && Core.fastShellHit(fast.headers.get(Core.SHELL_OK_HEADER), BUILD_ID)) {
-      const copy = fast.clone() // клон — ДО того, как тело уйдёт в ответ (после этого clone() бросает)
-      work.push(afterFastNav(e, copy, t0, Date.now() - t0).catch(() => {}))
-      return shellResponse(fast)
+    const fast = await fastShell(e)
+    if (fast) {
+      const copy = fast.source === 'cache' ? fast.res.clone() : null // клон — ДО того, как тело уйдёт в ответ (после этого clone() бросает)
+      work.push(afterFastNav(e, fast.source, copy, t0, Date.now() - t0).catch(() => {}))
+      return shellResponse(fast.res)
     }
   }
   // МЕДЛЕННЫЙ ПУТЬ (кеш без заголовка полноты / ?nosw=1 / кеша нет): прежняя логика с состоянием до ответа
@@ -272,6 +288,8 @@ self.addEventListener('activate', e => e.waitUntil((async () => {
   await Promise.all(keys.filter(k => k.startsWith('offline-') && k !== OFFLINE_CACHE).map(k => caches.delete(k)))
   await cacheOffline()
   if (ON) await rotateShell().catch(() => {})
+  // navigation preload: запрос страницы уходит параллельно подъёму воркера (быстрый путь, см. шапку)
+  if (ON && self.registration.navigationPreload) await self.registration.navigationPreload.enable().catch(() => {})
   await self.clients.claim()
   // Страницы с другим BUILD_ID (открытая старая версия) покажут плашку «Доступна новая версия»; тот же BUILD_ID страница игнорирует
   const list = await self.clients.matchAll({ type: 'window', includeUncontrolled: true })

@@ -171,6 +171,14 @@ describe('sw-core: быстрый путь навигации (одно чтен
     expect(C.fastShellHit('b1', '')).toBe(false)
   })
 
+  it('navigation preload (страница из HTTP-кеша браузера) годится, только если это настоящая HTML-страница 200 без редиректа', () => {
+    expect(C.preloadUsable({ ok: true, redirected: false, ct: 'text/html; charset=utf-8' })).toBe(true)
+    expect(C.preloadUsable({ ok: false, redirected: false, ct: 'text/html' })).toBe(false)
+    expect(C.preloadUsable({ ok: true, redirected: true, ct: 'text/html' })).toBe(false)
+    expect(C.preloadUsable({ ok: true, redirected: false, ct: 'application/json' })).toBe(false)
+    expect(C.preloadUsable(null)).toBe(false)
+  })
+
   it('после ответа: ждём boot-ok этого запуска; два запуска без boot-ok → отключить и стереть (со следующего запуска)', () => {
     const st = C.normState({})
     expect(C.afterFastNav(st, 1000, 'b1')).toEqual({ why: 'ok' })

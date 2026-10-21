@@ -28,7 +28,7 @@ export function shellRows(status, netVersion, pageVersion) {
     ? status.caches.map(c => `${c.name}${c.own ? ' (текущий)' : ''}${c.full ? ` ${c.n || '?'} ф.` : ' (неполный)'}${c.at ? `, ${fmtTime(c.at)}` : ''}`).join('; ')
     : 'нет'])
   const nav = status.nav
-  rows.push(['Эта страница', nav ? `оболочка=${nav.source}${nav.source !== 'cache' ? ` [${nav.why}]` : ''} (build ${nav.build}), воркер ответил за ${nav.ms} мс${typeof nav.boot === 'number' ? `, был ${nav.boot < 1000 ? 'ХОЛОДНЫЙ (поднят ради этого запуска)' : 'тёплый'}` : ''}` : 'неизвестно (воркер перезапущен)'])
+  rows.push(['Эта страница', nav ? `оболочка=${nav.source}${nav.source !== 'cache' && nav.source !== 'preload' ? ` [${nav.why}]` : ''} (build ${nav.build}), воркер ответил за ${nav.ms} мс${typeof nav.boot === 'number' ? `, был ${nav.boot < 1000 ? 'ХОЛОДНЫЙ (поднят ради этого запуска)' : 'тёплый'}` : ''}` : 'неизвестно (воркер перезапущен)'])
   if (status.fails || status.pending) rows.push(['Защита от залипания', `запусков без boot-ok подряд: ${status.fails}${status.pending ? ', последний запуск ещё не подтверждён' : ''} (при 2 — кеш выключается)`])
   return rows
 }

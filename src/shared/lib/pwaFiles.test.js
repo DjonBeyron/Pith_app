@@ -74,6 +74,14 @@ describe('сервис-воркер push-sw.js', () => {
     expect(existsSync(resolve(PUBLIC, 'sw-core.js'))).toBe(true)
   })
 
+  it("vercel.json: '/' кешируется браузером на сутки — navigation preload воркера берёт страницу из HTTP-кеша без Cache API", () => {
+    const vercel = JSON.parse(readFileSync(resolve(PUBLIC, '../vercel.json'), 'utf8'))
+    for (const src of ['/', '/index.html']) {
+      const rule = vercel.headers.find(h => h.source === src)
+      expect(rule && rule.headers).toEqual([{ key: 'Cache-Control', value: 'public, max-age=86400' }])
+    }
+  })
+
   it('vercel.json: sw-core.js (importScripts) не кешируется браузером, как и сам воркер', () => {
     const vercel = JSON.parse(readFileSync(resolve(PUBLIC, '../vercel.json'), 'utf8'))
     const rule = vercel.headers.find(h => h.source.includes('push-sw'))
