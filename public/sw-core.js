@@ -15,6 +15,7 @@
   var STATE_KEY = '/__pithy_sw_state'
   var MARK_KEY = '/__shell_ok' // последний файл кеша оболочки: есть метка = кеш полный (атомарность)
   var SHELL_KEY = '/' // ключ index.html в кеше оболочки (запрос с любым ?query находится через ignoreSearch)
+  var SHELL_OK_HEADER = 'X-Pithy-Shell-Ok' // заголовок у '/' в кеше: кладётся ПОСЛЕДНИМ со своим BUILD_ID = кеш полный (быстрый путь без второго чтения)
   var DISABLE_MS = 24 * 3600 * 1000 // ?nosw=1 / кнопка «Выключить» / защита от залипания
   var BOOT_WAIT_MS = 10000 // страница из кеша должна сообщить boot-ok за это время
   var BOOT_FAILS = 2 // столько запусков подряд без boot-ok — кеш выключаем
@@ -94,6 +95,20 @@
     if (!c.hasShell) return { mode: 'legacy', why: 'nocache', reenable: reenable, ensure: c.online !== false && !isBlocked(st, c.buildId, c.now) }
     return { mode: 'shell', why: 'ok', reenable: reenable }
   }
+  // БЫСТРЫЙ ПУТЬ навигации (холодный воркер iOS: каждое чтение Cache API на холодных кешах стоит ~10 мс, а страница должна
+  // нарисоваться раньше, чем iOS снимет стартовую картинку): до ответа — ОДНО чтение '/', и оно годится, если несёт заголовок
+  // полноты с BUILD_ID этого воркера. Состояние, защита boot-ok и сверка — уже после ответа (afterFastNav)
+  var fastShellHit = function (okHeader, buildId) { return !!okHeader && !!buildId && okHeader === buildId }
+  // Бухгалтерия после ответа из кеша быстрым путём. Меняет st; результат { why, disableFor?, purge? }:
+  // срок отключения вышел — снимаем; кеш отдан при действующем отключении (гонка с purge) — стереть; два запуска без boot-ok —
+  // отключить на DISABLE_MS и стереть (сработает со СЛЕДУЮЩЕГО запуска, а не с этого); иначе — ждём boot-ok этого запуска
+  function afterFastNav(st, now, buildId) {
+    if (st.disabledUntil > 0 && now >= st.disabledUntil) { st.disabledUntil = 0; st.why = ''; st.fails = 0; st.pending = null }
+    if (isDisabled(st, now)) return { why: 'disabled', purge: true }
+    if (bootCheck(st, now)) { disableState(st, now, DISABLE_MS, 'boot'); return { why: 'boot', disableFor: DISABLE_MS, purge: true } }
+    st.pending = { build: buildId, at: now }
+    return { why: 'ok' }
+  }
   // Кеш оболочки сейчас можно использовать для /assets/* и статики
   var shellActive = function (st, now) { return !isDisabled(st, now) }
 
@@ -133,11 +148,11 @@
   }
 
   return {
-    SHELL_PREFIX: SHELL_PREFIX, STATE_CACHE: STATE_CACHE, STATE_KEY: STATE_KEY, MARK_KEY: MARK_KEY, SHELL_KEY: SHELL_KEY,
+    SHELL_PREFIX: SHELL_PREFIX, STATE_CACHE: STATE_CACHE, STATE_KEY: STATE_KEY, MARK_KEY: MARK_KEY, SHELL_KEY: SHELL_KEY, SHELL_OK_HEADER: SHELL_OK_HEADER,
     DISABLE_MS: DISABLE_MS, BOOT_WAIT_MS: BOOT_WAIT_MS, BOOT_FAILS: BOOT_FAILS, BLOCK_MS: BLOCK_MS, MAX_SHELL_CACHES: MAX_SHELL_CACHES,
     OFFLINE_SHELL: OFFLINE_SHELL, configured: configured, cacheName: cacheName, isShellName: isShellName, isNosw: isNosw, route: route,
     normState: normState, isDisabled: isDisabled, isBlocked: isBlocked, disableState: disableState, enableState: enableState,
-    blockBuild: blockBuild, bootCheck: bootCheck, confirmBoot: confirmBoot, decideNav: decideNav, shellActive: shellActive,
+    blockBuild: blockBuild, bootCheck: bootCheck, confirmBoot: confirmBoot, decideNav: decideNav, fastShellHit: fastShellHit, afterFastNav: afterFastNav, shellActive: shellActive,
     planRotation: planRotation, fetchMode: fetchMode, validPrecache: validPrecache, precacheOrder: precacheOrder, statusView: statusView,
   }
 })

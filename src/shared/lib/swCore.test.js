@@ -162,6 +162,31 @@ describe('sw-core: защита «страница не загрузилась»
   })
 })
 
+describe('sw-core: быстрый путь навигации (одно чтение кеша до ответа, бухгалтерия после)', () => {
+  it("'/' из кеша годится без второго чтения, только если несёт заголовок полноты со своим BUILD_ID", () => {
+    expect(C.SHELL_OK_HEADER).toBe('X-Pithy-Shell-Ok')
+    expect(C.fastShellHit('b1', 'b1')).toBe(true)
+    expect(C.fastShellHit(null, 'b1')).toBe(false) // старый формат кеша / чужая сборка — медленный путь с проверкой метки
+    expect(C.fastShellHit('b0', 'b1')).toBe(false)
+    expect(C.fastShellHit('b1', '')).toBe(false)
+  })
+
+  it('после ответа: ждём boot-ok этого запуска; два запуска без boot-ok → отключить и стереть (со следующего запуска)', () => {
+    const st = C.normState({})
+    expect(C.afterFastNav(st, 1000, 'b1')).toEqual({ why: 'ok' })
+    expect(st.pending).toEqual({ build: 'b1', at: 1000 })
+    expect(C.afterFastNav(st, 1000 + C.BOOT_WAIT_MS, 'b1')).toEqual({ why: 'ok' }) // 1-я неудача, ещё терпим
+    expect(st.fails).toBe(1)
+    const d = C.afterFastNav(st, 1000 + 2 * C.BOOT_WAIT_MS, 'b1')
+    expect(d).toMatchObject({ why: 'boot', disableFor: C.DISABLE_MS, purge: true })
+    expect(C.isDisabled(st, 1000 + 2 * C.BOOT_WAIT_MS)).toBe(true)
+    // кеш отдан при действующем отключении (гонка с purge) — стереть; срок вышел — обычный запуск
+    expect(C.afterFastNav(st, 1000 + 2 * C.BOOT_WAIT_MS + 1, 'b1')).toEqual({ why: 'disabled', purge: true })
+    expect(C.afterFastNav(st, 1000 + 2 * C.BOOT_WAIT_MS + C.DISABLE_MS, 'b1')).toEqual({ why: 'ok' })
+    expect(st.fails).toBe(0)
+  })
+})
+
 describe('sw-core: ротация кешей, предзагрузка, статус', () => {
   it('остаются максимум 2 кеша shell-* (текущий + предыдущий), неполные и старые удаляются, чужие кеши не трогаем', () => {
     const names = ['offline-v7', 'pithy-sw-state', 'shell-A', 'shell-B', 'shell-C', 'shell-broken']

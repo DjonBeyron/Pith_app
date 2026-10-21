@@ -5,6 +5,8 @@
 // кадром), /assets/* — cache-first. Новая версия подхватывается так: новый воркер (другой BUILD_ID) предзагружает свой кеш →
 // skipWaiting + clients.claim → шлёт страницам {type:'new-version'} → плашка «Доступна новая версия» → по тапу reload.
 // Остаются максимум 2 кеша (текущий и предыдущий: открытая страница старой версии не теряет ленивые чанки).
+// БЫСТРЫЙ ПУТЬ (холодный воркер iOS, +10 мс на каждое чтение холодного Cache API): до ответа — одно чтение '/', которое годится,
+// если несёт заголовок X-Pithy-Shell-Ok = BUILD_ID (кладётся последним при предзагрузке = кеш полный); состояние, boot-ok и сверка — после ответа.
 // Защита от залипания: ?nosw=1, флаг «выключено на 24 ч», boot-ok (два запуска из кеша без boot-ok → выключаем), purge-shell
 // (ленивый чанк не загрузился). Логика решений — в sw-core.js (тесты: swCore.test.js). BUILD_ID/APP_VER/PRECACHE подставляет
 // vite-плагин при сборке (tools/viteShellCache.js); в dev и тестах остаются токены — кеш оболочки ВЫКЛЮЧЕН, воркер как раньше.
@@ -82,18 +84,24 @@ function precacheShell() {
     const cache = await caches.open(SHELL)
     const queue = Core.precacheOrder(PRECACHE)
     let failed = null
+    let indexRes = null // '/' качается первой (проверка сборки), но кладётся ПОСЛЕДНЕЙ с заголовком полноты (быстрый путь навигации)
     const worker = async () => {
       for (let u = queue.shift(); u !== undefined && !failed; u = queue.shift()) {
         const res = await fetch(new Request(u, { cache: Core.fetchMode(u) }))
         if (!Core.validPrecache(u, { ok: res.ok, redirected: res.redirected, ct: res.headers.get('content-type') })) throw new Error('precache ' + u + ' ' + res.status)
+        if (u !== Core.SHELL_KEY) { await cache.put(u, res); continue }
         // страница из сети обязана быть ЭТОЙ сборки (метка BUILD_ID в index.html): иначе устаревший ответ CDN положил бы в новый кеш старую страницу
-        if (u === Core.SHELL_KEY && !(await res.clone().text()).includes(BUILD_ID)) throw new Error('precache: index.html другой сборки')
-        await cache.put(u, res)
+        if (!(await res.clone().text()).includes(BUILD_ID)) throw new Error('precache: index.html другой сборки')
+        const headers = new Headers(res.headers)
+        headers.set(Core.SHELL_OK_HEADER, BUILD_ID)
+        indexRes = new Response(res.body, { status: res.status, statusText: res.statusText, headers })
       }
     }
     try {
       await Promise.all([1, 2, 3, 4].map(() => worker().catch(err => { failed = failed || err })))
       if (failed) throw failed
+      if (!indexRes) throw new Error('precache: нет index.html')
+      await cache.put(Core.SHELL_KEY, indexRes)
       await cache.put(Core.MARK_KEY, new Response(JSON.stringify({ build: BUILD_ID, ver: APP_VER, at: Date.now(), n: PRECACHE.length }), { headers: { 'content-type': 'application/json' } }))
     } catch (err) { await caches.delete(SHELL); throw err }
   })().finally(() => { precaching = null })
@@ -130,9 +138,36 @@ async function revalidate(cached) {
   if (a !== b) await self.registration.update()
 }
 
+// Ответ страницей из кеша: тело в кеше уже распаковано — заголовки про сжатие/длину страницу бы только запутали
+function shellResponse(hit) {
+  const headers = new Headers(hit.headers)
+  headers.set('X-Pithy-Shell', BUILD_ID)
+  headers.delete('content-encoding')
+  headers.delete('content-length')
+  return new Response(hit.body, { status: hit.status, statusText: hit.statusText, headers })
+}
+
+// Бухгалтерия быстрого пути — ПОСЛЕ того, как ответ уже ушёл странице
+async function afterFastNav(e, hit, t0, ms) { // hit — клон ответа (тело ещё не прочитано)
+  const st = await loadState()
+  const d = Core.afterFastNav(st, t0, BUILD_ID)
+  st.nav = { source: 'cache', why: d.why, build: BUILD_ID, ms, boot: t0 - BOOT_AT, fast: true, at: t0, cid: e.resultingClientId || '' }
+  await Promise.allSettled([saveState(), d.purge ? purgeShell() : revalidate(hit)])
+}
+
 async function shellNav(e, work) {
   const t0 = Date.now()
   const url = new URL(e.request.url)
+  if (!Core.isNosw(url.search)) {
+    // БЫСТРЫЙ ПУТЬ: одно чтение кеша до ответа (см. шапку)
+    const fast = await caches.match(Core.SHELL_KEY, { cacheName: SHELL, ignoreSearch: true, ignoreVary: true })
+    if (fast && Core.fastShellHit(fast.headers.get(Core.SHELL_OK_HEADER), BUILD_ID)) {
+      const copy = fast.clone() // клон — ДО того, как тело уйдёт в ответ (после этого clone() бросает)
+      work.push(afterFastNav(e, copy, t0, Date.now() - t0).catch(() => {}))
+      return shellResponse(fast)
+    }
+  }
+  // МЕДЛЕННЫЙ ПУТЬ (кеш без заголовка полноты / ?nosw=1 / кеша нет): прежняя логика с состоянием до ответа
   const [st, hit, mark] = await Promise.all([loadState(), caches.match(Core.SHELL_KEY, { cacheName: SHELL, ignoreSearch: true, ignoreVary: true }), markOf(SHELL)])
   const d = Core.decideNav({ configured: ON, buildId: BUILD_ID, search: url.search, state: st, now: t0, online: self.navigator.onLine, hasShell: !!(hit && mark) })
   if (d.disableFor) Core.disableState(st, t0, d.disableFor, d.why)
@@ -146,11 +181,7 @@ async function shellNav(e, work) {
     return navigate(e.request)
   }
   work.push(revalidate(hit.clone()).catch(() => {}))
-  const headers = new Headers(hit.headers)
-  headers.set('X-Pithy-Shell', BUILD_ID)
-  headers.delete('content-encoding') // тело в кеше уже распаковано: заголовок про сжатие страницу бы только запутал
-  headers.delete('content-length')
-  return new Response(hit.body, { status: hit.status, statusText: hit.statusText, headers })
+  return shellResponse(hit)
 }
 
 function handleNav(e) {
