@@ -11,6 +11,7 @@ import { useCircleLoopPause } from './useCircleLoopPause.js'
 import { getLessonMuted } from '../../lessonVolume.js'
 import { useVideoGlowSource } from '../../useVideoGlowSource.js'
 import { circleFit } from './circleFit.js'
+import { createRingClock } from './circleRingClock.js'
 
 const RING_R = 106
 const RING_C = 2 * Math.PI * RING_R
@@ -69,16 +70,11 @@ export default function CircleModule({ node, file, onDone, bottomOffset = 0, vid
     setDims({ w: el.clientWidth, h: el.clientHeight })
   }, [src])
 
-  function startRingAnimation(duration) {
-    if (!arcRef.current) return
-    arcRef.current.style.animation = `circleRingProgress ${duration}s linear forwards`
-  }
-
-  function stopRaf() {
-    if (!arcRef.current) return
-    arcRef.current.style.animation = 'none'
-    arcRef.current.style.strokeDashoffset = String(RING_C)
-  }
+  // Кольцо прогресса — по часам видео (circleRingClock.js): якорь на playing, подстройка на timeupdate, пауза на буферизации
+  const ringRef = useRef(null) // часы кольца создаются эффектом (чтение arcRef в рендере запрещено правилами хуков)
+  useEffect(() => { ringRef.current = createRingClock(() => arcRef.current, RING_C) }, [])
+  const ring = { anchor: v => ringRef.current?.anchor(v), tick: v => ringRef.current?.tick(v), pause: () => ringRef.current?.pause(), end: () => ringRef.current?.end(), reset: () => ringRef.current?.reset() }
+  function stopRaf() { ring.reset() }
 
   // Беззвучный цикл кружка вне экрана — на паузу (useCircleLoopPause.js)
   useCircleLoopPause(wrapRef, vRef, !!src)
@@ -153,7 +149,7 @@ export default function CircleModule({ node, file, onDone, bottomOffset = 0, vid
       const arc = arcRef.current
       if (v) v.currentTime = 0
       if (arc) {
-        arc.style.animation = 'none'
+        ring.reset()
         arc.style.transition = 'stroke-dashoffset 0.3s ease'
         arc.style.strokeDashoffset = String(RING_C)
       }
@@ -165,18 +161,14 @@ export default function CircleModule({ node, file, onDone, bottomOffset = 0, vid
       return
     }
     doneFiredRef.current = true
-    if (arcRef.current) {
-      arcRef.current.style.animation = 'none'
-      arcRef.current.style.strokeDashoffset = '0'
-    }
+    ring.end()
     onDone?.()
     collapse()
   }
 
   function handlePlaying() {
     if (!expandedRef.current) return
-    const v = vRef.current
-    if (v?.duration) startRingAnimation(v.duration - v.currentTime)
+    ring.anchor(vRef.current)
   }
 
   const s = dims?.w ?? getSmallPx()
@@ -247,6 +239,8 @@ export default function CircleModule({ node, file, onDone, bottomOffset = 0, vid
                 }}
                 onError={() => setLoadedSrc(null)}
                 onPlaying={handlePlaying}
+                onTimeUpdate={e => { if (expandedRef.current) ring.tick(e.currentTarget) }}
+                onWaiting={() => { if (expandedRef.current) ring.pause() }}
                 onEnded={handleEnded}
               />
               {mirror && (

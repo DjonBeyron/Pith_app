@@ -33,6 +33,7 @@ let s = await snap()
 const maxSeq = () => Math.max(...[...document.querySelectorAll('[data-entry-key]')].map(() => 0))
 // Фаза 1: случайная прогулка
 for (let i = 0; i < 120 && !s.summary; i++) {
+  if (rnd() < 0.15) { await p.click('.playerSkipperAns'); await p.waitForTimeout(80) } // режим ответа по кругу ✓ → ✗ → ?
   const goBack = s.canBack && rnd() < 0.4
   const before = s
   if (goBack) await back(); else await fwd()

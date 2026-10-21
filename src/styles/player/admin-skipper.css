@@ -64,3 +64,4 @@
 .playerSkipperBtn:active:not(:disabled) { background: #2a2f38; }
 .playerSkipperAns { color: #b6fe3b; font-weight: 700; }
 .playerSkipperAns--bad { color: #ff6b6b; }
+.playerSkipperAns--rnd { color: #ffb74d; }

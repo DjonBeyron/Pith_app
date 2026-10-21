@@ -15,6 +15,15 @@ const WC = {
 }
 
 describe('word_choice', () => {
+  it('null — случайно: монетка решает верно/неверно (режим «?» скипера)', () => {
+    const node = { type: 'word_choice', typeData: { word_choice: { options: [{ id: 'a', text: 'A', isCorrect: true }, { id: 'b', text: 'B', isCorrect: false }], responseCorrect: 'да', responseWrong: 'нет' } } }
+    const seq = [0.1, 0, 0.9, 0] // монетка, выбор варианта, монетка, выбор варианта
+    let i = 0
+    const rnd = () => seq[i++ % seq.length]
+    expect(pickStepAnswer(node, null, rnd).correct).toBe(true)  // 0.1 < 0.5 → верно
+    expect(pickStepAnswer(node, null, rnd).correct).toBe(false) // 0.9 → неверно
+  })
+
   it('верно — берёт вариант с isCorrect и реакцию «верно»', () => {
     const a = pickStepAnswer(node('word_choice', WC), true, first)
     expect(a).toMatchObject({ kind: 'word', correct: true, variantId: 'a', result: 'word_correct', responseText: 'Да!' })

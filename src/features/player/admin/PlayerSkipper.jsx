@@ -24,11 +24,12 @@ export default function PlayerSkipper() {
         type="button" className="playerSkipperBtn" onClick={step.forward}
         title="Вниз по ветке: показать следующую ноду сейчас же (на вопросе — ответить за ученика)"
       >▼</button>
+      {/* Три режима ответа по кругу: ✓ верно → ✗ неверно → ? случайно (монетка на каждом вопросе) */}
       <button
-        type="button" className={`playerSkipperAns${step.answerCorrect ? '' : ' playerSkipperAns--bad'}`}
-        onClick={() => step.setAnswerCorrect(v => !v)}
-        title={step.answerCorrect ? 'Шаг ▼ отвечает ВЕРНО' : 'Шаг ▼ отвечает НЕВЕРНО'}
-      >{step.answerCorrect ? '✓' : '✗'}</button>
+        type="button" className={`playerSkipperAns${step.answerCorrect === false ? ' playerSkipperAns--bad' : step.answerCorrect == null ? ' playerSkipperAns--rnd' : ''}`}
+        onClick={() => step.setAnswerCorrect(v => (v === true ? false : v === false ? null : true))}
+        title={step.answerCorrect === true ? 'Шаг ▼ отвечает ВЕРНО (нажми: неверно)' : step.answerCorrect === false ? 'Шаг ▼ отвечает НЕВЕРНО (нажми: случайно)' : 'Шаг ▼ отвечает СЛУЧАЙНО (нажми: верно)'}
+      >{step.answerCorrect === true ? '✓' : step.answerCorrect === false ? '✗' : '?'}</button>
     </div>
   )
 }

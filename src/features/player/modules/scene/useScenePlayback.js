@@ -70,10 +70,12 @@ export function useScenePlayback({ resolved, pending, isHistory, onDone, ready =
 
   const apply = useCallback(next => {
     // at — когда состояние дошло: от него считает время индикатор прогресса (useSceneProgress.js)
-    const full = { mode: 'timer', anchor: 0, anchorMs: null, at: performance.now(), ...next }
     const prev = stRef.current
+    const raw = { mode: 'timer', anchor: 0, anchorMs: null, at: performance.now(), ...next }
+    const onlyAnchor = same(prev, { ...raw, anchor: prev.anchor ?? 0 })
+    // Остаток файла (anchorMs) относится к реплике, на которой пришёл якорь: на новой реплике до её якоря — оценка, а не чужой остаток
+    const full = onlyAnchor ? raw : { ...raw, anchorMs: null }
     if (!same(prev, full)) {
-      const onlyAnchor = same(prev, { ...full, anchor: prev.anchor ?? 0 })
       trace(onlyAnchor ? `якорь: файл реплики ${full.index + 1} зазвучал через ${ms(full.at - (prev.at ?? full.at))} после старта — кольцо отсчитывает заново${full.anchorMs != null ? ` по реальному остатку ${full.anchorMs} мс` : ''}`
         : `состояние: ${full.status} ${full.index + 1}/${full.total} ${full.mode} run=${full.run ?? 0} (${prev.status} ${prev.index + 1} было ${ms(full.at - (prev.at ?? full.at))})`)
     }

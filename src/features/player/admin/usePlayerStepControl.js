@@ -14,7 +14,7 @@ export function usePlayerStepState() {
   // отыгрывается целиком, а следующее всё равно ждёт кнопки
   const [paused, setPaused] = useState(false)
   const [frozen, setFrozen] = useState(false)
-  const [answerCorrect, setAnswerCorrect] = useState(true)
+  const [answerCorrect, setAnswerCorrect] = useState(true) // true / false / null — «случайно» (скипер, третий режим)
   // Растёт на каждом откате назад и подмешивается в key нижних панелей: без
   // этого панель осталась бы в состоянии «уже отвечено» и вопрос второй раз
   // не показала бы

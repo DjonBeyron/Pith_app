@@ -20,7 +20,9 @@ function pickSide(all, wantCorrect, isCorrectOf, rnd) {
   return pick(side.length ? side : all, rnd)
 }
 
-export function pickStepAnswer(node, wantCorrect, rnd = Math.random) {
+// wantCorrect: true — верно, false — неверно, null — случайно (монетка на каждый вопрос; режим «?» скипера)
+export function pickStepAnswer(node, wantCorrectIn, rnd = Math.random) {
+  const wantCorrect = wantCorrectIn == null ? rnd() < 0.5 : !!wantCorrectIn
   const t = node?.type
   const d = node?.typeData?.[t] ?? {}
 
