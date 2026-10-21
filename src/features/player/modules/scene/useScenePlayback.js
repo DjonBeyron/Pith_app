@@ -7,6 +7,9 @@ import { useSceneAutoStart } from './useSceneAutoStart.js'
 import { fsOpenTransition, fsCloseTransition, inlineTapAction, expandAction, expandStatusOf, SCENE_EXPAND_PLAY_DELAY_MS } from './sceneFullscreenModel.js'
 import { sceneTrace, nextSceneTag, ms } from '../../../scene/v2/sceneTrace.js'
 import { SETTLE_MS } from '../../../scene/v2/sceneSettle.js'
+import { END_MS } from './sceneProgressModel.js'
+
+export const SCENE_DONE_DELAY_MS = END_MS + 20 // переход по графу после доезда кольца
 
 // Поведение живой сцены в ленте урока (общее для пузыря и кружка):
 //  · старт (sceneStartPlan.js): 'auto' — после конца анимации появления
@@ -86,12 +89,14 @@ export function useScenePlayback({ resolved, pending, isHistory, onDone, ready =
   const onState = useCallback(next => { if (!fsOpenRef.current) apply(next) }, [apply])
   const onFsState = useCallback(next => { if (fsOpenRef.current) apply(next) }, [apply])
 
-  // Конец сцены → переход по графу (один раз)
+  // Конец сцены → переход по графу (один раз). Не в ту же миллисекунду, а когда кольцо доехало до полного (END_MS): переход тянет
+  // за собой следующую ноду, «печатает» и сдвиг ленты — на iPhone эта работа главного потока попадала ровно на последние проценты
+  // кольца и выглядела как «кольцо втыкается в конце»
   useEffect(() => {
-    if (st.status !== 'ended' || doneRef.current) return
+    if (st.status !== 'ended' || doneRef.current) return undefined
     doneRef.current = true
-    trace('доиграла → onDone(played)')
-    onDone?.('played')
+    const t = setTimeout(() => { trace('доиграла → onDone(played)'); onDone?.('played') }, SCENE_DONE_DELAY_MS)
+    return () => clearTimeout(t)
   }, [st.status, onDone, trace])
 
   // Автозапуск: после анимации появления + задержка ноды — useSceneAutoStart.js (план — sceneStartPlan.js)
