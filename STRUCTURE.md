@@ -2423,3 +2423,10 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | `features/lessons/launchUnlock.js` (+`.test.js`) | Разблокировка звука в жесте запуска, каждый шаг в своём try/catch: ошибка в одном (speechSynthesis на Safari) больше не обрывает тап «Начать/Продолжить» |
 | `shared/lib/launchTrace.js` (+`.test.js`) | Трасса запуска урока: кольцевой буфер событий с временем, дубль в debug-лог (`[launch] …`), глобальный перехват `window.error`/`unhandledrejection` (след остаётся и после ухода с карточки); попадает в «Скачать лог загрузки» |
 | `features/lessons/useLaunchTrace.js` | Хук карточки запуска: пишет в трассу монтирование и каждый переход состояния условий готовности (кнопка, файлы, постеры, логотип, сторож) |
+
+### `_stand/skipper/` — стенд скипера нод на настоящем плеере (dev, в сборку не входит)
+| Файл | Зачем нужен |
+|---|---|
+| `index.html` | Страница Vite: настоящий `LessonPlayer` с уроком «To» (`lesson-drafts/to.updated.json` через `importLesson`) и `PlayerSkipper`, без входа и Supabase (`LessonNavProvider` только). Открывать: `npx vite --port 5199` → `/_stand/skipper/index.html` |
+| `walk.mjs` | Playwright: случайная прогулка ▲/▼ (120 шагов, зерно аргументом), затем ▼ до итога; проверяет, что лента меняется за 4,5 с, нет дублей, после ▲ не звучит `<audio>`, ошибок страницы нет |
+| `case.mjs` | Детерминированный случай ▼▼▼▲▲▼▼▲▼▼▼ с выдержкой из pLog после каждого шага — так был пойман «мёртвый ▼ после ▲» на нодах с таймером |

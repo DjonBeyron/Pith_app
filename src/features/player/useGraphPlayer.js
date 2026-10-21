@@ -286,7 +286,7 @@ export function useGraphPlayer(nodes, { onFinish, onCheckpoint, startNodeId = nu
       return
     }
 
-    // Таймер-переход продолжит цепочку сам (activateTimerTrigger) — это не финиш
+    // Таймер-переход продолжит цепочку сам (activateTimerTrigger) — это не финиш (шаг «вперёд» — revealNow в useGraphStepControls)
     if (triggers.some(tr => tr.if === 'timer' && tr.then)) return
 
     // Nothing left to schedule — lesson is finished (ровно один раз)

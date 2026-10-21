@@ -1,0 +1,29 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>skipper harness</title></head>
+<body><div id="root"></div>
+<script type="module">
+import React from 'react'
+import { createRoot } from 'react-dom/client'
+import '/src/index.css'
+import LessonPlayer from '/src/features/player/LessonPlayer.jsx'
+import PlayerSkipper from '/src/features/player/admin/PlayerSkipper.jsx'
+import { importLesson } from '/src/features/canvas/lesson-io/importLesson.js'
+import { getPlayerLines } from '/src/shared/lib/debug.js'
+import { LessonNavProvider } from '/src/app/LessonNavContext.jsx'
+
+const json = await (await fetch('/lesson-drafts/to.updated.json')).json()
+const res = importLesson(json)
+const nodes = res.nodes ?? res
+window.__nodes = nodes
+window.__pLog = getPlayerLines
+window.__summary = false
+function App() {
+  return React.createElement(React.Fragment, null,
+    React.createElement('div', { className: 'lessonPlayerHost', style: { position: 'fixed', inset: 0 } },
+      React.createElement(LessonPlayer, {
+        nodes, files: [], lessonTitle: 'To', teacherName: 'Пит', recordStats: false, lessonId: null,
+        onClose: () => { window.__closed = true }, onSummaryClose: () => { window.__summary = true },
+      })),
+    React.createElement(PlayerSkipper))
+}
+createRoot(document.getElementById('root')).render(React.createElement(LessonNavProvider, null, React.createElement(App)))
+</script></body></html>

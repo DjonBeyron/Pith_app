@@ -17,6 +17,12 @@ export function useGraphStepControls({
   // отложенным из-за паузы) — показываем следующее сообщение сейчас же.
   // Возвращает true, если было что показать
   const revealNow = useCallback(() => {
+    // Плана нет (после шага «назад» stepBack его снимает, или таймер уже отработал впустую), а у последней ноды есть несработавший
+    // таймер-переход — считаем его запланированным: иначе ▼ скипера после ▲ молча ничего не делал (стенд: ▼▼▼▲▲▼▼▲▼ → стоп на тексте)
+    const lastNode = visibleRef.current[visibleRef.current.length - 1]
+    if (!scheduledRef.current && lastNode && (lastNode.triggers ?? []).some(tr => tr.if === 'timer' && tr.then) && !firedRef.current.has(`${lastNode.id}:timer`)) {
+      scheduledRef.current = { type: 'timer', nodeId: lastNode.id }
+    }
     const planned = scheduledRef.current
     if (!planned) return false
     clearTimers()
@@ -67,6 +73,9 @@ export function useGraphStepControls({
     setPendingNode(null)
     setIsWaiting(false)
     setVisibleNodes(p => p.slice(0, -1))
+    // У ставшей последней ноды таймер-переход снова «запланирован» (сам он уже отыграл): шаг «вперёд» покажет его через
+    // revealNow, а снятие паузы (usePlayerStepControl.back ставит её) заведёт таймер заново — как при живом показе ноды
+    if ((last.triggers ?? []).some(tr => tr.if === 'timer' && tr.then)) scheduledRef.current = { type: 'timer', nodeId: last.id }
     return { removed, last }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 

@@ -87,6 +87,11 @@ describe('шаг вперёд отыгрывает показанное сооб
 })
 
 describe('шаг вперёд', () => {
+  it('после шага «назад» ▼ не глохнет на нодах с таймером: план таймера возвращается, а force в onNodeDone отыгрывает переход сразу', () => {
+    expect(GRAPH).toContain("scheduledRef.current = { type: 'timer', nodeId: last.id }")
+    expect(GRAPH).toContain("!firedRef.current.has(`${lastNode.id}:timer`)")
+  })
+
   it('показывает уже назначенный переход немедленно', () => {
     const fn = GRAPH.slice(GRAPH.indexOf('const revealNow'))
     expect(fn).toContain('const planned = scheduledRef.current')
