@@ -34,6 +34,9 @@ const ON = Core.configured(BUILD_ID, PRECACHE)
 const SHELL = ON ? Core.cacheName(BUILD_ID) : ''
 const STATICS = new Set(ON ? PRECACHE.filter(u => u !== '/' && !u.startsWith('/assets/')) : [])
 const wait = ms => new Promise(r => setTimeout(r, ms))
+// Момент запуска воркера: nav.boot = сколько мс он уже жил, когда пришла навигация. Единицы мс — iOS подняла воркер ради этого
+// запуска (холодный старт, +100–300 мс к ответу), секунды — был жив. Видно в журнале старта (Админ → «Старт», событие shell)
+const BOOT_AT = Date.now()
 
 // Кладём офлайн-страницу в кэш; ошибка (например, сети нет в момент установки) не ломает установку воркера
 const cacheOffline = () =>
@@ -136,7 +139,7 @@ async function shellNav(e, work) {
   if (d.purge) work.push(purgeShell())
   const shell = d.mode === 'shell'
   if (shell) st.pending = { build: BUILD_ID, at: t0 }
-  st.nav = { source: shell ? 'cache' : 'network', why: d.why, build: BUILD_ID, ms: Date.now() - t0, at: t0, cid: e.resultingClientId || '' }
+  st.nav = { source: shell ? 'cache' : 'network', why: d.why, build: BUILD_ID, ms: Date.now() - t0, boot: t0 - BOOT_AT, at: t0, cid: e.resultingClientId || '' }
   work.push(saveState())
   if (!shell) {
     if (d.ensure) work.push(wait(5000).then(precacheShell).catch(() => {})) // кеша нет (стёрт/не успел) — пересобираем уже после загрузки страницы

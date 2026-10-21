@@ -132,7 +132,7 @@
               try {
                 if (sw && sw.controller) {
                   var mc = new MessageChannel()
-                  mc.port1.onmessage = function (e) { var d = e.data || {}, nv = d.nav || {}; CTX.shell = nv.source || '?'; CTX.shellBuild = nv.build || d.build || ''; CTX.shellWhy = nv.why || (d.enabled === false ? 'off' : ''); CTX.shellMs = nv.ms; mark('shell', CTX.shell + ' ' + CTX.shellBuild + ' ' + CTX.shellWhy + ' ' + nv.ms + 'ms') }
+                  mc.port1.onmessage = function (e) { var d = e.data || {}, nv = d.nav || {}; CTX.shell = nv.source || '?'; CTX.shellBuild = nv.build || d.build || ''; CTX.shellWhy = nv.why || (d.enabled === false ? 'off' : ''); CTX.shellMs = nv.ms; CTX.shellBoot = nv.boot; mark('shell', CTX.shell + ' ' + CTX.shellBuild + ' ' + CTX.shellWhy + ' ' + nv.ms + 'ms' + (typeof nv.boot === 'number' ? ' boot=' + nv.boot + 'ms' : '')) }
                   sw.controller.postMessage({ type: 'shell-status' }, [mc.port2])
                 }
               } catch (e) { /* без MessageChannel / воркера — shell остаётся '?' */ }
@@ -201,7 +201,9 @@
             } catch (e) { /* ignore */ }
             if (P.now() < rafUntil) requestAnimationFrame(frame); else { rafOn = false; mark('raf-stop'); unprobe(); setTimeout(finish, 50) }
           }
-          rafOn = true; requestAnimationFrame(frame)
+          /* первый замер — со ВТОРОГО кадра: колбэк rAF выполняется ДО отрисовки кадра, и замер (getComputedStyle, elementsFromPoint, зонд
+             safe-area) задерживал бы самый первый кадр страницы (белый кадр iPhone до него). Первый кадр фиксирует PerformanceObserver paint */
+          rafOn = true; requestAnimationFrame(function () { requestAnimationFrame(frame) })
 
           /* --- сохранение: кольцо из RING стартов, каждый ≤ LIM символов (самые частые повторы прореживаем) --- */
           function fit(rec) {
@@ -338,9 +340,12 @@
         display: flex; flex-direction: column; align-items: center; justify-content: center;
         animation: splashIn 280ms ease-out;
       }
+      /* Свечение — радиальный градиент на подложке (padding вокруг знака, viewBox от него не зависит), а не filter: drop-shadow —
+         размытие 34px растрируется в самом первом кадре и задерживало его; градиент почти бесплатен */
       #splash .splash-logo {
         width: 92px; height: 92px; margin-bottom: 38px;
-        filter: drop-shadow(0 10px 34px rgba(158, 118, 255, 0.25));
+        padding: 44px; box-sizing: content-box; margin: -44px -44px calc(38px - 44px);
+        background: radial-gradient(circle at 50% 56%, rgba(158, 118, 255, 0.22) 0, rgba(158, 118, 255, 0.08) 34%, rgba(158, 118, 255, 0) 62%);
       }
       /* Ключевой кадр только «from»: конечное значение — обычная opacity 1 */
       @keyframes splashIn { from { opacity: 0; } }
@@ -358,7 +363,7 @@
       /* Варианты запуска (эксперимент, Админ → «Старт»; класс на <html> ставит первый скрипт в <head>). C — лого с первого кадра,
          без проявления и без свечения; D — сплэш чистый #000 без лого и подписи до самого ухода. A/B/E сплэш не меняют */
       html.startV-C #splash .splash-fade, html.startV-D #splash .splash-fade { animation: none; }
-      html.startV-C #splash .splash-logo { filter: none; }
+      html.startV-C #splash .splash-logo { background: none; }
       html.startV-D #splash .splash-fade { visibility: hidden; }
       /* Экран «Нет подключения / Слабое соединение»: оверлей net-guard.js (#offlineGuard), компонент NetworkProblem.jsx
          и public/offline.html используют одни и те же классы и одну разметку кабеля (networkCableSvg.js). Лежит

@@ -53,7 +53,7 @@ describe('вариант запуска: страж index.html', () => {
   })
 
   it('стили C/D лежат рядом со сплэшем и не трогают базовые правила', () => {
-    expect(html).toMatch(/html\.startV-C #splash \.splash-logo \{ filter: none; \}/)
+    expect(html).toMatch(/html\.startV-C #splash \.splash-logo \{ background: none; \}/)
     expect(html).toMatch(/html\.startV-D #splash \.splash-fade \{ visibility: hidden; \}/)
     expect(html.indexOf('html.startV-C')).toBeGreaterThan(html.indexOf('#splash .splash-fade {'))
   })

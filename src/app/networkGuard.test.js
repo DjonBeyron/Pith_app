@@ -184,13 +184,15 @@ describe('стартовый сплэш index.html: нечему не совпа
     expect(fade).toMatch(/animation: splashIn 2[5-9]\dms ease-out;/)
     expect(fade).toMatch(/position: absolute; inset: 0;/)
     expect(index.match(/@keyframes splashIn \{[^}]*\}[^}]*\}/)?.[0].replace(/\s+/g, ' ')).toBe('@keyframes splashIn { from { opacity: 0; } }')
-    // лого и версия лежат внутри .splash-fade и сами не анимируются (нет «ступеней»); свечение — обычный filter, проявляется вместе с opacity
+    // лого и версия лежат внутри .splash-fade и сами не анимируются (нет «ступеней»); свечение — радиальный градиент (не filter: размытие
+    // растрировалось бы в первом кадре), проявляется вместе с opacity
     const markup = index.slice(index.indexOf('<div id="splash"'), index.indexOf('<script>', index.indexOf('<div id="splash"')))
     expect(markup).toMatch(/<div class="splash-fade">[\s\S]*splash-logo[\s\S]*splash-version[\s\S]*<\/div>\s*<\/div>/)
     const parts = [index.match(/#splash \.splash-logo \{[^}]*\}/)?.[0], index.match(/#splash \.splash-version \{[^}]*\}/)?.[0]]
     for (const part of parts) expect(part).not.toMatch(/animation|opacity/)
     expect(parts[0]).toMatch(/width: 92px; height: 92px; margin-bottom: 38px/)
-    expect(parts[0]).toMatch(/drop-shadow/)
+    expect(parts[0]).toMatch(/radial-gradient/)
+    expect(parts[0]).not.toMatch(/filter|drop-shadow|box-shadow/)
   })
 
   it('позиция лого не зависит от JS: ни замеров зоны статус-бара, ни resize-пересчётов, ни padding от скрипта; версия подставлена при сборке', () => {
