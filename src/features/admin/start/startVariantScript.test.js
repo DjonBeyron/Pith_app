@@ -17,7 +17,7 @@ describe('вариант запуска: страж index.html', () => {
     expect(V.attrs.trim()).toBe('')
     expect(html.slice(0, V.index)).not.toMatch(/<script/)
     expect(V.index).toBeLessThan(html.indexOf("'pithy_start_logs_v1'"))
-    expect(V.index).toBeLessThan(html.indexOf('<script src="/net-guard.js">'))
+    expect(V.index).toBeLessThan(html.indexOf('<script src="/net-guard.js" defer>'))
   })
 
   it('крошечный (≤25 строк), в try/catch, без сети и без записи в localStorage', () => {

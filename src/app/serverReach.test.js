@@ -74,11 +74,11 @@ describe('зеркало в public/net-guard.js', () => {
       expect(ctx.window.__srvHealthUrl(u)).toBe(serverHealthUrl(u))
     }
   })
-  it('index.html подставляет адрес Supabase в <meta> ДО синхронного net-guard.js', () => {
+  it('index.html подставляет адрес Supabase в <meta> ДО net-guard.js', () => {
     const html = readFileSync(resolve(PUBLIC, '../index.html'), 'utf8')
     const meta = html.indexOf('<meta name="pithy-supabase-url" content="%VITE_SUPABASE_URL%"')
     expect(meta).toBeGreaterThan(-1)
-    expect(meta).toBeLessThan(html.indexOf('<script src="/net-guard.js">'))
+    expect(meta).toBeLessThan(html.indexOf('<script src="/net-guard.js" defer>'))
   })
   it('тексты экрана «сервер» в net-guard.js те же, что в NETWORK_TEXTS', () => {
     expect(JSON.parse(JSON.stringify(ctx.window.__ngTexts)).server).toEqual(NETWORK_TEXTS.server)

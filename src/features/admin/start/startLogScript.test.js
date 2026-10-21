@@ -12,7 +12,7 @@ describe('start-log: страж index.html', () => {
     expect(SCRIPT).toBeTruthy()
     expect(SCRIPT.attrs.trim()).toBe('') // обычный inline: без src / type=module / async
     expect(SCRIPT.body).toContain("'pithy_start_logs_v1'")
-    expect(SCRIPT.index).toBeLessThan(html.indexOf('<script src="/net-guard.js">'))
+    expect(SCRIPT.index).toBeLessThan(html.indexOf('<script src="/net-guard.js" defer>'))
     expect(SCRIPT.index).toBeLessThan(html.indexOf('type="module"'))
     expect(headScripts(html)[1].index).toBe(SCRIPT.index)
     expect(html.slice(0, SCRIPT.index).match(/<script/g)).toHaveLength(1) // перед журналом — только скрипт варианта

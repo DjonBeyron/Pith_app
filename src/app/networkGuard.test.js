@@ -81,11 +81,9 @@ describe('зеркало public/net-guard.js', () => {
             }
   })
 
-  it('единая точка готовности объявлена, index.html зовёт её и подключает сторож синхронно', () => {
+  it('единая точка готовности объявлена, index.html зовёт её (подключение скрипта — indexFirstFrame.test.js)', () => {
     expect(typeof ctx.window.__netGuardDone).toBe('function')
-    const html = readFileSync(resolve(PUBLIC, '../index.html'), 'utf8')
-    expect(html).toMatch(/<script src="\/net-guard\.js"><\/script>/)
-    expect(html).toMatch(/__netGuardDone/)
+    expect(readFileSync(resolve(PUBLIC, '../index.html'), 'utf8')).toMatch(/__netGuardDone/)
   })
 })
 
@@ -119,12 +117,6 @@ describe('единый вид экрана «нет связи»: три коп�
     for (const kf of css.match(/@keyframes [^{]+\{(?:[^{}]*\{[^}]*\})+[^}]*\}/g) ?? []) {
       expect(kf.replace(/@keyframes \S+|var\([^)]*\)/g, '')).not.toMatch(/(?<![-\w])(?!opacity|transform)(left|top|width|height|margin|stroke-width|fill|color)\s*:/)
     }
-  })
-
-  it('index.html: тёмный фон задан раньше синхронного net-guard.js (иначе белый экран, пока он качается)', () => {
-    const bg = index.indexOf('background: #000;')
-    expect(bg).toBeGreaterThan(-1)
-    expect(bg).toBeLessThan(index.indexOf('<script src="/net-guard.js">'))
   })
 
   it('net-guard.js: офлайн без ожидания, «молчащая сеть» — пинг через 1.5с + 1.5с', () => {

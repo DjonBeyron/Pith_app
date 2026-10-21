@@ -73,13 +73,13 @@ describe('sw-core: decideNav — отдавать ли оболочку из к�
 
   it('кеша нет → прежняя логика (network-first) и просьба пересобрать кеш; без сети пересобирать не просим', () => {
     expect(C.decideNav(nav({ hasShell: false }))).toMatchObject({ mode: 'legacy', why: 'nocache', ensure: true })
-    expect(C.decideNav(nav({ hasShell: false, online: false }))).toMatchObject({ mode: 'legacy', why: 'offline' })
+    expect(C.decideNav(nav({ hasShell: false, online: false }))).toMatchObject({ mode: 'legacy', why: 'nocache', ensure: false })
     expect(C.decideNav(nav({ configured: false }))).toEqual({ mode: 'legacy', why: 'unconfigured' })
   })
 
-  it('без сети (navigator.onLine === false) — офлайн-страница, как до кеша оболочки', () => {
-    expect(C.OFFLINE_SHELL).toBe(false)
-    expect(C.decideNav(nav({ online: false }))).toMatchObject({ mode: 'legacy', why: 'offline' })
+  it('без сети (navigator.onLine === false), но кеш есть — всё равно из кеша: iOS на холодном старте отдаёт false на миг', () => {
+    expect(C.OFFLINE_SHELL).toBe(true)
+    expect(C.decideNav(nav({ online: false }))).toMatchObject({ mode: 'shell', why: 'ok' })
   })
 
   it('?nosw=1: с сети, очистить кеши, отключить на 24 ч (только точное nosw=1)', () => {
