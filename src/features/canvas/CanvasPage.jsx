@@ -81,7 +81,7 @@ export default function CanvasPage({ lessonId, moduleLessons = [], module = null
   const [ioZones, setIoZones] = useState([])
   // Панель «⚡ Массовая генерация» — сама читает ноды/пишет файлы через
   // boardApiRef/pickFile, состояние открытия держим здесь же, рядом с ioNodes
-  const [showBatchGen, setShowBatchGen] = useState(false)
+  const [showBatchGen, setShowBatchGen] = useState(false) // false | true (все ноды без файла) | { scope } (только сломанные, BrokenNodesBadge)
   // Отладка связей: прямые отрезки поверх графа + сводка. Нужна, когда линий
   // «нет» — сразу видно, строятся они вообще или дело в отображении
   const [debugLinks, setDebugLinks] = useState(false)
@@ -302,6 +302,7 @@ export default function CanvasPage({ lessonId, moduleLessons = [], module = null
         <BatchGeneratePanel
           boardApiRef={boardApiRef}
           pickFile={pickFile}
+          scope={showBatchGen.scope ?? null}
           onClose={() => setShowBatchGen(false)}
         />
       )}

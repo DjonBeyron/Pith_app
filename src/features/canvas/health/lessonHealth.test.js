@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { collectNodeUrls, allUrls, classifyProbe, buildHealth, resetBrokenPatch } from './lessonHealth.js'
+import { collectNodeUrls, allUrls, classifyProbe, buildHealth } from './lessonHealth.js'
 
 const audio = (id, seq, fileId, extra = {}) => ({ id, seq, type: 'audio', typeData: { audio: { file_id: fileId, ...extra } }, triggers: [] })
 const files = [
@@ -32,10 +32,8 @@ describe('сломанные ноды — чистая логика (lessonHealt
     expect(collectNodeUrls([{ id: 'x', seq: 2, type: 'audio', typeData: { audio: { r2Url: 'https://r2.dev/direct.mp3' } }, triggers: [] }], files)[0].urls).toEqual(['https://r2.dev/direct.mp3'])
   })
 
-  it('сброс перед перегенерацией: у обычной ноды файл целиком, у photo_choice — только битые варианты; fixable по типу', () => {
-    expect(resetBrokenPatch({ type: 'audio' })({ text: 'x', file_id: 'f1', r2Url: 'u' })).toEqual({ text: 'x', file_id: null, r2Url: null })
-    const d = { photos: [{ id: 'p1', fileId: 'a', photoUrl: 'ua' }, { id: 'p2', fileId: 'b', photoUrl: 'ub' }] }
-    expect(resetBrokenPatch({ type: 'photo_choice', badFiles: [{ fileId: 'b', photoId: 'p2' }] })(d).photos).toEqual([{ id: 'p1', fileId: 'a', photoUrl: 'ua' }, { id: 'p2', fileId: null, photoUrl: null }])
+  // перегенерация сломанных — через scope массовой генерации (batchGenPlan.test.js), ссылки заранее не сбрасываются
+  it('fixable по типу; badFiles — какой файл/вариант битый', () => {
     const h = buildHealth([audio('n1', 1, 'f1'), { id: 's', seq: 2, type: 'scene', typeData: { scene: { scene: { version: 2, timeline: [{ who: 'a', text: 'Hi', audioUrl: 'https://r2.dev/s.mp3' }] } } }, triggers: [] }], files,
       new Map([['https://r2.dev/a.mp3', { status: 404 }], ['https://r2.dev/s.mp3', { status: 404 }]]))
     expect(h.broken.map(b => [b.type, b.fixable])).toEqual([['audio', true], ['scene', false]])

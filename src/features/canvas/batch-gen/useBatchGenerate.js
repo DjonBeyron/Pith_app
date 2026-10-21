@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef } from 'react'
-import { buildBatchPlan } from './batchGenPlan.js'
+import { buildBatchPlan, scopeOf } from './batchGenPlan.js'
 import { generateSpeech } from '../../../shared/lib/ttsApi.js'
 import { generateImage } from '../../../shared/lib/imageGenApi.js'
 import { buildAutoTimeline } from '../table-editor/autoTimeline.js'
@@ -13,7 +13,8 @@ const DEFAULT_CROP = { x: 0, y: 0, scale: 1 }
 // Строго последовательно, не параллельно: бесплатные квоты ElevenLabs/
 // Cloudflare не любят всплеск параллельных запросов, и только так честно
 // считается ETA — по среднему времени уже обработанных элементов.
-export function useBatchGenerate(boardApiRef, pickFile) {
+// scope — строки списка сломанных нод («⚡ Озвучить и сгенерировать заново»): план только по ним, см. batchGenPlan.js
+export function useBatchGenerate(boardApiRef, pickFile, scope = null) {
   const [plan, setPlan] = useState(null) // null — ещё не строили план
   const [running, setRunning] = useState(false)
   const [results, setResults] = useState([]) // { seq, kind, status: 'done'|'error', message? }
@@ -22,10 +23,10 @@ export function useBatchGenerate(boardApiRef, pickFile) {
 
   const refreshPlan = useCallback(() => {
     const nodes = boardApiRef.current?.getNodes() ?? []
-    setPlan(buildBatchPlan(nodes))
+    setPlan(buildBatchPlan(nodes, scopeOf(scope)))
     setResults([])
     setEtaMs(null)
-  }, [boardApiRef])
+  }, [boardApiRef, scope])
 
   const cancel = useCallback(() => { cancelRef.current = true }, [])
 

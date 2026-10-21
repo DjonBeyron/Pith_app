@@ -8,7 +8,8 @@ import { computeMenuPos } from '../../../shared/lib/menuPosition.js'
 // focusNode / select в разборе). Список — порталом в body с фиксированной позицией под значком (computeMenuPos): шапка
 // канваса на узком экране прокручивается по горизонтали (overflow-x: auto) и абсолютный список в ней обрезался.
 // Пока идёт проверка — пунктирная метка «файлы 12/40…»; всё цело — ничего не рисует.
-// onFix(rows) — «⚡ Озвучить и сгенерировать заново»: сбросить битые файлы у нод, которые умеет массовая генерация, и открыть её (только на основном холсте)
+// onFix(rows) — «⚡ Озвучить и сгенерировать заново»: открыть массовую генерацию в режиме «только эти ноды» (только на основном холсте).
+// Ссылки заранее не сбрасываются: закрыл окно — всё как было (раньше файлы снимались сразу, и список сломанных пропадал)
 export default function BrokenNodesBadge({ health, onFocus, onFix = null }) {
   const [pos, setPos] = useState(null) // null — список закрыт
   useEffect(() => {
@@ -40,8 +41,8 @@ export default function BrokenNodesBadge({ health, onFocus, onFix = null }) {
             <button type="button" className="hlthBtn" onClick={recheck} disabled={checking}>Проверить снова</button>
           </div>
           {onFix && fixable.length > 0 && (
-            <button type="button" className="hlthBtn hlthBtn--fix" onClick={() => { onFix(fixable); setPos(null) }}
-              title="Снять битые файлы у этих нод и открыть массовую генерацию: озвучка и картинки сделаются заново, потом сохрани урок">
+            <button type="button" className="hlthBtn hlthBtn--fix" onClick={() => { onFix(broken); setPos(null) }}
+              title="Открыть массовую генерацию только для сломанных нод: озвучка и картинки сделаются заново (после «Начать»), потом сохрани урок">
               ⚡ Озвучить и сгенерировать заново ({fixable.length})
             </button>
           )}
