@@ -9,7 +9,9 @@ import { historyPageIds } from './feedWindow.js'
 import { warmUserSceneNodes } from '../scene/v2/warmUserScenes.js'
 
 const LOOKAHEAD    = 3
-const CONCURRENCY  = 2
+// 3 параллельных файла (было 2): кнопка запуска ждёт все 5 нод прогрева, и общий объём тот же — три потока лучше забирают канал
+// (слоты на RTT/разгон TCP); постеры всё равно снимаются по одному (posterQueue.js), а слабая сеть ограничена попытками/таймаутами
+const CONCURRENCY  = 3
 export const CHAT_BUFFER_SIZE = 5
 const MEDIA_TYPES  = new Set(['audio', 'video', 'circle', 'photo', 'sticker', 'photo_choice', 'table', 'scene'])
 // POSTER_TYPES / EVICT_TYPES — в preloadFetchOne.js (там же и загрузка файла)

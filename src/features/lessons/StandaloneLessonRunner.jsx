@@ -3,10 +3,8 @@ import { traceLaunch } from '../../shared/lib/launchTrace.js'
 import LessonLaunchCard from './LessonLaunchCard.jsx'
 import EnergyPaywall from './EnergyPaywall.jsx'
 import LessonPlayer from '../player/LessonPlayerLazy.jsx'
-import { revokePayloadBlobs } from '../player/preloadQueue.js'
 import { usePayloadBlobsRelease } from '../player/usePayloadBlobs.js'
-import { startLesson } from '../../shared/api/profileApi.js'
-import { refreshProfile } from '../../shared/api/profileCache.js'
+import { startLessonOptimistic } from './launchStart.js'
 import { markLessonCompleted } from '../../shared/lib/completedLessons.js'
 
 // Урок БЕЗ модуля вокруг — для перехода по ноде-ссылке (lesson_ref, канвас)
@@ -23,12 +21,12 @@ export default function StandaloneLessonRunner({ lessonId, lessonTitle = '', onE
   const [noEnergy,   setNoEnergy]   = useState(null)
   useEffect(() => { if (playerData) traceLaunch(`плеер: LessonPlayer смонтирован, нод ${playerData.nodes?.length ?? '?'}`) }, [playerData])
 
-  async function handleStart(data) {
-    const res = await startLesson(lessonId)
-    if (res?.ok === false) { revokePayloadBlobs(data); setNoEnergy({ nextAt: res.next_at }); return }
-    refreshProfile()
-    setPlayerData(data)
-    onStarted?.()
+  // Плеер сразу, ответ start_lesson параллельно; отказ (энергия на нуле) — плеер закрывается, пейволл (launchStart.js)
+  function handleStart(data) {
+    startLessonOptimistic(lessonId, {
+      open: () => { setPlayerData(data); onStarted?.() },
+      deny: res => { setPlayerData(null); setNoEnergy({ nextAt: res.next_at }) },
+    })
   }
 
   if (playerData) {

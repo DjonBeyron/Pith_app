@@ -61,6 +61,9 @@ export default function LessonLaunchCard({ lessonId, lessonTitle = '', retake = 
   const [resumeOffer, setResumeOffer] = useState(() => skipResumeCheck ? null : undefined)
 
   useEffect(() => {
+    // Учитель по умолчанию (app_settings, кэш на сессию) — ПАРАЛЛЕЛЬНО со сценарием: раньше запрос шёл после сценария и файлов,
+    // третьим по счёту, и на первом запуске за сессию добавлял свой круг до сервера. Ошибку не бросает
+    const teacherP = getDefaultTeacher()
     loadScript(lessonId)
       .then(async raw => {
         // Сервер не отдал урок — его сняли с публикации (или удалили), пока
@@ -72,7 +75,7 @@ export default function LessonLaunchCard({ lessonId, lessonTitle = '', retake = 
         const ids   = extractFileIds(nodes)
         const files = ids.length ? await getFilesByIds(ids) : []
         // Учитель: свой у урока либо общий из app_settings (кэш на сессию)
-        const teacher = resolveTeacher(raw?.script, await getDefaultTeacher())
+        const teacher = resolveTeacher(raw?.script, await teacherP)
         setLessonData({
           nodes,
           files,
