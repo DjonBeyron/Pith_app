@@ -17,6 +17,11 @@ import { resolveVoiceFlags } from '../../../scene/v2/sceneOptions.js'
 // (startDelayMs) идёт ДО status 'playing' — кольцо в ней пустое, как у видео до запуска.
 
 export const MIN_LINE_MS = 400
+// Запас к реальному остатку файла (якорь): событие `ended` и старт следующего файла приходят позже, чем часы файла дошли до конца
+// (iPhone: ended +80 мс, следующий play() → playing +400 мс). Без запаса кольцо доезжало до цели реплики и СТОЯЛО эти миллисекунды
+// («замирает в середине и в конце» — жалоба 2026-10-21); с запасом оно ещё едет, когда приходит следующая реплика, и продолжает
+// от текущего значения без остановки (sceneProgressModel: новый отрезок всегда от текущего значения)
+export const RING_TAIL_MS = 180
 
 const clampSpeech = r => Math.min(10, Math.max(0.1, r))
 
@@ -55,7 +60,7 @@ export function withAnchorDuration(durations, scene, index, anchorMs, opts = {})
   const line = scene?.timeline?.[index]
   const translationMs = Math.max(0, durations[index] - lineDurationMs(scene, line, { ...opts, once: true }))
   const out = durations.slice()
-  out[index] = Math.max(MIN_LINE_MS, Math.round(anchorMs + translationMs))
+  out[index] = Math.max(MIN_LINE_MS, Math.round(anchorMs + translationMs + RING_TAIL_MS))
   return out
 }
 

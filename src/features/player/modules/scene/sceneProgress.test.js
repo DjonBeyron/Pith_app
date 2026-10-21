@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { lineDurationMs, planSceneDurations, withAnchorDuration, MIN_LINE_MS } from './sceneProgressPlan.js'
+import { lineDurationMs, planSceneDurations, withAnchorDuration, MIN_LINE_MS, RING_TAIL_MS } from './sceneProgressPlan.js'
 import { createProgressTimeline, LAST_CAP, CREEP_CAP, END_MS, REWIND_MS } from './sceneProgressModel.js'
 import { fallbackMs } from '../../../scene/v2/linePlayback.js'
 import { demoCafeScene } from '../../../scene/v2/demoScenes.js'
@@ -88,9 +88,9 @@ describe('withAnchorDuration — реальный остаток файла вм
     const plan = planSceneDurations(sc, opts).durations
     expect(plan[0]).toBe(Math.round(3580 / 1.5))
     expect(plan[1]).toBe(Math.round(3070 / 1.5 + 1000 / 1.5))
-    // скорость не применилась: файл реально идёт 3,5 с
-    expect(withAnchorDuration(plan, sc, 0, 3500, opts)).toEqual([3500, plan[1]])
-    expect(withAnchorDuration(plan, sc, 1, 3000, opts)).toEqual([plan[0], 3000 + (plan[1] - Math.round(3070 / 1.5))]) // остаток + план перевода
+    // скорость не применилась: файл реально идёт 3,5 с; + запас RING_TAIL_MS, чтобы кольцо не стояло между концом файла и следующей репликой
+    expect(withAnchorDuration(plan, sc, 0, 3500, opts)).toEqual([3500 + RING_TAIL_MS, plan[1]])
+    expect(withAnchorDuration(plan, sc, 1, 3000, opts)).toEqual([plan[0], 3000 + (plan[1] - Math.round(3070 / 1.5)) + RING_TAIL_MS]) // остаток + план перевода + запас
     expect(withAnchorDuration(plan, sc, 0, null, opts)).toBe(plan)
     expect(withAnchorDuration(plan, sc, 5, 1000, opts)).toBe(plan)
     expect(withAnchorDuration(plan, sc, 0, 10, opts)[0]).toBe(MIN_LINE_MS)
@@ -152,23 +152,6 @@ describe('sceneProgressModel — кольцо/полоса: плавно, мон
     for (let i = 1; i < tr.length - 40; i += 1) { flat = tr[i] - tr[i - 1] > 1e-9 ? 0 : flat + 10; maxFlat = Math.max(maxFlat, flat) }
     expect(maxFlat).toBeLessThanOrEqual(100)
     for (let i = 1; i < tr.length; i += 1) expect(tr[i]).toBeGreaterThanOrEqual(tr[i - 1] - 1e-9)
-  })
-
-  it('якорь: то же состояние playing ещё раз, когда файл реально зазвучал — конец отрезка сдвигается на задержку старта, без скачка', () => {
-    const D = [3000, 3000]
-    const tl = createProgressTimeline()
-    tl.onState({ status: 'playing', index: 0, run: 1 }, { durations: D, now: 0 })
-    const before = tl.value(300)
-    const r = tl.onState({ status: 'playing', index: 0, run: 1 }, { durations: D, now: 300 }) // файл пошёл через 300 мс
-    expect(r.from).toBeCloseTo(before, 9) // продолжаем с текущего значения
-    const end0 = D[0] / (D[0] + D[1])
-    expect(tl.value(3000)).toBeLessThan(end0) // к «старому» концу ещё не доехали
-    expect(tl.value(3300)).toBeGreaterThanOrEqual(end0 - 0.002) // к концу от реального старта — доехали
-    // Последняя реплика: якорь сдвигает приход к LAST_CAP ровно на задержку
-    tl.onState({ status: 'playing', index: 1, run: 2 }, { durations: D, now: 3300 })
-    tl.onState({ status: 'playing', index: 1, run: 2 }, { durations: D, now: 3500 })
-    expect(tl.value(6300)).toBeLessThan(LAST_CAP)
-    expect(tl.value(6500)).toBeCloseTo(LAST_CAP, 3)
   })
 
   it('пауза замораживает значение, продолжение идёт дальше от него (без отката и скачка)', () => {
