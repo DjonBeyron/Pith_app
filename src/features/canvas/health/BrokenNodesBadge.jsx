@@ -8,7 +8,8 @@ import { computeMenuPos } from '../../../shared/lib/menuPosition.js'
 // focusNode / select в разборе). Список — порталом в body с фиксированной позицией под значком (computeMenuPos): шапка
 // канваса на узком экране прокручивается по горизонтали (overflow-x: auto) и абсолютный список в ней обрезался.
 // Пока идёт проверка — пунктирная метка «файлы 12/40…»; всё цело — ничего не рисует.
-export default function BrokenNodesBadge({ health, onFocus }) {
+// onFix(rows) — «⚡ Озвучить и сгенерировать заново»: сбросить битые файлы у нод, которые умеет массовая генерация, и открыть её (только на основном холсте)
+export default function BrokenNodesBadge({ health, onFocus, onFix = null }) {
   const [pos, setPos] = useState(null) // null — список закрыт
   useEffect(() => {
     if (!pos) return undefined
@@ -18,8 +19,9 @@ export default function BrokenNodesBadge({ health, onFocus }) {
     return () => { document.removeEventListener('mousedown', onDown, true); document.removeEventListener('touchstart', onDown, true) }
   }, [pos])
   if (!health) return null
-  const { broken, unknown, checked, total, checking, recheck } = health
-  if (!broken.length && !checking && !unknown) return null
+  const { broken, unknown, checked, total, checking, recheck, pending = 0 } = health
+  if (!broken.length && !checking && !unknown && !pending) return null
+  const fixable = broken.filter(b => b.fixable)
   const toggle = e => setPos(p => (p ? null : computeMenuPos(e.currentTarget.getBoundingClientRect(), { minWidth: 320 })))
   return (
     <>
@@ -29,14 +31,21 @@ export default function BrokenNodesBadge({ health, onFocus }) {
         title={broken.length ? `Сломанных нод: ${broken.length} — нажми, список` : checking ? 'Проверяю файлы урока' : `Не удалось проверить ссылок: ${unknown}`}
         onClick={toggle}
       >
-        {broken.length ? `⚠ ${broken.length}` : checking ? `файлы ${checked}/${total}…` : `? ${unknown}`}
+        {broken.length ? `⚠ ${broken.length}` : checking ? `файлы ${checked}/${total}…` : unknown ? `? ${unknown}` : `⏳ ${pending}`}
       </button>
       {pos && createPortal(
         <div className="hlthList" role="dialog" aria-label="Сломанные ноды" style={pos}>
           <div className="hlthHead">
-            <span>{broken.length ? `Сломанные ноды: ${broken.length}` : 'Сломанных нод нет'}{checking ? ` · проверка ${checked}/${total}` : ''}{unknown ? ` · не проверено ${unknown}` : ''}</span>
+            <span>{broken.length ? `Сломанные ноды: ${broken.length}` : 'Сломанных нод нет'}{checking ? ` · проверка ${checked}/${total}` : ''}{unknown ? ` · не проверено ${unknown}` : ''}{pending ? ` · ${pending} файл(ов) ждут сохранения урока` : ''}</span>
             <button type="button" className="hlthBtn" onClick={recheck} disabled={checking}>Проверить снова</button>
           </div>
+          {onFix && fixable.length > 0 && (
+            <button type="button" className="hlthBtn hlthBtn--fix" onClick={() => { onFix(fixable); setPos(null) }}
+              title="Снять битые файлы у этих нод и открыть массовую генерацию: озвучка и картинки сделаются заново, потом сохрани урок">
+              ⚡ Озвучить и сгенерировать заново ({fixable.length})
+            </button>
+          )}
+          {broken.some(b => b.type === 'scene') && <div className="hlthNote">Сцены озвучиваются в сборщике сцены (кнопка «Озвучить»)</div>}
           {broken.map(b => (
             <button key={b.id} type="button" className="hlthRow" onClick={() => { onFocus?.(b.id); setPos(null) }} title="Показать ноду на холсте">
               <span className="hlthSeq">#{b.seq}</span>

@@ -37,6 +37,8 @@
 .hlthHead { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 4px 6px 8px; color: #9aa0b4; }
 .hlthBtn { padding: 4px 8px; border-radius: 6px; border: 1px solid #343842; background: #1c2027; color: #cfd3dc; font-size: 11px; cursor: pointer; }
 .hlthBtn:disabled { opacity: 0.5; cursor: default; }
+.hlthBtn--fix { display: block; width: 100%; margin: 0 0 6px; padding: 7px 8px; color: #b6fe3b; border-color: #3b5a1e; background: rgba(182, 254, 59, 0.07); font-weight: 700; }
+.hlthNote { padding: 4px 6px 6px; color: #9aa0b4; font-size: 11px; }
 .hlthRow {
   display: grid;
   grid-template-columns: 40px 64px 1fr;

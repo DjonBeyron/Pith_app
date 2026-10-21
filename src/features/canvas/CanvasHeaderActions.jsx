@@ -3,6 +3,7 @@ import WordAudioButton from './word-audio/WordAudioButton.jsx'
 import AudioMetaBackfillBadge from './AudioMetaBackfillBadge.jsx'
 import BrokenNodesBadge from './health/BrokenNodesBadge.jsx'
 import { useLessonHealth } from './health/useLessonHealth.js'
+import { resetBrokenPatch } from './health/lessonHealth.js'
 import { computeMenuPos } from '../../shared/lib/menuPosition.js'
 import { unlockLessonAudio } from '../../shared/lib/lessonAudioUnlock.js'
 import { unlockSceneAudioForLesson } from '../scene/v2/sceneAudioUnlock.js'
@@ -97,7 +98,10 @@ export default function CanvasHeaderActions({
       {/* «Спектр: 3/12…» — пока useAudioMetaBackfill.js досчитывает мету
           голосовых; когда всё есть — пусто */}
       <AudioMetaBackfillBadge progress={audioBackfill} />
-      <BrokenNodesBadge health={health} onFocus={id => boardApiRef.current?.focusNode(id)} />
+      <BrokenNodesBadge
+        health={health} onFocus={id => boardApiRef.current?.focusNode(id)}
+        onFix={rows => { for (const r of rows) boardApiRef.current?.patchNodeTypeData(r.id, resetBrokenPatch(r)); markDirty(); setShowBatchGen(true) }}
+      />
       <button
         className="canvasPageTools"
         title="Ещё действия с холстом"

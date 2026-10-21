@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { collectNodeUrls, allUrls, classifyProbe, buildHealth } from './lessonHealth.js'
+import { collectNodeUrls, allUrls, classifyProbe, buildHealth, resetBrokenPatch } from './lessonHealth.js'
 
 const audio = (id, seq, fileId, extra = {}) => ({ id, seq, type: 'audio', typeData: { audio: { file_id: fileId, ...extra } }, triggers: [] })
 const files = [
@@ -14,11 +14,32 @@ describe('сломанные ноды — чистая логика (lessonHealt
     ] } } }, triggers: [] }
     const text = { id: 't', seq: 2, type: 'text', typeData: { text: { text: 'x' } }, triggers: [] }
     const e = collectNodeUrls([audio('n1', 1, 'f1'), text, scene], files)
-    expect(e).toEqual([
+    expect(e.map(x => ({ id: x.id, seq: x.seq, type: x.type, urls: x.urls }))).toEqual([
       { id: 'n1', seq: 1, type: 'audio', urls: ['https://r2.dev/a.mp3'] },
       { id: 's', seq: 3, type: 'scene', urls: ['https://r2.dev/s1.mp3'] },
     ])
     expect(allUrls([...e, { urls: ['https://r2.dev/a.mp3'] }])).toEqual(['https://r2.dev/a.mp3', 'https://r2.dev/s1.mp3'])
+  })
+
+  it('ссылка — по записи файла, а не по старому r2Url в typeData: новый локальный файл ждёт сохранения (pending), не проверяется и не ломает', () => {
+    const loc = [...files, { id: 'new', status: 'local', localFile: {}, r2Url: null }]
+    const n = audio('n1', 1, 'new', { r2Url: 'https://r2.dev/old-404.mp3' })
+    expect(collectNodeUrls([n], loc)).toEqual([{ id: 'n1', seq: 1, type: 'audio', urls: [], refs: [], pending: 1 }])
+    const h = buildHealth([n], loc, new Map([['https://r2.dev/old-404.mp3', { status: 404 }]]))
+    expect(h.broken).toEqual([])
+    expect(h.pending).toBe(1)
+    // без file_id ссылка из typeData — проверяется
+    expect(collectNodeUrls([{ id: 'x', seq: 2, type: 'audio', typeData: { audio: { r2Url: 'https://r2.dev/direct.mp3' } }, triggers: [] }], files)[0].urls).toEqual(['https://r2.dev/direct.mp3'])
+  })
+
+  it('сброс перед перегенерацией: у обычной ноды файл целиком, у photo_choice — только битые варианты; fixable по типу', () => {
+    expect(resetBrokenPatch({ type: 'audio' })({ text: 'x', file_id: 'f1', r2Url: 'u' })).toEqual({ text: 'x', file_id: null, r2Url: null })
+    const d = { photos: [{ id: 'p1', fileId: 'a', photoUrl: 'ua' }, { id: 'p2', fileId: 'b', photoUrl: 'ub' }] }
+    expect(resetBrokenPatch({ type: 'photo_choice', badFiles: [{ fileId: 'b', photoId: 'p2' }] })(d).photos).toEqual([{ id: 'p1', fileId: 'a', photoUrl: 'ua' }, { id: 'p2', fileId: null, photoUrl: null }])
+    const h = buildHealth([audio('n1', 1, 'f1'), { id: 's', seq: 2, type: 'scene', typeData: { scene: { scene: { version: 2, timeline: [{ who: 'a', text: 'Hi', audioUrl: 'https://r2.dev/s.mp3' }] } } }, triggers: [] }], files,
+      new Map([['https://r2.dev/a.mp3', { status: 404 }], ['https://r2.dev/s.mp3', { status: 404 }]]))
+    expect(h.broken.map(b => [b.type, b.fixable])).toEqual([['audio', true], ['scene', false]])
+    expect(h.broken[0].badFiles).toEqual([{ fileId: 'f1', photoId: null }])
   })
 
   it('вердикт по пробе: 404/403 — нет файла; 5xx — ошибка; 0 байт — пустой; html — страница ошибки; сеть — «не удалось»; 200 — ок', () => {
@@ -41,7 +62,7 @@ describe('сломанные ноды — чистая логика (lessonHealt
     ])
     const h = buildHealth(nodes, files, probes)
     expect(h.broken.map(b => b.seq)).toEqual([1, 3])
-    expect(h.broken[0]).toEqual({ id: 'n1', seq: 1, type: 'audio', label: '', reasons: ['файла нет на сервере (HTTP 404): a.mp3'] })
+    expect(h.broken[0]).toEqual({ id: 'n1', seq: 1, type: 'audio', label: '', reasons: ['файла нет на сервере (HTTP 404): a.mp3'], badFiles: [{ fileId: 'f1', photoId: null }], fixable: true })
     expect(h.broken[1].reasons[0]).toContain('потерян')
     expect(buildHealth([audio('n9', 9, 'lost', { text: 'Привет, это текст голосового' })], files, new Map()).broken[0].label).toBe('Привет, это текст голосового')
     expect(h.unknown).toBe(1)
