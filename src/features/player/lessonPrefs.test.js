@@ -55,6 +55,7 @@ describe('настройки шестерёнки: состояние', () => {
       equalizer: 'pithy_pref_equalizer', timer: 'pithy_pref_answer_timer', hud: 'pithy_lesson_hud',
       nodeNum: 'pithy_pref_node_num',
       skipper: 'pithy_pref_skipper',
+      sceneTrace: 'pithy_pref_scene_trace',
     })
   })
 

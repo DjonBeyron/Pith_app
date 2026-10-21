@@ -13,6 +13,10 @@ import { pLog } from '../../../shared/lib/debug.js'
 // Живое окно у админа — SceneCircleDebug.jsx под кружком (подписка subscribeSceneTrace). Без React и DOM: тестируется напрямую.
 
 const MAX = 240
+// Выключатель (шестерёнка урока → «Трасса сцен», lessonPrefs.sceneTrace): выключено — ни буфера, ни pLog, ни подписчиков
+let enabled = true
+export const setSceneTraceEnabled = on => { enabled = !!on }
+export const sceneTraceEnabled = () => enabled
 const buf = []
 const subs = new Set()
 let seq = 0
@@ -22,6 +26,7 @@ const nowMs = () => (typeof performance !== 'undefined' ? performance.now() : Da
 const fmtT = t => (t / 1000).toFixed(2)
 
 export function sceneTrace(msg) {
+  if (!enabled) return
   const line = `[${fmtT(nowMs())}] ${msg}`
   buf.push(line)
   if (buf.length > MAX) buf.splice(0, buf.length - MAX + 40)

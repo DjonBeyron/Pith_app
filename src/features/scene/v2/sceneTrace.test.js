@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import { sceneTrace, sceneTraceLines, sceneTraceSeq, subscribeSceneTrace, resetSceneTrace, nextSceneTag, srcKind, audioState, shortText } from './sceneTrace.js'
+import { sceneTrace, sceneTraceLines, sceneTraceSeq, subscribeSceneTrace, resetSceneTrace, nextSceneTag, srcKind, audioState, shortText, setSceneTraceEnabled, sceneTraceEnabled } from './sceneTrace.js'
 
 describe('трасса сцены (sceneTrace.js)', () => {
   beforeEach(() => resetSceneTrace())
@@ -15,6 +15,19 @@ describe('трасса сцены (sceneTrace.js)', () => {
     expect(sceneTraceLines()[0]).toMatch(/^\[\d+\.\d\d\] тап → раскрыть$/)
     expect(got).toEqual([1, 2])
     expect(sceneTraceSeq()).toBe(3)
+  })
+
+  it('выключатель: выключено — строки не пишутся и подписчики молчат; включено снова — пишутся', () => {
+    const got = []
+    subscribeSceneTrace(n => got.push(n))
+    setSceneTraceEnabled(false)
+    expect(sceneTraceEnabled()).toBe(false)
+    sceneTrace('тихо')
+    expect(sceneTraceLines()).toEqual([])
+    expect(got).toEqual([])
+    setSceneTraceEnabled(true)
+    sceneTrace('снова')
+    expect(sceneTraceLines()).toHaveLength(1)
   })
 
   it('буфер кольцевой: старые строки вытесняются, последняя остаётся', () => {

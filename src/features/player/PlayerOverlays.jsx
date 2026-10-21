@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { APP_VERSION } from '../../shared/lib/version.js'
 import XpFloat from './XpFloat.jsx'
 import LessonSummary from './LessonSummary.jsx'
@@ -7,6 +8,7 @@ import { useAdmin } from '../../app/AdminContext.jsx'
 import { usePref, hudVisible } from './lessonPrefs.js'
 import { usePerfProbe } from './usePerfProbe.js'
 import PlayerSkipper from './admin/PlayerSkipper.jsx'
+import { setSceneTraceEnabled } from '../scene/v2/sceneTrace.js'
 
 // Номер версии виден прямо в плеере: после деплоя сразу понятно, что открыт
 // свежий код, а не кэш браузера (правило из CLAUDE.md)
@@ -36,6 +38,9 @@ export default function PlayerOverlays({
   const showHud = showDebugUi && hudVisible(isAdmin, hud)
   // Скипер нод (шаг по ветке ▲/▼ плавающим окном) — админу по настройке из шестерёнки
   const skipperOn = usePref('skipper')
+  // Трасса сцен (sceneTrace.js) — по настройке «Трасса сцен»; выключена — ни буфера, ни строк [scene] в логе, ни окна 🐞
+  const traceOn = usePref('sceneTrace')
+  useEffect(() => { setSceneTraceEnabled(traceOn) }, [traceOn])
 
   return (
     <>

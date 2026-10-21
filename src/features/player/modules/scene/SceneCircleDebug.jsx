@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState, useSyncExternalStore } from 'react'
 import { useAdmin } from '../../../../app/AdminContext.jsx'
+import { usePref } from '../../lessonPrefs.js'
 import { sceneTraceLines, sceneTraceSeq, subscribeSceneTrace, resetSceneTrace, audioState } from '../../../scene/v2/sceneTrace.js'
 import { getSceneAudioElement, sceneAudioUnlocked } from '../../../scene/v2/sceneAudioUnlock.js'
 
@@ -60,6 +61,7 @@ function Panel({ tag, status, index, total, mode, sound, soundChip, ended, froze
 
 export default function SceneCircleDebug(props) {
   const { isAdmin } = useAdmin()
-  if (!isAdmin || !props.tag) return null
+  const traceOn = usePref('sceneTrace') // шестерёнка → «Трасса сцен»
+  if (!isAdmin || !traceOn || !props.tag) return null
   return <Panel {...props} />
 }

@@ -12,7 +12,8 @@ import { setSoundFilter } from '../../shared/lib/sounds.js'
 // Только для админа:
 //   hud — датчик fps и штамп версии поверх урока;
 //   nodeNum — номер ноды (seq из канваса) мелкой меткой у каждого сообщения ленты (PlayerFeedNodes.jsx), по умолчанию ВЫКЛ;
-//   skipper — плавающее окно «скипер» (PlayerSkipper.jsx): шаг по ветке нод вверх/вниз, не дожидаясь, по умолчанию ВЫКЛ.
+//   skipper — плавающее окно «скипер» (PlayerSkipper.jsx): шаг по ветке нод вверх/вниз, не дожидаясь, по умолчанию ВЫКЛ;
+//   sceneTrace — трасса сцен (sceneTrace.js: буфер + строки [scene] в логе) и окно 🐞 под кружком; выключается, когда не нужна.
 //
 // «Выкл» гасит ТОЛЬКО вывод: звук не играет / свечение не рисуется. Анимации и
 // тайминги (точки печатанья, шарики XP, XpFloat) идут как обычно.
@@ -28,6 +29,7 @@ export const PREF_KEYS = {
   hud:       'pithy_lesson_hud',
   nodeNum:   'pithy_pref_node_num',
   skipper:   'pithy_pref_skipper',
+  sceneTrace: 'pithy_pref_scene_trace',
 }
 // По умолчанию выключены (включаются только записью '1'); остальные — включены, выключает только '0'
 export const PREF_DEFAULT_OFF = new Set(['nodeNum', 'skipper'])

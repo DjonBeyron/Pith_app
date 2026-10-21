@@ -103,6 +103,7 @@ export default function LessonSettingsMenu({ onDownloadLog, onCopyLog }) {
               <SwitchRow label="Показывать FPS и версию" pref="hud" />
               <SwitchRow label="Номера нод в чате" pref="nodeNum" />
               <SwitchRow label="Скипер нод (окно ▲▼)" pref="skipper" />
+              <SwitchRow label="Трасса сцен (🐞 под кружком)" pref="sceneTrace" />
               <div className="smSub">Громкость и эквалайзер</div>
               <AdminAudioSliders />
             </section>
