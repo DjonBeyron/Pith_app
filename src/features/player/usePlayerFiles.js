@@ -47,7 +47,7 @@ export function usePlayerFiles(nodes, propFiles, live = false) {
 // постер и мета голосового (analyzeAudioMeta: duration/waveformData/metaDone).
 // Вынесено из LessonPlayer.jsx (тот упирался в потолок 400 строк)
 export function withBlobs(files, blobMap) {
-  const merge = (f, entry) => ({ ...f, blobUrl: entry.blobUrl, posterUrl: entry.posterUrl ?? null, duration: entry.duration ?? null, waveformData: entry.waveformData ?? null, metaDone: !!entry.metaDone, evicted: !!entry.evicted, error: !!entry.error })
+  const merge = (f, entry) => ({ ...f, blobUrl: entry.blobUrl, posterUrl: entry.posterUrl ?? null, duration: entry.duration ?? null, waveformData: entry.waveformData ?? null, metaDone: !!entry.metaDone, decodeDone: !!entry.decodeDone, evicted: !!entry.evicted, error: !!entry.error })
   const out = files.map(f => (blobMap[f.id] ? merge(f, blobMap[f.id]) : f))
   // Ноды без file_id прогреваются по ключу-ссылке (preloadQueue.nodeFileKey):
   // для них записи files нет — собираем её из blobMap, чтобы модули нашли

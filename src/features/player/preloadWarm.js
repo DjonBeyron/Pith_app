@@ -1,8 +1,9 @@
-import { POSTER_TYPES } from './preloadFetchOne.js'
+import { POSTER_TYPES, DECODE_TYPES } from './preloadFetchOne.js'
 
 // «Нода прогрета» — её можно показывать в чате так, чтобы ничего не доезжало
 // после появления: у фото/голосового/кружка есть blob, у кружка/видео/стикера
-// снят постер, у голосового посчитаны длительность и волна. Это строже, чем
+// снят постер, у голосового посчитаны длительность и волна, у фото/стикера/
+// вариантов картинка декодирована (decodeDone) — иначе пузырь выходил раньше картинки. Это строже, чем
 // readyNodeIds прогрева (там — «байты в памяти», для прогресс-бара карточки
 // запуска): по этому предикату граф урока (useGraphPlayer.js) держит точки
 // «печатает» до готовности следующей ноды, но не дольше WARM_MAX_MS.
@@ -18,6 +19,7 @@ export function isNodeWarm(items, entries) {
     if (e.error || e.evicted) continue
     if (!e.blobUrl) return false
     if (POSTER_TYPES.has(item.nodeType) && !e.posterUrl && !e.posterDone) return false
+    if (DECODE_TYPES.has(item.nodeType) && !e.decodeDone) return false
     if (item.nodeType === 'audio' && !e.metaDone) return false
   }
   return true
