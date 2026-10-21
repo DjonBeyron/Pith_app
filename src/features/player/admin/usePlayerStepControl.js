@@ -84,10 +84,11 @@ export function makeStepActions({ state, graph, answers, onRollbackNode, onPhoto
       if (node.typeData?.word_choice?.sendPickToChat === true) answers.handleWordPick(node.id, a.pickText)
       answers.handleWordAnswer(node.id, a.responseText, a.correct ? 'correct' : 'wrong')
     }
-    // Таблица в ленте ничего не рисует (весь её UI — в нижней панели), так
-    // что состояния ответа ей заводить незачем
-    if (a.kind === 'phrase') {
-      answers.handlePhraseAnswer(node.id, a.responseText, a.correct ? 'correct' : 'wrong')
+    // Пузыри — те же, что у настоящих панелей (stepAnswer.studentBubbles): фраза/слово ученика, затем реакция учителя;
+    // таблица ещё и сама уходит в чат (markTableSent — как «Отправить» в панели)
+    if (a.kind === 'phrase' || a.kind === 'table') {
+      if (a.kind === 'table') answers.markTableSent?.(node.id)
+      for (const b of a.bubbles ?? []) answers.handlePhraseAnswer(node.id, b.text, b.result)
     }
     if (a.kind === 'reg') answers.handleRegAnswer(node.id, '', a.correct ? 'correct' : 'wrong')
     // Неверный шаг считается ошибкой урока (звёзды) — ровно как ответ рукой;

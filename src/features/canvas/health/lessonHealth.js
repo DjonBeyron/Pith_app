@@ -1,5 +1,6 @@
 import { nodeDownloads } from '../../player/preloadQueue.js'
 import { diagnoseMedia } from '../injectR2Urls.js'
+import { nodeText } from '../../player/admin/playerEditLabel.js'
 
 // «Сломанные ноды» урока — чистая логика (без React и сети): какие ссылки у каких нод проверять и как по результатам проб
 // (urlProbe.js) собрать список. Ссылки — те же, что качает прогрев урока (preloadQueue.nodeDownloads: голосовые, видео,
@@ -48,8 +49,10 @@ const short = url => String(url).split('/').pop().split('?')[0].slice(0, 28)
 export function buildHealth(nodes, files, probes) {
   const entries = collectNodeUrls(nodes, files)
   const byId = new Map()
+  const byNodeId = new Map((nodes ?? []).map(n => [n.id, n]))
+  const labelOf = id => { const t = nodeText(byNodeId.get(id) ?? {}); return t.length > 48 ? `${t.slice(0, 48)}…` : t }
   const push = (n, reason) => {
-    const row = byId.get(n.id) ?? { id: n.id, seq: n.seq, type: n.type, reasons: [] }
+    const row = byId.get(n.id) ?? { id: n.id, seq: n.seq, type: n.type, label: labelOf(n.id), reasons: [] }
     if (!row.reasons.includes(reason)) row.reasons.push(reason)
     byId.set(n.id, row)
   }

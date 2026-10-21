@@ -1,3 +1,5 @@
+import { buildRevealedText } from '../../../shared/lib/fillBlanksTemplate.js'
+
 // Шаговый прогон (админ, запуск из канваса): что «нажать» за ученика на
 // интерактивной ноде, когда тумблер стоит в положении «верно» или «неверно».
 //
@@ -5,6 +7,17 @@
 // анимации, лезть туда пришлось бы в пять разных мест. Вместо этого шаг сразу
 // отдаёт итог: какой триггер сработал, какой вариант выбран (variantId нужен
 // для особых переходов вариантов, см. nodeVariants.js) и что ответит учитель.
+
+// Пузыри в чат — как их шлют настоящие панели (PhraseAssemblyPanel, TypeWordPanel, fillBlanksCheck, manualCheck):
+// сначала реплика ученика справа (зелёная 'correct' / красная 'wrong_final'), потом реакция учителя слева ('hint').
+// Раньше шаг слал только реакцию с результатом ноды — в чате не было видно, что «ученик» собрал или напечатал.
+function studentBubbles(studentText, correct, response) {
+  const out = []
+  if (studentText?.trim()) out.push({ text: studentText.trim(), result: correct ? 'correct' : 'wrong_final' })
+  if (response?.trim()) out.push({ text: response.trim(), result: 'hint' })
+  return out
+}
+const trapText = t => (typeof t === 'object' ? t?.text : t) ?? ''
 
 // Случайный элемент — из нескольких верных (или нескольких неверных) вариантов
 // берём любой, как и просили: жёсткой очерёдности здесь не нужно
@@ -47,12 +60,19 @@ export function pickStepAnswer(node, wantCorrectIn, rnd = Math.random) {
     // особого перехода варианта у неё быть не может
     const trap = wantCorrect ? null : pick(d.distractors ?? [], rnd)
     const correct = wantCorrect || !trap
+    const responseText = (correct ? d.responseCorrect : d.responseWrong) ?? ''
+    // Собранная фраза: верная — слова ноды, неверная — с подставленной ловушкой (как собрал бы ученик)
+    const words = Array.isArray(d.words) ? d.words.map(w => (typeof w === 'object' ? w?.text : w) ?? '') : []
+    const phrase = t === 'table' ? '' : (correct ? words : [...words.slice(0, -1), trapText(trap), words.at(-1) ?? '']).join(' ')
+    // Таблица шлёт фразу в чат только по галочке «отправить ответ ученика в чат» (PlayerPanels.jsx)
+    const sendPhrase = t !== 'table' || d.sendAnswerToChat === true
     return {
       kind: prefix,
       correct,
       variantId: (typeof trap === 'object' ? trap?.id : null) ?? null,
       result: correct ? `${prefix}_correct` : `${prefix}_wrong`,
-      responseText: (correct ? d.responseCorrect : d.responseWrong) ?? '',
+      responseText,
+      bubbles: studentBubbles(sendPhrase ? phrase : '', correct, responseText),
     }
   }
 
@@ -65,6 +85,9 @@ export function pickStepAnswer(node, wantCorrectIn, rnd = Math.random) {
     // единого такого пропуска ошибиться нечем — идём как верный
     const wrongable = blanks.some(b => (b.options ?? []).some(o => o !== b.answer))
     const correct = wantCorrect || !wrongable
+    const responseText = (correct ? d.responseCorrect : d.responseWrong) ?? ''
+    // Фраза с пропусками: верная — ответы, неверная — первый чужой вариант в каждом пропуске, где он есть
+    const filled = buildRevealedText(d.template ?? '', correct ? blanks : blanks.map(b => ({ answer: (b.options ?? []).find(o => o !== b.answer) ?? b.answer })))
     return {
       // Тот же канал ответа в чате, что у table/phrase_assembly — общий
       // phraseStates (см. usePlayerAnswers.js/handlePhraseAnswer)
@@ -72,7 +95,8 @@ export function pickStepAnswer(node, wantCorrectIn, rnd = Math.random) {
       correct,
       variantId: null,
       result: correct ? 'fill_correct' : 'fill_wrong',
-      responseText: (correct ? d.responseCorrect : d.responseWrong) ?? '',
+      responseText,
+      bubbles: studentBubbles(filled, correct, responseText),
     }
   }
 
@@ -81,12 +105,17 @@ export function pickStepAnswer(node, wantCorrectIn, rnd = Math.random) {
     // неверным; слово без текста проверять не на чем — идём как верный. Общий канал
     // ответа в чате с «Собери фразу» (phraseStates)
     const correct = wantCorrect || !(d.word ?? '').trim()
+    const responseText = (correct ? d.responseCorrect : d.responseWrong) ?? ''
+    const word = (d.word ?? '').trim()
+    // Неверно напечатанное слово: лишняя буква из набора ловушек в конце (как опечатка ученика)
+    const typed = correct ? word : `${word}${String(d.extraLetters ?? 'x')[0] ?? 'x'}`
     return {
       kind: 'phrase',
       correct,
       variantId: null,
       result: correct ? 'type_correct' : 'type_wrong',
-      responseText: (correct ? d.responseCorrect : d.responseWrong) ?? '',
+      responseText,
+      bubbles: studentBubbles(typed, correct, responseText),
     }
   }
 
@@ -99,6 +128,8 @@ export function pickStepAnswer(node, wantCorrectIn, rnd = Math.random) {
       variantId: null,
       result: wantCorrect ? 'say_done' : 'say_wrong',
       responseText: wantCorrect ? (d.phrase ?? '') : '',
+      // Сказал — фраза зелёным (как голосовой ответ, только текстом); не сказал — пузырей нет (панель молчит)
+      bubbles: wantCorrect ? studentBubbles(d.phrase ?? '', true, '') : [],
     }
   }
 

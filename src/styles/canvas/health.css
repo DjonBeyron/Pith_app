@@ -21,11 +21,9 @@
 .hlthBadge--bad { color: #ff6b6b; border-color: #6b2a2a; background: rgba(255, 82, 82, 0.08); font-weight: 700; }
 
 .hlthList {
-  position: absolute;
-  top: 34px;
-  right: 0;
-  z-index: 60;
-  width: min(420px, 92vw);
+  position: fixed; /* портал в body, координаты — computeMenuPos (BrokenNodesBadge.jsx) */
+  z-index: 10050;
+  width: min(440px, 94vw);
   max-height: 60vh;
   overflow: auto;
   padding: 6px;
@@ -42,6 +40,7 @@
 .hlthRow {
   display: grid;
   grid-template-columns: 40px 64px 1fr;
+  grid-template-areas: 'seq type name' 'seq type reason';
   gap: 8px;
   width: 100%;
   padding: 6px;
@@ -53,9 +52,11 @@
   cursor: pointer;
 }
 .hlthRow:hover { background: #1f2229; }
-.hlthSeq { color: #b6fe3b; font-weight: 700; }
+.hlthSeq { grid-area: seq; color: #b6fe3b; font-weight: 700; }
+.hlthType { grid-area: type; }
+.hlthName { grid-area: name; color: #e6e6ea; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .hlthType { color: #9aa0b4; }
-.hlthReason { color: #ff8a80; word-break: break-word; }
+.hlthReason { grid-area: reason; color: #ff8a80; word-break: break-word; font-size: 11px; }
 
 /* Метка ⚠ на самой ноде (рядом с меткой файла) */
 .nodeBrokenBadge {

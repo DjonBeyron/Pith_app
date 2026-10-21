@@ -15,6 +15,22 @@ const WC = {
 }
 
 describe('word_choice', () => {
+  it('пузыри как у настоящих панелей: фраза ученика (зелёная/красная с ловушкой), потом реакция учителя; слово с опечаткой; таблица — только по галочке', () => {
+    const pa = { type: 'phrase_assembly', typeData: { phrase_assembly: { words: ['I', 'want', 'to', 'sleep'], distractors: [{ id: 'd1', text: 'too' }], responseCorrect: 'Верно', responseWrong: 'Мимо' } } }
+    expect(pickStepAnswer(pa, true).bubbles).toEqual([{ text: 'I want to sleep', result: 'correct' }, { text: 'Верно', result: 'hint' }])
+    expect(pickStepAnswer(pa, false).bubbles).toEqual([{ text: 'I want to too sleep', result: 'wrong_final' }, { text: 'Мимо', result: 'hint' }])
+    const tw = { type: 'type_word', typeData: { type_word: { word: 'go to bed', extraLetters: 'pl', responseWrong: 'не то' } } }
+    expect(pickStepAnswer(tw, true).bubbles).toEqual([{ text: 'go to bed', result: 'correct' }])
+    expect(pickStepAnswer(tw, false).bubbles).toEqual([{ text: 'go to bedp', result: 'wrong_final' }, { text: 'не то', result: 'hint' }])
+    const fb = { type: 'fill_blanks', typeData: { fill_blanks: { template: 'I ___ to ___', blanks: [{ answer: 'want', options: ['want', 'wants'] }, { answer: 'sleep', options: ['sleep'] }], responseCorrect: 'Да' } } }
+    expect(pickStepAnswer(fb, true).bubbles[0]).toEqual({ text: 'I want to sleep', result: 'correct' })
+    expect(pickStepAnswer(fb, false).bubbles[0]).toEqual({ text: 'I wants to sleep', result: 'wrong_final' })
+    const tb = { type: 'table', typeData: { table: { words: ['a'], responseCorrect: 'ок' } } }
+    expect(pickStepAnswer(tb, true).bubbles).toEqual([{ text: 'ок', result: 'hint' }]) // без галочки фразы нет
+    expect(pickStepAnswer({ type: 'say_phrase', typeData: { say_phrase: { phrase: 'I want to dance' } } }, true).bubbles).toEqual([{ text: 'I want to dance', result: 'correct' }])
+    expect(pickStepAnswer({ type: 'say_phrase', typeData: { say_phrase: { phrase: 'x' } } }, false).bubbles).toEqual([])
+  })
+
   it('null — случайно: монетка решает верно/неверно (режим «?» скипера)', () => {
     const node = { type: 'word_choice', typeData: { word_choice: { options: [{ id: 'a', text: 'A', isCorrect: true }, { id: 'b', text: 'B', isCorrect: false }], responseCorrect: 'да', responseWrong: 'нет' } } }
     const seq = [0.1, 0, 0.9, 0] // монетка, выбор варианта, монетка, выбор варианта

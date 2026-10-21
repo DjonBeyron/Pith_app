@@ -83,7 +83,9 @@
 .playerSceneCircleInner .scn[data-solo] .scn-bubble,
 .nodeScenePreview--circle .scn[data-solo] .scn-bubble { left: 21%; right: 21%; translate: none; }
 .playerSceneCircleInner .scn-bubble__tail { left: 50%; right: auto; margin-left: -12px; border-width: 12px; border-left-width: 6px; border-right-width: 6px; bottom: -12px; }
-.playerSceneCircle .circleRingSvg { opacity: 1; }
+.playerSceneCircle .circleRingSvg { opacity: 1; transition: opacity 0.35s ease; }
+/* Доиграла: кольцо доезжает до полного (240 мс) и уходит — не «висит» вокруг кружка (жалоба с iPhone, 2026-10-21); повтор тапом — снова с нуля */
+.playerSceneCircle[data-status="ended"] .circleRingSvg { opacity: 0; transition: opacity 0.4s ease 0.45s; }
 /* Дугу ведёт Web Animation (useSceneProgress.js) — плавность даёт она сама, transition тут сломал бы синхронность */
 .playerSceneRingArc { transition: none; }
 .playerSceneCircle[data-status="idle"] .circleRingSvg,
