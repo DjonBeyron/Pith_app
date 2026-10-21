@@ -12,6 +12,7 @@ export function startMediaServer({ dir, latencyMs = 0, bytesPerSec = 1e9 }) {
   const server = http.createServer((req, res) => {
     res.setHeader('Access-Control-Allow-Origin', '*')
     res.setHeader('Access-Control-Expose-Headers', 'Content-Length')
+    res.setHeader('Timing-Allow-Origin', '*') // Resource Timing для cross-origin (постеры ленты: «файл загружен» в observer.js стенда ленты)
     if (req.method === 'OPTIONS') return res.end()
     const file = join(dir, basename(req.url.split('?')[0]))
     if (!existsSync(file)) { res.statusCode = 404; return res.end() }

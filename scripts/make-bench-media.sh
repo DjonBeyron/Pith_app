@@ -12,3 +12,11 @@ ffmpeg -loglevel error -y -f lavfi -i "testsrc=size=2400x1800" -frames:v 1 -q:v 
 ffmpeg -loglevel error -y -f lavfi -i "rgbtestsrc=size=512x512" -frames:v 1 sticker.png
 for i in 1 2 3; do ffmpeg -loglevel error -y -f lavfi -i "testsrc2=size=800x600" -frames:v 1 -q:v 5 "pc$i.jpg"; done
 ls -la
+# Лента рекомендаций (e2e/feed-media/media): шесть портретных видео 360×640 по 2,5 с разного оттенка + постеры (первый кадр)
+cd ../../feed-media/media
+for i in 1 2 3 4 5 6; do
+  h=$((i * 55))
+  ffmpeg -loglevel error -y -f lavfi -i "testsrc2=size=360x640:rate=24:duration=2.5" -vf "hue=h=$h" -pix_fmt yuv420p -c:v libvpx -crf 40 -b:v 120k "v$i.webm"
+  ffmpeg -loglevel error -y -f lavfi -i "testsrc2=size=360x640" -vf "hue=h=$h" -frames:v 1 -q:v 8 "p$i.jpg"
+done
+ls -la

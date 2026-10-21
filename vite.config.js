@@ -1,4 +1,5 @@
 import { defineConfig } from 'vite'
+import { fileURLToPath } from 'node:url'
 import react from '@vitejs/plugin-react'
 import { APP_VERSION } from './src/shared/lib/version.js'
 import { debugSink } from './tools/viteDebugSink.js'
@@ -43,7 +44,14 @@ const emitVersionJson = {
   },
 }
 
+// Стенды e2e (playwright.config.js, проект feed-media): dev-сервер стенда поднят с PITHY_BENCH_STUBS=1 — вместо curriculaApi.js
+// подставляется e2e/feed-media/curriculaApiStub.js (синтетические модули ленты). В обычной сборке/dev переменной нет — псевдонимов нет
+const benchAliases = process.env.PITHY_BENCH_STUBS
+  ? [{ find: /^.*\/shared\/lib\/curriculaApi\.js$/, replacement: fileURLToPath(new URL('./e2e/feed-media/curriculaApiStub.js', import.meta.url)) }]
+  : []
+
 export default defineConfig({
+  resolve: { alias: benchAliases },
   // debugSink — только dev: принимает отчёты и rrweb-записи от дебаг-тулбара
   // и кладёт их в _debug/ (папка вне git), чтобы Claude читал их прямо с диска
   // shellCachePlugin (tools/viteShellCache.js) — кеш оболочки: после сборки подставляет BUILD_ID и список предзагрузки в

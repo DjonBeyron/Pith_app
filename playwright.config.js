@@ -26,7 +26,7 @@ const PORT = isLocalBackend() ? 5299 : 5199
 // Стенд «медиа в чате» (e2e/chat-media.spec.js): свой dev-сервер с МЁРТВЫМ Supabase (бэкенд не нужен и не должен быть
 // достижим — плеер монтируется напрямую с синтетическим уроком) и Chromium с разрешённым автоплеем (видео/голосовые без жеста)
 const BENCH_PORT = 5398
-const BENCH_SPEC = /chat-media\.spec\.js/
+const BENCH_SPECS = /(chat|feed)-media\.spec\.js/
 const benchChromium = {
   ...mobileChromium,
   baseURL: `http://localhost:${BENCH_PORT}`,
@@ -56,7 +56,7 @@ export default defineConfig({
       port: BENCH_PORT,
       reuseExistingServer: false,
       timeout: 60_000,
-      env: { VITE_SUPABASE_URL: 'http://127.0.0.1:9', VITE_SUPABASE_ANON_KEY: 'bench' },
+      env: { VITE_SUPABASE_URL: 'http://127.0.0.1:9', VITE_SUPABASE_ANON_KEY: 'bench', PITHY_BENCH_STUBS: '1' },
     },
   ],
   use: {
@@ -71,10 +71,11 @@ export default defineConfig({
   },
   projects: [
     // Гостевые (smoke + guest): без логина; auth-спеки игнорируются
-    { name: 'mobile',  use: mobileChromium, testIgnore: [...IGNORE_AUTH, BENCH_SPEC] },
-    { name: 'desktop', use: { viewport: { width: 1280, height: 800 } }, testIgnore: [...IGNORE_AUTH, BENCH_SPEC] },
-    // Стенд «медиа в чате» — на своём сервере (BENCH_PORT), без бэкенда
-    { name: 'chat-media', testMatch: BENCH_SPEC, use: benchChromium },
+    { name: 'mobile',  use: mobileChromium, testIgnore: [...IGNORE_AUTH, BENCH_SPECS] },
+    { name: 'desktop', use: { viewport: { width: 1280, height: 800 } }, testIgnore: [...IGNORE_AUTH, BENCH_SPECS] },
+    // Стенды — на своём сервере (BENCH_PORT), без бэкенда: «медиа в чате» и «лента рекомендаций»
+    { name: 'chat-media', testMatch: /chat-media\.spec\.js/, use: benchChromium },
+    { name: 'feed-media', testMatch: /feed-media\.spec\.js/, use: benchChromium },
     // Под логином — только при наличии .env.test с кредами (этап D)
     ...(hasCreds ? [
       { name: 'setup', testMatch: /auth\.setup\.js/ },
