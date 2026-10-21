@@ -22,7 +22,7 @@ export function makePreloadFetch(ctx) {
   const {
     genRef, blobUrlsRef, setBlobMap, setReadyNodeIds, inFlightRef,
     debugItemsRef, bytesLoadedRef, bytesTotalRef, tick, throttledTick, markFailed,
-    ts, checkNodeReady, evictFarthestIfNeeded, pump, byIdRef,
+    ts, checkNodeReady, evictFarthestIfNeeded, pump, byIdRef, lastProgressRef,
   } = ctx
 
   // Длительность и волна голосового — сразу после скачивания, а не при показе
@@ -109,6 +109,7 @@ export function makePreloadFetch(ctx) {
         isAlive: () => genRef.current === gen,
         onProgress: (loaded, total) => {
           bytesLoadedRef.current.set(id, loaded)
+          lastProgressRef?.current.set(id, Date.now()) // гейт «печатает» ждёт дольше, пока байты идут (warmWait.js)
           if (total) {
             bytesTotalRef.current.set(id, total)
             debugItem.progress = Math.round(loaded / total * 100)

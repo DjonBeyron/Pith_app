@@ -1,6 +1,7 @@
 /* eslint-disable react-hooks/refs */
 /* eslint-disable react-hooks/set-state-in-effect */
 import { WARM_MAX_MS, WARM_POLL_MS } from './preloadWarm.js'
+import { keepWaiting } from './warmWait.js'
 import { useState, useEffect, useLayoutEffect, useRef, useCallback, useMemo } from 'react'
 import { appendVisit, forgetNodeKeys, findEntry } from './graphPlayerVisits.js'
 import { useGraphStepControls } from './useGraphStepControls.js'
@@ -151,13 +152,12 @@ export function useGraphPlayer(nodes, { onFinish, onCheckpoint, startNodeId = nu
     if (force) { revealNode(next); return }
     scheduledRef.current = { type: 'reveal', nodeId: nextNodeId, delayMs }
     pendingMsRef.current = delay
-    // Пауза «печатает» прошла, а файлы ноды ещё не прогреты (blob/постер/мета)
-    // — держим точки, опрашивая готовность, но не дольше WARM_MAX_MS: дальше
-    // показываем как есть, работают запасные пути модулей
+    // Пауза «печатает» прошла, а файлы ноды ещё не прогреты (blob/постер/мета) — держим точки, опрашивая готовность:
+    // WARM_MAX_MS, а пока байты реально идут — дольше (warmWait.keepWaiting); дальше показываем как есть, работают запасные пути модулей
     const tryReveal = (deadline, waited) => {
       const warm = isReaction || !warmRef?.current || warmRef.current(next.id)
       const held = !isReaction && (holdRef?.current ?? 0) > 0 && Date.now() < deadline + HOLD_EXTRA_MS
-      if ((!warm && Date.now() < deadline) || held) {
+      if (keepWaiting({ warm, now: Date.now(), deadline, lastProgressAt: warmRef?.progressAt?.(next.id) ?? null }) || held) {
         if (!waited) pLog(`[graph] «печатает» держим: #${next.seq} ${held ? 'летит XP' : 'ещё не прогрета'}`)
         // Отработавший тик — вон из списка: иначе до 40 мёртвых id на ноду
         const id = addTimer(() => {

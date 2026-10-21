@@ -61,6 +61,7 @@ export function usePlayerPreload(nodes, files, visibleNodes, opts = {}) {
   const graceRef       = useRef(0)
   const historySetRef  = useRef(new Set()) // ноды истории в плане прогрева
   const lastVisibleRef = useRef(null)
+  const lastProgressRef = useRef(new Map()) // id файла → когда в последний раз приходили байты (гейт «печатает», warmWait.js)
 
   // Байтовый прогресс, процент прогрева, реестр загрузок — usePreloadProgress.js
   const {
@@ -140,7 +141,7 @@ export function usePlayerPreload(nodes, files, visibleNodes, opts = {}) {
     return makePreloadFetch({
       genRef, blobUrlsRef, setBlobMap, setReadyNodeIds, inFlightRef,
       debugItemsRef, bytesLoadedRef, bytesTotalRef, tick, throttledTick, markFailed,
-      ts, checkNodeReady, evictFarthestIfNeeded, pump, byIdRef,
+      ts, checkNodeReady, evictFarthestIfNeeded, pump, byIdRef, lastProgressRef,
     })
   }
   function fetchOne(item, gen) {
@@ -163,6 +164,17 @@ export function usePlayerPreload(nodes, files, visibleNodes, opts = {}) {
   const isNodeWarm = useCallback(nodeId => {
     const items = queueRef.current.filter(i => i.nodeId === nodeId)
     return isNodeWarmPure(items, blobUrlsRef.current)
+  }, [])
+  // Когда у ещё не скачанных файлов ноды в последний раз приходили байты (null — ничего не качается): гейт «печатает» ждёт дольше,
+  // пока загрузка реально идёт (warmWait.js). Читает рефы в момент вызова — стабильна
+  const nodeProgressAt = useCallback(nodeId => {
+    let last = null
+    for (const i of queueRef.current) {
+      if (i.nodeId !== nodeId || blobUrlsRef.current[i.id]?.blobUrl || blobUrlsRef.current[i.id]?.error) continue
+      const t = lastProgressRef.current.get(i.id)
+      if (t != null && (last == null || t > last)) last = t
+    }
+    return last
   }, [])
 
   // ─── visibleNodes: reorder queue + eviction check ────────────────────────
@@ -326,5 +338,5 @@ export function usePlayerPreload(nodes, files, visibleNodes, opts = {}) {
   // Дебаг-оверлей живёт в ref и «дёргается» через setDebugTick — чтение при рендере намеренное
   // eslint-disable-next-line react-hooks/refs
   const debugItems = [...debugItemsRef.current.values()]
-  return { blobMap, queueTotal, readyNodeIds, warmNodeIds, warmupNodeIds, warmupPct, initialized, initializedFor, debugItems, addMsgTs, releaseBlobs, evictLog, isNodeWarm }
+  return { blobMap, queueTotal, readyNodeIds, warmNodeIds, warmupNodeIds, warmupPct, initialized, initializedFor, debugItems, addMsgTs, releaseBlobs, evictLog, isNodeWarm, nodeProgressAt }
 }
