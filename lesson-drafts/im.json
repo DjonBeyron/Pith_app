@@ -3,7 +3,7 @@
   "version": 1,
   "lesson": {
     "title": "I'm",
-    "nodeCount": 274
+    "nodeCount": 281
   },
   "nodes": [
     {
@@ -55,7 +55,7 @@
           "timeline": [
             {
               "who": "a",
-              "text": "Утро, сижу дома с кофе, а Кейт уже пишет: how are you?",
+              "text": "Утро, валяюсь в кровати, а Кейт уже пишет: how are you?",
               "emotion": "tired"
             },
             {
@@ -158,13 +158,13 @@
     {
       "ref": "n4",
       "type": "text",
-      "seq": 271,
+      "seq": 278,
       "pos": [
         1120,
         480
       ],
       "data": {
-        "content": "не совсем) по-русски {t:я сонный} и всё, а по-английски между {g:I} и состоянием {l:нужна связка}, слово, которое их связывает:\n{g:I'm sleepy}",
+        "content": "не совсем) между {g:I} и состоянием {l:нужна связка}:\n{g:I'm}",
         "hardWrap": true
       },
       "triggers": [
@@ -255,7 +255,7 @@
         {
           "if": "variant",
           "variantLabel": "Сразу к практике 💪",
-          "then": "n116"
+          "then": "n122"
         }
       ]
     },
@@ -313,10 +313,10 @@
         5780,
         0
       ],
-      "note": "ОЗВУЧКА: I'm это сокращение от I + am, переводится как я есть: по-русски слово am мы пропускаем, я сонный, а по-английски оно обязательно",
+      "note": "ОЗВУЧКА: I'm это сокращение от I + am, переводится как я есть. Это связка, слово, которое связывает I и состояние: по-русски мы его пропускаем, я сонный, а по-английски оно обязательно",
       "needs": "audio — озвучка реплики",
       "data": {
-        "text": "{g:I'm} это сокращение от {g:I} + {g:am}, переводится как {t:я есть}: по-русски слово {g:am} мы пропускаем, {t:я сонный}, а по-английски {l:оно обязательно}",
+        "text": "{g:I'm} это сокращение от {g:I} + {g:am}, переводится как {t:я есть}. Это {w:связка}, слово, которое связывает {g:I} и состояние: по-русски мы его пропускаем, {t:я сонный}, а по-английски {l:оно обязательно}",
         "showText": true
       },
       "triggers": [
@@ -541,10 +541,10 @@
         9140,
         0
       ],
-      "note": "ОЗВУЧКА: Как сказать «я опаздываю»? Собери",
+      "note": "ОЗВУЧКА: Ну-ка, собери: «я опаздываю»",
       "needs": "audio — озвучка реплики",
       "data": {
-        "text": "Как сказать {t:«я опаздываю»}? Собери",
+        "text": "Ну-ка, собери: {t:«я опаздываю»}",
         "showText": true
       },
       "triggers": [
@@ -609,7 +609,7 @@
     {
       "ref": "n18",
       "type": "text",
-      "seq": 270,
+      "seq": 277,
       "pos": [
         9700,
         480
@@ -953,7 +953,7 @@
     {
       "ref": "n27",
       "type": "text",
-      "seq": 269,
+      "seq": 276,
       "pos": [
         14180,
         480
@@ -992,32 +992,10 @@
     },
     {
       "ref": "n29",
-      "type": "lesson_ref",
+      "type": "text",
       "seq": 26,
       "pos": [
         15300,
-        0
-      ],
-      "note": "ССЫЛКА: в редакторе выбрать урок «At» (targetId); без него плеер ноду пропустит",
-      "data": {
-        "caption": "Про at, слово перед местом, ты можешь узнать в отдельном уроке",
-        "isModule": false,
-        "targetTitle": "At"
-      },
-      "triggers": [
-        {
-          "if": "timer",
-          "ms": 2000,
-          "then": "n30"
-        }
-      ]
-    },
-    {
-      "ref": "n30",
-      "type": "text",
-      "seq": 27,
-      "pos": [
-        15860,
         0
       ],
       "data": {
@@ -1028,16 +1006,16 @@
         {
           "if": "timer",
           "ms": 1500,
-          "then": "n31"
+          "then": "n30"
         }
       ]
     },
     {
-      "ref": "n31",
+      "ref": "n30",
       "type": "audio",
-      "seq": 28,
+      "seq": 27,
       "pos": [
-        16420,
+        15860,
         0
       ],
       "note": "ОЗВУЧКА: I'm busy",
@@ -1049,16 +1027,16 @@
       "triggers": [
         {
           "if": "played",
-          "then": "n32"
+          "then": "n31"
         }
       ]
     },
     {
-      "ref": "n32",
+      "ref": "n31",
       "type": "word_choice",
-      "seq": 29,
+      "seq": 28,
       "pos": [
-        16980,
+        16420,
         0
       ],
       "data": {
@@ -1082,7 +1060,7 @@
       "triggers": [
         {
           "if": "word_correct",
-          "then": "n34"
+          "then": "n33"
         },
         {
           "if": "variant",
@@ -1101,16 +1079,16 @@
         },
         {
           "if": "word_wrong",
-          "then": "n33"
+          "then": "n32"
         }
       ]
     },
     {
-      "ref": "n33",
+      "ref": "n32",
       "type": "text",
-      "seq": 268,
+      "seq": 275,
       "pos": [
-        16980,
+        16420,
         480
       ],
       "data": {
@@ -1121,16 +1099,16 @@
         {
           "if": "timer",
           "ms": 1500,
-          "then": "n35"
+          "then": "n34"
         }
       ]
     },
     {
-      "ref": "n34",
+      "ref": "n33",
       "type": "reaction",
-      "seq": 30,
+      "seq": 29,
       "pos": [
-        17540,
+        16980,
         0
       ],
       "data": {
@@ -1141,16 +1119,16 @@
         {
           "if": "timer",
           "ms": 1400,
-          "then": "n35"
+          "then": "n34"
         }
       ]
     },
     {
-      "ref": "n35",
+      "ref": "n34",
       "type": "text",
-      "seq": 31,
+      "seq": 30,
       "pos": [
-        18100,
+        17540,
         0
       ],
       "data": {
@@ -1161,16 +1139,16 @@
         {
           "if": "timer",
           "ms": 1500,
-          "then": "n36"
+          "then": "n35"
         }
       ]
     },
     {
-      "ref": "n36",
+      "ref": "n35",
       "type": "word_choice",
-      "seq": 32,
+      "seq": 31,
       "pos": [
-        18660,
+        18100,
         0
       ],
       "data": {
@@ -1193,7 +1171,7 @@
       "triggers": [
         {
           "if": "word_correct",
-          "then": "n38"
+          "then": "n37"
         },
         {
           "if": "variant",
@@ -1212,16 +1190,16 @@
         },
         {
           "if": "word_wrong",
-          "then": "n37"
+          "then": "n36"
         }
       ]
     },
     {
-      "ref": "n37",
+      "ref": "n36",
       "type": "text",
-      "seq": 267,
+      "seq": 274,
       "pos": [
-        18660,
+        18100,
         480
       ],
       "data": {
@@ -1232,36 +1210,36 @@
         {
           "if": "timer",
           "ms": 1500,
-          "then": "n39"
+          "then": "n38"
         }
       ]
     },
     {
-      "ref": "n38",
+      "ref": "n37",
       "type": "text",
-      "seq": 33,
+      "seq": 32,
       "pos": [
-        19220,
+        18660,
         0
       ],
       "data": {
-        "content": "да)) {t:«я здесь»} 📍",
+        "content": "точно, {t:«я здесь»}, и Кейт уже бежит 📍",
         "hardWrap": false
       },
       "triggers": [
         {
           "if": "timer",
           "ms": 1500,
-          "then": "n39"
+          "then": "n38"
         }
       ]
     },
     {
-      "ref": "n39",
+      "ref": "n38",
       "type": "audio",
-      "seq": 34,
+      "seq": 33,
       "pos": [
-        19780,
+        19220,
         0
       ],
       "note": "ОЗВУЧКА: I'm это короткая форма, в переписке почти всегда она. Полная I am звучит медленнее и важнее, когда хочешь подчеркнуть",
@@ -1273,16 +1251,16 @@
       "triggers": [
         {
           "if": "played",
-          "then": "n40"
+          "then": "n39"
         }
       ]
     },
     {
-      "ref": "n40",
+      "ref": "n39",
       "type": "sticker",
-      "seq": 35,
+      "seq": 34,
       "pos": [
-        20340,
+        19780,
         0
       ],
       "note": "СТИКЕР: сгенерировать в редакторе по imagePrompt",
@@ -1302,16 +1280,16 @@
         {
           "if": "timer",
           "ms": 1200,
-          "then": "n41"
+          "then": "n40"
         }
       ]
     },
     {
-      "ref": "n41",
+      "ref": "n40",
       "type": "audio",
-      "seq": 36,
+      "seq": 35,
       "pos": [
-        20900,
+        20340,
         0
       ],
       "note": "ОЗВУЧКА: Давай-ка вслух: скажи, как ты сейчас, начни с I'm, а дальше любое слово, хоть hungry, хоть busy. Можно и полное I am, засчитаю обе формы",
@@ -1323,22 +1301,22 @@
       "triggers": [
         {
           "if": "played",
-          "then": "n42"
+          "then": "n41"
         }
       ]
     },
     {
-      "ref": "n42",
+      "ref": "n41",
       "type": "say_phrase",
-      "seq": 37,
+      "seq": 36,
       "pos": [
-        21460,
+        20900,
         0
       ],
       "data": {
         "lang": "en-US",
         "phrase": "I'm sleepy",
-        "translation": "Я хочу спать",
+        "translation": "Я сонный(ая)",
         "keywords": "",
         "threshold": 70,
         "strict": true,
@@ -1353,20 +1331,20 @@
       "triggers": [
         {
           "if": "say_done",
-          "then": "n44"
+          "then": "n43"
         },
         {
           "if": "say_wrong",
-          "then": "n43"
+          "then": "n42"
         }
       ]
     },
     {
-      "ref": "n43",
+      "ref": "n42",
       "type": "text",
-      "seq": 266,
+      "seq": 273,
       "pos": [
-        21460,
+        20900,
         480
       ],
       "data": {
@@ -1377,16 +1355,16 @@
         {
           "if": "timer",
           "ms": 1500,
-          "then": "n47"
+          "then": "n46"
         }
       ]
     },
     {
-      "ref": "n44",
+      "ref": "n43",
       "type": "text",
-      "seq": 38,
+      "seq": 37,
       "pos": [
-        22020,
+        21460,
         0
       ],
       "data": {
@@ -1397,37 +1375,37 @@
         {
           "if": "timer",
           "ms": 1500,
+          "then": "n44"
+        }
+      ]
+    },
+    {
+      "ref": "n44",
+      "type": "audio",
+      "seq": 38,
+      "pos": [
+        22020,
+        0
+      ],
+      "note": "ОЗВУЧКА: воу, Кейт бы одобрила, ты уже говоришь о себе по-английски",
+      "needs": "audio — озвучка реплики",
+      "data": {
+        "text": "воу, Кейт бы одобрила, ты уже говоришь о себе по-английски",
+        "showText": true
+      },
+      "triggers": [
+        {
+          "if": "played",
           "then": "n45"
         }
       ]
     },
     {
       "ref": "n45",
-      "type": "audio",
+      "type": "reaction",
       "seq": 39,
       "pos": [
         22580,
-        0
-      ],
-      "note": "ОЗВУЧКА: воу, I'm и состояние, ты уже говоришь о себе по-английски",
-      "needs": "audio — озвучка реплики",
-      "data": {
-        "text": "воу, {g:I'm} и состояние, ты уже говоришь о себе по-английски",
-        "showText": true
-      },
-      "triggers": [
-        {
-          "if": "played",
-          "then": "n46"
-        }
-      ]
-    },
-    {
-      "ref": "n46",
-      "type": "reaction",
-      "seq": 40,
-      "pos": [
-        23140,
         0
       ],
       "data": {
@@ -1438,16 +1416,16 @@
         {
           "if": "timer",
           "ms": 1400,
-          "then": "n47"
+          "then": "n46"
         }
       ]
     },
     {
-      "ref": "n47",
+      "ref": "n46",
       "type": "system",
-      "seq": 41,
+      "seq": 40,
       "pos": [
-        25000,
+        24440,
         0
       ],
       "data": {
@@ -1457,16 +1435,16 @@
         {
           "if": "timer",
           "ms": 1600,
-          "then": "n48"
+          "then": "n47"
         }
       ]
     },
     {
-      "ref": "n48",
+      "ref": "n47",
       "type": "scene",
-      "seq": 42,
+      "seq": 41,
       "pos": [
-        25560,
+        25000,
         0
       ],
       "note": "СЦЕНА: диалог двух котов в пузыре. Озвучку записать в редакторе сцены",
@@ -1566,16 +1544,16 @@
       "triggers": [
         {
           "if": "played",
-          "then": "n49"
+          "then": "n48"
         }
       ]
     },
     {
-      "ref": "n49",
+      "ref": "n48",
       "type": "audio",
-      "seq": 43,
+      "seq": 42,
       "pos": [
-        26120,
+        25560,
         0
       ],
       "note": "ОЗВУЧКА: Заметь: Кейт про себя говорит I'm, а я ей: you're, ты есть. Связка меняется вместе с тем, о ком речь",
@@ -1587,22 +1565,22 @@
       "triggers": [
         {
           "if": "played",
-          "then": "n50"
+          "then": "n49"
         }
       ]
     },
     {
-      "ref": "n50",
+      "ref": "n49",
       "type": "photo",
-      "seq": 44,
+      "seq": 43,
       "pos": [
-        26680,
+        26120,
         0
       ],
       "note": "ФОТО: сгенерировать в редакторе по imagePrompt",
       "needs": "photo",
       "data": {
-        "caption": "Кейт наконец пришла, щёки красные, бежала от автобуса 🚌",
+        "caption": "Кейт здесь, запыхалась после автобуса 🚌",
         "imagePrompt": "Мультяшная кошка с рюкзаком вбегает в кафе, щёки румяные, за окном автобус, без текста",
         "crop": {
           "x": 0,
@@ -1614,42 +1592,42 @@
         {
           "if": "timer",
           "ms": 2200,
-          "then": "n51"
+          "then": "n50"
         }
       ]
     },
     {
-      "ref": "n51",
+      "ref": "n50",
       "type": "text",
-      "seq": 45,
+      "seq": 44,
       "pos": [
-        27240,
+        26680,
         0
       ],
       "data": {
-        "content": "а про неё связка {g:she's}, {t:она есть}. Собери {t:«она здесь»}",
+        "content": "а про неё связка {g:she's}, {t:она есть}. Собери {t:«она хочет есть»}",
         "hardWrap": false
       },
       "triggers": [
         {
           "if": "timer",
           "ms": 1500,
-          "then": "n52"
+          "then": "n51"
         }
       ]
     },
     {
-      "ref": "n52",
+      "ref": "n51",
       "type": "phrase_assembly",
-      "seq": 46,
+      "seq": 45,
       "pos": [
-        27800,
+        27240,
         0
       ],
       "data": {
         "words": [
           "She's",
-          "here"
+          "hungry"
         ],
         "distractors": [
           {
@@ -1662,12 +1640,12 @@
             "text": "am"
           }
         ],
-        "responseWrong": "не совсем) про неё связка {g:she's}, и сразу где она"
+        "responseWrong": "не совсем) про неё связка {g:she's}, и сразу состояние"
       },
       "triggers": [
         {
           "if": "phrase_correct",
-          "then": "n54"
+          "then": "n53"
         },
         {
           "if": "variant",
@@ -1686,36 +1664,36 @@
         },
         {
           "if": "phrase_wrong",
-          "then": "n53"
+          "then": "n52"
         }
       ]
     },
     {
-      "ref": "n53",
+      "ref": "n52",
       "type": "text",
-      "seq": 265,
+      "seq": 272,
       "pos": [
-        27800,
+        27240,
         480
       ],
       "data": {
-        "content": "близко) про неё не {x:I'm}, а {g:she's}:\n{g:She's here}",
+        "content": "близко) про неё не {x:I'm}, а {g:she's}:\n{g:She's hungry}",
         "hardWrap": true
       },
       "triggers": [
         {
           "if": "timer",
           "ms": 1500,
-          "then": "n55"
+          "then": "n54"
         }
       ]
     },
     {
-      "ref": "n54",
+      "ref": "n53",
       "type": "reaction",
-      "seq": 47,
+      "seq": 46,
       "pos": [
-        28360,
+        27800,
         0
       ],
       "data": {
@@ -1726,16 +1704,16 @@
         {
           "if": "timer",
           "ms": 1400,
-          "then": "n55"
+          "then": "n54"
         }
       ]
     },
     {
-      "ref": "n55",
+      "ref": "n54",
       "type": "table",
-      "seq": 48,
+      "seq": 47,
       "pos": [
-        28920,
+        28360,
         0
       ],
       "note": "ОЗВУЧКА таблицы (скрипт идёт по ячейкам слева направо, сверху вниз; метку «Проверить» поставить при монтаже после последней ячейки): Смотри, что получается. Про себя, I'm, полностью I am, I'm late, я опаздываю. Про тебя связка уже другая, you're, полностью you are, you're late, ты опаздываешь. А про неё she's, полностью she is, she's late, она опаздывает. Начало меняется, а состояние late остаётся",
@@ -1898,7 +1876,7 @@
       "triggers": [
         {
           "if": "table_correct",
-          "then": "n56"
+          "then": "n55"
         },
         {
           "if": "table_wrong",
@@ -1907,11 +1885,11 @@
       ]
     },
     {
-      "ref": "n56",
+      "ref": "n55",
       "type": "audio",
-      "seq": 49,
+      "seq": 48,
       "pos": [
-        29480,
+        28920,
         0
       ],
       "note": "ОЗВУЧКА: Про него точно так же, he's, полностью he is",
@@ -1923,37 +1901,37 @@
       "triggers": [
         {
           "if": "played",
+          "then": "n56"
+        }
+      ]
+    },
+    {
+      "ref": "n56",
+      "type": "audio",
+      "seq": 49,
+      "pos": [
+        29480,
+        0
+      ],
+      "note": "ОЗВУЧКА: А когда нас двое или больше: we're, это we + are, мы есть, и they're, они есть",
+      "needs": "audio — озвучка реплики",
+      "data": {
+        "text": "А когда {l:нас двое или больше}: {g:we're}, это {g:we} + {g:are}, {t:мы есть}, и {g:they're}, {t:они есть}",
+        "showText": true
+      },
+      "triggers": [
+        {
+          "if": "played",
           "then": "n57"
         }
       ]
     },
     {
       "ref": "n57",
-      "type": "audio",
+      "type": "sticker",
       "seq": 50,
       "pos": [
         30040,
-        0
-      ],
-      "note": "ОЗВУЧКА: А когда нас двое или больше: we're, мы, и they're, они",
-      "needs": "audio — озвучка реплики",
-      "data": {
-        "text": "А когда {l:нас двое или больше}: {g:we're}, {t:мы}, и {g:they're}, {t:они}",
-        "showText": true
-      },
-      "triggers": [
-        {
-          "if": "played",
-          "then": "n58"
-        }
-      ]
-    },
-    {
-      "ref": "n58",
-      "type": "sticker",
-      "seq": 51,
-      "pos": [
-        30600,
         0
       ],
       "note": "СТИКЕР: сгенерировать в редакторе по imagePrompt",
@@ -1973,64 +1951,60 @@
         {
           "if": "timer",
           "ms": 1200,
+          "then": "n58"
+        }
+      ]
+    },
+    {
+      "ref": "n58",
+      "type": "text",
+      "seq": 51,
+      "pos": [
+        30600,
+        0
+      ],
+      "data": {
+        "content": "Сидим, пьём кофе, Кейт фоткает чашки для подруги)) собери {t:«мы счастливы»}",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1500,
           "then": "n59"
         }
       ]
     },
     {
       "ref": "n59",
-      "type": "text",
+      "type": "phrase_assembly",
       "seq": 52,
       "pos": [
         31160,
         0
       ],
       "data": {
-        "content": "Сидим, пьём кофе, Кейт фоткает чашки для подруги)) а здесь что нужно? выбирай:\n{g:We ___ happy}",
-        "hardWrap": true
-      },
-      "triggers": [
-        {
-          "if": "timer",
-          "ms": 1500,
-          "then": "n60"
-        }
-      ]
-    },
-    {
-      "ref": "n60",
-      "type": "word_choice",
-      "seq": 53,
-      "pos": [
-        31720,
-        0
-      ],
-      "data": {
-        "options": [
+        "words": [
+          "We're",
+          "happy"
+        ],
+        "distractors": [
           {
-            "text": "are",
-            "isCorrect": true
+            "text": "am"
           },
           {
-            "text": "am",
-            "isCorrect": false
+            "text": "is"
           },
           {
-            "text": "is",
-            "isCorrect": false
+            "text": "I'm"
           }
         ],
-        "sendPickToChat": true
+        "responseWrong": "не совсем) про нас связка {g:we're}"
       },
       "triggers": [
         {
-          "if": "word_correct",
-          "then": "n62"
-        },
-        {
-          "if": "variant",
-          "variantLabel": "are",
-          "then": null
+          "if": "phrase_correct",
+          "then": "n61"
         },
         {
           "if": "variant",
@@ -2043,57 +2017,62 @@
           "then": null
         },
         {
-          "if": "word_wrong",
-          "then": "n61"
+          "if": "variant",
+          "variantLabel": "I'm",
+          "then": null
+        },
+        {
+          "if": "phrase_wrong",
+          "then": "n60"
+        }
+      ]
+    },
+    {
+      "ref": "n60",
+      "type": "text",
+      "seq": 271,
+      "pos": [
+        31160,
+        480
+      ],
+      "data": {
+        "content": "неа) нас двое, значит {g:we're}, а не {x:I'm}:\n{g:We're happy}",
+        "hardWrap": true
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1500,
+          "then": "n62"
         }
       ]
     },
     {
       "ref": "n61",
       "type": "text",
-      "seq": 264,
+      "seq": 53,
       "pos": [
         31720,
-        480
+        0
       ],
       "data": {
-        "content": "неа) про нас, {g:we}, связка {g:are}: {g:We are happy}, или короче {g:we're}",
+        "content": "{t:«мы счастливы»}, кофе творит чудеса ☕",
         "hardWrap": false
       },
       "triggers": [
         {
           "if": "timer",
           "ms": 1500,
-          "then": "n63"
+          "then": "n62"
         }
       ]
     },
     {
       "ref": "n62",
-      "type": "text",
+      "type": "table",
       "seq": 54,
       "pos": [
         32280,
-        0
-      ],
-      "data": {
-        "content": "да)) {t:«мы счастливы»} ☕",
-        "hardWrap": false
-      },
-      "triggers": [
-        {
-          "if": "timer",
-          "ms": 1500,
-          "then": "n63"
-        }
-      ]
-    },
-    {
-      "ref": "n63",
-      "type": "table",
-      "seq": 55,
-      "pos": [
-        32840,
         0
       ],
       "note": "ОЗВУЧКА таблицы (скрипт идёт по ячейкам слева направо, сверху вниз; метку «Проверить» поставить при монтаже после последней ячейки): А теперь вся семья разом, фраза одна, я здесь, меняется только связка. Про себя, I'm, I'm here. Про тебя, you're, you're here. Про неё или про него, she's, he's, she's here. Нас двое, we're, we're here. Их много, they're, they're here. Пять связок, а состояние после них одно и то же",
@@ -2318,7 +2297,7 @@
       "triggers": [
         {
           "if": "table_correct",
-          "then": "n64"
+          "then": "n63"
         },
         {
           "if": "table_wrong",
@@ -2327,11 +2306,11 @@
       ]
     },
     {
-      "ref": "n64",
+      "ref": "n63",
       "type": "pin_message",
-      "seq": 56,
+      "seq": 55,
       "pos": [
-        33400,
+        32840,
         0
       ],
       "data": {
@@ -2341,36 +2320,36 @@
         {
           "if": "timer",
           "ms": 1800,
-          "then": "n65"
+          "then": "n64"
         }
       ]
     },
     {
-      "ref": "n65",
+      "ref": "n64",
       "type": "text",
-      "seq": 57,
+      "seq": 56,
       "pos": [
-        33960,
+        33400,
         0
       ],
       "data": {
-        "content": "Теперь послушай 👂",
+        "content": "Кейт прислала голосовое про Тома и Анну, разбери",
         "hardWrap": false
       },
       "triggers": [
         {
           "if": "timer",
           "ms": 1500,
-          "then": "n66"
+          "then": "n65"
         }
       ]
     },
     {
-      "ref": "n66",
+      "ref": "n65",
       "type": "audio",
-      "seq": 58,
+      "seq": 57,
       "pos": [
-        34520,
+        33960,
         0
       ],
       "note": "ОЗВУЧКА: They're at work",
@@ -2382,16 +2361,16 @@
       "triggers": [
         {
           "if": "played",
-          "then": "n67"
+          "then": "n66"
         }
       ]
     },
     {
-      "ref": "n67",
+      "ref": "n66",
       "type": "word_choice",
-      "seq": 59,
+      "seq": 58,
       "pos": [
-        35080,
+        34520,
         0
       ],
       "data": {
@@ -2415,7 +2394,7 @@
       "triggers": [
         {
           "if": "word_correct",
-          "then": "n69"
+          "then": "n68"
         },
         {
           "if": "variant",
@@ -2434,16 +2413,16 @@
         },
         {
           "if": "word_wrong",
-          "then": "n68"
+          "then": "n67"
         }
       ]
     },
     {
-      "ref": "n68",
+      "ref": "n67",
       "type": "text",
-      "seq": 263,
+      "seq": 270,
       "pos": [
-        35080,
+        34520,
         480
       ],
       "data": {
@@ -2454,16 +2433,16 @@
         {
           "if": "timer",
           "ms": 1500,
-          "then": "n70"
+          "then": "n69"
         }
       ]
     },
     {
-      "ref": "n69",
+      "ref": "n68",
       "type": "reaction",
-      "seq": 60,
+      "seq": 59,
       "pos": [
-        35640,
+        35080,
         0
       ],
       "data": {
@@ -2474,6 +2453,28 @@
         {
           "if": "timer",
           "ms": 1400,
+          "then": "n69"
+        }
+      ]
+    },
+    {
+      "ref": "n69",
+      "type": "lesson_ref",
+      "seq": 60,
+      "pos": [
+        35640,
+        0
+      ],
+      "note": "ССЫЛКА: в редакторе выбрать урок «At» (targetId); без него плеер ноду пропустит",
+      "data": {
+        "caption": "Про at, слово перед местом (at work, at home), ты можешь узнать в отдельном уроке",
+        "isModule": false,
+        "targetTitle": "At"
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 2000,
           "then": "n70"
         }
       ]
@@ -2535,10 +2536,10 @@
         37320,
         0
       ],
-      "note": "ОЗВУЧКА: Скажи про друга или подругу, какие они: начни с He's или She's, можно и полное He is, а дальше любое слово, funny, nice, busy",
+      "note": "ОЗВУЧКА: Скажи про друга или подругу, какие они: начни с He's или She's, можно и полное He is, а дальше любое слово, funny, nice, busy, засчитаю любое",
       "needs": "audio — озвучка реплики",
       "data": {
-        "text": "Скажи про друга или подругу, какие они: начни с {g:He's} или {g:She's}, можно и полное {g:He is}, а дальше любое слово, {g:funny}, {g:nice}, {g:busy}",
+        "text": "Скажи про друга или подругу, какие они: начни с {g:He's} или {g:She's}, можно и полное {g:He is}, а дальше любое слово, {g:funny}, {g:nice}, {g:busy}, засчитаю любое",
         "showText": true
       },
       "triggers": [
@@ -2585,7 +2586,7 @@
     {
       "ref": "n74",
       "type": "text",
-      "seq": 262,
+      "seq": 269,
       "pos": [
         37880,
         480
@@ -2630,10 +2631,10 @@
         39000,
         0
       ],
-      "note": "ОЗВУЧКА: связка на месте, а дальше любое слово, так это и работает",
+      "note": "ОЗВУЧКА: ну всё, теперь я знаю, с кем ты дружишь",
       "needs": "audio — озвучка реплики",
       "data": {
-        "text": "связка на месте, а дальше любое слово, так это и работает",
+        "text": "ну всё, теперь я знаю, с кем ты дружишь",
         "showText": true
       },
       "triggers": [
@@ -2759,7 +2760,7 @@
         0
       ],
       "data": {
-        "content": "как сказать {t:«вчера я был дома»}?",
+        "content": "давай проверим: как сказать {t:«вчера я был дома»}?",
         "hardWrap": false
       },
       "triggers": [
@@ -2828,13 +2829,13 @@
     {
       "ref": "n84",
       "type": "text",
-      "seq": 261,
+      "seq": 268,
       "pos": [
         44220,
         480
       ],
       "data": {
-        "content": "не совсем) вчера это {g:was}: {g:I was at home yesterday}, без {x:I'm}",
+        "content": "не совсем) это про вчера, то есть прошлое, значит {g:was}: {g:I was at home yesterday}, без {x:I'm}",
         "hardWrap": false
       },
       "triggers": [
@@ -3134,7 +3135,7 @@
     {
       "ref": "n91",
       "type": "text",
-      "seq": 260,
+      "seq": 267,
       "pos": [
         47580,
         480
@@ -3160,7 +3161,7 @@
         0
       ],
       "data": {
-        "content": "да)) {t:«вчера Кейт опоздала»} 😅",
+        "content": "ага, {t:«вчера Кейт опоздала»}, а сегодня я 😅",
         "hardWrap": false
       },
       "triggers": [
@@ -3179,10 +3180,10 @@
         48700,
         0
       ],
-      "note": "ОЗВУЧКА: А для нас, вас и них were, когда людей несколько: we were",
+      "note": "ОЗВУЧКА: А для нас, вас и них were, когда людей несколько",
       "needs": "audio — озвучка реплики",
       "data": {
-        "text": "А для нас, вас и них {g:were}, {l:когда людей несколько}: {g:we were}",
+        "text": "А для нас, вас и них {g:were}, {l:когда людей несколько}",
         "showText": true
       },
       "triggers": [
@@ -3194,10 +3195,152 @@
     },
     {
       "ref": "n94",
-      "type": "table",
+      "type": "photo",
       "seq": 82,
       "pos": [
         49260,
+        0
+      ],
+      "note": "ФОТО: сгенерировать в редакторе по imagePrompt",
+      "needs": "photo",
+      "data": {
+        "caption": "Мы с Кейт вчера оба опоздали: бежим с кофе в разные стороны 🏃",
+        "imagePrompt": "Мультяшные рыжий кот и кошка бегут с кофе в руках в разные стороны, утро, город, без текста",
+        "crop": {
+          "x": 0,
+          "y": 0,
+          "scale": 1
+        }
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 2200,
+          "then": "n95"
+        }
+      ]
+    },
+    {
+      "ref": "n95",
+      "type": "audio",
+      "seq": 83,
+      "pos": [
+        49820,
+        0
+      ],
+      "note": "ОЗВУЧКА: Собери: «мы вчера опоздали»",
+      "needs": "audio — озвучка реплики",
+      "data": {
+        "text": "Собери: {t:«мы вчера опоздали»}",
+        "showText": true
+      },
+      "triggers": [
+        {
+          "if": "played",
+          "then": "n96"
+        }
+      ]
+    },
+    {
+      "ref": "n96",
+      "type": "phrase_assembly",
+      "seq": 84,
+      "pos": [
+        50380,
+        0
+      ],
+      "data": {
+        "words": [
+          "We",
+          "were",
+          "late",
+          "yesterday"
+        ],
+        "distractors": [
+          {
+            "text": "was"
+          },
+          {
+            "text": "is"
+          },
+          {
+            "text": "they"
+          }
+        ],
+        "responseWrong": "не совсем) нас двое и это вчера: {g:we were}"
+      },
+      "triggers": [
+        {
+          "if": "phrase_correct",
+          "then": "n98"
+        },
+        {
+          "if": "variant",
+          "variantLabel": "was",
+          "then": null
+        },
+        {
+          "if": "variant",
+          "variantLabel": "is",
+          "then": null
+        },
+        {
+          "if": "variant",
+          "variantLabel": "they",
+          "then": null
+        },
+        {
+          "if": "phrase_wrong",
+          "then": "n97"
+        }
+      ]
+    },
+    {
+      "ref": "n97",
+      "type": "text",
+      "seq": 266,
+      "pos": [
+        50380,
+        480
+      ],
+      "data": {
+        "content": "неа) нас несколько, значит {g:were}:\n{g:We were late yesterday}",
+        "hardWrap": true
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1500,
+          "then": "n99"
+        }
+      ]
+    },
+    {
+      "ref": "n98",
+      "type": "reaction",
+      "seq": 85,
+      "pos": [
+        50940,
+        0
+      ],
+      "data": {
+        "emoji": "⏰",
+        "target": "student"
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1400,
+          "then": "n99"
+        }
+      ]
+    },
+    {
+      "ref": "n99",
+      "type": "table",
+      "seq": 86,
+      "pos": [
+        51500,
         0
       ],
       "note": "ОЗВУЧКА таблицы (скрипт идёт по ячейкам слева направо, сверху вниз; метку «Проверить» поставить при монтаже после последней ячейки): Про вчера две связки. Когда один человек, я, она или он, связка was, she was late, она опоздала. А когда нас несколько, мы, вы, они, уже were, we were late, мы опоздали",
@@ -3329,7 +3472,7 @@
       "triggers": [
         {
           "if": "table_correct",
-          "then": "n95"
+          "then": "n100"
         },
         {
           "if": "table_wrong",
@@ -3338,11 +3481,11 @@
       ]
     },
     {
-      "ref": "n95",
+      "ref": "n100",
       "type": "audio",
-      "seq": 83,
+      "seq": 87,
       "pos": [
-        49820,
+        52060,
         0
       ],
       "note": "ОЗВУЧКА: А про завтра: I'll be, это I will be, я буду. Завтра я буду свободен, и, кажется, мы с Кейт идём гулять",
@@ -3354,16 +3497,16 @@
       "triggers": [
         {
           "if": "played",
-          "then": "n96"
+          "then": "n101"
         }
       ]
     },
     {
-      "ref": "n96",
+      "ref": "n101",
       "type": "sticker",
-      "seq": 84,
+      "seq": 88,
       "pos": [
-        50380,
+        52620,
         0
       ],
       "note": "СТИКЕР: сгенерировать в редакторе по imagePrompt",
@@ -3383,16 +3526,16 @@
         {
           "if": "timer",
           "ms": 1200,
-          "then": "n97"
+          "then": "n102"
         }
       ]
     },
     {
-      "ref": "n97",
+      "ref": "n102",
       "type": "audio",
-      "seq": 85,
+      "seq": 89,
       "pos": [
-        50940,
+        53180,
         0
       ],
       "note": "ОЗВУЧКА: Собери фразу: «завтра я буду свободен»",
@@ -3404,16 +3547,16 @@
       "triggers": [
         {
           "if": "played",
-          "then": "n98"
+          "then": "n103"
         }
       ]
     },
     {
-      "ref": "n98",
+      "ref": "n103",
       "type": "phrase_assembly",
-      "seq": 86,
+      "seq": 90,
       "pos": [
-        51500,
+        53740,
         0
       ],
       "data": {
@@ -3439,7 +3582,7 @@
       "triggers": [
         {
           "if": "phrase_correct",
-          "then": "n100"
+          "then": "n105"
         },
         {
           "if": "variant",
@@ -3458,36 +3601,36 @@
         },
         {
           "if": "phrase_wrong",
-          "then": "n99"
+          "then": "n104"
         }
       ]
     },
     {
-      "ref": "n99",
+      "ref": "n104",
       "type": "text",
-      "seq": 259,
+      "seq": 265,
       "pos": [
-        51500,
+        53740,
         480
       ],
       "data": {
-        "content": "неа) завтра это {g:I'll be}: {g:I'll be free tomorrow}, без {x:I'm}",
+        "content": "не то) это про завтра, то есть будущее, значит {g:I'll be}: {g:I'll be free tomorrow}, без {x:I'm}",
         "hardWrap": false
       },
       "triggers": [
         {
           "if": "timer",
           "ms": 1500,
-          "then": "n101"
+          "then": "n106"
         }
       ]
     },
     {
-      "ref": "n100",
+      "ref": "n105",
       "type": "reaction",
-      "seq": 87,
+      "seq": 91,
       "pos": [
-        52060,
+        54300,
         0
       ],
       "data": {
@@ -3498,36 +3641,36 @@
         {
           "if": "timer",
           "ms": 1400,
-          "then": "n101"
+          "then": "n106"
         }
       ]
     },
     {
-      "ref": "n101",
+      "ref": "n106",
       "type": "text",
-      "seq": 88,
+      "seq": 92,
       "pos": [
-        52620,
+        54860,
         0
       ],
       "data": {
-        "content": "И на слух 👂",
+        "content": "А это я Кейт наговорил, что тут?",
         "hardWrap": false
       },
       "triggers": [
         {
           "if": "timer",
           "ms": 1500,
-          "then": "n102"
+          "then": "n107"
         }
       ]
     },
     {
-      "ref": "n102",
+      "ref": "n107",
       "type": "audio",
-      "seq": 89,
+      "seq": 93,
       "pos": [
-        53180,
+        55420,
         0
       ],
       "note": "ОЗВУЧКА: I'll be at home at seven",
@@ -3539,16 +3682,16 @@
       "triggers": [
         {
           "if": "played",
-          "then": "n103"
+          "then": "n108"
         }
       ]
     },
     {
-      "ref": "n103",
+      "ref": "n108",
       "type": "word_choice",
-      "seq": 90,
+      "seq": 94,
       "pos": [
-        53740,
+        55980,
         0
       ],
       "data": {
@@ -3572,7 +3715,7 @@
       "triggers": [
         {
           "if": "word_correct",
-          "then": "n105"
+          "then": "n110"
         },
         {
           "if": "variant",
@@ -3591,36 +3734,36 @@
         },
         {
           "if": "word_wrong",
-          "then": "n104"
+          "then": "n109"
         }
       ]
     },
     {
-      "ref": "n104",
+      "ref": "n109",
       "type": "text",
-      "seq": 258,
+      "seq": 264,
       "pos": [
-        53740,
+        55980,
         480
       ],
       "data": {
-        "content": "не то) {g:I'll be} это {t:я буду}, а {g:at seven} это {t:в семь}: {t:я буду дома в семь}",
+        "content": "не-не-не) {g:I'll be} это {t:я буду}, а {g:at seven} это {t:в семь}: {t:я буду дома в семь}",
         "hardWrap": false
       },
       "triggers": [
         {
           "if": "timer",
           "ms": 1500,
-          "then": "n106"
+          "then": "n111"
         }
       ]
     },
     {
-      "ref": "n105",
+      "ref": "n110",
       "type": "reaction",
-      "seq": 91,
+      "seq": 95,
       "pos": [
-        54300,
+        56540,
         0
       ],
       "data": {
@@ -3631,16 +3774,16 @@
         {
           "if": "timer",
           "ms": 1400,
-          "then": "n106"
+          "then": "n111"
         }
       ]
     },
     {
-      "ref": "n106",
+      "ref": "n111",
       "type": "table",
-      "seq": 92,
+      "seq": 96,
       "pos": [
-        54860,
+        57100,
         0
       ],
       "note": "ОЗВУЧКА таблицы (скрипт идёт по ячейкам слева направо, сверху вниз; метку «Проверить» поставить при монтаже после последней ячейки): Собираем всё вместе. Сейчас, I'm, I'm at home, я дома. Вчера, I was, I was at home, я был дома. Завтра, I'll be, I'll be at home, я буду дома. Место одно, а связка показывает, когда",
@@ -3803,7 +3946,7 @@
       "triggers": [
         {
           "if": "table_correct",
-          "then": "n107"
+          "then": "n112"
         },
         {
           "if": "table_wrong",
@@ -3812,11 +3955,11 @@
       ]
     },
     {
-      "ref": "n107",
+      "ref": "n112",
       "type": "pin_message",
-      "seq": 93,
+      "seq": 97,
       "pos": [
-        55420,
+        57660,
         0
       ],
       "data": {
@@ -3826,37 +3969,37 @@
         {
           "if": "timer",
           "ms": 1800,
-          "then": "n108"
+          "then": "n113"
         }
       ]
     },
     {
-      "ref": "n108",
+      "ref": "n113",
       "type": "audio",
-      "seq": 94,
+      "seq": 98,
       "pos": [
-        55980,
+        58220,
         0
       ],
-      "note": "ОЗВУЧКА: Про тебя: скажи, где ты будешь завтра, начни с I'll be at или I will be at, дальше любое место",
+      "note": "ОЗВУЧКА: Про тебя: скажи, где ты будешь завтра, начни с I'll be at или I will be at, дальше любое место, засчитаю любое",
       "needs": "audio — озвучка реплики",
       "data": {
-        "text": "Про тебя: скажи, где ты будешь завтра, начни с {g:I'll be at} или {g:I will be at}, дальше любое место",
+        "text": "Про тебя: скажи, где ты будешь завтра, начни с {g:I'll be at} или {g:I will be at}, дальше любое место, засчитаю любое",
         "showText": true
       },
       "triggers": [
         {
           "if": "played",
-          "then": "n109"
+          "then": "n114"
         }
       ]
     },
     {
-      "ref": "n109",
+      "ref": "n114",
       "type": "say_phrase",
-      "seq": 95,
+      "seq": 99,
       "pos": [
-        56540,
+        58780,
         0
       ],
       "data": {
@@ -3877,40 +4020,40 @@
       "triggers": [
         {
           "if": "say_done",
-          "then": "n111"
+          "then": "n116"
         },
         {
           "if": "say_wrong",
-          "then": "n110"
+          "then": "n115"
         }
       ]
     },
     {
-      "ref": "n110",
+      "ref": "n115",
       "type": "text",
-      "seq": 257,
+      "seq": 263,
       "pos": [
-        56540,
+        58780,
         480
       ],
       "data": {
-        "content": "не-не-не) начни с {g:I'll be at} и добавь любое место)",
+        "content": "не совсем) начни с {g:I'll be at} и добавь любое место)",
         "hardWrap": false
       },
       "triggers": [
         {
           "if": "timer",
           "ms": 1500,
-          "then": "n114"
+          "then": "n119"
         }
       ]
     },
     {
-      "ref": "n111",
+      "ref": "n116",
       "type": "text",
-      "seq": 96,
+      "seq": 100,
       "pos": [
-        57100,
+        59340,
         0
       ],
       "data": {
@@ -3921,37 +4064,37 @@
         {
           "if": "timer",
           "ms": 1500,
-          "then": "n112"
+          "then": "n117"
         }
       ]
     },
     {
-      "ref": "n112",
+      "ref": "n117",
       "type": "audio",
-      "seq": 97,
+      "seq": 101,
       "pos": [
-        57660,
+        59900,
         0
       ],
-      "note": "ОЗВУЧКА: I'll be у тебя звучит само, а место подставляется любое",
+      "note": "ОЗВУЧКА: запомню, завтра проверю, там ли ты",
       "needs": "audio — озвучка реплики",
       "data": {
-        "text": "{g:I'll be} у тебя звучит само, а место подставляется любое",
+        "text": "запомню, завтра проверю, там ли ты",
         "showText": true
       },
       "triggers": [
         {
           "if": "played",
-          "then": "n113"
+          "then": "n118"
         }
       ]
     },
     {
-      "ref": "n113",
+      "ref": "n118",
       "type": "reaction",
-      "seq": 98,
+      "seq": 102,
       "pos": [
-        58220,
+        60460,
         0
       ],
       "data": {
@@ -3962,37 +4105,58 @@
         {
           "if": "timer",
           "ms": 1400,
-          "then": "n114"
+          "then": "n119"
         }
       ]
     },
     {
-      "ref": "n114",
+      "ref": "n119",
       "type": "audio",
-      "seq": 99,
+      "seq": 103,
       "pos": [
-        60080,
+        62320,
         0
       ],
-      "note": "ОЗВУЧКА: С основой разобрались: I'm это связка между I и состоянием, у неё и у них связка своя, а про вчера и завтра was и I'll be. Всю формулу соберём в самом конце, а пока выбирай: закончить или потренироваться",
+      "note": "ОЗВУЧКА: С основой разобрались: I'm это связка между I и состоянием, у неё и у них связка своя, а про вчера и завтра was и I'll be",
       "needs": "audio — озвучка реплики",
       "data": {
-        "text": "С основой разобрались: {g:I'm} это связка между {g:I} и состоянием, у неё и у них связка своя, а про вчера и завтра {g:was} и {g:I'll be}. Всю формулу соберём в самом конце, а пока выбирай: закончить или потренироваться",
+        "text": "С основой разобрались: {g:I'm} это связка между {g:I} и состоянием, у неё и у них связка своя, а про вчера и завтра {g:was} и {g:I'll be}",
         "showText": true
       },
       "triggers": [
         {
           "if": "played",
-          "then": "n115"
+          "then": "n120"
         }
       ]
     },
     {
-      "ref": "n115",
-      "type": "word_choice",
-      "seq": 100,
+      "ref": "n120",
+      "type": "audio",
+      "seq": 104,
       "pos": [
-        60640,
+        62880,
+        0
+      ],
+      "note": "ОЗВУЧКА: Всю формулу соберём в самом конце, а пока выбирай: закончить или потренироваться",
+      "needs": "audio — озвучка реплики",
+      "data": {
+        "text": "Всю формулу соберём в самом конце, а пока выбирай: закончить или потренироваться",
+        "showText": true
+      },
+      "triggers": [
+        {
+          "if": "played",
+          "then": "n121"
+        }
+      ]
+    },
+    {
+      "ref": "n121",
+      "type": "word_choice",
+      "seq": 105,
+      "pos": [
+        63440,
         0
       ],
       "note": "Меню-развилка, не тест",
@@ -4013,7 +4177,7 @@
       "triggers": [
         {
           "if": "word_correct",
-          "then": "n116"
+          "then": "n122"
         },
         {
           "if": "word_wrong",
@@ -4022,21 +4186,21 @@
         {
           "if": "variant",
           "variantLabel": "Закончить ✅",
-          "then": "n269"
+          "then": "n276"
         },
         {
           "if": "variant",
           "variantLabel": "Ещё потренируюсь 💪",
-          "then": "n116"
+          "then": "n122"
         }
       ]
     },
     {
-      "ref": "n116",
+      "ref": "n122",
       "type": "text",
-      "seq": 101,
+      "seq": 106,
       "pos": [
-        62500,
+        65300,
         0
       ],
       "data": {
@@ -4047,16 +4211,16 @@
         {
           "if": "timer",
           "ms": 1500,
-          "then": "n117"
+          "then": "n123"
         }
       ]
     },
     {
-      "ref": "n117",
+      "ref": "n123",
       "type": "audio",
-      "seq": 102,
+      "seq": 107,
       "pos": [
-        63060,
+        65860,
         0
       ],
       "note": "ОЗВУЧКА: Будет семь уровней, и каждый чуть сложнее предыдущего",
@@ -4068,16 +4232,16 @@
       "triggers": [
         {
           "if": "played",
-          "then": "n118"
+          "then": "n124"
         }
       ]
     },
     {
-      "ref": "n118",
+      "ref": "n124",
       "type": "system",
-      "seq": 103,
+      "seq": 108,
       "pos": [
-        64320,
+        67120,
         0
       ],
       "data": {
@@ -4087,16 +4251,16 @@
         {
           "if": "timer",
           "ms": 1600,
-          "then": "n119"
+          "then": "n125"
         }
       ]
     },
     {
-      "ref": "n119",
+      "ref": "n125",
       "type": "text",
-      "seq": 104,
+      "seq": 109,
       "pos": [
-        64880,
+        67680,
         0
       ],
       "data": {
@@ -4107,36 +4271,36 @@
         {
           "if": "timer",
           "ms": 1500,
-          "then": "n120"
+          "then": "n126"
         }
       ]
     },
     {
-      "ref": "n120",
+      "ref": "n126",
       "type": "text",
-      "seq": 105,
+      "seq": 110,
       "pos": [
-        65440,
+        68240,
         0
       ],
       "data": {
-        "content": "как сказать {t:«я счастлив»}?",
+        "content": "а как сказать {t:«я счастлив»}?",
         "hardWrap": false
       },
       "triggers": [
         {
           "if": "timer",
           "ms": 1500,
-          "then": "n121"
+          "then": "n127"
         }
       ]
     },
     {
-      "ref": "n121",
+      "ref": "n127",
       "type": "phrase_assembly",
-      "seq": 106,
+      "seq": 111,
       "pos": [
-        66000,
+        68800,
         0
       ],
       "data": {
@@ -4160,7 +4324,7 @@
       "triggers": [
         {
           "if": "phrase_correct",
-          "then": "n123"
+          "then": "n129"
         },
         {
           "if": "variant",
@@ -4179,36 +4343,36 @@
         },
         {
           "if": "phrase_wrong",
-          "then": "n122"
+          "then": "n128"
         }
       ]
     },
     {
-      "ref": "n122",
+      "ref": "n128",
       "type": "text",
-      "seq": 256,
+      "seq": 262,
       "pos": [
-        66000,
+        68800,
         480
       ],
       "data": {
-        "content": "не совсем) {t:я счастлив} это {g:I'm happy}, связка {g:I'm}, без отдельного {x:am}",
+        "content": "близко) {t:я счастлив} это {g:I'm happy}, связка {g:I'm}, без отдельного {x:am}",
         "hardWrap": false
       },
       "triggers": [
         {
           "if": "timer",
           "ms": 1500,
-          "then": "n124"
+          "then": "n130"
         }
       ]
     },
     {
-      "ref": "n123",
+      "ref": "n129",
       "type": "reaction",
-      "seq": 107,
+      "seq": 112,
       "pos": [
-        66560,
+        69360,
         0
       ],
       "data": {
@@ -4219,16 +4383,16 @@
         {
           "if": "timer",
           "ms": 1400,
-          "then": "n124"
+          "then": "n130"
         }
       ]
     },
     {
-      "ref": "n124",
+      "ref": "n130",
       "type": "photo",
-      "seq": 108,
+      "seq": 113,
       "pos": [
-        67120,
+        69920,
         0
       ],
       "note": "ФОТО: сгенерировать в редакторе по imagePrompt",
@@ -4246,16 +4410,16 @@
         {
           "if": "timer",
           "ms": 2200,
-          "then": "n125"
+          "then": "n131"
         }
       ]
     },
     {
-      "ref": "n125",
+      "ref": "n131",
       "type": "text",
-      "seq": 109,
+      "seq": 114,
       "pos": [
-        67680,
+        70480,
         0
       ],
       "data": {
@@ -4266,16 +4430,16 @@
         {
           "if": "timer",
           "ms": 1500,
-          "then": "n126"
+          "then": "n132"
         }
       ]
     },
     {
-      "ref": "n126",
+      "ref": "n132",
       "type": "word_choice",
-      "seq": 110,
+      "seq": 115,
       "pos": [
-        68240,
+        71040,
         0
       ],
       "data": {
@@ -4298,7 +4462,7 @@
       "triggers": [
         {
           "if": "word_correct",
-          "then": "n128"
+          "then": "n134"
         },
         {
           "if": "variant",
@@ -4317,76 +4481,76 @@
         },
         {
           "if": "word_wrong",
-          "then": "n127"
+          "then": "n133"
         }
       ]
     },
     {
-      "ref": "n127",
+      "ref": "n133",
       "type": "text",
-      "seq": 255,
+      "seq": 261,
       "pos": [
-        68240,
+        71040,
         480
       ],
       "data": {
-        "content": "близко) про неё связка {g:is}: {g:She is tired}, или короче {g:she's}",
+        "content": "неа) про неё связка {g:is}: {g:She is tired}, или короче {g:she's}",
         "hardWrap": false
       },
       "triggers": [
         {
           "if": "timer",
           "ms": 1500,
-          "then": "n129"
+          "then": "n135"
         }
       ]
     },
     {
-      "ref": "n128",
+      "ref": "n134",
       "type": "text",
-      "seq": 111,
+      "seq": 116,
       "pos": [
-        68800,
+        71600,
         0
       ],
       "data": {
-        "content": "даа)) {t:«она устала»}",
+        "content": "{t:«она устала»}, пять кругов вокруг пруда 🥱",
         "hardWrap": false
       },
       "triggers": [
         {
           "if": "timer",
           "ms": 1500,
-          "then": "n129"
+          "then": "n135"
         }
       ]
     },
     {
-      "ref": "n129",
+      "ref": "n135",
       "type": "text",
-      "seq": 112,
+      "seq": 117,
       "pos": [
-        69360,
+        72160,
         0
       ],
       "data": {
-        "content": "теперь на слух 👂",
+        "content": "голосовое от Тома, что он говорит?",
         "hardWrap": false
       },
       "triggers": [
         {
           "if": "timer",
           "ms": 1500,
-          "then": "n130"
+          "then": "n136"
         }
       ]
     },
     {
-      "ref": "n130",
+      "ref": "n136",
       "type": "audio",
-      "seq": 113,
+      "seq": 118,
       "pos": [
-        69920,
+        72720,
         0
       ],
       "note": "ОЗВУЧКА: They're at home",
@@ -4398,16 +4562,16 @@
       "triggers": [
         {
           "if": "played",
-          "then": "n131"
+          "then": "n137"
         }
       ]
     },
     {
-      "ref": "n131",
+      "ref": "n137",
       "type": "word_choice",
-      "seq": 114,
+      "seq": 119,
       "pos": [
-        70480,
+        73280,
         0
       ],
       "data": {
@@ -4431,7 +4595,7 @@
       "triggers": [
         {
           "if": "word_correct",
-          "then": "n133"
+          "then": "n139"
         },
         {
           "if": "variant",
@@ -4450,36 +4614,36 @@
         },
         {
           "if": "word_wrong",
-          "then": "n132"
+          "then": "n138"
         }
       ]
     },
     {
-      "ref": "n132",
+      "ref": "n138",
       "type": "text",
-      "seq": 254,
+      "seq": 260,
       "pos": [
-        70480,
+        73280,
         480
       ],
       "data": {
-        "content": "неа) {g:they're} это {t:они}, а {g:at home} {t:дома}: {t:они дома}",
+        "content": "не то) {g:they're} это {t:они}, а {g:at home} {t:дома}: {t:они дома}",
         "hardWrap": false
       },
       "triggers": [
         {
           "if": "timer",
           "ms": 1500,
-          "then": "n134"
+          "then": "n140"
         }
       ]
     },
     {
-      "ref": "n133",
+      "ref": "n139",
       "type": "reaction",
-      "seq": 115,
+      "seq": 120,
       "pos": [
-        71040,
+        73840,
         0
       ],
       "data": {
@@ -4490,43 +4654,43 @@
         {
           "if": "timer",
           "ms": 1400,
-          "then": "n134"
+          "then": "n140"
         }
       ]
     },
     {
-      "ref": "n134",
+      "ref": "n140",
       "type": "audio",
-      "seq": 116,
+      "seq": 121,
       "pos": [
-        71600,
+        74400,
         0
       ],
-      "note": "ОЗВУЧКА: Уток покормили, а сами? Скажи вслух «я хочу есть»: голодный это hungry, начало ты знаешь",
+      "note": "ОЗВУЧКА: Уток покормили, идём дальше? Скажи вслух «я готов»: готов это ready",
       "needs": "audio — озвучка реплики",
       "data": {
-        "text": "Уток покормили, а сами? Скажи вслух {t:«я хочу есть»}: {w:голодный} это {g:hungry}, начало ты знаешь",
+        "text": "Уток покормили, идём дальше? Скажи вслух {t:«я готов»}: {w:готов} это {g:ready}",
         "showText": true
       },
       "triggers": [
         {
           "if": "played",
-          "then": "n135"
+          "then": "n141"
         }
       ]
     },
     {
-      "ref": "n135",
+      "ref": "n141",
       "type": "say_phrase",
-      "seq": 117,
+      "seq": 122,
       "pos": [
-        72160,
+        74960,
         0
       ],
       "data": {
         "lang": "en-US",
-        "phrase": "I'm hungry",
-        "translation": "Я хочу есть",
+        "phrase": "I'm ready",
+        "translation": "Я готов(а)",
         "keywords": "",
         "threshold": 70,
         "strict": true,
@@ -4534,65 +4698,65 @@
         "voiceReply": false,
         "hintSilence": "Не слышу тебя) говори чуть громче и ближе к микрофону",
         "hintPartial": "Близко) верно: {ok}, не хватило: {missed}",
-        "hintMismatch": "Начни с I'm и добавь hungry)"
+        "hintMismatch": "Начни с I'm и добавь ready)"
       },
       "triggers": [
         {
           "if": "say_done",
-          "then": "n137"
+          "then": "n143"
         },
         {
           "if": "say_wrong",
-          "then": "n136"
+          "then": "n142"
         }
       ]
     },
     {
-      "ref": "n136",
+      "ref": "n142",
       "type": "text",
-      "seq": 253,
+      "seq": 259,
       "pos": [
-        72160,
+        74960,
         480
       ],
       "data": {
-        "content": "не то) скажи {g:I'm hungry}, связка и состояние",
+        "content": "не-не-не) скажи {g:I'm ready}, связка и состояние",
         "hardWrap": false
       },
       "triggers": [
         {
           "if": "timer",
           "ms": 1500,
-          "then": "n138"
+          "then": "n144"
         }
       ]
     },
     {
-      "ref": "n137",
-      "type": "reaction",
-      "seq": 118,
+      "ref": "n143",
+      "type": "text",
+      "seq": 123,
       "pos": [
-        72720,
+        75520,
         0
       ],
       "data": {
-        "emoji": "🥪",
-        "target": "student"
+        "content": "да)) и я готов 🚶",
+        "hardWrap": false
       },
       "triggers": [
         {
           "if": "timer",
-          "ms": 1400,
-          "then": "n138"
+          "ms": 1500,
+          "then": "n144"
         }
       ]
     },
     {
-      "ref": "n138",
+      "ref": "n144",
       "type": "system",
-      "seq": 119,
+      "seq": 124,
       "pos": [
-        73980,
+        76780,
         0
       ],
       "data": {
@@ -4602,16 +4766,16 @@
         {
           "if": "timer",
           "ms": 1600,
-          "then": "n139"
+          "then": "n145"
         }
       ]
     },
     {
-      "ref": "n139",
+      "ref": "n145",
       "type": "audio",
-      "seq": 120,
+      "seq": 125,
       "pos": [
-        74540,
+        77340,
         0
       ],
       "note": "ОЗВУЧКА: давай фразы подлиннее, но связка всё та же",
@@ -4623,16 +4787,16 @@
       "triggers": [
         {
           "if": "played",
-          "then": "n140"
+          "then": "n146"
         }
       ]
     },
     {
-      "ref": "n140",
+      "ref": "n146",
       "type": "photo",
-      "seq": 121,
+      "seq": 126,
       "pos": [
-        75100,
+        77900,
         0
       ],
       "note": "ФОТО: сгенерировать в редакторе по imagePrompt",
@@ -4650,16 +4814,16 @@
         {
           "if": "timer",
           "ms": 2200,
-          "then": "n141"
+          "then": "n147"
         }
       ]
     },
     {
-      "ref": "n141",
+      "ref": "n147",
       "type": "text",
-      "seq": 122,
+      "seq": 127,
       "pos": [
-        75660,
+        78460,
         0
       ],
       "data": {
@@ -4670,16 +4834,16 @@
         {
           "if": "timer",
           "ms": 1500,
-          "then": "n142"
+          "then": "n148"
         }
       ]
     },
     {
-      "ref": "n142",
+      "ref": "n148",
       "type": "phrase_assembly",
-      "seq": 123,
+      "seq": 128,
       "pos": [
-        76220,
+        79020,
         0
       ],
       "data": {
@@ -4704,7 +4868,7 @@
       "triggers": [
         {
           "if": "phrase_correct",
-          "then": "n144"
+          "then": "n150"
         },
         {
           "if": "variant",
@@ -4723,36 +4887,36 @@
         },
         {
           "if": "phrase_wrong",
-          "then": "n143"
+          "then": "n149"
         }
       ]
     },
     {
-      "ref": "n143",
+      "ref": "n149",
       "type": "text",
-      "seq": 252,
+      "seq": 258,
       "pos": [
-        76220,
+        79020,
         480
       ],
       "data": {
-        "content": "не-не-не) про нас не {x:I'm}, а {g:we're}:\n{g:We're busy today}",
+        "content": "не совсем) про нас не {x:I'm}, а {g:we're}:\n{g:We're busy today}",
         "hardWrap": true
       },
       "triggers": [
         {
           "if": "timer",
           "ms": 1500,
-          "then": "n145"
+          "then": "n151"
         }
       ]
     },
     {
-      "ref": "n144",
+      "ref": "n150",
       "type": "reaction",
-      "seq": 124,
+      "seq": 129,
       "pos": [
-        76780,
+        79580,
         0
       ],
       "data": {
@@ -4763,129 +4927,129 @@
         {
           "if": "timer",
           "ms": 1400,
-          "then": "n145"
+          "then": "n151"
         }
       ]
     },
     {
-      "ref": "n145",
+      "ref": "n151",
       "type": "text",
-      "seq": 125,
+      "seq": 130,
       "pos": [
-        77340,
+        80140,
         0
       ],
       "data": {
-        "content": "а теперь на слух 👂",
+        "content": "ещё одно голосовое, от Анны про Тома",
         "hardWrap": false
       },
       "triggers": [
         {
           "if": "timer",
           "ms": 1500,
-          "then": "n146"
+          "then": "n152"
         }
       ]
     },
     {
-      "ref": "n146",
+      "ref": "n152",
       "type": "audio",
-      "seq": 126,
+      "seq": 131,
       "pos": [
-        77900,
+        80700,
         0
       ],
-      "note": "ОЗВУЧКА: He's sleepy today",
+      "note": "ОЗВУЧКА: He's tired",
       "needs": "audio — озвучка реплики",
       "data": {
-        "text": "{g:He's sleepy today}",
+        "text": "{g:He's tired}",
         "showText": false
       },
       "triggers": [
         {
           "if": "played",
-          "then": "n147"
+          "then": "n153"
         }
       ]
     },
     {
-      "ref": "n147",
+      "ref": "n153",
       "type": "word_choice",
-      "seq": 127,
+      "seq": 132,
       "pos": [
-        78460,
+        81260,
         0
       ],
       "data": {
         "options": [
           {
-            "text": "Он сегодня сонный",
+            "text": "Он устал",
             "isCorrect": true
           },
           {
-            "text": "Он был сонный",
+            "text": "Он был уставший",
             "isCorrect": false
           },
           {
-            "text": "Он сегодня занят",
+            "text": "Он занят",
             "isCorrect": false
           }
         ],
         "sendPickToChat": true,
-        "voicePhrase": "He's sleepy today"
+        "voicePhrase": "He's tired"
       },
       "triggers": [
         {
           "if": "word_correct",
-          "then": "n149"
+          "then": "n155"
         },
         {
           "if": "variant",
-          "variantLabel": "Он сегодня сонный",
+          "variantLabel": "Он устал",
           "then": null
         },
         {
           "if": "variant",
-          "variantLabel": "Он был сонный",
+          "variantLabel": "Он был уставший",
           "then": null
         },
         {
           "if": "variant",
-          "variantLabel": "Он сегодня занят",
+          "variantLabel": "Он занят",
           "then": null
         },
         {
           "if": "word_wrong",
-          "then": "n148"
+          "then": "n154"
         }
       ]
     },
     {
-      "ref": "n148",
+      "ref": "n154",
       "type": "text",
-      "seq": 251,
+      "seq": 257,
       "pos": [
-        78460,
+        81260,
         480
       ],
       "data": {
-        "content": "не совсем) {g:he's} это {t:он}, про сейчас, а {g:sleepy} {t:сонный}: {t:он сегодня сонный}",
+        "content": "близко) {g:he's} это {t:он}, про сейчас, а {g:tired} {t:уставший}: {t:он устал}",
         "hardWrap": false
       },
       "triggers": [
         {
           "if": "timer",
           "ms": 1500,
-          "then": "n150"
+          "then": "n156"
         }
       ]
     },
     {
-      "ref": "n149",
+      "ref": "n155",
       "type": "reaction",
-      "seq": 128,
+      "seq": 133,
       "pos": [
-        79020,
+        81820,
         0
       ],
       "data": {
@@ -4896,37 +5060,37 @@
         {
           "if": "timer",
           "ms": 1400,
-          "then": "n150"
+          "then": "n156"
         }
       ]
     },
     {
-      "ref": "n150",
+      "ref": "n156",
       "type": "audio",
-      "seq": 129,
+      "seq": 134,
       "pos": [
-        79580,
+        82380,
         0
       ],
-      "note": "ОЗВУЧКА: Своими словами: скажи, где ты сейчас, начни с I'm at, дальше любое место",
+      "note": "ОЗВУЧКА: Своими словами: скажи, где ты сейчас, начни с I'm at, можно и I am at, дальше любое место, засчитаю любое",
       "needs": "audio — озвучка реплики",
       "data": {
-        "text": "Своими словами: скажи, где ты сейчас, начни с {g:I'm at}, дальше любое место",
+        "text": "Своими словами: скажи, где ты сейчас, начни с {g:I'm at}, можно и {g:I am at}, дальше любое место, засчитаю любое",
         "showText": true
       },
       "triggers": [
         {
           "if": "played",
-          "then": "n151"
+          "then": "n157"
         }
       ]
     },
     {
-      "ref": "n151",
+      "ref": "n157",
       "type": "say_phrase",
-      "seq": 130,
+      "seq": 135,
       "pos": [
-        80140,
+        82940,
         0
       ],
       "data": {
@@ -4947,40 +5111,40 @@
       "triggers": [
         {
           "if": "say_done",
-          "then": "n153"
+          "then": "n159"
         },
         {
           "if": "say_wrong",
-          "then": "n152"
+          "then": "n158"
         }
       ]
     },
     {
-      "ref": "n152",
+      "ref": "n158",
       "type": "text",
-      "seq": 250,
+      "seq": 256,
       "pos": [
-        80140,
+        82940,
         480
       ],
       "data": {
-        "content": "близко) начни с {g:I'm at} и добавь любое место)",
+        "content": "неа) начни с {g:I'm at} и добавь любое место)",
         "hardWrap": false
       },
       "triggers": [
         {
           "if": "timer",
           "ms": 1500,
-          "then": "n156"
+          "then": "n162"
         }
       ]
     },
     {
-      "ref": "n153",
+      "ref": "n159",
       "type": "text",
-      "seq": 131,
+      "seq": 136,
       "pos": [
-        80700,
+        83500,
         0
       ],
       "data": {
@@ -4991,37 +5155,37 @@
         {
           "if": "timer",
           "ms": 1500,
-          "then": "n154"
+          "then": "n160"
         }
       ]
     },
     {
-      "ref": "n154",
+      "ref": "n160",
       "type": "audio",
-      "seq": 132,
+      "seq": 137,
       "pos": [
-        81260,
+        84060,
         0
       ],
-      "note": "ОЗВУЧКА: после I'm at ты просто ставишь своё место, и всё",
+      "note": "ОЗВУЧКА: а я в парке, и, честно, тут лучше",
       "needs": "audio — озвучка реплики",
       "data": {
-        "text": "после {g:I'm at} ты просто ставишь своё место, и всё",
+        "text": "а я в парке, и, честно, тут лучше",
         "showText": true
       },
       "triggers": [
         {
           "if": "played",
-          "then": "n155"
+          "then": "n161"
         }
       ]
     },
     {
-      "ref": "n155",
+      "ref": "n161",
       "type": "reaction",
-      "seq": 133,
+      "seq": 138,
       "pos": [
-        81820,
+        84620,
         0
       ],
       "data": {
@@ -5032,16 +5196,16 @@
         {
           "if": "timer",
           "ms": 1400,
-          "then": "n156"
+          "then": "n162"
         }
       ]
     },
     {
-      "ref": "n156",
+      "ref": "n162",
       "type": "photo",
-      "seq": 134,
+      "seq": 139,
       "pos": [
-        82380,
+        85180,
         0
       ],
       "note": "ФОТО: сгенерировать в редакторе по imagePrompt",
@@ -5059,36 +5223,36 @@
         {
           "if": "timer",
           "ms": 2200,
-          "then": "n157"
+          "then": "n163"
         }
       ]
     },
     {
-      "ref": "n157",
+      "ref": "n163",
       "type": "text",
-      "seq": 135,
+      "seq": 140,
       "pos": [
-        82940,
+        85740,
         0
       ],
       "data": {
-        "content": "напечатай {t:«она счастлива»}, полной формой, три слова: печатай тапами по светящимся буквам",
+        "content": "набери {t:«она счастлива»} полной формой, три слова, тапами по светящимся буквам",
         "hardWrap": false
       },
       "triggers": [
         {
           "if": "timer",
           "ms": 1500,
-          "then": "n158"
+          "then": "n164"
         }
       ]
     },
     {
-      "ref": "n158",
+      "ref": "n164",
       "type": "type_word",
-      "seq": 136,
+      "seq": 141,
       "pos": [
-        83500,
+        86300,
         0
       ],
       "data": {
@@ -5099,40 +5263,40 @@
       "triggers": [
         {
           "if": "type_correct",
-          "then": "n160"
+          "then": "n166"
         },
         {
           "if": "type_wrong",
-          "then": "n159"
+          "then": "n165"
         }
       ]
     },
     {
-      "ref": "n159",
+      "ref": "n165",
       "type": "text",
-      "seq": 249,
+      "seq": 255,
       "pos": [
-        83500,
+        86300,
         480
       ],
       "data": {
-        "content": "неа) {t:она счастлива} это {g:she is happy}, связка {g:is} посередине",
+        "content": "не то) {t:она счастлива} это {g:she is happy}, связка {g:is} посередине",
         "hardWrap": false
       },
       "triggers": [
         {
           "if": "timer",
           "ms": 1500,
-          "then": "n161"
+          "then": "n167"
         }
       ]
     },
     {
-      "ref": "n160",
+      "ref": "n166",
       "type": "text",
-      "seq": 137,
+      "seq": 142,
       "pos": [
-        84060,
+        86860,
         0
       ],
       "data": {
@@ -5143,16 +5307,16 @@
         {
           "if": "timer",
           "ms": 1500,
-          "then": "n161"
+          "then": "n167"
         }
       ]
     },
     {
-      "ref": "n161",
+      "ref": "n167",
       "type": "audio",
-      "seq": 138,
+      "seq": 143,
       "pos": [
-        84620,
+        87420,
         0
       ],
       "note": "ОЗВУЧКА: Дальше всё поймёшь без объяснения, обещаю",
@@ -5164,16 +5328,16 @@
       "triggers": [
         {
           "if": "played",
-          "then": "n162"
+          "then": "n168"
         }
       ]
     },
     {
-      "ref": "n162",
+      "ref": "n168",
       "type": "system",
-      "seq": 139,
+      "seq": 144,
       "pos": [
-        85880,
+        88680,
         0
       ],
       "data": {
@@ -5183,16 +5347,16 @@
         {
           "if": "timer",
           "ms": 1600,
-          "then": "n163"
+          "then": "n169"
         }
       ]
     },
     {
-      "ref": "n163",
+      "ref": "n169",
       "type": "audio",
-      "seq": 140,
+      "seq": 145,
       "pos": [
-        86440,
+        89240,
         0
       ],
       "note": "ОЗВУЧКА: Соберём длинную фразу с конца, часть за частью: я говорю кусочек, ты отзеркаливаешь его вслух с тем же ритмом, а в конце соберёшь всё целиком",
@@ -5204,16 +5368,16 @@
       "triggers": [
         {
           "if": "played",
-          "then": "n164"
+          "then": "n170"
         }
       ]
     },
     {
-      "ref": "n164",
+      "ref": "n170",
       "type": "audio",
-      "seq": 141,
+      "seq": 146,
       "pos": [
-        87000,
+        89800,
         0
       ],
       "note": "ОЗВУЧКА: at six",
@@ -5225,16 +5389,16 @@
       "triggers": [
         {
           "if": "played",
-          "then": "n165"
+          "then": "n171"
         }
       ]
     },
     {
-      "ref": "n165",
+      "ref": "n171",
       "type": "say_phrase",
-      "seq": 142,
+      "seq": 147,
       "pos": [
-        87560,
+        90360,
         0
       ],
       "data": {
@@ -5253,60 +5417,60 @@
       "triggers": [
         {
           "if": "say_done",
-          "then": "n167"
+          "then": "n173"
         },
         {
           "if": "say_wrong",
-          "then": "n166"
+          "then": "n172"
         }
       ]
     },
     {
-      "ref": "n166",
+      "ref": "n172",
       "type": "text",
-      "seq": 248,
+      "seq": 254,
       "pos": [
-        87560,
+        90360,
         480
       ],
       "data": {
-        "content": "не то) копируй ритм, {g:at six}",
+        "content": "не-не-не) копируй ритм, {g:at six}",
         "hardWrap": false
       },
       "triggers": [
         {
           "if": "timer",
           "ms": 1500,
-          "then": "n168"
+          "then": "n174"
         }
       ]
     },
     {
-      "ref": "n167",
-      "type": "reaction",
-      "seq": 143,
+      "ref": "n173",
+      "type": "text",
+      "seq": 148,
       "pos": [
-        88120,
+        90920,
         0
       ],
       "data": {
-        "emoji": "👌",
-        "target": "student"
+        "content": "даа)) {t:«в шесть»} 👌",
+        "hardWrap": false
       },
       "triggers": [
         {
           "if": "timer",
-          "ms": 1400,
-          "then": "n168"
+          "ms": 1500,
+          "then": "n174"
         }
       ]
     },
     {
-      "ref": "n168",
+      "ref": "n174",
       "type": "text",
-      "seq": 144,
+      "seq": 149,
       "pos": [
-        88680,
+        91480,
         0
       ],
       "data": {
@@ -5317,16 +5481,16 @@
         {
           "if": "timer",
           "ms": 1500,
-          "then": "n169"
+          "then": "n175"
         }
       ]
     },
     {
-      "ref": "n169",
+      "ref": "n175",
       "type": "audio",
-      "seq": 145,
+      "seq": 150,
       "pos": [
-        89240,
+        92040,
         0
       ],
       "note": "ОЗВУЧКА: We'll be free at six",
@@ -5338,16 +5502,16 @@
       "triggers": [
         {
           "if": "played",
-          "then": "n170"
+          "then": "n176"
         }
       ]
     },
     {
-      "ref": "n170",
+      "ref": "n176",
       "type": "say_phrase",
-      "seq": 146,
+      "seq": 151,
       "pos": [
-        89800,
+        92600,
         0
       ],
       "data": {
@@ -5366,67 +5530,67 @@
       "triggers": [
         {
           "if": "say_done",
-          "then": "n172"
+          "then": "n178"
         },
         {
           "if": "say_wrong",
-          "then": "n171"
+          "then": "n177"
         }
       ]
     },
     {
-      "ref": "n171",
+      "ref": "n177",
       "type": "text",
-      "seq": 247,
+      "seq": 253,
       "pos": [
-        89800,
+        92600,
         480
       ],
       "data": {
-        "content": "не-не-не) кто будет? {g:We'll be free}, и дальше та же часть:\n{g:We'll be free at six}",
+        "content": "не совсем) кто будет? {g:We'll be free}, и дальше та же часть:\n{g:We'll be free at six}",
         "hardWrap": true
       },
       "triggers": [
         {
           "if": "timer",
           "ms": 1500,
-          "then": "n173"
+          "then": "n179"
         }
       ]
     },
     {
-      "ref": "n172",
+      "ref": "n178",
       "type": "text",
-      "seq": 147,
+      "seq": 152,
       "pos": [
-        90360,
+        93160,
         0
       ],
       "data": {
-        "content": "ору, прям по ритму 😎",
+        "content": "ору)) {t:«мы будем свободны в шесть»}",
         "hardWrap": false
       },
       "triggers": [
         {
           "if": "timer",
           "ms": 1500,
-          "then": "n173"
+          "then": "n179"
         }
       ]
     },
     {
-      "ref": "n173",
+      "ref": "n179",
       "type": "photo",
-      "seq": 148,
+      "seq": 153,
       "pos": [
-        90920,
+        93720,
         0
       ],
       "note": "ФОТО: сгенерировать в редакторе по imagePrompt",
       "needs": "photo",
       "data": {
-        "caption": "Пит и Кейт у кинотеатра, билеты в руках, сеанс в шесть 🎟️",
-        "imagePrompt": "Мультяшный рыжий кот и кошка стоят у входа в кинотеатр с билетами, вечер, без текста",
+        "caption": "Пит и Кейт идут к кинотеатру, Том и Анна освободятся и догонят в шесть 🎟️",
+        "imagePrompt": "Мультяшный рыжий кот и кошка идут по вечерней улице к кинотеатру с билетами, без текста",
         "crop": {
           "x": 0,
           "y": 0,
@@ -5437,46 +5601,44 @@
         {
           "if": "timer",
           "ms": 2200,
-          "then": "n174"
+          "then": "n180"
         }
       ]
     },
     {
-      "ref": "n174",
+      "ref": "n180",
       "type": "audio",
-      "seq": 149,
+      "seq": 154,
       "pos": [
-        91480,
+        94280,
         0
       ],
-      "note": "ОЗВУЧКА: И новое из знакомых частей: собери «мы будем в кино в шесть», кино это at the cinema",
+      "note": "ОЗВУЧКА: И новое из знакомых частей: собери «они будут свободны в шесть»",
       "needs": "audio — озвучка реплики",
       "data": {
-        "text": "И новое из знакомых частей: собери {t:«мы будем в кино в шесть»}, кино это {g:at the cinema}",
+        "text": "И новое из знакомых частей: собери {t:«они будут свободны в шесть»}",
         "showText": true
       },
       "triggers": [
         {
           "if": "played",
-          "then": "n175"
+          "then": "n181"
         }
       ]
     },
     {
-      "ref": "n175",
+      "ref": "n181",
       "type": "phrase_assembly",
-      "seq": 150,
+      "seq": 155,
       "pos": [
-        92040,
+        94840,
         0
       ],
       "data": {
         "words": [
-          "We'll",
+          "They'll",
           "be",
-          "at",
-          "the",
-          "cinema",
+          "free",
           "at",
           "six"
         ],
@@ -5491,12 +5653,12 @@
             "text": "seven"
           }
         ],
-        "responseWrong": "не совсем) про нас и про будущее {g:We'll be}, а дальше место и час"
+        "responseWrong": "не совсем) про них и про будущее {g:They'll be}, а дальше состояние и час"
       },
       "triggers": [
         {
           "if": "phrase_correct",
-          "then": "n177"
+          "then": "n183"
         },
         {
           "if": "variant",
@@ -5515,36 +5677,36 @@
         },
         {
           "if": "phrase_wrong",
-          "then": "n176"
+          "then": "n182"
         }
       ]
     },
     {
-      "ref": "n176",
+      "ref": "n182",
       "type": "text",
-      "seq": 246,
+      "seq": 252,
       "pos": [
-        92040,
+        94840,
         480
       ],
       "data": {
-        "content": "не совсем) склей две части: {g:We'll be} и {g:at the cinema at six}",
+        "content": "близко) склей две части: {g:They'll be} и {g:free at six}",
         "hardWrap": false
       },
       "triggers": [
         {
           "if": "timer",
           "ms": 1500,
-          "then": "n178"
+          "then": "n184"
         }
       ]
     },
     {
-      "ref": "n177",
+      "ref": "n183",
       "type": "reaction",
-      "seq": 151,
+      "seq": 156,
       "pos": [
-        92600,
+        95400,
         0
       ],
       "data": {
@@ -5555,16 +5717,16 @@
         {
           "if": "timer",
           "ms": 1400,
-          "then": "n178"
+          "then": "n184"
         }
       ]
     },
     {
-      "ref": "n178",
+      "ref": "n184",
       "type": "system",
-      "seq": 152,
+      "seq": 157,
       "pos": [
-        93860,
+        96660,
         0
       ],
       "data": {
@@ -5574,36 +5736,56 @@
         {
           "if": "timer",
           "ms": 1600,
-          "then": "n179"
+          "then": "n185"
         }
       ]
     },
     {
-      "ref": "n179",
+      "ref": "n185",
       "type": "text",
-      "seq": 153,
+      "seq": 158,
       "pos": [
-        94420,
+        97220,
         0
       ],
       "data": {
-        "content": "Хитрые случаи 😏 {g:I'm} {l:живёт рядом с состоянием}, а рядом с действием? {t:«я работаю»}, нужна ли тут связка?\n{g:I ___ work every day}",
+        "content": "Хитрые случаи 😏 {g:I'm} {l:живёт рядом с состоянием}, а рядом с действием?",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1500,
+          "then": "n186"
+        }
+      ]
+    },
+    {
+      "ref": "n186",
+      "type": "text",
+      "seq": 159,
+      "pos": [
+        97780,
+        0
+      ],
+      "data": {
+        "content": "{t:«я работаю»}, нужна ли тут связка?\n{g:I ___ work every day}",
         "hardWrap": true
       },
       "triggers": [
         {
           "if": "timer",
           "ms": 1500,
-          "then": "n180"
+          "then": "n187"
         }
       ]
     },
     {
-      "ref": "n180",
+      "ref": "n187",
       "type": "word_choice",
-      "seq": 154,
+      "seq": 160,
       "pos": [
-        94980,
+        98340,
         0
       ],
       "data": {
@@ -5626,7 +5808,7 @@
       "triggers": [
         {
           "if": "word_correct",
-          "then": "n182"
+          "then": "n189"
         },
         {
           "if": "variant",
@@ -5645,36 +5827,36 @@
         },
         {
           "if": "word_wrong",
-          "then": "n181"
+          "then": "n188"
         }
       ]
     },
     {
-      "ref": "n181",
+      "ref": "n188",
       "type": "text",
-      "seq": 245,
+      "seq": 251,
       "pos": [
-        94980,
+        98340,
         480
       ],
       "data": {
-        "content": "близко) {g:work} тут {w:действие}, а {g:I'm} {l:только для состояния}: просто {g:I work every day}",
+        "content": "неа) {g:work} тут {w:действие}, а {g:I'm} {l:только для состояния}: просто {g:I work every day}",
         "hardWrap": false
       },
       "triggers": [
         {
           "if": "timer",
           "ms": 1500,
-          "then": "n183"
+          "then": "n190"
         }
       ]
     },
     {
-      "ref": "n182",
+      "ref": "n189",
       "type": "sticker",
-      "seq": 155,
+      "seq": 161,
       "pos": [
-        95540,
+        98900,
         0
       ],
       "note": "СТИКЕР: сгенерировать в редакторе по imagePrompt",
@@ -5694,16 +5876,16 @@
         {
           "if": "timer",
           "ms": 1200,
-          "then": "n183"
+          "then": "n190"
         }
       ]
     },
     {
-      "ref": "n183",
+      "ref": "n190",
       "type": "audio",
-      "seq": 156,
+      "seq": 162,
       "pos": [
-        96100,
+        99460,
         0
       ],
       "note": "ОЗВУЧКА: I'm нужно, когда говоришь, какой ты или где ты. А когда есть действие, work, go, sleep, связка лишняя: I work, I sleep",
@@ -5715,16 +5897,16 @@
       "triggers": [
         {
           "if": "played",
-          "then": "n184"
+          "then": "n191"
         }
       ]
     },
     {
-      "ref": "n184",
+      "ref": "n191",
       "type": "photo",
-      "seq": 157,
+      "seq": 163,
       "pos": [
-        96660,
+        100020,
         0
       ],
       "note": "ФОТО: сгенерировать в редакторе по imagePrompt",
@@ -5742,16 +5924,16 @@
         {
           "if": "timer",
           "ms": 2200,
-          "then": "n185"
+          "then": "n192"
         }
       ]
     },
     {
-      "ref": "n185",
+      "ref": "n192",
       "type": "text",
-      "seq": 158,
+      "seq": 164,
       "pos": [
-        97220,
+        100580,
         0
       ],
       "data": {
@@ -5762,16 +5944,16 @@
         {
           "if": "timer",
           "ms": 1500,
-          "then": "n186"
+          "then": "n193"
         }
       ]
     },
     {
-      "ref": "n186",
+      "ref": "n193",
       "type": "phrase_assembly",
-      "seq": 159,
+      "seq": 165,
       "pos": [
-        97780,
+        101140,
         0
       ],
       "data": {
@@ -5795,7 +5977,7 @@
       "triggers": [
         {
           "if": "phrase_correct",
-          "then": "n188"
+          "then": "n195"
         },
         {
           "if": "variant",
@@ -5814,36 +5996,36 @@
         },
         {
           "if": "phrase_wrong",
-          "then": "n187"
+          "then": "n194"
         }
       ]
     },
     {
-      "ref": "n187",
+      "ref": "n194",
       "type": "text",
-      "seq": 244,
+      "seq": 250,
       "pos": [
-        97780,
+        101140,
         480
       ],
       "data": {
-        "content": "неа) про нас {g:we're}, а не {x:I'm}:\n{g:We're ready}",
+        "content": "не то) про нас {g:we're}, а не {x:I'm}:\n{g:We're ready}",
         "hardWrap": true
       },
       "triggers": [
         {
           "if": "timer",
           "ms": 1500,
-          "then": "n189"
+          "then": "n196"
         }
       ]
     },
     {
-      "ref": "n188",
+      "ref": "n195",
       "type": "reaction",
-      "seq": 160,
+      "seq": 166,
       "pos": [
-        98340,
+        101700,
         0
       ],
       "data": {
@@ -5854,16 +6036,16 @@
         {
           "if": "timer",
           "ms": 1400,
-          "then": "n189"
+          "then": "n196"
         }
       ]
     },
     {
-      "ref": "n189",
+      "ref": "n196",
       "type": "text",
-      "seq": 161,
+      "seq": 167,
       "pos": [
-        98900,
+        102260,
         0
       ],
       "data": {
@@ -5874,109 +6056,109 @@
         {
           "if": "timer",
           "ms": 1500,
-          "then": "n190"
+          "then": "n197"
         }
       ]
     },
     {
-      "ref": "n190",
+      "ref": "n197",
       "type": "audio",
-      "seq": 162,
+      "seq": 168,
       "pos": [
-        99460,
+        102820,
         0
       ],
-      "note": "ОЗВУЧКА: I was at home",
+      "note": "ОЗВУЧКА: She was at work",
       "needs": "audio — озвучка реплики",
       "data": {
-        "text": "{g:I was at home}",
+        "text": "{g:She was at work}",
         "showText": false
       },
       "triggers": [
         {
           "if": "played",
-          "then": "n191"
+          "then": "n198"
         }
       ]
     },
     {
-      "ref": "n191",
+      "ref": "n198",
       "type": "word_choice",
-      "seq": 163,
+      "seq": 169,
       "pos": [
-        100020,
+        103380,
         0
       ],
       "data": {
         "options": [
           {
-            "text": "Я был дома",
+            "text": "Она была на работе",
             "isCorrect": true
           },
           {
-            "text": "Я дома",
+            "text": "Она на работе",
             "isCorrect": false
           },
           {
-            "text": "Я буду дома",
+            "text": "Она будет на работе",
             "isCorrect": false
           }
         ],
         "sendPickToChat": true,
-        "voicePhrase": "I was at home"
+        "voicePhrase": "She was at work"
       },
       "triggers": [
         {
           "if": "word_correct",
-          "then": "n193"
+          "then": "n200"
         },
         {
           "if": "variant",
-          "variantLabel": "Я был дома",
+          "variantLabel": "Она была на работе",
           "then": null
         },
         {
           "if": "variant",
-          "variantLabel": "Я дома",
+          "variantLabel": "Она на работе",
           "then": null
         },
         {
           "if": "variant",
-          "variantLabel": "Я буду дома",
+          "variantLabel": "Она будет на работе",
           "then": null
         },
         {
           "if": "word_wrong",
-          "then": "n192"
+          "then": "n199"
         }
       ]
     },
     {
-      "ref": "n192",
+      "ref": "n199",
       "type": "text",
-      "seq": 243,
+      "seq": 249,
       "pos": [
-        100020,
+        103380,
         480
       ],
       "data": {
-        "content": "не то) {g:was} это {w:про вчера}, {g:I was at home} это {t:я был дома}",
+        "content": "не-не-не) {g:was} это {w:про вчера}, {g:She was at work} это {t:она была на работе}",
         "hardWrap": false
       },
       "triggers": [
         {
           "if": "timer",
           "ms": 1500,
-          "then": "n194"
+          "then": "n201"
         }
       ]
     },
     {
-      "ref": "n193",
+      "ref": "n200",
       "type": "reaction",
-      "seq": 164,
+      "seq": 170,
       "pos": [
-        100580,
+        103940,
         0
       ],
       "data": {
@@ -5987,16 +6169,16 @@
         {
           "if": "timer",
           "ms": 1400,
-          "then": "n194"
+          "then": "n201"
         }
       ]
     },
     {
-      "ref": "n194",
+      "ref": "n201",
       "type": "audio",
-      "seq": 165,
+      "seq": 171,
       "pos": [
-        101140,
+        104500,
         0
       ],
       "note": "ОЗВУЧКА: Скажи вслух «я работаю», двумя словами",
@@ -6008,16 +6190,16 @@
       "triggers": [
         {
           "if": "played",
-          "then": "n195"
+          "then": "n202"
         }
       ]
     },
     {
-      "ref": "n195",
+      "ref": "n202",
       "type": "say_phrase",
-      "seq": 166,
+      "seq": 172,
       "pos": [
-        101700,
+        105060,
         0
       ],
       "data": {
@@ -6035,27 +6217,27 @@
         "signals": [
           {
             "slot": 0,
-            "ref": "n196"
+            "ref": "n203"
           }
         ]
       },
       "triggers": [
         {
           "if": "say_done",
-          "then": "n198"
+          "then": "n205"
         },
         {
           "if": "say_wrong",
-          "then": "n197"
+          "then": "n204"
         }
       ]
     },
     {
-      "ref": "n196",
+      "ref": "n203",
       "type": "audio",
-      "seq": 272,
+      "seq": 279,
       "pos": [
-        101700,
+        105060,
         960
       ],
       "note": "СИГНАЛ (нода-спутник): показывается при первой ошибке в этом слоте",
@@ -6067,31 +6249,31 @@
       "triggers": []
     },
     {
-      "ref": "n197",
+      "ref": "n204",
       "type": "text",
-      "seq": 242,
+      "seq": 248,
       "pos": [
-        101700,
+        105060,
         480
       ],
       "data": {
-        "content": "не-не-не) {w:действие}, значит без {x:I'm}: просто {g:I work}",
+        "content": "не совсем) {w:действие}, значит без {x:I'm}: просто {g:I work}",
         "hardWrap": false
       },
       "triggers": [
         {
           "if": "timer",
           "ms": 1500,
-          "then": "n199"
+          "then": "n206"
         }
       ]
     },
     {
-      "ref": "n198",
+      "ref": "n205",
       "type": "text",
-      "seq": 167,
+      "seq": 173,
       "pos": [
-        102260,
+        105620,
         0
       ],
       "data": {
@@ -6102,16 +6284,16 @@
         {
           "if": "timer",
           "ms": 1500,
-          "then": "n199"
+          "then": "n206"
         }
       ]
     },
     {
-      "ref": "n199",
+      "ref": "n206",
       "type": "table",
-      "seq": 168,
+      "seq": 174,
       "pos": [
-        102820,
+        106180,
         0
       ],
       "note": "ОЗВУЧКА таблицы (скрипт идёт по ячейкам слева направо, сверху вниз; метку «Проверить» поставить при монтаже после последней ячейки): Подведём итог ловушек. I'm tired, я уставший, это состояние, и связка I'm на месте. I work, я работаю, это действие, связка не нужна. Состояние с I'm, действие само по себе",
@@ -6243,7 +6425,7 @@
       "triggers": [
         {
           "if": "table_correct",
-          "then": "n200"
+          "then": "n207"
         },
         {
           "if": "table_wrong",
@@ -6252,11 +6434,11 @@
       ]
     },
     {
-      "ref": "n200",
+      "ref": "n207",
       "type": "pin_message",
-      "seq": 169,
+      "seq": 175,
       "pos": [
-        103380,
+        106740,
         0
       ],
       "data": {
@@ -6266,16 +6448,16 @@
         {
           "if": "timer",
           "ms": 1800,
-          "then": "n201"
+          "then": "n208"
         }
       ]
     },
     {
-      "ref": "n201",
+      "ref": "n208",
       "type": "system",
-      "seq": 170,
+      "seq": 176,
       "pos": [
-        104640,
+        108000,
         0
       ],
       "data": {
@@ -6285,16 +6467,16 @@
         {
           "if": "timer",
           "ms": 1600,
-          "then": "n202"
+          "then": "n209"
         }
       ]
     },
     {
-      "ref": "n202",
+      "ref": "n209",
       "type": "text",
-      "seq": 171,
+      "seq": 177,
       "pos": [
-        105200,
+        108560,
         0
       ],
       "data": {
@@ -6305,16 +6487,16 @@
         {
           "if": "timer",
           "ms": 1500,
-          "then": "n203"
+          "then": "n210"
         }
       ]
     },
     {
-      "ref": "n203",
+      "ref": "n210",
       "type": "sticker",
-      "seq": 172,
+      "seq": 178,
       "pos": [
-        105760,
+        109120,
         0
       ],
       "note": "СТИКЕР: сгенерировать в редакторе по imagePrompt",
@@ -6334,44 +6516,43 @@
         {
           "if": "timer",
           "ms": 1200,
-          "then": "n204"
+          "then": "n211"
         }
       ]
     },
     {
-      "ref": "n204",
+      "ref": "n211",
       "type": "text",
-      "seq": 173,
+      "seq": 179,
       "pos": [
-        106320,
+        109680,
         0
       ],
       "data": {
-        "content": "собери {t:«вчера она была дома»}",
+        "content": "раз с {g:was} ты знаком, собери {t:«вчера она была одна»}: {w:одна} это {g:alone}",
         "hardWrap": false
       },
       "triggers": [
         {
           "if": "timer",
           "ms": 1500,
-          "then": "n205"
+          "then": "n212"
         }
       ]
     },
     {
-      "ref": "n205",
+      "ref": "n212",
       "type": "phrase_assembly",
-      "seq": 174,
+      "seq": 180,
       "pos": [
-        106880,
+        110240,
         0
       ],
       "data": {
         "words": [
           "She",
           "was",
-          "at",
-          "home",
+          "alone",
           "yesterday"
         ],
         "distractors": [
@@ -6389,18 +6570,18 @@
         "signals": [
           {
             "slot": 0,
-            "ref": "n206"
+            "ref": "n213"
           },
           {
             "slot": 1,
-            "ref": "n207"
+            "ref": "n214"
           }
         ]
       },
       "triggers": [
         {
           "if": "phrase_correct",
-          "then": "n209"
+          "then": "n216"
         },
         {
           "if": "variant",
@@ -6419,16 +6600,16 @@
         },
         {
           "if": "phrase_wrong",
-          "then": "n208"
+          "then": "n215"
         }
       ]
     },
     {
-      "ref": "n206",
+      "ref": "n213",
       "type": "text",
-      "seq": 273,
+      "seq": 280,
       "pos": [
-        106880,
+        110240,
         960
       ],
       "note": "СИГНАЛ (нода-спутник): показывается при первой ошибке в этом слоте",
@@ -6438,11 +6619,11 @@
       "triggers": []
     },
     {
-      "ref": "n207",
+      "ref": "n214",
       "type": "text",
-      "seq": 273,
+      "seq": 280,
       "pos": [
-        106880,
+        110240,
         960
       ],
       "note": "СИГНАЛ (нода-спутник): показывается при первой ошибке в этом слоте",
@@ -6452,31 +6633,31 @@
       "triggers": []
     },
     {
-      "ref": "n208",
+      "ref": "n215",
       "type": "text",
-      "seq": 241,
+      "seq": 247,
       "pos": [
-        106880,
+        110240,
         480
       ],
       "data": {
-        "content": "не совсем) она одна, и это вчера:\n{g:She was at home yesterday}",
+        "content": "близко) она одна, и это вчера:\n{g:She was alone yesterday}",
         "hardWrap": true
       },
       "triggers": [
         {
           "if": "timer",
           "ms": 1500,
-          "then": "n210"
+          "then": "n217"
         }
       ]
     },
     {
-      "ref": "n209",
+      "ref": "n216",
       "type": "reaction",
-      "seq": 175,
+      "seq": 181,
       "pos": [
-        107440,
+        110800,
         0
       ],
       "data": {
@@ -6487,43 +6668,43 @@
         {
           "if": "timer",
           "ms": 1400,
-          "then": "n210"
+          "then": "n217"
         }
       ]
     },
     {
-      "ref": "n210",
+      "ref": "n217",
       "type": "audio",
-      "seq": 176,
+      "seq": 182,
       "pos": [
-        108000,
+        111360,
         0
       ],
-      "note": "ОЗВУЧКА: Про тебя: а вчера где именно? Начни с I was at и назови любое место",
+      "note": "ОЗВУЧКА: Про тебя: а вчера где именно? Начни с I was at и назови любое место, засчитаю любое",
       "needs": "audio — озвучка реплики",
       "data": {
-        "text": "Про тебя: а вчера где именно? Начни с {g:I was at} и назови любое место",
+        "text": "Про тебя: а вчера где именно? Начни с {g:I was at} и назови любое место, засчитаю любое",
         "showText": true
       },
       "triggers": [
         {
           "if": "played",
-          "then": "n211"
+          "then": "n218"
         }
       ]
     },
     {
-      "ref": "n211",
+      "ref": "n218",
       "type": "say_phrase",
-      "seq": 177,
+      "seq": 183,
       "pos": [
-        108560,
+        111920,
         0
       ],
       "data": {
         "lang": "en-US",
         "phrase": "I was at work",
-        "translation": "Вчера я на работе",
+        "translation": "Я был(а) на работе",
         "keywords": "",
         "threshold": 70,
         "strict": true,
@@ -6538,40 +6719,40 @@
       "triggers": [
         {
           "if": "say_done",
-          "then": "n213"
+          "then": "n220"
         },
         {
           "if": "say_wrong",
-          "then": "n212"
+          "then": "n219"
         }
       ]
     },
     {
-      "ref": "n212",
+      "ref": "n219",
       "type": "text",
-      "seq": 240,
+      "seq": 246,
       "pos": [
-        108560,
+        111920,
         480
       ],
       "data": {
-        "content": "близко) нужно сказать {g:I was at} и любое место)",
+        "content": "неа) нужно сказать {g:I was at} и любое место)",
         "hardWrap": false
       },
       "triggers": [
         {
           "if": "timer",
           "ms": 1500,
-          "then": "n216"
+          "then": "n223"
         }
       ]
     },
     {
-      "ref": "n213",
+      "ref": "n220",
       "type": "text",
-      "seq": 178,
+      "seq": 184,
       "pos": [
-        109120,
+        112480,
         0
       ],
       "data": {
@@ -6582,37 +6763,37 @@
         {
           "if": "timer",
           "ms": 1500,
-          "then": "n214"
+          "then": "n221"
         }
       ]
     },
     {
-      "ref": "n214",
+      "ref": "n221",
       "type": "audio",
-      "seq": 179,
+      "seq": 185,
       "pos": [
-        109680,
+        113040,
         0
       ],
-      "note": "ОЗВУЧКА: про вчера у тебя was, и место на месте, так и строится",
+      "note": "ОЗВУЧКА: а я вчера, как помнишь, с отчётом, завидую",
       "needs": "audio — озвучка реплики",
       "data": {
-        "text": "про вчера у тебя {g:was}, и место на месте, так и строится",
+        "text": "а я вчера, как помнишь, с отчётом, завидую",
         "showText": true
       },
       "triggers": [
         {
           "if": "played",
-          "then": "n215"
+          "then": "n222"
         }
       ]
     },
     {
-      "ref": "n215",
+      "ref": "n222",
       "type": "reaction",
-      "seq": 180,
+      "seq": 186,
       "pos": [
-        110240,
+        113600,
         0
       ],
       "data": {
@@ -6623,36 +6804,36 @@
         {
           "if": "timer",
           "ms": 1400,
-          "then": "n216"
+          "then": "n223"
         }
       ]
     },
     {
-      "ref": "n216",
+      "ref": "n223",
       "type": "text",
-      "seq": 181,
+      "seq": 187,
       "pos": [
-        110800,
+        114160,
         0
       ],
       "data": {
-        "content": "ещё одна на слух 👂",
+        "content": "Кейт про Тома и Анну, разбери",
         "hardWrap": false
       },
       "triggers": [
         {
           "if": "timer",
           "ms": 1500,
-          "then": "n217"
+          "then": "n224"
         }
       ]
     },
     {
-      "ref": "n217",
+      "ref": "n224",
       "type": "audio",
-      "seq": 182,
+      "seq": 188,
       "pos": [
-        111360,
+        114720,
         0
       ],
       "note": "ОЗВУЧКА: They were busy",
@@ -6664,16 +6845,16 @@
       "triggers": [
         {
           "if": "played",
-          "then": "n218"
+          "then": "n225"
         }
       ]
     },
     {
-      "ref": "n218",
+      "ref": "n225",
       "type": "word_choice",
-      "seq": 183,
+      "seq": 189,
       "pos": [
-        111920,
+        115280,
         0
       ],
       "data": {
@@ -6697,7 +6878,7 @@
       "triggers": [
         {
           "if": "word_correct",
-          "then": "n220"
+          "then": "n227"
         },
         {
           "if": "variant",
@@ -6716,179 +6897,6 @@
         },
         {
           "if": "word_wrong",
-          "then": "n219"
-        }
-      ]
-    },
-    {
-      "ref": "n219",
-      "type": "text",
-      "seq": 239,
-      "pos": [
-        111920,
-        480
-      ],
-      "data": {
-        "content": "неа) {g:were} это {w:про вчера}, {g:They were busy} это {t:они были заняты}",
-        "hardWrap": false
-      },
-      "triggers": [
-        {
-          "if": "timer",
-          "ms": 1500,
-          "then": "n221"
-        }
-      ]
-    },
-    {
-      "ref": "n220",
-      "type": "reaction",
-      "seq": 184,
-      "pos": [
-        112480,
-        0
-      ],
-      "data": {
-        "emoji": "🗂️",
-        "target": "student"
-      },
-      "triggers": [
-        {
-          "if": "timer",
-          "ms": 1400,
-          "then": "n221"
-        }
-      ]
-    },
-    {
-      "ref": "n221",
-      "type": "audio",
-      "seq": 185,
-      "pos": [
-        113040,
-        0
-      ],
-      "note": "ОЗВУЧКА: were, как и was, про вчера, только для нескольких: они, мы, вы",
-      "needs": "audio — озвучка реплики",
-      "data": {
-        "text": "{g:were}, как и {g:was}, {l:про вчера}, только для нескольких: они, мы, вы",
-        "showText": true
-      },
-      "triggers": [
-        {
-          "if": "played",
-          "then": "n222"
-        }
-      ]
-    },
-    {
-      "ref": "n222",
-      "type": "audio",
-      "seq": 186,
-      "pos": [
-        113600,
-        0
-      ],
-      "note": "ОЗВУЧКА: Остался последний рывок, держись, будет быстро",
-      "needs": "audio — озвучка реплики",
-      "data": {
-        "text": "Остался последний рывок, держись, будет быстро",
-        "showText": true
-      },
-      "triggers": [
-        {
-          "if": "played",
-          "then": "n223"
-        }
-      ]
-    },
-    {
-      "ref": "n223",
-      "type": "system",
-      "seq": 187,
-      "pos": [
-        114860,
-        0
-      ],
-      "data": {
-        "content": "Уровень 6 · на скорость ⏱"
-      },
-      "triggers": [
-        {
-          "if": "timer",
-          "ms": 1600,
-          "then": "n224"
-        }
-      ]
-    },
-    {
-      "ref": "n224",
-      "type": "text",
-      "seq": 188,
-      "pos": [
-        115420,
-        0
-      ],
-      "data": {
-        "content": "выбери верную фразу ⏱ {t:«она на работе»}",
-        "hardWrap": false
-      },
-      "triggers": [
-        {
-          "if": "timer",
-          "ms": 1500,
-          "then": "n225"
-        }
-      ]
-    },
-    {
-      "ref": "n225",
-      "type": "word_choice",
-      "seq": 189,
-      "pos": [
-        115980,
-        0
-      ],
-      "data": {
-        "options": [
-          {
-            "text": "She's at work",
-            "isCorrect": true
-          },
-          {
-            "text": "She at work",
-            "isCorrect": false
-          },
-          {
-            "text": "She'm at work",
-            "isCorrect": false
-          }
-        ],
-        "sendPickToChat": true,
-        "timeLimitSec": 7
-      },
-      "triggers": [
-        {
-          "if": "word_correct",
-          "then": "n227"
-        },
-        {
-          "if": "variant",
-          "variantLabel": "She's at work",
-          "then": null
-        },
-        {
-          "if": "variant",
-          "variantLabel": "She at work",
-          "then": null
-        },
-        {
-          "if": "variant",
-          "variantLabel": "She'm at work",
-          "then": null
-        },
-        {
-          "if": "word_wrong",
           "then": "n226"
         }
       ]
@@ -6896,14 +6904,14 @@
     {
       "ref": "n226",
       "type": "text",
-      "seq": 238,
+      "seq": 245,
       "pos": [
-        115980,
+        115280,
         480
       ],
       "data": {
-        "content": "не то) про неё связка {g:she's}:\n{g:She's at work}",
-        "hardWrap": true
+        "content": "не то) {g:were} это {w:про вчера}, {g:They were busy} это {t:они были заняты}",
+        "hardWrap": false
       },
       "triggers": [
         {
@@ -6918,11 +6926,11 @@
       "type": "reaction",
       "seq": 190,
       "pos": [
-        116540,
+        115840,
         0
       ],
       "data": {
-        "emoji": "⚡",
+        "emoji": "🗂️",
         "target": "student"
       },
       "triggers": [
@@ -6938,13 +6946,13 @@
       "type": "audio",
       "seq": 191,
       "pos": [
-        117100,
+        116400,
         0
       ],
-      "note": "ОЗВУЧКА: И ещё: собери «они будут заняты завтра»",
+      "note": "ОЗВУЧКА: were у них, у нас и у вас, когда людей несколько",
       "needs": "audio — озвучка реплики",
       "data": {
-        "text": "И ещё: собери {t:«они будут заняты завтра»}",
+        "text": "{g:were} у них, у нас и у вас, {l:когда людей несколько}",
         "showText": true
       },
       "triggers": [
@@ -6956,10 +6964,205 @@
     },
     {
       "ref": "n229",
-      "type": "phrase_assembly",
+      "type": "audio",
       "seq": 192,
       "pos": [
-        117660,
+        116960,
+        0
+      ],
+      "note": "ОЗВУЧКА: Ты уже почти всё умеешь, остался последний рывок, держись, будет быстро",
+      "needs": "audio — озвучка реплики",
+      "data": {
+        "text": "Ты уже почти всё умеешь, остался последний рывок, держись, будет быстро",
+        "showText": true
+      },
+      "triggers": [
+        {
+          "if": "played",
+          "then": "n230"
+        }
+      ]
+    },
+    {
+      "ref": "n230",
+      "type": "system",
+      "seq": 193,
+      "pos": [
+        118220,
+        0
+      ],
+      "data": {
+        "content": "Уровень 6 · на скорость ⏱"
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1600,
+          "then": "n231"
+        }
+      ]
+    },
+    {
+      "ref": "n231",
+      "type": "text",
+      "seq": 194,
+      "pos": [
+        118780,
+        0
+      ],
+      "data": {
+        "content": "выбери на слух ⏱",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1500,
+          "then": "n232"
+        }
+      ]
+    },
+    {
+      "ref": "n232",
+      "type": "audio",
+      "seq": 195,
+      "pos": [
+        119340,
+        0
+      ],
+      "note": "ОЗВУЧКА: She's at work",
+      "needs": "audio — озвучка реплики",
+      "data": {
+        "text": "{g:She's at work}",
+        "showText": false
+      },
+      "triggers": [
+        {
+          "if": "played",
+          "then": "n233"
+        }
+      ]
+    },
+    {
+      "ref": "n233",
+      "type": "word_choice",
+      "seq": 196,
+      "pos": [
+        119900,
+        0
+      ],
+      "data": {
+        "options": [
+          {
+            "text": "Она на работе",
+            "isCorrect": true
+          },
+          {
+            "text": "Она была на работе",
+            "isCorrect": false
+          },
+          {
+            "text": "Она идёт на работу",
+            "isCorrect": false
+          }
+        ],
+        "sendPickToChat": true,
+        "voicePhrase": "She's at work",
+        "timeLimitSec": 7
+      },
+      "triggers": [
+        {
+          "if": "word_correct",
+          "then": "n235"
+        },
+        {
+          "if": "variant",
+          "variantLabel": "Она на работе",
+          "then": null
+        },
+        {
+          "if": "variant",
+          "variantLabel": "Она была на работе",
+          "then": null
+        },
+        {
+          "if": "variant",
+          "variantLabel": "Она идёт на работу",
+          "then": null
+        },
+        {
+          "if": "word_wrong",
+          "then": "n234"
+        }
+      ]
+    },
+    {
+      "ref": "n234",
+      "type": "text",
+      "seq": 244,
+      "pos": [
+        119900,
+        480
+      ],
+      "data": {
+        "content": "не-не-не) {g:she's} это про сейчас: {g:She's at work}, {t:она на работе}",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1500,
+          "then": "n236"
+        }
+      ]
+    },
+    {
+      "ref": "n235",
+      "type": "reaction",
+      "seq": 197,
+      "pos": [
+        120460,
+        0
+      ],
+      "data": {
+        "emoji": "⚡",
+        "target": "student"
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1400,
+          "then": "n236"
+        }
+      ]
+    },
+    {
+      "ref": "n236",
+      "type": "audio",
+      "seq": 198,
+      "pos": [
+        121020,
+        0
+      ],
+      "note": "ОЗВУЧКА: И ещё: собери «они будут заняты завтра»",
+      "needs": "audio — озвучка реплики",
+      "data": {
+        "text": "И ещё: собери {t:«они будут заняты завтра»}",
+        "showText": true
+      },
+      "triggers": [
+        {
+          "if": "played",
+          "then": "n237"
+        }
+      ]
+    },
+    {
+      "ref": "n237",
+      "type": "phrase_assembly",
+      "seq": 199,
+      "pos": [
+        121580,
         0
       ],
       "data": {
@@ -6986,7 +7189,7 @@
       "triggers": [
         {
           "if": "phrase_correct",
-          "then": "n231"
+          "then": "n239"
         },
         {
           "if": "variant",
@@ -7005,36 +7208,36 @@
         },
         {
           "if": "phrase_wrong",
-          "then": "n230"
+          "then": "n238"
         }
       ]
     },
     {
-      "ref": "n230",
+      "ref": "n238",
       "type": "text",
-      "seq": 237,
+      "seq": 243,
       "pos": [
-        117660,
+        121580,
         480
       ],
       "data": {
-        "content": "не-не-не) завтра это {g:They'll be}:\n{g:They'll be busy tomorrow}",
+        "content": "не совсем) это про завтра, то есть будущее, значит {g:They'll be}:\n{g:They'll be busy tomorrow}",
         "hardWrap": true
       },
       "triggers": [
         {
           "if": "timer",
           "ms": 1500,
-          "then": "n232"
+          "then": "n240"
         }
       ]
     },
     {
-      "ref": "n231",
+      "ref": "n239",
       "type": "text",
-      "seq": 193,
+      "seq": 200,
       "pos": [
-        118220,
+        122140,
         0
       ],
       "data": {
@@ -7045,37 +7248,37 @@
         {
           "if": "timer",
           "ms": 1500,
-          "then": "n232"
+          "then": "n240"
         }
       ]
     },
     {
-      "ref": "n232",
+      "ref": "n240",
       "type": "audio",
-      "seq": 194,
+      "seq": 201,
       "pos": [
-        118780,
+        122700,
         0
       ],
-      "note": "ОЗВУЧКА: И вслух про друга или подругу: начни с He'll be или She'll be, дальше любое слово",
+      "note": "ОЗВУЧКА: И вслух про друга или подругу: начни с He'll be или She'll be, можно и полное He will be, дальше любое слово, засчитаю любое",
       "needs": "audio — озвучка реплики",
       "data": {
-        "text": "И вслух про друга или подругу: начни с {g:He'll be} или {g:She'll be}, дальше любое слово",
+        "text": "И вслух про друга или подругу: начни с {g:He'll be} или {g:She'll be}, можно и полное {g:He will be}, дальше любое слово, засчитаю любое",
         "showText": true
       },
       "triggers": [
         {
           "if": "played",
-          "then": "n233"
+          "then": "n241"
         }
       ]
     },
     {
-      "ref": "n233",
+      "ref": "n241",
       "type": "say_phrase",
-      "seq": 195,
+      "seq": 202,
       "pos": [
-        119340,
+        123260,
         0
       ],
       "data": {
@@ -7096,40 +7299,40 @@
       "triggers": [
         {
           "if": "say_done",
-          "then": "n235"
+          "then": "n243"
         },
         {
           "if": "say_wrong",
-          "then": "n234"
+          "then": "n242"
         }
       ]
     },
     {
-      "ref": "n234",
+      "ref": "n242",
       "type": "text",
-      "seq": 236,
+      "seq": 242,
       "pos": [
-        119340,
+        123260,
         480
       ],
       "data": {
-        "content": "не совсем) начни с {g:He'll be} или {g:She'll be} и добавь любое слово)",
+        "content": "близко) начни с {g:He'll be} или {g:She'll be} и добавь любое слово)",
         "hardWrap": false
       },
       "triggers": [
         {
           "if": "timer",
           "ms": 1500,
-          "then": "n238"
+          "then": "n246"
         }
       ]
     },
     {
-      "ref": "n235",
+      "ref": "n243",
       "type": "text",
-      "seq": 196,
+      "seq": 203,
       "pos": [
-        119900,
+        123820,
         0
       ],
       "data": {
@@ -7140,37 +7343,37 @@
         {
           "if": "timer",
           "ms": 1500,
-          "then": "n236"
+          "then": "n244"
         }
       ]
     },
     {
-      "ref": "n236",
+      "ref": "n244",
       "type": "audio",
-      "seq": 197,
+      "seq": 204,
       "pos": [
-        120460,
+        124380,
         0
       ],
-      "note": "ОЗВУЧКА: молния, и She'll be на месте",
+      "note": "ОЗВУЧКА: про завтра о других ты теперь тоже говоришь, Кейт бы не успела",
       "needs": "audio — озвучка реплики",
       "data": {
-        "text": "молния, и {g:She'll be} на месте",
+        "text": "про завтра о других ты теперь тоже говоришь, Кейт бы не успела",
         "showText": true
       },
       "triggers": [
         {
           "if": "played",
-          "then": "n237"
+          "then": "n245"
         }
       ]
     },
     {
-      "ref": "n237",
+      "ref": "n245",
       "type": "reaction",
-      "seq": 198,
+      "seq": 205,
       "pos": [
-        121020,
+        124940,
         0
       ],
       "data": {
@@ -7181,16 +7384,16 @@
         {
           "if": "timer",
           "ms": 1400,
-          "then": "n238"
+          "then": "n246"
         }
       ]
     },
     {
-      "ref": "n238",
+      "ref": "n246",
       "type": "sticker",
-      "seq": 199,
+      "seq": 206,
       "pos": [
-        121580,
+        125500,
         0
       ],
       "note": "СТИКЕР: сгенерировать в редакторе по imagePrompt",
@@ -7210,130 +7413,108 @@
         {
           "if": "timer",
           "ms": 1200,
-          "then": "n239"
+          "then": "n247"
         }
       ]
     },
     {
-      "ref": "n239",
+      "ref": "n247",
       "type": "text",
-      "seq": 200,
+      "seq": 207,
       "pos": [
-        122140,
+        126060,
         0
       ],
       "data": {
-        "content": "и последняя на скорость, на слух 👂",
+        "content": "и последняя на скорость ⏱ {t:«ты опаздываешь»}",
         "hardWrap": false
       },
       "triggers": [
         {
           "if": "timer",
           "ms": 1500,
-          "then": "n240"
+          "then": "n248"
         }
       ]
     },
     {
-      "ref": "n240",
-      "type": "audio",
-      "seq": 201,
-      "pos": [
-        122700,
-        0
-      ],
-      "note": "ОЗВУЧКА: You're late",
-      "needs": "audio — озвучка реплики",
-      "data": {
-        "text": "{g:You're late}",
-        "showText": false
-      },
-      "triggers": [
-        {
-          "if": "played",
-          "then": "n241"
-        }
-      ]
-    },
-    {
-      "ref": "n241",
+      "ref": "n248",
       "type": "word_choice",
-      "seq": 202,
+      "seq": 208,
       "pos": [
-        123260,
+        126620,
         0
       ],
       "data": {
         "options": [
           {
-            "text": "Ты опаздываешь",
+            "text": "You're late",
             "isCorrect": true
           },
           {
-            "text": "Ты дома",
+            "text": "You late",
             "isCorrect": false
           },
           {
-            "text": "Ты опоздал вчера",
+            "text": "You'm late",
             "isCorrect": false
           }
         ],
         "sendPickToChat": true,
-        "voicePhrase": "You're late",
         "timeLimitSec": 6
       },
       "triggers": [
         {
           "if": "word_correct",
-          "then": "n243"
+          "then": "n250"
         },
         {
           "if": "variant",
-          "variantLabel": "Ты опаздываешь",
+          "variantLabel": "You're late",
           "then": null
         },
         {
           "if": "variant",
-          "variantLabel": "Ты дома",
+          "variantLabel": "You late",
           "then": null
         },
         {
           "if": "variant",
-          "variantLabel": "Ты опоздал вчера",
+          "variantLabel": "You'm late",
           "then": null
         },
         {
           "if": "word_wrong",
-          "then": "n242"
+          "then": "n249"
         }
       ]
     },
     {
-      "ref": "n242",
+      "ref": "n249",
       "type": "text",
-      "seq": 235,
+      "seq": 241,
       "pos": [
-        123260,
+        126620,
         480
       ],
       "data": {
-        "content": "близко) {g:you're} это {t:ты}, про сейчас, а {g:late} {t:опаздываешь}",
-        "hardWrap": false
+        "content": "неа) про тебя связка {g:you're}:\n{g:You're late}",
+        "hardWrap": true
       },
       "triggers": [
         {
           "if": "timer",
           "ms": 1500,
-          "then": "n244"
+          "then": "n251"
         }
       ]
     },
     {
-      "ref": "n243",
+      "ref": "n250",
       "type": "reaction",
-      "seq": 203,
+      "seq": 209,
       "pos": [
-        123820,
+        127180,
         0
       ],
       "data": {
@@ -7344,16 +7525,16 @@
         {
           "if": "timer",
           "ms": 1400,
-          "then": "n244"
+          "then": "n251"
         }
       ]
     },
     {
-      "ref": "n244",
+      "ref": "n251",
       "type": "system",
-      "seq": 204,
+      "seq": 210,
       "pos": [
-        125080,
+        128440,
         0
       ],
       "data": {
@@ -7363,16 +7544,16 @@
         {
           "if": "timer",
           "ms": 1600,
-          "then": "n245"
+          "then": "n252"
         }
       ]
     },
     {
-      "ref": "n245",
+      "ref": "n252",
       "type": "sticker",
-      "seq": 205,
+      "seq": 211,
       "pos": [
-        125640,
+        129000,
         0
       ],
       "note": "СТИКЕР: сгенерировать в редакторе по imagePrompt",
@@ -7392,16 +7573,16 @@
         {
           "if": "timer",
           "ms": 1200,
-          "then": "n246"
+          "then": "n253"
         }
       ]
     },
     {
-      "ref": "n246",
+      "ref": "n253",
       "type": "text",
-      "seq": 206,
+      "seq": 212,
       "pos": [
-        126200,
+        129560,
         0
       ],
       "data": {
@@ -7412,37 +7593,37 @@
         {
           "if": "timer",
           "ms": 1500,
-          "then": "n247"
+          "then": "n254"
         }
       ]
     },
     {
-      "ref": "n247",
+      "ref": "n254",
       "type": "audio",
-      "seq": 207,
+      "seq": 213,
       "pos": [
-        126760,
+        130120,
         0
       ],
-      "note": "ОЗВУЧКА: Скажи вслух, где ты сейчас: начни с I'm at, место любое, засчитаю любое",
+      "note": "ОЗВУЧКА: Скажи вслух, где ты сейчас: начни с I'm at, можно и I am at, место любое, засчитаю любое",
       "needs": "audio — озвучка реплики",
       "data": {
-        "text": "Скажи вслух, где ты сейчас: начни с {g:I'm at}, место любое, засчитаю любое",
+        "text": "Скажи вслух, где ты сейчас: начни с {g:I'm at}, можно и {g:I am at}, место любое, засчитаю любое",
         "showText": true
       },
       "triggers": [
         {
           "if": "played",
-          "then": "n248"
+          "then": "n255"
         }
       ]
     },
     {
-      "ref": "n248",
+      "ref": "n255",
       "type": "say_phrase",
-      "seq": 208,
+      "seq": 214,
       "pos": [
-        127320,
+        130680,
         0
       ],
       "data": {
@@ -7463,40 +7644,40 @@
       "triggers": [
         {
           "if": "say_done",
-          "then": "n250"
+          "then": "n257"
         },
         {
           "if": "say_wrong",
-          "then": "n249"
+          "then": "n256"
         }
       ]
     },
     {
-      "ref": "n249",
+      "ref": "n256",
       "type": "text",
-      "seq": 234,
+      "seq": 240,
       "pos": [
-        127320,
+        130680,
         480
       ],
       "data": {
-        "content": "неа) начни так: {g:I'm at}, это {t:я в}, и добавь любое место",
+        "content": "не то) начни так: {g:I'm at}, это {t:я в}, и добавь любое место",
         "hardWrap": false
       },
       "triggers": [
         {
           "if": "timer",
           "ms": 1500,
-          "then": "n253"
+          "then": "n260"
         }
       ]
     },
     {
-      "ref": "n250",
+      "ref": "n257",
       "type": "text",
-      "seq": 209,
+      "seq": 215,
       "pos": [
-        127880,
+        131240,
         0
       ],
       "data": {
@@ -7507,37 +7688,37 @@
         {
           "if": "timer",
           "ms": 1500,
-          "then": "n251"
+          "then": "n258"
         }
       ]
     },
     {
-      "ref": "n251",
+      "ref": "n258",
       "type": "audio",
-      "seq": 210,
+      "seq": 216,
       "pos": [
-        128440,
+        131800,
         0
       ],
-      "note": "ОЗВУЧКА: Кейт спокойна, I'm at и место, никаких лишних слов",
+      "note": "ОЗВУЧКА: Кейт спокойна, я тоже, можно спать",
       "needs": "audio — озвучка реплики",
       "data": {
-        "text": "Кейт спокойна, {g:I'm at} и место, никаких лишних слов",
+        "text": "Кейт спокойна, я тоже, можно спать",
         "showText": true
       },
       "triggers": [
         {
           "if": "played",
-          "then": "n252"
+          "then": "n259"
         }
       ]
     },
     {
-      "ref": "n252",
+      "ref": "n259",
       "type": "reaction",
-      "seq": 211,
+      "seq": 217,
       "pos": [
-        129000,
+        132360,
         0
       ],
       "data": {
@@ -7548,36 +7729,36 @@
         {
           "if": "timer",
           "ms": 1400,
-          "then": "n253"
+          "then": "n260"
         }
       ]
     },
     {
-      "ref": "n253",
+      "ref": "n260",
       "type": "text",
-      "seq": 212,
+      "seq": 218,
       "pos": [
-        129560,
+        132920,
         0
       ],
       "data": {
-        "content": "и на слух, последний раз 👂",
+        "content": "Кейт прислала голосовое, последнее на сегодня",
         "hardWrap": false
       },
       "triggers": [
         {
           "if": "timer",
           "ms": 1500,
-          "then": "n254"
+          "then": "n261"
         }
       ]
     },
     {
-      "ref": "n254",
+      "ref": "n261",
       "type": "audio",
-      "seq": 213,
+      "seq": 219,
       "pos": [
-        130120,
+        133480,
         0
       ],
       "note": "ОЗВУЧКА: She's sleepy",
@@ -7589,16 +7770,16 @@
       "triggers": [
         {
           "if": "played",
-          "then": "n255"
+          "then": "n262"
         }
       ]
     },
     {
-      "ref": "n255",
+      "ref": "n262",
       "type": "word_choice",
-      "seq": 214,
+      "seq": 220,
       "pos": [
-        130680,
+        134040,
         0
       ],
       "data": {
@@ -7622,7 +7803,7 @@
       "triggers": [
         {
           "if": "word_correct",
-          "then": "n257"
+          "then": "n264"
         },
         {
           "if": "variant",
@@ -7641,36 +7822,36 @@
         },
         {
           "if": "word_wrong",
-          "then": "n256"
+          "then": "n263"
         }
       ]
     },
     {
-      "ref": "n256",
+      "ref": "n263",
       "type": "text",
-      "seq": 233,
+      "seq": 239,
       "pos": [
-        130680,
+        134040,
         480
       ],
       "data": {
-        "content": "не то) {g:she's} это {t:она}, про сейчас, а {g:sleepy} {t:сонная}",
+        "content": "не-не-не) {g:she's} это {t:она}, про сейчас, а {g:sleepy} {t:сонная}",
         "hardWrap": false
       },
       "triggers": [
         {
           "if": "timer",
           "ms": 1500,
-          "then": "n258"
+          "then": "n265"
         }
       ]
     },
     {
-      "ref": "n257",
+      "ref": "n264",
       "type": "text",
-      "seq": 215,
+      "seq": 221,
       "pos": [
-        131240,
+        134600,
         0
       ],
       "data": {
@@ -7681,23 +7862,23 @@
         {
           "if": "timer",
           "ms": 1500,
-          "then": "n258"
+          "then": "n265"
         }
       ]
     },
     {
-      "ref": "n258",
+      "ref": "n265",
       "type": "photo",
-      "seq": 216,
+      "seq": 222,
       "pos": [
-        131800,
+        135160,
         0
       ],
       "note": "ФОТО: сгенерировать в редакторе по imagePrompt",
       "needs": "photo",
       "data": {
-        "caption": "Пит вспоминает утро: опоздал к кафе на полчаса 😅",
-        "imagePrompt": "Мультяшный рыжий кот лежит в кровати с телефоном и смущённо улыбается, над ним облачко с часами, ночь, без текста",
+        "caption": "Пит вспоминает утро: Кейт опоздала на полчаса, а он уже не злится 😅",
+        "imagePrompt": "Мультяшный рыжий кот лежит в кровати с телефоном и улыбается, над ним облачко с часами и кошкой, ночь, без текста",
         "crop": {
           "x": 0,
           "y": 0,
@@ -7708,80 +7889,80 @@
         {
           "if": "timer",
           "ms": 2200,
-          "then": "n259"
+          "then": "n266"
         }
       ]
     },
     {
-      "ref": "n259",
+      "ref": "n266",
       "type": "text",
-      "seq": 217,
+      "seq": 223,
       "pos": [
-        132360,
+        135720,
         0
       ],
       "data": {
-        "content": "напечатай {t:«я опоздал»}: печатай тапами по светящимся буквам",
+        "content": "набери {t:«она опоздала»} тапами по светящимся буквам",
         "hardWrap": false
       },
       "triggers": [
         {
           "if": "timer",
           "ms": 1500,
-          "then": "n260"
+          "then": "n267"
         }
       ]
     },
     {
-      "ref": "n260",
+      "ref": "n267",
       "type": "type_word",
-      "seq": 218,
+      "seq": 224,
       "pos": [
-        132920,
+        136280,
         0
       ],
       "data": {
-        "word": "I was late",
+        "word": "she was late",
         "extraLetters": "ei",
-        "responseWrong": "не то) про вчера и про утро связка {g:was}, {l:между I и late}"
+        "responseWrong": "не то) про утро, то есть прошлое, связка {g:was}, {l:между she и late}"
       },
       "triggers": [
         {
           "if": "type_correct",
-          "then": "n262"
+          "then": "n269"
         },
         {
           "if": "type_wrong",
-          "then": "n261"
+          "then": "n268"
         }
       ]
     },
     {
-      "ref": "n261",
+      "ref": "n268",
       "type": "text",
-      "seq": 232,
+      "seq": 238,
       "pos": [
-        132920,
+        136280,
         480
       ],
       "data": {
-        "content": "не-не-не) {t:я опоздал} это {g:I was late}, связка {g:was} посередине",
+        "content": "не совсем) {t:она опоздала} это {g:she was late}, связка {g:was} посередине",
         "hardWrap": false
       },
       "triggers": [
         {
           "if": "timer",
           "ms": 1500,
-          "then": "n263"
+          "then": "n270"
         }
       ]
     },
     {
-      "ref": "n262",
+      "ref": "n269",
       "type": "reaction",
-      "seq": 219,
+      "seq": 225,
       "pos": [
-        133480,
+        136840,
         0
       ],
       "data": {
@@ -7792,37 +7973,37 @@
         {
           "if": "timer",
           "ms": 1400,
-          "then": "n263"
+          "then": "n270"
         }
       ]
     },
     {
-      "ref": "n263",
+      "ref": "n270",
       "type": "audio",
-      "seq": 220,
+      "seq": 226,
       "pos": [
-        134040,
+        137400,
         0
       ],
-      "note": "ОЗВУЧКА: Неожиданность: Кейт пишет: good night, I'm tired. Скажи вслух, как ты сейчас: начни с I'm, слово любое, засчитаю всё",
+      "note": "ОЗВУЧКА: Неожиданность: Кейт пишет: good night, I'm tired. Скажи вслух, как ты сейчас: начни с I'm или I am, слово любое, засчитаю всё",
       "needs": "audio — озвучка реплики",
       "data": {
-        "text": "Неожиданность: Кейт пишет: {g:good night, I'm tired}. Скажи вслух, как ты сейчас: начни с {g:I'm}, слово любое, засчитаю всё",
+        "text": "Неожиданность: Кейт пишет: {g:good night, I'm tired}. Скажи вслух, как ты сейчас: начни с {g:I'm} или {g:I am}, слово любое, засчитаю всё",
         "showText": true
       },
       "triggers": [
         {
           "if": "played",
-          "then": "n264"
+          "then": "n271"
         }
       ]
     },
     {
-      "ref": "n264",
+      "ref": "n271",
       "type": "say_phrase",
-      "seq": 221,
+      "seq": 227,
       "pos": [
-        134600,
+        137960,
         0
       ],
       "data": {
@@ -7843,40 +8024,40 @@
       "triggers": [
         {
           "if": "say_done",
-          "then": "n266"
+          "then": "n273"
         },
         {
           "if": "say_wrong",
-          "then": "n265"
+          "then": "n272"
         }
       ]
     },
     {
-      "ref": "n265",
+      "ref": "n272",
       "type": "text",
-      "seq": 231,
+      "seq": 237,
       "pos": [
-        134600,
+        137960,
         480
       ],
       "data": {
-        "content": "не совсем) начни с {g:I'm} и добавь любое слово)",
+        "content": "близко) начни с {g:I'm} и добавь любое слово)",
         "hardWrap": false
       },
       "triggers": [
         {
           "if": "timer",
           "ms": 1500,
-          "then": "n269"
+          "then": "n276"
         }
       ]
     },
     {
-      "ref": "n266",
+      "ref": "n273",
       "type": "text",
-      "seq": 222,
+      "seq": 228,
       "pos": [
-        135160,
+        138520,
         0
       ],
       "data": {
@@ -7887,37 +8068,37 @@
         {
           "if": "timer",
           "ms": 1500,
-          "then": "n267"
+          "then": "n274"
         }
       ]
     },
     {
-      "ref": "n267",
+      "ref": "n274",
       "type": "audio",
-      "seq": 223,
+      "seq": 229,
       "pos": [
-        135720,
+        139080,
         0
       ],
-      "note": "ОЗВУЧКА: с I'm у тебя теперь всё просто: слово любое, а связка на месте",
+      "note": "ОЗВУЧКА: передам Кейт, она спросит, кто это у меня такой умный",
       "needs": "audio — озвучка реплики",
       "data": {
-        "text": "с {g:I'm} у тебя теперь всё просто: слово любое, а связка на месте",
+        "text": "передам Кейт, она спросит, кто это у меня такой умный",
         "showText": true
       },
       "triggers": [
         {
           "if": "played",
-          "then": "n268"
+          "then": "n275"
         }
       ]
     },
     {
-      "ref": "n268",
+      "ref": "n275",
       "type": "reaction",
-      "seq": 224,
+      "seq": 230,
       "pos": [
-        136280,
+        139640,
         0
       ],
       "data": {
@@ -7928,16 +8109,16 @@
         {
           "if": "timer",
           "ms": 1400,
-          "then": "n269"
+          "then": "n276"
         }
       ]
     },
     {
-      "ref": "n269",
+      "ref": "n276",
       "type": "system",
-      "seq": 225,
+      "seq": 231,
       "pos": [
-        138140,
+        141500,
         0
       ],
       "data": {
@@ -7947,37 +8128,37 @@
         {
           "if": "timer",
           "ms": 1600,
-          "then": "n270"
+          "then": "n277"
         }
       ]
     },
     {
-      "ref": "n270",
+      "ref": "n277",
       "type": "audio",
-      "seq": 226,
+      "seq": 232,
       "pos": [
-        138700,
+        142060,
         0
       ],
-      "note": "ОЗВУЧКА: Если коротко: I'm это я есть, связка между мной и состоянием; у неё и у них связка своя, про вчера was, про завтра I'll be, а у действия связки нет",
+      "note": "ОЗВУЧКА: Если коротко: I'm это я есть, связка между мной и состоянием. Всё остальное, кто и когда, в одной таблице",
       "needs": "audio — озвучка реплики",
       "data": {
-        "text": "Если коротко: {g:I'm} это {t:я есть}, {l:связка между мной и состоянием}; у неё и у них связка своя, про вчера {g:was}, про завтра {g:I'll be}, а у действия связки нет",
+        "text": "Если коротко: {g:I'm} это {t:я есть}, {l:связка между мной и состоянием}. Всё остальное, кто и когда, в одной таблице",
         "showText": true
       },
       "triggers": [
         {
           "if": "played",
-          "then": "n271"
+          "then": "n278"
         }
       ]
     },
     {
-      "ref": "n271",
+      "ref": "n278",
       "type": "table",
-      "seq": 227,
+      "seq": 233,
       "pos": [
-        139260,
+        142620,
         0
       ],
       "note": "ОЗВУЧКА таблицы (скрипт идёт по ячейкам слева направо, сверху вниз; метку «Проверить» поставить при монтаже после последней ячейки): Смотри, всё вместе, и фраза одна, я здесь. Про себя, I'm, I'm here. Про тебя, you're, you're here. Про неё или него, she's, he's, she's here. Про нас и про них, we're, they're, we're here. Вчера связка меняется, was или were, I was here. Завтра, I'll be, I'll be here. А у действия связки нет, I work, я работаю, и всё",
@@ -8264,7 +8445,7 @@
       "triggers": [
         {
           "if": "table_correct",
-          "then": "n272"
+          "then": "n279"
         },
         {
           "if": "table_wrong",
@@ -8273,11 +8454,11 @@
       ]
     },
     {
-      "ref": "n272",
+      "ref": "n279",
       "type": "scene",
-      "seq": 228,
+      "seq": 234,
       "pos": [
-        139820,
+        143180,
         0
       ],
       "note": "СЦЕНА: кружок Пита, один кот крупно, без облачков (текст реплик в кружке не показывается). Озвучку записать кнопкой «Озвучить» в редакторе сцены",
@@ -8346,16 +8527,16 @@
       "triggers": [
         {
           "if": "played",
-          "then": "n273"
+          "then": "n280"
         }
       ]
     },
     {
-      "ref": "n273",
+      "ref": "n280",
       "type": "word_choice",
-      "seq": 229,
+      "seq": 235,
       "pos": [
-        140380,
+        143740,
         0
       ],
       "note": "Меню-развилка, не тест",
@@ -8376,7 +8557,7 @@
       "triggers": [
         {
           "if": "word_correct",
-          "then": "n274"
+          "then": "n281"
         },
         {
           "if": "word_wrong",
@@ -8385,21 +8566,21 @@
         {
           "if": "variant",
           "variantLabel": "Закончить ✅",
-          "then": "n274"
+          "then": "n281"
         },
         {
           "if": "variant",
           "variantLabel": "Ещё один круг 💪",
-          "then": "n118"
+          "then": "n124"
         }
       ]
     },
     {
-      "ref": "n274",
+      "ref": "n281",
       "type": "text",
-      "seq": 230,
+      "seq": 236,
       "pos": [
-        140940,
+        144300,
         0
       ],
       "data": {
@@ -8429,16 +8610,16 @@
       "id": "zone-im-2",
       "x": 4510,
       "y": -150,
-      "width": 19088,
+      "width": 18528,
       "height": 1040,
       "label": "Часть 1 · I'm = я есть",
       "color": "#ffd166"
     },
     {
       "id": "zone-im-3",
-      "x": 24850,
+      "x": 24290,
       "y": -150,
-      "width": 15168,
+      "width": 15728,
       "height": 1040,
       "label": "Часть 2 · she's, we're",
       "color": "#ef476f"
@@ -8447,32 +8628,32 @@
       "id": "zone-im-4",
       "x": 41270,
       "y": -150,
-      "width": 17408,
+      "width": 19648,
       "height": 1040,
       "label": "Часть 3 · вчера и завтра",
       "color": "#9b5de5"
     },
     {
       "id": "zone-im-5",
-      "x": 59930,
+      "x": 62170,
       "y": -150,
-      "width": 1168,
+      "width": 1728,
       "height": 560,
       "label": "Итог",
       "color": "#06d6a0"
     },
     {
       "id": "zone-im-6",
-      "x": 62350,
+      "x": 65150,
       "y": -150,
-      "width": 74388,
+      "width": 74948,
       "height": 1520,
       "label": "Ещё практика",
       "color": "#118ab2"
     },
     {
       "id": "zone-im-7",
-      "x": 137990,
+      "x": 141350,
       "y": -150,
       "width": 3408,
       "height": 560,
