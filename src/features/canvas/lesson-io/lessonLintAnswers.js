@@ -2,6 +2,9 @@ import { phraseVariants } from '../../../shared/lib/phraseVariants.js'
 import { readTimeLimit, TIME_LIMIT_MIN, TIME_LIMIT_MAX } from '../../../shared/lib/timeLimit.js'
 
 const WRONG_OF = { word_choice: 'word_wrong', phrase_assembly: 'phrase_wrong' }
+// Личные местоимения (подлежащее и дополнение): сбивает именно похожее по роли слово, а не случайное
+const PRONOUNS = new Set(['i', 'you', 'he', 'she', 'it', 'we', 'they', 'me', 'him', 'her', 'us', 'them'])
+const wordsOf = list => (list ?? []).flatMap(w => String(w?.text ?? w ?? '').toLowerCase().split(/\s+/)).map(w => w.replace(/[^a-z']/g, '')).filter(Boolean)
 
 // Проверки новых полей: «Собери фразу» с несколькими верными ответами (answers) и лимит времени ответа (timeLimitSec) у
 // «Выбери слово» и «Собери фразу». Формат обмена: { ref, type, data, triggers: [{ if, then }] }.
@@ -23,6 +26,13 @@ export function checkAnswersAndLimits(nodes) {
       for (const t of d.distractors ?? []) {
         const text = String(t?.text ?? t ?? '').toLowerCase()
         if (text && used.has(text)) out.push(`[R-answers] ${n.ref} phrase_assembly: ловушка «${text}» входит в один из верных ответов — это не ловушка, ученик не сможет её «ошибочно» выбрать`)
+      }
+    }
+    // [R-pronoun-trap] в сборке есть местоимение → среди ловушек обязательно ДРУГОЕ местоимение (I want → she/we), а не только «too/traveling»
+    if (n.type === 'phrase_assembly' && wordsOf(d.words).some(w => PRONOUNS.has(w))) {
+      const have = new Set(wordsOf(d.words))
+      if (!wordsOf(d.distractors).some(w => PRONOUNS.has(w) && !have.has(w))) {
+        out.push(`[R-pronoun-trap] ${n.ref} phrase_assembly: в фразе есть местоимение, а среди ловушек нет другого местоимения — добавь, например, she / we / they`)
       }
     }
     if (d.timeLimitSec != null && Number(d.timeLimitSec) !== 0) { // 0 = без таймера
