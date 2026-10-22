@@ -4,6 +4,7 @@ import { createPortal } from 'react-dom'
 import NoteComment from './NoteComment.jsx'
 import NodeEditor from './NodeEditor.jsx'
 import { SlotBody } from './PlayerLikeFeed.jsx'
+import { useDragWindow } from './useDragWindow.js'
 
 // Одно и то же сообщение: превью «как в плеере» + поля. ro — только чтение
 const Side = memo(function Side({ label, hint, item, canvasNode, canvasNodes, files, teacherName, ro, onPatch, onType, reg, rev = 0 }) {
@@ -24,6 +25,7 @@ const Side = memo(function Side({ label, hint, item, canvasNode, canvasNodes, fi
 export default function NoteDialog({ title, before, item, canvasNode, canvasNodes, files, teacherName, onPatch, onType, session, existing = [], onSave, onRemove, onClose, onKeep, onGolden = null }) {
   const withNode = !!(item && canvasNode && before)
   const dirty = withNode && session?.dirty()
+  const { boxRef, style: winStyle, onHeadMouseDown, reset: resetWin } = useDragWindow(withNode ? 'pithy-review-win:note' : 'pithy-review-win:general')
   // «Закрыть» отменяет всё, что сделано в редакторе (после подтверждения, если что-то менялось); «Сохранить правку» оставляет правки без замечания
   const cancel = () => { if (!dirty || window.confirm('Закрыть? Всё, что вы изменили в редакторе, будет отменено.')) onClose() }
   // Ctrl/Cmd+Z — отмена, Ctrl+Shift+Z / Ctrl+Y — повтор: в редакторе ноды откатываются правки ноды, в поле комментария — набор комментария (у каждого своя цепочка). Слушаем на документе: после отмены
@@ -47,9 +49,9 @@ export default function NoteDialog({ title, before, item, canvasNode, canvasNode
     return () => document.removeEventListener('keydown', h, true)
   }, [])
   return createPortal(
-    <div className="rvwNtBack" onMouseDown={e => { e.stopPropagation(); if (e.target === e.currentTarget) cancel() }}>
-      <div className={`rvwNtBox rvwNtSplit${withNode ? '' : ' single'}`} onMouseDown={e => e.stopPropagation()}>
-        <div className="rvwNtHead">
+    <div className="rvwNtBack" onMouseDown={e => e.stopPropagation()}>
+      <div ref={boxRef} style={winStyle} className={`rvwNtBox rvwNtSplit${withNode ? '' : ' single'}`} onMouseDown={e => e.stopPropagation()}>
+        <div className="rvwNtHead" title="Тащи за шапку куда угодно; двойной клик — вернуть в центр" onMouseDown={onHeadMouseDown} onDoubleClick={resetWin}>
           <b>{title}</b>
           <span className="rvwNtHeadBtns">
             {withNode && session && (
@@ -68,7 +70,7 @@ export default function NoteDialog({ title, before, item, canvasNode, canvasNode
             <Side label="После" hint=" · можно править" item={item} canvasNode={canvasNode} canvasNodes={canvasNodes} files={files} teacherName={teacherName} onPatch={onPatch} onType={onType} reg={session?.reg.current} rev={session?.rev} />
           </div>
         )}
-        <NoteComment session={session} existing={existing} onSave={onSave} onRemove={onRemove} onDone={onKeep ?? onClose} onGolden={withNode ? onGolden : null} />
+        <NoteComment session={session} existing={existing} dirty={!!dirty} onSave={onSave} onRemove={onRemove} onDone={onKeep ?? onClose} onGolden={withNode ? onGolden : null} />
       </div>
     </div>,
     document.body,

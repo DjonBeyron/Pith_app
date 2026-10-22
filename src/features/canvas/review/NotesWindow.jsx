@@ -2,12 +2,14 @@ import { useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
 import NoteDialog from './NoteDialog.jsx'
 import { buildNotesJson } from './reviewNotes.js'
+import { useDragWindow } from './useDragWindow.js'
 
 // Окно со всеми замечаниями: список по порядку ленты, удалить/очистить, добавить общее, скопировать или скачать JSON для Claude
 export default function NotesWindow({ store, items, nodes, lessonTitle, onFocus, onClose }) {
   const { notes, general, removeNote, removeGeneral, addGeneral, forget, clear } = store
   const [adding, setAdding] = useState(false)
   const [msg, setMsg] = useState('')
+  const { boxRef, style: winStyle, onHeadMouseDown, reset: resetWin } = useDragWindow('pithy-review-win:notes')
   const json = useMemo(() => buildNotesJson({ notes, general, items, nodes, lessonTitle, originals: store.originalTexts() }), [notes, general, items, nodes, lessonTitle, store])
   const total = json.notes.length + general.length
   const flash = t => { setMsg(t); setTimeout(() => setMsg(''), 3000) }
@@ -23,9 +25,9 @@ export default function NotesWindow({ store, items, nodes, lessonTitle, onFocus,
   }
   const wipe = () => { if (window.confirm('Удалить все замечания?')) clear() }
   return createPortal(
-    <div className="rvwNtBack" onMouseDown={e => { e.stopPropagation(); if (e.target === e.currentTarget) onClose() }}>
-      <div className="rvwNtBox rvwNtWide" onMouseDown={e => e.stopPropagation()}>
-        <div className="rvwNtHead"><b>Замечания ({total})</b><button className="rvwBtn" onClick={onClose}>Закрыть</button></div>
+    <div className="rvwNtBack" onMouseDown={e => e.stopPropagation()}>
+      <div ref={boxRef} style={winStyle} className="rvwNtBox rvwNtWide" onMouseDown={e => e.stopPropagation()}>
+        <div className="rvwNtHead" title="Тащи за шапку; двойной клик — в центр" onMouseDown={onHeadMouseDown} onDoubleClick={resetWin}><b>Замечания ({total})</b><button className="rvwBtn" onClick={onClose}>Закрыть</button></div>
         <div className="rvwNtList rvwNtScroll">
           {json.notes.length === 0 && general.length === 0 && <div className="rvwEmpty">Пока пусто. Выдели сообщение в ленте и нажми ✎ в его углу</div>}
           {json.notes.map(n => (

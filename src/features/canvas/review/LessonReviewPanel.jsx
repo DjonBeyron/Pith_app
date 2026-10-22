@@ -51,6 +51,9 @@ export default function LessonReviewPanel({ nodes: initialNodes, zones: initialZ
   const phoneMarks = useMemo(() => new Map([...phone.byNode].map(([id, l]) => [id, marksSummary(l)])), [phone.byNode])
   const [goldenOpen, setGoldenOpen] = useState(false)
   const [goldenTick, setGoldenTick] = useState(0)
+  // Холст (271 нода — самое тяжёлое) монтируем после первого кадра: окно с лентой появляется сразу, холст догоняет
+  const [canvasReady, setCanvasReady] = useState(false)
+  useEffect(() => { const id = setTimeout(() => setCanvasReady(true), 30); return () => clearTimeout(id) }, [])
   const lessonTitle = boardProps?.lessonTitle ?? ''
 
   // Холст при монтировании сам приводит ноды к своему виду (служебные переходы) — первое его сообщение берём за точку отсчёта для «Применить»,
@@ -121,13 +124,8 @@ export default function LessonReviewPanel({ nodes: initialNodes, zones: initialZ
   }
   const goldenFromMark = m => addLessonExample(exampleFromMark(m, { lessonTitle })).then(() => setGoldenTick(t => t + 1), e => window.alert(`Не сохранилось: ${e?.message ?? e}`))
 
-  const close = useCallback(() => {
-    const lost = []
-    if (diff.changed.length) lost.push(`неприменённые правки (нод: ${diff.changed.length})`)
-    if (noted) lost.push(`замечания и правки (${noted}), которые не скопированы в JSON`)
-    if (lost.length && !window.confirm(`Есть ${lost.join(' и ')}. Закрыть?`)) return
-    onClose()
-  }, [diff, onClose, noted])
+  // «Назад» без вопросов: замечания, оригиналы и правки текста уже лежат в localStorage (saveReview) и вернутся при следующем открытии
+  const close = useCallback(() => onClose(), [onClose])
 
   useEffect(() => {
     const onKey = e => { if (e.key === 'Escape' && !e.target.closest?.('input, textarea, [contenteditable]')) close() }
@@ -189,7 +187,7 @@ export default function LessonReviewPanel({ nodes: initialNodes, zones: initialZ
           Применить{diff.changed.length ? ` (${diff.changed.length})` : ''}
         </button>
       </div>
-      <div className={`rvwCols${rulesOff ? ' rvwRulesOff' : ''}${noteFor ? ' rvwColsBehind' : ''}`}>
+      <div className={`rvwCols${rulesOff ? ' rvwRulesOff' : ''}`}>
         <div className="rvwRight">
           <button className="rvwRulesToggle" onClick={toggleRules} title={rulesOff ? 'Развернуть правила' : 'Свернуть правила'}>{rulesOff ? '›' : '‹ Правила'}</button>
           {!rulesOff && <RulesPane node={sel} warnings={sel ? warnMap.get(sel.ref) ?? [] : []} rules={rules} busy={busy} onAdd={addFull} marks={sel ? phone.byNode.get(sel.ref) ?? [] : []} onGoldenMark={goldenFromMark} />}
@@ -198,7 +196,7 @@ export default function LessonReviewPanel({ nodes: initialNodes, zones: initialZ
           <PlayerLikeFeed items={feedItems} canvasById={canvasById} canvasNodes={content} files={boardProps?.lessonFiles ?? NO_FILES} selRef={selRef} selTick={selTick} warnMap={warnMap} noteCounts={noteCounts} changeMarks={versions.marks} phoneMarks={phoneMarks} teacherName={teacherName} onNote={onNote} onSelect={select} onChoice={setChoice} onPick={pickOption} />
         </div>
         <div className="rvwCanvasCol">
-          <EmbeddedCanvas ref={canvasRef} initialNodes={initialNodes} initialZones={initialZones} boardProps={boardProps} onNodesChange={onBoardNodes} />
+          {canvasReady ? <EmbeddedCanvas ref={canvasRef} initialNodes={initialNodes} initialZones={initialZones} boardProps={boardProps} onNodesChange={onBoardNodes} /> : <div className="rvwEmpty rvwCanvasWait">холст загружается…</div>}
         </div>
       </div>
       {noteFor && (

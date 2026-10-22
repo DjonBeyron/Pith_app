@@ -119,8 +119,8 @@
 .rvwPinned { display: flex; gap: 8px; align-items: flex-start; max-width: 88%; padding: 8px 12px; background: #2a2412; border: 1px solid #5a4a1a; border-radius: 12px; color: #f0e2b0; font-size: 13px; line-height: 1.4; }
 .rvwPinIcon { flex: 0 0 auto; }
 
-/* Пока открыто окно замечания, лента и холст за ним не рисуются и не пересчитываются (content-visibility): набор текста в окне перестаёт лагать */
-.rvwColsBehind .rvwFeedCol, .rvwColsBehind .rvwCanvasCol { content-visibility: hidden; }
+/* Холст монтируется после первого кадра окна (LessonReviewPanel canvasReady) */
+.rvwCanvasWait { position: absolute; left: 16px; top: 12px; }
 /* Панель «Сказать фразу» в разборе: части настоящей панели (SayPanelPreview.jsx) в потоке, а не fixed внизу; касания выключены */
 .rvwSayPrev { position: relative; pointer-events: none; background: #1a1d22; border-radius: 12px; }
 .rvwSayPrev .rvwSayLine { text-align: center; padding-top: 0; }
