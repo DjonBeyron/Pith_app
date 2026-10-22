@@ -5,11 +5,13 @@ import { fmtAudioTime } from '../../../../shared/lib/audioUtils.js'
 import { getSayVoice } from '../../../../shared/lib/speech/sayVoiceStore.js'
 import { usePlayerMuted } from '../../playerMuted.js'
 import { useSayVoicePlayer } from './useSayVoicePlayer.js'
+import { armOwnVoice, markOwnVoicePlaying, markOwnVoiceDone } from './ownVoiceGate.js'
 
 // Содержимое пузыря-голосового ученика («Сказать фразу», режим ноды «голосовое с текстом»): кнопка play/pause, статичная волна по peaks клипа, длительность (форма и пропорции — те же классы
 // и AudioWave, что у голосового учителя, AudioModule) и под ним текст распознанного. Клип берётся из реестра сессии по voiceId (sayVoiceStore.js); клипа нет — вызывающий (AnswerBubbles) сюда не заходит.
 // Знак ✓/✕ ставит не пузырь (его ::after в голосовом режиме скрыт, say-voice.css), а хвост текста (.sayVoiceText--ok/--err). Кнопка ≥44 px (36 + зона ::after у .playerAudioBtn); aria-label «Прослушать свой ответ».
-// autoPlay — верный ответ, пузырь уже на виду (не отложен), в ноде включён playOwnVoice: через AUTOPLAY_DELAY_MS играет СВОЙ записанный голос ученика (один раз).
+// autoPlay — верный ответ, пузырь уже на виду (не отложен), в ноде включён playOwnVoice: СВОЙ записанный голос ученика играет один раз — после показа
+// следующего сообщения Пита («так-так, дай послушать», ownVoiceGate.js), а не сразу; пока он звучит, граф держит следующее сообщение.
 const AUTOPLAY_DELAY_MS = 350 // звук интерфейса «верно» успевает начаться раньше голоса
 export default function SayVoiceReply({ voiceId, text, result, autoPlay = false }) {
   const clip = getSayVoice(voiceId)
@@ -18,11 +20,18 @@ export default function SayVoiceReply({ voiceId, text, result, autoPlay = false 
   const muted = usePlayerMuted() // «без звука» урока: играет как обычно (время, волна), но не слышно
   const { audioRef, playing, toggle } = useSayVoicePlayer(clip?.durationMs ?? 0, waveRef, timeRef)
   const autoDone = useRef(false)
+  const autoStarted = useRef(false)
   useEffect(() => {
     if (!autoPlay || autoDone.current || !clip) return undefined
-    const t = setTimeout(() => { autoDone.current = true; toggle() }, AUTOPLAY_DELAY_MS)
-    return () => clearTimeout(t)
+    let t = null
+    const cancel = armOwnVoice(() => {
+      t = setTimeout(() => { autoDone.current = true; autoStarted.current = true; markOwnVoicePlaying(clip.durationMs ?? 0); toggle() }, AUTOPLAY_DELAY_MS)
+    })
+    return () => { cancel(); clearTimeout(t) }
   }, [autoPlay, clip, toggle])
+  // Клип доиграл/остановлен (или пузырь выгружен) — следующее сообщение Пита можно показывать
+  useEffect(() => { if (!playing && autoStarted.current) markOwnVoiceDone() }, [playing])
+  useEffect(() => () => { if (autoStarted.current) markOwnVoiceDone() }, [])
   const wave = useMemo(() => (clip?.peaks ?? []).map(p => Math.round(p * 255)), [clip])
   if (!clip) return text
   return (

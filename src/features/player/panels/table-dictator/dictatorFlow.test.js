@@ -97,4 +97,16 @@ describe('конец аудио диктанта', () => {
     expect(schedulePostAudioCheck.mock.calls[0][0]).toMatchObject({ checkAt: 4.2 })
     expect(c.slideDown).not.toHaveBeenCalled()
   })
+
+  it('ячейки, горевшие в момент конца аудио, затемняются (usedCells), а не остаются «нетронутыми»', () => {
+    const setUsedCells = vi.fn()
+    const c = endedCtx({ prevActiveRef: { current: new Set(['c1', 'c2']) }, setUsedCells })
+    onDictatorEnded(c)
+    expect(setUsedCells).toHaveBeenCalledTimes(1)
+    expect(setUsedCells.mock.calls[0][0](new Set(['c0']))).toEqual(new Set(['c0', 'c1', 'c2']))
+    expect(c.prevActiveRef.current.size).toBe(0)
+    const none = vi.fn()
+    onDictatorEnded(endedCtx({ prevActiveRef: { current: new Set() }, setUsedCells: none }))
+    expect(none).not.toHaveBeenCalled()
+  })
 })

@@ -10,6 +10,7 @@ import { freshNode } from './freshNode.js'
 import { HISTORY_PAGE } from './feedWindow.js'
 import { sayExit } from './sayPairSkip.js'
 import { skipSilent } from './skipNode.js'
+import { notifyNodeRevealed, ownVoiceBusy } from './modules/say-phrase/ownVoiceGate.js'
 import { setCantSpeakSession } from '../../shared/lib/speech/cantSpeakFlag.js'
 
 // How long "teacher is typing" dots show before a new node appears
@@ -77,7 +78,6 @@ export function useGraphPlayer(nodes, { onFinish, onCheckpoint, startNodeId = nu
 
   nodeMapRef.current = Object.fromEntries(nodes.map(n => [n.id, n]))
   visibleRef.current = visibleNodes
-
   function addTimer(fn, ms) {
     const id = setTimeout(fn, ms)
     timersRef.current.push(id)
@@ -118,6 +118,7 @@ export function useGraphPlayer(nodes, { onFinish, onCheckpoint, startNodeId = nu
     // истории, а сдвигает его в конец — чекпойнт отражает реальный порядок
     visitedIdsRef.current = [...visitedIdsRef.current.filter(id => id !== next.id), next.id]
     if (seenIdsRef.current.size >= CHECKPOINT_THRESHOLD) onCheckpointRef.current?.(next.id, visitedIdsRef.current)
+    notifyNodeRevealed() // свой голос ученика ждал показа сообщения Пита
   }
 
   // force — шаг «вперёд» админа: показать не дожидаясь «печатает…» и не
@@ -156,9 +157,9 @@ export function useGraphPlayer(nodes, { onFinish, onCheckpoint, startNodeId = nu
     // WARM_MAX_MS, а пока байты реально идут — дольше (warmWait.keepWaiting); дальше показываем как есть, работают запасные пути модулей
     const tryReveal = (deadline, waited) => {
       const warm = isReaction || !warmRef?.current || warmRef.current(next.id)
-      const held = !isReaction && (holdRef?.current ?? 0) > 0 && Date.now() < deadline + HOLD_EXTRA_MS
+      const held = !isReaction && (((holdRef?.current ?? 0) > 0 && Date.now() < deadline + HOLD_EXTRA_MS) || ownVoiceBusy()) // звучит свой голос ученика
       if (keepWaiting({ warm, now: Date.now(), deadline, lastProgressAt: warmRef?.progressAt?.(next.id) ?? null }) || held) {
-        if (!waited) pLog(`[graph] «печатает» держим: #${next.seq} ${held ? 'летит XP' : 'ещё не прогрета'}`)
+        if (!waited) pLog(`[graph] «печатает» держим: #${next.seq} ${held ? 'летит XP / звучит голос ученика' : 'ещё не прогрета'}`)
         // Отработавший тик — вон из списка: иначе до 40 мёртвых id на ноду
         const id = addTimer(() => {
           timersRef.current = timersRef.current.filter(t => t !== id)
