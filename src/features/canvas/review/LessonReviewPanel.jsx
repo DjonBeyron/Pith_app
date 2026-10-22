@@ -18,6 +18,11 @@ import { useNoteSession } from './useNoteSession.js'
 import { useLessonVersions } from './useLessonVersions.js'
 import { changedRefs } from './reviewNotes.js'
 import { reviewKey, loadReview, saveReview } from './reviewStorage.js'
+import { useReviewMarks } from '../../../shared/lib/useReviewMarks.js'
+import { marksSummary } from '../../player/review-marks/reviewMarks.js'
+import { addLessonExample } from '../../../shared/api/lessonExamplesApi.js'
+import { exampleFromNote, exampleFromMark } from './lessonExamples.js'
+import GoldenWindow from './GoldenWindow.jsx'
 
 // «Разбор урока» — окно на весь экран ПК: слева копия ленты плеера (вся история сразу, на заданиях переключатель веток «верно / неверно»),
 // посередине полноценный холст, сфокусированный на выбранной ноде (редактируешь как обычно), справа замечания и правила.
@@ -40,6 +45,12 @@ export default function LessonReviewPanel({ nodes: initialNodes, zones: initialZ
   const [noteFor, setNoteFor] = useState(null) // ref ноды, к которой пишем замечание
   const [notesOpen, setNotesOpen] = useState(false)
   const session = useNoteSession(canvasRef, noteFor, setNoteFor)
+  // Пометки с телефона (lesson_review_marks, ключ — id ноды = ref в разборе) и золотой набор (lesson_examples)
+  const phone = useReviewMarks(storageId, !!storageId)
+  const phoneMarks = useMemo(() => new Map([...phone.byNode].map(([id, l]) => [id, marksSummary(l)])), [phone.byNode])
+  const [goldenOpen, setGoldenOpen] = useState(false)
+  const [goldenTick, setGoldenTick] = useState(0)
+  const lessonTitle = boardProps?.lessonTitle ?? ''
 
   // Холст при монтировании сам приводит ноды к своему виду (служебные переходы) — первое его сообщение берём за точку отсчёта для «Применить»,
   // иначе эта нормализация выглядела бы как 13 «правок» без единого действия автора
@@ -89,6 +100,16 @@ export default function LessonReviewPanel({ nodes: initialNodes, zones: initialZ
   // Правка ноды прямо из окна замечания: функция (data) => data для typeData[type] — идёт в копию урока разбора
   // Смена вида ноды из окна замечания — тем же правилом, что на холсте (триггеры под новый тип, текст переезжает)
   const changeType = type => session.patchRaw(n => applyTypeChange(n, type))
+  // «⭐ В золотой набор» из окна замечания: оригинал → как стало + замечания; из пометки с телефона — 👍 как можно / иначе как нельзя
+  const goldenFromNote = async ref => {
+    const it = items.find(i => i.kind === 'node' && i.ref === ref)
+    if (!it) return
+    const after = nodeCopyText(it.node, { markup: true })
+    const before = store.originals.current.get(ref)?.text ?? after
+    await addLessonExample(exampleFromNote({ lessonId: storageId, lessonTitle, ref, seq: it.node.seq, type: it.node.type, branch: it.wrongBranch ? 'ветка ошибки' : 'основная', before, after, comments: store.notes.filter(n => n.ref === ref).map(n => ({ template: n.template, comment: n.text })) }))
+    setGoldenTick(t => t + 1)
+  }
+  const goldenFromMark = m => addLessonExample(exampleFromMark(m, { lessonTitle })).then(() => setGoldenTick(t => t + 1), e => window.alert(`Не сохранилось: ${e?.message ?? e}`))
 
   const close = useCallback(() => {
     const lost = []
@@ -153,6 +174,7 @@ export default function LessonReviewPanel({ nodes: initialNodes, zones: initialZ
           Изменения{versions.show ? ` (${versions.marks.size})` : ''}
         </button>
         <button className="rvwBtn" onClick={() => setNotesOpen(true)}>✎ Замечания{noted ? ` (${noted})` : ''}</button>
+        <button className="rvwBtn" title="Золотой набор: пары «до → после» и образцы из разбора и пометок с телефона" onClick={() => setGoldenOpen(true)}>⭐ Набор</button>
         <button className="rvwBtn rvwBtnPrimary" disabled={!diff.changed.length} onClick={apply}>
           Применить{diff.changed.length ? ` (${diff.changed.length})` : ''}
         </button>
@@ -160,10 +182,10 @@ export default function LessonReviewPanel({ nodes: initialNodes, zones: initialZ
       <div className={`rvwCols${rulesOff ? ' rvwRulesOff' : ''}${noteFor ? ' rvwColsBehind' : ''}`}>
         <div className="rvwRight">
           <button className="rvwRulesToggle" onClick={toggleRules} title={rulesOff ? 'Развернуть правила' : 'Свернуть правила'}>{rulesOff ? '›' : '‹ Правила'}</button>
-          {!rulesOff && <RulesPane node={sel} warnings={sel ? warnMap.get(sel.ref) ?? [] : []} rules={rules} busy={busy} onAdd={addFull} />}
+          {!rulesOff && <RulesPane node={sel} warnings={sel ? warnMap.get(sel.ref) ?? [] : []} rules={rules} busy={busy} onAdd={addFull} marks={sel ? phone.byNode.get(sel.ref) ?? [] : []} onGoldenMark={goldenFromMark} />}
         </div>
         <div className="rvwFeedCol">
-          <PlayerLikeFeed items={items} canvasById={canvasById} canvasNodes={draft} files={boardProps?.lessonFiles ?? NO_FILES} selRef={selRef} selTick={selTick} warnMap={warnMap} noteCounts={noteCounts} changeMarks={versions.marks} teacherName={teacherName} onNote={onNote} onSelect={select} onChoice={setChoice} onPick={pickOption} />
+          <PlayerLikeFeed items={items} canvasById={canvasById} canvasNodes={draft} files={boardProps?.lessonFiles ?? NO_FILES} selRef={selRef} selTick={selTick} warnMap={warnMap} noteCounts={noteCounts} changeMarks={versions.marks} phoneMarks={phoneMarks} teacherName={teacherName} onNote={onNote} onSelect={select} onChoice={setChoice} onPick={pickOption} />
         </div>
         <div className="rvwCanvasCol">
           <EmbeddedCanvas ref={canvasRef} initialNodes={initialNodes} initialZones={initialZones} boardProps={boardProps} onNodesChange={onBoardNodes} />
@@ -172,9 +194,10 @@ export default function LessonReviewPanel({ nodes: initialNodes, zones: initialZ
       {noteFor && (
         <NoteDialog title={`Замечание к №${nodes.find(n => n.ref === noteFor)?.seq} (${noteFor})`} existing={store.notes.filter(n => n.ref === noteFor)} before={store.originals.current.get(noteFor)}
           item={items.find(i => i.kind === 'node' && i.ref === noteFor)} canvasNode={canvasById.get(noteFor)} canvasNodes={draft} files={boardProps?.lessonFiles ?? []} teacherName={teacherName} onPatch={session.patch} onType={changeType} session={session}
-          onSave={(t, x) => store.addNote(noteFor, t, x)} onRemove={store.removeNote} onClose={session.cancel} onKeep={session.keep} />
+          onSave={(t, x) => store.addNote(noteFor, t, x)} onRemove={store.removeNote} onClose={session.cancel} onKeep={session.keep} onGolden={() => goldenFromNote(noteFor)} />
       )}
-      {notesOpen && <NotesWindow store={store} items={items} nodes={nodes} lessonTitle={boardProps?.lessonTitle ?? ''} onFocus={r => { select(r); setNotesOpen(false) }} onClose={() => setNotesOpen(false)} />}
+      {notesOpen && <NotesWindow store={store} items={items} nodes={nodes} lessonTitle={lessonTitle} onFocus={r => { select(r); setNotesOpen(false) }} onClose={() => setNotesOpen(false)} />}
+      {goldenOpen && <GoldenWindow tick={goldenTick} onClose={() => setGoldenOpen(false)} />}
     </div>,
     document.body,
   )

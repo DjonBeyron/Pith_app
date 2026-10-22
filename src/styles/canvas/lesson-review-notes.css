@@ -44,3 +44,10 @@
 .rvwNtHeadBtns { display: inline-flex; align-items: center; gap: 6px; }
 .rvwNtIconBtn { display: inline-flex; align-items: center; gap: 3px; }
 .rvwNtIconBtn span { font-size: 10px; color: #b6fe3b; }
+
+/* Пометки с телефона (lesson_review_marks) в разборе и золотой набор (GoldenWindow) */
+.rvwMarkTags { font-size: 12px; line-height: 20px; padding: 0 4px; }
+.rvwMarkRow { align-items: center; }
+.rvwMarkMeta { color: #8a90a0; font-style: normal; font-size: 11px; }
+.rvwGoldAfter { color: #b6fe3b; }
+

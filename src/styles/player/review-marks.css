@@ -1,0 +1,27 @@
+/* Пометки админа из плеера (features/player/review-marks): обёртка сообщения под долгое нажатие, бейдж с эмодзи, нижний лист */
+.playerMarkSlot { position: relative; -webkit-touch-callout: none; }
+.reviewMarkBadge {
+  position: absolute; top: 2px; right: 6px; z-index: 3; pointer-events: none;
+  padding: 1px 6px; border-radius: 10px; background: #000000b0; font-size: 11px; line-height: 16px; color: #fff;
+}
+.rmBack { position: fixed; inset: 0; z-index: 1600; background: #00000080; display: flex; align-items: flex-end; justify-content: center; }
+.rmSheet {
+  width: min(520px, 100%); max-height: 80dvh; overflow-y: auto; box-sizing: border-box;
+  padding: 14px 14px calc(14px + env(safe-area-inset-bottom, 0px)); border-radius: 16px 16px 0 0;
+  background: #14161c; border: 1px solid #2a2d35; color: #dfe2ea; display: flex; flex-direction: column; gap: 10px;
+  font: 14px/1.35 system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+.rmHead { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.rmClose { background: none; border: none; color: #8a90a0; font-size: 22px; line-height: 1; cursor: pointer; padding: 0 4px; }
+.rmList { display: flex; flex-direction: column; gap: 6px; }
+.rmItem { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 10px; background: #1a1d22; border-radius: 8px; font-size: 13px; }
+.rmDel { background: none; border: none; color: #ff7070; font-size: 12px; cursor: pointer; }
+.rmTags { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.rmTag { padding: 12px 10px; font-size: 14px; background: #1a1d22; border: 1px solid #2a2d35; border-radius: 12px; color: #dfe2ea; cursor: pointer; text-align: left; }
+.rmTag.on { background: #1f2d10; border-color: #b6fe3b; color: #b6fe3b; }
+.rmText { width: 100%; box-sizing: border-box; background: #0a0c10; border: 1px solid #1e2030; border-radius: 10px; color: #dfe2ea; font: inherit; font-size: 16px; padding: 10px; resize: none; }
+.rmError { color: #ff7070; font-size: 13px; }
+.rmBtns { display: flex; gap: 8px; justify-content: flex-end; }
+.rmBtn { padding: 10px 16px; border-radius: 10px; border: 1px solid #2a2d35; background: #1a1d22; color: #dfe2ea; font: inherit; cursor: pointer; }
+.rmBtnPrimary { background: #b6fe3b; border-color: #b6fe3b; color: #0d1500; font-weight: 600; }
+.rmBtnPrimary:disabled { opacity: 0.5; cursor: default; }

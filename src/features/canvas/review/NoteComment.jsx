@@ -5,7 +5,8 @@ import { NOTE_TEMPLATES } from './reviewNotes.js'
 // Состояние набора живёт ЗДЕСЬ, а не в NoteDialog: раньше каждая буква перерисовывала
 // всё окно целиком — оба превью «как в плеере» и редактор ноды (таблица, озвучка),
 // и ввод лагал. Теперь на каждый символ перерисовывается только эта часть.
-function NoteComment({ session, existing, onSave, onRemove, onDone }) {
+// onGolden — «⭐ В золотой набор»: пара «до → после» (если правил) или «как нельзя» с замечаниями (lessonExamples.exampleFromNote)
+function NoteComment({ session, existing, onSave, onRemove, onDone, onGolden = null }) {
   const [template, setTemplate] = useState('')
   const [text, setText] = useState('')
   // Комментарий и шаблон — своя цепочка отмены (фокус в поле комментария)
@@ -15,6 +16,8 @@ function NoteComment({ session, existing, onSave, onRemove, onDone }) {
   const typeComment = v => { session?.recordComment(); setText(v) }
   const pickTemplate = t => { session?.recordComment(); setTemplate(t) }
   const save = () => { onSave(template, text.trim()); onDone() } // замечание добавлено — окно закрывается, правки остаются
+  const [gold, setGold] = useState('')
+  const golden = async () => { if (template || text.trim()) onSave(template, text.trim()); try { await onGolden(); setGold('добавлено ⭐'); setTimeout(() => setGold(''), 2500) } catch (e) { setGold(`не удалось: ${e?.message ?? e}`) } }
   return (
     <div className="rvwNtHalf">
       <div className="rvwNtLabel">Замечание</div>
@@ -31,6 +34,8 @@ function NoteComment({ session, existing, onSave, onRemove, onDone }) {
       <textarea className="rvwNtText" rows={3} autoFocus placeholder="Допиши, как нужно (можно оставить пустым, если хватает шаблона)" value={text} onChange={e => typeComment(e.target.value)} />
       <div className="rvwNtBtns">
         <button className="rvwBtn rvwBtnPrimary" disabled={!template && !text.trim()} onClick={save}>Добавить замечание</button>
+        {onGolden && <button className="rvwBtn" title="Сохранить это сообщение в золотой набор: правил — как пара «до → после», не правил — как пример «нельзя» с замечанием" onClick={golden}>⭐ В золотой набор</button>}
+        {gold && <span className="rvwInfo">{gold}</span>}
       </div>
     </div>
   )

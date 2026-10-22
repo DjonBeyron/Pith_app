@@ -13,7 +13,7 @@ const MEDIA_DIR = fileURLToPath(new URL('./chat-media/media', import.meta.url))
 const OBSERVER = fileURLToPath(new URL('./chat-media/observer.js', import.meta.url))
 const PROFILES = [
   { name: 'обычная сеть (250 КБ/с, 100 мс)', latencyMs: 100, bytesPerSec: 250_000 },
-  { name: 'очень медленная сеть (10 КБ/с, 500 мс)', latencyMs: 500, bytesPerSec: 10_000 },
+  { name: 'очень медленная сеть (12 КБ/с, 500 мс)', latencyMs: 500, bytesPerSec: 12_000 }, // фото 137 КБ ≈ 12 с: дольше WARM_MAX_MS (гейт держит), но с запасом до WARM_HARD_MS 15 с (на 10 КБ/с — 14,3 с, падало под нагрузкой)
 ]
 // Порядок появления и что проверять у каждой записи
 const ORDER = ['t1', 'ph', 't2', 'au1', 'ci', 't3', 'st1', 'vi', 'st2', 'pc', 'pc-gallery', 'au2', 'end']

@@ -85,7 +85,7 @@ const asHistory = node => {
 // дальше (звук выключен контекстом, файлов не передаём — медиа рисуются заглушками). Поверх каждого сообщения — выделение, номер, замечания и
 // переключатель «верно / неверно» на заданиях
 // Мини-иконки в углу выделенного сообщения (только режим разбора): копировать текст и оставить замечание
-function SlotTools({ item, count, onNote }) {
+function SlotTools({ item, count, marks = '', onNote }) {
   const [copied, setCopied] = useState(false)
   const copy = async e => {
     e.stopPropagation()
@@ -97,6 +97,7 @@ function SlotTools({ item, count, onNote }) {
       <button className="rvwTool" title="Оставить замечание к этому сообщению" aria-label="Замечание" onClick={e => { e.stopPropagation(); onNote(item.ref) }}>
         <MessageSquarePlus size={13} />{count > 0 && <span className="rvwToolCount">{count}</span>}
       </button>
+      {marks && <span className="rvwMarkTags" title="Пометки с телефона (см. правую колонку)">{marks}</span>}
     </div>
   )
 }
@@ -152,7 +153,7 @@ const ITEM_KEYS = ['kind', 'ref', 'picked', 'pickedText', 'choice', 'ok', 'wrong
 const sameSlot = (a, b) => a.node === b.node && a.on === b.on && a.warns === b.warns && a.count === b.count && a.mark === b.mark && a.files === b.files && a.teacherName === b.teacherName
   && a.onNote === b.onNote && a.onSelect === b.onSelect && a.onPick === b.onPick && a.onChoice === b.onChoice && ITEM_KEYS.every(k => a.item[k] === b.item[k])
 
-const FeedSlot = memo(function FeedSlot({ item: it, node, on, warns, count, mark, canvasNodes, files, teacherName, onNote, onSelect, onPick, onChoice }) {
+const FeedSlot = memo(function FeedSlot({ item: it, node, on, warns, count, mark, marks = '', canvasNodes, files, teacherName, onNote, onSelect, onPick, onChoice }) {
   if (it.kind === 'student') {
     return <div data-ref={it.ref} className={`rvwSlot${on ? ' on' : ''}`} onClick={() => onSelect(it.ref)}><StudentRow item={it} /></div>
   }
@@ -161,13 +162,13 @@ const FeedSlot = memo(function FeedSlot({ item: it, node, on, warns, count, mark
       <div className="rvwSlotMeta">
         <span>{node.seq}</span>{it.wrongBranch && <span className="rvwTagWrong">ветка ошибки</span>}{mark && <span className="rvwTagChg">{mark === 'new' ? 'новая' : 'изменена'}</span>}{warns > 0 && <span className="rvwWarn">⚠ {warns}</span>}
       </div>
-      <SlotTools item={it} count={count} onNote={onNote} />
+      <SlotTools item={it} count={count} marks={marks} onNote={onNote} />
       <SlotBody item={it} canvasNode={node} canvasNodes={canvasNodes} files={files} teacherName={teacherName} onPick={onPick} onChoice={onChoice} />
     </div>
   )
 }, sameSlot)
 
-export default function PlayerLikeFeed({ items, canvasById, canvasNodes, files = [], selRef, selTick, warnMap, noteCounts, changeMarks, teacherName, onNote, onSelect, onChoice, onPick }) {
+export default function PlayerLikeFeed({ items, canvasById, canvasNodes, files = [], selRef, selTick, warnMap, noteCounts, changeMarks, phoneMarks, teacherName, onNote, onSelect, onChoice, onPick }) {
   const outerRef = useRef(null)
   const phoneRef = useRef(null)
   // Переключили «верно/неверно» или выбрали вариант — под заданием меняется лента; само задание остаётся на экране там же, где было (история не «едет»)
@@ -214,7 +215,7 @@ export default function PlayerLikeFeed({ items, canvasById, canvasNodes, files =
               {items.map((it, i) => {
                 const node = canvasById.get(it.ref)
                 if (!node) return null
-                return <FeedSlot key={`${it.kind === 'student' ? 's' : 'n'}-${it.ref}-${i}`} item={it} node={node} on={it.ref === selRef} warns={warnMap.get(it.ref)?.length ?? 0} count={noteCounts?.get(it.ref) ?? 0} mark={changeMarks?.get(it.ref) ?? null} canvasNodes={canvasNodes} files={files} teacherName={teacherName} onNote={onNote} onSelect={onSelect} onPick={onPickA} onChoice={onChoiceA} />
+                return <FeedSlot key={`${it.kind === 'student' ? 's' : 'n'}-${it.ref}-${i}`} item={it} node={node} on={it.ref === selRef} warns={warnMap.get(it.ref)?.length ?? 0} count={noteCounts?.get(it.ref) ?? 0} mark={changeMarks?.get(it.ref) ?? null} marks={phoneMarks?.get(it.ref) ?? ''} canvasNodes={canvasNodes} files={files} teacherName={teacherName} onNote={onNote} onSelect={onSelect} onPick={onPickA} onChoice={onChoiceA} />
               })}
             </div>
           </div>

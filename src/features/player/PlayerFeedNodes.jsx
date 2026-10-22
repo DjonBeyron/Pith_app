@@ -1,4 +1,4 @@
-import { memo } from 'react'
+import { memo, useState } from 'react'
 import PlayerMessage from './PlayerMessage.jsx'
 import NodeEditPencil from './admin/NodeEditPencil.jsx'
 import { mergeFeedOrder } from '../../shared/lib/feedOrder.js'
@@ -6,6 +6,10 @@ import { useFeedWindow } from './useFeedWindow.js'
 import { entryKey } from './feedWindow.js'
 import { nodeFileKey } from './preloadQueue.js'
 import { usePref } from './lessonPrefs.js'
+import { useReviewMarks } from '../../shared/lib/useReviewMarks.js'
+import { useLongPress } from './review-marks/useLongPress.js'
+import { marksSummary } from './review-marks/reviewMarks.js'
+import ReviewMarkSheet from './review-marks/ReviewMarkSheet.jsx'
 
 // Сообщения ленты: видимые ноды графа урока + сигнальные сообщения
 // (useSignalMessages.js), вперемешку в хронологическом порядке (см.
@@ -52,7 +56,7 @@ const NodeNum = ({ seq }) => <span className="playerNodeNum" aria-hidden="true">
 
 export default function PlayerFeedNodes({
   visibleNodes, pendingNode, nodes, filesWithBlobs, teacherName,
-  states, bottomOffset, videoAutoSound, isAdmin,
+  states, bottomOffset, videoAutoSound, isAdmin, lessonId = null,
   onNodeDone, onTrReveal, onOpenLessonRef,
   // Сигналы ошибок (см. useSignalMessages.js) — свой onDone: снимает freeze
   // у панели-источника, НЕ уходит в onNodeDone графа урока
@@ -64,6 +68,10 @@ export default function PlayerFeedNodes({
   hasMoreHistory = false, onLoadMoreHistory,
 }) {
   const showNum = usePref('nodeNum') && !!isAdmin
+  // Пометки админа с телефона (review-marks/): долгое нажатие по сообщению → лист с тегами; бейдж — уже стоящие пометки ноды
+  const marks = useReviewMarks(lessonId, !!isAdmin)
+  const [markNode, setMarkNode] = useState(null)
+  const bindPress = useLongPress(setMarkNode)
   const merged = mergeFeedOrder(visibleNodes, signalItems)
   const feedWindow = useFeedWindow(merged, { hasMoreHistory, onLoadMoreHistory })
   const trailingPending = pendingNode && !visibleNodes.some(v => v.id === pendingNode.id)
@@ -98,7 +106,9 @@ export default function PlayerFeedNodes({
         className={[
           adminEdit?.enabled ? `playerMsgSlot${adminEdit.editId === node.id ? ' playerMsgSlotActive' : ''}` : '',
           showNum ? 'playerNodeNumHost' : '',
+          isAdmin && !isPending ? 'playerMarkSlot' : '',
         ].filter(Boolean).join(' ') || undefined}
+        {...(isAdmin && !isPending ? bindPress(node) : {})}
         data-pending={isPending ? 'true' : undefined}
         data-entry-key={node.id}
         // Восстановленная история («Продолжить урок») встаёт сразу на своё
@@ -118,6 +128,7 @@ export default function PlayerFeedNodes({
         } : undefined}
       >
         {showNum && !isPending && <NodeNum seq={node.seq} />}
+        {isAdmin && !isPending && marks.byNode.has(node.id) && <span className="reviewMarkBadge" aria-hidden="true">{marksSummary(marks.byNode.get(node.id))}</span>}
         {adminEdit?.enabled && !isPending && (
           <NodeEditPencil
             onClick={() => adminEdit.open(node.id)}
@@ -190,6 +201,7 @@ export default function PlayerFeedNodes({
       {list.map(entry => entry.kind === 'signal'
         ? renderSignal(entryKey(entry), entry.node)
         : renderNode(entry.node, !!entry.pending))}
+      {markNode && <ReviewMarkSheet node={markNode} lessonId={lessonId} existing={marks.byNode.get(markNode.id) ?? []} onAdd={marks.add} onRemove={marks.remove} onClose={() => setMarkNode(null)} />}
     </>
   )
 }

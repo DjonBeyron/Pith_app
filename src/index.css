@@ -109,6 +109,7 @@
 @import './styles/review-cards-source.css';
 @import './styles/player/layout.css';
 @import './styles/player/admin-edit.css';
+@import './styles/player/review-marks.css';
 @import './styles/player/admin-solve.css';
 @import './styles/player/admin-skipper.css';
 @import './styles/player/topbar.css';

@@ -255,9 +255,9 @@ export default function LessonPlayer({
   // Общие пропсы ленты PlayerFeedNodes.jsx (обычные ноды + сигнальные сообщения вперемешку)
   // useMemo — иначе новый объект каждый рендер, и memo строк ленты бесполезен
   const feedShared = useMemo(() => ({
-    nodes, filesWithBlobs, teacherName, bottomOffset: panels.offset, videoAutoSound, isAdmin,
+    nodes, filesWithBlobs, teacherName, bottomOffset: panels.offset, videoAutoSound, isAdmin, lessonId, // lessonId — пометки админа с телефона (review-marks/)
     onTrReveal: registerHint, onOpenLessonRef: handleOpenLessonRef,
-  }), [nodes, filesWithBlobs, teacherName, panels.offset, videoAutoSound, isAdmin, registerHint, handleOpenLessonRef])
+  }), [nodes, filesWithBlobs, teacherName, panels.offset, videoAutoSound, isAdmin, lessonId, registerHint, handleOpenLessonRef])
 
   return (
     /* На десктопе playerStage/playerPhone превращают плеер в «телефон» по

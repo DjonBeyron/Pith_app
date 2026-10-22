@@ -21,7 +21,7 @@ const Side = memo(function Side({ label, hint, item, canvasNode, canvasNodes, fi
 // Окно «Замечание». Слева «До» — оригинал, как был при первом открытии (не меняется), справа «После» — то же сообщение, которое можно править
 // (текст, таблица, озвучка, промпт; правки идут в копию урока разбора). Снизу шаблон и комментарий; в JSON уходит и «до», и «после».
 // Без item — общее замечание ко всему уроку (только нижняя часть)
-export default function NoteDialog({ title, before, item, canvasNode, canvasNodes, files, teacherName, onPatch, onType, session, existing = [], onSave, onRemove, onClose, onKeep }) {
+export default function NoteDialog({ title, before, item, canvasNode, canvasNodes, files, teacherName, onPatch, onType, session, existing = [], onSave, onRemove, onClose, onKeep, onGolden = null }) {
   const withNode = !!(item && canvasNode && before)
   const dirty = withNode && session?.dirty()
   // «Закрыть» отменяет всё, что сделано в редакторе (после подтверждения, если что-то менялось); «Сохранить правку» оставляет правки без замечания
@@ -68,7 +68,7 @@ export default function NoteDialog({ title, before, item, canvasNode, canvasNode
             <Side label="После" hint=" · можно править" item={item} canvasNode={canvasNode} canvasNodes={canvasNodes} files={files} teacherName={teacherName} onPatch={onPatch} onType={onType} reg={session?.reg.current} rev={session?.rev} />
           </div>
         )}
-        <NoteComment session={session} existing={existing} onSave={onSave} onRemove={onRemove} onDone={onKeep ?? onClose} />
+        <NoteComment session={session} existing={existing} onSave={onSave} onRemove={onRemove} onDone={onKeep ?? onClose} onGolden={withNode ? onGolden : null} />
       </div>
     </div>,
     document.body,
