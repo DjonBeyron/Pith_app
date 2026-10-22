@@ -40,10 +40,10 @@ const REF = (caption, targetTitle) => main('lesson_ref', { caption, isModule: fa
 // Ветка ошибки: текст под заданием (y 480); возвращается в главный ряд, минуя похвалу после задания (skip нод)
 const pendingWrong = []
 // Вводное слово ветки ошибки — по кругу, чтобы соседние ветки начинались по-разному и ни одно не занимало больше четверти (R-opener, R-opener-adjacent)
-const OPENERS = ['не совсем)', 'близко)', 'неа)', 'не то)', 'но-но-но)']
+const OPENERS = ['не совсем)', 'близко)', 'неа)', 'не то)', 'не-не-не)']
 let openerN = 0
 function wrong(task, content0, trig, skip = 1) {
-  const content = content0.replace(/^(не совсем|близко|неа|не то|но нет|но-но-но)\)\s*/i, () => `${OPENERS[openerN++ % OPENERS.length]} `)
+  const content = content0.replace(/^(не совсем|близко|неа|не то|но нет|но-но-но|не-не-не)\)\s*/i, () => `${OPENERS[openerN++ % OPENERS.length]} `)
   const w = { type: 'text', data: { content, hardWrap: content.includes('\n') }, triggers: [{ if: 'timer', ms: 1500 }], _side: true, ref: newRef(), pos: [task.pos[0], ERR_Y] }
   nodes.push(w)
   task.triggers.push({ if: trig, then: w.ref })
@@ -204,7 +204,7 @@ P('Кот смотрит прямо на тебя, не моргая 👀', 'М�
 T('{g:look at me}, {t:посмотри на меня}: взгляд это {w:стрелка}, а {g:at} говорит, {l:куда она летит}')
 T('Собери {t:«посмотри на это фото»}')
 PA('Look at this photo', ['to', 'in', 'on'], { responseWrong: 'не совсем) взгляд летит в точку, значит {g:at} сразу после {g:Look}', wrongText: 'близко) взгляд летит в точку, значит {g:Look at this photo}, без {x:to}', signals: [{ slot: 2, text: '{g:this} это {t:этот}: мы показываем на конкретное фото, то самое' }] })
-T('стрелка попала 🎯')
+T('да)) взгляд долетел до фото 🎯')
 T('зацени на слух 👂')
 A('{g:She smiles at me}', false)
 WC(['Она улыбается мне', 'Она идёт ко мне', 'Она смотрит на меня'], { wrongText: 'неа) {g:smiles at} это {t:улыбается кому-то}, поэтому {g:She smiles at me} это {t:она улыбается мне}', voicePhrase: 'She smiles at me' })
@@ -215,7 +215,7 @@ T('собери {t:«Том улыбается Кейт»}')
 PA('Tom smiles at Kate', ['to', 'in', 'she'], { responseWrong: 'не совсем) улыбка летит к человеку, значит {g:at} перед именем', wrongText: 'неа) улыбка летит к человеку, значит {g:Tom smiles at Kate}, слово {g:at} перед именем' })
 R('🔥')
 A('Про себя: скажи, на что ты сейчас смотришь, начни с {g:I am looking at} или короче, {g:I\'m looking at}, подойдёт любой предмет')
-SAY('I am looking at my phone', 'Я смотрю на телефон', { pattern: '(I am|I\'m) looking at **', startHint: 'I am looking at — я смотрю на', hintMismatch: 'Начни с I am looking at и добавь любое слово, например my phone)', wrongText: 'неа) {g:I am looking at} и любой предмет, хоть холодильник)', listen: 'секунду, включаю запись)', comment: 'взгляд ты уже направляешь по-английски: {g:looking at} и дальше предмет' })
+SAY('I am looking at my phone', 'Я смотрю на телефон', { pattern: '(I am|I\'m) looking at **', startHint: 'I am looking at — я смотрю на', hintMismatch: 'Начни с I am looking at и добавь любое слово, например my phone)', wrongText: 'неа) {g:I am looking at} и любой предмет, хоть холодильник)', listen: 'секунду, включаю запись)', comment: 'ну вот, {g:looking at} у тебя уже звучит по-английски, осталось только выбирать, на что смотреть' })
 endZone()
 
 // ───────────────────────────── ИТОГ ─────────────────────────────
@@ -236,7 +236,7 @@ R('🥐')
 P('Кейт сегодня в восемь встречает Тома, волнуется))', 'Мультяшная девушка собирается перед зеркалом, рядом часы показывают восемь, без текста')
 T('а ну-ка, где тут точка на часах:\n{g:Kate meets Tom ___ eight}')
 WC(['at', 'in', 'on'], { wrongText: 'неа) час это точка на часах, значит {g:at}:\n{g:Kate meets Tom at eight}' })
-T('даа)) {g:at} тут точка на часах')
+T('даа)) {t:«Кейт встречает Тома в восемь»}, {g:at} тут точка на часах')
 T('а ну-ка зацени на слух 👂')
 A('{g:We are at the park}', false)
 WC(['Мы в парке', 'Мы идём в парк', 'Мы любим парк'], { wrongText: 'близко) {g:at the park} это {t:в парке}, точка {w:парк}, поэтому {g:We are at the park} это {t:мы в парке}', voicePhrase: 'We are at the park' })
