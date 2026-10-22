@@ -4,6 +4,7 @@ import { useLessonRules } from './useLessonRules.js'
 import RuleCard from './RuleCard.jsx'
 import { SEED_RULES, RETIRED_TITLES } from './lessonRulesSeed.js'
 import { planSync, syncIsEmpty, syncSummary } from './rulesSync.js'
+import { downloadRulesJson } from './rulesExport.js'
 import { CHECKERS, checkerOf, groupOf, ruleTitle, ruleMatches } from './ruleMeta.js'
 import { APP_VERSION } from '../../../shared/lib/version.js'
 
@@ -65,6 +66,7 @@ export default function LessonRulesPanel({ onClose }) {
           </select>
           <button className={`rwToggle${onlyActive ? ' on' : ''}`} onClick={() => setOnlyActive(v => !v)}>{onlyActive ? '✓ Только включённые' : 'Только включённые'}</button>
           <span className="lioMeta">{busy ? 'загрузка…' : `показано ${shown.length} из ${rules.length} · включено ${rules.filter(r => r.active).length}`}</span>
+          <button className="rwBtn" disabled={busy || !rules.length} title="Скачать rules.json — его читают скрипты генератора уроков (lesson-drafts/rules.json)" onClick={() => downloadRulesJson(rules)}>⬇ Правила для Claude</button>
 
         </div>
       </div>
