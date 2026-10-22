@@ -68,8 +68,12 @@ export default function LessonReviewPanel({ nodes: initialNodes, zones: initialZ
   const nodes = useMemo(() => fromCanvasNodes(dDraft), [dDraft])
   const canvasById = useMemo(() => new Map(dDraft.map(n => [n.id, n])), [dDraft])
   const items = useMemo(() => buildTranscript(nodes, choices), [nodes, choices])
+  // Пока открыто окно замечания, лента за ним не перерисовывается (269 превью на каждую правку текста давали лаг набора); обновится при закрытии
+  const frozenItems = useRef(items)
+  if (!noteFor) frozenItems.current = items
+  const feedItems = frozenItems.current
   // Сколько нод в списке замечаний: с замечанием ИЛИ с правкой текста (правка без комментария тоже считается)
-  const edited = changedRefs(store.originalTexts(), nodes)
+  const edited = useMemo(() => changedRefs(store.originalTexts(), nodes), [nodes, store.version]) // eslint-disable-line react-hooks/exhaustive-deps
   // Сохраняем замечания, оригиналы и правки в localStorage — после перезагрузки всё на месте
   useEffect(() => {
     const id = setTimeout(() => {
@@ -185,7 +189,7 @@ export default function LessonReviewPanel({ nodes: initialNodes, zones: initialZ
           {!rulesOff && <RulesPane node={sel} warnings={sel ? warnMap.get(sel.ref) ?? [] : []} rules={rules} busy={busy} onAdd={addFull} marks={sel ? phone.byNode.get(sel.ref) ?? [] : []} onGoldenMark={goldenFromMark} />}
         </div>
         <div className="rvwFeedCol">
-          <PlayerLikeFeed items={items} canvasById={canvasById} canvasNodes={draft} files={boardProps?.lessonFiles ?? NO_FILES} selRef={selRef} selTick={selTick} warnMap={warnMap} noteCounts={noteCounts} changeMarks={versions.marks} phoneMarks={phoneMarks} teacherName={teacherName} onNote={onNote} onSelect={select} onChoice={setChoice} onPick={pickOption} />
+          <PlayerLikeFeed items={feedItems} canvasById={canvasById} canvasNodes={draft} files={boardProps?.lessonFiles ?? NO_FILES} selRef={selRef} selTick={selTick} warnMap={warnMap} noteCounts={noteCounts} changeMarks={versions.marks} phoneMarks={phoneMarks} teacherName={teacherName} onNote={onNote} onSelect={select} onChoice={setChoice} onPick={pickOption} />
         </div>
         <div className="rvwCanvasCol">
           <EmbeddedCanvas ref={canvasRef} initialNodes={initialNodes} initialZones={initialZones} boardProps={boardProps} onNodesChange={onBoardNodes} />

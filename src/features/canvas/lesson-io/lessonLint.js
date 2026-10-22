@@ -1,14 +1,8 @@
-// Детерминированная проверка урока по механически проверяемым пунктам
-// PROJECT.md/легенды («Легенда: правила формирования урока — из кода в
-// БД»). Это не совет модели — это код: он не читает подсказки, не устаёт к
-// сотой ноде и не может «забыть» пункт. Промпт можно обойти, эту функцию —
-// нет: она либо находит нарушение, либо нет.
-//
-// Работает НАПРЯМУЮ на формате обмена (exportLesson.js): { ref, seq, type,
-// data, note?, triggers: [{ if, then }] }, где then — ref другой ноды. Это
-// тот же JSON, что нейросеть отдаёт как готовый урок — можно проверить его
-// СРАЗУ, не проходя импорт в редактор и не заходя в админку (см.
-// scripts/lint-lesson.mjs — тот же код, запущенный из командной строки).
+// Детерминированная проверка урока по механически проверяемым пунктам PROJECT.md/легенды. Это не совет модели — это код: он не читает
+// подсказки, не устаёт к сотой ноде и не может «забыть» пункт. Промпт можно обойти, эту функцию — нет.
+// Работает НАПРЯМУЮ на формате обмена (exportLesson.js): { ref, seq, type, data, note?, triggers: [{ if, then }] }, where then — ref другой
+// ноды — тот же JSON, что нейросеть отдаёт как готовый урок (см. scripts/lint-lesson.mjs — тот же код из командной строки).
+// Проверки разнесены по файлам lessonLint*.js (ритм, стиль, формулировки, медиа, ответы, сцены, замечания автора).
 
 import { applyMarkup } from '../../../shared/lib/lessonMarkup.js'
 import { checkSayPhrase } from './lessonLintSay.js'
@@ -20,6 +14,7 @@ import { checkMedia } from './lessonLintMedia.js'
 import { checkAnswersAndLimits } from './lessonLintAnswers.js'
 import { checkScene } from './lessonLintScene.js'
 import { checkSceneRules } from './lessonLintSceneRules.js'
+import { checkAuthorRules } from './lessonLintAuthor.js'
 
 const WRONG_TRIGGERS = new Set(['word_wrong', 'phrase_wrong', 'photo_wrong', 'table_wrong', 'type_wrong', 'say_wrong', 'say_skip'])
 const PRAISE_RE = /три из трёх|ни одной ошибки|без единой ошибки|все верно|всё верно/i
@@ -196,6 +191,7 @@ export function lintLesson(rawNodes, opts = {}) { // opts.title — заголо
   warnings.push(...checkAnswersAndLimits(nodes))
   warnings.push(...checkScene(nodes))
   warnings.push(...checkSceneRules(nodes, opts))
+  warnings.push(...checkAuthorRules(nodes))
 
   for (const n of nodes) {
     const d = n.data ?? {}

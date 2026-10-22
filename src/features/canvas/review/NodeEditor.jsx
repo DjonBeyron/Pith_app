@@ -30,7 +30,7 @@ function MarkupField({ data, field, label, onPatch, reg, ro }) {
 // каждая буква перерисовывала бы весь разбор (ленту, линтер, холст)
 function EditableMarkup({ data, field, label, onPatch, reg }) {
   const [local, setLocal] = useState(() => ({ value: data[field] ?? '', highlights: data.highlights ?? [] }))
-  const commit = useDebouncedPatch(onPatch, reg)
+  const commit = useDebouncedPatch(onPatch, reg, 900) // 900 мс: на большом уроке каждая отправка перерисовывает разбор, при наборе подряд не шлём
   const change = patch => {
     setLocal({ value: patch[field] ?? '', highlights: patch.highlights ?? [] })
     commit(d => ({ ...d, ...patch }))

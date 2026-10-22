@@ -51,3 +51,4 @@ it('R-audio-markup: зачёркнутое красным {x:in} в подска
   expect(checkWordingRules([bold, T('a', 'без in и без to')]).filter(w => /R-audio-markup/.test(w)).length).toBe(1)
   expect(checkWordingRules([bold, T('c', 'без {x:in}')]).filter(w => /R-audio-markup/.test(w))).toEqual([])
 })
+})
