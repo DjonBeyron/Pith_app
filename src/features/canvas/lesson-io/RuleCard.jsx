@@ -55,7 +55,7 @@ export default function RuleCard({ rule, groups, busy, onPatch, onToggle, onMove
       <div className="rwCardActions">
         {dirty && <button className="rwBtn rwBtnPrimary" disabled={busy} onClick={() => onPatch(rule.id, { title: d.title === ruleTitle(rule) ? '' : d.title, group: d.group, text: d.text, bad: d.bad, good: d.good })}>Сохранить</button>}
         <button className="rwBtn" disabled={busy} onClick={() => onMoveCategory(rule.id)}>
-          {rule.category === 'principle' ? '→ в чек-лист' : '→ в принципы'}
+          {rule.category === 'principle' ? '→ в чек-лист' : rule.category === 'checklist' ? '→ в справку' : '→ в принципы'}
         </button>
         <button className="rwBtn rwBtnDanger" disabled={busy} onClick={() => onDelete(rule.id)}>Удалить</button>
       </div>

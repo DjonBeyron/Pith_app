@@ -1,0 +1,607 @@
+{
+  "format": "pithy-lesson",
+  "lesson": {
+    "title": "eval: Тон и общение"
+  },
+  "nodes": [
+    {
+      "ref": "b1-1",
+      "seq": 1,
+      "type": "text",
+      "data": {
+        "content": "Верно! Совершенно верно! Запомни: to показывает не только место."
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "then": "g1-1"
+        }
+      ]
+    },
+    {
+      "ref": "g1-1",
+      "seq": 2,
+      "type": "text",
+      "data": {
+        "content": "ага, в точку 😏 постараюсь не запутать, но у {g:to} есть ещё одна функция)))"
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "then": "b2-1"
+        }
+      ]
+    },
+    {
+      "ref": "b2-1",
+      "seq": 3,
+      "type": "phrase_assembly",
+      "data": {
+        "words": [
+          "You",
+          "try",
+          "to",
+          "speak",
+          "English"
+        ],
+        "distractors": [],
+        "responseCorrect": "",
+        "responseWrong": ""
+      },
+      "triggers": [
+        {
+          "if": "phrase_correct",
+          "then": "b2-2"
+        }
+      ]
+    },
+    {
+      "ref": "b2-2",
+      "seq": 4,
+      "type": "text",
+      "data": {
+        "content": "Точно — you try to speak English, ты пробуешь говорить по-английски"
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "then": "b2-3"
+        }
+      ]
+    },
+    {
+      "ref": "b2-3",
+      "seq": 5,
+      "type": "phrase_assembly",
+      "data": {
+        "words": [
+          "She",
+          "tries",
+          "yoga"
+        ],
+        "distractors": [],
+        "responseCorrect": "",
+        "responseWrong": ""
+      },
+      "triggers": [
+        {
+          "if": "phrase_correct",
+          "then": "b2-4"
+        }
+      ]
+    },
+    {
+      "ref": "b2-4",
+      "seq": 6,
+      "type": "text",
+      "data": {
+        "content": "Точно — she tries yoga"
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "then": "g2-1"
+        }
+      ]
+    },
+    {
+      "ref": "g2-1",
+      "seq": 7,
+      "type": "phrase_assembly",
+      "data": {
+        "words": [
+          "You",
+          "try",
+          "to",
+          "speak",
+          "English"
+        ],
+        "distractors": [],
+        "responseCorrect": "",
+        "responseWrong": ""
+      },
+      "triggers": [
+        {
+          "if": "phrase_correct",
+          "then": "g2-2"
+        }
+      ]
+    },
+    {
+      "ref": "g2-2",
+      "seq": 8,
+      "type": "reaction",
+      "data": {
+        "emoji": "🔥"
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "then": "g2-3"
+        }
+      ]
+    },
+    {
+      "ref": "g2-3",
+      "seq": 9,
+      "type": "phrase_assembly",
+      "data": {
+        "words": [
+          "She",
+          "tries",
+          "yoga"
+        ],
+        "distractors": [],
+        "responseCorrect": "",
+        "responseWrong": ""
+      },
+      "triggers": [
+        {
+          "if": "phrase_correct",
+          "then": "g2-4"
+        }
+      ]
+    },
+    {
+      "ref": "g2-4",
+      "seq": 10,
+      "type": "text",
+      "data": {
+        "content": "ору)) йога это по-нашему 🧘"
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "then": "b3-1"
+        }
+      ]
+    },
+    {
+      "ref": "b3-1",
+      "seq": 11,
+      "type": "text",
+      "data": {
+        "content": "Кстати, подруга каждую пятницу тащит меня на танцпол 😄 Собери фразу «я пытаюсь танцевать»"
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "then": "b3-2"
+        }
+      ]
+    },
+    {
+      "ref": "b3-2",
+      "seq": 12,
+      "type": "phrase_assembly",
+      "data": {
+        "words": [
+          "I",
+          "am",
+          "trying",
+          "to",
+          "dance"
+        ],
+        "distractors": [],
+        "responseCorrect": "",
+        "responseWrong": ""
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "then": "g3-1"
+        }
+      ]
+    },
+    {
+      "ref": "g3-1",
+      "seq": 13,
+      "type": "text",
+      "data": {
+        "content": "Кейт вытащила меня на танцпол(( а я вообще не умею танцевать 😭"
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "then": "g3-2"
+        }
+      ]
+    },
+    {
+      "ref": "g3-2",
+      "seq": 14,
+      "type": "text",
+      "data": {
+        "content": "скажи по-английски: {t:«я пытаюсь танцевать»}"
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "then": "g3-3"
+        }
+      ]
+    },
+    {
+      "ref": "g3-3",
+      "seq": 15,
+      "type": "say_phrase",
+      "data": {
+        "phrase": "I am trying to dance",
+        "translation": "",
+        "keywords": ""
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "then": "b4-1"
+        }
+      ]
+    },
+    {
+      "ref": "b4-1",
+      "seq": 16,
+      "type": "text",
+      "data": {
+        "content": "уже ночь, пора спать, но давай ещё одно"
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "then": "g4-1"
+        }
+      ]
+    },
+    {
+      "ref": "g4-1",
+      "seq": 17,
+      "type": "text",
+      "data": {
+        "content": "у меня уже ночь, а я всё ещё не лёг)) давай ещё одно"
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "then": "b5-1"
+        }
+      ]
+    },
+    {
+      "ref": "b5-1",
+      "seq": 18,
+      "type": "text",
+      "data": {
+        "content": "Мостик {g:to} между двумя глаголами"
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "then": "g5-1"
+        }
+      ]
+    },
+    {
+      "ref": "g5-1",
+      "seq": 19,
+      "type": "text",
+      "data": {
+        "content": "{g:to} — это {w:мостик} между двумя глаголами"
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "then": "b6-1"
+        }
+      ]
+    },
+    {
+      "ref": "b6-1",
+      "seq": 20,
+      "type": "text",
+      "data": {
+        "content": "кста, смотри"
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "then": "b6-2"
+        }
+      ]
+    },
+    {
+      "ref": "b6-2",
+      "seq": 21,
+      "type": "text",
+      "data": {
+        "content": "кста, тут форма меняется"
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "then": "b6-3"
+        }
+      ]
+    },
+    {
+      "ref": "b6-3",
+      "seq": 22,
+      "type": "text",
+      "data": {
+        "content": "кста, а теперь задание"
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "then": "g6-1"
+        }
+      ]
+    },
+    {
+      "ref": "g6-1",
+      "seq": 23,
+      "type": "text",
+      "data": {
+        "content": "кста, смотри"
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "then": "g6-2"
+        }
+      ]
+    },
+    {
+      "ref": "g6-2",
+      "seq": 24,
+      "type": "text",
+      "data": {
+        "content": "тут форма меняется"
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "then": "g6-3"
+        }
+      ]
+    },
+    {
+      "ref": "g6-3",
+      "seq": 25,
+      "type": "text",
+      "data": {
+        "content": "ну что, а теперь задание 😏"
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "then": "b7-1"
+        }
+      ]
+    },
+    {
+      "ref": "b7-1",
+      "seq": 26,
+      "type": "text",
+      "data": {
+        "content": "а потом заиграла скучная музыка 🥱🥱🥱 ну и вечер"
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "then": "g7-1"
+        }
+      ]
+    },
+    {
+      "ref": "g7-1",
+      "seq": 27,
+      "type": "text",
+      "data": {
+        "content": "а потом заиграла скучная музыка"
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "then": "g7-2"
+        }
+      ]
+    },
+    {
+      "ref": "g7-2",
+      "seq": 28,
+      "type": "sticker",
+      "data": {
+        "caption": "🥱",
+        "imagePrompt": "кот зевает"
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "then": "b8-1"
+        }
+      ]
+    },
+    {
+      "ref": "b8-1",
+      "seq": 29,
+      "type": "text",
+      "data": {
+        "content": "Ты молодец. Переходим к следующей части."
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "then": "g8-1"
+        }
+      ]
+    },
+    {
+      "ref": "g8-1",
+      "seq": 30,
+      "type": "text",
+      "data": {
+        "content": "я вижу, как ты быстро справляешься, сейчас всё поймёшь без объяснения 😏"
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "then": "b9-1"
+        }
+      ]
+    },
+    {
+      "ref": "b9-1",
+      "seq": 31,
+      "type": "text",
+      "data": {
+        "content": "о май гащ! верно!"
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "then": "b9-2"
+        }
+      ]
+    },
+    {
+      "ref": "b9-2",
+      "seq": 32,
+      "type": "text",
+      "data": {
+        "content": "боже, опять в точку!"
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "then": "b9-3"
+        }
+      ]
+    },
+    {
+      "ref": "b9-3",
+      "seq": 33,
+      "type": "text",
+      "data": {
+        "content": "о май гащ, ты гений!"
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "then": "g9-1"
+        }
+      ]
+    },
+    {
+      "ref": "g9-1",
+      "seq": 34,
+      "type": "text",
+      "data": {
+        "content": "в точку))"
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "then": "g9-2"
+        }
+      ]
+    },
+    {
+      "ref": "g9-2",
+      "seq": 35,
+      "type": "text",
+      "data": {
+        "content": "да)) о май гащ, в шесть утра 😩"
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "then": "g9-3"
+        }
+      ]
+    },
+    {
+      "ref": "g9-3",
+      "seq": 36,
+      "type": "reaction",
+      "data": {
+        "emoji": "🔥"
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "then": "b10-1"
+        }
+      ]
+    },
+    {
+      "ref": "b10-1",
+      "seq": 37,
+      "type": "text",
+      "data": {
+        "content": "давай фразу подлиннее"
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "then": "b10-2"
+        }
+      ]
+    },
+    {
+      "ref": "b10-2",
+      "seq": 38,
+      "type": "text",
+      "data": {
+        "content": "соберём что-то подлиннее"
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "then": "g10-1"
+        }
+      ]
+    },
+    {
+      "ref": "g10-1",
+      "seq": 39,
+      "type": "text",
+      "data": {
+        "content": "давай фразу подлиннее"
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "then": "g10-2"
+        }
+      ]
+    },
+    {
+      "ref": "g10-2",
+      "seq": 40,
+      "type": "text",
+      "data": {
+        "content": "с конца, кусок за куском"
+      },
+      "triggers": []
+    }
+  ]
+}

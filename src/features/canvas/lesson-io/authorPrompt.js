@@ -1,36 +1,48 @@
 // Сборка промпта для ИИ-автора урока из правил окна правил (LessonRulesPanel). Чистая функция, без React.
 // Один источник правды: что автор правит в окне правил (текст, примеры «нельзя / можно», серьёзность, кто проверяет),
 // то и попадает в промпт — руками копировать и сверять ничего не нужно.
+// Бюджет (PROJECT.md «Порядок в правилах», 2026-10-22): правила линтера идут без примеров (линтер покажет точное место), справка по
+// модулям (category reference) — отдельным разделом после легенды, а не среди правил; образцы из золотого набора — goldenExamples.js
 import { buildLegend } from './lessonSchema.js'
 import { checkerOf, groupOf, ruleTitle } from './ruleMeta.js'
 import { exampleToPrompt } from './ruleExample.js'
 import { sceneLegendText } from '../../scene/v2/sceneLegend.js'
+import { examplesSection } from './goldenExamples.js'
 
 export const SCENE_GROUP = 'Сцены'
 
 const SEV = { error: 'ОШИБКА — урок с этим нарушением не принимается', warn: 'совет' }
 
-function ruleBlock(r, n) {
+function ruleBlock(r, n, { full = false } = {}) {
   const c = checkerOf(r.checker)
   const lines = [`[R${n}] ${ruleTitle(r)}  (${SEV[r.severity] ?? SEV.warn}; проверяет: ${c.label})`, r.text.trim()]
-  if (r.bad?.trim()) lines.push('❌ НЕЛЬЗЯ:', exampleToPrompt(r.bad))
-  if (r.good?.trim()) lines.push('✅ МОЖНО:', exampleToPrompt(r.good))
+  if (full || r.checker !== 'auto') {
+    if (r.bad?.trim()) lines.push('❌ НЕЛЬЗЯ:', exampleToPrompt(r.bad))
+    if (r.good?.trim()) lines.push('✅ МОЖНО:', exampleToPrompt(r.good))
+  }
   return lines.join('\n')
 }
 
-/** Правила, сгруппированные по группам, с номерами R1…Rn. Возвращает { text, count } */
-export function rulesSection(rules) {
+/** Правила-принципы, сгруппированные по группам, с номерами R1…Rn. full — примеры и у правил линтера. Возвращает { text, count } */
+export function rulesSection(rules, opts = {}) {
   const active = rules.filter(r => r.active && r.category === 'principle')
   const groups = new Map()
   active.forEach(r => groups.set(groupOf(r), [...(groups.get(groupOf(r)) ?? []), r]))
   let n = 0
-  const text = [...groups].map(([g, list]) => `### ${g}\n\n${list.map(r => ruleBlock(r, ++n)).join('\n\n')}`).join('\n\n')
+  const text = [...groups].map(([g, list]) => `### ${g}\n\n${list.map(r => ruleBlock(r, ++n, opts)).join('\n\n')}`).join('\n\n')
   return { text, count: n }
 }
 
 /** Пункты «перед сдачей» — проверка по готовому уроку целиком */
 export function checklistSection(rules) {
   return rules.filter(r => r.active && r.category === 'checklist').map((r, i) => `C${i + 1}. ${r.text.trim()}`).join('\n')
+}
+
+/** Справка по модулям (category reference): как устроено, без номеров и примеров. Пусто, если таких записей нет */
+export function referenceSection(rules) {
+  const list = rules.filter(r => r.active && r.category === 'reference')
+  if (!list.length) return ''
+  return `СПРАВКА ПО МОДУЛЯМ (как устроены, что делает приложение само — это не правила, а устройство):\n\n${list.map(r => `• ${ruleTitle(r)}. ${r.text.trim()}`).join('\n\n')}`
 }
 
 /** Раздел про ноду scene: компактная легенда сцены + как ставить сцены. Пусто, если активных правил группы «Сцены» нет */
@@ -43,11 +55,13 @@ ${sceneLegendText({ compact: true })}
 `
 }
 
-/** Полный промпт: роль, формула, правила, процесс, формат ответа, легенда формата нод (без дублирования принципов) */
-export function buildAuthorPrompt(rules, { topic = '' } = {}) {
-  const { text: rulesText, count } = rulesSection(rules)
+/** Полный промпт: роль, формула, правила, процесс, формат ответа, легенда формата нод, справка по модулям, образцы (examples — золотой набор) */
+export function buildAuthorPrompt(rules, { topic = '', examples = [], full = false } = {}) {
+  const { text: rulesText, count } = rulesSection(rules, { full })
   const checklist = checklistSection(rules)
+  const reference = referenceSection(rules)
   const scenes = sceneSection(rules)
+  const samples = examplesSection(examples)
   const { principles: _p, preSubmitChecklist: _c, ...legend } = buildLegend([], [])
   return `Ты автор уроков для приложения Pithy (формат pithy-lesson). Урок — живая переписка с другом Питом, а не учебник.
 
@@ -66,5 +80,5 @@ ${checklist ? `\nЧЕК-ЛИСТ ПЕРЕД СДАЧЕЙ (проверяется
 
 ФОРМАТ НОД (легенда):
 ${JSON.stringify(legend)}
-${scenes ? `\n${scenes}` : ''}`
+${reference ? `\n${reference}\n` : ''}${scenes ? `\n${scenes}` : ''}${samples ? `\n${samples}\n` : ''}`
 }

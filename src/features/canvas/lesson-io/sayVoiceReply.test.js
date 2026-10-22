@@ -5,7 +5,7 @@ import { exportLesson } from './exportLesson.js'
 import { importLesson } from './importLesson.js'
 import { buildLegend } from './lessonSchema.js'
 import { lintLesson, fromCanvasNodes } from './lessonLint.js'
-import { PRINCIPLES } from './lessonRulesDefaults.js'
+import { REFERENCE_NOTES } from './lessonRulesDefaults.js'
 import { readSayData } from '../../../shared/lib/speech/sayPhraseData.js'
 import { makeNode } from '../nodeGraph.js'
 
@@ -22,7 +22,7 @@ beforeEach(() => {
 
 const read = rel => readFileSync(fileURLToPath(new URL(rel, import.meta.url)), 'utf8')
 const ex = (ref, seq, type, data, triggers = []) => ({ ref, seq, type, data, triggers })
-const rule = () => PRINCIPLES.find(p => p.startsWith('say_phrase («Сказать фразу»)'))
+const rule = () => REFERENCE_NOTES.find(p => p.startsWith('say_phrase («Сказать фразу»)'))
 
 describe('say_phrase — voiceReply (голосовое с текстом)', () => {
   const sayNode = extra => {

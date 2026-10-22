@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
-import { SEED_RULES } from './lessonRulesSeed.js'
+import { SEED_RULES, RETIRED_TITLES } from './lessonRulesSeed.js'
+import { planSync, syncIsEmpty } from './rulesSync.js'
+import { snapshotLessonRules } from '../../../shared/api/lessonRulesHistoryApi.js'
 import {
   listLessonRules, createLessonRule, createLessonRuleFull, updateLessonRule, patchLessonRule,
   setLessonRuleActive, setLessonRuleCategory, swapLessonRuleOrder, deleteLessonRule,
@@ -93,19 +95,18 @@ export function useLessonRules() {
     for (const r of SEED_RULES) await createLessonRuleFull(r, (++n[r.category]) * 10)
   }), [run])
 
-  // Доводит базу до стандартного набора: недостающие правила (например, новая группа «Последовательности») создаёт, у существующих
-  // (по совпадению текста) заполняет пустые название/группу/проверку и примеры. Уже заданное автором не перезаписывает
-  const enrichFromSeed = useCallback(() => run(async () => {
-    const maxOrder = { principle: Math.max(0, ...rules.filter(r => r.category === 'principle').map(r => r.order)), checklist: Math.max(0, ...rules.filter(r => r.category === 'checklist').map(r => r.order)) }
-    for (const seed of SEED_RULES) {
-      const r = rules.find(x => x.text === seed.text)
-      if (!r) { await createLessonRuleFull(seed, (maxOrder[seed.category] += 10)); continue }
-      const fill = {}
-      if (!r.title) Object.assign(fill, { title: seed.title, group: seed.group, checker: seed.checker, severity: seed.severity })
-      if (!r.bad && seed.bad) fill.bad = seed.bad
-      if (!r.good && seed.good) fill.good = seed.good
-      if (Object.keys(fill).length) await patchLessonRule(r.id, fill)
-    }
+  // Приводит базу к стандартному набору (rules/*.js) по плану rulesSync.planSync: сначала снимок всего списка в lesson_rules_history,
+  // потом обновить отличающиеся поля у совпавших (по названию), создать недостающие, удалить снятые (RETIRED_TITLES — слитые в другие).
+  // Правила, которых в наборе нет и которые не сняты (добавленные автором), не трогает
+  const syncFromSeed = useCallback(reason => run(async () => {
+    const plan = planSync(rules, SEED_RULES, RETIRED_TITLES)
+    if (syncIsEmpty(plan)) return
+    await snapshotLessonRules(reason ?? 'до синхронизации со стандартом', rules)
+    for (const { id, fields } of plan.patch) await patchLessonRule(id, fields)
+    const maxOrder = {}
+    for (const r of rules) maxOrder[r.category] = Math.max(maxOrder[r.category] ?? 0, r.order)
+    for (const seed of plan.create) await createLessonRuleFull(seed, (maxOrder[seed.category] = (maxOrder[seed.category] ?? 0) + 10))
+    for (const { id } of plan.remove) await deleteLessonRule(id)
   }), [run, rules])
 
   // Новое правило со всеми полями (из окна «Разбор урока»: название, текст, пример из ноды)
@@ -117,5 +118,5 @@ export function useLessonRules() {
   const principles = rules.filter(r => r.category === 'principle')
   const checklist  = rules.filter(r => r.category === 'checklist')
 
-  return { rules, principles, checklist, busy, error, add, addFull, seedDefaults, enrichFromSeed, edit, patch, toggle, setCategory, remove, moveUp, moveDown }
+  return { rules, principles, checklist, busy, error, add, addFull, seedDefaults, syncFromSeed, edit, patch, toggle, setCategory, remove, moveUp, moveDown }
 }

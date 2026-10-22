@@ -1,0 +1,11 @@
+[
+{"rule":"R1","ok":false,"nodes":["b1-1","b1-2"],"quote":"начни с I am trying to…","fix":"явный перевод"},
+{"rule":"R2","ok":false,"nodes":["b2-1"],"quote":"Неверно. Попробуйте ещё раз.","fix":"не совсем)) + одна подсказка"},
+{"rule":"R3","ok":false,"nodes":["b3-1","b3-3"],"quote":"Верно, молодец!","fix":"перевод или только реакция"},
+{"rule":"R4","ok":false,"nodes":["b4-1","b4-2"],"quote":"Уже было ⛸️","fix":"история в нужном времени"},
+{"rule":"R5","ok":false,"nodes":["b5-1"],"quote":"раунд на время: 8 секунд, штраф","fix":"на скорость ⏱"},
+{"rule":"R6","ok":false,"nodes":["b6-1","b6-2"],"quote":"скажи «мне скучно»","fix":"сказать про обе формы"},
+{"rule":"R7","ok":false,"nodes":["b7-1","b7-3","g3-1","g4-2"],"quote":"She tries yoga повтор","fix":"новый пример; повторы — следствие синтетики, проверь вручную"},
+{"rule":"R8","ok":false,"nodes":["b8-1"],"quote":"I will ___ you / call / to call / calling","fix":"решение про to"},
+{"rule":"R9","ok":false,"nodes":["b9-1"],"quote":"I talk to Masha","fix":"Kate"}
+]

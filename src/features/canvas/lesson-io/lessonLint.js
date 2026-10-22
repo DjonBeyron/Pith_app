@@ -148,7 +148,7 @@ export function lintLesson(rawNodes, opts = {}) { // opts.title — заголо
     for (const t of n.triggers ?? []) {
       const target = t.then ? byRef.get(t.then) : null
       if (target?.type === 'text') {
-        warnings.push(`${n.ref} (audio) → ${target.ref} (text): после голоса не текст, а фото`)
+        warnings.push(`[R-audio-then-text] ${n.ref} (audio) → ${target.ref} (text): после голоса не текст, а фото`)
       }
     }
   }
@@ -156,7 +156,7 @@ export function lintLesson(rawNodes, opts = {}) { // opts.title — заголо
   for (const n of nodes) {
     const text = n.data?.content ?? ''
     if (PRAISE_RE.test(text) && reachedViaWrong.has(n.ref)) {
-      warnings.push(`${n.ref} ${n.type}: счётная похвала («${text.slice(0, 40)}…») достижима после ошибки`)
+      warnings.push(`[R-praise-path] ${n.ref} ${n.type}: счётная похвала («${text.slice(0, 40)}…») достижима после ошибки`)
     }
   }
 
@@ -175,7 +175,7 @@ export function lintLesson(rawNodes, opts = {}) { // opts.title — заголо
     const a = answers[i - 1], b = answers[i]
     const wa = lastWord(a.text), wb = lastWord(b.text)
     if (wa && wa === wb) {
-      warnings.push(`${a.n.ref} и ${b.n.ref}: проверь — одинаковое последнее слово ответа «${wb}» — «${a.text}» / «${b.text}» (может быть намеренным контрастом времён или парной веткой ошибки)`)
+      warnings.push(`[R-same-answer] ${a.n.ref} и ${b.n.ref}: проверь — одинаковое последнее слово ответа «${wb}» — «${a.text}» / «${b.text}» (может быть намеренным контрастом времён или парной веткой ошибки)`)
     }
   }
 
@@ -183,7 +183,7 @@ export function lintLesson(rawNodes, opts = {}) { // opts.title — заголо
     if (n.type !== 'table') continue
     const d = n.data ?? {}
     if ((d.mode ?? 'dictator') === 'dictator' && !(d.script ?? '').trim()) {
-      warnings.push(`${n.ref} table (dictator): нет script — таблица останется немой`)
+      warnings.push(`[R-table-script] ${n.ref} table (dictator): нет script — таблица останется немой`)
     }
   }
 
@@ -201,11 +201,11 @@ export function lintLesson(rawNodes, opts = {}) { // opts.title — заголо
     const d = n.data ?? {}
     const note = n.note ?? ''
     if (['photo', 'sticker'].includes(n.type) && !(d.imagePrompt ?? '').trim() && SCENE_HINT_RE.test(note)) {
-      warnings.push(`${n.ref} ${n.type}: imagePrompt пуст, а note похож на описание сцены — генерация note не прочитает`)
+      warnings.push(`[R-image-prompt] ${n.ref} ${n.type}: imagePrompt пуст, а note похож на описание сцены — генерация note не прочитает`)
     }
     if (n.type === 'photo_choice') {
       (d.photos ?? []).forEach((p, i) => {
-        if (!(p.imagePrompt ?? '').trim()) warnings.push(`${n.ref} photo_choice: у варианта ${i + 1} («${p.label ?? '?'}») пуст imagePrompt`)
+        if (!(p.imagePrompt ?? '').trim()) warnings.push(`[R-image-prompt] ${n.ref} photo_choice: у варианта ${i + 1} («${p.label ?? '?'}») пуст imagePrompt`)
       })
     }
   }
@@ -227,7 +227,7 @@ export function lintLesson(rawNodes, opts = {}) { // opts.title — заголо
     const replyToSeq = n.data?.replyToSeq
     if (!replyToSeq) continue
     if (replyToSeq >= n.seq) {
-      warnings.push(`${n.ref} ${n.type}: replyToSeq ${replyToSeq} указывает вперёд или на себя — цитата должна быть на уже прозвучавшее`)
+      warnings.push(`[R-reply-seq] ${n.ref} ${n.type}: replyToSeq ${replyToSeq} указывает вперёд или на себя — цитата должна быть на уже прозвучавшее`)
     }
   }
 

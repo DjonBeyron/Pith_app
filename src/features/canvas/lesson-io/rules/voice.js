@@ -1,0 +1,28 @@
+// Группа «Голос и сказать». Слито: «say_phrase идёт парой» + «инструкция голосом» + «повтори за мной — с образцом» + «не первой и не
+// две подряд»; «обещали голос — собираем голосом». Как say_phrase устроен (поля, подсказки, попытки) — rules/reference.js
+export const VOICE_RULES = [
+  { title: 'say_phrase: задание перед (лучше голосом), успех после', checker: 'judge', severity: 'warn',
+    text: 'say_phrase идёт парой: перед ним задание-вызов с самой фразой и что сказать вслух («скажи по-английски: {t:«Она пробует теннис»}»), после — одно короткое подтверждение. Инструкцию к говорению предпочтительно давать голосом (audio), текст и фото с подписью тоже допустимы. Перед «повтори за мной» всегда голосовое с образцом (кусок фразы, слово) — одной инструкции без образца недостаточно. Не ставь say_phrase первой нодой урока и два подряд без сообщения между ними (линтер: R-say-pair).',
+    bad: 'say_phrase: She tries tennis\nsay_phrase: We tried chess',
+    good: 'audio: скажи по-английски: она пробует теннис\nsay_phrase: She tries tennis\nreaction: 🔥' },
+  { title: 'Обещали голос — собираем голосом', checker: 'judge', severity: 'warn',
+    text: 'Если выше сказано «соберём фразу с конца» голосом (цепочка say_phrase кусок за куском), то и целая фраза в конце собирается ГОЛОСОМ: перед ней фото с подписью (что сказать), затем say_phrase, а не phrase_assembly. Обещали голос, а дали кнопки — ученик чувствует подмену.',
+    bad: 'say_phrase: to the gym\nsay_phrase: go to the gym\nphrase_assembly: We go to the gym',
+    good: 'say_phrase: to the gym\nsay_phrase: go to the gym\nphoto: Мы идём в зал 🏋️\nsay_phrase: We go to the gym' },
+  { title: 'Голосовое — одна мысль', checker: 'judge', severity: 'warn',
+    text: 'Одно голосовое — одна мысль. Если в нём две (про to и сразу про with), раздели на два сообщения подряд: проще слушать и можно подчеркнуть главное в каждом.',
+    bad: 'audio: to связывает два глагола, а with это когда вместе с кем-то, и ещё with бывает в значении инструмента',
+    good: 'audio: {g:to} связывает два глагола\naudio: а {g:with} это когда вместе с кем-то' },
+  { title: 'Практика — говорение и приёмы', checker: 'judge', severity: 'warn',
+    text: 'Практика — это говорение, а не только выбор. Приёмы: короткие дрилы с одной целью; сборка длинной фразы с конца («to the gym» → «go to the gym» → «we go to the gym»); новая фраза из знакомых кусков без объяснения правила; шэдоуинг — повтор за голосом кусками с тем же ритмом (say_phrase с listenAudio); одна фраза несколько раз с меньшим лимитом времени; сцена с неожиданностью, где надо импровизировать. Последний блок — без подсказок, с упором на «скажи сам».',
+    bad: 'system: Практика\nword_choice: I ___ / try / tries\nword_choice: She ___ / try / tries\nword_choice: We ___ / try / tries',
+    good: 'system: Практика\nsay_phrase: to the gym\nsay_phrase: go to the gym\nsay_phrase: We go to the gym' },
+  { title: 'Голосовое: печатать текст', checker: 'auto', severity: 'warn',
+    text: 'Голосовое не «на слух» печатается в чате (showText: true). Скрывай текст (showText: false) только если сразу после голоса идёт задание на слух (выбор, сборка, ввод слова). Проверяет линтер: R-audio-showtext.',
+    bad: 'audio: (showText: false) смотри, для she форма меняется\ntext: а теперь собери',
+    good: 'audio: (showText: false) she tries yoga\nword_choice: что она пробует? йогу / суши' },
+  { title: 'Говорение: любое слово дальше', checker: 'auto', severity: 'warn',
+    text: 'Перед говорением — ясная инструкция, что именно сказать. В заданиях с шаблоном («начни с I have to») мягко добавь, что дальше можно любое слово, и в hintMismatch тоже («начни с I have to и добавь любое слово»): иначе одна конструкция воспринимается как ошибка. Для свободных фраз (pattern) заполняй startHint — подсказку, как начать. Проверяет линтер: R-say-any.',
+    bad: 'text: начни с {g:I have to}\nsay_phrase: (pattern: I have to **)',
+    good: 'text: начни с {g:I have to}, а дальше что угодно)\nsay_phrase: (pattern: I have to **, hintMismatch: начни с I have to и добавь любое слово, startHint: I — я)' },
+]

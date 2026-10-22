@@ -6,6 +6,7 @@ import { parseMarkup, toMarkup, hasMarkup, BASE_GRAY } from '../../../shared/lib
 export const EXAMPLE_TYPES = [
   ['text', 'Текст'], ['reaction', 'Реакция'], ['audio', 'Голос'], ['pin_message', 'Закреп'], ['system', 'Заголовок'],
   ['photo', 'Фото'], ['word_choice', 'Выбор слова'], ['phrase_assembly', 'Собери фразу'], ['type_word', 'Напечатай'], ['say_phrase', 'Скажи'],
+  ['sticker', 'Стикер'], ['table', 'Таблица'], ['fill_blanks', 'Составь предложение'], ['photo_choice', 'Выбери фото'], ['lesson_ref', 'Ссылка на урок'],
 ]
 const KNOWN = new Set(EXAMPLE_TYPES.map(([t]) => t))
 const BASE = len => ({ start: 0, end: len, mode: 'text', color: BASE_GRAY, opacity: 1 })
