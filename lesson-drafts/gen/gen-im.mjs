@@ -69,7 +69,7 @@ function MENU(options, keys) {
   return n
 }
 function companion(task, { slot, type = 'text', text }) {
-  const c = { type, data: type === 'audio' ? { text, showText: true } : { content: text }, triggers: [], _side: true, ref: newRef(), pos: [task.pos[0] + 280, 240], note: 'СИГНАЛ (нода-спутник): показывается при первой ошибке в этом слоте', ...(type === 'audio' ? { needs: 'audio — озвучка реплики' } : {}) }
+  const c = { type, data: type === 'audio' ? { text, showText: true } : { content: text }, triggers: [], _side: true, ref: newRef(), pos: [task.pos[0], 960], note: 'СИГНАЛ (нода-спутник): показывается при первой ошибке в этом слоте', ...(type === 'audio' ? { needs: 'audio — озвучка реплики' } : {}) }
   nodes.push(c)
   task.data.signals = [...(task.data.signals ?? []), { slot, ref: c.ref }]
 }
@@ -161,10 +161,10 @@ endZone()
 zone('Часть 2 · she\'s, we\'re', '#ef476f')
 SYS('Часть 2 · про неё, про нас')
 SCENE('im-duo', 'Кафе', 'bubble', [
-  { who: 'a', text: 'Kate! You\'re late again.', translation: 'Кейт! Ты снова опаздываешь.', emotion: 'surprised' },
-  { who: 'b', text: 'I\'m sorry! The bus was so slow.', translation: 'Прости! Автобус еле ехал.', emotion: 'tired' },
-  { who: 'a', text: 'It\'s okay. I\'m happy now.', translation: 'Ничего. Теперь мне хорошо.', emotion: 'happy' },
-  { who: 'b', text: 'Me too. We\'re here, and the coffee is hot!', translation: 'И мне. Мы на месте, и кофе горячий!', emotion: 'happy' },
+  { who: 'a', text: 'Kate! You\'re late.', translation: 'Кейт! Ты опаздываешь.', emotion: 'surprised' },
+  { who: 'b', text: 'I\'m late, I\'m sleepy, I\'m hungry!', translation: 'Я опаздываю, я сонная, я хочу есть!', emotion: 'tired' },
+  { who: 'a', text: 'And I\'m hungry. We\'re at the cafe!', translation: 'И я хочу есть. Мы в кафе!', emotion: 'happy' },
+  { who: 'b', text: 'We\'re here, and now we\'re happy!', translation: 'Мы здесь, и теперь мы счастливы!', emotion: 'happy' },
 ], KATE)
 A('Заметь: Кейт про себя говорит {g:I\'m}, а я ей: {g:you\'re}, {t:ты есть}. Связка меняется вместе с тем, {l:о ком речь}')
 TABLE('dictator', 'кто есть кто', ['Кто', 'Связка', 'Пример'], [['я', 'I\'m', 'I\'m late'], ['ты', 'you\'re', 'you\'re late']], { script: 'Про себя, I\'m, I\'m late, я опаздываю. Про тебя, you\'re, you\'re late, ты опаздываешь. Начало меняется, а состояние late остаётся' })
@@ -339,7 +339,7 @@ T('Если коротко: {g:I\'m} это {t:я есть}, {l:связка м�
 TABLE('dictator', 'вся формула I\'m', ['Кто / когда', 'Связка', 'Пример'], [['я', 'I\'m', 'I\'m here'], ['она, он', 'she\'s / he\'s', 'she\'s here'], ['мы, они', 'we\'re / they\'re', 'we\'re here'], ['вчера', 'was / were', 'I was here'], ['завтра', 'I\'ll be', 'I\'ll be here']], { script: 'Смотри, всё вместе. Я, I\'m, I\'m here, я здесь. Она или он, she\'s, he\'s, she\'s here, она здесь. Мы или они, we\'re, they\'re, we\'re here, мы здесь. Вчера, was или were, I was here, я был здесь. Завтра, I\'ll be, I\'ll be here, я буду здесь. Одно место, а связка говорит, кто и когда' })
 SCENE('im-outro', 'Пит перед сном', 'circle', [
   { who: 'a', text: 'Ну всё, I\'m теперь твой, говори о себе смело.', emotion: 'happy' },
-  { who: 'a', text: 'А я… I\'m in love, кажется. Пока!', emotion: 'surprised' },
+  { who: 'a', text: 'А я… I\'m happy, и, кажется, не только из-за урока. Пока!', emotion: 'surprised' },
 ])
 MENU(['Закончить ✅', 'Ещё один круг 💪'], ['bye', 'lvl1'])
 const bye = T('Пока, и удачи с {g:I\'m} 👋'); byKey.bye = bye.ref; bye.triggers = [{ if: 'timer', ms: 1500, then: null }]
@@ -354,7 +354,7 @@ const out = {
   format: 'pithy-lesson', version: 1,
   lesson: { title: 'I\'m', nodeCount: nodes.length },
   nodes: nodes.map((n, i) => ({ ref: n.ref, type: n.type, seq: i + 1, pos: n.pos, ...(n.note ? { note: n.note } : {}), ...(n.needs ? { needs: n.needs } : {}), data: n.data, triggers: n.triggers })),
-  zones: zones.map((z, i) => ({ id: `zone-im-${i + 1}`, x: z.x0, y: -150, width: z.x1 - z.x0, height: 1040, label: z.label, color: z.color })),
+  zones: zones.map((z, i) => ({ id: `zone-im-${i + 1}`, x: z.x0, y: -150, width: z.x1 - z.x0, height: 1300, label: z.label, color: z.color })),
   wordCard: {
     tag: 'связка',
     nodes: [

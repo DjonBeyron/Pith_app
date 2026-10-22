@@ -1459,26 +1459,26 @@
           "timeline": [
             {
               "who": "a",
-              "text": "Kate! You're late again.",
-              "translation": "Кейт! Ты снова опаздываешь.",
+              "text": "Kate! You're late.",
+              "translation": "Кейт! Ты опаздываешь.",
               "emotion": "surprised"
             },
             {
               "who": "b",
-              "text": "I'm sorry! The bus was so slow.",
-              "translation": "Прости! Автобус еле ехал.",
+              "text": "I'm late, I'm sleepy, I'm hungry!",
+              "translation": "Я опаздываю, я сонная, я хочу есть!",
               "emotion": "tired"
             },
             {
               "who": "a",
-              "text": "It's okay. I'm happy now.",
-              "translation": "Ничего. Теперь мне хорошо.",
+              "text": "And I'm hungry. We're at the cafe!",
+              "translation": "И я хочу есть. Мы в кафе!",
               "emotion": "happy"
             },
             {
               "who": "b",
-              "text": "Me too. We're here, and the coffee is hot!",
-              "translation": "И мне. Мы на месте, и кофе горячий!",
+              "text": "We're here, and now we're happy!",
+              "translation": "Мы здесь, и теперь мы счастливы!",
               "emotion": "happy"
             }
           ],
@@ -5855,10 +5855,10 @@
     {
       "ref": "n189",
       "type": "audio",
-      "seq": 189,
+      "seq": 264,
       "pos": [
-        98060,
-        240
+        97780,
+        960
       ],
       "note": "СИГНАЛ (нода-спутник): показывается при первой ошибке в этом слоте",
       "needs": "audio — озвучка реплики",
@@ -5871,7 +5871,7 @@
     {
       "ref": "n190",
       "type": "text",
-      "seq": 190,
+      "seq": 234,
       "pos": [
         97780,
         480
@@ -8012,7 +8012,7 @@
             },
             {
               "who": "a",
-              "text": "А я… I'm in love, кажется. Пока!",
+              "text": "А я… I'm happy, и, кажется, не только из-за урока. Пока!",
               "emotion": "surprised"
             }
           ],
@@ -8107,7 +8107,7 @@
       "x": -150,
       "y": -150,
       "width": 2848,
-      "height": 1040,
+      "height": 1300,
       "label": "Вход",
       "color": "#b6fe3b"
     },
@@ -8116,7 +8116,7 @@
       "x": 3950,
       "y": -150,
       "width": 17968,
-      "height": 1040,
+      "height": 1300,
       "label": "Часть 1 · I'm = я есть",
       "color": "#ffd166"
     },
@@ -8125,7 +8125,7 @@
       "x": 23170,
       "y": -150,
       "width": 14048,
-      "height": 1040,
+      "height": 1300,
       "label": "Часть 2 · she's, we're",
       "color": "#ef476f"
     },
@@ -8134,7 +8134,7 @@
       "x": 38470,
       "y": -150,
       "width": 16288,
-      "height": 1040,
+      "height": 1300,
       "label": "Часть 3 · вчера и завтра",
       "color": "#9b5de5"
     },
@@ -8143,7 +8143,7 @@
       "x": 56010,
       "y": -150,
       "width": 1168,
-      "height": 1040,
+      "height": 1300,
       "label": "Итог",
       "color": "#06d6a0"
     },
@@ -8152,7 +8152,7 @@
       "x": 58430,
       "y": -150,
       "width": 73828,
-      "height": 1040,
+      "height": 1300,
       "label": "Ещё практика",
       "color": "#118ab2"
     },
@@ -8161,7 +8161,7 @@
       "x": 133510,
       "y": -150,
       "width": 3408,
-      "height": 1040,
+      "height": 1300,
       "label": "Финал",
       "color": "#ff9f1c"
     }
