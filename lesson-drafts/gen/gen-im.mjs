@@ -170,8 +170,8 @@ SYS('Часть 2 · про неё, про нас')
 SCENE('im-duo', 'Кафе', 'bubble', [
   { who: 'a', text: 'Kate! You\'re late.', translation: 'Кейт! Ты опаздываешь.', emotion: 'surprised' },
   { who: 'b', text: 'I\'m late, I\'m sleepy, I\'m hungry!', translation: 'Я опаздываю, я сонная, я хочу есть!', emotion: 'tired' },
-  { who: 'a', text: 'And I\'m hungry. We\'re at the cafe!', translation: 'И я хочу есть. Мы в кафе!', emotion: 'happy' },
-  { who: 'b', text: 'We\'re here, and now we\'re happy!', translation: 'Мы здесь, и теперь мы счастливы!', emotion: 'happy' },
+  { who: 'a', text: 'And I\'m hungry. I\'m here, Kate.', translation: 'И я хочу есть. Я здесь, Кейт.', emotion: 'happy' },
+  { who: 'b', text: 'And I\'m here. I\'m hungry, Pete!', translation: 'И я здесь. Я хочу есть, Пит!', emotion: 'happy' },
 ], KATE)
 A('Заметь: Кейт про себя говорит {g:I\'m}, а я ей: {g:you\'re}, {t:ты есть}. Связка меняется вместе с тем, {l:о ком речь}')
 P('Кейт наконец пришла, щёки красные, бежала от автобуса 🚌', 'Мультяшная кошка с рюкзаком вбегает в кафе, щёки румяные, за окном автобус, без текста')
