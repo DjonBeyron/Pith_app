@@ -45,4 +45,9 @@ describe('lessonLintWording', () => {
     expect(checkWordingRules([T('a', 'скажи ваще что угодно')]).join()).toMatch(/R-slang/)
     expect(checkWordingRules([T('a', 'скажи вообще что угодно')])).toEqual([])
   })
+
+it('R-audio-markup: зачёркнутое красным {x:in} в подсказке — выделение, замечания нет; голое in — есть', () => {
+  const bold = T('b', 'смотри {g:at}')
+  expect(checkWordingRules([bold, T('a', 'без in и без to')]).filter(w => /R-audio-markup/.test(w)).length).toBe(1)
+  expect(checkWordingRules([bold, T('c', 'без {x:in}')]).filter(w => /R-audio-markup/.test(w))).toEqual([])
 })
