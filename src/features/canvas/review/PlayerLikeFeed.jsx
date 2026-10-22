@@ -12,6 +12,8 @@ import { Copy, Check, MessageSquarePlus } from 'lucide-react'
 import SayPanelPreview from './SayPanelPreview.jsx'
 import { answerText } from './lessonTranscript.js'
 import { nodeCopyText } from './nodeCopyText.js'
+import { useNearSlots } from './useNearSlots.js'
+import { GHOST_HEIGHT, showSlot } from './nearSlots.js'
 
 const NOOP = () => {}
 const NO_SET = new Set()
@@ -151,14 +153,18 @@ export function SlotBody({ item, canvasNode, canvasNodes, files, teacherName = '
 const ITEM_KEYS = ['kind', 'ref', 'picked', 'pickedText', 'choice', 'ok', 'wrongBranch', 'hasWrong']
 // Слот перерисовывается, только если изменилась его нода или его состояние: набор текста в одной ноде не перерисовывает остальные 200
 const sameSlot = (a, b) => a.node === b.node && a.on === b.on && a.warns === b.warns && a.count === b.count && a.mark === b.mark && a.files === b.files && a.teacherName === b.teacherName
-  && a.onNote === b.onNote && a.onSelect === b.onSelect && a.onPick === b.onPick && a.onChoice === b.onChoice && ITEM_KEYS.every(k => a.item[k] === b.item[k])
+  && a.show === b.show && a.ghostH === b.ghostH && a.onNote === b.onNote && a.onSelect === b.onSelect && a.onPick === b.onPick && a.onChoice === b.onChoice && ITEM_KEYS.every(k => a.item[k] === b.item[k])
 
-const FeedSlot = memo(function FeedSlot({ item: it, node, on, warns, count, mark, marks = '', canvasNodes, files, teacherName, onNote, onSelect, onPick, onChoice }) {
+// show=false — слот далеко от экрана: пустая рамка прежней высоты (ghostH) с тем же data-ref (выделение и прокрутка к нему работают), тела нет
+const FeedSlot = memo(function FeedSlot({ item: it, node, on, warns, count, mark, marks = '', show = true, ghostH = GHOST_HEIGHT, observe, unobserve, canvasNodes, files, teacherName, onNote, onSelect, onPick, onChoice }) {
+  const elRef = useRef(null)
+  const setEl = useCallback(el => { if (el) { elRef.current = el; observe?.(el) } else unobserve?.(elRef.current) }, [observe, unobserve])
+  if (!show) return <div ref={setEl} data-ref={it.ref} className={`rvwSlot rvwSlotGhost${on ? ' on' : ''}`} style={{ height: ghostH }} onClick={() => onSelect(it.ref)} />
   if (it.kind === 'student') {
-    return <div data-ref={it.ref} className={`rvwSlot${on ? ' on' : ''}`} onClick={() => onSelect(it.ref)}><StudentRow item={it} /></div>
+    return <div ref={setEl} data-ref={it.ref} className={`rvwSlot${on ? ' on' : ''}`} onClick={() => onSelect(it.ref)}><StudentRow item={it} /></div>
   }
   return (
-    <div data-ref={it.ref} className={`rvwSlot${on ? ' on' : ''}${it.wrongBranch ? ' wrong' : ''}${mark ? ' rvwChg' : ''}`} onClick={() => onSelect(it.ref)}>
+    <div ref={setEl} data-ref={it.ref} className={`rvwSlot${on ? ' on' : ''}${it.wrongBranch ? ' wrong' : ''}${mark ? ' rvwChg' : ''}`} onClick={() => onSelect(it.ref)}>
       <div className="rvwSlotMeta">
         <span>{node.seq}</span>{it.wrongBranch && <span className="rvwTagWrong">ветка ошибки</span>}{mark && <span className="rvwTagChg">{mark === 'new' ? 'новая' : 'изменена'}</span>}{warns > 0 && <span className="rvwWarn">⚠ {warns}</span>}
       </div>
@@ -171,6 +177,8 @@ const FeedSlot = memo(function FeedSlot({ item: it, node, on, warns, count, mark
 export default function PlayerLikeFeed({ items, canvasById, canvasNodes, files = [], selRef, selTick, warnMap, noteCounts, changeMarks, phoneMarks, teacherName, onNote, onSelect, onChoice, onPick }) {
   const outerRef = useRef(null)
   const phoneRef = useRef(null)
+  // Тела сообщений — только у слотов рядом с экраном (виртуализация): далёкие — рамки прежней высоты
+  const { near, all, heights, observe, unobserve } = useNearSlots(outerRef)
   // Переключили «верно/неверно» или выбрали вариант — под заданием меняется лента; само задание остаётся на экране там же, где было (история не «едет»)
   const anchorRef = useRef(null)
   const markAnchor = useCallback(ref => {
@@ -200,9 +208,13 @@ export default function PlayerLikeFeed({ items, canvasById, canvasNodes, files =
     return () => box?.removeEventListener('wheel', onWheel)
   }, [])
   // К выбранному сообщению — каждый раз при выборе (в том числе повторном: selTick растёт при каждом клике)
+  // Далёкий слот сначала рамка-заглушка (высота по прошлому разу или примерная): после плавной прокрутки, когда тело нарисовалось, подравниваем ещё раз
   useEffect(() => {
-    if (!selRef) return
-    outerRef.current?.querySelector(`[data-ref="${CSS.escape(selRef)}"]`)?.scrollIntoView({ block: 'center', behavior: 'smooth' })
+    if (!selRef) return undefined
+    const go = behavior => outerRef.current?.querySelector(`[data-ref="${CSS.escape(selRef)}"]`)?.scrollIntoView({ block: 'center', behavior })
+    go('smooth')
+    const t = setTimeout(() => go('auto'), 550)
+    return () => clearTimeout(t)
   }, [selRef, selTick])
 
   return (
@@ -215,7 +227,8 @@ export default function PlayerLikeFeed({ items, canvasById, canvasNodes, files =
               {items.map((it, i) => {
                 const node = canvasById.get(it.ref)
                 if (!node) return null
-                return <FeedSlot key={`${it.kind === 'student' ? 's' : 'n'}-${it.ref}-${i}`} item={it} node={node} on={it.ref === selRef} warns={warnMap.get(it.ref)?.length ?? 0} count={noteCounts?.get(it.ref) ?? 0} mark={changeMarks?.get(it.ref) ?? null} marks={phoneMarks?.get(it.ref) ?? ''} canvasNodes={canvasNodes} files={files} teacherName={teacherName} onNote={onNote} onSelect={onSelect} onPick={onPickA} onChoice={onChoiceA} />
+                const show = all || showSlot(near, items, i)
+                return <FeedSlot key={`${it.kind === 'student' ? 's' : 'n'}-${it.ref}-${i}`} item={it} node={node} on={it.ref === selRef} warns={warnMap.get(it.ref)?.length ?? 0} count={noteCounts?.get(it.ref) ?? 0} mark={changeMarks?.get(it.ref) ?? null} marks={phoneMarks?.get(it.ref) ?? ''} show={show} ghostH={show ? GHOST_HEIGHT : heights.get(it.ref) ?? GHOST_HEIGHT} observe={observe} unobserve={unobserve} canvasNodes={canvasNodes} files={files} teacherName={teacherName} onNote={onNote} onSelect={onSelect} onPick={onPickA} onChoice={onChoiceA} />
               })}
             </div>
           </div>

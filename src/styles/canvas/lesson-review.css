@@ -44,6 +44,8 @@
 .rvwSlot { position: relative; border-radius: 12px; outline: 2px solid transparent; cursor: pointer; }
 .rvwSlot:hover { outline-color: #2a2d35; }
 .rvwSlot.on { outline-color: #b6fe3b; }
+/* Слот далеко от экрана (виртуализация, useNearSlots.js): пустая рамка прежней высоты, тело сообщения не в DOM */
+.rvwSlotGhost { box-sizing: border-box; contain: strict; }
 .rvwSlot.wrong .playerMsgBubble, .rvwSlot.wrong .playerMsgBubble--text { background: #3a2124; }
 .rvwSlotMeta { display: flex; gap: 6px; font-size: 10px; color: #6a6f78; padding: 0 4px; }
 .rvwStudentRow.bad .playerMsgBubble { background: #4a1f1f; }

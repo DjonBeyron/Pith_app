@@ -23,6 +23,7 @@ import { marksSummary } from '../../player/review-marks/reviewMarks.js'
 import { addLessonExample } from '../../../shared/api/lessonExamplesApi.js'
 import { exampleFromNote, exampleFromMark } from './lessonExamples.js'
 import GoldenWindow from './GoldenWindow.jsx'
+import { sameContent } from './contentDraft.js'
 
 // «Разбор урока» — окно на весь экран ПК: слева копия ленты плеера (вся история сразу, на заданиях переключатель веток «верно / неверно»),
 // посередине полноценный холст, сфокусированный на выбранной ноде (редактируешь как обычно), справа замечания и правила.
@@ -63,10 +64,15 @@ export default function LessonReviewPanel({ nodes: initialNodes, zones: initialZ
     setDraft(list)
   }, [saved])
 
+  // Копия «по содержанию»: сдвиг ноды по холсту (x/y) её не меняет — лента, линтер, расшифровка и здоровье не пересчитываются при перетаскивании.
   // Тяжёлое (линтеры, расшифровка ленты) считаем по «отложенной» копии: набор текста не ждёт пересчёта ленты
-  const dDraft = useDeferredValue(draft)
-  const nodes = useMemo(() => fromCanvasNodes(dDraft), [dDraft])
-  const canvasById = useMemo(() => new Map(dDraft.map(n => [n.id, n])), [dDraft])
+  const contentRef = useRef(draft)
+  if (!sameContent(contentRef.current, draft)) contentRef.current = draft
+  const content = contentRef.current
+  const dDraft = useDeferredValue(draft) // с позициями — только для diff «Применить»
+  const dContent = useDeferredValue(content)
+  const nodes = useMemo(() => fromCanvasNodes(dContent), [dContent])
+  const canvasById = useMemo(() => new Map(dContent.map(n => [n.id, n])), [dContent])
   const items = useMemo(() => buildTranscript(nodes, choices), [nodes, choices])
   // Пока открыто окно замечания, лента за ним не перерисовывается (269 превью на каждую правку текста давали лаг набора); обновится при закрытии
   const frozenItems = useRef(items)
@@ -82,7 +88,7 @@ export default function LessonReviewPanel({ nodes: initialNodes, zones: initialZ
     }, 600) // не на каждую букву: запись больших снимков тормозила набор
     return () => clearTimeout(id)
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [key, store.notes, store.general, store.version, draft])
+  }, [key, store.notes, store.general, store.version, content])
   const noted = new Set([...store.notes.map(n => n.ref), ...edited]).size + store.general.length
   const noteCounts = useMemo(() => { const m = new Map(); for (const n of store.notes) m.set(n.ref, (m.get(n.ref) ?? 0) + 1); for (const r of edited) if (!m.has(r)) m.set(r, 1); return m }, [store.notes, edited])
   const warnMap = useMemo(() => warningsByRef(lintLesson(nodes, { title: boardProps?.lessonTitle }), nodes), [nodes, boardProps?.lessonTitle])
@@ -90,7 +96,7 @@ export default function LessonReviewPanel({ nodes: initialNodes, zones: initialZ
   const [rulesOff, setRulesOff] = useState(() => { try { return localStorage.getItem('pithy-review-rules-off') === '1' } catch { return false } })
   const toggleRules = () => setRulesOff(v => { try { localStorage.setItem('pithy-review-rules-off', v ? '0' : '1') } catch { /* нет хранилища */ } return !v })
   const sel = nodes.find(n => n.ref === selRef) ?? null
-  const health = useLessonHealth({ nodes: dDraft, files: boardProps?.lessonFiles ?? NO_FILES }) // сломанные ноды — тот же значок, что в шапке канваса
+  const health = useLessonHealth({ nodes: dContent, files: boardProps?.lessonFiles ?? NO_FILES }) // сломанные ноды — тот же значок, что в шапке канваса
   const diff = useMemo(() => diffNodes(base, dDraft), [base, dDraft])
   const switched = Object.keys(choices).length
 
@@ -189,7 +195,7 @@ export default function LessonReviewPanel({ nodes: initialNodes, zones: initialZ
           {!rulesOff && <RulesPane node={sel} warnings={sel ? warnMap.get(sel.ref) ?? [] : []} rules={rules} busy={busy} onAdd={addFull} marks={sel ? phone.byNode.get(sel.ref) ?? [] : []} onGoldenMark={goldenFromMark} />}
         </div>
         <div className="rvwFeedCol">
-          <PlayerLikeFeed items={feedItems} canvasById={canvasById} canvasNodes={draft} files={boardProps?.lessonFiles ?? NO_FILES} selRef={selRef} selTick={selTick} warnMap={warnMap} noteCounts={noteCounts} changeMarks={versions.marks} phoneMarks={phoneMarks} teacherName={teacherName} onNote={onNote} onSelect={select} onChoice={setChoice} onPick={pickOption} />
+          <PlayerLikeFeed items={feedItems} canvasById={canvasById} canvasNodes={content} files={boardProps?.lessonFiles ?? NO_FILES} selRef={selRef} selTick={selTick} warnMap={warnMap} noteCounts={noteCounts} changeMarks={versions.marks} phoneMarks={phoneMarks} teacherName={teacherName} onNote={onNote} onSelect={select} onChoice={setChoice} onPick={pickOption} />
         </div>
         <div className="rvwCanvasCol">
           <EmbeddedCanvas ref={canvasRef} initialNodes={initialNodes} initialZones={initialZones} boardProps={boardProps} onNodesChange={onBoardNodes} />
@@ -197,7 +203,7 @@ export default function LessonReviewPanel({ nodes: initialNodes, zones: initialZ
       </div>
       {noteFor && (
         <NoteDialog title={`Замечание к №${nodes.find(n => n.ref === noteFor)?.seq} (${noteFor})`} existing={store.notes.filter(n => n.ref === noteFor)} before={store.originals.current.get(noteFor)}
-          item={items.find(i => i.kind === 'node' && i.ref === noteFor)} canvasNode={canvasById.get(noteFor)} canvasNodes={draft} files={boardProps?.lessonFiles ?? []} teacherName={teacherName} onPatch={session.patch} onType={changeType} session={session}
+          item={items.find(i => i.kind === 'node' && i.ref === noteFor)} canvasNode={canvasById.get(noteFor)} canvasNodes={content} files={boardProps?.lessonFiles ?? []} teacherName={teacherName} onPatch={session.patch} onType={changeType} session={session}
           onSave={(t, x) => store.addNote(noteFor, t, x)} onRemove={store.removeNote} onClose={session.cancel} onKeep={session.keep} onGolden={() => goldenFromNote(noteFor)} />
       )}
       {notesOpen && <NotesWindow store={store} items={items} nodes={nodes} lessonTitle={lessonTitle} onFocus={r => { select(r); setNotesOpen(false) }} onClose={() => setNotesOpen(false)} />}
