@@ -47,8 +47,9 @@ function checkMeta(nodes) {
     .map(n => `[R-meta] ${n.ref}: учебные слова («мини-сцена», «штраф», «раунд», «упражнение»…) — друг так не говорит, скажи по-человечески («представь…», «давай на время»)`)
 }
 
+// Пол выдаёт и голосовое («у тебя получается строить фразы самому» — замечание автора по уроку «To»), поэтому text + audio
 function checkGender(nodes) {
-  return talks(nodes).filter(n => {
+  return nodes.filter(n => (n.type === 'text' || n.type === 'audio') && textOf(n).trim()).filter(n => {
     const t = textOf(n)
     const m = GENDER.exec(t)
     if (!m) return false

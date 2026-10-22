@@ -38,6 +38,7 @@ describe('живой стиль реплик', () => {
     expect(checkStyle([t('a', 'а город допиши сам')]).join()).toContain('[R-gender] a')
     expect(checkStyle([t('a', 'Теперь скажи сам: что тебе нужно сделать')]).join()).toContain('[R-gender] a')
     expect(checkStyle([t('a', 'can уже сам говорит, что ты умеешь')]).filter(w => /gender/.test(w))).toEqual([])
+    expect(checkStyle([{ ref: 'v', type: 'audio', data: { text: 'у тебя уже получается строить такие фразы самому' }, triggers: [] }]).join()).toContain('[R-gender] v')
   })
   it('реакция на верный ответ: больше 8 слов — замечание, короткая — нет', () => {
     const q = { ref: 'q', type: 'word_choice', data: {}, triggers: [{ if: 'word_correct', then: 'a' }] }
