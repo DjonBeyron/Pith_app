@@ -3,7 +3,7 @@
   "version": 1,
   "lesson": {
     "title": "At",
-    "nodeCount": 241
+    "nodeCount": 261
   },
   "nodes": [
     {
@@ -99,7 +99,7 @@
             "isCorrect": true
           },
           {
-            "text": "I am in cafe",
+            "text": "I am on the cafe",
             "isCorrect": false
           },
           {
@@ -121,7 +121,7 @@
         },
         {
           "if": "variant",
-          "variantLabel": "I am in cafe",
+          "variantLabel": "I am on the cafe",
           "then": null
         },
         {
@@ -138,7 +138,7 @@
     {
       "ref": "n3",
       "type": "text",
-      "seq": 241,
+      "seq": 261,
       "pos": [
         560,
         480
@@ -164,7 +164,7 @@
         0
       ],
       "data": {
-        "content": "Да)) именно так!",
+        "content": "Да)) 🎯",
         "hardWrap": false
       },
       "triggers": [
@@ -235,7 +235,7 @@
         {
           "if": "variant",
           "variantLabel": "Сразу к практике 💪",
-          "then": "n103"
+          "then": "n111"
         }
       ]
     },
@@ -439,7 +439,7 @@
       "note": "ФОТО: сгенерировать в редакторе по imagePrompt",
       "needs": "photo",
       "data": {
-        "caption": "собери фразу {t:«я на работе»}",
+        "caption": "Том сидит на работе, третий кофе и гора писем ☕",
         "imagePrompt": "Мультяшный парень за столом в офисе с ноутбуком и кофе, дневной свет, без текста",
         "crop": {
           "x": 0,
@@ -457,10 +457,30 @@
     },
     {
       "ref": "n13",
-      "type": "phrase_assembly",
+      "type": "text",
       "seq": 12,
       "pos": [
         7460,
+        0
+      ],
+      "data": {
+        "content": "как сказать {t:«я на работе»}?",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1500,
+          "then": "n14"
+        }
+      ]
+    },
+    {
+      "ref": "n14",
+      "type": "phrase_assembly",
+      "seq": 13,
+      "pos": [
+        8020,
         0
       ],
       "data": {
@@ -481,12 +501,12 @@
             "text": "she"
           }
         ],
-        "responseWrong": "не совсем) нужны слова: я, есть, точка и работа"
+        "responseWrong": "не совсем) работа это точка, значит перед {w:work} нужно {g:at}"
       },
       "triggers": [
         {
           "if": "phrase_correct",
-          "then": "n15"
+          "then": "n16"
         },
         {
           "if": "variant",
@@ -505,56 +525,56 @@
         },
         {
           "if": "phrase_wrong",
-          "then": "n14"
-        }
-      ]
-    },
-    {
-      "ref": "n14",
-      "type": "text",
-      "seq": 240,
-      "pos": [
-        7460,
-        480
-      ],
-      "data": {
-        "content": "не совсем) работа это точка, значит {g:I am at work}, без {x:in} и без {x:to}",
-        "hardWrap": false
-      },
-      "triggers": [
-        {
-          "if": "timer",
-          "ms": 1500,
-          "then": "n16"
+          "then": "n15"
         }
       ]
     },
     {
       "ref": "n15",
       "type": "text",
-      "seq": 13,
+      "seq": 260,
       "pos": [
         8020,
-        0
+        480
       ],
       "data": {
-        "content": "да)) 💼",
+        "content": "не совсем) {w:работа} это точка, значит {g:I am at work}, без {x:in} и без {x:to}",
         "hardWrap": false
       },
       "triggers": [
         {
           "if": "timer",
           "ms": 1500,
-          "then": "n16"
+          "then": "n17"
         }
       ]
     },
     {
       "ref": "n16",
-      "type": "audio",
+      "type": "reaction",
       "seq": 14,
       "pos": [
         8580,
+        0
+      ],
+      "data": {
+        "emoji": "💼",
+        "target": "student"
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1400,
+          "then": "n17"
+        }
+      ]
+    },
+    {
+      "ref": "n17",
+      "type": "audio",
+      "seq": 15,
+      "pos": [
+        9140,
         0
       ],
       "note": "ОЗВУЧКА: Видишь? Работа это точка, и at её показывает. С домом и школой точно так же",
@@ -566,16 +586,16 @@
       "triggers": [
         {
           "if": "played",
-          "then": "n17"
+          "then": "n18"
         }
       ]
     },
     {
-      "ref": "n17",
+      "ref": "n18",
       "type": "table",
-      "seq": 15,
+      "seq": 16,
       "pos": [
-        9140,
+        9700,
         0
       ],
       "note": "ОЗВУЧКА таблицы (скрипт идёт по ячейкам слева направо, сверху вниз; метку «Проверить» поставить при монтаже после последней ячейки): Смотри, теперь тут две фразы. I am, at, home, я дома. Kate is, at, work, Кейт на работе. И в обеих at стоит на одном месте, прямо перед точкой, где человек находится",
@@ -707,7 +727,7 @@
       "triggers": [
         {
           "if": "table_correct",
-          "then": "n18"
+          "then": "n19"
         },
         {
           "if": "table_wrong",
@@ -716,11 +736,11 @@
       ]
     },
     {
-      "ref": "n18",
+      "ref": "n19",
       "type": "pin_message",
-      "seq": 16,
+      "seq": 17,
       "pos": [
-        9700,
+        10260,
         0
       ],
       "data": {
@@ -730,36 +750,36 @@
         {
           "if": "timer",
           "ms": 1800,
-          "then": "n19"
-        }
-      ]
-    },
-    {
-      "ref": "n19",
-      "type": "text",
-      "seq": 17,
-      "pos": [
-        10260,
-        0
-      ],
-      "data": {
-        "content": "Я кстати застрял в аэропорту, рейс задерживают((",
-        "hardWrap": false
-      },
-      "triggers": [
-        {
-          "if": "timer",
-          "ms": 1500,
           "then": "n20"
         }
       ]
     },
     {
       "ref": "n20",
-      "type": "sticker",
+      "type": "text",
       "seq": 18,
       "pos": [
         10820,
+        0
+      ],
+      "data": {
+        "content": "Мы с Кейт кстати застряли в аэропорту, рейс задерживают((",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1500,
+          "then": "n21"
+        }
+      ]
+    },
+    {
+      "ref": "n21",
+      "type": "sticker",
+      "seq": 19,
+      "pos": [
+        11380,
         0
       ],
       "note": "СТИКЕР: сгенерировать в редакторе по imagePrompt",
@@ -779,36 +799,36 @@
         {
           "if": "timer",
           "ms": 1200,
-          "then": "n21"
-        }
-      ]
-    },
-    {
-      "ref": "n21",
-      "type": "text",
-      "seq": 19,
-      "pos": [
-        11380,
-        0
-      ],
-      "data": {
-        "content": "Ну как сказать {t:«мы в аэропорту»}?",
-        "hardWrap": false
-      },
-      "triggers": [
-        {
-          "if": "timer",
-          "ms": 1500,
           "then": "n22"
         }
       ]
     },
     {
       "ref": "n22",
-      "type": "phrase_assembly",
+      "type": "text",
       "seq": 20,
       "pos": [
         11940,
+        0
+      ],
+      "data": {
+        "content": "ну как сказать {t:«мы в аэропорту»}?",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1500,
+          "then": "n23"
+        }
+      ]
+    },
+    {
+      "ref": "n23",
+      "type": "phrase_assembly",
+      "seq": 21,
+      "pos": [
+        12500,
         0
       ],
       "data": {
@@ -821,7 +841,7 @@
         ],
         "distractors": [
           {
-            "text": "in"
+            "text": "on"
           },
           {
             "text": "to"
@@ -830,16 +850,16 @@
             "text": "he"
           }
         ],
-        "responseWrong": "не совсем) нужны слова: we, are, at, the и airport"
+        "responseWrong": "не совсем) аэропорт это точка, значит {g:at} перед {g:the airport}"
       },
       "triggers": [
         {
           "if": "phrase_correct",
-          "then": "n24"
+          "then": "n25"
         },
         {
           "if": "variant",
-          "variantLabel": "in",
+          "variantLabel": "on",
           "then": null
         },
         {
@@ -854,60 +874,20 @@
         },
         {
           "if": "phrase_wrong",
-          "then": "n23"
-        }
-      ]
-    },
-    {
-      "ref": "n23",
-      "type": "text",
-      "seq": 239,
-      "pos": [
-        11940,
-        480
-      ],
-      "data": {
-        "content": "близко) мы в точке {w:аэропорт}, значит {g:We are at the airport}, слово {g:at} перед {g:the airport}",
-        "hardWrap": false
-      },
-      "triggers": [
-        {
-          "if": "timer",
-          "ms": 1500,
-          "then": "n25"
+          "then": "n24"
         }
       ]
     },
     {
       "ref": "n24",
-      "type": "reaction",
-      "seq": 21,
+      "type": "text",
+      "seq": 259,
       "pos": [
         12500,
-        0
+        480
       ],
       "data": {
-        "emoji": "👏",
-        "target": "student"
-      },
-      "triggers": [
-        {
-          "if": "timer",
-          "ms": 1400,
-          "then": "n25"
-        }
-      ]
-    },
-    {
-      "ref": "n25",
-      "type": "text",
-      "seq": 22,
-      "pos": [
-        13060,
-        0
-      ],
-      "data": {
-        "content": "Давай на слух 👂",
+        "content": "близко) мы в точке {w:аэропорт}, значит {g:We are at the airport}, слово {g:at} перед {g:the airport}",
         "hardWrap": false
       },
       "triggers": [
@@ -919,11 +899,51 @@
       ]
     },
     {
+      "ref": "n25",
+      "type": "reaction",
+      "seq": 22,
+      "pos": [
+        13060,
+        0
+      ],
+      "data": {
+        "emoji": "👏",
+        "target": "student"
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1400,
+          "then": "n26"
+        }
+      ]
+    },
+    {
       "ref": "n26",
-      "type": "audio",
+      "type": "text",
       "seq": 23,
       "pos": [
         13620,
+        0
+      ],
+      "data": {
+        "content": "Давай на слух 👂",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1500,
+          "then": "n27"
+        }
+      ]
+    },
+    {
+      "ref": "n27",
+      "type": "audio",
+      "seq": 24,
+      "pos": [
+        14180,
         0
       ],
       "note": "ОЗВУЧКА: Tom is at school",
@@ -935,16 +955,16 @@
       "triggers": [
         {
           "if": "played",
-          "then": "n27"
+          "then": "n28"
         }
       ]
     },
     {
-      "ref": "n27",
+      "ref": "n28",
       "type": "word_choice",
-      "seq": 24,
+      "seq": 25,
       "pos": [
-        14180,
+        14740,
         0
       ],
       "data": {
@@ -968,7 +988,7 @@
       "triggers": [
         {
           "if": "word_correct",
-          "then": "n29"
+          "then": "n30"
         },
         {
           "if": "variant",
@@ -987,56 +1007,56 @@
         },
         {
           "if": "word_wrong",
-          "then": "n28"
-        }
-      ]
-    },
-    {
-      "ref": "n28",
-      "type": "text",
-      "seq": 238,
-      "pos": [
-        14180,
-        480
-      ],
-      "data": {
-        "content": "не то) {g:at school} это {t:в школе}, точка {w:школа}, поэтому {g:Tom is at school} это {t:Том в школе}",
-        "hardWrap": false
-      },
-      "triggers": [
-        {
-          "if": "timer",
-          "ms": 1500,
-          "then": "n30"
+          "then": "n29"
         }
       ]
     },
     {
       "ref": "n29",
       "type": "text",
-      "seq": 25,
+      "seq": 258,
       "pos": [
         14740,
-        0
+        480
       ],
       "data": {
-        "content": "ору, как быстро))",
+        "content": "неа) {g:at school} это {t:в школе}, точка {w:школа}, поэтому {g:Tom is at school} это {t:Том в школе}",
         "hardWrap": false
       },
       "triggers": [
         {
           "if": "timer",
           "ms": 1500,
-          "then": "n30"
+          "then": "n31"
         }
       ]
     },
     {
       "ref": "n30",
-      "type": "audio",
+      "type": "reaction",
       "seq": 26,
       "pos": [
         15300,
+        0
+      ],
+      "data": {
+        "emoji": "🙌",
+        "target": "student"
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1400,
+          "then": "n31"
+        }
+      ]
+    },
+    {
+      "ref": "n31",
+      "type": "audio",
+      "seq": 27,
+      "pos": [
+        15860,
         0
       ],
       "note": "ОЗВУЧКА: Ой, а Кейт пишет, что опоздает, она застряла на вокзале",
@@ -1048,22 +1068,22 @@
       "triggers": [
         {
           "if": "played",
-          "then": "n31"
+          "then": "n32"
         }
       ]
     },
     {
-      "ref": "n31",
+      "ref": "n32",
       "type": "photo",
-      "seq": 27,
+      "seq": 28,
       "pos": [
-        15860,
+        16420,
         0
       ],
       "note": "ФОТО: сгенерировать в редакторе по imagePrompt",
       "needs": "photo",
       "data": {
-        "caption": "собери {t:«она на вокзале»}",
+        "caption": "Кейт стоит на вокзале с чемоданом и смотрит на табло 🚉",
         "imagePrompt": "Мультяшная девушка с чемоданом на вокзале смотрит на табло, толпа, без текста",
         "crop": {
           "x": 0,
@@ -1075,16 +1095,37 @@
         {
           "if": "timer",
           "ms": 2200,
-          "then": "n32"
+          "then": "n33"
         }
       ]
     },
     {
-      "ref": "n32",
-      "type": "phrase_assembly",
-      "seq": 28,
+      "ref": "n33",
+      "type": "audio",
+      "seq": 29,
       "pos": [
-        16420,
+        16980,
+        0
+      ],
+      "note": "ОЗВУЧКА: Собери фразу: она на вокзале",
+      "needs": "audio — озвучка реплики",
+      "data": {
+        "text": "Собери фразу: она на вокзале",
+        "showText": true
+      },
+      "triggers": [
+        {
+          "if": "played",
+          "then": "n34"
+        }
+      ]
+    },
+    {
+      "ref": "n34",
+      "type": "phrase_assembly",
+      "seq": 30,
+      "pos": [
+        17540,
         0
       ],
       "data": {
@@ -1097,7 +1138,7 @@
         ],
         "distractors": [
           {
-            "text": "in"
+            "text": "on"
           },
           {
             "text": "to"
@@ -1109,16 +1150,16 @@
             "text": "he"
           }
         ],
-        "responseWrong": "не совсем) нужны слова: she, is, at, the и station"
+        "responseWrong": "не совсем) вокзал это точка, значит {g:at} перед {g:the station}"
       },
       "triggers": [
         {
           "if": "phrase_correct",
-          "then": "n34"
+          "then": "n36"
         },
         {
           "if": "variant",
-          "variantLabel": "in",
+          "variantLabel": "on",
           "then": null
         },
         {
@@ -1138,46 +1179,6 @@
         },
         {
           "if": "phrase_wrong",
-          "then": "n33"
-        }
-      ]
-    },
-    {
-      "ref": "n33",
-      "type": "text",
-      "seq": 237,
-      "pos": [
-        16420,
-        480
-      ],
-      "data": {
-        "content": "неа) вокзал тоже точка, значит {g:She is at the station}, и {g:at} один раз",
-        "hardWrap": false
-      },
-      "triggers": [
-        {
-          "if": "timer",
-          "ms": 1500,
-          "then": "n35"
-        }
-      ]
-    },
-    {
-      "ref": "n34",
-      "type": "text",
-      "seq": 29,
-      "pos": [
-        16980,
-        0
-      ],
-      "data": {
-        "content": "да)) о май гащ, как быстро 😩",
-        "hardWrap": false
-      },
-      "triggers": [
-        {
-          "if": "timer",
-          "ms": 1500,
           "then": "n35"
         }
       ]
@@ -1185,9 +1186,49 @@
     {
       "ref": "n35",
       "type": "text",
-      "seq": 30,
+      "seq": 257,
       "pos": [
         17540,
+        480
+      ],
+      "data": {
+        "content": "неа) {w:вокзал} тоже точка, значит {g:She is at the station}, и {g:at} один раз",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1500,
+          "then": "n37"
+        }
+      ]
+    },
+    {
+      "ref": "n36",
+      "type": "text",
+      "seq": 31,
+      "pos": [
+        18100,
+        0
+      ],
+      "data": {
+        "content": "воу, и вокзал туда же))",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1500,
+          "then": "n37"
+        }
+      ]
+    },
+    {
+      "ref": "n37",
+      "type": "text",
+      "seq": 32,
+      "pos": [
+        18660,
         0
       ],
       "data": {
@@ -1198,16 +1239,16 @@
         {
           "if": "timer",
           "ms": 1500,
-          "then": "n36"
+          "then": "n38"
         }
       ]
     },
     {
-      "ref": "n36",
+      "ref": "n38",
       "type": "word_choice",
-      "seq": 31,
+      "seq": 33,
       "pos": [
-        18100,
+        19220,
         0
       ],
       "data": {
@@ -1217,11 +1258,11 @@
             "isCorrect": true
           },
           {
-            "text": "in",
+            "text": "to",
             "isCorrect": false
           },
           {
-            "text": "to",
+            "text": "on",
             "isCorrect": false
           }
         ],
@@ -1230,7 +1271,7 @@
       "triggers": [
         {
           "if": "word_correct",
-          "then": "n38"
+          "then": "n40"
         },
         {
           "if": "variant",
@@ -1239,46 +1280,46 @@
         },
         {
           "if": "variant",
-          "variantLabel": "in",
-          "then": null
-        },
-        {
-          "if": "variant",
           "variantLabel": "to",
           "then": null
         },
         {
+          "if": "variant",
+          "variantLabel": "on",
+          "then": null
+        },
+        {
           "if": "word_wrong",
-          "then": "n37"
+          "then": "n39"
         }
       ]
     },
     {
-      "ref": "n37",
+      "ref": "n39",
       "type": "text",
-      "seq": 236,
+      "seq": 256,
       "pos": [
-        18100,
+        19220,
         480
       ],
       "data": {
-        "content": "не то) ты в точке {w:спортзал}, значит {g:at}:\n{g:I am at the gym}",
+        "content": "но нет) ты в точке {w:спортзал}, значит {g:at}:\n{g:I am at the gym}",
         "hardWrap": true
       },
       "triggers": [
         {
           "if": "timer",
           "ms": 1500,
-          "then": "n39"
+          "then": "n41"
         }
       ]
     },
     {
-      "ref": "n38",
+      "ref": "n40",
       "type": "text",
-      "seq": 32,
+      "seq": 34,
       "pos": [
-        18660,
+        19780,
         0
       ],
       "data": {
@@ -1289,16 +1330,16 @@
         {
           "if": "timer",
           "ms": 1500,
-          "then": "n39"
+          "then": "n41"
         }
       ]
     },
     {
-      "ref": "n39",
+      "ref": "n41",
       "type": "text",
-      "seq": 33,
+      "seq": 35,
       "pos": [
-        19220,
+        20340,
         0
       ],
       "data": {
@@ -1309,16 +1350,16 @@
         {
           "if": "timer",
           "ms": 1500,
-          "then": "n40"
+          "then": "n42"
         }
       ]
     },
     {
-      "ref": "n40",
+      "ref": "n42",
       "type": "system",
-      "seq": 34,
+      "seq": 36,
       "pos": [
-        21080,
+        22200,
         0
       ],
       "data": {
@@ -1328,16 +1369,16 @@
         {
           "if": "timer",
           "ms": 1600,
-          "then": "n41"
+          "then": "n43"
         }
       ]
     },
     {
-      "ref": "n41",
+      "ref": "n43",
       "type": "audio",
-      "seq": 35,
+      "seq": 37,
       "pos": [
-        21640,
+        22760,
         0
       ],
       "note": "ОЗВУЧКА: У at есть и вторая работа: оно показывает точку во времени, час или момент",
@@ -1349,16 +1390,16 @@
       "triggers": [
         {
           "if": "played",
-          "then": "n42"
+          "then": "n44"
         }
       ]
     },
     {
-      "ref": "n42",
+      "ref": "n44",
       "type": "sticker",
-      "seq": 36,
+      "seq": 38,
       "pos": [
-        22200,
+        23320,
         0
       ],
       "note": "СТИКЕР: сгенерировать в редакторе по imagePrompt",
@@ -1378,16 +1419,16 @@
         {
           "if": "timer",
           "ms": 1200,
-          "then": "n43"
+          "then": "n45"
         }
       ]
     },
     {
-      "ref": "n43",
+      "ref": "n45",
       "type": "text",
-      "seq": 37,
+      "seq": 39,
       "pos": [
-        22760,
+        23880,
         0
       ],
       "data": {
@@ -1398,22 +1439,22 @@
         {
           "if": "timer",
           "ms": 1500,
-          "then": "n44"
+          "then": "n46"
         }
       ]
     },
     {
-      "ref": "n44",
+      "ref": "n46",
       "type": "photo",
-      "seq": 38,
+      "seq": 40,
       "pos": [
-        23320,
+        24440,
         0
       ],
       "note": "ФОТО: сгенерировать в редакторе по imagePrompt",
       "needs": "photo",
       "data": {
-        "caption": "как сказать {t:«мы встречаемся в семь»}?",
+        "caption": "Кейт и Том смотрят на уличные часы, вечер, скоро кино",
         "imagePrompt": "Мультяшные парень и девушка смотрят на большие уличные часы, вечер, кафе на фоне, без текста",
         "crop": {
           "x": 0,
@@ -1425,16 +1466,36 @@
         {
           "if": "timer",
           "ms": 2200,
-          "then": "n45"
+          "then": "n47"
         }
       ]
     },
     {
-      "ref": "n45",
-      "type": "word_choice",
-      "seq": 39,
+      "ref": "n47",
+      "type": "text",
+      "seq": 41,
       "pos": [
-        23880,
+        25000,
+        0
+      ],
+      "data": {
+        "content": "как сказать {t:«мы встречаемся в семь»}?",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1500,
+          "then": "n48"
+        }
+      ]
+    },
+    {
+      "ref": "n48",
+      "type": "word_choice",
+      "seq": 42,
+      "pos": [
+        25560,
         0
       ],
       "data": {
@@ -1457,7 +1518,7 @@
       "triggers": [
         {
           "if": "word_correct",
-          "then": "n47"
+          "then": "n50"
         },
         {
           "if": "variant",
@@ -1476,16 +1537,16 @@
         },
         {
           "if": "word_wrong",
-          "then": "n46"
+          "then": "n49"
         }
       ]
     },
     {
-      "ref": "n46",
+      "ref": "n49",
       "type": "text",
-      "seq": 235,
+      "seq": 255,
       "pos": [
-        23880,
+        25560,
         480
       ],
       "data": {
@@ -1496,16 +1557,16 @@
         {
           "if": "timer",
           "ms": 1500,
-          "then": "n48"
+          "then": "n51"
         }
       ]
     },
     {
-      "ref": "n47",
+      "ref": "n50",
       "type": "reaction",
-      "seq": 40,
+      "seq": 43,
       "pos": [
-        24440,
+        26120,
         0
       ],
       "data": {
@@ -1516,16 +1577,16 @@
         {
           "if": "timer",
           "ms": 1400,
-          "then": "n48"
+          "then": "n51"
         }
       ]
     },
     {
-      "ref": "n48",
+      "ref": "n51",
       "type": "text",
-      "seq": 41,
+      "seq": 44,
       "pos": [
-        25000,
+        26680,
         0
       ],
       "data": {
@@ -1536,19 +1597,19 @@
         {
           "if": "timer",
           "ms": 1500,
-          "then": "n49"
+          "then": "n52"
         }
       ]
     },
     {
-      "ref": "n49",
+      "ref": "n52",
       "type": "table",
-      "seq": 42,
+      "seq": 45,
       "pos": [
-        25560,
+        27240,
         0
       ],
-      "note": "ОЗВУЧКА таблицы (скрипт идёт по ячейкам слева направо, сверху вниз; метку «Проверить» поставить при монтаже после последней ячейки): Ещё раз. We meet, at, seven, мы встречаемся в семь, это точка на часах. I sleep, at, night, я сплю ночью, это точка в сутках. Слово одно, работа та же, показать точку",
+      "note": "ОЗВУЧКА таблицы (скрипт идёт по ячейкам слева направо, сверху вниз; метку «Проверить» поставить при монтаже после последней ячейки): Ещё раз. We meet, at, seven, мы встречаемся в семь, это точка на часах. Tom works, at, night, Том работает ночью, это точка в сутках. Слово одно, работа та же, показать точку",
       "needs": "audio — только для режима dictator",
       "data": {
         "mode": "dictator",
@@ -1629,7 +1690,7 @@
               "id": "r1c0",
               "col": 0,
               "row": 2,
-              "value": "I sleep",
+              "value": "Tom works",
               "colspan": 1,
               "rowspan": 1,
               "fontSize": 13
@@ -1671,13 +1732,13 @@
           "rowCount": 3
         },
         "chatCaption": "точка на часах",
-        "script": "Ещё раз. We meet, at, seven, мы встречаемся в семь, это точка на часах. I sleep, at, night, я сплю ночью, это точка в сутках. Слово одно, работа та же, показать точку",
+        "script": "Ещё раз. We meet, at, seven, мы встречаемся в семь, это точка на часах. Tom works, at, night, Том работает ночью, это точка в сутках. Слово одно, работа та же, показать точку",
         "sendToChat": true
       },
       "triggers": [
         {
           "if": "table_correct",
-          "then": "n50"
+          "then": "n53"
         },
         {
           "if": "table_wrong",
@@ -1686,11 +1747,11 @@
       ]
     },
     {
-      "ref": "n50",
+      "ref": "n53",
       "type": "text",
-      "seq": 43,
+      "seq": 46,
       "pos": [
-        26120,
+        27800,
         0
       ],
       "data": {
@@ -1701,16 +1762,16 @@
         {
           "if": "timer",
           "ms": 1500,
-          "then": "n51"
+          "then": "n54"
         }
       ]
     },
     {
-      "ref": "n51",
+      "ref": "n54",
       "type": "sticker",
-      "seq": 44,
+      "seq": 47,
       "pos": [
-        26680,
+        28360,
         0
       ],
       "note": "СТИКЕР: сгенерировать в редакторе по imagePrompt",
@@ -1730,23 +1791,23 @@
         {
           "if": "timer",
           "ms": 1200,
-          "then": "n52"
+          "then": "n55"
         }
       ]
     },
     {
-      "ref": "n52",
+      "ref": "n55",
       "type": "photo",
-      "seq": 45,
+      "seq": 48,
       "pos": [
-        27240,
+        28920,
         0
       ],
       "note": "ФОТО: сгенерировать в редакторе по imagePrompt",
       "needs": "photo",
       "data": {
-        "caption": "я ночью сплю как убитый 😴 собери {t:«я сплю ночью»}",
-        "imagePrompt": "Мультяшный парень спит в кровати, за окном луна и звёзды, без текста",
+        "caption": "Пит спит как убитый, за окном луна 😴",
+        "imagePrompt": "Мультяшный кот спит в кровати, за окном луна и звёзды, без текста",
         "crop": {
           "x": 0,
           "y": 0,
@@ -1757,16 +1818,37 @@
         {
           "if": "timer",
           "ms": 2200,
-          "then": "n53"
+          "then": "n56"
         }
       ]
     },
     {
-      "ref": "n53",
-      "type": "phrase_assembly",
-      "seq": 46,
+      "ref": "n56",
+      "type": "audio",
+      "seq": 49,
       "pos": [
-        27800,
+        29480,
+        0
+      ],
+      "note": "ОЗВУЧКА: Собери фразу: я сплю ночью",
+      "needs": "audio — озвучка реплики",
+      "data": {
+        "text": "Собери фразу: я сплю ночью",
+        "showText": true
+      },
+      "triggers": [
+        {
+          "if": "played",
+          "then": "n57"
+        }
+      ]
+    },
+    {
+      "ref": "n57",
+      "type": "phrase_assembly",
+      "seq": 50,
+      "pos": [
+        30040,
         0
       ],
       "data": {
@@ -1787,12 +1869,12 @@
             "text": "we"
           }
         ],
-        "responseWrong": "не совсем) нужны слова: I, sleep, at и night"
+        "responseWrong": "не совсем) ночь это точка, значит {g:at} перед {w:night}"
       },
       "triggers": [
         {
           "if": "phrase_correct",
-          "then": "n55"
+          "then": "n59"
         },
         {
           "if": "variant",
@@ -1811,36 +1893,36 @@
         },
         {
           "if": "phrase_wrong",
-          "then": "n54"
+          "then": "n58"
         }
       ]
     },
     {
-      "ref": "n54",
+      "ref": "n58",
       "type": "text",
-      "seq": 234,
+      "seq": 254,
       "pos": [
-        27800,
+        30040,
         480
       ],
       "data": {
-        "content": "близко) ночь это точка, значит {g:I sleep at night}, без {x:in}",
+        "content": "близко) {w:ночь} это точка, значит {g:I sleep at night}, без {x:in}",
         "hardWrap": false
       },
       "triggers": [
         {
           "if": "timer",
           "ms": 1500,
-          "then": "n56"
+          "then": "n60"
         }
       ]
     },
     {
-      "ref": "n55",
+      "ref": "n59",
       "type": "reaction",
-      "seq": 47,
+      "seq": 51,
       "pos": [
-        28360,
+        30600,
         0
       ],
       "data": {
@@ -1851,84 +1933,42 @@
         {
           "if": "timer",
           "ms": 1400,
-          "then": "n56"
+          "then": "n60"
         }
       ]
     },
     {
-      "ref": "n56",
+      "ref": "n60",
       "type": "audio",
-      "seq": 48,
+      "seq": 52,
       "pos": [
-        28920,
+        31160,
         0
       ],
-      "note": "ОЗВУЧКА: Ночь это короткий момент, в него не живёшь, а попадаешь, поэтому ночь это точка и at night",
+      "note": "ОЗВУЧКА: Ночь это короткий момент, в него не живёшь, а попадаешь, поэтому ночь это точка и at night. А утро и вечер это долгие отрезки, у них своё слово, in",
       "needs": "audio — озвучка реплики",
       "data": {
-        "text": "Ночь это короткий момент, в него не живёшь, а попадаешь, поэтому {l:ночь это точка} и {g:at night}",
+        "text": "Ночь это короткий момент, в него не живёшь, а попадаешь, поэтому {l:ночь это точка} и {g:at night}. А утро и вечер это долгие отрезки, у них своё слово, {g:in}",
         "showText": true
       },
       "triggers": [
         {
           "if": "played",
-          "then": "n57"
+          "then": "n61"
         }
       ]
     },
     {
-      "ref": "n57",
-      "type": "audio",
-      "seq": 49,
-      "pos": [
-        29480,
-        0
-      ],
-      "note": "ОЗВУЧКА: А утро, день и вечер это долгие отрезки, в них можно быть часами, поэтому они идут с in: in the morning, in the evening",
-      "needs": "audio — озвучка реплики",
-      "data": {
-        "text": "А утро, день и вечер это долгие отрезки, в них можно быть часами, поэтому они идут с {g:in}: {g:in the morning}, {g:in the evening}",
-        "showText": true
-      },
-      "triggers": [
-        {
-          "if": "played",
-          "then": "n58"
-        }
-      ]
-    },
-    {
-      "ref": "n58",
-      "type": "audio",
-      "seq": 50,
-      "pos": [
-        30040,
-        0
-      ],
-      "note": "ОЗВУЧКА: Про in и on ты можешь узнать в отдельном уроке",
-      "needs": "audio — озвучка реплики",
-      "data": {
-        "text": "Про {g:in} и {g:on} ты можешь узнать в отдельном уроке",
-        "showText": true
-      },
-      "triggers": [
-        {
-          "if": "played",
-          "then": "n59"
-        }
-      ]
-    },
-    {
-      "ref": "n59",
+      "ref": "n61",
       "type": "lesson_ref",
-      "seq": 51,
+      "seq": 53,
       "pos": [
-        30600,
+        31720,
         0
       ],
       "note": "ССЫЛКА: в редакторе выбрать урок «In» (targetId); без него плеер ноду пропустит",
       "data": {
-        "caption": "Про in и on, в отдельном уроке",
+        "caption": "Про in и on ты можешь узнать в отдельном уроке",
         "isModule": false,
         "targetTitle": "In"
       },
@@ -1936,19 +1976,19 @@
         {
           "if": "timer",
           "ms": 2000,
-          "then": "n60"
+          "then": "n62"
         }
       ]
     },
     {
-      "ref": "n60",
+      "ref": "n62",
       "type": "table",
-      "seq": 52,
+      "seq": 54,
       "pos": [
-        31160,
+        32280,
         0
       ],
-      "note": "ОЗВУЧКА таблицы (скрипт идёт по ячейкам слева направо, сверху вниз; метку «Проверить» поставить при монтаже после последней ячейки): Ох, сколько всего умеет at! Давай по порядку. Место, at, at work, на работе, точка на карте. Час, at, at seven, в семь, точка на часах. Момент, at, at night, ночью, точка в сутках. Везде одно и то же: at это точка",
+      "note": "ОЗВУЧКА таблицы (скрипт идёт по ячейкам слева направо, сверху вниз; метку «Проверить» поставить при монтаже после последней ячейки): Ох, сколько всего умеет это словечко! Начнём с нового. Момент, at, at night, ночью, точка в сутках. Час, at, at seven, в семь, точка на часах. И уже знакомое место, at, at work, на работе, точка на карте. Везде одно и то же: показать точку",
       "needs": "audio — только для режима dictator",
       "data": {
         "mode": "dictator",
@@ -2006,7 +2046,7 @@
               "id": "r0c0",
               "col": 0,
               "row": 1,
-              "value": "место",
+              "value": "момент",
               "colspan": 1,
               "rowspan": 1,
               "fontSize": 13
@@ -2024,7 +2064,7 @@
               "id": "r0c2",
               "col": 2,
               "row": 1,
-              "value": "at work",
+              "value": "at night",
               "colspan": 1,
               "rowspan": 1,
               "fontSize": 13
@@ -2060,7 +2100,7 @@
               "id": "r2c0",
               "col": 0,
               "row": 3,
-              "value": "момент",
+              "value": "место",
               "colspan": 1,
               "rowspan": 1,
               "fontSize": 13
@@ -2078,7 +2118,7 @@
               "id": "r2c2",
               "col": 2,
               "row": 3,
-              "value": "at night",
+              "value": "at work",
               "colspan": 1,
               "rowspan": 1,
               "fontSize": 13
@@ -2102,13 +2142,13 @@
           "rowCount": 4
         },
         "chatCaption": "вся картина целиком",
-        "script": "Ох, сколько всего умеет at! Давай по порядку. Место, at, at work, на работе, точка на карте. Час, at, at seven, в семь, точка на часах. Момент, at, at night, ночью, точка в сутках. Везде одно и то же: at это точка",
+        "script": "Ох, сколько всего умеет это словечко! Начнём с нового. Момент, at, at night, ночью, точка в сутках. Час, at, at seven, в семь, точка на часах. И уже знакомое место, at, at work, на работе, точка на карте. Везде одно и то же: показать точку",
         "sendToChat": true
       },
       "triggers": [
         {
           "if": "table_correct",
-          "then": "n61"
+          "then": "n63"
         },
         {
           "if": "table_wrong",
@@ -2117,11 +2157,11 @@
       ]
     },
     {
-      "ref": "n61",
+      "ref": "n63",
       "type": "pin_message",
-      "seq": 53,
+      "seq": 55,
       "pos": [
-        31720,
+        32840,
         0
       ],
       "data": {
@@ -2131,16 +2171,16 @@
         {
           "if": "timer",
           "ms": 1800,
-          "then": "n62"
+          "then": "n64"
         }
       ]
     },
     {
-      "ref": "n62",
+      "ref": "n64",
       "type": "text",
-      "seq": 54,
+      "seq": 56,
       "pos": [
-        32280,
+        33400,
         0
       ],
       "data": {
@@ -2151,50 +2191,6 @@
         {
           "if": "timer",
           "ms": 1500,
-          "then": "n63"
-        }
-      ]
-    },
-    {
-      "ref": "n63",
-      "type": "text",
-      "seq": 55,
-      "pos": [
-        32840,
-        0
-      ],
-      "data": {
-        "content": "Напечатай {t:«в полночь»}, всего два слова",
-        "hardWrap": false
-      },
-      "triggers": [
-        {
-          "if": "timer",
-          "ms": 1500,
-          "then": "n64"
-        }
-      ]
-    },
-    {
-      "ref": "n64",
-      "type": "type_word",
-      "seq": 56,
-      "pos": [
-        33400,
-        0
-      ],
-      "data": {
-        "word": "at midnight",
-        "extraLetters": "ea",
-        "responseWrong": "не то) полночь это точка на часах, значит at midnight"
-      },
-      "triggers": [
-        {
-          "if": "type_correct",
-          "then": "n66"
-        },
-        {
-          "if": "type_wrong",
           "then": "n65"
         }
       ]
@@ -2202,29 +2198,73 @@
     {
       "ref": "n65",
       "type": "text",
-      "seq": 233,
+      "seq": 57,
       "pos": [
-        33400,
-        480
+        33960,
+        0
       ],
       "data": {
-        "content": "но нет) полночь это точка на часах, значит {g:at midnight}",
+        "content": "Напечатай {t:«в полночь»}, всего два слова: печатай тапами по светящимся буквам",
         "hardWrap": false
       },
       "triggers": [
         {
           "if": "timer",
           "ms": 1500,
-          "then": "n67"
+          "then": "n66"
         }
       ]
     },
     {
       "ref": "n66",
-      "type": "text",
-      "seq": 57,
+      "type": "type_word",
+      "seq": 58,
       "pos": [
-        33960,
+        34520,
+        0
+      ],
+      "data": {
+        "word": "at midnight",
+        "extraLetters": "ea",
+        "responseWrong": "близко) полночь это точка на часах, значит at midnight"
+      },
+      "triggers": [
+        {
+          "if": "type_correct",
+          "then": "n68"
+        },
+        {
+          "if": "type_wrong",
+          "then": "n67"
+        }
+      ]
+    },
+    {
+      "ref": "n67",
+      "type": "text",
+      "seq": 253,
+      "pos": [
+        34520,
+        480
+      ],
+      "data": {
+        "content": "но нет) {w:полночь} это точка на часах, значит {g:at midnight}",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1500,
+          "then": "n69"
+        }
+      ]
+    },
+    {
+      "ref": "n68",
+      "type": "text",
+      "seq": 59,
+      "pos": [
+        35080,
         0
       ],
       "data": {
@@ -2235,16 +2275,16 @@
         {
           "if": "timer",
           "ms": 1500,
-          "then": "n67"
+          "then": "n69"
         }
       ]
     },
     {
-      "ref": "n67",
+      "ref": "n69",
       "type": "text",
-      "seq": 58,
+      "seq": 60,
       "pos": [
-        34520,
+        35640,
         0
       ],
       "data": {
@@ -2255,16 +2295,16 @@
         {
           "if": "timer",
           "ms": 1500,
-          "then": "n68"
+          "then": "n70"
         }
       ]
     },
     {
-      "ref": "n68",
+      "ref": "n70",
       "type": "audio",
-      "seq": 59,
+      "seq": 61,
       "pos": [
-        35080,
+        36200,
         0
       ],
       "note": "ОЗВУЧКА: We have lunch at one",
@@ -2276,16 +2316,16 @@
       "triggers": [
         {
           "if": "played",
-          "then": "n69"
+          "then": "n71"
         }
       ]
     },
     {
-      "ref": "n69",
+      "ref": "n71",
       "type": "word_choice",
-      "seq": 60,
+      "seq": 62,
       "pos": [
-        35640,
+        36760,
         0
       ],
       "data": {
@@ -2299,7 +2339,7 @@
             "isCorrect": false
           },
           {
-            "text": "Мы ужинаем в час",
+            "text": "Мы идём на обед",
             "isCorrect": false
           }
         ],
@@ -2309,7 +2349,7 @@
       "triggers": [
         {
           "if": "word_correct",
-          "then": "n71"
+          "then": "n73"
         },
         {
           "if": "variant",
@@ -2323,21 +2363,21 @@
         },
         {
           "if": "variant",
-          "variantLabel": "Мы ужинаем в час",
+          "variantLabel": "Мы идём на обед",
           "then": null
         },
         {
           "if": "word_wrong",
-          "then": "n70"
+          "then": "n72"
         }
       ]
     },
     {
-      "ref": "n70",
+      "ref": "n72",
       "type": "text",
-      "seq": 232,
+      "seq": 252,
       "pos": [
-        35640,
+        36760,
         480
       ],
       "data": {
@@ -2348,36 +2388,131 @@
         {
           "if": "timer",
           "ms": 1500,
-          "then": "n72"
+          "then": "n74"
         }
       ]
     },
     {
-      "ref": "n71",
-      "type": "text",
-      "seq": 61,
+      "ref": "n73",
+      "type": "reaction",
+      "seq": 63,
       "pos": [
-        36200,
+        37320,
         0
       ],
       "data": {
-        "content": "да))",
+        "emoji": "🍝",
+        "target": "student"
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1400,
+          "then": "n74"
+        }
+      ]
+    },
+    {
+      "ref": "n74",
+      "type": "audio",
+      "seq": 64,
+      "pos": [
+        37880,
+        0
+      ],
+      "note": "ОЗВУЧКА: А теперь про тебя: скажи, во сколько ты обычно ужинаешь, начни с I have dinner at, дальше любое время, засчитаю любое",
+      "needs": "audio — озвучка реплики",
+      "data": {
+        "text": "А теперь про тебя: скажи, во сколько ты обычно ужинаешь, начни с {g:I have dinner at}, дальше любое время, засчитаю любое",
+        "showText": true
+      },
+      "triggers": [
+        {
+          "if": "played",
+          "then": "n75"
+        }
+      ]
+    },
+    {
+      "ref": "n75",
+      "type": "say_phrase",
+      "seq": 65,
+      "pos": [
+        38440,
+        0
+      ],
+      "data": {
+        "lang": "en-US",
+        "phrase": "I have dinner at seven",
+        "translation": "Я ужинаю в семь",
+        "keywords": "",
+        "threshold": 70,
+        "strict": true,
+        "hintsOn": true,
+        "voiceReply": true,
+        "hintSilence": "Не слышу тебя) говори чуть громче и ближе к микрофону",
+        "hintPartial": "Близко) верно: {ok}, не хватило: {missed}",
+        "pattern": "I have dinner at **",
+        "startHint": "I have dinner at — я ужинаю в",
+        "hintMismatch": "Начни с I have dinner at и добавь любое время, например seven)"
+      },
+      "triggers": [
+        {
+          "if": "say_done",
+          "then": "n77"
+        },
+        {
+          "if": "say_wrong",
+          "then": "n76"
+        }
+      ]
+    },
+    {
+      "ref": "n76",
+      "type": "text",
+      "seq": 251,
+      "pos": [
+        38440,
+        480
+      ],
+      "data": {
+        "content": "не то) начни с {g:I have dinner at} и добавь любое время)",
         "hardWrap": false
       },
       "triggers": [
         {
           "if": "timer",
           "ms": 1500,
-          "then": "n72"
+          "then": "n78"
         }
       ]
     },
     {
-      "ref": "n72",
-      "type": "system",
-      "seq": 62,
+      "ref": "n77",
+      "type": "text",
+      "seq": 66,
       "pos": [
-        38060,
+        39000,
+        0
+      ],
+      "data": {
+        "content": "ужин по расписанию, уважаю 😄",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1500,
+          "then": "n78"
+        }
+      ]
+    },
+    {
+      "ref": "n78",
+      "type": "system",
+      "seq": 67,
+      "pos": [
+        40860,
         0
       ],
       "data": {
@@ -2387,16 +2522,16 @@
         {
           "if": "timer",
           "ms": 1600,
-          "then": "n73"
+          "then": "n79"
         }
       ]
     },
     {
-      "ref": "n73",
+      "ref": "n79",
       "type": "scene",
-      "seq": 63,
+      "seq": 68,
       "pos": [
-        38620,
+        41420,
         0
       ],
       "note": "СЦЕНА: диалог двух котов в пузыре. Озвучку записать в редакторе сцены",
@@ -2468,16 +2603,16 @@
       "triggers": [
         {
           "if": "played",
-          "then": "n74"
+          "then": "n80"
         }
       ]
     },
     {
-      "ref": "n74",
+      "ref": "n80",
       "type": "audio",
-      "seq": 64,
+      "seq": 69,
       "pos": [
-        39180,
+        41980,
         0
       ],
       "note": "ОЗВУЧКА: Заметь, что говорила Кейт: look at, посмотри на. Взгляд летит в точку, и эту точку снова показывает at",
@@ -2489,22 +2624,22 @@
       "triggers": [
         {
           "if": "played",
-          "then": "n75"
+          "then": "n81"
         }
       ]
     },
     {
-      "ref": "n75",
+      "ref": "n81",
       "type": "photo",
-      "seq": 65,
+      "seq": 70,
       "pos": [
-        39740,
+        42540,
         0
       ],
       "note": "ФОТО: сгенерировать в редакторе по imagePrompt",
       "needs": "photo",
       "data": {
-        "caption": "{g:look at me}, {t:посмотри на меня}: взгляд это {w:стрелка}, а {g:at} говорит, {l:куда она летит} 👀",
+        "caption": "Кот смотрит прямо на тебя, не моргая 👀",
         "imagePrompt": "Мультяшный кот смотрит прямо в камеру большими глазами, крупный план, без текста",
         "crop": {
           "x": 0,
@@ -2516,16 +2651,36 @@
         {
           "if": "timer",
           "ms": 2200,
-          "then": "n76"
+          "then": "n82"
         }
       ]
     },
     {
-      "ref": "n76",
+      "ref": "n82",
       "type": "text",
-      "seq": 66,
+      "seq": 71,
       "pos": [
-        40300,
+        43100,
+        0
+      ],
+      "data": {
+        "content": "{g:look at me}, {t:посмотри на меня}: взгляд это {w:стрелка}, а {g:at} говорит, {l:куда она летит}",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1500,
+          "then": "n83"
+        }
+      ]
+    },
+    {
+      "ref": "n83",
+      "type": "text",
+      "seq": 72,
+      "pos": [
+        43660,
         0
       ],
       "data": {
@@ -2536,16 +2691,16 @@
         {
           "if": "timer",
           "ms": 1500,
-          "then": "n77"
+          "then": "n84"
         }
       ]
     },
     {
-      "ref": "n77",
+      "ref": "n84",
       "type": "phrase_assembly",
-      "seq": 67,
+      "seq": 73,
       "pos": [
-        40860,
+        44220,
         0
       ],
       "data": {
@@ -2566,12 +2721,12 @@
             "text": "on"
           }
         ],
-        "responseWrong": "не совсем) нужны слова: посмотри, точка, это и фото"
+        "responseWrong": "не совсем) взгляд летит в точку, значит {g:at} сразу после {g:Look}"
       },
       "triggers": [
         {
           "if": "phrase_correct",
-          "then": "n79"
+          "then": "n86"
         },
         {
           "if": "variant",
@@ -2590,56 +2745,56 @@
         },
         {
           "if": "phrase_wrong",
-          "then": "n78"
+          "then": "n85"
         }
       ]
     },
     {
-      "ref": "n78",
+      "ref": "n85",
       "type": "text",
-      "seq": 231,
+      "seq": 250,
       "pos": [
-        40860,
+        44220,
         480
       ],
       "data": {
-        "content": "не то) взгляд летит в точку, значит {g:Look at this photo}, без {x:to}",
+        "content": "близко) взгляд летит в точку, значит {g:Look at this photo}, без {x:to}",
         "hardWrap": false
       },
       "triggers": [
         {
           "if": "timer",
           "ms": 1500,
-          "then": "n80"
+          "then": "n87"
         }
       ]
     },
     {
-      "ref": "n79",
+      "ref": "n86",
       "type": "text",
-      "seq": 68,
+      "seq": 74,
       "pos": [
-        41420,
+        44780,
         0
       ],
       "data": {
-        "content": "ага, стрелка попала)",
+        "content": "стрелка попала)",
         "hardWrap": false
       },
       "triggers": [
         {
           "if": "timer",
           "ms": 1500,
-          "then": "n80"
+          "then": "n87"
         }
       ]
     },
     {
-      "ref": "n80",
+      "ref": "n87",
       "type": "text",
-      "seq": 69,
+      "seq": 75,
       "pos": [
-        41980,
+        45340,
         0
       ],
       "data": {
@@ -2650,16 +2805,16 @@
         {
           "if": "timer",
           "ms": 1500,
-          "then": "n81"
+          "then": "n88"
         }
       ]
     },
     {
-      "ref": "n81",
+      "ref": "n88",
       "type": "audio",
-      "seq": 70,
+      "seq": 76,
       "pos": [
-        42540,
+        45900,
         0
       ],
       "note": "ОЗВУЧКА: She smiles at me",
@@ -2671,16 +2826,16 @@
       "triggers": [
         {
           "if": "played",
-          "then": "n82"
+          "then": "n89"
         }
       ]
     },
     {
-      "ref": "n82",
+      "ref": "n89",
       "type": "word_choice",
-      "seq": 71,
+      "seq": 77,
       "pos": [
-        43100,
+        46460,
         0
       ],
       "data": {
@@ -2690,7 +2845,7 @@
             "isCorrect": true
           },
           {
-            "text": "Она смеётся надо мной",
+            "text": "Она идёт ко мне",
             "isCorrect": false
           },
           {
@@ -2704,7 +2859,7 @@
       "triggers": [
         {
           "if": "word_correct",
-          "then": "n84"
+          "then": "n91"
         },
         {
           "if": "variant",
@@ -2713,7 +2868,7 @@
         },
         {
           "if": "variant",
-          "variantLabel": "Она смеётся надо мной",
+          "variantLabel": "Она идёт ко мне",
           "then": null
         },
         {
@@ -2723,16 +2878,16 @@
         },
         {
           "if": "word_wrong",
-          "then": "n83"
+          "then": "n90"
         }
       ]
     },
     {
-      "ref": "n83",
+      "ref": "n90",
       "type": "text",
-      "seq": 230,
+      "seq": 249,
       "pos": [
-        43100,
+        46460,
         480
       ],
       "data": {
@@ -2743,42 +2898,63 @@
         {
           "if": "timer",
           "ms": 1500,
-          "then": "n85"
+          "then": "n92"
         }
       ]
     },
     {
-      "ref": "n84",
-      "type": "text",
-      "seq": 72,
+      "ref": "n91",
+      "type": "reaction",
+      "seq": 78,
       "pos": [
-        43660,
+        47020,
         0
       ],
       "data": {
-        "content": "именно так)",
-        "hardWrap": false
+        "emoji": "😊",
+        "target": "student"
       },
       "triggers": [
         {
           "if": "timer",
-          "ms": 1500,
-          "then": "n85"
+          "ms": 1400,
+          "then": "n92"
         }
       ]
     },
     {
-      "ref": "n85",
-      "type": "photo",
-      "seq": 73,
+      "ref": "n92",
+      "type": "audio",
+      "seq": 79,
       "pos": [
-        44220,
+        47580,
+        0
+      ],
+      "note": "ОЗВУЧКА: Улыбка тоже летит в точку: smile at, улыбнуться кому-то",
+      "needs": "audio — озвучка реплики",
+      "data": {
+        "text": "{l:Улыбка тоже летит в точку}: {g:smile at}, {t:улыбнуться кому-то}",
+        "showText": true
+      },
+      "triggers": [
+        {
+          "if": "played",
+          "then": "n93"
+        }
+      ]
+    },
+    {
+      "ref": "n93",
+      "type": "photo",
+      "seq": 80,
+      "pos": [
+        48140,
         0
       ],
       "note": "ФОТО: сгенерировать в редакторе по imagePrompt",
       "needs": "photo",
       "data": {
-        "caption": "кста, Том сегодня весь вечер улыбается Кейт, а она делает вид, что не замечает 😏",
+        "caption": "Том весь вечер улыбается Кейт, а она делает вид, что не замечает 😏",
         "imagePrompt": "Мультяшный парень улыбается девушке за столиком кафе, вечер, свечи, без текста",
         "crop": {
           "x": 0,
@@ -2790,36 +2966,36 @@
         {
           "if": "timer",
           "ms": 2200,
-          "then": "n86"
+          "then": "n94"
         }
       ]
     },
     {
-      "ref": "n86",
+      "ref": "n94",
       "type": "text",
-      "seq": 74,
+      "seq": 81,
       "pos": [
-        44780,
+        48700,
         0
       ],
       "data": {
-        "content": "Собери {t:«Том улыбается Кейт»}",
+        "content": "собери {t:«Том улыбается Кейт»}",
         "hardWrap": false
       },
       "triggers": [
         {
           "if": "timer",
           "ms": 1500,
-          "then": "n87"
+          "then": "n95"
         }
       ]
     },
     {
-      "ref": "n87",
+      "ref": "n95",
       "type": "phrase_assembly",
-      "seq": 75,
+      "seq": 82,
       "pos": [
-        45340,
+        49260,
         0
       ],
       "data": {
@@ -2840,12 +3016,12 @@
             "text": "she"
           }
         ],
-        "responseWrong": "не совсем) нужны слова: Tom, smiles, at и Kate"
+        "responseWrong": "не совсем) улыбка летит к человеку, значит {g:at} перед именем"
       },
       "triggers": [
         {
           "if": "phrase_correct",
-          "then": "n89"
+          "then": "n97"
         },
         {
           "if": "variant",
@@ -2864,16 +3040,16 @@
         },
         {
           "if": "phrase_wrong",
-          "then": "n88"
+          "then": "n96"
         }
       ]
     },
     {
-      "ref": "n88",
+      "ref": "n96",
       "type": "text",
-      "seq": 229,
+      "seq": 248,
       "pos": [
-        45340,
+        49260,
         480
       ],
       "data": {
@@ -2884,78 +3060,78 @@
         {
           "if": "timer",
           "ms": 1500,
-          "then": "n90"
+          "then": "n98"
         }
       ]
     },
     {
-      "ref": "n89",
+      "ref": "n97",
       "type": "reaction",
-      "seq": 76,
+      "seq": 83,
       "pos": [
-        45900,
+        49820,
         0
       ],
       "data": {
-        "emoji": "😏",
+        "emoji": "🔥",
         "target": "student"
       },
       "triggers": [
         {
           "if": "timer",
           "ms": 1400,
-          "then": "n90"
+          "then": "n98"
         }
       ]
     },
     {
-      "ref": "n90",
+      "ref": "n98",
       "type": "audio",
-      "seq": 77,
+      "seq": 84,
       "pos": [
-        46460,
+        50380,
         0
       ],
-      "note": "ОЗВУЧКА: Улыбка тоже летит в точку: smile at, улыбнуться кому-то. И смех тоже: laugh at, смеяться над, как в Tom laughs at my jokes",
+      "note": "ОЗВУЧКА: Ты уже так уверенно строишь фразы с at, пора говорить вслух",
       "needs": "audio — озвучка реплики",
       "data": {
-        "text": "{l:Улыбка тоже летит в точку}: {g:smile at}, {t:улыбнуться кому-то}. И смех тоже: {g:laugh at}, {t:смеяться над}, как в {g:Tom laughs at my jokes}",
+        "text": "Ты уже так уверенно строишь фразы с {g:at}, {l:пора говорить вслух}",
         "showText": true
       },
       "triggers": [
         {
           "if": "played",
-          "then": "n91"
+          "then": "n99"
         }
       ]
     },
     {
-      "ref": "n91",
+      "ref": "n99",
       "type": "audio",
-      "seq": 78,
+      "seq": 85,
       "pos": [
-        47020,
+        50940,
         0
       ],
-      "note": "ОЗВУЧКА: Скажи вообще что угодно про то, где ты сейчас: начни с I am at, можно и короче, I'm at, а дальше любое место, засчитаю любое",
+      "note": "ОЗВУЧКА: Скажи вообще что угодно про то, где ты сейчас: начни с I am at или покороче, I'm at, полная форма чуть строже, короткая живее, а дальше любое место, засчитаю любое",
       "needs": "audio — озвучка реплики",
       "data": {
-        "text": "Скажи вообще что угодно про то, где ты сейчас: начни с {g:I am at}, можно и короче, {g:I'm at}, а дальше любое место, засчитаю любое",
+        "text": "Скажи вообще что угодно про то, где ты сейчас: начни с {g:I am at} или покороче, {g:I'm at}, полная форма чуть строже, короткая живее, а дальше любое место, засчитаю любое",
         "showText": true
       },
       "triggers": [
         {
           "if": "played",
-          "then": "n92"
+          "then": "n100"
         }
       ]
     },
     {
-      "ref": "n92",
+      "ref": "n100",
       "type": "say_phrase",
-      "seq": 79,
+      "seq": 86,
       "pos": [
-        47580,
+        51500,
         0
       ],
       "data": {
@@ -2976,20 +3152,20 @@
       "triggers": [
         {
           "if": "say_done",
-          "then": "n94"
+          "then": "n102"
         },
         {
           "if": "say_wrong",
-          "then": "n93"
+          "then": "n101"
         }
       ]
     },
     {
-      "ref": "n93",
+      "ref": "n101",
       "type": "text",
-      "seq": 228,
+      "seq": 247,
       "pos": [
-        47580,
+        51500,
         480
       ],
       "data": {
@@ -3000,16 +3176,16 @@
         {
           "if": "timer",
           "ms": 1500,
-          "then": "n97"
+          "then": "n105"
         }
       ]
     },
     {
-      "ref": "n94",
+      "ref": "n102",
       "type": "text",
-      "seq": 80,
+      "seq": 87,
       "pos": [
-        48140,
+        52060,
         0
       ],
       "data": {
@@ -3020,16 +3196,16 @@
         {
           "if": "timer",
           "ms": 1500,
-          "then": "n95"
+          "then": "n103"
         }
       ]
     },
     {
-      "ref": "n95",
+      "ref": "n103",
       "type": "audio",
-      "seq": 81,
+      "seq": 88,
       "pos": [
-        48700,
+        52620,
         0
       ],
       "note": "ОЗВУЧКА: воу, ты уже говоришь про место без подсказок: I am at и дальше любая точка",
@@ -3041,16 +3217,16 @@
       "triggers": [
         {
           "if": "played",
-          "then": "n96"
+          "then": "n104"
         }
       ]
     },
     {
-      "ref": "n96",
+      "ref": "n104",
       "type": "reaction",
-      "seq": 82,
+      "seq": 89,
       "pos": [
-        49260,
+        53180,
         0
       ],
       "data": {
@@ -3061,37 +3237,37 @@
         {
           "if": "timer",
           "ms": 1400,
-          "then": "n97"
+          "then": "n105"
         }
       ]
     },
     {
-      "ref": "n97",
+      "ref": "n105",
       "type": "audio",
-      "seq": 83,
+      "seq": 90,
       "pos": [
-        49820,
+        53740,
         0
       ],
-      "note": "ОЗВУЧКА: Ещё про себя: скажи, на что ты сейчас смотришь, начни с I am looking at, дальше любой предмет, засчитаю любой",
+      "note": "ОЗВУЧКА: Ещё про себя: скажи, на что ты сейчас смотришь, начни с I am looking at, можно и I'm looking at, дальше любой предмет, засчитаю любой",
       "needs": "audio — озвучка реплики",
       "data": {
-        "text": "Ещё про себя: скажи, на что ты сейчас смотришь, начни с {g:I am looking at}, дальше любой предмет, засчитаю любой",
+        "text": "Ещё про себя: скажи, на что ты сейчас смотришь, начни с {g:I am looking at}, можно и {g:I'm looking at}, дальше любой предмет, засчитаю любой",
         "showText": true
       },
       "triggers": [
         {
           "if": "played",
-          "then": "n98"
+          "then": "n106"
         }
       ]
     },
     {
-      "ref": "n98",
+      "ref": "n106",
       "type": "say_phrase",
-      "seq": 84,
+      "seq": 91,
       "pos": [
-        50380,
+        54300,
         0
       ],
       "data": {
@@ -3112,40 +3288,40 @@
       "triggers": [
         {
           "if": "say_done",
-          "then": "n100"
+          "then": "n108"
         },
         {
           "if": "say_wrong",
-          "then": "n99"
+          "then": "n107"
         }
       ]
     },
     {
-      "ref": "n99",
+      "ref": "n107",
       "type": "text",
-      "seq": 227,
+      "seq": 246,
       "pos": [
-        50380,
+        54300,
         480
       ],
       "data": {
-        "content": "не то) нужно сказать {g:I am looking at} и любой предмет)",
+        "content": "неа) нужно сказать {g:I am looking at} и любой предмет)",
         "hardWrap": false
       },
       "triggers": [
         {
           "if": "timer",
           "ms": 1500,
-          "then": "n101"
+          "then": "n109"
         }
       ]
     },
     {
-      "ref": "n100",
+      "ref": "n108",
       "type": "text",
-      "seq": 85,
+      "seq": 92,
       "pos": [
-        50940,
+        54860,
         0
       ],
       "data": {
@@ -3156,37 +3332,37 @@
         {
           "if": "timer",
           "ms": 1500,
-          "then": "n101"
+          "then": "n109"
         }
       ]
     },
     {
-      "ref": "n101",
+      "ref": "n109",
       "type": "audio",
-      "seq": 86,
+      "seq": 93,
       "pos": [
-        52800,
+        56720,
         0
       ],
-      "note": "ОЗВУЧКА: Мы повторили три работы at, и самое главное: at показывает точку, на карте, на часах и там, куда летит взгляд. С основой разобрались, теперь ты будешь слышать at в каждой второй фразе",
+      "note": "ОЗВУЧКА: Основа есть: at показывает точку, на карте, на часах и там, куда летит взгляд. Всю формулу соберём в самом конце, а пока выбирай: закончить или потренироваться",
       "needs": "audio — озвучка реплики",
       "data": {
-        "text": "Мы повторили три работы {g:at}, и самое главное: {g:at} показывает {l:точку}, на карте, на часах и там, куда летит взгляд. С основой разобрались, теперь ты будешь слышать {g:at} в каждой второй фразе",
+        "text": "Основа есть: {g:at} показывает {l:точку}, на карте, на часах и там, куда летит взгляд. Всю формулу соберём в самом конце, а пока выбирай: закончить или потренироваться",
         "showText": true
       },
       "triggers": [
         {
           "if": "played",
-          "then": "n102"
+          "then": "n110"
         }
       ]
     },
     {
-      "ref": "n102",
+      "ref": "n110",
       "type": "word_choice",
-      "seq": 87,
+      "seq": 94,
       "pos": [
-        53360,
+        57280,
         0
       ],
       "note": "Меню-развилка, не тест",
@@ -3207,7 +3383,7 @@
       "triggers": [
         {
           "if": "word_correct",
-          "then": "n103"
+          "then": "n111"
         },
         {
           "if": "word_wrong",
@@ -3216,21 +3392,21 @@
         {
           "if": "variant",
           "variantLabel": "Закончить ✅",
-          "then": "n235"
+          "then": "n256"
         },
         {
           "if": "variant",
           "variantLabel": "Ещё потренируюсь 💪",
-          "then": "n103"
+          "then": "n111"
         }
       ]
     },
     {
-      "ref": "n103",
+      "ref": "n111",
       "type": "text",
-      "seq": 88,
+      "seq": 95,
       "pos": [
-        55220,
+        59140,
         0
       ],
       "data": {
@@ -3241,16 +3417,16 @@
         {
           "if": "timer",
           "ms": 1500,
-          "then": "n104"
+          "then": "n112"
         }
       ]
     },
     {
-      "ref": "n104",
+      "ref": "n112",
       "type": "audio",
-      "seq": 89,
+      "seq": 96,
       "pos": [
-        55780,
+        59700,
         0
       ],
       "note": "ОЗВУЧКА: Будет семь уровней, и каждый чуть сложнее предыдущего",
@@ -3262,16 +3438,16 @@
       "triggers": [
         {
           "if": "played",
-          "then": "n105"
+          "then": "n113"
         }
       ]
     },
     {
-      "ref": "n105",
+      "ref": "n113",
       "type": "system",
-      "seq": 90,
+      "seq": 97,
       "pos": [
-        57040,
+        60960,
         0
       ],
       "data": {
@@ -3281,36 +3457,56 @@
         {
           "if": "timer",
           "ms": 1600,
-          "then": "n106"
+          "then": "n114"
         }
       ]
     },
     {
-      "ref": "n106",
+      "ref": "n114",
       "type": "text",
-      "seq": 91,
+      "seq": 98,
       "pos": [
-        57600,
+        61520,
         0
       ],
       "data": {
-        "content": "Я в отпуске сижу в отеле и ем круассаны)) как сказать {t:«я в отеле»}?",
+        "content": "Я в отпуске сижу в отеле и ем круассаны))",
         "hardWrap": false
       },
       "triggers": [
         {
           "if": "timer",
           "ms": 1500,
-          "then": "n107"
+          "then": "n115"
         }
       ]
     },
     {
-      "ref": "n107",
-      "type": "phrase_assembly",
-      "seq": 92,
+      "ref": "n115",
+      "type": "text",
+      "seq": 99,
       "pos": [
-        58160,
+        62080,
+        0
+      ],
+      "data": {
+        "content": "как сказать {t:«я в отеле»}?",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1500,
+          "then": "n116"
+        }
+      ]
+    },
+    {
+      "ref": "n116",
+      "type": "phrase_assembly",
+      "seq": 100,
+      "pos": [
+        62640,
         0
       ],
       "data": {
@@ -3323,7 +3519,7 @@
         ],
         "distractors": [
           {
-            "text": "in"
+            "text": "on"
           },
           {
             "text": "to"
@@ -3332,16 +3528,16 @@
             "text": "she"
           }
         ],
-        "responseWrong": "не совсем) нужны слова: I, am, at, the и hotel"
+        "responseWrong": "не совсем) отель это точка, значит {g:at} перед {g:the hotel}"
       },
       "triggers": [
         {
           "if": "phrase_correct",
-          "then": "n109"
+          "then": "n118"
         },
         {
           "if": "variant",
-          "variantLabel": "in",
+          "variantLabel": "on",
           "then": null
         },
         {
@@ -3356,56 +3552,56 @@
         },
         {
           "if": "phrase_wrong",
-          "then": "n108"
+          "then": "n117"
         }
       ]
     },
     {
-      "ref": "n108",
+      "ref": "n117",
       "type": "text",
-      "seq": 226,
+      "seq": 245,
       "pos": [
-        58160,
+        62640,
         480
       ],
       "data": {
-        "content": "не совсем) отель это точка, значит {g:I am at the hotel}, без {x:in}",
+        "content": "не совсем) {w:отель} это точка, значит {g:I am at the hotel}, без {x:on}",
         "hardWrap": false
       },
       "triggers": [
         {
           "if": "timer",
           "ms": 1500,
-          "then": "n110"
+          "then": "n119"
         }
       ]
     },
     {
-      "ref": "n109",
-      "type": "text",
-      "seq": 93,
+      "ref": "n118",
+      "type": "reaction",
+      "seq": 101,
       "pos": [
-        58720,
+        63200,
         0
       ],
       "data": {
-        "content": "В точку 👌",
-        "hardWrap": false
+        "emoji": "🥐",
+        "target": "student"
       },
       "triggers": [
         {
           "if": "timer",
-          "ms": 1500,
-          "then": "n110"
+          "ms": 1400,
+          "then": "n119"
         }
       ]
     },
     {
-      "ref": "n110",
+      "ref": "n119",
       "type": "photo",
-      "seq": 94,
+      "seq": 102,
       "pos": [
-        59280,
+        63760,
         0
       ],
       "note": "ФОТО: сгенерировать в редакторе по imagePrompt",
@@ -3423,16 +3619,16 @@
         {
           "if": "timer",
           "ms": 2200,
-          "then": "n111"
+          "then": "n120"
         }
       ]
     },
     {
-      "ref": "n111",
+      "ref": "n120",
       "type": "text",
-      "seq": 95,
+      "seq": 103,
       "pos": [
-        59840,
+        64320,
         0
       ],
       "data": {
@@ -3443,16 +3639,16 @@
         {
           "if": "timer",
           "ms": 1500,
-          "then": "n112"
+          "then": "n121"
         }
       ]
     },
     {
-      "ref": "n112",
+      "ref": "n121",
       "type": "word_choice",
-      "seq": 96,
+      "seq": 104,
       "pos": [
-        60400,
+        64880,
         0
       ],
       "data": {
@@ -3475,7 +3671,7 @@
       "triggers": [
         {
           "if": "word_correct",
-          "then": "n114"
+          "then": "n123"
         },
         {
           "if": "variant",
@@ -3494,16 +3690,16 @@
         },
         {
           "if": "word_wrong",
-          "then": "n113"
+          "then": "n122"
         }
       ]
     },
     {
-      "ref": "n113",
+      "ref": "n122",
       "type": "text",
-      "seq": 225,
+      "seq": 244,
       "pos": [
-        60400,
+        64880,
         480
       ],
       "data": {
@@ -3514,16 +3710,16 @@
         {
           "if": "timer",
           "ms": 1500,
-          "then": "n115"
+          "then": "n124"
         }
       ]
     },
     {
-      "ref": "n114",
+      "ref": "n123",
       "type": "text",
-      "seq": 97,
+      "seq": 105,
       "pos": [
-        60960,
+        65440,
         0
       ],
       "data": {
@@ -3534,16 +3730,16 @@
         {
           "if": "timer",
           "ms": 1500,
-          "then": "n115"
+          "then": "n124"
         }
       ]
     },
     {
-      "ref": "n115",
+      "ref": "n124",
       "type": "text",
-      "seq": 98,
+      "seq": 106,
       "pos": [
-        61520,
+        66000,
         0
       ],
       "data": {
@@ -3554,16 +3750,16 @@
         {
           "if": "timer",
           "ms": 1500,
-          "then": "n116"
+          "then": "n125"
         }
       ]
     },
     {
-      "ref": "n116",
+      "ref": "n125",
       "type": "audio",
-      "seq": 99,
+      "seq": 107,
       "pos": [
-        62080,
+        66560,
         0
       ],
       "note": "ОЗВУЧКА: We are at the park",
@@ -3575,16 +3771,16 @@
       "triggers": [
         {
           "if": "played",
-          "then": "n117"
+          "then": "n126"
         }
       ]
     },
     {
-      "ref": "n117",
+      "ref": "n126",
       "type": "word_choice",
-      "seq": 100,
+      "seq": 108,
       "pos": [
-        62640,
+        67120,
         0
       ],
       "data": {
@@ -3608,7 +3804,7 @@
       "triggers": [
         {
           "if": "word_correct",
-          "then": "n119"
+          "then": "n128"
         },
         {
           "if": "variant",
@@ -3627,16 +3823,16 @@
         },
         {
           "if": "word_wrong",
-          "then": "n118"
+          "then": "n127"
         }
       ]
     },
     {
-      "ref": "n118",
+      "ref": "n127",
       "type": "text",
-      "seq": 224,
+      "seq": 243,
       "pos": [
-        62640,
+        67120,
         480
       ],
       "data": {
@@ -3647,57 +3843,57 @@
         {
           "if": "timer",
           "ms": 1500,
-          "then": "n120"
+          "then": "n129"
         }
       ]
     },
     {
-      "ref": "n119",
-      "type": "text",
-      "seq": 101,
+      "ref": "n128",
+      "type": "reaction",
+      "seq": 109,
       "pos": [
-        63200,
+        67680,
         0
       ],
       "data": {
-        "content": "красава)",
-        "hardWrap": false
+        "emoji": "🌳",
+        "target": "student"
       },
       "triggers": [
         {
           "if": "timer",
-          "ms": 1500,
-          "then": "n120"
+          "ms": 1400,
+          "then": "n129"
         }
       ]
     },
     {
-      "ref": "n120",
+      "ref": "n129",
       "type": "audio",
-      "seq": 102,
+      "seq": 110,
       "pos": [
-        63760,
+        68240,
         0
       ],
-      "note": "ОЗВУЧКА: Скажи вслух «я на пляже»: пляж это beach, а начало ты знаешь, полное I am или короткое I'm, обе формы в ходу",
+      "note": "ОЗВУЧКА: Скажи вслух «я на пляже»: пляж это beach, начало любое, I am или I'm",
       "needs": "audio — озвучка реплики",
       "data": {
-        "text": "Скажи вслух {t:«я на пляже»}: пляж это {g:beach}, а начало ты знаешь, полное {g:I am} или короткое {g:I'm}, обе формы в ходу",
+        "text": "Скажи вслух {t:«я на пляже»}: пляж это {g:beach}, начало любое, {g:I am} или {g:I'm}",
         "showText": true
       },
       "triggers": [
         {
           "if": "played",
-          "then": "n121"
+          "then": "n130"
         }
       ]
     },
     {
-      "ref": "n121",
+      "ref": "n130",
       "type": "say_phrase",
-      "seq": 103,
+      "seq": 111,
       "pos": [
-        64320,
+        68800,
         0
       ],
       "data": {
@@ -3713,45 +3909,45 @@
         "hintPartial": "Близко) верно: {ok}, не хватило: {missed}",
         "pattern": "(I am|I'm) at the beach",
         "startHint": "I am at — я на",
-        "hintMismatch": "Скажи: I am at the beach, можно I'm at the beach)"
+        "hintMismatch": ""
       },
       "triggers": [
         {
           "if": "say_done",
-          "then": "n123"
+          "then": "n132"
         },
         {
           "if": "say_wrong",
-          "then": "n122"
+          "then": "n131"
         }
       ]
     },
     {
-      "ref": "n122",
+      "ref": "n131",
       "type": "text",
-      "seq": 223,
+      "seq": 242,
       "pos": [
-        64320,
+        68800,
         480
       ],
       "data": {
-        "content": "не то) скажи {g:I am at the beach}, пляж это точка",
+        "content": "близко) скажи {g:I am at the beach}, пляж это точка",
         "hardWrap": false
       },
       "triggers": [
         {
           "if": "timer",
           "ms": 1500,
-          "then": "n124"
+          "then": "n133"
         }
       ]
     },
     {
-      "ref": "n123",
+      "ref": "n132",
       "type": "text",
-      "seq": 104,
+      "seq": 112,
       "pos": [
-        64880,
+        69360,
         0
       ],
       "data": {
@@ -3762,16 +3958,16 @@
         {
           "if": "timer",
           "ms": 1500,
-          "then": "n124"
+          "then": "n133"
         }
       ]
     },
     {
-      "ref": "n124",
+      "ref": "n133",
       "type": "system",
-      "seq": 105,
+      "seq": 113,
       "pos": [
-        66140,
+        70620,
         0
       ],
       "data": {
@@ -3781,43 +3977,43 @@
         {
           "if": "timer",
           "ms": 1600,
-          "then": "n125"
+          "then": "n134"
         }
       ]
     },
     {
-      "ref": "n125",
+      "ref": "n134",
       "type": "audio",
-      "seq": 106,
+      "seq": 114,
       "pos": [
-        66700,
+        71180,
         0
       ],
-      "note": "ОЗВУЧКА: Теперь фразы подлиннее, но точка всё та же",
+      "note": "ОЗВУЧКА: Фразы подлиннее, но точка всё та же",
       "needs": "audio — озвучка реплики",
       "data": {
-        "text": "Теперь фразы подлиннее, но {l:точка всё та же}",
+        "text": "Фразы подлиннее, но {l:точка всё та же}",
         "showText": true
       },
       "triggers": [
         {
           "if": "played",
-          "then": "n126"
+          "then": "n135"
         }
       ]
     },
     {
-      "ref": "n126",
+      "ref": "n135",
       "type": "photo",
-      "seq": 107,
+      "seq": 115,
       "pos": [
-        67260,
+        71740,
         0
       ],
       "note": "ФОТО: сгенерировать в редакторе по imagePrompt",
       "needs": "photo",
       "data": {
-        "caption": "Кейт застряла в очереди в банке, пишет мне каждые пять минут(( собери {t:«она ждёт в банке»}",
+        "caption": "Кейт застряла в очереди в банке, пишет мне каждые пять минут((",
         "imagePrompt": "Мультяшная девушка стоит в очереди в банке с телефоном, скучает, без текста",
         "crop": {
           "x": 0,
@@ -3829,16 +4025,36 @@
         {
           "if": "timer",
           "ms": 2200,
-          "then": "n127"
+          "then": "n136"
         }
       ]
     },
     {
-      "ref": "n127",
-      "type": "phrase_assembly",
-      "seq": 108,
+      "ref": "n136",
+      "type": "text",
+      "seq": 116,
       "pos": [
-        67820,
+        72300,
+        0
+      ],
+      "data": {
+        "content": "собери {t:«она ждёт в банке»}",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1500,
+          "then": "n137"
+        }
+      ]
+    },
+    {
+      "ref": "n137",
+      "type": "phrase_assembly",
+      "seq": 117,
+      "pos": [
+        72860,
         0
       ],
       "data": {
@@ -3852,7 +4068,7 @@
         ],
         "distractors": [
           {
-            "text": "in"
+            "text": "on"
           },
           {
             "text": "to"
@@ -3861,16 +4077,16 @@
             "text": "he"
           }
         ],
-        "responseWrong": "не совсем) нужны слова: she, is, waiting, at, the и bank"
+        "responseWrong": "не совсем) банк это точка, значит {g:at} перед {g:the bank}"
       },
       "triggers": [
         {
           "if": "phrase_correct",
-          "then": "n129"
+          "then": "n139"
         },
         {
           "if": "variant",
-          "variantLabel": "in",
+          "variantLabel": "on",
           "then": null
         },
         {
@@ -3885,16 +4101,16 @@
         },
         {
           "if": "phrase_wrong",
-          "then": "n128"
+          "then": "n138"
         }
       ]
     },
     {
-      "ref": "n128",
+      "ref": "n138",
       "type": "text",
-      "seq": 222,
+      "seq": 241,
       "pos": [
-        67820,
+        72860,
         480
       ],
       "data": {
@@ -3905,16 +4121,16 @@
         {
           "if": "timer",
           "ms": 1500,
-          "then": "n130"
+          "then": "n140"
         }
       ]
     },
     {
-      "ref": "n129",
+      "ref": "n139",
       "type": "reaction",
-      "seq": 109,
+      "seq": 118,
       "pos": [
-        68380,
+        73420,
         0
       ],
       "data": {
@@ -3925,36 +4141,36 @@
         {
           "if": "timer",
           "ms": 1400,
-          "then": "n130"
+          "then": "n140"
         }
       ]
     },
     {
-      "ref": "n130",
+      "ref": "n140",
       "type": "text",
-      "seq": 110,
+      "seq": 119,
       "pos": [
-        68940,
+        73980,
         0
       ],
       "data": {
-        "content": "А теперь на слух 👂",
+        "content": "И на слух 👂",
         "hardWrap": false
       },
       "triggers": [
         {
           "if": "timer",
           "ms": 1500,
-          "then": "n131"
+          "then": "n141"
         }
       ]
     },
     {
-      "ref": "n131",
+      "ref": "n141",
       "type": "audio",
-      "seq": 111,
+      "seq": 120,
       "pos": [
-        69500,
+        74540,
         0
       ],
       "note": "ОЗВУЧКА: Tom gets up at five",
@@ -3966,16 +4182,16 @@
       "triggers": [
         {
           "if": "played",
-          "then": "n132"
+          "then": "n142"
         }
       ]
     },
     {
-      "ref": "n132",
+      "ref": "n142",
       "type": "word_choice",
-      "seq": 112,
+      "seq": 121,
       "pos": [
-        70060,
+        75100,
         0
       ],
       "data": {
@@ -3999,7 +4215,7 @@
       "triggers": [
         {
           "if": "word_correct",
-          "then": "n134"
+          "then": "n144"
         },
         {
           "if": "variant",
@@ -4018,16 +4234,16 @@
         },
         {
           "if": "word_wrong",
-          "then": "n133"
+          "then": "n143"
         }
       ]
     },
     {
-      "ref": "n133",
+      "ref": "n143",
       "type": "text",
-      "seq": 221,
+      "seq": 240,
       "pos": [
-        70060,
+        75100,
         480
       ],
       "data": {
@@ -4038,57 +4254,57 @@
         {
           "if": "timer",
           "ms": 1500,
-          "then": "n135"
+          "then": "n145"
         }
       ]
     },
     {
-      "ref": "n134",
-      "type": "text",
-      "seq": 113,
+      "ref": "n144",
+      "type": "reaction",
+      "seq": 122,
       "pos": [
-        70620,
+        75660,
         0
       ],
       "data": {
-        "content": "да)",
-        "hardWrap": false
+        "emoji": "⏰",
+        "target": "student"
       },
       "triggers": [
         {
           "if": "timer",
-          "ms": 1500,
-          "then": "n135"
+          "ms": 1400,
+          "then": "n145"
         }
       ]
     },
     {
-      "ref": "n135",
+      "ref": "n145",
       "type": "audio",
-      "seq": 114,
+      "seq": 123,
       "pos": [
-        71180,
+        76220,
         0
       ],
-      "note": "ОЗВУЧКА: Теперь своими словами: скажи, во сколько ты обычно встаёшь, начни с I get up at, а дальше любое время, засчитаю любое",
+      "note": "ОЗВУЧКА: Своими словами: скажи, во сколько ты обычно встаёшь, начни с I get up at, а дальше любое время, засчитаю любое",
       "needs": "audio — озвучка реплики",
       "data": {
-        "text": "Теперь своими словами: скажи, во сколько ты обычно встаёшь, начни с {g:I get up at}, а дальше любое время, засчитаю любое",
+        "text": "Своими словами: скажи, во сколько ты обычно встаёшь, начни с {g:I get up at}, а дальше любое время, засчитаю любое",
         "showText": true
       },
       "triggers": [
         {
           "if": "played",
-          "then": "n136"
+          "then": "n146"
         }
       ]
     },
     {
-      "ref": "n136",
+      "ref": "n146",
       "type": "say_phrase",
-      "seq": 115,
+      "seq": 124,
       "pos": [
-        71740,
+        76780,
         0
       ],
       "data": {
@@ -4109,20 +4325,20 @@
       "triggers": [
         {
           "if": "say_done",
-          "then": "n138"
+          "then": "n148"
         },
         {
           "if": "say_wrong",
-          "then": "n137"
+          "then": "n147"
         }
       ]
     },
     {
-      "ref": "n137",
+      "ref": "n147",
       "type": "text",
-      "seq": 220,
+      "seq": 239,
       "pos": [
-        71740,
+        76780,
         480
       ],
       "data": {
@@ -4133,16 +4349,16 @@
         {
           "if": "timer",
           "ms": 1500,
-          "then": "n141"
+          "then": "n151"
         }
       ]
     },
     {
-      "ref": "n138",
+      "ref": "n148",
       "type": "text",
-      "seq": 116,
+      "seq": 125,
       "pos": [
-        72300,
+        77340,
         0
       ],
       "data": {
@@ -4153,16 +4369,16 @@
         {
           "if": "timer",
           "ms": 1500,
-          "then": "n139"
+          "then": "n149"
         }
       ]
     },
     {
-      "ref": "n139",
+      "ref": "n149",
       "type": "audio",
-      "seq": 117,
+      "seq": 126,
       "pos": [
-        72860,
+        77900,
         0
       ],
       "note": "ОЗВУЧКА: после at ты просто ставишь свой час, вот и вся хитрость",
@@ -4174,16 +4390,16 @@
       "triggers": [
         {
           "if": "played",
-          "then": "n140"
+          "then": "n150"
         }
       ]
     },
     {
-      "ref": "n140",
+      "ref": "n150",
       "type": "reaction",
-      "seq": 118,
+      "seq": 127,
       "pos": [
-        73420,
+        78460,
         0
       ],
       "data": {
@@ -4194,22 +4410,22 @@
         {
           "if": "timer",
           "ms": 1400,
-          "then": "n141"
+          "then": "n151"
         }
       ]
     },
     {
-      "ref": "n141",
+      "ref": "n151",
       "type": "photo",
-      "seq": 119,
+      "seq": 128,
       "pos": [
-        73980,
+        79020,
         0
       ],
       "note": "ФОТО: сгенерировать в редакторе по imagePrompt",
       "needs": "photo",
       "data": {
-        "caption": "Теперь напечатай {t:«смотреть на Сэма»}: сначала {g:look}, а остальное допиши без подсказки",
+        "caption": "Кот в кафе не сводит глаз с Тома 👀",
         "imagePrompt": "Мультяшный кот смотрит на парня в кафе, крупный план, без текста",
         "crop": {
           "x": 0,
@@ -4221,283 +4437,50 @@
         {
           "if": "timer",
           "ms": 2200,
-          "then": "n142"
-        }
-      ]
-    },
-    {
-      "ref": "n142",
-      "type": "type_word",
-      "seq": 120,
-      "pos": [
-        74540,
-        0
-      ],
-      "data": {
-        "word": "look at Sam",
-        "extraLetters": "",
-        "responseWrong": "не то) взгляд летит к Сэму, значит look at Sam"
-      },
-      "triggers": [
-        {
-          "if": "type_correct",
-          "then": "n144"
-        },
-        {
-          "if": "type_wrong",
-          "then": "n143"
-        }
-      ]
-    },
-    {
-      "ref": "n143",
-      "type": "text",
-      "seq": 219,
-      "pos": [
-        74540,
-        480
-      ],
-      "data": {
-        "content": "но нет) взгляд летит в точку, к Сэму, значит {g:look at Sam}",
-        "hardWrap": false
-      },
-      "triggers": [
-        {
-          "if": "timer",
-          "ms": 1500,
-          "then": "n145"
-        }
-      ]
-    },
-    {
-      "ref": "n144",
-      "type": "text",
-      "seq": 121,
-      "pos": [
-        75100,
-        0
-      ],
-      "data": {
-        "content": "вооо, точность))",
-        "hardWrap": false
-      },
-      "triggers": [
-        {
-          "if": "timer",
-          "ms": 1500,
-          "then": "n145"
-        }
-      ]
-    },
-    {
-      "ref": "n145",
-      "type": "audio",
-      "seq": 122,
-      "pos": [
-        75660,
-        0
-      ],
-      "note": "ОЗВУЧКА: Ты быстро справляешься с заданиями, а теперь повторяй за мной, тут всё поймёшь без объяснения",
-      "needs": "audio — озвучка реплики",
-      "data": {
-        "text": "Ты быстро справляешься с заданиями, а теперь повторяй за мной, тут всё поймёшь без объяснения",
-        "showText": true
-      },
-      "triggers": [
-        {
-          "if": "played",
-          "then": "n146"
-        }
-      ]
-    },
-    {
-      "ref": "n146",
-      "type": "system",
-      "seq": 123,
-      "pos": [
-        76920,
-        0
-      ],
-      "data": {
-        "content": "Уровень 3 · повтори за мной"
-      },
-      "triggers": [
-        {
-          "if": "timer",
-          "ms": 1600,
-          "then": "n147"
-        }
-      ]
-    },
-    {
-      "ref": "n147",
-      "type": "audio",
-      "seq": 124,
-      "pos": [
-        77480,
-        0
-      ],
-      "note": "ОЗВУЧКА: Соберём длинную фразу с конца, кусок за куском: я говорю кусочек, а ты повторяешь его вслух за мной, с тем же ритмом",
-      "needs": "audio — озвучка реплики",
-      "data": {
-        "text": "Соберём длинную фразу с конца, кусок за куском: я говорю кусочек, а ты повторяешь его вслух за мной, с тем же ритмом",
-        "showText": true
-      },
-      "triggers": [
-        {
-          "if": "played",
-          "then": "n148"
-        }
-      ]
-    },
-    {
-      "ref": "n148",
-      "type": "audio",
-      "seq": 125,
-      "pos": [
-        78040,
-        0
-      ],
-      "note": "ОЗВУЧКА: at the bus stop",
-      "needs": "audio — озвучка реплики",
-      "data": {
-        "text": "{g:at the bus stop}",
-        "showText": false
-      },
-      "triggers": [
-        {
-          "if": "played",
-          "then": "n149"
-        }
-      ]
-    },
-    {
-      "ref": "n149",
-      "type": "say_phrase",
-      "seq": 126,
-      "pos": [
-        78600,
-        0
-      ],
-      "data": {
-        "lang": "en-US",
-        "phrase": "at the bus stop",
-        "translation": "на остановке",
-        "keywords": "",
-        "threshold": 70,
-        "strict": true,
-        "hintsOn": true,
-        "voiceReply": true,
-        "hintSilence": "Не слышу тебя) говори чуть громче и ближе к микрофону",
-        "hintPartial": "Близко) верно: {ok}, не хватило: {missed}",
-        "hintMismatch": "Скажи ровно этот кусок: at the bus stop)"
-      },
-      "triggers": [
-        {
-          "if": "say_done",
-          "then": "n151"
-        },
-        {
-          "if": "say_wrong",
-          "then": "n150"
-        }
-      ]
-    },
-    {
-      "ref": "n150",
-      "type": "text",
-      "seq": 218,
-      "pos": [
-        78600,
-        480
-      ],
-      "data": {
-        "content": "не то) копируй ритм, {g:at the bus stop}",
-        "hardWrap": false
-      },
-      "triggers": [
-        {
-          "if": "timer",
-          "ms": 1500,
-          "then": "n152"
-        }
-      ]
-    },
-    {
-      "ref": "n151",
-      "type": "text",
-      "seq": 127,
-      "pos": [
-        79160,
-        0
-      ],
-      "data": {
-        "content": "ритм тот самый 👌",
-        "hardWrap": false
-      },
-      "triggers": [
-        {
-          "if": "timer",
-          "ms": 1500,
           "then": "n152"
         }
       ]
     },
     {
       "ref": "n152",
-      "type": "photo",
-      "seq": 128,
+      "type": "text",
+      "seq": 129,
       "pos": [
-        79720,
+        79580,
         0
       ],
-      "note": "ФОТО: сгенерировать в редакторе по imagePrompt",
-      "needs": "photo",
       "data": {
-        "caption": "Теперь добавим начало и скажем целиком, голосом: {t:«мы ждём на остановке»}",
-        "imagePrompt": "Мультяшные парень и девушка стоят на автобусной остановке под навесом, дождь, без текста",
-        "crop": {
-          "x": 0,
-          "y": 0,
-          "scale": 1
-        }
+        "content": "напечатай {t:«смотреть на Тома»}: сначала {g:look}, а остальное допиши без подсказки",
+        "hardWrap": false
       },
       "triggers": [
         {
           "if": "timer",
-          "ms": 2200,
+          "ms": 1500,
           "then": "n153"
         }
       ]
     },
     {
       "ref": "n153",
-      "type": "say_phrase",
-      "seq": 129,
+      "type": "type_word",
+      "seq": 130,
       "pos": [
-        80280,
+        80140,
         0
       ],
       "data": {
-        "lang": "en-US",
-        "phrase": "We wait at the bus stop",
-        "translation": "Мы ждём на остановке",
-        "keywords": "",
-        "threshold": 70,
-        "strict": true,
-        "hintsOn": true,
-        "voiceReply": true,
-        "hintSilence": "Не слышу тебя) говори чуть громче и ближе к микрофону",
-        "hintPartial": "Близко) верно: {ok}, не хватило: {missed}",
-        "hintMismatch": "Скажи всю фразу: We wait at the bus stop)"
+        "word": "look at Tom",
+        "extraLetters": "",
+        "responseWrong": "не то) взгляд летит к Тому, значит look at Tom"
       },
       "triggers": [
         {
-          "if": "say_done",
+          "if": "type_correct",
           "then": "n155"
         },
         {
-          "if": "say_wrong",
+          "if": "type_wrong",
           "then": "n154"
         }
       ]
@@ -4505,14 +4488,14 @@
     {
       "ref": "n154",
       "type": "text",
-      "seq": 217,
+      "seq": 238,
       "pos": [
-        80280,
+        80140,
         480
       ],
       "data": {
-        "content": "близко) кто ждёт? {g:We}, и дальше тот же кусок:\n{g:We wait at the bus stop}",
-        "hardWrap": true
+        "content": "но нет) взгляд летит в точку, к Тому, значит {g:look at Tom}",
+        "hardWrap": false
       },
       "triggers": [
         {
@@ -4525,13 +4508,13 @@
     {
       "ref": "n155",
       "type": "text",
-      "seq": 130,
+      "seq": 131,
       "pos": [
-        80840,
+        80700,
         0
       ],
       "data": {
-        "content": "ага, звучит как надо 🔥",
+        "content": "вооо, точность))",
         "hardWrap": false
       },
       "triggers": [
@@ -4544,43 +4527,309 @@
     },
     {
       "ref": "n156",
-      "type": "text",
-      "seq": 131,
+      "type": "audio",
+      "seq": 132,
       "pos": [
-        81400,
+        81260,
         0
       ],
+      "note": "ОЗВУЧКА: Ты быстро справляешься с заданиями, дальше повторяй за мной, тут всё поймёшь без объяснения",
+      "needs": "audio — озвучка реплики",
       "data": {
-        "content": "Теперь соберём новое из знакомых кусков: {t:«я жду у кинотеатра»}, оба куска ты уже знаешь",
-        "hardWrap": false
+        "text": "Ты быстро справляешься с заданиями, дальше повторяй за мной, тут всё поймёшь без объяснения",
+        "showText": true
       },
       "triggers": [
         {
-          "if": "timer",
-          "ms": 1500,
+          "if": "played",
           "then": "n157"
         }
       ]
     },
     {
       "ref": "n157",
-      "type": "phrase_assembly",
-      "seq": 132,
+      "type": "system",
+      "seq": 133,
       "pos": [
-        81960,
+        82520,
+        0
+      ],
+      "data": {
+        "content": "Уровень 3 · повтори за мной"
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1600,
+          "then": "n158"
+        }
+      ]
+    },
+    {
+      "ref": "n158",
+      "type": "audio",
+      "seq": 134,
+      "pos": [
+        83080,
+        0
+      ],
+      "note": "ОЗВУЧКА: Соберём длинную фразу с конца, часть за частью: я говорю кусочек, а ты повторяешь его вслух за мной, с тем же ритмом",
+      "needs": "audio — озвучка реплики",
+      "data": {
+        "text": "Соберём длинную фразу с конца, часть за частью: я говорю кусочек, а ты повторяешь его вслух за мной, с тем же ритмом",
+        "showText": true
+      },
+      "triggers": [
+        {
+          "if": "played",
+          "then": "n159"
+        }
+      ]
+    },
+    {
+      "ref": "n159",
+      "type": "audio",
+      "seq": 135,
+      "pos": [
+        83640,
+        0
+      ],
+      "note": "ОЗВУЧКА: at the bus stop",
+      "needs": "audio — озвучка реплики",
+      "data": {
+        "text": "{g:at the bus stop}",
+        "showText": false
+      },
+      "triggers": [
+        {
+          "if": "played",
+          "then": "n160"
+        }
+      ]
+    },
+    {
+      "ref": "n160",
+      "type": "say_phrase",
+      "seq": 136,
+      "pos": [
+        84200,
+        0
+      ],
+      "data": {
+        "lang": "en-US",
+        "phrase": "at the bus stop",
+        "translation": "на остановке",
+        "keywords": "",
+        "threshold": 70,
+        "strict": true,
+        "hintsOn": true,
+        "voiceReply": true,
+        "hintSilence": "Не слышу тебя) говори чуть громче и ближе к микрофону",
+        "hintPartial": "Близко) верно: {ok}, не хватило: {missed}"
+      },
+      "triggers": [
+        {
+          "if": "say_done",
+          "then": "n162"
+        },
+        {
+          "if": "say_wrong",
+          "then": "n161"
+        }
+      ]
+    },
+    {
+      "ref": "n161",
+      "type": "text",
+      "seq": 237,
+      "pos": [
+        84200,
+        480
+      ],
+      "data": {
+        "content": "но нет) копируй ритм, {g:at the bus stop}",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1500,
+          "then": "n163"
+        }
+      ]
+    },
+    {
+      "ref": "n162",
+      "type": "text",
+      "seq": 137,
+      "pos": [
+        84760,
+        0
+      ],
+      "data": {
+        "content": "ритм тот самый 👌",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1500,
+          "then": "n163"
+        }
+      ]
+    },
+    {
+      "ref": "n163",
+      "type": "text",
+      "seq": 138,
+      "pos": [
+        85320,
+        0
+      ],
+      "data": {
+        "content": "Добавим начало, слушай",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1500,
+          "then": "n164"
+        }
+      ]
+    },
+    {
+      "ref": "n164",
+      "type": "audio",
+      "seq": 139,
+      "pos": [
+        85880,
+        0
+      ],
+      "note": "ОЗВУЧКА: We wait at the bus stop",
+      "needs": "audio — озвучка реплики",
+      "data": {
+        "text": "{g:We wait at the bus stop}",
+        "showText": false
+      },
+      "triggers": [
+        {
+          "if": "played",
+          "then": "n165"
+        }
+      ]
+    },
+    {
+      "ref": "n165",
+      "type": "say_phrase",
+      "seq": 140,
+      "pos": [
+        86440,
+        0
+      ],
+      "data": {
+        "lang": "en-US",
+        "phrase": "We wait at the bus stop",
+        "translation": "Мы ждём на остановке",
+        "keywords": "",
+        "threshold": 70,
+        "strict": true,
+        "hintsOn": true,
+        "voiceReply": true,
+        "hintSilence": "Не слышу тебя) говори чуть громче и ближе к микрофону",
+        "hintPartial": "Близко) верно: {ok}, не хватило: {missed}"
+      },
+      "triggers": [
+        {
+          "if": "say_done",
+          "then": "n167"
+        },
+        {
+          "if": "say_wrong",
+          "then": "n166"
+        }
+      ]
+    },
+    {
+      "ref": "n166",
+      "type": "text",
+      "seq": 236,
+      "pos": [
+        86440,
+        480
+      ],
+      "data": {
+        "content": "близко) кто ждёт? {g:We}, и дальше та же часть:\n{g:We wait at the bus stop}",
+        "hardWrap": true
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1500,
+          "then": "n168"
+        }
+      ]
+    },
+    {
+      "ref": "n167",
+      "type": "text",
+      "seq": 141,
+      "pos": [
+        87000,
+        0
+      ],
+      "data": {
+        "content": "звучит как надо 🔥",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1500,
+          "then": "n168"
+        }
+      ]
+    },
+    {
+      "ref": "n168",
+      "type": "audio",
+      "seq": 142,
+      "pos": [
+        87560,
+        0
+      ],
+      "note": "ОЗВУЧКА: Соберём новое из знакомых частей: мы встречаемся у кинотеатра",
+      "needs": "audio — озвучка реплики",
+      "data": {
+        "text": "Соберём новое из знакомых частей: мы встречаемся у кинотеатра",
+        "showText": true
+      },
+      "triggers": [
+        {
+          "if": "played",
+          "then": "n169"
+        }
+      ]
+    },
+    {
+      "ref": "n169",
+      "type": "phrase_assembly",
+      "seq": 143,
+      "pos": [
+        88120,
         0
       ],
       "data": {
         "words": [
-          "I",
-          "wait",
+          "We",
+          "meet",
           "at",
           "the",
           "cinema"
         ],
         "distractors": [
           {
-            "text": "in"
+            "text": "on"
           },
           {
             "text": "to"
@@ -4589,16 +4838,16 @@
             "text": "they"
           }
         ],
-        "responseWrong": "не совсем) нужны слова: I, wait, at, the и cinema"
+        "responseWrong": "не совсем) кинотеатр это точка, значит {g:at} перед {g:the cinema}"
       },
       "triggers": [
         {
           "if": "phrase_correct",
-          "then": "n159"
+          "then": "n171"
         },
         {
           "if": "variant",
-          "variantLabel": "in",
+          "variantLabel": "on",
           "then": null
         },
         {
@@ -4613,36 +4862,36 @@
         },
         {
           "if": "phrase_wrong",
-          "then": "n158"
+          "then": "n170"
         }
       ]
     },
     {
-      "ref": "n158",
+      "ref": "n170",
       "type": "text",
-      "seq": 216,
+      "seq": 235,
       "pos": [
-        81960,
+        88120,
         480
       ],
       "data": {
-        "content": "но нет) склей два куска: {g:I wait} и {g:at the cinema}",
+        "content": "но нет) склей две части: {g:We meet} и {g:at the cinema}",
         "hardWrap": false
       },
       "triggers": [
         {
           "if": "timer",
           "ms": 1500,
-          "then": "n160"
+          "then": "n172"
         }
       ]
     },
     {
-      "ref": "n159",
+      "ref": "n171",
       "type": "text",
-      "seq": 133,
+      "seq": 144,
       "pos": [
-        82520,
+        88680,
         0
       ],
       "data": {
@@ -4653,16 +4902,16 @@
         {
           "if": "timer",
           "ms": 1500,
-          "then": "n160"
+          "then": "n172"
         }
       ]
     },
     {
-      "ref": "n160",
+      "ref": "n172",
       "type": "system",
-      "seq": 134,
+      "seq": 145,
       "pos": [
-        83780,
+        89940,
         0
       ],
       "data": {
@@ -4672,36 +4921,36 @@
         {
           "if": "timer",
           "ms": 1600,
-          "then": "n161"
+          "then": "n173"
         }
       ]
     },
     {
-      "ref": "n161",
+      "ref": "n173",
       "type": "text",
-      "seq": 135,
+      "seq": 146,
       "pos": [
-        84340,
+        90500,
         0
       ],
       "data": {
-        "content": "А теперь хитрые случаи 😏 {t:«мы идём домой»}, нужна ли тут точка?\n{g:We go ___ home}",
+        "content": "Хитрые случаи 😏 {t:«мы идём домой»}, нужна ли тут точка?\n{g:We go ___ home}",
         "hardWrap": true
       },
       "triggers": [
         {
           "if": "timer",
           "ms": 1500,
-          "then": "n162"
+          "then": "n174"
         }
       ]
     },
     {
-      "ref": "n162",
+      "ref": "n174",
       "type": "word_choice",
-      "seq": 136,
+      "seq": 147,
       "pos": [
-        84900,
+        91060,
         0
       ],
       "data": {
@@ -4724,7 +4973,7 @@
       "triggers": [
         {
           "if": "word_correct",
-          "then": "n164"
+          "then": "n176"
         },
         {
           "if": "variant",
@@ -4743,36 +4992,36 @@
         },
         {
           "if": "word_wrong",
-          "then": "n163"
+          "then": "n175"
         }
       ]
     },
     {
-      "ref": "n163",
+      "ref": "n175",
       "type": "text",
-      "seq": 215,
+      "seq": 234,
       "pos": [
-        84900,
+        91060,
         480
       ],
       "data": {
-        "content": "близко) идём это движение, а {g:at} это стою в точке, поэтому просто {g:We go home}",
+        "content": "близко) идём это {w:движение}, а {g:at} это стою в точке, поэтому просто {g:We go home}",
         "hardWrap": false
       },
       "triggers": [
         {
           "if": "timer",
           "ms": 1500,
-          "then": "n165"
+          "then": "n177"
         }
       ]
     },
     {
-      "ref": "n164",
+      "ref": "n176",
       "type": "sticker",
-      "seq": 137,
+      "seq": 148,
       "pos": [
-        85460,
+        91620,
         0
       ],
       "note": "СТИКЕР: сгенерировать в редакторе по imagePrompt",
@@ -4792,43 +5041,43 @@
         {
           "if": "timer",
           "ms": 1200,
-          "then": "n165"
+          "then": "n177"
         }
       ]
     },
     {
-      "ref": "n165",
+      "ref": "n177",
       "type": "audio",
-      "seq": 138,
+      "seq": 149,
       "pos": [
-        86020,
+        92180,
         0
       ],
       "note": "ОЗВУЧКА: at home это стою дома, в точке. А go home это движение, слово home уже само значит домой, поэтому at здесь лишний",
       "needs": "audio — озвучка реплики",
       "data": {
-        "text": "{g:at home} это стою дома, в точке. А {g:go home} это движение, слово {g:home} уже само значит домой, поэтому {g:at} здесь {l:лишний}",
+        "text": "{g:at home} это стою дома, в точке. А {g:go home} это движение, слово {g:home} уже само значит {t:домой}, поэтому {g:at} здесь {x:лишний}",
         "showText": true
       },
       "triggers": [
         {
           "if": "played",
-          "then": "n166"
+          "then": "n178"
         }
       ]
     },
     {
-      "ref": "n166",
+      "ref": "n178",
       "type": "photo",
-      "seq": 139,
+      "seq": 150,
       "pos": [
-        86580,
+        92740,
         0
       ],
       "note": "ФОТО: сгенерировать в редакторе по imagePrompt",
       "needs": "photo",
       "data": {
-        "caption": "И ещё одна ловушка: Кейт просит позвонить ей в полдень, собери {t:«я тебе позвоню в полдень»}",
+        "caption": "Кейт просит позвонить ей в полдень, Пит ставит будильник 📞",
         "imagePrompt": "Мультяшный парень с телефоном смотрит на часы, стрелки на двенадцати, без текста",
         "crop": {
           "x": 0,
@@ -4840,16 +5089,36 @@
         {
           "if": "timer",
           "ms": 2200,
-          "then": "n167"
+          "then": "n179"
         }
       ]
     },
     {
-      "ref": "n167",
-      "type": "phrase_assembly",
-      "seq": 140,
+      "ref": "n179",
+      "type": "text",
+      "seq": 151,
       "pos": [
-        87140,
+        93300,
+        0
+      ],
+      "data": {
+        "content": "собери {t:«я тебе позвоню в полдень»}",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1500,
+          "then": "n180"
+        }
+      ]
+    },
+    {
+      "ref": "n180",
+      "type": "phrase_assembly",
+      "seq": 152,
+      "pos": [
+        93860,
         0
       ],
       "data": {
@@ -4872,12 +5141,12 @@
             "text": "we"
           }
         ],
-        "responseWrong": "не совсем) нужны слова: I, will, call, you, at и noon"
+        "responseWrong": "не совсем) полдень это точка на часах, значит {g:at} перед {w:noon}"
       },
       "triggers": [
         {
           "if": "phrase_correct",
-          "then": "n169"
+          "then": "n182"
         },
         {
           "if": "variant",
@@ -4896,36 +5165,36 @@
         },
         {
           "if": "phrase_wrong",
-          "then": "n168"
+          "then": "n181"
         }
       ]
     },
     {
-      "ref": "n168",
+      "ref": "n181",
       "type": "text",
-      "seq": 214,
+      "seq": 233,
       "pos": [
-        87140,
+        93860,
         480
       ],
       "data": {
-        "content": "неа) полдень это точка на часах, значит {g:I will call you at noon}",
+        "content": "неа) {w:полдень} это точка на часах, значит {g:I will call you at noon}",
         "hardWrap": false
       },
       "triggers": [
         {
           "if": "timer",
           "ms": 1500,
-          "then": "n170"
+          "then": "n183"
         }
       ]
     },
     {
-      "ref": "n169",
+      "ref": "n182",
       "type": "text",
-      "seq": 141,
+      "seq": 153,
       "pos": [
-        87700,
+        94420,
         0
       ],
       "data": {
@@ -4936,16 +5205,16 @@
         {
           "if": "timer",
           "ms": 1500,
-          "then": "n170"
+          "then": "n183"
         }
       ]
     },
     {
-      "ref": "n170",
+      "ref": "n183",
       "type": "text",
-      "seq": 142,
+      "seq": 154,
       "pos": [
-        88260,
+        94980,
         0
       ],
       "data": {
@@ -4956,150 +5225,150 @@
         {
           "if": "timer",
           "ms": 1500,
-          "then": "n171"
+          "then": "n184"
         }
       ]
     },
     {
-      "ref": "n171",
+      "ref": "n184",
       "type": "audio",
-      "seq": 143,
+      "seq": 155,
       "pos": [
-        88820,
+        95540,
         0
       ],
-      "note": "ОЗВУЧКА: They go home at nine",
+      "note": "ОЗВУЧКА: Kate is at the door",
       "needs": "audio — озвучка реплики",
       "data": {
-        "text": "{g:They go home at nine}",
+        "text": "{g:Kate is at the door}",
         "showText": false
       },
       "triggers": [
         {
           "if": "played",
-          "then": "n172"
+          "then": "n185"
         }
       ]
     },
     {
-      "ref": "n172",
+      "ref": "n185",
       "type": "word_choice",
-      "seq": 144,
+      "seq": 156,
       "pos": [
-        89380,
+        96100,
         0
       ],
       "data": {
         "options": [
           {
-            "text": "Они идут домой в девять",
+            "text": "Кейт у двери",
             "isCorrect": true
           },
           {
-            "text": "Они дома в девять",
+            "text": "Кейт идёт к двери",
             "isCorrect": false
           },
           {
-            "text": "Они идут домой утром",
+            "text": "Кейт за дверью",
             "isCorrect": false
           }
         ],
         "sendPickToChat": true,
-        "voicePhrase": "They go home at nine"
+        "voicePhrase": "Kate is at the door"
       },
       "triggers": [
         {
           "if": "word_correct",
-          "then": "n174"
+          "then": "n187"
         },
         {
           "if": "variant",
-          "variantLabel": "Они идут домой в девять",
+          "variantLabel": "Кейт у двери",
           "then": null
         },
         {
           "if": "variant",
-          "variantLabel": "Они дома в девять",
+          "variantLabel": "Кейт идёт к двери",
           "then": null
         },
         {
           "if": "variant",
-          "variantLabel": "Они идут домой утром",
+          "variantLabel": "Кейт за дверью",
           "then": null
         },
         {
           "if": "word_wrong",
-          "then": "n173"
+          "then": "n186"
         }
       ]
     },
     {
-      "ref": "n173",
+      "ref": "n186",
       "type": "text",
-      "seq": 213,
+      "seq": 232,
       "pos": [
-        89380,
+        96100,
         480
       ],
       "data": {
-        "content": "не совсем) {g:go home} это {t:идут домой}, а {g:at nine} это {t:в девять}",
+        "content": "не совсем) {g:at the door} это {t:у двери}, точка {w:дверь}",
         "hardWrap": false
       },
       "triggers": [
         {
           "if": "timer",
           "ms": 1500,
-          "then": "n175"
+          "then": "n188"
         }
       ]
     },
     {
-      "ref": "n174",
-      "type": "text",
-      "seq": 145,
+      "ref": "n187",
+      "type": "reaction",
+      "seq": 157,
       "pos": [
-        89940,
+        96660,
         0
       ],
       "data": {
-        "content": "в точку))",
-        "hardWrap": false
+        "emoji": "🚪",
+        "target": "student"
       },
       "triggers": [
         {
           "if": "timer",
-          "ms": 1500,
-          "then": "n175"
+          "ms": 1400,
+          "then": "n188"
         }
       ]
     },
     {
-      "ref": "n175",
+      "ref": "n188",
       "type": "audio",
-      "seq": 146,
+      "seq": 158,
       "pos": [
-        90500,
+        97220,
         0
       ],
-      "note": "ОЗВУЧКА: Скажи вслух «иди домой», двумя словами и без точки",
+      "note": "ОЗВУЧКА: Скажи вслух «иди домой», двумя словами",
       "needs": "audio — озвучка реплики",
       "data": {
-        "text": "Скажи вслух {t:«иди домой»}, двумя словами и без точки",
+        "text": "Скажи вслух {t:«иди домой»}, двумя словами",
         "showText": true
       },
       "triggers": [
         {
           "if": "played",
-          "then": "n176"
+          "then": "n189"
         }
       ]
     },
     {
-      "ref": "n176",
+      "ref": "n189",
       "type": "say_phrase",
-      "seq": 147,
+      "seq": 159,
       "pos": [
-        91060,
+        97780,
         0
       ],
       "data": {
@@ -5112,69 +5381,68 @@
         "hintsOn": true,
         "voiceReply": true,
         "hintSilence": "Не слышу тебя) говори чуть громче и ближе к микрофону",
-        "hintPartial": "Близко) верно: {ok}, не хватило: {missed}",
-        "hintMismatch": "Скажи: go home, без at)"
+        "hintPartial": "Близко) верно: {ok}, не хватило: {missed}"
       },
       "triggers": [
         {
           "if": "say_done",
-          "then": "n178"
+          "then": "n191"
         },
         {
           "if": "say_wrong",
-          "then": "n177"
+          "then": "n190"
         }
       ]
     },
     {
-      "ref": "n177",
+      "ref": "n190",
       "type": "text",
-      "seq": 212,
+      "seq": 231,
       "pos": [
-        91060,
+        97780,
         480
       ],
       "data": {
-        "content": "не то) просто {g:go home}, точка тут {x:лишняя}",
+        "content": "не совсем) просто {g:go home}, точка тут {x:лишняя}",
         "hardWrap": false
       },
       "triggers": [
         {
           "if": "timer",
           "ms": 1500,
-          "then": "n179"
+          "then": "n192"
         }
       ]
     },
     {
-      "ref": "n178",
+      "ref": "n191",
       "type": "text",
-      "seq": 148,
+      "seq": 160,
       "pos": [
-        91620,
+        98340,
         0
       ],
       "data": {
-        "content": "вот так, без лишнего)",
+        "content": "без лишнего, вот так)",
         "hardWrap": false
       },
       "triggers": [
         {
           "if": "timer",
           "ms": 1500,
-          "then": "n179"
+          "then": "n192"
         }
       ]
     },
     {
-      "ref": "n179",
+      "ref": "n192",
       "type": "table",
-      "seq": 149,
+      "seq": 161,
       "pos": [
-        92180,
+        98900,
         0
       ],
-      "note": "ОЗВУЧКА таблицы (скрипт идёт по ячейкам слева направо, сверху вниз; метку «Проверить» поставить при монтаже после последней ячейки): Подведём итог ловушек. Go home, нет, это движение, а не точка. In the morning, нет, утро долгий отрезок, а не точка. Зато ночь и полдень это точки, at night, at noon",
+      "note": "ОЗВУЧКА таблицы (скрипт идёт по ячейкам слева направо, сверху вниз; метку «Проверить» поставить при монтаже после последней ячейки): Подведём итог ловушек. Go home, иди домой, нет, это движение. At home, дома, да, я стою в точке. Одно слово home, а разница в движении",
       "needs": "audio — только для режима dictator",
       "data": {
         "mode": "dictator",
@@ -5208,7 +5476,7 @@
               "id": "h1",
               "col": 1,
               "row": 0,
-              "value": "at?",
+              "value": "Нужен?",
               "colspan": 1,
               "rowspan": 1,
               "fontSize": 11,
@@ -5246,7 +5514,7 @@
               "id": "r0c2",
               "col": 2,
               "row": 1,
-              "value": "движение, не точка",
+              "value": "движение",
               "colspan": 1,
               "rowspan": 1,
               "fontSize": 13
@@ -5255,7 +5523,7 @@
               "id": "r1c0",
               "col": 0,
               "row": 2,
-              "value": "in the morning",
+              "value": "at home",
               "colspan": 1,
               "rowspan": 1,
               "fontSize": 13
@@ -5264,7 +5532,7 @@
               "id": "r1c1",
               "col": 1,
               "row": 2,
-              "value": "нет",
+              "value": "да",
               "colspan": 1,
               "rowspan": 1,
               "fontSize": 15
@@ -5273,7 +5541,7 @@
               "id": "r1c2",
               "col": 2,
               "row": 2,
-              "value": "долгий отрезок",
+              "value": "стою в точке",
               "colspan": 1,
               "rowspan": 1,
               "fontSize": 13
@@ -5297,13 +5565,13 @@
           "rowCount": 3
         },
         "chatCaption": "когда точка не нужна",
-        "script": "Подведём итог ловушек. Go home, нет, это движение, а не точка. In the morning, нет, утро долгий отрезок, а не точка. Зато ночь и полдень это точки, at night, at noon",
+        "script": "Подведём итог ловушек. Go home, иди домой, нет, это движение. At home, дома, да, я стою в точке. Одно слово home, а разница в движении",
         "sendToChat": true
       },
       "triggers": [
         {
           "if": "table_correct",
-          "then": "n180"
+          "then": "n193"
         },
         {
           "if": "table_wrong",
@@ -5312,30 +5580,30 @@
       ]
     },
     {
-      "ref": "n180",
+      "ref": "n193",
       "type": "pin_message",
-      "seq": 150,
+      "seq": 162,
       "pos": [
-        92740,
+        99460,
         0
       ],
       "data": {
-        "content": "точка не нужна: {g:go home}, {g:in the morning}"
+        "content": "{g:go home} без точки, {g:at home} с точкой"
       },
       "triggers": [
         {
           "if": "timer",
           "ms": 1800,
-          "then": "n181"
+          "then": "n194"
         }
       ]
     },
     {
-      "ref": "n181",
+      "ref": "n194",
       "type": "system",
-      "seq": 151,
+      "seq": 163,
       "pos": [
-        94000,
+        100720,
         0
       ],
       "data": {
@@ -5345,22 +5613,22 @@
         {
           "if": "timer",
           "ms": 1600,
-          "then": "n182"
+          "then": "n195"
         }
       ]
     },
     {
-      "ref": "n182",
+      "ref": "n195",
       "type": "sticker",
-      "seq": 152,
+      "seq": 164,
       "pos": [
-        94560,
+        101280,
         0
       ],
       "note": "СТИКЕР: сгенерировать в редакторе по imagePrompt",
       "needs": "photo/video — сам стикер",
       "data": {
-        "imagePrompt": "Мультяшный кот в шоке с открытым ртом, светлый фон, без текста",
+        "imagePrompt": "Мультяшный кот с лупой внимательно что-то разглядывает, светлый фон, без текста",
         "crop": {
           "x": 0,
           "y": 0,
@@ -5374,47 +5642,47 @@
         {
           "if": "timer",
           "ms": 1200,
-          "then": "n183"
+          "then": "n196"
         }
       ]
     },
     {
-      "ref": "n183",
+      "ref": "n196",
       "type": "text",
-      "seq": 153,
+      "seq": 165,
       "pos": [
-        95120,
+        101840,
         0
       ],
       "data": {
-        "content": "Кейт ночью не спит, сидит и смотрит на звёзды)) длинное предложение, получится? {t:«Кейт смотрит на небо ночью»}",
+        "content": "Том на работе изучает карту, завтра в поход)) длинное предложение, получится? {t:«Том смотрит на карту на работе»}, тут {g:at} понадобится два раза",
         "hardWrap": false
       },
       "triggers": [
         {
           "if": "timer",
           "ms": 1500,
-          "then": "n184"
+          "then": "n197"
         }
       ]
     },
     {
-      "ref": "n184",
+      "ref": "n197",
       "type": "phrase_assembly",
-      "seq": 154,
+      "seq": 166,
       "pos": [
-        95680,
+        102400,
         0
       ],
       "data": {
         "words": [
-          "Kate",
+          "Tom",
           "looks",
           "at",
           "the",
-          "sky",
+          "map",
           "at",
-          "night"
+          "work"
         ],
         "distractors": [
           {
@@ -5427,12 +5695,12 @@
             "text": "she"
           }
         ],
-        "responseWrong": "не совсем) нужны слова: Kate, looks, at, the, sky, at и night"
+        "responseWrong": "не совсем) первый {g:at} ведёт взгляд, второй показывает место"
       },
       "triggers": [
         {
           "if": "phrase_correct",
-          "then": "n186"
+          "then": "n199"
         },
         {
           "if": "variant",
@@ -5451,36 +5719,36 @@
         },
         {
           "if": "phrase_wrong",
-          "then": "n185"
+          "then": "n198"
         }
       ]
     },
     {
-      "ref": "n185",
+      "ref": "n198",
       "type": "text",
-      "seq": 211,
+      "seq": 230,
       "pos": [
-        95680,
+        102400,
         480
       ],
       "data": {
-        "content": "неа) {g:looks at}, а потом ещё один {g:at}:\n{g:Kate looks at the sky at night}",
+        "content": "неа) {g:looks at}, а потом ещё один {g:at}:\n{g:Tom looks at the map at work}",
         "hardWrap": true
       },
       "triggers": [
         {
           "if": "timer",
           "ms": 1500,
-          "then": "n187"
+          "then": "n200"
         }
       ]
     },
     {
-      "ref": "n186",
+      "ref": "n199",
       "type": "text",
-      "seq": 155,
+      "seq": 167,
       "pos": [
-        96240,
+        102960,
         0
       ],
       "data": {
@@ -5491,37 +5759,37 @@
         {
           "if": "timer",
           "ms": 1500,
-          "then": "n187"
+          "then": "n200"
         }
       ]
     },
     {
-      "ref": "n187",
+      "ref": "n200",
       "type": "audio",
-      "seq": 156,
+      "seq": 168,
       "pos": [
-        96800,
+        103520,
         0
       ],
-      "note": "ОЗВУЧКА: Первый at ведёт взгляд к небу, а второй показывает момент, ночь",
+      "note": "ОЗВУЧКА: Первый at ведёт взгляд к карте, а второй показывает место, работу",
       "needs": "audio — озвучка реплики",
       "data": {
-        "text": "Первый {g:at} ведёт взгляд к небу, а {l:второй показывает момент}, ночь",
+        "text": "Первый {g:at} ведёт взгляд к карте, а {l:второй показывает место}, работу",
         "showText": true
       },
       "triggers": [
         {
           "if": "played",
-          "then": "n188"
+          "then": "n201"
         }
       ]
     },
     {
-      "ref": "n188",
+      "ref": "n201",
       "type": "audio",
-      "seq": 157,
+      "seq": 169,
       "pos": [
-        97360,
+        104080,
         0
       ],
       "note": "ОЗВУЧКА: Скажи вслух, где ты встречаешься с Кейт или с другом: начни с I meet, назови имя, потом at и любое место, засчитаю любое",
@@ -5533,16 +5801,16 @@
       "triggers": [
         {
           "if": "played",
-          "then": "n189"
+          "then": "n202"
         }
       ]
     },
     {
-      "ref": "n189",
+      "ref": "n202",
       "type": "say_phrase",
-      "seq": 158,
+      "seq": 170,
       "pos": [
-        97920,
+        104640,
         0
       ],
       "data": {
@@ -5563,20 +5831,20 @@
       "triggers": [
         {
           "if": "say_done",
-          "then": "n191"
+          "then": "n204"
         },
         {
           "if": "say_wrong",
-          "then": "n190"
+          "then": "n203"
         }
       ]
     },
     {
-      "ref": "n190",
+      "ref": "n203",
       "type": "text",
-      "seq": 210,
+      "seq": 229,
       "pos": [
-        97920,
+        104640,
         480
       ],
       "data": {
@@ -5587,36 +5855,36 @@
         {
           "if": "timer",
           "ms": 1500,
-          "then": "n192"
+          "then": "n205"
         }
       ]
     },
     {
-      "ref": "n191",
+      "ref": "n204",
       "type": "text",
-      "seq": 159,
+      "seq": 171,
       "pos": [
-        98480,
+        105200,
         0
       ],
       "data": {
-        "content": "ого, длинная фраза, а порядок на месте 🤝",
+        "content": "длинная фраза, а порядок на месте 🤝",
         "hardWrap": false
       },
       "triggers": [
         {
           "if": "timer",
           "ms": 1500,
-          "then": "n192"
+          "then": "n205"
         }
       ]
     },
     {
-      "ref": "n192",
+      "ref": "n205",
       "type": "text",
-      "seq": 160,
+      "seq": 172,
       "pos": [
-        99040,
+        105760,
         0
       ],
       "data": {
@@ -5627,171 +5895,171 @@
         {
           "if": "timer",
           "ms": 1500,
-          "then": "n193"
+          "then": "n206"
         }
       ]
     },
     {
-      "ref": "n193",
+      "ref": "n206",
       "type": "audio",
-      "seq": 161,
+      "seq": 173,
       "pos": [
-        99600,
+        106320,
         0
       ],
-      "note": "ОЗВУЧКА: Tom laughs at my jokes",
+      "note": "ОЗВУЧКА: Kate laughs at my jokes",
       "needs": "audio — озвучка реплики",
       "data": {
-        "text": "{g:Tom laughs at my jokes}",
+        "text": "{g:Kate laughs at my jokes}",
         "showText": false
       },
       "triggers": [
         {
           "if": "played",
-          "then": "n194"
+          "then": "n207"
         }
       ]
     },
     {
-      "ref": "n194",
+      "ref": "n207",
       "type": "word_choice",
-      "seq": 162,
+      "seq": 174,
       "pos": [
-        100160,
+        106880,
         0
       ],
       "data": {
         "options": [
           {
-            "text": "Том смеётся над моими шутками",
+            "text": "Кейт смеётся над моими шутками",
             "isCorrect": true
           },
           {
-            "text": "Том любит мои шутки",
+            "text": "Кейт любит мои шутки",
             "isCorrect": false
           },
           {
-            "text": "Том рассказывает шутки",
+            "text": "Кейт рассказывает шутки",
             "isCorrect": false
           }
         ],
         "sendPickToChat": true,
-        "voicePhrase": "Tom laughs at my jokes"
+        "voicePhrase": "Kate laughs at my jokes"
       },
       "triggers": [
         {
           "if": "word_correct",
-          "then": "n196"
+          "then": "n209"
         },
         {
           "if": "variant",
-          "variantLabel": "Том смеётся над моими шутками",
+          "variantLabel": "Кейт смеётся над моими шутками",
           "then": null
         },
         {
           "if": "variant",
-          "variantLabel": "Том любит мои шутки",
+          "variantLabel": "Кейт любит мои шутки",
           "then": null
         },
         {
           "if": "variant",
-          "variantLabel": "Том рассказывает шутки",
+          "variantLabel": "Кейт рассказывает шутки",
           "then": null
         },
         {
           "if": "word_wrong",
-          "then": "n195"
+          "then": "n208"
         }
       ]
     },
     {
-      "ref": "n195",
+      "ref": "n208",
       "type": "text",
-      "seq": 209,
+      "seq": 228,
       "pos": [
-        100160,
+        106880,
         480
       ],
       "data": {
-        "content": "неа) {g:laughs at} это {t:смеётся над}, поэтому {g:Tom laughs at my jokes} это {t:Том смеётся над моими шутками}",
+        "content": "неа) {g:laughs at} это {t:смеётся над}, поэтому {g:Kate laughs at my jokes} это {t:Кейт смеётся над моими шутками}",
         "hardWrap": false
       },
       "triggers": [
         {
           "if": "timer",
           "ms": 1500,
-          "then": "n197"
+          "then": "n210"
         }
       ]
     },
     {
-      "ref": "n196",
-      "type": "text",
-      "seq": 163,
+      "ref": "n209",
+      "type": "reaction",
+      "seq": 175,
       "pos": [
-        100720,
+        107440,
         0
       ],
       "data": {
-        "content": "кек, Том такой)",
-        "hardWrap": false
+        "emoji": "😂",
+        "target": "student"
       },
       "triggers": [
         {
           "if": "timer",
-          "ms": 1500,
-          "then": "n197"
+          "ms": 1400,
+          "then": "n210"
         }
       ]
     },
     {
-      "ref": "n197",
+      "ref": "n210",
       "type": "audio",
-      "seq": 164,
+      "seq": 176,
       "pos": [
-        101280,
+        108000,
         0
       ],
-      "note": "ОЗВУЧКА: Смех, как и взгляд, летит в точку, поэтому laughs at",
+      "note": "ОЗВУЧКА: Смех, как и взгляд, летит в точку, поэтому laughs at, смеётся над",
       "needs": "audio — озвучка реплики",
       "data": {
-        "text": "Смех, как и взгляд, {l:летит в точку}, поэтому {g:laughs at}",
+        "text": "Смех, как и взгляд, {l:летит в точку}, поэтому {g:laughs at}, {t:смеётся над}",
         "showText": true
       },
       "triggers": [
         {
           "if": "played",
-          "then": "n198"
+          "then": "n211"
         }
       ]
     },
     {
-      "ref": "n198",
+      "ref": "n211",
       "type": "audio",
-      "seq": 165,
+      "seq": 177,
       "pos": [
-        101840,
+        108560,
         0
       ],
-      "note": "ОЗВУЧКА: Ничего себе, как ты быстро, остался последний рывок на скорость",
+      "note": "ОЗВУЧКА: Остался последний рывок, на скорость, держись",
       "needs": "audio — озвучка реплики",
       "data": {
-        "text": "Ничего себе, как ты быстро, остался последний рывок на скорость",
+        "text": "Остался последний рывок, на скорость, держись",
         "showText": true
       },
       "triggers": [
         {
           "if": "played",
-          "then": "n199"
+          "then": "n212"
         }
       ]
     },
     {
-      "ref": "n199",
+      "ref": "n212",
       "type": "system",
-      "seq": 166,
+      "seq": 178,
       "pos": [
-        103100,
+        109820,
         0
       ],
       "data": {
@@ -5801,50 +6069,50 @@
         {
           "if": "timer",
           "ms": 1600,
-          "then": "n200"
+          "then": "n213"
         }
       ]
     },
     {
-      "ref": "n200",
+      "ref": "n213",
       "type": "text",
-      "seq": 167,
+      "seq": 179,
       "pos": [
-        103660,
+        110380,
         0
       ],
       "data": {
-        "content": "На скорость ⏱ выбери верную фразу: {t:«Том улыбается Анне»}",
+        "content": "На скорость ⏱ выбери верную фразу: {t:«Кейт улыбается Тому»}",
         "hardWrap": false
       },
       "triggers": [
         {
           "if": "timer",
           "ms": 1500,
-          "then": "n201"
+          "then": "n214"
         }
       ]
     },
     {
-      "ref": "n201",
+      "ref": "n214",
       "type": "word_choice",
-      "seq": 168,
+      "seq": 180,
       "pos": [
-        104220,
+        110940,
         0
       ],
       "data": {
         "options": [
           {
-            "text": "Tom smiles at Anna",
+            "text": "Kate smiles at Tom",
             "isCorrect": true
           },
           {
-            "text": "Tom smiles to Anna",
+            "text": "Kate smiles to Tom",
             "isCorrect": false
           },
           {
-            "text": "Tom smiles Anna",
+            "text": "Kate smiles Tom",
             "isCorrect": false
           }
         ],
@@ -5854,75 +6122,75 @@
       "triggers": [
         {
           "if": "word_correct",
-          "then": "n203"
+          "then": "n216"
         },
         {
           "if": "variant",
-          "variantLabel": "Tom smiles at Anna",
+          "variantLabel": "Kate smiles at Tom",
           "then": null
         },
         {
           "if": "variant",
-          "variantLabel": "Tom smiles to Anna",
+          "variantLabel": "Kate smiles to Tom",
           "then": null
         },
         {
           "if": "variant",
-          "variantLabel": "Tom smiles Anna",
+          "variantLabel": "Kate smiles Tom",
           "then": null
         },
         {
           "if": "word_wrong",
-          "then": "n202"
+          "then": "n215"
         }
       ]
     },
     {
-      "ref": "n202",
+      "ref": "n215",
       "type": "text",
-      "seq": 208,
+      "seq": 227,
       "pos": [
-        104220,
+        110940,
         480
       ],
       "data": {
-        "content": "не совсем) улыбка летит в точку:\n{g:Tom smiles at Anna}",
+        "content": "не совсем) улыбка летит в точку:\n{g:Kate smiles at Tom}",
         "hardWrap": true
       },
       "triggers": [
         {
           "if": "timer",
           "ms": 1500,
-          "then": "n204"
+          "then": "n217"
         }
       ]
     },
     {
-      "ref": "n203",
-      "type": "text",
-      "seq": 169,
+      "ref": "n216",
+      "type": "reaction",
+      "seq": 181,
       "pos": [
-        104780,
+        111500,
         0
       ],
       "data": {
-        "content": "быстро 🚀",
-        "hardWrap": false
+        "emoji": "⚡",
+        "target": "student"
       },
       "triggers": [
         {
           "if": "timer",
-          "ms": 1500,
-          "then": "n204"
+          "ms": 1400,
+          "then": "n217"
         }
       ]
     },
     {
-      "ref": "n204",
+      "ref": "n217",
       "type": "audio",
-      "seq": 170,
+      "seq": 182,
       "pos": [
-        105340,
+        112060,
         0
       ],
       "note": "ОЗВУЧКА: И ещё раз, на скорость: собери «они встречаются в четыре»",
@@ -5934,16 +6202,16 @@
       "triggers": [
         {
           "if": "played",
-          "then": "n205"
+          "then": "n218"
         }
       ]
     },
     {
-      "ref": "n205",
+      "ref": "n218",
       "type": "phrase_assembly",
-      "seq": 171,
+      "seq": 183,
       "pos": [
-        105900,
+        112620,
         0
       ],
       "data": {
@@ -5964,13 +6232,13 @@
             "text": "we"
           }
         ],
-        "responseWrong": "не совсем) нужны слова: they, meet, at и four",
+        "responseWrong": "не совсем) час это точка, значит {g:at} перед {w:four}",
         "timeLimitSec": 12
       },
       "triggers": [
         {
           "if": "phrase_correct",
-          "then": "n207"
+          "then": "n220"
         },
         {
           "if": "variant",
@@ -5989,16 +6257,16 @@
         },
         {
           "if": "phrase_wrong",
-          "then": "n206"
+          "then": "n219"
         }
       ]
     },
     {
-      "ref": "n206",
+      "ref": "n219",
       "type": "text",
-      "seq": 207,
+      "seq": 226,
       "pos": [
-        105900,
+        112620,
         480
       ],
       "data": {
@@ -6009,135 +6277,111 @@
         {
           "if": "timer",
           "ms": 1500,
-          "then": "n208"
+          "then": "n221"
         }
       ]
     },
     {
-      "ref": "n207",
+      "ref": "n220",
       "type": "text",
-      "seq": 172,
+      "seq": 184,
       "pos": [
-        106460,
+        113180,
         0
       ],
       "data": {
-        "content": "Ого, как быстро)",
+        "content": "быстро 🚀",
         "hardWrap": false
       },
       "triggers": [
         {
           "if": "timer",
           "ms": 1500,
-          "then": "n208"
+          "then": "n221"
         }
       ]
     },
     {
-      "ref": "n208",
-      "type": "photo",
-      "seq": 173,
+      "ref": "n221",
+      "type": "audio",
+      "seq": 185,
       "pos": [
-        107020,
+        113740,
         0
       ],
-      "note": "ФОТО: сгенерировать в редакторе по imagePrompt",
-      "needs": "photo",
+      "note": "ОЗВУЧКА: И то же вслух, на скорость: начни с They meet at, дальше любое время",
+      "needs": "audio — озвучка реплики",
       "data": {
-        "caption": "И ещё быстрее ⏱ выбери {t:«посмотри на небо»}",
-        "imagePrompt": "Мультяшный кот задрал голову и смотрит в звёздное небо, без текста",
-        "crop": {
-          "x": 0,
-          "y": 0,
-          "scale": 1
-        }
+        "text": "И то же вслух, на скорость: начни с {g:They meet at}, дальше любое время",
+        "showText": true
       },
       "triggers": [
         {
-          "if": "timer",
-          "ms": 2200,
-          "then": "n209"
+          "if": "played",
+          "then": "n222"
         }
       ]
     },
     {
-      "ref": "n209",
-      "type": "word_choice",
-      "seq": 174,
+      "ref": "n222",
+      "type": "say_phrase",
+      "seq": 186,
       "pos": [
-        107580,
+        114300,
         0
       ],
       "data": {
-        "options": [
-          {
-            "text": "Look at the sky",
-            "isCorrect": true
-          },
-          {
-            "text": "Look in the sky",
-            "isCorrect": false
-          },
-          {
-            "text": "Look to the sky",
-            "isCorrect": false
-          }
-        ],
-        "sendPickToChat": true,
-        "timeLimitSec": 5
+        "lang": "en-US",
+        "phrase": "They meet at four",
+        "translation": "Они встречаются в четыре",
+        "keywords": "",
+        "threshold": 70,
+        "strict": true,
+        "hintsOn": true,
+        "voiceReply": true,
+        "hintSilence": "Не слышу тебя) говори чуть громче и ближе к микрофону",
+        "hintPartial": "Близко) верно: {ok}, не хватило: {missed}",
+        "pattern": "They meet at **",
+        "startHint": "They meet at — они встречаются в",
+        "hintMismatch": "Начни с They meet at и добавь любое время, например four)"
       },
       "triggers": [
         {
-          "if": "word_correct",
-          "then": "n211"
+          "if": "say_done",
+          "then": "n224"
         },
         {
-          "if": "variant",
-          "variantLabel": "Look at the sky",
-          "then": null
-        },
-        {
-          "if": "variant",
-          "variantLabel": "Look in the sky",
-          "then": null
-        },
-        {
-          "if": "variant",
-          "variantLabel": "Look to the sky",
-          "then": null
-        },
-        {
-          "if": "word_wrong",
-          "then": "n210"
+          "if": "say_wrong",
+          "then": "n223"
         }
       ]
     },
     {
-      "ref": "n210",
+      "ref": "n223",
       "type": "text",
-      "seq": 206,
+      "seq": 225,
       "pos": [
-        107580,
+        114300,
         480
       ],
       "data": {
-        "content": "не совсем) взгляд летит в точку, {g:Look at the sky}",
+        "content": "не то) начни с {g:They meet at} и добавь любое время)",
         "hardWrap": false
       },
       "triggers": [
         {
           "if": "timer",
           "ms": 1500,
-          "then": "n212"
+          "then": "n225"
         }
       ]
     },
     {
-      "ref": "n211",
+      "ref": "n224",
       "type": "text",
-      "seq": 175,
+      "seq": 187,
       "pos": [
-        108140,
+        114860,
         0
       ],
       "data": {
@@ -6148,16 +6392,157 @@
         {
           "if": "timer",
           "ms": 1500,
-          "then": "n212"
+          "then": "n225"
         }
       ]
     },
     {
-      "ref": "n212",
-      "type": "system",
-      "seq": 176,
+      "ref": "n225",
+      "type": "photo",
+      "seq": 188,
       "pos": [
-        109400,
+        115420,
+        0
+      ],
+      "note": "ФОТО: сгенерировать в редакторе по imagePrompt",
+      "needs": "photo",
+      "data": {
+        "caption": "И ещё быстрее ⏱ на слух",
+        "imagePrompt": "Мультяшный кот с секундомером и наушниками, светлый фон, без текста",
+        "crop": {
+          "x": 0,
+          "y": 0,
+          "scale": 1
+        }
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 2200,
+          "then": "n226"
+        }
+      ]
+    },
+    {
+      "ref": "n226",
+      "type": "audio",
+      "seq": 189,
+      "pos": [
+        115980,
+        0
+      ],
+      "note": "ОЗВУЧКА: Look at the map",
+      "needs": "audio — озвучка реплики",
+      "data": {
+        "text": "{g:Look at the map}",
+        "showText": false
+      },
+      "triggers": [
+        {
+          "if": "played",
+          "then": "n227"
+        }
+      ]
+    },
+    {
+      "ref": "n227",
+      "type": "word_choice",
+      "seq": 190,
+      "pos": [
+        116540,
+        0
+      ],
+      "data": {
+        "options": [
+          {
+            "text": "Посмотри на карту",
+            "isCorrect": true
+          },
+          {
+            "text": "Посмотри в окно",
+            "isCorrect": false
+          },
+          {
+            "text": "Нарисуй карту",
+            "isCorrect": false
+          }
+        ],
+        "sendPickToChat": true,
+        "voicePhrase": "Look at the map",
+        "timeLimitSec": 6
+      },
+      "triggers": [
+        {
+          "if": "word_correct",
+          "then": "n229"
+        },
+        {
+          "if": "variant",
+          "variantLabel": "Посмотри на карту",
+          "then": null
+        },
+        {
+          "if": "variant",
+          "variantLabel": "Посмотри в окно",
+          "then": null
+        },
+        {
+          "if": "variant",
+          "variantLabel": "Нарисуй карту",
+          "then": null
+        },
+        {
+          "if": "word_wrong",
+          "then": "n228"
+        }
+      ]
+    },
+    {
+      "ref": "n228",
+      "type": "text",
+      "seq": 224,
+      "pos": [
+        116540,
+        480
+      ],
+      "data": {
+        "content": "не совсем) {g:look at} это {t:посмотри на}, а {g:map} это {t:карта}",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1500,
+          "then": "n230"
+        }
+      ]
+    },
+    {
+      "ref": "n229",
+      "type": "reaction",
+      "seq": 191,
+      "pos": [
+        117100,
+        0
+      ],
+      "data": {
+        "emoji": "🏁",
+        "target": "student"
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1400,
+          "then": "n230"
+        }
+      ]
+    },
+    {
+      "ref": "n230",
+      "type": "system",
+      "seq": 192,
+      "pos": [
+        118360,
         0
       ],
       "data": {
@@ -6167,16 +6552,16 @@
         {
           "if": "timer",
           "ms": 1600,
-          "then": "n213"
+          "then": "n231"
         }
       ]
     },
     {
-      "ref": "n213",
+      "ref": "n231",
       "type": "sticker",
-      "seq": 177,
+      "seq": 193,
       "pos": [
-        109960,
+        118920,
         0
       ],
       "note": "СТИКЕР: сгенерировать в редакторе по imagePrompt",
@@ -6196,16 +6581,16 @@
         {
           "if": "timer",
           "ms": 1200,
-          "then": "n214"
+          "then": "n232"
         }
       ]
     },
     {
-      "ref": "n214",
+      "ref": "n232",
       "type": "text",
-      "seq": 178,
+      "seq": 194,
       "pos": [
-        110520,
+        119480,
         0
       ],
       "data": {
@@ -6216,16 +6601,16 @@
         {
           "if": "timer",
           "ms": 1500,
-          "then": "n215"
+          "then": "n233"
         }
       ]
     },
     {
-      "ref": "n215",
+      "ref": "n233",
       "type": "sticker",
-      "seq": 179,
+      "seq": 195,
       "pos": [
-        111080,
+        120040,
         0
       ],
       "note": "СТИКЕР: сгенерировать в редакторе по imagePrompt",
@@ -6245,37 +6630,37 @@
         {
           "if": "timer",
           "ms": 1200,
-          "then": "n216"
+          "then": "n234"
         }
       ]
     },
     {
-      "ref": "n216",
+      "ref": "n234",
       "type": "audio",
-      "seq": 180,
+      "seq": 196,
       "pos": [
-        111640,
+        120600,
         0
       ],
-      "note": "ОЗВУЧКА: Ответь ей вслух, что ты ждёшь у входа, и говори по-своему, без подсказок, засчитаю любое место",
+      "note": "ОЗВУЧКА: Ответь ей вслух, что ты ждёшь у входа: начни с I am waiting at или I'm waiting at, а дальше любое место, засчитаю любое",
       "needs": "audio — озвучка реплики",
       "data": {
-        "text": "Ответь ей вслух, что ты ждёшь у входа, и говори по-своему, без подсказок, засчитаю любое место",
+        "text": "Ответь ей вслух, что ты ждёшь у входа: начни с {g:I am waiting at} или {g:I'm waiting at}, а дальше любое место, засчитаю любое",
         "showText": true
       },
       "triggers": [
         {
           "if": "played",
-          "then": "n217"
+          "then": "n235"
         }
       ]
     },
     {
-      "ref": "n217",
+      "ref": "n235",
       "type": "say_phrase",
-      "seq": 181,
+      "seq": 197,
       "pos": [
-        112200,
+        121160,
         0
       ],
       "data": {
@@ -6296,80 +6681,121 @@
       "triggers": [
         {
           "if": "say_done",
-          "then": "n219"
+          "then": "n237"
         },
         {
           "if": "say_wrong",
-          "then": "n218"
+          "then": "n236"
         }
       ]
     },
     {
-      "ref": "n218",
+      "ref": "n236",
       "type": "text",
-      "seq": 205,
+      "seq": 223,
       "pos": [
-        112200,
+        121160,
         480
       ],
       "data": {
-        "content": "не то) начни так: {g:I am waiting at}, это я жду у, и добавь любое место",
+        "content": "не то) начни так: {g:I am waiting at}, это {t:я жду у}, и добавь любое место",
         "hardWrap": false
       },
       "triggers": [
         {
           "if": "timer",
           "ms": 1500,
-          "then": "n220"
+          "then": "n240"
         }
       ]
     },
     {
-      "ref": "n219",
+      "ref": "n237",
       "type": "text",
-      "seq": 182,
+      "seq": 198,
       "pos": [
-        112760,
+        121720,
         0
       ],
       "data": {
-        "content": "ну всё, Кейт спасена))",
+        "content": "так-так, послушаю)",
         "hardWrap": false
       },
       "triggers": [
         {
           "if": "timer",
           "ms": 1500,
-          "then": "n220"
+          "then": "n238"
         }
       ]
     },
     {
-      "ref": "n220",
-      "type": "text",
-      "seq": 183,
-      "pos": [
-        113320,
-        0
-      ],
-      "data": {
-        "content": "И без подсказок, на слух 👂",
-        "hardWrap": false
-      },
-      "triggers": [
-        {
-          "if": "timer",
-          "ms": 1500,
-          "then": "n221"
-        }
-      ]
-    },
-    {
-      "ref": "n221",
+      "ref": "n238",
       "type": "audio",
-      "seq": 184,
+      "seq": 199,
       "pos": [
-        113880,
+        122280,
+        0
+      ],
+      "note": "ОЗВУЧКА: Кейт спасена, I am waiting at и точка, никаких лишних слов",
+      "needs": "audio — озвучка реплики",
+      "data": {
+        "text": "Кейт спасена, {g:I am waiting at} и точка, никаких лишних слов",
+        "showText": true
+      },
+      "triggers": [
+        {
+          "if": "played",
+          "then": "n239"
+        }
+      ]
+    },
+    {
+      "ref": "n239",
+      "type": "reaction",
+      "seq": 200,
+      "pos": [
+        122840,
+        0
+      ],
+      "data": {
+        "emoji": "🔥",
+        "target": "student"
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1400,
+          "then": "n240"
+        }
+      ]
+    },
+    {
+      "ref": "n240",
+      "type": "text",
+      "seq": 201,
+      "pos": [
+        123400,
+        0
+      ],
+      "data": {
+        "content": "Снова на слух 👂",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1500,
+          "then": "n241"
+        }
+      ]
+    },
+    {
+      "ref": "n241",
+      "type": "audio",
+      "seq": 202,
+      "pos": [
+        123960,
         0
       ],
       "note": "ОЗВУЧКА: Look at the clock",
@@ -6381,16 +6807,16 @@
       "triggers": [
         {
           "if": "played",
-          "then": "n222"
+          "then": "n242"
         }
       ]
     },
     {
-      "ref": "n222",
+      "ref": "n242",
       "type": "word_choice",
-      "seq": 185,
+      "seq": 203,
       "pos": [
-        114440,
+        124520,
         0
       ],
       "data": {
@@ -6400,7 +6826,7 @@
             "isCorrect": true
           },
           {
-            "text": "Посмотри на небо",
+            "text": "Посмотри в окно",
             "isCorrect": false
           },
           {
@@ -6414,7 +6840,7 @@
       "triggers": [
         {
           "if": "word_correct",
-          "then": "n224"
+          "then": "n244"
         },
         {
           "if": "variant",
@@ -6423,7 +6849,7 @@
         },
         {
           "if": "variant",
-          "variantLabel": "Посмотри на небо",
+          "variantLabel": "Посмотри в окно",
           "then": null
         },
         {
@@ -6433,16 +6859,16 @@
         },
         {
           "if": "word_wrong",
-          "then": "n223"
+          "then": "n243"
         }
       ]
     },
     {
-      "ref": "n223",
+      "ref": "n243",
       "type": "text",
-      "seq": 204,
+      "seq": 222,
       "pos": [
-        114440,
+        124520,
         480
       ],
       "data": {
@@ -6453,16 +6879,16 @@
         {
           "if": "timer",
           "ms": 1500,
-          "then": "n225"
+          "then": "n245"
         }
       ]
     },
     {
-      "ref": "n224",
+      "ref": "n244",
       "type": "reaction",
-      "seq": 186,
+      "seq": 204,
       "pos": [
-        115000,
+        125080,
         0
       ],
       "data": {
@@ -6473,22 +6899,22 @@
         {
           "if": "timer",
           "ms": 1400,
-          "then": "n225"
+          "then": "n245"
         }
       ]
     },
     {
-      "ref": "n225",
+      "ref": "n245",
       "type": "photo",
-      "seq": 187,
+      "seq": 205,
       "pos": [
-        115560,
+        125640,
         0
       ],
       "note": "ФОТО: сгенерировать в редакторе по imagePrompt",
       "needs": "photo",
       "data": {
-        "caption": "и ещё без подсказок: напечатай {t:«улыбнись Тому»}",
+        "caption": "Кейт нашлась и улыбается Тому через весь зал 😊",
         "imagePrompt": "Мультяшная девушка улыбается парню через столик кафе, тёплый свет, без текста",
         "crop": {
           "x": 0,
@@ -6500,16 +6926,36 @@
         {
           "if": "timer",
           "ms": 2200,
-          "then": "n226"
+          "then": "n246"
         }
       ]
     },
     {
-      "ref": "n226",
-      "type": "type_word",
-      "seq": 188,
+      "ref": "n246",
+      "type": "text",
+      "seq": 206,
       "pos": [
-        116120,
+        126200,
+        0
+      ],
+      "data": {
+        "content": "напечатай {t:«улыбнись Тому»}",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1500,
+          "then": "n247"
+        }
+      ]
+    },
+    {
+      "ref": "n247",
+      "type": "type_word",
+      "seq": 207,
+      "pos": [
+        126760,
         0
       ],
       "data": {
@@ -6520,20 +6966,20 @@
       "triggers": [
         {
           "if": "type_correct",
-          "then": "n228"
+          "then": "n249"
         },
         {
           "if": "type_wrong",
-          "then": "n227"
+          "then": "n248"
         }
       ]
     },
     {
-      "ref": "n227",
+      "ref": "n248",
       "type": "text",
-      "seq": 203,
+      "seq": 221,
       "pos": [
-        116120,
+        126760,
         480
       ],
       "data": {
@@ -6544,57 +6990,57 @@
         {
           "if": "timer",
           "ms": 1500,
-          "then": "n229"
+          "then": "n250"
         }
       ]
     },
     {
-      "ref": "n228",
-      "type": "text",
-      "seq": 189,
+      "ref": "n249",
+      "type": "reaction",
+      "seq": 208,
       "pos": [
-        116680,
+        127320,
         0
       ],
       "data": {
-        "content": "Вот так 🔥",
-        "hardWrap": false
+        "emoji": "😊",
+        "target": "student"
       },
       "triggers": [
         {
           "if": "timer",
-          "ms": 1500,
-          "then": "n229"
+          "ms": 1400,
+          "then": "n250"
         }
       ]
     },
     {
-      "ref": "n229",
+      "ref": "n250",
       "type": "audio",
-      "seq": 190,
+      "seq": 209,
       "pos": [
-        117240,
+        127880,
         0
       ],
-      "note": "ОЗВУЧКА: Неожиданность: Кейт нашлась и зовёт тебя в кино, сеанс в шесть. Скажи ей, что встретимся в шесть: начни с Let's meet at, дальше любое время, засчитаю любое",
+      "note": "ОЗВУЧКА: Неожиданность: Кейт зовёт тебя в кино, сеанс в шесть. Скажи ей, что встретимся в шесть: начни с Let's meet at, дальше любое время, засчитаю любое",
       "needs": "audio — озвучка реплики",
       "data": {
-        "text": "Неожиданность: Кейт нашлась и зовёт тебя в кино, сеанс в шесть. Скажи ей, что встретимся в шесть: начни с {g:Let's meet at}, дальше любое время, засчитаю любое",
+        "text": "Неожиданность: Кейт зовёт тебя в кино, сеанс в шесть. Скажи ей, что встретимся в шесть: начни с {g:Let's meet at}, дальше любое время, засчитаю любое",
         "showText": true
       },
       "triggers": [
         {
           "if": "played",
-          "then": "n230"
+          "then": "n251"
         }
       ]
     },
     {
-      "ref": "n230",
+      "ref": "n251",
       "type": "say_phrase",
-      "seq": 191,
+      "seq": 210,
       "pos": [
-        117800,
+        128440,
         0
       ],
       "data": {
@@ -6615,20 +7061,20 @@
       "triggers": [
         {
           "if": "say_done",
-          "then": "n232"
+          "then": "n253"
         },
         {
           "if": "say_wrong",
-          "then": "n231"
+          "then": "n252"
         }
       ]
     },
     {
-      "ref": "n231",
+      "ref": "n252",
       "type": "text",
-      "seq": 202,
+      "seq": 220,
       "pos": [
-        117800,
+        128440,
         480
       ],
       "data": {
@@ -6639,16 +7085,16 @@
         {
           "if": "timer",
           "ms": 1500,
-          "then": "n235"
+          "then": "n256"
         }
       ]
     },
     {
-      "ref": "n232",
+      "ref": "n253",
       "type": "text",
-      "seq": 192,
+      "seq": 211,
       "pos": [
-        118360,
+        129000,
         0
       ],
       "data": {
@@ -6659,37 +7105,37 @@
         {
           "if": "timer",
           "ms": 1500,
-          "then": "n233"
+          "then": "n254"
         }
       ]
     },
     {
-      "ref": "n233",
+      "ref": "n254",
       "type": "audio",
-      "seq": 193,
+      "seq": 212,
       "pos": [
-        118920,
+        129560,
         0
       ],
-      "note": "ОЗВУЧКА: Ну всё, встреча назначена, at с часом тебе уже как родной",
+      "note": "ОЗВУЧКА: встреча назначена, at с часом тебе уже как родной",
       "needs": "audio — озвучка реплики",
       "data": {
-        "text": "Ну всё, встреча назначена, {g:at} с часом тебе уже как родной",
+        "text": "встреча назначена, {g:at} с часом тебе уже как родной",
         "showText": true
       },
       "triggers": [
         {
           "if": "played",
-          "then": "n234"
+          "then": "n255"
         }
       ]
     },
     {
-      "ref": "n234",
+      "ref": "n255",
       "type": "reaction",
-      "seq": 194,
+      "seq": 213,
       "pos": [
-        119480,
+        130120,
         0
       ],
       "data": {
@@ -6700,16 +7146,16 @@
         {
           "if": "timer",
           "ms": 1400,
-          "then": "n235"
+          "then": "n256"
         }
       ]
     },
     {
-      "ref": "n235",
+      "ref": "n256",
       "type": "system",
-      "seq": 195,
+      "seq": 214,
       "pos": [
-        121340,
+        131980,
         0
       ],
       "data": {
@@ -6719,57 +7165,36 @@
         {
           "if": "timer",
           "ms": 1600,
-          "then": "n236"
+          "then": "n257"
         }
       ]
     },
     {
-      "ref": "n236",
+      "ref": "n257",
       "type": "text",
-      "seq": 196,
+      "seq": 215,
       "pos": [
-        121900,
+        132540,
         0
       ],
       "data": {
-        "content": "Мы повторили всё, и самое главное: {g:at} это всегда {l:точка}",
+        "content": "Мы прошли всё, осталось собрать в одну картинку",
         "hardWrap": false
       },
       "triggers": [
         {
           "if": "timer",
           "ms": 1500,
-          "then": "n237"
+          "then": "n258"
         }
       ]
     },
     {
-      "ref": "n237",
-      "type": "audio",
-      "seq": 197,
-      "pos": [
-        122460,
-        0
-      ],
-      "note": "ОЗВУЧКА: Давай соберём всё в одну картинку, чтобы точно не потерялось",
-      "needs": "audio — озвучка реплики",
-      "data": {
-        "text": "Давай соберём всё в одну картинку, чтобы точно не потерялось",
-        "showText": true
-      },
-      "triggers": [
-        {
-          "if": "played",
-          "then": "n238"
-        }
-      ]
-    },
-    {
-      "ref": "n238",
+      "ref": "n258",
       "type": "table",
-      "seq": 198,
+      "seq": 216,
       "pos": [
-        123020,
+        133100,
         0
       ],
       "note": "ОЗВУЧКА таблицы (скрипт идёт по ячейкам слева направо, сверху вниз; метку «Проверить» поставить при монтаже после последней ячейки): Смотри, всё вместе. Место, at, I am at work, я на работе. Час, at, We meet at seven, мы встречаемся в семь. Взгляд, at, Look at me, посмотри на меня. И когда точка не нужна, нет, go home, иди домой. Три дела у одного слова, и одна ловушка",
@@ -6963,7 +7388,7 @@
       "triggers": [
         {
           "if": "table_correct",
-          "then": "n239"
+          "then": "n259"
         },
         {
           "if": "table_wrong",
@@ -6972,11 +7397,11 @@
       ]
     },
     {
-      "ref": "n239",
+      "ref": "n259",
       "type": "scene",
-      "seq": 199,
+      "seq": 217,
       "pos": [
-        123580,
+        133660,
         0
       ],
       "note": "СЦЕНА: кружок Пита, один кот крупно, без облачков (текст реплик в кружке не показывается). Озвучку записать кнопкой «Озвучить» в редакторе сцены",
@@ -7020,7 +7445,7 @@
           "timeline": [
             {
               "who": "a",
-              "text": "Итог: at показывает точку, место, час и взгляд.",
+              "text": "Если коротко: at это точка, на карте, на часах и во взгляде.",
               "emotion": "happy"
             },
             {
@@ -7045,16 +7470,16 @@
       "triggers": [
         {
           "if": "played",
-          "then": "n240"
+          "then": "n260"
         }
       ]
     },
     {
-      "ref": "n240",
+      "ref": "n260",
       "type": "word_choice",
-      "seq": 200,
+      "seq": 218,
       "pos": [
-        124140,
+        134220,
         0
       ],
       "note": "Меню-развилка, не тест",
@@ -7075,7 +7500,7 @@
       "triggers": [
         {
           "if": "word_correct",
-          "then": "n241"
+          "then": "n261"
         },
         {
           "if": "word_wrong",
@@ -7084,21 +7509,21 @@
         {
           "if": "variant",
           "variantLabel": "Закончить ✅",
-          "then": "n241"
+          "then": "n261"
         },
         {
           "if": "variant",
           "variantLabel": "Ещё один круг 💪",
-          "then": "n105"
+          "then": "n113"
         }
       ]
     },
     {
-      "ref": "n241",
+      "ref": "n261",
       "type": "text",
-      "seq": 201,
+      "seq": 219,
       "pos": [
-        124700,
+        134780,
         0
       ],
       "data": {
@@ -7128,32 +7553,32 @@
       "id": "zone-at-2",
       "x": 3950,
       "y": -150,
-      "width": 15728,
+      "width": 16848,
       "height": 1040,
       "label": "Часть 1 · at + место",
-      "color": "#b6fe3b"
-    },
-    {
-      "id": "zone-at-3",
-      "x": 20930,
-      "y": -150,
-      "width": 15728,
-      "height": 1040,
-      "label": "Часть 2 · at + время",
       "color": "#ffd166"
     },
     {
-      "id": "zone-at-4",
-      "x": 37910,
+      "id": "zone-at-3",
+      "x": 22050,
       "y": -150,
-      "width": 13488,
+      "width": 17408,
       "height": 1040,
-      "label": "Часть 3 · at + взгляд",
+      "label": "Часть 2 · at + время",
       "color": "#ef476f"
     },
     {
+      "id": "zone-at-4",
+      "x": 40710,
+      "y": -150,
+      "width": 14608,
+      "height": 1040,
+      "label": "Часть 3 · at + взгляд",
+      "color": "#9b5de5"
+    },
+    {
       "id": "zone-at-5",
-      "x": 52650,
+      "x": 56570,
       "y": -150,
       "width": 1168,
       "height": 1040,
@@ -7162,21 +7587,21 @@
     },
     {
       "id": "zone-at-6",
-      "x": 55070,
+      "x": 58990,
       "y": -150,
-      "width": 64868,
+      "width": 71588,
       "height": 1040,
       "label": "Ещё практика",
       "color": "#118ab2"
     },
     {
       "id": "zone-at-7",
-      "x": 121190,
+      "x": 131830,
       "y": -150,
-      "width": 3968,
+      "width": 3408,
       "height": 1040,
       "label": "Финал",
-      "color": "#06d6a0"
+      "color": "#ff9f1c"
     }
   ],
   "wordCard": {
