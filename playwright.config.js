@@ -26,7 +26,7 @@ const PORT = isLocalBackend() ? 5299 : 5199
 // Стенд «медиа в чате» (e2e/chat-media.spec.js): свой dev-сервер с МЁРТВЫМ Supabase (бэкенд не нужен и не должен быть
 // достижим — плеер монтируется напрямую с синтетическим уроком) и Chromium с разрешённым автоплеем (видео/голосовые без жеста)
 const BENCH_PORT = 5398
-const BENCH_SPECS = /(chat|feed)-media\.spec\.js/
+const BENCH_SPECS = /((chat|feed)-media|review-perf)\.spec\.js/
 const benchChromium = {
   ...mobileChromium,
   baseURL: `http://localhost:${BENCH_PORT}`,
@@ -76,6 +76,8 @@ export default defineConfig({
     // Стенды — на своём сервере (BENCH_PORT), без бэкенда: «медиа в чате» и «лента рекомендаций»
     { name: 'chat-media', testMatch: /chat-media\.spec\.js/, use: benchChromium },
     { name: 'feed-media', testMatch: /feed-media\.spec\.js/, use: benchChromium },
+    // Стенд «Разбор урока» (десктоп, настоящий LessonReviewPanel на уроке из lesson-drafts)
+    { name: 'review-perf', testMatch: /review-perf\.spec\.js/, use: { ...benchChromium, viewport: { width: 1920, height: 1080 }, isMobile: false, hasTouch: false, deviceScaleFactor: 1 } },
     // Под логином — только при наличии .env.test с кредами (этап D)
     ...(hasCreds ? [
       { name: 'setup', testMatch: /auth\.setup\.js/ },

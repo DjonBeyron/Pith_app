@@ -1,4 +1,5 @@
 import { useRef, useLayoutEffect } from 'react'
+import NodeSelect from './NodeSelect.jsx'
 
 // Пикер «Сигналы ошибок» — общий для table (ручной режим) и phrase_assembly
 // (см. PROJECT.md). У каждого слота ответа (слово/ячейка, см. signalSlots.js)
@@ -59,17 +60,7 @@ export default function NodeSignalsPicker({ slots, signals = [], onChange, other
           <span className="nodeWcTriggerLabel">
             слот {slot.index + 1}: {slot.label || '—'}
           </span>
-          <select
-            className="nodeWcTriggerSelect"
-            value={refFor(slot.index)}
-            onChange={e => setRef(slot.index, e.target.value)}
-            onClick={e => e.stopPropagation()}
-          >
-            <option value="">— без сигнала —</option>
-            {otherNodes.map(n => (
-              <option key={n.id} value={n.id}>#{n.seq} {n.type}</option>
-            ))}
-          </select>
+          <NodeSelect className="nodeWcTriggerSelect" value={refFor(slot.index)} onChange={e => setRef(slot.index, e.target.value)} emptyLabel="— без сигнала —" nodes={otherNodes} />
         </div>
       ))}
     </div>

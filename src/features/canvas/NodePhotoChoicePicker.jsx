@@ -2,6 +2,7 @@ import { useRef, useState, useLayoutEffect, useEffect } from 'react'
 import { getVariantList, syncTriggers, triggersNeedSync } from './nodeVariants.js'
 import { generateImage } from '../../shared/lib/imageGenApi.js'
 import { NO_AUTOCORRECT } from '../../shared/lib/noAutoCorrectProps.js'
+import NodeSelect from './NodeSelect.jsx'
 
 const BASE_PAIR = ['photo_correct', 'photo_wrong']
 
@@ -235,17 +236,7 @@ export default function NodePhotoChoicePicker({
               {variantOpenIds.has(ph.id) && (
                 <div className="nodeWcTriggerRow nodeWcVariantRow">
                   <span className="nodeWcTriggerLabel">↳ Особый переход →</span>
-                  <select
-                    className="nodeWcTriggerSelect"
-                    value={variantThen(ph.id)}
-                    onChange={e => setVariantThen(ph.id, e.target.value)}
-                    onClick={e => e.stopPropagation()}
-                  >
-                    <option value="">— как верно/неверно —</option>
-                    {otherNodes.map(n => (
-                      <option key={n.id} value={n.id}>#{n.seq} {n.type}</option>
-                    ))}
-                  </select>
+                  <NodeSelect className="nodeWcTriggerSelect" value={variantThen(ph.id)} onChange={e => setVariantThen(ph.id, e.target.value)} emptyLabel="— как верно/неверно —" nodes={otherNodes} />
                 </div>
               )}
             </div>
@@ -256,21 +247,11 @@ export default function NodePhotoChoicePicker({
       <div className="nodeWcTriggerWrap">
         <div className="nodeWcTriggerRow" ref={el => rowRefs.current.set('photo_correct', el)}>
           <span className="nodeWcTriggerLabel nodeWcTriggerLabelOk">✓ Верно →</span>
-          <select className="nodeWcTriggerSelect" value={correctThen}
-            onChange={e => setTrigger('photo_correct', e.target.value)}
-            onClick={e => e.stopPropagation()}>
-            <option value="">—</option>
-            {otherNodes.map(n => <option key={n.id} value={n.id}>#{n.seq} {n.type}</option>)}
-          </select>
+          <NodeSelect className="nodeWcTriggerSelect" value={correctThen} onChange={e => setTrigger('photo_correct', e.target.value)} emptyLabel="—" nodes={otherNodes} />
         </div>
         <div className="nodeWcTriggerRow" ref={el => rowRefs.current.set('photo_wrong', el)}>
           <span className="nodeWcTriggerLabel nodeWcTriggerLabelErr">✗ Неверно →</span>
-          <select className="nodeWcTriggerSelect" value={wrongThen}
-            onChange={e => setTrigger('photo_wrong', e.target.value)}
-            onClick={e => e.stopPropagation()}>
-            <option value="">—</option>
-            {otherNodes.map(n => <option key={n.id} value={n.id}>#{n.seq} {n.type}</option>)}
-          </select>
+          <NodeSelect className="nodeWcTriggerSelect" value={wrongThen} onChange={e => setTrigger('photo_wrong', e.target.value)} emptyLabel="—" nodes={otherNodes} />
         </div>
       </div>
     </div>

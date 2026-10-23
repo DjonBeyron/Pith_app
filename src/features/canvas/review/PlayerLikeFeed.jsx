@@ -199,20 +199,20 @@ export default function PlayerLikeFeed({ items, canvasById, canvasNodes, files =
     const el = outerRef.current?.querySelector(`[data-ref="${CSS.escape(a.ref)}"]`)
     if (el && outerRef.current) outerRef.current.scrollTop += el.getBoundingClientRect().top - a.top
   }, [items])
-  // Колесо всей рамкой телефона крутит ленту само (не зависит от того, на какой элемент попал курсор — границы сообщений, промежутки, панели плеера
-  // с pointer-events: none): иначе на таких местах скролл «залипал», пока не сдвинешь мышь
+  // Колесо над самой лентой крутит её НАТИВНО (поток прокрутки браузера: плавно, с ускорением ОС, без перерисовки на каждый тик — ручной
+  // scrollTop += на каждое событие давал то быстрый, то медленный ход и по кадру пересобирал слои). Руками докручиваем только когда колесо
+  // попало на рамку телефона вне ленты (поля, промежутки), куда нативная прокрутка не доходит
   useEffect(() => {
     const box = phoneRef.current
     const onWheel = e => {
       const feed = outerRef.current
-      if (!feed || e.ctrlKey) return
+      if (!feed || e.ctrlKey || feed.contains(e.target)) return
       e.preventDefault()
       feed.scrollTop += e.deltaMode === 1 ? e.deltaY * 40 : e.deltaY
     }
     box?.addEventListener('wheel', onWheel, { passive: false })
     return () => box?.removeEventListener('wheel', onWheel)
   }, [])
-  // К выбранному сообщению — каждый раз при выборе (в том числе повторном: selTick растёт при каждом клике)
   // Далёкий слот сначала рамка-заглушка (высота по прошлому разу или примерная): после плавной прокрутки, когда тело нарисовалось, подравниваем ещё раз
   useEffect(() => {
     if (!selRef) return undefined

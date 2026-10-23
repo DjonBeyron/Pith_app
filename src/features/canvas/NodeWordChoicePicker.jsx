@@ -3,6 +3,7 @@ import NodeLessonLink from './NodeLessonLink.jsx'
 import NodeWordChoiceResponses from './NodeWordChoiceResponses.jsx'
 import { getVariantList, syncTriggers, triggersNeedSync } from './nodeVariants.js'
 import { NO_AUTOCORRECT } from '../../shared/lib/noAutoCorrectProps.js'
+import NodeSelect from './NodeSelect.jsx'
 
 const BASE_PAIR = ['word_correct', 'word_wrong']
 
@@ -150,17 +151,7 @@ export default function NodeWordChoicePicker({
             {variantOpenIds.has(o.id) && (
               <div className="nodeWcTriggerRow nodeWcVariantRow">
                 <span className="nodeWcTriggerLabel">↳ Особый переход →</span>
-                <select
-                  className="nodeWcTriggerSelect"
-                  value={variantThen(o.id)}
-                  onChange={e => setVariantThen(o.id, e.target.value)}
-                  onClick={e => e.stopPropagation()}
-                >
-                  <option value="">— как верно/неверно —</option>
-                  {otherNodes.map(n => (
-                    <option key={n.id} value={n.id}>#{n.seq} {n.type}</option>
-                  ))}
-                </select>
+                <NodeSelect className="nodeWcTriggerSelect" value={variantThen(o.id)} onChange={e => setVariantThen(o.id, e.target.value)} emptyLabel="— как верно/неверно —" nodes={otherNodes} />
               </div>
             )}
             {expandedId === o.id && (
@@ -215,31 +206,11 @@ export default function NodeWordChoicePicker({
       <div className="nodeWcTriggerWrap">
         <div className="nodeWcTriggerRow" ref={el => rowRefs.current.set('word_correct', el)}>
           <span className="nodeWcTriggerLabel nodeWcTriggerLabelOk">✓ Верно →</span>
-          <select
-            className="nodeWcTriggerSelect"
-            value={correctThen}
-            onChange={e => setTrigger('word_correct', e.target.value)}
-            onClick={e => e.stopPropagation()}
-          >
-            <option value="">—</option>
-            {otherNodes.map(n => (
-              <option key={n.id} value={n.id}>#{n.seq} {n.type}</option>
-            ))}
-          </select>
+          <NodeSelect className="nodeWcTriggerSelect" value={correctThen} onChange={e => setTrigger('word_correct', e.target.value)} emptyLabel="—" nodes={otherNodes} />
         </div>
         <div className="nodeWcTriggerRow" ref={el => rowRefs.current.set('word_wrong', el)}>
           <span className="nodeWcTriggerLabel nodeWcTriggerLabelErr">✗ Неверно →</span>
-          <select
-            className="nodeWcTriggerSelect"
-            value={wrongThen}
-            onChange={e => setTrigger('word_wrong', e.target.value)}
-            onClick={e => e.stopPropagation()}
-          >
-            <option value="">—</option>
-            {otherNodes.map(n => (
-              <option key={n.id} value={n.id}>#{n.seq} {n.type}</option>
-            ))}
-          </select>
+          <NodeSelect className="nodeWcTriggerSelect" value={wrongThen} onChange={e => setTrigger('word_wrong', e.target.value)} emptyLabel="—" nodes={otherNodes} />
         </div>
       </div>
     </div>

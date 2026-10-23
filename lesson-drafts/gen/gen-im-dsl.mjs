@@ -1,3 +1,4 @@
+import { suggestWidths } from '../../src/features/canvas/lesson-io/tableWidths.js'
 // Помощники генератора уроков «I'm» (DSL: T/A/P/WC/PA/SAY/TABLE/SCENE…, ветки ошибок, зоны, раскладка) — вынесено из gen-im.mjs (лимит 400 строк).
 // Сюжет и тексты урока — gen-im.mjs; здесь только то, как собираются ноды
 
@@ -99,21 +100,21 @@ export function SAY(phraseText, translation, { pattern, startHint, hintMismatch,
   if (listen) { wrong(n, wrongText, 'say_wrong', 3); T(listen); A(comment); R(ENDS[endN++ % ENDS.length]) } else { wrong(n, wrongText, 'say_wrong', 1); if (react) R(react); else T(comment) }
   return n
 }
-export const W3 = [18, 50, 32] // «Кто · Сейчас · Какой»: центральной колонке с частичкой больше места (замечание автора)
-export const W4 = [20, 27, 27, 26]
-// mergeLast — последняя колонка с ОДНИМ значением во всех строках рисуется одной большой ячейкой (rowspan), без дублей; distractors — слова-ловушки вне таблицы (manual)
+// Ширины колонок — автоматически по самому узкому экрану (iPhone SE, 355px): сначала каждая ячейка в одну строку, потом баланс (tableWidths.js, правило автора)
+// mergeLast — число (или true = все) первых строк, в которых последняя колонка с ОДНИМ значением рисуется одной большой ячейкой (rowspan), без дублей; distractors — слова-ловушки вне таблицы (manual)
 export function TABLE(mode, chatCaption, head, rows, { script, widths, answer, wrongText, mergeLast = false, distractors = [] } = {}) {
   const cells = []
   head.forEach((v, c) => cells.push({ id: `h${c}`, col: c, row: 0, value: v, colspan: 1, rowspan: 1, fontSize: 11, isHeader: true }))
   // значение ячейки: строка или [строка, [варианты]] — ячейка-группа («he / she / it») с выпадающим меню вариантов (в ручной таблице ученик выбирает из них)
   rows.forEach((r, ri) => r.forEach((raw, c) => {
     const last = c === head.length - 1
-    if (mergeLast && last && ri > 0) return // покрыто большой ячейкой первой строки
+    const span = mergeLast === true ? rows.length : mergeLast || 0
+    if (span && last && ri > 0 && ri < span) return // покрыто большой ячейкой первой строки
     const [v, options] = Array.isArray(raw) ? raw : [raw]
-    cells.push({ id: `r${ri}c${c}`, col: c, row: ri + 1, value: v, colspan: 1, rowspan: mergeLast && last ? rows.length : 1, fontSize: c === 1 && head.length === 3 ? 15 : 13, ...(options ? { options } : {}) })
+    cells.push({ id: `r${ri}c${c}`, col: c, row: ri + 1, value: v, colspan: 1, rowspan: span && last && ri === 0 ? span : 1, fontSize: c === 1 && head.length === 3 ? 15 : 13, ...(options ? { options } : {}) })
   }))
   const rowCount = rows.length + 1
-  const data = { mode, table: { rows: Array.from({ length: rowCount }, (_, i) => ({ id: `r${i}`, heightPct: Math.round(100 / rowCount) })), cells, columns: head.map((_, i) => ({ id: `c${i}`, widthPct: (widths ?? (head.length === 4 ? W4 : head.length === 3 ? W3 : [50, 50]))[i] })), colCount: head.length, rowCount }, chatCaption, ...(mode === 'dictator' ? { script, sendToChat: true } : {}), ...(mode === 'manual' ? { answer, sendToChat: true, distractors: distractors.map(text => ({ text })) } : {}) }
+  const data = { mode, table: { rows: Array.from({ length: rowCount }, (_, i) => ({ id: `r${i}`, heightPct: Math.round(100 / rowCount) })), cells, columns: head.map((_, i) => ({ id: `c${i}`, widthPct: (widths ?? suggestWidths({ cells, columns: head.map(() => ({})), colCount: head.length }))[i] })), colCount: head.length, rowCount }, chatCaption, ...(mode === 'dictator' ? { script, sendToChat: true } : {}), ...(mode === 'manual' ? { answer, sendToChat: true, distractors: distractors.map(text => ({ text })) } : {}) }
   const n = main('table', data, mode === 'dictator' ? { needs: 'audio — только для режима dictator', note: `ОЗВУЧКА таблицы (скрипт идёт по ячейкам слева направо, сверху вниз; метку «Проверить» поставить при монтаже после последней ячейки): ${script}` } : { note: `Таблица I'm: ${chatCaption}` })
   if (mode === 'demo') n.triggers = [{ if: 'timer', ms: 2200 }]
   if (mode === 'manual') { n.note = `РУЧНАЯ таблица: ученик тапает ячейки по порядку и собирает «${answer}»`; n.triggers = n.triggers.filter(t => t.if !== 'table_wrong'); wrong(n, wrongText, 'table_wrong') }

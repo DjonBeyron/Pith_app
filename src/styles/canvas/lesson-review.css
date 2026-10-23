@@ -104,6 +104,7 @@
 .rvwSlot:hover .rvwSlotTools, .rvwSlot.on .rvwSlotTools, .rvwSlotTools.keep, .rvwSlotTools:focus-within { opacity: 1; pointer-events: auto; }
 
 /* «Изменения»: розовая полоска слева от сообщения, с отступом, не прилипает к нему */
+.rvwVerSel { padding: 5px 8px; background: #1a1d22; border: 1px solid #ff5fa2; border-radius: 8px; color: #ff8fc0; font-size: 12px; max-width: 190px; }
 .rvwBtnChg.on { background: #3a1a2c; border-color: #ff5fa2; color: #ff8fc0; }
 .rvwPhone .rvwPlayerFeed { padding-left: 30px; }
 /* Одна фигура: толстая линия (6px) с треугольником-стрелкой по центру, чуть левее сообщения, со свечением под ней, чтобы выделялась */

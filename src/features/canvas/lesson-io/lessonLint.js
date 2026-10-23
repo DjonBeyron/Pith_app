@@ -15,6 +15,7 @@ import { checkAnswersAndLimits } from './lessonLintAnswers.js'
 import { checkScene } from './lessonLintScene.js'
 import { checkSceneRules } from './lessonLintSceneRules.js'
 import { checkAuthorRules } from './lessonLintAuthor.js'
+import { checkTableWidth } from './lessonLintTable.js'
 
 const WRONG_TRIGGERS = new Set(['word_wrong', 'phrase_wrong', 'photo_wrong', 'table_wrong', 'type_wrong', 'say_wrong', 'say_skip'])
 const PRAISE_RE = /три из трёх|ни одной ошибки|без единой ошибки|все верно|всё верно/i
@@ -191,7 +192,7 @@ export function lintLesson(rawNodes, opts = {}) { // opts.title — заголо
   warnings.push(...checkAnswersAndLimits(nodes))
   warnings.push(...checkScene(nodes))
   warnings.push(...checkSceneRules(nodes, opts))
-  warnings.push(...checkAuthorRules(nodes))
+  warnings.push(...checkAuthorRules(nodes), ...checkTableWidth(nodes))
 
   for (const n of nodes) {
     const d = n.data ?? {}

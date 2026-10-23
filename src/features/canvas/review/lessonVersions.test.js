@@ -23,13 +23,13 @@ describe('lessonVersions', () => {
     expect(m.get('x4')).toBe('changed')
     expect(m.has('x1') || m.has('x3') || m.has('x5')).toBe(false)
   })
-  it('стопка версий: одинаковая не дублируется, хранится не больше шести', () => {
+  it('стопка версий: одинаковая не дублируется, хранится не больше десяти', () => {
     let v = []
     const s = snap([N('a', 1, 'один')])
     v = pushVersion(v, s); v = pushVersion(v, s)
     expect(v).toHaveLength(1)
-    for (let i = 0; i < 8; i++) v = pushVersion(v, snap([N('a', 1, 'текст ' + i)]))
-    expect(v).toHaveLength(6)
+    for (let i = 0; i < 12; i++) v = pushVersion(v, snap([N('a', 1, 'текст ' + i)]))
+    expect(v).toHaveLength(10)
   })
   it('markCommented ставит флаг у верхней версии', () => {
     const v = markCommented(pushVersion([], snap([N('a', 1, 'x'), N('b', 2, 'y')])), new Set(['b']))

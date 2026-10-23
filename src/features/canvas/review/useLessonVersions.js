@@ -20,7 +20,8 @@ export function recordLessonVersion(storageId, canvasNodes) {
 /**
  * Версии урока в разборе (локально): при открытии текущий урок кладётся в стопку версий (если он отличается от последней), «предыдущая версия» — та, что была до
  * него. Кнопка «Изменения» включает розовые полоски у сообщений, которые отличаются от предыдущей версии. notedRefs — ноды с замечаниями (они считаются
- * изменёнными в следующей версии). Без предыдущей версии сравнивать нечего (canCompare = false).
+ * изменёнными в следующей версии). Без предыдущей версии сравнивать нечего (canCompare = false). Базу сравнения можно выбрать из списка версий
+ * (options, pick) — по умолчанию предыдущая; версии пишутся при загрузке (серверная и локальный черновик), сохранении, импорте и открытии разбора.
  */
 export function useLessonVersions(storageId, nodes, notedRefs) {
   const key = `pithy-versions:${storageId}`
@@ -32,9 +33,12 @@ export function useLessonVersions(storageId, nodes, notedRefs) {
   const view = useMemo(() => markCommented(versions, new Set(notedKey ? notedKey.split(',') : [])), [versions, notedKey])
   useEffect(() => { try { localStorage.setItem(key, JSON.stringify(view)) } catch { /* переполнено: версии живут до закрытия окна */ } }, [key, view])
 
-  const prev = view.length >= 2 ? view[view.length - 2] : null
+  const [pick, setPick] = useState(null) // индекс выбранной базы в стопке (null — предыдущая)
+  const baseIndex = pick != null && pick < view.length - 1 ? pick : view.length - 2
+  const prev = baseIndex >= 0 ? view[baseIndex] : null
   const canCompare = !!prev
+  const options = view.slice(0, -1).map((v, i) => ({ i, t: v.t })).reverse() // новые сверху
   const marks = useMemo(() => (show && prev ? diffSnapshots(prev.items, makeSnapshot(nodes)) : new Map()), [show, prev, nodes])
   const setShow = v => { setShowState(v); write(SHOW_KEY, v ? '1' : '0') }
-  return { canCompare, show: show && canCompare, setShow, marks, prevTime: prev?.t ?? null }
+  return { canCompare, show: show && canCompare, setShow, marks, prevTime: prev?.t ?? null, options, baseIndex, setPick }
 }

@@ -23,6 +23,8 @@ import { marksSummary } from '../../player/review-marks/reviewMarks.js'
 import { addLessonExample } from '../../../shared/api/lessonExamplesApi.js'
 import { exampleFromNote, exampleFromMark } from './lessonExamples.js'
 import GoldenWindow from './GoldenWindow.jsx'
+import VersionsBar from './VersionsBar.jsx'
+import { useOnlyChanged } from './useOnlyChanged.js'
 import { sameContent } from './contentDraft.js'
 
 // «Разбор урока» — окно на весь экран ПК: слева копия ленты плеера (вся история сразу, на заданиях переключатель веток «верно / неверно»),
@@ -82,7 +84,7 @@ export default function LessonReviewPanel({ nodes: initialNodes, zones: initialZ
   // Пока открыто окно замечания, лента за ним не перерисовывается (269 превью на каждую правку текста давали лаг набора); обновится при закрытии
   const frozenItems = useRef(items)
   if (!noteFor) frozenItems.current = items
-  const feedItems = frozenItems.current
+  const feedAll = frozenItems.current
   // Сколько нод в списке замечаний: с замечанием ИЛИ с правкой текста (правка без комментария тоже считается)
   const edited = useMemo(() => changedRefs(store.originalTexts(), nodes), [nodes, store.version]) // eslint-disable-line react-hooks/exhaustive-deps
   // Сохраняем замечания, оригиналы и правки в localStorage — после перезагрузки всё на месте
@@ -97,7 +99,17 @@ export default function LessonReviewPanel({ nodes: initialNodes, zones: initialZ
   const noted = new Set([...store.notes.map(n => n.ref), ...edited]).size + store.general.length
   const noteCounts = useMemo(() => { const m = new Map(); for (const n of store.notes) m.set(n.ref, (m.get(n.ref) ?? 0) + 1); for (const r of edited) if (!m.has(r)) m.set(r, 1); return m }, [store.notes, edited])
   const warnMap = useMemo(() => warningsByRef(lintLesson(nodes, { title: boardProps?.lessonTitle }), nodes), [nodes, boardProps?.lessonTitle])
+  const [onlyChanged, setOnlyChanged] = useOnlyChanged()
   const versions = useLessonVersions(storageId ?? initialNodes[0]?.id ?? 'lesson', nodes, new Set(store.notes.map(n => n.ref)))
+  // «Только изменённые»: в ленте подряд все сообщения с розовой полоской по порядку номеров — в том числе из веток, которых нет на выбранном пути
+  // ленты (ветки ошибок и т. п.): их показываем отдельными карточками «вне основной цепочки»
+  const feedItems = useMemo(() => {
+    if (!(onlyChanged && versions.show)) return feedAll
+    const have = new Set(feedAll.filter(it => it.kind === 'node').map(it => it.ref))
+    const extra = nodes.filter(n => versions.marks.has(n.ref) && !have.has(n.ref)).map(n => ({ kind: 'node', ref: n.ref, node: n, wrongBranch: true, hasWrong: false, choice: null, picked: null }))
+    const bySeq = it => it.node?.seq ?? 0
+    return [...feedAll.filter(it => versions.marks.has(it.ref)), ...extra].sort((a, b) => bySeq(a) - bySeq(b))
+  }, [onlyChanged, versions.show, versions.marks, feedAll, nodes])
   const [rulesOff, setRulesOff] = useState(() => { try { return localStorage.getItem('pithy-review-rules-off') === '1' } catch { return false } })
   const toggleRules = () => setRulesOff(v => { try { localStorage.setItem('pithy-review-rules-off', v ? '0' : '1') } catch { /* нет хранилища */ } return !v })
   const sel = nodes.find(n => n.ref === selRef) ?? null
@@ -183,10 +195,7 @@ export default function LessonReviewPanel({ nodes: initialNodes, zones: initialZ
         {(diff.added > 0 || diff.removed > 0) && <span className="rvwInfo rvwInfoWarn" title="Добавленные и удалённые ноды автоматически не переносятся — сделай это на основном холсте">+{diff.added} / −{diff.removed} нод не переносятся</span>}
         {applied && <span className="rvwInfo rvwInfoOk">{applied}</span>}
         <BrokenNodesBadge health={health} onFocus={select} />
-        <button className={`rvwBtn rvwBtnChg${versions.show ? ' on' : ''}`} disabled={!versions.canCompare} onClick={() => versions.setShow(!versions.show)}
-          title={versions.canCompare ? 'Розовая полоска у сообщений, которые отличаются от предыдущей версии (новые, изменённые и те, к которым были замечания)' : 'Предыдущей версии урока ещё нет: она появится, когда урок изменится и разбор откроют снова'}>
-          Изменения{versions.show ? ` (${versions.marks.size})` : ''}
-        </button>
+        <VersionsBar versions={versions} onlyChanged={onlyChanged} setOnlyChanged={setOnlyChanged} />
         <button className="rvwBtn" onClick={() => setNotesOpen(true)}>✎ Замечания{noted ? ` (${noted})` : ''}</button>
         <button className="rvwBtn" title="Золотой набор: пары «до → после» и образцы из разбора и пометок с телефона" onClick={() => setGoldenOpen(true)}>⭐ Набор</button>
         <button className="rvwBtn rvwBtnPrimary" disabled={!diff.changed.length} onClick={apply}>

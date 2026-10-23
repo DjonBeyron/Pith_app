@@ -13,7 +13,7 @@ const auto = SEED_RULES.filter(r => r.checker === 'auto')
 // Проверки по всему уроку (доли, счётчики, части): на примере из 2–6 нод не срабатывают по построению
 const LESSON_LEVEL = new Set(['R-task-variety', 'R-voice-share', 'R-pin', 'R-system', 'R-start-menu', 'R-ksta', 'R-smiley', 'R-period', 'R-lowercase', 'R-table', 'R-opener', 'R-wording', 'R-key-mark', 'R-tautology'])
 // Проверки структуры, которую пример-строка не выражает: снимок сцены, сигналы say_phrase, массив highlights (его пишет импорт, не автор)
-const STRUCTURE = new Set(['R-scene-open', 'R-scene-count', 'R-scene-word', 'R-scene-lines', 'R-scene-task', 'R-scene-middle', 'R-scene-voice', 'R-say-signal', 'R-base', 'R-typo'])
+const STRUCTURE = new Set(['R-scene-open', 'R-scene-count', 'R-scene-word', 'R-scene-lines', 'R-scene-task', 'R-scene-middle', 'R-scene-voice', 'R-say-signal', 'R-base', 'R-typo', 'R-table-width'])
 const local = codes => codes.filter(c => !LESSON_LEVEL.has(c) && !STRUCTURE.has(c))
 
 describe('линтер ловит примеры «нельзя» своих правил и молчит на «можно»', () => {
