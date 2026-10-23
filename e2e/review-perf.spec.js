@@ -88,18 +88,50 @@ test('окно замечания помещается в экран, даже �
   await ctx.close()
 })
 
-test('канвас: первые ноды появляются поэтапно и раньше остальных', async ({ page }) => {
+test('канвас: в DOM только ноды рядом с кадром, остальные подгружаются при протяжке, связи рисуются все', async ({ page }) => {
+  const imp = importLesson(JSON.parse(readFileSync(new URL('../lesson-drafts/im.json', import.meta.url), 'utf8')))
+  const body = JSON.stringify({ title: 'I\'m', script: { nodes: imp.nodes, zones: imp.zones ?? [] } })
+  await page.route('**/rest/v1/**', r => r.fulfill({ status: 200, contentType: 'application/json', body: '[]' }))
+  await page.route('**/rest/v1/lessons?select=script*', r => r.fulfill({ status: 200, contentType: 'application/json', body }))
+  await page.goto('/e2e/review-perf/canvas.html')
+  await page.waitForSelector('.canvasNodeWrapper', { timeout: 60_000 })
+  await page.waitForTimeout(600)
+  const count = () => page.evaluate(() => ({ nodes: document.querySelectorAll('.canvasNodeWrapper').length, paths: document.querySelectorAll('.canvasBoardSvgBack path').length, dom: document.getElementsByTagName('*').length }))
+  const first = await count()
+  expect(first.nodes, JSON.stringify(first)).toBeGreaterThan(0)
+  expect(first.nodes, `в DOM только ноды у кадра: ${JSON.stringify(first)}`).toBeLessThan(imp.nodes.length * 0.6)
+  expect(first.paths, 'связи рисуются по данным всех нод').toBeGreaterThan(imp.nodes.length * 0.8)
+  // протяжка доски правее — ноды подгружаются, стоящие позади уходят (но не все сразу: гистерезис)
+  const box = await page.locator('.canvasBoard').boundingBox()
+  const seen = new Set()
+  const collect = () => page.evaluate(() => [...document.querySelectorAll('.canvasNodeWrapper')].map(e => e.style.left + ',' + e.style.top))
+  for (const id of await collect()) seen.add(id)
+  for (let i = 0; i < 12; i++) {
+    await page.mouse.move(box.x + box.width - 400, box.y + box.height - 160)
+    await page.mouse.down({ button: 'middle' }); await page.mouse.move(box.x + 300, box.y + box.height - 160, { steps: 6 }); await page.mouse.up({ button: 'middle' })
+    await page.waitForTimeout(80)
+    for (const id of await collect()) seen.add(id)
+  }
+  const last = await count()
+  expect(seen.size, `протяжка показала новые ноды (${seen.size})`).toBeGreaterThan(first.nodes)
+  expect(last.nodes, `и в конце в DOM по-прежнему не весь урок: ${JSON.stringify(last)}`).toBeLessThan(imp.nodes.length * 0.8)
+})
+
+test('поле rich-text: слушатели selectionchange вешаются только на поле в фокусе', async ({ page }) => {
   const imp = importLesson(JSON.parse(readFileSync(new URL('../lesson-drafts/im.json', import.meta.url), 'utf8')))
   const body = JSON.stringify({ title: 'I\'m', script: { nodes: imp.nodes, zones: imp.zones ?? [] } })
   await page.route('**/rest/v1/**', r => r.fulfill({ status: 200, contentType: 'application/json', body: '[]' }))
   await page.route('**/rest/v1/lessons?select=script*', r => r.fulfill({ status: 200, contentType: 'application/json', body }))
   await page.addInitScript(() => {
-    window.__seen = []
-    new MutationObserver(() => { const n = document.querySelectorAll('.canvasNodeWrapper').length; if (n && window.__seen.at(-1) !== n) window.__seen.push(n) }).observe(document, { childList: true, subtree: true })
+    window.__sel = 0
+    const add = document.addEventListener.bind(document)
+    document.addEventListener = (t, ...a) => { if (t === 'selectionchange') window.__sel++; return add(t, ...a) }
   })
   await page.goto('/e2e/review-perf/canvas.html')
-  await page.waitForFunction(() => document.querySelectorAll('.canvasNodeWrapper').length >= 300, null, { timeout: 60_000 })
-  const seen = await page.evaluate(() => window.__seen)
-  expect(seen[0], `первая порция нод: ${JSON.stringify(seen)}`).toBeLessThan(100)
-  expect(seen.length, 'нод появлялось в несколько этапов').toBeGreaterThan(2)
+  await page.waitForSelector('.canvasNodeWrapper', { timeout: 60_000 })
+  await page.waitForTimeout(600)
+  const fields = await page.locator('[contenteditable="true"]').count()
+  const sel = await page.evaluate(() => window.__sel)
+  expect(fields, 'на холсте есть поля').toBeGreaterThan(3)
+  expect(sel, `поля: ${fields}, слушателей selectionchange: ${sel}`).toBeLessThan(Math.max(5, fields / 4))
 })

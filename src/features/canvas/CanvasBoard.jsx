@@ -4,7 +4,7 @@ import CanvasConnections from './CanvasConnections.jsx'
 import CanvasSignalConnections from './CanvasSignalConnections.jsx'
 import { collectSignalTargetIds } from './signalTargets.js'
 import { nodeOptionsSignature, pickNodeOptions } from './canvasNodeOptions.js'
-import { useStagedNodes } from './useStagedNodes.js'
+import { useVisibleNodes } from './useVisibleNodes.js'
 import { releaseTextSelection } from './canvasDragGuard.js'
 import { useAdmin } from '../../app/AdminContext.jsx'
 import { useCanvasDrag } from './useCanvasDrag.js'
@@ -77,7 +77,7 @@ const CanvasBoard = forwardRef(function CanvasBoard({
   const [typeMenu, setTypeMenu] = useState(null)
 
   // Доска и кэш её прямоугольника (+ measureBoard перед протяжкой) — useBoardRect.js
-  const { boardRef, boardRectRef, measureBoard } = useBoardRect()
+  const { boardRef, boardRectRef, measureBoard, boardSize } = useBoardRect()
 
   // Мышь могли отпустить за пределами холста — тогда handleMouseUp доски не
   // сработает, а запрет наведения/кликов остался бы висеть на body
@@ -236,8 +236,10 @@ const CanvasBoard = forwardRef(function CanvasBoard({
   // Дальний зум: содержимое нод и точки портов не рисуем — подробности
   // у FAR_ZOOM в canvasZoom.js
   const far = scale < FAR_ZOOM
-  // Ноды появляются поэтапно: сначала в кадре и рядом, остальные порциями в простое (useStagedNodes.js)
-  const stagedNodes = useStagedNodes(nodes, offset, scale)
+  // В DOM стоят только ноды в кадре и рядом + выбранные/наведённые (useVisibleNodes.js); связи и выделение считаются по данным всех нод
+  const keepIds = new Set(selectedIds)
+  for (const id of [hoveredNodeId, spotlightId, confirmDeleteId]) if (id) keepIds.add(id)
+  const visibleNodes = useVisibleNodes(nodes, offset, scale, { size: boardSize, triggerMeasures, keep: keepIds })
   const svgTransform   = `translate(${offset.x},${offset.y}) scale(${scale})`
   const worldTransform = `translate(${offset.x}px,${offset.y}px) scale(${scale})`
 
@@ -277,7 +279,7 @@ const CanvasBoard = forwardRef(function CanvasBoard({
 
       <div className={`canvasBoardWorld${far ? ' canvasBoardWorldFar' : ''}`}
         style={{ transform: worldTransform, transformOrigin: '0 0' }}>
-        {stagedNodes.map(node => (
+        {visibleNodes.map(node => (
           <CanvasBoardNode
             key={node.id}
             node={node}

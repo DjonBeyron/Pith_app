@@ -154,7 +154,7 @@ describe('протяжка связи не зависит от сдвига хо
     const board = read('./CanvasBoard.jsx')
     // Сам замер — в useBoardRect.js (вынесено из CanvasBoard), доска отдаёт его дальше
     expect(read('./useBoardRect.js')).toContain('const measureBoard = useCallback(')
-    expect(board).toContain('const { boardRef, boardRectRef, measureBoard } = useBoardRect()')
+    expect(board).toContain('const { boardRef, boardRectRef, measureBoard, boardSize } = useBoardRect()')
     expect(board).toContain('setTypeMenu, measureBoard })')
     // Сам вызов — в обработчике mousedown доски, вынесенном в отдельный хук
     // (useCanvasBoardPointer.js), не в самом CanvasBoard.jsx

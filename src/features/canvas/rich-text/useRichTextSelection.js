@@ -27,17 +27,37 @@ export function useRichTextSelection(ref) {
     if (!el || !sel || sel.rangeCount === 0 || sel.isCollapsed || !el.contains(sel.anchorNode)) setState(null)
   }, [ref])
 
+  // Слушатели на документе вешаем только пока поле в фокусе: на холсте их сотни, и каждый selectionchange/mouseup будил бы все поля сразу
+  // (≈85 мс только на открытие «Разбора»). Выделение в поле всегда начинается с фокуса в нём (мышь, клавиатура, ручки выделения на телефоне)
   useEffect(() => {
     const el = ref.current
     if (!el) return
     const doc = el.ownerDocument // поле может жить в отдельном окне (usePopupWindow) — слушаем его документ
-    doc.addEventListener('mouseup', captureIfValid)
-    el.addEventListener('keyup', captureIfValid)
-    doc.addEventListener('selectionchange', hideIfInvalid)
-    return () => {
+    let on = false
+    const attach = () => {
+      if (on) return
+      on = true
+      doc.addEventListener('mouseup', captureIfValid)
+      doc.addEventListener('selectionchange', hideIfInvalid)
+    }
+    const detach = () => {
+      if (!on) return
+      on = false
       doc.removeEventListener('mouseup', captureIfValid)
-      el.removeEventListener('keyup', captureIfValid)
       doc.removeEventListener('selectionchange', hideIfInvalid)
+    }
+    const onFocusOut = e => {
+      if (!e.relatedTarget || !el.contains(e.relatedTarget)) detach()
+    }
+    el.addEventListener('keyup', captureIfValid)
+    el.addEventListener('focusin', attach)
+    el.addEventListener('focusout', onFocusOut)
+    if (el.contains(doc.activeElement)) attach()
+    return () => {
+      detach()
+      el.removeEventListener('keyup', captureIfValid)
+      el.removeEventListener('focusin', attach)
+      el.removeEventListener('focusout', onFocusOut)
     }
   }, [ref, captureIfValid, hideIfInvalid])
 
