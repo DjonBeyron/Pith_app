@@ -29,7 +29,7 @@ test('окна замечания и списка открываются и за
   expect(close, 'закрытие окна замечания, мс').toBeLessThan(2500)
 })
 
-test('колесо крутит ленту нативно из любой точки рамки телефона', async ({ page }) => {
+test('колесо крутит ленту из любой точки рамки телефона', async ({ page }) => {
   await ready(page)
   const phone = await (await page.$('.rvwFeedCol .rvwPhone')).boundingBox()
   let bad = 0
@@ -57,14 +57,49 @@ test('«Изменения»: сравнение с локальной верс�
   const page = await ctx.newPage()
   await page.goto(BENCH_URL)
   await page.waitForSelector('.rvwFeedCol .rvwSlot')
-  await page.click('.rvwBtnChg')
-  await expect(page.locator('.rvwBtnChg').first()).toContainText(/Изменения \(\d+\)/)
-  await expect(page.locator('.rvwVerSel option')).toHaveCount(1)
-  await page.click('button:has-text("Только изменённые")')
+  await page.locator('label.rvwIconCheck', { hasText: 'Изменения' }).click() // клик по подписи, как у пользователя
+  await expect(page.locator('.rvwIconCheck').first()).toContainText(/Изменения \(\d+\)/)
+  await page.locator('label.rvwIconCheck', { hasText: 'Только изменённые' }).click()
   const slots = await page.locator('.rvwFeedCol .rvwSlot').count()
   expect(slots).toBeGreaterThan(2)
   expect(slots).toBeLessThan(30)
-  await page.click('button:has-text("Только изменённые")')
+  await page.locator('label.rvwIconCheck', { hasText: 'Только изменённые' }).click()
   expect(await page.locator('.rvwFeedCol .rvwSlot').count()).toBeGreaterThan(250)
   await ctx.close()
+})
+
+test('окно замечания помещается в экран, даже если сохранены огромный размер и положение с другого монитора', async ({ browser }) => {
+  const ctx = await browser.newContext({ viewport: { width: 1366, height: 768 } })
+  await ctx.addInitScript(() => {
+    localStorage.setItem('pithy-review-win:note:size2', JSON.stringify({ w: 3000, h: 2000 }))
+    localStorage.setItem('pithy-review-win:note', JSON.stringify({ x: 2500, y: 1500 }))
+  })
+  const page = await ctx.newPage()
+  await page.goto(BENCH_URL)
+  await page.waitForSelector('.rvwFeedCol .rvwSlot')
+  const slot = (await page.$$('.rvwFeedCol .rvwSlot'))[8]
+  await slot.hover(); await slot.$eval('.rvwTool[aria-label="Замечание"]', b => b.click())
+  await page.waitForSelector('.rvwNtBox')
+  const r = await page.$eval('.rvwNtBox', b => { const q = b.getBoundingClientRect(); return { l: q.left, t: q.top, r: q.right, b: q.bottom, vw: innerWidth, vh: innerHeight } })
+  expect(r.l, JSON.stringify(r)).toBeGreaterThanOrEqual(-1)
+  expect(r.t, JSON.stringify(r)).toBeGreaterThanOrEqual(-1)
+  expect(r.r, JSON.stringify(r)).toBeLessThanOrEqual(r.vw + 1)
+  expect(r.b, JSON.stringify(r)).toBeLessThanOrEqual(r.vh + 1)
+  await ctx.close()
+})
+
+test('канвас: первые ноды появляются поэтапно и раньше остальных', async ({ page }) => {
+  const imp = importLesson(JSON.parse(readFileSync(new URL('../lesson-drafts/im.json', import.meta.url), 'utf8')))
+  const body = JSON.stringify({ title: 'I\'m', script: { nodes: imp.nodes, zones: imp.zones ?? [] } })
+  await page.route('**/rest/v1/**', r => r.fulfill({ status: 200, contentType: 'application/json', body: '[]' }))
+  await page.route('**/rest/v1/lessons?select=script*', r => r.fulfill({ status: 200, contentType: 'application/json', body }))
+  await page.addInitScript(() => {
+    window.__seen = []
+    new MutationObserver(() => { const n = document.querySelectorAll('.canvasNodeWrapper').length; if (n && window.__seen.at(-1) !== n) window.__seen.push(n) }).observe(document, { childList: true, subtree: true })
+  })
+  await page.goto('/e2e/review-perf/canvas.html')
+  await page.waitForFunction(() => document.querySelectorAll('.canvasNodeWrapper').length >= 300, null, { timeout: 60_000 })
+  const seen = await page.evaluate(() => window.__seen)
+  expect(seen[0], `первая порция нод: ${JSON.stringify(seen)}`).toBeLessThan(100)
+  expect(seen.length, 'нод появлялось в несколько этапов').toBeGreaterThan(2)
 })

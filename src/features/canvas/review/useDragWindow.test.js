@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { clampWindowPos, inResizeCorner } from './useDragWindow.js'
+import { clampWindowPos, clampWindowSize, insideViewport, inResizeCorner } from './useDragWindow.js'
 
 describe('clampWindowPos', () => {
   const size = { w: 500, h: 400 }, vp = { vw: 1600, vh: 900 }
@@ -16,5 +16,15 @@ describe('clampWindowPos', () => {
     expect(inResizeCorner(rect, 790, 590)).toBe(true)
     expect(inResizeCorner(rect, 500, 590)).toBe(false)
     expect(inResizeCorner(rect, 790, 100)).toBe(false)
+  })
+  it('сохранённый размер не больше текущего окна браузера', () => {
+    expect(clampWindowSize({ w: 2400, h: 1300 }, { vw: 1366, vh: 768 })).toEqual({ w: 1350, h: 752 })
+    expect(clampWindowSize({ w: 700, h: 500 }, { vw: 1366, vh: 768 })).toEqual({ w: 700, h: 500 })
+    expect(clampWindowSize(null, { vw: 1366, vh: 768 })).toBe(null)
+  })
+  it('при открытии окно целиком внутри экрана', () => {
+    expect(insideViewport({ x: 2500, y: 1500 }, { w: 800, h: 600 }, { vw: 1366, vh: 768 })).toEqual({ x: 566, y: 168 })
+    expect(insideViewport({ x: -300, y: -50 }, { w: 800, h: 600 }, { vw: 1366, vh: 768 })).toEqual({ x: 0, y: 0 })
+    expect(insideViewport({ x: 100, y: 50 }, { w: 800, h: 600 }, { vw: 1366, vh: 768 })).toEqual({ x: 100, y: 50 })
   })
 })

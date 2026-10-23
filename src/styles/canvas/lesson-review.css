@@ -104,7 +104,12 @@
 .rvwSlot:hover .rvwSlotTools, .rvwSlot.on .rvwSlotTools, .rvwSlotTools.keep, .rvwSlotTools:focus-within { opacity: 1; pointer-events: auto; }
 
 /* «Изменения»: розовая полоска слева от сообщения, с отступом, не прилипает к нему */
-.rvwVerSel { padding: 5px 8px; background: #1a1d22; border: 1px solid #ff5fa2; border-radius: 8px; color: #ff8fc0; font-size: 12px; max-width: 190px; }
+/* Переключатель-иконка (VersionsBar): настоящий чекбокс спрятан, видны квадрат-галочка и значок */
+.rvwIconCheck { display: inline-flex; align-items: center; gap: 5px; padding: 6px 10px; background: #1a1d22; border: 1px solid #2a2d35; border-radius: 8px; color: #ccc; font-size: 12px; cursor: pointer; white-space: nowrap; user-select: none; }
+.rvwIconCheck input { position: absolute; opacity: 0; pointer-events: none; width: 0; height: 0; }
+.rvwIconCheck.on { background: #3a1a2c; border-color: #ff5fa2; color: #ff8fc0; }
+.rvwIconCheck.off { opacity: 0.35; cursor: default; }
+.rvwIconCheck:has(input:focus-visible) { outline: 2px solid #ff5fa2; }
 .rvwBtnChg.on { background: #3a1a2c; border-color: #ff5fa2; color: #ff8fc0; }
 .rvwPhone .rvwPlayerFeed { padding-left: 30px; }
 /* Одна фигура: толстая линия (6px) с треугольником-стрелкой по центру, чуть левее сообщения, со свечением под ней, чтобы выделялась */

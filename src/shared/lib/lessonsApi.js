@@ -131,7 +131,27 @@ export async function fetchLessonTitles(ids) {
 // об этом нужно по-разному. Неопубликованный урок сервер не отдаёт никому,
 // кроме админа (RLS lessons_select_all, миграция 20260729) — даже если открыто
 // приложение со старым списком на экране
+// Предзагрузка сценария: редактор открывает код страницы (отдельный chunk) и данные урока ПАРАЛЛЕЛЬНО, а не друг за другом (данные раньше стартовали
+// только после того, как страница скачана и смонтирована). Результат живёт 20 с и отдаётся один раз — устаревшее не подсовываем
+const PREFETCH_TTL_MS = 20_000
+const prefetched = new Map()
+export function prefetchScript(id) {
+  if (!id) return
+  const hit = prefetched.get(id)
+  if (hit && Date.now() - hit.t < PREFETCH_TTL_MS) return
+  const p = fetchScript(id)
+  p.catch(() => {}) // ошибку покажет настоящая загрузка (loadScript повторит запрос)
+  prefetched.set(id, { t: Date.now(), p })
+}
+
 export async function loadScript(id) {
+  const hit = prefetched.get(id)
+  prefetched.delete(id)
+  if (hit && Date.now() - hit.t < PREFETCH_TTL_MS) { try { return await hit.p } catch { /* повторим обычным запросом */ } }
+  return fetchScript(id)
+}
+
+async function fetchScript(id) {
   dbg('[DB READ] lesson script', id)
   const { data, error } = await supabase
     .from('lessons')

@@ -10,6 +10,14 @@ const write = (key, v) => { try { if (v) localStorage.setItem(key, JSON.stringif
 /** Положение окна в пределах области просмотра: наружу можно почти целиком, но край в EDGE px остаётся виден */
 export const clampWindowPos = ({ x, y }, { w, h }, { vw, vh }) => ({ x: Math.min(Math.max(x, EDGE - w), vw - EDGE), y: Math.min(Math.max(y, 0), vh - Math.min(h, EDGE)) })
 
+const viewport = () => ({ vw: window.innerWidth, vh: window.innerHeight })
+/** Размер не больше текущего окна браузера (с полем 16px) */
+export const clampWindowSize = (s, { vw, vh }) => (s ? { w: Math.min(s.w, vw - 16), h: Math.min(s.h, vh - 16) } : null)
+const fitSize = s => clampWindowSize(s, viewport())
+/** Положение при открытии — ЦЕЛИКОМ внутри окна браузера (при перетаскивании можно выносить почти за край, а вот открываться за краем окно не должно) */
+export const insideViewport = ({ x, y }, { w, h }, { vw, vh }) => ({ x: Math.min(Math.max(x, 0), Math.max(0, vw - w)), y: Math.min(Math.max(y, 0), Math.max(0, vh - h)) })
+const fitPos = (p, s) => (p ? insideViewport(p, s ?? { w: 860, h: 600 }, viewport()) : null)
+
 /** Попал ли нажатый пиксель в ручку ресайза (правый нижний угол рамки) */
 export const inResizeCorner = (rect, x, y) => x >= rect.right - CORNER && y >= rect.bottom - CORNER && x <= rect.right && y <= rect.bottom
 
@@ -20,8 +28,9 @@ export const inResizeCorner = (rect, x, y) => x >= rect.right - CORNER && y >= r
  * в углу (onBoxMouseDown), а не наблюдателем за размером: содержимое окна само меняет высоту, и такие изменения не должны стать «размером окна»
  */
 export function useDragWindow(key) {
-  const [pos, setPos] = useState(() => read(key))
-  const [size, setSize] = useState(() => readSize(key))
+  // Сохранённые положение/размер могли быть с другого монитора или при другом масштабе — приводим к текущему окну (иначе окно «выше экрана»)
+  const [size, setSize] = useState(() => fitSize(readSize(key)))
+  const [pos, setPos] = useState(() => fitPos(read(key), size))
   const boxRef = useRef(null)
   useEffect(() => { write(key, pos) }, [key, pos])
   useEffect(() => { write(key + SIZE_KEY, size) }, [key, size])
@@ -48,6 +57,6 @@ export function useDragWindow(key) {
     win.addEventListener('mouseup', up)
   }, [])
   const reset = useCallback(() => { setPos(null); setSize(null); const b = boxRef.current; if (b) b.style.cssText = '' }, [])
-  const style = pos || size ? { ...(pos ? { position: 'fixed', left: pos.x, top: pos.y, right: 'auto', margin: 0 } : {}), ...(size ? { width: size.w, height: size.h, maxWidth: 'none', maxHeight: 'none' } : {}) } : undefined
+  const style = pos || size ? { ...(pos ? { position: 'fixed', left: pos.x, top: pos.y, right: 'auto', margin: 0 } : {}), ...(size ? { width: size.w, height: size.h } : {}) } : undefined
   return { boxRef, style, onHeadMouseDown, onBoxMouseDown, reset }
 }

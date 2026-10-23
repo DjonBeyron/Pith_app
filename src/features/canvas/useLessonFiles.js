@@ -97,8 +97,10 @@ export function useLessonFiles(lessonId) {
   // Local files: removed immediately. Synced files: marked toDelete, removed on next sync.
   // Clicking × on a toDelete file cancels the pending deletion.
   // keepUrls — адреса, на которые новый (импортированный) урок ссылается напрямую: такой файл не трогаем (иначе 404 в плеере)
-  function removeFile(id, keepUrls) {
-    const file = files.find(f => f.id === id)
+  // useCallback + filesRef: идёт пропом (onRemoveLessonFile) до каждой CanvasNode (React.memo) — новая ссылка на каждый рендер CanvasPage
+  // перерисовывала ВСЕ ноды при любом открытии окна («⇄», «Разбор») и гоняла у каждой измерение переходов с принудительной вёрсткой
+  const removeFile = useCallback((id, keepUrls) => {
+    const file = filesRef.current.find(f => f.id === id)
     if (!file) return
     if (keepUrls?.has(file.r2Url)) return
     if (file.status === 'local') {
@@ -109,7 +111,7 @@ export function useLessonFiles(lessonId) {
     } else {
       setFiles(prev => prev.map(f => f.id === id ? { ...f, status: 'toDelete' } : f))
     }
-  }
+  }, [lessonId])
 
   // Возвращает АКТУАЛЬНЫЙ список файлов после синка (не полагаясь на state
   // files, который в closure вызывающего кода — например CanvasPage.handleSave —

@@ -1,23 +1,30 @@
-const fmt = t => new Date(t).toLocaleString('ru', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
+import { Square, SquareCheck, GitCompare, Filter } from 'lucide-react'
 
-// Кнопки «Изменения» (розовые полоски у сообщений, которые отличаются от выбранной версии) + выбор версии для сравнения (в том числе локальных,
-// записанных на этом компьютере) + «Только изменённые» — лента показывает подряд лишь отличающиеся сообщения
+// Один переключатель-иконка: квадрат-чекбокс + значок + подпись. Настоящий <input type="checkbox"> (клавиатура, доступность), оформлен как кнопка шапки
+function IconCheck({ checked, disabled, onChange, title, icon, children }) {
+  return (
+    <label className={`rvwIconCheck${checked ? ' on' : ''}${disabled ? ' off' : ''}`} title={title}>
+      <input type="checkbox" checked={checked} disabled={disabled} onChange={e => onChange(e.target.checked)} />
+      {checked ? <SquareCheck size={15} /> : <Square size={15} />}
+      {icon}
+      {children}
+    </label>
+  )
+}
+
+// «Изменения» — чекбокс: розовые полоски у сообщений, которые отличаются от ПРЕДЫДУЩЕЙ версии урока (она лежит локально на этом ПК: загрузка, сохранение,
+// импорт, прошлое открытие разбора). «Только изменённые» — второй чекбокс: в ленте подряд лишь отличающиеся сообщения (и ветки вне основной цепочки)
 export default function VersionsBar({ versions, onlyChanged, setOnlyChanged }) {
   return (
     <>
-      <button className={`rvwBtn rvwBtnChg${versions.show ? ' on' : ''}`} disabled={!versions.canCompare} onClick={() => versions.setShow(!versions.show)}
-        title={versions.canCompare ? 'Розовая полоска у сообщений, которые отличаются от выбранной версии (новые, изменённые и те, к которым были замечания)' : 'Предыдущей версии урока ещё нет: она появится, когда урок изменится (загрузка, сохранение, импорт или правка) и разбор откроют снова'}>
+      <IconCheck icon={<GitCompare size={14} />} checked={versions.show} disabled={!versions.canCompare} onChange={versions.setShow}
+        title={versions.canCompare ? 'Сравнить с предыдущей версией урока: розовая полоска у новых, изменённых и прокомментированных сообщений' : 'Предыдущей версии урока ещё нет: она появится, когда урок изменится (загрузка, сохранение, импорт или правка) и разбор откроют снова'}>
         Изменения{versions.show ? ` (${versions.marks.size})` : ''}
-      </button>
+      </IconCheck>
       {versions.show && (
-        <>
-          <select className="rvwVerSel" value={versions.baseIndex} onChange={e => versions.setPick(Number(e.target.value))} title="С какой версией сравнивать (версии хранятся на этом компьютере)">
-            {versions.options.map(o => <option key={o.i} value={o.i}>с версией от {fmt(o.t)}</option>)}
-          </select>
-          <button className={`rvwBtn rvwBtnChg${onlyChanged ? ' on' : ''}`} onClick={() => setOnlyChanged(!onlyChanged)} title="Показать в ленте подряд только изменённые сообщения">
-            Только изменённые
-          </button>
-        </>
+        <IconCheck icon={<Filter size={14} />} checked={onlyChanged} onChange={setOnlyChanged} title="Показать в ленте подряд только изменённые сообщения">
+          Только изменённые
+        </IconCheck>
       )}
     </>
   )

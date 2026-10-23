@@ -1,7 +1,7 @@
 /* ── Замечания в окне «Разбор урока» (canvas/review/NoteDialog, NotesWindow, редакторы). Классы rvwNt*, rvwEd*, rvwCopyIcon — только здесь; иконки в углу сообщения — в lesson-review.css */
 /* Окна замечаний не модальные: фон прозрачный и не ловит клики (лента и холст за окном видны и работают), само окно таскается за шапку (useDragWindow.js) */
 .rvwNtBack { position: fixed; left: 0; right: 0; top: 0; bottom: 0; z-index: 1450; pointer-events: none; display: flex; align-items: center; justify-content: center; padding: 16px; }
-.rvwNtBox { box-sizing: border-box; pointer-events: auto; box-shadow: 0 12px 40px #000000aa; resize: both; min-width: 320px; min-height: 160px; }
+.rvwNtBox { box-sizing: border-box; max-width: calc(100vw - 16px); max-height: calc(100dvh - 16px); pointer-events: auto; box-shadow: 0 12px 40px #000000aa; resize: both; min-width: 320px; min-height: 160px; }
 /* Окно замечания в отдельном окне браузера (usePopupWindow.js): на весь popup, без рамки и ресайза (растягивается само окно) */
 .rvwPopupBody { margin: 0; background: #0e1013; color: #dfe2ea; overflow: hidden; }
 .rvwPopupBody .rvwNtBox { position: fixed; left: 0; top: 0; width: 100vw; height: 100dvh; max-width: none; max-height: none; border-radius: 0; border: none; resize: none; box-shadow: none; }

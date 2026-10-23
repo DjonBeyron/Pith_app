@@ -4,6 +4,7 @@ import CanvasConnections from './CanvasConnections.jsx'
 import CanvasSignalConnections from './CanvasSignalConnections.jsx'
 import { collectSignalTargetIds } from './signalTargets.js'
 import { nodeOptionsSignature, pickNodeOptions } from './canvasNodeOptions.js'
+import { useStagedNodes } from './useStagedNodes.js'
 import { releaseTextSelection } from './canvasDragGuard.js'
 import { useAdmin } from '../../app/AdminContext.jsx'
 import { useCanvasDrag } from './useCanvasDrag.js'
@@ -235,6 +236,8 @@ const CanvasBoard = forwardRef(function CanvasBoard({
   // Дальний зум: содержимое нод и точки портов не рисуем — подробности
   // у FAR_ZOOM в canvasZoom.js
   const far = scale < FAR_ZOOM
+  // Ноды появляются поэтапно: сначала в кадре и рядом, остальные порциями в простое (useStagedNodes.js)
+  const stagedNodes = useStagedNodes(nodes, offset, scale)
   const svgTransform   = `translate(${offset.x},${offset.y}) scale(${scale})`
   const worldTransform = `translate(${offset.x}px,${offset.y}px) scale(${scale})`
 
@@ -274,7 +277,7 @@ const CanvasBoard = forwardRef(function CanvasBoard({
 
       <div className={`canvasBoardWorld${far ? ' canvasBoardWorldFar' : ''}`}
         style={{ transform: worldTransform, transformOrigin: '0 0' }}>
-        {nodes.map(node => (
+        {stagedNodes.map(node => (
           <CanvasBoardNode
             key={node.id}
             node={node}
