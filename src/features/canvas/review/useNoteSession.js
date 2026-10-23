@@ -4,7 +4,7 @@ const LIMIT = 30      // сколько правок хранит отмена
 const BURST_MS = 700  // правки подряд в пределах этого времени — одна запись (набор текста не плодит сотни шагов)
 
 const API_KEYS = ['open', 'patch', 'patchRaw', 'recordComment', 'bindComment', 'undo', 'redo', 'dirty', 'cancel', 'keep', 'flushAll']
-const makeApi = ref => Object.fromEntries(API_KEYS.map(k => [k, (...a) => ref.current?.[k](...a)]))
+const makeApi = holder => Object.fromEntries(API_KEYS.map(k => [k, (...a) => holder.impl?.[k](...a)]))
 const snapOf = n => (n ? { type: n.type, typeData: n.typeData, triggers: n.triggers } : null)
 
 /**
@@ -98,8 +98,7 @@ export function useNoteSession(canvasRef, noteFor, setNoteFor) {
 
   // Наружу — СТАБИЛЬНЫЕ обёртки (одни и те же функции на всё время жизни окна): раньше каждая перерисовка панели давала новые
   // session.patch/onType, и мемо-превью «После» (SlotBody + редактор) перерисовывалось на каждую букву комментария — набор лагал
-  const impl = useRef(null)
-  useEffect(() => { impl.current = { open, patch, patchRaw, recordComment, bindComment, undo, redo, dirty, cancel, keep, flushAll } })
-  const [api] = useState(() => makeApi(impl))
-  return { reg, rev, consumeRestore, counts, ...api }
+  const [holder] = useState(() => { const h = { impl: null }; h.api = makeApi(h); return h })
+  useEffect(() => { holder.impl = { open, patch, patchRaw, recordComment, bindComment, undo, redo, dirty, cancel, keep, flushAll } })
+  return { reg, rev, consumeRestore, counts, ...holder.api }
 }

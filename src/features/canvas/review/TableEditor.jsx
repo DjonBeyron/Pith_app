@@ -1,6 +1,7 @@
 import EdField from './EdField.jsx'
 
-// Правка таблицы прямо в окне замечания: заголовок в чате, текст озвучки авто-таблицы и каждая ячейка (с иконкой «копировать»).
+// Правка таблицы прямо в окне замечания: заголовок в чате, текст озвучки авто-таблицы, ширина колонок в % (пропорции: автор видит, где тесно,
+// и правит тут же — замечание к «I'm»: центральной колонке «am → I'm» нужно больше места) и каждая ячейка (с иконкой «копировать»).
 // Все поля с локальным значением и отложенной записью — набор без лагов
 export default function TableEditor({ data, onPatch, reg, ro = false }) {
   const t = data.table ?? {}
@@ -14,6 +15,14 @@ export default function TableEditor({ data, onPatch, reg, ro = false }) {
       {(data.mode === 'dictator' || data.script) && (
         <EdField {...common} label="Текст озвучки (что говорит голос)" value={data.script ?? ''} rows={5} apply={v => d => ({ ...d, script: v })} />
       )}
+      <div className="rvwEdLbl">Ширина колонок, % ({cols})</div>
+      <div className="rvwEdGrid" style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}>
+        {Array.from({ length: cols }, (_, i) => (
+          <div key={i} className="rvwEdCell">
+            <EdField {...common} cell value={String(t.columns?.[i]?.widthPct ?? Math.round(100 / cols))} clean={v => v.replace(/[^\d]/g, '').slice(0, 3)} apply={v => d => ({ ...d, table: { ...d.table, columns: Array.from({ length: cols }, (_, k) => ({ ...(d.table?.columns?.[k] ?? { id: `c${k}` }), widthPct: k === i ? Number(v) || 1 : d.table?.columns?.[k]?.widthPct ?? Math.round(100 / cols) })) } })} />
+          </div>
+        ))}
+      </div>
       <div className="rvwEdLbl">Ячейки ({cells.length})</div>
       <div className="rvwEdGrid" style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}>
         {sorted.map(c => (

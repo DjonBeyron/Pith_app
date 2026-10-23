@@ -9,6 +9,7 @@ import { useColorHistory } from './useColorHistory.js'
 import { useRichTextFavorites, RICH_TEXT_FAV_ID } from './useRichTextFavorites.js'
 import { positionToolbar } from './positionToolbar.js'
 import { describeStyle } from '../../../shared/lib/styleReadout.js'
+import { BASE_GRAY } from '../../../shared/lib/lessonMarkup.js'
 
 const TOOLBAR_W = 280
 const LINE_H = 18 // .richTextField: font-size 12px * line-height 1.5
@@ -236,8 +237,9 @@ export default function RichTextToolbar({ rect, range, highlights, onApply, onCl
           onClick={() => toggleDecor('underline')}><Underline size={15} /></button>
         <button className={`richTextIconBtn${isOn('strike') ? ' active' : ''}`} title="Зачеркнуть"
           onClick={() => toggleDecor('strike')}><Strikethrough size={15} /></button>
-        <button className="richTextIconBtn richTextIconBtnDanger" title="Очистить формат"
-          onClick={() => onApply(clearRange(highlights, range.start, range.end))}><Eraser size={15} /></button>
+        {/* «Дефолтный» текст в уроке — базовый серый, и это тоже слой раскраски: снимаем всё и кладём его обратно, иначе кусок становился белым, а не обычным */}
+        <button className="richTextIconBtn richTextIconBtnDanger" title="Сбросить к обычному тексту (базовый серый, без жирного и подчёркиваний)"
+          onClick={() => onApply(addHighlight(clearRange(highlights, range.start, range.end), { start: range.start, end: range.end, mode: 'text', color: BASE_GRAY, opacity: 1 }))}><Eraser size={15} /></button>
       </div>
 
       <div className="richTextToolbarRow richTextToolbarSwatches">

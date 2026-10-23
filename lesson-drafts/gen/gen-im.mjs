@@ -97,14 +97,17 @@ function SAY(phraseText, translation, { pattern, startHint, hintMismatch, wrongT
   if (listen) { wrong(n, wrongText, 'say_wrong', 3); T(listen); A(comment); R(ENDS[endN++ % ENDS.length]) } else { wrong(n, wrongText, 'say_wrong', 1); if (react) R(react); else T(comment) }
   return n
 }
-function TABLE(mode, chatCaption, head, rows, { script, widths } = {}) {
+const W3 = [18, 50, 32] // «Кто · Сейчас · Какой»: центральной колонке с частичкой больше места (замечание автора)
+const W4 = [20, 27, 27, 26]
+function TABLE(mode, chatCaption, head, rows, { script, widths, answer, wrongText } = {}) {
   const cells = []
   head.forEach((v, c) => cells.push({ id: `h${c}`, col: c, row: 0, value: v, colspan: 1, rowspan: 1, fontSize: 11, isHeader: true }))
   rows.forEach((r, ri) => r.forEach((v, c) => cells.push({ id: `r${ri}c${c}`, col: c, row: ri + 1, value: v, colspan: 1, rowspan: 1, fontSize: c === 1 && head.length === 3 ? 15 : 13 })))
   const rowCount = rows.length + 1
-  const data = { mode, table: { rows: Array.from({ length: rowCount }, (_, i) => ({ id: `r${i}`, heightPct: Math.round(100 / rowCount) })), cells, columns: head.map((_, i) => ({ id: `c${i}`, widthPct: (widths ?? (head.length === 3 ? [38, 22, 40] : [50, 50]))[i] })), colCount: head.length, rowCount }, chatCaption, ...(mode === 'dictator' ? { script, sendToChat: true } : {}) }
+  const data = { mode, table: { rows: Array.from({ length: rowCount }, (_, i) => ({ id: `r${i}`, heightPct: Math.round(100 / rowCount) })), cells, columns: head.map((_, i) => ({ id: `c${i}`, widthPct: (widths ?? (head.length === 4 ? W4 : head.length === 3 ? W3 : [50, 50]))[i] })), colCount: head.length, rowCount }, chatCaption, ...(mode === 'dictator' ? { script, sendToChat: true } : {}), ...(mode === 'manual' ? { answer, sendToChat: true } : {}) }
   const n = main('table', data, mode === 'dictator' ? { needs: 'audio — только для режима dictator', note: `ОЗВУЧКА таблицы (скрипт идёт по ячейкам слева направо, сверху вниз; метку «Проверить» поставить при монтаже после последней ячейки): ${script}` } : { note: `Таблица I'm: ${chatCaption}` })
   if (mode === 'demo') n.triggers = [{ if: 'timer', ms: 2200 }]
+  if (mode === 'manual') { n.note = `РУЧНАЯ таблица: ученик тапает ячейки по порядку и собирает «${answer}»`; n.triggers = n.triggers.filter(t => t.if !== 'table_wrong'); wrong(n, wrongText, 'table_wrong') }
   return n
 }
 const SLOTS_OFFICE = { window: 'window', 'wall-art': 'picture', 'wall-board': 'whiteboard', 'wall-clock': 'wall-clock', 'desk-center': 'papers', 'floor-left': 'floor-lamp', 'floor-right': 'plant', table: 'table', 'desk-left': 'laptop', 'desk-right': 'mug' }
@@ -138,12 +141,12 @@ P('Я валяюсь в кровати, одеяло до носа, телефо
 A('{g:I\'m} это сокращение от {g:I} + {g:am}, переводится как {t:я есть}')
 A('Это {w:связка}: {l:слово, которое соединяет} {g:I} и то, какой ты. По-русски его нет, {t:я сонный}, а по-английски оно нужно всегда')
 TABLE('demo', 'я и моё состояние', ['Кто', 'Сейчас', 'Какой'], [['I', 'am → I\'m', 'sleepy']])
-A('Смотри: сначала {g:I}, потом частичка {g:am}, вместе {g:I\'m}, потом состояние, какой ты или что с тобой, {l:вот и вся фраза}')
+A('Смотри: сначала {g:I}, потом частичка {g:am}, сокращённо это {g:I\'m}, потом состояние. По-русски звучит странно, {t:я есть сонный}, {g:I am sleepy}, но {l:так устроен английский}')
 S('Мультяшный кот с чашкой кофе смотрит в телефон, светлый фон, без текста')
 T('Кейт мне написала: встречаемся в десять у кафе, а у меня уже половина десятого')
 T('😱')
 A('Ну-ка, помоги мне ответить ей: {t:«я опаздываю»}')
-PA('I\'m late', ['am', 'is', 'to'], { responseWrong: 'не совсем) про себя всегда {g:I\'m}, и сразу состояние', wrongText: 'не совсем) {t:я опаздываю} это {g:I\'m late}. Полная {g:I am late} тоже верно, но здесь собираем короткую: {g:I\'m} уже содержит {g:am}' })
+PA('I\'m late', ['am', 'is', 'to'], { responseWrong: 'не совсем) про себя всегда {g:I\'m}, и сразу состояние', wrongText: 'не совсем) {t:я опаздываю} это {g:I\'m late}. Можно сказать и полной формой, {g:I am late} тоже верно, но здесь собираем короткую: {g:I\'m} уже содержит {g:am}' })
 R('🏃')
 A('Видишь? {g:I\'m} {l:приклеивается к любому состоянию}: сонный, опаздываю, дома')
 TABLE('dictator', 'что со мной сейчас', ['Кто', 'Сейчас', 'Какой'], [['I', 'am → I\'m', 'sleepy'], ['I', 'am → I\'m', 'late']], { script: 'Смотри, теперь тут две фразы. I, am, коротко I\'m, и состояние sleepy, я сонный. И тут же I, am, I\'m, другое состояние, late, я опаздываю. Начало одно и то же, а дальше любое состояние' })
@@ -157,7 +160,7 @@ T('Давай на слух 👂')
 A('{g:I\'m busy}', false)
 WC(['Я занят', 'Я дома', 'Я сонный'], { wrongText: 'неа) {g:busy} это {t:занятой}, поэтому {g:I\'m busy} это {t:я занят}', voicePhrase: 'I\'m busy' })
 R('📵')
-T('Кейт кста пишет: ты где? а здесь нужно {g:am}? выбирай:\n{g:I ___ here}')
+T('Кейт кста пишет: ты где? как думаешь, а здесь нужно {g:am}? выбирай:\n{g:I ___ here}')
 WC(['am', 'is', 'are'], { wrongText: 'неа) про себя только {g:am}: {g:I am here}, или короче {g:I\'m here}' })
 T('точно, {t:«я здесь»}, и Кейт уже бежит 📍')
 A('{g:I\'m} это сокращённая форма. Полную {g:I am} используют {l:для усиления смысла} или в более формальных ситуациях')
@@ -183,12 +186,13 @@ R('🎉')
 TABLE('dictator', 'кто есть кто', ['Кто', 'Сейчас', 'Какой'], [['I', 'am → I\'m', 'late'], ['you', 'are → you\'re', 'late'], ['she', 'is → she\'s', 'late']], { script: 'Смотри, что получается. Про себя I, am, коротко I\'m, I\'m late, я опаздываю. Про тебя частичка уже другая: you, are, коротко you\'re, you\'re late, ты опаздываешь. А про неё she, is, коротко she\'s, she\'s late, она опаздывает. Частичка меняется вместе с тем, кто, а состояние late остаётся' })
 A('Про него точно так же: {g:he\'s}, это {g:he} + {g:is}, {t:он есть}')
 A('А когда {l:нас двое или больше}: {g:we\'re}, это {g:we} + {g:are}, {t:мы есть}, и {g:they\'re}, это {g:they} + {g:are}, {t:они есть}')
-A('Сидим, пьём кофе, Кейт фоткает чашки для подруги. Собери: {t:«мы счастливы»}')
-PA('We\'re happy', ['am', 'is', 'I\'m'], { responseWrong: 'не совсем) про нас связка {g:we\'re}', wrongText: 'неа) нас двое, значит {g:we\'re}, а не {x:I\'m}:\n{g:We\'re happy}' })
-T('{t:«мы счастливы»}, кофе творит чудеса ☕')
-S('Мультяшный кот и кошка чокаются чашками кофе, светлый фон, без текста')
-TABLE('dictator', 'вся семья I\'m', ['Кто', 'Сейчас', 'Какой'], [['I', 'am → I\'m', 'here'], ['you', 'are → you\'re', 'here'], ['he, she', 'is → he\'s, she\'s', 'here'], ['we, they', 'are → we\'re, they\'re', 'here']], { script: 'А теперь вся семья разом, состояние одно, here, я здесь, меняется только частичка. I, am, I\'m here. You, are, you\'re here. He и she, is, he\'s here, she\'s here. We и they, are, we\'re here, they\'re here. Три частички, am, is, are, а состояние после них одно и то же' })
-PIN('{g:I\'m} · {g:you\'re} · {g:she\'s} / {g:he\'s} · {g:we\'re} · {g:they\'re}')
+A('Не пугайся, {l:частичек всего три}, {g:am}, {g:is}, {g:are}, сейчас всё разложим по полочкам и соберём пару фраз вместе')
+TABLE('dictator', 'все местоимения разом', ['Кто', 'Сейчас', 'Какой'], [['I', 'am → I\'m', 'happy'], ['you', 'are → you\'re', 'happy'], ['he', 'is → he\'s', 'happy'], ['she', 'is → she\'s', 'happy'], ['we', 'are → we\'re', 'happy'], ['they', 'are → they\'re', 'happy']], { script: 'Собираем вместе, состояние одно, happy. I, am, I\'m happy, я счастлив. You, are, you\'re happy, ты счастлив. He, is, he\'s happy. She, is, she\'s happy. We, are, we\'re happy. They, are, they\'re happy. Видишь, частичка идёт за местоимением, а состояние не меняется' })
+T('Теперь по очереди: {l:одну фразу собираю я, одну ты}. Я первый')
+TABLE('dictator', 'моя очередь', ['Кто', 'Сейчас', 'Какой'], [['I', 'am → I\'m', 'tired']], { script: 'Смотри: I, am, коротко I\'m, tired, I\'m tired, я устал' })
+T('твоя очередь: собери {t:«ты устал»}, тапай по ячейкам по порядку: кто, частичка, состояние')
+TABLE('manual', 'твоя очередь', ['Кто', 'Сейчас', 'Какой'], [['I', 'am', 'tired'], ['you', 'are', 'tired'], ['she', 'is', 'tired']], { answer: 'you are tired', wrongText: 'не совсем) про тебя частичка {g:are}: {g:you are tired}, по порядку кто, частичка, состояние' })
+R('👏')
 T('Кейт прислала голосовое про Тома и Анну, разбери')
 A('{g:They\'re at work}', false)
 WC(['Они на работе', 'Они идут на работу', 'Мы на работе'], { wrongText: 'не совсем) {g:they\'re} это {t:они}, а {g:at work} это {t:на работе}: {t:они на работе}', voicePhrase: 'They\'re at work' })
@@ -196,6 +200,21 @@ R('💼')
 REF('Про at, слово перед местом (at work, at home), ты можешь узнать в отдельном уроке', 'At')
 T('Это Кейт про Тома и Анну: они сегодня работают, так что в кино вечером идём вдвоём')
 S('Мультяшный кот хитро улыбается, прикрывая рот лапой, светлый фон, без текста')
+A('Снова моя очередь, теперь про неё')
+TABLE('dictator', 'снова я', ['Кто', 'Сейчас', 'Какой'], [['she', 'is → she\'s', 'sleepy']], { script: 'She, is, коротко she\'s, sleepy, she\'s sleepy, она сонная' })
+T('и твоя: собери {t:«он сонный»}, тапай по ячейкам')
+TABLE('manual', 'снова ты', ['Кто', 'Сейчас', 'Какой'], [['he', 'is', 'sleepy'], ['she', 'is', 'sleepy'], ['we', 'are', 'sleepy']], { answer: 'he is sleepy', wrongText: 'близко) про него частичка {g:is}, как и про неё: {g:he is sleepy}' })
+R('😴')
+A('Сидим, пьём кофе, Кейт фоткает чашки для подруги. Собери: {t:«мы счастливы»}')
+PA('We\'re happy', ['am', 'is', 'I\'m'], { responseWrong: 'не совсем) про нас связка {g:we\'re}', wrongText: 'неа) нас двое, значит {g:we\'re}, а не {x:I\'m}:\n{g:We\'re happy}' })
+T('{t:«мы счастливы»}, кофе творит чудеса ☕')
+S('Мультяшный кот и кошка чокаются чашками кофе, светлый фон, без текста')
+A('Последний круг: моя фраза про нас с Кейт')
+TABLE('dictator', 'последняя моя', ['Кто', 'Сейчас', 'Какой'], [['we', 'are → we\'re', 'late']], { script: 'We, are, коротко we\'re, late, we\'re late, мы опаздываем. Ну да, в кино мы тоже чуть не опоздали' })
+T('и последняя твоя: собери {t:«они опаздывают»}')
+TABLE('manual', 'последняя твоя', ['Кто', 'Сейчас', 'Какой'], [['we', 'are', 'late'], ['they', 'are', 'late'], ['you', 'are', 'late']], { answer: 'they are late', wrongText: 'неа) про них частичка {g:are}: {g:they are late}' })
+R('🏆')
+PIN('{g:I\'m} · {g:you\'re} · {g:she\'s} / {g:he\'s} · {g:we\'re} · {g:they\'re}')
 A('Скажи про друга или подругу, какие они: начни с {g:He\'s} или {g:She\'s}, можно и полное {g:He is}, а дальше любое слово, {g:funny}, {g:nice}, {g:busy}, слово на твой выбор')
 SAY('She\'s nice', 'Она милая', { pattern: '(He\'s|She\'s|He is|She is) **', startHint: 'She\'s — она', hintMismatch: 'Начни с He\'s или She\'s и добавь любое слово, например nice)', wrongText: 'не то) начни с {g:He\'s} или {g:She\'s} и добавь любое слово)', listen: 'ага, послушаю)', comment: 'у тебя уже получается описывать других: {g:He\'s} или {g:She\'s} и любое слово' })
 endZone()
