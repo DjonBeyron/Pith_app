@@ -55,4 +55,15 @@ describe('авто-таблица в ленте', () => {
     const tb = { ref: 'tb', seq: 1, type: 'table', data: { mode: 'dictator' }, triggers: [{ if: 'table_correct', then: 'z' }, { if: 'table_wrong', then: null }] }
     expect(buildTranscript([tb, t('z')]).map(i => `${i.kind}:${i.ref}`)).toEqual(['node:tb', 'node:z'])
   })
+  it('ручная таблица: есть ветка «неверно» и пузырь ответа ученика', () => {
+    const wrong = { ref: 'w', seq: 2, type: 'text', data: { content: 'не совсем' }, triggers: [{ if: 'timer', then: 'z' }] }
+    const z = { ref: 'z', seq: 3, type: 'text', data: { content: 'дальше' }, triggers: [] }
+    const tb = { ref: 'tb', seq: 1, type: 'table', data: { mode: 'manual', answer: 'you are tired' }, triggers: [{ if: 'table_correct', then: 'z' }, { if: 'table_wrong', then: 'w' }] }
+    const right = buildTranscript([tb, wrong, z])
+    expect(right.map(i => i.kind + ':' + i.ref)).toEqual(['node:tb', 'student:tb', 'node:z'])
+    expect(right[0]).toMatchObject({ hasWrong: true, choice: 'right' })
+    expect(answerText(tb)).toBe('you are tired')
+    const bad = buildTranscript([tb, wrong, z], { tb: 'wrong' })
+    expect(bad.map(i => i.kind + ':' + i.ref)).toEqual(['node:tb', 'student:tb', 'node:w', 'node:z'])
+  })
 })

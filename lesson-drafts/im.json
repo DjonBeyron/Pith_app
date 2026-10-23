@@ -1949,7 +1949,7 @@
         31160,
         0
       ],
-      "note": "ОЗВУЧКА таблицы (скрипт идёт по ячейкам слева направо, сверху вниз; метку «Проверить» поставить при монтаже после последней ячейки): Собираем вместе, состояние одно, happy. I, am, I'm happy, я счастлив. You, are, you're happy, ты счастлив. He, is, he's happy. She, is, she's happy. We, are, we're happy. They, are, they're happy. Видишь, частичка идёт за местоимением, а состояние не меняется",
+      "note": "ОЗВУЧКА таблицы (скрипт идёт по ячейкам слева направо, сверху вниз; метку «Проверить» поставить при монтаже после последней ячейки): Собираем вместе, состояние одно, happy, а местоимения сложим в три группы. Первая, I, am, I'm happy, я счастлив. Вторая, he, she, it, у них is, he's happy, she's happy, it's happy. Третья, we, you, they, у них are, we're happy, you're happy, they're happy. Видишь, частичка идёт за группой, а состояние не меняется",
       "needs": "audio — только для режима dictator",
       "data": {
         "mode": "dictator",
@@ -1957,31 +1957,19 @@
           "rows": [
             {
               "id": "r0",
-              "heightPct": 14
+              "heightPct": 25
             },
             {
               "id": "r1",
-              "heightPct": 14
+              "heightPct": 25
             },
             {
               "id": "r2",
-              "heightPct": 14
+              "heightPct": 25
             },
             {
               "id": "r3",
-              "heightPct": 14
-            },
-            {
-              "id": "r4",
-              "heightPct": 14
-            },
-            {
-              "id": "r5",
-              "heightPct": 14
-            },
-            {
-              "id": "r6",
-              "heightPct": 14
+              "heightPct": 25
             }
           ],
           "cells": [
@@ -2039,14 +2027,14 @@
               "row": 1,
               "value": "happy",
               "colspan": 1,
-              "rowspan": 6,
+              "rowspan": 3,
               "fontSize": 13
             },
             {
               "id": "r1c0",
               "col": 0,
               "row": 2,
-              "value": "you",
+              "value": "he, she, it",
               "colspan": 1,
               "rowspan": 1,
               "fontSize": 13
@@ -2055,7 +2043,7 @@
               "id": "r1c1",
               "col": 1,
               "row": 2,
-              "value": "are → you're",
+              "value": "is → he's, she's, it's",
               "colspan": 1,
               "rowspan": 1,
               "fontSize": 15
@@ -2064,7 +2052,7 @@
               "id": "r2c0",
               "col": 0,
               "row": 3,
-              "value": "he",
+              "value": "we, you, they",
               "colspan": 1,
               "rowspan": 1,
               "fontSize": 13
@@ -2073,61 +2061,7 @@
               "id": "r2c1",
               "col": 1,
               "row": 3,
-              "value": "is → he's",
-              "colspan": 1,
-              "rowspan": 1,
-              "fontSize": 15
-            },
-            {
-              "id": "r3c0",
-              "col": 0,
-              "row": 4,
-              "value": "she",
-              "colspan": 1,
-              "rowspan": 1,
-              "fontSize": 13
-            },
-            {
-              "id": "r3c1",
-              "col": 1,
-              "row": 4,
-              "value": "is → she's",
-              "colspan": 1,
-              "rowspan": 1,
-              "fontSize": 15
-            },
-            {
-              "id": "r4c0",
-              "col": 0,
-              "row": 5,
-              "value": "we",
-              "colspan": 1,
-              "rowspan": 1,
-              "fontSize": 13
-            },
-            {
-              "id": "r4c1",
-              "col": 1,
-              "row": 5,
-              "value": "are → we're",
-              "colspan": 1,
-              "rowspan": 1,
-              "fontSize": 15
-            },
-            {
-              "id": "r5c0",
-              "col": 0,
-              "row": 6,
-              "value": "they",
-              "colspan": 1,
-              "rowspan": 1,
-              "fontSize": 13
-            },
-            {
-              "id": "r5c1",
-              "col": 1,
-              "row": 6,
-              "value": "are → they're",
+              "value": "are → we're, you're, they're",
               "colspan": 1,
               "rowspan": 1,
               "fontSize": 15
@@ -2148,10 +2082,10 @@
             }
           ],
           "colCount": 3,
-          "rowCount": 7
+          "rowCount": 4
         },
         "chatCaption": "все местоимения разом",
-        "script": "Собираем вместе, состояние одно, happy. I, am, I'm happy, я счастлив. You, are, you're happy, ты счастлив. He, is, he's happy. She, is, she's happy. We, are, we're happy. They, are, they're happy. Видишь, частичка идёт за местоимением, а состояние не меняется",
+        "script": "Собираем вместе, состояние одно, happy, а местоимения сложим в три группы. Первая, I, am, I'm happy, я счастлив. Вторая, he, she, it, у них is, he's happy, she's happy, it's happy. Третья, we, you, they, у них are, we're happy, you're happy, they're happy. Видишь, частичка идёт за группой, а состояние не меняется",
         "sendToChat": true
       },
       "triggers": [
@@ -2167,21 +2101,20 @@
     },
     {
       "ref": "n60",
-      "type": "audio",
+      "type": "text",
       "seq": 53,
       "pos": [
         31720,
         0
       ],
-      "note": "ОЗВУЧКА: Запомни логику: am бывает только с I, is с одним человеком, he или she, а are со всеми остальными, и с ты, и с несколькими",
-      "needs": "audio — озвучка реплики",
       "data": {
-        "text": "Запомни логику: {g:am} бывает только с {g:I}, {g:is} с одним человеком, {g:he} или {g:she}, а {g:are} со всеми остальными, {l:и с ты, и с несколькими}",
-        "showText": true
+        "content": "Запомни логику:\n{g:am} бывает только с {g:I},\n{g:is} с одним человеком, {g:he}, {g:she}, {g:it},\n{g:are} {l:со всеми остальными}: {g:we}, {g:you}, {g:they}",
+        "hardWrap": true
       },
       "triggers": [
         {
-          "if": "played",
+          "if": "timer",
+          "ms": 1500,
           "then": "n61"
         }
       ]
@@ -2336,7 +2269,7 @@
         0
       ],
       "data": {
-        "content": "твоя очередь: это не проверка, а закрепление того, что мы разобрали. Собери {t:«ты устал»}: тапни кто, потом частичку, а слово {g:tired} возьми под таблицей",
+        "content": "твоя очередь: собери {t:«ты устал»}, тапни кто, потом частичку, а слово {g:tired} возьми под таблицей",
         "hardWrap": false
       },
       "triggers": [
@@ -2420,16 +2353,21 @@
               "id": "r1c0",
               "col": 0,
               "row": 2,
-              "value": "you",
+              "value": "he / she / it",
               "colspan": 1,
               "rowspan": 1,
-              "fontSize": 13
+              "fontSize": 13,
+              "options": [
+                "he",
+                "she",
+                "it"
+              ]
             },
             {
               "id": "r1c1",
               "col": 1,
               "row": 2,
-              "value": "are",
+              "value": "is",
               "colspan": 1,
               "rowspan": 1,
               "fontSize": 13
@@ -2438,16 +2376,21 @@
               "id": "r2c0",
               "col": 0,
               "row": 3,
-              "value": "she",
+              "value": "we / you / they",
               "colspan": 1,
               "rowspan": 1,
-              "fontSize": 13
+              "fontSize": 13,
+              "options": [
+                "we",
+                "you",
+                "they"
+              ]
             },
             {
               "id": "r2c1",
               "col": 1,
               "row": 3,
-              "value": "is",
+              "value": "are",
               "colspan": 1,
               "rowspan": 1,
               "fontSize": 13
@@ -2900,19 +2843,15 @@
           "rows": [
             {
               "id": "r0",
-              "heightPct": 25
+              "heightPct": 33
             },
             {
               "id": "r1",
-              "heightPct": 25
+              "heightPct": 33
             },
             {
               "id": "r2",
-              "heightPct": 25
-            },
-            {
-              "id": "r3",
-              "heightPct": 25
+              "heightPct": 33
             }
           ],
           "cells": [
@@ -2940,10 +2879,15 @@
               "id": "r0c0",
               "col": 0,
               "row": 1,
-              "value": "he",
+              "value": "he / she / it",
               "colspan": 1,
               "rowspan": 1,
-              "fontSize": 13
+              "fontSize": 13,
+              "options": [
+                "he",
+                "she",
+                "it"
+              ]
             },
             {
               "id": "r0c1",
@@ -2958,33 +2902,20 @@
               "id": "r1c0",
               "col": 0,
               "row": 2,
-              "value": "she",
+              "value": "we / you / they",
               "colspan": 1,
               "rowspan": 1,
-              "fontSize": 13
+              "fontSize": 13,
+              "options": [
+                "we",
+                "you",
+                "they"
+              ]
             },
             {
               "id": "r1c1",
               "col": 1,
               "row": 2,
-              "value": "is",
-              "colspan": 1,
-              "rowspan": 1,
-              "fontSize": 13
-            },
-            {
-              "id": "r2c0",
-              "col": 0,
-              "row": 3,
-              "value": "we",
-              "colspan": 1,
-              "rowspan": 1,
-              "fontSize": 13
-            },
-            {
-              "id": "r2c1",
-              "col": 1,
-              "row": 3,
               "value": "are",
               "colspan": 1,
               "rowspan": 1,
@@ -3002,7 +2933,7 @@
             }
           ],
           "colCount": 2,
-          "rowCount": 4
+          "rowCount": 3
         },
         "chatCaption": "снова ты",
         "answer": "he is sleepy",
@@ -3376,19 +3307,11 @@
           "rows": [
             {
               "id": "r0",
-              "heightPct": 25
+              "heightPct": 50
             },
             {
               "id": "r1",
-              "heightPct": 25
-            },
-            {
-              "id": "r2",
-              "heightPct": 25
-            },
-            {
-              "id": "r3",
-              "heightPct": 25
+              "heightPct": 50
             }
           ],
           "cells": [
@@ -3416,51 +3339,20 @@
               "id": "r0c0",
               "col": 0,
               "row": 1,
-              "value": "we",
+              "value": "we / you / they",
               "colspan": 1,
               "rowspan": 1,
-              "fontSize": 13
+              "fontSize": 13,
+              "options": [
+                "we",
+                "you",
+                "they"
+              ]
             },
             {
               "id": "r0c1",
               "col": 1,
               "row": 1,
-              "value": "are",
-              "colspan": 1,
-              "rowspan": 1,
-              "fontSize": 13
-            },
-            {
-              "id": "r1c0",
-              "col": 0,
-              "row": 2,
-              "value": "they",
-              "colspan": 1,
-              "rowspan": 1,
-              "fontSize": 13
-            },
-            {
-              "id": "r1c1",
-              "col": 1,
-              "row": 2,
-              "value": "are",
-              "colspan": 1,
-              "rowspan": 1,
-              "fontSize": 13
-            },
-            {
-              "id": "r2c0",
-              "col": 0,
-              "row": 3,
-              "value": "you",
-              "colspan": 1,
-              "rowspan": 1,
-              "fontSize": 13
-            },
-            {
-              "id": "r2c1",
-              "col": 1,
-              "row": 3,
               "value": "are",
               "colspan": 1,
               "rowspan": 1,
@@ -3478,7 +3370,7 @@
             }
           ],
           "colCount": 2,
-          "rowCount": 4
+          "rowCount": 2
         },
         "chatCaption": "последняя твоя",
         "answer": "they are late",

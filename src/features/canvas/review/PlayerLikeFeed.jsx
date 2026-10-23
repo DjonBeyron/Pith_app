@@ -21,6 +21,16 @@ const NO_SET = new Set()
 const EXERCISE_TYPES = new Set(['word_choice', 'phrase_assembly', 'type_word', 'say_phrase', 'fill_blanks', 'photo_choice', 'registration'])
 const LABEL = { word_choice: 'Выбери слово', phrase_assembly: 'Собери фразу', type_word: 'Напечатай слово', say_phrase: 'Сказать фразу', fill_blanks: 'Составь предложение', photo_choice: 'Выбрать фото', registration: 'Регистрация' }
 
+// Переключатель «верно / неверно» в шапке панели задания (✗ недоступен, если у задания нет ветки «неверно»)
+function ChoiceSwitch({ item, onChoice }) {
+  return (
+    <span className="rvwSwitch" onClick={e => e.stopPropagation()}>
+      <button className={item.choice === 'right' ? 'on' : ''} onClick={() => onChoice(item.ref, 'right')}>✓</button>
+      <button className={item.choice === 'wrong' ? 'on bad' : ''} disabled={!item.hasWrong} title={item.hasWrong ? 'Показать ветку ошибки' : 'У задания нет ветки «неверно»'} onClick={() => onChoice(item.ref, 'wrong')}>✗</button>
+    </span>
+  )
+}
+
 // Панель ответа «как у ученика», КОМПАКТНО: настоящие кусочки панелей (банк слов, кнопки выбора), чтобы было ясно, что за модуль.
 // «Выбери слово»: варианты кликаются — выбираем реальный ответ, и лента идёт по ветке этого варианта. Остальным заданиям — переключатель верно/неверно.
 // Клавиатуры (напечатай), микрофона с анимациями (скажи) нет — только суть задания
@@ -50,12 +60,7 @@ function ExercisePanel({ node, item, onPick, onChoice }) {
     <div className="rvwPanel" style={{ '--rvw-accent': accent }}>
       <div className="rvwPanelHead">
         <span>{LABEL[node.type] ?? node.type}</span>
-        {node.type !== 'word_choice' && item.choice && (
-          <span className="rvwSwitch" onClick={e => e.stopPropagation()}>
-            <button className={item.choice === 'right' ? 'on' : ''} onClick={() => onChoice(item.ref, 'right')}>✓</button>
-            <button className={item.choice === 'wrong' ? 'on bad' : ''} disabled={!item.hasWrong} title={item.hasWrong ? 'Показать ветку ошибки' : 'У задания нет ветки «неверно»'} onClick={() => onChoice(item.ref, 'wrong')}>✗</button>
-          </span>
-        )}
+        {node.type !== 'word_choice' && item.choice && <ChoiceSwitch item={item} onChoice={onChoice} />}
       </div>
       {body}
     </div>
@@ -138,7 +143,7 @@ export function SlotBody({ item, canvasNode, canvasNodes, files, teacherName = '
   if (t && (t.mode ?? 'dictator') !== 'demo') {
     return (
       <div className="rvwPanel" style={{ '--rvw-accent': TYPE_COLOR.table ?? '#7a7a96' }}>
-        <div className="rvwPanelHead"><span>Таблица · {t.mode === 'manual' ? 'ручной режим' : 'авто (по озвучке)'}</span></div>
+        <div className="rvwPanelHead"><span>Таблица · {t.mode === 'manual' ? 'ручной режим' : 'авто (по озвучке)'}</span>{t.mode === 'manual' && item.choice && <ChoiceSwitch item={item} onChoice={onChoice} />}</div>
         {msg(true)}
         {t.script && <div className="rvwTypeLine">🔊 {t.script}</div>}
       </div>

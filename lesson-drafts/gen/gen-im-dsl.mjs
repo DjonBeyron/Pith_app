@@ -105,10 +105,12 @@ export const W4 = [20, 27, 27, 26]
 export function TABLE(mode, chatCaption, head, rows, { script, widths, answer, wrongText, mergeLast = false, distractors = [] } = {}) {
   const cells = []
   head.forEach((v, c) => cells.push({ id: `h${c}`, col: c, row: 0, value: v, colspan: 1, rowspan: 1, fontSize: 11, isHeader: true }))
-  rows.forEach((r, ri) => r.forEach((v, c) => {
+  // значение ячейки: строка или [строка, [варианты]] — ячейка-группа («he / she / it») с выпадающим меню вариантов (в ручной таблице ученик выбирает из них)
+  rows.forEach((r, ri) => r.forEach((raw, c) => {
     const last = c === head.length - 1
     if (mergeLast && last && ri > 0) return // покрыто большой ячейкой первой строки
-    cells.push({ id: `r${ri}c${c}`, col: c, row: ri + 1, value: v, colspan: 1, rowspan: mergeLast && last ? rows.length : 1, fontSize: c === 1 && head.length === 3 ? 15 : 13 })
+    const [v, options] = Array.isArray(raw) ? raw : [raw]
+    cells.push({ id: `r${ri}c${c}`, col: c, row: ri + 1, value: v, colspan: 1, rowspan: mergeLast && last ? rows.length : 1, fontSize: c === 1 && head.length === 3 ? 15 : 13, ...(options ? { options } : {}) })
   }))
   const rowCount = rows.length + 1
   const data = { mode, table: { rows: Array.from({ length: rowCount }, (_, i) => ({ id: `r${i}`, heightPct: Math.round(100 / rowCount) })), cells, columns: head.map((_, i) => ({ id: `c${i}`, widthPct: (widths ?? (head.length === 4 ? W4 : head.length === 3 ? W3 : [50, 50]))[i] })), colCount: head.length, rowCount }, chatCaption, ...(mode === 'dictator' ? { script, sendToChat: true } : {}), ...(mode === 'manual' ? { answer, sendToChat: true, distractors: distractors.map(text => ({ text })) } : {}) }
