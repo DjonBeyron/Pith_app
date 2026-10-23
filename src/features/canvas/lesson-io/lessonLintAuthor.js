@@ -1,10 +1,11 @@
 // Проверки из замечаний автора по урокам (разбор «At», 2026-10-22): то, что автор пометил руками и что можно поймать кодом.
 // BANNED — обороты, которые автор счёл неестественными/устаревшими/детскими («но нет», «ухо востро», «послушай-ка»): пополняется из разборов.
 // Остальное: «дай послушать» не чаще двух раз за урок; два соседних по ленте ответа на ошибку с одним и тем же вводным («не то)» → «не то)»);
-// у фразы со временем среди ловушек должна быть ещё одна цифра; в озвучке dictator-таблицы «да»/«нет» не читаются как ячейки
+// у фразы со временем среди ловушек должна быть ещё одна цифра; в озвучке dictator-таблицы «да»/«нет» не читаются как ячейки;
+// Пит говорит о себе от первого лица, и в подписях к фото тоже (разбор «I'm»: не «Пит в кровати», а «я валяюсь в кровати»)
 import { wrongOnlySet } from './lessonLintFlow.js'
 
-export const BANNED = ['но нет', 'но-но-но', 'ухо востро', 'послушай-ка', 'включаю твою запись', 'ритм тот самый', 'звучит как надо', 'и сразу вслух', 'ну как сказать', 'без лишнего, вот так']
+export const BANNED = ['но нет', 'но-но-но', 'не-не-не', 'ухо востро', 'послушай-ка', 'включаю твою запись', 'ритм тот самый', 'звучит как надо', 'и сразу вслух', 'ну как сказать', 'без лишнего, вот так']
 const LISTEN = /дай(те)? послушать|дай-ка послушаю/i
 const LISTEN_MAX = 2
 const NUMBERS = new Set(['one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'eleven', 'twelve', 'noon', 'midnight'])
@@ -46,11 +47,17 @@ function checkNumberTraps(nodes) {
     .map(n => `[R-number-trap] ${n.ref} (phrase_assembly): во фразе время («${(n.data.words ?? []).find(w => NUMBERS.has(String(w).toLowerCase()))}»), а среди ловушек нет другой цифры — добавь, иначе время угадывается без выбора`)
 }
 
+const THIRD = /(^|[^а-яё])Пит(а|у|ом|е)?(?![а-яё])/i
+function checkFirstPerson(nodes) {
+  return nodes.filter(n => SPEECH.has(n.type) && THIRD.test(textOf(n)))
+    .map(n => `[R-first-person] ${n.ref} (${n.type}): «Пит…» в третьем лице — Пит говорит о себе сам: не «Пит в кровати», а «я валяюсь в кровати», не «Пит и Кейт идут», а «мы с Кейт идём»`)
+}
+
 function checkYesNoScript(nodes) {
   return nodes.filter(n => n.type === 'table' && n.data?.mode === 'dictator' && /(^|[,.] )(да|нет)[,.]/i.test(String(n.data?.script ?? '')))
     .map(n => `[R-yes-no-script] ${n.ref} (table): в озвучке «да»/«нет» читаются как ячейки — робот; проговори строку фразой («go home, иди домой, это движение»)`)
 }
 
 export function checkAuthorRules(nodes) {
-  return [...checkBanned(nodes), ...checkListenCap(nodes), ...checkAdjacentOpeners(nodes), ...checkNumberTraps(nodes), ...checkYesNoScript(nodes)]
+  return [...checkBanned(nodes), ...checkListenCap(nodes), ...checkAdjacentOpeners(nodes), ...checkNumberTraps(nodes), ...checkYesNoScript(nodes), ...checkFirstPerson(nodes)]
 }

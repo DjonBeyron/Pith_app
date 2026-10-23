@@ -10,9 +10,12 @@
 // и позиция внутри текстового узла, и позиция «между детьми» элемента
 // (например сразу после <br>), без вручную писанного обхода частных случаев.
 // cloneContents() не трогает живой DOM — безопасно вызывать на каждый клик.
+const docOf = el => el.ownerDocument ?? document
+const winOf = el => docOf(el).defaultView ?? window
+
 export function domToIndex(container, node, offset) {
   if (!container.contains(node) && node !== container) return 0
-  const range = document.createRange()
+  const range = docOf(container).createRange()
   range.selectNodeContents(container)
   range.setEnd(node, offset)
   return countText(range.cloneContents())
@@ -20,7 +23,7 @@ export function domToIndex(container, node, offset) {
 
 function countText(root) {
   let count = 0
-  const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT)
+  const w = docOf(root).createTreeWalker(root, NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT)
   let n
   while ((n = w.nextNode())) {
     if (n.nodeType === Node.TEXT_NODE) count += n.textContent.length
@@ -32,7 +35,7 @@ function countText(root) {
 // Индекс в строке -> (node, offset), для восстановления каретки после
 // программной правки текста (например после применения цвета из тулбара).
 export function indexToDom(container, index) {
-  const w = document.createTreeWalker(container, NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT)
+  const w = docOf(container).createTreeWalker(container, NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT)
   let count = 0, n, last = null
   while ((n = w.nextNode())) {
     if (n.nodeType === Node.TEXT_NODE) {
@@ -61,7 +64,7 @@ export function domToText(container) {
       container.firstChild.nodeType === Node.ELEMENT_NODE &&
       container.firstChild.tagName === 'BR') return ''
   let text = ''
-  const w = document.createTreeWalker(container, NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT)
+  const w = docOf(container).createTreeWalker(container, NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT)
   let n
   while ((n = w.nextNode())) {
     if (n.nodeType === Node.TEXT_NODE) text += n.textContent
@@ -73,7 +76,7 @@ export function domToText(container) {
 // Каретка (схлопнутое выделение) внутри контейнера -> индекс, или null, если
 // выделение растянуто или находится вне контейнера.
 export function readCaretIndex(container) {
-  const sel = window.getSelection()
+  const sel = winOf(container).getSelection()
   if (!sel || sel.rangeCount === 0 || !sel.isCollapsed) return null
   const r = sel.getRangeAt(0)
   if (!container.contains(r.startContainer)) return null
@@ -83,7 +86,7 @@ export function readCaretIndex(container) {
 // Растянутое браузерное выделение внутри контейнера -> {start, end} в
 // индексах строки, или null (нет выделения / оно вне контейнера).
 export function readSelectionRange(container) {
-  const sel = window.getSelection()
+  const sel = winOf(container).getSelection()
   if (!sel || sel.rangeCount === 0 || sel.isCollapsed) return null
   const r = sel.getRangeAt(0)
   if (!container.contains(r.commonAncestorContainer)) return null
@@ -94,10 +97,10 @@ export function readSelectionRange(container) {
 
 export function setCaretIndex(container, index) {
   const { node, offset } = indexToDom(container, index)
-  const range = document.createRange()
+  const range = docOf(container).createRange()
   range.setStart(node, offset)
   range.collapse(true)
-  const sel = window.getSelection()
+  const sel = winOf(container).getSelection()
   sel.removeAllRanges()
   sel.addRange(range)
 }
@@ -105,10 +108,10 @@ export function setCaretIndex(container, index) {
 export function setSelectionRangeAt(container, start, end) {
   const s = indexToDom(container, start)
   const e = indexToDom(container, end)
-  const range = document.createRange()
+  const range = docOf(container).createRange()
   range.setStart(s.node, s.offset)
   range.setEnd(e.node, e.offset)
-  const sel = window.getSelection()
+  const sel = winOf(container).getSelection()
   sel.removeAllRanges()
   sel.addRange(range)
 }

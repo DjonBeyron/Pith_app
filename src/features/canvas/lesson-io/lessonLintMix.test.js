@@ -17,8 +17,8 @@ describe('lessonLintMix', () => {
     expect(checkMix([W('q', 'a'), A('a')]).join()).toMatch(/R-wrong-audio/)
     expect(checkMix([W('q', 't'), T('t', 'не совсем) подсказка')])).toEqual([])
   })
-  it('R-emoji-sticker: одиночный смайлик текстом — замечание, стикер — нет', () => {
-    expect(checkMix([T('e1', '😋')]).join()).toMatch(/R-emoji-sticker\] e1/)
+  it('одиночный смайлик текстом разрешён (крупный, как в Telegram), стикер — тоже', () => {
+    expect(checkMix([T('e1', '😋')]).filter(w => /emoji/.test(w))).toEqual([])
     expect(checkMix([S('s1'), S('s2')])).toEqual([])
   })
   it('R-repeat: одинаковая реплика дословно', () => {

@@ -14,7 +14,7 @@ export function useRichTextSelection(ref) {
 
   const captureIfValid = useCallback(() => {
     const el = ref.current
-    const sel = window.getSelection()
+    const sel = el?.ownerDocument.defaultView.getSelection()
     if (!el || !sel || sel.rangeCount === 0 || sel.isCollapsed || !el.contains(sel.anchorNode)) return
     const range = readSelectionRange(el)
     if (!range) return
@@ -23,20 +23,21 @@ export function useRichTextSelection(ref) {
 
   const hideIfInvalid = useCallback(() => {
     const el = ref.current
-    const sel = window.getSelection()
+    const sel = el?.ownerDocument.defaultView.getSelection()
     if (!el || !sel || sel.rangeCount === 0 || sel.isCollapsed || !el.contains(sel.anchorNode)) setState(null)
   }, [ref])
 
   useEffect(() => {
     const el = ref.current
     if (!el) return
-    document.addEventListener('mouseup', captureIfValid)
+    const doc = el.ownerDocument // поле может жить в отдельном окне (usePopupWindow) — слушаем его документ
+    doc.addEventListener('mouseup', captureIfValid)
     el.addEventListener('keyup', captureIfValid)
-    document.addEventListener('selectionchange', hideIfInvalid)
+    doc.addEventListener('selectionchange', hideIfInvalid)
     return () => {
-      document.removeEventListener('mouseup', captureIfValid)
+      doc.removeEventListener('mouseup', captureIfValid)
       el.removeEventListener('keyup', captureIfValid)
-      document.removeEventListener('selectionchange', hideIfInvalid)
+      doc.removeEventListener('selectionchange', hideIfInvalid)
     }
   }, [ref, captureIfValid, hideIfInvalid])
 

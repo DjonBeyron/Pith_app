@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Eraser } from 'lucide-react'
 import { toMarkup } from '../../../shared/lib/lessonMarkup.js'
 import CopyIcon from './CopyIcon.jsx'
 import EdField from './EdField.jsx'
@@ -35,9 +36,11 @@ function EditableMarkup({ data, field, label, onPatch, reg }) {
     setLocal({ value: patch[field] ?? '', highlights: patch.highlights ?? [] })
     commit(d => ({ ...d, ...patch }))
   }
+  // «Снять раскраску» со всего поля: новое, напечатанное внутри цветного куска, наследует его цвет, а выделить и стереть не всегда удобно
+  const clearAll = () => change({ [field]: local.value, highlights: [] })
   return (
     <div className="rvwEdBlock">
-      <label className="rvwEdLbl">{label} <CopyIcon text={() => local.value} /></label>
+      <label className="rvwEdLbl">{label} <CopyIcon text={() => local.value} />{local.highlights.length > 0 && <button type="button" className="rvwCopyIcon" title="Снять всю раскраску в этом поле" onClick={clearAll}><Eraser size={13} /></button>}</label>
       <RichTextField field={field} value={local.value} highlights={local.highlights} growTextarea className="rvwEdRich" onChange={change} />
     </div>
   )

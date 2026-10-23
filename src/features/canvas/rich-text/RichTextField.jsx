@@ -71,7 +71,7 @@ export default function RichTextField({
   // реальное выделение текста, чтобы не осталась «зависшая» синяя подсветка
   function closeToolbar() {
     selection.hide()
-    window.getSelection()?.removeAllRanges()
+    ref.current?.ownerDocument.defaultView.getSelection()?.removeAllRanges()
   }
 
   return (
@@ -103,6 +103,7 @@ export default function RichTextField({
           rect={selection.rect}
           range={selection.range}
           highlights={highlights}
+          doc={ref.current?.ownerDocument ?? document}
           onClose={closeToolbar}
           onApply={next => {
             // Возвращаем ВЫДЕЛЕНИЕ целиком, не каретку — иначе тулбар решит,

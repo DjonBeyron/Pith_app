@@ -33,4 +33,10 @@ describe('проверки из замечаний автора', () => {
     expect(checkAuthorRules([tb('Go home, иди домой, нет, это движение. At home, да, стою в точке')]).join()).toContain('[R-yes-no-script] t')
     expect(checkAuthorRules([tb('Go home, иди домой, это движение')])).toEqual([])
   })
+  it('R-first-person: Пит о себе в третьем лице', () => {
+    const photo = { ref: 'p', type: 'photo', data: { caption: 'Пит в кровати, одеяло до носа' }, triggers: [] }
+    const ok = { ref: 't', type: 'text', data: { content: 'Я валяюсь в кровати, Кейт мне написала' }, triggers: [] }
+    expect(checkAuthorRules([photo]).join()).toContain('[R-first-person] p')
+    expect(checkAuthorRules([ok]).filter(w => /first-person/.test(w))).toEqual([])
+  })
 })

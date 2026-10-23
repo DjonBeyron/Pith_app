@@ -40,7 +40,8 @@ function favSwatchStyle(fav) {
 // сделанное выделение `range` немедленно. Автопозиция — сбоку от выделения;
 // шапка сверху позволяет перетащить панель вручную, если авто-место не
 // устраивает (сбрасывается на новом выделении — тулбар монтируется заново).
-export default function RichTextToolbar({ rect, range, highlights, onApply, onClose }) {
+// doc — документ поля: в отдельном окне (review/usePopupWindow.js) тулбар рисуется и слушает мышь в нём, а не в главном окне
+export default function RichTextToolbar({ rect, range, highlights, onApply, onClose, doc = document }) {
   const prefs = useHighlightPrefs()
   const { mode, setMode, outline, setOutline } = prefs
   // Активный цвет — цвет самого выделенного текста (а не «последний выбранный»): панель открывается с ним, и свотч/hex/прозрачность показывают его.
@@ -87,9 +88,9 @@ export default function RichTextToolbar({ rect, range, highlights, onApply, onCl
     function onDocMouseDown(e) {
       if (!boxRef.current?.contains(e.target)) onClose()
     }
-    document.addEventListener('mousedown', onDocMouseDown, true)
-    return () => document.removeEventListener('mousedown', onDocMouseDown, true)
-  }, [onClose])
+    doc.addEventListener('mousedown', onDocMouseDown, true)
+    return () => doc.removeEventListener('mousedown', onDocMouseDown, true)
+  }, [onClose, doc])
 
   useEffect(() => () => clearTimeout(historyTimerRef.current), [])
 
@@ -99,7 +100,7 @@ export default function RichTextToolbar({ rect, range, highlights, onApply, onCl
 
   const barH = 30 + 40 + 34 + 44 + (mode === 'bg' ? 32 : 0) + 34 +
     (opacityOpen ? 26 : 0) + (history.length ? 34 : 0)
-  const autoPos = positionToolbar(rect, TOOLBAR_W, barH, { width: window.innerWidth, height: window.innerHeight }, LINE_H)
+  const autoPos = positionToolbar(rect, TOOLBAR_W, barH, { width: doc.defaultView.innerWidth, height: doc.defaultView.innerHeight }, LINE_H)
   if (!autoPos) return null
   const pos = manualPos ?? autoPos
 
@@ -113,11 +114,11 @@ export default function RichTextToolbar({ rect, range, highlights, onApply, onCl
       setManualPos({ left: start.left + (ev.clientX - start.x), top: start.top + (ev.clientY - start.y) })
     }
     function onUp() {
-      document.removeEventListener('mousemove', onMove)
-      document.removeEventListener('mouseup', onUp)
+      doc.removeEventListener('mousemove', onMove)
+      doc.removeEventListener('mouseup', onUp)
     }
-    document.addEventListener('mousemove', onMove)
-    document.addEventListener('mouseup', onUp)
+    doc.addEventListener('mousemove', onMove)
+    doc.addEventListener('mouseup', onUp)
   }
 
   // Красим сразу на каждый тик (живой предпросмотр, особенно заметно при
@@ -309,6 +310,6 @@ export default function RichTextToolbar({ rect, range, highlights, onApply, onCl
         </div>
       )}
     </div>,
-    document.body,
+    doc.body,
   )
 }

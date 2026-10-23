@@ -125,4 +125,9 @@ describe('практика, в которую входят через пункт
     const wrongMenu = { ...menu, data: { options: [{ text: 'Практика', isCorrect: false }, { text: 'Объясни', isCorrect: true }] } }
     expect(checkFlow([wrongMenu, text, say]).filter(w => /R-tautology/.test(w))).toEqual([])
   })
+  it('вопрос, называющий кандидата, перед выбором слова — не тавтология', () => {
+    const wc = { ref: 'w', type: 'word_choice', data: { options: [{ text: 'am', isCorrect: true }, { text: 'is' }] }, triggers: [] }
+    expect(checkFlow([t('q', 'а здесь нужно am? выбирай:', 'w'), wc]).filter(x => /R-tautology/.test(x))).toEqual([])
+    expect(checkFlow([t('q', 'здесь нужно am.', 'w'), wc]).join()).toContain('[R-tautology] w')
+  })
 })

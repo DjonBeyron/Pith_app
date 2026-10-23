@@ -26,11 +26,6 @@ function checkWrongAudio(nodes) {
     .map(n => `[R-wrong-audio] ${n.ref}: голосовое сообщение в ветке ошибки — подсказку при ошибке пиши текстом`)
 }
 
-/** Одиночный смайлик — только стикером (нода sticker + imagePrompt), а не отдельным текстом */
-function checkEmojiSticker(nodes) {
-  return nodes.filter(isEmojiOnly)
-    .map(n => `[R-emoji-sticker] ${n.ref}: одиночный смайлик текстовым сообщением — ставь стикером (нода sticker с imagePrompt, большой стикер как в Telegram)`)
-}
 
 /** Одинаковые реплики дословно (кроме коротких) — чередуй формулировки: «а ну-ка на слух», «давай на слух» */
 function checkRepeats(nodes) {
@@ -138,5 +133,5 @@ function checkManyUnderlines(nodes) {
 }
 
 export function checkMix(nodes) {
-  return [...checkTeacherWord(nodes), ...checkManyUnderlines(nodes), ...checkStartMenu(nodes), ...checkKeyMarks(nodes), ...checkPinSystem(nodes), ...checkTableTriggers(nodes), ...checkLowercase(nodes), ...checkKsta(nodes), ...checkVoiceSmileys(nodes), ...checkHintUzhe(nodes), ...checkVoiceShare(nodes), ...checkWrongAudio(nodes), ...checkEmojiSticker(nodes), ...checkRepeats(nodes), ...checkTableTitles(nodes)]
+  return [...checkTeacherWord(nodes), ...checkManyUnderlines(nodes), ...checkStartMenu(nodes), ...checkKeyMarks(nodes), ...checkPinSystem(nodes), ...checkTableTriggers(nodes), ...checkLowercase(nodes), ...checkKsta(nodes), ...checkVoiceSmileys(nodes), ...checkHintUzhe(nodes), ...checkVoiceShare(nodes), ...checkWrongAudio(nodes), ...checkRepeats(nodes), ...checkTableTitles(nodes)]
 }
