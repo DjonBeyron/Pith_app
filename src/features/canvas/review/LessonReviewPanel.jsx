@@ -44,6 +44,8 @@ export default function LessonReviewPanel({ nodes: initialNodes, zones: initialZ
   const saved = useMemo(() => loadReview(key), [key])
   const store = useReviewNotes(saved)
   const [noteFor, setNoteFor] = useState(null) // ref ноды, к которой пишем замечание
+  const noteRef = useRef(null)
+  useEffect(() => { noteRef.current = noteFor })
   const [notesOpen, setNotesOpen] = useState(false)
   const session = useNoteSession(canvasRef, noteFor, setNoteFor)
   // Пометки с телефона (lesson_review_marks, ключ — id ноды = ref в разборе) и золотой набор (lesson_examples)
@@ -128,16 +130,18 @@ export default function LessonReviewPanel({ nodes: initialNodes, zones: initialZ
   const close = useCallback(() => onClose(), [onClose])
 
   useEffect(() => {
-    const onKey = e => { if (e.key === 'Escape' && !e.target.closest?.('input, textarea, [contenteditable]')) close() }
+    const onKey = e => { if (e.key === 'Escape' && !noteRef.current && !e.target.closest?.('input, textarea, [contenteditable]')) close() } // с открытым окном замечания Esc не закрывает весь разбор
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [close])
 
-  // Выбор сообщения: выделяем и ставим холст на ноду — при каждом клике, даже повторном
+  // Выбор сообщения: выделяем и ставим холст на ноду — при каждом клике, даже повторном. Если окно замечания открыто, клик по ДРУГОМУ
+  // сообщению переключает окно на него без закрытия: правки текущей ноды остаются (как «Сохранить правку»), окно остаётся на месте
   const select = useCallback(ref => {
     setSelRef(ref)
     setSelTick(t => t + 1)
     canvasRef.current?.focus(ref)
+    if (noteRef.current && ref !== noteRef.current) switchRef.current?.(ref)
   }, [])
 
   // Клик по варианту «Выбери слово»: выбираем реальный ответ (повторный клик по нему — снять); ветка идёт по варианту
@@ -163,6 +167,8 @@ export default function LessonReviewPanel({ nodes: initialNodes, zones: initialZ
   // Стабильный обработчик для мемо-слотов ленты: всегда зовёт свежий openNote
   const openNoteRef = useRef(null)
   useEffect(() => { openNoteRef.current = openNote })
+  const switchRef = useRef(null)
+  useEffect(() => { switchRef.current = ref => { if (items.some(i => i.kind === 'node' && i.ref === ref)) { session.flushAll(); openNote(ref) } } })
   const onNote = useCallback(ref => openNoteRef.current?.(ref), [])
 
   const shown = new Set(items.filter(i => i.kind === 'node').map(i => i.ref)).size

@@ -4,7 +4,7 @@ const LIMIT = 30      // сколько правок хранит отмена
 const BURST_MS = 700  // правки подряд в пределах этого времени — одна запись (набор текста не плодит сотни шагов)
 
 const API_KEYS = ['open', 'patch', 'patchRaw', 'recordComment', 'bindComment', 'undo', 'redo', 'dirty', 'cancel', 'keep', 'flushAll']
-const makeApi = holder => Object.fromEntries(API_KEYS.map(k => [k, (...a) => holder.impl?.[k](...a)]))
+const makeApi = implRef => Object.fromEntries(API_KEYS.map(k => [k, (...a) => implRef.current?.[k](...a)]))
 const snapOf = n => (n ? { type: n.type, typeData: n.typeData, triggers: n.triggers } : null)
 
 /**
@@ -98,7 +98,9 @@ export function useNoteSession(canvasRef, noteFor, setNoteFor) {
 
   // Наружу — СТАБИЛЬНЫЕ обёртки (одни и те же функции на всё время жизни окна): раньше каждая перерисовка панели давала новые
   // session.patch/onType, и мемо-превью «После» (SlotBody + редактор) перерисовывалось на каждую букву комментария — набор лагал
-  const [holder] = useState(() => { const h = { impl: null }; h.api = makeApi(h); return h })
-  useEffect(() => { holder.impl = { open, patch, patchRaw, recordComment, bindComment, undo, redo, dirty, cancel, keep, flushAll } })
-  return { reg, rev, consumeRestore, counts, ...holder.api }
+  const implRef = useRef(null)
+  useEffect(() => { implRef.current = { open, patch, patchRaw, recordComment, bindComment, undo, redo, dirty, cancel, keep, flushAll } })
+  // обёртки только читают implRef.current при вызове (в обработчиках), не при рендере
+  const [api] = useState(() => makeApi(implRef)) // eslint-disable-line react-hooks/refs
+  return { reg, rev, consumeRestore, counts, ...api }
 }

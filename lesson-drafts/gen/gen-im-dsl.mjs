@@ -101,12 +101,17 @@ export function SAY(phraseText, translation, { pattern, startHint, hintMismatch,
 }
 export const W3 = [18, 50, 32] // «Кто · Сейчас · Какой»: центральной колонке с частичкой больше места (замечание автора)
 export const W4 = [20, 27, 27, 26]
-export function TABLE(mode, chatCaption, head, rows, { script, widths, answer, wrongText } = {}) {
+// mergeLast — последняя колонка с ОДНИМ значением во всех строках рисуется одной большой ячейкой (rowspan), без дублей; distractors — слова-ловушки вне таблицы (manual)
+export function TABLE(mode, chatCaption, head, rows, { script, widths, answer, wrongText, mergeLast = false, distractors = [] } = {}) {
   const cells = []
   head.forEach((v, c) => cells.push({ id: `h${c}`, col: c, row: 0, value: v, colspan: 1, rowspan: 1, fontSize: 11, isHeader: true }))
-  rows.forEach((r, ri) => r.forEach((v, c) => cells.push({ id: `r${ri}c${c}`, col: c, row: ri + 1, value: v, colspan: 1, rowspan: 1, fontSize: c === 1 && head.length === 3 ? 15 : 13 })))
+  rows.forEach((r, ri) => r.forEach((v, c) => {
+    const last = c === head.length - 1
+    if (mergeLast && last && ri > 0) return // покрыто большой ячейкой первой строки
+    cells.push({ id: `r${ri}c${c}`, col: c, row: ri + 1, value: v, colspan: 1, rowspan: mergeLast && last ? rows.length : 1, fontSize: c === 1 && head.length === 3 ? 15 : 13 })
+  }))
   const rowCount = rows.length + 1
-  const data = { mode, table: { rows: Array.from({ length: rowCount }, (_, i) => ({ id: `r${i}`, heightPct: Math.round(100 / rowCount) })), cells, columns: head.map((_, i) => ({ id: `c${i}`, widthPct: (widths ?? (head.length === 4 ? W4 : head.length === 3 ? W3 : [50, 50]))[i] })), colCount: head.length, rowCount }, chatCaption, ...(mode === 'dictator' ? { script, sendToChat: true } : {}), ...(mode === 'manual' ? { answer, sendToChat: true } : {}) }
+  const data = { mode, table: { rows: Array.from({ length: rowCount }, (_, i) => ({ id: `r${i}`, heightPct: Math.round(100 / rowCount) })), cells, columns: head.map((_, i) => ({ id: `c${i}`, widthPct: (widths ?? (head.length === 4 ? W4 : head.length === 3 ? W3 : [50, 50]))[i] })), colCount: head.length, rowCount }, chatCaption, ...(mode === 'dictator' ? { script, sendToChat: true } : {}), ...(mode === 'manual' ? { answer, sendToChat: true, distractors: distractors.map(text => ({ text })) } : {}) }
   const n = main('table', data, mode === 'dictator' ? { needs: 'audio — только для режима dictator', note: `ОЗВУЧКА таблицы (скрипт идёт по ячейкам слева направо, сверху вниз; метку «Проверить» поставить при монтаже после последней ячейки): ${script}` } : { note: `Таблица I'm: ${chatCaption}` })
   if (mode === 'demo') n.triggers = [{ if: 'timer', ms: 2200 }]
   if (mode === 'manual') { n.note = `РУЧНАЯ таблица: ученик тапает ячейки по порядку и собирает «${answer}»`; n.triggers = n.triggers.filter(t => t.if !== 'table_wrong'); wrong(n, wrongText, 'table_wrong') }

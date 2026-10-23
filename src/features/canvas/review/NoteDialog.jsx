@@ -27,7 +27,7 @@ const Side = memo(function Side({ label, hint, item, canvasNode, canvasNodes, fi
 export default function NoteDialog({ title, before, item, canvasNode, canvasNodes, files, teacherName, onPatch, onType, session, existing = [], onSave, onRemove, onClose, onKeep, onGolden = null }) {
   const withNode = !!(item && canvasNode && before)
   const dirty = withNode && session?.dirty()
-  const { boxRef, style: winStyle, onHeadMouseDown, reset: resetWin } = useDragWindow(withNode ? 'pithy-review-win:note' : 'pithy-review-win:general')
+  const { boxRef, style: winStyle, onHeadMouseDown, onBoxMouseDown, reset: resetWin } = useDragWindow(withNode ? 'pithy-review-win:note' : 'pithy-review-win:general')
   // «⧉ в отдельное окно»: окно замечания уезжает в отдельное окно браузера (хоть на второй монитор); закрыли его крестиком ОС — правки остаются
   const [popped, setPopped] = useState(false)
   const popBody = usePopupWindow(popped, { title, onClosed: () => { setPopped(false); (onKeep ?? onClose)() } })
@@ -55,7 +55,7 @@ export default function NoteDialog({ title, before, item, canvasNode, canvasNode
     return () => doc.removeEventListener('keydown', h, true)
   }, [popBody])
   const box = (
-      <div ref={popBody ? null : boxRef} style={popBody ? undefined : winStyle} className={`rvwNtBox rvwNtSplit${withNode ? '' : ' single'}`} onMouseDown={e => e.stopPropagation()}>
+      <div ref={popBody ? null : boxRef} style={popBody ? undefined : winStyle} className={`rvwNtBox rvwNtSplit${withNode ? '' : ' single'}`} onMouseDown={e => { e.stopPropagation(); onBoxMouseDown(e) }}>
         <div className="rvwNtHead" title="Тащи за шапку куда угодно; двойной клик — вернуть в центр" onMouseDown={onHeadMouseDown} onDoubleClick={resetWin}>
           <b>{title}</b>
           <span className="rvwNtHeadBtns">
@@ -76,7 +76,7 @@ export default function NoteDialog({ title, before, item, canvasNode, canvasNode
             <Side label="После" hint=" · можно править" item={item} canvasNode={canvasNode} canvasNodes={canvasNodes} files={files} teacherName={teacherName} onPatch={onPatch} onType={onType} reg={session?.reg.current} rev={session?.rev} />
           </div>
         )}
-        <NoteComment session={session} existing={existing} dirty={!!dirty} onSave={onSave} onRemove={onRemove} onDone={onKeep ?? onClose} onGolden={withNode ? onGolden : null} />
+        <NoteComment key={item?.ref ?? 'general'} session={session} existing={existing} dirty={!!dirty} onSave={onSave} onRemove={onRemove} onDone={onKeep ?? onClose} onGolden={withNode ? onGolden : null} />
       </div>
   )
   if (popBody) return createPortal(box, popBody)

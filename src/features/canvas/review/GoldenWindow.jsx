@@ -11,7 +11,7 @@ const KIND = { pair: 'до → после', bad: '❌ нельзя', good: '✅ 
 export default function GoldenWindow({ tick = 0, onClose }) {
   const [list, setList] = useState(null)
   const [msg, setMsg] = useState('')
-  const { boxRef, style: winStyle, onHeadMouseDown, reset: resetWin } = useDragWindow('pithy-review-win:golden')
+  const { boxRef, style: winStyle, onHeadMouseDown, onBoxMouseDown, reset: resetWin } = useDragWindow('pithy-review-win:golden')
   useEffect(() => { let dead = false; listLessonExamples().then(l => { if (!dead) setList(l) }, e => { if (!dead) { setList([]); setMsg(`Не загрузилось: ${e?.message ?? e}`) } }); return () => { dead = true } }, [tick])
   const json = useMemo(() => goldenJson(list ?? []), [list])
   const flash = t => { setMsg(t); setTimeout(() => setMsg(''), 3000) }
@@ -24,7 +24,7 @@ export default function GoldenWindow({ tick = 0, onClose }) {
   const remove = async id => { try { await deleteLessonExample(id); setList(l => l.filter(e => e.id !== id)) } catch (e) { flash(`Не удалилось: ${e?.message ?? e}`) } }
   return createPortal(
     <div className="rvwNtBack" onMouseDown={e => e.stopPropagation()}>
-      <div ref={boxRef} style={winStyle} className="rvwNtBox rvwNtWide" onMouseDown={e => e.stopPropagation()}>
+      <div ref={boxRef} style={winStyle} className="rvwNtBox rvwNtWide" onMouseDown={e => { e.stopPropagation(); onBoxMouseDown(e) }}>
         <div className="rvwNtHead" title="Тащи за шапку; двойной клик — в центр" onMouseDown={onHeadMouseDown} onDoubleClick={resetWin}><b>⭐ Золотой набор ({list?.length ?? '…'})</b><button className="rvwBtn" onClick={onClose}>Закрыть</button></div>
         <div className="rvwNtList rvwNtScroll">
           {list && list.length === 0 && <div className="rvwEmpty">Пока пусто. В окне замечания — «⭐ В золотой набор», в правой колонке — «в набор» у пометок с телефона</div>}
