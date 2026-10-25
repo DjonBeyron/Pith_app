@@ -1,11 +1,11 @@
 import { useState, useEffect, useMemo } from 'react'
-import { makeSnapshot, diffSnapshots, pushVersion, markCommented } from './lessonVersions.js'
+import { makeSnapshot, diffSnapshots, pushVersion, markCommented, keepCurrentVersions } from './lessonVersions.js'
 import { fromCanvasNodes } from '../lesson-io/lessonLint.js'
 
 const SHOW_KEY = 'pithy-review-showchanges'
 const read = (k, d) => { try { return localStorage.getItem(k) ?? d } catch { return d } }
 const write = (k, v) => { try { localStorage.setItem(k, v) } catch { /* хранилище недоступно */ } }
-const load = key => { try { const v = JSON.parse(localStorage.getItem(key) ?? '[]'); return Array.isArray(v) ? v : [] } catch { return [] } }
+const load = key => { try { return keepCurrentVersions(JSON.parse(localStorage.getItem(key) ?? '[]')) } catch { return [] } }
 
 /**
  * Записать версию урока в стопку вне окна разбора: при загрузке урока (первая, базовая) и вокруг импорта JSON (старое состояние → новое). Без этого
