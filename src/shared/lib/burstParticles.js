@@ -27,15 +27,17 @@ const SAMPLES = 14
 const FRAMES = 105
 const GRAVITY = 0.32
 
-function makeParticle(W, H, size, colors) {
+// origin — локальный залп из точки ({ x, y } в пикселях хоста; spread — разброс по x, life — доля времени полёта, reach — высота «экрана» для расчёта скорости: верхняя точка подъёма ≈ reach / 2):
+// искры из конкретного места (игра «Повтори за диктором»: пилюля защёлкнулась), а не залп из-под нижнего края. Без origin всё как раньше
+export function makeParticle(W, H, size, colors, origin = null) {
   // Подъём равен v²/(2g): чтобы верхняя точка легла примерно на середину
   // экрана, скорость должна расти как корень из высоты. С фиксированной
   // скоростью на большом экране залп не добивал бы и до трети
   const speed = Math.sqrt(H * GRAVITY) * (0.92 + Math.random() * 0.22)
-  const angle = -Math.PI / 2 + (Math.random() - 0.5) * 1.22   // веер ±35° вверх
-  const vx = Math.cos(angle) * speed * 0.6
+  const angle = -Math.PI / 2 + (Math.random() - 0.5) * (origin ? 1.7 : 1.22)   // веер ±35° вверх (у локального залпа шире — ±49°)
+  const vx = Math.cos(angle) * speed * (origin ? 0.8 : 0.6)
   const vy = Math.sin(angle) * speed
-  const life = FRAMES * (0.78 + Math.random() * 0.42)
+  const life = FRAMES * (origin?.life ?? 1) * (0.78 + Math.random() * 0.42) // origin.life — доля обычного времени полёта (локальные искры живут короче салюта)
   // Своя скорость и сторона вращения у каждой: одинаковый спин читается как
   // сетка одинаковых объектов, а не как разлетевшиеся кусочки
   const spin = (3 + Math.random() * 5) * (Math.random() > 0.5 ? 1 : -1)
@@ -55,7 +57,7 @@ function makeParticle(W, H, size, colors) {
   }
 
   return {
-    left: W * (0.2 + Math.random() * 0.6),
+    left: origin ? origin.x + (Math.random() - 0.5) * (origin.spread ?? 0) : W * (0.2 + Math.random() * 0.6),
     size: size + Math.random() * size,
     color: colors[Math.floor(Math.random() * colors.length)],
     round: Math.random() > 0.5,
@@ -87,7 +89,7 @@ export const burstParent = portalTo => (portalTo && document.querySelector(porta
 // через ~0.5с после верного ответа, а залп летит 1.4–2.1с — с
 // <BurstConfetti> внутри панели он обрывался на первой трети
 export function fireBurst({
-  count = 30, size = 4, colors = COLORS, bottomInset = 0, zIndex = 10001, portalTo = null,
+  count = 30, size = 4, colors = COLORS, bottomInset = 0, zIndex = 10001, portalTo = null, origin = null,
 } = {}) {
   if (reducedMotion()) pLog('[салют] fireBurst: prefers-reduced-motion включён — залп всё равно летит')
   const host = document.createElement('div')
@@ -96,7 +98,7 @@ export function fireBurst({
   parent.appendChild(host)
   pLog(`[салют] fireBurst: ${count} частиц, z=${zIndex}, контейнер ${portalTo ?? 'body'}`
     + `${portalTo && parent === document.body ? ' (НЕ НАЙДЕН → body)' : ''}, окно ${window.innerWidth}×${window.innerHeight}`)
-  runBurst(host, { count, size, colors, bottomInset }, () => {
+  runBurst(host, { count, size, colors, bottomInset, origin }, () => {
     pLog(`[салют] fireBurst: залп догорел, хост снят (частиц в хосте было ${host.childElementCount})`)
     host.remove()
   })
@@ -104,10 +106,10 @@ export function fireBurst({
 
 // Запускает частицы в host, по концу зовёт onDone. Возвращает уборку —
 // для эффекта компонента (см. комментарий про StrictMode внизу)
-export function runBurst(host, { count, size, colors, bottomInset }, onDone) {
+export function runBurst(host, { count, size, colors, bottomInset, origin = null }, onDone) {
   const W = window.innerWidth
   const H = window.innerHeight - bottomInset
-  const parts = Array.from({ length: count }, () => makeParticle(W, H, size, colors))
+  const parts = Array.from({ length: count }, () => makeParticle(W, origin ? (origin.reach ?? 280) : H, size, colors, origin))
   let longest = null
 
   for (const p of parts) {
@@ -119,7 +121,7 @@ export function runBurst(host, { count, size, colors, bottomInset }, onDone) {
     // движение спотыкается. Анимации transform/opacity через WAAPI и так
     // получают свой слой на время проигрывания — и ровно тогда, когда он
     // нужен, а не заранее.
-    el.style.cssText = `position:absolute;left:${p.left.toFixed(0)}px;top:${H + 8}px;`
+    el.style.cssText = `position:absolute;left:${p.left.toFixed(0)}px;top:${origin ? origin.y.toFixed(0) : H + 8}px;`
       + `width:${p.size.toFixed(1)}px;height:${(p.size * 0.6).toFixed(1)}px;`
       + `background:${p.color};border-radius:${p.round ? '50%' : '1px'};`
     host.appendChild(el)

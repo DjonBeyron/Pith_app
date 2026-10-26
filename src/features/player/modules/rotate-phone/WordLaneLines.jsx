@@ -1,10 +1,13 @@
 import { useEffect, useRef } from 'react'
 import { LINE_START_Y, SLOT_COUNT, frontAtListen, stepSpeakFront, kickBack, pillProgress } from './wordLaneTimeline.js'
+import { snapPill } from './wordLaneSnap.js'
 
 // Горизонтальная линия игры «Повтори за диктором»: поднимается снизу из-за экрана на всю ширину, прямая. Её положение (--front, % высоты) и заливка пилюль (--p0…--p2, 0…1)
 // пишутся прямо в style сцены каждый кадр (rAF) — React на кадры не перерисовывается, а заливка пилюли = «то, что линия уже прошла» (pillProgress), поэтому они двигаются как одно целое.
 //  listen — голова идёт по плану (frontAtListen): вход в пилюлю = начало слова диктора, верх пилюли = конец слова, значит скорость линии = скорость речи диктора;
 //  speak  — голова подчиняется ученику (stepSpeakFront): ждёт у нижнего края пустой пилюли, принятое слово — рывок сквозь пилюлю, чужое слово — отшатывание вниз.
+//  Когда линия прошла пилюлю целиком (заливка 100 %), пилюля «защёлкивается» (wordLaneSnap.js) — один раз за фазу.
+//  Пилюля залита целиком (линия прошла её верх) — «щелчок» (wordLaneSnap.js: хлопок, вспышка, искры), один раз на пилюлю за фазу.
 //  turn   — линия ушла: значения сбрасываются, пилюли плавно пустеют (CSS-переход только в этой фазе, word-lane.css).
 export default function WordLaneLines({ phase, phaseAt, hits, misses, anchors }) {
   const ref = useRef(null)
@@ -26,6 +29,7 @@ export default function WordLaneLines({ phase, phaseAt, hits, misses, anchors })
     let front = LINE_START_Y
     let seen = { ...live.current }
     let caughtUntil = 0
+    const snapped = new Set()
     paint(front)
     const tick = t => {
       if (phase === 'listen') front = frontAtListen(t - phaseAt, anchors)
@@ -38,6 +42,9 @@ export default function WordLaneLines({ phase, phaseAt, hits, misses, anchors })
       }
       last = t
       paint(front)
+      for (let k = 0; k < SLOT_COUNT; k++) {
+        if (!snapped.has(k) && pillProgress(front, k) >= 1) { snapped.add(k); snapPill(stage.querySelector(`[data-testid="wl-pill-${k}"]`), k) }
+      }
       raf = requestAnimationFrame(tick)
     }
     raf = requestAnimationFrame(tick)

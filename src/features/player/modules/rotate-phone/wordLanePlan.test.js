@@ -1,4 +1,8 @@
 import { describe, it, expect } from 'vitest'
+import { readFileSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
+import { sparkColors, POP_FRAMES } from './wordLaneSnap.js'
+import { makeParticle } from '../../../../shared/lib/burstParticles.js'
 import { PILLS, FILL_AT, LISTEN_MS, LINE_END_Y, frontAtListen } from './wordLaneTimeline.js'
 import { readWordLane } from './wordLaneConfig.js'
 import { makeListenPlan, normalizeFills, fillsFromTimings, defaultFills, LEAD_MS, MIN_GAP_MS, MIN_FIRST_MS, FILL_MAX_MS, FILL_MIN_MS } from './wordLanePlan.js'
@@ -81,3 +85,40 @@ describe('озвучка ElevenLabs и таймлайн ноды', () => {
   })
 })
 
+
+describe('щелчок пилюли', () => {
+  it('цвета искр — цвет пилюли (ступень «Моей памяти»), светлый тон и белый', () => {
+    expect(sparkColors(0)).toEqual(['#b6fe3b', '#e6ff9e', '#ffffff'])
+    expect(sparkColors(1)[0]).toBe('#4fb3ee')
+    expect(sparkColors(2)[0]).toBe('#9a76f8')
+  })
+
+  it('хлопок: 1 → 1.12 → 1, translateX(-50%) держит центр пилюли', () => {
+    const scales = POP_FRAMES.map(f => Number(/scale\(([\d.]+)\)/.exec(f.transform)[1]))
+    expect(scales[0]).toBe(1)
+    expect(scales.at(-1)).toBe(1)
+    expect(Math.max(...scales)).toBe(1.12)
+    POP_FRAMES.forEach(f => expect(f.transform).toContain('translateX(-50%)'))
+  })
+
+  it('локальные искры: рождаются в точке пилюли и живут короче салюта', () => {
+    const origin = { x: 200, y: 300, spread: 40, life: 0.5, reach: 300 }
+    for (let i = 0; i < 30; i++) {
+      const p = makeParticle(390, 300, 3.5, ['#fff'], origin)
+      expect(p.left).toBeGreaterThanOrEqual(180)
+      expect(p.left).toBeLessThanOrEqual(220)
+    }
+    const local = makeParticle(390, 300, 3.5, ['#fff'], origin).duration
+    const full = makeParticle(390, 844, 3.5, ['#fff']).duration
+    expect(local).toBeLessThan(full * 0.7)
+    // без origin залп прежний — от нижнего края по всей ширине
+    expect(makeParticle(390, 844, 4, ['#fff']).left).toBeGreaterThanOrEqual(390 * 0.2)
+  })
+
+  it('линия зовёт щелчок один раз на пилюлю, когда заливка дошла до 100 %', () => {
+    const lines = readFileSync(fileURLToPath(new URL('./WordLaneLines.jsx', import.meta.url)), 'utf8')
+    expect(lines).toContain("pillProgress(front, k) >= 1")
+    expect(lines).toContain('snapped.add(k)')
+    expect(lines).toContain('snapPill(')
+  })
+})
