@@ -8,6 +8,7 @@ import LineVoiceControls from './voice/LineVoiceControls.jsx'
 import SegmentVoiceControls from './voice/SegmentVoiceControls.jsx'
 import { hasVarParts } from '../../scene/v2/sceneVarsSegments.js'
 import InsertVarSelect from './InsertVarSelect.jsx'
+import LineFaceFields from './LineFaceFields.jsx'
 
 // Одна реплика таймлайна — вложенная панель timeline.<i> (заголовок «3 · Имя — начало
 // текста», свёрнутая показывает только его). Кто говорит — кнопки «A · Рыжик / B · Дымка»:
@@ -69,6 +70,7 @@ export default function TimelineLine({ index: i, line, names, total, actions, ch
             </select>
           </label>
         </div>
+        <LineFaceFields prefix={p} index={i} line={line} characters={characters} actions={actions} />
         <label className="scbField">
           <span className="scbFieldLabel">Текст <span className={left < 0 ? 'scbCounter scbCounterBad' : left < 30 ? 'scbCounter scbCounterWarn' : 'scbCounter'}>{String(line.text ?? '').trim().length} / {MAX_TEXT}</span></span>
           <textarea ref={textRef} id={`${p}-text`} className="fsNote scbText" rows={2} value={line.text} maxLength={MAX_TEXT} onChange={e => actions.updateLine(i, { text: e.target.value })} placeholder="Реплика по-русски, со знаком в конце." />

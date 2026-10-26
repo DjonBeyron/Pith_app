@@ -1,5 +1,6 @@
 import { PALETTE_PRESETS } from './sceneConstants.js'
 import { PIT } from './scenePit.js'
+import { demoMascotScene } from './demoMascotScene.js'
 
 // Демо-сцены v2 — пример для админки, нейросети (легенда) и тестов. Все
 // проходят lintScene без ошибок (см. sceneLint.test.js). Две — из одной реплики
@@ -128,4 +129,5 @@ export const demoTemplateScene = {
   options: { bubbles: true, autoplay: false, loop: false },
 }
 
-export const DEMO_SCENES = [demoOfficeScene, demoCafeScene, demoRepeatOneLineScene, demoSayOneLineScene, demoPitCircleScene, demoTemplateScene]
+export { demoMascotScene }
+export const DEMO_SCENES = [demoOfficeScene, demoCafeScene, demoRepeatOneLineScene, demoSayOneLineScene, demoPitCircleScene, demoTemplateScene, demoMascotScene]

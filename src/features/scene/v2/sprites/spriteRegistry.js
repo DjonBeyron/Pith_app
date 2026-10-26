@@ -5,6 +5,8 @@ import { CAFE_PROPS } from './propsCafe.js'
 import { COMMON_PROPS } from './propsCommon.js'
 import { BACKGROUNDS, SCENE_VIEWBOX } from './backgrounds.js'
 import { SLOTS_BY_LOCATION } from './slots.js'
+import { buildMascot } from './mascot/mascotSprite.js'
+import { MASCOT_PACKS, SKINS, SKIN_TITLES } from './mascot/mascots.js'
 
 // Реестр спрайтов конструктора сцен. Каждая запись: id, title (рус.),
 // category ('character-part' | 'office' | 'cafe' | 'common' | 'background'),
@@ -57,6 +59,28 @@ function catEntry(v) {
   }
 }
 
+// Маскоты (Кит, Мия) — тот же вид записи 'cat', но с skin: рисуются из пакета (sprites/mascot), а не из палитры
+function mascotEntry(skin) {
+  const build = (props = {}) => buildMascot(skin, props)
+  return {
+    id: `mascot-${skin}`,
+    title: SKIN_TITLES[skin],
+    category: 'character-part',
+    kind: 'cat',
+    checkKind: 'mascot', // правила spriteCheck.js для маскота
+    skin,
+    gender: MASCOT_PACKS[skin].gender,
+    status: 'builtin',
+    viewBox: CAT_VIEWBOX,
+    size: { w: 200, h: 240 },
+    anchor: 'bottom',
+    slots: [],
+    parts: CAT_PARTS,
+    nodeCount: countNodes(build()),
+    build,
+  }
+}
+
 function backgroundEntry(b) {
   return {
     id: `bg-${b.id}`,
@@ -76,6 +100,7 @@ function backgroundEntry(b) {
 
 export const SPRITES = [
   ...CAT_VARIANTS.map(catEntry),
+  ...SKINS.map(mascotEntry),
   ...OFFICE_PROPS.map(propEntry),
   ...CAFE_PROPS.map(propEntry),
   ...COMMON_PROPS.map(propEntry),
@@ -96,6 +121,11 @@ export const PROP_IDS = SPRITES.filter(s => s.kind === 'prop').map(s => s.id)
 
 export function catSprite(gender) {
   return BY_ID.get(gender === 'female' ? 'cat-female' : 'cat-male')
+}
+
+// Спрайт персонажа сцены: маскот по skin, иначе обычный кот по полу
+export function characterSprite(character) {
+  return (character?.skin && BY_ID.get(`mascot-${character.skin}`)) || catSprite(character?.gender)
 }
 
 export function backgroundSprite(location) {

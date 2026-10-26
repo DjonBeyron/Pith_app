@@ -5,23 +5,29 @@ import { spriteCheckSummary } from '../../scene/v2/spriteCheck.js'
 import { PALETTE_PRESETS } from '../../scene/v2/sceneConstants.js'
 import SpritePreview from './SpritePreview.jsx'
 import CatControls from './CatControls.jsx'
+import MascotControls from './MascotControls.jsx'
 import { copyText } from './fileUtils.js'
 import { KIND_LABEL } from './sceneLabels.js'
 
 // Карточка спрайта в галерее: превью, id, название, число узлов, совместимые слоты,
 // статус spriteCheck, кнопки «Скопировать SVG» / «Скопировать id». Для кота — переключатели
-// пола, эмоции, формы рта и палитры (CatControls); превью и SVG следуют за ними.
+// пола, эмоции, формы рта и палитры (CatControls); у маскота (Кит, Мия) — лица, рот и два выключателя (MascotControls); превью и SVG следуют за ними.
 
 export default function SpriteCard({ sprite }) {
   const [cat, setCat] = useState({ gender: sprite.gender ?? 'male', emotion: 'neutral', mouth: 'closed', palette: { ...PALETTE_PRESETS.ginger }, stripes: true })
+  const [mascot, setMascot] = useState({ face: 'base', mouth: 'closed', pupilReaction: true, extraFace: true })
   const [note, setNote] = useState('')
-  const isCat = sprite.kind === 'cat'
+  const isMascot = !!sprite.skin
+  const isCat = sprite.kind === 'cat' && !isMascot
   const shown = isCat ? catSprite(cat.gender) : sprite
-  const props = useMemo(() => (isCat ? { palette: cat.palette, stripes: cat.stripes, emotion: cat.emotion } : {}), [isCat, cat])
+  const props = useMemo(() => {
+    if (isMascot) return { face: mascot.face, pupilReaction: mascot.pupilReaction, extraFace: mascot.extraFace }
+    return isCat ? { palette: cat.palette, stripes: cat.stripes, emotion: cat.emotion } : {}
+  }, [isMascot, isCat, cat, mascot])
 
   const check = useMemo(() => {
     const svg = treeToSvgDocument(shown.build(props), { viewBox: shown.viewBox })
-    return { svg, ...spriteCheckSummary(svg, shown.kind) }
+    return { svg, ...spriteCheckSummary(svg, shown.checkKind ?? shown.kind) }
   }, [shown, props])
 
   const copy = async (text, label) => setNote((await copyText(text)) ? `${label} — скопировано` : 'Не удалось скопировать')
@@ -30,7 +36,7 @@ export default function SpriteCard({ sprite }) {
     <article className={`scSprite${check.ok ? '' : ' scSpriteBad'}`} aria-label={sprite.title}>
       <div className="scSpriteTop">
         <div className={`scSpriteArt scSpriteArt-${shown.kind}`}>
-          <SpritePreview sprite={shown} props={props} mouth={cat.mouth} size={shown.kind === 'background' ? 120 : 96} />
+          <SpritePreview sprite={shown} props={props} mouth={isMascot ? mascot.mouth : cat.mouth} size={shown.kind === 'background' ? 120 : 96} />
         </div>
         <div className="scSpriteMeta">
           <p className="scSpriteTitle">{shown.title}</p>
@@ -45,10 +51,11 @@ export default function SpriteCard({ sprite }) {
               Слоты: {shown.slots.length ? shown.slots.map(s => <code key={s}>{s}</code>) : '—'}
             </p>
           )}
-          {isCat && <p className="scSpriteRow scSlots">Части: {shown.parts.map(p => <code key={p}>{p}</code>)}</p>}
+          {(isCat || isMascot) && <p className="scSpriteRow scSlots">Части: {shown.parts.map(p => <code key={p}>{p}</code>)}</p>}
         </div>
       </div>
       {isCat && <CatControls value={cat} onChange={setCat} />}
+      {isMascot && <MascotControls skin={sprite.skin} value={mascot} onChange={setMascot} />}
       <div className="scSpriteBtns">
         <button className="scBtn" onClick={() => copy(check.svg, 'SVG')}>Скопировать SVG</button>
         <button className="scBtn" onClick={() => copy(shown.id, 'id')}>Скопировать id</button>

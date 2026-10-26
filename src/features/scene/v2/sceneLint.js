@@ -48,8 +48,9 @@ function lintCharacters(scene, out) {
   const { a, b } = scene.characters ?? {}
   if (!isObj(a) || !isObj(b)) return
   if (a.name && b.name && a.name.trim().toLowerCase() === b.name.trim().toLowerCase()) out.push({ level: 'warn', text: 'characters — у обоих персонажей одно имя' })
+  if (a.skin && a.skin === b.skin) out.push({ level: 'warn', text: `characters — оба персонажа — маскот '${a.skin}': выберите разных или обычного кота` })
   const furA = a.palette?.fur?.toLowerCase(), furB = b.palette?.fur?.toLowerCase()
-  if (furA && furB && furA === furB && a.gender === b.gender) out.push({ level: 'warn', text: 'characters — одинаковый цвет шерсти и пол: котов не отличить' })
+  if (!a.skin && !b.skin && furA && furB && furA === furB && a.gender === b.gender) out.push({ level: 'warn', text: 'characters — одинаковый цвет шерсти и пол: котов не отличить' })
 }
 
 function lintTimeline(scene, out) {
@@ -68,7 +69,17 @@ function lintTimeline(scene, out) {
     if (text && !/[.!?…»)]$/.test(text)) out.push({ level: 'warn', text: `timeline[${i}].text — реплика без знака в конце` })
     if (l.audioUrl && !l.wordTimings) out.push({ level: 'warn', text: `timeline[${i}] — есть audioUrl, но нет wordTimings: рот пойдёт по таймеру` })
   })
-  if (tl.length >= 2 && tl.every(l => l?.emotion === tl[0]?.emotion)) out.push({ level: 'warn', text: 'timeline — одна эмоция на всю сцену: лица не меняются' })
+  // Лицо маскота (face / react) задано, а дополнительная мимика у этого персонажа выключена — лицо не покажется
+  tl.forEach((l, i) => {
+    if (!isObj(l)) return
+    for (const [field, who] of [['face', l.who], ['react', l.who === 'a' ? 'b' : 'a']]) {
+      if (l[field] && scene.characters?.[who]?.skin && scene.characters[who].extraFace === false) {
+        out.push({ level: 'warn', text: `timeline[${i}].${field} — у персонажа '${who}' выключена дополнительная мимика (extraFace): лицо '${l[field]}' не покажется` })
+      }
+    }
+  })
+  const mascotFaces = tl.some(l => l?.face || l?.react) // у маскотов лицо меняется полями face / react, а не emotion
+  if (!mascotFaces && tl.length >= 2 && tl.every(l => l?.emotion === tl[0]?.emotion)) out.push({ level: 'warn', text: 'timeline — одна эмоция на всю сцену: лица не меняются' })
   lintVoice(scene, tl, out)
 }
 

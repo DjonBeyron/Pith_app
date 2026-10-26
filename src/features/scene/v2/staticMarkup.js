@@ -1,5 +1,5 @@
 import { treeToString } from './sprites/svgTree.js'
-import { backgroundSprite, catSprite, getSprite } from './sprites/spriteRegistry.js'
+import { backgroundSprite, characterSprite, getSprite } from './sprites/spriteRegistry.js'
 import { slotsInDrawOrder, CAT_PLACEMENT, catPlacement } from './sprites/slots.js'
 import { isSolo } from './scenePit.js'
 
@@ -33,7 +33,11 @@ function propsMarkup(scene) {
 function catMarkup(scene, who, line, solo) {
   const ch = scene.characters[who]
   const emotion = line && line.who === who ? line.emotion : 'neutral'
-  const tree = catSprite(ch.gender).build({ palette: ch.palette, stripes: ch.stripes !== false, emotion, flip: who === 'b' })
+  const face = line ? (line.who === who ? line.face : line.react) : undefined // лицо маскота (обычный кот не читает)
+  const tree = characterSprite(ch).build({
+    palette: ch.palette, stripes: ch.stripes !== false, emotion, flip: who === 'b',
+    face, pupilReaction: ch.pupilReaction !== false, extraFace: ch.extraFace !== false,
+  })
   return `<g data-who="${who}" class="scn-cat" transform="${placement(who, solo)}">${treeToString(tree)}</g>`
 }
 

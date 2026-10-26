@@ -1,3 +1,5 @@
+import { SKIN_COLORS } from '../../../scene/v2/sprites/mascot/mascots.js'
+
 // Цвет говорящего в репликах сборщика: заливка кнопки «кто говорит» и полоса карточки
 // берутся из палитры кота (fur), цвет текста поверх — автоматически по контрасту
 // (WCAG 2.x relative luminance). Чистые функции, тест — colorContrast.test.js.
@@ -45,7 +47,7 @@ export function contrastInk(bg) {
 export const FALLBACK_SPEAKER = { a: '#f2a65a', b: '#8e97a8' }
 
 export function speakerColor(character, who = 'a') {
-  const fur = character?.palette?.fur
+  const fur = SKIN_COLORS[character?.skin] ?? character?.palette?.fur // у маскота — цвет его шерсти, палитра не используется
   return parseHex(fur) ? fur : FALLBACK_SPEAKER[who] ?? FALLBACK_SPEAKER.a
 }
 

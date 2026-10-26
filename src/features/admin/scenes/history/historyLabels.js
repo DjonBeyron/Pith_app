@@ -18,13 +18,16 @@ export function lineEditLabel(i, p) {
   if (one === 'who') return [`смена говорящего в реплике ${n(i)}`, `line${i}:who`]
   if (one === 'emotion') return [`смена эмоции реплики ${n(i)}`, `line${i}:emotion`]
   if (one === 'pose') return [`смена позы реплики ${n(i)}`, `line${i}:pose`]
+  if (one === 'face') return [`лицо говорящего в реплике ${n(i)}`, `line${i}:face`]
+  if (one === 'react') return [`лицо слушающего в реплике ${n(i)}`, `line${i}:react`]
   return [`правка реплики ${n(i)}`, `line${i}:${ks.join(',')}`]
 }
 
 // [label, key] для updateCharacter(k, patch)
 export function characterEditLabel(k, p) {
   const ks = Object.keys(p).join(',')
-  return [ks === 'name' ? `имя персонажа ${who(k)}` : `правка персонажа ${who(k)}`, `char:${k}:${ks}`]
+  const label = ks === 'name' ? `имя персонажа ${who(k)}` : ks === 'pupilReaction' ? `реакция зрачков ${who(k)}` : ks === 'extraFace' ? `доп. мимика ${who(k)}` : `правка персонажа ${who(k)}`
+  return [label, `char:${k}:${ks}`]
 }
 
 export const taskItemLabel = (verb, field) => `${verb} ${LIST_ITEM[field] ?? 'элемента'} задания`

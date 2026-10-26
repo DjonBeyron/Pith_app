@@ -230,6 +230,7 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | `scripts/mascot/optimize_rig.py`, `merge_markup.py` | Облегчение разметки: запечь клипы и transform, склеить контуры и одноимённые по стилю фигуры (узлов кота 163 → 61), рот → таблица форм |
 | `scripts/mascot/fix_paw.py` | Добавляет палец на правой задней лапе (в рисунке дизайнера есть только у левой), запечённый по форме лапы |
 | `scripts/mascot/build_girl.py` | Кошка Мия из рига кота: цвет, форма головы, белые пятна, бантик, серьги, миндалевидные глаза со зрачком-щелью, женственный хвост, меньшие лапки; состояние мимики — переменная `EXPR` |
+| `scripts/mascot/export_sprites.mjs` | Пакеты персонажей → спрайты конструктора сцен `src/features/scene/v2/sprites/mascot/{kit,mia}.json` (хвост в начало координат основания, посадка 200×240, чистка чисел) |
 | `scripts/mascot/make_packs.py` | Пакеты персонажей `pack_boy.json` / `pack_girl.json`: слои, таблица рта, состояния мимики (глаза, брови, декор, рот, наклон, реакция зрачка) |
 | `scripts/mascot/tail.mjs` | Кинематика хвоста (цепочка сегментов, профили `boy` / `girl`): геометрия, покачивание, подёргивание на ударных слогах |
 | `scripts/mascot/story_template.html`, `make_story.mjs` | Страница-история: рантайм состояний, зрачков, рта по озвучке, хвоста, моргания; сборщик берёт фон и предметы кафе из `src/features/scene/v2/sprites` |
@@ -1895,6 +1896,8 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | `audioChain.js` | Проигрывание цепочки сегментов (часть → слово → часть) без склейки файлов: `playSegmentChain(plan, audio, { spare, srcOf, muted, rate, applyMouth, lowPower, onEnd, onFail, onGap })`; пока играет часть n, на втором `<audio>` (spare) уже стоит часть n+1 (preload, `currentTime=lead`), эстафета по `currentTime` (конец + `TAIL_PAD`) — `play()` на втором и сразу пауза первому (звучит один); один элемент на слабом устройстве/без spare/при NotAllowed на spare; один `createMouthSync` на всю цепочку через прокси общего времени; отказ до звука → `onFail` (синтез всей строки), после — часть пропускается; `cancel()` освобождает элементы и таймеры |
 | `spriteCheck.js` | `checkSpriteSvg(svgText, kind: 'cat' \| 'prop' \| 'background')` — проверка SVG дизайнера без DOMParser: запрещённые теги (filter/mask/clipPath/foreignObject/script/image/use/градиенты…), число узлов по типу, viewBox, обязательные `data-part` (кот: tail/body/head/eyes/mouth + три `data-viseme`), цвета fill/stroke, внешние ссылки/url()/on*; `spriteCheckSummary` для бейджа |
 | `demoScenes.js` | Пять демо-сцен v2: «Про работу» (office, 6 реплик), «Кофе-брейк» (cafe, 5 реплик), две из ОДНОЙ реплики — «Одна реплика: Повтори» (repeat) и «Одна реплика: Ответь коту» (say) — и «Кружок Пита» (один кот, `characters: { a: PIT }`, 2 реплики, шаблон в сборщике и пример одиночной сцены в легенде); все проходят линтер без замечаний |
+| `demoMascotScene.js` | Демо-сцена «Кит и Мия: знакомство» (кафе, 7 реплик с `face` / `react`, английский + перевод); шаблон в сборщике |
+| `sceneMascots.test.js` | Тесты сцен с маскотами: схема, валидатор, линтер, бюджет, статичный кадр, драйвер рта, легенда |
 | `sceneOneLine.test.jsx` | Тесты сцены из одной реплики для say/repeat: `minLinesFor`, валидатор/линтер (1 реплика + say/repeat ок, без задания/translate — «минимум 2»), легенда, демо, нода урока, режиссёр (ended, playOnce, loop), детектор круга `trackPlay` при одной реплике, `SceneModule` |
 | `directorCore.js` | Режиссёр без React: `createDirector({ timeline, playLine, onChange, loop })` — play/pause/toggle/restart/goTo/playOnce(i — одна реплика и пауза на ней, для «Ещё раз» в задании ленты; в `playLine` уходит `once: true` → только оригинал)/destroy, статусы idle/playing/paused/ended, поздний onEnd отменённой реплики игнорируется |
 | `mouthDriver.js` | Рот без перерендера: `createMouthDriver(apply, timers)` крутит цикл визем (open/half/closed/half, 110 мс), `onWord()` перезапускает цикл на границе слова; `setMouth(el, shape)` пишет `data-mouth` в DOM только при смене |
@@ -1930,7 +1933,13 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | `propsCommon.js` | 5 общих предметов: стол, окно, растение в горшке, торшер, картина в рамке |
 | `backgrounds.js` | Фоны office/cafe как слои стена/пол (кафе — ещё стойка у правой стены под кофемашину), `SCENE_VIEWBOX` 0 0 360 640, `LOCATIONS` |
 | `slots.js` | Слоты-ячейки с якорями: 5 общих (window, wall-art, floor-left, floor-right, table) + 5 офиса (wall-board, wall-clock, desk-left/center/right) + 5 кафе (wall-menu, ceiling, counter, table-left/right); `accepts` — совместимые предметы, `needs: 'table'` у настольных, слои отрисовки; `CAT_PLACEMENT` |
-| `spriteRegistry.js` | Реестр `SPRITES` (id, title, category, kind, viewBox, size, anchor, slots, nodeCount, status-бейдж, build): 2 кота, 15 предметов, 2 фона; `getSprite`, `catSprite(gender)`, `backgroundSprite`, `spritesForSlot`, `PROP_IDS` |
+| `spriteRegistry.js` | Реестр `SPRITES` (id, title, category, kind, viewBox, size, anchor, slots, nodeCount, status-бейдж, build): 2 кота + 2 маскота (Кит, Мия — `skin`, `checkKind: 'mascot'`), 15 предметов, 2 фона; `getSprite`, `catSprite(gender)`, `characterSprite(character)` (маскот по `skin`, иначе кот по полу), `backgroundSprite`, `spritesForSlot`, `PROP_IDS` |
+| `mascot/mascots.js` | Реестр маскотов (Кит, Мия): пакеты из JSON, `SKINS`, состояния лица (`facesOf`, `isFaceOf`), подписи `FACE_NOTES`, цвет метки говорящего |
+| `mascot/kit.json`, `mia.json` | Рисунок маскотов — готовые пакеты (хвост, тело, голова, таблица 9 форм рта, состояния лица: глаза, брови, декор, рот в покое, наклон, зрачок). Генерятся `scripts/mascot/export_sprites.mjs` |
+| `mascot/markupTree.js` | Разметка пакета (`<g>/<path>…`) → деревья `svgTree`: разбор, поиск по классу, копия |
+| `mascot/mascotSprite.js` | `buildMascot(skin, { face, flip, pupilReaction, extraFace, mouth })` — дерево маскота с теми же частями и классами анимаций, что у обычного кота; лицо подставляется при сборке |
+| `mascot/mascotMouth.js` | Рот маскота без React: формы closed / half / open драйвера → формы Rhubarb X / C / D из таблицы пакета, пишутся в узлы рта; закрытый рот берёт «рот в покое» лица |
+| `mascot/mascotSprite.test.js` | Тесты маскотов: разбор, все лица проходят `spriteCheck` и лимит узлов, зеркало, реакция зрачков, наклон, рот |
 | `spriteRegistry.test.js` | Состав реестра, каждый спрайт проходит `spriteCheck` и лимит узлов, слоты ↔ спрайты, пол кота, бюджет сцены при самых тяжёлых предметах во всех слотах |
 | `sceneBleed.test.js` | Стражи стандарта «пол продолжается вниз»: фон шире кадра (пол вниз, стена вверх), `overflow: visible` у SVG ленты, настенные слоты не пересекаются и собраны к центру, бюджет узлов |
 
@@ -2230,6 +2239,10 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | `scenes/SpritesPanel.jsx` | Раздел «Спрайты»: пояснение (спрайт/слот/якорь/бюджет с «?»), фильтр по категории (коты/офис/кафе/общие/фоны), сетка `SpriteCard` |
 | `scenes/SpriteCard.jsx` | Карточка спрайта: превью, id, узлы, viewBox/якорь, совместимые слоты, статус `spriteCheckSummary`, «Скопировать SVG»/«Скопировать id»; у кота — `CatControls` |
 | `scenes/CatControls.jsx` | Переключатели кота в галерее: пол ♂/♀, эмоция, форма рта (визема), палитра (`PaletteEditor`), полоски |
+| `scenes/MascotFields.jsx` | Образ персонажа в форме персонажа: обычный кот / Кит / Мия; у маскота выключатели «Реакция зрачков» и «Дополнительная мимика» |
+| `scenes/LineFaceFields.jsx` | Лицо маскота в реплике: «Лицо: <говорящий>» (`face`) и «Реакция: <слушающий>» (`react`); показываются, если у персонажа маскот и включена мимика |
+| `scenes/MascotControls.jsx` | Переключатели карточки маскота в галерее: лицо, форма рта, два выключателя |
+| `scenes/mascotAdmin.test.jsx` | Тесты админки маскотов: `setSkin`, смена говорящего сбрасывает лица, подписи истории, разметка форм и карточки |
 | `scenes/PaletteEditor.jsx` | Палитра кота: кружки-пресеты (подсветка совпавшего через `matchPreset`) + пять `<input type=color>`; id полей `…-palette-fur` для подсветки линтера |
 | `scenes/SpritePreview.jsx` | `<svg viewBox>` с деревом спрайта (`renderTree`); у кота `data-mouth` выбирает видимую визему; `size` — высота (мини-превью 30px в выпадашках слотов) |
 | `scenes/ScTip.jsx` | Кнопка «?» раздела: `HelpTip` из `signals/` с `content` из `scenesHelp.js` по ключу |

@@ -5,6 +5,7 @@ import { demoOfficeScene } from '../../scene/v2/demoScenes.js'
 import { isSolo, pitCharacter } from '../../scene/v2/scenePit.js'
 import { removeLine as removeLineOp } from './timelineOps.js'
 import { retitle } from '../../scene/v2/sceneNaming.js'
+import { isSkin, MASCOT_PACKS } from '../../scene/v2/sprites/mascot/mascots.js'
 
 // Модель черновика сборщика сцен (этап 2). Черновик — это нормализованная сцена v2
 // (sceneSchemaV2.js); все операции чистые: принимают сцену, возвращают новую, исходник
@@ -95,6 +96,25 @@ export function updateCharacter(scene, key, patch) {
   if (key !== 'a' && key !== 'b') return scene
   const cur = scene.characters[key]
   return { ...scene, characters: { ...scene.characters, [key]: { ...cur, ...patch } } }
+}
+
+// Образ персонажа: skin 'kit' | 'mia' — маскот, null — обычный кот. Маскот приходит со своим полом и именем; переключатели
+// реакции зрачков и дополнительной мимики по умолчанию включены. Возврат к обычному коту убирает поля маскота, а лица (face / react)
+// реплик — только у реплик, где они относились к этому персонажу
+export function setSkin(scene, key, skin) {
+  if (key !== 'a' && key !== 'b') return scene
+  const cur = scene.characters[key]
+  const { skin: _skin, pupilReaction: _pupils, extraFace: _extra, ...rest } = cur
+  const next = isSkin(skin)
+    ? { ...rest, skin, gender: MASCOT_PACKS[skin].gender, name: MASCOT_PACKS[skin].title, pupilReaction: true, extraFace: true }
+    : rest
+  const timeline = (scene.timeline ?? []).map(l => {
+    const field = l.who === key ? 'face' : 'react'
+    if (!(field in l)) return l
+    const { [field]: _dropped, ...kept } = l
+    return kept
+  })
+  return { ...scene, characters: { ...scene.characters, [key]: next }, timeline }
 }
 
 export function setPaletteColor(scene, key, colorKey, value) {

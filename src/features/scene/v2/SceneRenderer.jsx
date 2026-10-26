@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { renderTree } from './renderTree.js'
 import SceneBubbleV2 from './SceneBubbleV2.jsx'
 import { useSceneDirectorV2 } from './useSceneDirectorV2.js'
-import { backgroundSprite, catSprite, getSprite } from './sprites/spriteRegistry.js'
+import { backgroundSprite, characterSprite, getSprite } from './sprites/spriteRegistry.js'
 import { slotsInDrawOrder, CAT_PLACEMENT, catPlacement } from './sprites/slots.js'
 import { isSolo } from './scenePit.js'
 import { SCENE_VIEWBOX } from './sprites/backgrounds.js'
@@ -31,11 +31,14 @@ import { settleSceneIdle } from './sceneSettle.js'
 // поверх options сцены (sceneOptions.js); showBubbles — старый проп (false → 'none').
 // Задание scene.task скрывает переводы в облачке даже при 'both'.
 
-function Cat({ who, character, emotion, talking, onEl, solo = false }) {
-  const sprite = catSprite(character.gender)
+function Cat({ who, character, emotion, face, talking, onEl, solo = false }) {
+  const sprite = characterSprite(character)
   const tree = useMemo(
-    () => sprite.build({ palette: character.palette, stripes: character.stripes !== false, emotion, flip: who === 'b' }),
-    [sprite, character.palette, character.stripes, emotion, who],
+    () => sprite.build({
+      palette: character.palette, stripes: character.stripes !== false, emotion, flip: who === 'b',
+      face, pupilReaction: character.pupilReaction !== false, extraFace: character.extraFace !== false, // лицо маскота (обычный кот их не читает)
+    }),
+    [sprite, character.palette, character.stripes, character.pupilReaction, character.extraFace, emotion, face, who],
   )
   const p = catPlacement(who, solo)
   return (
@@ -128,6 +131,7 @@ export default function SceneRenderer({
   ].filter(Boolean).join(' ')
 
   const emotionOf = who => (line && line.who === who ? line.emotion : 'neutral')
+  const faceOf = who => (line ? (line.who === who ? line.face : line.react) : undefined) // лицо маскота: говорящий — face, слушающий — react
 
   return (
     <div
@@ -141,8 +145,8 @@ export default function SceneRenderer({
           {renderTree(bgTree)}
           <Props scene={scene} />
           {/* Пока звучит перевод («диктор»), кот не «говорит»: рот закрыт, покачивания головы нет */}
-          <Cat who="a" solo={solo} character={scene.characters.a} emotion={emotionOf('a')} talking={speaking === 'a' && phase !== 'translation'} onEl={onCatEl} />
-          {!solo && <Cat who="b" character={scene.characters.b} emotion={emotionOf('b')} talking={speaking === 'b' && phase !== 'translation'} onEl={onCatEl} />}
+          <Cat who="a" solo={solo} character={scene.characters.a} emotion={emotionOf('a')} face={faceOf('a')} talking={speaking === 'a' && phase !== 'translation'} onEl={onCatEl} />
+          {!solo && <Cat who="b" character={scene.characters.b} emotion={emotionOf('b')} face={faceOf('b')} talking={speaking === 'b' && phase !== 'translation'} onEl={onCatEl} />}
         </svg>
       ) : (
         // Статика — готовой строкой (staticMarkup.js): без fiber-ов на ~190 узлов

@@ -4,6 +4,8 @@
 // Цикл форм перезапускается на границе каждого слова (onWord) — движение
 // совпадает с речью. Таймеры инъектируются для тестов.
 
+import { applyMascotMouth } from './sprites/mascot/mascotMouth.js'
+
 export const MOUTH_SHAPES = ['closed', 'half', 'open']
 export const MOUTH_CYCLE = ['open', 'half', 'closed', 'half']
 export const MOUTH_STEP_MS = 110
@@ -12,6 +14,7 @@ export const MOUTH_STEP_MS = 110
 export function setMouth(el, shape) {
   if (!el || el.getAttribute('data-mouth') === shape) return
   el.setAttribute('data-mouth', shape)
+  applyMascotMouth(el, shape) // маскот (data-skin): те же три формы → формы из таблицы пакета
 }
 
 export function createMouthDriver(apply, timers = globalThis) {

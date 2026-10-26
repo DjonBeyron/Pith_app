@@ -10,6 +10,7 @@ import { VOICE_RANGE } from './sceneVoice.js'
 import { validateSceneOptions } from './sceneOptions.js'
 import { isSolo } from './scenePit.js'
 import { validateVars, validateSegments } from './sceneVarsValidate.js'
+import { SKINS, isSkin, facesOf } from './sprites/mascot/mascots.js'
 
 // Валидация сцены v2: список ошибок по-русски с путями (characters.a.name,
 // timeline[3].text…). Пустой список — сцена годная. Проверяет форму и
@@ -35,6 +36,9 @@ function validateCharacter(c, key, errors) {
     }
   }
   if (c.stripes !== undefined && typeof c.stripes !== 'boolean') errors.push(`${p}.stripes — true/false`)
+  // Маскот (mascot/): skin подменяет обычного кота; реакция зрачков и дополнительная мимика — переключатели, по умолчанию включены
+  if (c.skin !== undefined && !isSkin(c.skin)) errors.push(`${p}.skin — ${SKINS.join(' | ')} (или убрать поле: обычный кот)`)
+  for (const k of ['pupilReaction', 'extraFace']) if (c[k] !== undefined && typeof c[k] !== 'boolean') errors.push(`${p}.${k} — true/false`)
   if (c.voice !== undefined) {
     if (!isObj(c.voice)) errors.push(`${p}.voice — объект { pitch, rate, voiceId?, stability?, similarity?, speed?, translationVoiceId? }`)
     else {
@@ -68,7 +72,19 @@ function validateSlots(slots, location, errors) {
   }
 }
 
-function validateLine(l, i, errors, solo, varNames) {
+// face — лицо говорящего, react — лицо слушающего (второго персонажа) на время реплики; только у маскотов (skin), имя — из состояний пакета
+function validateFace(l, p, chars, solo, errors) {
+  for (const [field, who] of [['face', l.who], ['react', l.who === 'a' ? 'b' : 'a']]) {
+    if (l[field] === undefined) continue
+    if (typeof l[field] !== 'string') { errors.push(`${p}.${field} — строка (имя лица маскота)`); continue }
+    if (field === 'react' && solo) { errors.push(`${p}.react — в сцене один персонаж, слушателя нет`); continue }
+    const skin = chars?.[who]?.skin
+    if (!isSkin(skin)) errors.push(`${p}.${field} — у персонажа '${who}' нет маскота (characters.${who}.skin), лицо задать нельзя`)
+    else if (!facesOf(skin).includes(l[field])) errors.push(`${p}.${field} — ${facesOf(skin).join(' | ')}`)
+  }
+}
+
+function validateLine(l, i, errors, solo, varNames, chars) {
   const p = `timeline[${i}]`
   if (!isObj(l)) { errors.push(`${p} — объект реплики`); return }
   if (!CHARACTER_KEYS.includes(l.who)) errors.push(`${p}.who — 'a' или 'b'`)
@@ -77,6 +93,7 @@ function validateLine(l, i, errors, solo, varNames) {
   else if (l.text.trim().length > LIMITS.maxTextLen) errors.push(`${p}.text — не длиннее ${LIMITS.maxTextLen} символов (сейчас ${l.text.trim().length})`)
   if (l.emotion !== undefined && !EMOTIONS.includes(l.emotion)) errors.push(`${p}.emotion — ${EMOTIONS.join(' | ')}`)
   if (l.pose !== undefined && !POSES.includes(l.pose)) errors.push(`${p}.pose — ${POSES.join(' | ')}`)
+  validateFace(l, p, chars, solo, errors)
   if (l.translation !== undefined && typeof l.translation !== 'string') errors.push(`${p}.translation — строка`)
   // Перевод ограничен как и текст: два комплекта таймингов на реплику должны уложить сцену в 64 КБ
   else if (typeof l.translation === 'string' && l.translation.trim().length > LIMITS.maxTextLen) errors.push(`${p}.translation — не длиннее ${LIMITS.maxTextLen} символов (сейчас ${l.translation.trim().length})`)
@@ -112,7 +129,7 @@ export function validateSceneV2(scene) {
     }
     if (scene.timeline.length > LIMITS.maxLines) errors.push(`timeline — максимум ${LIMITS.maxLines} реплик (сейчас ${scene.timeline.length})`)
     const varNames = isObj(scene.vars) ? Object.keys(scene.vars) : []
-    scene.timeline.forEach((l, i) => validateLine(l, i, errors, solo, varNames))
+    scene.timeline.forEach((l, i) => validateLine(l, i, errors, solo, varNames, isObj(scene.characters) ? scene.characters : null))
   }
 
   validateSceneOptions(scene.options, errors) // bubbles/autoplay/loop, display, voice, translationVoiceId — sceneOptions.js
