@@ -1,0 +1,130 @@
+{
+  "about": "Замена сцен урока «To» на маскота Кит (кружок Пита: один кот, 2 реплики, без облачков). Подставить data.scene и data.crop в ноды n1 (открывающая) и n186 (закрывающая); остальные поля нод не меняются. Озвучка и переводы не заданы — озвучить в сборщике сцен кнопкой «Озвучить».",
+  "nodes": [
+    {
+      "ref": "n1",
+      "data": {
+        "mode": "circle",
+        "scene": {
+          "version": 2,
+          "id": "to-intro",
+          "title": "Кот на кухне",
+          "location": "cafe",
+          "characters": {
+            "a": {
+              "kind": "cat",
+              "gender": "male",
+              "name": "Пит",
+              "skin": "kit",
+              "pupilReaction": true,
+              "extraFace": true,
+              "voice": {
+                "pitch": 1,
+                "rate": 1
+              }
+            }
+          },
+          "slots": {
+            "table": "table",
+            "table-left": "pastry-plate",
+            "window": "window",
+            "wall-menu": "menu-board",
+            "wall-art": "picture",
+            "ceiling": "pendant-lamp",
+            "counter": "coffee-machine",
+            "floor-left": "plant",
+            "floor-right": "floor-lamp",
+            "table-right": "laptop"
+          },
+          "timeline": [
+            {
+              "who": "a",
+              "text": "Я тут ужин готовлю, а друг написал: what are you doing?",
+              "emotion": "happy",
+              "face": "pretend"
+            },
+            {
+              "who": "a",
+              "text": "Как сказать по-английски «я пытаюсь готовить»?",
+              "emotion": "surprised",
+              "face": "shy"
+            }
+          ],
+          "options": {
+            "bubbles": true
+          }
+        },
+        "start": "auto",
+        "showBubbles": false,
+        "startDelayMs": 500,
+        "crop": {
+          "x": 0,
+          "y": 18,
+          "scale": 0.82
+        }
+      }
+    },
+    {
+      "ref": "n186",
+      "data": {
+        "mode": "circle",
+        "scene": {
+          "version": 2,
+          "id": "to-outro",
+          "title": "Кот уходит готовить",
+          "location": "cafe",
+          "characters": {
+            "a": {
+              "kind": "cat",
+              "gender": "male",
+              "name": "Пит",
+              "skin": "kit",
+              "pupilReaction": true,
+              "extraFace": true,
+              "voice": {
+                "pitch": 1,
+                "rate": 1
+              }
+            }
+          },
+          "slots": {
+            "table": "table",
+            "table-left": "pastry-plate",
+            "window": "window",
+            "wall-menu": "menu-board",
+            "wall-art": "picture",
+            "ceiling": "pendant-lamp",
+            "counter": "coffee-machine",
+            "floor-left": "plant",
+            "floor-right": "floor-lamp",
+            "table-right": "laptop"
+          },
+          "timeline": [
+            {
+              "who": "a",
+              "text": "Итог: у to три работы: глаголы, место и человек.",
+              "emotion": "happy"
+            },
+            {
+              "who": "a",
+              "text": "Вот и всё! Я проголодался, пойду готовить.",
+              "emotion": "tired",
+              "face": "bliss"
+            }
+          ],
+          "options": {
+            "bubbles": true
+          }
+        },
+        "start": "auto",
+        "showBubbles": false,
+        "startDelayMs": 500,
+        "crop": {
+          "x": 0,
+          "y": 18,
+          "scale": 0.82
+        }
+      }
+    }
+  ]
+}
