@@ -1,16 +1,13 @@
-// План фазы диктора: когда звучит слово и когда пилюли опускаются, заливаются и уходят. Чистые функции — их же использует редактор таймлайна (canvas/word-lane).
+// План фазы диктора: когда звучит слово и где в этот момент пилюля. Чистые функции — их же использует редактор таймлайна (canvas/word-lane).
 // Два источника: без озвучки автора — фиксированное расписание wordLaneTimeline (голос — слово из библиотеки/система); с озвучкой ElevenLabs — таймлайн ноды `fills`
-// [{start, end}] ×3 (секунды ОТ НАЧАЛА ФАЙЛА): начало клипа = начало слова = пилюля стоит в зоне голоса и начинает заливаться, конец клипа = конец слова = залита и «щёлкает».
-// Заливка идёт по реальной громкости слова (makeFillCurve по waveformData), поэтому она синхронна с речью диктора. Первая пилюля начинает опускаться за LEAD_MS до слова: файл включается
-// через LEAD_MS после старта фазы.
-import { SLOT_COUNT, WORD_AT, WORD_LEN, LISTEN_MS, DESCENT_MS, EXIT_MS, EXIT_TAIL_MS, GAP_MS, makeFillCurve, fillProfile } from './wordLaneTimeline.js'
+// [{start, end}] ×3 (секунды ОТ НАЧАЛА ФАЙЛА): начало клипа = начало слова, конец клипа = конец слова. Время слов НЕ ПОДВИГАЕТСЯ (раньше слова, стоящие близко, раздвигались, и пилюля
+// расходилась со звуком): конвейер движется с постоянной скоростью, пилюли разных дорожек спокойно перекрываются по времени. Файл включается через audioAt (lead) после старта фазы — ровно столько,
+// чтобы первая пилюля успела выкатиться (leadFor): слово 0 приходится на центр экрана. Время файла и пилюль связаны одной формулой: t = LEAD_MS + секунда файла × 1000 (wordLaneClock.js
+// держит эту связь по реальному звуку, а не по таймеру).
+import { SLOT_COUNT, WORD_AT, WORD_LEN, LISTEN_MS, leadFor, listenEnd, makeFillCurve, fillProfile } from './wordLaneTimeline.js'
 import { tokenize } from '../../../../shared/lib/speech/speechMatch.js'
 
-export const LEAD_MS = DESCENT_MS + 200 // пилюля успевает опуститься, звук ещё молчит
-export const MIN_FIRST_MS = LEAD_MS     // первая пилюля не раньше — ей нужно время спуститься
-export const MIN_GAP_MS = GAP_MS        // между концом одного слова и началом следующего
-export const FILL_MIN_MS = 400
-export const FILL_MAX_MS = 1800
+export const MIN_WORD_MS = 250          // короче слово не бывает: иначе заливка и щелчок слиплись бы
 export const DEFAULT_WORD_MS = 800      // длина клипа, если у слова не известен конец
 
 const num = v => typeof v === 'number' && Number.isFinite(v)
@@ -72,22 +69,17 @@ export function makeMouthLevel(at, ms, audio, audioAt) {
 /**
  * План фазы диктора. fills — normalizeFills(...) или null; audio — { wave, duration } озвучки автора (нужно для кривой заливки), необязательно.
  * @returns {{ fillAt: number[], fillMs: number[], curves: Array<Function|null>, profiles: number[][], mouth: Function, listenMs: number, audioAt: number|null }}
- *   fillAt — когда слово k началось (мс от старта фазы: пилюля в зоне голоса, звучит слово); fillMs — сколько слово звучит; curves — кривая заливки по громкости (или null — линейно);
- *   profiles — «тень» слова для подсказки ученику (fillProfile); mouth(t) — громкость диктора для рта кота; listenMs — когда фаза кончилась (последняя пилюля ушла);
- *   audioAt — когда включать файл (null — файла нет)
+ *   fillAt — когда слово k началось (мс от старта фазы); fillMs — сколько оно звучит; curves — кривая заливки по громкости (или null — линейно); profiles — «тень» слова для
+ *   подсказки ученику; mouth(t) — громкость диктора для рта кота; listenMs — когда фаза кончилась (конец последнего слова + END_TAIL_MS); audioAt — когда включать файл (null — файла нет)
  */
 export function makeListenPlan(fills, audio = null) {
   if (!fills) {
     const curves = WORD_AT.map(() => null)
     return { fillAt: WORD_AT, fillMs: WORD_LEN, curves, profiles: curves.map(c => fillProfile(c)), mouth: makeMouthLevel(WORD_AT, WORD_LEN, null, null), listenMs: LISTEN_MS, audioAt: null }
   }
-  const at = []
-  const ms = fills.map(c => Math.min(FILL_MAX_MS, Math.max(FILL_MIN_MS, Math.round((c.end - c.start) * 1000))))
-  fills.forEach((c, k) => {
-    const want = LEAD_MS + Math.round(c.start * 1000)
-    const min = k === 0 ? MIN_FIRST_MS : at[k - 1] + ms[k - 1] + MIN_GAP_MS
-    at.push(Math.max(want, min))
-  })
+  const ms = fills.map(c => Math.max(MIN_WORD_MS, Math.round((c.end - c.start) * 1000)))
+  const lead = Math.round(Math.max(0, leadFor(ms[0]) - fills[0].start * 1000) + 100) // первая пилюля успевает выкатиться
+  const at = fills.map(c => lead + Math.round(c.start * 1000))
   const curves = fills.map(c => makeFillCurve(audio?.wave, audio?.duration, c.start, c.end))
-  return { fillAt: at, fillMs: ms, curves, profiles: curves.map(c => fillProfile(c)), mouth: makeMouthLevel(at, ms, audio, LEAD_MS), listenMs: at.at(-1) + ms.at(-1) + EXIT_MS + EXIT_TAIL_MS, audioAt: LEAD_MS }
+  return { fillAt: at, fillMs: ms, curves, profiles: curves.map(c => fillProfile(c)), mouth: makeMouthLevel(at, ms, audio, lead), listenMs: listenEnd(at, ms), audioAt: lead }
 }

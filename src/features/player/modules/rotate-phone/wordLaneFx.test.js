@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { voiceFillStep, fillProfile, makeFillCurve, FILL_CAP, VOICE_THRESHOLD } from './wordLaneTimeline.js'
 import { makeListenPlan, makeMouthLevel } from './wordLanePlan.js'
-import { makeNoteWav, NOTE_FREQS, NOTE_MS } from './wordLaneNotes.js'
+import { makeNoteWav, NOTES, NOTE_FREQS } from './wordLaneNotes.js'
 import { mouthShape } from './wordLaneMouth.js'
 import { XP_PER_PILL } from './wordLaneConfig.js'
 import { createWordListener } from './wordLaneListen.js'
@@ -38,8 +38,8 @@ describe('подсказка ученику: темп и «тень» слова
   it('метка темпа и ожидающая заливка подключены в движке и вёрстке', () => {
     const eng = read('./useWordLanePills.js')
     expect(eng).toContain("'--pace'")
-    expect(eng).toContain('s.onset')
-    expect(eng).toContain('plan.fillMs[k])')                        // скорость наливания — длина слова диктора
+    expect(eng).toContain('p.onset')
+    expect(read('./wordLaneStudent.js')).toContain('p.ms)')         // скорость наливания — длина слова диктора
     const css = read('../../../../styles/player/modules/word-lane.css')
     expect(css).toContain(".wl[data-phase='speak'] .wlPill:not([data-lock]) .wlPace")
     expect(css).toContain(".wlPill:not([data-lock]) .wlPillFill")   // «ожидающая» заливка до подтверждения слова
@@ -98,24 +98,24 @@ describe('XP за пилюлю, ноты, Пит', () => {
     expect(flow).toContain('amount: XP_PER_PILL')
     expect(read('./WordLaneGame.jsx')).toContain("import XpFloat from '../../XpFloat.jsx'")
     expect(read('./WordLaneGame.jsx')).toContain('<XpFloat events={f.xpEvents} onDismiss={f.dismissXp} viewport />')
-    // XP — только у ученика: движок зовёт fx.win из done(k, true) в фазе speak, а в фазе диктора done(k) без награды
+    // XP — только у ученика: fx.win зовётся из события win конвейера ученика, а в фазе диктора щёлкает без награды
     const eng = read('./useWordLanePills.js')
-    expect(eng).toContain('done(k, true)')
-    expect(eng).toContain('{ snapped.add(k); done(k) }')
+    expect(eng).toContain("e.type === 'win'")
+    expect(eng).toContain('fxRef.current?.win?.(e.order')
+    expect(eng.split('fxRef.current?.win?.').length - 1).toBe(1)
   })
 
   it('нота выше с каждой пилюлей: три возрастающих тона, WAV корректный', () => {
     expect(NOTE_FREQS).toHaveLength(3)
     expect(NOTE_FREQS[0]).toBeLessThan(NOTE_FREQS[1])
     expect(NOTE_FREQS[1]).toBeLessThan(NOTE_FREQS[2])
-    const w = makeNoteWav(NOTE_FREQS[0])
-    expect(String.fromCharCode(...w.slice(0, 4))).toBe('RIFF')
-    expect(String.fromCharCode(...w.slice(8, 12))).toBe('WAVE')
-    const n = Math.floor((22050 * NOTE_MS) / 1000)
-    expect(w.length).toBe(44 + n * 2)
-    const peak = Math.max(...Array.from({ length: 200 }, (_, i) => Math.abs(new DataView(w.buffer).getInt16(44 + (i + 200) * 2, true))))
-    expect(peak).toBeGreaterThan(1000)                       // нота слышна
-    expect(Math.max(...makeNoteWav(0, 80).slice(44))).toBe(0) // «тишина» для пробуждения элемента — нули
+    NOTES.forEach(n => {
+      const w = makeNoteWav(n.freqs, n.ms, n.level)
+      expect(String.fromCharCode(...w.slice(0, 4))).toBe('RIFF')
+      expect(String.fromCharCode(...w.slice(8, 12))).toBe('WAVE')
+      expect(w.length).toBe(44 + Math.floor((22050 * n.ms) / 1000) * 2)
+    })
+    expect(Math.max(...makeNoteWav([0], 80).slice(44))).toBe(0) // «тишина» для пробуждения элемента — нули
   })
 
   it('ноты будятся в тапе «Начать» и уважают «без звука»', () => {

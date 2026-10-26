@@ -35,24 +35,67 @@ export function speakWord(word, lang = 'en-US') {
   } catch (e) { pLog(`[word-lane] голос диктора не заговорил: ${e?.message ?? e}`); return null }
 }
 
-let track = null // запасной <audio> озвучки автора, если прогретый элемент приложения недоступен
+let track = null   // <audio> озвучки автора (готовится в тапе «Начать», играет по таймеру фазы)
+let trackSrc = null
 
-/** Озвучка автора (файл ElevenLabs ноды) целиком: прогретый элемент → обычный <audio>. Возвращает true, если пошла */
+// Тихий звук для «пробуждения» элемента в жесте (как у нот): iOS разрешает автозапуск только элементу, что уже играл по тапу
+const silenceUrl = (() => { let u = null; return () => (u ??= URL.createObjectURL(new Blob([makeSilenceWav()], { type: 'audio/wav' }))) })()
+function makeSilenceWav(ms = 80, rate = 8000) {
+  const n = Math.floor((rate * ms) / 1000)
+  const buf = new ArrayBuffer(44 + n)
+  const v = new DataView(buf)
+  const str = (o, s) => { for (let i = 0; i < s.length; i++) v.setUint8(o + i, s.charCodeAt(i)) }
+  str(0, 'RIFF'); v.setUint32(4, 36 + n, true); str(8, 'WAVE'); str(12, 'fmt '); v.setUint32(16, 16, true)
+  v.setUint16(20, 1, true); v.setUint16(22, 1, true); v.setUint32(24, rate, true); v.setUint32(28, rate, true); v.setUint16(32, 1, true); v.setUint16(34, 8, true)
+  str(36, 'data'); v.setUint32(40, n, true)
+  new Uint8Array(buf, 44).fill(128) // 8-бит беззнаковый: 128 — тишина
+  return new Uint8Array(buf)
+}
+
+/**
+ * Из тапа «Начать»: заранее готовим элемент для озвучки автора. Его «будит» тихий звук внутри жеста (иначе iOS не даст включить файл по таймеру), затем подменяем src на файл и прогружаем —
+ * к моменту audioAt файл уже декодирован, и звук стартует без задержки (раньше первый play() ждал декодирования 100–400 мс, и картинка расходилась со звуком). Нет src — ничего не делает.
+ */
+export function prepareTrack(src) {
+  if (!src || typeof Audio === 'undefined') return
+  try {
+    releaseTrack()
+    const a = new Audio(silenceUrl())
+    a.preload = 'auto'
+    track = a; trackSrc = src
+    a.play().then(() => { if (track !== a) return; a.pause(); a.src = src; a.load() }).catch(() => { if (track === a) { a.src = src; a.load() } })
+  } catch { track = null; trackSrc = null }
+}
+
+function releaseTrack() { if (track) { try { track.pause(); track.removeAttribute('src') } catch { /* уже свободен */ } } track = null; trackSrc = null }
+
+/** Озвучка автора (файл ElevenLabs ноды) целиком: заранее подготовленный элемент → прогретый элемент приложения → обычный <audio>. Возвращает ЭЛЕМЕНТ (по его currentTime идут пилюли — wordLaneClock.js) или null */
 export function playTrack(src) {
-  if (!src) return false
-  if (playPrimed(src, { muted: getLessonMuted(), rate: getVoiceRate() })) return true
+  if (!src) return null
+  if (track && trackSrc === src) {
+    try {
+      if (track.src !== src && !track.src.endsWith(src)) { track.src = src }
+      track.muted = getLessonMuted()
+      track.playbackRate = getVoiceRate()
+      track.currentTime = 0
+      track.play().catch(e => pLog(`[word-lane] озвучка автора не пошла: ${e?.name ?? e}`))
+      return track
+    } catch { /* пробуем прогретый элемент */ }
+  }
+  const primed = playPrimed(src, { muted: getLessonMuted(), rate: getVoiceRate() })
+  if (primed) return primed
   try {
     track = new Audio(src)
+    trackSrc = src
     track.muted = getLessonMuted()
     track.playbackRate = getVoiceRate()
     track.play().catch(e => pLog(`[word-lane] озвучка автора не пошла: ${e?.name ?? e}`))
-    return true
-  } catch { return false }
+    return track
+  } catch { return null }
 }
 
 export function stopVoice() {
-  try { track?.pause() } catch { /* не играл */ }
-  track = null
+  releaseTrack()
   try { stopPrimed() } catch { /* не играл */ }
   try { stopWord() } catch { /* не играл */ }
   try { synth()?.cancel() } catch { /* не играл */ }

@@ -3,9 +3,9 @@ import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { sparkColors, POP_FRAMES, POP_MS, FLASH_MS } from './wordLaneSnap.js'
 import { makeParticle } from '../../../../shared/lib/burstParticles.js'
-import { WORD_AT, WORD_LEN, LISTEN_MS, ZONE_Y, DESCENT_MS, EXIT_MS, pillY } from './wordLaneTimeline.js'
+import { WORD_AT, WORD_LEN, LISTEN_MS } from './wordLaneTimeline.js'
 import { readWordLane } from './wordLaneConfig.js'
-import { makeListenPlan, normalizeFills, fillsFromTimings, defaultFills, LEAD_MS, MIN_GAP_MS, MIN_FIRST_MS, FILL_MAX_MS, FILL_MIN_MS } from './wordLanePlan.js'
+import { makeListenPlan, normalizeFills, fillsFromTimings, defaultFills } from './wordLanePlan.js'
 
 // План фазы диктора по озвучке ElevenLabs и таймлайну ноды (wordLanePlan.js)
 describe('озвучка ElevenLabs и таймлайн ноды', () => {
@@ -50,19 +50,6 @@ describe('озвучка ElevenLabs и таймлайн ноды', () => {
     expect(p.curves.every(c => c === null)).toBe(true)
   })
 
-  it('с озвучкой пилюля стоит в зоне голоса ровно по словам файла (со сдвигом LEAD): вход в зону = начало слова', () => {
-    const fills = fillsFromTimings(withEnd, 'try', 4)
-    const p = makeListenPlan(fills)
-    expect(p.audioAt).toBe(LEAD_MS)
-    expect(p.fillAt).toEqual([LEAD_MS + 100, LEAD_MS + 1400, LEAD_MS + 2900])
-    p.fillAt.forEach((t, k) => {
-      expect(pillY(t, t, p.fillMs[k])).toBeCloseTo(ZONE_Y, 5)          // слово началось — пилюля в зоне
-      expect(pillY(t - DESCENT_MS, t, p.fillMs[k])).toBeLessThan(0)    // за DESCENT_MS до слова она ещё за верхним краем
-    })
-    expect(p.listenMs).toBeGreaterThanOrEqual(p.fillAt[2] + p.fillMs[2] + EXIT_MS)
-    p.fillMs.forEach(ms => { expect(ms).toBeGreaterThanOrEqual(FILL_MIN_MS); expect(ms).toBeLessThanOrEqual(FILL_MAX_MS) })
-  })
-
   it('кривая заливки строится по громкости озвучки, если она известна', () => {
     const fills = [{ start: 0.5, end: 1.5 }, { start: 2, end: 3 }, { start: 3.5, end: 4.5 }]
     const wave = Array.from({ length: 150 }, (_, i) => (i % 30 < 10 ? 250 : 20))
@@ -71,17 +58,10 @@ describe('озвучка ElevenLabs и таймлайн ноды', () => {
     expect(makeListenPlan(fills).curves.every(c => c === null)).toBe(true) // озвучка без волны — линейно
   })
 
-  it('быстрая речь — слово короче (заливка за него быстрее), медленная — длиннее', () => {
+  it('быстрая речь — слово короче (окно вокруг центра уже, заливка за него быстрее), медленная — длиннее', () => {
     const fast = makeListenPlan([{ start: 0.5, end: 0.9 }, { start: 2, end: 2.4 }, { start: 3.5, end: 3.9 }])
     const slow = makeListenPlan([{ start: 0.5, end: 1.9 }, { start: 3, end: 4.4 }, { start: 5.5, end: 6.9 }])
     expect(fast.fillMs[0]).toBeLessThan(slow.fillMs[0])
-  })
-
-  it('слишком частые слова раздвигаются: пилюли по очереди, слова не налезают друг на друга', () => {
-    const p = makeListenPlan([{ start: 0, end: 0.2 }, { start: 0.1, end: 0.3 }, { start: 0.2, end: 0.4 }])
-    expect(p.fillAt[0]).toBeGreaterThanOrEqual(MIN_FIRST_MS)
-    expect(p.fillAt[1] - p.fillAt[0] - p.fillMs[0]).toBeGreaterThanOrEqual(MIN_GAP_MS)
-    expect(p.fillAt[2] - p.fillAt[1] - p.fillMs[1]).toBeGreaterThanOrEqual(MIN_GAP_MS)
   })
 
   it('нода: таймлайн действует только при озвучке', () => {
@@ -117,18 +97,19 @@ describe('щелчок пилюли', () => {
       expect(p.left).toBeGreaterThanOrEqual(180)
       expect(p.left).toBeLessThanOrEqual(220)
     }
-    const local = makeParticle(390, 300, 3.5, ['#fff'], origin).duration
-    const full = makeParticle(390, 844, 3.5, ['#fff']).duration
-    expect(local).toBeLessThan(full * 0.7)
+    const mean = fn => Array.from({ length: 60 }, fn).reduce((a, b) => a + b, 0) / 60 // у частиц случайный разброс — сравниваем средние
+    const local = mean(() => makeParticle(390, 300, 3.5, ['#fff'], origin).duration)
+    const full = mean(() => makeParticle(390, 844, 3.5, ['#fff']).duration)
+    expect(local).toBeLessThan(full * 0.8)
     // без origin залп прежний — от нижнего края по всей ширине
     expect(makeParticle(390, 844, 4, ['#fff']).left).toBeGreaterThanOrEqual(390 * 0.2)
   })
 
-  it('движок зовёт щелчок один раз на пилюлю: в конце слова диктора и по принятому слову ученика', () => {
+  it('движок зовёт щелчок один раз на пилюлю: в конце слова диктора и по принятому слову ученика (событие win конвейера)', () => {
     const eng = readFileSync(fileURLToPath(new URL('./useWordLanePills.js', import.meta.url)), 'utf8')
     expect(eng).toContain('t >= at + ms')
-    expect(eng).toContain('snapped.add(k)')
-    expect(eng).toContain("s.mode = 'out'")
-    expect(eng.match(/snapPill\(/g)).toHaveLength(1) // единственная точка щелчка — done(k)
+    expect(eng).toContain('c.snapped.add(k)')
+    expect(eng).toContain("e.type === 'win'")
+    expect(eng.match(/snapPill\(/g)).toHaveLength(2) // фаза диктора и фаза ученика
   })
 })

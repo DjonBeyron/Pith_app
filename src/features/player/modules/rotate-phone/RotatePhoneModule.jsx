@@ -4,7 +4,7 @@ import { useAudioSource } from '../audio/useAudioSource.js'
 import PlayerBubble from '../../PlayerBubble.jsx'
 import WordLaneGame from './WordLaneGame.jsx'
 import { readWordLane } from './wordLaneConfig.js'
-import { unlockVoice } from './wordLaneVoice.js'
+import { unlockVoice, prepareTrack } from './wordLaneVoice.js'
 import { unlockNotes } from './wordLaneNotes.js'
 import { ensureMicAccess } from '../../../../shared/lib/micAccess.js'
 import { primeAudio } from '../../../../shared/lib/primedAudio.js'
@@ -30,6 +30,7 @@ export default function RotatePhoneModule({ node, file, onDone }) {
     if (busy || phase !== 'wait') return
     setBusy(true)
     unlockVoice()
+    if (cfg.hasAudio && audioSrc) prepareTrack(audioSrc) // озвучка автора: элемент будится в жесте и прогружается заранее — звук стартует без задержки
     unlockNotes() // ноты-награды: элементы просыпаются в жесте, иначе iOS не даст им зазвучать по таймеру
     primeAudio()
     try { document.documentElement.requestFullscreen?.({ navigationUI: 'hide' })?.catch?.(() => {}) } catch { /* iPhone и часть браузеров не умеют — остаёмся в окне */ }
@@ -38,7 +39,7 @@ export default function RotatePhoneModule({ node, file, onDone }) {
     playedRef.current = true
     setPhase('game')
     setBusy(false)
-  }, [busy, phase, cfg])
+  }, [busy, phase, cfg, audioSrc])
 
   const finished = useCallback(() => {
     try { if (document.fullscreenElement) document.exitFullscreen?.() } catch { /* уже вышли */ }

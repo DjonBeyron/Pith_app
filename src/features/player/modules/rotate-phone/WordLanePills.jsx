@@ -26,7 +26,6 @@ export default function WordLanePills({ phase, phaseAt, plan, hits, misses, leve
             <span className="wlGhost">{plan.profiles[i].map((v, j) => <i key={j} style={{ width: `${30 + 60 * v}%` }} />)}</span>
             <span className="wlPillFill" />
             <span className="wlPace" />
-            {misses > 0 && i === hits && <span key={misses} className="wlMiss" />}
           </span>
         </div>
       ))}

@@ -41,3 +41,11 @@ export function snapPill(pill, k) {
   fireBurst({ count: SPARK_COUNT, size: 3.5, colors: sparkColors(k), origin: { x: r.left + r.width / 2, y: r.top + 6, spread: r.width * 0.7, life: 0.8, reach: 260 } })
   try { navigator.vibrate?.(14) } catch { /* не везде есть */ }
 }
+
+/** Промах ученика: красная вспышка и короткая дрожь пилюли (отдельное свойство translate — положение из --y не трогаем) */
+export function missPill(pill) {
+  if (!pill) return
+  pill.animate([{ translate: '0 0' }, { translate: '-6px 0', offset: 0.2 }, { translate: '6px 0', offset: 0.4 }, { translate: '-3px 0', offset: 0.6 }, { translate: '0 0' }], { duration: 560, easing: 'ease-out' })
+  const clip = pill.querySelector('.wlPillClip')
+  if (clip) flash(clip, 'inset:0;border-radius:999px;background:rgba(255,93,115,0.55);', [{ opacity: 1 }, { opacity: 0 }], 700)
+}

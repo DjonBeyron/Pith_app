@@ -1,8 +1,9 @@
-import { LANE_X, LANE_EDGES, WORD_Y, ZONE_Y, ENTER_Y, EXIT_Y, PILL_H } from './wordLaneTimeline.js'
+import { LANE_X, LANE_EDGES, WORD_Y, ZONE_Y, ENTER_Y, EXIT_Y, PILL_H, SPEED } from './wordLaneTimeline.js'
 
 // Отладочные опорные точки геометрии игры (включаются isWordLaneDebug: localStorage pithy_wl_debug=1 или ?wldebug в адресе). Рисуются поверх сцены в тех же процентах:
 // ● центр слова и середины дорожек (x), ┃ разделители дорожек, ■ центр зоны голоса (где пилюля стоит, пока звучит слово, и верх/низ пилюли в ней), ▸ откуда пилюля выплывает
-// (ENTER_Y) и куда уходит (EXIT_Y), а слева — время плана: когда слово k начинается и кончается (мс от старта фазы диктора). Ученику не показываются.
+// (ENTER_Y) и куда уходит (EXIT_Y), ◆ окно слова k вокруг центра (где пилюля в начале и в конце слова: SPEED·длина/2), а слева — время плана: когда слово k начинается и кончается
+// (мс от старта фазы диктора). Ученику не показываются.
 const dot = (x, y, cls, label) => (
   <div key={`${cls}${x}${y}${label}`} className={`wlDbg wlDbg--${cls}`} style={{ left: `${x}%`, top: `${y}%` }}>
     <span>{label}</span>
@@ -20,6 +21,10 @@ export default function WordLaneDebug({ plan }) {
         dot(x, ZONE_Y, 'slot', `п${i + 1} центр y${ZONE_Y}`),
         dot(x, ZONE_Y - PILL_H / 2, 'slot', `верх y${r(ZONE_Y - PILL_H / 2)}`),
         dot(x, ZONE_Y + PILL_H / 2, 'slot', `низ y${r(ZONE_Y + PILL_H / 2)}`),
+      ])}
+      {plan.fillMs.map((ms, k) => [
+        dot(LANE_X[k] + 9, ZONE_Y - (SPEED * ms) / 2000, 'hold', `сл.${k + 1} старт y${r(ZONE_Y - (SPEED * ms) / 2000)}`),
+        dot(LANE_X[k] + 9, ZONE_Y + (SPEED * ms) / 2000, 'hold', `конец y${r(ZONE_Y + (SPEED * ms) / 2000)}`),
       ])}
       {dot(50, Math.max(ENTER_Y, 0.5), 'anchor', `вход y${ENTER_Y}`)}
       {dot(50, Math.min(EXIT_Y, 99), 'anchor', `выход y${EXIT_Y}`)}

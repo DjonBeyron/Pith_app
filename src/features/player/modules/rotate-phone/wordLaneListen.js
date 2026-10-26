@@ -12,9 +12,11 @@ import { pLog } from '../../../../shared/lib/debug.js'
 import { analyzeHeard, wordGrammar } from './wordLaneMatch.js'
 import { SLOT_COUNT } from './wordLaneTimeline.js'
 
-export const OVERALL_MS = 45000      // сколько всего ждём слова, прежде чем предложить «Пропустить»
+export const OVERALL_MS = 120000     // сколько всего слушаем (конвейер выкатывает пилюли повторно, игра идёт долго), прежде чем перейти на ручной режим
 const PAUSE_STOP_MS = 3500           // слово услышано, а нового давно нет — заход закрываем (дальше новый заход)
-const FULL_STOP_MS = 600             // все повторы услышаны — итог быстро
+// Все повторы услышаны — итог НЕ сразу: за эти мс успевают доиграть щелчок, XP и нота третьей пилюли. Раньше было 600 мс — микрофон и аудиосессия закрывались как раз во время третьей
+// ноты (на телефоне смена режима захват→воспроизведение приглушала или обрывала её), отсюда «третья нота тише»
+export const FULL_STOP_MS = 2200
 const SESSION_MAX_MS = 20000
 const RESTART_MS = 150
 
@@ -38,18 +40,17 @@ export function createWordListener({ word, onChange, runtime = voskRuntime, list
 
   const publish = patch => {
     if (patch.status) status = patch.status
-    if (patch.hits != null) hits = Math.min(SLOT_COUNT, Math.max(hits, patch.hits)) // счёт не откатывается назад: поздний partial мог «передумать»
+    if (patch.hits != null) hits = Math.max(hits, patch.hits) // счёт не откатывается назад: поздний partial мог «передумать»
     if (patch.misses != null) misses = Math.max(misses, patch.misses)
     if (patch.heard != null) heard = patch.heard
     onChange?.({ status, hits, misses, heard, ...(patch.error ? { error: patch.error } : {}) })
   }
-  const remaining = () => Math.max(1, SLOT_COUNT - base.hits)
+  const remaining = () => SLOT_COUNT // за заход — до SLOT_COUNT слов; сколько слов нужно игре всего, решает конвейер (wordLaneStudent), слушатель просто считает принятые
 
   function end(session, st) {
     if (disposed || cur !== session) return
     cur = null
     clearTimer(timer)
-    if (hits >= SLOT_COUNT) { publish({ status: 'done' }); return }
     if (now() - startedAt >= OVERALL_MS) { publish({ status: 'timeout' }); return }
     if (st === 'error') return
     timer = setTimer(() => { if (!disposed && !cur) run() }, RESTART_MS) // слов не хватило — слушаем дальше, счёт сохранён
