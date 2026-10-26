@@ -1,5 +1,6 @@
 import { useState, useRef, useMemo, useCallback, useEffect } from 'react'
 import { Check, Mic } from 'lucide-react'
+import { useAudioSource } from '../audio/useAudioSource.js'
 import PlayerBubble from '../../PlayerBubble.jsx'
 import WordLaneGame from './WordLaneGame.jsx'
 import { readWordLane } from './wordLaneConfig.js'
@@ -16,8 +17,9 @@ const FINISHED_TEXT = 'Голосовая тренировка закончен�
 // Тап — жест, поэтому прямо в нём (синхронно, до любых await) будим звук диктора и просим полный экран; потом проверяем микрофон (доступ обычно уже дан на экране запуска урока —
 // LaunchMicAsk) и открываем игру (WordLaneGame, полный экран). Нет доступа к микрофону — игра идёт в ручном режиме. По концу игры карточка пишет, что тренировка закончена,
 // и нода отпускает цепочку (onDone('shown')). Переворот экрана в горизонталь — позже, отдельным этапом.
-export default function RotatePhoneModule({ node, onDone }) {
+export default function RotatePhoneModule({ node, file, onDone }) {
   const cfg = useMemo(() => readWordLane(node.typeData?.rotate_phone), [node.typeData])
+  const { src: audioSrc } = useAudioSource(node, file) // озвучка ElevenLabs из ноды (file_id) — если автор её сгенерировал
   // История («Продолжить урок»): ноду ученик уже прошёл — игру заново не запускаем и цепочку не двигаем
   const [phase, setPhase] = useState(node.isHistory ? 'finished' : 'wait') // wait → game → finished
   const [busy, setBusy] = useState(false)
@@ -68,7 +70,7 @@ export default function RotatePhoneModule({ node, onDone }) {
           )}
         </div>
       </PlayerBubble>
-      {phase === 'game' && <WordLaneGame cfg={cfg} onFinished={finished} />}
+      {phase === 'game' && <WordLaneGame cfg={cfg} audioSrc={cfg.hasAudio ? audioSrc : null} onFinished={finished} />}
     </div>
   )
 }

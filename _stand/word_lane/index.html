@@ -6,11 +6,19 @@ import React from 'react'
 import { createRoot } from 'react-dom/client'
 import '/src/index.css'
 import RotatePhoneModule from '/src/features/player/modules/rotate-phone/RotatePhoneModule.jsx'
+import { fakeVoice } from './fakeVoice.js'
+import { fillsFromTimings } from '/src/features/player/modules/rotate-phone/wordLanePlan.js'
 
 // Стенд игры «Повтори за диктором»: карточка ноды + игра на весь экран. ?wldebug — опорные точки геометрии. Без Vosk игра идёт в ручном режиме (тап по микрофону = слово).
 const params = new URLSearchParams(location.search)
-const node = { id: 'n1', type: 'rotate_phone', typeData: { rotate_phone: { content: 'Повтори за диктором', word: params.get('word') || '', translation: params.get('tr') || '' } } }
+// ?audio=1 — озвучка автора (гудки на 0.3 / 1.6 / 3.1 с) и таймлайн по таймингам: слои заливаются под гудки
+const voice = params.get('audio') ? fakeVoice() : null
+const word = params.get('word') || 'try'
+const td = { content: 'Повтори за диктором', word, translation: params.get('tr') || '' }
+if (voice) Object.assign(td, { file_id: 'f1', duration: voice.duration, wordTimings: voice.wordTimings, fills: fillsFromTimings(voice.wordTimings, word, voice.duration) })
+const node = { id: 'n1', type: 'rotate_phone', typeData: { rotate_phone: td } }
+const file = voice ? { id: 'f1', r2Url: voice.url } : null
 window.__done = null
 createRoot(document.getElementById('root')).render(
-  React.createElement(RotatePhoneModule, { node, file: null, onDone: v => { window.__done = v } }))
+  React.createElement(RotatePhoneModule, { node, file, onDone: v => { window.__done = v } }))
 </script></body></html>

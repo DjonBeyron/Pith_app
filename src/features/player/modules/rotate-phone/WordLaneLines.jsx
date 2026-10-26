@@ -12,7 +12,7 @@ const PATHS = [
   `M50 ${Y0} C50 ${Y0 + 6} ${LANES_X[2]} ${Y0 + 2} ${LANES_X[2]} ${Y0 + 9} L${LANES_X[2]} ${LINE_END_Y}`,
 ]
 
-export default function WordLaneLines({ phase, phaseAt, hits, misses }) {
+export default function WordLaneLines({ phase, phaseAt, hits, misses, anchors }) {
   const ref = useRef(null)
   const live = useRef({ hits, misses })
   useEffect(() => { live.current = { hits, misses } })
@@ -29,7 +29,7 @@ export default function WordLaneLines({ phase, phaseAt, hits, misses }) {
     let caughtUntil = 0
     paint(front)
     const tick = t => {
-      if (phase === 'listen') front = frontAtListen(t - phaseAt)
+      if (phase === 'listen') front = frontAtListen(t - phaseAt, anchors)
       else {
         const cur = live.current
         if (cur.hits > seen.hits) caughtUntil = t + 700
@@ -43,7 +43,7 @@ export default function WordLaneLines({ phase, phaseAt, hits, misses }) {
     }
     raf = requestAnimationFrame(tick)
     return () => cancelAnimationFrame(raf)
-  }, [phase, phaseAt])
+  }, [phase, phaseAt, anchors])
 
   const on = phase === 'listen' || phase === 'speak'
   return (

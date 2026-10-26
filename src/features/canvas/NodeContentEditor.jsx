@@ -310,7 +310,13 @@ export default function NodeContentEditor({ lessonXp = 0,
       )}
       {node.type === 'scene' && <NodeScenePicker tData={tData} onChange={patch => updateTypeData(patch)} />}
       {node.type === 'rotate_phone' && (
-        <NodeRotatePhonePicker tData={tData} onDataChange={patch => updateTypeData(patch)} />
+        <NodeRotatePhonePicker
+          tData={tData}
+          onDataChange={patch => updateTypeData(patch)}
+          lessonFiles={lessonFiles}
+          onPickFile={f => onPickLessonFile(f)}
+          onRemoveFile={onRemoveLessonFile}
+        />
       )}
       <NodeAnswerFields
         lessonXp={lessonXp}

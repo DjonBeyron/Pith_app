@@ -35,7 +35,24 @@ export function speakWord(word, lang = 'en-US') {
   } catch (e) { pLog(`[word-lane] голос диктора не заговорил: ${e?.message ?? e}`); return null }
 }
 
+let track = null // запасной <audio> озвучки автора, если прогретый элемент приложения недоступен
+
+/** Озвучка автора (файл ElevenLabs ноды) целиком: прогретый элемент → обычный <audio>. Возвращает true, если пошла */
+export function playTrack(src) {
+  if (!src) return false
+  if (playPrimed(src, { muted: getLessonMuted(), rate: getVoiceRate() })) return true
+  try {
+    track = new Audio(src)
+    track.muted = getLessonMuted()
+    track.playbackRate = getVoiceRate()
+    track.play().catch(e => pLog(`[word-lane] озвучка автора не пошла: ${e?.name ?? e}`))
+    return true
+  } catch { return false }
+}
+
 export function stopVoice() {
+  try { track?.pause() } catch { /* не играл */ }
+  track = null
   try { stopPrimed() } catch { /* не играл */ }
   try { stopWord() } catch { /* не играл */ }
   try { synth()?.cancel() } catch { /* не играл */ }

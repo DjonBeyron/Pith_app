@@ -150,7 +150,7 @@ describe('вёрстка и подключения', () => {
   const micCss = read('../../../../styles/player/modules/word-lane-mic.css')
 
   it('длительности CSS совпадают с JS', () => {
-    expect(FILL_MS).toBe(1000); expect(css).toContain('transition: transform 1s linear') // FILL_MS
+    expect(FILL_MS).toBe(1000); expect(css).toContain('transition: transform var(--fill-ms, 1s) linear') // FILL_MS — по умолчанию; клип таймлайна задаёт --fill-ms
     expect(DROP_MS).toBe(1000); expect(css).toContain('animation: wlDrop 1s')
     expect(LANES_MS).toBe(900)
     expect(TURN_MS).toBe(2200); expect(micCss).toContain('animation: wlTurn 2.2s')
@@ -176,6 +176,23 @@ describe('вёрстка и подключения', () => {
     expect(body.indexOf('unlockVoice()')).toBeLessThan(body.indexOf('await'))
     expect(body.indexOf('requestFullscreen')).toBeLessThan(body.indexOf('await'))
     expect(body.indexOf('ensureMicAccess()')).toBeLessThan(body.indexOf("setPhase('game')"))
+  })
+
+  it('редактор ноды: ElevenLabs-озвучка → тайминги → клипы; таймлайн — на узлах таймлайна таблицы', () => {
+    const picker = read('../../../canvas/NodeRotatePhonePicker.jsx')
+    expect(picker).toContain("import NodeTableTts from './NodeTableTts.jsx'") // тот же генератор ElevenLabs, что у таблицы-диктора
+    expect(picker).toContain('fillsFromTimings(patch.wordTimings, word, patch.duration)')
+    expect(picker).toContain('<WordLaneEditorModal')
+    const ed = read('../../../canvas/word-lane/WordLaneTimelineEditor.jsx')
+    for (const part of ['useTimelineAudioSource', 'useTimelineStrip', 'TableTimelineRuler']) expect(ed).toContain(part)
+    expect(read('../../../canvas/NodeContentEditor.jsx')).toContain('onRemoveFile={onRemoveLessonFile}')
+    expect(read('../../../../index.css')).toContain("@import './styles/canvas/word-lane-editor.css'")
+  })
+
+  it('игра берёт озвучку ноды (file_id) и план по таймлайну', () => {
+    expect(read('./RotatePhoneModule.jsx')).toContain('useAudioSource(node, file)')
+    expect(read('./RotatePhoneModule.jsx')).toContain('audioSrc={cfg.hasAudio ? audioSrc : null}')
+    expect(read('./useWordLaneFlow.js')).toContain('makeListenPlan(audioSrc ? fills : null)')
   })
 
   it('слово ноды попадает в список озвучки, а урок греет Vosk', () => {

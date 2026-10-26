@@ -1,0 +1,11 @@
+/* Редактор ноды «Переверни телефон» (игра «Повтори за диктором»): поля слова/перевода/сценария и таймлайн (canvas/word-lane/). Остальное — общие .tl* таймлайна таблицы. */
+.nodeRotateInput { display: block; width: 100%; box-sizing: border-box; margin-top: 6px; padding: 8px 10px; border: 1px solid #2a2c33; border-radius: 8px; background: #0e1013; color: #f2f3f7; font-size: 13px; }
+
+/* Точка у дорожки слоя: светится, пока плейхед внутри клипа */
+.wlTlDot { color: #3a3d46; cursor: default; }
+.wlTlDot--lit { color: #b6fe3b; }
+
+/* Три плашки над дорожками: что в игре заливается прямо сейчас */
+.wlTlPreview { display: flex; gap: 8px; margin: 6px 0 8px; width: min(100%, 560px); position: sticky; left: 0; }
+.wlTlChip { flex: 1; min-width: 0; padding: 8px 4px; border: 2px solid #2f4a0e; border-radius: 12px; text-align: center; font-weight: 700; font-size: 14px; color: #5d7a2a; transition: background 0.15s, color 0.15s; }
+.wlTlChip--on { background: #b6fe3b; color: #0b0d11; border-color: #b6fe3b; }
