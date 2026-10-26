@@ -19,6 +19,8 @@ export function readWordLane(tData) {
     lang: String(td.lang ?? '').trim() || 'en-US',
     isDemo: !word,
     hasAudio: !!td.file_id,
+    // громкость озвучки: по ней заливка пилюли идёт в такт речи диктора (без волны — линейно)
+    audio: td.file_id && td.duration ? { wave: td.waveformData ?? null, duration: td.duration } : null,
     fills: td.file_id ? normalizeFills(td.fills) : null, // озвучка без нормального таймлайна играет по расписанию по умолчанию
   }
 }

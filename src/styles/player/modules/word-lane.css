@@ -1,7 +1,8 @@
-/* Игра «Повтори за диктором» (WordLaneGame.jsx), вертикальная версия, полный экран. Раскладка — в ПРОЦЕНТАХ экрана (wordLaneTimeline.js: LANE_X / PILLS / WORD_Y), поэтому и вёрстка,
-   и линия лежат в одной сетке. Три дорожки разделены линиями; в каждой — вертикальная пустая пилюля (лесенкой: 1-я внизу, 2-я в центре, 3-я наверху); снизу поднимается горизонтальная линия,
-   пилюли заливаются снизу вверх ровно до неё (--p0…--p2 пишет WordLaneLines каждый кадр, CSS-переходов у заливки нет — иначе она отстала бы от линии).
-   Цвета пилюль — ступени «Моей памяти» (memory-levels.css: --lvl1 зелёный, --lvl2 синий, --lvl3 фиолетовый), число обводок 1 / 2 / 3 (memory-ladder.css). Микрофон, плашки и перевод — word-lane-mic.css. */
+/* Игра «Повтори за диктором» (WordLaneGame.jsx), вертикальная версия, полный экран. Раскладка — в ПРОЦЕНТАХ экрана (wordLaneTimeline.js: LANE_X / ZONE_Y / WORD_Y), поэтому и вёрстка,
+   и движение пилюль лежат в одной сетке. Три дорожки разделены линиями; в каждой — вертикальная пустая пилюля. Пилюли идут ПО ОЧЕРЕДИ: опускаются сверху в центр экрана («зона голоса»),
+   там их озвучивает диктор (заливка снизу вверх синхронно с речью), затем щелчок и пилюля уходит вниз. Положение (--y) и заливку (--pv) пишет движок useWordLanePills каждый кадр
+   (CSS-переходов у них нет — иначе отставали бы от речи). Цвета пилюль — ступени «Моей памяти» (memory-levels.css: --lvl1 зелёный, --lvl2 синий, --lvl3 фиолетовый), обводок 1 / 2 / 3.
+   Микрофон, плашки и перевод — word-lane-mic.css. */
 
 .wl {
   --wl-bg: #0e1116;
@@ -20,16 +21,15 @@
   touch-action: manipulation;
 }
 
-/* Сцена: вся площадь. Переменные линии и заливки (--front, --p0…--p2) живут на ней */
 .wlStage {
-  --front: 106%;
-  --p0: 0; --p1: 0; --p2: 0;
   position: absolute;
   inset: 0;
   padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
   box-sizing: border-box;
 }
 .wlStage > * { position: absolute; }
+.wlField { inset: 0; pointer-events: none; overflow: hidden; }
+.wlField > * { position: absolute; }
 
 .wlClose {
   position: absolute;
@@ -69,41 +69,33 @@
 }
 
 /* Дорожки: три колонки во всю высоту, между ними тонкие разделители */
-.wlLanes { inset: 0; display: flex; opacity: 0; transition: opacity 0.6s ease; pointer-events: none; }
+.wlLanes { inset: 0; display: flex; opacity: 0; transition: opacity 0.8s ease; pointer-events: none; }
 .wlLanes--in { opacity: 1; }
 .wlLanes i { flex: 1; } /* колонки одного цвета с фоном: зазор между обводками пилюль (--wl-bg) сливается с дорожкой */
 .wlLaneEdge { position: absolute; top: 0; bottom: 0; width: 0; border-left: 1px solid rgba(255, 255, 255, 0.16); }
 
-/* Линия: горизонтальная, на всю ширину, прямая. Двигается только top (var(--front)), пишет JS */
-.wlLine {
-  left: 0;
-  right: 0;
-  top: var(--front);
-  height: 4px;
-  margin-top: -2px;
-  border-radius: 2px;
-  background: #f2f5f8;
-  box-shadow: 0 0 14px rgba(242, 245, 248, 0.55);
-  opacity: 0;
-  transition: opacity 0.3s ease;
-  z-index: 1;
-}
-.wlLine--on { opacity: 1; }
+/* «Огоньки» прогресса под словом: зажигаются, когда пилюля защёлкнулась (цвета ступеней памяти) */
+.wlDots { left: 50%; top: 12.5%; transform: translateX(-50%); display: flex; gap: 10px; opacity: 0; transition: opacity 0.8s ease; }
+.wlDots--in { opacity: 1; }
+.wlDot { width: 10px; height: 10px; border-radius: 50%; border: 2px solid var(--dc, #3a3f4a); box-sizing: border-box; transition: background 0.5s ease, box-shadow 0.5s ease; }
+.wlDot--1 { --dc: var(--lvl1, #b6fe3b); } .wlDot--2 { --dc: var(--lvl2, #4fb3ee); } .wlDot--3 { --dc: var(--lvl3, #9a76f8); }
+.wlDot--on { background: var(--dc); box-shadow: 0 0 10px var(--dc); }
 
-/* Пилюли: вертикальные капсулы, пустые внутри. Тёмное тело, цветная обводка (1/2/3 кольца) и внутренний свет — как блоки ступеней «Моей памяти» */
+/* Пилюли: вертикальные капсулы, пустые внутри. Тёмное тело, цветная обводка (1/2/3 кольца) и внутренний свет — как блоки ступеней «Моей памяти».
+   Положение — transform из --y (центр, % высоты экрана; за верхним краем пилюля вне кадра), top:0 — чтобы двигала только GPU-трансформация */
 .wlPill {
   --c: var(--lvl1, #b6fe3b);
   --rgb: var(--lvl1-rgb, 182, 254, 59);
-  transform: translateX(-50%) scale(0.88);
+  --y: -14;
+  top: 0;
+  transform: translate(-50%, calc(var(--y) * 1dvh - 50%));
+  will-change: transform;
   border-radius: 999px;
   background: linear-gradient(to bottom, rgba(var(--rgb), 0.14), rgba(var(--rgb), 0.04)), var(--wl-card);
   box-shadow: inset 0 0 0 2px rgba(var(--rgb), 0.9), inset 0 0 18px -6px rgba(var(--rgb), 0.5);
-  opacity: 0;
-  transition: opacity 0.45s ease calc(var(--i) * 0.12s), transform 0.45s cubic-bezier(0.22, 1, 0.36, 1) calc(var(--i) * 0.12s);
 }
 .wlPill--2 { --c: var(--lvl2, #4fb3ee); --rgb: var(--lvl2-rgb, 79, 179, 238); }
 .wlPill--3 { --c: var(--lvl3, #9a76f8); --rgb: var(--lvl3-rgb, 154, 118, 248); }
-.wlPill--in { opacity: 1; transform: translateX(-50%) scale(1); }
 /* Эхо-кольца снаружи, как 2-я и 3-я обводки ступеней «Моей памяти» (зазор рисует фон): у 2-й пилюли одно кольцо, у 3-й два. Обрезку заливки держит .wlPillClip, поэтому кольца не срезаются */
 .wlPill--2 { box-shadow: inset 0 0 0 2px rgba(var(--rgb), 0.95), inset 0 0 18px -6px rgba(var(--rgb), 0.5), 0 0 0 4px var(--wl-bg), 0 0 0 5.5px rgba(var(--rgb), 0.5); }
 .wlPill--3 { box-shadow: inset 0 0 0 2.5px rgba(var(--rgb), 0.95), inset 0 0 18px -6px rgba(var(--rgb), 0.55), 0 0 0 4px var(--wl-bg), 0 0 0 5.5px rgba(var(--rgb), 0.5), 0 0 0 9.5px var(--wl-bg), 0 0 0 11px rgba(var(--rgb), 0.3); }
@@ -115,17 +107,14 @@
   transform: scaleY(var(--pv, 0));
   transform-origin: 50% 100%;
 }
-/* Пока линия ушла (фаза turn), пилюли плавно пустеют; в остальных фазах заливка = положение линии, без переходов */
-.wl[data-phase='turn'] .wlPillFill { transition: transform 0.6s ease; }
-.wl[data-phase='reveal'] .wlPill { opacity: 0.25; }
 
-/* Чужое слово: красная вспышка и дрожь на ближайшей пустой пилюле */
+/* Чужое слово: красная вспышка и дрожь на текущей пилюле */
 .wlMiss {
   position: absolute;
   inset: 0;
   border-radius: 999px;
   background: rgba(255, 93, 115, 0.45);
-  animation: wlMiss 0.55s ease-out both;
+  animation: wlMiss 0.7s ease-out both;
 }
 @keyframes wlMiss {
   0%   { opacity: 1; transform: translateX(0); }
@@ -137,7 +126,6 @@
 
 @media (prefers-reduced-motion: reduce) {
   .wlWord { animation-duration: 0.01s; }
-  .wlPill { transition-duration: 0.01s !important; }
 }
 
 /* Отладочные опорные точки (WordLaneDebug.jsx) — только по флагу, ученик их не видит */
@@ -148,5 +136,3 @@
 .wlDbg--hold { border-radius: 0; transform: rotate(45deg); background: #ff5d73; } .wlDbg--hold span { color: #ff5d73; transform: rotate(-45deg); left: 8px; top: 2px; }
 .wlDbg--anchor { background: #b6fe3b; } .wlDbg--anchor span { color: #b6fe3b; }
 .wlDbg--lane { background: #9aa0b4; } .wlDbg--lane span { color: #9aa0b4; left: -8px; top: -14px; }
-.wlDbg--head { width: 14px; height: 14px; margin: -7px 0 0 -7px; background: transparent; border: 2px solid #fff; }
-.wlDbg--head span { color: #fff; left: 18px; top: 0; }

@@ -28,3 +28,20 @@ export async function ensureMicAccess() {
     return 'unavailable'
   }
 }
+
+/**
+ * Подтверждение микрофона ПЕРЕД стартом урока с игрой «Повтори за диктором»: доступ уже есть — сразу; иначе показываем системный запрос (по тапу «Начать» — это жест) и ждём ответа,
+ * чтобы диалог не вылез посреди урока. Любой ответ (разрешили, отказали, нет микрофона) пускает урок дальше: без микрофона игра идёт в ручном режиме. Не бросает; страховочный таймаут
+ * (диалог не закрыли) — урок всё равно стартует.
+ */
+export const MIC_CONFIRM_TIMEOUT_MS = 30000
+export async function confirmMicBeforeStart({ timeoutMs = MIC_CONFIRM_TIMEOUT_MS } = {}) {
+  try {
+    if (await micAccessState() === 'granted') return 'granted'
+    let timer
+    const limit = new Promise(resolve => { timer = setTimeout(() => resolve('timeout'), timeoutMs) })
+    const r = await Promise.race([ensureMicAccess(), limit])
+    clearTimeout(timer)
+    return r
+  } catch { return 'unavailable' }
+}

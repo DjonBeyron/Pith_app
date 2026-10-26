@@ -1,29 +1,31 @@
-import { PILLS, PILL_W, LANE_EDGES } from './wordLaneTimeline.js'
+import { useRef } from 'react'
+import { PILL_W, PILL_H, LANE_X, LANE_EDGES, SLOT_COUNT } from './wordLaneTimeline.js'
+import { useWordLanePills } from './useWordLanePills.js'
 
-// Дорожки и пилюли игры. Три колонки разделены линиями; в каждой стоит вертикальная пустая пилюля (без надписей). Цвет и число обводок у пилюль — как у ступеней «Моей памяти»:
-// 1-я зелёная с одной обводкой, 2-я синяя с двумя, 3-я фиолетовая с тремя (--lvl1…3, memory-levels.css). Пилюли стоят лесенкой: 1-я внизу, 2-я в центре, 3-я наверху.
-// Заливку (--pK, 0…1) двигает линия (WordLaneLines) — здесь только форма. Лишнее слово ученика (misses растёт) — красная вспышка на ближайшей пустой пилюле: оверлей с key=misses
-// перемонтируется и проигрывает анимацию заново, состояния для этого не нужно.
-export default function WordLanePills({ hits, misses, visible }) {
+// Дорожки и пилюли игры. Три колонки разделены линиями; в каждой — вертикальная пустая пилюля (без надписей), которая по очереди опускается в зону голоса (useWordLanePills).
+// Цвет и число обводок — как у ступеней «Моей памяти»: 1-я зелёная с одной обводкой, 2-я синяя с двумя, 3-я фиолетовая с тремя (--lvl1…3, memory-levels.css).
+// Под словом три «огонька» прогресса — зажигаются, когда пилюля защёлкнулась. Лишнее слово ученика (misses растёт) — красная вспышка на текущей пилюле: оверлей с key=misses
+// перемонтируется и проигрывает анимацию заново, состояния для этого не нужно. Положение и заливка пилюль приходят из движка через --y и --pv.
+export default function WordLanePills({ phase, phaseAt, plan, hits, misses, levels, visible }) {
+  const rootRef = useRef(null)
+  useWordLanePills(rootRef, { phase, phaseAt, plan, hits, misses, levels })
   return (
-    <>
+    <div ref={rootRef} className="wlField" data-testid="wl-field">
       <div className={`wlLanes${visible ? ' wlLanes--in' : ''}`} aria-hidden="true" data-testid="wl-lanes">
         <i /><i /><i />
         {LANE_EDGES.map(x => <b key={x} className="wlLaneEdge" style={{ left: `${x}%` }} />)}
       </div>
-      {PILLS.map((p, i) => (
-        <div
-          key={i}
-          className={`wlPill wlPill--${i + 1}${visible ? ' wlPill--in' : ''}`}
-          style={{ left: `${p.x}%`, top: `${p.top}%`, width: `${PILL_W}%`, height: `${p.bottom - p.top}%`, '--i': i, '--pv': `var(--p${i})` }}
-          data-testid={`wl-pill-${i}`}
-        >
+      <div className={`wlDots${visible ? ' wlDots--in' : ''}`} aria-hidden="true">
+        {Array.from({ length: SLOT_COUNT }, (_, k) => <span key={k} data-dot className={`wlDot wlDot--${k + 1}`} />)}
+      </div>
+      {LANE_X.map((x, i) => (
+        <div key={i} data-pill className={`wlPill wlPill--${i + 1}`} style={{ left: `${x}%`, width: `${PILL_W}%`, height: `${PILL_H}%` }} data-testid={`wl-pill-${i}`}>
           <span className="wlPillClip">
             <span className="wlPillFill" />
             {misses > 0 && i === hits && <span key={misses} className="wlMiss" />}
           </span>
         </div>
       ))}
-    </>
+    </div>
   )
 }

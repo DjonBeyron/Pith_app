@@ -7,6 +7,7 @@ import useLaunchWatchdog from './useLaunchWatchdog.js'
 import { traceLaunch } from '../../shared/lib/launchTrace.js'
 import useLaunchTrace from './useLaunchTrace.js'
 import LaunchMicAsk from './LaunchMicAsk.jsx'
+import { confirmMicBeforeStart } from '../../shared/lib/micAccess.js'
 import { useAdmin } from '../../app/AdminContext.jsx'
 import ExamIntroDialog from './ExamIntroDialog.jsx'
 import LaunchCtaSlot from './LaunchCtaSlot.jsx'
@@ -213,11 +214,15 @@ export default function LaunchPreloader({
       resumedXp:   resume ? (resumeOffer.xp ?? 0) : 0,
     }
 
+    // Игра «Повтори за диктором»: микрофон подтверждаем ДО урока — системный запрос (если доступа ещё нет) запускаем прямо в тапе, а урок стартует после ответа (любого:
+    // без микрофона игра идёт вручную). Так диалог ОС не вылезает посреди урока
+    const micDone = nodes.some(n => n.type === 'rotate_phone') ? confirmMicBeforeStart() : null
     // Ошибка старта не должна пропадать молча: пишем в debug-лог
-    const run = () => {
+    const start = () => {
       traceLaunch('onStart(payload) вызван')
       try { Promise.resolve(onStart(payload)).then(() => traceLaunch('onStart завершился'), e => traceLaunch(`ОШИБКА старта: ${e?.message ?? e}`)) } catch (e) { traceLaunch(`ОШИБКА старта: ${e?.message ?? e}`) }
     }
+    const run = () => (micDone ? micDone.then(start, start) : start())
     if (payingCase) {
       // Платный случай: сперва показываем растворение мигающей ячейки —
       // пользователь видит, что энергия израсходована — и только потом

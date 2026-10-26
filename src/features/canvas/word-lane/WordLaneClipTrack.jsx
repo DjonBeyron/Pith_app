@@ -2,8 +2,8 @@ import { useRef, useCallback } from 'react'
 import { snapPoint, snapMove } from '../table-editor/timelineSnap.js'
 import { startDragSession } from '../table-editor/timelineDrag.js'
 
-// Дорожка пилюли в таймлайне игры «Повтори за диктором»: один клип = слово диктора. Начало клипа — начало слова (линия входит в пилюлю, она начинает заливаться),
-// конец клипа — конец слова (пилюля залита); длина клипа задаёт скорость линии. Ручки — начало/конец, тело — сдвиг; края липнут к плейхеду и к краям соседних клипов (магнит, как у таблицы).
+// Дорожка пилюли в таймлайне игры «Повтори за диктором»: один клип = слово диктора. Начало клипа — начало слова (пилюля в центре экрана начинает заливаться),
+// конец клипа — конец слова (пилюля залита и щёлкает); длина клипа задаёт скорость заливки. Ручки — начало/конец, тело — сдвиг; края липнут к плейхеду и к краям соседних клипов (магнит, как у таблицы).
 export default function WordLaneClipTrack({ index, clip, duration, stripPx, lit, snapAt = null, snapEdges = [], onUpdate }) {
   const stripRef = useRef(null)
   const toPct = useCallback(t => (duration ? (t / duration) * 100 : 0), [duration])

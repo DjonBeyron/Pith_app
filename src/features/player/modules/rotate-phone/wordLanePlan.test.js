@@ -1,9 +1,9 @@
 import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
-import { sparkColors, POP_FRAMES } from './wordLaneSnap.js'
+import { sparkColors, POP_FRAMES, POP_MS, FLASH_MS } from './wordLaneSnap.js'
 import { makeParticle } from '../../../../shared/lib/burstParticles.js'
-import { PILLS, FILL_AT, LISTEN_MS, LINE_END_Y, frontAtListen } from './wordLaneTimeline.js'
+import { WORD_AT, WORD_LEN, LISTEN_MS, ZONE_Y, DESCENT_MS, EXIT_MS, pillY } from './wordLaneTimeline.js'
 import { readWordLane } from './wordLaneConfig.js'
 import { makeListenPlan, normalizeFills, fillsFromTimings, defaultFills, LEAD_MS, MIN_GAP_MS, MIN_FIRST_MS, FILL_MAX_MS, FILL_MIN_MS } from './wordLanePlan.js'
 
@@ -41,40 +41,47 @@ describe('озвучка ElevenLabs и таймлайн ноды', () => {
     expect(normalizeFills(null)).toBeNull()
   })
 
-  it('без озвучки план — прежнее расписание, голос слова по слоям', () => {
+  it('без озвучки план — расписание по умолчанию, голос слова по очереди', () => {
     const p = makeListenPlan(null)
-    expect(p.fillAt).toEqual(FILL_AT)
+    expect(p.fillAt).toEqual(WORD_AT)
+    expect(p.fillMs).toEqual(WORD_LEN)
     expect(p.audioAt).toBeNull()
     expect(p.listenMs).toBe(LISTEN_MS)
+    expect(p.curves.every(c => c === null)).toBe(true)
   })
 
-  it('с озвучкой пилюли заливаются ровно по словам файла (со сдвигом LEAD): вход линии = начало слова, верх пилюли = конец слова', () => {
+  it('с озвучкой пилюля стоит в зоне голоса ровно по словам файла (со сдвигом LEAD): вход в зону = начало слова', () => {
     const fills = fillsFromTimings(withEnd, 'try', 4)
     const p = makeListenPlan(fills)
     expect(p.audioAt).toBe(LEAD_MS)
     expect(p.fillAt).toEqual([LEAD_MS + 100, LEAD_MS + 1400, LEAD_MS + 2900])
     p.fillAt.forEach((t, k) => {
-      expect(frontAtListen(t, p.anchors)).toBeCloseTo(PILLS[k].bottom, 5)
-      expect(frontAtListen(t + p.fillMs[k], p.anchors)).toBeCloseTo(PILLS[k].top, 5)
+      expect(pillY(t, t, p.fillMs[k])).toBeCloseTo(ZONE_Y, 5)          // слово началось — пилюля в зоне
+      expect(pillY(t - DESCENT_MS, t, p.fillMs[k])).toBeLessThan(0)    // за DESCENT_MS до слова она ещё за верхним краем
     })
-    expect(frontAtListen(p.listenMs, p.anchors)).toBe(LINE_END_Y)
+    expect(p.listenMs).toBeGreaterThanOrEqual(p.fillAt[2] + p.fillMs[2] + EXIT_MS)
     p.fillMs.forEach(ms => { expect(ms).toBeGreaterThanOrEqual(FILL_MIN_MS); expect(ms).toBeLessThanOrEqual(FILL_MAX_MS) })
   })
 
-  it('быстрый диктор — линия внутри пилюли быстрее, медленный — медленнее', () => {
-    const speed = fills => { const p = makeListenPlan(fills); const [t0, y0] = p.anchors[1]; const [t1, y1] = p.anchors[2]; return (y0 - y1) / (t1 - t0) }
-    const fast = speed([{ start: 0.5, end: 0.9 }, { start: 2, end: 2.4 }, { start: 3.5, end: 3.9 }])
-    const slow = speed([{ start: 0.5, end: 1.9 }, { start: 3, end: 4.4 }, { start: 5.5, end: 6.9 }])
-    expect(fast).toBeGreaterThan(slow * 2)
+  it('кривая заливки строится по громкости озвучки, если она известна', () => {
+    const fills = [{ start: 0.5, end: 1.5 }, { start: 2, end: 3 }, { start: 3.5, end: 4.5 }]
+    const wave = Array.from({ length: 150 }, (_, i) => (i % 30 < 10 ? 250 : 20))
+    const p = makeListenPlan(fills, { wave, duration: 5 })
+    p.curves.forEach(c => { expect(typeof c).toBe('function'); expect(c(1)).toBeCloseTo(1, 5) })
+    expect(makeListenPlan(fills).curves.every(c => c === null)).toBe(true) // озвучка без волны — линейно
   })
 
-  it('слишком частые слова раздвигаются: линия не успевает, заливки не налезают друг на друга', () => {
+  it('быстрая речь — слово короче (заливка за него быстрее), медленная — длиннее', () => {
+    const fast = makeListenPlan([{ start: 0.5, end: 0.9 }, { start: 2, end: 2.4 }, { start: 3.5, end: 3.9 }])
+    const slow = makeListenPlan([{ start: 0.5, end: 1.9 }, { start: 3, end: 4.4 }, { start: 5.5, end: 6.9 }])
+    expect(fast.fillMs[0]).toBeLessThan(slow.fillMs[0])
+  })
+
+  it('слишком частые слова раздвигаются: пилюли по очереди, слова не налезают друг на друга', () => {
     const p = makeListenPlan([{ start: 0, end: 0.2 }, { start: 0.1, end: 0.3 }, { start: 0.2, end: 0.4 }])
     expect(p.fillAt[0]).toBeGreaterThanOrEqual(MIN_FIRST_MS)
     expect(p.fillAt[1] - p.fillAt[0] - p.fillMs[0]).toBeGreaterThanOrEqual(MIN_GAP_MS)
     expect(p.fillAt[2] - p.fillAt[1] - p.fillMs[1]).toBeGreaterThanOrEqual(MIN_GAP_MS)
-    let prev = -1
-    for (const [t] of p.anchors) { expect(t).toBeGreaterThan(prev); prev = t }
   })
 
   it('нода: таймлайн действует только при озвучке', () => {
@@ -93,12 +100,14 @@ describe('щелчок пилюли', () => {
     expect(sparkColors(2)[0]).toBe('#9a76f8')
   })
 
-  it('хлопок: 1 → 1.12 → 1, translateX(-50%) держит центр пилюли', () => {
-    const scales = POP_FRAMES.map(f => Number(/scale\(([\d.]+)\)/.exec(f.transform)[1]))
+  it('хлопок: 1 → 1.12 → 1 через отдельное свойство scale (положение пилюли остаётся за движком), плавнее первой версии', () => {
+    const scales = POP_FRAMES.map(f => f.scale)
     expect(scales[0]).toBe(1)
     expect(scales.at(-1)).toBe(1)
     expect(Math.max(...scales)).toBe(1.12)
-    POP_FRAMES.forEach(f => expect(f.transform).toContain('translateX(-50%)'))
+    POP_FRAMES.forEach(f => expect(f.transform).toBeUndefined())
+    expect(POP_MS).toBeGreaterThanOrEqual(600)
+    expect(FLASH_MS).toBeGreaterThanOrEqual(800)
   })
 
   it('локальные искры: рождаются в точке пилюли и живут короче салюта', () => {
@@ -115,10 +124,11 @@ describe('щелчок пилюли', () => {
     expect(makeParticle(390, 844, 4, ['#fff']).left).toBeGreaterThanOrEqual(390 * 0.2)
   })
 
-  it('линия зовёт щелчок один раз на пилюлю, когда заливка дошла до 100 %', () => {
-    const lines = readFileSync(fileURLToPath(new URL('./WordLaneLines.jsx', import.meta.url)), 'utf8')
-    expect(lines).toContain("pillProgress(front, k) >= 1")
-    expect(lines).toContain('snapped.add(k)')
-    expect(lines).toContain('snapPill(')
+  it('движок зовёт щелчок один раз на пилюлю: в конце слова диктора и по принятому слову ученика', () => {
+    const eng = readFileSync(fileURLToPath(new URL('./useWordLanePills.js', import.meta.url)), 'utf8')
+    expect(eng).toContain('t >= at + ms')
+    expect(eng).toContain('snapped.add(k)')
+    expect(eng).toContain("s.mode = 'out'")
+    expect(eng.match(/snapPill\(/g)).toHaveLength(1) // единственная точка щелчка — done(k)
   })
 })

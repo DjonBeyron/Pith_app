@@ -1,6 +1,5 @@
 import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
-import WordLaneLines from './WordLaneLines.jsx'
 import WordLanePills from './WordLanePills.jsx'
 import WordLaneMic from './WordLaneMic.jsx'
 import WordLaneDebug from './WordLaneDebug.jsx'
@@ -8,11 +7,11 @@ import { isWordLaneDebug } from './wordLaneConfig.js'
 import { useWordLaneFlow } from './useWordLaneFlow.js'
 import { WORD_Y } from './wordLaneTimeline.js'
 
-// Вертикальная игра «Повтори за диктором» (полный экран, портрет): слово падает сверху → три дорожки с пилюлями → снизу поднимается линия, пилюли заливаются под голос диктора →
-// «Теперь твоя очередь» → микрофон, линия поднимается снова и подчиняется голосу ученика → перевод слова. Сценарий и таймеры — useWordLaneFlow.js, раскладка — wordLaneTimeline.js.
+// Вертикальная игра «Повтори за диктором» (полный экран, портрет): слово падает сверху → три дорожки → пилюли по очереди опускаются в центр, диктор озвучивает каждую (заливка синхронна с речью, щелчок, уходит вниз) →
+// «Теперь твоя очередь» → микрофон, пилюли опускаются снова и наполняются голосом ученика → перевод слова. Сценарий и таймеры — useWordLaneFlow.js, раскладка — wordLaneTimeline.js.
 // Оверлей — portal в body поверх всего (z-index 10000), закрывает весь экран, включая зону вырезов (safe-area учтена отступами сцены). Крестик — выйти в любой момент.
 export default function WordLaneGame({ cfg, audioSrc, onFinished }) {
-  const f = useWordLaneFlow({ word: cfg.word, lang: cfg.lang, fills: cfg.fills, audioSrc, onFinished })
+  const f = useWordLaneFlow({ word: cfg.word, lang: cfg.lang, fills: cfg.fills, audioSrc, audio: cfg.audio, onFinished })
   const { phase } = f
   const showSlots = phase !== 'drop'
   const micIn = phase === 'speak'
@@ -21,8 +20,7 @@ export default function WordLaneGame({ cfg, audioSrc, onFinished }) {
   return createPortal(
     <div className="wl" data-phase={phase} data-testid="wl">
       <div className="wlStage">
-        <WordLaneLines phase={phase} phaseAt={f.phaseAt} hits={f.hits} misses={f.misses} anchors={f.plan.anchors} />
-        <WordLanePills hits={f.hits} misses={f.misses} visible={showSlots} />
+        <WordLanePills phase={phase} phaseAt={f.phaseAt} plan={f.plan} hits={f.hits} misses={f.misses} levels={f.levels} visible={showSlots} />
         <div className="wlWord" style={{ top: `${WORD_Y}%` }} data-testid="wl-word">{cfg.word}</div>
         {phase === 'turn' && <div className="wlTurn" data-testid="wl-turn">Теперь твоя очередь</div>}
         {phase === 'reveal' && (
@@ -32,7 +30,7 @@ export default function WordLaneGame({ cfg, audioSrc, onFinished }) {
             <button type="button" className="wlNext" onClick={f.finish} data-testid="wl-next">Дальше</button>
           </div>
         )}
-        {debug && <WordLaneDebug anchors={f.plan.anchors} />}
+        {debug && <WordLaneDebug plan={f.plan} />}
         <WordLaneMic mode={f.mic} levels={f.levels} onTap={f.tapMic} visible={micIn} />
         {phase === 'speak' && f.mic === 'manual' && <button type="button" className="wlSkip" onClick={f.skip} data-testid="wl-skip">Пропустить</button>}
       </div>

@@ -9,16 +9,16 @@ import { DROP_MS, LANES_MS, TURN_MS, SLOT_COUNT } from './wordLaneTimeline.js'
 // Сценарий игры «Повтори за диктором» по фазам (каждая — свой эффект с таймерами, смена фазы чистит их):
 //  drop    слово падает сверху и замирает
 //  lanes   проявляются три дорожки со слоями
-//  listen  снизу поднимается линия; пилюли заливаются по мере её прохода + голос диктора. Расписание — wordLanePlan.makeListenPlan: по умолчанию фиксированное (слово из библиотеки/системы),
-//          с озвучкой ElevenLabs — по таймлайну ноды (fills): файл включается один раз, слово k начинается, когда линия входит в пилюлю k; линия уходит за верх экрана
+//  listen  пилюли по очереди опускаются в центр; диктор озвучивает каждую, пилюля заливается синхронно с речью, щёлкает и уходит вниз. Расписание — wordLanePlan.makeListenPlan: по умолчанию фиксированное (слово из библиотеки/системы),
+//          с озвучкой ElevenLabs — по таймлайну ноды (fills): файл включается один раз, слово k начинается, когда пилюля k стоит в зоне голоса; пилюли идут по очереди
 //  turn    плашка «Теперь твоя очередь», пилюли пустеют
-//  speak   выезжает микрофон, линия поднимается снова, ученик говорит слово SLOT_COUNT раз — пилюли заливаются по распознаванию (wordLaneListen)
+//  speak   выезжает микрофон, пилюли опускаются снова; ученик говорит слово SLOT_COUNT раз — пилюля наполняется его голосом, распознавание (wordLaneListen) её защёлкивает
 //  reveal  перевод слова; «Дальше» отпускает ноду
 // Микрофон в speak включается сам (доступ дан заранее, в карточке/запуске урока). Нет модели Vosk или микрофон не открылся — ручной режим: тап по микрофону = «сказал слово».
-const EXIT_PAUSE_MS = 1300 // после третьего слова ученика линия уходит за экран, и только потом перевод
+const EXIT_PAUSE_MS = 1700 // после третьего слова ученика: заливка доходит до конца (LOCK_MS), щелчок, пилюля уходит вниз (EXIT_MS) — и только потом перевод
 
-export function useWordLaneFlow({ word, lang, fills = null, audioSrc = null, onFinished }) {
-  const plan = useMemo(() => makeListenPlan(audioSrc ? fills : null), [fills, audioSrc])
+export function useWordLaneFlow({ word, lang, fills = null, audioSrc = null, audio = null, onFinished }) {
+  const plan = useMemo(() => makeListenPlan(audioSrc ? fills : null, audio), [fills, audioSrc, audio])
   const [s, setS] = useState({ phase: 'drop', phaseAt: 0, hits: 0, misses: 0, mic: 'starting' })
   const phaseRef = useRef('drop')
   const listenerRef = useRef(null)
@@ -76,7 +76,7 @@ export function useWordLaneFlow({ word, lang, fills = null, audioSrc = null, onF
     return () => { l.dispose(); if (listenerRef.current === l) listenerRef.current = null }
   }, [s.phase, word, rms])
 
-  // Три слова приняты → линия уходит за верх → перевод
+  // Три слова приняты → последняя пилюля уходит вниз → перевод
   useEffect(() => {
     if (s.phase !== 'speak' || s.hits < SLOT_COUNT) return undefined
     const t = setTimeout(() => go('reveal'), EXIT_PAUSE_MS)

@@ -1,88 +1,106 @@
 // Раскладка и время вертикальной игры «Повтори за диктором» (RotatePhoneModule). Чистые функции — без React и DOM, проверяются тестами.
-// Сцена меряется в ПРОЦЕНТАХ экрана (x — от левого края, y — от верхнего): вёрстка и линия живут в одной сетке, пересчёта под размер экрана нет.
-// Три дорожки — три равные колонки, разделённые линиями. В каждой стоит вертикальная пилюля (пустая, без надписей); пилюли стоят лесенкой: первая (слева) почти внизу,
-// вторая в центре экрана, третья (справа) наверху. Снизу из-за экрана поднимается ГОРИЗОНТАЛЬНАЯ линия на всю ширину (прямая, не изгибается). Когда она входит в пилюлю, пилюля
-// заливается снизу вверх ровно до линии — заливка и линия одно движение. Начало заливки = начало слова, полная пилюля = конец слова: скорость линии внутри пилюли
-// задаёт скорость речи диктора (высота пилюли / длительность слова). В фазе ученика линия поднимается так же, но подчиняется распознаванию (stepSpeakFront).
+// Сцена меряется в ПРОЦЕНТАХ высоты экрана (y — от верха), x — от левого края. Три дорожки — три равные колонки с разделителями; в каждой своя вертикальная пустая пилюля.
+// Пилюли идут ПО ОЧЕРЕДИ: пилюля k выплывает сверху, плавно опускается в «зону голоса» — примерно центр экрана — и к началу слова диктора стоит там; пока слово звучит, она
+// заливается снизу вверх синхронно с речью (в конце слова залита целиком и «щёлкает», wordLaneSnap.js), потом плавно уходит вниз за экран, а следующая уже опускается.
+// В фазе ученика то же самое, но пилюля ждёт в зоне голоса, заливается живым голосом ученика (voiceFillStep), а вердикт «слово принято» даёт распознавание.
 
 export const SLOT_COUNT = 3
 export const LANE_X = [100 / 6, 50, 500 / 6]                // середины дорожек, % ширины
 export const LANE_EDGES = [100 / 3, 200 / 3]                // разделители дорожек, % ширины
 export const PILL_W = 22                                    // ширина пилюли, % ширины экрана
-// Пилюли лесенкой: top/bottom — край в % высоты. Линия идёт снизу вверх: сначала нижний край (bottom), потом верхний (top)
-export const PILLS = [
-  { x: LANE_X[0], top: 68, bottom: 88 },
-  { x: LANE_X[1], top: 40, bottom: 60 },
-  { x: LANE_X[2], top: 12, bottom: 32 },
-]
+export const PILL_H = 20                                    // высота пилюли, % высоты экрана
 export const WORD_Y = 6                                     // центр слова наверху, % высоты
-export const LINE_START_Y = 106                             // линия стартует за нижним краем экрана
-export const LINE_END_Y = -6                                // и уходит за верхний
+export const ZONE_Y = 48                                    // центр «зоны голоса» — примерно центр экрана
+export const ENTER_Y = -14                                  // центр пилюли за верхним краем (она целиком вне экрана: низ на -4 %)
+export const EXIT_Y = 118                                   // и за нижним
+export const HOLD_DRIFT = 1.5                               // пока слово звучит, пилюля чуть сползает вниз — стоячая картинка выглядела бы мёртвой
 
 // Длительности, мс
 export const DROP_MS = 1000        // слово падает и замирает
-export const LANES_MS = 900        // дорожки и пилюли проявляются
-export const FILL_MS = 1000        // заливка одной пилюли по умолчанию (слово без озвучки автора)
+export const LANES_MS = 900        // дорожки проявляются
+export const DESCENT_MS = 1100     // пилюля опускается сверху в зону голоса
+export const EXIT_MS = 1000        // после щелчка уходит вниз
+export const GAP_MS = 500          // минимум между концом слова и началом следующего: за это время предыдущая уже уходит, следующая опускается
+export const WORD_MS = 1000        // длина слова по умолчанию (слово без озвучки автора)
 export const TURN_MS = 2200        // плашка «Теперь твоя очередь»
 export const MIC_IN_MS = 600       // иконка микрофона выезжает снизу
-export const EXIT_MS = 1000        // после последней заливки линия уходит за верх экрана
-export const EXIT_TAIL_MS = 500    // и ещё столько до следующего шага
+export const EXIT_TAIL_MS = 400    // после ухода последней пилюли ещё столько до следующей фазы
 
-/** Опорные точки головы линии: [мс от старта линии, y %]. at[k] — слово k началось (линия у нижнего края пилюли), ms[k] — слово звучит (линия идёт сквозь пилюлю до верхнего края) */
-export function buildAnchors(at, ms) {
-  const pts = [[0, LINE_START_Y]]
-  at.forEach((t, k) => { pts.push([t, PILLS[k].bottom], [t + ms[k], PILLS[k].top]) })
-  pts.push([at.at(-1) + ms.at(-1) + EXIT_MS, LINE_END_Y])
-  return pts
+// Расписание по умолчанию: слово k начинается через DESCENT_MS + k·PERIOD_MS (опускание первой пилюли + шаг «слово + пауза»)
+export const PERIOD_MS = WORD_MS + 700
+export const WORD_AT = [DESCENT_MS + 200, DESCENT_MS + 200 + PERIOD_MS, DESCENT_MS + 200 + PERIOD_MS * 2]
+export const WORD_LEN = WORD_AT.map(() => WORD_MS)
+export const LISTEN_MS = WORD_AT[2] + WORD_LEN[2] + EXIT_MS + EXIT_TAIL_MS
+
+const clamp01 = v => Math.min(1, Math.max(0, v))
+/** Мягкое торможение к концу (пилюля «садится» в зону) */
+export const easeOutCubic = u => 1 - (1 - clamp01(u)) ** 3
+/** Мягкий разгон (пилюля уходит вниз) */
+export const easeInCubic = u => clamp01(u) ** 3
+/** Плавно с обоих концов */
+export const easeInOut = u => { const x = clamp01(u); return x * x * (3 - 2 * x) }
+
+/**
+ * Высота центра пилюли (y, %) через t мс после старта фазы диктора, если её слово начинается в at и звучит ms:
+ * до at − DESCENT_MS — за верхним краем; потом плавно опускается в зону голоса; пока слово звучит — стоит с лёгким сползанием; после слова — уходит вниз.
+ */
+export function pillY(t, at, ms) {
+  const arrive = at
+  const leave = at + ms
+  if (t <= arrive - DESCENT_MS) return ENTER_Y
+  if (t < arrive) return ENTER_Y + (ZONE_Y - ENTER_Y) * easeOutCubic((t - (arrive - DESCENT_MS)) / DESCENT_MS)
+  if (t < leave) return ZONE_Y + HOLD_DRIFT * ((t - arrive) / ms)
+  if (t < leave + EXIT_MS) return ZONE_Y + HOLD_DRIFT + (EXIT_Y - ZONE_Y - HOLD_DRIFT) * easeInCubic((t - leave) / EXIT_MS)
+  return EXIT_Y
 }
 
-// Расписание по умолчанию (слово без озвучки автора): первое слово через 1,2 с, дальше шаг PERIOD_MS (заливка + пауза)
-export const PERIOD_MS = 1600
-export const FILL_AT = [1200, 1200 + PERIOD_MS, 1200 + PERIOD_MS * 2]
-export const LISTEN_ANCHORS = buildAnchors(FILL_AT, FILL_AT.map(() => FILL_MS))
-export const LISTEN_MS = LISTEN_ANCHORS.at(-1)[0] + EXIT_TAIL_MS
+/**
+ * Заливка пилюли (0…1) через t мс: пока звучит слово — по кривой речи (curve: доля слова → доля заливки; без неё линейно), до слова 0, после — 1.
+ * Кривую строит makeFillCurve по реальной громкости слова диктора: ударный слог — заливка бежит, пауза внутри слова — стоит.
+ */
+export function pillFill(t, at, ms, curve = null) {
+  const u = clamp01((t - at) / ms)
+  return curve ? clamp01(curve(u)) : u
+}
 
-/** Голова линии (y, %) в фазе диктора через t мс после старта линии. Между опорными точками — линейно */
-export function frontAtListen(t, anchors = LISTEN_ANCHORS) {
-  if (!(t > 0)) return anchors[0][1]
-  for (let i = 1; i < anchors.length; i++) {
-    const [t1, y1] = anchors[i]
-    if (t <= t1) {
-      const [t0, y0] = anchors[i - 1]
-      return t1 === t0 ? y1 : y0 + ((y1 - y0) * (t - t0)) / (t1 - t0)
-    }
+/**
+ * Кривая заливки по громкости: wave — полоски громкости файла (любой масштаб), duration — длина файла, секунды; слово от start до end (с). Возвращает u (0…1 — доля слова) → доля заливки:
+ * накопленная громкость, нормированная на всё слово. К громкости добавляется пол FLOOR, чтобы пауза внутри слова не останавливала заливку насовсем. Нет волны — null (линейно).
+ */
+export const FILL_FLOOR = 0.12
+export function makeFillCurve(wave, duration, start, end) {
+  if (!Array.isArray(wave) || wave.length < 2 || !(duration > 0) || !(end > start)) return null
+  const peak = Math.max(...wave, 1e-9)
+  const per = wave.length / duration
+  const from = Math.max(0, Math.floor(start * per))
+  const to = Math.min(wave.length, Math.max(from + 2, Math.ceil(end * per)))
+  const cum = [0]
+  for (let i = from; i < to; i++) cum.push(cum.at(-1) + wave[i] / peak + FILL_FLOOR)
+  const total = cum.at(-1)
+  const n = cum.length - 1
+  return u => {
+    const x = clamp01(u) * n
+    const i = Math.min(n - 1, Math.floor(x))
+    return (cum[i] + (cum[i + 1] - cum[i]) * (x - i)) / total
   }
-  return anchors.at(-1)[1]
 }
 
-/** Насколько залита пилюля k, когда линия на высоте front: 0 — линия ниже её дна, 1 — выше верха. Заливка = то, что линия уже прошла */
-export function pillProgress(front, k) {
-  const { top, bottom } = PILLS[k]
-  return Math.min(1, Math.max(0, (bottom - front) / (bottom - top)))
+// Фаза ученика: заливка идёт от живого голоса. Пока громкость выше порога, пилюля наполняется со скоростью, пропорциональной громкости, но не выше FILL_CAP — полной её делает
+// только распознавание (слово принято). Тишина заливку не откатывает, но и не двигает; чужое слово — пилюля «отторгает»: сливается обратно (FILL_DRAIN, в секунду).
+export const VOICE_THRESHOLD = 0.12
+export const FILL_RATE = 0.9        // доля пилюли в секунду при громкости 1
+export const FILL_CAP = 0.85
+export const FILL_DRAIN = 3
+export const LOCK_MS = 450          // принятое слово: заливка плавно доходит до 100 %
+
+/** Один кадр наливания голосом: p — текущая заливка, dt — секунды, level — громкость 0…1 */
+export function voiceFillStep(p, dt, level) {
+  if (!(level > VOICE_THRESHOLD)) return p
+  return Math.min(FILL_CAP, Math.max(p, p + Math.max(0, dt) * FILL_RATE * Math.min(1, level / 0.5)))
 }
 
-// Фаза ученика. Голова едет вверх к «точке ожидания» — нижнему краю ближайшей пустой пилюли — и стоит там, пока ученик не скажет слово.
-export const SPEAK_SPEED = 14        // % высоты в секунду — спокойный подъём, пока ждём голос
-export const CATCH_SPEED = 36        // быстрее, когда слово принято: линия проходит пилюлю (≈0,55 с на пилюлю)
-export const EXIT_SPEED = 46         // уход за верх экрана после третьего слова
-export const MISS_KICK = 4           // % назад (вниз), когда сказано не то слово
-
-/** Куда должна прийти голова при hits принятых словах: нижний край следующей пустой пилюли, а после третьего слова — за экран */
-export function speakTarget(hits) {
-  return hits >= SLOT_COUNT ? LINE_END_Y : PILLS[hits].bottom
-}
-
-/** Один кадр головы линии ученика: идёт к цели со скоростью, зависящей от того, что случилось (принято слово — рывок вперёд). dt — секунды */
-export function stepSpeakFront({ front, dt, hits, caught = false }) {
-  const target = speakTarget(hits)
-  const speed = hits >= SLOT_COUNT ? EXIT_SPEED : caught ? CATCH_SPEED : SPEAK_SPEED
-  const move = speed * Math.max(0, dt)
-  if (front > target) return Math.max(target, front - move)
-  return Math.min(target, front + move) // цель может оказаться ниже головы (после «отшатывания»)
-}
-
-/** Голова после ошибочного слова: отходит назад (вниз), но не дальше чем на MISS_KICK ниже края следующей пилюли и не за нижний край экрана; голову, что и так ниже, не поднимает */
-export const kickBack = (front, hits) => Math.max(front, Math.min(LINE_START_Y, front + MISS_KICK, speakTarget(Math.min(hits, SLOT_COUNT - 1)) + MISS_KICK))
+/** Слив при чужом слове */
+export const drainStep = (p, dt) => Math.max(0, p - Math.max(0, dt) * FILL_DRAIN)
 
 /** Распорядок игры: сколько длится каждая фаза без ожидания ученика, мс */
 export const PHASE_MS = { drop: DROP_MS, lanes: LANES_MS, listen: LISTEN_MS, turn: TURN_MS }
