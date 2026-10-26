@@ -8,6 +8,7 @@ import '/src/index.css'
 import RotatePhoneModule from '/src/features/player/modules/rotate-phone/RotatePhoneModule.jsx'
 import { fakeVoice } from './fakeVoice.js'
 import { fillsFromTimings } from '/src/features/player/modules/rotate-phone/wordLanePlan.js'
+import { voskRuntime } from '/src/shared/lib/vosk/voskRuntime.js'
 
 // Стенд игры «Повтори за диктором»: карточка ноды + игра на весь экран. ?wldebug — опорные точки геометрии. Без Vosk игра идёт в ручном режиме (тап по микрофону = слово).
 const params = new URLSearchParams(location.search)
@@ -18,6 +19,26 @@ const td = { content: 'Повтори за диктором', word, translation:
 if (voice) Object.assign(td, { file_id: 'f1', duration: voice.duration, wordTimings: voice.wordTimings, fills: fillsFromTimings(voice.wordTimings, word, voice.duration) })
 const node = { id: 'n1', type: 'rotate_phone', typeData: { rotate_phone: td } }
 const file = voice ? { id: 'f1', r2Url: voice.url } : null
+// ?fakevosk=1 — подменяем модель Vosk заглушкой: настоящий захват микрофона (в Chromium с --use-fake-device — гудки) и настоящий слушатель игры, но «распознавание» отвечает по счётчику
+// кусков звука: «try» → «try [unk] try» (одно чужое слово) → «try [unk] try try». Так проверяется голосовая заливка, метка темпа, «Услышал: …» и принятие слов без телефона
+if (params.get('fakevosk')) {
+  voskRuntime.getModel = () => ({
+    KaldiRecognizer: class {
+      constructor() { this.n = 0; this.h = {} }
+      setWords() {}
+      on(ev, cb) { this.h[ev] = cb }
+      remove() {}
+      acceptWaveform() {
+        this.n += 1
+        const say = text => this.h.partialresult?.({ result: { partial: text } })
+        if (this.n === 12) say('try')
+        if (this.n === 30) say('try [unk] try')
+        if (this.n === 48) say('try [unk] try try')
+      }
+      retrieveFinalResult() { this.h.result?.({ result: { text: 'try try try', result: [] } }) }
+    },
+  })
+}
 window.__done = null
 createRoot(document.getElementById('root')).render(
   React.createElement(RotatePhoneModule, { node, file, onDone: v => { window.__done = v } }))

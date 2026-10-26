@@ -88,15 +88,29 @@ export function makeFillCurve(wave, duration, start, end) {
 // Фаза ученика: заливка идёт от живого голоса. Пока громкость выше порога, пилюля наполняется со скоростью, пропорциональной громкости, но не выше FILL_CAP — полной её делает
 // только распознавание (слово принято). Тишина заливку не откатывает, но и не двигает; чужое слово — пилюля «отторгает»: сливается обратно (FILL_DRAIN, в секунду).
 export const VOICE_THRESHOLD = 0.12
-export const FILL_RATE = 0.9        // доля пилюли в секунду при громкости 1
-export const FILL_CAP = 0.85
+export const FILL_CAP = 0.85        // выше голос не наливает: полной пилюлю делает только распознавание («честная» оценка — громкость и слово это разное)
 export const FILL_DRAIN = 3
 export const LOCK_MS = 450          // принятое слово: заливка плавно доходит до 100 %
 
-/** Один кадр наливания голосом: p — текущая заливка, dt — секунды, level — громкость 0…1 */
-export function voiceFillStep(p, dt, level) {
+/**
+ * Один кадр наливания голосом: p — текущая заливка, dt — секунды, level — громкость 0…1, ms — сколько звучало слово диктора. Скорость такова, что при уверенной громкости
+ * (≥ 0,5) заливка доходит до FILL_CAP ровно за длину слова диктора: сказал в его темпе — пилюля наполнилась в такт; сказал короче — не дотянул; растянул — дотянул позже.
+ */
+export function voiceFillStep(p, dt, level, ms = WORD_MS) {
   if (!(level > VOICE_THRESHOLD)) return p
-  return Math.min(FILL_CAP, Math.max(p, p + Math.max(0, dt) * FILL_RATE * Math.min(1, level / 0.5)))
+  const rate = FILL_CAP / (Math.max(300, ms) / 1000)
+  return Math.min(FILL_CAP, Math.max(p, p + Math.max(0, dt) * rate * Math.min(1, level / 0.5)))
+}
+
+/**
+ * «Тень» слова диктора для подсказки ученику: профиль громкости по высоте пилюли, снизу вверх, n значений 0…1 (1 — самый громкий кусок слова). Строится из кривой заливки
+ * (makeFillCurve) как её производная; без кривой (слово без озвучки автора) — ровно. Ученик видит, где слово «громкое», где тихое и сколько оно длится (метка темпа — WordLanePills).
+ */
+export function fillProfile(curve, n = 10) {
+  if (!curve) return Array.from({ length: n }, () => 0.6)
+  const d = Array.from({ length: n }, (_, i) => Math.max(0, curve((i + 1) / n) - curve(i / n)))
+  const peak = Math.max(...d, 1e-9)
+  return d.map(v => 0.25 + 0.75 * (v / peak))
 }
 
 /** Слив при чужом слове */

@@ -5,6 +5,7 @@ import PlayerBubble from '../../PlayerBubble.jsx'
 import WordLaneGame from './WordLaneGame.jsx'
 import { readWordLane } from './wordLaneConfig.js'
 import { unlockVoice } from './wordLaneVoice.js'
+import { unlockNotes } from './wordLaneNotes.js'
 import { ensureMicAccess } from '../../../../shared/lib/micAccess.js'
 import { primeAudio } from '../../../../shared/lib/primedAudio.js'
 import { pLog } from '../../../../shared/lib/debug.js'
@@ -29,6 +30,7 @@ export default function RotatePhoneModule({ node, file, onDone }) {
     if (busy || phase !== 'wait') return
     setBusy(true)
     unlockVoice()
+    unlockNotes() // ноты-награды: элементы просыпаются в жесте, иначе iOS не даст им зазвучать по таймеру
     primeAudio()
     try { document.documentElement.requestFullscreen?.({ navigationUI: 'hide' })?.catch?.(() => {}) } catch { /* iPhone и часть браузеров не умеют — остаёмся в окне */ }
     const mic = await ensureMicAccess()

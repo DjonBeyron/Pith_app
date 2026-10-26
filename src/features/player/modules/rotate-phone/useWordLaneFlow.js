@@ -3,8 +3,10 @@ import { createLevelSource } from '../../../../shared/lib/speech/sayLevelSource.
 import { createRmsLevel } from '../../../../shared/lib/vosk/sayVoskLevel.js'
 import { createWordListener } from './wordLaneListen.js'
 import { speakWord, playTrack, stopVoice } from './wordLaneVoice.js'
+import { playNote, releaseNotes } from './wordLaneNotes.js'
 import { makeListenPlan } from './wordLanePlan.js'
 import { DROP_MS, LANES_MS, TURN_MS, SLOT_COUNT } from './wordLaneTimeline.js'
+import { XP_PER_PILL } from './wordLaneConfig.js'
 
 // Сценарий игры «Повтори за диктором» по фазам (каждая — свой эффект с таймерами, смена фазы чистит их):
 //  drop    слово падает сверху и замирает
@@ -17,27 +19,51 @@ import { DROP_MS, LANES_MS, TURN_MS, SLOT_COUNT } from './wordLaneTimeline.js'
 // Микрофон в speak включается сам (доступ дан заранее, в карточке/запуске урока). Нет модели Vosk или микрофон не открылся — ручной режим: тап по микрофону = «сказал слово».
 const EXIT_PAUSE_MS = 1700 // после третьего слова ученика: заливка доходит до конца (LOCK_MS), щелчок, пилюля уходит вниз (EXIT_MS) — и только потом перевод
 
-export function useWordLaneFlow({ word, lang, fills = null, audioSrc = null, audio = null, onFinished }) {
+export function useWordLaneFlow({ word, lang, fills = null, audioSrc = null, audio = null, catApi = null, onFinished }) {
   const plan = useMemo(() => makeListenPlan(audioSrc ? fills : null, audio), [fills, audioSrc, audio])
-  const [s, setS] = useState({ phase: 'drop', phaseAt: 0, hits: 0, misses: 0, mic: 'starting' })
+  const [s, setS] = useState({ phase: 'drop', phaseAt: 0, xp: 0, xpEvents: [], note: '', hits: 0, misses: 0, mic: 'starting' })
   const phaseRef = useRef('drop')
   const listenerRef = useRef(null)
   const finishedRef = useRef(false)
+  const xpIdRef = useRef(0)
+  const noteTimerRef = useRef(0)
   const [rms] = useState(createRmsLevel)                                  // громкость голоса ученика (кольца микрофона)
   const [levels] = useState(() => createLevelSource(t => rms.read(t)))
 
   const go = useCallback((phase, patch = null) => { phaseRef.current = phase; setS(p => ({ ...p, ...patch, phase, phaseAt: performance.now() })) }, [])
 
+  // Реакции игры на принятую пилюлю ученика, чужое слово и голос (зовёт движок пилюль, useWordLanePills):
+  //  win  — +XP_PER_PILL (цифра летит вверх, как в чате урока), нота выше предыдущей (на время ноты слушатель не засчитывает «чужие слова»), кот радуется;
+  //  miss — кот отводит взгляд, а ученику честно показываем, что услышал движок («Услышал: …»);
+  //  mouth — рот кота по голосу.
+  const [fx] = useState(() => ({
+    win(k, rect) {
+      if (playNote(k)) listenerRef.current?.mute(900)
+      catApi?.current?.react('love', 1600)
+      const id = ++xpIdRef.current
+      setS(p => ({ ...p, xpEvents: [...p.xpEvents, { id, amount: XP_PER_PILL, rect }] }))
+    },
+    miss() { catApi?.current?.react('shy', 1300) },
+    mouth(level) { catApi?.current?.mouth(level) },
+  }))
+
+  // XP долетел до верха — прибавляем к счётчику
+  const dismissXp = useCallback(id => setS(p => {
+    const ev = p.xpEvents.find(e => e.id === id)
+    return ev ? { ...p, xp: p.xp + ev.amount, xpEvents: p.xpEvents.filter(e => e.id !== id) } : p
+  }), [])
+
   const finish = useCallback(() => {
     if (finishedRef.current) return
     finishedRef.current = true
     stopVoice()
+    releaseNotes()
     listenerRef.current?.dispose()
     onFinished?.()
   }, [onFinished])
 
   // Модель Vosk уже в памяти: её держит ранний прогрев урока (useLessonWarmups считает и ноду rotate_phone); здесь только уборка за собой
-  useEffect(() => () => { stopVoice(); listenerRef.current?.dispose() }, [])
+  useEffect(() => () => { stopVoice(); releaseNotes(); clearTimeout(noteTimerRef.current); listenerRef.current?.dispose() }, [])
 
   useEffect(() => {
     const { phase } = s
@@ -66,10 +92,15 @@ export function useWordLaneFlow({ word, lang, fills = null, audioSrc = null, aud
     const l = createWordListener({
       word,
       level: rms,
-      onChange: ({ status, hits, misses }) => setS(p => ({
-        ...p, hits: Math.max(p.hits, hits), misses: Math.max(p.misses, misses),
-        mic: status === 'listening' || status === 'starting' || status === 'done' ? status : status === 'idle' ? p.mic : 'manual',
-      })),
+      onChange: ({ status, hits, misses, heard }) => {
+        setS(p => ({
+          ...p, hits: Math.max(p.hits, hits), misses: Math.max(p.misses, misses),
+          // Чужое слово: ученику честно показываем, что услышал движок (на 2,6 с вместо подписи у микрофона)
+          note: misses > p.misses ? `Услышал: «${heard || '…'}» — нужно «${word}»` : p.note,
+          mic: status === 'listening' || status === 'starting' || status === 'done' ? status : status === 'idle' ? p.mic : 'manual',
+        }))
+        if (misses > 0) { clearTimeout(noteTimerRef.current); noteTimerRef.current = setTimeout(() => setS(p => ({ ...p, note: '' })), 2600) }
+      },
     })
     listenerRef.current = l
     l.start() // нет модели → onChange 'unavailable' → ручной режим
@@ -91,5 +122,5 @@ export function useWordLaneFlow({ word, lang, fills = null, audioSrc = null, aud
 
   const skip = useCallback(() => { listenerRef.current?.dispose(); go('reveal') }, [go])
 
-  return { ...s, plan, levels, tapMic, skip, finish }
+  return { ...s, plan, levels, fx, dismissXp, tapMic, skip, finish }
 }

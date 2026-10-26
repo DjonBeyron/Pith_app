@@ -19,7 +19,8 @@ const SESSION_MAX_MS = 20000
 const RESTART_MS = 150
 
 /**
- * onChange({ status: 'idle'|'starting'|'listening'|'done'|'unavailable'|'error'|'timeout', hits, misses }) — при каждом изменении.
+ * onChange({ status: 'idle'|'starting'|'listening'|'done'|'unavailable'|'error'|'timeout', hits, misses, heard }) — при каждом изменении; heard — что услышал движок («…» вместо неразобранного слова):
+ * по нему игра честно говорит ученику, что именно распозналось. mute(ms) — на это время новые «чужие слова» не засчитываются (нота-награда из динамика могла попасть в микрофон).
  * Зависимости подставляются в тестах.
  */
 export function createWordListener({ word, onChange, runtime = voskRuntime, listen = startListening, level = createRmsLevel(), now = () => Date.now(), setTimer = setTimeout, clearTimer = clearTimeout }) {
@@ -30,12 +31,17 @@ export function createWordListener({ word, onChange, runtime = voskRuntime, list
   let disposed = false
   let status = 'idle'
   let timer = 0
+  let heard = ''
+  let mutedUntil = 0  // до этого момента новые промахи поглощаются
+  let absorbed = 0    // сколько промахов уже поглощено в текущем заходе
+  let lastRaw = 0
 
   const publish = patch => {
     if (patch.status) status = patch.status
     if (patch.hits != null) hits = Math.min(SLOT_COUNT, Math.max(hits, patch.hits)) // счёт не откатывается назад: поздний partial мог «передумать»
     if (patch.misses != null) misses = Math.max(misses, patch.misses)
-    onChange?.({ status, hits, misses, ...(patch.error ? { error: patch.error } : {}) })
+    if (patch.heard != null) heard = patch.heard
+    onChange?.({ status, hits, misses, heard, ...(patch.error ? { error: patch.error } : {}) })
   }
   const remaining = () => Math.max(1, SLOT_COUNT - base.hits)
 
@@ -51,6 +57,7 @@ export function createWordListener({ word, onChange, runtime = voskRuntime, list
 
   function run() {
     base = { hits, misses } // до словаря: сколько слов ещё ждать, считается от накопленного
+    absorbed = 0; lastRaw = base.misses
     const model = runtime.getModel()
     const grammar = model ? wordGrammar(word, remaining()) : null
     if (!model || !grammar) { publish({ status: 'unavailable' }); return }
@@ -58,7 +65,11 @@ export function createWordListener({ word, onChange, runtime = voskRuntime, list
     cur = session
     const part = (raw, final) => {
       const r = analyzeHeard(raw, word, final)
-      publish({ hits: base.hits + r.hits, misses: base.misses + r.misses })
+      const rawMisses = base.misses + r.misses
+      if (now() < mutedUntil) absorbed += Math.max(0, rawMisses - lastRaw) // «чужое слово» во время ноты-награды — это эхо динамика, не ошибка ученика
+      lastRaw = rawMisses
+      const words = String(raw ?? '').toLowerCase().split(/\s+/).filter(Boolean).map(w => (w === '[unk]' ? '…' : w)).join(' ') // «…» — звук был, а слова не разобрали
+      publish({ hits: base.hits + r.hits, misses: rawMisses - absorbed, heard: words || heard })
     }
     const callbacks = {
       onReady: () => { if (!disposed && cur === session) publish({ status: 'listening' }) },
@@ -87,6 +98,8 @@ export function createWordListener({ word, onChange, runtime = voskRuntime, list
     /** Остановить заход (Vosk отдаст итог и заход закончится сам) */
     stop() { if (cur) { cur.stopped = true; try { cur.handle?.stop() } catch { /* уже закончил */ } } },
     available: () => !!runtime.getModel(),
+    /** На ms мс новые «чужие слова» не засчитываются (звучит нота-награда) */
+    mute(ms) { mutedUntil = now() + ms },
     level,
     dispose() {
       disposed = true
