@@ -157,7 +157,7 @@ describe('вёрстка и подключения', () => {
   it('игра берёт озвучку ноды (file_id) и план по таймлайну', () => {
     expect(read('./RotatePhoneModule.jsx')).toContain('useAudioSource(node, file)')
     expect(read('./RotatePhoneModule.jsx')).toContain('audioSrc={cfg.hasAudio ? audioSrc : null}')
-    expect(read('./useWordLaneFlow.js')).toContain('makeListenPlan(audioSrc ? fills : null, audio)')
+    expect(read('./useWordLaneFlow.js')).toContain('makeListenPlan(audioSrc ? fills : null, audio, rate)')
   })
 
   it('слово ноды попадает в список озвучки, а урок греет Vosk', () => {

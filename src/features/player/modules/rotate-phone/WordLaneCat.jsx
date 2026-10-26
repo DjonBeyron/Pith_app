@@ -13,7 +13,7 @@ import { CAT_SPOTS, catPeek } from './wordLaneCatPeek.js'
 //  • apiRef.current.mouth(level) — громкость 0…1 → форма рта (closed / half / open). Голос есть — голова выскакивает (в новом месте), голоса нет HIDE_AFTER_MS — прячется (wordLaneCatPeek.js);
 //  • apiRef.current.react(face, ms) — реакция лицом на время ('love' — сердечки, пилюля принята; 'shy' — отвёл взгляд, слово не то) — голова торчит всё это время;
 //  • apiRef.current.peek(ms) — просто выскочить на время.
-export const CAT_VIEWBOX = '10 16 166 112'
+export const CAT_VIEWBOX = '6 14 174 148' // голова целиком — от макушки с ушами (y≈20) до шеи (подбородок y≈142, плечи до 162); тело ниже не попадает в кадр
 
 export default function WordLaneCat({ apiRef, skin = 'kit' }) {
   const [face, setFace] = useState('base')

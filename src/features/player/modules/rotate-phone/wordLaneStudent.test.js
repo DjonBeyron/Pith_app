@@ -22,13 +22,13 @@ const of = (log, type) => log.filter(e => e.type === type)
 const once = ms => { let fired = false; return t => { if (!fired && t >= ms) { fired = true; return true } return false } }
 
 describe('конвейер ученика: выкат и скорость', () => {
-  it('первая пилюля уже в пути в нулевую секунду (видна у верхнего края), следующие — каждые STUDENT_PERIOD_MS, по одной на дорожку', () => {
+  it('первая пилюля выезжает из-за верхнего края (LEAD_IN_MS = 0, рывком посреди экрана не появляется), следующие — каждые STUDENT_PERIOD_MS, по одной на дорожку', () => {
     const g = createStudentGame({})
     const log = run(g, () => ({}), 7000)
     const spawns = of(log, 'spawn')
     expect(spawns[0].t).toBe(0)
     expect(spawns[0].y).toBeCloseTo(ENTER_Y + (SPEED * LEAD_IN_MS) / 1000, 6)
-    expect(spawns[0].y).toBeGreaterThan(0)                       // видна сразу, не 2,4 секунды пустого экрана
+    expect(spawns[0].y).toBeLessThanOrEqual(ENTER_Y + 1e-9)       // над экраном
     expect(spawns.slice(0, 3).map(e => e.pill.slot)).toEqual([0, 1, 2])
     expect(spawns[1].t - spawns[0].t).toBeGreaterThanOrEqual(STUDENT_PERIOD_MS - DT)
     expect(spawns[1].t - spawns[0].t).toBeLessThanOrEqual(STUDENT_PERIOD_MS + DT)

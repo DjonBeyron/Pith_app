@@ -52,13 +52,13 @@ export function fillsFromTimings(wordTimings, word, duration = null) {
  * Громкость голоса диктора в момент t (мс от старта фазы), 0…1 — ею открывается рот кота. С озвучкой автора — по реальной громкости файла (waveformData), без — пульсация
  * на время каждого слова плана. Вне слов — 0.
  */
-export function makeMouthLevel(at, ms, audio, audioAt) {
+export function makeMouthLevel(at, ms, audio, audioAt, rate = 1) {
   const wave = audio?.wave
   const peak = Array.isArray(wave) && wave.length ? Math.max(...wave, 1e-9) : 0
   const per = peak && audio.duration > 0 ? wave.length / audio.duration : 0
   return t => {
     if (per && audioAt != null) {
-      const i = Math.floor(((t - audioAt) / 1000) * per)
+      const i = Math.floor(((t - audioAt) / 1000) * rate * per)
       return i >= 0 && i < wave.length ? Math.min(1, (wave[i] / peak) * 1.2) : 0
     }
     for (let k = 0; k < at.length; k++) if (t >= at[k] && t < at[k] + ms[k]) return 0.45 + 0.4 * (0.5 + 0.5 * Math.sin((t - at[k]) / 85))
@@ -72,14 +72,16 @@ export function makeMouthLevel(at, ms, audio, audioAt) {
  *   fillAt — когда слово k началось (мс от старта фазы); fillMs — сколько оно звучит; curves — кривая заливки по громкости (или null — линейно); profiles — «тень» слова для
  *   подсказки ученику; mouth(t) — громкость диктора для рта кота; listenMs — когда фаза кончилась (конец последнего слова + END_TAIL_MS); audioAt — когда включать файл (null — файла нет)
  */
-export function makeListenPlan(fills, audio = null) {
+export function makeListenPlan(fills, audio = null, rate = 1) {
   if (!fills) {
     const curves = WORD_AT.map(() => null)
     return { fillAt: WORD_AT, fillMs: WORD_LEN, curves, profiles: curves.map(c => fillProfile(c)), mouth: makeMouthLevel(WORD_AT, WORD_LEN, null, null), listenMs: LISTEN_MS, audioAt: null }
   }
-  const ms = fills.map(c => Math.max(MIN_WORD_MS, Math.round((c.end - c.start) * 1000)))
-  const lead = Math.round(Math.max(0, leadFor(ms[0]) - fills[0].start * 1000) + 100) // первая пилюля успевает выкатиться
-  const at = fills.map(c => lead + Math.round(c.start * 1000))
+  // Скорость голоса урока (rate): файл играет в rate раз быстрее/медленнее, поэтому слова плана растягиваются на 1/rate — пилюли при любой скорости голоса едут с одной скоростью конвейера
+  const r = rate > 0 ? rate : 1
+  const ms = fills.map(c => Math.max(MIN_WORD_MS, Math.round(((c.end - c.start) * 1000) / r)))
+  const lead = Math.round(Math.max(0, leadFor(ms[0]) - (fills[0].start * 1000) / r) + 100) // первая пилюля успевает выкатиться
+  const at = fills.map(c => lead + Math.round((c.start * 1000) / r))
   const curves = fills.map(c => makeFillCurve(audio?.wave, audio?.duration, c.start, c.end))
-  return { fillAt: at, fillMs: ms, curves, profiles: curves.map(c => fillProfile(c)), mouth: makeMouthLevel(at, ms, audio, lead), listenMs: listenEnd(at, ms), audioAt: lead }
+  return { fillAt: at, fillMs: ms, curves, profiles: curves.map(c => fillProfile(c)), mouth: makeMouthLevel(at, ms, audio, lead, r), listenMs: listenEnd(at, ms), audioAt: lead, rate: r }
 }

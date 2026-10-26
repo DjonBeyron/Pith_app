@@ -4,7 +4,7 @@ import {
   pillYAt, spawnTime, exitTime, leadFor, pillFill, makeFillCurve, listenEnd,
 } from './wordLaneTimeline.js'
 import { makeListenPlan, fillsFromTimings, defaultFills } from './wordLanePlan.js'
-import { syncClock, audioPlayingMs, MAX_UP, MAX_DOWN, HOLD_MAX_MS } from './wordLaneClock.js'
+import { syncClock, audioPlayingMs, MAX_RATE } from './wordLaneClock.js'
 
 // Конвейер диктора: постоянная скорость, слово — около центра, время слов не подвигается, картинка идёт по звуку (синхронизация)
 describe('конвейер: пилюли едут постоянно с одной скоростью', () => {
@@ -131,53 +131,56 @@ describe('синхронизация плана с озвучкой: время 
   })
 })
 
-describe('часы: картинка идёт по звуку, а не по таймеру', () => {
-  const run = (tick, { audioStartMs, rate = 1, audioAt = 1300, frames = 400, dt = 16 }) => {
-    // tick(frame) → {tTimer, audioMs}; симулируем кадры и возвращаем [{t, drift, tTimer, audioT}]
+describe('часы: картинка течёт ровно и подстраивается под звук плавно', () => {
+  // Симуляция кадров: звук стартует в audioStartMs (по таймеру), его currentTime можно «огрублять» (шаг step, как на телефоне) и шуметь
+  const run = ({ audioStartMs, audioAt = 1300, frames = 700, dt = 16, step = 0, noise = 0, seed = 1 }) => {
+    let rnd = seed
+    const rand = () => { rnd = (rnd * 16807) % 2147483647; return rnd / 2147483647 - 0.5 }
     let drift = 0
-    let prev = null
     const out = []
     for (let f = 1; f <= frames; f++) {
       const tTimer = f * dt
       const playing = tTimer >= audioStartMs
-      const audioMs = playing ? (tTimer - audioStartMs) * rate : null
-      const c = syncClock({ tTimer, audioMs, audioAt, drift, prev, dt })
-      drift = c.drift; prev = c.prev
-      out.push({ t: c.t, tTimer, audioT: playing ? audioAt + audioMs : null })
+      let audioMs = playing ? tTimer - audioStartMs + rand() * noise : null
+      if (audioMs != null && step) audioMs = Math.floor(audioMs / step) * step
+      if (audioMs != null && audioMs <= 0) audioMs = null
+      const c = syncClock({ tTimer, audioMs, audioAt, drift, dt })
+      drift = c.drift
+      out.push({ t: c.t, audioT: playing ? audioAt + tTimer - audioStartMs : null })
     }
     return out
   }
+  const steps = frames => frames.slice(1).map((r, i) => r.t - frames[i].t)
 
   it('звук включился с опозданием 300 мс (декодирование на телефоне): картинка плавно подстраивается и сходится к звуку', () => {
-    const frames = run(null, { audioStartMs: 1300 + 300 })
+    const frames = run({ audioStartMs: 1300 + 300, frames: 900 })
     const last = frames.at(-1)
     expect(Math.abs(last.t - last.audioT)).toBeLessThan(15)
   })
 
-  it('время для картинки никогда не идёт назад и не скачет: в каждом кадре шаг ≥ 0 и не больше ~2× реального', () => {
-    for (const late of [0, 150, 400, 900]) {
-      const frames = run(null, { audioStartMs: 1300 + late, frames: 600 })
-      for (let i = 1; i < frames.length; i++) {
-        const step = frames[i].t - frames[i - 1].t
-        expect(step).toBeGreaterThanOrEqual(16 * (1 - MAX_DOWN) - 1e-9)
-        expect(step).toBeLessThanOrEqual(16 * (1 + MAX_UP) + 1e-9)
+  it('картинка НИКОГДА не втыкается и не прыгает: шаг каждого кадра в пределах ±MAX_RATE от обычного — даже при опоздании звука, грубом currentTime (шаг 100 мс) и шуме', () => {
+    for (const late of [0, 80, 150, 400, 900]) {
+      for (const [step, noise] of [[0, 0], [100, 0], [250, 0], [0, 60], [50, 40]]) {
+        const frames = run({ audioStartMs: 1300 + late, frames: 700, step, noise })
+        for (const d of steps(frames)) {
+          expect(d).toBeGreaterThanOrEqual(16 * (1 - MAX_RATE) - 1e-9)
+          expect(d).toBeLessThanOrEqual(16 * (1 + MAX_RATE) + 1e-9)
+        }
       }
     }
   })
 
-  it('скорость голоса урока 2× и 0,75× не рассинхронизирует: время слов в секундах файла, картинка берёт его с currentTime', () => {
-    for (const rate of [0.75, 1.5, 2]) {
-      const frames = run(null, { audioStartMs: 1300, rate, frames: 500 })
-      const last = frames.at(-1)
-      expect(Math.abs(last.t - last.audioT)).toBeLessThan(20)
-    }
+  it('на грубом currentTime (шаг 100 мс) картинка держится около звука: средняя ошибка в пределах шага', () => {
+    const frames = run({ audioStartMs: 1300, frames: 900, step: 100 }).filter(r => r.audioT != null).slice(100)
+    const mean = frames.reduce((a, r) => a + Math.abs(r.t - r.audioT), 0) / frames.length
+    expect(mean).toBeLessThan(100)
   })
 
-  it('пока звука нет (до старта и после конца файла) время идёт по таймеру с накопленной поправкой, без скачка', () => {
-    let c = { drift: 0, prev: null }
-    for (let f = 1; f <= 100; f++) c = syncClock({ tTimer: f * 16, audioMs: (f * 16) + 50, audioAt: 1300, drift: c.drift, prev: c.prev, dt: 16 })
-    const before = syncClock({ tTimer: 1600, audioMs: 300, audioAt: 1300, drift: c.drift, prev: c.prev, dt: 16 })
-    const after = syncClock({ tTimer: 1616, audioMs: null, audioAt: 1300, drift: before.drift, prev: before.prev, dt: 16 })
+  it('пока звука нет (до старта и после конца файла) поправка не меняется и время идёт по таймеру, без скачка', () => {
+    let c = { drift: 0 }
+    for (let f = 1; f <= 100; f++) c = syncClock({ tTimer: f * 16, audioMs: f * 16 + 50, audioAt: 1300, drift: c.drift, dt: 16 })
+    const before = syncClock({ tTimer: 1600, audioMs: 300, audioAt: 1300, drift: c.drift, dt: 16 })
+    const after = syncClock({ tTimer: 1616, audioMs: null, audioAt: 1300, drift: before.drift, dt: 16 })
     expect(after.t - before.t).toBeCloseTo(16, 6)
   })
 
@@ -188,37 +191,23 @@ describe('часы: картинка идёт по звуку, а не по та
     expect(audioPlayingMs({ paused: false, ended: false, currentTime: 0 })).toBeNull()
     expect(audioPlayingMs({ paused: false, ended: false, currentTime: 1.25 })).toBe(1250)
   })
+})
 
-  it('звук опаздывает (декодирование): картинка ЖДЁТ его на audioAt и не убегает вперёд, поэтому откатывать назад нечего — после старта звука ошибка сразу ≈ 0', () => {
-    for (const late of [100, 400, 900, 1400]) {
-      const audioAt = 1300
-      let c = { drift: 0, prev: null }
-      let maxT = 0, errAfter = 0
-      for (let f = 1; f <= 400; f++) {
-        const tTimer = f * 16
-        const playing = tTimer >= audioAt + late
-        const audioMs = playing ? tTimer - (audioAt + late) : null
-        const wait = !playing
-        c = syncClock({ tTimer, audioMs, audioAt, drift: c.drift, prev: c.prev, dt: 16, wait })
-        if (!playing) maxT = Math.max(maxT, c.t)
-        else errAfter = Math.max(errAfter, Math.abs(c.t - (audioAt + audioMs)))
-      }
-      expect(maxT).toBeLessThanOrEqual(audioAt + 1e-9)          // до звука время не уходит за audioAt
-      expect(errAfter).toBeLessThan(20)                          // после старта картинка = звуку без догонялок
+describe('скорость голоса урока: план растягивается, а скорость конвейера остаётся одной', () => {
+  const fills = [{ start: 0.2, end: 0.7 }, { start: 1.0, end: 1.5 }, { start: 1.8, end: 2.3 }]
+  it('при голосе 2× слова плана вдвое короче и ближе, при 0,75× — длиннее; пилюля всё равно едет со SPEED', () => {
+    const base = makeListenPlan(fills)
+    for (const rate of [0.75, 1.5, 2]) {
+      const p = makeListenPlan(fills, null, rate)
+      expect(p.fillMs[0]).toBeCloseTo(base.fillMs[0] / rate, -1)
+      expect(p.fillAt[1] - p.fillAt[0]).toBeCloseTo((base.fillAt[1] - base.fillAt[0]) / rate, -1)
+      const mid = p.fillAt[0] + p.fillMs[0] / 2
+      expect(((pillYAt(mid + 1000, mid) - pillYAt(mid, mid)))).toBeCloseTo(SPEED, 6)
+      expect(p.rate).toBe(rate)
     }
   })
-
-  it('звук так и не пошёл (заблокирован, не загрузился): через HOLD_MAX_MS картинка отпускается и идёт по таймеру', () => {
-    let c = { drift: 0, prev: null }
-    let prevT = 0, maxStep = 0, held = 0
-    for (let f = 1; f <= 400; f++) {
-      c = syncClock({ tTimer: f * 16, audioMs: null, audioAt: 1300, drift: c.drift, prev: c.prev, dt: 16, wait: true })
-      if (c.t === 1300) held++
-      else if (prevT > 1300) maxStep = Math.max(maxStep, Math.abs(c.t - prevT - 16))
-      prevT = c.t
-    }
-    expect(held * 16).toBeGreaterThanOrEqual(HOLD_MAX_MS - 100)  // сначала картинка ждёт звук на audioAt
-    expect(maxStep).toBeLessThan(1e-6)                           // потом идёт дальше с обычной скоростью, без скачка (кроме самой остановки)
-    expect(prevT).toBeGreaterThan(1300 + 2000)                   // и не застряла
+  it('слово у центра экрана и при другой скорости голоса', () => {
+    const p = makeListenPlan(fills, null, 2)
+    expect(pillYAt(p.fillAt[0] + p.fillMs[0] / 2, p.fillAt[0] + p.fillMs[0] / 2)).toBeCloseTo(ZONE_Y, 6)
   })
 })

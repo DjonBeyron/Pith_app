@@ -6,6 +6,7 @@ import { speakWord, playTrack, stopVoice } from './wordLaneVoice.js'
 import { playNote, releaseNotes } from './wordLaneNotes.js'
 import { makeListenPlan } from './wordLanePlan.js'
 import { audioPlayingMs } from './wordLaneClock.js'
+import { getVoiceRate } from '../../lessonVolume.js'
 import { DROP_MS, LANES_MS, TURN_MS } from './wordLaneTimeline.js'
 import { XP_PER_PILL } from './wordLaneConfig.js'
 
@@ -23,7 +24,8 @@ import { XP_PER_PILL } from './wordLaneConfig.js'
 const EXIT_PAUSE_MS = 1700 // все дорожки закрыты: заливка доходит до конца, щелчок, нота, последняя пилюля уезжает — и только потом перевод
 
 export function useWordLaneFlow({ word, lang, fills = null, audioSrc = null, audio = null, catApi = null, onFinished }) {
-  const plan = useMemo(() => makeListenPlan(audioSrc ? fills : null, audio), [fills, audioSrc, audio])
+  const [rate] = useState(getVoiceRate) // скорость голоса урока: на неё растянут план диктора (файл играет в rate раз быстрее — картинка едет с той же скоростью конвейера)
+  const plan = useMemo(() => makeListenPlan(audioSrc ? fills : null, audio, rate), [fills, audioSrc, audio, rate])
   const [s, setS] = useState({ phase: 'drop', phaseAt: 0, xp: 0, xpEvents: [], note: '', hits: 0, misses: 0, mic: 'starting' })
   const phaseRef = useRef('drop')
   const listenerRef = useRef(null)
@@ -54,7 +56,7 @@ export function useWordLaneFlow({ word, lang, fills = null, audioSrc = null, aud
     miss() { catApi?.current?.react('shy', 1300) },
     fail() { catApi?.current?.react('shy', 1300); flash('Не успел — говори, пока пилюля на экране') },
     mouth(level) { catApi?.current?.mouth(level) },
-    audioMs: () => audioPlayingMs(audioElRef.current),
+    audioMs: () => { const ms = audioPlayingMs(audioElRef.current); return ms == null ? null : ms / rate },
     finished() { if (!revealTimerRef.current) revealTimerRef.current = setTimeout(() => go('reveal'), EXIT_PAUSE_MS) },
   }))
 

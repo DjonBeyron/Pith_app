@@ -12,7 +12,7 @@ export const MAX_TRIES = 3              // сколько раз пилюлю д
 export const CLAIM_FROM_Y = 8           // слово засчитывается пилюле, пока её центр в этих пределах (она на экране)
 export const CLAIM_TO_Y = 96
 export const FAIL_Y = CLAIM_TO_Y        // центр ниже — не успел
-export const LEAD_IN_MS = 1200          // первая пилюля уже выкатывается: в нулевую секунду она пролетела LEAD_IN_MS пути и видна у верхнего края
+export const LEAD_IN_MS = 0             // сколько пути первая пилюля уже пролетела к старту фазы: 0 — она выезжает из-за верхнего края на глазах (появиться посреди экрана рывком нельзя)
 
 export const yOfPill = (pill, t) => ENTER_Y + (SPEED * (t - pill.spawnAt)) / 1000
 export const isClaimable = pill => pill.state === 'fly' && pill.y >= CLAIM_FROM_Y && pill.y <= CLAIM_TO_Y

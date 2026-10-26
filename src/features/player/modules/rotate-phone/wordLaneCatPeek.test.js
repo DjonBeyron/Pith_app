@@ -38,11 +38,11 @@ describe('Пит: голова выскакивает на голос и пря�
     expect(new Set(xs).size).toBe(CAT_SPOTS.length)               // побывал во всех местах
   })
 
-  it('места разбросаны по всей ширине и обходят середину (там в фазе ученика микрофон)', () => {
-    expect(Math.min(...CAT_SPOTS)).toBeLessThan(25)
-    expect(Math.max(...CAT_SPOTS)).toBeGreaterThan(75)
+  it('места: голова (полэкрана шириной) целиком в кадре — центр от 25 до 75 %, слева и справа, середину (микрофон) обходят', () => {
+    expect(Math.min(...CAT_SPOTS)).toBeLessThan(35)
+    expect(Math.max(...CAT_SPOTS)).toBeGreaterThan(65)
     expect(new Set(CAT_SPOTS).size).toBe(CAT_SPOTS.length)
-    CAT_SPOTS.forEach(x => { expect(x).toBeGreaterThan(8); expect(x).toBeLessThan(92); expect(Math.abs(x - 50)).toBeGreaterThan(10) })
+    CAT_SPOTS.forEach(x => { expect(x).toBeGreaterThanOrEqual(25); expect(x).toBeLessThanOrEqual(75); expect(Math.abs(x - 50)).toBeGreaterThan(10) })
   })
 
   it('hold (реакция): торчит ровно на заданное время, даже без голоса, потом прячется', () => {
@@ -53,9 +53,10 @@ describe('Пит: голова выскакивает на голос и пря�
   })
 
   it('кот показывает только голову, вдвое крупнее прежнего', () => {
-    // viewBox обрезан по голове: 166×112 единиц спрайта 200×240 (тело не попадает в кадр)
-    const [, , w, h] = CAT_VIEWBOX.split(' ').map(Number)
-    expect(w).toBeLessThan(200); expect(h).toBeLessThan(130)
-    expect(h).toBeLessThan(240 / 2)
+    // viewBox по голове целиком: от ушей (y≈20) до шеи (подбородок y≈142), без ног и хвоста: единицы спрайта 200×240
+    const [x, y, w, h] = CAT_VIEWBOX.split(' ').map(Number)
+    expect(y).toBeLessThanOrEqual(20); expect(y + h).toBeGreaterThanOrEqual(142 + 10) // голова не срезана: ни ушей, ни подбородка с шеей
+    expect(x).toBeLessThanOrEqual(14); expect(x + w).toBeGreaterThanOrEqual(172)      // и по бокам (уши, усы)
+    expect(y + h).toBeLessThan(200)                                                    // а тело и ноги в кадр не попадают
   })
 })

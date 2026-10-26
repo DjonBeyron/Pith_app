@@ -38,16 +38,15 @@ export function useWordLanePills(rootRef, { phase, phaseAt, plan, hits, misses, 
       if (phase === 'listen') {
         dots.forEach(d => d.classList.remove('wlDot--on'))
         pills.forEach(p => { p.setAttribute('data-lock', '1'); p.removeAttribute('data-fail') }) // у диктора заливка всегда «настоящая»
-        listenRef.current = { start: phaseAt, drift: 0, prev: null, last: phaseAt, started: false, snapped: new Set() }
+        listenRef.current = { start: phaseAt, drift: 0, last: phaseAt, snapped: new Set() }
       }
       const c = listenRef.current
       let raf = 0
       const tick = () => {
         const now = performance.now() // не метка rAF: звук читаем «сейчас», и время таймера должно быть тем же «сейчас», иначе на скорости 2× разница в несколько мс даёт десятки мс рассинхрона
         const audioMs = fxRef.current?.audioMs?.() ?? null
-        if (audioMs != null) c.started = true
-        const clock = syncClock({ tTimer: now - c.start, audioMs, audioAt: plan.audioAt ?? 0, drift: c.drift, prev: c.prev, dt: now - c.last, wait: plan.audioAt != null && !c.started })
-        c.drift = clock.drift; c.prev = clock.prev; c.last = now
+        const clock = syncClock({ tTimer: now - c.start, audioMs, audioAt: plan.audioAt ?? 0, drift: c.drift, dt: now - c.last })
+        c.drift = clock.drift; c.last = now
         const t = clock.t
         for (let k = 0; k < SLOT_COUNT; k++) {
           const at = plan.fillAt[k]
