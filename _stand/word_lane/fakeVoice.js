@@ -13,5 +13,5 @@ export function fakeVoice() {
   }
   const url = URL.createObjectURL(new Blob([buf], { type: 'audio/wav' }))
   const waveformData = Array.from({ length: 120 }, (_, k) => { const t = (k / 120) * sec; return starts.some(s => t >= s && t < s + 0.5) ? 0.8 : 0.03 })
-  return { url, duration: sec, waveformData, wordTimings: starts.map(t => ({ w: 'try.', t })) }
+  return { url, duration: sec, waveformData, wordTimings: starts.map(t => ({ w: 'try.', t, e: +(t + 0.5).toFixed(2) })) }
 }

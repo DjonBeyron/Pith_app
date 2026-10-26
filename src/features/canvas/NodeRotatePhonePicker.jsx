@@ -7,7 +7,7 @@ import { NO_AUTOCORRECT } from '../../shared/lib/noAutoCorrectProps.js'
 
 // Нода «Переверни телефон» — вертикальная игра «Повтори за диктором»: слово (латиница), перевод, озвучка диктора и таймлайн.
 // «🔊 Озвучить» — ElevenLabs (тот же генератор, что у таблицы-диктора: NodeTableTts): текст — сценарий диктора (пусто → слово трижды), из ответа берутся тайминги слов, и таймлайн
-// (три клипа заливки слоёв) расставляется сам. «⏱ Таймлайн» — монтажный стол таблицы: поправить клипы руками. Без озвучки слово звучит из библиотеки озвучки слов (collectLessonWords)
+// (три клипа — слова диктора, по пилюле на каждое) расставляется сам. «⏱ Таймлайн» — монтажный стол таблицы: поправить клипы руками. Без озвучки слово звучит из библиотеки озвучки слов (collectLessonWords)
 // или голосом системы. Слово пустое — игра идёт встроенным словом (wordLaneConfig.DEMO_WORD). Текст карточки в чате правится выше, в общем поле content.
 export default function NodeRotatePhonePicker({ tData, onDataChange, lessonFiles, onPickFile, onRemoveFile }) {
   const [open, setOpen] = useState(false)
@@ -40,7 +40,7 @@ export default function NodeRotatePhonePicker({ tData, onDataChange, lessonFiles
       <div className="nodeRotateTrainerRow">
         <button type="button" className="nodeTablePickerBtn" onClick={() => setOpen(true)} disabled={!tData.file_id && !word}>⏱ Таймлайн</button>
         <span className="nodeRotateTrainerInfo">
-          {tData.file_id ? (fills ? 'озвучка есть · слои по таймлайну' : 'озвучка есть · таймлайн не расставлен') : 'без озвучки — слово из библиотеки озвучки слов / голос системы'}
+          {tData.file_id ? (fills ? 'озвучка есть · пилюли по таймлайну' : 'озвучка есть · таймлайн не расставлен') : 'без озвучки — слово из библиотеки озвучки слов / голос системы'}
         </span>
       </div>
       {open && (

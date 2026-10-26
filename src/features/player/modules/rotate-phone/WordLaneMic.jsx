@@ -3,7 +3,7 @@ import { useEffect, useRef } from 'react'
 // Микрофон игры: круглая кнопка внизу по центру и волны вокруг неё (как в «Сказать фразу»). Живые кольца — по голосу ученика (levels: подписка «уровень 0..1 каждый кадр», sayLevelSource),
 // transform пишется прямо в DOM. Нет распознавания (manual) — кольца просто дышат (CSS), а тап по кнопке засчитывает слово.
 // mode: starting (включаю) | listening (слушаю) | manual (тап = слово сказано) | done.
-const CAPTION = { starting: 'Включаю микрофон…', listening: 'Слушаю — повтори слово', manual: 'Нажми, когда повторишь', done: 'Есть!' }
+const CAPTION = { starting: 'Включаю микрофон…', listening: 'Слушаю…', manual: 'Нажми на микрофон', done: 'Есть!' }
 
 export default function WordLaneMic({ mode, levels, onTap, visible }) {
   const rings = useRef(null)

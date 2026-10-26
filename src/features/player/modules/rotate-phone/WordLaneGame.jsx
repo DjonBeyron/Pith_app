@@ -1,30 +1,28 @@
 import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
 import WordLaneLines from './WordLaneLines.jsx'
-import WordLaneSlots from './WordLaneSlots.jsx'
+import WordLanePills from './WordLanePills.jsx'
 import WordLaneMic from './WordLaneMic.jsx'
 import WordLaneDebug from './WordLaneDebug.jsx'
 import { isWordLaneDebug } from './wordLaneConfig.js'
 import { useWordLaneFlow } from './useWordLaneFlow.js'
 import { WORD_Y } from './wordLaneTimeline.js'
 
-// Вертикальная игра «Повтори за диктором» (полный экран, портрет): слово падает сверху → три дорожки со слоями → линия опускается, слои заливаются под голос диктора →
-// «Теперь твоя очередь» → микрофон, линия опускается снова и подчиняется голосу ученика → перевод слова. Сценарий и таймеры — useWordLaneFlow.js, раскладка — wordLaneTimeline.js.
+// Вертикальная игра «Повтори за диктором» (полный экран, портрет): слово падает сверху → три дорожки с пилюлями → снизу поднимается линия, пилюли заливаются под голос диктора →
+// «Теперь твоя очередь» → микрофон, линия поднимается снова и подчиняется голосу ученика → перевод слова. Сценарий и таймеры — useWordLaneFlow.js, раскладка — wordLaneTimeline.js.
 // Оверлей — portal в body поверх всего (z-index 10000), закрывает весь экран, включая зону вырезов (safe-area учтена отступами сцены). Крестик — выйти в любой момент.
 export default function WordLaneGame({ cfg, audioSrc, onFinished }) {
   const f = useWordLaneFlow({ word: cfg.word, lang: cfg.lang, fills: cfg.fills, audioSrc, onFinished })
   const { phase } = f
-  const user = phase === 'speak' || phase === 'reveal'
   const showSlots = phase !== 'drop'
   const micIn = phase === 'speak'
-  const filled = user ? f.hits : f.coach
   const debug = isWordLaneDebug()
 
   return createPortal(
     <div className="wl" data-phase={phase} data-testid="wl">
       <div className="wlStage">
         <WordLaneLines phase={phase} phaseAt={f.phaseAt} hits={f.hits} misses={f.misses} anchors={f.plan.anchors} />
-        <WordLaneSlots word={cfg.word} tone={user ? 'user' : 'coach'} filled={filled} misses={f.misses} visible={showSlots} fillMs={f.plan.fillMs} />
+        <WordLanePills hits={f.hits} misses={f.misses} visible={showSlots} />
         <div className="wlWord" style={{ top: `${WORD_Y}%` }} data-testid="wl-word">{cfg.word}</div>
         {phase === 'turn' && <div className="wlTurn" data-testid="wl-turn">Теперь твоя очередь</div>}
         {phase === 'reveal' && (

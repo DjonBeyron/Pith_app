@@ -7,7 +7,7 @@
   transform: translate(-50%, -50%);
   padding: 16px 26px;
   border-radius: 18px;
-  border: 2px solid var(--wl-coach);
+  border: 2px solid var(--wl-accent);
   background: rgba(11, 13, 17, 0.94);
   font-size: clamp(20px, 6.2vw, 30px);
   font-weight: 800;
@@ -50,7 +50,7 @@
   inset: 0;
   box-sizing: border-box;
   border-radius: 50%;
-  border: 2px solid var(--wl-user);
+  border: 2px solid var(--wl-accent);
   opacity: 0;
   will-change: transform, opacity;
 }
@@ -66,18 +66,18 @@
   position: relative;
   width: 88px;
   height: 88px;
-  border: 3px solid var(--wl-user);
+  border: 3px solid var(--wl-accent);
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   background: #15181f;
-  color: var(--wl-user);
+  color: var(--wl-accent);
   cursor: pointer;
   transition: background 0.25s, color 0.25s, transform 0.25s;
 }
-.wlMic--listening .wlMicBtn { background: var(--wl-user); color: var(--wl-ink); transform: scale(1.08); }
-.wlMic--done .wlMicBtn { background: var(--wl-coach); border-color: var(--wl-coach); color: var(--wl-ink); }
+.wlMic--listening .wlMicBtn { background: var(--wl-accent); color: var(--wl-ink); transform: scale(1.08); }
+.wlMic--done .wlMicBtn { background: var(--wl-accent); border-color: var(--wl-accent); color: var(--wl-ink); }
 
 .wlSkip {
   right: 16px;
@@ -99,7 +99,7 @@
   width: min(86%, 420px);
   padding: 22px 20px;
   border-radius: 22px;
-  border: 2px solid var(--wl-coach);
+  border: 2px solid var(--wl-accent);
   background: rgba(21, 24, 31, 0.97);
   text-align: center;
   animation: wlReveal 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
@@ -109,13 +109,13 @@
   to   { opacity: 1; transform: translate(-50%, -50%) scale(1); }
 }
 .wlRevealLabel { font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; color: #9aa0b4; }
-.wlRevealText { margin: 8px 0 18px; font-size: clamp(24px, 7.5vw, 36px); font-weight: 800; line-height: 1.2; color: var(--wl-coach); }
+.wlRevealText { margin: 8px 0 18px; font-size: clamp(24px, 7.5vw, 36px); font-weight: 800; line-height: 1.2; color: var(--wl-accent); }
 .wlNext {
   min-width: 160px;
   padding: 13px 24px;
   border: 0;
   border-radius: 14px;
-  background: var(--wl-coach);
+  background: var(--wl-accent);
   color: var(--wl-ink);
   font-size: 16px;
   font-weight: 800;
@@ -127,5 +127,3 @@
   .wlTurn, .wlReveal { animation-duration: 0.01s; }
 }
 
-/* В финале слои уходят на второй план — перевод читается поверх них */
-.wl[data-phase='reveal'] .wlSlot { opacity: 0.18; }

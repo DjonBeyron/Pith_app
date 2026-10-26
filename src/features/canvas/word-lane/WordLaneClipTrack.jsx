@@ -2,8 +2,8 @@ import { useRef, useCallback } from 'react'
 import { snapPoint, snapMove } from '../table-editor/timelineSnap.js'
 import { startDragSession } from '../table-editor/timelineDrag.js'
 
-// Дорожка слоя в таймлайне игры «Повтори за диктором»: один клип = «слой заливается». Начало клипа — момент, когда в озвучке звучит слово (слой начинает заливаться, линия
-// доходит до него); длина клипа — сколько идёт заливка. Ручки — начало/конец, тело — сдвиг; края липнут к плейхеду и к краям соседних клипов (магнит, как у таблицы).
+// Дорожка пилюли в таймлайне игры «Повтори за диктором»: один клип = слово диктора. Начало клипа — начало слова (линия входит в пилюлю, она начинает заливаться),
+// конец клипа — конец слова (пилюля залита); длина клипа задаёт скорость линии. Ручки — начало/конец, тело — сдвиг; края липнут к плейхеду и к краям соседних клипов (магнит, как у таблицы).
 export default function WordLaneClipTrack({ index, clip, duration, stripPx, lit, snapAt = null, snapEdges = [], onUpdate }) {
   const stripRef = useRef(null)
   const toPct = useCallback(t => (duration ? (t / duration) * 100 : 0), [duration])
@@ -43,12 +43,12 @@ export default function WordLaneClipTrack({ index, clip, duration, stripPx, lit,
   return (
     <div className="tlTrack">
       <span className={`tlEye wlTlDot${lit ? ' wlTlDot--lit' : ''}`} aria-hidden="true">●</span>
-      <div className="tlTrackLabel" title="Слой на дорожке игры">{`Слой ${index + 1}`}</div>
+      <div className="tlTrackLabel" title="Пилюля на дорожке игры">{`Пилюля ${index + 1}`}</div>
       <div className="tlTrackStrip" ref={stripRef} style={stripPx ? { minWidth: `${stripPx}px` } : undefined}>
         <div
           className="tlClip tlClipHighlight"
           style={{ left: `${toPct(clip.start)}%`, width: `${toPct(clip.end) - toPct(clip.start)}%` }}
-          title="Слой заливается: от начала слова в озвучке, на длину клипа"
+          title="Слово диктора: от начала слова пилюля начинает заливаться, к концу слова она залита"
         >
           <div className="tlClipHandleL" onMouseDown={e => onHandle(e, 'left')} />
           <div className="tlClipBody" onMouseDown={onBody} />

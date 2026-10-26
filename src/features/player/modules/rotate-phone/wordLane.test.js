@@ -2,8 +2,8 @@ import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import {
-  SLOTS, LANES_X, FILL_AT, LISTEN_MS, LISTEN_ANCHORS, FILL_MS, DROP_MS, LANES_MS, TURN_MS, LINE_END_Y, LINE_START_Y,
-  frontAtListen, stepSpeakFront, speakTarget, kickBack, HOLD_GAP,
+  PILLS, LANE_X, LANE_EDGES, FILL_AT, LISTEN_MS, LISTEN_ANCHORS, FILL_MS, DROP_MS, LANES_MS, TURN_MS, LINE_END_Y, LINE_START_Y, SLOT_COUNT,
+  frontAtListen, pillProgress, stepSpeakFront, speakTarget, kickBack, buildAnchors,
 } from './wordLaneTimeline.js'
 import { analyzeHeard, wordGrammar } from './wordLaneMatch.js'
 import { readWordLane, DEMO_WORD } from './wordLaneConfig.js'
@@ -11,56 +11,88 @@ import { createWordListener } from './wordLaneListen.js'
 
 const read = rel => readFileSync(fileURLToPath(new URL(rel, import.meta.url)), 'utf8')
 
-describe('раскладка: шахматный порядок и расписание', () => {
-  it('слои идут слева вниз направо, каждый на своей дорожке', () => {
-    expect(SLOTS.map(s => s.x)).toEqual(LANES_X)
-    expect(SLOTS[0].y).toBeLessThan(SLOTS[1].y)
-    expect(SLOTS[1].y).toBeLessThan(SLOTS[2].y)
+describe('раскладка: три дорожки, пилюли лесенкой', () => {
+  it('пилюли в своих дорожках: первая внизу, вторая в центре экрана, третья наверху', () => {
+    expect(PILLS.map(p => p.x)).toEqual(LANE_X)
+    expect(PILLS[0].top).toBeGreaterThan(PILLS[1].bottom) // дальше по ходу линии (вверх) — следующая пилюля, друг на друга не налезают
+    expect(PILLS[1].top).toBeGreaterThan(PILLS[2].bottom)
+    expect((PILLS[1].top + PILLS[1].bottom) / 2).toBe(50) // вторая — ровно в центре
+    expect(PILLS[0].bottom).toBeGreaterThanOrEqual(85)    // первая почти внизу
+    expect(PILLS[2].top).toBeLessThanOrEqual(15)          // третья наверху
   })
 
-  it('голова линии доходит до слоя ровно в момент его заливки', () => {
-    FILL_AT.forEach((t, k) => expect(frontAtListen(t)).toBeCloseTo(SLOTS[k].y, 5))
+  it('дорожки равные, разделители между ними', () => {
+    expect(LANE_EDGES).toHaveLength(2)
+    LANE_X.forEach((x, i) => expect(x).toBeCloseTo(i === 1 ? 50 : (i === 0 ? 100 / 6 : 500 / 6), 5))
+    expect(LANE_X[1] - LANE_X[0]).toBeCloseTo(LANE_X[2] - LANE_X[1], 5)
+  })
+
+  it('линия идёт снизу вверх: вход в пилюлю = начало заливки, верх пилюли = конец слова', () => {
+    const fillMs = FILL_AT.map(() => FILL_MS)
+    FILL_AT.forEach((t, k) => {
+      expect(frontAtListen(t)).toBeCloseTo(PILLS[k].bottom, 5)
+      expect(frontAtListen(t + fillMs[k])).toBeCloseTo(PILLS[k].top, 5)
+    })
     expect(frontAtListen(0)).toBe(LINE_START_Y)
     expect(frontAtListen(LISTEN_MS)).toBe(LINE_END_Y)
+    expect(LINE_START_Y).toBeGreaterThan(100) // стартует из-за нижнего края
+    expect(LINE_END_Y).toBeLessThan(0)        // уходит за верхний
   })
 
-  it('между заливками хватает времени на саму заливку и паузу', () => {
+  it('заливка пилюли = то, что линия уже прошла (синхронно, без отдельных часов)', () => {
+    expect(pillProgress(PILLS[0].bottom + 1, 0)).toBe(0)
+    expect(pillProgress((PILLS[0].bottom + PILLS[0].top) / 2, 0)).toBeCloseTo(0.5, 5)
+    expect(pillProgress(PILLS[0].top - 1, 0)).toBe(1)
+    expect(pillProgress(LINE_START_Y, 2)).toBe(0)
+    expect(pillProgress(LINE_END_Y, 2)).toBe(1)
+  })
+
+  it('скорость линии в пилюле = скорость речи: короткое слово — линия быстрее', () => {
+    const slow = buildAnchors([1200, 3000, 5000], [1600, 1600, 1600])
+    const quick = buildAnchors([1200, 3000, 5000], [500, 500, 500])
+    const speed = (anchors, k) => { const [t0, y0] = anchors[1 + k * 2]; const [t1, y1] = anchors[2 + k * 2]; return (y0 - y1) / (t1 - t0) }
+    expect(speed(quick, 0)).toBeGreaterThan(speed(slow, 0) * 2)
+  })
+
+  it('голова только поднимается', () => {
+    let prev = Infinity
+    for (let t = 0; t <= LISTEN_MS; t += 50) { const y = frontAtListen(t); expect(y).toBeLessThanOrEqual(prev); prev = y }
+    expect(LISTEN_ANCHORS.at(-1)[1]).toBe(LINE_END_Y)
+  })
+
+  it('между заливками хватает времени на сами слова и паузу', () => {
     expect(FILL_AT[1] - FILL_AT[0]).toBeGreaterThan(FILL_MS)
     expect(FILL_AT[2] - FILL_AT[1]).toBeGreaterThan(FILL_MS)
-  })
-
-  it('голова только движется вперёд', () => {
-    let prev = -1
-    for (let t = 0; t <= LISTEN_MS; t += 50) { const y = frontAtListen(t); expect(y).toBeGreaterThanOrEqual(prev); prev = y }
-    expect(LISTEN_ANCHORS.at(-1)[1]).toBe(LINE_END_Y)
   })
 })
 
 describe('линия ученика подстраивается под голос', () => {
-  it('стоит перед ближайшим пустым слоем и не заходит за него', () => {
+  it('ждёт у нижнего края ближайшей пустой пилюли и не заходит в неё', () => {
     let f = LINE_START_Y
     for (let i = 0; i < 600; i++) f = stepSpeakFront({ front: f, dt: 0.05, hits: 0 })
-    expect(f).toBeCloseTo(SLOTS[0].y - HOLD_GAP, 5)
+    expect(f).toBeCloseTo(PILLS[0].bottom, 5)
+    expect(pillProgress(f, 0)).toBe(0)
   })
 
-  it('принятое слово — цель смещается к следующему слою; три слова — линия уходит за экран', () => {
-    expect(speakTarget(1)).toBeCloseTo(SLOTS[1].y - HOLD_GAP, 5)
-    expect(speakTarget(3)).toBe(LINE_END_Y)
-    let f = SLOTS[2].y - HOLD_GAP
+  it('принятое слово — линия проходит пилюлю и ждёт у следующей; три слова — уходит за верх', () => {
+    expect(speakTarget(1)).toBe(PILLS[1].bottom)
+    expect(speakTarget(SLOT_COUNT)).toBe(LINE_END_Y)
+    let f = PILLS[2].bottom
     for (let i = 0; i < 200; i++) f = stepSpeakFront({ front: f, dt: 0.05, hits: 3 })
     expect(f).toBe(LINE_END_Y)
   })
 
   it('после слова линия быстрее, чем в ожидании', () => {
-    const slow = stepSpeakFront({ front: 30, dt: 0.1, hits: 1 })
-    const fast = stepSpeakFront({ front: 30, dt: 0.1, hits: 1, caught: true })
-    expect(fast).toBeGreaterThan(slow)
+    const slow = stepSpeakFront({ front: 80, dt: 0.1, hits: 1 })
+    const fast = stepSpeakFront({ front: 80, dt: 0.1, hits: 1, caught: true })
+    expect(fast).toBeLessThan(slow) // выше = меньше y
   })
 
-  it('чужое слово отодвигает голову назад, но не выше начала линии; цель выше головы — идёт назад', () => {
-    expect(kickBack(40)).toBeLessThan(40)
-    expect(kickBack(LINE_START_Y + 1)).toBe(LINE_START_Y)
-    expect(stepSpeakFront({ front: 60, dt: 0.1, hits: 0 })).toBeLessThan(60)
+  it('чужое слово отодвигает голову назад (вниз), но не глубже чем на шаг под край пилюли; цель ниже головы — идёт вниз', () => {
+    expect(kickBack(70, 0)).toBeGreaterThan(70)
+    expect(kickBack(PILLS[0].bottom, 0)).toBeLessThanOrEqual(PILLS[0].bottom + 4)
+    expect(kickBack(LINE_START_Y, 0)).toBe(LINE_START_Y)
+    expect(stepSpeakFront({ front: 60, dt: 0.1, hits: 0 })).toBeGreaterThan(60)
   })
 })
 
@@ -150,7 +182,11 @@ describe('вёрстка и подключения', () => {
   const micCss = read('../../../../styles/player/modules/word-lane-mic.css')
 
   it('длительности CSS совпадают с JS', () => {
-    expect(FILL_MS).toBe(1000); expect(css).toContain('transition: transform var(--fill-ms, 1s) linear') // FILL_MS — по умолчанию; клип таймлайна задаёт --fill-ms
+    expect(FILL_MS).toBe(1000)
+    // Заливка пилюли = положение линии: CSS-перехода у неё нет (иначе отстанет), кроме фазы turn, где пилюли пустеют
+    expect(css).toContain('transform: scaleY(var(--pv, 0))')
+    expect(css).toContain(".wl[data-phase='turn'] .wlPillFill { transition: transform 0.6s ease; }")
+    expect(css).not.toMatch(/^\.wlPillFill \{[^}]*transition/m)
     expect(DROP_MS).toBe(1000); expect(css).toContain('animation: wlDrop 1s')
     expect(LANES_MS).toBe(900)
     expect(TURN_MS).toBe(2200); expect(micCss).toContain('animation: wlTurn 2.2s')

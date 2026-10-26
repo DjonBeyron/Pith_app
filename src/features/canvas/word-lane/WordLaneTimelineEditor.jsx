@@ -8,8 +8,9 @@ import WordLaneClipTrack from './WordLaneClipTrack.jsx'
 import BackButton from '../../../shared/ui/BackButton.jsx'
 import { normalizeFills, defaultFills, fillsFromTimings } from '../../player/modules/rotate-phone/wordLanePlan.js'
 
-// Таймлайн игры «Повтори за диктором» — монтажный стол таблицы-диктора (линейка, магнит, плейхед, спектр озвучки), но дорожек всего три — по числу слоёв на экране.
-// Клип слоя = «слой начинает заливаться, когда в озвучке звучит слово, и заливается на длину клипа». 🪄 «По озвучке» ставит клипы по таймингам слов ElevenLabs, дальше можно двигать руками.
+// Таймлайн игры «Повтори за диктором» — монтажный стол таблицы-диктора (линейка, магнит, плейхед, спектр озвучки), но дорожек всего три — по числу пилюль на экране.
+// Клип = слово диктора: начало клипа — начало слова (линия входит в пилюлю, она начинает заливаться), конец клипа — конец слова (пилюля залита). Чем короче слово, тем быстрее идёт линия.
+// 🪄 «По озвучке» ставит клипы по таймингам слов ElevenLabs (начало и конец слова), дальше можно двигать руками.
 // Без озвучки таймлайн не нужен: игра идёт по расписанию по умолчанию, слово звучит из библиотеки озвучки.
 export default function WordLaneTimelineEditor({ word, fileId, waveformData, duration, timelineLen, fills, wordTimings, lessonFiles, onPickFile, onBack }) {
   const [snapOn, setSnapOn] = useState(true)
@@ -59,7 +60,7 @@ export default function WordLaneTimelineEditor({ word, fileId, waveformData, dur
         {localFileId && <span className="tlFileName" title={currentFile?.name ?? localFileId}>{currentFile?.name ?? '(загружается…)'}</span>}
         {localFileId && <button className="tlRemoveAudio" onClick={removeAudio}>✕ Убрать озвучку</button>}
         {localFileId && (
-          <button className="tlMontageBtn" onClick={montage} title="Расставить слои по таймингам слов ElevenLabs (черновик — дальше можно поправить руками)">🪄 По озвучке</button>
+          <button className="tlMontageBtn" onClick={montage} title="Расставить клипы по началу и концу слов ElevenLabs (черновик — дальше можно поправить руками)">🪄 По озвучке</button>
         )}
         <button className="tlPlayBtn" onClick={togglePlay}>{isPlaying ? '❚❚' : '▶'}</button>
         <span className="tlTime">{fmtAudioTime(currentTime)} / {fmtAudioTime(localDuration ?? timelineDur)}</span>
@@ -67,8 +68,8 @@ export default function WordLaneTimelineEditor({ word, fileId, waveformData, dur
       </div>
 
       <div className="tlHint">
-        Три клипа — три слоя на дорожках игры. Начало клипа — когда в озвучке звучит слово: в этот момент линия доходит до слоя, слой заливается и (при озвучке) слышно слово.
-        Длина клипа — сколько идёт заливка. Линия в игре стартует на 1,2 с раньше звука. Тяните ручки и тело клипа, 🧲 — магнит к плейхеду.
+        Три клипа — три слова диктора, по пилюле на каждое (1-я внизу, 2-я в центре, 3-я наверху). Начало клипа — начало слова: линия входит в пилюлю, она начинает заливаться, слышно слово.
+        Конец клипа — конец слова: пилюля залита. Чем короче клип, тем быстрее идёт линия. Линия в игре стартует на 1,2 с раньше звука. Тяните ручки и тело клипа, 🧲 — магнит к плейхеду.
         {note && <b className="slWarn"> {note}</b>}
       </div>
 
