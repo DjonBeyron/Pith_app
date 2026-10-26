@@ -86,7 +86,7 @@ export function createWordListener({ word, onChange, runtime = voskRuntime, list
     publish({ status: 'starting' })
     Promise.resolve()
       .then(() => listen(model, grammar, callbacks, {
-        autoStopMs: PAUSE_STOP_MS, completeMs: FULL_STOP_MS, maxMs: SESSION_MAX_MS, session: sayAudioSessionType(), chunk: 2048,
+        autoStopMs: PAUSE_STOP_MS, completeMs: FULL_STOP_MS, maxMs: SESSION_MAX_MS, session: sayAudioSessionType(), chunk: 1024, // мелкие куски (64 мс): громкость для пилюль приходит в 4 раза чаще, ответ быстрее;
         gate: true, cleanPartial, isComplete: text => analyzeHeard(text, word).hits >= remaining(),
       }))
       .then(h => { if (disposed || cur !== session) { try { h?.cancel() } catch { /* уже свободен */ } return } session.handle = h; if (session.stopped) h.stop() },

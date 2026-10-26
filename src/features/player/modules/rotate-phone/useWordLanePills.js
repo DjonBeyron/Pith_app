@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react'
 import { SLOT_COUNT, ENTER_Y, EXIT_Y, pillYAt, pillFill } from './wordLaneTimeline.js'
 import { syncClock } from './wordLaneClock.js'
 import { createStudentGame, stepStudent } from './wordLaneStudent.js'
-import { snapPill, missPill } from './wordLaneSnap.js'
+import { snapPill, missPill, SNAP_LEAD_MS } from './wordLaneSnap.js'
 
 // Движок пилюль игры «Повтори за диктором»: rAF пишет в style каждой пилюли `--y` (центр, % высоты экрана) и `--pv` (заливка 0…1) — React на кадры не перерисовывается.
 // Конвейер: пилюли катятся вниз с ОДНОЙ скоростью (wordLaneTimeline.SPEED).
@@ -38,21 +38,26 @@ export function useWordLanePills(rootRef, { phase, phaseAt, plan, hits, misses, 
       if (phase === 'listen') {
         dots.forEach(d => d.classList.remove('wlDot--on'))
         pills.forEach(p => { p.setAttribute('data-lock', '1'); p.removeAttribute('data-fail') }) // у диктора заливка всегда «настоящая»
-        listenRef.current = { start: phaseAt, drift: 0, last: phaseAt, snapped: new Set() }
+        listenRef.current = { start: phaseAt, drift: 0, last: phaseAt, heard: false, snapped: new Set() }
       }
       const c = listenRef.current
       let raf = 0
       const tick = () => {
         const now = performance.now() // не метка rAF: звук читаем «сейчас», и время таймера должно быть тем же «сейчас», иначе на скорости 2× разница в несколько мс даёт десятки мс рассинхрона
         const audioMs = fxRef.current?.audioMs?.() ?? null
+        if (audioMs != null && !c.heard) { // файл только что зазвучал: опоздал — перематываем его вперёд на опоздание (в тишине перед первым словом), картинка при этом идёт ровно
+          c.heard = true
+          const late = now - c.start - (plan.audioAt ?? 0) - audioMs
+          if (late > 30) fxRef.current?.skipAudio?.(late)
+        }
         const clock = syncClock({ tTimer: now - c.start, audioMs, audioAt: plan.audioAt ?? 0, drift: c.drift, dt: now - c.last })
         c.drift = clock.drift; c.last = now
         const t = clock.t
         for (let k = 0; k < SLOT_COUNT; k++) {
           const at = plan.fillAt[k]
           const ms = plan.fillMs[k]
-          paint(k, pillYAt(t, at + ms / 2), pillFill(t, at, ms, plan.curves[k]))
-          if (!c.snapped.has(k) && t >= at + ms) { c.snapped.add(k); pills[k].setAttribute('data-lock', '1'); snapPill(pills[k], k); light(k) }
+          paint(k, pillYAt(t, at), pillFill(t, at, ms, plan.curves[k]))
+          if (!c.snapped.has(k) && t >= at + ms - SNAP_LEAD_MS) { c.snapped.add(k); pills[k].setAttribute('data-lock', '1'); snapPill(pills[k], k); light(k) }
         }
         fxRef.current?.mouth?.(plan.mouth(t))
         raf = requestAnimationFrame(tick)
@@ -67,6 +72,7 @@ export function useWordLanePills(rootRef, { phase, phaseAt, plan, hits, misses, 
       hide()
       dots.forEach(d => d.classList.remove('wlDot--on'))
       const g = createStudentGame({ fillMs: plan.fillMs })
+      g.seenHits = live.current.hits; g.seenMisses = live.current.misses // слушатель стартует ещё в «твоей очереди» — слова до начала конвейера не считаем
       let level = 0
       let raf = 0
       const t0 = performance.now()
@@ -74,8 +80,8 @@ export function useWordLanePills(rootRef, { phase, phaseAt, plan, hits, misses, 
       const handle = (e, t) => {
         const el = e.pill ? pills[e.pill.slot] : null
         if (e.type === 'spawn') { el.removeAttribute('data-lock'); el.removeAttribute('data-fail'); el.style.setProperty('--pace', '0') }
-        else if (e.type === 'claim') el.setAttribute('data-lock', '1')
-        else if (e.type === 'win') { snapPill(el, e.order); light(e.order); fxRef.current?.win?.(e.order, el.getBoundingClientRect()) }
+        else if (e.type === 'claim') { el.setAttribute('data-lock', '1'); snapPill(el, e.order); light(e.order) } // отклик — в момент, когда слово принято
+        else if (e.type === 'win') fxRef.current?.win?.(e.order, el.getBoundingClientRect())
         else if (e.type === 'fail') { el.setAttribute('data-fail', '1'); fxRef.current?.fail?.() }
         else if (e.type === 'miss') { if (el) missPill(el); fxRef.current?.miss?.() }
         else if (e.type === 'done') fxRef.current?.finished?.(e.locked)

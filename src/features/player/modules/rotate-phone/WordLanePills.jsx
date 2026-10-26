@@ -4,7 +4,7 @@ import { useWordLanePills } from './useWordLanePills.js'
 
 // Дорожки и пилюли игры. Три колонки разделены линиями; в каждой — вертикальная пустая пилюля (без надписей), которая по очереди опускается в зону голоса (useWordLanePills).
 // Цвет и число обводок — как у ступеней «Моей памяти»: 1-я зелёная с одной обводкой, 2-я синяя с двумя, 3-я фиолетовая с тремя (--lvl1…3, memory-levels.css).
-// Под словом три «огонька» прогресса — зажигаются, когда пилюля защёлкнулась. Лишнее слово ученика (misses растёт) — красная вспышка на текущей пилюле: оверлей с key=misses
+// Сверху и снизу экран затемнён (wlFade, над пилюлями): пилюли выезжают из тьмы и уходят во тьму. Под словом три «огонька» прогресса — зажигаются, когда пилюля защёлкнулась. Лишнее слово ученика (misses растёт) — красная вспышка на текущей пилюле: оверлей с key=misses
 // перемонтируется и проигрывает анимацию заново, состояния для этого не нужно. Положение и заливка пилюль приходят из движка через --y и --pv.
 // Подсказка ученику (видна только в фазе ученика): «тень» слова диктора внутри пилюли — полоски, ширина которых повторяет громкость слова снизу вверх (длинная полоска — громкий кусок),
 // и метка темпа --pace — чёрточка, которая бежит вверх в темпе диктора с первого звука ученика: наливай голосом так, чтобы заливка шла вровень с меткой.
@@ -17,9 +17,6 @@ export default function WordLanePills({ phase, phaseAt, plan, hits, misses, leve
         <i /><i /><i />
         {LANE_EDGES.map(x => <b key={x} className="wlLaneEdge" style={{ left: `${x}%` }} />)}
       </div>
-      <div className={`wlDots${visible ? ' wlDots--in' : ''}`} aria-hidden="true">
-        {Array.from({ length: SLOT_COUNT }, (_, k) => <span key={k} data-dot className={`wlDot wlDot--${k + 1}`} />)}
-      </div>
       {LANE_X.map((x, i) => (
         <div key={i} data-pill className={`wlPill wlPill--${i + 1}`} style={{ left: `${x}%`, width: `${PILL_W}%`, height: `${PILL_H}%` }} data-testid={`wl-pill-${i}`}>
           <span className="wlPillClip">
@@ -29,6 +26,11 @@ export default function WordLanePills({ phase, phaseAt, plan, hits, misses, leve
           </span>
         </div>
       ))}
+      <div className={`wlFade wlFade--top${visible ? ' wlFade--in' : ''}`} aria-hidden="true" data-testid="wl-fade-top" />
+      <div className={`wlFade wlFade--bottom${visible ? ' wlFade--in' : ''}`} aria-hidden="true" data-testid="wl-fade-bottom" />
+      <div className={`wlDots${visible ? ' wlDots--in' : ''}`} aria-hidden="true">
+        {Array.from({ length: SLOT_COUNT }, (_, k) => <span key={k} data-dot className={`wlDot wlDot--${k + 1}`} />)}
+      </div>
     </div>
   )
 }

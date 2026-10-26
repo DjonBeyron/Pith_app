@@ -32,3 +32,8 @@ export function readWordLane(tData) {
 export function isWordLaneDebug() {
   try { return globalThis.localStorage?.getItem('pithy_wl_debug') === '1' || /[?&]wldebug\b/.test(globalThis.location?.search ?? '') } catch { return false }
 }
+
+// Чувствительность пилюль к голосу максимальная: пол шума и усиление берутся жёстче общих колец (sayRealLevel: пол 0,02, усиление ×5) — пилюля откликается и на тихий голос
+export const SENSITIVE_FLOOR = 0.006
+export const SENSITIVE_GAIN = 16
+export const sensitiveLevel = rms => Math.sqrt(Math.min(1, Math.max(0, (rms - SENSITIVE_FLOOR) * SENSITIVE_GAIN)))

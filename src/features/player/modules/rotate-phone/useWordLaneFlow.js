@@ -8,7 +8,7 @@ import { makeListenPlan } from './wordLanePlan.js'
 import { audioPlayingMs } from './wordLaneClock.js'
 import { getVoiceRate } from '../../lessonVolume.js'
 import { DROP_MS, LANES_MS, TURN_MS } from './wordLaneTimeline.js'
-import { XP_PER_PILL } from './wordLaneConfig.js'
+import { XP_PER_PILL, sensitiveLevel } from './wordLaneConfig.js'
 
 // Сценарий игры «Повтори за диктором» по фазам (каждая — свой эффект с таймерами, смена фазы чистит их). ВСЕ таймеры фазы считаются от ОДНОЙ точки — s.phaseAt (её же берёт движок пилюль),
 // иначе голос и картинка расходились бы на время между сменой фазы и запуском эффекта:
@@ -34,7 +34,7 @@ export function useWordLaneFlow({ word, lang, fills = null, audioSrc = null, aud
   const revealTimerRef = useRef(0)
   const xpIdRef = useRef(0)
   const noteTimerRef = useRef(0)
-  const [rms] = useState(createRmsLevel)                                  // громкость голоса ученика (кольца микрофона)
+  const [rms] = useState(() => createRmsLevel({ fromRms: sensitiveLevel }))                                 // громкость голоса ученика (кольца микрофона)
   const [levels] = useState(() => createLevelSource(t => rms.read(t)))
 
   const go = useCallback((phase, patch = null) => { phaseRef.current = phase; setS(p => ({ ...p, ...patch, phase, phaseAt: performance.now() })) }, [])
@@ -56,6 +56,11 @@ export function useWordLaneFlow({ word, lang, fills = null, audioSrc = null, aud
     miss() { catApi?.current?.react('shy', 1300) },
     fail() { catApi?.current?.react('shy', 1300); flash('Не успел — говори, пока пилюля на экране') },
     mouth(level) { catApi?.current?.mouth(level) },
+    skipAudio(ms) { // файл зазвучал с опозданием: перематываем вперёд на опоздание, но не дальше тишины перед первым словом (слово не обрезаем)
+      const el = audioElRef.current
+      const skip = Math.min(ms, plan.skipMax ?? 0)
+      if (el && skip > 0) { try { el.currentTime += (skip * rate) / 1000 } catch { /* элемент не перематывается — картинка подстроится сама */ } }
+    },
     audioMs: () => { const ms = audioPlayingMs(audioElRef.current); return ms == null ? null : ms / rate },
     finished() { if (!revealTimerRef.current) revealTimerRef.current = setTimeout(() => go('reveal'), EXIT_PAUSE_MS) },
   }))
@@ -99,26 +104,28 @@ export function useWordLaneFlow({ word, lang, fills = null, audioSrc = null, aud
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [s.phase, word, lang, go, plan, audioSrc])
 
-  // speak: слушатель живёт всю фазу
+  // Слушатель стартует уже в «твоей очереди» (последнее слово диктора кончилось ≥ END_TAIL_MS назад — эха нет): тяжёлый запуск Vosk проходит под плашкой, а не во время движения пилюль.
+  // Слова, пойманные до начала фазы ученика, конвейер не считает (движок пилюль берёт счётчики на старте speak за базу)
+  const listening = s.phase === 'turn' || s.phase === 'speak'
   useEffect(() => {
-    if (s.phase !== 'speak') return undefined
+    if (!listening) return undefined
     const l = createWordListener({
       word,
       level: rms,
       onChange: ({ status, hits, misses, heard }) => {
-        setS(p => ({
-          ...p, hits: Math.max(p.hits, hits), misses: Math.max(p.misses, misses),
-          // Чужое слово: ученику честно показываем, что услышал движок (на 2,6 с вместо подписи у микрофона)
-          note: misses > p.misses ? `Услышал: «${heard || '…'}» — нужно «${word}»` : p.note,
-          mic: status === 'listening' || status === 'starting' ? status : status === 'idle' ? p.mic : 'manual',
-        }))
-        if (misses > 0) { clearTimeout(noteTimerRef.current); noteTimerRef.current = setTimeout(() => setS(p => ({ ...p, note: '' })), 2600) }
+        setS(p => {
+          const mic = status === 'listening' || status === 'starting' ? status : status === 'idle' ? p.mic : 'manual'
+          const note = misses > p.misses && phaseRef.current === 'speak' ? `Услышал: «${heard || '…'}» — нужно «${word}»` : p.note
+          const next = { ...p, hits: Math.max(p.hits, hits), misses: Math.max(p.misses, misses), note, mic }
+          return next.hits === p.hits && next.misses === p.misses && next.note === p.note && next.mic === p.mic ? p : next // ничего не изменилось — React не перерисовываем (меньше рывков на кадрах)
+        })
+        if (misses > 0 && phaseRef.current === 'speak') { clearTimeout(noteTimerRef.current); noteTimerRef.current = setTimeout(() => setS(p => ({ ...p, note: '' })), 2600) }
       },
     })
     listenerRef.current = l
     l.start() // нет модели → onChange 'unavailable' → ручной режим
     return () => { l.dispose(); if (listenerRef.current === l) listenerRef.current = null }
-  }, [s.phase, word, rms])
+  }, [listening, word, rms])
 
   /** Тап по микрофону: в ручном режиме (распознавания нет) — «слово сказано» */
   const tapMic = useCallback(() => {

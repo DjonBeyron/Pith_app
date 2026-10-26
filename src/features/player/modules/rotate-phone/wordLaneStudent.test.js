@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { SLOT_COUNT, ENTER_Y, EXIT_Y, SPEED, LOCK_MS, ZONE_Y, FILL_CAP } from './wordLaneTimeline.js'
+import { SLOT_COUNT, ENTER_Y, EXIT_Y, SPEED, LOCK_MS, OPEN_Y, FILL_CAP } from './wordLaneTimeline.js'
 import { createStudentGame, stepStudent, STUDENT_PERIOD_MS, MAX_TRIES, CLAIM_FROM_Y, CLAIM_TO_Y, FAIL_Y, LEAD_IN_MS, isClaimable } from './wordLaneStudent.js'
 
 // Фаза ученика — конвейер: пилюли едут сами с постоянной скоростью, ученик успевает сказать слово или нет
@@ -90,7 +90,7 @@ describe('«не успел»: пилюля ушла вниз без слова'
 })
 
 describe('принятое слово: заливка, щелчок, порядок', () => {
-  it('слово достаётся самой старой пилюле на экране; заливка плавно доходит до 100 % за LOCK_MS, затем win (щелчок)', () => {
+  it('слово достаётся самой старой пилюле на экране; заливка плавно доходит до 100 % за LOCK_MS, затем win (XP, нота); щелчок — сразу на claim', () => {
     const g = createStudentGame({})
     const fire = once(2500)
     const log = run(g, t => ({ hit: fire(t) }), 6000)
@@ -166,10 +166,10 @@ describe('голос и «честность»: заливка голосом �
   it('метка темпа стартует с первого звука ученика на этой пилюле', () => {
     const g = createStudentGame({})
     const log = []
-    for (let t = 0; t <= 3000; t += DT) { stepStudent(g, t, { level: t >= 1000 ? 0.7 : 0, hits: 0, misses: 0 }); log.push(g.pills[0].onset) }
-    expect(log[Math.floor(900 / DT)]).toBeNull()
-    expect(g.pills[0].onset).toBeGreaterThanOrEqual(1000)
-    expect(g.pills[0].onset).toBeLessThan(1000 + DT * 2)
+    for (let t = 0; t <= 3500; t += DT) { stepStudent(g, t, { level: t >= 2000 ? 0.7 : 0, hits: 0, misses: 0 }); log.push(g.pills[0].onset) }
+    expect(log[Math.floor(1900 / DT)]).toBeNull()
+    expect(g.pills[0].onset).toBeGreaterThanOrEqual(2000)
+    expect(g.pills[0].onset).toBeLessThan(2000 + DT * 2)
   })
 
   it('чужое слово (miss) сливает заливку текущей пилюли и сбрасывает метку темпа; событие miss несёт пилюлю', () => {
@@ -190,6 +190,6 @@ describe('голос и «честность»: заливка голосом �
     expect(isClaimable({ state: 'lock', y: 50 })).toBe(false)
     expect(SLOT_COUNT).toBe(3)
     expect(EXIT_Y).toBeGreaterThan(FAIL_Y)
-    expect(ZONE_Y).toBeGreaterThan(CLAIM_FROM_Y)
+    expect(OPEN_Y).toBeGreaterThan(CLAIM_FROM_Y)
   })
 })

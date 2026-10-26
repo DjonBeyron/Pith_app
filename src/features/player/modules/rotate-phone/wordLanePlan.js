@@ -2,7 +2,7 @@
 // Два источника: без озвучки автора — фиксированное расписание wordLaneTimeline (голос — слово из библиотеки/система); с озвучкой ElevenLabs — таймлайн ноды `fills`
 // [{start, end}] ×3 (секунды ОТ НАЧАЛА ФАЙЛА): начало клипа = начало слова, конец клипа = конец слова. Время слов НЕ ПОДВИГАЕТСЯ (раньше слова, стоящие близко, раздвигались, и пилюля
 // расходилась со звуком): конвейер движется с постоянной скоростью, пилюли разных дорожек спокойно перекрываются по времени. Файл включается через audioAt (lead) после старта фазы — ровно столько,
-// чтобы первая пилюля успела выкатиться (leadFor): слово 0 приходится на центр экрана. Время файла и пилюль связаны одной формулой: t = LEAD_MS + секунда файла × 1000 (wordLaneClock.js
+// чтобы первая пилюля успела выкатиться и полностью открыться (leadFor): слово 0 начинается именно тогда. Время файла и пилюль связаны одной формулой: t = LEAD_MS + секунда файла × 1000 (wordLaneClock.js
 // держит эту связь по реальному звуку, а не по таймеру).
 import { SLOT_COUNT, WORD_AT, WORD_LEN, LISTEN_MS, leadFor, listenEnd, makeFillCurve, fillProfile } from './wordLaneTimeline.js'
 import { tokenize } from '../../../../shared/lib/speech/speechMatch.js'
@@ -80,8 +80,8 @@ export function makeListenPlan(fills, audio = null, rate = 1) {
   // Скорость голоса урока (rate): файл играет в rate раз быстрее/медленнее, поэтому слова плана растягиваются на 1/rate — пилюли при любой скорости голоса едут с одной скоростью конвейера
   const r = rate > 0 ? rate : 1
   const ms = fills.map(c => Math.max(MIN_WORD_MS, Math.round(((c.end - c.start) * 1000) / r)))
-  const lead = Math.round(Math.max(0, leadFor(ms[0]) - (fills[0].start * 1000) / r) + 100) // первая пилюля успевает выкатиться
+  const lead = Math.round(Math.max(0, leadFor() - (fills[0].start * 1000) / r) + 80) // первая пилюля успевает выкатиться и полностью открыться — тогда диктор начинает
   const at = fills.map(c => lead + Math.round((c.start * 1000) / r))
   const curves = fills.map(c => makeFillCurve(audio?.wave, audio?.duration, c.start, c.end))
-  return { fillAt: at, fillMs: ms, curves, profiles: curves.map(c => fillProfile(c)), mouth: makeMouthLevel(at, ms, audio, lead, r), listenMs: listenEnd(at, ms), audioAt: lead, rate: r }
+  return { fillAt: at, fillMs: ms, curves, profiles: curves.map(c => fillProfile(c)), mouth: makeMouthLevel(at, ms, audio, lead, r), listenMs: listenEnd(at, ms), audioAt: lead, rate: r, skipMax: Math.max(0, Math.round((fills[0].start * 1000) / r) - 40) }
 }

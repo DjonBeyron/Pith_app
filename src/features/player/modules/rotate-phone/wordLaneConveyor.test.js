@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import {
-  SLOT_COUNT, LANE_X, LANE_EDGES, PILL_H, ZONE_Y, ENTER_Y, EXIT_Y, SPEED, TRAVEL_MS, EXIT_TRAVEL_MS, WORD_AT, WORD_LEN, LISTEN_MS, END_TAIL_MS,
+  SLOT_COUNT, LANE_X, LANE_EDGES, PILL_H, OPEN_Y, FADE_TOP, FADE_BOTTOM, ENTER_Y, EXIT_Y, SPEED, TRAVEL_MS, EXIT_TRAVEL_MS, WORD_AT, WORD_LEN, LISTEN_MS, END_TAIL_MS,
   pillYAt, spawnTime, exitTime, leadFor, pillFill, makeFillCurve, listenEnd,
 } from './wordLaneTimeline.js'
 import { makeListenPlan, fillsFromTimings, defaultFills } from './wordLanePlan.js'
@@ -20,35 +20,26 @@ describe('конвейер: пилюли едут постоянно с одно
     }
   })
 
-  it('середина слова — ровно в центре экрана; начало слова выше центра, конец ниже, симметрично', () => {
+  it('слово начинается, когда пилюля ПОЛНОСТЬЮ открылась (вышла из верхнего затемнения), и от длины слова это не зависит; за слово пилюля проезжает ровно SPEED·длина', () => {
     for (const ms of [300, 800, 1000, 1600]) {
       const at = 4000
-      expect(pillYAt(at + ms / 2, at + ms / 2)).toBeCloseTo(ZONE_Y, 9)
-      const yStart = pillYAt(at, at + ms / 2)
-      const yEnd = pillYAt(at + ms, at + ms / 2)
-      expect(ZONE_Y - yStart).toBeCloseTo(yEnd - ZONE_Y, 9)
-      expect(yEnd - yStart).toBeCloseTo((SPEED * ms) / 1000, 9)  // за слово пилюля проезжает ровно SPEED·длина
+      expect(pillYAt(at, at)).toBeCloseTo(OPEN_Y, 9)
+      expect(OPEN_Y - PILL_H / 2).toBeGreaterThanOrEqual(FADE_TOP)           // верхний край пилюли уже ниже затемнения
+      expect(pillYAt(at + ms, at) - pillYAt(at, at)).toBeCloseTo((SPEED * ms) / 1000, 9)
     }
   })
 
-  it('слово звучит «примерно в центре»: для обычных слов (0,3–1,6 с) оно целиком в средней части экрана, не прилетает сразу в центр и не уходит с экрана', () => {
-    for (const ms of [300, 1000, 1600]) {
-      const yStart = pillYAt(5000, 5000 + ms / 2)
-      const yEnd = pillYAt(5000 + ms, 5000 + ms / 2)
-      expect(yStart).toBeGreaterThan(5)
-      expect(yEnd).toBeLessThan(92)
-      expect(yStart).toBeLessThan(ZONE_Y)
-      expect(yEnd).toBeGreaterThan(ZONE_Y)
-    }
-    // выкатилась заранее и ехала до слова не «мгновенно»: путь от верхнего края до центра занимает секунды
-    expect(TRAVEL_MS).toBeGreaterThan(2000)
+  it('до начала слова пилюля едет из тьмы, не мгновенно: от верхнего края до полного открытия проходит секунда-другая; после слова уходит в нижнее затемнение', () => {
+    expect(TRAVEL_MS).toBeGreaterThan(1000)
     expect(EXIT_TRAVEL_MS).toBeGreaterThan(2000)
+    expect(FADE_BOTTOM).toBeGreaterThan(15)
+    expect(100 - FADE_BOTTOM).toBeGreaterThan(OPEN_Y + PILL_H / 2)           // между затемнениями есть место, где пилюля видна целиком
   })
 
   it('спавн и уход считаются из той же прямой', () => {
-    for (const [at, ms] of [[3000, 1000], [6500, 700]]) {
-      expect(pillYAt(spawnTime(at, ms), at + ms / 2)).toBeCloseTo(ENTER_Y, 9)
-      expect(pillYAt(exitTime(at, ms), at + ms / 2)).toBeCloseTo(EXIT_Y, 9)
+    for (const at of [3000, 6500]) {
+      expect(pillYAt(spawnTime(at), at)).toBeCloseTo(ENTER_Y, 9)
+      expect(pillYAt(exitTime(at), at)).toBeCloseTo(EXIT_Y, 9)
     }
     expect(ENTER_Y + PILL_H / 2).toBeLessThan(0)    // при выкате пилюля целиком вне экрана
     expect(EXIT_Y - PILL_H / 2).toBeGreaterThan(100)
@@ -63,11 +54,12 @@ describe('конвейер: пилюли едут постоянно с одно
 
 describe('расписание без озвучки автора', () => {
   it('первая пилюля выкатывается не раньше нулевой секунды, слова идут друг за другом без наложения, в одном темпе', () => {
-    expect(spawnTime(WORD_AT[0], WORD_LEN[0])).toBeGreaterThanOrEqual(-1)
+    expect(spawnTime(WORD_AT[0])).toBeGreaterThanOrEqual(0)
     for (let k = 1; k < SLOT_COUNT; k++) expect(WORD_AT[k]).toBeGreaterThan(WORD_AT[k - 1] + WORD_LEN[k - 1])
-    expect(WORD_AT[2] - WORD_AT[1]).toBe(WORD_AT[1] - WORD_AT[0])
+    expect(WORD_AT[2] - WORD_AT[1]).toBeCloseTo(WORD_AT[1] - WORD_AT[0], 6)
     expect(LISTEN_MS).toBe(WORD_AT[2] + WORD_LEN[2] + END_TAIL_MS)
-    expect(leadFor(1000)).toBeCloseTo(TRAVEL_MS - 500, 9)
+    expect(leadFor()).toBeCloseTo(TRAVEL_MS, 9)                  // диктор начинает, как только первая пилюля полностью открылась
+    expect(WORD_AT[0] - TRAVEL_MS).toBeLessThan(150)             // и не медлит
   })
 })
 
@@ -89,12 +81,14 @@ describe('синхронизация плана с озвучкой: время 
     }
   })
 
-  it('первая пилюля успевает выкатиться (spawn ≥ 0) при любом начале первого слова; слово 0 приходится на центр экрана', () => {
+  it('первая пилюля успевает выкатиться (spawn ≥ 0) при любом начале первого слова; слово 0 начинается, когда пилюля полностью открылась', () => {
     for (const start0 of [0, 0.1, 0.5, 1.5, 4]) {
       const fills = [{ start: start0, end: start0 + 0.6 }, { start: start0 + 1, end: start0 + 1.6 }, { start: start0 + 2, end: start0 + 2.6 }]
       const p = makeListenPlan(fills)
-      expect(spawnTime(p.fillAt[0], p.fillMs[0])).toBeGreaterThanOrEqual(-1)
-      expect(pillYAt(p.fillAt[0] + p.fillMs[0] / 2, p.fillAt[0] + p.fillMs[0] / 2)).toBeCloseTo(ZONE_Y, 9)
+      expect(spawnTime(p.fillAt[0])).toBeGreaterThanOrEqual(-1)
+      expect(pillYAt(p.fillAt[0], p.fillAt[0])).toBeCloseTo(OPEN_Y, 9)
+      expect(p.fillAt[0] - spawnTime(p.fillAt[0])).toBeCloseTo(TRAVEL_MS, 6)
+      if (start0 <= 0.5) expect(p.fillAt[0]).toBeLessThan(TRAVEL_MS + 200) // звук начинается сразу, как пилюля открыта
     }
   })
 
@@ -107,9 +101,9 @@ describe('синхронизация плана с озвучкой: время 
       for (let s = c.start; s <= c.end + 1e-9; s += 0.05) {
         const t = p.audioAt + s * 1000                       // время фазы по звуку
         expect(pillFill(t, p.fillAt[k], p.fillMs[k], p.curves[k])).toBeCloseTo(curve((s - c.start) / (c.end - c.start)), 6)
-        const y = pillYAt(t, p.fillAt[k] + p.fillMs[k] / 2)
-        expect(y).toBeGreaterThanOrEqual(ZONE_Y - (SPEED * p.fillMs[k]) / 2000 - 1e-6)   // внутри «окна слова» вокруг центра
-        expect(y).toBeLessThanOrEqual(ZONE_Y + (SPEED * p.fillMs[k]) / 2000 + 1e-6)
+        const y = pillYAt(t, p.fillAt[k])
+        expect(y).toBeGreaterThanOrEqual(OPEN_Y - 1e-6)                                   // внутри «окна слова»: от полного открытия…
+        expect(y).toBeLessThanOrEqual(OPEN_Y + (SPEED * p.fillMs[k]) / 1000 + 1e-6)       // …на SPEED·длина вниз
       }
       expect(pillFill(p.audioAt + c.start * 1000 - 1, p.fillAt[k], p.fillMs[k], p.curves[k])).toBe(0)  // до слова пустая
       expect(pillFill(p.audioAt + c.end * 1000 + 1, p.fillAt[k], p.fillMs[k], p.curves[k])).toBe(1)    // после слова полная
@@ -201,13 +195,13 @@ describe('скорость голоса урока: план растягива�
       const p = makeListenPlan(fills, null, rate)
       expect(p.fillMs[0]).toBeCloseTo(base.fillMs[0] / rate, -1)
       expect(p.fillAt[1] - p.fillAt[0]).toBeCloseTo((base.fillAt[1] - base.fillAt[0]) / rate, -1)
-      const mid = p.fillAt[0] + p.fillMs[0] / 2
-      expect(((pillYAt(mid + 1000, mid) - pillYAt(mid, mid)))).toBeCloseTo(SPEED, 6)
+      const at0 = p.fillAt[0]
+      expect(pillYAt(at0 + 1000, at0) - pillYAt(at0, at0)).toBeCloseTo(SPEED, 6)
       expect(p.rate).toBe(rate)
     }
   })
-  it('слово у центра экрана и при другой скорости голоса', () => {
+  it('слово начинается при полном открытии и при другой скорости голоса', () => {
     const p = makeListenPlan(fills, null, 2)
-    expect(pillYAt(p.fillAt[0] + p.fillMs[0] / 2, p.fillAt[0] + p.fillMs[0] / 2)).toBeCloseTo(ZONE_Y, 6)
+    expect(pillYAt(p.fillAt[0], p.fillAt[0])).toBeCloseTo(OPEN_Y, 6)
   })
 })

@@ -1,23 +1,35 @@
 import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
-import { voiceFillStep, fillProfile, makeFillCurve, FILL_CAP, VOICE_THRESHOLD } from './wordLaneTimeline.js'
+import { voiceFillStep, fillProfile, makeFillCurve, FILL_CAP, VOICE_THRESHOLD, ONSET_P } from './wordLaneTimeline.js'
 import { makeListenPlan, makeMouthLevel } from './wordLanePlan.js'
 import { makeNoteWav, NOTES, NOTE_FREQS } from './wordLaneNotes.js'
 import { mouthShape } from './wordLaneMouth.js'
-import { XP_PER_PILL } from './wordLaneConfig.js'
+import { XP_PER_PILL, sensitiveLevel } from './wordLaneConfig.js'
+import { levelFromRms } from '../../../../shared/lib/speech/sayRealLevel.js'
 import { createWordListener } from './wordLaneListen.js'
 
 const read = rel => readFileSync(fileURLToPath(new URL(rel, import.meta.url)), 'utf8')
 
 describe('подсказка ученику: темп и «тень» слова диктора', () => {
-  it('голос наливает пилюлю до FILL_CAP ровно за длину слова диктора: короткое слово — быстрее, длинное — медленнее', () => {
+  it('голос наливает пилюлю до FILL_CAP быстрее слова диктора (отклик максимальный), но в его пропорции: короткое слово — быстрее, длинное — медленнее', () => {
     const fillTime = ms => { let p = 0; let t = 0; while (p < FILL_CAP && t < 10) { p = voiceFillStep(p, 0.01, 1, ms); t += 0.01 } return t * 1000 }
-    expect(fillTime(1000)).toBeGreaterThan(950)
-    expect(fillTime(1000)).toBeLessThan(1050)
+    expect(fillTime(1000)).toBeGreaterThan(450)
+    expect(fillTime(1000)).toBeLessThan(750)
     expect(fillTime(500)).toBeLessThan(fillTime(1000) * 0.6)
     expect(fillTime(1600)).toBeGreaterThan(fillTime(1000) * 1.5)
     expect(voiceFillStep(0.2, 0.1, VOICE_THRESHOLD, 1000)).toBe(0.2) // не громче порога — не наливает
+  })
+
+  it('максимальная чувствительность: самый тихий голос уже реагирует, а первый звук сразу даёт заметную заливку (не разгоняется с нуля)', () => {
+    expect(VOICE_THRESHOLD).toBeLessThanOrEqual(0.05)
+    expect(voiceFillStep(0, 0.016, VOICE_THRESHOLD + 0.01, 1000)).toBeGreaterThanOrEqual(ONSET_P)   // один кадр еле слышного голоса
+    expect(voiceFillStep(0, 0.016, 0.3, 1000)).toBeGreaterThanOrEqual(0.08)
+    // шкала громкости микрофона: тихая речь (RMS 0,02) → уже заметный уровень, обычная (0,1) → почти максимум; шум комнаты (0,004) — ноль
+    expect(sensitiveLevel(0.02)).toBeGreaterThan(0.45)
+    expect(sensitiveLevel(0.1)).toBeGreaterThan(0.95)
+    expect(sensitiveLevel(0.004)).toBe(0)
+    expect(sensitiveLevel(0.02)).toBeGreaterThan(levelFromRms(0.02))                                  // чувствительнее общей шкалы колец
   })
 
   it('профиль «тени»: 10 полосок 0.25…1; ровный без озвучки; следует громкости слова с озвучкой', () => {

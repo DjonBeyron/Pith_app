@@ -5,13 +5,13 @@ import { levelFromRms } from '../speech/sayRealLevel.js'
 
 export const LEVEL_DECAY_MS = 300
 
-export function createRmsLevel({ now = () => (typeof performance !== 'undefined' ? performance.now() : Date.now()) } = {}) {
+export function createRmsLevel({ now = () => (typeof performance !== 'undefined' ? performance.now() : Date.now()), fromRms = levelFromRms } = {}) {
   let level = 0
   let at = 0
   const decayed = t => (level <= 0 ? 0 : Math.max(0, level * (1 - Math.max(0, t - at) / LEVEL_DECAY_MS)))
   return {
     /** Пришёл кусок звука с громкостью rms (0..1) */
-    push(rms, t = now()) { level = Math.max(levelFromRms(rms), decayed(t)); at = t },
+    push(rms, t = now()) { level = Math.max(fromRms(rms), decayed(t)); at = t },
     /** Уровень 0..1 на момент t (метка кадра rAF той же шкалы performance.now) */
     read(t = now()) { return decayed(t) },
     reset() { level = 0; at = 0 },

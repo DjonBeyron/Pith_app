@@ -74,8 +74,14 @@
 .wlLanes i { flex: 1; } /* колонки одного цвета с фоном: зазор между обводками пилюль (--wl-bg) сливается с дорожкой */
 .wlLaneEdge { position: absolute; top: 0; bottom: 0; width: 0; border-left: 1px solid rgba(255, 255, 255, 0.16); }
 
+/* Затемнение сверху (откуда выезжают пилюли) и снизу (куда уходят): над пилюлями, под словом, огоньками, микрофоном и котом. Высоты — wordLaneTimeline.FADE_TOP / FADE_BOTTOM */
+.wlFade { left: 0; right: 0; opacity: 0; transition: opacity 0.8s ease; pointer-events: none; }
+.wlFade--in { opacity: 1; }
+.wlFade--top { top: 0; height: 14%; background: linear-gradient(to bottom, var(--wl-bg) 0%, var(--wl-bg) 45%, rgba(14, 17, 22, 0) 100%); }
+.wlFade--bottom { bottom: 0; height: 28%; background: linear-gradient(to top, var(--wl-bg) 0%, var(--wl-bg) 40%, rgba(14, 17, 22, 0) 100%); }
+
 /* «Огоньки» прогресса под словом: зажигаются, когда пилюля защёлкнулась (цвета ступеней памяти) */
-.wlDots { left: 50%; top: 12.5%; transform: translateX(-50%); display: flex; gap: 10px; opacity: 0; transition: opacity 0.8s ease; }
+.wlDots { left: 50%; top: 10.5%; transform: translateX(-50%); display: flex; gap: 10px; opacity: 0; transition: opacity 0.8s ease; }
 .wlDots--in { opacity: 1; }
 .wlDot { width: 10px; height: 10px; border-radius: 50%; border: 2px solid var(--dc, #3a3f4a); box-sizing: border-box; transition: background 0.5s ease, box-shadow 0.5s ease; }
 .wlDot--1 { --dc: var(--lvl1, #b6fe3b); } .wlDot--2 { --dc: var(--lvl2, #4fb3ee); } .wlDot--3 { --dc: var(--lvl3, #9a76f8); }
@@ -169,6 +175,7 @@
   background: none;
   contain: none;
   pointer-events: none;
+  z-index: 8;                                                     /* кот — поверх ВСЕГО интерфейса (пилюли, затемнения, микрофон, плашки); кликов не ловит */
   transform: translate(-50%, 108%);                               /* спрятан под нижним краем */
   transition: transform 0.55s cubic-bezier(0.34, 1.45, 0.5, 1);   /* выскакивает с «пружиной» */
 }

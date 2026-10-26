@@ -5,11 +5,11 @@
 //  • Пока ученик говорит, пилюля наливается его голосом (voiceFillStep, не выше FILL_CAP): видно, что тебя слышат; чужое слово сливает заливку (miss).
 //  • Пилюля ушла вниз (центр ниже FAIL_Y) без принятого слова — «не успел» (fail): она гаснет, а пилюлю этой дорожки выкатят снова (не больше MAX_TRIES раз, дальше дорожка считается потерянной).
 //  • Игра закончена (done), когда у каждой дорожки пилюля принята или потеряна и ничего не летит.
-import { SLOT_COUNT, ENTER_Y, EXIT_Y, SPEED, LOCK_MS, VOICE_THRESHOLD, voiceFillStep, drainStep, easeInOut } from './wordLaneTimeline.js'
+import { SLOT_COUNT, OPEN_Y, ENTER_Y, EXIT_Y, SPEED, LOCK_MS, VOICE_THRESHOLD, voiceFillStep, drainStep, easeInOut } from './wordLaneTimeline.js'
 
 export const STUDENT_PERIOD_MS = 2000   // новая пилюля выкатывается каждые 2 с (пока есть дорожки без принятой пилюли)
 export const MAX_TRIES = 3              // сколько раз пилюлю дорожки выкатят, если ученик не успел
-export const CLAIM_FROM_Y = 8           // слово засчитывается пилюле, пока её центр в этих пределах (она на экране)
+export const CLAIM_FROM_Y = OPEN_Y - 6  // слово засчитывается пилюле, пока её центр в этих пределах (она уже выходит из верхнего затемнения и ещё не ушла в нижнее)
 export const CLAIM_TO_Y = 96
 export const FAIL_Y = CLAIM_TO_Y        // центр ниже — не успел
 export const LEAD_IN_MS = 0             // сколько пути первая пилюля уже пролетела к старту фазы: 0 — она выезжает из-за верхнего края на глазах (появиться посреди экрана рывком нельзя)
@@ -20,7 +20,7 @@ export const isClaimable = pill => pill.state === 'fly' && pill.y >= CLAIM_FROM_
 export function createStudentGame({ fillMs = [1000, 1000, 1000], period = STUDENT_PERIOD_MS, maxTries = MAX_TRIES, leadIn = LEAD_IN_MS } = {}) {
   return {
     t: 0, period, maxTries, leadIn, fillMs,
-    nextSpawn: 0, nextId: 1, pills: [], locked: 0, finished: false,
+    nextSpawn: 0, nextId: 1, pills: [], locked: 0, claimed: 0, finished: false,
     slot: Array(SLOT_COUNT).fill('todo'),  // todo — ждёт выката | fly — пилюля в пути | won — принята | lost — исчерпала попытки
     tries: Array(SLOT_COUNT).fill(0),
     seenHits: 0, seenMisses: 0,
@@ -55,7 +55,7 @@ export function stepStudent(g, t, { level = 0, hits = 0, misses = 0 } = {}) {
     } else if (p.state === 'lock') {
       const u = (t - p.lockAt) / LOCK_MS
       p.p = p.from + (1 - p.from) * easeInOut(u)
-      if (u >= 1) { p.p = 1; p.state = 'won'; g.locked += 1; events.push({ type: 'win', pill: p, order: g.locked - 1 }) }
+      if (u >= 1) { p.p = 1; p.state = 'won'; g.locked += 1; events.push({ type: 'win', pill: p, order: p.order }) }
     } else if (p.state === 'failed') {
       p.p = drainStep(p.p, dt * 0.6)
     }
@@ -68,9 +68,9 @@ export function stepStudent(g, t, { level = 0, hits = 0, misses = 0 } = {}) {
   for (let i = 0; i < newHits; i++) {
     const p = oldestClaimable()
     if (!p) { events.push({ type: 'late' }); continue }
-    p.state = 'lock'; p.lockAt = t; p.from = p.p; p.drain = false
+    p.state = 'lock'; p.lockAt = t; p.from = p.p; p.drain = false; p.order = g.claimed++
     g.slot[p.slot] = 'won'
-    events.push({ type: 'claim', pill: p })
+    events.push({ type: 'claim', pill: p, order: p.order }) // щелчок — сразу на claim, а не после заливки: ученик видит отклик в момент, когда слово принято
   }
   const newMisses = Math.max(0, misses - g.seenMisses)
   g.seenMisses = Math.max(g.seenMisses, misses)
