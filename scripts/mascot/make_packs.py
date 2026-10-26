@@ -55,14 +55,13 @@ def boy_pack():
     def closed_happy():
         return ''.join(f'<path d="M{cx - 52} 318Q{cx} 250 {cx + 52} 318" fill="none" stroke="#0a0606" stroke-width="13" stroke-linecap="round"/>' for cx in (209, 383))
     blush = lambda op: ''.join(f'<ellipse cx="{x}" cy="390" rx="26" ry="13" fill="#ff8fb3" opacity="{op}"/>' for x in (148, 444))
-    sweat = '<path d="M486 238C474 256 472 270 484 276C496 270 496 254 486 238Z" fill="#9fd8ff" stroke="#4aa3de" stroke-width="3"/><path d="M481 262Q481 268 486 270" fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="round"/>'
     floating = (f'<path d="{heart_path(522, 140, 34, 31)}" fill="#ff5b8e" transform="rotate(12 522 140)"/><path d="{heart_path(548, 205, 22, 20)}" fill="#ff93b4" transform="rotate(18 548 205)"/>'
                 f'<path d="{heart_path(470, 82, 20, 18)}" fill="#ff93b4" transform="rotate(-12 470 82)"/><path d="{heart_path(70, 150, 26, 24)}" fill="#ff93b4" transform="rotate(-16 70 150)"/>')
     S = lambda eyes_, deco, mouth, pupil=(1, 1), tilt=0: {'eyes': eyes_, 'brows': '', 'deco': deco, 'mouth': STUB + mouth if mouth else None, 'pupil': list(pupil), 'tilt': tilt}
     st = {
         'base': S(eyes(.8), '', None),
-        'pretend': S(eyes(.8, (-6, 0), heart_hl=True), blush(.45), 'M276 366Q296 369 316 362'),                 # делает вид, что всё нормально
-        'shy': S(eyes(.8, (-16, -12)), blush(.8) + sweat, 'M278 364Q296 375 314 364', tilt=-2),                   # отводит взгляд (выбранный вариант)
+        'pretend': S(eyes(.8, (-6, 0)), blush(.45), 'M276 366Q296 369 316 362'),                 # делает вид, что всё нормально
+        'shy': S(eyes(.8, (-16, -12)), blush(.8), 'M278 364Q296 375 314 364', tilt=-2),                   # отводит взгляд (выбранный вариант)
         'love': S(eyes(hearts='#ff4d86'), blush(.65) + floating, 'M274 363Q296 380 318 363', pupil=(1.0, 1.0)),    # сердечки в зрачках (пульсируют)
         'bliss': S(closed_happy(), blush(.65) + floating, 'M268 362Q296 386 324 362'),                            # блаженные закрытые глаза
     }
