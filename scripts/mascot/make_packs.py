@@ -54,7 +54,8 @@ def boy_pack():
         return out
     def closed_happy():
         return ''.join(f'<path d="M{cx - 52} 318Q{cx} 250 {cx + 52} 318" fill="none" stroke="#0a0606" stroke-width="13" stroke-linecap="round"/>' for cx in (209, 383))
-    blush = lambda op: ''.join(f'<ellipse cx="{x}" cy="390" rx="26" ry="13" fill="#ff8fb3" opacity="{op}"/>' for x in (148, 444))
+    # румянец целиком внутри лица: от края обводки не ближе 14 px (проверено растром по силуэту головы), иначе красные пятна заходят на обводку и за контур
+    blush = lambda op: ''.join(f'<ellipse cx="{x}" cy="388" rx="22" ry="11" fill="#ff8fb3" opacity="{op}"/>' for x in (172, 421))
     floating = (f'<path d="{heart_path(522, 140, 34, 31)}" fill="#ff5b8e" transform="rotate(12 522 140)"/><path d="{heart_path(548, 205, 22, 20)}" fill="#ff93b4" transform="rotate(18 548 205)"/>'
                 f'<path d="{heart_path(470, 82, 20, 18)}" fill="#ff93b4" transform="rotate(-12 470 82)"/><path d="{heart_path(70, 150, 26, 24)}" fill="#ff93b4" transform="rotate(-16 70 150)"/>')
     S = lambda eyes_, deco, mouth, pupil=(1, 1), tilt=0: {'eyes': eyes_, 'brows': '', 'deco': deco, 'mouth': STUB + mouth if mouth else None, 'pupil': list(pupil), 'tilt': tilt}
