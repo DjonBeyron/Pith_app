@@ -51,7 +51,7 @@ describe('щелчок не сдвигает пилюлю', () => {
     expect(snap).not.toMatch(/animate\(\[[^\]]*translate:/)                // у промаха теперь transform
     expect(snap).toContain("transform: 'translateX(-6px)'")
     expect(css).toMatch(/\.wlPill \{[^}]*translate: -50% calc\(var\(--y\) \* 1dvh - 50%\)/)
-    expect(css).not.toMatch(/\.wlPill \{[^}]*\n  transform:/)               // в базе у пилюли transform не задан — он свободен для дрожки
+    expect(css).not.toMatch(/\.wlPill \{[^}]*\n {2}transform:/)               // в базе у пилюли transform не задан — он свободен для дрожки
   })
 })
 
