@@ -113,8 +113,8 @@ describe('вёрстка и подключения', () => {
 
   it('длительности CSS совпадают с JS', () => {
     // Заливка пилюли = положение линии: CSS-перехода у неё нет (иначе отстанет), кроме фазы turn, где пилюли пустеют
-    expect(css).toContain('transform: scaleY(var(--pv, 0))')
-    expect(css).toContain('translate(-50%, calc(var(--y) * 1dvh - 50%))') // положение — GPU-трансформация из --y
+    expect(css).toMatch(/\.wlPillFill \{[^}]*transform: scaleY\(0\)/)                          // заливку пишет движок прямо в style.transform fill-слоя
+    expect(css).toContain('translate: -50% calc(var(--y) * 1dvh - 50%)') // стартовое положение — свойство translate (сам ход — WAAPI)
     expect(css).not.toMatch(/^\.wlPill(Fill)? \{[^}]*transition/m) // движок сам пишет каждый кадр: переходы отставили бы пилюлю от речи
     expect(DROP_MS).toBe(1000); expect(css).toContain('animation: wlDrop 1s')
     expect(LANES_MS).toBe(900)

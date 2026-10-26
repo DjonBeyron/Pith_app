@@ -14,7 +14,7 @@ export const SPARK_COUNT = 14
 /** Цвета искр пилюли k: её цвет, его светлый тон и белый */
 export const sparkColors = k => [levelHex(k + 1), LIGHT[k] ?? '#ffffff', '#ffffff']
 
-/** Хлопок: масштаб 1 → 1.12 → 1 с мягкой «усадкой». Анимируется отдельное свойство scale, а не transform: положение пилюли (translate из --y) остаётся за движком, они не мешают друг другу */
+/** Хлопок: масштаб 1 → 1.12 → 1 с мягкой «усадкой». Анимируется отдельное свойство scale: положение пилюли — свойство translate (композитор, wordLaneMotion.js), оно стоит в цепочке ПЕРЕД scale, поэтому хлопок не сдвигает пилюлю */
 export const POP_FRAMES = [
   { scale: 1 },
   { scale: 1.12, offset: 0.38 },
@@ -43,10 +43,10 @@ export function snapPill(pill, k) {
   try { navigator.vibrate?.(14) } catch { /* не везде есть */ }
 }
 
-/** Промах ученика: красная вспышка и короткая дрожь пилюли (отдельное свойство translate — положение из --y не трогаем) */
+/** Промах ученика: красная вспышка и короткая дрожь пилюли (transform: translateX — положение пилюли живёт в свойстве translate и в этой анимации не участвует) */
 export function missPill(pill) {
   if (!pill) return
-  pill.animate([{ translate: '0 0' }, { translate: '-6px 0', offset: 0.2 }, { translate: '6px 0', offset: 0.4 }, { translate: '-3px 0', offset: 0.6 }, { translate: '0 0' }], { duration: 560, easing: 'ease-out' })
+  pill.animate([{ transform: 'translateX(0)' }, { transform: 'translateX(-6px)', offset: 0.2 }, { transform: 'translateX(6px)', offset: 0.4 }, { transform: 'translateX(-3px)', offset: 0.6 }, { transform: 'translateX(0)' }], { duration: 560, easing: 'ease-out' })
   const clip = pill.querySelector('.wlPillClip')
   if (clip) flash(clip, 'inset:0;border-radius:999px;background:rgba(255,93,115,0.55);', [{ opacity: 1 }, { opacity: 0 }], 700)
 }

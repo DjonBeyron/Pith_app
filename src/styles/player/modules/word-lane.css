@@ -1,6 +1,6 @@
 /* Игра «Повтори за диктором» (WordLaneGame.jsx), вертикальная версия, полный экран. Раскладка — в ПРОЦЕНТАХ экрана (wordLaneTimeline.js: LANE_X / ZONE_Y / WORD_Y), поэтому и вёрстка,
    и движение пилюль лежат в одной сетке. Три дорожки разделены линиями; в каждой — вертикальная пустая пилюля. Пилюли идут ПО ОЧЕРЕДИ: опускаются сверху в центр экрана («зона голоса»),
-   там их озвучивает диктор (заливка снизу вверх синхронно с речью), затем щелчок и пилюля уходит вниз. Положение (--y) и заливку (--pv) пишет движок useWordLanePills каждый кадр
+   там их озвучивает диктор (заливка снизу вверх синхронно с речью), затем щелчок и пилюля уходит вниз. Ход пилюль ведёт композитор (WAAPI-полёт, wordLaneMotion.js), а заливку (style.transform fill-слоя) пишет движок useWordLanePills
    (CSS-переходов у них нет — иначе отставали бы от речи). Цвета пилюль — ступени «Моей памяти» (memory-levels.css: --lvl1 зелёный, --lvl2 синий, --lvl3 фиолетовый), обводок 1 / 2 / 3.
    Микрофон, плашки и перевод — word-lane-mic.css. */
 
@@ -94,8 +94,8 @@
   --rgb: var(--lvl1-rgb, 182, 254, 59);
   --y: -14;
   top: 0;
-  transform: translate(-50%, calc(var(--y) * 1dvh - 50%));
-  will-change: transform;
+  translate: -50% calc(var(--y) * 1dvh - 50%);               /* стартовое положение (за верхним краем); сам ход — WAAPI-анимация свойства translate на композиторе (wordLaneMotion.js). Именно translate, а не transform: хлопок (scale) не должен масштабировать сдвиг */
+  will-change: translate, scale;
   border-radius: 999px;
   background: linear-gradient(to bottom, rgba(var(--rgb), 0.14), rgba(var(--rgb), 0.04)), var(--wl-card);
   box-shadow: inset 0 0 0 2px rgba(var(--rgb), 0.9), inset 0 0 18px -6px rgba(var(--rgb), 0.5);
@@ -110,7 +110,7 @@
   position: absolute;
   inset: 0;
   background: linear-gradient(to top, rgba(var(--rgb), 0.78), var(--c));
-  transform: scaleY(var(--pv, 0));
+  transform: scaleY(0);                                    /* заливку (scaleY 0…1) пишет движок прямо в style.transform */
   transform-origin: 50% 100%;
   will-change: transform;
 }
@@ -130,8 +130,9 @@
 .wlDbg--anchor { background: #b6fe3b; } .wlDbg--anchor span { color: #b6fe3b; }
 .wlDbg--lane { background: #9aa0b4; } .wlDbg--lane span { color: #9aa0b4; left: -8px; top: -14px; }
 
-/* Подсказка ученику (фаза speak): «тень» слова диктора — полоски по высоте пилюли (ширина = громкость куска слова) и метка темпа --pace, бегущая вверх в темпе диктора с первого
-   звука ученика. Сама метка — чёрточка поперёк пилюли; наливай так, чтобы заливка шла вровень с ней. В фазе диктора и после подтверждения слова (data-lock) подсказка скрыта */
+/* «Худ» в пилюле ученика реагирует ТОЛЬКО на голос: «тень» слова диктора (полоски по высоте, ширина = громкость куска слова) и метка темпа --pace (чёрточка, бегущая вверх в темпе диктора
+   с первого звука). Без голоса обе скрыты (opacity 0), пока ученик говорит — движок (useWordLanePills) пишет им opacity по громкости голоса и позицию метки; после принятия слова гаснут.
+   Прозрачность следует за голосом почти без задержки (0,1 с), поэтому статичного худа нет. */
 .wlGhost {
   position: absolute;
   inset: 8% 0;
@@ -140,20 +141,18 @@
   align-items: center;
   justify-content: space-between;
   opacity: 0;
-  transition: opacity 0.6s ease;
+  transition: opacity 0.1s linear;
 }
 .wlGhost i { display: block; height: 6%; border-radius: 99px; background: rgba(var(--rgb), 0.55); }
-.wl[data-phase='speak'] .wlPill:not([data-lock]) .wlGhost { opacity: 0.35; }
 .wlPace {
   position: absolute;
   inset: 0 8%;
-  transform: translateY(calc(var(--pace, 0) * -100%)); /* линия у нижнего края блока, блок едет вверх на долю своей высоты: двигает композитор, а не раскладка */
-  will-change: transform;
   opacity: 0;
-  transition: opacity 0.4s ease;
+  transform: translateY(0);                                /* линия у нижнего края блока; движок сдвигает блок вверх на долю высоты (translateY(-pace·100%)): двигает композитор */
+  will-change: transform, opacity;
+  transition: opacity 0.1s linear;
 }
 .wlPace::after { content: ''; position: absolute; left: 0; right: 0; bottom: -1.5px; height: 3px; border-radius: 2px; background: #fff; box-shadow: 0 0 8px rgba(255, 255, 255, 0.7); }
-.wl[data-phase='speak'] .wlPill:not([data-lock]) .wlPace { opacity: 0.75; }
 
 /* «Честность оценки»: пока слово не подтверждено распознаванием, заливка голосом — «ожидающая» (полупрозрачная, со штриховкой); подтвердили (data-lock) — сплошная.
    Видно разницу между «меня слышно» и «слово засчитано». В фазе диктора заливка всегда сплошная (data-lock стоит у всех) */
@@ -203,4 +202,4 @@
 /* «Не успел»: пилюля ушла вниз без принятого слова — гаснет и серая (data-fail); её выкатят снова */
 .wlPill[data-fail] { opacity: 0.4; transition: opacity 0.5s ease; }
 .wlPill[data-fail] .wlPillFill { background: #7b8494; }
-.wlPill[data-fail] .wlGhost, .wlPill[data-fail] .wlPace { opacity: 0; }
+.wlPill[data-fail] .wlGhost, .wlPill[data-fail] .wlPace { opacity: 0 !important; }

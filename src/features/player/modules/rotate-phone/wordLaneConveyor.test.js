@@ -4,7 +4,6 @@ import {
   pillYAt, spawnTime, exitTime, leadFor, pillFill, makeFillCurve, listenEnd,
 } from './wordLaneTimeline.js'
 import { makeListenPlan, fillsFromTimings, defaultFills } from './wordLanePlan.js'
-import { syncClock, audioPlayingMs, MAX_RATE } from './wordLaneClock.js'
 
 // Конвейер диктора: постоянная скорость, слово — около центра, время слов не подвигается, картинка идёт по звуку (синхронизация)
 describe('конвейер: пилюли едут постоянно с одной скоростью', () => {
@@ -122,68 +121,6 @@ describe('синхронизация плана с озвучкой: время 
     const p = makeListenPlan(defaultFills(6))
     expect(p.listenMs).toBe(listenEnd(p.fillAt, p.fillMs))
     expect(p.listenMs).toBe(p.fillAt[2] + p.fillMs[2] + END_TAIL_MS)
-  })
-})
-
-describe('часы: картинка течёт ровно и подстраивается под звук плавно', () => {
-  // Симуляция кадров: звук стартует в audioStartMs (по таймеру), его currentTime можно «огрублять» (шаг step, как на телефоне) и шуметь
-  const run = ({ audioStartMs, audioAt = 1300, frames = 700, dt = 16, step = 0, noise = 0, seed = 1 }) => {
-    let rnd = seed
-    const rand = () => { rnd = (rnd * 16807) % 2147483647; return rnd / 2147483647 - 0.5 }
-    let drift = 0
-    const out = []
-    for (let f = 1; f <= frames; f++) {
-      const tTimer = f * dt
-      const playing = tTimer >= audioStartMs
-      let audioMs = playing ? tTimer - audioStartMs + rand() * noise : null
-      if (audioMs != null && step) audioMs = Math.floor(audioMs / step) * step
-      if (audioMs != null && audioMs <= 0) audioMs = null
-      const c = syncClock({ tTimer, audioMs, audioAt, drift, dt })
-      drift = c.drift
-      out.push({ t: c.t, audioT: playing ? audioAt + tTimer - audioStartMs : null })
-    }
-    return out
-  }
-  const steps = frames => frames.slice(1).map((r, i) => r.t - frames[i].t)
-
-  it('звук включился с опозданием 300 мс (декодирование на телефоне): картинка плавно подстраивается и сходится к звуку', () => {
-    const frames = run({ audioStartMs: 1300 + 300, frames: 900 })
-    const last = frames.at(-1)
-    expect(Math.abs(last.t - last.audioT)).toBeLessThan(15)
-  })
-
-  it('картинка НИКОГДА не втыкается и не прыгает: шаг каждого кадра в пределах ±MAX_RATE от обычного — даже при опоздании звука, грубом currentTime (шаг 100 мс) и шуме', () => {
-    for (const late of [0, 80, 150, 400, 900]) {
-      for (const [step, noise] of [[0, 0], [100, 0], [250, 0], [0, 60], [50, 40]]) {
-        const frames = run({ audioStartMs: 1300 + late, frames: 700, step, noise })
-        for (const d of steps(frames)) {
-          expect(d).toBeGreaterThanOrEqual(16 * (1 - MAX_RATE) - 1e-9)
-          expect(d).toBeLessThanOrEqual(16 * (1 + MAX_RATE) + 1e-9)
-        }
-      }
-    }
-  })
-
-  it('на грубом currentTime (шаг 100 мс) картинка держится около звука: средняя ошибка в пределах шага', () => {
-    const frames = run({ audioStartMs: 1300, frames: 900, step: 100 }).filter(r => r.audioT != null).slice(100)
-    const mean = frames.reduce((a, r) => a + Math.abs(r.t - r.audioT), 0) / frames.length
-    expect(mean).toBeLessThan(100)
-  })
-
-  it('пока звука нет (до старта и после конца файла) поправка не меняется и время идёт по таймеру, без скачка', () => {
-    let c = { drift: 0 }
-    for (let f = 1; f <= 100; f++) c = syncClock({ tTimer: f * 16, audioMs: f * 16 + 50, audioAt: 1300, drift: c.drift, dt: 16 })
-    const before = syncClock({ tTimer: 1600, audioMs: 300, audioAt: 1300, drift: c.drift, dt: 16 })
-    const after = syncClock({ tTimer: 1616, audioMs: null, audioAt: 1300, drift: before.drift, dt: 16 })
-    expect(after.t - before.t).toBeCloseTo(16, 6)
-  })
-
-  it('audioPlayingMs: пауза, конец и «время ещё не пошло» — не звук; идущий файл — его currentTime в мс', () => {
-    expect(audioPlayingMs(null)).toBeNull()
-    expect(audioPlayingMs({ paused: true, ended: false, currentTime: 2 })).toBeNull()
-    expect(audioPlayingMs({ paused: false, ended: true, currentTime: 2 })).toBeNull()
-    expect(audioPlayingMs({ paused: false, ended: false, currentTime: 0 })).toBeNull()
-    expect(audioPlayingMs({ paused: false, ended: false, currentTime: 1.25 })).toBe(1250)
   })
 })
 
