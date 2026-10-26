@@ -74,8 +74,9 @@ export function buildMascot(skin, { face = BASE_FACE, flip = false, pupilReactio
 
   const [bx, by] = pack.tailBase
   const faceKids = [...head, part('eyes', { class: 'cat-eyes' }, eyes)]
-  const tilt = st.tilt // наклон головы — часть состояния лица
-  const headKids = tilt ? [el('g', { transform: `rotate(${tilt} ${pack.neck[0]} ${pack.neck[1]})` }, faceKids)] : faceKids
+  // Слой наклона головы есть ВСЕГДА (а не только у лиц с наклоном): иначе при смене лица у головы меняется состав детей, она перемонтируется,
+  // а наклон прыгает сразу на несколько градусов. Постоянный слой + CSS-переход (.mx-tilt) — наклон плавно доезжает за 0,3 с
+  const headKids = [el('g', { class: 'mx-tilt', style: `transform:rotate(${st.tilt}deg)` }, faceKids)]
   const { k, tx, ty } = pack.fit
   return el('g', {
     'data-part': 'cat', 'data-skin': skin, 'data-gender': pack.gender, 'data-face': name, 'data-mouth': mouth, class: 'cat',

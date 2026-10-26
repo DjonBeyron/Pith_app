@@ -128,3 +128,14 @@
 @media (prefers-reduced-motion: reduce) {
   .scn .mx-pulse { animation: none; }
 }
+
+/* Наклон головы маскота по лицу (слой .mx-tilt, значение — в style): плавно за 0,3 с, вокруг шеи; на слабом устройстве и при reduced-motion — без перехода */
+.scn .mx-tilt {
+  transform-origin: 297px 440px;
+  transform-box: view-box;
+  transition: transform 0.3s ease-in-out;
+}
+.scn--lite .mx-tilt { transition: none; }
+@media (prefers-reduced-motion: reduce) {
+  .scn .mx-tilt { transition: none; }
+}

@@ -68,9 +68,11 @@ describe('маскоты: спрайт', () => {
     expect(on).not.toContain('data-x') // служебные координаты в дерево не попадают
   })
 
-  it('наклон головы состояния — вращение вокруг шеи; у обычного лица его нет', () => {
-    expect(treeToString(buildMascot('kit', { face: 'shy' }))).toContain('rotate(-2 297 440)')
-    expect(treeToString(buildMascot('kit'))).not.toContain('rotate(')
+  it('наклон головы: слой .mx-tilt есть у любого лица (состав детей не меняется), значение — в style', () => {
+    expect(treeToString(buildMascot('kit', { face: 'shy' }))).toContain('class="mx-tilt" style="transform:rotate(-2deg)"')
+    expect(treeToString(buildMascot('kit'))).toContain('style="transform:rotate(0deg)"')
+    const shape = t => treeToString(t).replace(/style="[^"]*"/, '').replace(/ data-[\w-]+="[^"]*"/g, '').match(/<g class="mx-tilt"/g)?.length
+    expect(shape(buildMascot('mia', { face: 'sneer' }))).toBe(shape(buildMascot('mia')))
   })
 
   it('пустые контейнеры brows / dc не остаются в дереве', () => {
