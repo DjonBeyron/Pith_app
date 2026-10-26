@@ -27,15 +27,6 @@
   overflow: hidden;
 }
 
-.playerTopBarAvatarPit {
-  display: block;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  user-select: none;
-  pointer-events: none;
-}
-
 .playerTopBarInfo {
   display: flex;
   flex-direction: column;

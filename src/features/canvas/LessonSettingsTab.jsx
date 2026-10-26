@@ -1,5 +1,6 @@
 import { useRef } from 'react'
 import AvatarCrop from '../../shared/ui/AvatarCrop.jsx'
+import PitAvatar from '../../shared/ui/PitAvatar.jsx'
 import ImageProviderSettings from './ImageProviderSettings.jsx'
 
 export default function LessonSettingsTab({
@@ -55,7 +56,7 @@ export default function LessonSettingsTab({
           <div className="lessonSettingsGlobalAvatar">
             {globalTeacher?.logo
               ? <img src={globalTeacher.logo} alt="" />
-              : (globalTeacher?.name?.[0]?.toUpperCase() || 'У')}
+              : <PitAvatar size={42} />}
           </div>
           <div className="lessonSettingsGlobalInfo">
             <span className="lessonSettingsGlobalName">{globalTeacher?.name || 'Учитель'}</span>
@@ -90,7 +91,7 @@ export default function LessonSettingsTab({
             <div className="lessonSettingsRow">
               <span className="lessonSettingsLabel">Фото учителя</span>
               <div className="lessonSettingsLogo" onClick={() => fileInputRef.current?.click()}>
-                <span className="lessonSettingsLogoPlaceholder">{teacherName?.[0]?.toUpperCase() || 'У'}</span>
+                <span className="lessonSettingsLogoPlaceholder"><PitAvatar size={44} /></span>
                 <span className="lessonSettingsLogoHint">добавить</span>
               </div>
             </div>
