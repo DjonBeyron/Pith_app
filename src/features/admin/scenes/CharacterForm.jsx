@@ -13,7 +13,7 @@ import TranslationVoicePicker from './voice/TranslationVoicePicker.jsx'
 
 // Форма персонажа A/B в сборщике — вложенная панель (ключ characters.<who>, заголовок
 // «A · Имя» с кружком цвета шерсти; solo — единственный кот одиночной сцены, «по центру»):
-// превью, имя, образ (обычный кот / маскот Кит, Мия — MascotFields), у обычного кота пол, палитра (PaletteEditor), полоски;
+// превью, имя, образ (обычный кот / маскот Пит, Мия — MascotFields), у обычного кота пол, палитра (PaletteEditor), полоски;
 // внутри — панель «Голос» (characters.<who>.voice): запасной голос устройства (pitch/rate),
 // голос ElevenLabs (VoicePicker) и голос перевода (TranslationVoicePicker, voice.translationVoiceId;
 // пусто — общий голос сцены). Раскладка полей — сетка auto-fit с отступами по плотности

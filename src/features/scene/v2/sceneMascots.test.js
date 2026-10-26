@@ -9,7 +9,7 @@ import { setMouth, createMouthDriver } from './mouthDriver.js'
 const clone = o => JSON.parse(JSON.stringify(o))
 
 describe('сцена с маскотами: схема', () => {
-  it('демо «Кит и Мия» валидна, без ошибок линтера и в бюджете; входит в шаблоны', () => {
+  it('демо «Пит и Мия» валидна, без ошибок линтера и в бюджете; входит в шаблоны', () => {
     expect(validateSceneV2(demoMascotScene)).toEqual([])
     expect(lintScene(demoMascotScene).filter(f => f.level === 'error')).toEqual([])
     expect(lintScene(demoMascotScene).filter(f => /эмоц|оба персонажа/.test(f.text))).toEqual([])
@@ -19,7 +19,7 @@ describe('сцена с маскотами: схема', () => {
 
   it('нормализация: skin, переключатели по умолчанию true, имя и пол из маскота; у обычного кота полей нет', () => {
     const s = normalizeSceneV2({ characters: { a: { skin: 'kit' }, b: { gender: 'female' } }, timeline: [] })
-    expect(s.characters.a).toMatchObject({ skin: 'kit', gender: 'male', name: 'Кит', pupilReaction: true, extraFace: true })
+    expect(s.characters.a).toMatchObject({ skin: 'kit', gender: 'male', name: 'Пит', pupilReaction: true, extraFace: true })
     expect(s.characters.b.skin).toBeUndefined()
     expect(s.characters.b.pupilReaction).toBeUndefined()
     expect(normalizeSceneV2({ characters: { a: { skin: 'mia', pupilReaction: false } } }).characters.a).toMatchObject({ pupilReaction: false, extraFace: true })
@@ -43,8 +43,8 @@ describe('сцена с маскотами: схема', () => {
 
   it('валидатор: лицо должно быть из состояний маскота этого персонажа', () => {
     const s = clone(demoMascotScene)
-    s.timeline[0].face = 'roll' // лицо Мии у Кита
-    s.timeline[1].react = 'love' // у Кита это есть, а говорит Мия — реакция Кита, ок
+    s.timeline[0].face = 'roll' // лицо Мии у Пита
+    s.timeline[1].react = 'love' // у Пита это есть, а говорит Мия — реакция Пита, ок
     s.timeline[2].face = 5
     const e = validateSceneV2(s)
     expect(e.filter(x => x.startsWith('timeline[0].face'))).toHaveLength(1)
@@ -88,9 +88,9 @@ describe('сцена с маскотами: линтер и бюджет', () =>
 describe('сцена с маскотами: статичный кадр и рот', () => {
   const scene = normalizeSceneV2(demoMascotScene)
   it('кадр реплики показывает лицо говорящего и реакцию слушающего', () => {
-    const h0 = sceneStaticMarkup(scene, scene.timeline[0], 0) // Кит shy, Мия pathos
+    const h0 = sceneStaticMarkup(scene, scene.timeline[0], 0) // Пит shy, Мия pathos
     expect(h0).toContain('data-face="shy"'); expect(h0).toContain('data-face="pathos"')
-    const h1 = sceneStaticMarkup(scene, scene.timeline[1], 1) // Мия roll, Кит pretend
+    const h1 = sceneStaticMarkup(scene, scene.timeline[1], 1) // Мия roll, Пит pretend
     expect(h1).toContain('data-face="roll"'); expect(h1).toContain('data-face="pretend"')
   })
   it('без реплики — обычные лица; extraFace выключен — обычные в любой реплике', () => {

@@ -18,7 +18,7 @@ describe('образ персонажа в сборщике', () => {
   it('setSkin: маскот приносит пол, имя и включённые переключатели; убирает лица, относившиеся к этому персонажу', () => {
     const s = scene()
     const next = setSkin(s, 'b', 'kit')
-    expect(next.characters.b).toMatchObject({ skin: 'kit', gender: 'male', name: 'Кит', pupilReaction: true, extraFace: true })
+    expect(next.characters.b).toMatchObject({ skin: 'kit', gender: 'male', name: 'Пит', pupilReaction: true, extraFace: true })
     // face реплик, где говорит b, и react реплик, где говорит a (это лицо b), сброшены; остальное — на месте
     s.timeline.forEach((l, i) => {
       const n = next.timeline[i]
@@ -31,7 +31,7 @@ describe('образ персонажа в сборщике', () => {
     expect(next.characters.a.skin).toBeUndefined()
     expect(next.characters.a.pupilReaction).toBeUndefined()
     expect(next.characters.a.extraFace).toBeUndefined()
-    expect(next.characters.a.name).toBe('Кит')
+    expect(next.characters.a.name).toBe('Пит')
   })
   it('чужой ключ и неизвестный skin', () => {
     const s = scene()
@@ -63,7 +63,7 @@ describe('разметка форм', () => {
   it('MascotFields: три образа и два выключателя у маскота; у обычного кота выключателей нет', () => {
     const s = scene()
     const html = renderToStaticMarkup(<MascotFields who="a" character={s.characters.a} actions={{}} />)
-    expect(html).toContain('Обычный кот'); expect(html).toContain('>Кит<'); expect(html).toContain('>Мия<')
+    expect(html).toContain('Обычный кот'); expect(html).toContain('>Пит<'); expect(html).toContain('>Мия<')
     expect(html).toContain('Реакция зрачков'); expect(html).toContain('Дополнительная мимика')
     const plain = renderToStaticMarkup(<MascotFields who="a" character={{ name: 'x', gender: 'male' }} actions={{}} />)
     expect(plain).not.toContain('Реакция зрачков')
@@ -71,7 +71,7 @@ describe('разметка форм', () => {
   it('LineFaceFields: лицо говорящего и реакция слушающего по состояниям их маскотов', () => {
     const s = scene()
     const html = renderToStaticMarkup(<LineFaceFields prefix="f-timeline-0" index={0} line={s.timeline[0]} characters={s.characters} actions={{}} />)
-    expect(html).toContain('Лицо: Кит'); expect(html).toContain('Реакция: Мия')
+    expect(html).toContain('Лицо: Пит'); expect(html).toContain('Реакция: Мия')
     expect(html).toContain('(shy)'); expect(html).toContain('(pathos)')
     expect(html).toContain('f-timeline-0-face'); expect(html).toContain('f-timeline-0-react')
   })

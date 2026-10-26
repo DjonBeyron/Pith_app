@@ -14,5 +14,7 @@ for s in base roll smirk pathos sneer interest; do    # девочка: по о�
 done
 python3 make_packs.py "$WORK"                         # пакеты персонажей (pack_boy.json, pack_girl.json) + облегчение разметки
 node export_sprites.mjs "$WORK"                       # пакеты → спрайты конструктора сцен (src/features/scene/v2/sprites/mascot/{kit,mia}.json)
+node bake_avatar.mjs "$WORK/pit.png"                      # аватарка Пита для шапки чата (PNG) …
+python3 -c "from PIL import Image; Image.open('$WORK/pit.png').convert('RGB').save('../../src/shared/assets/pitAvatar.webp', 'WEBP', quality=82, method=6)"   # … → WebP ≈ 3 КБ
 [ -n "${STORY:-}" ] && cp "$STORY" "$WORK/story.json"
 node make_story.mjs "$WORK" "$HERE/../../public/mascot/index.html" "$WORK/story.json"

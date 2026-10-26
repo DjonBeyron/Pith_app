@@ -7,7 +7,7 @@ const work = process.argv[2]
 if (!work) { console.error('нужен каталог с pack_boy.json / pack_girl.json'); process.exit(1) }
 const OUT = new URL('../../src/features/scene/v2/sprites/mascot/', import.meta.url)
 const TAIL_BASE = { boy: [428, 652], girl: [428, 654] }   // первая точка REST в tail.mjs
-const NAMES = { boy: { id: 'kit', title: 'Кит', gender: 'male' }, girl: { id: 'mia', title: 'Мия', gender: 'female' } }
+const NAMES = { boy: { id: 'kit', title: 'Пит', gender: 'male' }, girl: { id: 'mia', title: 'Мия', gender: 'female' } }
 
 // «M425.1 688.9L432.7 689.5…Z» — только абсолютные M/L/Z: пары чисел сдвигаются на основание
 const shift = (markup, [bx, by]) => markup.replace(/ d="([^"]*)"/g, (_, d) =>

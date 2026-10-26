@@ -3,7 +3,7 @@ import { parseMarkup, findByClass, walk, cloneTrees } from './markupTree.js'
 import { MASCOT_PACKS, BASE_FACE, isSkin, isFaceOf } from './mascots.js'
 import { mouthShapeFor } from './mascotMouth.js'
 
-// Маскот (кот Кит, кошка Мия) как спрайт конструктора: то же дерево svgTree и те же именованные части, что у обычного кота
+// Маскот (кот Пит, кошка Мия) как спрайт конструктора: то же дерево svgTree и те же именованные части, что у обычного кота
 // (tail / body / head / eyes / mouth) и те же CSS-классы cat-tail / cat-body / cat-head / cat-eyes — дыхание, покачивание головы,
 // моргание и хвост идут общими стилями scene-v2-cat.css. Отличия:
 //   • рот — не три виземы, а четыре узла (mm, mt, mf, ml) с таблицей из 9 форм Rhubarb: форму пишет mascotMouth.js прямо в DOM;

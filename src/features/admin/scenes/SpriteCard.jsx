@@ -11,7 +11,7 @@ import { KIND_LABEL } from './sceneLabels.js'
 
 // Карточка спрайта в галерее: превью, id, название, число узлов, совместимые слоты,
 // статус spriteCheck, кнопки «Скопировать SVG» / «Скопировать id». Для кота — переключатели
-// пола, эмоции, формы рта и палитры (CatControls); у маскота (Кит, Мия) — лица, рот и два выключателя (MascotControls); превью и SVG следуют за ними.
+// пола, эмоции, формы рта и палитры (CatControls); у маскота (Пит, Мия) — лица, рот и два выключателя (MascotControls); превью и SVG следуют за ними.
 
 export default function SpriteCard({ sprite }) {
   const [cat, setCat] = useState({ gender: sprite.gender ?? 'male', emotion: 'neutral', mouth: 'closed', palette: { ...PALETTE_PRESETS.ginger }, stripes: true })

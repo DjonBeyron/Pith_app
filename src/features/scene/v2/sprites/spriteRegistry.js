@@ -59,7 +59,7 @@ function catEntry(v) {
   }
 }
 
-// Маскоты (Кит, Мия) — тот же вид записи 'cat', но с skin: рисуются из пакета (sprites/mascot), а не из палитры
+// Маскоты (Пит, Мия) — тот же вид записи 'cat', но с skin: рисуются из пакета (sprites/mascot), а не из палитры
 function mascotEntry(skin) {
   const build = (props = {}) => buildMascot(skin, props)
   return {
