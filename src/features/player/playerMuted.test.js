@@ -40,6 +40,8 @@ describe('беззвучный плеер', () => {
     expect(read('./modules/circle/CircleModule.jsx')).toMatch(/v\.muted = getLessonMuted\(\)/)
     expect(read('./modules/circle/useCircleExpand.js')).toMatch(/v2\.muted = getLessonMuted\(\)/)
     expect(read('./modules/sticker/StickerModule.jsx')).toMatch(/v\.muted = !turnOn \|\| getLessonMuted\(\)/)
-    expect(read('./modules/rotate-phone/SpeechLaneOverlay.jsx')).toMatch(/<audio ref=\{audioRef\} src=\{src\} preload="auto" muted=\{muted\} \/>/)
+    const voice = read('./modules/rotate-phone/wordLaneVoice.js') // голос диктора игры «Повтори за диктором»
+    expect(voice).toMatch(/playPrimed\(row\.url, \{ muted: getLessonMuted\(\)/)
+    expect(voice).toMatch(/!s \|\| getLessonMuted\(\)/)
   })
 })

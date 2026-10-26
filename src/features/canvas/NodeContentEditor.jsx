@@ -31,7 +31,7 @@ const HAS_TEXT_TYPES = new Set(['text', 'pin_message', 'system', 'audio', 'stick
 function mainFieldPlaceholder(type) {
   if (type === 'pin_message') return 'Текст закреплённого сообщения...'
   if (type === 'system')      return 'Системное сообщение...'
-  if (type === 'rotate_phone') return 'Текст просьбы, например: Переверни телефон горизонтально'
+  if (type === 'rotate_phone') return 'Текст карточки, например: Повтори за диктором'
   if (type === 'photo')       return 'Текст под фото (в том же пузыре)...'
   if (type === 'sticker')     return 'Текст под стикером (в том же пузыре)...'
   return 'Введи текст сообщения...'
@@ -310,13 +310,7 @@ export default function NodeContentEditor({ lessonXp = 0,
       )}
       {node.type === 'scene' && <NodeScenePicker tData={tData} onChange={patch => updateTypeData(patch)} />}
       {node.type === 'rotate_phone' && (
-        <NodeRotatePhonePicker
-          tData={tData}
-          onDataChange={patch => updateTypeData(patch)}
-          lessonFiles={lessonFiles}
-          onPickFile={f => onPickLessonFile(f)}
-          onRemoveFile={onRemoveLessonFile}
-        />
+        <NodeRotatePhonePicker tData={tData} onDataChange={patch => updateTypeData(patch)} />
       )}
       <NodeAnswerFields
         lessonXp={lessonXp}

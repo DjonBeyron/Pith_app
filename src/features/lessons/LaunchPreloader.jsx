@@ -6,8 +6,7 @@ import { unlockSafely } from './launchUnlock.js'
 import useLaunchWatchdog from './useLaunchWatchdog.js'
 import { traceLaunch } from '../../shared/lib/launchTrace.js'
 import useLaunchTrace from './useLaunchTrace.js'
-import { motionNeedsAsk } from '../../shared/lib/motionPermission.js'
-import LaunchMotionAsk from './LaunchMotionAsk.jsx'
+import LaunchMicAsk from './LaunchMicAsk.jsx'
 import { useAdmin } from '../../app/AdminContext.jsx'
 import ExamIntroDialog from './ExamIntroDialog.jsx'
 import LaunchCtaSlot from './LaunchCtaSlot.jsx'
@@ -240,11 +239,10 @@ export default function LaunchPreloader({
 
       <LaunchEnergyRow info={info} dissolving={dissolving} />
 
-      {/* Датчик движения — только уроку с нодой «переверни телефон» и только
-          там, где его выдают по диалогу (iOS). Своим шагом, а не молча в
-          handleStart: системный запрос без объяснения получает отказ, а
-          отказ iOS помнит */}
-      {nodes.some(n => n.type === 'rotate_phone') && motionNeedsAsk() && <LaunchMotionAsk />}
+      {/* Микрофон — только уроку с нодой «переверни телефон» (игра «Повтори за диктором»),
+          пока доступа нет. Своим шагом, а не молча в handleStart: системный запрос без
+          объяснения получает отказ, а отказ ОС помнит */}
+      {nodes.some(n => n.type === 'rotate_phone') && <LaunchMicAsk />}
 
 
       {/* LaunchCtaSlot — одна и та же вёрстка для «Продолжить» и для обычного

@@ -118,6 +118,7 @@
 
 /* В карточке ноды на канвасе */
 .nodeRotateTrainer { margin-top: 6px; }
+.nodeRotateInput { display: block; width: 100%; box-sizing: border-box; margin-top: 6px; padding: 8px 10px; border: 1px solid #2a2c33; border-radius: 8px; background: #0e1013; color: #f2f3f7; font-size: 13px; }
 .nodeRotateTrainerRow { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
 .nodeRotateTrainerRow > .nodeTablePickerBtn { flex: 0 0 auto; white-space: nowrap; overflow: visible; }
 .nodeRotateTrainerInfo { font-size: 11px; color: #7a808c; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

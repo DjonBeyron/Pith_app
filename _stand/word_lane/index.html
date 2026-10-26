@@ -1,0 +1,16 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>word lane harness</title>
+<style>body{margin:0;background:#0e1013;color:#fff;font-family:system-ui}#root{padding:16px}</style></head>
+<body><div id="root"></div>
+<script type="module">
+import React from 'react'
+import { createRoot } from 'react-dom/client'
+import '/src/index.css'
+import RotatePhoneModule from '/src/features/player/modules/rotate-phone/RotatePhoneModule.jsx'
+
+// Стенд игры «Повтори за диктором»: карточка ноды + игра на весь экран. ?wldebug — опорные точки геометрии. Без Vosk игра идёт в ручном режиме (тап по микрофону = слово).
+const params = new URLSearchParams(location.search)
+const node = { id: 'n1', type: 'rotate_phone', typeData: { rotate_phone: { content: 'Повтори за диктором', word: params.get('word') || '', translation: params.get('tr') || '' } } }
+window.__done = null
+createRoot(document.getElementById('root')).render(
+  React.createElement(RotatePhoneModule, { node, file: null, onDone: v => { window.__done = v } }))
+</script></body></html>

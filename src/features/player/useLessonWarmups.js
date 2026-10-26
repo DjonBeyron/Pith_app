@@ -18,6 +18,6 @@ export function startLessonWarmups(has, deps = {}) {
 }
 
 export function useLessonWarmups(nodes) {
-  const hasSayPhrase = nodes.some(n => n.type === 'say_phrase')
+  const hasSayPhrase = nodes.some(n => n.type === 'say_phrase' || n.type === 'rotate_phone') // «Повтори за диктором» слушает Vosk так же, как «Сказать фразу»
   useEffect(() => startLessonWarmups(hasSayPhrase), [hasSayPhrase])
 }

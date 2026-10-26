@@ -51,7 +51,7 @@
 @import './styles/admin-race.css';
 @import './styles/admin-teacher.css';
 @import './styles/lessons.css';
-@import './styles/launch-motion-ask.css';
+@import './styles/launch-mic-ask.css';
 @import './styles/launch-progress.css';
 @import './styles/module-graph-layout.css';
 @import './styles/module-graph-node.css';
@@ -121,7 +121,8 @@
 @import './styles/player/lesson-ref.css';
 @import './styles/player/modules/rotate-phone.css';
 @import './styles/player/modules/unknown-node.css';
-@import './styles/player/modules/speech-lane-overlay.css';
+@import './styles/player/modules/word-lane.css';
+@import './styles/player/modules/word-lane-mic.css';
 @import './styles/player/message.css';
 @import './styles/player/modules/audio.css';
 @import './styles/player/modules/circle.css';

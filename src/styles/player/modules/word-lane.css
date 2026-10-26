@@ -1,0 +1,159 @@
+/* Игра «Повтори за диктором» (WordLaneGame.jsx), вертикальная версия, полный экран. Раскладка — в ПРОЦЕНТАХ экрана (wordLaneTimeline.js: LANES_X / SLOTS / WORD_Y),
+   поэтому и вёрстка, и SVG-линии лежат в одной сетке. Цвета: диктор — зелёный (--wl-coach), ученик — красный (--wl-user). Микрофон, плашки и перевод — word-lane-mic.css.
+   Длительности заливки и появления держат те же числа, что JS (FILL_MS 1000, DROP_MS 1000, LANES_MS 900) — сторож в wordLane.test.js. */
+
+.wl {
+  --wl-bg: #0b0d11;
+  --wl-coach: #b6fe3b;
+  --wl-user: #ff5d73;
+  --wl-ink: #0b0d11;
+  position: fixed;
+  inset: 0;
+  z-index: 10000;                 /* поверх плеера (200), вкладок, версии, заглушек (999) */
+  height: 100dvh;
+  background: var(--wl-bg);
+  color: #f2f3f7;
+  overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+}
+
+/* Сцена: вся площадь, но в пределах вырезов и закруглений экрана (safe-area) */
+.wlStage {
+  position: absolute;
+  inset: 0;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  box-sizing: border-box;
+}
+.wlStage { --front: 0%; } /* голова линии, % высоты: пишет WordLaneLines, читают маска и отладка */
+.wlStage > * { position: absolute; }
+
+.wlClose {
+  position: absolute;
+  top: calc(env(safe-area-inset-top) + 10px);
+  left: calc(env(safe-area-inset-left) + 10px);
+  z-index: 3;
+  width: 36px;
+  height: 36px;
+  border: 0;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.08);
+  color: #c3cad8;
+  cursor: pointer;
+}
+
+/* Слово: падает сверху и замирает (одно слово на игру; позже — по списку) */
+.wlWord {
+  left: 50%;
+  transform: translate(-50%, -50%);
+  max-width: 88%;
+  font-size: clamp(40px, 15vw, 76px);
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  line-height: 1;
+  text-align: center;
+  color: #fff;
+  animation: wlDrop 1s cubic-bezier(0.34, 1.2, 0.5, 1) both;
+}
+@keyframes wlDrop {
+  0%   { transform: translate(-50%, -140dvh); opacity: 0; }
+  15%  { opacity: 1; }
+  100% { transform: translate(-50%, -50%); opacity: 1; }
+}
+
+/* Линии: одна маска, голову (--front, %) двигает JS каждый кадр. Мягкий край — 3% высоты */
+.wlLines {
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  transition: opacity 0.35s ease;
+  -webkit-mask-image: linear-gradient(to bottom, #000 0, #000 calc(var(--front) - 3%), transparent var(--front));
+  mask-image: linear-gradient(to bottom, #000 0, #000 calc(var(--front) - 3%), transparent var(--front));
+}
+.wlLines--on { opacity: 1; }
+.wlLine {
+  fill: none;
+  stroke: var(--wl-coach);
+  stroke-width: 4px;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
+}
+.wl[data-phase='speak'] .wlLine, .wl[data-phase='reveal'] .wlLine { stroke: var(--wl-user); }
+
+/* Слои на дорожках: проявляются вместе с дорожками, заливаются снизу вверх (transform — без перерисовки раскладки) */
+.wlSlot {
+  --c: var(--wl-coach);
+  width: 30%;
+  height: 8.5%;
+  min-height: 52px;
+  transform: translate(-50%, -50%) scale(0.85);
+  border: 2px solid color-mix(in srgb, var(--c) 55%, transparent);
+  border-radius: 16px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.45s ease calc(var(--i) * 0.12s), transform 0.45s cubic-bezier(0.22, 1, 0.36, 1) calc(var(--i) * 0.12s), border-color 0.3s;
+}
+.wlSlot--user { --c: var(--wl-user); }
+.wlSlot--in { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+.wlFill {
+  position: absolute;
+  inset: 0;
+  background: var(--c);
+  transform: scaleY(0);
+  transform-origin: 50% 100%;
+  transition: transform 0.3s ease;      /* пустеет быстро */
+}
+.wlSlot--filled .wlFill { transform: scaleY(1); transition: transform 1s linear; } /* FILL_MS */
+.wlSlot--user.wlSlot--filled .wlFill { transition-duration: 0.45s; }              /* слово ученика принято — заливка быстрая */
+.wlSlotWord {
+  position: relative;
+  max-width: 92%;
+  font-size: clamp(16px, 5.2vw, 24px);
+  font-weight: 800;
+  color: color-mix(in srgb, var(--c) 70%, #000);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: color 0.5s linear;
+}
+.wlSlot--filled .wlSlotWord { color: var(--wl-ink); transition-delay: 0.35s; }
+
+/* Чужое слово: красная вспышка и дрожь на ближайшем пустом слое */
+.wlMiss {
+  position: absolute;
+  inset: 0;
+  border-radius: 14px;
+  background: rgba(255, 93, 115, 0.35);
+  animation: wlMiss 0.55s ease-out both;
+}
+@keyframes wlMiss {
+  0%   { opacity: 1; transform: translateX(0); }
+  20%  { transform: translateX(-6px); }
+  40%  { transform: translateX(6px); }
+  60%  { transform: translateX(-3px); }
+  100% { opacity: 0; transform: translateX(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wlWord { animation-duration: 0.01s; }
+  .wlSlot, .wlFill { transition-duration: 0.01s !important; }
+}
+
+/* Отладочные опорные точки (WordLaneDebug.jsx) — только по флагу, ученик их не видит */
+.wlDbgLayer { inset: 0; pointer-events: none; z-index: 2; }
+.wlDbg { position: absolute; width: 8px; height: 8px; margin: -4px 0 0 -4px; background: #4cc9f0; border-radius: 50%; }
+.wlDbg span { position: absolute; left: 10px; top: -5px; font: 9px/1 monospace; color: #4cc9f0; white-space: nowrap; }
+.wlDbg--slot { border-radius: 0; background: #ffd166; } .wlDbg--slot span { color: #ffd166; left: -22px; top: 6px; }
+.wlDbg--hold { border-radius: 0; transform: rotate(45deg); background: #ff5d73; } .wlDbg--hold span { color: #ff5d73; transform: rotate(-45deg); left: 8px; top: 2px; }
+.wlDbg--anchor { background: #b6fe3b; } .wlDbg--anchor span { color: #b6fe3b; }
+.wlDbg--lane { background: #9aa0b4; } .wlDbg--lane span { color: #9aa0b4; left: -8px; top: -14px; }
+.wlDbg--head { width: 14px; height: 14px; margin: -7px 0 0 -7px; background: transparent; border: 2px solid #fff; }
+.wlDbg--head span { color: #fff; left: 18px; top: 0; }
