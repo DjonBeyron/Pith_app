@@ -21,7 +21,7 @@ export const cardHasAudio = card => (card?.nodes ?? []).some(n => AUDIO_TYPES.ha
 const readableMuted = n =>
   (n.type === 'audio' && !!n.typeData?.audio?.text?.trim()) ||
   (n.type === 'scene' && sceneNodeShowsText(n.typeData?.scene))
-const needsSound = n => AUDIO_TYPES.has(n.type) && !readableMuted(n)
+export const needsSound = n => AUDIO_TYPES.has(n.type) && !readableMuted(n)
 export const cardNeedsSound = card => (card?.nodes ?? []).some(needsSound)
 
 // Карточки слова начиная со следующей после показанной в прошлый раз
