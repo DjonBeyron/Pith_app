@@ -22,6 +22,11 @@ export const SCENE_TASK_SHOWN = 'scene_task_shown'   // { scene_id, kind: 'trans
 export const SCENE_TASK_ANSWER = 'scene_task_answer' // { scene_id, kind, ok, attempt, ms[, engine: 'vosk'|'system'] } — «Проверить» / итог голосовой попытки; ms — от показа панели; транскрипта нет
 export const SCENE_TASK_SKIP = 'scene_task_skip'     // { scene_id, kind[, reason: 'cant'] } — «Спроси позже», «Не знаю» или «Не могу говорить» (без попытки)
 //
+// Вопросы Пита (shared/lib/prompts): единая шторка снизу под общим бюджетом; props плоские, без текста пользователя
+export const PROMPT_SHOWN = 'prompt_shown'           // { kind: 'question'|'hint'|'offer'|'reminder', id } — шторка выехала
+export const PROMPT_ANSWER = 'prompt_answer'         // { kind, id, answer, ms } — выбрал ответ (answer — id ответа, ≤64 символов); ms — от показа шторки
+export const PROMPT_DISMISS = 'prompt_dismiss'       // { kind, id, ms, later } — закрыл/смахнул (later: false) или «Спроси позже» (later: true)
+//
 // Урок
 export const LESSON_ANSWER = 'lesson_answer'         // { lesson_id, node_type, ok, attempt, ms } — ответ на задание (тип ноды обязателен)
 // Имя константы без слова ATTEMPT: тест sayPhraseChatWiring запрещает его в коде панели «Сказать фразу»
