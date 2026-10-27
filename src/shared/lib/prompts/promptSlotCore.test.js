@@ -8,7 +8,7 @@ import * as R from './promptRules.js'
 const T0 = 1_000_000
 const q = (id, extra = {}) => ({ id, kind: 'question', reason: 'behavior', ...extra })
 
-function make(init = emptyState()) {
+function make(init = emptyState(), opts = {}) {
   const env = { t: T0, saved: null, timers: [] }
   const track = vi.fn()
   const slot = createPromptSlot({
@@ -18,6 +18,7 @@ function make(init = emptyState()) {
     now: () => env.t,
     setTimer: (fn, ms) => { const h = { fn, ms }; env.timers.push(h); return h },
     clearTimer: h => { env.timers = env.timers.filter(x => x !== h) },
+    ...opts,
   })
   return { slot, track, env }
 }
@@ -116,5 +117,49 @@ describe('promptSlotCore', () => {
     const m = make()
     m.slot.answer('x'); m.slot.dismiss(); m.slot.later()
     expect(m.track).not.toHaveBeenCalled()
+  })
+  describe('allow / extra (контрольная группа)', () => {
+    const noBehavior = c => c.reason !== 'behavior'
+    it('allow отбрасывает кандидата молча: не показывается и не копится в очереди', () => {
+      const m = make(emptyState(), { allow: noBehavior })
+      open(m)
+      m.slot.setBusy({ audio: true })
+      m.slot.request(q('a')) // reason behavior — отброшен
+      m.slot.setBusy({ audio: false })
+      expect(m.slot.getCurrent()).toBeNull()
+      expect(m.track).not.toHaveBeenCalled()
+    })
+    it('allow пропускает разрешённых, отброшенный id потом можно предложить снова', () => {
+      let on = false
+      const m = make(emptyState(), { allow: c => on || c.reason !== 'behavior' })
+      open(m)
+      m.slot.request(q('a'))
+      m.slot.request(q('b', { reason: 'explain_done' }))
+      expect(m.slot.getCurrent().id).toBe('b')
+      on = true
+      m.slot.dismiss()
+      m.slot.request(q('a'))
+      for (let i = 0; i < 5; i++) m.slot.onSlide(i) // между шторками 5 слайдов
+      expect(m.slot.getCurrent().id).toBe('a')
+    })
+    it('extra подмешивается в props всех трёх событий', () => {
+      const m = make({ ...emptyState(), sessions: 9 }, { extra: () => ({ group: 'prompts' }) })
+      open(m)
+      m.slot.request(q('a'))
+      expect(m.track).toHaveBeenLastCalledWith(PROMPT_SHOWN, { kind: 'question', id: 'a', group: 'prompts' })
+      m.slot.answer('yes')
+      expect(m.track).toHaveBeenLastCalledWith(PROMPT_ANSWER, { kind: 'question', id: 'a', answer: 'yes', group: 'prompts', ms: 0 })
+      m.slot.request(q('b')); for (let i = 0; i < 5; i++) m.slot.onSlide(i)
+      m.slot.dismiss()
+      expect(m.track).toHaveBeenLastCalledWith(PROMPT_DISMISS, { kind: 'question', id: 'b', later: false, group: 'prompts', ms: 0 })
+    })
+    it('extra читается в момент события (группа могла смениться)', () => {
+      let g = 'prompts'
+      const m = make(emptyState(), { extra: () => ({ group: g }) })
+      open(m)
+      g = 'control'
+      m.slot.request(q('a'))
+      expect(m.track).toHaveBeenLastCalledWith(PROMPT_SHOWN, expect.objectContaining({ group: 'control' }))
+    })
   })
 })

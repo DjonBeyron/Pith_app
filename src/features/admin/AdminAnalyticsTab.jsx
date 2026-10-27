@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react'
 import { fetchAnalyticsReport } from '../../shared/api/analyticsApi.js'
+import AdminPromptGroup from './AdminPromptGroup.jsx'
+import AnalyticsGroups from './AnalyticsGroups.jsx'
 
 const PERIODS = [7, 14, 30]
 
@@ -22,6 +24,7 @@ const day = d => d.slice(8, 10) + '.' + d.slice(5, 7)
 export default function AdminAnalyticsTab() {
   const [days, setDays] = useState(14)
   const [res, setRes] = useState(null) // null — загрузка; { data, error }
+  const [tick, setTick] = useState(0)   // «Обновить» перечитывает и разрез по группам
 
   useEffect(() => {
     let cancelled = false
@@ -36,6 +39,7 @@ export default function AdminAnalyticsTab() {
 
   function reload() {
     setRes(null)
+    setTick(t => t + 1)
     fetchAnalyticsReport(days).then(setRes)
   }
 
@@ -55,6 +59,8 @@ export default function AdminAnalyticsTab() {
           <button className="aeRefresh" onClick={reload}>Обновить</button>
         </div>
       </div>
+
+      <AdminPromptGroup />
 
       {res === null && <p className="aeHint">Загрузка...</p>}
       {res?.error && (
@@ -89,6 +95,8 @@ export default function AdminAnalyticsTab() {
             c.d1 == null ? '…' : pct(c.d1, c.size), c.d7 == null ? '…' : pct(c.d7, c.size)])}
         />
       )}
+
+      <AnalyticsGroups days={days} reloadKey={tick} />
 
       {r && (
         <AnTable

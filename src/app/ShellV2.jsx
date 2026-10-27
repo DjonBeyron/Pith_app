@@ -28,6 +28,7 @@ import { prefetchPlayerDebugUi } from '../shared/lib/usePlayerDebugUi.js'
 import { prefetchAudioSettings } from '../shared/lib/audioSettings.js'
 import { prefetchAudioStaticWaveform } from '../shared/lib/useAudioStaticWaveform.js'
 import { prefetchFeedSignals } from '../shared/lib/ranking/feedSignalsStore.js'
+import { usePromptGroupSync } from '../shared/lib/prompts/usePromptGroupSync.js'
 import { armMotionOnGesture } from '../shared/lib/motionPermission.js'
 import ShellNav from './ShellNav.jsx'
 import LearnTab from '../features/learn/LearnTab.jsx'
@@ -74,6 +75,7 @@ export default function ShellV2() {
   // выключить его было бы нечем
   const { isAdmin, isRealAdmin, userMode, newbie } = useAdmin()
   const { user } = useAuth()
+  usePromptGroupSync(user?.id) // доля и группа контрольной группы без вопросов Пита (доля — на старте, группа — при входе)
   // Ежедневное полноэкранное окно серии: показывать или нет — решает сервер
   // (первый заход в сутки), см. useStreakGate.js
   const { gate, closeGate } = useStreakGate()

@@ -3,6 +3,7 @@ import { APP_VERSION } from '../version.js'
 import { dbg } from '../debug.js'
 import { createTracker } from './tracker.js'
 import { isSandboxEvent } from './sandboxGuard.js'
+import { currentGroup } from '../prompts/promptGroup.js'
 
 // Журнал продуктовой аналитики: track(name, props) из любого места
 // приложения. События копятся в очереди (tracker.js) и уходят пачкой в RPC
@@ -11,7 +12,8 @@ import { isSandboxEvent } from './sandboxGuard.js'
 // В dev-сборке ничего не отправляется — только строка в debug-логе.
 //
 // Словарь событий (имя → props) — PROJECT.md → «Аналитика»:
-//   app_open { standalone, tg, resume? }   push_open
+//   app_open { standalone, tg, group, resume? }   push_open
+//   (group — 'control'|'prompts': контрольная группа без вопросов Пита, prompts/promptGroup.js; несут и prompt_*)
 //   feed_view { module_id, ms }            feed_learn { module_id }
 //   lesson_start { lesson_id, resumed }    lesson_finish { lesson_id, ms }
 //   lesson_abandon { lesson_id, pct, ms }  signup
@@ -109,12 +111,12 @@ export function initAnalytics() {
       tracker.flush({ keepalive: true })
     } else if (tracker.touchSession()) {
       // PWA сутками не перезагружается: возврат после долгой паузы — тоже «открытие»
-      track('app_open', { standalone, tg, resume: true })
+      track('app_open', { standalone, tg, group: currentGroup(), resume: true })
     }
   })
   window.addEventListener('pagehide', () => tracker.flush({ keepalive: true }))
 
-  track('app_open', { standalone, tg })
+  track('app_open', { standalone, tg, group: currentGroup() })
 
   // Тап по пушу: сервис-воркер открывает приложение с ?from=push
   // (public/push-sw.js). Метку считаем и убираем из адреса
