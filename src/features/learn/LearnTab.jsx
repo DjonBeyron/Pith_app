@@ -18,7 +18,7 @@ import MemoryPhrasesSheet from './MemoryPhrasesSheet.jsx'
 import MemoryPhraseCard from './MemoryPhraseCard.jsx'
 import MemoryWordCard from './MemoryWordCard.jsx'
 import LearnWordSheet from './LearnWordSheet.jsx'
-import MemoryIntro from './MemoryIntro.jsx'
+import MemoryStory from './MemoryStory.jsx'
 import ProPaywall from '../pro/ProPaywall.jsx'
 
 const ReviewScreen = lazy(loadReviewScreen)
@@ -150,7 +150,7 @@ export default function LearnTab({ learn, visible, isLoggedIn, onRequireAuth }) 
           </Suspense>
         )}
         {showPro && <ProPaywall onClose={() => setShowPro(false)} />}
-        <MemoryIntro open={visible} />
+        <MemoryStory open={visible} onDone={() => { /* C2: сюда — «Когда удобно учиться?» */ }} />
       </div>
       {/* Затемнение снизу — как у схемы модуля (moduleGraphEdge--bottom): то, что
           уходит под нижнюю панель, плавно темнеет, а не режется ровной линией */}

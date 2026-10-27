@@ -26,3 +26,6 @@ export const SCENE_TASK_SKIP = 'scene_task_skip'     // { scene_id, kind[, reaso
 export const LESSON_ANSWER = 'lesson_answer'         // { lesson_id, node_type, ok, attempt, ms } — ответ на задание (тип ноды обязателен)
 // Имя константы без слова ATTEMPT: тест sayPhraseChatWiring запрещает его в коде панели «Сказать фразу»
 export const SAY_TRY = 'say_attempt'                 // { lesson_id, ok, engine: 'vosk'|'system' } — засчитанная попытка «Сказать фразу»
+//
+// Память
+export const MEMORY_INTRO_OPEN = 'memory_intro_open' // { voice } — первое открытие вкладки «Память»: рассказ Пита показан (voice — была ли озвучка, иначе только субтитры)
