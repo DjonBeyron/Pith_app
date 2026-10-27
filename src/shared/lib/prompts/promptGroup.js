@@ -85,8 +85,11 @@ function deviceId() {
   return memoId
 }
 
-// Синхронно: запомненная группа, а если её нет — вычислить по id устройства и доле из кэша настройки, записать и вернуть
+// Синхронно: запомненная группа, а если её нет — вычислить по id устройства и доле из кэша настройки, записать и вернуть.
+// Доля 0 в админке = «группы нет»: все, включая уже распределённых в control, видят вопросы (запомненное не стираем —
+// вернут долю, вернётся и прежняя группа, никто не «перескочит»)
 export function currentGroup() {
+  if (cachedShare() === 0) return GROUPS.prompts
   const stored = readJson(GROUP_KEY)
   if (isGroup(stored?.group)) { memo = stored.group; return stored.group }
   if (memo) return memo

@@ -114,12 +114,21 @@ describe('обёртки над localStorage', () => {
   it('applyShare обновляет кэш доли, но не меняет уже вычисленную группу', () => {
     const data = mockStorage({ pithy_anon_id: 'anon-777' })
     const g = currentGroup()
-    applyShare(0)
-    expect(JSON.parse(data[SHARE_CACHE_KEY])).toBe(0)
+    applyShare(25)
+    expect(JSON.parse(data[SHARE_CACHE_KEY])).toBe(25)
     resetGroupMemo()
     expect(currentGroup()).toBe(g)
     applyShare(999)
     expect(JSON.parse(data[SHARE_CACHE_KEY])).toBe(MAX_SHARE)
+  })
+  it('доля 0 = группы нет: даже запомненный control видит вопросы, запомненное не стирается', () => {
+    const data = mockStorage({ pithy_anon_id: 'a', [GROUP_KEY]: JSON.stringify({ group: 'control', share: 10, id: 'a' }) })
+    applyShare(0)
+    expect(currentGroup()).toBe(GROUPS.prompts)
+    expect(JSON.parse(data[GROUP_KEY]).group).toBe('control')
+    applyShare(10)
+    resetGroupMemo()
+    expect(currentGroup()).toBe(GROUPS.control)
   })
   it('adoptProfileGroup: группа из профиля побеждает; мусор игнорируется', () => {
     const data = mockStorage({ pithy_anon_id: 'anon-777' })
