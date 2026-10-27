@@ -1,5 +1,6 @@
 import { MIN_DIFFICULTY_VOTES } from '../../shared/api/difficultyApi.js'
 import { rankModulesOrder } from '../../shared/lib/ranking/rankWeighted.js'
+import { getLevel } from '../../shared/lib/level/levelFeed.js'
 import { rankFeed, moduleWords, phraseInfo } from './feedKnowledge.js'
 
 // Переключатель движка порядка ленты (PROJECT.md → «Движок сигналов ленты»):
@@ -16,6 +17,7 @@ export function buildRankCtx(rank) {
     skipped: rank?.skipped ?? new Set(),
     seed: rank?.seed ?? 1,
     minDifficultyVotes: MIN_DIFFICULTY_VOTES,
+    level: getLevel(), // профиль уровня слушателя — для сигнала level_fit
     analyze(m) {
       const words = moduleWords(m.lessonIds, lessonWord)
       return { words, info: rank?.stepOf ? phraseInfo(words, rank.stepOf) : { total: words.length, newWords: words, shaky: [] } }

@@ -29,6 +29,7 @@ import { prefetchAudioSettings } from '../shared/lib/audioSettings.js'
 import { prefetchAudioStaticWaveform } from '../shared/lib/useAudioStaticWaveform.js'
 import { prefetchFeedSignals } from '../shared/lib/ranking/feedSignalsStore.js'
 import { usePromptGroupSync } from '../shared/lib/prompts/usePromptGroupSync.js'
+import { useLevelTracking } from '../shared/lib/level/useLevelTracking.js'
 import { armMotionOnGesture } from '../shared/lib/motionPermission.js'
 import ShellNav from './ShellNav.jsx'
 import LearnTab from '../features/learn/LearnTab.jsx'
@@ -76,6 +77,7 @@ export default function ShellV2() {
   const { isAdmin, isRealAdmin, userMode, newbie } = useAdmin()
   const { user } = useAuth()
   usePromptGroupSync(user?.id) // доля и группа контрольной группы без вопросов Пита (доля — на старте, группа — при входе)
+  useLevelTracking(user?.id) // уровень по поведению: события журнала → модель, сохранение (A2)
   const { gate, closeGate } = useStreakGate() // ежедневное окно серии: показывать или нет — решает сервер (первый заход в сутки)
   // Лого стартового сплэша уже улетело (событие из index.html). Пока оно на
   // экране, ленту не паузим: сплэш снимается по первому кадру видео, и на

@@ -89,4 +89,9 @@ describe('rankFeedByConfig — weighted', () => {
     expect(c.analyze(mod('x', ['to', 'cook']))).toEqual({ words: ['to', 'cook'], info: { total: 2, known: 0, newWords: ['cook'], shaky: ['to'] } })
     expect(buildRankCtx(null).analyze(mod('x', ['to'])).info.newWords).toEqual([])
   })
+  it('buildRankCtx передаёт уровень слушателя (для level_fit)', () => {
+    const { level } = buildRankCtx(ranks[0])
+    expect(level.ear.level).toBeGreaterThanOrEqual(0)
+    expect(level.vocab.sigma).toBeGreaterThan(0)
+  })
 })
