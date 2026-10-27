@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { sliceToWav, monoOf, spanKey, prepareClips, playClip, releaseClips, clipsState, FADE_IN_S } from './wordLaneClips.js'
+import { sliceToWav, monoOf, spanKey, prepareClips, prepareWords, playClip, playWordSlot, hasWordSlot, releaseClips, clipsState, FADE_IN_S } from './wordLaneClips.js'
 
 const ascii = (u8, o, n) => String.fromCharCode(...u8.slice(o, o + n))
 const view = u8 => new DataView(u8.buffer, u8.byteOffset, u8.byteLength)
@@ -68,5 +68,24 @@ describe('клипы диктора на элементах <audio>', () => {
     expect(a.currentTime).toBe(0)
     expect(a.muted).toBe(false)
     expect(playClip({ start: 9, end: 10 })).toBe(false)
+  })
+
+  it('куски из библиотеки слов: слот на каждый файл, «разбужен» в жесте; после загрузки играет с нуля; неизвестный ключ — false', async () => {
+    vi.stubGlobal('fetch', () => Promise.resolve({ ok: true, blob: () => Promise.resolve(new Blob(['x'])) }))
+    const ready = prepareWords([{ key: "i'm", url: 'https://r2/a.mp3' }, { key: 'trying', url: 'https://r2/b.mp3' }])
+    expect(created).toHaveLength(2)
+    expect(created.every(a => a.played === 1)).toBe(true)
+    expect(await ready).toBe(true)
+    await Promise.resolve()
+    expect(hasWordSlot("i'm")).toBe(true)
+    expect(playWordSlot("i'm")).toBe(true)
+    expect(created[0].currentTime).toBe(0)
+    expect(playWordSlot('nope')).toBe(false)
+  })
+  it('файл библиотеки не скачался (CORS) — слот играет по прямой ссылке', async () => {
+    vi.stubGlobal('fetch', () => Promise.reject(new Error('cors')))
+    await prepareWords([{ key: 'try', url: 'https://r2/t.mp3' }])
+    expect(playWordSlot('try')).toBe(true)
+    expect(created[0].src).toBe('https://r2/t.mp3')
   })
 })

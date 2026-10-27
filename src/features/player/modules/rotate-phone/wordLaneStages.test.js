@@ -24,12 +24,24 @@ describe('стадии игры', () => {
     expect(types(s)).toEqual(['dictor', 'turn', 'student'])
     expect(s.lanes).toEqual([0])
   })
-  it('длины кусков и кривые громкости берутся из плана одиночного куска (по ним ученик и тень)', () => {
-    const s = buildStages({ chunks, clips, audio: { wave, duration: 10 } })
-    expect(s.chunkMs).toHaveLength(3)
-    expect(s.chunkMs.every(ms => ms >= 250)).toBe(true)
-    expect(s.chunkCurves.every(c => typeof c === 'function')).toBe(true)
-    expect(buildStages({ chunks }).chunkCurves.every(c => c === null)).toBe(true)
+  it('у фразы запись автора — только в ФИНАЛЕ, куски по отдельности — из библиотеки слов: длины кусков берутся из библиотеки, кривых громкости у них нет', () => {
+    const lib = i => ({ ms: [600, 750, 900][i] })
+    const s = buildStages({ chunks, clips, audio: { wave, duration: 10 }, lib })
+    expect(s.chunkMs).toEqual([600, 750, 900])
+    expect(s.chunkCurves.every(c => c === null)).toBe(true)
+    const plans = s.stages.filter(x => x.type === 'dictor').map(x => x.plan)
+    expect(plans.slice(0, 4).every(p => p.reps.every(r => r.mode === 'words'))).toBe(true)     // «I'm», «trying», «I'm trying», «to learn» — куски из библиотеки
+    expect(plans[4].reps.every(r => r.mode === 'clip')).toBe(true)                            // вся фраза — запись автора
+    expect(plans[4].pills[0].curve).toBeTypeOf('function')
+    expect(s.clipMode([0, 1, 2])).toBe(true)
+    expect(s.clipMode([0, 1])).toBe(false)
+  })
+  it('нет записи автора — финал тоже из кусков библиотеки; одно слово: библиотека, а нет её — запись автора', () => {
+    const s = buildStages({ chunks, lib: () => ({ ms: 500 }) })
+    expect(s.stages.filter(x => x.type === 'dictor').every(x => x.plan.reps.every(r => r.mode === 'words'))).toBe(true)
+    const fills = [{ start: 0.3, end: 0.8 }, { start: 1.6, end: 2.1 }, { start: 3.1, end: 3.6 }].map(f => [f])
+    expect(buildStages({ chunks: ['try'], clips: fills, lib: () => ({ ms: 400 }) }).stages[0].plan.reps[0].mode).toBe('words')
+    expect(buildStages({ chunks: ['try'], clips: fills, lib: () => null }).stages[0].plan.reps[0].mode).toBe('clip')
   })
   it('слушатель стартует заранее: под плашкой «твоя очередь» и под анонсом раунда «вслепую»', () => {
     const s = buildStages({ chunks, clips })

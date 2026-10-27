@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
 import { micNeedsHold, confirmMicBeforeStart } from './micAccess.js'
-import { openGameMic, getGameMic, setGameMicActive, closeGameMic } from './gameMic.js'
+import { openGameMic, getGameMic, closeGameMic } from './gameMic.js'
 
 const track = () => ({ readyState: 'live', enabled: true, stop() { this.readyState = 'ended' } })
 const fakeStream = () => { const t = track(); return { t, getTracks: () => [t] } }
@@ -32,7 +32,7 @@ describe('iPhone: разрешение не запоминается — оди�
     expect(readFileSync(new URL('./lessonOpen.js', import.meta.url), 'utf8')).toContain('if (!open) closeGameMic()')
   })
 
-  it('поток открывается один раз (повторный вызов — тот же, без второго getUserMedia), по умолчанию выключен, включается по требованию', async () => {
+  it('поток открывается один раз (повторный вызов — тот же, без второго getUserMedia)', async () => {
     const s = fakeStream()
     const gum = vi.fn().mockResolvedValue(s)
     vi.stubGlobal('navigator', { mediaDevices: { getUserMedia: gum } })
@@ -40,9 +40,21 @@ describe('iPhone: разрешение не запоминается — оди�
     expect(await openGameMic()).toBe('granted')
     expect(gum).toHaveBeenCalledTimes(1)
     expect(getGameMic()).toBe(s)
-    expect(s.t.enabled).toBe(false)
-    setGameMicActive(true); expect(s.t.enabled).toBe(true)
-    setGameMicActive(false); expect(s.t.enabled).toBe(false)
+    expect(s.t.enabled).toBe(true)                        // треки не выключаем: на iOS это могло остановить захват
+  })
+
+  it('заглушённый системой поток (muted) не отдаётся распознавателю; оглохший распознаватель просит переоткрыть микрофон', async () => {
+    const s = fakeStream()
+    s.t.muted = true
+    vi.stubGlobal('navigator', { mediaDevices: { getUserMedia: vi.fn().mockResolvedValue(s) } })
+    await openGameMic()
+    expect(getGameMic()).toBeNull()
+    s.t.muted = false
+    expect(getGameMic()).toBe(s)
+    const { readFileSync } = await import('node:fs')
+    const l = readFileSync(new URL('../../features/player/modules/rotate-phone/wordLaneListen.js', import.meta.url), 'utf8')
+    expect(l).toContain("publish({ status: 'dead' })")
+    expect(readFileSync(new URL('../../features/player/modules/rotate-phone/useWordLaneFlow.js', import.meta.url), 'utf8')).toContain('dropGameMic(); openGameMic()')
   })
 
   it('закрытие игры останавливает треки; оборвавшийся поток не отдаётся (распознаватель откроет сам)', async () => {
@@ -72,7 +84,6 @@ describe('iPhone: разрешение не запоминается — оди�
     expect(engine).toContain('releaseCapture({ stream: own ? stream : null')
     const flow = readFileSync(new URL('../../features/player/modules/rotate-phone/useWordLaneFlow.js', import.meta.url), 'utf8')
     expect(flow).toContain('getStream: getGameMic')
-    expect(flow).toContain('setGameMicActive(true)')
     expect(flow).toContain('closeGameMic()')
     const mod = readFileSync(new URL('../../features/player/modules/rotate-phone/RotatePhoneModule.jsx', import.meta.url), 'utf8')
     expect(mod).toContain('micNeedsHold() ? openGameMic() : ensureMicAccess()')

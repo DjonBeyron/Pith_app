@@ -1,4 +1,4 @@
-// Озвучка диктора отдельными короткими клипами. Раньше высказывания играли из ОДНОГО mp3 перемоткой (currentTime) — на iPhone это ненадёжно: Safari не подгружает аудио заранее (readyState остаётся 0,
+// Звуки диктора на отдельных <audio> (слоты). Раньше высказывания играли из ОДНОГО mp3 перемоткой (currentTime) — на iPhone это ненадёжно: Safari не подгружает аудио заранее (readyState остаётся 0,
 // пока не нажали play), перемотка до загрузки игнорируется, а у удалённой ссылки ещё нужна поддержка Range. В тесте файл к моменту первого слова оставался незагруженным — диктор молчал.
 // Теперь файл один раз декодируется (decodeAudioData) в память, режется на клипы по высказываниям и каждый клип становится маленьким WAV — как ноты-награды, которые на iPhone играют хорошо:
 // по одному <audio> на высказывание, «разбуженному» в тапе «Начать» (play внутри жеста), потом ему подставляется клип. Играет элемент с нулевой отметки — перематывать нечего.
@@ -42,76 +42,114 @@ export function monoOf(audioBuffer) {
   return out
 }
 
-let set = null // { els: Map key → Audio, urls: string[], silence, spans, state }
+// Слоты звука: по <audio> на каждый звук диктора. Ключ слота: `s:<отрезок>` — клип, вырезанный из записи автора (фраза целиком в финале), `w:<слово>` — озвучка куска из библиотеки озвучки слов
+// (отдельный файл на кусок — основной источник диктора). Все слоты создаются и «будятся» тишиной в тапе «Начать» (play внутри жеста — иначе iPhone не даст играть по таймеру), настоящий
+// звук подставляется следом.
+let slots = null // { els: Map key → { a, woke, url }, urls: string[], silence, state }
 
 const SILENCE_WAV = () => URL.createObjectURL(new Blob([sliceToWav(new Float32Array(640), 8000, 0, 0.08)], { type: 'audio/wav' }))
 
-/**
- * Из тапа «Начать» (жест!): создать элементы под каждый отрезок и «разбудить» их тишиной, а в фоне декодировать файл и нарезать клипы. spans — [{ start, end }] в секундах файла (уникальные).
- * Возвращает промис «готово» (true — клипы нарезаны; false — не вышло: диктор играет запасным путём). Без поддержки — тихо false.
- */
-export function prepareClips(src, spans) {
-  releaseClips()
-  if (!src || !spans?.length || typeof Audio === 'undefined') return Promise.resolve(false)
-  const uniq = [...new Map(spans.map(s => [spanKey(s), s])).values()]
-  try {
-    const silence = SILENCE_WAV()
-    const els = new Map(uniq.map(s => {
-      const a = new Audio(silence)
-      a.preload = 'auto'
-      a.setAttribute('playsinline', '')
-      const woke = a.play().then(() => a.pause()).catch(() => {})
-      return [spanKey(s), { a, woke, url: null }]
-    }))
-    set = { els, silence, urls: [], state: 'loading' }
-  } catch { set = null; return Promise.resolve(false) }
-  const mine = set
-  return decodeAndSlice(src, uniq, mine).then(ok => { if (set === mine) mine.state = ok ? 'ready' : 'failed'; return ok })
+function ensureSlots() {
+  slots ??= { els: new Map(), urls: [], silence: SILENCE_WAV(), state: 'loading' }
+  return slots
 }
 
-async function decodeAndSlice(src, uniq, mine) {
+/** Создать слот key и разбудить его (только в жесте). Повторный вызов с тем же ключом — тот же слот */
+function wake(key) {
+  const set = ensureSlots()
+  if (set.els.has(key)) return set.els.get(key)
+  const a = new Audio(set.silence)
+  a.preload = 'auto'
+  a.setAttribute('playsinline', '')
+  const e = { a, woke: a.play().then(() => a.pause()).catch(() => {}), url: null }
+  set.els.set(key, e)
+  return e
+}
+
+function attach(set, e, url, own) {
+  if (own) set.urls.push(url)
+  e.url = url
+  e.woke.then(() => { if (slots === set) { e.a.src = url; e.a.load() } })
+}
+
+/** Ключ слота слова из библиотеки */
+export const wordSlotKey = key => `w:${key}`
+
+/**
+ * Из тапа «Начать» (жест!): слоты для озвучки кусков из библиотеки — items: [{ key (wordKey), url }]. Каждый файл подгружается blob-ом (как слова урока: play() без сети; CORS не пустил — прямая
+ * ссылка). Возвращает промис «готово».
+ */
+export function prepareWords(items) {
+  if (typeof Audio === 'undefined' || !items?.length) return Promise.resolve(false)
+  let set
+  try { set = ensureSlots(); items.forEach(it => wake(wordSlotKey(it.key))) } catch { releaseClips(); return Promise.resolve(false) }
+  return Promise.all(items.map(async it => {
+    const e = set.els.get(wordSlotKey(it.key))
+    try {
+      const res = await fetch(it.url)
+      if (!res.ok) throw new Error(`http ${res.status}`)
+      attach(set, e, URL.createObjectURL(await res.blob()), true)
+    } catch { attach(set, e, it.url, false) } // прямая ссылка: браузер докачает при play()
+  })).then(() => true, () => false)
+}
+
+/**
+ * Из тапа «Начать» (жест!): слоты под каждый отрезок записи автора (фраза целиком), а в фоне файл декодируется и нарезается. spans — [{ start, end }] в секундах файла.
+ * Возвращает промис «готово» (true — нарезано; false — не вышло: диктор играет запасным путём). Без поддержки — тихо false.
+ */
+export function prepareClips(src, spans) {
+  if (!src || !spans?.length || typeof Audio === 'undefined') return Promise.resolve(false)
+  const uniq = [...new Map(spans.map(s => [spanKey(s), s])).values()]
+  let set
+  try { set = ensureSlots(); uniq.forEach(s => wake(`s:${spanKey(s)}`)) } catch { releaseClips(); return Promise.resolve(false) }
+  return decodeAndSlice(src, uniq, set).then(ok => { if (slots === set) set.state = ok ? 'ready' : 'failed'; return ok })
+}
+
+async function decodeAndSlice(src, uniq, set) {
   try {
     const Ctx = typeof window !== 'undefined' ? window.OfflineAudioContext || window.webkitOfflineAudioContext : null
     if (!Ctx) return false
     const bytes = await (await fetch(src)).arrayBuffer()
     const audio = await new Ctx(1, 1, 44100).decodeAudioData(bytes)
-    if (set !== mine) return false
+    if (slots !== set) return false
     const mono = monoOf(audio)
-    for (const s of uniq) {
-      const e = mine.els.get(spanKey(s))
-      const url = URL.createObjectURL(new Blob([sliceToWav(mono, audio.sampleRate, s.start, s.end)], { type: 'audio/wav' }))
-      mine.urls.push(url); e.url = url
-      e.woke.then(() => { if (set === mine) { e.a.src = url; e.a.load() } })
-    }
-    pLog(`[word-lane] клипы диктора нарезаны: ${uniq.length} шт., файл ${audio.duration.toFixed(1)} с`)
+    for (const s of uniq) attach(set, set.els.get(`s:${spanKey(s)}`), URL.createObjectURL(new Blob([sliceToWav(mono, audio.sampleRate, s.start, s.end)], { type: 'audio/wav' })), true)
+    pLog(`[word-lane] клипы записи нарезаны: ${uniq.length} шт., файл ${audio.duration.toFixed(1)} с`)
     return true
   } catch (err) {
-    pLog(`[word-lane] клипы диктора не нарезались (${err?.name ?? err}) — играем перемоткой файла`)
+    pLog(`[word-lane] клипы записи не нарезались (${err?.name ?? err}) — играем перемоткой файла`)
     return false
   }
 }
 
-/** Сыграть клип отрезка. false — клипа нет/ещё не готов/звук урока выключен (вызывающий идёт запасным путём; при «без звука» запасной тоже молчит) */
-export function playClip(span) {
-  const e = set?.els.get(spanKey(span))
+/** Сыграть слот. false — слота нет/звук не готов (вызывающий идёт запасным путём; при «без звука» играет muted) */
+function playSlot(key) {
+  const e = slots?.els.get(key)
   if (!e?.url) return false
   try {
     if (e.a.src !== e.url) e.a.src = e.url // «разбудка» ещё не кончилась — подставляем сейчас
     e.a.muted = getLessonMuted()
     e.a.playbackRate = getVoiceRate()
     e.a.currentTime = 0
-    e.a.play().catch(err => pLog(`[word-lane] клип не пошёл: ${err?.name ?? err}`))
+    e.a.play().catch(err => pLog(`[word-lane] звук не пошёл: ${err?.name ?? err}`))
     return true
   } catch { return false }
 }
 
-export const clipsState = () => set?.state ?? 'none'
+/** Клип записи автора по отрезку */
+export const playClip = span => playSlot(`s:${spanKey(span)}`)
+/** Озвучка куска из библиотеки по ключу слова (wordKey) */
+export const playWordSlot = key => playSlot(wordSlotKey(key))
+/** Есть ли готовая озвучка куска (слот с подгруженным звуком) */
+export const hasWordSlot = key => !!slots?.els.get(wordSlotKey(key))?.url
 
-/** Игра закрыта (и перед новой подготовкой) */
+export const clipsState = () => slots?.state ?? 'none'
+
+/** Игра закрыта */
 export function releaseClips() {
-  if (!set) return
-  for (const { a } of set.els.values()) { try { a.pause(); a.removeAttribute('src') } catch { /* уже свободен */ } }
-  for (const u of set.urls) URL.revokeObjectURL(u)
-  URL.revokeObjectURL(set.silence)
-  set = null
+  if (!slots) return
+  for (const { a } of slots.els.values()) { try { a.pause(); a.removeAttribute('src') } catch { /* уже свободен */ } }
+  for (const u of slots.urls) URL.revokeObjectURL(u)
+  URL.revokeObjectURL(slots.silence)
+  slots = null
 }

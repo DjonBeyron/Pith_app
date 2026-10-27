@@ -10,18 +10,19 @@ import { MIN_WORD_MS } from './wordLanePlan.js'
 export const REP_MIN_MS = 1500     // шаг между повторами не короче: пилюли одной дорожки (20 % высоты ≈ 0,8 с пути) не налезают друг на друга
 export const REP_GAP_MS = 800      // пауза после высказывания до следующего повтора
 export const FIRST_AT_PAD_MS = 80  // слово первого повтора — через столько после полного открытия первой пилюли
-export const PIECE_GAP_MS = 40     // оценочная пауза между кусками (без записи)
+export const PIECE_GAP_MS = 80     // пауза между кусками, когда каждый звучит отдельным файлом из библиотеки
 
 /**
  * @param {object} p step — ступень рецепта (reps: [{ parts }]); chunks — тексты кусков; clips — клипы файла (clipsFromTimings/clipsFromFills) или null; audio — { wave, duration } для кривых заливки;
- * rate — скорость голоса урока (запись растягивается на 1/rate)
+ * rate — скорость голоса урока (запись растягивается на 1/rate); clipMode(parts) → true: этот повтор играется ЗАПИСЬЮ АВТОРА (клип из файла) — у фразы из нескольких кусков так звучит только
+ * ФИНАЛ (вся фраза), остальное — куски по отдельности из библиотеки озвучки слов; lib(chunk) → { ms } (длина озвучки куска из библиотеки, null — длина неизвестна) или null (куска в библиотеке нет)
  * @returns {{ reps: object[], pills: object[], listenMs: number, mouth: (t:number)=>number }}
  */
-export function planDictor({ step, chunks, clips = null, audio = null, rate = 1 }) {
+export function planDictor({ step, chunks, clips = null, audio = null, rate = 1, clipMode = () => true, lib = () => null }) {
   const n = chunks.length
   const r = rate > 0 ? rate : 1
   const reps = step.reps.map((rep, idx) => {
-    const row = clipsFor(clips, n, rep.parts, idx)
+    const row = clipMode(rep.parts) ? clipsFor(clips, n, rep.parts, idx) : null
     const span = row ? playSpan(row) : null
     let ms
     let offs
@@ -31,11 +32,11 @@ export function planDictor({ step, chunks, clips = null, audio = null, rate = 1 
       durs = row.map(c => Math.max(MIN_WORD_MS, ((c.end - c.start) * 1000) / r))
       ms = ((span.end - span.start) * 1000) / r
     } else {
-      durs = rep.parts.map(i => estChunkMs(chunks[i]))
+      durs = rep.parts.map(i => (lib(i)?.ms ?? estChunkMs(chunks[i])) / r) // кусок из библиотеки (или оценка) играется с скоростью голоса урока
       offs = durs.map((_, k) => durs.slice(0, k).reduce((a, d) => a + d + PIECE_GAP_MS, 0))
       ms = offs.at(-1) + durs.at(-1) + 100
     }
-    return { idx, parts: rep.parts, text: textOf(chunks, rep.parts), row, span, ms, offs, durs }
+    return { idx, parts: rep.parts, text: textOf(chunks, rep.parts), row, span, ms, offs, durs, mode: row ? 'clip' : 'words' }
   })
   const period = Math.max(REP_MIN_MS, ...reps.map(x => x.ms + REP_GAP_MS))
   const start0 = TRAVEL_MS + FIRST_AT_PAD_MS - (reps[0]?.offs[0] ?? 0)

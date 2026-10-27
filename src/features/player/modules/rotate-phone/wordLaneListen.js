@@ -17,6 +17,7 @@ const PAUSE_STOP_MS = 3500           // слово услышано, а ново
 // Все повторы услышаны — итог НЕ сразу: за эти мс успевают доиграть щелчок, XP и нота третьей пилюли. Раньше было 600 мс — микрофон и аудиосессия закрывались как раз во время третьей
 // ноты (на телефоне смена режима захват→воспроизведение приглушала или обрывала её), отсюда «третья нота тише»
 export const FULL_STOP_MS = 2200
+export const DEAD_MS = 2500       // микрофон отдаёт ТОЧНУЮ тишину (RMS ровно 0 — живой микрофон всегда шумит) дольше — поток заглушён системой, «не слышит»
 const SESSION_MAX_MS = 20000
 const RESTART_MS = 150
 
@@ -40,6 +41,7 @@ export function createWordListener({ word, targets: targetsIn, expected = SLOT_C
   let mutedUntil = 0  // до этого момента новые промахи поглощаются
   let absorbed = 0    // сколько промахов уже поглощено в текущем заходе
   let lastRaw = 0
+  let zeroSince = 0   // с какого момента микрофон отдаёт точный ноль
 
   const publish = patch => {
     if (patch.status) status = patch.status
@@ -77,7 +79,13 @@ export function createWordListener({ word, targets: targetsIn, expected = SLOT_C
     }
     const callbacks = {
       onReady: () => { if (!disposed && cur === session) publish({ status: 'listening' }) },
-      onLevel: rms => { if (cur === session) level.push(rms) },
+      onLevel: rms => {
+        if (cur !== session) return
+        level.push(rms)
+        if (rms > 0) { zeroSince = 0; return }
+        zeroSince ||= now()
+        if (now() - zeroSince >= DEAD_MS && status !== 'dead') { zeroSince = 0; publish({ status: 'dead' }) } // оглох: игра переоткроет микрофон
+      },
       onPartial: raw => { if (cur === session) part(raw, false) },
       onResult: (text, stats) => {
         if (cur !== session) return

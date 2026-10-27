@@ -167,7 +167,7 @@ describe('вёрстка и подключения', () => {
   it('игра берёт озвучку ноды (file_id) и план по таймлайну', () => {
     expect(read('./RotatePhoneModule.jsx')).toContain('useAudioSource(node, file)')
     expect(read('./RotatePhoneModule.jsx')).toContain('audioSrc={cfg.hasAudio ? audioSrc : null}')
-    expect(read('./useWordLaneFlow.js')).toContain('buildStages({ chunks, clips, audio, rate })')
+    expect(read('./useWordLaneFlow.js')).toContain('buildStages({ chunks, clips, audio, rate, lib })')
     expect(read('./WordLaneGame.jsx')).toContain('clips: cfg.clips')
   })
 

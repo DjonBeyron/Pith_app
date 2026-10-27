@@ -111,7 +111,7 @@ export function unloadEngine(model) {
  */
 export async function startListening(model, grammar, cb, opts = {}) {
   const tap = performance.now()
-  const ses = opts.session ? createAudioSession() : null
+  const ses = opts.session && !opts.stream ? createAudioSession() : null // с готовым потоком сессию не трогаем: он открыт раньше, и смена типа сессии заглушила бы его
   const held = ses && ses.set(opts.session)
   const release = () => { if (held) ses.set('auto') }
   let stream = opts.stream ?? null // готовый поток (игра на iPhone держит один на все ступени): не открываем и не останавливаем его

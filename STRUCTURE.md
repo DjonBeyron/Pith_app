@@ -1402,7 +1402,9 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | `modules/rotate-phone/wordLaneOrder.js` | Чистое: раунд «Порядок» — тапы по дорожкам (ok / wrong / next / done), подсветка верной дорожки после ошибок |
 | `modules/rotate-phone/wordLanePool.js` | Пул пилюль в DOM: выдать под дорожку (полёт, тень слова), вернуть, заливка и худ с записью только при изменении, постановка без полёта |
 | `modules/rotate-phone/wordLaneRecipe.test.js`, `wordLaneAudio.test.js`, `wordLaneDictor.test.js`, `wordLaneStages.test.js`, `wordLaneOrder.test.js`, `wordLaneMatchTargets.test.js` | Тесты рецепта, озвучки и клипов, плана диктора, стадий, раунда «Порядок» и распознавания нескольких целей |
-| `modules/rotate-phone/wordLaneClips.js` | Озвучка диктора клипами: файл декодируется (`decodeAudioData`), режется на WAV по высказываниям, по `<audio>` на высказывание, «разбуженному» в тапе; `prepareClips`, `playClip`, `sliceToWav` |
+| `modules/rotate-phone/wordLaneLib.js` | Озвучка кусков из библиотеки озвучки слов: `libRow`, `makeLib` (длины), `libItems` (что готовить в тапе), `missingChunks` (подсказка автору) |
+| `modules/rotate-phone/wordLaneLib.test.js` | Тесты поиска кусков в библиотеке |
+| `modules/rotate-phone/wordLaneClips.js` | Слоты звука диктора — по `<audio>` на звук, «разбужены» тишиной в тапе: куски из библиотеки (`prepareWords`, `playWordSlot`) и клипы записи автора (`prepareClips`: декодирование и нарезка в WAV, `playClip`) |
 | `modules/rotate-phone/wordLaneClips.test.js` | Тесты нарезки WAV и воспроизведения клипов |
 | `modules/rotate-phone/wordLaneMouth.js` | Громкость 0…1 → форма рта кота closed / half / open |
 | `modules/rotate-phone/wordLaneFx.test.js` | Тесты подсказки-тени и темпа, «честности оценки» (услышал / эхо ноты / «не слышу голос»), XP, нот, рта и реакций Пита |

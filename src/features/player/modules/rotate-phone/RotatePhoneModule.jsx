@@ -6,8 +6,9 @@ import WordLaneGame from './WordLaneGame.jsx'
 import { readWordLane } from './wordLaneConfig.js'
 import { unlockVoice, prepareTrack } from './wordLaneVoice.js'
 import { unlockNotes } from './wordLaneNotes.js'
-import { prepareClips } from './wordLaneClips.js'
-import { playSpan } from './wordLaneAudio.js'
+import { prepareClips, prepareWords } from './wordLaneClips.js'
+import { playSpan, clipsFor } from './wordLaneAudio.js'
+import { libItems } from './wordLaneLib.js'
 import { ensureMicAccess, micNeedsHold } from '../../../../shared/lib/micAccess.js'
 import { openGameMic } from '../../../../shared/lib/gameMic.js'
 import { primeAudio } from '../../../../shared/lib/primedAudio.js'
@@ -36,9 +37,13 @@ export default function RotatePhoneModule({ node, file, onDone }) {
     if (busy || phase !== 'wait') return
     setBusy(true)
     unlockVoice()
+    // Звуки диктора: куски фразы — отдельными файлами из библиотеки озвучки слов (слоты будятся тишиной в жесте), запись автора — только финал (вся фраза; у одного слова — если слова нет в библиотеке)
+    prepareWords(libItems(cfg.chunks))
     if (cfg.hasAudio && audioSrc) {
       prepareTrack(audioSrc) // запасной путь: общий файл с перемоткой (элемент будится в жесте)
-      if (cfg.clips) prepareClips(audioSrc, cfg.clips.map(playSpan)) // основной: файл режется на клипы-высказывания, по элементу на каждое (iPhone не подгружает аудио заранее и плохо перематывает)
+      const n = cfg.chunks.length
+      const rows = n > 1 ? [clipsFor(cfg.clips, n, cfg.chunks.map((_, i) => i), 0)].filter(Boolean) : (cfg.clips ?? [])
+      if (rows.length) prepareClips(audioSrc, rows.map(playSpan)) // файл режется на клипы-высказывания (iPhone не подгружает аудио заранее и плохо перематывает)
     }
     unlockNotes() // ноты-награды: элементы просыпаются в жесте, иначе iOS не даст им зазвучать по таймеру
     primeAudio()
