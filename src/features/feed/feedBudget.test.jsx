@@ -23,7 +23,7 @@ describe('useFeedCatch под бюджетом', () => {
     host(waiting, <Probe />)
     expect(feed.claim('m1')).toBe(false)
     await tick()
-    expect(waiting.request).toHaveBeenCalledWith({ id: 'catch:m1', kind: 'offer', reason: 'game_offer' })
+    expect(waiting.request).toHaveBeenCalledWith({ id: 'catch:m1', kind: 'offer', reason: 'game_offer', legacy: true })
 
     const chosen = slotWith({ id: 'catch:m1', kind: 'offer' })
     host(chosen, <Probe />)
