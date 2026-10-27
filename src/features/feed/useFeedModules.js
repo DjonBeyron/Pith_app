@@ -4,6 +4,8 @@ import { loadCurricula } from '../../shared/lib/curriculaApi.js'
 import { fdbg } from '../../shared/lib/feedDebug.js'
 import { useFeedSignals } from '../../shared/lib/ranking/feedSignalsStore.js'
 import { latchRank } from './feedKnowledge.js'
+import { setModuleLookup, lookupFromModules } from '../../shared/lib/level/levelFeed.js'
+import { MIN_DIFFICULTY_VOTES } from '../../shared/api/difficultyApi.js'
 import { rankFeedByConfig } from './feedRankEngine.js'
 import { publishedFeedModules } from './feedModuleShape.js'
 import { onFeedJump } from './catch/catchForce.js'
@@ -43,6 +45,7 @@ export function useFeedModules(startedIds, visible = true, freshRank = null) {
     return () => clearTimeout(t)
   }, [loaded, rank, rankWaitOver])
   const modules = loaded && (rank || rankWaitOver) ? loaded : null
+  useEffect(() => { if (loaded) setModuleLookup(lookupFromModules(loaded, MIN_DIFFICULTY_VOTES)) }, [loaded]) // сложность слайдов — оценке уровня (A2)
 
   const load = useCallback(() => {
     return loadCurricula()

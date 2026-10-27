@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { fetchFeedSocial, setLike, setBookmark, fetchStartedModules } from '../../shared/api/moduleSocialApi.js'
 import { fetchMyDifficultyVotes, setDifficultyVote } from '../../shared/api/difficultyApi.js'
+import { reportDifficultyVote } from '../../shared/lib/level/levelFeed.js'
 import { fdbg } from '../../shared/lib/feedDebug.js'
 import { track } from '../../shared/lib/analytics/track.js'
 import { FEED_LIKE, FEED_SAVE } from '../../shared/lib/analytics/eventNames.js'
@@ -83,6 +84,7 @@ export function useFeedSocial({ visible, view, user, authLoading, onRequireAuth 
     if (!user) { onRequireAuth?.(); return false }
     setDiffVotes(d => ({ ...d, [id]: v }))
     setDifficultyVote(id, v)
+    reportDifficultyVote(id, v) // голос — наблюдение для оценки уровня (A2)
     return true
   }
 

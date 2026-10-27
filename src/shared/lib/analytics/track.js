@@ -80,9 +80,18 @@ async function send(batch, { keepalive }) {
 const tracker = createTracker({ send, storage: safeStorage(), newId })
 let timer = null
 
+// Подписка на события (оценка уровня, shared/lib/level/levelFeed.js): fn(name, props) зовётся синхронно
+// после журнала; ошибка слушателя журнал не ломает. Возвращает отписку
+const listeners = new Set()
+export function onTrack(fn) {
+  listeners.add(fn)
+  return () => listeners.delete(fn)
+}
+
 export function track(name, props = null) {
   if (isSandboxEvent(props)) return // песочница сцены в ленте (админ) — не продуктовое поведение
   const size = tracker.push(name, props)
+  for (const fn of listeners) { try { fn(name, props) } catch { /* слушатель не должен ломать журнал */ } }
   if (size >= FLUSH_AT) { flushNow(); return }
   if (!timer) timer = setTimeout(flushNow, FLUSH_DELAY)
 }
