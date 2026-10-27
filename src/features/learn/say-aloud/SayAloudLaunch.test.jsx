@@ -82,9 +82,10 @@ describe('места запуска (связка по исходникам)', (
     expect(order.every(i => i > 0)).toBe(true)
     expect(src).toContain('data-testid="say-begin"')
   })
-  it('итог раунда: событие say_aloud_round с words/hits/ms, в память и XP не пишем', () => {
+  it('итог раунда: событие say_aloud_round с words/hits/ms, затем итог уходит в память через sayAloudApi', () => {
     const src = read('./SayAloudOverlay.jsx')
     expect(src).toContain('track(SAY_ALOUD_ROUND, { words: r.words, hits: r.hits, ms })')
+    expect(src).toContain('sendSayAloudResult(r.items)')
     expect(src).not.toMatch(/memoryApi|reviewApi|addXp|xpApi/)
     expect(read('../../../shared/lib/analytics/eventNames.js')).toContain("SAY_ALOUD_ROUND = 'say_aloud_round'")
     expect(read('../../../../supabase/migrations/20261027190000_say_aloud_event.sql')).toContain("'say_aloud_round'")

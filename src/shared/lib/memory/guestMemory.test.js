@@ -12,7 +12,7 @@ const { localDate } = await import('./dailyPick.js')
 const localToday = () => localDate(new Date())
 const {
   applyReview, addDays, intervalFor, seedGuestWord, reviewGuestWord, listGuestMemory, listGuestReviews,
-  hasGuestMemory, clearGuestMemory, seedGuestWordOf,
+  hasGuestMemory, clearGuestMemory, seedGuestWordOf, pullGuestWordDue,
 } = await import('./guestMemory.js')
 
 const today = '2026-09-25'
@@ -98,3 +98,24 @@ describe('хранилище гостя', () => {
   })
 })
 
+describe('pullGuestWordDue — «Скажи вслух»: промах, слово завтра', () => {
+  beforeEach(() => store.clear())
+  const put = (word, step, due_on) => localStorage.setItem('pithy_guest_memory_v1', JSON.stringify({
+    ...JSON.parse(localStorage.getItem('pithy_guest_memory_v1') ?? '{}'),
+    [word]: { word, step, due_on, reviews: 0, lapses: 0 },
+  }))
+  it('срок дальше завтра — подтягивается на завтра, шаг тот же', () => {
+    put('keep', 3, '2026-10-10')
+    expect(pullGuestWordDue('keep', today)).toBe(true)
+    expect(listGuestMemory()[0]).toMatchObject({ word: 'keep', step: 3, due_on: '2026-09-26' })
+  })
+  it('срок уже ближе (сегодня, завтра, просрочен) — не отодвигается', () => {
+    put('a', 2, '2026-09-20'); put('b', 2, today); put('c', 2, '2026-09-26')
+    expect(['a', 'b', 'c'].map(w => pullGuestWordDue(w, today))).toEqual([false, false, false])
+    expect(listGuestMemory().map(m => m.due_on)).toEqual(['2026-09-20', today, '2026-09-26'])
+  })
+  it('слова нет в памяти — false, память не создаётся', () => {
+    expect(pullGuestWordDue('ghost', today)).toBe(false)
+    expect(listGuestMemory()).toEqual([])
+  })
+})

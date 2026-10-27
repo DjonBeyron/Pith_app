@@ -7,17 +7,19 @@ import { closeGameMic, openGameMic } from '../../../shared/lib/gameMic.js'
 import { ensureMicAccess, micNeedsHold } from '../../../shared/lib/micAccess.js'
 import { track } from '../../../shared/lib/analytics/track.js'
 import { SAY_ALOUD_ROUND } from '../../../shared/lib/analytics/eventNames.js'
+import { sendSayAloudResult } from '../../../shared/api/sayAloudApi.js'
 import SayAloudGame from './SayAloudGame.jsx'
 import SayAloudResult from './SayAloudResult.jsx'
 import { roundResult } from './sayAloudRound.js'
 
 // Полноэкранный слой мини-игры «Скажи вслух» (portal в body поверх всего, как «Повтори за диктором»): сначала проверка готовности Vosk (модель в памяти или уведомление «Нужно скачать» —
 // useVoskReady + VoskReadyNotice, один механизм на все места), готово — экран «Начать»: по его тапу (это жест) уходит запрос микрофона, потом игра и итог. Микрофон не просим, пока модели нет. Крестик — выйти в любой момент.
-// Распознавание только Vosk: не готов — уведомление, системное не подставляется. Результат раунда в память и XP пока НЕ пишется: только событие say_aloud_round (слов, найдено, мс).
+// Распознавание только Vosk: не готов — уведомление, системное не подставляется. Конец раунда: событие say_aloud_round (слов, найдено, мс) и итог в память — промах = слово завтра, XP с дневным потолком (sayAloudApi).
 export default function SayAloudOverlay({ words, onClose }) {
   const vosk = useVoskReady()
   const [mic, setMic] = useState('idle')   // idle (ещё не просили) | pending | granted | denied | unavailable
   const [result, setResult] = useState(null)
+  const [xp, setXp] = useState(0) // награда с сервера: приходит после показа итога, строка «+N XP» появляется, только если N > 0
 
   const aliveRef = useRef(true)
   useEffect(() => { aliveRef.current = true; return () => { aliveRef.current = false } }, [])
@@ -34,10 +36,11 @@ export default function SayAloudOverlay({ words, onClose }) {
     const r = roundResult(answers)
     track(SAY_ALOUD_ROUND, { words: r.words, hits: r.hits, ms })
     setResult(r)
+    sendSayAloudResult(r.items).then(res => { if (aliveRef.current && res?.xp > 0) setXp(res.xp) }).catch(() => {})
   }, [])
 
   let body
-  if (result) body = <SayAloudResult result={result} onClose={onClose} />
+  if (result) body = <SayAloudResult result={result} xp={xp} onClose={onClose} />
   else if (vosk.status !== 'ready') body = <div className="sayCenter"><VoskReadyNotice vosk={vosk} /></div>
   else if (mic === 'idle') {
     body = (

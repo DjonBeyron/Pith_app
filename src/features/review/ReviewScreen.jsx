@@ -160,7 +160,7 @@ export default function ReviewScreen({ focusWords = null, phrase: phraseProp = n
     <div className={`reviewScreen${levelClass(level)}${leaving ? ' reviewScreen--leaving' : ''}`} role="dialog" aria-label="Повторение">
       {body}
       {r.phase === 'done' && (
-        <ReviewSummary results={r.results} finish={r.finish} baseXp={r.baseXp} bridge={r.bridge} phrase={r.phraseRes} words={r.info.words} memory={r.info.memory} onClose={close} onRequireAuth={onRequireAuth} />
+        <ReviewSummary results={r.results} finish={r.finish} baseXp={r.baseXp} bridge={r.bridge} phrase={r.phraseRes} words={r.info.words} memory={r.info.memory} curricula={r.info.curricula} onClose={close} onRequireAuth={onRequireAuth} />
       )}
       {warmItem && (
         <ReviewWarmup key={warmItem.key} card={warmItem.card} ref={warmRef}
