@@ -12,6 +12,7 @@ import { DROP_MS, LANES_MS } from './wordLaneTimeline.js'
 import { XP_PER_PILL, sensitiveLevel } from './wordLaneConfig.js'
 import { getVoiceRate } from '../../lessonVolume.js'
 import { pLog } from '../../../../shared/lib/debug.js'
+import { getGameMic, setGameMicActive, closeGameMic } from '../../../../shared/lib/gameMic.js'
 
 // Сценарий игры «Повтори за диктором» — директор. Рецепт (wordLaneRecipe) разложен на стадии (wordLaneStages); директор проходит их по порядку, у каждой стадии свои таймеры, и смена стадии их чистит.
 // ВСЕ таймеры стадии считаются от одной точки — s.at (её же берёт движок пилюль), иначе голос и картинка расходились бы:
@@ -103,12 +104,12 @@ export function useWordLaneFlow({ chunks, translation, lang, clips = null, audio
   const finish = useCallback(() => {
     if (finishedRef.current) return
     finishedRef.current = true
-    stopVoice(); releaseNotes(); clearTimers()
+    stopVoice(); releaseNotes(); clearTimers(); closeGameMic()
     listenerRef.current?.dispose()
     onFinished?.()
   }, [onFinished, clearTimers])
 
-  useEffect(() => () => { stopVoice(); releaseNotes(); clearTimeout(noteTimerRef.current); clearTimeout(hintTimerRef.current); timersRef.current.forEach(clearTimeout); listenerRef.current?.dispose() }, [])
+  useEffect(() => () => { closeGameMic(); stopVoice(); releaseNotes(); clearTimeout(noteTimerRef.current); clearTimeout(hintTimerRef.current); timersRef.current.forEach(clearTimeout); listenerRef.current?.dispose() }, [])
 
   // Вступление
   useEffect(() => {
@@ -144,7 +145,7 @@ export function useWordLaneFlow({ chunks, translation, lang, clips = null, audio
     if (!listenStep) return undefined
     const { texts } = stepTargets(listenStep, chunks)
     const l = createWordListener({
-      targets: texts, expected: listenStep.reps.length, level: rms,
+      targets: texts, expected: listenStep.reps.length, level: rms, getStream: getGameMic,
       onChange: ({ status, seq, misses, heard }) => {
         setS(p => {
           const mic = status === 'listening' || status === 'starting' ? status : status === 'idle' ? p.mic : 'manual'
@@ -158,8 +159,9 @@ export function useWordLaneFlow({ chunks, translation, lang, clips = null, audio
       },
     })
     listenerRef.current = l
+    setGameMicActive(true)
     l.start() // нет модели → onChange 'unavailable' → ручной режим
-    return () => { l.dispose(); if (listenerRef.current === l) listenerRef.current = null }
+    return () => { l.dispose(); setGameMicActive(false); if (listenerRef.current === l) listenerRef.current = null }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [listenId, rms, chunks])
 

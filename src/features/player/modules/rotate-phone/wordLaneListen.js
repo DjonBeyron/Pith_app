@@ -27,7 +27,7 @@ const RESTART_MS = 150
  * по нему игра честно говорит ученику, что именно распозналось. mute(ms) — на это время новые «чужие слова» не засчитываются (нота-награда из динамика могла попасть в микрофон).
  * Зависимости подставляются в тестах.
  */
-export function createWordListener({ word, targets: targetsIn, expected = SLOT_COUNT, onChange, runtime = voskRuntime, listen = startListening, level = createRmsLevel(), now = () => Date.now(), setTimer = setTimeout, clearTimer = clearTimeout }) {
+export function createWordListener({ word, targets: targetsIn, expected = SLOT_COUNT, getStream = null, onChange, runtime = voskRuntime, listen = startListening, level = createRmsLevel(), now = () => Date.now(), setTimer = setTimeout, clearTimer = clearTimeout }) {
   const targets = targetsIn?.length ? targetsIn : [word]
   let seq = [], misses = 0            // накоплено за все заходы
   let base = { seq: [], misses: 0 }   // накоплено до текущего захода
@@ -89,7 +89,7 @@ export function createWordListener({ word, targets: targetsIn, expected = SLOT_C
     publish({ status: 'starting' })
     Promise.resolve()
       .then(() => listen(model, grammar, callbacks, {
-        autoStopMs: PAUSE_STOP_MS, completeMs: FULL_STOP_MS, maxMs: SESSION_MAX_MS, session: sayAudioSessionType(), chunk: 1024, // мелкие куски (64 мс): громкость для пилюль приходит в 4 раза чаще, ответ быстрее;
+        autoStopMs: PAUSE_STOP_MS, completeMs: FULL_STOP_MS, maxMs: SESSION_MAX_MS, session: sayAudioSessionType(), chunk: 1024, stream: getStream?.() ?? undefined, // готовый поток игры (iPhone) — без нового диалога; мелкие куски (64 мс): громкость для пилюль приходит в 4 раза чаще, ответ быстрее;
         gate: true, cleanPartial, isComplete: text => analyzeTargets(text, targets).seq.length >= remaining(),
       }))
       .then(h => { if (disposed || cur !== session) { try { h?.cancel() } catch { /* уже свободен */ } return } session.handle = h; if (session.stopped) h.stop() },

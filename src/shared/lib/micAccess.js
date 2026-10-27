@@ -7,6 +7,16 @@ import { pLog } from './debug.js'
 // Результат: 'granted' | 'denied' | 'unavailable'. Общий флаг «микрофон работал» (sayPermission) ставится, чтобы модуль «Сказать фразу» тоже не спрашивал лишнего.
 let last = 'unknown'
 
+/**
+ * iPhone/iPad (в том числе приложение на домашнем экране): iOS не запоминает разрешение между открытиями микрофона — каждый новый getUserMedia после остановки потока спрашивает заново
+ * (пока поток жив, повторного запроса нет). Поэтому там разрешение «заранее» бесполезно (оно не доживёт до игры), а игра держит ОДИН поток на всю игру (gameMic.js), открытый в тапе «Начать».
+ */
+export function micNeedsHold(nav = typeof navigator !== 'undefined' ? navigator : null) {
+  if (!nav) return false
+  const ua = String(nav.userAgent ?? '')
+  return /iPhone|iPad|iPod/.test(ua) || (nav.platform === 'MacIntel' && (nav.maxTouchPoints ?? 0) > 1) // iPadOS притворяется Mac
+}
+
 /** Что известно без диалога: 'granted' | 'denied' | 'prompt' | 'unavailable' | 'unknown' (Permissions API молчит — iPhone Safari) */
 export async function micAccessState() {
   if (last === 'granted') return 'granted'
@@ -36,6 +46,7 @@ export async function ensureMicAccess() {
  */
 export const MIC_CONFIRM_TIMEOUT_MS = 30000
 export async function confirmMicBeforeStart({ timeoutMs = MIC_CONFIRM_TIMEOUT_MS } = {}) {
+  if (micNeedsHold()) return 'deferred' // iOS: разрешение не доживёт до игры — спросим один раз в тапе «Начать» на карточке игры (gameMic.openGameMic)
   try {
     if (await micAccessState() === 'granted') return 'granted'
     let timer

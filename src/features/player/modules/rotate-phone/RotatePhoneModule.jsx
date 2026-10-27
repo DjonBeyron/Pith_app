@@ -6,7 +6,8 @@ import WordLaneGame from './WordLaneGame.jsx'
 import { readWordLane } from './wordLaneConfig.js'
 import { unlockVoice, prepareTrack } from './wordLaneVoice.js'
 import { unlockNotes } from './wordLaneNotes.js'
-import { ensureMicAccess } from '../../../../shared/lib/micAccess.js'
+import { ensureMicAccess, micNeedsHold } from '../../../../shared/lib/micAccess.js'
+import { openGameMic } from '../../../../shared/lib/gameMic.js'
 import { primeAudio } from '../../../../shared/lib/primedAudio.js'
 import { pLog } from '../../../../shared/lib/debug.js'
 
@@ -34,7 +35,7 @@ export default function RotatePhoneModule({ node, file, onDone }) {
     unlockNotes() // ноты-награды: элементы просыпаются в жесте, иначе iOS не даст им зазвучать по таймеру
     primeAudio()
     try { document.documentElement.requestFullscreen?.({ navigationUI: 'hide' })?.catch?.(() => {}) } catch { /* iPhone и часть браузеров не умеют — остаёмся в окне */ }
-    const mic = await ensureMicAccess()
+    const mic = await (micNeedsHold() ? openGameMic() : ensureMicAccess()) // iPhone: один поток на всю игру (диалог один), у остальных доступ запоминается
     pLog(`[rotate] игра «${cfg.word}»: микрофон ${mic}${cfg.isDemo ? ', слово по умолчанию' : ''}`)
     playedRef.current = true
     setPhase('game')

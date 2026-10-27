@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Mic, Check } from 'lucide-react'
-import { ensureMicAccess, micAccessState } from '../../shared/lib/micAccess.js'
+import { ensureMicAccess, micAccessState, micNeedsHold } from '../../shared/lib/micAccess.js'
 
 // Блок в карточке запуска — только для уроков с нодой «Переверни телефон» (игра «Повтори за диктором»), пока доступа к микрофону ещё нет.
 //
@@ -25,7 +25,7 @@ export default function LaunchMicAsk() {
     setState(r === 'granted' ? 'granted' : 'denied')
   }
 
-  if (state === 'checking' || state === 'skip') return null
+  if (state === 'checking' || state === 'skip' || micNeedsHold()) return null // iPhone: разрешение до игры не доживёт — спросим один раз в игре, в тапе «Начать» на её карточке
   if (state === 'granted') {
     return (
       <div className="launchMic launchMic--ok">
