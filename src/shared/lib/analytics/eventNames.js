@@ -35,3 +35,4 @@ export const SAY_TRY = 'say_attempt'                 // { lesson_id, ok, engine:
 //
 // Память
 export const MEMORY_INTRO_OPEN = 'memory_intro_open' // { voice } — первое открытие вкладки «Память»: рассказ Пита показан (voice — была ли озвучка, иначе только субтитры)
+export const MEMORY_SEED = 'memory_seed'             // { word, saved } — «Семена памяти»: после верного ответа в игре ленты предложили сохранить слово; saved: true — «Сохранить», false — «Не сейчас»
