@@ -79,6 +79,11 @@ export function createPromptSlot({
       queue = [...queue, { candidate, at: now() }].slice(-MAX_QUEUE)
       tryPick()
     },
+    // Кандидат больше не нужен (слайд ушёл, подсказку сняли): убрать из очереди; если он уже показан — закрыть как ответ «left»
+    cancel(id) {
+      queue = queue.filter(q => q.candidate.id !== id)
+      if (current?.id === id) finish(noteAnswer, PROMPT_ANSWER, { answer: 'left' })
+    },
     answer(value) { finish(noteAnswer, PROMPT_ANSWER, { answer: flat(value) }) },
     dismiss() { finish(noteDismiss, PROMPT_DISMISS, { later: false }) },
     later() { finish(noteLater, PROMPT_DISMISS, { later: true }) },

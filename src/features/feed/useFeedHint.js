@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { shouldArm, swipeAway, MAX_IGNORED } from './slowmoHintPlan.js'
+import { usePromptTicket } from '../../shared/lib/prompts/usePromptTicket.js'
 
 // «Свайп доехал до конца» у виртуализатора не отдельное событие, а вывод из
 // activeIdx (см. FeedSwiper.jsx — меняется в начале анимации слайда) — не лезем в его
@@ -19,6 +20,9 @@ const ARM_DELAY_MS = 450
 // включённом звуке; нет звука — человек подсказки и не видел).
 // cfg: { seenKey, ignoredKey, armAt, maxIgnored?, serverSeen?: () => bool, onRetire?: () => void } — ключи localStorage и
 // (для подсказки замедления) флаг в профиле: уже видел на другом устройстве / запомнить на сервере.
+// Единый бюджет Пита (shared/lib/prompts): подсказка — кандидат `hint:<seenKey>` (вид hint, ui_hint) и показывается, только когда слот
+// её выбрал; пока не выбрал, она не считается показанной (проигнорированным видео не засчитывается). Ушли с подсказки насовсем
+// (игнор) — dismiss слота, воспользовались — answer('used'). Нет хоста слота (тесты, старые вызовы) — как раньше.
 // → { showHint, markSeenNow } — markSeenNow зовут, когда подсказкой реально воспользовались
 export function useFeedHint(activeIdx, cfg, { enabled = true, units = null } = {}) {
   const { seenKey, ignoredKey, armAt, maxIgnored = MAX_IGNORED } = cfg
@@ -42,7 +46,9 @@ export function useFeedHint(activeIdx, cfg, { enabled = true, units = null } = {
   const armTimer = useRef(null)
 
   const isArmed = byUnits ? units >= armAt : armed
-  useEffect(() => { armedRef.current = isArmed; enabledRef.current = enabled })
+  const tk = usePromptTicket({ id: `hint:${seenKey}`, kind: 'hint', reason: 'ui_hint' }, enabled && isArmed && !seen, { tick: activeIdx })
+  const grantedRef = useRef(true)
+  useEffect(() => { armedRef.current = isArmed; enabledRef.current = enabled; grantedRef.current = tk.granted })
 
   // Убрать насовсем: воспользовались или проигнорировали трижды
   const retire = useCallback(() => {
@@ -64,11 +70,11 @@ export function useFeedHint(activeIdx, cfg, { enabled = true, units = null } = {
     if (seen) return
     if (armedRef.current) {
       // Ушли с видео, на котором висела подсказка, не воспользовавшись ею (скрытая из-за enabled — не в счёт)
-      if (!enabledRef.current) return
+      if (!enabledRef.current || !grantedRef.current) return
       const r = swipeAway(readIgnored(), maxIgnored)
       try { localStorage.setItem(ignoredKey, String(r.ignored)) } catch { /* нет localStorage */ }
       // eslint-disable-next-line react-hooks/set-state-in-effect -- реакция на смену слайда (внешнее событие ленты), а не каскад состояний
-      if (r.retire) retire()
+      if (r.retire) { tk.dismiss(); retire() }
       return
     }
     if (!byUnits && shouldArm({ viewed: viewedRef.current, seen }, armAt)) {
@@ -78,5 +84,7 @@ export function useFeedHint(activeIdx, cfg, { enabled = true, units = null } = {
 
   useEffect(() => () => clearTimeout(armTimer.current), [])
 
-  return { showHint: enabled && isArmed && !seen, markSeenNow: retire }
+  const { answer: tkAnswer } = tk
+  const markSeenNow = useCallback(() => { tkAnswer('used'); retire() }, [tkAnswer, retire])
+  return { showHint: enabled && isArmed && !seen && tk.granted, markSeenNow }
 }

@@ -1,0 +1,83 @@
+/* Единая шторка вопросов Пита (shared/ui/PromptSheet.jsx): снизу над нижней панелью, слева кружок Пита, текст ≤2 строк,
+   до 3 кнопок-ответов, крестик. Виды различаются только акцентом кружка и рамки (--ps-accent).
+   z-index 60: выше оболочки .shellV2 (50) с её нижней панелью, ниже слоя урока (600) и окон установки (998). */
+.promptSheet {
+  --ps-accent: #6b7380;
+  position: fixed;
+  left: 8px;
+  right: 8px;
+  bottom: calc(var(--v2-nav-h) + 8px);
+  z-index: 60;
+  box-sizing: border-box;
+  max-width: 520px;
+  margin: 0 auto;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 10px 10px 12px;
+  background: #1a1d22;
+  border: 1px solid var(--ps-accent);
+  border-radius: 16px;
+  color: #f2f5f7;
+  font-family: 'Montserrat', 'Comfortaa', sans-serif;
+  touch-action: manipulation;
+  animation: promptSheetIn 0.25s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.promptSheet--question { --ps-accent: #c7f23d; }
+.promptSheet--hint { --ps-accent: #6fb7ff; }
+.promptSheet--offer { --ps-accent: #ffb84d; }
+.promptSheet--reminder { --ps-accent: #c08bff; }
+
+.promptSheetAvatar {
+  flex: 0 0 40px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  overflow: hidden;
+  box-shadow: 0 0 0 2px var(--ps-accent);
+}
+.promptSheetBody { flex: 1 1 auto; min-width: 0; }
+.promptSheetText {
+  margin: 2px 0 0;
+  font-size: 14px;
+  line-height: 1.3;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow-wrap: anywhere;
+}
+.promptSheetActions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.promptSheetBtn,
+.promptSheetLater {
+  min-height: 34px;
+  padding: 0 12px;
+  border-radius: 999px;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  max-width: 100%;
+}
+.promptSheetBtn { background: transparent; color: #f2f5f7; border: 1px solid var(--ps-accent); }
+.promptSheetLater { background: transparent; color: #8b93a0; border: 1px solid transparent; }
+.promptSheetClose {
+  flex: 0 0 auto;
+  width: 32px;
+  height: 32px;
+  margin: -4px -4px 0 0;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  color: #8b93a0;
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+@keyframes promptSheetIn {
+  from { transform: translateY(24px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .promptSheet { animation: none; }
+}

@@ -1,7 +1,9 @@
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { localToday } from '../../review/reviewDecks.js'
 import { canOfferCatch, shownCatchToday, markCatchShown, CATCH_GAP } from './feedCatch.js'
 import { sceneTaskGate } from '../scene/sceneTaskLimits.js'
+import { usePromptSlotContext } from '../../../shared/lib/prompts/usePromptSlotContext.js'
+import { CATCH_PREFIX, catchGranted, requestCatch, consumeCatch } from './catchBudget.js'
 
 // «Ловля слов» на уровне всей ленты — зеркало useFeedRecall.js, только лимиты показа:
 // onSlide(moduleId) зовёт лента при смене слайда — считаются только настоящие смены фразы (перенос круга
@@ -12,10 +14,22 @@ import { sceneTaskGate } from '../scene/sceneTaskLimits.js'
 // к ней получает его снова — без нового счёта. Первая фраза после входа в ленту может предложить сразу.
 // locked/setLocked — на активном слайде открыта панель набора: FeedSwiper не листает (FeedTab передаёт
 // setLocked только активному слайду); смена слайда снимает блокировку сама.
+// Единый бюджет вопросов Пита (catchBudget.js): после старых лимитов claim спрашивает слот — задание ставится, только когда слот
+// выбрал фразу (`catch:<moduleId>`); иначе просим слот и отвечаем «нет» (отложено). Смена слайда также считается в слоте (onSlide).
+// Нет хоста слота (тесты) — всё как раньше.
 // → { locked, setLocked, onSlide, claim }
 export function useFeedCatch() {
   const state = useRef({ swipes: CATCH_GAP, last: null, offered: new Set() })
   const [locked, setLocked] = useState(false)
+  const slot = usePromptSlotContext()
+  const pending = useRef({ id: null }) // фраза, которую мы просили у слота и которая ещё ждёт выбора
+  const curId = slot?.current?.id ?? null
+  // Слот выбрал фразу, но никто её не поставил (слайд ушёл до выбора, старые лимиты отказали) — не держим слот зря
+  useEffect(() => {
+    if (!curId?.startsWith(CATCH_PREFIX)) return undefined
+    const t = setTimeout(() => slot.cancel(curId), 400)
+    return () => clearTimeout(t)
+  }, [curId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   return useMemo(() => ({
     locked,
@@ -27,16 +41,20 @@ export function useFeedCatch() {
       if (!moduleId || moduleId === s.last) return
       s.last = moduleId
       s.swipes += 1
+      slot?.onSlide(s.swipes)
+      if (pending.current.id && pending.current.id !== moduleId) { slot?.cancel(CATCH_PREFIX + pending.current.id); pending.current.id = null }
     },
     claim(moduleId, ahead = false) {
       const s = state.current
       if (s.offered.has(moduleId)) return true
       const today = localToday()
       if (!canOfferCatch({ swipes: s.swipes + (ahead ? 1 : 0), shown: shownCatchToday(today) })) return false
+      if (!catchGranted(slot, moduleId)) { requestCatch(slot, moduleId, pending.current); return false } // бюджет Пита не выбрал — отложено
+      consumeCatch(slot, moduleId, pending.current)
       markCatchShown(today)
       s.swipes = ahead ? -1 : 0 // впереди ещё пролистывание до этой фразы — после него счёт равен 0, как при обычном claim
       s.offered.add(moduleId)
       return true
     },
-  }), [locked])
+  }), [locked, curId]) // eslint-disable-line react-hooks/exhaustive-deps -- slot и pending стабильны; curId меняет claim у слайдов
 }

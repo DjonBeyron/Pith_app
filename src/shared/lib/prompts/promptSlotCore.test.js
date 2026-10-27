@@ -162,4 +162,31 @@ describe('promptSlotCore', () => {
       expect(m.track).toHaveBeenLastCalledWith(PROMPT_SHOWN, expect.objectContaining({ group: 'control' }))
     })
   })
+  describe('cancel', () => {
+    it('убирает ждущего кандидата из очереди: потом он не покажется', () => {
+      const m = make()
+      m.slot.start()
+      m.slot.request(q('a'))
+      m.slot.cancel('a')
+      m.env.t += R.MIN_MS_AFTER_OPEN + 100
+      m.slot.setBusy({})
+      expect(m.slot.getCurrent()).toBeNull()
+    })
+    it('показанного закрывает ответом left и освобождает слот для следующего', () => {
+      const m = make()
+      open(m)
+      m.slot.request(q('a'))
+      m.slot.request(q('b'))
+      m.slot.cancel('a')
+      expect(m.track).toHaveBeenCalledWith(PROMPT_ANSWER, expect.objectContaining({ id: 'a', answer: 'left' }))
+      expect(m.slot.getCurrent()?.id).not.toBe('a')
+    })
+    it('чужой id ничего не трогает', () => {
+      const m = make()
+      open(m)
+      m.slot.request(q('a'))
+      m.slot.cancel('zzz')
+      expect(m.slot.getCurrent().id).toBe('a')
+    })
+  })
 })

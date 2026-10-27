@@ -32,6 +32,7 @@ import { usePromptGroupSync } from '../shared/lib/prompts/usePromptGroupSync.js'
 import { useLevelTracking } from '../shared/lib/level/useLevelTracking.js'
 import { armMotionOnGesture } from '../shared/lib/motionPermission.js'
 import ShellNav from './ShellNav.jsx'
+import PromptHost from './PromptHost.jsx'
 import LearnTab from '../features/learn/LearnTab.jsx'
 import { useLearnData } from '../features/learn/useLearnData.js'
 import { useMemoryFresh } from '../features/learn/memoryFresh.js'
@@ -60,11 +61,9 @@ export default function ShellV2() {
   // Редактор колоды «Карточки повтора» того же урока (features/reviewCards)
   const [cardsLesson, setCardsLesson] = useState(null)
   const [wordCardLesson, setWordCardLesson] = useState(null)
-  // Модуль, который админ-вкладка должна открыть по возвращении из редактора
-  // («назад» в канвасе ведёт в схему модуля урока, а не на главный экран)
+  // Модуль, который админ-вкладка откроет по возвращении из редактора («назад» в канвасе ведёт в схему модуля)
   const [moduleRequest, setModuleRequest] = useState(null)
-  // Всплывашка «продолжить редактирование» закрыта на этот сеанс: сама она
-  // больше не прячется по таймеру
+  // Всплывашка «продолжить редактирование» закрыта на этот сеанс (сама по таймеру не прячется)
   const [resumeClosed, setResumeClosed] = useState(false)
   // Сигнал вкладке «Рейтинг» открыть страницу гонки (из попапа-анонса)
   const [raceOpenTick, setRaceOpenTick] = useState(0)
@@ -139,6 +138,7 @@ export default function ShellV2() {
   const feedPaused = (!!gate && splashGone) || !!lessonOverlay
 
   return (
+    <PromptHost>
     <div className="shellV2">
       <OrientationGuard />
       <InstallPrompt />
@@ -244,5 +244,6 @@ export default function ShellV2() {
         }}
       />
     </div>
+    </PromptHost>
   )
 }
