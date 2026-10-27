@@ -21,12 +21,15 @@ const stub = {
 }
 const ADD_HOME = 'На iPhone уведомления приходят только приложению на экране «Домой»'
 
-// Safari на iPhone: платформа и касания как у телефона; standalone — только если просят («экран Домой»)
+// Safari на iPhone: платформа и касания как у телефона; standalone — только если просят («экран Домой»).
+// Разрешение на уведомления закрепляем как «ещё не спрашивали» ('default'): в headless-shell Chromium на GitHub
+// Notification.permission по умолчанию 'denied', и ветка уведомлений («Домой» / «Включить») не показывалась
 const asIPhone = (page, { standalone = false } = {}) => page.addInitScript(isStandalone => {
   const set = (k, v) => Object.defineProperty(navigator, k, { get: () => v, configurable: true })
   set('platform', 'iPhone')
   set('maxTouchPoints', 5)
   if (isStandalone) set('standalone', true)
+  if (window.Notification) Object.defineProperty(window.Notification, 'permission', { get: () => 'default', configurable: true })
 }, standalone)
 
 const signedIn = async (page, opts) => {
