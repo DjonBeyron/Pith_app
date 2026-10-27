@@ -1,8 +1,5 @@
 import { describe, it, expect } from 'vitest'
 import { hasChoose, correctOption, textOnly, pickChooseCard } from './chooseTasks.js'
-import {
-  CHOOSE_GAP, CHOOSE_PER_DAY, chooseDay, canOfferChoose, chooseBlockReason, markChooseShown, readChooseDay, writeChooseDay,
-} from './chooseLimits.js'
 
 const say = id => ({ id, type: 'text', typeData: { text: { text: 'Hi' } } })
 const voice = id => ({ id, type: 'audio', typeData: { audio: { text: '' } } })
@@ -67,37 +64,5 @@ describe('pickChooseCard', () => {
     ])
     expect(pickChooseCard(d, { needText: true, rand: first }).word).toBe('read')
     expect(pickChooseCard(d, { needText: false, rand: first }).word).toBe('mute')
-  })
-})
-
-describe('лимиты игры', () => {
-  const day = { date: '2026-10-27', count: 0 }
-
-  it('чужая дата и мусор обнуляют счётчик', () => {
-    expect(chooseDay({ date: '2026-10-26', count: 4 }, '2026-10-27').count).toBe(0)
-    expect(chooseDay({ date: '2026-10-27', count: 3 }, '2026-10-27').count).toBe(3)
-    expect(chooseDay('мусор', '2026-10-27').count).toBe(0)
-    expect(chooseDay({ date: '2026-10-27', count: -2 }, '2026-10-27').count).toBe(0)
-  })
-  it('не чаще раза в 6 слайдов', () => {
-    expect(canOfferChoose({ swipes: CHOOSE_GAP - 1, state: day })).toBe(false)
-    expect(canOfferChoose({ swipes: CHOOSE_GAP, state: day })).toBe(true)
-    expect(chooseBlockReason({ swipes: 2, state: day })).toMatch(/слайд/)
-  })
-  it('не больше 4 в день', () => {
-    let s = day
-    for (let i = 0; i < CHOOSE_PER_DAY; i++) s = markChooseShown(s)
-    expect(canOfferChoose({ swipes: 99, state: s })).toBe(false)
-    expect(chooseBlockReason({ swipes: 99, state: s })).toMatch(/в день/)
-    expect(chooseBlockReason({ swipes: 99, state: day })).toBeNull()
-  })
-  it('хранилище: запись и чтение; без хранилища не падает', () => {
-    const mem = new Map()
-    const storage = () => ({ getItem: k => mem.get(k) ?? null, setItem: (k, v) => mem.set(k, v) })
-    writeChooseDay({ date: '2026-10-27', count: 2 }, storage)
-    expect(readChooseDay('2026-10-27', storage).count).toBe(2)
-    expect(readChooseDay('2026-10-28', storage).count).toBe(0)
-    expect(readChooseDay('2026-10-27', () => null).count).toBe(0)
-    expect(() => writeChooseDay(day, () => { throw new Error('private') })).not.toThrow()
   })
 })

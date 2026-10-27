@@ -1,15 +1,12 @@
 import { describe, it, expect, vi } from 'vitest'
-import { renderToStaticMarkup } from 'react-dom/server'
-import { PromptSlotContext } from '../../../shared/lib/prompts/usePromptSlotContext.js'
 import {
   FEED_SWIPE, FEED_GAME_SHOWN, FEED_GAME_ANSWER, PROMPT_ANSWER, PROMPT_DISMISS,
 } from '../../../shared/lib/analytics/eventNames.js'
 import { createChooseGame, CHOOSE_AFTER, chooseCandidate } from './chooseGame.js'
-import { useFeedChoose } from './useFeedChoose.js'
-import { CHOOSE_PER_DAY } from './chooseLimits.js'
+import { GAME_PER_DAY as CHOOSE_PER_DAY } from '../games/gameLimits.js'
 
 // Игра «Выбери слово»: путь «слайды → колоды → просьба к слоту → «Давай» → шторка → ответ» с фейковым слотом и своей шиной
-// событий (вместо analytics/track.js). Эффекты хука идут только в браузере — его проверяет статический рендер внизу
+// событий (вместо analytics/track.js)
 const choice = { id: 'c', type: 'word_choice', typeData: { word_choice: { options: [{ text: 'keep', isCorrect: true }, { text: 'kip' }] } } }
 const say = { id: 's', type: 'text', typeData: { text: { text: 'Hi' } } }
 const voice = { id: 'v', type: 'audio', typeData: { audio: { text: '' } } }
@@ -118,7 +115,7 @@ describe('игра «Выбери слово»: от слайдов до отв�
     const t = setup()
     await t.swipe(6)
     t.shown()
-    expect(JSON.parse(t.mem.get('pithy_feed_choose_v1'))).toEqual({ date: '2026-10-27', count: 1 })
+    expect(JSON.parse(t.mem.get('pithy_feed_choose_v1'))).toEqual({ date: '2026-10-27', count: 1, last: 'choose' })
     t.fire(PROMPT_ANSWER, { id: 'choose:keep', answer: 'no' })
     await t.swipe(5)
     expect(t.slot.request).toHaveBeenCalledTimes(1)
@@ -186,18 +183,5 @@ describe('игра «Выбери слово»: от слайдов до отв�
     t.fire(PROMPT_ANSWER, { id: 'choose:keep', answer: 'go' })
     t.off()
     expect(t.game.getOpen()).toBeNull()
-  })
-})
-
-describe('useFeedChoose (статический рендер)', () => {
-  const Probe = () => {
-    const g = useFeedChoose({ inMemory: new Map(), enabled: true, soundOn: true })
-    return <i data-open={String(!!g.open)} />
-  }
-  it('без хоста слота и со слотом игра по умолчанию закрыта', () => {
-    expect(renderToStaticMarkup(<Probe />)).toContain('data-open="false"')
-    const slot = { current: null, request: vi.fn(), cancel: vi.fn(), setBusy: vi.fn() }
-    expect(renderToStaticMarkup(<PromptSlotContext.Provider value={slot}><Probe /></PromptSlotContext.Provider>)).toContain('data-open="false"')
-    expect(slot.request).not.toHaveBeenCalled() // просьба идёт эффектом (в браузере), не на рендере
   })
 })

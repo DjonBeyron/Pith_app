@@ -31,7 +31,7 @@ import { useFeedCatch } from './catch/useFeedCatch.js'
 import { onFeedJump } from './catch/catchForce.js'
 import FeedEmptyState from './FeedEmptyState.jsx'
 import GuestSaveHint from './GuestSaveHint.jsx' // строка Пита гостю после первого лайка (B7)
-import FeedChoose from './choose/FeedChoose.jsx' // игра «Выбери слово»: предложение Пита → шторка (B4)
+import FeedGames from './games/FeedGames.jsx' // игры ленты (выбери слово, дополни реплику, картинка): предложение Пита → шторка (B4–B5)
 
 // Лента видео: вертикальный Swiper по модулям из curricula (FeedSwiper.jsx),
 // бесконечная по кругу — список повторяется циклами, у края запаса лента
@@ -234,7 +234,7 @@ export default function FeedTab({ visible = true, onOpenCanvas, onRequireAuth, l
       </div>
 
       <GuestSaveHint activeIdx={activeIdx} user={user} onRequireAuth={onRequireAuth} />
-      <FeedChoose learnView={learnView} enabled={feedActive} soundOn={soundReady} />
+      <FeedGames learnView={learnView} enabled={feedActive} soundOn={soundReady} />
       {showDebug && <DebugPanel getFeedInfo={feedInfo} onClose={() => setShowDebug(false)} />}
       {showSearch && (
         <FeedSearchPanel
