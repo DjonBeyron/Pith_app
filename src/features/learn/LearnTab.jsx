@@ -19,6 +19,8 @@ import MemoryPhraseCard from './MemoryPhraseCard.jsx'
 import MemoryWordCard from './MemoryWordCard.jsx'
 import LearnWordSheet from './LearnWordSheet.jsx'
 import MemoryStory from './MemoryStory.jsx'
+import RemindAskSheet from './RemindAskSheet.jsx'
+import { askRemindOnce } from './remindAskOnce.js'
 import ProPaywall from '../pro/ProPaywall.jsx'
 
 const ReviewScreen = lazy(loadReviewScreen)
@@ -38,6 +40,7 @@ export default function LearnTab({ learn, visible, isLoggedIn, onRequireAuth }) 
   const [phrases, setPhrases] = useState(null) // null | 'all' (окно «Все фразы») | фраза из view.phraseList (её карточка)
   const [startedAll, setStartedAll] = useState(false) // окно «Все начатые» (начатые, но не пройденные на 100% фразы)
   const [showPro, setShowPro] = useState(false)
+  const [askRemind, setAskRemind] = useState(false) // шторка «Когда удобно учиться?» после рассказа Пита
   const [stepBusy, setStepBusy] = useState(false)
   const [wordCard, setWordCard] = useState(null) // { word, phrase } — карточка слова (справка) из карточки фразы
   const [profile, setProfile] = useState(getCachedProfile)
@@ -150,7 +153,8 @@ export default function LearnTab({ learn, visible, isLoggedIn, onRequireAuth }) 
           </Suspense>
         )}
         {showPro && <ProPaywall onClose={() => setShowPro(false)} />}
-        <MemoryStory open={visible} onDone={() => { /* C2: сюда — «Когда удобно учиться?» */ }} />
+        <MemoryStory open={visible} onDone={() => askRemindOnce(() => setAskRemind(true))} />
+        {askRemind && <RemindAskSheet onClose={() => setAskRemind(false)} />}
       </div>
       {/* Затемнение снизу — как у схемы модуля (moduleGraphEdge--bottom): то, что
           уходит под нижнюю панель, плавно темнеет, а не режется ровной линией */}

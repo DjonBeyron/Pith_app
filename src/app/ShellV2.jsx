@@ -35,7 +35,6 @@ import LearnTab from '../features/learn/LearnTab.jsx'
 import { useLearnData } from '../features/learn/useLearnData.js'
 import { useMemoryFresh } from '../features/learn/memoryFresh.js'
 import { useMemoryTab } from '../features/learn/memoryTab.js'
-import MinutesAsk from '../features/learn/MinutesAsk.jsx'
 import { useShellOpenEvents } from './useShellOpenEvents.js'
 import { onProfileHome } from '../shared/lib/profileHomeEvent.js'
 
@@ -211,7 +210,6 @@ export default function ShellV2() {
         )}
       </div>
 
-      <MinutesAsk isLoggedIn={!!user} onRequireAuth={() => setTab('profile')} onChanged={learn.reload} />
       <ShellNav tab={tab} setTab={setTab} memoryTab={memoryTab.state} onMemoryTap={memoryTab.onTap} memoryHello={memoryTab.hello} learnDot={learnDot} learnSleeping={learnSleeping} raceFlame={raceFlame} rewardsDot={rewardsDot} isRealAdmin={isRealAdmin} userMode={userMode || newbie} />
 
       {/* Админу во вкладке «Админ»: вернуться к уроку, который правил в прошлый раз (resumeToastVisible.js) */}
