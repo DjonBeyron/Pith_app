@@ -1,9 +1,10 @@
 import { supabase } from './supabase.js'
 import { viewSession } from './viewSession.js'
+import { getGuestLikes, getGuestSaves, clearGuestSocial } from '../lib/guestSocial.js'
 
 // Лайки, закладки и прогресс модулей (новый интерфейс, видео-лента).
-// Лайки/закладки гостю недоступны — лента предлагает войти. «Начатые модули»
-// гость копит локально, при входе они переезжают на сервер.
+// Лайки/закладки гость ставит сразу (localStorage, guestSocial.js) и «начатые
+// модули» копит локально — при входе всё переезжает на сервер.
 
 const LS_STARTED = 'pithy_started_modules_v1'
 
@@ -52,6 +53,43 @@ async function setRow(table, moduleId, on) {
 
 export const setLike     = (moduleId, on) => setRow('module_likes', moduleId, on)
 export const setBookmark = (moduleId, on) => setRow('module_bookmarks', moduleId, on)
+
+// После входа: гостевые лайки/закладки (localStorage) — в аккаунт. Те же строки,
+// что ставит тап залогиненного (upsert без дублей): счётчики like_count /
+// save_count ведут триггеры БД, повторная вставка уже стоящего их не меняет.
+// Пачкой; «битая» строка (модуль удалён) роняет пачку — тогда по одной.
+// Не бросает исключений. Перенесли — локальные списки чистятся; не вышло
+// ничего — остаются до следующего входа. → true, если перенос состоялся
+export async function importGuestSocial() {
+  try {
+    const likes = getGuestLikes()
+    const saves = getGuestSaves()
+    if (!likes.length && !saves.length) return false
+    const user = await currentUser()
+    if (!user) return false
+    const okLikes = await importRows('module_likes', user.id, likes)
+    const okSaves = await importRows('module_bookmarks', user.id, saves)
+    if (okLikes && okSaves) clearGuestSocial()
+    return okLikes && okSaves
+  } catch (e) {
+    console.error('[SOCIAL] перенос гостевых лайков:', e?.message)
+    return false
+  }
+}
+
+async function importRows(table, userId, ids) {
+  if (!ids.length) return true
+  const opts = { onConflict: 'user_id,module_id', ignoreDuplicates: true }
+  const rows = ids.map(module_id => ({ user_id: userId, module_id }))
+  const bulk = await supabase.from(table).upsert(rows, opts)
+  if (!bulk.error) return true
+  let any = false
+  for (const row of rows) {
+    const { error } = await supabase.from(table).upsert(row, opts)
+    if (!error) any = true
+  }
+  return any
+}
 
 // Событие «Репост» — счётчик кликов, не тумблер (можно репостнуть не один
 // раз); агрегат repost_count на curricula пересчитывает триггер в БД.

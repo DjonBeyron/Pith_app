@@ -1,10 +1,11 @@
 import { isLessonOpen, onLessonOpenChange } from '../../shared/lib/lessonOpen.js'
 import { useState, useEffect, useCallback } from 'react'
 import { listWordMemory, listRecentReviews, getMemoryProfile, importGuestMemory, listPhraseRows } from '../../shared/api/memoryApi.js'
-import { fetchStartedModules } from '../../shared/api/moduleSocialApi.js'
+import { fetchStartedModules, importGuestSocial } from '../../shared/api/moduleSocialApi.js'
 import { fetchMyDoneLessonIds } from '../../shared/api/starsApi.js'
 import { getCompletedLessons } from '../../shared/lib/completedLessons.js'
 import { hasGuestMemory } from '../../shared/lib/memory/guestMemory.js'
+import { hasGuestSocial } from '../../shared/lib/guestSocial.js'
 import { loadCurricula } from '../../shared/lib/curriculaApi.js'
 import { listLessonDeckFlags } from '../../shared/lib/lessonsApi.js'
 import { localToday } from '../review/reviewDecks.js'
@@ -39,8 +40,10 @@ export function useLearnData(isLoggedIn) {
   }, [])
 
   useEffect(() => {
-    // Вход/выход: сперва перенести память гостя (если была), потом перечитать
-    const move = isLoggedIn && hasGuestMemory() ? importGuestMemory() : Promise.resolve()
+    // Вход/выход: сперва перенести память гостя и его лайки/закладки (если были), потом перечитать
+    const move = isLoggedIn
+      ? Promise.all([hasGuestMemory() && importGuestMemory(), hasGuestSocial() && importGuestSocial()])
+      : Promise.resolve()
     move.then(reload).catch(() => {})
     // Возврат из фона посреди урока: 8 запросов и перерисовка всей оболочки
     // (с плеером внутри) — откладываем до закрытия урока
