@@ -6,6 +6,7 @@ import { catchKeyboard } from './catchLetters.js'
 import { isPhraseLaterPaused, noteLater, resetLaterStreak } from './catchLater.js'
 import { getForcedCatch, clearForcedCatch, forcedKnowledge, onForcedCatch } from './catchForce.js'
 import * as cs from './catchState.js'
+import { useSeedWord } from '../seed/useSeedWord.js'
 
 export const CATCH_COVER_OUT_MS = 500 // страховка: накрытие размонтируется по transitionend (CatchCover), но не позже этого (feed-catch.css: уход панели 260мс)
 const LEARN_SYNC_DELAY_MS = 450 // память «Моего обучения» обновляем после ухода накрытия и проявления фразы (200мс)
@@ -66,6 +67,7 @@ export function useSlideCatch({ feedCatch, mod, active, near = false, ahead = fa
   if (mayDecide && eligible && claimedRef.current !== mod.id && (forced || feedCatch?.claim(mod.id, !active))) claimedRef.current = mod.id
   const claimed = claimedRef.current === mod.id && !paused // фраза с паузой, вернувшаяся в ту же копию слайда, чип не получает
 
+  const seed = useSeedWord() // «Семена памяти» (B6): после полностью верного «Проверить» предлагаем сохранить слово вне памяти
   const [st, setSt] = useState(() => cs.initialCatch(mod.id))
   // Админ выставил задание заново — состояние слайда с нуля (сброс при рендере)
   const [seenForced, setSeenForced] = useState(forced)
@@ -164,6 +166,7 @@ export function useSlideCatch({ feedCatch, mod, active, near = false, ahead = fa
         catchHeard(w.key, mod.id).catch(() => {})
       }
     }
+    if (!forced && cs.okCount(results) === words.length) seed.offer(words.filter(w => w.level === 0).map(w => w.text), mod.id)
     track('feed_catch_check', { ok: cs.okCount(results), total: words.length, helped: s.helped.size })
   }
 
@@ -217,6 +220,6 @@ export function useSlideCatch({ feedCatch, mod, active, near = false, ahead = fa
     shift: cs.shiftOn(s, words), words,
     cur, curIndex: s.cur, typed: s.cur == null ? '' : cs.typedOf(s, s.cur), typedBy: s.typedBy,
     helped, helpedSet: s.helped, model, results: s.results, isLast: cs.isLast(s, words), hasPrev,
-    ...stable,
+    seed, ...stable,
   }
 }
