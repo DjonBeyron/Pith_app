@@ -1,8 +1,9 @@
 import { useEffect, useRef } from 'react'
-import { SLOT_COUNT, TRAVEL_MS, VOICE_THRESHOLD, pillFill } from './wordLaneTimeline.js'
+import { SLOT_COUNT, TRAVEL_MS, pillFill } from './wordLaneTimeline.js'
 import { createAligner } from './wordLaneClock.js'
 import { startFlight, cancelFlights, setFlightRate } from './wordLaneMotion.js'
 import { createStudentGame, stepStudent } from './wordLaneStudent.js'
+import { createVoiceGate } from './wordLaneVoiceGate.js'
 import { snapPill, missPill, SNAP_LEAD_MS } from './wordLaneSnap.js'
 
 // Движок пилюль игры «Повтори за диктором». ДВИЖЕНИЕ пилюль ведёт композитор (wordLaneMotion.js: одна линейная WAAPI-анимация на пилюлю — скорость конвейера постоянна), поэтому лаги основного
@@ -89,10 +90,13 @@ export function useWordLanePills(rootRef, { phase, phaseAt, plan, hits, misses, 
       const flights = Array(SLOT_COUNT).fill(null)
       const g = createStudentGame({ fillMs: plan.fillMs })
       g.seenHits = live.current.hits; g.seenMisses = live.current.misses // слушатель стартует ещё в «твоей очереди» — слова до начала конвейера не считаем
-      let level = 0
+      let raw = 0
+      let level = 0                      // громкость ПОСЛЕ ворот: 0, пока голоса ученика нет (шум и эхо ноты не в счёт)
       let raf = 0
+      let lastNow = performance.now()
+      const gate = createVoiceGate()
       const t0 = performance.now()
-      const off = levels?.subscribe(l => { level = l })
+      const off = levels?.subscribe(l => { raw = l })
       const handle = e => {
         const el = e.pill ? pills[e.pill.slot] : null
         if (e.type === 'spawn') {
@@ -102,16 +106,17 @@ export function useWordLanePills(rootRef, { phase, phaseAt, plan, hits, misses, 
           flights[k] = startFlight(el, performance.now() - t0 - e.pill.spawnAt)
         }
         else if (e.type === 'claim') { el.setAttribute('data-lock', '1'); snapPill(el, e.order); light(e.order) } // отклик — в момент, когда слово принято
-        else if (e.type === 'win') fxRef.current?.win?.(e.order, el.getBoundingClientRect())
+        else if (e.type === 'win') { gate.mute(performance.now()); fxRef.current?.win?.(e.order, el.getBoundingClientRect()) } // нота-награда: микрофон слышит динамик — голосом это не считаем
         else if (e.type === 'fail') { el.setAttribute('data-fail', '1'); fxRef.current?.fail?.() }
         else if (e.type === 'miss') { if (el) missPill(el); fxRef.current?.miss?.() }
         else if (e.type === 'done') fxRef.current?.finished?.(e.locked)
       }
       const tick = now => {
         const t = now - t0
+        level = gate.step(raw, now, now - lastNow).level; lastNow = now
         const { hits: h, misses: m } = live.current
         for (const e of stepStudent(g, t, { level, hits: h, misses: m })) handle(e)
-        const talking = level > VOICE_THRESHOLD
+        const talking = level > 0
         for (let k = 0; k < SLOT_COUNT; k++) {
           const p = g.pills.findLast(x => x.slot === k && !x.gone)
           if (!p) { hint(k, '0', null); continue }

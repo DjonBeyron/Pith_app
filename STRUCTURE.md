@@ -1390,6 +1390,8 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | `modules/rotate-phone/wordLaneStudent.test.js` | Тесты конвейера ученика: claim, «не успел», повторные выкаты, лимит попыток |
 | `modules/rotate-phone/wordLaneNotes.test.js` | Тесты нот: одинаковая громкость, третья не тише, окно закрытия микрофона |
 | `modules/rotate-phone/WordLanePerf.jsx` | Отладочный счётчик плавности (к/с, макс. кадр, подвисания по фазам) — только по `?wldebug` |
+| `modules/rotate-phone/wordLaneVoiceGate.js` | Чистое: ворота голоса ученика — пол шума, запас, выдержка ≥ 90 мс, заглушение после ноты; без них шум и эхо динамика запускали анимацию пилюль |
+| `modules/rotate-phone/wordLaneVoiceGate.test.js` | Тесты ворот: шум и щелчки не голос, голос ≈ 100 мс, паузы не рвут, шумная комната, эхо ноты |
 | `modules/rotate-phone/wordLaneMotion.js` | Ход пилюль на композиторе: `startFlight` (WAAPI-анимация свойства `translate` ENTER_Y → EXIT_Y, линейно, дольше полёта на 120 с), `cancelFlights`, `setFlightRate`; `flightPosition` |
 | `modules/rotate-phone/wordLaneMotion.test.js` | Тесты: полёт (длительность, кадры, translate вместо transform), подстройка скорости под звук без рывков, щелчок не сдвигает пилюлю, худ только по голосу |
 | `modules/rotate-phone/wordLaneFeel.test.js` | Тесты «ощущения»: затемнения сверху/снизу (высоты = константам), кот поверх всего, диктор начинает при полном открытии пилюли, отклик щелчка (диктор — с упреждением, ученик — на claim), слушатель стартует в «твоей очереди», перемотка опоздавшего звука |

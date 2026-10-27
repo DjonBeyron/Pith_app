@@ -162,7 +162,7 @@ describe('худ в пилюле реагирует только на голос
     expect(css).toMatch(/\.wlPace \{[^}]*opacity: 0;/)
     expect(css).not.toMatch(/data-phase='speak'\] \.wlPill:not\(\[data-lock\]\) \.wl(Ghost|Pace)/)   // раньше показывались статично всю фазу
     const eng = read('./useWordLanePills.js')
-    expect(eng).toContain('const talking = level > VOICE_THRESHOLD')
+    expect(eng).toContain('const talking = level > 0')                          // level — уже после ворот голоса
     expect(eng).toContain("(0.2 + 0.55 * Math.min(1, level)).toFixed(2) : '0'")
     expect(eng).toContain('listening && p.onset != null')              // метка темпа — только после первого звука
   })
