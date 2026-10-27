@@ -1,0 +1,30 @@
+# Деплой edge-функций Supabase кнопкой из GitHub (владелец работает без локальной копии проекта).
+# GitHub → Actions → «Deploy Supabase functions» → Run workflow → выбрать ветку и функцию.
+# Нужны два секрета репозитория (Settings → Secrets and variables → Actions):
+#   SUPABASE_ACCESS_TOKEN — личный токен: https://supabase.com/dashboard/account/tokens → Generate new token
+#   SUPABASE_PROJECT_REF  — ref проекта из адреса дашборда https://supabase.com/dashboard/project/<ref>
+# verify_jwt для каждой функции берётся из supabase/config.toml (у push-trigger — false), флаг не нужен.
+name: Deploy Supabase functions
+
+on:
+  workflow_dispatch:
+    inputs:
+      function:
+        description: 'Какую функцию деплоить'
+        required: true
+        default: push-trigger
+        type: choice
+        options: [push-trigger, push-send, tts-elevenlabs, create-payment, payment-webhook, elevenlabs-quota, generate-image, r2-delete, r2-upload-url, transcribe-audio]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - name: Деплой ${{ inputs.function }}
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: supabase functions deploy ${{ inputs.function }} --project-ref ${{ secrets.SUPABASE_PROJECT_REF }}
