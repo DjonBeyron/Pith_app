@@ -39,6 +39,7 @@ export function createFeedGame(deps = {}) {
   } = deps
   const byGame = new Map(kinds.map(k => [k.game, k]))
   let swipes = 0
+  let stopped = false // лента размонтирована: загрузка колод, пришедшая позже, слот уже не трогает
   let loaded = null // { decks, teacher, ... } — что вернул loadDecks
   let loading = false
   let retryAt = 0 // после сбоя загрузки пробуем снова не раньше, чем через GAMES_AFTER слайдов
@@ -80,7 +81,7 @@ export function createFeedGame(deps = {}) {
   // Главное решение. Зовётся при смене слайда, загрузке колод и изменениях вокруг (хук: check)
   function evaluate() {
     const slot = getSlot()
-    if (!slot || open) return
+    if (stopped || !slot || open) return
     if (!isEnabled()) { release(slot); return }
     if (pending) {
       if (pending.shown) return
@@ -130,8 +131,9 @@ export function createFeedGame(deps = {}) {
   const game = {
     // Подписка на журнал событий; возвращает отписку (она же снимает предложение и закрывает игру, чтобы не держать слот)
     start() {
+      stopped = false
       const off = listen(onEvent)
-      return () => { off(); release(getSlot()); game.close() }
+      return () => { stopped = true; off(); release(getSlot()); game.close() }
     },
     check: evaluate,
     setContext(next) { Object.assign(ctx, next) },

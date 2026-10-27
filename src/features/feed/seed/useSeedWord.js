@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { canSeedWord, seedMemoryWord } from '../../../shared/api/memorySeedApi.js'
 import { localDate } from '../../../shared/lib/memory/dailyPick.js'
 import { track } from '../../../shared/lib/analytics/track.js'
@@ -14,6 +14,8 @@ export function useSeedWord() {
   const [current, setCurrent] = useState(null)
   const busy = useRef(false)
   const saving = useRef(false)
+  const alive = useRef(true) // размонтировались, пока ждали canSeedWord — плашку не выставляем
+  useEffect(() => { alive.current = true; return () => { alive.current = false } }, [])
 
   const offer = useCallback(async (words, moduleId) => {
     const today = localDate(new Date())
@@ -23,6 +25,7 @@ export function useSeedWord() {
       for (const word of [].concat(words)) {
         if (!word) continue
         const can = await canSeedWord(word) // уже включает «есть колода» и «нет в памяти»
+        if (!alive.current) return
         if (!shouldOfferSeed({ ok: true, hasDeck: can, inMemory: false, offeredToday: seedOffersToday(today) })) continue
         markSeedOffered(today)
         setCurrent({ word, moduleId })
