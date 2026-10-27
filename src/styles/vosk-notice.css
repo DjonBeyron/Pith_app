@@ -1,0 +1,30 @@
+/* Уведомление «Нужно скачать распознавание речи» (shared/ui/VoskGateNotice.jsx) — общее для всех экранов с Vosk. Цвета берёт у хозяина экрана (currentColor), поэтому
+   одинаково читается и на тёмном слое игры, и в светлой карточке. Подключается самим компонентом (import), в index.css не нужен. */
+.voskNotice {
+  box-sizing: border-box;
+  width: min(92vw, 360px);
+  padding: 18px 18px 16px;
+  border-radius: 18px;
+  border: 1px solid color-mix(in srgb, currentColor 22%, transparent);
+  background: color-mix(in srgb, currentColor 7%, transparent);
+  text-align: center;
+  color: inherit;
+}
+.voskNotice--plain { border: 0; background: none; font-size: 15px; font-weight: 600; opacity: 0.8; }
+.voskNoticeTitle { margin: 0; font-size: 17px; font-weight: 800; line-height: 1.25; }
+.voskNoticeSub { margin: 8px 0 0; font-size: 14px; line-height: 1.35; opacity: 0.72; overflow-wrap: anywhere; }
+.voskNoticeBtn {
+  margin-top: 14px;
+  min-height: 44px;
+  padding: 0 28px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--lvl1, #b6fe3b);
+  color: #0d1500;
+  font: inherit;
+  font-size: 16px;
+  font-weight: 800;
+  cursor: pointer;
+}
+.voskNoticeBar { height: 8px; margin-top: 14px; border-radius: 999px; overflow: hidden; background: color-mix(in srgb, currentColor 16%, transparent); }
+.voskNoticeBar i { display: block; height: 100%; border-radius: inherit; background: var(--lvl1, #b6fe3b); transition: width 0.4s ease; }

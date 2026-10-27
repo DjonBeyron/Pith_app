@@ -40,3 +40,4 @@ export const SAY_TRY = 'say_attempt'                 // { lesson_id, ok, engine:
 export const MEMORY_INTRO_OPEN = 'memory_intro_open' // { voice } — первое открытие вкладки «Память»: рассказ Пита показан (voice — была ли озвучка, иначе только субтитры)
 export const REMIND_TIME_SET = 'remind_time_set'     // { preset: '9'|'14'|'20'|'custom'|'none', push: 'ask'|'add_home'|'granted'|'denied'|'guest' } — ответ на «Когда удобно учиться?»; push — что дальше с уведомлениями
 export const MEMORY_SEED = 'memory_seed'             // { word, saved } — «Семена памяти»: после верного ответа в игре ленты предложили сохранить слово; saved: true — «Сохранить», false — «Не сейчас»
+export const SAY_ALOUD_ROUND = 'say_aloud_round'     // { words, hits, ms } — раунд мини-игры «Скажи вслух» закончен: слов задано, найдено, длительность (мс); текста ответов нет

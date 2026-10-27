@@ -24,12 +24,13 @@ export const MISS_SETTLE_MS = 550 // «чужое слово» из чернов
 
 /**
  * Цели — тексты, которые ученик должен сказать на ступени (targets; одно слово — word). onChange({ status, hits, seq, misses, heard }): seq — номера услышанных целей по порядку (накапливается по заходам
- * и не откатывается), hits = seq.length. expected — сколько всего слов ждём (заход закрывается сам, когда услышаны все).
+ * и не откатывается), hits = seq.length. expected — сколько всего слов ждём (заход закрывается сам, когда услышаны все). maxWords — сколько слов подряд умещает закрытый словарь одного высказывания
+ * (по умолчанию SLOT_COUNT; «Скажи вслух» берёт 2: целей много, а словарь растёт степенью).
  * onChange({ status: 'idle'|'starting'|'listening'|'done'|'unavailable'|'error'|'timeout', hits, misses, heard }) — при каждом изменении; heard — что услышал движок («…» вместо неразобранного слова):
  * по нему игра честно говорит ученику, что именно распозналось. mute(ms) — на это время новые «чужие слова» не засчитываются (нота-награда из динамика могла попасть в микрофон).
  * Зависимости подставляются в тестах.
  */
-export function createWordListener({ word, targets: targetsIn, expected = SLOT_COUNT, getStream = null, onChange, runtime = voskRuntime, listen = startListening, level = createRmsLevel(), now = () => Date.now(), setTimer = setTimeout, clearTimer = clearTimeout }) {
+export function createWordListener({ word, targets: targetsIn, expected = SLOT_COUNT, maxWords = SLOT_COUNT, getStream = null, onChange, runtime = voskRuntime, listen = startListening, level = createRmsLevel(), now = () => Date.now(), setTimer = setTimeout, clearTimer = clearTimeout }) {
   const targets = targetsIn?.length ? targetsIn : [word]
   let seq = [], misses = 0            // накоплено за все заходы
   let base = { seq: [], misses: 0 }   // накоплено до текущего захода
@@ -71,7 +72,7 @@ export function createWordListener({ word, targets: targetsIn, expected = SLOT_C
     base = { seq, misses } // до словаря: сколько слов ещё ждать, считается от накопленного
     absorbed = 0; lastRaw = base.misses
     const model = runtime.getModel()
-    const grammar = model ? targetGrammar(targets, SLOT_COUNT) : null
+    const grammar = model ? targetGrammar(targets, maxWords) : null
     if (!model || !grammar) { publish({ status: 'unavailable' }); return }
     const session = { handle: null, stopped: false }
     cur = session
