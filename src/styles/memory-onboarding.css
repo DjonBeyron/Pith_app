@@ -1,6 +1,6 @@
 /* Как появляется «Моя память» (утверждённый макет): карточка «Новое слово во
-   временной памяти» в итоге урока-слова (player/SummaryMemoryCard.jsx) и окно
-   первого входа во вкладку (learn/MemoryIntro.jsx) */
+   временной памяти» в итоге урока-слова (player/SummaryMemoryCard.jsx) и рассказ
+   Пита при первом входе во вкладку (learn/MemoryStory.jsx) */
 
 /* ── Итог урока: новое слово ───────────────────────────────────────── */
 .summaryMemCard {
@@ -29,13 +29,32 @@
 }
 .summaryMemText { margin: 0; font-size: 13px; line-height: 1.4; color: #8b95a1; }
 
-/* ── Первый вход во вкладку ────────────────────────────────────────── */
-.memIntro { gap: 12px; }
-.memIntroText { margin: 0; font-size: 14px; line-height: 1.45; color: #8b95a1; }
-.memIntroStrong { font-weight: 700; color: #eef1f4; }
-.memIntroLv1 { color: var(--lvl1); }
-.memIntroLv2 { color: var(--lvl2); }
-.memIntroLv3 { color: var(--lvl3); }
-/* .memIntroLv4 — золото, memory-levels.css */
+/* ── Первый вход во вкладку: рассказ Пита (learn/MemoryStory.jsx) ──── */
+.memStory { align-items: center; gap: 14px; }
+.memStoryPit {
+  flex: none;
+  width: 56px;
+  height: 56px;
+  overflow: hidden;
+  border-radius: 50%;
+  background: #1a1d22;
+}
+/* Субтитры: текущая строка крупно, прошедшие (до двух) бледнее; прижаты к низу, чтобы кнопка не прыгала */
+.memStoryLines {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 8px;
+  width: 100%;
+  min-height: 150px;
+  text-align: center;
+}
+.memStoryLine { margin: 0; font-size: 16px; line-height: 1.4; color: #8b95a1; opacity: 0.45; overflow-wrap: anywhere; }
+.memStoryLine--now { font-size: 17px; font-weight: 700; color: #eef1f4; opacity: 1; animation: memStoryIn 0.3s ease-out; }
+@keyframes memStoryIn { from { opacity: 0; } to { opacity: 1; } }
 /* Кнопка — как «Повторить», но без пульса: окно и так в фокусе */
-.memIntroCta { margin-top: 4px; animation: none; }
+.memStoryCta { margin-top: 4px; animation: none; }
+.memStoryNext { margin-top: 4px; }
+@media (prefers-reduced-motion: reduce) {
+  .memStoryLine--now { animation: none; }
+}
