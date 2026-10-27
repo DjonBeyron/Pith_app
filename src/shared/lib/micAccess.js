@@ -1,6 +1,7 @@
 import { sayPermission } from './speech/sayPermission.js'
 import { queryMicPermission } from './speech/speechSupport.js'
 import { pLog } from './debug.js'
+import { openGameMic } from './gameMic.js'
 
 // Доступ к микрофону «заранее» — для нод, которым микрофон нужен посреди урока (игра «Повтори за диктором»). Звать из тапа (iOS показывает диалог только по жесту).
 // Диалог ОС вызывает getUserMedia; поток тут же закрывается — микрофон в этот момент нужен лишь для разрешения, дальше его открывает сам распознаватель (без диалога).
@@ -46,7 +47,7 @@ export async function ensureMicAccess() {
  */
 export const MIC_CONFIRM_TIMEOUT_MS = 30000
 export async function confirmMicBeforeStart({ timeoutMs = MIC_CONFIRM_TIMEOUT_MS } = {}) {
-  if (micNeedsHold()) return 'deferred' // iOS: разрешение не доживёт до игры — спросим один раз в тапе «Начать» на карточке игры (gameMic.openGameMic)
+  if (micNeedsHold()) return openGameMic() // iOS: разрешение не запоминается — открываем поток сразу в тапе «Начать урок» (запрос до чата) и держим до конца игры или урока (gameMic.js)
   try {
     if (await micAccessState() === 'granted') return 'granted'
     let timer

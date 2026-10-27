@@ -79,3 +79,14 @@ describe('отклик пилюль без опоздания', () => {
     expect(read('./wordLaneListen.js')).toContain('chunk: 1024')      // куски по 64 мс — уровень голоса для пилюль приходит чаще
   })
 })
+
+describe('кот выскакивает заранее', () => {
+  it('до голоса диктора и до слова ученика: пружина (0,55 с) успевает отыграть, и видно, как открывается рот', async () => {
+    const { CAT_LEAD_MS } = await import('./useWordLanePills.js')
+    expect(CAT_LEAD_MS).toBeGreaterThanOrEqual(600)
+    const eng = read('./useWordLanePills.js')
+    expect(eng).toContain('t >= r.at - CAT_LEAD_MS')
+    expect(eng).toContain('fxRef.current?.peek?.(2600)')
+    expect(read('./useWordLaneFlow.js')).toContain('peek(ms) { catApi?.current?.peek?.(ms) }')
+  })
+})

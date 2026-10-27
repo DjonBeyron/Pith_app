@@ -6,6 +6,8 @@ import WordLaneGame from './WordLaneGame.jsx'
 import { readWordLane } from './wordLaneConfig.js'
 import { unlockVoice, prepareTrack } from './wordLaneVoice.js'
 import { unlockNotes } from './wordLaneNotes.js'
+import { prepareClips } from './wordLaneClips.js'
+import { playSpan } from './wordLaneAudio.js'
 import { ensureMicAccess, micNeedsHold } from '../../../../shared/lib/micAccess.js'
 import { openGameMic } from '../../../../shared/lib/gameMic.js'
 import { primeAudio } from '../../../../shared/lib/primedAudio.js'
@@ -20,7 +22,10 @@ const FINISHED_TEXT = 'Голосовая тренировка закончен�
 // LaunchMicAsk) и открываем игру (WordLaneGame, полный экран). Нет доступа к микрофону — игра идёт в ручном режиме. По концу игры карточка пишет, что тренировка закончена,
 // и нода отпускает цепочку (onDone('shown')). Переворот экрана в горизонталь — позже, отдельным этапом.
 export default function RotatePhoneModule({ node, file, onDone }) {
-  const cfg = useMemo(() => readWordLane(node.typeData?.rotate_phone), [node.typeData])
+  // Настройки игры не должны меняться от перерисовок плеера: новый объект node.typeData на каждый рендер пересобирал бы рецепт посреди игры (сбрасывая ступень и звук) — ключ по содержимому
+  const tdKey = JSON.stringify(node.typeData?.rotate_phone ?? null)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const cfg = useMemo(() => readWordLane(node.typeData?.rotate_phone), [tdKey])
   const { src: audioSrc } = useAudioSource(node, file) // озвучка ElevenLabs из ноды (file_id) — если автор её сгенерировал
   // История («Продолжить урок»): ноду ученик уже прошёл — игру заново не запускаем и цепочку не двигаем
   const [phase, setPhase] = useState(node.isHistory ? 'finished' : 'wait') // wait → game → finished
@@ -31,7 +36,10 @@ export default function RotatePhoneModule({ node, file, onDone }) {
     if (busy || phase !== 'wait') return
     setBusy(true)
     unlockVoice()
-    if (cfg.hasAudio && audioSrc) prepareTrack(audioSrc) // озвучка автора: элемент будится в жесте и прогружается заранее — звук стартует без задержки
+    if (cfg.hasAudio && audioSrc) {
+      prepareTrack(audioSrc) // запасной путь: общий файл с перемоткой (элемент будится в жесте)
+      if (cfg.clips) prepareClips(audioSrc, cfg.clips.map(playSpan)) // основной: файл режется на клипы-высказывания, по элементу на каждое (iPhone не подгружает аудио заранее и плохо перематывает)
+    }
     unlockNotes() // ноты-награды: элементы просыпаются в жесте, иначе iOS не даст им зазвучать по таймеру
     primeAudio()
     try { document.documentElement.requestFullscreen?.({ navigationUI: 'hide' })?.catch?.(() => {}) } catch { /* iPhone и часть браузеров не умеют — остаёмся в окне */ }

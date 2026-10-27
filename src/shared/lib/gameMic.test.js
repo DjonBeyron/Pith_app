@@ -17,10 +17,19 @@ describe('iPhone: разрешение не запоминается — оди�
     expect(micNeedsHold(null)).toBe(false)
   })
 
-  it('на iPhone предварительный запрос перед стартом урока не делается (он не доживёт до игры)', async () => {
-    vi.stubGlobal('navigator', { userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0)', mediaDevices: { getUserMedia: vi.fn() } })
-    expect(await confirmMicBeforeStart()).toBe('deferred')
-    expect(navigator.mediaDevices.getUserMedia).not.toHaveBeenCalled()
+  it('на iPhone запрос — в тапе «Начать урок» (до чата): открывается игровой поток и держится; в игре второго запроса нет', async () => {
+    const s = fakeStream()
+    const gum = vi.fn().mockResolvedValue(s)
+    vi.stubGlobal('navigator', { userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0)', mediaDevices: { getUserMedia: gum } })
+    expect(await confirmMicBeforeStart()).toBe('granted')
+    expect(getGameMic()).toBe(s)
+    expect(await openGameMic()).toBe('granted')           // тап «Начать» в игре: поток уже живой
+    expect(gum).toHaveBeenCalledTimes(1)
+  })
+
+  it('урок закрыт — игровой поток закрывается (индикатор микрофона гаснет)', async () => {
+    const { readFileSync } = await import('node:fs')
+    expect(readFileSync(new URL('./lessonOpen.js', import.meta.url), 'utf8')).toContain('if (!open) closeGameMic()')
   })
 
   it('поток открывается один раз (повторный вызов — тот же, без второго getUserMedia), по умолчанию выключен, включается по требованию', async () => {

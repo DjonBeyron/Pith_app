@@ -7,6 +7,7 @@ import { playNote, releaseNotes } from './wordLaneNotes.js'
 import { buildStages, listenStepOf, labelsFor } from './wordLaneStages.js'
 import { stepTargets, textOf } from './wordLaneRecipe.js'
 import { clipsFor, playSpan } from './wordLaneAudio.js'
+import { playClip, releaseClips } from './wordLaneClips.js'
 import { createOrderGame, tapLane, REPLAY_MS } from './wordLaneOrder.js'
 import { DROP_MS, LANES_MS } from './wordLaneTimeline.js'
 import { XP_PER_PILL, sensitiveLevel } from './wordLaneConfig.js'
@@ -60,7 +61,7 @@ export function useWordLaneFlow({ chunks, translation, lang, clips = null, audio
   // Озвучить высказывание из кусков parts: клип общего файла озвучки (перемоткой) или голос системы по тексту
   const say = useCallback((parts, repIdx = 0) => {
     const row = audioSrc ? clipsFor(clips, chunks.length, parts, repIdx) : null
-    if (row) playTrack(audioSrc, playSpan(row))
+    if (row) { const span = playSpan(row); if (!playClip(span)) playTrack(audioSrc, span) } // клип в памяти → перемотка файла → (без записи) голос системы
     else speakWord(textOf(chunks, parts), lang)
   }, [audioSrc, clips, chunks, lang])
 
@@ -87,13 +88,14 @@ export function useWordLaneFlow({ chunks, translation, lang, clips = null, audio
       }
     },
     mouth(level) { catApi?.current?.mouth(level) },
+    peek(ms) { catApi?.current?.peek?.(ms) },
     finished() { const at = sRef.current.idx; later(() => { if (sRef.current.idx === at && sRef.current.stage === 'run') next() }, EXIT_PAUSE_MS) },
   }
   const handlersRef = useRef(handlers)
   useEffect(() => { handlersRef.current = handlers })
   const [fx] = useState(() => ({
     win: (...a) => handlersRef.current.win(...a), miss: (...a) => handlersRef.current.miss(...a), fail: (...a) => handlersRef.current.fail(...a),
-    mouth: (...a) => handlersRef.current.mouth(...a), finished: (...a) => handlersRef.current.finished(...a),
+    mouth: (...a) => handlersRef.current.mouth(...a), peek: (...a) => handlersRef.current.peek(...a), finished: (...a) => handlersRef.current.finished(...a),
   }))
 
   const dismissXp = useCallback(id => setS(p => {
@@ -104,12 +106,12 @@ export function useWordLaneFlow({ chunks, translation, lang, clips = null, audio
   const finish = useCallback(() => {
     if (finishedRef.current) return
     finishedRef.current = true
-    stopVoice(); releaseNotes(); clearTimers(); closeGameMic()
+    stopVoice(); releaseNotes(); releaseClips(); clearTimers(); closeGameMic()
     listenerRef.current?.dispose()
     onFinished?.()
   }, [onFinished, clearTimers])
 
-  useEffect(() => () => { closeGameMic(); stopVoice(); releaseNotes(); clearTimeout(noteTimerRef.current); clearTimeout(hintTimerRef.current); timersRef.current.forEach(clearTimeout); listenerRef.current?.dispose() }, [])
+  useEffect(() => () => { closeGameMic(); stopVoice(); releaseNotes(); releaseClips(); clearTimeout(noteTimerRef.current); clearTimeout(hintTimerRef.current); timersRef.current.forEach(clearTimeout); listenerRef.current?.dispose() }, [])
 
   // Вступление
   useEffect(() => {

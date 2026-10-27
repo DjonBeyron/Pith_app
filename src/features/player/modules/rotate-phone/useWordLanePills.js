@@ -17,6 +17,8 @@ import { snapPill, missPill, SNAP_LEAD_MS } from './wordLaneSnap.js'
 // fx — реакции игры: win(order, rect) — пилюля ученика принята (XP, нота, кот), miss() — чужое слово, fail(info) — не успел, mouth(level) — рот кота, finished(locked) — ступень закончена.
 const setApi = (ref, value) => { if (ref) ref.current = value } // ref приходит пропсом — меняем его вне компонента
 
+export const CAT_LEAD_MS = 700  // кот выскакивает за столько до начала голоса диктора (пружина 0,55 с)
+export const CAT_TAIL_MS = 500  // и торчит ещё столько после его конца
 export const ORDER_Y = 46 // в раунде «Порядок» пилюли стоят в дорожках на этой высоте (центр, % экрана)
 
 export function useWordLanePills(rootRef, { scene, levels, fx, live, sceneApi }) {
@@ -42,8 +44,12 @@ export function useWordLanePills(rootRef, { scene, levels, fx, live, sceneApi })
       const held = plan.pills.map(p => ({ p, k: pool.take(p.lane, { atMs: performance.now() - t0 - (p.at - TRAVEL_MS), curve: p.curve }), snapped: false }))
       held.forEach(h => { if (h.k != null) pool.attr(h.k, 'data-lock') }) // у диктора заливка всегда «настоящая»
       let raf = 0
+      const peeked = new Set()
       const tick = () => {
         const t = performance.now() - t0
+        for (const r of plan.reps) { // кот выскакивает ЗАРАНЕЕ — к началу голоса пружина уже отыграла и видно, как открывается рот
+          if (!peeked.has(r.idx) && t >= r.at - CAT_LEAD_MS) { peeked.add(r.idx); fxRef.current?.peek?.(Math.max(0, r.at - t) + r.ms + CAT_TAIL_MS) }
+        }
         for (const h of held) {
           if (h.k == null) continue
           pool.paintFill(h.k, pillFill(t, h.p.at, h.p.ms, h.p.curve))
@@ -78,6 +84,7 @@ export function useWordLanePills(rootRef, { scene, levels, fx, live, sceneApi })
       setApi(sceneApi, { nextTarget: () => (g.reps.filter(isClaimable)[0] ?? g.reps.find(r => r.state === 'fly') ?? null)?.target ?? null }) // ручной режим: тап по микрофону = «сказал» ближайший повтор
       const handle = e => {
         if (e.type === 'spawn') {
+          fxRef.current?.peek?.(2600) // повтор выкатился — сейчас будет говорить ученик: кот уже на месте
           for (const p of e.pills) {
             const k = pool.take(p.lane, { atMs: performance.now() - t0 - p.spawnAt, curve: blind ? null : curves?.[p.chunk] ?? null })
             if (k != null) held.set(p.id, k)
