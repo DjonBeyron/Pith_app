@@ -6,7 +6,6 @@
 @import './styles/layout.css';
 @import './styles/admin.css';
 @import './styles/shell-v2.css';
-@import './styles/prompt-sheet.css';
 @import './styles/lesson-open.css';
 @import './styles/tab-top.css';
 @import './styles/lesson-nav-overlay.css';
@@ -18,7 +17,6 @@
 @import './styles/feed-knowledge.css';
 @import './styles/feed-word-translate.css';
 @import './styles/feed-rub-hint.css';
-@import './styles/feed-guest-hint.css';
 @import './styles/feed-recall.css';
 @import './styles/feed-catch.css';
 @import './styles/feed-slow-strip.css';
@@ -26,7 +24,6 @@
 @import './styles/feed-catch-strip.css';
 @import './styles/feed-catch-fact.css';
 @import './styles/feed-catch-confirm.css';
-@import './styles/feed-seed.css';
 @import './styles/feed-media.css';
 @import './styles/feed-scene.css';
 @import './styles/feed-scene-task.css';
@@ -35,7 +32,6 @@
 @import './styles/feed-swiper.css';
 @import './styles/feed-video-loader.css';
 @import './styles/difficulty.css';
-@import './styles/difficulty-reveal.css';
 @import './styles/feed-search.css';
 @import './styles/my-lessons-v2.css';
 @import './styles/auto-lesson-preview.css';
@@ -214,8 +210,7 @@
 @import './styles/learn-pattern.css';
 @import './styles/memory-pages.css';
 @import './styles/memory-onboarding.css';
-@import './styles/remind-ask.css';
-@import './styles/memory-tab.css';
+@import './styles/new-user.css'; /* стили плана нового пользователя одним списком (new-user.css) */
 @import './styles/canvas/text-highlight.css';
 @import './styles/canvas/text-pro.css';
 @import './styles/canvas/text-wrap.css';

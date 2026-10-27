@@ -1,0 +1,9 @@
+/* Стили плана «новый пользователь и первая сессия» (PLAN_NEW_USER.md) — одним списком, чтобы index.css не рос:
+   шторка Пита, строка гостя в ленте, семена памяти, проявление значка сложности, «Когда удобно учиться?», вкладка «Память».
+   Порядок: все файлы — самостоятельные классы, кроме difficulty-reveal.css, который должен идти ПОСЛЕ стилей значка */
+@import './prompt-sheet.css';
+@import './feed-guest-hint.css';
+@import './feed-seed.css';
+@import './difficulty-reveal.css';
+@import './remind-ask.css';
+@import './memory-tab.css';
