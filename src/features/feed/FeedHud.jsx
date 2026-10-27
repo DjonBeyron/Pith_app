@@ -3,6 +3,7 @@ import { Heart, Bookmark, Check } from 'lucide-react'
 import { logRepost } from '../../shared/api/moduleSocialApi.js'
 import { useSlowMotion } from './useSlowMotion.js'
 import DifficultyBadge from './DifficultyBadge.jsx'
+import { useFirstListen } from './useFirstListen.js'
 import FeedSlowStrip from './FeedSlowStrip.jsx'
 import SlowHint from './SlowHint.jsx'
 import { useTapPop } from './useTapPop.js'
@@ -33,6 +34,7 @@ function FeedHud({
   useEffect(() => () => clearTimeout(burstTimer.current), [])
   const [savePop, popSave] = useTapPop()
   const [sharePop, popShare] = useTapPop()
+  const heard = useFirstListen() // значок сложности виден после первого прослушивания со звуком
   const liked = !!reaction?.liked
   const saved = !!reaction?.saved
 
@@ -139,7 +141,8 @@ function FeedHud({
           level={difficulty}
           myVote={myDifficulty}
           onVote={onVoteDifficulty}
-          active={active} />
+          active={active}
+          revealed={heard} />
       </div>
 
       {slowMotion && <div className="feedSlowLabel">0.5x</div>}

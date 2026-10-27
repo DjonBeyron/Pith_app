@@ -18,6 +18,7 @@ import { useFeedFilter } from './useFeedFilter.js'
 import { useFeedSplash } from './useFeedSplash.js'
 import { useSlowMotionHint } from './useSlowMotionHint.js'
 import { useRubHint } from './useRubHint.js'
+import { useBehaviorHints } from './hints/useBehaviorHints.js'
 import { useFeedTracking } from './useFeedTracking.js'
 import { track } from '../../shared/lib/analytics/track.js'
 import { buildFeedInfo } from './feedDebugInfo.js'
@@ -104,12 +105,11 @@ export default function FeedTab({ visible = true, onOpenCanvas, onRequireAuth, l
   const [activeIdx, setActiveIdx] = useState(-1)
 
   useFeedSplash(modules, len, feedModules)
-  // Обучающая подсказка «зажми лайк — замедли»: появляется на 3-м видео при первом посещении ленты и пропадает
-  // насовсем после трёх проигнорированных видео; активна только в «Рекомендациях» (тут же живёт activeIdx) —
-  // «Мои уроки» её не показывают.
+  // Обучающие подсказки — только в «Рекомендациях» (тут живёт activeIdx): «зажми — замедли» (3-е видео), «потри фразу» (5 фраз)
   const { showHint: showSlowHint, markSeenNow: markSlowHintSeen } = useSlowMotionHint(activeIdx, soundReady)
   // Вторая подсказка — «потри фразу, чтобы появился перевод»: после пяти открытых фраз (useRubHint.js)
   const { showHint: showRubHint, markSeenNow: markRubHintSeen, noteOpened: noteRubOpened } = useRubHint(activeIdx)
+  useBehaviorHints(feedActive && !openModule ? activeIdx : -1, soundReady, handleSoundOn) // по поведению через шторку Пита (B2)
   // Аналитика: сколько видео фразы было на экране (feed_view)
   useFeedTracking(feedActive && !openModule && len > 0 && activeIdx >= 0 ? feedModules[moduleOf(activeIdx, len)] : null)
 

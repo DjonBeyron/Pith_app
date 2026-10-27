@@ -30,7 +30,9 @@ const SPARKS = Array.from({ length: 8 }, (_, i) => {
   return { dx: Math.cos(a) * r, dy: Math.sin(a) * r }
 })
 
-export default function DifficultyBadge({ level, myVote, onVote, active = true }) {
+// revealed — значок виден: в ленте он скрыт до первого прослушивания со звуком (useFirstListen.js, difficulty-reveal.css); false →
+// diffHidden (невидим, не ловит касаний), потом плавное проявление diffReveal
+export default function DifficultyBadge({ level, myVote, onVote, active = true, revealed = true }) {
   const [open, setOpen] = useState(false)
   const [help, setHelp] = useState(false)
   const [intro, setIntro] = useState(false) // авто-попап первого раза (пульсирует)
@@ -84,7 +86,7 @@ export default function DifficultyBadge({ level, myVote, onVote, active = true }
   }
 
   return (
-    <div className="diffWrap">
+    <div className={`diffWrap ${revealed ? 'diffReveal' : 'diffHidden'}`}>
       {open && <div className="diffBackdrop" onClick={closePanel} />}
       {shown && (
         <div className={`${intro ? 'diffPanel diffPanelGlow' : 'diffPanel'}${closing ? ' diffPanel--out' : ''}`}>
