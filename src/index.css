@@ -85,9 +85,7 @@
 @import './styles/canvas/audio.css';
 @import './styles/canvas/image-gen.css';
 @import './styles/canvas/crop.css';
-/* База контролов нод — раньше частных стилей: при равной специфичности
-   выигрывает конкретный чекбокс (награда, звук стикера, офсет), а общий
-   остаётся для всех остальных */
+/* База контролов нод — раньше частных стилей: при равной специфичности выигрывает конкретный чекбокс (награда, звук стикера, офсет), а общий остаётся для всех остальных */
 @import './styles/canvas/node-controls.css';
 @import './styles/canvas/nodes.css';
 @import './styles/canvas/node-hover-menu.css';
