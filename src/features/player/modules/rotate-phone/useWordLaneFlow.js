@@ -9,7 +9,7 @@ import { stepTargets, textOf } from './wordLaneRecipe.js'
 import { clipsFor, playSpan, estChunkMs } from './wordLaneAudio.js'
 import { playClip, playWordSlot, releaseClips } from './wordLaneClips.js'
 import { makeLib, libRow } from './wordLaneLib.js'
-import { createOrderGame, tapLane, REPLAY_MS } from './wordLaneOrder.js'
+import { useCatLines } from './useCatLines.js'
 import { DROP_MS, LANES_MS } from './wordLaneTimeline.js'
 import { XP_PER_PILL, sensitiveLevel } from './wordLaneConfig.js'
 import { getVoiceRate } from '../../lessonVolume.js'
@@ -29,12 +29,13 @@ import { getGameMic, closeGameMic, hasGameMic, dropGameMic, openGameMic } from '
 const EXIT_PAUSE_MS = 1300   // ступень закончена: заливка доходит до конца, щелчок, нота — и только потом дальше
 const AUDIO_LATENCY_MS = 70  // звук включаем чуть раньше плана: запуск элемента и перемотка занимают время
 const HINT_MS = 3500         // подпись дорожки, которую показали после «не успел» в раунде «вслепую»
-const FIRST_PROMPT_MS = 900
-const NEXT_PROMPT_MS = 800
+
+const REVEAL_LINE_MS = 700   // «Отлично!» — чуть позже появления перевода
+const LINE_AT_MS = 250       // реплика кота на плашке раунда — чуть позже появления плашки
 
 const IDLE = { kind: 'idle' }
 
-export function useWordLaneFlow({ chunks, translation, lang, clips = null, audioSrc = null, audio = null, catApi = null, onFinished }) {
+export function useWordLaneFlow({ chunks, translation, lang, clips = null, audioSrc = null, audio = null, catApi = null, lines = null, onFinished }) {
   const [rate] = useState(getVoiceRate) // скорость голоса урока: на неё растянут план диктора
   const [lib] = useState(() => makeLib(chunks)) // озвучка кусков в библиотеке слов на момент старта игры (длины и наличие)
   const built = useMemo(() => buildStages({ chunks, clips, audio, rate, lib }), [chunks, clips, audio, rate, lib])
@@ -45,8 +46,8 @@ export function useWordLaneFlow({ chunks, translation, lang, clips = null, audio
   const sRef = useRef(s)
   const listenerRef = useRef(null)
   const finishedRef = useRef(false)
-  const sceneApi = useRef(null)          // движок отвечает: order — ok / wrong / hint / reset; student — nextTarget()
-  const orderRef = useRef(null)
+  const sceneApi = useRef(null)          // движок отвечает: order — tap(lane); student — nextTarget()
+  const signalRef = useRef({ tail: null, heardAt: 0 }) // что слышит распознаватель прямо сейчас (недосказанная цель, когда последний раз что-то услышал) — без перерисовок React
   const timersRef = useRef(new Set())
   const xpIdRef = useRef(0)
   const noteTimerRef = useRef(0)
@@ -54,6 +55,10 @@ export function useWordLaneFlow({ chunks, translation, lang, clips = null, audio
   const [rms] = useState(() => createRmsLevel({ fromRms: sensitiveLevel })) // громкость голоса ученика (кольца микрофона, ворота)
   const [levels] = useState(() => createLevelSource(t => rms.read(t)))
   useEffect(() => { sRef.current = s })
+  const cat = useCatLines({ lines, rate, catApi, listenerRef }) // реплики кота: подпись + озвучка + рот по буквам
+  const sayLineRef = useRef(cat.sayLine)
+  useEffect(() => { sayLineRef.current = cat.sayLine })
+  const sayLine = (...a) => sayLineRef.current(...a) // обработчики и таймеры стадий всегда берут свежую версию (настройки реплик могут догрузиться) — а стадия из-за этого не перезапускается
 
   const later = useCallback((fn, ms) => { const id = setTimeout(() => { timersRef.current.delete(id); fn() }, Math.max(0, ms)); timersRef.current.add(id); return id }, [])
   const clearTimers = useCallback(() => { timersRef.current.forEach(clearTimeout); timersRef.current.clear() }, [])
@@ -91,23 +96,28 @@ export function useWordLaneFlow({ chunks, translation, lang, clips = null, audio
     miss() { catApi?.current?.react('shy', 1300) },
     fail(e) {
       catApi?.current?.react('shy', 1300)
-      flash('Не успел — говори, пока пилюли на экране')
       const st = stages[sRef.current.idx]
-      if (st?.step && !st.step.labels.length) { // вслепую: после «не успел» показываем, что это за кусок
+      const said = e.order ? false : sayLine(st?.step?.reps?.[0]?.parts?.length > 1 ? 'split_words' : 'try_again') // не получилось сказать несколько кусков — кот советует говорить раздельно
+      if (!said) flash(e.order ? 'Не успел — тапай дорожки, пока пилюли на экране' : 'Не успел — говори, пока пилюли на экране')
+      if (!e.order && st?.step && !st.step.labels.length) { // вслепую: после «не успел» показываем, что это за кусок
         setS(p => ({ ...p, hint: e.rep.parts }))
         clearTimeout(hintTimerRef.current)
         hintTimerRef.current = setTimeout(() => setS(p => ({ ...p, hint: [] })), HINT_MS)
       }
     },
-    mouth(level) { catApi?.current?.mouth(level) },
+    mouth(level, code) { catApi?.current?.mouth(level, code) },
     peek(ms) { catApi?.current?.peek?.(ms) },
+    say(parts) { // подсказка раунда «Порядок»: кот выскакивает, диктор называет куски
+      catApi?.current?.peek?.(parts.reduce((sum, i) => sum + (lib(i)?.ms ?? estChunkMs(chunks[i])) / (rate > 0 ? rate : 1) + 80, 700))
+      say(parts)
+    },
     finished() { const at = sRef.current.idx; later(() => { if (sRef.current.idx === at && sRef.current.stage === 'run') next() }, EXIT_PAUSE_MS) },
   }
   const handlersRef = useRef(handlers)
   useEffect(() => { handlersRef.current = handlers })
   const [fx] = useState(() => ({
     win: (...a) => handlersRef.current.win(...a), miss: (...a) => handlersRef.current.miss(...a), fail: (...a) => handlersRef.current.fail(...a),
-    mouth: (...a) => handlersRef.current.mouth(...a), peek: (...a) => handlersRef.current.peek(...a), finished: (...a) => handlersRef.current.finished(...a),
+    mouth: (...a) => handlersRef.current.mouth(...a), peek: (...a) => handlersRef.current.peek(...a), say: (...a) => handlersRef.current.say(...a), finished: (...a) => handlersRef.current.finished(...a),
   }))
 
   const dismissXp = useCallback(id => setS(p => {
@@ -132,12 +142,23 @@ export function useWordLaneFlow({ chunks, translation, lang, clips = null, audio
     return undefined
   }, [s.stage, go])
 
+  // Финал: кот хвалит, пока на экране перевод
+  useEffect(() => {
+    if (s.stage !== 'reveal') return undefined
+    const t = setTimeout(() => sayLine('well_done'), REVEAL_LINE_MS)
+    return () => clearTimeout(t)
+  }, [s.stage])
+
   // Стадии: свои таймеры, смена стадии их чистит
   useEffect(() => {
     if (s.stage !== 'run' || !stageObj) return undefined
     const left = at => Math.max(0, at - (performance.now() - s.at))
     const ids = []
-    if (stageObj.type === 'announce' || stageObj.type === 'turn') ids.push(setTimeout(next, stageObj.ms))
+    if (stageObj.type === 'announce' || stageObj.type === 'turn') {
+      ids.push(setTimeout(next, stageObj.ms))
+      if (stageObj.type === 'announce') ids.push(setTimeout(() => sayLine(`round_${stageObj.round.kind}`), LINE_AT_MS))
+      else if (s.idx === stages.findIndex(x => x.type === 'turn')) ids.push(setTimeout(() => sayLine('your_turn'), LINE_AT_MS)) // «твоя очередь» — только в первый раз
+    }
     else if (stageObj.type === 'dictor') {
       const { plan } = stageObj
       for (const r of plan.reps) {
@@ -145,15 +166,9 @@ export function useWordLaneFlow({ chunks, translation, lang, clips = null, audio
         else for (const pc of r.pieces) ids.push(setTimeout(() => sayChunk(pc.chunk), left(pc.at - AUDIO_LATENCY_MS))) // куски по отдельности из библиотеки
       }
       ids.push(setTimeout(next, left(plan.listenMs)))
-    } else if (stageObj.type === 'order') {
-      orderRef.current = createOrderGame({ prompts: stageObj.prompts, lanes })
-      const play = () => { const g = orderRef.current; if (g && !g.finished) say(g.prompts[g.i].parts) }
-      ids.push(setTimeout(play, FIRST_PROMPT_MS))
-      orderRef.current.replay = () => { clearTimeout(orderRef.current.replayId); orderRef.current.replayId = setTimeout(() => { play(); orderRef.current?.replay?.() }, REPLAY_MS) }
-      orderRef.current.play = play
     }
-    return () => { ids.forEach(clearTimeout); if (orderRef.current) { clearTimeout(orderRef.current.replayId); orderRef.current = null }; stopVoice() }
-  }, [s.stage, s.idx, s.at, stageObj, say, sayChunk, sayClip, next, lanes])
+    return () => { ids.forEach(clearTimeout); stopVoice() }
+  }, [s.stage, s.idx, s.at, stageObj, sayChunk, sayClip, next, stages])
 
   // Слушатель: живёт со «своей очереди» (turn) и всю ступень ученика; у каждой ступени свои цели
   const listenStep = s.stage === 'run' ? listenStepOf(stages, s.idx) : null
@@ -163,7 +178,8 @@ export function useWordLaneFlow({ chunks, translation, lang, clips = null, audio
     const { texts } = stepTargets(listenStep, chunks)
     const l = createWordListener({
       targets: texts, expected: listenStep.reps.length, level: rms, getStream: getGameMic,
-      onChange: ({ status, seq, misses, heard }) => {
+      onChange: ({ status, seq, misses, heard, tail, heardAt }) => {
+        signalRef.current = { tail, heardAt }
         if (status === 'dead') { // игровой поток оглох (iOS заглушил) — переоткрываем микрофон и слушаем заново; без игрового потока (свой у распознавателя) делать нечего
           if (hasGameMic()) { pLog('[mic] игровой поток отдаёт тишину — переоткрываю'); dropGameMic(); openGameMic().then(r => { if (r === 'granted') setMicEpoch(e => e + 1) }) }
           return
@@ -185,18 +201,8 @@ export function useWordLaneFlow({ chunks, translation, lang, clips = null, audio
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [listenId, rms, chunks, micEpoch])
 
-  /** Тап по дорожке (раунд «Порядок») */
-  const onLane = lane => {
-    const g = orderRef.current
-    if (!g || g.finished) return
-    for (const e of tapLane(g, lane)) {
-      if (e.type === 'ok') { sceneApi.current?.ok?.(e.lane); catApi?.current?.react('love', 900) }
-      else if (e.type === 'wrong') { sceneApi.current?.wrong?.(e.lane); if (e.hint) sceneApi.current?.hint?.(e.expected); catApi?.current?.react('shy', 900); g.replay?.() }
-      else if (e.type === 'next') { g.replay?.(); if (e.prompt) later(() => { sceneApi.current?.reset?.(); g.play?.() }, NEXT_PROMPT_MS) }
-      else if (e.type === 'done') { const at = sRef.current.idx; later(() => { if (sRef.current.idx === at) next() }, EXIT_PAUSE_MS) }
-      if (e.type === 'ok') handlers.win(e.step - 1, null) // XP и нота за верный тап
-    }
-  }
+  /** Тап по дорожке (раунд «Порядок»): ответ — в движке пилюль, он знает, какие пилюли сейчас на экране */
+  const onLane = lane => sceneApi.current?.tap?.(lane)
 
   /** Тап по микрофону: в ручном режиме (распознавания нет) — «сказал» следующий текст ступени */
   const tapMic = () => {
@@ -212,13 +218,13 @@ export function useWordLaneFlow({ chunks, translation, lang, clips = null, audio
     if (s.stage !== 'run' || !stageObj) return IDLE
     if (stageObj.type === 'dictor') return { kind: 'dictor', plan: stageObj.plan, at: s.at }
     if (stageObj.type === 'student') return { kind: 'student', step: stageObj.step, chunks, estMs: c => chunkMs[c], curves: chunkCurves, at: s.at }
-    if (stageObj.type === 'order') return { kind: 'order', count: chunks.length, lanes, at: s.at }
+    if (stageObj.type === 'order') return { kind: 'order', prompts: stageObj.prompts, lanes, count: chunks.length, at: s.at }
     return IDLE
   }, [s.stage, s.at, stageObj, chunks, chunkMs, chunkCurves, lanes])
 
-  const live = { seq: s.lid === listenId ? s.seq : [], misses: s.lid === listenId ? s.misses : 0 }
+  const live = { seq: s.lid === listenId ? s.seq : [], misses: s.lid === listenId ? s.misses : 0, signal: () => signalRef.current }
   const phase = s.stage === 'run' ? (stageObj?.type ?? 'idle') : s.stage
   const labels = labelsFor(stageObj?.type === 'announce' ? stages[s.idx + 1] : stageObj, chunks, lanes, s.hint) // под плашкой раунда уже видны подписи следующей стадии
   const plate = stageObj?.type === 'announce' ? stageObj.round.title : stageObj?.type === 'turn' ? 'Теперь твоя очередь' : ''
-  return { ...s, phase, stageObj, scene, live, labels, plate, plateMs: stageObj?.ms ?? 0, levels, fx, sceneApi, onLane, dismissXp, tapMic, skip, finish, translation, text: textOf(chunks, chunks.map((_, i) => i)) }
+  return { ...s, catLine: cat.text, phase, stageObj, scene, live, labels, plate, plateMs: stageObj?.ms ?? 0, levels, fx, sceneApi, onLane, dismissXp, tapMic, skip, finish, translation, text: textOf(chunks, chunks.map((_, i) => i)) }
 }

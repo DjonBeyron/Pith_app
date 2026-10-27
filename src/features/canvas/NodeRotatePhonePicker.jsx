@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import NodeTableTts from './NodeTableTts.jsx'
 import WordLaneEditorModal from './word-lane/WordLaneEditorModal.jsx'
+import CatLinesPanel from './word-lane/CatLinesPanel.jsx'
 import { defaultScript } from '../player/modules/rotate-phone/wordLaneConfig.js'
 import { fillsFromTimings, defaultFills, normalizeFills } from '../player/modules/rotate-phone/wordLanePlan.js'
 import { parsePhrase } from '../player/modules/rotate-phone/wordLaneRecipe.js'
@@ -15,9 +16,10 @@ import { NO_AUTOCORRECT } from '../../shared/lib/noAutoCorrectProps.js'
 // можно озвучить и одну фразу целиком «I'm trying to learn» — куски игра вырежет из неё), из ответа берутся тайминги слов. У фразы игра режет файл на клипы кусков сама (wordLaneAudio.clipsFromTimings); у одного слова таймлайн (три клипа) расставляется сразу, «⏱ Таймлайн» — монтажный
 // стол таблицы, чтобы поправить руками. Без озвучки куски произносит голос системы / слово из библиотеки озвучки слов. Фраза пустая — игра идёт встроенным словом (DEMO_WORD).
 // Звук диктора: куски фразы звучат ОТДЕЛЬНЫМИ файлами из библиотеки озвучки слов (collectLessonWords кладёт куски в список «нужна озвучка»), а запись «Озвучить» — только финал (вся фраза).
-// Текст карточки в чате правится выше, в общем поле content.
+// Реплики кота («Пробуй сказать слова раздельно» и др.) — общие для всех нод этого типа: список, озвучка и анимация рта — раскрывающийся блок внизу (CatLinesPanel). Текст карточки в чате правится выше, в общем поле content.
 export default function NodeRotatePhonePicker({ tData, onDataChange, lessonFiles, onPickFile, onRemoveFile }) {
   const [open, setOpen] = useState(false)
+  const [linesOpen, setLinesOpen] = useState(false)
   const phrase = (tData.phrase ?? tData.word ?? '').trim()
   const chunks = parsePhrase(phrase)
   const single = chunks.length <= 1
@@ -62,6 +64,10 @@ export default function NodeRotatePhonePicker({ tData, onDataChange, lessonFiles
             : 'без озвучки — куски проговорит слово из библиотеки озвучки слов / голос системы'}
         </span>
       </div>
+      <details className="catLinesToggle" onToggle={e => setLinesOpen(e.currentTarget.open)}>
+        <summary>🐱 Реплики кота (общие для всех таких нод)</summary>
+        {linesOpen && <CatLinesPanel />}
+      </details>
       {open && (
         <WordLaneEditorModal tData={tData} lessonFiles={lessonFiles} onPickFile={onPickFile}
           onSave={data => onDataChange(data)} onClose={() => setOpen(false)} />

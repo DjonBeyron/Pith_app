@@ -45,8 +45,8 @@ describe('подсказка ученику: темп и «тень» слова
 
   it('метка темпа и ожидающая заливка подключены в движке и вёрстке', () => {
     const eng = read('./useWordLanePills.js')
-    expect(eng).toContain('rep.onset')
-    expect(read('./wordLaneStudent.js')).toContain('rep.durs.reduce')     // скорость наливания — длина слова диктора
+    expect(eng).toContain('ghostUntil')                                  // «тень» слова — только после неверно сказанного
+    expect(read('./wordLaneStudent.js')).toContain('rep.durs[active]')     // скорость наливания голосом — длина слова диктора
     const css = read('../../../../styles/player/modules/word-lane.css')
     expect(css).toContain(".wlPill:not([data-lock]) .wlPillFill")   // «ожидающая» заливка до подтверждения слова
   })

@@ -6,6 +6,7 @@ import { TRAVEL_MS, END_TAIL_MS, makeFillCurve } from './wordLaneTimeline.js'
 import { laneOf, textOf } from './wordLaneRecipe.js'
 import { clipsFor, playSpan, estChunkMs } from './wordLaneAudio.js'
 import { MIN_WORD_MS } from './wordLanePlan.js'
+import { mouthTrack, codeAt } from './wordLaneVisemes.js'
 
 export const REP_MIN_MS = 1500     // шаг между повторами не короче: пилюли одной дорожки (20 % высоты ≈ 0,8 с пути) не налезают друг на друга
 export const REP_GAP_MS = 800      // пауза после высказывания до следующего повтора
@@ -16,7 +17,7 @@ export const PIECE_GAP_MS = 80     // пауза между кусками, ко
  * @param {object} p step — ступень рецепта (reps: [{ parts }]); chunks — тексты кусков; clips — клипы файла (clipsFromTimings/clipsFromFills) или null; audio — { wave, duration } для кривых заливки;
  * rate — скорость голоса урока (запись растягивается на 1/rate); clipMode(parts) → true: этот повтор играется ЗАПИСЬЮ АВТОРА (клип из файла) — у фразы из нескольких кусков так звучит только
  * ФИНАЛ (вся фраза), остальное — куски по отдельности из библиотеки озвучки слов; lib(chunk) → { ms } (длина озвучки куска из библиотеки, null — длина неизвестна) или null (куска в библиотеке нет)
- * @returns {{ reps: object[], pills: object[], listenMs: number, mouth: (t:number)=>number }}
+ * @returns {{ reps: object[], pills: object[], listenMs: number, mouth: (t:number)=>number, mouthCode: (t:number)=>string }}
  */
 export function planDictor({ step, chunks, clips = null, audio = null, rate = 1, clipMode = () => true, lib = () => null }) {
   const n = chunks.length
@@ -70,5 +71,8 @@ export function planDictor({ step, chunks, clips = null, audio = null, rate = 1,
     }
     return 0
   }
-  return { reps, pills, listenMs, mouth, period }
+  // Форма рта по буквам куска (или фразы целиком у записи автора): на «о» рот круглится. Громкость решает только, звучит ли слово сейчас
+  const segs = reps.flatMap(x => (x.mode === 'clip' ? [{ at: x.at, ms: x.ms, track: mouthTrack(x.text, x.ms) }] : x.pieces.map(pc => ({ at: pc.at, ms: pc.ms, track: mouthTrack(pc.text, pc.ms) }))))
+  const mouthCode = t => { const s = segs.find(g => t >= g.at && t < g.at + g.ms); return s ? codeAt(s.track, t - s.at) : 'X' }
+  return { reps, pills, listenMs, mouth, mouthCode, period }
 }

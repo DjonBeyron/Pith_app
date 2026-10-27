@@ -9,6 +9,8 @@ import { unlockNotes } from './wordLaneNotes.js'
 import { prepareClips, prepareWords } from './wordLaneClips.js'
 import { playSpan, clipsFor } from './wordLaneAudio.js'
 import { libItems } from './wordLaneLib.js'
+import { normalizeLines, linesItems } from './wordLaneCatLines.js'
+import { getCatLines } from '../../../../shared/api/catLinesApi.js'
 import { ensureMicAccess, micNeedsHold } from '../../../../shared/lib/micAccess.js'
 import { openGameMic } from '../../../../shared/lib/gameMic.js'
 import { primeAudio } from '../../../../shared/lib/primedAudio.js'
@@ -32,13 +34,15 @@ export default function RotatePhoneModule({ node, file, onDone }) {
   const [phase, setPhase] = useState(node.isHistory ? 'finished' : 'wait') // wait → game → finished
   const [busy, setBusy] = useState(false)
   const playedRef = useRef(false)
+  const [lines, setLines] = useState(() => normalizeLines(null)) // реплики кота (общие настройки приложения): тексты по умолчанию, пока не догрузились
+  useEffect(() => { if (!node.isHistory) getCatLines().then(raw => setLines(normalizeLines(raw))) }, [node.isHistory])
 
   const start = useCallback(async () => {
     if (busy || phase !== 'wait') return
     setBusy(true)
     unlockVoice()
     // Звуки диктора: куски фразы — отдельными файлами из библиотеки озвучки слов (слоты будятся тишиной в жесте), запись автора — только финал (вся фраза; у одного слова — если слова нет в библиотеке)
-    prepareWords(libItems(cfg.chunks))
+    prepareWords([...libItems(cfg.chunks), ...linesItems(lines)]) // куски фразы и озвученные реплики кота
     if (cfg.hasAudio && audioSrc) {
       prepareTrack(audioSrc) // запасной путь: общий файл с перемоткой (элемент будится в жесте)
       const n = cfg.chunks.length
@@ -53,7 +57,7 @@ export default function RotatePhoneModule({ node, file, onDone }) {
     playedRef.current = true
     setPhase('game')
     setBusy(false)
-  }, [busy, phase, cfg, audioSrc])
+  }, [busy, phase, cfg, audioSrc, lines])
 
   const finished = useCallback(() => {
     try { if (document.fullscreenElement) document.exitFullscreen?.() } catch { /* уже вышли */ }
@@ -87,7 +91,7 @@ export default function RotatePhoneModule({ node, file, onDone }) {
           )}
         </div>
       </PlayerBubble>
-      {phase === 'game' && <WordLaneGame cfg={cfg} audioSrc={cfg.hasAudio ? audioSrc : null} onFinished={finished} />}
+      {phase === 'game' && <WordLaneGame cfg={cfg} audioSrc={cfg.hasAudio ? audioSrc : null} lines={lines} onFinished={finished} />}
     </div>
   )
 }

@@ -43,7 +43,7 @@ export function wordGrammar(word, max = SLOT_COUNT) {
 // На одной ступени ученик может говорить РАЗНЫЕ тексты (раунд «вслепую»: куск 1, куск 2, куск 3), поэтому распознавание знает список целей и отдаёт ПО ПОРЯДКУ, какие цели услышаны.
 
 /**
- * Услышанное → { seq, misses }: seq — номера целей в порядке, как они прозвучали (одна и та же цель может повторяться), misses — слова «не то». Самая длинная подходящая цель берётся первой.
+ * Услышанное → { seq, misses, tail }: seq — номера целей в порядке, как они прозвучали (одна и та же цель может повторяться), misses — слова «не то», tail — недосказанная цель ({ target, tokens }: сколько её слов уже произнесено — по ним пилюля заливается по очереди). Самая длинная подходящая цель берётся первой.
  * final=false (идёт речь): последнее слово ещё может измениться, поэтому промахом оно не считается. targets — тексты целей (как угодно: сокращения раскроются).
  */
 export function analyzeTargets(raw, targets, final = true) {
@@ -52,15 +52,26 @@ export function analyzeTargets(raw, targets, final = true) {
   const heard = String(raw ?? '').toLowerCase().split(/\s+/).filter(Boolean)
   const seq = []
   let misses = 0
+  let lastEnd = 0   // где кончилась последняя найденная цель (дальше — недосказанное)
   for (let i = 0; i < heard.length;) {
     const hit = order.find(k => {
       const part = heard.slice(i, i + toks[k].length)
       return part.length === toks[k].length && tokenize(part.join(' ')).join(' ') === toks[k].join(' ')
     })
-    if (hit != null) { seq.push(hit); i += toks[hit].length }
+    if (hit != null) { seq.push(hit); i += toks[hit].length; lastEnd = i }
     else { if ((final || i < heard.length - 1) && (heard[i] === UNK || tokenize(heard[i]).length)) misses++; i++ }
   }
-  return { seq, misses }
+  // Недосказанная цель: слова после последней целиком найденной цели, которыми начинается какая-то цель — «i am» из «i am trying». tail = { target, tokens } (tokens — сколько слов цели уже произнесено)
+  let tail = null
+  const rest = heard.slice(lastEnd).flatMap(w => tokenize(w))
+  if (rest.length) {
+    for (const k of order) {
+      let m = 0
+      while (m < rest.length && m < toks[k].length - 1 && rest[m] === toks[k][m]) m++
+      if (m > 0 && (!tail || m > tail.tokens)) tail = { target: k, tokens: m }
+    }
+  }
+  return { seq, misses, tail }
 }
 
 /**

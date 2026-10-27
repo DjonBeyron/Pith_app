@@ -1,0 +1,8 @@
+/* Реплики кота-диктора в редакторе ноды «Переверни телефон» (CatLinesPanel.jsx) */
+.catLines { margin-top: 8px; display: flex; flex-direction: column; gap: 10px; }
+.catLinesCat.wlStage { position: relative; inset: auto; width: 150px; height: 76px; margin: 0 auto; overflow: hidden; border-radius: 12px; background: #0e1116; padding: 0; }
+.catLinesList { display: flex; flex-direction: column; gap: 10px; }
+.catLine { display: flex; flex-direction: column; gap: 4px; }
+.catLineWhen { font-size: 12px; opacity: 0.65; }
+.catLineRow { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.catLinesToggle { margin-top: 6px; font-size: 13px; cursor: pointer; }

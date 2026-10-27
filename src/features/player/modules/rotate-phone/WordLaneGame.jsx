@@ -15,9 +15,9 @@ import { WORD_Y } from './wordLaneTimeline.js'
 // Раунды: наращивание (диктор — ученик по ступеням «кусок ×3 → следующий ×3 → вместе ×3 …»), «Порядок» (тап по дорожкам), «Вслепую» (ни текста, ни перевода) → перевод. Одно слово (фраза из одного куска)
 // стоит над дорожками крупно, пилюли — три повтора. Сценарий и таймеры — useWordLaneFlow.js, пилюли — useWordLanePills.js, раскладка — wordLaneTimeline.js.
 // Оверлей — portal в body поверх всего (z-index 10000), закрывает весь экран, включая зону вырезов (safe-area учтена отступами сцены). Крестик — выйти в любой момент.
-export default function WordLaneGame({ cfg, audioSrc, onFinished }) {
+export default function WordLaneGame({ cfg, audioSrc, lines = null, onFinished }) {
   const catApi = useRef(null) // Пит (кот-маскот): рот по голосу и реакции лицом — через api, минуя React на кадрах
-  const f = useWordLaneFlow({ chunks: cfg.chunks, translation: cfg.translation, lang: cfg.lang, clips: cfg.clips, audioSrc, audio: cfg.audio, catApi, onFinished })
+  const f = useWordLaneFlow({ chunks: cfg.chunks, translation: cfg.translation, lang: cfg.lang, clips: cfg.clips, audioSrc, audio: cfg.audio, catApi, lines, onFinished })
   const { phase } = f
   const single = cfg.chunks.length === 1
   const showSlots = phase !== 'drop'
@@ -38,6 +38,7 @@ export default function WordLaneGame({ cfg, audioSrc, onFinished }) {
               {heads.map((h, i) => <span key={i} className={`wlHead${h.on ? ' wlHead--on' : ''}${h.text ? '' : ' wlHead--empty'}`} data-testid={`wl-head-${i}`}>{h.text}</span>)}
             </div>
           )}
+        {f.catLine && <div className="wlSay" key={f.catLine} role="status" data-testid="wl-say">{f.catLine}</div>}
         {f.plate && <div className="wlTurn" key={f.idx} style={{ animationDuration: `${f.plateMs}ms` }} data-testid="wl-turn">{f.plate}</div>}
         {phase === 'reveal' && (
           <div className="wlReveal" data-testid="wl-reveal">

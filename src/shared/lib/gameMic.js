@@ -5,6 +5,10 @@
 import { sayPermission } from './speech/sayPermission.js'
 import { pLog } from './debug.js'
 
+// БЕЗ эхо- и шумоподавления: пока на iPhone открыт поток с echoCancellation, iOS включает «голосовую обработку» (как в звонке) для ВСЕГО звука страницы — озвучка диктора хрипит и шипит, как плёнка.
+// Без неё воспроизведение чистое; автоусиление оставлено — тихий голос слышно. Эхо диктора в микрофон не мешает: слушатель стартует после диктора, а ворота голоса глушат ноты-награды.
+export const GAME_MIC_CONSTRAINTS = { echoCancellation: false, noiseSuppression: false, autoGainControl: true, channelCount: 1 }
+
 let stream = null
 
 // Живой и НЕ заглушённый системой: iOS при прерывании аудиосессии оставляет трек live, но muted — он пишет тишину
@@ -15,7 +19,7 @@ export async function openGameMic() {
   if (live(stream)) return 'granted'
   if (typeof navigator === 'undefined' || !navigator.mediaDevices?.getUserMedia) return 'unavailable'
   try {
-    stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, channelCount: 1 } })
+    stream = await navigator.mediaDevices.getUserMedia({ audio: GAME_MIC_CONSTRAINTS })
     sayPermission.markMicOk()
     pLog('[mic] игровой поток открыт (один на игру)')
     return 'granted'

@@ -7,20 +7,22 @@ import { MASCOT_PACKS } from './mascots.js'
 const VISEME = { closed: 'X', half: 'C', open: 'D' }
 const NODES = ['mm', 'mt', 'mf', 'ml']
 
-export function mouthShapeFor(skin, face, shape) {
+// Форма рта по коду Rhubarb (X A B C D E F G H) — для озвучки по буквам (wordLaneVisemes.js); формы closed / half / open — частный случай (X / C / D)
+export function mouthByCode(skin, face, code) {
   const pack = MASCOT_PACKS[skin]
   if (!pack) return null
-  const code = VISEME[shape] ?? 'X'
   const rest = code === 'X' ? pack.states[face]?.mouth : null
   if (rest) return { m: { d: rest, fill: 'none', sw: 6 }, t: '', f: '', l: null }
-  return pack.mouthTable[code]
+  return pack.mouthTable[code] ?? pack.mouthTable.X
 }
 
+export const mouthShapeFor = (skin, face, shape) => mouthByCode(skin, face, VISEME[shape] ?? 'X')
+
 // catEl — корень кота ([data-part="cat"]); для обычного кота (нет data-skin) ничего не делает
-export function applyMascotMouth(catEl, shape) {
+export function applyMascotMouthCode(catEl, code) {
   const skin = catEl?.getAttribute?.('data-skin')
   if (!skin) return
-  const e = mouthShapeFor(skin, catEl.getAttribute('data-face'), shape)
+  const e = mouthByCode(skin, catEl.getAttribute('data-face'), code)
   if (!e) return
   const [mm, mt, mf, ml] = NODES.map(c => catEl.querySelector(`.${c}`))
   if (!mm) return
@@ -29,3 +31,5 @@ export function applyMascotMouth(catEl, shape) {
   ml.setAttribute('d', e.l ? e.l.d : '')
   if (e.l) ml.setAttribute('stroke-width', e.l.sw)
 }
+
+export const applyMascotMouth = (catEl, shape) => applyMascotMouthCode(catEl, VISEME[shape] ?? 'X')

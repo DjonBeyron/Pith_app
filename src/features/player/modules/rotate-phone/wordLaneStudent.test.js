@@ -129,29 +129,50 @@ describe('принятое слово', () => {
   })
 })
 
-describe('голос и заливка', () => {
-  it('голос наливает ТОЛЬКО самый старый повтор на экране, не выше FILL_CAP; куски — по очереди', () => {
-    const g = game(build[2])
-    let maxP = [0, 0]
-    for (let t = 0; t <= 6000; t += DT) {
-      stepStudent(g, t, { level: t > 2500 ? 0.8 : 0, seq: [], misses: 0 })
-      const rep = g.reps[0]
-      if (rep.state === 'fly') rep.pills.forEach((p, i) => { maxP[i] = Math.max(maxP[i], p.p); expect(p.p).toBeLessThanOrEqual(FILL_CAP + 1e-9) })
-      if (rep.state === 'fly' && rep.pills[1].p > 0) expect(rep.pills[0].p).toBeCloseTo(FILL_CAP, 6)   // второй кусок начинает, когда первый залит
-    }
-    expect(maxP[0]).toBeGreaterThan(0.1)
-  })
-  it('метка темпа: onset ставится с первого звука на повторе, в тишине — нет', () => {
+describe('голос и заливка: только на подтверждённую речь, строго по очереди', () => {
+  const frames = (g, ms, input) => { for (let t = g.t; t <= ms; t += DT) stepStudent(g, t, typeof input === 'function' ? input(t) : input) }
+  it('шум и эхо без слов (речь не подтверждена распознаванием) заливку не двигают, даже громкие', () => {
     const g = game(build[0])
-    for (let t = 0; t <= 3500; t += DT) stepStudent(g, t, { level: t >= 2500 ? 0.7 : 0, seq: [], misses: 0 })
-    expect(g.reps[0].onset).toBeGreaterThanOrEqual(2500)
-    expect(g.reps[0].onset).toBeLessThan(2500 + DT * 2)
+    frames(g, 6000, { level: 0.9, seq: [], misses: 0, confirmed: false, tail: null })
+    expect(g.reps[0].pills.every(p => p.p === 0)).toBe(true)
   })
-  it('чужое слово (miss) сливает заливку текущего повтора', () => {
+  it('речь подтверждена — голос наливает текущий кусок, не выше FILL_CAP', () => {
+    const g = game(build[0])
+    frames(g, 4000, { level: 0.8, seq: [], misses: 0, confirmed: true, tail: null })
+    const p = g.reps[0].pills[0].p
+    expect(p).toBeGreaterThan(0.1)
+    expect(p).toBeLessThanOrEqual(FILL_CAP + 1e-9)
+  })
+  it('куски одного повтора заливаются СТРОГО ПО ОЧЕРЕДИ: второй не начинает, пока слова первого не произнесены (tail.tokens)', () => {
+    const g = game(build[2])                                    // «I'm trying» = 2 + 1 слов («i am», «trying»)
+    let secondBeforeFirst = false
+    for (let t = 0; t <= 3000; t += DT) {
+      // голос идёт всё время, но слова ещё не распознаны
+      stepStudent(g, t, { level: 0.8, seq: [], misses: 0, confirmed: true, tail: null })
+      const [a, b] = g.reps[0].pills
+      if (b && b.p > 0 && a.p < FILL_CAP - 1e-9) secondBeforeFirst = true
+    }
+    expect(secondBeforeFirst).toBe(false)
+    expect(g.reps[0].pills[1].p).toBe(0)
+    // распознаны «i am» — первый кусок залит до конца, второй ещё пуст; потом «trying» подхватывает второй
+    g.reps[0].pills[0].p = 0
+    stepStudent(g, g.t + DT, { level: 0.8, seq: [], misses: 0, confirmed: true, tail: { target: g.reps[0].target, tokens: 2 } })
+    expect(g.reps[0].pills[0].p).toBeCloseTo(FILL_CAP, 9)
+    expect(g.reps[0].pills[1].p).toBeLessThanOrEqual(FILL_CAP)
+  })
+  it('чужое слово (miss) сливает заливку текущего повтора и сбрасывает прогресс слов', () => {
     const g = game(build[0])
     let misses = 0
-    for (let t = 0; t <= 4600; t += DT) { if (t === 3200) misses = 1; stepStudent(g, t, { level: t < 3200 ? 0.8 : 0, seq: [], misses }) }
-    expect(g.reps[0].vp).toBeLessThan(0.05)
+    for (let t = 0; t <= 3800; t += DT) { if (t === 2000) misses = 1; stepStudent(g, t, { level: t < 2000 ? 0.8 : 0, seq: [], misses, confirmed: t < 2000, tail: null }) }
+    expect(g.reps[0].pills[0].p).toBeLessThan(0.05)
+    expect(g.reps[0].tk).toBe(0)
+  })
+  it('слово принимается, как только пилюля ВИДНА (CLAIM_FROM_Y у верхнего края), а не после полного открытия', () => {
+    expect(CLAIM_FROM_Y).toBeLessThanOrEqual(0)
+    const g = game(build[0])
+    const log = run(g, once(700, 0) && (t => ({ hit: t >= 700 && !g.reps[0].said ? ((g.reps[0].said = true), 0) : null })), 3000)
+    expect(of(log, 'claim')).toHaveLength(1)
+    expect(of(log, 'claim')[0].t).toBeLessThan(900)     // пилюля выкатилась в 0 мс, к 700 мс её центр ≈ +4 % — уже видна
   })
 })
 

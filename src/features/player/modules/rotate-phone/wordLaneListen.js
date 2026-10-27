@@ -38,6 +38,8 @@ export function createWordListener({ word, targets: targetsIn, expected = SLOT_C
   let status = 'idle'
   let timer = 0
   let heard = ''
+  let tail = null     // недосказанная цель текущей речи { target, tokens }
+  let heardAt = 0     // когда последний раз услышали хоть что-то (даже [unk]): речь реально идёт
   let mutedUntil = 0  // до этого момента новые промахи поглощаются
   let absorbed = 0    // сколько промахов уже поглощено в текущем заходе
   let lastRaw = 0
@@ -48,7 +50,9 @@ export function createWordListener({ word, targets: targetsIn, expected = SLOT_C
     if (patch.seq && patch.seq.length >= seq.length) seq = patch.seq // счёт не откатывается назад: поздний partial мог «передумать»
     if (patch.misses != null) misses = Math.max(misses, patch.misses)
     if (patch.heard != null) heard = patch.heard
-    onChange?.({ status, hits: seq.length, seq, misses, heard, ...(patch.error ? { error: patch.error } : {}) })
+    if (patch.tail !== undefined) tail = patch.tail
+    if (patch.heardAt) heardAt = patch.heardAt
+    onChange?.({ status, hits: seq.length, seq, misses, heard, tail, heardAt, ...(patch.error ? { error: patch.error } : {}) })
   }
   const remaining = () => Math.max(1, expected - base.seq.length) // сколько слов ещё ждём (заход закрывается, когда услышаны все); что делать дальше, решает конвейер (wordLaneStudent)
 
@@ -75,7 +79,7 @@ export function createWordListener({ word, targets: targetsIn, expected = SLOT_C
       if (now() < mutedUntil) absorbed += Math.max(0, rawMisses - lastRaw) // «чужое слово» во время ноты-награды — это эхо динамика, не ошибка ученика
       lastRaw = rawMisses
       const words = String(raw ?? '').toLowerCase().split(/\s+/).filter(Boolean).map(w => (w === '[unk]' ? '…' : w)).join(' ') // «…» — звук был, а слова не разобрали
-      publish({ seq: base.seq.concat(r.seq), misses: rawMisses - absorbed, heard: words || heard })
+      publish({ seq: base.seq.concat(r.seq), misses: rawMisses - absorbed, heard: words || heard, tail: r.tail, heardAt: words ? now() : 0 })
     }
     const callbacks = {
       onReady: () => { if (!disposed && cur === session) publish({ status: 'listening' }) },

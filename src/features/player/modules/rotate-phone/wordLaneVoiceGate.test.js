@@ -66,7 +66,7 @@ describe('подключение: худ, заливка и рот кота — 
   it('движок кормит конвейер ученика и худ громкостью после ворот; принятая пилюля глушит ворота', () => {
     const eng = read('./useWordLanePills.js')
     expect(eng).toContain('level = gate.step(raw, now, now - lastNow).level')
-    expect(eng).toContain('stepStudent(g, t, { level, seq, misses: liveRef.current.misses })')
+    expect(eng).toContain('stepStudent(g, t, { level, seq, misses: liveRef.current.misses, confirmed')
     expect(eng).toContain('gate.mute(performance.now())')
     expect(eng).toContain('fxRef.current?.mouth?.(level)')
   })

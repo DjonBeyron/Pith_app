@@ -74,14 +74,18 @@ describe('подлагивание в начале: прогрев слоёв, �
   })
 })
 
-describe('худ в пилюле реагирует только на голос', () => {
-  it('в вёрстке «тень» и метка темпа по умолчанию скрыты, статичных правил показа нет; в движке прозрачность пишется по громкости', () => {
+describe('«тень» слова внутри пилюли — только после неверно сказанного', () => {
+  it('в вёрстке тень скрыта по умолчанию; движок показывает её лишь на время GHOST_MS после события miss', () => {
     expect(css).toMatch(/\.wlGhost \{[^}]*opacity: 0;/)
-    expect(css).toMatch(/\.wlPace \{[^}]*opacity: 0;/)
-    expect(css).not.toMatch(/data-phase='speak'\] \.wlPill:not\(\[data-lock\]\) \.wl(Ghost|Pace)/)   // раньше показывались статично всю фазу
+    expect(css).not.toMatch(/data-phase='speak'\] \.wlPill:not\(\[data-lock\]\) \.wl(Ghost|Pace)/)
     const eng = read('./useWordLanePills.js')
-    expect(eng).toContain('const talking = level > 0')                          // level — уже после ворот голоса
-    expect(eng).toContain("(0.2 + 0.55 * Math.min(1, level)).toFixed(2) : '0'")
-    expect(eng).toContain('listening && rep.onset != null')            // метка темпа — только после первого звука
+    expect(eng).toContain("ghostUntil.set(e.rep.idx, performance.now() + GHOST_MS)")
+    expect(eng).toContain("now2 < (ghostUntil.get(p.rep) ?? 0)")
+    expect(eng).not.toContain('pillFill(t - rep.onset')                     // метки темпа больше нет
+  })
+  it('заливка — только на речь, подтверждённую распознаванием, по очереди кусков', () => {
+    const eng = read('./useWordLanePills.js')
+    expect(eng).toContain('const confirmed = Date.now() - (sig.heardAt ?? 0) < CONFIRM_MS')
+    expect(eng).toContain('tail: sig.tail ?? null')
   })
 })

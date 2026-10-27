@@ -4,6 +4,7 @@ import { createPool } from './wordLanePool.js'
 import { createStudentGame, stepStudent, isClaimable } from './wordLaneStudent.js'
 import { createVoiceGate } from './wordLaneVoiceGate.js'
 import { snapPill, missPill, SNAP_LEAD_MS } from './wordLaneSnap.js'
+import { runOrderScene } from './wordLaneOrderScene.js'
 
 // Движок пилюль игры «Повтори за диктором». ДВИЖЕНИЕ пилюль ведёт композитор (wordLaneMotion.js: одна линейная WAAPI-анимация на пилюлю — скорость конвейера постоянна), поэтому лаги основного
 // потока на смартфонах (Vosk, React, щелчок с искрами) на ход не влияют. JS каждый кадр считает только логику и заливку. Пилюли — из пула (wordLanePool.js): повторов и кусков в ступени до девяти.
@@ -12,14 +13,15 @@ import { snapPill, missPill, SNAP_LEAD_MS } from './wordLaneSnap.js'
 //  dictor  — { plan (wordLaneDictor.planDictor) }: каждой пилюле плана — полёт, чтобы к началу её слова она была полностью открыта; заливка в такт речи (pillFill по кривой громкости клипа);
 //            слово кончилось — щелчок и «огонёк» повтора; рот кота — по plan.mouth. Звук включает сценарий (по тем же временам);
 //  student — { step, chunks, estMs, curves }: конвейер ученика (wordLaneStudent.js) — повторы выкатываются сами, события (spawn / claim / snap / win / fail / miss / done) → пилюли и реакции fx.
-//            «Худ» в пилюле (тень слова и метка темпа) реагирует ТОЛЬКО на голос (после ворот wordLaneVoiceGate): нет голоса — их нет;
-//  order   — { count }: раунд «Порядок» — по пилюле в дорожке стоят на месте; sceneApi.current отвечает на тапы: ok / wrong / hint / reset (у сцены student — nextTarget() для ручного режима).
-// fx — реакции игры: win(order, rect) — пилюля ученика принята (XP, нота, кот), miss() — чужое слово, fail(info) — не успел, mouth(level) — рот кота, finished(locked) — ступень закончена.
+//            заливка идёт по очереди кусков и только на речь, подтверждённую распознаванием; «тень» слова внутри пилюли — лишь после неверно сказанного;
+//  order   — { prompts, lanes, count }: раунд «Порядок» на время (wordLaneOrderScene.js) — на подсказку диктора выкатываются пилюли во всех дорожках, sceneApi.current.tap(lane) — тап ученика (у сцены student — nextTarget() для ручного режима).
+// fx — реакции игры: win(order, rect) — пилюля ученика принята (XP, нота, кот), miss() — чужое слово, fail(info) — не успел, mouth(level, code) — рот кота (code — форма по букве, у диктора), say(parts) — диктор называет подсказку (раунд «Порядок»), finished(locked) — ступень закончена.
 const setApi = (ref, value) => { if (ref) ref.current = value } // ref приходит пропсом — меняем его вне компонента
 
+export const GHOST_MS = 3000    // сколько «тень» слова держится после неверно сказанного
+export const CONFIRM_MS = 1500  // речь считается подтверждённой, пока распознаватель что-то слышал не дольше столько мс назад
 export const CAT_LEAD_MS = 700  // кот выскакивает за столько до начала голоса диктора (пружина 0,55 с)
 export const CAT_TAIL_MS = 500  // и торчит ещё столько после его конца
-export const ORDER_Y = 46 // в раунде «Порядок» пилюли стоят в дорожках на этой высоте (центр, % экрана)
 
 export function useWordLanePills(rootRef, { scene, levels, fx, live, sceneApi }) {
   const fxRef = useRef(fx)
@@ -58,7 +60,7 @@ export function useWordLanePills(rootRef, { scene, levels, fx, live, sceneApi })
             if (h.p.chunk === plan.reps[h.p.rep].parts.at(-1)) light(h.p.rep) // повтор договорён — «огонёк»
           }
         }
-        fxRef.current?.mouth?.(plan.mouth(t))
+        fxRef.current?.mouth?.(plan.mouth(t), plan.mouthCode(t)) // рот: громкость решает, звучит ли слово, буквы — какой формы рот (на «о» круглый)
         raf = requestAnimationFrame(tick)
       }
       raf = requestAnimationFrame(tick)
@@ -77,6 +79,7 @@ export function useWordLanePills(rootRef, { scene, levels, fx, live, sceneApi })
       let raf = 0
       let lastNow = performance.now()
       let claimedReps = 0
+      const ghostUntil = new Map() // номер повтора → до какого момента показывать «тень» слова (только после неверно сказанного)
       const gate = createVoiceGate()
       const t0 = performance.now()
       const off = levels?.subscribe(l => { raw = l })
@@ -95,23 +98,28 @@ export function useWordLanePills(rootRef, { scene, levels, fx, live, sceneApi })
         } else if (e.type === 'snap') { const k = held.get(e.pill.id); if (k != null) snapPill(pool.el(k), e.pill.lane) } // отклик — в момент, когда слово принято
         else if (e.type === 'win') { gate.mute(performance.now()); const k = held.get(e.pill.id); fxRef.current?.win?.(e.order, k != null ? pool.el(k).getBoundingClientRect() : null) } // нота-награда: микрофон слышит динамик — голосом это не считаем
         else if (e.type === 'fail') { e.pills.forEach(p => { const k = held.get(p.id); if (k != null) { pool.attr(k, 'data-fail'); pool.hint(k, '0', null) } }); fxRef.current?.fail?.(e) }
-        else if (e.type === 'miss') { const k = e.rep ? held.get(e.rep.pills[0]?.id) : null; if (k != null) missPill(pool.el(k)); fxRef.current?.miss?.(e) }
+        else if (e.type === 'miss') {
+          const k = e.rep ? held.get(e.rep.pills[0]?.id) : null
+          if (k != null) missPill(pool.el(k))
+          if (e.rep) ghostUntil.set(e.rep.idx, performance.now() + GHOST_MS) // сказано не то — показываем «тень» слова: как оно звучит и сколько длится
+          fxRef.current?.miss?.(e)
+        }
         else if (e.type === 'done') fxRef.current?.finished?.(e.locked)
       }
       const tick = now => {
         const t = now - t0
         level = gate.step(raw, now, now - lastNow).level; lastNow = now
         const seq = liveRef.current.seq
-        for (const e of stepStudent(g, t, { level, seq, misses: liveRef.current.misses })) handle(e)
-        const talking = level > 0
+        const sig = liveRef.current.signal?.() ?? {}
+        const confirmed = Date.now() - (sig.heardAt ?? 0) < CONFIRM_MS // распознаватель недавно что-то услышал: речь настоящая, а не шум или эхо
+        for (const e of stepStudent(g, t, { level, seq, misses: liveRef.current.misses, confirmed, tail: sig.tail ?? null })) handle(e)
+        const now2 = performance.now()
         for (const [id, k] of held) {
           const p = g.pills.find(x => x.id === id)
           if (!p) { pool.give(k); held.delete(id); continue }   // ушла за нижний край
           pool.paintFill(k, p.p)
-          const rep = g.reps[p.rep]
-          // Худ реагирует только на голос: «ловит» его самый старый повтор на экране, пока не принят
-          const listening = !blind && rep.state === 'fly' && rep.cur && talking && p.y >= 0 && p.y <= 100
-          pool.hint(k, listening ? (0.2 + 0.55 * Math.min(1, level)).toFixed(2) : '0', listening && rep.onset != null ? pillFill(t - rep.onset, 0, rep.durs.reduce((a, d) => a + d, 0), curves?.[p.chunk] ?? null) : null)
+          // «Тень» слова — только после неверно сказанного (и ненадолго): пока ученик говорит верно или молчит, внутри пилюли ничего лишнего
+          pool.hint(k, now2 < (ghostUntil.get(p.rep) ?? 0) && g.reps[p.rep].state === 'fly' ? '0.6' : '0', null)
         }
         fxRef.current?.mouth?.(level)
         raf = requestAnimationFrame(tick)
@@ -122,18 +130,10 @@ export function useWordLanePills(rootRef, { scene, levels, fx, live, sceneApi })
 
     // ---------- порядок ----------
     if (kind === 'order') {
-      const { count } = scene
       setDots(0)
-      const ks = Array.from({ length: count }, (_, lane) => pool.take(lane, { flight: false }))
-      ks.forEach(k => { if (k != null) pool.place(k, ORDER_Y) })
-      const timers = []
-      setApi(sceneApi, {
-          ok(lane) { const k = ks[lane]; if (k == null) return; pool.attr(k, 'data-lock'); pool.paintFill(k, 1); snapPill(pool.el(k), lane) },
-          wrong(lane) { const k = ks[lane]; if (k != null) missPill(pool.el(k)) },
-          hint(lane) { const k = ks[lane]; if (k == null) return; pool.attr(k, 'data-hint'); timers.push(setTimeout(() => pool.attr(k, 'data-hint', false), 1600)) },
-          reset() { ks.forEach(k => { if (k == null) return; pool.paintFill(k, 0); pool.attr(k, 'data-lock', false); pool.attr(k, 'data-hint', false) }) },
-      })
-      return () => { timers.forEach(clearTimeout); setApi(sceneApi, null); ks.forEach(k => { if (k != null) pool.unplace(k) }); pool.giveAll() }
+      const run = runOrderScene({ pool, scene, fxRef })
+      setApi(sceneApi, run.api)
+      return () => { run.stop(); setApi(sceneApi, null); pool.giveAll() }
     }
     return undefined
   }, [scene, levels, rootRef, sceneApi])

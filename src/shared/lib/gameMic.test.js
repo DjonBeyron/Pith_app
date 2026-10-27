@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
 import { micNeedsHold, confirmMicBeforeStart } from './micAccess.js'
-import { openGameMic, getGameMic, closeGameMic } from './gameMic.js'
+import { openGameMic, getGameMic, closeGameMic, GAME_MIC_CONSTRAINTS } from './gameMic.js'
 
 const track = () => ({ readyState: 'live', enabled: true, stop() { this.readyState = 'ended' } })
 const fakeStream = () => { const t = track(); return { t, getTracks: () => [t] } }
@@ -39,6 +39,8 @@ describe('iPhone: разрешение не запоминается — оди�
     expect(await openGameMic()).toBe('granted')
     expect(await openGameMic()).toBe('granted')
     expect(gum).toHaveBeenCalledTimes(1)
+    expect(gum).toHaveBeenCalledWith({ audio: GAME_MIC_CONSTRAINTS })
+    expect(GAME_MIC_CONSTRAINTS).toMatchObject({ echoCancellation: false, noiseSuppression: false })   // иначе iOS включает голосовую обработку и озвучка хрипит
     expect(getGameMic()).toBe(s)
     expect(s.t.enabled).toBe(true)                        // треки не выключаем: на iOS это могло остановить захват
   })
