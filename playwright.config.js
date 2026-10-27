@@ -2,6 +2,7 @@ import { defineConfig, devices } from '@playwright/test'
 import { readFileSync, existsSync } from 'fs'
 import { fileURLToPath } from 'url'
 import { isLocalBackend } from './e2e/helpers/backend.js'
+import { NEWBIE_HOST, NEWBIE_PORT } from './e2e/helpers/newbieBackend.js'
 
 // Грузим .env.test (тест-аккаунты, в .gitignore) в process.env — Playwright
 // сам .env не читает. Простой парсер KEY=VALUE, существующий env не перетираем.
@@ -33,6 +34,16 @@ const benchChromium = {
   launchOptions: { args: ['--autoplay-policy=no-user-gesture-required'], ...(process.env.PW_CHROMIUM_PATH ? { executablePath: process.env.PW_CHROMIUM_PATH } : {}) },
 }
 
+// Стенд «новый пользователь» (e2e/newbie-first-session.spec.js): свой dev-сервер с недостижимым Supabase (адрес NEWBIE_HOST),
+// ответы бэкенда — из e2e/helpers/newbieBackend.js (перехват сети в самом тесте). Ни базы, ни Docker, ни .env не нужно;
+// автоплей разрешён — видео ленты играют без жеста (как на стендах медиа)
+const NEWBIE_SPEC = /newbie-.*\.spec\.js/
+const newbieChromium = {
+  ...mobileChromium,
+  baseURL: `http://localhost:${NEWBIE_PORT}`,
+  launchOptions: { args: ['--autoplay-policy=no-user-gesture-required'], ...(process.env.PW_CHROMIUM_PATH ? { executablePath: process.env.PW_CHROMIUM_PATH } : {}) },
+}
+
 // E2E-каркас (этап 5.5, план в TESTING.md). Приложение mobile-first.
 export default defineConfig({
   testDir: './e2e',
@@ -58,6 +69,14 @@ export default defineConfig({
       timeout: 60_000,
       env: { VITE_SUPABASE_URL: 'http://127.0.0.1:9', VITE_SUPABASE_ANON_KEY: 'bench', PITHY_BENCH_STUBS: '1' },
     },
+    // Стенд «новый пользователь»: Supabase по адресу-пустышке, капча выключена (пустой ключ перекрывает .env.local)
+    {
+      command: `npm run dev -- --port ${NEWBIE_PORT} --strictPort`,
+      port: NEWBIE_PORT,
+      reuseExistingServer: false,
+      timeout: 60_000,
+      env: { VITE_SUPABASE_URL: `https://${NEWBIE_HOST}`, VITE_SUPABASE_ANON_KEY: 'newbie', VITE_TURNSTILE_SITE_KEY: '' },
+    },
   ],
   use: {
     baseURL: `http://localhost:${PORT}`,
@@ -71,13 +90,15 @@ export default defineConfig({
   },
   projects: [
     // Гостевые (smoke + guest): без логина; auth-спеки игнорируются
-    { name: 'mobile',  use: mobileChromium, testIgnore: [...IGNORE_AUTH, BENCH_SPECS] },
-    { name: 'desktop', use: { viewport: { width: 1280, height: 800 } }, testIgnore: [...IGNORE_AUTH, BENCH_SPECS] },
+    { name: 'mobile',  use: mobileChromium, testIgnore: [...IGNORE_AUTH, BENCH_SPECS, NEWBIE_SPEC] },
+    { name: 'desktop', use: { viewport: { width: 1280, height: 800 } }, testIgnore: [...IGNORE_AUTH, BENCH_SPECS, NEWBIE_SPEC] },
     // Стенды — на своём сервере (BENCH_PORT), без бэкенда: «медиа в чате» и «лента рекомендаций»
     { name: 'chat-media', testMatch: /chat-media\.spec\.js/, use: benchChromium },
     { name: 'feed-media', testMatch: /feed-media\.spec\.js/, use: benchChromium },
     // Стенд «Разбор урока» (десктоп, настоящий LessonReviewPanel на уроке из lesson-drafts)
     { name: 'review-perf', testMatch: /review-perf\.spec\.js/, use: { ...benchChromium, viewport: { width: 1920, height: 1080 }, isMobile: false, hasTouch: false, deviceScaleFactor: 1 } },
+    // Сценарий нового пользователя (мобильный, на своём сервере и с перехватом сети)
+    { name: 'newbie', testMatch: NEWBIE_SPEC, use: newbieChromium },
     // Под логином — только при наличии .env.test с кредами (этап D)
     ...(hasCreds ? [
       { name: 'setup', testMatch: /auth\.setup\.js/ },
