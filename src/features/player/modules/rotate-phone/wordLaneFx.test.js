@@ -2,7 +2,9 @@ import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { voiceFillStep, fillProfile, makeFillCurve, FILL_CAP, VOICE_THRESHOLD, ONSET_P } from './wordLaneTimeline.js'
-import { makeListenPlan, makeMouthLevel } from './wordLanePlan.js'
+import { planDictor } from './wordLaneDictor.js'
+import { buildRecipe } from './wordLaneRecipe.js'
+import { clipsFromFills } from './wordLaneAudio.js'
 import { makeNoteWav, NOTES, NOTE_FREQS } from './wordLaneNotes.js'
 import { mouthShape } from './wordLaneMouth.js'
 import { XP_PER_PILL, sensitiveLevel } from './wordLaneConfig.js'
@@ -41,16 +43,10 @@ describe('подсказка ученику: темп и «тень» слова
     expect(prof[2]).toBeGreaterThan(prof[8] + 0.3)                           // громкий кусок шире тихого
   })
 
-  it('план отдаёт «тени» на каждую пилюлю', () => {
-    const p = makeListenPlan(null)
-    expect(p.profiles).toHaveLength(3)
-    expect(typeof p.mouth).toBe('function')
-  })
-
   it('метка темпа и ожидающая заливка подключены в движке и вёрстке', () => {
     const eng = read('./useWordLanePills.js')
-    expect(eng).toContain('p.onset')
-    expect(read('./wordLaneStudent.js')).toContain('p.ms)')         // скорость наливания — длина слова диктора
+    expect(eng).toContain('rep.onset')
+    expect(read('./wordLaneStudent.js')).toContain('rep.durs.reduce')     // скорость наливания — длина слова диктора
     const css = read('../../../../styles/player/modules/word-lane.css')
     expect(css).toContain(".wlPill:not([data-lock]) .wlPillFill")   // «ожидающая» заливка до подтверждения слова
   })
@@ -139,15 +135,19 @@ describe('XP за пилюлю, ноты, Пит', () => {
     expect(mouthShape(0.8)).toBe('open')
   })
 
-  it('рот кота в фазе диктора идёт по громкости озвучки (без озвучки — пульсация на слова), вне слов закрыт', () => {
-    const wave = [...Array(10).fill(0), ...Array(10).fill(250), ...Array(10).fill(0)]
-    const m = makeMouthLevel([1000], [1000], { wave, duration: 3 }, 0)
-    expect(m(500)).toBe(0)       // тишина в файле
-    expect(m(1500)).toBeGreaterThan(0.8)
-    const pulse = makeMouthLevel([1000], [800], null, null)
-    expect(pulse(500)).toBe(0)
-    expect(pulse(1300)).toBeGreaterThan(0.4)
-    expect(pulse(2500)).toBe(0)
+  it('рот кота в фазе диктора идёт по громкости озвучки (без озвучки — пульсация на слова), вне высказываний закрыт', () => {
+    const step = buildRecipe(['try']).rounds[0].steps[0]
+    const wave = Array.from({ length: 120 }, (_, i) => (i % 30 < 12 ? 250 : 0))               // 4 с, гудки по 0,4 с
+    const withFile = planDictor({ step, chunks: ['try'], clips: clipsFromFills([{ start: 0.1, end: 0.4 }, { start: 1.1, end: 1.4 }, { start: 2.1, end: 2.4 }]), audio: { wave, duration: 4 } })
+    const r0 = withFile.reps[0]
+    expect(withFile.mouth(r0.at - 200)).toBe(0)
+    let open = 0
+    for (let t = r0.at; t < r0.at + r0.ms; t += 10) if (withFile.mouth(t) > 0.8) open++
+    expect(open).toBeGreaterThan(5)
+    const pulse = planDictor({ step, chunks: ['try'] })
+    expect(pulse.mouth(pulse.reps[0].at - 200)).toBe(0)
+    expect(pulse.mouth(pulse.pills[0].at + 100)).toBeGreaterThan(0.4)
+    expect(pulse.mouth(pulse.listenMs)).toBe(0)
   })
 
   it('Пит — маскот из конструктора (buildMascot kit): реакции love / shy, рот через setMouth', () => {

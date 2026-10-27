@@ -23,7 +23,6 @@ export const SPEED = 26                                     // скорость 
 export const DROP_MS = 1000        // слово падает и замирает
 export const LANES_MS = 900        // дорожки проявляются
 export const WORD_MS = 1000        // длина слова по умолчанию (слово без озвучки автора)
-export const TURN_MS = 2200        // плашка «Теперь твоя очередь»
 export const MIC_IN_MS = 600       // иконка микрофона выезжает снизу
 export const END_TAIL_MS = 900     // после конца последнего слова диктора до плашки «твоя очередь» (пилюля ещё катится вниз)
 
@@ -37,22 +36,6 @@ export const EXIT_TRAVEL_MS = ((EXIT_Y - OPEN_Y) / SPEED) * 1000
  * Не обрезается: ниже ENTER_Y пилюля ещё не выкатилась, выше EXIT_Y — уже ушла (рисует движок, он прячет такие кадры).
  */
 export const pillYAt = (t, at) => OPEN_Y + (SPEED * (t - at)) / 1000
-
-/** Момент (мс), когда пилюля со словом, начавшимся в at, выкатывается из-за верхнего края */
-export const spawnTime = at => at - TRAVEL_MS
-/** Момент, когда она целиком ушла за нижний край */
-export const exitTime = at => at + EXIT_TRAVEL_MS
-
-/** Начало первого слова (мс от старта фазы): пилюля выкатывается в нулевую секунду и слово начинается, как только она полностью открылась (длина слова не важна) */
-export const leadFor = () => TRAVEL_MS
-
-// Расписание по умолчанию (слово без озвучки автора): первое слово — через leadFor(WORD_MS), дальше шаг PERIOD_MS (слово + пауза)
-export const PERIOD_MS = WORD_MS + 800
-export const WORD_AT = [0, 1, 2].map(k => leadFor() + 80 + k * PERIOD_MS)
-export const WORD_LEN = WORD_AT.map(() => WORD_MS)
-/** Когда кончается фаза диктора: конец последнего слова + END_TAIL_MS */
-export const listenEnd = (at, ms) => at.at(-1) + ms.at(-1) + END_TAIL_MS
-export const LISTEN_MS = listenEnd(WORD_AT, WORD_LEN)
 
 const clamp01 = v => Math.min(1, Math.max(0, v))
 /** Мягкое торможение к концу (пилюля «садится» в зону) */
@@ -125,6 +108,3 @@ export function fillProfile(curve, n = 10) {
 
 /** Слив при чужом слове */
 export const drainStep = (p, dt) => Math.max(0, p - Math.max(0, dt) * FILL_DRAIN)
-
-/** Распорядок игры: сколько длится каждая фаза без ожидания ученика, мс */
-export const PHASE_MS = { drop: DROP_MS, lanes: LANES_MS, listen: LISTEN_MS, turn: TURN_MS }

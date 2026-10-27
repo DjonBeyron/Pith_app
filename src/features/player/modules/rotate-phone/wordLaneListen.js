@@ -9,7 +9,7 @@ import { cleanPartial } from '../../../../shared/lib/vosk/voskResult.js'
 import { createRmsLevel } from '../../../../shared/lib/vosk/sayVoskLevel.js'
 import { sayAudioSessionType } from '../../../../shared/lib/speech/sayAudioSession.js'
 import { pLog } from '../../../../shared/lib/debug.js'
-import { analyzeHeard, wordGrammar } from './wordLaneMatch.js'
+import { analyzeTargets, targetGrammar } from './wordLaneMatch.js'
 import { SLOT_COUNT } from './wordLaneTimeline.js'
 
 export const OVERALL_MS = 120000     // сколько всего слушаем (конвейер выкатывает пилюли повторно, игра идёт долго), прежде чем перейти на ручной режим
@@ -21,13 +21,16 @@ const SESSION_MAX_MS = 20000
 const RESTART_MS = 150
 
 /**
+ * Цели — тексты, которые ученик должен сказать на ступени (targets; одно слово — word). onChange({ status, hits, seq, misses, heard }): seq — номера услышанных целей по порядку (накапливается по заходам
+ * и не откатывается), hits = seq.length. expected — сколько всего слов ждём (заход закрывается сам, когда услышаны все).
  * onChange({ status: 'idle'|'starting'|'listening'|'done'|'unavailable'|'error'|'timeout', hits, misses, heard }) — при каждом изменении; heard — что услышал движок («…» вместо неразобранного слова):
  * по нему игра честно говорит ученику, что именно распозналось. mute(ms) — на это время новые «чужие слова» не засчитываются (нота-награда из динамика могла попасть в микрофон).
  * Зависимости подставляются в тестах.
  */
-export function createWordListener({ word, onChange, runtime = voskRuntime, listen = startListening, level = createRmsLevel(), now = () => Date.now(), setTimer = setTimeout, clearTimer = clearTimeout }) {
-  let hits = 0, misses = 0            // накоплено за все заходы
-  let base = { hits: 0, misses: 0 }   // накоплено до текущего захода
+export function createWordListener({ word, targets: targetsIn, expected = SLOT_COUNT, onChange, runtime = voskRuntime, listen = startListening, level = createRmsLevel(), now = () => Date.now(), setTimer = setTimeout, clearTimer = clearTimeout }) {
+  const targets = targetsIn?.length ? targetsIn : [word]
+  let seq = [], misses = 0            // накоплено за все заходы
+  let base = { seq: [], misses: 0 }   // накоплено до текущего захода
   let cur = null
   let startedAt = 0
   let disposed = false
@@ -40,12 +43,12 @@ export function createWordListener({ word, onChange, runtime = voskRuntime, list
 
   const publish = patch => {
     if (patch.status) status = patch.status
-    if (patch.hits != null) hits = Math.max(hits, patch.hits) // счёт не откатывается назад: поздний partial мог «передумать»
+    if (patch.seq && patch.seq.length >= seq.length) seq = patch.seq // счёт не откатывается назад: поздний partial мог «передумать»
     if (patch.misses != null) misses = Math.max(misses, patch.misses)
     if (patch.heard != null) heard = patch.heard
-    onChange?.({ status, hits, misses, heard, ...(patch.error ? { error: patch.error } : {}) })
+    onChange?.({ status, hits: seq.length, seq, misses, heard, ...(patch.error ? { error: patch.error } : {}) })
   }
-  const remaining = () => SLOT_COUNT // за заход — до SLOT_COUNT слов; сколько слов нужно игре всего, решает конвейер (wordLaneStudent), слушатель просто считает принятые
+  const remaining = () => Math.max(1, expected - base.seq.length) // сколько слов ещё ждём (заход закрывается, когда услышаны все); что делать дальше, решает конвейер (wordLaneStudent)
 
   function end(session, st) {
     if (disposed || cur !== session) return
@@ -57,20 +60,20 @@ export function createWordListener({ word, onChange, runtime = voskRuntime, list
   }
 
   function run() {
-    base = { hits, misses } // до словаря: сколько слов ещё ждать, считается от накопленного
+    base = { seq, misses } // до словаря: сколько слов ещё ждать, считается от накопленного
     absorbed = 0; lastRaw = base.misses
     const model = runtime.getModel()
-    const grammar = model ? wordGrammar(word, remaining()) : null
+    const grammar = model ? targetGrammar(targets, SLOT_COUNT) : null
     if (!model || !grammar) { publish({ status: 'unavailable' }); return }
     const session = { handle: null, stopped: false }
     cur = session
     const part = (raw, final) => {
-      const r = analyzeHeard(raw, word, final)
+      const r = analyzeTargets(raw, targets, final)
       const rawMisses = base.misses + r.misses
       if (now() < mutedUntil) absorbed += Math.max(0, rawMisses - lastRaw) // «чужое слово» во время ноты-награды — это эхо динамика, не ошибка ученика
       lastRaw = rawMisses
       const words = String(raw ?? '').toLowerCase().split(/\s+/).filter(Boolean).map(w => (w === '[unk]' ? '…' : w)).join(' ') // «…» — звук был, а слова не разобрали
-      publish({ hits: base.hits + r.hits, misses: rawMisses - absorbed, heard: words || heard })
+      publish({ seq: base.seq.concat(r.seq), misses: rawMisses - absorbed, heard: words || heard })
     }
     const callbacks = {
       onReady: () => { if (!disposed && cur === session) publish({ status: 'listening' }) },
@@ -87,7 +90,7 @@ export function createWordListener({ word, onChange, runtime = voskRuntime, list
     Promise.resolve()
       .then(() => listen(model, grammar, callbacks, {
         autoStopMs: PAUSE_STOP_MS, completeMs: FULL_STOP_MS, maxMs: SESSION_MAX_MS, session: sayAudioSessionType(), chunk: 1024, // мелкие куски (64 мс): громкость для пилюль приходит в 4 раза чаще, ответ быстрее;
-        gate: true, cleanPartial, isComplete: text => analyzeHeard(text, word).hits >= remaining(),
+        gate: true, cleanPartial, isComplete: text => analyzeTargets(text, targets).seq.length >= remaining(),
       }))
       .then(h => { if (disposed || cur !== session) { try { h?.cancel() } catch { /* уже свободен */ } return } session.handle = h; if (session.stopped) h.stop() },
         e => { if (cur === session) { pLog(`[word-lane] микрофон не открылся: ${e?.name ?? e}`); cur = null; publish({ status: 'error', error: e?.name || 'mic' }) } })

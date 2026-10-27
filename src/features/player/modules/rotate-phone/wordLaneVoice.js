@@ -69,32 +69,45 @@ export function prepareTrack(src) {
 
 function releaseTrack() { if (track) { try { track.pause(); track.removeAttribute('src') } catch { /* уже свободен */ } } track = null; trackSrc = null }
 
-/** Озвучка автора (файл ElevenLabs ноды) целиком: заранее подготовленный элемент → прогретый элемент приложения → обычный <audio>. Возвращает ЭЛЕМЕНТ (по его currentTime идут пилюли — wordLaneClock.js) или null */
-export function playTrack(src) {
+let clipTimer = 0
+
+/**
+ * Озвучка автора (файл ElevenLabs ноды): целиком или ОТРЕЗКОМ span { start, end } (секунды файла) — так проигрывается одно высказывание из общего файла: перемотка на start, play, пауза в end.
+ * Заранее подготовленный элемент → (целиком) прогретый элемент приложения → обычный <audio>. Возвращает элемент или null. Новый вызов обрывает предыдущий отрезок.
+ */
+export function playTrack(src, span = null) {
   if (!src) return null
+  clearTimeout(clipTimer)
+  const start = span?.start ?? 0
+  const rate = getVoiceRate()
+  const stopAt = el => { if (span) clipTimer = setTimeout(() => { try { el.pause() } catch { /* уже остановлен */ } }, Math.max(60, ((span.end - start) * 1000) / (rate > 0 ? rate : 1))) }
   if (track && trackSrc === src) {
     try {
       if (track.src !== src && !track.src.endsWith(src)) { track.src = src }
       track.muted = getLessonMuted()
-      track.playbackRate = getVoiceRate()
-      track.currentTime = 0
+      track.playbackRate = rate
+      track.currentTime = start
       track.play().catch(e => pLog(`[word-lane] озвучка автора не пошла: ${e?.name ?? e}`))
+      stopAt(track)
       return track
     } catch { /* пробуем прогретый элемент */ }
   }
-  const primed = playPrimed(src, { muted: getLessonMuted(), rate: getVoiceRate() })
+  const primed = span ? null : playPrimed(src, { muted: getLessonMuted(), rate })
   if (primed) return primed
   try {
     track = new Audio(src)
     trackSrc = src
     track.muted = getLessonMuted()
-    track.playbackRate = getVoiceRate()
+    track.playbackRate = rate
+    track.currentTime = start
     track.play().catch(e => pLog(`[word-lane] озвучка автора не пошла: ${e?.name ?? e}`))
+    stopAt(track)
     return track
   } catch { return null }
 }
 
 export function stopVoice() {
+  clearTimeout(clipTimer)
   releaseTrack()
   try { stopPrimed() } catch { /* не играл */ }
   try { stopWord() } catch { /* не играл */ }

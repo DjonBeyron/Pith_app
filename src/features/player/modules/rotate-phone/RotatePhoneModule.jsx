@@ -14,7 +14,7 @@ import { pLog } from '../../../../shared/lib/debug.js'
 const DONE_AFTER_MS = 700
 const FINISHED_TEXT = 'Голосовая тренировка закончена'
 
-// Нода «Переверни телефон» (тип rotate_phone) — теперь вертикальная игра «Повтори за диктором»: карточка в чате (как ссылка на урок: полоса, значок, текст) и кнопка «Начать».
+// Нода «Переверни телефон» (тип rotate_phone) — вертикальная игра «Повтори за диктором» (фраза из кусков: наращивание, порядок, вслепую): карточка в чате (как ссылка на урок: полоса, значок, текст) и кнопка «Начать».
 // Тап — жест, поэтому прямо в нём (синхронно, до любых await) будим звук диктора и просим полный экран; потом проверяем микрофон (доступ обычно уже дан на экране запуска урока —
 // LaunchMicAsk) и открываем игру (WordLaneGame, полный экран). Нет доступа к микрофону — игра идёт в ручном режиме. По концу игры карточка пишет, что тренировка закончена,
 // и нода отпускает цепочку (onDone('shown')). Переворот экрана в горизонталь — позже, отдельным этапом.
@@ -64,7 +64,7 @@ export default function RotatePhoneModule({ node, file, onDone }) {
           </span>
           <span className="playerLessonRefBody">
             <span className="playerRotateTitle">{done ? FINISHED_TEXT : cfg.title}</span>
-            <span className="playerRotateCaption">{done ? `${cfg.word} — ${cfg.translation || 'повторено'}` : 'Послушай слово и повтори его вслух'}</span>
+            <span className="playerRotateCaption">{done ? `${cfg.word} — ${cfg.translation || 'повторено'}` : cfg.chunks.length > 1 ? 'Повторяй за диктором: куски фразы, порядок, по памяти' : 'Послушай слово и повтори его вслух'}</span>
           </span>
           {!done && (
             <button type="button" className="playerRotateStart" onClick={start} disabled={busy || phase === 'game'} data-testid="rotate-start">

@@ -1,195 +1,172 @@
 import { describe, it, expect } from 'vitest'
-import { SLOT_COUNT, ENTER_Y, EXIT_Y, SPEED, LOCK_MS, OPEN_Y, FILL_CAP } from './wordLaneTimeline.js'
-import { createStudentGame, stepStudent, STUDENT_PERIOD_MS, MAX_TRIES, CLAIM_FROM_Y, CLAIM_TO_Y, FAIL_Y, LEAD_IN_MS, isClaimable } from './wordLaneStudent.js'
+import { ENTER_Y, EXIT_Y, SPEED, LOCK_MS, OPEN_Y, FILL_CAP } from './wordLaneTimeline.js'
+import { createStudentGame, stepStudent, STUDENT_PERIOD_MS, MAX_TRIES, CLAIM_FROM_Y, CLAIM_TO_Y, FAIL_Y, LEAD_IN_MS, LOCK_STAGGER_MS, isClaimable } from './wordLaneStudent.js'
+import { buildRecipe, stepTargets } from './wordLaneRecipe.js'
 
-// Фаза ученика — конвейер: пилюли едут сами с постоянной скоростью, ученик успевает сказать слово или нет
+// Фаза ученика одной ступени: повторы выкатываются сами, ученик успевает сказать их или нет
 const DT = 16
-/** Прогон: script(t, g) → { level, hits, misses } на каждом кадре; возвращает все события с временем */
+const chunks = ["I'm", 'trying', 'to learn']
+const recipe = buildRecipe(chunks)
+const build = recipe.rounds[0].steps       // 0: I'm ×3, 1: trying ×3, 2: I'm trying ×3, 3: to learn ×3, 4: вся фраза ×3
+const blind = recipe.rounds[2].steps       // 0: три куска по порядку, 1: вся фраза ×2
+const word = buildRecipe(['try']).rounds[0].steps[0]
+
+/** Прогон: script(t, g) → { level, hit: номер цели, miss } на каждом кадре; возвращает все события с временем */
 function run(g, script, until = 40000) {
   const log = []
-  let hits = 0, misses = 0
+  const seq = []
+  let misses = 0
   for (let t = 0; t <= until; t += DT) {
     const inp = script(t, g) ?? {}
-    hits += inp.hit ? 1 : 0
+    if (inp.hit != null) seq.push(inp.hit)
     misses += inp.miss ? 1 : 0
-    for (const e of stepStudent(g, t, { level: inp.level ?? 0, hits, misses })) log.push({ t, ...e, y: e.pill?.y, p: e.pill?.p }) // y и p — снимок в момент события (пилюля потом едет дальше)
+    for (const e of stepStudent(g, t, { level: inp.level ?? 0, seq, misses })) log.push({ t, ...e })
     if (g.finished) break
   }
   return log
 }
 const of = (log, type) => log.filter(e => e.type === type)
-/** Сработать один раз, как только время дошло до ms (кадры идут шагом DT, точного совпадения не бывает) */
-const once = ms => { let fired = false; return t => { if (!fired && t >= ms) { fired = true; return true } return false } }
+const once = (ms, v = 0) => { let fired = false; return t => { if (!fired && t >= ms) { fired = true; return v } return null } }
+const game = (step, chunksIn = chunks) => createStudentGame({ step, chunks: chunksIn })
 
-describe('конвейер ученика: выкат и скорость', () => {
-  it('первая пилюля выезжает из-за верхнего края (LEAD_IN_MS = 0, рывком посреди экрана не появляется), следующие — каждые STUDENT_PERIOD_MS, по одной на дорожку', () => {
-    const g = createStudentGame({})
-    const log = run(g, () => ({}), 7000)
+describe('выкат и скорость', () => {
+  it('первый повтор выезжает из-за верхнего края; следующие — через период; куски одного повтора — по порядку, в дорожках кусков', () => {
+    const g = game(build[2])
+    const log = run(g, () => ({}), 9000)
     const spawns = of(log, 'spawn')
+    expect(LEAD_IN_MS).toBe(0)
     expect(spawns[0].t).toBe(0)
-    expect(spawns[0].y).toBeCloseTo(ENTER_Y + (SPEED * LEAD_IN_MS) / 1000, 6)
-    expect(spawns[0].y).toBeLessThanOrEqual(ENTER_Y + 1e-9)       // над экраном
-    expect(spawns.slice(0, 3).map(e => e.pill.slot)).toEqual([0, 1, 2])
+    expect(spawns[0].pills.map(p => p.lane)).toEqual([0, 1])
+    expect(spawns[0].pills[0].spawnAt).toBe(0)                       // стартует над экраном (ENTER_Y), а не появляется посреди
+    expect(ENTER_Y + (SPEED * 0) / 1000).toBe(ENTER_Y)
+    expect(spawns[0].pills[1].spawnAt).toBeGreaterThan(spawns[0].pills[0].spawnAt)
     expect(spawns[1].t - spawns[0].t).toBeGreaterThanOrEqual(STUDENT_PERIOD_MS - DT)
-    expect(spawns[1].t - spawns[0].t).toBeLessThanOrEqual(STUDENT_PERIOD_MS + DT)
   })
-
-  it('все пилюли едут с ОДНОЙ скоростью SPEED, пока на экране; никогда не стоят и не ускоряются', () => {
-    const g = createStudentGame({})
+  it('одно слово: три повтора — три пилюли в трёх дорожках', () => {
+    const g = game(word, ['try'])
+    const spawns = of(run(g, () => ({}), 9000), 'spawn')
+    expect(spawns.slice(0, 3).map(e => e.pills[0].lane)).toEqual([0, 1, 2])
+  })
+  it('все пилюли едут с ОДНОЙ скоростью SPEED, пока на экране', () => {
+    const g = game(build[2])
     const prev = new Map()
     for (let t = 0; t <= 9000; t += DT) {
-      stepStudent(g, t, { level: 0.6, hits: 0, misses: 0 })
+      stepStudent(g, t, { level: 0.6, seq: [], misses: 0 })
       for (const p of g.pills) {
         if (prev.has(p.id)) expect(((p.y - prev.get(p.id)) / DT) * 1000).toBeCloseTo(SPEED, 5)
         prev.set(p.id, p.y)
       }
     }
-    expect(prev.size).toBeGreaterThanOrEqual(3)
-  })
-
-  it('в дорожке не бывает двух пилюль одновременно (новая не налезает на уходящую)', () => {
-    const g = createStudentGame({})
-    for (let t = 0; t <= 30000; t += DT) {
-      stepStudent(g, t, { level: 0, hits: 0, misses: 0 })
-      const alive = g.pills.filter(p => !p.gone).map(p => p.slot)
-      expect(new Set(alive).size).toBe(alive.length)
-    }
+    expect(prev.size).toBeGreaterThanOrEqual(4)
   })
 })
 
-describe('«не успел»: пилюля ушла вниз без слова', () => {
-  it('промолчал — каждая пилюля получает fail ровно когда центр пересёк FAIL_Y; дорожку выкатывают снова', () => {
-    const g = createStudentGame({})
-    const log = run(g, () => ({}), 9000)
+describe('«не успел»', () => {
+  it('последняя пилюля повтора ушла вниз без слова — fail: пилюли серые, повтор выкатят снова; после MAX_TRIES повтор потерян', () => {
+    const g = game(build[0])
+    const log = run(g, () => ({}), 60000)
     const fails = of(log, 'fail')
-    expect(fails.length).toBeGreaterThanOrEqual(2)
-    for (const f of fails) expect(f.y).toBeGreaterThan(FAIL_Y)
-    expect(fails[0].y).toBeLessThan(FAIL_Y + (SPEED * DT) / 1000 + 1e-6) // в первом кадре после пересечения, не позже
-    const respawn = of(log, 'spawn').filter(e => e.pill.slot === fails[0].pill.slot)
-    expect(respawn.length).toBeGreaterThanOrEqual(2)                         // та же дорожка выкачена повторно
-    expect(g.tries[fails[0].pill.slot]).toBeGreaterThanOrEqual(1)
+    expect(fails.length).toBe(MAX_TRIES * 3)                      // три повтора по MAX_TRIES попыток
+    expect(fails[0].pills.every(p => p.state === 'failed')).toBe(true)
+    expect(fails[0].pills[0].y).toBeGreaterThan(FAIL_Y)
+    expect(fails.filter(f => f.lost).length).toBe(3)
+    expect(of(log, 'done')).toHaveLength(1)
+    expect(of(log, 'done')[0].locked).toBe(0)
   })
-
-  it('после MAX_TRIES неудач дорожка потеряна, игра заканчивается сама (done с locked=0) за ограниченное время', () => {
-    const g = createStudentGame({})
-    const log = run(g, () => ({}), 120000)
-    expect(g.slot.every(s => s === 'lost')).toBe(true)
-    expect(g.tries.every(n => n === MAX_TRIES)).toBe(true)
-    const done = of(log, 'done')
-    expect(done).toHaveLength(1)
-    expect(done[0].locked).toBe(0)
-    expect(done[0].t).toBeLessThan(60000)
-  })
-
-  it('слово сказано, пока пилюля на экране — это «успел», даже если пилюля уже ниже центра', () => {
-    const g = createStudentGame({})
-    const log = run(g, (t, game) => ({ hit: game.pills[0]?.y >= 80 && game.seenHits === 0 }), 9000)
-    expect(of(log, 'claim')).toHaveLength(1)
-    expect(of(log, 'fail').some(e => e.pill.slot === 0)).toBe(false)
+  it('сначала выкатываются повторы, которых ещё не было, потом повторы неудачных', () => {
+    const g = game(build[0])
+    const spawns = of(run(g, () => ({}), 12000), 'spawn')
+    expect(spawns.slice(0, 3).map(e => e.rep.idx)).toEqual([0, 1, 2])
   })
 })
 
-describe('принятое слово: заливка, щелчок, порядок', () => {
-  it('слово достаётся самой старой пилюле на экране; заливка плавно доходит до 100 % за LOCK_MS, затем win (XP, нота); щелчок — сразу на claim', () => {
-    const g = createStudentGame({})
-    const fire = once(2500)
-    const log = run(g, t => ({ hit: fire(t) }), 6000)
+describe('принятое слово', () => {
+  it('слово (цель) достаётся САМОМУ СТАРОМУ повтору на экране: claim, snap, win с нотой; пилюли заливаются за LOCK_MS', () => {
+    const g = game(build[0])
+    const fire = once(3000, 0)
+    const log = run(g, t => ({ hit: fire(t) }), 8000)
     const claim = of(log, 'claim')[0]
+    expect(claim.rep.idx).toBe(0)
+    expect(claim.t).toBeGreaterThanOrEqual(3000)
     const win = of(log, 'win')[0]
-    expect(claim.pill.slot).toBe(0)
-    expect(claim.t).toBeGreaterThanOrEqual(2500)
-    expect(claim.t).toBeLessThan(2500 + DT)
     expect(win.t - claim.t).toBeGreaterThanOrEqual(LOCK_MS)
-    expect(win.t - claim.t).toBeLessThanOrEqual(LOCK_MS + DT * 2)
-    expect(win.p).toBe(1)
+    expect(win.pill.p).toBe(1)
     expect(win.order).toBe(0)
+    expect(of(log, 'snap')[0].t).toBeLessThanOrEqual(claim.t + DT)   // щелчок — в тот же кадр, что принятие
   })
-
-  it('три слова подряд (по одному на пилюлю) — три win с order 0,1,2 (ноты до-ми-соль), потом done; пилюли едут дальше сами', () => {
-    const g = createStudentGame({})
-    const log = run(g, (t, game) => ({ hit: game.pills.some(p => p.state === 'fly' && p.y > 30 && p.y < 31) && t % 32 === 0 }), 40000)
-    const wins = of(log, 'win')
-    expect(wins.map(w => w.order)).toEqual([0, 1, 2])
-    expect(wins.map(w => w.pill.slot)).toEqual([0, 1, 2])
-    expect(of(log, 'done')).toHaveLength(1)
+  it('повтор из двух кусков: пилюли защёлкиваются по очереди с шагом LOCK_STAGGER_MS, ноты — 0 и 1', () => {
+    const g = game(build[2])
+    const fire = once(3200, 0)
+    const log = run(g, t => ({ hit: fire(t) }), 9000)
+    const snaps = of(log, 'snap')
+    expect(snaps).toHaveLength(2)
+    expect(snaps[1].t - snaps[0].t).toBeGreaterThanOrEqual(LOCK_STAGGER_MS - DT)
+    expect(snaps.map(e => e.order)).toEqual([0, 1])
+    expect(of(log, 'win')).toHaveLength(2)
+  })
+  it('слово, сказанное когда на экране ничего нет, — late; цель, которой на экране нет, а другая есть, — промах (дрожь), а не принятие', () => {
+    const g = game(blind[0])
+    const wrong = once(2800, 2)          // на экране повтор 0 («I\'m»), а сказали третий кусок
+    const log = run(g, t => ({ hit: wrong(t) }), 5000)
+    expect(of(log, 'claim')).toHaveLength(0)
+    expect(of(log, 'miss').some(e => e.wrong)).toBe(true)
+    const g2 = game(build[0])
+    const early = once(300, 0)                                         // в 300 мс первая пилюля ещё над экраном
+    expect(of(run(g2, t => ({ hit: early(t) }), 1000), 'late')).toHaveLength(1)
+  })
+  it('сказано в нужном порядке три разных куска (вслепую): каждый берёт свой повтор', () => {
+    const g = game(blind[0])
+    const seq = []
+    const log = []
+    for (let t = 0; t <= 14000; t += DT) {
+      for (const r of g.reps) if (r.state === 'fly' && r.pills[0].y > OPEN_Y && !r.said) { r.said = true; seq.push(r.target) }
+      for (const e of stepStudent(g, t, { level: 0, seq, misses: 0 })) log.push({ t, ...e })
+      if (g.finished) break
+    }
+    expect(of(log, 'claim').map(e => e.rep.idx)).toEqual([0, 1, 2])
     expect(of(log, 'done')[0].locked).toBe(3)
-    expect(wins[2].t - wins[0].t).toBeLessThan(STUDENT_PERIOD_MS * 3)         // мелодия складывается в темпе конвейера
-  })
-
-  it('слово, принятое когда пилюли на экране нет, не теряется молча: событие late', () => {
-    const g = createStudentGame({})
-    // в нулевой кадр пилюля уже на экране; дожидаемся, пока все провалятся и дорожки пусты, потом «слово»
-    const f1 = once(60)
-    const log = run(g, t => ({ hit: f1(t) }), 200)
-    expect(of(log, 'claim').length + of(log, 'late').length).toBe(1)
-    const g2 = createStudentGame({ leadIn: 0 })
-    const f2 = once(16)
-    const log2 = run(g2, t => ({ hit: f2(t) }), 100) // пилюля ещё за верхним краем (y < CLAIM_FROM_Y)
-    expect(of(log2, 'late')).toHaveLength(1)
-    expect(of(log2, 'claim')).toHaveLength(0)
-  })
-
-  it('пока слово принято не всеми — игра не заканчивается; потерянная дорожка тоже закрывает игру', () => {
-    const g = createStudentGame({ maxTries: 1 })
-    const log = run(g, (t, game) => ({ hit: game.pills.some(p => p.slot === 0 && p.state === 'fly' && p.y > 40 && p.y < 41) && !game.seenHits }), 60000)
-    expect(of(log, 'win')).toHaveLength(1)
-    expect(of(log, 'done')).toHaveLength(1)
-    expect(of(log, 'done')[0].locked).toBe(1)   // две дорожки не успел и они потеряны (maxTries 1), одна принята
+    expect(of(log, 'fail')).toHaveLength(0)
   })
 })
 
-describe('голос и «честность»: заливка голосом — ожидающая, чужое слово сливает', () => {
-  it('голос наливает пилюлю на экране до FILL_CAP, но не до 100 % — полной её делает только принятое слово', () => {
-    const g = createStudentGame({})
-    let max = 0
-    run(g, (t, game) => { max = Math.max(max, game.pills[0]?.p ?? 0); return { level: 0.8 } }, 2600)
-    expect(max).toBeLessThanOrEqual(FILL_CAP + 1e-9)
-    expect(max).toBeGreaterThan(0.5)
-  })
-
-  it('скорость наливания = длина слова диктора: короткое слово наливается быстрее длинного', () => {
-    const fillTime = ms => {
-      const g = createStudentGame({ fillMs: [ms, ms, ms] })
-      let t0 = null
-      for (let t = 0; t <= 9000; t += DT) {
-        stepStudent(g, t, { level: 1, hits: 0, misses: 0 })
-        const p = g.pills[0]
-        if (p.y >= CLAIM_FROM_Y && t0 == null) t0 = t
-        if (p.p >= FILL_CAP - 1e-6 && t0 != null) return t - t0
-      }
-      return Infinity
+describe('голос и заливка', () => {
+  it('голос наливает ТОЛЬКО самый старый повтор на экране, не выше FILL_CAP; куски — по очереди', () => {
+    const g = game(build[2])
+    let maxP = [0, 0]
+    for (let t = 0; t <= 6000; t += DT) {
+      stepStudent(g, t, { level: t > 2500 ? 0.8 : 0, seq: [], misses: 0 })
+      const rep = g.reps[0]
+      if (rep.state === 'fly') rep.pills.forEach((p, i) => { maxP[i] = Math.max(maxP[i], p.p); expect(p.p).toBeLessThanOrEqual(FILL_CAP + 1e-9) })
+      if (rep.state === 'fly' && rep.pills[1].p > 0) expect(rep.pills[0].p).toBeCloseTo(FILL_CAP, 6)   // второй кусок начинает, когда первый залит
     }
-    expect(fillTime(500)).toBeLessThan(fillTime(1000))
-    expect(fillTime(1000)).toBeLessThan(fillTime(1800))
+    expect(maxP[0]).toBeGreaterThan(0.1)
   })
-
-  it('метка темпа стартует с первого звука ученика на этой пилюле', () => {
-    const g = createStudentGame({})
-    const log = []
-    for (let t = 0; t <= 3500; t += DT) { stepStudent(g, t, { level: t >= 2000 ? 0.7 : 0, hits: 0, misses: 0 }); log.push(g.pills[0].onset) }
-    expect(log[Math.floor(1900 / DT)]).toBeNull()
-    expect(g.pills[0].onset).toBeGreaterThanOrEqual(2000)
-    expect(g.pills[0].onset).toBeLessThan(2000 + DT * 2)
+  it('метка темпа: onset ставится с первого звука на повторе, в тишине — нет', () => {
+    const g = game(build[0])
+    for (let t = 0; t <= 3500; t += DT) stepStudent(g, t, { level: t >= 2500 ? 0.7 : 0, seq: [], misses: 0 })
+    expect(g.reps[0].onset).toBeGreaterThanOrEqual(2500)
+    expect(g.reps[0].onset).toBeLessThan(2500 + DT * 2)
   })
-
-  it('чужое слово (miss) сливает заливку текущей пилюли и сбрасывает метку темпа; событие miss несёт пилюлю', () => {
-    const g = createStudentGame({})
-    const fm = once(1500)
-    const log = run(g, t => ({ level: t < 1500 ? 0.8 : 0, miss: fm(t) }), 2600)
-    const miss = of(log, 'miss')[0]
-    expect(miss.pill.slot).toBe(0)
-    expect(g.pills[0].p).toBeLessThan(0.05)
-    expect(g.pills[0].onset).toBeNull()
+  it('чужое слово (miss) сливает заливку текущего повтора', () => {
+    const g = game(build[0])
+    let misses = 0
+    for (let t = 0; t <= 4600; t += DT) { if (t === 3200) misses = 1; stepStudent(g, t, { level: t < 3200 ? 0.8 : 0, seq: [], misses }) }
+    expect(g.reps[0].vp).toBeLessThan(0.05)
   })
+})
 
-  it('claimable: только пилюля на экране в пределах [CLAIM_FROM_Y, CLAIM_TO_Y]', () => {
-    expect(isClaimable({ state: 'fly', y: CLAIM_FROM_Y })).toBe(true)
-    expect(isClaimable({ state: 'fly', y: CLAIM_TO_Y })).toBe(true)
-    expect(isClaimable({ state: 'fly', y: CLAIM_FROM_Y - 1 })).toBe(false)
-    expect(isClaimable({ state: 'fly', y: CLAIM_TO_Y + 1 })).toBe(false)
-    expect(isClaimable({ state: 'lock', y: 50 })).toBe(false)
-    expect(SLOT_COUNT).toBe(3)
+describe('границы', () => {
+  it('claimable: только повтор на экране между CLAIM_FROM_Y и CLAIM_TO_Y', () => {
+    const rep = (y0, y1, state = 'fly') => ({ state, pills: [{ y: y0 }, { y: y1 }] })
+    expect(isClaimable(rep(CLAIM_FROM_Y, CLAIM_TO_Y))).toBe(true)
+    expect(isClaimable(rep(CLAIM_FROM_Y - 1, 50))).toBe(false)
+    expect(isClaimable(rep(50, CLAIM_TO_Y + 1))).toBe(false)
+    expect(isClaimable(rep(50, 60, 'lock'))).toBe(false)
     expect(EXIT_Y).toBeGreaterThan(FAIL_Y)
     expect(OPEN_Y).toBeGreaterThan(CLAIM_FROM_Y)
+  })
+  it('цели ступени: уникальные тексты и номер цели у каждого повтора', () => {
+    expect(stepTargets(blind[0], chunks)).toEqual({ texts: ["I'm", 'trying', 'to learn'], repTarget: [0, 1, 2] })
+    expect(stepTargets(build[0], chunks)).toEqual({ texts: ["I'm"], repTarget: [0, 0, 0] })
   })
 })

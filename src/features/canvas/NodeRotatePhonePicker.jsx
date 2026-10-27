@@ -3,17 +3,25 @@ import NodeTableTts from './NodeTableTts.jsx'
 import WordLaneEditorModal from './word-lane/WordLaneEditorModal.jsx'
 import { defaultScript } from '../player/modules/rotate-phone/wordLaneConfig.js'
 import { fillsFromTimings, defaultFills, normalizeFills } from '../player/modules/rotate-phone/wordLanePlan.js'
+import { parsePhrase } from '../player/modules/rotate-phone/wordLaneRecipe.js'
+import { clipsFromTimings } from '../player/modules/rotate-phone/wordLaneAudio.js'
 import { NO_AUTOCORRECT } from '../../shared/lib/noAutoCorrectProps.js'
 
-// Нода «Переверни телефон» — вертикальная игра «Повтори за диктором»: слово (латиница), перевод, озвучка диктора и таймлайн.
-// «🔊 Озвучить» — ElevenLabs (тот же генератор, что у таблицы-диктора: NodeTableTts): текст — сценарий диктора (пусто → слово трижды), из ответа берутся тайминги слов, и таймлайн
-// (три клипа — слова диктора, по пилюле на каждое) расставляется сам. «⏱ Таймлайн» — монтажный стол таблицы: поправить клипы руками. Без озвучки слово звучит из библиотеки озвучки слов (collectLessonWords)
-// или голосом системы. Слово пустое — игра идёт встроенным словом (wordLaneConfig.DEMO_WORD). Текст карточки в чате правится выше, в общем поле content.
+// Нода «Переверни телефон» — вертикальная игра «Повтори за диктором»: фраза, перевод, озвучка диктора.
+// Фраза — куски через «|» (до трёх, кусок = дорожка): «I'm | trying | to learn». Из неё игра сама собирает раунды: наращивание (кусок ×3 → следующий ×3 → вместе ×3 …), «Порядок» (тап по дорожкам),
+// «Вслепую» (без текста). Слово без «|» — одна дорожка-повтор: диктор три раза, ученик три раза (как в первой версии).
+// «🔊 Озвучить» — ElevenLabs (тот же генератор, что у таблицы-диктора: NodeTableTts): текст — сценарий диктора (пусто → высказывания рецепта: «I'm. trying. I'm trying. to learn. I'm trying to learn.»),
+// из ответа берутся тайминги слов. У фразы игра режет файл на клипы кусков сама (wordLaneAudio.clipsFromTimings); у одного слова таймлайн (три клипа) расставляется сразу, «⏱ Таймлайн» — монтажный
+// стол таблицы, чтобы поправить руками. Без озвучки куски произносит голос системы / слово из библиотеки озвучки слов. Фраза пустая — игра идёт встроенным словом (DEMO_WORD).
+// Текст карточки в чате правится выше, в общем поле content.
 export default function NodeRotatePhonePicker({ tData, onDataChange, lessonFiles, onPickFile, onRemoveFile }) {
   const [open, setOpen] = useState(false)
-  const word = (tData.word ?? '').trim()
-  const script = (tData.script ?? '').trim() || (word ? defaultScript(word) : '')
+  const phrase = (tData.phrase ?? tData.word ?? '').trim()
+  const chunks = parsePhrase(phrase)
+  const single = chunks.length <= 1
+  const script = (tData.script ?? '').trim() || (chunks.length ? defaultScript(phrase) : '')
   const fills = normalizeFills(tData.fills)
+  const clipsOk = tData.file_id && (single ? !!fills : !!clipsFromTimings(tData.wordTimings, chunks, tData.duration))
 
   // Новый файл — старые производные поля сбрасываются, настоящие придут следом через onAnalyzed (как у таблицы)
   function handlePick(file) {
@@ -21,26 +29,33 @@ export default function NodeRotatePhonePicker({ tData, onDataChange, lessonFiles
     onDataChange({ file_id: id, waveformData: null, duration: null, wordTimings: null })
     return id
   }
-  // Озвучка готова: волна, длительность и тайминги слов; по таймингам сразу расставляем клипы (не нашлись три слова — равномерные, поправить руками)
+  // Озвучка готова: волна, длительность и тайминги слов; у одного слова по таймингам сразу расставляем клипы (не нашлись три слова — равномерные, поправить руками)
   function handleAnalyzed(patch) {
-    onDataChange({ ...patch, fills: fillsFromTimings(patch.wordTimings, word, patch.duration) ?? defaultFills(patch.duration) })
+    onDataChange(single ? { ...patch, fills: fillsFromTimings(patch.wordTimings, chunks[0] ?? '', patch.duration) ?? defaultFills(patch.duration) } : patch)
+  }
+  function handlePhrase(value) {
+    // «phrase» — главное поле; «word» держим равным первому куску для обратной совместимости (старые места читают word)
+    onDataChange({ phrase: value, word: parsePhrase(value)[0] ?? '' })
   }
 
   return (
     <div className="nodeRotateTrainer" onClick={e => e.stopPropagation()} onMouseDown={e => e.stopPropagation()}>
-      <input className="nodeRotateInput" value={tData.word ?? ''} onChange={e => onDataChange({ word: e.target.value })}
-        placeholder="Слово для повтора, например: try" {...NO_AUTOCORRECT} />
+      <input className="nodeRotateInput" value={tData.phrase ?? tData.word ?? ''} onChange={e => handlePhrase(e.target.value)}
+        placeholder="Фраза кусками через |, например: I'm | trying | to learn (или одно слово: try)" {...NO_AUTOCORRECT} />
       <input className="nodeRotateInput" value={tData.translation ?? ''} onChange={e => onDataChange({ translation: e.target.value })}
-        placeholder="Перевод — ученик получит его в финале" {...NO_AUTOCORRECT} />
+        placeholder="Перевод фразы — ученик получит его в финале" {...NO_AUTOCORRECT} />
       <input className="nodeRotateInput" value={tData.script ?? ''} onChange={e => onDataChange({ script: e.target.value })}
-        placeholder={word ? `Что скажет диктор (пусто → «${defaultScript(word)}»)` : 'Что скажет диктор (пусто → слово трижды)'} {...NO_AUTOCORRECT} />
+        placeholder={chunks.length ? `Что скажет диктор (пусто → «${defaultScript(phrase)}»)` : 'Что скажет диктор (пусто → высказывания рецепта)'} {...NO_AUTOCORRECT} />
       <div className="nodeRotateTrainerRow">
         <NodeTableTts fileId={tData.file_id} text={script} onPick={handlePick} onAnalyzed={handleAnalyzed} onRemoveOldFile={onRemoveFile} />
       </div>
       <div className="nodeRotateTrainerRow">
-        <button type="button" className="nodeTablePickerBtn" onClick={() => setOpen(true)} disabled={!tData.file_id && !word}>⏱ Таймлайн</button>
+        {single && <button type="button" className="nodeTablePickerBtn" onClick={() => setOpen(true)} disabled={!tData.file_id && !chunks.length}>⏱ Таймлайн</button>}
         <span className="nodeRotateTrainerInfo">
-          {tData.file_id ? (fills ? 'озвучка есть · пилюли по таймлайну' : 'озвучка есть · таймлайн не расставлен') : 'без озвучки — слово из библиотеки озвучки слов / голос системы'}
+          {chunks.length > 3 && 'Кусков больше трёх — лишние отброшены. '}
+          {tData.file_id
+            ? (clipsOk ? `озвучка есть · клипы кусков найдены${single ? ' (таймлайн)' : ' по таймингам слов'}` : 'озвучка есть · клипы не найдены — куски проговорит голос системы')
+            : 'без озвучки — куски проговорит слово из библиотеки озвучки слов / голос системы'}
         </span>
       </div>
       {open && (

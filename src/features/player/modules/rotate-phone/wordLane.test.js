@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
-import { DROP_MS, LANES_MS, TURN_MS, voiceFillStep, drainStep, VOICE_THRESHOLD, FILL_CAP } from './wordLaneTimeline.js'
+import { DROP_MS, LANES_MS, voiceFillStep, drainStep, VOICE_THRESHOLD, FILL_CAP } from './wordLaneTimeline.js'
 import { analyzeHeard, wordGrammar } from './wordLaneMatch.js'
 import { readWordLane, DEMO_WORD } from './wordLaneConfig.js'
 import { createWordListener } from './wordLaneListen.js'
@@ -56,10 +56,19 @@ describe('что услышал Vosk', () => {
 })
 
 describe('данные ноды', () => {
-  it('пустая нода играет встроенным словом, заполненная — своим', () => {
-    expect(readWordLane({})).toMatchObject({ word: DEMO_WORD.word, translation: DEMO_WORD.translation, isDemo: true })
-    expect(readWordLane({ word: ' cat ', translation: 'кот', content: 'Привет' })).toMatchObject({ word: 'cat', translation: 'кот', title: 'Привет', isDemo: false })
+  it('пустая нода играет встроенным словом, заполненная — своим; фраза режется по «|» (до трёх кусков)', () => {
+    expect(readWordLane({})).toMatchObject({ chunks: [DEMO_WORD.word], translation: DEMO_WORD.translation, isDemo: true })
+    expect(readWordLane({ word: ' cat ', translation: 'кот', content: 'Привет' })).toMatchObject({ chunks: ['cat'], word: 'cat', translation: 'кот', title: 'Привет', isDemo: false })
     expect(readWordLane({ word: 'cat' }).translation).toBe('') // чужой перевод демо-слова к своему слову не липнет
+    expect(readWordLane({ phrase: "I'm | trying | to learn", word: 'x' }).chunks).toEqual(["I'm", 'trying', 'to learn'])
+    expect(readWordLane({ phrase: "I'm | trying | to learn" }).word).toBe("I'm trying to learn")
+  })
+  it('клипы озвучки: без файла нет; одно слово — из таймлайна fills; фраза — из таймингов слов по порядку высказываний', () => {
+    expect(readWordLane({ phrase: 'a | b' }).clips).toBeNull()
+    const fills = [{ start: 0.3, end: 0.8 }, { start: 1.6, end: 2.1 }, { start: 3.1, end: 3.6 }]
+    expect(readWordLane({ word: 'try', file_id: 'f', fills, duration: 4 }).clips).toHaveLength(3)
+    const words = ['a', 'b', 'a', 'b'].map((w, i) => ({ w, t: i * 0.5, e: i * 0.5 + 0.4 }))      // высказывания: a, b, a+b
+    expect(readWordLane({ phrase: 'a | b', file_id: 'f', wordTimings: words, duration: 3 }).clips).toHaveLength(3)
   })
 })
 
@@ -118,7 +127,7 @@ describe('вёрстка и подключения', () => {
     expect(css).not.toMatch(/^\.wlPill(Fill)? \{[^}]*transition/m) // движок сам пишет каждый кадр: переходы отставили бы пилюлю от речи
     expect(DROP_MS).toBe(1000); expect(css).toContain('animation: wlDrop 1s')
     expect(LANES_MS).toBe(900)
-    expect(TURN_MS).toBe(2200); expect(micCss).toContain('animation: wlTurn 2.2s')
+    expect(micCss).toContain('animation: wlTurn 2.2s')                                    // длительность плашки переопределяется inline по стадии (ANNOUNCE_MS / TURN_STAGE_MS)
   })
 
   it('модуль, стили и редактор подключены', () => {
@@ -146,7 +155,8 @@ describe('вёрстка и подключения', () => {
   it('редактор ноды: ElevenLabs-озвучка → тайминги → клипы; таймлайн — на узлах таймлайна таблицы', () => {
     const picker = read('../../../canvas/NodeRotatePhonePicker.jsx')
     expect(picker).toContain("import NodeTableTts from './NodeTableTts.jsx'") // тот же генератор ElevenLabs, что у таблицы-диктора
-    expect(picker).toContain('fillsFromTimings(patch.wordTimings, word, patch.duration)')
+    expect(picker).toContain('fillsFromTimings(patch.wordTimings, chunks[0]')      // у одного слова таймлайн расставляется сразу
+    expect(picker).toContain('clipsFromTimings(tData.wordTimings, chunks, tData.duration)') // у фразы клипы кусков — из таймингов слов
     expect(picker).toContain('<WordLaneEditorModal')
     const ed = read('../../../canvas/word-lane/WordLaneTimelineEditor.jsx')
     for (const part of ['useTimelineAudioSource', 'useTimelineStrip', 'TableTimelineRuler']) expect(ed).toContain(part)
@@ -157,7 +167,8 @@ describe('вёрстка и подключения', () => {
   it('игра берёт озвучку ноды (file_id) и план по таймлайну', () => {
     expect(read('./RotatePhoneModule.jsx')).toContain('useAudioSource(node, file)')
     expect(read('./RotatePhoneModule.jsx')).toContain('audioSrc={cfg.hasAudio ? audioSrc : null}')
-    expect(read('./useWordLaneFlow.js')).toContain('makeListenPlan(audioSrc ? fills : null, audio, rate)')
+    expect(read('./useWordLaneFlow.js')).toContain('buildStages({ chunks, clips, audio, rate })')
+    expect(read('./WordLaneGame.jsx')).toContain('clips: cfg.clips')
   })
 
   it('слово ноды попадает в список озвучки, а урок греет Vosk', () => {

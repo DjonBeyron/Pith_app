@@ -35,7 +35,7 @@
   position: absolute;
   top: calc(env(safe-area-inset-top) + 10px);
   left: calc(env(safe-area-inset-left) + 10px);
-  z-index: 3;
+  z-index: 7;
   width: 36px;
   height: 36px;
   border: 0;
@@ -66,6 +66,17 @@
   0%   { transform: translate(-50%, -140dvh); opacity: 0; }
   15%  { opacity: 1; }
   100% { transform: translate(-50%, -50%); opacity: 1; }
+}
+
+/* Подписи кусков фразы над дорожками (WordLaneGame): кусок над своей дорожкой, фраза читается слева направо; ступень подсвечивает свои куски, остальные тусклые; вслепую подписей нет */
+.wlHeads { left: 0; right: 0; display: flex; transform: translateY(-50%); z-index: 2; pointer-events: none; animation: wlDropHeads 1s cubic-bezier(0.34, 1.2, 0.5, 1) both; }
+.wlHead { flex: 1; padding: 0 6px; text-align: center; font-size: clamp(15px, 4.8vw, 26px); font-weight: 800; line-height: 1.15; color: #fff; opacity: 0.32; transition: opacity 0.3s ease; overflow-wrap: anywhere; }
+.wlHead--on { opacity: 1; }
+.wlHead--empty { opacity: 0; }
+@keyframes wlDropHeads {
+  0%   { transform: translateY(-140dvh); opacity: 0; }
+  15%  { opacity: 1; }
+  100% { transform: translateY(-50%); opacity: 1; }
 }
 
 /* Дорожки: три колонки во всю высоту, между ними тонкие разделители */
@@ -100,11 +111,11 @@
   background: linear-gradient(to bottom, rgba(var(--rgb), 0.14), rgba(var(--rgb), 0.04)), var(--wl-card);
   box-shadow: inset 0 0 0 2px rgba(var(--rgb), 0.9), inset 0 0 18px -6px rgba(var(--rgb), 0.5);
 }
-.wlPill--2 { --c: var(--lvl2, #4fb3ee); --rgb: var(--lvl2-rgb, 79, 179, 238); }
-.wlPill--3 { --c: var(--lvl3, #9a76f8); --rgb: var(--lvl3-rgb, 154, 118, 248); }
+.wlPill[data-lane='1'] { --c: var(--lvl2, #4fb3ee); --rgb: var(--lvl2-rgb, 79, 179, 238); }
+.wlPill[data-lane='2'] { --c: var(--lvl3, #9a76f8); --rgb: var(--lvl3-rgb, 154, 118, 248); }
 /* Эхо-кольца снаружи, как 2-я и 3-я обводки ступеней «Моей памяти» (зазор рисует фон): у 2-й пилюли одно кольцо, у 3-й два. Обрезку заливки держит .wlPillClip, поэтому кольца не срезаются */
-.wlPill--2 { box-shadow: inset 0 0 0 2px rgba(var(--rgb), 0.95), inset 0 0 18px -6px rgba(var(--rgb), 0.5), 0 0 0 4px var(--wl-bg), 0 0 0 5.5px rgba(var(--rgb), 0.5); }
-.wlPill--3 { box-shadow: inset 0 0 0 2.5px rgba(var(--rgb), 0.95), inset 0 0 18px -6px rgba(var(--rgb), 0.55), 0 0 0 4px var(--wl-bg), 0 0 0 5.5px rgba(var(--rgb), 0.5), 0 0 0 9.5px var(--wl-bg), 0 0 0 11px rgba(var(--rgb), 0.3); }
+.wlPill[data-lane='1'] { box-shadow: inset 0 0 0 2px rgba(var(--rgb), 0.95), inset 0 0 18px -6px rgba(var(--rgb), 0.5), 0 0 0 4px var(--wl-bg), 0 0 0 5.5px rgba(var(--rgb), 0.5); }
+.wlPill[data-lane='2'] { box-shadow: inset 0 0 0 2.5px rgba(var(--rgb), 0.95), inset 0 0 18px -6px rgba(var(--rgb), 0.55), 0 0 0 4px var(--wl-bg), 0 0 0 5.5px rgba(var(--rgb), 0.5), 0 0 0 9.5px var(--wl-bg), 0 0 0 11px rgba(var(--rgb), 0.3); }
 .wlPillClip { position: absolute; inset: 0; border-radius: 999px; overflow: hidden; }
 .wlPillFill {
   position: absolute;
@@ -114,6 +125,13 @@
   transform-origin: 50% 100%;
   will-change: transform;
 }
+
+/* Раунд «Порядок»: три невидимые кнопки-дорожки поверх сцены (тап по дорожке), верная дорожка после ошибок подсвечивается кольцом */
+.wlTap { inset: 0; display: flex; z-index: 5; pointer-events: auto; }
+.wlTapLane { flex: 1; border: 0; padding: 0; background: transparent; -webkit-tap-highlight-color: transparent; cursor: pointer; }
+.wlPill[data-hint]::after { content: ''; position: absolute; inset: -8px; border-radius: 999px; border: 3px solid #fff; animation: wlHintPulse 0.7s ease-in-out infinite; pointer-events: none; }
+@keyframes wlHintPulse { 0%, 100% { opacity: 0.2; transform: scale(0.98); } 50% { opacity: 0.95; transform: scale(1.03); } }
+.wlRevealPhrase { margin-top: 6px; font-size: clamp(22px, 7vw, 34px); font-weight: 800; text-align: center; }
 
 /* Прогрев слоёв: пока дорожки проявляются (фаза lanes), пилюли стоят посреди экрана почти прозрачными — браузер успевает растеризовать их слои (кольца, градиенты), и в момент выезда
    первой пилюли диктора слои уже готовы (раньше первая пилюля растеризовалась на лету — подлагивание в начале). В фазе listen анимация полёта перекрывает translate, opacity возвращается */
@@ -160,7 +178,7 @@
 
 /* «Честность оценки»: пока слово не подтверждено распознаванием, заливка голосом — «ожидающая» (полупрозрачная, со штриховкой); подтвердили (data-lock) — сплошная.
    Видно разницу между «меня слышно» и «слово засчитано». В фазе диктора заливка всегда сплошная (data-lock стоит у всех) */
-.wl[data-phase='speak'] .wlPill:not([data-lock]) .wlPillFill {
+.wl[data-phase='student'] .wlPill:not([data-lock]) .wlPillFill {
   opacity: 0.6;
   background: repeating-linear-gradient(135deg, rgba(var(--rgb), 0.85) 0 7px, rgba(var(--rgb), 0.45) 7px 14px);
 }
@@ -197,7 +215,7 @@
   font-weight: 800;
   opacity: 0;
   transition: opacity 0.5s ease;
-  z-index: 3;
+  z-index: 7;
 }
 .wlXp--on { opacity: 1; }
 .wlXp--pop { animation: wlXpPop 0.5s ease-out; }

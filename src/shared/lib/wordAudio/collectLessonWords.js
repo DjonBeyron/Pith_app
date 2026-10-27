@@ -13,7 +13,7 @@ import { parseTemplateSegments } from '../fillBlanksTemplate.js'
 //    «tries», а не «ie»: озвучивается слово, а не буквы);
 //  - word_choice: только верные варианты (озвучивается лишь верный ответ) и английская фраза voicePhrase для русских вариантов;
 //  - type_word: само печатаемое слово (озвучивается, когда ученик напечатал верно);
-//  - rotate_phone: слово игры «Повтори за диктором»;
+//  - rotate_phone: слово или куски фразы (через «|») игры «Повтори за диктором»;
 //  - say_phrase: вся фраза целиком и каждое её слово (кнопка «Послушать» играет фразу одной записью, а если её нет — слова
 //    по очереди); пока у ноды не выключено listenAudio.
 // Возвращает Map key → текст для показа (первое написание в уроке).
@@ -84,7 +84,7 @@ function wordsOfNode(node) {
       return sp.listenAudio === false ? [] : [phrase, ...phrase.split(/\s+/)]
     }
     case 'rotate_phone':
-      return [td.rotate_phone?.word ?? ''] // игра «Повтори за диктором»: диктор произносит это слово
+      return String(td.rotate_phone?.phrase ?? td.rotate_phone?.word ?? '').split('|') // игра «Повтори за диктором»: диктор произносит куски фразы (у слова — само слово)
     case 'word_choice': {
       const wc = td.word_choice ?? {}
       return [...(wc.options ?? []).filter(o => o.isCorrect).map(o => o.text), ...(wc.voicePhrase ? [wc.voicePhrase] : [])] // voicePhrase — английская озвучка русского верного варианта

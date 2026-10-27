@@ -3,11 +3,9 @@ import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { sparkColors, POP_FRAMES, POP_MS, FLASH_MS } from './wordLaneSnap.js'
 import { makeParticle } from '../../../../shared/lib/burstParticles.js'
-import { WORD_AT, WORD_LEN, LISTEN_MS } from './wordLaneTimeline.js'
-import { readWordLane } from './wordLaneConfig.js'
-import { makeListenPlan, normalizeFills, fillsFromTimings, defaultFills } from './wordLanePlan.js'
+import { normalizeFills, fillsFromTimings, defaultFills } from './wordLanePlan.js'
 
-// План фазы диктора по озвучке ElevenLabs и таймлайну ноды (wordLanePlan.js)
+// Таймлайн слова по озвучке ElevenLabs (wordLanePlan.js) и щелчок пилюли (wordLaneSnap.js)
 describe('озвучка ElevenLabs и таймлайн ноды', () => {
   // ElevenLabs: слова с секундой начала. «try. try. try.» — три слова с паузами
   const timings = [{ w: 'try.', t: 0.1 }, { w: 'try.', t: 1.4 }, { w: 'try.', t: 2.9 }]
@@ -41,35 +39,9 @@ describe('озвучка ElevenLabs и таймлайн ноды', () => {
     expect(normalizeFills(null)).toBeNull()
   })
 
-  it('без озвучки план — расписание по умолчанию, голос слова по очереди', () => {
-    const p = makeListenPlan(null)
-    expect(p.fillAt).toEqual(WORD_AT)
-    expect(p.fillMs).toEqual(WORD_LEN)
-    expect(p.audioAt).toBeNull()
-    expect(p.listenMs).toBe(LISTEN_MS)
-    expect(p.curves.every(c => c === null)).toBe(true)
-  })
 
-  it('кривая заливки строится по громкости озвучки, если она известна', () => {
-    const fills = [{ start: 0.5, end: 1.5 }, { start: 2, end: 3 }, { start: 3.5, end: 4.5 }]
-    const wave = Array.from({ length: 150 }, (_, i) => (i % 30 < 10 ? 250 : 20))
-    const p = makeListenPlan(fills, { wave, duration: 5 })
-    p.curves.forEach(c => { expect(typeof c).toBe('function'); expect(c(1)).toBeCloseTo(1, 5) })
-    expect(makeListenPlan(fills).curves.every(c => c === null)).toBe(true) // озвучка без волны — линейно
-  })
 
-  it('быстрая речь — слово короче (окно вокруг центра уже, заливка за него быстрее), медленная — длиннее', () => {
-    const fast = makeListenPlan([{ start: 0.5, end: 0.9 }, { start: 2, end: 2.4 }, { start: 3.5, end: 3.9 }])
-    const slow = makeListenPlan([{ start: 0.5, end: 1.9 }, { start: 3, end: 4.4 }, { start: 5.5, end: 6.9 }])
-    expect(fast.fillMs[0]).toBeLessThan(slow.fillMs[0])
-  })
 
-  it('нода: таймлайн действует только при озвучке', () => {
-    const fills = defaultFills(6)
-    expect(readWordLane({ word: 'try', fills }).fills).toBeNull()
-    expect(readWordLane({ word: 'try', file_id: 'f1', fills }).fills).toEqual(fills)
-    expect(readWordLane({ word: 'try', file_id: 'f1' })).toMatchObject({ hasAudio: true, fills: null })
-  })
 })
 
 
@@ -105,11 +77,10 @@ describe('щелчок пилюли', () => {
     expect(makeParticle(390, 844, 4, ['#fff']).left).toBeGreaterThanOrEqual(390 * 0.2)
   })
 
-  it('движок зовёт щелчок один раз на пилюлю: в конце слова диктора и по принятому слову ученика (событие win конвейера)', () => {
+  it('движок зовёт щелчок один раз на пилюлю: у диктора — с упреждением к концу слова, у ученика — на событии snap конвейера', () => {
     const eng = readFileSync(fileURLToPath(new URL('./useWordLanePills.js', import.meta.url)), 'utf8')
-    expect(eng).toContain('t >= at + ms')
-    expect(eng).toContain('c.snapped.add(k)')
-    expect(eng).toContain("e.type === 'win'")
-    expect(eng.match(/snapPill\(/g)).toHaveLength(2) // фаза диктора и фаза ученика
+    expect(eng).toContain('h.snapped = true')
+    expect(eng).toContain("e.type === 'snap'")
+    expect(eng).toContain('snapPill(pool.el(k), e.pill.lane)')
   })
 })
