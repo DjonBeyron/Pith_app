@@ -35,3 +35,4 @@ export const SAY_TRY = 'say_attempt'                 // { lesson_id, ok, engine:
 //
 // Память
 export const MEMORY_INTRO_OPEN = 'memory_intro_open' // { voice } — первое открытие вкладки «Память»: рассказ Пита показан (voice — была ли озвучка, иначе только субтитры)
+export const REMIND_TIME_SET = 'remind_time_set'     // { preset: '9'|'14'|'20'|'custom'|'none', push: 'ask'|'add_home'|'granted'|'denied'|'guest' } — ответ на «Когда удобно учиться?»; push — что дальше с уведомлениями

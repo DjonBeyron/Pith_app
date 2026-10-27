@@ -23,7 +23,6 @@ import { dbg } from '../../shared/lib/debug.js'
 import PriorityLegend from './PriorityLegend.jsx'
 import StreakStartOverlay from '../streak/StreakStartOverlay.jsx'
 import { takeFirstDay } from '../streak/firstDaySignal.js'
-import { askMinutesOnce } from '../learn/minutesAsk.js'
 import BackButton from '../../shared/ui/BackButton.jsx'
 import { useAdmin } from '../../app/AdminContext.jsx'
 import { useAuth } from '../../shared/lib/useAuth.js'
@@ -167,8 +166,6 @@ export default function CurriculumView({ curriculumId, curriculumTitle, isPro = 
             if (!wasDone) {
               const l = lessons.find(x => x.id === playingLessonId)
               if (l) setJustCompleted({ id: l.id, xp: l.lessonXp ?? 0 })
-              // Урок без XP — полёта не будет, «минуты» спросим после паузы
-              if (l && !(l.lessonXp > 0)) setTimeout(askMinutesOnce, 1500)
             }
             // Гость прошёл урок-слово — слово в его локальную память (у
             // залогиненного это делает серверный триггер)
@@ -282,9 +279,7 @@ export default function CurriculumView({ curriculumId, curriculumTitle, isPro = 
           onFlightDone={() => {
             setJustCompleted(null)
             setPostLegend(false)
-            // «Сколько минут в день?» (один раз) — после анимации и окна «Путь начался»
             if (takeFirstDay()) setFirstDayOpen(true)
-            else askMinutesOnce()
           }}
           onResetLesson={handleResetLesson}
           onMarkDoneLesson={handleMarkLessonDone}
@@ -319,7 +314,7 @@ export default function CurriculumView({ curriculumId, curriculumTitle, isPro = 
         />
       )}
 
-      {firstDayOpen && <StreakStartOverlay onClose={() => { setFirstDayOpen(false); askMinutesOnce() }} />}
+      {firstDayOpen && <StreakStartOverlay onClose={() => setFirstDayOpen(false)} />}
 
       {noEnergy && (
         <EnergyPaywall nextAt={noEnergy.nextAt} onClose={() => setNoEnergy(null)} />
