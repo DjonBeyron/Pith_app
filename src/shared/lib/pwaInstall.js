@@ -1,4 +1,5 @@
 import { fdbg } from './feedDebug.js'
+import { isIOSNavigator } from './iosDetect.js'
 
 // Установка приложения на телефон (Add to Home Screen / «Установить
 // приложение»). beforeinstallprompt Chrome шлёт МАКСИМУМ один раз за
@@ -41,8 +42,9 @@ export function isStandalone() {
     || window.matchMedia('(display-mode: standalone)').matches
 }
 
+// iPad в Safari притворяется Mac — учитываем сенсор (iosDetect.js)
 export function isIOS() {
-  return /iPhone|iPad|iPod/.test(navigator.userAgent)
+  return isIOSNavigator(navigator)
 }
 
 // «100% гарантии» определения браузера/платформы не существует нигде в вебе
@@ -59,7 +61,7 @@ export function isMobile() {
 // уникальный маркер конкретного браузера, а Chrome — это то, что осталось
 export function detectBrowser() {
   const ua = navigator.userAgent
-  if (/iPhone|iPad|iPod/.test(ua)) return 'ios'
+  if (isIOSNavigator(navigator)) return 'ios'
   if (/SamsungBrowser/i.test(ua)) return 'samsung'
   if (/YaBrowser/i.test(ua)) return 'yandex'
   if (/EdgA/i.test(ua)) return 'edge'

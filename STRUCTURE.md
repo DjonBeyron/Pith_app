@@ -2325,6 +2325,7 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | `xpLevels.test.js` | Юнит-тесты уровней: границы порогов 0..10, getNextLevel, санити таблицы LEVELS |
 | `xpTransferPlan.test.js` | Юнит-тесты плана шариков: 3→3, 9→9, 11 и 50→10, сумма долей равна награде, доли отличаются не больше чем на 1 |
 | `lessonStars.test.js` | Юнит-тесты звёзд: starsFromErrors (0→3★, 1–2→2★, 3+→1★) и локальный стор «только вверх» (стаб localStorage) |
+| `iosDetect.js` (+ `iosDetect.test.js`) | `isIOSNavigator(nav)` — iOS без обращения к window: iPhone по UA, iPad-как-Mac (UA «Macintosh» + сенсор) — тоже iOS, настоящий Mac и Android — нет; используют `pwaInstall.js` и `push.js` |
 | `pwaInstall.js` | Установка PWA на телефон: ловит `beforeinstallprompt` максимально рано (глобально, вне React), `getInstallPrompt()`/`hasInstallPrompt()`, `isStandalone()`, `isMobile()`, `detectBrowser()` — точный браузер (chrome/samsung/yandex/firefox/edge/ios/other) под формулировку пункта меню. `?nativeinstall=1` в адресе — событие НЕ перехватывается (диагностика «Установить» из меню Chrome на Android); события установки пишутся в лог DBG |
 | `achievementKinds.js` | Единый список достижений (вид, название, условие, ключ косметики) для профиля и админки; `COSMETIC_KINDS` — виды, что открывают косметику |
 | `storedFlag.js` | Булев флаг интерфейса на устройстве (`readFlag`/`writeFlag`, localStorage без падений в приватном режиме) — свёрнуто/развёрнуто и т.п. |

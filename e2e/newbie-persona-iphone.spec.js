@@ -122,13 +122,13 @@ test('iPhone в Safari, гость: время запоминаем, про «Д
 // iPad с iPadOS 13+ в Safari выдаёт себя за Mac (UA «Macintosh», maxTouchPoints 5): isIOS() в pwaInstall.js ловит только «iPhone|iPad|iPod»,
 // поэтому вошедший на таком iPad не увидит ветку «Домой» — а в обычной вкладке Safari Push API нет, и он получит просто «Готово».
 // Сейчас такой iPad получает «Готово. Сегодня в 20:00 придёт одно уведомление про слово» — обещание, которое Safari не выполнит.
-// test.fixme: баг приложения, не теста; включить, когда определение iOS учтёт iPadOS (navigator.platform === 'MacIntel' && maxTouchPoints > 1)
+// Исправлено в v3.3.29: isIOSNavigator (iosDetect.js) учитывает platform «MacIntel» + maxTouchPoints > 1
 test.describe('iPad в Safari (UA как у Mac)', () => {
   test.use({
     userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15',
     viewport: { width: 820, height: 1180 },
   })
-  test.fixme('вошёл на iPad: ветка «На iPhone… только приложению на экране «Домой»»', async ({ page }) => {
+  test('вошёл на iPad: ветка «На iPhone… только приложению на экране «Домой»»', async ({ page }) => {
     await page.addInitScript(() => {
       Object.defineProperty(navigator, 'platform', { get: () => 'MacIntel' })
       Object.defineProperty(navigator, 'maxTouchPoints', { get: () => 5 })
