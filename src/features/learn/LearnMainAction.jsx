@@ -4,11 +4,13 @@ import { plural } from '../../shared/lib/plural.js'
 import { setVacation } from '../../shared/api/memoryApi.js'
 import SleepingBrain from './SleepingBrain.jsx'
 import { titleFlicker } from './sparkTiming.js'
+import SayAloudLaunch from './say-aloud/SayAloudLaunch.jsx'
 
 // Шапка «Моей памяти» — главное действие по состоянию, одно:
 // «Отпуск» (+ вернуться) | память пуста | «Сегодня повторяем N слов» +
 // «Повторить» | «Закрепить фразу» | «Памяти пора отдыхать» (всё на сегодня повторено: спящий мозг с «Z»).
-// От низа шапки идёт ствол линий к ступеням (MemoryLadderWires.jsx)
+// От низа шапки идёт ствол линий к ступеням (MemoryLadderWires.jsx). Под главным действием — вторичная «Скажи вслух» (SayAloudLaunch, видна при ≥ 3 слов с переводом);
+// когда памяти пора отдыхать, она единственное действие
 const fmtDate = d => new Date(`${d}T12:00:00`).toLocaleDateString('ru', { day: 'numeric', month: 'long' })
 const words = n => `${n} ${plural(n, 'слово', 'слова', 'слов')}`
 
@@ -66,6 +68,7 @@ export default function LearnMainAction({ view, onStart, onChanged }) {
     return (
       <Hero title={`Сегодня повторяем ${words(picked.length)}`} sub="чтобы они ушли в долгую память">
         <Cta onClick={onStart}><Brain className="lrCtaIcon" size={16} aria-hidden="true" />Повторить<span className="lrCtaCount">{words(picked.length)}</span></Cta>
+        <SayAloudLaunch view={view} />
       </Hero>
     )
   }
@@ -73,12 +76,14 @@ export default function LearnMainAction({ view, onStart, onChanged }) {
     return (
       <Hero mod=" lrMainPhrase" title="Сегодня закрепляем фразу" sub={`Ты уверенно вспоминаешь все слова «${phrase.title}» — собери её целиком`}>
         <Cta onClick={onStart}>Закрепить фразу</Cta>
+        <SayAloudLaunch view={view} />
       </Hero>
     )
   }
   return (
     <Hero mod=" lrMainDone" flash title="Памяти пора отдыхать" sub="Сегодня все слова записаны в твою память">
       <SleepingBrain />
+      <SayAloudLaunch view={view} />
     </Hero>
   )
 }

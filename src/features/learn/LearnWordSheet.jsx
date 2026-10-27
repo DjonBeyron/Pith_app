@@ -1,5 +1,6 @@
 import { wordLevel, LEVEL_COUNT } from './memoryLadder.js'
 import { levelClass } from '../../shared/lib/memory/memoryLevels.js'
+import SayAloudLaunch from './say-aloud/SayAloudLaunch.jsx'
 
 // Окно слова «Моей памяти» (тап по слову). Сверху слово и откуда оно пришло —
 // урок-слово и фраза (модуль); ниже — уровень памяти: сколько уровней из
@@ -11,8 +12,8 @@ import { levelClass } from '../../shared/lib/memory/memoryLevels.js'
 // (пятиугольник). Появляется «пружинкой» — общая анимация шторок вкладки
 // (pop-spring.css). У админа ниже — тест-инструмент: «Повторил → шаг N+1»
 // (шаг +1 до постоянной памяти; шагов 5, а уровней 3: 1–2 Новые, 3–4 Знакомые, 5 Усвоенные), «К повтору сегодня» (шаг тот же, срок — сегодня, бюджет дня свободен) и «Сбросить слово»
-// (как новое, тоже к повтору сегодня): onStep('next' | 'today' | 'reset')
-export default function LearnWordSheet({ word, perm, isPro, isAdmin = false, stepBusy = false, onStep, onLesson, onReview, onWantPro, onClose }) {
+// (как новое, тоже к повтору сегодня): onStep('next' | 'today' | 'reset'). view — данные вкладки: по ним «Скажи вслух» набирает раунд со словом и другими (SayAloudLaunch)
+export default function LearnWordSheet({ word, view = null, perm, isPro, isAdmin = false, stepBusy = false, onStep, onLesson, onReview, onWantPro, onClose }) {
   const level = wordLevel(word.step, perm)
   return (
     <div className="lrSheetBack" onClick={onClose}>
@@ -40,6 +41,7 @@ export default function LearnWordSheet({ word, perm, isPro, isAdmin = false, ste
             Повторить сейчас{isPro ? '' : ' · Pro'}
           </button>
         )}
+        <SayAloudLaunch view={view} withWord={word.word} variant="sheet" />
         {isAdmin && (
           <div className="memAdminStep">
             <p className="memAdminStepLabel">Тест админа · {perm ? 'постоянная память' : `шаг ${word.step} из 5`}</p>

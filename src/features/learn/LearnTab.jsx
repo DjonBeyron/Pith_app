@@ -111,6 +111,7 @@ export default function LearnTab({ learn, visible, isLoggedIn, onRequireAuth }) 
         {sheet && (
           <LearnWordSheet
             word={sheetWord}
+            view={view}
             perm={sheetPerm}
             isPro={isPro}
             isAdmin={isAdmin}
