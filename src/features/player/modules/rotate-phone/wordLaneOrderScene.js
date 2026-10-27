@@ -4,8 +4,9 @@ import { snapPill, missPill } from './wordLaneSnap.js'
 
 // Сцена раунда «Порядок» для движка пилюль (useWordLanePills): на каждую подсказку из wordLaneOrder выкатывается по пилюле в каждой дорожке, они едут как весь конвейер (композитор), а тапы по
 // дорожкам (api.tap) отвечают заливкой и щелчком верной пилюле, дрожью неверной и кольцом-подсказкой на верной после нескольких ошибок. Не успел — пилюли серые и уходят вниз.
-// fx: say(parts) — диктор называет подсказку, win(order, rect) — верный тап, miss() — неверный, fail({ order, lost }) — не успел, finished() — раунд закончен.
+// fx: sayText(текст) — звучит слово пилюли («Различи»), say(parts) — диктор называет подсказку, win(order, rect) — верный тап, miss() — неверный, fail({ order, lost }) — не успел, finished() — раунд закончен.
 const HINT_RING_MS = 1600
+const VOICE_GLOW_MS = 700 // пилюля светится, пока звучит её слово («Различи»)
 
 export function runOrderScene({ pool, scene, fxRef }) {
   const { prompts, lanes, count } = scene
@@ -24,10 +25,10 @@ export function runOrderScene({ pool, scene, fxRef }) {
           const k = pool.take(lane, { atMs: performance.now() - t0 - g.spawnAt - laneDelayOf(e.prompt, lane) }) // «Различи»: пилюли выкатываются по очереди (пока не выкатилась — ждёт за краем)
           if (k == null) continue
           set.pills.set(lane, k)
-          pool.label(k, e.prompt.words?.[lane] ?? '') // «Различи»: слово написано на пилюле
         }
         sets.push(set)
       } else if (e.type === 'say') fxRef.current?.say?.(e.parts)
+      else if (e.type === 'word') { const k = cur().pills.get(e.lane); if (k != null) { pool.attr(k, 'data-voice'); timers.push(setTimeout(() => pool.attr(k, 'data-voice', false), VOICE_GLOW_MS)) }; fxRef.current?.sayText?.(e.text) } // «Различи»: слово пилюли звучит (она светится)
       else if (e.type === 'fail') {
         for (const [lane, k] of cur().pills) if (!cur().taken.has(lane)) { pool.attr(k, 'data-fail'); pool.hint(k, '0', null) }
         fxRef.current?.fail?.({ order: true, lost: e.lost })

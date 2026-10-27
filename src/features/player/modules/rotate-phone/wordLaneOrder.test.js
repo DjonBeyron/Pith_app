@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { createOrderGame, expectedLanes, stepOrder, tapLane, orderY, laneDelayOf, maxDelayOf, HINT_AFTER, ORDER_MAX_TRIES, ORDER_START_MS, ORDER_GAP_MS, ORDER_SAY_DELAY_MS } from './wordLaneOrder.js'
 import { buildRecipe, orderLanes } from './wordLaneRecipe.js'
 import { FAIL_Y, CLAIM_FROM_Y } from './wordLaneStudent.js'
-import { SPEED, ENTER_Y } from './wordLaneTimeline.js'
+import { SPEED, ENTER_Y, TRAVEL_MS } from './wordLaneTimeline.js'
 
 const chunks = ['a', 'b', 'c']
 const prompts = buildRecipe(chunks).rounds[1].prompts      // куски [1], [2], [0], затем вся фраза
@@ -112,20 +112,22 @@ describe('раунд «Порядок» на время: пилюли едут, 
     expect(tapLane(g, 2, t).map(e => e.type)).toEqual(['ok', 'next', 'done'])
   })
 
-  it('«Различи»: пилюли выкатываются по очереди, диктор называет слово, когда видны все; тап по пилюле, которая ещё не выкатилась, не считается', () => {
-    const dp = [{ id: 'd', parts: [1], answer: [0], slots: [0, 1, 2], words: ['trying', 'tying', 'drying'], stagger: 900 }]
-    expect([0, 1, 2].map(l => laneDelayOf(dp[0], l))).toEqual([0, 900, 1800])
-    expect(maxDelayOf(dp[0])).toBe(1800)
+  it('«Различи»: слов на экране нет — диктор называет искомое, пилюли идут по очереди, у каждой при открытии звучит её слово; тап — только когда слово уже прозвучало', () => {
+    const dp = [{ id: 'd', parts: [1], answer: [2], slots: [0, 1, 2], texts: ['tying', 'drying', 'trying'], stagger: 800, lead: 900 }]
+    expect([0, 1, 2].map(l => laneDelayOf(dp[0], l))).toEqual([900, 1700, 2500])
+    expect(maxDelayOf(dp[0])).toBe(2500)
     const g = createOrderGame({ prompts: dp, lanes })
     const events = []
-    let t = 0
-    for (; t <= 4000; t += DT) for (const e of stepOrder(g, t)) events.push({ t, ...e })
+    for (let t = 0; t <= 6000; t += DT) for (const e of stepOrder(g, t)) events.push({ t, ...e })
     const spawn = events.find(e => e.type === 'spawn').t
-    expect(events.find(e => e.type === 'say').t - spawn).toBeGreaterThanOrEqual(1800 + ORDER_SAY_DELAY_MS - DT)
-    // дорожка 2 выкатилась на 1,8 с позже дорожки 0: сразу после выкатки её пилюля ещё над экраном
-    const g2 = createOrderGame({ prompts: [{ ...dp[0], answer: [2] }], lanes })
+    expect(events.find(e => e.type === 'say').t - spawn).toBeLessThanOrEqual(DT)          // искомое слово — сразу
+    const words = events.filter(e => e.type === 'word')
+    expect(words.map(w => w.text)).toEqual(['tying', 'drying', 'trying'])                // по очереди, в порядке выкатки
+    expect(words[0].t - spawn).toBeGreaterThanOrEqual(900 + TRAVEL_MS - DT)              // слово — когда пилюля открылась
+    expect(words[1].t - words[0].t).toBeGreaterThanOrEqual(800 - DT)
+    const g2 = createOrderGame({ prompts: dp, lanes })
     const s2 = spawnNext(g2)
-    expect(tapLane(g2, 2, s2 + 1200)).toEqual([])
-    expect(tapLane(g2, 2, s2 + 1800 + 1500)[0].type).toBe('ok')
+    expect(tapLane(g2, 2, s2 + 2500 + 400)).toEqual([])                                  // пилюля 3 ещё не открылась — слово не прозвучало
+    expect(tapLane(g2, 2, s2 + 2500 + TRAVEL_MS + 200)[0].type).toBe('ok')
   })
 })

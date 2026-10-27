@@ -1,9 +1,10 @@
 import { MAX_CONFUSERS, normalizeConfusers } from '../../player/modules/rotate-phone/wordLaneRecipe.js'
+import { missingChunks } from '../../player/modules/rotate-phone/wordLaneLib.js'
 import { NO_AUTOCORRECT } from '../../../shared/lib/noAutoCorrectProps.js'
 
 // Слова-запутыватели в ноде «Переверни телефон»: каждый кусок фразы — свернутый блок, в который можно дописать до двух слов, похожих на кусок по звучанию («trying» → «tying», «drying»).
-// У куска с запутывателями в игре появляется свой раунд «Различи»: диктор говорит кусок, в дорожках — он и запутыватели, ученик выбирает дорожку верного слова. Пустые блоки раунда не дают.
-// Запутывателей озвучивать не нужно: в игре они только подписаны текстом. Поле typeData.rotate_phone.confusers — массив (по куску) массивов строк.
+// У куска с запутывателями в игре появляется свой раунд «Различи»: слов на экране нет — диктор называет кусок, потом по очереди идут пилюли, и у каждой звучит её слово (верное или запутыватель);
+// ученик тапает дорожку, где прозвучало искомое. Пустые блоки раунда не дают. Запутыватели ОЗВУЧИВАЮТСЯ из библиотеки озвучки слов (как куски фразы; нет озвучки — голос системы): их надо озвучить. Поле typeData.rotate_phone.confusers — массив (по куску) массивов строк.
 export default function ConfusersPanel({ chunks, value, onChange }) {
   if (!chunks.length) return null
   const clean = normalizeConfusers(value, chunks)
@@ -12,9 +13,11 @@ export default function ConfusersPanel({ chunks, value, onChange }) {
     onChange(next)
   }
   const rounds = chunks.filter((_, i) => clean[i].length)
+  const noVoice = missingChunks(clean.flat())
   return (
     <div className="nodeConfusers" data-testid="confusers">
       <div className="nodeRotateTrainerInfo nodeConfusersHead">Слова-запутыватели → раунд «Различи»{rounds.length ? ` (кусков с раундом: ${rounds.length})` : ' — допишите слова в блок куска'}</div>
+      {noVoice.length > 0 && <div className="nodeRotateTrainerInfo nodeConfusersHead">Нет озвучки в библиотеке слов: {noVoice.map(w => `«${w}»`).join(', ')} — озвучьте (пока их проговорит голос системы)</div>}
       {chunks.map((chunk, i) => (
         <details key={i} className="nodeConfusersItem">
           <summary>«{chunk}»{clean[i].length ? ` — ✓ ${clean[i].join(', ')}` : ''}</summary>

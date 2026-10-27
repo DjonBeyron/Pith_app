@@ -87,10 +87,10 @@ describe('раунд «Различи» (слова-запутыватели)', 
     const three = discernPrompts(chunks, 1, ['tying', 'drying'])
     expect(three).toHaveLength(2)
     expect(three[0].stagger).toBeGreaterThan(0)                                      // пилюли идут по очереди
-    three.forEach(p => { expect(p.words[p.answer[0]]).toBe('trying'); expect([...p.words].sort()).toEqual(['drying', 'trying', 'tying']) })
+    three.forEach(p => { expect(p.texts[p.answer[0]]).toBe('trying'); expect([...p.texts].sort()).toEqual(['drying', 'trying', 'tying']) })
     expect(three[0].answer[0]).not.toBe(three[1].answer[0])
     const two = discernPrompts(chunks, 0, ['am'])
-    two.forEach(p => { expect(p.slots).toEqual([0, 2]); expect(p.words[1]).toBe(''); expect(p.words[p.answer[0]]).toBe("I'm") })
+    two.forEach(p => { expect(p.slots).toEqual([0, 2]); expect(p.texts[1]).toBe(''); expect(p.texts[p.answer[0]]).toBe("I'm") })
     expect(two[0].answer[0]).not.toBe(two[1].answer[0])
   })
   it('одно слово тоже может получить «Различи»', () => {

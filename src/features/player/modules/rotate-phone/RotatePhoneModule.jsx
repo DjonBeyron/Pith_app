@@ -43,7 +43,7 @@ export default function RotatePhoneModule({ node, file, onDone }) {
     setBusy(true)
     unlockVoice()
     // Звуки диктора: куски фразы — отдельными файлами из библиотеки озвучки слов (слоты будятся тишиной в жесте), запись автора — только финал (вся фраза; у одного слова — если слова нет в библиотеке)
-    const wordsReady = prepareWords([...libItems(cfg.chunks), ...linesItems(lines)]) // куски фразы и озвученные реплики кота; заодно измеряется, где в файле звучит голос (без «хвоста»)
+    const wordsReady = prepareWords([...libItems([...cfg.chunks, ...cfg.confusers.flat()]), ...linesItems(lines)]) // куски фразы, слова-запутыватели («Различи» — только озвучка) и озвученные реплики кота; заодно измеряется, где в файле звучит голос (без «хвоста»)
     if (cfg.hasAudio && audioSrc) {
       prepareTrack(audioSrc) // запасной путь: общий файл с перемоткой (элемент будится в жесте)
       const n = cfg.chunks.length

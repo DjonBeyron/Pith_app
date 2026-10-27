@@ -9,6 +9,8 @@ import { stepTargets, textOf } from './wordLaneRecipe.js'
 import { clipsFor, playSpan, estChunkMs } from './wordLaneAudio.js'
 import { playClip, playWordSlot, releaseClips } from './wordLaneClips.js'
 import { makeLib, libRow } from './wordLaneLib.js'
+import { speechOfUrl } from './wordLaneClips.js'
+import { mouthTrack } from './wordLaneVisemes.js'
 import { useCatLines } from './useCatLines.js'
 import { DROP_MS, LANES_MS } from './wordLaneTimeline.js'
 import { XP_PER_PILL, sensitiveLevel } from './wordLaneConfig.js'
@@ -108,6 +110,12 @@ export function useWordLaneFlow({ chunks, translation, lang, clips = null, audio
     },
     mouth(level, code) { catApi?.current?.mouth(level, code) },
     peek(ms) { catApi?.current?.peek?.(ms) },
+    sayText(text) { // «Различи»: звучит слово пилюли (верное или запутыватель) — из библиотеки слов, нет её — голос системы; рот кота по буквам слова
+      const r = libRow(text)
+      if (!(r && playWordSlot(r.key))) speakWord(text, lang)
+      const ms = Math.round((speechOfUrl(r?.row.url)?.ms ?? (Number(r?.row.duration) > 0 ? Number(r.row.duration) * 1000 : estChunkMs(text))) / (rate > 0 ? rate : 1))
+      catApi?.current?.speak?.(mouthTrack(text, ms), ms)
+    },
     say(parts) { // подсказка раунда «Порядок»: кот выскакивает, диктор называет куски
       catApi?.current?.peek?.(parts.reduce((sum, i) => sum + (lib(i)?.ms ?? estChunkMs(chunks[i])) / (rate > 0 ? rate : 1) + 80, 700))
       say(parts)
@@ -118,7 +126,7 @@ export function useWordLaneFlow({ chunks, translation, lang, clips = null, audio
   useEffect(() => { handlersRef.current = handlers })
   const [fx] = useState(() => ({
     win: (...a) => handlersRef.current.win(...a), miss: (...a) => handlersRef.current.miss(...a), fail: (...a) => handlersRef.current.fail(...a),
-    mouth: (...a) => handlersRef.current.mouth(...a), peek: (...a) => handlersRef.current.peek(...a), say: (...a) => handlersRef.current.say(...a), finished: (...a) => handlersRef.current.finished(...a),
+    mouth: (...a) => handlersRef.current.mouth(...a), peek: (...a) => handlersRef.current.peek(...a), say: (...a) => handlersRef.current.say(...a), sayText: (...a) => handlersRef.current.sayText(...a), finished: (...a) => handlersRef.current.finished(...a),
   }))
 
   const dismissXp = useCallback(id => setS(p => {

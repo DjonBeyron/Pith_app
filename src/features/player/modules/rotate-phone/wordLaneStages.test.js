@@ -72,14 +72,14 @@ describe('подписи дорожек', () => {
     expect(labelsFor(one.stages[0], ['try'], one.lanes).every(l => l.text === '')).toBe(true)
   })
 
-  it('«Различи»: стадия с подсказками (слова на пилюлях, по очереди), над дорожками подписей нет; без запутывателей стадий нет', () => {
+  it('«Различи»: стадия с подсказками (слова только озвучиваются, пилюли по очереди), над дорожками подписей нет; без запутывателей стадий нет', () => {
     const chunks = ["I'm", 'trying', 'to learn']
     expect(buildStages({ chunks }).stages.some(x => x.type === 'discern')).toBe(false)
     const b = buildStages({ chunks, confusers: [[], ['tying', 'drying'], []] })
     const st = b.stages.find(x => x.type === 'discern')
     expect(st.prompts).toHaveLength(2)
     expect(st.prompts[0].stagger).toBeGreaterThan(0)
-    expect(st.prompts[0].words.slice().sort()).toEqual(['drying', 'trying', 'tying'])
+    expect(st.prompts[0].texts.slice().sort()).toEqual(['drying', 'trying', 'tying'])
     expect(b.stages[st.idx - 1].type).toBe('announce')
     expect(labelsFor(st, chunks, b.lanes).every(l => !l.text && !l.on)).toBe(true)      // верное слово над дорожками не выдаём
     const one = buildStages({ chunks: ['try'], confusers: [['tray']] })              // у одного слова плашка — только перед «Различи»

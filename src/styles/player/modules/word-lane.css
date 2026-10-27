@@ -126,8 +126,8 @@
   will-change: transform;
 }
 
-/* Слово на пилюле — раунд «Различи» (пилюли идут по очереди, верное слово нужно найти по надписи) */
-.wlPillLabel { position: absolute; inset: 0; z-index: 1; display: flex; align-items: center; justify-content: center; padding: 0 4px; box-sizing: border-box; text-align: center; font-size: clamp(13px, 4vw, 17px); font-weight: 800; line-height: 1.1; overflow-wrap: anywhere; color: #fff; text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8); pointer-events: none; }
+/* «Различи»: у пилюли звучит её слово — она светится (слов на экране нет, только озвучка) */
+.wlPill[data-voice] { filter: brightness(1.6) drop-shadow(0 0 14px rgba(var(--rgb), 0.9)); transition: filter 0.12s ease-out; }
 
 /* Раунд «Порядок»: три невидимые кнопки-дорожки поверх сцены (тап по дорожке), верная дорожка после ошибок подсвечивается кольцом */
 .wlTap { inset: 0; display: flex; z-index: 5; pointer-events: auto; }
