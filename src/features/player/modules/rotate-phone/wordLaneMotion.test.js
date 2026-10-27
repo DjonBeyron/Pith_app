@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
-import { createRateController, audioPlayingMs, MAX_RATE, JUMP_MS } from './wordLaneClock.js'
+import { createAligner, audioPlayingMs, NUDGE_RATE, MIN_ERR_MS, JUMP_MS, SETTLE_MS } from './wordLaneClock.js'
 import { startFlight, cancelFlights, setFlightRate, FLIGHT_MS, ANIM_MS, flightPosition } from './wordLaneMotion.js'
 import { ENTER_Y, EXIT_Y, SPEED } from './wordLaneTimeline.js'
 
@@ -55,60 +55,75 @@ describe('щелчок не сдвигает пилюлю', () => {
   })
 })
 
-describe('подстройка полёта под звук: плавная скорость, без рывков и остановок', () => {
-  // Симуляция кадров: время плана идёт со скоростью rate, звук стартует в audioStart (по таймеру); currentTime можно огрубить (step) и зашумить
-  const run = ({ audioStart, audioAt = 1300, frames = 900, dt = 16, step = 0, noise = 0, seed = 7 }) => {
+describe('выравнивание по звуку: редкие разовые действия, а не поправка каждый кадр', () => {
+  // Симуляция: картинка (plan) идёт со скоростью rate, звук — со скоростью 1 от audioStart (по таймеру); действия применяем как движок: skip — звук вперёд, nudge — скорость на hold мс, jump — сдвиг
+  const run = ({ audioStart, audioAt = 1300, frames = 900, dt = 16, step = 0, noise = 0, seed = 7, skipMax = 1e9 }) => {
     let rnd = seed
     const rand = () => { rnd = (rnd * 16807) % 2147483647; return rnd / 2147483647 - 0.5 }
-    const ctl = createRateController()
-    let plan = 0, rate = 1
-    const out = []
+    const al = createAligner()
+    let plan = 0, rate = 1, nudgeUntil = 0, audioShift = 0
+    const actions = [], rates = new Set(), out = []
     for (let f = 1; f <= frames; f++) {
       const timer = f * dt
-      plan += dt * rate                                              // композитор двигает картинку со скоростью rate
-      let audioMs = timer >= audioStart ? timer - audioStart + rand() * noise : null
+      if (rate !== 1 && timer >= nudgeUntil) rate = 1
+      plan += dt * rate
+      let audioMs = timer >= audioStart ? timer - audioStart + audioShift + rand() * noise : null
       if (audioMs != null && step) audioMs = Math.floor(audioMs / step) * step
       if (audioMs != null && audioMs <= 0) audioMs = null
-      const r = ctl.step({ planMs: plan, audioMs, audioAt, dt })
-      if (r.jump) plan += r.jump
-      rate = r.rate
-      out.push({ plan, rate, audioPlan: audioMs == null ? null : audioAt + timer - audioStart })
-    }
-    return out
-  }
-
-  it('скорость полёта всегда в пределах 1 ± MAX_RATE — при любом опоздании звука, грубом currentTime и шуме пилюля не тормозит и не «втыкается»', () => {
-    for (const late of [0, 80, 150, 250]) {
-      for (const [step, noise] of [[0, 0], [100, 0], [250, 0], [0, 60], [50, 40]]) {
-        for (const r of run({ audioStart: 1300 + late, step, noise })) {
-          expect(r.rate).toBeGreaterThanOrEqual(1 - MAX_RATE - 1e-9)
-          expect(r.rate).toBeLessThanOrEqual(1 + MAX_RATE + 1e-9)
-        }
+      const act = al.step({ planMs: plan, audioMs, audioAt, now: timer, dt })
+      if (act) {
+        actions.push(act)
+        if (act.type === 'skip') audioShift += Math.min(act.ms, skipMax)
+        else if (act.type === 'jump') plan += act.ms
+        else { rate = act.rate; nudgeUntil = timer + act.hold }
       }
+      rates.add(rate)
+      out.push({ plan, audioPlan: audioMs == null ? null : audioAt + timer - audioStart + audioShift })
+    }
+    return { out, actions, rates }
+  }
+  const finalErr = r => { const l = r.out.at(-1); return Math.abs(l.plan - l.audioPlan) }
+
+  it('звук вовремя — никаких действий: скорость пилюль ровно 1 всю фазу', () => {
+    const r = run({ audioStart: 1300, step: 20, noise: 20 })
+    expect(r.actions).toEqual([])
+    expect([...r.rates]).toEqual([1])
+  })
+
+  it('звук опоздал (декодирование): сначала перемотка файла вперёд на опоздание — картинка при этом идёт ровно, подкрутки не нужны', () => {
+    const r = run({ audioStart: 1300 + 120 })
+    expect(r.actions[0].type).toBe('skip')
+    expect(r.actions[0].ms).toBeGreaterThan(100)
+    expect(r.actions.length).toBeLessThanOrEqual(2)
+    expect([...r.rates]).toEqual([1])
+    expect(finalErr(r)).toBeLessThan(MIN_ERR_MS + 5)
+  })
+
+  it('опоздание больше тишины перед словом (skipMax): остаток гасит ОДНА подкрутка скорости ±NUDGE_RATE, дальше снова ровно 1', () => {
+    const r = run({ audioStart: 1300 + 200, skipMax: 60, frames: 1500 })
+    const nudges = r.actions.filter(a => a.type === 'nudge')
+    expect(r.actions[0].type).toBe('skip')
+    expect(nudges.length).toBeGreaterThanOrEqual(1)
+    expect(nudges.length).toBeLessThanOrEqual(2)
+    for (const n of nudges) { expect(Math.abs(n.rate - 1)).toBeCloseTo(NUDGE_RATE, 9); expect(n.hold).toBeCloseTo(Math.abs(n.ms) / NUDGE_RATE, 6) }
+    expect([...r.rates].every(x => Math.abs(x - 1) <= NUDGE_RATE + 1e-9)).toBe(true)
+    expect(finalErr(r)).toBeLessThan(MIN_ERR_MS + 10)
+  })
+
+  it('за всю фазу действий единицы, а не десятки: обновлений скорости композитору не больше четырёх', () => {
+    for (const [late, step, noise] of [[0, 0, 0], [80, 20, 0], [250, 20, 40], [400, 0, 60]]) {
+      const r = run({ audioStart: 1300 + late, step, noise, skipMax: 100, frames: 1200 })
+      expect(r.actions.length).toBeLessThanOrEqual(4)
     }
   })
 
-  it('опоздание звука в пределах JUMP_MS гасится скоростью и сходится к звуку; рывков нет', () => {
-    const frames = run({ audioStart: 1300 + 120, frames: 1500 })
-    const last = frames.at(-1)
-    expect(Math.abs(last.plan - last.audioPlan)).toBeLessThan(25)
-  })
-
-  it('на грубом currentTime (шаг 100 мс) картинка держится около звука', () => {
-    const f = run({ audioStart: 1300, frames: 1200, step: 100 }).filter(r => r.audioPlan != null).slice(200)
-    expect(f.reduce((a, r) => a + Math.abs(r.plan - r.audioPlan), 0) / f.length).toBeLessThan(100)
-  })
-
-  it('крупный разрыв (звук перемотан/встал) — один скачок, а не бесконечная погоня', () => {
-    const ctl = createRateController()
-    const r = ctl.step({ planMs: 1000, audioMs: 1000 + JUMP_MS + 100, audioAt: 0, dt: 16 })
-    expect(r.jump).toBeCloseTo(JUMP_MS + 100, 6)
-    expect(r.rate).toBe(1)
-  })
-
-  it('звука нет — скорость обычная, поправок нет', () => {
-    const ctl = createRateController()
-    expect(ctl.step({ planMs: 500, audioMs: null, audioAt: 1300, dt: 16 })).toEqual({ rate: 1, jump: 0 })
+  it('крупный разрыв (звук встал/перемотан) — один скачок; звука нет — тишина', () => {
+    const al = createAligner()
+    expect(al.step({ planMs: 1400, audioMs: 100, audioAt: 1300, now: 0, dt: 16 })).toBeNull()                      // совпало — ничего
+    const a = al.step({ planMs: 1500, audioMs: 100 + JUMP_MS + 300, audioAt: 1300, now: SETTLE_MS + 20, dt: 200 })    // звук внезапно далеко впереди
+    expect(a).toMatchObject({ type: 'jump' })
+    expect(a.ms).toBeGreaterThan(JUMP_MS)
+    expect(createAligner().step({ planMs: 500, audioMs: null, audioAt: 1300, now: 0 })).toBeNull()
   })
 
   it('audioPlayingMs: пауза, конец и «время ещё не пошло» — не звук; идущий файл — его currentTime в мс', () => {
@@ -117,6 +132,27 @@ describe('подстройка полёта под звук: плавная ск
     expect(audioPlayingMs({ paused: false, ended: true, currentTime: 2 })).toBeNull()
     expect(audioPlayingMs({ paused: false, ended: false, currentTime: 0 })).toBeNull()
     expect(audioPlayingMs({ paused: false, ended: false, currentTime: 1.25 })).toBe(1250)
+  })
+})
+
+describe('подлагивание в начале: прогрев слоёв, статичный кот, счётчик плавности', () => {
+  it('в фазе lanes пилюли стоят посреди экрана почти прозрачными — слои растеризуются до выезда первой пилюли', () => {
+    expect(css).toMatch(/\.wl\[data-phase='lanes'\] \.wlPill \{[^}]*translate: -50% calc\(50dvh - 50%\);[^}]*opacity: 0\.01/)
+  })
+  it('кот без идл-анимаций SVG (scn--live) — они идут в основном потоке', () => {
+    expect(read('./WordLaneCat.jsx')).toContain('className="scn wlCat"')
+    expect(read('./WordLaneCat.jsx')).not.toMatch(/className="[^"]*scn--live/)
+  })
+  it('по флагу отладки показывается счётчик плавности (к/с, самый долгий кадр, подвисания с фазой)', () => {
+    expect(read('./WordLaneGame.jsx')).toContain('{debug && <WordLanePerf />}')
+    const perf = read('./WordLanePerf.jsx')
+    expect(perf).toContain('dt > 33.5')
+    expect(perf).toContain("dataset.phase")
+  })
+  it('движок не обновляет скорость полёта каждый кадр: только по действию выравнивателя', () => {
+    const eng = read('./useWordLanePills.js')
+    expect(eng).toContain("act?.type === 'nudge'")
+    expect(eng).not.toContain('createRateController')
   })
 })
 

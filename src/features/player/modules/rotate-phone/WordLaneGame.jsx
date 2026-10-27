@@ -4,6 +4,7 @@ import { X } from 'lucide-react'
 import WordLanePills from './WordLanePills.jsx'
 import WordLaneMic from './WordLaneMic.jsx'
 import WordLaneDebug from './WordLaneDebug.jsx'
+import WordLanePerf from './WordLanePerf.jsx'
 import WordLaneCat from './WordLaneCat.jsx'
 import XpFloat from '../../XpFloat.jsx'
 import { isWordLaneDebug } from './wordLaneConfig.js'
@@ -37,6 +38,7 @@ export default function WordLaneGame({ cfg, audioSrc, onFinished }) {
           </div>
         )}
         {debug && <WordLaneDebug plan={f.plan} />}
+        {debug && <WordLanePerf />}
         <WordLaneMic mode={f.mic} levels={f.levels} note={f.note} onTap={f.tapMic} visible={micIn} />
         {phase === 'speak' && f.mic === 'manual' && <button type="button" className="wlSkip" onClick={f.skip} data-testid="wl-skip">Пропустить</button>}
       </div>

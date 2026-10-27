@@ -76,7 +76,7 @@ describe('отклик пилюль без опоздания', () => {
   })
 
   it('опоздавший звук перематывается, а не тормозит пилюлю', () => {
-    expect(read('./useWordLanePills.js')).toContain('fxRef.current?.skipAudio?.(late)')
+    expect(read('./useWordLanePills.js')).toContain('fxRef.current?.skipAudio?.(act.ms)')
     expect(read('./useWordLaneFlow.js')).toContain('skipAudio(ms)')
   })
 })

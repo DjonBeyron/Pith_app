@@ -8,7 +8,7 @@ import { mouthShape } from './wordLaneMouth.js'
 import { CAT_SPOTS, catPeek } from './wordLaneCatPeek.js'
 
 // Пит (фиолетовый кот-маскот из конструктора сцен: buildMascot('kit')) — из нижнего края экрана выскакивает ТОЛЬКО ГОЛОВА (тело не рисуется: viewBox обрезан по голове) и торчит
-// в разных местах (CAT_SPOTS), вдвое крупнее прежнего кота. Те же идл-анимации (покачивание головы, моргание — scene-v2-cat.css), что у кружка Пита в уроках.
+// в разных местах (CAT_SPOTS), вдвое крупнее прежнего кота. БЕЗ идл-анимаций (покачивание, моргание — scn--live): анимации SVG идут в основном потоке и на смартфонах давали подлагивание в момент, когда кот выскакивает вместе с первым словом диктора; оживляют его только выскакивание (CSS-пружина на композиторе), рот по голосу и лицо-реакция.
 // Управляется ИЗВНЕ через apiRef, минуя React на кадрах:
 //  • apiRef.current.mouth(level) — громкость 0…1 → форма рта (closed / half / open). Голос есть — голова выскакивает (в новом месте), голоса нет HIDE_AFTER_MS — прячется (wordLaneCatPeek.js);
 //  • apiRef.current.react(face, ms) — реакция лицом на время ('love' — сердечки, пилюля принята; 'shy' — отвёл взгляд, слово не то) — голова торчит всё это время;
@@ -53,7 +53,7 @@ export default function WordLaneCat({ apiRef, skin = 'kit' }) {
   }, [apiRef])
 
   return (
-    <div ref={hostRef} className="scn scn--live wlCat" aria-hidden="true" data-testid="wl-cat">
+    <div ref={hostRef} className="scn wlCat" aria-hidden="true" data-testid="wl-cat">
       <svg viewBox={CAT_VIEWBOX} className="wlCatSvg">
         <g className="scn-cat">{renderTree(tree)}</g>
       </svg>

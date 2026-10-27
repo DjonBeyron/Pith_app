@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { SLOT_COUNT, TRAVEL_MS, VOICE_THRESHOLD, pillFill } from './wordLaneTimeline.js'
-import { createRateController } from './wordLaneClock.js'
+import { createAligner } from './wordLaneClock.js'
 import { startFlight, cancelFlights, setFlightRate } from './wordLaneMotion.js'
 import { createStudentGame, stepStudent } from './wordLaneStudent.js'
 import { snapPill, missPill, SNAP_LEAD_MS } from './wordLaneSnap.js'
@@ -8,7 +8,8 @@ import { snapPill, missPill, SNAP_LEAD_MS } from './wordLaneSnap.js'
 // Движок пилюль игры «Повтори за диктором». ДВИЖЕНИЕ пилюль ведёт композитор (wordLaneMotion.js: одна линейная WAAPI-анимация на пилюлю — скорость конвейера постоянна), поэтому лаги основного
 // потока на смартфонах (Vosk, React, щелчок с искрами) на ход не влияют. JS каждый кадр считает только логику и пишет заливку (transform fill-слоя, без custom-property и пересчёта стилей детей).
 //  listen — фаза диктора: пилюли летят по плану (анимация k стартует в spawn = начало слова − TRAVEL_MS), «время плана» = положение анимации. Пока файл озвучки играет, скорость полёта чуть
-//           подстраивается под его currentTime (wordLaneClock.createRateController: ±5 %); опоздавший звук перематывается (fx.skipAudio). Слово началось — заливка в такт речи, слово
+//           выравнивается под его currentTime РЕДКО и разово (wordLaneClock.createAligner: перемотка опоздавшего звука fx.skipAudio, одна короткая подкрутка ±5 %, скачок при крупном разрыве) —
+//           скорость полёта каждый кадр не трогаем (на смартфонах это подлагивало). Слово началось — заливка в такт речи, слово
 //           кончилось — щелчок.
 //  turn   — та же фаза доезжает: последняя пилюля ещё катится вниз под плашкой «Теперь твоя очередь».
 //  speak  — фаза ученика (wordLaneStudent.js): пилюли выкатываются сами (новый полёт на каждый spawn), ученик успевает или нет; движок шагает игру, события (win / fail / miss / done) — в fx.
@@ -39,18 +40,18 @@ export function useWordLanePills(rootRef, { phase, phaseAt, plan, hits, misses, 
     const paintFill = (k, v) => put(fills[k], 'transform', `scaleY(${Math.min(1, Math.max(0, v)).toFixed(3)})`)
     const hint = (k, op, pace) => { put(ghosts[k], 'opacity', op); put(paces[k], 'opacity', pace == null ? '0' : '0.9'); if (pace != null) put(paces[k], 'transform', `translateY(${(-pace * 100).toFixed(1)}%)`) }
     const reset = k => { paintFill(k, 0); hint(k, '0', null); pills[k].removeAttribute('data-lock'); pills[k].removeAttribute('data-fail') }
-    const hide = () => { if (listenRef.current) cancelFlights(listenRef.current.anims); for (let k = 0; k < SLOT_COUNT; k++) reset(k) }
+    const hide = () => { if (listenRef.current) { clearTimeout(listenRef.current.nudge); cancelFlights(listenRef.current.anims) } for (let k = 0; k < SLOT_COUNT; k++) reset(k) }
 
     // ---------- фаза диктора (и её доезжание под плашкой «твоя очередь») ----------
     if (phase === 'listen' || (phase === 'turn' && listenRef.current)) {
       if (phase === 'listen') {
         dots.forEach(d => d.classList.remove('wlDot--on'))
-        if (listenRef.current) cancelFlights(listenRef.current.anims)
+        if (listenRef.current) { clearTimeout(listenRef.current.nudge); cancelFlights(listenRef.current.anims) }
         for (let k = 0; k < SLOT_COUNT; k++) { reset(k); pills[k].setAttribute('data-lock', '1') } // у диктора заливка всегда «настоящая»
         const spawn = plan.fillAt.map(at => at - TRAVEL_MS)
         const now = performance.now() - phaseAt
         // Все три полёта стартуют сразу; у ещё не выкатившихся время отрицательное — они ждут за верхним краем
-        listenRef.current = { anims: pills.map((el, k) => startFlight(el, now - spawn[k])), spawn, ctl: createRateController(), rate: 1, last: performance.now(), heard: false, snapped: new Set() }
+        listenRef.current = { anims: pills.map((el, k) => startFlight(el, now - spawn[k])), spawn, align: createAligner(), last: performance.now(), nudge: 0, snapped: new Set() }
       }
       const c = listenRef.current
       let raf = 0
@@ -58,15 +59,16 @@ export function useWordLanePills(rootRef, { phase, phaseAt, plan, hits, misses, 
         const nowMs = performance.now()
         const t = Number(c.anims[0].currentTime) + c.spawn[0]            // время плана = где сейчас картинка
         const audioMs = fxRef.current?.audioMs?.() ?? null
-        if (audioMs != null && !c.heard) { // файл только что зазвучал: опоздал — перематываем его вперёд на опоздание (в тишине перед первым словом)
-          c.heard = true
-          const late = t - ((plan.audioAt ?? 0) + audioMs)
-          if (late > 30) fxRef.current?.skipAudio?.(late)
-        }
-        const { rate, jump } = c.ctl.step({ planMs: t, audioMs, audioAt: plan.audioAt ?? 0, dt: nowMs - c.last })
+        // Выравнивание по звуку — редкие разовые действия, а не поправка скорости каждый кадр (см. wordLaneClock.js)
+        const act = c.align.step({ planMs: t, audioMs, audioAt: plan.audioAt ?? 0, now: nowMs, dt: nowMs - c.last })
         c.last = nowMs
-        if (jump) c.anims.forEach(a => { a.currentTime = Number(a.currentTime) + jump })
-        c.rate = setFlightRate(c.anims, rate, c.rate)
+        if (act?.type === 'skip') fxRef.current?.skipAudio?.(act.ms)          // звук опоздал — перематываем его вперёд (в тишине перед первым словом)
+        else if (act?.type === 'jump') c.anims.forEach(a => { a.currentTime = Number(a.currentTime) + act.ms })
+        else if (act?.type === 'nudge') {                                      // небольшой остаток: одна короткая подкрутка скорости и снова ровно
+          setFlightRate(c.anims, act.rate, 1)
+          clearTimeout(c.nudge)
+          c.nudge = setTimeout(() => setFlightRate(c.anims, 1, act.rate), act.hold)
+        }
         for (let k = 0; k < SLOT_COUNT; k++) {
           const at = plan.fillAt[k]
           const ms = plan.fillMs[k]
