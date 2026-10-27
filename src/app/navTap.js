@@ -3,3 +3,11 @@
 export function navTapAction(activeTab, tappedTab) {
   return activeTab === tappedTab ? 'home' : 'switch'
 }
+
+// Нажатие на «Память»: отметить первое нажатие (вкладка перестаёт мерцать), на уже активной — «домой»
+// (назад из списка слов), затем переключить на неё
+export function learnTap(activeTab, { setTab, requestHome, onMemoryTap }) {
+  onMemoryTap?.()
+  if (navTapAction(activeTab, 'learn') === 'home') requestHome()
+  setTab('learn')
+}
