@@ -30,6 +30,7 @@ import { useFeedCatch } from './catch/useFeedCatch.js'
 import { onFeedJump } from './catch/catchForce.js'
 import FeedEmptyState from './FeedEmptyState.jsx'
 import GuestSaveHint from './GuestSaveHint.jsx' // строка Пита гостю после первого лайка (B7)
+import FeedChoose from './choose/FeedChoose.jsx' // игра «Выбери слово»: предложение Пита → шторка (B4)
 
 // Лента видео: вертикальный Swiper по модулям из curricula (FeedSwiper.jsx),
 // бесконечная по кругу — список повторяется циклами, у края запаса лента
@@ -44,12 +45,10 @@ export default function FeedTab({ visible = true, onOpenCanvas, onRequireAuth, l
   const [openModule, setOpenModule] = useState(null)
   const [showDebug, setShowDebug] = useState(false)
   const [showSearch, setShowSearch] = useState(false)
-  // Авторизация из локальной сессии — мгновенно, не ждём fetchFeedSocial
-  // (раньше тап по лайку до его загрузки улетал в форму входа)
+  // Авторизация из локальной сессии — мгновенно, не ждём fetchFeedSocial (иначе тап по лайку улетал в форму входа)
   const { user, loading: authLoading } = useAuth()
   const { isAdmin } = useAdmin()
-  // Открытие урока-закладки из «Мои уроки» — тем же оверлеем, что и переход
-  // по ноде lesson_ref (fromLessonId=null: ничего не паузим, паузить нечего)
+  // Урок-закладка из «Мои уроки» открывается тем же оверлеем, что и lesson_ref (fromLessonId=null: паузить нечего)
   const { openRef } = useLessonNav()
 
   const { soundOn, soundReady, soundEverOn, soundGestureRef, handleSoundOn, handleSoundOff, handleSoundBlocked } = useFeedSound()
@@ -235,6 +234,7 @@ export default function FeedTab({ visible = true, onOpenCanvas, onRequireAuth, l
       </div>
 
       <GuestSaveHint activeIdx={activeIdx} user={user} onRequireAuth={onRequireAuth} />
+      <FeedChoose learnView={learnView} enabled={feedActive} soundOn={soundReady} />
       {showDebug && <DebugPanel getFeedInfo={feedInfo} onClose={() => setShowDebug(false)} />}
       {showSearch && (
         <FeedSearchPanel

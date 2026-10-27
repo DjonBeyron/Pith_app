@@ -1,0 +1,99 @@
+/* Игра ленты «Выбери слово» (features/feed/choose/ChooseSheet.jsx): шторка снизу над нижней навигацией. Внутри — рамка
+   карточки повторения (.reviewCardFrame, review.css) с плеером: контекст 1–3 ноды и панель выбора слова. После ответа под
+   рамкой — короткая подпись итога и «Дальше». Без красного: «не то» — это «верно такое», а не тревога.
+   Анимируются только transform и opacity. */
+.chooseSheet {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: var(--v2-nav-h);
+  z-index: 9;
+  box-sizing: border-box;
+  height: min(66%, 540px);
+  display: flex;
+  flex-direction: column;
+  padding: 6px 12px 10px;
+  background: #1a1d22;
+  border-top: 1px solid #2a2d35;
+  border-radius: 18px 18px 0 0;
+  box-shadow: 0 -10px 28px rgba(0, 0, 0, 0.5);
+  color: #fff;
+  touch-action: manipulation;
+  animation: chooseSheetUp 0.26s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+
+@keyframes chooseSheetUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+.chooseHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 36px;
+}
+
+.chooseTitle {
+  font-size: 14px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.chooseClose {
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+/* Рамка карточки занимает всё свободное место (она absolute, inset 0 — ей нужен relative-родитель) */
+.chooseCard {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  border: 1px solid #2a2d35;
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.chooseFoot {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 10px;
+  animation: chooseFootIn 0.28s ease backwards;
+}
+
+@keyframes chooseFootIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.chooseVerdict {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.3;
+  text-align: center;
+}
+.chooseVerdict--ok { color: #b6fe3b; }
+.chooseVerdict--bad { color: #ffd479; }
+
+.chooseNext {
+  min-height: 44px;
+  border: 0;
+  border-radius: 12px;
+  background: #b6fe3b;
+  color: #111;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chooseSheet, .chooseFoot { animation: none; }
+}

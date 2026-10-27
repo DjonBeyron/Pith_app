@@ -27,6 +27,7 @@
 @import './styles/feed-catch-fact.css';
 @import './styles/feed-catch-confirm.css';
 @import './styles/feed-seed.css';
+@import './styles/feed-choose.css';
 @import './styles/feed-media.css';
 @import './styles/feed-scene.css';
 @import './styles/feed-scene-task.css';
@@ -187,8 +188,7 @@
 @import './styles/player/panels/push-prompt.css';
 @import './styles/player/hints.css';
 @import './styles/player/audio-glow.css';
-/* после стилей плеера: review.css переопределяет плеер внутри карточки */
-@import './styles/review.css';
+@import './styles/review.css'; /* после стилей плеера: review.css переопределяет плеер внутри карточки */
 @import './styles/review-actions.css';
 @import './styles/review-wait.css';
 @import './styles/review-summary.css';
