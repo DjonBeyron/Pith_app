@@ -48,7 +48,7 @@ export function useSceneTask({ scene, sceneId, active, live, apiRef, onLock, sou
   const sandbox = isSandboxScene(sceneId) // песочница админа: ход круга и причины пропуска видны на тестовом слайде (sandboxTaskStatus)
   // Единый бюджет Пита (shared/lib/prompts): задание берёт у слота разрешение, как остальные вопросы. Просим, пока сцена активна и
   // живая, старые лимиты ещё не отказали, а админ не форсирует показ; нет хоста слота (тесты) — granted всегда true
-  const tk = usePromptTicket({ id: `scene:${sceneId}`, kind: 'question', reason: 'game_offer' }, active && live && !!info && !sandbox,
+  const tk = usePromptTicket({ id: `scene:${sceneId}`, kind: 'question', reason: 'game_offer', legacy: true }, active && live && !!info && !sandbox,
     { ready: () => !gate.forced?.(sceneId) && !gate.why?.(sceneId) && !taskGateBlock(info, { soundOn }), tick: soundOn })
   const tkRef = useRef(tk)
   useEffect(() => { tkRef.current = tk })

@@ -6,7 +6,7 @@ const tick = () => Promise.resolve()
 
 describe('catchBudget — «Ловля слов» под бюджетом Пита', () => {
   it('кандидат — предложение игры', () => {
-    expect(catchCandidate('m1')).toEqual({ id: 'catch:m1', kind: 'offer', reason: 'game_offer' })
+    expect(catchCandidate('m1')).toEqual({ id: 'catch:m1', kind: 'offer', reason: 'game_offer', legacy: true })
   })
   it('без слота разрешено всегда, ничего не просит', () => {
     const pending = { id: null }

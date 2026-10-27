@@ -46,7 +46,7 @@ export function useFeedHint(activeIdx, cfg, { enabled = true, units = null } = {
   const armTimer = useRef(null)
 
   const isArmed = byUnits ? units >= armAt : armed
-  const tk = usePromptTicket({ id: `hint:${seenKey}`, kind: 'hint', reason: 'ui_hint' }, enabled && isArmed && !seen, { tick: activeIdx })
+  const tk = usePromptTicket({ id: `hint:${seenKey}`, kind: 'hint', reason: 'ui_hint', legacy: true }, enabled && isArmed && !seen, { tick: activeIdx })
   const grantedRef = useRef(true)
   useEffect(() => { armedRef.current = isArmed; enabledRef.current = enabled; grantedRef.current = tk.granted })
 

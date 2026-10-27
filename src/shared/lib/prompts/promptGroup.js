@@ -51,9 +51,12 @@ export function resolveGroup({ stored, id, share, profileGroup } = {}) {
   return groupFor(id, share)
 }
 
-// Можно ли показать кандидата шторки этой группе
+// Можно ли показать кандидата шторки этой группе. legacy: true — задание, которое было в приложении и до вопросов Пита
+// («Ловля слов», «О чём диалог», старые подсказки ленты): контрольная группа получает ПРЕЖНЕЕ поведение, а не урезанное,
+// поэтому такие кандидаты ей показываются; режутся только новые «умные» вопросы, игры и подсказки
 export function allowedInGroup(group, candidate) {
   if (group !== GROUPS.control) return true
+  if (candidate?.legacy) return true
   return !CONTROL_BLOCKED_REASONS.includes(candidate?.reason)
 }
 

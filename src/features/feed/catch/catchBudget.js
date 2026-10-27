@@ -8,7 +8,7 @@
 // компонентах во время рендера React не прощает).
 export const CATCH_PREFIX = 'catch:'
 
-export const catchCandidate = moduleId => ({ id: `${CATCH_PREFIX}${moduleId}`, kind: 'offer', reason: 'game_offer' })
+export const catchCandidate = moduleId => ({ id: `${CATCH_PREFIX}${moduleId}`, kind: 'offer', reason: 'game_offer', legacy: true }) // legacy — контрольная группа видит, как раньше
 
 // Слот выбрал именно эту фразу? Нет слота — да
 export const catchGranted = (slot, moduleId) => !slot || slot.current?.id === `${CATCH_PREFIX}${moduleId}`

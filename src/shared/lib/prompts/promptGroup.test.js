@@ -83,6 +83,9 @@ describe('allowedInGroup', () => {
   it('control: вопросы по поведению, игры и подсказки интерфейса скрыты', () => {
     for (const r of ['behavior', 'game_offer', 'ui_hint']) expect(allowedInGroup('control', c(r))).toBe(false)
   })
+  it('control: прежние задания ленты (legacy) видны — контрольная группа получает старое поведение', () => {
+    for (const r of ['game_offer', 'ui_hint']) expect(allowedInGroup('control', { ...c(r), legacy: true })).toBe(true)
+  })
   it('control: функциональные шаги разрешены', () => {
     for (const r of ['explain_done', 'asked', 'notify_ask']) expect(allowedInGroup('control', c(r))).toBe(true)
   })
