@@ -3,7 +3,7 @@ import { reviewWord } from '../../shared/api/memoryApi.js'
 import { fireBurst } from '../../shared/lib/burstParticles.js'
 import { tokenLevel } from './feedKnowledge.js'
 import { track } from '../../shared/lib/analytics/track.js'
-import { FEED_RECALL_ANSWER } from '../../shared/lib/analytics/eventNames.js'
+import { FEED_RECALL_ANSWER, FEED_WORD_TAP } from '../../shared/lib/analytics/eventNames.js'
 import {
   pickRecallWord, quizOptions, recallOutcome, recallState, recallResult, recallColor, recallHoldMs,
 } from './feedRecall.js'
@@ -74,6 +74,7 @@ export function useSlideRecall({ recall, mod, active, revealed, knowledge, wp, o
   // Лимиты (3 в день, раз в 5 видео) касаются только «дыхания» слова — приманки, которую показываем сами. Человек
   // тапнул по слову со сроком «сегодня» сам — проверка открывается всегда, пока на этой фразе слово не отвечено
   function onPick(index, tr, el) {
+    track(FEED_WORD_TAP, { module_id: mod.id })
     const options = cand && index === cand.index && !words?.[cand.key] ? quizOptions(cand.tr, recall.pool) : null
     if (!options) { pickWord(index, tr, el); return }
     pickWord(index, tr, el, {

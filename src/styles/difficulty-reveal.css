@@ -1,0 +1,17 @@
+/* Значок сложности в ленте (PLAN_NEW_USER.md → B2): скрыт до первого прослушивания со звуком, потом плавно проявляется.
+   Классы ставит DifficultyBadge.jsx (проп revealed). Место под значок остаётся — колонка иконок не прыгает;
+   visibility убирает скрытый значок из касаний и фокуса, при проявлении переключается в начале перехода. */
+.diffHidden {
+  opacity: 0;
+  visibility: hidden;
+}
+
+.diffReveal {
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 0.6s ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .diffReveal { transition: none; }
+}

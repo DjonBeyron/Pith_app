@@ -11,6 +11,7 @@ export const FEED_SLOW = 'feed_slow'                 // { module_id, on } — з
 export const FEED_PHRASE_OPEN = 'feed_phrase_open'   // { module_id } — открыл фразу из-под шариков спойлера
 export const FEED_REVEAL = 'feed_reveal'             // { module_id } — открыл перевод фразы (потёр или стрелкой)
 export const FEED_RECALL_ANSWER = 'feed_recall_answer' // { word, ok, ms } — ответ на «Помнишь?» в ленте
+export const FEED_WORD_TAP = 'feed_word_tap'       // { module_id } — тап по слову фразы (открыл перевод слова); по нему подсказки ленты понимают, что про перевод слова человек знает
 export const FEED_LIKE = 'feed_like'                 // { module_id, on }
 export const FEED_SAVE = 'feed_save'                 // { module_id, on } — закладка
 export const FEED_REPOST = 'feed_repost'             // { module_id, on: true } — репост (share/копия ссылки)
