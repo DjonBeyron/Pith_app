@@ -86,6 +86,7 @@ describe('раунд «Различи» (слова-запутыватели)', 
   it('подсказки: верное слово и запутыватели в дорожках, верное каждый раз на другой дорожке; с одним запутывателем — крайние дорожки', () => {
     const three = discernPrompts(chunks, 1, ['tying', 'drying'])
     expect(three).toHaveLength(2)
+    expect(three[0].stagger).toBeGreaterThan(0)                                      // пилюли идут по очереди
     three.forEach(p => { expect(p.words[p.answer[0]]).toBe('trying'); expect([...p.words].sort()).toEqual(['drying', 'trying', 'tying']) })
     expect(three[0].answer[0]).not.toBe(three[1].answer[0])
     const two = discernPrompts(chunks, 0, ['am'])

@@ -1,4 +1,4 @@
-// Раунд «Порядок» — на время, как конвейер. Дорожки перемешаны и подписаны кусками фразы. На каждую подсказку диктора выкатываются пилюли (по одной в каждой дорожке) и едут вниз с постоянной
+// Раунды «Порядок» и «Различи» — на время, как конвейер. Дорожки перемешаны и подписаны кусками фразы. На каждую подсказку диктора выкатываются пилюли (по одной в каждой дорожке) и едут вниз с постоянной
 // скоростью; пока они на экране, ученик должен тапнуть ПРАВИЛЬНЫЕ дорожки: подсказка — один кусок (тап по его дорожке) или вся фраза (тап по дорожкам в порядке звучания). Успел — пилюля
 // заливается и щёлкает; не успел (пилюли ушли вниз) — «не успел», та же подсказка звучит снова (до ORDER_MAX_TRIES раз, потом идём дальше). Неверная дорожка не штрафуется: дрожит, после
 // HINT_AFTER ошибок верная подсвечивается кольцом. Чистая логика без DOM — время приходит аргументом, проверяется тестами.
@@ -19,8 +19,13 @@ export function createOrderGame({ prompts, lanes, maxTries = ORDER_MAX_TRIES }) 
 /** Дорожки, которые надо тапнуть на текущей подсказке, по порядку */
 export const expectedLanes = g => (g.finished ? [] : g.prompts[g.i].answer ?? g.prompts[g.i].parts.map(chunk => g.lanes.indexOf(chunk))) // «Различи»: верная дорожка задана в подсказке (answer)
 
-/** Высота центра пилюль текущей подсказки в момент t (все дорожки едут вместе) */
-export const orderY = (g, t) => ENTER_Y + (SPEED * (t - g.spawnAt)) / 1000
+/** Через сколько мс после выкатки подсказки выкатывается пилюля дорожки lane: у «Порядка» все вместе, у «Различи» (stagger) — по очереди слева направо */
+export const laneDelayOf = (prompt, lane) => (prompt.stagger && prompt.slots ? Math.max(0, prompt.slots.indexOf(lane)) * prompt.stagger : 0)
+/** Когда выкатилась последняя пилюля подсказки (мс после выкатки первой) */
+export const maxDelayOf = prompt => (prompt.stagger && prompt.slots ? (prompt.slots.length - 1) * prompt.stagger : 0)
+
+/** Высота центра пилюли текущей подсказки в момент t; delay — задержка выкатки пилюли этой дорожки (laneDelayOf) */
+export const orderY = (g, t, delay = 0) => ENTER_Y + (SPEED * (t - g.spawnAt - delay)) / 1000
 
 /**
  * Шаг игры в момент t. События: spawn { prompt, tries } — выкатить пилюли; say { parts } — диктор называет подсказку; fail { prompt, lost } — не успел; done { mistakes, lost } — раунд закончен.
@@ -33,8 +38,9 @@ export function stepOrder(g, t) {
     out.push({ type: 'spawn', prompt: g.prompts[g.i], tries: g.tries })
   }
   if (g.state === 'fly') {
-    if (!g.said && t >= g.spawnAt + ORDER_SAY_DELAY_MS) { g.said = true; out.push({ type: 'say', parts: g.prompts[g.i].parts }) }
-    if (orderY(g, t) > FAIL_Y) {
+    const late = maxDelayOf(g.prompts[g.i])
+    if (!g.said && t >= g.spawnAt + late + ORDER_SAY_DELAY_MS) { g.said = true; out.push({ type: 'say', parts: g.prompts[g.i].parts }) } // диктор называет, когда все пилюли уже видны
+    if (orderY(g, t, late) > FAIL_Y) { // не успел — когда ушла вниз последняя пилюля
       g.tries += 1
       const lost = g.tries >= g.maxTries
       out.push({ type: 'fail', prompt: g.prompts[g.i], lost })
@@ -54,7 +60,7 @@ export function stepOrder(g, t) {
  */
 export function tapLane(g, lane, t) {
   if (g.finished || g.state !== 'fly') return []
-  const y = orderY(g, t)
+  const y = orderY(g, t, laneDelayOf(g.prompts[g.i], lane)) // у «Различи» пилюли выкатываются по очереди — у каждой своя высота
   if (y < CLAIM_FROM_Y || y > FAIL_Y) return []
   const slots = g.prompts[g.i].slots
   if (slots && !slots.includes(lane)) return [] // «Различи»: в этой дорожке пилюли нет — тап никуда не попал

@@ -19,7 +19,7 @@ export default function WordLaneGame({ cfg, audioSrc, lines = null, onFinished }
   const catApi = useRef(null) // Пит (кот-маскот): рот по голосу и реакции лицом — через api, минуя React на кадрах
   const f = useWordLaneFlow({ chunks: cfg.chunks, translation: cfg.translation, lang: cfg.lang, clips: cfg.clips, audioSrc, audio: cfg.audio, catApi, lines, confusers: cfg.confusers, onFinished })
   const { phase } = f
-  const single = cfg.chunks.length === 1 && !f.labels.some(h => h.text) // у одного слова текст стоит крупно — кроме «Различи», где в дорожках разные слова
+  const single = cfg.chunks.length === 1 && phase !== 'discern' // у одного слова текст стоит крупно — кроме «Различи»: там слова на пилюлях, а верное над дорожками не выдаём
   const showSlots = phase !== 'drop'
   const intro = phase === 'drop' || phase === 'lanes'
   const heads = intro ? cfg.chunks.map(text => ({ text, on: true })) : f.labels

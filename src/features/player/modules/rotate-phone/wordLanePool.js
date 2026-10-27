@@ -9,20 +9,21 @@ export const POOL = 12
 
 export function createPool(root) {
   const els = [...root.querySelectorAll('[data-pill]')]
-  const parts = els.map(el => ({ el, fill: el.querySelector('.wlPillFill'), ghost: el.querySelector('.wlGhost'), bars: [...el.querySelectorAll('.wlGhost i')], pace: el.querySelector('.wlPace') }))
+  const parts = els.map(el => ({ el, fill: el.querySelector('.wlPillFill'), ghost: el.querySelector('.wlGhost'), bars: [...el.querySelectorAll('.wlGhost i')], pace: el.querySelector('.wlPace'), label: el.querySelector('.wlPillLabel') }))
   const cache = new Map()
   const put = (el, prop, value) => { const prev = cache.get(el) ?? {}; if (prev[prop] === value) return; prev[prop] = value; cache.set(el, prev); el.style[prop] = value }
   const free = els.map((_, i) => i).reverse()
   const live = new Map() // индекс → { anim, lane }
 
   const paintFill = (k, v) => put(parts[k].fill, 'transform', `scaleY(${Math.min(1, Math.max(0, v)).toFixed(3)})`)
+  const setLabel = (k, text) => { const l = parts[k].label; if (l && l.textContent !== text) l.textContent = text } // слово на пилюле («Различи»)
   const hint = (k, opacity, pace) => {
     put(parts[k].ghost, 'opacity', opacity)
     put(parts[k].pace, 'opacity', pace == null ? '0' : '0.9')
     if (pace != null) put(parts[k].pace, 'transform', `translateY(${(-pace * 100).toFixed(1)}%)`)
   }
   const clean = k => {
-    paintFill(k, 0); hint(k, '0', null)
+    paintFill(k, 0); hint(k, '0', null); setLabel(k, '')
     parts[k].el.removeAttribute('data-lock'); parts[k].el.removeAttribute('data-fail'); parts[k].el.removeAttribute('data-hint')
   }
   /** Тень слова: ширина полосок по громкости куска слова диктора (без кривой — ровно) */
@@ -34,7 +35,7 @@ export function createPool(root) {
   return {
     size: els.length,
     el: k => parts[k]?.el,
-    paintFill, hint, shape,
+    paintFill, hint, shape, label: setLabel,
     attr: (k, name, on = true) => { if (on) parts[k].el.setAttribute(name, '1'); else parts[k].el.removeAttribute(name) },
     /** Выдать пилюлю под дорожку lane; atMs — сколько мс полёта уже прошло (отрицательное — ждёт за краем). Без полёта (static) — стоит на месте. Возвращает номер или null, если пул пуст */
     take(lane, { atMs = 0, curve = null, flight = true } = {}) {

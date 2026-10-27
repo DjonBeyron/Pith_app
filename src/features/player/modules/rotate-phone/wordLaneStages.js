@@ -4,7 +4,7 @@
 //  turn     — плашка «Теперь твоя очередь» (слушатель Vosk уже стартует под ней);
 //  student  — ученик повторяет те же повторы (конвейер wordLaneStudent);
 //  order    — раунд «Порядок»: подсказки диктора, ученик тапает дорожки;
-//  discern  — раунд «Различи» (для куска с запутывателями): диктор говорит кусок, в дорожках он и похожие слова — ученик тапает верную (подписи дорожек у каждой подсказки свои).
+//  discern  — раунд «Различи» (для куска с запутывателями): диктор говорит кусок, в дорожках он и похожие слова — ученик тапает дорожку с верным словом (пилюли выкатываются по очереди, слова написаны на пилюлях).
 // У каждой стадии свой номер idx и ссылка на раунд/ступень; подписи дорожек и подсветка считаются из стадии (labelsFor).
 import { buildRecipe, orderLanes } from './wordLaneRecipe.js'
 import { planDictor } from './wordLaneDictor.js'
@@ -57,10 +57,10 @@ export function listenStepOf(stages, idx) {
 }
 
 /** Подписи дорожек на стадии: { text, on }[3] — текст куска над дорожкой и подсвечена ли она (участвует в ступени). Пустой текст — подписи нет (вслепую) */
-export function labelsFor(stage, chunks, lanes, hint = [], promptIdx = 0) {
+export function labelsFor(stage, chunks, lanes, hint = []) {
   const n = chunks.length
   const out = Array.from({ length: 3 }, () => ({ text: '', on: false }))
-  if (stage?.type === 'discern') { const words = stage.prompts[Math.min(promptIdx, stage.prompts.length - 1)]?.words ?? []; return out.map((_, lane) => ({ text: words[lane] ?? '', on: !!words[lane] })) } // подписи у каждой подсказки свои
+  if (stage?.type === 'discern') return out // «Различи»: слова написаны на самих пилюлях, над дорожками пусто (верное слово не выдаём)
   if (!stage || n < 2) return out
   if (stage.type === 'order') { lanes.forEach((chunk, lane) => { out[lane] = { text: chunks[chunk], on: true } }); return out }
   const step = stage.step

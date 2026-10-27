@@ -23,6 +23,7 @@ export default function WordLanePills({ scene, levels, fx, live, sceneApi, visib
             <span className="wlPillFill" />
             <span className="wlPace" />
           </span>
+          <span className="wlPillLabel" />
         </div>
       ))}
       <div className={`wlFade wlFade--top${visible ? ' wlFade--in' : ''}`} aria-hidden="true" data-testid="wl-fade-top" />

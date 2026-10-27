@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { createOrderGame, expectedLanes, stepOrder, tapLane, orderY, HINT_AFTER, ORDER_MAX_TRIES, ORDER_START_MS, ORDER_GAP_MS, ORDER_SAY_DELAY_MS } from './wordLaneOrder.js'
+import { createOrderGame, expectedLanes, stepOrder, tapLane, orderY, laneDelayOf, maxDelayOf, HINT_AFTER, ORDER_MAX_TRIES, ORDER_START_MS, ORDER_GAP_MS, ORDER_SAY_DELAY_MS } from './wordLaneOrder.js'
 import { buildRecipe, orderLanes } from './wordLaneRecipe.js'
 import { FAIL_Y, CLAIM_FROM_Y } from './wordLaneStudent.js'
 import { SPEED, ENTER_Y } from './wordLaneTimeline.js'
@@ -110,5 +110,22 @@ describe('раунд «Порядок» на время: пилюли едут, 
     expect(tapLane(g, 1, t)).toEqual([])                                                // дорожка 1 пуста
     expect(tapLane(g, 0, t)[0]).toMatchObject({ type: 'wrong', expected: 2 })
     expect(tapLane(g, 2, t).map(e => e.type)).toEqual(['ok', 'next', 'done'])
+  })
+
+  it('«Различи»: пилюли выкатываются по очереди, диктор называет слово, когда видны все; тап по пилюле, которая ещё не выкатилась, не считается', () => {
+    const dp = [{ id: 'd', parts: [1], answer: [0], slots: [0, 1, 2], words: ['trying', 'tying', 'drying'], stagger: 900 }]
+    expect([0, 1, 2].map(l => laneDelayOf(dp[0], l))).toEqual([0, 900, 1800])
+    expect(maxDelayOf(dp[0])).toBe(1800)
+    const g = createOrderGame({ prompts: dp, lanes })
+    const events = []
+    let t = 0
+    for (; t <= 4000; t += DT) for (const e of stepOrder(g, t)) events.push({ t, ...e })
+    const spawn = events.find(e => e.type === 'spawn').t
+    expect(events.find(e => e.type === 'say').t - spawn).toBeGreaterThanOrEqual(1800 + ORDER_SAY_DELAY_MS - DT)
+    // дорожка 2 выкатилась на 1,8 с позже дорожки 0: сразу после выкатки её пилюля ещё над экраном
+    const g2 = createOrderGame({ prompts: [{ ...dp[0], answer: [2] }], lanes })
+    const s2 = spawnNext(g2)
+    expect(tapLane(g2, 2, s2 + 1200)).toEqual([])
+    expect(tapLane(g2, 2, s2 + 1800 + 1500)[0].type).toBe('ok')
   })
 })

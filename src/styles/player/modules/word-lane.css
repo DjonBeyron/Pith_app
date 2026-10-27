@@ -126,6 +126,9 @@
   will-change: transform;
 }
 
+/* Слово на пилюле — раунд «Различи» (пилюли идут по очереди, верное слово нужно найти по надписи) */
+.wlPillLabel { position: absolute; inset: 0; z-index: 1; display: flex; align-items: center; justify-content: center; padding: 0 4px; box-sizing: border-box; text-align: center; font-size: clamp(13px, 4vw, 17px); font-weight: 800; line-height: 1.1; overflow-wrap: anywhere; color: #fff; text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8); pointer-events: none; }
+
 /* Раунд «Порядок»: три невидимые кнопки-дорожки поверх сцены (тап по дорожке), верная дорожка после ошибок подсвечивается кольцом */
 .wlTap { inset: 0; display: flex; z-index: 5; pointer-events: auto; }
 .wlTapLane { flex: 1; border: 0; padding: 0; background: transparent; -webkit-tap-highlight-color: transparent; cursor: pointer; }

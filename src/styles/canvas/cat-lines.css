@@ -12,3 +12,10 @@
 .nodeConfusersHead { white-space: normal; }
 .nodeConfusersItem > summary { cursor: pointer; font-size: 13px; }
 .nodeConfusersBody { display: flex; flex-direction: column; gap: 6px; margin: 6px 0 4px; }
+
+/* Предпросмотр кота ×3 и подсветка несохранённого */
+.catLinesCat--big.wlStage { width: min(450px, 100%); height: auto; aspect-ratio: 150 / 76; }
+.catLinesCat--big.wlStage > .wlCat.scn { width: 50%; }
+.catLinesBig { align-self: flex-start; }
+.catLinesSave--hot { border-color: #ff5d5d; color: #ff8a8a; box-shadow: 0 0 8px rgba(255, 93, 93, 0.6); }
+.catLinesWarn { color: #ff8a8a; white-space: normal; }

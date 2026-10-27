@@ -43,7 +43,7 @@ export function useWordLaneFlow({ chunks, translation, lang, clips = null, audio
   const { stages, chunkMs, chunkCurves, lanes, clipMode } = built
   useEffect(() => { pLog(`[word-lane] диктор: ${audioSrc ? (clips ? 'озвучка автора, клипы найдены' : 'озвучка есть, но клипы кусков не найдены — куски проговорит голос системы') : 'без озвучки — голос системы'}`) }, [audioSrc, clips])
   const [micEpoch, setMicEpoch] = useState(0) // растёт, когда микрофон переоткрыт: слушатель пересоздаётся на новом потоке
-  const [s, setS] = useState({ stage: 'drop', idx: 0, at: 0, xp: 0, xpEvents: [], note: '', lid: '', seq: [], misses: 0, mic: 'starting', hint: [], promptIdx: 0 })
+  const [s, setS] = useState({ stage: 'drop', idx: 0, at: 0, xp: 0, xpEvents: [], note: '', lid: '', seq: [], misses: 0, mic: 'starting', hint: [] })
   const sRef = useRef(s)
   const listenerRef = useRef(null)
   const finishedRef = useRef(false)
@@ -63,7 +63,7 @@ export function useWordLaneFlow({ chunks, translation, lang, clips = null, audio
 
   const later = useCallback((fn, ms) => { const id = setTimeout(() => { timersRef.current.delete(id); fn() }, Math.max(0, ms)); timersRef.current.add(id); return id }, [])
   const clearTimers = useCallback(() => { timersRef.current.forEach(clearTimeout); timersRef.current.clear() }, [])
-  const go = useCallback((stage, idx = 0) => setS(p => ({ ...p, stage, idx, at: performance.now(), hint: [], promptIdx: 0 })), [])
+  const go = useCallback((stage, idx = 0) => setS(p => ({ ...p, stage, idx, at: performance.now(), hint: [] })), [])
   const next = useCallback(() => { const i = sRef.current.idx + 1; if (i >= stages.length) go('reveal', i); else go('run', i) }, [go, stages.length])
   const stageObj = s.stage === 'run' ? stages[s.idx] : null
 
@@ -108,7 +108,6 @@ export function useWordLaneFlow({ chunks, translation, lang, clips = null, audio
     },
     mouth(level, code) { catApi?.current?.mouth(level, code) },
     peek(ms) { catApi?.current?.peek?.(ms) },
-    prompt(i) { setS(p => (p.promptIdx === i ? p : { ...p, promptIdx: i })) }, // раунд «Различи»: у каждой подсказки свои подписи дорожек
     say(parts) { // подсказка раунда «Порядок»: кот выскакивает, диктор называет куски
       catApi?.current?.peek?.(parts.reduce((sum, i) => sum + (lib(i)?.ms ?? estChunkMs(chunks[i])) / (rate > 0 ? rate : 1) + 80, 700))
       say(parts)
@@ -119,7 +118,7 @@ export function useWordLaneFlow({ chunks, translation, lang, clips = null, audio
   useEffect(() => { handlersRef.current = handlers })
   const [fx] = useState(() => ({
     win: (...a) => handlersRef.current.win(...a), miss: (...a) => handlersRef.current.miss(...a), fail: (...a) => handlersRef.current.fail(...a),
-    mouth: (...a) => handlersRef.current.mouth(...a), peek: (...a) => handlersRef.current.peek(...a), prompt: (...a) => handlersRef.current.prompt(...a), say: (...a) => handlersRef.current.say(...a), finished: (...a) => handlersRef.current.finished(...a),
+    mouth: (...a) => handlersRef.current.mouth(...a), peek: (...a) => handlersRef.current.peek(...a), say: (...a) => handlersRef.current.say(...a), finished: (...a) => handlersRef.current.finished(...a),
   }))
 
   const dismissXp = useCallback(id => setS(p => {
@@ -226,7 +225,7 @@ export function useWordLaneFlow({ chunks, translation, lang, clips = null, audio
 
   const live = { seq: s.lid === listenId ? s.seq : [], misses: s.lid === listenId ? s.misses : 0, signal: () => signalRef.current }
   const phase = s.stage === 'run' ? (stageObj?.type ?? 'idle') : s.stage
-  const labels = labelsFor(stageObj?.type === 'announce' ? stages[s.idx + 1] : stageObj, chunks, lanes, s.hint, s.promptIdx) // под плашкой раунда уже видны подписи следующей стадии
+  const labels = labelsFor(stageObj?.type === 'announce' ? stages[s.idx + 1] : stageObj, chunks, lanes, s.hint) // под плашкой раунда уже видны подписи следующей стадии
   const plate = stageObj?.type === 'announce' ? stageObj.round.title : stageObj?.type === 'turn' ? 'Теперь твоя очередь' : ''
   return { ...s, catLine: cat.text, phase, stageObj, scene, live, labels, plate, plateMs: stageObj?.ms ?? 0, levels, fx, sceneApi, onLane, dismissXp, tapMic, skip, finish, translation, text: textOf(chunks, chunks.map((_, i) => i)) }
 }

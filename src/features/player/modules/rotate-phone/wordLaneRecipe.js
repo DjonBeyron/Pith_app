@@ -38,6 +38,7 @@ const rep = parts => ({ parts })
 
 const TITLES = { build: 'Повторяй', order: 'Выбери дорожку', discern: 'Различи', blind: 'Вслепую' }
 export const MAX_CONFUSERS = 2   // слов-запутывателей на кусок (вместе с верным словом — три дорожки)
+export const DISCERN_STAGGER_MS = 900 // пилюли «Различи» выкатываются по очереди с таким шагом
 export const DISCERN_PROMPTS = 2 // сколько раз диктор говорит кусок в раунде «Различи» (дорожки каждый раз перетасованы)
 
 /** Слова-запутыватели из ноды → по куску массив до MAX_CONFUSERS слов: пустые, повторы, совпадающие с самим куском и лишние отбрасываются. confusers — массив (по номеру куска) массивов строк */
@@ -57,7 +58,7 @@ export function normalizeConfusers(confusers, chunks) {
 }
 
 /**
- * Подсказки раунда «Различи» для куска chunk: на каждую диктор говорит этот кусок, а в дорожках стоят он и запутыватели. words — подписи по дорожкам ('' — дорожки нет), answer — верная дорожка, slots — дорожки с пилюлями.
+ * Подсказки раунда «Различи» для куска chunk: на каждую диктор говорит этот кусок, а в дорожках стоят он и запутыватели. words — слова на пилюлях по дорожкам ('' — дорожки нет), answer — верная дорожка, slots — дорожки с пилюлями, stagger — шаг выкатки пилюль по очереди (мс).
  * С двумя словами занимаются крайние дорожки (0 и 2), с тремя — все. Верное слово каждый раз на другой дорожке (без случайности — раскладка не зависит от запуска).
  */
 export function discernPrompts(chunks, chunk, words) {
@@ -67,7 +68,7 @@ export function discernPrompts(chunks, chunk, words) {
     const rest = [...words]
     const labels = ['', '', '']
     for (const lane of slots) labels[lane] = lane === answer ? chunks[chunk] : rest.shift()
-    return { id: `discern-${chunk}-${j}`, parts: [chunk], answer: [answer], slots, words: labels }
+    return { id: `discern-${chunk}-${j}`, parts: [chunk], answer: [answer], slots, words: labels, stagger: DISCERN_STAGGER_MS }
   })
 }
 
