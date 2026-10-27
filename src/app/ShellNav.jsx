@@ -3,7 +3,7 @@ import { Cog, Video, UserRound, Trophy, Brain, Flame } from 'lucide-react'
 import { requestLessonsHome } from '../shared/lib/lessonsHomeEvent.js'
 import { requestLearnHome } from '../shared/lib/learnHomeEvent.js'
 import { requestProfileHome } from '../shared/lib/profileHomeEvent.js'
-import { navTapAction } from './navTap.js'
+import { navTapAction, learnTap } from './navTap.js'
 
 // Нижняя панель оболочки: Уроки / Память / Профиль / Рейтинг (+ Админ).
 // «Память» зовёт, когда есть что повторить сегодня или новое слово из урока
@@ -12,6 +12,8 @@ import { navTapAction } from './navTap.js'
 // из-за значка выплывают три мелких «Z». Активная супергонка (raceFlame) — над кубком «Рейтинга» мерцает
 // огонёк с искрами (nav-race.css). «Профиль» с неполученной ежедневной наградой (rewardsDot) — золотится, дышит и
 // мерцает двумя звёздочками (nav-rewards.css). Вынесено из ShellV2.jsx
+// У нового пользователя без слов «Памяти» на панели нет (memoryTab === 'hidden'); с первым словом она появляется и
+// мерцает (`blink`, memory-tab.css), пока на неё не нажмут (onMemoryTap), затем обычная (features/learn/memoryTab.js)
 
 // Силуэт мозга под контуром иконки Brain (lucide) — заливка «есть что повторить»
 const BRAIN_FILL = 'M12 4.2c-1-1.4-3.6-1.6-5 .1-1.8.1-3.2 1.6-3 3.4-1.6 1-2 3.2-.9 4.7-1 1.6-.4 3.8 1.3 4.6.3 2 2.3 3.3 4.2 2.9 1 1 2.6 1.2 3.4.2.8 1 2.4.8 3.4-.2 1.9.4 3.9-.9 4.2-2.9 1.7-.8 2.3-3 1.3-4.6 1.1-1.5.7-3.7-.9-4.7.2-1.8-1.2-3.3-3-3.4-1.4-1.7-4-1.5-5-.1z'
@@ -31,7 +33,7 @@ function useFadeOut(on) {
   return fading
 }
 
-export default function ShellNav({ tab, setTab, learnDot, learnSleeping = false, raceFlame = false, rewardsDot = false, isRealAdmin, userMode }) {
+export default function ShellNav({ tab, setTab, memoryTab = 'normal', onMemoryTap, learnDot, learnSleeping = false, raceFlame = false, rewardsDot = false, isRealAdmin, userMode }) {
   const cls = (id, extra = '') => `shellV2NavBtn${tab === id ? ' shellV2NavBtnActive' : ''}${extra}`
   const dueFading = useFadeOut(!!learnDot) // повторить стало нечего — мозг ещё мягко гаснет
   const due = learnDot || dueFading
@@ -45,9 +47,10 @@ export default function ShellNav({ tab, setTab, learnDot, learnSleeping = false,
         Уроки
       </button>
       {/* data-nav — цель полёта нового слова из итога урока (memoryFresh.js) */}
-      <button className={cls('learn', due ? ` shellV2NavBtnDue${dueFading ? ' shellV2NavBtnDueOut' : ''}` : learnSleeping ? ' shellV2NavBtn--sleep' : '')} data-nav="learn"
+      {memoryTab !== 'hidden' && (
+      <button className={cls('learn', due ? ` shellV2NavBtnDue${dueFading ? ' shellV2NavBtnDueOut' : ''}` : learnSleeping ? ' shellV2NavBtn--sleep' : '') + (memoryTab === 'blink' ? ' shellV2NavBtn--blink' : '')} data-nav="learn"
         // Уже в «Памяти» — повторное нажатие = «назад» из списка слов на главный экран
-        onClick={() => { if (tab === 'learn') requestLearnHome(); setTab('learn') }}>
+        onClick={() => learnTap(tab, { setTab, requestHome: requestLearnHome, onMemoryTap })}>
         {/* Всё повторено — мозг спит: три мелких «Z» выплывают из-за значка (маска по силуэту мозга, learn-sleep.css) */}
         {learnSleeping && !due ? (
           <span className="shellV2NavBrain">
@@ -59,6 +62,7 @@ export default function ShellNav({ tab, setTab, learnDot, learnSleeping = false,
         )}
         Память
       </button>
+      )}
       <button className={cls('profile')}
         // Уже в «Профиле» — повторное нажатие = «назад» из подэкрана (достижения, настройки, схема модуля)
         onClick={() => { if (navTapAction(tab, 'profile') === 'home') requestProfileHome(); setTab('profile') }}>
