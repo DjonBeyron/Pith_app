@@ -20,30 +20,33 @@ export const LEAD_IN_S = 0.06
 export const TAIL_S = 0.08
 
 /**
- * Тайминги слов ElevenLabs [{ w, t, e }] → клипы по высказываниям: [ [ {start,end} на каждый кусок ] на каждое высказывание ] или null, если слов не хватает. Слова файла идут подряд в порядке
- * utterances(); сколько слов в куске — столько берём (слово = то, что между пробелами в тексте куска). Конец слова — e, а без него — начало следующего слова (или +0,6 с).
+ * Тайминги слов ElevenLabs [{ w, t, e }] → клипы по высказываниям: [ [ {start,end} на каждый кусок ] на каждое высказывание ] или null, если слов не хватает. Два случая:
+ *  1) в записи есть ВСЕ высказывания рецепта по порядку (utterances(): «I'm. trying. I'm trying. to learn. I'm trying to learn.») — каждому высказыванию свои клипы;
+ *  2) в записи ТОЛЬКО ФРАЗА целиком («I'm trying to learn.») — клипы кусков берутся из неё, а высказывание из нескольких кусков — подряд идущие куски той же записи (куски фразы идут
+ *     подряд, поэтому любое сочетание «1», «2», «1+2», «3», «1+2+3» — непрерывный отрезок). Так достаточно озвучить фразу один раз.
+ * Сколько слов в куске — столько берём (слово = то, что между пробелами в тексте куска). Конец слова — e, а без него — начало следующего слова (или +0,6 с).
  */
 export function clipsFromTimings(timings, chunks, duration = null) {
   if (!Array.isArray(timings) || !chunks?.length) return null
   const toks = timings.filter(x => x && num(x.t))
-  const total = utterances(chunks.length).flat().reduce((a, i) => a + wordsIn(chunks[i]).length, 0)
-  if (toks.length < total) return null
-  let at = 0
-  const out = []
-  for (const parts of utterances(chunks.length)) {
-    const row = []
-    for (const i of parts) {
-      const k = wordsIn(chunks[i]).length
-      const first = toks[at]
-      const last = toks[at + k - 1]
-      const next = toks[at + k]
-      const end = num(last.e) && last.e > first.t ? last.e : num(next?.t) && next.t > first.t ? next.t : first.t + 0.6
-      row.push({ start: +first.t.toFixed(3), end: +Math.min(end, num(duration) && duration > first.t ? duration : end).toFixed(3) })
-      at += k
-    }
-    out.push(row)
+  const clipOf = (at, k) => {
+    const first = toks[at]
+    const last = toks[at + k - 1]
+    const next = toks[at + k]
+    const end = num(last.e) && last.e > first.t ? last.e : num(next?.t) && next.t > first.t ? next.t : first.t + 0.6
+    return { start: +first.t.toFixed(3), end: +Math.min(end, num(duration) && duration > first.t ? duration : end).toFixed(3) }
   }
-  return out
+  const per = chunks.map(c => wordsIn(c).length)
+  const full = utterances(chunks.length).flat().reduce((a, i) => a + per[i], 0)
+  if (toks.length >= full) {
+    let at = 0
+    return utterances(chunks.length).map(parts => parts.map(i => { const c = clipOf(at, per[i]); at += per[i]; return c }))
+  }
+  const phrase = per.reduce((a, k) => a + k, 0)
+  if (toks.length < phrase) return null
+  let at = 0
+  const byChunk = per.map(k => { const c = clipOf(at, k); at += k; return c })
+  return utterances(chunks.length).map(parts => parts.map(i => byChunk[i]))
 }
 
 /** Клипы одного слова из старого таймлайна fills ([{start,end}] ×3): высказывание r — клип fills[r] */

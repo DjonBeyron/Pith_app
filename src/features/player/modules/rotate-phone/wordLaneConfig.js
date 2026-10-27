@@ -25,7 +25,7 @@ export function readWordLane(tData) {
   const hasFile = !!td.file_id
   let clips = null
   if (hasFile) {
-    if (chunks.length === 1) clips = clipsFromFills(normalizeFills(td.fills)) ?? clipsFromFills(fillsFromTimings(td.wordTimings, chunks[0], td.duration))
+    if (chunks.length === 1) clips = clipsFromFills(normalizeFills(td.fills)) ?? clipsFromFills(fillsFromTimings(td.wordTimings, chunks[0], td.duration)) ?? clipsFromTimings(td.wordTimings, chunks, td.duration)
     else clips = clipsFromTimings(td.wordTimings, chunks, td.duration)
   }
   return {

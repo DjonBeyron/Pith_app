@@ -29,8 +29,8 @@ describe('клипы по таймингам слов', () => {
     expect(c[4]).toHaveLength(3)
     for (const row of c) for (const k of row) { expect(k.end).toBeGreaterThan(k.start) }
   })
-  it('слов меньше, чем нужно, — null (играем по оценке длительности)', () => {
-    expect(clipsFromTimings(timingsOf(chunks).slice(0, 5), chunks)).toBeNull()
+  it('слов меньше, чем в самой фразе, — null (играем по оценке длительности)', () => {
+    expect(clipsFromTimings(timingsOf(chunks).slice(0, 3), chunks)).toBeNull()
     expect(clipsFromTimings(null, chunks)).toBeNull()
   })
   it('нет конца слова (e) — берётся начало следующего слова; конец не дальше длины файла', () => {
@@ -65,5 +65,29 @@ describe('клип для повтора ступени', () => {
   it('оценка длины куска без записи — по числу слов, не короче порога', () => {
     expect(estChunkMs('try')).toBeGreaterThanOrEqual(320)
     expect(estChunkMs('to learn english')).toBeGreaterThan(estChunkMs('to learn'))
+  })
+})
+
+describe('озвучена только фраза целиком (одна запись «I\'m trying to learn.»)', () => {
+  const phrase = ["I'm", 'trying', 'to learn']
+  const t = ['I’m', 'trying', 'to', 'learn'].map((w, i) => ({ w, t: +(0.2 + i * 0.5).toFixed(2), e: +(0.2 + i * 0.5 + 0.4).toFixed(2) }))
+  const c = clipsFromTimings(t, phrase, 5)
+  it('клипы находятся: куски режутся из одной записи; сочетания — подряд идущие куски той же записи', () => {
+    expect(c).toHaveLength(5)
+    expect(c[0]).toEqual([{ start: 0.2, end: 0.6 }])                       // «I'm»
+    expect(c[1]).toEqual([{ start: 0.7, end: 1.1 }])                       // «trying»
+    expect(c[2]).toEqual([{ start: 0.2, end: 0.6 }, { start: 0.7, end: 1.1 }]) // «I'm trying» — те же клипы подряд
+    expect(c[3]).toEqual([{ start: 1.2, end: 2.1 }])                       // «to learn»
+    expect(c[4]).toHaveLength(3)
+    expect(playSpan(c[2]).start).toBeCloseTo(0.2 - LEAD_IN_S, 9)           // отрезок воспроизведения для «I'm trying»
+    expect(playSpan(c[2]).end).toBeCloseTo(1.1 + TAIL_S, 9)
+  })
+  it('слов меньше, чем в самой фразе, — по-прежнему null (запись не подходит)', () => {
+    expect(clipsFromTimings(t.slice(0, 3), phrase, 5)).toBeNull()
+  })
+  it('запись со всеми высказываниями рецепта по-прежнему разбирается по высказываниям (приоритет у неё)', () => {
+    const words = utterances(3).flatMap(p => p.flatMap(i => phrase[i].split(' ')))
+    const full = clipsFromTimings(words.map((w, i) => ({ w, t: i * 0.5, e: i * 0.5 + 0.4 })), phrase, 20)
+    expect(full[2][0].start).toBeCloseTo(1.0, 6)                           // «I'm» второго высказывания — своё слово записи, а не из первого
   })
 })

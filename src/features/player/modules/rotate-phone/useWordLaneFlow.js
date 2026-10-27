@@ -11,6 +11,7 @@ import { createOrderGame, tapLane, REPLAY_MS } from './wordLaneOrder.js'
 import { DROP_MS, LANES_MS } from './wordLaneTimeline.js'
 import { XP_PER_PILL, sensitiveLevel } from './wordLaneConfig.js'
 import { getVoiceRate } from '../../lessonVolume.js'
+import { pLog } from '../../../../shared/lib/debug.js'
 
 // Сценарий игры «Повтори за диктором» — директор. Рецепт (wordLaneRecipe) разложен на стадии (wordLaneStages); директор проходит их по порядку, у каждой стадии свои таймеры, и смена стадии их чистит.
 // ВСЕ таймеры стадии считаются от одной точки — s.at (её же берёт движок пилюль), иначе голос и картинка расходились бы:
@@ -34,6 +35,7 @@ export function useWordLaneFlow({ chunks, translation, lang, clips = null, audio
   const [rate] = useState(getVoiceRate) // скорость голоса урока: на неё растянут план диктора
   const built = useMemo(() => buildStages({ chunks, clips, audio, rate }), [chunks, clips, audio, rate])
   const { stages, chunkMs, chunkCurves, lanes } = built
+  useEffect(() => { pLog(`[word-lane] диктор: ${audioSrc ? (clips ? 'озвучка автора, клипы найдены' : 'озвучка есть, но клипы кусков не найдены — куски проговорит голос системы') : 'без озвучки — голос системы'}`) }, [audioSrc, clips])
   const [s, setS] = useState({ stage: 'drop', idx: 0, at: 0, xp: 0, xpEvents: [], note: '', lid: '', seq: [], misses: 0, mic: 'starting', hint: [] })
   const sRef = useRef(s)
   const listenerRef = useRef(null)
