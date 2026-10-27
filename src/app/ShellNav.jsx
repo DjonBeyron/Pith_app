@@ -4,6 +4,7 @@ import { requestLessonsHome } from '../shared/lib/lessonsHomeEvent.js'
 import { requestLearnHome } from '../shared/lib/learnHomeEvent.js'
 import { requestProfileHome } from '../shared/lib/profileHomeEvent.js'
 import { navTapAction, learnTap } from './navTap.js'
+import MemoryTabHello from '../features/learn/MemoryTabHello.jsx'
 
 // Нижняя панель оболочки: Уроки / Память / Профиль / Рейтинг (+ Админ).
 // «Память» зовёт, когда есть что повторить сегодня или новое слово из урока
@@ -33,11 +34,14 @@ function useFadeOut(on) {
   return fading
 }
 
-export default function ShellNav({ tab, setTab, memoryTab = 'normal', onMemoryTap, learnDot, learnSleeping = false, raceFlame = false, rewardsDot = false, isRealAdmin, userMode }) {
+export default function ShellNav({ tab, setTab, memoryTab = 'normal', onMemoryTap, memoryHello = false, learnDot, learnSleeping = false, raceFlame = false, rewardsDot = false, isRealAdmin, userMode }) {
   const cls = (id, extra = '') => `shellV2NavBtn${tab === id ? ' shellV2NavBtnActive' : ''}${extra}`
   const dueFading = useFadeOut(!!learnDot) // повторить стало нечего — мозг ещё мягко гаснет
   const due = learnDot || dueFading
   return (
+    <>
+    {/* Строка «Здесь твои слова не потеряются» — вне <nav>: у панели will-change: transform, position: fixed внутри неё считался бы от панели */}
+    <MemoryTabHello show={memoryHello} />
     <nav className="shellV2Nav">
       <button
         className={cls('feed')}
@@ -92,5 +96,6 @@ export default function ShellNav({ tab, setTab, memoryTab = 'normal', onMemoryTa
         </button>
       )}
     </nav>
+    </>
   )
 }

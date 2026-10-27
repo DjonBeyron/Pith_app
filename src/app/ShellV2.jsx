@@ -34,7 +34,6 @@ import LearnTab from '../features/learn/LearnTab.jsx'
 import { useLearnData } from '../features/learn/useLearnData.js'
 import { useMemoryFresh } from '../features/learn/memoryFresh.js'
 import { useMemoryTab } from '../features/learn/memoryTab.js'
-import MemoryTabHello from '../features/learn/MemoryTabHello.jsx'
 import MinutesAsk from '../features/learn/MinutesAsk.jsx'
 import { useShellOpenEvents } from './useShellOpenEvents.js'
 import { onProfileHome } from '../shared/lib/profileHomeEvent.js'
@@ -85,14 +84,10 @@ export default function ShellV2() {
   const [splashGone, setSplashGone] = useState(() => !!window.__pithySplashGone)
   // «Моя память»: данные живут здесь — по ним же точка на вкладке
   const learn = useLearnData(!!user)
-  // Точка на «Памяти»: есть что повторить сегодня или новое слово из урока
-  const memoryFresh = useMemoryFresh(tab === 'learn')
-  // Вкладка «Память» у нового пользователя (нет слов) скрыта, с первым словом появляется и мерцает до нажатия (memoryTab.js)
-  const memoryTab = useMemoryTab({ view: learn.view, fresh: memoryFresh, open: tab === 'learn' })
+  const memoryFresh = useMemoryFresh(tab === 'learn') // точка на «Памяти»: есть что повторить сегодня или новое слово из урока
+  // Вкладка «Память» у нового пользователя (нет слов) скрыта, с первым словом появляется и мерцает до нажатия; скрытая, но открытая — уводит на «Уроки» (memoryTab.js)
+  const memoryTab = useMemoryTab({ view: learn.view, fresh: memoryFresh, tab, setTab })
   const learnDot = !!(learn.view?.today.picked.length || learn.view?.today.phrase) || memoryFresh
-  // Вкладки нет, а открыта «Память» (например, слов не осталось) — на «Уроки»; пока данные грузятся, не трогаем (пуш ведёт в «Память»)
-  const learnGone = tab === 'learn' && memoryTab.state === 'hidden' && !!learn.view
-  useEffect(() => { if (learnGone) setTab('feed') }, [learnGone]) // eslint-disable-line react-hooks/set-state-in-effect -- вкладку убрали: уходим с неё
   const learnSleeping = !learnDot && !!learn.view?.sleeping // всё повторено — мозг на вкладке спит
   const raceFlame = useRaceFlame() // активная супергонка — огонёк над кубком в панели
   const rewardsDot = useRewardsDot(!!user) // есть неполученная ежедневная награда — значок «Профиль» мерцает
@@ -219,8 +214,7 @@ export default function ShellV2() {
       </div>
 
       <MinutesAsk isLoggedIn={!!user} onRequireAuth={() => setTab('profile')} onChanged={learn.reload} />
-      <MemoryTabHello show={memoryTab.hello} />
-      <ShellNav tab={tab} setTab={setTab} memoryTab={memoryTab.state} onMemoryTap={memoryTab.onTap} learnDot={learnDot} learnSleeping={learnSleeping} raceFlame={raceFlame} rewardsDot={rewardsDot} isRealAdmin={isRealAdmin} userMode={userMode || newbie} />
+      <ShellNav tab={tab} setTab={setTab} memoryTab={memoryTab.state} onMemoryTap={memoryTab.onTap} memoryHello={memoryTab.hello} learnDot={learnDot} learnSleeping={learnSleeping} raceFlame={raceFlame} rewardsDot={rewardsDot} isRealAdmin={isRealAdmin} userMode={userMode || newbie} />
 
       {/* Админу во вкладке «Админ»: вернуться к уроку, который правил в прошлый раз (resumeToastVisible.js) */}
       {shouldShowResumeToast({ isAdmin, tab, resumeClosed, editorOpen: !!(canvasLesson || productionLesson || cardsLesson || wordCardLesson) }) && (

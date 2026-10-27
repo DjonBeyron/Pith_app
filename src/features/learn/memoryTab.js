@@ -35,8 +35,10 @@ export function shouldGreet(prev, hidden) {
 }
 
 // Состояние вкладки + нажатие + приветствие. view — learn.view (null, пока грузится), fresh — точка
-// «новое слово» (useMemoryFresh), open — вкладка «Память» сейчас открыта (открыли не нажатием: пуш, мостик)
-export function useMemoryTab({ view, fresh, open = false }) {
+// «новое слово» (useMemoryFresh), tab/setTab — активная вкладка оболочки: открытая «Память» (не нажатием: пуш,
+// мостик) гасит мерцание; скрытая, но открытая (слов не осталось) — уводит на «Уроки», пока данные грузятся — не трогаем
+export function useMemoryTab({ view, fresh, tab, setTab }) {
+  const open = tab === 'learn'
   const [tapped, setTapped] = useState(isMemoryTabTapped)
   const loaded = !!view
   const state = memoryTabState({ hasWords: loaded && !view.empty, fresh, tapped, loaded })
@@ -60,6 +62,9 @@ export function useMemoryTab({ view, fresh, open = false }) {
   useEffect(() => {
     if (open && !hidden && !tapped) onTap() // eslint-disable-line react-hooks/set-state-in-effect -- открыта извне: гасим мерцание
   }, [open, hidden, tapped])
+
+  const gone = open && hidden && loaded
+  useEffect(() => { if (gone) setTab?.('feed') }, [gone, setTab])
 
   return { state, onTap, hello }
 }
