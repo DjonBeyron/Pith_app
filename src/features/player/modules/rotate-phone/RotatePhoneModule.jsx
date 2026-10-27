@@ -18,6 +18,7 @@ import { pLog } from '../../../../shared/lib/debug.js'
 
 // Пауза после конца игры перед переходом дальше: подпись «закончена» должна успеть прочитаться
 const DONE_AFTER_MS = 700
+const WORDS_WAIT_MS = 2500 // сколько максимум ждём подготовку озвучки кусков перед началом игры
 const FINISHED_TEXT = 'Голосовая тренировка закончена'
 
 // Нода «Переверни телефон» (тип rotate_phone) — вертикальная игра «Повтори за диктором» (фраза из кусков: наращивание, порядок, вслепую): карточка в чате (как ссылка на урок: полоса, значок, текст) и кнопка «Начать».
@@ -42,7 +43,7 @@ export default function RotatePhoneModule({ node, file, onDone }) {
     setBusy(true)
     unlockVoice()
     // Звуки диктора: куски фразы — отдельными файлами из библиотеки озвучки слов (слоты будятся тишиной в жесте), запись автора — только финал (вся фраза; у одного слова — если слова нет в библиотеке)
-    prepareWords([...libItems(cfg.chunks), ...linesItems(lines)]) // куски фразы и озвученные реплики кота
+    const wordsReady = prepareWords([...libItems(cfg.chunks), ...linesItems(lines)]) // куски фразы и озвученные реплики кота; заодно измеряется, где в файле звучит голос (без «хвоста»)
     if (cfg.hasAudio && audioSrc) {
       prepareTrack(audioSrc) // запасной путь: общий файл с перемоткой (элемент будится в жесте)
       const n = cfg.chunks.length
@@ -52,7 +53,10 @@ export default function RotatePhoneModule({ node, file, onDone }) {
     unlockNotes() // ноты-награды: элементы просыпаются в жесте, иначе iOS не даст им зазвучать по таймеру
     primeAudio()
     try { document.documentElement.requestFullscreen?.({ navigationUI: 'hide' })?.catch?.(() => {}) } catch { /* iPhone и часть браузеров не умеют — остаёмся в окне */ }
-    const mic = await (micNeedsHold() ? openGameMic() : ensureMicAccess()) // iPhone: один поток на всю игру (диалог один), у остальных доступ запоминается
+    const [mic] = await Promise.all([
+      micNeedsHold() ? openGameMic() : ensureMicAccess(), // iPhone: один поток на всю игру (диалог один), у остальных доступ запоминается
+      Promise.race([wordsReady, new Promise(r => setTimeout(r, WORDS_WAIT_MS))]),   // длины слов нужны плану диктора, но долго ждать не будем
+    ])
     pLog(`[rotate] игра «${cfg.word}»: микрофон ${mic}${cfg.isDemo ? ', слово по умолчанию' : ''}`)
     playedRef.current = true
     setPhase('game')

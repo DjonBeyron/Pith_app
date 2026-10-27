@@ -20,6 +20,7 @@ export const FULL_STOP_MS = 2200
 export const DEAD_MS = 2500       // микрофон отдаёт ТОЧНУЮ тишину (RMS ровно 0 — живой микрофон всегда шумит) дольше — поток заглушён системой, «не слышит»
 const SESSION_MAX_MS = 20000
 const RESTART_MS = 150
+export const MISS_SETTLE_MS = 550 // «чужое слово» из черновика (partial) засчитывается, только если продержалось столько мс: Vosk на ходу переслушивает слова («[unk] trying» → «i'm trying»), и пилюля не должна дёргаться как неверная зря
 
 /**
  * Цели — тексты, которые ученик должен сказать на ступени (targets; одно слово — word). onChange({ status, hits, seq, misses, heard }): seq — номера услышанных целей по порядку (накапливается по заходам
@@ -44,6 +45,7 @@ export function createWordListener({ word, targets: targetsIn, expected = SLOT_C
   let absorbed = 0    // сколько промахов уже поглощено в текущем заходе
   let lastRaw = 0
   let zeroSince = 0   // с какого момента микрофон отдаёт точный ноль
+  let missTimer = 0   // ожидание «устоялся ли промах» в черновике
 
   const publish = patch => {
     if (patch.status) status = patch.status
@@ -59,7 +61,7 @@ export function createWordListener({ word, targets: targetsIn, expected = SLOT_C
   function end(session, st) {
     if (disposed || cur !== session) return
     cur = null
-    clearTimer(timer)
+    clearTimer(timer); clearTimer(missTimer)
     if (now() - startedAt >= OVERALL_MS) { publish({ status: 'timeout' }); return }
     if (st === 'error') return
     timer = setTimer(() => { if (!disposed && !cur) run() }, RESTART_MS) // слов не хватило — слушаем дальше, счёт сохранён
@@ -79,7 +81,12 @@ export function createWordListener({ word, targets: targetsIn, expected = SLOT_C
       if (now() < mutedUntil) absorbed += Math.max(0, rawMisses - lastRaw) // «чужое слово» во время ноты-награды — это эхо динамика, не ошибка ученика
       lastRaw = rawMisses
       const words = String(raw ?? '').toLowerCase().split(/\s+/).filter(Boolean).map(w => (w === '[unk]' ? '…' : w)).join(' ') // «…» — звук был, а слова не разобрали
-      publish({ seq: base.seq.concat(r.seq), misses: rawMisses - absorbed, heard: words || heard, tail: r.tail, heardAt: words ? now() : 0 })
+      const count = rawMisses - absorbed
+      clearTimer(missTimer)
+      // Итог (final) — промах настоящий сразу; в черновике он должен устояться: следующий partial может переслушать слово, и тогда промаха не было
+      const settled = final || count <= misses
+      publish({ seq: base.seq.concat(r.seq), ...(settled ? { misses: count } : {}), heard: words || heard, tail: r.tail, heardAt: words ? now() : 0 })
+      if (!settled) missTimer = setTimer(() => { if (!disposed && cur === session) publish({ misses: count }) }, MISS_SETTLE_MS)
     }
     const callbacks = {
       onReady: () => { if (!disposed && cur === session) publish({ status: 'listening' }) },
@@ -119,7 +126,7 @@ export function createWordListener({ word, targets: targetsIn, expected = SLOT_C
     level,
     dispose() {
       disposed = true
-      clearTimer(timer)
+      clearTimer(timer); clearTimer(missTimer)
       const c = cur
       cur = null
       try { c?.handle?.cancel() } catch { /* уже свободен */ }

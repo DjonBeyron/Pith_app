@@ -18,8 +18,8 @@ describe('озвучка кусков из библиотеки слов', () =>
   })
   it('lib(i): длина в мс из библиотеки, null — длина неизвестна; нет куска — null', () => {
     const lib = makeLib(chunks, cache)
-    expect(lib(0)).toEqual({ ms: 500 })
-    expect(lib(1)).toEqual({ ms: null })
+    expect(lib(0)).toEqual({ ms: 500, lead: 0 })
+    expect(lib(1)).toEqual({ ms: null, lead: 0 })
     expect(lib(2)).toBeNull()
     expect(lib(9)).toBeNull()
   })

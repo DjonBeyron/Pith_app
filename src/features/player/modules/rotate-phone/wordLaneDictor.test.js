@@ -88,4 +88,13 @@ describe('без записи (голос системы) и скорость г
     expect(plan.pills.map(p => p.lane)).toEqual([0, 1, 2])
     expect(plan.reps.map(r => Math.round(r.span.start * 1000))).toEqual([240, 1540, 3040])
   })
+
+  it('куски из библиотеки: заливка идёт по длине слова без хвоста, звук включается раньше на тишину в начале файла (с учётом скорости голоса)', () => {
+    const lib = c => (c === 1 ? { ms: 400, lead: 120 } : null)
+    const plan = planDictor({ step: steps[1], chunks, clipMode: () => false, lib, rate: 2 })
+    const piece = plan.reps[0].pieces[0]
+    expect(piece.chunk).toBe(1)
+    expect(piece.ms).toBe(200)       // 400 мс слова при скорости ×2
+    expect(piece.lead).toBe(60)      // и тишина перед ним вдвое короче
+  })
 })

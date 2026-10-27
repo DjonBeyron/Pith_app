@@ -4,6 +4,7 @@
 // по одному <audio> на высказывание, «разбуженному» в тапе «Начать» (play внутри жеста), потом ему подставляется клип. Играет элемент с нулевой отметки — перематывать нечего.
 import { getLessonMuted, getVoiceRate } from '../../lessonVolume.js'
 import { pLog } from '../../../../shared/lib/debug.js'
+import { speechBounds } from './wordLaneTrim.js'
 
 export const FADE_IN_S = 0.004
 export const FADE_OUT_S = 0.012
@@ -88,9 +89,30 @@ export function prepareWords(items) {
     try {
       const res = await fetch(it.url)
       if (!res.ok) throw new Error(`http ${res.status}`)
-      attach(set, e, URL.createObjectURL(await res.blob()), true)
+      const blob = await res.blob()
+      attach(set, e, URL.createObjectURL(blob), true)
+      await measureSpeech(it.url, blob).catch(() => {}) // где в файле звучит голос — не вышло, играем по длине из библиотеки
     } catch { attach(set, e, it.url, false) } // прямая ссылка: браузер докачает при play()
   })).then(() => true, () => false)
+}
+
+// Где в файле слова звучит голос (wordLaneTrim): { lead, ms } в мс — тишина до слова и длина самого слова без «хвоста». Живёт до перезагрузки: файл библиотеки не меняется
+const speechCache = new Map()
+
+/** Голос в файле по ссылке: { lead, ms } или null (файл ещё не измеряли / не вышло) */
+export const speechOfUrl = url => speechCache.get(url) ?? null
+
+const decodeBytes = async bytes => {
+  const Ctx = typeof window !== 'undefined' ? window.OfflineAudioContext || window.webkitOfflineAudioContext : null
+  return Ctx ? new Ctx(1, 1, 44100).decodeAudioData(bytes) : null
+}
+
+async function measureSpeech(url, blob) {
+  if (speechCache.has(url)) return
+  const audio = await decodeBytes(await blob.arrayBuffer())
+  if (!audio) return
+  const b = speechBounds(monoOf(audio), audio.sampleRate)
+  speechCache.set(url, { lead: Math.round(b.start * 1000), ms: Math.round((b.end - b.start) * 1000) })
 }
 
 /**
@@ -107,11 +129,8 @@ export function prepareClips(src, spans) {
 
 async function decodeAndSlice(src, uniq, set) {
   try {
-    const Ctx = typeof window !== 'undefined' ? window.OfflineAudioContext || window.webkitOfflineAudioContext : null
-    if (!Ctx) return false
-    const bytes = await (await fetch(src)).arrayBuffer()
-    const audio = await new Ctx(1, 1, 44100).decodeAudioData(bytes)
-    if (slots !== set) return false
+    const audio = await decodeBytes(await (await fetch(src)).arrayBuffer())
+    if (!audio || slots !== set) return false
     const mono = monoOf(audio)
     for (const s of uniq) attach(set, set.els.get(`s:${spanKey(s)}`), URL.createObjectURL(new Blob([sliceToWav(mono, audio.sampleRate, s.start, s.end)], { type: 'audio/wav' })), true)
     pLog(`[word-lane] клипы записи нарезаны: ${uniq.length} шт., файл ${audio.duration.toFixed(1)} с`)

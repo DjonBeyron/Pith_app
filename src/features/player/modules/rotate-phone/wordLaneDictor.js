@@ -16,7 +16,7 @@ export const PIECE_GAP_MS = 80     // пауза между кусками, ко
 /**
  * @param {object} p step — ступень рецепта (reps: [{ parts }]); chunks — тексты кусков; clips — клипы файла (clipsFromTimings/clipsFromFills) или null; audio — { wave, duration } для кривых заливки;
  * rate — скорость голоса урока (запись растягивается на 1/rate); clipMode(parts) → true: этот повтор играется ЗАПИСЬЮ АВТОРА (клип из файла) — у фразы из нескольких кусков так звучит только
- * ФИНАЛ (вся фраза), остальное — куски по отдельности из библиотеки озвучки слов; lib(chunk) → { ms } (длина озвучки куска из библиотеки, null — длина неизвестна) или null (куска в библиотеке нет)
+ * ФИНАЛ (вся фраза), остальное — куски по отдельности из библиотеки озвучки слов; lib(chunk) → { ms, lead } (длина слова в озвучке куска из библиотеки и тишина перед ним в файле, null — длина неизвестна) или null (куска в библиотеке нет)
  * @returns {{ reps: object[], pills: object[], listenMs: number, mouth: (t:number)=>number, mouthCode: (t:number)=>string }}
  */
 export function planDictor({ step, chunks, clips = null, audio = null, rate = 1, clipMode = () => true, lib = () => null }) {
@@ -28,16 +28,18 @@ export function planDictor({ step, chunks, clips = null, audio = null, rate = 1,
     let ms
     let offs
     let durs
+    let leads = null
     if (row) {
       offs = row.map(c => ((c.start - span.start) * 1000) / r)
       durs = row.map(c => Math.max(MIN_WORD_MS, ((c.end - c.start) * 1000) / r))
       ms = ((span.end - span.start) * 1000) / r
     } else {
       durs = rep.parts.map(i => (lib(i)?.ms ?? estChunkMs(chunks[i])) / r) // кусок из библиотеки (или оценка) играется с скоростью голоса урока
+      leads = rep.parts.map(i => (lib(i)?.lead ?? 0) / r)                    // тишина в файле до слова: звук включаем на столько раньше, чтобы голос совпал с заливкой
       offs = durs.map((_, k) => durs.slice(0, k).reduce((a, d) => a + d + PIECE_GAP_MS, 0))
       ms = offs.at(-1) + durs.at(-1) + 100
     }
-    return { idx, parts: rep.parts, text: textOf(chunks, rep.parts), row, span, ms, offs, durs, mode: row ? 'clip' : 'words' }
+    return { idx, parts: rep.parts, text: textOf(chunks, rep.parts), row, span, ms, offs, durs, leads, mode: row ? 'clip' : 'words' }
   })
   const period = Math.max(REP_MIN_MS, ...reps.map(x => x.ms + REP_GAP_MS))
   const start0 = TRAVEL_MS + FIRST_AT_PAD_MS - (reps[0]?.offs[0] ?? 0)
@@ -47,7 +49,7 @@ export function planDictor({ step, chunks, clips = null, audio = null, rate = 1,
     x.pieces = x.parts.map((chunk, k) => {
       const clip = x.row?.[k]
       const piece = {
-        rep: x.idx, chunk, lane: laneOf(n, chunk, x.idx), at: x.at + x.offs[k], ms: x.durs[k], text: chunks[chunk],
+        rep: x.idx, chunk, lane: laneOf(n, chunk, x.idx), at: x.at + x.offs[k], ms: x.durs[k], lead: x.leads?.[k] ?? 0, text: chunks[chunk],
         curve: clip && audio?.wave ? makeFillCurve(audio.wave, audio.duration, clip.start, clip.end) : null, clip: clip ?? null,
       }
       piece.id = pills.length

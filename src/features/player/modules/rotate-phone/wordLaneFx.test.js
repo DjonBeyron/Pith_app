@@ -76,14 +76,35 @@ describe('честность оценки', () => {
     const seen = []
     let cb
     const listen = async (model, grammar, callbacks) => { cb = callbacks; queueMicrotask(() => callbacks.onReady?.()); return { stop() {}, cancel() {} } }
-    const l = createWordListener({ word: 'try', onChange: s => seen.push(s), runtime: mkRuntime(), listen, now: () => t })
+    const timers = []
+    const l = createWordListener({ word: 'try', onChange: s => seen.push(s), runtime: mkRuntime(), listen, now: () => t, setTimer: fn => timers.push(fn), clearTimer: () => {} })
     l.start()
     await tick(); await tick()
     l.mute(900)
     cb.onPartial('try [unk] try')   // нота зазвучала: [unk] в середине — эхо
     expect(seen.at(-1)).toMatchObject({ hits: 2, misses: 0 })
     t += 2000                       // нота отзвучала
-    cb.onPartial('try [unk] try [unk] try')   // настоящая ошибка ученика уже считается
+    cb.onPartial('try [unk] try [unk] try')   // настоящая ошибка ученика считается, когда устоялась в черновике
+    expect(seen.at(-1).misses).toBe(0)
+    timers.at(-1)()
+    expect(seen.at(-1).misses).toBe(1)
+    l.dispose()
+  })
+
+  it('промах в черновике, который Vosk тут же переслушал («[unk] trying» → «i\'m trying»), пилюлю не дёргает; итог — сразу', async () => {
+    const seen = []
+    let cb
+    const timers = new Map()
+    let n = 0
+    const listen = async (model, grammar, callbacks) => { cb = callbacks; queueMicrotask(() => callbacks.onReady?.()); return { stop() {}, cancel() {} } }
+    const l = createWordListener({ word: 'x', targets: ["i'm", 'trying'], onChange: s => seen.push(s), runtime: mkRuntime(), listen, setTimer: fn => { timers.set(++n, fn); return n }, clearTimer: id => timers.delete(id) })
+    l.start()
+    await tick(); await tick()
+    cb.onPartial('[unk] trying')               // первое слово «не разобрали»
+    cb.onPartial('i am trying')                // и тут же переслушали (Vosk пишет «i am»)
+    timers.forEach(fn => fn())                 // таймер первого черновика отменён вторым — срабатывать нечему
+    expect(seen.at(-1).misses).toBe(0)
+    cb.onResult('[unk] trying', { words: [] }) // а в ИТОГЕ слово не разобрано — это настоящий промах, сразу
     expect(seen.at(-1).misses).toBe(1)
     l.dispose()
   })

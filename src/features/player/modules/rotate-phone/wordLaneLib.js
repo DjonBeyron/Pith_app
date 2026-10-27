@@ -3,6 +3,7 @@
 // Нет куска в библиотеке — голос системы, а озвучить его отдельно предложит редактор ноды (бейдж «не озвучено», collectLessonWords). Чистые функции — проверяются тестами.
 import { cachedWordAudio } from '../../../../shared/lib/wordAudio/wordAudioApi.js'
 import { wordKey } from '../../../../shared/lib/wordAudio/wordKey.js'
+import { speechOfUrl } from './wordLaneClips.js'
 
 /** Строка библиотеки для куска (или null: нет ключа / нет озвучки / библиотека ещё не загружена) */
 export function libRow(text, cache = cachedWordAudio()) {
@@ -11,9 +12,17 @@ export function libRow(text, cache = cachedWordAudio()) {
   return row?.url ? { key, row } : null
 }
 
-/** lib(i) для planDictor/buildStages: { ms } — длина озвучки куска (мс, из библиотеки; null — длина неизвестна) или null — куска в библиотеке нет */
+/**
+ * lib(i) для planDictor/buildStages: { ms, lead } — длина слова в озвучке куска (мс) и тишина перед ним в файле (мс: звук включают на столько раньше слова) или null — куска в библиотеке нет.
+ * Длина — без «хвоста» (тишины и затухания), если файл уже измерен в тапе «Начать» (wordLaneClips.speechOfUrl), иначе — длина файла из библиотеки (null — неизвестна).
+ */
 export function makeLib(chunks, cache = cachedWordAudio()) {
-  const info = chunks.map(c => { const r = libRow(c, cache); return r ? { ms: Number(r.row.duration) > 0 ? Math.round(Number(r.row.duration) * 1000) : null } : null })
+  const info = chunks.map(c => {
+    const r = libRow(c, cache)
+    if (!r) return null
+    const sp = speechOfUrl(r.row.url)
+    return { ms: sp?.ms ?? (Number(r.row.duration) > 0 ? Math.round(Number(r.row.duration) * 1000) : null), lead: sp?.lead ?? 0 }
+  })
   return i => info[i] ?? null
 }
 

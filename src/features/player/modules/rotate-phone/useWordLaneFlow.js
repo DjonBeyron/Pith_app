@@ -79,7 +79,7 @@ export function useWordLaneFlow({ chunks, translation, lang, clips = null, audio
     const row = audioSrc && clipMode(parts) ? clipsFor(clips, chunks.length, parts, repIdx) : null
     if (row) { sayClip(row); return }
     let at = 0
-    parts.forEach(i => { const ms = (lib(i)?.ms ?? estChunkMs(chunks[i])) / (rate > 0 ? rate : 1); later(() => sayChunk(i), at); at += ms + 80 })
+    parts.forEach(i => { const ms = (lib(i)?.ms ?? estChunkMs(chunks[i])) / (rate > 0 ? rate : 1); later(() => sayChunk(i), Math.max(0, at - (lib(i)?.lead ?? 0) / (rate > 0 ? rate : 1))); at += ms + 80 })
   }, [audioSrc, clips, chunks, clipMode, lib, rate, later, sayChunk, sayClip])
 
   const flash = useCallback(text => { clearTimeout(noteTimerRef.current); setS(p => ({ ...p, note: text })); noteTimerRef.current = setTimeout(() => setS(p => ({ ...p, note: '' })), 2600) }, [])
@@ -163,7 +163,7 @@ export function useWordLaneFlow({ chunks, translation, lang, clips = null, audio
       const { plan } = stageObj
       for (const r of plan.reps) {
         if (r.mode === 'clip' && r.row) ids.push(setTimeout(() => sayClip(r.row), left(r.at - AUDIO_LATENCY_MS))) // запись автора (финал: вся фраза)
-        else for (const pc of r.pieces) ids.push(setTimeout(() => sayChunk(pc.chunk), left(pc.at - AUDIO_LATENCY_MS))) // куски по отдельности из библиотеки
+        else for (const pc of r.pieces) ids.push(setTimeout(() => sayChunk(pc.chunk), left(pc.at - AUDIO_LATENCY_MS - pc.lead))) // куски по отдельности из библиотеки (голос в файле начинается через lead после включения)
       }
       ids.push(setTimeout(next, left(plan.listenMs)))
     }
