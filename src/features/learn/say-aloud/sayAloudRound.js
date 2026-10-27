@@ -18,25 +18,40 @@ export function ladderWords(view) {
   return [...(l.levels ?? []).flatMap(x => x.words ?? []), ...(l.permanent ?? [])]
 }
 
-/** Слова, годные для игры (есть перевод, латиница), без повторов */
-export function playableWords(view) {
+/** Слова из списка [{ word, translation, due, step }], годные для игры (есть перевод, латиница), без повторов */
+export function playableFrom(words) {
   const seen = new Set()
-  return ladderWords(view).filter(w => playable(w) && !seen.has(w.word) && seen.add(w.word))
+  return (words ?? []).filter(w => playable(w) && !seen.has(w.word) && seen.add(w.word))
 }
+
+/** Слова лестницы, годные для игры */
+export const playableWords = view => playableFrom(ladderWords(view))
 
 // Ближайший срок первым; без срока — в конец; при равных сроках — менее прочное слово (меньший шаг), потом по алфавиту
 const byDue = (a, b) => (a.due ? 0 : 1) - (b.due ? 0 : 1) || String(a.due ?? '').localeCompare(String(b.due ?? '')) || (a.step ?? 0) - (b.step ?? 0) || a.word.localeCompare(b.word)
 
-/**
- * Слова раунда: [{ word, translation }]. withWord (ключ слова из окна слова) идёт первым, если оно годится. Меньше min подходящих слов — пустой список (раунда нет).
- */
-export function pickRoundWords(view, { max = ROUND_MAX, min = ROUND_MIN, withWord = null } = {}) {
-  const all = playableWords(view)
+// Раунд из подходящих слов: withWord первым, остальные — ближайший срок первым; меньше min — пусто
+function roundFrom(all, { max, min, withWord }) {
   if (all.length < min) return []
   const first = withWord ? all.find(w => w.word === withWord) : null
   const rest = all.filter(w => w !== first).sort(byDue)
   return [...(first ? [first] : []), ...rest].slice(0, max).map(w => ({ word: w.word, translation: String(w.translation).trim() }))
 }
+
+/**
+ * Слова раунда: [{ word, translation }]. withWord (ключ слова из окна слова) идёт первым, если оно годится. Меньше min подходящих слов — пустой список (раунда нет).
+ */
+export function pickRoundWords(view, { max = ROUND_MAX, min = ROUND_MIN, withWord = null } = {}) {
+  return roundFrom(playableWords(view), { max, min, withWord })
+}
+
+/** То же из готового списка [{ word, translation, due, step }] — итог повторения, где лестницы (view) нет */
+export function pickRoundFromWords(words, { max = ROUND_MAX, min = MIN_TO_SHOW } = {}) {
+  return roundFrom(playableFrom(words), { max, min, withWord: null })
+}
+
+/** Хватает ли в списке слов на раунд (итог повторения) */
+export const canSayAloudWords = words => playableFrom(words).length >= MIN_TO_SHOW
 
 /** Можно ли предложить игру: хватает слов, а если запуск из окна слова — оно само годится для игры */
 export function canSayAloud(view, withWord = null) {

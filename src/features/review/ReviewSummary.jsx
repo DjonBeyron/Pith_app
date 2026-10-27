@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { summaryLine } from './reviewTeacher.js'
 import { requestOpenModule } from '../../shared/lib/openModuleEvent.js'
 import ReviewWordBar from './ReviewWordBar.jsx'
+import ReviewSayAloud from './ReviewSayAloud.jsx'
 import XpTransfer from '../../shared/ui/XpTransfer.jsx'
 import Confetti from '../../shared/ui/Confetti.jsx'
 
@@ -18,7 +19,8 @@ import Confetti from '../../shared/ui/Confetti.jsx'
 // подаются с заботой — «вернёмся завтра», без «ошибок». Усвоенное слово,
 // вспомненное на месячной проверке, уходит в постоянную память — празднуем
 // золотистой строкой (settled — ответ memory_review_word). memory — память слов
-// до сессии: оттуда прежний шаг для полоски; baseXp — XP до награды.
+// до сессии: оттуда прежний шаг для полоски; baseXp — XP до награды. Над «Готово» — «Пит нашёл игру на минутку»
+// (ReviewSayAloud, мини-игра «Скажи вслух»: слова из memory и переводы из curricula; меньше 3 слов — кнопки нет).
 const TONE = { good: 'ok', hard: 'mid', again: 'soft', fail: 'soft' }
 const FIRST_MS = 600   // первая полоска начинает расти через столько после переноса XP (или сразу, если XP нет)
 const STAGGER_MS = 1000 // следующая — через столько после предыдущей (не более MAX_STAGGER шагов)
@@ -34,7 +36,7 @@ function streakText(finish) {
   return null
 }
 
-export default function ReviewSummary({ results, finish, bridge, phrase = null, words, memory = [], baseXp = 0, onClose, onRequireAuth }) {
+export default function ReviewSummary({ results, finish, bridge, phrase = null, words, memory = [], curricula = [], baseXp = 0, onClose, onRequireAuth }) {
   const [visible, setVisible] = useState(false)
   const [xpDone, setXpDone] = useState(false)
   const [barsDone, setBarsDone] = useState(0)
@@ -96,6 +98,7 @@ export default function ReviewSummary({ results, finish, bridge, phrase = null, 
             </div>
           )}
           <div className="reviewSumFoot">
+            <ReviewSayAloud memory={memory} curricula={curricula} />
             {bridge && (
               <button className="reviewBridge" onClick={() => { onClose(); requestOpenModule(bridge) }}>
                 <span className="reviewBridgeMain">Продолжить изучение</span>
