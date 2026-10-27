@@ -65,11 +65,22 @@ describe('места запуска (связка по исходникам)', (
     expect(read('../LearnWordSheet.jsx')).toContain('<SayAloudLaunch view={view} withWord={word.word} variant="sheet" />')
     expect(read('../LearnTab.jsx')).toContain('view={view}')
   })
-  it('тап — жест: запрос микрофона до любых await, оверлей грузится лениво', () => {
+  it('тап по кнопке микрофон НЕ просит: слой грузится лениво, готовность Vosk проверяется первой', () => {
     const src = read('./SayAloudLaunch.jsx')
     expect(src).toContain("lazy(() => import('./SayAloudOverlay.jsx'))")
-    expect(src.slice(src.indexOf('function start()'))).not.toMatch(/await /)
-    expect(src).toContain('micNeedsHold() ? openGameMic() : ensureMicAccess()')
+    expect(src).not.toMatch(/ensureMicAccess|openGameMic|getUserMedia/)
+  })
+  it('микрофон просим только по тапу «Начать» на готовой модели, до любых await', () => {
+    const src = read('./SayAloudOverlay.jsx')
+    const begin = src.slice(src.indexOf('const begin = () =>'), src.indexOf('const finished'))
+    expect(begin).toContain('micNeedsHold() ? openGameMic() : ensureMicAccess()')
+    expect(begin).not.toMatch(/await /)
+    expect(src.match(/ensureMicAccess\(\)|openGameMic\(\)/g)).toHaveLength(2) // одно место запроса (в строке выбора)
+    // порядок экрана: итог → не готов Vosk → «Начать» (idle) → ожидание → нет микрофона → игра
+    const order = ['result', "vosk.status !== 'ready'", "mic === 'idle'", "mic === 'pending'", "mic !== 'granted'"].map(k => src.indexOf(k, src.indexOf('let body')))
+    expect(order).toEqual([...order].sort((x, y) => x - y))
+    expect(order.every(i => i > 0)).toBe(true)
+    expect(src).toContain('data-testid="say-begin"')
   })
   it('итог раунда: событие say_aloud_round с words/hits/ms, в память и XP не пишем', () => {
     const src = read('./SayAloudOverlay.jsx')
