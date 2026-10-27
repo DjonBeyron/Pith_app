@@ -21,10 +21,10 @@ function Probe() {
 }
 
 describe('usePromptSlot', () => {
-  it('отдаёт current и методы request/answer/dismiss/later/onSlide/setBusy', () => {
+  it('отдаёт current и методы request/answer/dismiss/later/cancel/onSlide/setBusy', () => {
     const html = renderToStaticMarkup(<Probe />)
-    expect(html).toContain('data-keys="current,request,answer,dismiss,later,onSlide,setBusy"')
-    expect(html).toContain('data-types="object,function,function,function,function,function,function"') // current === null
+    expect(html).toContain('data-keys="current,request,answer,dismiss,later,cancel,onSlide,setBusy"')
+    expect(html).toContain('data-types="object,function,function,function,function,function,function,function"') // current === null
   })
   it('состояние читается из хранилища при создании слота', () => {
     loadState.mockClear()
