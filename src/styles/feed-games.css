@@ -1,0 +1,125 @@
+/* Игры ленты «Дополни реплику» (features/feed/fill/FillSheet.jsx) и «Слово голосом → картинка» (features/feed/picture/
+   PictureSheet.jsx). Шторка, заголовок, крестик и низ с «Дальше» — те же классы, что у «Выбери слово» (feed-choose.css:
+   .chooseSheet, .chooseHead, .chooseFoot…); здесь только середина: реплика с «мяу», варианты, картинки.
+   Без красного: неверный вариант просто гаснет. Анимируются только transform и opacity; ширина 375 без горизонтального скролла. */
+.gameBody {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 16px;
+  padding: 4px 4px 0;
+  overflow-y: auto;
+}
+
+/* Реплика: «мяу» стоит на месте слова */
+.fillLine {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 600;
+  line-height: 1.4;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
+.fillGap {
+  display: inline-block;
+  min-width: 3.2em;
+  padding: 0 8px;
+  margin: 0 2px;
+  border-bottom: 3px solid rgba(255, 255, 255, 0.35);
+  color: #ffd479;
+  transform-origin: 50% 100%;
+}
+.fillGap--meow { animation: fillMeow 0.35s ease-in-out; border-bottom-color: #ffd479; }
+.fillGap--ok { color: #b6fe3b; border-bottom-color: #b6fe3b; }
+
+@keyframes fillMeow {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.18); }
+}
+
+/* «Послушать ещё» / слово голосом */
+.gamePlay {
+  align-self: center;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 16px;
+  border: 1px solid #2a2d35;
+  border-radius: 22px;
+  background: #23272e;
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 15px;
+  font-weight: 600;
+}
+.gamePlay--big { min-height: 56px; padding: 0 22px; font-size: 20px; }
+
+/* Слово текстом — в текстовой версии вместо озвучки */
+.pictureWord {
+  margin: 0;
+  font-size: 30px;
+  font-weight: 700;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
+/* Варианты слов */
+.gameOptions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+}
+
+.gameOption {
+  min-width: 96px;
+  min-height: 48px;
+  padding: 0 18px;
+  border: 1px solid #2a2d35;
+  border-radius: 14px;
+  background: #23272e;
+  color: #fff;
+  font-size: 18px;
+  font-weight: 600;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+.gameOption:active:not(:disabled) { transform: scale(0.97); }
+.gameOption--ok { background: #b6fe3b; border-color: #b6fe3b; color: #111; }
+.gameOption--wrong, .gameOption--dim { opacity: 0.35; }
+
+/* Три картинки в ряд */
+.pictureGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.pictureOption {
+  position: relative;
+  aspect-ratio: 1;
+  padding: 0;
+  border: 2px solid #2a2d35;
+  border-radius: 14px;
+  overflow: hidden;
+  background: #23272e;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+.pictureOption img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+.pictureOption:active:not(:disabled) { transform: scale(0.97); }
+.pictureOption--ok { border-color: #b6fe3b; }
+.pictureOption--wrong, .pictureOption--dim { opacity: 0.3; }
+
+@media (prefers-reduced-motion: reduce) {
+  .fillGap--meow { animation: none; }
+  .gameOption, .pictureOption { transition: none; }
+}
