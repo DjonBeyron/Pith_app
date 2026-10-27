@@ -8,18 +8,20 @@ import { MEMORY_STORY } from '../../src/features/learn/memoryStoryText.js' // т
 
 // Страница нового пользователя: недостижимый Supabase с перехватом (newbieBackend.js) и чистое хранилище.
 // Фикстура гасит попап установки и знакомство с «Памятью» — рассказ Пита этим сценарием проверяется, поэтому флаг снимаем.
-export async function prepareNewbie(page) {
-  await page.addInitScript(() => {
+// opts.group — группа Пита, закрепляемая за устройством: 'prompts' (по умолчанию) | 'control'; null — не закреплять (решит доля);
+// opts.stub — настройки заглушки (сессия, RPC, таблицы — см. stubNewbieBackend); opts.keepIntro — не трогать флаг знакомства
+export async function prepareNewbie(page, { group = 'prompts', stub = {}, keepIntro = false } = {}) {
+  await page.addInitScript(({ group, keepIntro }) => {
     try {
-      localStorage.removeItem('pithy_memory_intro_v1')
+      if (!keepIntro) localStorage.removeItem('pithy_memory_intro_v1')
       // Группа «с вопросами Пита» закреплена за устройством (promptGroup.js: «прилипает»); иначе 10% запусков попали бы в контрольную
-      localStorage.setItem('pithy_prompt_group_v1', JSON.stringify({ group: 'prompts', share: 10, id: 'e2e-newbie' }))
+      if (group) localStorage.setItem('pithy_prompt_group_v1', JSON.stringify({ group, share: 10, id: 'e2e-newbie' }))
       // Тихая фоновая загрузка модели распознавания речи (Vosk, ~39 МБ с GitHub Pages) к сценарию не относится, а внешняя сеть
       // в прогоне недопустима (сбой запроса «ловец багов» считает ошибкой) — используем админский стоп планировщика
       localStorage.setItem('pithy_vosk_bg_stop_v1', '1')
     } catch { /* приватный режим */ }
-  })
-  return stubNewbieBackend(page)
+  }, { group, keepIntro })
+  return stubNewbieBackend(page, stub)
 }
 
 export const learnTab = page => page.locator('[data-nav="learn"]')
