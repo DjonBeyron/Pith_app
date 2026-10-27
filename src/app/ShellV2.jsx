@@ -28,6 +28,7 @@ import { prefetchPlayerDebugUi } from '../shared/lib/usePlayerDebugUi.js'
 import { prefetchAudioSettings } from '../shared/lib/audioSettings.js'
 import { prefetchAudioStaticWaveform } from '../shared/lib/useAudioStaticWaveform.js'
 import { prefetchFeedSignals } from '../shared/lib/ranking/feedSignalsStore.js'
+import { usePromptGroupSync } from '../shared/lib/prompts/usePromptGroupSync.js'
 import { armMotionOnGesture } from '../shared/lib/motionPermission.js'
 import ShellNav from './ShellNav.jsx'
 import LearnTab from '../features/learn/LearnTab.jsx'
@@ -75,9 +76,8 @@ export default function ShellV2() {
   // выключить его было бы нечем
   const { isAdmin, isRealAdmin, userMode, newbie } = useAdmin()
   const { user } = useAuth()
-  // Ежедневное полноэкранное окно серии: показывать или нет — решает сервер
-  // (первый заход в сутки), см. useStreakGate.js
-  const { gate, closeGate } = useStreakGate()
+  usePromptGroupSync(user?.id) // доля и группа контрольной группы без вопросов Пита (доля — на старте, группа — при входе)
+  const { gate, closeGate } = useStreakGate() // ежедневное окно серии: показывать или нет — решает сервер (первый заход в сутки)
   // Лого стартового сплэша уже улетело (событие из index.html). Пока оно на
   // экране, ленту не паузим: сплэш снимается по первому кадру видео, и на
   // паузе он висел бы до страховки в 3.5 секунды
@@ -91,9 +91,7 @@ export default function ShellV2() {
   const learnSleeping = !learnDot && !!learn.view?.sleeping // всё повторено — мозг на вкладке спит
   const raceFlame = useRaceFlame() // активная супергонка — огонёк над кубком в панели
   const rewardsDot = useRewardsDot(!!user) // есть неполученная ежедневная награда — значок «Профиль» мерцает
-  // Мостик «Продолжить фразу» из итога повторения: модуль откроет FeedTab,
-  // здесь — только переход на вкладку «Уроки» (openModuleEvent.js)
-  useShellOpenEvents(setTab, isRealAdmin)
+  useShellOpenEvents(setTab, isRealAdmin) // мостик «Продолжить фразу» из итога повторения: здесь только переход на «Уроки» (openModuleEvent.js)
   // Нажатие на активный «Профиль» закрывает и настройки гостя (у залогиненного это делает ProfileV2)
   useEffect(() => onProfileHome(() => setGuestSettings(false)), [])
   // ?tab= прочитан при старте — убираем из адреса (перезагрузка не должна

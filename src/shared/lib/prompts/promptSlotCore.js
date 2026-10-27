@@ -7,11 +7,16 @@ import { PROMPT_SHOWN, PROMPT_ANSWER, PROMPT_DISMISS } from '../analytics/eventN
 // Зависимости передаются снаружи (load/save — promptStore, track — analytics/track, now/таймеры), чтобы подменять в тестах.
 // Пока показан один, второй ждёт; после answer/dismiss/later очередь пробуется снова. Кандидат живёт в очереди QUEUE_TTL_MS.
 // Попытка показа повторяется при request, onSlide, setBusy и по таймеру, когда истекают 20 с после входа.
+// allow(candidate) — фильтр допуска (контрольная группа без «умных» вопросов, promptGroup.js): отклонённый кандидат молча
+// отбрасывается в request и в очередь не попадает. extra() — плоские props (напр. { group }), которые подмешиваются во все три события.
 
 // Ответ в props события: только плоское и короткое (в журнале нет текста пользователя)
 const flat = v => (typeof v === 'number' || typeof v === 'boolean' ? v : String(v ?? '').slice(0, 64))
 
-export function createPromptSlot({ load, save, track, now = Date.now, setTimer = setTimeout, clearTimer = clearTimeout }) {
+export function createPromptSlot({
+  load, save, track, now = Date.now, setTimer = setTimeout, clearTimer = clearTimeout,
+  allow = () => true, extra = () => ({}),
+}) {
   let state = load(now())
   let queue = [] // [{ candidate, at }]
   let current = null
@@ -35,7 +40,7 @@ export function createPromptSlot({ load, save, track, now = Date.now, setTimer =
       commit(noteShown(state, chosen, t))
       current = chosen
       shownAt = t
-      track(PROMPT_SHOWN, { kind: chosen.kind, id: chosen.id })
+      track(PROMPT_SHOWN, { kind: chosen.kind, id: chosen.id, ...extra() })
       emit()
       return
     }
@@ -45,13 +50,13 @@ export function createPromptSlot({ load, save, track, now = Date.now, setTimer =
   }
 
   // Закрыть текущую шторку: apply — какая запись в бюджете, ev — событие
-  function finish(apply, name, extra) {
+  function finish(apply, name, props) {
     if (!current) return
     const c = current
     const t = now()
     current = null
     commit(apply(state, c, t))
-    track(name, { kind: c.kind, id: c.id, ...extra, ms: t - shownAt })
+    track(name, { kind: c.kind, id: c.id, ...props, ...extra(), ms: t - shownAt })
     emit()
     tryPick()
   }
@@ -69,6 +74,7 @@ export function createPromptSlot({ load, save, track, now = Date.now, setTimer =
     },
     request(candidate) {
       if (!candidate?.id || !candidate.kind) return
+      if (!allow(candidate)) return
       if (current?.id === candidate.id || queue.some(q => q.candidate.id === candidate.id)) return
       queue = [...queue, { candidate, at: now() }].slice(-MAX_QUEUE)
       tryPick()
