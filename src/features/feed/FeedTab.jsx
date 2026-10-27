@@ -29,6 +29,7 @@ import { useFeedRecall } from './useFeedRecall.js'
 import { useFeedCatch } from './catch/useFeedCatch.js'
 import { onFeedJump } from './catch/catchForce.js'
 import FeedEmptyState from './FeedEmptyState.jsx'
+import GuestSaveHint from './GuestSaveHint.jsx' // строка Пита гостю после первого лайка (B7)
 
 // Лента видео: вертикальный Swiper по модулям из curricula (FeedSwiper.jsx),
 // бесконечная по кругу — список повторяется циклами, у края запаса лента
@@ -93,7 +94,6 @@ export default function FeedTab({ visible = true, onOpenCanvas, onRequireAuth, l
     [circleModules, pinnedId, passesFeed, overallIdx],
   )
   const len = feedModules.length
-
   // Лента реально на экране: вкладка оболочки открыта И выбраны «Рекомендации»
   // Скрытой ленте FeedSwiper выключает жесты, колесо
   // и клавиатуру, видео встаёт на паузу
@@ -185,7 +185,6 @@ export default function FeedTab({ visible = true, onOpenCanvas, onRequireAuth, l
         isAdmin={isAdmin}
         soundOn={soundReady} soundEverOn={soundEverOn} onSoundOn={handleSoundOn}
       />
-
       {/* Оба вида смонтированы всегда (как вкладки оболочки): переключение
           «Рекомендации» ↔ «Мои уроки» не сбрасывает ленту и её слайд */}
       <div className={view === 'mine' ? 'feedViewStack' : 'feedViewStack feedViewHidden'}>
@@ -235,6 +234,7 @@ export default function FeedTab({ visible = true, onOpenCanvas, onRequireAuth, l
         )}
       </div>
 
+      <GuestSaveHint activeIdx={activeIdx} user={user} onRequireAuth={onRequireAuth} />
       {showDebug && <DebugPanel getFeedInfo={feedInfo} onClose={() => setShowDebug(false)} />}
       {showSearch && (
         <FeedSearchPanel

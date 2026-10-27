@@ -4,12 +4,23 @@ import { fetchMyDifficultyVotes, setDifficultyVote } from '../../shared/api/diff
 import { fdbg } from '../../shared/lib/feedDebug.js'
 import { track } from '../../shared/lib/analytics/track.js'
 import { FEED_LIKE, FEED_SAVE } from '../../shared/lib/analytics/eventNames.js'
+import { getGuestLikes, getGuestSaves, toggleGuestLike, toggleGuestSave } from '../../shared/lib/guestSocial.js'
+import { noteGuestLiked } from './guestSaveHint.js'
+
+// Гостевые лайки/закладки (localStorage, guestSocial.js) как стартовое состояние иконок
+function guestReactions() {
+  const out = {}
+  for (const id of getGuestLikes()) out[id] = { ...out[id], liked: true }
+  for (const id of getGuestSaves()) out[id] = { ...out[id], saved: true }
+  return out
+}
 
 // Соц-данные ленты: лайки/закладки/сложность/начатые модули + обработчики
-// тапа (гостю — форма входа, юзеру — оптимистичное переключение + сервер)
+// тапа (оптимистичное переключение; юзеру — ещё запись на сервер, гостю — в
+// localStorage: переедет в аккаунт при входе, importGuestSocial)
 export function useFeedSocial({ visible, view, user, authLoading, onRequireAuth }) {
   // Лайки/закладки по id модуля — общие для всех копий слайда в круге
-  const [reactions, setReactions] = useState({})
+  const [reactions, setReactions] = useState(guestReactions)
   // Мои голоса сложности фразы: { moduleId: 1|2|3 } (перезаписываемые)
   const [diffVotes, setDiffVotes] = useState({})
   // Начатые модули: в «Рекомендациях» их не показываем (они в «Моих уроках»)
@@ -34,6 +45,8 @@ export function useFeedSocial({ visible, view, user, authLoading, onRequireAuth 
     fetchFeedSocial()
       .then(s => {
         if (cancelled) return
+        // Гостевые лайки ещё не на сервере — счётчик показывает их +1 (как и сразу после тапа)
+        if (!s.isAuthed) for (const id of getGuestLikes()) s.likeCount[id] = (s.likeCount[id] ?? 0) + 1
         setSocial(s)
         // Мои лайки/закладки с сервера — стартовое состояние иконок
         setReactions(prev => {
@@ -55,21 +68,24 @@ export function useFeedSocial({ visible, view, user, authLoading, onRequireAuth 
     return () => { cancelled = true }
   }, [])
 
-  // Лайк/закладка: гостю — форма входа; юзеру — оптимистичное переключение
-  // + запись на сервер в фоне
+  // Лайк/закладка: оптимистичное переключение; юзеру — запись на сервер в
+  // фоне, гостю — в localStorage (форму входа не открываем, B7)
   function toggle(id, key) {
     if (authLoading) return
-    if (!user) { onRequireAuth?.(); return }
-    const on = !reactions[id]?.[key]
-    track(key === 'liked' ? FEED_LIKE : FEED_SAVE, { module_id: id, on })
+    let on = !reactions[id]?.[key]
+    if (!user) {
+      on = key === 'liked' ? toggleGuestLike(id) : toggleGuestSave(id)
+      if (on) noteGuestLiked()
+    }
+    track(key === 'liked' ? FEED_LIKE : FEED_SAVE, user ? { module_id: id, on } : { module_id: id, on, guest: true })
     setReactions(r => ({ ...r, [id]: { ...r[id], [key]: on } }))
     if (key === 'liked') {
       setSocial(s => s && ({
         ...s,
         likeCount: { ...s.likeCount, [id]: Math.max(0, (s.likeCount[id] ?? 0) + (on ? 1 : -1)) },
       }))
-      setLike(id, on)
-    } else {
+      if (user) setLike(id, on)
+    } else if (user) {
       setBookmark(id, on)
     }
   }
