@@ -32,7 +32,7 @@ const curricula = Array.from({ length: MODULES }, (_, i) => ({
 
 // Карточка колоды слова keep: реплика-контекст, через 0,8 с — задание «Выбери слово» (верный вариант — keep)
 const cardNodes = [
-  { id: 'nb1', seq: 1, x: 0, y: 0, size: 'max', type: 'text', typeData: { text: { text: 'I want to ___ it.' } },
+  { id: 'nb1', seq: 1, x: 0, y: 0, size: 'max', type: 'text', typeData: { text: { content: 'I want to ___ it.' } },
     triggers: [{ id: 'nb1t', if: 'timer', ms: 800, then: 'nb2' }] },
   { id: 'nb2', seq: 2, x: 370, y: 0, size: 'max', type: 'word_choice',
     typeData: { word_choice: { options: [{ id: 'o1', text: 'keep', isCorrect: true }, { id: 'o2', text: 'kip' }, { id: 'o3', text: 'cap' }], responseCorrect: '', responseWrong: '' } },
@@ -49,24 +49,56 @@ function restRows(table, query) {
   return []
 }
 
-// Подключить заглушку к странице. Возвращает журнал обращений (метод + путь) — для отладки сценария
-export async function stubNewbieBackend(page) {
+// Сессия вошедшего: ключ localStorage supabase-js (sb-<первая часть хоста>-auth-token) и сам объект. JWT «понарошку» — подпись
+// клиент не проверяет, а заглушка токен не читает; срок — через час, чтобы автообновление не стучалось в /auth/v1/token
+export const SESSION_KEY = `sb-${NEWBIE_HOST.split('.')[0]}-auth-token`
+const b64 = o => Buffer.from(JSON.stringify(o)).toString('base64url')
+export function fakeSession(user = {}) {
+  const u = { id: 'nb-user-1', aud: 'authenticated', role: 'authenticated', email: 'newbie@example.test', app_metadata: {}, user_metadata: {}, created_at: '2026-10-01T00:00:00Z', ...user }
+  const exp = Math.floor(Date.now() / 1000) + 3600
+  const access_token = `${b64({ alg: 'HS256', typ: 'JWT' })}.${b64({ sub: u.id, role: 'authenticated', exp })}.stub`
+  return { access_token, refresh_token: 'nb-refresh', token_type: 'bearer', expires_in: 3600, expires_at: exp, user: u }
+}
+
+const CORS = { 'access-control-allow-origin': '*', 'access-control-allow-headers': '*', 'access-control-allow-methods': '*' }
+const jsonBody = req => { try { return JSON.parse(req.postData() ?? 'null') } catch { return null } }
+
+// Подключить заглушку к странице. Возвращает журнал обращений (метод + путь) — для отладки сценария; у массива есть поле
+// `log` — те же обращения с телом запроса ({ method, path, query, body }) и функции rpcCalls/restCalls ниже.
+// opts.session — сессия вошедшего (fakeSession()): отдаётся на /auth/v1/*; сам вход приложение берёт из localStorage (SESSION_KEY)
+// opts.rpc — ответы RPC: { имя: значение | (тело) => значение } (по умолчанию пустой ответ [])
+// opts.tables — строки таблиц поверх встроенных: { таблица: строки | (запрос) => строки }
+export async function stubNewbieBackend(page, opts = {}) {
   const calls = []
+  calls.log = []
   await page.route(new RegExp(`^https://${NEWBIE_HOST.replaceAll('.', '\\.')}/`), async route => {
-    const url = new URL(route.request().url())
-    const method = route.request().method()
+    const req = route.request()
+    const url = new URL(req.url())
+    const method = req.method()
+    const body = method === 'GET' ? null : jsonBody(req)
     calls.push(`${method} ${url.pathname}`)
+    calls.log.push({ method, path: url.pathname, query: decodeURIComponent(url.search), body })
     if (url.pathname.startsWith('/media/')) { // видео и постер ленты — из e2e/feed-media/media (стенд «лента рекомендаций»)
       const name = url.pathname.slice('/media/'.length)
       await route.fulfill({ status: 200, contentType: name.endsWith('.webm') ? 'video/webm' : 'image/jpeg', body: readFileSync(MEDIA_DIR + name), headers: { 'access-control-allow-origin': '*' } })
       return
     }
-    const table = /^\/rest\/v1\/([a-z_]+)$/.exec(url.pathname)?.[1]
-    const body = method === 'GET' && table ? restRows(table, decodeURIComponent(url.search)) : []
-    await route.fulfill({
-      status: 200, contentType: 'application/json', body: JSON.stringify(body),
-      headers: { 'access-control-allow-origin': '*', 'access-control-allow-headers': '*', 'access-control-allow-methods': '*' },
-    })
+    let payload = []
+    if (url.pathname === '/auth/v1/user' && opts.session) payload = opts.session.user
+    else if (url.pathname === '/auth/v1/token' && opts.session) payload = opts.session
+    else if (url.pathname.startsWith('/rest/v1/rpc/')) {
+      const r = opts.rpc?.[url.pathname.slice('/rest/v1/rpc/'.length)]
+      payload = typeof r === 'function' ? r(body) : r ?? []
+    } else {
+      const table = /^\/rest\/v1\/([a-z_]+)$/.exec(url.pathname)?.[1]
+      const extra = table ? opts.tables?.[table] : null
+      if (method === 'GET' && table) payload = typeof extra === 'function' ? extra(calls.log.at(-1).query) : extra ?? restRows(table, calls.log.at(-1).query)
+    }
+    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(payload), headers: CORS })
   })
   return calls
 }
+
+// Вызовы RPC по имени (с телами) и записи в таблицу (POST/PATCH/DELETE) — для проверок «что приложение отправило»
+export const rpcCalls = (calls, name) => calls.log.filter(c => c.method === 'POST' && c.path === `/rest/v1/rpc/${name}`)
+export const writesTo = (calls, table) => calls.log.filter(c => c.path === `/rest/v1/${table}` && c.method !== 'GET' && c.method !== 'OPTIONS')
