@@ -1,0 +1,51 @@
+# Проверки тестовой ветки (владелец работает без локальной копии — объективный прогон делает GitHub):
+# на каждый пуш в claude/cool-euler-bb396v — сборка, линт, юнит-тесты и E2E «новичок + персоны живых
+# пользователей» (проект Playwright `newbie`: dev-сервер и заглушка Supabase в памяти, секреты не нужны,
+# боевая база не трогается). Отчёт Playwright — в артефактах запуска (14 дней).
+name: Тестовая ветка
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [claude/cool-euler-bb396v]
+
+jobs:
+  unit:
+    name: Сборка, линт, юнит-тесты
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: npm run lint
+      - run: npm run test
+
+  newbie:
+    name: E2E новичок и персоны (заглушка сети)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Playwright, проект newbie
+        run: npx playwright test e2e/newbie-*.spec.js --project=newbie --workers=2
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: playwright-report-newbie
+          path: playwright-report/
+          retention-days: 14
+      - uses: actions/upload-artifact@v6
+        if: failure()
+        with:
+          name: test-results-newbie
+          path: test-results/
+          retention-days: 14

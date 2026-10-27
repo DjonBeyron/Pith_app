@@ -129,6 +129,7 @@
 | `.env.test.example` | Шаблон тест-аккаунтов для этапа D (скопировать в .env.test, вписать пароли); сам `.env.test` — в .gitignore |
 | `.github/workflows/ci.yml` | CI на GitHub Actions: build + lint + тесты на каждый push/PR в main |
 | `.github/workflows/deploy-functions.yml` | Деплой edge-функций Supabase кнопкой (Actions → Run workflow → выбрать функцию): для владельца без локальной копии; секреты `SUPABASE_ACCESS_TOKEN`, `SUPABASE_PROJECT_REF` |
+| `.github/workflows/test-branch.yml` | Проверки тестовой ветки на каждый пуш в `claude/cool-euler-bb396v`: сборка, линт, юнит-тесты и E2E проекта `newbie` (новичок + персоны, заглушка сети, без секретов); отчёт Playwright в артефактах |
 | `.github/workflows/e2e.yml` | E2E в CI: `guest` — гостевые против боевой базы (только чтение, anon-ключ); `local` — весь пакет с админом, правами БД и полным проходом плеера (`E2E_PLAYER=1`) на локальном Supabase в Docker (`scripts/e2e-local.sh`), без секретов аккаунтов; отчёт Playwright в артефакты |
 | `eslint.config.js` | Правила проверки кода (лимит длины файла); игнор `old/`+артефактов; отдельный блок globals для `e2e/**` |
 | `index.html` | Самая первая HTML-страница, в которую подключается приложение. В начале `<head>` — первый inline-скрипт «журнал старта» (диагностика моргания на iPhone → Админ → «Старт»), затем `net-guard.js` (только с `defer`: блокирующих внешних скриптов в `<head>` быть не должно — первый кадр ждал бы их); `<meta name="pithy-build">` — BUILD_ID сборки для кеша оболочки; журнал пишет `shell: cache|network` |
