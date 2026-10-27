@@ -169,7 +169,7 @@ const FeedSlot = memo(function FeedSlot({ item: it, node, on, warns, count, mark
     return <div ref={setEl} data-ref={it.ref} className={`rvwSlot${on ? ' on' : ''}`} onClick={() => onSelect(it.ref)}><StudentRow item={it} /></div>
   }
   return (
-    <div ref={setEl} data-ref={it.ref} className={`rvwSlot${on ? ' on' : ''}${it.wrongBranch ? ' wrong' : ''}${mark ? ' rvwChg' : ''}`} onClick={() => onSelect(it.ref)}>
+    <div ref={setEl} data-ref={it.ref} className={`rvwSlot${on ? ' on' : ''}${it.wrongBranch ? ' wrong' : ''}${mark ? ` rvwChg rvwChg--${mark}` : ''}`} onClick={() => onSelect(it.ref)}>
       <div className="rvwSlotMeta">
         <span>{node.seq}</span>{it.wrongBranch && <span className="rvwTagWrong">ветка ошибки</span>}{mark && <span className="rvwTagChg">{mark === 'new' ? 'новая' : 'изменена'}</span>}{warns > 0 && <span className="rvwWarn">⚠ {warns}</span>}
       </div>

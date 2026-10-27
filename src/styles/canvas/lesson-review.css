@@ -119,6 +119,10 @@
 .rvwSlot.rvwChg::after { content: ''; position: absolute; left: -30px; top: 8px; bottom: 8px; width: 30px; pointer-events: none;
   background: radial-gradient(ellipse 60% 50% at 30% 50%, #ff5fa255, transparent 75%); filter: blur(5px); z-index: -1; }
 .rvwTagChg { color: #ff8fc0; }
+/* «Изменена» — янтарная (новая остаётся розовой) */
+.rvwSlot.rvwChg--changed::before { background: #ffb347; }
+.rvwSlot.rvwChg--changed::after { background: radial-gradient(ellipse 60% 50% at 30% 50%, #ffb34755, transparent 75%); }
+.rvwChg--changed .rvwTagChg { color: #ffc978; }
 
 /* Закреп в ленте разбора: кто закрепил (имя учителя из урока) и что именно */
 .rvwPin { display: flex; flex-direction: column; gap: 6px; align-items: center; }
