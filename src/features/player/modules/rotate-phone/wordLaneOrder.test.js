@@ -100,4 +100,15 @@ describe('раунд «Порядок» на время: пилюли едут, 
     expect(tapLane(g, 0, 1000)).toEqual([])
     expect(stepOrder(g, 1000)).toEqual([])
   })
+
+  it('«Различи»: верная дорожка задана в подсказке, тап по дорожке без пилюли никуда не попадает', () => {
+    const dp = [{ id: 'd', parts: [1], answer: [2], slots: [0, 2], words: ['tying', '', 'trying'] }]
+    const g = createOrderGame({ prompts: dp, lanes })
+    expect(expectedLanes(g)).toEqual([2])
+    const t = spawnNext(g) + 1500
+    stepOrder(g, t)
+    expect(tapLane(g, 1, t)).toEqual([])                                                // дорожка 1 пуста
+    expect(tapLane(g, 0, t)[0]).toMatchObject({ type: 'wrong', expected: 2 })
+    expect(tapLane(g, 2, t).map(e => e.type)).toEqual(['ok', 'next', 'done'])
+  })
 })

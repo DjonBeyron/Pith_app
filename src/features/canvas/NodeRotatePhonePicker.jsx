@@ -2,6 +2,7 @@ import { useState } from 'react'
 import NodeTableTts from './NodeTableTts.jsx'
 import WordLaneEditorModal from './word-lane/WordLaneEditorModal.jsx'
 import CatLinesPanel from './word-lane/CatLinesPanel.jsx'
+import ConfusersPanel from './word-lane/ConfusersPanel.jsx'
 import { defaultScript } from '../player/modules/rotate-phone/wordLaneConfig.js'
 import { fillsFromTimings, defaultFills, normalizeFills } from '../player/modules/rotate-phone/wordLanePlan.js'
 import { parsePhrase } from '../player/modules/rotate-phone/wordLaneRecipe.js'
@@ -16,7 +17,7 @@ import { NO_AUTOCORRECT } from '../../shared/lib/noAutoCorrectProps.js'
 // можно озвучить и одну фразу целиком «I'm trying to learn» — куски игра вырежет из неё), из ответа берутся тайминги слов. У фразы игра режет файл на клипы кусков сама (wordLaneAudio.clipsFromTimings); у одного слова таймлайн (три клипа) расставляется сразу, «⏱ Таймлайн» — монтажный
 // стол таблицы, чтобы поправить руками. Без озвучки куски произносит голос системы / слово из библиотеки озвучки слов. Фраза пустая — игра идёт встроенным словом (DEMO_WORD).
 // Звук диктора: куски фразы звучат ОТДЕЛЬНЫМИ файлами из библиотеки озвучки слов (collectLessonWords кладёт куски в список «нужна озвучка»), а запись «Озвучить» — только финал (вся фраза).
-// Реплики кота («Пробуй сказать слова раздельно» и др.) — общие для всех нод этого типа: список, озвучка и анимация рта — раскрывающийся блок внизу (CatLinesPanel). Текст карточки в чате правится выше, в общем поле content.
+// Слова-запутыватели: под полями — свернутый блок на каждый кусок фразы; допишете в него похожие слова — для этого куска в игре появится раунд «Различи» (ConfusersPanel). Реплики кота («Пробуй сказать слова раздельно» и др.) — общие для всех нод этого типа: список, озвучка и анимация рта — раскрывающийся блок внизу (CatLinesPanel). Текст карточки в чате правится выше, в общем поле content.
 export default function NodeRotatePhonePicker({ tData, onDataChange, lessonFiles, onPickFile, onRemoveFile }) {
   const [open, setOpen] = useState(false)
   const [linesOpen, setLinesOpen] = useState(false)
@@ -51,6 +52,7 @@ export default function NodeRotatePhonePicker({ tData, onDataChange, lessonFiles
         placeholder="Перевод фразы — ученик получит его в финале" {...NO_AUTOCORRECT} />
       <input className="nodeRotateInput" value={tData.script ?? ''} onChange={e => onDataChange({ script: e.target.value })}
         placeholder={chunks.length ? `Что скажет диктор (пусто → «${defaultScript(phrase)}»)` : 'Что скажет диктор (пусто → высказывания рецепта)'} {...NO_AUTOCORRECT} />
+      <ConfusersPanel chunks={chunks} value={tData.confusers} onChange={confusers => onDataChange({ confusers })} />
       <div className="nodeRotateTrainerRow">
         <NodeTableTts fileId={tData.file_id} text={script} onPick={handlePick} onAnalyzed={handleAnalyzed} onRemoveOldFile={onRemoveFile} />
       </div>

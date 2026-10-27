@@ -14,7 +14,7 @@ import { voskRuntime } from '/src/shared/lib/vosk/voskRuntime.js'
 
 // Стенд игры «Повтори за диктором»: карточка ноды + игра на весь экран. ?wldebug — опорные точки геометрии. Без Vosk игра идёт в ручном режиме (тап по микрофону = слово).
 const params = new URLSearchParams(location.search)
-// ?phrase=I'm|trying|to learn — фраза из кусков (раунды: наращивание, порядок, вслепую); без неё — слово ?word= (по умолчанию try)
+// ?conf=|tying,drying| — слова-запутыватели по кускам; ?phrase=I'm|trying|to learn — фраза из кусков (раунды: наращивание, порядок, вслепую); без неё — слово ?word= (по умолчанию try)
 // ?audio=1 — озвучка автора (гудки): у слова три гудка на 0.3 / 1.6 / 3.1 с (старый таймлайн), у фразы по гудку на слово файла в порядке высказываний рецепта
 const phrase = params.get('phrase') || ''
 const chunks = parsePhrase(phrase)
@@ -23,6 +23,7 @@ const voice = params.get('audio') ? fakeVoice(wordsOf) : null
 const word = params.get('word') || 'try'
 const td = { content: 'Повтори за диктором', word, translation: params.get('tr') || '' }
 if (chunks.length) td.phrase = phrase
+if (params.get('conf')) td.confusers = params.get('conf').split('|').map(x => x.split(',').filter(Boolean)) // ?conf=|tying,drying| — запутыватели по кускам (раунд «Различи»)
 if (voice) Object.assign(td, { file_id: 'f1', duration: voice.duration, wordTimings: voice.wordTimings, waveformData: voice.waveformData, ...(chunks.length > 1 ? {} : { fills: fillsFromTimings(voice.wordTimings, word, voice.duration) }) })
 const node = { id: 'n1', type: 'rotate_phone', typeData: { rotate_phone: td } }
 const file = voice ? { id: 'f1', r2Url: voice.url } : null

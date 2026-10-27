@@ -1,9 +1,10 @@
 // Сценарий игры: рецепт (раунды и ступени) → плоский список «стадий», которые сценарий (useWordLaneFlow) проходит по порядку. Чистые функции — проверяются тестами.
-//  announce — плашка раунда («Раунд 2 · Выбери дорожку»), только у фраз из нескольких кусков;
+//  announce — плашка раунда («Раунд 2 · Выбери дорожку»), у фраз из нескольких кусков (у одного слова — только перед «Различи»);
 //  dictor   — ступень, диктор проговаривает повторы (план planDictor: когда звучит каждый повтор, какие пилюли в каких дорожках);
 //  turn     — плашка «Теперь твоя очередь» (слушатель Vosk уже стартует под ней);
 //  student  — ученик повторяет те же повторы (конвейер wordLaneStudent);
-//  order    — раунд «Порядок»: подсказки диктора, ученик тапает дорожки.
+//  order    — раунд «Порядок»: подсказки диктора, ученик тапает дорожки;
+//  discern  — раунд «Различи» (для куска с запутывателями): диктор говорит кусок, в дорожках он и похожие слова — ученик тапает верную (подписи дорожек у каждой подсказки свои).
 // У каждой стадии свой номер idx и ссылка на раунд/ступень; подписи дорожек и подсветка считаются из стадии (labelsFor).
 import { buildRecipe, orderLanes } from './wordLaneRecipe.js'
 import { planDictor } from './wordLaneDictor.js'
@@ -16,8 +17,8 @@ export const TURN_STAGE_MS = 1500 // плашка «Теперь твоя оче
  * @param {object} p chunks — куски фразы; clips — клипы записи автора (wordLaneAudio) или null; audio — { wave, duration } или null; rate — скорость голоса урока; lib(chunk) — озвучка куска в библиотеке слов ({ ms } или null)
  * @returns {{ recipe, stages, chunkMs: number[], chunkCurves: Array<Function|null>, lanes: number[] }}
  */
-export function buildStages({ chunks, clips = null, audio = null, rate = 1, lib = () => null }) {
-  const recipe = buildRecipe(chunks)
+export function buildStages({ chunks, clips = null, audio = null, rate = 1, lib = () => null, confusers = null }) {
+  const recipe = buildRecipe(chunks, confusers)
   const n = chunks.length
   const chunkMs = chunks.map(c => estChunkMs(c))
   const chunkCurves = chunks.map(() => null)
@@ -26,8 +27,8 @@ export function buildStages({ chunks, clips = null, audio = null, rate = 1, lib 
   const clipMode = parts => (n > 1 ? parts.length === n : !lib(0))
   const push = s => stages.push({ ...s, idx: stages.length })
   for (const round of recipe.rounds) {
-    if (n > 1) push({ type: 'announce', round, ms: ANNOUNCE_MS })
-    if (round.kind === 'order') { push({ type: 'order', round, prompts: round.prompts }); continue }
+    if (n > 1 || round.kind === 'discern') push({ type: 'announce', round, ms: ANNOUNCE_MS })
+    if (round.kind === 'order' || round.kind === 'discern') { push({ type: round.kind, round, prompts: round.prompts }); continue }
     for (const step of round.steps) {
       if (step.kind === 'dictor-student') {
         const plan = planDictor({ step, chunks, clips, audio, rate, clipMode, lib })
@@ -56,9 +57,10 @@ export function listenStepOf(stages, idx) {
 }
 
 /** Подписи дорожек на стадии: { text, on }[3] — текст куска над дорожкой и подсвечена ли она (участвует в ступени). Пустой текст — подписи нет (вслепую) */
-export function labelsFor(stage, chunks, lanes, hint = []) {
+export function labelsFor(stage, chunks, lanes, hint = [], promptIdx = 0) {
   const n = chunks.length
   const out = Array.from({ length: 3 }, () => ({ text: '', on: false }))
+  if (stage?.type === 'discern') { const words = stage.prompts[Math.min(promptIdx, stage.prompts.length - 1)]?.words ?? []; return out.map((_, lane) => ({ text: words[lane] ?? '', on: !!words[lane] })) } // подписи у каждой подсказки свои
   if (!stage || n < 2) return out
   if (stage.type === 'order') { lanes.forEach((chunk, lane) => { out[lane] = { text: chunks[chunk], on: true } }); return out }
   const step = stage.step

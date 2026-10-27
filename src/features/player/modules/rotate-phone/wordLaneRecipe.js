@@ -3,6 +3,7 @@
 // Раунды (по приёмам живого учителя: «я показываю — мы делаем вместе — ты делаешь сам», подсказки постепенно исчезают):
 //  build  — НАРАЩИВАНИЕ: кусок 1 ×3 → кусок 2 ×3 → куски 1+2 ×3 → кусок 3 ×3 → вся фраза ×3. На каждой ступени сначала диктор проговаривает три раза, потом ученик повторяет три раза.
 //  order  — ПОРЯДОК (только от двух кусков): дорожки перемешаны. Диктор называет кусок — ученик тапает его дорожку; потом диктор произносит всю фразу — ученик тапает дорожки по порядку.
+//  discern — РАЗЛИЧИ (для куска, у которого автор в ноде дописал слова-запутыватели): диктор говорит кусок, а в дорожках стоят он и 1–2 похожих по звучанию слова — нужно успеть тапнуть дорожку верного слова. Раунд на каждый такой кусок.
 //  blind  — ВСЛЕПУЮ (только от двух кусков): ни текста, ни перевода, только дорожки. Ученик говорит куски по очереди (по пилюле на дорожку), потом всю фразу целиком.
 // Фраза из одного куска (слово) — только build: диктор три раза, ученик три раза (три пилюли в трёх дорожках), как в первой версии игры.
 import { tokenize } from '../../../../shared/lib/speech/speechMatch.js'
@@ -35,16 +36,52 @@ export function buildParts(n) {
 
 const rep = parts => ({ parts })
 
+const TITLES = { build: 'Повторяй', order: 'Выбери дорожку', discern: 'Различи', blind: 'Вслепую' }
+export const MAX_CONFUSERS = 2   // слов-запутывателей на кусок (вместе с верным словом — три дорожки)
+export const DISCERN_PROMPTS = 2 // сколько раз диктор говорит кусок в раунде «Различи» (дорожки каждый раз перетасованы)
+
+/** Слова-запутыватели из ноды → по куску массив до MAX_CONFUSERS слов: пустые, повторы, совпадающие с самим куском и лишние отбрасываются. confusers — массив (по номеру куска) массивов строк */
+export function normalizeConfusers(confusers, chunks) {
+  return chunks.map((chunk, i) => {
+    const seen = new Set([normText(chunk)])
+    const out = []
+    for (const w of Array.isArray(confusers?.[i]) ? confusers[i] : []) {
+      const text = String(w ?? '').trim().slice(0, 40)
+      const key = normText(text)
+      if (!key || seen.has(key)) continue
+      seen.add(key); out.push(text)
+      if (out.length >= MAX_CONFUSERS) break
+    }
+    return out
+  })
+}
+
+/**
+ * Подсказки раунда «Различи» для куска chunk: на каждую диктор говорит этот кусок, а в дорожках стоят он и запутыватели. words — подписи по дорожкам ('' — дорожки нет), answer — верная дорожка, slots — дорожки с пилюлями.
+ * С двумя словами занимаются крайние дорожки (0 и 2), с тремя — все. Верное слово каждый раз на другой дорожке (без случайности — раскладка не зависит от запуска).
+ */
+export function discernPrompts(chunks, chunk, words) {
+  const slots = words.length >= MAX_CONFUSERS ? [0, 1, 2] : [0, 2]
+  return Array.from({ length: DISCERN_PROMPTS }, (_, j) => {
+    const answer = slots[(chunk + 1 + j) % slots.length]
+    const rest = [...words]
+    const labels = ['', '', '']
+    for (const lane of slots) labels[lane] = lane === answer ? chunks[chunk] : rest.shift()
+    return { id: `discern-${chunk}-${j}`, parts: [chunk], answer: [answer], slots, words: labels }
+  })
+}
+
 /**
  * Рецепт: { chunks, rounds: [{ kind, title, steps|prompts }] }. Ступень: { id, kind: 'dictor-student'|'student', parts, reps: [{ parts }], text, labels: куски, видимые в подписях дорожек }.
- * Для 'order': prompts — { id, parts } (что произносит диктор, какие дорожки тапнуть и в каком порядке).
+ * Для 'order': prompts — { id, parts } (что произносит диктор, какие дорожки тапнуть и в каком порядке); для 'discern' — ещё answer (верная дорожка), slots и words (подписи дорожек). confusersIn — слова-запутыватели по кускам (normalizeConfusers).
  */
-export function buildRecipe(chunksIn) {
+export function buildRecipe(chunksIn, confusersIn = null) {
   const chunks = (chunksIn ?? []).map(c => String(c ?? '').trim()).filter(Boolean).slice(0, SLOT_COUNT)
   const n = chunks.length
   if (!n) return { chunks: [], rounds: [] }
   const all = chunks.map((_, i) => i)
   const rounds = []
+  const confusers = normalizeConfusers(confusersIn, chunks)
 
   rounds.push({
     kind: 'build',
@@ -63,6 +100,10 @@ export function buildRecipe(chunksIn) {
       title: 'Раунд 2 · Выбери дорожку',
       prompts: [...shuffled.map((c, i) => ({ id: `order-${i}`, parts: [c] })), { id: 'order-full', parts: all }],
     })
+  }
+  // «Различи» — по раунду на каждый кусок, где автор дописал запутывателей (после «Порядка», до «Вслепую»)
+  all.filter(i => confusers[i].length).forEach(i => rounds.push({ kind: 'discern', title: 'Различи', chunk: i, prompts: discernPrompts(chunks, i, confusers[i]) }))
+  if (n >= 2) {
     rounds.push({
       kind: 'blind',
       title: 'Раунд 3 · Вслепую',
@@ -72,6 +113,8 @@ export function buildRecipe(chunksIn) {
       ],
     })
   }
+  // Номера раундов по порядку (у одного слова без запутывателей — просто «Повтори за диктором»)
+  if (rounds.length > 1) rounds.forEach((r, i) => { r.title = `Раунд ${i + 1} · ${TITLES[r.kind]}` })
   return { chunks, rounds }
 }
 

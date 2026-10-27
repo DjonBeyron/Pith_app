@@ -4,7 +4,7 @@ import { snapPill, missPill } from './wordLaneSnap.js'
 
 // Сцена раунда «Порядок» для движка пилюль (useWordLanePills): на каждую подсказку из wordLaneOrder выкатывается по пилюле в каждой дорожке, они едут как весь конвейер (композитор), а тапы по
 // дорожкам (api.tap) отвечают заливкой и щелчком верной пилюле, дрожью неверной и кольцом-подсказкой на верной после нескольких ошибок. Не успел — пилюли серые и уходят вниз.
-// fx: say(parts) — диктор называет подсказку, win(order, rect) — верный тап, miss() — неверный, fail({ order, lost }) — не успел, finished() — раунд закончен.
+// fx: prompt(i) — выкатилась подсказка номер i, say(parts) — диктор называет подсказку, win(order, rect) — верный тап, miss() — неверный, fail({ order, lost }) — не успел, finished() — раунд закончен.
 const HINT_RING_MS = 1600
 
 export function runOrderScene({ pool, scene, fxRef }) {
@@ -20,11 +20,12 @@ export function runOrderScene({ pool, scene, fxRef }) {
     for (const e of events) {
       if (e.type === 'spawn') {
         const set = { spawnAt: g.spawnAt, pills: new Map(), taken: new Set() }
-        for (let lane = 0; lane < count; lane++) {
+        for (const lane of e.prompt.slots ?? Array.from({ length: count }, (_, k) => k)) { // «Различи»: пилюли только в дорожках со словами
           const k = pool.take(lane, { atMs: performance.now() - t0 - g.spawnAt })
           if (k != null) set.pills.set(lane, k)
         }
         sets.push(set)
+        fxRef.current?.prompt?.(g.i) // дорожки «Различи» подписаны по-разному на каждую подсказку
       } else if (e.type === 'say') fxRef.current?.say?.(e.parts)
       else if (e.type === 'fail') {
         for (const [lane, k] of cur().pills) if (!cur().taken.has(lane)) { pool.attr(k, 'data-fail'); pool.hint(k, '0', null) }

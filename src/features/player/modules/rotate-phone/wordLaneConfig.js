@@ -1,9 +1,9 @@
 // Данные ноды «Переверни телефон» для вертикальной игры: что за фраза (куски через «|», до трёх), как её перевести, озвучка. Слово без «|» — один кусок (игра как в первой версии).
 // Поля typeData.rotate_phone: content (текст карточки), phrase (фраза с кусками через «|», латиница; пусто — берётся word), word (слово), translation (перевод — ученик получает его в финале), lang (язык распознавания, по умолчанию en-US),
-// script (что произносит диктор ElevenLabs; пусто — слово трижды), file_id/waveformData/duration/wordTimings (озвучка и её тайминги), fills (таймлайн: три клипа заливки слоёв, секунды файла).
+// script (что произносит диктор ElevenLabs; пусто — слово трижды), confusers (слова-запутыватели по кускам фразы: [[«tying», «drying»], [], []] — у куска с запутывателями появляется раунд «Различи»), file_id/waveformData/duration/wordTimings (озвучка и её тайминги), fills (таймлайн: три клипа заливки слоёв, секунды файла).
 // Пустая нода (автор ещё ничего не настроил) играет встроенным словом — игра есть всегда, как и раньше.
 import { normalizeFills, fillsFromTimings } from './wordLanePlan.js'
-import { parsePhrase } from './wordLaneRecipe.js'
+import { parsePhrase, normalizeConfusers } from './wordLaneRecipe.js'
 import { clipsFromFills, clipsFromTimings, phraseScript } from './wordLaneAudio.js'
 
 // XP за каждую принятую пилюлю ученика. Пока это только показ (цифра летит вверх и копится в счётчике игры) — в профиль не начисляется, подключим отдельно
@@ -39,6 +39,7 @@ export function readWordLane(tData) {
     // громкость озвучки: по ней заливка пилюли идёт в такт речи диктора (без волны — линейно)
     audio: hasFile && td.duration ? { wave: td.waveformData ?? null, duration: td.duration } : null,
     clips,
+    confusers: normalizeConfusers(td.confusers, chunks),
   }
 }
 

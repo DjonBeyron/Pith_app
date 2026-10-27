@@ -24,6 +24,7 @@ import { getGameMic, closeGameMic, hasGameMic, dropGameMic, openGameMic } from '
 //  turn              плашка «Теперь твоя очередь»; слушатель Vosk стартует уже под ней (тяжёлый запуск не мешает ходу пилюль);
 //  student           повторы выкатываются сами, ученик успевает их сказать — распознавание (wordLaneListen) принимает цели, движок (useWordLanePills) решает судьбу пилюль;
 //  order             раунд «Порядок»: подсказка диктора — ученик тапает дорожки (wordLaneOrder);
+//  discern           раунд «Различи»: диктор говорит кусок, в дорожках он и слова-запутыватели — тап по верной (тот же движок, что у «Порядка»);
 //  reveal            фраза и перевод; «Дальше» отпускает ноду.
 // Микрофон включается сам (доступ дан заранее, в карточке/запуске урока). Нет модели Vosk или микрофон не открылся — ручной режим: тап по микрофону = «сказал».
 const EXIT_PAUSE_MS = 1300   // ступень закончена: заливка доходит до конца, щелчок, нота — и только потом дальше
@@ -35,14 +36,14 @@ const LINE_AT_MS = 250       // реплика кота на плашке рау
 
 const IDLE = { kind: 'idle' }
 
-export function useWordLaneFlow({ chunks, translation, lang, clips = null, audioSrc = null, audio = null, catApi = null, lines = null, onFinished }) {
+export function useWordLaneFlow({ chunks, translation, lang, clips = null, audioSrc = null, audio = null, catApi = null, lines = null, confusers = null, onFinished }) {
   const [rate] = useState(getVoiceRate) // скорость голоса урока: на неё растянут план диктора
   const [lib] = useState(() => makeLib(chunks)) // озвучка кусков в библиотеке слов на момент старта игры (длины и наличие)
-  const built = useMemo(() => buildStages({ chunks, clips, audio, rate, lib }), [chunks, clips, audio, rate, lib])
+  const built = useMemo(() => buildStages({ chunks, clips, audio, rate, lib, confusers }), [chunks, clips, audio, rate, lib, confusers])
   const { stages, chunkMs, chunkCurves, lanes, clipMode } = built
   useEffect(() => { pLog(`[word-lane] диктор: ${audioSrc ? (clips ? 'озвучка автора, клипы найдены' : 'озвучка есть, но клипы кусков не найдены — куски проговорит голос системы') : 'без озвучки — голос системы'}`) }, [audioSrc, clips])
   const [micEpoch, setMicEpoch] = useState(0) // растёт, когда микрофон переоткрыт: слушатель пересоздаётся на новом потоке
-  const [s, setS] = useState({ stage: 'drop', idx: 0, at: 0, xp: 0, xpEvents: [], note: '', lid: '', seq: [], misses: 0, mic: 'starting', hint: [] })
+  const [s, setS] = useState({ stage: 'drop', idx: 0, at: 0, xp: 0, xpEvents: [], note: '', lid: '', seq: [], misses: 0, mic: 'starting', hint: [], promptIdx: 0 })
   const sRef = useRef(s)
   const listenerRef = useRef(null)
   const finishedRef = useRef(false)
@@ -62,7 +63,7 @@ export function useWordLaneFlow({ chunks, translation, lang, clips = null, audio
 
   const later = useCallback((fn, ms) => { const id = setTimeout(() => { timersRef.current.delete(id); fn() }, Math.max(0, ms)); timersRef.current.add(id); return id }, [])
   const clearTimers = useCallback(() => { timersRef.current.forEach(clearTimeout); timersRef.current.clear() }, [])
-  const go = useCallback((stage, idx = 0) => setS(p => ({ ...p, stage, idx, at: performance.now(), hint: [] })), [])
+  const go = useCallback((stage, idx = 0) => setS(p => ({ ...p, stage, idx, at: performance.now(), hint: [], promptIdx: 0 })), [])
   const next = useCallback(() => { const i = sRef.current.idx + 1; if (i >= stages.length) go('reveal', i); else go('run', i) }, [go, stages.length])
   const stageObj = s.stage === 'run' ? stages[s.idx] : null
 
@@ -107,6 +108,7 @@ export function useWordLaneFlow({ chunks, translation, lang, clips = null, audio
     },
     mouth(level, code) { catApi?.current?.mouth(level, code) },
     peek(ms) { catApi?.current?.peek?.(ms) },
+    prompt(i) { setS(p => (p.promptIdx === i ? p : { ...p, promptIdx: i })) }, // раунд «Различи»: у каждой подсказки свои подписи дорожек
     say(parts) { // подсказка раунда «Порядок»: кот выскакивает, диктор называет куски
       catApi?.current?.peek?.(parts.reduce((sum, i) => sum + (lib(i)?.ms ?? estChunkMs(chunks[i])) / (rate > 0 ? rate : 1) + 80, 700))
       say(parts)
@@ -117,7 +119,7 @@ export function useWordLaneFlow({ chunks, translation, lang, clips = null, audio
   useEffect(() => { handlersRef.current = handlers })
   const [fx] = useState(() => ({
     win: (...a) => handlersRef.current.win(...a), miss: (...a) => handlersRef.current.miss(...a), fail: (...a) => handlersRef.current.fail(...a),
-    mouth: (...a) => handlersRef.current.mouth(...a), peek: (...a) => handlersRef.current.peek(...a), say: (...a) => handlersRef.current.say(...a), finished: (...a) => handlersRef.current.finished(...a),
+    mouth: (...a) => handlersRef.current.mouth(...a), peek: (...a) => handlersRef.current.peek(...a), prompt: (...a) => handlersRef.current.prompt(...a), say: (...a) => handlersRef.current.say(...a), finished: (...a) => handlersRef.current.finished(...a),
   }))
 
   const dismissXp = useCallback(id => setS(p => {
@@ -218,13 +220,13 @@ export function useWordLaneFlow({ chunks, translation, lang, clips = null, audio
     if (s.stage !== 'run' || !stageObj) return IDLE
     if (stageObj.type === 'dictor') return { kind: 'dictor', plan: stageObj.plan, at: s.at }
     if (stageObj.type === 'student') return { kind: 'student', step: stageObj.step, chunks, estMs: c => chunkMs[c], curves: chunkCurves, at: s.at }
-    if (stageObj.type === 'order') return { kind: 'order', prompts: stageObj.prompts, lanes, count: chunks.length, at: s.at }
+    if (stageObj.type === 'order' || stageObj.type === 'discern') return { kind: 'order', prompts: stageObj.prompts, lanes, count: chunks.length, at: s.at }
     return IDLE
   }, [s.stage, s.at, stageObj, chunks, chunkMs, chunkCurves, lanes])
 
   const live = { seq: s.lid === listenId ? s.seq : [], misses: s.lid === listenId ? s.misses : 0, signal: () => signalRef.current }
   const phase = s.stage === 'run' ? (stageObj?.type ?? 'idle') : s.stage
-  const labels = labelsFor(stageObj?.type === 'announce' ? stages[s.idx + 1] : stageObj, chunks, lanes, s.hint) // под плашкой раунда уже видны подписи следующей стадии
+  const labels = labelsFor(stageObj?.type === 'announce' ? stages[s.idx + 1] : stageObj, chunks, lanes, s.hint, s.promptIdx) // под плашкой раунда уже видны подписи следующей стадии
   const plate = stageObj?.type === 'announce' ? stageObj.round.title : stageObj?.type === 'turn' ? 'Теперь твоя очередь' : ''
   return { ...s, catLine: cat.text, phase, stageObj, scene, live, labels, plate, plateMs: stageObj?.ms ?? 0, levels, fx, sceneApi, onLane, dismissXp, tapMic, skip, finish, translation, text: textOf(chunks, chunks.map((_, i) => i)) }
 }

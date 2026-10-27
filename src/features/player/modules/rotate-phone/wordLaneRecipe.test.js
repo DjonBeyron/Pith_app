@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { parsePhrase, buildRecipe, buildParts, laneOf, orderLanes, normText, textOf, flattenRecipe, REPEATS, BLIND_FULL_REPS } from './wordLaneRecipe.js'
+import { parsePhrase, buildRecipe, buildParts, laneOf, orderLanes, normText, textOf, flattenRecipe, normalizeConfusers, discernPrompts, REPEATS, BLIND_FULL_REPS } from './wordLaneRecipe.js'
 
 describe('фраза и куски', () => {
   it('куски через «|», пустые отбрасываются, не больше трёх (по числу дорожек)', () => {
@@ -67,5 +67,33 @@ describe('раунды рецепта', () => {
   it('пустая фраза — пустой рецепт; flatten собирает ступени и подсказки', () => {
     expect(buildRecipe([]).rounds).toEqual([])
     expect(flattenRecipe(buildRecipe(['a', 'b'])).length).toBe(3 + 3 + 2)
+  })
+})
+
+describe('раунд «Различи» (слова-запутыватели)', () => {
+  const chunks = ["I'm", 'trying', 'to learn']
+  it('запутыватели чистятся: пустые, повторы, совпадающие с самим куском и лишние (больше двух) отбрасываются', () => {
+    expect(normalizeConfusers([[], [' tying ', 'Trying', '', 'tying', 'drying', 'crying'], null], chunks)).toEqual([[], ['tying', 'drying'], []])
+    expect(normalizeConfusers(undefined, chunks)).toEqual([[], [], []])
+  })
+  it('без запутывателей рецепт прежний; у куска с запутывателями — свой раунд после «Порядка» и до «Вслепую», номера по порядку', () => {
+    expect(buildRecipe(chunks).rounds.map(r => r.kind)).toEqual(['build', 'order', 'blind'])
+    const r = buildRecipe(chunks, [[], ['tying', 'drying'], ['to learn it']])
+    expect(r.rounds.map(x => x.kind)).toEqual(['build', 'order', 'discern', 'discern', 'blind'])
+    expect(r.rounds.map(x => x.title)).toEqual(['Раунд 1 · Повторяй', 'Раунд 2 · Выбери дорожку', 'Раунд 3 · Различи', 'Раунд 4 · Различи', 'Раунд 5 · Вслепую'])
+    expect(r.rounds[2].chunk).toBe(1)
+  })
+  it('подсказки: верное слово и запутыватели в дорожках, верное каждый раз на другой дорожке; с одним запутывателем — крайние дорожки', () => {
+    const three = discernPrompts(chunks, 1, ['tying', 'drying'])
+    expect(three).toHaveLength(2)
+    three.forEach(p => { expect(p.words[p.answer[0]]).toBe('trying'); expect([...p.words].sort()).toEqual(['drying', 'trying', 'tying']) })
+    expect(three[0].answer[0]).not.toBe(three[1].answer[0])
+    const two = discernPrompts(chunks, 0, ['am'])
+    two.forEach(p => { expect(p.slots).toEqual([0, 2]); expect(p.words[1]).toBe(''); expect(p.words[p.answer[0]]).toBe("I'm") })
+    expect(two[0].answer[0]).not.toBe(two[1].answer[0])
+  })
+  it('одно слово тоже может получить «Различи»', () => {
+    expect(buildRecipe(['try'], [['tray']]).rounds.map(r => r.kind)).toEqual(['build', 'discern'])
+    expect(buildRecipe(['try']).rounds).toHaveLength(1)
   })
 })

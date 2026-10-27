@@ -71,4 +71,20 @@ describe('подписи дорожек', () => {
     const one = buildStages({ chunks: ['try'] })
     expect(labelsFor(one.stages[0], ['try'], one.lanes).every(l => l.text === '')).toBe(true)
   })
+
+  it('«Различи»: стадия с подсказками и своими подписями дорожек на каждую подсказку; без запутывателей стадий нет', () => {
+    const chunks = ["I'm", 'trying', 'to learn']
+    expect(buildStages({ chunks }).stages.some(x => x.type === 'discern')).toBe(false)
+    const b = buildStages({ chunks, confusers: [[], ['tying', 'drying'], []] })
+    const st = b.stages.find(x => x.type === 'discern')
+    expect(st.prompts).toHaveLength(2)
+    expect(b.stages[st.idx - 1].type).toBe('announce')
+    const l0 = labelsFor(st, chunks, b.lanes, [], 0)
+    const l1 = labelsFor(st, chunks, b.lanes, [], 1)
+    expect(l0.map(l => l.text).sort()).toEqual(['drying', 'trying', 'tying'])
+    expect(l0.map(l => l.text)).not.toEqual(l1.map(l => l.text))
+    const one = buildStages({ chunks: ['try'], confusers: [['tray']] })              // у одного слова плашка — только перед «Различи»
+    expect(one.stages.filter(x => x.type === 'announce')).toHaveLength(1)
+    expect(labelsFor(one.stages.find(x => x.type === 'discern'), ['try'], one.lanes).filter(l => l.text)).toHaveLength(2)
+  })
 })

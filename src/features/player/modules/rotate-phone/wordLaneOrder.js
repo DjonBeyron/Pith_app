@@ -11,13 +11,13 @@ export const ORDER_START_MS = 500    // пауза перед первой по�
 export const ORDER_GAP_MS = 900      // пауза между подсказками (и перед повтором после «не успел»)
 export const ORDER_SAY_DELAY_MS = 700 // диктор называет кусок через столько после выкатки — пилюли уже видны
 
-/** lanes — перестановка: lane → номер куска (wordLaneRecipe.orderLanes) */
+/** lanes — перестановка: lane → номер куска (wordLaneRecipe.orderLanes); у подсказок «Различи» дорожки заданы в самой подсказке */
 export function createOrderGame({ prompts, lanes, maxTries = ORDER_MAX_TRIES }) {
   return { prompts, lanes, maxTries, i: 0, tries: 0, state: prompts.length ? 'gap' : 'done', spawnAt: 0, nextAt: ORDER_START_MS, tapped: [], wrong: 0, mistakes: 0, lost: 0, said: false, finished: !prompts.length }
 }
 
 /** Дорожки, которые надо тапнуть на текущей подсказке, по порядку */
-export const expectedLanes = g => (g.finished ? [] : g.prompts[g.i].parts.map(chunk => g.lanes.indexOf(chunk)))
+export const expectedLanes = g => (g.finished ? [] : g.prompts[g.i].answer ?? g.prompts[g.i].parts.map(chunk => g.lanes.indexOf(chunk))) // «Различи»: верная дорожка задана в подсказке (answer)
 
 /** Высота центра пилюль текущей подсказки в момент t (все дорожки едут вместе) */
 export const orderY = (g, t) => ENTER_Y + (SPEED * (t - g.spawnAt)) / 1000
@@ -56,6 +56,8 @@ export function tapLane(g, lane, t) {
   if (g.finished || g.state !== 'fly') return []
   const y = orderY(g, t)
   if (y < CLAIM_FROM_Y || y > FAIL_Y) return []
+  const slots = g.prompts[g.i].slots
+  if (slots && !slots.includes(lane)) return [] // «Различи»: в этой дорожке пилюли нет — тап никуда не попал
   const exp = expectedLanes(g)
   const want = exp[g.tapped.length]
   if (lane !== want) {

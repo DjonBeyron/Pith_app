@@ -17,9 +17,9 @@ import { WORD_Y } from './wordLaneTimeline.js'
 // Оверлей — portal в body поверх всего (z-index 10000), закрывает весь экран, включая зону вырезов (safe-area учтена отступами сцены). Крестик — выйти в любой момент.
 export default function WordLaneGame({ cfg, audioSrc, lines = null, onFinished }) {
   const catApi = useRef(null) // Пит (кот-маскот): рот по голосу и реакции лицом — через api, минуя React на кадрах
-  const f = useWordLaneFlow({ chunks: cfg.chunks, translation: cfg.translation, lang: cfg.lang, clips: cfg.clips, audioSrc, audio: cfg.audio, catApi, lines, onFinished })
+  const f = useWordLaneFlow({ chunks: cfg.chunks, translation: cfg.translation, lang: cfg.lang, clips: cfg.clips, audioSrc, audio: cfg.audio, catApi, lines, confusers: cfg.confusers, onFinished })
   const { phase } = f
-  const single = cfg.chunks.length === 1
+  const single = cfg.chunks.length === 1 && !f.labels.some(h => h.text) // у одного слова текст стоит крупно — кроме «Различи», где в дорожках разные слова
   const showSlots = phase !== 'drop'
   const intro = phase === 'drop' || phase === 'lanes'
   const heads = intro ? cfg.chunks.map(text => ({ text, on: true })) : f.labels
@@ -29,7 +29,7 @@ export default function WordLaneGame({ cfg, audioSrc, lines = null, onFinished }
     <div className="wl" data-phase={phase} data-testid="wl">
       <div className="wlStage">
         <WordLaneCat apiRef={catApi} />
-        <WordLanePills scene={f.scene} levels={f.levels} fx={f.fx} live={f.live} sceneApi={f.sceneApi} visible={showSlots} onLane={phase === 'order' ? f.onLane : null} />
+        <WordLanePills scene={f.scene} levels={f.levels} fx={f.fx} live={f.live} sceneApi={f.sceneApi} visible={showSlots} onLane={phase === 'order' || phase === 'discern' ? f.onLane : null} />
         <div className={`wlXp${f.xp > 0 || f.xpEvents.length ? ' wlXp--on' : ''}`} data-testid="wl-xp">{f.xp} XP</div>
         {single
           ? <div className="wlWord" style={{ top: `${WORD_Y}%` }} data-testid="wl-word">{cfg.chunks[0]}</div>
