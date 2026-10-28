@@ -46,7 +46,7 @@ export default function SayAloudOverlay({ words, onClose }) {
     body = (
       <div className="sayCenter" data-testid="say-start">
         <p className="sayTitle">Скажи слово вслух</p>
-        <p className="saySub">Пит покажет перевод — назови слово по-английски. Слов в раунде: {words.length}, не больше полутора минут</p>
+        <p className="saySub">Я покажу перевод — назови слово по-английски. Слов в раунде: {words.length}, не больше полутора минут</p>
         <button type="button" className="sayBtn" onClick={begin} data-testid="say-begin">Начать</button>
       </div>
     )
@@ -55,7 +55,7 @@ export default function SayAloudOverlay({ words, onClose }) {
     body = (
       <div className="sayCenter" data-testid="say-nomic">
         <p className="sayTitle">Нужен микрофон</p>
-        <p className="saySub">Без него Пит не услышит слова. Разреши микрофон в настройках браузера и запусти игру снова</p>
+        <p className="saySub">Без него я не услышу слова. Разреши микрофон в настройках браузера и запусти игру снова</p>
         <button type="button" className="sayBtn" onClick={onClose}>Закрыть</button>
       </div>
     )

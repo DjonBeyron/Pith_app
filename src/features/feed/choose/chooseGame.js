@@ -13,7 +13,7 @@ export const GAME = 'choose'
 export const chooseKind = {
   game: GAME,
   prefix: CHOOSE_PREFIX,
-  text: 'Пит нашёл игру на минутку — выберешь слово?',
+  text: 'Я нашёл игру на минутку — выберешь слово?',
   pick: (loaded, { exclude, inMemory, needText, rand }) => pickChooseCard(loaded?.decks, { exclude, inMemory, needText, rand }),
   build: (pick, { sound, loaded }) => ({
     card: sound ? pick.card : textOnly(pick.card),

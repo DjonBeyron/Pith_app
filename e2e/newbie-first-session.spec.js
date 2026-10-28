@@ -24,7 +24,7 @@ const sheet = page => page.locator('.promptSheet')
 async function swipeUntilGameOffer(page) {
   for (let i = 0; i < 16; i++) {
     await next(page, 2300)
-    if (await sheet(page).filter({ hasText: 'Пит нашёл игру на минутку' }).count()) return
+    if (await sheet(page).filter({ hasText: 'Я нашёл игру на минутку' }).count()) return
     if (await sheet(page).count()) await sheet(page).getByRole('button', { name: 'Закрыть' }).click()
   }
 }
@@ -68,7 +68,7 @@ test('[B1, B3, B4, B6, C1, C2.guest] новичок: от первого сла�
 
   await test.step('игра «Выбери слово»: Пит предлагает, «Давай» открывает карточку слова', async () => {
     await swipeUntilGameOffer(page)
-    await expect(sheet(page)).toContainText('Пит нашёл игру на минутку')
+    await expect(sheet(page)).toContainText('Я нашёл игру на минутку')
     await sheet(page).getByRole('button', { name: 'Давай' }).click()
     const game = page.getByRole('group', { name: 'Выбери слово' })
     await expect(game).toBeVisible()

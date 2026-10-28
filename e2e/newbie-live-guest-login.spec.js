@@ -41,7 +41,7 @@ test('живой гость: лайк → строка Пита → вход →
       await fingerSwipe(page, 'next', { ms: 300 })
       await think(page, rnd, 1500, 2200)
       await fingerSwipe(page, 'next', { ms: 300 })
-      await expect(page.locator('.guestSaveHint')).toContainText('Пит сохранит лайки и закладки', { timeout: 8000 })
+      await expect(page.locator('.guestSaveHint')).toContainText('Сохраню лайки и закладки', { timeout: 8000 })
       await expectNoHScroll(page, 'со строкой Пита')
       await page.locator('.guestSaveHint').click()
       await expect(page.getByPlaceholder('Email')).toBeVisible()

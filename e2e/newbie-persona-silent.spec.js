@@ -58,7 +58,7 @@ test('[B2.sound, B4.silent] тихий гость: «Без звука» → т�
   })
 
   await test.step('Пит предлагает игру: «Давай» → «Выбери слово» открыта текстом, без звука', async () => {
-    expect(await scrollUntilSheet(page, rnd, 'Пит нашёл игру на минутку')).toBe(true)
+    expect(await scrollUntilSheet(page, rnd, 'Я нашёл игру на минутку')).toBe(true)
     await sheet(page).getByRole('button', { name: 'Давай' }).click()
     const game = page.getByRole('group', { name: 'Выбери слово' })
     await expect(game).toBeVisible({ timeout: 30_000 })

@@ -13,7 +13,7 @@ import { bootPersona, openFeed, sheet, makeRng, seedFor, think, fingerSwipe, eve
 test.beforeEach(({ page }) => bootPersona(page, { group: 'control' }))
 
 const FORBIDDEN = /^(behavior:|hint:(sound|rub|word|slow)$|choose:|fill:|picture:)/
-const NOT_SHOWN = /Кажется, не зацепило|Пит нашёл игру|Эти фразы лучше слышать|Потри фразу|Тапни слово/
+const NOT_SHOWN = /Кажется, не зацепило|Я нашёл игру|Эти фразы лучше слышать|Потри фразу|Тапни слово/
 
 // Ни одной «умной» шторки на экране; чужую (старое задание) закрываем и идём дальше, как человек
 async function expectNoSmartSheet(page) {
@@ -55,7 +55,7 @@ test('[A1.control] контрольная группа: ни вопроса Пи
     await expectNoSmartSheet(page)
   })
 
-  await test.step('спокойно листает дальше: предложений игр нет, ни «Выбери слово», ни «Пит нашёл игру»', async () => {
+  await test.step('спокойно листает дальше: предложений игр нет, ни «Выбери слово», ни «Я нашёл игру»', async () => {
     for (let i = 0; i < 12; i++) {
       await fingerSwipe(page, rnd.chance(0.2) ? 'prev' : 'next', { ms: rnd.int(220, 420) })
       await think(page, rnd, 2300, 3600)

@@ -47,7 +47,7 @@ describe('игра «Выбери слово»: от слайдов до отв�
     expect(t.slot.request).toHaveBeenCalled()
     expect(t.slot.request.mock.calls.at(-1)[0]).toEqual({
       id: 'choose:keep', kind: 'offer', reason: 'game_offer', scope: 'feed',
-      text: 'Пит нашёл игру на минутку — выберешь слово?',
+      text: 'Я нашёл игру на минутку — выберешь слово?',
       answers: [{ id: 'go', label: 'Давай' }, { id: 'no', label: 'Не сейчас' }],
     })
   })
