@@ -142,6 +142,23 @@ describe('levelFeed: вход и выход', () => {
     expect(api.saveLevelProfile).not.toHaveBeenCalled()
   })
 
+  it('гонка «гость → вошедший» без наблюдений: на сервер не уходят начальные 0.5/0.35', async () => {
+    // Первая загрузка (гость) ещё в пути, когда приходит вход; её ответ подменяет объект уровня пустым профилем,
+    // и вторая загрузка видит «уровень сменился». Раньше это считалось «пришли сигналы» и через 20 с на сервер
+    // улетал set_level_profile с начальными значениями (упало в CI: newbie-persona-user, шаг A2.server)
+    let releaseGuest
+    api.loadLevelProfile
+      .mockImplementationOnce(() => new Promise(r => { releaseGuest = () => r(emptyLevel()) }))
+      .mockResolvedValueOnce(emptyLevel())
+    const guest = feed.startLevelTracking()
+    const login = feed.setLevelUser('u1')
+    releaseGuest()
+    await Promise.all([guest, login])
+    await vi.advanceTimersByTimeAsync(feed.SERVER_SAVE_MS + 1000)
+    expect(api.saveLevelProfile).not.toHaveBeenCalled()
+    expect(feed.getLevel().ear.n).toBe(0)
+  })
+
   it('выход чистит уровень устройства', async () => {
     saveLevel(withObs())
     await feed.startLevelTracking({ userId: 'u1' })
