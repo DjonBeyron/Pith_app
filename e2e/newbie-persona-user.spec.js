@@ -1,5 +1,6 @@
 import { test, expect } from './fixtures.js'
 import { SESSION_KEY, fakeSession, rpcCalls, writesTo } from './helpers/newbieBackend.js'
+import { proof } from './helpers/newbieEvidence.js'
 import { bootPersona, openFeed, seedOnce, sheet, makeRng, seedFor, think, fingerSwipe, quickSwipes, storyToRemindAsk, expectNoHScroll } from './helpers/newbiePersona.js'
 
 // Персона «вошедший пользователь» (PLAN_NEW_USER.md → A2, A3, B3, B7, C2, решение 6 «гость получает то же, что вошедший»).
@@ -32,7 +33,7 @@ async function answerPaceQuestion(page, rnd) {
   await sheet(page).getByRole('button', { name: 'Слишком быстро, не успеваю' }).click()
 }
 
-test('гость ставит сердечко, потом входит прямо в сессии: лайк переезжает в аккаунт, группа Пита уходит в профиль', async ({ page }) => {
+test('[B7.transfer] гость ставит сердечко, потом входит прямо в сессии: лайк переезжает в аккаунт, группа Пита уходит в профиль', async ({ page }) => {
   test.setTimeout(120_000)
   const rnd = makeRng(seedFor(1404))
   const calls = await bootPersona(page, { stub })
@@ -71,7 +72,7 @@ test('гость ставит сердечко, потом входит прям
   })
 })
 
-test('вошедший: «Когда удобно» → set_remind_time 20:00; быстрые пролисты → вопрос Пита → set_level_profile через 20 с', async ({ page }) => {
+test('[A3, A2.server] вошедший: «Когда удобно» → set_remind_time 20:00; быстрые пролисты → вопрос Пита → set_level_profile через 20 с', async ({ page }, testInfo) => {
   test.setTimeout(150_000)
   const rnd = makeRng(seedFor(1405))
   const calls = await loggedInUser(page)
@@ -108,10 +109,11 @@ test('вошедший: «Когда удобно» → set_remind_time 20:00; �
     await expect.poll(() => levelSaves(calls).length, { timeout: 30_000, intervals: [1000] }).toBeGreaterThan(0)
     const b = levelSaves(calls)[0].body
     for (const k of ['p_ear', 'p_ear_sigma', 'p_vocab', 'p_vocab_sigma']) expect(typeof b[k], k).toBe('number')
+    await proof(testInfo, 'A2.server', `Ответ «Слишком быстро» → через ~20 с RPC set_level_profile: слух ${b.p_ear.toFixed(2)} ±${b.p_ear_sigma.toFixed(2)}, словарь ${b.p_vocab.toFixed(2)} ±${b.p_vocab_sigma.toFixed(2)}`, { page })
   })
 })
 
-test('вошедший: ответ Пита и сворачивание страницы (pagehide) сразу отправляют уровень, не дожидаясь 20 с', async ({ page }) => {
+test('[A2.server] вошедший: ответ Пита и сворачивание страницы (pagehide) сразу отправляют уровень, не дожидаясь 20 с', async ({ page }) => {
   test.setTimeout(100_000)
   const rnd = makeRng(seedFor(1406))
   const calls = await loggedInUser(page)

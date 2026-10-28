@@ -2,10 +2,21 @@
 # на каждый пуш в claude/cool-euler-bb396v — сборка, линт, юнит-тесты и E2E «новичок + персоны живых
 # пользователей» (проект Playwright `newbie`: dev-сервер и заглушка Supabase в памяти, секреты не нужны,
 # боевая база не трогается). Отчёт Playwright — в артефактах запуска (14 дней).
+# Артефакт newbie-evidence: report/newbie-coverage.md (матрица «пункт плана → что увидел симулированный человек») + report/newbie-screens/ (скриншоты
+# ключевых моментов) + test-results/ (видео и трасса КАЖДОГО сценария). Массовый прогон «случайные пользователи» (e2e/newbie-crowd.spec.js, ~40 мин) на каждый пуш НЕ идёт: Run workflow → crowd = true
+# (и crowd_n — сколько людей); результат — артефакт newbie-crowd (report/newbie-crowd.md + видео упавших).
 name: Тестовая ветка
 
 on:
   workflow_dispatch:
+    inputs:
+      crowd:
+        description: 'Массовый прогон случайных пользователей (долго: ~40 мин на 50 человек)'
+        type: boolean
+        default: false
+      crowd_n:
+        description: 'Сколько случайных пользователей (если crowd включён)'
+        default: '50'
   push:
     branches: [claude/cool-euler-bb396v]
 
@@ -37,15 +48,51 @@ jobs:
       - run: npx playwright install --with-deps chromium
       - name: Playwright, проект newbie
         run: npx playwright test e2e/newbie-*.spec.js --project=newbie --workers=2
+      - name: Отчёт покрытия плана новичка
+        if: always()
+        run: node scripts/newbie-coverage-report.mjs
       - uses: actions/upload-artifact@v6
         if: always()
         with:
           name: playwright-report-newbie
           path: playwright-report/
           retention-days: 14
-      - uses: actions/upload-artifact@v6
-        if: failure()
+      - name: Доказательства (отчёт, скриншоты, видео и трасса каждого сценария)
+        uses: actions/upload-artifact@v6
+        if: always()
         with:
-          name: test-results-newbie
-          path: test-results/
+          name: newbie-evidence
+          path: |
+            report/newbie-coverage.md
+            report/newbie-screens/
+            test-results/
+          retention-days: 14
+
+  crowd:
+    name: Массовый прогон случайных пользователей (вручную)
+    if: github.event_name == 'workflow_dispatch' && inputs.crowd
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Playwright, e2e/newbie-crowd.spec.js
+        env:
+          CROWD_N: ${{ inputs.crowd_n }}
+        run: npx playwright test e2e/newbie-crowd.spec.js --project=newbie --workers=3
+      - name: Отчёт прогона
+        if: always()
+        run: node scripts/newbie-crowd-report.mjs
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: newbie-crowd
+          path: |
+            report/newbie-crowd.md
+            test-results/
           retention-days: 14

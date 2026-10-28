@@ -33,6 +33,8 @@ supabase/.branches/
 playwright-report/
 test-results/
 /playwright/.cache/
+# Отчёты прогонов newbie (генерируются scripts/newbie-coverage-report.mjs и newbie-crowd-report.mjs, в CI уходят артефактом)
+/report/
 
 # Рабочие копии субагентов (Agent tool, isolation:"worktree") — свои git-репозитории,
 # не должны попадать в основной репозиторий как embedded git repo

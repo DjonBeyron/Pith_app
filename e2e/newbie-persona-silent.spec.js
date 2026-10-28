@@ -1,4 +1,5 @@
 import { test, expect } from './fixtures.js'
+import { proof } from './helpers/newbieEvidence.js'
 import { bootPersona, openFeed, sheet, makeRng, seedFor, think, fingerSwipe, scrollUntilSheet, eventsOf, expectNoHScroll, activePhrase } from './helpers/newbiePersona.js'
 
 // Персона «тихий гость без звука» (PLAN_NEW_USER.md → B2, решение 6, B4, B6): человек в метро или на работе, звук не включает ни разу.
@@ -10,7 +11,7 @@ test.beforeEach(({ page }) => bootPersona(page))
 
 const diffClass = page => page.locator('.feedSlideWrapActive .diffWrap').first().getAttribute('class')
 
-test('тихий гость: «Без звука» → текст под видео → беззвучная игра → «Сохранить слово»', async ({ page }) => {
+test('[B2.sound, B4.silent] тихий гость: «Без звука» → текст под видео → беззвучная игра → «Сохранить слово»', async ({ page }, testInfo) => {
   test.setTimeout(170_000)
   const rnd = makeRng(seedFor(1101))
 
@@ -64,6 +65,7 @@ test('тихий гость: «Без звука» → текст под вид�
     await expect(page.locator('.chooseSheet--text')).toBeVisible() // текстовая версия: плеер играет беззвучно
     await expect(page.locator('.feedSlideWrapActive .feedSoundChip')).toBeVisible() // и звук ленты не включился
     await expectNoHScroll(page, 'на игре')
+    await proof(testInfo, 'B4.silent', 'Без звука «Выбери слово» открыта текстовой версией (chooseSheet--text), звук ленты не включился, значок сложности по-прежнему скрыт', { page })
     await think(page, rnd, 700, 1800)
     await game.getByRole('button', { name: 'keep', exact: true }).click({ timeout: 30_000 })
     await expect(game.locator('.chooseVerdict')).toHaveText('Верно!')

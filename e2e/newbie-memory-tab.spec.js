@@ -7,7 +7,7 @@ import { prepareNewbie, learnTab, memoryTabToRemind } from './helpers/newbieStep
 // этот спек держит вкладку/рассказ/напоминание зелёными, даже если игра ленты в ленте не выпала по бюджету Пита.
 test.beforeEach(({ page }) => prepareNewbie(page))
 
-test('новичок: «Память» скрыта, с первым словом появляется, рассказ Пита → «Когда удобно учиться?»', async ({ page }) => {
+test('[B1, C1, C2.guest] новичок: «Память» скрыта, с первым словом появляется, рассказ Пита → «Когда удобно учиться?»', async ({ page }) => {
   await test.step('первый слайд; вкладки «Память» нет, остальные на месте', async () => {
     await page.goto('/')
     await expect(page.locator('.feedSlideWrapActive')).toBeVisible({ timeout: 30_000 })

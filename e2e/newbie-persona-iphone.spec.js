@@ -1,6 +1,7 @@
 import { test, expect } from './fixtures.js'
 import { devices } from '@playwright/test'
 import { SESSION_KEY, fakeSession, rpcCalls } from './helpers/newbieBackend.js'
+import { proof } from './helpers/newbieEvidence.js'
 import { bootPersona, openFeed, seedOnce, sheet, storyToRemindAsk, expectNoHScroll } from './helpers/newbiePersona.js'
 
 // Персона «iPhone в Safari, не с экрана «Домой»» (PLAN_NEW_USER.md → C2, решение 13): iPhone 12 mini, 375×812, UA Safari.
@@ -38,7 +39,7 @@ const signedIn = async (page, opts) => {
   return bootPersona(page, { stub })
 }
 
-test('iPhone в Safari, вошёл: «Когда удобно?» → 20:00 → «На iPhone … только приложению на экране «Домой»» → «Как добавить»', async ({ page }) => {
+test('[C2.iphone] iPhone в Safari, вошёл: «Когда удобно?» → 20:00 → «На iPhone … только приложению на экране «Домой»» → «Как добавить»', async ({ page }, testInfo) => {
   test.setTimeout(120_000)
   const calls = await signedIn(page)
 
@@ -70,6 +71,7 @@ test('iPhone в Safari, вошёл: «Когда удобно?» → 20:00 → �
     await expect(ask.getByRole('button', { name: 'Не сейчас' })).toBeVisible()
     await expect(ask.getByRole('button', { name: 'Включить уведомления' })).toHaveCount(0)
     await expectNoHScroll(page, 'на ветке iPhone')
+    await proof(testInfo, 'C2.iphone', (await ask.innerText()).replace(/\s+/g, ' '), { page })
   })
 
   await test.step('«Как добавить»: три слайда инструкции для Safari, каждый без горизонтального скролла', async () => {
@@ -99,7 +101,7 @@ test('iPhone в Safari, вошёл: «Когда удобно?» → 20:00 → �
   })
 })
 
-test('iPhone, приложение с экрана «Домой»: ветки «добавь на экран» нет, предлагают включить уведомления', async ({ page }) => {
+test('[C2.iphone-home] iPhone, приложение с экрана «Домой»: ветки «добавь на экран» нет, предлагают включить уведомления', async ({ page }, testInfo) => {
   await signedIn(page, { standalone: true })
   await openFeed(page)
   const ask = await storyToRemindAsk(page)
@@ -108,9 +110,10 @@ test('iPhone, приложение с экрана «Домой»: ветки «
   await expect(ask).not.toContainText(ADD_HOME)
   await expect(ask.getByRole('button', { name: 'Включить уведомления' })).toBeVisible()
   await expectNoHScroll(page, 'на «Включить уведомления»')
+  await proof(testInfo, 'C2.iphone-home', (await ask.innerText()).replace(/\s+/g, ' '), { page })
 })
 
-test('iPhone в Safari, гость: время запоминаем, про «Домой» молчим, обещаем напоминание после входа', async ({ page }) => {
+test('[C2.iphone-guest] iPhone в Safari, гость: время запоминаем, про «Домой» молчим, обещаем напоминание после входа', async ({ page }, testInfo) => {
   await asIPhone(page)
   await seedOnce(page, { pithy_guest_memory_v1: { keep: { word: 'keep', step: 1, due_on: tomorrow, last_card_id: null, reviews: 0, lapses: 0 } } })
   await bootPersona(page, { stub: { ...stub, session: null } })
@@ -120,6 +123,7 @@ test('iPhone в Safari, гость: время запоминаем, про «Д
   await expect(ask.locator('.raConfirm')).toContainText('напоминание придёт, когда войдёшь в аккаунт')
   await expect(ask).not.toContainText(ADD_HOME)
   await expectNoHScroll(page, 'у гостя')
+  await proof(testInfo, 'C2.iphone-guest', (await ask.innerText()).replace(/\s+/g, ' '), { page })
 })
 
 // iPad с iPadOS 13+ в Safari выдаёт себя за Mac (UA «Macintosh», maxTouchPoints 5): isIOS() в pwaInstall.js ловит только «iPhone|iPad|iPod»,
@@ -131,7 +135,7 @@ test.describe('iPad в Safari (UA как у Mac)', () => {
     userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15',
     viewport: { width: 820, height: 1180 },
   })
-  test('вошёл на iPad: ветка «На iPhone… только приложению на экране «Домой»»', async ({ page }) => {
+  test('[C2.ipad] вошёл на iPad: ветка «На iPhone… только приложению на экране «Домой»»', async ({ page }, testInfo) => {
     await page.addInitScript(() => {
       Object.defineProperty(navigator, 'platform', { get: () => 'MacIntel' })
       Object.defineProperty(navigator, 'maxTouchPoints', { get: () => 5 })
@@ -143,5 +147,6 @@ test.describe('iPad в Safari (UA как у Mac)', () => {
     const ask = await storyToRemindAsk(page)
     await ask.getByRole('button', { name: '20:00' }).click()
     await expect(ask).toContainText(ADD_HOME)
+    await proof(testInfo, 'C2.ipad', (await ask.innerText()).replace(/\s+/g, ' '), { page })
   })
 })

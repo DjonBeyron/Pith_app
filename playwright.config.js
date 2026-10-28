@@ -36,10 +36,15 @@ const benchChromium = {
 
 // Стенд «новый пользователь» (e2e/newbie-first-session.spec.js): свой dev-сервер с недостижимым Supabase (адрес NEWBIE_HOST),
 // ответы бэкенда — из e2e/helpers/newbieBackend.js (перехват сети в самом тесте). Ни базы, ни Docker, ни .env не нужно;
-// автоплей разрешён — видео ленты играют без жеста (как на стендах медиа)
+// автоплей разрешён — видео ленты играют без жеста (как на стендах медиа).
+// Видео и трасса — ВСЕГДА (не только при падении): это доказательства для отчёта покрытия (e2e/newbie-coverage-*.spec.js,
+// scripts/newbie-coverage-report.mjs): владелец смотрит, что именно увидел симулированный человек. Массовый прогон
+// (newbie-crowd.spec.js) переопределяет их на «только при падении» — иначе 50 видео
 const NEWBIE_SPEC = /newbie-.*\.spec\.js/
 const newbieChromium = {
   ...mobileChromium,
+  video: 'on',
+  trace: { mode: 'on', snapshots: false, screenshots: false, sources: false }, // без снимков DOM и кадров: с ними трасса 10–85 МБ на тест (dev-сервер Vite, долгие сценарии), весь прогон ≈ 1 ГБ — не влезет в артефакт; остаются шаги, консоль и сеть, а картинку даёт видео
   baseURL: `http://localhost:${NEWBIE_PORT}`,
   launchOptions: { args: ['--autoplay-policy=no-user-gesture-required'], ...(process.env.PW_CHROMIUM_PATH ? { executablePath: process.env.PW_CHROMIUM_PATH } : {}) },
 }
@@ -50,7 +55,8 @@ export default defineConfig({
   timeout: 60_000,
   retries: 1,
   // html — артефакт CI (загружается в e2e.yml); list — читаемый лог прогона
-  reporter: [['html', { open: 'never' }], ['list']],
+  // json — для scripts/newbie-coverage-report.mjs (отчёт покрытия плана новичка читает test-results/results.json)
+  reporter: [['html', { open: 'never' }], ['list'], ['json', { outputFile: 'test-results/results.json' }]],
   // Локальный стек — свой порт и ВСЕГДА свой dev-сервер: иначе Playwright
   // подхватил бы уже запущенный `npm run dev` на 5199, смотрящий в боевую
   // базу, и админ-тесты ушли бы в прод при «локальном» VITE_SUPABASE_URL

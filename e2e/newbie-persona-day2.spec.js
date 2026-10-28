@@ -1,5 +1,6 @@
 import { test, expect } from './fixtures.js'
 import { learnTab } from './helpers/newbieSteps.js'
+import { proof } from './helpers/newbieEvidence.js'
 import { bootPersona, openFeed, sheet, seedOnce, shiftDays, makeRng, seedFor, think, fingerSwipe, eventsOf, expectNoHScroll } from './helpers/newbiePersona.js'
 
 // Персона «вернулся на второй день» (PLAN_NEW_USER.md → B1, C1, C2, A1): в первой сессии он сохранил слово keep, посмотрел рассказ
@@ -32,7 +33,7 @@ test.beforeEach(async ({ page }) => {
   await bootPersona(page, { keepIntro: true })
 })
 
-test('второй день: «Память» без мерцания, рассказ и «Когда удобно» не повторяются, шторки разрешены, «Напоминание: 20:00»', async ({ page }) => {
+test('[A1.day2, B1.day2] второй день: «Память» без мерцания, рассказ и «Когда удобно» не повторяются, шторки разрешены, «Напоминание: 20:00»', async ({ page }, testInfo) => {
   test.setTimeout(150_000)
   const rnd = makeRng(seedFor(1303))
   const state = () => page.evaluate(() => JSON.parse(localStorage.getItem('pithy_prompts_v1') ?? 'null'))
@@ -46,6 +47,7 @@ test('второй день: «Память» без мерцания, расс�
     const tab = await page.evaluate(() => window.__tab)
     expect(tab.seq, 'вкладка не должна пропадать после появления').toEqual(['in'])
     expect(tab.blink, 'мерцание уже погашено первым нажатием').toBe(false)
+    await proof(testInfo, 'B1.day2', 'На следующий день вкладка «Память» на месте с первого кадра, не мигает и не пропадает; на ней пометка «есть что повторить» (слово созрело)', { page })
     expect(await page.evaluate(() => localStorage.getItem('pithy_memory_tab_seen_v1'))).toBe('1')
     await expectNoHScroll(page, 'на втором дне')
   })
@@ -63,6 +65,7 @@ test('второй день: «Память» без мерцания, расс�
     await expect(sheet(page)).toContainText('Эти фразы лучше слышать', { timeout: 45_000 })
     const s = await state()
     expect(s.shownSession.map(x => x.id)).toContain('hint:sound')
+    await proof(testInfo, 'A1.day2', `Вторая сессия (sessions = ${s.sessions}): бюджет открыт, через 20 с пришла «${await sheet(page).innerText()}»`.replace(/\n+/g, ' '), { page })
     await sheet(page).getByRole('button', { name: 'Без звука' }).click()
     await expect(sheet(page)).toHaveCount(0, { timeout: 8000 })
   })

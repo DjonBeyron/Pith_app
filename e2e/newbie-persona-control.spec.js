@@ -1,5 +1,6 @@
 import { test, expect } from './fixtures.js'
 import { learnTab, memoryTabToRemind } from './helpers/newbieSteps.js'
+import { proof } from './helpers/newbieEvidence.js'
 import { bootPersona, openFeed, sheet, makeRng, seedFor, think, fingerSwipe, eventsOf, expectNoHScroll } from './helpers/newbiePersona.js'
 
 // Персона «контрольная группа» (PLAN_NEW_USER.md → решение 23, раздел 7): устройство закреплено в группе без «умных» вопросов Пита
@@ -21,7 +22,7 @@ async function expectNoSmartSheet(page) {
   await sheet(page).getByRole('button', { name: 'Закрыть' }).click()
 }
 
-test('контрольная группа: ни вопроса Пита, ни игр, ни новых подсказок; «Память» и «Когда удобно» — как у всех', async ({ page }) => {
+test('[A1.control] контрольная группа: ни вопроса Пита, ни игр, ни новых подсказок; «Память» и «Когда удобно» — как у всех', async ({ page }, testInfo) => {
   test.setTimeout(170_000)
   const rnd = makeRng(seedFor(1202))
 
@@ -69,6 +70,7 @@ test('контрольная группа: ни вопроса Пита, ни и
       expect(e.props.group, `${e.name} ${e.props.id}`).toBe('control')
       expect(e.props.id, `запрещённый вид у контрольной группы: ${e.props.id}`).not.toMatch(FORBIDDEN)
     }
+    await proof(testInfo, 'A1.control', `Группа control закреплена за устройством, app_open и все prompt_* с group: control; за ~60 с листания (в т. ч. 5 быстрых пролистов) показано шторок Пита: ${prompts.filter(e => e.name === 'prompt_shown').length} (id: ${[...new Set(prompts.map(e => e.props.id))].join(', ') || 'нет'}); ни «Кажется, не зацепило», ни «Послушаем?», ни игр`, { page })
   })
 
   await test.step('первое слово → вкладка «Память» → рассказ Пита → «Когда удобно учиться?» (показывается всем)', async () => {
