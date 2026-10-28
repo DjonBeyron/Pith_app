@@ -2177,7 +2177,7 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | `mascot/markupTree.js` | Разметка пакета (`<g>/<path>…`) → деревья `svgTree`: разбор, поиск по классу, копия |
 | `mascot/mascotSprite.js` | `buildMascot(skin, { face, flip, pupilReaction, extraFace, mouth })` — дерево маскота с теми же частями и классами анимаций, что у обычного кота; лицо подставляется при сборке |
 | `mascot/mascotMouth.js` | Рот маскота без React: формы closed / half / open драйвера → формы Rhubarb X / C / D из таблицы пакета, пишутся в узлы рта; закрытый рот берёт «рот в покое» лица |
-- `src/features/scene/v2/sprites/mascot/mascotWhiskers.test.js` — проверка, что класс `wh` (усы «живого Пита v2») стоит на белом контуре усов kit.json, а не на дужках очков.
+- `src/features/scene/v2/sprites/mascot/mascotWhiskers.test.js` — проверка, что четыре уса kit.json помечены классами `wh wh-l|wh-r wh-u|wh-d` (вращение вокруг корня в «живом Пите v2»), а дужки очков — нет.
 | `mascot/mascotSprite.test.js` | Тесты маскотов: разбор, все лица проходят `spriteCheck` и лимит узлов, зеркало, реакция зрачков, наклон, рот |
 | `spriteRegistry.test.js` | Состав реестра, каждый спрайт проходит `spriteCheck` и лимит узлов, слоты ↔ спрайты, пол кота, бюджет сцены при самых тяжёлых предметах во всех слотах |
 | `sceneBleed.test.js` | Стражи стандарта «пол продолжается вниз»: фон шире кадра (пол вниз, стена вверх), `overflow: visible` у SVG ленты, настенные слоты не пересекаются и собраны к центру, бюджет узлов |

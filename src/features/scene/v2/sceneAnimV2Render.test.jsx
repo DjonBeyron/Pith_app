@@ -37,13 +37,13 @@ describe('SceneRenderer — animV2', () => {
     expect(renderToStaticMarkup(<SceneRenderer scene={scene} mode="static" frameIndex={0} />)).not.toContain('scn--v2')
   })
 
-  it('усы Пита адресуемы: ровно один контур с классом wh, число узлов маскота не выросло; у Мии усов нет', () => {
+  it('усы Пита адресуемы: четыре path с классом wh (по одному на ус), маскот в лимите узлов; у Мии усов нет', () => {
     const kit = treeToString(buildMascot('kit'))
-    expect(kit.match(/class="wh"/g)).toHaveLength(1)
-    expect(treeToString(buildMascot('mia'))).not.toContain('class="wh"')
+    expect(kit.match(/class="wh /g)).toHaveLength(4)
+    expect(treeToString(buildMascot('mia'))).not.toContain('class="wh')
     expect(countNodes(buildMascot('kit'))).toBeLessThanOrEqual(100)
     // класс поставлен на уже существующий path: в разметке головы по-прежнему тот же набор тегов
-    expect(MASCOT_PACKS.kit.head.match(/<path class="wh" d="M145\.1 327\.2/g)).toHaveLength(1) // усы, а не дужки очков (mascotWhiskers.test.js)
+    expect(MASCOT_PACKS.kit.head.match(/<path class="wh wh-l wh-u" d="M145\.1 327\.2/g)).toHaveLength(1) // усы, а не дужки очков (mascotWhiskers.test.js)
   })
 
   it('в подписях фиолетовый маскот называется просто «Пит»; идентификатор скина kit не менялся', () => {

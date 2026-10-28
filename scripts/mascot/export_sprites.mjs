@@ -13,12 +13,20 @@ const NAMES = { boy: { id: 'kit', title: 'Пит', gender: 'male' }, girl: { id:
 const shift = (markup, [bx, by]) => markup.replace(/ d="([^"]*)"/g, (_, d) =>
   ` d="${d.replace(/(-?[\d.]+) (-?[\d.]+)/g, (__, x, y) => `${+(x - bx).toFixed(1)} ${+(y - by).toFixed(1)}`)}"`)
 
-// Усы: белый залитый контур из четырёх штрихов по щекам (у Пита начинается с «M145.1 327.2», fill #ffffff) получает класс wh — за него
-// цепляются усы «живого Пита v2» (scene-v2-pit.css: при речи ходят вверх-вниз). Новых узлов нет, класс ставится на существующий path.
-// НЕ путать с двумя чёрными чёрточками «M122.2 299.1H90.2M500.1 299.1H467.5» — это концы дужек очков (так было помечено до v3.3.39).
-// У Мии усов в рисунке нет. Проверка, что класс стоит на усах, — mascotWhiskers.test.js
-const WHISKERS = /<path( d="M145\.1 327\.2[^"]*" fill="#ffffff")/g
-const markWhiskers = head => head.replace(WHISKERS, '<path class="wh"$1')
+// Усы: белый залитый контур из четырёх штрихов по щекам (у Пита начинается с «M145.1 327.2», fill #ffffff) режется на четыре path
+// с классами wh wh-l|wh-r (сторона) wh-u|wh-d (верхний/нижний): «живой Пит v2» вращает каждый ус вокруг корня (scene-v2-pit.css,
+// якорь — край fill-box у морды). +3 узла к маскоту (64 → 67 при лимите 100). НЕ путать с двумя чёрными чёрточками
+// «M122.2 299.1H90.2M500.1 299.1H467.5» — это концы дужек очков (так было помечено до v3.3.39). У Мии усов в рисунке нет.
+// Проверка — mascotWhiskers.test.js
+const WHISKERS = /<path d="(M145\.1 327\.2[^"]*)" fill="#ffffff"\/>/g
+const FACE_X = 296 // середина морды: ус левее — левый (корень у правого края), правее — правый
+const splitWhiskers = d => d.split(/(?=M)/).filter(Boolean).map(sub => {
+  const pts = [...sub.matchAll(/(-?[\d.]+) (-?[\d.]+)/g)].map(m => [+m[1], +m[2]])
+  const side = Math.max(...pts.map(p => p[0])) < FACE_X ? 'l' : 'r'
+  const row = Math.min(...pts.map(p => p[1])) < 340 ? 'u' : 'd'
+  return `<path class="wh wh-${side} wh-${row}" d="${sub}" fill="#ffffff"/>`
+}).join('')
+const markWhiskers = head => head.replace(WHISKERS, (_, d) => splitWhiskers(d))
 
 for (const [key, meta] of Object.entries(NAMES)) {
   const pk = JSON.parse(readFileSync(`${work}/pack_${key}.json`, 'utf8'))
