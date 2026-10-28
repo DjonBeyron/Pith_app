@@ -1,5 +1,6 @@
 import { supabase } from './supabase.js'
 import { isNewbieSim } from '../lib/newbieSim.js'
+import { viewSession } from './viewSession.js'
 import { dbg } from '../lib/debug.js'
 
 // ── Звёзды уроков: клиентский API ──
@@ -21,6 +22,7 @@ export async function saveLessonStars(lessonId, stars) {
 export async function fetchMyLessonStars(ids) {
   if (isNewbieSim()) return new Map() // режим «новенький»: звёзд ещё нет (newbieSim.js)
   if (!ids?.length) return new Map()
+  if (!(await viewSession())?.user) return new Map() // гость: lesson_results закрыта RLS — без запроса (иначе 401 и ошибка в консоли)
   const { data, error } = await supabase
     .from('lesson_results').select('lesson_id, stars')
     .in('lesson_id', ids).gt('stars', 0)
@@ -34,6 +36,7 @@ export async function fetchMyLessonStars(ids) {
 // (вместе с локальной отметкой completedLessons). Гостю — пусто
 export async function fetchMyDoneLessonIds() {
   if (isNewbieSim()) return new Set()
+  if (!(await viewSession())?.user) return new Set() // гость: без запроса (RLS отдаёт 401 «permission denied» и мусор в консоли)
   const { data, error } = await supabase.from('lesson_results').select('lesson_id').eq('xp_awarded', true)
   if (error) { console.error('[STARS] fetchMyDoneLessonIds:', error.message); return new Set() }
   return new Set((data ?? []).map(r => r.lesson_id))

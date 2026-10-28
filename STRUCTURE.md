@@ -2163,6 +2163,7 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | `ratingStatsApi.js` | Подробности игрока для попапа рейтинга (`leaderboard_user_stats`): состояния ok/missing/denied/error, кэш на минуту, схлопывание параллельных запросов (+ `ratingStatsApi.test.js`) |
 | `raceApi.js` | Супергонка: CRUD гонок (админ), актуальная гонка, моя запись, финиш (`finish_race`), подведение итогов (`finalize_race`), таблица итогов, уроки списка с XP, мои пройденные из списка |
 | `ticketApi.js` | Золотые билеты: `awardModuleTicket` — выдача за Финал модуля (RPC `award_module_ticket`), `startRace` — вход в супер-урок гонки со списанием билета (RPC `start_race`), `fetchMyRaceSpend` — потрачен ли билет на гонку (для попапа-шлагбаума) |
+| `starsApi.guest.test.js` | Тест: гость не ходит в `lesson_results` (RLS → 401 и ошибка в консоли) — `fetchMyDoneLessonIds`/`fetchMyLessonStars` без сессии возвращают пусто без запроса |
 | `starsApi.js` | Звёзды уроков: `saveLessonStars` — лучший результат на сервер (RPC `save_lesson_stars`), `fetchMyLessonStars` — свои звёзды по списку уроков из `lesson_results` |
 | `streakApi.js` | Ежедневный стрик: `touchDailyLogin` (визит, спасение/сброс серии — но НЕ рост), `bumpStreakOnLesson` (день серии закрывает пройденный урок), `claimStreakReward`, `claimAllStreakRewards`, `buyStreakFreeze`, `buyAutoFreeze`, `fetchStreakMilestones` (публичное чтение вех для окна наград) |
 | `streakMilestonesApi.js` | CRUD вех наград (`streak_milestones`) для админки — чтение открыто всем, запись только `is_admin` через RLS |
