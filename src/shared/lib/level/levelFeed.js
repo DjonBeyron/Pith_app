@@ -84,7 +84,10 @@ const hasObs = l => l.ear.n + l.vocab.n > 0
 async function syncProfile(user) {
   const before = getLevel()
   const fetched = await loadLevelProfile()
-  if (level !== before) { scheduleServerSave(); return } // пока грузили, пришли сигналы: свежее уровня с сервера
+  // Пока грузили, пришли сигналы (есть наблюдения) — локальный уровень свежее серверного, его и отправим.
+  // Объект мог смениться и без сигналов (параллельная загрузка «гость → вошедший» успела записать пустой профиль):
+  // тогда слать на сервер нечего — начальные 0.5/0.35 без единого наблюдения не должны затирать профиль
+  if (level !== before && hasObs(level)) { scheduleServerSave(); return }
   if (user && !hasObs(fetched) && hasObs(before)) {
     saveLevelProfile(before).catch(() => { pending = true; scheduleServerSave() }) // перенос гостя
     return
