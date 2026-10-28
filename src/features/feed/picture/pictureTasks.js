@@ -38,6 +38,9 @@ export function pictureOptions(node, rand = Math.random) {
   return shuffle([one, ...shuffle(wrongs, rand).slice(0, OPTIONS - 1)], rand)
 }
 
+// Карточка годится для игры: есть нода photo_choice с верной и двумя неверными картинками (и для отчёта «Запуск»)
+export const hasPicture = card => !!pictureOptions(photoNode(card), () => 0)
+
 // decks: Map(слово → { modules, cards }); wordAudio — Map ключ → строка word_audio (или null);
 // exclude — слова, которые уже предлагали; inMemory — слова в памяти (не из памяти — раньше).
 // → { word, moduleId, task: { options, audioUrl | null } } | null

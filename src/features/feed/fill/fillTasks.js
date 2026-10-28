@@ -92,8 +92,11 @@ function buildTask(line, hit, word, pool, rand) {
   }
 }
 
+// Слово годится для игры: одно слово латиницей, не короче трёх букв (общее правило для выбора и для отчёта «Запуск»)
+export const isFillWord = word => SINGLE_WORD.test(word) && word.length >= 3
+
 // Реплики слова с местом слова: [{ line, hit }]
-function hitsOf(deck, word) {
+export function hitsOf(deck, word) {
   const out = []
   for (const card of deck?.cards ?? []) {
     for (const line of cardLines(card)) {
@@ -113,7 +116,7 @@ export function pickFillTask(decks, { exclude = [], inMemory = new Set(), sound 
   const known = []
   const all = [...(decks ?? []).keys()]
   for (const [word, deck] of decks ?? []) {
-    if (skip.has(word) || !SINGLE_WORD.test(word) || word.length < 3) continue
+    if (skip.has(word) || !isFillWord(word)) continue
     const hits = hitsOf(deck, word)
     if (hits.length) (inMemory.has(word) ? known : fresh).push({ word, deck, hits })
   }

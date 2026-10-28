@@ -22,6 +22,8 @@ import VersionStamp from './VersionStamp.jsx'
 // «Сцены» (конструктор сцен, этап 2: галерея спрайтов, сборщик, спецификация дизайнеру) — ленивый chunk:
 // тянет рендерер сцен и реестр спрайтов, обычному пользователю не нужен
 const ScenesTab = lazy(() => lazyRetry(() => import('./scenes/ScenesTab.jsx'), 'admin-scenes'))
+// «Запуск» (наполнение против минимумов для новичка) — ленивый chunk: тянет сборку колод и правила игр ленты, нужен только админу
+const AdminLaunchTab = lazy(() => lazyRetry(() => import('./launch/AdminLaunchTab.jsx'), 'admin-launch'))
 
 // Админ-раздел новой оболочки: субвкладки «Модули» (список с публикацией),
 // «Файлы» (таблица файлов R2), «Пуши» (рассылка), «Гонка» (супергонка),
@@ -31,6 +33,7 @@ const ScenesTab = lazy(() => lazyRetry(() => import('./scenes/ScenesTab.jsx'), '
 // (временный вход в плеер повторения + своя память слов, AdminReviewTab), «Ловля» (песочница «Ловли слов», AdminCatchTab) и «Достижения» (выдать/снять себе достижение,
 // AdminAchievementsTab) и «Голос» (проба Web Speech API на телефонах, speech/AdminSpeechTab) и «Старт» (журнал запуска приложения на этом устройстве, start/AdminStartTab)
 // и «Сигналы» (движок порядка ленты: карточка состояния + полноэкранное окно, signals/AdminSignalsTab; learnView — память админа из ShellV2 для предпросмотра)
+// и «Запуск» (хватает ли наполнения для новых пользователей: фразы, сложность, колоды, игры, озвучка, пуши — launch/AdminLaunchTab)
 // и «Сцены» (конструктор сцен «два кота говорят»: спрайты, сборщик, для дизайнера — scenes/ScenesTab). Открытая субвкладка запоминается
 // на устройстве; тумблеры («Режим пользователя», «Я новенький» — имитация первого входа, newbieSim.js, и др.) — в одном
 // сворачиваемом блоке «Переключатели» (AdminToggles).
@@ -39,13 +42,13 @@ const ScenesTab = lazy(() => lazyRetry(() => import('./scenes/ScenesTab.jsx'), '
 // через onModuleOpened, чтобы повторный заход в админку не открывал её снова
 // Какая субвкладка открыта — запоминается на этом устройстве: админка открывается там же, где её оставили
 const SUB_KEY = 'pithy_admin_sub_v1'
-const SUBS = ['modules', 'files', 'push', 'race', 'streak', 'teacher', 'errors', 'analytics', 'decks', 'review', 'catch', 'achievements', 'speech', 'start', 'signals', 'scenes']
+const SUBS = ['modules', 'files', 'push', 'race', 'streak', 'teacher', 'errors', 'analytics', 'decks', 'review', 'catch', 'achievements', 'speech', 'start', 'signals', 'launch', 'scenes']
 function storedSub() {
   try { const v = localStorage.getItem(SUB_KEY); return SUBS.includes(v) ? v : 'modules' } catch { return 'modules' }
 }
 
 export default function AdminV2({ onOpenCanvas, onOpenProduction, onOpenCards, openModule = null, onModuleOpened, learnView = null }) {
-  const [sub, setSubState] = useState(storedSub) // modules | files | push | race | streak | teacher | errors | analytics | decks | review | catch | achievements | speech | start | signals | scenes
+  const [sub, setSubState] = useState(storedSub) // modules | files | push | race | streak | teacher | errors | analytics | decks | review | catch | achievements | speech | start | signals | launch | scenes
   const setSub = id => {
     setSubState(id)
     try { localStorage.setItem(SUB_KEY, id) } catch { /* приватный режим — запомнится до перезагрузки */ }
@@ -116,6 +119,9 @@ export default function AdminV2({ onOpenCanvas, onOpenProduction, onOpenCards, o
         <button className={sub === 'signals' ? 'avTab avTabActive' : 'avTab'} onClick={() => setSub('signals')}>
           Сигналы
         </button>
+        <button className={sub === 'launch' ? 'avTab avTabActive' : 'avTab'} onClick={() => setSub('launch')}>
+          Запуск
+        </button>
         <button className={sub === 'scenes' ? 'avTab avTabActive' : 'avTab'} onClick={() => setSub('scenes')}>
           Сцены
         </button>
@@ -143,6 +149,13 @@ export default function AdminV2({ onOpenCanvas, onOpenProduction, onOpenCards, o
       {sub === 'speech' && <div className="shellV2Panel"><AdminSpeechTab /></div>}
       {sub === 'start' && <div className="shellV2Panel"><AdminStartTab /></div>}
       {sub === 'signals' && <div className="shellV2Panel"><AdminSignalsTab learnView={learnView} /></div>}
+      {sub === 'launch' && (
+        <div className="shellV2Panel">
+          <Suspense fallback={<p className="aeHint" style={{ padding: 16 }}>Загрузка…</p>}>
+            <AdminLaunchTab />
+          </Suspense>
+        </div>
+      )}
       {sub === 'scenes' && (
         <div className="shellV2Panel">
           <Suspense fallback={<p className="aeHint" style={{ padding: 16 }}>Загрузка конструктора сцен…</p>}>
