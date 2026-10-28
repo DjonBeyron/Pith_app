@@ -5,7 +5,7 @@ import { pickFillTask, openFill } from './fillTasks.js'
 export const fillKind = {
   game: 'fill',
   prefix: 'fill:',
-  text: 'Пит нашёл игру на минутку — дополнишь реплику?',
+  text: 'Я нашёл игру на минутку — дополнишь реплику?',
   pick: (loaded, { exclude, inMemory, sound, rand }) => pickFillTask(loaded?.decks, { exclude, inMemory, sound, rand }),
   build: openFill,
 }

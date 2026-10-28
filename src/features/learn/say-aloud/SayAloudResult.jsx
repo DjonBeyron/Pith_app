@@ -1,6 +1,6 @@
 import { resultTitle } from './sayAloudRound.js'
 
-// Итог раунда «Скажи вслух»: «Пит нашёл N слов» текстом и список слов с отметкой. Промахи ушли в память (слово завтра), xp — награда с сервера (sayAloudApi): строка «+N XP» только если N > 0, цель XP не объявляется.
+// Итог раунда «Скажи вслух»: «Я услышал N слов» текстом и список слов с отметкой. Промахи ушли в память (слово завтра), xp — награда с сервера (sayAloudApi): строка «+N XP» только если N > 0, цель XP не объявляется.
 export default function SayAloudResult({ result, xp = 0, onClose }) {
   const { hits, words, items } = result
   return (

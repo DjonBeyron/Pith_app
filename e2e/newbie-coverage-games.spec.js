@@ -6,12 +6,12 @@ import { proof, shot, textOf } from './helpers/newbieEvidence.js'
 
 // Доказательный прогон: B1 (вкладка «Память» скрыта и появляется), B4 («Выбери слово»), B6 («Сохранить слово»)
 // (PLAN_NEW_USER.md, CHECK_NEW_USER.md п. 1, 4, 5). Игру ленты Пит предлагает через бюджет (20 с, после 3-го слайда), поэтому каждый
-// сценарий листает пальцем спокойно, пока не придёт «Пит нашёл игру на минутку». Звук включаем сразу — «Послушаем?» не займёт слот.
+// сценарий листает пальцем спокойно, пока не придёт «Я нашёл игру на минутку». Звук включаем сразу — «Послушаем?» не займёт слот.
 test.describe.configure({ mode: 'parallel' })
 test.use({ viewport: { width: 375, height: 812 } }) // самый узкий телефон из плана (iPhone 12 mini): скриншоты отчёта снимаются в этом размере
 test.beforeEach(({ page }) => bootPersona(page))
 
-const OFFER = 'Пит нашёл игру на минутку'
+const OFFER = 'Я нашёл игру на минутку'
 const game = page => page.getByRole('group', { name: 'Выбери слово' })
 const seedPlate = page => page.getByRole('group', { name: 'Чтобы не забыть слово, сохрани его' })
 const memory = page => page.evaluate(() => JSON.parse(localStorage.getItem('pithy_guest_memory_v1') ?? '{}'))

@@ -45,7 +45,7 @@ test('[B7.hint] через два слайда после первого лай�
   await think(page, rnd, 1500, 2200)
   await expect(hint, 'после одного слайда строки ещё нет').toHaveCount(0)
   await fingerSwipe(page, 'next', { ms: 300 })
-  await expect(hint).toContainText('Пит сохранит лайки и закладки, если создашь аккаунт — это полминуты', { timeout: 6000 })
+  await expect(hint).toContainText('Сохраню лайки и закладки, если создашь аккаунт — это полминуты', { timeout: 6000 })
   const seen = await textOf(hint)
   await expectNoHScroll(page, 'на строке Пита')
   await shot(page, testInfo, 'B7.hint', 'строка-Пита-про-аккаунт')

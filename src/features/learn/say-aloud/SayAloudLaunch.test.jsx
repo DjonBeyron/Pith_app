@@ -39,18 +39,18 @@ describe('SayAloudLaunch — видимость', () => {
   })
 })
 
-describe('SayAloudResult — «Пит нашёл N слов»', () => {
+describe('SayAloudResult — «Я услышал N слов»', () => {
   it('заголовок текстом и список слов', () => {
     const r = roundResult([{ word: 'cat', translation: 'кот', ok: true }, { word: 'dog', translation: 'собака', ok: false }, { word: 'sun', translation: 'солнце', ok: true }])
     const out = html(<SayAloudResult result={r} onClose={() => {}} />)
-    expect(out).toContain('Пит нашёл 2 слова')
+    expect(out).toContain('Я услышал 2 слова')
     expect(out).toContain('✓ cat')
     expect(out).toContain('✗ dog')
     expect(out).toContain('Готово')
   })
   it('пустой раунд не падает', () => {
     const out = html(<SayAloudResult result={roundResult([])} onClose={() => {}} />)
-    expect(out).toContain('Пит нашёл 0 слов')
+    expect(out).toContain('Я услышал 0 слов')
   })
 })
 

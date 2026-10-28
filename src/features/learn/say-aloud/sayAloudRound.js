@@ -66,5 +66,5 @@ export function roundResult(answers) {
   return { hits, misses: items.length - hits, words: items.length, items }
 }
 
-/** Заголовок итога: «Пит нашёл 3 слова» */
-export const resultTitle = hits => `Пит нашёл ${hits} ${plural(hits, 'слово', 'слова', 'слов')}`
+/** Заголовок итога: «Я услышал 3 слова» */
+export const resultTitle = hits => `Я услышал ${hits} ${plural(hits, 'слово', 'слова', 'слов')}`

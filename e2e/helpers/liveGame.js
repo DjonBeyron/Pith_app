@@ -64,7 +64,7 @@ export async function answerPaceQuestion(page, rnd) {
 // Листаем спокойно, пока Пит не предложит игру; «Давай» → отвечаем верно по запомненным ответам → «Дальше» → плашка «Сохрани слово» → «Сохранить».
 // → { status: 'saved', word } | { status: 'причина' } (игра не выпала / колод нет / верный вариант неизвестен / плашки нет)
 export async function playOfferedGame(page, rnd, answers) {
-  if (!(await scrollUntilSheet(page, rnd, 'Пит нашёл игру на минутку', { max: 20 }))) return { status: 'Пит не предложил игру за 20 слайдов (бюджет шторок или нет колод в боевых модулях)' }
+  if (!(await scrollUntilSheet(page, rnd, 'Я нашёл игру на минутку', { max: 20 }))) return { status: 'Пит не предложил игру за 20 слайдов (бюджет шторок или нет колод в боевых модулях)' }
   await sheet(page).getByRole('button', { name: 'Давай' }).click()
   const game = page.getByRole('group', { name: 'Выбери слово' })
   await expect(game).toBeVisible()

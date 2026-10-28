@@ -31,9 +31,9 @@ describe('третье место запуска — итог повторени
     expect(summary.indexOf('<ReviewSayAloud')).toBeGreaterThan(summary.indexOf('className="reviewSumFoot"'))
     expect(read('../../review/ReviewScreen.jsx')).toContain('curricula={r.info.curricula}')
   })
-  it('кнопка — «Пит нашёл игру на минутку», слова из списка, а не из view', () => {
+  it('кнопка — «Я нашёл игру на минутку», слова из списка, а не из view', () => {
     const src = read('../../review/ReviewSayAloud.jsx')
-    expect(src).toContain('label="Пит нашёл игру на минутку"')
+    expect(src).toContain('label="Я нашёл игру на минутку"')
     expect(src).toContain('pool={pool}')
     expect(src).not.toContain('view=')
   })

@@ -50,7 +50,7 @@ test('[B7.transfer] гость ставит сердечко, потом вхо�
     await fingerSwipe(page, 'next', { ms: 300 })
     await think(page, rnd, 1500, 2200)
     await fingerSwipe(page, 'next', { ms: 300 })
-    await expect(page.locator('.guestSaveHint')).toContainText('Пит сохранит лайки и закладки', { timeout: 6000 })
+    await expect(page.locator('.guestSaveHint')).toContainText('Сохраню лайки и закладки', { timeout: 6000 })
     await page.locator('.guestSaveHint').click()
     await expect(page.getByPlaceholder('Email')).toBeVisible()
     await expectNoHScroll(page, 'на форме входа')

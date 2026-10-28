@@ -21,7 +21,7 @@ describe('RemindAskSheet — разметка', () => {
   it('заголовок, подпись, три пресета, «Своё время», «Не нужно»', () => {
     const out = html(<RemindAskSheet onClose={() => {}} />)
     expect(out).toContain('Когда тебе удобно учиться?')
-    expect(out).toContain('Пит напомнит, когда пора повторить забытое')
+    expect(out).toContain('Я напомню, когда пора повторить забытое')
     for (const t of ['9:00', '14:00', '20:00']) expect(out).toContain(`>${t}<`)
     expect(out).toContain('Своё время')
     expect(out).toContain('Не нужно, загляну сам')
@@ -68,12 +68,12 @@ describe('RemindDone — подтверждение и ветка уведомл
   })
   it('«Не нужно»: подтверждение без ветки уведомлений', () => {
     const out = done('ask', { enabled: false })
-    expect(out).toContain('Пит не будет писать')
+    expect(out).toContain('Не буду писать')
     expect(out).not.toContain('Включить уведомления')
   })
   it('needs_tz: без обещания точного дня', () => {
     const out = done('ask', undefined, { needsTz: true })
-    expect(out).toContain('Пит напомнит в 20:00 по твоему времени')
+    expect(out).toContain('Я напомню в 20:00 по твоему времени')
     expect(out).not.toContain('Завтра')
   })
 })

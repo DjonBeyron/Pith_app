@@ -15,7 +15,7 @@ export function GuestSaveHintLine({ onTap }) {
 }
 
 // Строка Пита гостю: считает слайды после первого гостевого лайка/закладки и
-// через два показывает «Пит сохранит лайки и закладки, если создашь аккаунт».
+// через два показывает «Сохраню лайки и закладки, если создашь аккаунт».
 // Сама гаснет через 4 с; тап — форма входа. Один раз на устройстве
 export default function GuestSaveHint({ activeIdx, user, onRequireAuth }) {
   const [shown, setShown] = useState(false)
