@@ -16,7 +16,11 @@ import re
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-LINE_INDEX = 2        # «I like your bow. It's really nice!» — мужской голос, без имён собеседников
+import sys
+# Аргументы: индекс реплики в LINES демо и имя файла. По умолчанию 2 → pit-line («I like your bow. It's really nice!», мужской голос);
+# реплика Мии: `python3 scripts/scene-cmp/make_demo_line.py 5 mia-line` («Hmm. Maybe. You're kind of funny.», женский голос)
+LINE_INDEX = int(sys.argv[1]) if len(sys.argv) > 1 else 2
+OUT_NAME = sys.argv[2] if len(sys.argv) > 2 else 'pit-line'
 GAP_SHARE = 0.12      # доля слота слова под паузу после него
 LONG_PAUSE = 0.15     # пауза Rhubarb (X) не короче — граница предложений, с
 
@@ -28,7 +32,7 @@ line = lines[LINE_INDEX]
 wav = base64.b64decode(line['audio'].split(',', 1)[1])
 out_dir = ROOT / 'public/scene-cmp'
 out_dir.mkdir(exist_ok=True)
-(out_dir / 'pit-line.wav').write_bytes(wav)
+(out_dir / f'{OUT_NAME}.wav').write_bytes(wav)
 
 # Звучащие куски: между длинными паузами Rhubarb
 cues = line['mouthCues']
@@ -67,5 +71,5 @@ meta = {
     'words': words,
     'note': 'речь — Kokoro TTS из демо /mascot/, тайминги слов приблизительные (по паузам Rhubarb и весам слов), не ElevenLabs',
 }
-(out_dir / 'pit-line.json').write_text(json.dumps(meta, ensure_ascii=False, indent=1), encoding='utf8')
+(out_dir / f'{OUT_NAME}.json').write_text(json.dumps(meta, ensure_ascii=False, indent=1), encoding='utf8')
 print(len(wav), 'байт WAV;', len(words), 'слов;', words[0], words[-1])

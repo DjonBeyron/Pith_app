@@ -58,6 +58,23 @@ function setMouth(head, skin, face, shape) {
   set('ml', e.l ? { d: e.l.d, strokeWidth: e.l.sw } : { d: '' })
 }
 
+// Четыре узла рта (mm, mt, mf, ml) без общей группы (у Мии они лежат прямо в голове) — оборачиваем в <g class="mouth">, как у Пита:
+// «живой Пит v2» масштабирует широкие формы от группы рта (scene-v2-pit.css), и поиск частей по классам остаётся прежним. +1 узел
+function wrapMouth(head) {
+  const MOUTH = ['mm', 'mt', 'mf', 'ml']
+  const isMouth = t => MOUTH.includes(t.attrs?.class)
+  let found = null
+  walk(head, t => { if (!found && t.children?.some(isMouth)) found = t })
+  const kids = found ? found.children : head
+  const i = kids.findIndex(isMouth)
+  if (i < 0) return null
+  let j = i
+  while (j < kids.length && isMouth(kids[j])) j++
+  const group = el('g', { class: 'mouth' }, kids.slice(i, j))
+  kids.splice(i, j - i, group)
+  return group
+}
+
 // Полное дерево маскота. flip — персонаж справа (взгляд влево): у маскотов это «родная» сторона
 export function buildMascot(skin, { face = BASE_FACE, flip = false, pupilReaction = true, extraFace = true, mouth = 'closed' } = {}) {
   if (!isSkin(skin)) throw new Error(`Неизвестный маскот '${skin}'`)
@@ -69,7 +86,7 @@ export function buildMascot(skin, { face = BASE_FACE, flip = false, pupilReactio
   const eyes = cloneTrees(p.states[name].eyes)
   fillContainer(head, 'brows', cloneTrees(p.states[name].brows))
   fillContainer(head, 'dc', cloneTrees(p.states[name].deco))
-  const mouthGroup = findByClass(head, 'mouth') ?? findByClass(head, 'mm') // у Мии рот лежит прямо в голове, без группы
+  const mouthGroup = findByClass(head, 'mouth') ?? wrapMouth(head) // у Мии рот лежит прямо в голове — оборачиваем сами (+1 узел)
   if (mouthGroup) mouthGroup.attrs = { 'data-part': 'mouth', ...mouthGroup.attrs } // data-part первым — так же пишет part()
   if (st.mouth || mouth !== 'closed') setMouth(head, skin, name, mouth)
   setPupils(eyes, st, pupilReaction, name === 'love')

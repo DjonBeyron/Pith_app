@@ -34,7 +34,7 @@ export function useStandLine(params) {
         } catch (e) { notes.push(`огибающая не посчиталась (${e.message}) — рот новой версии только по буквам`) }
       }
       const lineText = text || meta?.text || 'Hello, I am Pit.'
-      if (!dead) setState({ phase: 'ready', scene: buildStandScene({ text: lineText, audioUrl: audio, words: timings, env }), note: notes.join('; '), env: env?.data?.length ?? 0, hasWords: !!timings?.length })
+      if (!dead) setState({ phase: 'ready', scene: buildStandScene({ text: lineText, audioUrl: audio, words: timings, env, skin: params.skin }), note: notes.join('; '), env: env?.data?.length ?? 0, hasWords: !!timings?.length })
     })()
     return () => { dead = true }
   }, [audio, text, words, wantEnv])
