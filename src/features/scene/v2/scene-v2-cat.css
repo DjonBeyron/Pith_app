@@ -113,6 +113,9 @@
   .scn .cat-body, .scn .cat-head, .scn .cat-eyes, .scn .cat-tail, .scn .prop-steam { animation: none; }
 }
 
+/* Зрачки маскота: любой transform (масштаб состояния лица scale(), пульс сердечек, взгляд и расширение v2) — вокруг центра самого зрачка */
+.scn .pu { transform-box: fill-box; transform-origin: 50% 50%; }
+
 /* Маскоты (Кит, Мия): сердечки в зрачках пульсируют (≈1,7 Гц) только в live и не на слабом устройстве — часть «реакции зрачков» */
 .scn--live .mx-pulse {
   transform-box: fill-box;

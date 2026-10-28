@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
-import { createPupilLook, MAX_LOOK, GAZE, IDLE_MIN_MS, IDLE_MAX_MS, IDLE_AWAY_MS, SACCADE_X } from './pupilLook.js'
+import { createPupilLook, MAX_LOOK, GAZE, IDLE_MIN_MS, IDLE_MAX_MS, IDLE_AWAY_MS, SACCADE_X, PUPIL_DILATE, PUPIL_MS } from './pupilLook.js'
 import { MASCOT_PACKS } from './sprites/mascot/mascots.js'
 
 const K = MASCOT_PACKS.kit.fit.k
@@ -21,7 +21,9 @@ function setup({ whos = ['a', 'b'], rands = [] } = {}) {
   const rand = () => (r < rands.length ? rands[r++] : 0.5)
   const look = createPupilLook({ whos, getEl: w => els[w], skinOf: () => 'kit', timers: t, rand })
   const px = w => ({ x: +els[w].p['--look-x'] * K, y: +els[w].p['--look-y'] * K }) // обратно в px спрайта (с зеркалом)
-  return { look, els, timers, px }
+  // Таймеры без таймера расширения зрачков (PUPIL_MS): тесты про тишину считают только idle-таймеры
+  const idle = () => timers.filter(x => x.ms !== PUPIL_MS)
+  return { look, els, timers, px, idle }
 }
 
 describe('pupilLook — зрачки под речь', () => {
@@ -64,22 +66,22 @@ describe('pupilLook — зрачки под речь', () => {
     const s = setup({ rands: [0.5, 0.0, 0.0, 0.5, 0.5, 0.5] })
     s.look.lineStart('a')
     s.look.startIdle()
-    expect(s.timers).toHaveLength(1)
-    expect(s.timers[0].ms).toBeGreaterThanOrEqual(IDLE_MIN_MS)
-    expect(s.timers[0].ms).toBeLessThanOrEqual(IDLE_MAX_MS)
-    s.timers.shift().fn()                  // увод: единственный молчащий — b
+    expect(s.idle()).toHaveLength(1)
+    expect(s.idle()[0].ms).toBeGreaterThanOrEqual(IDLE_MIN_MS)
+    expect(s.idle()[0].ms).toBeLessThanOrEqual(IDLE_MAX_MS)
+    const first = s.idle()[0]; first.fn(); s.timers.splice(s.timers.indexOf(first), 1) // увод: единственный молчащий — b
     expect(s.els.b.p['--look-x']).toBeDefined()
-    expect(s.timers.map(x => x.ms)).toContain(IDLE_AWAY_MS)
-    expect(s.timers).toHaveLength(2)       // возврат + следующий увод
+    expect(s.idle().map(x => x.ms)).toContain(IDLE_AWAY_MS)
+    expect(s.idle()).toHaveLength(2)       // возврат + следующий увод
   })
 
   it('startIdle дважды — один таймер; stopIdle и stop снимают таймеры, stop убирает переменные', () => {
     const s = setup()
     s.look.lineStart('a')
     s.look.startIdle(); s.look.startIdle()
-    expect(s.timers).toHaveLength(1)
+    expect(s.idle()).toHaveLength(1)
     s.look.stopIdle()
-    expect(s.timers).toHaveLength(0)
+    expect(s.idle()).toHaveLength(0)
     s.look.stop()
     expect(s.els.a.p['--look-x']).toBeUndefined()
     expect(s.els.b.p['--look-y']).toBeUndefined()
@@ -88,5 +90,19 @@ describe('pupilLook — зрачки под речь', () => {
   it('нет корня маскота / не маскот — тихо ничего не делает', () => {
     const look = createPupilLook({ whos: ['a'], getEl: () => null, skinOf: () => null, timers: { setTimeout: vi.fn(), clearTimeout: vi.fn() } })
     expect(() => { look.lineStart('a'); look.word('a'); look.lineEnd(); look.stop() }).not.toThrow()
+  })
+
+  it('начало реплики: зрачки говорящего расширяются (--pupil) и через PUPIL_MS возвращаются; stop снимает', () => {
+    const s = setup()
+    s.look.lineStart('a')
+    expect(s.els.a.p['--pupil']).toBe(String(PUPIL_DILATE))
+    expect(s.els.b.p['--pupil']).toBeUndefined()
+    const back = s.timers.find(x => x.ms === PUPIL_MS)
+    expect(back).toBeTruthy()
+    back.fn()
+    expect(s.els.a.p['--pupil']).toBeUndefined()
+    s.look.lineStart('b')
+    s.look.stop()
+    expect(s.els.b.p['--pupil']).toBeUndefined()
   })
 })

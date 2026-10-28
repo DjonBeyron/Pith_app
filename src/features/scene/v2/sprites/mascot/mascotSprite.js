@@ -42,7 +42,9 @@ function setPupils(eyes, st, pupilReaction, isLove) {
     if (!(t.attrs.class ?? '').split(' ').includes('pu')) return
     const x = t.attrs['data-x']; const y = t.attrs['data-y']
     delete t.attrs['data-x']; delete t.attrs['data-y']
-    if (sx !== 1 || sy !== 1) t.attrs.transform = `translate(${x} ${y}) scale(${sx} ${sy}) translate(${-x} ${-y})`
+    // Масштаб вокруг центра зрачка: CSS у .pu задаёт transform-box: fill-box и transform-origin 50% 50% (scene-v2-cat.css), поэтому
+    // достаточно scale(); так же складываются translate (взгляд) и scale (расширение) «живого Пита v2» — fill-box центр = (data-x, data-y)
+    if (sx !== 1 || sy !== 1) t.attrs.transform = `scale(${sx} ${sy})`
     if (pupilReaction && isLove) t.attrs.class = 'pu mx-pulse'
   })
 }

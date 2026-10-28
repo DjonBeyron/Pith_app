@@ -43,7 +43,7 @@ describe('SceneRenderer — animV2', () => {
     expect(treeToString(buildMascot('mia'))).not.toContain('class="wh"')
     expect(countNodes(buildMascot('kit'))).toBeLessThanOrEqual(100)
     // класс поставлен на уже существующий path: в разметке головы по-прежнему тот же набор тегов
-    expect(MASCOT_PACKS.kit.head.match(/<path class="wh" d="M122\.2 299\.1H90\.2M500\.1 299\.1H467\.5"/g)).toHaveLength(1)
+    expect(MASCOT_PACKS.kit.head.match(/<path class="wh" d="M145\.1 327\.2/g)).toHaveLength(1) // усы, а не дужки очков (mascotWhiskers.test.js)
   })
 
   it('в подписях фиолетовый маскот называется просто «Пит»; идентификатор скина kit не менялся', () => {

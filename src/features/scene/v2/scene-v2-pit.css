@@ -7,10 +7,19 @@
    (оно складывается с transform-атрибутом зрачка: масштаб реакции «любовь / презрение» не затирается) */
 .scn--v2:not(.scn--lite) .pu {
   translate: calc(var(--look-x, 0) * 1px) calc(var(--look-y, 0) * 1px);
-  transition: translate 150ms ease-out;
+  scale: var(--pupil, 1); /* расширение зрачка в начале реплики (pupilLook.js: --pupil 1.18 на 450 мс), как у кота, когда он оживился */
+  transition: translate 150ms ease-out, scale 350ms ease-out;
 }
 
-/* Усы (класс .wh на существующем контуре усов kit.json): пока Пит говорит, чуть приподнимаются и опускаются; амплитуда — --talk
+/* Максимальное открытие (широкие формы D и E) чуть больше нарисованного — рот и язык читаются на маленьком экране; масштаб от верхней губы
+   (fill-box группы рта), короткий переход, чтобы не щёлкало. Язык (.mt) в D вытягивается сильнее */
+.scn--v2 .scn-cat .mouth { transform-box: fill-box; transform-origin: 50% 10%; transition: scale 80ms ease-out; }
+.scn--v2 .scn-cat [data-vis="D"] .mouth, .scn--v2 .scn-cat [data-vis="E"] .mouth { scale: 1.18; }
+.scn--v2 .scn-cat .mt { transform-box: fill-box; transform-origin: 50% 0; }
+.scn--v2 .scn-cat [data-vis="D"] .mt { scale: 1.2; }
+
+/* Усы (класс .wh на белом контуре четырёх усов kit.json; до v3.3.39 класс по ошибке стоял на дужках очков): пока Пит говорит,
+   ходят вверх-вниз; амплитуда — --talk
    (она плавно растёт 0 → 1 за 0,3 с, scene-v2-cat.css). Одна анимация, и только пока is-talking: в тишине её нет */
 @keyframes scnWhisk {
   0%, 100% { translate: 0 calc(-7px * var(--talk)); }
@@ -24,5 +33,6 @@
 
 @media (prefers-reduced-motion: reduce) {
   .scn--v2 .pu { transition: none; }
+  .scn--v2 .scn-cat .mouth { transition: none; }
   .scn--v2 .wh { animation: none; }
 }

@@ -5,7 +5,8 @@ import { MASCOT_PACKS } from './sprites/mascot/mascots.js'
 // Бегущих анимаций нет — только короткий переход после каждого события; в покое и пока ничего не происходит, ничего не идёт.
 //
 // События (зовёт режиссёр, scenePlayLine.js / useSceneDirectorV2.js):
-//   lineStart(who) — реплика началась: оба персонажа смотрят друг на друга (если второй есть; в одиночной сцене — прямо);
+//   lineStart(who) — реплика началась: оба персонажа смотрят друг на друга (если второй есть; в одиночной сцене — прямо), у говорящего
+//                    зрачки на PUPIL_MS расширяются (--pupil = PUPIL_DILATE);
 //   word(who)      — граница слова у говорящего: с вероятностью ~1/3 маленькая саккада (±SACCADE_X / ±SACCADE_Y), иначе, если взгляд
 //                    ещё «сбит» предыдущей саккадой, он возвращается на собеседника;
 //   lineEnd()      — реплика кончилась (говорящего нет);
@@ -23,6 +24,8 @@ export const SACCADE_CHANCE = 1 / 2
 export const IDLE_MIN_MS = 3000
 export const IDLE_MAX_MS = 5000
 export const IDLE_AWAY_MS = 700
+export const PUPIL_DILATE = 1.18 // расширение зрачка в начале реплики (кот «оживился»): --pupil на корне, CSS scale у .pu с переходом 350 мс
+export const PUPIL_MS = 450      // и назад — редко, коротко и по событию: постоянная пульсация зрачков смотрелась бы неестественно
 export const IDLE_AWAY_X = 3
 export const IDLE_AWAY_Y = 1.5
 
@@ -35,6 +38,16 @@ export function createPupilLook({ whos = ['a', 'b'], getEl, skinOf = () => 'kit'
   let speaking = null
   let idleTimer = null
   let backTimer = null
+  let pupilTimer = null
+
+  // Расширение зрачков говорящего в начале реплики и возврат через PUPIL_MS
+  function dilate(who) {
+    const el = getEl(who)
+    if (!el || !skinOf(who)) return
+    timers.clearTimeout(pupilTimer)
+    el.style.setProperty('--pupil', String(PUPIL_DILATE))
+    pupilTimer = timers.setTimeout(() => { el.style.removeProperty('--pupil'); pupilTimer = null }, PUPIL_MS)
+  }
 
   const baseOf = who => ({ x: solo ? 0 : who === 'a' ? GAZE : -GAZE, y: 0 }) // экранные «вправо / влево»: а смотрит вправо, b — влево
 
@@ -70,7 +83,7 @@ export function createPupilLook({ whos = ['a', 'b'], getEl, skinOf = () => 'kit'
   }
 
   return {
-    lineStart(who) { speaking = who; centered() },
+    lineStart(who) { speaking = who; centered(); dilate(who) },
     word(who) {
       if (who !== speaking && speaking !== null) return
       const o = off[who] ?? { x: 0, y: 0 }
@@ -83,7 +96,8 @@ export function createPupilLook({ whos = ['a', 'b'], getEl, skinOf = () => 'kit'
     // Конец жизни режиссёра: таймеры сняты, переменные убраны (зрачки встают в центр)
     stop() {
       this.stopIdle()
-      for (const w of whos) { const el = getEl(w); el?.style?.removeProperty('--look-x'); el?.style?.removeProperty('--look-y') }
+      timers.clearTimeout(pupilTimer); pupilTimer = null
+      for (const w of whos) { const el = getEl(w); for (const k of ['--look-x', '--look-y', '--pupil']) el?.style?.removeProperty(k) }
     },
   }
 }
