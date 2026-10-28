@@ -1,9 +1,8 @@
 import { describe, it, expect } from 'vitest'
-import { readFileSync } from 'node:fs'
-import { fileURLToPath } from 'node:url'
 import { buildLaunchStats, launchDifficulty } from './launchStats.js'
 import { formatLaunchReport } from './launchReportMd.js'
 import { MIN_DIFFICULTY_VOTES } from './launchThresholds.js'
+import { MIN_DIFFICULTY_VOTES as APP_MIN_VOTES } from '../../../shared/lib/level/effectiveDifficulty.js'
 
 // Синтетическое наполнение: 40 фраз-«cat»-подобных слов (похожие слова — двойники для «Дополни реплику»)
 const STEMS = ['b', 'c', 'h', 'm', 'r', 's', 'f', 'p', 'v', 'j', 'l', 'n', 'd', 'g', 't', 'w', 'z', 'k', 'q', 'x', 'y', 'bl', 'cl', 'fl', 'gl', 'pl', 'sl', 'br', 'cr', 'dr', 'fr', 'gr', 'pr', 'tr', 'sc', 'sk', 'sm', 'sn', 'sp', 'st']
@@ -137,9 +136,8 @@ describe('buildLaunchStats', () => {
 })
 
 describe('вспомогательное', () => {
-  it('порог голосов совпадает с MIN_DIFFICULTY_VOTES приложения', () => {
-    const src = readFileSync(fileURLToPath(new URL('../../../shared/api/difficultyApi.js', import.meta.url)), 'utf8')
-    expect(Number(/MIN_DIFFICULTY_VOTES = (\d+)/.exec(src)[1])).toBe(MIN_DIFFICULTY_VOTES)
+  it('порог голосов — тот же, что у effectiveDifficulty приложения', () => {
+    expect(MIN_DIFFICULTY_VOTES).toBe(APP_MIN_VOTES)
   })
 
   it('markdown-отчёт содержит сводку и списки нехватки', () => {

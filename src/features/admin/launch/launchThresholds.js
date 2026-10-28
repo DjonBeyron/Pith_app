@@ -3,10 +3,9 @@
 // Чистые данные: без React и supabase, их читают и вкладка админки, и scripts/launch-stats.mjs.
 // Поменять минимум — поправить `need` здесь; текст «зачем» показывается в отчёте как есть.
 
-// Сколько голосов нужно, чтобы медиана голосов перевесила оценку админа.
-// Зеркало MIN_DIFFICULTY_VOTES из src/shared/api/difficultyApi.js (импортировать нельзя: файл тянет supabase);
-// совпадение значений проверяет launchStats.test.js.
-export const MIN_DIFFICULTY_VOTES = 5
+// Сколько голосов нужно, чтобы медиана голосов перевесила оценку админа — тот же порог, что в приложении
+// (чистый модуль lib/level/effectiveDifficulty.js, без supabase); здесь только ре-экспорт для launchStats.js
+export { MIN_DIFFICULTY_VOTES } from '../../../shared/lib/level/effectiveDifficulty.js'
 
 export const THRESHOLDS = {
   feed: {
