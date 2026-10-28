@@ -148,7 +148,7 @@
 | Файл | Зачем нужен |
 |------|-------------|
 | `e2e/config.js` | id тест-модуля «E2E-ТЕСТ» (публичный UUID, не секрет) + флаг `hasTestModule` для skip сценариев, которым он нужен |
-| `e2e/fixtures.js` | Ядро ловли багов: расширенный `test`, который валит сценарий при ЛЮБОЙ ошибке консоли/сети (список IGNORE — только транспортный шум сети РФ и автоплей); все тесты импортируют test/expect отсюда |
+| `e2e/fixtures.js` | Ядро ловли багов: расширенный `test`, который валит сценарий при ЛЮБОЙ ошибке консоли/сети (список IGNORE — только транспортный шум сети РФ и автоплей); HTTP 5xx и 401/403 вне `auth/v1` пишутся строкой с адресом (консоль браузера адрес 401 не показывает); все тесты импортируют test/expect отсюда |
 | `e2e/helpers/network.js` | Эмуляция медленной сети (3G) через CDP — для этапов C/E (тайминги, стоп-кадры) |
 | `e2e/helpers/backend.js` | Предохранитель админ-тестов: `isLocalBackend()` (VITE_SUPABASE_URL — http://127.0.0.1/localhost) и `assertLocalBackend()` (роняет тест, если база не локальная); `stubLocalEdgeFunctions(page)` — заглушка пассивного запроса квоты ElevenLabs (edge functions в локальном стеке нет) |
 | `e2e/smoke.spec.js` | Дымовой тест: приложение стартует, нижний бар и версия видны |
@@ -2160,8 +2160,10 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | `guestSocialImport.test.js` | Тест `importGuestSocial` из `moduleSocialApi.js`: пачка upsert в `module_likes`/`module_bookmarks`, откат по одному при сбое, очистка гостевых ключей |
 | `difficultyApi.js` | Сложность фразы на слух: мои голоса (`fetchMyDifficultyVotes`), голос (`setDifficultyVote`), какой уровень показать на иконке (`displayDifficulty`, порог MIN_DIFFICULTY_VOTES) |
 | `ratingApi.js` | Рейтинг и достижения: топ по XP (`get_leaderboard`), своё место, мои достижения, косметика (`set_cosmetics`), ник (`set_nickname`), заявка на «10-й уровень» `adminSetAchievement` — админ ставит/снимает себе достижение (RPC `admin_set_achievement`) |
-| `ratingStatsApi.js` | Подробности игрока для попапа рейтинга (`leaderboard_user_stats`): состояния ok/missing/denied/error, кэш на минуту, схлопывание параллельных запросов (+ `ratingStatsApi.test.js`) |
-| `raceApi.js` | Супергонка: CRUD гонок (админ), актуальная гонка, моя запись, финиш (`finish_race`), подведение итогов (`finalize_race`), таблица итогов, уроки списка с XP, мои пройденные из списка |
+| `ratingStatsApi.guest.test.js` | Тест: гость не зовёт RPC `leaderboard_user_stats` (закрыта от anon → 401) — без сессии сразу `denied` без запроса, с сессией запрос уходит |
+| `ratingStatsApi.js` | Подробности игрока для попапа рейтинга (`leaderboard_user_stats`): состояния ok/missing/denied/error, кэш на минуту, схлопывание параллельных запросов (+ `ratingStatsApi.test.js`); гостю — сразу `denied` без запроса |
+| `raceApi.guest.test.js` | Тест: гость не ходит в `lesson_results` из `raceApi.fetchMyCompletedLessonIds` (RLS → 401 и ошибка в консоли) — без сессии пусто без запроса, с сессией запрос уходит |
+| `raceApi.js` | Супергонка: CRUD гонок (админ), актуальная гонка, моя запись, финиш (`finish_race`), подведение итогов (`finalize_race`), таблица итогов, уроки списка с XP, мои пройденные из списка (гостю пусто без запроса — `lesson_results` закрыта от anon) |
 | `ticketApi.js` | Золотые билеты: `awardModuleTicket` — выдача за Финал модуля (RPC `award_module_ticket`), `startRace` — вход в супер-урок гонки со списанием билета (RPC `start_race`), `fetchMyRaceSpend` — потрачен ли билет на гонку (для попапа-шлагбаума) |
 | `starsApi.guest.test.js` | Тест: гость не ходит в `lesson_results` (RLS → 401 и ошибка в консоли) — `fetchMyDoneLessonIds`/`fetchMyLessonStars` без сессии возвращают пусто без запроса |
 | `starsApi.js` | Звёзды уроков: `saveLessonStars` — лучший результат на сервер (RPC `save_lesson_stars`), `fetchMyLessonStars` — свои звёзды по списку уроков из `lesson_results` |

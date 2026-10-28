@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 const rpc = vi.fn()
 vi.mock('./supabase.js', () => ({ supabase: { rpc: (...a) => rpc(...a) } }))
 vi.mock('../lib/debug.js', () => ({ dbg: () => {} }))
+vi.mock('./viewSession.js', () => ({ viewSession: async () => ({ user: { id: 'me' } }) })) // вошедший; гость — в ratingStatsApi.guest.test.js
 
 const { fetchUserStats, peekUserStats, clearUserStatsCache } = await import('./ratingStatsApi.js')
 

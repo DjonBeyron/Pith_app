@@ -1,4 +1,5 @@
 import { supabase } from './supabase.js'
+import { viewSession } from './viewSession.js'
 import { dbg } from '../lib/debug.js'
 import { shareInFlight } from '../lib/shareInFlight.js'
 
@@ -134,9 +135,11 @@ export async function fetchRaceModules(ids) {
 }
 
 // Какие из ids я уже прошёл (сервер, xp_awarded=true — сброшенные не в счёт).
-// RLS отдаёт только свои строки; гостю вернёт пустой Set.
+// RLS отдаёт только свои строки; гостю — пустой Set без запроса: lesson_results закрыта от anon
+// (миграция 20261014110000_lesson_results_lockdown.sql), запрос гостя кончался бы 401 и ошибкой в консоли.
 export async function fetchMyCompletedLessonIds(ids) {
   if (!ids?.length) return new Set()
+  if (!(await viewSession())?.user) return new Set()
   const { data, error } = await supabase
     .from('lesson_results').select('lesson_id')
     .in('lesson_id', ids).eq('xp_awarded', true)

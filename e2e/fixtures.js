@@ -53,7 +53,14 @@ export const test = base.extend({
       if (!ignored(msg)) bugs.push(`requestfailed: ${msg}`)
     })
     page.on('response', r => {
-      if (r.status() >= 500 && !ignored(r.url())) bugs.push(`http ${r.status()}: ${r.url()}`)
+      const status = r.status()
+      const url = r.url()
+      if (status >= 500 && !ignored(url)) bugs.push(`http ${status}: ${url}`)
+      // 401/403 вне auth/v1: консоль браузера пишет «Failed to load resource: 401 ()» БЕЗ адреса — по строке не понять, какой
+      // запрос отвергла база (RLS/права). Кладём адрес (без query) отдельной строкой; гостевой auth/v1 — норма (см. IGNORE)
+      if ((status === 401 || status === 403) && !/\/auth\/v1\//.test(url) && !ignored(url)) {
+        bugs.push(`http ${status}: ${url.split('?')[0]}`)
+      }
     })
     await use(page)
     expect(bugs, 'Ошибки консоли/сети во время теста').toEqual([])
