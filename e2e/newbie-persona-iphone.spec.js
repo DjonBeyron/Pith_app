@@ -8,7 +8,7 @@ import { bootPersona, openFeed, seedOnce, sheet, storyToRemindAsk, expectNoHScro
 // Движок — Chromium (на WebKit проект не ставится), поэтому iPhone «изображаем»: UA и размеры из devices['iPhone 12 Mini'], платформа
 // и касания — init-скриптом. isIOS() в приложении (shared/lib/pwaInstall.js) смотрит только на UA «iPhone|iPad|iPod» — этого хватает.
 // Что должно быть: после «Когда удобно?» → 20:00 вошедшему — честная ветка «На iPhone уведомления приходят только приложению
-// на экране «Домой»» с «Как добавить» и «Не сейчас»; гостю — «напоминание придёт, когда войдёшь»; приложению на экране «Домой»
+// на экране «Домой»» с «Как добавить» и «Не сейчас»; гостю — «напомню, когда войдёшь»; приложению на экране «Домой»
 // (navigator.standalone) — обычная просьба включить; на каждой шторке нет горизонтального скролла (document ≤ 375 px).
 const { defaultBrowserType: _ignored, ...iPhone } = devices['iPhone 12 Mini']
 test.use({ ...iPhone, viewport: { width: 375, height: 812 }, screen: { width: 375, height: 812 } })
@@ -120,7 +120,7 @@ test('[C2.iphone-guest] iPhone в Safari, гость: время запомин�
   await openFeed(page)
   const ask = await storyToRemindAsk(page)
   await ask.getByRole('button', { name: '20:00' }).click()
-  await expect(ask.locator('.raConfirm')).toContainText('напоминание придёт, когда войдёшь в аккаунт')
+  await expect(ask.locator('.raConfirm')).toContainText('напомню, когда войдёшь в аккаунт')
   await expect(ask).not.toContainText(ADD_HOME)
   await expectNoHScroll(page, 'у гостя')
   await proof(testInfo, 'C2.iphone-guest', (await ask.innerText()).replace(/\s+/g, ' '), { page })

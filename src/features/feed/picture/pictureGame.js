@@ -6,7 +6,7 @@ import { pickPictureTask, openPicture } from './pictureTasks.js'
 export const pictureKind = {
   game: 'picture',
   prefix: 'picture:',
-  text: 'Пит нашёл игру на минутку — угадаешь слово по картинке?',
+  text: 'Я нашёл игру на минутку — угадаешь слово по картинке?',
   pick: (loaded, { exclude, inMemory, rand }) => pickPictureTask(loaded?.decks, { exclude, inMemory, wordAudio: loaded?.wordAudio, rand }),
   build: openPicture,
 }

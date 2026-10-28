@@ -8,7 +8,7 @@ describe('GuestSaveHint', () => {
     const html = renderToStaticMarkup(<GuestSaveHintLine onTap={() => {}} />)
     expect(html).toContain('<button')
     expect(html).toContain('width="28"')
-    expect(html).toContain('Пит сохранит лайки и закладки, если создашь аккаунт — это полминуты')
+    expect(html).toContain('Сохраню лайки и закладки, если создашь аккаунт — это полминуты')
     expect(GUEST_HINT_TEXT).toContain('полминуты')
   })
 

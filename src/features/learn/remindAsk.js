@@ -17,9 +17,9 @@ export function nextRemindLabel({ hh, mm }, now = new Date()) {
 // Подтверждение после выбора. sel: { hh, mm, enabled } (enabled=false — «Не нужно»).
 // needsTz — сервер ещё не знает пояс: точный день не обещаем. guest — пушей гостю нет, обещаем «после входа»
 export function confirmText(sel, { now = new Date(), needsTz = false, guest = false } = {}) {
-  if (!sel || !sel.enabled) return 'Хорошо. Пит не будет писать — загляни, когда захочешь'
-  if (guest) return `Готово. Время ${fmtTime(sel)} запомнили — напоминание придёт, когда войдёшь в аккаунт`
-  if (needsTz) return `Готово. Пит напомнит в ${fmtTime(sel)} по твоему времени`
+  if (!sel || !sel.enabled) return 'Хорошо. Не буду писать — загляни, когда захочешь'
+  if (guest) return `Готово. Запомнил время ${fmtTime(sel)} — напомню, когда войдёшь в аккаунт`
+  if (needsTz) return `Готово. Я напомню в ${fmtTime(sel)} по твоему времени`
   return `Готово. ${nextRemindLabel(sel, now)} придёт одно уведомление про слово`
 }
 

@@ -75,10 +75,10 @@ describe('roundResult / resultTitle', () => {
     expect(roundResult([])).toMatchObject({ hits: 0, misses: 0, words: 0 })
     expect(roundResult(undefined).words).toBe(0)
   })
-  it('«Пит нашёл N слов» со склонением', () => {
-    expect(resultTitle(1)).toBe('Пит нашёл 1 слово')
-    expect(resultTitle(3)).toBe('Пит нашёл 3 слова')
-    expect(resultTitle(5)).toBe('Пит нашёл 5 слов')
-    expect(resultTitle(0)).toBe('Пит нашёл 0 слов')
+  it('«Я услышал N слов» со склонением', () => {
+    expect(resultTitle(1)).toBe('Я услышал 1 слово')
+    expect(resultTitle(3)).toBe('Я услышал 3 слова')
+    expect(resultTitle(5)).toBe('Я услышал 5 слов')
+    expect(resultTitle(0)).toBe('Я услышал 0 слов')
   })
 })

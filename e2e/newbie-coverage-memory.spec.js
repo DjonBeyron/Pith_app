@@ -63,14 +63,14 @@ test('[C1] первое открытие «Памяти» — Пит расск�
   await expect(page.getByRole('dialog', { name: 'Когда удобно учиться' })).toBeVisible()
 })
 
-test('[C2.guest] гость — 20:00 → «время запомнили, напоминание придёт, когда войдёшь», в базу ничего не уходит', async ({ page }, testInfo) => {
+test('[C2.guest] гость — 20:00 → «запомнил время, напомню, когда войдёшь», в базу ничего не уходит', async ({ page }, testInfo) => {
   const calls = await asGuest(page)
   const ask = await storyToRemindAsk(page)
   await expect(ask.getByRole('button')).toHaveText(['9:00', '14:00', '20:00', 'Своё время', 'Не нужно, загляну сам'])
   await expectNoHScroll(page, 'на «Когда удобно?»')
   await shot(page, testInfo, 'C2.guest', 'когда-удобно-учиться')
   await pick(ask, '20:00')
-  await expect(ask.locator('.raConfirm')).toContainText('напоминание придёт, когда войдёшь в аккаунт')
+  await expect(ask.locator('.raConfirm')).toContainText('напомню, когда войдёшь в аккаунт')
   expect(rpcCalls(calls, 'set_remind_time')).toHaveLength(0)
   expect(JSON.parse(await page.evaluate(() => localStorage.getItem('pithy_remind_v1')))).toMatchObject({ hh: 20, mm: 0, enabled: true })
   await proof(testInfo, 'C2.guest', await textOf(ask.locator('.raConfirm')), { page })
@@ -92,11 +92,11 @@ test('[C2.custom, A3] вошедший — «Своё время» 07:40 → с�
   await proof(testInfo, 'A3', `RPC set_remind_time(p_remind_at '07:40', p_enabled true); подтверждение: ${confirm}`)
 })
 
-test('[C2.none, A3] вошедший — «Не нужно, загляну сам» → set_remind_time выключено, Пит не будет писать', async ({ page }, testInfo) => {
+test('[C2.none, A3] вошедший — «Не нужно, загляну сам» → set_remind_time выключено, подтверждение «Не буду писать»', async ({ page }, testInfo) => {
   const calls = await asUser(page)
   const ask = await storyToRemindAsk(page)
   await ask.getByRole('button', { name: 'Не нужно, загляну сам' }).click()
-  await expect(ask.locator('.raConfirm')).toContainText('Пит не будет писать')
+  await expect(ask.locator('.raConfirm')).toContainText('Не буду писать')
   expect(rpcCalls(calls, 'set_remind_time').at(-1).body).toEqual({ p_remind_at: null, p_enabled: false })
   await expect(ask.getByRole('button')).toHaveText(['Готово']) // про уведомления не уговаривают
   await proof(testInfo, 'C2.none', await textOf(ask.locator('.raDone')), { page })

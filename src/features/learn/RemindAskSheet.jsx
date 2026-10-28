@@ -54,7 +54,7 @@ export default function RemindAskSheet({ current = null, onClose }) {
         {res ? <RemindDone res={res} onClose={onClose} /> : (
           <>
             <p className="lrSheetWord">Когда тебе удобно учиться?</p>
-            <p className="lrSheetPhrase">Пит напомнит, когда пора повторить забытое</p>
+            <p className="lrSheetPhrase">Я напомню, когда пора повторить забытое</p>
             <div className="raPresets">
               {PRESETS.map(([hh, mm]) => (
                 <button key={hh} className={is(current, hh, mm) ? 'raOpt raOptOn' : 'raOpt'} disabled={busy}

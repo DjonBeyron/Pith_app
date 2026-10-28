@@ -17,7 +17,7 @@ export const FEED_SAVE = 'feed_save'                 // { module_id, on } — з
 export const FEED_REPOST = 'feed_repost'             // { module_id, on: true } — репост (share/копия ссылки)
 export const FEED_SEARCH = 'feed_search'             // { len, picked } — длина запроса и выбрал ли результат (текста нет)
 export const FEED_FILTER = 'feed_filter'             // { levels: 'g'|'gy'|'gyr'|'' } — фильтр сложности после тапа по чипу ('' — все)
-export const FEED_GAME_SHOWN = 'feed_game_shown'     // { game: 'choose' | 'fill' | 'picture', word } — игра ленты открылась (человек принял «Пит нашёл игру на минутку»)
+export const FEED_GAME_SHOWN = 'feed_game_shown'     // { game: 'choose' | 'fill' | 'picture', word } — игра ленты открылась (человек принял «Я нашёл игру на минутку»)
 export const FEED_GAME_ANSWER = 'feed_game_answer'   // { game: 'choose' | 'fill' | 'picture', word, ok, ms } — ответ в игре ленты; ms — от открытия шторки
 //
 // Задание «О чём диалог» на слайде-сцене (features/feed/scene/useSceneTask.js); scene_id — uuid строки scenes
