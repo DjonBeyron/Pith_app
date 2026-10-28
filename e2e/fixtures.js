@@ -43,8 +43,10 @@ export const test = base.extend({
       // Проверяем и текст, и URL источника: «Failed to load resource» от шрифта
       // глушим по URL, но такой же от ассета приложения (реальный 404) — ловим.
       const url = m.location()?.url ?? ''
-      if (ignored(m.text()) || ignored(url)) return
-      bugs.push(`console: ${m.text()}`)
+      // Текст и адрес проверяем и порознь, и вместе: «Failed to load resource: 401 ()» + адрес auth/v1 — норма гостя
+      // (правило /401.*auth\/v1/ видит «401» только в тексте, а «auth/v1» — только в адресе). Адрес пишем в строку бага
+      if (ignored(m.text()) || ignored(url) || ignored(`${m.text()} ${url}`)) return
+      bugs.push(`console: ${m.text()}${url ? ` @ ${url.split('?')[0]}` : ''}`)
     })
     page.on('pageerror', e => bugs.push(`pageerror: ${e.message}`))
     page.on('requestfailed', r => {
