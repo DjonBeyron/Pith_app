@@ -23,6 +23,7 @@ export const gameCandidate = (kind, word) => ({
   id: kind.prefix + word,
   kind: 'offer',
   reason: 'game_offer',
+  scope: 'feed', // шторка ленты: при уходе с ленты её снимает PromptHost
   text: kind.text,
   answers: [{ id: 'go', label: 'Давай' }, { id: 'no', label: 'Не сейчас' }],
 })

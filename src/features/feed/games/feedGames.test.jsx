@@ -60,7 +60,7 @@ describe('игры ленты: общая очередь', () => {
     expect([...new Set(t.offered())]).toEqual(['choose:sheep', 'fill:sheep', 'picture:sheep'])
     const cand = t.slot.request.mock.calls.map(c => c[0]).find(c => c.id === 'fill:sheep')
     expect(cand).toEqual({
-      id: 'fill:sheep', kind: 'offer', reason: 'game_offer', text: 'Пит нашёл игру на минутку — дополнишь реплику?',
+      id: 'fill:sheep', kind: 'offer', reason: 'game_offer', scope: 'feed', text: 'Пит нашёл игру на минутку — дополнишь реплику?',
       answers: [{ id: 'go', label: 'Давай' }, { id: 'no', label: 'Не сейчас' }],
     })
     expect(t.slot.request.mock.calls.map(c => c[0]).find(c => c.id === 'picture:sheep').text).toBe('Пит нашёл игру на минутку — угадаешь слово по картинке?')

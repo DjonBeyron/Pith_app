@@ -46,7 +46,7 @@ describe('игра «Выбери слово»: от слайдов до отв�
     // слот сам отсекает повторный запрос того же id, поэтому на каждый слайд просим заново (вдруг предложение выпало из очереди)
     expect(t.slot.request).toHaveBeenCalled()
     expect(t.slot.request.mock.calls.at(-1)[0]).toEqual({
-      id: 'choose:keep', kind: 'offer', reason: 'game_offer',
+      id: 'choose:keep', kind: 'offer', reason: 'game_offer', scope: 'feed',
       text: 'Пит нашёл игру на минутку — выберешь слово?',
       answers: [{ id: 'go', label: 'Давай' }, { id: 'no', label: 'Не сейчас' }],
     })

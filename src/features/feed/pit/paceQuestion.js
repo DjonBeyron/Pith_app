@@ -36,6 +36,7 @@ export function paceCandidate() {
     id: PACE_ID,
     kind: 'question',
     reason: 'behavior',
+    scope: 'feed', // шторка ленты: при уходе с ленты её снимает PromptHost
     aboutPerson: true,
     text: 'Кажется, не зацепило. Подскажешь, что не так?',
     answers: [

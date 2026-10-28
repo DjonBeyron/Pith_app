@@ -138,7 +138,7 @@ export default function ShellV2() {
   const feedPaused = (!!gate && splashGone) || !!lessonOverlay
 
   return (
-    <PromptHost>
+    <PromptHost feedActive={tab === 'feed'}>
     <div className="shellV2">
       <OrientationGuard />
       <InstallPrompt />

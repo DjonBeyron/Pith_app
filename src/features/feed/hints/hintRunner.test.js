@@ -46,6 +46,17 @@ describe('hintRunner', () => {
     expect(c.answers.map(a => a.id)).toEqual(['listen', 'later'])
     expect(c.reply.later).toMatch(/без звука/)
   })
+  it('ушли с ленты (idx < 0) — подсказка снимается из очереди/с экрана, чтобы не висеть на других вкладках', () => {
+    const { runner, state, advance, show } = setup()
+    runner.setSound(false)
+    runner.onSlide(0)
+    advance(8100)
+    expect(state.requests.at(-1)).toMatchObject({ id: 'hint:sound', scope: 'feed' })
+    show()
+    runner.onSlide(-1)
+    expect(state.cancels).toContain('hint:sound')
+  })
+
   it('ответ «Послушаем?» включает звук; «Без звука» — нет', () => {
     const a = setup()
     a.runner.onSlide(0); a.advance(8100); a.show()

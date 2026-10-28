@@ -38,7 +38,7 @@ export function createHintRunner({
       pending = h.id
       pendingAt = t
       shown = false
-      slot.request({ ...h, id: KEY(h.id), kind: 'hint', reason: 'ui_hint' })
+      slot.request({ ...h, id: KEY(h.id), kind: 'hint', reason: 'ui_hint', scope: 'feed' })
       return
     }
     const wait = judge.nextDeadline(t)
@@ -82,7 +82,8 @@ export function createHintRunner({
     // Слайд сменился (idx < 0 — ленты на экране нет). Подсказка про фразу привязана к слайду — на другом она ни к чему
     onSlide(idx) {
       judge.onSlide(idx, now())
-      withdraw('rub')
+      if (idx < 0 && pending) withdraw(pending) // ушли с ленты — подсказка ленты на другой вкладке ни к чему (иначе висит везде)
+      else withdraw('rub')
       evaluate()
     },
     // Звук ленты включён/выключен. Включили сами — «Послушаем?» (в очереди или на экране) убираем

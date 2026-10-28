@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { onTrack } from '../../../shared/lib/analytics/track.js'
 import { usePromptSlotContext } from '../../../shared/lib/prompts/usePromptSlotContext.js'
-import { createPaceWatch, paceCandidate } from './paceQuestion.js'
+import { createPaceWatch, paceCandidate, PACE_ID } from './paceQuestion.js'
 
 // Слушает журнал: на каждый feed_swipe { ms_prev } считает быстрые пролистывания; после трёх подряд просит у общего слота Пита
 // вопрос «Кажется, не зацепило…» (paceQuestion.js). Нет хоста слота (тесты, превью) — не делает ничего. Живёт, пока смонтирована
@@ -9,9 +9,13 @@ import { createPaceWatch, paceCandidate } from './paceQuestion.js'
 let sessionWatch = null
 export const resetPaceSession = () => { sessionWatch = null } // для тестов
 
-export function usePaceQuestion() {
+export function usePaceQuestion(active = true) {
   const slot = usePromptSlotContext()
   const request = slot?.request // стабилен (usePromptSlot), смена слота не нужна
+  const cancel = slot?.cancel
+
+  // Ушли с ленты — вопрос про ленту на другой вкладке ни к чему: снимаем (из очереди или с экрана), иначе он висит везде
+  useEffect(() => { if (!active) cancel?.(PACE_ID) }, [active, cancel])
 
   useEffect(() => {
     if (!request) return undefined

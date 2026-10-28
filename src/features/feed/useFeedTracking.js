@@ -10,7 +10,7 @@ import { usePaceQuestion } from './pit/usePaceQuestion.js'
 // фразы запоминаются для порядка рекомендаций (feedSkips.js).
 // module — модуль активного слайда или null, когда лента не на экране.
 export function useFeedTracking(module) {
-  usePaceQuestion() // три быстрых пролистывания подряд → вопрос Пита (pit/)
+  usePaceQuestion(!!module) // три быстрых пролистывания подряд → вопрос Пита (pit/); лента ушла с экрана — вопрос снимается
   const curRef = useRef(null) // { id, since }
   const id = module && !module.isSandbox ? module.id : null // песочница админа (scene/sandbox/) в аналитику не пишется
 
