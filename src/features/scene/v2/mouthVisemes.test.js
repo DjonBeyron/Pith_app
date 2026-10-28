@@ -3,7 +3,7 @@ import {
   buildCodeTrack, codeAtTrack, createCodePicker, gateCode, foldCode, isCode, FOLD, LESS_OPEN, CODES, MIN_HOLD, GENERIC,
 } from './mouthVisemes.js'
 import { envelopeLevels, levelAt } from '../../../shared/lib/audioEnvelope.js'
-import { OPEN_AT, HALF_AT } from '../../../shared/lib/mouthLevels.js'
+import { SCENE_OPEN_AT as OPEN_AT, SCENE_HALF_AT as HALF_AT } from '../../../shared/lib/mouthLevels.js'
 
 const w = (word, start, end) => ({ word, start, end })
 

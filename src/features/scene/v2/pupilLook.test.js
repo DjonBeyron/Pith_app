@@ -25,7 +25,7 @@ function setup({ whos = ['a', 'b'], rands = [] } = {}) {
 }
 
 describe('pupilLook — зрачки под речь', () => {
-  it('начало реплики: оба смотрят друг на друга, сдвиг ≈ GAZE (≤ 1,5 px спрайта); в пакете «на собеседника» у обоих — минус по x (a зеркалится, b нет)', () => {
+  it('начало реплики: оба смотрят друг на друга, сдвиг ≈ GAZE (≤ MAX_LOOK px спрайта); в пакете «на собеседника» у обоих — минус по x (a зеркалится, b нет)', () => {
     const s = setup()
     s.look.lineStart('a')
     for (const w of ['a', 'b']) {
@@ -51,7 +51,7 @@ describe('pupilLook — зрачки под речь', () => {
     expect(+s.els.a.p['--look-x']).toBeCloseTo(0)
   })
 
-  it('какие бы ни выпали числа, сдвиг не больше MAX_LOOK (1,5 px спрайта)', () => {
+  it('какие бы ни выпали числа, сдвиг не больше MAX_LOOK px спрайта', () => {
     for (const v of [0, 0.01, 0.99, 1]) {
       const s = setup({ rands: [0, v, v, v, v, v, v, v] })
       s.look.lineStart('b')

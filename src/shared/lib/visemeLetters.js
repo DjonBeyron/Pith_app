@@ -5,7 +5,7 @@
 const MAP = {
   a: 'D', 'а': 'D', 'я': 'D',
   e: 'C', 'э': 'C', 'е': 'C',
-  i: 'B', 'и': 'B', 'ы': 'B', y: 'B',
+  i: 'C', 'и': 'B', 'ы': 'B', y: 'B', // английское i чаще /aɪ/ или /ɪ/ (like, nice, it) — полуоткрытый рот, а не «зубы рядом»
   o: 'E', 'о': 'E', 'ё': 'E',
   u: 'F', 'у': 'F', 'ю': 'F', w: 'F',
   m: 'A', b: 'A', p: 'A', 'м': 'A', 'б': 'A', 'п': 'A',
@@ -14,7 +14,7 @@ const MAP = {
 }
 const VOWELS = /[aeiouyаеёиоуыэюя]/i
 export const LETTER = /[a-zа-яё]/i
-const CONSONANT_W = 0.55
+const CONSONANT_W = 0.4 // согласные короче: гласные держат рот открытым дольше (по стенду ?scene=cmp при 0.55 рот сидел в «зубах»)
 
 /** Форма рта для буквы (нет буквы — null) */
 export const codeOf = ch => (LETTER.test(ch) ? MAP[ch.toLowerCase()] ?? 'B' : null)

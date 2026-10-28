@@ -1,5 +1,5 @@
 import { wordSegments } from '../../../shared/lib/visemeLetters.js'
-import { HALF_AT, OPEN_AT } from '../../../shared/lib/mouthLevels.js'
+import { SCENE_HALF_AT as HALF_AT, SCENE_OPEN_AT as OPEN_AT } from '../../../shared/lib/mouthLevels.js'
 import { levelAt } from '../../../shared/lib/audioEnvelope.js'
 
 // «Живой Пит v2»: рот из 9 форм Rhubarb (X A B C D E F G H) по буквам слов и по громкости — чистая логика без DOM и таймеров

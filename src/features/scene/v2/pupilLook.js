@@ -10,20 +10,21 @@ import { MASCOT_PACKS } from './sprites/mascot/mascots.js'
 //                    ещё «сбит» предыдущей саккадой, он возвращается на собеседника;
 //   lineEnd()      — реплика кончилась (говорящего нет);
 //   startIdle() / stopIdle() — в тишине (персонаж не говорит) раз в IDLE_MIN…IDLE_MAX мс лёгкий увод взгляда и возврат через IDLE_AWAY_MS.
-// Размеры — в пикселях СПРАЙТА (коробка 200×240, посадка пакета fit.k): сдвиг в итоге ≤ MAX_LOOK = 1,5 px; в координатах пакета (где лежат
-// зрачки) это делится на fit.k. Левый персонаж (who 'a') в сцене зеркалится (mascotSprite.js: flip = who === 'b'), поэтому «вправо на экране»
+// Размеры — в пикселях СПРАЙТА (коробка 200×240, посадка пакета fit.k): сдвиг в итоге ≤ MAX_LOOK = 5 px; в координатах пакета (где лежат
+// зрачки) это делится на fit.k. Амплитуды подобраны по стенду ?scene=cmp: при 0,6 px спрайта сдвиг на экране был ≈ 0,3 px и не читался,
+// зрачок Пита (≈ 6 px спрайта) может уходить на треть своего размера — это видно, но белок не покидает. Левый персонаж (who 'a') в сцене зеркалится (mascotSprite.js: flip = who === 'b'), поэтому «вправо на экране»
 // для него — минус по x пакета. Таймеры и случайность инъектируются для тестов (look.test.js).
 
-export const GAZE = 0.9
-export const SACCADE_X = 0.6
-export const SACCADE_Y = 0.35
-export const MAX_LOOK = 1.5
-export const SACCADE_CHANCE = 1 / 3
+export const GAZE = 3
+export const SACCADE_X = 2.2
+export const SACCADE_Y = 1.2
+export const MAX_LOOK = 5
+export const SACCADE_CHANCE = 1 / 2
 export const IDLE_MIN_MS = 3000
 export const IDLE_MAX_MS = 5000
 export const IDLE_AWAY_MS = 700
-export const IDLE_AWAY_X = 0.9
-export const IDLE_AWAY_Y = 0.5
+export const IDLE_AWAY_X = 3
+export const IDLE_AWAY_Y = 1.5
 
 const clamp = v => Math.max(-MAX_LOOK, Math.min(MAX_LOOK, v))
 
