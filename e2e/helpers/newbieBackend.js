@@ -16,7 +16,7 @@ const MEDIA_DIR = fileURLToPath(new URL('../feed-media/media/', import.meta.url)
 const LESSON_IDS = ['nb-start', 'nb-keep', 'nb-final']
 
 // Фразы ленты: у первой — три урока (Старт, слово keep, Финал), чтобы слово keep попало в колоды повторения
-const curricula = Array.from({ length: MODULES }, (_, i) => ({
+export const curricula = Array.from({ length: MODULES }, (_, i) => ({
   id: `nb-m${i}`,
   title: `Newbie phrase number ${i + 1}`,
   title_translation: `Фраза новичка ${i + 1}`,
@@ -31,7 +31,7 @@ const curricula = Array.from({ length: MODULES }, (_, i) => ({
 }))
 
 // Карточка колоды слова keep: реплика-контекст, через 0,8 с — задание «Выбери слово» (верный вариант — keep)
-const cardNodes = [
+export const cardNodes = [
   { id: 'nb1', seq: 1, x: 0, y: 0, size: 'max', type: 'text', typeData: { text: { content: 'I want to ___ it.' } },
     triggers: [{ id: 'nb1t', if: 'timer', ms: 800, then: 'nb2' }] },
   { id: 'nb2', seq: 2, x: 370, y: 0, size: 'max', type: 'word_choice',

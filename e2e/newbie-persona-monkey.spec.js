@@ -1,4 +1,5 @@
 import { test, expect } from './fixtures.js'
+import { proof } from './helpers/newbieEvidence.js'
 import { bootPersona, openFeed, sheet, makeRng, seedFor, think, fingerSwipe, expectNoHScroll, activePhrase } from './helpers/newbiePersona.js'
 import { pickAction, perform, closeEverything } from './helpers/newbieMonkey.js'
 
@@ -10,7 +11,7 @@ import { pickAction, perform, closeEverything } from './helpers/newbieMonkey.js'
 // конкретный: сид и длительность печатаются в аннотациях отчёта.
 test.beforeEach(({ page }) => bootPersona(page))
 
-test('непоседа: 60–90 с случайных жестов — без ошибок консоли и сети, без горизонтального скролла, лента жива', async ({ page }, testInfo) => {
+test('[MONKEY] непоседа: 60–90 с случайных жестов — без ошибок консоли и сети, без горизонтального скролла, лента жива', async ({ page }, testInfo) => {
   test.setTimeout(240_000)
   const seed = seedFor(1505 + testInfo.repeatEachIndex)
   const rnd = makeRng(seed)
@@ -53,5 +54,6 @@ test('непоседа: 60–90 с случайных жестов — без о
       if (!ok && (await sheet(page).count())) await sheet(page).getByRole('button', { name: 'Закрыть' }).first().click({ timeout: 2000 }).catch(() => {})
     }
     expect(ok, 'лента не листается после серии случайных действий').toBe(true)
+    await proof(testInfo, 'MONKEY', `Seed ${seed}, ${Math.round(duration / 1000)} с: ${done} действий сработало, ${missed} мимо (${JSON.stringify(stat)}); ошибок консоли и сети нет, горизонтального скролла нет, лента листается`, { page })
   })
 })

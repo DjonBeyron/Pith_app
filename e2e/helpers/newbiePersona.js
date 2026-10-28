@@ -117,8 +117,9 @@ export async function openFeed(page) {
 export const sheet = page => page.locator('.promptSheet')
 
 // Нет горизонтального скролла: ширина документа не больше окна, и ни одна шторка/окно не вылезает за правый край
+// Шторки въезжают с анимацией (на миг правый край за окном) — поэтому до 1,5 с даём измерению устояться; настоящий выход за край держится
 export async function expectNoHScroll(page, where = '') {
-  const m = await page.evaluate(() => {
+  const measure = () => page.evaluate(() => {
     const w = window.innerWidth
     const wide = [...document.querySelectorAll('[role="dialog"], [role="group"], .promptSheet, .lrSheet, .installSlidesCard, .feedHud')]
       .filter(el => el.getClientRects().length)
@@ -126,6 +127,8 @@ export async function expectNoHScroll(page, where = '') {
       .filter(x => x.right > w + 1)
     return { sw: document.documentElement.scrollWidth, bw: document.body.scrollWidth, w, wide }
   })
+  let m = await measure()
+  for (let i = 0; i < 6 && (m.wide.length || Math.max(m.sw, m.bw) > m.w); i++) { await page.waitForTimeout(250); m = await measure() }
   expect(Math.max(m.sw, m.bw), `горизонтальный скролл ${where}: ширина ${m.sw}/${m.bw} при окне ${m.w}`).toBeLessThanOrEqual(m.w)
   expect(m.wide, `шторка шире окна ${m.w} px ${where}`).toEqual([])
 }
