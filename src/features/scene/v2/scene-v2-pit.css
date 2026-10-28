@@ -1,0 +1,27 @@
+/* «Живой Пит v2» (флаг animV2, animFlags.js → класс .scn--v2 на корне сцены): зрачки и усы маскота. Только transform-подобные свойства
+   (translate), без фильтров; на слабом устройстве (.scn--lite) и при reduced-motion — ничего: остаётся только рот из 9 форм.
+   В покое (Пит молчит) бегущих анимаций нет вовсе: зрачки сдвигаются коротким переходом после события (pupilLook.js), усы стоят. */
+
+/* Зрачки: режиссёр пишет --look-x / --look-y (единицы пакета, ≈ до 4,6 = 1,5 px спрайта) на корень маскота, сдвиг — свойство translate
+   (оно складывается с transform-атрибутом зрачка: масштаб реакции «любовь / презрение» не затирается) */
+.scn--v2:not(.scn--lite) .pu {
+  translate: calc(var(--look-x, 0) * 1px) calc(var(--look-y, 0) * 1px);
+  transition: translate 150ms ease-out;
+}
+
+/* Усы (класс .wh на существующем контуре усов kit.json): пока Пит говорит, чуть приподнимаются и опускаются; амплитуда — --talk
+   (она плавно растёт 0 → 1 за 0,3 с, scene-v2-cat.css). Одна анимация, и только пока is-talking: в тишине её нет */
+@keyframes scnWhisk {
+  0%, 100% { translate: 0 calc(-2px * var(--talk)); }
+  50% { translate: 0 calc(2px * var(--talk)); }
+}
+.scn--v2.scn--live:not(.scn--lite) .scn-cat.is-talking .wh {
+  animation: scnWhisk 0.7s ease-in-out infinite;
+}
+.scn--v2.scn--paused .wh, [data-scrolling="1"] .scn--v2 .wh { animation-play-state: paused; }
+.scn--v2.scn--settle .wh { animation: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  .scn--v2 .pu { transition: none; }
+  .scn--v2 .wh { animation: none; }
+}

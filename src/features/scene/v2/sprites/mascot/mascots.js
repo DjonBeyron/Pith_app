@@ -12,7 +12,7 @@ export const BASE_FACE = 'base'
 // Цвет шерсти — для метки говорящего в сборщике (у маскота палитры нет)
 export const SKIN_COLORS = { kit: '#bc82fa', mia: '#98a1b3' }
 
-export const SKIN_TITLES = { kit: 'Пит (фиолетовый кот)', mia: 'Мия (серая кошка)' }
+export const SKIN_TITLES = { kit: 'Пит', mia: 'Мия (серая кошка)' }
 
 // Что означает состояние — для подсказок в сборщике и легенде ИИ
 export const FACE_NOTES = {

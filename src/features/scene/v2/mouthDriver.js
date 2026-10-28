@@ -4,17 +4,32 @@
 // Цикл форм перезапускается на границе каждого слова (onWord) — движение
 // совпадает с речью. Таймеры инъектируются для тестов.
 
-import { applyMascotMouth } from './sprites/mascot/mascotMouth.js'
+import { applyMascotMouth, applyMascotMouthCode } from './sprites/mascot/mascotMouth.js'
+import { isCode, foldCode } from './mouthVisemes.js'
 
 export const MOUTH_SHAPES = ['closed', 'half', 'open']
 export const MOUTH_CYCLE = ['open', 'half', 'closed', 'half']
 export const MOUTH_STEP_MS = 110
 
-// Применить форму рта к элементу (дешёвый setAttribute, без layout)
-export function setMouth(el, shape) {
-  if (!el || el.getAttribute('data-mouth') === shape) return
+// Применить форму рта к элементу (дешёвый setAttribute, без layout). v — форма closed / half / open ИЛИ код Rhubarb (X A–H, «живой Пит v2»,
+// mouthVisemes.js): у маскота (data-skin) код пишется в узлы рта как есть, у обычного кота сворачивается в три формы (foldCode).
+// data-mouth всегда хранит одну из трёх форм (CSS обычного кота читает её), data-vis — точный код, пока он в работе (для пропуска повторов)
+export function setMouth(el, v) {
+  if (!el) return
+  const code = isCode(v)
+  const shape = code ? foldCode(v) : v
+  if (code && el.getAttribute('data-skin')) {
+    if (el.getAttribute('data-vis') === v) return
+    el.setAttribute('data-vis', v)
+    el.setAttribute('data-mouth', shape)
+    applyMascotMouthCode(el, v)
+    return
+  }
+  const vis = isCode(el.getAttribute('data-vis'))
+  if (!vis && el.getAttribute('data-mouth') === shape) return
+  if (vis) el.removeAttribute('data-vis')
   el.setAttribute('data-mouth', shape)
-  applyMascotMouth(el, shape) // маскот (data-skin): те же три формы → формы из таблицы пакета
+  applyMascotMouth(el, shape) // маскот (data-skin): три формы → формы из таблицы пакета
 }
 
 export function createMouthDriver(apply, timers = globalThis) {

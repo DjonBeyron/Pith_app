@@ -2,42 +2,9 @@
 // D — широко (а я), E — округлён (о), F — «трубочка» (у ю w), G — зубы на губе (ф в), H — язык (л), X — рот закрыт. Раньше рот шёл только по громкости (закрыт / полуоткрыт / открыт), и на «о» он не круглился.
 // Дорожка рта (mouthTrack) раскладывает буквы текста по длине звучания: гласные длиннее согласных; если есть тайминги слов (ElevenLabs отдаёт их вместе с озвучкой) — каждое слово в своём отрезке.
 // Чистые функции без DOM — проверяются тестами; реплики кота (wordLaneCatLines.js) и диктор ступеней (wordLaneDictor.js) берут рот отсюда.
-const MAP = {
-  a: 'D', 'а': 'D', 'я': 'D',
-  e: 'C', 'э': 'C', 'е': 'C',
-  i: 'B', 'и': 'B', 'ы': 'B', y: 'B',
-  o: 'E', 'о': 'E', 'ё': 'E',
-  u: 'F', 'у': 'F', 'ю': 'F', w: 'F',
-  m: 'A', b: 'A', p: 'A', 'м': 'A', 'б': 'A', 'п': 'A',
-  f: 'G', v: 'G', 'ф': 'G', 'в': 'G',
-  l: 'H', 'л': 'H',
-}
-const VOWELS = /[aeiouyаеёиоуыэюя]/i
-const LETTER = /[a-zа-яё]/i
-const CONSONANT_W = 0.55
+import { LETTER, letterWeight as weight, wordSegments } from '../../../../shared/lib/visemeLetters.js'
 
-/** Форма рта для буквы (нет буквы — null) */
-export const codeOf = ch => (LETTER.test(ch) ? MAP[ch.toLowerCase()] ?? 'B' : null)
-
-const weight = ch => (VOWELS.test(ch) ? 1 : CONSONANT_W) // гласные звучат дольше согласных
-
-/** Отрезки { at, end, code } слова word на [from, to) мс: буквы с весами, подряд идущие одинаковые формы склеены */
-function wordSegments(word, from, to) {
-  const letters = [...word].filter(ch => LETTER.test(ch))
-  if (!letters.length || to <= from) return []
-  const total = letters.reduce((a, ch) => a + weight(ch), 0)
-  const out = []
-  let at = from
-  for (const ch of letters) {
-    const end = at + ((to - from) * weight(ch)) / total
-    const code = codeOf(ch)
-    const last = out.at(-1)
-    if (last && last.code === code) last.end = end
-    else out.push({ at, end, code })
-    at = end
-  }
-  return out
-}
+export { codeOf } from '../../../../shared/lib/visemeLetters.js' // буква → код Rhubarb живёт в shared/lib/visemeLetters.js (его же берёт Пит сцен v2)
 
 /**
  * Дорожка рта для текста text длиной ms. words — тайминги слов озвучки [{ w, t, e }] в секундах (необязательно): если слов столько же, сколько в тексте, каждое слово ставится на своё место,

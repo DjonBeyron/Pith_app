@@ -6,6 +6,7 @@ import AdminUserModeToggle from './AdminUserModeToggle.jsx'
 import AdminNewbieToggle from './AdminNewbieToggle.jsx'
 import AdminDebugUiToggle from './AdminDebugUiToggle.jsx'
 import AdminAudioWaveformToggle from './AdminAudioWaveformToggle.jsx'
+import AdminAnimV2Toggle from './AdminAnimV2Toggle.jsx'
 
 const OPEN_KEY = 'pithy_admin_toggles_open_v1'
 
@@ -30,6 +31,7 @@ export default function AdminToggles() {
           <AdminNewbieToggle />
           <AdminDebugUiToggle />
           <AdminAudioWaveformToggle />
+          <AdminAnimV2Toggle />
         </div>
       )}
     </div>

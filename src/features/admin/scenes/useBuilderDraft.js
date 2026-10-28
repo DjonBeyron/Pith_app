@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect, useCallback, useRef } from 'react'
 import { lintScene } from '../../scene/v2/sceneLint.js'
+import { isAnimV2 } from '../../scene/v2/animFlags.js'
 import { sceneNodeBreakdown } from '../../scene/v2/sceneBudget.js'
 import { parseSceneV2 } from '../../scene/v2/sceneSchemaV2.js'
 import * as M from './builderModel.js'
@@ -35,7 +36,7 @@ export function useBuilderDraft({ initialScene = null, initialRow = null, backup
   const timer = useRef(null)
   const latest = useRef(null)
 
-  const lint = useMemo(() => lintScene(scene), [scene])
+  const lint = useMemo(() => lintScene(scene, { animV2: isAnimV2() }), [scene]) // при включённом «живом Пите v2» — предупреждение «нет огибающей»
   const budget = useMemo(() => sceneNodeBreakdown(scene), [scene])
   const errors = lint.filter(x => x.level === 'error')
   const dirty = saved.snapshot ? !M.sameScene(saved.snapshot, scene) : true

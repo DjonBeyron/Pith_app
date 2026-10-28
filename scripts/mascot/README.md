@@ -38,3 +38,5 @@
 Маскоты подключены как скины персонажа: `characters.a.skin = "kit" | "mia"` (+ `pupilReaction`, `extraFace`, по умолчанию включены), лицо реплики — `face` (говорящий) и `react` (слушающий). Рисунок — `sprites/mascot/*.json`
 (разбор разметки `markupTree.js`, дерево `mascotSprite.js`, рот `mascotMouth.js`), общие классы анимаций `cat-tail / cat-body / cat-head / cat-eyes` из `scene-v2-cat.css`. После правок рисунка: `run.sh` (или только `node export_sprites.mjs <work>`).
 Шаблон «Пит и Мия: знакомство» — `demoMascotScene.js`.
+
+Усы Пита — один контур из двух горизонтальных отрезков в голове; `export_sprites.mjs` (`markWhiskers`) ставит на него класс `wh`, и «живой Пит v2» (`scene-v2-pit.css`, флаг animV2) приподнимает их при речи. Новых узлов нет; у Мии усов в рисунке нет.

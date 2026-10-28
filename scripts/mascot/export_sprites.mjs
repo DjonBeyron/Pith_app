@@ -13,6 +13,11 @@ const NAMES = { boy: { id: 'kit', title: 'Пит', gender: 'male' }, girl: { id:
 const shift = (markup, [bx, by]) => markup.replace(/ d="([^"]*)"/g, (_, d) =>
   ` d="${d.replace(/(-?[\d.]+) (-?[\d.]+)/g, (__, x, y) => `${+(x - bx).toFixed(1)} ${+(y - by).toFixed(1)}`)}"`)
 
+// Усы: контур из двух горизонтальных отрезков («M122.2 299.1H90.2M500.1 299.1H467.5») получает класс wh — за него цепляются усы «живого Пита v2»
+// (scene-v2-pit.css: при речи чуть приподнимаются и опускаются). Новых узлов нет, класс ставится на существующий path; у Мии усов в рисунке нет
+const WHISKERS = /<path( d="M[\d. -]+H[\d. -]+(?:M[\d. -]+H[\d. -]+)+")/g
+const markWhiskers = head => head.replace(WHISKERS, '<path class="wh"$1')
+
 for (const [key, meta] of Object.entries(NAMES)) {
   const pk = JSON.parse(readFileSync(`${work}/pack_${key}.json`, 'utf8'))
   const m = pk.parts.body.match(/^(<g class="tail">[\s\S]*?<\/g>)([\s\S]*)$/)
@@ -24,7 +29,7 @@ for (const [key, meta] of Object.entries(NAMES)) {
     fit: { k: +k.toFixed(5), tx: +(-vx * k).toFixed(3), ty: +(240 - (vy + vh) * k).toFixed(3) },
     tailBase: TAIL_BASE[key],
     tail: shift(m[1], TAIL_BASE[key]).replace(/^<g class="tail">|<\/g>$/g, ''),
-    body: m[2], head: pk.parts.head, mouthTable: pk.mouthTable,
+    body: m[2], head: markWhiskers(pk.parts.head), mouthTable: pk.mouthTable,
     neck: [297, 440], // центр поворота наклона головы
     states: pk.states,
   }

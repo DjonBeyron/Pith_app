@@ -5,6 +5,7 @@ import { minLinesFor } from '../../scene/v2/sceneTask.js'
 import { sceneVoiceStats } from '../../scene/v2/sceneVoice.js'
 import { speakerVars } from './ui/colorContrast.js'
 import ScTip from './ScTip.jsx'
+import EnvelopeAllRow from './voice/EnvelopeAllRow.jsx'
 
 // Таймлайн реплик в сборщике: сводка озвучки («озвучено X из N», квота) и маленькая ссылка
 // «Озвучить всё» — та же функция useSceneVoice.openAll, что и кнопка в тулбаре (BuilderToolbar), без
@@ -38,6 +39,7 @@ export default function TimelineEditor({ scene, actions, voice = null }) {
           </button>
         </div>
       )}
+      {voice && <EnvelopeAllRow scene={scene} voice={voice} />}
       <div className="scbLinesHead">
         <span className="scbSub">Реплик: <b>{tl.length}</b>{tl.length < minLines && <span className="scWarnTxt"> · нужно минимум {minLines}: пока их меньше, сцену нельзя ни применить, ни проверить в ленте</span>}</span>
         {askAll ? (

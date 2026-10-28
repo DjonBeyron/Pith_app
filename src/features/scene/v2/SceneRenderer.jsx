@@ -11,6 +11,8 @@ import { bubbleDisplay } from './sceneOptions.js'
 import { sceneStaticMarkup } from './staticMarkup.js'
 import './scene-v2.css'
 import './scene-v2-cat.css'
+import './scene-v2-pit.css'
+import { resolveAnimV2 } from './animFlags.js'
 import { sceneTrace } from './sceneTrace.js'
 import { settleSceneIdle } from './sceneSettle.js'
 
@@ -30,6 +32,8 @@ import { settleSceneIdle } from './sceneSettle.js'
 // display ('none' | 'text' | 'both') и voice ({ original?, translation? }) — переопределения
 // поверх options сцены (sceneOptions.js); showBubbles — старый проп (false → 'none').
 // Задание scene.task скрывает переводы в облачке даже при 'both'.
+// animV2 — «живой Пит v2» (рот из 9 форм по буквам и громкости, зрачки, усы; только маскот): true / false — явно (стенд сравнения), не задан —
+// флаг админки (animFlags.js, по умолчанию выключен). Класс .scn--v2 включает стили зрачков и усов (scene-v2-pit.css); на lite остаётся только рот.
 
 function Cat({ who, character, emotion, face, talking, onEl, solo = false }) {
   const sprite = characterSprite(character)
@@ -69,7 +73,7 @@ function Props({ scene }) {
 }
 
 export default function SceneRenderer({
-  scene, mode = 'live', active = true, paused = false, sound = true, rate = 1, lite, frameIndex = null,
+  scene, mode = 'live', active = true, paused = false, sound = true, rate = 1, lite, frameIndex = null, animV2: animV2Prop,
   showBubbles, display, voice = null, showProgress = true, viewBox = null, onTap, apiRef, onState, audioSrcOf = null, className = '', children,
   settle = false, // родитель просит успокоить позу заранее (кружок сворачивает повтор доигравшей сцены — впереди замена статичным кадром)
 }) {
@@ -79,7 +83,8 @@ export default function SceneRenderer({
   const rootRef = useRef(null)
   const [onScreen, setOnScreen] = useState(true)
   // audioSrcOf(url) — подмена ссылки озвучки реплики (blob прогрева ноды урока), иначе null
-  const director = useSceneDirectorV2(scene, { enabled: live, sound, rate, active: active && onScreen, paused, mouthEls, audioSrcOf, voice })
+  const animV2 = resolveAnimV2(animV2Prop)
+  const director = useSceneDirectorV2(scene, { enabled: live, sound, rate, active: active && onScreen, paused, mouthEls, audioSrcOf, voice, animV2, lite })
   const { status: dStatus, index: dIndex, total: dTotal, mode: dMode, run: dRun, anchor: dAnchor, anchorMs: dAnchorMs } = director
   // apiRef — ДО эффекта onState: объект director новый каждый рендер, эффект переустанавливает ref в каждом коммите
   // (cleanup → null → заново), а onState может сразу звать apiRef.current.play() (лента: круг заново после 'ended')
@@ -127,7 +132,7 @@ export default function SceneRenderer({
   const animPaused = live && (!active || paused || !onScreen || (director.status !== 'playing' && director.status !== 'idle'))
 
   const cls = [
-    'scn', live ? 'scn--live' : 'scn--static', isLite ? 'scn--lite' : '', animPaused ? 'scn--paused' : '', className,
+    'scn', live ? 'scn--live' : 'scn--static', isLite ? 'scn--lite' : '', live && animV2 ? 'scn--v2' : '', animPaused ? 'scn--paused' : '', className,
   ].filter(Boolean).join(' ')
 
   const emotionOf = who => (line && line.who === who ? line.emotion : 'neutral')

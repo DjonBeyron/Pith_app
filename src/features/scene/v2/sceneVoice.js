@@ -17,9 +17,10 @@ const str = v => (typeof v === 'string' && v.trim() ? v.trim() : null)
 // Поля реплики (все необязательные, версия формата остаётся 2):
 //   audioUrl    — https-адрес mp3 в R2 (…r2.dev) — ставит ТОЛЬКО сборщик, не нейросеть
 //   wordTimings — [{ word, start, end }] секунды с округлением до сотых, по возрастанию
-//   audioMeta   — { hash: sha-256 hex, voiceId, durationMs? } — чтобы заметить, что текст
-//                 или голос поменяли после генерации (hash не сходится → «устарело»), и
-//                 не генерировать повторно то, что уже есть (одинаковый hash → тот же файл)
+//   audioMeta   — { hash: sha-256 hex, voiceId, durationMs?, env? } — hash нужен, чтобы заметить, что текст или голос поменяли после генерации
+//                 (hash не сходится → «устарело»), и не генерировать повторно то, что уже есть (одинаковый hash → тот же файл);
+//                 env — { hz: 20, data: '0a4f…' }: огибающая громкости, посчитанная при озвучке (shared/lib/audioEnvelope.js, одна hex-цифра
+//                 0…f на окно 1/hz с), для рта «живого Пита v2» (animV2); нет — рот идёт только по буквам
 //   translationAudioUrl / translationWordTimings / translationAudioMeta — тот же комплект для
 //                 озвучки ПЕРЕВОДА (translation): hash = sha-256 от translation.trim() + голос
 //                 перевода (translationVoiceSpec) + модель. Голос перевода: voice.translationVoiceId

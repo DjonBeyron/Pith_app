@@ -1,4 +1,4 @@
-import { Play, Square, Mic, RefreshCw, Trash2 } from 'lucide-react'
+import { Play, Square, Mic, RefreshCw, Trash2, AudioWaveform } from 'lucide-react'
 import { audioPartOf, AUDIO_SETS } from '../../../scene/v2/sceneVoice.js'
 import { fmtDuration } from './voiceGenerate.js'
 import { voiceName } from './voicePresets.js'
@@ -13,6 +13,8 @@ import SoundCheck from './SoundCheck.jsx'
 // озвучку». У реплики без translation блок перевода неактивен с пояснением. voice — API
 // useSceneVoice; без него (статичный рендер) — только бейдж. id f-timeline-<i>-audioUrl /
 // -translationAudioUrl — подсветка замечаний «озвучка устарела». scene — для голоса перевода.
+// «Огибающая» (audioMeta.env, для рта «живого Пита v2»): у новой озвучки считается сразу; у старой — кнопка «Посчитать огибающую»
+// (useEnvelopeActions: файл качается по audioUrl и разбирается в браузере); нужен audioMeta.hash.
 
 export default function LineVoiceControls({ index: i, line, character, voice = null, idPrefix, set = 'original', scene = null }) {
   const part = audioPartOf(line, set)
@@ -24,6 +26,9 @@ export default function LineVoiceControls({ index: i, line, character, voice = n
   const canVoice = !!voice && !lock && !!String(part.text ?? '').trim()
   const isPlaying = voice?.playing === lineKey(i, set)
   const opts = { set }
+  const env = !!part.audioMeta?.env
+  const envRt = voice?.envLines?.[lineKey(i, set)]
+  const canEnv = !!voice && hasAudio && !env && !!part.audioMeta?.hash && !lock
 
   return (
     <div className={`scbVoiceRow scbVoiceRow-${status}`} id={`${idPrefix}-${AUDIO_SETS[set].url}`} data-set={set}>
@@ -31,6 +36,8 @@ export default function LineVoiceControls({ index: i, line, character, voice = n
         <span className="scbVoiceSet">{SET_LABEL[set]}:</span> <span className={`scbVoiceTag scbVoiceTag-${status}`}>{STATE_LABEL[status]}{status === 'ready' && dur ? ` · ${dur}` : ''}</span>
         {hasAudio && status !== 'error' && part.audioMeta?.voiceId && <span className="scbSub"> · {voiceName(part.audioMeta.voiceId)}</span>}
         {status === 'error' && <span className="scbVoiceErr" role="alert"> {rt.error}</span>}
+        {hasAudio && env && <span className="scbSub" title="Огибающая громкости посчитана: рот Пита v2 двигается по звуку"> · огибающая ✓</span>}
+        {envRt?.error && <span className="scbVoiceErr" role="alert"> огибающая: {envRt.error}</span>}
         {status === 'stale' && <span className="scbSub"> — {set === 'translation' ? 'перевод или голос перевода изменились (или перевод убрали)' : 'текст или голос изменились после озвучки'}</span>}
         {status === 'empty' && <span className="scbSub"> — впишите перевод, чтобы озвучить его отдельным голосом</span>}
         {status === 'tpl' && <span className="scbSub"> — слово подставляется, готового файла перевода нет</span>}
@@ -57,6 +64,11 @@ export default function LineVoiceControls({ index: i, line, character, voice = n
           {hasAudio && (
             <button type="button" className="scbIcon scbIconDanger" onClick={() => voice.removeLineAudio(i, set)} disabled={lock} aria-label="Удалить озвучку" title="Удалить файл и очистить поля озвучки">
               <Trash2 size={14} />
+            </button>
+          )}
+          {canEnv && (
+            <button type="button" className="fsBtn fsBtnSmall" onClick={() => voice.envLine(i, set)} disabled={!!envRt?.busy} title="Скачать файл и посчитать огибающую громкости (для рта «живого Пита v2»)">
+              <AudioWaveform size={13} /> {envRt?.busy ? 'Считаю…' : 'Посчитать огибающую'}
             </button>
           )}
           {hasAudio && <SoundCheck url={part.audioUrl} tip={false} />}

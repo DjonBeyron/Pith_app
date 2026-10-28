@@ -1,5 +1,6 @@
 import { isObj } from './sceneConstants.js'
 import { isSceneAudioUrl, MAX_WORD_TIMINGS, HASH_RE, AUDIO_SETS } from './sceneVoice.js'
+import { validEnvelope } from '../../../shared/lib/audioEnvelope.js'
 
 // Проверка полей озвучки реплики — вынесена из sceneValidate.js, чтобы правила ElevenLabs жили
 // рядом с sceneVoice.js. Два комплекта одной формы (AUDIO_SETS): оригинал (audioUrl, wordTimings,
@@ -19,11 +20,13 @@ function validateTimings(t, p, errors) {
 }
 
 function validateMeta(m, p, errors) {
-  if (!isObj(m)) { errors.push(`${p} — объект { hash, voiceId, durationMs? }`); return }
+  if (!isObj(m)) { errors.push(`${p} — объект { hash, voiceId, durationMs?, env? }`); return }
   if (typeof m.hash !== 'string' || !HASH_RE.test(m.hash)) errors.push(`${p}.hash — sha-256 в hex (64 символа)`)
   if (m.voiceId !== undefined && (typeof m.voiceId !== 'string' || !m.voiceId)) errors.push(`${p}.voiceId — непустая строка`)
   if (m.durationMs !== undefined && !(Number.isInteger(m.durationMs) && m.durationMs >= 0)) errors.push(`${p}.durationMs — целое число миллисекунд ≥ 0`)
-  for (const k of Object.keys(m)) if (!['hash', 'voiceId', 'durationMs'].includes(k)) errors.push(`${p}.${k} — лишнее поле`)
+  // env — огибающая громкости для рта «живого Пита v2» (shared/lib/audioEnvelope.js): { hz, data } — одна 16-ричная цифра на окно 1/hz с; старые сцены без неё
+  if (m.env !== undefined && !validEnvelope(m.env)) errors.push(`${p}.env — огибающая громкости { hz: целое 1…100, data: строка 16-ричных цифр (одна на окно) }`)
+  for (const k of Object.keys(m)) if (!['hash', 'voiceId', 'durationMs', 'env'].includes(k)) errors.push(`${p}.${k} — лишнее поле`)
 }
 
 // Один комплект { url, timings, meta } (имена полей из AUDIO_SETS)

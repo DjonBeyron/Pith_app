@@ -132,9 +132,19 @@ export function lintSize(scene, out) {
   else if (bytes >= SCENE_MAX_BYTES * SIZE_WARN_SHARE) out.push({ level: 'warn', text: `timeline — сцена близка к лимиту ${SCENE_MAX_BYTES / 1024} КБ (${kb} КБ, ${Math.round((bytes / SCENE_MAX_BYTES) * 100)}%) из-за таймингов озвучки` })
 }
 
+// «Живой Пит v2» (animV2 включён): у озвученной реплики маскота нет огибающей громкости (audioMeta.env) — рот пойдёт только по буквам.
+// Предупреждение, не ошибка: старые сцены без env работают; считается кнопкой «Посчитать огибающую» в панели озвучки (admin/scenes/voice/)
+function lintEnvelope(scene, out) {
+  const tl = Array.isArray(scene.timeline) ? scene.timeline : []
+  tl.forEach((l, i) => {
+    if (!isObj(l) || !l.audioUrl || !scene.characters?.[l.who]?.skin || hasVarParts(l.text) || l.audioMeta?.env) return
+    out.push({ level: 'warn', text: `timeline[${i}].audioMeta.env — нет огибающей громкости: рот Пита v2 пойдёт только по буквам (кнопка «Посчитать огибающую» в панели озвучки)` })
+  })
+}
+
 // nodeBudget — потолок узлов (по умолчанию NODE_BUDGET; админка сможет
-// ужесточить для «слабого» тира)
-export function lintScene(scene, { nodeBudget = NODE_BUDGET } = {}) {
+// ужесточить для «слабого» тира); animV2 — включён «живой Пит v2» (проверки огибающей)
+export function lintScene(scene, { nodeBudget = NODE_BUDGET, animV2 = false } = {}) {
   const out = []
   const errors = validateSceneV2(scene)
   errors.forEach(text => out.push({ level: 'error', text }))
@@ -149,6 +159,7 @@ export function lintScene(scene, { nodeBudget = NODE_BUDGET } = {}) {
   }
   lintCharacters(scene, out)
   lintTimeline(scene, out)
+  if (animV2) lintEnvelope(scene, out)
   lintVars(scene, out) // слова-переменные: плейсхолдеры, скобки, худший случай по длине (sceneVarsLint.js)
   lintTask(scene, out)
   return out

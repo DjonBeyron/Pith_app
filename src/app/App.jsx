@@ -17,6 +17,9 @@ import { confirmBoot } from '../shared/lib/shellClient.js'
 // сборке чанк не грузится. Данных не читает и не пишет — поэтому без проверки админа
 const SceneLab = lazy(() => import('../features/scene/SceneLab.jsx'))
 const SCENE_LAB = new URLSearchParams(location.search).get('scene') === '1'
+// Стенд сравнения «живой Пит v2» (features/scene/v2/stand): две сцены рядом, старая и новая анимация, замеры — ?scene=cmp. Тоже отдельный чанк, без данных
+const SceneCompareStand = lazy(() => import('../features/scene/v2/stand/SceneCompareStand.jsx'))
+const SCENE_CMP = new URLSearchParams(location.search).get('scene') === 'cmp'
 
 // Этап 6 миграции завершён: старая оболочка вынесена в old/ (вне git и
 // сборки), приложение — это новая оболочка ShellV2.
@@ -57,6 +60,14 @@ export default function App() {
       import('../features/debugTools/mountDebugTools.jsx').then(m => m.mountDebugTools())
     }
   }, [])
+
+  if (SCENE_CMP) {
+    return (
+      <Suspense fallback={null}>
+        <SceneCompareStand />
+      </Suspense>
+    )
+  }
 
   if (SCENE_LAB) {
     return (

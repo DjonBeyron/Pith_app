@@ -1,4 +1,5 @@
 import { visemeAt } from './mouthRhythm.js'
+import { buildCodeTrack, createCodePicker } from './mouthVisemes.js'
 
 // Рот в такт файлу озвучки: опрос audio.currentTime → визема (mouthRhythm.js)
 // → apply(shape) (в useSceneDirectorV2 это setMouth на DOM-группе кота — без
@@ -9,6 +10,9 @@ import { visemeAt } from './mouthRhythm.js'
 // Устойчивость к рассинхрону: пауза/seek/буферизация (readyState < 2 или
 // currentTime не растёт дольше STALL_MS) → рот закрыт; как только время пошло
 // — визема снова по currentTime, без накопленного дрейфа.
+// «Живой Пит v2» (опция v2 = { lv, onWord } | null; флаг animV2, animFlags.js): вместо closed/half/open в apply приходит КОД Rhubarb
+// (X A–H) по буквам слов (дорожка, mouthVisemes.js) с гейтом по огибающей громкости lv (envelopeLevels; нет — только буквы);
+// onWord(i) — граница слова (зрачки: pupilLook.js). Без v2 — прежнее поведение.
 // Таймеры/rAF/часы инъектируются для тестов.
 
 export const STALL_MS = 260
@@ -17,7 +21,7 @@ export const WEAK_POLL_MS = 35
 
 export function createMouthSync(audio, timings, apply, {
   raf = globalThis.requestAnimationFrame, caf = globalThis.cancelAnimationFrame, timers = globalThis,
-  now = () => (globalThis.performance?.now?.() ?? Date.now()), pollMs = 0,
+  now = () => (globalThis.performance?.now?.() ?? Date.now()), pollMs = 0, v2 = null,
   isHidden = () => (typeof document !== 'undefined' && document.hidden),
 } = {}) {
   let active = false
@@ -27,6 +31,8 @@ export function createMouthSync(audio, timings, apply, {
   let lastT = -1
   let lastMove = 0
   let current = timings
+  let picker = v2 ? createCodePicker(buildCodeTrack(timings), v2.lv ?? null) : null
+  let lastWord = -1
 
   // Стоит ли звук (пауза / перемотка / нет данных / время не идёт)
   function stalled(t, wall) {
@@ -38,8 +44,12 @@ export function createMouthSync(audio, timings, apply, {
   function tick() {
     if (!active) return
     const t = audio.currentTime
-    if (stalled(t, now())) apply('closed')
-    else {
+    if (stalled(t, now())) apply(picker ? 'X' : 'closed')
+    else if (picker) {
+      const r = picker.pick(t)
+      apply(r.code)
+      if (r.word >= 0 && r.word !== lastWord) { lastWord = r.word; v2.onWord?.(r.word) }
+    } else {
       // Подсказка индекса слова — только вперёд; seek назад сбрасывает её
       const shape = visemeAt(current, t, hint)
       apply(shape)
@@ -63,11 +73,15 @@ export function createMouthSync(audio, timings, apply, {
     start() {
       if (active) return
       active = true
-      hint = 0; lastT = -1; lastMove = now()
+      hint = 0; lastT = -1; lastMove = now(); lastWord = -1
+      picker?.reset()
       tick()
     },
     // Тайминги могут уточниться после старта (loadedmetadata → длительность файла)
-    setTimings(t) { current = t; hint = 0 },
+    setTimings(t) {
+      current = t; hint = 0
+      if (v2) picker = createCodePicker(buildCodeTrack(t), v2.lv ?? null)
+    },
     stop() {
       if (!active) return
       active = false

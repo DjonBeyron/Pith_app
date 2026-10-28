@@ -20,11 +20,11 @@
 //              stripes: true, voice: { pitch 0…2, rate 0.1…10, voiceId?, stability?, similarity?, speed?,
 //                                      translationVoiceId? } }
 // Line: { who: 'a' | 'b', text (≤ 140; {name} — слово переменной), emotion, pose?, face? (лицо говорящего-маскота), react? (лицо слушающего-маскота), translation? ({name:ru} — перевод слова), segments?: [{ var } | { text?, audioUrl?, … }],
-//         audioUrl?, wordTimings?: [{ word?, start, end }], audioMeta?: { hash, voiceId, durationMs? },
+//         audioUrl?, wordTimings?: [{ word?, start, end }], audioMeta?: { hash, voiceId, durationMs?, env?: { hz, data } },
 //         translationAudioUrl?, translationWordTimings?, translationAudioMeta? }   // то же для перевода
 // audioUrl/wordTimings/audioMeta (и translation*-тройка для перевода) — заранее записанная
-// озвучка ElevenLabs, ставит только сборщик (sceneVoice.js: hash → «устарело» и кэш);
-// пусто — запасной вариант (speechSynthesis ru-RU или таймер).
+// озвучка ElevenLabs, ставит только сборщик (sceneVoice.js: hash → «устарело» и кэш; env — огибающая
+// громкости для рта «живого Пита v2», shared/lib/audioEnvelope.js); пусто — запасной вариант (speechSynthesis ru-RU или таймер).
 //
 // Этот файл — точка входа: нормализация здесь, остальное реэкспортом.
 
