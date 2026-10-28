@@ -3,7 +3,8 @@ import { signalById, signalMeta, isLiveSignal } from './signalRegistry.js'
 
 const sig = signalById('level_fit')
 const lvl = ear => ({ ear: { level: ear, sigma: 0.1, n: 5 }, vocab: { level: 0.5, sigma: 0.1, n: 5 }, updatedAt: 0 })
-const item = (difficulty, index = 0) => ({ module: { id: 'm', difficulty }, index, words: [], info: { total: 0, newWords: [], shaky: [] } })
+// difficultyVotes 9: голосов хватает, сложность — медиана (effectiveDifficulty)
+const item = (difficulty, index = 0) => ({ module: { id: 'm', difficulty, difficultyVotes: 9 }, index, words: [], info: { total: 0, newWords: [], shaky: [] } })
 
 describe('сигнал level_fit', () => {
   it('описан: группа content, collecting, выключен, вес 15, в админке заблокирован', () => {
@@ -35,6 +36,12 @@ describe('сигнал level_fit', () => {
     expect(sig.compute(ctx, item(1, 3)).value).toBe(1) // обычный: по уровню
     expect(sig.compute(ctx, item(2, 4)).value).toBe(1) // рывок: ступень выше
     expect(sig.compute(ctx, item(1, 4)).value).toBeLessThan(1)
+  })
+
+  it('голосов мало — читает сложность админа, а не сырую медиану', () => {
+    const adminItem = { module: { id: 'm', difficulty: 1, difficultyVotes: 1, difficultyAdmin: 3 }, index: 0, words: [], info: { total: 0, newWords: [], shaky: [] } }
+    expect(sig.compute({ level: lvl(0.75) }, adminItem).value).toBe(1)
+    expect(sig.compute({ level: lvl(0.25) }, adminItem).value).toBeLessThan(1)
   })
 
   it('мусорная сложность не ломает (считается как 1)', () => {

@@ -145,15 +145,29 @@ export async function updateCurriculumScene(id, sceneId) {
 
 const CURRICULA_COLS = 'id, title, lesson_ids, created_at, video_url, poster_url, poster_crop, published, preview_only, difficulty, difficulty_votes, save_count, repost_count, is_pro'
 // Колонки переводов названия появляются миграцией 20260725140000, флаг «Ловля
-// слов в ленте» — миграцией 20261008120000, сцена ленты — 20261014150000; пока они
-// не применены, читаем список без них (иначе вся лента падала бы на 400):
+// слов в ленте» — миграцией 20261008120000, сцена ленты — 20261014150000, сложность от админа —
+// 20261028120000; пока они не применены, читаем список без них (иначе вся лента падала бы на 400):
 // ярусы от полного набора к базовому, спуск — только по ошибке «нет колонки»
 const CURRICULA_COLS_TR = `${CURRICULA_COLS}, title_translation, word_translations, feed_catch_enabled`
 const CURRICULA_COL_TIERS = [
-  { cols: `${CURRICULA_COLS_TR}, scene_id`, missing: /scene_id/, warn: 'нет колонки scene_id — применить миграцию 20261014150000_curricula_scene_id.sql' },
+  { cols: `${CURRICULA_COLS_TR}, scene_id, difficulty_admin`, missing: /difficulty_admin|scene_id|title_translation|word_translations|feed_catch_enabled/, warn: 'нет колонки difficulty_admin — применить миграцию 20261028120000_curricula_difficulty_admin.sql' },
+  { cols: `${CURRICULA_COLS_TR}, scene_id`, missing: /scene_id|title_translation|word_translations|feed_catch_enabled/, warn: 'нет колонки scene_id — применить миграцию 20261014150000_curricula_scene_id.sql' },
   { cols: CURRICULA_COLS_TR, missing: /title_translation|word_translations|feed_catch_enabled/, warn: 'нет колонок переводов / ловли слов — применить миграции 20260725140000_module_translations.sql, 20261008130000_feed_catch.sql' },
   { cols: CURRICULA_COLS, missing: null },
 ]
+
+// Сложность фразы от админа: 1/2/3 или null («авто» — по голосам); колонка curricula.difficulty_admin (миграция 20261028120000)
+export async function setCurriculumDifficultyAdmin(id, value) {
+  dbg('[DB WRITE] curricula difficulty_admin', id, value)
+  const { error } = await supabase
+    .from('curricula')
+    .update({ difficulty_admin: value ?? null })
+    .eq('id', id)
+  if (error) {
+    dbg('[DB ERROR] curricula difficulty_admin', error.message)
+    throw error
+  }
+}
 
 // Медиа одного модуля для панели админа: видео/постер/кадр + сцена ленты
 // (без колонки scene_id — читаем без неё, в ответе её не будет)
@@ -163,7 +177,7 @@ export async function loadCurriculumMedia(id) {
   const q = cols => supabase.from('curricula').select(cols).eq('id', id).single()
   let { data, error } = await q(`${MEDIA_COLS}, scene_id`)
   if (error && /scene_id/.test(error.message)) {
-    dbg('[DB WARN]', CURRICULA_COL_TIERS[0].warn)
+    dbg('[DB WARN]', CURRICULA_COL_TIERS[1].warn)
     ;({ data, error } = await q(MEDIA_COLS))
   }
   if (error) {

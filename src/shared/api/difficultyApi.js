@@ -1,14 +1,15 @@
 import { supabase } from './supabase.js'
 import { viewSession } from './viewSession.js'
+import { effectiveDifficulty, MIN_DIFFICULTY_VOTES } from '../lib/level/effectiveDifficulty.js'
 
 // Сложность фразы на слух: голос 1 (легко) / 2 (средне) / 3 (сложно).
 // Одна строка на (user, module), голос перезаписываемый. Итог (медиана +
 // число голосов) лежит денормализованно на curricula — пересчитывает
 // триггер в БД при каждом голосе (recalc_module_difficulty).
 
-// Пока голосов меньше порога — считаем «Легко» по умолчанию (не серая
-// иконка без данных), один голос фразу не красит настоящим цветом
-export const MIN_DIFFICULTY_VOTES = 5
+// Пока голосов меньше порога — считаем «Легко» по умолчанию (не серая иконка без данных), если админ не задал
+// сложность вручную (curricula.difficulty_admin). Порог и правило выбора — lib/level/effectiveDifficulty.js
+export { MIN_DIFFICULTY_VOTES }
 
 // Мои голоса по всем модулям: { moduleId: 1|2|3 }. Гость → пусто.
 export async function fetchMyDifficultyVotes() {
@@ -40,9 +41,9 @@ export async function setDifficultyVote(moduleId, vote) {
   return true
 }
 
-// Уровень для иконки. Рекомендации — общий итог (1/«Легко» до порога
-// голосов, не null); «Мои уроки» (preferMine) — приоритетно свой голос.
+// Уровень для иконки. Рекомендации — общий итог (голоса от порога, иначе сложность админа, иначе 1/«Легко»;
+// не null); «Мои уроки» (preferMine) — приоритетно свой голос.
 export function displayDifficulty(mod, myVote, preferMine = false) {
   if (preferMine && myVote) return myVote
-  return (mod.difficultyVotes ?? 0) >= MIN_DIFFICULTY_VOTES ? mod.difficulty : 1
+  return effectiveDifficulty(mod) ?? 1
 }

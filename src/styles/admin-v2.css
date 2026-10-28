@@ -75,6 +75,7 @@
 
 .amRow {
   display: flex;
+  flex-wrap: wrap; /* вторая строка — сложность от админа (admin-difficulty-chip.css) */
   align-items: center;
   gap: 10px;
   padding: 12px;

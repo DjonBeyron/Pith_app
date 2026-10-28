@@ -2,6 +2,7 @@ import { seededUnit } from './seeded.js'
 import { FUTURE_SIGNALS } from './signalCatalogFuture.js'
 import { DIFF_TO_LEVEL } from '../level/levelRules.js'
 import { isJumpSlide, pickTargetDifficulty } from '../level/levelModel.js'
+import { effectiveDifficulty } from '../level/effectiveDifficulty.js'
 
 // Реестр сигналов ранжирования ленты (этап 1 движка, PROJECT.md → «Движок
 // сигналов ленты»). Сигнал — чистая функция compute(ctx, item) → { value 0..1,
@@ -72,16 +73,16 @@ const LIVE_SIGNALS = [
   {
     id: 'difficulty_fit',
     title: 'Сложность',
-    description: 'Проще — раньше. Сложность — медиана голосов 1/2/3; пока голосов меньше порога, фраза считается лёгкой.',
+    description: 'Проще — раньше. Сложность — медиана голосов 1/2/3; пока голосов меньше порога — сложность, заданная админом, а если и её нет, фраза считается лёгкой.',
     group: 'content',
-    source: 'curricula.difficulty / difficulty_votes',
+    source: 'curricula.difficulty / difficulty_votes / difficulty_admin',
     status: 'live',
     defaultWeight: 8,
     defaultEnabled: true,
     compute(ctx, item) {
       const m = item.module
       const minVotes = ctx.minDifficultyVotes ?? DEFAULT_MIN_VOTES
-      const level = (m.difficultyVotes ?? 0) >= minVotes ? Number(m.difficulty) || 1 : 1
+      const level = effectiveDifficulty(m, minVotes) ?? 1
       return { value: (3 - Math.min(3, Math.max(1, level))) / 2, reason: ['', 'легко', 'средне', 'сложно'][level] }
     },
   },
@@ -130,7 +131,7 @@ const COLLECTING_SIGNALS = [
     compute(ctx, item) {
       const ear = ctx.level?.ear
       if (!ear) return { ...NEUTRAL, reason: 'уровень не известен' }
-      const d = Math.min(3, Math.max(1, Number(item.module?.difficulty) || 1))
+      const d = effectiveDifficulty(item.module, ctx.minDifficultyVotes ?? DEFAULT_MIN_VOTES) ?? 1
       const jump = isJumpSlide(item.index)
       const ref = jump ? DIFF_TO_LEVEL[pickTargetDifficulty(ctx.level, item.index)] : ear.level
       const value = Math.min(1, Math.max(0, 1 - Math.abs(DIFF_TO_LEVEL[d] - ref) / 0.75))

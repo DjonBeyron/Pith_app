@@ -3,6 +3,7 @@ import { loadLevelProfile, saveLevelProfile } from '../../api/levelApi.js'
 import { applySignal, emptyLevel } from './levelModel.js'
 import { loadLevel, saveLevel, clearLevel } from './levelStore.js'
 import { signalFromEvent } from './levelSignals.js'
+import { effectiveDifficulty } from './effectiveDifficulty.js'
 
 // Состояние уровня приложения (A2, без React): события журнала → сигналы → applySignal.
 // Локальная копия (levelStore.js) пишется на каждый сигнал, на сервер уровень уходит с задержкой
@@ -39,12 +40,13 @@ export function setModuleLookup(next) {
   lookup = next ?? { difficultyOf: () => null }
 }
 
-// Таблица сложности из списка модулей ленты; пока голосов мало (minVotes), сложность не известна → null
+// Таблица сложности из списка модулей ленты (effectiveDifficulty: голоса от minVotes, иначе сложность админа);
+// ни того, ни другого — сложность не известна → null
 export function lookupFromModules(modules, minVotes = 0) {
   const map = new Map()
   for (const m of modules ?? []) {
-    const d = Number(m.difficulty)
-    if (m.id && d >= 1 && d <= 3 && (m.difficultyVotes ?? 0) >= minVotes) map.set(m.id, d)
+    const d = effectiveDifficulty(m, minVotes)
+    if (m.id && d) map.set(m.id, d)
   }
   return { difficultyOf: id => map.get(id) ?? null }
 }

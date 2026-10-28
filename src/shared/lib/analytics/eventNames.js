@@ -18,6 +18,7 @@ export const FEED_REPOST = 'feed_repost'             // { module_id, on: true } 
 export const FEED_SEARCH = 'feed_search'             // { len, picked } — длина запроса и выбрал ли результат (текста нет)
 export const FEED_FILTER = 'feed_filter'             // { levels: 'g'|'gy'|'gyr'|'' } — фильтр сложности после тапа по чипу ('' — все)
 export const FEED_GAME_SHOWN = 'feed_game_shown'     // { game: 'choose' | 'fill' | 'picture', word } — игра ленты открылась (человек принял «Пит нашёл игру на минутку»)
+export const FEED_LADDER = 'feed_ladder'             // { steps: '1:9100:0,2:1500:1', top: 0..3, hard: 0..3 } — итог «лесенки» второго визита (features/feed/ladder): steps — «сложность:мс:трудно» по просмотренным фразам плана; top — наибольшая сложность, пройденная спокойно (≥ 8 с, без признаков трудности), 0 — нет; hard — самая лёгкая сложность с признаками трудности выше top, 0 — нет
 export const FEED_GAME_ANSWER = 'feed_game_answer'   // { game: 'choose' | 'fill' | 'picture', word, ok, ms } — ответ в игре ленты; ms — от открытия шторки
 //
 // Задание «О чём диалог» на слайде-сцене (features/feed/scene/useSceneTask.js); scene_id — uuid строки scenes

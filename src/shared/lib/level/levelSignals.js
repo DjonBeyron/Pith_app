@@ -29,6 +29,11 @@ export function signalFromEvent(name, props, ctx) {
     case 'feed_slow': return p.on === true ? hard(p, ctx) : null // отпустил (off) — не признак трудности
     case 'feed_reveal':
     case 'feed_phrase_open': return hard(p, ctx)
+    case 'feed_ladder': { // итог лесенки второго визита (features/feed/ladder): top — потолок «спокойно», hard — первая трудная ступень, 0 — нет
+      const top = [1, 2, 3].includes(p.top) ? p.top : null
+      const hardAt = [1, 2, 3].includes(p.hard) ? p.hard : null
+      return top || hardAt ? { type: 'ladder', top, hardAt } : null
+    }
     case 'scene_task_answer': return answer('ear', p.ok)
     case 'lesson_answer':
     case 'feed_recall_answer': return answer('vocab', p.ok)

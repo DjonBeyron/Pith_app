@@ -13,6 +13,7 @@ import { useAdmin } from '../../app/AdminContext.jsx'
 import { SANDBOX_ID } from './scene/sandbox/feedSandbox.js'
 import { useSandboxModule } from './scene/sandbox/useFeedSandbox.js'
 import { mixSandbox } from './scene/sandbox/sandboxModule.js'
+import { useLadderFeed } from './ladder/useLadderFeed.js'
 
 // Загрузка модулей (curricula) + «пин» на фразу (deep-link репоста /?m=<id>,
 // либо программный поворот из поиска — см. jumpTo) + расчёт круга
@@ -132,10 +133,12 @@ export function useFeedModules(startedIds, visible = true, freshRank = null) {
     () => rankFeedByConfig((modules ?? []).filter(m => !startedIds.has(m.id)), rank, config),
     [modules, startedIds, rank, config],
   )
+  // «Лесенка» второго визита: 5 фраз по нарастанию сложности первыми, остальные как были (ladder/, невидима)
+  const laddered = useLadderFeed(ranked)
   // Песочница админа (scene/sandbox/): один синтетический модуль В НАЧАЛО круга, мимо ранжирования и латча
   const { isAdmin } = useAdmin()
   const sandboxMod = useSandboxModule(isAdmin)
-  const withSandbox = useMemo(() => mixSandbox(ranked, sandboxMod), [sandboxMod, ranked])
+  const withSandbox = useMemo(() => mixSandbox(laddered, sandboxMod), [sandboxMod, laddered])
   let feedModules = withSandbox
   if (pinnedId) {
     const dlIdx = feedModules.findIndex(m => m.id === pinnedId)

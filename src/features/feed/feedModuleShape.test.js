@@ -28,3 +28,12 @@ describe('rowToFeedModule: sceneId', () => {
     expect(out[0].sceneId).toBe('s1')
   })
 })
+
+// Сложность от админа (curricula.difficulty_admin, миграция 20261028120000)
+describe("rowToFeedModule: difficultyAdmin", () => {
+  it("колонка есть → difficultyAdmin; нет колонки или null → null", () => {
+    expect(rowToFeedModule({ id: "m1", title: "Hi", difficulty_admin: 2 }).difficultyAdmin).toBe(2)
+    expect(rowToFeedModule({ id: "m1", title: "Hi", difficulty_admin: null }).difficultyAdmin).toBeNull()
+    expect(rowToFeedModule({ id: "m1", title: "Hi" }).difficultyAdmin).toBeNull()
+  })
+})

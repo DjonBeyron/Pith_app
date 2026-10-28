@@ -83,6 +83,12 @@ export function applySignal(level, signal, now = Date.now()) {
       if (gap >= SKIP_CONTEXT_GAP) return observeAxes(level, 'ear', at, false, w, now) // слишком сложно
       return level
     }
+    case 'ladder': { // лесенка: потолок «спокойно» — уровень не ниже, первая трудная ступень — не выше (ось ear)
+      let out = level
+      if (diffLevel(s.top) != null) out = observeAxes(out, 'ear', diffLevel(s.top), true, w, now)
+      if (diffLevel(s.hardAt) != null) out = observeAxes(out, 'ear', diffLevel(s.hardAt), false, w, now)
+      return out
+    }
     case 'difficulty_vote': {
       const v = Number(s.value)
       if (!(v >= 1 && v <= 3)) return level
