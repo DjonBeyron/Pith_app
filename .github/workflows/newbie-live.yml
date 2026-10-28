@@ -1,0 +1,61 @@
+# Живые E2E-сценарии нового пользователя против НАСТОЯЩЕЙ базы Supabase под тестовыми аккаунтами владельца
+# (проект Playwright `newbie-live`, e2e/newbie-live-*.spec.js). В отличие от job "newbie" тестовой ветки здесь нет
+# заглушки сети: вход, лента, игра «Выбери слово», «Сохранить слово», «Когда удобно» и перенос гостевых лайков идут в боевую базу.
+# Тестовые аккаунты читаются и пишутся ТОЛЬКО своими данными (память слов, напоминание, уровень, лайки).
+#
+# Запуск:
+#  1) вручную — Actions → «Newbie live» → Run workflow (кнопка появляется, когда файл попал в main);
+#  2) пушем в claude/cool-euler-bb396v, если в сообщении коммита есть метка [live] (путь, который работает без main).
+# Секреты репозитория: VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, E2E_USER_EMAILS (три адреса через запятую),
+# E2E_USER_PASSWORD (три пароля через запятую в том же порядке или один общий). Необязательный секрет E2E_LIVE_TURNSTILE_SITE_KEY —
+# ключ виджета капчи, если в Supabase она включена (без него стенд входит без капчи).
+# Артефакт newbie-live-evidence: отчёт Playwright (html), видео и трассы всех трёх сценариев (14 дней).
+name: Newbie live
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [claude/cool-euler-bb396v]
+
+# Один живой прогон за раз: два параллельных гоняли бы одни и те же аккаунты
+concurrency:
+  group: newbie-live
+  cancel-in-progress: false
+
+jobs:
+  live:
+    name: Живой новичок (боевая база, тестовые аккаунты)
+    if: github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '[live]')
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Playwright, проект newbie-live
+        run: npx playwright test --project=newbie-live --workers=1
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          E2E_USER_EMAILS: ${{ secrets.E2E_USER_EMAILS }}
+          E2E_USER_PASSWORD: ${{ secrets.E2E_USER_PASSWORD }}
+          E2E_LIVE_TURNSTILE_SITE_KEY: ${{ secrets.E2E_LIVE_TURNSTILE_SITE_KEY }}
+      # Репозиторий публичный, а трасса записывает ввод в форму входа: пароли, адреса и токены вычищаем до загрузки
+      - name: Вычистить секреты из трасс
+        if: always()
+        run: bash scripts/e2e-scrub-evidence.sh
+        env:
+          E2E_USER_EMAILS: ${{ secrets.E2E_USER_EMAILS }}
+          E2E_USER_PASSWORD: ${{ secrets.E2E_USER_PASSWORD }}
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: newbie-live-evidence
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 14

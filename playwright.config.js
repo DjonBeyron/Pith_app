@@ -21,7 +21,9 @@ const hasCreds = !!(process.env.E2E_EMAIL && process.env.E2E_PASSWORD)
 // (scripts/e2e-local.sh): они пишут в базу с правами is_admin. На боевой
 // базе их нет вовсе, даже если админ-креды случайно заданы.
 const hasAdmin = hasCreds && !!(process.env.E2E_ADMIN_EMAIL && process.env.E2E_ADMIN_PASSWORD) && isLocalBackend()
-const IGNORE_AUTH = [/auth\.setup\.js/, /user\.spec\.js/, /admin.*\.spec\.js/, /rls\.spec\.js/]
+// Живые сценарии нового пользователя (проект newbie-live) идут только на своём сервере с боевыми ключами и тестовыми аккаунтами
+const LIVE_SPEC = /newbie-live-.*\.spec\.js/
+const IGNORE_AUTH = [/auth\.setup\.js/, /user\.spec\.js/, /admin.*\.spec\.js/, /rls\.spec\.js/, LIVE_SPEC]
 const mobileChromium = { ...devices['iPhone 13'], browserName: 'chromium' }
 const PORT = isLocalBackend() ? 5299 : 5199
 // Стенд «медиа в чате» (e2e/chat-media.spec.js): свой dev-сервер с МЁРТВЫМ Supabase (бэкенд не нужен и не должен быть
@@ -37,10 +39,27 @@ const benchChromium = {
 // Стенд «новый пользователь» (e2e/newbie-first-session.spec.js): свой dev-сервер с недостижимым Supabase (адрес NEWBIE_HOST),
 // ответы бэкенда — из e2e/helpers/newbieBackend.js (перехват сети в самом тесте). Ни базы, ни Docker, ни .env не нужно;
 // автоплей разрешён — видео ленты играют без жеста (как на стендах медиа)
-const NEWBIE_SPEC = /newbie-.*\.spec\.js/
+const NEWBIE_SPEC = /newbie-(?!live-).*\.spec\.js/
 const newbieChromium = {
   ...mobileChromium,
   baseURL: `http://localhost:${NEWBIE_PORT}`,
+  launchOptions: { args: ['--autoplay-policy=no-user-gesture-required'], ...(process.env.PW_CHROMIUM_PATH ? { executablePath: process.env.PW_CHROMIUM_PATH } : {}) },
+}
+
+// Живые сценарии нового пользователя (e2e/newbie-live-*.spec.js, workflow newbie-live.yml): свой dev-сервер с БОЕВЫМИ ключами
+// (VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY из env — как у гостевого job) и тестовые аккаунты владельца (E2E_USER_EMAILS /
+// E2E_USER_PASSWORD). Без E2E_USER_EMAILS сервер не поднимается, а спеки пропускаются с причиной (helpers/liveAccounts.js).
+// Капча на стенде выключена (пустой ключ перекрывает .env.local): если в Supabase она включена, вход честно скажет об этом.
+// iPhone 12 mini: 375×812 CSS px (минимальный экран, CLAUDE.md); видео и трасса — всегда (доказательство прохода)
+const LIVE_PORT = 5499
+const hasLive = !!process.env.E2E_USER_EMAILS
+const liveChromium = {
+  ...devices['iPhone 12 Mini'],
+  browserName: 'chromium',
+  viewport: { width: 375, height: 812 },
+  baseURL: `http://localhost:${LIVE_PORT}`,
+  video: 'on',
+  trace: 'on',
   launchOptions: { args: ['--autoplay-policy=no-user-gesture-required'], ...(process.env.PW_CHROMIUM_PATH ? { executablePath: process.env.PW_CHROMIUM_PATH } : {}) },
 }
 
@@ -77,6 +96,14 @@ export default defineConfig({
       timeout: 60_000,
       env: { VITE_SUPABASE_URL: `https://${NEWBIE_HOST}`, VITE_SUPABASE_ANON_KEY: 'newbie', VITE_TURNSTILE_SITE_KEY: '' },
     },
+    // Живой стенд «новый пользователь»: боевая база (env как есть), только при наличии тестовых аккаунтов
+    ...(hasLive ? [{
+      command: `npm run dev -- --port ${LIVE_PORT} --strictPort`,
+      port: LIVE_PORT,
+      reuseExistingServer: false,
+      timeout: 60_000,
+      env: { VITE_TURNSTILE_SITE_KEY: process.env.E2E_LIVE_TURNSTILE_SITE_KEY ?? '' },
+    }] : []),
   ],
   use: {
     baseURL: `http://localhost:${PORT}`,
@@ -99,6 +126,8 @@ export default defineConfig({
     { name: 'review-perf', testMatch: /review-perf\.spec\.js/, use: { ...benchChromium, viewport: { width: 1920, height: 1080 }, isMobile: false, hasTouch: false, deviceScaleFactor: 1 } },
     // Сценарий нового пользователя (мобильный, на своём сервере и с перехватом сети)
     { name: 'newbie', testMatch: NEWBIE_SPEC, use: newbieChromium },
+    // Живой сценарий нового пользователя: боевая база, тестовые аккаунты, без повторов (прогон меняет состояние аккаунтов)
+    { name: 'newbie-live', testMatch: LIVE_SPEC, retries: 0, timeout: 300_000, use: liveChromium },
     // Под логином — только при наличии .env.test с кредами (этап D)
     ...(hasCreds ? [
       { name: 'setup', testMatch: /auth\.setup\.js/ },
