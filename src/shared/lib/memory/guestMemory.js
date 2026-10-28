@@ -90,6 +90,18 @@ export function seedGuestWordOf(lessons, lessonId) {
   seedGuestWord(lessonWordOf(lessons, lessonId), localDate(new Date()))
 }
 
+// Слово «не названо» в мини-игре «Скажи вслух» — придёт завтра: due_on = min(due_on, завтра), шаг тот же
+// (зеркало серверной say_aloud_result). → true, если срок сдвинулся; нет слова или срок и так ближе — false
+export function pullGuestWordDue(word, today) {
+  const mem = read(MEM_KEY, {})
+  const cur = mem[word]
+  const tomorrow = addDays(today, 1)
+  if (!cur || cur.due_on <= tomorrow) return false
+  mem[word] = { ...cur, due_on: tomorrow }
+  write(MEM_KEY, mem)
+  return true
+}
+
 // Исход повторения гостя: как ответ memory_review_word; пишет и журнал
 // (для бюджета дня и итогов недели)
 export function reviewGuestWord({ word, outcome, cardId = null, events = null, source = 'review' }, today, rand) {

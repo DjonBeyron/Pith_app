@@ -1,0 +1,175 @@
+{
+ "title": "Кит и Мия: знакомство",
+ "lines": [
+  {
+   "who": "a",
+   "name": "Кит",
+   "text": "Um... hi. I'm Kit.",
+   "tr": "Эм... привет. Я Кит.",
+   "voice": "am_michael",
+   "speed": 0.93
+  },
+  {
+   "who": "b",
+   "name": "Мия",
+   "text": "Oh. Hi, Kit. I'm Mia.",
+   "tr": "О. Привет, Кит. Я Мия.",
+   "voice": "af_heart",
+   "speed": 0.88
+  },
+  {
+   "who": "a",
+   "name": "Кит",
+   "text": "I like your bow. It's really nice!",
+   "tr": "Мне нравится твой бантик. Он очень красивый!",
+   "voice": "am_michael",
+   "speed": 0.95
+  },
+  {
+   "who": "b",
+   "name": "Мия",
+   "text": "I know.",
+   "tr": "Знаю.",
+   "voice": "af_heart",
+   "speed": 0.86
+  },
+  {
+   "who": "a",
+   "name": "Кит",
+   "text": "Do you... want to share a coffee?",
+   "tr": "Ты... хочешь выпить кофе вместе?",
+   "voice": "am_michael",
+   "speed": 0.93
+  },
+  {
+   "who": "b",
+   "name": "Мия",
+   "text": "Hmm. Maybe. You're kind of funny.",
+   "tr": "Хм. Может быть. Ты забавный.",
+   "voice": "af_heart",
+   "speed": 0.88
+  },
+  {
+   "who": "a",
+   "name": "Кит",
+   "text": "Really?!",
+   "tr": "Правда?!",
+   "voice": "am_michael",
+   "speed": 0.95
+  }
+ ],
+ "windows": [
+  {
+   "line": 0,
+   "who": "a",
+   "state": "shy",
+   "from": 0,
+   "to": "end"
+  },
+  {
+   "line": 0,
+   "who": "b",
+   "state": "pathos",
+   "from": 0.5,
+   "to": "end"
+  },
+  {
+   "line": 1,
+   "who": "b",
+   "state": "roll",
+   "from": 0.12,
+   "to": 1.0
+  },
+  {
+   "line": 1,
+   "who": "a",
+   "state": "pretend",
+   "from": 0,
+   "to": "end"
+  },
+  {
+   "line": 2,
+   "who": "a",
+   "state": "pretend",
+   "from": 0,
+   "to": 1.0
+  },
+  {
+   "line": 2,
+   "who": "a",
+   "state": "love",
+   "from": 1.0,
+   "to": "end"
+  },
+  {
+   "line": 2,
+   "who": "b",
+   "state": "smirk",
+   "from": 0.4,
+   "to": "end"
+  },
+  {
+   "line": 3,
+   "who": "b",
+   "state": "smirk",
+   "from": 0,
+   "to": "end"
+  },
+  {
+   "line": 3,
+   "who": "a",
+   "state": "bliss",
+   "from": 0,
+   "to": "end"
+  },
+  {
+   "line": 4,
+   "who": "a",
+   "state": "shy",
+   "from": 0,
+   "to": "end"
+  },
+  {
+   "line": 4,
+   "who": "b",
+   "state": "interest",
+   "from": 0.9,
+   "to": "end"
+  },
+  {
+   "line": 5,
+   "who": "a",
+   "state": "love",
+   "from": 0,
+   "to": "end"
+  },
+  {
+   "line": 5,
+   "who": "b",
+   "state": "interest",
+   "from": 0,
+   "to": 1.1
+  },
+  {
+   "line": 5,
+   "who": "b",
+   "state": "smirk",
+   "from": 1.1,
+   "to": "end"
+  },
+  {
+   "line": 6,
+   "who": "a",
+   "state": "bliss",
+   "from": 0,
+   "to": "end"
+  },
+  {
+   "line": 6,
+   "who": "b",
+   "state": "interest",
+   "from": 0,
+   "to": "end"
+  }
+ ]
+}

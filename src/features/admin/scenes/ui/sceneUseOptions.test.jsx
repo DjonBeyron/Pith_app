@@ -57,28 +57,28 @@ describe('UseSceneMenu (разметка)', () => {
 })
 
 describe('шаблоны', () => {
-  it('шесть демо-сцен (две — из одной реплики, «Кружок Пита» — один кот, «Шаблон» — со словами) и пустая; копия получает свой id', () => {
+  it('семь демо-сцен (две — из одной реплики, «Кружок Пита» — один кот, «Шаблон» — со словами, «Пит и Мия» — маскоты) и пустая; копия получает свой id', () => {
     const list = templateList()
-    expect(list.map(t => t.title)).toEqual(['Про работу', 'Кофе-брейк', 'Одна реплика: Повтори', 'Одна реплика: Ответь коту', 'Кружок Пита', 'Шаблон: закажи еду', 'Пустая сцена'])
-    expect(list[6].scene.timeline).toHaveLength(2)
+    expect(list.map(t => t.title)).toEqual(['Про работу', 'Кофе-брейк', 'Одна реплика: Повтори', 'Одна реплика: Ответь коту', 'Кружок Пита', 'Шаблон: закажи еду', 'Пит и Мия: знакомство', 'Пустая сцена'])
+    expect(list[7].scene.timeline).toHaveLength(2)
     expect(list[5].note).toContain('слова пользователя')
     expect(list[2].scene.timeline).toHaveLength(1)
     expect(list[4].note).toContain('один кот')
     expect(list[4].scene.characters.b).toBeUndefined()
-    expect(Object.values(list[6].scene.slots).every(v => v === null)).toBe(true)
+    expect(Object.values(list[7].scene.slots).every(v => v === null)).toBe(true)
     expect(templateScene(list[0]).title).toBe(list[0].title)
     expect(templateScene(list[0]).id).not.toMatch(/copy/)
-    expect(templateScene(list[6]).title).toBe('Новая сцена')
-    expect(templateScene(list[6]).id).toBe('novaya-stsena')
+    expect(templateScene(list[7]).title).toBe('Новая сцена')
+    expect(templateScene(list[7]).id).toBe('novaya-stsena')
   })
   it('подтверждение нужно только при реальных правках', () => {
     expect(needsTemplateConfirm({ dirty: true, scene: newDraft() })).toBe(false)
     expect(needsTemplateConfirm({ dirty: false, scene: { ...newDraft(), title: 'x' } })).toBe(false)
     expect(needsTemplateConfirm({ dirty: true, scene: { ...newDraft(), title: 'x' } })).toBe(true)
   })
-  it('разметка группы: семь строк с «Использовать как основу» и «?»', () => {
+  it('разметка группы: восемь строк с «Использовать как основу» и «?»', () => {
     const html = renderToStaticMarkup(<TemplatesGroup draft={{ dirty: false, scene: newDraft(), actions: {} }} setStatus={() => {}} />)
-    expect(html.match(/Использовать как основу/g)).toHaveLength(7)
+    expect(html.match(/Использовать как основу/g)).toHaveLength(8)
     expect(html).toContain('Шаблоны')
     expect(html).toContain('Кофе-брейк')
   })

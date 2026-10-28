@@ -1,0 +1,31 @@
+# Отчёт «Запуск»: хватает ли наполнения, чтобы приложение жило для новых пользователей — без открытия приложения.
+# Тот же подсчёт, что во вкладке админки «Запуск» (src/features/admin/launch/launchStats.js, пороги — launchThresholds.js):
+# фраз в ленте, сложность, видео/сцена, переводы, уроки-слова, колоды, материал игр, озвучка слов.
+# Данные читаются по REST анонимным ключом (scripts/launch-stats.mjs): анониму видны только опубликованные не-Pro фразы
+# и уроки, а шаблоны пушей недоступны вовсе — строка «только в админке». Полная картина (черновики, пуши) — во вкладке админки.
+#
+# Запуск: Actions → «Launch stats» → Run workflow (кнопка появляется, когда файл попал в main; в тестовой ветке —
+# через «Use workflow from» → claude/cool-euler-bb396v, если файл уже в ней). Результат — вкладка Summary прогона и лог шага.
+# Секреты репозитория: VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY (те же, что у newbie-live.yml).
+name: Launch stats
+
+on:
+  workflow_dispatch:
+
+jobs:
+  report:
+    name: Наполнение против минимумов для новичка
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Отчёт «Запуск» (в лог и в Summary)
+        run: node scripts/launch-stats.mjs
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}

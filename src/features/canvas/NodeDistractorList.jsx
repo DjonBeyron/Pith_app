@@ -5,6 +5,8 @@
 // потолку в 400 строк (CLAUDE.md). wrapClass/chipClass/removeClass —
 // у таблицы и «Собери фразу» разные классы обёртки/чипа исторически, чтобы
 // не трогать существующий CSS обеих панелей.
+import NodeSelect from './NodeSelect.jsx'
+
 export default function NodeDistractorList({
   distractors, wrapClass = 'nodePaDistractors', chipClass, removeClass = 'nodePaDistractorDel',
   onRemove, variantOpenIds, onToggleVariant, variantThen, onSetVariantThen,
@@ -27,17 +29,7 @@ export default function NodeDistractorList({
           {variantOpenIds.has(d.id) && (
             <div className="nodeWcTriggerRow nodeWcVariantRow">
               <span className="nodeWcTriggerLabel">↳ Особый переход →</span>
-              <select
-                className="nodeWcTriggerSelect"
-                value={variantThen(d.id)}
-                onChange={e => onSetVariantThen(d.id, e.target.value)}
-                onClick={e => e.stopPropagation()}
-              >
-                <option value="">— как верно/неверно —</option>
-                {otherNodes.map(n => (
-                  <option key={n.id} value={n.id}>#{n.seq} {n.type}</option>
-                ))}
-              </select>
+              <NodeSelect className="nodeWcTriggerSelect" value={variantThen(d.id)} onChange={e => onSetVariantThen(d.id, e.target.value)} emptyLabel="— как верно/неверно —" nodes={otherNodes} />
             </div>
           )}
         </div>

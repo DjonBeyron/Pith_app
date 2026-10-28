@@ -1,4 +1,5 @@
 import { supabase } from './supabase.js'
+import { viewSession } from './viewSession.js'
 import { dbg } from '../lib/debug.js'
 import { normalizeStats, isMissingFnError, isDeniedError } from '../lib/ratingStats.js'
 
@@ -34,6 +35,8 @@ export function fetchUserStats(userId, { force = false } = {}) {
   }
   const p = (async () => {
     try {
+      // Гость: RPC закрыта от anon (миграция 20261008140000) — ответ был бы 401 и ошибкой в консоли; сразу «нет прав»
+      if (!(await viewSession())?.user) return { state: 'denied', stats: null }
       const { data, error } = await supabase.rpc('leaderboard_user_stats', { p_user: userId })
       if (error) {
         if (isMissingFnError(error)) {

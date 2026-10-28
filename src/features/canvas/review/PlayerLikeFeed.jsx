@@ -12,12 +12,24 @@ import { Copy, Check, MessageSquarePlus } from 'lucide-react'
 import SayPanelPreview from './SayPanelPreview.jsx'
 import { answerText } from './lessonTranscript.js'
 import { nodeCopyText } from './nodeCopyText.js'
+import { useNearSlots } from './useNearSlots.js'
+import { GHOST_HEIGHT, showSlot } from './nearSlots.js'
 
 const NOOP = () => {}
 const NO_SET = new Set()
 // Эти типы в настоящем плеере — не сообщения ленты, а панели ответа снизу: в копии рисуем панель теми же компонентами и классами, что в плеере
 const EXERCISE_TYPES = new Set(['word_choice', 'phrase_assembly', 'type_word', 'say_phrase', 'fill_blanks', 'photo_choice', 'registration'])
 const LABEL = { word_choice: 'Выбери слово', phrase_assembly: 'Собери фразу', type_word: 'Напечатай слово', say_phrase: 'Сказать фразу', fill_blanks: 'Составь предложение', photo_choice: 'Выбрать фото', registration: 'Регистрация' }
+
+// Переключатель «верно / неверно» в шапке панели задания (✗ недоступен, если у задания нет ветки «неверно»)
+function ChoiceSwitch({ item, onChoice }) {
+  return (
+    <span className="rvwSwitch" onClick={e => e.stopPropagation()}>
+      <button className={item.choice === 'right' ? 'on' : ''} onClick={() => onChoice(item.ref, 'right')}>✓</button>
+      <button className={item.choice === 'wrong' ? 'on bad' : ''} disabled={!item.hasWrong} title={item.hasWrong ? 'Показать ветку ошибки' : 'У задания нет ветки «неверно»'} onClick={() => onChoice(item.ref, 'wrong')}>✗</button>
+    </span>
+  )
+}
 
 // Панель ответа «как у ученика», КОМПАКТНО: настоящие кусочки панелей (банк слов, кнопки выбора), чтобы было ясно, что за модуль.
 // «Выбери слово»: варианты кликаются — выбираем реальный ответ, и лента идёт по ветке этого варианта. Остальным заданиям — переключатель верно/неверно.
@@ -48,12 +60,7 @@ function ExercisePanel({ node, item, onPick, onChoice }) {
     <div className="rvwPanel" style={{ '--rvw-accent': accent }}>
       <div className="rvwPanelHead">
         <span>{LABEL[node.type] ?? node.type}</span>
-        {node.type !== 'word_choice' && item.choice && (
-          <span className="rvwSwitch" onClick={e => e.stopPropagation()}>
-            <button className={item.choice === 'right' ? 'on' : ''} onClick={() => onChoice(item.ref, 'right')}>✓</button>
-            <button className={item.choice === 'wrong' ? 'on bad' : ''} disabled={!item.hasWrong} title={item.hasWrong ? 'Показать ветку ошибки' : 'У задания нет ветки «неверно»'} onClick={() => onChoice(item.ref, 'wrong')}>✗</button>
-          </span>
-        )}
+        {node.type !== 'word_choice' && item.choice && <ChoiceSwitch item={item} onChoice={onChoice} />}
       </div>
       {body}
     </div>
@@ -85,7 +92,7 @@ const asHistory = node => {
 // дальше (звук выключен контекстом, файлов не передаём — медиа рисуются заглушками). Поверх каждого сообщения — выделение, номер, замечания и
 // переключатель «верно / неверно» на заданиях
 // Мини-иконки в углу выделенного сообщения (только режим разбора): копировать текст и оставить замечание
-function SlotTools({ item, count, onNote }) {
+function SlotTools({ item, count, marks = '', onNote }) {
   const [copied, setCopied] = useState(false)
   const copy = async e => {
     e.stopPropagation()
@@ -97,6 +104,7 @@ function SlotTools({ item, count, onNote }) {
       <button className="rvwTool" title="Оставить замечание к этому сообщению" aria-label="Замечание" onClick={e => { e.stopPropagation(); onNote(item.ref) }}>
         <MessageSquarePlus size={13} />{count > 0 && <span className="rvwToolCount">{count}</span>}
       </button>
+      {marks && <span className="rvwMarkTags" title="Пометки с телефона (см. правую колонку)">{marks}</span>}
     </div>
   )
 }
@@ -135,7 +143,7 @@ export function SlotBody({ item, canvasNode, canvasNodes, files, teacherName = '
   if (t && (t.mode ?? 'dictator') !== 'demo') {
     return (
       <div className="rvwPanel" style={{ '--rvw-accent': TYPE_COLOR.table ?? '#7a7a96' }}>
-        <div className="rvwPanelHead"><span>Таблица · {t.mode === 'manual' ? 'ручной режим' : 'авто (по озвучке)'}</span></div>
+        <div className="rvwPanelHead"><span>Таблица · {t.mode === 'manual' ? 'ручной режим' : 'авто (по озвучке)'}</span>{t.mode === 'manual' && item.choice && <ChoiceSwitch item={item} onChoice={onChoice} />}</div>
         {msg(true)}
         {t.script && <div className="rvwTypeLine">🔊 {t.script}</div>}
       </div>
@@ -150,26 +158,32 @@ export function SlotBody({ item, canvasNode, canvasNodes, files, teacherName = '
 const ITEM_KEYS = ['kind', 'ref', 'picked', 'pickedText', 'choice', 'ok', 'wrongBranch', 'hasWrong']
 // Слот перерисовывается, только если изменилась его нода или его состояние: набор текста в одной ноде не перерисовывает остальные 200
 const sameSlot = (a, b) => a.node === b.node && a.on === b.on && a.warns === b.warns && a.count === b.count && a.mark === b.mark && a.files === b.files && a.teacherName === b.teacherName
-  && a.onNote === b.onNote && a.onSelect === b.onSelect && a.onPick === b.onPick && a.onChoice === b.onChoice && ITEM_KEYS.every(k => a.item[k] === b.item[k])
+  && a.show === b.show && a.ghostH === b.ghostH && a.onNote === b.onNote && a.onSelect === b.onSelect && a.onPick === b.onPick && a.onChoice === b.onChoice && ITEM_KEYS.every(k => a.item[k] === b.item[k])
 
-const FeedSlot = memo(function FeedSlot({ item: it, node, on, warns, count, mark, canvasNodes, files, teacherName, onNote, onSelect, onPick, onChoice }) {
+// show=false — слот далеко от экрана: пустая рамка прежней высоты (ghostH) с тем же data-ref (выделение и прокрутка к нему работают), тела нет
+const FeedSlot = memo(function FeedSlot({ item: it, node, on, warns, count, mark, marks = '', show = true, ghostH = GHOST_HEIGHT, observe, unobserve, canvasNodes, files, teacherName, onNote, onSelect, onPick, onChoice }) {
+  const elRef = useRef(null)
+  const setEl = useCallback(el => { if (el) { elRef.current = el; observe?.(el) } else unobserve?.(elRef.current) }, [observe, unobserve])
+  if (!show) return <div ref={setEl} data-ref={it.ref} className={`rvwSlot rvwSlotGhost${on ? ' on' : ''}`} style={{ height: ghostH }} onClick={() => onSelect(it.ref)} />
   if (it.kind === 'student') {
-    return <div data-ref={it.ref} className={`rvwSlot${on ? ' on' : ''}`} onClick={() => onSelect(it.ref)}><StudentRow item={it} /></div>
+    return <div ref={setEl} data-ref={it.ref} className={`rvwSlot${on ? ' on' : ''}`} onClick={() => onSelect(it.ref)}><StudentRow item={it} /></div>
   }
   return (
-    <div data-ref={it.ref} className={`rvwSlot${on ? ' on' : ''}${it.wrongBranch ? ' wrong' : ''}${mark ? ' rvwChg' : ''}`} onClick={() => onSelect(it.ref)}>
+    <div ref={setEl} data-ref={it.ref} className={`rvwSlot${on ? ' on' : ''}${it.wrongBranch ? ' wrong' : ''}${mark ? ` rvwChg rvwChg--${mark}` : ''}`} onClick={() => onSelect(it.ref)}>
       <div className="rvwSlotMeta">
         <span>{node.seq}</span>{it.wrongBranch && <span className="rvwTagWrong">ветка ошибки</span>}{mark && <span className="rvwTagChg">{mark === 'new' ? 'новая' : 'изменена'}</span>}{warns > 0 && <span className="rvwWarn">⚠ {warns}</span>}
       </div>
-      <SlotTools item={it} count={count} onNote={onNote} />
+      <SlotTools item={it} count={count} marks={marks} onNote={onNote} />
       <SlotBody item={it} canvasNode={node} canvasNodes={canvasNodes} files={files} teacherName={teacherName} onPick={onPick} onChoice={onChoice} />
     </div>
   )
 }, sameSlot)
 
-export default function PlayerLikeFeed({ items, canvasById, canvasNodes, files = [], selRef, selTick, warnMap, noteCounts, changeMarks, teacherName, onNote, onSelect, onChoice, onPick }) {
+export default function PlayerLikeFeed({ items, canvasById, canvasNodes, files = [], selRef, selTick, warnMap, noteCounts, changeMarks, phoneMarks, teacherName, onNote, onSelect, onChoice, onPick }) {
   const outerRef = useRef(null)
   const phoneRef = useRef(null)
+  // Тела сообщений — только у слотов рядом с экраном (виртуализация): далёкие — рамки прежней высоты
+  const { near, all, heights, observe, unobserve } = useNearSlots(outerRef)
   // Переключили «верно/неверно» или выбрали вариант — под заданием меняется лента; само задание остаётся на экране там же, где было (история не «едет»)
   const anchorRef = useRef(null)
   const markAnchor = useCallback(ref => {
@@ -186,7 +200,8 @@ export default function PlayerLikeFeed({ items, canvasById, canvasNodes, files =
     if (el && outerRef.current) outerRef.current.scrollTop += el.getBoundingClientRect().top - a.top
   }, [items])
   // Колесо всей рамкой телефона крутит ленту само (не зависит от того, на какой элемент попал курсор — границы сообщений, промежутки, панели плеера
-  // с pointer-events: none): иначе на таких местах скролл «залипал», пока не сдвинешь мышь
+  // с pointer-events: none): иначе на таких местах скролл «залипал», пока не сдвинешь мышь. (Нативную прокрутку над лентой пробовали в v3.2.2074 —
+  // автору на его ПК она показалась хуже, возвращено как было)
   useEffect(() => {
     const box = phoneRef.current
     const onWheel = e => {
@@ -198,10 +213,13 @@ export default function PlayerLikeFeed({ items, canvasById, canvasNodes, files =
     box?.addEventListener('wheel', onWheel, { passive: false })
     return () => box?.removeEventListener('wheel', onWheel)
   }, [])
-  // К выбранному сообщению — каждый раз при выборе (в том числе повторном: selTick растёт при каждом клике)
+  // Далёкий слот сначала рамка-заглушка (высота по прошлому разу или примерная): после плавной прокрутки, когда тело нарисовалось, подравниваем ещё раз
   useEffect(() => {
-    if (!selRef) return
-    outerRef.current?.querySelector(`[data-ref="${CSS.escape(selRef)}"]`)?.scrollIntoView({ block: 'center', behavior: 'smooth' })
+    if (!selRef) return undefined
+    const go = behavior => outerRef.current?.querySelector(`[data-ref="${CSS.escape(selRef)}"]`)?.scrollIntoView({ block: 'center', behavior })
+    go('smooth')
+    const t = setTimeout(() => go('auto'), 550)
+    return () => clearTimeout(t)
   }, [selRef, selTick])
 
   return (
@@ -214,7 +232,8 @@ export default function PlayerLikeFeed({ items, canvasById, canvasNodes, files =
               {items.map((it, i) => {
                 const node = canvasById.get(it.ref)
                 if (!node) return null
-                return <FeedSlot key={`${it.kind === 'student' ? 's' : 'n'}-${it.ref}-${i}`} item={it} node={node} on={it.ref === selRef} warns={warnMap.get(it.ref)?.length ?? 0} count={noteCounts?.get(it.ref) ?? 0} mark={changeMarks?.get(it.ref) ?? null} canvasNodes={canvasNodes} files={files} teacherName={teacherName} onNote={onNote} onSelect={onSelect} onPick={onPickA} onChoice={onChoiceA} />
+                const show = all || showSlot(near, items, i)
+                return <FeedSlot key={`${it.kind === 'student' ? 's' : 'n'}-${it.ref}-${i}`} item={it} node={node} on={it.ref === selRef} warns={warnMap.get(it.ref)?.length ?? 0} count={noteCounts?.get(it.ref) ?? 0} mark={changeMarks?.get(it.ref) ?? null} marks={phoneMarks?.get(it.ref) ?? ''} show={show} ghostH={show ? GHOST_HEIGHT : heights.get(it.ref) ?? GHOST_HEIGHT} observe={observe} unobserve={unobserve} canvasNodes={canvasNodes} files={files} teacherName={teacherName} onNote={onNote} onSelect={onSelect} onPick={onPickA} onChoice={onChoiceA} />
               })}
             </div>
           </div>

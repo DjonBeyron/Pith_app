@@ -1,0 +1,20 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>word lane editor harness</title>
+<style>body{margin:0;background:#0e1013;color:#fff;font-family:system-ui}</style></head>
+<body><div id="root"></div>
+<script type="module">
+import React from 'react'
+import { createRoot } from 'react-dom/client'
+import '/src/index.css'
+import WordLaneTimelineEditor from '/src/features/canvas/word-lane/WordLaneTimelineEditor.jsx'
+import { fakeVoice } from './fakeVoice.js'
+
+// Стенд таймлайна игры «Повтори за диктором» (редактор ноды). ?nofills — озвучка без расстановки (клипы равномерные, кнопка 🪄 «По озвучке»)
+const v = fakeVoice()
+window.__saved = null
+createRoot(document.getElementById('root')).render(
+  React.createElement('div', { className: 'tableEditorModal', style: { margin: 12, height: 'calc(100vh - 24px)' } },
+    React.createElement(WordLaneTimelineEditor, {
+      word: 'try', fileId: 'f1', waveformData: v.waveformData, duration: v.duration, timelineLen: null, fills: null, wordTimings: v.wordTimings,
+      lessonFiles: [{ id: 'f1', r2Url: v.url, name: 'tts-demo.mp3' }], onPickFile: () => 'f2', onBack: d => { window.__saved = d },
+    })))
+</script></body></html>

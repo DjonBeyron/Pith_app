@@ -26,7 +26,7 @@ const SAMPLES = {
   many_nodes: `<svg viewBox="-30 -60 60 60"><g data-part="p">${'<rect width="1" height="1"/>'.repeat(20)}</g></svg>`,
   ...Object.fromEntries(SPRITES.map(s => [`builtin_${s.id}`, treeToSvgDocument(s.build({}), { viewBox: s.viewBox })])),
 }
-const kindOf = name => (name.startsWith('cat') || name.includes('cat-') ? 'cat' : name.includes('bg-') ? 'background' : 'prop')
+const kindOf = name => (name.includes('mascot-') ? 'mascot' : name.startsWith('cat') || name.includes('cat-') ? 'cat' : name.includes('bg-') ? 'background' : 'prop')
 
 describe('HTML-проверщик для дизайнера', () => {
   it('stripExports превращает ESM в обычный скрипт', () => {

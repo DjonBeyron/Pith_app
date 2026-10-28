@@ -6,6 +6,7 @@ import CanvasPageToolsMenu from './CanvasPageToolsMenu.jsx'
 import LessonIoPanel from './lesson-io/LessonIoPanel.jsx'
 import LessonReviewPanel from './review/LessonReviewPanel.jsx'
 import { recordLessonVersion } from './review/useLessonVersions.js'
+import { useCanvasVersions } from './useCanvasVersions.js'
 import { diagnoseMedia } from './injectR2Urls.js'
 import BatchGeneratePanel from './batch-gen/BatchGeneratePanel.jsx'
 import CanvasHeaderActions from './CanvasHeaderActions.jsx'
@@ -81,7 +82,7 @@ export default function CanvasPage({ lessonId, moduleLessons = [], module = null
   const [ioZones, setIoZones] = useState([])
   // Панель «⚡ Массовая генерация» — сама читает ноды/пишет файлы через
   // boardApiRef/pickFile, состояние открытия держим здесь же, рядом с ioNodes
-  const [showBatchGen, setShowBatchGen] = useState(false)
+  const [showBatchGen, setShowBatchGen] = useState(false) // false | true (все ноды без файла) | { scope } (только сломанные, BrokenNodesBadge)
   // Отладка связей: прямые отрезки поверх графа + сводка. Нужна, когда линий
   // «нет» — сразу видно, строятся они вообще или дело в отображении
   const [debugLinks, setDebugLinks] = useState(false)
@@ -109,18 +110,14 @@ export default function CanvasPage({ lessonId, moduleLessons = [], module = null
     title, setTitle, loading, serverNodes, serverZones, lessonXp, setLessonXp, syncStatus, setSyncStatus,
   } = useCanvasLessonLoad(lessonId, module, applyServerData)
 
-  // Базовая версия для «Изменений» в разборе: состояние урока, с которым открыли страницу (дальше версии пишет импорт и открытие разбора)
-  useEffect(() => {
-    if (loading || !lessonId) return undefined
-    const t = setTimeout(() => recordLessonVersion(lessonId, boardApiRef.current?.getNodes()), 1500)
-    return () => clearTimeout(t)
-  }, [loading, lessonId])
-
   // Сохранение урока на сервер — useCanvasSave.js
   const { isSaving, handleSave: saveToServer } = useCanvasSave({
     lessonId, title, lessonXp, nodesRef, zonesRef, hasUnsynced, files, syncToServer,
     prepareForSave, clearTeacherDraft, setSyncStatus, onUnlinkedMedia: () => setShowPanel(true),
   })
+
+  // Версии для «Изменений» в разборе: серверная при загрузке и после каждого сохранения — useCanvasVersions.js
+  useCanvasVersions({ lessonId, loading, serverNodes, isSaving, boardApiRef })
 
   // Куда вернёт «назад»: модуль урока (если открыли не из схемы — найдём сами)
   const backModule = useLessonModule(lessonId, module)
@@ -302,6 +299,7 @@ export default function CanvasPage({ lessonId, moduleLessons = [], module = null
         <BatchGeneratePanel
           boardApiRef={boardApiRef}
           pickFile={pickFile}
+          scope={showBatchGen.scope ?? null}
           onClose={() => setShowBatchGen(false)}
         />
       )}

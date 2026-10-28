@@ -42,16 +42,26 @@ applyWeakDeviceClasses()
 // сворачивании (см. analytics/track.js)
 initAnalytics()
 
-// Метка в журнале старта (inline-скрипт index.html, Админ → «Старт»): модули выполнены, запускаем рендер
-window.__startMark?.('main-render')
-createRoot(document.getElementById('root')).render(
-  <StrictMode>
-    <ErrorBoundary>
-      <AdminProvider>
-        <LessonNavProvider>
-          <App />
-        </LessonNavProvider>
-      </AdminProvider>
-    </ErrorBoundary>
-  </StrictMode>,
-)
+// Рендер — ПОСЛЕ первого кадра страницы. Модульный скрипт выполняется, когда HTML разобран, и если бандл уже лежит в кеше
+// воркера, это может случиться раньше первой отрисовки: синхронный монтаж React (десятки мс на телефоне) отодвинул бы первый кадр,
+// а на iPhone до первого кадра экран белый. Колбэк rAF идёт до отрисовки кадра, setTimeout из него — уже после. Сплэш всё равно
+// держит лого ≥ 900 мс, задержка в один кадр незаметна. Страховка таймером — если кадров нет (приложение открыто в фоне)
+function render() {
+  if (render.done) return
+  render.done = true
+  // Метка в журнале старта (inline-скрипт index.html, Админ → «Старт»): модули выполнены, запускаем рендер
+  window.__startMark?.('main-render')
+  createRoot(document.getElementById('root')).render(
+    <StrictMode>
+      <ErrorBoundary>
+        <AdminProvider>
+          <LessonNavProvider>
+            <App />
+          </LessonNavProvider>
+        </AdminProvider>
+      </ErrorBoundary>
+    </StrictMode>,
+  )
+}
+requestAnimationFrame(() => setTimeout(render, 0))
+setTimeout(render, 150)

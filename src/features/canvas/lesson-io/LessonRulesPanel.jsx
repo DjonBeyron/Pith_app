@@ -2,22 +2,24 @@ import { useState, useMemo, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { useLessonRules } from './useLessonRules.js'
 import RuleCard from './RuleCard.jsx'
-import { SEED_RULES } from './lessonRulesSeed.js'
+import { SEED_RULES, RETIRED_TITLES } from './lessonRulesSeed.js'
+import { planSync, syncIsEmpty, syncSummary } from './rulesSync.js'
+import { downloadRulesJson } from './rulesExport.js'
 import { CHECKERS, checkerOf, groupOf, ruleTitle, ruleMatches } from './ruleMeta.js'
+import { APP_VERSION } from '../../../shared/lib/version.js'
 
 // Окно правил формирования урока на весь экран (ПК): слева группы, посередине список (название + значок «кто проверяет»),
 // справа карточка выбранного правила с примерами «нельзя / можно». Хранится в Supabase (useLessonRules.js) и подставляется
 // в легенду экспорта: любая правка видна в следующем «Поделиться». На телефоне колонки складываются в одну (CSS).
 // Два вида по category: принципы — в момент написания ноды, чек-лист — по готовому черновику целиком (PROJECT.md, «Легенда…»).
-// Есть ли что довести до стандартного набора: нет правила, нет названия или не хватает примера
-const needsSeedUpdate = rules => SEED_RULES.some(seed => {
-  const r = rules.find(x => x.text === seed.text)
-  return !r || !r.title || (seed.bad && !r.bad) || (seed.good && !r.good)
-})
+// Три вида по category: principle → checklist → reference (справка по модулям, судье не идёт) → principle
+const NEXT_CATEGORY = { principle: 'checklist', checklist: 'reference', reference: 'principle' }
+const CAT_LABEL = { checklist: 'чек-лист', reference: 'справка' }
 
 export default function LessonRulesPanel({ onClose }) {
   const api = useLessonRules()
-  const { rules, busy, error, seedDefaults, enrichFromSeed, add, patch, toggle, setCategory, remove, moveUp, moveDown } = api
+  const { rules, busy, error, seedDefaults, syncFromSeed, add, patch, toggle, setCategory, remove, moveUp, moveDown } = api
+  const syncPlan = useMemo(() => planSync(rules, SEED_RULES, RETIRED_TITLES), [rules])
   const [q, setQ] = useState('')
   const [group, setGroup] = useState('')
   const [checker, setChecker] = useState('')
@@ -64,6 +66,7 @@ export default function LessonRulesPanel({ onClose }) {
           </select>
           <button className={`rwToggle${onlyActive ? ' on' : ''}`} onClick={() => setOnlyActive(v => !v)}>{onlyActive ? '✓ Только включённые' : 'Только включённые'}</button>
           <span className="lioMeta">{busy ? 'загрузка…' : `показано ${shown.length} из ${rules.length} · включено ${rules.filter(r => r.active).length}`}</span>
+          <button className="rwBtn" disabled={busy || !rules.length} title="Скачать rules.json — его читают скрипты генератора уроков (lesson-drafts/rules.json)" onClick={() => downloadRulesJson(rules)}>⬇ Правила для Claude</button>
 
         </div>
       </div>
@@ -75,10 +78,10 @@ export default function LessonRulesPanel({ onClose }) {
           {!error && <button className="rwBtn rwBtnPrimary" onClick={seedDefaults}>Загрузить {SEED_RULES.length} стандартных правил в базу</button>}
         </div>
       )}
-      {!busy && needsSeedUpdate(rules) && (
+      {!busy && rules.length > 0 && !syncIsEmpty(syncPlan) && (
         <div className="rwSeed">
-          В стандартном наборе есть новое: правила, группы, примеры.
-          <button className="rwBtn rwBtnPrimary" onClick={enrichFromSeed}>Обновить из стандартного набора</button>
+          База отличается от стандартного набора ({syncSummary(syncPlan)}). Перед изменением весь список сохранится в историю (lesson_rules_history).
+          <button className="rwBtn rwBtnPrimary" onClick={() => { if (window.confirm(`Синхронизировать правила со стандартом: ${syncSummary(syncPlan)}?`)) syncFromSeed(`до синхронизации со стандартом (v${APP_VERSION})`) }}>Синхронизировать со стандартом</button>
         </div>
       )}
       <div className="rwCols">
@@ -99,7 +102,7 @@ export default function LessonRulesPanel({ onClose }) {
                 <span className="rwItemIcon" title={c.hint}>{c.icon}</span>
                 <span className="rwItemTitle">{ruleTitle(r)}</span>
                 <span className={`rwSev ${r.severity}`}>{r.severity === 'error' ? 'ошибка' : 'совет'}</span>
-                <span className="rwItemCat">{r.category === 'checklist' ? 'чек-лист' : ''}</span>
+                <span className="rwItemCat">{CAT_LABEL[r.category] ?? ''}</span>
                 <span className="rwItemMove">
                   <button title="Выше" disabled={busy} onClick={e => { e.stopPropagation(); moveUp(r.id) }}>↑</button>
                   <button title="Ниже" disabled={busy} onClick={e => { e.stopPropagation(); moveDown(r.id) }}>↓</button>
@@ -116,7 +119,7 @@ export default function LessonRulesPanel({ onClose }) {
 
         <div className="rwCardCol">
           {sel
-            ? <RuleCard key={sel.id} rule={sel} groups={groups} busy={busy} onPatch={patch} onToggle={toggle} onMoveCategory={id => setCategory(id, sel.category === 'principle' ? 'checklist' : 'principle')} onDelete={handleDelete} />
+            ? <RuleCard key={sel.id} rule={sel} groups={groups} busy={busy} onPatch={patch} onToggle={toggle} onMoveCategory={id => setCategory(id, NEXT_CATEGORY[sel.category] ?? 'principle')} onDelete={handleDelete} />
             : <div className="rwEmpty">Выбери правило слева — здесь откроется карточка с примерами «нельзя / можно»</div>}
         </div>
       </div>

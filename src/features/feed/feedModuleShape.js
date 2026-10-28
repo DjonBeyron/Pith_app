@@ -18,6 +18,8 @@ export function rowToFeedModule(r) {
     sceneId: r.scene_id ?? null,
     difficulty: r.difficulty ?? null,
     difficultyVotes: r.difficulty_votes ?? 0,
+    // Сложность от админа (curricula.difficulty_admin, нет колонки — null): действует, пока голосов мало (effectiveDifficulty)
+    difficultyAdmin: r.difficulty_admin ?? null,
     saveCount: r.save_count ?? 0,
     repostCount: r.repost_count ?? 0,
     // Превью-статус: виден в ленте, но «Изучить фразу» скрыта (см. FeedSlide)

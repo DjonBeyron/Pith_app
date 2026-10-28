@@ -46,12 +46,13 @@
 @import './styles/module-scene.css';
 @import './styles/admin-v2.css';
 @import './styles/admin-toggles.css';
+@import './styles/admin-difficulty-chip.css';
 @import './styles/admin-achievements.css';
 @import './styles/admin-title-editor.css';
 @import './styles/admin-race.css';
 @import './styles/admin-teacher.css';
 @import './styles/lessons.css';
-@import './styles/launch-motion-ask.css';
+@import './styles/launch-mic-ask.css';
 @import './styles/launch-progress.css';
 @import './styles/module-graph-layout.css';
 @import './styles/module-graph-node.css';
@@ -83,9 +84,7 @@
 @import './styles/canvas/audio.css';
 @import './styles/canvas/image-gen.css';
 @import './styles/canvas/crop.css';
-/* База контролов нод — раньше частных стилей: при равной специфичности
-   выигрывает конкретный чекбокс (награда, звук стикера, офсет), а общий
-   остаётся для всех остальных */
+/* База контролов нод — раньше частных стилей: при равной специфичности выигрывает конкретный чекбокс (награда, звук стикера, офсет), а общий остаётся для всех остальных */
 @import './styles/canvas/node-controls.css';
 @import './styles/canvas/nodes.css';
 @import './styles/canvas/node-hover-menu.css';
@@ -109,6 +108,7 @@
 @import './styles/review-cards-source.css';
 @import './styles/player/layout.css';
 @import './styles/player/admin-edit.css';
+@import './styles/player/review-marks.css';
 @import './styles/player/admin-solve.css';
 @import './styles/player/admin-skipper.css';
 @import './styles/player/topbar.css';
@@ -120,7 +120,8 @@
 @import './styles/player/lesson-ref.css';
 @import './styles/player/modules/rotate-phone.css';
 @import './styles/player/modules/unknown-node.css';
-@import './styles/player/modules/speech-lane-overlay.css';
+@import './styles/player/modules/word-lane.css';
+@import './styles/player/modules/word-lane-mic.css';
 @import './styles/player/message.css';
 @import './styles/player/modules/audio.css';
 @import './styles/player/modules/circle.css';
@@ -157,6 +158,8 @@
 @import './styles/canvas/clip-menu.css';
 @import './styles/canvas/table-editor-controls.css';
 @import './styles/canvas/speech-lane-editor.css';
+@import './styles/canvas/cat-lines.css';
+@import './styles/canvas/word-lane-editor.css';
 @import './styles/table-grid.css';
 @import './styles/speech-lane-stage.css';
 @import './styles/player/modules/table.css';
@@ -182,8 +185,7 @@
 @import './styles/player/panels/push-prompt.css';
 @import './styles/player/hints.css';
 @import './styles/player/audio-glow.css';
-/* после стилей плеера: review.css переопределяет плеер внутри карточки */
-@import './styles/review.css';
+@import './styles/review.css'; /* после стилей плеера: review.css переопределяет плеер внутри карточки */
 @import './styles/review-actions.css';
 @import './styles/review-wait.css';
 @import './styles/review-summary.css';
@@ -208,6 +210,7 @@
 @import './styles/learn-pattern.css';
 @import './styles/memory-pages.css';
 @import './styles/memory-onboarding.css';
+@import './styles/new-user.css'; /* стили плана нового пользователя одним списком (new-user.css) */
 @import './styles/canvas/text-highlight.css';
 @import './styles/canvas/text-pro.css';
 @import './styles/canvas/text-wrap.css';
@@ -233,10 +236,8 @@
 @import './styles/admin-review.css';
 @import './styles/admin-catch.css';
 @import './styles/admin-analytics.css';
-/* debug-toolbar.css здесь НЕ подключается: его импортирует сам
-   DebugToolbar.jsx, и стили уезжают вместе с dev-чанком тулбара, а не
-   висят мёртвым грузом в прод-сборке (см. shared/lib/debugToolsEnabled.js) */
-/* Общая анимация появления попапов — после стилей самих окон */
+/* debug-toolbar.css здесь НЕ подключается: его импортирует DebugToolbar.jsx, и стили уезжают вместе с dev-чанком тулбара, а не висят
+   мёртвым грузом в прод-сборке (см. shared/lib/debugToolsEnabled.js). pop-spring.css ниже — общая анимация попапов, после стилей самих окон */
 @import './styles/pop-spring.css';
 @import './styles/hud-pop-out.css';
 @import './styles/perf-flags.css';

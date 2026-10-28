@@ -18,6 +18,7 @@ import { useFeedFilter } from './useFeedFilter.js'
 import { useFeedSplash } from './useFeedSplash.js'
 import { useSlowMotionHint } from './useSlowMotionHint.js'
 import { useRubHint } from './useRubHint.js'
+import { useBehaviorHints } from './hints/useBehaviorHints.js'
 import { useFeedTracking } from './useFeedTracking.js'
 import { track } from '../../shared/lib/analytics/track.js'
 import { buildFeedInfo } from './feedDebugInfo.js'
@@ -29,6 +30,8 @@ import { useFeedRecall } from './useFeedRecall.js'
 import { useFeedCatch } from './catch/useFeedCatch.js'
 import { onFeedJump } from './catch/catchForce.js'
 import FeedEmptyState from './FeedEmptyState.jsx'
+import GuestSaveHint from './GuestSaveHint.jsx' // строка Пита гостю после первого лайка (B7)
+import FeedGames from './games/FeedGames.jsx' // игры ленты (выбери слово, дополни реплику, картинка): предложение Пита → шторка (B4–B5)
 
 // Лента видео: вертикальный Swiper по модулям из curricula (FeedSwiper.jsx),
 // бесконечная по кругу — список повторяется циклами, у края запаса лента
@@ -43,12 +46,10 @@ export default function FeedTab({ visible = true, onOpenCanvas, onRequireAuth, l
   const [openModule, setOpenModule] = useState(null)
   const [showDebug, setShowDebug] = useState(false)
   const [showSearch, setShowSearch] = useState(false)
-  // Авторизация из локальной сессии — мгновенно, не ждём fetchFeedSocial
-  // (раньше тап по лайку до его загрузки улетал в форму входа)
+  // Авторизация из локальной сессии — мгновенно, не ждём fetchFeedSocial (иначе тап по лайку улетал в форму входа)
   const { user, loading: authLoading } = useAuth()
   const { isAdmin } = useAdmin()
-  // Открытие урока-закладки из «Мои уроки» — тем же оверлеем, что и переход
-  // по ноде lesson_ref (fromLessonId=null: ничего не паузим, паузить нечего)
+  // Урок-закладка из «Мои уроки» открывается тем же оверлеем, что и lesson_ref (fromLessonId=null: паузить нечего)
   const { openRef } = useLessonNav()
 
   const { soundOn, soundReady, soundEverOn, soundGestureRef, handleSoundOn, handleSoundOff, handleSoundBlocked } = useFeedSound()
@@ -93,7 +94,6 @@ export default function FeedTab({ visible = true, onOpenCanvas, onRequireAuth, l
     [circleModules, pinnedId, passesFeed, overallIdx],
   )
   const len = feedModules.length
-
   // Лента реально на экране: вкладка оболочки открыта И выбраны «Рекомендации»
   // Скрытой ленте FeedSwiper выключает жесты, колесо
   // и клавиатуру, видео встаёт на паузу
@@ -104,12 +104,11 @@ export default function FeedTab({ visible = true, onOpenCanvas, onRequireAuth, l
   const [activeIdx, setActiveIdx] = useState(-1)
 
   useFeedSplash(modules, len, feedModules)
-  // Обучающая подсказка «зажми лайк — замедли»: появляется на 3-м видео при первом посещении ленты и пропадает
-  // насовсем после трёх проигнорированных видео; активна только в «Рекомендациях» (тут же живёт activeIdx) —
-  // «Мои уроки» её не показывают.
+  // Обучающие подсказки — только в «Рекомендациях» (тут живёт activeIdx): «зажми — замедли» (3-е видео), «потри фразу» (5 фраз)
   const { showHint: showSlowHint, markSeenNow: markSlowHintSeen } = useSlowMotionHint(activeIdx, soundReady)
   // Вторая подсказка — «потри фразу, чтобы появился перевод»: после пяти открытых фраз (useRubHint.js)
   const { showHint: showRubHint, markSeenNow: markRubHintSeen, noteOpened: noteRubOpened } = useRubHint(activeIdx)
+  useBehaviorHints(feedActive && !openModule ? activeIdx : -1, soundReady, handleSoundOn) // по поведению через шторку Пита (B2)
   // Аналитика: сколько видео фразы было на экране (feed_view)
   useFeedTracking(feedActive && !openModule && len > 0 && activeIdx >= 0 ? feedModules[moduleOf(activeIdx, len)] : null)
 
@@ -185,7 +184,6 @@ export default function FeedTab({ visible = true, onOpenCanvas, onRequireAuth, l
         isAdmin={isAdmin}
         soundOn={soundReady} soundEverOn={soundEverOn} onSoundOn={handleSoundOn}
       />
-
       {/* Оба вида смонтированы всегда (как вкладки оболочки): переключение
           «Рекомендации» ↔ «Мои уроки» не сбрасывает ленту и её слайд */}
       <div className={view === 'mine' ? 'feedViewStack' : 'feedViewStack feedViewHidden'}>
@@ -235,6 +233,8 @@ export default function FeedTab({ visible = true, onOpenCanvas, onRequireAuth, l
         )}
       </div>
 
+      <GuestSaveHint activeIdx={activeIdx} user={user} onRequireAuth={onRequireAuth} />
+      <FeedGames learnView={learnView} enabled={feedActive} soundOn={soundReady} />
       {showDebug && <DebugPanel getFeedInfo={feedInfo} onClose={() => setShowDebug(false)} />}
       {showSearch && (
         <FeedSearchPanel

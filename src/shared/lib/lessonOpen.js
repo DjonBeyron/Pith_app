@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { closeGameMic } from './gameMic.js'
 
 // Флаг «урок открыт» — один на всё приложение.
 //
@@ -26,6 +27,7 @@ function set(next) {
   if (open === next) return
   open = next
   if (typeof document !== 'undefined') document.documentElement.classList.toggle('lessonOpen', open)
+  if (!open) closeGameMic() // урок закрыт — игровой микрофон (iPhone: один поток на урок, открывается в тапе «Начать урок») закрываем, индикатор гаснет
   listeners.forEach(fn => fn(open))
 }
 

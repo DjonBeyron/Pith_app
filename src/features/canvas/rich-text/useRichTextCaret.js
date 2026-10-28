@@ -14,7 +14,7 @@ export function useRichTextCaret(ref, pendingCaretRef, value, highlights) {
   useLayoutEffect(() => {
     const el = ref.current
     const pending = pendingCaretRef.current
-    if (!el || pending == null || document.activeElement !== el) return
+    if (!el || pending == null || el.ownerDocument.activeElement !== el) return
     if (typeof pending === 'number') setCaretIndex(el, pending)
     else setSelectionRangeAt(el, pending.start, pending.end)
     pendingCaretRef.current = null

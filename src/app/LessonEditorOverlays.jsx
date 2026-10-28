@@ -1,10 +1,15 @@
-import { lazy, Suspense } from 'react'
+import { lazy, Suspense, useEffect } from 'react'
+import { useAdmin } from './AdminContext.jsx'
+import { prefetchScript } from '../shared/lib/lessonsApi.js'
 import { lazyRetry } from '../shared/lib/lazyRetry.js'
 import { canvasLsKey } from '../features/canvas/canvasStorageKeys.js'
 
 // Код-сплиттинг: редакторы нужны только is_admin — обычный пользователь эти
 // chunk'и даже не скачивает (см. PROJECT.md, этап 2)
-const CanvasPage      = lazy(() => lazyRetry(() => import('../features/canvas/CanvasPage.jsx'), 'canvas'))
+const loadCanvasPage  = () => import('../features/canvas/CanvasPage.jsx')
+const CanvasPage      = lazy(() => lazyRetry(loadCanvasPage, 'canvas'))
+// Админ: код канваса докачивается заранее, в простое после запуска, — к клику «открыть урок» он уже на месте (а данные урока качаются параллельно с кодом)
+const whenIdle = cb => (typeof requestIdleCallback === 'function' ? requestIdleCallback(cb, { timeout: 4000 }) : setTimeout(cb, 2500))
 const ProductionPage  = lazy(() => lazyRetry(() => import('../features/production/ProductionPage.jsx'), 'production'))
 const ReviewCardsPage = lazy(() => lazyRetry(() => import('../features/reviewCards/ReviewCardsPage.jsx'), 'review-cards'))
 const WordCardPage    = lazy(() => lazyRetry(() => import('../features/wordCard/WordCardPage.jsx'), 'word-card'))
@@ -18,6 +23,15 @@ export default function LessonEditorOverlays({
   canvasLesson, setCanvasLesson, productionLesson, setProductionLesson,
   cardsLesson, setCardsLesson, wordCardLesson, setWordCardLesson, onBackToModule,
 }) {
+  const { isAdmin } = useAdmin()
+  useEffect(() => {
+    if (!isAdmin) return undefined
+    const h = whenIdle(() => { loadCanvasPage().catch(() => {}) })
+    return () => { if (typeof cancelIdleCallback === 'function') cancelIdleCallback(h); else clearTimeout(h) }
+  }, [isAdmin])
+  // Урок открывают в канвасе — данные начинают качаться сразу, не дожидаясь кода страницы
+  useEffect(() => { if (canvasLesson?.id) prefetchScript(canvasLesson.id) }, [canvasLesson?.id])
+
   // Открыть урок в другом редакторе, закрыв текущий
   const open = (setter, lesson) => id => {
     setCanvasLesson(null); setProductionLesson(null); setCardsLesson(null); setWordCardLesson(null)

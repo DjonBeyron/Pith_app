@@ -1,0 +1,47 @@
+/* «Живой Пит v2» (флаг animV2, animFlags.js → класс .scn--v2 на корне сцены): зрачки и усы маскота. Только transform-подобные свойства
+   (translate), без фильтров; на слабом устройстве (.scn--lite) и при reduced-motion — ничего: остаётся только рот из 9 форм.
+   Амплитуды (зрачки — pupilLook.js, усы ±7 единиц пакета ≈ 2,3 px спрайта) подобраны по стенду ?scene=cmp: меньшие на экране не читались.
+   В покое (Пит молчит) бегущих анимаций нет вовсе: зрачки сдвигаются коротким переходом после события (pupilLook.js), усы стоят. */
+
+/* Зрачки: режиссёр пишет --look-x / --look-y (единицы пакета, ≈ до 4,6 = 1,5 px спрайта) на корень маскота, сдвиг — свойство translate
+   (оно складывается с transform-атрибутом зрачка: масштаб реакции «любовь / презрение» не затирается) */
+.scn--v2:not(.scn--lite) .pu {
+  translate: calc(var(--look-x, 0) * 1px) calc(var(--look-y, 0) * 1px);
+  scale: var(--pupil, 1); /* расширение зрачка в начале реплики (pupilLook.js: --pupil 1.18 на 450 мс), как у кота, когда он оживился */
+  transition: translate 150ms ease-out, scale 350ms ease-out;
+}
+
+/* Максимальное открытие (широкие формы D и E) чуть больше нарисованного — рот и язык читаются на маленьком экране; масштаб от верхней губы
+   (fill-box группы рта), короткий переход, чтобы не щёлкало. Язык (.mt) в D вытягивается сильнее */
+.scn--v2 .scn-cat .mouth { transform-box: fill-box; transform-origin: 50% 10%; transition: scale 80ms ease-out; }
+.scn--v2 .scn-cat [data-vis="D"] .mouth, .scn--v2 .scn-cat [data-vis="E"] .mouth { scale: 1.18; }
+.scn--v2 .scn-cat .mt { transform-box: fill-box; transform-origin: 50% 0; }
+.scn--v2 .scn-cat [data-vis="D"] .mt { scale: 1.2; }
+
+/* Усы — четыре path (.wh .wh-l|.wh-r .wh-u|.wh-d, kit.json; до v3.3.39 класс по ошибке стоял на дужках очков, до v3.3.40 усы были одним контуром
+   и сдвигались). Пока Пит говорит, каждый ус чуть качается вокруг своего корня: якорь — край fill-box у морды (у левых усов правый край,
+   у правых — левый). Верхние и нижние — с разным периодом и фазой, чтобы не ходили строем. Амплитуда — --talk (0 → 1 за 0,3 с,
+   scene-v2-cat.css). Только пока is-talking: в тишине анимаций нет. Знак: у левого уса кончик слева от якоря, +угол поднимает его;
+   у правого — наоборот */
+.scn--v2 .wh { transform-box: fill-box; }
+.scn--v2 .wh-l { transform-origin: 100% 50%; }
+.scn--v2 .wh-r { transform-origin: 0 50%; }
+@keyframes scnWhiskL {
+  0%, 100% { rotate: calc(4deg * var(--talk)); }
+  50% { rotate: calc(-3deg * var(--talk)); }
+}
+@keyframes scnWhiskR {
+  0%, 100% { rotate: calc(-4deg * var(--talk)); }
+  50% { rotate: calc(3deg * var(--talk)); }
+}
+.scn--v2.scn--live:not(.scn--lite) .scn-cat.is-talking .wh-l { animation: scnWhiskL 0.6s ease-in-out infinite; }
+.scn--v2.scn--live:not(.scn--lite) .scn-cat.is-talking .wh-r { animation: scnWhiskR 0.6s ease-in-out infinite; }
+.scn--v2.scn--live:not(.scn--lite) .scn-cat.is-talking .wh-d { animation-duration: 0.72s; animation-delay: -0.25s; }
+.scn--v2.scn--paused .wh, [data-scrolling="1"] .scn--v2 .wh { animation-play-state: paused; }
+.scn--v2.scn--settle .wh { animation: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  .scn--v2 .pu { transition: none; }
+  .scn--v2 .scn-cat .mouth { transition: none; }
+  .scn--v2 .wh { animation: none; }
+}

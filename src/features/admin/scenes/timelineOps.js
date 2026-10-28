@@ -38,7 +38,8 @@ export function updateLine(timeline, index, patch) {
   if (index < 0 || index >= timeline.length) return timeline
   const cur = { ...timeline[index] }
   for (const [k, v] of Object.entries(patch)) {
-    if (k === 'who') { if (v === 'a' || v === 'b') cur.who = v; continue }
+    // Смена говорящего сбрасывает лицо маскота: face / react были заданы под другого персонажа
+    if (k === 'who') { if (v === 'a' || v === 'b') { if (cur.who !== v) { delete cur.face; delete cur.react } cur.who = v } continue }
     if (k === 'emotion') { if (EMOTIONS.includes(v)) cur.emotion = v; continue }
     if (k === 'pose') { if (POSES.includes(v)) cur.pose = v; continue }
     if (k === 'text') { cur.text = String(v ?? '').slice(0, MAX_TEXT); continue }

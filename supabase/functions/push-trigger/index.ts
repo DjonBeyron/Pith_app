@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import webpush from "npm:web-push@3.6.7";
+import { runRemind } from "./remind.ts";
 
 // Автоматические пуши по триггерам. Два режима:
 // 1) Cron (pg_cron → net.http_post, заголовок x-cron-secret):
@@ -15,6 +16,12 @@ import webpush from "npm:web-push@3.6.7";
 //    есть созревшие слова и сегодня ещё не было напоминаний (миграция
 //    20260925180000_push_review_due.sql); плейсхолдеры {words} {words_label} {minutes}
 //    POST { kind: "energy_full" } — энергия восстановилась (раз в час)
+//    POST { kind: "remind" } — напоминание в местное время, которое выбрал
+//    человек (user_profiles.remind_at + tz). Вызывается раз в 10 минут
+//    (schedule '*/10 * * * *'): SQL push_audience_remind() отдаёт тех, у кого
+//    next_remind_at наступил (пояс неизвестен — не берёт), advance_remind()
+//    сдвигает момент на следующий день с учётом летнего/зимнего времени;
+//    шаблон remind_word; код режима — remind.ts (миграция 20261027120000_remind_time.sql)
 // 2) Self (Authorization: JWT пользователя):
 //    POST { kind: "level_up", level } — пуш САМОМУ СЕБЕ о новом уровне
 //    (не админский, поэтому чужим слать физически нечем).
@@ -210,6 +217,14 @@ Deno.serve(async (req) => {
   if (req.headers.get("x-cron-secret") === CRON_SECRET) {
     if (kind === "evening") return runEvening();
     if (kind === "energy_full") return runEnergyFull();
+    if (kind === "remind") {
+      return json(200, await runRemind({
+        rpc: (fn, args) => service.rpc(fn, args),
+        loadTemplate,
+        sendToUsers: async (uids, tpl, vars) => sendAll(await subsForUsers(uids), tpl, vars),
+        logSent,
+      }));
+    }
     return json(400, { error: "bad kind" });
   }
   return runSelf(req, kind, Number(level));

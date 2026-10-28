@@ -7,7 +7,7 @@ const txt = (ref, seq, then) => ex(ref, seq, 'text', { content: 'Давай' }, 
 describe('линтер: несколько верных ответов и лимит времени', () => {
   const pa = (extra = {}, triggers) => [
     txt('n1', 1, 'n2'),
-    ex('n2', 2, 'phrase_assembly', { words: ['We', 'try', 'every', 'day'], distractors: [{ text: 'tried' }], ...extra },
+    ex('n2', 2, 'phrase_assembly', { words: ['We', 'try', 'every', 'day'], distractors: [{ text: 'tried' }, { text: 'they' }], ...extra },
       triggers ?? [{ if: 'phrase_correct', then: 'n3' }, { if: 'phrase_wrong', then: 'n3' }]),
     txt('n3', 3),
   ]
@@ -56,5 +56,25 @@ describe('линтер: свободная фраза и сигнал у «Ск�
     expect(w).toMatch(/один слот сигнала/)
     expect(w).toMatch(/несуществующую ноду n9/)
     expect(lintLesson(say({ pattern: 'I try to **', voiceReply: true })).join('\n')).not.toMatch(/voiceReply/)
+  })
+})
+
+describe('линтер: R-pronoun-trap — в сборке с местоимением нужна ловушка-местоимение', () => {
+  const pa = (words, distractors) => [
+    txt('n1', 1, 'n2'),
+    ex('n2', 2, 'phrase_assembly', { words, distractors }, [{ if: 'phrase_correct', then: 'n3' }, { if: 'phrase_wrong', then: 'n3' }]),
+    txt('n3', 3),
+  ]
+  const hit = nodes => lintLesson(nodes).some(w => w.includes('[R-pronoun-trap]'))
+  it('местоимение во фразе и ни одного местоимения среди ловушек — замечание', () => {
+    expect(hit(pa(['I', 'want', 'to', 'travel'], [{ text: 'too' }, { text: 'traveling' }]))).toBe(true)
+    expect(hit(pa(['We', 'try'], []))).toBe(true)
+  })
+  it('есть другое местоимение — чисто; местоимение, уже стоящее во фразе, ловушкой не считается', () => {
+    expect(hit(pa(['I', 'want', 'to', 'travel'], [{ text: 'too' }, { text: 'we' }]))).toBe(false)
+    expect(hit(pa(['I', 'want', 'to', 'travel'], [{ text: 'I' }]))).toBe(true)
+  })
+  it('во фразе нет местоимения (имя, существительное) — правило молчит', () => {
+    expect(hit(pa(['Kate', 'tries', 'sushi'], [{ text: 'try' }]))).toBe(false)
   })
 })

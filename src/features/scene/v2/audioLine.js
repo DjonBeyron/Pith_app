@@ -21,6 +21,7 @@ import { sceneTrace, audioState, shortText, ms } from './sceneTrace.js'
 //    только если элемент всё ещё наш (новая реплика могла его перехватить);
 //  · muted («без звука») и playbackRate + preservesPitch ставятся здесь, тайминги
 //    рта идут по currentTime (медиа-время), пересчёт не нужен.
+// «Живой Пит v2»: v2 = { lv, onWord } | null — рот кодами Rhubarb по буквам с гейтом по огибающей (mouthSync.js, mouthVisemes.js).
 // Таймеры/rAF инъектируются для тестов; src — подмена ссылки (blob прогрева).
 
 export const LOAD_TIMEOUT_MS = 7000
@@ -61,7 +62,7 @@ export function knownDurationSec(line, timings) {
 // Скорость ставится ПОСЛЕ src и повторяется на loadedmetadata/playing: алгоритм загрузки медиа сбрасывает playbackRate в
 // defaultPlaybackRate при смене источника (на Android файл при 1,5× играл 1× — трасса 2026-10-20), как и lessonVolume.listenMediaReapply
 export function playLineAudio(line, audio, {
-  src = null, muted = false, rate = 1, applyMouth = () => {}, lowPower = false,
+  src = null, muted = false, rate = 1, applyMouth = () => {}, lowPower = false, v2 = null,
   onEnd, onFail, onMode, onStarted, onClock, timers = globalThis, raf, caf, now, isHidden,
 } = {}) {
   if (!audio || !line?.audioUrl) { onFail?.(audio ? 'no-url' : 'no-element'); return () => {} }
@@ -72,7 +73,7 @@ export function playLineAudio(line, audio, {
   const timings = validTimings(line.wordTimings) ? line.wordTimings : null
   let durationSec = knownDurationSec(line, timings)
   const synth = d => syntheticTimings(text, d ?? fallbackMs(text) / 1000)
-  const sync = createMouthSync(audio, timings ?? synth(durationSec), applyMouth, { raf, caf, timers, now, isHidden, pollMs: lowPower ? 35 : 0 })
+  const sync = createMouthSync(audio, timings ?? synth(durationSec), applyMouth, { raf, caf, timers, now, isHidden, pollMs: lowPower ? 35 : 0, v2 })
 
   let done = false
   let started = false

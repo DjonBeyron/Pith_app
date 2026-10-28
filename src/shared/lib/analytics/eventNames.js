@@ -11,18 +11,34 @@ export const FEED_SLOW = 'feed_slow'                 // { module_id, on } — з
 export const FEED_PHRASE_OPEN = 'feed_phrase_open'   // { module_id } — открыл фразу из-под шариков спойлера
 export const FEED_REVEAL = 'feed_reveal'             // { module_id } — открыл перевод фразы (потёр или стрелкой)
 export const FEED_RECALL_ANSWER = 'feed_recall_answer' // { word, ok, ms } — ответ на «Помнишь?» в ленте
+export const FEED_WORD_TAP = 'feed_word_tap'       // { module_id } — тап по слову фразы (открыл перевод слова); по нему подсказки ленты понимают, что про перевод слова человек знает
 export const FEED_LIKE = 'feed_like'                 // { module_id, on }
 export const FEED_SAVE = 'feed_save'                 // { module_id, on } — закладка
 export const FEED_REPOST = 'feed_repost'             // { module_id, on: true } — репост (share/копия ссылки)
 export const FEED_SEARCH = 'feed_search'             // { len, picked } — длина запроса и выбрал ли результат (текста нет)
 export const FEED_FILTER = 'feed_filter'             // { levels: 'g'|'gy'|'gyr'|'' } — фильтр сложности после тапа по чипу ('' — все)
+export const FEED_GAME_SHOWN = 'feed_game_shown'     // { game: 'choose' | 'fill' | 'picture', word } — игра ленты открылась (человек принял «Я нашёл игру на минутку»)
+export const FEED_LADDER = 'feed_ladder'             // { steps: '1:9100:0,2:1500:1', top: 0..3, hard: 0..3 } — итог «лесенки» второго визита (features/feed/ladder): steps — «сложность:мс:трудно» по просмотренным фразам плана; top — наибольшая сложность, пройденная спокойно (≥ 8 с, без признаков трудности), 0 — нет; hard — самая лёгкая сложность с признаками трудности выше top, 0 — нет
+export const FEED_GAME_ANSWER = 'feed_game_answer'   // { game: 'choose' | 'fill' | 'picture', word, ok, ms } — ответ в игре ленты; ms — от открытия шторки
 //
 // Задание «О чём диалог» на слайде-сцене (features/feed/scene/useSceneTask.js); scene_id — uuid строки scenes
 export const SCENE_TASK_SHOWN = 'scene_task_shown'   // { scene_id, kind: 'translate'|'say'|'repeat' } — панель выехала после первого полного проигрывания
 export const SCENE_TASK_ANSWER = 'scene_task_answer' // { scene_id, kind, ok, attempt, ms[, engine: 'vosk'|'system'] } — «Проверить» / итог голосовой попытки; ms — от показа панели; транскрипта нет
 export const SCENE_TASK_SKIP = 'scene_task_skip'     // { scene_id, kind[, reason: 'cant'] } — «Спроси позже», «Не знаю» или «Не могу говорить» (без попытки)
 //
+// Вопросы Пита (shared/lib/prompts): единая шторка снизу под общим бюджетом; props плоские, без текста пользователя.
+// Все три события несут group: 'control'|'prompts' (контрольная группа без вопросов, prompts/promptGroup.js) — для разреза в аналитике
+export const PROMPT_SHOWN = 'prompt_shown'           // { kind: 'question'|'hint'|'offer'|'reminder', id, group } — шторка выехала
+export const PROMPT_ANSWER = 'prompt_answer'         // { kind, id, answer, group, ms } — выбрал ответ (answer — id ответа, ≤64 символов); ms — от показа шторки
+export const PROMPT_DISMISS = 'prompt_dismiss'       // { kind, id, ms, later, group } — закрыл/смахнул (later: false) или «Спроси позже» (later: true)
+//
 // Урок
 export const LESSON_ANSWER = 'lesson_answer'         // { lesson_id, node_type, ok, attempt, ms } — ответ на задание (тип ноды обязателен)
 // Имя константы без слова ATTEMPT: тест sayPhraseChatWiring запрещает его в коде панели «Сказать фразу»
 export const SAY_TRY = 'say_attempt'                 // { lesson_id, ok, engine: 'vosk'|'system' } — засчитанная попытка «Сказать фразу»
+//
+// Память
+export const MEMORY_INTRO_OPEN = 'memory_intro_open' // { voice } — первое открытие вкладки «Память»: рассказ Пита показан (voice — была ли озвучка, иначе только субтитры)
+export const REMIND_TIME_SET = 'remind_time_set'     // { preset: '9'|'14'|'20'|'custom'|'none', push: 'ask'|'add_home'|'granted'|'denied'|'guest' } — ответ на «Когда удобно учиться?»; push — что дальше с уведомлениями
+export const MEMORY_SEED = 'memory_seed'             // { word, saved } — «Семена памяти»: после верного ответа в игре ленты предложили сохранить слово; saved: true — «Сохранить», false — «Не сейчас»
+export const SAY_ALOUD_ROUND = 'say_aloud_round'     // { words, hits, ms } — раунд мини-игры «Скажи вслух» закончен: слов задано, найдено, длительность (мс); текста ответов нет

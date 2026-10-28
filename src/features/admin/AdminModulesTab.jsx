@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react'
-import { loadCurricula, saveCurriculum, deleteCurriculumFromServer, updateCurriculumStatus } from '../../shared/lib/curriculaApi.js'
+import { loadCurricula, saveCurriculum, deleteCurriculumFromServer, updateCurriculumStatus, setCurriculumDifficultyAdmin } from '../../shared/lib/curriculaApi.js'
 import { supabase } from '../../shared/api/supabase.js'
 import { moduleMediaChip } from '../lessons/moduleSceneModel.js'
 import { findEnabledTemplate } from '../../shared/api/pushTemplatesApi.js'
 import { sendPush } from '../../shared/api/pushApi.js'
 import CurriculumView from '../lessons/CurriculumView.jsx'
 import ModuleTitleEditor from './ModuleTitleEditor.jsx'
+import AdminDifficultyChip from './AdminDifficultyChip.jsx'
 import { dbg } from '../../shared/lib/debug.js'
 
 // Админ-вкладка «Модули» (ui v2, по макету admin.html): список модулей с
@@ -75,6 +76,12 @@ export default function AdminModulesTab({ onOpenCanvas, onOpenProduction, module
         } catch (e) { dbg('[push] new_module failed:', e.message) }
       }
     }
+  }
+
+  // Сложность фразы от админа (null — «авто»): оптимистично, сбой — перечитать список
+  async function handleDifficulty(m, value) {
+    setRows(rs => rs.map(r => r.id === m.id ? { ...r, difficulty_admin: value } : r))
+    try { await setCurriculumDifficultyAdmin(m.id, value) } catch { refresh() }
   }
 
   async function handleDelete(m) {
@@ -151,6 +158,7 @@ export default function AdminModulesTab({ onOpenCanvas, onOpenProduction, module
             </button>
           )}
           <button className="amDel" onClick={() => handleDelete(m)} disabled={busy} title="Удалить модуль">✕</button>
+          {!m.is_pro && <AdminDifficultyChip row={m} onChange={v => handleDifficulty(m, v)} />}
         </div>
       ))}
 

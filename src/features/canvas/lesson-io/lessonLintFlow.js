@@ -89,6 +89,7 @@ function checkTautology(nodes) {
     }
     for (const p of near) {
       if (EXERCISES.has(p.type) || hint.has(p.ref)) continue // предыдущее задание и подсказки ветки ошибки — не «пояснение»
+      if (n.type === 'word_choice' && /\?/.test(textOf(p))) continue // вопрос, называющий кандидата («а здесь нужно am?»), — вызов к выбору, а не ответ (разбор «I'm»)
       const said = ` ${tokenize(textOf(p)).join(' ')} `
       const hit = answers.find(a => said.includes(` ${a} `))
       if (hit) { out.push(`[R-tautology] ${n.ref} (${n.type}): ответ «${hit}» уже написан в ${p.ref} — задание повторяет сказанное, а не развивает. Дай новую ситуацию/форму или убери ответ из пояснения`); break }

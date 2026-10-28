@@ -44,6 +44,8 @@
 .rvwSlot { position: relative; border-radius: 12px; outline: 2px solid transparent; cursor: pointer; }
 .rvwSlot:hover { outline-color: #2a2d35; }
 .rvwSlot.on { outline-color: #b6fe3b; }
+/* Слот далеко от экрана (виртуализация, useNearSlots.js): пустая рамка прежней высоты, тело сообщения не в DOM */
+.rvwSlotGhost { box-sizing: border-box; contain: strict; }
 .rvwSlot.wrong .playerMsgBubble, .rvwSlot.wrong .playerMsgBubble--text { background: #3a2124; }
 .rvwSlotMeta { display: flex; gap: 6px; font-size: 10px; color: #6a6f78; padding: 0 4px; }
 .rvwStudentRow.bad .playerMsgBubble { background: #4a1f1f; }
@@ -102,6 +104,12 @@
 .rvwSlot:hover .rvwSlotTools, .rvwSlot.on .rvwSlotTools, .rvwSlotTools.keep, .rvwSlotTools:focus-within { opacity: 1; pointer-events: auto; }
 
 /* «Изменения»: розовая полоска слева от сообщения, с отступом, не прилипает к нему */
+/* Переключатель-иконка (VersionsBar): настоящий чекбокс спрятан, видны квадрат-галочка и значок */
+.rvwIconCheck { display: inline-flex; align-items: center; gap: 5px; padding: 6px 10px; background: #1a1d22; border: 1px solid #2a2d35; border-radius: 8px; color: #ccc; font-size: 12px; cursor: pointer; white-space: nowrap; user-select: none; }
+.rvwIconCheck input { position: absolute; opacity: 0; pointer-events: none; width: 0; height: 0; }
+.rvwIconCheck.on { background: #3a1a2c; border-color: #ff5fa2; color: #ff8fc0; }
+.rvwIconCheck.off { opacity: 0.35; cursor: default; }
+.rvwIconCheck:has(input:focus-visible) { outline: 2px solid #ff5fa2; }
 .rvwBtnChg.on { background: #3a1a2c; border-color: #ff5fa2; color: #ff8fc0; }
 .rvwPhone .rvwPlayerFeed { padding-left: 30px; }
 /* Одна фигура: толстая линия (6px) с треугольником-стрелкой по центру, чуть левее сообщения, со свечением под ней, чтобы выделялась */
@@ -111,14 +119,18 @@
 .rvwSlot.rvwChg::after { content: ''; position: absolute; left: -30px; top: 8px; bottom: 8px; width: 30px; pointer-events: none;
   background: radial-gradient(ellipse 60% 50% at 30% 50%, #ff5fa255, transparent 75%); filter: blur(5px); z-index: -1; }
 .rvwTagChg { color: #ff8fc0; }
+/* «Изменена» — янтарная (новая остаётся розовой) */
+.rvwSlot.rvwChg--changed::before { background: #ffb347; }
+.rvwSlot.rvwChg--changed::after { background: radial-gradient(ellipse 60% 50% at 30% 50%, #ffb34755, transparent 75%); }
+.rvwChg--changed .rvwTagChg { color: #ffc978; }
 
 /* Закреп в ленте разбора: кто закрепил (имя учителя из урока) и что именно */
 .rvwPin { display: flex; flex-direction: column; gap: 6px; align-items: center; }
 .rvwPinned { display: flex; gap: 8px; align-items: flex-start; max-width: 88%; padding: 8px 12px; background: #2a2412; border: 1px solid #5a4a1a; border-radius: 12px; color: #f0e2b0; font-size: 13px; line-height: 1.4; }
 .rvwPinIcon { flex: 0 0 auto; }
 
-/* Пока открыто окно замечания, лента и холст за ним не рисуются и не пересчитываются (content-visibility): набор текста в окне перестаёт лагать */
-.rvwColsBehind .rvwFeedCol, .rvwColsBehind .rvwCanvasCol { content-visibility: hidden; }
+/* Холст монтируется после первого кадра окна (LessonReviewPanel canvasReady) */
+.rvwCanvasWait { position: absolute; left: 16px; top: 12px; }
 /* Панель «Сказать фразу» в разборе: части настоящей панели (SayPanelPreview.jsx) в потоке, а не fixed внизу; касания выключены */
 .rvwSayPrev { position: relative; pointer-events: none; background: #1a1d22; border-radius: 12px; }
 .rvwSayPrev .rvwSayLine { text-align: center; padding-top: 0; }

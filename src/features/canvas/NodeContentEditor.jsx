@@ -21,6 +21,7 @@ import NodeLessonRefPicker from './NodeLessonRefPicker.jsx'
 import NodeRotatePhonePicker from './NodeRotatePhonePicker.jsx'
 import NodeScenePicker from './NodeScenePicker.jsx'
 import { NO_AUTOCORRECT } from '../../shared/lib/noAutoCorrectProps.js'
+import NodeSelect from './NodeSelect.jsx'
 
 const DEFAULT_CROP = { x: 0, y: 0, scale: 1 }
 
@@ -30,7 +31,7 @@ const HAS_TEXT_TYPES = new Set(['text', 'pin_message', 'system', 'audio', 'stick
 function mainFieldPlaceholder(type) {
   if (type === 'pin_message') return 'Текст закреплённого сообщения...'
   if (type === 'system')      return 'Системное сообщение...'
-  if (type === 'rotate_phone') return 'Текст просьбы, например: Переверни телефон горизонтально'
+  if (type === 'rotate_phone') return 'Текст карточки, например: Повтори за диктором'
   if (type === 'photo')       return 'Текст под фото (в том же пузыре)...'
   if (type === 'sticker')     return 'Текст под стикером (в том же пузыре)...'
   return 'Введи текст сообщения...'
@@ -259,27 +260,21 @@ export default function NodeContentEditor({ lessonXp = 0,
             В ответ на
           </label>
           {tData.replyToSeq != null && (
-            <select
+            <NodeSelect
               className="nodeReplySelect"
               value={tData.replyToSeq || ''}
               onChange={e => updateTypeData({ replyToSeq: e.target.value ? Number(e.target.value) : 0 })}
-              onClick={e => e.stopPropagation()}
-            >
-              <option value="">— выбери сообщение —</option>
-              {[...allNodes]
-                .filter(n => n.seq < node.seq)
-                .sort((a, b) => a.seq - b.seq)
-                .map(n => {
-                  const label = NODE_TYPES.find(t => t.value === n.type)?.label ?? n.type
-                  const preview = n.typeData?.[n.type]?.content?.slice(0, 28)
-                  return (
-                    <option key={n.id} value={n.seq}>
-                      {`#${n.seq} ${label}${preview ? ` — ${preview}` : ''}`}
-                    </option>
-                  )
-                })
-              }
-            </select>
+              emptyLabel="— выбери сообщение —"
+              nodes={allNodes}
+              filter={n => n.seq < node.seq}
+              sort={(a, b) => a.seq - b.seq}
+              getValue={n => n.seq}
+              getLabel={n => {
+                const label = NODE_TYPES.find(t => t.value === n.type)?.label ?? n.type
+                const preview = n.typeData?.[n.type]?.content?.slice(0, 28)
+                return `#${n.seq} ${label}${preview ? ` — ${preview}` : ''}`
+              }}
+            />
           )}
         </div>
       )}

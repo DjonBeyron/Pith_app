@@ -8,6 +8,7 @@ import { taskGateBlock } from './sceneTaskGates.js'
 import { voiceTaskBlockReason } from './sceneVoiceData.js'
 import { sandboxTask, isSandboxScene, micReason, limitReason, inactiveReason } from './sandbox/sandboxTaskStatus.js'
 import { useSceneVoiceWarm } from './useSceneVoiceWarm.js'
+import { usePromptTicket } from '../../../shared/lib/prompts/usePromptTicket.js'
 import * as ts from './sceneTaskState.js'
 import * as vs from './sceneVoiceState.js'
 
@@ -45,6 +46,12 @@ export function useSceneTask({ scene, sceneId, active, live, apiRef, onLock, sou
   // Детектор полного круга живёт, пока режиссёр жив; уход в static (live=false) — с нуля
   const playRef = useRef(initialPlay())
   const sandbox = isSandboxScene(sceneId) // песочница админа: ход круга и причины пропуска видны на тестовом слайде (sandboxTaskStatus)
+  // Единый бюджет Пита (shared/lib/prompts): задание берёт у слота разрешение, как остальные вопросы. Просим, пока сцена активна и
+  // живая, старые лимиты ещё не отказали, а админ не форсирует показ; нет хоста слота (тесты) — granted всегда true
+  const tk = usePromptTicket({ id: `scene:${sceneId}`, kind: 'question', reason: 'game_offer', legacy: true }, active && live && !!info && !sandbox,
+    { ready: () => !gate.forced?.(sceneId) && !gate.why?.(sceneId) && !taskGateBlock(info, { soundOn }), tick: soundOn })
+  const tkRef = useRef(tk)
+  useEffect(() => { tkRef.current = tk })
   useEffect(() => {
     if (!live) playRef.current = initialPlay()
     if (sandbox) { if (live) sandboxTask.waiting(0, scene?.timeline?.length ?? 0); else sandboxTask.idle() }
@@ -69,7 +76,12 @@ export function useSceneTask({ scene, sceneId, active, live, apiRef, onLock, sou
     if (closed) { playRef.current = initialPlay(); return skip(closed) }
     const mic = i.voice ? voiceTaskBlockReason() : null
     if (mic) return skip(micReason(mic))
-    if (!gate.claim(id)) return skip(limitReason(gate.why?.(id)))
+    // Бюджет Пита (после ворот окружения, до старых лимитов): слот не выбрал задание — круг заново, следующий полный круг решит снова.
+    // Админский показ (forced) и песочница бюджет обходят
+    const tkNow = tkRef.current
+    if (!sandbox && !gate.forced?.(id) && !tkNow.granted) { playRef.current = initialPlay(); return skip('бюджет Пита: слот ещё не выбрал') }
+    if (!gate.claim(id)) { tkNow.answer('skipped'); return skip(limitReason(gate.why?.(id))) }
+    tkNow.answer('shown') // показ записан в бюджете, слот свободен
     update(ts.open)
     if (sandbox) sandboxTask.shown()
     trackDedup(SCENE_TASK_SHOWN, { scene_id: id, kind: i.task.kind }, id)

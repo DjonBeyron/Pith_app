@@ -22,7 +22,7 @@ export function makePreloadFetch(ctx) {
   const {
     genRef, blobUrlsRef, setBlobMap, setReadyNodeIds, inFlightRef,
     debugItemsRef, bytesLoadedRef, bytesTotalRef, tick, throttledTick, markFailed,
-    ts, checkNodeReady, evictFarthestIfNeeded, pump, byIdRef,
+    ts, checkNodeReady, evictFarthestIfNeeded, pump, byIdRef, lastProgressRef,
   } = ctx
 
   // Длительность и волна голосового — сразу после скачивания, а не при показе
@@ -68,14 +68,28 @@ export function makePreloadFetch(ctx) {
   }
 
   // Картинка декодируется в памяти сразу после скачивания; элемент держим в
-  // записи, чтобы декодированный кадр не вытеснился из кэша до показа
-  function decodeImage(id, blobUrl) {
+  // записи, чтобы декодированный кадр не вытеснился из кэша до показа.
+  // decodeDone — часть «нода прогрета» (preloadWarm.js): раньше гейт «печатает» отпускал фото по одним байтам, а декодирование
+  // (на телефоне 50–300 мс у большого JPEG) шло уже в чате — пузырь появлялся, картинка проявлялась следом. Флаг и элемент кладём
+  // и в state (setBlobMap): так они доезжают до плеера через handoff карточки запуска (там state, не ref) и до модуля через withBlobs.
+  // Неудача декодирования — тоже decodeDone: ждать нечего, модуль покажет как есть
+  function decodeImage(id, blobUrl, gen = genRef.current) {
     if (typeof Image === 'undefined') return
+    const entry = blobUrlsRef.current[id]
+    if (!entry || entry.decodeStarted) return
+    entry.decodeStarted = true
     const im = new Image()
     im.src = blobUrl
-    const done = () => { const e = blobUrlsRef.current[id]; if (e?.blobUrl === blobUrl) e.decodedImg = im }
-    if (im.decode) im.decode().then(done).catch(() => {})
-    else im.onload = done
+    const done = ok => {
+      if (genRef.current !== gen) return
+      const e = blobUrlsRef.current[id]
+      if (e?.blobUrl !== blobUrl) return
+      e.decodeDone = true
+      if (ok) e.decodedImg = im
+      setBlobMap(prev => (prev[id] ? { ...prev, [id]: { ...prev[id], decodeDone: true, ...(ok ? { decodedImg: im } : {}) } } : prev))
+    }
+    if (im.decode) im.decode().then(() => done(true), () => done(false))
+    else { im.onload = () => done(true); im.onerror = () => done(false) }
   }
 
   async function fetchOne(item, gen) {
@@ -95,6 +109,7 @@ export function makePreloadFetch(ctx) {
         isAlive: () => genRef.current === gen,
         onProgress: (loaded, total) => {
           bytesLoadedRef.current.set(id, loaded)
+          lastProgressRef?.current.set(id, Date.now()) // гейт «печатает» ждёт дольше, пока байты идут (warmWait.js)
           if (total) {
             bytesTotalRef.current.set(id, total)
             debugItem.progress = Math.round(loaded / total * 100)
@@ -184,6 +199,8 @@ export function makePreloadFetch(ctx) {
       if (!entry?.blobUrl) continue
       if (item.nodeType === 'audio' && !entry.metaDone) analyzeAudioMeta(item.id, entry.blobUrl, gen, item.nodeId)
       if (POSTER_TYPES.has(item.nodeType) && !entry.posterUrl && !entry.posterDone) enqueuePoster(item.id, entry.blobUrl, gen)
+      // Картинка из карточки без декодированного кадра (старый handoff / элемент потерян) — декодируем заново до показа
+      if (DECODE_TYPES.has(item.nodeType) && !entry.decodeDone) { entry.decodeStarted = false; decodeImage(item.id, entry.blobUrl, gen) }
     }
   }
   fetchOne.finishHandoff = finishHandoff

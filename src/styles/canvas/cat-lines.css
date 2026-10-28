@@ -1,0 +1,21 @@
+/* Реплики кота-диктора в редакторе ноды «Переверни телефон» (CatLinesPanel.jsx) */
+.catLines { margin-top: 8px; display: flex; flex-direction: column; gap: 10px; }
+.catLinesCat.wlStage { position: relative; inset: auto; width: 150px; height: 76px; margin: 0 auto; overflow: hidden; border-radius: 12px; background: #0e1116; padding: 0; }
+.catLinesList { display: flex; flex-direction: column; gap: 10px; }
+.catLine { display: flex; flex-direction: column; gap: 4px; }
+.catLineWhen { font-size: 12px; opacity: 0.65; }
+.catLineRow { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.catLinesToggle { margin-top: 6px; font-size: 13px; cursor: pointer; }
+
+/* Слова-запутыватели по кускам фразы (ConfusersPanel.jsx) */
+.nodeConfusers { margin-top: 8px; display: flex; flex-direction: column; gap: 4px; }
+.nodeConfusersHead { white-space: normal; }
+.nodeConfusersItem > summary { cursor: pointer; font-size: 13px; }
+.nodeConfusersBody { display: flex; flex-direction: column; gap: 6px; margin: 6px 0 4px; }
+
+/* Предпросмотр кота ×3 и подсветка несохранённого */
+.catLinesCat--big.wlStage { width: min(450px, 100%); height: auto; aspect-ratio: 150 / 76; }
+.catLinesCat--big.wlStage > .wlCat.scn { width: 50%; }
+.catLinesBig { align-self: flex-start; }
+.catLinesSave--hot { border-color: #ff5d5d; color: #ff8a8a; box-shadow: 0 0 8px rgba(255, 93, 93, 0.6); }
+.catLinesWarn { color: #ff8a8a; white-space: normal; }

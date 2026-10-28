@@ -184,11 +184,11 @@ export default function LessonPlayer({
   }
 
   // bufferSize: слабому устройству — меньше файлов в памяти (как в карточке запуска)
-  const { blobMap, addMsgTs, debugItems, warmupPct, isNodeWarm } = usePlayerPreload(nodes, files, visibleNodes, {
+  const { blobMap, addMsgTs, debugItems, warmupPct, isNodeWarm, nodeProgressAt } = usePlayerPreload(nodes, files, visibleNodes, {
     initialBlobMap, bufferSize: isWeakDevice() ? 3 : 5, entryNodeId: resumeState.startNodeId ?? startNodeId ?? null,
     historyIds: resumeState.historyIds ?? historyIds, // те же, что у графа: файлы стартовой истории не выгружаются на первом кадре
   })
-  useEffect(() => { warmRef.current = isNodeWarm }, [isNodeWarm])
+  useEffect(() => { warmRef.current = isNodeWarm; warmRef.progressAt = nodeProgressAt }, [isNodeWarm, nodeProgressAt]) // progressAt — для warmWait.js
   useLessonWordAudio(nodes, warmupPct, muted) // озвучка слов при тапе — после прогрева первых нод; muted — беззвучный режим повторения
 
   // Журнал появления нод + кнопки «⬇ лог»/«копировать лог» — usePlayerDebugLog.js
@@ -255,9 +255,9 @@ export default function LessonPlayer({
   // Общие пропсы ленты PlayerFeedNodes.jsx (обычные ноды + сигнальные сообщения вперемешку)
   // useMemo — иначе новый объект каждый рендер, и memo строк ленты бесполезен
   const feedShared = useMemo(() => ({
-    nodes, filesWithBlobs, teacherName, bottomOffset: panels.offset, videoAutoSound, isAdmin,
+    nodes, filesWithBlobs, teacherName, bottomOffset: panels.offset, videoAutoSound, isAdmin, lessonId, // lessonId — пометки админа с телефона (review-marks/)
     onTrReveal: registerHint, onOpenLessonRef: handleOpenLessonRef,
-  }), [nodes, filesWithBlobs, teacherName, panels.offset, videoAutoSound, isAdmin, registerHint, handleOpenLessonRef])
+  }), [nodes, filesWithBlobs, teacherName, panels.offset, videoAutoSound, isAdmin, lessonId, registerHint, handleOpenLessonRef])
 
   return (
     /* На десктопе playerStage/playerPhone превращают плеер в «телефон» по

@@ -18,6 +18,7 @@ export function answerText(n) {
   if (n.type === 'phrase_assembly') return (d.words ?? []).join(' ')
   if (n.type === 'type_word') return d.word ?? ''
   if (n.type === 'say_phrase') return d.phrase ?? ''
+  if (n.type === 'table' && d.mode === 'manual') return d.answer ?? '' // ручная таблица: ученик собирает фразу тапами
   return ''
 }
 
@@ -68,7 +69,7 @@ export function buildTranscript(nodes, choices = {}) {
     out.push({ kind: 'node', ref: cur.ref, node: cur, wrongBranch, hasWrong: !!wrongT, choice: exercise ? choice : null, picked: picked?.id ?? null })
     let next
     if (exercise) {
-      if (cur.type !== 'table') out.push({ kind: 'student', ref: cur.ref, node: cur, ok: choice === 'right', wrongBranch, pickedText: picked?.text ?? null })
+      if (cur.type !== 'table' || cur.data?.mode === 'manual') out.push({ kind: 'student', ref: cur.ref, node: cur, ok: choice === 'right', wrongBranch, pickedText: picked?.text ?? null })
       if (variantT) { next = variantT.then; wrongBranch = choice === 'wrong'; rejoin = reachable(byRef, rightT?.then) }
       else if (choice === 'wrong' && wrongT) { next = wrongT.then; wrongBranch = true; rejoin = reachable(byRef, rightT?.then) }
       else { next = (rightT ?? trig.find(t => t.then))?.then; wrongBranch = false }

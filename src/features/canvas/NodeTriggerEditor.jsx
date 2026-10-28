@@ -1,5 +1,6 @@
 import { useLayoutEffect, useRef, useState } from 'react'
 import { DEFAULT_PLAYED_OFFSET_MS } from '../player/usePlayedOffset.js'
+import NodeSelect from './NodeSelect.jsx'
 
 const IF_OPTIONS = [
   { value: 'played',           label: 'Воспроизведено до конца' },
@@ -121,19 +122,15 @@ export default function NodeTriggerEditor({ triggers, nodeId, nodes, onChange, o
             ref={el => { thenRefs.current[i] = el }}
           >
             <span className="nodeTriggerKw">Тогда</span>
-            <select
+            <NodeSelect
               className="nodeTriggerSel"
               value={t.then ?? ''}
-              onClick={e => e.stopPropagation()}
               onChange={e => patch(i, { then: e.target.value || null })}
-            >
-              <option value="">— не задано —</option>
-              {nodes.map(n => (
-                <option key={n.id} value={n.id} disabled={n.id === nodeId}>
-                  Нода #{n.seq}{n.id === nodeId ? ' (эта нода)' : ''}
-                </option>
-              ))}
-            </select>
+              emptyLabel="— не задано —"
+              nodes={nodes}
+              getLabel={n => `Нода #${n.seq}${n.id === nodeId ? ' (эта нода)' : ''}`}
+              getDisabled={n => n.id === nodeId}
+            />
             <button className="nodeTriggerDel" onClick={e => remove(e, i)}>×</button>
           </div>
         </div>

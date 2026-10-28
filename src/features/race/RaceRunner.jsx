@@ -1,11 +1,9 @@
 import { useState, useRef } from 'react'
 import LessonLaunchCard from '../lessons/LessonLaunchCard.jsx'
 import LessonPlayer from '../player/LessonPlayerLazy.jsx'
-import { revokePayloadBlobs } from '../player/preloadQueue.js'
 import { usePayloadBlobsRelease } from '../player/usePayloadBlobs.js'
 import EnergyPaywall from '../lessons/EnergyPaywall.jsx'
-import { startLesson } from '../../shared/api/profileApi.js'
-import { refreshProfile } from '../../shared/api/profileCache.js'
+import { startLessonOptimistic } from '../lessons/launchStart.js'
 import { dbg } from '../../shared/lib/debug.js'
 
 // Прохождение супер-урока гонки: уроки про-модуля идут цепочкой один за
@@ -31,13 +29,11 @@ export default function RaceRunner({ lessonIds = [], onRaceFinish, onClosed }) {
         key={lessonId}
         lessonId={lessonId}
         allowResume={false}
-        onStart={async (data) => {
-          // Энергию решает сервер (новый урок → -1, пересдача бесплатно)
-          const res = await startLesson(lessonId)
-          if (res?.ok === false) { revokePayloadBlobs(data); setNoEnergy({ nextAt: res.next_at }); return }
-          refreshProfile()
-          setPlayerData(data)
-        }}
+        onStart={data => startLessonOptimistic(lessonId, {
+          // Плеер сразу; энергию решает сервер параллельно (новый урок → -1, пересдача бесплатно); отказ — плеер закрывается, пейволл
+          open: () => setPlayerData(data),
+          deny: res => { setPlayerData(null); setNoEnergy({ nextAt: res.next_at }) },
+        })}
         onClose={() => onClosed?.()}
       />
     )

@@ -5,7 +5,7 @@ import { exportLesson } from './exportLesson.js'
 import { importLesson } from './importLesson.js'
 import { buildLegend } from './lessonSchema.js'
 import { lintLesson, fromCanvasNodes } from './lessonLint.js'
-import { PRINCIPLES } from './lessonRulesDefaults.js'
+import { REFERENCE_NOTES } from './lessonRulesDefaults.js'
 import { readSayData } from '../../../shared/lib/speech/sayPhraseData.js'
 import { collectLessonWords } from '../../../shared/lib/wordAudio/collectLessonWords.js'
 import { makeNode } from '../nodeGraph.js'
@@ -111,12 +111,12 @@ describe('say_phrase — обмен JSON', () => {
     expect(Object.keys(legend.triggers)).toEqual(expect.arrayContaining(['say_done', 'say_wrong']))
     expect(legend.triggers.say_wrong).toMatch(/трёх неудачных попыток/)
     expect(Object.keys(legend.nodes.say_phrase.fields)).not.toContain('showPhrase')
-    expect(PRINCIPLES.some(p => p.startsWith('say_phrase («Сказать фразу»)'))).toBe(true)
+    expect(REFERENCE_NOTES.some(p => p.startsWith('say_phrase («Сказать фразу»)'))).toBe(true)
   })
 
   it('легенда и правило автора объясняют «пару сообщений вокруг say_phrase» (задание перед, успех после) и пропуск парой', () => {
     const what = buildLegend().nodes.say_phrase.what
-    const rule = PRINCIPLES.find(p => p.startsWith('say_phrase («Сказать фразу»)'))
+    const rule = REFERENCE_NOTES.find(p => p.startsWith('say_phrase («Сказать фразу»)'))
     for (const text of [what, rule]) {
       expect(text).toMatch(/пара сообщений вокруг say_phrase/)
       expect(text).toMatch(/задание/)
@@ -168,7 +168,7 @@ describe('say_phrase — подсказки в чат: поля ноды, JSON, 
     expect(f.hintPartial).toMatch(/\{ok\}/)
     expect(f.hintPartial).toMatch(/\{missed\}/)
     expect(f.hintsOn).toMatch(/Нет поля = включены/)
-    const r = PRINCIPLES.find(p => p.startsWith('say_phrase («Сказать фразу»)'))
+    const r = REFERENCE_NOTES.find(p => p.startsWith('say_phrase («Сказать фразу»)'))
     for (const word of ['hintsOn', 'hintSilence', 'hintMismatch', 'hintPartial', '{ok}', '{missed}', 'пузырём слева', 'три неудачные', 'say_wrong', 'ВСЕГДА ведёт по say_done', 'одну короткую текстовую ноду с заданием', 'ноду «Получилось!»', 'пропуск разовый']) {
       expect(r, word).toContain(word)
     }
@@ -213,7 +213,7 @@ describe('say_phrase — слова для озвучки (collectLessonWords)',
 
 describe('say_phrase — миграции правила автору', () => {
   const sql = name => readFileSync(fileURLToPath(new URL(`../../../../supabase/migrations/${name}`, import.meta.url)), 'utf8')
-  const rule = () => PRINCIPLES.find(p => p.startsWith('say_phrase («Сказать фразу»)'))
+  const rule = () => REFERENCE_NOTES.find(p => p.startsWith('say_phrase («Сказать фразу»)'))
 
   it('v4 (уже могла быть применена) не менялась: свой текст правила без voiceReply, тот же префикс поиска; текущая — v5 (sayVoiceReply.test.js)', () => {
     const v4 = sql('20261010120000_say_phrase_rules_v4.sql')

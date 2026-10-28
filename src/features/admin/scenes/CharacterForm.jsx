@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { catSprite } from '../../scene/v2/sprites/spriteRegistry.js'
+import { characterSprite } from '../../scene/v2/sprites/spriteRegistry.js'
 import { LIMITS } from '../../scene/v2/sceneConstants.js'
 import SpritePreview from './SpritePreview.jsx'
 import PaletteEditor from './PaletteEditor.jsx'
@@ -7,12 +7,13 @@ import Panel from './ui/Panel.jsx'
 import { speakerColor, contrastInk } from './ui/colorContrast.js'
 import { GENDER_LABEL } from './sceneLabels.js'
 import ScTip from './ScTip.jsx'
+import MascotFields from './MascotFields.jsx'
 import VoicePicker from './voice/VoicePicker.jsx'
 import TranslationVoicePicker from './voice/TranslationVoicePicker.jsx'
 
 // Форма персонажа A/B в сборщике — вложенная панель (ключ characters.<who>, заголовок
 // «A · Имя» с кружком цвета шерсти; solo — единственный кот одиночной сцены, «по центру»):
-// превью, имя, пол, палитра (PaletteEditor), полоски;
+// превью, имя, образ (обычный кот / маскот Пит, Мия — MascotFields), у обычного кота пол, палитра (PaletteEditor), полоски;
 // внутри — панель «Голос» (characters.<who>.voice): запасной голос устройства (pitch/rate),
 // голос ElevenLabs (VoicePicker) и голос перевода (TranslationVoicePicker, voice.translationVoiceId;
 // пусто — общий голос сцены). Раскладка полей — сетка auto-fit с отступами по плотности
@@ -20,8 +21,11 @@ import TranslationVoicePicker from './voice/TranslationVoicePicker.jsx'
 // в широкой — несколько. id полей — f-characters-<who>-… для подсветки линтера.
 export default function CharacterForm({ who, character, actions, voice = null, scene = null, solo = false }) {
   const p = `f-characters-${who}`
-  const sprite = catSprite(character.gender)
-  const props = useMemo(() => ({ palette: character.palette, stripes: character.stripes !== false }), [character.palette, character.stripes])
+  const sprite = characterSprite(character)
+  const props = useMemo(
+    () => ({ palette: character.palette, stripes: character.stripes !== false, pupilReaction: character.pupilReaction !== false }),
+    [character.palette, character.stripes, character.pupilReaction],
+  )
   const fb = character.voice ?? {} // pitch/rate запасного синтеза устройства
   const color = speakerColor(character, who)
   const name = character.name?.trim() || 'без имени'
@@ -41,7 +45,8 @@ export default function CharacterForm({ who, character, actions, voice = null, s
             <span className="scbFieldLabel">Имя</span>
             <input id={`${p}-name`} className="fsNote" value={character.name} maxLength={LIMITS.maxNameLen} onChange={e => actions.updateCharacter(who, { name: e.target.value })} />
           </label>
-          <div className="scbField">
+          <MascotFields who={who} character={character} actions={actions} />
+          {!character.skin && <div className="scbField">
             <span className="scbFieldLabel">Пол</span>
             <div className="scSegBtns" role="radiogroup" aria-label={`Пол персонажа ${who.toUpperCase()}`} id={`${p}-gender`}>
               {Object.entries(GENDER_LABEL).map(([g, label]) => (
@@ -50,10 +55,10 @@ export default function CharacterForm({ who, character, actions, voice = null, s
                 </button>
               ))}
             </div>
-          </div>
+          </div>}
         </div>
       </div>
-      <div className="scbCharRow">
+      {!character.skin && <div className="scbCharRow">
         <PaletteEditor
           palette={character.palette} idPrefix={`${p}-palette`}
           onPreset={id => actions.applyPreset(who, id)} onColor={(k, v) => actions.setPaletteColor(who, k, v)}
@@ -64,7 +69,7 @@ export default function CharacterForm({ who, character, actions, voice = null, s
           </label>
           <ScTip help="stripes" />
         </div>
-      </div>
+      </div>}
       <Panel id={`characters.${who}.voice`} title="Голос" fieldId={`${p}-voice`} nested as="h4" fullscreenable={false} className="scbVoice">
         <span className="scbCtlGroup"><span className="scLabel">Запасной голос устройства</span> <ScTip help="voice" /></span>
         <div className="scbRanges">

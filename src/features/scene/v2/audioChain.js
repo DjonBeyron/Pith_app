@@ -17,7 +17,7 @@ import { clampRate, claimAudio, ownsAudio, LOAD_TIMEOUT_MS, RETRY_DELAY_MS, GUAR
 // (запасной остаётся без src, чужой владелец основного не прерывается). Таймеры/rAF инъектируются.
 
 export function playSegmentChain(plan, audio, {
-  spare = null, srcOf = () => null, muted = false, rate = 1, applyMouth = () => {}, lowPower = false,
+  spare = null, srcOf = () => null, muted = false, rate = 1, applyMouth = () => {}, lowPower = false, v2 = null,
   onEnd, onFail, onMode, onGap, timers = globalThis, raf, caf, now = () => (globalThis.performance?.now?.() ?? Date.now()), isHidden,
 } = {}) {
   const layout = chainLayout(plan?.parts ?? [])
@@ -40,7 +40,7 @@ export function playSegmentChain(plan, audio, {
     get seeking() { return !!active?.seeking },
     get readyState() { return active ? active.readyState : 0 },
   }
-  const sync = createMouthSync(proxy, layout.timings, applyMouth, { raf, caf, timers, now, isHidden, pollMs: lowPower ? 35 : 0 })
+  const sync = createMouthSync(proxy, layout.timings, applyMouth, { raf, caf, timers, now, isHidden, pollMs: lowPower ? 35 : 0, v2 })
 
   const clearTimers = () => { for (const key of Object.keys(tm)) { timers.clearTimeout(tm[key]); tm[key] = null } }
 

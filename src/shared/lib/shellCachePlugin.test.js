@@ -2,7 +2,7 @@ import { describe, it, expect, afterEach } from 'vitest'
 import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
-import { collectPrecache, computeBuildId, applySwPlaceholders, applyHtmlBuild, walk, shellCachePlugin, PRECACHE_LIMIT } from '../../../tools/viteShellCache.js'
+import { collectPrecache, computeBuildId, applySwPlaceholders, applyHtmlBuild, inlineSwCore, walk, shellCachePlugin, PRECACHE_LIMIT } from '../../../tools/viteShellCache.js'
 
 // Плагин кеша оболочки (tools/viteShellCache.js): список предзагрузки, BUILD_ID, подстановка токенов в push-sw.js и index.html
 const SW_SRC = readFileSync(resolve(import.meta.dirname, '../../../public/push-sw.js'), 'utf8')
@@ -71,6 +71,16 @@ describe('подстановка токенов', () => {
 
   it('index.html: метка сборки подставлена', () => {
     expect(applyHtmlBuild('<meta name="pithy-build" content="__BUILD_ID__" />', 'X-1')).toBe('<meta name="pithy-build" content="X-1" />')
+  })
+})
+
+describe('sw-core.js инлайном в собранный воркер', () => {
+  it('importScripts заменяется текстом sw-core.js (спецсимволы $ в тексте не трогаются); без вызова — ошибка', () => {
+    const out = inlineSwCore("a\nself.importScripts('/sw-core.js')\nb", 'var x = "$1 $&"')
+    expect(out).toContain('var x = "$1 $&"')
+    expect(out).not.toContain('importScripts')
+    expect(out.startsWith('a\n')).toBe(true)
+    expect(() => inlineSwCore('a', 'b')).toThrow(/importScripts/)
   })
 })
 

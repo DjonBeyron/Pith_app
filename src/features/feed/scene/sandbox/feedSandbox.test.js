@@ -83,7 +83,7 @@ describe('синтетический модуль: только админ, бе
     const src = readFileSync(new URL('../../useFeedModules.js', import.meta.url), 'utf8')
     expect(src).toContain('const { isAdmin } = useAdmin()')
     expect(src).toContain('useSandboxModule(isAdmin)')
-    expect(src).toContain('mixSandbox(ranked, sandboxMod)')
+    expect(src).toContain('mixSandbox(laddered, sandboxMod)') // laddered — ranked после «лесенки» второго визита (ladder/)
     const rd = f => readFileSync(new URL(f, import.meta.url), 'utf8')
     expect(rd('../../FeedTab.jsx')).toContain('m.id === pinnedId || m.isSandbox ||') // фильтр сложности песочницу не прячет
     expect(rd('../../useFeedTracking.js')).toContain('!module.isSandbox') // feed_view не пишется

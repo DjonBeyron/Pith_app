@@ -17,10 +17,10 @@ describe('lintLesson', () => {
   it('не находит замечаний в чистом уроке', () => {
     const nodes = [
       node('n1', 1, 'audio', { text: 'Привет' }, [{ if: 'played', then: 'n2' }]),
-      node('n2', 2, 'phrase_assembly', { words: ['I', 'try', 'sushi'] }, [
+      node('n2', 2, 'phrase_assembly', { words: ['I', 'try', 'sushi'], distractors: [{ text: 'we' }] }, [
         { if: 'phrase_correct', then: 'n3' }, { if: 'phrase_wrong', then: 'n3' },
       ]),
-      node('n3', 3, 'phrase_assembly', { words: ['He', 'tries', 'cake'] }, []),
+      node('n3', 3, 'phrase_assembly', { words: ['He', 'tries', 'cake'], distractors: [{ text: 'she' }] }, []),
     ]
     expect(lintLesson(nodes)).toEqual([])
   })
@@ -136,8 +136,8 @@ describe('lintLesson', () => {
 
   it('не ругается, если финальные слова ответов разные', () => {
     const nodes = [
-      node('n1', 1, 'phrase_assembly', { words: ['He', 'tries', 'pizza'] }, [{ if: 'phrase_correct', then: 'n2' }]),
-      node('n2', 2, 'phrase_assembly', { words: ['She', 'tries', 'cake'] }, []),
+      node('n1', 1, 'phrase_assembly', { words: ['He', 'tries', 'pizza'], distractors: [{ text: 'we' }] }, [{ if: 'phrase_correct', then: 'n2' }]),
+      node('n2', 2, 'phrase_assembly', { words: ['She', 'tries', 'cake'], distractors: [{ text: 'they' }] }, []),
     ]
     expect(lintLesson(nodes)).toEqual([])
   })

@@ -1,4 +1,5 @@
 import { supabase } from '../api/supabase.js'
+import { isIOSNavigator } from './iosDetect.js'
 
 // Web Push: подписка/отписка браузера на системные уведомления.
 // Сервис-воркер public/push-sw.js — пуши + офлайн-фолбэк загрузки страницы (кэширует только /offline.html).
@@ -21,7 +22,7 @@ export function pushSupported() {
 
 // iPhone/iPad без установки на экран Домой — подсказать пользователю
 export function needsHomeScreen() {
-  const isIos = /iPhone|iPad|iPod/.test(navigator.userAgent)
+  const isIos = isIOSNavigator(navigator) // iPad в Safari притворяется Mac — учитываем сенсор (iosDetect.js)
   const standalone = window.navigator.standalone === true
     || window.matchMedia('(display-mode: standalone)').matches
   return isIos && !standalone && !pushSupported()

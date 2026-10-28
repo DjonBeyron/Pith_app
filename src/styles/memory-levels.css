@@ -34,9 +34,9 @@
 
 /* Золотой ТЕКСТ: сплошной цвет как запас; где есть background-clip: text (iOS Safari, Chrome Android) — градиент.
    Без filter/blur/will-change. clone — градиент одинаково ложится на каждую строку при переносе слова */
-.fwKnown--4, .wcMemPerm, .memHead--4 b, .memIntroLv4, .reviewSettled { color: var(--lvl4); }
+.fwKnown--4, .wcMemPerm, .memHead--4 b, .reviewSettled { color: var(--lvl4); }
 @supports ((-webkit-background-clip: text) or (background-clip: text)) {
-  .fwKnown--4, .wcMemPerm, .memHead--4 b, .memSheetLevel--4 .memSheetLevelHead b, .memIntroLv4, .reviewSettled {
+  .fwKnown--4, .wcMemPerm, .memHead--4 b, .memSheetLevel--4 .memSheetLevelHead b, .reviewSettled {
     background: var(--lvl4-shine);
     -webkit-background-clip: text;
     background-clip: text;

@@ -15,14 +15,16 @@
 //   task?: { kind: 'translate'|'say'|'repeat', lineIndex, prompt?, accept[], hint?, answers[]?, keywords[]?, passRatio?, strict? }   // задание (sceneTask.js; голосовые say/repeat — sceneTaskVoice.js)
 // }
 // Character: { kind: 'cat', gender: 'male' | 'female', name, palette: { fur, accent, belly?, eye?, stripe? },
+//              skin?: 'kit' | 'mia' (маскот вместо обычного кота: sprites/mascot), pupilReaction?: true, extraFace?: true
+//              (реакция зрачков и дополнительная мимика маскота — выключатели),
 //              stripes: true, voice: { pitch 0…2, rate 0.1…10, voiceId?, stability?, similarity?, speed?,
 //                                      translationVoiceId? } }
-// Line: { who: 'a' | 'b', text (≤ 140; {name} — слово переменной), emotion, pose?, translation? ({name:ru} — перевод слова), segments?: [{ var } | { text?, audioUrl?, … }],
-//         audioUrl?, wordTimings?: [{ word?, start, end }], audioMeta?: { hash, voiceId, durationMs? },
+// Line: { who: 'a' | 'b', text (≤ 140; {name} — слово переменной), emotion, pose?, face? (лицо говорящего-маскота), react? (лицо слушающего-маскота), translation? ({name:ru} — перевод слова), segments?: [{ var } | { text?, audioUrl?, … }],
+//         audioUrl?, wordTimings?: [{ word?, start, end }], audioMeta?: { hash, voiceId, durationMs?, env?: { hz, data } },
 //         translationAudioUrl?, translationWordTimings?, translationAudioMeta? }   // то же для перевода
 // audioUrl/wordTimings/audioMeta (и translation*-тройка для перевода) — заранее записанная
-// озвучка ElevenLabs, ставит только сборщик (sceneVoice.js: hash → «устарело» и кэш);
-// пусто — запасной вариант (speechSynthesis ru-RU или таймер).
+// озвучка ElevenLabs, ставит только сборщик (sceneVoice.js: hash → «устарело» и кэш; env — огибающая
+// громкости для рта «живого Пита v2», shared/lib/audioEnvelope.js); пусто — запасной вариант (speechSynthesis ru-RU или таймер).
 //
 // Этот файл — точка входа: нормализация здесь, остальное реэкспортом.
 
@@ -38,6 +40,7 @@ import { AUDIO_SETS } from './sceneVoice.js'
 import { isSolo } from './scenePit.js'
 import { normalizeVars, normalizeSegments } from './sceneVars.js'
 import { cleanTitle } from './sceneNaming.js'
+import { isSkin, MASCOT_PACKS } from './sprites/mascot/mascots.js'
 
 export * from './sceneConstants.js'
 export { LOCATIONS }
@@ -50,14 +53,18 @@ function normalizeCharacter(c, key) {
   const src = isObj(c) ? c : {}
   const palette = isObj(src.palette) ? src.palette : {}
   const basePal = key === 'b' ? PALETTE_PRESETS.grey : PALETTE_PRESETS.ginger
-  return {
+  const skin = isSkin(src.skin) ? src.skin : null
+  const out = {
     kind: 'cat',
-    gender: GENDERS.includes(src.gender) ? src.gender : (key === 'a' ? 'male' : 'female'),
-    name: typeof src.name === 'string' && src.name.trim() ? src.name.trim() : (key === 'a' ? 'Кот' : 'Кошка'),
+    gender: GENDERS.includes(src.gender) ? src.gender : (skin ? MASCOT_PACKS[skin].gender : key === 'a' ? 'male' : 'female'),
+    name: typeof src.name === 'string' && src.name.trim() ? src.name.trim() : (skin ? MASCOT_PACKS[skin].title : key === 'a' ? 'Кот' : 'Кошка'),
     palette: { ...basePal, ...Object.fromEntries(Object.entries(palette).filter(([, v]) => typeof v === 'string')) },
     stripes: src.stripes !== false,
     voice: { ...DEFAULT_VOICE, ...(isObj(src.voice) ? src.voice : {}) },
   }
+  // Маскот: skin и два переключателя (по умолчанию включены); у обычного кота этих полей нет — старые сцены не меняются
+  if (skin) Object.assign(out, { skin, pupilReaction: src.pupilReaction !== false, extraFace: src.extraFace !== false })
+  return out
 }
 
 function normalizeLine(l, solo) {
@@ -69,6 +76,8 @@ function normalizeLine(l, solo) {
     pose: POSES.includes(src.pose) ? src.pose : 'talk',
   }
   if (typeof src.translation === 'string' && src.translation.trim()) out.translation = src.translation.trim()
+  // Лицо маскота на время реплики: face — говорящего, react — слушающего (имена проверяет валидатор)
+  for (const f of ['face', 'react']) if (typeof src[f] === 'string' && src[f]) out[f] = src[f]
   // Два комплекта озвучки — оригинал (audioUrl…) и перевод (translationAudioUrl…), поля одинаковой формы
   for (const set of Object.values(AUDIO_SETS)) {
     if (typeof src[set.url] === 'string' && src[set.url]) out[set.url] = src[set.url]

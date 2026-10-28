@@ -7,6 +7,9 @@ import { demoCafeScene, demoPitCircleScene } from './demoScenes.js'
 import { TASK_LIMITS } from './sceneTask.js'
 import { PIT } from './scenePit.js'
 import { VAR_LIMITS, VAR_PICKS } from './sceneVars.js'
+import { SKINS, SKIN_TITLES, FACE_NOTES } from './sprites/mascot/mascots.js'
+
+const faceList = skin => Object.entries(FACE_NOTES[skin]).map(([k, v]) => `${k} — ${v}`).join('; ')
 
 // Легенда формата сцены v2 для нейросети и для человека без доступа к коду
 // (по образцу NODE_DOCS урока): что за поля, допустимые значения, список
@@ -21,6 +24,8 @@ export const SCENE_FIELD_DOCS = {
   location: `Локация: ${LOCATIONS.join(' | ')}. Задаёт фон и набор слотов для предметов`,
   characters: `Два персонажа: a (стоит слева) и b (стоит справа), оба — коты (kind: "cat"). ИЛИ один кот: characters: { a } БЕЗ поля b — это одиночная сцена, кот стоит по центру. Одиночного кота зовут «${PIT.name}» (a = ${JSON.stringify(PIT)}); он используется в «кружке Пита» — сцене, которая открывает и закрывает урок (1–2 реплики, в ноде урока mode "circle")`,
   'characters.*.gender': `${GENDERS.join(' | ')}. Меняет силуэт и детали: male — шире, кисточки на щеках, ошейник с жетоном; female — стройнее, бантик на ухе, ресницы`,
+  'characters.*.skin': `Необязательно: маскот вместо обычного кота — ${SKINS.map(s => `"${s}" (${SKIN_TITLES[s]})`).join(', ')}. Рисуется готовым рисунком: palette, stripes и gender не используются. Без поля — обычный кот`,
+  'characters.*.pupilReaction / extraFace': 'Только у маскота, true/false, по умолчанию true: pupilReaction — зрачок меняется вместе с лицом (сердечки пульсируют); extraFace — лица из реплик (face / react). extraFace: false — маскот всегда с обычным лицом',
   'characters.*.name': `Имя по-русски, до ${LIMITS.maxNameLen} символов — показывается в облачке`,
   'characters.*.palette': 'Цвета #rrggbb: fur (шерсть), accent (ухо внутри, нос), belly (грудка/мордочка), eye (радужка), stripe (полоски). Можно взять готовый набор из presets',
   'characters.*.stripes': 'true/false — рисовать ли полоски на теле, лбу и хвосте',
@@ -30,6 +35,8 @@ export const SCENE_FIELD_DOCS = {
   'timeline[].who': '"a" или "b" — кто говорит; в одиночной сцене (без b) — только "a"',
   'timeline[].text': `Реплика по-русски, до ${LIMITS.maxTextLen} символов, одно-два предложения, со знаком в конце`,
   'timeline[].emotion': `${EMOTIONS.join(' | ')} — лицо говорящего на время реплики (другой кот нейтрален)`,
+  'timeline[].face': `Только у маскота: лицо говорящего на время реплики. Пит: ${faceList('kit')}. Мия: ${faceList('mia')}. Без поля — обычное лицо`,
+  'timeline[].react': 'Только у маскота: лицо слушающего (второго персонажа) на время этой реплики — его реакция на услышанное. Имена те же, что у face. Одиночной сцене не нужно',
   'timeline[].pose': `${POSES.join(' | ')} (необязательно; по умолчанию talk). lean — наклон к собеседнику`,
   'timeline[].translation': 'Необязательный перевод реплики на русский (подсказка под репликой; для задания «О чём диалог» — это эталон ответа, у спрашиваемой реплики обязателен)',
   'timeline[].audioUrl': 'НЕ ЗАПОЛНЯТЬ: адрес записанной озвучки ElevenLabs (https на R2 проекта) ставит сборщик кнопкой «Озвучить». Без него реплика озвучивается синтезом речи устройства или идёт по таймеру',
@@ -107,6 +114,10 @@ export const DIALOGUE_RULES = [
   'Если реплики на иностранном языке — заполни translation у каждой; режим показа и озвучки задавай в options: display "both" (текст + перевод) и voice { translation: true }, когда зрителю нужен перевод, display "text"/"none" — когда это тренировка понимания на слух.',
 ]
 
+// Сцена с маскотами — только в полной легенде (сборщик сцен); легенда автора урока (compact) без неё: бюджет промпта
+export const MASCOT_RULE =
+  'Сцена с маскотами (skin "kit" / "mia"): лицо задавай не emotion, а полями face (говорящий) и react (слушающий) — меняй их по сюжету, чтобы маскоты «играли»: смущение, влюблённость, закатанные глаза. Не ставь одно лицо на все реплики; обычное лицо — просто без поля. Пример — шаблон «Пит и Мия: знакомство».'
+
 function slotLines(location) {
   return SLOTS_BY_LOCATION[location].map(s => `  - ${s.id} (${s.title}; слой ${s.layer}; якорь ${s.x},${s.y}${s.needs ? `; нужен занятый слот '${s.needs}'` : ''}): ${s.accepts.join(', ')}`)
 }
@@ -120,7 +131,7 @@ function spriteLines() {
 // и с примерами в одну строку — остаются формат, предметы/слоты, правила диалога и оба примера
 // (одиночная сцена Пита, диалог двух котов)
 export function sceneLegendText({ compact = false } = {}) {
-  const docs = Object.entries(SCENE_FIELD_DOCS).filter(([k]) => !compact || !/^(task|vars|timeline\[\]\.segments)/.test(k))
+  const docs = Object.entries(SCENE_FIELD_DOCS).filter(([k]) => !compact || !/^(task|vars|timeline\[\]\.(segments|face|react)|characters\.\*\.(skin|pupilReaction))/.test(k))
   const fields = docs.map(([k, v]) => `- ${k}: ${v}`)
   const presets = Object.entries(PALETTE_PRESETS).map(([k, p]) => `  - ${k}: ${JSON.stringify(p)}`)
   return [
@@ -139,6 +150,7 @@ export function sceneLegendText({ compact = false } = {}) {
     ...LOCATIONS.flatMap(loc => [`## Слоты локации ${loc} (слот: что можно поставить)`, ...slotLines(loc), '']),
     '## Правила хорошего диалога',
     ...DIALOGUE_RULES.map((r, i) => `${i + 1}. ${r}`),
+    ...(compact ? [] : [`${DIALOGUE_RULES.length + 1}. ${MASCOT_RULE}`]),
     '',
     ...(compact ? [] : [
       '## Шаблон сцены со словами пользователя (vars): правила и пример (фрагмент: поле vars + реплики с плейсхолдерами)',

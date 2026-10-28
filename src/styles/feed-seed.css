@@ -1,0 +1,68 @@
+/* «Семена памяти» (features/feed/seed/SeedWordOffer.jsx): плашка «Чтобы не забыть слово, сохрани его» над нижней
+   навигацией слайда ленты после верного ответа в игре. Тёмная карточка, слово-плашка (она же летит к панели),
+   лайм-кнопка «Сохранить» и текстовая «Не сейчас». Анимируются только opacity и transform. */
+.seedOffer {
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  bottom: calc(var(--v2-nav-h) + 12px);
+  z-index: 6;
+  box-sizing: border-box;
+  max-width: 420px;
+  margin: 0 auto;
+  padding: 14px 16px 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  border-radius: 16px;
+  background: #24262c;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.5), 0 10px 28px rgba(0, 0, 0, 0.6);
+  color: #fff;
+  animation: popSpringIn 0.45s backwards;
+  --pop-dy: 14px;
+}
+
+.seedOfferWord {
+  padding: 4px 14px;
+  border-radius: 10px;
+  background: rgba(182, 254, 59, 0.16);
+  border: 1px solid rgba(182, 254, 59, 0.5);
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.seedOfferText {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.3;
+  text-align: center;
+}
+
+.seedOfferBtns {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 2px;
+  width: 100%;
+}
+
+.seedOfferSave {
+  min-height: 44px;
+  border: 0;
+  border-radius: 12px;
+  background: #b6fe3b;
+  color: #111;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.seedOfferLater {
+  min-height: 40px;
+  border: 0;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 14px;
+}

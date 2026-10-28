@@ -1,14 +1,8 @@
-// Детерминированная проверка урока по механически проверяемым пунктам
-// PROJECT.md/легенды («Легенда: правила формирования урока — из кода в
-// БД»). Это не совет модели — это код: он не читает подсказки, не устаёт к
-// сотой ноде и не может «забыть» пункт. Промпт можно обойти, эту функцию —
-// нет: она либо находит нарушение, либо нет.
-//
-// Работает НАПРЯМУЮ на формате обмена (exportLesson.js): { ref, seq, type,
-// data, note?, triggers: [{ if, then }] }, где then — ref другой ноды. Это
-// тот же JSON, что нейросеть отдаёт как готовый урок — можно проверить его
-// СРАЗУ, не проходя импорт в редактор и не заходя в админку (см.
-// scripts/lint-lesson.mjs — тот же код, запущенный из командной строки).
+// Детерминированная проверка урока по механически проверяемым пунктам PROJECT.md/легенды. Это не совет модели — это код: он не читает
+// подсказки, не устаёт к сотой ноде и не может «забыть» пункт. Промпт можно обойти, эту функцию — нет.
+// Работает НАПРЯМУЮ на формате обмена (exportLesson.js): { ref, seq, type, data, note?, triggers: [{ if, then }] }, where then — ref другой
+// ноды — тот же JSON, что нейросеть отдаёт как готовый урок (см. scripts/lint-lesson.mjs — тот же код из командной строки).
+// Проверки разнесены по файлам lessonLint*.js (ритм, стиль, формулировки, медиа, ответы, сцены, замечания автора).
 
 import { applyMarkup } from '../../../shared/lib/lessonMarkup.js'
 import { checkSayPhrase } from './lessonLintSay.js'
@@ -20,6 +14,8 @@ import { checkMedia } from './lessonLintMedia.js'
 import { checkAnswersAndLimits } from './lessonLintAnswers.js'
 import { checkScene } from './lessonLintScene.js'
 import { checkSceneRules } from './lessonLintSceneRules.js'
+import { checkAuthorRules } from './lessonLintAuthor.js'
+import { checkTableWidth } from './lessonLintTable.js'
 
 const WRONG_TRIGGERS = new Set(['word_wrong', 'phrase_wrong', 'photo_wrong', 'table_wrong', 'type_wrong', 'say_wrong', 'say_skip'])
 const PRAISE_RE = /три из трёх|ни одной ошибки|без единой ошибки|все верно|всё верно/i
@@ -148,7 +144,7 @@ export function lintLesson(rawNodes, opts = {}) { // opts.title — заголо
     for (const t of n.triggers ?? []) {
       const target = t.then ? byRef.get(t.then) : null
       if (target?.type === 'text') {
-        warnings.push(`${n.ref} (audio) → ${target.ref} (text): после голоса не текст, а фото`)
+        warnings.push(`[R-audio-then-text] ${n.ref} (audio) → ${target.ref} (text): после голоса не текст, а фото`)
       }
     }
   }
@@ -156,7 +152,7 @@ export function lintLesson(rawNodes, opts = {}) { // opts.title — заголо
   for (const n of nodes) {
     const text = n.data?.content ?? ''
     if (PRAISE_RE.test(text) && reachedViaWrong.has(n.ref)) {
-      warnings.push(`${n.ref} ${n.type}: счётная похвала («${text.slice(0, 40)}…») достижима после ошибки`)
+      warnings.push(`[R-praise-path] ${n.ref} ${n.type}: счётная похвала («${text.slice(0, 40)}…») достижима после ошибки`)
     }
   }
 
@@ -175,7 +171,7 @@ export function lintLesson(rawNodes, opts = {}) { // opts.title — заголо
     const a = answers[i - 1], b = answers[i]
     const wa = lastWord(a.text), wb = lastWord(b.text)
     if (wa && wa === wb) {
-      warnings.push(`${a.n.ref} и ${b.n.ref}: проверь — одинаковое последнее слово ответа «${wb}» — «${a.text}» / «${b.text}» (может быть намеренным контрастом времён или парной веткой ошибки)`)
+      warnings.push(`[R-same-answer] ${a.n.ref} и ${b.n.ref}: проверь — одинаковое последнее слово ответа «${wb}» — «${a.text}» / «${b.text}» (может быть намеренным контрастом времён или парной веткой ошибки)`)
     }
   }
 
@@ -183,7 +179,7 @@ export function lintLesson(rawNodes, opts = {}) { // opts.title — заголо
     if (n.type !== 'table') continue
     const d = n.data ?? {}
     if ((d.mode ?? 'dictator') === 'dictator' && !(d.script ?? '').trim()) {
-      warnings.push(`${n.ref} table (dictator): нет script — таблица останется немой`)
+      warnings.push(`[R-table-script] ${n.ref} table (dictator): нет script — таблица останется немой`)
     }
   }
 
@@ -196,16 +192,17 @@ export function lintLesson(rawNodes, opts = {}) { // opts.title — заголо
   warnings.push(...checkAnswersAndLimits(nodes))
   warnings.push(...checkScene(nodes))
   warnings.push(...checkSceneRules(nodes, opts))
+  warnings.push(...checkAuthorRules(nodes), ...checkTableWidth(nodes))
 
   for (const n of nodes) {
     const d = n.data ?? {}
     const note = n.note ?? ''
     if (['photo', 'sticker'].includes(n.type) && !(d.imagePrompt ?? '').trim() && SCENE_HINT_RE.test(note)) {
-      warnings.push(`${n.ref} ${n.type}: imagePrompt пуст, а note похож на описание сцены — генерация note не прочитает`)
+      warnings.push(`[R-image-prompt] ${n.ref} ${n.type}: imagePrompt пуст, а note похож на описание сцены — генерация note не прочитает`)
     }
     if (n.type === 'photo_choice') {
       (d.photos ?? []).forEach((p, i) => {
-        if (!(p.imagePrompt ?? '').trim()) warnings.push(`${n.ref} photo_choice: у варианта ${i + 1} («${p.label ?? '?'}») пуст imagePrompt`)
+        if (!(p.imagePrompt ?? '').trim()) warnings.push(`[R-image-prompt] ${n.ref} photo_choice: у варианта ${i + 1} («${p.label ?? '?'}») пуст imagePrompt`)
       })
     }
   }
@@ -227,7 +224,7 @@ export function lintLesson(rawNodes, opts = {}) { // opts.title — заголо
     const replyToSeq = n.data?.replyToSeq
     if (!replyToSeq) continue
     if (replyToSeq >= n.seq) {
-      warnings.push(`${n.ref} ${n.type}: replyToSeq ${replyToSeq} указывает вперёд или на себя — цитата должна быть на уже прозвучавшее`)
+      warnings.push(`[R-reply-seq] ${n.ref} ${n.type}: replyToSeq ${replyToSeq} указывает вперёд или на себя — цитата должна быть на уже прозвучавшее`)
     }
   }
 

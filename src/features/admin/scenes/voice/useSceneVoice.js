@@ -9,6 +9,7 @@ import { useVoiceAll } from './useVoiceAll.js'
 import { createPreviewPlayer } from './audioPreview.js'
 import { PREVIEW_PHRASE, TRANSLATION_PREVIEW_PHRASE } from './voicePresets.js'
 import { lineKey } from './voiceStatus.js'
+import { useEnvelopeActions } from './useEnvelopeActions.js'
 
 // Состояние озвучки в сборщике: по реплике и набору (busy/error; оригинал — ключ i, перевод —
 // 't<i>', voiceStatus.lineKey), прогон «Озвучить всё» (useVoiceAll), квота ElevenLabs,
@@ -39,8 +40,9 @@ export function useSceneVoice(draft, deps = defaultDeps, { quotaFn = getElevenLa
   const setLine = useCallback((i, v, set = 'original') => setLines(s => { const k = lineKey(i, set); const n = { ...s }; if (v) n[k] = v; else delete n[k]; return n }), [])
   const allApi = useVoiceAll({ sceneRef, deps, actions, setLine, refreshQuota })
   const segApply = useSegmentApplier(sceneRef, actions, deps)
+  const envApi = useEnvelopeActions(sceneRef, actions) // «Посчитать огибающую» (для рта «живого Пита v2»)
 
-  const busy = allApi.running || previewBusy !== null || Object.values(lines).some(l => l.busy)
+  const busy = allApi.running || previewBusy !== null || envApi.envBusy || Object.values(lines).some(l => l.busy)
   useEffect(() => {
     if (!busy) return undefined
     const guard = e => { e.preventDefault(); e.returnValue = '' }
@@ -150,6 +152,6 @@ export function useSceneVoice(draft, deps = defaultDeps, { quotaFn = getElevenLa
   return useMemo(() => ({
     lines, all, quota, busy, playing, previewBusy,
     voiceLine, removeLineAudio, playLine, previewVoice, voiceSegments, removeSegmentsAudio, playUrl,
-    openAll, setSets, startAll, stopAll, closeAll, refreshQuota,
-  }), [lines, all, quota, busy, playing, previewBusy, voiceLine, removeLineAudio, playLine, previewVoice, voiceSegments, removeSegmentsAudio, playUrl, openAll, setSets, startAll, stopAll, closeAll, refreshQuota])
+    openAll, setSets, startAll, stopAll, closeAll, refreshQuota, ...envApi,
+  }), [lines, all, quota, busy, playing, previewBusy, voiceLine, removeLineAudio, playLine, previewVoice, voiceSegments, removeSegmentsAudio, playUrl, openAll, setSets, startAll, stopAll, closeAll, refreshQuota, envApi])
 }

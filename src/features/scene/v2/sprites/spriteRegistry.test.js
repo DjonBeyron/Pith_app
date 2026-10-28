@@ -9,9 +9,9 @@ import { demoOfficeScene, demoCafeScene } from '../demoScenes.js'
 import { defaultSlots } from '../sceneMigrate.js'
 
 describe('реестр спрайтов', () => {
-  it('состав: 2 кота, 5 офис, 5 кафе, 5 общих, 2 фона; id уникальны', () => {
+  it('состав: 2 кота + 2 маскота, 5 офис, 5 кафе, 5 общих, 2 фона; id уникальны', () => {
     const by = cat => SPRITES.filter(s => s.category === cat).length
-    expect(by('character-part')).toBe(2)
+    expect(by('character-part')).toBe(4)
     expect(by('office')).toBe(5)
     expect(by('cafe')).toBe(5)
     expect(by('common')).toBe(5)
@@ -24,9 +24,10 @@ describe('реестр спрайтов', () => {
     for (const s of SPRITES) {
       const tree = s.build({})
       const svg = treeToSvgDocument(tree, { viewBox: s.viewBox })
-      expect(checkSpriteSvg(svg, s.kind), `${s.id}: ${checkSpriteSvg(svg, s.kind).join('; ')}`).toEqual([])
+      const kind = s.checkKind ?? s.kind
+      expect(checkSpriteSvg(svg, kind), `${s.id}: ${checkSpriteSvg(svg, kind).join('; ')}`).toEqual([])
       expect(s.nodeCount).toBe(countNodes(tree))
-      expect(s.nodeCount).toBeLessThanOrEqual(SPRITE_KINDS[s.kind].maxNodes)
+      expect(s.nodeCount).toBeLessThanOrEqual(SPRITE_KINDS[kind].maxNodes)
     }
   })
 

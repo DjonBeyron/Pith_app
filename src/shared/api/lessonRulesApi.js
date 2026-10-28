@@ -31,7 +31,7 @@ const toEntry = row => ({
 })
 
 // Какие поля правила пишутся в какие колонки (для patchLessonRule)
-const PATCH_COLS = { text: 'rule_text', title: 'title', group: 'rule_group', checker: 'checker', severity: 'severity', bad: 'bad_example', good: 'good_example' }
+const PATCH_COLS = { text: 'rule_text', title: 'title', group: 'rule_group', checker: 'checker', severity: 'severity', bad: 'bad_example', good: 'good_example', category: 'category' }
 
 export async function listLessonRules() {
   const q = cols => supabase.from('lesson_rules').select(cols).order('sort_order', { ascending: true })

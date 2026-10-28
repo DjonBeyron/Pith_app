@@ -1,0 +1,116 @@
+/* ── Admin → Запуск ────────────────────────────────────────────────────
+   Сводка «Готово к запуску: N из M» и список условий наполнения (AdminLaunchTab.jsx, LaunchRow.jsx).
+   Каркас, «Обновить», подсказки — общие классы вкладки «Ошибки» (admin-errors.css: aeWrap/aeHead/aeRefresh/aeHint).
+   Рассчитано на 375 px: числа переносятся, длинные названия и id ломаются по словам, горизонтального скролла нет.
+   ──────────────────────────────────────────────────────────────────── */
+
+.lnWrap { gap: 10px; }
+.lnWrap .aeRefresh:disabled { opacity: 0.5; cursor: default; }
+
+.lnSummary {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid #2a2d35;
+  background: #14161b;
+}
+.lnSumText { font-size: 16px; font-weight: 700; color: #e8e8e8; }
+.lnSumSub  { font-size: 12px; color: #999; }
+.lnSumOk   { border-color: #4d6b1c; background: #161d0e; }
+.lnSumOk .lnSumText { color: #b6fe3b; }
+.lnSumBad  { border-color: #6b2a2a; background: #1d1010; }
+.lnSumBad .lnSumText { color: #f87171; }
+.lnSumWarn { border-color: #6b5a1c; background: #1d190e; }
+.lnSumWarn .lnSumText { color: #e0b34a; }
+
+.lnList { display: flex; flex-direction: column; gap: 8px; }
+
+.lnRow {
+  background: #14161b;
+  border: 1px solid #23262d;
+  border-left-width: 3px;
+  border-radius: 11px;
+  padding: 10px 12px;
+  min-width: 0;
+}
+.lnRow_ok     { border-left-color: #6a9a1f; }
+.lnRow_fail   { border-left-color: #f87171; }
+.lnRow_nodata { border-left-color: #e0b34a; }
+.lnRow_info   { border-left-color: #4a5160; }
+
+.lnTop { display: flex; align-items: flex-start; gap: 8px; }
+.lnMark {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: #111;
+  background: #4a5160;
+  margin-top: 1px;
+}
+.lnRow_ok .lnMark     { background: #b6fe3b; }
+.lnRow_fail .lnMark   { background: #f87171; }
+.lnRow_nodata .lnMark { background: #e0b34a; }
+.lnTitle { font-size: 14px; font-weight: 600; color: #e0e0e0; overflow-wrap: anywhere; }
+
+.lnNums {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  margin: 6px 0 0 26px;
+  font-size: 12px;
+  color: #ddd;
+  font-variant-numeric: tabular-nums;
+}
+.lnNums i { font-style: normal; color: #777; }
+.lnNums b { font-weight: 600; }
+
+.lnWhy, .lnHint, .lnNote { margin: 6px 0 0 26px; font-size: 12px; line-height: 1.4; overflow-wrap: anywhere; }
+.lnWhy  { color: #8a8f99; }
+.lnHint { color: #e0b34a; }
+.lnNote { color: #7ab0e0; }
+
+.lnToggle {
+  margin: 8px 0 0 26px;
+  background: transparent;
+  border: 1px solid #2a2d35;
+  border-radius: 9px;
+  padding: 6px 10px;
+  font-size: 12px;
+  color: #bbb;
+  font-family: inherit;
+  cursor: pointer;
+  text-align: left;
+  max-width: calc(100% - 26px);
+}
+.lnToggle:hover { border-color: #555; color: #ddd; }
+
+.lnItems {
+  list-style: none;
+  margin: 8px 0 0 26px;
+  padding: 0;
+  max-height: 320px;
+  overflow-y: auto;
+  border: 1px solid #1f2229;
+  border-radius: 9px;
+}
+.lnItems li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 8px;
+  padding: 6px 8px;
+  border-bottom: 1px solid #1a1d23;
+  font-size: 12px;
+}
+.lnItems li:last-child { border-bottom: 0; }
+.lnItemTitle { color: #ddd; overflow-wrap: anywhere; min-width: 0; }
+.lnItemId    { color: #666; font-size: 11px; overflow-wrap: anywhere; }
+.lnItemNote  { color: #e0b34a; font-style: normal; font-size: 11px; }

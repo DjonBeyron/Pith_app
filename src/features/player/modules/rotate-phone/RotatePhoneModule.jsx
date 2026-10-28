@@ -1,125 +1,101 @@
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
-import { Check } from 'lucide-react'
+import { useState, useRef, useMemo, useCallback, useEffect } from 'react'
+import { Check, Mic } from 'lucide-react'
+import { useAudioSource } from '../audio/useAudioSource.js'
 import PlayerBubble from '../../PlayerBubble.jsx'
-import { useLandscapeWatch } from './useLandscapeWatch.js'
-import SpeechLaneOverlay from './SpeechLaneOverlay.jsx'
-import { prepareSpeechLane } from '../../../../shared/lib/speechLanePrepare.js'
+import WordLaneGame from './WordLaneGame.jsx'
+import { readWordLane } from './wordLaneConfig.js'
+import { unlockVoice, prepareTrack } from './wordLaneVoice.js'
+import { unlockNotes } from './wordLaneNotes.js'
+import { prepareClips, prepareWords } from './wordLaneClips.js'
+import { playSpan, clipsFor } from './wordLaneAudio.js'
+import { libItems } from './wordLaneLib.js'
+import { normalizeLines, linesItems } from './wordLaneCatLines.js'
+import { getCatLines } from '../../../../shared/api/catLinesApi.js'
+import { ensureMicAccess, micNeedsHold } from '../../../../shared/lib/micAccess.js'
+import { openGameMic } from '../../../../shared/lib/gameMic.js'
+import { primeAudio } from '../../../../shared/lib/primedAudio.js'
 import { pLog } from '../../../../shared/lib/debug.js'
 
-// На телефоне карточка крутит значок, ПОКА ученик не повернёт экран — без
-// самостоятельной остановки: галочка только по факту поворота. Там, где
-// поворота не бывает (десктоп, превью админа), запускаемся сами через
-// AUTO_START_MS — иначе урок стоял бы в этой ноде вечно, а админ не смог бы
-// проверить тренажёр
-const AUTO_START_MS = 3000
-// Пауза после остановки стрелки перед переходом дальше: галочка/подпись
-// должны успеть прочитаться, а не мелькнуть
+// Пауза после конца игры перед переходом дальше: подпись «закончена» должна успеть прочитаться
 const DONE_AFTER_MS = 700
+const WORDS_WAIT_MS = 2500 // сколько максимум ждём подготовку озвучки кусков перед началом игры
 const FINISHED_TEXT = 'Голосовая тренировка закончена'
 
-// Нода «Переверни телефон» — карточка в чате (по устройству как ссылка на
-// урок: полоса, значок, текст) и голосовой тренажёр за ней. Значок телефона
-// качается, пока ученик не повернёт телефон (useLandscapeWatch). По повороту
-// пузырь заливает экран и идёт игра (SpeechLaneOverlay), по концу экран
-// стягивается обратно, и в том же пузыре написано, что тренировка закончена.
-// Игра есть ВСЕГДА: партитуру даёт prepareSpeechLane — из таймлайна, из
-// сценария или из демо-фразы, если автор ничего не настраивал.
+// Нода «Переверни телефон» (тип rotate_phone) — вертикальная игра «Повтори за диктором» (фраза из кусков: наращивание, порядок, вслепую): карточка в чате (как ссылка на урок: полоса, значок, текст) и кнопка «Начать».
+// Тап — жест, поэтому прямо в нём (синхронно, до любых await) будим звук диктора и просим полный экран; потом проверяем микрофон (доступ обычно уже дан на экране запуска урока —
+// LaunchMicAsk) и открываем игру (WordLaneGame, полный экран). Нет доступа к микрофону — игра идёт в ручном режиме. По концу игры карточка пишет, что тренировка закончена,
+// и нода отпускает цепочку (onDone('shown')). Переворот экрана в горизонталь — позже, отдельным этапом.
 export default function RotatePhoneModule({ node, file, onDone }) {
-  const tData = node.typeData?.rotate_phone ?? {}
-  const title = tData.content || 'Поверните экран'
-  const score = useMemo(() => prepareSpeechLane(tData), [tData])
-  // wait → game → finished
-  const [phase, setPhase] = useState('wait')
-  const [by, setBy] = useState(null)          // 'rotate' | 'auto'
-  const [rotation, setRotation] = useState(null)   // { source, gamma } — как повернули
-  const bubbleRef = useRef(null)
-  const doneRef = useRef(false)
-  // Touch-устройство — значит повернуть можно, и ждём именно поворота.
-  // Оговорка: Android-PWA держит портрет манифестом, там ждать бесполезно —
-  // но отличить его от обычного телефона нечем, а гасить стрелку раньше
-  // поворота нельзя по смыслу карточки
-  const [canRotate] = useState(() => window.matchMedia('(hover: none) and (pointer: coarse)').matches)
+  // Настройки игры не должны меняться от перерисовок плеера: новый объект node.typeData на каждый рендер пересобирал бы рецепт посреди игры (сбрасывая ступень и звук) — ключ по содержимому
+  const tdKey = JSON.stringify(node.typeData?.rotate_phone ?? null)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const cfg = useMemo(() => readWordLane(node.typeData?.rotate_phone), [tdKey])
+  const { src: audioSrc } = useAudioSource(node, file) // озвучка ElevenLabs из ноды (file_id) — если автор её сгенерировал
+  // История («Продолжить урок»): ноду ученик уже прошёл — игру заново не запускаем и цепочку не двигаем
+  const [phase, setPhase] = useState(node.isHistory ? 'finished' : 'wait') // wait → game → finished
+  const [busy, setBusy] = useState(false)
+  const playedRef = useRef(false)
+  const [lines, setLines] = useState(() => normalizeLines(null)) // реплики кота (общие настройки приложения): тексты по умолчанию, пока не догрузились
+  useEffect(() => { if (!node.isHistory) getCatLines().then(raw => setLines(normalizeLines(raw))) }, [node.isHistory])
 
-  const start = useCallback((reason, rot) => {
-    if (doneRef.current) return
-    doneRef.current = true
-    setRotation(rot ?? { source: 'screen', gamma: 0 })
-    setBy(reason)
-    pLog(`[rotate] старт тренажёра (${reason}, поворот ${rot?.source ?? 'нет'}): слоёв ${score.layers.length}`)
+  const start = useCallback(async () => {
+    if (busy || phase !== 'wait') return
+    setBusy(true)
+    unlockVoice()
+    // Звуки диктора: куски фразы — отдельными файлами из библиотеки озвучки слов (слоты будятся тишиной в жесте), запись автора — только финал (вся фраза; у одного слова — если слова нет в библиотеке)
+    const wordsReady = prepareWords([...libItems([...cfg.chunks, ...cfg.confusers.flat()]), ...linesItems(lines)]) // куски фразы, слова-запутыватели («Различи» — только озвучка) и озвученные реплики кота; заодно измеряется, где в файле звучит голос (без «хвоста»)
+    if (cfg.hasAudio && audioSrc) {
+      prepareTrack(audioSrc) // запасной путь: общий файл с перемоткой (элемент будится в жесте)
+      const n = cfg.chunks.length
+      const rows = n > 1 ? [clipsFor(cfg.clips, n, cfg.chunks.map((_, i) => i), 0)].filter(Boolean) : (cfg.clips ?? [])
+      if (rows.length) prepareClips(audioSrc, rows.map(playSpan)) // файл режется на клипы-высказывания (iPhone не подгружает аудио заранее и плохо перематывает)
+    }
+    unlockNotes() // ноты-награды: элементы просыпаются в жесте, иначе iOS не даст им зазвучать по таймеру
+    primeAudio()
+    try { document.documentElement.requestFullscreen?.({ navigationUI: 'hide' })?.catch?.(() => {}) } catch { /* iPhone и часть браузеров не умеют — остаёмся в окне */ }
+    const [mic] = await Promise.all([
+      micNeedsHold() ? openGameMic() : ensureMicAccess(), // iPhone: один поток на всю игру (диалог один), у остальных доступ запоминается
+      Promise.race([wordsReady, new Promise(r => setTimeout(r, WORDS_WAIT_MS))]),   // длины слов нужны плану диктора, но долго ждать не будем
+    ])
+    pLog(`[rotate] игра «${cfg.word}»: микрофон ${mic}${cfg.isDemo ? ', слово по умолчанию' : ''}`)
+    playedRef.current = true
     setPhase('game')
-  }, [score])
+    setBusy(false)
+  }, [busy, phase, cfg, audioSrc, lines])
 
-  useLandscapeWatch(phase === 'wait', useCallback(rot => start('rotate', rot), [start]))
-
-  // Откуда партитура — по логу видно, настроен ли тренажёр у ноды
-  useEffect(() => {
-    pLog(`[rotate] партитура: ${score.source} — слоёв ${score.layers.length}, композиция ${score.timelineLen.toFixed(1)}с, озвучка ${tData.file_id ? `есть (кусков ${score.audioClips.length})` : 'нет'}`)
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Вне телефона поворота не будет — стартуем по часам. Восстановленная
-  // история («Продолжить урок») — ноду студент уже прошёл, запускать
-  // голосовой тренажёр заново (со звуком) не нужно
-  useEffect(() => {
-    if (canRotate || node.isHistory) return
-    const t = setTimeout(() => {
-      pLog(`[rotate] поворота не бывает — идём дальше сами через ${AUTO_START_MS}мс`)
-      start('auto')
-    }, AUTO_START_MS)
-    return () => clearTimeout(t)
-  }, [start, canRotate]) // eslint-disable-line react-hooks/exhaustive-deps
+  const finished = useCallback(() => {
+    try { if (document.fullscreenElement) document.exitFullscreen?.() } catch { /* уже вышли */ }
+    setPhase('finished')
+  }, [])
 
   useEffect(() => {
-    if (phase !== 'finished') return
+    if (phase !== 'finished' || !playedRef.current) return undefined
     const t = setTimeout(() => onDone?.('shown'), DONE_AFTER_MS)
     return () => clearTimeout(t)
   }, [phase, onDone])
 
-  const stopped = phase !== 'wait'
-
+  const done = phase === 'finished'
   return (
     <div className="playerMsgRow">
       <PlayerBubble className="playerMsgBubble playerMsgBubble--lessonRef">
-        <div ref={bubbleRef} className={`playerRotateCard${stopped ? ' playerRotateCard--stopped' : ''}`}>
+        <div className={`playerRotateCard${done ? ' playerRotateCard--stopped' : ''}`}>
           <span className="playerLessonRefBar" />
-          {/* Стрелки — свой SVG, стоят на месте. Телефон — отдельный SVG внутри
-              обычного span, и крутится именно span: CSS-поворот SVG-группы
-              Safari проигрывает ненадёжно (transform-origin у <g> считается
-              иначе), а HTML-элемент крутится везде одинаково */}
           <span className="playerRotateIconWrap" aria-hidden="true">
-            <svg className="playerRotateArrows" viewBox="0 0 80 80" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M13 52 A28 28 0 0 1 28 14" />
-              <path d="M23 12 L29 13 L28 19" />
-              <path d="M67 28 A28 28 0 0 1 52 66" />
-              <path d="M57 68 L51 67 L52 61" />
-            </svg>
-            <span className="playerRotatePhone">
-              <svg viewBox="0 0 24 40" width="20" height="33" fill="none" stroke="currentColor" strokeWidth="2.2">
-                <rect x="2" y="2" width="20" height="36" rx="4" fill="#0e1013" />
-                <rect x="6" y="7" width="12" height="22" rx="1.2" fill="currentColor" stroke="none" opacity="0.28" />
-                <circle cx="12" cy="33.5" r="1.5" fill="currentColor" stroke="none" />
-              </svg>
-            </span>
-            {/* Галочка — по настоящему повороту или по концу тренировки */}
-            {(by === 'rotate' || phase === 'finished') && <span className="playerRotateCheck"><Check size={13} /></span>}
+            <Mic size={30} className="playerRotateMic" />
+            {done && <span className="playerRotateCheck"><Check size={13} /></span>}
           </span>
           <span className="playerLessonRefBody">
-            <span className="playerRotateTitle">{phase === 'finished' ? FINISHED_TEXT : title}</span>
-            <span className="playerRotateCaption">
-              {phase === 'finished' ? 'Можно вернуть телефон вертикально' : 'Переверните телефон горизонтально'}
-            </span>
+            <span className="playerRotateTitle">{done ? FINISHED_TEXT : cfg.title}</span>
+            <span className="playerRotateCaption">{done ? `${cfg.word} — ${cfg.translation || 'повторено'}` : cfg.chunks.length > 1 ? 'Повторяй за диктором: куски фразы, порядок, по памяти' : 'Послушай слово и повтори его вслух'}</span>
           </span>
+          {!done && (
+            <button type="button" className="playerRotateStart" onClick={start} disabled={busy || phase === 'game'} data-testid="rotate-start">
+              {busy ? '…' : 'Начать'}
+            </button>
+          )}
         </div>
       </PlayerBubble>
-      {phase === 'game' && (
-        <SpeechLaneOverlay
-          bubbleRef={bubbleRef}
-          node={node}
-          file={file}
-          score={score}
-          rotation={rotation}
-          onFinished={() => setPhase('finished')}
-        />
-      )}
+      {phase === 'game' && <WordLaneGame cfg={cfg} audioSrc={cfg.hasAudio ? audioSrc : null} lines={lines} onFinished={finished} />}
     </div>
   )
 }

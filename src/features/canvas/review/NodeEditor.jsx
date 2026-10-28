@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { toMarkup } from '../../../shared/lib/lessonMarkup.js'
+import { Eraser } from 'lucide-react'
+import { toMarkup, BASE_GRAY } from '../../../shared/lib/lessonMarkup.js'
 import CopyIcon from './CopyIcon.jsx'
 import EdField from './EdField.jsx'
 import { useDebouncedPatch } from './useDebouncedPatch.js'
@@ -30,14 +31,16 @@ function MarkupField({ data, field, label, onPatch, reg, ro }) {
 // каждая буква перерисовывала бы весь разбор (ленту, линтер, холст)
 function EditableMarkup({ data, field, label, onPatch, reg }) {
   const [local, setLocal] = useState(() => ({ value: data[field] ?? '', highlights: data.highlights ?? [] }))
-  const commit = useDebouncedPatch(onPatch, reg)
+  const commit = useDebouncedPatch(onPatch, reg, 900) // 900 мс: на большом уроке каждая отправка перерисовывает разбор, при наборе подряд не шлём
   const change = patch => {
     setLocal({ value: patch[field] ?? '', highlights: patch.highlights ?? [] })
     commit(d => ({ ...d, ...patch }))
   }
+  // «Снять раскраску» со всего поля: новое, напечатанное внутри цветного куска, наследует его цвет, а выделить и стереть не всегда удобно
+  const clearAll = () => change({ [field]: local.value, highlights: local.value ? [{ start: 0, end: local.value.length, mode: 'text', color: BASE_GRAY, opacity: 1 }] : [] })
   return (
     <div className="rvwEdBlock">
-      <label className="rvwEdLbl">{label} <CopyIcon text={() => local.value} /></label>
+      <label className="rvwEdLbl">{label} <CopyIcon text={() => local.value} />{local.highlights.length > 0 && <button type="button" className="rvwCopyIcon" title="Сбросить всё поле к обычному тексту (базовый серый)" onClick={clearAll}><Eraser size={13} /></button>}</label>
       <RichTextField field={field} value={local.value} highlights={local.highlights} growTextarea className="rvwEdRich" onChange={change} />
     </div>
   )

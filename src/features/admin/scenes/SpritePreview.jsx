@@ -8,7 +8,7 @@ import { renderTree } from '../../scene/v2/renderTree.js'
 export default function SpritePreview({ sprite, props, mouth = 'closed', size = 72, className = '', title }) {
   const tree = useMemo(() => {
     if (!sprite) return null
-    const t = sprite.build(props ?? {})
+    const t = sprite.build({ ...(props ?? {}), mouth }) // mouth читает маскот (форма рта в дереве); обычный кот — через data-mouth ниже
     if (sprite.kind === 'cat' && t?.attrs) return { ...t, attrs: { ...t.attrs, 'data-mouth': mouth } }
     return t
   }, [sprite, props, mouth])

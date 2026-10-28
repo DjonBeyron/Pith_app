@@ -38,13 +38,13 @@ export function checkSayPhrase(nodes, start) {
       // Подсказка помогает, а не отвечает за ученика: слово/звук можно, всю фразу-эталон целиком — нет
       const want = tokenize(d.phrase).join(' ')
       const said = tokenize(hint?.data?.text ?? hint?.data?.content ?? '').join(' ')
-      if (hint && tokenize(d.phrase).length >= 3 && said.includes(want)) out.push(`${n.ref} say_phrase: подсказка-сигнал ${s.ref} произносит всю фразу «${d.phrase}» — она должна помогать (слово, ударение), а не отвечать за ученика`)
+      if (hint && tokenize(d.phrase).length >= 3 && said.includes(want)) out.push(`[R-say-signal] ${n.ref} say_phrase: подсказка-сигнал ${s.ref} произносит всю фразу «${d.phrase}» — она должна помогать (слово, ударение), а не отвечать за ученика`)
     }
     const parents = parentsOf.get(n.ref) ?? []
-    if (n.ref === start?.ref) out.push(`${n.ref} say_phrase: стоит первой нодой урока — сначала нужна текстовая нода-задание`)
-    else if (parents.some(p => p.type === 'say_phrase')) out.push(`${n.ref} say_phrase: идёт сразу после другой say_phrase — вставь между ними текстовую ноду-задание`)
+    if (n.ref === start?.ref) out.push(`[R-say-pair] ${n.ref} say_phrase: стоит первой нодой урока — сначала нужна текстовая нода-задание`)
+    else if (parents.some(p => p.type === 'say_phrase')) out.push(`[R-say-pair] ${n.ref} say_phrase: идёт сразу после другой say_phrase — вставь между ними текстовую ноду-задание`)
     else if (parents.length && !parents.some(p => ['text', 'audio', 'photo'].includes(p.type))) {
-      out.push(`${n.ref} say_phrase: перед ней нет ноды-задания (текст, голосовое или фото с подписью) — модуль сам ничего в чат не пишет и фразу не показывает, поэтому что и как сказать вслух должно объяснить сообщение перед ним (рекомендация)`)
+      out.push(`[R-say-pair] ${n.ref} say_phrase: перед ней нет ноды-задания (текст, голосовое или фото с подписью) — модуль сам ничего в чат не пишет и фразу не показывает, поэтому что и как сказать вслух должно объяснить сообщение перед ним (рекомендация)`)
     }
   }
   return out

@@ -14,7 +14,7 @@ export function diffNodes(base, draft) {
     const b = baseById.get(n.id)
     if (!b) continue
     const patch = {}
-    for (const f of FIELDS) if (!same(f, n[f], b[f])) patch[f] = n[f]
+    for (const f of FIELDS) if (n[f] !== b[f] && !same(f, n[f], b[f])) patch[f] = n[f] // та же ссылка — точно без изменений, без JSON.stringify
     if (Object.keys(patch).length) changed.push({ id: n.id, patch })
   }
   return {

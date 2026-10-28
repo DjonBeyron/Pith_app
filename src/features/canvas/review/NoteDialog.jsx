@@ -1,9 +1,12 @@
-import { useEffect, useRef, memo } from 'react'
+import { useEffect, useRef, useState, memo } from 'react'
 import { Undo2, Redo2 } from 'lucide-react'
 import { createPortal } from 'react-dom'
 import NoteComment from './NoteComment.jsx'
 import NodeEditor from './NodeEditor.jsx'
 import { SlotBody } from './PlayerLikeFeed.jsx'
+import { useDragWindow } from './useDragWindow.js'
+import { usePopupWindow } from './usePopupWindow.js'
+import { ExternalLink } from 'lucide-react'
 
 // Одно и то же сообщение: превью «как в плеере» + поля. ro — только чтение
 const Side = memo(function Side({ label, hint, item, canvasNode, canvasNodes, files, teacherName, ro, onPatch, onType, reg, rev = 0 }) {
@@ -21,9 +24,13 @@ const Side = memo(function Side({ label, hint, item, canvasNode, canvasNodes, fi
 // Окно «Замечание». Слева «До» — оригинал, как был при первом открытии (не меняется), справа «После» — то же сообщение, которое можно править
 // (текст, таблица, озвучка, промпт; правки идут в копию урока разбора). Снизу шаблон и комментарий; в JSON уходит и «до», и «после».
 // Без item — общее замечание ко всему уроку (только нижняя часть)
-export default function NoteDialog({ title, before, item, canvasNode, canvasNodes, files, teacherName, onPatch, onType, session, existing = [], onSave, onRemove, onClose, onKeep }) {
+export default function NoteDialog({ title, before, item, canvasNode, canvasNodes, files, teacherName, onPatch, onType, session, existing = [], onSave, onRemove, onClose, onKeep, onGolden = null }) {
   const withNode = !!(item && canvasNode && before)
   const dirty = withNode && session?.dirty()
+  const { boxRef, style: winStyle, onHeadMouseDown, onBoxMouseDown, reset: resetWin } = useDragWindow(withNode ? 'pithy-review-win:note' : 'pithy-review-win:general')
+  // «⧉ в отдельное окно»: окно замечания уезжает в отдельное окно браузера (хоть на второй монитор); закрыли его крестиком ОС — правки остаются
+  const [popped, setPopped] = useState(false)
+  const popBody = usePopupWindow(popped, { title, onClosed: () => { setPopped(false); (onKeep ?? onClose)() } })
   // «Закрыть» отменяет всё, что сделано в редакторе (после подтверждения, если что-то менялось); «Сохранить правку» оставляет правки без замечания
   const cancel = () => { if (!dirty || window.confirm('Закрыть? Всё, что вы изменили в редакторе, будет отменено.')) onClose() }
   // Ctrl/Cmd+Z — отмена, Ctrl+Shift+Z / Ctrl+Y — повтор: в редакторе ноды откатываются правки ноды, в поле комментария — набор комментария (у каждого своя цепочка). Слушаем на документе: после отмены
@@ -43,13 +50,13 @@ export default function NoteDialog({ title, before, item, canvasNode, canvasNode
   })
   useEffect(() => {
     const h = e => keyRef.current?.(e)
-    document.addEventListener('keydown', h, true)
-    return () => document.removeEventListener('keydown', h, true)
-  }, [])
-  return createPortal(
-    <div className="rvwNtBack" onMouseDown={e => { e.stopPropagation(); if (e.target === e.currentTarget) cancel() }}>
-      <div className={`rvwNtBox rvwNtSplit${withNode ? '' : ' single'}`} onMouseDown={e => e.stopPropagation()}>
-        <div className="rvwNtHead">
+    const doc = popBody?.ownerDocument ?? document
+    doc.addEventListener('keydown', h, true)
+    return () => doc.removeEventListener('keydown', h, true)
+  }, [popBody])
+  const box = (
+      <div ref={popBody ? null : boxRef} style={popBody ? undefined : winStyle} className={`rvwNtBox rvwNtSplit${withNode ? '' : ' single'}`} onMouseDown={e => { e.stopPropagation(); onBoxMouseDown(e) }}>
+        <div className="rvwNtHead" title="Тащи за шапку куда угодно; двойной клик — вернуть в центр" onMouseDown={onHeadMouseDown} onDoubleClick={resetWin}>
           <b>{title}</b>
           <span className="rvwNtHeadBtns">
             {withNode && session && (
@@ -59,6 +66,7 @@ export default function NoteDialog({ title, before, item, canvasNode, canvasNode
               </>
             )}
             {dirty && <button className="rvwBtn" title="Оставить правки в тексте без замечания" onClick={onKeep}>Сохранить правку</button>}
+            {!popBody && <button className="rvwBtn rvwNtIconBtn" title="В отдельное окно браузера (можно утащить на второй монитор)" onClick={() => setPopped(true)}><ExternalLink size={14} /></button>}
             <button className="rvwBtn" title={withNode ? 'Закрыть: изменения в редакторе отменяются' : 'Закрыть'} onClick={cancel}>Закрыть</button>
           </span>
         </div>
@@ -68,9 +76,9 @@ export default function NoteDialog({ title, before, item, canvasNode, canvasNode
             <Side label="После" hint=" · можно править" item={item} canvasNode={canvasNode} canvasNodes={canvasNodes} files={files} teacherName={teacherName} onPatch={onPatch} onType={onType} reg={session?.reg.current} rev={session?.rev} />
           </div>
         )}
-        <NoteComment session={session} existing={existing} onSave={onSave} onRemove={onRemove} onDone={onKeep ?? onClose} />
+        <NoteComment key={item?.ref ?? 'general'} session={session} existing={existing} dirty={!!dirty} onSave={onSave} onRemove={onRemove} onDone={onKeep ?? onClose} onGolden={withNode ? onGolden : null} />
       </div>
-    </div>,
-    document.body,
   )
+  if (popBody) return createPortal(box, popBody)
+  return createPortal(<div className="rvwNtBack" onMouseDown={e => e.stopPropagation()}>{box}</div>, document.body)
 }

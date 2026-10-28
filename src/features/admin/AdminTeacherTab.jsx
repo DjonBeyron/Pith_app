@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import AvatarCrop from '../../shared/ui/AvatarCrop.jsx'
+import PitAvatar from '../../shared/ui/PitAvatar.jsx'
 import { getDefaultTeacher, saveDefaultTeacher } from '../../shared/api/appSettingsApi.js'
 import { uploadToR2 } from '../../shared/lib/r2.js'
 
@@ -81,7 +82,7 @@ export default function AdminTeacherTab() {
           className="atTeacherInput"
           value={name}
           onChange={e => { setName(e.target.value); setStatus('') }}
-          placeholder="Например: Анна"
+          placeholder="Например: Анна (пусто — «Учитель»)"
         />
       </label>
 
@@ -91,16 +92,17 @@ export default function AdminTeacherTab() {
           {logoUrl && (
             <span className="atTeacherLogoActions">
               <button className="atTeacherLinkBtn" onClick={() => fileInputRef.current?.click()}>изменить</button>
-              <button className="atTeacherLinkBtn" onClick={handleRemoveLogo}>убрать</button>
+              <button className="atTeacherLinkBtn" onClick={handleRemoveLogo}>вернуть Пита</button>
             </span>
           )}
         </div>
         {logoUrl ? (
           <AvatarCrop src={logoUrl} crop={crop} onCropChange={setCrop} />
         ) : (
+          // Фото нет — во всех чатах стоит Пит (запечённая аватарка по умолчанию); своё фото главнее
           <div className="atTeacherLogoEmpty" onClick={() => fileInputRef.current?.click()}>
-            <span className="atTeacherLogoInitial">{name?.[0]?.toUpperCase() || 'У'}</span>
-            <span>добавить фото</span>
+            <span className="atTeacherLogoInitial"><PitAvatar size={40} /></span>
+            <span>Сейчас во всех чатах: <b>Пит</b> (по умолчанию). Нажмите, чтобы загрузить своё фото</span>
           </div>
         )}
       </div>

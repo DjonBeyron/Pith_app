@@ -17,8 +17,10 @@ function formatEta(ms) {
 // что пропущено и почему — с номером ноды, чтобы можно было найти и
 // починить руками), а во время прогона — прогресс отдельно по аудио и фото,
 // оценку оставшегося времени и живой список результатов.
-export default function BatchGeneratePanel({ boardApiRef, pickFile, onClose }) {
-  const { plan, refreshPlan, running, results, etaMs, start, cancel } = useBatchGenerate(boardApiRef, pickFile)
+// scope — строки списка сломанных нод (BrokenNodesBadge → «⚡ Озвучить и сгенерировать заново»): план только по ним, остальные ноды
+// не трогаем; ссылки у сломанных нод не сбрасываются заранее — закрыл окно без «Начать» → всё как было, список сломанных на месте
+export default function BatchGeneratePanel({ boardApiRef, pickFile, onClose, scope = null }) {
+  const { plan, refreshPlan, running, results, etaMs, start, cancel } = useBatchGenerate(boardApiRef, pickFile, scope)
 
   useEffect(() => { refreshPlan() }, [refreshPlan])
 
@@ -38,10 +40,13 @@ export default function BatchGeneratePanel({ boardApiRef, pickFile, onClose }) {
     <div className="bgpOverlay" onMouseDown={handleClose}>
       <div className="bgpModal" onMouseDown={e => e.stopPropagation()}>
         <div className="bgpHeader">
-          <span className="bgpTitle">⚡ Массовая генерация</span>
+          <span className="bgpTitle">{scope ? `⚡ Заново: сломанные ноды (${scope.length})` : '⚡ Массовая генерация'}</span>
           <button className="lioClose" onClick={handleClose}>×</button>
         </div>
 
+        {scope && (
+          <div className="lioHint">Только сломанные ноды: {scope.map(r => `#${r.seq}`).join(', ')}. Остальные ноды урока не трогаем. Пока не нажато «Начать» — ничего не меняется.</div>
+        )}
         {!plan ? (
           <div className="lioHint">Считаю план…</div>
         ) : (
@@ -63,7 +68,7 @@ export default function BatchGeneratePanel({ boardApiRef, pickFile, onClose }) {
             )}
 
             {total === 0 ? (
-              <div className="lioHint">Генерировать нечего — либо все файлы уже на месте, либо не хватает текста/промпта (см. предупреждения выше).</div>
+              <div className="lioHint">{scope ? 'Из сломанных нод заново сделать нечего — см. причины выше.' : 'Генерировать нечего — либо все файлы уже на месте, либо не хватает текста/промпта (см. предупреждения выше).'}</div>
             ) : (
               <>
                 <div className="bgpProgressRow">

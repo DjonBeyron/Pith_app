@@ -5,13 +5,16 @@ import {
   voiceSpec, translationVoiceSpec, audioHash, timingsFromTts, durationMsFromTimings, DEFAULT_VOICE_ID, AUDIO_SETS,
 } from '../../../scene/v2/sceneVoice.js'
 import { segmentUrls } from '../../../scene/v2/sceneVarsSegments.js'
+import { envelopeFromFile } from './voiceEnvelope.js'
 
 // Генерация озвучки одной реплики: ElevenLabs (tts-elevenlabs, только админ — JWT в
 // authHeaders) → mp3 в R2 (uploadToR2 → r2-upload-url, как файлы уроков) → нейтральный patch
 // { audioUrl, wordTimings, audioMeta }. Один путь для двух наборов (sceneVoice.AUDIO_SETS):
 // оригинал — text голосом персонажа, перевод — translation голосом перевода
-// (translationVoiceSpec); в поля набора patch переводит voicePlan.toSetPatch. Зависимости
-// (tts/upload/remove/probeDuration) подменяются в тестах — сети там нет.
+// (translationVoiceSpec); в поля набора patch переводит voicePlan.toSetPatch. Из полученного файла сразу считается
+// огибающая громкости (audioMeta.env, shared/lib/audioEnvelope.js — для рта «живого Пита v2»); не вышло — озвучка всё равно
+// сохраняется без неё (посчитать можно кнопкой в панели озвучки). Зависимости
+// (tts/upload/remove/probeDuration/envelope) подменяются в тестах — сети там нет.
 
 export const defaultDeps = {
   tts: (text, voice) => generateSpeech(text, voice),
@@ -21,6 +24,7 @@ export const defaultDeps = {
     const url = URL.createObjectURL(file)
     return probeAudioDuration(url).finally(() => URL.revokeObjectURL(url))
   },
+  envelope: file => envelopeFromFile(file),
 }
 
 // voiceSpec → параметры запроса tts-elevenlabs ('default' → голос секрета, voiceId не шлём)
@@ -30,7 +34,7 @@ export function ttsRequest(spec) {
   return req
 }
 
-// Текст + голос → нейтральный patch { audioUrl, wordTimings, audioMeta: { hash, voiceId, durationMs } }
+// Текст + голос → нейтральный patch { audioUrl, wordTimings, audioMeta: { hash, voiceId, durationMs, env? } }
 export async function generateAudio(text, spec, deps = defaultDeps) {
   const clean = String(text ?? '').trim()
   if (!clean) throw new Error('пустая реплика')
@@ -38,10 +42,13 @@ export async function generateAudio(text, spec, deps = defaultDeps) {
   let durationSec = null
   try { durationSec = await deps.probeDuration?.(file) } catch { /* длительность возьмём из таймингов */ }
   const wordTimings = timingsFromTts(raw, durationSec)
+  let env = null
+  try { env = await deps.envelope?.(file) } catch { /* огибающая необязательна: рот пойдёт по буквам */ }
   const audioUrl = await deps.upload(file)
   const audioMeta = { hash: audioHash(clean, spec), voiceId: voiceId || spec.voiceId }
   const durationMs = durationMsFromTimings(wordTimings, durationSec)
   if (durationMs !== null) audioMeta.durationMs = durationMs
+  if (env?.data) audioMeta.env = env
   const patch = { audioUrl, audioMeta }
   if (wordTimings.length) patch.wordTimings = wordTimings
   return patch

@@ -9,6 +9,7 @@ import { audioPartOf } from './sceneVoice.js'
 import { resolveVoiceFlags } from './sceneOptions.js'
 import { describeAudioFail } from './sceneAudioFail.js'
 import { sceneTrace, srcKind, shortText } from './sceneTrace.js'
+import { envelopeLevels } from '../../../shared/lib/audioEnvelope.js'
 
 // Один путь воспроизведения реплики для режиссёра (directorCore.playLine) —
 // им идут и обычная игра, и playOnce («Ещё раз» в задании ленты), и нода урока.
@@ -31,6 +32,8 @@ import { sceneTrace, srcKind, shortText } from './sceneTrace.js'
 //  · once (playOnce, «Ещё раз») — только оригинал со звуком, переводом не подсказываем;
 //  · setPhase('original' | 'translation' | null) — что звучит сейчас (подсветка перевода
 //    в облачке); cancel() гасит любой шаг, рот закрывается.
+// «Живой Пит v2» (opts().animV2, только у говорящего-маскота — скин в characters; animFlags.js): рот отдаёт коды Rhubarb по буквам слов
+// с гейтом по огибающей audioMeta.env (нет — только буквы), граница слова и начало реплики идут в getLook() — зрачки (pupilLook.js).
 // Без React: опции читаются через opts() на старте каждой реплики. Тесты —
 // scenePlayLine.test.js, scenePlayLineTranslation.test.js.
 
@@ -68,7 +71,7 @@ export function makeScenePlayLine({
   scene, opts, getMouthEl, setMode, setPhase = () => {}, onFallback = null, onStarted = null, onClock = null,
   cache = sceneAudioCache, getAudio = getSceneAudioElement, allowed = prefetchAllowed,
   speak = speakFallback, speakTranslation = speakTranslationFallback, playAudio = playLineAudio, timers = globalThis,
-  logFallback = logAudioFallback, playChain = playSegmentChain, getSpare = peekSceneSpareElement,
+  logFallback = logAudioFallback, playChain = playSegmentChain, getSpare = peekSceneSpareElement, getLook = () => null,
 }) {
   let who = null
   const apply = shape => setMouth(getMouthEl(who), shape)
@@ -86,7 +89,11 @@ export function makeScenePlayLine({
     const voice = { ...baseVoice, rate: Math.min(10, Math.max(0.1, (baseVoice?.rate ?? 1) * k)) }
     const cancels = []
     let finished = false
-    const finish = () => { if (finished) return; finished = true; driver.stop(); setPhase(null); onEnd() }
+    const finish = () => { if (finished) return; finished = true; driver.stop(); getLook()?.lineEnd(); setPhase(null); onEnd() }
+    // v2: рот кодами и зрачки — только у маскота; env берётся у самого комплекта озвучки (оригинал / перевод — у каждого свой)
+    const v2On = !!o.animV2 && !!scene.characters?.[line.who]?.skin
+    const v2Of = part => (v2On ? { lv: envelopeLevels(part.audioMeta?.env), onWord: () => getLook()?.word(line.who) } : null)
+    if (v2On) getLook()?.lineStart(line.who)
 
     // Один комплект (оригинал или перевод) файлом с подкачкой, иначе — запасной вариант
     function playPart(kind, { sound, applyMouth, onDone, fallback }) {
@@ -98,7 +105,7 @@ export function makeScenePlayLine({
       cache.pin(part.audioUrl)
       const slot = cancels.push(null) - 1 // место файла — перед запасным вариантом, даже если onFail пришёл синхронно
       cancels[slot] = playAudio(part, audio, {
-        src, muted: !sound, rate: k, lowPower: !!o.lowPower, applyMouth, timers,
+        src, muted: !sound, rate: k, lowPower: !!o.lowPower, applyMouth, timers, v2: kind === 'original' ? v2Of(part) : null,
         onEnd: onDone, onMode: setMode, onStarted: kind === 'original' && onStarted ? ms => onStarted(index, ms) : undefined,
         onClock: kind === 'original' && onClock ? ms => onClock(index, ms) : undefined,
         onFail: reason => {
@@ -123,7 +130,7 @@ export function makeScenePlayLine({
       const srcOf = url => o.audioSrcOf?.(url) ?? cache.resolve(url) ?? null
       const slot = cancels.push(null) - 1
       cancels[slot] = playChain(plan, getAudio(), {
-        spare: getSpare(), srcOf, muted: !sound, rate: k, lowPower: !!o.lowPower, applyMouth: apply, timers,
+        spare: getSpare(), srcOf, muted: !sound, rate: k, lowPower: !!o.lowPower, applyMouth: apply, timers, v2: v2Of({}),
         onEnd: onDone, onMode: setMode,
         onFail: reason => {
           const info = { url: plan.parts[0].audioUrl, src: null, reason: reason ?? 'unknown', kind: 'original', index }
@@ -151,7 +158,7 @@ export function makeScenePlayLine({
     const soundOriginal = o.sound && flags.original
     const speakOriginal = () => {
       driver.start()
-      cancels.push(speak(line.text, voice, { sound: soundOriginal, lang: detectLang(line.text), onWord: () => driver.onWord(), onEnd: afterOriginal, onMode: setMode }))
+      cancels.push(speak(line.text, voice, { sound: soundOriginal, lang: detectLang(line.text), onWord: () => { driver.onWord(); if (v2On) getLook()?.word(line.who) }, onEnd: afterOriginal, onMode: setMode }))
     }
     if (Array.isArray(line.segments) && line.segments.length) {
       playSegments({ sound: soundOriginal, onDone: afterOriginal, fallback: speakOriginal })
@@ -160,7 +167,7 @@ export function makeScenePlayLine({
     }
 
     // Отмена (пауза, уход со слайда, новая реплика): гасит текущий шаг, поздние onEnd шагов игнорируются
-    return () => { finished = true; for (const c of cancels) c?.(); driver.stop(); apply('closed'); setPhase(null) }
+    return () => { finished = true; for (const c of cancels) c?.(); driver.stop(); apply('closed'); getLook()?.lineEnd(); setPhase(null) }
   }
 
   return { playLine, stop: () => driver.stop() }

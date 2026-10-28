@@ -103,6 +103,7 @@ export function unloadEngine(model) {
  * Для «Сказать фразу» (медленная речь): gate (true — voskGate.js не отдаёт декодеру тишину дольше ≈0,4 с подряд, иначе его эндпойнтер сам обрывает запись на паузе 0,5–2 с), cleanPartial (как
  * считать текст для авто-стопа: без [unk] — «слово услышано» только настоящее), isComplete(текст) → true, когда в partial уже вся фраза: затвор открывается, а авто-стоп ждёт completeMs вместо autoStopMs
  * (stopBy 'full'). stats.gatedMs — сколько мс тишины не отдали движку.
+ * opts.stream — готовый MediaStream: тогда getUserMedia не зовётся (второго диалога разрешения нет), а по концу сеанса треки остаются живыми — ими владеет вызывающий.
  * opts.record (true — только «Сказать фразу» с режимом «голосовое с текстом»): сырые куски звука ДО затвора копятся в памяти (voskRecord.js), а в stats.audio приходит клип
  * { ok, blob (WAV 16 кГц), durationMs, peaks } либо { ok: false, reason }; без флага stats.audio = null и память не тратится. Звук нигде не сохраняется и не отправляется.
  * Остановка: по тапу (manual) сначала дожидаемся ещё одного куска звука (до DRAIN_MAX_MS) — иначе последние до 128 мс речи, что сидят в буфере ScriptProcessor, пропали бы (авто-стоп и потолок
@@ -110,12 +111,13 @@ export function unloadEngine(model) {
  */
 export async function startListening(model, grammar, cb, opts = {}) {
   const tap = performance.now()
-  const ses = opts.session ? createAudioSession() : null
+  const ses = opts.session && !opts.stream ? createAudioSession() : null // с готовым потоком сессию не трогаем: он открыт раньше, и смена типа сессии заглушила бы его
   const held = ses && ses.set(opts.session)
   const release = () => { if (held) ses.set('auto') }
-  let stream
+  let stream = opts.stream ?? null // готовый поток (игра на iPhone держит один на все ступени): не открываем и не останавливаем его
+  const own = !stream
   try {
-    stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, channelCount: 1 } })
+    if (own) stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, channelCount: 1 } })
   } catch (e) { release(); throw e }
   const micMs = ms(tap)
   const Ctx = window.AudioContext || window.webkitAudioContext
@@ -124,7 +126,7 @@ export async function startListening(model, grammar, cb, opts = {}) {
     ctx = createCaptureContext(Ctx)
     rec = grammar ? new model.KaldiRecognizer(ctx.sampleRate, grammar) : new model.KaldiRecognizer(ctx.sampleRate) // без словаря — открытый (свободные фразы)
   } catch (e) { // модель могли выгрузить, AudioContext не создался: микрофон и аудиосессию отпускаем
-    releaseCapture({ stream, ctx, done: release })
+    releaseCapture({ stream: own ? stream : null, ctx, done: release })
     throw e
   }
   try { rec.setWords(true) } catch { /* без пословных меток */ }
@@ -138,7 +140,7 @@ export async function startListening(model, grammar, cb, opts = {}) {
     recorder?.reset()
     clearInterval(timer); clearTimeout(st.drain)
     try { rec.remove() } catch { /* уже удалён */ }
-    releaseCapture({ stream, nodes: [node, src], ctx, done: release }) // треки → узлы → close() → только потом аудиосессия 'auto'
+    releaseCapture({ stream: own ? stream : null, nodes: [node, src], ctx, done: release }) // треки → узлы → close() → только потом аудиосессия 'auto'
   }
   rec.on('partialresult', m => {
     if (st.done || !m.result.partial) return
@@ -199,7 +201,7 @@ export async function startListening(model, grammar, cb, opts = {}) {
     st.finalizing = true
     clearTimeout(st.drain)
     st.drainMs = ms(st.stopAt)
-    stream.getTracks().forEach(tr => tr.stop())
+    if (own) stream.getTracks().forEach(tr => tr.stop())
     st.tailMs = feedSilence(rec, ctx.sampleRate, TAIL_SILENCE_MS)
     try { rec.retrieveFinalResult() } catch { free(); cb.onResult('', {}) }
   }

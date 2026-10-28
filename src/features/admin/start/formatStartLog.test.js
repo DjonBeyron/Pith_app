@@ -16,6 +16,10 @@ describe('formatStartLog', () => {
     const withShell = shell => formatStartLog((r => ({ ...r, ctx: { ...r.ctx, ...shell } }))(goodRec()))
     expect(withShell({ shell: 'cache', shellBuild: '2.0.9-ab12cd34', shellMs: 3 })).toContain('оболочка=cache (build 2.0.9-ab12cd34) 3мс')
     expect(withShell({ shell: 'network', shellWhy: 'nocache' })).toContain('оболочка=network [nocache]')
+    expect(withShell({ shell: 'preload', shellWhy: 'ok', shellMs: 1 })).toContain('оболочка=preload 1мс') // страница из HTTP-кеша браузера (navigation preload)
+    // boot — сколько мс воркер жил к навигации: единицы мс = iOS подняла его ради этого запуска (холодный, +100–300 мс к ответу)
+    expect(withShell({ shell: 'cache', shellMs: 3, shellBoot: 12 })).toContain('3мс воркер ХОЛОДНЫЙ (жил 12мс)')
+    expect(withShell({ shell: 'cache', shellMs: 3, shellBoot: 48210 })).toContain('3мс воркер тёплый (жил 48210мс)')
   })
 
   it('«Подозрения» стоят над таймлайном', () => {

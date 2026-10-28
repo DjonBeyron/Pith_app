@@ -21,6 +21,7 @@ export function buildDraftActions(edit) {
     clearSlots: () => edit('очистка предметов', M.clearSlots),
     fillDefaultSlots: () => edit('набор предметов по умолчанию', M.fillDefaultSlots),
     updateCharacter: (k, p) => { const [l, key] = characterEditLabel(k, p); edit(l, s => M.updateCharacter(s, k, p), key) },
+    setSkin: (k, skin) => edit(`образ персонажа ${k.toUpperCase()}`, s => M.setSkin(s, k, skin)),
     setPaletteColor: (k, c, v) => edit(`цвет персонажа ${k.toUpperCase()}`, s => M.setPaletteColor(s, k, c, v), `pal:${k}:${c}`),
     applyPreset: (k, id) => edit(`палитра персонажа ${k.toUpperCase()}`, s => M.applyPalettePreset(s, k, id)),
     setVoice: (k, p) => edit(`голос персонажа ${k.toUpperCase()}`, s => M.setVoice(s, k, p), `voice:${k}:${Object.keys(p).join(',')}`),

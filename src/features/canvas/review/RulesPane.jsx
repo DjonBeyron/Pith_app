@@ -3,6 +3,7 @@ import { ruleTitle, checkerOf } from '../lesson-io/ruleMeta.js'
 import { parseExample } from '../lesson-io/ruleExample.js'
 import { Preview } from '../lesson-io/RuleExample.jsx'
 import { ruleForWarning, rulesForNode, nodeToExampleLine } from './reviewRules.js'
+import { tagEmoji, tagLabel } from '../../player/review-marks/reviewMarks.js'
 
 function RuleRow({ rule, open, onToggle }) {
   const c = checkerOf(rule.checker)
@@ -52,7 +53,8 @@ function NewRule({ node, busy, onAdd }) {
   )
 }
 
-export default function RulesPane({ node, warnings, rules, busy, onAdd }) {
+// marks — пометки с телефона (reviewMarksApi) к выбранной ноде; onGoldenMark(mark) — «в золотой набор» (lessonExamples.exampleFromMark)
+export default function RulesPane({ node, warnings, rules, busy, onAdd, marks = [], onGoldenMark = null }) {
   const [openId, setOpenId] = useState(null)
   const [q, setQ] = useState('')
   const toggle = id => setOpenId(v => (v === id ? null : id))
@@ -60,6 +62,17 @@ export default function RulesPane({ node, warnings, rules, busy, onAdd }) {
   const found = q.trim() ? rules.filter(r => `${ruleTitle(r)} ${r.text}`.toLowerCase().includes(q.trim().toLowerCase())) : []
   return (
     <div className="rvwRules">
+      {marks.length > 0 && (
+        <div className="rvwSection">
+          <div className="rvwSectionHead">📱 Пометки с телефона ({marks.length})</div>
+          {marks.map(m => (
+            <div key={m.id} className="rvwWarnRow rvwMarkRow">
+              <span>{tagEmoji(m.tag)} {tagLabel(m.tag)}{m.comment ? ` — ${m.comment}` : ''}<i className="rvwMarkMeta"> · {m.device || '?'} · {new Date(m.at).toLocaleDateString('ru-RU')}</i></span>
+              {onGoldenMark && <button className="rvwBtn" title="В золотой набор: 👍 — как можно, остальное — как нельзя" onClick={() => onGoldenMark(m)}>⭐ в набор</button>}
+            </div>
+          ))}
+        </div>
+      )}
       {warnings.length > 0 && (
         <div className="rvwSection">
           <div className="rvwSectionHead">⚠ Замечания по этой ноде</div>

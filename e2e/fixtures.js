@@ -43,8 +43,10 @@ export const test = base.extend({
       // Проверяем и текст, и URL источника: «Failed to load resource» от шрифта
       // глушим по URL, но такой же от ассета приложения (реальный 404) — ловим.
       const url = m.location()?.url ?? ''
-      if (ignored(m.text()) || ignored(url)) return
-      bugs.push(`console: ${m.text()}`)
+      // Текст и адрес проверяем и порознь, и вместе: «Failed to load resource: 401 ()» + адрес auth/v1 — норма гостя
+      // (правило /401.*auth\/v1/ видит «401» только в тексте, а «auth/v1» — только в адресе). Адрес пишем в строку бага
+      if (ignored(m.text()) || ignored(url) || ignored(`${m.text()} ${url}`)) return
+      bugs.push(`console: ${m.text()}${url ? ` @ ${url.split('?')[0]}` : ''}`)
     })
     page.on('pageerror', e => bugs.push(`pageerror: ${e.message}`))
     page.on('requestfailed', r => {
@@ -53,7 +55,14 @@ export const test = base.extend({
       if (!ignored(msg)) bugs.push(`requestfailed: ${msg}`)
     })
     page.on('response', r => {
-      if (r.status() >= 500 && !ignored(r.url())) bugs.push(`http ${r.status()}: ${r.url()}`)
+      const status = r.status()
+      const url = r.url()
+      if (status >= 500 && !ignored(url)) bugs.push(`http ${status}: ${url}`)
+      // 401/403 вне auth/v1: консоль браузера пишет «Failed to load resource: 401 ()» БЕЗ адреса — по строке не понять, какой
+      // запрос отвергла база (RLS/права). Кладём адрес (без query) отдельной строкой; гостевой auth/v1 — норма (см. IGNORE)
+      if ((status === 401 || status === 403) && !/\/auth\/v1\//.test(url) && !ignored(url)) {
+        bugs.push(`http ${status}: ${url.split('?')[0]}`)
+      }
     })
     await use(page)
     expect(bugs, 'Ошибки консоли/сети во время теста').toEqual([])

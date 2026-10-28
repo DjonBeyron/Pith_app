@@ -63,7 +63,8 @@ function checkAudioMarkup(nodes) {
   if (!nodes.some(n => (n.data?.highlights ?? []).some(h => h.mode === 'bold'))) return out // урок вообще без раскраски (черновик) — не требуем
   for (const n of nodes.filter(m => MARKED_TYPES.has(m.type))) {
     const t = textOf(n)
-    const bad = [...t.matchAll(LATIN)].filter(m => !covered(n, m.index, m.index + m[0].length, 'bold'))
+    // зачёркнутое красным {x:in} (лишнее слово в подсказке) — тоже выделение, не «голый» английский
+    const bad = [...t.matchAll(LATIN)].filter(m => !covered(n, m.index, m.index + m[0].length, 'bold') && !covered(n, m.index, m.index + m[0].length, 'strike'))
     if (bad.length) out.push(`[R-audio-markup] ${n.ref} (${n.type}): английское «${bad[0][0]}» не выделено — разметь {g:..} (в тексте, подписи и голосовом одинаково)`)
   }
   return out

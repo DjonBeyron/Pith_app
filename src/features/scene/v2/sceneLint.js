@@ -48,8 +48,9 @@ function lintCharacters(scene, out) {
   const { a, b } = scene.characters ?? {}
   if (!isObj(a) || !isObj(b)) return
   if (a.name && b.name && a.name.trim().toLowerCase() === b.name.trim().toLowerCase()) out.push({ level: 'warn', text: 'characters — у обоих персонажей одно имя' })
+  if (a.skin && a.skin === b.skin) out.push({ level: 'warn', text: `characters — оба персонажа — маскот '${a.skin}': выберите разных или обычного кота` })
   const furA = a.palette?.fur?.toLowerCase(), furB = b.palette?.fur?.toLowerCase()
-  if (furA && furB && furA === furB && a.gender === b.gender) out.push({ level: 'warn', text: 'characters — одинаковый цвет шерсти и пол: котов не отличить' })
+  if (!a.skin && !b.skin && furA && furB && furA === furB && a.gender === b.gender) out.push({ level: 'warn', text: 'characters — одинаковый цвет шерсти и пол: котов не отличить' })
 }
 
 function lintTimeline(scene, out) {
@@ -68,7 +69,17 @@ function lintTimeline(scene, out) {
     if (text && !/[.!?…»)]$/.test(text)) out.push({ level: 'warn', text: `timeline[${i}].text — реплика без знака в конце` })
     if (l.audioUrl && !l.wordTimings) out.push({ level: 'warn', text: `timeline[${i}] — есть audioUrl, но нет wordTimings: рот пойдёт по таймеру` })
   })
-  if (tl.length >= 2 && tl.every(l => l?.emotion === tl[0]?.emotion)) out.push({ level: 'warn', text: 'timeline — одна эмоция на всю сцену: лица не меняются' })
+  // Лицо маскота (face / react) задано, а дополнительная мимика у этого персонажа выключена — лицо не покажется
+  tl.forEach((l, i) => {
+    if (!isObj(l)) return
+    for (const [field, who] of [['face', l.who], ['react', l.who === 'a' ? 'b' : 'a']]) {
+      if (l[field] && scene.characters?.[who]?.skin && scene.characters[who].extraFace === false) {
+        out.push({ level: 'warn', text: `timeline[${i}].${field} — у персонажа '${who}' выключена дополнительная мимика (extraFace): лицо '${l[field]}' не покажется` })
+      }
+    }
+  })
+  const mascotFaces = tl.some(l => l?.face || l?.react) // у маскотов лицо меняется полями face / react, а не emotion
+  if (!mascotFaces && tl.length >= 2 && tl.every(l => l?.emotion === tl[0]?.emotion)) out.push({ level: 'warn', text: 'timeline — одна эмоция на всю сцену: лица не меняются' })
   lintVoice(scene, tl, out)
 }
 
@@ -121,9 +132,19 @@ export function lintSize(scene, out) {
   else if (bytes >= SCENE_MAX_BYTES * SIZE_WARN_SHARE) out.push({ level: 'warn', text: `timeline — сцена близка к лимиту ${SCENE_MAX_BYTES / 1024} КБ (${kb} КБ, ${Math.round((bytes / SCENE_MAX_BYTES) * 100)}%) из-за таймингов озвучки` })
 }
 
+// «Живой Пит v2» (animV2 включён): у озвученной реплики маскота нет огибающей громкости (audioMeta.env) — рот пойдёт только по буквам.
+// Предупреждение, не ошибка: старые сцены без env работают; считается кнопкой «Посчитать огибающую» в панели озвучки (admin/scenes/voice/)
+function lintEnvelope(scene, out) {
+  const tl = Array.isArray(scene.timeline) ? scene.timeline : []
+  tl.forEach((l, i) => {
+    if (!isObj(l) || !l.audioUrl || !scene.characters?.[l.who]?.skin || hasVarParts(l.text) || l.audioMeta?.env) return
+    out.push({ level: 'warn', text: `timeline[${i}].audioMeta.env — нет огибающей громкости: рот Пита v2 пойдёт только по буквам (кнопка «Посчитать огибающую» в панели озвучки)` })
+  })
+}
+
 // nodeBudget — потолок узлов (по умолчанию NODE_BUDGET; админка сможет
-// ужесточить для «слабого» тира)
-export function lintScene(scene, { nodeBudget = NODE_BUDGET } = {}) {
+// ужесточить для «слабого» тира); animV2 — включён «живой Пит v2» (проверки огибающей)
+export function lintScene(scene, { nodeBudget = NODE_BUDGET, animV2 = false } = {}) {
   const out = []
   const errors = validateSceneV2(scene)
   errors.forEach(text => out.push({ level: 'error', text }))
@@ -138,6 +159,7 @@ export function lintScene(scene, { nodeBudget = NODE_BUDGET } = {}) {
   }
   lintCharacters(scene, out)
   lintTimeline(scene, out)
+  if (animV2) lintEnvelope(scene, out)
   lintVars(scene, out) // слова-переменные: плейсхолдеры, скобки, худший случай по длине (sceneVarsLint.js)
   lintTask(scene, out)
   return out

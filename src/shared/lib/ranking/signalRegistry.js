@@ -1,5 +1,8 @@
 import { seededUnit } from './seeded.js'
 import { FUTURE_SIGNALS } from './signalCatalogFuture.js'
+import { DIFF_TO_LEVEL } from '../level/levelRules.js'
+import { isJumpSlide, pickTargetDifficulty } from '../level/levelModel.js'
+import { effectiveDifficulty } from '../level/effectiveDifficulty.js'
 
 // Реестр сигналов ранжирования ленты (этап 1 движка, PROJECT.md → «Движок
 // сигналов ленты»). Сигнал — чистая функция compute(ctx, item) → { value 0..1,
@@ -8,6 +11,8 @@ import { FUTURE_SIGNALS } from './signalCatalogFuture.js'
 //
 // ctx  — общий на весь список: { stepOf, skipped, skippedWords, seed, count,
 //        minDifficultyVotes } (собирает rankWeighted.buildItems из rank-объекта ленты).
+// ctx.level (необязательно) — профиль уровня { ear, vocab } (shared/lib/level/); пока лента его не передаёт,
+//        сигнал level_fit нейтрален.
 // item — один модуль: { module, index, words, info } — words — слова-уроки фразы,
 //        info — { total, newWords[], shaky[] } (как phraseInfo в feedKnowledge.js).
 //
@@ -68,16 +73,16 @@ const LIVE_SIGNALS = [
   {
     id: 'difficulty_fit',
     title: 'Сложность',
-    description: 'Проще — раньше. Сложность — медиана голосов 1/2/3; пока голосов меньше порога, фраза считается лёгкой.',
+    description: 'Проще — раньше. Сложность — медиана голосов 1/2/3; пока голосов меньше порога — сложность, заданная админом, а если и её нет, фраза считается лёгкой.',
     group: 'content',
-    source: 'curricula.difficulty / difficulty_votes',
+    source: 'curricula.difficulty / difficulty_votes / difficulty_admin',
     status: 'live',
     defaultWeight: 8,
     defaultEnabled: true,
     compute(ctx, item) {
       const m = item.module
       const minVotes = ctx.minDifficultyVotes ?? DEFAULT_MIN_VOTES
-      const level = (m.difficultyVotes ?? 0) >= minVotes ? Number(m.difficulty) || 1 : 1
+      const level = effectiveDifficulty(m, minVotes) ?? 1
       return { value: (3 - Math.min(3, Math.max(1, level))) / 2, reason: ['', 'легко', 'средне', 'сложно'][level] }
     },
   },
@@ -110,7 +115,32 @@ const LIVE_SIGNALS = [
   },
 ]
 
-export const SIGNALS = [...LIVE_SIGNALS, ...FUTURE_SIGNALS]
+// Сигналы со статусом 'collecting', у которых compute уже настоящий (в отличие от
+// нейтральных заглушек signalCatalogFuture.js): данные пишутся, вес в админке
+// пока недоступен
+const COLLECTING_SIGNALS = [
+  {
+    id: 'level_fit',
+    title: 'Уровень слушателя',
+    description: 'Насколько сложность фразы подходит текущему уровню «на слух» (ear): чем ближе — тем выше; раз в 5 слайдов целится на ступень выше (рывок). Уровень считается по поведению и ответам (shared/lib/level/), цель — 85% верных. Пока лента не передаёт уровень — нейтрально.',
+    group: 'content',
+    source: 'user_profiles.ear_level / localStorage pithy_level_v1',
+    status: 'collecting',
+    defaultWeight: 15,
+    defaultEnabled: false,
+    compute(ctx, item) {
+      const ear = ctx.level?.ear
+      if (!ear) return { ...NEUTRAL, reason: 'уровень не известен' }
+      const d = effectiveDifficulty(item.module, ctx.minDifficultyVotes ?? DEFAULT_MIN_VOTES) ?? 1
+      const jump = isJumpSlide(item.index)
+      const ref = jump ? DIFF_TO_LEVEL[pickTargetDifficulty(ctx.level, item.index)] : ear.level
+      const value = Math.min(1, Math.max(0, 1 - Math.abs(DIFF_TO_LEVEL[d] - ref) / 0.75))
+      return { value, reason: jump ? 'рывок: ступень выше' : 'по уровню' }
+    },
+  },
+]
+
+export const SIGNALS = [...LIVE_SIGNALS, ...COLLECTING_SIGNALS, ...FUTURE_SIGNALS]
 
 const byId = new Map(SIGNALS.map(s => [s.id, s]))
 export const signalById = id => byId.get(id) ?? null

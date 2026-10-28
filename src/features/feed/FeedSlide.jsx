@@ -17,6 +17,7 @@ import { useSlideCatch } from './catch/useSlideCatch.js'
 import { useCatchPrepare } from './catch/useCatchPrepare.js'
 import CatchOverChip from './catch/CatchOverChip.jsx'
 import CatchCover from './catch/CatchCover.jsx'
+import SeedWordOffer from './seed/SeedWordOffer.jsx'
 import { useCatchSlowHint } from './catch/useCatchSlowHint.js'
 import { useCatchSlideGlue } from './catch/useCatchSlideGlue.js'
 import { track } from '../../shared/lib/analytics/track.js'
@@ -192,6 +193,8 @@ export default function FeedSlide({
           onHelp={ct.help} onReveal={ct.reveal} onLater={ct.later} onFinish={ct.finish}
         />
       )}
+
+      {ct.finished && ct.seed.current && <SeedWordOffer word={ct.seed.current.word} onSave={ct.seed.save} onDecline={ct.seed.decline} />}
 
       <FeedHud
         module={mod}

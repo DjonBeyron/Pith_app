@@ -16,6 +16,9 @@ export const NOTE_TEMPLATES = [
   'Другое',
 ]
 
+/** Шаблон, под которым уходит правка текста без комментария (кнопка «Добавить замечание» при dirty-ноде) */
+export const EDIT_ONLY = 'Правка без комментария'
+
 let seq = 0
 export const newNoteId = () => `note-${Date.now().toString(36)}-${(seq++).toString(36)}`
 

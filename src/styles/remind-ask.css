@@ -1,0 +1,36 @@
+/* Шторка «Когда тебе удобно учиться?» (learn/RemindAskSheet.jsx + RemindDone.jsx).
+   Каркас шторки — .lrSheet из learn.css; здесь только варианты времени и подтверждение */
+.raSheet { gap: 10px; }
+.raPresets { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 4px 0 0; }
+.raOpt {
+  padding: 14px 6px;
+  border: 1px solid #2a2d35;
+  border-radius: 14px;
+  background: #1a1d22;
+  color: #e8ecf0;
+  font: inherit;
+  font-size: 17px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.raOpt:disabled { opacity: 0.5; cursor: default; }
+.raOptWide { width: 100%; font-size: 15px; font-weight: 600; }
+.raOptOn { border-color: #b6fe3b; color: #b6fe3b; }
+.raCustom { display: flex; flex-direction: column; gap: 8px; }
+.raTime {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid #2a2d35;
+  border-radius: 14px;
+  background: #1a1d22;
+  color: #e8ecf0;
+  font: inherit;
+  font-size: 22px;
+  font-weight: 700;
+  text-align: center;
+  color-scheme: dark;
+}
+.raClock { margin: 0; font-size: 13px; text-align: center; color: #8b95a1; }
+.raErr { margin: 0; font-size: 13px; color: #ff8a80; }
+.raDone { display: flex; flex-direction: column; gap: 10px; }
+.raConfirm { margin: 0; font-size: 18px; font-weight: 700; line-height: 1.35; }

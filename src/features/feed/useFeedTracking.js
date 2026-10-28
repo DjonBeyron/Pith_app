@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { track } from '../../shared/lib/analytics/track.js'
 import { recordFeedView } from './feedSkips.js'
+import { usePaceQuestion } from './pit/usePaceQuestion.js'
 
 // Аналитика ленты «Рекомендации»: сколько видео фразы было на экране.
 // feed_view { module_id, ms } пишется, когда слайд уходит с экрана: свайп,
@@ -9,6 +10,7 @@ import { recordFeedView } from './feedSkips.js'
 // фразы запоминаются для порядка рекомендаций (feedSkips.js).
 // module — модуль активного слайда или null, когда лента не на экране.
 export function useFeedTracking(module) {
+  usePaceQuestion(!!module) // три быстрых пролистывания подряд → вопрос Пита (pit/); лента ушла с экрана — вопрос снимается
   const curRef = useRef(null) // { id, since }
   const id = module && !module.isSandbox ? module.id : null // песочница админа (scene/sandbox/) в аналитику не пишется
 

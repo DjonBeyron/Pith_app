@@ -19,6 +19,10 @@ export function onDictatorEnded({
     cancelAnimationFrame(rafRef.current)   // сразу глушим RAF — иначе успеет перезаписать highlight
     setHudVisible(false)
     setPlaying(false)
+    // Ячейки, что горели В МОМЕНТ конца аудио (out-point клипа = конец записи, а автомонтаж ставит его именно туда), RAF уже не успеет
+    // «отработать» (он остановлен): без этого они гасли, но не затемнялись до 40% как остальные — «не всегда все выбранные ячейки гаснут»
+    const litAtEnd = [...(prevActiveRef.current ?? [])]
+    if (litAtEnd.length) setUsedCells(prev => new Set([...prev, ...litAtEnd]))
     prevActiveRef.current = new Set()
     prevExtraRef.current  = new Set()
     setHighlighted(new Set())

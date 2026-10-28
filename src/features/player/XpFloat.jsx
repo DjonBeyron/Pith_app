@@ -22,7 +22,7 @@ function fallbackRect(host) {
 }
 
 // Single floating XP particle driven by rAF
-function XpParticle({ amount, rect, onDone }) {
+function XpParticle({ amount, rect, viewport, onDone }) {
   const elRef = useRef(null)
 
   useEffect(() => {
@@ -33,7 +33,8 @@ function XpParticle({ amount, rect, onDone }) {
     // от рамки плеера: на десктопе он живёт в «телефоне» по центру, и без
     // поправки цифра стартовала бы правее и ниже, часто вообще за краем.
     // На мобильном рамка совпадает с экраном — поправка нулевая.
-    const host = document.querySelector('.lessonPlayer')?.getBoundingClientRect()
+    // viewport — частица вне плеера (игра «Повтори за диктором» живёт в портале на весь экран): координаты считаются от окна, поправка на рамку плеера не нужна
+    const host = viewport ? null : document.querySelector('.lessonPlayer')?.getBoundingClientRect()
     const ox = host?.left ?? 0
     const oy = host?.top ?? 0
 
@@ -91,7 +92,7 @@ function XpParticle({ amount, rect, onDone }) {
 }
 
 // Renders all active XP float events
-export default function XpFloat({ events, onDismiss }) {
+export default function XpFloat({ events, onDismiss, viewport = false }) {
   return (
     <>
       {events.map(ev => (
@@ -99,6 +100,7 @@ export default function XpFloat({ events, onDismiss }) {
           key={ev.id}
           amount={ev.amount}
           rect={ev.rect}
+          viewport={viewport}
           onDone={() => onDismiss(ev.id)}
         />
       ))}

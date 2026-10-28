@@ -2,6 +2,7 @@ import { wordKey } from '../../shared/lib/wordAudio/wordKey.js'
 import { KNOW_STEP } from '../learn/learnView.js'
 import { levelOfStep } from '../../shared/lib/memory/memoryLevels.js'
 import { seeded } from '../../shared/lib/ranking/seeded.js'
+import { effectiveDifficulty } from '../../shared/lib/level/effectiveDifficulty.js'
 
 // Лента и память слов (этап 6 системы повторения, PROJECT.md → «Лента»):
 // что во фразе знакомо, подсветка слов и порядок рекомендаций. Чистые функции:
@@ -65,8 +66,8 @@ export function rankFeed(modules, { stepOf, lessonWord, skipped = new Set(), see
     else if (info.newWords.length === words.length) tier = 3
     else if (info.shaky.length || info.newWords.length <= 2) tier = 0
     if (skipped.has(m.id) || words.some(w => skippedWords.has(w))) tier += 1
-    // Сложность — медиана голосов 1/2/3 (curricula.difficulty); нет — «легко»
-    return { m, i, tier, diff: Number(m.difficulty) || 1 }
+    // Сложность — голоса от порога либо сложность админа (effectiveDifficulty); иначе сырая медиана curricula.difficulty; нет — «легко»
+    return { m, i, tier, diff: effectiveDifficulty(m) ?? (Number(m.difficulty) || 1) }
   })
   scored.sort((a, b) => a.tier - b.tier || (a.tier >= 3 ? a.diff - b.diff : 0) || a.i - b.i)
   const out = scored.map(s => s.m)

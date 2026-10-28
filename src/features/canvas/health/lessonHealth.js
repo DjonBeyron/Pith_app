@@ -46,16 +46,6 @@ export function collectNodeUrls(nodes, files) {
   return out
 }
 
-// Что сбросить у сломанной ноды перед перегенерацией (patchNodeTypeData): у photo_choice — только битые варианты, у остальных — файл целиком.
-// Без ссылки на файл batchGenPlan считает ноду «готовой к генерации» (есть текст/промпт, файла нет)
-export function resetBrokenPatch(row) {
-  if (row.type === 'photo_choice') {
-    const bad = new Set((row.badFiles ?? []).map(b => b.photoId).filter(Boolean))
-    return d => ({ ...d, photos: (d.photos ?? []).map(p => (bad.size && !bad.has(p.id) ? p : { ...p, fileId: null, photoUrl: null })) })
-  }
-  return d => ({ ...d, file_id: null, r2Url: null })
-}
-
 /** Все ссылки урока без повторов — на проверку */
 export function allUrls(entries) {
   return [...new Set(entries.flatMap(e => e.urls))]

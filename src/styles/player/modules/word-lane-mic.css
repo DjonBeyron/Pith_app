@@ -1,0 +1,132 @@
+/* Игра «Повтори за диктором»: плашка «Теперь твоя очередь», микрофон с волнами и перевод в финале (WordLaneGame.jsx, WordLaneMic.jsx). Раскладка и слои — word-lane.css. */
+
+/* Плашка по центру экрана: выезжает, держится, уходит (TURN_MS 2200) */
+.wlTurn {
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  padding: 16px 26px;
+  border-radius: 18px;
+  border: 2px solid var(--wl-accent);
+  background: rgba(11, 13, 17, 0.94);
+  font-size: clamp(20px, 6.2vw, 30px);
+  font-weight: 800;
+  white-space: nowrap;
+  animation: wlTurn 2.2s ease both;
+}
+@keyframes wlTurn {
+  0%   { opacity: 0; transform: translate(-50%, -50%) scale(0.7); }
+  14%  { opacity: 1; transform: translate(-50%, -50%) scale(1.04); }
+  22%  { transform: translate(-50%, -50%) scale(1); }
+  82%  { opacity: 1; }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(0.95); }
+}
+
+/* Микрофон: внизу по центру, выезжает снизу (MIC_IN_MS 600). Круглая кнопка с зелёной обводкой и три кольца-волны вокруг неё */
+.wlMic {
+  left: 0;
+  right: 0;
+  bottom: calc(22px + env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(160%);
+  transition: transform 0.6s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.4s ease;
+}
+.wlMic--in { opacity: 1; transform: translateY(0); pointer-events: auto; }
+.wlMicCaption--note { color: #ffb4bf; }
+.wlMicCaption {
+  min-height: 20px;
+  max-width: 92vw;
+  text-align: center;
+  font-size: 15px;
+  font-weight: 600;
+  color: #c3cad8;
+}
+.wlMicBox { position: relative; width: 88px; height: 88px; display: flex; align-items: center; justify-content: center; }
+.wlMicRings { position: absolute; inset: 0; pointer-events: none; }
+.wlMicRings i {
+  position: absolute;
+  inset: 0;
+  box-sizing: border-box;
+  border-radius: 50%;
+  border: 2px solid var(--wl-accent);
+  opacity: 0;
+  will-change: transform, opacity;
+}
+.wlMic--manual .wlMicRings i, .wlMic--starting .wlMicRings i { animation: wlBreath 2.1s ease-in-out infinite; }
+.wlMic--manual .wlMicRings i:nth-child(2), .wlMic--starting .wlMicRings i:nth-child(2) { animation-delay: 0.7s; }
+.wlMic--manual .wlMicRings i:nth-child(3), .wlMic--starting .wlMicRings i:nth-child(3) { animation-delay: 1.4s; }
+@keyframes wlBreath {
+  0%   { transform: scale(1);    opacity: 0; }
+  35%  { opacity: 0.35; }
+  100% { transform: scale(1.5);  opacity: 0; }
+}
+.wlMicBtn {
+  position: relative;
+  width: 88px;
+  height: 88px;
+  border: 3px solid var(--wl-accent);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #15181f;
+  color: var(--wl-accent);
+  cursor: pointer;
+  transition: background 0.25s, color 0.25s, transform 0.25s;
+}
+.wlMic--listening .wlMicBtn { background: var(--wl-accent); color: var(--wl-ink); transform: scale(1.08); }
+.wlMic--done .wlMicBtn { background: var(--wl-accent); border-color: var(--wl-accent); color: var(--wl-ink); }
+
+.wlSkip {
+  right: 16px;
+  bottom: calc(30px + env(safe-area-inset-bottom));
+  padding: 8px 14px;
+  border: 1px solid #3a3d46;
+  border-radius: 12px;
+  background: transparent;
+  color: #9aa0b4;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+/* Финал: перевод по центру, кнопка «Дальше» */
+.wlReveal {
+  left: 50%;
+  top: 56%;
+  transform: translate(-50%, -50%);
+  width: min(86%, 420px);
+  padding: 22px 20px;
+  border-radius: 22px;
+  border: 2px solid var(--wl-accent);
+  background: rgba(21, 24, 31, 0.97);
+  text-align: center;
+  animation: wlReveal 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@keyframes wlReveal {
+  from { opacity: 0; transform: translate(-50%, -42%) scale(0.92); }
+  to   { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+.wlRevealLabel { font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; color: #9aa0b4; }
+.wlRevealText { margin: 8px 0 18px; font-size: clamp(24px, 7.5vw, 36px); font-weight: 800; line-height: 1.2; color: var(--wl-accent); }
+.wlNext {
+  min-width: 160px;
+  padding: 13px 24px;
+  border: 0;
+  border-radius: 14px;
+  background: var(--wl-accent);
+  color: var(--wl-ink);
+  font-size: 16px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wlMic { transition-duration: 0.01s; }
+  .wlTurn, .wlReveal { animation-duration: 0.01s; }
+}
+

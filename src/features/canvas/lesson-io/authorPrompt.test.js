@@ -5,14 +5,34 @@ import { SEED_RULES } from './lessonRulesSeed.js'
 const rule = (o = {}) => ({ id: 'x', text: 'Правило про сигнал.', category: 'principle', active: true, title: '', group: '', checker: 'auto', severity: 'error', bad: '', good: '', ...o })
 
 describe('промпт для ИИ-автора', () => {
-  it('в промпт попадают только активные правила, с номерами, серьёзностью и примерами', () => {
-    const { text, count } = rulesSection([rule({ bad: 'ПЛОХО', good: 'ХОРОШО' }), rule({ text: 'Выключенное', active: false })])
+  it('в промпт попадают только активные правила, с номерами, серьёзностью и примерами; у правил линтера примеры только в full', () => {
+    const { text, count } = rulesSection([rule({ checker: 'judge', bad: 'ПЛОХО', good: 'ХОРОШО' }), rule({ text: 'Выключенное', active: false })])
     expect(count).toBe(1)
     expect(text).toContain('[R1]')
     expect(text).toContain('ОШИБКА')
     expect(text).toContain('❌ НЕЛЬЗЯ:\ntext: ПЛОХО')
     expect(text).toContain('✅ МОЖНО:\ntext: ХОРОШО')
     expect(text).not.toContain('Выключенное')
+    const auto = rulesSection([rule({ bad: 'ПЛОХО' })]).text
+    expect(auto).not.toContain('НЕЛЬЗЯ')
+    expect(rulesSection([rule({ bad: 'ПЛОХО' })], { full: true }).text).toContain('❌ НЕЛЬЗЯ:\ntext: ПЛОХО')
+  })
+  it('справка по модулям — отдельным разделом после легенды, не в правилах и не у судьи', () => {
+    const rules = [rule({ checker: 'judge' }), rule({ category: 'reference', checker: 'manual', title: 'say_phrase: как устроен', text: 'Ученик произносит фразу' })]
+    const p = buildAuthorPrompt(rules, { topic: 'x' })
+    expect(rulesSection(rules).count).toBe(1)
+    expect(p).toContain('СПРАВКА ПО МОДУЛЯМ')
+    expect(p.indexOf('СПРАВКА ПО МОДУЛЯМ')).toBeGreaterThan(p.indexOf('ФОРМАТ НОД'))
+    expect(p).toContain('• say_phrase: как устроен. Ученик произносит фразу')
+    expect(buildAuthorPrompt([rule()])).not.toContain('СПРАВКА ПО МОДУЛЯМ')
+  })
+  it('образцы из золотого набора — по типам нод, после справки', () => {
+    const ex = [{ type: 'text', kind: 'pair', before: 'Верно!', after: 'в точку))', ruleTitle: 'Тон' }, { type: 'audio', kind: 'good', after: 'кста, смотри' }]
+    const p = buildAuthorPrompt([rule()], { topic: 'x', examples: ex })
+    expect(p).toContain('ОБРАЗЦЫ ИЗ ЗОЛОТОГО НАБОРА')
+    expect(p).toContain('### text\n❌ Верно!\n✅ в точку))\n   (Тон)')
+    expect(p).toContain('### audio\n✅ кста, смотри')
+    expect(buildAuthorPrompt([rule()], { topic: 'x' })).not.toContain('ОБРАЗЦЫ')
   })
   it('чек-лист отдельно; тема, формула и процесс на месте; принципы легенды не дублируются', () => {
     const rules = [rule(), rule({ category: 'checklist', text: 'Пройди по уроку целиком' })]

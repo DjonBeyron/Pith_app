@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { plural } from '../../shared/lib/plural.js'
 import LearnVacation from './LearnVacation.jsx'
 import MinutesSheet from './MinutesSheet.jsx'
+import MemoryRemindRow from './MemoryRemindRow.jsx'
 
 // Раздел «Повторение» в настройках (шестерёнка профиля — одна на всё
 // приложение, PROJECT.md → «Вкладки»): итоги недели, минуты в день и
@@ -29,6 +30,7 @@ export default function MemorySettings({ view, isGuest, onChanged }) {
       <button className="settingsInstallBtn" onClick={() => setMinutesOpen(true)}>
         {view.minutes} минут в день · изменить
       </button>
+      <MemoryRemindRow />
       {!isGuest && !view.empty && (view.vacation
         ? <p className="settingsSectionNote">Ты в отпуске с {fmtDate(view.vacation.since)} — вернуться можно во вкладке «Память»</p>
         : <LearnVacation onChanged={onChanged} />)}

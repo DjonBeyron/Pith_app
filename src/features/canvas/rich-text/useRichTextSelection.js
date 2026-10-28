@@ -14,7 +14,7 @@ export function useRichTextSelection(ref) {
 
   const captureIfValid = useCallback(() => {
     const el = ref.current
-    const sel = window.getSelection()
+    const sel = el?.ownerDocument.defaultView.getSelection()
     if (!el || !sel || sel.rangeCount === 0 || sel.isCollapsed || !el.contains(sel.anchorNode)) return
     const range = readSelectionRange(el)
     if (!range) return
@@ -23,20 +23,41 @@ export function useRichTextSelection(ref) {
 
   const hideIfInvalid = useCallback(() => {
     const el = ref.current
-    const sel = window.getSelection()
+    const sel = el?.ownerDocument.defaultView.getSelection()
     if (!el || !sel || sel.rangeCount === 0 || sel.isCollapsed || !el.contains(sel.anchorNode)) setState(null)
   }, [ref])
 
+  // Слушатели на документе вешаем только пока поле в фокусе: на холсте их сотни, и каждый selectionchange/mouseup будил бы все поля сразу
+  // (≈85 мс только на открытие «Разбора»). Выделение в поле всегда начинается с фокуса в нём (мышь, клавиатура, ручки выделения на телефоне)
   useEffect(() => {
     const el = ref.current
     if (!el) return
-    document.addEventListener('mouseup', captureIfValid)
+    const doc = el.ownerDocument // поле может жить в отдельном окне (usePopupWindow) — слушаем его документ
+    let on = false
+    const attach = () => {
+      if (on) return
+      on = true
+      doc.addEventListener('mouseup', captureIfValid)
+      doc.addEventListener('selectionchange', hideIfInvalid)
+    }
+    const detach = () => {
+      if (!on) return
+      on = false
+      doc.removeEventListener('mouseup', captureIfValid)
+      doc.removeEventListener('selectionchange', hideIfInvalid)
+    }
+    const onFocusOut = e => {
+      if (!e.relatedTarget || !el.contains(e.relatedTarget)) detach()
+    }
     el.addEventListener('keyup', captureIfValid)
-    document.addEventListener('selectionchange', hideIfInvalid)
+    el.addEventListener('focusin', attach)
+    el.addEventListener('focusout', onFocusOut)
+    if (el.contains(doc.activeElement)) attach()
     return () => {
-      document.removeEventListener('mouseup', captureIfValid)
+      detach()
       el.removeEventListener('keyup', captureIfValid)
-      document.removeEventListener('selectionchange', hideIfInvalid)
+      el.removeEventListener('focusin', attach)
+      el.removeEventListener('focusout', onFocusOut)
     }
   }, [ref, captureIfValid, hideIfInvalid])
 

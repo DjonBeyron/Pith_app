@@ -18,6 +18,14 @@ import { useNoteSession } from './useNoteSession.js'
 import { useLessonVersions } from './useLessonVersions.js'
 import { changedRefs } from './reviewNotes.js'
 import { reviewKey, loadReview, saveReview } from './reviewStorage.js'
+import { useReviewMarks } from '../../../shared/lib/useReviewMarks.js'
+import { marksSummary } from '../../player/review-marks/reviewMarks.js'
+import { addLessonExample } from '../../../shared/api/lessonExamplesApi.js'
+import { exampleFromNote, exampleFromMark } from './lessonExamples.js'
+import GoldenWindow from './GoldenWindow.jsx'
+import VersionsBar from './VersionsBar.jsx'
+import { useOnlyChanged } from './useOnlyChanged.js'
+import { sameContent } from './contentDraft.js'
 
 // «Разбор урока» — окно на весь экран ПК: слева копия ленты плеера (вся история сразу, на заданиях переключатель веток «верно / неверно»),
 // посередине полноценный холст, сфокусированный на выбранной ноде (редактируешь как обычно), справа замечания и правила.
@@ -38,8 +46,19 @@ export default function LessonReviewPanel({ nodes: initialNodes, zones: initialZ
   const saved = useMemo(() => loadReview(key), [key])
   const store = useReviewNotes(saved)
   const [noteFor, setNoteFor] = useState(null) // ref ноды, к которой пишем замечание
+  const noteRef = useRef(null)
+  useEffect(() => { noteRef.current = noteFor })
   const [notesOpen, setNotesOpen] = useState(false)
   const session = useNoteSession(canvasRef, noteFor, setNoteFor)
+  // Пометки с телефона (lesson_review_marks, ключ — id ноды = ref в разборе) и золотой набор (lesson_examples)
+  const phone = useReviewMarks(storageId, !!storageId)
+  const phoneMarks = useMemo(() => new Map([...phone.byNode].map(([id, l]) => [id, marksSummary(l)])), [phone.byNode])
+  const [goldenOpen, setGoldenOpen] = useState(false)
+  const [goldenTick, setGoldenTick] = useState(0)
+  // Холст (271 нода — самое тяжёлое) монтируем после первого кадра: окно с лентой появляется сразу, холст догоняет
+  const [canvasReady, setCanvasReady] = useState(false)
+  useEffect(() => { const id = setTimeout(() => setCanvasReady(true), 30); return () => clearTimeout(id) }, [])
+  const lessonTitle = boardProps?.lessonTitle ?? ''
 
   // Холст при монтировании сам приводит ноды к своему виду (служебные переходы) — первое его сообщение берём за точку отсчёта для «Применить»,
   // иначе эта нормализация выглядела бы как 13 «правок» без единого действия автора
@@ -52,13 +71,22 @@ export default function LessonReviewPanel({ nodes: initialNodes, zones: initialZ
     setDraft(list)
   }, [saved])
 
+  // Копия «по содержанию»: сдвиг ноды по холсту (x/y) её не меняет — лента, линтер, расшифровка и здоровье не пересчитываются при перетаскивании.
   // Тяжёлое (линтеры, расшифровка ленты) считаем по «отложенной» копии: набор текста не ждёт пересчёта ленты
-  const dDraft = useDeferredValue(draft)
-  const nodes = useMemo(() => fromCanvasNodes(dDraft), [dDraft])
-  const canvasById = useMemo(() => new Map(dDraft.map(n => [n.id, n])), [dDraft])
+  const contentRef = useRef(draft)
+  if (!sameContent(contentRef.current, draft)) contentRef.current = draft
+  const content = contentRef.current
+  const dDraft = useDeferredValue(draft) // с позициями — только для diff «Применить»
+  const dContent = useDeferredValue(content)
+  const nodes = useMemo(() => fromCanvasNodes(dContent), [dContent])
+  const canvasById = useMemo(() => new Map(dContent.map(n => [n.id, n])), [dContent])
   const items = useMemo(() => buildTranscript(nodes, choices), [nodes, choices])
+  // Пока открыто окно замечания, лента за ним не перерисовывается (269 превью на каждую правку текста давали лаг набора); обновится при закрытии
+  const frozenItems = useRef(items)
+  if (!noteFor) frozenItems.current = items
+  const feedAll = frozenItems.current
   // Сколько нод в списке замечаний: с замечанием ИЛИ с правкой текста (правка без комментария тоже считается)
-  const edited = changedRefs(store.originalTexts(), nodes)
+  const edited = useMemo(() => changedRefs(store.originalTexts(), nodes), [nodes, store.version]) // eslint-disable-line react-hooks/exhaustive-deps
   // Сохраняем замечания, оригиналы и правки в localStorage — после перезагрузки всё на месте
   useEffect(() => {
     const id = setTimeout(() => {
@@ -67,15 +95,25 @@ export default function LessonReviewPanel({ nodes: initialNodes, zones: initialZ
     }, 600) // не на каждую букву: запись больших снимков тормозила набор
     return () => clearTimeout(id)
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [key, store.notes, store.general, store.version, draft])
+  }, [key, store.notes, store.general, store.version, content])
   const noted = new Set([...store.notes.map(n => n.ref), ...edited]).size + store.general.length
   const noteCounts = useMemo(() => { const m = new Map(); for (const n of store.notes) m.set(n.ref, (m.get(n.ref) ?? 0) + 1); for (const r of edited) if (!m.has(r)) m.set(r, 1); return m }, [store.notes, edited])
   const warnMap = useMemo(() => warningsByRef(lintLesson(nodes, { title: boardProps?.lessonTitle }), nodes), [nodes, boardProps?.lessonTitle])
+  const [onlyChanged, setOnlyChanged] = useOnlyChanged()
   const versions = useLessonVersions(storageId ?? initialNodes[0]?.id ?? 'lesson', nodes, new Set(store.notes.map(n => n.ref)))
+  // «Только изменённые»: в ленте подряд все сообщения с розовой полоской по порядку номеров — в том числе из веток, которых нет на выбранном пути
+  // ленты (ветки ошибок и т. п.): их показываем отдельными карточками «вне основной цепочки»
+  const feedItems = useMemo(() => {
+    if (!(onlyChanged && versions.show)) return feedAll
+    const have = new Set(feedAll.filter(it => it.kind === 'node').map(it => it.ref))
+    const extra = nodes.filter(n => versions.marks.has(n.ref) && !have.has(n.ref)).map(n => ({ kind: 'node', ref: n.ref, node: n, wrongBranch: true, hasWrong: false, choice: null, picked: null }))
+    const bySeq = it => it.node?.seq ?? 0
+    return [...feedAll.filter(it => versions.marks.has(it.ref)), ...extra].sort((a, b) => bySeq(a) - bySeq(b))
+  }, [onlyChanged, versions.show, versions.marks, feedAll, nodes])
   const [rulesOff, setRulesOff] = useState(() => { try { return localStorage.getItem('pithy-review-rules-off') === '1' } catch { return false } })
   const toggleRules = () => setRulesOff(v => { try { localStorage.setItem('pithy-review-rules-off', v ? '0' : '1') } catch { /* нет хранилища */ } return !v })
   const sel = nodes.find(n => n.ref === selRef) ?? null
-  const health = useLessonHealth({ nodes: dDraft, files: boardProps?.lessonFiles ?? NO_FILES }) // сломанные ноды — тот же значок, что в шапке канваса
+  const health = useLessonHealth({ nodes: dContent, files: boardProps?.lessonFiles ?? NO_FILES }) // сломанные ноды — тот же значок, что в шапке канваса
   const diff = useMemo(() => diffNodes(base, dDraft), [base, dDraft])
   const switched = Object.keys(choices).length
 
@@ -89,26 +127,33 @@ export default function LessonReviewPanel({ nodes: initialNodes, zones: initialZ
   // Правка ноды прямо из окна замечания: функция (data) => data для typeData[type] — идёт в копию урока разбора
   // Смена вида ноды из окна замечания — тем же правилом, что на холсте (триггеры под новый тип, текст переезжает)
   const changeType = type => session.patchRaw(n => applyTypeChange(n, type))
+  // «⭐ В золотой набор» из окна замечания: оригинал → как стало + замечания; из пометки с телефона — 👍 как можно / иначе как нельзя
+  const goldenFromNote = async ref => {
+    const it = items.find(i => i.kind === 'node' && i.ref === ref)
+    if (!it) return
+    const after = nodeCopyText(it.node, { markup: true })
+    const before = store.originals.current.get(ref)?.text ?? after
+    await addLessonExample(exampleFromNote({ lessonId: storageId, lessonTitle, ref, seq: it.node.seq, type: it.node.type, branch: it.wrongBranch ? 'ветка ошибки' : 'основная', before, after, comments: store.notes.filter(n => n.ref === ref).map(n => ({ template: n.template, comment: n.text })) }))
+    setGoldenTick(t => t + 1)
+  }
+  const goldenFromMark = m => addLessonExample(exampleFromMark(m, { lessonTitle })).then(() => setGoldenTick(t => t + 1), e => window.alert(`Не сохранилось: ${e?.message ?? e}`))
 
-  const close = useCallback(() => {
-    const lost = []
-    if (diff.changed.length) lost.push(`неприменённые правки (нод: ${diff.changed.length})`)
-    if (noted) lost.push(`замечания и правки (${noted}), которые не скопированы в JSON`)
-    if (lost.length && !window.confirm(`Есть ${lost.join(' и ')}. Закрыть?`)) return
-    onClose()
-  }, [diff, onClose, noted])
+  // «Назад» без вопросов: замечания, оригиналы и правки текста уже лежат в localStorage (saveReview) и вернутся при следующем открытии
+  const close = useCallback(() => onClose(), [onClose])
 
   useEffect(() => {
-    const onKey = e => { if (e.key === 'Escape' && !e.target.closest?.('input, textarea, [contenteditable]')) close() }
+    const onKey = e => { if (e.key === 'Escape' && !noteRef.current && !e.target.closest?.('input, textarea, [contenteditable]')) close() } // с открытым окном замечания Esc не закрывает весь разбор
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [close])
 
-  // Выбор сообщения: выделяем и ставим холст на ноду — при каждом клике, даже повторном
+  // Выбор сообщения: выделяем и ставим холст на ноду — при каждом клике, даже повторном. Если окно замечания открыто, клик по ДРУГОМУ
+  // сообщению переключает окно на него без закрытия: правки текущей ноды остаются (как «Сохранить правку»), окно остаётся на месте
   const select = useCallback(ref => {
     setSelRef(ref)
     setSelTick(t => t + 1)
     canvasRef.current?.focus(ref)
+    if (noteRef.current && ref !== noteRef.current) switchRef.current?.(ref)
   }, [])
 
   // Клик по варианту «Выбери слово»: выбираем реальный ответ (повторный клик по нему — снять); ветка идёт по варианту
@@ -134,6 +179,8 @@ export default function LessonReviewPanel({ nodes: initialNodes, zones: initialZ
   // Стабильный обработчик для мемо-слотов ленты: всегда зовёт свежий openNote
   const openNoteRef = useRef(null)
   useEffect(() => { openNoteRef.current = openNote })
+  const switchRef = useRef(null)
+  useEffect(() => { switchRef.current = ref => { if (items.some(i => i.kind === 'node' && i.ref === ref)) { session.flushAll(); openNote(ref) } } })
   const onNote = useCallback(ref => openNoteRef.current?.(ref), [])
 
   const shown = new Set(items.filter(i => i.kind === 'node').map(i => i.ref)).size
@@ -148,33 +195,32 @@ export default function LessonReviewPanel({ nodes: initialNodes, zones: initialZ
         {(diff.added > 0 || diff.removed > 0) && <span className="rvwInfo rvwInfoWarn" title="Добавленные и удалённые ноды автоматически не переносятся — сделай это на основном холсте">+{diff.added} / −{diff.removed} нод не переносятся</span>}
         {applied && <span className="rvwInfo rvwInfoOk">{applied}</span>}
         <BrokenNodesBadge health={health} onFocus={select} />
-        <button className={`rvwBtn rvwBtnChg${versions.show ? ' on' : ''}`} disabled={!versions.canCompare} onClick={() => versions.setShow(!versions.show)}
-          title={versions.canCompare ? 'Розовая полоска у сообщений, которые отличаются от предыдущей версии (новые, изменённые и те, к которым были замечания)' : 'Предыдущей версии урока ещё нет: она появится, когда урок изменится и разбор откроют снова'}>
-          Изменения{versions.show ? ` (${versions.marks.size})` : ''}
-        </button>
+        <VersionsBar versions={versions} onlyChanged={onlyChanged} setOnlyChanged={setOnlyChanged} />
         <button className="rvwBtn" onClick={() => setNotesOpen(true)}>✎ Замечания{noted ? ` (${noted})` : ''}</button>
+        <button className="rvwBtn" title="Золотой набор: пары «до → после» и образцы из разбора и пометок с телефона" onClick={() => setGoldenOpen(true)}>⭐ Набор</button>
         <button className="rvwBtn rvwBtnPrimary" disabled={!diff.changed.length} onClick={apply}>
           Применить{diff.changed.length ? ` (${diff.changed.length})` : ''}
         </button>
       </div>
-      <div className={`rvwCols${rulesOff ? ' rvwRulesOff' : ''}${noteFor ? ' rvwColsBehind' : ''}`}>
+      <div className={`rvwCols${rulesOff ? ' rvwRulesOff' : ''}`}>
         <div className="rvwRight">
           <button className="rvwRulesToggle" onClick={toggleRules} title={rulesOff ? 'Развернуть правила' : 'Свернуть правила'}>{rulesOff ? '›' : '‹ Правила'}</button>
-          {!rulesOff && <RulesPane node={sel} warnings={sel ? warnMap.get(sel.ref) ?? [] : []} rules={rules} busy={busy} onAdd={addFull} />}
+          {!rulesOff && <RulesPane node={sel} warnings={sel ? warnMap.get(sel.ref) ?? [] : []} rules={rules} busy={busy} onAdd={addFull} marks={sel ? phone.byNode.get(sel.ref) ?? [] : []} onGoldenMark={goldenFromMark} />}
         </div>
         <div className="rvwFeedCol">
-          <PlayerLikeFeed items={items} canvasById={canvasById} canvasNodes={draft} files={boardProps?.lessonFiles ?? NO_FILES} selRef={selRef} selTick={selTick} warnMap={warnMap} noteCounts={noteCounts} changeMarks={versions.marks} teacherName={teacherName} onNote={onNote} onSelect={select} onChoice={setChoice} onPick={pickOption} />
+          <PlayerLikeFeed items={feedItems} canvasById={canvasById} canvasNodes={content} files={boardProps?.lessonFiles ?? NO_FILES} selRef={selRef} selTick={selTick} warnMap={warnMap} noteCounts={noteCounts} changeMarks={versions.marks} phoneMarks={phoneMarks} teacherName={teacherName} onNote={onNote} onSelect={select} onChoice={setChoice} onPick={pickOption} />
         </div>
         <div className="rvwCanvasCol">
-          <EmbeddedCanvas ref={canvasRef} initialNodes={initialNodes} initialZones={initialZones} boardProps={boardProps} onNodesChange={onBoardNodes} />
+          {canvasReady ? <EmbeddedCanvas ref={canvasRef} initialNodes={initialNodes} initialZones={initialZones} boardProps={boardProps} onNodesChange={onBoardNodes} /> : <div className="rvwEmpty rvwCanvasWait">холст загружается…</div>}
         </div>
       </div>
       {noteFor && (
         <NoteDialog title={`Замечание к №${nodes.find(n => n.ref === noteFor)?.seq} (${noteFor})`} existing={store.notes.filter(n => n.ref === noteFor)} before={store.originals.current.get(noteFor)}
-          item={items.find(i => i.kind === 'node' && i.ref === noteFor)} canvasNode={canvasById.get(noteFor)} canvasNodes={draft} files={boardProps?.lessonFiles ?? []} teacherName={teacherName} onPatch={session.patch} onType={changeType} session={session}
-          onSave={(t, x) => store.addNote(noteFor, t, x)} onRemove={store.removeNote} onClose={session.cancel} onKeep={session.keep} />
+          item={items.find(i => i.kind === 'node' && i.ref === noteFor)} canvasNode={canvasById.get(noteFor)} canvasNodes={content} files={boardProps?.lessonFiles ?? []} teacherName={teacherName} onPatch={session.patch} onType={changeType} session={session}
+          onSave={(t, x) => store.addNote(noteFor, t, x)} onRemove={store.removeNote} onClose={session.cancel} onKeep={session.keep} onGolden={() => goldenFromNote(noteFor)} />
       )}
-      {notesOpen && <NotesWindow store={store} items={items} nodes={nodes} lessonTitle={boardProps?.lessonTitle ?? ''} onFocus={r => { select(r); setNotesOpen(false) }} onClose={() => setNotesOpen(false)} />}
+      {notesOpen && <NotesWindow store={store} items={items} nodes={nodes} lessonTitle={lessonTitle} onFocus={r => { select(r); setNotesOpen(false) }} onClose={() => setNotesOpen(false)} />}
+      {goldenOpen && <GoldenWindow tick={goldenTick} onClose={() => setGoldenOpen(false)} />}
     </div>,
     document.body,
   )

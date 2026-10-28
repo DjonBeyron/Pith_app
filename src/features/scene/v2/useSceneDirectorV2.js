@@ -5,6 +5,8 @@ import { forEachSceneAudio } from './sceneAudioUnlock.js'
 import { resolveVoiceFlags } from './sceneOptions.js'
 import { isWeakDevice } from '../../../shared/lib/deviceTier.js'
 import { sceneTrace } from './sceneTrace.js'
+import { createPupilLook } from './pupilLook.js'
+import { isSolo } from './scenePit.js'
 
 // Хук-режиссёр v2: оборачивает directorCore в состояние React и подключает
 // воспроизведение реплик (scenePlayLine.js: файл audioUrl через общий HTMLAudio
@@ -20,6 +22,8 @@ import { sceneTrace } from './sceneTrace.js'
 // voice — переопределение флагов озвучки { original?, translation? } поверх
 // options.voice сцены (sceneOptions.js); phase — что звучит сейчас
 // ('original' | 'translation' | null), меняется на границах шагов реплики.
+// «Живой Пит v2» (animV2, animFlags.js; lite — слабое устройство: undefined → deviceTier): рот кодами Rhubarb (scenePlayLine.js) и зрачки
+// (pupilLook.js: создаются здесь, только если animV2 и не lite; в тишине — лёгкий увод взгляда раз в 3–5 с, пока сцена не на паузе).
 
 const IDLE = { index: 0, status: 'idle', run: 0, total: 0, line: null }
 export const ANCHOR_DRIFT_MS = 120
@@ -27,7 +31,7 @@ export const ANCHOR_DRIFT_MS = 120
 // rate — множитель скорости речи поверх voice.rate персонажа (скорость голоса
 // урока, lessonVolume.js); читается на старте каждой реплики, сцену не пересоздаёт
 export function useSceneDirectorV2(scene, {
-  enabled = true, sound = true, active = true, paused = false, rate = 1, mouthEls, audioSrcOf = null, voice = null,
+  enabled = true, sound = true, active = true, paused = false, rate = 1, mouthEls, audioSrcOf = null, voice = null, animV2 = false, lite,
 } = {}) {
   const [state, setState] = useState({ ...IDLE, total: scene?.timeline?.length ?? 0 })
   const [mode, setMode] = useState('timer')
@@ -46,8 +50,9 @@ export function useSceneDirectorV2(scene, {
   const [hidden, setHidden] = useState(() => typeof document !== 'undefined' && document.hidden)
   const dirRef = useRef(null)
   const autoPausedRef = useRef(false)
-  const optsRef = useRef({ sound, rate, mouthEls, audioSrcOf, voice, lowPower: false })
-  useEffect(() => { optsRef.current = { sound, rate, mouthEls, audioSrcOf, voice, lowPower: isWeakDevice() } }, [sound, rate, mouthEls, audioSrcOf, voice])
+  const optsRef = useRef({ sound, rate, mouthEls, audioSrcOf, voice, lowPower: false, animV2 })
+  useEffect(() => { optsRef.current = { sound, rate, mouthEls, audioSrcOf, voice, lowPower: lite ?? isWeakDevice(), animV2 } }, [sound, rate, mouthEls, audioSrcOf, voice, lite, animV2])
+  const lookRef = useRef(null) // зрачки Пита v2 (pupilLook.js) | null
 
   // Смена сцены — состояние сбрасывается прямо в рендере (паттерн «подстроить
   // состояние под проп»), а не setState в эффекте
@@ -78,7 +83,7 @@ export function useSceneDirectorV2(scene, {
         const expected = a.ms - (anchorNow() - a.at)
         if (Math.abs(ms - expected) > ANCHOR_DRIFT_MS) setAnchorMs(ms, `часы файла разошлись с кольцом на ${Math.round(ms - expected)} мс → перепривязка (остаток ${ms} мс)`)
       },
-      getMouthEl: who => optsRef.current.mouthEls?.current?.[who] ?? null,
+      getMouthEl: who => optsRef.current.mouthEls?.current?.[who] ?? null, getLook: () => lookRef.current,
     })
     const director = createDirector({
       timeline: scene.timeline ?? [],
@@ -119,6 +124,23 @@ export function useSceneDirectorV2(scene, {
       d.play()
     }
   }, [shouldPause, active, paused, hidden])
+
+  // Зрачки Пита v2: живут, пока сцена живая, флаг включён и устройство не слабое (reduced-motion — без них); в тишине дрейфуют, пока нет паузы
+  const noLook = !animV2 || !enabled || !scene || (lite ?? isWeakDevice())
+  useEffect(() => {
+    if (noLook || (typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches)) return undefined
+    const look = createPupilLook({
+      whos: isSolo(scene) ? ['a'] : ['a', 'b'], getEl: who => optsRef.current.mouthEls?.current?.[who] ?? null, skinOf: who => scene.characters?.[who]?.skin ?? null,
+    })
+    lookRef.current = look
+    return () => { look.stop(); lookRef.current = null }
+  }, [scene, noLook])
+  useEffect(() => {
+    const look = lookRef.current
+    if (!look || shouldPause) return undefined
+    look.startIdle()
+    return () => look.stopIdle()
+  }, [scene, noLook, shouldPause])
 
   const call = useCallback((name, ...args) => {
     const d = dirRef.current

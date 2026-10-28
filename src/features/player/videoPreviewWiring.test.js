@@ -133,7 +133,7 @@ describe('сколько времени у элемента есть на дек
     // После задержки показ ждёт прогрева файлов ноды (preloadWarm.js), но не
     // дольше WARM_MAX_MS — «печатает» не может висеть бесконечно на слабой сети
     expect(GRAPH).toContain('addTimer(() => tryReveal(Date.now() + WARM_MAX_MS, false), delay)')
-    expect(GRAPH).toContain('if ((!warm && Date.now() < deadline) || held)')
+    expect(GRAPH).toContain("if (keepWaiting({ warm, now: Date.now(), deadline, lastProgressAt: warmRef?.progressAt?.(next.id) ?? null }) || held)") // пока байты идут — дольше (warmWait.js)
     console.log(`[preRenderBudget] на декодирование до показа: ${delay} мс (+ до WARM_MAX_MS ожидания прогрева)`)
   })
 

@@ -8,7 +8,6 @@ import { usePreloadSoundsOnTap } from './usePreloadSoundsOnTap.js'
 import ProModuleLessons from './ProModuleLessons.jsx'
 import LessonLaunchCard from './LessonLaunchCard.jsx'
 import LessonPlayer from '../player/LessonPlayerLazy.jsx'
-import { revokePayloadBlobs } from '../player/preloadQueue.js'
 import { usePayloadBlobsRelease } from '../player/usePayloadBlobs.js'
 import { getCompletedLessons, markLessonCompleted } from '../../shared/lib/completedLessons.js'
 import { seedGuestWordOf } from '../../shared/lib/memory/guestMemory.js'
@@ -16,6 +15,7 @@ import { lessonWordOf } from '../../shared/lib/memory/wordLessons.js'
 import { refreshProfile, getCachedProfile } from '../../shared/api/profileCache.js'
 import ProPaywall from '../pro/ProPaywall.jsx'
 import { startLesson } from '../../shared/api/profileApi.js'
+import { startLessonOptimistic } from './launchStart.js'
 import EnergyPaywall from './EnergyPaywall.jsx'
 import ModuleVideoPanel from './ModuleVideoPanel.jsx'
 import { markModuleStarted } from '../../shared/api/moduleSocialApi.js'
@@ -23,7 +23,6 @@ import { dbg } from '../../shared/lib/debug.js'
 import PriorityLegend from './PriorityLegend.jsx'
 import StreakStartOverlay from '../streak/StreakStartOverlay.jsx'
 import { takeFirstDay } from '../streak/firstDaySignal.js'
-import { askMinutesOnce } from '../learn/minutesAsk.js'
 import BackButton from '../../shared/ui/BackButton.jsx'
 import { useAdmin } from '../../app/AdminContext.jsx'
 import { useAuth } from '../../shared/lib/useAuth.js'
@@ -167,8 +166,6 @@ export default function CurriculumView({ curriculumId, curriculumTitle, isPro = 
             if (!wasDone) {
               const l = lessons.find(x => x.id === playingLessonId)
               if (l) setJustCompleted({ id: l.id, xp: l.lessonXp ?? 0 })
-              // Урок без XP — полёта не будет, «минуты» спросим после паузы
-              if (l && !(l.lessonXp > 0)) setTimeout(askMinutesOnce, 1500)
             }
             // Гость прошёл урок-слово — слово в его локальную память (у
             // залогиненного это делает серверный триггер)
@@ -282,9 +279,7 @@ export default function CurriculumView({ curriculumId, curriculumTitle, isPro = 
           onFlightDone={() => {
             setJustCompleted(null)
             setPostLegend(false)
-            // «Сколько минут в день?» (один раз) — после анимации и окна «Путь начался»
             if (takeFirstDay()) setFirstDayOpen(true)
-            else askMinutesOnce()
           }}
           onResetLesson={handleResetLesson}
           onMarkDoneLesson={handleMarkLessonDone}
@@ -307,31 +302,19 @@ export default function CurriculumView({ curriculumId, curriculumTitle, isPro = 
           /* Старт и Финал модуля сервер не тарифицирует — надпись о стоимости честная */
           energyFree={lessons.length > 0 &&
             (launchId === lessons[0].id || launchId === lessons[lessons.length - 1].id)}
-          onStart={async (data) => {
-            // Энергия: сервер решает, бесплатный урок или -1; при нуле —
-            // пейволл вместо плеера
-            const res = await startLesson(launchId)
-            if (res?.ok === false) {
-              revokePayloadBlobs(data) // файлы прогрева плееру не достались — отпускаем
-              setLaunchId(null)
-              setNoEnergy({ nextAt: res.next_at })
-              return
-            }
-            refreshProfile() // молнии в профиле — свежие
-            // «Начал модуль» для «Моих уроков»: только залогиненный и только
-            // при запуске стартового урока (первого в схеме)
-            if (lessons.length > 0 && launchId === lessons[0].id) {
-              markModuleStarted(curriculumId)
-            }
-            setPlayingLessonId(launchId)
-            setLaunchId(null)
-            setPlayerData(data)
-          }}
+          onStart={data => startLessonOptimistic(launchId, {
+            // Плеер — сразу, ответ сервера (энергия: бесплатный урок или -1) идёт параллельно (launchStart.js)
+            open: () => { setPlayingLessonId(launchId); setLaunchId(null); setPlayerData(data) },
+            // «Начал модуль» для «Моих уроков»: только залогиненный и только при запуске стартового урока (первого в схеме)
+            ok: () => { if (lessons.length > 0 && launchId === lessons[0].id) markModuleStarted(curriculumId) },
+            // Энергия на нуле: плеер закрывается (его прогрев сам отпускает файлы при размонтировании), пейволл вместо него
+            deny: res => { setPlayingLessonId(null); setPlayerData(null); setNoEnergy({ nextAt: res.next_at }) },
+          })}
           onClose={() => setLaunchId(null)}
         />
       )}
 
-      {firstDayOpen && <StreakStartOverlay onClose={() => { setFirstDayOpen(false); askMinutesOnce() }} />}
+      {firstDayOpen && <StreakStartOverlay onClose={() => setFirstDayOpen(false)} />}
 
       {noEnergy && (
         <EnergyPaywall nextAt={noEnergy.nextAt} onClose={() => setNoEnergy(null)} />

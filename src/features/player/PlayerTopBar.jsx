@@ -10,6 +10,7 @@ import { useAdmin } from '../../app/AdminContext.jsx'
 import BackButton from '../../shared/ui/BackButton.jsx'
 import LessonVolumeButtons from './LessonVolumeButtons.jsx'
 import LessonSettingsMenu from './LessonSettingsMenu.jsx'
+import PitAvatar from '../../shared/ui/PitAvatar.jsx'
 
 // Must match AvatarCrop.jsx AVATAR_CROP_FRAME = 80
 const CROP_FRAME  = 80
@@ -48,7 +49,6 @@ export default function PlayerTopBar({ title, onClose, teacherName, teacherLogo,
   }, [])
 
   const name    = teacherName || 'Учитель'
-  const initial = name[0]?.toUpperCase() ?? 'У'
   const crop    = teacherLogoCrop ?? { x: 0, y: 0, scale: 1 }
   const ratio   = AVATAR_SIZE / CROP_FRAME
 
@@ -98,7 +98,9 @@ export default function PlayerTopBar({ title, onClose, teacherName, teacherLogo,
               draggable={false}
               onLoad={e => setIntrinsic({ w: e.currentTarget.naturalWidth, h: e.currentTarget.naturalHeight })}
             />
-          : initial
+          // Логотипа учителя нет (ни у урока, ни в общих настройках) — аватарка по умолчанию во всех чатах: запечённый Пит (scripts/mascot/bake_avatar.mjs),
+          // 108 px WebP ≈ 3 КБ, вставлен в код — без запроса, без SVG и анимаций
+          : <PitAvatar size={AVATAR_SIZE} />
         }
       </div>
       <div className="playerTopBarInfo">

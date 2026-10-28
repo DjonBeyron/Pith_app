@@ -14,6 +14,7 @@ function Key({ k, disabled, helped, onKey }) {
     <button
       type="button"
       className={`twKey${k.lit ? '' : ' twKeyDim'}${k.lure ? ' twKeyLure' : ''}${k.ch === ' ' ? ' twKeySpace' : ''}`}
+      data-ch={k.ch === ' ' ? undefined : k.ch} // всплывающая буква над нажатой клавишей, как на iPhone (CSS .twKey::after, замечание автора по уроку «At»)
       disabled={disabled || !k.lit || (helped && !!k.lure)}
       aria-label={k.ch === ' ' ? 'пробел' : k.ch}
       data-key={k.ch}

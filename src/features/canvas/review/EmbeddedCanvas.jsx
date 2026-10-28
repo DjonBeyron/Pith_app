@@ -1,10 +1,11 @@
-import { forwardRef, useImperativeHandle, useRef } from 'react'
+import { forwardRef, memo, useImperativeHandle, useRef } from 'react'
 import CanvasBoard from '../CanvasBoard.jsx'
 
 // Полноценный холст внутри окна «Разбор урока»: тот же CanvasBoard, что на странице канваса, но со СВОЕЙ копией нод (lessonId=null —
 // черновик в браузере не пишется, основной урок не трогается). Правки живут здесь, пока не нажато «Применить». focus(id) ставит
 // холст на ноду и выделяет её — вызывается при каждом выборе в ленте, поэтому после того как ноду отодвинули, повторный клик возвращает её
-const EmbeddedCanvas = forwardRef(function EmbeddedCanvas({ initialNodes, initialZones, boardProps, onNodesChange, onZonesChange }, ref) {
+// memo: окно разбора перерисовывается на каждый выбор сообщения, открытие окна замечания и т. п. — холст на 300 нод при этом трогать незачем (props стабильны)
+const EmbeddedCanvas = memo(forwardRef(function EmbeddedCanvas({ initialNodes, initialZones, boardProps, onNodesChange, onZonesChange }, ref) {
   const boardRef = useRef(null)
   useImperativeHandle(ref, () => ({
     focus: id => boardRef.current?.focusNodeTop(id),
@@ -25,5 +26,5 @@ const EmbeddedCanvas = forwardRef(function EmbeddedCanvas({ initialNodes, initia
       />
     </div>
   )
-})
+}))
 export default EmbeddedCanvas

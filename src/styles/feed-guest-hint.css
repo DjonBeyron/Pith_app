@@ -1,0 +1,37 @@
+/* Мягкая строка Пита гостю после первого лайка/закладки (GuestSaveHint.jsx, guestSaveHint.js):
+   одна строка над нижней панелью, не модальная — видео под ней живёт и листается. Плавно
+   появляется; сама гаснет через 4 с (размонтируется в GuestSaveHint). Тап — форма входа */
+.guestSaveHint {
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  bottom: calc(var(--v2-nav-h) + 12px + env(safe-area-inset-bottom, 0px));
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: 420px;
+  margin: 0 auto;
+  padding: 8px 14px 8px 8px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.72);
+  color: #fff;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.25;
+  text-align: left;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  animation: guestSaveHintIn 0.35s ease-out backwards;
+}
+.guestSaveHintPit {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  overflow: hidden;
+}
+.guestSaveHintText { min-width: 0; }
+@keyframes guestSaveHintIn { from { opacity: 0; transform: translateY(8px); } }

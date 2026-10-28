@@ -1,0 +1,42 @@
+{
+ "text": "I like your bow. It's really nice!",
+ "durationSec": 2.411,
+ "words": [
+  {
+   "word": "I",
+   "start": 0.2,
+   "end": 0.29
+  },
+  {
+   "word": "like",
+   "start": 0.3,
+   "end": 0.51
+  },
+  {
+   "word": "your",
+   "start": 0.54,
+   "end": 0.76
+  },
+  {
+   "word": "bow.",
+   "start": 0.79,
+   "end": 0.96
+  },
+  {
+   "word": "It's",
+   "start": 1.16,
+   "end": 1.37
+  },
+  {
+   "word": "really",
+   "start": 1.4,
+   "end": 1.76
+  },
+  {
+   "word": "nice!",
+   "start": 1.81,
+   "end": 2.06
+  }
+ ],
+ "note": "речь — Kokoro TTS из демо /mascot/, тайминги слов приблизительные (по паузам Rhubarb и весам слов), не ElevenLabs"
+}

@@ -28,12 +28,15 @@ import { prefetchPlayerDebugUi } from '../shared/lib/usePlayerDebugUi.js'
 import { prefetchAudioSettings } from '../shared/lib/audioSettings.js'
 import { prefetchAudioStaticWaveform } from '../shared/lib/useAudioStaticWaveform.js'
 import { prefetchFeedSignals } from '../shared/lib/ranking/feedSignalsStore.js'
+import { usePromptGroupSync } from '../shared/lib/prompts/usePromptGroupSync.js'
+import { useLevelTracking } from '../shared/lib/level/useLevelTracking.js'
 import { armMotionOnGesture } from '../shared/lib/motionPermission.js'
 import ShellNav from './ShellNav.jsx'
+import PromptHost from './PromptHost.jsx'
 import LearnTab from '../features/learn/LearnTab.jsx'
 import { useLearnData } from '../features/learn/useLearnData.js'
 import { useMemoryFresh } from '../features/learn/memoryFresh.js'
-import MinutesAsk from '../features/learn/MinutesAsk.jsx'
+import { useMemoryTab } from '../features/learn/memoryTab.js'
 import { useShellOpenEvents } from './useShellOpenEvents.js'
 import { onProfileHome } from '../shared/lib/profileHomeEvent.js'
 
@@ -58,11 +61,9 @@ export default function ShellV2() {
   // Редактор колоды «Карточки повтора» того же урока (features/reviewCards)
   const [cardsLesson, setCardsLesson] = useState(null)
   const [wordCardLesson, setWordCardLesson] = useState(null)
-  // Модуль, который админ-вкладка должна открыть по возвращении из редактора
-  // («назад» в канвасе ведёт в схему модуля урока, а не на главный экран)
+  // Модуль, который админ-вкладка откроет по возвращении из редактора («назад» в канвасе ведёт в схему модуля)
   const [moduleRequest, setModuleRequest] = useState(null)
-  // Всплывашка «продолжить редактирование» закрыта на этот сеанс: сама она
-  // больше не прячется по таймеру
+  // Всплывашка «продолжить редактирование» закрыта на этот сеанс (сама по таймеру не прячется)
   const [resumeClosed, setResumeClosed] = useState(false)
   // Сигнал вкладке «Рейтинг» открыть страницу гонки (из попапа-анонса)
   const [raceOpenTick, setRaceOpenTick] = useState(0)
@@ -74,24 +75,23 @@ export default function ShellV2() {
   // выключить его было бы нечем
   const { isAdmin, isRealAdmin, userMode, newbie } = useAdmin()
   const { user } = useAuth()
-  // Ежедневное полноэкранное окно серии: показывать или нет — решает сервер
-  // (первый заход в сутки), см. useStreakGate.js
-  const { gate, closeGate } = useStreakGate()
+  usePromptGroupSync(user?.id) // доля и группа контрольной группы без вопросов Пита (доля — на старте, группа — при входе)
+  useLevelTracking(user?.id) // уровень по поведению: события журнала → модель, сохранение (A2)
+  const { gate, closeGate } = useStreakGate() // ежедневное окно серии: показывать или нет — решает сервер (первый заход в сутки)
   // Лого стартового сплэша уже улетело (событие из index.html). Пока оно на
   // экране, ленту не паузим: сплэш снимается по первому кадру видео, и на
   // паузе он висел бы до страховки в 3.5 секунды
   const [splashGone, setSplashGone] = useState(() => !!window.__pithySplashGone)
   // «Моя память»: данные живут здесь — по ним же точка на вкладке
   const learn = useLearnData(!!user)
-  // Точка на «Памяти»: есть что повторить сегодня или новое слово из урока
-  const memoryFresh = useMemoryFresh(tab === 'learn')
+  const memoryFresh = useMemoryFresh(tab === 'learn') // точка на «Памяти»: есть что повторить сегодня или новое слово из урока
+  // Вкладка «Память» у нового пользователя (нет слов) скрыта, с первым словом появляется и мерцает до нажатия; скрытая, но открытая — уводит на «Уроки» (memoryTab.js)
+  const memoryTab = useMemoryTab({ view: learn.view, fresh: memoryFresh, tab, setTab })
   const learnDot = !!(learn.view?.today.picked.length || learn.view?.today.phrase) || memoryFresh
   const learnSleeping = !learnDot && !!learn.view?.sleeping // всё повторено — мозг на вкладке спит
   const raceFlame = useRaceFlame() // активная супергонка — огонёк над кубком в панели
   const rewardsDot = useRewardsDot(!!user) // есть неполученная ежедневная награда — значок «Профиль» мерцает
-  // Мостик «Продолжить фразу» из итога повторения: модуль откроет FeedTab,
-  // здесь — только переход на вкладку «Уроки» (openModuleEvent.js)
-  useShellOpenEvents(setTab, isRealAdmin)
+  useShellOpenEvents(setTab, isRealAdmin) // мостик «Продолжить фразу» из итога повторения: здесь только переход на «Уроки» (openModuleEvent.js)
   // Нажатие на активный «Профиль» закрывает и настройки гостя (у залогиненного это делает ProfileV2)
   useEffect(() => onProfileHome(() => setGuestSettings(false)), [])
   // ?tab= прочитан при старте — убираем из адреса (перезагрузка не должна
@@ -138,6 +138,7 @@ export default function ShellV2() {
   const feedPaused = (!!gate && splashGone) || !!lessonOverlay
 
   return (
+    <PromptHost feedActive={tab === 'feed'}>
     <div className="shellV2">
       <OrientationGuard />
       <InstallPrompt />
@@ -211,8 +212,7 @@ export default function ShellV2() {
         )}
       </div>
 
-      <MinutesAsk isLoggedIn={!!user} onRequireAuth={() => setTab('profile')} onChanged={learn.reload} />
-      <ShellNav tab={tab} setTab={setTab} learnDot={learnDot} learnSleeping={learnSleeping} raceFlame={raceFlame} rewardsDot={rewardsDot} isRealAdmin={isRealAdmin} userMode={userMode || newbie} />
+      <ShellNav tab={tab} setTab={setTab} memoryTab={memoryTab.state} onMemoryTap={memoryTab.onTap} memoryHello={memoryTab.hello} learnDot={learnDot} learnSleeping={learnSleeping} raceFlame={raceFlame} rewardsDot={rewardsDot} isRealAdmin={isRealAdmin} userMode={userMode || newbie} />
 
       {/* Админу во вкладке «Админ»: вернуться к уроку, который правил в прошлый раз (resumeToastVisible.js) */}
       {shouldShowResumeToast({ isAdmin, tab, resumeClosed, editorOpen: !!(canvasLesson || productionLesson || cardsLesson || wordCardLesson) }) && (
@@ -244,5 +244,6 @@ export default function ShellV2() {
         }}
       />
     </div>
+    </PromptHost>
   )
 }

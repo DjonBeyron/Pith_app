@@ -28,10 +28,20 @@ const ROW = { id: 'm1', title: 'Hi', scene_id: 's1', title_translation: 'При�
 beforeEach(() => { calls.length = 0; answer = () => ({ data: [ROW], error: null }) })
 
 describe('loadCurricula: ярусы колонок', () => {
-  it('все колонки есть — один запрос со scene_id', async () => {
+  it('все колонки есть — один запрос со scene_id и difficulty_admin', async () => {
     const rows = await api.loadCurricula()
     expect(calls).toHaveLength(1)
     expect(calls[0].cols).toMatch(/scene_id/)
+    expect(calls[0].cols).toMatch(/difficulty_admin/)
+    expect(rows[0].scene_id).toBe('s1')
+  })
+  it('нет difficulty_admin → повтор без неё, сцена и переводы остаются', async () => {
+    answer = op => (/difficulty_admin/.test(op.cols) ? missing('difficulty_admin') : { data: [ROW], error: null })
+    const rows = await freshLoad()
+    expect(calls).toHaveLength(2)
+    expect(calls[1].cols).toMatch(/scene_id/)
+    expect(calls[1].cols).toMatch(/title_translation/)
+    expect(calls[1].cols).not.toMatch(/difficulty_admin/)
     expect(rows[0].scene_id).toBe('s1')
   })
   it('нет scene_id → повтор без него, переводы остаются', async () => {
@@ -39,17 +49,17 @@ describe('loadCurricula: ярусы колонок', () => {
     // shareInFlight склеивает запросы в пределах 1.5 с — ждём по фейковым часам нельзя, поэтому
     // проверяем ответ: без колонки строки приходят без scene_id, падения нет
     const rows = await freshLoad()
-    expect(calls.map(c => c.cols)).toHaveLength(2)
-    expect(calls[1].cols).toMatch(/title_translation/)
-    expect(calls[1].cols).not.toMatch(/scene_id/)
+    expect(calls.map(c => c.cols)).toHaveLength(3) // полный набор, без difficulty_admin (колонки нет и там), без scene_id
+    expect(calls[2].cols).toMatch(/title_translation/)
+    expect(calls[2].cols).not.toMatch(/scene_id|difficulty_admin/)
     expect(rows[0].scene_id).toBeUndefined()
   })
   it('нет и переводов → базовый набор колонок', async () => {
     answer = op => (/scene_id/.test(op.cols) ? missing('scene_id')
       : /title_translation/.test(op.cols) ? missing('title_translation') : { data: [{ id: 'm1' }], error: null })
     const rows = await freshLoad()
-    expect(calls).toHaveLength(3)
-    expect(calls[2].cols).not.toMatch(/title_translation|scene_id/)
+    expect(calls).toHaveLength(4)
+    expect(calls[3].cols).not.toMatch(/title_translation|scene_id|difficulty_admin/)
     expect(rows).toEqual([{ id: 'm1' }])
   })
   it('другая ошибка — пробрасывается, без лишних повторов', async () => {
@@ -81,6 +91,20 @@ describe('updateCurriculumScene', () => {
   it('ошибка БД пробрасывается', async () => {
     answer = () => ({ error: { message: 'permission denied' } })
     await expect(api.updateCurriculumScene('m1', 's1')).rejects.toMatchObject({ message: 'permission denied' })
+  })
+})
+
+describe('setCurriculumDifficultyAdmin', () => {
+  it('пишет difficulty_admin по id модуля; undefined → null («авто»)', async () => {
+    answer = () => ({ error: null })
+    await api.setCurriculumDifficultyAdmin('m1', 2)
+    expect(calls[0]).toMatchObject({ table: 'curricula', patch: { difficulty_admin: 2 }, eq: ['id', 'm1'] })
+    await api.setCurriculumDifficultyAdmin('m1', undefined)
+    expect(calls[1].patch).toEqual({ difficulty_admin: null })
+  })
+  it('ошибка БД пробрасывается', async () => {
+    answer = () => ({ error: { message: 'permission denied' } })
+    await expect(api.setCurriculumDifficultyAdmin('m1', 1)).rejects.toMatchObject({ message: 'permission denied' })
   })
 })
 

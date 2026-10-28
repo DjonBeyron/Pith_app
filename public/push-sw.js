@@ -5,6 +5,12 @@
 // кадром), /assets/* — cache-first. Новая версия подхватывается так: новый воркер (другой BUILD_ID) предзагружает свой кеш →
 // skipWaiting + clients.claim → шлёт страницам {type:'new-version'} → плашка «Доступна новая версия» → по тапу reload.
 // Остаются максимум 2 кеша (текущий и предыдущий: открытая страница старой версии не теряет ленивые чанки).
+// БЫСТРЫЙ ПУТЬ (холодный воркер iOS: первое обращение к Cache API стоит ~35 мс, iOS снимает стартовую картинку раньше): гонка двух
+// источников, отвечаем первым годным. (1) navigation preload — браузер запросил '/' сам, до подъёма воркера, и берёт его из СВОЕГО
+// HTTP-кеша (vercel.json: max-age=86400; без сети/кеша — промах, ждём не его); (2) '/' из кеша оболочки, годный при заголовке
+// X-Pithy-Shell-Ok = BUILD_ID (кладётся последним при предзагрузке = кеш полный). Состояние, boot-ok и сверка — после ответа.
+// Страница из HTTP-кеша может быть старее/новее кеша воркера — это нормально: /assets/* cache-first по всем shell-*, промах — сеть,
+// новая версия приходит плашкой (reload обновляет HTTP-кеш), пропавший чанк — lazyRetry (purge + reload).
 // Защита от залипания: ?nosw=1, флаг «выключено на 24 ч», boot-ok (два запуска из кеша без boot-ok → выключаем), purge-shell
 // (ленивый чанк не загрузился). Логика решений — в sw-core.js (тесты: swCore.test.js). BUILD_ID/APP_VER/PRECACHE подставляет
 // vite-плагин при сборке (tools/viteShellCache.js); в dev и тестах остаются токены — кеш оболочки ВЫКЛЮЧЕН, воркер как раньше.
@@ -34,6 +40,9 @@ const ON = Core.configured(BUILD_ID, PRECACHE)
 const SHELL = ON ? Core.cacheName(BUILD_ID) : ''
 const STATICS = new Set(ON ? PRECACHE.filter(u => u !== '/' && !u.startsWith('/assets/')) : [])
 const wait = ms => new Promise(r => setTimeout(r, ms))
+// Момент запуска воркера: nav.boot = сколько мс он уже жил, когда пришла навигация. Единицы мс — iOS подняла воркер ради этого
+// запуска (холодный старт, +100–300 мс к ответу), секунды — был жив. Видно в журнале старта (Админ → «Старт», событие shell)
+const BOOT_AT = Date.now()
 
 // Кладём офлайн-страницу в кэш; ошибка (например, сети нет в момент установки) не ломает установку воркера
 const cacheOffline = () =>
@@ -79,18 +88,24 @@ function precacheShell() {
     const cache = await caches.open(SHELL)
     const queue = Core.precacheOrder(PRECACHE)
     let failed = null
+    let indexRes = null // '/' качается первой (проверка сборки), но кладётся ПОСЛЕДНЕЙ с заголовком полноты (быстрый путь навигации)
     const worker = async () => {
       for (let u = queue.shift(); u !== undefined && !failed; u = queue.shift()) {
         const res = await fetch(new Request(u, { cache: Core.fetchMode(u) }))
         if (!Core.validPrecache(u, { ok: res.ok, redirected: res.redirected, ct: res.headers.get('content-type') })) throw new Error('precache ' + u + ' ' + res.status)
+        if (u !== Core.SHELL_KEY) { await cache.put(u, res); continue }
         // страница из сети обязана быть ЭТОЙ сборки (метка BUILD_ID в index.html): иначе устаревший ответ CDN положил бы в новый кеш старую страницу
-        if (u === Core.SHELL_KEY && !(await res.clone().text()).includes(BUILD_ID)) throw new Error('precache: index.html другой сборки')
-        await cache.put(u, res)
+        if (!(await res.clone().text()).includes(BUILD_ID)) throw new Error('precache: index.html другой сборки')
+        const headers = new Headers(res.headers)
+        headers.set(Core.SHELL_OK_HEADER, BUILD_ID)
+        indexRes = new Response(res.body, { status: res.status, statusText: res.statusText, headers })
       }
     }
     try {
       await Promise.all([1, 2, 3, 4].map(() => worker().catch(err => { failed = failed || err })))
       if (failed) throw failed
+      if (!indexRes) throw new Error('precache: нет index.html')
+      await cache.put(Core.SHELL_KEY, indexRes)
       await cache.put(Core.MARK_KEY, new Response(JSON.stringify({ build: BUILD_ID, ver: APP_VER, at: Date.now(), n: PRECACHE.length }), { headers: { 'content-type': 'application/json' } }))
     } catch (err) { await caches.delete(SHELL); throw err }
   })().finally(() => { precaching = null })
@@ -127,27 +142,62 @@ async function revalidate(cached) {
   if (a !== b) await self.registration.update()
 }
 
+// Ответ страницей из кеша: тело в кеше уже распаковано — заголовки про сжатие/длину страницу бы только запутали
+function shellResponse(hit) {
+  const headers = new Headers(hit.headers)
+  headers.set('X-Pithy-Shell', BUILD_ID)
+  headers.delete('content-encoding')
+  headers.delete('content-length')
+  return new Response(hit.body, { status: hit.status, statusText: hit.statusText, headers })
+}
+
+// Бухгалтерия быстрого пути — ПОСЛЕ того, как ответ уже ушёл странице. hit — клон ответа из кеша (тело не прочитано) или null (preload)
+async function afterFastNav(e, source, hit, t0, ms) {
+  const st = await loadState()
+  const d = Core.afterFastNav(st, t0, BUILD_ID)
+  st.nav = { source, why: d.why, build: BUILD_ID, ms, boot: t0 - BOOT_AT, fast: true, at: t0, cid: e.resultingClientId || '' }
+  await Promise.allSettled([saveState(), d.purge ? purgeShell() : hit ? revalidate(hit) : null])
+}
+
+// Гонка «preload из HTTP-кеша» против «'/' из кеша оболочки»: первый ГОДНЫЙ; оба негодные — null
+function fastShell(e) {
+  const pre = (e.preloadResponse || Promise.resolve(null))
+    .then(r => (r && Core.preloadUsable({ ok: r.ok, redirected: r.redirected, ct: r.headers.get('content-type') }) ? { source: 'preload', res: r } : null), () => null)
+  const hit = caches.match(Core.SHELL_KEY, { cacheName: SHELL, ignoreSearch: true, ignoreVary: true })
+    .then(r => (r && Core.fastShellHit(r.headers.get(Core.SHELL_OK_HEADER), BUILD_ID) ? { source: 'cache', res: r } : null), () => null)
+  return new Promise(resolve => {
+    let left = 2
+    const done = v => { if (v) resolve(v); else if (--left === 0) resolve(null) }
+    pre.then(done); hit.then(done)
+  })
+}
+
 async function shellNav(e, work) {
   const t0 = Date.now()
   const url = new URL(e.request.url)
+  if (!Core.isNosw(url.search)) {
+    const fast = await fastShell(e)
+    if (fast) {
+      const copy = fast.source === 'cache' ? fast.res.clone() : null // клон — ДО того, как тело уйдёт в ответ (после этого clone() бросает)
+      work.push(afterFastNav(e, fast.source, copy, t0, Date.now() - t0).catch(() => {}))
+      return shellResponse(fast.res)
+    }
+  }
+  // МЕДЛЕННЫЙ ПУТЬ (кеш без заголовка полноты / ?nosw=1 / кеша нет): прежняя логика с состоянием до ответа
   const [st, hit, mark] = await Promise.all([loadState(), caches.match(Core.SHELL_KEY, { cacheName: SHELL, ignoreSearch: true, ignoreVary: true }), markOf(SHELL)])
   const d = Core.decideNav({ configured: ON, buildId: BUILD_ID, search: url.search, state: st, now: t0, online: self.navigator.onLine, hasShell: !!(hit && mark) })
   if (d.disableFor) Core.disableState(st, t0, d.disableFor, d.why)
   if (d.purge) work.push(purgeShell())
   const shell = d.mode === 'shell'
   if (shell) st.pending = { build: BUILD_ID, at: t0 }
-  st.nav = { source: shell ? 'cache' : 'network', why: d.why, build: BUILD_ID, ms: Date.now() - t0, at: t0, cid: e.resultingClientId || '' }
+  st.nav = { source: shell ? 'cache' : 'network', why: d.why, build: BUILD_ID, ms: Date.now() - t0, boot: t0 - BOOT_AT, at: t0, cid: e.resultingClientId || '' }
   work.push(saveState())
   if (!shell) {
     if (d.ensure) work.push(wait(5000).then(precacheShell).catch(() => {})) // кеша нет (стёрт/не успел) — пересобираем уже после загрузки страницы
     return navigate(e.request)
   }
   work.push(revalidate(hit.clone()).catch(() => {}))
-  const headers = new Headers(hit.headers)
-  headers.set('X-Pithy-Shell', BUILD_ID)
-  headers.delete('content-encoding') // тело в кеше уже распаковано: заголовок про сжатие страницу бы только запутал
-  headers.delete('content-length')
-  return new Response(hit.body, { status: hit.status, statusText: hit.statusText, headers })
+  return shellResponse(hit)
 }
 
 function handleNav(e) {
@@ -175,7 +225,7 @@ async function resource(e, kind) {
 
 self.addEventListener('fetch', e => {
   const url = new URL(e.request.url)
-  if (url.pathname.startsWith('/lab/')) return // лаборатория запуска: ранний выход, без перехвата
+  if (url.pathname.startsWith('/lab/') || url.pathname.startsWith('/startlab/')) return // лаборатория запуска: ранний выход, без перехвата
   const kind = Core.route({ pathname: url.pathname, search: url.search, sameOrigin: url.origin === self.location.origin, method: e.request.method, mode: e.request.mode, cache: e.request.cache }, STATICS)
   if (kind === 'shell-nav' && ON) handleNav(e)
   else if (e.request.mode === 'navigate') e.respondWith(navigate(e.request))
@@ -238,6 +288,8 @@ self.addEventListener('activate', e => e.waitUntil((async () => {
   await Promise.all(keys.filter(k => k.startsWith('offline-') && k !== OFFLINE_CACHE).map(k => caches.delete(k)))
   await cacheOffline()
   if (ON) await rotateShell().catch(() => {})
+  // navigation preload: запрос страницы уходит параллельно подъёму воркера (быстрый путь, см. шапку)
+  if (ON && self.registration.navigationPreload) await self.registration.navigationPreload.enable().catch(() => {})
   await self.clients.claim()
   // Страницы с другим BUILD_ID (открытая старая версия) покажут плашку «Доступна новая версия»; тот же BUILD_ID страница игнорирует
   const list = await self.clients.matchAll({ type: 'window', includeUncontrolled: true })

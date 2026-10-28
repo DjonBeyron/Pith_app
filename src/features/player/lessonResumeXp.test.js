@@ -139,7 +139,8 @@ describe('«Продолжить урок» — восстановленная �
   })
 
   it('«переверни телефон» не запускает тренажёр заново на истории', () => {
-    expect(rotate).toContain('if (canRotate || node.isHistory) return')
+    expect(rotate).toContain("useState(node.isHistory ? 'finished' : 'wait')") // игра на истории не стартует
+    expect(rotate).toContain('!playedRef.current') // и цепочку не двигает
   })
 
   it('реакция сразу в конечном виде, без анимации и искр на истории', () => {

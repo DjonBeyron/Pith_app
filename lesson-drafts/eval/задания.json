@@ -1,0 +1,573 @@
+{
+  "format": "pithy-lesson",
+  "lesson": {
+    "title": "eval: Задания"
+  },
+  "nodes": [
+    {
+      "ref": "b1-1",
+      "seq": 1,
+      "type": "text",
+      "data": {
+        "content": "Скажи, что ты сейчас пытаешься делать, начни с I am trying to…"
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "then": "b1-2"
+        }
+      ]
+    },
+    {
+      "ref": "b1-2",
+      "seq": 2,
+      "type": "say_phrase",
+      "data": {
+        "phrase": "I am trying to relax",
+        "translation": "",
+        "keywords": ""
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "then": "g1-1"
+        }
+      ]
+    },
+    {
+      "ref": "g1-1",
+      "seq": 3,
+      "type": "text",
+      "data": {
+        "content": "а теперь про тебя: скажи по-английски {t:«я пытаюсь расслабиться»}"
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "then": "g1-2"
+        }
+      ]
+    },
+    {
+      "ref": "g1-2",
+      "seq": 4,
+      "type": "say_phrase",
+      "data": {
+        "phrase": "I am trying to relax",
+        "translation": "",
+        "keywords": ""
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "then": "b2-1"
+        }
+      ]
+    },
+    {
+      "ref": "b2-1",
+      "seq": 5,
+      "type": "text",
+      "data": {
+        "content": "Неверно. Завтра — это will try. Попробуйте ещё раз."
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "then": "g2-1"
+        }
+      ]
+    },
+    {
+      "ref": "g2-1",
+      "seq": 6,
+      "type": "text",
+      "data": {
+        "content": "не совсем)) мы же про завтра, это будущее, значит {g:will try}: {g:She will try soup}"
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "then": "b3-1"
+        }
+      ]
+    },
+    {
+      "ref": "b3-1",
+      "seq": 7,
+      "type": "word_choice",
+      "data": {
+        "question": "",
+        "options": [
+          {
+            "text": "I need ___ eat",
+            "isCorrect": true
+          },
+          {
+            "text": "to",
+            "isCorrect": false
+          },
+          {
+            "text": "too",
+            "isCorrect": false
+          }
+        ],
+        "responseCorrect": "",
+        "responseWrong": ""
+      },
+      "triggers": [
+        {
+          "if": "word_correct",
+          "then": "b3-2"
+        }
+      ]
+    },
+    {
+      "ref": "b3-2",
+      "seq": 8,
+      "type": "reaction",
+      "data": {
+        "emoji": "🔥"
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "then": "b3-3"
+        }
+      ]
+    },
+    {
+      "ref": "b3-3",
+      "seq": 9,
+      "type": "text",
+      "data": {
+        "content": "Верно, молодец!"
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "then": "g3-1"
+        }
+      ]
+    },
+    {
+      "ref": "g3-1",
+      "seq": 10,
+      "type": "word_choice",
+      "data": {
+        "question": "",
+        "options": [
+          {
+            "text": "I need ___ eat",
+            "isCorrect": true
+          },
+          {
+            "text": "to",
+            "isCorrect": false
+          },
+          {
+            "text": "too",
+            "isCorrect": false
+          }
+        ],
+        "responseCorrect": "",
+        "responseWrong": ""
+      },
+      "triggers": [
+        {
+          "if": "word_correct",
+          "then": "g3-2"
+        }
+      ]
+    },
+    {
+      "ref": "g3-2",
+      "seq": 11,
+      "type": "reaction",
+      "data": {
+        "emoji": "🔥"
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "then": "g3-3"
+        }
+      ]
+    },
+    {
+      "ref": "g3-3",
+      "seq": 12,
+      "type": "text",
+      "data": {
+        "content": "даа)) это {t:«мне нужно поесть»}, а {g:to} тут мостик между need и eat"
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "then": "b4-1"
+        }
+      ]
+    },
+    {
+      "ref": "b4-1",
+      "seq": 13,
+      "type": "photo",
+      "data": {
+        "caption": "Уже было ⛸️",
+        "imagePrompt": "пример"
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "then": "b4-2"
+        }
+      ]
+    },
+    {
+      "ref": "b4-2",
+      "seq": 14,
+      "type": "phrase_assembly",
+      "data": {
+        "words": [
+          "He",
+          "tried",
+          "skating"
+        ],
+        "distractors": [],
+        "responseCorrect": "",
+        "responseWrong": ""
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "then": "g4-1"
+        }
+      ]
+    },
+    {
+      "ref": "g4-1",
+      "seq": 15,
+      "type": "photo",
+      "data": {
+        "caption": "Пробовал прокатиться ⛸️",
+        "imagePrompt": "пример"
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "then": "g4-2"
+        }
+      ]
+    },
+    {
+      "ref": "g4-2",
+      "seq": 16,
+      "type": "phrase_assembly",
+      "data": {
+        "words": [
+          "He",
+          "tried",
+          "skating"
+        ],
+        "distractors": [],
+        "responseCorrect": "",
+        "responseWrong": ""
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "then": "b5-1"
+        }
+      ]
+    },
+    {
+      "ref": "b5-1",
+      "seq": 17,
+      "type": "text",
+      "data": {
+        "content": "Сейчас будет раунд на время: у тебя 8 секунд, если не успеешь, будет штраф"
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "then": "g5-1"
+        }
+      ]
+    },
+    {
+      "ref": "g5-1",
+      "seq": 18,
+      "type": "text",
+      "data": {
+        "content": "на скорость ⏱ {t:«она пробует суши»}"
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "then": "b6-1"
+        }
+      ]
+    },
+    {
+      "ref": "b6-1",
+      "seq": 19,
+      "type": "text",
+      "data": {
+        "content": "скажи «мне скучно»"
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "then": "b6-2"
+        }
+      ]
+    },
+    {
+      "ref": "b6-2",
+      "seq": 20,
+      "type": "say_phrase",
+      "data": {
+        "phrase": "I'm bored",
+        "translation": "",
+        "keywords": ""
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "then": "g6-1"
+        }
+      ]
+    },
+    {
+      "ref": "g6-1",
+      "seq": 21,
+      "type": "text",
+      "data": {
+        "content": "скажи {t:«мне скучно»}, можно и {g:I am}, и {g:I'm}: полная чуть строже, короткая живее"
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "then": "g6-2"
+        }
+      ]
+    },
+    {
+      "ref": "g6-2",
+      "seq": 22,
+      "type": "say_phrase",
+      "data": {
+        "phrase": "I'm bored",
+        "translation": "",
+        "keywords": ""
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "then": "b7-1"
+        }
+      ]
+    },
+    {
+      "ref": "b7-1",
+      "seq": 23,
+      "type": "text",
+      "data": {
+        "content": "смотри: {g:She tries yoga}"
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "then": "b7-2"
+        }
+      ]
+    },
+    {
+      "ref": "b7-2",
+      "seq": 24,
+      "type": "system",
+      "data": {
+        "content": "Практика · уровень 1"
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "then": "b7-3"
+        }
+      ]
+    },
+    {
+      "ref": "b7-3",
+      "seq": 25,
+      "type": "phrase_assembly",
+      "data": {
+        "words": [
+          "She",
+          "tries",
+          "yoga"
+        ],
+        "distractors": [],
+        "responseCorrect": "",
+        "responseWrong": ""
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "then": "g7-1"
+        }
+      ]
+    },
+    {
+      "ref": "g7-1",
+      "seq": 26,
+      "type": "text",
+      "data": {
+        "content": "смотри: {g:She tries yoga}"
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "then": "g7-2"
+        }
+      ]
+    },
+    {
+      "ref": "g7-2",
+      "seq": 27,
+      "type": "system",
+      "data": {
+        "content": "Практика · уровень 1"
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "then": "g7-3"
+        }
+      ]
+    },
+    {
+      "ref": "g7-3",
+      "seq": 28,
+      "type": "phrase_assembly",
+      "data": {
+        "words": [
+          "Tom",
+          "tries",
+          "sushi"
+        ],
+        "distractors": [],
+        "responseCorrect": "",
+        "responseWrong": ""
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "then": "b8-1"
+        }
+      ]
+    },
+    {
+      "ref": "b8-1",
+      "seq": 29,
+      "type": "word_choice",
+      "data": {
+        "question": "",
+        "options": [
+          {
+            "text": "I will ___ you",
+            "isCorrect": true
+          },
+          {
+            "text": "call",
+            "isCorrect": false
+          },
+          {
+            "text": "to call",
+            "isCorrect": false
+          },
+          {
+            "text": "calling",
+            "isCorrect": false
+          }
+        ],
+        "responseCorrect": "",
+        "responseWrong": ""
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "then": "g8-1"
+        }
+      ]
+    },
+    {
+      "ref": "g8-1",
+      "seq": 30,
+      "type": "word_choice",
+      "data": {
+        "question": "",
+        "options": [
+          {
+            "text": "I can ___ help",
+            "isCorrect": true
+          },
+          {
+            "text": "to",
+            "isCorrect": false
+          },
+          {
+            "text": "ничего не нужно",
+            "isCorrect": false
+          }
+        ],
+        "responseCorrect": "",
+        "responseWrong": ""
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "then": "b9-1"
+        }
+      ]
+    },
+    {
+      "ref": "b9-1",
+      "seq": 31,
+      "type": "phrase_assembly",
+      "data": {
+        "words": [
+          "I",
+          "talk",
+          "to",
+          "Masha"
+        ],
+        "distractors": [],
+        "responseCorrect": "",
+        "responseWrong": ""
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "then": "g9-1"
+        }
+      ]
+    },
+    {
+      "ref": "g9-1",
+      "seq": 32,
+      "type": "phrase_assembly",
+      "data": {
+        "words": [
+          "I",
+          "talk",
+          "to",
+          "Kate"
+        ],
+        "distractors": [],
+        "responseCorrect": "",
+        "responseWrong": ""
+      },
+      "triggers": []
+    }
+  ]
+}

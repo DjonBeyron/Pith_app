@@ -93,20 +93,22 @@ export function useCurriculumLessons(curriculumId) {
     if (!ids.length) { setLessons([]); return }
     dbg('[FETCH] loading', ids.length, 'lessons from DB:', ids)
     setLoading(true)
+    // Из сценария нужны три поля — их и просим (JSON-путь), а не весь script: раньше схема модуля ждала полные сценарии ВСЕХ уроков
+    // (сотни КБ каждый: ноды, волны голосовых, тайминги) ради XP, приоритета и признака колоды — это и была долгая загрузка схемы
     const { data, error: e } = await supabase.from('lessons')
-      .select('id, title, created_at, published, script')
+      .select('id, title, created_at, published, lessonXp:script->lessonXp, priority:script->priority, firstDeckCard:script->reviewCards->0->>id')
       .in('id', ids)
     setLoading(false)
     if (e) { dbg('[FETCH ERROR]', e.message); setError('Ошибка загрузки'); return }
     dbg('[FETCH OK]', data?.length, 'lessons returned from DB')
     const byId = Object.fromEntries((data ?? []).map(l => [l.id, l]))
-    const ordered = ids.map(id => byId[id]).filter(Boolean).map(l => ({
+    const ordered = ids.map(id => byId[id]).filter(Boolean).map(({ firstDeckCard, ...l }) => ({
       ...l,
-      lessonXp:  l.script?.lessonXp  ?? 0,
-      priority:  l.script?.priority  ?? null,
-      // Есть колода повтора — слово в расписании (сила памяти в схеме);
+      lessonXp:  l.lessonXp ?? 0,
+      priority:  l.priority ?? null,
+      // Есть колода повтора (есть хотя бы первая карточка) — слово в расписании (сила памяти в схеме);
       // нет — «повторение скоро»
-      hasDeck:   (l.script?.reviewCards?.length ?? 0) > 0,
+      hasDeck:   firstDeckCard != null,
     }))
     dbg('[FETCH] ordered result:', ordered.map(l => `${l.id.slice(0,6)} "${l.title}"`))
     setLessons(ordered)

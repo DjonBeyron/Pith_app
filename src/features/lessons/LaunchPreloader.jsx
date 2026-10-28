@@ -6,8 +6,8 @@ import { unlockSafely } from './launchUnlock.js'
 import useLaunchWatchdog from './useLaunchWatchdog.js'
 import { traceLaunch } from '../../shared/lib/launchTrace.js'
 import useLaunchTrace from './useLaunchTrace.js'
-import { motionNeedsAsk } from '../../shared/lib/motionPermission.js'
-import LaunchMotionAsk from './LaunchMotionAsk.jsx'
+import LaunchMicAsk from './LaunchMicAsk.jsx'
+import { confirmMicBeforeStart } from '../../shared/lib/micAccess.js'
 import { useAdmin } from '../../app/AdminContext.jsx'
 import ExamIntroDialog from './ExamIntroDialog.jsx'
 import LaunchCtaSlot from './LaunchCtaSlot.jsx'
@@ -214,11 +214,15 @@ export default function LaunchPreloader({
       resumedXp:   resume ? (resumeOffer.xp ?? 0) : 0,
     }
 
+    // Игра «Повтори за диктором»: микрофон подтверждаем ДО урока — системный запрос (если доступа ещё нет) запускаем прямо в тапе, а урок стартует после ответа (любого:
+    // без микрофона игра идёт вручную). Так диалог ОС не вылезает посреди урока
+    const micDone = nodes.some(n => n.type === 'rotate_phone') ? confirmMicBeforeStart() : null
     // Ошибка старта не должна пропадать молча: пишем в debug-лог
-    const run = () => {
+    const start = () => {
       traceLaunch('onStart(payload) вызван')
       try { Promise.resolve(onStart(payload)).then(() => traceLaunch('onStart завершился'), e => traceLaunch(`ОШИБКА старта: ${e?.message ?? e}`)) } catch (e) { traceLaunch(`ОШИБКА старта: ${e?.message ?? e}`) }
     }
+    const run = () => (micDone ? micDone.then(start, start) : start())
     if (payingCase) {
       // Платный случай: сперва показываем растворение мигающей ячейки —
       // пользователь видит, что энергия израсходована — и только потом
@@ -240,11 +244,10 @@ export default function LaunchPreloader({
 
       <LaunchEnergyRow info={info} dissolving={dissolving} />
 
-      {/* Датчик движения — только уроку с нодой «переверни телефон» и только
-          там, где его выдают по диалогу (iOS). Своим шагом, а не молча в
-          handleStart: системный запрос без объяснения получает отказ, а
-          отказ iOS помнит */}
-      {nodes.some(n => n.type === 'rotate_phone') && motionNeedsAsk() && <LaunchMotionAsk />}
+      {/* Микрофон — только уроку с нодой «переверни телефон» (игра «Повтори за диктором»),
+          пока доступа нет. Своим шагом, а не молча в handleStart: системный запрос без
+          объяснения получает отказ, а отказ ОС помнит */}
+      {nodes.some(n => n.type === 'rotate_phone') && <LaunchMicAsk />}
 
 
       {/* LaunchCtaSlot — одна и та же вёрстка для «Продолжить» и для обычного

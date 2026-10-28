@@ -14,6 +14,8 @@ const META_TAGS = new Set(['svg', 'title', 'desc'])
 
 export const SPRITE_KINDS = {
   cat: { maxNodes: 70, viewBox: { w: 200, h: 240 }, requiredParts: ['tail', 'body', 'head', 'eyes', 'mouth'], requiredVisemes: ['closed', 'half', 'open'] },
+  // Маскот (Пит, Мия — sprites/mascot): рот не три виземы, а четыре узла с таблицей форм (mascotMouth.js); лицо тяжелее — лимит выше
+  mascot: { maxNodes: 100, viewBox: { w: 200, h: 240 }, requiredParts: ['tail', 'body', 'head', 'eyes', 'mouth'], requiredVisemes: [] },
   prop: { maxNodes: 12, maxW: 360, maxH: 640, requiredParts: [] },
   background: { maxNodes: 16, viewBox: { w: 360, h: 640 }, requiredParts: ['wall', 'floor'] },
 }
@@ -50,7 +52,7 @@ function checkColor(v) {
 export function checkSpriteSvg(svgText, kind = 'prop') {
   const rules = SPRITE_KINDS[kind]
   const out = []
-  if (!rules) return [`Неизвестный тип спрайта '${kind}' (cat | prop | background)`]
+  if (!rules) return [`Неизвестный тип спрайта '${kind}' (cat | mascot | prop | background)`]
   if (typeof svgText !== 'string' || !svgText.trim()) return ['Пустой файл']
   if (svgText.length > MAX_BYTES) out.push(`Файл больше ${MAX_BYTES / 1024} КБ — упростите фигуры`)
 

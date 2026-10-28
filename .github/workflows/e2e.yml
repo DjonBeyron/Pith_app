@@ -30,7 +30,7 @@ jobs:
       - run: npm ci
       - run: npx playwright install --with-deps chromium
       - name: E2E (гостевые, боевая база — только чтение)
-        run: npx playwright test --project=mobile --project=desktop
+        run: npx playwright test --project=mobile --project=desktop --project=chat-media --project=feed-media
         env:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}

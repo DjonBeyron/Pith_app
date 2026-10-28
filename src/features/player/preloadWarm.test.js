@@ -15,8 +15,11 @@ describe('isNodeWarm', () => {
     expect(isNodeWarm([photo], { p: { blobUrl: null } })).toBe(false)
   })
 
-  it('фото: достаточно blob', () => {
-    expect(isNodeWarm([photo], { p: { blobUrl: 'blob:1' } })).toBe(true)
+  it('фото: blob + декодирование (иначе пузырь появлялся раньше картинки); неудача декодирования — тоже «готово»', () => {
+    expect(isNodeWarm([photo], { p: { blobUrl: 'blob:1' } })).toBe(false)
+    expect(isNodeWarm([photo], { p: { blobUrl: 'blob:1', decodeDone: true } })).toBe(true)
+    expect(isNodeWarm([{ id: 's', nodeType: 'sticker' }], { s: { blobUrl: 'blob:1', posterDone: true } })).toBe(false)
+    expect(isNodeWarm([{ id: 's', nodeType: 'sticker' }], { s: { blobUrl: 'blob:1', posterDone: true, decodeDone: true } })).toBe(true)
   })
 
   it('голосовое: blob + посчитанная мета', () => {
@@ -37,7 +40,8 @@ describe('isNodeWarm', () => {
 
   it('несколько файлов (выбери фото): все должны быть готовы', () => {
     const items = [{ id: '1', nodeType: 'photo_choice' }, { id: '2', nodeType: 'photo_choice' }]
-    expect(isNodeWarm(items, { 1: { blobUrl: 'b' } })).toBe(false)
-    expect(isNodeWarm(items, { 1: { blobUrl: 'b' }, 2: { blobUrl: 'b' } })).toBe(true)
+    expect(isNodeWarm(items, { 1: { blobUrl: 'b', decodeDone: true } })).toBe(false)
+    expect(isNodeWarm(items, { 1: { blobUrl: 'b', decodeDone: true }, 2: { blobUrl: 'b' } })).toBe(false)
+    expect(isNodeWarm(items, { 1: { blobUrl: 'b', decodeDone: true }, 2: { blobUrl: 'b', decodeDone: true } })).toBe(true)
   })
 })
