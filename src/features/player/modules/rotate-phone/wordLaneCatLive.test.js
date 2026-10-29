@@ -47,9 +47,12 @@ describe('кот игры — «живой Пит v2» подключён', () =
   it('кот подключает стили зрачков и усов и не использует rAF для взгляда', () => {
     const cat = read('./WordLaneCat.jsx')
     expect(cat).toContain("import '../../../scene/v2/scene-v2-pit.css'")
-    expect(cat).toContain('look.talking(level >= VOICE_AT)')
-    expect(cat).toContain('look.lineStart(); look.talking(true)')
-    expect(cat).toContain('look.lineEnd(); look.talking(false)')
+    const voice = read('./wordLaneCatVoice.js') // рот: микрофон / реплика
+    expect(voice).toContain('look.talking(level >= VOICE_AT)')
+    expect(voice).toContain('look.lineStart(); look.talking(true)')
+    expect(voice).toContain('look.lineEnd(); look.talking(false)')
+    expect(voice.match(/requestAnimationFrame/g)).toHaveLength(1) // rAF только в значении по умолчанию: один цикл на реплику, новых циклов нет
+    expect(cat).toContain('createCatVoice(')
     expect(cat).toContain('look.idle(true)')
     expect(cat).toContain('look.idle(false)')
     expect(read('./wordLaneCatLook.js')).not.toContain('requestAnimationFrame')

@@ -1,12 +1,11 @@
-import { memo, useEffect, useLayoutEffect, useMemo, useRef } from 'react'
+import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef } from 'react'
 import { renderTree } from '../../../scene/v2/renderTree.js'
 import '../../../scene/v2/scene-v2.css'
 import '../../../scene/v2/scene-v2-cat.css'
 import '../../../scene/v2/scene-v2-pit.css'
 import { isWeakDevice } from '../../../../shared/lib/deviceTier.js'
-import { mouthShape, HALF_AT } from './wordLaneMouth.js'
-import { codeAt } from './wordLaneVisemes.js'
-import { CAT_SPOTS, VOICE_AT, catPeek } from './wordLaneCatPeek.js'
+import { CAT_SPOTS, catPeek } from './wordLaneCatPeek.js'
+import { createCatVoice } from './wordLaneCatVoice.js'
 import { createMouthHold } from './wordLaneMouthHold.js'
 import { CAT_FACES, buildCat } from './wordLaneCatTree.js'
 import { createCatLook, drawCatMouth, NO_LOOK } from './wordLaneCatLook.js'
@@ -17,8 +16,9 @@ import { createCatLook, drawCatMouth, NO_LOOK } from './wordLaneCatLook.js'
 // широкие формы рта крупнее (data-vis на голове); усы качаются, пока кот говорит (is-talking, word-lane.css). На слабом устройстве (scn--lite, isWeakDevice) — только рот, как раньше.
 // Управляется ИЗВНЕ через apiRef, минуя React на кадрах:
 //  • apiRef.current.mouth(level, code?) — громкость 0…1 → форма рта (closed / half / open); есть code (форма по букве, wordLaneVisemes) и звук слышен — рот этой формы (на «о» круглый); звук слышен (≥ VOICE_AT) — кот «говорит» (усы), с выдержкой 300 мс;
-//  • apiRef.current.speak(track, ms) — реплика кота: рот идёт по дорожке track (wordLaneVisemes.mouthTrack) ms миллисекунд, громкость в это время рот не трогает; на это время кот «говорит», зрачки расширяются в начале;
-//    Голос есть — голова выскакивает (в новом месте), голоса нет HIDE_AFTER_MS — прячется (wordLaneCatPeek.js);
+//  • apiRef.current.speak(track, ms, meta?) — реплика кота: рот идёт по дорожке track (wordLaneVisemes.mouthTrack) ms миллисекунд, на это время микрофонный mouth() рот не трогает (отбрасывается и считается в журнале), усы держатся до конца;
+//    кот «говорит», зрачки расширяются в начале; нет дорожки — запасной цикл форм, рот не стоит. Логика — wordLaneCatVoice.js; события cat-speak / cat-speak-end попадают в отладку (wordLaneCatDebug.js).
+//    Голос есть — голова выскакивает (в новом месте), голоса нет HIDE_AFTER_MS — прячется (wordLaneCatPeek.js); apiRef.current.isUp() — голова сейчас торчит;
 //  • apiRef.current.react(face, ms) — реакция лицом на время ('love' — сердечки, пилюля принята; 'shy' — отвёл взгляд, слово не то) — голова торчит всё это время;
 //  • apiRef.current.peek(ms) — просто выскочить на время;
 //  • apiRef.current.look.lineStart() / word() / lineEnd() — взгляд: речь началась (зрачки расширяются) / граница слова (саккада) / речь кончилась; apiRef.current.talking(on) — усы вручную.
@@ -31,15 +31,18 @@ function WordLaneCat({ apiRef, skin = 'kit' }) {
   const faceRef = useRef('base')    // какая голова показана
   const headsRef = useRef({})       // лицо → <g data-part="head">
   const holdRef = useRef(null)      // выдержка формы рта
-  const lineRef = useRef(false)     // идёт реплика кота: рот ведёт её дорожка
-  const lineRafRef = useRef(0)
+  const drawsRef = useRef(0)        // сколько раз форма рта реально нарисована (для журнала отладки: «shapes» за реплику)
   const timerRef = useRef(0)
   const peekRef = useRef(null)
   const cat = useMemo(() => renderTree(buildCat(skin)), [skin])
   const lite = useMemo(() => isWeakDevice(), []) // слабое устройство: только рот (scn--lite), зрачки и усы не трогаем
 
-  // Нарисовать форму в показанную голову: key — closed / half / open или код Rhubarb (одна заглавная буква)
-  const draw = key => drawCatMouth(headsRef.current[faceRef.current], key)
+  // Нарисовать форму в показанную голову: key — closed / half / open или код Rhubarb (одна заглавная буква). Головы собраны один раз; не нашлась — ищем заново (рот не должен молча уйти в пустоту)
+  const draw = useCallback(key => { // только рефы — функция стабильна
+    const face = faceRef.current
+    drawsRef.current += 1
+    drawCatMouth(headsRef.current[face] ?? (headsRef.current[face] = hostRef.current?.querySelector(`[data-part="head"][data-face="${face}"]`) ?? undefined), key)
+  }, [])
   const setFace = face => {
     const next = CAT_FACES.includes(face) ? face : 'base'
     if (next === faceRef.current) return
@@ -57,6 +60,7 @@ function WordLaneCat({ apiRef, skin = 'kit' }) {
     if (!apiRef) return undefined
     const hold = createMouthHold({ apply: draw })
     holdRef.current = hold
+    drawsRef.current = 0
     const look = lite ? NO_LOOK : createCatLook({ getRoot: () => groRef.current, skin })
     const peek = catPeek({
       spots: CAT_SPOTS, now: () => performance.now(),
@@ -64,26 +68,11 @@ function WordLaneCat({ apiRef, skin = 'kit' }) {
       hide: () => { hostRef.current?.classList.remove('wlCat--up'); look.idle(false) },
     })
     peekRef.current = peek
+    const voice = createCatVoice({ hold, look, peek, drawn: () => drawsRef.current })
     apiRef.current = {
-      mouth(level, code = null) {
-        if (lineRef.current) return // реплика кота: рот ведёт её дорожка
-        hold.set(code && level >= HALF_AT ? code : mouthShape(level))
-        peek.voice(level)
-        look.talking(level >= VOICE_AT)
-      },
-      speak(track, ms) {
-        cancelAnimationFrame(lineRafRef.current)
-        const t0 = performance.now()
-        peek.hold(ms + 400)
-        look.lineStart(); look.talking(true)
-        const step = now => {
-          if (now - t0 >= ms) { lineRef.current = false; hold.set('closed'); look.lineEnd(); look.talking(false); return }
-          lineRef.current = true
-          hold.set(codeAt(track, now - t0))
-          lineRafRef.current = requestAnimationFrame(step)
-        }
-        step(t0)
-      },
+      mouth: voice.mouth,
+      speak: voice.speak,
+      isUp: peek.isUp,
       react(next, ms = 1500) {
         setFace(next)
         peek.hold(ms)
@@ -94,8 +83,8 @@ function WordLaneCat({ apiRef, skin = 'kit' }) {
       look: { lineStart: look.lineStart, word: look.word, lineEnd: look.lineEnd },
       talking: look.talking,
     }
-    return () => { apiRef.current = null; holdRef.current = null; hold.dispose(); look.stop(); clearTimeout(timerRef.current); cancelAnimationFrame(lineRafRef.current) }
-  }, [apiRef, lite, skin])
+    return () => { apiRef.current = null; holdRef.current = null; voice.stop(); hold.dispose(); look.stop(); clearTimeout(timerRef.current) }
+  }, [apiRef, lite, skin, draw])
 
   return (
     <div ref={hostRef} className={`scn scn--v2 wlCat${lite ? ' scn--lite' : ''}`} aria-hidden="true" data-testid="wl-cat" data-face="base">

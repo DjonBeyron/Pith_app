@@ -3,6 +3,7 @@ import { createWordLaneDebug, debugEnabled, collectDevice, NO_DEBUG } from './wo
 import { createDebugRecorder, describeStream } from './wordLaneDebugRecorder.js'
 import { prepareAudio } from './wordLaneDebugExport.js'
 import { setStudentDebug } from './wordLaneStudent.js'
+import { setCatDebug } from './wordLaneCatDebug.js'
 import { probe as sharedProbe } from './wordLaneDebugProbe.js'
 import { getPlayerDebugUiValue } from '../../../../shared/lib/usePlayerDebugUi.js'
 import { isWeakDevice } from '../../../../shared/lib/deviceTier.js'
@@ -67,13 +68,14 @@ export function createDebugSession({ enabled, now, weak = null, getStream = () =
     /** На старте игры, до слушателя: запоминать потоки распознавателя и ловить события пилюль */
     arm() {
       recorder.arm(); setStudentDebug(sink)
+      setCatDebug((kind, d) => base.event(kind, d)) // реплики кота: cat-speak / cat-speak-end / cat-line-silent (wordLaneCatDebug.js)
       probe.install() // отладка могла включиться уже после старта приложения; повторный вызов безопасен
       const take = ev => { const { at, kind, ...d } = ev; base.ext(at, 'probe', kind, d) }
       if (!imported) { imported = true; probe.snapshot().forEach(take) } // всё, что было до игры: запрос микрофона при старте урока, тап «Начать»
       unsub ??= probe.subscribe(take)
     },
     /** Выход из игры (и ложное размонтирование StrictMode): отписаться и остановить запись; финальная выгрузка (prepare) от этого не портится */
-    disarm() { setStudentDebug(null); unsub?.(); unsub = null; recorder.stop() },
+    disarm() { setStudentDebug(null); setCatDebug(null); unsub?.(); unsub = null; recorder.stop() },
     /** Финал: запись остановлена, аудио готово к выгрузке (один раз; Promise → части записи [{ mime, base64, startedAtMs }]) */
     prepare() { return (prep ??= Promise.all([recorder.stop(), probe.queryPermission('end')]).then(() => prepareAudio(recorder)).catch(() => [])) },
   }

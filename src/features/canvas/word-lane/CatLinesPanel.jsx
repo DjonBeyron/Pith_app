@@ -66,7 +66,7 @@ export default function CatLinesPanel() {
     const line = lines[id]
     audioRef.current?.pause()
     const ms = lineMs(line)
-    catRef.current?.speak?.(mouthTrack(line.text, ms, line.words), ms)
+    catRef.current?.speak?.(mouthTrack(line.text, ms, line.words, line.duration), ms, { id })
     if (line.url) { const a = new Audio(line.url); audioRef.current = a; a.play().catch(() => {}) }
   }
 
