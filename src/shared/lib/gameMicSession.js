@@ -45,6 +45,16 @@ export function createGameAudioSession({ nav = globalThis.navigator, store = glo
       if (!active || mode !== 'phases') return
       apply(p === 'speak' ? SESSION_SPEAK : SESSION_LISTEN, `phase:${p}`)
     },
+    /** Режим микрофона 'close': поток закрыт (треки остановлены) — тип сессии 'auto', запись сессию не держит. В режимах 'auto' (не трогаем) и 'phases' (тип ведёт phase) — no-op */
+    micClosed() {
+      if (!active || mode === 'auto' || mode === 'phases') return
+      apply('auto', 'mic-closed')
+    },
+    /** Режим микрофона 'close': СЕЙЧАС откроем поток заново — тип 'play-and-record' ставим ДО getUserMedia (как «Сказать фразу»: тип → микрофон) */
+    micOpening() {
+      if (!active || mode === 'auto' || mode === 'phases') return
+      apply(SESSION_LISTEN, 'mic-open')
+    },
     /** Конец игры: вернуть прежний тип (если мы его меняли). Повторный вызов безопасен */
     end() {
       if (!active) return

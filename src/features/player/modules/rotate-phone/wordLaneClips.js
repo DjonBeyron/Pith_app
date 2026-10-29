@@ -67,6 +67,28 @@ function wake(key) {
   return e
 }
 
+/**
+ * Заново разбудить ВСЕ слоты (только в жесте): после прерывания аудиосессии (открытие микрофона, смена типа сессии, звонок, наушники) iOS помечает прежние <audio> прерванными, и их play() молчит, а диктор и
+ * реплики кота играют по таймеру. Каждому слоту — свежий элемент с тишиной (play → pause), затем ему подставляется уже загруженный звук (blob/URL остаётся в слоте). Сети нет. Возвращает число слотов
+ */
+export function rewakeClips() {
+  const set = slots
+  if (!set) return 0
+  let n = 0
+  for (const e of set.els.values()) {
+    const old = e.a
+    try { old.pause(); old.removeAttribute('src'); old.load?.() } catch { /* уже свободен */ }
+    const a = new Audio(set.silence)
+    a.preload = 'auto'
+    a.setAttribute('playsinline', '')
+    e.a = a
+    e.woke = a.play().then(() => a.pause()).catch(() => {}).then(() => { if (slots === set && e.a === a && e.url) { a.src = e.url; a.load() } })
+    n += 1
+  }
+  pLog(`[word-lane] слоты звука разбужены заново: ${n}`)
+  return n
+}
+
 function attach(set, e, url, own) {
   if (own) set.urls.push(url)
   e.url = url
@@ -93,7 +115,7 @@ export function prepareWords(items) {
       attach(set, e, URL.createObjectURL(blob), true)
       await measureSpeech(it.url, blob).catch(() => {}) // где в файле звучит голос — не вышло, играем по длине из библиотеки
     } catch { attach(set, e, it.url, false) } // прямая ссылка: браузер докачает при play()
-  })).then(() => true, () => false)
+  })).then(() => Promise.all([...set.els.values()].map(e => e.woke)).then(() => true), () => false) // «готово» — когда и скачано, и слоты разбужены тишиной (а не только скачано): игра ждёт именно это
 }
 
 // Где в файле слова звучит голос (wordLaneTrim): { lead, ms } в мс — тишина до слова и длина самого слова без «хвоста». Живёт до перезагрузки: файл библиотеки не меняется

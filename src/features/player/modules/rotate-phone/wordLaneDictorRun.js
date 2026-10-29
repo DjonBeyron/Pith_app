@@ -17,7 +17,7 @@ export function scheduleDictor({ plan, left, look, sayClip, sayChunk, next, ids,
   ids.push(setTimeout(next, left(plan.listenMs)))
   let held = true
   const release = () => { if (held) { held = false; hold.end() } }
-  hold.begin()
+  hold.begin({ dictor: true }) // режим микрофона 'close': на ступени диктора поток закрывается (слушателя ученика в это время нет)
   const last = plan.reps.at(-1)
   const lastEnd = last ? last.at + last.ms : plan.listenMs
   ids.push(setTimeout(release, left(Math.min(plan.listenMs - MIC_BACK_AFTER_MS, lastEnd + MIC_BACK_AFTER_MS))))

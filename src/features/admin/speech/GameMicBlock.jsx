@@ -8,7 +8,7 @@ import { describeAudioSession } from '../../../shared/lib/gameMicSession.js'
 // на своём телефоне. Действует на следующее открытие потока (тап «Начать» в игре). Ниже — с какими ограничениями открыт/откроется поток и что реально дал браузер (track.getSettings).
 // Два режима для проверки «хруста» и «то громче, то тише» на iPhone (Safari, iOS 16.4+): тип аудиосессии и глушение дорожки микрофона на время речи Пита и диктора. Читаются при каждой игре; пробуй 4 сочетания 2×2.
 const SESSION_OPTS = [['play-and-record', 'Запись и воспроизведение'], ['auto', 'Авто (не трогать)'], ['phases', 'Переключать по фазам']]
-const HOLD_OPTS = [['none', 'Не трогать'], ['enabled-false', 'Выключать дорожку']]
+const HOLD_OPTS = [['none', 'Не трогать'], ['enabled-false', 'Выключать дорожку'], ['close', 'Закрывать микрофон']]
 const yn = v => (v === true ? 'да' : v === false ? 'нет' : '—')
 
 function Chips({ label, value, options, onPick, testid }) {
@@ -47,7 +47,8 @@ export default function GameMicBlock() {
       <h4 className="aspH">Микрофон во время речи Пита</h4>
       <Chips label="Микрофон во время речи Пита" value={holdMode} options={HOLD_OPTS} onPick={pickHold} testid="mic-hold-mode" />
       <p className="aspHint">«Выключать дорожку»: пока говорит Пит или диктор, track.enabled = false — динамик не попадает в микрофон и iOS не приглушает звук под захват; потом дорожка возвращается и проверяется (muted / readyState — в отладке mic-hold). Если после возврата дорожка не ожила, игра переоткрывает микрофон. Что проверить: пропал ли хруст и «то громче, то тише»; слышит ли игра ученика после реплик Пита. В этом режиме запись отладки во время речи тихая — это ожидаемо.</p>
-      <div className="aspCapVal" data-testid="game-mic-info">Платформа: {platform}. Поток игры: {open ? 'открыт' : 'не открыт (откроется по тапу «Начать»)'}.</div>
+      <p className="aspHint" data-testid="mic-hold-close-hint">«Закрывать микрофон» («только в фазе ученика», как в «Сказать фразу»): пока говорит диктор или Пит, поток микрофона закрывается совсем (индикатор гаснет, аудиосессия не держит запись), к очереди ученика открывается заново. iPhone может спросить доступ ещё раз; если открыть не вышло, слушатель откроет микрофон сам (с эхо- и шумоподавлением). Что произошло — в отладке mic-hold.</p>
+      <div className="aspCapVal" data-testid="game-mic-info">Платформа: {platform}. Поток игры: {open ? 'открыт' : info.parked ? 'закрыт на время речи (режим «Закрывать микрофон»)' : 'не открыт (откроется по тапу «Начать»)'}.</div>
       <div className="aspCapVal">Просим: эхо {yn(c.echoCancellation)}, шумодав {yn(c.noiseSuppression)}, автоусиление {yn(c.autoGainControl)}, каналов {c.channelCount}</div>
       <div className="aspCapVal">{s ? `Дал браузер: эхо ${yn(s.echoCancellation)}, шумодав ${yn(s.noiseSuppression)}, автоусиление ${yn(s.autoGainControl)}, частота ${s.sampleRate ?? '—'}` : 'Дал браузер: поток не открыт'}</div>
       <div className="aspCapVal" data-testid="game-mic-tracks">Дорожки: {info.tracks?.length ? info.tracks.map(t => `enabled=${yn(t.enabled)} muted=${yn(t.muted)} ${t.readyState}`).join('; ') : '—'}</div>

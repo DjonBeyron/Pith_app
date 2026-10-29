@@ -25,6 +25,10 @@ export const gameMicConstraints = (store = globalThis.localStorage) => (isMicPro
 
 let stream = null
 let opened = null // с какими ограничениями открыт текущий поток (для отладочной выгрузки)
+let epoch = 0     // растёт при закрытии потока: открытие, начатое до закрытия, не должно оставить микрофон включённым после конца игры
+let parked = false // режим 'close' (gameMicHold): поток закрыт нами на время речи Пита/диктора и откроется заново
+let reopening = null // Promise<'granted'|'denied'|'unavailable'>, пока идёт повторное открытие после parkGameMic
+let taken = false  // распознаватель взял поток (getGameMic) с момента последнего открытия — его сеанс жив на этих треках
 
 // Живой и НЕ заглушённый системой: iOS при прерывании аудиосессии оставляет трек live, но muted — он пишет тишину
 const live = s => !!s && s.getTracks().some(t => t.readyState === 'live' && !t.muted)
@@ -35,10 +39,13 @@ export async function openGameMic() {
   if (typeof navigator === 'undefined' || !navigator.mediaDevices?.getUserMedia) return 'unavailable'
   try {
     const constraints = gameMicConstraints()
+    const mine = epoch
     const s = await navigator.mediaDevices.getUserMedia({ audio: constraints })
+    if (mine !== epoch) { try { s.getTracks().forEach(t => t.stop()) } catch { /* уже остановлен */ } pLog('[mic] поток открылся уже после закрытия игры — закрыт'); return 'unavailable' }
     if (stream && stream !== s) { try { stream.getTracks().forEach(t => t.stop()) } catch { /* уже остановлен */ } } // прежний (оборванный/заглушённый) поток не оставляем висеть
     stream = s
     opened = constraints
+    parked = false; taken = false
     sayPermission.markMicOk()
     pLog(`[mic] игровой поток открыт (один на игру): эхо ${constraints.echoCancellation ? 'вкл' : 'выкл'}, шумодав ${constraints.noiseSuppression ? 'вкл' : 'выкл'}`)
     return 'granted'
@@ -49,10 +56,14 @@ export async function openGameMic() {
   }
 }
 
-/** Готовый живой поток или null (не открывали / оборвался / заглушён системой — тогда распознаватель откроет микрофон сам) */
+/**
+ * Готовый живой поток или null (не открывали / оборвался / заглушён системой — тогда распознаватель откроет микрофон сам). Пока идёт повторное открытие после parkGameMic (режим 'close'),
+ * вместо потока возвращается ОБЕЩАНИЕ потока (Promise<MediaStream|null>): voskEngine ждёт его (opts.stream), а не открывает свой микрофон с эхо/шумоподавлением
+ */
 export function getGameMic() {
+  if (reopening) return reopening.then(r => (r === 'granted' ? getGameMic() : null))
   if (!stream) return null
-  if (live(stream)) return stream
+  if (live(stream)) { taken = true; return stream }
   pLog(`[mic] игровой поток непригоден: ${stream.getTracks().map(t => `${t.readyState}${t.muted ? '/muted' : ''}`).join(',')}`)
   return null
 }
@@ -60,8 +71,8 @@ export function getGameMic() {
 /** Сам поток как есть (живой, заглушённый или оборванный) — для gameMicHold: выключить/включить дорожки, не проверяя их состояние */
 export const peekGameMic = () => stream
 
-/** Есть ли игровой поток (живой или нет) — по нему игра решает, переоткрывать ли микрофон, если распознаватель оглох */
-export const hasGameMic = () => !!stream
+/** Есть ли игровой поток (живой или нет) — по нему игра решает, переоткрывать ли микрофон, если распознаватель оглох. Закрытый нами в режиме 'close' (parked) потоком не считается */
+export const hasGameMic = () => !!stream && !parked
 
 /** Выбросить мёртвый поток (треки останавливаются) — следующий openGameMic откроет новый */
 export const dropGameMic = () => closeGameMic()
@@ -71,7 +82,41 @@ export function closeGameMic() {
   const s = stream
   stream = null
   opened = null
+  parked = false; taken = false; reopening = null
+  epoch += 1
   try { s?.getTracks().forEach(t => { try { t.stop() } catch { /* уже остановлен */ } }) } catch { /* ничего */ }
+}
+
+/** Распознаватель (сеанс Vosk) сейчас держит игровой поток: закрывать его посреди речи ученика нельзя без перезапуска слушателя */
+export const isGameMicTaken = () => taken && !!stream
+/** Режим 'close' закрыл поток и ждёт повторного открытия */
+export const isGameMicParked = () => parked
+
+/**
+ * Режим 'close' (gameMicHold, «микрофон только в фазе ученика»): закрыть поток на время речи Пита/диктора — треки останавливаются, индикатор гаснет, аудиосессия не держит запись (приём «Сказать фразу»:
+ * микрофон открыт только пока слушаем). force=false не трогает поток, который сейчас держит распознаватель (его сеанс жив на этих треках). Возвращает { parked, wasTaken } — wasTaken: поток держал распознаватель,
+ * после повторного открытия слушатель надо перезапустить
+ */
+export function parkGameMic({ force = true } = {}) {
+  if (reopening) return { parked: false, wasTaken: false, pending: true } // поток как раз открывается заново — закроем, когда откроется (gameMicHold)
+  if (!stream || parked) return { parked: false, wasTaken: false }
+  if (taken && !force) return { parked: false, wasTaken: true }
+  const wasTaken = taken
+  const s = stream
+  stream = null; opened = null; taken = false; parked = true
+  epoch += 1 // открытие, начатое до закрытия, больше не актуально
+  try { s.getTracks().forEach(t => { try { t.stop() } catch { /* уже остановлен */ } }) } catch { /* ничего */ }
+  pLog(`[mic] игровой поток закрыт на время речи (режим «микрофон только в фазе ученика»)${wasTaken ? ', его держал распознаватель' : ''}`)
+  return { parked: true, wasTaken }
+}
+
+/** Открыть закрытый parkGameMic поток заново (без жеста, доступ уже выдан). Повторный вызов во время открытия возвращает тот же промис. 'granted' | 'denied' | 'unavailable'; закрыт и не парковали — 'unavailable' */
+export function reopenGameMic() {
+  if (reopening) return reopening
+  if (!parked) return Promise.resolve(stream ? 'granted' : 'unavailable')
+  const p = openGameMic().then(r => { if (reopening === p) reopening = null; if (r !== 'granted') pLog(`[mic] повторное открытие не удалось (${r}) — распознаватель откроет микрофон сам`); return r })
+  reopening = p
+  return p
 }
 
 /** Для отладочной выгрузки: с какими ограничениями открывается/открыт игровой поток, что реально дал браузер (track.getSettings — там видно, включил ли он эхо/шумодав) и платформа */
@@ -81,5 +126,5 @@ export function describeGameMic() {
   try { settings = stream?.getTracks()[0]?.getSettings?.() ?? null } catch { /* трек уже выгружен */ }
   try { tracks = stream?.getTracks().map(t => ({ enabled: t.enabled, muted: !!t.muted, readyState: t.readyState })) ?? null } catch { /* трек уже выгружен */ }
   const ua = String((typeof navigator !== 'undefined' && navigator.userAgent) || '')
-  return { constraints: opened ?? gameMicConstraints(), settings, platform: isIos() ? 'ios' : /Android/i.test(ua) ? 'android' : 'other', processing: isMicProcessingOn(), open: !!stream, tracks, audioSessionMode: readAudioSessionMode(), micHoldMode: readMicHoldMode() }
+  return { constraints: opened ?? gameMicConstraints(), settings, platform: isIos() ? 'ios' : /Android/i.test(ua) ? 'android' : 'other', processing: isMicProcessingOn(), open: !!stream, parked, tracks, audioSessionMode: readAudioSessionMode(), micHoldMode: readMicHoldMode() }
 }

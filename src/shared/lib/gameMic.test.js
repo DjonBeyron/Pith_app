@@ -88,6 +88,8 @@ describe('iPhone: разрешение не запоминается — оди�
     expect(flow).toContain('getStream: getGameMic')
     expect(flow).toContain('closeGameMic()')
     const mod = readFileSync(new URL('../../features/player/modules/rotate-phone/RotatePhoneModule.jsx', import.meta.url), 'utf8')
-    expect(mod).toContain('openGameMic(),') // на всех платформах, не только iPhone
+    expect(mod).toContain('startGameAudio({') // тап «Начать» открывает микрофон через wordLaneStart.js — на всех платформах, не только iPhone
+    const start = readFileSync(new URL('../../features/player/modules/rotate-phone/wordLaneStart.js', import.meta.url), 'utf8')
+    expect(start).toContain('openMic = openGameMic')
   })
 })

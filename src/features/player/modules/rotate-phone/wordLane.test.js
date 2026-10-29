@@ -148,12 +148,24 @@ describe('вёрстка и подключения', () => {
     expect(read('../../../lessons/LaunchPreloader.jsx')).toContain("n.type === 'rotate_phone') && <LaunchMicAsk />")
   })
 
-  it('тап «Начать» будит звук и полный экран ДО любого await, микрофон проверяется до игры', () => {
+  it('тап «Начать»: полный экран и startGameAudio (тип сессии → микрофон) вызываются ДО любого await, игра открывается после', () => {
     const mod = read('./RotatePhoneModule.jsx')
     const body = mod.slice(mod.indexOf('const start = useCallback'))
-    expect(body.indexOf('unlockVoice()')).toBeLessThan(body.indexOf('await'))
-    expect(body.indexOf('requestFullscreen')).toBeLessThan(body.indexOf('await'))
-    expect(body.indexOf('openGameMic()')).toBeLessThan(body.indexOf("setPhase('game')"))
+    const call = body.indexOf('await startGameAudio({')
+    expect(call).toBeGreaterThan(0)
+    expect(body.slice(0, call)).not.toMatch(/await/) // всё до вызова — в жесте (сам вызов синхронно открывает сессию и микрофон)
+    expect(body.indexOf('requestFullscreen')).toBeLessThan(call)
+    expect(call).toBeLessThan(body.indexOf("setPhase('game')"))
+    expect(body).not.toContain('unlockVoice()') // звук диктора будится не здесь, а после открытия микрофона (wordLaneStart.js)
+  })
+
+  it('wordLaneStart: синхронный префикс — тип сессии и микрофон; звук будится после ожидания (settle), а не до микрофона', () => {
+    const start = read('./wordLaneStart.js')
+    const body = start.slice(start.indexOf('export function startGameAudio'))
+    const order = ['session.begin()', 'openMic()', 'await micPromise', 'warm.settle()', 'wake({ cfg'].map(t => body.indexOf(t))
+    expect(order.every(i => i > 0)).toBe(true)
+    expect([...order].sort((a, b) => a - b)).toEqual(order)
+    expect(body.indexOf('await')).toBeGreaterThan(body.indexOf('openMic()')) // до первого await — только begin, session, openMic
   })
 
   it('редактор ноды: ElevenLabs-озвучка → тайминги → клипы; таймлайн — на узлах таймлайна таблицы', () => {

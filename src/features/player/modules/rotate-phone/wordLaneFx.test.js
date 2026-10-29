@@ -147,7 +147,7 @@ describe('XP за пилюлю, ноты, Пит', () => {
   })
 
   it('ноты будятся в тапе «Начать» и уважают «без звука»', () => {
-    expect(read('./RotatePhoneModule.jsx')).toContain('unlockNotes()')
+    expect(read('./wordLaneStart.js')).toContain('unlockNotes()') // будит wordLaneStart.js (после открытия микрофона), его зовёт тап «Начать»
     expect(read('./wordLaneNotes.js')).toContain('getLessonMuted()')
   })
 

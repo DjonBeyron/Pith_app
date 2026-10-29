@@ -4,26 +4,18 @@ import { useAudioSource } from '../audio/useAudioSource.js'
 import PlayerBubble from '../../PlayerBubble.jsx'
 import WordLaneGame from './WordLaneGame.jsx'
 import { readWordLane } from './wordLaneConfig.js'
-import { unlockVoice, prepareTrack } from './wordLaneVoice.js'
-import { unlockNotes } from './wordLaneNotes.js'
-import { prepareClips, prepareWords } from './wordLaneClips.js'
-import { playSpan, clipsFor } from './wordLaneAudio.js'
-import { libItems } from './wordLaneLib.js'
-import { normalizeLines, linesItems } from './wordLaneCatLines.js'
+import { normalizeLines } from './wordLaneCatLines.js'
+import { startGameAudio } from './wordLaneStart.js'
 import { getCatLines } from '../../../../shared/api/catLinesApi.js'
-import { openGameMic } from '../../../../shared/lib/gameMic.js'
-import { gameAudioSession } from '../../../../shared/lib/gameMicSession.js'
-import { primeAudio } from '../../../../shared/lib/primedAudio.js'
 import { pLog } from '../../../../shared/lib/debug.js'
 
 // Пауза после конца игры перед переходом дальше: подпись «закончена» должна успеть прочитаться
 const DONE_AFTER_MS = 700
-const WORDS_WAIT_MS = 2500 // сколько максимум ждём подготовку озвучки кусков перед началом игры
 const FINISHED_TEXT = 'Голосовая тренировка закончена'
 
 // Нода «Переверни телефон» (тип rotate_phone) — вертикальная игра «Повтори за диктором» (фраза из кусков: наращивание, порядок, вслепую): карточка в чате (как ссылка на урок: полоса, значок, текст) и кнопка «Начать».
-// Тап — жест, поэтому прямо в нём (синхронно, до любых await) будим звук диктора и просим полный экран; потом проверяем микрофон (доступ обычно уже дан на экране запуска урока —
-// LaunchMicAsk) и открываем игру (WordLaneGame, полный экран). Нет доступа к микрофону — игра идёт в ручном режиме. По концу игры карточка пишет, что тренировка закончена,
+// Тап — жест, поэтому прямо в нём (синхронно, до любых await) просим полный экран и открываем микрофон с типом аудиосессии, а звук диктора будим ПОСЛЕ этого, когда iOS улёгся (wordLaneStart.js; доступ к
+// микрофону обычно уже дан на экране запуска урока — LaunchMicAsk); потом открываем игру (WordLaneGame, полный экран). Нет доступа к микрофону — игра идёт в ручном режиме. По концу игры карточка пишет, что тренировка закончена,
 // и нода отпускает цепочку (onDone('shown')). Переворот экрана в горизонталь — позже, отдельным этапом.
 export default function RotatePhoneModule({ node, file, onDone }) {
   // Настройки игры не должны меняться от перерисовок плеера: новый объект node.typeData на каждый рендер пересобирал бы рецепт посреди игры (сбрасывая ступень и звук) — ключ по содержимому
@@ -41,23 +33,10 @@ export default function RotatePhoneModule({ node, file, onDone }) {
   const start = useCallback(async () => {
     if (busy || phase !== 'wait') return
     setBusy(true)
-    unlockVoice()
-    gameAudioSession.begin() // тип аудиосессии iOS на время игры (настройка в Админ → «Голос»): в самом тапе, до открытия микрофона; в конце игры вернёт useWordLaneFlow
-    // Звуки диктора: куски фразы — отдельными файлами из библиотеки озвучки слов (слоты будятся тишиной в жесте), запись автора — только финал (вся фраза; у одного слова — если слова нет в библиотеке)
-    const wordsReady = prepareWords([...libItems([...cfg.chunks, ...cfg.confusers.flat()]), ...linesItems(lines)]) // куски фразы, слова-запутыватели («Различи» — только озвучка) и озвученные реплики кота; заодно измеряется, где в файле звучит голос (без «хвоста»)
-    if (cfg.hasAudio && audioSrc) {
-      prepareTrack(audioSrc) // запасной путь: общий файл с перемоткой (элемент будится в жесте)
-      const n = cfg.chunks.length
-      const rows = n > 1 ? [clipsFor(cfg.clips, n, cfg.chunks.map((_, i) => i), 0)].filter(Boolean) : (cfg.clips ?? [])
-      if (rows.length) prepareClips(audioSrc, rows.map(playSpan)) // файл режется на клипы-высказывания (iPhone не подгружает аудио заранее и плохо перематывает)
-    }
-    unlockNotes() // ноты-награды: элементы просыпаются в жесте, иначе iOS не даст им зазвучать по таймеру
-    primeAudio()
     try { document.documentElement.requestFullscreen?.({ navigationUI: 'hide' })?.catch?.(() => {}) } catch { /* iPhone и часть браузеров не умеют — остаёмся в окне */ }
-    const [mic] = await Promise.all([
-      openGameMic(), // на всех платформах: один поток на всю игру без эхо/шумоподавления (иначе голос диктора хрипит), диалога нет, если доступ уже выдан; распознаватель ступеней берёт его готовым
-      Promise.race([wordsReady, new Promise(r => setTimeout(r, WORDS_WAIT_MS))]),   // длины слов нужны плану диктора, но долго ждать не будем
-    ])
+    // Тап — жест. ПОРЯДОК: сначала тип аудиосессии и микрофон (один поток на всю игру, без эхо/шумоподавления — иначе голос диктора хрипит; диалога нет, если доступ уже выдан), потом ждём, пока iOS уляжется
+    // после смены сессии, и только потом будим звук диктора и кота — иначе прерывание сессии убивало разбуженные элементы и начало игры молчало (wordLaneStart.js)
+    const { mic } = await startGameAudio({ cfg, audioSrc, lines })
     pLog(`[rotate] игра «${cfg.word}»: микрофон ${mic}${cfg.isDemo ? ', слово по умолчанию' : ''}`)
     playedRef.current = true
     setPhase('game')

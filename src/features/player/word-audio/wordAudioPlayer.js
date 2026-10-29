@@ -6,6 +6,8 @@ import { isMicBusy } from '../../../shared/lib/soundQuiet.js'
 import { onAudioInterrupted } from '../../../shared/lib/sounds.js'
 import { logElementSound } from '../../../shared/lib/soundLog.js'
 import { begin as beginNetBusy } from '../../../shared/lib/netBusy.js'
+import { gameAudioWarm } from '../../../shared/lib/gameAudioWarm.js'
+import { silenceWavUrl } from '../../../shared/lib/silenceWav.js'
 
 // Проигрыватель слов в уроке (PROJECT.md, «Озвучка слов»). Один на плеер,
 // без React: модули зовут playWord(key) прямо из обработчика тапа.
@@ -26,6 +28,7 @@ import { begin as beginNetBusy } from '../../../shared/lib/netBusy.js'
 
 const players = new Map()   // key → HTMLAudioElement
 const blobUrls = new Map()  // key → blob: URL (revoke при release)
+const warmKeys = new Set()  // ключи, для которых был создан прогретый элемент: по ним rewarmWordElements() пересоздаёт элементы после прерывания (сами элементы dropWordElements выбрасывает)
 let blobCount = 0, urlCount = 0 // для лога прогрева: blob (свой) или прямой URL (CORS)
 let current = null
 let muted = false           // «Не могу слушать» (повторение): слова не звучат при тапах по таблицам, вариантам и т.п.
@@ -45,23 +48,25 @@ subscribeLessonVolume(() => {
 
 // Сворачивание на минуты (iOS PWA) прерывает аудиосессию: каждый СУЩЕСТВУЮЩИЙ <audio> молча перестаёт играть, звуки интерфейса при
 // этом чинятся (sounds.js пересоздаёт свои), а слова — нет. Поэтому элементы выбрасываем (blob-URL остаются), а playWord создаёт
-// свежий из blob прямо в тапе — как при первом прогреве. Зовётся по прерыванию контекста и по возврату из фона после паузы
+// свежий из blob прямо в тапе — как при первом прогреве. Зовётся по прерыванию контекста и по возврату из фона после паузы.
+// Прерывание бывает и НАШИМ: открытие игрового микрофона (getUserMedia) и смена navigator.audioSession.type переводят сессию в «запись + воспроизведение» — тогда элементы, разбуженные до этого,
+// тоже мертвы. В журнал пишем, чьё это прерывание (gameAudioWarm.selfWindow), а прогрев после него делает игра: rewarmWordElements() в том же жесте (wordLaneStart.js), иначе первые слова молчат до тапа
 const BG_RESET_MS = 20000
 let hiddenAt = 0
-export function dropWordElements() {
+export function dropWordElements(why = 'фон / прерывание аудиосессии') {
   stopCurrent()
   for (const a of players.values()) { try { a.pause(); a.removeAttribute?.('src'); a.load?.() } catch { /* уже выгружен */ } }
   players.clear()
-  pLog('[word-audio] элементы слов сброшены (фон / прерывание аудиосессии) — пересоздаются из blob при тапе')
+  pLog(`[word-audio] элементы слов сброшены (${why}) — пересоздаются из blob при тапе`)
 }
 if (typeof document !== 'undefined') {
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) { hiddenAt = Date.now(); return }
-    if (hiddenAt && Date.now() - hiddenAt >= BG_RESET_MS) dropWordElements()
+    if (hiddenAt && Date.now() - hiddenAt >= BG_RESET_MS) dropWordElements('возврат из фона')
     hiddenAt = 0
   })
-  onAudioInterrupted(dropWordElements)
 }
+onAudioInterrupted(() => dropWordElements(gameAudioWarm.selfWindow() ? 'прерывание аудиосессии, вызванное открытием микрофона игры / сменой типа сессии' : 'прерывание аудиосессии'))
 
 const GLOW_ID = 'word-audio' // ключ источника в audioLevel.js (слово играет одно, ключ один)
 
@@ -96,6 +101,32 @@ async function prepare(key, url, myGen) {
   a.onerror = () => pLog(`[word-audio] ошибка загрузки «${key}» (${src.startsWith('blob:') ? 'blob' : 'url'}): ${a.error?.message ?? a.error?.code}`)
   a.load()
   players.set(key, a)
+  warmKeys.add(key)
+}
+
+// Заново прогреть ВСЕ слова урока: свежий <audio> на каждое, разбуженный тишиной внутри жеста (play → pause), затем ему подставляется blob (или прямой URL, если blob не вышел) и он прогружается.
+// Зовёт игра «Повтори за диктором» после открытия микрофона и после прерывания (gameAudioWarm): прежние элементы к этому моменту мертвы, а слово по таймеру диктора играет не из жеста.
+// Звучащее слово обрывается. Возвращает, сколько элементов создано
+export function rewarmWordElements() {
+  const lib = cachedWordAudio()
+  stopCurrent()
+  const silence = silenceWavUrl()
+  let n = 0
+  for (const key of warmKeys) {
+    const src = blobUrls.get(key) ?? lib?.get(key)?.url
+    if (!src) continue
+    const old = players.get(key)
+    if (old) { try { old.pause(); old.removeAttribute?.('src'); old.load?.() } catch { /* уже выгружен */ } }
+    const a = new Audio(silence ?? src)
+    a.preload = 'auto'
+    a.onerror = () => pLog(`[word-audio] ошибка загрузки «${key}» (${src.startsWith('blob:') ? 'blob' : 'url'}): ${a.error?.message ?? a.error?.code}`)
+    players.set(key, a)
+    const attach = () => { if (players.get(key) !== a) return; try { a.src = src; a.load() } catch { /* элемент выгружен */ } }
+    if (silence) { try { a.play().then(() => { a.pause(); attach() }, attach) } catch { attach() } } else attach()
+    n += 1
+  }
+  pLog(`[word-audio] слова прогреты заново: ${n}`)
+  return n
 }
 
 // keys — ключи слов урока; берутся только те, что есть в базе (cachedWordAudio)
@@ -173,6 +204,7 @@ export function releaseWordAudio() {
   for (const u of blobUrls.values()) URL.revokeObjectURL(u)
   players.clear()
   blobUrls.clear()
+  warmKeys.clear()
   blobCount = 0; urlCount = 0
   muted = false
 }
