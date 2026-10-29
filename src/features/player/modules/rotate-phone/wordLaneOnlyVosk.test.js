@@ -84,7 +84,7 @@ describe('карточка ноды', () => {
   })
   it('«Игра заново» из HUD: синхронный перемонтаж (flushSync) и подъём звука и микрофона в том же тапе', () => {
     const mod = read('./RotatePhoneModule.jsx')
-    expect(mod).toMatch(/flushSync\(\(\) => setGameKey\(k => k \+ 1\)\)\s+armGame\(\)\s+openGameMic\(\)/)
+    expect(mod).toMatch(/flushSync\(\(\) => setGameKey\(k => k \+ 1\)\)\s+startGameAudio\(\{ cfg, audioSrc, lines \}\)/)
     expect(mod).toContain('key={gameKey}')
     expect(mod).toContain('onRestart={restart}')
   })
