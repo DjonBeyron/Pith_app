@@ -41,12 +41,32 @@ describe('слои: will-change только у взятых из пула пи�
     expect(pills[a].style.willChange).toBe(WILL_PILL)
     expect(pills[a].parts['.wlPillFill'].style.willChange).toBe(WILL_FILL)
     expect(pills.filter(p => p.style.willChange).length).toBe(2)
+    expect(pills[a].getAttribute('data-held')).toBe('1')                      // по data-held вёрстка держит слои частиц заливки всё время, пока пилюля у движка
+    expect(WILL_PILL).toBe('transform, translate, scale')
     pool.give(a)
+    expect(pills[a].getAttribute('data-held')).toBeNull()
     expect(pills[a].style.willChange).toBe('')
     expect(pills[a].parts['.wlPillFill'].style.willChange).toBe('')
     expect(pills[b].style.willChange).toBe(WILL_PILL)
     pool.giveAll()
     expect(pills.every(p => !p.style.willChange)).toBe(true)
+  })
+
+  it('в полёте will-change не переключается: ставится в take до старта анимации, снимается только в give; paintFill, attr и смена состояний его не трогают', () => {
+    const { pills, root } = fakeRoot()
+    const pool = createPool(root)
+    const writes = []
+    const k = pool.take(0, { atMs: 0 })
+    for (const el of [pills[k], pills[k].parts['.wlPillFill']]) {
+      let v = el.style.willChange
+      Object.defineProperty(el.style, 'willChange', { get: () => v, set: x => { writes.push(x); v = x } })
+    }
+    for (const v of [0.1, 0.4, 0.8, 1]) pool.paintFill(k, v)
+    for (const n of ['data-lock', 'data-fail', 'data-hint', 'data-voice']) { pool.attr(k, n); pool.attr(k, n, false) }
+    pool.hint(k, '0.5', 0.3); pool.place(k, 40); pool.unplace(k)
+    expect(writes).toEqual([])
+    pool.give(k)
+    expect(writes).toEqual(['', ''])                                           // единственная запись — снятие в give
   })
 
   it('в вёрстке will-change нет ни у .wlPill, ни у заливки, ни у метки темпа (кроме прогрева в фазе lanes)', () => {
@@ -79,8 +99,8 @@ describe('заливка пилюль: ровная, край едет', () => {
     const css = cssCode()
     expect(css).not.toContain('repeating-linear-gradient')
     expect(css).not.toContain('scaleY')
-    expect(css).toMatch(/\.wlPill:not\(\[data-lock\]\):not\(\[data-fail\]\) \.wlPillFill \{ background: rgba\(var\(--rgb\), 0\.35\); \}/) // бледный тон — альфа в самом цвете, не opacity слоя (кромка и частицы остаются яркими)
-    expect(css).toMatch(/\.wlPill\[data-lock\]:not\(\[data-fail\]\) \.wlPillFill \{ background: var\(--c\); \}/)
+    expect(css).toMatch(/\.wlPill:not\(\[data-lock\]\):not\(\[data-fail\]\) \.wlPillFill \{ --edge: [^;]+; background: var\(--edge\) 0 0 \/ 100% 14px no-repeat, rgba\(var\(--rgb\), 0\.35\); \}/) // бледный тон — альфа в самом цвете, не opacity слоя (кромка и частицы остаются яркими); кромка — первый слой фона
+    expect(css).toMatch(/\.wlPill\[data-lock\]:not\(\[data-fail\]\) \.wlPillFill \{ background: var\(--edge\) 0 0 \/ 100% 14px no-repeat, var\(--c\); \}/)
     expect(css).toContain('.wlPill[data-fail] .wlPillFill { background: #7b8494; }')
     expect(css).not.toMatch(/\.wlPillFill[^{]*\{[^}]*rgba\(255, 93, 115/) // красного фона у заливки нет: красное — только вспышка промаха
   })

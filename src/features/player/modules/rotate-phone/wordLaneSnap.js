@@ -1,5 +1,6 @@
 // «Щелчок» пилюли игры «Повтори за диктором»: в момент, когда пилюля залита целиком, пилюля хлопает — scale 1 → 1.12 → 1, вспышка (белая заливка и кольцо,
 // расходящееся наружу), искры вверх (общий залп приложения burstParticles.fireBurst, но локальный — из верхней кромки пилюли) и короткая вибрация там, где она есть (Android).
+// Кольцо вспышки отсчитывается от края пилюли с учётом её border (absolute считается от padding-box): inset = −2 px − --ring.
 // Всё императивно (WAAPI на композиторе): React не перерисовывается, а анимация не мешает кадрам линии. Звать из движка пилюль (useWordLanePills) ровно один раз на пилюлю за фазу.
 import { fireBurst } from '../../../../shared/lib/burstParticles.js'
 import { levelHex } from '../../../../shared/lib/memory/memoryLevels.js'
@@ -41,7 +42,7 @@ export function snapPill(pill, k, { full = true } = {}) {
   const clip = pill.querySelector('.wlPillClip')
   const c = levelHex(k + 1)
   if (clip) flash(clip, 'inset:0;border-radius:999px;background:#fff;', [{ opacity: 0.7 }, { opacity: 0 }], FLASH_MS * 0.75)
-  flash(pill, `inset:-2px;border-radius:999px;border:3px solid ${c};`, [{ opacity: 0.8, transform: 'scale(1)' }, { opacity: 0, transform: 'scale(1.45, 1.2)' }], FLASH_MS)
+  flash(pill, `inset:calc(-2px - var(--ring));border-radius:999px;border:3px solid ${c};`, [{ opacity: 0.8, transform: 'scale(1)' }, { opacity: 0, transform: 'scale(1.45, 1.2)' }], FLASH_MS)
   const r = pill.getBoundingClientRect()
   fireBurst({ count: SPARK_COUNT, size: 3.5, colors: sparkColors(k), origin: { x: r.left + r.width / 2, y: r.top + 6, spread: r.width * 0.7, life: 0.8, reach: 260 } })
   try { navigator.vibrate?.(14) } catch { /* не везде есть */ }

@@ -3,12 +3,15 @@
 // Запись в DOM — только при изменении значения (put): лишние записи стоили бы пересчёта стилей на слабом телефоне.
 // will-change (свой композитный слой) стоит ТОЛЬКО у взятых из пула пилюль и их заливки: take ставит, give снимает. Раньше слои держали все 12 пилюль + 12 заливок + 12 меток темпа даже в пуле —
 // дерево слоёв пересобиралось почти каждый кадр (Layerize), а живых пилюль в ступени до девяти.
+// Слои взятой пилюли СТОЯТ неизменно от take до give: will-change ставится в take ДО старта полёта (в одном задании с записью дорожки, заливки и data-held — браузер увидит уже готовое состояние), а снимается только в give,
+// когда пилюля ушла за край или сцена кончилась; в полёте его не переключает никто. data-held нужен вёрстке: по нему слоям частиц заливки ставятся анимации и will-change (word-lane-pill.css), чтобы появление частиц
+// (data-live) дерево слоёв не пересобирало — на iOS Safari такая пересборка заставляла контур пилюли мигать.
 import { LANE_X, PILL_W } from './wordLaneTimeline.js'
 import { startFlight } from './wordLaneMotion.js'
 import { fillProfile } from './wordLaneTimeline.js'
 
 export const POOL = 12
-export const WILL_PILL = 'translate, scale' // слои взятой пилюли: полёт (translate) и хлопок (scale)
+export const WILL_PILL = 'transform, translate, scale' // слои взятой пилюли: полёт (translate), хлопок (scale) и дрожка промаха (transform); transform в списке — гарантия слоя там, где will-change по translate/scale слой не создаёт
 export const WILL_FILL = 'transform'        // и её заливки (движок пишет ей transform каждый кадр)
 // «Наливается» (data-live → частицы в заливке, word-lane-pill.css): заливка выросла за последние LIVE_HOLD_MS; у принятой пилюли (data-lock) частицы держатся дольше и потом гаснут
 export const LIVE_RISE_EPS = 0.0008  // рост за кадр меньше этого — шум, не «наливание»
@@ -63,7 +66,7 @@ export function createPool(root) {
       if (k == null) return null
       const { el, fill } = parts[k]
       clean(k)
-      el.style.willChange = WILL_PILL; fill.style.willChange = WILL_FILL
+      el.style.willChange = WILL_PILL; fill.style.willChange = WILL_FILL; el.setAttribute('data-held', '1')
       el.dataset.lane = String(lane)
       put(el, 'left', `${LANE_X[lane]}%`); put(el, 'width', `${PILL_W}%`)
       shape(k, curve)
@@ -75,7 +78,7 @@ export function createPool(root) {
       if (!l) return
       try { l.anim?.cancel() } catch { /* уже снята */ }
       live.delete(k); clean(k); free.push(k)
-      parts[k].el.style.willChange = ''; parts[k].fill.style.willChange = '' // вернулась в пул — слои не держим
+      parts[k].el.style.willChange = ''; parts[k].fill.style.willChange = ''; parts[k].el.removeAttribute('data-held') // вернулась в пул — слои не держим
     },
     giveAll() { for (const k of [...live.keys()]) this.give(k) },
     /** Поставить пилюлю в центр дорожки без полёта (раунд «Порядок») */
