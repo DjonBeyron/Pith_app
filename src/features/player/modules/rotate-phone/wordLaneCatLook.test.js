@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest'
 import { createCatLook, drawCatMouth, NO_LOOK, TALK_OFF_MS } from './wordLaneCatLook.js'
-import { TAIL_MS } from '../../../scene/v2/talkTail.js'
 import { PUPIL_DILATE, PUPIL_MS, IDLE_MIN_MS, MAX_LOOK } from '../../../scene/v2/pupilLook.js'
 import { MASCOT_PACKS } from '../../../scene/v2/sprites/mascot/mascots.js'
 
@@ -23,9 +22,10 @@ function setup({ rands = [] } = {}) {
   const fire = ms => { const k = timers.findIndex(x => x.ms === ms); if (k < 0) throw new Error(`нет таймера на ${ms} мс`); const [x] = timers.splice(k, 1); x.fn() }
   let r = 0
   const rand = () => (r < rands.length ? rands[r++] : 0.5)
-  const look = createCatLook({ getRoot: () => root, skin: 'kit', timers: t, rand })
+  const drive = { calls: [], set: on => drive.calls.push(on), stop: () => drive.calls.push('stop') } // привод усов (whiskerDrive.js) — подделка: считаем вызовы
+  const look = createCatLook({ getRoot: () => root, skin: 'kit', timers: t, rand, whiskers: drive })
   const idle = () => timers.filter(x => x.ms >= IDLE_MIN_MS)
-  return { look, vars, classes, timers, fire, idle }
+  return { look, vars, classes, timers, fire, idle, drive }
 }
 
 describe('кот: «живой Пит v2» — зрачки', () => {
@@ -113,46 +113,60 @@ describe('кот: is-talking (усы)', () => {
   })
 })
 
-describe('кот: усы доезжают до покоя (хвост is-tail), а не обрываются', () => {
-  it('речь кончилась: через TALK_OFF_MS is-talking снят, но в ТОТ ЖЕ момент поставлен is-tail — анимация усов не пропадает ни на кадр; хвост снимается через TAIL_MS', () => {
+describe('кот: усы плавно входят и выходят (привод whiskerDrive.js)', () => {
+  it('речь началась: is-talking и set(true) один раз; повторные true каждый кадр привод не дёргают', () => {
+    const s = setup()
+    for (let i = 0; i < 10; i++) s.look.talking(true)
+    expect(s.drive.calls).toEqual([true])
+    expect(s.classes.has('is-talking')).toBe(true)
+  })
+
+  it('речь кончилась: через TALK_OFF_MS is-talking снят и усам сказано set(false) — они доезжают до покоя сами; никаких хвостовых классов и таймеров', () => {
     const s = setup()
     s.look.talking(true)
     s.look.talking(false)
+    expect(s.drive.calls).toEqual([true]) // выдержка: пока TALK_OFF_MS не прошло, усы продолжают
     s.fire(TALK_OFF_MS)
     expect(s.classes.has('is-talking')).toBe(false)
-    expect(s.classes.has('is-tail')).toBe(true)
-    expect(s.timers.map(x => x.ms)).toEqual([TAIL_MS])
-    s.fire(TAIL_MS)
     expect(s.classes.has('is-tail')).toBe(false)
-  })
-
-  it('заговорил снова, пока хвост идёт: is-talking вернулся, хвост и его таймер сняты (анимация та же, фаза не сбрасывается)', () => {
-    const s = setup()
-    s.look.talking(true); s.look.talking(false); s.fire(TALK_OFF_MS)
-    s.look.talking(true)
-    expect(s.classes.has('is-talking')).toBe(true)
-    expect(s.classes.has('is-tail')).toBe(false)
+    expect(s.drive.calls).toEqual([true, false])
     expect(s.timers).toHaveLength(0)
   })
 
-  it('release() (пауза игры): без выдержки TALK_OFF_MS — is-talking снят сразу, хвост поставлен, ожидающее снятие отменено; без речи ничего не делает', () => {
+  it('заговорил снова до конца выдержки: усы не гасились ни на кадр (set(false) не было)', () => {
+    const s = setup()
+    s.look.talking(true); s.look.talking(false)
+    s.look.talking(true)
+    expect(s.timers).toHaveLength(0) // ожидающее снятие отменено
+    expect(s.drive.calls).toEqual([true])
+    expect(s.classes.has('is-talking')).toBe(true)
+  })
+
+  it('release() (пауза игры): без выдержки — is-talking снят, set(false) сразу, ожидающее снятие отменено; без речи ничего не делает; повтор — тоже', () => {
     const s = setup()
     s.look.release()
-    expect(s.classes.has('is-tail')).toBe(false)
+    expect(s.drive.calls).toEqual([])
     s.look.talking(true); s.look.talking(false)
     s.look.release()
     expect(s.classes.has('is-talking')).toBe(false)
-    expect(s.classes.has('is-tail')).toBe(true)
-    expect(s.timers.map(x => x.ms)).toEqual([TAIL_MS])
+    expect(s.drive.calls).toEqual([true, false])
+    expect(s.timers).toHaveLength(0)
     s.look.release()
-    expect(s.timers).toHaveLength(1) // повторный release не множит таймеры
+    expect(s.drive.calls).toEqual([true, false])
   })
 
-  it('stop (кот убран): ни is-talking, ни is-tail, ни таймеров', () => {
+  it('заговорил снова после release(): set(true) — усы идут обратно от текущей амплитуды', () => {
     const s = setup()
-    s.look.talking(true); s.look.release()
+    s.look.talking(true); s.look.release(); s.look.talking(true)
+    expect(s.drive.calls).toEqual([true, false, true])
+  })
+
+  it('stop (кот убран): is-talking снят, привод остановлен сразу, таймеров нет', () => {
+    const s = setup()
+    s.look.talking(true)
     s.look.stop()
     expect(s.classes.size).toBe(0)
+    expect(s.drive.calls).toEqual([true, 'stop'])
     expect(s.timers).toHaveLength(0)
   })
 })

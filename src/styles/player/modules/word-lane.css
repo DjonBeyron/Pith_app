@@ -162,16 +162,10 @@
 @keyframes wlXpPop { 0% { transform: scale(1); } 40% { transform: scale(1.18); } 100% { transform: scale(1); } }
 
 
-/* «Живой Пит v2» у кота (WordLaneCat.jsx, wordLaneCatLook.js): зрачки и широкие формы рта — общие правила scene-v2-pit.css (.scn--v2), а усы там качаются только при .scn--live, которого у кота нет
-   (идл-анимации тела не нужны). Здесь — те же усы без .scn--live: по одной анимации на ус, пока кот говорит (is-talking) и ещё 360 мс после (is-tail, talkTail.js: амплитуда --wh-amp плавно сходит в 0,
-   и анимация снимается на нулевом угле, без рывка); keyframes, переменная --wh-amp и её переход у усов — в scene-v2-pit.css. Слабое устройство (.scn--lite): без усов и зрачков, остаётся рот */
-.wlCat.scn--v2 .scn-cat:is(.is-talking, .is-tail) .wh-l { animation: scnWhiskL 0.6s ease-in-out infinite; }
-.wlCat.scn--v2 .scn-cat:is(.is-talking, .is-tail) .wh-r { animation: scnWhiskR 0.6s ease-in-out infinite; }
-.wlCat.scn--v2 .scn-cat:is(.is-talking, .is-tail) .wh-d { animation-duration: 0.72s; animation-delay: -0.25s; }
-.wlCat.scn--lite .wh { animation: none; }
+/* «Живой Пит v2» у кота (WordLaneCat.jsx, wordLaneCatLook.js): зрачки и широкие формы рта — общие правила scene-v2-pit.css (.scn--v2). Усы здесь качает не CSS, а whiskerDrive.js
+   (угол пишется в style.rotate из rAF, амплитуда плавно 0 ↔ 1 — одинаково в Chromium и Safari); якорь усов — в scene-v2-pit.css. Слабое устройство (.scn--lite): без усов и зрачков, остаётся рот */
 /* --talk (scene-v2-cat.css: @property, наследуется, переход 0,3 с на .scn-cat) на корне кота не переходим: смена зарегистрированного наследуемого свойства каждый кадр перепросчитывала стили всего поддерева кота
-   (≈140 узлов; замер при CPU 4×: +2,9 мс на кадр, стили +70 %). Усам --talk не нужен: их амплитуда — --wh-amp, и в игре она переходит только у самих усов (4 листа) */
+   (≈140 узлов; замер при CPU 4×: +2,9 мс на кадр, стили +70 %). Усам --talk не нужен */
 .wlCat.scn--v2 .scn-cat { transition: none; }
-.wlCat .wh { transition: --wh-amp 0.3s ease-in-out; }
 /* Смена лица (реакции love / shy): новая голова проявляется поверх прежней за ~140 мс (wordLaneCatFade.js), прежняя остаётся видимой, пока идёт переход */
 .wlCat [data-part='head'].wlHead--out { display: inline; }

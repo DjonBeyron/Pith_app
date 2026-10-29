@@ -1,14 +1,14 @@
 import { createPupilLook } from '../../../scene/v2/pupilLook.js'
 import { setMouth } from '../../../scene/v2/mouthDriver.js'
 import { applyMascotMouthCode } from '../../../scene/v2/sprites/mascot/mascotMouth.js'
-import { startTail, cancelTail } from '../../../scene/v2/talkTail.js'
+import { createWhiskerDrive } from '../../../scene/v2/whiskerDrive.js'
 
 // «Живой Пит v2» для кота игры «Повтори за диктором» (WordLaneCat.jsx) — чистая обёртка без React: зрачки (взгляд, саккады по словам, дрейф в тишине, расширение в начале речи) и
-// класс is-talking (усы качаются, амплитуда --wh-amp) и хвост is-tail после речи (усы доезжают до покоя плавно). В сценах это делает режиссёр (scenePlayLine.js) и флаг animV2; в игре включено всегда, кроме слабого устройства (там только рот — NO_LOOK).
+// класс is-talking и усы (whiskerDrive.js: JS-амплитуда плавно 0 → 1 при речи и 1 → 0 после, без CSS-переходов и @property — в Safari они давали рывок на старте и в конце). В сценах это делает режиссёр (scenePlayLine.js) и флаг animV2; в игре включено всегда, кроме слабого устройства (там только рот — NO_LOOK).
 // Всё по событиям, без rAF: зрачки — CSS-переменные --look-x / --look-y / --pupil, остальное рисует CSS (scene-v2-pit.css). Переменные и класс пишутся на ОБЩИЙ родитель голов — <g class="scn-cat">
 // (у кота три головы base / love / shy, видна одна): CSS `.scn--v2 .pu` читает переменные у зрачков любой из них.
 // Таймеры и случайность инъектируются для тестов.
-export const TALK_OFF_MS = 300 // класс is-talking снимается не сразу: короткая пауза между словами усы не гасит; после снятия — хвост is-tail (talkTail.js): амплитуда усов плавно сходит в 0, анимация не обрывается
+export const TALK_OFF_MS = 300 // is-talking снимается не сразу: короткая пауза между словами усы не гасит; после снятия усы плавно доезжают до покоя (whiskerDrive.js: амплитуда 1 → 0 за RAMP_MS)
 const TALKING = 'is-talking'
 
 const isCode = key => /^[A-Z]$/.test(key)
@@ -24,14 +24,14 @@ export function drawCatMouth(head, key) {
 /** Заглушка для слабого устройства (.scn--lite): зрачки и усы не трогаем, остаётся один рот */
 export const NO_LOOK = Object.freeze({ lineStart() {}, word() {}, lineEnd() {}, idle() {}, talking() {}, release() {}, stop() {} })
 
-/** getRoot() → <g class="scn-cat"> | null; skin — пакет маскота (масштаб посадки зрачков) */
-export function createCatLook({ getRoot, skin = 'kit', timers = globalThis, rand = Math.random }) {
+/** getRoot() → <g class="scn-cat"> | null; skin — пакет маскота (масштаб посадки зрачков); whiskers — привод усов (в тестах подменяется) */
+export function createCatLook({ getRoot, skin = 'kit', timers = globalThis, rand = Math.random, whiskers = createWhiskerDrive({ getRoot }) }) {
   const pupils = createPupilLook({ whos: ['a'], getEl: getRoot, skinOf: () => skin, timers, rand }) // один персонаж: взгляд прямо, без «собеседника»
   let on = false
   let offTimer = null
   const clearOff = () => { if (offTimer !== null) { timers.clearTimeout(offTimer); offTimer = null } }
-  // is-talking снят, а анимация усов ещё применена (is-tail): они доезжают до покоя за 0,3 с, потом хвост снимается — на нулевом угле, без скачка
-  const release = () => { if (!on) return; on = false; const el = getRoot(); if (el) { el.classList.remove(TALKING); startTail(el, timers) } }
+  // is-talking снят; усы сами доезжают до покоя (амплитуда 1 → 0 за RAMP_MS, цикл rAF кончается на нулевом угле — рывка нет)
+  const release = () => { if (!on) return; on = false; const el = getRoot(); if (el) el.classList.remove(TALKING); whiskers.set(false) }
 
   return {
     lineStart: () => pupils.lineStart('a'),
@@ -43,20 +43,21 @@ export function createCatLook({ getRoot, skin = 'kit', timers = globalThis, rand
     talking(want) {
       if (want) {
         clearOff()
-        if (!on) { on = true; const el = getRoot(); if (el) { el.classList.add(TALKING); cancelTail(el) } }
+        if (!on) { on = true; const el = getRoot(); if (el) el.classList.add(TALKING); whiskers.set(true) }
         return
       }
       if (!on || offTimer !== null) return
       offTimer = timers.setTimeout(() => { offTimer = null; release() }, TALK_OFF_MS)
     },
-    /** Усы гасим сразу, без выдержки TALK_OFF_MS (пауза игры): is-talking снят, хвост is-tail доводит амплитуду до нуля плавно */
+    /** Усы гасим сразу, без выдержки TALK_OFF_MS (пауза игры): is-talking снят, амплитуда усов плавно идёт к нулю */
     release() { clearOff(); release() },
     /** Конец жизни кота: таймеры сняты, переменные и класс убраны */
     stop() {
       clearOff()
       on = false
       const el = getRoot()
-      if (el) { el.classList.remove(TALKING); cancelTail(el) } // конец жизни кота — не до плавности: сразу в покой
+      if (el) el.classList.remove(TALKING)
+      whiskers.stop() // конец жизни кота — не до плавности: сразу в покой
       pupils.stop()
     },
   }

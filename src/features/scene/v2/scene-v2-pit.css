@@ -22,36 +22,14 @@
    и сдвигались). Пока Пит говорит, каждый ус чуть качается вокруг своего корня: якорь — край fill-box у морды (у левых усов правый край,
    у правых — левый). Верхние и нижние — с разным периодом и фазой, чтобы не ходили строем. Знак: у левого уса кончик слева от якоря, +угол поднимает его;
    у правого — наоборот.
-   Плавный вход и выход: угол = размах × --wh-amp (число 0…1, @property — переходит). Анимация применена при is-talking И при is-tail (talkTail.js: хвост 360 мс после речи),
-   а амплитуда у самих усов переходит 0,3 с ease-in-out: речь началась — ус выходит из покоя с нулевой скоростью, речь кончилась — амплитуда сходит в 0, и только потом анимация снимается
-   на нулевом угле (раньше animation пропадала вместе с is-talking, и ус из угла до 4° скачком вставал в ноль). Пауза (.scn--paused) и успокоение (.scn--settle)
-   тоже гасят амплитуду: ус замирает не рывком посреди взмаха, а доезжает до покоя; возобновление — тем же переходом назад. Прокрутка ленты ([data-scrolling]) только ставит анимацию на паузу, как раньше: ради неё
-   гонять переходы на скролле не стоит (кадр и так едет). Своя переменная, не --talk: --talk ещё ведёт кивок
-   головы и хвост (scene-v2-cat.css), их паузу и дрожание она менять не должна. Переход — на корне кота рядом с --talk (там он уже идёт при каждом начале и конце речи, лишних перепросчётов стилей нет; одна лишняя анимация-переход на кота вместо четырёх на усах).
-   В игре (word-lane.css) корень не переходит вовсе — перепросчёт поддерева каждый кадр стоил +2,9 мс — и переход стоит на самих усах */
-@property --wh-amp { syntax: '<number>'; inherits: true; initial-value: 0; }
-.scn--v2 .scn-cat.is-talking { --wh-amp: 1; }
-.scn--v2.scn--paused .scn-cat.is-talking, .scn--v2.scn--settle .scn-cat.is-talking { --wh-amp: 0; }
-.scn--v2 .scn-cat { transition: --talk 0.3s ease-in-out, --wh-amp 0.3s ease-in-out; } /* к уже идущему переходу --talk (scene-v2-cat.css) добавляется второй в том же списке: один лишний переход на кота, а не четыре на усах */
+   Качание — НЕ CSS: угол каждый кадр считает whiskerDrive.js (rAF) и пишет в style.rotate уса; амплитуда плавно идёт 0 → 1 при речи и 1 → 0 после неё, в покое rotate не задан.
+   Здесь только якорь (transform-box / transform-origin). Раньше было @property --wh-amp + переход + var() в keyframes: в Chromium гладко, в Safari — рывок на старте и в конце
+   (причины — в шапке whiskerDrive.js). Пауза сцены, успокоение и выход из кадра гасят амплитуду тем же ходом (useWhiskerDrive.js), прокрутка ленты ([data-scrolling]) ставит усы на месте */
 .scn--v2 .wh { transform-box: fill-box; }
 .scn--v2 .wh-l { transform-origin: 100% 50%; }
 .scn--v2 .wh-r { transform-origin: 0 50%; }
-@keyframes scnWhiskL {
-  0%, 100% { rotate: calc(4deg * var(--wh-amp)); }
-  50% { rotate: calc(-3deg * var(--wh-amp)); }
-}
-@keyframes scnWhiskR {
-  0%, 100% { rotate: calc(-4deg * var(--wh-amp)); }
-  50% { rotate: calc(3deg * var(--wh-amp)); }
-}
-.scn--v2.scn--live:not(.scn--lite) .scn-cat:is(.is-talking, .is-tail) .wh-l { animation: scnWhiskL 0.6s ease-in-out infinite; }
-.scn--v2.scn--live:not(.scn--lite) .scn-cat:is(.is-talking, .is-tail) .wh-r { animation: scnWhiskR 0.6s ease-in-out infinite; }
-.scn--v2.scn--live:not(.scn--lite) .scn-cat:is(.is-talking, .is-tail) .wh-d { animation-duration: 0.72s; animation-delay: -0.25s; }
-.scn--v2.scn--paused .wh, [data-scrolling="1"] .scn--v2 .wh { animation-play-state: paused; }
 
 @media (prefers-reduced-motion: reduce) {
   .scn--v2 .pu { transition: none; }
   .scn--v2 .scn-cat .mouth { transition: none; }
-  .scn--v2 .wh { animation: none; }
-  .scn--v2 .scn-cat { transition: none; }
 }

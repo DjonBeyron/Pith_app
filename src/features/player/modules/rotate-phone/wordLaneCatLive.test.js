@@ -30,18 +30,19 @@ describe('кот игры — «живой Пит v2» подключён', () =
     weak.on = false
   })
 
-  it('усы без scn--live: по одной анимации на ус, пока кот говорит (is-talking) и в хвосте после речи (is-tail); на lite анимаций нет', () => {
-    const css = read('../../../../styles/player/modules/word-lane.css')
-    expect(css).toContain('.wlCat.scn--v2 .scn-cat:is(.is-talking, .is-tail) .wh-l { animation: scnWhiskL 0.6s ease-in-out infinite; }')
-    expect(css).toContain('.wlCat.scn--v2 .scn-cat:is(.is-talking, .is-tail) .wh-r { animation: scnWhiskR 0.6s ease-in-out infinite; }')
-    expect(css).toContain('.wlCat.scn--v2 .scn-cat:is(.is-talking, .is-tail) .wh-d { animation-duration: 0.72s; animation-delay: -0.25s; }')
-    expect(css).toContain('.wlCat.scn--lite .wh { animation: none; }')
+  it('усы без scn--live качает JS (whiskerDrive.js), а не CSS: в word-lane.css ни animation, ни перехода амплитуды у .wh; кот создаёт привод по умолчанию, на lite — NO_LOOK', () => {
+    const css = read('../../../../styles/player/modules/word-lane.css').replace(/\/\*[\s\S]*?\*\//g, '')
+    expect(css).not.toMatch(/\.wh[^{]*\{/)
+    expect(css).not.toContain('--wh-amp')
+    expect(css).not.toContain('is-tail')
+    const look = read('./wordLaneCatLook.js')
+    expect(look).toContain('whiskers = createWhiskerDrive({ getRoot })')
+    expect(read('./WordLaneCat.jsx')).toContain('lite ? NO_LOOK : createCatLook(')
   })
 
-  it('--talk не переходит на корне кота (перепросчёт стилей всего поддерева каждый кадр); амплитуда усов --wh-amp переходит только у самих усов (scene-v2-pit.css)', () => {
+  it('--talk не переходит на корне кота (перепросчёт стилей всего поддерева каждый кадр)', () => {
     const css = read('../../../../styles/player/modules/word-lane.css')
     expect(css).toContain('.wlCat.scn--v2 .scn-cat { transition: none; }') // специфичнее общего правила сцен (scene-v2-pit.css), порядок подключения не важен
-    expect(css).toContain('.wlCat .wh { transition: --wh-amp 0.3s ease-in-out; }')
     expect(css).not.toContain('--talk 0.3s')
   })
 
@@ -53,7 +54,7 @@ describe('кот игры — «живой Пит v2» подключён', () =
     expect(read('./WordLaneCat.jsx')).toContain('crossfadeHeads(prevHead')
   })
 
-  it('пауза игры (freeze) гасит усы без выдержки, но не рывком: look.release() → хвост is-tail', () => {
+  it('пауза игры (freeze) гасит усы без выдержки, но не рывком: look.release() → привод усов плавно ведёт амплитуду к нулю', () => {
     expect(read('./WordLaneCat.jsx')).toContain('look.lineEnd(); look.release() }')
     expect(read('./WordLaneCat.jsx')).not.toMatch(/freeze\(\)[^\n]*look\.talking\(false\)/)
   })
