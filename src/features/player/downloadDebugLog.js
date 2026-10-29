@@ -1,6 +1,8 @@
 import { getPlayerLines } from '../../shared/lib/debug.js'
 import { sendToSink, debugFileName } from '../debugTools/debugSink.js'
 import { buildPerfSection } from './perfLogSection.js'
+import { buildGameLogSection } from './gameLogSection.js'
+import { getLastWordLaneDump } from './modules/rotate-phone/wordLaneLastDump.js'
 
 // ВРЕМЕННО (разбор рассинхрона голосовых, 2026-09-20): в лог идут только
 // события голосовых (audioDebug.js), всё остальное заглушено — так файл
@@ -32,7 +34,10 @@ function buildDebugLogText({ nodeAppearLog, debugItems, events }) {
       `--- Downloads ---`,
       ...debugItems.map(d =>
         `#${d.seq} ${d.type} ${d.status} http=${d.httpStatus ?? '-'} ${d.sizeKb ?? '-'}KB start=${d.startTs} ready=${d.readyTs} msg=${d.msgTs ?? '-'} ${d.error ?? ''}`
-      ))
+      ),
+      ``,
+      // Игра «Повтори за диктором»: краткая хронология последнего запуска (доступы, play(), аудиосессия, стадии, распознавание, пилюли) — владелец присылает именно этот журнал, а не JSON игры
+      ...buildGameLogSection(getLastWordLaneDump()))
     return lines.join('\n')
   }
   lines.push(
@@ -57,6 +62,8 @@ function buildDebugLogText({ nodeAppearLog, debugItems, events }) {
     ...events.map(e =>
       `${e.type} урок=${e.lessonId} попытка=${e.attempt} время=${e.timeMs ?? '?'}мс «${e.option}» сессия=${e.sessionId}`
     ),
+    ``,
+    ...buildGameLogSection(getLastWordLaneDump()),
   )
   return lines.join('\n')
 }

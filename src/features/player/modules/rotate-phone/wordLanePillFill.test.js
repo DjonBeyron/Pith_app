@@ -219,8 +219,9 @@ describe('кольца микрофона: тонкие, тусклые и мо�
     expect(css).not.toMatch(/opacity: calc\(0\.12/)
     expect(block(css, '.wlMicRings i')).toMatch(/opacity: 0;/)
   })
-  it('manual / starting: «дыхание» остаётся, но тусклое (пик не выше .2); кнопка и свечение — как раньше', () => {
-    expect(css).toMatch(/\.wlMic--manual \.wlMicRings i, \.wlMic--starting \.wlMicRings i \{ animation: wlBreath/)
+  it('starting: «дыхание» остаётся, но тусклое (пик не выше .2); кнопка и свечение — как раньше; ручного режима (manual) в CSS больше нет', () => {
+    expect(css).toMatch(/\.wlMic--starting \.wlMicRings i \{ animation: wlBreath/)
+    expect(css).not.toContain('wlMic--manual')
     const peak = Number(css.match(/@keyframes wlBreath[\s\S]*?35%\s*\{ opacity: ([\d.]+); \}/)[1])
     expect(peak).toBeLessThanOrEqual(0.2)
     expect(css).toContain('.wlMic--listening .wlMicBtn::after { opacity: calc(var(--lvl, 0) * 0.8); }')

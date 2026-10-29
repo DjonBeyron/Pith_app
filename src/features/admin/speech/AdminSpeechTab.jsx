@@ -16,6 +16,7 @@ import SpeechSayBlock from './SpeechSayBlock.jsx'
 import SoundDiagBlock from './SoundDiagBlock.jsx'
 import GameMicBlock from './GameMicBlock.jsx'
 import GameSoundsBlock from './GameSoundsBlock.jsx'
+import GameTestBlock from './GameTestBlock.jsx'
 import SpeechMemo from './SpeechMemo.jsx'
 import SpeechCaptureMemo from './SpeechCaptureMemo.jsx'
 import '../../../styles/admin-speech.css'
@@ -72,6 +73,7 @@ export default function AdminSpeechTab() {
       <SoundDiagBlock />
       <GameMicBlock />
       <GameSoundsBlock />
+      <GameTestBlock />
       <SpeechSayBlock />
       <SimpleTestsBlock caps={caps} reference={reference} lang={lang} setLang={changeLang} probe={probe} series={series} onPickStep={pickStep} restart={restartApi} dwell={ap.settings.dwell} onDwell={v => ap.update({ dwell: v })} />
       <SpeechTestBlock caps={caps} reference={reference} setReference={changeReference} lang={lang} setLang={changeLang} probe={probe} cap={cap} ap={ap} />

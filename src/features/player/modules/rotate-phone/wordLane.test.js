@@ -150,8 +150,12 @@ describe('вёрстка и подключения', () => {
 
   it('тап «Начать» будит звук и полный экран ДО любого await, микрофон проверяется до игры', () => {
     const mod = read('./RotatePhoneModule.jsx')
+    const arm = mod.slice(mod.indexOf('const armGame = useCallback'), mod.indexOf('const start = useCallback')) // всё, что нужно в жесте, собрано в armGame (его же зовёт «Игра заново»)
+    expect(arm.indexOf('unlockVoice()')).toBeGreaterThan(-1)
+    expect(arm.indexOf('unlockNotes()')).toBeGreaterThan(-1)
     const body = mod.slice(mod.indexOf('const start = useCallback'))
-    expect(body.indexOf('unlockVoice()')).toBeLessThan(body.indexOf('await'))
+    expect(body.indexOf('armGame()')).toBeGreaterThan(-1)
+    expect(body.indexOf('armGame()')).toBeLessThan(body.indexOf('await'))
     expect(body.indexOf('requestFullscreen')).toBeLessThan(body.indexOf('await'))
     expect(body.indexOf('openGameMic()')).toBeLessThan(body.indexOf("setPhase('game')"))
   })

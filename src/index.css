@@ -124,6 +124,7 @@
 @import './styles/player/modules/word-lane-pill.css';
 @import './styles/player/modules/word-lane-mic.css';
 @import './styles/player/modules/word-lane-debug.css';
+@import './styles/player/modules/word-lane-hud.css';
 @import './styles/player/message.css';
 @import './styles/player/modules/audio.css';
 @import './styles/player/modules/circle.css';

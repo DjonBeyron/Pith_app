@@ -1,14 +1,16 @@
-import { memo, useRef } from 'react'
+import { memo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
 import WordLanePills from './WordLanePills.jsx'
 import WordLaneMic from './WordLaneMic.jsx'
 import WordLaneDebug from './WordLaneDebug.jsx'
 import WordLaneDebugButton from './WordLaneDebugButton.jsx'
+import WordLaneHud from './WordLaneHud.jsx'
 import WordLanePerf from './WordLanePerf.jsx'
 import WordLaneCat from './WordLaneCat.jsx'
 import WordLaneXp from './WordLaneXp.jsx'
 import { isWordLaneDebug } from './wordLaneConfig.js'
+import { readPillSafe } from './wordLaneHudSettings.js'
 import { useWordLaneFlow } from './useWordLaneFlow.js'
 import { WORD_Y } from './wordLaneTimeline.js'
 
@@ -18,10 +20,18 @@ import { WORD_Y } from './wordLaneTimeline.js'
 // Оверлей — portal в body поверх всего (z-index 10000), закрывает весь экран, включая зону вырезов (safe-area учтена отступами сцены). Крестик — выйти в любой момент.
 // Тяжёлое (пилюли, кот, микрофон, награды XP) мемоизировано и живёт на стабильных пропсах: шаг сценария (подпись кота, подсказка, плашка) перерисовывает только лёгкую часть — подписи и плашки.
 const Mic = memo(WordLaneMic) // микрофон перерисовывается, только когда сменились его пропсы (режим, подсказка, видимость), а не на каждый шаг оверлея
+const Hud = memo(WordLaneHud) // HUD настроек (только при отладочном интерфейсе) живёт на стабильных пропсах и своём состоянии; класс wl--safe он ставит прямо на корень, минуя React
 
-export default function WordLaneGame({ cfg, audioSrc, lines = null, onFinished }) {
+const FAIL_TEXT = {
+  title: 'Не получается слушать',
+  sub: 'Распознавание речи не запустилось: нет модели или микрофон не открылся. Проверь доступ к микрофону и попробуй ещё раз.',
+}
+
+export default function WordLaneGame({ cfg, audioSrc, lines = null, forceDebug = false, onRestart = null, onFinished }) {
+  const rootRef = useRef(null)
+  const [safe0] = useState(readPillSafe) // «безопасные слои пилюль» (HUD): класс только на старте, дальше его меняет сам HUD через classList — className не меняется, React его не трогает
   const catApi = useRef(null) // Пит (кот-маскот): рот по голосу и реакции лицом — через api, минуя React на кадрах
-  const f = useWordLaneFlow({ chunks: cfg.chunks, translation: cfg.translation, lang: cfg.lang, clips: cfg.clips, audioSrc, audio: cfg.audio, catApi, lines, confusers: cfg.confusers, onFinished })
+  const f = useWordLaneFlow({ chunks: cfg.chunks, translation: cfg.translation, lang: cfg.lang, clips: cfg.clips, audioSrc, audio: cfg.audio, catApi, lines, confusers: cfg.confusers, forceDebug, onFinished })
   const { phase } = f
   const single = cfg.chunks.length === 1 && phase !== 'discern' // у одного слова текст стоит крупно — кроме «Различи»: там слова на пилюлях, а верное над дорожками не выдаём
   const showSlots = phase !== 'drop'
@@ -30,7 +40,7 @@ export default function WordLaneGame({ cfg, audioSrc, lines = null, onFinished }
   const debug = isWordLaneDebug()
 
   return createPortal(
-    <div className="wl" data-phase={phase} data-testid="wl">
+    <div ref={rootRef} className={safe0 ? 'wl wl--safe' : 'wl'} data-phase={phase} data-testid="wl">
       <div className="wlStage">
         <WordLaneCat apiRef={catApi} />
         <WordLanePills scene={f.scene} levels={f.levels} fx={f.fx} live={f.live} sceneApi={f.sceneApi} visible={showSlots} onLane={phase === 'order' || phase === 'discern' ? f.onLane : null} />
@@ -55,10 +65,20 @@ export default function WordLaneGame({ cfg, audioSrc, lines = null, onFinished }
         )}
         {debug && <WordLaneDebug />}
         {debug && <WordLanePerf />}
-        <Mic mode={f.mic} levels={f.levels} note={f.note} onTap={f.tapMic} visible={phase === 'student'} />
-        {phase === 'student' && f.mic === 'manual' && <button type="button" className="wlSkip" onClick={f.skip} data-testid="wl-skip">Пропустить</button>}
+        <Mic mode={f.mic} levels={f.levels} note={f.note} visible={phase === 'student'} />
+        {f.mic === 'failed' && (
+          <div className="wlFail" role="alert" data-testid="wl-fail">
+            <p className="wlFailTitle">{FAIL_TEXT.title}</p>
+            <p className="wlFailSub">{FAIL_TEXT.sub}</p>
+            <div className="wlFailBtns">
+              <button type="button" className="wlFailBtn wlFailBtn--main" onClick={f.retryMic} data-testid="wl-fail-retry">Ещё раз</button>
+              <button type="button" className="wlFailBtn" onClick={f.finish} data-testid="wl-fail-exit">Выйти</button>
+            </div>
+          </div>
+        )}
       </div>
       <button type="button" className="wlClose" onClick={f.finish} aria-label="Закрыть" data-testid="wl-close"><X size={20} /></button>
+      {f.dbg.enabled && <Hud dbg={f.dbg} rootRef={rootRef} onRestartStage={f.restartStage} onRestartGame={onRestart} onExit={f.finish} />}
     </div>,
     document.body,
   )

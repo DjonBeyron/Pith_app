@@ -1,17 +1,9 @@
 import { useState, useEffect } from 'react'
-import { buildDebugFile, saveDebugFile } from './wordLaneDebugExport.js'
+import { buildDebugFile, saveDebugFile, SAVE_HOW as HOW } from './wordLaneDebugExport.js'
 
 // «Скачать отладку» в финале игры «Повтори за диктором»: маленькая серая ссылка (видна только при включённой отладке — dbg.enabled) и строка «что я говорил» (необязательно).
 // Запись голоса готовится заранее, пока ученик читает перевод (dbg.prepare), а нажатие только склеивает JSON и сразу отдаёт файл: iOS даёт «Поделиться» лишь сразу после касания.
 // Журнал — обычный объект в ref игры, состояние React здесь только на сам экран финала (запись готова / что получилось), а не на каждое событие игры.
-const HOW = {
-  download: 'Файл скачан',
-  share: 'Файл отправлен через «Поделиться»',
-  tab: 'Файл открыт в новой вкладке — сохрани его оттуда («Поделиться» → «Сохранить в Файлы»)',
-  cancelled: 'Отправка отменена',
-  failed: 'Не получилось сохранить файл',
-}
-
 export default function WordLaneDebugButton({ dbg, save = saveDebugFile }) {
   const [audio, setAudio] = useState(null) // части записи голоса [{ mime, base64, startedAtMs }]; null — ещё готовится
   const [said, setSaid] = useState('')
