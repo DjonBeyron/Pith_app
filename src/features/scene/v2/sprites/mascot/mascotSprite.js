@@ -40,8 +40,7 @@ function setPupils(eyes, st, pupilReaction, isLove) {
   const [sx, sy] = pupilReaction ? st.pupil : [1, 1]
   walk(eyes, t => {
     if (!(t.attrs.class ?? '').split(' ').includes('pu')) return
-    const x = t.attrs['data-x']; const y = t.attrs['data-y']
-    delete t.attrs['data-x']; delete t.attrs['data-y']
+    delete t.attrs['data-x']; delete t.attrs['data-y'] // центр зрачка в DOM не нужен: масштаб идёт вокруг fill-box
     // Масштаб вокруг центра зрачка: CSS у .pu задаёт transform-box: fill-box и transform-origin 50% 50% (scene-v2-cat.css), поэтому
     // достаточно scale(); так же складываются translate (взгляд) и scale (расширение) «живого Пита v2» — fill-box центр = (data-x, data-y)
     if (sx !== 1 || sy !== 1) t.attrs.transform = `scale(${sx} ${sy})`
