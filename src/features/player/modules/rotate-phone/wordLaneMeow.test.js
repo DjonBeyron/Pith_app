@@ -162,7 +162,8 @@ describe('админка «Голос» → «Звуки игры»', () => {
     expect(html).toContain('data-testid="reward-listen-3"')
     expect(html).toContain('iPhone')
   })
-  it('RotatePhoneModule по-прежнему будит слоты в тапе «Начать»', () => {
-    expect(read('./RotatePhoneModule.jsx')).toContain('unlockNotes()')
+  it('тап «Начать» по-прежнему будит слоты (wordLaneStart.js, после открытия микрофона)', () => {
+    expect(read('./wordLaneStart.js')).toContain('unlockNotes()')
+    expect(read('./RotatePhoneModule.jsx')).toContain('startGameAudio({')
   })
 })

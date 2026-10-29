@@ -4,7 +4,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 const state = vi.hoisted(() => ({ cleanup: null }))
 vi.mock('react', async orig => ({ ...(await orig()), useEffect: fn => { state.cleanup = fn() } }))
 const mic = vi.hoisted(() => ({ has: true, drop: vi.fn(), open: vi.fn() }))
-vi.mock('../../../../shared/lib/gameMic.js', () => ({ hasGameMic: () => mic.has, dropGameMic: mic.drop, openGameMic: mic.open, peekGameMic: () => null }))
+vi.mock('../../../../shared/lib/gameMic.js', () => ({ hasGameMic: () => mic.has, dropGameMic: mic.drop, openGameMic: mic.open, peekGameMic: () => null, parkGameMic: () => ({ parked: false, wasTaken: false }), reopenGameMic: () => Promise.resolve('unavailable') }))
 
 import { useGameAudioModes, endGameAudio } from './useGameAudioModes.js'
 import { gameMicHold } from '../../../../shared/lib/gameMicHold.js'

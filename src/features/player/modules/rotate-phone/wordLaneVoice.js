@@ -67,6 +67,9 @@ export function prepareTrack(src) {
   } catch { track = null; trackSrc = null }
 }
 
+/** После прерывания аудиосессии (в жесте): элемент записи автора мёртв — готовим новый тем же путём, что в тапе «Начать». Нет записи — ничего */
+export function rewakeTrack() { const src = trackSrc; if (src) prepareTrack(src) }
+
 function releaseTrack() { if (track) { try { track.pause(); track.removeAttribute('src') } catch { /* уже свободен */ } } track = null; trackSrc = null }
 
 let clipTimer = 0

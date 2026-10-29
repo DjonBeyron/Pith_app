@@ -73,8 +73,11 @@ describe('микрофон игры: один поток на игру на лю
 
   it('экран «Начать» игры и «Скажи вслух» просит микрофон через openGameMic на всех платформах (не только iPhone)', () => {
     const mod = readFileSync(new URL('../../features/player/modules/rotate-phone/RotatePhoneModule.jsx', import.meta.url), 'utf8')
-    expect(mod).toContain('openGameMic(),')
-    expect(mod).not.toMatch(/micNeedsHold|ensureMicAccess/)
+    const start = readFileSync(new URL('../../features/player/modules/rotate-phone/wordLaneStart.js', import.meta.url), 'utf8')
+    expect(mod).toContain('startGameAudio({') // микрофон открывает wordLaneStart.js (тип сессии → микрофон → прогрев звука)
+    expect(start).toContain('openMic = openGameMic')
+    expect(start).toContain('const micPromise = openMic()')
+    expect(mod + start).not.toMatch(/micNeedsHold|ensureMicAccess/)
     const say = readFileSync(new URL('../../features/learn/say-aloud/SayAloudOverlay.jsx', import.meta.url), 'utf8')
     expect(say).toContain('const asked = openGameMic()')
     expect(say).not.toMatch(/micNeedsHold|ensureMicAccess/)

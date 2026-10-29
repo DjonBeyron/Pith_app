@@ -208,7 +208,8 @@ describe('админка «Голос» → «Микрофон игры»: дв�
     const html = renderToStaticMarkup(<GameMicBlock />)
     expect(html).toContain('data-testid="audio-session-mode"')
     expect(html).toContain('data-testid="mic-hold-mode"')
-    for (const t of ['Запись и воспроизведение', 'Авто (не трогать)', 'Переключать по фазам', 'Не трогать', 'Выключать дорожку']) expect(html).toContain(t)
+    for (const t of ['Запись и воспроизведение', 'Авто (не трогать)', 'Переключать по фазам', 'Не трогать', 'Выключать дорожку', 'Закрывать микрофон']) expect(html).toContain(t)
+    expect(html).toContain('data-testid="mic-hold-close-hint"') // пояснение режима «только в фазе ученика»
     expect(html).toMatch(/aria-checked="true"[^>]*data-value="phases"|data-value="phases"[^>]*aria-checked="true"|aria-checked="true" class="aspChip aspChipOn" data-value="phases"/)
     expect(html).toContain('navigator.audioSession.type сейчас: playback')
     vi.stubGlobal('navigator', { userAgent: 'Mozilla/5.0 (Linux; Android 11)' })

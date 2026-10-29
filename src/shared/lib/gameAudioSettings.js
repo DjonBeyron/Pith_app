@@ -1,12 +1,13 @@
 // Настройки проверки на телефоне (Админ → «Голос» → «Микрофон игры»): как поведёт себя звук Пита и диктора, пока открыт микрофон игры. Хранятся в localStorage (по телефону), читаются при каждом
 // обращении — менять можно между играми, перезагрузка не нужна. Незнакомое значение = по умолчанию.
 //  • pithy_game_audio_session_v1 — тип аудиосессии iOS (navigator.audioSession.type) на время игры: 'play-and-record' (по умолчанию) | 'auto' (не трогаем) | 'phases' (playback на время речи, play-and-record на очередь ученика).
-//  • pithy_game_mic_hold_v1 — глушить ли дорожку микрофона на время речи Пита и диктора: 'none' (по умолчанию) | 'enabled-false' (track.enabled = false).
+//  • pithy_game_mic_hold_v1 — что делать с микрофоном на время речи Пита и диктора: 'none' (по умолчанию) | 'enabled-false' (track.enabled = false) | 'close' (поток закрывается совсем и открывается заново
+//    к очереди ученика — «микрофон только в фазе ученика», приём «Сказать фразу»: запись не держит аудиосессию, пока говорит диктор; iOS может спросить доступ заново, всё пишется в отладку mic-hold).
 export const AUDIO_SESSION_KEY = 'pithy_game_audio_session_v1'
 export const MIC_HOLD_KEY = 'pithy_game_mic_hold_v1'
 
 export const AUDIO_SESSION_MODES = ['play-and-record', 'auto', 'phases']
-export const MIC_HOLD_MODES = ['none', 'enabled-false']
+export const MIC_HOLD_MODES = ['none', 'enabled-false', 'close']
 export const DEFAULT_AUDIO_SESSION_MODE = 'play-and-record'
 export const DEFAULT_MIC_HOLD_MODE = 'none'
 

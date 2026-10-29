@@ -115,8 +115,9 @@ export async function startListening(model, grammar, cb, opts = {}) {
   const held = ses && ses.set(opts.session)
   const release = () => { if (held) ses.set('auto') }
   let stream = opts.stream ?? null // готовый поток (игра на iPhone держит один на все ступени): не открываем и не останавливаем его
-  const own = !stream
+  let own = !stream
   try {
+    if (stream && typeof stream.then === 'function') { stream = (await stream) ?? null; own = !stream } // обещание потока (игра закрывала микрофон на время речи Пита и открывает заново, gameMic.getGameMic): ждём; не вышло — откроем свой
     if (own) stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, channelCount: 1 } })
   } catch (e) { release(); throw e }
   const micMs = ms(tap)

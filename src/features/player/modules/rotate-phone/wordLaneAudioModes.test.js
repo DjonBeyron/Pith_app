@@ -171,8 +171,9 @@ describe('игра: подключение режимов', () => {
     expect(flow).toContain('gameMicHold.holdFor(total)')
   })
   it('тап «Начать» ставит тип аудиосессии до открытия микрофона', () => {
-    const mod = readFileSync(new URL('./RotatePhoneModule.jsx', import.meta.url), 'utf8')
-    expect(mod.indexOf('gameAudioSession.begin()')).toBeGreaterThan(0)
-    expect(mod.indexOf('gameAudioSession.begin()')).toBeLessThan(mod.indexOf('openGameMic(),'))
+    const start = readFileSync(new URL('./wordLaneStart.js', import.meta.url), 'utf8')
+    const body = start.slice(start.indexOf('export function startGameAudio'))
+    expect(body.indexOf('session.begin()')).toBeGreaterThan(0)
+    expect(body.indexOf('session.begin()')).toBeLessThan(body.indexOf('openMic()'))
   })
 })
