@@ -8,6 +8,7 @@ import { sayPermission } from './speech/sayPermission.js'
 import { isIos } from './soundVolume.js'
 import { pLog } from './debug.js'
 import { readAudioSessionMode, readMicHoldMode } from './gameAudioSettings.js'
+import { gameMicGesture } from './gameMicGesture.js'
 
 // БЕЗ эхо- и шумоподавления: пока открыт поток с echoCancellation, iOS включает «голосовую обработку» (как в звонке) для ВСЕГО звука страницы, а Android Chrome — коммуникационный режим: озвучка диктора
 // хрипит и шипит, как плёнка. Без неё воспроизведение чистое; автоусиление оставлено — тихий голос слышно. Эхо диктора в микрофон не мешает: слушатель стартует после диктора, а ворота голоса глушат ноты-награды.
@@ -35,6 +36,7 @@ const live = s => !!s && s.getTracks().some(t => t.readyState === 'live' && !t.m
 
 /** В тапе: открыть поток (диалог ОС — единственный). Возвращает 'granted' | 'denied' | 'unavailable' */
 export async function openGameMic() {
+  gameMicGesture.grant() // сюда приходит жест (автоматические пути проверяют gameMicGesture.needed() до вызова): «нужен жест» снят
   if (live(stream)) return 'granted'
   if (typeof navigator === 'undefined' || !navigator.mediaDevices?.getUserMedia) return 'unavailable'
   try {
@@ -113,6 +115,7 @@ export function parkGameMic({ force = true } = {}) {
 /** Открыть закрытый parkGameMic поток заново (без жеста, доступ уже выдан). Повторный вызов во время открытия возвращает тот же промис. 'granted' | 'denied' | 'unavailable'; закрыт и не парковали — 'unavailable' */
 export function reopenGameMic() {
   if (reopening) return reopening
+  if (gameMicGesture.needed()) return Promise.resolve('unavailable') // после паузы поток открывает только тап «Продолжить»
   if (!parked) return Promise.resolve(stream ? 'granted' : 'unavailable')
   const p = openGameMic().then(r => { if (reopening === p) reopening = null; if (r !== 'granted') pLog(`[mic] повторное открытие не удалось (${r}) — распознаватель откроет микрофон сам`); return r })
   reopening = p

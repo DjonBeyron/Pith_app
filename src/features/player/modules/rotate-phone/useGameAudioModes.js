@@ -3,6 +3,7 @@ import { hasGameMic, dropGameMic, openGameMic } from '../../../../shared/lib/gam
 import { gameMicHold } from '../../../../shared/lib/gameMicHold.js'
 import { gameAudioSession } from '../../../../shared/lib/gameMicSession.js'
 import { gameAudioWarm } from '../../../../shared/lib/gameAudioWarm.js'
+import { gameMicGesture } from '../../../../shared/lib/gameMicGesture.js'
 import { pLog } from '../../../../shared/lib/debug.js'
 
 // Режимы проверки на iPhone (Админ → «Голос» → «Микрофон игры») на время жизни игры «Повтори за диктором»: тип аудиосессии (gameMicSession, pithy_game_audio_session_v1) и глушение дорожки микрофона
@@ -16,7 +17,7 @@ export function useGameAudioModes(onReopened) {
   useEffect(() => {
     gameAudioSession.begin()
     gameMicHold.setDeadHandler(why => {
-      if (!hasGameMic()) return
+      if (!hasGameMic() || gameMicGesture.needed()) return // после паузы (сворачивание) микрофон открывает только тап «Продолжить»
       pLog(`[mic] дорожка не ожила после глушения (${why}) — переоткрываю`)
       dropGameMic()
       openGameMic().then(r => { if (r === 'granted') onReopened?.() })

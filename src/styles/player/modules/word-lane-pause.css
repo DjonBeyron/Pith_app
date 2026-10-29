@@ -1,0 +1,9 @@
+/* Пауза игры «Повтори за диктором» (свернули приложение, useWordLanePause). Оверлей — как .wlFail (word-lane-hud.css), но нейтральная рамка: это не ошибка. */
+.wlPause { border-color: #3a3d46; z-index: 7; }
+.wlPauseProblem { color: #f19a9a; }
+.wlFailBtn:disabled { opacity: 0.6; cursor: default; }
+
+/* На паузе всё, что анимирует CSS (усы кота, летящие цифры XP, плашки), замирает; пилюли (WAAPI) снимает сцена idle — пул возвращается в исходное */
+.wl[data-phase='paused'] *,
+.wl[data-phase='paused'] *::before,
+.wl[data-phase='paused'] *::after { animation-play-state: paused !important; }

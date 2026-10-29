@@ -19,6 +19,8 @@ import { getVoiceRate } from '../../lessonVolume.js'
 import { pLog } from '../../../../shared/lib/debug.js'
 import { getGameMic, closeGameMic, hasGameMic, dropGameMic, openGameMic } from '../../../../shared/lib/gameMic.js'
 import { gameMicHold } from '../../../../shared/lib/gameMicHold.js'
+import { gameMicGesture, guardStream } from '../../../../shared/lib/gameMicGesture.js'
+import { useWordLaneControls } from './useWordLaneControls.js'
 import { useGameAudioModes, endGameAudio } from './useGameAudioModes.js'
 import { scheduleDictor } from './wordLaneDictorRun.js'
 
@@ -187,7 +189,7 @@ export function useWordLaneFlow({ chunks, translation, lang, clips = null, audio
     const { texts } = stepTargets(listenStep, chunks)
     let wordsHeard = 0
     const l = createWordListener({
-      targets: texts, expected: listenStep.reps.length, level: rms, getStream: getGameMic, isHeld: gameMicHold.active, onDebug: dbg.enabled ? dbg.listen : null,
+      targets: texts, expected: listenStep.reps.length, level: rms, getStream: guardStream(getGameMic), isHeld: gameMicHold.active, onDebug: dbg.enabled ? dbg.listen : null,
       onChange: ({ status, seq, misses, heard, tail, heardAt }) => {
         signalRef.current = { tail, heardAt }
         const words = seq.length * 8 + (tail?.tokens ?? 0) // растёт с каждым услышанным словом (недосказанная цель — по токенам, засчитанная — по номеру в seq)
@@ -195,7 +197,7 @@ export function useWordLaneFlow({ chunks, translation, lang, clips = null, audio
         wordsHeard = words
         if (status === 'timeout') { pLog('[word-lane] слушатель отработал своё время — запускаю заново'); setMicEpoch(e => e + 1); return } // долгая ступень: новый слушатель, счёт ступени начинается с нуля
         if (status === 'dead') { // игровой поток оглох (iOS заглушил) — переоткрываем микрофон и слушаем заново; без игрового потока (свой у распознавателя) делать нечего
-          if (hasGameMic()) { pLog('[mic] игровой поток отдаёт тишину — переоткрываю'); dropGameMic(); openGameMic().then(r => { if (r === 'granted') setMicEpoch(e => e + 1) }) }
+          if (hasGameMic() && !gameMicGesture.needed()) { pLog('[mic] игровой поток отдаёт тишину — переоткрываю'); dropGameMic(); openGameMic().then(r => { if (r === 'granted') setMicEpoch(e => e + 1) }) }
           return
         }
         setS(p => {
@@ -219,15 +221,7 @@ export function useWordLaneFlow({ chunks, translation, lang, clips = null, audio
   /** Тап по дорожке: раунд «Порядок» — ответ в движке пилюль (он знает, какие пилюли на экране); очередь ученика в режиме «тап вместо речи» (HUD) — следующая цель сказана, через слушатель */
   const onLane = useCallback(lane => { const api = sceneApi.current; if (api?.tap) api.tap(lane); else { const t = api?.nextTarget?.(); if (t != null) listenerRef.current?.tap(t) } }, [])
 
-  const retryMic = useCallback(() => { setS(p => ({ ...p, mic: 'starting' })); setMicEpoch(e => e + 1) }, []) // «Ещё раз» после отказа слушателя: новый слушатель
-  /** HUD «Перезапустить ступень»: к началу текущей ступени (диктор → очередь ученика), слушатель и счёт с нуля; вне стадий игры (вступление, финал) — ничего */
-  const restartStage = useCallback(() => {
-    const st = sRef.current.stage === 'run' ? stages[sRef.current.idx] : null
-    if (!st) return
-    const first = Math.max(0, st.step ? stages.findIndex(x => x.step === st.step) : st.idx)
-    clearTimers(); stopVoice(); dbg.event('restart-stage', { idx: st.idx, to: first })
-    setS(p => ({ ...p, stage: 'run', idx: first, at: performance.now(), hint: [], seq: [], misses: 0, lid: '', note: '' })); setMicEpoch(e => e + 1)
-  }, [stages, clearTimers, dbg])
+  const { retryMic, restartStage, pause } = useWordLaneControls({ stages, sRef, setS, setMicEpoch, clearTimers, listenerRef, noteTimerRef, hintTimerRef, finishedRef, catApi, cat, dbg }) // «Ещё раз», перезапуск ступени, пауза (сворачивание)
 
   const scene = useMemo(() => {
     if (s.stage !== 'run' || !stageObj) return IDLE
@@ -244,7 +238,8 @@ export function useWordLaneFlow({ chunks, translation, lang, clips = null, audio
     signal: () => { const sg = signalRef.current; const h = listenerRef.current?.heardAt?.() ?? 0; return h > sg.heardAt ? { tail: sg.tail, heardAt: h } : sg },
   }), [s.lid, s.seq, s.misses, listenId])
   const phase = s.stage === 'run' ? (stageObj?.type ?? 'idle') : s.stage
-  const labels = labelsFor(stageObj?.type === 'announce' ? stages[s.idx + 1] : stageObj, chunks, lanes, s.hint) // под плашкой раунда уже видны подписи следующей стадии
+  const shown = s.stage === 'paused' && s.from === 'run' ? stages[s.idx] : stageObj // на паузе подписи дорожек остаются на месте
+  const labels = labelsFor(shown?.type === 'announce' ? stages[s.idx + 1] : shown, chunks, lanes, s.hint) // под плашкой раунда уже видны подписи следующей стадии
   const plate = stageObj?.type === 'announce' ? stageObj.round.title : stageObj?.type === 'turn' ? 'Теперь твоя очередь' : ''
-  return { ...s, dbg, catLine: cat.text, phase, stageObj, scene, live, labels, plate, plateMs: stageObj?.ms ?? 0, levels, fx, sceneApi, xpApi, onLane, retryMic, restartStage, finish, translation, text: textOf(chunks, chunks.map((_, i) => i)) }
+  return { ...s, dbg, catLine: cat.text, phase, stageObj, scene, live, labels, plate, plateMs: stageObj?.ms ?? 0, levels, fx, sceneApi, xpApi, onLane, retryMic, restartStage, pause, paused: s.stage === 'paused', pausedIntro: s.stage === 'paused' && s.from !== 'run', finish, translation, text: textOf(chunks, chunks.map((_, i) => i)) }
 }

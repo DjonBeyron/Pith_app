@@ -9,9 +9,11 @@ import WordLaneHud from './WordLaneHud.jsx'
 import WordLanePerf from './WordLanePerf.jsx'
 import WordLaneCat from './WordLaneCat.jsx'
 import WordLaneXp from './WordLaneXp.jsx'
+import WordLanePause from './WordLanePause.jsx'
 import { isWordLaneDebug } from './wordLaneConfig.js'
 import { readPillSafe, readTapMode } from './wordLaneHudSettings.js'
 import { useWordLaneFlow } from './useWordLaneFlow.js'
+import { useWordLanePause } from './useWordLanePause.js'
 import { WORD_Y } from './wordLaneTimeline.js'
 
 // Вертикальная игра «Повтори за диктором» (полный экран, портрет). Фраза из кусков (до трёх) стоит над дорожками: кусок над своей дорожкой, дорожки слева направо читаются как предложение.
@@ -33,10 +35,11 @@ export default function WordLaneGame({ cfg, audioSrc, lines = null, forceDebug =
   const [safe0] = useState(readPillSafe) // «безопасные слои пилюль» (HUD): класс только на старте, дальше его меняет сам HUD через classList — className не меняется, React его не трогает
   const catApi = useRef(null) // Пит (кот-маскот): рот по голосу и реакции лицом — через api, минуя React на кадрах
   const f = useWordLaneFlow({ chunks: cfg.chunks, translation: cfg.translation, lang: cfg.lang, clips: cfg.clips, audioSrc, audio: cfg.audio, catApi, lines, confusers: cfg.confusers, forceDebug, onFinished })
+  const pause = useWordLanePause({ f, cfg, audioSrc, lines }) // свернули приложение — пауза сразу, «Продолжить» открывает микрофон из тапа (useWordLanePause.js)
   const { phase } = f
   const single = cfg.chunks.length === 1 && phase !== 'discern' // у одного слова текст стоит крупно — кроме «Различи»: там слова на пилюлях, а верное над дорожками не выдаём
   const showSlots = phase !== 'drop'
-  const intro = phase === 'drop' || phase === 'lanes'
+  const intro = phase === 'drop' || phase === 'lanes' || f.pausedIntro
   const heads = intro ? cfg.chunks.map(text => ({ text, on: true })) : f.labels
   const debug = isWordLaneDebug()
 
@@ -68,7 +71,8 @@ export default function WordLaneGame({ cfg, audioSrc, lines = null, forceDebug =
         {debug && <WordLaneDebug />}
         {debug && <WordLanePerf />}
         <Mic mode={f.mic} levels={f.levels} note={f.note} visible={phase === 'student'} />
-        {f.mic === 'failed' && (
+        {f.paused && <WordLanePause pause={pause} onExit={f.finish} />}
+        {f.mic === 'failed' && !f.paused && (
           <div className="wlFail" role="alert" data-testid="wl-fail">
             <p className="wlFailTitle">{FAIL_TEXT.title}</p>
             <p className="wlFailSub">{FAIL_TEXT.sub}</p>

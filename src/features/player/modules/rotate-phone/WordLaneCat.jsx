@@ -21,6 +21,7 @@ import { createCatLook, drawCatMouth, NO_LOOK } from './wordLaneCatLook.js'
 //    Голос есть — голова выскакивает (в новом месте), голоса нет HIDE_AFTER_MS — прячется (wordLaneCatPeek.js); apiRef.current.isUp() — голова сейчас торчит;
 //  • apiRef.current.react(face, ms) — реакция лицом на время ('love' — сердечки, пилюля принята; 'shy' — отвёл взгляд, слово не то) — голова торчит всё это время;
 //  • apiRef.current.peek(ms) — просто выскочить на время;
+//  • apiRef.current.freeze() — пауза игры: реплика обрывается, рот закрывается, взгляд и усы гаснут;
 //  • apiRef.current.look.lineStart() / word() / lineEnd() — взгляд: речь началась (зрачки расширяются) / граница слова (саккада) / речь кончилась; apiRef.current.talking(on) — усы вручную.
 // Компонент мемоизирован (memo) и после монтажа React'ом не перерисовывается: лицо меняется БЕЗ пересборки дерева — головы всех лиц (CAT_FACES) собраны один раз, видна одна (CSS по data-face на корне), смена — атрибут;
 // форма рта держится не меньше 70 мс и не пишется в DOM, если не изменилась (wordLaneMouthHold.js). Раньше смена лица пересобирала SVG-дерево кота (≈70 узлов) на каждую принятую пилюлю, а рот переписывал четыре d на каждый переход.
@@ -82,6 +83,7 @@ function WordLaneCat({ apiRef, skin = 'kit' }) {
       peek(ms = 1400) { peek.hold(ms) },
       look: { lineStart: look.lineStart, word: look.word, lineEnd: look.lineEnd },
       talking: look.talking,
+      freeze() { voice.stop(); clearTimeout(timerRef.current); setFace('base'); hold.set('closed'); look.lineEnd(); look.talking(false) }, // пауза: реплика оборвана, рот закрыт, лицо спокойное, взгляд погас; голова остаётся где была
     }
     return () => { apiRef.current = null; holdRef.current = null; voice.stop(); hold.dispose(); look.stop(); clearTimeout(timerRef.current) }
   }, [apiRef, lite, skin, draw])

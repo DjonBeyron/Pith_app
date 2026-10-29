@@ -85,7 +85,7 @@ describe('iPhone: разрешение не запоминается — оди�
     expect(engine).toContain('if (own) stream.getTracks().forEach(tr => tr.stop())')
     expect(engine).toContain('releaseCapture({ stream: own ? stream : null')
     const flow = readFileSync(new URL('../../features/player/modules/rotate-phone/useWordLaneFlow.js', import.meta.url), 'utf8')
-    expect(flow).toContain('getStream: getGameMic')
+    expect(flow).toContain('getStream: guardStream(getGameMic)') // слушатель берёт поток игры через guardStream: после паузы без живого потока — отказ, а не getUserMedia вне жеста
     expect(flow).toContain('closeGameMic()')
     const mod = readFileSync(new URL('../../features/player/modules/rotate-phone/RotatePhoneModule.jsx', import.meta.url), 'utf8')
     expect(mod).toContain('startGameAudio({') // тап «Начать» открывает микрофон через wordLaneStart.js — на всех платформах, не только iPhone
