@@ -127,6 +127,7 @@
 @import './styles/player/modules/word-lane-debug.css';
 @import './styles/player/modules/word-lane-hud.css';
 @import './styles/player/modules/word-lane-pause.css';
+@import './styles/player/modules/rehearsal-mirror.css';
 @import './styles/player/message.css';
 @import './styles/player/modules/audio.css';
 @import './styles/player/modules/circle.css';
