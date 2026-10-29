@@ -149,7 +149,7 @@ describe('вёрстка и подключения', () => {
     const body = mod.slice(mod.indexOf('const start = useCallback'))
     expect(body.indexOf('unlockVoice()')).toBeLessThan(body.indexOf('await'))
     expect(body.indexOf('requestFullscreen')).toBeLessThan(body.indexOf('await'))
-    expect(body.indexOf('ensureMicAccess()')).toBeLessThan(body.indexOf("setPhase('game')"))
+    expect(body.indexOf('openGameMic()')).toBeLessThan(body.indexOf("setPhase('game')"))
   })
 
   it('редактор ноды: ElevenLabs-озвучка → тайминги → клипы; таймлайн — на узлах таймлайна таблицы', () => {

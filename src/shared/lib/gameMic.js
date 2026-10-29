@@ -1,15 +1,28 @@
-// Один микрофонный поток на всю игру «Повтори за диктором» — для iPhone/iPad (micAccess.micNeedsHold): iOS (особенно приложение на домашнем экране) спрашивает разрешение при КАЖДОМ новом
-// getUserMedia после остановки потока, а распознаватель на каждой ступени открывает микрофон заново — запросов было бы по числу ступеней. Поток открывается один раз в тапе «Начать» (это жест, и
-// запрос приходит в понятный момент), живёт до конца игры/урока, а распознаватель каждой ступени берёт его готовым (voskEngine opts.stream) и не останавливает. Треки НЕ выключаем (enabled = false
-// на iOS мог остановить захват): между ступенями поток просто никуда не подключён.
+// Один микрофонный поток на всю игру «Повтори за диктором» (и «Скажи вслух») — НА ВСЕХ ПЛАТФОРМАХ. iPhone/iPad: iOS (особенно приложение на домашнем экране) спрашивает разрешение при КАЖДОМ новом
+// getUserMedia после остановки потока, а распознаватель на каждой ступени открывает микрофон заново — запросов было бы по числу ступеней. Android: распознаватель, открывая микрофон сам, просил
+// echoCancellation/noiseSuppression (по умолчанию в браузере они включены) — Chrome переводит аудио страницы в «коммуникационный» режим, и голос диктора и ноты хрипят. Поэтому поток открывается один
+// раз в тапе «Начать» (это жест, и запрос приходит в понятный момент) с ограничениями ниже, живёт до конца игры/урока, а распознаватель каждой ступени берёт его готовым (voskEngine opts.stream) и не
+// останавливает. Треки НЕ выключаем (enabled = false на iOS мог остановить захват): между ступенями поток просто никуда не подключён.
 import { sayPermission } from './speech/sayPermission.js'
+import { isIos } from './soundVolume.js'
 import { pLog } from './debug.js'
 
-// БЕЗ эхо- и шумоподавления: пока на iPhone открыт поток с echoCancellation, iOS включает «голосовую обработку» (как в звонке) для ВСЕГО звука страницы — озвучка диктора хрипит и шипит, как плёнка.
-// Без неё воспроизведение чистое; автоусиление оставлено — тихий голос слышно. Эхо диктора в микрофон не мешает: слушатель стартует после диктора, а ворота голоса глушат ноты-награды.
+// БЕЗ эхо- и шумоподавления: пока открыт поток с echoCancellation, iOS включает «голосовую обработку» (как в звонке) для ВСЕГО звука страницы, а Android Chrome — коммуникационный режим: озвучка диктора
+// хрипит и шипит, как плёнка. Без неё воспроизведение чистое; автоусиление оставлено — тихий голос слышно. Эхо диктора в микрофон не мешает: слушатель стартует после диктора, а ворота голоса глушат ноты-награды.
 export const GAME_MIC_CONSTRAINTS = { echoCancellation: false, noiseSuppression: false, autoGainControl: true, channelCount: 1 }
 
+// Тумблер для проверки на телефоне (Админ → «Голос»): '1' — открывать поток С обработкой системы (эхо/шум), как делает «Сказать фразу». По умолчанию выкл. Читается при каждом открытии потока.
+export const MIC_PROCESSING_KEY = 'pithy_mic_processing_v1'
+export const isMicProcessingOn = (store = globalThis.localStorage) => { try { return store?.getItem(MIC_PROCESSING_KEY) === '1' } catch { return false } }
+export function setMicProcessingOn(on, store = globalThis.localStorage) {
+  try { if (on) store?.setItem(MIC_PROCESSING_KEY, '1'); else store?.removeItem(MIC_PROCESSING_KEY) } catch { /* приватный режим — живёт до перезагрузки */ }
+}
+
+/** Ограничения getUserMedia для игры: без обработки (по умолчанию) либо с эхо/шумоподавлением системы (тумблер) */
+export const gameMicConstraints = (store = globalThis.localStorage) => (isMicProcessingOn(store) ? { ...GAME_MIC_CONSTRAINTS, echoCancellation: true, noiseSuppression: true } : { ...GAME_MIC_CONSTRAINTS })
+
 let stream = null
+let opened = null // с какими ограничениями открыт текущий поток (для отладочной выгрузки)
 
 // Живой и НЕ заглушённый системой: iOS при прерывании аудиосессии оставляет трек live, но muted — он пишет тишину
 const live = s => !!s && s.getTracks().some(t => t.readyState === 'live' && !t.muted)
@@ -19,9 +32,13 @@ export async function openGameMic() {
   if (live(stream)) return 'granted'
   if (typeof navigator === 'undefined' || !navigator.mediaDevices?.getUserMedia) return 'unavailable'
   try {
-    stream = await navigator.mediaDevices.getUserMedia({ audio: GAME_MIC_CONSTRAINTS })
+    const constraints = gameMicConstraints()
+    const s = await navigator.mediaDevices.getUserMedia({ audio: constraints })
+    if (stream && stream !== s) { try { stream.getTracks().forEach(t => t.stop()) } catch { /* уже остановлен */ } } // прежний (оборванный/заглушённый) поток не оставляем висеть
+    stream = s
+    opened = constraints
     sayPermission.markMicOk()
-    pLog('[mic] игровой поток открыт (один на игру)')
+    pLog(`[mic] игровой поток открыт (один на игру): эхо ${constraints.echoCancellation ? 'вкл' : 'выкл'}, шумодав ${constraints.noiseSuppression ? 'вкл' : 'выкл'}`)
     return 'granted'
   } catch (e) {
     pLog(`[mic] доступ не получен: ${e?.name ?? e}`)
@@ -48,5 +65,14 @@ export const dropGameMic = () => closeGameMic()
 export function closeGameMic() {
   const s = stream
   stream = null
+  opened = null
   try { s?.getTracks().forEach(t => { try { t.stop() } catch { /* уже остановлен */ } }) } catch { /* ничего */ }
+}
+
+/** Для отладочной выгрузки: с какими ограничениями открывается/открыт игровой поток, что реально дал браузер (track.getSettings — там видно, включил ли он эхо/шумодав) и платформа */
+export function describeGameMic() {
+  let settings = null
+  try { settings = stream?.getTracks()[0]?.getSettings?.() ?? null } catch { /* трек уже выгружен */ }
+  const ua = String((typeof navigator !== 'undefined' && navigator.userAgent) || '')
+  return { constraints: opened ?? gameMicConstraints(), settings, platform: isIos() ? 'ios' : /Android/i.test(ua) ? 'android' : 'other', processing: isMicProcessingOn(), open: !!stream }
 }

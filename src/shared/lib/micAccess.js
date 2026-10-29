@@ -1,7 +1,7 @@
 import { sayPermission } from './speech/sayPermission.js'
 import { queryMicPermission } from './speech/speechSupport.js'
 import { pLog } from './debug.js'
-import { openGameMic } from './gameMic.js'
+import { openGameMic, gameMicConstraints } from './gameMic.js'
 
 // Доступ к микрофону «заранее» — для нод, которым микрофон нужен посреди урока (игра «Повтори за диктором»). Звать из тапа (iOS показывает диалог только по жесту).
 // Диалог ОС вызывает getUserMedia; поток тут же закрывается — микрофон в этот момент нужен лишь для разрешения, дальше его открывает сам распознаватель (без диалога).
@@ -10,7 +10,7 @@ let last = 'unknown'
 
 /**
  * iPhone/iPad (в том числе приложение на домашнем экране): iOS не запоминает разрешение между открытиями микрофона — каждый новый getUserMedia после остановки потока спрашивает заново
- * (пока поток жив, повторного запроса нет). Поэтому там разрешение «заранее» бесполезно (оно не доживёт до игры), а игра держит ОДИН поток на всю игру (gameMic.js), открытый в тапе «Начать».
+ * (пока поток жив, повторного запроса нет). Поэтому там разрешение «заранее» бесполезно (оно не доживёт до игры), а урок открывает игровой поток сразу (gameMic.js). Игра на ЛЮБОЙ платформе всё равно берёт один поток в тапе «Начать» на своей карточке.
  */
 export function micNeedsHold(nav = typeof navigator !== 'undefined' ? navigator : null) {
   if (!nav) return false
@@ -28,7 +28,7 @@ export async function ensureMicAccess() {
   if (last === 'granted') return 'granted'
   if (typeof navigator === 'undefined' || !navigator.mediaDevices?.getUserMedia) return 'unavailable'
   try {
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: gameMicConstraints() }) // без эхо/шумоподавления, как в игре: даже короткий поток с обработкой переводит Android Chrome в «коммуникационный» режим звука
     stream.getTracks().forEach(t => { try { t.stop() } catch { /* уже остановлен */ } })
     last = 'granted'
     sayPermission.markMicOk()

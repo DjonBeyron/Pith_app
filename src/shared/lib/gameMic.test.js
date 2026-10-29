@@ -88,6 +88,6 @@ describe('iPhone: разрешение не запоминается — оди�
     expect(flow).toContain('getStream: getGameMic')
     expect(flow).toContain('closeGameMic()')
     const mod = readFileSync(new URL('../../features/player/modules/rotate-phone/RotatePhoneModule.jsx', import.meta.url), 'utf8')
-    expect(mod).toContain('micNeedsHold() ? openGameMic() : ensureMicAccess()')
+    expect(mod).toContain('openGameMic(),') // на всех платформах, не только iPhone
   })
 })

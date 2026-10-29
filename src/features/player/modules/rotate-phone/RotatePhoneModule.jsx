@@ -11,7 +11,6 @@ import { playSpan, clipsFor } from './wordLaneAudio.js'
 import { libItems } from './wordLaneLib.js'
 import { normalizeLines, linesItems } from './wordLaneCatLines.js'
 import { getCatLines } from '../../../../shared/api/catLinesApi.js'
-import { ensureMicAccess, micNeedsHold } from '../../../../shared/lib/micAccess.js'
 import { openGameMic } from '../../../../shared/lib/gameMic.js'
 import { primeAudio } from '../../../../shared/lib/primedAudio.js'
 import { pLog } from '../../../../shared/lib/debug.js'
@@ -54,7 +53,7 @@ export default function RotatePhoneModule({ node, file, onDone }) {
     primeAudio()
     try { document.documentElement.requestFullscreen?.({ navigationUI: 'hide' })?.catch?.(() => {}) } catch { /* iPhone и часть браузеров не умеют — остаёмся в окне */ }
     const [mic] = await Promise.all([
-      micNeedsHold() ? openGameMic() : ensureMicAccess(), // iPhone: один поток на всю игру (диалог один), у остальных доступ запоминается
+      openGameMic(), // на всех платформах: один поток на всю игру без эхо/шумоподавления (иначе голос диктора хрипит), диалога нет, если доступ уже выдан; распознаватель ступеней берёт его готовым
       Promise.race([wordsReady, new Promise(r => setTimeout(r, WORDS_WAIT_MS))]),   // длины слов нужны плану диктора, но долго ждать не будем
     ])
     pLog(`[rotate] игра «${cfg.word}»: микрофон ${mic}${cfg.isDemo ? ', слово по умолчанию' : ''}`)
