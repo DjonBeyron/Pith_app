@@ -18,6 +18,9 @@ import { XP_PER_PILL, sensitiveLevel } from './wordLaneConfig.js'
 import { getVoiceRate } from '../../lessonVolume.js'
 import { pLog } from '../../../../shared/lib/debug.js'
 import { getGameMic, closeGameMic, hasGameMic, dropGameMic, openGameMic } from '../../../../shared/lib/gameMic.js'
+import { gameMicHold } from '../../../../shared/lib/gameMicHold.js'
+import { useGameAudioModes, endGameAudio } from './useGameAudioModes.js'
+import { scheduleDictor } from './wordLaneDictorRun.js'
 
 // Сценарий игры «Повтори за диктором» — директор. Рецепт (wordLaneRecipe) разложен на стадии (wordLaneStages); директор проходит их по порядку, у каждой стадии свои таймеры, и смена стадии их чистит.
 // ВСЕ таймеры стадии считаются от одной точки — s.at (её же берёт движок пилюль), иначе голос и картинка расходились бы:
@@ -31,7 +34,6 @@ import { getGameMic, closeGameMic, hasGameMic, dropGameMic, openGameMic } from '
 //  reveal            фраза и перевод; «Дальше» отпускает ноду.
 // Микрофон включается сам (доступ дан заранее, в карточке/запуске урока). Нет модели Vosk или микрофон не открылся — ручной режим: тап по микрофону = «сказал».
 const EXIT_PAUSE_MS = 1300   // ступень закончена: заливка доходит до конца, щелчок, нота — и только потом дальше
-const AUDIO_LATENCY_MS = 70  // звук включаем чуть раньше плана: запуск элемента и перемотка занимают время
 const HINT_MS = 3500         // подпись дорожки, которую показали после «не успел» в раунде «вслепую»
 
 const REVEAL_LINE_MS = 700   // «Отлично!» — чуть позже появления перевода
@@ -114,10 +116,14 @@ export function useWordLaneFlow({ chunks, translation, lang, clips = null, audio
       if (!(r && playWordSlot(r.key))) speakWord(text, lang)
       const sp = speechOfUrl(r?.row.url), k = rate > 0 ? rate : 1, file = Number(r?.row.duration) > 0 ? Number(r.row.duration) * 1000 : 0
       const ms = Math.round((sp?.ms ?? (file || estChunkMs(text))) / k), lead = Math.round((sp?.lead ?? 0) / k) // звук идёт с начала файла, слово — после тишины lead: рот стартует вместе со словом, а длится до конца файла
-      catApi?.current?.speak?.(mouthTrack(text, ms).map(x => ({ ...x, at: x.at + lead, end: x.end + lead })), Math.round(Math.max(lead + ms, file / k)))
+      const total = Math.round(Math.max(lead + ms, file / k))
+      gameMicHold.holdFor(total)
+      catApi?.current?.speak?.(mouthTrack(text, ms).map(x => ({ ...x, at: x.at + lead, end: x.end + lead })), total)
     },
     say(parts) { // подсказка раунда «Порядок»: кот выскакивает, диктор называет куски
-      catApi?.current?.peek?.(parts.reduce((sum, i) => sum + (lib(i)?.ms ?? estChunkMs(chunks[i])) / (rate > 0 ? rate : 1) + 80, 700))
+      const sayMs = parts.reduce((sum, i) => sum + (lib(i)?.ms ?? estChunkMs(chunks[i])) / (rate > 0 ? rate : 1) + 80, 700)
+      catApi?.current?.peek?.(sayMs)
+      gameMicHold.holdFor(sayMs) // окно речи диктора (глушение дорожки / фаза аудиосессии — режимы проверки на iPhone)
       say(parts)
     },
     finished() { const at = sRef.current.idx; later(() => { if (sRef.current.idx === at && sRef.current.stage === 'run') next() }, EXIT_PAUSE_MS) },
@@ -132,11 +138,12 @@ export function useWordLaneFlow({ chunks, translation, lang, clips = null, audio
   const finish = useCallback(() => {
     if (finishedRef.current) return
     finishedRef.current = true; dbg.event('finish')
-    stopVoice(); releaseNotes(); releaseClips(); clearTimers(); closeGameMic()
+    stopVoice(); releaseNotes(); releaseClips(); clearTimers(); endGameAudio(); closeGameMic()
     listenerRef.current?.dispose()
     onFinished?.()
   }, [onFinished, clearTimers, dbg])
 
+  useGameAudioModes(() => setMicEpoch(e => e + 1)) // режимы проверки на iPhone: тип аудиосессии и глушение дорожки на время речи (useGameAudioModes)
   useEffect(() => () => { closeGameMic(); stopVoice(); releaseNotes(); releaseClips(); clearTimeout(noteTimerRef.current); clearTimeout(hintTimerRef.current); timersRef.current.forEach(clearTimeout); listenerRef.current?.dispose() }, [])
 
   // Вступление
@@ -158,24 +165,16 @@ export function useWordLaneFlow({ chunks, translation, lang, clips = null, audio
     if (s.stage !== 'run' || !stageObj) return undefined
     const left = at => Math.max(0, at - (performance.now() - s.at))
     const ids = []
+    let releaseHold = null
     const look = () => catApi?.current?.look // взгляд кота: ref читается в момент вызова (кот мог ещё не смонтироваться)
     if (stageObj.type === 'announce' || stageObj.type === 'turn') {
       ids.push(setTimeout(next, stageObj.ms))
       if (stageObj.type === 'announce') ids.push(setTimeout(() => sayLine(`round_${stageObj.round.kind}`), LINE_AT_MS))
       else if (s.idx === stages.findIndex(x => x.type === 'turn')) ids.push(setTimeout(() => sayLine('your_turn'), LINE_AT_MS)) // «твоя очередь» — только в первый раз
     }
-    else if (stageObj.type === 'dictor') {
-      const { plan } = stageObj
-      look()?.lineStart() // говорит диктор: зрачки кота оживают, на каждой пилюле — саккада (граница слова)
-      for (const r of plan.reps) {
-        for (const pc of r.pieces ?? []) ids.push(setTimeout(() => look()?.word(), left(pc.at)))
-        if (r.mode === 'clip' && r.row) ids.push(setTimeout(() => sayClip(r.row), left(r.at - AUDIO_LATENCY_MS))) // запись автора (финал: вся фраза)
-        else for (const pc of r.pieces) ids.push(setTimeout(() => sayChunk(pc.chunk), left(pc.at - AUDIO_LATENCY_MS - pc.lead))) // куски по отдельности из библиотеки (голос в файле начинается через lead после включения)
-      }
-      ids.push(setTimeout(next, left(plan.listenMs)))
-    }
+    else if (stageObj.type === 'dictor') releaseHold = scheduleDictor({ plan: stageObj.plan, left, look, sayClip, sayChunk, next, ids }) // звук повторов, взгляд кота, окно речи (wordLaneDictorRun)
     else if (stageObj.type === 'student') look()?.lineStart() // очередь ученика: кот слушает, зрачки оживают
-    return () => { ids.forEach(clearTimeout); stopVoice(); if (stageObj.type === 'dictor' || stageObj.type === 'student') look()?.lineEnd() }
+    return () => { ids.forEach(clearTimeout); releaseHold?.(); stopVoice(); if (stageObj.type === 'dictor' || stageObj.type === 'student') look()?.lineEnd() }
     // catApi — ref родителя, стабилен; в зависимости не берём, чтобы стадия не перезапускалась
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [s.stage, s.idx, s.at, stageObj, sayChunk, sayClip, next, stages])
@@ -188,7 +187,7 @@ export function useWordLaneFlow({ chunks, translation, lang, clips = null, audio
     const { texts } = stepTargets(listenStep, chunks)
     let wordsHeard = 0
     const l = createWordListener({
-      targets: texts, expected: listenStep.reps.length, level: rms, getStream: getGameMic, onDebug: dbg.enabled ? dbg.listen : null,
+      targets: texts, expected: listenStep.reps.length, level: rms, getStream: getGameMic, isHeld: gameMicHold.active, onDebug: dbg.enabled ? dbg.listen : null,
       onChange: ({ status, seq, misses, heard, tail, heardAt }) => {
         signalRef.current = { tail, heardAt }
         const words = seq.length * 8 + (tail?.tokens ?? 0) // растёт с каждым услышанным словом (недосказанная цель — по токенам, засчитанная — по номеру в seq)

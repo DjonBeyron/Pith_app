@@ -28,10 +28,11 @@ export const MISS_SETTLE_MS = 550 // «чужое слово» из чернов
  * (по умолчанию SLOT_COUNT; «Скажи вслух» берёт 2: целей много, а словарь растёт степенью).
  * onChange({ status: 'idle'|'starting'|'listening'|'done'|'unavailable'|'error'|'timeout', hits, misses, heard }) — при каждом изменении; heard — что услышал движок («…» вместо неразобранного слова):
  * по нему игра честно говорит ученику, что именно распозналось. mute(ms) — на это время новые «чужие слова» не засчитываются (нота-награда из динамика могла попасть в микрофон).
+ * isHeld() → true, пока игра сама выключила дорожку микрофона на время речи Пита/диктора: тишина в это время не считается «оглохшим» потоком.
  * onDebug(kind, data) — необязательный журнал для «Скачать отладку» (wordLaneDebug): partial / final (с разбором), mute, stop, level, grammar, status, session-end; на игру не влияет.
  * Зависимости подставляются в тестах.
  */
-export function createWordListener({ word, targets: targetsIn, expected = SLOT_COUNT, maxWords = SLOT_COUNT, getStream = null, onChange, onDebug = null, runtime = voskRuntime, listen = startListening, level = createRmsLevel(), now = () => Date.now(), setTimer = setTimeout, clearTimer = clearTimeout }) {
+export function createWordListener({ word, targets: targetsIn, expected = SLOT_COUNT, maxWords = SLOT_COUNT, getStream = null, isHeld = () => false, onChange, onDebug = null, runtime = voskRuntime, listen = startListening, level = createRmsLevel(), now = () => Date.now(), setTimer = setTimeout, clearTimer = clearTimeout }) {
   const targets = targetsIn?.length ? targetsIn : [word]
   let seq = [], misses = 0            // накоплено за все заходы
   let base = { seq: [], misses: 0 }   // накоплено до текущего захода
@@ -100,7 +101,7 @@ export function createWordListener({ word, targets: targetsIn, expected = SLOT_C
         if (cur !== session) return
         onDebug?.('level', rms)
         level.push(rms)
-        if (rms > 0) { zeroSince = 0; return }
+        if (rms > 0 || isHeld()) { zeroSince = 0; return } // дорожку глушит сама игра на время речи Пита/диктора (gameMicHold) — ровная тишина не значит «оглох»
         zeroSince ||= now()
         if (now() - zeroSince >= DEAD_MS && status !== 'dead') { zeroSince = 0; publish({ status: 'dead' }) } // оглох: игра переоткроет микрофон
       },

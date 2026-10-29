@@ -5,6 +5,7 @@
 // события пилюль, ноты и окна mute, ворота голоса, статусы), кривую уровня голоса по секундам (ascii) и сохраняет запись рядом: <файл>.webm / .m4a (части записи — .2.webm …).
 // Время везде — от старта игры (мс), события «до игры» (запрос микрофона при старте урока, тап «Начать») идут с минусом. --logs — ещё журнал плеера и трасса жеста звука.
 import { readFileSync, writeFileSync } from 'node:fs'
+import { speechWindows, rmsSeries, windowLevels, tickSummary, decodeWithFfmpeg, toDb, STEP_MS } from './dictorRms.mjs'
 
 const args = process.argv.slice(2)
 const file = args.find(a => !a.startsWith('--'))
@@ -45,6 +46,7 @@ console.log(`getUserMedia: вызовов ${gumCalls.length} (отказов ${d
 if (!probe.length) console.log('(пробник ничего не записал: отладка включилась после старта приложения — перезагрузи страницу и повтори)')
 const env = e => (e.env ? ` [вкл=${e.env.vis} fs=${e.env.fs} act=${e.env.ua?.active}/${e.env.ua?.been}${e.env.as ? ` session=${e.env.as}` : ''} ctx=${e.env.ctx || '—'}]` : '')
 for (const e of probe) {
+  if (e.kind === 'audio-tick') continue // раз в 500 мс — ниже одной сводкой
   const t = fmt(e.t)
   let line
   switch (e.kind) {
@@ -57,6 +59,15 @@ for (const e of probe) {
   }
   console.log(`${t}  ${line}`)
 }
+// ---------- аудиосессия и громкость воспроизведения (ducking) ----------
+h('Аудиосессия iOS и глушение дорожки (audio-session, mic-hold, audio-tick)')
+const sessEv = probe.filter(e => e.kind === 'audio-session'), holdEv = probe.filter(e => e.kind === 'mic-hold')
+const tk = tickSummary(events)
+console.log(`audio-session: событий ${sessEv.length}${sessEv.length ? `; режим ${sessEv[0].mode}; API ${sessEv[0].supported ? 'есть' : 'НЕТ'}; смены: ${sessEv.map(e => `${e.why}→${e.requested ?? 'не трогали'}${e.ok ? '' : ' (не удалось)'}=${e.as}`).join(' | ')}` : ' (нет: режим не включался или отладка стартовала позже)'}`)
+console.log(`mic-hold: событий ${holdEv.length}${holdEv.length ? `; режим ${holdEv[0].mode}; включений ${holdEv.filter(e => e.on).length}; не ожила после возврата: ${holdEv.filter(e => e.dead).length}; muted после возврата: ${holdEv.filter(e => e.check && e.muted).length}` : ''}`)
+console.log(`audio-tick (раз в 0,5 с, пока играет звук): ${tk.ticks}; тип сессии ${j(tk.sessionTypes)}; видимость ${j(tk.visibility)}; громкость <audio> ${j(tk.volumes)}${tk.sessionChanges.length > 1 ? `; тип менялся: ${tk.sessionChanges.map(c => `${fmt(c.t).trim()}→${c.as}`).join(', ')}` : ''}`)
+const vcs = probe.filter(e => e.kind === 'volumechange')
+if (vcs.length) console.log(`volumechange: ${vcs.length} (громкость <audio> менял кто-то, кроме игры, если игра её не трогает): ${vcs.slice(0, 6).map(e => `${fmt(e.t).trim()} vol=${e.vol}`).join(', ')}`)
 if (showLogs) {
   h('Журнал плеера (хвост)'); (d.playerLog ?? []).forEach(l => console.log(l))
   h('Журнал звуков'); (d.soundLog ?? []).forEach(l => console.log(j(l)))
@@ -98,6 +109,27 @@ else {
   }
 }
 
+// ---------- громкость записи в окнах речи ----------
+// Окна речи диктора/Пита (по событиям playing → ended/pause) и RMS записи микрофона по 100 мс внутри них: динамик слышен в микрофон, поэтому «то громче, то тише» видно как разброс среднего по окнам
+// и спад/рост внутри окна (тренд). Тишина дорожки (режим «глушить») или записи без ffmpeg в PATH — окна не оцениваются. Окна с data:-адресом (беззвучные «разбудки») не считаем.
+const BARS = '▁▂▃▄▅▆▇█'
+const spark = series => series.map(v => BARS[Math.max(0, Math.min(7, Math.round(((toDb(v) + 60) / 50) * 7)))]).join('')
+function printWindowLevels(path, startRel) {
+  const wins = speechWindows(events).filter(w => !w.src.startsWith('data:'))
+  const samples = decodeWithFfmpeg(path)
+  if (!samples) { console.log('  (RMS по окнам речи: не удалось декодировать запись — нужен ffmpeg в PATH)'); return }
+  const rmsAll = rmsSeries(samples)
+  const rows = windowLevels(wins, rmsAll, startRel)
+  if (!rows.length) { console.log(`  (RMS по окнам речи: окон речи внутри записи нет; всего окон ${wins.length}; шаг ${STEP_MS} мс)`); return }
+  console.log(`  RMS записи по ${STEP_MS} мс в окнах речи (дБ от полной шкалы; чем выше, тем громче динамик слышен в микрофоне):`)
+  for (const r of rows) console.log(`  ${fmt(r.from)} – ${fmt(r.to).trim().padStart(7)}  ${r.kind.padEnd(6)} ${String(r.stage || '—').padEnd(8)} ${String(r.note || '—').padEnd(12)} среднее ${r.meanDb.toFixed(1).padStart(6)}  пик ${r.peakDb.toFixed(1).padStart(6)}  тренд ${(r.trendDb >= 0 ? '+' : '') + r.trendDb.toFixed(1)}  ${spark(r.series)}`)
+  const dict = rows.filter(r => r.stage === 'dictor' && r.meanDb > -60)
+  if (dict.length > 1) {
+    const m = dict.map(r => r.meanDb), lo = Math.min(...m), hi = Math.max(...m)
+    console.log(`  Диктор (стадия dictor, ${dict.length} окон): среднее от ${lo.toFixed(1)} до ${hi.toFixed(1)} дБ, разброс ${(hi - lo).toFixed(1)} дБ — ${hi - lo > 6 ? 'громкость ПЛЫВЁТ (> 6 дБ между окнами: похоже на ducking)' : 'ровно (≤ 6 дБ)'}. Внутри окон тренд ≤ -3 дБ у ${dict.filter(r => r.trendDb <= -3).length} из ${dict.length}. Слова естественно различаются по громкости: ducking — это когда одно и то же слово звучит по-разному или громкость падает внутри окна`)
+  } else console.log('  Диктор: окон с заметным звуком в записи меньше двух — сравнивать нечего (дорожка заглушена режимом или динамик не слышен)')
+}
+
 // ---------- запись ----------
 if (!noAudio) {
   h('Запись микрофона')
@@ -109,5 +141,6 @@ if (!noAudio) {
     const buf = Buffer.from(p.base64, 'base64')
     writeFileSync(out, buf)
     console.log(`${out}  (${p.mime}, ${buf.length} байт) — начало записи на ${fmt(p.startedAtMs - d.startedAtMs)} с от старта игры (±0,1 с)`)
+    printWindowLevels(out, p.startedAtMs - d.startedAtMs)
   })
 }

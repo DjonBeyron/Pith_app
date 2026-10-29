@@ -1,10 +1,16 @@
+import { setGameAudioSink } from '../../../../shared/lib/gameAudioSink.js'
+
 // «Пробник» доступов и звука для отладки «Повтори за диктором»: когда отладка включена, на время жизни страницы ставит ТОЛЬКО записывающие обёртки (поведение вызовов не меняется) и копит события —
 // игра подтягивает их в свой журнал (useWordLaneDebug): и то, что было ДО её запуска (запрос микрофона при старте урока, тап «Начать»), и то, что идёт во время игры.
 // Ловит: getUserMedia (кто звал — стек и догадка по constraints, что запросили, чем кончилось, сколько мс, сколько потоков живых, mute/unmute/ended дорожек), HTMLMediaElement.play (src, readyState,
 // muted, volume, исход: ok или NotAllowedError…, userActivation, события playing/error и момент первого зазвучавшего звука), speechSynthesis.speak (текст, start/end/error), AudioContext
 // (создание, state и его смены; старт AudioBufferSource), visibilitychange / fullscreenchange / pagehide / pageshow, navigator.permissions «microphone» (в начале, при смене, в конце).
 // Событие: { at (эпоха, мс), kind, ...данные }. Ставится из ShellV2 (wordLaneDebugBoot.js) при включённой отладке, а при её включении позже — при старте журнала игры. Выключенная отладка — ничего не ставится.
+// Для проверки «то громче, то тише» (ducking iOS): volumechange / ended / pause у каждого звучащего <audio> (окна речи диктора для отчёта: play-call/playing → ended/pause), раз в TICK_MS, пока что-то играет,
+// событие audio-tick { as (navigator.audioSession.type), vis, els: [{ el, vol, muted, t }] }, а смены типа аудиосессии (audio-session) и глушение дорожки микрофона (mic-hold) приходят из gameMicSession / gameMicHold
+// через приёмник gameAudioSink. Громкость самого воспроизведения без Web Audio (AnalyserNode на iOS ломает звук) видна только в записи микрофона — её RMS по окнам речи считает scripts/dictor-debug-report.mjs.
 export const PROBE_KEEP = 3000
+export const TICK_MS = 500
 
 const cut = (s, n = 80) => String(s ?? '').replace(/\s+/g, ' ').slice(0, n)
 const safe = fn => { try { return fn() } catch { return null } }
@@ -43,6 +49,8 @@ export function createProbe({ win = globalThis.window, doc = globalThis.document
   const contexts = []
   const ids = new WeakMap()
   const watched = new WeakSet()
+  const playing = new Set() // <audio>, которые сейчас звучат (между playing и ended/pause)
+  let ticker = 0
   let installed = false
   let n = 0
   let firstSound = false
@@ -89,10 +97,22 @@ export function createProbe({ win = globalThis.window, doc = globalThis.document
       }, e => { emit('gum-result', { id, ok: false, error: e?.name ?? String(e), message: cut(e?.message, 100), ms: now() - t, live: live() }); throw e })
     })
   }
+  const stopTick = () => { if (ticker) { clearInterval(ticker); ticker = 0 } }
+  const tick = () => {
+    if (!playing.size) { stopTick(); return }
+    emit('audio-tick', { as: nav?.audioSession?.type ?? null, vis: doc?.visibilityState ?? null, els: [...playing].map(el => ({ el: idOf(el), vol: el.volume, muted: !!el.muted, t: Math.round((el.currentTime ?? 0) * 100) / 100 })) })
+  }
   function watchElement(el) {
     if (!el || watched.has(el)) return
     watched.add(el)
-    el.addEventListener('playing', () => { emit('playing', { ...media(el), first: !firstSound }); if (!firstSound) { firstSound = true; emit('first-sound', { ...media(el) }) } })
+    const stopped = type => () => { emit(type, media(el)); playing.delete(el); if (!playing.size) stopTick() }
+    el.addEventListener('playing', () => {
+      emit('playing', { ...media(el), first: !firstSound }); if (!firstSound) { firstSound = true; emit('first-sound', { ...media(el) }) }
+      playing.add(el); if (!ticker) ticker = setInterval(tick, TICK_MS)
+    })
+    el.addEventListener('volumechange', () => emit('volumechange', media(el)))
+    el.addEventListener('ended', stopped('ended'))
+    el.addEventListener('pause', stopped('pause'))
     el.addEventListener('error', () => emit('media-error', { ...media(el), code: el.error?.code ?? null }))
   }
   function patchPlay() {
@@ -154,6 +174,8 @@ export function createProbe({ win = globalThis.window, doc = globalThis.document
       if (installed) return
       installed = true
       safe(patchGetUserMedia); safe(patchPlay); safe(patchSpeech); safe(patchAudioContext)
+      setGameAudioSink((kind, data) => emit(kind, data)) // audio-session и mic-hold из gameMicSession / gameMicHold
+      undo.push(() => { setGameAudioSink(null); stopTick(); playing.clear() })
       on(doc, 'visibilitychange', () => emit('visibility', { state: doc.visibilityState }))
       for (const t of ['fullscreenchange', 'webkitfullscreenchange']) on(doc, t, () => emit('fullscreen', { on: !!(doc.fullscreenElement ?? doc.webkitFullscreenElement) }))
       on(win, 'pagehide', () => emit('pagehide', {})); on(win, 'pageshow', () => emit('pageshow', {}))
