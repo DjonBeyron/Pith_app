@@ -48,7 +48,14 @@ export function isWordLaneDebug() {
   try { return globalThis.localStorage?.getItem('pithy_wl_debug') === '1' || /[?&]wldebug\b/.test(globalThis.location?.search ?? '') } catch { return false }
 }
 
-// Чувствительность пилюль к голосу максимальная: пол шума и усиление берутся жёстче общих колец (sayRealLevel: пол 0,02, усиление ×5) — пилюля откликается и на тихий голос
+// Громкость голоса ученика → 0..1 для колец микрофона и пилюль. Лог-кривая без насыщения: log1p(K·(rms − пол)) / log1p(K·SPAN). Раньше корень упирался в 1,0 уже на rms ≈ 0,07 и между слогами
+// динамики не было. Теперь тихая речь (0,02) ≈ 0,47, обычная (0,05) ≈ 0,75, громкая (0,08) ≈ 0,89, от 0,12 и крик — 1,0 (K подобран так, чтобы тихий голос оставался чувствительным, как требует wordLaneFx.test); пол 0,006 — шум комнаты даёт ноль.
 export const SENSITIVE_FLOOR = 0.006
-export const SENSITIVE_GAIN = 16
-export const sensitiveLevel = rms => Math.sqrt(Math.min(1, Math.max(0, (rms - SENSITIVE_FLOOR) * SENSITIVE_GAIN)))
+export const SENSITIVE_K = 300
+export const SENSITIVE_SPAN = 0.11
+export const GAME_LEVEL_DECAY_MS = 120 // спад уровня после куска звука (куски по 23 мс): кольца гаснут вслед за голосом; у «Сказать фразу» остаётся 300
+export const sensitiveLevel = rms => {
+  const x = rms - SENSITIVE_FLOOR
+  return x > 0 ? Math.min(1, Math.log1p(SENSITIVE_K * x) / Math.log1p(SENSITIVE_K * SENSITIVE_SPAN)) : 0
+}
+sensitiveLevel.decayMs = GAME_LEVEL_DECAY_MS // createRmsLevel({ fromRms: sensitiveLevel }) берёт спад отсюда
