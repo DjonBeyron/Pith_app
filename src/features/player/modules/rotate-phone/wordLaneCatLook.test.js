@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { createCatLook, drawCatMouth, NO_LOOK, TALK_OFF_MS } from './wordLaneCatLook.js'
+import { TAIL_MS } from '../../../scene/v2/talkTail.js'
 import { PUPIL_DILATE, PUPIL_MS, IDLE_MIN_MS, MAX_LOOK } from '../../../scene/v2/pupilLook.js'
 import { MASCOT_PACKS } from '../../../scene/v2/sprites/mascot/mascots.js'
 
@@ -112,9 +113,53 @@ describe('кот: is-talking (усы)', () => {
   })
 })
 
+describe('кот: усы доезжают до покоя (хвост is-tail), а не обрываются', () => {
+  it('речь кончилась: через TALK_OFF_MS is-talking снят, но в ТОТ ЖЕ момент поставлен is-tail — анимация усов не пропадает ни на кадр; хвост снимается через TAIL_MS', () => {
+    const s = setup()
+    s.look.talking(true)
+    s.look.talking(false)
+    s.fire(TALK_OFF_MS)
+    expect(s.classes.has('is-talking')).toBe(false)
+    expect(s.classes.has('is-tail')).toBe(true)
+    expect(s.timers.map(x => x.ms)).toEqual([TAIL_MS])
+    s.fire(TAIL_MS)
+    expect(s.classes.has('is-tail')).toBe(false)
+  })
+
+  it('заговорил снова, пока хвост идёт: is-talking вернулся, хвост и его таймер сняты (анимация та же, фаза не сбрасывается)', () => {
+    const s = setup()
+    s.look.talking(true); s.look.talking(false); s.fire(TALK_OFF_MS)
+    s.look.talking(true)
+    expect(s.classes.has('is-talking')).toBe(true)
+    expect(s.classes.has('is-tail')).toBe(false)
+    expect(s.timers).toHaveLength(0)
+  })
+
+  it('release() (пауза игры): без выдержки TALK_OFF_MS — is-talking снят сразу, хвост поставлен, ожидающее снятие отменено; без речи ничего не делает', () => {
+    const s = setup()
+    s.look.release()
+    expect(s.classes.has('is-tail')).toBe(false)
+    s.look.talking(true); s.look.talking(false)
+    s.look.release()
+    expect(s.classes.has('is-talking')).toBe(false)
+    expect(s.classes.has('is-tail')).toBe(true)
+    expect(s.timers.map(x => x.ms)).toEqual([TAIL_MS])
+    s.look.release()
+    expect(s.timers).toHaveLength(1) // повторный release не множит таймеры
+  })
+
+  it('stop (кот убран): ни is-talking, ни is-tail, ни таймеров', () => {
+    const s = setup()
+    s.look.talking(true); s.look.release()
+    s.look.stop()
+    expect(s.classes.size).toBe(0)
+    expect(s.timers).toHaveLength(0)
+  })
+})
+
 describe('слабое устройство: NO_LOOK', () => {
   it('все методы есть и ничего не делают', () => {
-    for (const k of ['lineStart', 'word', 'lineEnd', 'idle', 'talking', 'stop']) expect(() => NO_LOOK[k](true)).not.toThrow()
+    for (const k of ['lineStart', 'word', 'lineEnd', 'idle', 'talking', 'release', 'stop']) expect(() => NO_LOOK[k](true)).not.toThrow()
     expect(Object.isFrozen(NO_LOOK)).toBe(true)
   })
 })

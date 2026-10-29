@@ -8,7 +8,7 @@
 .scn--v2:not(.scn--lite) .pu {
   translate: calc(var(--look-x, 0) * 1px) calc(var(--look-y, 0) * 1px);
   scale: var(--pupil, 1); /* расширение зрачка в начале реплики (pupilLook.js: --pupil 1.18 на 450 мс), как у кота, когда он оживился */
-  transition: translate 150ms ease-out, scale 350ms ease-out;
+  transition: translate 180ms ease-in-out, scale 350ms ease-in-out; /* мягкий старт и финиш: взгляд не щёлкает, а переходит */
 }
 
 /* Максимальное открытие (широкие формы D и E) чуть больше нарисованного — рот и язык читаются на маленьком экране; масштаб от верхней губы
@@ -20,28 +20,38 @@
 
 /* Усы — четыре path (.wh .wh-l|.wh-r .wh-u|.wh-d, kit.json; до v3.3.39 класс по ошибке стоял на дужках очков, до v3.3.40 усы были одним контуром
    и сдвигались). Пока Пит говорит, каждый ус чуть качается вокруг своего корня: якорь — край fill-box у морды (у левых усов правый край,
-   у правых — левый). Верхние и нижние — с разным периодом и фазой, чтобы не ходили строем. Амплитуда — --talk (0 → 1 за 0,3 с,
-   scene-v2-cat.css). Только пока is-talking: в тишине анимаций нет. Знак: у левого уса кончик слева от якоря, +угол поднимает его;
-   у правого — наоборот */
+   у правых — левый). Верхние и нижние — с разным периодом и фазой, чтобы не ходили строем. Знак: у левого уса кончик слева от якоря, +угол поднимает его;
+   у правого — наоборот.
+   Плавный вход и выход: угол = размах × --wh-amp (число 0…1, @property — переходит). Анимация применена при is-talking И при is-tail (talkTail.js: хвост 360 мс после речи),
+   а амплитуда у самих усов переходит 0,3 с ease-in-out: речь началась — ус выходит из покоя с нулевой скоростью, речь кончилась — амплитуда сходит в 0, и только потом анимация снимается
+   на нулевом угле (раньше animation пропадала вместе с is-talking, и ус из угла до 4° скачком вставал в ноль). Пауза (.scn--paused) и успокоение (.scn--settle)
+   тоже гасят амплитуду: ус замирает не рывком посреди взмаха, а доезжает до покоя; возобновление — тем же переходом назад. Прокрутка ленты ([data-scrolling]) только ставит анимацию на паузу, как раньше: ради неё
+   гонять переходы на скролле не стоит (кадр и так едет). Своя переменная, не --talk: --talk ещё ведёт кивок
+   головы и хвост (scene-v2-cat.css), их паузу и дрожание она менять не должна. Переход — на корне кота рядом с --talk (там он уже идёт при каждом начале и конце речи, лишних перепросчётов стилей нет; одна лишняя анимация-переход на кота вместо четырёх на усах).
+   В игре (word-lane.css) корень не переходит вовсе — перепросчёт поддерева каждый кадр стоил +2,9 мс — и переход стоит на самих усах */
+@property --wh-amp { syntax: '<number>'; inherits: true; initial-value: 0; }
+.scn--v2 .scn-cat.is-talking { --wh-amp: 1; }
+.scn--v2.scn--paused .scn-cat.is-talking, .scn--v2.scn--settle .scn-cat.is-talking { --wh-amp: 0; }
+.scn--v2 .scn-cat { transition: --talk 0.3s ease-in-out, --wh-amp 0.3s ease-in-out; } /* к уже идущему переходу --talk (scene-v2-cat.css) добавляется второй в том же списке: один лишний переход на кота, а не четыре на усах */
 .scn--v2 .wh { transform-box: fill-box; }
 .scn--v2 .wh-l { transform-origin: 100% 50%; }
 .scn--v2 .wh-r { transform-origin: 0 50%; }
 @keyframes scnWhiskL {
-  0%, 100% { rotate: calc(4deg * var(--talk)); }
-  50% { rotate: calc(-3deg * var(--talk)); }
+  0%, 100% { rotate: calc(4deg * var(--wh-amp)); }
+  50% { rotate: calc(-3deg * var(--wh-amp)); }
 }
 @keyframes scnWhiskR {
-  0%, 100% { rotate: calc(-4deg * var(--talk)); }
-  50% { rotate: calc(3deg * var(--talk)); }
+  0%, 100% { rotate: calc(-4deg * var(--wh-amp)); }
+  50% { rotate: calc(3deg * var(--wh-amp)); }
 }
-.scn--v2.scn--live:not(.scn--lite) .scn-cat.is-talking .wh-l { animation: scnWhiskL 0.6s ease-in-out infinite; }
-.scn--v2.scn--live:not(.scn--lite) .scn-cat.is-talking .wh-r { animation: scnWhiskR 0.6s ease-in-out infinite; }
-.scn--v2.scn--live:not(.scn--lite) .scn-cat.is-talking .wh-d { animation-duration: 0.72s; animation-delay: -0.25s; }
+.scn--v2.scn--live:not(.scn--lite) .scn-cat:is(.is-talking, .is-tail) .wh-l { animation: scnWhiskL 0.6s ease-in-out infinite; }
+.scn--v2.scn--live:not(.scn--lite) .scn-cat:is(.is-talking, .is-tail) .wh-r { animation: scnWhiskR 0.6s ease-in-out infinite; }
+.scn--v2.scn--live:not(.scn--lite) .scn-cat:is(.is-talking, .is-tail) .wh-d { animation-duration: 0.72s; animation-delay: -0.25s; }
 .scn--v2.scn--paused .wh, [data-scrolling="1"] .scn--v2 .wh { animation-play-state: paused; }
-.scn--v2.scn--settle .wh { animation: none; }
 
 @media (prefers-reduced-motion: reduce) {
   .scn--v2 .pu { transition: none; }
   .scn--v2 .scn-cat .mouth { transition: none; }
   .scn--v2 .wh { animation: none; }
+  .scn--v2 .scn-cat { transition: none; }
 }

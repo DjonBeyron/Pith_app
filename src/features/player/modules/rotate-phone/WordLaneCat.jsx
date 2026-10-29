@@ -9,6 +9,7 @@ import { createCatVoice } from './wordLaneCatVoice.js'
 import { createMouthHold } from './wordLaneMouthHold.js'
 import { CAT_FACES, buildCat } from './wordLaneCatTree.js'
 import { createCatLook, drawCatMouth, NO_LOOK } from './wordLaneCatLook.js'
+import { crossfadeHeads } from './wordLaneCatFade.js'
 
 // Пит (фиолетовый кот-маскот из конструктора сцен: buildMascot('kit')) — из нижнего края экрана выскакивает ТОЛЬКО ГОЛОВА (тело не рисуется: viewBox обрезан по голове) и торчит
 // в разных местах (CAT_SPOTS), вдвое крупнее прежнего кота. БЕЗ идл-анимаций тела (покачивание, дыхание, моргание — scn--live): анимации SVG идут в основном потоке и на смартфонах давали подлагивание в момент, когда кот выскакивает вместе с первым словом диктора; оживляют его только выскакивание (CSS-пружина на композиторе), рот по голосу и лицо-реакция.
@@ -21,10 +22,12 @@ import { createCatLook, drawCatMouth, NO_LOOK } from './wordLaneCatLook.js'
 //    Голос есть — голова выскакивает (в новом месте), голоса нет HIDE_AFTER_MS — прячется (wordLaneCatPeek.js); apiRef.current.isUp() — голова сейчас торчит;
 //  • apiRef.current.react(face, ms) — реакция лицом на время ('love' — сердечки, пилюля принята; 'shy' — отвёл взгляд, слово не то) — голова торчит всё это время;
 //  • apiRef.current.peek(ms) — просто выскочить на время;
-//  • apiRef.current.freeze() — пауза игры: реплика обрывается, рот закрывается, взгляд и усы гаснут;
+//  • apiRef.current.freeze() — пауза игры: реплика обрывается, рот закрывается, взгляд гаснет, усы плавно доезжают до покоя (хвост is-tail, talkTail.js);
 //  • apiRef.current.look.lineStart() / word() / lineEnd() — взгляд: речь началась (зрачки расширяются) / граница слова (саккада) / речь кончилась; apiRef.current.talking(on) — усы вручную.
+// Смена лица (react / freeze) — перекрёстное проявление голов ~140 мс (wordLaneCatFade.js), не щелчок; кроме lite и reduced-motion. Подъём и уход головы (peek) — CSS-переходы word-lane.css: выскакивает с пружиной, прячется ease-in-out.
 // Компонент мемоизирован (memo) и после монтажа React'ом не перерисовывается: лицо меняется БЕЗ пересборки дерева — головы всех лиц (CAT_FACES) собраны один раз, видна одна (CSS по data-face на корне), смена — атрибут;
 // форма рта держится не меньше 70 мс и не пишется в DOM, если не изменилась (wordLaneMouthHold.js). Раньше смена лица пересобирала SVG-дерево кота (≈70 узлов) на каждую принятую пилюлю, а рот переписывал четыре d на каждый переход.
+const reducedMotion = () => { try { return !!globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches } catch { return false } }
 export const CAT_VIEWBOX = '6 14 174 148' // голова целиком — от макушки с ушами (y≈20) до шеи (подбородок y≈142, плечи до 162); тело ниже не попадает в кадр
 function WordLaneCat({ apiRef, skin = 'kit' }) {
   const hostRef = useRef(null)
@@ -35,6 +38,7 @@ function WordLaneCat({ apiRef, skin = 'kit' }) {
   const drawsRef = useRef(0)        // сколько раз форма рта реально нарисована (для журнала отладки: «shapes» за реплику)
   const timerRef = useRef(0)
   const peekRef = useRef(null)
+  const fadeRef = useRef(null)      // отмена текущего перекрёстного проявления лица (wordLaneCatFade.js)
   const cat = useMemo(() => renderTree(buildCat(skin)), [skin])
   const lite = useMemo(() => isWeakDevice(), []) // слабое устройство: только рот (scn--lite), зрачки и усы не трогаем
 
@@ -47,8 +51,11 @@ function WordLaneCat({ apiRef, skin = 'kit' }) {
   const setFace = face => {
     const next = CAT_FACES.includes(face) ? face : 'base'
     if (next === faceRef.current) return
+    const prevHead = headsRef.current[faceRef.current]
     faceRef.current = next
     hostRef.current?.setAttribute('data-face', next)
+    fadeRef.current?.() // прежний переход довести до конца, новый — от текущих голов
+    fadeRef.current = lite || reducedMotion() ? null : crossfadeHeads(prevHead, headsRef.current[next]) // лицо проявляется ~140 мс, а не щёлкает (на lite и при reduced-motion — сразу)
     holdRef.current?.redraw() // в новую голову — тот рот, что показан сейчас (иначе «закрылся» бы на полуслове)
   }
   // Дерево собрано (или пересобрано) — находим головы
@@ -83,9 +90,9 @@ function WordLaneCat({ apiRef, skin = 'kit' }) {
       peek(ms = 1400) { peek.hold(ms) },
       look: { lineStart: look.lineStart, word: look.word, lineEnd: look.lineEnd },
       talking: look.talking,
-      freeze() { voice.stop(); clearTimeout(timerRef.current); setFace('base'); hold.set('closed'); look.lineEnd(); look.talking(false) }, // пауза: реплика оборвана, рот закрыт, лицо спокойное, взгляд погас; голова остаётся где была
+      freeze() { voice.stop(); clearTimeout(timerRef.current); setFace('base'); hold.set('closed'); look.lineEnd(); look.release() }, // пауза: реплика оборвана, рот закрыт, лицо плавно спокойное, взгляд погас, усы без выдержки доезжают до покоя (хвост is-tail, не рывок); голова остаётся где была
     }
-    return () => { apiRef.current = null; holdRef.current = null; voice.stop(); hold.dispose(); look.stop(); clearTimeout(timerRef.current) }
+    return () => { apiRef.current = null; holdRef.current = null; voice.stop(); hold.dispose(); look.stop(); clearTimeout(timerRef.current); fadeRef.current?.(); fadeRef.current = null }
   }, [apiRef, lite, skin, draw])
 
   return (
