@@ -3,9 +3,14 @@
 //  • Повтор (rep) — одно высказывание ступени: у него одна или несколько пилюль (по пилюле на кусок, каждая в дорожке куска). Пилюли едут вниз с постоянной скоростью SPEED; куски одного
 //    повтора выкатываются друг за другом, как слова во фразе.
 //  • Повтор можно «взять», пока он на экране (первая пилюля уже открылась, последняя ещё не ушла вниз): когда распознавание услышало его текст (цель), ему достаётся САМЫЙ СТАРЫЙ
-//    такой повтор — его пилюли быстро заливаются до 100 % (LOCK_MS, куски по очереди), щёлкают (snap) и дают XP (win).
-//  • Заливка идёт СТРОГО ПО ОЧЕРЕДИ кусков и только пока речь подтверждена распознаванием (confirmed: распознаватель недавно что-то услышал — шум и эхо без слов не наливают): кусок заливается, когда его слова
-//    произнесены (tail.tokens — сколько слов недосказанной цели уже распознано), а пока говорится текущий кусок — ещё и голосом (voiceFillStep, не выше FILL_CAP). Чужое слово — заливка сливается.
+//    такой повтор — его незащёлкнутые пилюли быстро заливаются до 100 % (LOCK_MS, куски по очереди), щёлкают (snap) и дают XP (win).
+//  • Три состояния куска. «В процессе» — нейтральная заливка: идёт только на речь, подтверждённую распознаванием (confirmed: распознаватель недавно что-то услышал — шум и эхо без слов не наливают),
+//    по очереди кусков: кусок заливается по мере того, как его слова произнесены (tail.tokens — сколько слов недосказанной цели уже распознано), а пока говорится ПЕРВЫЙ кусок или идут слова текущего —
+//    ещё и голосом (voiceFillStep, не выше FILL_CAP); следующий кусок голосом не наливается, пока его первое слово не услышано (пауза между словами — не повод). «Верно по кускам» — кусок, чьи слова
+//    произнесены целиком (tk ≥ cum[i + 1]), защёлкивается СРАЗУ, не дожидаясь конца повтора: событие piece-ok → data-lock, затем snap / win (нота) на этот кусок. Последний кусок защёлкивается принятием
+//    повтора (claim). «Неверно» — miss: слив только ещё не защёлкнутых кусков (защёлкнутые остаются зелёными), красная вспышка — на первом из них.
+//  • Не успел (fail) — гаснет весь повтор, в том числе защёлкнутые куски (повтор выкатят заново целиком, его win-ы в счёт locked не идут). Недосказанная часть отдельно не переигрывается: распознавание
+//    понимает только цель целиком («i am trying»), а не «trying» после «i am».
 //  • Последняя пилюля повтора ушла вниз (центр ниже FAIL_Y) без слова — «не успел» (fail): пилюли гаснут, повтор выкатят снова (не больше MAX_TRIES раз, дальше он потерян).
 //  • Ступень закончена (done), когда каждый повтор принят или потерян и ничего не летит.
 import { ENTER_Y, EXIT_Y, SPEED, LOCK_MS, FILL_CAP, voiceFillStep, drainStep, easeInOut } from './wordLaneTimeline.js'
@@ -33,6 +38,21 @@ export function isClaimable(rep) {
   return first.y >= CLAIM_FROM_Y && last.y <= CLAIM_TO_Y
 }
 
+/** Защёлкнуть пилюлю: заливка идёт к 100 % с момента at (мс), щелчок и нота — когда она дойдёт */
+const lockPill = (p, at, delay = 0) => { p.state = 'lock'; p.from = p.p; p.lockAt = at + delay; p.snapped = false }
+
+/** Защёлкнутые куски повтора (у каждого свой момент lockAt): заливка → snap (full — щелчок с искрами только у последнего куска повтора) → win; повтор принят, когда won все */
+function stepLocks(g, rep, t, events) {
+  rep.pills.forEach((p, i) => {
+    if (p.state !== 'lock') return
+    const u = (t - p.lockAt) / LOCK_MS
+    const order = rep.parts.length > 1 ? i : rep.note
+    if (u >= 0 && !p.snapped) { p.snapped = true; events.push({ type: 'snap', pill: p, rep, order, full: rep.pills.every(q => q.snapped) }) }
+    if (u > 0) p.p = p.from + (1 - p.from) * easeInOut(u)
+    if (u >= 1) { p.p = 1; p.state = 'won'; g.locked += 1; events.push({ type: 'win', pill: p, rep, order, last: rep.pills.every(q => q.state === 'won') }) } // last — принят последний кусок повтора: XP одна цифра на повтор
+  })
+}
+
 /** step — ступень рецепта; chunks — тексты кусков; estMs(chunk) — длина куска, мс (по записи диктора или оценка) */
 export function createStudentGame({ step, chunks, estMs = c => estChunkMs(chunks[c]), period = STUDENT_PERIOD_MS, maxTries = MAX_TRIES, leadIn = LEAD_IN_MS }) {
   const n = chunks.length
@@ -44,18 +64,19 @@ export function createStudentGame({ step, chunks, estMs = c => estChunkMs(chunks
     const cum = cnt.reduce((a, k) => [...a, a.at(-1) + k], [0])      // сколько слов цели приходится на начало каждого куска и на конец всех
     return { idx, parts: rp.parts, target: repTarget[idx], text: textOf(chunks, rp.parts), state: 'todo', tries: 0, pills: [], pv: rp.parts.map(() => 0), tk: 0, cnt, cum, durs, offs, gap: Math.max(period, offs.at(-1) + durs.at(-1) + REP_PAD_MS), lanes: rp.parts.map(c => laneOf(n, c, idx)) }
   })
-  return { t: 0, period, maxTries, leadIn, reps, pills: [], nextId: 1, nextSpawn: 0, claimed: 0, locked: 0, failed: [], seenSeq: 0, seenMisses: 0, finished: false, spawned: 0 }
+  return { t: 0, period, maxTries, leadIn, reps, pills: [], nextId: 1, nextSpawn: 0, claimed: 0, locked: 0, failed: [], seenSeq: 0, seenMisses: 0, spentTail: null, finished: false, spawned: 0 }
 }
 
 /**
  * Шаг игры в момент t. input: level — громкость голоса (после ворот) 0…1, seq — накопленный по порядку список услышанных целей (номера), misses — накопленный счёт чужих слов, confirmed — речь подтверждена
  * распознаванием, tail — недосказанная цель { target, tokens }.
- * Возвращает события шага: spawn / claim / snap / win / fail / miss / late / done. Состояние g меняется на месте.
+ * Возвращает события шага: spawn / piece-ok / claim / snap / win / fail / miss / late / done. Состояние g меняется на месте.
  */
 export function stepStudent(g, t, { level = 0, seq = [], misses = 0, confirmed = true, tail = null } = {}) {
   const events = []
   const dt = Math.max(0, t - g.t) / 1000
   g.t = t
+  const spoken = tail && tail !== g.spentTail ? tail : null   // хвост, на котором повтор уже не успели (fail), следующему повтору не достаётся: тот же объект слушатель отдаёт, пока не пришёл новый черновик
 
   for (const rep of g.reps) {
     if (rep.state === 'todo') continue
@@ -63,17 +84,20 @@ export function stepStudent(g, t, { level = 0, seq = [], misses = 0, confirmed =
     if (rep.state === 'fly') {
       const visible = rep.pills[0].y >= CLAIM_FROM_Y && rep.pills.at(-1).y <= CLAIM_TO_Y
       if (visible && rep.cur) {
-        // слив и наливание — только у самого старого повтора на экране (отмечен в rep.cur ниже)
+        // слив и наливание — только у самого старого повтора на экране (отмечен в rep.cur ниже); защёлкнутые куски (state не 'fly') не трогаем — они уже зелёные
+        const open = rep.pills.filter(p => p.state === 'fly')
         if (rep.drain) {
-          rep.pills.forEach(p => { p.p = drainStep(p.p, dt) })
-          if (rep.pills.every(p => p.p <= 0.01)) { rep.drain = false; rep.tk = 0; rep.pv.fill(0); rep.pills.forEach(p => { p.p = 0 }) }
+          open.forEach(p => { p.p = drainStep(p.p, dt) })
+          if (open.every(p => p.p <= 0.01)) { rep.drain = false; rep.tk = rep.cum[rep.pills.length - open.length]; rep.pv.fill(0); open.forEach(p => { p.p = 0 }) } // слова защёлкнутых кусков остаются произнесёнными
         } else {
-          const tok = tail && tail.target === rep.target ? tail.tokens : 0
+          const tok = confirmed && spoken && spoken.target === rep.target ? spoken.tokens : 0   // устаревший хвост (речи давно нет) куски не защёлкивает
           rep.tk = Math.max(rep.tk, tok)                                                 // слова произнесены — не откатываются, пока повтор жив
           const active = rep.cum.findIndex((c, i) => i < rep.parts.length && rep.tk < rep.cum[i + 1])  // первый кусок, чьи слова ещё не все произнесены
-          if (confirmed && active >= 0) rep.pv[active] = voiceFillStep(rep.pv[active], dt, level, rep.durs[active]) // голос наливает текущий кусок (не выше FILL_CAP)
+          if (confirmed && active >= 0 && (active === 0 || rep.tk > rep.cum[active])) rep.pv[active] = voiceFillStep(rep.pv[active], dt, level, rep.durs[active]) // голос наливает текущий кусок (не выше FILL_CAP); следующий — только когда его первое слово услышано
           rep.pills.forEach((p, i) => {
+            if (p.state !== 'fly') return
             const done = rep.tk >= rep.cum[i + 1]
+            if (done && i < rep.parts.length - 1) { lockPill(p, t); events.push({ type: 'piece-ok', rep, pill: p, piece: i }); return } // слова куска произнесены — зелёный сразу, не ждём конца повтора
             const part = FILL_CAP * Math.min(1, Math.max(0, (rep.tk - rep.cum[i]) / rep.cnt[i]))
             p.p = done ? FILL_CAP : i === active ? Math.max(part, rep.pv[i]) : 0         // строго по очереди: следующий кусок ждёт, пока договорён предыдущий
           })
@@ -82,20 +106,16 @@ export function stepStudent(g, t, { level = 0, seq = [], misses = 0, confirmed =
       if (rep.pills.at(-1).y > FAIL_Y) {
         rep.state = rep.tries + 1 >= g.maxTries ? 'lost' : 'todo'
         rep.tries += 1
+        if (tail) g.spentTail = tail
+        g.locked -= rep.pills.filter(p => p.state === 'won').length   // защёлкнутые куски гаснут вместе с повтором и выкатятся заново — в счёт принятых не идут
         rep.pills.forEach(p => { p.state = 'failed' })
         g.failed.push(...rep.pills)                       // серые пилюли доезжают вниз сами
         events.push({ type: 'fail', rep, pills: rep.pills, tries: rep.tries, lost: rep.state === 'lost' })
         rep.pills = []
       }
-    } else if (rep.state === 'lock') {
-      rep.pills.forEach((p, i) => {
-        const u = (t - rep.lockAt - i * LOCK_STAGGER_MS) / LOCK_MS
-        if (u >= 0 && !p.snapped) { p.snapped = true; events.push({ type: 'snap', pill: p, rep, order: rep.parts.length > 1 ? i : rep.note }) }
-        if (u > 0) p.p = p.from + (1 - p.from) * easeInOut(u)
-        if (u >= 1 && p.state !== 'won') { p.p = 1; p.state = 'won'; g.locked += 1; events.push({ type: 'win', pill: p, rep, order: rep.parts.length > 1 ? i : rep.note, last: rep.pills.every(q => q.state === 'won') }) } // last — принят последний кусок повтора: XP одна цифра на повтор
-      })
-      if (rep.pills.every(p => p.state === 'won')) rep.state = 'won'
     }
+    if (rep.state === 'fly' || rep.state === 'lock') stepLocks(g, rep, t, events)
+    if (rep.state === 'lock' && rep.pills.every(p => p.state === 'won')) rep.state = 'won'
   }
   for (const p of g.failed) p.y = yOfPill(p, t)
   const live = () => [...g.failed.filter(p => !p.gone), ...g.reps.flatMap(r => r.pills)]
@@ -116,7 +136,8 @@ export function stepStudent(g, t, { level = 0, seq = [], misses = 0, confirmed =
     if (!rep) { const first = claimable()[0]; events.push(first ? { type: 'miss', rep: first, wrong: true } : { type: 'late' }); if (first) first.drain = true; continue }
     rep.state = 'lock'; rep.lockAt = t; rep.drain = false; rep.note = g.claimed % 3; g.claimed += 1
     claimList = null // принятый повтор больше не «берётся»
-    rep.pills.forEach(p => { p.state = 'lock'; p.from = p.p; p.snapped = false })
+    let j = 0
+    rep.pills.forEach(p => { if (p.state === 'fly') lockPill(p, t, j++ * LOCK_STAGGER_MS) }) // куски, не защёлкнутые раньше, — по очереди
     events.push({ type: 'claim', rep, order: rep.note })
   }
   const newMisses = Math.max(0, misses - g.seenMisses)

@@ -154,11 +154,12 @@ describe('голос и заливка: только на подтверждён
     }
     expect(secondBeforeFirst).toBe(false)
     expect(g.reps[0].pills[1].p).toBe(0)
-    // распознаны «i am» — первый кусок залит до конца, второй ещё пуст; потом «trying» подхватывает второй
+    // распознаны «i am» — первый кусок защёлкнут (зелёный, piece-ok) и доливается до 100 %, второй ещё пуст
     g.reps[0].pills[0].p = 0
-    stepStudent(g, g.t + DT, { level: 0.8, seq: [], misses: 0, confirmed: true, tail: { target: g.reps[0].target, tokens: 2 } })
-    expect(g.reps[0].pills[0].p).toBeCloseTo(FILL_CAP, 9)
-    expect(g.reps[0].pills[1].p).toBeLessThanOrEqual(FILL_CAP)
+    const ev = stepStudent(g, g.t + DT, { level: 0.8, seq: [], misses: 0, confirmed: true, tail: { target: g.reps[0].target, tokens: 2 } })
+    expect(ev.filter(e => e.type === 'piece-ok').map(e => e.piece)).toEqual([0])
+    expect(g.reps[0].pills[0].state).toBe('lock')
+    expect(g.reps[0].pills[1].p).toBe(0)
   })
   it('чужое слово (miss) сливает заливку текущего повтора и сбрасывает прогресс слов', () => {
     const g = game(build[0])

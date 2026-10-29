@@ -41,9 +41,9 @@ describe('один залп искр и одна цифра XP на повтор
     expect(navigator.vibrate).toHaveBeenCalledTimes(1)
   })
 
-  it('движок зовёт полный щелчок только у первого куска повтора (ученик) и у договорённого (диктор)', () => {
+  it('движок зовёт полный щелчок только у последнего защёлкнутого куска повтора (ученик) и у договорённого (диктор)', () => {
     const eng = read('./useWordLanePills.js')
-    expect(eng).toContain('{ full: e.pill.piece === 0 }')
+    expect(eng).toContain('{ full: e.full }')
     expect(eng).toContain('{ full: lastPiece }')
   })
 
