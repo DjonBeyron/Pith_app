@@ -2,7 +2,6 @@ import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { startFlight, cancelFlights, setFlightRate, FLIGHT_MS, ANIM_MS, flightPosition } from './wordLaneMotion.js'
-import { flightPose, wavePosition } from './wordLaneWave.js'
 import { ENTER_Y, EXIT_Y, SPEED } from './wordLaneTimeline.js'
 
 const read = rel => readFileSync(fileURLToPath(new URL(rel, import.meta.url)), 'utf8')
@@ -12,21 +11,19 @@ const css = readLane()
 describe('ход пилюль — на композиторе (WAAPI), а не по кадрам из JS', () => {
   const fakeEl = () => { const calls = []; return { calls, animate(frames, opts) { const a = { frames, opts, currentTime: null, cancelled: false, rate: 1, cancel() { this.cancelled = true }, updatePlaybackRate(r) { this.rate = r } }; calls.push(a); return a } } }
 
-  it('один полёт от ENTER_Y до EXIT_Y: длительность по скорости конвейера, easing linear, fill both; кадры — translate (по y линейно, по x синусоида) и rotate в одной анимации', () => {
+  it('один полёт от ENTER_Y до EXIT_Y: длительность по скорости конвейера, easing linear, fill both; кадры — один translate по y, прямая без волны и наклона', () => {
     const el = fakeEl()
-    const a = startFlight(el, -300, 1)
+    const a = startFlight(el, -300)
     expect(FLIGHT_MS).toBeCloseTo(((EXIT_Y - ENTER_Y) / SPEED) * 1000, 6)
     expect(a.opts).toMatchObject({ duration: ANIM_MS, easing: 'linear', fill: 'both' })
     expect(ANIM_MS).toBeGreaterThan(FLIGHT_MS + 60000)               // не «finished» посреди игры: currentTime анимации — часы фазы
     const f = a.frames
-    expect(f).toHaveLength(26)                                       // 25 точек пути + «стоит за краем»
-    expect(f[0].offset).toBe(0)
-    expect(f[0].translate).toBe(wavePosition(ENTER_Y, flightPose(1, 0).x))
-    expect(f.at(-2)).toMatchObject({ translate: wavePosition(EXIT_Y, flightPose(1, 1).x) })
-    expect(f.at(-2).offset).toBeCloseTo(FLIGHT_MS / ANIM_MS, 10)     // долетела до EXIT_Y ровно за FLIGHT_MS
-    expect(f.at(-1)).toMatchObject({ offset: 1, translate: f.at(-2).translate, rotate: f.at(-2).rotate }) // и дальше стоит за краем
-    expect(f.every(x => /^-?[\d.]+deg$/.test(x.rotate))).toBe(true) // наклон в каждом кадре
-    expect(f.every(x => !('scale' in x) && !('opacity' in x))).toBe(true) // scale хлопка и opacity не трогаем
+    expect(f).toHaveLength(3)                                        // старт, ENTER_Y → EXIT_Y, «стоит за краем»
+    expect(f[0]).toEqual({ translate: flightPosition(ENTER_Y) })
+    expect(f[1]).toMatchObject({ translate: flightPosition(EXIT_Y) })
+    expect(f[1].offset).toBeCloseTo(FLIGHT_MS / ANIM_MS, 10)         // долетела до EXIT_Y ровно за FLIGHT_MS
+    expect(f[2]).toEqual({ translate: flightPosition(EXIT_Y) })      // и дальше стоит за краем
+    expect(f.every(x => !('rotate' in x) && !('scale' in x) && !('opacity' in x))).toBe(true) // ни наклона, ни scale хлопка, ни opacity
     expect(a.currentTime).toBe(-300)                                 // ещё не выкатилась: ждёт за краем
     expect(flightPosition(10)).toBe('-50% calc(10.000dvh - 50%)')
   })
@@ -44,13 +41,13 @@ describe('ход пилюль — на композиторе (WAAPI), а не �
   it('движок пишет в DOM только заливку, худ и класс-атрибуты: положение пилюли JS не трогает (никаких --y в кадре)', () => {
     const eng = read('./useWordLanePills.js')
     expect(eng).not.toContain("setProperty('--y'")
-    expect(read('./wordLanePool.js')).toContain('startFlight(el, atMs, lane)')            // полёт запускает пул, движок только выдаёт пилюли
+    expect(read('./wordLanePool.js')).toContain('startFlight(el, atMs)')            // полёт запускает пул, движок только выдаёт пилюли
   })
 })
 
 describe('щелчок не сдвигает пилюлю', () => {
   it('положение — свойство translate, хлопок — scale, дрожь — transform: они в разных слотах цепочки и друг другу не мешают', () => {
-    expect(read('./wordLaneMotion.js')).toContain('translate: wavePosition(ENTER_Y + (EXIT_Y - ENTER_Y) * u, x), rotate: waveRotate(deg)')
+    expect(read('./wordLaneMotion.js')).toContain('{ translate: flightPosition(EXIT_Y), offset: FLIGHT_MS / ANIM_MS }')
     const snap = read('./wordLaneSnap.js')
     expect(snap).toContain('{ scale: 1.12, offset: 0.38 }')
     expect(snap).not.toMatch(/animate\(\[[^\]]*translate:/)                // у промаха теперь transform

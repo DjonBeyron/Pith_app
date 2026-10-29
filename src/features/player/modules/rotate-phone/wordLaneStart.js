@@ -1,5 +1,6 @@
 import { unlockVoice, prepareTrack, rewakeTrack } from './wordLaneVoice.js'
 import { unlockNotes, releaseNotes } from './wordLaneNotes.js'
+import { unlockPlate } from './wordLanePlateSound.js'
 import { prepareClips, prepareWords, rewakeClips } from './wordLaneClips.js'
 import { playSpan, clipsFor } from './wordLaneAudio.js'
 import { libItems } from './wordLaneLib.js'
@@ -36,6 +37,7 @@ export function wakeGameAudio({ cfg, audioSrc, lines }) {
     if (rows.length) prepareClips(audioSrc, rows.map(playSpan)) // файл режется на клипы-высказывания (iPhone не подгружает аудио заранее и плохо перематывает)
   }
   unlockNotes() // ноты-награды: элементы просыпаются в жесте, иначе iOS не даст им зазвучать по таймеру
+  unlockPlate() // и звук плашки «Теперь твоя очередь» (свой слот, от варианта награды не зависит — в том числе при «без звука»)
   primeAudio()
   rewarmWordElements() // слова урока, прогретые до открытия микрофона: их элементы после смены сессии мертвы
   preloadSounds(); unlockAudio() // звуки интерфейса: кэш выбрасывается при прерывании, контекст надо резюмить
@@ -47,7 +49,7 @@ export function rewakeGameAudio({ audioSrc }) {
   unlockVoice()
   rewakeClips()
   if (audioSrc) rewakeTrack()
-  releaseNotes(); unlockNotes()
+  releaseNotes(); unlockNotes(); unlockPlate()
   primeAudio()
   rewarmWordElements()
   preloadSounds(); unlockAudio()

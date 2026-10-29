@@ -1,6 +1,8 @@
 /* Игра «Повтори за диктором»: плашка «Теперь твоя очередь», микрофон с волнами и перевод в финале (WordLaneGame.jsx, WordLaneMic.jsx). Раскладка и слои — word-lane.css. */
 
-/* Плашка по центру экрана: выезжает, держится, уходит (TURN_MS 2200) */
+/* Плашка по центру экрана («Теперь твоя очередь», названия раундов; WordLaneTurnPlate.jsx): выходит с «колебанием» окон приложения — как popSheetWobble (pop-spring.css): растёт из нуля от середины, чуть перелетает размер
+   и встаёт (кривая cubic-bezier(0.34, 1.25, 0.64, 1) даёт перелёт сама), 0,3 с. Растёт свойство scale (не transform), а затухание в конце — отдельная анимация transform + opacity на всю длину показа (--wl-turn-ms из стадии;
+   TURN_MS 2200 по умолчанию): две анимации на разных свойствах друг друга не перебивают. Уходит мягко: за последние 18 % показа прозрачность идёт к нулю, плашка чуть уменьшается (0,95). */
 .wlTurn {
   left: 50%;
   top: 50%;
@@ -12,14 +14,22 @@
   font-size: clamp(20px, 6.2vw, 30px);
   font-weight: 800;
   white-space: nowrap;
-  animation: wlTurn 2.2s ease both;
+  animation: wlTurnIn 0.3s cubic-bezier(0.34, 1.25, 0.64, 1) backwards, wlTurnOut var(--wl-turn-ms, 2.2s) ease-in both;
 }
-@keyframes wlTurn {
-  0%   { opacity: 0; transform: translate(-50%, -50%) scale(0.7); }
-  14%  { opacity: 1; transform: translate(-50%, -50%) scale(1.04); }
-  22%  { transform: translate(-50%, -50%) scale(1); }
-  82%  { opacity: 1; }
-  100% { opacity: 0; transform: translate(-50%, -50%) scale(0.95); }
+@keyframes wlTurnIn {
+  from { scale: 0; }
+  to   { scale: 1; }
+}
+@keyframes wlTurnOut {
+  0%, 82% { opacity: 1; transform: translate(-50%, -50%); }
+  100%    { opacity: 0; transform: translate(-50%, -50%) scale(0.95); }
+}
+/* Слабое устройство (lite) и reduced-motion: без колебания — только проявление в начале (0,25 с) и уход в конце */
+.wlTurn--lite { animation: wlTurnFade var(--wl-turn-ms, 2.2s) ease both; }
+@keyframes wlTurnFade {
+  0%   { opacity: 0; }
+  11%, 82% { opacity: 1; }
+  100% { opacity: 0; }
 }
 
 /* Микрофон: внизу по центру, выезжает снизу (MIC_IN_MS 600). Круглая кнопка с зелёной обводкой и три кольца-волны вокруг неё.
@@ -138,6 +148,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .wlMic { transition-duration: 0.01s; }
-  .wlTurn, .wlReveal { animation-duration: 0.01s; }
+  .wlTurn { animation: wlTurnFade var(--wl-turn-ms, 2.2s) ease both; } /* без колебания: плашка просто проявляется и гаснет, звук остаётся */
+  .wlReveal { animation-duration: 0.01s; }
 }
 

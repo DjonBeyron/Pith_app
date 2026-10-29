@@ -8,6 +8,7 @@
 // ГРОМКОСТЬ НОТ ВЫРОВНЕНА: каждая нота нормируется по RMS (одна и та же энергия), третья — финальный аккорд, чуть длиннее и на 20 % громче, поэтому «тише предыдущих» по сигналу быть не может.
 // Если на телефоне третья всё равно звучит тише — причина вне сигнала: микрофон закрывался как раз во время неё (wordLaneListen.FULL_STOP_MS отодвинут именно для этого).
 import { getLessonMuted } from '../../lessonVolume.js'
+import { releasePlate } from './wordLanePlateSound.js'
 import { getRewardSound, getRewardVolume, getRewardUrl, REWARD_RATES, MEOW_PATHS } from './wordLaneMeow.js'
 
 export const NOTES = [
@@ -153,6 +154,7 @@ export function previewUrl(url, k = 0) {
 
 /** Игра закрыта: отпустить элементы и blob-ссылки */
 export function releaseNotes() {
+  releasePlate() // слот звука плашки (wordLanePlateSound.js) живёт и умирает вместе с нотами
   els?.forEach(a => { try { a.pause(); a.removeAttribute('src') } catch { /* уже свободен */ } })
   urls?.forEach(u => URL.revokeObjectURL(u))
   if (silence) URL.revokeObjectURL(silence)
