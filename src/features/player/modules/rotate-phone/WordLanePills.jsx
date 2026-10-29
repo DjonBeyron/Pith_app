@@ -3,20 +3,23 @@ import { PILL_W, PILL_H, LANE_X, LANE_EDGES, SLOT_COUNT } from './wordLaneTimeli
 import { POOL } from './wordLanePool.js'
 import { useWordLanePills } from './useWordLanePills.js'
 import { isWeakDevice } from '../../../../shared/lib/deviceTier.js'
+import { isPillSafe } from './wordLanePillSafe.js'
 
 // Дорожки и пилюли игры. Три колонки разделены линиями; пилюли — вертикальные пустые капсулы (без надписей) из пула POOL штук: движок (useWordLanePills) выдаёт их кускам и повторам
 // ступени, ставит дорожку (data-lane: x и цвет — ступени «Моей памяти»: зелёная с одной обводкой, синяя с двумя, фиолетовая с тремя), запускает полёт и пишет заливку.
 // Сверху и снизу экран затемнён (wlFade, над пилюлями): пилюли выезжают из тьмы и уходят во тьму. Под подписями три «огонька» — прогресс повторов ступени.
 // Подсказка ученику (видна только пока слышен голос): «тень» слова диктора внутри пилюли — полоски, ширина которых повторяет громкость слова снизу вверх, и метка темпа --pace.
+// Сверкающая линия уровня (<i class="wlPillLine">) стоит на самой пилюле, поверх контура, и едет за верхним краем заливки (--fill / --pill-h пишет пул).
 // Контур — настоящий border пилюли (не inset-тень: на iOS она мигала), заливка — строго внутри него (.wlPillClip с отступом); у взятой из пула пилюли data-held (слои частиц стоят всегда), у наливающейся data-live — тогда в заливке идут частицы.
 // Мемоизирован (memo): пилюли (12 штук × 15 узлов) перерисовываются, только когда сменилась сцена / «слух» / видимость, а не на каждый шаг оверлея (подпись кота, подсказка, награда). Все пропсы стабильны
 // по ссылке: сцена, слух и колбэки — useMemo / useCallback в useWordLaneFlow. Сами пилюли живут вне React: движок (useWordLanePills) пишет им стили и анимации прямо в DOM.
 function WordLanePills({ scene, levels, fx, live, sceneApi, visible, onLane }) {
   const rootRef = useRef(null)
   const [lite] = useState(isWeakDevice) // слабое устройство (wl--lite): без частиц в заливке (word-lane-pill.css)
+  const [safe] = useState(isPillSafe) // «безопасный» режим слоёв для iOS (wl--safe, localStorage pithy_wl_pill_safe_v1 = 1): без will-change и слоёв частиц, контур дважды (word-lane-pill-safe.css)
   useWordLanePills(rootRef, { scene, levels, fx, live, sceneApi })
   return (
-    <div ref={rootRef} className={`wlField${lite ? ' wl--lite' : ''}`} data-testid="wl-field">
+    <div ref={rootRef} className={`wlField${lite ? ' wl--lite' : ''}${safe ? ' wl--safe' : ''}`} data-testid="wl-field">
       <div className={`wlLanes${visible ? ' wlLanes--in' : ''}`} aria-hidden="true" data-testid="wl-lanes">
         <i /><i /><i />
         {LANE_EDGES.map(x => <b key={x} className="wlLaneEdge" style={{ left: `${x}%` }} />)}
@@ -28,6 +31,7 @@ function WordLanePills({ scene, levels, fx, live, sceneApi, visible, onLane }) {
             <span className="wlPillFill" />
             <span className="wlPace" />
           </span>
+          <i className="wlPillLine" />
         </div>
       ))}
       <div className={`wlFade wlFade--top${visible ? ' wlFade--in' : ''}`} aria-hidden="true" data-testid="wl-fade-top" />
