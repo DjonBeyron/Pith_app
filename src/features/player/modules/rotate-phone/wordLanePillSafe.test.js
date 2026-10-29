@@ -46,14 +46,15 @@ describe('безопасный режим: вёрстка без слоёв', ()
     expect(safeCss).toMatch(/\.wlField\.wl--safe \.wlPill\[data-held\] \{ transform: translateZ\(0\); \}/)
     expect(safeCss).toMatch(/\.wl\[data-phase='lanes'\] \.wlField\.wl--safe \.wlPill \{ will-change: auto; \}/) // прогрев слоёв обычного режима тоже снят
   })
-  it('никаких visibility, filter, display кроме псевдоэлементов заливки; псевдоэлементы заливки выключены, частицы — фон самой заливки', () => {
+  it('никаких visibility и filter; display — только у блока искр (не слой, а вёрстка) и у кольца-«выдоха»; частиц в заливке нет, плиток-фонов и орбит тоже', () => {
     expect(safeCss).not.toMatch(/visibility/)
     expect(all.filter(r => /filter:/.test(r.body)).every(r => /filter: none/.test(r.body))).toBe(true)
-    expect(safeCss).toContain('.wlField.wl--safe .wlPillFill::before, .wlField.wl--safe .wlPillFill::after { display: none; }')
-    expect(safeCss).toMatch(/@keyframes wlSafeDust \{\s*from \{ background-position: 0 0, 0 0, 0 0; \}\s*to \{ background-position: 0 0, 0 -132px, 0 0; \}/) // кромка стоит, плитка едет на свою высоту
-    expect(safeCss).toContain("height='132'")                                    // плитка 132 px — сдвиг ровно на неё
-    expect(all.filter(r => /animation:/.test(r.body) && /\.wlPillFill/.test(r.sel) && !/::/.test(r.sel)).length).toBeGreaterThan(0)
-    expect(safeCss).not.toMatch(/\.wlPillFill::(before|after)[^{]*\{[^}]*animation/)
+    expect(all.filter(r => /\bdisplay:/.test(r.body)).every(r => /\.wlPillSparks$|\.wlPill::before$/.test(r.sel))).toBe(true)
+    expect(safeCss).not.toMatch(/--tile|--dust|wlSafeDust|wlSafeSpark|--orbit/)    // плитки частиц в заливке, фонового сдвига и орбит больше нет
+    expect(safeCss).not.toMatch(/\.wlPillFill::(before|after)/)
+    expect(safeCss).toContain('.wlField.wl--safe .wlPillSparks { display: none; }')
+    expect(safeCss).toMatch(/\.wlField\.wl--safe:not\(\.wl--lite\) \.wlPill\[data-live\]:not\(\[data-fail\]\) \.wlPillSparks \{ display: block; \}/)
+    expect(safeCss).toContain('.wlField.wl--safe .wlPill::before { display: none; }')   // «выдоха» кольца нет
   })
   it('контур дважды: border остаётся (обычное правило), поверх него outline на толщину обводки внутрь; inset-теней нет', () => {
     const pill = all.find(r => r.sel === '.wlField.wl--safe .wlPill').body
@@ -67,11 +68,15 @@ describe('безопасный режим: вёрстка без слоёв', ()
     expect(safeCss).toMatch(/\.wlPill\[data-fail\] \{ opacity: 1; transition: none; --rgb: 123, 132, 148;/)
     expect(safeCss).toMatch(/\.wlPill\[data-voice\] \{ filter: none; transition: none; --glow:/)
   })
-  it('состояния заливки: «в процессе», «принято», «не успел» — все с плиткой частиц (кроме серой), специфичность выше обычных правил', () => {
-    expect(safeCss).toMatch(/:not\(\[data-lock\]\):not\(\[data-fail\]\) \.wlPillFill \{ background: var\(--edge\) 0 0 \/ 100% 14px no-repeat, var\(--dust\), rgba\(var\(--rgb\), 0\.35\); \}/)
-    expect(safeCss).toMatch(/\[data-lock\]:not\(\[data-fail\]\) \.wlPillFill \{ background: var\(--edge\) 0 0 \/ 100% 14px no-repeat, var\(--dust\), var\(--c\); \}/)
-    expect(safeCss).toContain('.wlField.wl--safe .wlPill[data-fail] .wlPillFill { background: #7b8494; animation: none; }')
-    expect(safeCss).toMatch(/:not\(\.wl--lite\) \.wlPill\[data-live\]:not\(\[data-fail\]\) \.wlPillFill \{ --dust: [^;]*repeat; animation: wlSafeDust 2\.2s linear infinite; \}/)
+  it('состояния заливки: «в процессе», «принято», «не успел» — без частиц, специфичность выше обычных правил; кромка --edge остаётся', () => {
+    expect(safeCss).toMatch(/:not\(\[data-lock\]\):not\(\[data-fail\]\) \.wlPillFill \{ background: var\(--edge\) 0 0 \/ 100% 14px no-repeat, rgba\(var\(--rgb\), 0\.35\); \}/)
+    expect(safeCss).toMatch(/\[data-lock\]:not\(\[data-fail\]\) \.wlPillFill \{ background: var\(--edge\) 0 0 \/ 100% 14px no-repeat, var\(--c\); \}/)
+    expect(safeCss).toContain('.wlField.wl--safe .wlPill[data-fail] .wlPillFill { background: #7b8494; }')
+  })
+  it('искры в безопасном режиме: те же узлы и анимации (transform / translate / opacity на композиторе — сдвиг фона красил бы два слоя на пилюлю каждый кадр), но без will-change', () => {
+    expect(safeCss).toContain('.wlField.wl--safe .wlPill[data-held] .wlPillSparks i, .wlField.wl--safe .wlPill[data-held] .wlPillSparks b { will-change: auto; }')
+    expect(safeCss).not.toMatch(/wlPillSparks[^{]*\{[^}]*animation|@keyframes wlSafeSpark|background-position-[xy]/)   // анимации и ключевые кадры — обычные (word-lane-pill.css), у безопасного свои — только блик линии
+    expect(pillCss).toMatch(/\.wlPill\[data-held\] \.wlPillSparks b:first-child \{ will-change: transform, translate, opacity; animation: wlSparkA/) // обычные правила, которые безопасный режим переопределяет по will-change
   })
   it('файл подключён после обычных правил пилюль', () => {
     const idx = read('../../../../index.css')
@@ -80,14 +85,14 @@ describe('безопасный режим: вёрстка без слоёв', ()
 })
 
 describe('контур не зависит от data-live / data-lock (оба режима)', () => {
-  it('ни одно правило с data-live / data-lock не трогает opacity, visibility, display или filter САМОЙ пилюли; visibility — только у слоёв частиц заливки', () => {
+  it('ни одно правило с data-live / data-lock не трогает opacity, visibility, display или filter САМОЙ пилюли; visibility — только у блока искр', () => {
     for (const css of [pillCss, safeCss]) {
       for (const r of rulesOf(css)) {
         if (!/data-live|data-lock/.test(r.sel)) continue
         const target = r.sel.split(',').map(s => s.trim()).filter(s => /data-live|data-lock/.test(s))
         const onPill = target.filter(s => /\.wlPill(\[[^\]]*\]|:not\([^)]*\))*$/.test(s))
         if (onPill.length) expect(r.body).not.toMatch(/\b(opacity|visibility|display|filter)\s*:/)
-        if (/visibility/.test(r.body)) expect(target.every(s => /\.wlPillFill::(before|after)$/.test(s))).toBe(true)
+        if (/visibility/.test(r.body)) expect(target.every(s => /\.wlPillSparks$/.test(s))).toBe(true)
       }
     }
   })
@@ -141,11 +146,11 @@ describe('пул: безопасный режим не ставит will-change;
 
 describe('сверкающая линия уровня', () => {
   const line = rulesOf(pillCss).find(r => r.sel === '.wlPillLine').body
-  it('на самой пилюле: ширина 112 %, left -6 %, высота 2 px, положение по --fill и --pill-h, прозрачна при --fill = 0', () => {
+  it('на самой пилюле: максимальная ширина 112 %, left -6 %, высота 2 px, положение по --fill и --pill-h и сжатие scaleX по --lw (ширина по ходу заливки), прозрачна при --fill = 0', () => {
     expect(line).toMatch(/left: -6%;/)
     expect(line).toMatch(/width: 112%;/)
     expect(line).toMatch(/height: 2px;/)
-    expect(line).toMatch(/transform: translateY\(calc\(\(1 - var\(--fill, 0\)\) \* var\(--pill-h, 0px\)\)\)/)
+    expect(line).toMatch(/transform: translateY\(calc\(\(1 - var\(--fill, 0\)\) \* var\(--pill-h, 0px\)\)\) scaleX\(var\(--lw, 0\)\)/)
     expect(line).toMatch(/opacity: min\(1, calc\(var\(--fill, 0\) \* 40\)\)/)
     expect(pillCss).not.toMatch(/\.wlPillClip[^{]*\.wlPillLine/)                     // не внутри клипа заливки
   })

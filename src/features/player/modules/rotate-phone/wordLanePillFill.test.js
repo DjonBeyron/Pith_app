@@ -11,7 +11,7 @@ import WordLanePills from './WordLanePills.jsx'
 
 vi.mock('../../../../shared/lib/deviceTier.js', () => ({ isWeakDevice: vi.fn(() => false) }))
 
-// Контур пилюли (border), заливка внутри него, светящаяся кромка, частицы в два слоя и тонкие кольца микрофона, которые молчат в тишине (word-lane-pill.css, word-lane-mic.css, wordLanePool.js).
+// Контур пилюли (border, ровно одна обводка), заливка внутри него, светящаяся кромка и тонкие кольца микрофона, которые молчат в тишине (word-lane-pill.css, word-lane-mic.css, wordLanePool.js). Искры, «выдох» кольца и ширина линии — wordLaneSparks.test.js.
 const read = rel => readFileSync(fileURLToPath(new URL(rel, import.meta.url)), 'utf8')
 const strip = css => css.replace(/\/\*[\s\S]*?\*\//g, '')
 const pillCss = () => strip(read('../../../../styles/player/modules/word-lane-pill.css'))
@@ -25,16 +25,15 @@ describe('контур пилюли: настоящий border, не inset-те�
     expect(pill).toMatch(/border: var\(--ring\) solid rgba\(var\(--rgb\), 0\.9\)/)
     expect(pill).toMatch(/box-shadow: inset 0 0 18px -6px/)                    // свет с размытием, а не кольцо
     expect(css).not.toMatch(/inset 0 0 0 var\(--ring\)/)                       // кольца-тени нет нигде
-    expect(css).not.toContain('.wlPill::before')                               // отдельного слоя-контура над заливкой нет: лишний композитный слой на пилюлю
+    expect(css).not.toMatch(/\.wlPill::before \{[^}]*(box-shadow|outline)/)       // отдельного слоя-контура над заливкой нет (::before — только одноразовое кольцо-«выдох», без теней)
     expect(css).toMatch(/\.wlPill\[data-lane='2'\] \{[^}]*--ring: 2\.5px/)
   })
-  it('внешние орбиты дорожек 2 и 3 — обычные (не inset) кольца-тени; border у них чуть ярче', () => {
-    for (const [lane, rings] of [['1', 1], ['2', 2]]) {
-      const b = css.match(new RegExp(`\\.wlPill\\[data-lane='${lane}'\\] \\{ border-color: rgba\\(var\\(--rgb\\), 0\\.95\\); box-shadow: ([^;]+); \\}`))?.[1] ?? ''
-      expect(b).not.toBe('')
-      const outer = b.split(/,\s(?=inset|0 0 0)/).filter(s => !s.startsWith('inset'))
-      expect(outer).toHaveLength(rings * 2)                                    // зазор фоном + кольцо на каждую орбиту
-      expect(outer.every(s => /^0 0 0 [\d.]+px /.test(s))).toBe(true)
+  it('у пилюли всегда ровно одна обводка: внешних орбит (теней-колец вокруг контура) нет ни у одной дорожки; border у дорожек 1 и 2 чуть ярче', () => {
+    expect(css).not.toMatch(/0 0 0 [\d.]+px (var\(--wl-bg\)|rgba)/)                   // ни зазора фоном, ни кольца-тени вокруг пилюли
+    for (const lane of ['1', '2']) {
+      const b = [...css.matchAll(new RegExp(`\\.wlPill\\[data-lane='${lane}'\\] \\{([^}]*)\\}`, 'g'))].map(m => m[1]).join(' ')
+      expect(b).toMatch(/border-color: rgba\(var\(--rgb\), 0\.95\)/)
+      for (const m of b.matchAll(/box-shadow: ([^;]+);/g)) expect(m[1]).toMatch(/^inset 0 0 18px -6px rgba\(var\(--rgb\), 0\.\d+\)$/) // из теней только внутренний свет
     }
   })
   it('контейнер заливки отступает на --gap от внутреннего края border (absolute считается от padding-box) и обрезает её капсулой', () => {
@@ -43,7 +42,7 @@ describe('контур пилюли: настоящий border, не inset-те�
     expect(clip).not.toContain('--ring')                                       // толщину обводки в отступ не добавляем: border уже вне padding-box
     expect(clip).toMatch(/border-radius: 999px/)
     expect(clip).toMatch(/overflow: hidden/)
-    expect(block(css, '.wlPillFill')).toMatch(/overflow: hidden/)             // и слой заливки держит свои частицы
+    expect(block(css, '.wlPillFill')).not.toMatch(/overflow/)                  // частиц в самой заливке нет (искры — вне клипа), обрезку держит клип
     expect(css).toMatch(/\.wlPill\[data-hint\]::after \{[^}]*inset: calc\(-8px - var\(--ring\)\)/) // кольца-подсказки отсчитываются от padding-box
   })
   it('вспышка-кольцо щелчка тоже учитывает border пилюли', () => {
@@ -59,7 +58,7 @@ describe('контур пилюли: настоящий border, не inset-те�
   })
 })
 
-describe('светящаяся кромка заливки — первый слой фона (оба псевдоэлемента отданы частицам)', () => {
+describe('светящаяся кромка заливки — первый слой фона', () => {
   const css = pillCss()
   it('полоска 2 px: у заливки «в процессе» цвета дорожки, без box-shadow (градиент: растр один раз)', () => {
     expect(block(css, '.wlPillFill')).toMatch(/background: var\(--edge\) 0 0 \/ 100% 14px no-repeat, linear-gradient\(to top/)
@@ -73,58 +72,7 @@ describe('светящаяся кромка заливки — первый сл
   })
 })
 
-describe('частицы в заливке: два слоя, без узлов, только на композиторе, слои постоянные', () => {
-  const css = pillCss()
-  const layer = which => block(css, `.wlPillFill::${which}`)
-  const sizes = b => [...b.match(/background-size: ([^;]+);/)[1].matchAll(/(\d+)px (\d+)px/g)].map(m => [Number(m[1]), Number(m[2])])
-  const keyShift = name => Number(css.match(new RegExp(`@keyframes ${name} \\{[^\\n]*translateY\\(-(\\d+)px\\)`))[1])
-  it('дальний ::before и ближний ::after — разные скорости (4,5 с и 2,2 с), сдвиг слоя кратен высоте каждой плитки (бесшовно), слой длиннее заливки ровно на сдвиг', () => {
-    const speed = which => Number(css.match(new RegExp(`data-held\\] \\.wlPillFill::${which} \\{[^}]*animation: wlRise\\w+ ([\\d.]+)s linear infinite paused`))[1])
-    expect(speed('before')).toBe(4.5)
-    expect(speed('after')).toBe(2.2)
-    for (const [which, name] of [['before', 'wlRiseFar'], ['after', 'wlRiseNear']]) {
-      const shift = keyShift(name)
-      expect(layer(which)).toContain(`bottom: -${shift}px`)
-      for (const [, h] of sizes(layer(which))) expect(shift % h).toBe(0)
-    }
-  })
-  it('точки трёх размеров: 1 / 1,6 / 2,4 px (ближний ещё с роем из мелких в нижней трети плитки), у крупных мягкий ореол из градиента; свечения без filter/тени', () => {
-    const near = layer('after'), far = layer('before')
-    expect(near).toMatch(/rgba\(255, 255, 255, 0\.95\) 0 1\.2px, rgba\(var\(--rgb\), 0\.6\) 1\.9px, rgba\(var\(--rgb\), 0\.22\) 3\.2px, transparent 5px/) // крупная: ядро 1,2 + ореол до 5 px
-    expect(near).toMatch(/0 0\.9px, rgba\(var\(--rgb\), 0\.5\) 1\.6px/)       // средняя
-    expect(near).toMatch(/0 0\.6px, transparent 1\.2px/)                       // мелкая
-    expect(far).toMatch(/0 0\.6px, transparent 1\.2px/)
-    expect([...near.matchAll(/circle at \d+% (\d+)%/g)].map(m => Number(m[1])).filter(y => y >= 66)).toHaveLength(3) // рой: три точки в нижней трети плитки 132 px
-    expect(sizes(near).filter(([, h]) => h === 132)).toHaveLength(3)
-    expect(css).not.toMatch(/\.wlPillFill::(before|after)[^{]*\{[^}]*(filter|box-shadow)/)
-  })
-  it('цвет: белые точки и светлый тон дорожки (--rgb); мерцание — в той же анимации (opacity .6 ↔ 1), одна анимация на слой, только transform + opacity', () => {
-    expect(layer('before')).toContain('rgba(var(--rgb)')
-    expect(layer('after')).toContain('rgba(var(--rgb)')
-    for (const name of ['wlRiseFar', 'wlRiseNear']) {
-      const kf = css.match(new RegExp(`@keyframes ${name} \\{([^\\n]*)\\}`))[1]
-      expect(kf).toMatch(/opacity: 0\.6/)
-      expect(kf).toMatch(/opacity: 1;/)
-      expect([...kf.matchAll(/([a-z-]+):/g)].map(m => m[1]).every(p => p === 'opacity' || p === 'transform')).toBe(true)
-    }
-    expect(css.match(/animation: wlRise/g)).toHaveLength(2)                    // по одной анимации на слой
-  })
-  it('слои постоянные: анимация и will-change стоят у любой взятой пилюли (data-held) на паузе; data-live лишь снимает паузу и задвигает слой (translate), display не трогает', () => {
-    expect(css).toMatch(/\.wlPill\[data-held\] \.wlPillFill::before \{ will-change: transform, translate; animation: wlRiseFar [\d.]+s linear infinite paused; \}/)
-    expect(css).toMatch(/\.wlPill\[data-held\] \.wlPillFill::after \{ will-change: transform, translate; animation: wlRiseNear [\d.]+s linear infinite paused; \}/)
-    const base = block(css, '.wlPillFill::before, .wlPillFill::after')
-    expect(base).toMatch(/translate: 0 100%/)                                   // без data-live — спрятан под нижним краем заливки (overflow hidden)
-    expect(base).toMatch(/visibility: hidden/)                                 // спрятанный слой не рисуется (дешевле), но из дерева слоёв не уходит: его держат will-change и анимация
-    expect(base).not.toMatch(/display|opacity/)
-    const live = css.match(/\.wlPill\[data-live\]:not\(\[data-fail\]\) \.wlPillFill::before, \.wlPill\[data-live\]:not\(\[data-fail\]\) \.wlPillFill::after \{([^}]*)\}/)[1]
-    expect(live).toMatch(/translate: 0 0; visibility: visible/)
-    expect(live).toMatch(/animation-play-state: running/)
-    expect(live).not.toMatch(/animation:|display|will-change/)
-    expect(css).not.toMatch(/data-fail\] \.wlPillFill::(before|after) \{ display: none/) // у data-fail слои тоже не исчезают из дерева: частицы уходят translate'ом
-  })
-  it('на слабом устройстве частиц нет (оба слоя display: none)', () => {
-    expect(css).toMatch(/\.wl--lite \.wlPillFill::before, \.wl--lite \.wlPillFill::after, \.weak-device \.wlPillFill::before, \.weak-device \.wlPillFill::after \{ display: none; \}/)
-  })
+describe('слабое устройство', () => {
   it('слабое устройство: WordLanePills ставит wl--lite на свой корень, обычное — нет', () => {
     const html = () => renderToStaticMarkup(createElement(WordLanePills, { scene: { kind: 'idle' }, levels: null, fx: {}, live: { seq: [], misses: 0 }, sceneApi: { current: null }, visible: true }))
     expect(html()).not.toContain('wl--lite')

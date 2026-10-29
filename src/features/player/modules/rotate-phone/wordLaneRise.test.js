@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url'
 import { createPool, POOL } from './wordLanePool.js'
 import { ENTER_Y, EXIT_Y } from './wordLaneTimeline.js'
 import { FLIGHT_MS } from './wordLaneMotion.js'
-import { riseFrames, startRise, flightY, RISE_DELAY_MS, RISE_MS, RISE_END_Y, RISE_WAVE_PX, RISE_SCALE, RISE_FADE_FROM, risePosition } from './wordLaneRise.js'
+import { riseFrames, startRise, flightY, RISE_DELAY_MS, RISE_MS, RISE_END_Y, RISE_WAVE_PX, RISE_SCALE, RISE_SHRINK_FROM, RISE_FADE_FROM, risePosition, riseScale } from './wordLaneRise.js'
 
 // Взлёт заполненной пилюли ученика (wordLaneRise.js, pool.rise): кадры анимации, пауза и длительность, возврат в пул после finish, движок
 const read = rel => readFileSync(fileURLToPath(new URL(rel, import.meta.url)), 'utf8')
@@ -29,14 +29,15 @@ function rig({ classes = [] } = {}) {
 }
 
 describe('взлёт заполненной пилюли', () => {
-  it('кадры: translate с синусоидой ±8 px в 1,5 периода, y линейно к RISE_END_Y, scale → 0,55 и opacity 1 → 0 на последних 30 %; начальные scale и opacity не пишутся', () => {
+  it('кадры: translate с синусоидой ±8 px в 1,5 периода, y линейно к RISE_END_Y, scale → 0,1 (пилюля становится искрой) и opacity 1 → 0 на последних 25 %; начальные scale и opacity не пишутся', () => {
     const f = riseFrames(50)
     expect(f[0]).toEqual({ offset: 0, translate: risePosition(50, 0) })
     expect(f.at(-1)).toMatchObject({ offset: 1, scale: RISE_SCALE, opacity: 0 })
     expect(f.at(-1).translate).toBe(risePosition(RISE_END_Y, 0))
     const fade = f.find(x => x.offset === RISE_FADE_FROM)
     expect(fade.opacity).toBe(1)
-    expect(RISE_FADE_FROM).toBe(0.7)
+    expect(RISE_FADE_FROM).toBe(0.75)
+    expect(RISE_SCALE).toBe(0.1)
     expect(f.every(x => /^calc\(-50% \+ -?[\d.]+px\) calc\(-?[\d.]+dvh - 50%\)$/.test(x.translate))).toBe(true)
     const xs = f.map(x => Number(x.translate.match(/\+ (-?[\d.]+)px/)[1]))
     expect(Math.max(...xs)).toBeCloseTo(RISE_WAVE_PX, 0)
@@ -46,6 +47,23 @@ describe('взлёт заполненной пилюли', () => {
     expect(crossings).toBe(2)                                                        // 0 → + → 0 → − → 0 → + → 0: три полуволны, два перехода через нуль внутри пути
     const ys = f.map(x => Number(x.translate.match(/calc\((-?[\d.]+)dvh/)[1]))
     expect(ys.every((y, i) => i === 0 || y < ys[i - 1])).toBe(true)                  // только вверх
+  })
+  it('масштаб: отдельная кривая — до RISE_SHRINK_FROM остаётся 1, в первой половине пути сжатие небольшое, основное (больше 60 %) — во второй, монотонно до RISE_SCALE; кадр scale на каждой точке пути', () => {
+    expect(RISE_SHRINK_FROM).toBe(0.15)
+    expect(riseScale(0)).toBe(1)
+    expect(riseScale(RISE_SHRINK_FROM)).toBe(1)
+    expect(riseScale(1)).toBeCloseTo(RISE_SCALE, 10)
+    const shrunkHalf = 1 - riseScale(0.5), shrunkAll = 1 - RISE_SCALE
+    expect(shrunkHalf / shrunkAll).toBeLessThan(0.4)                                 // к середине пути сжалась меньше чем на 40 % всего сжатия, остальные 60 % — во второй половине
+    for (let o = 0.26; o <= 1; o += 0.02) expect(riseScale(o)).toBeLessThanOrEqual(riseScale(o - 0.02) + 1e-12)
+    const f = riseFrames(50)
+    expect(f[0].scale).toBeUndefined()                                               // старт из-под анимации (хлопок щелчка не обрывается)
+    const scaled = f.filter(x => x.scale != null)
+    expect(scaled.length).toBe(f.length - 1)                                         // промежуточные кадры scale на каждой точке пути
+    scaled.forEach(x => expect(x.scale).toBeCloseTo(riseScale(x.offset), 3))
+    expect(f.find(x => x.offset === 0.5).scale).toBeGreaterThan(0.6)
+    expect(f.find(x => x.offset === 0.75).scale).toBeLessThan(0.35)
+    expect(f.at(-1).scale).toBe(RISE_SCALE)
   })
   it('одна анимация: пауза RISE_DELAY_MS = 180, RISE_MS = 750, ускорение, fill both', () => {
     const el = fakeEl()
