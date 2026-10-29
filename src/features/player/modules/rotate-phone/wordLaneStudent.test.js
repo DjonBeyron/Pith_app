@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { ENTER_Y, EXIT_Y, SPEED, LOCK_MS, OPEN_Y, FILL_CAP } from './wordLaneTimeline.js'
-import { createStudentGame, stepStudent, STUDENT_PERIOD_MS, MAX_TRIES, CLAIM_FROM_Y, CLAIM_TO_Y, FAIL_Y, LEAD_IN_MS, LOCK_STAGGER_MS, isClaimable } from './wordLaneStudent.js'
+import { ENTER_Y, EXIT_Y, SPEED, LOCK_MS, OPEN_Y, FILL_CAP, PRE_CONFIRM_CAP } from './wordLaneTimeline.js'
+import { createStudentGame, stepStudent, REP_GAP_MS, MAX_TRIES, CLAIM_FROM_Y, CLAIM_TO_Y, FAIL_Y, LEAD_IN_MS, LOCK_STAGGER_MS, isClaimable } from './wordLaneStudent.js'
 import { buildRecipe, stepTargets } from './wordLaneRecipe.js'
 
 // Фаза ученика одной ступени: повторы выкатываются сами, ученик успевает сказать их или нет
@@ -27,10 +27,10 @@ function run(g, script, until = 40000) {
 }
 const of = (log, type) => log.filter(e => e.type === type)
 const once = (ms, v = 0) => { let fired = false; return t => { if (!fired && t >= ms) { fired = true; return v } return null } }
-const game = (step, chunksIn = chunks) => createStudentGame({ step, chunks: chunksIn })
+const game = (step, chunksIn = chunks, opts = {}) => createStudentGame({ step, chunks: chunksIn, ...opts })
 
 describe('выкат и скорость', () => {
-  it('первый повтор выезжает из-за верхнего края; следующие — через период; куски одного повтора — по порядку, в дорожках кусков', () => {
+  it('первый повтор выезжает из-за верхнего края; следующий — только после «не успел» первого и паузы; куски одного повтора — по порядку, в дорожках кусков', () => {
     const g = game(build[2])
     const log = run(g, () => ({}), 9000)
     const spawns = of(log, 'spawn')
@@ -40,11 +40,11 @@ describe('выкат и скорость', () => {
     expect(spawns[0].pills[0].spawnAt).toBe(0)                       // стартует над экраном (ENTER_Y), а не появляется посреди
     expect(ENTER_Y + (SPEED * 0) / 1000).toBe(ENTER_Y)
     expect(spawns[0].pills[1].spawnAt).toBeGreaterThan(spawns[0].pills[0].spawnAt)
-    expect(spawns[1].t - spawns[0].t).toBeGreaterThanOrEqual(STUDENT_PERIOD_MS - DT)
+    expect(spawns[1].t).toBeGreaterThanOrEqual(of(log, 'fail')[0].t + REP_GAP_MS - DT)
   })
   it('одно слово: три повтора — три пилюли в трёх дорожках', () => {
     const g = game(word, ['try'])
-    const spawns = of(run(g, () => ({}), 9000), 'spawn')
+    const spawns = of(run(g, () => ({}), 20000), 'spawn')
     expect(spawns.slice(0, 3).map(e => e.pills[0].lane)).toEqual([0, 1, 2])
   })
   it('все пилюли едут с ОДНОЙ скоростью SPEED, пока на экране', () => {
@@ -63,8 +63,8 @@ describe('выкат и скорость', () => {
 
 describe('«не успел»', () => {
   it('последняя пилюля повтора ушла вниз без слова — fail: пилюли серые, повтор выкатят снова; после MAX_TRIES повтор потерян', () => {
-    const g = game(build[0])
-    const log = run(g, () => ({}), 60000)
+    const g = game(build[0], chunks, { budget: Infinity })          // без лимита времени ступени (он проверяется в wordLaneSerial.test.js)
+    const log = run(g, () => ({}), 80000)
     const fails = of(log, 'fail')
     expect(fails.length).toBe(MAX_TRIES * 3)                      // три повтора по MAX_TRIES попыток
     expect(fails[0].pills.every(p => p.state === 'failed')).toBe(true)
@@ -131,10 +131,13 @@ describe('принятое слово', () => {
 
 describe('голос и заливка: только на подтверждённую речь, строго по очереди', () => {
   const frames = (g, ms, input) => { for (let t = g.t; t <= ms; t += DT) stepStudent(g, t, typeof input === 'function' ? input(t) : input) }
-  it('шум и эхо без слов (речь не подтверждена распознаванием) заливку не двигают, даже громкие', () => {
+  it('речь не подтверждена распознаванием (шум, эхо, лаг partial): голос дышит не выше PRE_CONFIRM_CAP и слова не защёлкивает', () => {
     const g = game(build[0])
-    frames(g, 6000, { level: 0.9, seq: [], misses: 0, confirmed: false, tail: null })
-    expect(g.reps[0].pills.every(p => p.p === 0)).toBe(true)
+    frames(g, 3500, { level: 0.9, seq: [], misses: 0, confirmed: false, tail: null })
+    const p = g.reps[0].pills[0].p
+    expect(p).toBeGreaterThan(0.2)
+    expect(p).toBeLessThanOrEqual(PRE_CONFIRM_CAP + 1e-9)
+    expect(g.reps[0].pills[0].state).toBe('fly')
   })
   it('речь подтверждена — голос наливает текущий кусок, не выше FILL_CAP', () => {
     const g = game(build[0])

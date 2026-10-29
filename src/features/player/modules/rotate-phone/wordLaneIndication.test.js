@@ -135,7 +135,7 @@ describe('красное — только по итогу или устоявш�
   it('«не успел» после защёлкнутого куска: гаснет весь повтор (включая зелёный), принятые куски в счёт не идут, повтор выкатывают заново целиком', () => {
     const g = createStudentGame({ step: two, chunks, estMs: () => 500 })
     const log = []
-    for (let t = 0; t <= 12000; t += DT) {
+    for (let t = 0; t <= 26000; t += DT) {                                       // повторы идут по одному: повтор 0 выкатят снова после «не успел» повторов 1 и 2
       const tail = g.reps[0].tries === 0 && g.reps[0].state === 'fly' && isClaimable(g.reps[0]) ? { target: g.reps[0].target, tokens: 2 } : null
       log.push(...stepStudent(g, t, { level: 0.4, seq: [], misses: 0, confirmed: true, tail }))
       if (types(log, 'fail').some(e => e.rep.idx === 0) && g.reps[0].state === 'fly') break
