@@ -2,10 +2,12 @@
 // getUserMedia после остановки потока, а распознаватель на каждой ступени открывает микрофон заново — запросов было бы по числу ступеней. Android: распознаватель, открывая микрофон сам, просил
 // echoCancellation/noiseSuppression (по умолчанию в браузере они включены) — Chrome переводит аудио страницы в «коммуникационный» режим, и голос диктора и ноты хрипят. Поэтому поток открывается один
 // раз в тапе «Начать» (это жест, и запрос приходит в понятный момент) с ограничениями ниже, живёт до конца игры/урока, а распознаватель каждой ступени берёт его готовым (voskEngine opts.stream) и не
-// останавливает. Треки НЕ выключаем (enabled = false на iOS мог остановить захват): между ступенями поток просто никуда не подключён.
+// останавливает. Треки по умолчанию НЕ выключаем (enabled = false на iOS мог остановить захват): между ступенями поток просто никуда не подключён. Глушение дорожки на время речи Пита и диктора —
+// отдельный режим для проверки на телефоне (gameMicHold.js, настройка pithy_game_mic_hold_v1), тип аудиосессии iOS — gameMicSession.js (pithy_game_audio_session_v1).
 import { sayPermission } from './speech/sayPermission.js'
 import { isIos } from './soundVolume.js'
 import { pLog } from './debug.js'
+import { readAudioSessionMode, readMicHoldMode } from './gameAudioSettings.js'
 
 // БЕЗ эхо- и шумоподавления: пока открыт поток с echoCancellation, iOS включает «голосовую обработку» (как в звонке) для ВСЕГО звука страницы, а Android Chrome — коммуникационный режим: озвучка диктора
 // хрипит и шипит, как плёнка. Без неё воспроизведение чистое; автоусиление оставлено — тихий голос слышно. Эхо диктора в микрофон не мешает: слушатель стартует после диктора, а ворота голоса глушат ноты-награды.
@@ -55,6 +57,9 @@ export function getGameMic() {
   return null
 }
 
+/** Сам поток как есть (живой, заглушённый или оборванный) — для gameMicHold: выключить/включить дорожки, не проверяя их состояние */
+export const peekGameMic = () => stream
+
 /** Есть ли игровой поток (живой или нет) — по нему игра решает, переоткрывать ли микрофон, если распознаватель оглох */
 export const hasGameMic = () => !!stream
 
@@ -72,7 +77,9 @@ export function closeGameMic() {
 /** Для отладочной выгрузки: с какими ограничениями открывается/открыт игровой поток, что реально дал браузер (track.getSettings — там видно, включил ли он эхо/шумодав) и платформа */
 export function describeGameMic() {
   let settings = null
+  let tracks = null
   try { settings = stream?.getTracks()[0]?.getSettings?.() ?? null } catch { /* трек уже выгружен */ }
+  try { tracks = stream?.getTracks().map(t => ({ enabled: t.enabled, muted: !!t.muted, readyState: t.readyState })) ?? null } catch { /* трек уже выгружен */ }
   const ua = String((typeof navigator !== 'undefined' && navigator.userAgent) || '')
-  return { constraints: opened ?? gameMicConstraints(), settings, platform: isIos() ? 'ios' : /Android/i.test(ua) ? 'android' : 'other', processing: isMicProcessingOn(), open: !!stream }
+  return { constraints: opened ?? gameMicConstraints(), settings, platform: isIos() ? 'ios' : /Android/i.test(ua) ? 'android' : 'other', processing: isMicProcessingOn(), open: !!stream, tracks, audioSessionMode: readAudioSessionMode(), micHoldMode: readMicHoldMode() }
 }

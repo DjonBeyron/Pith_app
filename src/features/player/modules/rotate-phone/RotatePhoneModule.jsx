@@ -12,6 +12,7 @@ import { libItems } from './wordLaneLib.js'
 import { normalizeLines, linesItems } from './wordLaneCatLines.js'
 import { getCatLines } from '../../../../shared/api/catLinesApi.js'
 import { openGameMic } from '../../../../shared/lib/gameMic.js'
+import { gameAudioSession } from '../../../../shared/lib/gameMicSession.js'
 import { primeAudio } from '../../../../shared/lib/primedAudio.js'
 import { pLog } from '../../../../shared/lib/debug.js'
 
@@ -41,6 +42,7 @@ export default function RotatePhoneModule({ node, file, onDone }) {
     if (busy || phase !== 'wait') return
     setBusy(true)
     unlockVoice()
+    gameAudioSession.begin() // тип аудиосессии iOS на время игры (настройка в Админ → «Голос»): в самом тапе, до открытия микрофона; в конце игры вернёт useWordLaneFlow
     // Звуки диктора: куски фразы — отдельными файлами из библиотеки озвучки слов (слоты будятся тишиной в жесте), запись автора — только финал (вся фраза; у одного слова — если слова нет в библиотеке)
     const wordsReady = prepareWords([...libItems([...cfg.chunks, ...cfg.confusers.flat()]), ...linesItems(lines)]) // куски фразы, слова-запутыватели («Различи» — только озвучка) и озвученные реплики кота; заодно измеряется, где в файле звучит голос (без «хвоста»)
     if (cfg.hasAudio && audioSrc) {

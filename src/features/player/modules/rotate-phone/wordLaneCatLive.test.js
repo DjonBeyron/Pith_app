@@ -61,7 +61,9 @@ describe('кот игры — «живой Пит v2» подключён', () =
   it('игра зовёт взгляд кота: слово ученика, пилюли диктора, начало очередей', () => {
     const flow = read('./useWordLaneFlow.js')
     expect(flow).toContain('catApi?.current?.look?.word()') // слово ученика (onChange слушателя)
-    expect(flow).toContain("look()?.word(), left(pc.at)") // пилюли диктора
+    expect(read('./wordLaneDictorRun.js')).toContain("look()?.word(), left(pc.at)") // пилюли диктора (ход ступени вынесен из директора)
+    expect(read('./wordLaneDictorRun.js')).toContain('look()?.lineStart()')
+    expect(flow).toContain('scheduleDictor(')
     expect(flow).toContain('look()?.lineStart()')
     expect(flow).toContain('look()?.lineEnd()')
   })
