@@ -11,7 +11,8 @@ import { buildCat, CAT_FACES } from './wordLaneCatTree.js'
 // Производительность оверлея «Повтори за диктором» при трёх кусках, часть 1 (вёрстка и кот): слои только у летящих пилюль, ровная заливка пилюль без штриховки,
 // выдержка рта 70 мс, лицо кота без пересборки дерева. Часть 2 (залп, XP, слушатель, конвейер) — wordLanePerfFlow.test.js.
 const read = rel => readFileSync(fileURLToPath(new URL(rel, import.meta.url)), 'utf8')
-const cssCode = () => read('../../../../styles/player/modules/word-lane.css').replace(/\/\*[\s\S]*?\*\//g, '') // вёрстка без комментариев (в них эти слова упоминаются)
+const readLane = () => read('../../../../styles/player/modules/word-lane.css') + read('../../../../styles/player/modules/word-lane-pill.css') // раскладка и пилюли: одна вёрстка игры в двух файлах
+const cssCode = () => readLane().replace(/\/\*[\s\S]*?\*\//g, '') // вёрстка без комментариев (в них эти слова упоминаются)
 
 // Пул на поддельном DOM: у элемента есть style, dataset, атрибуты и animate (как у настоящего)
 function fakeEl(parts = {}) {
@@ -74,11 +75,11 @@ describe('заливка пилюль: ровная, край едет', () => {
     expect(read('./wordLanePool.js')).not.toContain('scaleY(')
   })
 
-  it('«в процессе» — ровный бледный тон с мягким верхним краем, «принято» — сплошной цвет дорожки; штриховки нет; серый data-fail остаётся', () => {
+  it('«в процессе» — ровный бледный тон (яркая кромка вместо мягкого края), «принято» — сплошной цвет дорожки; штриховки нет; серый data-fail остаётся', () => {
     const css = cssCode()
     expect(css).not.toContain('repeating-linear-gradient')
     expect(css).not.toContain('scaleY')
-    expect(css).toMatch(/\.wlPill:not\(\[data-lock\]\):not\(\[data-fail\]\) \.wlPillFill \{[^}]*opacity: 0\.35;[^}]*linear-gradient\(to top, var\(--c\) 0 88%, transparent\)/)
+    expect(css).toMatch(/\.wlPill:not\(\[data-lock\]\):not\(\[data-fail\]\) \.wlPillFill \{ background: rgba\(var\(--rgb\), 0\.35\); \}/) // бледный тон — альфа в самом цвете, не opacity слоя (кромка и частицы остаются яркими)
     expect(css).toMatch(/\.wlPill\[data-lock\]:not\(\[data-fail\]\) \.wlPillFill \{ background: var\(--c\); \}/)
     expect(css).toContain('.wlPill[data-fail] .wlPillFill { background: #7b8494; }')
     expect(css).not.toMatch(/\.wlPillFill[^{]*\{[^}]*rgba\(255, 93, 115/) // красного фона у заливки нет: красное — только вспышка промаха
@@ -160,7 +161,7 @@ describe('кот: лица собраны один раз, смена лица �
     const html = renderToStaticMarkup(createElement(WordLaneCat, { apiRef: { current: null } }))
     expect(html).toContain('data-face="base"')
     expect(html.match(/data-part="head"/g)).toHaveLength(3)
-    const css = read('../../../../styles/player/modules/word-lane.css')
+    const css = readLane()
     expect(css).toContain(".wlCat [data-part='head'] { display: none; }")
     expect(css).toContain(".wlCat[data-face='love'] [data-part='head'][data-face='love']")
   })

@@ -5,7 +5,8 @@ import { startFlight, cancelFlights, setFlightRate, FLIGHT_MS, ANIM_MS, flightPo
 import { ENTER_Y, EXIT_Y, SPEED } from './wordLaneTimeline.js'
 
 const read = rel => readFileSync(fileURLToPath(new URL(rel, import.meta.url)), 'utf8')
-const css = read('../../../../styles/player/modules/word-lane.css')
+const readLane = () => read('../../../../styles/player/modules/word-lane.css') + read('../../../../styles/player/modules/word-lane-pill.css') // раскладка и пилюли: одна вёрстка игры в двух файлах
+const css = readLane()
 
 describe('ход пилюль — на композиторе (WAAPI), а не по кадрам из JS', () => {
   const fakeEl = () => { const calls = []; return { calls, animate(frames, opts) { const a = { frames, opts, currentTime: null, cancelled: false, rate: 1, cancel() { this.cancelled = true }, updatePlaybackRate(r) { this.rate = r } }; calls.push(a); return a } } }

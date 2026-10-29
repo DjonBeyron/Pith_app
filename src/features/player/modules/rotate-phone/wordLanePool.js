@@ -10,6 +10,10 @@ import { fillProfile } from './wordLaneTimeline.js'
 export const POOL = 12
 export const WILL_PILL = 'translate, scale' // слои взятой пилюли: полёт (translate) и хлопок (scale)
 export const WILL_FILL = 'transform'        // и её заливки (движок пишет ей transform каждый кадр)
+// «Наливается» (data-live → частицы в заливке, word-lane-pill.css): заливка выросла за последние LIVE_HOLD_MS; у принятой пилюли (data-lock) частицы держатся дольше и потом гаснут
+export const LIVE_RISE_EPS = 0.0008  // рост за кадр меньше этого — шум, не «наливание»
+export const LIVE_HOLD_MS = 320      // после последнего роста заливки пилюля «наливается» ещё столько мс (в кадрах роста бывают паузы)
+export const LIVE_HOLD_LOCK_MS = 1200 // после принятия (data-lock) частицы идут ещё 1,2 с и гаснут
 
 /** Заливка v (0…1) → transform слоя заливки: сдвиг вверх из-под нижнего края (0 — слой целиком ниже пилюли, 1 — на месте) */
 export const fillTransform = v => `translateY(${((1 - Math.min(1, Math.max(0, v))) * 100).toFixed(1)}%)`
@@ -21,15 +25,24 @@ export function createPool(root) {
   const put = (el, prop, value) => { const prev = cache.get(el) ?? {}; if (prev[prop] === value) return; prev[prop] = value; cache.set(el, prev); el.style[prop] = value }
   const free = els.map((_, i) => i).reverse()
   const live = new Map() // индекс → { anim, lane }
+  const rise = els.map(() => ({ v: 0, at: -1e9, on: false })) // для data-live: прошлая заливка, когда последний раз росла, горит ли признак
 
   // Заливка — сдвиг слоя вверх: translateY((1 − v)·100 %). Край ЕДЕТ, а не растягивается (scaleY сжимал градиент заливки)
-  const paintFill = (k, v) => put(parts[k].fill, 'transform', fillTransform(v))
+  const paintFill = (k, v) => {
+    put(parts[k].fill, 'transform', fillTransform(v))
+    const r = rise[k], now = performance.now(), el = parts[k].el
+    if (v > r.v + LIVE_RISE_EPS) r.at = now
+    r.v = v
+    const on = v > 0 && now - r.at < (el.getAttribute('data-lock') != null ? LIVE_HOLD_LOCK_MS : LIVE_HOLD_MS)
+    if (on !== r.on) { r.on = on; if (on) el.setAttribute('data-live', '1'); else el.removeAttribute('data-live') }
+  }
   const hint = (k, opacity, pace) => {
     put(parts[k].ghost, 'opacity', opacity)
     put(parts[k].pace, 'opacity', pace == null ? '0' : '0.9')
     if (pace != null) put(parts[k].pace, 'transform', `translateY(${(-pace * 100).toFixed(1)}%)`)
   }
   const clean = k => {
+    Object.assign(rise[k], { v: 0, at: -1e9, on: false }); parts[k].el.removeAttribute('data-live')
     paintFill(k, 0); hint(k, '0', null)
     parts[k].el.removeAttribute('data-lock'); parts[k].el.removeAttribute('data-fail'); parts[k].el.removeAttribute('data-hint'); parts[k].el.removeAttribute('data-voice')
   }
