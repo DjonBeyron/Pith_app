@@ -1,10 +1,12 @@
 // Данные ноды «Переверни телефон» для вертикальной игры: что за фраза (куски через «|», до трёх), как её перевести, озвучка. Слово без «|» — один кусок (игра как в первой версии).
 // Поля typeData.rotate_phone: content (текст карточки), phrase (фраза с кусками через «|», латиница; пусто — берётся word), word (слово), translation (перевод — ученик получает его в финале), lang (язык распознавания, по умолчанию en-US),
 // script (что произносит диктор ElevenLabs; пусто — слово трижды), confusers (слова-запутыватели по кускам фразы: [[«tying», «drying»], [], []] — у куска с запутывателями появляется раунд «Различи»), file_id/waveformData/duration/wordTimings (озвучка и её тайминги), fills (таймлайн: три клипа заливки слоёв, секунды файла).
+// plan — «Репетиция с Питом» (features/rehearsal): нода { plan } читается в cfg с cfg.plan, остальные поля ноды игнорируются; пустой/битый plan — как обычная нода.
 // Пустая нода (автор ещё ничего не настроил) играет встроенным словом — игра есть всегда, как и раньше.
 import { normalizeFills, fillsFromTimings } from './wordLanePlan.js'
 import { parsePhrase, normalizeConfusers } from './wordLaneRecipe.js'
 import { clipsFromFills, clipsFromTimings, phraseScript } from './wordLaneAudio.js'
+import { readRehearsalCfg } from '../../../rehearsal/rehearsalCfg.js'
 
 // XP за каждую принятую пилюлю ученика. Пока это только показ (цифра летит вверх и копится в счётчике игры) — в профиль не начисляется, подключим отдельно
 export const XP_PER_PILL = 2
@@ -16,6 +18,8 @@ export const defaultScript = text => phraseScript(parsePhrase(text))
 
 export function readWordLane(tData) {
   const td = tData ?? {}
+  const rehearsal = td.plan ? readRehearsalCfg(td.plan) : null
+  if (rehearsal) return rehearsal
   const phrase = String(td.phrase ?? '').trim()
   const word = String(td.word ?? '').trim()
   const parsed = parsePhrase(phrase || word)

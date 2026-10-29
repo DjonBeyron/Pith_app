@@ -29,7 +29,7 @@ export const WORDS_WAIT_MS = 2500 // сколько максимум ждём п
 export function wakeGameAudio({ cfg, audioSrc, lines }) {
   unlockVoice()
   // Звуки диктора: куски фразы — отдельными файлами из библиотеки озвучки слов (слоты будятся тишиной в жесте), запись автора — только финал (вся фраза; у одного слова — если слова нет в библиотеке)
-  const wordsReady = prepareWords([...libItems([...cfg.chunks, ...cfg.confusers.flat()]), ...linesItems(lines)]) // куски фразы, слова-запутыватели («Различи» — только озвучка) и озвученные реплики кота; заодно измеряется, где в файле звучит голос (без «хвоста»)
+  const wordsReady = prepareWords([...libItems([...cfg.chunks, ...cfg.confusers.flat(), ...(cfg.extraWords ?? [])]), ...linesItems(lines)]) // куски фразы, слова-запутыватели («Различи» — только озвучка), слова репетиции (cfg.extraWords) и озвученные реплики кота; заодно измеряется, где в файле звучит голос (без «хвоста»)
   if (cfg.hasAudio && audioSrc) {
     prepareTrack(audioSrc) // запасной путь: общий файл с перемоткой (элемент будится в жесте)
     const n = cfg.chunks.length

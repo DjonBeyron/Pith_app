@@ -1,0 +1,22 @@
+/* «Репетиция с Питом» (features/rehearsal/RehearsalActs.jsx) поверх игры «Повтори за диктором»: перевод под фразой в заставке, ярлык-плашка «Чётко / Обычно» над дорожками, экраны зеркала и итога.
+   Каркас, плашки и кнопка «Дальше» — от word-lane*.css (.wlReveal, .wlNext); здесь только то, чего там нет. Всё — прямые дети .wlStage (position: absolute из .wlStage > *). */
+
+/* Перевод фразы под падающей фразой (заставка, акт 0) */
+.rhTr { left: 0; right: 0; top: 12%; padding: 0 16px; text-align: center; font-size: clamp(14px, 4.2vw, 20px); font-weight: 600; color: #9aa0b4; z-index: 2; pointer-events: none; animation: rhFade 0.5s ease 0.5s both; }
+
+/* Ярлык-плашка над дорожками: ОДНА строка, длинный текст обрезается многоточием, на пилюлях подписи нет */
+.rhTag { left: 50%; top: 11.5%; transform: translateX(-50%); max-width: calc(100% - 32px); box-sizing: border-box; padding: 5px 14px; border-radius: 999px; border: 1.5px solid var(--wl-accent); background: rgba(11, 13, 17, 0.92); color: var(--wl-accent); font-size: 13px; font-weight: 800; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; z-index: 4; pointer-events: none; animation: rhTagIn 0.28s ease-out both; }
+
+/* Экраны зеркала и итога — на каркасе .wlReveal */
+.rhScreen { z-index: 7; }
+.rhSumTr { margin: 4px 0 10px; font-size: clamp(18px, 5.6vw, 26px); font-weight: 800; line-height: 1.2; color: var(--wl-accent); }
+.rhStats { display: grid; gap: 6px; margin: 0 0 16px; text-align: left; }
+.rhStats > div { display: flex; justify-content: space-between; gap: 12px; font-size: 14px; }
+.rhStats dt { color: #9aa0b4; }
+.rhStats dd { margin: 0; font-weight: 800; }
+.rhBtns { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.rhGhost { background: #14171c; color: #f2f3f7; border: 1.5px solid #3a4150; }
+
+@keyframes rhFade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes rhTagIn { from { opacity: 0; transform: translate(-50%, -6px); } to { opacity: 1; transform: translate(-50%, 0); } }
+@media (prefers-reduced-motion: reduce) { .rhTr, .rhTag { animation-duration: 0.01s; } }

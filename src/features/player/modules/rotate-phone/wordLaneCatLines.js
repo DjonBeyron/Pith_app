@@ -1,7 +1,9 @@
 // Реплики кота-диктора («Пит») в играх «Повтори за диктором». Универсальные: одни и те же для всех нод этого типа, хранятся в настройках приложения (shared/api/catLinesApi.js), в редакторе ноды
 // видны списком, там же их озвучивают (ElevenLabs) и смотрят анимацию рта (wordLaneVisemes.js). Нет озвучки — реплика показывается подписью без звука; нет настроек — действуют тексты по умолчанию отсюда.
 // Реплика = { text, url (озвучка в R2 или null), duration (с), words (тайминги слов или null) }. Чистые функции — проверяются тестами.
-export const CAT_LINES = [
+import { REHEARSAL_LINES } from '../../../rehearsal/rehearsalLines.js'
+
+const GAME_LINES = [
   { id: 'split_words', text: 'Пробуй сказать слова раздельно', when: 'ученик не смог сказать фразу из нескольких кусков' },
   { id: 'try_again', text: 'Ничего, попробуем ещё раз', when: 'ученик не успел сказать слово' },
   { id: 'your_turn', text: 'Теперь твоя очередь', when: 'первый раз, когда ход переходит к ученику' },
@@ -11,6 +13,7 @@ export const CAT_LINES = [
   { id: 'round_blind', text: 'Теперь вслепую, по памяти', when: 'начало раунда «Вслепую»' },
   { id: 'well_done', text: 'Отлично!', when: 'конец игры, когда показан перевод' },
 ]
+export const CAT_LINES = [...GAME_LINES, ...REHEARSAL_LINES] // реплики Пита-тренера «Репетиции» (rehearsalLines.js) — тем же механизмом: каталог, редактор, озвучка, слоты
 export const LINE_IDS = CAT_LINES.map(l => l.id)
 export const MAX_LINE_CHARS = 120
 export const lineKey = id => `line:${id}`
