@@ -112,8 +112,9 @@ export function useWordLaneFlow({ chunks, translation, lang, clips = null, audio
     sayText(text) { // «Различи»: звучит слово пилюли (верное или запутыватель) — из библиотеки слов, нет её — голос системы; рот кота по буквам слова
       const r = libRow(text); dbg.note('word')
       if (!(r && playWordSlot(r.key))) speakWord(text, lang)
-      const ms = Math.round((speechOfUrl(r?.row.url)?.ms ?? (Number(r?.row.duration) > 0 ? Number(r.row.duration) * 1000 : estChunkMs(text))) / (rate > 0 ? rate : 1))
-      catApi?.current?.speak?.(mouthTrack(text, ms), ms)
+      const sp = speechOfUrl(r?.row.url), k = rate > 0 ? rate : 1, file = Number(r?.row.duration) > 0 ? Number(r.row.duration) * 1000 : 0
+      const ms = Math.round((sp?.ms ?? (file || estChunkMs(text))) / k), lead = Math.round((sp?.lead ?? 0) / k) // звук идёт с начала файла, слово — после тишины lead: рот стартует вместе со словом, а длится до конца файла
+      catApi?.current?.speak?.(mouthTrack(text, ms).map(x => ({ ...x, at: x.at + lead, end: x.end + lead })), Math.round(Math.max(lead + ms, file / k)))
     },
     say(parts) { // подсказка раунда «Порядок»: кот выскакивает, диктор называет куски
       catApi?.current?.peek?.(parts.reduce((sum, i) => sum + (lib(i)?.ms ?? estChunkMs(chunks[i])) / (rate > 0 ? rate : 1) + 80, 700))

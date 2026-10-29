@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
-import { voiceFillStep, fillProfile, makeFillCurve, FILL_CAP, VOICE_THRESHOLD, ONSET_P } from './wordLaneTimeline.js'
+import { breathStep, fillProfile, makeFillCurve, FILL_CAP, VOICE_THRESHOLD } from './wordLaneTimeline.js'
 import { planDictor } from './wordLaneDictor.js'
 import { buildRecipe } from './wordLaneRecipe.js'
 import { clipsFromFills } from './wordLaneAudio.js'
@@ -15,19 +15,18 @@ const read = rel => readFileSync(fileURLToPath(new URL(rel, import.meta.url)), '
 const readLane = () => read('../../../../styles/player/modules/word-lane.css') + read('../../../../styles/player/modules/word-lane-pill.css') // раскладка и пилюли: одна вёрстка игры в двух файлах
 
 describe('подсказка ученику: темп и «тень» слова диктора', () => {
-  it('голос наливает пилюлю до FILL_CAP быстрее слова диктора (отклик максимальный), но в его пропорции: короткое слово — быстрее, длинное — медленнее', () => {
-    const fillTime = ms => { let p = 0; let t = 0; while (p < FILL_CAP && t < 10) { p = voiceFillStep(p, 0.01, 1, ms); t += 0.01 } return t * 1000 }
-    expect(fillTime(1000)).toBeGreaterThan(450)
-    expect(fillTime(1000)).toBeLessThan(750)
-    expect(fillTime(500)).toBeLessThan(fillTime(1000) * 0.6)
-    expect(fillTime(1600)).toBeGreaterThan(fillTime(1000) * 1.5)
-    expect(voiceFillStep(0.2, 0.1, VOICE_THRESHOLD, 1000)).toBe(0.2) // не громче порога — не наливает
+  it('голос наливает пилюлю до FILL_CAP за доли секунды, мягко: без скачков за кадр, спад медленнее атаки', () => {
+    const fillTime = () => { let p = 0; let t = 0; while (p < FILL_CAP * 0.95 && t < 10) { p = breathStep(p, 0.016, 1); t += 0.016 } return t * 1000 }
+    expect(fillTime()).toBeGreaterThan(150)
+    expect(fillTime()).toBeLessThan(500)
+    expect(breathStep(0, 0.016, 1)).toBeLessThan(0.16)                         // первый кадр — не скачок
+    expect(breathStep(0.2, 0.1, VOICE_THRESHOLD)).toBeLessThan(0.2)            // не громче порога — не наливает (заливка спадает)
   })
 
-  it('максимальная чувствительность: самый тихий голос уже реагирует, а первый звук сразу даёт заметную заливку (не разгоняется с нуля)', () => {
+  it('максимальная чувствительность: самый тихий голос уже реагирует, а первый звук сразу даёт заметную заливку', () => {
     expect(VOICE_THRESHOLD).toBeLessThanOrEqual(0.05)
-    expect(voiceFillStep(0, 0.016, VOICE_THRESHOLD + 0.01, 1000)).toBeGreaterThanOrEqual(ONSET_P)   // один кадр еле слышного голоса
-    expect(voiceFillStep(0, 0.016, 0.3, 1000)).toBeGreaterThanOrEqual(0.08)
+    expect(breathStep(0, 0.016, VOICE_THRESHOLD + 0.01)).toBeGreaterThan(0.02)    // один кадр еле слышного голоса
+    expect(breathStep(0, 0.016, 0.3)).toBeGreaterThanOrEqual(0.08)
     // шкала громкости микрофона: тихая речь (RMS 0,02) → уже заметный уровень, обычная (0,1) → почти максимум; шум комнаты (0,004) — ноль
     expect(sensitiveLevel(0.02)).toBeGreaterThan(0.45)
     expect(sensitiveLevel(0.1)).toBeGreaterThan(0.95)
@@ -47,7 +46,7 @@ describe('подсказка ученику: темп и «тень» слова
   it('метка темпа и ожидающая заливка подключены в движке и вёрстке', () => {
     const eng = read('./useWordLanePills.js')
     expect(eng).toContain('ghostUntil')                                  // «тень» слова — только после неверно сказанного
-    expect(read('./wordLaneStudent.js')).toContain('rep.durs[active]')     // скорость наливания голосом — длина слова диктора
+    expect(read('./wordLaneStudent.js')).toContain('breathStep(p.p, dt, voice, cap)')     // заливка текущего куска — только голос («дыхание»)
     const css = readLane()
     expect(css).toContain(".wlPill:not([data-lock]):not([data-fail]) .wlPillFill")   // заливка «в процессе» (до подтверждения слова) — ровный бледный тон, без штриховки
   })

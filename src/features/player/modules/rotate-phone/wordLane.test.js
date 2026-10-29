@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
-import { DROP_MS, LANES_MS, voiceFillStep, drainStep, VOICE_THRESHOLD, FILL_CAP } from './wordLaneTimeline.js'
+import { DROP_MS, LANES_MS, breathStep, drainStep, VOICE_THRESHOLD, FILL_CAP } from './wordLaneTimeline.js'
 import { analyzeHeard, wordGrammar } from './wordLaneMatch.js'
 import { readWordLane, DEMO_WORD } from './wordLaneConfig.js'
 import { createWordListener } from './wordLaneListen.js'
@@ -10,16 +10,19 @@ const read = rel => readFileSync(fileURLToPath(new URL(rel, import.meta.url)), '
 const readLane = () => read('../../../../styles/player/modules/word-lane.css') + read('../../../../styles/player/modules/word-lane-pill.css') // раскладка и пилюли: одна вёрстка игры в двух файлах
 
 describe('заливка пилюли голосом ученика', () => {
-  it('тишина не двигает и не сливает; голос наливает быстрее при большей громкости; выше FILL_CAP голос не заливает', () => {
-    expect(voiceFillStep(0.3, 0.1, 0)).toBe(0.3)
-    expect(voiceFillStep(0.3, 0.1, VOICE_THRESHOLD)).toBe(0.3)
-    const quiet = voiceFillStep(0, 0.1, 0.2)
-    const loud = voiceFillStep(0, 0.1, 0.6)
+  it('тишина не наливает (заливка спадает мягко, а не рывком); голос наливает быстрее при большей громкости; выше FILL_CAP голос не заливает', () => {
+    expect(breathStep(0.3, 0.016, 0)).toBeLessThan(0.3)
+    expect(breathStep(0.3, 0.016, 0)).toBeGreaterThan(0.25)
+    expect(breathStep(0.3, 0.016, VOICE_THRESHOLD)).toBeLessThan(0.3)
+    expect(breathStep(0, 0.1, 0)).toBe(0)
+    const quiet = breathStep(0, 0.1, 0.1)
+    const loud = breathStep(0, 0.1, 0.6)
     expect(loud).toBeGreaterThan(quiet)
     expect(quiet).toBeGreaterThan(0)
     let p = 0
-    for (let i = 0; i < 200; i++) p = voiceFillStep(p, 0.05, 1)
-    expect(p).toBe(FILL_CAP)
+    for (let i = 0; i < 200; i++) p = breathStep(p, 0.05, 1)
+    expect(p).toBeLessThanOrEqual(FILL_CAP)
+    expect(p).toBeGreaterThan(FILL_CAP - 0.001)
   })
 
   it('чужое слово сливает заливку, не уходя ниже нуля', () => {
