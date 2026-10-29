@@ -30,18 +30,32 @@ describe('кот игры — «живой Пит v2» подключён', () =
     weak.on = false
   })
 
-  it('усы без scn--live: по одной анимации на ус и только при is-talking; на lite анимаций нет', () => {
+  it('усы без scn--live: по одной анимации на ус, пока кот говорит (is-talking) и в хвосте после речи (is-tail); на lite анимаций нет', () => {
     const css = read('../../../../styles/player/modules/word-lane.css')
-    expect(css).toContain('.wlCat.scn--v2 .scn-cat.is-talking .wh-l { animation: scnWhiskL 0.6s ease-in-out infinite; }')
-    expect(css).toContain('.wlCat.scn--v2 .scn-cat.is-talking .wh-r { animation: scnWhiskR 0.6s ease-in-out infinite; }')
-    expect(css).toContain('.wlCat.scn--v2 .scn-cat.is-talking .wh-d { animation-duration: 0.72s; animation-delay: -0.25s; }')
+    expect(css).toContain('.wlCat.scn--v2 .scn-cat:is(.is-talking, .is-tail) .wh-l { animation: scnWhiskL 0.6s ease-in-out infinite; }')
+    expect(css).toContain('.wlCat.scn--v2 .scn-cat:is(.is-talking, .is-tail) .wh-r { animation: scnWhiskR 0.6s ease-in-out infinite; }')
+    expect(css).toContain('.wlCat.scn--v2 .scn-cat:is(.is-talking, .is-tail) .wh-d { animation-duration: 0.72s; animation-delay: -0.25s; }')
     expect(css).toContain('.wlCat.scn--lite .wh { animation: none; }')
   })
 
-  it('--talk не переходит на корне кота (перепросчёт стилей всего поддерева каждый кадр), а только у усов', () => {
+  it('--talk не переходит на корне кота (перепросчёт стилей всего поддерева каждый кадр); амплитуда усов --wh-amp переходит только у самих усов (scene-v2-pit.css)', () => {
     const css = read('../../../../styles/player/modules/word-lane.css')
-    expect(css).toContain('.wlCat .scn-cat { transition: none; }')
-    expect(css).toContain('.wlCat .wh { transition: --talk 0.3s ease-in-out; }')
+    expect(css).toContain('.wlCat.scn--v2 .scn-cat { transition: none; }') // специфичнее общего правила сцен (scene-v2-pit.css), порядок подключения не важен
+    expect(css).toContain('.wlCat .wh { transition: --wh-amp 0.3s ease-in-out; }')
+    expect(css).not.toContain('--talk 0.3s')
+  })
+
+  it('голова прячется плавно (ease-in-out, без отскока), а выскакивает с пружиной; смена лица — перекрёстное проявление', () => {
+    const css = read('../../../../styles/player/modules/word-lane.css')
+    expect(css).toMatch(/\.wlStage > \.wlCat\.scn \{[^}]*transition: transform 0\.42s cubic-bezier\(0\.4, 0, 0\.6, 1\)/)
+    expect(css).toMatch(/\.wlCat--up \{[^}]*transition: transform 0\.55s cubic-bezier\(0\.34, 1\.45, 0\.5, 1\)/)
+    expect(css).toContain(".wlCat [data-part='head'].wlHead--out { display: inline; }")
+    expect(read('./WordLaneCat.jsx')).toContain('crossfadeHeads(prevHead')
+  })
+
+  it('пауза игры (freeze) гасит усы без выдержки, но не рывком: look.release() → хвост is-tail', () => {
+    expect(read('./WordLaneCat.jsx')).toContain('look.lineEnd(); look.release() }')
+    expect(read('./WordLaneCat.jsx')).not.toMatch(/freeze\(\)[^\n]*look\.talking\(false\)/)
   })
 
   it('кот подключает стили зрачков и усов и не использует rAF для взгляда', () => {

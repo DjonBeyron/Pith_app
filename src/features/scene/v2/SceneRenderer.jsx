@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useTalkTail } from './useTalkTail.js'
 import { renderTree } from './renderTree.js'
 import SceneBubbleV2 from './SceneBubbleV2.jsx'
 import { useSceneDirectorV2 } from './useSceneDirectorV2.js'
@@ -35,7 +36,9 @@ import { settleSceneIdle } from './sceneSettle.js'
 // animV2 — «живой Пит v2» (рот из 9 форм по буквам и громкости, зрачки, усы; только маскот): true / false — явно (стенд сравнения), не задан —
 // флаг админки (animFlags.js, по умолчанию выключен). Класс .scn--v2 включает стили зрачков и усов (scene-v2-pit.css); на lite остаётся только рот.
 
-function Cat({ who, character, emotion, face, talking, onEl, solo = false }) {
+function Cat({ who, character, emotion, face, talking, onEl, solo = false, tail = false }) {
+  const gRef = useRef(null)
+  useTalkTail(gRef, talking, tail) // речь кончилась — усы доезжают до покоя (класс is-tail), а не обрываются (talkTail.js); только live + v2 + не lite
   const sprite = characterSprite(character)
   const tree = useMemo(
     () => sprite.build({
@@ -51,7 +54,7 @@ function Cat({ who, character, emotion, face, talking, onEl, solo = false }) {
       className={`scn-cat${talking ? ' is-talking' : ''}`}
       style={{ '--idle-delay': who === 'a' ? '0s' : '0.9s', '--blink-delay': who === 'a' ? '0s' : '1.7s' }}
       transform={`translate(${p.x} ${p.y}) scale(${CAT_PLACEMENT.scale})`}
-      ref={el => onEl(who, el)}
+      ref={el => { gRef.current = el; onEl(who, el) }}
     >
       {renderTree(tree)}
     </g>
@@ -114,6 +117,7 @@ export default function SceneRenderer({
   }, [live])
 
   const isLite = lite ?? isWeakDevice()
+  const tailOn = live && animV2 && !isLite // хвост речи усов нужен только там, где усы вообще качаются (scene-v2-pit.css)
   // Сцена доиграла: идл-анимации не замирают в случайной позе (а потом «прыгали» бы в нейтраль при замене статичным кадром), а плавно
   // успокаиваются (sceneSettle.js). Повтор («ещё раз») снимает — анимации снова идут. На lite анимаций нет — нечего успокаивать
   const settling = live && !isLite && (director.status === 'ended' || settle)
@@ -150,8 +154,8 @@ export default function SceneRenderer({
           {renderTree(bgTree)}
           <Props scene={scene} />
           {/* Пока звучит перевод («диктор»), кот не «говорит»: рот закрыт, покачивания головы нет */}
-          <Cat who="a" solo={solo} character={scene.characters.a} emotion={emotionOf('a')} face={faceOf('a')} talking={speaking === 'a' && phase !== 'translation'} onEl={onCatEl} />
-          {!solo && <Cat who="b" character={scene.characters.b} emotion={emotionOf('b')} face={faceOf('b')} talking={speaking === 'b' && phase !== 'translation'} onEl={onCatEl} />}
+          <Cat who="a" solo={solo} character={scene.characters.a} emotion={emotionOf('a')} face={faceOf('a')} talking={speaking === 'a' && phase !== 'translation'} onEl={onCatEl} tail={tailOn} />
+          {!solo && <Cat who="b" character={scene.characters.b} emotion={emotionOf('b')} face={faceOf('b')} talking={speaking === 'b' && phase !== 'translation'} onEl={onCatEl} tail={tailOn} />}
         </svg>
       ) : (
         // Статика — готовой строкой (staticMarkup.js): без fiber-ов на ~190 узлов

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { catPeek, CAT_SPOTS, HIDE_AFTER_MS, VOICE_AT } from './wordLaneCatPeek.js'
+import { catPeek, CAT_SPOTS, HIDE_AFTER_MS, HIDE_MS, VOICE_AT } from './wordLaneCatPeek.js'
 import { CAT_VIEWBOX } from './WordLaneCat.jsx'
 
 // Пит: из низа выскакивает только голова и торчит в разных местах
@@ -31,11 +31,23 @@ describe('Пит: голова выскакивает на голос и пря�
   it('каждое новое появление — в другом месте, по кругу; два раза подряд не в одном', () => {
     const { peek, log, at } = mk()
     let t = 0
-    for (let n = 0; n < CAT_SPOTS.length * 2; n++) { at(t); peek.voice(0.7); t += HIDE_AFTER_MS + 200; at(t); peek.voice(0); t += 100 }
+    for (let n = 0; n < CAT_SPOTS.length * 2; n++) { at(t); peek.voice(0.7); t += HIDE_AFTER_MS + 200; at(t); peek.voice(0); t += HIDE_MS + 50 }
     const xs = log.filter(e => e[0] === 'show').map(e => e[1])
     expect(xs).toHaveLength(CAT_SPOTS.length * 2)
     for (let i = 1; i < xs.length; i++) expect(xs[i]).not.toBe(xs[i - 1])
     expect(new Set(xs).size).toBe(CAT_SPOTS.length)               // побывал во всех местах
+  })
+
+  it('голова ещё уходит вниз (HIDE_MS) — новый вызов не меняет место: --cat-x не перескакивает, пока голова видна на полпути', () => {
+    const { peek, log, at } = mk()
+    at(0); peek.voice(0.7)
+    at(HIDE_AFTER_MS + 100); peek.voice(0)                       // спряталась
+    expect(peek.isUp()).toBe(false)
+    at(HIDE_AFTER_MS + 100 + HIDE_MS - 50); peek.voice(0.7)      // зовут, пока она ещё едет вниз
+    at(5000); peek.voice(0); at(5000 + HIDE_AFTER_MS + 100); peek.voice(0)
+    at(5000 + HIDE_AFTER_MS + 100 + HIDE_MS + 10); peek.voice(0.7) // ушла совсем — место новое
+    const xs = log.filter(e => e[0] === 'show').map(e => e[1])
+    expect(xs).toEqual([CAT_SPOTS[0], CAT_SPOTS[0], CAT_SPOTS[1]])
   })
 
   it('места: голова (полэкрана шириной) целиком в кадре — центр от 25 до 75 %, слева и справа, середину (микрофон) обходят', () => {
