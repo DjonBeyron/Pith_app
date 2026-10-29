@@ -3,10 +3,12 @@
 // категории аудиосессии (см. sounds.js). Автозапуск по таймеру iOS разрешает только тем элементам, что хоть раз стартовали в жесте, поэтому unlockNotes() зовут из тапа «Начать»:
 // элемент играет тихий wav, затем ему подменяется src на ноту (как у primedAudio) и нота прогружается заранее — первое проигрывание без задержки. Звук урока «без звука» учитывается.
 // ЧТО ЗВУЧИТ выбирает владелец (wordLaneMeow.js, админка «Голос» → «Звуки игры»): по умолчанию «мяу» (три готовых wav, тише нот вдвое), либо эти ноты, либо тишина; громкость — audio.volume (iOS её игнорирует). Слоты и прогрев у всех вариантов общие.
+// РЕЖИМ 'custom' (настоящее «мяу» ElevenLabs или свой файл): ОДНА запись на все три слота, тоны делает playbackRate 1 / 1.26 / 1.5 при preservesPitch=false (+ webkitPreservesPitch) — высота растёт вместе со скоростью.
+// load() сбрасывает playbackRate к defaultPlaybackRate, а preservesPitch надо поставить ДО play (в том числе у прогрева в тапе) — поэтому tuneSlot() зовут и в unlockNotes, и перед каждым play.
 // ГРОМКОСТЬ НОТ ВЫРОВНЕНА: каждая нота нормируется по RMS (одна и та же энергия), третья — финальный аккорд, чуть длиннее и на 20 % громче, поэтому «тише предыдущих» по сигналу быть не может.
 // Если на телефоне третья всё равно звучит тише — причина вне сигнала: микрофон закрывался как раз во время неё (wordLaneListen.FULL_STOP_MS отодвинут именно для этого).
 import { getLessonMuted } from '../../lessonVolume.js'
-import { getRewardSound, getRewardVolume, MEOW_PATHS } from './wordLaneMeow.js'
+import { getRewardSound, getRewardVolume, getRewardUrl, REWARD_RATES, MEOW_PATHS } from './wordLaneMeow.js'
 
 export const NOTES = [
   { freqs: [523.25], ms: 380, level: 1 },                          // C5
@@ -67,7 +69,19 @@ function ensureUrls() {
   return urls
 }
 /** Адреса трёх звуков выбранного варианта: файлы «мяу» или blob-ссылки нот */
-const sourcesFor = mode => (mode === 'meow' ? MEOW_PATHS : ensureUrls())
+const sourcesFor = mode => {
+  if (mode === 'custom') { const u = getRewardUrl(); return [u, u, u] }
+  return mode === 'meow' ? MEOW_PATHS : ensureUrls()
+}
+/** Тон k у <audio>: для 'custom' — скорость REWARD_RATES[k] без сохранения высоты (preservesPitch=false), иначе обычная скорость. Зовут до play и после смены src */
+export function tuneSlot(a, k, mode = getRewardSound()) {
+  const rate = mode === 'custom' ? (REWARD_RATES[Math.min(Math.max(0, k), REWARD_RATES.length - 1)] ?? 1) : 1
+  try {
+    if (mode === 'custom') { a.preservesPitch = false; a.webkitPreservesPitch = false; a.mozPreservesPitch = false }
+    a.defaultPlaybackRate = rate // load() вернёт скорость сюда, а не к 1
+    a.playbackRate = rate
+  } catch { /* старый браузер без playbackRate */ }
+}
 /** a.src всегда абсолютный — относительный адрес сравниваем после приведения */
 const absUrl = u => { try { return new URL(u, globalThis.location?.href).href } catch { return String(u) } }
 
@@ -83,7 +97,8 @@ export function unlockNotes() {
       const a = new Audio(silence)
       a.preload = 'auto'
       a.volume = getRewardVolume()
-      a.play().then(() => { a.pause(); a.src = own[k]; a.load() }).catch(() => {})
+      tuneSlot(a, k, mode) // preservesPitch до первого play (в жесте)
+      a.play().then(() => { a.pause(); a.src = own[k]; a.load(); tuneSlot(a, k, mode) }).catch(() => {})
       return a
     })
   } catch { els = null }
@@ -96,8 +111,10 @@ export function playNote(k) {
   const a = els?.[i]
   if (!a || getLessonMuted()) return false
   try {
-    const want = sourcesFor(getRewardSound())[i]
+    const mode = getRewardSound()
+    const want = sourcesFor(mode)[i]
     if (absUrl(a.src) !== absUrl(want)) a.src = want // прогрузка ещё не успела (или вариант сменили) — подставляем сейчас
+    tuneSlot(a, i, mode)
     a.volume = getRewardVolume() // iOS игнорирует; Android/десктоп слушаются
     a.currentTime = 0
     a.play().catch(() => {})
@@ -111,11 +128,24 @@ export function previewReward(k) {
   if (mode === 'off' || typeof Audio === 'undefined') return false
   try {
     const i = Math.min(Math.max(0, k), NOTES.length - 1)
+    if (mode === 'custom') return previewUrl(getRewardUrl(), i)
     const n = NOTES[i]
     const blob = mode !== 'meow' ? URL.createObjectURL(new Blob([makeNoteWav(n.freqs, n.ms, n.level)], { type: 'audio/wav' })) : null
     const a = new Audio(blob ?? MEOW_PATHS[i])
     a.volume = getRewardVolume()
     if (blob) a.addEventListener('ended', () => URL.revokeObjectURL(blob), { once: true })
+    a.play().catch(() => {})
+    return true
+  } catch { return false }
+}
+
+/** Админка, из тапа: проиграть любую запись url тоном k (скорость 1 / 1.26 / 1.5 без сохранения высоты) при текущей громкости — предпрослушка кандидата до «Сделать звуком награды» */
+export function previewUrl(url, k = 0) {
+  if (!url || typeof Audio === 'undefined') return false
+  try {
+    const a = new Audio(url)
+    a.volume = getRewardVolume()
+    tuneSlot(a, k, 'custom')
     a.play().catch(() => {})
     return true
   } catch { return false }

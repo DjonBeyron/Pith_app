@@ -6,6 +6,9 @@ const ELEVENLABS_MODEL_ID = Deno.env.get("ELEVENLABS_MODEL_ID") || "eleven_multi
 const ELEVENLABS_URL = (voiceId: string) =>
   `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}/with-timestamps`;
 
+// Режим kind:"sfx" — генерация короткого звука по описанию (ElevenLabs sound-generation), тот же ключ ELEVENLABS_API_KEY.
+const ELEVENLABS_SFX_URL = "https://api.elevenlabs.io/v1/sound-generation";
+
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
 
@@ -97,6 +100,45 @@ function voiceParams(body: Record<string, unknown>) {
   return { voiceId, modelId, settings: Object.keys(settings).length ? settings : null };
 }
 
+// Параметры звукового эффекта от клиента: описание (≤ 450 символов), длительность 0.5…5 с, «послушность» описанию 0…1.
+// Всё, что не прошло проверку, заменяется значениями по умолчанию (мяу: 0.6 с, 0.5) или отклоняется (пустое описание).
+function sfxParams(body: Record<string, unknown>) {
+  const text = typeof body.text === "string" ? body.text.trim() : "";
+  const duration = clamp(body.duration_seconds, 0.5, 5) ?? 0.6;
+  const influence = clamp(body.prompt_influence, 0, 1) ?? 0.5;
+  return { text, duration, influence };
+}
+
+// Звуковой эффект: POST /v1/sound-generation → mp3. Отдаём так же, как озвучку, — audioBase64; в R2 файл кладёт браузер
+// (после нормализации громкости) тем же путём, что и озвучку (r2-upload-url). Ошибки ElevenLabs (нет ключа, лимит) — текстом в error.
+async function handleSfx(body: Record<string, unknown>) {
+  if (!ELEVENLABS_API_KEY) return json({ error: "ELEVENLABS_API_KEY secret не настроен" }, 500);
+  const { text, duration, influence } = sfxParams(body);
+  if (!text) return json({ error: '"text" is required' }, 400);
+  if (text.length > 450) return json({ error: "Описание слишком длинное (лимит 450 символов)" }, 400);
+  try {
+    console.log("[tts-elevenlabs] sfx: calling ElevenLabs...", { chars: text.length, duration, influence });
+    const elRes = await fetch(ELEVENLABS_SFX_URL, {
+      method:  "POST",
+      headers: { "xi-api-key": ELEVENLABS_API_KEY, "Content-Type": "application/json" },
+      body:    JSON.stringify({ text, duration_seconds: duration, prompt_influence: influence }),
+    });
+    if (!elRes.ok) {
+      const errText = await elRes.text();
+      console.error("[tts-elevenlabs] sfx ElevenLabs error:", elRes.status, errText);
+      return json({ error: `ElevenLabs error ${elRes.status}: ${errText}` }, 502);
+    }
+    const bytes = new Uint8Array(await elRes.arrayBuffer());
+    let bin = "";
+    for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+    console.log("[tts-elevenlabs] sfx OK, bytes:", bytes.length);
+    return json({ kind: "sfx", audioBase64: btoa(bin), contentType: elRes.headers.get("content-type") || "audio/mpeg", duration, influence });
+  } catch (e) {
+    console.error("[tts-elevenlabs] sfx unexpected error:", (e as Error).message);
+    return json({ error: (e as Error).message }, 500);
+  }
+}
+
 Deno.serve(async (req) => {
   console.log("[tts-elevenlabs] incoming", { method: req.method });
 
@@ -105,6 +147,10 @@ Deno.serve(async (req) => {
 
   const denied = await requireAdmin(req);
   if (denied) return denied;
+
+  // kind:"sfx" — звуковой эффект (нужен только ключ, голос не нужен); остальное — озвучка как раньше
+  const raw = await req.clone().json().catch(() => null);
+  if (raw && typeof raw === "object" && (raw as Record<string, unknown>).kind === "sfx") return handleSfx(raw as Record<string, unknown>);
 
   if (!ELEVENLABS_API_KEY || !ELEVENLABS_VOICE_ID) {
     console.error("[tts-elevenlabs] secrets not set");
