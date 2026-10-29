@@ -10,7 +10,7 @@ import { getRewardSound, setRewardSound, getRewardVolume, setRewardVolume, REWAR
 import { unlockNotes } from './wordLaneNotes.js'
 import { prepareAudio, buildDebugFile, saveDebugFile, SAVE_HOW } from './wordLaneDebugExport.js'
 import {
-  readPillSafe, writePillSafe, applyPillSafe, readWeakStored, writeWeakStored, applyAudioSessionMode, describeHud,
+  readPillSafe, writePillSafe, applyPillSafe, readWeakStored, writeWeakStored, applyAudioSessionMode, describeHud, readTapMode, writeTapMode,
 } from './wordLaneHudSettings.js'
 
 // Мини-HUD быстрой смены настроек в игре «Повтори за диктором» (по аналогии с «Лог и версия» в шапке урока): маленькая кнопка в правом верхнем углу, панель поверх игры. Виден только при включённом
@@ -18,7 +18,7 @@ import {
 // игра подписана на HUD только через стабильные колбэки, так что пилюли и кот при его работе не перерисовываются (WordLaneGame держит HUD в memo, а класс wl--safe ставится прямо на корень).
 // Каждый пункт помечен, когда он вступает в силу: «сразу» / «после «Игра заново»» / «после перезагрузки» (wordLaneHudSettings.js). Значения читаются из хранилищ при каждой перерисовке.
 const SESSION_OPTS = [['play-and-record', 'Запись+воспр.'], ['auto', 'Авто'], ['phases', 'По фазам']]
-const HOLD_OPTS = [['none', 'Не глушить'], ['enabled-false', 'Глушить дорожку']]
+const HOLD_OPTS = [['none', 'Не глушить'], ['enabled-false', 'Глушить дорожку'], ['close', 'Закрывать микрофон']]
 const REWARD_LABEL = { meow: 'Мяу', off: 'Без звука' } // остальное из REWARD_SOUNDS — прежние ноты
 const WHEN = { now: 'сразу', restart: 'после «Игра заново»', reload: 'после перезагрузки' }
 const REFRESH_MS = 1000
@@ -36,7 +36,7 @@ function Chip({ on, onClick, children, testid }) {
   return <button type="button" className={`wlHudChip${on ? ' wlHudChip--on' : ''}`} aria-pressed={!!on} onClick={onClick} data-no-unlock="" data-testid={testid}>{children}</button>
 }
 
-export default function WordLaneHud({ dbg, rootRef, onRestartStage, onRestartGame, onExit, defaultOpen = false }) {
+export default function WordLaneHud({ dbg, rootRef, onRestartStage, onRestartGame, onExit, setTapMode = null, defaultOpen = false }) {
   const [open, setOpen] = useState(defaultOpen)
   const [, setTick] = useState(0)
   const [status, setStatus] = useState('')
@@ -53,9 +53,10 @@ export default function WordLaneHud({ dbg, rootRef, onRestartStage, onRestartGam
 
   const info = describeHud({ mic: describeGameMic, vosk: () => voskRuntime.snapshot(), weak: isWeakDevice, version: APP_VERSION })
   const procOn = isMicProcessingOn(), session = readAudioSessionMode(), hold = readMicHoldMode()
-  const reward = getRewardSound(), volume = getRewardVolume(), safe = readPillSafe(), rate = getVoiceRate(), lite = readWeakStored() ?? isWeakDevice()
+  const reward = getRewardSound(), volume = getRewardVolume(), safe = readPillSafe(), rate = getVoiceRate(), lite = readWeakStored() ?? isWeakDevice(), tap = readTapMode()
   const act = fn => () => { fn(); refresh() }
   const close = () => setOpen(false)
+  const toggleTap = () => { writeTapMode(!tap); setTapMode?.(!tap); refresh() } // игра узнаёт сразу: в очереди ученика появляются кнопки дорожек (как в «Порядке») и подсказка
   const toggleSafe = () => { writePillSafe(!safe); applyPillSafe(rootRef?.current, !safe); refresh() } // класс — прямо на корень игры, без перерисовки пилюль
   const download = async () => {
     setStatus('Готовлю файл…')
@@ -93,6 +94,9 @@ export default function WordLaneHud({ dbg, rootRef, onRestartStage, onRestartGam
       </Row>
       <Row label="Безопасные слои пилюль (iOS)" when="now" testid="wl-hud-safe">
         <Chip on={safe} onClick={toggleSafe} testid="wl-hud-safe-toggle">{safe ? 'Вкл' : 'Выкл'}</Chip>
+      </Row>
+      <Row label="Тап вместо речи (проверка механики)" when="now" testid="wl-hud-tap">
+        <Chip on={tap} onClick={toggleTap} testid="wl-hud-tap-toggle">{tap ? 'Вкл' : 'Выкл'}</Chip>
       </Row>
       <Row label="Скорость голоса" when="restart" testid="wl-hud-rate">
         {VOICE_RATES.map(r => <Chip key={r} on={rate === r} onClick={act(() => setVoiceRate(r))} testid={`wl-hud-rate-${r}`}>{r}×</Chip>)}

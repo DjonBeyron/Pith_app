@@ -80,3 +80,6 @@
 .wlFailBtns { display: flex; justify-content: center; gap: 10px; margin-top: 12px; }
 .wlFailBtn { min-height: 40px; padding: 0 20px; border: 1px solid #3a3d46; border-radius: 12px; background: transparent; color: #e0e3ec; font: inherit; font-size: 14px; font-weight: 700; cursor: pointer; }
 .wlFailBtn--main { border: 0; background: var(--wl-accent, #b6fe3b); color: var(--wl-ink, #0d1500); }
+
+/* Режим «тап вместо речи» (HUD): подсказка над микрофоном, пока ученику «говорить» */
+.wlTapHint { left: 50%; bottom: calc(150px + env(safe-area-inset-bottom)); transform: translateX(-50%); padding: 6px 12px; border-radius: 999px; background: rgba(21, 24, 31, 0.9); border: 1px dashed var(--wl-accent, #b6fe3b); color: var(--wl-accent, #b6fe3b); font-size: 12px; font-weight: 700; white-space: nowrap; z-index: 6; pointer-events: none; }

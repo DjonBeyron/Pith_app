@@ -10,7 +10,7 @@ import WordLanePerf from './WordLanePerf.jsx'
 import WordLaneCat from './WordLaneCat.jsx'
 import WordLaneXp from './WordLaneXp.jsx'
 import { isWordLaneDebug } from './wordLaneConfig.js'
-import { readPillSafe } from './wordLaneHudSettings.js'
+import { readPillSafe, readTapMode } from './wordLaneHudSettings.js'
 import { useWordLaneFlow } from './useWordLaneFlow.js'
 import { WORD_Y } from './wordLaneTimeline.js'
 
@@ -29,6 +29,7 @@ const FAIL_TEXT = {
 
 export default function WordLaneGame({ cfg, audioSrc, lines = null, forceDebug = false, onRestart = null, onFinished }) {
   const rootRef = useRef(null)
+  const [tapMode, setTapMode] = useState(readTapMode) // «тап вместо речи» (HUD, админ): тап по дорожке в очереди ученика засчитывает следующую цель — проверка механики и анимаций без голоса
   const [safe0] = useState(readPillSafe) // «безопасные слои пилюль» (HUD): класс только на старте, дальше его меняет сам HUD через classList — className не меняется, React его не трогает
   const catApi = useRef(null) // Пит (кот-маскот): рот по голосу и реакции лицом — через api, минуя React на кадрах
   const f = useWordLaneFlow({ chunks: cfg.chunks, translation: cfg.translation, lang: cfg.lang, clips: cfg.clips, audioSrc, audio: cfg.audio, catApi, lines, confusers: cfg.confusers, forceDebug, onFinished })
@@ -43,7 +44,7 @@ export default function WordLaneGame({ cfg, audioSrc, lines = null, forceDebug =
     <div ref={rootRef} className={safe0 ? 'wl wl--safe' : 'wl'} data-phase={phase} data-testid="wl">
       <div className="wlStage">
         <WordLaneCat apiRef={catApi} />
-        <WordLanePills scene={f.scene} levels={f.levels} fx={f.fx} live={f.live} sceneApi={f.sceneApi} visible={showSlots} onLane={phase === 'order' || phase === 'discern' ? f.onLane : null} />
+        <WordLanePills scene={f.scene} levels={f.levels} fx={f.fx} live={f.live} sceneApi={f.sceneApi} visible={showSlots} onLane={phase === 'order' || phase === 'discern' || (tapMode && phase === 'student') ? f.onLane : null} />
         <WordLaneXp apiRef={f.xpApi} />
         {single
           ? <div className="wlWord" style={{ top: `${WORD_Y}%` }} data-testid="wl-word">{cfg.chunks[0]}</div>
@@ -53,6 +54,7 @@ export default function WordLaneGame({ cfg, audioSrc, lines = null, forceDebug =
             </div>
           )}
         {f.catLine && <div className="wlSay" key={f.catLine} role="status" data-testid="wl-say">{f.catLine}</div>}
+        {tapMode && phase === 'student' && <div className="wlTapHint" data-testid="wl-tap-hint">Тап вместо речи: тапни дорожку</div>}
         {f.plate && <div className="wlTurn" key={f.idx} style={{ animationDuration: `${f.plateMs}ms` }} data-testid="wl-turn">{f.plate}</div>}
         {phase === 'reveal' && (
           <div className="wlReveal" data-testid="wl-reveal">
@@ -78,7 +80,7 @@ export default function WordLaneGame({ cfg, audioSrc, lines = null, forceDebug =
         )}
       </div>
       <button type="button" className="wlClose" onClick={f.finish} aria-label="Закрыть" data-testid="wl-close"><X size={20} /></button>
-      {f.dbg.enabled && <Hud dbg={f.dbg} rootRef={rootRef} onRestartStage={f.restartStage} onRestartGame={onRestart} onExit={f.finish} />}
+      {f.dbg.enabled && <Hud dbg={f.dbg} rootRef={rootRef} onRestartStage={f.restartStage} onRestartGame={onRestart} onExit={f.finish} setTapMode={setTapMode} />}
     </div>,
     document.body,
   )

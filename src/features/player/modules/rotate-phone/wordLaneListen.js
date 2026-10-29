@@ -138,6 +138,13 @@ export function createWordListener({ word, targets: targetsIn, expected = SLOT_C
     heardAt: () => heardAt,
     /** На ms мс новые «чужие слова» не засчитываются (звучит нота-награда) */
     mute(ms) { mutedUntil = now() + ms; onDebug?.('mute', { ms }) },
+    /** «Тап вместо речи» (HUD, проверка механики): цель target считается сказанной — тем же путём, что итог Vosk (seq → onChange → движок пилюль). Заход продолжает слушать, счёт захода — от нового seq */
+    tap(target) {
+      if (disposed || target == null || target < 0 || target >= targets.length) return
+      seq = seq.concat(target); base = { seq, misses }; lastPartial = null
+      onDebug?.('tap', { target, text: targets[target], seq })
+      publish({ seq, heard: targets[target], tail: null, heardAt: now() })
+    },
     level,
     dispose() {
       disposed = true

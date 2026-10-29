@@ -14,7 +14,7 @@ const read = rel => readFileSync(new URL(rel, import.meta.url), 'utf8')
 const node = (td = { phrase: "I'm | trying | to learn" }, extra = {}) => ({ id: 'n1', type: 'rotate_phone', typeData: { rotate_phone: td }, ...extra })
 
 describe('ручного режима нет', () => {
-  it('useWordLaneFlow: ни tapMic, ни skip, ни режима manual; отказ слушателя = mic failed + «Ещё раз» (retryMic)', () => {
+  it('useWordLaneFlow: ни tapMic, ни skip, ни режима manual (режим «тап вместо речи» для админа — отдельно, wordLaneTap.test.js); отказ слушателя = mic failed + «Ещё раз» (retryMic)', () => {
     const flow = read('./useWordLaneFlow.js')
     expect(flow).not.toMatch(/tapMic|\bskip\b|'manual'/)
     expect(flow).toContain("status === 'unavailable' || status === 'error' ? 'failed'")

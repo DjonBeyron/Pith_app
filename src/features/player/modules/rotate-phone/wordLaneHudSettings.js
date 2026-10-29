@@ -7,12 +7,15 @@ import { gameAudioSession } from '../../../../shared/lib/gameMicSession.js'
 
 export const PILL_SAFE_KEY = 'pithy_wl_pill_safe_v1' // '1' — «безопасные слои» пилюль iOS; читает движок пилюль, здесь только пишем и ставим класс wl--safe
 export const WEAK_KEY = 'pithy_weak_device_v6'       // решение deviceTier: '1' слабое (lite), '0' обычное
+export const TAP_KEY = 'pithy_wl_tap_v1'              // '1' — «тап вместо речи» (админ, проверка механики и анимаций): тап по дорожке в очереди ученика = следующая цель сказана; Vosk при этом слушает как обычно
 
 const read = (key, store) => { try { return store?.getItem(key) ?? null } catch { return null } }
 const write = (key, value, store) => { try { if (value == null) store?.removeItem(key); else store?.setItem(key, value) } catch { /* приватный режим — живёт до перезагрузки */ } }
 
 export const readPillSafe = (store = globalThis.localStorage) => read(PILL_SAFE_KEY, store) === '1'
 export const writePillSafe = (on, store = globalThis.localStorage) => write(PILL_SAFE_KEY, on ? '1' : null, store)
+export const readTapMode = (store = globalThis.localStorage) => read(TAP_KEY, store) === '1'
+export const writeTapMode = (on, store = globalThis.localStorage) => write(TAP_KEY, on ? '1' : null, store)
 /** Класс на корне игры (.wl): ставит и снимает сам HUD, минуя React, чтобы пилюли и кот не перерисовывались */
 export function applyPillSafe(root, on) { root?.classList?.toggle('wl--safe', !!on) }
 

@@ -120,7 +120,7 @@ describe('HUD в игре', () => {
   const game = read('./WordLaneGame.jsx')
   it('виден только при отладочном интерфейсе (dbg.enabled), живёт в memo и не принимает состояние из useWordLaneFlow', () => {
     expect(game).toContain('const Hud = memo(WordLaneHud)')
-    expect(game).toContain('f.dbg.enabled && <Hud dbg={f.dbg} rootRef={rootRef} onRestartStage={f.restartStage} onRestartGame={onRestart} onExit={f.finish} />')
+    expect(game).toContain('f.dbg.enabled && <Hud dbg={f.dbg} rootRef={rootRef} onRestartStage={f.restartStage} onRestartGame={onRestart} onExit={f.finish} setTapMode={setTapMode} />')
     expect(read('./WordLaneHud.jsx')).not.toMatch(/import .*useWordLaneFlow/)
   })
   it('класс wl--safe: на старте из pithy_wl_pill_safe_v1, дальше его меняет HUD через classList (className не меняется)', () => {
