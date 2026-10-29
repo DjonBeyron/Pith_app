@@ -1,10 +1,11 @@
-/* Игра «Повтори за диктором»: пилюли (WordLanePills.jsx, useWordLanePills.js, wordLanePool.js). Контур (inset-тень пилюли), заливка внутри него, светящаяся кромка и частицы — на слое заливки; «в процессе» / «принято» /
-   «не успел»; «худ» ученика (тень слова и метка темпа). Раскладка экрана, дорожки и затемнения — word-lane.css; микрофон и плашки — word-lane-mic.css. */
+/* Игра «Повтори за диктором»: пилюли (WordLanePills.jsx, useWordLanePills.js, wordLanePool.js). Контур (настоящий border пилюли), заливка внутри него, светящаяся кромка (фон заливки) и частицы в два слоя — на слое заливки;
+   «в процессе» / «принято» / «не успел»; «худ» ученика (тень слова и метка темпа). Раскладка экрана, дорожки и затемнения — word-lane.css; микрофон и плашки — word-lane-mic.css. */
 
 /* Пилюли: вертикальные капсулы, пустые внутри. Тёмное тело, цветная обводка (1/2/3 кольца) и внутренний свет — как блоки ступеней «Моей памяти».
-   КОНТУР — inset-тень самой пилюли, а заливка лежит СТРОГО ВНУТРИ него: .wlPillClip отступает от края на толщину обводки и зазор (--ring + --gap), overflow hidden и border-radius держат заливку в капсуле.
-   Раньше клип занимал всю пилюлю (inset 0), и заливка — потомок пилюли — красилась ПОВЕРХ её inset-обводки: бледная заливка «в процессе» замазывала контур, и пилюля при разговоре казалась исчезнувшей,
-   заменённой цветным пятном. Теперь заливка контура не касается, и он не меняется ни в процессе, ни в «принято» (отдельного слоя над заливкой не нужно — лишний композитный слой на пилюлю стоил кадров).
+   КОНТУР — настоящий border самой пилюли (раньше inset-тень). На iOS Safari inset-тень на слое с will-change/transform то мигала, то пропадала при каждой пересборке дерева слоёв (включение will-change, появление
+   слоя частиц у заливки, заливка въезжает в скруглённый overflow:hidden): тень растрируется отдельным проходом, а border — часть самой геометрии пилюли и рисуется вместе с её фоном, от композитинга не зависит.
+   Заливка лежит СТРОГО ВНУТРИ контура: .wlPillClip отступает на --gap от внутреннего края border (absolute считается от padding-box, поэтому толщину обводки в отступ не добавляем), overflow hidden и border-radius держат заливку
+   в капсуле. Внешние «орбиты» дорожек 2 и 3 — обычные (не inset) тени-кольца без размытия: они рисуются в том же слое вне border-box и сменой слоёв не затрагиваются.
    Положение — transform из --y (центр, % высоты экрана; за верхним краем пилюля вне кадра), top:0 — чтобы двигала только GPU-трансформация */
 .wlPill {
   --c: var(--lvl1, #b6fe3b);
@@ -15,66 +16,83 @@
   top: 0;
   translate: -50% calc(var(--y) * 1dvh - 50%);               /* стартовое положение (за верхним краем); сам ход — WAAPI-анимация свойства translate на композиторе (wordLaneMotion.js). Именно translate, а не transform: хлопок (scale) не должен масштабировать сдвиг */
   border-radius: 999px;                                      /* will-change (слой) пилюле ставит пул (wordLanePool.js) в take и снимает в give: слои держат только летящие пилюли, не все 12 */
+  border: var(--ring) solid rgba(var(--rgb), 0.9);
   background: linear-gradient(to bottom, rgba(var(--rgb), 0.14), rgba(var(--rgb), 0.04)), var(--wl-card);
-  box-shadow: inset 0 0 0 var(--ring) rgba(var(--rgb), 0.9), inset 0 0 18px -6px rgba(var(--rgb), 0.5);
+  background-origin: border-box;                             /* тело, как раньше, занимает всю пилюлю целиком (под обводкой тоже) */
+  box-shadow: inset 0 0 18px -6px rgba(var(--rgb), 0.5);     /* только мягкий внутренний свет; контур тенью не рисуется */
 }
 .wlPill[data-lane='1'] { --c: var(--lvl2, #4fb3ee); --rgb: var(--lvl2-rgb, 79, 179, 238); }
 .wlPill[data-lane='2'] { --c: var(--lvl3, #9a76f8); --rgb: var(--lvl3-rgb, 154, 118, 248); --ring: 2.5px; }
 /* Эхо-кольца снаружи, как 2-я и 3-я обводки ступеней «Моей памяти» (зазор рисует фон): у 2-й пилюли одно кольцо, у 3-й два. Обрезку заливки держит .wlPillClip, поэтому кольца не срезаются */
-.wlPill[data-lane='1'] { box-shadow: inset 0 0 0 var(--ring) rgba(var(--rgb), 0.95), inset 0 0 18px -6px rgba(var(--rgb), 0.5), 0 0 0 4px var(--wl-bg), 0 0 0 5.5px rgba(var(--rgb), 0.5); }
-.wlPill[data-lane='2'] { box-shadow: inset 0 0 0 var(--ring) rgba(var(--rgb), 0.95), inset 0 0 18px -6px rgba(var(--rgb), 0.55), 0 0 0 4px var(--wl-bg), 0 0 0 5.5px rgba(var(--rgb), 0.5), 0 0 0 9.5px var(--wl-bg), 0 0 0 11px rgba(var(--rgb), 0.3); }
-.wlPillClip { position: absolute; inset: calc(var(--ring) + var(--gap)); border-radius: 999px; overflow: hidden; }
+.wlPill[data-lane='1'] { border-color: rgba(var(--rgb), 0.95); box-shadow: inset 0 0 18px -6px rgba(var(--rgb), 0.5), 0 0 0 4px var(--wl-bg), 0 0 0 5.5px rgba(var(--rgb), 0.5); }
+.wlPill[data-lane='2'] { border-color: rgba(var(--rgb), 0.95); box-shadow: inset 0 0 18px -6px rgba(var(--rgb), 0.55), 0 0 0 4px var(--wl-bg), 0 0 0 5.5px rgba(var(--rgb), 0.5), 0 0 0 9.5px var(--wl-bg), 0 0 0 11px rgba(var(--rgb), 0.3); }
+.wlPillClip { position: absolute; inset: var(--gap); border-radius: 999px; overflow: hidden; }
 /* Заливка: слой на всю высоту капсулы, сдвинутый вниз; движок пишет ему style.transform: translateY((1 − p)·100 %) — слой въезжает снизу, его верхний край ЕДЕТ (scaleY сжимал бы градиент).
-   overflow hidden держит внутри слоя частицы (::before) и светящуюся кромку (::after) — оба псевдоэлемента едут вместе со слоем, их содержимое не перерисовывается */
+   overflow hidden держит внутри слоя частицы (::before, ::after) — оба псевдоэлемента едут вместе со слоем, их содержимое не перерисовывается.
+   Светящаяся кромка — первый слой ФОНА заливки (полоска 2 px цвета дорожки и мягкий свет, стекающий вниз; градиент, не box-shadow: растр один раз), а не псевдоэлемент: оба псевдоэлемента отданы под слои частиц.
+   Здесь — спокойная кромка («принято», диктор): светлая полоска без свечения; яркая — у заливки «в процессе» (ниже); у data-fail фон сплошной серый, кромки нет */
 .wlPillFill {
+  --edge: linear-gradient(to bottom, rgba(255, 255, 255, 0.6) 0 2px, rgba(255, 255, 255, 0.12) 2px, transparent);
   position: absolute;
   inset: 0;
   overflow: hidden;
-  background: linear-gradient(to top, rgba(var(--rgb), 0.78), var(--c));
+  background: var(--edge) 0 0 / 100% 14px no-repeat, linear-gradient(to top, rgba(var(--rgb), 0.78), var(--c));
   transform: translateY(100%);                             /* заливку пишет движок прямо в style.transform */
 }
-/* Светящаяся кромка: полоска 2 px цвета дорожки на верхнем краю заливки и мягкий свет, стекающий вниз по заливке. Нарисована градиентом (не box-shadow): растр один раз, при сдвиге слоя — только композитинг.
-   Здесь — спокойная кромка («принято», диктор): светлая полоска без свечения; яркая — у заливки «в процессе» (ниже); у data-fail кромки нет */
-.wlPillFill::after {
+/* Частицы «волшебной пыльцы»: два слоя точек разного размера и яркости на ::before (дальний) и ::after (ближний) заливки, параллакс — ближний летит за 2,2 с, дальний за 4,5 с. Точки — радиальные градиенты:
+   мелкие белые (1 px), средние (1,6 px) с цветным ободком дорожки и крупные (2,4 px) с мягким ореолом (градиент, не filter и не тень). Слой на высоту сдвига длиннее заливки и едет вверх ровно на целое число
+   плиток каждого размера (дальний 96 px: 24 / 32 / 48; ближний 132 px: 22 / 33 / 44 / 132) — бесшовно, одной анимацией на слой, на композиторе; в той же анимации мерцание (opacity .6 ↔ 1). Ближний слой содержит ещё
+   «рой» — плитку в полную высоту сдвига, где точки сгущены в нижней трети: рой вплывает снизу, плотность в основании выше. Узлов на пилюлю не прибавляется.
+   Слои НЕ создаются и не удаляются на лету (на iOS это пересобирало дерево слоёв и вело к мерцанию контура): у взятой из пула пилюли (data-held) анимации и will-change стоят всё время, пока пилюля у движка,
+   анимация на паузе; «наливается» (data-live, пул ставит в paintFill) — лишь снимает паузу и задвигает слой на место свойством translate (оно не конфликтует с анимацией transform и opacity). Без data-live слой спрятан
+   под нижним краем заливки (её overflow:hidden) и не рисуется (visibility: hidden), после последнего роста уходит вниз за 0,25 с; после «принято» частицы идут ещё LIVE_HOLD_LOCK_MS (1,2 с) — это в пуле. data-fail и слабое устройство (.wl--lite) — без частиц */
+.wlPillFill::before, .wlPillFill::after {
   content: '';
   position: absolute;
   left: 0; right: 0; top: 0;
-  height: 14px;
-  background: linear-gradient(to bottom, rgba(255, 255, 255, 0.6) 0 2px, rgba(255, 255, 255, 0.12) 2px, transparent);
+  translate: 0 100%;
+  visibility: hidden;                                      /* спрятанный слой не рисуется (замер: 9 пилюль с невидимыми, но «рисуемыми» слоями ≈ +0,8 мс на кадр при CPU 4×); слой при этом остаётся — его держат will-change и анимация */
+  transition: translate 0.25s ease-in, visibility 0s linear 0.25s;
   pointer-events: none;
 }
-/* Частицы внутри заливки: три слоя точек (плитки 14×22, 23×33, 17×44 — со сдвигом, «случайно») на слое ::before, который на высоту ×1 + 132 px (общее кратное 22 / 33 / 44) длиннее заливки и едет вверх
-   ровно на 132 px за цикл — бесшовно, одной transform-анимацией на композиторе (фон не перерисовывается). Узлов на пилюлю не прибавляется. Видны, только пока пилюля наливается (data-live ставит пул
-   в paintFill) и гаснут через 0,3 с; после «принято» держатся ещё LIVE_HOLD_LOCK_MS (1,2 с) — это в пуле. data-fail и слабое устройство (.wl--lite) — без частиц */
-.wlPillFill::before {
-  content: '';
-  position: absolute;
-  left: 0; right: 0; top: 0;
+.wlPillFill::before {                                      /* дальний слой: мельче и тусклее, 4,5 с на цикл */
+  bottom: -96px;
+  background-image:
+    radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.55) 0 0.6px, transparent 1.2px),
+    radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.6) 0 0.8px, rgba(var(--rgb), 0.4) 1.6px, transparent 2.2px),
+    radial-gradient(circle at 50% 50%, rgba(var(--rgb), 0.7) 0 0.7px, transparent 1.3px);
+  background-size: 13px 24px, 21px 32px, 17px 48px;
+  background-position: 0 0, 8px 11px, 4px 29px;
+}
+.wlPillFill::after {                                       /* ближний слой: ярче и крупнее, 2,2 с на цикл, с роем */
   bottom: -132px;
   background-image:
-    radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.9) 0 1.2px, transparent 2px),
-    radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.75) 0 1px, transparent 1.8px),
-    radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.85) 0 1.4px, transparent 2.2px);
-  background-size: 14px 22px, 23px 33px, 17px 44px;
-  background-position: 0 0, 7px 11px, 4px 29px;
-  opacity: 0;
-  transition: opacity 0.3s ease;
-  pointer-events: none;
+    radial-gradient(circle at 24% 88%, rgba(255, 255, 255, 0.9) 0 0.6px, transparent 1.3px),
+    radial-gradient(circle at 70% 78%, rgba(255, 255, 255, 0.8) 0 0.6px, transparent 1.2px),
+    radial-gradient(circle at 46% 96%, rgba(255, 255, 255, 0.85) 0 0.6px, transparent 1.3px),
+    radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.95) 0 1.2px, rgba(var(--rgb), 0.6) 1.9px, rgba(var(--rgb), 0.22) 3.2px, transparent 5px),
+    radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.9) 0 0.9px, rgba(var(--rgb), 0.5) 1.6px, transparent 2.3px),
+    radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.9) 0 0.6px, transparent 1.2px);
+  background-size: 38px 132px, 38px 132px, 38px 132px, 31px 44px, 23px 33px, 15px 22px;
+  background-position: 0 0, 0 0, 0 0, 6px 20px, 11px 14px, 3px 5px;
 }
-.wlPill[data-live]:not([data-fail]) .wlPillFill::before { opacity: 1; animation: wlRise 3.4s linear infinite; }
-.wl--lite .wlPillFill::before, .weak-device .wlPillFill::before { display: none; } /* слабое устройство: .wl--lite ставит WordLanePills, .weak-device — <html> (deviceTier.applyWeakDeviceClasses) */
-@keyframes wlRise { to { transform: translateY(-132px); } }
+.wlPill[data-held] .wlPillFill::before { will-change: transform, translate; animation: wlRiseFar 4.5s linear infinite paused; }
+.wlPill[data-held] .wlPillFill::after { will-change: transform, translate; animation: wlRiseNear 2.2s linear infinite paused; }
+.wlPill[data-live]:not([data-fail]) .wlPillFill::before, .wlPill[data-live]:not([data-fail]) .wlPillFill::after { translate: 0 0; visibility: visible; transition: translate 0.35s ease-out, visibility 0s; animation-play-state: running; }
+.wl--lite .wlPillFill::before, .wl--lite .wlPillFill::after, .weak-device .wlPillFill::before, .weak-device .wlPillFill::after { display: none; } /* слабое устройство: .wl--lite ставит WordLanePills, .weak-device — <html> (deviceTier.applyWeakDeviceClasses) */
+@keyframes wlRiseFar { 0% { opacity: 0.6; } 50% { opacity: 1; } 100% { opacity: 0.6; transform: translateY(-96px); } }
+@keyframes wlRiseNear { 0%, 50% { opacity: 0.6; } 25%, 75% { opacity: 1; } 100% { opacity: 0.6; transform: translateY(-132px); } }
 
 /* «Различи»: у пилюли звучит её слово — она светится (слов на экране нет, только озвучка) */
 .wlPill[data-voice] { filter: brightness(1.6) drop-shadow(0 0 14px rgba(var(--rgb), 0.9)); transition: filter 0.12s ease-out; }
 
 /* Раунд «Порядок»: верная дорожка после ошибок подсвечивается кольцом вокруг пилюли */
-.wlPill[data-hint]::after { content: ''; position: absolute; inset: -8px; border-radius: 999px; border: 3px solid #fff; animation: wlHintPulse 0.7s ease-in-out infinite; pointer-events: none; }
+.wlPill[data-hint]::after { content: ''; position: absolute; inset: calc(-8px - var(--ring)); border-radius: 999px; border: 3px solid #fff; animation: wlHintPulse 0.7s ease-in-out infinite; pointer-events: none; }
 @keyframes wlHintPulse { 0%, 100% { opacity: 0.2; transform: scale(0.98); } 50% { opacity: 0.95; transform: scale(1.03); } }
 
 /* Прогрев слоёв: пока дорожки проявляются (фаза lanes), пилюли стоят посреди экрана почти прозрачными — браузер успевает растеризовать их слои (кольца, градиенты), и в момент выезда
    первой пилюли диктора слои уже готовы (раньше первая пилюля растеризовалась на лету — подлагивание в начале). В фазе listen анимация полёта перекрывает translate, opacity возвращается */
-.wl[data-phase='lanes'] .wlPill { translate: -50% calc(50dvh - 50%); opacity: 0.01; will-change: translate, scale; } /* слои на время прогрева; дальше их держит только take (wordLanePool.js) */
+.wl[data-phase='lanes'] .wlPill { translate: -50% calc(50dvh - 50%); opacity: 0.01; will-change: transform, translate, scale; } /* слои на время прогрева; дальше их держит только take (wordLanePool.js) */
 
 /* «Худ» в пилюле ученика реагирует ТОЛЬКО на голос: «тень» слова диктора (полоски по высоте, ширина = громкость куска слова) и метка темпа --pace (чёрточка, бегущая вверх в темпе диктора
    с первого звука). Без голоса обе скрыты (opacity 0), пока ученик говорит — движок (useWordLanePills) пишет им opacity по громкости голоса и позицию метки; после принятия слова гаснут.
@@ -104,12 +122,10 @@
    край движется, не растягиваясь. Контур пилюли в обоих состояниях один и тот же. Красного фона нет: красное — только вспышка промаха (missPill). В фазе диктора заливка всегда сплошная
    (data-lock стоит у всех); серый «не успел» (data-fail) ниже. */
 .wl[data-phase='student'] .wlPillFill { transition: background-color 0.15s linear; }
-.wl[data-phase='student'] .wlPill:not([data-lock]):not([data-fail]) .wlPillFill { background: rgba(var(--rgb), 0.35); }
-.wl[data-phase='student'] .wlPill:not([data-lock]):not([data-fail]) .wlPillFill::after { background: linear-gradient(to bottom, var(--c) 0 2px, rgba(var(--rgb), 0.5) 2px, transparent); }
-.wl[data-phase='student'] .wlPill[data-lock]:not([data-fail]) .wlPillFill { background: var(--c); }
+.wl[data-phase='student'] .wlPill:not([data-lock]):not([data-fail]) .wlPillFill { --edge: linear-gradient(to bottom, var(--c) 0 2px, rgba(var(--rgb), 0.5) 2px, transparent); background: var(--edge) 0 0 / 100% 14px no-repeat, rgba(var(--rgb), 0.35); }
+.wl[data-phase='student'] .wlPill[data-lock]:not([data-fail]) .wlPillFill { background: var(--edge) 0 0 / 100% 14px no-repeat, var(--c); }
 
 /* «Не успел»: пилюля ушла вниз без принятого слова — гаснет и серая (data-fail); её выкатят снова */
 .wlPill[data-fail] { opacity: 0.4; transition: opacity 0.5s ease; }
 .wlPill[data-fail] .wlPillFill { background: #7b8494; }
-.wlPill[data-fail] .wlPillFill::before, .wlPill[data-fail] .wlPillFill::after { display: none; }
 .wlPill[data-fail] .wlGhost, .wlPill[data-fail] .wlPace { opacity: 0 !important; }
