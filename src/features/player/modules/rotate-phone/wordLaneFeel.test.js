@@ -76,7 +76,7 @@ describe('отклик пилюль без опоздания', () => {
   it('слушатель стартует под плашкой «твоя очередь» (тяжёлый запуск Vosk — не во время хода пилюль), слова до конвейера ученика не считаются', () => {
     expect(read('./wordLaneStages.js')).toContain("if (s.type === 'turn' || s.type === 'student') return s.step")
     expect(read('./useWordLanePills.js')).toContain('g.seenSeq = liveRef.current.seq.length')
-    expect(read('./wordLaneListen.js')).toContain('chunk: 1024')      // куски по 64 мс — уровень голоса для пилюль приходит чаще
+    expect(read('./wordLaneListen.js')).toContain('chunk: 2048')      // куски по 2048 кадров (≈ 46 мс): уровень голоса для пилюль приходит ≈ 22 раза в секунду, главный поток — вдвое меньше вызовов, чем при 1024
   })
 })
 

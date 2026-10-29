@@ -48,7 +48,7 @@ describe('подсказка ученику: темп и «тень» слова
     expect(eng).toContain('ghostUntil')                                  // «тень» слова — только после неверно сказанного
     expect(read('./wordLaneStudent.js')).toContain('rep.durs[active]')     // скорость наливания голосом — длина слова диктора
     const css = read('../../../../styles/player/modules/word-lane.css')
-    expect(css).toContain(".wlPill:not([data-lock]) .wlPillFill")   // «ожидающая» заливка до подтверждения слова
+    expect(css).toContain(".wlPill:not([data-lock]):not([data-fail]) .wlPillFill")   // заливка «в процессе» (до подтверждения слова) — ровный бледный тон, без штриховки
   })
 })
 
@@ -122,9 +122,10 @@ describe('XP за пилюлю, ноты, Пит', () => {
   it('2 XP за принятую пилюлю; летит цифра из плеера (XpFloat), в профиль пока не начисляется', () => {
     expect(XP_PER_PILL).toBe(2)
     const flow = read('./useWordLaneFlow.js')
-    expect(flow).toContain('amount: XP_PER_PILL')
-    expect(read('./WordLaneGame.jsx')).toContain("import XpFloat from '../../XpFloat.jsx'")
-    expect(read('./WordLaneGame.jsx')).toContain('<XpFloat events={f.xpEvents} onDismiss={f.dismissXp} viewport />')
+    expect(flow).toContain('xpApi.current?.add(XP_PER_PILL * rep.count, rect)') // одна цифра на повтор: XP за все его куски
+    expect(read('./WordLaneXp.jsx')).toContain("import XpFloat from '../../XpFloat.jsx'")
+    expect(read('./WordLaneXp.jsx')).toContain('<XpFloat events={events} onDismiss={dismiss} viewport />')
+    expect(read('./WordLaneGame.jsx')).toContain('<WordLaneXp apiRef={f.xpApi} />')
     // XP — только у ученика: fx.win зовётся из события win конвейера ученика, а в фазе диктора щёлкает без награды
     const eng = read('./useWordLanePills.js')
     expect(eng).toContain("e.type === 'win'")
@@ -173,7 +174,8 @@ describe('XP за пилюлю, ноты, Пит', () => {
 
   it('Пит — маскот из конструктора (buildMascot kit): реакции love / shy, рот через setMouth', () => {
     const cat = read('./WordLaneCat.jsx')
-    expect(cat).toContain("buildMascot(skin, { face, flip: false })")
+    expect(read('./wordLaneCatTree.js')).toContain("buildMascot(skin, { face, flip: false })") // головы лиц собираются один раз (wordLaneCatTree.js), смена лица — атрибут
+    expect(cat).toContain("buildCat(skin)")
     expect(cat).toContain("react(next, ms = 1500)")
     expect(cat).toContain('setMouth(')
     const flow = read('./useWordLaneFlow.js')

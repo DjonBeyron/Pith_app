@@ -106,8 +106,7 @@
   --y: -14;
   top: 0;
   translate: -50% calc(var(--y) * 1dvh - 50%);               /* стартовое положение (за верхним краем); сам ход — WAAPI-анимация свойства translate на композиторе (wordLaneMotion.js). Именно translate, а не transform: хлопок (scale) не должен масштабировать сдвиг */
-  will-change: translate, scale;
-  border-radius: 999px;
+  border-radius: 999px;                                      /* will-change (слой) пилюле ставит пул (wordLanePool.js) в take и снимает в give: слои держат только летящие пилюли, не все 12 */
   background: linear-gradient(to bottom, rgba(var(--rgb), 0.14), rgba(var(--rgb), 0.04)), var(--wl-card);
   box-shadow: inset 0 0 0 2px rgba(var(--rgb), 0.9), inset 0 0 18px -6px rgba(var(--rgb), 0.5);
 }
@@ -121,9 +120,7 @@
   position: absolute;
   inset: 0;
   background: linear-gradient(to top, rgba(var(--rgb), 0.78), var(--c));
-  transform: scaleY(0);                                    /* заливку (scaleY 0…1) пишет движок прямо в style.transform */
-  transform-origin: 50% 100%;
-  will-change: transform;
+  transform: translateY(100%);                             /* заливку пишет движок прямо в style.transform: translateY((1 − p)·100 %) — слой въезжает снизу, его верхний край ЕДЕТ (scaleY сжимал бы градиент) */
 }
 
 /* «Различи»: у пилюли звучит её слово — она светится (слов на экране нет, только озвучка) */
@@ -138,7 +135,7 @@
 
 /* Прогрев слоёв: пока дорожки проявляются (фаза lanes), пилюли стоят посреди экрана почти прозрачными — браузер успевает растеризовать их слои (кольца, градиенты), и в момент выезда
    первой пилюли диктора слои уже готовы (раньше первая пилюля растеризовалась на лету — подлагивание в начале). В фазе listen анимация полёта перекрывает translate, opacity возвращается */
-.wl[data-phase='lanes'] .wlPill { translate: -50% calc(50dvh - 50%); opacity: 0.01; }
+.wl[data-phase='lanes'] .wlPill { translate: -50% calc(50dvh - 50%); opacity: 0.01; will-change: translate, scale; } /* слои на время прогрева; дальше их держит только take (wordLanePool.js) */
 
 
 @media (prefers-reduced-motion: reduce) {
@@ -174,17 +171,19 @@
   inset: 0 8%;
   opacity: 0;
   transform: translateY(0);                                /* линия у нижнего края блока; движок сдвигает блок вверх на долю высоты (translateY(-pace·100%)): двигает композитор */
-  will-change: transform, opacity;
   transition: opacity 0.1s linear;
 }
 .wlPace::after { content: ''; position: absolute; left: 0; right: 0; bottom: -1.5px; height: 3px; border-radius: 2px; background: #fff; box-shadow: 0 0 8px rgba(255, 255, 255, 0.7); }
 
-/* «Честность оценки»: пока слово не подтверждено распознаванием, заливка голосом — «ожидающая» (полупрозрачная, со штриховкой); подтвердили (data-lock) — сплошная.
-   Видно разницу между «меня слышно» и «слово засчитано». В фазе диктора заливка всегда сплошная (data-lock стоит у всех) */
-.wl[data-phase='student'] .wlPill:not([data-lock]) .wlPillFill {
-  opacity: 0.6;
-  background: repeating-linear-gradient(135deg, rgba(var(--rgb), 0.85) 0 7px, rgba(var(--rgb), 0.45) 7px 14px);
+/* «Честность оценки»: пока слово не подтверждено распознаванием, заливка голосом — «в процессе»: ровный бледный тон цвета дорожки (opacity .35) с мягким верхним краем (последние 12 % гаснут в прозрачность);
+   подтвердили (data-lock) — сплошной цвет дорожки. Видно разницу между «меня слышно» и «слово засчитано». Штриховки нет: заливка едет translateY, край движется, не растягиваясь.
+   Красного фона нет: красное — только вспышка промаха (missPill). В фазе диктора заливка всегда сплошная (data-lock стоит у всех); серый «не успел» (data-fail) ниже. */
+.wl[data-phase='student'] .wlPillFill { transition: opacity 0.12s linear; }
+.wl[data-phase='student'] .wlPill:not([data-lock]):not([data-fail]) .wlPillFill {
+  opacity: 0.35;
+  background: linear-gradient(to top, var(--c) 0 88%, transparent);
 }
+.wl[data-phase='student'] .wlPill[data-lock]:not([data-fail]) .wlPillFill { background: var(--c); }
 
 /* Пит: из нижнего края выскакивает только голова (viewBox обрезан по голове, тело не рисуется), в разных местах (--cat-x, %), вдвое крупнее прежнего кота; позади пилюль.
    Класс .scn нужен спрайту (scene-v2.css); .scn--live (идл-анимации) НЕ ставим — анимации SVG идут в основном потоке и подлагивали бы пилюли; остальное от .scn (рамка, фон, обрезка, aspect-ratio 9/16) сбрасываем */
@@ -208,6 +207,9 @@
 @keyframes wlSayIn { from { opacity: 0; transform: translate(-50%, 8px); } }
 .wlStage > .wlCat.scn.wlCat--up { transform: translate(-50%, 4%); } /* торчит голова целиком, от ушей до шеи; за краем только срез плеч */
 .wlCatSvg { display: block; width: 100%; height: 100%; overflow: visible; }
+/* Лица кота: головы всех лиц собраны в дереве один раз (WordLaneCat.jsx), видна одна — по data-face на корне; смена лица = смена атрибута, SVG-дерево React не пересобирает */
+.wlCat [data-part='head'] { display: none; }
+.wlCat[data-face='base'] [data-part='head'][data-face='base'], .wlCat[data-face='love'] [data-part='head'][data-face='love'], .wlCat[data-face='shy'] [data-part='head'][data-face='shy'] { display: inline; }
 
 /* XP за принятую пилюлю: цифра летит вверх (общий XpFloat плеера), счётчик в углу растёт, когда цифра долетела */
 .wlXp {

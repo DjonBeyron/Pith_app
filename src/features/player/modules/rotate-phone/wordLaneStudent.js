@@ -92,7 +92,7 @@ export function stepStudent(g, t, { level = 0, seq = [], misses = 0, confirmed =
         const u = (t - rep.lockAt - i * LOCK_STAGGER_MS) / LOCK_MS
         if (u >= 0 && !p.snapped) { p.snapped = true; events.push({ type: 'snap', pill: p, rep, order: rep.parts.length > 1 ? i : rep.note }) }
         if (u > 0) p.p = p.from + (1 - p.from) * easeInOut(u)
-        if (u >= 1 && p.state !== 'won') { p.p = 1; p.state = 'won'; g.locked += 1; events.push({ type: 'win', pill: p, rep, order: rep.parts.length > 1 ? i : rep.note }) }
+        if (u >= 1 && p.state !== 'won') { p.p = 1; p.state = 'won'; g.locked += 1; events.push({ type: 'win', pill: p, rep, order: rep.parts.length > 1 ? i : rep.note, last: rep.pills.every(q => q.state === 'won') }) } // last — принят последний кусок повтора: XP одна цифра на повтор
       })
       if (rep.pills.every(p => p.state === 'won')) rep.state = 'won'
     }
@@ -102,7 +102,9 @@ export function stepStudent(g, t, { level = 0, seq = [], misses = 0, confirmed =
   for (const p of live()) if (p.y > EXIT_Y) p.gone = true
   g.pills = live().filter(p => !p.gone)
 
-  const claimable = () => g.reps.filter(isClaimable).sort((a, b) => a.spawnAt - b.spawnAt)
+  // Кто сейчас «берётся», по возрасту: считаем ОДИН раз за шаг (раньше фильтр и сортировка шли заново на каждый вызов — до четырёх раз за кадр); список сбрасывается, только когда повтор принят (меняется его state)
+  let claimList = null
+  const claimable = () => (claimList ??= g.reps.filter(isClaimable).sort((a, b) => a.spawnAt - b.spawnAt))
   const oldest = claimable()[0]
   g.reps.forEach(r => { r.cur = r === oldest })
 
@@ -111,8 +113,9 @@ export function stepStudent(g, t, { level = 0, seq = [], misses = 0, confirmed =
   g.seenSeq = Math.max(g.seenSeq, seq.length)
   for (const target of fresh.slice(0, newHits)) {
     const rep = claimable().find(r => r.target === target)
-    if (!rep) { events.push(claimable().length ? { type: 'miss', rep: claimable()[0], wrong: true } : { type: 'late' }); if (claimable().length) claimable()[0].drain = true; continue }
+    if (!rep) { const first = claimable()[0]; events.push(first ? { type: 'miss', rep: first, wrong: true } : { type: 'late' }); if (first) first.drain = true; continue }
     rep.state = 'lock'; rep.lockAt = t; rep.drain = false; rep.note = g.claimed % 3; g.claimed += 1
+    claimList = null // принятый повтор больше не «берётся»
     rep.pills.forEach(p => { p.state = 'lock'; p.from = p.p; p.snapped = false })
     events.push({ type: 'claim', rep, order: rep.note })
   }

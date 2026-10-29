@@ -30,10 +30,14 @@ function flash(host, css, frames, ms) {
   a.finished.then(() => el.remove()).catch(() => el.remove())
 }
 
-/** pill — DOM-элемент пилюли (.wlPill), k — её номер 0…2 */
-export function snapPill(pill, k) {
+/**
+ * pill — DOM-элемент пилюли (.wlPill), k — её номер 0…2. full (по умолчанию true) — полный щелчок: хлопок, белая вспышка, кольцо, залп искр, вибрация. У повтора из нескольких кусков полный щелчок —
+ * ОДИН на повтор (full: true только у одного куска), остальные куски лишь хлопают (full: false): на каждый кусок вспышки и 14 искр давали кучу слоёв и анимаций в самый тяжёлый момент игры
+ */
+export function snapPill(pill, k, { full = true } = {}) {
   if (!pill) return
   pill.animate(POP_FRAMES, { duration: POP_MS, easing: 'cubic-bezier(0.33, 0, 0.2, 1)' })
+  if (!full) return
   const clip = pill.querySelector('.wlPillClip')
   const c = levelHex(k + 1)
   if (clip) flash(clip, 'inset:0;border-radius:999px;background:#fff;', [{ opacity: 0.7 }, { opacity: 0 }], FLASH_MS * 0.75)

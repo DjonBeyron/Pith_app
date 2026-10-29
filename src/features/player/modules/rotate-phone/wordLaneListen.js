@@ -47,6 +47,7 @@ export function createWordListener({ word, targets: targetsIn, expected = SLOT_C
   let lastRaw = 0
   let zeroSince = 0   // с какого момента микрофон отдаёт точный ноль
   let missTimer = 0   // ожидание «устоялся ли промах» в черновике
+  let lastPartial = null // текст прошлого черновика: Vosk шлёт partial после КАЖДОГО куска звука (≈ 20 раз в секунду), а текст меняется редко
 
   const publish = patch => {
     if (patch.status) status = patch.status
@@ -70,7 +71,7 @@ export function createWordListener({ word, targets: targetsIn, expected = SLOT_C
 
   function run() {
     base = { seq, misses } // до словаря: сколько слов ещё ждать, считается от накопленного
-    absorbed = 0; lastRaw = base.misses
+    absorbed = 0; lastRaw = base.misses; lastPartial = null
     const model = runtime.getModel()
     const grammar = model ? targetGrammar(targets, maxWords) : null
     if (!model || !grammar) { publish({ status: 'unavailable' }); return }
@@ -98,7 +99,12 @@ export function createWordListener({ word, targets: targetsIn, expected = SLOT_C
         zeroSince ||= now()
         if (now() - zeroSince >= DEAD_MS && status !== 'dead') { zeroSince = 0; publish({ status: 'dead' }) } // оглох: игра переоткроет микрофон
       },
-      onPartial: raw => { if (cur === session) part(raw, false) },
+      onPartial: raw => {
+        if (cur !== session) return
+        if (raw === lastPartial) { if (String(raw ?? '').trim()) heardAt = now(); return } // тот же текст: разбор, publish и setS в игре дали бы то же самое — пропускаем; «слышал» отмечаем (см. heardAt() ниже)
+        lastPartial = raw
+        part(raw, false)
+      },
       onResult: (text, stats) => {
         if (cur !== session) return
         part((stats?.words?.length ? stats.words.map(w => w.word).join(' ') : text) || '', true)
@@ -109,7 +115,7 @@ export function createWordListener({ word, targets: targetsIn, expected = SLOT_C
     publish({ status: 'starting' })
     Promise.resolve()
       .then(() => listen(model, grammar, callbacks, {
-        autoStopMs: PAUSE_STOP_MS, completeMs: FULL_STOP_MS, maxMs: SESSION_MAX_MS, session: sayAudioSessionType(), chunk: 1024, stream: getStream?.() ?? undefined, // готовый поток игры (iPhone) — без нового диалога; мелкие куски (64 мс): громкость для пилюль приходит в 4 раза чаще, ответ быстрее;
+        autoStopMs: PAUSE_STOP_MS, completeMs: FULL_STOP_MS, maxMs: SESSION_MAX_MS, session: sayAudioSessionType(), chunk: 2048, stream: getStream?.() ?? undefined, // готовый поток игры (iPhone) — без нового диалога; куски по 2048 кадров (≈ 46 мс при 44,1 кГц, 43 мс при 48 кГц): громкость для пилюль приходит ≈ 22 раза в секунду, а главный поток получает вдвое меньше вызовов (1024 кадров — 23 мс — на слабом телефоне съедали заметную долю кадра);
         gate: true, cleanPartial, isComplete: text => analyzeTargets(text, targets).seq.length >= remaining(),
       }))
       .then(h => { if (disposed || cur !== session) { try { h?.cancel() } catch { /* уже свободен */ } return } session.handle = h; if (session.stopped) h.stop() },
@@ -122,6 +128,8 @@ export function createWordListener({ word, targets: targetsIn, expected = SLOT_C
     /** Остановить заход (Vosk отдаст итог и заход закончится сам) */
     stop() { if (cur) { cur.stopped = true; try { cur.handle?.stop() } catch { /* уже закончил */ } } },
     available: () => !!runtime.getModel(),
+    /** Когда распознаватель последний раз что-то слышал (включая повторные черновики с тем же текстом, которые onChange уже не получает) */
+    heardAt: () => heardAt,
     /** На ms мс новые «чужие слова» не засчитываются (звучит нота-награда) */
     mute(ms) { mutedUntil = now() + ms },
     level,
