@@ -14,7 +14,7 @@
 import { LANE_X, PILL_W } from './wordLaneTimeline.js'
 import { startFlight } from './wordLaneMotion.js'
 import { fillProfile } from './wordLaneTimeline.js'
-import { flightY, startRise } from './wordLaneRise.js'
+import { flightState, startRise } from './wordLaneRise.js'
 
 export const POOL = 12
 export const WILL_PILL = 'transform, translate, scale' // слои взятой пилюли: полёт (translate), хлопок (scale) и дрожка промаха (transform); transform в списке — гарантия слоя там, где will-change по translate/scale слой не создаёт
@@ -104,7 +104,7 @@ export function createPool(root) {
       if (line) put(line, '--pill-h', `${tall[k]}px`)
       if (sparks) put(sparks, '--pill-h', `${tall[k]}px`)
       shape(k, curve)
-      live.set(k, { anim: flight ? startFlight(el, atMs) : null, lane, rise: null })
+      live.set(k, { anim: flight ? startFlight(el, atMs, lane) : null, lane, rise: null })
       return k
     },
     giveAll() { for (const k of [...live.keys()]) give(k) },
@@ -115,7 +115,7 @@ export function createPool(root) {
     rise(k) {
       const l = live.get(k)
       if (!l?.anim || l.rise) return null
-      const a = startRise(parts[k].el, flightY(l.anim))
+      const a = startRise(parts[k].el, flightState(l.anim, l.lane))
       try { l.anim.cancel() } catch { /* уже снята */ }
       l.anim = null; l.rise = a
       parts[k].el.setAttribute('data-rise', '1')

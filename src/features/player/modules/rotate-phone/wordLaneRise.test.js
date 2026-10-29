@@ -4,7 +4,8 @@ import { fileURLToPath } from 'node:url'
 import { createPool, POOL } from './wordLanePool.js'
 import { ENTER_Y, EXIT_Y } from './wordLaneTimeline.js'
 import { FLIGHT_MS } from './wordLaneMotion.js'
-import { riseFrames, startRise, flightY, RISE_DELAY_MS, RISE_MS, RISE_END_Y, RISE_WAVE_PX, RISE_SCALE, RISE_SHRINK_FROM, RISE_FADE_FROM, risePosition, riseScale } from './wordLaneRise.js'
+import { riseFrames, startRise, flightY, flightState, RISE_DELAY_MS, RISE_MS, RISE_END_Y, RISE_WAVE_PX, RISE_WAVES, RISE_SCALE, RISE_SHRINK_FROM, RISE_FADE_FROM, risePosition, riseScale } from './wordLaneRise.js'
+import { flightPose, sine } from './wordLaneWave.js'
 
 // Взлёт заполненной пилюли ученика (wordLaneRise.js, pool.rise): кадры анимации, пауза и длительность, возврат в пул после finish, движок
 const read = rel => readFileSync(fileURLToPath(new URL(rel, import.meta.url)), 'utf8')
@@ -29,11 +30,12 @@ function rig({ classes = [] } = {}) {
 }
 
 describe('взлёт заполненной пилюли', () => {
-  it('кадры: translate с синусоидой ±8 px в 1,5 периода, y линейно к RISE_END_Y, scale → 0,1 (пилюля становится искрой) и opacity 1 → 0 на последних 25 %; начальные scale и opacity не пишутся', () => {
+  it('кадры: translate с растянутой синусоидой ±12 px в 0,8 периода, rotate по касательной, y линейно к RISE_END_Y, scale → 0,1 (пилюля становится искрой) и opacity 1 → 0 на последних 25 %; начальные scale и opacity не пишутся', () => {
     const f = riseFrames(50)
-    expect(f[0]).toEqual({ offset: 0, translate: risePosition(50, 0) })
+    expect(f[0]).toEqual({ offset: 0, translate: risePosition(50, 0), rotate: '0.000deg' })
     expect(f.at(-1)).toMatchObject({ offset: 1, scale: RISE_SCALE, opacity: 0 })
-    expect(f.at(-1).translate).toBe(risePosition(RISE_END_Y, 0))
+    expect(f.at(-1).translate).toBe(risePosition(RISE_END_Y, sine(RISE_WAVE_PX, RISE_WAVES, 0, 1).x))
+    expect(f.every(x => /^-?[\d.]+deg$/.test(x.rotate))).toBe(true)
     const fade = f.find(x => x.offset === RISE_FADE_FROM)
     expect(fade.opacity).toBe(1)
     expect(RISE_FADE_FROM).toBe(0.75)
@@ -44,9 +46,38 @@ describe('взлёт заполненной пилюли', () => {
     expect(Math.min(...xs)).toBeCloseTo(-RISE_WAVE_PX, 0)
     const sig = xs.filter(x => Math.abs(x) > 0.5)
     const crossings = sig.slice(1).filter((x, i) => Math.sign(x) !== Math.sign(sig[i])).length
-    expect(crossings).toBe(2)                                                        // 0 → + → 0 → − → 0 → + → 0: три полуволны, два перехода через нуль внутри пути
+    expect(crossings).toBe(1)                                                        // 0,8 периода: 0 → + → 0 → −: одна полная положительная полуволна и начало отрицательной, один переход через нуль внутри пути
     const ys = f.map(x => Number(x.translate.match(/calc\((-?[\d.]+)dvh/)[1]))
     expect(ys.every((y, i) => i === 0 || y < ys[i - 1])).toBe(true)                  // только вверх
+  })
+  it('взлёт стартует из положения на волне полёта: первый кадр = текущие x и наклон, без скачка; наклон потом ведёт касательная', () => {
+    const pose = { y: 50, x: 7, deg: 2 }
+    const f = riseFrames(pose)
+    expect(f[0].translate).toBe(risePosition(50, 7))
+    expect(f[0].rotate).toBe('2.000deg')
+    const x1 = Number(f[1].translate.match(/\+ (-?[\d.]+)px/)[1])
+    expect(Math.abs(x1 - 7)).toBeLessThan(2.5)                                       // следующая точка рядом: волна продолжается из x0, а не начинается заново с нуля
+    const degs = f.map(x => parseFloat(x.rotate))
+    expect(Math.max(...degs.map(Math.abs))).toBeLessThanOrEqual(8 + 1e-9)            // наклон — несколько градусов, не больше TILT_MAX_DEG
+    expect(Math.max(...degs.map(Math.abs))).toBeGreaterThan(3)                        // и заметен
+    for (let i = 1; i < degs.length; i++) expect(Math.abs(degs[i] - degs[i - 1])).toBeLessThan(2.5) // плавно, без скачков угла
+    for (const x of [-RISE_WAVE_PX, -5, 0, 5, RISE_WAVE_PX]) expect(parseFloat(riseFrames({ y: 40, x, deg: 0 })[0].translate.match(/\+ (-?[\d.]+)px/)[1])).toBeCloseTo(x, 1)
+  })
+  it('наклон оси — по касательной: у волны, идущей вправо (dx > 0), нижний конец пилюли смотрит по ходу вниз, верхний — по ходу вверх; у взлёта знак тот же при том же склоне dx/dy', () => {
+    const up = riseFrames({ y: 50, x: 0, deg: 0 })
+    const xs = up.map(f => Number(f.translate.match(/\+ (-?[\d.]+)px/)[1]))
+    const degs = up.map(f => parseFloat(f.rotate))
+    for (let i = 1; i < up.length - 1; i++) {                                         // ход вверх (dy < 0): вправо (dx > 0) → верх пилюли вправо → rotate по часовой (+)
+      const dx = xs[i + 1] - xs[i - 1]
+      if (Math.abs(dx) > 1) expect(Math.sign(degs[i])).toBe(Math.sign(dx))
+    }
+  })
+  it('flightState: y, x и наклон по часам полёта вниз (тот же flightPose, что в кадрах полёта)', () => {
+    const s = flightState({ currentTime: FLIGHT_MS / 2 }, 2, 812)
+    expect(s.y).toBeCloseTo((ENTER_Y + EXIT_Y) / 2, 6)
+    expect(s).toMatchObject(flightPose(2, 0.5, 812))
+    expect(flightState({ currentTime: -500 }, 0, 812)).toMatchObject({ y: ENTER_Y, ...flightPose(0, 0, 812) })
+    expect(flightState(null, 1, 812).y).toBe(ENTER_Y)
   })
   it('масштаб: отдельная кривая — до RISE_SHRINK_FROM остаётся 1, в первой половине пути сжатие небольшое, основное (больше 60 %) — во второй, монотонно до RISE_SCALE; кадр scale на каждой точке пути', () => {
     expect(RISE_SHRINK_FROM).toBe(0.15)
@@ -90,6 +121,9 @@ describe('взлёт заполненной пилюли', () => {
     pills[k].animate = vi.fn(() => riseAnim)
     const a = pool.rise(k)
     expect(a).toBe(riseAnim)
+    const first = pills[k].animate.mock.calls[0][0][0]
+    expect(first.translate).toBe(risePosition((ENTER_Y + EXIT_Y) / 2, flightPose(2, 0.5).x))   // взлёт стартует из x и y полёта вниз этой дорожки
+    expect(first.rotate).toBe(`${flightPose(2, 0.5).deg.toFixed(3)}deg`)
     expect(own.cancel).toHaveBeenCalledTimes(1)
     expect(pool.anims()).toHaveLength(0)                                             // полёта нет, а пилюля жива
     expect(pills[k].has('data-rise')).toBe(true)
