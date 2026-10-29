@@ -22,7 +22,10 @@
   100% { opacity: 0; transform: translate(-50%, -50%) scale(0.95); }
 }
 
-/* Микрофон: внизу по центру, выезжает снизу (MIC_IN_MS 600). Круглая кнопка с зелёной обводкой и три кольца-волны вокруг неё */
+/* Микрофон: внизу по центру, выезжает снизу (MIC_IN_MS 600). Круглая кнопка с зелёной обводкой и три кольца-волны вокруг неё.
+   Отклик на голос (listening): WordLaneMic.jsx пишет ОДНУ переменную --lvl (0…1) на .wlMicBox каждый кадр, всё остальное считается здесь:
+   кнопка растёт на 14 %, за ней вспыхивает свечение (псевдоэлемент: меняется только opacity, тень не перерисовывается), кольца расходятся до ×1,8 / ×2,1 / ×2,4.
+   transition у этих свойств нет намеренно: атаку в один кадр и спад (120 мс) даёт источник уровня, браузерная плавность только размазала бы отклик. */
 .wlMic {
   left: 0;
   right: 0;
@@ -45,6 +48,8 @@
   font-size: 15px;
   font-weight: 600;
   color: #c3cad8;
+  position: relative;
+  z-index: 1; /* подпись над кольцами: внешнее кольцо на пике заходит на её строку */
 }
 .wlMicBox { position: relative; width: 88px; height: 88px; display: flex; align-items: center; justify-content: center; }
 .wlMicRings { position: absolute; inset: 0; pointer-events: none; }
@@ -53,10 +58,13 @@
   inset: 0;
   box-sizing: border-box;
   border-radius: 50%;
-  border: 2px solid var(--wl-accent);
+  border: 3px solid var(--wl-accent);
   opacity: 0;
   will-change: transform, opacity;
 }
+.wlMic--listening .wlMicRings i { transform: scale(calc(1 + var(--lvl, 0) * 0.8)); opacity: calc(0.12 + var(--lvl, 0) * 0.78); }
+.wlMic--listening .wlMicRings i:nth-child(2) { transform: scale(calc(1 + var(--lvl, 0) * 1.1)); opacity: calc(0.12 + var(--lvl, 0) * 0.66); }
+.wlMic--listening .wlMicRings i:nth-child(3) { transform: scale(calc(1 + var(--lvl, 0) * 1.4)); opacity: calc(0.12 + var(--lvl, 0) * 0.54); }
 .wlMic--manual .wlMicRings i, .wlMic--starting .wlMicRings i { animation: wlBreath 2.1s ease-in-out infinite; }
 .wlMic--manual .wlMicRings i:nth-child(2), .wlMic--starting .wlMicRings i:nth-child(2) { animation-delay: 0.7s; }
 .wlMic--manual .wlMicRings i:nth-child(3), .wlMic--starting .wlMicRings i:nth-child(3) { animation-delay: 1.4s; }
@@ -78,8 +86,22 @@
   color: var(--wl-accent);
   cursor: pointer;
   transition: background 0.25s, color 0.25s, transform 0.25s;
+  isolation: isolate;
 }
-.wlMic--listening .wlMicBtn { background: var(--wl-accent); color: var(--wl-ink); transform: scale(1.08); }
+.wlMicBtn::after { /* свечение: тень нарисована один раз, по голосу меняется только opacity */
+  content: '';
+  position: absolute;
+  inset: -3px;
+  z-index: -1;
+  border-radius: 50%;
+  box-shadow: 0 0 26px 5px var(--wl-accent);
+  opacity: 0;
+  pointer-events: none;
+}
+.wlMic--listening .wlMicBtn { background: var(--wl-accent); color: var(--wl-ink); transform: scale(calc(1 + var(--lvl, 0) * 0.14)); transition: background 0.25s, color 0.25s; }
+.wlMic--listening .wlMicBtn::after { opacity: calc(var(--lvl, 0) * 0.8); }
+/* слабое устройство: без колец и свечения — дышит только кнопка */
+.wlMic--lite.wlMic--listening .wlMicRings, .wlMic--lite.wlMic--listening .wlMicBtn::after { display: none; }
 .wlMic--done .wlMicBtn { background: var(--wl-accent); border-color: var(--wl-accent); color: var(--wl-ink); }
 
 .wlSkip {
