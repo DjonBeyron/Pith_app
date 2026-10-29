@@ -11,6 +11,9 @@ import * as gameMicLib from '../../../../shared/lib/gameMic.js'
 import { getPlayerLines } from '../../../../shared/lib/debug.js'
 import { soundEvents } from '../../../../shared/lib/soundLog.js'
 import { straceLines } from '../../../../shared/lib/soundGestureTrace.js'
+import { setLastWordLaneSession } from './wordLaneLastDump.js'
+
+export { getLastWordLaneDump } from './wordLaneLastDump.js' // последний дамп игры для общего журнала плеера (downloadDebugLog.js)
 
 // «Скачать отладку» в игре «Повтори за диктором» — связка журнала (wordLaneDebug), записи микрофона (wordLaneDebugRecorder) и игры. Включено, только если админ включил «Отладочный интерфейс»
 // (usePlayerDebugUi) или localStorage pithy_wl_debug_v1 = '1'; иначе useWordLaneDebug отдаёт NO_DEBUG — пустые функции, ни записи, ни подписок. Журнал живёт в обычном объекте (не в состоянии React):
@@ -84,8 +87,8 @@ export function createDebugSession({ enabled, now, weak = null, getStream = () =
 /** Что писать про стадию: номер, раунд, ступень, текст ступени */
 const stageInfo = (idx, o) => ({ idx, ...(o?.round ? { round: o.round.kind } : {}), ...(o?.step ? { step: o.step.id, text: o.step.text, reps: o.step.reps?.length } : {}) })
 
-export function useWordLaneDebug({ chunks, translation, lang, stage, idx, stageObj }) {
-  const [dbg] = useState(() => createDebugSession({ enabled: debugEnabled({ toggle: getPlayerDebugUiValue() }), weak: isWeakDevice(), getStream: gameMicLib.getGameMic }))
+export function useWordLaneDebug({ chunks, translation, lang, stage, idx, stageObj, force = false }) {
+  const [dbg] = useState(() => createDebugSession({ enabled: debugEnabled({ toggle: force || getPlayerDebugUiValue() }), weak: isWeakDevice(), getStream: gameMicLib.getGameMic }))
   useEffect(() => {
     if (!dbg.enabled) return undefined
     dbg.meta({ phrase: chunks.join(' | '), chunks, translation, lang })
@@ -93,6 +96,7 @@ export function useWordLaneDebug({ chunks, translation, lang, stage, idx, stageO
   useEffect(() => {
     if (!dbg.enabled) return undefined
     dbg.arm()
+    setLastWordLaneSession(dbg)
     return () => dbg.disarm()
   }, [dbg])
   useEffect(() => {

@@ -53,6 +53,15 @@ export function buildDebugFile({ log, audio = [], userSaid = '', now = new Date(
   return { name, json, blob, size: json.length }
 }
 
+/** Что сказать человеку про итог saveDebugFile (общее для кнопки в финале и HUD игры) */
+export const SAVE_HOW = {
+  download: 'Файл скачан',
+  share: 'Файл отправлен через «Поделиться»',
+  tab: 'Файл открыт в новой вкладке — сохрани его оттуда («Поделиться» → «Сохранить в Файлы»)',
+  cancelled: 'Отправка отменена',
+  failed: 'Не получилось сохранить файл',
+}
+
 const isIos = nav => /iPhone|iPad|iPod/.test(String(nav?.userAgent ?? '')) || (nav?.platform === 'MacIntel' && (nav?.maxTouchPoints ?? 0) > 1)
 
 /** Отдать файл: iOS — «Поделиться» (иначе новая вкладка), остальные — скачивание. Возвращает 'download' | 'share' | 'tab' | 'cancelled' | 'failed' */

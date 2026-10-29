@@ -1,0 +1,82 @@
+/* Мини-HUD настроек в игре «Повтори за диктором» (WordLaneHud.jsx): кнопка в правом верхнем углу и панель поверх игры. Только при отладочном интерфейсе. Слой .wl (word-lane.css) — z-index 10000, HUD внутри него. */
+.wlHudBtn {
+  position: absolute;
+  top: calc(env(safe-area-inset-top) + 10px);
+  right: calc(env(safe-area-inset-right) + 10px);
+  z-index: 8;
+  width: 36px;
+  height: 36px;
+  border: 0;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.08);
+  color: #c3cad8;
+  cursor: pointer;
+}
+.wlHud {
+  position: absolute;
+  z-index: 9;
+  top: calc(env(safe-area-inset-top) + 10px);
+  right: calc(env(safe-area-inset-right) + 10px);
+  width: min(94vw, 380px);
+  max-height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 20px);
+  overflow-y: auto;
+  box-sizing: border-box;
+  padding: 12px;
+  border: 1px solid #2a2c33;
+  border-radius: 16px;
+  background: rgba(15, 17, 23, 0.97);
+  color: #e0e3ec;
+  font-size: 13px;
+  line-height: 1.3;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-overflow-scrolling: touch;
+}
+.wlHudHead { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+.wlHudX { width: 28px; height: 28px; border: 0; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: rgba(255, 255, 255, 0.08); color: #c3cad8; cursor: pointer; }
+.wlHudInfo { margin-bottom: 10px; padding: 8px 10px; border-radius: 10px; background: rgba(255, 255, 255, 0.05); color: #9aa0b4; font-size: 12px; }
+.wlHudInfo b { color: #e0e3ec; font-weight: 600; }
+.wlHudRow { margin-bottom: 9px; }
+.wlHudLabel { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 4px; color: #c3cad8; }
+.wlHudWhen { flex-shrink: 0; font-size: 10px; font-style: normal; color: #6f7589; }
+.wlHudWhen--now { color: #7bc043; }
+.wlHudChips { display: flex; flex-wrap: wrap; gap: 6px; }
+.wlHudChips input[type='range'] { width: 100%; accent-color: var(--wl-accent, #b6fe3b); }
+.wlHudChip {
+  padding: 6px 10px;
+  border: 1px solid #2f323b;
+  border-radius: 9px;
+  background: transparent;
+  color: #9aa0b4;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+.wlHudChip--on { border-color: var(--wl-accent, #b6fe3b); color: var(--wl-accent, #b6fe3b); }
+.wlHudActions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
+.wlHudAct { min-height: 40px; padding: 8px; border: 1px solid #3a3d46; border-radius: 10px; background: transparent; color: #e0e3ec; font: inherit; font-size: 13px; cursor: pointer; }
+.wlHudAct--exit { border-color: #6b2f2f; color: #f19a9a; }
+.wlHudStatus { margin-top: 8px; color: #9aa0b4; font-size: 12px; }
+
+/* Игра не смогла слушать (нет модели / микрофон отказал): честное сообщение вместо ручного режима */
+.wlFail {
+  left: 50%;
+  bottom: calc(24px + env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  width: min(88%, 380px);
+  box-sizing: border-box;
+  padding: 16px;
+  border-radius: 18px;
+  border: 1px solid #6b2f2f;
+  background: rgba(21, 24, 31, 0.97);
+  text-align: center;
+  z-index: 6;
+}
+.wlFailTitle { margin: 0; font-size: 16px; font-weight: 800; }
+.wlFailSub { margin: 6px 0 0; font-size: 13px; color: #9aa0b4; overflow-wrap: anywhere; }
+.wlFailBtns { display: flex; justify-content: center; gap: 10px; margin-top: 12px; }
+.wlFailBtn { min-height: 40px; padding: 0 20px; border: 1px solid #3a3d46; border-radius: 12px; background: transparent; color: #e0e3ec; font: inherit; font-size: 14px; font-weight: 700; cursor: pointer; }
+.wlFailBtn--main { border: 0; background: var(--wl-accent, #b6fe3b); color: var(--wl-ink, #0d1500); }

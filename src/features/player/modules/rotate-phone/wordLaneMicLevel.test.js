@@ -151,11 +151,10 @@ describe('--lvl на .wlMicBox: запись в DOM без React', () => {
 })
 
 describe('WordLaneMic: подписи не изменились, слабое устройство получает lite', () => {
-  const html = props => renderToStaticMarkup(createElement(WordLaneMic, { onTap() {}, visible: true, ...props }))
+  const html = props => renderToStaticMarkup(createElement(WordLaneMic, { visible: true, ...props }))
   it('подписи режимов и честное сообщение игры', () => {
     expect(html({ mode: 'listening' })).toContain('Слушаю…')
     expect(html({ mode: 'starting' })).toContain('Включаю микрофон…')
-    expect(html({ mode: 'manual' })).toContain('Нажми на микрофон')
     expect(html({ mode: 'done' })).toContain('Есть!')
     expect(html({ mode: 'listening', note: 'Услышал: «cat»' })).toContain('Услышал: «cat»')
     expect(read('./WordLaneMic.jsx')).toContain('Не слышу голос — говори ближе')

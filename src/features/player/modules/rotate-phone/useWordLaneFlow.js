@@ -32,7 +32,7 @@ import { scheduleDictor } from './wordLaneDictorRun.js'
 //  order             раунд «Порядок»: подсказка диктора — ученик тапает дорожки (wordLaneOrder);
 //  discern           раунд «Различи»: диктор говорит кусок, в дорожках он и слова-запутыватели — тап по верной (тот же движок, что у «Порядка»);
 //  reveal            фраза и перевод; «Дальше» отпускает ноду.
-// Микрофон включается сам (доступ дан заранее, в карточке/запуске урока). Нет модели Vosk или микрофон не открылся — ручной режим: тап по микрофону = «сказал».
+// Микрофон включается сам (доступ дан заранее). Распознавание только Vosk, ручного режима нет: модель готовит карточка до старта (RotatePhoneModule), отказ слушателя посреди игры — mic 'failed' (сообщение, «Ещё раз» retryMic, выход).
 const EXIT_PAUSE_MS = 1300   // ступень закончена: заливка доходит до конца, щелчок, нота — и только потом дальше
 const HINT_MS = 3500         // подпись дорожки, которую показали после «не успел» в раунде «вслепую»
 
@@ -41,7 +41,7 @@ const LINE_AT_MS = 250       // реплика кота на плашке рау
 
 const IDLE = { kind: 'idle' }
 
-export function useWordLaneFlow({ chunks, translation, lang, clips = null, audioSrc = null, audio = null, catApi = null, lines = null, confusers = null, onFinished }) {
+export function useWordLaneFlow({ chunks, translation, lang, clips = null, audioSrc = null, audio = null, catApi = null, lines = null, confusers = null, forceDebug = false, onFinished }) {
   const [rate] = useState(getVoiceRate) // скорость голоса урока: на неё растянут план диктора
   const [lib] = useState(() => makeLib(chunks)) // озвучка кусков в библиотеке слов на момент старта игры (длины и наличие)
   const built = useMemo(() => buildStages({ chunks, clips, audio, rate, lib, confusers }), [chunks, clips, audio, rate, lib, confusers])
@@ -60,7 +60,7 @@ export function useWordLaneFlow({ chunks, translation, lang, clips = null, audio
   const [levels] = useState(() => createLevelSource(t => rms.read(t)))
   useEffect(() => { sRef.current = s })
   const stageObj = s.stage === 'run' ? stages[s.idx] : null
-  const dbg = useWordLaneDebug({ chunks, translation, lang, stage: s.stage, idx: s.idx, stageObj }) // «Скачать отладку»: журнал и запись микрофона; выключено — пустые функции
+  const dbg = useWordLaneDebug({ chunks, translation, lang, stage: s.stage, idx: s.idx, stageObj, force: forceDebug }) // «Скачать отладку»: журнал и запись микрофона; выключено — пустые функции
   const cat = useCatLines({ lines, rate, catApi, listenerRef }) // реплики кота: подпись + озвучка + рот по буквам
   const sayLineRef = useRef(cat.sayLine)
   useEffect(() => { sayLineRef.current = (...a) => { const said = cat.sayLine(...a); if (said) dbg.note(`cat:${a[0]}`); return said } }) // реплика кота попадает и в журнал отладки (окно mute вокруг неё)
@@ -193,12 +193,13 @@ export function useWordLaneFlow({ chunks, translation, lang, clips = null, audio
         const words = seq.length * 8 + (tail?.tokens ?? 0) // растёт с каждым услышанным словом (недосказанная цель — по токенам, засчитанная — по номеру в seq)
         if (words > wordsHeard) catApi?.current?.look?.word() // граница слова ученика: кот чуть переводит взгляд
         wordsHeard = words
+        if (status === 'timeout') { pLog('[word-lane] слушатель отработал своё время — запускаю заново'); setMicEpoch(e => e + 1); return } // долгая ступень: новый слушатель, счёт ступени начинается с нуля
         if (status === 'dead') { // игровой поток оглох (iOS заглушил) — переоткрываем микрофон и слушаем заново; без игрового потока (свой у распознавателя) делать нечего
           if (hasGameMic()) { pLog('[mic] игровой поток отдаёт тишину — переоткрываю'); dropGameMic(); openGameMic().then(r => { if (r === 'granted') setMicEpoch(e => e + 1) }) }
           return
         }
         setS(p => {
-          const mic = status === 'listening' || status === 'starting' ? status : status === 'idle' ? p.mic : 'manual'
+          const mic = status === 'listening' || status === 'starting' ? status : status === 'unavailable' || status === 'error' ? 'failed' : p.mic // нет модели / микрофон не открылся — игра говорит об этом честно (WordLaneGame)
           const fresh = p.lid !== listenStep.id
           const sameSeq = !fresh && p.seq.length === seq.length
           const note = !fresh && misses > p.misses && sRef.current.stage === 'run' && stages[sRef.current.idx]?.type === 'student' ? `Услышал: «${heard || '…'}»` : p.note
@@ -209,7 +210,7 @@ export function useWordLaneFlow({ chunks, translation, lang, clips = null, audio
       },
     })
     listenerRef.current = l
-    l.start() // нет модели → onChange 'unavailable' → ручной режим
+    l.start() // нет модели → onChange 'unavailable' → mic 'failed' (сообщение и выход)
     return () => { l.dispose(); if (listenerRef.current === l) listenerRef.current = null }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [listenId, rms, chunks, micEpoch])
@@ -218,15 +219,15 @@ export function useWordLaneFlow({ chunks, translation, lang, clips = null, audio
   /** Тап по дорожке (раунд «Порядок»): ответ — в движке пилюль, он знает, какие пилюли сейчас на экране */
   const onLane = useCallback(lane => sceneApi.current?.tap?.(lane), [])
 
-  /** Тап по микрофону: в ручном режиме (распознавания нет) — «сказал» следующий текст ступени */
-  const tapMic = useCallback(() => {
-    if (sRef.current.mic !== 'manual' || stages[sRef.current.idx]?.type !== 'student') return
-    const target = sceneApi.current?.nextTarget?.()
-    if (target == null) return
-    setS(p => ({ ...p, seq: [...(p.lid === listenId ? p.seq : []), target], lid: listenId }))
-  }, [stages, listenId])
-
-  const skip = useCallback(() => { listenerRef.current?.dispose(); clearTimers(); next() }, [clearTimers, next])
+  const retryMic = useCallback(() => { setS(p => ({ ...p, mic: 'starting' })); setMicEpoch(e => e + 1) }, []) // «Ещё раз» после отказа слушателя: новый слушатель
+  /** HUD «Перезапустить ступень»: к началу текущей ступени (диктор → очередь ученика), слушатель и счёт с нуля; вне стадий игры (вступление, финал) — ничего */
+  const restartStage = useCallback(() => {
+    const st = sRef.current.stage === 'run' ? stages[sRef.current.idx] : null
+    if (!st) return
+    const first = Math.max(0, st.step ? stages.findIndex(x => x.step === st.step) : st.idx)
+    clearTimers(); stopVoice(); dbg.event('restart-stage', { idx: st.idx, to: first })
+    setS(p => ({ ...p, stage: 'run', idx: first, at: performance.now(), hint: [], seq: [], misses: 0, lid: '', note: '' })); setMicEpoch(e => e + 1)
+  }, [stages, clearTimers, dbg])
 
   const scene = useMemo(() => {
     if (s.stage !== 'run' || !stageObj) return IDLE
@@ -245,5 +246,5 @@ export function useWordLaneFlow({ chunks, translation, lang, clips = null, audio
   const phase = s.stage === 'run' ? (stageObj?.type ?? 'idle') : s.stage
   const labels = labelsFor(stageObj?.type === 'announce' ? stages[s.idx + 1] : stageObj, chunks, lanes, s.hint) // под плашкой раунда уже видны подписи следующей стадии
   const plate = stageObj?.type === 'announce' ? stageObj.round.title : stageObj?.type === 'turn' ? 'Теперь твоя очередь' : ''
-  return { ...s, dbg, catLine: cat.text, phase, stageObj, scene, live, labels, plate, plateMs: stageObj?.ms ?? 0, levels, fx, sceneApi, xpApi, onLane, tapMic, skip, finish, translation, text: textOf(chunks, chunks.map((_, i) => i)) }
+  return { ...s, dbg, catLine: cat.text, phase, stageObj, scene, live, labels, plate, plateMs: stageObj?.ms ?? 0, levels, fx, sceneApi, xpApi, onLane, retryMic, restartStage, finish, translation, text: textOf(chunks, chunks.map((_, i) => i)) }
 }
