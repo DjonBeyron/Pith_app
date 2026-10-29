@@ -233,3 +233,14 @@
 .wlPill[data-fail] { opacity: 0.4; transition: opacity 0.5s ease; }
 .wlPill[data-fail] .wlPillFill { background: #7b8494; }
 .wlPill[data-fail] .wlGhost, .wlPill[data-fail] .wlPace { opacity: 0 !important; }
+
+/* «Живой Пит v2» у кота (WordLaneCat.jsx, wordLaneCatLook.js): зрачки и широкие формы рта — общие правила scene-v2-pit.css (.scn--v2), а усы там качаются только при .scn--live, которого у кота нет
+   (идл-анимации тела не нужны). Здесь — те же усы без .scn--live: по одной анимации на ус и только пока кот говорит (is-talking); keyframes — в scene-v2-pit.css. Слабое устройство (.scn--lite): без усов и зрачков, остаётся рот */
+.wlCat.scn--v2 .scn-cat.is-talking .wh-l { animation: scnWhiskL 0.6s ease-in-out infinite; }
+.wlCat.scn--v2 .scn-cat.is-talking .wh-r { animation: scnWhiskR 0.6s ease-in-out infinite; }
+.wlCat.scn--v2 .scn-cat.is-talking .wh-d { animation-duration: 0.72s; animation-delay: -0.25s; }
+.wlCat.scn--lite .wh { animation: none; }
+/* --talk (scene-v2-cat.css: @property, наследуется, переход 0,3 с на .scn-cat) на корне кота не переходим: смена зарегистрированного наследуемого свойства каждый кадр перепросчитывала стили всего поддерева кота
+   (≈140 узлов; замер при CPU 4×: +2,9 мс на кадр, стили +70 %). Переход — только у самих усов (4 листа): амплитуда по-прежнему входит и выходит плавно за 0,3 с */
+.wlCat .scn-cat { transition: none; }
+.wlCat .wh { transition: --talk 0.3s ease-in-out; }

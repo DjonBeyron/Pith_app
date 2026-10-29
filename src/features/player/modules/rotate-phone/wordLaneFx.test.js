@@ -177,7 +177,8 @@ describe('XP за пилюлю, ноты, Пит', () => {
     expect(read('./wordLaneCatTree.js')).toContain("buildMascot(skin, { face, flip: false })") // головы лиц собираются один раз (wordLaneCatTree.js), смена лица — атрибут
     expect(cat).toContain("buildCat(skin)")
     expect(cat).toContain("react(next, ms = 1500)")
-    expect(cat).toContain('setMouth(')
+    expect(cat).toContain('drawCatMouth(')
+    expect(read('./wordLaneCatLook.js')).toContain('setMouth(')
     const flow = read('./useWordLaneFlow.js')
     expect(flow).toContain("react('love'")
     expect(flow).toContain("react('shy'")
