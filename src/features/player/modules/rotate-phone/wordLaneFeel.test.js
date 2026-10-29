@@ -9,7 +9,8 @@ import { clipsFromFills } from './wordLaneAudio.js'
 import { createStudentGame, stepStudent } from './wordLaneStudent.js'
 
 const read = rel => readFileSync(fileURLToPath(new URL(rel, import.meta.url)), 'utf8')
-const css = read('../../../../styles/player/modules/word-lane.css')
+const readLane = () => read('../../../../styles/player/modules/word-lane.css') + read('../../../../styles/player/modules/word-lane-pill.css') // раскладка и пилюли: одна вёрстка игры в двух файлах
+const css = readLane()
 
 // «Ощущение» игры: затемнения сверху/снизу, кот поверх всего, отклик пилюль без опоздания, старт диктора без простоя
 describe('затемнения сверху и снизу', () => {

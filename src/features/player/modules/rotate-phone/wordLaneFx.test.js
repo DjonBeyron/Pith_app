@@ -12,6 +12,7 @@ import { levelFromRms } from '../../../../shared/lib/speech/sayRealLevel.js'
 import { createWordListener } from './wordLaneListen.js'
 
 const read = rel => readFileSync(fileURLToPath(new URL(rel, import.meta.url)), 'utf8')
+const readLane = () => read('../../../../styles/player/modules/word-lane.css') + read('../../../../styles/player/modules/word-lane-pill.css') // раскладка и пилюли: одна вёрстка игры в двух файлах
 
 describe('подсказка ученику: темп и «тень» слова диктора', () => {
   it('голос наливает пилюлю до FILL_CAP быстрее слова диктора (отклик максимальный), но в его пропорции: короткое слово — быстрее, длинное — медленнее', () => {
@@ -47,7 +48,7 @@ describe('подсказка ученику: темп и «тень» слова
     const eng = read('./useWordLanePills.js')
     expect(eng).toContain('ghostUntil')                                  // «тень» слова — только после неверно сказанного
     expect(read('./wordLaneStudent.js')).toContain('rep.durs[active]')     // скорость наливания голосом — длина слова диктора
-    const css = read('../../../../styles/player/modules/word-lane.css')
+    const css = readLane()
     expect(css).toContain(".wlPill:not([data-lock]):not([data-fail]) .wlPillFill")   // заливка «в процессе» (до подтверждения слова) — ровный бледный тон, без штриховки
   })
 })

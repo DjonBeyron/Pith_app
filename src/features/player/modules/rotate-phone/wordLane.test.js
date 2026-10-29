@@ -7,6 +7,7 @@ import { readWordLane, DEMO_WORD } from './wordLaneConfig.js'
 import { createWordListener } from './wordLaneListen.js'
 
 const read = rel => readFileSync(fileURLToPath(new URL(rel, import.meta.url)), 'utf8')
+const readLane = () => read('../../../../styles/player/modules/word-lane.css') + read('../../../../styles/player/modules/word-lane-pill.css') // раскладка и пилюли: одна вёрстка игры в двух файлах
 
 describe('заливка пилюли голосом ученика', () => {
   it('тишина не двигает и не сливает; голос наливает быстрее при большей громкости; выше FILL_CAP голос не заливает', () => {
@@ -117,7 +118,7 @@ describe('слушатель: счёт копится по заходам', () =
 })
 
 describe('вёрстка и подключения', () => {
-  const css = read('../../../../styles/player/modules/word-lane.css')
+  const css = readLane()
   const micCss = read('../../../../styles/player/modules/word-lane-mic.css')
 
   it('длительности CSS совпадают с JS', () => {

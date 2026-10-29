@@ -171,6 +171,6 @@ describe('WordLaneMic: подписи не изменились, слабое у
     expect(css).toContain('.wlMic--listening .wlMicBtn { background: var(--wl-accent); color: var(--wl-ink); transform: scale(calc(1 + var(--lvl, 0) * 0.14)); transition: background 0.25s, color 0.25s; }')
     expect(css).toContain('.wlMic--listening .wlMicBtn::after { opacity: calc(var(--lvl, 0) * 0.8); }')
     expect(css).toMatch(/\.wlMic--lite\.wlMic--listening \.wlMicRings, \.wlMic--lite\.wlMic--listening \.wlMicBtn::after \{ display: none; \}/)
-    expect(css).toMatch(/\.wlMicRings i \{[^}]*border: 3px solid/)
+    expect(css).toMatch(/\.wlMicRings i \{[^}]*border: 1px solid/) // тонкие кольца (подробности — wordLanePillFill.test.js)
   })
 })
