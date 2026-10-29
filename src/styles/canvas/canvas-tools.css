@@ -1,0 +1,18 @@
+/* Инструменты канваса (редактор урока): импорт/экспорт, сцены, правила, проверка, пакетная генерация, озвучка слов, здоровье, файлы, настройки урока, аудио, картинки, кроп. Вынесено из index.css (лимит 250 строк) */
+@import './lesson-io.css';
+@import './scene-picker.css';
+@import './scene-crop.css';
+@import './scenes-tab.css';
+@import './scenes-tab-row.css';
+@import './lesson-rules.css';
+@import './lesson-review.css';
+@import './lesson-review-notes.css';
+@import './batch-gen.css';
+@import './word-audio.css';
+@import './audio-meta-backfill.css';
+@import './health.css';
+@import './files-panel.css';
+@import './lesson-settings.css';
+@import './audio.css';
+@import './image-gen.css';
+@import './crop.css';

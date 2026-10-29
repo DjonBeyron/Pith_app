@@ -67,23 +67,7 @@
 @import './styles/canvas/page.css';
 @import './styles/canvas/page-menus.css';
 @import './styles/canvas/page-debug.css';
-@import './styles/canvas/lesson-io.css';
-@import './styles/canvas/scene-picker.css';
-@import './styles/canvas/scene-crop.css';
-@import './styles/canvas/scenes-tab.css';
-@import './styles/canvas/scenes-tab-row.css';
-@import './styles/canvas/lesson-rules.css';
-@import './styles/canvas/lesson-review.css';
-@import './styles/canvas/lesson-review-notes.css';
-@import './styles/canvas/batch-gen.css';
-@import './styles/canvas/word-audio.css';
-@import './styles/canvas/audio-meta-backfill.css';
-@import './styles/canvas/health.css';
-@import './styles/canvas/files-panel.css';
-@import './styles/canvas/lesson-settings.css';
-@import './styles/canvas/audio.css';
-@import './styles/canvas/image-gen.css';
-@import './styles/canvas/crop.css';
+@import './styles/canvas/canvas-tools.css'; /* инструменты канваса: импорт/экспорт, сцены, правила, проверка, генерация, файлы, аудио, картинки, кроп */
 /* База контролов нод — раньше частных стилей: при равной специфичности выигрывает конкретный чекбокс (награда, звук стикера, офсет), а общий остаётся для всех остальных */
 @import './styles/canvas/node-controls.css';
 @import './styles/canvas/nodes.css';
