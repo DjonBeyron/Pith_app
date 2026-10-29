@@ -54,9 +54,10 @@ describe('несколько целей: что услышал Vosk', () => {
     expect(analyzeTargets('to learn to learn', ['to learn']).seq).toEqual([0, 0])
   })
   it('словарь: все последовательности длиной 1–max из целей и [unk]; три цели × 3 = 84 + [unk]', () => {
-    const g = JSON.parse(targetGrammar(T, 3))
+    const T3 = ['go', 'trying', 'to learn']                                  // без сокращений: записей по одной (сокращения — wordLaneContractions.test.js)
+    const g = JSON.parse(targetGrammar(T3, 3))
     expect(g).toContain('trying')
-    expect(g).toContain('i am trying to learn')
+    expect(g).toContain('go trying to learn')
     expect(g).toContain('trying [unk] trying')
     expect(g.at(-1)).toBe('[unk]')
     expect(g.length).toBe(4 + 16 + 64 + 1)
