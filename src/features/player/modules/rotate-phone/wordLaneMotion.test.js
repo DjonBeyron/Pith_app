@@ -57,8 +57,8 @@ describe('подлагивание в начале: прогрев слоёв, �
   it('в фазе lanes пилюли стоят посреди экрана почти прозрачными — слои растеризуются до выезда первой пилюли', () => {
     expect(css).toMatch(/\.wl\[data-phase='lanes'\] \.wlPill \{[^}]*translate: -50% calc\(50dvh - 50%\);[^}]*opacity: 0\.01/)
   })
-  it('кот без идл-анимаций SVG (scn--live) — они идут в основном потоке', () => {
-    expect(read('./WordLaneCat.jsx')).toContain('className="scn wlCat"')
+  it('кот без идл-анимаций SVG (scn--live) — они идут в основном потоке; «живой Пит v2» (scn--v2) включён, на слабом устройстве добавляется scn--lite', () => {
+    expect(read('./WordLaneCat.jsx')).toContain("className={`scn scn--v2 wlCat${lite ? ' scn--lite' : ''}`}")
     expect(read('./WordLaneCat.jsx')).not.toMatch(/className="[^"]*scn--live/)
   })
   it('по флагу отладки показывается счётчик плавности (к/с, самый долгий кадр, подвисания с фазой)', () => {

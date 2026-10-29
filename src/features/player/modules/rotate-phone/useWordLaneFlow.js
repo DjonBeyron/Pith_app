@@ -157,6 +157,7 @@ export function useWordLaneFlow({ chunks, translation, lang, clips = null, audio
     if (s.stage !== 'run' || !stageObj) return undefined
     const left = at => Math.max(0, at - (performance.now() - s.at))
     const ids = []
+    const look = () => catApi?.current?.look // взгляд кота: ref читается в момент вызова (кот мог ещё не смонтироваться)
     if (stageObj.type === 'announce' || stageObj.type === 'turn') {
       ids.push(setTimeout(next, stageObj.ms))
       if (stageObj.type === 'announce') ids.push(setTimeout(() => sayLine(`round_${stageObj.round.kind}`), LINE_AT_MS))
@@ -164,13 +165,18 @@ export function useWordLaneFlow({ chunks, translation, lang, clips = null, audio
     }
     else if (stageObj.type === 'dictor') {
       const { plan } = stageObj
+      look()?.lineStart() // говорит диктор: зрачки кота оживают, на каждой пилюле — саккада (граница слова)
       for (const r of plan.reps) {
+        for (const pc of r.pieces ?? []) ids.push(setTimeout(() => look()?.word(), left(pc.at)))
         if (r.mode === 'clip' && r.row) ids.push(setTimeout(() => sayClip(r.row), left(r.at - AUDIO_LATENCY_MS))) // запись автора (финал: вся фраза)
         else for (const pc of r.pieces) ids.push(setTimeout(() => sayChunk(pc.chunk), left(pc.at - AUDIO_LATENCY_MS - pc.lead))) // куски по отдельности из библиотеки (голос в файле начинается через lead после включения)
       }
       ids.push(setTimeout(next, left(plan.listenMs)))
     }
-    return () => { ids.forEach(clearTimeout); stopVoice() }
+    else if (stageObj.type === 'student') look()?.lineStart() // очередь ученика: кот слушает, зрачки оживают
+    return () => { ids.forEach(clearTimeout); stopVoice(); if (stageObj.type === 'dictor' || stageObj.type === 'student') look()?.lineEnd() }
+    // catApi — ref родителя, стабилен; в зависимости не берём, чтобы стадия не перезапускалась
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [s.stage, s.idx, s.at, stageObj, sayChunk, sayClip, next, stages])
 
   // Слушатель: живёт со «своей очереди» (turn) и всю ступень ученика; у каждой ступени свои цели
@@ -179,10 +185,14 @@ export function useWordLaneFlow({ chunks, translation, lang, clips = null, audio
   useEffect(() => {
     if (!listenStep) return undefined
     const { texts } = stepTargets(listenStep, chunks)
+    let wordsHeard = 0
     const l = createWordListener({
       targets: texts, expected: listenStep.reps.length, level: rms, getStream: getGameMic,
       onChange: ({ status, seq, misses, heard, tail, heardAt }) => {
         signalRef.current = { tail, heardAt }
+        const words = seq.length * 8 + (tail?.tokens ?? 0) // растёт с каждым услышанным словом (недосказанная цель — по токенам, засчитанная — по номеру в seq)
+        if (words > wordsHeard) catApi?.current?.look?.word() // граница слова ученика: кот чуть переводит взгляд
+        wordsHeard = words
         if (status === 'dead') { // игровой поток оглох (iOS заглушил) — переоткрываем микрофон и слушаем заново; без игрового потока (свой у распознавателя) делать нечего
           if (hasGameMic()) { pLog('[mic] игровой поток отдаёт тишину — переоткрываю'); dropGameMic(); openGameMic().then(r => { if (r === 'granted') setMicEpoch(e => e + 1) }) }
           return
