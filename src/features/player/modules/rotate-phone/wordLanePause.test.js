@@ -206,7 +206,7 @@ describe('проводка и аудит исходников', () => {
     expect(flow).toContain('useWordLaneControls({')
     expect(flow).toMatch(/restartStage, pause, paused: s\.stage === 'paused'/)
     expect(read('./WordLaneCat.jsx')).toContain('freeze() { voice.stop()')
-    expect(read('./useCatLines.js')).toContain('return { text, sayLine, stop }')
+    expect(read('./useCatLines.js')).toContain('return { text, sayLine, stop, busyLeft }')
   })
   it('CSS: попап паузы выше кота (кот z-index 8, попап 9)', () => {
     expect(read('../../../../styles/player/modules/word-lane-pause.css')).toMatch(/\.wlPause \{[^}]*z-index: 9/)

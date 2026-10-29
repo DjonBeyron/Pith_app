@@ -7,6 +7,7 @@ import VoskReadyNotice from '../../../../shared/ui/VoskReadyNotice.jsx'
 import { useVoskReady } from '../../../../shared/lib/vosk/useVoskReady.js'
 import WordLaneGame from './WordLaneGame.jsx'
 import { readWordLane } from './wordLaneConfig.js'
+import { nextPlan } from '../../../rehearsal/rehearsalCfg.js'
 import { stopVoice } from './wordLaneVoice.js'
 import { releaseNotes } from './wordLaneNotes.js'
 import { releaseClips } from './wordLaneClips.js'
@@ -71,7 +72,9 @@ function RotateLive({ node, file, onDone, forceDebug, bare, startRef, onStatus }
   // Настройки игры не должны меняться от перерисовок плеера: новый объект node.typeData на каждый рендер пересобирал бы рецепт посреди игры (сбрасывая ступень и звук) — ключ по содержимому
   const tdKey = JSON.stringify(node.typeData?.rotate_phone ?? null)
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  const cfg = useMemo(() => readWordLane(node.typeData?.rotate_phone), [tdKey])
+  const nodeCfg = useMemo(() => readWordLane(node.typeData?.rotate_phone), [tdKey])
+  const [plan, setPlan] = useState(null) // «Ещё минутку?» в репетиции: следующий план вместо плана ноды
+  const cfg = useMemo(() => (plan ? readWordLane({ plan }) : nodeCfg), [plan, nodeCfg])
   const { src: audioSrc } = useAudioSource(node, file) // озвучка ElevenLabs из ноды (file_id) — если автор её сгенерировал
   const vosk = useVoskReady({ why: 'lesson' }) // распознавание только Vosk: модель в памяти или уведомление «Нужно скачать»
   const ready = vosk.status === 'ready'
@@ -107,8 +110,17 @@ function RotateLive({ node, file, onDone, forceDebug, bare, startRef, onStatus }
     pLog('[rotate] игра перезапущена из HUD')
   }, [cfg, audioSrc, lines])
 
+  /** «Ещё минутку?» (тап — жест): новая репетиция по следующему плану — игра монтируется заново, звук и микрофон открываются в этом же тапе */
+  const another = useCallback(() => {
+    const next = nextPlan(cfg.plan)
+    if (!next) return
+    flushSync(() => { setPlan(next); setGameKey(k => k + 1) })
+    startGameAudio({ cfg: readWordLane({ plan: next }), audioSrc, lines })
+    pLog(`[rotate] ещё одна репетиция: ${next.phrase}`)
+  }, [cfg, audioSrc, lines])
+
   const finished = useCallback(() => {
-    leaveFullscreen()
+    leaveFullscreen(); setPlan(null) // следующая игра — снова по плану ноды
     if (bare) { setPhase('wait'); onDone?.('shown') } else setPhase('finished')
   }, [bare, onDone])
 
@@ -125,7 +137,7 @@ function RotateLive({ node, file, onDone, forceDebug, bare, startRef, onStatus }
   }, [startRef, start])
   useEffect(() => { onStatus?.({ phase, busy, ready, problem }) }, [onStatus, phase, busy, ready, problem])
 
-  const game = phase === 'game' && <WordLaneGame key={gameKey} cfg={cfg} audioSrc={cfg.hasAudio ? audioSrc : null} lines={lines} forceDebug={forceDebug} onRestart={restart} onFinished={finished} />
+  const game = phase === 'game' && <WordLaneGame key={gameKey} cfg={cfg} audioSrc={cfg.hasAudio ? audioSrc : null} lines={lines} forceDebug={forceDebug} onRestart={restart} onAgain={cfg.plan ? another : null} onFinished={finished} />
   const extra = (
     <>
       {!ready && <VoskReadyNotice vosk={vosk} />}

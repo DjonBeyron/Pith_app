@@ -3,13 +3,18 @@ import RotatePhoneModule from '../../player/modules/rotate-phone/RotatePhoneModu
 import { listWordAudio, cachedWordAudio, subscribeWordAudio } from '../../../shared/lib/wordAudio/wordAudioApi.js'
 import { generateWordAudio } from '../../../shared/lib/wordAudio/wordAudioGenerate.js'
 import { loadTestForm, saveTestForm, chunkRows } from './gameTestRows.js'
+import GameTestRehearsal from './GameTestRehearsal.jsx'
+import { loadRehearsalForm, saveRehearsalForm } from '../../rehearsal/rehearsalTestForm.js'
 
 // Админ → «Голос»: «Тест игры» — быстрый запуск «Повтори за диктором» без урока, чтобы отлаживать анимацию и звук. Фраза с кусками через «|» и перевод (по умолчанию «I'm | trying | to learn»);
 // «Озвучить» — озвучка кусков в общую библиотеку слов тем же путём, что у уроков (generateWordAudio: ElevenLabs → R2 → word_audio, ключ wordKey), у каждого куска видно «есть / нет озвучки»;
 // «Запустить игру» — синтетическая нода rotate_phone, игра на весь экран. Тап по кнопке — жест (микрофон, звук, полный экран — ровно как «Начать» в уроке): кнопка вызывает start() модуля через startRef.
 // HUD настроек (⚙) и «Скачать отладку» включены всегда (forceDebug). Результаты нигде не пишутся, XP не начисляется. После игры кнопка превращается в «Ещё раз».
+// Переключатель «Нода (как сейчас)» / «Репетиция (симуляция)»: второй режим — сценарий «Репетиция с Питом» по плану-фикстуре (GameTestRehearsal.jsx, CONCEPT_REHEARSAL.md); режим запоминается в браузере админа.
 export default function GameTestBlock({ generate = generateWordAudio }) {
   const [form, setForm] = useState(loadTestForm)
+  const [rform, setRform] = useState(loadRehearsalForm) // режим «Репетиция (симуляция)»: фикстура и JSON плана
+  const changeR = patch => setRform(prev => { const next = { ...prev, ...patch }; saveRehearsalForm(next); return next })
   const [lib, setLib] = useState(() => cachedWordAudio())
   const [voicing, setVoicing] = useState('')   // ключ куска, который озвучивается сейчас
   const [errors, setErrors] = useState({})     // ключ → текст ошибки
@@ -40,9 +45,26 @@ export default function GameTestBlock({ generate = generateWordAudio }) {
   const node = useMemo(() => ({ id: 'wl-test', type: 'rotate_phone', isHistory: false, typeData: { rotate_phone: { phrase: form.phrase, translation: form.translation, lang: 'en-US', content: 'Тест' } } }), [form.phrase, form.translation])
   const onDone = useCallback(() => setRuns(n => n + 1), [])
 
+  const modes = (
+    <div className="aspChips" data-testid="game-test-mode">
+      {[['node', 'Нода (как сейчас)'], ['rehearsal', 'Репетиция (симуляция)']].map(([id, title]) => (
+        <button key={id} type="button" className={`aspChip${rform.mode === id ? ' aspChipOn' : ''}`} disabled={playing} onClick={() => changeR({ mode: id })} aria-pressed={rform.mode === id} data-testid={`game-test-mode-${id}`}>{title}</button>
+      ))}
+    </div>
+  )
+  if (rform.mode === 'rehearsal') {
+    return (
+      <section className="aspBlock" data-testid="game-test-block">
+        <h3 className="aspH">Тест игры «Повтори за диктором»</h3>
+        {modes}
+        <GameTestRehearsal form={rform} onChange={changeR} lib={lib} generate={generate} />
+      </section>
+    )
+  }
   return (
     <section className="aspBlock" data-testid="game-test-block">
       <h3 className="aspH">Тест игры «Повтори за диктором»</h3>
+      {modes}
       <label className="aspLabel">Фраза (куски через «|», до трёх)
         <input className="aspInput" type="text" value={form.phrase} disabled={playing} onChange={e => change({ phrase: e.target.value })} data-testid="game-test-phrase" />
       </label>

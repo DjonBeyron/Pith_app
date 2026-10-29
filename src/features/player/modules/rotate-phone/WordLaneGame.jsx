@@ -10,6 +10,7 @@ import WordLanePerf from './WordLanePerf.jsx'
 import WordLaneCat from './WordLaneCat.jsx'
 import WordLaneXp from './WordLaneXp.jsx'
 import WordLanePause from './WordLanePause.jsx'
+import RehearsalActs from '../../../rehearsal/RehearsalActs.jsx'
 import { isWordLaneDebug } from './wordLaneConfig.js'
 import { readPillSafe, readTapMode } from './wordLaneHudSettings.js'
 import { useWordLaneFlow } from './useWordLaneFlow.js'
@@ -29,22 +30,22 @@ const FAIL_TEXT = {
   sub: 'Распознавание речи не запустилось: нет модели или микрофон не открылся. Проверь доступ к микрофону и попробуй ещё раз.',
 }
 
-export default function WordLaneGame({ cfg, audioSrc, lines = null, forceDebug = false, onRestart = null, onFinished }) {
+export default function WordLaneGame({ cfg, audioSrc, lines = null, forceDebug = false, onRestart = null, onAgain = null, onFinished }) {
   const rootRef = useRef(null)
   const [tapMode, setTapMode] = useState(readTapMode) // «тап вместо речи» (HUD, админ): тап по дорожке в очереди ученика засчитывает следующую цель — проверка механики и анимаций без голоса
   const [safe0] = useState(readPillSafe) // «безопасные слои пилюль» (HUD): класс только на старте, дальше его меняет сам HUD через classList — className не меняется, React его не трогает
   const catApi = useRef(null) // Пит (кот-маскот): рот по голосу и реакции лицом — через api, минуя React на кадрах
-  const f = useWordLaneFlow({ chunks: cfg.chunks, translation: cfg.translation, lang: cfg.lang, clips: cfg.clips, audioSrc, audio: cfg.audio, catApi, lines, confusers: cfg.confusers, forceDebug, onFinished })
+  const f = useWordLaneFlow({ chunks: cfg.chunks, translation: cfg.translation, lang: cfg.lang, clips: cfg.clips, audioSrc, audio: cfg.audio, catApi, lines, confusers: cfg.confusers, plan: cfg.plan, forceDebug, onFinished })
   const pause = useWordLanePause({ f, cfg, audioSrc, lines }) // свернули приложение — пауза сразу, «Продолжить» открывает микрофон из тапа (useWordLanePause.js)
   const { phase } = f
-  const single = cfg.chunks.length === 1 && phase !== 'discern' // у одного слова текст стоит крупно — кроме «Различи»: там слова на пилюлях, а верное над дорожками не выдаём
+  const single = cfg.chunks.length === 1 && phase !== 'discern' && !cfg.plan // у одного слова текст стоит крупно — кроме «Различи»: там слова на пилюлях, а верное над дорожками не выдаём
   const showSlots = phase !== 'drop'
   const intro = phase === 'drop' || phase === 'lanes' || f.pausedIntro
   const heads = intro ? cfg.chunks.map(text => ({ text, on: true })) : f.labels
   const debug = isWordLaneDebug()
 
   return createPortal(
-    <div ref={rootRef} className={safe0 ? 'wl wl--safe' : 'wl'} data-phase={phase} data-testid="wl">
+    <div ref={rootRef} className={safe0 ? 'wl wl--safe' : 'wl'} data-phase={phase} data-act={f.rh.on ? f.stageObj?.act : undefined} data-sid={f.rh.on ? f.stageObj?.sid : undefined} data-testid="wl">
       <div className="wlStage">
         <WordLaneCat apiRef={catApi} />
         <WordLanePills scene={f.scene} levels={f.levels} fx={f.fx} live={f.live} sceneApi={f.sceneApi} visible={showSlots} onLane={phase === 'order' || phase === 'discern' || (tapMode && phase === 'student') ? f.onLane : null} />
@@ -68,6 +69,7 @@ export default function WordLaneGame({ cfg, audioSrc, lines = null, forceDebug =
             {f.dbg.enabled && <WordLaneDebugButton dbg={f.dbg} />}
           </div>
         )}
+        <RehearsalActs f={f} cfg={cfg} onAgain={onAgain} />
         {debug && <WordLaneDebug />}
         {debug && <WordLanePerf />}
         <Mic mode={f.mic} levels={f.levels} note={f.note} visible={phase === 'student'} />
