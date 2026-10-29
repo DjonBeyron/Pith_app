@@ -56,8 +56,10 @@ export function useWordLanePills(rootRef, { scene, levels, fx, live, sceneApi })
           if (h.k == null) continue
           pool.paintFill(h.k, pillFill(t, h.p.at, h.p.ms, h.p.curve))
           if (!h.snapped && t >= h.p.at + h.p.ms - SNAP_LEAD_MS) {
-            h.snapped = true; snapPill(pool.el(h.k), h.p.lane)
-            if (h.p.chunk === plan.reps[h.p.rep].parts.at(-1)) light(h.p.rep) // повтор договорён — «огонёк»
+            h.snapped = true
+            const lastPiece = h.p.chunk === plan.reps[h.p.rep].parts.at(-1)
+            snapPill(pool.el(h.k), h.p.lane, { full: lastPiece }) // вспышка и искры — один раз на повтор (когда он договорён), у остальных кусков только хлопок
+            if (lastPiece) light(h.p.rep) // повтор договорён — «огонёк»
           }
         }
         fxRef.current?.mouth?.(plan.mouth(t), plan.mouthCode(t)) // рот: громкость решает, звучит ли слово, буквы — какой формы рот (на «о» круглый)
@@ -95,8 +97,8 @@ export function useWordLanePills(rootRef, { scene, levels, fx, live, sceneApi })
         } else if (e.type === 'claim') {
           e.rep.pills.forEach(p => { const k = held.get(p.id); if (k != null) pool.attr(k, 'data-lock') })
           light(claimedReps++)
-        } else if (e.type === 'snap') { const k = held.get(e.pill.id); if (k != null) snapPill(pool.el(k), e.pill.lane) } // отклик — в момент, когда слово принято
-        else if (e.type === 'win') { gate.mute(performance.now()); const k = held.get(e.pill.id); fxRef.current?.win?.(e.order, k != null ? pool.el(k).getBoundingClientRect() : null) } // нота-награда: микрофон слышит динамик — голосом это не считаем
+        } else if (e.type === 'snap') { const k = held.get(e.pill.id); if (k != null) snapPill(pool.el(k), e.pill.lane, { full: e.pill.piece === 0 }) } // отклик — в момент, когда слово принято; вспышка и искры — один раз на повтор (у первого куска), остальные куски только хлопают
+        else if (e.type === 'win') { gate.mute(performance.now()); const k = held.get(e.pill.id); fxRef.current?.win?.(e.order, k != null ? pool.el(k).getBoundingClientRect() : null, { last: e.last, count: e.rep.pills.length }) } // нота-награда: микрофон слышит динамик — голосом это не считаем. last / count: XP одна цифра на повтор (когда принят последний кусок)
         else if (e.type === 'fail') { e.pills.forEach(p => { const k = held.get(p.id); if (k != null) { pool.attr(k, 'data-fail'); pool.hint(k, '0', null) } }); fxRef.current?.fail?.(e) }
         else if (e.type === 'miss') {
           const k = e.rep ? held.get(e.rep.pills[0]?.id) : null
@@ -114,8 +116,9 @@ export function useWordLanePills(rootRef, { scene, levels, fx, live, sceneApi })
         const confirmed = Date.now() - (sig.heardAt ?? 0) < CONFIRM_MS // распознаватель недавно что-то услышал: речь настоящая, а не шум или эхо
         for (const e of stepStudent(g, t, { level, seq, misses: liveRef.current.misses, confirmed, tail: sig.tail ?? null })) handle(e)
         const now2 = performance.now()
+        const byId = held.size ? new Map(g.pills.map(x => [x.id, x])) : null // одна карта на кадр вместо поиска по массиву на каждую пилюлю
         for (const [id, k] of held) {
-          const p = g.pills.find(x => x.id === id)
+          const p = byId.get(id)
           if (!p) { pool.give(k); held.delete(id); continue }   // ушла за нижний край
           pool.paintFill(k, p.p)
           // «Тень» слова — только после неверно сказанного (и ненадолго): пока ученик говорит верно или молчит, внутри пилюли ничего лишнего

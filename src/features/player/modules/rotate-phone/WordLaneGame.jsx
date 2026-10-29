@@ -1,4 +1,4 @@
-import { useRef } from 'react'
+import { memo, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
 import WordLanePills from './WordLanePills.jsx'
@@ -6,7 +6,7 @@ import WordLaneMic from './WordLaneMic.jsx'
 import WordLaneDebug from './WordLaneDebug.jsx'
 import WordLanePerf from './WordLanePerf.jsx'
 import WordLaneCat from './WordLaneCat.jsx'
-import XpFloat from '../../XpFloat.jsx'
+import WordLaneXp from './WordLaneXp.jsx'
 import { isWordLaneDebug } from './wordLaneConfig.js'
 import { useWordLaneFlow } from './useWordLaneFlow.js'
 import { WORD_Y } from './wordLaneTimeline.js'
@@ -15,6 +15,9 @@ import { WORD_Y } from './wordLaneTimeline.js'
 // Раунды: наращивание (диктор — ученик по ступеням «кусок ×3 → следующий ×3 → вместе ×3 …»), «Порядок» (тап по дорожкам), «Вслепую» (ни текста, ни перевода) → перевод. Одно слово (фраза из одного куска)
 // стоит над дорожками крупно, пилюли — три повтора. Сценарий и таймеры — useWordLaneFlow.js, пилюли — useWordLanePills.js, раскладка — wordLaneTimeline.js.
 // Оверлей — portal в body поверх всего (z-index 10000), закрывает весь экран, включая зону вырезов (safe-area учтена отступами сцены). Крестик — выйти в любой момент.
+// Тяжёлое (пилюли, кот, микрофон, награды XP) мемоизировано и живёт на стабильных пропсах: шаг сценария (подпись кота, подсказка, плашка) перерисовывает только лёгкую часть — подписи и плашки.
+const Mic = memo(WordLaneMic) // микрофон перерисовывается, только когда сменились его пропсы (режим, подсказка, видимость), а не на каждый шаг оверлея
+
 export default function WordLaneGame({ cfg, audioSrc, lines = null, onFinished }) {
   const catApi = useRef(null) // Пит (кот-маскот): рот по голосу и реакции лицом — через api, минуя React на кадрах
   const f = useWordLaneFlow({ chunks: cfg.chunks, translation: cfg.translation, lang: cfg.lang, clips: cfg.clips, audioSrc, audio: cfg.audio, catApi, lines, confusers: cfg.confusers, onFinished })
@@ -30,7 +33,7 @@ export default function WordLaneGame({ cfg, audioSrc, lines = null, onFinished }
       <div className="wlStage">
         <WordLaneCat apiRef={catApi} />
         <WordLanePills scene={f.scene} levels={f.levels} fx={f.fx} live={f.live} sceneApi={f.sceneApi} visible={showSlots} onLane={phase === 'order' || phase === 'discern' ? f.onLane : null} />
-        <div className={`wlXp${f.xp > 0 || f.xpEvents.length ? ' wlXp--on' : ''}`} data-testid="wl-xp">{f.xp} XP</div>
+        <WordLaneXp apiRef={f.xpApi} />
         {single
           ? <div className="wlWord" style={{ top: `${WORD_Y}%` }} data-testid="wl-word">{cfg.chunks[0]}</div>
           : (
@@ -50,10 +53,9 @@ export default function WordLaneGame({ cfg, audioSrc, lines = null, onFinished }
         )}
         {debug && <WordLaneDebug />}
         {debug && <WordLanePerf />}
-        <WordLaneMic mode={f.mic} levels={f.levels} note={f.note} onTap={f.tapMic} visible={phase === 'student'} />
+        <Mic mode={f.mic} levels={f.levels} note={f.note} onTap={f.tapMic} visible={phase === 'student'} />
         {phase === 'student' && f.mic === 'manual' && <button type="button" className="wlSkip" onClick={f.skip} data-testid="wl-skip">Пропустить</button>}
       </div>
-      <XpFloat events={f.xpEvents} onDismiss={f.dismissXp} viewport />
       <button type="button" className="wlClose" onClick={f.finish} aria-label="Закрыть" data-testid="wl-close"><X size={20} /></button>
     </div>,
     document.body,
