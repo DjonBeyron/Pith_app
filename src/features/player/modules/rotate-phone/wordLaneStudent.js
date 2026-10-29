@@ -28,6 +28,10 @@ export const FAIL_Y = CLAIM_TO_Y        // центр последней пил�
 export const LEAD_IN_MS = 0             // первая пилюля выезжает из-за верхнего края на глазах (появиться посреди экрана рывком нельзя)
 export const LOCK_STAGGER_MS = 140      // куски принятого повтора защёлкиваются по очереди
 
+let debugSink = null
+/** Отладка («Скачать отладку», wordLaneDebug): fn(events, g, input) получает события каждого шага, где они были; null — выключено, шаг ничего не тратит и логика не меняется */
+export const setStudentDebug = fn => { debugSink = fn }
+
 export const yOfPill = (pill, t) => ENTER_Y + (SPEED * (t - pill.spawnAt)) / 1000
 
 /** Повтор на экране: можно ли взять — первая пилюля открылась, последняя ещё не ушла вниз */
@@ -168,5 +172,6 @@ export function stepStudent(g, t, { level = 0, seq = [], misses = 0, confirmed =
     g.finished = true
     events.push({ type: 'done', locked: g.locked })
   }
+  if (debugSink && events.length) debugSink(events, g, { t, level, seq, misses, confirmed, tail })
   return events
 }

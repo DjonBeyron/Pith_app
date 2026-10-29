@@ -1,0 +1,16 @@
+/* «Скачать отладку» в финале игры «Повтори за диктором» (WordLaneDebugButton.jsx) — только при отладочном интерфейсе: маленькая серая ссылка и строка «что я говорил» */
+.wlDebugBox { margin-top: 16px; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.wlDebugSaid {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 7px 10px;
+  border-radius: 10px;
+  border: 1px solid #3a3f4f;
+  background: transparent;
+  color: #cfd3e0;
+  font-size: 16px; /* меньше 16 px — iOS приближает страницу при фокусе */
+}
+.wlDebugSaid::placeholder { color: #6f7589; }
+.wlDebugLink { border: 0; background: none; padding: 6px; font-size: 12px; color: #8a8fa3; text-decoration: underline; cursor: pointer; }
+.wlDebugLink:disabled { opacity: 0.6; text-decoration: none; cursor: default; }
+.wlDebugStatus { font-size: 12px; line-height: 1.3; color: #9aa0b4; }

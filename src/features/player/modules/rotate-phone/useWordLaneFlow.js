@@ -12,6 +12,7 @@ import { makeLib, libRow } from './wordLaneLib.js'
 import { speechOfUrl } from './wordLaneClips.js'
 import { mouthTrack } from './wordLaneVisemes.js'
 import { useCatLines } from './useCatLines.js'
+import { useWordLaneDebug } from './useWordLaneDebug.js'
 import { DROP_MS, LANES_MS } from './wordLaneTimeline.js'
 import { XP_PER_PILL, sensitiveLevel } from './wordLaneConfig.js'
 import { getVoiceRate } from '../../lessonVolume.js'
@@ -48,35 +49,34 @@ export function useWordLaneFlow({ chunks, translation, lang, clips = null, audio
   const [s, setS] = useState({ stage: 'drop', idx: 0, at: 0, note: '', lid: '', seq: [], misses: 0, mic: 'starting', hint: [] })
   const xpApi = useRef(null)             // счётчик и летящие цифры XP живут в своём компоненте (WordLaneXp): каждая награда не перерисовывает оверлей, пилюли и кота
   const sRef = useRef(s)
-  const listenerRef = useRef(null)
-  const finishedRef = useRef(false)
+  const listenerRef = useRef(null), finishedRef = useRef(false)
   const sceneApi = useRef(null)          // движок отвечает: order — tap(lane); student — nextTarget()
   const signalRef = useRef({ tail: null, heardAt: 0 }) // что слышит распознаватель прямо сейчас (недосказанная цель, когда последний раз что-то услышал) — без перерисовок React
   const timersRef = useRef(new Set())
-  const noteTimerRef = useRef(0)
-  const hintTimerRef = useRef(0)
+  const noteTimerRef = useRef(0), hintTimerRef = useRef(0)
   const [rms] = useState(() => createRmsLevel({ fromRms: sensitiveLevel })) // громкость голоса ученика (кольца микрофона, ворота)
   const [levels] = useState(() => createLevelSource(t => rms.read(t)))
   useEffect(() => { sRef.current = s })
+  const stageObj = s.stage === 'run' ? stages[s.idx] : null
+  const dbg = useWordLaneDebug({ chunks, translation, lang, stage: s.stage, idx: s.idx, stageObj }) // «Скачать отладку»: журнал и запись микрофона; выключено — пустые функции
   const cat = useCatLines({ lines, rate, catApi, listenerRef }) // реплики кота: подпись + озвучка + рот по буквам
   const sayLineRef = useRef(cat.sayLine)
-  useEffect(() => { sayLineRef.current = cat.sayLine })
+  useEffect(() => { sayLineRef.current = (...a) => { const said = cat.sayLine(...a); if (said) dbg.note(`cat:${a[0]}`); return said } }) // реплика кота попадает и в журнал отладки (окно mute вокруг неё)
   const sayLine = (...a) => sayLineRef.current(...a) // обработчики и таймеры стадий всегда берут свежую версию (настройки реплик могут догрузиться) — а стадия из-за этого не перезапускается
 
   const later = useCallback((fn, ms) => { const id = setTimeout(() => { timersRef.current.delete(id); fn() }, Math.max(0, ms)); timersRef.current.add(id); return id }, [])
   const clearTimers = useCallback(() => { timersRef.current.forEach(clearTimeout); timersRef.current.clear() }, [])
   const go = useCallback((stage, idx = 0) => setS(p => ({ ...p, stage, idx, at: performance.now(), hint: [] })), [])
   const next = useCallback(() => { const i = sRef.current.idx + 1; if (i >= stages.length) go('reveal', i); else go('run', i) }, [go, stages.length])
-  const stageObj = s.stage === 'run' ? stages[s.idx] : null
 
   // Звук куска: слот библиотеки слов (подготовлен в тапе «Начать») → озвучка библиотеки обычным путём → голос системы
   const sayChunk = useCallback(i => {
-    const r = libRow(chunks[i])
+    const r = libRow(chunks[i]); dbg.note('dictor')
     if (r && playWordSlot(r.key)) return
     speakWord(chunks[i], lang)
-  }, [chunks, lang])
+  }, [chunks, lang, dbg])
   // Звук записи автора (клип фразы целиком): клип в памяти → перемотка файла
-  const sayClip = useCallback(row => { const span = playSpan(row); if (!playClip(span)) playTrack(audioSrc, span) }, [audioSrc])
+  const sayClip = useCallback(row => { dbg.note('dictor'); const span = playSpan(row); if (!playClip(span)) playTrack(audioSrc, span) }, [audioSrc, dbg])
   // Озвучить высказывание из кусков parts сразу (подсказки раунда «Порядок»): запись автора — только у целой фразы, иначе куски по отдельности один за другим
   const say = useCallback((parts, repIdx = 0) => {
     const row = audioSrc && clipMode(parts) ? clipsFor(clips, chunks.length, parts, repIdx) : null
@@ -90,7 +90,7 @@ export function useWordLaneFlow({ chunks, translation, lang, clips = null, audio
   // Реакции игры (зовёт движок пилюль, useWordLanePills). Обработчики свежие на каждый рендер (handlers), а fx — стабильный объект-обёртка: движку не нужно перезапускаться
   const handlers = {
     win(order, rect, rep = { last: true, count: 1 }) { // rep — у ученика: последний ли это кусок повтора и сколько в нём кусков; раунды «Порядок» / «Различи» награждают пилюлю сразу
-      if (playNote(order)) listenerRef.current?.mute(900)
+      if (playNote(order)) { listenerRef.current?.mute(900); dbg.note('note') }
       catApi?.current?.react('love', 1600)
       catApi?.current?.peek?.()
       if (rep.last) xpApi.current?.add(XP_PER_PILL * rep.count, rect) // у повтора из нескольких кусков одна цифра («+6»), когда принят последний кусок
@@ -107,10 +107,10 @@ export function useWordLaneFlow({ chunks, translation, lang, clips = null, audio
         hintTimerRef.current = setTimeout(() => setS(p => ({ ...p, hint: [] })), HINT_MS)
       }
     },
-    mouth(level, code) { catApi?.current?.mouth(level, code) },
+    mouth(level, code) { catApi?.current?.mouth(level, code); if (dbg.enabled && stages[sRef.current.idx]?.type === 'student') dbg.gate(level > 0) }, // gate: голос после ворот (двигает пилюли) — пишем смену состояния
     peek(ms) { catApi?.current?.peek?.(ms) },
     sayText(text) { // «Различи»: звучит слово пилюли (верное или запутыватель) — из библиотеки слов, нет её — голос системы; рот кота по буквам слова
-      const r = libRow(text)
+      const r = libRow(text); dbg.note('word')
       if (!(r && playWordSlot(r.key))) speakWord(text, lang)
       const ms = Math.round((speechOfUrl(r?.row.url)?.ms ?? (Number(r?.row.duration) > 0 ? Number(r.row.duration) * 1000 : estChunkMs(text))) / (rate > 0 ? rate : 1))
       catApi?.current?.speak?.(mouthTrack(text, ms), ms)
@@ -130,11 +130,11 @@ export function useWordLaneFlow({ chunks, translation, lang, clips = null, audio
 
   const finish = useCallback(() => {
     if (finishedRef.current) return
-    finishedRef.current = true
+    finishedRef.current = true; dbg.event('finish')
     stopVoice(); releaseNotes(); releaseClips(); clearTimers(); closeGameMic()
     listenerRef.current?.dispose()
     onFinished?.()
-  }, [onFinished, clearTimers])
+  }, [onFinished, clearTimers, dbg])
 
   useEffect(() => () => { closeGameMic(); stopVoice(); releaseNotes(); releaseClips(); clearTimeout(noteTimerRef.current); clearTimeout(hintTimerRef.current); timersRef.current.forEach(clearTimeout); listenerRef.current?.dispose() }, [])
 
@@ -187,7 +187,7 @@ export function useWordLaneFlow({ chunks, translation, lang, clips = null, audio
     const { texts } = stepTargets(listenStep, chunks)
     let wordsHeard = 0
     const l = createWordListener({
-      targets: texts, expected: listenStep.reps.length, level: rms, getStream: getGameMic,
+      targets: texts, expected: listenStep.reps.length, level: rms, getStream: getGameMic, onDebug: dbg.enabled ? dbg.listen : null,
       onChange: ({ status, seq, misses, heard, tail, heardAt }) => {
         signalRef.current = { tail, heardAt }
         const words = seq.length * 8 + (tail?.tokens ?? 0) // растёт с каждым услышанным словом (недосказанная цель — по токенам, засчитанная — по номеру в seq)
@@ -245,5 +245,5 @@ export function useWordLaneFlow({ chunks, translation, lang, clips = null, audio
   const phase = s.stage === 'run' ? (stageObj?.type ?? 'idle') : s.stage
   const labels = labelsFor(stageObj?.type === 'announce' ? stages[s.idx + 1] : stageObj, chunks, lanes, s.hint) // под плашкой раунда уже видны подписи следующей стадии
   const plate = stageObj?.type === 'announce' ? stageObj.round.title : stageObj?.type === 'turn' ? 'Теперь твоя очередь' : ''
-  return { ...s, catLine: cat.text, phase, stageObj, scene, live, labels, plate, plateMs: stageObj?.ms ?? 0, levels, fx, sceneApi, xpApi, onLane, tapMic, skip, finish, translation, text: textOf(chunks, chunks.map((_, i) => i)) }
+  return { ...s, dbg, catLine: cat.text, phase, stageObj, scene, live, labels, plate, plateMs: stageObj?.ms ?? 0, levels, fx, sceneApi, xpApi, onLane, tapMic, skip, finish, translation, text: textOf(chunks, chunks.map((_, i) => i)) }
 }

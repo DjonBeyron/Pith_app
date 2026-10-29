@@ -28,9 +28,10 @@ export const MISS_SETTLE_MS = 550 // «чужое слово» из чернов
  * (по умолчанию SLOT_COUNT; «Скажи вслух» берёт 2: целей много, а словарь растёт степенью).
  * onChange({ status: 'idle'|'starting'|'listening'|'done'|'unavailable'|'error'|'timeout', hits, misses, heard }) — при каждом изменении; heard — что услышал движок («…» вместо неразобранного слова):
  * по нему игра честно говорит ученику, что именно распозналось. mute(ms) — на это время новые «чужие слова» не засчитываются (нота-награда из динамика могла попасть в микрофон).
+ * onDebug(kind, data) — необязательный журнал для «Скачать отладку» (wordLaneDebug): partial / final (с разбором), mute, stop, level, grammar, status, session-end; на игру не влияет.
  * Зависимости подставляются в тестах.
  */
-export function createWordListener({ word, targets: targetsIn, expected = SLOT_COUNT, maxWords = SLOT_COUNT, getStream = null, onChange, runtime = voskRuntime, listen = startListening, level = createRmsLevel(), now = () => Date.now(), setTimer = setTimeout, clearTimer = clearTimeout }) {
+export function createWordListener({ word, targets: targetsIn, expected = SLOT_COUNT, maxWords = SLOT_COUNT, getStream = null, onChange, onDebug = null, runtime = voskRuntime, listen = startListening, level = createRmsLevel(), now = () => Date.now(), setTimer = setTimeout, clearTimer = clearTimeout }) {
   const targets = targetsIn?.length ? targetsIn : [word]
   let seq = [], misses = 0            // накоплено за все заходы
   let base = { seq: [], misses: 0 }   // накоплено до текущего захода
@@ -50,7 +51,7 @@ export function createWordListener({ word, targets: targetsIn, expected = SLOT_C
   let lastPartial = null // текст прошлого черновика: Vosk шлёт partial после КАЖДОГО куска звука (≈ 20 раз в секунду), а текст меняется редко
 
   const publish = patch => {
-    if (patch.status) status = patch.status
+    if (patch.status) { status = patch.status; onDebug?.('status', { status, ...(patch.error ? { error: String(patch.error) } : {}) }) }
     if (patch.seq && patch.seq.length >= seq.length) seq = patch.seq // счёт не откатывается назад: поздний partial мог «передумать»
     if (patch.misses != null) misses = Math.max(misses, patch.misses)
     if (patch.heard != null) heard = patch.heard
@@ -63,6 +64,7 @@ export function createWordListener({ word, targets: targetsIn, expected = SLOT_C
   function end(session, st) {
     if (disposed || cur !== session) return
     cur = null
+    onDebug?.('session-end', { by: st })
     clearTimer(timer); clearTimer(missTimer)
     if (now() - startedAt >= OVERALL_MS) { publish({ status: 'timeout' }); return }
     if (st === 'error') return
@@ -75,9 +77,10 @@ export function createWordListener({ word, targets: targetsIn, expected = SLOT_C
     const model = runtime.getModel()
     const grammar = model ? targetGrammar(targets, maxWords) : null
     if (!model || !grammar) { publish({ status: 'unavailable' }); return }
+    onDebug?.('grammar', { targets, grammar })
     const session = { handle: null, stopped: false }
     cur = session
-    const part = (raw, final) => {
+    const part = (raw, final, stats = null) => {
       const r = analyzeTargets(raw, targets, final)
       const rawMisses = base.misses + r.misses
       if (now() < mutedUntil) absorbed += Math.max(0, rawMisses - lastRaw) // «чужое слово» во время ноты-награды — это эхо динамика, не ошибка ученика
@@ -87,6 +90,7 @@ export function createWordListener({ word, targets: targetsIn, expected = SLOT_C
       clearTimer(missTimer)
       // Итог (final) — промах настоящий сразу; в черновике он должен устояться: следующий partial может переслушать слово, и тогда промаха не было
       const settled = final || count <= misses
+      onDebug?.(final ? 'final' : 'partial', { raw, seq: r.seq, misses: r.misses, count, settled, tail: r.tail, muted: now() < mutedUntil, absorbed, ...(stats ? { stopBy: stats.stopBy, gatedMs: stats.gatedMs, maxGapMs: stats.maxGapMs, lateChunks: stats.lateChunks } : {}) })
       publish({ seq: base.seq.concat(r.seq), ...(settled ? { misses: count } : {}), heard: words || heard, tail: r.tail, heardAt: words ? now() : 0 })
       if (!settled) missTimer = setTimer(() => { if (!disposed && cur === session) publish({ misses: count }) }, MISS_SETTLE_MS)
     }
@@ -94,6 +98,7 @@ export function createWordListener({ word, targets: targetsIn, expected = SLOT_C
       onReady: () => { if (!disposed && cur === session) publish({ status: 'listening' }) },
       onLevel: rms => {
         if (cur !== session) return
+        onDebug?.('level', rms)
         level.push(rms)
         if (rms > 0) { zeroSince = 0; return }
         zeroSince ||= now()
@@ -107,7 +112,7 @@ export function createWordListener({ word, targets: targetsIn, expected = SLOT_C
       },
       onResult: (text, stats) => {
         if (cur !== session) return
-        part((stats?.words?.length ? stats.words.map(w => w.word).join(' ') : text) || '', true)
+        part((stats?.words?.length ? stats.words.map(w => w.word).join(' ') : text) || '', true, stats)
         end(session, 'result')
       },
       onError: msg => { pLog(`[word-lane] Vosk: ${msg}`); end(session, 'error'); publish({ status: 'error', error: String(msg) }) },
@@ -126,12 +131,12 @@ export function createWordListener({ word, targets: targetsIn, expected = SLOT_C
     /** Из жеста, если можно: getUserMedia стартует тут же */
     start() { if (disposed || cur) return; if (!startedAt) startedAt = now(); run() },
     /** Остановить заход (Vosk отдаст итог и заход закончится сам) */
-    stop() { if (cur) { cur.stopped = true; try { cur.handle?.stop() } catch { /* уже закончил */ } } },
+    stop() { onDebug?.('stop', {}); if (cur) { cur.stopped = true; try { cur.handle?.stop() } catch { /* уже закончил */ } } },
     available: () => !!runtime.getModel(),
     /** Когда распознаватель последний раз что-то слышал (включая повторные черновики с тем же текстом, которые onChange уже не получает) */
     heardAt: () => heardAt,
     /** На ms мс новые «чужие слова» не засчитываются (звучит нота-награда) */
-    mute(ms) { mutedUntil = now() + ms },
+    mute(ms) { mutedUntil = now() + ms; onDebug?.('mute', { ms }) },
     level,
     dispose() {
       disposed = true

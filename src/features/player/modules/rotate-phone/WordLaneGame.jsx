@@ -4,6 +4,7 @@ import { X } from 'lucide-react'
 import WordLanePills from './WordLanePills.jsx'
 import WordLaneMic from './WordLaneMic.jsx'
 import WordLaneDebug from './WordLaneDebug.jsx'
+import WordLaneDebugButton from './WordLaneDebugButton.jsx'
 import WordLanePerf from './WordLanePerf.jsx'
 import WordLaneCat from './WordLaneCat.jsx'
 import WordLaneXp from './WordLaneXp.jsx'
@@ -49,6 +50,7 @@ export default function WordLaneGame({ cfg, audioSrc, lines = null, onFinished }
             <div className="wlRevealLabel">Перевод</div>
             <div className="wlRevealText">{cfg.translation || '—'}</div>
             <button type="button" className="wlNext" onClick={f.finish} data-testid="wl-next">Дальше</button>
+            {f.dbg.enabled && <WordLaneDebugButton dbg={f.dbg} />}
           </div>
         )}
         {debug && <WordLaneDebug />}

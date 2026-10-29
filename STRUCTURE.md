@@ -308,6 +308,7 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | `scripts/scene-cmp/make_demo_line.py` | Достаёт из демо маскотов (`public/mascot/index.html`) реплику со звуком и кладёт `public/scene-cmp/pit-line.wav` + `pit-line.json` с приблизительными таймингами слов — звук по умолчанию для стенда сравнения `?scene=cmp`. Запуск: `python3 scripts/scene-cmp/make_demo_line.py` |
 | `scripts/lint-scene.mjs` | Проверка JSON сцены v2 («два кота говорят») через `scene/v2/sceneLint.js`: `node scripts/lint-scene.mjs сцена.json` (код 1 при ошибках, предупреждения допускаются), `--demo` — встроенные демо-сцены с бюджетом узлов, `--legend` — печать легенды для нейросети |
 | `scripts/launch-stats.mjs` | Отчёт «Запуск» без приложения: тянет по REST (anon-ключ) curricula, lessons, word_audio, scenes, считает `buildLaunchStats` и печатает Markdown в stdout и в Summary Actions. Пуши — «только в админке». `VITE_SUPABASE_URL=… VITE_SUPABASE_ANON_KEY=… node scripts/launch-stats.mjs` |
+| `scripts/dictor-debug-report.mjs` | Отчёт по файлу «Скачать отладку» из игры «Повтори за диктором» (`pithy-dictor-debug-*.json`): шапка (устройство, фраза, что человек сказал, микрофон), раздел «Доступы и звук» (getUserMedia и play() по порядку), хронология игры (стадии, partial/final, пилюли, ноты, mute, ворота), кривая уровня голоса по секундам (ascii), запись микрофона сохраняется рядом (`.webm` / `.m4a`). Чистый node, без зависимостей |
 | `public/design/index.html` | Хаб прототипа интерфейса: все экраны-макеты в мини-рамах телефонов со ссылками на полные версии |
 | `public/design/proto.css` | Общие стили прототипа: тёмные токены, рама «телефона», верхние вкладки, нижний бар, кнопки, полосы прогресса |
 | `public/design/feed.html` | Макет ленты «Рекомендации»: видео-заглушка, HUD (лайк/закладка/репост), кнопка «Изучить фразу», чип «Включить звук» |
@@ -544,6 +545,7 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | `player/modules/unknown-node.css` | Стили фолбэка неизвестного типа ноды (UnknownNodeFallback) |
 | `player/modules/word-lane.css` | Игра «Повтори за диктором» (`WordLaneGame.jsx`): полноэкранный оверлей z-index 10000, слово наверху, дорожки с разделителями, «огоньки» прогресса, вертикальные пилюли (положение `translate` из `--y`, заливка `scaleY(var(--pv))` — без CSS-переходов, их пишет движок), красная вспышка чужого слова, отладочные опорные точки |
 | `player/modules/word-lane-mic.css` | Игра «Повтори за диктором»: плашка «Теперь твоя очередь», микрофон (выезд снизу 0,6 с): кнопка, свечение и три кольца-волны считаются из одной переменной `--lvl` (лаймовый акцент), кнопка «Пропустить», перевод в финале |
+| `player/modules/word-lane-debug.css` | «Скачать отладку» в финале игры «Повтори за диктором» (`WordLaneDebugButton.jsx`): маленькая серая ссылка и строка «что я говорил» |
 | `player/modules/rotate-phone.css` | Карточка ноды «Переверни телефон» в чате: в пузыре ссылки, значок микрофона со свечением, заголовок + подпись, кнопка «Начать», галочка по концу игры |
 | `player/message.css` | Базовый пузырь — только общие стили, без типов |
 | `player/modules/audio.css` | Аудио-модуль: ::before-маска, canvas-волна, печатание текста |
@@ -1525,6 +1527,14 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | `modules/rotate-phone/wordLaneStudent.test.js` | Тесты ученика ступени: выкат, claim по цели, snap/win, «не успел», вслепую, голосовая заливка кусков по очереди |
 | `modules/rotate-phone/wordLaneNotes.test.js` | Тесты нот: одинаковая громкость, третья не тише, окно закрытия микрофона |
 | `modules/rotate-phone/WordLanePerf.jsx` | Отладочный счётчик плавности (к/с, макс. кадр, подвисания по фазам) — только по `?wldebug` |
+| `modules/rotate-phone/wordLaneDebug.js` (+ `wordLaneDebug.test.js`) | Журнал отладки «Повтори за диктором»: кольцевой буфер событий (до 20 000), уровень голоса ≈ 20 Гц, `dump()` для файла; выключен по умолчанию (`NO_DEBUG` — пустые функции); включают тумблер «Отладочный интерфейс» или localStorage `pithy_wl_debug_v1` = 1 (`debugEnabled`) |
+| `modules/rotate-phone/wordLaneDebugRecorder.js` | Запись микрофона для отладки: `MediaRecorder` на том же потоке, что слушает игра (игровой поток или поток распознавателя, пойманный обёрткой getUserMedia), webm/opus либо mp4 (iOS), куски раз в секунду, старт на «Слушаю…», стоп в финале |
+| `modules/rotate-phone/wordLaneDebugProbe.js` | Пробник доступов и звука при включённой отладке: записывающие обёртки getUserMedia, `play()`, speechSynthesis, AudioContext, события окна (видимость, полный экран) и разрешение микрофона; события копятся с самого старта приложения |
+| `modules/rotate-phone/wordLaneDebugBoot.js` | Ранний запуск пробника из `ShellV2` (до урока и тапа «Начать») — только при включённой отладке |
+| `modules/rotate-phone/wordLaneDebugExport.js` | Файл выгрузки `pithy-dictor-debug-<дата-время>.json` (журнал + запись в base64 + «что я говорил») и его отдача: скачивание, «Поделиться» (iOS), вкладка |
+| `modules/rotate-phone/useWordLaneDebug.js` | Связка отладки с игрой: сессия (журнал + рекордер + пробник), события пилюль из `stepStudent`, стадии, журналы плеера и звука в dump; хук для `useWordLaneFlow` |
+| `modules/rotate-phone/WordLaneDebugButton.jsx` | Серая ссылка «Скачать отладку» и строка «что я говорил» в финале игры; видна только при включённой отладке |
+| `modules/rotate-phone/wordLaneDebugExport.test.js`, `wordLaneDebugProbe.test.js` | Тесты выгрузки, записи микрофона, кнопки, пробника доступов и звука и скрипта отчёта |
 | `modules/rotate-phone/wordLaneVoiceGate.js` | Чистое: ворота голоса ученика — пол шума, запас, выдержка ≥ 90 мс, заглушение после ноты; без них шум и эхо динамика запускали анимацию пилюль |
 | `modules/rotate-phone/wordLaneVoiceGate.test.js` | Тесты ворот: шум и щелчки не голос, голос ≈ 100 мс, паузы не рвут, шумная комната, эхо ноты |
 | `modules/rotate-phone/wordLaneMotion.js` | Ход пилюль на композиторе: `startFlight` (WAAPI-анимация свойства `translate` ENTER_Y → EXIT_Y, линейно, дольше полёта на 120 с), `cancelFlights`, `setFlightRate`; `flightPosition` |

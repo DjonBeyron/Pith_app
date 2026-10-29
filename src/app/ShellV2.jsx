@@ -25,6 +25,7 @@ import LessonEditorOverlays from './LessonEditorOverlays.jsx'
 import ResumeEditingToast from '../shared/ui/ResumeEditingToast.jsx'
 import { shouldShowResumeToast } from '../shared/lib/resumeToastVisible.js'
 import { prefetchPlayerDebugUi } from '../shared/lib/usePlayerDebugUi.js'
+import { bootWordLaneProbe } from '../features/player/modules/rotate-phone/wordLaneDebugBoot.js'
 import { prefetchAudioSettings } from '../shared/lib/audioSettings.js'
 import { prefetchAudioStaticWaveform } from '../shared/lib/useAudioStaticWaveform.js'
 import { prefetchFeedSignals } from '../shared/lib/ranking/feedSignalsStore.js'
@@ -111,7 +112,7 @@ export default function ShellV2() {
     // Видят ли не-админы кнопку «⬇ лог» и версию в шапке урока (настройка из
     // базы). Спрашиваем здесь, на старте: к открытию урока ответ уже есть, и
     // шапка рисуется сразу правильной, без выскакивающей через полсекунды кнопки
-    prefetchPlayerDebugUi()
+    bootWordLaneProbe(prefetchPlayerDebugUi()) // при включённой отладке — пробник доступов и звука (журнал «Скачать отладку» в игре «Повтори за диктором»)
     prefetchAudioStaticWaveform() // заморозка спектра голосовых (тоже глобальная настройка) — по той же причине
     // Глобальные настройки звука (громкость звуков интерфейса, чувствительность эквалайзера)
     prefetchAudioSettings()
