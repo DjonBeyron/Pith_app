@@ -555,6 +555,7 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | `player/modules/word-lane-debug.css` | «Скачать отладку» в финале игры «Повтори за диктором» (`WordLaneDebugButton.jsx`): маленькая серая ссылка и строка «что я говорил» |
 | `player/modules/word-lane-hud.css` | Мини-HUD настроек в игре «Повтори за диктором» (`WordLaneHud.jsx`): кнопка ⚙ в правом верхнем углу, панель поверх игры; заодно сообщение `.wlFail` («не получается слушать»: нет модели Vosk / микрофон не открылся) |
 | `player/modules/word-lane-pause.css` | Пауза игры «Повтори за диктором»: оверлей `.wlPause` (поверх стиля `.wlFail`) и заморозка CSS-анимаций при `data-phase="paused"` |
+| `player/modules/rehearsal-mirror.css` | Экран «Дубль и зеркало» (`rehearsal/mirror/`): две полосы «Пит» / «Ты» с пилюлями кусков по таймингам (цвет дорожки `--lvl1..3`, `left`/`width` в % полосы), пунктирный «призрак» пропущенного куска, подсвеченный зазор долгой паузы, кнопки «Сравнить»/«Дальше», заметка Пита; стиль игры, 375 px, анимации только opacity/transform; рамка демо-блока `.wlMirDemoFrame` |
 | `player/modules/rotate-phone.css` | Карточка ноды «Переверни телефон» в чате: в пузыре ссылки, значок микрофона со свечением, заголовок + подпись, кнопка «Начать», галочка по концу игры |
 | `player/message.css` | Базовый пузырь — только общие стили, без типов |
 | `player/modules/audio.css` | Аудио-модуль: ::before-маска, canvas-волна, печатание текста |
@@ -780,6 +781,7 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | `speech/SoundDiagBlock.jsx` | Админ → «Голос»: блок «Звук приложения» — состояние контекста звуков, `audioSession.type`, кто глушит (полная тишина по причинам / окно записи), сколько проглочено, последний запрос звука и итог (`soundDiag.js`), раз в секунду |
 | `speech/GameSoundsBlock.jsx` | Админ → «Голос»: блок «Звуки игры» — выбор звука награды в «Повтори за диктором» (Мяу / Ноты / Без звука), ползунок громкости (`audio.volume`; на iPhone не действует — подсказка в блоке) и три кнопки «Послушать» (тоны лесенки, играют из тапа). Режимы: Мяу (синтез) / Своё мяу (одна запись, три тона скоростью 1 / 1.26 / 1.5) / Ноты / Без звука; внутри — `GameSfxPanel.jsx` |
 | `speech/GameTestBlock.jsx` | Админ → «Голос» → «Тест игры»: поле фразы с кусками через «\|» и перевод, «Озвучить» (озвучка кусков в библиотеку слов тем же путём, что у уроков: `generateWordAudio`), «есть / нет озвучки» у каждого куска, «Запустить игру» / «Ещё раз» — `RotatePhoneModule` с синтетической нодой `rotate_phone` на весь экран (`bare`, `forceDebug`); без урока и без записи результатов |
+| `speech/MirrorDemoBlock.jsx` | Админ → «Голос» → «Зеркало (демо)» — ВРЕМЕННЫЙ блок проверки модуля «Дубль и зеркало» без сценария репетиции: «Записать дубль» (`openGameMic` в тапе → `recordTake` 4 с + Vosk `listenTake`; нет Vosk — тайминги слов подставляются равномерно, пометка на экране), диктор из кусков библиотеки (`dictorFromLibrary`), примеры без микрофона (чисто / пропуск / долгая пауза), экран `WordLaneMirror` |
 | `speech/gameTestRows.js` | Чистая часть «Теста игры»: куски фразы с ключами `wordKey` и признаком «есть в библиотеке» (`chunkRows`), запоминание формы в браузере админа (`pithy_wl_test_v1`) |
 | `speech/gameTest.test.jsx` | Тесты «Теста игры»: куски и озвучка, форма, блок, подключение в «Голос» |
 | `speech/GameSfxPanel.jsx` | «Звуки игры»: настоящее «мяу» — поле запроса ElevenLabs (по умолчанию «short cute kitten meow…»), длительность 0,6 с, «Сгенерировать мяу» или «Загрузить свой файл (wav/mp3/m4a)» → запись нормализуется в браузере → кандидат с тремя кнопками прослушивания (скорость 1 / 1.26 / 1.5) → «Сделать звуком награды» (R2 + настройки устройства). Ошибки (нет ключа, лимит, старая функция) — текстом |
@@ -2064,6 +2066,30 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | `scene/sceneVoiceTask.test.jsx` | Тесты голосовых заданий в ленте: выбор панели по kind, грамматика/проверка (мок гипотез через `judgeRun`), недоступность → пропуск, прогрев, разметка панели в состояниях. |
 | `scene/slideScene.test.jsx` | Рендер-тесты (renderToStaticMarkup): окно ленты (active → live, near → static без облачка, далёкий → скелетон/постер, скрытая вкладка → static), чипы/иконка паузы, ветка SlideMedia по статусу, feedSlowState |
 | `catch/CatchConfirmPopup.jsx` | Мини-табличка подтверждения внутри шторки «Ловли» над кнопками: `({ kind: 'reveal'\|'hint', memory, onConfirm, onCancel })` — заголовок, текст, «ок» (лаймовая) и текстовая «отмена»; `role="dialog"`, появление «пружинкой» |
+
+### `src/features/rehearsal/mirror/` — «Дубль и зеркало» (акт 5 репетиции, `CONCEPT_REHEARSAL.md`)
+Человек говорит фразу целиком, запись никуда не уходит; экран сравнения — две полосы (диктор / человек), «Сравнить» играет диктора, потом дубль; Пит даёт ОДНУ заметку только по измеримому. Узкий интерфейс для сценария: `recordTake` → `measureTake` → `noteFor` → `<WordLaneMirror/>`.
+| Файл | Зачем нужен |
+|------|-------------|
+| `takeRecorder.js` | `recordTake({ stream, maxMs = 8000, mimeType? })` → `{ ok, error, stop(), cancel() }`: MediaRecorder на ГОТОВОМ потоке игры (`getGameMic`, getUserMedia не зовётся); `stop()` → `Take` `{ blob, url, durationMs, rms }`; сбой (нет MediaRecorder, поток мёртв, пустая запись) — `stop()` отклоняется с `err.code`; `releaseTake(take)` — `revokeObjectURL` |
+| `mirrorRms.js` | `voicedRms` (средний RMS голоса по кускам 20 мс без тишины) и `analyzeBlob` (decodeAudioData → `{ rms, durationMs }`) |
+| `mirrorAlign.js` | Раскладка слов по кускам фразы: `toMs` (слова Vosk, секунды → мс), `assignWords` (слово → кусок; сокращения как в «Сказать фразу»: «i'm» ≡ «i am»; `[unk]` не лишнее), `chunkSpan` |
+| `mirrorMeasure.js` | Чистые измерения `measureTake({ dictor, student, chunks })` → `{ tempo, missing, extra, orderOk, order, pauses, gaps, loud, clean }` (темп — речь без пауз, пауза — длиннее диктора на ≥ 400 мс, громкость — отношение RMS); реэкспорт `dictorWordsFromChunks` |
+| `mirrorDictor.js` | Диктор из кусков библиотеки слов: `dictorPlan` (тайминги синтезируются из длин `ms`/`lead` кусков + расписание включения файлов), `dictorWordsFromChunks(chunks, chunkMs, gapMs = 80)` |
+| `mirrorNotes.js` | `noteFor(measure, chunks)` → `{ key, text }`: одна заметка Пита по приоритету (потеряно > порядок > темп > пауза > громкость > лишнее > чисто), `FAIL_NOTE` («Запись не получилась…») |
+| `mirrorLane.js` | Модель экрана: `buildMirrorView` (общая шкала, пилюли в % полосы, пунктирный «призрак» пропущенного куска со сдвигом остальных, зазоры долгих пауз), `litSchedule` (расписание подсветки по ходу звука) |
+| `useMirrorPlayback.js` | Хук кнопки «Сравнить»: диктор (`dictor.play()`) → запись человека (`<audio>`), подсветка пилюль таймерами по расписанию, фаза `idle`/`dictor`/`student`, повтор можно, остановка при уходе |
+| `MirrorLane.jsx` | Одна полоса экрана («Пит» или «Ты»): подпись с длиной, пилюли кусков, призраки, зазоры |
+| `WordLaneMirror.jsx` | Экран сравнения `<WordLaneMirror dictor student chunks measure note onDone />`: две полосы, «Сравнить», заметка Пита, «Дальше»; нет записи — только диктор и заметка «Запись не получилась…» |
+| `mirrorListen.js` | `listenTake({ chunks, stream, maxMs })` — слова дубля с таймингами: `voskEngine.startListening` на потоке игры без затвора тишины, заходы подряд со сдвигом времени (`createWordListener` игры `stats.words` наружу не отдаёт) |
+| `dictorFromLibrary.js` | `dictorFromLibrary(chunks)` → `{ words, durationMs, leadMs, play() }` — диктор из слотов звука кусков библиотеки (`playWordSlot`, нет куска — голос системы); `libraryRms` — RMS файлов кусков |
+| `mirrorFixtures.js` | Подставные данные: фраза `I'm \| trying \| to learn`, диктор, три дубля (чистый / пропуск / долгая пауза) — для тестов и демо-блока |
+| `mirrorMeasure.test.js` | Тесты измерений (пропуск, лишнее, порядок, темп, паузы, громкость, слова Vosk в секундах, сокращения) и `dictorWordsFromChunks`/`dictorPlan` |
+| `mirrorNotes.test.js` | Тесты `noteFor`: приоритеты, формулировки (треть / вдвое / на N %), заметка о сбое, сквозной прогон на трёх дублях |
+| `mirrorLane.test.js` | Тесты модели экрана: общая шкала, призрак без наезда, подсвеченная пауза, расписание подсветки |
+| `takeRecorder.test.js` | Тесты записи с подменой MediaRecorder (stop → blob/url/длительность/rms, maxMs, cancel, нет MediaRecorder / мёртвый поток / пусто) и `voicedRms` |
+| `mirrorSources.test.js` | Тесты `listenTake` (заходы, сдвиг времени, stop, ошибки) и `dictorFromLibrary` (план включения файлов, голос системы, `libraryRms`) |
+| `WordLaneMirror.test.jsx` | Рендер-тесты экрана: две полосы, пунктирный «призрак», зазор паузы, кнопки, заметка, режим сбоя записи, ≤ 60 узлов, стиль 375 px / только opacity-transform |
 
 ### `src/features/profile/` — вкладка «Профиль»
 | Файл | Зачем нужен |
