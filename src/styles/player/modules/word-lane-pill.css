@@ -15,7 +15,7 @@
   --gap: 2px;
   --y: -14;
   top: 0;
-  translate: -50% calc(var(--y) * 1dvh - 50%);               /* стартовое положение (за верхним краем); сам ход — WAAPI-анимация свойств translate (центр пилюли по синусоиде) и rotate (наклон по касательной вокруг центра) на композиторе (wordLaneMotion.js). Именно translate/rotate, а не transform: хлопок (scale) не должен масштабировать сдвиг, дрожка промаха (transform) им не мешает */
+  translate: -50% calc(var(--y) * 1dvh - 50%);               /* стартовое положение (за верхним краем); сам ход — WAAPI-анимация свойства translate на композиторе (wordLaneMotion.js: спуск прямой, без волны и наклона; по синусоиде с наклоном rotate идёт только взлёт, wordLaneRise.js). Именно translate, а не transform: хлопок (scale) не должен масштабировать сдвиг, дрожка промаха (transform) ему не мешает */
   border-radius: 999px;                                      /* will-change (слой) пилюле ставит пул (wordLanePool.js) в take и снимает в give: слои держат только летящие пилюли, не все 12 */
   border: var(--ring) solid rgba(var(--rgb), 0.9);
   background: linear-gradient(to bottom, rgba(var(--rgb), 0.14), rgba(var(--rgb), 0.04)), var(--wl-card);

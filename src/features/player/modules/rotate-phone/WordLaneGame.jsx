@@ -10,6 +10,7 @@ import WordLanePerf from './WordLanePerf.jsx'
 import WordLaneCat from './WordLaneCat.jsx'
 import WordLaneXp from './WordLaneXp.jsx'
 import WordLanePause from './WordLanePause.jsx'
+import WordLaneTurnPlate from './WordLaneTurnPlate.jsx'
 import { isWordLaneDebug } from './wordLaneConfig.js'
 import { readPillSafe, readTapMode } from './wordLaneHudSettings.js'
 import { useWordLaneFlow } from './useWordLaneFlow.js'
@@ -58,7 +59,7 @@ export default function WordLaneGame({ cfg, audioSrc, lines = null, forceDebug =
           )}
         {f.catLine && <div className="wlSay" key={f.catLine} role="status" data-testid="wl-say">{f.catLine}</div>}
         {tapMode && phase === 'student' && <div className="wlTapHint" data-testid="wl-tap-hint">Тап вместо речи: тапни дорожку</div>}
-        {f.plate && <div className="wlTurn" key={f.idx} style={{ animationDuration: `${f.plateMs}ms` }} data-testid="wl-turn">{f.plate}</div>}
+        {f.plate && <WordLaneTurnPlate key={f.idx} text={f.plate} ms={f.plateMs} />}
         {phase === 'reveal' && (
           <div className="wlReveal" data-testid="wl-reveal">
             <div className="wlRevealPhrase">{f.text}</div>

@@ -208,9 +208,24 @@ describe('проводка и аудит исходников', () => {
     expect(read('./WordLaneCat.jsx')).toContain('freeze() { voice.stop()')
     expect(read('./useCatLines.js')).toContain('return { text, sayLine, stop }')
   })
-  it('CSS: попап паузы выше кота (кот z-index 8, попап 9)', () => {
-    expect(read('../../../../styles/player/modules/word-lane-pause.css')).toMatch(/\.wlPause \{[^}]*z-index: 9/)
+  it('CSS: попап паузы выше кота (кот z-index 8, попап 9), оба в .wlStage, порядок подключения hud → pause; фон попапа плотный', () => {
+    const pause = read('../../../../styles/player/modules/word-lane-pause.css')
+    expect(pause).toMatch(/\.wlPause \{[^}]*z-index: 9/)
+    expect(pause).toMatch(/\.wlPause \{[^}]*background: #15181f/)                     // у .wlFail фон 0,97: кот просвечивал сквозь попап
     expect(read('../../../../styles/player/modules/word-lane.css')).toMatch(/\.wlStage > \.wlCat\.scn \{[^}]*z-index: 8/)
+    const index = read('../../../../index.css')
+    expect(index.indexOf('word-lane-hud.css')).toBeGreaterThan(0)
+    expect(index.indexOf('word-lane-pause.css')).toBeGreaterThan(index.indexOf('word-lane-hud.css')) // .wlPause после .wlFail: при равной специфичности побеждает пауза
+    const game = read('./WordLaneGame.jsx')
+    const stage = game.slice(game.indexOf('<div className="wlStage">'), game.indexOf('<button type="button" className="wlClose"'))
+    expect(stage).toContain('<WordLaneCat apiRef={catApi} />')                            // кот и попап — прямые дети одного .wlStage: сравниваются z-index, а не вложенные контексты
+    expect(stage).toContain('<WordLanePause pause={pause} onExit={f.finish} />')
+  })
+  it('CSS: на паузе кот уходит под нижний край (иначе торчит из-под попапа); правило длиннее выскакивания и пружины', () => {
+    const pause = read('../../../../styles/player/modules/word-lane-pause.css')
+    expect(pause).toMatch(/\.wl\[data-phase='paused'\] \.wlStage > \.wlCat\.scn\.wlCat--up \{[^}]*transform: translate\(-50%, 108%\)/)
+    expect(read('../../../../styles/player/modules/word-lane.css')).toMatch(/\.wlStage > \.wlCat\.scn \{[^}]*transform: translate\(-50%, 108%\)/)  // то же положение «спрятан», что у кота по умолчанию
+    expect(read('../../../../styles/player/modules/word-lane.css')).toContain('.wlStage > .wlCat.scn.wlCat--up { transform: translate(-50%, 4%)')
   })
   it('CSS: на паузе анимации замирают; стили подключены в index.css', () => {
     const css = read('../../../../styles/player/modules/word-lane-pause.css')
