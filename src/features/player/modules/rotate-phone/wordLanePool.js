@@ -8,7 +8,9 @@
 // (data-live) дерево слоёв не пересобирало — на iOS Safari такая пересборка заставляла контур пилюли мигать.
 // «Безопасный» режим слоёв (класс wl--safe на корне, wordLanePillSafe.js, для iOS): will-change не ставится вообще (слой пилюле даёт вёрстка — translateZ(0) у data-held), заливка живёт без слоёв (word-lane-pill-safe.css).
 // Контур пилюли не зависит ни от одного признака пула (data-live / data-lock / data-rise): они меняют только заливку и частицы; видимость контура гасит лишь data-fail («не успел»), и только в обычном режиме.
-// Сверкающая линия уровня (.wlPillLine) стоит на самой пилюле, а не в заливке: paintFill пишет ей --fill (0…1), take — --pill-h (высота ёмкости в px, один замер при взятии, не каждый кадр).
+// Сверкающая линия уровня (.wlPillLine) стоит на самой пилюле, а не в заливке: paintFill пишет ей --fill (0…1), take — --pill-h (высота ёмкости в px, один замер при взятии, не каждый кадр). Из того же --fill CSS считает и
+// ширину линии (рождается в центре, к 0,7 — максимум, к 1 снова в центр). Тот же --fill / --pill-h получает и <i> внутри .wlPillSparks (искры вне клипа заливки едут за уровнем заливки).
+// data-ring — «выдох» кольца: ставится ОДИН раз за выдачу пилюли, когда data-live появился впервые (начало заливки), и снимается в clean (take / give); после этого CSS-анимация кольца (0,75 с) не повторяется.
 import { LANE_X, PILL_W } from './wordLaneTimeline.js'
 import { startFlight } from './wordLaneMotion.js'
 import { fillProfile } from './wordLaneTimeline.js'
@@ -27,7 +29,7 @@ export const fillTransform = v => `translateY(${((1 - Math.min(1, Math.max(0, v)
 
 export function createPool(root) {
   const els = [...root.querySelectorAll('[data-pill]')]
-  const parts = els.map(el => ({ el, clip: el.querySelector('.wlPillClip'), fill: el.querySelector('.wlPillFill'), line: el.querySelector('.wlPillLine'), ghost: el.querySelector('.wlGhost'), bars: [...el.querySelectorAll('.wlGhost i')], pace: el.querySelector('.wlPace') }))
+  const parts = els.map(el => ({ el, clip: el.querySelector('.wlPillClip'), fill: el.querySelector('.wlPillFill'), line: el.querySelector('.wlPillLine'), sparks: el.querySelector('.wlPillSparks i'), ghost: el.querySelector('.wlGhost'), bars: [...el.querySelectorAll('.wlGhost i')], pace: el.querySelector('.wlPace') }))
   const cache = new Map()
   const put = (el, prop, value) => {
     const prev = cache.get(el) ?? {}
@@ -38,23 +40,27 @@ export function createPool(root) {
   const safe = () => root.classList?.contains?.('wl--safe') === true // «безопасный» режим слоёв (для iOS): никаких will-change
   const free = els.map((_, i) => i).reverse()
   const live = new Map() // индекс → { anim, lane, rise }
-  const rise = els.map(() => ({ v: 0, at: -1e9, on: false })) // для data-live: прошлая заливка, когда последний раз росла, горит ли признак
+  const rise = els.map(() => ({ v: 0, at: -1e9, on: false, ringed: false })) // для data-live: прошлая заливка, когда последний раз росла, горит ли признак, давали ли уже «выдох» кольца
   const tall = els.map(() => 0)                               // высота ёмкости заливки, px (для линии уровня), замеряется при взятии
 
   const measure = k => { tall[k] = parts[k].clip?.offsetHeight || 0; return tall[k] }
   // Заливка — сдвиг слоя вверх: translateY((1 − v)·100 %). Край ЕДЕТ, а не растягивается (scaleY сжимал градиент заливки). Линии уровня — то же v в --fill
   const paintFill = (k, v) => {
     put(parts[k].fill, 'transform', fillTransform(v))
-    const line = parts[k].line
-    if (line) {
-      if (v > 0 && !tall[k] && measure(k)) put(line, '--pill-h', `${tall[k]}px`) // замер не удался при взятии (пилюля ещё не в вёрстке) — один раз повторяем
-      put(line, '--fill', Math.min(1, Math.max(0, v)).toFixed(3))
-    }
+    const { line, sparks } = parts[k]
+    if (v > 0 && !tall[k] && measure(k)) { if (line) put(line, '--pill-h', `${tall[k]}px`); if (sparks) put(sparks, '--pill-h', `${tall[k]}px`) } // замер не удался при взятии (пилюля ещё не в вёрстке) — один раз повторяем
+    const f = Math.min(1, Math.max(0, v)).toFixed(3)
+    if (line) put(line, '--fill', f)
+    if (sparks) put(sparks, '--fill', f)
     const r = rise[k], now = performance.now(), el = parts[k].el
     if (v > r.v + LIVE_RISE_EPS) r.at = now
     r.v = v
     const on = v > 0 && now - r.at < (el.getAttribute('data-lock') != null ? LIVE_HOLD_LOCK_MS : LIVE_HOLD_MS)
-    if (on !== r.on) { r.on = on; if (on) el.setAttribute('data-live', '1'); else el.removeAttribute('data-live') }
+    if (on !== r.on) {
+      r.on = on
+      if (on) { el.setAttribute('data-live', '1'); if (!r.ringed) { r.ringed = true; el.setAttribute('data-ring', '1') } } // «выдох» кольца — один раз за выдачу, в начале заливки
+      else el.removeAttribute('data-live')
+    }
   }
   const hint = (k, opacity, pace) => {
     put(parts[k].ghost, 'opacity', opacity)
@@ -62,9 +68,9 @@ export function createPool(root) {
     if (pace != null) put(parts[k].pace, 'transform', `translateY(${(-pace * 100).toFixed(1)}%)`)
   }
   const clean = k => {
-    Object.assign(rise[k], { v: 0, at: -1e9, on: false }); parts[k].el.removeAttribute('data-live')
+    Object.assign(rise[k], { v: 0, at: -1e9, on: false, ringed: false }); parts[k].el.removeAttribute('data-live')
     paintFill(k, 0); hint(k, '0', null)
-    for (const a of ['data-lock', 'data-fail', 'data-hint', 'data-voice', 'data-rise']) parts[k].el.removeAttribute(a)
+    for (const a of ['data-lock', 'data-fail', 'data-hint', 'data-voice', 'data-rise', 'data-ring']) parts[k].el.removeAttribute(a)
   }
   /** Тень слова: ширина полосок по громкости куска слова диктора (без кривой — ровно) */
   const shape = (k, curve) => {
@@ -88,7 +94,7 @@ export function createPool(root) {
     take(lane, { atMs = 0, curve = null, flight = true } = {}) {
       const k = free.pop()
       if (k == null) return null
-      const { el, fill, line } = parts[k]
+      const { el, fill, line, sparks } = parts[k]
       measure(k) // до записей: вёрстка чистая, замер дешёвый
       clean(k)
       if (!safe()) { el.style.willChange = WILL_PILL; fill.style.willChange = WILL_FILL }
@@ -96,6 +102,7 @@ export function createPool(root) {
       el.dataset.lane = String(lane)
       put(el, 'left', `${LANE_X[lane]}%`); put(el, 'width', `${PILL_W}%`)
       if (line) put(line, '--pill-h', `${tall[k]}px`)
+      if (sparks) put(sparks, '--pill-h', `${tall[k]}px`)
       shape(k, curve)
       live.set(k, { anim: flight ? startFlight(el, atMs) : null, lane, rise: null })
       return k

@@ -3,18 +3,14 @@
    (will-change у пилюли и заливки, слои частиц с visibility и translate-переходом, анимации на псевдоэлементах), и граница пилюли выпадала из растра. Здесь:
    • ни одного will-change (пул тоже не ставит его при wl--safe); у летящей пилюли постоянный слой — transform: translateZ(0), он стоит от take до give и не переключается;
    • контур рисуется ДВАЖДЫ: border (как в обычном режиме) и outline поверх него (отрицательный offset на толщину обводки — ровно по border): потеряется один — останется другой;
-   • никаких visibility и переключений слоёв: заливка — один слой без псевдоэлементов; частицы — ОДНА плитка (SVG в фоне заливки), которую сдвигает анимация background-position (бесшовно: сдвиг ровно на высоту плитки);
-     у не наливающейся пилюли плитка вынесена за верхний край заливки (no-repeat), у наливающейся (data-live) — повторяется и едет; кромка уровня по-прежнему первый слой фона (--edge);
+   • никаких visibility и переключений слоёв: заливка — один слой без псевдоэлементов и без частиц; кромка уровня — первый слой фона (--edge). Искры (.wlPillSparks, как в обычном режиме: вне клипа, выше контура) — те же две
+     плитки градиентных точек (два <b> внутри <i>) и те же анимации, но без will-change: пилюля не наливается — блок искр display: none (не слой, а вёрстка), наливается — display: block и анимации идут;
+   • «выдоха» кольца нет (в обычном режиме — word-lane-pill.css): у пилюли одна обводка (border + outline поверх), и в безопасном режиме тоже;
    • мягкий внутренний свет — не inset-тень, а боковые полосы в фоне; «Различи» (data-voice) светится внешней тенью, а не filter; «не успел» (data-fail) серый, но не прозрачный — контур остаётся.
    Специфичность: .wlField.wl--safe + правило обычного режима (в том числе .wl[data-phase=…]), поэтому каждое правило здесь сильнее своего двойника; файл подключается после word-lane-pill.css. */
-.wlField.wl--safe {
-  --tile: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='132'%3E%3Cg fill='%23fff'%3E%3Ccircle cx='9' cy='14' r='3.2' fill-opacity='.2'/%3E%3Ccircle cx='9' cy='14' r='1.2' fill-opacity='.95'/%3E%3Ccircle cx='31' cy='71' r='3.2' fill-opacity='.2'/%3E%3Ccircle cx='31' cy='71' r='1.2' fill-opacity='.9'/%3E%3Ccircle cx='22' cy='38' r='.9' fill-opacity='.85'/%3E%3Ccircle cx='6' cy='92' r='.9' fill-opacity='.8'/%3E%3Ccircle cx='34' cy='115' r='.9' fill-opacity='.85'/%3E%3Ccircle cx='15' cy='5' r='.6' fill-opacity='.8'/%3E%3Ccircle cx='27' cy='24' r='.6' fill-opacity='.75'/%3E%3Ccircle cx='37' cy='52' r='.6' fill-opacity='.8'/%3E%3Ccircle cx='12' cy='64' r='.6' fill-opacity='.7'/%3E%3Ccircle cx='24' cy='98' r='.6' fill-opacity='.8'/%3E%3Ccircle cx='3' cy='125' r='.6' fill-opacity='.75'/%3E%3Ccircle cx='19' cy='83' r='.6' fill-opacity='.7'/%3E%3Ccircle cx='20' cy='104' r='2.6' fill-opacity='.18'/%3E%3Ccircle cx='20' cy='104' r='1' fill-opacity='.9'/%3E%3Ccircle cx='3' cy='45' r='.8' fill-opacity='.8'/%3E%3Ccircle cx='28' cy='3' r='.7' fill-opacity='.7'/%3E%3Ccircle cx='8' cy='33' r='.6' fill-opacity='.75'/%3E%3Ccircle cx='35' cy='31' r='.6' fill-opacity='.7'/%3E%3Ccircle cx='17' cy='54' r='.6' fill-opacity='.8'/%3E%3Ccircle cx='38' cy='88' r='.7' fill-opacity='.75'/%3E%3Ccircle cx='13' cy='111' r='.6' fill-opacity='.7'/%3E%3Ccircle cx='30' cy='127' r='.6' fill-opacity='.8'/%3E%3Ccircle cx='25' cy='60' r='.6' fill-opacity='.7'/%3E%3Ccircle cx='2' cy='73' r='.6' fill-opacity='.75'/%3E%3C/g%3E%3C/svg%3E");
-}
-
 /* Пилюля: без will-change (и в фазе прогрева lanes тоже), постоянный слой у взятой, контур дважды, свет без inset */
 .wlField.wl--safe .wlPill {
-  --orbit: 0 0 0 0 transparent;                              /* внешние орбиты дорожек 2 и 3 (обычные кольца-тени); свечение «Различи» — --glow */
-  --glow: 0 0 0 0 transparent;
+  --glow: 0 0 0 0 transparent;                               /* свечение «Различи» — внешняя тень */
   will-change: auto;
   outline: var(--ring) solid rgba(var(--rgb), 0.9);
   outline-offset: calc(var(--ring) * -1);                    /* поверх border, внутрь от края: второй раз тот же контур */
@@ -23,31 +19,29 @@
     linear-gradient(to bottom, rgba(var(--rgb), 0.14), rgba(var(--rgb), 0.04)),
     var(--wl-card);
   background-origin: border-box;
-  box-shadow: var(--orbit), var(--glow);
+  box-shadow: var(--glow);                                   /* внешних орбит (теней-колец) нет: обводка одна */
 }
-.wlField.wl--safe .wlPill[data-lane='1'] { --orbit: 0 0 0 4px var(--wl-bg), 0 0 0 5.5px rgba(var(--rgb), 0.5); }
-.wlField.wl--safe .wlPill[data-lane='2'] { --orbit: 0 0 0 4px var(--wl-bg), 0 0 0 5.5px rgba(var(--rgb), 0.5), 0 0 0 9.5px var(--wl-bg), 0 0 0 11px rgba(var(--rgb), 0.3); }
+.wlField.wl--safe .wlPill::before { display: none; }          /* «выдоха» кольца в безопасном режиме нет */
 .wl[data-phase='lanes'] .wlField.wl--safe .wlPill { will-change: auto; }
 .wlField.wl--safe .wlPill[data-held] { transform: translateZ(0); }
 .wlField.wl--safe .wlPill[data-voice] { filter: none; transition: none; --glow: 0 0 14px 3px rgba(var(--rgb), 0.9); }
 .wlField.wl--safe .wlPill[data-fail] { opacity: 1; transition: none; --rgb: 123, 132, 148; --c: #7b8494; }   /* «не успел»: серая, но целая — контур не гаснет */
 
-/* Заливка: один слой, без псевдоэлементов. --dust — плитка частиц (за верхним краем, пока пилюля не наливается), поверх цвета — как в обычном режиме по состояниям */
+/* Заливка: один слой, без псевдоэлементов и без частиц (искры — над ней, ниже), поверх цвета — как в обычном режиме по состояниям */
 .wlField.wl--safe .wlPillFill {
-  --dust: var(--tile) 0 -140px / 40px 132px no-repeat;
   will-change: auto;
-  background: var(--edge) 0 0 / 100% 14px no-repeat, var(--dust), linear-gradient(to top, rgba(var(--rgb), 0.78), var(--c));
+  background: var(--edge) 0 0 / 100% 14px no-repeat, linear-gradient(to top, rgba(var(--rgb), 0.78), var(--c));
 }
-.wlField.wl--safe .wlPillFill::before, .wlField.wl--safe .wlPillFill::after { display: none; }
-.wl[data-phase='student'] .wlField.wl--safe .wlPill:not([data-lock]):not([data-fail]) .wlPillFill { background: var(--edge) 0 0 / 100% 14px no-repeat, var(--dust), rgba(var(--rgb), 0.35); }
-.wl[data-phase='student'] .wlField.wl--safe .wlPill[data-lock]:not([data-fail]) .wlPillFill { background: var(--edge) 0 0 / 100% 14px no-repeat, var(--dust), var(--c); }
-.wlField.wl--safe .wlPill[data-fail] .wlPillFill { background: #7b8494; animation: none; }
-/* Наливается: плитка повторяется и едет вверх на свою высоту за цикл (список позиций по слоям: кромка стоит, плитка едет, нижний слой — как был). На слабом устройстве (wl--lite) частиц нет */
-.wlField.wl--safe:not(.wl--lite) .wlPill[data-live]:not([data-fail]) .wlPillFill { --dust: var(--tile) 0 0 / 40px 132px repeat; animation: wlSafeDust 2.2s linear infinite; }
-@keyframes wlSafeDust {
-  from { background-position: 0 0, 0 0, 0 0; }
-  to { background-position: 0 0, 0 -132px, 0 0; }
-}
+.wl[data-phase='student'] .wlField.wl--safe .wlPill:not([data-lock]):not([data-fail]) .wlPillFill { background: var(--edge) 0 0 / 100% 14px no-repeat, rgba(var(--rgb), 0.35); }
+.wl[data-phase='student'] .wlField.wl--safe .wlPill[data-lock]:not([data-fail]) .wlPillFill { background: var(--edge) 0 0 / 100% 14px no-repeat, var(--c); }
+.wlField.wl--safe .wlPill[data-fail] .wlPillFill { background: #7b8494; }
+
+/* Искры: тот же блок и те же анимации (transform / translate / opacity, 3,1 и 4,7 с, покачивание, фаза по дорожкам), что в обычном режиме, но без will-change. Не наливается — display: none (блок не в вёрстке и не в слоях);
+   наливается — display: block, анимации идут; открывает блок и правило data-live обычного режима (непрозрачность 1). Замер: переписанные под сдвиг фона (background-position) искры красили бы два слоя на пилюлю каждый кадр —
+   +26 мс на кадр при шести наливающихся (CPU 4×), поэтому анимации — на композиторе, как и у линии уровня в её обычном режиме. На слабом устройстве (wl--lite) искр нет */
+.wlField.wl--safe .wlPillSparks { display: none; }
+.wlField.wl--safe:not(.wl--lite) .wlPill[data-live]:not([data-fail]) .wlPillSparks { display: block; }
+.wlField.wl--safe .wlPill[data-held] .wlPillSparks i, .wlField.wl--safe .wlPill[data-held] .wlPillSparks b { will-change: auto; }
 
 /* Линия уровня: без слоя (will-change нет), мерцание — блик, бегущий по линии (сдвиг фона), а не opacity-анимация: opacity на псевдоэлементе давала бы композитный слой внутри пилюли */
 .wlField.wl--safe .wlPill[data-held] .wlPillLine { will-change: auto; }
