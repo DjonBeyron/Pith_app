@@ -208,6 +208,10 @@ describe('проводка и аудит исходников', () => {
     expect(read('./WordLaneCat.jsx')).toContain('freeze() { voice.stop()')
     expect(read('./useCatLines.js')).toContain('return { text, sayLine, stop }')
   })
+  it('CSS: попап паузы выше кота (кот z-index 8, попап 9)', () => {
+    expect(read('../../../../styles/player/modules/word-lane-pause.css')).toMatch(/\.wlPause \{[^}]*z-index: 9/)
+    expect(read('../../../../styles/player/modules/word-lane.css')).toMatch(/\.wlStage > \.wlCat\.scn \{[^}]*z-index: 8/)
+  })
   it('CSS: на паузе анимации замирают; стили подключены в index.css', () => {
     const css = read('../../../../styles/player/modules/word-lane-pause.css')
     expect(css).toContain(".wl[data-phase='paused'] *")

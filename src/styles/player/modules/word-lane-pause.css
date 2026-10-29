@@ -1,5 +1,5 @@
 /* Пауза игры «Повтори за диктором» (свернули приложение, useWordLanePause). Оверлей — как .wlFail (word-lane-hud.css), но нейтральная рамка: это не ошибка. */
-.wlPause { border-color: #3a3d46; z-index: 7; }
+.wlPause { border-color: #3a3d46; z-index: 9; } /* выше кота (8): кот стоит поверх всего в игре, а попап паузы — поверх кота */
 .wlPauseProblem { color: #f19a9a; }
 .wlFailBtn:disabled { opacity: 0.6; cursor: default; }
 
