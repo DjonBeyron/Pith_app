@@ -112,6 +112,18 @@ describe('акты на стадиях', () => {
     expect(take.step.reps).toHaveLength(1); expect(take.step.parts).toEqual([0, 1, 2])
     expect(stages.at(-2).type).toBe('mirror'); expect(stages.at(-1).type).toBe('summary')
   })
+  it('дубль идёт с записью (step.record: слушатель без затвора тишины); окон речи Пита на нём нет — реплика «Дубль…» на плашке до него; остальные ступени без record', () => {
+    const { stages } = build('three')
+    const take = stages.find(s => s.type === 'take')
+    expect(take.step.record).toBe(true); expect(take.line).toBeUndefined(); expect(take.ms).toBeUndefined()
+    expect(stages.filter(s => s.step?.record)).toHaveLength(1)
+    expect(listenStepOf(stages, take.idx - 1)).toBe(take.step) // под плашкой слушатель уже тот же — записывающий
+  })
+  it('зеркало: Пит говорит «Слушаем: сначала я, потом ты.» на старте стадии (rh_mirror), у итога реплики нет (её говорит директор)', () => {
+    const { stages, recipe } = build('three')
+    expect(stages.find(s => s.type === 'mirror').line).toBe('rh_mirror'); expect(stages.find(s => s.type === 'summary').line).toBeUndefined()
+    expect(recipe.acts.find(a => a.id === 'mirror').line).toBe('rh_mirror')
+  })
   it('одно слово: «слово ×2» вместо разминки и сборки, потом слово по переводу, различи, дубль', () => {
     const { stages } = build('one')
     expect(types(stages)).toEqual(['announce:word-ann', 'warmup:word-0', 'announce:blind-ann', 'warmup:blind-0', 'announce:discern-0-ann', 'discern:discern-0', 'warmup:discern-say-0', 'announce:take-ann', 'take:take', 'mirror:mirror', 'summary:summary'])

@@ -4,12 +4,14 @@ import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import RehearsalActs from './RehearsalActs.jsx'
 import RehearsalSummary from './RehearsalSummary.jsx'
-import RehearsalMirrorStub from './RehearsalMirrorStub.jsx'
 import { useRehearsalActs, STUCK_MS, LINE_AT_MS } from './useRehearsalActs.js'
 import { fixturePlan } from './rehearsalFixtures.js'
 import { buildRehearsalStages } from './rehearsalStages.js'
 import { createJournal, record } from './rehearsalJournal.js'
 import { normalizeLines } from '../player/modules/rotate-phone/wordLaneCatLines.js'
+import { buildMirror, tempoLabel } from './rehearsalMirror.js'
+import { CHUNKS, DICTOR, STUDENT_CLEAN } from './mirror/mirrorFixtures.js'
+import { noteFor } from './mirror/mirrorNotes.js'
 
 const read = rel => readFileSync(new URL(rel, import.meta.url), 'utf8')
 const plan = fixturePlan('three')
@@ -34,16 +36,40 @@ describe('интерфейс актов', () => {
     expect(css).toMatch(/\.rhTag \{[^}]*white-space: nowrap[^}]*text-overflow: ellipsis/)
     expect(css).toMatch(/\.rhTag \{[^}]*max-width: calc\(100% - 32px\)/)
   })
-  it('зеркало — заглушка «Зеркало — скоро» с кнопкой «Дальше»', () => {
-    const out = html(RehearsalActs, { f: baseF({ stageObj: { type: 'mirror' }, phase: 'mirror' }), cfg })
-    expect(out).toContain('data-testid="rh-mirror"'); expect(out).toContain('Зеркало — скоро'); expect(out).toContain('data-testid="rh-mirror-next"')
-    expect(html(RehearsalMirrorStub, { onNext() {} })).toContain('Дальше')
+  it('зеркало: экран сравнения «Пит / Ты» (WordLaneMirror) на весь экран вместо заглушки, заметка Пита, «Сравнить» и «Дальше»', () => {
+    const dictor = { ...DICTOR, leadMs: 0, play() {}, cancel() {} }
+    const words = STUDENT_CLEAN.words.map(w => ({ ...w, start: w.start * 1000, end: w.end * 1000 }))
+    const mirror = buildMirror({ chunks: CHUNKS, take: { url: 'blob:take', durationMs: 2600, rms: 0.09 }, words, dictor })
+    const out = html(RehearsalActs, { f: baseF({ stageObj: { type: 'mirror' }, phase: 'mirror', rh: { on: true, tag: '', result: null, mirror } }), cfg })
+    expect(out).toContain('class="rhScreen rhMirror"'); expect(out).toContain('data-testid="rh-mirror"'); expect(out).toContain('data-testid="wl-mirror"')
+    expect(out).toContain('<b>Пит</b>'); expect(out).toContain('<b>Ты</b>'); expect(out).toContain('data-testid="wl-mirror-compare"'); expect(out).toContain('>Сравнить<'); expect(out).toContain('data-testid="wl-mirror-done"')
+    expect(out).toContain('Порядок верный, темп мой. Чисто.'); expect(out).toContain('<audio src="blob:take"')
+    expect(out).not.toContain('Зеркало — скоро'); expect(out).not.toContain('rh-mirror-next')
   })
-  it('итог: фраза, перевод, темп «—», заметка «—», XP, «Ещё минутку?» и «Готово»', () => {
-    const out = html(RehearsalActs, { f: baseF({ stageObj: { type: 'summary' }, phase: 'summary', rh: { on: true, tag: '', result: { xp: 2, capped: false } } }), cfg, onAgain() {} })
+  it('зеркало без записи (сбой): полоса Пита, «Послушать», заметка о сбое; без данных зеркала экран не рисуется', () => {
+    const mirror = { dictor: { ...DICTOR, leadMs: 0, play() {} }, student: null, measure: null, note: noteFor(null), tempo: null }
+    const out = html(RehearsalActs, { f: baseF({ stageObj: { type: 'mirror' }, phase: 'mirror', rh: { on: true, tag: '', result: null, mirror } }), cfg })
+    expect(out).toContain('data-fail="true"'); expect(out).not.toContain('<b>Ты</b>'); expect(out).toContain('>Послушать<'); expect(out).toContain('Запись не получилась')
+    expect(html(RehearsalActs, { f: baseF({ stageObj: { type: 'mirror' }, phase: 'mirror' }), cfg })).not.toContain('rh-mirror')
+  })
+  it('итог: фраза, перевод, темп, заметка Пита, XP, «Ещё минутку?» и «Готово»', () => {
+    const result = { xp: 2, capped: false, tempo: 1.3, note: { key: 'tempo', text: 'Ты медленнее меня на 30 %.' } }
+    const out = html(RehearsalActs, { f: baseF({ stageObj: { type: 'summary' }, phase: 'summary', rh: { on: true, tag: '', result } }), cfg, onAgain() {} })
     expect(out).toContain("I&#x27;m trying to learn"); expect(out).toContain('Я пытаюсь научиться')
-    expect(out).toMatch(/rh-summary-tempo">—</); expect(out).toMatch(/rh-summary-note">—</); expect(out).toMatch(/rh-summary-xp">\+2</)
+    expect(out).toMatch(/rh-summary-tempo">×1\.3</); expect(out).toContain('rh-summary-note">Ты медленнее меня на 30 %.<'); expect(out).toMatch(/rh-summary-xp">\+2</)
     expect(out).toContain('Ещё минутку?'); expect(out).toContain('Готово')
+  })
+  it('итог: записи нет — темп «—», заметка о сбое; XP ещё не посчитан — «…», темп и заметка «—»', () => {
+    const fail = html(RehearsalSummary, { plan, result: { xp: 1, capped: false, tempo: null, note: noteFor(null) }, onDone() {} })
+    expect(fail).toMatch(/rh-summary-tempo">—</); expect(fail).toContain('Запись не получилась')
+    const wait = html(RehearsalSummary, { plan, result: null, onDone() {} })
+    expect(wait).toMatch(/rh-summary-tempo">—</); expect(wait).toMatch(/rh-summary-note">—</)
+  })
+  it('темп: ×1.3 — медленнее Пита; «как у Пита» при |1 − темп| < 0,1; ×0.8 — быстрее; нет записи — «—»', () => {
+    expect(tempoLabel(1.3)).toBe('×1.3'); expect(tempoLabel(0.8)).toBe('×0.8'); expect(tempoLabel(2)).toBe('×2.0')
+    expect(tempoLabel(1)).toBe('как у Пита'); expect(tempoLabel(1.09)).toBe('как у Пита'); expect(tempoLabel(0.92)).toBe('как у Пита')
+    expect(tempoLabel(1.1)).toBe('×1.1'); expect(tempoLabel(0.9)).toBe('×0.9')
+    expect(tempoLabel(null)).toBe('—'); expect(tempoLabel(undefined)).toBe('—'); expect(tempoLabel(0)).toBe('—')
   })
   it('итог: нет следующего плана — «Ещё минутку?» нет; XP ещё не посчитан — «…»; потолок дня подписан', () => {
     const none = html(RehearsalSummary, { plan, result: null, onDone() {} })
@@ -107,6 +133,23 @@ describe('useRehearsalActs', () => {
     const { rh } = probe({ plan: null, stageObj: { type: 'student', ms: 700 } })
     expect(rh.on).toBe(false); expect(rh.nextIdx(5)).toBe(5); expect(rh.holdMs({ ms: 1700, line: 'rh_clear' })).toBe(1700); expect(rh.tag).toBe(''); expect(rh.hintLanes({ act: 'blind', type: 'student' })).toEqual([])
     expect(createJournal().stages).toEqual({})
+  })
+  it('дубль и зеркало: leave сразу отпускает все стадии, кроме take (на ней нет записи — тоже сразу); зеркало вне стадии mirror не готовится', () => {
+    const { rh, stages } = probe()
+    const go = vi.fn()
+    rh.leave(stages.find(s => s.type === 'student'), go); rh.leave(stages.find(s => s.type === 'take'), go); rh.leave(undefined, go)
+    expect(go).toHaveBeenCalledTimes(3)
+    expect(rh.mirror).toBeNull()
+  })
+  it('стадия mirror без дубля (take обошли): экран зеркала всё равно есть — диктор и заметка о сбое', () => {
+    const { rh, stages } = probe({ stageObj: undefined })
+    expect(rh.mirror).toBeNull()
+    const m = probe({ stageObj: stages.find(s => s.type === 'mirror') }).rh.mirror
+    expect(m.student).toBeNull(); expect(m.measure).toBeNull(); expect(m.note.key).toBe('fail'); expect(m.dictor.words.length).toBeGreaterThan(0)
+  })
+  it('без плана: leave тоже сразу go, зеркала нет', () => {
+    const go = vi.fn(); const { rh } = probe({ plan: null, stageObj: { type: 'take' } })
+    rh.leave({ type: 'take' }, go); expect(go).toHaveBeenCalledTimes(1); expect(rh.mirror).toBeNull()
   })
   it('константы: «застрял» — 3 с, реплика стадии — чуть позже плашки', () => {
     expect(STUCK_MS).toBe(3000); expect(LINE_AT_MS).toBe(250)

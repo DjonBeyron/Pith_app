@@ -2,7 +2,7 @@
 // Стадии — те же announce / dictor / turn / student / discern, и новые warmup, read, take, mirror, summary. Что есть у каждой, сверх формата игры:
 //  act   — какому акту принадлежит (warmup, word, read, build, blind, discern, take, mirror, summary); sid — ключ журнала (rehearsalJournal);
 //  line  — id реплики Пита на старте стадии (announce: директор держит плашку, пока Пит говорит); tag — ярлык-плашка над дорожками («Чётко — для последнего ряда», §6 п. 4); cond — «идти ли»: { retry: sid } / { few: true };
-//  step  — у ученика сверх обычного: chunks (тексты дорожек, если цель — слово, а не кусок), chunkMs, extra (слова словаря Vosk, кроме целей — двойники и слова фразы), maxWords;
+//  step  — у ученика сверх обычного: record (take: идёт запись дубля, useRehearsalTake), chunks (тексты дорожек, если цель — слово, а не кусок), chunkMs, extra (слова словаря Vosk, кроме целей — двойники и слова фразы), maxWords;
 //  warmup: word { text, translation, lane }, caption (перевод над дорожкой); read и ученик читки: metro — [{ chunk, at, ms }] подсветка кусков по времени от старта стадии;
 //  blind (ученик): hintWord / hintLane — подсказка, если застрял на 3 секунды; discern: sayText — слово, которое произносит диктор (вместо куска фразы).
 import { discernPrompts, orderLanes, textOf, normText } from '../player/modules/rotate-phone/wordLaneRecipe.js'
@@ -92,8 +92,8 @@ export function buildRehearsalStages({ plan, rate = 1, lib = () => null }) {
       })
     } else if (act.id === 'take') {
       announce(act, { title: 'Дубль. Три, два, один…', ms: RH_TAKE_MS })
-      push({ type: 'take', act: 'take', sid: 'take', step: stepOf('take', act.parts, { labels: [] }) })
-    } else push({ type: act.id, act: act.id, sid: act.id })
+      push({ type: 'take', act: 'take', sid: 'take', step: stepOf('take', act.parts, { labels: [], record: true }) }) // record: слушатель без затвора тишины (паузы между кусками должны остаться паузами) и сразу начинает следующий заход
+    } else push({ type: act.id, act: act.id, sid: act.id, line: act.line }) // mirror: реплика Пита «Слушаем: сначала я, потом ты.»; summary: без реплики (её говорит директор актов)
   }
   return { recipe: { chunks, rounds: [], acts, plan }, stages, chunkMs, chunkCurves: chunks.map(() => null), lanes: orderLanes(n), clipMode: () => false }
 }

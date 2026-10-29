@@ -1,0 +1,69 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>rehearsal harness</title>
+<style>body{margin:0;background:#0e1013;color:#fff;font-family:system-ui}#root{padding:16px}</style></head>
+<body><div id="root"></div>
+<script type="module">
+import React from 'react'
+import { createRoot } from 'react-dom/client'
+import '/src/index.css'
+import RotatePhoneModule from '/src/features/player/modules/rotate-phone/RotatePhoneModule.jsx'
+import { supabase } from '/src/shared/api/supabase.js'
+import { listWordAudio } from '/src/shared/lib/wordAudio/wordAudioApi.js'
+import { wordKey } from '/src/shared/lib/wordAudio/wordKey.js'
+import { voskRuntime } from '/src/shared/lib/vosk/voskRuntime.js'
+import { fixtureSource, fixturePlan } from '/src/features/rehearsal/rehearsalFixtures.js'
+import { planTexts } from '/src/features/rehearsal/rehearsalPlan.js'
+
+// Стенд «Репетиция с Питом» (dev, в сборку не входит): настоящий сценарий актов на игре «Повтори за диктором» без входа, Supabase и настоящей модели Vosk.
+//  • ?fixture=three|two|one|none — план из фикстур; ?voice=1 — библиотека слов с тестовой озвучкой (WAV с гудками, у каждого слова своя длина), ?voice=0 — без озвучки (голос системы);
+//  • модель Vosk — заглушка: тап вместо речи (localStorage pithy_wl_tap_v1=1) работает как обычно; в стадии «дубль» драйвер ставит window.__speakAt — заглушка «произносит» фразу по сценарию SPEECH
+//    (слова с таймингами, пауза 0,8 с перед «to learn» → заход Vosk заканчивается эндпойнтом, слушатель начинает следующий), а запись MediaRecorder идёт с настоящего (фейкового) микрофона Chromium.
+const params = new URLSearchParams(location.search)
+const fixture = params.get('fixture') || 'three'
+const voice = params.get('voice') !== '0'
+
+const wav = ms => { // лидирующая тишина 80 мс + гудок ms мс, 8 кГц
+  const rate = 8000, lead = 0.08, sec = lead + ms / 1000, n = Math.floor(rate * sec)
+  const buf = new ArrayBuffer(44 + n * 2), v = new DataView(buf)
+  const str = (o, s) => [...s].forEach((c, i) => v.setUint8(o + i, c.charCodeAt(0)))
+  str(0, 'RIFF'); v.setUint32(4, 36 + n * 2, true); str(8, 'WAVE'); str(12, 'fmt '); v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true)
+  v.setUint32(24, rate, true); v.setUint32(28, rate * 2, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true); str(36, 'data'); v.setUint32(40, n * 2, true)
+  for (let i = 0; i < n; i++) { const t = i / rate; v.setInt16(44 + i * 2, t >= lead ? Math.round(Math.sin(2 * Math.PI * 330 * t) * 9000) : 0, true) }
+  return { url: URL.createObjectURL(new Blob([buf], { type: 'audio/wav' })), duration: sec }
+}
+
+// supabase: библиотека слов (rows) и реплики Пита (нет строки → тексты по умолчанию, подписью)
+const rows = voice ? planTexts(fixturePlan(fixture)).map(text => ({ key: wordKey(text), ...wav(180 + 70 * text.replace(/\s/g, '').length) })).filter(r => r.key) : []
+supabase.from = table => ({ select: () => ({ eq: () => (table === 'word_audio' ? Promise.resolve({ data: rows, error: null }) : { maybeSingle: () => Promise.resolve({ data: null, error: null }) }) }) })
+await listWordAudio()
+
+// Модель Vosk: готова сразу; распознаватель молчит, пока драйвер не включит речь (window.__speakAt, мс по performance.now()). Время слов — секунды от первого куска звука захода (как у настоящего Vosk)
+const SPEECH = [["i'm", 0.0, 0.3], ['trying', 0.38, 0.9], ['to', 1.7, 1.82], ['learn', 1.82, 2.32]] // секунды от window.__speakAt; пауза 0,8 с перед «to»
+const consumed = new Set() // слова, которые уже отдал прежний заход
+class Rec {
+  constructor() { this.h = {}; this.born = 0; this.last = ''; this.ended = false }
+  setWords() {}
+  on(ev, cb) { this.h[ev] = cb }
+  remove() {}
+  doneNow() { const at = window.__speakAt, now = performance.now(); return at ? SPEECH.map((w, i) => ({ i, w })).filter(x => !consumed.has(x.i) && at + x.w[2] * 1000 <= now) : [] }
+  out(ws) { const at = window.__speakAt; return ws.map(({ w }) => ({ word: w[0], conf: 1, start: +((at + w[1] * 1000 - this.born) / 1000).toFixed(3), end: +((at + w[2] * 1000 - this.born) / 1000).toFixed(3) })) }
+  emit(ws) { this.ended = true; ws.forEach(x => consumed.add(x.i)); this.h.result?.({ result: { text: ws.map(x => x.w[0]).join(' '), result: this.out(ws) } }) }
+  acceptWaveform() {
+    if (this.ended) return
+    this.born ||= performance.now()
+    const ws = this.doneNow()
+    const text = ws.map(x => x.w[0]).join(' ')
+    if (text && text !== this.last) { this.last = text; this.h.partialresult?.({ result: { partial: text } }) }
+    const rest = SPEECH.some((w, i) => !consumed.has(i) && !ws.some(x => x.i === i))
+    if (ws.length && rest && performance.now() - (window.__speakAt + SPEECH[ws.at(-1).i][2] * 1000) >= 500) this.emit(ws) // эндпойнт Vosk: пауза ≥ 0,5 с посреди речи — заход закончен
+  }
+  retrieveFinalResult() { if (!this.ended) { this.born ||= performance.now(); this.emit(this.doneNow()) } }
+}
+voskRuntime.acquire = () => () => {}
+voskRuntime.whenSettled = async () => ({ ok: true })
+voskRuntime.warmNow = () => {}
+voskRuntime.getModel = () => ({ KaldiRecognizer: Rec })
+
+const node = { id: 'rh-stand', type: 'rotate_phone', isHistory: false, typeData: { rotate_phone: { plan: fixtureSource(fixture) } } }
+window.__done = null
+createRoot(document.getElementById('root')).render(React.createElement(RotatePhoneModule, { node, file: null, forceDebug: true, onDone: v => { window.__done = v } }))
+</script></body></html>

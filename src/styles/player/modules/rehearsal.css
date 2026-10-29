@@ -7,11 +7,17 @@
 /* Ярлык-плашка над дорожками: ОДНА строка, длинный текст обрезается многоточием, на пилюлях подписи нет */
 .rhTag { left: 50%; top: 11.5%; transform: translateX(-50%); max-width: calc(100% - 32px); box-sizing: border-box; padding: 5px 14px; border-radius: 999px; border: 1.5px solid var(--wl-accent); background: rgba(11, 13, 17, 0.92); color: var(--wl-accent); font-size: 13px; font-weight: 800; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; z-index: 4; pointer-events: none; animation: rhTagIn 0.28s ease-out both; }
 
-/* Экраны зеркала и итога — на каркасе .wlReveal */
+/* Экраны зеркала и итога: итог — на каркасе .wlReveal; зеркало — на весь экран поверх дорожек (его тёмный фон и раскладка — rehearsal-mirror.css), крестик игры сверху справа не перекрывает полосы */
 .rhScreen { z-index: 7; }
+.rhMirror { left: 0; right: 0; top: 0; bottom: 0; overflow-y: auto; background: #0e1116; }
+.rhMirror .wlMirror { padding-top: max(48px, calc(env(safe-area-inset-top) + 40px)); }
+.rhMirror .wlMirBtn--main { margin-top: 4px; } /* «Дальше» под заметкой, а не у нижнего края: внизу экрана Пит (кот) и его реплика */
+.wl[data-phase='mirror'] .wlSay { z-index: 8; } /* реплика Пита «Слушаем: сначала я, потом ты.» — поверх экрана зеркала (там z-index 7), как и сам кот */
 .rhSumTr { margin: 4px 0 10px; font-size: clamp(18px, 5.6vw, 26px); font-weight: 800; line-height: 1.2; color: var(--wl-accent); }
 .rhStats { display: grid; gap: 6px; margin: 0 0 16px; text-align: left; }
 .rhStats > div { display: flex; justify-content: space-between; gap: 12px; font-size: 14px; }
+.rhStats .rhStatNote { flex-direction: column; gap: 3px; } /* заметка Пита — длинный текст: подпись над ним, а не слева */
+.rhStats .rhStatNote dd { font-weight: 600; line-height: 1.3; }
 .rhStats dt { color: #9aa0b4; }
 .rhStats dd { margin: 0; font-weight: 800; }
 .rhBtns { display: flex; flex-direction: column; align-items: center; gap: 10px; }

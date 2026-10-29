@@ -3,24 +3,27 @@ import { lineMs, LINE_PAUSE_MS } from '../player/modules/rotate-phone/wordLaneCa
 import { fillLine } from './rehearsalLines.js'
 import { createJournal, record, nextRunnable, weakLanes } from './rehearsalJournal.js'
 import { reportSession } from './rehearsalSim.js'
+import { useRehearsalTake } from './useRehearsalTake.js'
 
 // Директор «Репетиции с Питом» поверх useWordLaneFlow: всё, что сценарию актов нужно сверх обычной игры, — в одном хуке; директору остаются точки подключения (его next / стадии / реакции движка).
 //  • журнал актов (rec ← реакции движка win / miss / fail): по нему решаются повтор ступени сборки, сокращение акта 4 и пропуск «Различи» (nextIdx), подпись слабого слова в «без текста» (hintLanes), итог (reportSession);
 //  • реплики Пита: на старте стадии (stage.line, через busyLeft — ждёт, пока Пит договорит прошлую), «это слово и будем тренировать» на первом промахе разминки; holdMs — плашка акта держится, пока Пит говорит;
 //  • подсветка куска в читке (hl: таймеры по stage.metro), «застрял 3 с» в акте «без текста» (слушатель молчит STUCK_MS — Пит подсказывает первое слово, подпись куска на HINT_LABEL_MS);
-//  • итог на экране summary: симуляция памяти и XP (rehearsalSim.js) — один раз, в память сессии и журнал отладки.
+//  • дубль и зеркало (акт 5): запись на стадии take и данные экрана mirror (темп, заметка Пита) — useRehearsalTake; на стадии mirror Пит говорит rh_mirror (stage.line);
+//  • итог на экране summary: симуляция памяти и XP (rehearsalSim.js) — один раз, в память сессии и журнал отладки; темп и заметка зеркала идут туда же.
 // Без плана (обычная нода игры) хук ничего не делает: nextIdx / holdMs возвращают то же, что директор взял бы сам.
 export const LINE_AT_MS = 250       // реплика на старте стадии — чуть позже появления плашки
 export const STUCK_MS = 3000        // слушатель молчит столько — «застрял»
 export const HINT_LABEL_MS = 2000   // подпись куска-подсказки
 export const MAX_STUCK_HINTS = 2    // подсказок на ступень
 
-export function useRehearsalActs({ plan, stages, stage, at, stageObj, setS, sayLine, sayText, cat, lines, rate, listenerRef }) {
+export function useRehearsalActs({ plan, stages, stage, at, stageObj, setS, sayLine, sayText, cat, lines, rate, lang, listenerRef }) {
   const [journal] = useState(createJournal)
   const [hl, setHl] = useState(-1)
   const [result, setResult] = useState(null)
   const on = !!plan
   const running = on && stage === 'run' ? stageObj : null
+  const take = useRehearsalTake({ plan, running, at, listenerRef, rate, lang })
   const nextIdx = useCallback(i => (on ? nextRunnable(stages, i, journal) : i), [on, stages, journal]) // стабильна: на ней держится next директора
 
   // Вступление: Пит говорит про фразу, пока она падает
@@ -70,13 +73,17 @@ export function useRehearsalActs({ plan, stages, stage, at, stageObj, setS, sayL
   // Итог: симуляция памяти и XP — один раз на выходе на экран summary
   useEffect(() => {
     if (running?.type !== 'summary') return undefined
-    const t = setTimeout(() => { setResult(reportSession({ plan, journal })); sayLine('rh_done') }, 0)
+    const t = setTimeout(() => { setResult(reportSession({ plan, journal, mirror: take.mirror })); sayLine('rh_done') }, 0)
     return () => clearTimeout(t)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [running])
 
   return {
     on, hl, result, journal,
+    /** Экран зеркала: { dictor, student, measure, note, tempo } (записи нет — student и measure null) */
+    mirror: take.mirror,
+    /** Стадия закончилась: дубль сначала дописывается (запись, слова), потом go(); остальные стадии — сразу go() */
+    leave: take.leave,
     tag: running?.tag ?? '',
     /** Реакция движка на ступени: 'win' | 'miss' | 'fail' → журнал; первый промах разминки — реплика Пита */
     rec(kind) {

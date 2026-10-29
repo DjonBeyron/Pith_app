@@ -2,7 +2,8 @@
 // Никаких запросов на сервер: позже эту запись заменит RPC вкладки «Память» (слова — due_on и шаг лесенки, фраза — consolidated_at). Чистая часть (scoreSession) отдельно от записи (applySession).
 //  • +1 XP за слово «к повтору», сказанное верно в акте 1 или 4; потолок в день общий с «Скажи вслух» (XP_DAILY_CAP);
 //  • слово с промахом → due_on = завтра, шаг не меняется; без промахов → следующий шаг лесенки;
-//  • фраза → consolidated_at = сегодня, но не чаще раза в PHRASE_GAP_DAYS дней.
+//  • фраза → consolidated_at = сегодня, но не чаще раза в PHRASE_GAP_DAYS дней;
+//  • зеркало (акт 5): темп дубля и ОДНА заметка Пита (note: { key, text }) идут в итог и в запись фразы (lastTempo / lastNote — для вкладки «Память» позже) и в журнал отладки.
 import { pLog } from '../../shared/lib/debug.js'
 import { warmupWords } from './rehearsalPlan.js'
 import { cleanOf, winsOf, badOf } from './rehearsalJournal.js'
@@ -49,8 +50,8 @@ export function loadSim(store = globalThis.sessionStorage) {
 }
 function saveSim(sim, store) { try { store?.setItem(SIM_KEY, JSON.stringify(sim)) } catch { /* приватный режим — симуляция живёт до перезагрузки */ } }
 
-/** Запись итога в память сессии: XP с потолком дня, слова (шаг и due_on), фраза (consolidated_at). → { xp (начислено), capped, words, phraseDone, consolidated } */
-export function applySession(plan, score, { store = globalThis.sessionStorage, now = Date.now() } = {}) {
+/** Запись итога в память сессии: XP с потолком дня, слова (шаг и due_on), фраза (consolidated_at; mirror — темп и заметка дубля). → { xp (начислено), capped, words, phraseDone, consolidated, tempo, note } */
+export function applySession(plan, score, { store = globalThis.sessionStorage, now = Date.now(), mirror = null } = {}) {
   const sim = loadSim(store)
   const today = dayKey(now)
   if (sim.xpDay !== today) { sim.xpDay = today; sim.xpToday = 0 }
@@ -66,15 +67,17 @@ export function applySession(plan, score, { store = globalThis.sessionStorage, n
   const prevPhrase = sim.phrases[plan.phrase]
   const gapOk = !prevPhrase?.consolidatedAt || Date.parse(today) - Date.parse(prevPhrase.consolidatedAt) >= PHRASE_GAP_DAYS * DAY_MS
   const consolidated = score.phraseDone && gapOk
-  if (consolidated) sim.phrases[plan.phrase] = { consolidatedAt: today }
+  const tempo = mirror?.tempo ?? null
+  const note = mirror?.note ?? null
+  if (consolidated || note) sim.phrases[plan.phrase] = { ...(prevPhrase ?? {}), ...(consolidated ? { consolidatedAt: today } : {}), ...(note ? { lastTempo: tempo, lastNote: note.key } : {}) }
   saveSim(sim, store)
-  return { xp, capped: xp < score.xp, words: score.words, phraseDone: score.phraseDone, consolidated }
+  return { xp, capped: xp < score.xp, words: score.words, phraseDone: score.phraseDone, consolidated, tempo, note }
 }
 
 /** Итог сессии одним вызовом: подсчёт → запись в sessionStorage → строка в журнал отладки. Вызывает хук useRehearsalActs при выходе на итог */
-export function reportSession({ plan, journal, store, now, log = pLog }) {
+export function reportSession({ plan, journal, mirror = null, store, now, log = pLog }) {
   const score = scoreSession(plan, journal)
-  const res = { ...applySession(plan, score, { store, now }), misses: score.misses }
-  log(`[rehearsal] итог «${plan.phrase}»: XP +${res.xp}${res.capped ? ' (потолок дня)' : ''}, слова ${res.words.map(w => `${w.text} ${w.hit}/${w.miss}`).join(', ') || '—'}, фраза ${res.phraseDone ? 'готова' : 'не готова'}, промахов ${res.misses}`)
+  const res = { ...applySession(plan, score, { store, now, mirror }), misses: score.misses }
+  log(`[rehearsal] итог «${plan.phrase}»: XP +${res.xp}${res.capped ? ' (потолок дня)' : ''}, слова ${res.words.map(w => `${w.text} ${w.hit}/${w.miss}`).join(', ') || '—'}, фраза ${res.phraseDone ? 'готова' : 'не готова'}, промахов ${res.misses}, темп ${res.tempo ?? '—'}, заметка Пита: ${res.note ? `[${res.note.key}] ${res.note.text}` : '—'}`)
   return res
 }

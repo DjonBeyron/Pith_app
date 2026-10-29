@@ -99,6 +99,26 @@ describe('итог одним вызовом', () => {
     expect(log.mock.calls[0][0]).toMatch(/\[rehearsal\] итог «I'm \| trying \| to learn»: XP \+1/)
     expect(JSON.parse(st.m[SIM_KEY]).words.trying.step).toBe(1)
   })
+  it('зеркало: темп и заметка Пита — в итоге, в записи фразы (lastTempo / lastNote) и в журнале отладки; consolidated_at не трётся', () => {
+    const st = memStore(), log = vi.fn()
+    const j = createJournal(); win(j, 'take')
+    const note = { key: 'tempo', text: 'Ты медленнее меня на треть — это нормально.' }
+    const res = reportSession({ plan, journal: j, mirror: { tempo: 1.33, note }, store: st, now: T0, log })
+    expect(res).toMatchObject({ tempo: 1.33, note, consolidated: true })
+    expect(JSON.parse(st.m[SIM_KEY]).phrases[plan.phrase]).toEqual({ consolidatedAt: dayKey(T0), lastTempo: 1.33, lastNote: 'tempo' })
+    expect(log.mock.calls[0][0]).toContain('темп 1.33'); expect(log.mock.calls[0][0]).toContain('заметка Пита: [tempo] Ты медленнее меня на треть')
+    // следующий раз через день: фраза не закрепляется (рано), но заметка новая, а прежняя consolidated_at остаётся
+    const j2 = createJournal(); win(j2, 'take')
+    const again = reportSession({ plan, journal: j2, mirror: { tempo: null, note: { key: 'fail', text: 'Запись не получилась — попробуем в следующий раз.' } }, store: st, now: T0 + DAY, log })
+    expect(again).toMatchObject({ consolidated: false, tempo: null }); expect(JSON.parse(st.m[SIM_KEY]).phrases[plan.phrase]).toEqual({ consolidatedAt: dayKey(T0), lastTempo: null, lastNote: 'fail' })
+    expect(log.mock.calls[1][0]).toContain('темп —')
+  })
+  it('без зеркала (как раньше): tempo и note — null, фраза без lastNote, в журнале «заметка Пита: —»', () => {
+    const st = memStore(), log = vi.fn()
+    const res = reportSession({ plan, journal: createJournal(), store: st, now: T0, log })
+    expect(res).toMatchObject({ tempo: null, note: null }); expect(JSON.parse(st.m[SIM_KEY]).phrases).toEqual({})
+    expect(log.mock.calls[0][0]).toContain('заметка Пита: —')
+  })
   it('ключ памяти сессии и потолок — по концепции', () => {
     expect(SIM_KEY).toBe('pithy_rehearsal_sim_v1'); expect(XP_DAILY_CAP).toBe(10)
   })

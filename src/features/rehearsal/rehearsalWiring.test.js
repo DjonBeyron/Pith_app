@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { readFileSync, readdirSync } from 'node:fs'
+import { readFileSync, readdirSync, existsSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 
 const read = rel => readFileSync(fileURLToPath(new URL(rel, import.meta.url)), 'utf8')
@@ -35,9 +35,45 @@ describe('директор игры (useWordLaneFlow)', () => {
     expect(flow).toContain('ids.push(setTimeout(next, rh.holdMs(stageObj)))')
     expect(flow).toContain('return { ...s, dbg, rh, next, catLine: cat.text, phase,')
   })
+  it('дубль и зеркало: слушатель дубля без затвора и без паузы между заходами; на дубле Пит молчит; стадия закончилась — rh.leave дописывает дубль и только потом next', () => {
+    expect(flow).toContain('gate: !listenStep.record, restartMs: listenStep.record ? 0 : undefined')
+    expect(flow).toContain("const said = e.order || st?.type === 'take' ? false : sayLine(rh.failLine(st)")
+    expect(flow).toContain("later(() => rh.leave(stages[at], () => { if (sRef.current.idx === at && sRef.current.stage === 'run') next() }), EXIT_PAUSE_MS)")
+    expect(flow).toContain('cat, lines, rate, lang, listenerRef })')
+    expect(flow).not.toMatch(/onChange: \(\{[^}]*words/) // слова Vosk в onChange не идут (перерисовок не плодят)
+  })
   it('директор не раздулся: ≤ 250 строк; ручного режима по-прежнему нет', () => {
     expect(lines(`${RP}useWordLaneFlow.js`)).toBeLessThanOrEqual(250)
     expect(flow).not.toMatch(/tapMic|\bskip\b|'manual'/)
+  })
+})
+
+describe('дубль и зеркало (акт 5)', () => {
+  const acts = read('./RehearsalActs.jsx'), director = read('./useRehearsalActs.js'), take = read('./useRehearsalTake.js')
+  it('экран mirror — WordLaneMirror с данными rh.mirror, заглушка удалена целиком', () => {
+    expect(acts).toContain("import WordLaneMirror from './mirror/WordLaneMirror.jsx'")
+    expect(acts).toContain("{type === 'mirror' && rh.mirror && (")
+    expect(acts).toContain('<WordLaneMirror dictor={rh.mirror.dictor} student={rh.mirror.student} chunks={cfg.plan.chunks} measure={rh.mirror.measure} note={rh.mirror.note} onDone={f.next} />')
+    expect(existsSync(new URL('./RehearsalMirrorStub.jsx', import.meta.url))).toBe(false)
+    expect(acts).not.toMatch(/MirrorStub|Зеркало — скоро/)
+    expect(read('../../../STRUCTURE.md')).not.toContain('RehearsalMirrorStub')
+  })
+  it('директор актов: запись и зеркало — useRehearsalTake, темп и заметка идут в итог (reportSession)', () => {
+    expect(director).toContain("import { useRehearsalTake } from './useRehearsalTake.js'")
+    expect(director).toContain('const take = useRehearsalTake({ plan, running, at, listenerRef, rate, lang })')
+    expect(director).toContain('reportSession({ plan, journal, mirror: take.mirror })')
+    expect(director).toContain('mirror: take.mirror,')
+    expect(director).toContain('leave: take.leave,')
+  })
+  it('запись — на ГОТОВОМ потоке игры (getGameMic через guardStream), второго getUserMedia и второго Vosk нет; готовый дубль освобождается', () => {
+    expect(take).toContain('getStream: guardStream(getGameMic)')
+    expect(read('./rehearsalTake.js') + take + read('./rehearsalMirror.js')).not.toMatch(/getUserMedia|startListening|listenTake|voskRuntime/)
+    expect(take).toContain('releaseTake(takeRef.current)')
+    expect(take).toContain('cancel()')
+  })
+  it('демо слушает Vosk напрямую (mirrorListen) — только в админском демо-блоке, в игре не используется', () => {
+    const files = readdirSync(fileURLToPath(new URL('./', import.meta.url))).filter(f => /\.jsx?$/.test(f) && !/\.test\./.test(f))
+    expect(files.filter(f => read(`./${f}`).includes('mirrorListen'))).toEqual([])
   })
 })
 

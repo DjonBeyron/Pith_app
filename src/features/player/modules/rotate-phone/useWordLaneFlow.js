@@ -70,7 +70,7 @@ export function useWordLaneFlow({ chunks, translation, lang, clips = null, audio
   const sayLineRef = useRef(cat.sayLine)
   useEffect(() => { sayLineRef.current = (...a) => { const said = cat.sayLine(...a); if (said) dbg.note(`cat:${a[0]}`); return said } }) // реплика кота попадает и в журнал отладки (окно mute вокруг неё)
   const sayLine = (...a) => sayLineRef.current(...a) // обработчики и таймеры стадий всегда берут свежую версию (настройки реплик могут догрузиться) — а стадия из-за этого не перезапускается
-  const rh = useRehearsalActs({ plan, stages, stage: s.stage, at: s.at, stageObj, setS, sayLine, sayText: (...a) => handlersRef.current.sayText(...a), cat, lines, rate, listenerRef }); const { nextIdx } = rh // акты репетиции: журнал, реплики Пита, правила пропуска
+  const rh = useRehearsalActs({ plan, stages, stage: s.stage, at: s.at, stageObj, setS, sayLine, sayText: (...a) => handlersRef.current.sayText(...a), cat, lines, rate, lang, listenerRef }); const { nextIdx } = rh // акты репетиции: журнал, реплики Пита, правила пропуска
 
   const later = useCallback((fn, ms) => { const id = setTimeout(() => { timersRef.current.delete(id); fn() }, Math.max(0, ms)); timersRef.current.add(id); return id }, [])
   const clearTimers = useCallback(() => { timersRef.current.forEach(clearTimeout); timersRef.current.clear() }, [])
@@ -107,7 +107,7 @@ export function useWordLaneFlow({ chunks, translation, lang, clips = null, audio
     fail(e) {
       catApi?.current?.react('shy', 1300); rh.rec('fail')
       const st = stages[sRef.current.idx]
-      const said = e.order ? false : sayLine(rh.failLine(st) ?? (st?.step?.reps?.[0]?.parts?.length > 1 ? 'split_words' : 'try_again')) // не получилось сказать несколько кусков — кот советует говорить раздельно
+      const said = e.order || st?.type === 'take' ? false : sayLine(rh.failLine(st) ?? (st?.step?.reps?.[0]?.parts?.length > 1 ? 'split_words' : 'try_again')) // не получилось сказать несколько кусков — кот советует говорить раздельно
       if (!said) flash(e.order ? 'Не успел — тапай дорожки, пока пилюли на экране' : 'Не успел — говори, пока пилюли на экране')
       if (!e.order && st?.step && !st.step.labels.length) { // вслепую: после «не успел» показываем, что это за кусок
         setS(p => ({ ...p, hint: e.rep.parts }))
@@ -133,7 +133,7 @@ export function useWordLaneFlow({ chunks, translation, lang, clips = null, audio
       gameMicHold.holdFor(sayMs) // окно речи диктора (глушение дорожки / фаза аудиосессии — режимы проверки на iPhone)
       say(parts)
     },
-    finished() { const at = sRef.current.idx; later(() => { if (sRef.current.idx === at && sRef.current.stage === 'run') next() }, EXIT_PAUSE_MS) },
+    finished() { const at = sRef.current.idx; later(() => rh.leave(stages[at], () => { if (sRef.current.idx === at && sRef.current.stage === 'run') next() }), EXIT_PAUSE_MS) }, // rh.leave: дубль репетиции сначала дописывается (запись, слова), потом next
   }
   const handlersRef = useRef(handlers)
   useEffect(() => { handlersRef.current = handlers })
@@ -194,7 +194,7 @@ export function useWordLaneFlow({ chunks, translation, lang, clips = null, audio
     const { texts } = stepTargets(listenStep, listenStep.chunks ?? chunks) // репетиция: цель — слово (step.chunks), словарь Vosk шире цели (step.extra)
     let wordsHeard = 0
     const l = createWordListener({
-      targets: [...texts, ...(listenStep.extra ?? [])], expected: listenStep.reps.length, maxWords: listenStep.maxWords, level: rms, getStream: guardStream(getGameMic), isHeld: gameMicHold.active, onDebug: dbg.enabled ? dbg.listen : null,
+      targets: [...texts, ...(listenStep.extra ?? [])], expected: listenStep.reps.length, maxWords: listenStep.maxWords, gate: !listenStep.record, restartMs: listenStep.record ? 0 : undefined, level: rms, getStream: guardStream(getGameMic), isHeld: gameMicHold.active, onDebug: dbg.enabled ? dbg.listen : null,
       onChange: ({ status, seq, misses, heard, tail, heardAt }) => {
         signalRef.current = { tail, heardAt }
         const words = seq.length * 8 + (tail?.tokens ?? 0) // растёт с каждым услышанным словом (недосказанная цель — по токенам, засчитанная — по номеру в seq)
