@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 // Разложение старта игры (wordLaneStart.js): что готовится к старту, что докачивается фоном, и что скачивание начинается в самом тапе — параллельно микрофону и ожиданию аудиосессии
 const calls = vi.hoisted(() => [])
 const rec = name => vi.fn((...a) => { calls.push(name); return a })
-vi.mock('./wordLaneVoice.js', () => ({ unlockVoice: rec('unlockVoice'), prepareTrack: rec('prepareTrack'), rewakeTrack: rec('rewakeTrack') }))
+vi.mock('./wordLaneVoice.js', () => ({ prepareTrack: rec('prepareTrack'), rewakeTrack: rec('rewakeTrack') }))
 vi.mock('./wordLaneNotes.js', () => ({ unlockNotes: rec('unlockNotes'), releaseNotes: rec('releaseNotes') }))
 vi.mock('./wordLaneClips.js', () => ({ prepareWords: vi.fn(items => { calls.push(`prepareWords:${items.length}`); return Promise.resolve(true) }), prepareClips: rec('prepareClips'), rewakeClips: rec('rewakeClips') }))
 vi.mock('./wordLaneAudio.js', () => ({ playSpan: s => s, clipsFor: () => ({ start: 0, end: 1 }) }))

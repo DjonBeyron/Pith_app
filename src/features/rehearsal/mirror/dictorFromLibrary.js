@@ -1,23 +1,22 @@
 // «Дубль и зеркало»: диктор для экрана сравнения из кусков БИБЛИОТЕКИ слов (первая версия озвучки; целая фраза с таймингами — phrase_audio — появится позже и подставится в тот же интерфейс dictor).
-// Файлы кусков уже скачаны в слоты звука (wordLaneClips.prepareWords, в тапе «Начать» — жест): играем слот по ключу слова; куска нет в слотах — голос системы. Длины кусков — wordLaneLib.makeLib.
+// Файлы кусков уже скачаны в слоты звука (wordLaneClips.prepareWords, в тапе «Начать» — жест): играем слот по ключу слова; куска нет в слотах — тишина (голоса системы нет: он захватывает аудиосессию iPhone). Длины кусков — wordLaneLib.makeLib.
 import { cachedWordAudio } from '../../../shared/lib/wordAudio/wordAudioApi.js'
 import { wordKey } from '../../../shared/lib/wordAudio/wordKey.js'
 import { makeLib, libItems } from '../../player/modules/rotate-phone/wordLaneLib.js'
 import { playWordSlot } from '../../player/modules/rotate-phone/wordLaneClips.js'
 import { dictorPlan } from './mirrorDictor.js'
 import { analyzeBlob } from './mirrorRms.js'
+import { pLog } from '../../../shared/lib/debug.js'
 
 const TAIL_MS = 250 // после последнего куска ждём затухания, потом play() считается законченным
 
-function speak(text) {
-  try { const u = new SpeechSynthesisUtterance(text); u.lang = 'en-US'; globalThis.speechSynthesis?.speak(u) } catch { /* нет голоса системы — тишина */ }
-}
+const silent = text => pLog(`[mirror] кусок «${text}» без озвучки — синтез речи запрещён, диктор молчит`)
 
 /**
  * Диктор: { words (мс, от начала голоса), durationMs, leadMs, play(): Promise<void> } — как ждёт WordLaneMirror. play() включает файлы кусков по плану dictorPlan (каждый — так, чтобы его голос начался
  * вовремя) и резолвится, когда прозвучал последний. Зависимости (cache, play, say, setTimer) подставляются в тестах.
  */
-export function dictorFromLibrary(chunks, { cache = cachedWordAudio(), play = playWordSlot, say = speak, setTimer = setTimeout, gapMs } = {}) {
+export function dictorFromLibrary(chunks, { cache = cachedWordAudio(), play = playWordSlot, say = silent, setTimer = setTimeout, gapMs } = {}) {
   const lib = makeLib(chunks, cache)
   const plan = dictorPlan(chunks, chunks.map((_, i) => lib(i)), gapMs)
   return {

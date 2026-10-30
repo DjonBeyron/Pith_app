@@ -24,7 +24,7 @@ describe('список пресетов', () => {
       E: ['phases', 'none', false], F: ['phases', 'close', false], G: ['play-and-record', 'none', true], H: ['play-and-record', 'close', true],
     })
     expect(new Set(AUDIO_PRESETS.map(p => `${p.session}|${p.hold}|${p.processing}`)).size).toBe(8) // ни один не совпадает с другим — обратное определение однозначно
-    expect(DEFAULT_PRESET).toBe('A')
+    expect(DEFAULT_PRESET).toBe('B') // по журналам iPhone: B — голос Пита не попадает в распознавание; A («не глушить») остаётся в списке для сравнения
   })
 })
 
@@ -44,12 +44,16 @@ describe('применить и определить', () => {
     applyPreset('H', s)
     expect(s.m).toEqual({ [MIC_HOLD_KEY]: 'close', [MIC_PROCESSING_KEY]: '1' })
     applyPreset('E', s)
-    expect(s.m).toEqual({ [AUDIO_SESSION_KEY]: 'phases' })
+    expect(s.m).toEqual({ [AUDIO_SESSION_KEY]: 'phases', [MIC_HOLD_KEY]: 'none' }) // «не глушить» — теперь не значение по умолчанию, ключ лежит
+    applyPreset('B', s)
+    expect(s.m).toEqual({}) // B — всё по умолчанию: ключей нет
   })
   it('пресет полностью заменяет прежние настройки (остатков от прошлого режима нет)', () => {
     const s = memStore({ [AUDIO_SESSION_KEY]: 'phases', [MIC_HOLD_KEY]: 'enabled-false', [MIC_PROCESSING_KEY]: '1' })
     applyPreset('A', s)
-    expect(s.m).toEqual({}); expect(currentPresetId(s)).toBe('A')
+    expect(s.m).toEqual({ [MIC_HOLD_KEY]: 'none' }); expect(currentPresetId(s)).toBe('A')
+    applyPreset('B', s)
+    expect(s.m).toEqual({}); expect(currentPresetId(s)).toBe('B')
   })
   it('настройки, не похожие ни на один пресет, — custom; незнакомый id ничего не меняет', () => {
     const s = memStore({ [AUDIO_SESSION_KEY]: 'auto', [MIC_HOLD_KEY]: 'close' })
@@ -58,8 +62,8 @@ describe('применить и определить', () => {
     expect(applyPreset('Z', s)).toBeNull(); expect(applyPreset(undefined, s)).toBeNull()
     expect(s.m).toEqual({ [AUDIO_SESSION_KEY]: 'auto', [MIC_HOLD_KEY]: 'close' })
   })
-  it('нет хранилища / приватный режим: по умолчанию это A, запись не падает', () => {
-    expect(currentPresetId(broken)).toBe('A'); expect(currentPresetId(null)).toBe('A')
+  it('нет хранилища / приватный режим: по умолчанию это B, запись не падает', () => {
+    expect(currentPresetId(broken)).toBe('B'); expect(currentPresetId(null)).toBe('B')
     expect(() => applyPreset('C', broken)).not.toThrow()
   })
   it('describePreset: «C — подпись», custom — «свой набор»; presetInner — три значения', () => {
@@ -70,13 +74,13 @@ describe('применить и определить', () => {
 })
 
 describe('выбор пресета для запуска', () => {
-  it('хранится в pithy_rh_audio_preset_v1; по умолчанию A; мусор и сбой хранилища — A', () => {
+  it('хранится в pithy_rh_audio_preset_v1; по умолчанию B; мусор и сбой хранилища — B', () => {
     const s = memStore()
-    expect(PRESET_KEY).toBe('pithy_rh_audio_preset_v1'); expect(readSelectedPreset(s)).toBe('A')
+    expect(PRESET_KEY).toBe('pithy_rh_audio_preset_v1'); expect(readSelectedPreset(s)).toBe('B')
     writeSelectedPreset('F', s)
     expect(s.m[PRESET_KEY]).toBe('F'); expect(readSelectedPreset(s)).toBe('F')
     writeSelectedPreset('Z', s); expect(readSelectedPreset(s)).toBe('F')
-    expect(readSelectedPreset(memStore({ [PRESET_KEY]: 'мусор' }))).toBe('A'); expect(readSelectedPreset(broken)).toBe('A')
+    expect(readSelectedPreset(memStore({ [PRESET_KEY]: 'мусор' }))).toBe('B'); expect(readSelectedPreset(broken)).toBe('B')
     expect(() => writeSelectedPreset('B', broken)).not.toThrow()
   })
   it('applySelected: выбранный пресет применяется и пишется в журнал плеера «[audio-mode] пресет C: …»', () => {
@@ -108,8 +112,9 @@ describe('режим звука в экспорте', () => {
     expect(info.line).toContain('свой набор'); expect(info.line).toContain('запускали в режиме C — Запись+воспр., закрывать микрофон на речь Пита')
   })
   it('без описания микрофона берётся из настроек браузера сейчас', () => {
-    const s = memStore({ [MIC_PROCESSING_KEY]: '1' })
+    const s = memStore({ [MIC_PROCESSING_KEY]: '1', [MIC_HOLD_KEY]: 'none' })
     expect(audioModeInfo({ store: s }).id).toBe('G')
+    expect(audioModeInfo({ store: memStore() }).id).toBe('B') // чистый телефон — режим B
   })
   it('в снимке настроек комментария есть audioPreset; в комментарии — на момент сохранения; переключатель в окне делает его custom, сводка это показывает', () => {
     const s = memStore({ [PRESET_KEY]: 'C' }); applyPreset('C', s)

@@ -66,8 +66,13 @@ export function unlockPlate() {
     const a = new Audio(hush)
     a.preload = 'auto'
     a.volume = getRewardVolume()
-    a.play().then(() => { a.pause(); a.src = url; a.load() }).catch(err => { pLog(`[plate-sound] пробуждение слота отклонено (${err?.name ?? err}) — звук плашки может молчать до следующего прогрева`); gameAudioNote('plate-sound', { wake: 'rejected', error: err?.name ?? String(err ?? 'error') }) })
     el = a
+    const swap = () => { if (el !== a) return; a.src = url; a.load() } // звук подставляем, когда play() тишины ЗАВЕРШИЛСЯ (смена src при ожидающем play() обрывает его — AbortError)
+    a.play().then(() => { if (el !== a) return; a.pause(); swap() }, err => {
+      if (el !== a) return // слот уже отпущен или заменён (releasePlate / повторный прогрев): его отказ не касается нового
+      if (err?.name === 'AbortError') { swap(); pLog('[plate-sound] пробуждение прервано (AbortError) — не отказ: элемент разбужен в жесте'); gameAudioNote('plate-sound', { wake: 'aborted', error: 'AbortError' }); return }
+      pLog(`[plate-sound] пробуждение слота отклонено (${err?.name ?? err}) — звук плашки может молчать до следующего прогрева`); gameAudioNote('plate-sound', { wake: 'rejected', error: err?.name ?? String(err ?? 'error') })
+    })
   } catch { el = null }
 }
 

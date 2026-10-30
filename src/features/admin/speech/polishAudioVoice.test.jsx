@@ -126,7 +126,7 @@ describe('ход хука usePolishAudioRun', () => {
     order.push(`before:${currentPresetId(store)}`)
     hook.beforeLaunch('build')
     order.push(`after-apply:${currentPresetId(store)}`)
-    expect(order).toEqual(['before:A', 'after-apply:C']) // start() модуля зовётся после beforeLaunch — см. проводку в блоке
+    expect(order).toEqual(['before:B', 'after-apply:C']) // start() модуля зовётся после beforeLaunch — см. проводку в блоке
     expect(store.m[MIC_HOLD_KEY]).toBe('close')
   })
   it('выход из игры: запись в копилку (этап, режим, журнал игры); одиночный запуск без прогона — шаг null', () => {

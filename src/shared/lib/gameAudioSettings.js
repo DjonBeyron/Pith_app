@@ -1,15 +1,15 @@
 // Настройки проверки на телефоне (Админ → «Голос» → «Микрофон игры»): как поведёт себя звук Пита и диктора, пока открыт микрофон игры. Хранятся в localStorage (по телефону), читаются при каждом
 // обращении — менять можно между играми, перезагрузка не нужна. Незнакомое значение = по умолчанию.
 //  • pithy_game_audio_session_v1 — тип аудиосессии iOS (navigator.audioSession.type) на время игры: 'play-and-record' (по умолчанию) | 'auto' (не трогаем) | 'phases' (playback на время речи, play-and-record на очередь ученика).
-//  • pithy_game_mic_hold_v1 — что делать с микрофоном на время речи Пита и диктора: 'none' (по умолчанию) | 'enabled-false' (track.enabled = false) | 'close' (поток закрывается совсем и открывается заново
+//  • pithy_game_mic_hold_v1 — что делать с микрофоном на время речи Пита и диктора: 'enabled-false' (по умолчанию с 3.3.76: track.enabled = false — по журналам iPhone голос Пита с 'none' попадал в распознавание, пилюли защёлкивались во время речи кота) | 'none' (не трогать) | 'close' (поток закрывается совсем и открывается заново
 //    к очереди ученика — «микрофон только в фазе ученика», приём «Сказать фразу»: запись не держит аудиосессию, пока говорит диктор; iOS может спросить доступ заново, всё пишется в отладку mic-hold).
 export const AUDIO_SESSION_KEY = 'pithy_game_audio_session_v1'
 export const MIC_HOLD_KEY = 'pithy_game_mic_hold_v1'
 
 export const AUDIO_SESSION_MODES = ['play-and-record', 'auto', 'phases']
-export const MIC_HOLD_MODES = ['none', 'enabled-false', 'close']
+export const MIC_HOLD_MODES = ['enabled-false', 'none', 'close']
 export const DEFAULT_AUDIO_SESSION_MODE = 'play-and-record'
-export const DEFAULT_MIC_HOLD_MODE = 'none'
+export const DEFAULT_MIC_HOLD_MODE = 'enabled-false'
 
 const read = (key, modes, fallback, store) => { try { const v = store?.getItem(key); return modes.includes(v) ? v : fallback } catch { return fallback } }
 const write = (key, modes, fallback, value, store) => {

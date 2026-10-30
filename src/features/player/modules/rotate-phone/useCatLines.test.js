@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
-// Первая реплика Пита откладывается до готовности прогрева и слота (≤ 1,5 с), потом — голос системы; реплика без озвучки подписью не ждёт. Хуки React заменены простыми (вызываем хук один раз)
+// Первая реплика Пита откладывается до готовности прогрева и слота (≤ 3 с), потом — подпись без звука (голоса системы нет); реплика без озвучки подписью не ждёт. Хуки React заменены простыми (вызываем хук один раз)
 vi.mock('react', async orig => ({ ...(await orig()), useState: v => [v, vi.fn()], useRef: v => ({ current: v }), useEffect: () => {} }))
 const gate = vi.hoisted(() => ({ ready: true, why: 'прогрев не закончен' }))
 vi.mock('./wordLaneLineGate.js', async orig => ({ ...(await orig()), lineReadiness: () => ({ ready: gate.ready, why: gate.why }) }))
@@ -41,7 +41,7 @@ describe('useCatLines: отсрочка первой реплики', () => {
     expect(say.mock.calls[0][0].voice).toBeUndefined()
   })
 
-  it('слот так и не подготовился за LINE_WAIT_MS — реплику говорит голос системы, причина передана для журнала', async () => {
+  it('слот так и не подготовился за LINE_WAIT_MS (3 с) — реплика остаётся подписью без звука (voice: none), причина передана для журнала', async () => {
     gate.ready = false
     const cat = useCatLines({ lines, rate: 1, catApi: { current: null }, listenerRef: null })
     cat.sayLine('rh_start')
@@ -49,7 +49,7 @@ describe('useCatLines: отсрочка первой реплики', () => {
     expect(say).not.toHaveBeenCalled()
     await vi.advanceTimersByTimeAsync(LINE_POLL_MS * 3)
     expect(say).toHaveBeenCalledTimes(1)
-    expect(say.mock.calls[0][0]).toMatchObject({ id: 'rh_start', voice: 'synth' })
+    expect(say.mock.calls[0][0]).toMatchObject({ id: 'rh_start', voice: 'none' })
     expect(say.mock.calls[0][0].waitedMs).toBeGreaterThanOrEqual(LINE_WAIT_MS)
     expect(say.mock.calls[0][0].why).toContain('прогрев не закончен')
   })

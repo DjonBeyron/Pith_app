@@ -10,8 +10,8 @@ const TEXT_TAIL_MS = 900 // подпись держится ещё стольк�
 // (динамик не должен засчитаться голосом). Как именно стартует звук и рот — wordLaneCatSay.js (голова спрятана — сначала выскакивает; нет озвучки — только подпись), здесь — когда: одну и ту же реплику не чаще
 // LINE_COOLDOWN_MS, две подряд не накладываются. Возвращает { text, sayLine, stop, busyLeft }: text — подпись, пока реплика звучит (пусто — нет); stop — оборвать реплику (пауза); busyLeft() — сколько мс кот ещё занят.
 // sayLine(id, vars): в тексте реплики {word} заменяется на vars.word (реплики Пита-тренера; такая реплика подписью, без озвучки — fillLine).
-// Начало игры (iPhone): озвученная реплика не стартует, пока прогрев не закончен и слот реплики не готов (wordLaneLineGate.js) — ждёт до LINE_WAIT_MS (подпись и рот появляются вместе со звуком); не дождалась —
-// говорит голос системы, причина в журнале «[cat-voice]». Для вызывающего sayLine в обоих случаях true («реплика принята»), кот занят на время ожидания.
+// Начало игры (iPhone): озвученная реплика не стартует, пока прогрев не закончен и слот реплики не готов (wordLaneLineGate.js) — ждёт до LINE_WAIT_MS (3 с; подпись и рот появляются вместе со звуком); не дождалась —
+// реплика остаётся подписью (рот по тексту, без звука; голоса системы в игре нет), причина в журнале «[cat-voice]». Для вызывающего sayLine в обоих случаях true («реплика принята»), кот занят на время ожидания.
 export function useCatLines({ lines, rate, catApi, listenerRef }) {
   const [text, setText] = useState('')
   const lastRef = useRef(new Map()) // id → когда последний раз говорил
@@ -46,7 +46,7 @@ export function useCatLines({ lines, rate, catApi, listenerRef }) {
     cancelGate()
     gateRef.current = waitForLine(check, {
       onReady: waited => speak(id, line, { waitedMs: waited }),
-      onTimeout: (waited, why) => speak(id, line, { voice: 'synth', waitedMs: waited, why }),
+      onTimeout: (waited, why) => speak(id, line, { voice: 'none', waitedMs: waited, why }),
     })
     return true
   }

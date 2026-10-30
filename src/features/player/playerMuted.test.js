@@ -42,6 +42,6 @@ describe('беззвучный плеер', () => {
     expect(read('./modules/sticker/StickerModule.jsx')).toMatch(/v\.muted = !turnOn \|\| getLessonMuted\(\)/)
     const voice = read('./modules/rotate-phone/wordLaneVoice.js') // голос диктора игры «Повтори за диктором»
     expect(voice).toMatch(/playPrimed\(row\.url, \{ muted: getLessonMuted\(\)/)
-    expect(voice).toMatch(/!s \|\| getLessonMuted\(\)/)
+    expect(voice).toMatch(/if \(!getLessonMuted\(\)\) pLog/) // голоса системы нет: «без звука» — молчим и без строки в журнале
   })
 })

@@ -46,6 +46,29 @@ describe('режим «custom»: настройка и адрес файла', (
   it('три скорости 1 / 1.26 / 1.5', () => { expect(REWARD_RATES).toEqual([1, 1.26, 1.5]) })
 })
 
+describe('пробуждение нот: AbortError не отказ', () => {
+  it('play() тишины прерван (AbortError) — звук всё равно подставляется (после завершения play), тон выставлен; отпущенные ноты ничего не меняют', async () => {
+    useCustom()
+    const rejects = []
+    const origPlay = FakeAudio.prototype.play
+    FakeAudio.prototype.play = function play() { plays.push({ src: this.src }); return new Promise((_, rej) => rejects.push(rej)) }
+    unlockNotes()
+    expect(created.map(a => a.src)).not.toContain(URL1) // пока play() тишины в пути — src не трогаем
+    rejects.forEach(r => r(Object.assign(new Error('The operation was aborted.'), { name: 'AbortError' })))
+    await flush()
+    expect(created.map(a => a.src)).toEqual([URL1, URL1, URL1])
+    expect(created.map(a => a.playbackRate)).toEqual(REWARD_RATES)
+    releaseNotes()
+    const n = created.length
+    unlockNotes()
+    releaseNotes()
+    rejects.slice(3).forEach(r => r(Object.assign(new Error('x'), { name: 'AbortError' }))) // отказ уже отпущенных элементов
+    await flush()
+    expect(created.slice(n).every(a => a.src === '' || a.src !== URL1)).toBe(true)
+    FakeAudio.prototype.play = origPlay
+  })
+})
+
 describe('режим «custom»: один файл — три тона', () => {
   it('unlockNotes: три слота получают один и тот же url; preservesPitch=false выставлен ДО первого play (прогрев в жесте)', async () => {
     useCustom()
@@ -116,7 +139,7 @@ describe('админка: «Своё мяу»', () => {
   it('исходники: ставим preservesPitch и webkitPreservesPitch, нормализуем перед загрузкой в R2', () => {
     const notes = read('./wordLaneNotes.js')
     expect(notes).toContain('a.preservesPitch = false'); expect(notes).toContain('a.webkitPreservesPitch = false')
-    expect(notes.indexOf('tuneSlot(a, k, mode) // preservesPitch до первого play')).toBeLessThan(notes.indexOf('a.play().then(() => { a.pause()'))
+    expect(notes.indexOf('tuneSlot(a, k, mode) // preservesPitch до первого play')).toBeLessThan(notes.indexOf('a.play().then(() => { if (els?.[k] !== a) return'))
     const flow = read('../../../admin/speech/gameSfxFlow.js')
     expect(flow.indexOf('normalizeToWav(bytes)')).toBeGreaterThan(-1)
     expect(flow).toContain('uploadSfxWav(c.wav)')

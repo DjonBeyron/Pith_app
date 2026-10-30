@@ -8,7 +8,7 @@ import { pLog } from '../../../shared/lib/debug.js'
 
 export const PRESET_KEY = 'pithy_rh_audio_preset_v1'
 export const CUSTOM = 'custom'
-export const DEFAULT_PRESET = 'A'
+export const DEFAULT_PRESET = 'B' // по журналам iPhone: B — голос Пита не попадает в распознавание, хрипа нет (A оставлен для сравнения: «не глушить»)
 
 const P = (id, title, session, hold, processing) => ({ id, title, session, hold, processing })
 /** id, подпись, тип аудиосессии, дорожка микрофона на речь Пита, обработка микрофона системой (эхо/шум) */
@@ -52,7 +52,7 @@ export function describePreset(id) {
   return p ? `${p.id} — ${p.title}` : 'свой набор (настройки изменены вручную)'
 }
 
-/** Выбранный для запуска пресет; нет записи / мусор — A */
+/** Выбранный для запуска пресет; нет записи / мусор — DEFAULT_PRESET (B) */
 export function readSelectedPreset(store = globalThis.localStorage) {
   try { const v = store?.getItem(PRESET_KEY); return presetById(v) ? v : DEFAULT_PRESET } catch { return DEFAULT_PRESET }
 }

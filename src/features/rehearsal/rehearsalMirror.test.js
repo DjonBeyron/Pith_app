@@ -44,13 +44,13 @@ describe('makeMirrorDictor', () => {
     t.fire(); await Promise.resolve()
     expect(play.mock.calls.map(c => c[0])).toEqual(["i'm", 'trying', 'to learn']); expect(speak).not.toHaveBeenCalled(); expect(done).toHaveBeenCalled()
   })
-  it('куска нет в слотах — голос системы (speakWord с языком); скорость голоса растягивает тайминги', () => {
+  it('куска нет в слотах — speakWord (без голоса системы: тишина и строка в журнал); скорость голоса растягивает тайминги', () => {
     const t = timers()
     const play = vi.fn(() => false), speak = vi.fn()
     const d = makeMirrorDictor({ chunks: ['hi'], rate: 2, lang: 'en-GB', lib: () => ({ ms: 600, lead: 100 }), row: () => null, play, speak, hold: null, ...t })
     expect(d.words[0]).toMatchObject({ start: 0, end: 300 }); expect(d.leadMs).toBe(50)
     d.play(); t.fire()
-    expect(play).not.toHaveBeenCalled(); expect(speak).toHaveBeenCalledWith('hi', 'en-GB')
+    expect(play).not.toHaveBeenCalled(); expect(speak).toHaveBeenCalledWith('hi')
   })
   it('нет озвучки в библиотеке — оценка длины куска, слова всё равно есть', () => {
     const d = makeMirrorDictor({ chunks: CHUNKS, lib: () => null, row: () => null, hold: null, ...timers() })

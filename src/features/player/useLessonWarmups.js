@@ -17,7 +17,23 @@ export function startLessonWarmups(has, deps = {}) {
   return () => { dead = true; stopPrefetch?.(); cancel?.() }
 }
 
+/**
+ * Озвучка нод «Повтори за диктором» (rotate_phone) урока — куски фразы, слова и реплики Пита — скачивается заранее, в простое после входа в урок (wordLaneWarm.warmLessonRotate подгружается отдельным чанком только
+ * для таких уроков): к тапу «Начать» файлы уже у телефона (иначе озвучка не успевала за 2,5 с, и Пит начинал молча). Только скачать: замеры — когда карточка покажется. Возвращает cancel().
+ */
+export function startRotateWarmups(rotateNodes, deps = {}) {
+  if (!rotateNodes?.length) return undefined
+  const d = { idle: startIdlePrewarm, load: () => import('./modules/rotate-phone/wordLaneWarm.js'), ...deps }
+  let dead = false
+  const stop = d.idle([() => d.load().then(m => (dead ? undefined : m.warmLessonRotate(rotateNodes)))])
+  return () => { dead = true; stop?.() }
+}
+
 export function useLessonWarmups(nodes) {
   const hasSayPhrase = nodes.some(n => n.type === 'say_phrase' || n.type === 'rotate_phone') // «Повтори за диктором» слушает Vosk так же, как «Сказать фразу»
   useEffect(() => startLessonWarmups(hasSayPhrase), [hasSayPhrase])
+  const rotate = nodes.filter(n => n.type === 'rotate_phone')
+  const rotateKey = JSON.stringify(rotate.map(n => n.typeData?.rotate_phone ?? null)) // содержимое нод, а не новый массив на каждый рендер плеера
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => startRotateWarmups(rotate), [rotateKey])
 }

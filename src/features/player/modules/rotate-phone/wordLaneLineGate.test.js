@@ -44,14 +44,15 @@ describe('waitForLine', () => {
     expect(onTimeout).not.toHaveBeenCalled()
     vi.useRealTimers()
   })
-  it('не дождались за LINE_WAIT_MS — onTimeout с причиной и ожиданием ≥ 1500; отмена снимает опрос', async () => {
+  it('не дождались за LINE_WAIT_MS — onTimeout с причиной и ожиданием ≥ LINE_WAIT_MS (3 с); отмена снимает опрос', async () => {
     vi.useFakeTimers()
     const onReady = vi.fn(); const onTimeout = vi.fn()
     waitForLine(() => ({ ready: false, why: 'слот не разбужен' }), { onReady, onTimeout })
     await vi.advanceTimersByTimeAsync(LINE_WAIT_MS + LINE_POLL_MS * 2)
     expect(onTimeout).toHaveBeenCalledTimes(1)
     expect(onTimeout.mock.calls[0][0]).toBeGreaterThanOrEqual(LINE_WAIT_MS)
-    expect(onTimeout.mock.calls[0][1]).toContain('слот не успел за 1500 мс: слот не разбужен')
+    expect(onTimeout.mock.calls[0][1]).toContain('слот не успел за 3000 мс: слот не разбужен')
+    expect(LINE_WAIT_MS).toBe(3000)
     const t2 = vi.fn()
     const cancel = waitForLine(() => ({ ready: false, why: 'x' }), { onReady, onTimeout: t2 })
     cancel()

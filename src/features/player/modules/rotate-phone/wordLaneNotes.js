@@ -99,7 +99,8 @@ export function unlockNotes() {
       a.preload = 'auto'
       a.volume = getRewardVolume()
       tuneSlot(a, k, mode) // preservesPitch до первого play (в жесте)
-      a.play().then(() => { a.pause(); a.src = own[k]; a.load(); tuneSlot(a, k, mode) }).catch(() => {})
+      const swap = () => { if (els?.[k] !== a) return; a.src = own[k]; a.load(); tuneSlot(a, k, mode) } // звук подставляем, когда play() тишины ЗАВЕРШИЛСЯ; AbortError (прерывание сессии / смена src) — не отказ
+      a.play().then(() => { if (els?.[k] !== a) return; a.pause(); swap() }, err => { if (err?.name === 'AbortError') swap() })
       return a
     })
   } catch { els = null }

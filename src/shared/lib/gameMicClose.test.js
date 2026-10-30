@@ -18,8 +18,10 @@ describe('настройка', () => {
     writeMicHoldMode('close', s)
     expect(s.m).toEqual({ [MIC_HOLD_KEY]: 'close' })
     expect(readMicHoldMode(s)).toBe('close')
-    writeMicHoldMode('none', s)
+    writeMicHoldMode('enabled-false', s) // значение по умолчанию (режим B) ключ снимает
     expect(s.m).toEqual({})
+    writeMicHoldMode('none', s)
+    expect(s.m).toEqual({ [MIC_HOLD_KEY]: 'none' })
   })
 })
 

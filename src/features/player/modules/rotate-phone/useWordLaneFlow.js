@@ -30,7 +30,7 @@ import { engineKind, isStudentStage } from '../../../rehearsal/rehearsalKinds.js
 // ВСЕ таймеры стадии считаются от одной точки — s.at (её же берёт движок пилюль), иначе голос и картинка расходились бы:
 //  drop → lanes      слово/фраза падает сверху, проявляются три дорожки;
 //  announce          плашка раунда;
-//  dictor            диктор проговаривает повторы ступени: звук каждого повтора включается по плану (клип из общего файла или голос системы), пилюли заливаются в такт речи;
+//  dictor            диктор проговаривает повторы ступени: звук каждого повтора включается по плану (клип из общего файла или слот библиотеки слов; голоса системы нет), пилюли заливаются в такт речи;
 //  turn              плашка «Теперь твоя очередь»; слушатель Vosk стартует уже под ней (тяжёлый запуск не мешает ходу пилюль);
 //  student           повторы выкатываются сами, ученик успевает их сказать — распознавание (wordLaneListen) принимает цели, движок (useWordLanePills) решает судьбу пилюль;
 //  order             раунд «Порядок»: подсказка диктора — ученик тапает дорожки (wordLaneOrder);
@@ -51,7 +51,7 @@ export function useWordLaneFlow({ chunks, translation, lang, clips = null, audio
   const [lib] = useState(() => makeLib(chunks)) // озвучка кусков в библиотеке слов на момент старта игры (длины и наличие)
   const built = useMemo(() => buildStages({ chunks, clips, audio, rate, lib, confusers, plan }), [chunks, clips, audio, rate, lib, confusers, plan])
   const { stages, chunkMs, chunkCurves, lanes, clipMode } = built
-  useEffect(() => { pLog(`[word-lane] диктор: ${audioSrc ? (clips ? 'озвучка автора, клипы найдены' : 'озвучка есть, но клипы кусков не найдены — куски проговорит голос системы') : 'без озвучки — голос системы'}`) }, [audioSrc, clips])
+  useEffect(() => { pLog(`[word-lane] диктор: ${audioSrc ? (clips ? 'озвучка автора, клипы найдены' : 'озвучка есть, но клипы кусков не найдены — куски играют слоты библиотеки слов') : 'без озвучки автора — куски из библиотеки слов (голоса системы нет)'}`) }, [audioSrc, clips])
   const [micEpoch, setMicEpoch] = useState(0) // растёт, когда микрофон переоткрыт: слушатель пересоздаётся на новом потоке
   const [s, setS] = useState({ stage: 'drop', idx: 0, at: 0, note: '', lid: '', seq: [], misses: 0, mic: 'starting', hint: [] })
   const xpApi = useRef(null)             // счётчик и летящие цифры XP живут в своём компоненте (WordLaneXp): каждая награда не перерисовывает оверлей, пилюли и кота
@@ -77,12 +77,12 @@ export function useWordLaneFlow({ chunks, translation, lang, clips = null, audio
   const go = useCallback((stage, idx = 0) => setS(p => ({ ...p, stage, idx, at: performance.now(), hint: [] })), [])
   const next = useCallback(() => { const i = nextIdx(sRef.current.idx + 1); if (i >= stages.length) go('reveal', i); else go('run', i) }, [go, stages.length, nextIdx])
 
-  // Звук куска: слот библиотеки слов (подготовлен в тапе «Начать») → озвучка библиотеки обычным путём → голос системы
+  // Звук куска: слот библиотеки слов (подготовлен в тапе «Начать») → озвучка библиотеки обычным путём → без звука (голоса системы нет, строка в журнале)
   const sayChunk = useCallback(i => {
     const r = libRow(chunks[i]); dbg.note('dictor')
     if (r && playWordSlot(r.key)) return
-    speakWord(chunks[i], lang)
-  }, [chunks, lang, dbg])
+    speakWord(chunks[i])
+  }, [chunks, dbg])
   // Звук записи автора (клип фразы целиком): клип в памяти → перемотка файла
   const sayClip = useCallback(row => { dbg.note('dictor'); const span = playSpan(row); if (!playClip(span)) playTrack(audioSrc, span) }, [audioSrc, dbg])
   // Озвучить высказывание из кусков parts сразу (подсказки раунда «Порядок»): запись автора — только у целой фразы, иначе куски по отдельности один за другим
@@ -117,9 +117,9 @@ export function useWordLaneFlow({ chunks, translation, lang, clips = null, audio
     },
     mouth(level, code) { catApi?.current?.mouth(level, code); if (dbg.enabled && isStudentStage(stages[sRef.current.idx])) dbg.gate(level > 0) }, // gate: голос после ворот (двигает пилюли) — пишем смену состояния
     peek(ms) { catApi?.current?.peek?.(ms) },
-    sayText(text) { // «Различи»: звучит слово пилюли (верное или запутыватель) — из библиотеки слов, нет её — голос системы; рот кота по буквам слова
+    sayText(text) { // «Различи»: звучит слово пилюли (верное или запутыватель) — из библиотеки слов, нет её — без звука; рот кота по буквам слова
       const r = libRow(text); dbg.note('word')
-      if (!(r && playWordSlot(r.key))) speakWord(text, lang)
+      if (!(r && playWordSlot(r.key))) speakWord(text)
       const sp = speechOfUrl(r?.row.url), k = rate > 0 ? rate : 1, file = Number(r?.row.duration) > 0 ? Number(r.row.duration) * 1000 : 0
       const ms = Math.round((sp?.ms ?? (file || estChunkMs(text))) / k), lead = Math.round((sp?.lead ?? 0) / k) // звук идёт с начала файла, слово — после тишины lead: рот стартует вместе со словом, а длится до конца файла
       const total = Math.round(Math.max(lead + ms, file / k))

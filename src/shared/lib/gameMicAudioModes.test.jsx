@@ -2,7 +2,7 @@ import { describe, it, expect, vi, afterEach } from 'vitest'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { readFileSync } from 'node:fs'
 import {
-  AUDIO_SESSION_KEY, MIC_HOLD_KEY, readAudioSessionMode, writeAudioSessionMode, readMicHoldMode, writeMicHoldMode,
+  AUDIO_SESSION_KEY, MIC_HOLD_KEY, DEFAULT_MIC_HOLD_MODE, readAudioSessionMode, writeAudioSessionMode, readMicHoldMode, writeMicHoldMode,
 } from './gameAudioSettings.js'
 import { createGameAudioSession } from './gameMicSession.js'
 import { createMicHold, HOLD_CHECK_MS } from './gameMicHold.js'
@@ -20,20 +20,22 @@ const timers = () => { const q = []; return { q, setTimer: (fn, ms) => { q.push(
 afterEach(() => { setGameAudioSink(null); closeGameMic(); vi.unstubAllGlobals() })
 
 describe('настройки режимов читаются из localStorage', () => {
-  it('по умолчанию: аудиосессия play-and-record, микрофон не трогаем; незнакомое значение = по умолчанию', () => {
+  it('по умолчанию (режим B): аудиосессия play-and-record, дорожка микрофона выключается на речь Пита; незнакомое значение = по умолчанию', () => {
     const s = memStore()
+    expect(DEFAULT_MIC_HOLD_MODE).toBe('enabled-false')
     expect(readAudioSessionMode(s)).toBe('play-and-record')
-    expect(readMicHoldMode(s)).toBe('none')
+    expect(readMicHoldMode(s)).toBe('enabled-false')
     expect(readAudioSessionMode(memStore({ [AUDIO_SESSION_KEY]: 'мусор' }))).toBe('play-and-record')
-    expect(readMicHoldMode(memStore({ [MIC_HOLD_KEY]: 'мусор' }))).toBe('none')
+    expect(readMicHoldMode(memStore({ [MIC_HOLD_KEY]: 'мусор' }))).toBe('enabled-false')
+    expect(readMicHoldMode(memStore({ [MIC_HOLD_KEY]: 'none' }))).toBe('none') // «не глушить» — по явному выбору (пресет A)
   })
   it('значения читаются и пишутся; значение по умолчанию ключ снимает; битое хранилище не роняет', () => {
     const s = memStore()
-    writeAudioSessionMode('phases', s); writeMicHoldMode('enabled-false', s)
-    expect(s.m).toEqual({ [AUDIO_SESSION_KEY]: 'phases', [MIC_HOLD_KEY]: 'enabled-false' })
+    writeAudioSessionMode('phases', s); writeMicHoldMode('none', s)
+    expect(s.m).toEqual({ [AUDIO_SESSION_KEY]: 'phases', [MIC_HOLD_KEY]: 'none' })
     expect(readAudioSessionMode(s)).toBe('phases')
-    expect(readMicHoldMode(s)).toBe('enabled-false')
-    writeAudioSessionMode('play-and-record', s); writeMicHoldMode('none', s); writeAudioSessionMode('auto', s)
+    expect(readMicHoldMode(s)).toBe('none')
+    writeAudioSessionMode('play-and-record', s); writeMicHoldMode('enabled-false', s); writeAudioSessionMode('auto', s)
     expect(s.m).toEqual({ [AUDIO_SESSION_KEY]: 'auto' })
     const broken = { getItem() { throw new Error('private') }, setItem() { throw new Error('private') }, removeItem() { throw new Error('private') } }
     expect(readAudioSessionMode(broken)).toBe('play-and-record')
@@ -103,8 +105,20 @@ describe('глушение дорожки на время речи (окно р�
     const hold = createMicHold({ getStream: () => stream, session: { phase }, store: memStore(mode ? { [MIC_HOLD_KEY]: mode } : {}), note, setTimer: t.setTimer, clearTimer: t.clearTimer })
     return { hold, t, note, tracks, phase, stream }
   }
-  it("по умолчанию ('none') дорожки не трогаются, но окно речи переключает фазу аудиосессии", () => {
+  it("по умолчанию ('enabled-false', режим B) окно речи выключает дорожку, active() защищает слушателя от «оглох», конец окна возвращает дорожку и проверяет её", () => {
     const m = mk(null)
+    m.hold.begin()
+    expect(m.tracks[0].enabled).toBe(false)
+    expect(m.hold.active()).toBe(true) // wordLaneListen.isHeld: тишина выключенной дорожки не «оглохший» микрофон (DEAD_MS не срабатывает)
+    expect(m.phase).toHaveBeenLastCalledWith('speak')
+    m.hold.end()
+    expect(m.tracks[0].enabled).toBe(true)
+    expect(m.hold.active()).toBe(false)
+    expect(m.t.q.at(-1).ms).toBe(HOLD_CHECK_MS)
+    expect(m.note.mock.calls[0][1]).toMatchObject({ on: true, mode: 'enabled-false', enabled: false })
+  })
+  it("явно 'none' (пресет A): дорожки не трогаются, но окно речи переключает фазу аудиосессии", () => {
+    const m = mk('none')
     m.hold.begin()
     expect(m.tracks[0].enabled).toBe(true)
     expect(m.hold.active()).toBe(false)

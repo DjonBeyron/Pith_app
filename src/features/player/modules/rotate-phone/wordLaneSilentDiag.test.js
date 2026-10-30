@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { diagnoseFirstLine, silentDiagLines, CAUSE_TITLE, WINDOW_MS } from './wordLaneSilentDiag.js'
+import { diagnoseFirstLine, silentDiagLines, gameBase, CAUSE_TITLE, WINDOW_MS } from './wordLaneSilentDiag.js'
+import { OWNER_WARMUP_LOG, parseGameLog } from './wordLaneOwnerLog.fixture.js'
 import { buildDebugFile } from './wordLaneDebugExport.js'
 import { createWordLaneDebug } from './wordLaneDebug.js'
 import { buildGameLogSection } from '../../gameLogSection.js'
@@ -114,5 +115,69 @@ describe('временная шкала и вывод в файл / журнал
     expect(out.some(l => l.includes('probe:start-mark'))).toBe(true) // шаги старта попадают и в хронологию
     expect(out.some(l => l.includes('probe:audio-interrupt') || l.includes('probe:plate-sound'))).toBe(true)
     expect(out.some(l => l.includes('event:cat-voice'))).toBe(true)
+  })
+})
+
+describe('журнал владельца (iPhone, 3.3.75, «Разминка», режим A): синтез заглушил микрофон', () => {
+  const events = parseGameLog(OWNER_WARMUP_LOG)
+
+  it('фикстура разобрана: реплики, дорожка, отметки тапов прошлых игр', () => {
+    expect(events.filter(e => e.kind === 'cat-voice').map(e => e.id)).toEqual(['rh_warmup', 'rh_warmup_miss'])
+    expect(events.find(e => e.kind === 'cat-voice').slot).toMatchObject({ wokeErr: 'AbortError', hasUrl: true })
+    expect(events.filter(e => e.kind === 'start-mark' && e.name === 'tap').map(e => e.t)).toEqual([-292508, -139313])
+  })
+
+  it('нулевая точка — тап ЭТОЙ игры (t реплики − sinceTap), а не первая отметка tap журнала: реплики находятся, шкала от того же тапа', () => {
+    expect(gameBase(events)).toBe(11966 - 14198)
+    const d = diagnoseFirstLine(events)
+    expect(d.cause).not.toBe('no-lines')
+    expect(d.lines.map(l => l.id)).toEqual(['rh_warmup', 'rh_warmup_miss'])
+    expect(d.firstLine.ms).toBe(4012 - (11966 - 14198)) // 6244 мс от тапа (sinceTap в самой реплике — 6250)
+    expect(Math.abs(d.firstLine.ms - 6250)).toBeLessThan(10)
+    expect(d.timeline.every(t => t.ms >= -50 && t.ms <= WINDOW_MS)).toBe(true)
+    expect(d.timeline.some(t => t.what.startsWith('реплика rh_warmup:'))).toBe(true)
+    expect(d.timeline.some(t => t.what.includes('дорожка микрофона ЗАГЛУШЕНА'))).toBe(true)
+  })
+
+  it('причина synth-muted-mic: реплика голосом системы и в течение 3 с дорожка микрофона заглушена; цепочка с AbortError и длиной заглушения (unmute)', () => {
+    const d = diagnoseFirstLine(events)
+    expect(d.cause).toBe('synth-muted-mic')
+    expect(d.title).toBe(CAUSE_TITLE['synth-muted-mic'])
+    expect(d.causes).toContain('slot-not-ready')
+    expect(d.causes).not.toContain('ducking') // play=ok у синтеза — не «тихо из-за ducking»: микрофон глох
+    expect(d.detail).toContain('слот не готов к реплике')
+    expect(d.detail).toContain('пробуждение слота прервано (AbortError)')
+    expect(d.detail).toContain('ушли в синтез')
+    expect(d.detail).toContain('заглушил микрофон на 11.8 с')
+    const text = silentDiagLines(d).join('\n')
+    expect(text).toContain('Цепочка: слот не готов к реплике')
+    expect(text).not.toContain('РЕПЛИК КОТА В ПЕРВЫЕ 15 С НЕ БЫЛО')
+  })
+
+  it('озвучка не скачалась за 2,5 с — отметка ready words=timeout ЭТОЙ игры попадает в цепочку; без отметки — причина слота из самой реплики', () => {
+    const ready = { t: 4012 - 6250 + 4172, type: 'probe', kind: 'start-mark', name: 'ready', words: 'timeout' }
+    expect(diagnoseFirstLine([...events, ready]).detail).toContain('слот не готов к реплике (озвучка не скачалась за 2,5 с)')
+    expect(diagnoseFirstLine(events).detail).toContain('слот не успел за 1500 мс')
+  })
+
+  it('синтез без заглушения дорожки (mute позже 3 с или нет вовсе) — не synth-muted-mic; mute до реплики не считается', () => {
+    const noMute = events.filter(e => e.kind !== 'track')
+    expect(diagnoseFirstLine(noMute).cause).toBe('ducking')
+    const late = [...noMute, { t: 4012 + 3500, type: 'probe', kind: 'track', event: 'mute' }]
+    expect(diagnoseFirstLine(late).cause).toBe('ducking')
+  })
+
+  it('дорожка не вернулась до конца журнала — так и пишется', () => {
+    const d = diagnoseFirstLine(events.filter(e => !(e.kind === 'track' && e.event === 'unmute')))
+    expect(d.detail).toContain('и она не вернулась до конца журнала')
+  })
+
+  it('версия без синтеза: реплика осталась подписью (noSynth) — слот не готов, а не «нет озвучки»; строка шкалы и вывод говорят «синтез запрещён»', () => {
+    const marks = [mk(-2000, 'start-mark', { name: 'tap', sinceTap: 0 })]
+    const d = diagnoseFirstLine([...marks, line(1800, { source: 'none', noSynth: true, play: 'n/a', waitedMs: 3000, why: 'слот не успел за 3000 мс: слот не разбужен', sinceTap: 3800, slot: { rs: 0, prepared: false, wokeNote: 'aborted' } })])
+    expect(d.cause).toBe('slot-not-ready')
+    expect(d.causes).not.toContain('no-voice')
+    expect(d.timeline.some(t => t.what.includes('синтез запрещён'))).toBe(true)
+    expect(silentDiagLines(d).join('\n')).toContain('нет (синтез запрещён)')
   })
 })

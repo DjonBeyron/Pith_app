@@ -1,4 +1,4 @@
-import { unlockVoice, prepareTrack, rewakeTrack } from './wordLaneVoice.js'
+import { prepareTrack, rewakeTrack } from './wordLaneVoice.js'
 import { unlockNotes, releaseNotes } from './wordLaneNotes.js'
 import { unlockPlate } from './wordLanePlateSound.js'
 import { prepareClips, prepareWords, rewakeClips } from './wordLaneClips.js'
@@ -24,7 +24,7 @@ export const WORDS_WAIT_MS = 2500 // сколько максимум ждём п
 //  0. скачивание и измерение озвучки (prefetchWords) начинается СРАЗУ и идёт параллельно шагам 1–2: сеть и декодирование аудиосессию не трогают, а раньше стартовали только после settle;
 //  1. тип аудиосессии (gameAudioSession.begin) и микрофон (getUserMedia) — первыми, синхронно в тапе;
 //  2. ждём, пока прерывание уляжется (gameAudioWarm.settle: тишина SETTLE_QUIET_MS и контекст не 'interrupted', потолок SETTLE_MAX_MS);
-//  3. будим звук (wakeGameAudio): синтезатор, слоты слов диктора и кота, запись автора, мяу/ноты, прогретый элемент приложения, слова урока, звуки интерфейса;
+//  3. будим звук (wakeGameAudio; синтезатор речи НЕ будим — его в игре нет, он захватывает аудиосессию): слоты слов диктора и кота, запись автора, мяу/ноты, прогретый элемент приложения, слова урока, звуки интерфейса;
 //  4. ждём подготовку озвучки (≤ WORDS_WAIT_MS): длины слов нужны плану диктора. Игра начинается после этого (RotatePhoneModule). Ждём только НУЖНОЕ К СТАРТУ (wordsPlan.now: слова и реплики первых стадий);
 //     остальные реплики Пита (wordsPlan.late; cfg.firstLines задаёт репетиция) слоты получают в том же тапе, а файлы качаются и измеряются фоном, после нужных, — они не держат старт и не нагружают первые кадры.
 // Каждый шаг помечается в gameStartTrace (тап, mic, settle, wake, ready, tap-wait) — из отметок строится временная шкала «Почему первая реплика тихая» (wordLaneSilentDiag.js); отсрочка первой реплики кота
@@ -44,7 +44,6 @@ export function wordsPlan({ cfg, lines }) {
 
 /** Разбудить всё, что играет в игре (только в жесте). Возвращает промис «озвучка кусков готова» */
 export function wakeGameAudio({ cfg, audioSrc, lines }) {
-  unlockVoice()
   // Звуки диктора: куски фразы — отдельными файлами из библиотеки озвучки слов (слоты будятся тишиной в жесте), запись автора — только финал (вся фраза; у одного слова — если слова нет в библиотеке)
   const { now, late } = wordsPlan({ cfg, lines })
   const wordsReady = prepareWords(now) // заодно измеряется, где в файле звучит голос (без «хвоста»)
@@ -65,7 +64,6 @@ export function wakeGameAudio({ cfg, audioSrc, lines }) {
 
 /** Повторный прогрев после прерывания аудиосессии (в жесте или на ближайшем касании): те же элементы, но заново; сеть не трогаем — звуки уже в памяти */
 export function rewakeGameAudio({ audioSrc }) {
-  unlockVoice()
   rewakeClips()
   if (audioSrc) rewakeTrack()
   releaseNotes(); unlockNotes(); unlockPlate()

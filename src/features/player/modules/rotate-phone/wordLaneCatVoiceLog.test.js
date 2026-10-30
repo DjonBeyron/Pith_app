@@ -50,6 +50,11 @@ describe('openCatVoice: строка и событие на реплику', () 
     openCatVoice({ id: 'c', source: 'none', why: 'у реплики нет озвучки (url)' }, e)()
     expect(e.log.mock.calls[2][0]).toContain('источник=нет озвучки (у реплики нет озвучки (url))')
     expect(e.log.mock.calls[2][0]).toContain('слота нет')
+    openCatVoice({ id: 'd', source: 'none', noSynth: true, slot: slot({ prepared: false, rs: 0, wokeNote: 'aborted' }), waitedMs: 3000, why: 'слот не успел за 3000 мс' }, e)()
+    const silent = e.log.mock.calls[3][0]
+    expect(silent).toContain('источник=нет (синтез запрещён) (слот не успел за 3000 мс)')
+    expect(silent).toContain('пробуждение прервано (AbortError — не отказ)')
+    expect(e.emit).toHaveBeenLastCalledWith('cat-voice', expect.objectContaining({ id: 'd', source: 'none', noSynth: true, slot: expect.objectContaining({ wokeNote: 'aborted' }) }), { quiet: true })
   })
 
   it('вне первых 15 с (или без тапа) ничего не пишет; повторный done игнорируется; сбой журнала не ломает', () => {

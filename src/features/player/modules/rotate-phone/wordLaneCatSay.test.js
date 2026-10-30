@@ -80,25 +80,20 @@ describe('реплика кота: старт', () => {
     expect(b.open).toHaveBeenCalledWith(expect.objectContaining({ source: 'none', why: 'слот не подготовлен' }))
   })
 
-  it('слот не успел (voice: synth): реплику говорит голос системы с русской речью, рот и микрофон — как у обычной; причина и ожидание уходят в журнал', () => {
-    const m = mk({ slot: false })
-    const r = startCatLine({ id: 'your_turn', line: lines.your_turn, voice: 'synth', waitedMs: 1500, why: 'слот не успел за 1500 мс', ...m.deps })
-    expect(r.voiced).toBe(true)
-    expect(m.say).toHaveBeenCalledWith('Теперь твоя очередь', 'ru-RU', expect.any(Function))
-    expect(m.deps.play).not.toHaveBeenCalled()
-    expect(m.open).toHaveBeenCalledWith(expect.objectContaining({ id: 'your_turn', source: 'synth', waitedMs: 1500, why: 'слот не успел за 1500 мс' }))
-    expect(m.api.speak).toHaveBeenCalledTimes(1)
-    expect(m.mute).toHaveBeenCalledWith(2000 + LINE_PAUSE_MS)
-  })
-
-  it('голос системы не запустился (нет синтезатора / «без звука») — cat-line-silent no-synth, рот не двигается, done получает rejected', () => {
+  it('слот не успел (voice: none): голоса системы НЕТ — подпись и рот по тексту, без звука; микрофон не глушим; в журнале «синтез запрещён» и cat-line-silent no-synth', () => {
     const m = mk({ slot: false })
     const done = vi.fn(); m.open.mockReturnValue(done)
-    m.say.mockReturnValue(false)
-    startCatLine({ id: 'your_turn', line: lines.your_turn, voice: 'synth', ...m.deps })
-    expect(m.api.speak).not.toHaveBeenCalled()
-    expect(done).toHaveBeenCalledWith({ play: 'rejected', error: 'speak() не запустился' })
+    const hold = { holdFor: vi.fn() }
+    const r = startCatLine({ id: 'your_turn', line: lines.your_turn, voice: 'none', waitedMs: 3000, why: 'слот не успел за 3000 мс', ...m.deps, hold })
+    expect(r.voiced).toBe(false)
+    expect(m.say).not.toHaveBeenCalled()
+    expect(m.deps.play).not.toHaveBeenCalled()
+    expect(m.open).toHaveBeenCalledWith(expect.objectContaining({ id: 'your_turn', source: 'none', noSynth: true, waitedMs: 3000, why: 'слот не успел за 3000 мс' }))
+    expect(done).toHaveBeenCalledTimes(1) // без аргумента: звука не было
     expect(m.log).toHaveBeenCalledWith('cat-line-silent', { id: 'your_turn', reason: 'no-synth' })
+    expect(m.api.speak).toHaveBeenCalledTimes(1) // рот двигается по тексту
+    expect(m.mute).not.toHaveBeenCalled()
+    expect(hold.holdFor).not.toHaveBeenCalled()
   })
 
   it('скорость голоса укорачивает реплику, и рот идёт за ней', () => {

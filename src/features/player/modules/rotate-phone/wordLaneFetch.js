@@ -3,7 +3,7 @@
 //  • fetchBlob(url) — файл скачивается один раз: повторный вызов (prefetchWords в тапе, потом prepareWords) получает тот же промис;
 //  • measureSpeech(url, blob) — где в файле звучит голос (wordLaneTrim); декодирует OfflineAudioContext и считает RMS кадров на ОСНОВНОМ потоке, поэтому замеры идут не больше MEASURE_PARALLEL разом и с передышкой
 //    между файлами (setTimeout 0): иначе 30 файлов подряд занимали поток на секунды (первый кадр игры замирал, на телефоне — ещё дольше);
-//  • prefetchWords(items) — в тапе: скачать и измерить, ничего не создавая (слоты создаёт и будит prepareWords позже, в жесте); dropFetched() — игра закрыта, скачанное отпускаем (измерения живут до перезагрузки).
+//  • prefetchWords(items) — при показе карточки игры, в начале урока и в тапе: скачать и измерить, ничего не создавая (слоты создаёт и будит prepareWords позже, в жесте); dropFetched() — игра закрыта, скачанное отпускаем (измерения живут до перезагрузки).
 import { speechBounds } from './wordLaneTrim.js'
 
 export const MEASURE_PARALLEL = 2 // сколько файлов измеряется одновременно
@@ -64,10 +64,13 @@ export function fetchBlob(url) {
   return p
 }
 
-/** Из тапа «Начать»: items — [{ key, url }]. Все файлы качаются сразу (сеть параллельна), замеры идут по очереди. → промис «всё скачано и измерено» (никогда не отклоняется) */
-export function prefetchWords(items) {
+/**
+ * Заранее (при показе карточки игры / в начале урока, ещё ДО тапа «Начать») и в самом тапе: items — [{ key, url }]. Все файлы качаются сразу (сеть параллельна), замеры идут по очереди; { measure: false } — только
+ * скачать (прогрев урока: декодирование на главном потоке не нужно, пока игру не открыли). → промис «всё скачано и измерено» (никогда не отклоняется)
+ */
+export function prefetchWords(items, { measure = true } = {}) {
   if (typeof fetch === 'undefined' || !items?.length) return Promise.resolve()
-  return Promise.all(items.map(it => fetchBlob(it.url).then(blob => measureSpeech(it.url, blob)).catch(() => {}))).then(() => undefined)
+  return Promise.all(items.map(it => fetchBlob(it.url).then(blob => (measure ? measureSpeech(it.url, blob) : undefined)).catch(() => {}))).then(() => undefined)
 }
 
 /** Игра закрыта: скачанные файлы отпускаются (blob-ы слотов отпускает releaseClips) */

@@ -6,24 +6,51 @@
 <script>
 (() => {
   const params = new URLSearchParams(location.search)
-  const kase = params.get('case') || 'ok' // ok | expired | expired-nogesture | slow | reject
+  const kase = params.get('case') || 'ok' // ok | expired | expired-nogesture | slow | reject | abort | swap
   window.__case = kase
   window.__active = false
   Object.defineProperty(navigator, 'userActivation', { get: () => ({ isActive: window.__active, hasBeenActive: true }), configurable: true })
   let t = 0
   const grant = () => { window.__active = true; clearTimeout(t); t = setTimeout(() => { window.__active = false }, 5000) }
   for (const type of ['pointerup', 'touchend', 'click']) document.addEventListener(type, e => { if (e.isTrusted) grant() }, true)
+  // Системный синтез речи (iOS): в игре его быть не должно. Заглушка считает вызовы speak() и, если кто-то всё же заговорил, «заглушает» дорожки микрофона (событие mute через секунду, unmute через 12 с), как делает iOS.
+  window.__synthCalls = 0
+  window.__tracks = []
+  const fakeSynth = { speaking: false, pending: false, paused: false, getVoices: () => [], cancel() {}, pause() {}, resume() {}, addEventListener() {}, removeEventListener() {},
+    speak() { window.__synthCalls += 1; setTimeout(() => window.__tracks.forEach(t => t.dispatchEvent(new Event('mute'))), 1000); setTimeout(() => window.__tracks.forEach(t => t.dispatchEvent(new Event('unmute'))), 12000) } }
+  Object.defineProperty(window, 'speechSynthesis', { value: fakeSynth, configurable: true })
+  window.SpeechSynthesisUtterance = class { constructor(text) { this.text = text } }
+  // swap: первый play() элемента (пробуждение тишиной) висит 1,2 с; смена src/load() за это время обрывает его AbortError — как в WebKit («play() прерван новым запросом загрузки»). Счётчик __abortBySwap — наши собственные обрывы.
+  // abort: первый play() в жесте прерывает «система» (смена аудиосессии) через 0,9 с — AbortError, но элемент уже «играл в жесте» и считается разбуженным (так ведёт себя iOS).
+  window.__abortBySwap = 0
+  window.__abortBySystem = 0
+  const srcDesc = Object.getOwnPropertyDescriptor(HTMLMediaElement.prototype, 'src')
+  Object.defineProperty(HTMLMediaElement.prototype, 'src', { get() { return srcDesc.get.call(this) }, set(v) { if (this.__pendingWake) { this.__pendingWake(); window.__abortBySwap += 1 } srcDesc.set.call(this, v) }, configurable: true })
+  const origLoad = HTMLMediaElement.prototype.load
+  HTMLMediaElement.prototype.load = function load() { if (this.__pendingWake) { this.__pendingWake(); window.__abortBySwap += 1 } return origLoad.call(this) }
   const origPlay = HTMLMediaElement.prototype.play
   HTMLMediaElement.prototype.play = function play() {
+    if (kase === 'swap' && !this.__unlocked && window.__active && !this.__woken) {
+      this.__woken = true; this.__unlocked = true
+      return new Promise((resolve, reject) => {
+        const t = setTimeout(() => { this.__pendingWake = null; resolve() }, 1200)
+        this.__pendingWake = () => { clearTimeout(t); this.__pendingWake = null; reject(new DOMException('The operation was aborted.', 'AbortError')) }
+      })
+    }
+    if (kase === 'abort' && !this.__unlocked && window.__active && !this.__woken) {
+      this.__woken = true; this.__unlocked = true
+      return new Promise((_, reject) => setTimeout(() => { window.__abortBySystem += 1; reject(new DOMException('The operation was aborted.', 'AbortError')) }, 900))
+    }
     if (window.__forceReject && this.__unlocked) return Promise.reject(new DOMException('прерван', 'NotAllowedError'))
     if (!this.__unlocked && !window.__active) return Promise.reject(new DOMException('play() без жеста', 'NotAllowedError'))
     return origPlay.call(this).then(r => { if (window.__active) this.__unlocked = true; return r })
   }
   const md = navigator.mediaDevices
   const gum = md.getUserMedia.bind(md)
-  md.getUserMedia = (...a) => (kase.startsWith('expired') ? new Promise(r => setTimeout(r, 5600)).then(() => gum(...a)) : gum(...a))
+  const gumTracked = (...a) => gum(...a).then(s => { s.getAudioTracks().forEach(t => window.__tracks.push(t)); return s })
+  md.getUserMedia = (...a) => (kase.startsWith('expired') ? new Promise(r => setTimeout(r, 5600)).then(() => gumTracked(...a)) : gumTracked(...a))
   const origFetch = window.fetch.bind(window)
-  window.fetch = (u, ...r) => (kase === 'slow' && window.__lineUrls?.has(String(u)) ? new Promise(res => setTimeout(res, 6000)).then(() => origFetch(u, ...r)) : origFetch(u, ...r))
+  window.fetch = (u, ...r) => (kase === 'slow' && window.__lineUrls?.has(String(u)) ? new Promise(res => setTimeout(res, Number(params.get('delay')) || 6000)).then(() => origFetch(u, ...r)) : origFetch(u, ...r))
 })()
 </script>
 <script type="module">
@@ -46,7 +73,9 @@ import { getPlayerLines } from '/src/shared/lib/debug.js'
 
 // Стенд «Первая реплика Пита» (dev, в сборку не входит): репетиция с озвученными репликами Пита и эмуляцией правил iOS (см. скрипт выше) — проверка диагностики «почему первая реплика тихая» и «Тапни, чтобы начать».
 //  • ?case=ok — всё в жесте; expired — жест истекает, пока открывается микрофон: игра ждёт касания (подсказка); expired-nogesture — то же, но «касание» программное (без жеста): прежний сбой, виден в разделе;
-//    slow — файлы реплик грузятся 6 с (слот не готов → голос системы); reject — play() реплики отклоняется. Отчёт: window.__report().
+//    slow — файлы реплик грузятся 6 с (или ?delay=мс; при 30000 слот не успевает за 3 с → реплика подписью без звука, голос системы НЕ включается); reject — play() реплики отклоняется;
+//    abort — пробуждение слотов прерывает «система» (AbortError) — это не отказ, реплика идёт из слота; swap — пробуждение висит 1,2 с, смена src за это время оборвала бы его (счётчик abortBySwap должен быть 0).
+//    Во всех случаях speechSynthesis подменён заглушкой: synthCalls должен быть 0 (иначе «iOS» заглушила бы микрофон — trackEvents). Отчёт: window.__report().
 const params = new URLSearchParams(location.search)
 probe.install() // как делает ShellV2 при включённой отладке: события тапа «Начать» попадают в журнал игры
 
@@ -84,6 +113,9 @@ window.__report = () => {
     section: buildGameLogSection(dump),
     log: getPlayerLines().filter(l => /\[cat-voice\]|\[plate-sound\]|\[audio-warm\]/.test(l)),
     exportKeys: Object.keys(body).filter(k => k !== 'events' && k !== 'audio'),
+    synthCalls: window.__synthCalls, abortBySwap: window.__abortBySwap, abortBySystem: window.__abortBySystem,
+    trackEvents: (dump.events ?? []).filter(e => e.type === 'probe' && e.kind === 'track').map(e => e.event),
+    catVoice: (dump.events ?? []).filter(e => e.type === 'event' && e.kind === 'cat-voice').map(e => ({ id: e.id, source: e.source, noSynth: !!e.noSynth, play: e.play, slot: e.slot })),
   }
 }
 

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { sliceToWav, monoOf, spanKey, prepareClips, prepareWords, playClip, playWordSlot, hasWordSlot, wordSlotInfo, rewakeClips, releaseClips, clipsState, FADE_IN_S } from './wordLaneClips.js'
+import { sliceToWav, monoOf, spanKey, prepareClips, prepareWords, playClip, playWordSlot, hasWordSlot, wordSlotInfo, rewakeClips, releaseClips, clipsState, FADE_IN_S, WAKE_WAIT_MS } from './wordLaneClips.js'
 
 const ascii = (u8, o, n) => String.fromCharCode(...u8.slice(o, o + n))
 const view = u8 => new DataView(u8.buffer, u8.byteOffset, u8.byteLength)
@@ -125,5 +125,108 @@ describe('клипы диктора на элементах <audio>', () => {
     await Promise.resolve(); await Promise.resolve()
     expect(bad).toHaveBeenCalledWith(expect.objectContaining({ play: 'rejected', error: 'NotAllowedError' }))
     expect(playWordSlot('nope', bad)).toBe(false)
+  })
+})
+
+describe('пробуждение слотов: AbortError не отказ, src меняется только после play() тишины', () => {
+  let made
+  const defer = () => { let resolve, reject; const promise = new Promise((a, b) => { resolve = a; reject = b }); return { promise, resolve, reject } }
+  const abort = () => Object.assign(new Error('The operation was aborted.'), { name: 'AbortError' })
+  const blobFetch = () => vi.stubGlobal('fetch', () => Promise.resolve({ ok: true, blob: () => Promise.resolve(new Blob(['x'])) }))
+  const flush = async () => { for (let i = 0; i < 6; i++) await Promise.resolve() }
+  beforeEach(() => {
+    made = []
+    vi.stubGlobal('URL', { createObjectURL: () => `blob:${made.length}-${Math.random()}`, revokeObjectURL() {} })
+    blobFetch()
+  })
+  afterEach(() => { releaseClips(); vi.unstubAllGlobals(); vi.useRealTimers() })
+  const audioClass = playFor => class {
+    constructor(src) { this.src = src; this.paused = true; this.srcLog = [src]; this.plays = 0; made.push(this) }
+    setAttribute() {}
+    play() { this.plays += 1; return playFor(this) }
+    pause() { this.paused = true }
+    load() {}
+    removeAttribute() { this.src = '' }
+    set currentTime(v) { this.t = v }
+  }
+
+  it('play() тишины прерван (AbortError: iOS прервал сессию) — слот разбужен: prepared true, wokeErr нет, wokeNote «aborted»; звук подставлен', async () => {
+    vi.stubGlobal('Audio', audioClass(() => Promise.reject(abort())))
+    await prepareWords([{ key: 'line:a', url: 'https://r2/a.mp3' }])
+    await flush()
+    const info = wordSlotInfo('line:a')
+    expect(info).toMatchObject({ hasUrl: true, prepared: true, wokeErr: null, wokeNote: 'aborted', wakePending: false })
+    expect(info.wokeAt).toBeGreaterThan(0)
+    expect(made[0].src).toMatch(/^blob:/)
+    expect(made[0].src).not.toBe(made[0].srcLog[0]) // тишину сменил настоящий звук
+  })
+
+  it('NotAllowedError по-прежнему отказ: слот не разбужен, wokeErr с именем', async () => {
+    vi.stubGlobal('Audio', audioClass(() => Promise.reject(Object.assign(new Error('x'), { name: 'NotAllowedError' }))))
+    await prepareWords([{ key: 'line:a', url: 'https://r2/a.mp3' }])
+    await flush()
+    expect(wordSlotInfo('line:a')).toMatchObject({ prepared: false, wokeErr: 'NotAllowedError', wokeNote: null, wokeAt: 0 })
+  })
+
+  it('src меняется на звук ТОЛЬКО после того, как play() тишины завершился (пока ждёт — остаётся тишина), а не во время него', async () => {
+    const wake = defer()
+    vi.stubGlobal('Audio', audioClass(() => wake.promise))
+    const ready = prepareWords([{ key: 'line:a', url: 'https://r2/a.mp3' }])
+    const silence = made[0].src
+    await flush(); await new Promise(r => setTimeout(r, 5))
+    expect(wordSlotInfo('line:a')).toMatchObject({ hasUrl: true, prepared: false, wakePending: true }) // файл скачан, а play() тишины ещё в пути
+    expect(made[0].src).toBe(silence)
+    wake.resolve()
+    await ready
+    await flush()
+    expect(made[0].src).not.toBe(silence)
+    expect(wordSlotInfo('line:a')).toMatchObject({ prepared: true, wakePending: false })
+  })
+
+  it('отказ СТАРОГО элемента (его заменил rewakeClips: pause/load обрывают его play()) не пачкает здоровый новый: wokeErr остаётся пустым', async () => {
+    const olds = []
+    vi.stubGlobal('Audio', audioClass(el => { const d = defer(); olds.push(d); el.d = d; return d.promise }))
+    const ready = prepareWords([{ key: 'line:a', url: 'https://r2/a.mp3' }])
+    await flush()
+    rewakeClips() // старый элемент отпущен посреди пробуждения, создан новый
+    expect(made).toHaveLength(2)
+    olds[0].reject(abort()) // отклик старого приходит позже (микротаск)
+    olds[1].resolve()
+    await flush(); await ready.catch(() => {}); await flush()
+    expect(wordSlotInfo('line:a')).toMatchObject({ prepared: true, wokeErr: null, wokeNote: null })
+  })
+
+  it('реплика пришла, пока play() тишины не завершился: src не трогаем, ждём его (не дольше WAKE_WAIT_MS), потом играем; исход — в onResult', async () => {
+    vi.useFakeTimers()
+    const wake = defer()
+    vi.stubGlobal('Audio', audioClass(el => (el.plays === 1 ? wake.promise : Promise.resolve())))
+    const slotReady = prepareWords([{ key: 'line:a', url: 'https://r2/a.mp3' }])
+    await vi.advanceTimersByTimeAsync(0)
+    const el = made[0]
+    const silence = el.src
+    const out = vi.fn()
+    expect(playWordSlot('line:a', out)).toBe(true) // принято, но пока ждёт
+    expect(el.plays).toBe(1)
+    expect(el.src).toBe(silence)
+    wake.resolve()
+    await vi.advanceTimersByTimeAsync(0)
+    await slotReady
+    await vi.advanceTimersByTimeAsync(WAKE_WAIT_MS)
+    expect(el.plays).toBe(2)
+    expect(el.src).not.toBe(silence)
+    expect(el.t).toBe(0)
+    // зависло навсегда — через WAKE_WAIT_MS играем всё равно
+    releaseClips()
+    const stuck = defer()
+    vi.stubGlobal('Audio', audioClass(el2 => (el2.plays === 1 ? stuck.promise : Promise.resolve())))
+    prepareWords([{ key: 'line:b', url: 'https://r2/b.mp3' }])
+    await vi.advanceTimersByTimeAsync(0)
+    const e2 = made.at(-1)
+    wordSlotInfo('line:b')
+    // файл скачан (src подставит attach после пробуждения) — ждём только таймер
+    await vi.advanceTimersByTimeAsync(0)
+    expect(playWordSlot('line:b')).toBe(true)
+    await vi.advanceTimersByTimeAsync(WAKE_WAIT_MS + 5)
+    expect(e2.plays).toBe(2)
   })
 })

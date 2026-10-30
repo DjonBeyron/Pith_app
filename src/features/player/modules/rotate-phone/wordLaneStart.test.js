@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 // Звук тапа «Начать» (wordLaneStart.js): тип сессии → микрофон → ждём, пока iOS уляжется → будим звук; повторный прогрев после прерывания
 const calls = vi.hoisted(() => [])
 const rec = name => vi.fn((...a) => { calls.push(name); return a })
-vi.mock('./wordLaneVoice.js', () => ({ unlockVoice: rec('unlockVoice'), prepareTrack: rec('prepareTrack'), rewakeTrack: rec('rewakeTrack') }))
+vi.mock('./wordLaneVoice.js', () => ({ prepareTrack: rec('prepareTrack'), rewakeTrack: rec('rewakeTrack') }))
 vi.mock('./wordLaneNotes.js', () => ({ unlockNotes: rec('unlockNotes'), releaseNotes: rec('releaseNotes') }))
 vi.mock('./wordLaneClips.js', () => ({ prepareWords: vi.fn(() => { calls.push('prepareWords'); return Promise.resolve(true) }), prepareClips: rec('prepareClips'), rewakeClips: rec('rewakeClips') }))
 vi.mock('./wordLaneAudio.js', () => ({ playSpan: s => s, clipsFor: () => ({ start: 0, end: 1 }) }))
@@ -150,9 +150,9 @@ describe('RotatePhoneModule: «Тапни, чтобы начать»', () => {
 })
 
 describe('wakeGameAudio / rewakeGameAudio: что будится', () => {
-  it('первый прогрев: синтезатор, слоты слов, запись автора и её клипы, ноты, прогретый элемент, слова урока, звуки интерфейса — и возвращает промис готовности слов', async () => {
+  it('первый прогрев (синтезатор НЕ будим): слоты слов, запись автора и её клипы, ноты, прогретый элемент, слова урока, звуки интерфейса — и возвращает промис готовности слов', async () => {
     const ready = wakeGameAudio({ cfg, audioSrc: 'a.mp3', lines: null })
-    expect(calls).toEqual(['unlockVoice', 'prepareWords', 'prepareTrack', 'prepareClips', 'unlockNotes', 'primeAudio', 'rewarmWords', 'preloadSounds', 'unlockAudio'])
+    expect(calls).toEqual(['prepareWords', 'prepareTrack', 'prepareClips', 'unlockNotes', 'primeAudio', 'rewarmWords', 'preloadSounds', 'unlockAudio'])
     await expect(ready).resolves.toBe(true)
   })
 
@@ -164,7 +164,7 @@ describe('wakeGameAudio / rewakeGameAudio: что будится', () => {
 
   it('повторный прогрев: элементы пересоздаются, а сеть не трогается (prepareWords/prepareClips не зовутся); мяу/ноты — release и снова unlock', () => {
     rewakeGameAudio({ audioSrc: 'a.mp3' })
-    expect(calls).toEqual(['unlockVoice', 'rewakeClips', 'rewakeTrack', 'releaseNotes', 'unlockNotes', 'primeAudio', 'rewarmWords', 'preloadSounds', 'unlockAudio'])
+    expect(calls).toEqual(['rewakeClips', 'rewakeTrack', 'releaseNotes', 'unlockNotes', 'primeAudio', 'rewarmWords', 'preloadSounds', 'unlockAudio'])
     calls.length = 0
     rewakeGameAudio({ audioSrc: null })
     expect(calls).not.toContain('rewakeTrack')

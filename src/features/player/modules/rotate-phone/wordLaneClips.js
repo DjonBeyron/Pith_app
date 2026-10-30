@@ -50,10 +50,25 @@ function ensureSlots() {
   return slots
 }
 
-/** Разбудить элемент слота тишиной (play → pause) и записать исход: wokeAt — когда разбудили (performance.now), wokeErr — имя ошибки, если play() тишины отклонён (жеста нет — слот НЕ разбужен) */
+export const WAKE_WAIT_MS = 300 // playSlot: play() тишины ещё не завершился — ждём его столько, прежде чем сменить src на звук (смена src при ожидающем play() обрывает его: AbortError)
+
+/**
+ * Разбудить элемент слота тишиной (play → pause) и записать исход. wokeAt — когда разбудили (performance.now); wokeErr — имя ошибки, если play() тишины ОТКЛОНЁН (NotAllowedError: жеста нет — слот НЕ разбужен);
+ * wokeNote 'aborted' — play() прерван (AbortError: смена src/load()/pause() или прерывание аудиосессии iOS): это не отказ — элемент, у которого play() вызван в жесте, остаётся разблокированным, поэтому слот
+ * считается разбуженным. Исход старого элемента (его заменил rewakeClips) слот не касается: раньше его AbortError записывался в wokeErr нового, здорового элемента. wakePending — play() тишины ещё не завершился.
+ */
 function startWake(e, a, set, after = null) {
-  e.wokeAt = 0; e.wokeErr = null
-  e.woke = a.play().then(() => { try { a.pause() } catch { /* уже на паузе */ } if (e.a === a) e.wokeAt = performance.now() }, err => { e.wokeErr = err?.name ?? String(err ?? 'error') }).then(() => { if (after && slots === set && e.a === a) after() })
+  e.wokeAt = 0; e.wokeErr = null; e.wokeNote = null; e.wakePending = true
+  const settle = () => { if (e.a === a) e.wakePending = false }
+  e.woke = a.play().then(
+    () => { try { a.pause() } catch { /* уже на паузе */ } if (e.a === a) e.wokeAt = performance.now(); settle() },
+    err => {
+      if (e.a === a) {
+        if (err?.name === 'AbortError') { e.wokeAt = performance.now(); e.wokeNote = 'aborted' } else e.wokeErr = err?.name ?? String(err ?? 'error')
+      }
+      settle()
+    },
+  ).then(() => { if (after && slots === set && e.a === a) after() })
 }
 
 /** Создать слот key и разбудить его (только в жесте). Повторный вызов с тем же ключом — тот же слот */
@@ -63,7 +78,7 @@ function wake(key) {
   const a = new Audio(set.silence)
   a.preload = 'auto'
   a.setAttribute('playsinline', '')
-  const e = { a, woke: null, url: null, wokeAt: 0, wokeErr: null }
+  const e = { a, woke: null, url: null, wokeAt: 0, wokeErr: null, wokeNote: null, wakePending: false }
   startWake(e, a, set)
   set.els.set(key, e)
   return e
@@ -94,7 +109,11 @@ export function rewakeClips() {
 function attach(set, e, url, own) {
   if (own) set.urls.push(url)
   e.url = url
-  e.woke.then(() => { if (slots === set) { e.a.src = url; e.a.load() } })
+  const apply = () => { // src меняем только когда play() тишины ЗАВЕРШИЛСЯ (принят или отклонён) на ЭТОМ элементе; слот успели пересоздать (rewakeClips) — ждём уже его пробуждения
+    const w = e.woke
+    w.then(() => { if (slots !== set) return; if (e.woke !== w) { apply(); return } e.a.src = url; e.a.load() })
+  }
+  apply()
 }
 
 /** Ключ слота слова из библиотеки */
@@ -146,12 +165,9 @@ async function decodeAndSlice(src, uniq, set) {
   }
 }
 
-/** Сыграть слот. false — слота нет/звук не готов (вызывающий идёт запасным путём; при «без звука» играет muted). onResult(res) — исход play() (wordLanePlayWatch.js), для журнала «[cat-voice]» */
-function playSlot(key, onResult = null) {
-  const e = slots?.els.get(key)
-  if (!e?.url) return false
+function fireSlot(e, onResult) {
   try {
-    if (e.a.src !== e.url) e.a.src = e.url // «разбудка» ещё не кончилась — подставляем сейчас
+    if (e.a.src !== e.url) e.a.src = e.url // звук ещё не подставлен (attach ждёт пробуждения) — подставляем сейчас
     e.a.muted = getLessonMuted()
     e.a.playbackRate = getVoiceRate()
     e.a.currentTime = 0
@@ -162,13 +178,28 @@ function playSlot(key, onResult = null) {
   } catch { return false }
 }
 
-/** Состояние слота перед проигрыванием (диагностика тишины): { exists, hasUrl, prepared (разбужен тишиной и звук подставлен), rs (readyState), paused, wokeAt (performance.now, 0 — не разбужен), wokeErr } */
+/**
+ * Сыграть слот. false — слота нет/звук не готов (вызывающий идёт запасным путём; при «без звука» играет muted). onResult(res) — исход play() (wordLanePlayWatch.js), для журнала «[cat-voice]».
+ * play() тишины ещё не завершился — src не трогаем (смена src оборвала бы его: AbortError), ждём его до WAKE_WAIT_MS, потом играем (true — «примет», исход придёт в onResult).
+ */
+function playSlot(key, onResult = null) {
+  const e = slots?.els.get(key)
+  if (!e?.url) return false
+  if (!e.wakePending) return fireSlot(e, onResult)
+  let fired = false
+  const go = () => { if (fired) return; fired = true; clearTimeout(t); if (slots?.els.get(key) === e && !fireSlot(e, onResult)) onResult?.({ play: 'rejected', error: 'слот не сыграл', ms: 0, rs: null }) }
+  const t = setTimeout(go, WAKE_WAIT_MS)
+  e.woke.then(go)
+  return true
+}
+
+/** Состояние слота перед проигрыванием (диагностика тишины): { exists, hasUrl, prepared (разбужен тишиной и звук подставлен), rs (readyState), paused, wokeAt (performance.now, 0 — не разбужен), wokeErr (play() тишины отклонён), wokeNote ('aborted' — прерван, не отказ), wakePending } */
 export function slotInfo(key) {
   const e = slots?.els.get(key)
-  if (!e) return { exists: false, hasUrl: false, prepared: false, rs: null, paused: null, wokeAt: 0, wokeErr: null }
+  if (!e) return { exists: false, hasUrl: false, prepared: false, rs: null, paused: null, wokeAt: 0, wokeErr: null, wokeNote: null, wakePending: false }
   let rs = null, paused = null, srcOk = false
   try { rs = e.a.readyState ?? null; paused = !!e.a.paused; srcOk = !!e.url && (e.a.src === e.url || String(e.a.src).endsWith(String(e.url))) } catch { /* элемент недоступен */ }
-  return { exists: true, hasUrl: !!e.url, prepared: !!e.url && e.wokeAt > 0 && srcOk, rs, paused, wokeAt: e.wokeAt, wokeErr: e.wokeErr }
+  return { exists: true, hasUrl: !!e.url, prepared: !!e.url && e.wokeAt > 0 && srcOk, rs, paused, wokeAt: e.wokeAt, wokeErr: e.wokeErr, wokeNote: e.wokeNote, wakePending: !!e.wakePending }
 }
 
 /** Клип записи автора по отрезку */

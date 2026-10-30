@@ -14,6 +14,7 @@ import { releaseNotes } from './wordLaneNotes.js'
 import { releaseClips } from './wordLaneClips.js'
 import { normalizeLines } from './wordLaneCatLines.js'
 import { startGameAudio } from './wordLaneStart.js'
+import { warmGameSounds, warmSig } from './wordLaneWarm.js'
 import { endGameAudio } from './useGameAudioModes.js'
 import { getCatLines } from '../../../../shared/api/catLinesApi.js'
 import { closeGameMic } from '../../../../shared/lib/gameMic.js'
@@ -89,6 +90,14 @@ function RotateLive({ node, file, onDone, forceDebug, bare, startRef, onStatus }
   const playedRef = useRef(false)
   const [lines, setLines] = useState(() => normalizeLines(null)) // реплики кота (общие настройки приложения): тексты по умолчанию, пока не догрузились
   useEffect(() => { getCatLines().then(raw => setLines(normalizeLines(raw))) }, [])
+  // Озвучку кусков и реплик Пита качаем и измеряем ЗАРАНЕЕ, пока карточка на экране (wordLaneWarm.js): к тапу «Начать» остаётся разбудить слоты. Пока качается — «Готовлю звук…» (кнопку не блокирует: тап ждёт озвучку сам)
+  const sig = useMemo(() => warmSig(cfg, lines), [cfg, lines])
+  const [warmed, setWarmed] = useState('')
+  useEffect(() => {
+    let alive = true
+    warmGameSounds({ cfg, lines }).then(() => { if (alive) setWarmed(sig) })
+    return () => { alive = false }
+  }, [cfg, lines, sig])
 
   /** Не стартовали (микрофон не дали): отпустить всё, что подняли в жесте */
   const abortGame = useCallback(() => { stopVoice(); releaseNotes(); releaseClips(); endGameAudio(); closeGameMic(); leaveFullscreen() }, [])
@@ -154,6 +163,7 @@ function RotateLive({ node, file, onDone, forceDebug, bare, startRef, onStatus }
     <>
       {phase === 'tap' && <RotateTapHint onTap={tapped} />}
       {!ready && <VoskReadyNotice vosk={vosk} />}
+      {phase === 'wait' && warmed !== sig && <p className="playerRotateWarm" data-testid="rotate-warm">Готовлю звук…</p>}
       {problem && <p className="playerRotateProblem" role="alert" data-testid="rotate-problem">{problem}</p>}
     </>
   )

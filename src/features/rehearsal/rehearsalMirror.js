@@ -1,6 +1,6 @@
 // «Дубль и зеркало» в сценарии репетиции: то, что соединяет модуль mirror/ (запись, измерения, заметка, экран) с игрой. Чистые функции и сборка данных для экрана — без React:
 //  • makeMirrorDictor — диктор из кусков библиотеки слов с теми же длинами и паузами, что в игре (makeLib / estChunkMs, скорость голоса урока), тайминги слов — dictorPlan; play() играет куски по плану
-//    теми же слотами и голосом, что диктор ступеней (playWordSlot → speakWord) и открывает «окно речи» (gameMicHold), cancel() гасит таймеры (вышли с экрана);
+//    теми же слотами и голосом, что диктор ступеней (playWordSlot → speakWord, без голоса системы) и открывает «окно речи» (gameMicHold), cancel() гасит таймеры (вышли с экрана);
 //  • takeWordsOf — слова слушателей игры (мс от start() каждого слушателя, wordLaneListen.words) → шкала записи (мс от её старта): слушатель стартовал раньше записи (под плашкой «Дубль…»), сдвиг = старт слушателя − старт записи;
 //  • buildMirror — всё для экрана: { dictor, student, measure, note, tempo }; записи нет (сбой) — student и measure null, заметка «Запись не получилась…»;
 //  • tempoLabel — подпись темпа на экране итога («×1.3» / «как у Пита» / «—»).
@@ -16,13 +16,13 @@ export const DICTOR_GAP_MS = 80   // пауза между кусками дик
 export const DICTOR_TAIL_MS = 250 // после последнего куска ждём затухания, потом play() считается законченным
 
 /** Диктор для экрана: { words (мс от начала голоса), durationMs, leadMs, play(): Promise<void>, cancel() }. Зависимости подставляются в тестах */
-export function makeMirrorDictor({ chunks, rate = 1, lang, lib = makeLib(chunks), row = libRow, play = playWordSlot, speak = speakWord, hold = gameMicHold, setTimer = setTimeout, clearTimer = clearTimeout }) {
+export function makeMirrorDictor({ chunks, rate = 1, lib = makeLib(chunks), row = libRow, play = playWordSlot, speak = speakWord, hold = gameMicHold, setTimer = setTimeout, clearTimer = clearTimeout }) {
   const k = rate > 0 ? rate : 1
   const plan = dictorPlan(chunks, chunks.map((c, i) => ({ ms: (lib(i)?.ms ?? estChunkMs(c)) / k, lead: (lib(i)?.lead ?? 0) / k })), DICTOR_GAP_MS)
   const timers = new Set()
   const waiting = new Set()
   const later = (fn, ms) => { const id = setTimer(() => { timers.delete(id); fn() }, Math.max(0, ms)); timers.add(id) }
-  const say = chunk => { const r = row(chunk); if (!(r && play(r.key))) speak(chunk, lang) }
+  const say = chunk => { const r = row(chunk); if (!(r && play(r.key))) speak(chunk) }
   return {
     words: plan.words,
     durationMs: plan.durationMs,
