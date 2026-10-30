@@ -51,13 +51,13 @@ export function createCatLook({ getRoot, skin = 'kit', timers = globalThis, rand
     },
     /** Усы гасим сразу, без выдержки TALK_OFF_MS (пауза игры): is-talking снят, амплитуда усов плавно идёт к нулю */
     release() { clearOff(); release() },
-    /** Конец жизни кота: таймеры сняты, переменные и класс убраны */
+    /** Конец жизни кота: таймеры сняты, переменные и класс убраны; усы доезжают до покоя, если кот ещё на экране */
     stop() {
       clearOff()
       on = false
       const el = getRoot()
       if (el) el.classList.remove(TALKING)
-      whiskers.stop() // конец жизни кота — не до плавности: сразу в покой
+      whiskers.stop() // мягко, если узел ещё в DOM (амплитуда идёт к нулю и угол снимается сам); узла нет — привод сам снимает всё сразу (whiskerDrive.js)
       pupils.stop()
     },
   }

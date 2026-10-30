@@ -17,6 +17,7 @@ import { endGameAudio } from './useGameAudioModes.js'
 import { getCatLines } from '../../../../shared/api/catLinesApi.js'
 import { closeGameMic } from '../../../../shared/lib/gameMic.js'
 import { pLog } from '../../../../shared/lib/debug.js'
+import { whiskerModeLine } from '../../../scene/v2/whiskerWrite.js'
 
 // Пауза после конца игры перед переходом дальше: подпись «закончена» должна успеть прочитаться
 const DONE_AFTER_MS = 700
@@ -97,6 +98,7 @@ function RotateLive({ node, file, onDone, forceDebug, bare, startRef, onStatus }
     // после смены сессии, и только потом будим звук диктора и кота — иначе прерывание сессии убивало разбуженные элементы и начало игры молчало (wordLaneStart.js)
     const { mic } = await startGameAudio({ cfg, audioSrc, lines })
     pLog(`[rotate] игра «${cfg.word}»: микрофон ${mic}${cfg.isDemo ? ', слово по умолчанию' : ''}`)
+    pLog(`[whiskers] ${whiskerModeLine()}`) // способ записи угла усов (HUD ⚙ «Усы»): по журналу видно, на каком режиме владелец смотрел анимацию
     if (mic !== 'granted') { abortGame(); setProblem(MIC_PROBLEM[mic] ?? MIC_PROBLEM.unavailable); setBusy(false); return }
     playedRef.current = true
     setPhase('game')

@@ -4,6 +4,7 @@
 // isWeakDevice считается один раз при загрузке страницы).
 import { writeAudioSessionMode } from '../../../../shared/lib/gameAudioSettings.js'
 import { gameAudioSession } from '../../../../shared/lib/gameMicSession.js'
+import { getWhiskerMode } from '../../../scene/v2/whiskerWrite.js'
 
 export const PILL_SAFE_KEY = 'pithy_wl_pill_safe_v1' // '1' — «безопасные слои» пилюль iOS; читает движок пилюль, здесь только пишем и ставим класс wl--safe
 export const WEAK_KEY = 'pithy_weak_device_v6'       // решение deviceTier: '1' слабое (lite), '0' обычное
@@ -47,8 +48,8 @@ export function voskLine(snap) {
   return snap.cached === false ? 'модели нет в кэше' : `не в памяти (${snap.stage ?? 'idle'})`
 }
 
-/** Текущие значения для шапки HUD: тип аудиосессии, дорожка, Vosk, версия, lite. Всё читается заново при каждом вызове */
-export function describeHud({ session = () => gameAudioSession.describe(), mic = () => null, vosk = () => null, weak = () => false, version = '' } = {}) {
+/** Текущие значения для шапки HUD: тип аудиосессии, дорожка, Vosk, версия, lite, способ записи угла усов. Всё читается заново при каждом вызове */
+export function describeHud({ session = () => gameAudioSession.describe(), mic = () => null, vosk = () => null, weak = () => false, whiskers = getWhiskerMode, version = '' } = {}) {
   const safe = fn => { try { return fn() } catch { return null } }
   const s = safe(session)
   return {
@@ -56,6 +57,7 @@ export function describeHud({ session = () => gameAudioSession.describe(), mic =
     mic: micLine(safe(mic)),
     vosk: voskLine(safe(vosk)),
     lite: yn(safe(weak)),
+    whiskers: safe(whiskers) ?? '—',
     version,
   }
 }

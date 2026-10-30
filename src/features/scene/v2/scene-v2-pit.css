@@ -22,8 +22,8 @@
    и сдвигались). Пока Пит говорит, каждый ус чуть качается вокруг своего корня: якорь — край fill-box у морды (у левых усов правый край,
    у правых — левый). Верхние и нижние — с разным периодом и фазой, чтобы не ходили строем. Знак: у левого уса кончик слева от якоря, +угол поднимает его;
    у правого — наоборот.
-   Качание — НЕ CSS: угол каждый кадр считает whiskerDrive.js (rAF) и пишет в style.rotate уса; амплитуда плавно идёт 0 → 1 при речи и 1 → 0 после неё, в покое rotate не задан.
-   Здесь только якорь (transform-box / transform-origin). Раньше было @property --wh-amp + переход + var() в keyframes: в Chromium гладко, в Safari — рывок на старте и в конце
+   Качание — НЕ CSS: угол каждый кадр считает whiskerDrive.js (rAF) и пишет в ус одним из трёх способов (whiskerWrite.js: style.rotate, style.transform или SVG-атрибут transform с явным центром — HUD игры, «Усы»);
+   амплитуда плавно идёт 0 → 1 при речи и 1 → 0 после неё, в покое запись снята. Здесь только якорь (transform-box / transform-origin) для rotate и transform; в режиме attr привод на время записи ставит усу inline transform-origin: 0 0 и transform-box: view-box, чтобы этот якорь не сдвинул явный центр. Раньше было @property --wh-amp + переход + var() в keyframes: в Chromium гладко, в Safari — рывок на старте и в конце
    (причины — в шапке whiskerDrive.js). Пауза сцены, успокоение и выход из кадра гасят амплитуду тем же ходом (useWhiskerDrive.js), прокрутка ленты ([data-scrolling]) ставит усы на месте */
 .scn--v2 .wh { transform-box: fill-box; }
 .scn--v2 .wh-l { transform-origin: 100% 50%; }

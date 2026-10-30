@@ -47,9 +47,29 @@ describe('word-lane.css (кот игры) — усы без CSS-анимации
 })
 
 describe('привод усов — единый механизм', () => {
-  it('whiskerDrive.js не зависит от CSS-переходов и переменных: пишет только style.rotate', () => {
-    const src = code(read('./whiskerDrive.js'))
-    expect(src).toContain('.style.rotate =')
-    expect(src).not.toMatch(/setProperty|--wh-amp|\.animate\(|classList\.(add|remove)/)
+  it('привод и запись не зависят от CSS-переходов и переменных: только угол (style.rotate / style.transform / атрибут transform)', () => {
+    const drive = code(read('./whiskerDrive.js'))
+    const write = code(read('./whiskerWrite.js'))
+    expect(write).toContain('.style.rotate =')
+    expect(write).toContain('.style.transform =')
+    expect(write).toContain(".setAttribute('transform'")
+    for (const src of [drive, write]) expect(src).not.toMatch(/setProperty|--wh-amp|\.animate\(|classList\.(add|remove)/)
+  })
+
+  it('ни одно правило CSS не анимирует и не переводит усы поверх привода (двойная анимация = рывки): у селекторов с .wh и у общих (*, path) нет transition / animation', () => {
+    const files = ['./scene-v2.css', './scene-v2-cat.css', './scene-v2-pit.css', '../../../styles/player/modules/word-lane.css', '../../../styles/player/modules/word-lane-pause.css']
+    for (const f of files) {
+      const c = code(read(f)).replace(/@keyframes\s+\w+\s*\{(?:[^{}]*\{[^{}]*\})*[^{}]*\}/g, '') // тела @keyframes — не правила
+      for (const m of c.matchAll(/([^{}@]+)\{([^{}]*)\}/g)) {
+        const sel = m[1].trim(), body = m[2]
+        if (!/(^|[\s>+~,])(\*|path)(?![\w-])|\.wh\b|\.wh-/.test(sel)) continue
+        expect(body, `${f}: ${sel}`).not.toMatch(/transition|animation(?!-play-state)|\bwill-change/)
+      }
+    }
+  })
+
+  it('animation-play-state: paused на паузе игры усов не касается (привод останавливает усы сам, мягко): правило паузы не задаёт transform / rotate', () => {
+    const pause = code(read('../../../styles/player/modules/word-lane-pause.css'))
+    expect(pause).not.toMatch(/\.wh\b|rotate\s*:|transform\s*:\s*rotate/)
   })
 })

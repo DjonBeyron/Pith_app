@@ -3,6 +3,7 @@ import { Settings, X } from 'lucide-react'
 import { APP_VERSION } from '../../../../shared/lib/version.js'
 import { isMicProcessingOn, setMicProcessingOn, describeGameMic } from '../../../../shared/lib/gameMic.js'
 import { readAudioSessionMode, readMicHoldMode, writeMicHoldMode } from '../../../../shared/lib/gameAudioSettings.js'
+import { WHISKER_MODES, getWhiskerMode, setWhiskerMode } from '../../../scene/v2/whiskerWrite.js'
 import { isWeakDevice } from '../../../../shared/lib/deviceTier.js'
 import { voskRuntime } from '../../../../shared/lib/vosk/voskRuntime.js'
 import { getVoiceRate, setVoiceRate, VOICE_RATES } from '../../lessonVolume.js'
@@ -51,9 +52,9 @@ export default function WordLaneHud({ dbg, rootRef, onRestartStage, onRestartGam
     return <button type="button" className="wlHudBtn" onClick={() => setOpen(true)} aria-label="Настройки отладки" data-no-unlock="" data-testid="wl-hud-open"><Settings size={18} /></button>
   }
 
-  const info = describeHud({ mic: describeGameMic, vosk: () => voskRuntime.snapshot(), weak: isWeakDevice, version: APP_VERSION })
+  const info = describeHud({ mic: describeGameMic, vosk: () => voskRuntime.snapshot(), weak: isWeakDevice, whiskers: getWhiskerMode, version: APP_VERSION })
   const procOn = isMicProcessingOn(), session = readAudioSessionMode(), hold = readMicHoldMode()
-  const reward = getRewardSound(), volume = getRewardVolume(), safe = readPillSafe(), rate = getVoiceRate(), lite = readWeakStored() ?? isWeakDevice(), tap = readTapMode()
+  const reward = getRewardSound(), volume = getRewardVolume(), safe = readPillSafe(), rate = getVoiceRate(), lite = readWeakStored() ?? isWeakDevice(), tap = readTapMode(), whisk = getWhiskerMode()
   const act = fn => () => { fn(); refresh() }
   const close = () => setOpen(false)
   const toggleTap = () => { writeTapMode(!tap); setTapMode?.(!tap); refresh() } // игра узнаёт сразу: в очереди ученика появляются кнопки дорожек (как в «Порядке») и подсказка
@@ -75,6 +76,7 @@ export default function WordLaneHud({ dbg, rootRef, onRestartStage, onRestartGam
         <div>Дорожка микрофона: <b>{info.mic}</b></div>
         <div>Vosk: <b>{info.vosk}</b></div>
         <div>Lite (слабое устройство): <b>{info.lite}</b></div>
+        <div>Усы (способ записи): <b>{info.whiskers}</b></div>
       </div>
 
       <Row label="Обработка микрофона (эхо/шум)" when="restart" testid="wl-hud-proc">
@@ -103,6 +105,10 @@ export default function WordLaneHud({ dbg, rootRef, onRestartStage, onRestartGam
       </Row>
       <Row label="Lite-режим (слабое устройство)" when="reload" testid="wl-hud-lite">
         <Chip on={lite} onClick={act(() => writeWeakStored(!lite))} testid="wl-hud-lite-toggle">{lite ? 'Вкл' : 'Выкл'}</Chip>
+      </Row>
+
+      <Row label="Усы: rotate / transform / attr" when="now" testid="wl-hud-whiskers">
+        {WHISKER_MODES.map(m => <Chip key={m} on={whisk === m} onClick={act(() => setWhiskerMode(m))} testid={`wl-hud-whiskers-${m}`}>{m}</Chip>)}
       </Row>
 
       <div className="wlHudActions">

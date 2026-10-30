@@ -8,6 +8,7 @@ import {
 } from './wordLaneHudSettings.js'
 import { AUDIO_SESSION_KEY } from '../../../../shared/lib/gameAudioSettings.js'
 import { APP_VERSION } from '../../../../shared/lib/version.js'
+import { setWhiskerMode, forgetWhiskerMode } from '../../../scene/v2/whiskerWrite.js'
 
 // Мини-HUD настроек в игре «Повтори за диктором»: чистые настройки (pithy_wl_pill_safe_v1, pithy_weak_device_v6, тип аудиосессии на лету), строки «что сейчас», панель и подключение к игре.
 const memStore = (init = {}) => { const m = { ...init }; return { getItem: k => (k in m ? m[k] : null), setItem: (k, v) => { m[k] = String(v) }, removeItem: k => { delete m[k] }, m } }
@@ -79,12 +80,15 @@ describe('строки «что сейчас»', () => {
   it('describeHud: тип аудиосессии, дорожка, Vosk, lite, версия; падающий источник — прочерк, а не ошибка', () => {
     const d = describeHud({
       session: () => ({ supported: true, type: 'play-and-record' }), mic: () => ({ open: true, tracks: [{ readyState: 'live', muted: false, enabled: true }] }),
-      vosk: () => ({ loaded: true }), weak: () => true, version: '9.9.9',
+      vosk: () => ({ loaded: true }), weak: () => true, whiskers: () => 'transform', version: '9.9.9',
     })
-    expect(d).toEqual({ audioSession: 'play-and-record', mic: 'live', vosk: 'готов (модель в памяти)', lite: 'да', version: '9.9.9' })
+    expect(d).toEqual({ audioSession: 'play-and-record', mic: 'live', vosk: 'готов (модель в памяти)', lite: 'да', whiskers: 'transform', version: '9.9.9' })
     expect(describeHud({ session: () => ({ supported: false }) }).audioSession).toBe('нет API')
     const bad = describeHud({ session: () => { throw new Error('x') }, mic: () => { throw new Error('x') }, vosk: () => { throw new Error('x') } })
     expect(bad).toMatchObject({ audioSession: '—', mic: 'не открыт', vosk: '—' })
+    expect(describeHud({ whiskers: () => { throw new Error('x') } }).whiskers).toBe('—')
+    forgetWhiskerMode()
+    expect(describeHud().whiskers).toBe('attr') // по умолчанию — режим записи по умолчанию
   })
 })
 
@@ -110,6 +114,24 @@ describe('панель WordLaneHud', () => {
     expect(out).toMatch(/Безопасные слои пилюль \(iOS\)<em class="wlHudWhen wlHudWhen--now">сразу/)
     expect(out).toMatch(/Звук награды<em class="wlHudWhen wlHudWhen--now">сразу/)
     expect(out).toMatch(/Аудиосессия iOS<em class="wlHudWhen wlHudWhen--now">сразу/)
+  })
+  it('пункт «Усы: rotate / transform / attr»: три кнопки, по умолчанию нажата attr, действует сразу; текущий режим есть в шапке', () => {
+    forgetWhiskerMode()
+    const out = html({ defaultOpen: true })
+    expect(out).toMatch(/Усы: rotate \/ transform \/ attr<em class="wlHudWhen wlHudWhen--now">сразу/)
+    for (const m of ['rotate', 'transform', 'attr']) expect(out).toContain(`data-testid="wl-hud-whiskers-${m}"`)
+    expect(out).toMatch(/aria-pressed="true"[^>]*data-testid="wl-hud-whiskers-attr"/)
+    expect(out).toMatch(/aria-pressed="false"[^>]*data-testid="wl-hud-whiskers-rotate"/)
+    expect(out).toContain('Усы (способ записи): <b>attr</b>')
+    setWhiskerMode('transform', memStore())
+    const out2 = html({ defaultOpen: true })
+    expect(out2).toMatch(/aria-pressed="true"[^>]*data-testid="wl-hud-whiskers-transform"/)
+    expect(out2).toContain('Усы (способ записи): <b>transform</b>')
+    forgetWhiskerMode()
+  })
+  it('режим усов пишется через setWhiskerMode (ключ pithy_whisker_mode_v1, привод подхватывает на ближайшем кадре) и попадает в журнал при старте игры', () => {
+    expect(read('./WordLaneHud.jsx')).toContain('act(() => setWhiskerMode(m))')
+    expect(read('./RotatePhoneModule.jsx')).toContain('pLog(`[whiskers] ${whiskerModeLine()}`)')
   })
   it('«Игра заново» есть, только если игра умеет перезапуск (onRestartGame)', () => {
     expect(html({ defaultOpen: true, onRestartGame: null })).not.toContain('wl-hud-game')
