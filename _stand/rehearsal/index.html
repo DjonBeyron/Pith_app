@@ -14,7 +14,7 @@ import { fixtureSource, fixturePlan } from '/src/features/rehearsal/rehearsalFix
 import { planTexts } from '/src/features/rehearsal/rehearsalPlan.js'
 
 // Стенд «Репетиция с Питом» (dev, в сборку не входит): настоящий сценарий актов на игре «Повтори за диктором» без входа, Supabase и настоящей модели Vosk.
-//  • ?fixture=three|two|one|none — план из фикстур; ?voice=1 — библиотека слов с тестовой озвучкой (WAV с гудками, у каждого слова своя длина), ?voice=0 — без озвучки (голос системы);
+//  • ?fixture=three|two|one|none — план из фикстур; ?seed=… — семя случайностей внутри актов (по умолчанию от даты и фразы); ?voice=1 — библиотека слов с тестовой озвучкой (WAV с гудками, у каждого слова своя длина), ?voice=0 — без озвучки (голос системы);
 //  • модель Vosk — заглушка: тап вместо речи (localStorage pithy_wl_tap_v1=1) работает как обычно; в стадии «дубль» драйвер ставит window.__speakAt — заглушка «произносит» фразу по сценарию SPEECH
 //    (слова с таймингами, пауза 0,8 с перед «to learn» → заход Vosk заканчивается эндпойнтом, слушатель начинает следующий), а запись MediaRecorder идёт с настоящего (фейкового) микрофона Chromium.
 const params = new URLSearchParams(location.search)
@@ -63,7 +63,7 @@ voskRuntime.whenSettled = async () => ({ ok: true })
 voskRuntime.warmNow = () => {}
 voskRuntime.getModel = () => ({ KaldiRecognizer: Rec })
 
-const node = { id: 'rh-stand', type: 'rotate_phone', isHistory: false, typeData: { rotate_phone: { plan: fixtureSource(fixture) } } }
+const node = { id: 'rh-stand', type: 'rotate_phone', isHistory: false, typeData: { rotate_phone: { plan: { ...fixtureSource(fixture), ...(params.get('seed') ? { seed: params.get('seed') } : {}) } } } } // ?seed=… — семя случайностей внутри актов (rehearsalSeed.js), нет — от даты и фразы
 window.__done = null
 createRoot(document.getElementById('root')).render(React.createElement(RotatePhoneModule, { node, file: null, forceDebug: true, onDone: v => { window.__done = v } }))
 </script></body></html>

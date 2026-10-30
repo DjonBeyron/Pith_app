@@ -42,6 +42,6 @@ export function nextRunnable(stages, from, j) {
 /** Дорожки (куски), где слово разминки не далось дважды: в акте «без текста» у них показывается подпись */
 export function weakLanes(j, stages) {
   const lanes = new Set()
-  for (const s of stages) if (s.type === 'warmup' && s.act === 'warmup' && badOf(j, s.sid) >= 2) lanes.add(s.word.lane)
+  for (const s of stages) if (s.type === 'warmup' && s.act === 'warmup' && badOf(j, s.sid) >= 2) lanes.add(s.word.chunkLane ?? s.word.lane) // дорожка КУСКА, где слово стоит в фразе (у пилюли разминки она случайная)
   return [...lanes]
 }

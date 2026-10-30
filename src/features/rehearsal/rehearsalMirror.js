@@ -2,7 +2,7 @@
 //  • makeMirrorDictor — диктор из кусков библиотеки слов с теми же длинами и паузами, что в игре (makeLib / estChunkMs, скорость голоса урока), тайминги слов — dictorPlan; play() играет куски по плану
 //    теми же слотами и голосом, что диктор ступеней (playWordSlot → speakWord, без голоса системы) и открывает «окно речи» (gameMicHold), cancel() гасит таймеры (вышли с экрана);
 //  • takeWordsOf — слова слушателей игры (мс от start() каждого слушателя, wordLaneListen.words) → шкала записи (мс от её старта): слушатель стартовал раньше записи (под плашкой «Дубль…»), сдвиг = старт слушателя − старт записи;
-//  • buildMirror — всё для экрана: { dictor, student, measure, note, tempo }; записи нет (сбой) — student и measure null, заметка «Запись не получилась…»;
+//  • buildMirror — всё для экрана: { dictor, student, measure, note, tempo } (rng — поток от семени плана: заметка при равных измерениях — один из вариантов, mirrorNotes.js); записи нет (сбой) — student и measure null, заметка «Запись не получилась…»;
 //  • tempoLabel — подпись темпа на экране итога («×1.3» / «как у Пита» / «—»).
 import { measureTake, dictorPlan } from './mirror/mirrorMeasure.js'
 import { noteFor } from './mirror/mirrorNotes.js'
@@ -53,10 +53,10 @@ export function takeWordsOf(listeners, recAt) {
 }
 
 /** Всё для экрана «зеркало»: take — { url, durationMs, rms } | null; words — takeWordsOf; dictor — makeMirrorDictor; dictorRms — громкость файлов диктора или null */
-export function buildMirror({ chunks, take, words = [], dictor, dictorRms = null }) {
+export function buildMirror({ chunks, take, words = [], dictor, dictorRms = null, rng = null }) {
   const student = take ? { url: take.url, blob: take.blob ?? null, words, durationMs: take.durationMs, rms: take.rms, unit: 'ms' } : null
   const measure = student ? measureTake({ dictor: { words: dictor.words, durationMs: dictor.durationMs, rms: dictorRms ?? undefined }, student, chunks }) : null
-  return { dictor, student, measure, note: noteFor(measure, chunks), tempo: measure?.tempo ?? null }
+  return { dictor, student, measure, note: noteFor(measure, chunks, rng), tempo: measure?.tempo ?? null }
 }
 
 export const TEMPO_SAME = 0.1 // разница темпа меньше этой доли — «как у Пита»

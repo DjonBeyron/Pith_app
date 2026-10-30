@@ -1,9 +1,9 @@
 // Реплики Пита по этапам «Шлифовки репетиции»: какие реплики (rehearsalLines.js) звучат на каком этапе, сколько из них озвучено и что без озвучки (и почему). Озвучка живёт в настройках приложения (rotate_cat_lines,
 // формат — wordLaneCatLines.js), здесь только чтение: lines — normalizeLines(...) или null (ещё не загрузили). Чистые функции без React.
-import { REHEARSAL_LINES } from '../rehearsalLines.js'
+import { REHEARSAL_LINES, lineVariants } from '../rehearsalLines.js'
 
-/** Этап шлифовки → id реплик, которые Пит говорит на нём (по рецепту rehearsalRecipe.js и useRehearsalActs.js) */
-export const ACT_LINES = {
+/** Этап шлифовки → основные ключи реплик, которые Пит говорит на нём (по рецепту rehearsalRecipe.js и useRehearsalActs.js) */
+const BASE_LINES = {
   intro: ['rh_start'],
   warmup: ['rh_warmup', 'rh_warmup_miss'],
   read: ['rh_read_why'],
@@ -13,6 +13,9 @@ export const ACT_LINES = {
   take: ['rh_take', 'rh_mirror'],
   summary: ['rh_done'],
 }
+
+/** Этап шлифовки → ключи реплик ВМЕСТЕ с вариантами (rh_done, rh_done_b, rh_done_c): какой прозвучит в сессии, выбирает семя плана (CONCEPT_REHEARSAL.md §8), озвучиваются и слушаются все */
+export const ACT_LINES = Object.fromEntries(Object.entries(BASE_LINES).map(([act, ids]) => [act, ids.flatMap(lineVariants)]))
 
 export const TEMPLATE_WHY = '{word} не озвучивается: Пит произносит само слово из библиотеки слов'
 export const MISSING_WHY = 'нет озвучки: нажми «Озвучить реплики (ElevenLabs)»'

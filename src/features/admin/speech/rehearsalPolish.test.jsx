@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs'
 import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import RehearsalPolishBlock from './RehearsalPolishBlock.jsx'
-import { REHEARSAL_TEST_KEY, fixtureJson } from '../../rehearsal/rehearsalTestForm.js'
+import { REHEARSAL_TEST_KEY, fixtureJson, withSeed, jsonSeed, parsePlanJson } from '../../rehearsal/rehearsalTestForm.js'
 import { POLISH_ACTS } from '../../rehearsal/polish/polishActs.js'
 import { addComment, makeComment, COMMENTS_KEY } from '../../rehearsal/polish/rehearsalComments.js'
 
@@ -72,6 +72,35 @@ describe('план: общая форма с «Тестом игры»', () => {
     const out = render(memStore({ [REHEARSAL_TEST_KEY]: JSON.stringify({ mode: 'rehearsal', fixture: 'three', json: '{не json' }) }))
     expect(out).toContain('data-testid="rh-polish-error"'); expect(out).toContain('Не JSON')
     expect(out).toMatch(/<button[^>]*disabled=""[^>]*data-testid="rh-polish-run-intro"/); expect(out).toMatch(/<button[^>]*disabled=""[^>]*data-testid="rh-polish-template"/)
+  })
+})
+
+describe('семя случайностей внутри актов (CONCEPT_REHEARSAL.md §8)', () => {
+  it('поле «Семя» с кнопкой «Новое»: пусто — по дате, показано семя этой сессии (дата и фраза)', () => {
+    const out = render()
+    expect(out).toContain('data-testid="rh-polish-seed"'); expect(out).toContain('placeholder="по дате"'); expect(out).toMatch(/<button[^>]*data-testid="rh-polish-seed-new"[^>]*>Новое</)
+    expect(out).toMatch(/data-testid="rh-polish-seed-now">Семя этой сессии: \d{4}-\d{2}-\d{2}\|I(&#x27;|')m \| trying \| to learn</)
+  })
+  it('семя из JSON плана (из «Теста игры» или фикстуры) стоит в поле и в плане; сломанный JSON — поле недоступно', () => {
+    const json = JSON.stringify({ ...JSON.parse(fixtureJson('three')), seed: 'мой-вариант' })
+    const out = render(memStore({ [REHEARSAL_TEST_KEY]: JSON.stringify({ mode: 'rehearsal', fixture: 'three', json }) }))
+    expect(out).toContain('value="мой-вариант"'); expect(out).toContain('Семя этой сессии: мой-вариант')
+    const bad = render(memStore({ [REHEARSAL_TEST_KEY]: JSON.stringify({ mode: 'rehearsal', fixture: 'three', json: '{не json' }) }))
+    expect(bad).toMatch(/<input[^>]*disabled=""[^>]*data-testid="rh-polish-seed"/); expect(bad).toMatch(/<button[^>]*disabled=""[^>]*data-testid="rh-polish-seed-new"/)
+  })
+  it('withSeed / jsonSeed: семя пишется в JSON плана и убирается пустым; остальные поля не трогаются; не JSON — как был', () => {
+    const json = fixtureJson('three')
+    const seeded = withSeed(json, '  вариант 2 ')
+    expect(JSON.parse(seeded)).toEqual({ ...JSON.parse(json), seed: 'вариант 2' }); expect(jsonSeed(seeded)).toBe('вариант 2')
+    expect(JSON.parse(withSeed(seeded, ''))).toEqual(JSON.parse(json)); expect(jsonSeed(withSeed(seeded, '  '))).toBeNull(); expect(jsonSeed(json)).toBeNull()
+    expect(withSeed('{не json', 'x')).toBe('{не json'); expect(withSeed('[1]', 'x')).toBe('[1]'); expect(jsonSeed('{не json')).toBeNull()
+    expect(parsePlanJson(seeded).plan.seed).toBe('вариант 2')
+  })
+  it('проводка: поле пишет семя в общую форму (saveRehearsalForm) — «Тест игры» видит его в JSON', () => {
+    const src = read('./RehearsalPolishBlock.jsx')
+    expect(src).toContain('<PolishSeed json={rform.json} plan={plan} disabled={playing} onJson={pickJson} />')
+    expect(src).toContain('const pickJson = json => { const next = { ...rform, json }; setRform(next); saveRehearsalForm(next) }')
+    expect(read('./PolishSeed.jsx')).toContain('onJson(withSeed(json, value))'); expect(read('./PolishSeed.jsx')).toContain('set(newSeed())')
   })
 })
 

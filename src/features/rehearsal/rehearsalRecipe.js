@@ -7,9 +7,14 @@
 //  4a discern       — различи: только у слов с двойниками, только если промахов мало; тап по услышанному, потом сказать слово;
 //  5 take / mirror  — дубль (плашка «Дубль. Три, два, один…», вся фраза ×1 и запись голоса — useRehearsalTake) и зеркало (экран сравнения «Пит / Ты» и одна заметка — модуль mirror/);
 //  6 summary        — итог.
+// Случайность ВНУТРИ актов (CONCEPT_REHEARSAL.md §8, семя plan.seed — rehearsalSeed.js; что именно выбирается — rehearsalVariety.js, rehearsalDiscern.js, rehearsalLines.js): порядок слов разминки (первое — самое просроченное) и их дорожки,
+// реплики Пита (act.line — уже конкретный вариант ключа), «чётко / обычно» и первая ступень при двух кусках, подсказки «без текста», раскладка «Различи». Порядок актов, структура ступеней при трёх кусках и зеркало последним — не случайны.
 // Правила пропуска: нет озвучки кусков — читка без подсветки; промахов ≥ MANY_MISSES к акту 4 — акт 4 один раз и без 4а; одно слово — акты 1 и 3 схлопываются в «слово ×2», акт 2 пропускается.
 import { warmupWords, discernWords, wordsOfChunk } from './rehearsalPlan.js'
 import { pickActs } from './rehearsalOnly.js'
+import { sessionLine } from './rehearsalLines.js'
+import { orderWarmup, buildVariety, blindVariety } from './rehearsalVariety.js'
+import { discernLayout } from './rehearsalDiscern.js'
 
 export const MANY_MISSES = 3                       // столько промахов до акта 4 — и он сокращается, а «Различи» пропускается
 export const PRE_BLIND_ACTS = ['warmup', 'word', 'read', 'build']  // акты, чьи промахи считаются «к акту 4»
@@ -32,31 +37,35 @@ export function buildActs(plan, { hasVoice = true, only = plan.only } = {}) {
   const { chunks } = plan
   const n = chunks.length
   const all = chunks.map((_, i) => i)
-  const words = warmupWords(plan)
-  const discern = discernWords(plan)
+  const words = orderWarmup(warmupWords(plan), plan.seed, { center: n === 1 }) // первое — самое просроченное, остальные вперемешку; дорожки случайные (у одного слова — по центру)
+  const discern = discernWords(plan).map((w, i) => ({ ...w, prompts: discernLayout(w, plan.seed, i) }))
+  const L = (base, o) => sessionLine(plan, base, o) // вариант реплики на эту сессию (rehearsalLines.js)
   const acts = []
   if (n === 1) {
-    acts.push({ id: 'word', title: 'Слово', line: 'rh_warmup', words, reps: 2 })
+    acts.push({ id: 'word', title: 'Слово', line: L('rh_warmup'), words, reps: 2 })
   } else {
-    acts.push({ id: 'warmup', title: 'Разминка', line: 'rh_warmup', words, reps: 1 })
-    acts.push({ id: 'read', title: 'Читка', line: 'rh_read_why', parts: all, highlight: !!hasVoice })
+    acts.push({ id: 'warmup', title: 'Разминка', line: L('rh_warmup'), words, reps: 1 })
+    acts.push({ id: 'read', title: 'Читка', line: L('rh_read_why'), parts: all, highlight: !!hasVoice })
+    const bv = buildVariety(n, plan.seed)
     const steps = backSteps(n)
     const final = steps.pop()
+    const passes = [{ id: 'build-clear', tag: CLEAR_TAG, line: L('rh_clear') }, { id: 'build-normal', tag: NORMAL_TAG, line: L('rh_normal', { first: bv.normalFirst }) }]
     acts.push({
-      id: 'build', title: 'Сборка с конца', line: 'rh_build',
-      steps: steps.map((parts, i) => ({ id: `build-${i}`, parts, retry: true })),
-      final: { id: 'build-final', parts: final, passes: [{ id: 'build-clear', tag: CLEAR_TAG, line: 'rh_clear' }, { id: 'build-normal', tag: NORMAL_TAG, line: 'rh_normal' }] },
+      id: 'build', title: 'Сборка с конца', line: L('rh_build'),
+      steps: steps.map((parts, i) => ({ id: `build-${i}`, parts: bv.altStart ? [0] : parts, retry: true })), // два куска: первая ступень [1] или [0]; три — всегда [2] → [1,2]
+      final: { id: 'build-final', parts: final, passes: bv.normalFirst ? passes.reverse() : passes },
     })
   }
   const first = wordsOfChunk(chunks[0])[0] ?? chunks[0]
+  const bl = blindVariety(plan)
   acts.push({
-    id: 'blind', title: 'Без текста', line: 'rh_blind', parts: all, hintWord: first, hintLane: 0,
+    id: 'blind', title: 'Без текста', line: L('rh_blind'), parts: all, hintWord: first, hintLane: 0, hintTr: bl.tr,
     word: n === 1 ? words[0] : null, // у одного слова — слово по переводу (а не по памяти без подсказок)
-    passes: n === 1 ? [{ id: 'blind-0' }] : [{ id: 'blind-0' }, { id: 'blind-1', cond: { few: true } }],
+    passes: n === 1 ? [{ id: 'blind-0' }] : [{ id: 'blind-0', hintKinds: bl.kinds }, { id: 'blind-1', cond: { few: true }, hintKinds: bl.reversed }], // «застрял»: какая подсказка первая — случайно, во втором проходе наоборот
   })
   if (discern.length) acts.push({ id: 'discern', title: 'Различи', line: 'rh_discern', words: discern, cond: { few: true } })
-  acts.push({ id: 'take', title: 'Дубль', line: 'rh_take', parts: all })
-  acts.push({ id: 'mirror', title: 'Зеркало', line: 'rh_mirror' })
+  acts.push({ id: 'take', title: 'Дубль', line: L('rh_take'), parts: all })
+  acts.push({ id: 'mirror', title: 'Зеркало', line: L('rh_mirror') })
   acts.push({ id: 'summary', title: 'Итог' })
   return { plan, acts: pickActs(acts, only) } // only: «Шлифовка репетиции» — один этап вместо всего сценария
 }

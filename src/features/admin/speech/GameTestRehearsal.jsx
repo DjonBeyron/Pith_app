@@ -40,7 +40,7 @@ export default function GameTestRehearsal({ form, onChange, lib, generate }) {
           {FIXTURE_IDS.map(id => <option key={id} value={id}>{FIXTURES[id].title}</option>)}
         </select>
       </label>
-      <label className="aspLabel">План (JSON: phrase, translation, words[{`{text, translation, due, lapses, confusers}`}], stressed)
+      <label className="aspLabel">План (JSON: phrase, translation, words[{`{text, translation, due, lapses, confusers}`}], stressed, seed — семя случайностей, пусто: от даты)
         <textarea className="aspInput aspJson" rows={12} spellCheck={false} value={form.json} disabled={playing} onChange={e => onChange({ json: e.target.value })} data-testid="rh-test-json" />
       </label>
       {error && <p className="aspErr" role="alert" data-testid="rh-test-error">{error}</p>}

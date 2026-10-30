@@ -24,8 +24,11 @@ export function slowerBy(d) {
   return `на ${Math.round(d * 100)} %`
 }
 
-/** Одна заметка: { key: 'missing' | 'order' | 'tempo' | 'pause' | 'loud' | 'extra' | 'clean' | 'fail', text } */
-export function noteFor(measure, chunks = []) {
+/** Заметка «чисто» — две формулировки одного смысла (CONCEPT_REHEARSAL.md §8): выбирается rng-ом (поток от семени плана); без rng — первая, как раньше */
+export const CLEAN_TEXTS = ['Порядок верный, темп мой. Чисто.', 'Всё на месте: порядок верный, темп как у меня. Чисто.']
+
+/** Одна заметка: { key: 'missing' | 'order' | 'tempo' | 'pause' | 'loud' | 'extra' | 'clean' | 'fail', text }. rng — функция () => число из [0, 1) для выбора из вариантов «чисто» (нет — основной вариант) */
+export function noteFor(measure, chunks = [], rng = null) {
   if (!measure) return FAIL_NOTE
   const { missing = [], orderOk = true, order = null, tempo = null, pauses = [], loud = null, extra = [] } = measure
   if (missing.length) {
@@ -39,5 +42,5 @@ export function noteFor(measure, chunks = []) {
   if (long) return { key: 'pause', text: `Пауза перед ${q(long.before)} длиннее, чем у меня. Склей.` }
   if (loud != null && loud <= LOUD_MIN) return { key: 'loud', text: 'Тише, чем нужно для сцены.' }
   if (extra.length) return { key: 'extra', text: `${extra.length > 1 ? 'Лишние слова' : 'Лишнее слово'} ${extra.slice(0, 3).map(q).join(', ')} — в сцене ${extra.length > 1 ? 'их' : 'его'} нет.` }
-  return { key: 'clean', text: 'Порядок верный, темп мой. Чисто.' }
+  return { key: 'clean', text: CLEAN_TEXTS[rng ? Math.min(CLEAN_TEXTS.length - 1, Math.floor(rng() * CLEAN_TEXTS.length)) : 0] }
 }

@@ -12,9 +12,12 @@ import { normalizeLines } from '../player/modules/rotate-phone/wordLaneCatLines.
 import { buildMirror, tempoLabel } from './rehearsalMirror.js'
 import { CHUNKS, DICTOR, STUDENT_CLEAN } from './mirror/mirrorFixtures.js'
 import { noteFor } from './mirror/mirrorNotes.js'
+import { baseLineId, lineVariants } from './rehearsalLines.js'
+import { sessionLogLine } from './rehearsalVariety.js'
+import { buildActs } from './rehearsalRecipe.js'
 
 const read = rel => readFileSync(new URL(rel, import.meta.url), 'utf8')
-const plan = fixturePlan('three')
+const plan = { ...fixturePlan('three'), seed: 'd' } // семя 'd': разминка начинается со слова learn (sid warmup-1)
 const cfg = { plan, translation: plan.translation }
 const html = (el, props) => renderToStaticMarkup(createElement(el, props))
 const baseF = (o = {}) => ({ stage: 'run', phase: 'student', pausedIntro: false, stageObj: { type: 'student' }, rh: { on: true, tag: '', result: null }, next() {}, finish() {}, ...o })
@@ -98,13 +101,33 @@ describe('useRehearsalActs', () => {
   it('rec пишет в журнал по стадии; первый промах разминки — реплика «Это слово и будем тренировать»', () => {
     const { rh, say } = probe()
     rh.rec('win'); rh.rec('miss'); rh.rec('miss'); rh.rec('fail')
-    expect(rh.journal.stages['warmup-0']).toMatchObject({ win: 1, miss: 2, fail: 1 })
-    expect(say.mock.calls.filter(c => c[0] === 'rh_warmup_miss')).toHaveLength(1)
+    expect(rh.journal.stages['warmup-1']).toMatchObject({ win: 1, miss: 2, fail: 1 })
+    expect(say.mock.calls.filter(c => baseLineId(c[0]) === 'rh_warmup_miss')).toHaveLength(1)
   })
   it('failLine: в разминке — «это слово и будем тренировать», в остальных актах — обычные реплики игры (null)', () => {
     const { rh, stages } = probe()
-    expect(rh.failLine(stages.find(s => s.act === 'warmup' && s.type === 'warmup'))).toBe('rh_warmup_miss')
+    expect(baseLineId(rh.failLine(stages.find(s => s.act === 'warmup' && s.type === 'warmup')))).toBe('rh_warmup_miss')
     expect(rh.failLine(stages.find(s => s.sid === 'build-0'))).toBeNull()
+  })
+  it('«над этим словом ещё поработаем»: один из вариантов, два раза подряд один и тот же не говорится (в рамках сессии)', () => {
+    const { rh, stages } = probe()
+    const w = stages.find(s => s.act === 'warmup' && s.type === 'warmup')
+    const said = Array.from({ length: 40 }, () => rh.failLine(w))
+    said.forEach((id, i) => { expect(lineVariants('rh_warmup_miss')).toContain(id); if (i) expect(id).not.toBe(said[i - 1]) })
+    expect(new Set(said).size).toBe(3)
+    expect(probe().rh.failLine(w)).toBe(probe().rh.failLine(w)) // одно семя плана — та же последовательность с начала сессии
+  })
+  it('строка журнала старта: семя и что выбрано в каждом акте; вступление и итог берут вариант от семени плана', () => {
+    const line = sessionLogLine(plan, buildActs(plan, { only: null }).acts)
+    expect(line).toBe('[rehearsal] seed=d варианты: разминка learn@0 > trying@1, читка rh_read_why_c, сборка чётко > обычно, без текста слово > перевод, различи learn lean→0, earn+lean→2')
+    const src = read('./useRehearsalActs.js')
+    expect(src).toContain("sessionLine(plan, 'rh_start')"); expect(src).toContain("sessionLine(plan, 'rh_done')"); expect(src).toContain('pLog(sessionLogLine(')
+  })
+  it('«застрял»: подсказки по порядку ступени (какая первая — по семени), перевод — подписью без речи', () => {
+    const { stages } = probe()
+    const b0 = stages.find(s => s.sid === 'blind-0'), b1 = stages.find(s => s.sid === 'blind-1')
+    expect([b0.hintKinds, b1.hintKinds]).toEqual([['word', 'tr'], ['tr', 'word']])
+    expect(read('./useRehearsalActs.js')).toContain("if (h.kind === 'word') { sayLine('rh_blind_hint'")
   })
   it('nextIdx идёт мимо пропущенных ступеней (повтор — только после промаха); holdMs держит плашку, пока Пит говорит', () => {
     const { rh, stages } = probe()

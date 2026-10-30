@@ -2,6 +2,9 @@ import { describe, it, expect } from 'vitest'
 import { buildActs, backSteps, MANY_MISSES, CLEAR_TAG, NORMAL_TAG } from './rehearsalRecipe.js'
 import { fixturePlan } from './rehearsalFixtures.js'
 import { normalizePlan } from './rehearsalPlan.js'
+import { baseLineId } from './rehearsalLines.js'
+
+const P = (id, seed = 'd') => ({ ...fixturePlan(id), seed }) // семя 'd': разминка learn → trying, «чётко» → «обычно», при «застрял» слово → перевод, читка — вариант c
 
 const ids = acts => acts.map(a => a.id)
 
@@ -37,16 +40,16 @@ describe('сборка с конца (решения §6 п. 1, 4)', () => {
     expect(build.final.parts).toEqual([0, 1, 2])
   })
   it('последняя ступень — человек ×2: «чётко» → «обычно», ярлыки — «Чётко — для последнего ряда» и «Обычно»', () => {
-    const { final } = buildActs(fixturePlan('three')).acts.find(a => a.id === 'build')
-    expect(final.passes.map(p => [p.tag, p.line])).toEqual([[CLEAR_TAG, 'rh_clear'], [NORMAL_TAG, 'rh_normal']])
+    const { final } = buildActs(P('three')).acts.find(a => a.id === 'build')
+    expect(final.passes.map(p => [p.tag, baseLineId(p.line)])).toEqual([[CLEAR_TAG, 'rh_clear'], [NORMAL_TAG, 'rh_normal']])
     expect(CLEAR_TAG).toBe('Чётко — для последнего ряда')
   })
 })
 
 describe('правила пропуска и сокращения', () => {
   it('«без текста»: второй проход — только пока промахов мало (cond few), подсказка — первое слово первого куска', () => {
-    const blind = buildActs(fixturePlan('three')).acts.find(a => a.id === 'blind')
-    expect(blind.passes).toEqual([{ id: 'blind-0' }, { id: 'blind-1', cond: { few: true } }])
+    const blind = buildActs(P('three')).acts.find(a => a.id === 'blind')
+    expect(blind.passes).toEqual([{ id: 'blind-0', hintKinds: ['word', 'tr'] }, { id: 'blind-1', cond: { few: true }, hintKinds: ['tr', 'word'] }]) // какая подсказка первая — по семени, второй проход наоборот
     expect(blind).toMatchObject({ hintWord: "I'm", hintLane: 0 })
     expect(MANY_MISSES).toBe(3)
   })
@@ -58,7 +61,7 @@ describe('правила пропуска и сокращения', () => {
     expect(buildActs(fixturePlan('three'), { hasVoice: true }).acts.find(a => a.id === 'read').highlight).toBe(true)
   })
   it('читка: Пит говорит, зачем она (решение §6 п. 2)', () => {
-    expect(buildActs(fixturePlan('three')).acts.find(a => a.id === 'read').line).toBe('rh_read_why')
+    expect(baseLineId(buildActs(fixturePlan('three')).acts.find(a => a.id === 'read').line)).toBe('rh_read_why')
   })
   it('план без слов вообще — разминка всё равно из слов фразы', () => {
     const w = buildActs(normalizePlan({ phrase: 'Where | are you | from' })).acts[0].words

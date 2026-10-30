@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { noteFor, fasterBy, slowerBy, FAIL_NOTE } from './mirrorNotes.js'
+import { noteFor, fasterBy, slowerBy, FAIL_NOTE, CLEAN_TEXTS } from './mirrorNotes.js'
+import { rngFor } from '../rehearsalSeed.js'
 import { measureTake } from './mirrorMeasure.js'
 import { CHUNKS, DICTOR, STUDENT_CLEAN, STUDENT_MISSING, STUDENT_PAUSE } from './mirrorFixtures.js'
 
@@ -70,5 +71,18 @@ describe('noteFor: одна заметка, приоритет missing > пор�
     expect(run(STUDENT_CLEAN).key).toBe('clean')
     expect(run(STUDENT_MISSING).text).toBe('„trying“ потерялось.')
     expect(run(STUDENT_PAUSE).text).toBe('Пауза перед „to learn“ длиннее, чем у меня. Склей.')
+  })
+})
+
+describe('заметка «чисто»: две формулировки одного смысла (CONCEPT_REHEARSAL.md §8)', () => {
+  it('без rng — первая (прежний текст), с rng — одна из двух по семени; остальные заметки не меняются', () => {
+    expect(CLEAN_TEXTS).toHaveLength(2); expect(CLEAN_TEXTS[0]).toBe('Порядок верный, темп мой. Чисто.')
+    expect(noteFor(base, CHUNKS).text).toBe(CLEAN_TEXTS[0])
+    const got = new Set(Array.from({ length: 40 }, (_, i) => noteFor(base, CHUNKS, rngFor(`s${i}`, 'mirror')).text))
+    expect(got).toEqual(new Set(CLEAN_TEXTS))
+    expect(noteFor(base, CHUNKS, rngFor('s', 'mirror'))).toEqual(noteFor(base, CHUNKS, rngFor('s', 'mirror'))) // одно семя — одна заметка
+    expect(noteFor({ ...base, missing: ['trying'] }, CHUNKS, rngFor('q')).text).toBe('„trying“ потерялось.')
+    expect(noteFor({ ...base, tempo: 0.5 }, CHUNKS, rngFor('q')).key).toBe('tempo'); expect(noteFor(null, CHUNKS, rngFor('q'))).toEqual(FAIL_NOTE)
+    expect(noteFor(base, CHUNKS, rngFor('s', 'mirror')).key).toBe('clean')
   })
 })

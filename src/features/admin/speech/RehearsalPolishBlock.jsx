@@ -10,6 +10,7 @@ import { listComments, clearComments, commentsFile } from '../../rehearsal/polis
 import PolishAudioMode from './PolishAudioMode.jsx'
 import PolishVoice from './PolishVoice.jsx'
 import PolishCardLines from './PolishCardLines.jsx'
+import PolishSeed from './PolishSeed.jsx'
 import usePolishAudioRun from './usePolishAudioRun.js'
 import usePolishVoice from './usePolishVoice.js'
 
@@ -43,6 +44,7 @@ export default function RehearsalPolishBlock({ save = saveDebugFile }) {
   const launch = id => { audio.beforeLaunch(id); flushSync(() => setOnly(id)); startRef.current?.() }
   const runModes = act => { audio.startRun(act); launch(act) }
   const pickFixture = fixture => { const next = { ...rform, fixture, json: fixtureJson(fixture) }; setRform(next); saveRehearsalForm(next) }
+  const pickJson = json => { const next = { ...rform, json }; setRform(next); saveRehearsalForm(next) }
   async function exportAct(id) {
     const how = await save(commentsFile(id, listComments(id), { version: APP_VERSION })) // файл собирается до await: iOS даёт «Поделиться» только сразу после касания
     setNotes(n => ({ ...n, [id]: SAVE_HOW[how] ?? SAVE_HOW.failed }))
@@ -67,6 +69,7 @@ export default function RehearsalPolishBlock({ save = saveDebugFile }) {
           {FIXTURE_IDS.map(id => <option key={id} value={id}>{FIXTURES[id].title}</option>)}
         </select>
       </label>
+      <PolishSeed json={rform.json} plan={plan} disabled={playing} onJson={pickJson} />
       {error ? <p className="aspErr" role="alert" data-testid="rh-polish-error">{error}</p> : <p className="aspHint" data-testid="rh-polish-plan">Фраза: «{plan.chunks.join(' | ')}» — {plan.translation || 'без перевода'}</p>}
       <ul className="rhpList" data-testid="rh-polish-list">
         {POLISH_ACTS.map(a => {

@@ -4,8 +4,8 @@
 //  line  — id реплики Пита на старте стадии (announce: директор держит плашку, пока Пит говорит); tag — ярлык-плашка над дорожками («Чётко — для последнего ряда», §6 п. 4); cond — «идти ли»: { retry: sid } / { few: true };
 //  step  — у ученика сверх обычного: record (take: идёт запись дубля, useRehearsalTake), chunks (тексты дорожек, если цель — слово, а не кусок), chunkMs, extra (слова словаря Vosk, кроме целей — двойники и слова фразы), maxWords;
 //  warmup: word { text, translation, lane }, caption (перевод над дорожкой); read и ученик читки: metro — [{ chunk, at, ms }] подсветка кусков по времени от старта стадии;
-//  blind (ученик): hintWord / hintLane — подсказка, если застрял на 3 секунды; discern: sayText — слово, которое произносит диктор (вместо куска фразы).
-import { discernPrompts, orderLanes, textOf, normText } from '../player/modules/rotate-phone/wordLaneRecipe.js'
+//  blind (ученик): hintWord / hintLane / hintTr / hintKinds — подсказки, если застрял на 3 секунды (какая первая — rehearsalHints.js); discern: sayText — слово, которое произносит диктор (вместо куска фразы).
+import { orderLanes, textOf, normText } from '../player/modules/rotate-phone/wordLaneRecipe.js'
 import { planDictor } from '../player/modules/rotate-phone/wordLaneDictor.js'
 import { estChunkMs } from '../player/modules/rotate-phone/wordLaneAudio.js'
 import { makeLib } from '../player/modules/rotate-phone/wordLaneLib.js'
@@ -13,6 +13,8 @@ import { TRAVEL_MS } from '../player/modules/rotate-phone/wordLaneTimeline.js'
 import { PIECE_PAD_MS } from '../player/modules/rotate-phone/wordLaneStudent.js'
 import { planTexts, wordsOfChunk } from './rehearsalPlan.js'
 import { buildActs } from './rehearsalRecipe.js'
+import { rngFor } from './rehearsalSeed.js'
+import { hintAt } from './rehearsalHints.js'
 
 export const RH_ANNOUNCE_MS = 1700  // плашка акта
 export const RH_TURN_MS = 1500      // «Теперь твоя очередь»
@@ -56,7 +58,7 @@ export function buildRehearsalStages({ plan, rate = 1, lib = () => null }) {
   for (const act of acts) {
     if (act.id === 'warmup' || act.id === 'word') {
       announce(act)
-      act.words.forEach((w, i) => wordStage(act.id, w, `${act.id}-${i}`, act.reps ?? 1))
+      act.words.forEach(w => wordStage(act.id, w, `${act.id}-${w.idx ?? 0}`, act.reps ?? 1)) // sid — по номеру слова в плане (w.idx), а не по порядку сессии: по нему журнал и итог находят ступень
     } else if (act.id === 'read') {
       announce(act)
       const dstep = stepOf('read-d', act.parts)
@@ -83,11 +85,11 @@ export function buildRehearsalStages({ plan, rate = 1, lib = () => null }) {
     } else if (act.id === 'blind') {
       announce(act)
       if (act.word) wordStage('blind', act.word, 'blind-0', 1, { hintWord: act.word.text, hintLane: act.word.lane }) // одно слово: слово по переводу
-      else for (const pass of act.passes) push({ type: 'student', act: 'blind', sid: pass.id, step: stepOf(pass.id, act.parts, { labels: [] }), cond: pass.cond, hintWord: act.hintWord, hintLane: act.hintLane })
+      else for (const pass of act.passes) push({ type: 'student', act: 'blind', sid: pass.id, step: stepOf(pass.id, act.parts, { labels: [] }), cond: pass.cond, hintWord: act.hintWord, hintLane: act.hintLane, hintTr: act.hintTr, hintKinds: pass.hintKinds }) // hintKinds: порядок подсказок при «застрял» (rehearsalHints.js)
     } else if (act.id === 'discern') {
       act.words.forEach((w, i) => {
         announce(act, { sid: `discern-${i}`, title: 'Различи', line: i === 0 ? act.line : null, cond: act.cond })
-        push({ type: 'discern', act: 'discern', sid: `discern-${i}`, round: { kind: 'discern', title: 'Различи' }, prompts: discernPrompts([w.text], 0, w.confusers).map(p => ({ ...p, text: w.text })), sayText: w.text, cond: act.cond })
+        push({ type: 'discern', act: 'discern', sid: `discern-${i}`, round: { kind: 'discern', title: 'Различи' }, prompts: w.prompts, sayText: w.text, cond: act.cond })
         wordStage('discern', { ...w, lane: n === 1 ? 1 : w.lane >= 0 ? w.lane : 1, translation: '' }, `discern-say-${i}`, 1, { cond: act.cond, noLabel: true, hintWord: w.text }) // потом слово надо сказать (словарь — тройка)
       })
     } else if (act.id === 'intro') announce(act, { line: null }) // «Шлифовка → Заставка»: плашка, потом финал игры
@@ -96,7 +98,7 @@ export function buildRehearsalStages({ plan, rate = 1, lib = () => null }) {
       push({ type: 'take', act: 'take', sid: 'take', step: stepOf('take', act.parts, { labels: [], record: true }) }) // record: слушатель без затвора тишины (паузы между кусками должны остаться паузами) и сразу начинает следующий заход
     } else push({ type: act.id, act: act.id, sid: act.id, line: act.line }) // mirror: реплика Пита «Слушаем: сначала я, потом ты.»; summary: без реплики (её говорит директор актов)
   }
-  return { recipe: { chunks, rounds: [], acts, plan }, stages, chunkMs, chunkCurves: chunks.map(() => null), lanes: orderLanes(n), clipMode: () => false }
+  return { recipe: { chunks, rounds: [], acts, plan }, stages, chunkMs, chunkCurves: chunks.map(() => null), lanes: orderLanes(n, rngFor(plan.seed, 'lanes')), clipMode: () => false }
 }
 
 /** Подписи дорожек на стадии репетиции: { text, on }[3]. hint — дорожки, где показать подпись (после «не успел», «застрял», слабое слово), hl — какой кусок подсвечен сейчас (читка), −1 — никакой */
@@ -105,15 +107,17 @@ export function labelsForRehearsal(stage, chunks, hint = [], hl = -1) {
   if (!stage || ['discern', 'mirror', 'summary'].includes(stage.type)) return out
   if (stage.type === 'warmup') {
     const lane = stage.word.lane
-    const shown = hint.includes(lane) ? stage.word.text : stage.noLabel ? '' : stage.caption // перевод; «не успел» — подсказка словом
+    const h = hintAt(hint, lane)
+    const shown = h !== undefined ? h.text ?? stage.word.text : stage.noLabel ? '' : stage.caption // перевод; «не успел» — подсказка словом
     if (shown) out[lane] = { text: shown, on: true }
     return out
   }
   const step = stage.step
   if (!step) return out
   chunks.forEach((c, lane) => {
+    const h = hintAt(hint, lane)
     if (step.labels.includes(lane)) out[lane] = { text: c, on: stage.metro?.length ? hl === lane : step.active.includes(lane) } // читка: подсвечен кусок, который звучит; сборка: куски ступени
-    else if (hint.includes(lane)) out[lane] = { text: c, on: true }
+    else if (h != null) out[lane] = { text: h.text ?? c, on: true } // подсказка: подпись куска или (перевод куска при «застрял») свой текст
   })
   return out
 }

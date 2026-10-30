@@ -2,10 +2,11 @@
 // Сценарий от источника не зависит. Чистые функции — проверяются тестами.
 //   { phrase: 'I'm | trying | to learn', translation, lang, chunks: ['I'm','trying','to learn'],
 //     words: [{ text, translation, due, lapses, confusers: [≤2 слова-двойника] }],
-//     stressed: [номера ударных кусков, пока вручную], audio: { phrase: { url, timings } | null, words: 'lib' }, source: 'sim' | 'memory' | 'node' }
+//     seed: 'строка семени случайностей внутри актов (rehearsalSeed.js; нет в JSON — «дата|фраза»)', stressed: [номера ударных кусков, пока вручную], audio: { phrase: { url, timings } | null, words: 'lib' }, source: 'sim' | 'memory' | 'node' }
 import { parsePhrase, normText, MAX_CONFUSERS } from '../player/modules/rotate-phone/wordLaneRecipe.js'
 import { SLOT_COUNT } from '../player/modules/rotate-phone/wordLaneTimeline.js'
 import { ONLY_IDS } from './rehearsalOnly.js'
+import { cleanSeed, seedFor } from './rehearsalSeed.js'
 
 export const SOURCES = ['sim', 'memory', 'node']
 export const MAX_PLAN_WORDS = 8
@@ -40,6 +41,7 @@ export function normalizePlan(raw) {
   const phrase = raw.audio?.phrase
   return {
     phrase: chunks.join(' | '),
+    seed: cleanSeed(raw.seed) ?? seedFor(chunks.join(' | ')), // случайность внутри актов (CONCEPT_REHEARSAL.md §8): одно семя — одна сессия; нет в JSON — от даты и фразы
     translation: clean(raw.translation),
     lang: clean(raw.lang) || 'en-US',
     chunks,

@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from 'vitest'
 import { readFileSync } from 'node:fs'
-import { REHEARSAL_LINES, REHEARSAL_LINE_IDS, fillLine } from './rehearsalLines.js'
+import { REHEARSAL_LINES, REHEARSAL_LINE_IDS, fillLine, pickLine, sessionLine, lineVariants, baseLineId } from './rehearsalLines.js'
+import { rngFor, mulberry32 } from './rehearsalSeed.js'
 import { CAT_LINES, LINE_IDS, normalizeLines, linesItems, lineKey, lineMs, MAX_LINE_CHARS } from '../player/modules/rotate-phone/wordLaneCatLines.js'
 import { startCatLine } from '../player/modules/rotate-phone/wordLaneCatSay.js'
 import { missingPitLines, pitVoiceCount, voiceMissingPitLines } from './rehearsalVoice.js'
@@ -101,5 +102,47 @@ describe('озвучка реплик Пита из «Теста игры»', ()
     const save = vi.fn()
     expect(await voiceMissingPitLines({ load: async () => ({ lines }), save, speak: vi.fn() })).toBe(0)
     expect(save).not.toHaveBeenCalled()
+  })
+})
+
+// Варианты реплик (CONCEPT_REHEARSAL.md §8): у ключа 2–3 текста одного смысла, выбор по семени, повтор подряд запрещён
+describe('варианты реплик Пита', () => {
+  const WITH_VARIANTS = ['rh_start', 'rh_warmup', 'rh_warmup_miss', 'rh_read_why', 'rh_build', 'rh_clear', 'rh_normal', 'rh_blind', 'rh_take', 'rh_mirror', 'rh_done']
+  it('у одиннадцати ключей — три варианта (основной, _b, _c); у rh_blind_hint с {word} и rh_discern — без вариантов', () => {
+    for (const b of WITH_VARIANTS) expect(lineVariants(b), b).toEqual([b, `${b}_b`, `${b}_c`])
+    for (const b of ['rh_blind_hint', 'rh_discern']) expect(lineVariants(b)).toEqual([b])
+    expect(REHEARSAL_LINES).toHaveLength(WITH_VARIANTS.length * 3 + 2)
+    for (const id of REHEARSAL_LINE_IDS) expect(lineVariants(baseLineId(id))).toContain(id)
+    expect(LINE_IDS).toEqual(expect.arrayContaining(['rh_done_b', 'rh_done_c', 'rh_normal_c'])) // варианты — обычные ключи каталога: озвучка, редактор ноды, слоты
+  })
+  it('основной вариант — прежний текст; тексты разные, до 120 знаков, без оборота «фраза твоя»; пример rh_done из задания', () => {
+    const t = Object.fromEntries(REHEARSAL_LINES.map(l => [l.id, l.text]))
+    expect(t.rh_done).toBe('Отлично, получилось! Ещё одну?'); expect(t.rh_done_b).toBe('Готово. Берём ещё одну?'); expect(t.rh_done_c).toBe('Звучит! Повторим с другой?')
+    expect(new Set(Object.values(t)).size).toBe(REHEARSAL_LINES.length)
+    for (const l of REHEARSAL_LINES) { expect(l.text.length, l.id).toBeLessThanOrEqual(MAX_LINE_CHARS); expect(l.text.toLowerCase(), l.id).not.toContain('фраза твоя'); expect(l.when, l.id).toBeTruthy() }
+    expect(normalizeLines(null).rh_done_c.text).toBe('Звучит! Повторим с другой?')
+  })
+  it('pickLine: повтор подряд запрещён (по сессии), выбираются все варианты, без вариантов — тот же ключ', () => {
+    for (const base of WITH_VARIANTS) {
+      const rng = mulberry32(7), last = {}
+      let prev = null
+      const seen = new Set()
+      for (let i = 0; i < 60; i++) { const id = pickLine(base, rng, last); expect(id, `${base} #${i}`).not.toBe(prev); expect(lineVariants(base)).toContain(id); prev = id; seen.add(id) }
+      expect(seen.size).toBe(3)
+    }
+    expect(pickLine('rh_blind_hint', mulberry32(1), {})).toBe('rh_blind_hint'); expect(pickLine('rh_blind_hint', mulberry32(1), {})).toBe('rh_blind_hint')
+    const last = {}; pickLine('rh_done', mulberry32(3), last); expect(last.rh_done).toMatch(/^rh_done/)
+  })
+  it('pickLine с first: «И ещё раз, обычно.» не выбирается, когда «обычно» идёт первым', () => {
+    for (let i = 0; i < 80; i++) expect(pickLine('rh_normal', rngFor(`s${i}`), {}, { first: true })).not.toBe('rh_normal')
+    expect(new Set(Array.from({ length: 80 }, (_, i) => pickLine('rh_normal', rngFor(`s${i}`), {}))).size).toBe(3)
+  })
+  it('sessionLine: одно семя плана — тот же вариант; разные семена — разные варианты', () => {
+    expect(sessionLine({ seed: 'z' }, 'rh_done')).toBe(sessionLine({ seed: 'z' }, 'rh_done'))
+    expect(new Set(Array.from({ length: 40 }, (_, i) => sessionLine({ seed: `z${i}` }, 'rh_done'))).size).toBe(3)
+  })
+  it('озвучка по ключу: вариант — отдельная реплика с url, остальные варианты без озвучки', () => {
+    const l = normalizeLines({ lines: { rh_done_b: { text: 'Готово. Берём ещё одну?', url: 'u', duration: 1 } } })
+    expect(linesItems(l)).toEqual([{ key: lineKey('rh_done_b'), url: 'u' }]); expect(missingPitLines(l).map(m => m.id)).toContain('rh_done_c'); expect(missingPitLines(l).map(m => m.id)).not.toContain('rh_done_b')
   })
 })

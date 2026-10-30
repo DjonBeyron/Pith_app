@@ -15,8 +15,8 @@ export const RMS_WAIT_MS = 1200     // громкость файлов дикт�
 
 const wait = ms => new Promise(resolve => setTimeout(resolve, ms))
 
-/** Зависимости (record, loudness, dictorOf, now, log) подставляются в тестах */
-export function createTake({ chunks, rate = 1, lang, getStream, record = recordTake, loudness = libraryRms, dictorOf = makeMirrorDictor, now = () => Date.now(), log = () => {} }) {
+/** rng — поток случайности от семени плана (заметка Пита при равных измерениях выбирается из вариантов); нет — основной вариант. Зависимости (record, loudness, dictorOf, now, log) подставляются в тестах */
+export function createTake({ chunks, rate = 1, lang, rng = null, getStream, record = recordTake, loudness = libraryRms, dictorOf = makeMirrorDictor, now = () => Date.now(), log = () => {} }) {
   const listeners = new Set()
   let rec = null
   let at = 0       // старт записи (мс по now())
@@ -50,7 +50,7 @@ export function createTake({ chunks, rate = 1, lang, getStream, record = recordT
       const words = takeWordsOf(ls.map(l => ({ words: l.words(), startedAt: l.startedAt() })), at)
       const dictor = dictorOf({ chunks, rate, lang })
       const dictorRms = take ? await Promise.race([loudness(chunks), wait(RMS_WAIT_MS).then(() => null)]).catch(() => null) : null
-      const mirror = buildMirror({ chunks, take, words, dictor, dictorRms })
+      const mirror = buildMirror({ chunks, take, words, dictor, dictorRms, rng })
       log(`[rehearsal] дубль: ${take ? `${take.durationMs} мс, rms ${Number(take.rms).toFixed(3)}` : `записи нет (${error})`}; слов Vosk ${words.length}; темп ${mirror.tempo ?? '—'}; заметка «${mirror.note.key}»`)
       return { take, error, words, mirror }
     },

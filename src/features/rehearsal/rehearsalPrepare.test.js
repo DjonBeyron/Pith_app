@@ -4,6 +4,7 @@ import { readRehearsalCfg } from './rehearsalCfg.js'
 import { fixturePlan } from './rehearsalFixtures.js'
 import { planTexts } from './rehearsalPlan.js'
 import { ONLY_IDS } from './rehearsalOnly.js'
+import { baseLineId } from './rehearsalLines.js'
 
 // Что тап «Начать» готовит репетиции: полная репетиция — всё, один этап «Шлифовки» — только его слова; реплики первых секунд — отдельно
 const base = fixturePlan('three')
@@ -46,15 +47,17 @@ describe('hasIntroLine: вступление Пита', () => {
 
 describe('firstLines: реплики Пита первых секунд', () => {
   it('вступление и реплика первого акта; у итога — «Отлично, получилось!»; у заставки — только вступление', () => {
-    expect(firstLines(base)).toEqual(['rh_start', 'rh_warmup'])
-    expect(firstLines(withOnly('read'))).toEqual(['rh_read_why']) // один этап «Шлифовки»: без вступления
-    expect(firstLines(withOnly('build'))).toEqual(['rh_build'])
-    expect(firstLines(withOnly('summary'))).toEqual(['rh_done'])
-    expect(firstLines(withOnly('intro'))).toEqual(['rh_start'])
+    const bases = list => list.map(baseLineId) // конкретный вариант реплики выбирает семя плана (rehearsalLines.sessionLine)
+    expect(bases(firstLines(base))).toEqual(['rh_start', 'rh_warmup'])
+    expect(bases(firstLines(withOnly('read')))).toEqual(['rh_read_why']) // один этап «Шлифовки»: без вступления
+    expect(bases(firstLines(withOnly('build')))).toEqual(['rh_build'])
+    expect(bases(firstLines(withOnly('summary')))).toEqual(['rh_done'])
+    expect(bases(firstLines(withOnly('intro')))).toEqual(['rh_start'])
+    expect(firstLines({ ...base, seed: 'd' })).toEqual(['rh_start', 'rh_warmup_b']) // одно семя — один и тот же вариант: в подготовке звука, в рецепте и в директоре
   })
   it('настройки игры несут и слова, и первые реплики', () => {
     const cfg = readRehearsalCfg(withOnly('read'))
-    expect(cfg.extraWords).toEqual(base.chunks); expect(cfg.firstLines).toEqual(['rh_read_why'])
+    expect(cfg.extraWords).toEqual(base.chunks); expect(cfg.firstLines.map(baseLineId)).toEqual(['rh_read_why'])
     expect(readRehearsalCfg(base).extraWords).toEqual(planTexts(base))
   })
 })

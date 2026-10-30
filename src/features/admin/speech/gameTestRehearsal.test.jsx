@@ -17,6 +17,13 @@ const form = (o = {}) => ({ ...defaultRehearsalForm(), mode: 'rehearsal', ...o }
 const render = (f = form(), lib = new Map()) => renderToStaticMarkup(createElement(GameTestRehearsal, { form: f, onChange() {}, lib, generate() {} }))
 
 describe('форма репетиции в браузере админа', () => {
+  it('семя плана: поле seed в JSON правится вручную (воспроизвести сессию); нет — от даты и фразы; фикстура семени не несёт', () => {
+    expect(JSON.parse(fixtureJson('three')).seed).toBeUndefined()
+    const mine = JSON.stringify({ ...JSON.parse(fixtureJson('three')), seed: 'abc' })
+    expect(parsePlanJson(mine).plan.seed).toBe('abc')
+    expect(parsePlanJson(fixtureJson('three')).plan.seed).toBe(fixturePlan('three').seed)
+    expect(render(form({ json: mine }))).toContain('&quot;seed&quot;:&quot;abc&quot;') // JSON с семенем — в поле правки плана
+  })
   it('по умолчанию режим «нода», фикстура «три куска», JSON — исходник плана', () => {
     const f = loadRehearsalForm(memStore())
     expect(f).toEqual({ mode: 'node', fixture: 'three', json: fixtureJson('three') })

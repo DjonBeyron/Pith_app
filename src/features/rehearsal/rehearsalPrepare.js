@@ -3,9 +3,10 @@
 import { normText } from '../player/modules/rotate-phone/wordLaneRecipe.js'
 import { planTexts } from './rehearsalPlan.js'
 import { buildActs } from './rehearsalRecipe.js'
+import { sessionLine } from './rehearsalLines.js'
 
-export const START_LINE = 'rh_start'  // вступление: Пит говорит про фразу, пока она падает
-export const SUMMARY_LINE = 'rh_done' // итог говорит директор актов (useRehearsalActs), у акта summary своей реплики нет
+export const START_LINE = 'rh_start'  // вступление: Пит говорит про фразу, пока она падает (основной ключ: вариант выбирается по семени плана, sessionLine)
+export const SUMMARY_LINE = 'rh_done' // итог говорит директор актов (useRehearsalActs), у акта summary своей реплики нет (основной ключ, как выше)
 
 const dedupe = list => { const seen = new Set(); return list.filter(t => { const k = normText(t); if (!k || seen.has(k)) return false; seen.add(k); return true }) }
 
@@ -29,6 +30,6 @@ export const hasIntroLine = plan => !plan.only || plan.only === 'intro'
 /** Реплики Пита, которые прозвучат в первые секунды: вступление (если есть) и реплика первого акта (у итога — «Отлично, получилось!»). Остальные докачиваются фоном */
 export function firstLines(plan) {
   const first = buildActs(plan).acts[0]
-  const own = first?.line ?? (first?.id === 'summary' ? SUMMARY_LINE : null)
-  return [...(hasIntroLine(plan) ? [START_LINE] : []), ...(own ? [own] : [])]
+  const own = first?.line ?? (first?.id === 'summary' ? sessionLine(plan, SUMMARY_LINE) : null)
+  return [...(hasIntroLine(plan) ? [sessionLine(plan, START_LINE)] : []), ...(own ? [own] : [])]
 }

@@ -1,11 +1,16 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { lineMs, LINE_PAUSE_MS } from '../player/modules/rotate-phone/wordLaneCatLines.js'
-import { fillLine } from './rehearsalLines.js'
+import { fillLine, pickLine, sessionLine } from './rehearsalLines.js'
+import { rngFor } from './rehearsalSeed.js'
+import { buildActs } from './rehearsalRecipe.js'
+import { sessionLogLine } from './rehearsalVariety.js'
+import { pLog } from '../../shared/lib/debug.js'
 import { createJournal, record, nextRunnable, weakLanes } from './rehearsalJournal.js'
 import { reportSession } from './rehearsalSim.js'
 import { useRehearsalTake } from './useRehearsalTake.js'
 import { scheduleMetro } from './rehearsalMetro.js'
 import { hasIntroLine } from './rehearsalPrepare.js'
+import { stuckHint, hintEntry } from './rehearsalHints.js'
 import { demoSummary } from './polish/polishDemo.js'
 
 // Директор «Репетиции с Питом» поверх useWordLaneFlow: всё, что сценарию актов нужно сверх обычной игры, — в одном хуке; директору остаются точки подключения (его next / стадии / реакции движка).
@@ -30,12 +35,20 @@ export function useRehearsalActs({ plan, stages, stage, at, stageObj, setS, sayL
   const nextIdx = useCallback(i => (on ? nextRunnable(stages, i, journal) : i), [on, stages, journal]) // стабильна: на ней держится next директора
 
   const intro = on && hasIntroLine(plan)
+  // Случайность внутри актов (CONCEPT_REHEARSAL.md §8): семя плана — одна сессия воспроизводима; что выбрано, пишется в журнал отладки один раз на запуск
+  useEffect(() => {
+    if (plan) pLog(sessionLogLine(plan, buildActs(plan, { only: null }).acts))
+  }, [plan])
+  const startLine = useMemo(() => (plan ? sessionLine(plan, 'rh_start') : null), [plan]) // вариант реплики вступления и итога — на всю сессию (rehearsalLines.js)
+  const doneLine = useMemo(() => (plan ? sessionLine(plan, 'rh_done') : null), [plan])
+  const missRef = useRef(null) // реплика «над этим словом ещё поработаем» — несколько раз за сессию: свой поток от семени, повтор подряд запрещён
+  const missLine = () => { missRef.current ??= { rng: rngFor(plan.seed, 'line:rh_warmup_miss'), last: {} }; return pickLine('rh_warmup_miss', missRef.current.rng, missRef.current.last) }
   // Вступление: Пит говорит про фразу, пока она падает (при запуске одного этапа «Шлифовки» его нет — rehearsalPrepare.hasIntroLine)
   useEffect(() => {
     if (!on || stage !== 'drop' || !intro) return undefined
-    const t = setTimeout(() => sayLine('rh_start'), LINE_AT_MS)
+    const t = setTimeout(() => sayLine(startLine), LINE_AT_MS)
     return () => clearTimeout(t)
-  }, [on, stage, intro, sayLine])
+  }, [on, stage, intro, sayLine, startLine])
 
   // Реплика стадии: ждём, пока Пит договорит прошлую
   useEffect(() => {
@@ -58,10 +71,10 @@ export function useRehearsalActs({ plan, stages, stage, at, stageObj, setS, sayL
     const id = setInterval(() => {
       last = Math.max(last, listenerRef.current?.heardAt?.() ?? 0)
       if (shown >= MAX_STUCK_HINTS || Date.now() - last < STUCK_MS || cat.busyLeft() > 0) return
+      const h = stuckHint(running, shown)
       shown += 1; last = Date.now()
-      sayLine('rh_blind_hint', { word: running.hintWord })
-      sayText(running.hintWord)
-      setS(p => ({ ...p, hint: [running.hintLane ?? 0] }))
+      if (h.kind === 'word') { sayLine('rh_blind_hint', { word: h.word }); sayText(h.word) } // перевод куска не озвучивается — только подпись
+      setS(p => ({ ...p, hint: [hintEntry(h)] }))
       clearTimeout(labelTimer)
       labelTimer = setTimeout(() => setS(p => ({ ...p, hint: [] })), HINT_LABEL_MS)
     }, 400)
@@ -72,7 +85,7 @@ export function useRehearsalActs({ plan, stages, stage, at, stageObj, setS, sayL
   // Итог: симуляция памяти и XP — один раз на выходе на экран summary
   useEffect(() => {
     if (running?.type !== 'summary') return undefined
-    const t = setTimeout(() => { setResult(plan.only === 'summary' ? reportSession({ plan, ...demoSummary(plan) }) : reportSession({ plan, journal, mirror: take.mirror })); sayLine('rh_done') }, 0) // «Шлифовка → Итог»: результат подставной (polish/polishDemo.js)
+    const t = setTimeout(() => { setResult(plan.only === 'summary' ? reportSession({ plan, ...demoSummary(plan) }) : reportSession({ plan, journal, mirror: take.mirror })); sayLine(doneLine) }, 0) // «Шлифовка → Итог»: результат подставной (polish/polishDemo.js)
     return () => clearTimeout(t)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [running])
@@ -89,10 +102,10 @@ export function useRehearsalActs({ plan, stages, stage, at, stageObj, setS, sayL
       if (!running) return
       const had = (journal.stages[running.sid]?.miss ?? 0) + (journal.stages[running.sid]?.fail ?? 0)
       record(journal, running, kind)
-      if (kind === 'miss' && !had && (running.act === 'warmup' || running.act === 'word')) sayLine('rh_warmup_miss')
+      if (kind === 'miss' && !had && (running.act === 'warmup' || running.act === 'word')) sayLine(missLine())
     },
     /** Реплика на «не успел»: в разминке — «это слово и будем тренировать»; иначе null (обычные реплики игры) */
-    failLine: st => (st?.act === 'warmup' || st?.act === 'word' ? 'rh_warmup_miss' : null),
+    failLine: st => (st?.act === 'warmup' || st?.act === 'word' ? missLine() : null),
     /** Следующая стадия, на которую идём: пропущенные по правилам (cond) обходятся */
     nextIdx,
     /** Сколько держать плашку (announce / turn): пока Пит договорит прошлую реплику и скажет свою */

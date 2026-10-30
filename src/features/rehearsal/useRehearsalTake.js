@@ -6,6 +6,7 @@ import { releaseTake } from './mirror/takeRecorder.js'
 import { noteFor } from './mirror/mirrorNotes.js'
 import { makeMirrorDictor } from './rehearsalMirror.js'
 import { createTake } from './rehearsalTake.js'
+import { rngFor } from './rehearsalSeed.js'
 
 // Дубль и зеркало (акт 5) в директоре актов — обёртка над createTake (rehearsalTake.js): запись на стадии take и данные экрана mirror. Вызывает useRehearsalActs.
 //  • вход в стадию take → запись на потоке игры. Окон речи Пита на этой стадии нет (плашка «Дубль. Три, два, один…» — отдельная стадия до неё, а на «не успел» Пит на дубле молчит), gameMicHold дорожку не глушит;
@@ -29,7 +30,7 @@ export function useRehearsalTake({ plan, running, at, listenerRef, rate, lang })
 
   useEffect(() => {
     if (!isTake) return undefined
-    const t = createTake({ chunks, rate, lang, getStream: guardStream(getGameMic), log: pLog })
+    const t = createTake({ chunks, rate, lang, rng: rngFor(plan.seed, 'mirror'), getStream: guardStream(getGameMic), log: pLog })
     ctl.current = t
     t.begin(listenerRef.current)
     return () => { t.cancel(); if (ctl.current === t) ctl.current = null }

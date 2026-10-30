@@ -44,7 +44,7 @@ describe('рецепт с only', () => {
 })
 
 describe('стадии с only', () => {
-  const three = fixturePlan('three')
+  const three = { ...fixturePlan('three'), seed: 'd' } // семя 'd': «чётко» → «обычно» (порядок проходов сборки случайный)
   it('«Сборка с конца»: плашка акта и ступени сборки, ничего чужого; журнал и слушатель — как в полном сценарии', () => {
     const s = stagesOf(three, 'build')
     expect(s[0]).toMatchObject({ type: 'announce', act: 'build' })
@@ -68,6 +68,27 @@ describe('стадии с only', () => {
     expect(stagesOf(three, 'discern').map(x => x.type)).toContain('discern')
     expect(new Set(stagesOf(three, 'warmup').map(x => x.act))).toEqual(new Set(['warmup']))
     expect(stagesOf(three, 'read').map(x => x.type)).toEqual(['announce', 'read', 'turn', 'student'])
+  })
+})
+
+describe('only и семя', () => {
+  const seeded = seed => ({ ...fixturePlan('three'), seed })
+  it('семя плана доходит до этапа: те же выборы, что в полном сценарии (у каждого акта свой поток)', () => {
+    for (const seed of ['a', 'd', 'g']) {
+      const full = buildActs(seeded(seed)).acts
+      for (const id of ['warmup', 'read', 'build', 'blind', 'discern']) {
+        expect(buildActs(withOnly(seeded(seed), id)).acts, `${seed}/${id}`).toEqual([full.find(a => a.id === id)])
+      }
+    }
+  })
+  it('одно семя — одни и те же стадии на этапе, другое семя — другие', () => {
+    const sid = seed => stagesOf(seeded(seed), 'build').filter(x => x.type === 'student').map(x => x.sid)
+    expect(sid('a')).toEqual(sid('a'))
+    expect(sid('a')).not.toEqual(sid('d')) // 'a': «обычно» первым, 'd': «чётко»
+  })
+  it('planForAct и normalizePlan сохраняют семя', () => {
+    expect(planForAct(seeded('z'), 'blind').seed).toBe('z')
+    expect(normalizePlan({ phrase: 'a | b', seed: ' z ' }).seed).toBe('z')
   })
 })
 

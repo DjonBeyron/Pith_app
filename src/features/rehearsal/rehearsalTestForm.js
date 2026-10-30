@@ -2,6 +2,7 @@
 import { normalizePlan, planTexts } from './rehearsalPlan.js'
 import { FIXTURES, DEFAULT_FIXTURE, fixtureSource } from './rehearsalFixtures.js'
 import { wordKey, cleanWordText } from '../../shared/lib/wordAudio/wordKey.js'
+import { cleanSeed } from './rehearsalSeed.js'
 
 export const REHEARSAL_TEST_KEY = 'pithy_wl_rehearsal_v1'
 export const MODES = ['node', 'rehearsal']
@@ -35,6 +36,21 @@ export function parsePlanJson(text) {
   try { raw = JSON.parse(text) } catch (e) { return { plan: null, error: `Не JSON: ${e.message}` } }
   const plan = normalizePlan({ ...raw, source: 'sim' })
   return plan ? { plan, error: '' } : { plan: null, error: 'В плане нет ни одного куска: нужен phrase («I\'m | trying | to learn») или chunks' }
+}
+
+/** Семя, записанное в JSON плана (поле seed), или null — тогда семя от даты и фразы (rehearsalSeed.js) */
+export function jsonSeed(json) {
+  try { return cleanSeed(JSON.parse(json)?.seed) } catch { return null }
+}
+
+/** JSON плана с другим семенем: поле seed ставится или (пусто) убирается; остальное не трогается. Не JSON — как был */
+export function withSeed(json, seed) {
+  let raw
+  try { raw = JSON.parse(json) } catch { return json }
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return json
+  const { seed: _old, ...rest } = raw
+  const s = cleanSeed(seed)
+  return JSON.stringify(s ? { ...rest, seed: s } : rest, null, 2)
 }
 
 /** Что озвучивает библиотека слов для плана: куски, слова, двойники, слова фразы — [{ text, key (wordKey или null), has (есть в библиотеке lib: Map key → строка) }] */
