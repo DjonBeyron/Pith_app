@@ -15,7 +15,7 @@ function mk({ up = true, slot = true, play = true } = {}) {
   const log = vi.fn()
   const open = vi.fn(() => vi.fn())
   const say = vi.fn(() => true)
-  const deps = { catApi: { current: api }, listenerRef: { current: { mute } }, has: vi.fn(() => slot), play: vi.fn(() => play), say, slotOf: vi.fn(() => ({ exists: true })), open, setTimer: (fn, ms) => { timers.push({ fn, ms }); return timers.length }, log }
+  const deps = { catApi: { current: api }, listenerRef: { current: { mute } }, has: vi.fn(() => slot), play: vi.fn((k, res, onStart) => { if (play) onStart?.(); return play }), say, slotOf: vi.fn(() => ({ exists: true })), open, setTimer: (fn, ms) => { timers.push({ fn, ms }); return timers.length }, log }
   return { api, mute, timers, log, deps, open, say }
 }
 
@@ -24,7 +24,7 @@ describe('реплика кота: старт', () => {
     const m = mk()
     const r = startCatLine({ id: 'your_turn', line: lines.your_turn, ...m.deps })
     expect(r).toMatchObject({ ms: 2000, rise: 0, voiced: true, timer: 0 })
-    expect(m.deps.play).toHaveBeenCalledWith(lineKey('your_turn'), expect.any(Function)) // второй аргумент — приёмник исхода play() для журнала «[cat-voice]»
+    expect(m.deps.play).toHaveBeenCalledWith(lineKey('your_turn'), expect.any(Function), expect.any(Function)) // исход play() для журнала «[cat-voice]» и колбэк старта звука (по нему открывается рот)
     const [track, ms, meta] = m.api.speak.mock.calls[0]
     expect(ms).toBe(2000)
     expect(meta).toEqual({ id: 'your_turn' })
@@ -71,7 +71,7 @@ describe('реплика кота: старт', () => {
     const done = vi.fn(); m.open.mockReturnValue(done)
     startCatLine({ id: 'your_turn', line: lines.your_turn, ...m.deps })
     expect(m.open).toHaveBeenCalledWith(expect.objectContaining({ id: 'your_turn', source: 'slot' }))
-    expect(m.deps.play.mock.calls[0][1]).toBe(done)
+    m.deps.play.mock.calls[0][1]({ play: 'ok' }); expect(done).toHaveBeenCalledWith({ play: 'ok' }) // исход play() уходит в done журнала
     const a = mk()
     startCatLine({ id: 'try_again', line: lines.try_again, ...a.deps })
     expect(a.open).toHaveBeenCalledWith(expect.objectContaining({ source: 'none', why: 'у реплики нет озвучки (url)' }))

@@ -13,7 +13,7 @@ vi.mock('../../word-audio/wordAudioPlayer.js', () => ({ rewarmWordElements: rec(
 vi.mock('../../../../shared/lib/primedAudio.js', () => ({ primeAudio: rec('primeAudio') }))
 vi.mock('../../../../shared/lib/sounds.js', () => ({ preloadSounds: rec('preloadSounds'), unlockAudio: rec('unlockAudio'), onAudioInterrupted: () => () => {}, soundCtxState: () => null }))
 
-const { startGameAudio, wakeGameAudio, rewakeGameAudio, WORDS_WAIT_MS } = await import('./wordLaneStart.js')
+const { startGameAudio, wakeGameAudio, rewakeGameAudio, GATE_MAX_MS } = await import('./wordLaneStart.js')
 
 const cfg = { chunks: ['learn'], confusers: [], hasAudio: true, clips: [{ start: 0, end: 1 }] }
 beforeEach(() => { calls.length = 0; vi.useRealTimers() })
@@ -30,8 +30,10 @@ function deps(over = {}) {
     session: { begin: vi.fn(() => calls.push('session.begin')) },
     hold: { parkNow: vi.fn(() => calls.push('hold.parkNow')) },
     openMic: vi.fn(() => { calls.push('openMic'); return Promise.resolve('granted') }),
+    unlockCtx: vi.fn(() => calls.push('unlockCtx')), // игровой AudioContext открывается в том же жесте, сразу после getUserMedia
     wake: vi.fn(() => { calls.push('wake'); return Promise.resolve(true) }),
     rewake: vi.fn(() => calls.push('rewake')),
+    gate: vi.fn(() => Promise.resolve({ by: 'all', ok: 0, total: 0, firstN: 0, ms: 0, missing: [] })), // ворота (wordLaneGate.js) проверяются отдельно: здесь открыты сразу
     ...over,
   }
 }
@@ -40,7 +42,7 @@ describe('startGameAudio: порядок в жесте', () => {
   it('синхронно (до первого await): отслеживание прерываний, тип сессии, getUserMedia; звук ещё не будится', () => {
     const d = deps()
     const p = startGameAudio({ cfg, audioSrc: 'a.mp3', lines: null }, d)
-    expect(calls).toEqual(['warm.begin', 'session.begin', 'openMic'])
+    expect(calls).toEqual(['warm.begin', 'session.begin', 'openMic', 'unlockCtx'])
     expect(d.wake).not.toHaveBeenCalled()
     return p
   })
@@ -48,7 +50,7 @@ describe('startGameAudio: порядок в жесте', () => {
   it('дальше: микрофон открыт → (закрытие в режиме close) → «своё» окно → ждём, пока уляжется → будим звук → регистрируем повторный прогрев; итог { mic, settled }', async () => {
     const d = deps()
     const r = await startGameAudio({ cfg, audioSrc: 'a.mp3', lines: null }, d)
-    expect(calls).toEqual(['warm.begin', 'session.begin', 'openMic', 'hold.parkNow', 'warm.markSelf', 'warm.settle', 'warm.onRewarm', 'wake'])
+    expect(calls).toEqual(['warm.begin', 'session.begin', 'openMic', 'unlockCtx', 'hold.parkNow', 'warm.markSelf', 'warm.settle', 'warm.onRewarm', 'wake'])
     expect(r).toMatchObject({ mic: 'granted', settled: { interrupts: 1, waitedMs: 300 } })
     expect(d.wake).toHaveBeenCalledWith({ cfg, audioSrc: 'a.mp3', lines: null })
   })
@@ -78,16 +80,16 @@ describe('startGameAudio: порядок в жесте', () => {
     expect(d.rewake).toHaveBeenCalledWith({ audioSrc: 'a.mp3' })
   })
 
-  it('озвучка кусков грузится дольше WORDS_WAIT_MS — игра не ждёт дольше; сбой пробуждения не роняет старт', async () => {
-    vi.useFakeTimers()
-    const d = deps({ wake: vi.fn(() => new Promise(() => {})) })
+  it('игра ждёт ворота: пока они закрыты, startGameAudio не завершается; сбой пробуждения не роняет старт', async () => {
+    let open
+    const d = deps({ gate: vi.fn(() => new Promise(r => { open = () => r({ by: 'first', ok: 5, total: 9, firstN: 5, ms: 1, missing: [] }) })) })
     let done = null
     startGameAudio({ cfg, audioSrc: null, lines: null }, d).then(r => { done = r })
-    await vi.advanceTimersByTimeAsync(WORDS_WAIT_MS - 10)
+    await new Promise(r => setTimeout(r, 30))
     expect(done).toBeNull()
-    await vi.advanceTimersByTimeAsync(20)
+    open()
+    await new Promise(r => setTimeout(r, 10))
     expect(done).toMatchObject({ mic: 'granted' })
-    vi.useRealTimers()
     const bad = deps({ wake: vi.fn(() => { throw new Error('boom') }) })
     await expect(startGameAudio({ cfg, audioSrc: null, lines: null }, bad)).resolves.toMatchObject({ mic: 'granted' })
   })
@@ -104,17 +106,16 @@ describe('startGameAudio: хронология и «Тапни, чтобы на�
     const r = await p
     expect(marks(d)).toEqual(['mic', 'settle', 'wake', 'ready'])
     expect(d.trace.mark).toHaveBeenCalledWith('mic', { mic: 'granted' })
-    expect(d.trace.mark).toHaveBeenCalledWith('ready', { words: 'ready' })
+    expect(d.trace.mark).toHaveBeenCalledWith('ready', expect.objectContaining({ words: 'ready', gate: 'all', ctx: null }))
     expect(r.needsTap).toBe(false)
   })
 
-  it('озвучка кусков не успела за WORDS_WAIT_MS — ready с words: timeout (игра не ждёт дольше), сбой пробуждения — wake ok: false', async () => {
-    vi.useFakeTimers()
-    const d = withTrace({ wake: vi.fn(() => new Promise(() => {})) })
-    startGameAudio({ cfg, audioSrc: null, lines: null }, d)
-    await vi.advanceTimersByTimeAsync(WORDS_WAIT_MS + 20)
-    expect(d.trace.mark).toHaveBeenCalledWith('ready', { words: 'timeout' })
-    vi.useRealTimers()
+  it('ворота не открылись за GATE_MAX_MS — ready с words: timeout и списком необработанных (игра не ждёт дольше), сбой пробуждения — wake ok: false', async () => {
+    const gate = vi.fn(() => Promise.resolve({ by: 'timeout', ok: 3, total: 9, firstN: 5, ms: 8000, missing: ['line:rh_start', "I'm"] }))
+    const d = withTrace({ gate })
+    await startGameAudio({ cfg, audioSrc: null, lines: null }, d)
+    expect(d.trace.mark).toHaveBeenCalledWith('ready', expect.objectContaining({ words: 'timeout', gate: 'timeout', done: 3, total: 9, missing: ['line:rh_start', "I'm"] }))
+    expect(gate.mock.calls[0][0]).toMatchObject({ maxMs: GATE_MAX_MS })
     const bad = withTrace({ wake: vi.fn(() => { throw new Error('boom') }) })
     await startGameAudio({ cfg, audioSrc: null, lines: null }, bad)
     expect(bad.trace.mark).toHaveBeenCalledWith('wake', { ok: false, error: 'boom' })

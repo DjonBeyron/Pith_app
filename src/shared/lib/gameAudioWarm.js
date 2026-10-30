@@ -7,6 +7,7 @@
 // Чистая логика: подписка, состояние контекста, время и таймеры передаются снаружи (тесты). Единственный экземпляр игры — gameAudioWarm внизу.
 import { onAudioInterrupted, soundCtxState, unlockAudio } from './sounds.js'
 import { gameAudioNote } from './gameAudioSink.js'
+import { gameCtxState, onGameCtxInterrupted, unlockGameCtx } from './gameAudioCtx.js'
 import { pLog } from './debug.js'
 
 export const SETTLE_QUIET_MS = 250   // столько ждём после смены сессии/открытия микрофона, прежде чем решить «прерывания не будет»
@@ -14,11 +15,16 @@ export const SETTLE_MAX_MS = 900     // потолок ожидания: зву�
 export const SETTLE_POLL_MS = 50
 export const SELF_WINDOW_MS = 1500   // сколько после нашего действия (тип сессии, открытие микрофона) прерывание считается своим
 
+// За контекстами звука следим сразу двух: звуков интерфейса (sounds.js — слова урока, прогретый элемент) и игрового (gameAudioCtx.js — короткие звуки игры через Web Audio). Любой 'interrupted' — прерывание; resume — обоим.
+// Микрофонный контекст Vosk сюда не входит: у него своя жизнь (voskEngine).
+const bothSubscribe = cb => { const a = onAudioInterrupted(cb); const b = onGameCtxInterrupted(cb); return () => { a(); b() } }
+const bothState = () => { const g = gameCtxState(), s = soundCtxState(); return g === 'interrupted' || s === 'interrupted' ? 'interrupted' : (g ?? s) }
+const bothResume = () => { unlockAudio(); unlockGameCtx() }
 const defaultActive = () => { try { return globalThis.navigator?.userActivation?.isActive !== false } catch { return true } } // нет API (старый iOS) — считаем, что жест ещё жив
 const defaultSessionState = () => { try { return globalThis.navigator?.audioSession?.state ?? null } catch { return null } }
 
 export function createAudioWarm({
-  subscribe = onAudioInterrupted, ctxState = soundCtxState, sessionState = defaultSessionState, resume = unlockAudio, active = defaultActive,
+  subscribe = bothSubscribe, ctxState = bothState, sessionState = defaultSessionState, resume = bothResume, active = defaultActive,
   now = () => performance.now(), setTimer = setTimeout, clearTimer = clearTimeout, doc = typeof document !== 'undefined' ? document : null, note = gameAudioNote, log = pLog,
 } = {}) {
   let watching = false

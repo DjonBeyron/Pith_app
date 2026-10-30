@@ -15,6 +15,8 @@ import { releaseClips } from './wordLaneClips.js'
 import { normalizeLines } from './wordLaneCatLines.js'
 import { startGameAudio } from './wordLaneStart.js'
 import { warmGameSounds, warmSig } from './wordLaneWarm.js'
+import { useWarmProgress } from './useWarmProgress.js'
+import WordLaneWarmBar from './WordLaneWarmBar.jsx'
 import { endGameAudio } from './useGameAudioModes.js'
 import { getCatLines } from '../../../../shared/api/catLinesApi.js'
 import { closeGameMic } from '../../../../shared/lib/gameMic.js'
@@ -40,14 +42,14 @@ const leaveFullscreen = () => { try { if (document.fullscreenElement) document.e
 // Микрофон не дали — честное сообщение под карточкой, звук и полный экран отпускаются, игра не открывается. По концу игры карточка пишет, что тренировка закончена, и нода отпускает цепочку (onDone('shown')).
 // Переворот экрана в горизонталь — позже, отдельным этапом.
 // Тест-запуск из админки (GameTestBlock): bare — без карточки (только уведомление Vosk, сообщение и сама игра), startRef.current() — запуск из чужого тапа (жест сохраняется), игра по окончании не «закрывает» ноду,
-// а возвращается в ожидание (кнопку можно нажать ещё раз); forceDebug включает журнал и HUD настроек, не требуя общего тумблера; onStatus({ phase, busy, ready, problem }) сообщает состояние наружу.
+// а возвращается в ожидание (кнопку можно нажать ещё раз); forceDebug включает журнал и HUD настроек, не требуя общего тумблера; onStatus({ phase, busy, ready, problem, warm }) сообщает состояние наружу.
 export default function RotatePhoneModule({ node, file, onDone, forceDebug = false, bare = false, startRef = null, onStatus = null }) {
   // История («Продолжить урок»): ноду ученик уже прошёл — игру заново не запускаем, Vosk не греем, цепочку не двигаем
   if (node.isHistory) return <RotateCard cfg={readWordLane(node.typeData?.rotate_phone)} done />
   return <RotateLive node={node} file={file} onDone={onDone} forceDebug={forceDebug} bare={bare} startRef={startRef} onStatus={onStatus} />
 }
 
-function RotateCard({ cfg, done = false, busy = false, locked = false, onStart = null, children = null }) {
+function RotateCard({ cfg, done = false, busy = false, locked = false, onStart = null, label = null, children = null }) {
   return (
     <div className="playerMsgRow">
       <PlayerBubble className="playerMsgBubble playerMsgBubble--lessonRef">
@@ -62,8 +64,8 @@ function RotateCard({ cfg, done = false, busy = false, locked = false, onStart =
             <span className="playerRotateCaption">{done ? `${cfg.word} — ${cfg.translation || 'повторено'}` : cfg.chunks.length > 1 ? 'Повторяй за диктором: куски фразы, порядок, по памяти' : 'Послушай слово и повтори его вслух'}</span>
           </span>
           {!done && (
-            <button type="button" className="playerRotateStart" onClick={onStart} disabled={busy || locked} data-testid="rotate-start">
-              {busy ? '…' : 'Начать'}
+            <button type="button" className={`playerRotateStart${label ? ' playerRotateStart--warm' : ''}`} onClick={onStart} disabled={busy || locked} data-testid="rotate-start">
+              {label ?? (busy ? '…' : 'Начать')}
             </button>
           )}
         </div>
@@ -90,14 +92,12 @@ function RotateLive({ node, file, onDone, forceDebug, bare, startRef, onStatus }
   const playedRef = useRef(false)
   const [lines, setLines] = useState(() => normalizeLines(null)) // реплики кота (общие настройки приложения): тексты по умолчанию, пока не догрузились
   useEffect(() => { getCatLines().then(raw => setLines(normalizeLines(raw))) }, [])
-  // Озвучку кусков и реплик Пита качаем и измеряем ЗАРАНЕЕ, пока карточка на экране (wordLaneWarm.js): к тапу «Начать» остаётся разбудить слоты. Пока качается — «Готовлю звук…» (кнопку не блокирует: тап ждёт озвучку сам)
+  // Озвучку кусков и реплик Пита качаем и декодируем ЗАРАНЕЕ и ВСЮ сразу, пока карточка на экране (wordLaneWarm.js). Ворота (wordLaneGate.js): пока не готовы первые N файлов, кнопка «Готовлю звук… 7/15»; тап разрешён —
+  // игра ждёт ворота в startGameAudio (не дольше 8 с с тапа). Остальные файлы докачиваются фоном.
   const sig = useMemo(() => warmSig(cfg, lines), [cfg, lines])
-  const [warmed, setWarmed] = useState('')
-  useEffect(() => {
-    let alive = true
-    warmGameSounds({ cfg, lines }).then(() => { if (alive) setWarmed(sig) })
-    return () => { alive = false }
-  }, [cfg, lines, sig])
+  const [listed, setListed] = useState('') // подпись набора, для которого библиотека слов уже спрошена (до этого слов в плане нет, и «0 из 0» выглядело бы готовым)
+  useEffect(() => { warmGameSounds({ cfg, lines }, { onListed: () => setListed(sig) }) }, [cfg, lines, sig])
+  const wp = useWarmProgress(cfg, lines, listed === sig)
 
   /** Не стартовали (микрофон не дали): отпустить всё, что подняли в жесте */
   const abortGame = useCallback(() => { stopVoice(); releaseNotes(); releaseClips(); endGameAudio(); closeGameMic(); leaveFullscreen() }, [])
@@ -156,21 +156,21 @@ function RotateLive({ node, file, onDone, forceDebug, bare, startRef, onStatus }
     startRef.current = start
     return () => { startRef.current = null }
   }, [startRef, start])
-  useEffect(() => { onStatus?.({ phase, busy, ready, problem }) }, [onStatus, phase, busy, ready, problem])
+  useEffect(() => { onStatus?.({ phase, busy, ready, problem, warm: wp.open ? '' : wp.label }) }, [onStatus, phase, busy, ready, problem, wp.open, wp.label])
 
   const game = phase === 'game' && <WordLaneGame key={gameKey} cfg={cfg} audioSrc={cfg.hasAudio ? audioSrc : null} lines={lines} forceDebug={forceDebug} onRestart={restart} onAgain={cfg.plan && !cfg.plan.only ? another : null} onFinished={finished} />
   const extra = (
     <>
       {phase === 'tap' && <RotateTapHint onTap={tapped} />}
       {!ready && <VoskReadyNotice vosk={vosk} />}
-      {phase === 'wait' && warmed !== sig && <p className="playerRotateWarm" data-testid="rotate-warm">Готовлю звук…</p>}
+      {phase === 'wait' && !wp.all && <WordLaneWarmBar wp={wp} />}
       {problem && <p className="playerRotateProblem" role="alert" data-testid="rotate-problem">{problem}</p>}
     </>
   )
   if (bare) return <>{extra}{game}</>
   return (
     <>
-      <RotateCard cfg={cfg} done={phase === 'finished'} busy={busy} locked={phase === 'game' || phase === 'tap' || !ready} onStart={start}>{extra}</RotateCard>
+      <RotateCard cfg={cfg} done={phase === 'finished'} busy={busy} locked={phase === 'game' || phase === 'tap' || !ready} label={phase === 'wait' && !wp.open ? wp.label : null} onStart={start}>{extra}</RotateCard>
       {game}
     </>
   )

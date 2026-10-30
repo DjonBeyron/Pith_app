@@ -14,17 +14,21 @@
 //  slot-not-ready         — слот реплики не был готов к моменту реплики (не разбужен / звук не подставлен / ждали слот и не дождались — говорил голос системы);
 //  interrupted-after-warm — iOS прервал аудиосессию уже ПОСЛЕ пробуждения слотов, повторного прогрева до реплики не было;
 //  play-rejected          — play() отклонён (имя ошибки: NotAllowedError — нет жеста);
+//  ctx-not-running        — буферный путь (Web Audio, source=buffer): игровой AudioContext не стал 'running' за 300 мс (play = ctx-stuck) — прерван iOS или не открыт в жесте, звук не стартовал (рот кота тоже);
+//  buffer-missing         — буферный путь: к реплике нет декодированного буфера (play = rejected при slot.buffer / слот не подготовлен) — озвучка не успела скачаться и декодироваться;
 //  play-not-started       — play() принят, но 'playing' не пришло за 700 мс (элемент прерван / не загружен);
 //  ducking                — play() ok и 'playing' было: код отработал, тишина — на стороне iOS/громкости (ducking при записи, громкость медиа, беззвучный режим);
 //  no-voice               — у реплики нет озвучки (url) — тишина ожидаема;  no-lines — в первые 15 с реплик не было.
 export const WINDOW_MS = 15000
-const SOURCE_TEXT = { slot: 'слот библиотеки', synth: 'голос системы', none: 'нет озвучки' }
+const SOURCE_TEXT = { slot: 'слот библиотеки', buffer: 'буфер Web Audio', synth: 'голос системы', none: 'нет озвучки' }
 export const CAUSE_TITLE = {
   'synth-muted-mic': 'слот не готов → голос системы → заглушил микрофон',
   'gesture-expired': 'жест истёк до прогрева',
   'slot-not-ready': 'слот не готов к реплике',
   'interrupted-after-warm': 'прерывание после прогрева',
   'play-rejected': 'play() отклонён',
+  'ctx-not-running': 'AudioContext игры не запущен (буферный путь)',
+  'buffer-missing': 'нет декодированного буфера реплики',
   'play-not-started': 'play() принят, но звук не заиграл',
   ducking: 'звук шёл, но тихо (ducking)',
   'no-voice': 'у реплики нет озвучки',
@@ -37,6 +41,8 @@ export const CAUSE_TEXT = {
   'slot-not-ready': 'К моменту реплики слот озвучки не был готов (не разбужен тишиной, звук не подставлен или не успел подгрузиться). Реплика ждала слот (до 1,5 с в версиях до 3.3.76 — потом говорил голос системы; с 3.3.76 — до 3 с, потом подпись без звука).',
   'interrupted-after-warm': 'После пробуждения слотов iOS ещё раз прервал аудиосессию (смена типа сессии / микрофон) и пометил элементы прерванными; повторный прогрев до реплики не прошёл.',
   'play-rejected': 'Браузер отклонил play() слота реплики (обычно NotAllowedError — нет свежего жеста или элемент прерван).',
+  'ctx-not-running': 'Реплика шла через Web Audio, но игровой AudioContext не стал running за 300 мс (прерван iOS при смене сессии/открытии микрофона или не открыт в жесте): источник не стартовал, звука и рта кота не было. Помогает повторный прогрев в жесте (resume).',
+  'buffer-missing': 'Реплика шла через Web Audio, но декодированного буфера к ней не было: озвучка не успела скачаться и декодироваться (медленная сеть) или декодирование не вышло. См. «озвучка слов» в отметке ready на шкале.',
   'play-not-started': 'play() принят, но событие playing не пришло — элемент прерван аудиосессией или не загружен.',
   ducking: 'Код отработал: play() принят и playing было. Если звука всё равно не слышно — причина вне кода: iOS приглушает воспроизведение при открытом микрофоне (ducking), выключена громкость медиа или беззвучный режим.',
   'no-voice': 'Реплика показана подписью: у неё нет озвучки (url) или слот не подготовлен. Озвучь реплику в редакторе ноды.',
@@ -70,7 +76,7 @@ function chainText({ line, ready, mute, unmute }) {
 
 /** Подпись события шкалы (null — не показывать) */
 function timelineText(e) {
-  if (e.type === 'event' && e.kind === 'cat-voice') return e.noSynth ? `реплика ${e.id}: без звука (синтез запрещён; слот не успел)` : `реплика ${e.id}: ${e.source === 'slot' ? 'слот библиотеки' : e.source === 'synth' ? 'голос системы' : 'нет озвучки'}, ${e.source === 'synth' ? 'speak()' : 'play()'} → ${e.play}${e.error ? ` (${e.error})` : ''}`
+  if (e.type === 'event' && e.kind === 'cat-voice') return e.noSynth ? `реплика ${e.id}: без звука (синтез запрещён; слот не успел)` : `реплика ${e.id}: ${SOURCE_TEXT[e.source] ?? e.source}, ${e.source === 'synth' ? 'speak()' : e.source === 'buffer' ? 'start()' : 'play()'} → ${e.play === 'started' ? `started at +${e.playMs ?? 0} мс` : e.play}${e.error ? ` (${e.error})` : ''}`
   if (e.type !== 'probe') return null
   if (e.kind === 'start-mark') {
     const m = {
@@ -111,12 +117,14 @@ export function diagnoseFirstLine(events = []) {
   const unmute = mute ? probeOf(evs, 'track', e => e.event === 'unmute' && e.t > mute.t)[0] ?? null : null
   if (mute) causes.push('synth-muted-mic')
   if (first.source === 'none' && !first.noSynth) causes.push('no-voice')
-  else if (first.play === 'ok' && !mute) causes.push('ducking')
+  else if ((first.play === 'ok' || first.play === 'started') && !mute) causes.push('ducking')
   else {
+    if (first.source === 'buffer' && first.play === 'ctx-stuck') causes.push('ctx-not-running')
+    if (first.source === 'buffer' && (first.play === 'rejected' || first.slot?.prepared === false)) causes.push('buffer-missing')
     if (expired && !goodRewarm) causes.push('gesture-expired')
     if (first.source === 'synth' || first.noSynth || first.slot?.prepared === false || first.slot?.wokeErr || (first.waitedMs ?? 0) >= 1500) causes.push('slot-not-ready')
     if (interrupted) causes.push('interrupted-after-warm')
-    if (first.play === 'rejected') causes.push('play-rejected')
+    if (first.play === 'rejected' && first.source !== 'buffer') causes.push('play-rejected')
     if (['no-playing', 'pending', 'no-start'].includes(first.play)) causes.push('play-not-started') // no-start — голос системы не начал говорить за 700 мс
   }
   if (!causes.length) causes.push('unknown')
@@ -124,7 +132,7 @@ export function diagnoseFirstLine(events = []) {
   const detail = mute ? chainText({ line: synthLine, ready, mute, unmute }) : null
   return {
     cause, title: CAUSE_TITLE[cause], text: CAUSE_TEXT[cause], causes, detail,
-    firstLine: { id: first.id, ms: Math.round(rel(first)), source: first.source, play: first.play, error: first.error ?? null, slot: first.slot ?? null, activation: first.activation ?? null, why: first.why ?? null, noSynth: !!first.noSynth },
+    firstLine: { id: first.id, ms: Math.round(rel(first)), source: first.source, play: first.play, playMs: first.playMs ?? null, error: first.error ?? null, slot: first.slot ?? null, activation: first.activation ?? null, why: first.why ?? null, noSynth: !!first.noSynth },
     lines: lines.map(l => ({ id: l.id, ms: Math.round(rel(l)), source: l.source, play: l.play, error: l.error ?? null })),
     timeline,
   }
@@ -137,7 +145,7 @@ export function silentDiagLines(diag) {
   const out = ['--- Почему первая реплика тихая ---', `Вывод: ${diag.title.toUpperCase()}. ${diag.text}`]
   if (diag.detail) out.push(`Цепочка: ${diag.detail}`)
   if (diag.causes.length > 1) out.push(`Другие признаки: ${diag.causes.slice(1).map(c => CAUSE_TITLE[c]).join('; ')}`)
-  if (f) out.push(`Первая реплика: ${f.id} через ${f.ms} мс после тапа — источник=${f.noSynth ? 'нет (синтез запрещён)' : (SOURCE_TEXT[f.source] ?? f.source)}${f.why ? ` (${f.why})` : ''}, ${f.source === 'synth' ? 'speak()' : 'play()'} → ${f.play}${f.error ? ` (${f.error})` : ''}, жест ${f.activation === 'alive' ? 'жив' : f.activation === 'expired' ? 'истёк' : '—'}`)
+  if (f) out.push(`Первая реплика: ${f.id} через ${f.ms} мс после тапа — источник=${f.noSynth ? 'нет (синтез запрещён)' : (SOURCE_TEXT[f.source] ?? f.source)}${f.why ? ` (${f.why})` : ''}, ${f.source === 'synth' ? 'speak()' : f.source === 'buffer' ? 'start()' : 'play()'} → ${f.play === 'started' ? `started at +${f.playMs ?? 0} мс` : f.play}${f.error ? ` (${f.error})` : ''}, жест ${f.activation === 'alive' ? 'жив' : f.activation === 'expired' ? 'истёк' : '—'}`)
   out.push('Шкала первых 15 с (мс от тапа):', ...diag.timeline.map(t => `${String(t.ms).padStart(7)}  ${t.what}`))
   return out
 }

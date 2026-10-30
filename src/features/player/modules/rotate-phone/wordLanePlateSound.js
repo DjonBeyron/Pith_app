@@ -1,13 +1,17 @@
 // Звук появления плашки игры «Повтори за диктором» («Теперь твоя очередь», название раунда): короткий мягкий «блюп» — синус с лёгким подъёмом тона (480 → 720 Гц), плавный вход (8 мс) и затухание, 130 мс, тихий
 // (RMS вдвое ниже нот награды): ровно перед очередью ученика слушатель уже поднимается под плашкой, а долгий звук попал бы в него. Как и ноты (wordLaneNotes.js), это маленький WAV, который мы синтезируем сами,
-// и играет его обычный <audio>, не Web Audio: на iOS Web Audio идёт в другой категории аудиосессии (см. sounds.js). Автозапуск по таймеру iOS разрешает только тем элементам, что хоть раз стартовали в жесте,
+// и играет его с 3.3.77 Web Audio: WAV декодируется в AudioBuffer (unlockPlate / warmPlateBuffer), играет игровой AudioContext (gameBufferPlay.js) — мгновенно, громкость через GainNode. Запасной путь — обычный <audio>
+// (нет Web Audio или он выключен): автозапуск по таймеру iOS разрешает только тем элементам, что хоть раз стартовали в жесте,
 // поэтому unlockPlate() зовёт startGameAudio (wordLaneStart.js, тап «Начать» и повторный прогрев) рядом с unlockNotes(), а releaseNotes() — releasePlate(): слот живёт и умирает вместе с нотами.
 // Звук уважает тишину приложения: «полная тишина» (soundQuiet.holdSilence — вкладка «Голос» и т. п.), «без звука» в уроке (lessonVolume) и громкость игры (админка «Звуки игры»); каждое проигрывание пишется в кольцо
 // soundLog (диагностика «что играло перед записью»). «Без звука» у награды плашку не выключает: плашка — не награда.
 // Диагностика тишины (iPhone): каждое проигрывание оставляет строку «[plate-sound] play() → …» (исход play(), readyState, userActivation, audioSession.type, мс с тапа) и событие 'plate-sound' в журнале отладки — как реплики кота.
 import { getLessonMuted } from '../../lessonVolume.js'
 import { isSilenced } from '../../../../shared/lib/soundQuiet.js'
-import { logElementSound } from '../../../../shared/lib/soundLog.js'
+import { logElementSound, logSound } from '../../../../shared/lib/soundLog.js'
+import { webAudioOn } from '../../../../shared/lib/gameAudioCtx.js'
+import { playGameBuffer } from '../../../../shared/lib/gameBufferPlay.js'
+import { loadSoundBuffer, soundBuffer, bytesOfWav } from './wordLaneBuffers.js'
 import { getRewardVolume } from '../../../../shared/lib/rewardSound.js'
 import { gameAudioNote } from '../../../../shared/lib/gameAudioSink.js'
 import { pLog } from '../../../../shared/lib/debug.js'
@@ -53,12 +57,14 @@ export function makePlateWav(ms = PLATE_MS, rate = RATE) {
   return wav16(Int16Array.from(raw, x => Math.round(x * gain)), rate)
 }
 
+const PLATE_ID = 'plate'
 let el = null
 let url = null
 let hush = null // тихий звук для «пробуждения» элемента в жесте
 
 /** Из тапа «Начать» (wordLaneStart.js, рядом с unlockNotes): создать элемент и «разбудить» его тихим звуком (play внутри жеста), затем подменить src на звук плашки и прогрузить. Без поддержки — тихо ничего не делает */
 export function unlockPlate() {
+  if (webAudioOn()) { loadSoundBuffer(PLATE_ID, () => bytesOfWav(makePlateWav())); return } // Web Audio: элемент не нужен
   if (el || typeof Audio === 'undefined') return
   try {
     url ??= URL.createObjectURL(new Blob([makePlateWav()], { type: 'audio/wav' }))
@@ -76,6 +82,9 @@ export function unlockPlate() {
   } catch { el = null }
 }
 
+/** Без жеста (прогрев на карточке игры, wordLaneWarm.js): декодировать звук плашки заранее. Только при Web Audio — <audio>-элемент вне жеста не разбудить */
+export function warmPlateBuffer() { if (webAudioOn()) unlockPlate() }
+
 /** Исход play() плашки → строка журнала плеера и событие отладки */
 function reportPlate(res, env) {
   const d = { play: res.play, ...(res.error ? { error: res.error } : {}), playMs: res.ms, rs: res.rs, activation: env.activation, as: env.as, sinceTap: env.sinceTap, sinceSettle: env.sinceSettle, interrupts: env.interrupts }
@@ -85,7 +94,15 @@ function reportPlate(res, env) {
 
 /** Сыграть звук плашки. false — не сыграл (нет элемента, «без звука» в уроке, полная тишина приложения, не разрешили) */
 export function playPlate() {
-  if (!el || getLessonMuted() || isSilenced()) return false
+  if (getLessonMuted() || isSilenced()) return false
+  if (webAudioOn()) {
+    const buf = soundBuffer(PLATE_ID)
+    if (!buf) { unlockPlate(); return false } // буфер ещё декодируется (догружаем на следующий раз)
+    logSound('audiocontext', 'wl-plate')
+    const env = audioEnv()
+    return playGameBuffer(buf, { gain: getRewardVolume(), onResult: res => reportPlate(res, env) })
+  }
+  if (!el) return false
   try {
     if (el.src !== url) el.src = url // прогрузка ещё не успела — подставляем сейчас
     el.volume = getRewardVolume()    // iOS игнорирует; Android/десктоп слушаются
