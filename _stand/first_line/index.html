@@ -1,0 +1,92 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>first line harness</title>
+<style>body{margin:0;background:#0e1013;color:#fff;font-family:system-ui}#root{padding:16px}</style></head>
+<body><div id="root"></div>
+<!-- Эмуляция правил iOS Safari (ДО модулей приложения): play() без жеста отклоняется (NotAllowedError), если элемент не «разбужен» раньше в жесте; жест (userActivation.isActive) живёт 5 с после настоящего касания;
+     getUserMedia в сценариях expired* держится 5,6 с (диалог доступа) — жест истекает, пока открывается микрофон. -->
+<script>
+(() => {
+  const params = new URLSearchParams(location.search)
+  const kase = params.get('case') || 'ok' // ok | expired | expired-nogesture | slow | reject
+  window.__case = kase
+  window.__active = false
+  Object.defineProperty(navigator, 'userActivation', { get: () => ({ isActive: window.__active, hasBeenActive: true }), configurable: true })
+  let t = 0
+  const grant = () => { window.__active = true; clearTimeout(t); t = setTimeout(() => { window.__active = false }, 5000) }
+  for (const type of ['pointerup', 'touchend', 'click']) document.addEventListener(type, e => { if (e.isTrusted) grant() }, true)
+  const origPlay = HTMLMediaElement.prototype.play
+  HTMLMediaElement.prototype.play = function play() {
+    if (window.__forceReject && this.__unlocked) return Promise.reject(new DOMException('прерван', 'NotAllowedError'))
+    if (!this.__unlocked && !window.__active) return Promise.reject(new DOMException('play() без жеста', 'NotAllowedError'))
+    return origPlay.call(this).then(r => { if (window.__active) this.__unlocked = true; return r })
+  }
+  const md = navigator.mediaDevices
+  const gum = md.getUserMedia.bind(md)
+  md.getUserMedia = (...a) => (kase.startsWith('expired') ? new Promise(r => setTimeout(r, 5600)).then(() => gum(...a)) : gum(...a))
+  const origFetch = window.fetch.bind(window)
+  window.fetch = (u, ...r) => (kase === 'slow' && window.__lineUrls?.has(String(u)) ? new Promise(res => setTimeout(res, 6000)).then(() => origFetch(u, ...r)) : origFetch(u, ...r))
+})()
+</script>
+<script type="module">
+import React from 'react'
+import { createRoot } from 'react-dom/client'
+import '/src/index.css'
+import RotatePhoneModule from '/src/features/player/modules/rotate-phone/RotatePhoneModule.jsx'
+import { supabase } from '/src/shared/api/supabase.js'
+import { listWordAudio } from '/src/shared/lib/wordAudio/wordAudioApi.js'
+import { wordKey } from '/src/shared/lib/wordAudio/wordKey.js'
+import { voskRuntime } from '/src/shared/lib/vosk/voskRuntime.js'
+import { fixtureSource, fixturePlan } from '/src/features/rehearsal/rehearsalFixtures.js'
+import { planTexts } from '/src/features/rehearsal/rehearsalPlan.js'
+import { LINE_IDS } from '/src/features/player/modules/rotate-phone/wordLaneCatLines.js'
+import { probe } from '/src/features/player/modules/rotate-phone/wordLaneDebugProbe.js'
+import { getLastWordLaneDump } from '/src/features/player/modules/rotate-phone/useWordLaneDebug.js'
+import { buildDebugFile } from '/src/features/player/modules/rotate-phone/wordLaneDebugExport.js'
+import { buildGameLogSection } from '/src/features/player/gameLogSection.js'
+import { getPlayerLines } from '/src/shared/lib/debug.js'
+
+// Стенд «Первая реплика Пита» (dev, в сборку не входит): репетиция с озвученными репликами Пита и эмуляцией правил iOS (см. скрипт выше) — проверка диагностики «почему первая реплика тихая» и «Тапни, чтобы начать».
+//  • ?case=ok — всё в жесте; expired — жест истекает, пока открывается микрофон: игра ждёт касания (подсказка); expired-nogesture — то же, но «касание» программное (без жеста): прежний сбой, виден в разделе;
+//    slow — файлы реплик грузятся 6 с (слот не готов → голос системы); reject — play() реплики отклоняется. Отчёт: window.__report().
+const params = new URLSearchParams(location.search)
+probe.install() // как делает ShellV2 при включённой отладке: события тапа «Начать» попадают в журнал игры
+
+const tone = (ms, hz) => { // тональный сигнал ms мс, 8 кГц
+  const rate = 8000, n = Math.floor(rate * ms / 1000)
+  const buf = new ArrayBuffer(44 + n * 2), v = new DataView(buf)
+  const str = (o, s) => [...s].forEach((c, i) => v.setUint8(o + i, c.charCodeAt(0)))
+  str(0, 'RIFF'); v.setUint32(4, 36 + n * 2, true); str(8, 'WAVE'); str(12, 'fmt '); v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true)
+  v.setUint32(24, rate, true); v.setUint32(28, rate * 2, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true); str(36, 'data'); v.setUint32(40, n * 2, true)
+  for (let i = 0; i < n; i++) v.setInt16(44 + i * 2, Math.round(Math.sin(2 * Math.PI * hz * i / rate) * 9000), true)
+  return { url: URL.createObjectURL(new Blob([buf], { type: 'audio/wav' })), duration: ms / 1000 }
+}
+
+const fixture = params.get('fixture') || 'three'
+const rows = planTexts(fixturePlan(fixture)).map(text => ({ key: wordKey(text), ...tone(300 + 60 * text.replace(/\s/g, '').length, 330) })).filter(r => r.key)
+const lines = Object.fromEntries(LINE_IDS.map((id, i) => [id, { text: null, ...tone(1200, 220 + i * 20) }]).map(([id, v]) => [id, { url: v.url, duration: v.duration, words: null }]))
+window.__lineUrls = new Set(Object.values(lines).map(l => l.url))
+supabase.from = table => ({ select: () => ({ eq: () => (table === 'word_audio' ? Promise.resolve({ data: rows, error: null }) : { maybeSingle: () => Promise.resolve({ data: { value: { lines } }, error: null }) }) }) })
+await listWordAudio()
+
+class Rec { setWords() {} on() {} remove() {} acceptWaveform() {} retrieveFinalResult() {} }
+voskRuntime.acquire = () => () => {}
+voskRuntime.whenSettled = async () => ({ ok: true })
+voskRuntime.warmNow = () => {}
+voskRuntime.getModel = () => ({ KaldiRecognizer: Rec })
+
+if (window.__case === 'reject') new MutationObserver(() => { if (document.querySelector('[data-testid="wl"]')) window.__forceReject = true }).observe(document.body, { childList: true, subtree: true })
+
+window.__report = () => {
+  const dump = getLastWordLaneDump()
+  const file = buildDebugFile({ log: { dump: () => dump } })
+  const body = JSON.parse(file.json)
+  return {
+    silent: body.silentFirstLine,
+    section: buildGameLogSection(dump),
+    log: getPlayerLines().filter(l => /\[cat-voice\]|\[plate-sound\]|\[audio-warm\]/.test(l)),
+    exportKeys: Object.keys(body).filter(k => k !== 'events' && k !== 'audio'),
+  }
+}
+
+const node = { id: 'fl-stand', type: 'rotate_phone', isHistory: false, typeData: { rotate_phone: { plan: fixtureSource(fixture) } } }
+createRoot(document.getElementById('root')).render(React.createElement(RotatePhoneModule, { node, file: null, forceDebug: true, onDone: () => {} }))
+</script></body></html>

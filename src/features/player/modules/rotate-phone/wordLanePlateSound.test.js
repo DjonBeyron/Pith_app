@@ -66,6 +66,30 @@ describe('звук плашки', () => {
       expect(a.plays).toBe(before)                                        // за это время элемент ни разу не стартовал
       expect(m.playPlate()).toBe(true)
     })
+    it('диагностика: каждое проигрывание оставляет строку «[plate-sound] play() → …» и событие plate-sound; отклонённое пробуждение слота тоже в журнале', async () => {
+      const { getPlayerLines } = await import('../../../../shared/lib/debug.js')
+      const { setGameAudioSink } = await import('../../../../shared/lib/gameAudioSink.js')
+      const events = []
+      setGameAudioSink((k, d) => events.push([k, d]))
+      const m = await import('./wordLanePlateSound.js')
+      m.unlockPlate()
+      await Promise.resolve(); await Promise.resolve()
+      expect(m.playPlate()).toBe(true)
+      await Promise.resolve(); await Promise.resolve()
+      expect(events.find(e => e[0] === 'plate-sound')[1]).toMatchObject({ play: 'ok' })
+      expect(getPlayerLines().some(l => l.includes('[plate-sound] play() → ok'))).toBe(true)
+      made[0].play = () => Promise.reject(Object.assign(new Error('x'), { name: 'NotAllowedError' }))
+      expect(m.playPlate()).toBe(true)
+      await Promise.resolve(); await Promise.resolve()
+      expect(events.filter(e => e[0] === 'plate-sound').at(-1)[1]).toMatchObject({ play: 'rejected', error: 'NotAllowedError' })
+      expect(getPlayerLines().some(l => l.includes('[plate-sound] play() → отклонён (NotAllowedError)'))).toBe(true)
+      m.releasePlate()
+      globalThis.Audio = class extends made[0].constructor { play() { return Promise.reject(Object.assign(new Error('x'), { name: 'NotAllowedError' })) } }
+      m.unlockPlate()
+      await Promise.resolve(); await Promise.resolve()
+      expect(events.some(e => e[0] === 'plate-sound' && e[1].wake === 'rejected')).toBe(true)
+      setGameAudioSink(null)
+    })
     it('тап «Начать» (startGameAudio и повторный прогрев) будит слот плашки рядом с нотами, releaseNotes — отпускает; от варианта награды слот не зависит', () => {
       const start = read('./wordLaneStart.js')
       expect(start).toContain("import { unlockPlate } from './wordLanePlateSound.js'")

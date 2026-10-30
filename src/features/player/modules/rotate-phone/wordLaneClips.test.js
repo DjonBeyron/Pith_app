@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { sliceToWav, monoOf, spanKey, prepareClips, prepareWords, playClip, playWordSlot, hasWordSlot, releaseClips, clipsState, FADE_IN_S } from './wordLaneClips.js'
+import { sliceToWav, monoOf, spanKey, prepareClips, prepareWords, playClip, playWordSlot, hasWordSlot, wordSlotInfo, rewakeClips, releaseClips, clipsState, FADE_IN_S } from './wordLaneClips.js'
 
 const ascii = (u8, o, n) => String.fromCharCode(...u8.slice(o, o + n))
 const view = u8 => new DataView(u8.buffer, u8.byteOffset, u8.byteLength)
@@ -87,5 +87,43 @@ describe('клипы диктора на элементах <audio>', () => {
     await prepareWords([{ key: 'try', url: 'https://r2/t.mp3' }])
     expect(playWordSlot('try')).toBe(true)
     expect(created[0].src).toBe('https://r2/t.mp3')
+  })
+  it('диагностика слота (wordSlotInfo): разбужен тишиной и звук подставлен — prepared, readyState виден; слота нет — exists: false', async () => {
+    vi.stubGlobal('fetch', () => Promise.resolve({ ok: true, blob: () => Promise.resolve(new Blob(['x'])) }))
+    expect(wordSlotInfo('nope')).toMatchObject({ exists: false, prepared: false })
+    const ready = prepareWords([{ key: 'line:rh_start', url: 'https://r2/rh.mp3' }])
+    expect(wordSlotInfo('line:rh_start')).toMatchObject({ exists: true, hasUrl: false, prepared: false }) // файл ещё качается
+    await ready
+    await Promise.resolve()
+    const info = wordSlotInfo('line:rh_start')
+    expect(info).toMatchObject({ exists: true, hasUrl: true, prepared: true, wokeErr: null })
+    expect(info.wokeAt).toBeGreaterThan(0)
+  })
+  it('play() тишины отклонён (жеста нет — NotAllowedError): слот НЕ разбужен — prepared false и wokeErr с именем ошибки; повторное пробуждение в жесте это исправляет', async () => {
+    let allowed = false
+    vi.stubGlobal('Audio', class { constructor(src) { this.src = src; this.paused = true; created.push(this) } setAttribute() {} play() { return allowed ? Promise.resolve() : Promise.reject(Object.assign(new Error('x'), { name: 'NotAllowedError' })) } pause() {} load() {} removeAttribute() {} })
+    vi.stubGlobal('fetch', () => Promise.resolve({ ok: true, blob: () => Promise.resolve(new Blob(['x'])) }))
+    await prepareWords([{ key: 'line:a', url: 'https://r2/a.mp3' }])
+    await Promise.resolve()
+    expect(wordSlotInfo('line:a')).toMatchObject({ hasUrl: true, prepared: false, wokeErr: 'NotAllowedError', wokeAt: 0 })
+    allowed = true
+    rewakeClips()
+    await new Promise(r => setTimeout(r, 0))
+    expect(wordSlotInfo('line:a')).toMatchObject({ prepared: true, wokeErr: null })
+  })
+  it('playWordSlot(key, onResult): исход play() приходит в onResult (ok / rejected); возвращаемое значение прежнее', async () => {
+    vi.stubGlobal('fetch', () => Promise.resolve({ ok: true, blob: () => Promise.resolve(new Blob(['x'])) }))
+    await prepareWords([{ key: 'try', url: 'https://r2/t.mp3' }])
+    await Promise.resolve()
+    const out = vi.fn()
+    expect(playWordSlot('try', out)).toBe(true)
+    await Promise.resolve(); await Promise.resolve()
+    expect(out).toHaveBeenCalledWith(expect.objectContaining({ play: 'ok' }))
+    created[0].play = () => Promise.reject(Object.assign(new Error('x'), { name: 'NotAllowedError' }))
+    const bad = vi.fn()
+    expect(playWordSlot('try', bad)).toBe(true)
+    await Promise.resolve(); await Promise.resolve()
+    expect(bad).toHaveBeenCalledWith(expect.objectContaining({ play: 'rejected', error: 'NotAllowedError' }))
+    expect(playWordSlot('nope', bad)).toBe(false)
   })
 })

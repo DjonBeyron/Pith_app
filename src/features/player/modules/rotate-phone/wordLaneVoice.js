@@ -35,6 +35,29 @@ export function speakWord(word, lang = 'en-US') {
   } catch (e) { pLog(`[word-lane] голос диктора не заговорил: ${e?.message ?? e}`); return null }
 }
 
+/**
+ * Сказать реплику голосом системы — запасной путь реплик кота (Пита), когда слот озвучки не успел подготовиться (wordLaneLineGate.js). iOS без жеста синтезатору молчать не запрещает, но и не обещает голоса —
+ * поэтому исход пишем: onResult({ play: 'ok' | 'rejected' | 'no-start', error?, ms }) — 'ok' по событию start, 'rejected' по error, 'no-start' если за timeoutMs ни того ни другого. false — не говорил (нет синтезатора, «без звука»).
+ */
+export function speakText(text, lang = 'ru-RU', onResult = null, { setTimer = setTimeout, now = () => performance.now(), timeoutMs = 700 } = {}) {
+  const s = synth()
+  if (!s || getLessonMuted() || !text) return false
+  try {
+    const t0 = now()
+    let done = false
+    const finish = (play, error) => { if (done) return; done = true; onResult?.({ play, ...(error ? { error } : {}), ms: Math.round(now() - t0) }) }
+    s.cancel()
+    const u = new SpeechSynthesisUtterance(String(text))
+    u.lang = lang
+    u.rate = getVoiceRate()
+    u.onstart = () => finish('ok')
+    u.onerror = ev => finish('rejected', ev?.error ?? 'error')
+    s.speak(u)
+    setTimer(() => finish('no-start'), timeoutMs)
+    return true
+  } catch (e) { pLog(`[word-lane] голос системы не заговорил: ${e?.message ?? e}`); return false }
+}
+
 let track = null   // <audio> озвучки автора (готовится в тапе «Начать», играет по таймеру фазы)
 let trackSrc = null
 

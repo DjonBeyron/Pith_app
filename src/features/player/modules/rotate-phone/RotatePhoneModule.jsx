@@ -6,6 +6,7 @@ import PlayerBubble from '../../PlayerBubble.jsx'
 import VoskReadyNotice from '../../../../shared/ui/VoskReadyNotice.jsx'
 import { useVoskReady } from '../../../../shared/lib/vosk/useVoskReady.js'
 import WordLaneGame from './WordLaneGame.jsx'
+import RotateTapHint from './RotateTapHint.jsx'
 import { readWordLane } from './wordLaneConfig.js'
 import { nextPlan } from '../../../rehearsal/rehearsalCfg.js'
 import { stopVoice } from './wordLaneVoice.js'
@@ -16,6 +17,8 @@ import { startGameAudio } from './wordLaneStart.js'
 import { endGameAudio } from './useGameAudioModes.js'
 import { getCatLines } from '../../../../shared/api/catLinesApi.js'
 import { closeGameMic } from '../../../../shared/lib/gameMic.js'
+import { gameAudioWarm } from '../../../../shared/lib/gameAudioWarm.js'
+import { gameStartTrace } from '../../../../shared/lib/gameStartTrace.js'
 import { pLog } from '../../../../shared/lib/debug.js'
 import { whiskerModeLine } from '../../../scene/v2/whiskerWrite.js'
 
@@ -79,7 +82,7 @@ function RotateLive({ node, file, onDone, forceDebug, bare, startRef, onStatus }
   const { src: audioSrc } = useAudioSource(node, file) // озвучка ElevenLabs из ноды (file_id) — если автор её сгенерировал
   const vosk = useVoskReady({ why: 'lesson' }) // распознавание только Vosk: модель в памяти или уведомление «Нужно скачать»
   const ready = vosk.status === 'ready'
-  const [phase, setPhase] = useState('wait') // wait → game → finished (в тест-запуске после игры снова wait)
+  const [phase, setPhase] = useState('wait') // wait → (tap: жест истёк, ждём касания) → game → finished (в тест-запуске после игры снова wait)
   const [busy, setBusy] = useState(false)
   const [problem, setProblem] = useState('')
   const [gameKey, setGameKey] = useState(0) // «Игра заново» из HUD: новый ключ — игра монтируется с нуля
@@ -96,14 +99,21 @@ function RotateLive({ node, file, onDone, forceDebug, bare, startRef, onStatus }
     try { document.documentElement.requestFullscreen?.({ navigationUI: 'hide' })?.catch?.(() => {}) } catch { /* iPhone и часть браузеров не умеют — остаёмся в окне */ }
     // Тап — жест. ПОРЯДОК: сначала тип аудиосессии и микрофон (один поток на всю игру, без эхо/шумоподавления — иначе голос диктора хрипит; диалога нет, если доступ уже выдан), потом ждём, пока iOS уляжется
     // после смены сессии, и только потом будим звук диктора и кота — иначе прерывание сессии убивало разбуженные элементы и начало игры молчало (wordLaneStart.js)
-    const { mic } = await startGameAudio({ cfg, audioSrc, lines })
+    const { mic, needsTap } = await startGameAudio({ cfg, audioSrc, lines })
     pLog(`[rotate] игра «${cfg.word}»: микрофон ${mic}${cfg.isDemo ? ', слово по умолчанию' : ''}`)
     pLog(`[whiskers] ${whiskerModeLine()}`) // способ записи угла усов (HUD ⚙ «Усы»): по журналу видно, на каком режиме владелец смотрел анимацию
     if (mic !== 'granted') { abortGame(); setProblem(MIC_PROBLEM[mic] ?? MIC_PROBLEM.unavailable); setBusy(false); return }
     playedRef.current = true
-    setPhase('game')
+    setPhase(needsTap ? 'tap' : 'game') // жест истёк до прогрева: звук разбужен вне жеста и молчит — сначала касание (RotateTapHint), потом игра, иначе первая реплика Пита тихая
     setBusy(false)
   }, [busy, phase, ready, cfg, audioSrc, lines, abortGame])
+
+  /** Касание по «Тапни, чтобы начать» (свежий жест): прогрев звука, если его ещё не сделал слушатель касаний (gameAudioWarm), и открытие игры */
+  const tapped = useCallback(() => {
+    if (gameAudioWarm.status().armed) gameAudioWarm.rewarm('тап по подсказке «Тапни, чтобы начать»', 'click')
+    gameStartTrace.setNeedsTap(false); gameStartTrace.mark('hint-tap', { via: 'подсказка' })
+    setPhase('game')
+  }, [])
 
   // «Игра заново» из HUD (тап — жест): старая игра размонтируется синхронно (закрывает микрофон, звуки и слоты), новая монтируется, и в том же тапе заново открываются сессия и микрофон, звук будится после
   const restart = useCallback(() => {
@@ -142,6 +152,7 @@ function RotateLive({ node, file, onDone, forceDebug, bare, startRef, onStatus }
   const game = phase === 'game' && <WordLaneGame key={gameKey} cfg={cfg} audioSrc={cfg.hasAudio ? audioSrc : null} lines={lines} forceDebug={forceDebug} onRestart={restart} onAgain={cfg.plan ? another : null} onFinished={finished} />
   const extra = (
     <>
+      {phase === 'tap' && <RotateTapHint onTap={tapped} />}
       {!ready && <VoskReadyNotice vosk={vosk} />}
       {problem && <p className="playerRotateProblem" role="alert" data-testid="rotate-problem">{problem}</p>}
     </>
@@ -149,7 +160,7 @@ function RotateLive({ node, file, onDone, forceDebug, bare, startRef, onStatus }
   if (bare) return <>{extra}{game}</>
   return (
     <>
-      <RotateCard cfg={cfg} done={phase === 'finished'} busy={busy} locked={phase === 'game' || !ready} onStart={start}>{extra}</RotateCard>
+      <RotateCard cfg={cfg} done={phase === 'finished'} busy={busy} locked={phase === 'game' || phase === 'tap' || !ready} onStart={start}>{extra}</RotateCard>
       {game}
     </>
   )
