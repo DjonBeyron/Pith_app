@@ -67,7 +67,9 @@ function body(b) {
 }
 const tail = t => recolor(t).replace(/fill="#ffffff"/g, `fill="${FUR}"`)       // кончик хвоста — того же цвета, что хвост
 
-const fluffy = process.argv[3] !== 'smooth'
+// режим: fluffy (по умолчанию), smooth — гладкая, mia — Мия как есть (белые пятна, бантик, ошейник, серьги), только перекрашена, глаза новые
+const mode = process.argv[3] ?? 'fluffy'
+const fluffy = mode === 'fluffy'
 // Пушистость (gray_fluff.mjs): пряди по контуру щёк и подбородка, воротник на груди, штрихи шерсти, лохматый хвост
 const outlineD = (xml, w) => xml.match(new RegExp(`<path d="([^"]*)" fill="none" stroke="${OL}" stroke-width="${w}"`))[1]
 function furHead(h) {
@@ -81,11 +83,12 @@ function furTail(t) {   // хвост в своих координатах (на
   const locks = edgeLocks(d, { fill: FUR, ol: OL, gap: 30, filter: () => true, len: 15, w: 24, sweep: .3, sw: 5, seed: 7, jitter: .25 })
   return t.replace(/(<path class="tl-fill"[^>]*\/>)/, `$1${locks}`)
 }
-const headS = recolor(mouth(blush(whisk(muzzle(cutDeco(mia.head))))))
+const headS = mode === 'mia' ? recolor(mia.head) : recolor(mouth(blush(whisk(muzzle(cutDeco(mia.head))))))
 const head = fluffy ? furHead(headS) + furTicks(SHADE) : headS
-const bodyS = body(mia.body)
+const bodyS = mode === 'mia' ? recolor(mia.body) : body(mia.body)
 const bodyF = fluffy ? bodyS + chestRuff({ fill: LIGHT, fill2: FUR, ol: OL }) : bodyS
-const tailF = fluffy ? furTail(tail(mia.tail)) : tail(mia.tail)
+const tailS = mode === 'mia' ? recolor(mia.tail) : tail(mia.tail)
+const tailF = fluffy ? furTail(tailS) : tailS
 const eyes = EYES.map(eye).join('') + EYES.map(brow).join('')
 
 const sprite = {
@@ -93,10 +96,11 @@ const sprite = {
   tail: tailF, body: bodyF, head,
   states: { base: { ...mia.states.base, eyes, brows: '', deco: '' } },
 }
-writeFileSync(`${out}/gray.json`, JSON.stringify(sprite))
+const name = mode === 'mia' ? 'gray_mia' : 'gray'
+writeFileSync(`${out}/${name}.json`, JSON.stringify(sprite))
 
 const [bx, by] = mia.tailBase
 const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="40 40 640 720" width="640" height="720"><rect x="40" y="40" width="640" height="720" fill="#f4f1ec"/>` +
   `<g transform="translate(${bx} ${by})">${sprite.tail}</g>${sprite.body}${sprite.head}${eyes}</svg>`
-writeFileSync(`${out}/gray.svg`, svg)
+writeFileSync(`${out}/${name}.svg`, svg)
 console.log('готово:', out)
