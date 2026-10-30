@@ -193,7 +193,7 @@ describe('проводка и аудит исходников', () => {
   it('WordLaneGame: хук паузы и оверлей «Игра на паузе» с кнопками «Продолжить» и «Выйти»; сообщение отказа слушателя на паузе скрыто', () => {
     const game = read('./WordLaneGame.jsx')
     expect(game).toContain('useWordLanePause({ f, cfg, audioSrc, lines })')
-    expect(game).toContain('{f.paused && <WordLanePause pause={pause} onExit={f.finish} />}')
+    expect(game).toContain('{f.paused && !comment && <WordLanePause pause={pause} onExit={f.finish} />}')
     expect(game).toContain("f.mic === 'failed' && !f.paused")
     const ov = read('./WordLanePause.jsx')
     expect(ov).toContain("title: 'Игра на паузе'")
@@ -219,7 +219,7 @@ describe('проводка и аудит исходников', () => {
     const game = read('./WordLaneGame.jsx')
     const stage = game.slice(game.indexOf('<div className="wlStage">'), game.indexOf('<button type="button" className="wlClose"'))
     expect(stage).not.toContain('<WordLanePause')                                           // попап НЕ в .wlStage (там кот): подложка fixed поверх всего
-    expect(game.slice(game.indexOf('className="wlClose"'))).toContain('{f.paused && <WordLanePause pause={pause} onExit={f.finish} />}')
+    expect(game.slice(game.indexOf('className="wlClose"'))).toContain('{f.paused && !comment && <WordLanePause pause={pause} onExit={f.finish} />}')
     expect(read('./WordLanePause.jsx')).toContain('<div className="wlPauseBack" data-testid="wl-pause-back">')
   })
   it('CSS: на паузе кот уходит под нижний край (иначе торчит из-под попапа); правило длиннее выскакивания и пружины', () => {

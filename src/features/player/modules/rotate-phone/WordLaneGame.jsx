@@ -10,6 +10,8 @@ import WordLanePerf from './WordLanePerf.jsx'
 import WordLaneCat from './WordLaneCat.jsx'
 import WordLaneXp from './WordLaneXp.jsx'
 import WordLanePause from './WordLanePause.jsx'
+import WordLaneCommentButton from './WordLaneCommentButton.jsx'
+import WordLaneComment from './WordLaneComment.jsx'
 import WordLaneTurnPlate from './WordLaneTurnPlate.jsx'
 import RehearsalActs from '../../../rehearsal/RehearsalActs.jsx'
 import { isWordLaneDebug } from './wordLaneConfig.js'
@@ -35,6 +37,7 @@ export default function WordLaneGame({ cfg, audioSrc, lines = null, forceDebug =
   const rootRef = useRef(null)
   const [tapMode, setTapMode] = useState(readTapMode) // «тап вместо речи» (HUD, админ): тап по дорожке в очереди ученика засчитывает следующую цель — проверка механики и анимаций без голоса
   const [safe0] = useState(readPillSafe) // «безопасные слои пилюль» (HUD): класс только на старте, дальше его меняет сам HUD через classList — className не меняется, React его не трогает
+  const [comment, setComment] = useState(null) // открыт оверлей комментария к этапу репетиции (шлифовка): { snap (что было на экране в момент тапа 💬), at }
   const catApi = useRef(null) // Пит (кот-маскот): рот по голосу и реакции лицом — через api, минуя React на кадрах
   const f = useWordLaneFlow({ chunks: cfg.chunks, translation: cfg.translation, lang: cfg.lang, clips: cfg.clips, audioSrc, audio: cfg.audio, catApi, lines, confusers: cfg.confusers, plan: cfg.plan, forceDebug, onFinished })
   const pause = useWordLanePause({ f, cfg, audioSrc, lines }) // свернули приложение — пауза сразу, «Продолжить» открывает микрофон из тапа (useWordLanePause.js)
@@ -86,8 +89,10 @@ export default function WordLaneGame({ cfg, audioSrc, lines = null, forceDebug =
         )}
       </div>
       <button type="button" className="wlClose" onClick={f.finish} aria-label="Закрыть" data-testid="wl-close"><X size={20} /></button>
-      {f.paused && <WordLanePause pause={pause} onExit={f.finish} />}
+      {f.paused && !comment && <WordLanePause pause={pause} onExit={f.finish} />}
       {f.dbg.enabled && <Hud dbg={f.dbg} rootRef={rootRef} onRestartStage={f.restartStage} onRestartGame={onRestart} onExit={f.finish} setTapMode={setTapMode} />}
+      {f.dbg.enabled && f.rh.on && !comment && <WordLaneCommentButton f={f} cfg={cfg} rootRef={rootRef} onOpen={setComment} />}
+      {comment && <WordLaneComment f={f} pause={pause} comment={comment} rootRef={rootRef} setTapMode={setTapMode} onClose={() => setComment(null)} />}
     </div>,
     document.body,
   )

@@ -4,7 +4,7 @@ import { listWordAudio, cachedWordAudio, subscribeWordAudio } from '../../../sha
 import { generateWordAudio } from '../../../shared/lib/wordAudio/wordAudioGenerate.js'
 import { loadTestForm, saveTestForm, chunkRows } from './gameTestRows.js'
 import GameTestRehearsal from './GameTestRehearsal.jsx'
-import { loadRehearsalForm, saveRehearsalForm } from '../../rehearsal/rehearsalTestForm.js'
+import { loadRehearsalForm, saveRehearsalForm, subscribeRehearsalForm } from '../../rehearsal/rehearsalTestForm.js'
 
 // Админ → «Голос»: «Тест игры» — быстрый запуск «Повтори за диктором» без урока, чтобы отлаживать анимацию и звук. Фраза с кусками через «|» и перевод (по умолчанию «I'm | trying | to learn»);
 // «Озвучить» — озвучка кусков в общую библиотеку слов тем же путём, что у уроков (generateWordAudio: ElevenLabs → R2 → word_audio, ключ wordKey), у каждого куска видно «есть / нет озвучки»;
@@ -14,13 +14,14 @@ import { loadRehearsalForm, saveRehearsalForm } from '../../rehearsal/rehearsalT
 export default function GameTestBlock({ generate = generateWordAudio }) {
   const [form, setForm] = useState(loadTestForm)
   const [rform, setRform] = useState(loadRehearsalForm) // режим «Репетиция (симуляция)»: фикстура и JSON плана
-  const changeR = patch => setRform(prev => { const next = { ...prev, ...patch }; saveRehearsalForm(next); return next })
+  const changeR = patch => { const next = { ...rform, ...patch }; setRform(next); saveRehearsalForm(next) } // сохранение оповещает «Шлифовку репетиции» (общая форма: фикстура и JSON плана)
   const [lib, setLib] = useState(() => cachedWordAudio())
   const [voicing, setVoicing] = useState('')   // ключ куска, который озвучивается сейчас
   const [errors, setErrors] = useState({})     // ключ → текст ошибки
   const [status, setStatus] = useState({ phase: 'wait', busy: false, ready: false, problem: '' })
   const [runs, setRuns] = useState(0)
   const startRef = useRef(null)
+  useEffect(() => subscribeRehearsalForm(setRform), []) // фикстуру сменили в «Шлифовке репетиции» — форма здесь та же
   useEffect(() => {
     listWordAudio().then(setLib)
     return subscribeWordAudio(setLib)

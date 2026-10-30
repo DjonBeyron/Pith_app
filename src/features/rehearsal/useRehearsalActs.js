@@ -4,6 +4,7 @@ import { fillLine } from './rehearsalLines.js'
 import { createJournal, record, nextRunnable, weakLanes } from './rehearsalJournal.js'
 import { reportSession } from './rehearsalSim.js'
 import { useRehearsalTake } from './useRehearsalTake.js'
+import { demoSummary } from './polish/polishDemo.js'
 
 // Директор «Репетиции с Питом» поверх useWordLaneFlow: всё, что сценарию актов нужно сверх обычной игры, — в одном хуке; директору остаются точки подключения (его next / стадии / реакции движка).
 //  • журнал актов (rec ← реакции движка win / miss / fail): по нему решаются повтор ступени сборки, сокращение акта 4 и пропуск «Различи» (nextIdx), подпись слабого слова в «без текста» (hintLanes), итог (reportSession);
@@ -73,7 +74,7 @@ export function useRehearsalActs({ plan, stages, stage, at, stageObj, setS, sayL
   // Итог: симуляция памяти и XP — один раз на выходе на экран summary
   useEffect(() => {
     if (running?.type !== 'summary') return undefined
-    const t = setTimeout(() => { setResult(reportSession({ plan, journal, mirror: take.mirror })); sayLine('rh_done') }, 0)
+    const t = setTimeout(() => { setResult(plan.only === 'summary' ? reportSession({ plan, ...demoSummary(plan) }) : reportSession({ plan, journal, mirror: take.mirror })); sayLine('rh_done') }, 0) // «Шлифовка → Итог»: результат подставной (polish/polishDemo.js)
     return () => clearTimeout(t)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [running])
