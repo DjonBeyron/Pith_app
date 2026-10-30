@@ -83,7 +83,9 @@ function furTail(t) {   // хвост в своих координатах (на
   const locks = edgeLocks(d, { fill: FUR, ol: OL, gap: 30, filter: () => true, len: 15, w: 24, sweep: .3, sw: 5, seed: 7, jitter: .25 })
   return t.replace(/(<path class="tl-fill"[^>]*\/>)/, `$1${locks}`)
 }
-const headS = mode === 'mia' ? recolor(mia.head) : recolor(mouth(blush(whisk(muzzle(cutDeco(mia.head))))))
+// в режиме mia белая мордочка и капля на лбу — цвета меха (на фото лицо одноцветное), остальные белые пятна (грудь, лапки, кончик хвоста) остаются
+const noFacePatch = h => h.replace(/(<path d="M296 346\.8[^"]*") fill="#ffffff"/, `$1 fill="${FUR}"`)
+const headS = mode === 'mia' ? recolor(mouth(noFacePatch(mia.head))) : recolor(mouth(blush(whisk(muzzle(cutDeco(mia.head))))))
 const head = fluffy ? furHead(headS) + furTicks(SHADE) : headS
 const bodyS = mode === 'mia' ? recolor(mia.body) : body(mia.body)
 const bodyF = fluffy ? bodyS + chestRuff({ fill: LIGHT, fill2: FUR, ol: OL }) : bodyS
