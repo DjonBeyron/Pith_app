@@ -86,6 +86,8 @@
   cursor: pointer;
 }
 .playerRotateStart:disabled { opacity: 0.6; cursor: default; }
+/* Ворота закрыты: «Готовлю звук… 7/15» — компактно, в две строки (длинная подпись не должна наезжать на описание) */
+.playerRotateStart--warm { max-width: 96px; padding: 7px 9px; font-size: 12px; line-height: 1.25; white-space: normal; text-align: center; }
 
 /* «Тапни, чтобы начать» (RotateTapHint): жест истёк до прогрева звука — одно касание экрана включает звук и открывает игру. Поверх игры (z-index игры 10000), с отступами под вырез */
 .rotateTapHint {

@@ -41,7 +41,7 @@ export function useWordLaneControls({ stages, sRef, setS, setMicEpoch, clearTime
     const cur = sRef.current
     if (finishedRef.current || cur.stage === 'reveal') return false
     const already = cur.stage === 'paused'
-    stopVoice(); releaseNotes(); releaseClips(); clearTimers()
+    stopVoice(); releaseNotes(); releaseClips({ keepBuffers: true }); clearTimers() // пауза: декодированные звуки остаются — «Продолжить» не декодирует заново
     clearTimeout(noteTimerRef.current); clearTimeout(hintTimerRef.current)
     listenerRef.current?.dispose(); listenerRef.current = null
     cat.stop(); catApi?.current?.freeze?.()

@@ -1,7 +1,9 @@
 // «Лесенка нот» игры «Повтори за диктором»: каждая принятая пилюля ученика звучит нотой выше предыдущей (до — ми — соль), три слова складываются в мелодию, а не в «штраф за ошибку».
-// Ноты — маленькие WAV, которые мы синтезируем сами (синус с мягким входом и затуханием, без файлов и сети). Играют обычные <audio>, не Web Audio: на iOS Web Audio идёт в другой
-// категории аудиосессии (см. sounds.js). Автозапуск по таймеру iOS разрешает только тем элементам, что хоть раз стартовали в жесте, поэтому unlockNotes() зовут из тапа «Начать»:
-// элемент играет тихий wav, затем ему подменяется src на ноту (как у primedAudio) и нота прогружается заранее — первое проигрывание без задержки. Звук урока «без звука» учитывается.
+// Ноты — маленькие WAV, которые мы синтезируем сами (синус с мягким входом и затуханием, без файлов и сети).
+// ЧЕМ ИГРАЕТ. Основной путь — Web Audio (с 3.3.77): три звука декодируются в AudioBuffer при тапе «Начать» (unlockNotes → loadSoundBuffer; мяу — из файла public/sounds, ноты — из синтезированного WAV) и играет игровой
+// AudioContext (gameBufferPlay.js): старт мгновенный, ГРОМКОСТЬ — GainNode (getRewardVolume; на iPhone audio.volume игнорируется — ползунок награды наконец работает), ТОН 'custom' — playbackRate 1 / 1.26 / 1.5 (у
+// AudioBufferSourceNode тон меняется вместе со скоростью сам, preservesPitch не нужен). Запасной путь — <audio> (нет Web Audio или он выключен: pithy_game_web_audio_v1): автозапуск по таймеру iOS разрешает только
+// элементам, что хоть раз стартовали в жесте, поэтому unlockNotes() зовут из тапа «Начать»: элемент играет тихий wav, затем ему подменяется src на ноту (как у primedAudio) и нота прогружается заранее. «Без звука» урока учитывается.
 // ЧТО ЗВУЧИТ выбирает владелец (wordLaneMeow.js, админка «Голос» → «Звуки игры»): по умолчанию «мяу» (три готовых wav, тише нот вдвое), либо эти ноты, либо тишина; громкость — audio.volume (iOS её игнорирует). Слоты и прогрев у всех вариантов общие.
 // РЕЖИМ 'custom' (настоящее «мяу» ElevenLabs или свой файл): ОДНА запись на все три слота, тоны делает playbackRate 1 / 1.26 / 1.5 при preservesPitch=false (+ webkitPreservesPitch) — высота растёт вместе со скоростью.
 // load() сбрасывает playbackRate к defaultPlaybackRate, а preservesPitch надо поставить ДО play (в том числе у прогрева в тапе) — поэтому tuneSlot() зовут и в unlockNotes, и перед каждым play.
@@ -10,6 +12,10 @@
 import { getLessonMuted } from '../../lessonVolume.js'
 import { releasePlate } from './wordLanePlateSound.js'
 import { getRewardSound, getRewardVolume, getRewardUrl, REWARD_RATES, MEOW_PATHS } from './wordLaneMeow.js'
+import { webAudioOn } from '../../../../shared/lib/gameAudioCtx.js'
+import { playGameBuffer } from '../../../../shared/lib/gameBufferPlay.js'
+import { gameAudioNote } from '../../../../shared/lib/gameAudioSink.js'
+import { loadSoundBuffer, soundBuffer, bytesOfUrl, bytesOfWav } from './wordLaneBuffers.js'
 
 export const NOTES = [
   { freqs: [523.25], ms: 380, level: 1 },                          // C5
@@ -86,11 +92,24 @@ export function tuneSlot(a, k, mode = getRewardSound()) {
 /** a.src всегда абсолютный — относительный адрес сравниваем после приведения */
 const absUrl = u => { try { return new URL(u, globalThis.location?.href).href } catch { return String(u) } }
 
+/** Ключ буфера звука k выбранного варианта: 'custom' — одна запись на три тона (ключ по адресу), мяу/ноты — по номеру */
+const bufferId = (mode, k) => (mode === 'custom' ? `reward:url:${getRewardUrl()}` : `reward:${mode}:${k}`)
+/** Декодировать три звука варианта mode в буферы (один раз; ошибка сети — звук этого тона молчит, пока не повторят) */
+function loadRewardBuffers(mode) {
+  NOTES.forEach((n, k) => loadSoundBuffer(bufferId(mode, k), () => (mode === 'meow' || mode === 'custom' ? bytesOfUrl(sourcesFor(mode)[k]) : bytesOfWav(makeNoteWav(n.freqs, n.ms, n.level)))))
+}
+/** Подготовка буферов награды без жеста (прогрев на карточке игры, wordLaneWarm.js): в тапе их остаётся только сыграть */
+export function warmRewardBuffers() {
+  const mode = getRewardSound()
+  if (mode !== 'off' && webAudioOn()) loadRewardBuffers(mode)
+}
+
 /** Из тапа «Начать»: создать элементы звуков награды и «разбудить» их тихим звуком (play внутри жеста), затем подменить src на свой (мяу или нота) и прогрузить. «Без звука» в админке — ничего не создаём. Без поддержки — тихо ничего не делает */
 export function unlockNotes() {
-  if (els || typeof Audio === 'undefined') return
   const mode = getRewardSound()
   if (mode === 'off') return
+  if (webAudioOn()) { loadRewardBuffers(mode); return } // Web Audio: <audio> не нужны (буферы играет игровой контекст)
+  if (els || typeof Audio === 'undefined') return
   try {
     const own = sourcesFor(mode)
     silence ??= URL.createObjectURL(new Blob([makeNoteWav([0], 80)], { type: 'audio/wav' })) // тишина 80 мс
@@ -110,8 +129,15 @@ export function unlockNotes() {
 export function playNote(k) {
   if (getRewardSound() === 'off') return false
   const i = Math.min(k, NOTES.length - 1)
+  if (getLessonMuted()) return false
+  if (webAudioOn()) {
+    const mode = getRewardSound()
+    const buf = soundBuffer(bufferId(mode, i))
+    if (buf) return playGameBuffer(buf, { rate: mode === 'custom' ? REWARD_RATES[Math.min(i, REWARD_RATES.length - 1)] ?? 1 : 1, gain: getRewardVolume(), onResult: res => { if (res.play !== 'started') gameAudioNote('note-sound', { k: i, ...res }) } })
+    loadRewardBuffers(mode) // буфер ещё не готов (первый тап позже прогрева): догружаем на следующий раз; запасной <audio> ниже, если он есть
+  }
   const a = els?.[i]
-  if (!a || getLessonMuted()) return false
+  if (!a) return false
   try {
     const mode = getRewardSound()
     const want = sourcesFor(mode)[i]

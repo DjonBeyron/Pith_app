@@ -43,7 +43,7 @@ describe('карточка ноды', () => {
     const out = renderToStaticMarkup(createElement(RotatePhoneModule, { node: node() }))
     expect(out).toContain('data-testid="vosk-notice"')
     expect(out).toContain('Готовлю распознавание речи')
-    expect(out).toMatch(/<button[^>]*class="playerRotateStart"[^>]*disabled=""|<button[^>]*disabled=""[^>]*class="playerRotateStart"/)
+    expect(out).toMatch(/<button[^>]*class="playerRotateStart[^"]*"[^>]*disabled=""|<button[^>]*disabled=""[^>]*class="playerRotateStart[^"]*"/)
   })
   it('история («Продолжить урок»): карточка «закончена», Vosk не греем, кнопки и уведомления нет', () => {
     const out = renderToStaticMarkup(createElement(RotatePhoneModule, { node: node(undefined, { isHistory: true }) }))

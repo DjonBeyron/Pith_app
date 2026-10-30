@@ -6,8 +6,17 @@
 <script>
 (() => {
   const params = new URLSearchParams(location.search)
-  const kase = params.get('case') || 'ok' // ok | expired | expired-nogesture | slow | reject | abort | swap
+  const kase = params.get('case') || 'ok' // ok | expired | expired-nogesture | slow | reject | abort | swap | pending4s
   window.__case = kase
+  // Путь звука: по умолчанию Web Audio (буферы); ?webaudio=off — аварийный выключатель игры (pithy_game_web_audio_v1 = off): прежние <audio>-слоты. Нужен, чтобы показать сценарий владельца на СТАРОМ пути.
+  try { if (params.get('webaudio') === 'off') localStorage.setItem('pithy_game_web_audio_v1', 'off'); else localStorage.removeItem('pithy_game_web_audio_v1') } catch { /* без хранилища — по умолчанию */ }
+  // Хронометраж: когда нажали «Начать» и когда каждый AudioBufferSourceNode реально стартовал (start() вызван): для проверки «буферный путь стартует < 50 мс».
+  window.__bufStarts = []
+  document.addEventListener('click', e => { if (e.isTrusted && e.target.closest?.('[data-testid="rotate-start"]')) window.__tapAt = performance.now() }, true)
+  if (window.AudioBufferSourceNode) {
+    const origStart = AudioBufferSourceNode.prototype.start
+    AudioBufferSourceNode.prototype.start = function start(...a) { window.__bufStarts.push({ at: performance.now(), dur: this.buffer?.duration ?? 0, rate: this.playbackRate.value }); return origStart.apply(this, a) }
+  }
   window.__active = false
   Object.defineProperty(navigator, 'userActivation', { get: () => ({ isActive: window.__active, hasBeenActive: true }), configurable: true })
   let t = 0
@@ -41,6 +50,9 @@
       this.__woken = true; this.__unlocked = true
       return new Promise((_, reject) => setTimeout(() => { window.__abortBySystem += 1; reject(new DOMException('The operation was aborted.', 'AbortError')) }, 900))
     }
+    // pending4s (сценарий владельца): слот подготовлен, blob подставлен, readyState 0 — play() принят и ВИСИТ 4 с, события playing нет (звук приходит гораздо позже): настоящий play() вызывается только через 4 с.
+    // Касается только повторного play() уже разбуженного элемента (пробуждение тишиной проходит как обычно).
+    if (kase === 'pending4s' && this.__unlocked) return new Promise(res => setTimeout(() => res(origPlay.call(this)), 4000))
     if (window.__forceReject && this.__unlocked) return Promise.reject(new DOMException('прерван', 'NotAllowedError'))
     if (!this.__unlocked && !window.__active) return Promise.reject(new DOMException('play() без жеста', 'NotAllowedError'))
     return origPlay.call(this).then(r => { if (window.__active) this.__unlocked = true; return r })
@@ -111,11 +123,14 @@ window.__report = () => {
   return {
     silent: body.silentFirstLine,
     section: buildGameLogSection(dump),
-    log: getPlayerLines().filter(l => /\[cat-voice\]|\[plate-sound\]|\[audio-warm\]/.test(l)),
+    log: getPlayerLines().filter(l => /\[cat-voice\]|\[plate-sound\]|\[audio-warm\]|\[warm\]/.test(l)),
     exportKeys: Object.keys(body).filter(k => k !== 'events' && k !== 'audio'),
     synthCalls: window.__synthCalls, abortBySwap: window.__abortBySwap, abortBySystem: window.__abortBySystem,
     trackEvents: (dump.events ?? []).filter(e => e.type === 'probe' && e.kind === 'track').map(e => e.event),
-    catVoice: (dump.events ?? []).filter(e => e.type === 'event' && e.kind === 'cat-voice').map(e => ({ id: e.id, source: e.source, noSynth: !!e.noSynth, play: e.play, slot: e.slot })),
+    catVoice: (dump.events ?? []).filter(e => e.type === 'event' && e.kind === 'cat-voice').map(e => ({ id: e.id, source: e.source, noSynth: !!e.noSynth, play: e.play, playMs: e.playMs ?? null, slot: e.slot })),
+    catSpeak: (dump.events ?? []).filter(e => e.type === 'event' && e.kind === 'cat-speak').map(e => e.id),
+    ready: (dump.events ?? []).filter(e => e.type === 'probe' && e.kind === 'start-mark' && e.name === 'ready').map(e => ({ sinceTap: e.sinceTap, words: e.words, gate: e.gate ?? null, done: e.done ?? null, total: e.total ?? null, ctx: e.ctx ?? null }))[0] ?? null,
+    bufStarts: window.__bufStarts.map(b => ({ sinceTap: Math.round(b.at - (window.__tapAt ?? b.at)), dur: +b.dur.toFixed(2), rate: b.rate })),
   }
 }
 

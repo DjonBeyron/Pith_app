@@ -98,7 +98,7 @@ describe('слушатель и выключенная нами дорожка',
 
 describe('реплика Пита открывает окно речи', () => {
   const lines = normalizeLines({ lines: { your_turn: { text: 'Теперь твоя очередь', url: 'https://x/a.mp3', duration: 2, words: [] } } })
-  const mk = (over = {}) => ({ id: 'your_turn', line: lines.your_turn, catApi: { current: { isUp: () => true, peek() {}, speak() {} } }, listenerRef: { current: { mute() {} } }, has: () => true, play: () => true, log: () => {}, ...over })
+  const mk = (over = {}) => ({ id: 'your_turn', line: lines.your_turn, catApi: { current: { isUp: () => true, peek() {}, speak() {} } }, listenerRef: { current: { mute() {} } }, has: () => true, play: (k, r, onStart) => { onStart?.(); return true }, log: () => {}, ...over })
   it('звук пошёл — holdFor(длина реплики); нет озвучки или play() отказал — окно не открывается', () => {
     const hold = { holdFor: vi.fn() }
     startCatLine(mk({ hold }))

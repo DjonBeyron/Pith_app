@@ -11,7 +11,7 @@ const cfgOf = (extra = {}) => readWordLane({ phrase: "I'm | trying | to learn", 
 const linesWith = urls => normalizeLines({ lines: Object.fromEntries(urls.map(([id, url]) => [id, { text: id, url, duration: 1 }])) })
 
 describe('warmGameSounds: что и в каком порядке качается', () => {
-  it('сначала нужное к старту (куски фразы и реплики Пита), потом остальные реплики; библиотека слов спрашивается первой', async () => {
+  it('всё качается одним списком (нужное к старту — первым); библиотека слов спрашивается первой', async () => {
     const order = []
     const prefetch = vi.fn(async (items, opts) => { order.push(items.map(i => i.key)); return opts })
     const list = vi.fn(async () => { order.push('list') })
@@ -19,7 +19,7 @@ describe('warmGameSounds: что и в каком порядке качаетс�
     await warmGameSounds({ cfg: cfgOf(), lines }, { prefetch, list })
     expect(list).toHaveBeenCalledTimes(1)
     expect(order[0]).toBe('list')
-    expect(prefetch).toHaveBeenCalledTimes(2) // now, затем late (пустой, но порядок сохранён)
+    expect(prefetch).toHaveBeenCalledTimes(1) // ВСЁ сразу: now + late одним списком
     const first = order[1]
     expect(first).toEqual(expect.arrayContaining(['line:split_words', 'line:try_again']))
   })
@@ -66,9 +66,10 @@ describe('подключение', () => {
   it('карточка игры: качает при показе, пока качается — «Готовлю звук…» (кнопку «Начать» не блокирует); в тапе prefetch берёт те же скачанные файлы', () => {
     const mod = read('./RotatePhoneModule.jsx')
     expect(mod).toContain("import { warmGameSounds, warmSig } from './wordLaneWarm.js'")
-    expect(mod).toContain('warmGameSounds({ cfg, lines })')
-    expect(mod).toContain("phase === 'wait' && warmed !== sig && <p className=\"playerRotateWarm\" data-testid=\"rotate-warm\">Готовлю звук…</p>")
-    expect(mod).toContain('disabled={busy || locked}') // warmed в блокировку не входит
+    expect(mod).toContain('warmGameSounds({ cfg, lines }, { onListed: () => setListed(sig) })')
+    expect(mod).toContain("phase === 'wait' && !wp.all && <WordLaneWarmBar wp={wp} />")
+    expect(mod).toContain("label={phase === 'wait' && !wp.open ? wp.label : null}") // кнопка: «Готовлю звук… 7/15», пока ворота закрыты
+    expect(mod).toContain('disabled={busy || locked}') // прогрев в блокировку не входит: тап разрешён, игра ждёт ворота
     expect(mod).not.toMatch(/locked=\{[^}]*warm/)
     expect(read('./wordLaneFetch.js')).toContain('let p = blobs.get(url)') // тот же fetchBlob: повторный вызов получает тот же промис
   })
