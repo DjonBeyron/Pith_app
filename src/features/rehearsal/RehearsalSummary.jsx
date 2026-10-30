@@ -9,7 +9,7 @@ export default function RehearsalSummary({ plan, result, onAgain = null, onShown
   useEffect(() => { onShown?.() }, []) // eslint-disable-line react-hooks/exhaustive-deps
   return (
     <div className="wlReveal rhScreen rhSummary" data-testid="rh-summary">
-      <div className="wlRevealLabel">Фраза твоя</div>
+      <div className="wlRevealLabel">Получилось</div>
       <div className="wlRevealPhrase" data-testid="rh-summary-phrase">{plan.chunks.join(' ')}</div>
       <div className="rhSumTr" data-testid="rh-summary-translation">{plan.translation || '—'}</div>
       <dl className="rhStats">
