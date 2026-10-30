@@ -3,6 +3,7 @@
 // зрачок — тонкая вертикальная щель. Анимаций нет: статичная картинка для согласования внешности.
 // Запуск: node scripts/mascot/concept_gray.mjs <папка_результата>   → gray.svg (+ gray.json — спрайт в формате маскотов, состояние только base)
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs'
+import { edgeLocks, chestRuff, furTicks } from './gray_fluff.mjs'
 const out = process.argv[2]
 if (!out) { console.error('нужна папка результата'); process.exit(1) }
 mkdirSync(out, { recursive: true })
@@ -66,18 +67,36 @@ function body(b) {
 }
 const tail = t => recolor(t).replace(/fill="#ffffff"/g, `fill="${FUR}"`)       // кончик хвоста — того же цвета, что хвост
 
-const head = recolor(mouth(blush(whisk(muzzle(cutDeco(mia.head))))))
+const fluffy = process.argv[3] !== 'smooth'
+// Пушистость (gray_fluff.mjs): пряди по контуру щёк и подбородка, воротник на груди, штрихи шерсти, лохматый хвост
+const outlineD = (xml, w) => xml.match(new RegExp(`<path d="([^"]*)" fill="none" stroke="${OL}" stroke-width="${w}"`))[1]
+function furHead(h) {
+  const d = outlineD(h, 7), c = { fill: FUR, ol: OL }
+  const cheeks = edgeLocks(d, { ...c, gap: 30, filter: (x, y) => y > 262 && y < 440 && (x < 190 || x > 402 || y > 425), len: 34, w: 30, sweep: .5, sw: 6, seed: 3 })
+  const i = h.indexOf('/>', h.indexOf(`stroke="${OL}" stroke-width="7"`)) + 2
+  return h.slice(0, i) + cheeks + h.slice(i)
+}
+function furTail(t) {   // хвост в своих координатах (начало — основание); пряди по обоим краям
+  const d = t.match(/<path class="tl-fill" d="([^"]*)"/)[1]
+  const locks = edgeLocks(d, { fill: FUR, ol: OL, gap: 30, filter: () => true, len: 15, w: 24, sweep: .3, sw: 5, seed: 7, jitter: .25 })
+  return t.replace(/(<path class="tl-fill"[^>]*\/>)/, `$1${locks}`)
+}
+const headS = recolor(mouth(blush(whisk(muzzle(cutDeco(mia.head))))))
+const head = fluffy ? furHead(headS) + furTicks(SHADE) : headS
+const bodyS = body(mia.body)
+const bodyF = fluffy ? bodyS + chestRuff({ fill: LIGHT, fill2: FUR, ol: OL }) : bodyS
+const tailF = fluffy ? furTail(tail(mia.tail)) : tail(mia.tail)
 const eyes = EYES.map(eye).join('') + EYES.map(brow).join('')
 
 const sprite = {
   ...mia, id: 'gray', title: 'Серая кошка (концепт)',
-  tail: tail(mia.tail), body: body(mia.body), head,
+  tail: tailF, body: bodyF, head,
   states: { base: { ...mia.states.base, eyes, brows: '', deco: '' } },
 }
 writeFileSync(`${out}/gray.json`, JSON.stringify(sprite))
 
 const [bx, by] = mia.tailBase
-const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="40 40 570 720" width="570" height="720"><rect x="40" y="40" width="570" height="720" fill="#f4f1ec"/>` +
+const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="40 40 640 720" width="640" height="720"><rect x="40" y="40" width="640" height="720" fill="#f4f1ec"/>` +
   `<g transform="translate(${bx} ${by})">${sprite.tail}</g>${sprite.body}${sprite.head}${eyes}</svg>`
 writeFileSync(`${out}/gray.svg`, svg)
 console.log('готово:', out)
