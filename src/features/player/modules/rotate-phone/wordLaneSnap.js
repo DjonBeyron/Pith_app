@@ -48,9 +48,11 @@ export function snapPill(pill, k, { full = true } = {}) {
   try { navigator.vibrate?.(14) } catch { /* не везде есть */ }
 }
 
-/** Промах ученика: красная вспышка и короткая дрожь пилюли (transform: translateX — положение пилюли живёт в свойстве translate и в этой анимации не участвует) */
+/** Промах ученика: красная вспышка и короткая дрожь пилюли (transform: translateX — положение пилюли живёт в свойстве translate и в этой анимации не участвует). Пилюля остаётся помеченной data-wrong — косые полоски
+ *  (word-lane-pill-wrong.css), пока не защёлкнулась (data-lock) или не вернулась в пул (clean в wordLanePool.js) */
 export function missPill(pill) {
   if (!pill) return
+  pill.setAttribute?.('data-wrong', '1')
   pill.animate([{ transform: 'translateX(0)' }, { transform: 'translateX(-6px)', offset: 0.2 }, { transform: 'translateX(6px)', offset: 0.4 }, { transform: 'translateX(-3px)', offset: 0.6 }, { transform: 'translateX(0)' }], { duration: 560, easing: 'ease-out' })
   const clip = pill.querySelector('.wlPillClip')
   if (clip) flash(clip, 'inset:0;border-radius:999px;background:rgba(255,93,115,0.55);', [{ opacity: 1 }, { opacity: 0 }], 700)

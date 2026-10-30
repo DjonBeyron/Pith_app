@@ -56,6 +56,7 @@ export function runOrderScene({ pool, scene, fxRef }) {
         if (e.type === 'ok') {
           set.taken.add(e.lane)
           if (k != null) { pool.attr(k, 'data-lock'); pool.paintFill(k, 1); snapPill(pool.el(k), e.lane) }
+          pool.flashLane?.(e.lane)
           fxRef.current?.win?.(e.step - 1, k != null ? pool.el(k).getBoundingClientRect() : null)
         } else if (e.type === 'wrong') {
           if (k != null) missPill(pool.el(k))

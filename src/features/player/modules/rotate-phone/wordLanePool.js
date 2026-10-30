@@ -15,6 +15,7 @@ import { LANE_X, PILL_W } from './wordLaneTimeline.js'
 import { startFlight } from './wordLaneMotion.js'
 import { fillProfile } from './wordLaneTimeline.js'
 import { flightY, startRise } from './wordLaneRise.js'
+import { createLaneFlash } from './wordLaneLaneFlash.js'
 
 export const POOL = 12
 export const WILL_PILL = 'transform, translate, scale' // слои взятой пилюли: полёт (translate), хлопок (scale) и дрожка промаха (transform); transform в списке — гарантия слоя там, где will-change по translate/scale слой не создаёт
@@ -38,6 +39,7 @@ export function createPool(root) {
     if (prop.startsWith('--')) el.style.setProperty?.(prop, value); else el.style[prop] = value
   }
   const safe = () => root.classList?.contains?.('wl--safe') === true // «безопасный» режим слоёв (для iOS): никаких will-change
+  const laneFlash = createLaneFlash(root) // вспышка дорожки на верный ответ (wordLaneLaneFlash.js)
   const free = els.map((_, i) => i).reverse()
   const live = new Map() // индекс → { anim, lane, rise }
   const rise = els.map(() => ({ v: 0, at: -1e9, on: false, ringed: false })) // для data-live: прошлая заливка, когда последний раз росла, горит ли признак, давали ли уже «выдох» кольца
@@ -70,7 +72,7 @@ export function createPool(root) {
   const clean = k => {
     Object.assign(rise[k], { v: 0, at: -1e9, on: false, ringed: false }); parts[k].el.removeAttribute('data-live')
     paintFill(k, 0); hint(k, '0', null)
-    for (const a of ['data-lock', 'data-fail', 'data-hint', 'data-voice', 'data-rise', 'data-ring']) parts[k].el.removeAttribute(a)
+    for (const a of ['data-lock', 'data-fail', 'data-wrong', 'data-hint', 'data-voice', 'data-rise', 'data-ring']) parts[k].el.removeAttribute(a)
   }
   /** Тень слова: ширина полосок по громкости куска слова диктора (без кривой — ровно) */
   const shape = (k, curve) => {
@@ -89,6 +91,8 @@ export function createPool(root) {
     size: els.length,
     el: k => parts[k]?.el,
     paintFill, hint, shape, give,
+    /** Верный ответ: дорожка lane коротко вспыхивает цветом дорожки, кромки рядом — ярче (data-win на колонке и кромках, снимается по animationend) */
+    flashLane: lane => laneFlash.flash(lane),
     attr: (k, name, on = true) => { if (on) parts[k].el.setAttribute(name, '1'); else parts[k].el.removeAttribute(name) },
     /** Выдать пилюлю под дорожку lane; atMs — сколько мс полёта уже прошло (отрицательное — ждёт за краем). Без полёта (static) — стоит на месте. Возвращает номер или null, если пул пуст */
     take(lane, { atMs = 0, curve = null, flight = true } = {}) {
