@@ -96,7 +96,7 @@ export function buildRehearsalStages({ plan, rate = 1, lib = () => null }) {
     else if (act.id === 'take') {
       announce(act, { title: 'Дубль. Три, два, один…', ms: RH_TAKE_MS })
       push({ type: 'take', act: 'take', sid: 'take', step: stepOf('take', act.parts, { labels: [], record: true }) }) // record: слушатель без затвора тишины (паузы между кусками должны остаться паузами) и сразу начинает следующий заход
-    } else push({ type: act.id, act: act.id, sid: act.id, line: act.line }) // mirror: реплика Пита «Слушаем: сначала я, потом ты.»; summary: без реплики (её говорит директор актов)
+    } else push({ type: act.id, act: act.id, sid: act.id, line: act.line }) // mirror: реплика Пита «Слушаем, сначала я, потом ты»; summary: без реплики (её говорит директор актов)
   }
   return { recipe: { chunks, rounds: [], acts, plan }, stages, chunkMs, chunkCurves: chunks.map(() => null), lanes: orderLanes(n, rngFor(plan.seed, 'lanes')), clipMode: () => false }
 }

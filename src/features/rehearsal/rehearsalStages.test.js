@@ -123,7 +123,7 @@ describe('акты на стадиях', () => {
     expect(stages.filter(s => s.step?.record)).toHaveLength(1)
     expect(listenStepOf(stages, take.idx - 1)).toBe(take.step) // под плашкой слушатель уже тот же — записывающий
   })
-  it('зеркало: Пит говорит «Слушаем: сначала я, потом ты.» на старте стадии (rh_mirror), у итога реплики нет (её говорит директор)', () => {
+  it('зеркало: Пит говорит «Слушаем, сначала я, потом ты» на старте стадии (rh_mirror), у итога реплики нет (её говорит директор)', () => {
     const { stages, recipe } = build('three')
     expect(baseLineId(stages.find(s => s.type === 'mirror').line)).toBe('rh_mirror'); expect(stages.find(s => s.type === 'summary').line).toBeUndefined()
     expect(recipe.acts.find(a => a.id === 'mirror').line).toBe(stages.find(s => s.type === 'mirror').line)

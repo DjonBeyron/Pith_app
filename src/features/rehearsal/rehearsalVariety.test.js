@@ -103,7 +103,7 @@ describe('сборка с конца', () => {
     }
     expect(first).toEqual(new Set(['0', '1']))
   })
-  it('если «обычно» идёт первым, реплика «И ещё раз, обычно.» ему не достаётся', () => {
+  it('если «обычно» идёт первым, реплика «и ещё раз, обычно» ему не достаётся', () => {
     for (const seed of SEEDS) {
       const p = acts(seeded('three', seed)).find(a => a.id === 'build').final.passes
       const normal = p.find(x => x.id === 'build-normal')

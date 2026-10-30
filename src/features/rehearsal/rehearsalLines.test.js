@@ -15,10 +15,10 @@ describe('каталог реплик Пита', () => {
   it('ключи таблицы §2: старт, разминка и промах, читка (зачем), сборка, чётко / обычно, без текста и подсказка, дубль, итог', () => {
     for (const id of ['rh_start', 'rh_warmup', 'rh_warmup_miss', 'rh_read_why', 'rh_build', 'rh_clear', 'rh_normal', 'rh_blind', 'rh_blind_hint', 'rh_take', 'rh_done']) expect(REHEARSAL_LINE_IDS).toContain(id)
     const t = Object.fromEntries(REHEARSAL_LINES.map(l => [l.id, l.text]))
-    expect(t.rh_read_why).toContain('Слушай ритм, не слова — так фраза звучит по-настоящему') // решение владельца §6 п. 2
-    expect(t.rh_clear).toBe('А теперь чётко — как для последнего ряда.'); expect(t.rh_normal).toBe('И ещё раз, обычно.')
-    expect(t.rh_done).toBe('Отлично, получилось! Ещё одну?') // решение владельца: сказать проще
-    expect(t.rh_blind_hint).toContain('{word}'); expect(t.rh_take).toBe('Дубль. Три, два, один…')
+    expect(t.rh_read_why).toContain('слушай ритм, а не слова, так фраза звучит по-настоящему') // решение владельца §6 п. 2
+    expect(t.rh_clear).toBe('А теперь чётко, как для последнего ряда'); expect(t.rh_normal).toBe('и ещё раз, обычно')
+    expect(t.rh_done).toBe('Вооу, получилось, ещё одну?') // решение владельца: сказать проще, в стиле уроков
+    expect(t.rh_blind_hint).toContain('{word}'); expect(t.rh_take).toBe('Дубль, три, два, один')
     expect(REHEARSAL_LINES.every(l => l.text.length <= MAX_LINE_CHARS && l.when)).toBe(true)
   })
   it('входят в общий каталог CAT_LINES после реплик игры, ключи уникальны; редактор ноды и настройки видят их сами', () => {
@@ -26,10 +26,10 @@ describe('каталог реплик Пита', () => {
     expect(new Set(LINE_IDS).size).toBe(LINE_IDS.length)
     expect(CAT_LINES[0].id).toBe('split_words')
     expect(Object.keys(normalizeLines(null))).toEqual(LINE_IDS)
-    expect(normalizeLines(null).rh_warmup.text).toBe('Разминка. Я показываю перевод — ты говоришь слово.')
+    expect(normalizeLines(null).rh_warmup.text).toBe('Сначала разминка, я показываю перевод, а ты говоришь слово')
   })
   it('озвучка из библиотеки, как у остальных реплик: настройки с url → слоты тапа «Начать» (linesItems), длительность по озвучке', () => {
-    const l = normalizeLines({ lines: { rh_warmup: { text: 'Разминка. Я показываю перевод — ты говоришь слово.', url: 'u', duration: 3 } } })
+    const l = normalizeLines({ lines: { rh_warmup: { text: 'Сначала разминка, я показываю перевод, а ты говоришь слово', url: 'u', duration: 3 } } })
     expect(linesItems(l)).toEqual([{ key: lineKey('rh_warmup'), url: 'u' }])
     expect(lineMs(l.rh_warmup)).toBe(3000)
   })
@@ -115,12 +115,13 @@ describe('варианты реплик Пита', () => {
     for (const id of REHEARSAL_LINE_IDS) expect(lineVariants(baseLineId(id))).toContain(id)
     expect(LINE_IDS).toEqual(expect.arrayContaining(['rh_done_b', 'rh_done_c', 'rh_normal_c'])) // варианты — обычные ключи каталога: озвучка, редактор ноды, слоты
   })
-  it('основной вариант — прежний текст; тексты разные, до 120 знаков, без оборота «фраза твоя»; пример rh_done из задания', () => {
+  it('тексты в стиле уроков: разные, до 120 знаков, без оборота «фраза твоя», без «Верно!/Отлично!» и точек в конце; пример rh_done', () => {
     const t = Object.fromEntries(REHEARSAL_LINES.map(l => [l.id, l.text]))
-    expect(t.rh_done).toBe('Отлично, получилось! Ещё одну?'); expect(t.rh_done_b).toBe('Готово. Берём ещё одну?'); expect(t.rh_done_c).toBe('Звучит! Повторим с другой?')
+    expect(t.rh_done).toBe('Вооу, получилось, ещё одну?'); expect(t.rh_done_b).toBe('ну вот, звучит, берём ещё?'); expect(t.rh_done_c).toBe('Класс, это было чисто, повторим с другой?')
     expect(new Set(Object.values(t)).size).toBe(REHEARSAL_LINES.length)
-    for (const l of REHEARSAL_LINES) { expect(l.text.length, l.id).toBeLessThanOrEqual(MAX_LINE_CHARS); expect(l.text.toLowerCase(), l.id).not.toContain('фраза твоя'); expect(l.when, l.id).toBeTruthy() }
-    expect(normalizeLines(null).rh_done_c.text).toBe('Звучит! Повторим с другой?')
+    for (const l of REHEARSAL_LINES) { expect(l.text.length, l.id).toBeLessThanOrEqual(MAX_LINE_CHARS); expect(l.text.toLowerCase(), l.id).not.toContain('фраза твоя'); expect(l.when, l.id).toBeTruthy(); expect(l.text, l.id).not.toMatch(/[.…!]$|Верно|Отлично|—/) }
+    expect(REHEARSAL_LINES.filter(l => /^[а-яё]/.test(l.text)).length).toBeGreaterThanOrEqual(10) // часть реплик с маленькой буквы, как в переписке
+    expect(normalizeLines(null).rh_done_c.text).toBe('Класс, это было чисто, повторим с другой?')
   })
   it('pickLine: повтор подряд запрещён (по сессии), выбираются все варианты, без вариантов — тот же ключ', () => {
     for (const base of WITH_VARIANTS) {
@@ -133,7 +134,7 @@ describe('варианты реплик Пита', () => {
     expect(pickLine('rh_blind_hint', mulberry32(1), {})).toBe('rh_blind_hint'); expect(pickLine('rh_blind_hint', mulberry32(1), {})).toBe('rh_blind_hint')
     const last = {}; pickLine('rh_done', mulberry32(3), last); expect(last.rh_done).toMatch(/^rh_done/)
   })
-  it('pickLine с first: «И ещё раз, обычно.» не выбирается, когда «обычно» идёт первым', () => {
+  it('pickLine с first: «и ещё раз, обычно» не выбирается, когда «обычно» идёт первым', () => {
     for (let i = 0; i < 80; i++) expect(pickLine('rh_normal', rngFor(`s${i}`), {}, { first: true })).not.toBe('rh_normal')
     expect(new Set(Array.from({ length: 80 }, (_, i) => pickLine('rh_normal', rngFor(`s${i}`), {}))).size).toBe(3)
   })
@@ -142,7 +143,7 @@ describe('варианты реплик Пита', () => {
     expect(new Set(Array.from({ length: 40 }, (_, i) => sessionLine({ seed: `z${i}` }, 'rh_done'))).size).toBe(3)
   })
   it('озвучка по ключу: вариант — отдельная реплика с url, остальные варианты без озвучки', () => {
-    const l = normalizeLines({ lines: { rh_done_b: { text: 'Готово. Берём ещё одну?', url: 'u', duration: 1 } } })
+    const l = normalizeLines({ lines: { rh_done_b: { text: 'ну вот, звучит, берём ещё?', url: 'u', duration: 1 } } })
     expect(linesItems(l)).toEqual([{ key: lineKey('rh_done_b'), url: 'u' }]); expect(missingPitLines(l).map(m => m.id)).toContain('rh_done_c'); expect(missingPitLines(l).map(m => m.id)).not.toContain('rh_done_b')
   })
 })
