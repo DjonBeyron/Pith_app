@@ -48,6 +48,15 @@ describe('buildGameLogSection', () => {
     for (const part of ['probe:gum-call', 'probe:gum-result id=1 ok=true ms=230', 'probe:play-call', 'probe:play-result id=1 ok=false error=NotAllowedError', 'probe:audio-session', 'probe:mic-hold',
       'stage:dictor', 'partial text=try', 'final text=trying', 'pill:claim pill=p1', 'gate on=true', 'note:note', 'event:finish']) expect(text).toContain(part)
   })
+  it('«Режим звука: C — …» — пресет A…H «Шлифовки репетиции» по настройкам из журнала игры; не совпадает ни с одним — свой набор; микрофон не открыт — по настройкам браузера', () => {
+    const d = sampleDump()
+    const withGame = g => buildGameLogSection({ ...d, mic: { game: { ...d.mic.game, ...g } } }).join('\n')
+    expect(withGame({})).toContain('Режим звука: A — Запись+воспр., не глушить, обработка выкл')
+    expect(withGame({ micHoldMode: 'close' })).toContain('Режим звука: C — Запись+воспр., закрывать микрофон на речь Пита')
+    expect(withGame({ audioSessionMode: 'phases', micHoldMode: 'close' })).toContain('Режим звука: F — По фазам, закрывать микрофон')
+    expect(withGame({ audioSessionMode: 'auto', micHoldMode: 'close' })).toContain('Режим звука: свой набор')
+    expect(buildGameLogSection({ ...d, mic: {} }).join('\n')).toContain('Режим звука: ')
+  })
   it('audio-tick — только при смене аудиосессии; уровни, словари и шумные события пробника пропускаются', () => {
     const text = buildGameLogSection(sampleDump()).join('\n')
     expect(text.match(/probe:audio-tick/g)).toHaveLength(2) // play-and-record (первый) и playback (смена)

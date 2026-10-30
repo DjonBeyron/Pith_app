@@ -2,6 +2,7 @@
 // (useWordLaneDebug → getLastWordLaneDump). Нужен потому, что владелец присылает именно этот текстовый журнал, а не JSON «Скачать отладку» из игры. Сюда не попадает ничего тяжёлого:
 // запись голоса (base64) и уровни громкости пропускаются, длинные строки режутся, а сама хронология ограничена MAX_LINES (начало и конец). Чистые функции — проверяются тестами.
 import { diagnoseFirstLine, silentDiagLines } from './modules/rotate-phone/wordLaneSilentDiag.js'
+import { audioModeInfo } from '../rehearsal/polish/audioPresets.js'
 
 export const MAX_LINES = 400      // сколько строк хронологии максимум; больше — начало (HEAD_LINES) и конец, середина свёрнута в одну строку
 export const HEAD_LINES = 100
@@ -74,6 +75,11 @@ function diagLines(events) {
   try { return [...silentDiagLines(diagnoseFirstLine(events)), ''] } catch { return [] }
 }
 
+/** Строка «Режим звука: C — …» (пресеты «Шлифовки репетиции», audioPresets.js): настройки из журнала игры; сбой чтения не ломает журнал */
+function audioModeLine(game) {
+  try { return `Режим звука: ${audioModeInfo({ game }).line}` } catch { return 'Режим звука: не определён' }
+}
+
 /** Строки раздела для журнала плеера; dump — результат getLastWordLaneDump() (или null: игры не было / отладка была выключена) */
 export function buildGameLogSection(dump) {
   const title = '--- Игра «Повтори за диктором» (последний запуск) ---'
@@ -85,6 +91,7 @@ export function buildGameLogSection(dump) {
     `старт: ${dump.startedAt ?? '?'}  фраза: ${dump.phrase || '—'}  перевод: ${dump.translation || '—'}  lang: ${dump.lang || '—'}`,
     `устройство: ${short(dump.device?.ua ?? '')} weak=${dump.device?.weak ?? '?'} экран=${short(dump.device?.screen ?? '')}`,
     `микрофон игры: ${game ? `open=${game.open} platform=${game.platform} processing=${game.processing} audioSession=${game.audioSessionMode} micHold=${game.micHoldMode} tracks=${short(game.tracks)} settings=${short(game.settings)}` : 'не открыт'}`,
+    audioModeLine(game),
     `записано: ${events.length} событий (${countsLine(events)}); вытеснено: ${dump.dropped ?? 0}`,
     ...diagLines(events),
     ...clip(pickEvents(events).map(eventLine)),

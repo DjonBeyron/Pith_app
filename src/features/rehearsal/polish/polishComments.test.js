@@ -129,7 +129,7 @@ describe('снимок экрана', () => {
 describe('снимок настроек', () => {
   const readers = { hud: () => ({ audioSession: 'play-and-record', mic: 'live', vosk: 'готов', version: '9.9.9' }), sessionMode: () => 'auto', micHold: () => 'close', micProcessing: () => true, rewardSound: () => 'meow', rewardVolume: () => 0.35, pillSafe: () => true, tapMode: () => false, voiceRate: () => 0.9, lite: () => false }
   it('всё, от чего зависит «хрип»: тип сессии и режим, дорожка на речь Пита, обработка микрофона, награда, слои, тап, голос, lite, дорожка и Vosk', () => {
-    expect(snapshotSettings(readers)).toEqual({ version: '9.9.9', audioSession: 'play-and-record', audioSessionMode: 'auto', micHold: 'close', micProcessing: true, rewardSound: 'meow', rewardVolume: 0.35, pillSafe: true, tapMode: false, voiceRate: 0.9, lite: false, mic: 'live', vosk: 'готов' })
+    expect(snapshotSettings({ ...readers, launchedPreset: () => 'C' })).toEqual({ version: '9.9.9', audioPreset: expect.objectContaining({ id: 'custom', launched: 'C', custom: true }), audioSession: 'play-and-record', audioSessionMode: 'auto', micHold: 'close', micProcessing: true, rewardSound: 'meow', rewardVolume: 0.35, pillSafe: true, tapMode: false, voiceRate: 0.9, lite: false, mic: 'live', vosk: 'готов' })
   })
   it('сбой одного читателя не ломает снимок', () => {
     const s = snapshotSettings({ ...readers, micHold: () => { throw new Error('x') }, hud: () => { throw new Error('y') } })

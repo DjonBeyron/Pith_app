@@ -4,7 +4,7 @@ import { getCatLines } from '../../../shared/api/catLinesApi.js'
 import { normalizeLines } from '../../player/modules/rotate-phone/wordLaneCatLines.js'
 import { FIXTURES, FIXTURE_IDS } from '../../rehearsal/rehearsalFixtures.js'
 import { parsePlanJson, textRows, fixtureJson } from '../../rehearsal/rehearsalTestForm.js'
-import { pitVoiceCount, voiceMissingPitLines } from '../../rehearsal/rehearsalVoice.js'
+import { pitVoiceCount, voiceMissingPitLines, voiceMissingTexts } from '../../rehearsal/rehearsalVoice.js'
 
 // «Тест игры» → «Репетиция (симуляция)» (CONCEPT_REHEARSAL.md): та же игра, но сценарий «Репетиция с Питом» по плану — фикстура на выбор и JSON плана, который можно править (он запоминается в браузере админа).
 // «Озвучить» — озвучка всех кусков, слов и двойников плана в библиотеку слов (как у кусков в обычном тесте) и реплик Пита (настройки приложения, как в редакторе ноды). «Запустить репетицию» — тот же RotatePhoneModule
@@ -28,11 +28,7 @@ export default function GameTestRehearsal({ form, onChange, lib, generate }) {
   const onDone = useCallback(() => setRuns(n => n + 1), [])
 
   async function voice() {
-    const failed = {}
-    for (const r of missing) {
-      setVoicing(r.key)
-      try { await generate(r.key, r.text) } catch (e) { failed[r.key] = e?.message || String(e) }
-    }
+    const { failed } = await voiceMissingTexts(rows, generate, setVoicing)
     try { await voiceMissingPitLines({ onStep: setVoicing }) } catch (e) { failed.pit = e?.message || String(e) }
     setVoicing(''); setErrors(failed); setRev(n => n + 1)
   }

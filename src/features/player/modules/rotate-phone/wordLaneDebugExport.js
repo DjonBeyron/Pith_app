@@ -4,6 +4,7 @@
 // Как файл попадает к человеку (saveDebugFile → что получилось): 'download' — обычное скачивание (<a download>); 'share' — системное «Поделиться» (iOS Safari, где download ненадёжен);
 // 'tab' — blob открыт в новой вкладке (сохранить оттуда); 'cancelled' — «Поделиться» закрыто; 'failed' — ничего не вышло.
 import { diagnoseFirstLine, silentDiagLines } from './wordLaneSilentDiag.js'
+import { audioModeInfo } from '../../../rehearsal/polish/audioPresets.js'
 
 export const FILE_PREFIX = 'pithy-dictor-debug-'
 export const REVOKE_AFTER_MS = 60000
@@ -43,13 +44,15 @@ export async function prepareAudio(recorder) {
 
 /**
  * Содержимое файла: журнал + audio (первая часть записи) и audioMore (остальные части, если распознаватель переоткрывал микрофон между заходами). audioParts — сколько частей всего.
- * userSaid — «что я говорил» одной строкой (необязательно). silentFirstLine — раздел «Почему первая реплика тихая» (wordLaneSilentDiag.js): вывод по правилам, реплики и временная шкала первых 15 с + готовый текст (text).
+ * userSaid — «что я говорил» одной строкой (необязательно). audioMode — режим звука { id (A…H или custom), launched, title, custom, line }. silentFirstLine — раздел «Почему первая реплика тихая» (wordLaneSilentDiag.js): вывод по правилам, реплики и временная шкала первых 15 с + готовый текст (text).
  */
 export function buildDebugFile({ log, audio = [], userSaid = '', now = new Date() }) {
   const dump = log.dump() ?? {}
   let silentFirstLine = null
   try { const d = diagnoseFirstLine(dump.events); silentFirstLine = { ...d, textLines: silentDiagLines(d) } } catch { /* диагностика не должна ломать выгрузку */ }
-  const body = { ...dump, silentFirstLine, userSaid: String(userSaid ?? '').trim(), exportedAt: now.toISOString(), audioParts: audio.length, audio: audio[0] ?? null, ...(audio.length > 1 ? { audioMore: audio.slice(1) } : {}) }
+  let audioMode = null
+  try { audioMode = audioModeInfo({ game: dump.mic?.game }) } catch { /* режим звука — справка, выгрузку не ломает */ } // пресет A…H «Шлифовки репетиции» или custom (audioPresets.js)
+  const body = { ...dump, silentFirstLine, audioMode, userSaid: String(userSaid ?? '').trim(), exportedAt: now.toISOString(), audioParts: audio.length, audio: audio[0] ?? null, ...(audio.length > 1 ? { audioMore: audio.slice(1) } : {}) }
   const json = JSON.stringify(body)
   const name = debugFileName(now)
   const type = 'application/json'

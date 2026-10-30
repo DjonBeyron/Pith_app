@@ -29,7 +29,7 @@ describe('карточки этапов', () => {
   it('у каждой: «Запустить», «Экспорт комментариев», «Очистить», число комментариев', () => {
     const out = render()
     for (const a of POLISH_ACTS) for (const id of [`rh-polish-run-${a.id}`, `rh-polish-export-${a.id}`, `rh-polish-clear-${a.id}`, `rh-polish-count-${a.id}`]) expect(out).toContain(`data-testid="${id}"`)
-    expect(out.match(/>Запустить</g)).toHaveLength(8); expect(out.match(/>Экспорт комментариев</g)).toHaveLength(8); expect(out.match(/>Очистить</g)).toHaveLength(8)
+    expect(out.match(/>Запустить</g)).toHaveLength(8); expect(out.match(/>Экспорт комментариев</g)).toHaveLength(8); expect(out.match(/>Очистить</g)).toHaveLength(9) // 8 карточек + «Очистить» у журналов прогона
   })
   it('«Готовый шаблон (все этапы)» внизу списка, с пометкой «собираем в конце»', () => {
     const out = render()
@@ -88,8 +88,10 @@ describe('проводка', () => {
     expect(src).toContain('flushSync(() => setOnly(id)); startRef.current?.()')
     expect(src).toContain("import { saveDebugFile, SAVE_HOW } from '../../player/modules/rotate-phone/wordLaneDebugExport.js'")
     expect(src).toContain('const how = await save(commentsFile(id, listComments(id)')
-    expect(src.match(/await /g)).toHaveLength(1) // единственный await — сам save: файл собирается синхронно, в тапе
-    expect(src).toContain('<RotatePhoneModule node={node} bare forceDebug startRef={startRef}')
+    expect(src.match(/await /g)).toHaveLength(2) // два await — оба сам save (комментарии и журналы прогона): файл собирается синхронно, в тапе
+    expect(src).toContain('const how = await save(audio.runsFile())')
+    expect(src).toContain('<RotatePhoneModule key={voice.rev} node={node} bare forceDebug startRef={startRef}')
+    expect(src).toContain('const launch = id => { audio.beforeLaunch(id); flushSync(() => setOnly(id)); startRef.current?.() }') // режим звука применяется до start() игры, в том же тапе
   })
   it('«Тест игры» слушает ту же форму (фикстуру из «Шлифовки») и сохраняет её через общий saveRehearsalForm', () => {
     const t = read('./GameTestBlock.jsx')

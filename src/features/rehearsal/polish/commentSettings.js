@@ -1,9 +1,10 @@
 // Настройки игры в комментарии (кнопка 💬): те, от которых зависит, «почему хрипит звук» — тип аудиосессии iOS (и что выбрано в настройке), глушение дорожки микрофона на речь Пита, обработка микрофона (эхо/шум),
-// звук и громкость награды, безопасные слои пилюль, тап вместо речи, скорость голоса, lite; плюс живое состояние дорожки микрофона и Vosk. Те же источники, что у HUD (WordLaneHud.jsx, wordLaneHudSettings.js).
+// звук и громкость награды, безопасные слои пилюль, тап вместо речи, скорость голоса, lite; плюс живое состояние дорожки микрофона и Vosk и режим звука (пресет A…H, audioPresets.js — или custom, если в игре меняли). Те же источники, что у HUD (WordLaneHud.jsx, wordLaneHudSettings.js).
 // Читатели подставляются в тестах; каждый вызывается через try — сбой одного не ломает комментарий.
 import { APP_VERSION } from '../../../shared/lib/version.js'
 import { isMicProcessingOn, describeGameMic } from '../../../shared/lib/gameMic.js'
 import { readAudioSessionMode, readMicHoldMode } from '../../../shared/lib/gameAudioSettings.js'
+import { audioModeInfo, readSelectedPreset } from './audioPresets.js'
 import { isWeakDevice } from '../../../shared/lib/deviceTier.js'
 import { voskRuntime } from '../../../shared/lib/vosk/voskRuntime.js'
 import { getVoiceRate } from '../../player/lessonVolume.js'
@@ -15,6 +16,7 @@ export const DEFAULT_READERS = {
   sessionMode: readAudioSessionMode,
   micHold: readMicHoldMode,
   micProcessing: isMicProcessingOn,
+  launchedPreset: readSelectedPreset,
   rewardSound: getRewardSound,
   rewardVolume: getRewardVolume,
   pillSafe: readPillSafe,
@@ -26,16 +28,19 @@ export const DEFAULT_READERS = {
 const safe = (fn, fallback = null) => { try { return fn() } catch { return fallback } }
 const pct = v => Math.round((Number(v) || 0) * 100)
 
-/** → { version, audioSession (тип сейчас), audioSessionMode (настройка), micHold, micProcessing, rewardSound, rewardVolume (0…1), pillSafe, tapMode, voiceRate, lite, mic (дорожка), vosk } */
+/** → { version, audioPreset ({ id, launched, title, custom, line }), audioSession (тип сейчас), audioSessionMode (настройка), micHold, micProcessing, rewardSound, rewardVolume (0…1), pillSafe, tapMode, voiceRate, lite, mic (дорожка), vosk } */
 export function snapshotSettings(readers = DEFAULT_READERS) {
   const r = { ...DEFAULT_READERS, ...readers }
   const hud = safe(r.hud, {}) ?? {}
+  const audioSessionMode = safe(r.sessionMode), micHold = safe(r.micHold), micProcessing = !!safe(r.micProcessing, false)
+  const audioPreset = safe(() => audioModeInfo({ game: { audioSessionMode, micHoldMode: micHold, processing: micProcessing }, launched: safe(r.launchedPreset) }))
   return {
     version: hud.version ?? APP_VERSION,
+    audioPreset,
     audioSession: hud.audioSession ?? '—',
-    audioSessionMode: safe(r.sessionMode),
-    micHold: safe(r.micHold),
-    micProcessing: !!safe(r.micProcessing, false),
+    audioSessionMode,
+    micHold,
+    micProcessing,
     rewardSound: safe(r.rewardSound),
     rewardVolume: safe(r.rewardVolume),
     pillSafe: !!safe(r.pillSafe, false),

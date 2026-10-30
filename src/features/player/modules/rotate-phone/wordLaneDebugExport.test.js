@@ -37,6 +37,16 @@ describe('файл выгрузки', () => {
   })
 })
 
+describe('режим звука в выгрузке', () => {
+  it('buildDebugFile: audioMode { id, launched, title, custom, line } по настройкам микрофона игры из журнала (пресет C или свой набор)', () => {
+    const mk = game => createWordLaneDebug({ enabled: true, now: () => 5000, describeMic: () => ({ game }) })
+    const c = JSON.parse(buildDebugFile({ log: mk({ open: true, processing: false, audioSessionMode: 'play-and-record', micHoldMode: 'close' }) }).json)
+    expect(c.audioMode).toMatchObject({ id: 'C', custom: false, line: 'C — Запись+воспр., закрывать микрофон на речь Пита' })
+    const odd = JSON.parse(buildDebugFile({ log: mk({ open: true, processing: true, audioSessionMode: 'auto', micHoldMode: 'none' }) }).json)
+    expect(odd.audioMode).toMatchObject({ id: 'custom', custom: true }); expect(odd.audioMode.line).toContain('свой набор')
+  })
+})
+
 describe('отдать файл', () => {
   const file = { name: 'x.json', blob: new Blob(['{}']), json: '{}' }
   const env = (over = {}) => {

@@ -90,7 +90,7 @@ describe('режим «Репетиция (симуляция)»', () => {
     expect(src).toContain('<RotatePhoneModule key={rev} node={node} bare forceDebug startRef={startRef}')
     expect(src).toContain('onClick={() => startRef.current?.()}')
     expect(src).toContain("runs > 0 ? 'Ещё раз' : 'Запустить репетицию'")
-    expect(src).toContain('generate(r.key, r.text)')
+    expect(src).toContain('voiceMissingTexts(rows, generate, setVoicing)') // куски: generate(key, text) → generateWordAudio (rehearsalVoice.voiceMissingTexts)
     expect(src).toContain('voiceMissingPitLines({ onStep: setVoicing })')
     const block = read('./GameTestBlock.jsx')
     expect(block).toContain('<GameTestRehearsal form={rform} onChange={changeR} lib={lib} generate={generate} />')

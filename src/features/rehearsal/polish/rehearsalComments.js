@@ -1,11 +1,12 @@
 // Комментарии владельца к этапам репетиции («Шлифовка репетиции»): хранение в localStorage браузера (по ключу этапа), экспорт одним JSON-файлом и краткая сводка текстом. Чистые функции без React и DOM — проверяются тестами.
 // Ключ этапа — id из rehearsalOnly.js (intro, warmup, read, build, blind, discern, take, summary): у каждого этапа свой список и свой экспорт. На этап — не больше MAX_COMMENTS комментариев; 51-й вытесняет самый старый.
 // Комментарий: { at (ISO, когда сохранён), t (мс от старта игры до тапа по 💬), stage { act, actTitle, name, sid, type, idx, phase }, text, screen (снимок экрана, commentSnapshot.js), settings (настройки на момент сохранения,
-// commentSettings.js), changes ([{ t, key, label, from, to }] — что менял в окне комментария), log (последние строки журнала игры, commentLog.js) }.
+// commentSettings.js), audioPreset (режим звука на момент сохранения: A…H или custom — { id, atTap, launched, title, custom, changed, line }; переключатели в окне комментария делают его custom), changes ([{ t, key, label, from, to }] — что менял в окне комментария), log (последние строки журнала игры, commentLog.js) }.
 import { ONLY_TITLES } from '../rehearsalOnly.js'
 import { screenLine } from './commentSnapshot.js'
 import { settingsLine } from './commentSettings.js'
 import { lastLogLines } from './commentLog.js'
+import { audioModeInfo, describePreset } from './audioPresets.js'
 
 export const COMMENTS_KEY = 'pithy_rh_comments_v1'
 export const MAX_COMMENTS = 50
@@ -14,9 +15,22 @@ export const EXPORT_VERSION = 1
 const keyOf = act => `${COMMENTS_KEY}:${act}`
 const sec = ms => `${(Math.max(0, Number(ms) || 0) / 1000).toFixed(1)} с`
 
+// Переключатели окна 💬, меняющие режим звука (WordLaneCommentQuick.jsx: key 'session' | 'hold' | 'proc')
+const AUDIO_KEYS = new Set(['session', 'hold', 'proc'])
+
+/** Режим звука комментария: на момент тапа — из settings (commentSettings.js); если в окне менялись сессия / дорожка / обработка — заново из настроек браузера (пресет мог стать custom) */
+function audioPresetOf(settings, changes) {
+  const atTap = settings?.audioPreset
+  if (!atTap) return null
+  let now = atTap
+  if (changes.some(c => AUDIO_KEYS.has(c.key))) { try { now = audioModeInfo({ launched: atTap.launched }) } catch { /* настройки не прочитались — остаётся режим на момент тапа */ } }
+  const changed = now.id !== atTap.id
+  return { ...now, atTap: atTap.id, changed, line: changed ? `${now.line}; в момент тапа было: ${describePreset(atTap.id)}` : now.line }
+}
+
 /** Запись комментария: text — что написал владелец; snap — снимок экрана в момент тапа (commentSnapshot); settings — настройки сейчас; changes — что менял в окне; t — мс от старта игры до тапа; dump — dbg.dump() (журнал) */
 export function makeComment({ text, snap, settings, changes = [], t = 0, dump = null, now = new Date() }) {
-  return { at: now.toISOString(), t: Math.max(0, Math.round(t)), stage: snap?.stage ?? null, text: String(text ?? '').trim(), screen: snap ?? null, settings: settings ?? null, changes, log: lastLogLines(dump) }
+  return { at: now.toISOString(), t: Math.max(0, Math.round(t)), stage: snap?.stage ?? null, text: String(text ?? '').trim(), screen: snap ?? null, settings: settings ?? null, audioPreset: audioPresetOf(settings, changes), changes, log: lastLogLines(dump) }
 }
 
 /** Список комментариев этапа (старые — первыми); нет хранилища / мусор — пусто */
@@ -49,6 +63,7 @@ export function summaryText(act, comments, { version = '', exportedAt = '' } = {
     const where = [c.stage?.actTitle, c.stage?.sid || c.stage?.name].filter(Boolean).join(' / ')
     const lines = [`${i + 1}. [${sec(c.t)} · ${where}] ${String(c.text ?? '').trim() || '(без текста)'}`]
     if (c.screen) lines.push(`   Экран: ${screenLine(c.screen)}`)
+    if (c.audioPreset) lines.push(`   Режим звука: ${c.audioPreset.line}`)
     if (c.settings) lines.push(`   Настройки: ${settingsLine(c.settings)}`)
     if (c.changes?.length) lines.push(`   Менял в комментарии: ${c.changes.map(x => `${x.label} → ${x.to}`).join('; ')}`)
     return lines.join('\n')
