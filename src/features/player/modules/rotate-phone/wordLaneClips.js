@@ -4,8 +4,10 @@
 // по одному <audio> на высказывание, «разбуженному» в тапе «Начать» (play внутри жеста), потом ему подставляется клип. Играет элемент с нулевой отметки — перематывать нечего.
 import { getLessonMuted, getVoiceRate } from '../../lessonVolume.js'
 import { pLog } from '../../../../shared/lib/debug.js'
-import { speechBounds } from './wordLaneTrim.js'
 import { watchPlay } from './wordLanePlayWatch.js'
+import { monoOf, speechOfUrl, decodeBytes, fetchBlob, measureSpeech, dropFetched } from './wordLaneFetch.js'
+
+export { monoOf, speechOfUrl } // скачивание и измерение озвучки — wordLaneFetch.js (качать можно ещё в тапе, до создания слотов)
 
 export const FADE_IN_S = 0.004
 export const FADE_OUT_S = 0.012
@@ -34,14 +36,6 @@ export function sliceToWav(samples, rate, start, end) {
     v.setInt16(44 + i * 2, Math.round(x * 32767), true)
   }
   return new Uint8Array(buf)
-}
-
-/** Моно из AudioBuffer (несколько каналов усредняются) */
-export function monoOf(audioBuffer) {
-  const ch = audioBuffer.numberOfChannels
-  const out = new Float32Array(audioBuffer.length)
-  for (let c = 0; c < ch; c++) { const d = audioBuffer.getChannelData(c); for (let i = 0; i < out.length; i++) out[i] += d[i] / ch }
-  return out
 }
 
 // Слоты звука: по <audio> на каждый звук диктора. Ключ слота: `s:<отрезок>` — клип, вырезанный из записи автора (фраза целиком в финале), `w:<слово>` — озвучка куска из библиотеки озвучки слов
@@ -107,42 +101,23 @@ function attach(set, e, url, own) {
 export const wordSlotKey = key => `w:${key}`
 
 /**
- * Из тапа «Начать» (жест!): слоты для озвучки кусков из библиотеки — items: [{ key (wordKey), url }]. Каждый файл подгружается blob-ом (как слова урока: play() без сети; CORS не пустил — прямая
- * ссылка). Возвращает промис «готово».
+ * Из тапа «Начать» (жест!): слоты для озвучки кусков из библиотеки — items: [{ key (wordKey), url }]. Все слоты создаются и будятся сразу (play тишины — только в жесте), а файлы подгружаются blob-ом
+ * (как слова урока: play() без сети; CORS не пустил — прямая ссылка) через wordLaneFetch: если prefetchWords уже начал качать в тапе, берётся его результат. after — промис, которого дождаться перед скачиванием
+ * (фоновые файлы идут после нужных к старту: реплики Пита, которые зазвучат не сразу, не мешают первому кадру игры). Возвращает промис «готово».
  */
-export function prepareWords(items) {
+export function prepareWords(items, { after = null } = {}) {
   if (typeof Audio === 'undefined' || !items?.length) return Promise.resolve(false)
   let set
   try { set = ensureSlots(); items.forEach(it => wake(wordSlotKey(it.key))) } catch { releaseClips(); return Promise.resolve(false) }
   return Promise.all(items.map(async it => {
     const e = set.els.get(wordSlotKey(it.key))
     try {
-      const res = await fetch(it.url)
-      if (!res.ok) throw new Error(`http ${res.status}`)
-      const blob = await res.blob()
+      if (after) await after.catch(() => {})
+      const blob = await fetchBlob(it.url)
       attach(set, e, URL.createObjectURL(blob), true)
       await measureSpeech(it.url, blob).catch(() => {}) // где в файле звучит голос — не вышло, играем по длине из библиотеки
     } catch { attach(set, e, it.url, false) } // прямая ссылка: браузер докачает при play()
   })).then(() => Promise.all([...set.els.values()].map(e => e.woke)).then(() => true), () => false) // «готово» — когда и скачано, и слоты разбужены тишиной (а не только скачано): игра ждёт именно это
-}
-
-// Где в файле слова звучит голос (wordLaneTrim): { lead, ms } в мс — тишина до слова и длина самого слова без «хвоста». Живёт до перезагрузки: файл библиотеки не меняется
-const speechCache = new Map()
-
-/** Голос в файле по ссылке: { lead, ms } или null (файл ещё не измеряли / не вышло) */
-export const speechOfUrl = url => speechCache.get(url) ?? null
-
-const decodeBytes = async bytes => {
-  const Ctx = typeof window !== 'undefined' ? window.OfflineAudioContext || window.webkitOfflineAudioContext : null
-  return Ctx ? new Ctx(1, 1, 44100).decodeAudioData(bytes) : null
-}
-
-async function measureSpeech(url, blob) {
-  if (speechCache.has(url)) return
-  const audio = await decodeBytes(await blob.arrayBuffer())
-  if (!audio) return
-  const b = speechBounds(monoOf(audio), audio.sampleRate)
-  speechCache.set(url, { lead: Math.round(b.start * 1000), ms: Math.round((b.end - b.start) * 1000) })
 }
 
 /**
@@ -209,6 +184,7 @@ export const clipsState = () => slots?.state ?? 'none'
 
 /** Игра закрыта */
 export function releaseClips() {
+  dropFetched() // и то, что скачано заранее в тапе (prefetchWords), даже если слоты так и не создали (микрофон не дали)
   if (!slots) return
   for (const { a } of slots.els.values()) { try { a.pause(); a.removeAttribute('src') } catch { /* уже свободен */ } }
   for (const u of slots.urls) URL.revokeObjectURL(u)

@@ -4,12 +4,14 @@ import { fillLine } from './rehearsalLines.js'
 import { createJournal, record, nextRunnable, weakLanes } from './rehearsalJournal.js'
 import { reportSession } from './rehearsalSim.js'
 import { useRehearsalTake } from './useRehearsalTake.js'
+import { scheduleMetro } from './rehearsalMetro.js'
+import { hasIntroLine } from './rehearsalPrepare.js'
 import { demoSummary } from './polish/polishDemo.js'
 
 // Директор «Репетиции с Питом» поверх useWordLaneFlow: всё, что сценарию актов нужно сверх обычной игры, — в одном хуке; директору остаются точки подключения (его next / стадии / реакции движка).
 //  • журнал актов (rec ← реакции движка win / miss / fail): по нему решаются повтор ступени сборки, сокращение акта 4 и пропуск «Различи» (nextIdx), подпись слабого слова в «без текста» (hintLanes), итог (reportSession);
 //  • реплики Пита: на старте стадии (stage.line, через busyLeft — ждёт, пока Пит договорит прошлую), «это слово и будем тренировать» на первом промахе разминки; holdMs — плашка акта держится, пока Пит говорит;
-//  • подсветка куска в читке (hl: таймеры по stage.metro), «застрял 3 с» в акте «без текста» (слушатель молчит STUCK_MS — Пит подсказывает первое слово, подпись куска на HINT_LABEL_MS);
+//  • подсветка куска в читке (hl: один таймер по stage.metro, rehearsalMetro.js), «застрял 3 с» в акте «без текста» (слушатель молчит STUCK_MS — Пит подсказывает первое слово, подпись куска на HINT_LABEL_MS);
 //  • дубль и зеркало (акт 5): запись на стадии take и данные экрана mirror (темп, заметка Пита) — useRehearsalTake; на стадии mirror Пит говорит rh_mirror (stage.line);
 //  • итог на экране summary: симуляция памяти и XP (rehearsalSim.js) — один раз, в память сессии и журнал отладки; темп и заметка зеркала идут туда же.
 // Без плана (обычная нода игры) хук ничего не делает: nextIdx / holdMs возвращают то же, что директор взял бы сам.
@@ -27,12 +29,13 @@ export function useRehearsalActs({ plan, stages, stage, at, stageObj, setS, sayL
   const take = useRehearsalTake({ plan, running, at, listenerRef, rate, lang })
   const nextIdx = useCallback(i => (on ? nextRunnable(stages, i, journal) : i), [on, stages, journal]) // стабильна: на ней держится next директора
 
-  // Вступление: Пит говорит про фразу, пока она падает
+  const intro = on && hasIntroLine(plan)
+  // Вступление: Пит говорит про фразу, пока она падает (при запуске одного этапа «Шлифовки» его нет — rehearsalPrepare.hasIntroLine)
   useEffect(() => {
-    if (!on || stage !== 'drop') return undefined
+    if (!on || stage !== 'drop' || !intro) return undefined
     const t = setTimeout(() => sayLine('rh_start'), LINE_AT_MS)
     return () => clearTimeout(t)
-  }, [on, stage, sayLine])
+  }, [on, stage, intro, sayLine])
 
   // Реплика стадии: ждём, пока Пит договорит прошлую
   useEffect(() => {
@@ -42,15 +45,10 @@ export function useRehearsalActs({ plan, stages, stage, at, stageObj, setS, sayL
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [running, at])
 
-  // Подсветка кусков по времени (читка и повтор ученика)
+  // Подсветка кусков по времени (читка и повтор ученика): один таймер на ближайшее событие (rehearsalMetro.js); смена стадии и размонтирование его снимают и гасят подсветку
   useEffect(() => {
-    const metro = running?.metro
-    if (!metro?.length) return undefined
-    const left = t => Math.max(0, t - (performance.now() - at))
-    const ids = metro.map(m => setTimeout(() => setHl(m.chunk), left(m.at)))
-    const last = metro.at(-1)
-    ids.push(setTimeout(() => setHl(-1), left(last.at + last.ms)))
-    return () => { ids.forEach(clearTimeout); setHl(-1) }
+    if (!running?.metro?.length) return undefined
+    return scheduleMetro(running.metro, { start: at, set: setHl })
   }, [running, at])
 
   // «Без текста»: слушатель молчит 3 с — Пит подсказывает первое слово, подпись куска на 2 с

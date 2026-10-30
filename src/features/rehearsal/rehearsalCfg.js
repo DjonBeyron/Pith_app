@@ -1,6 +1,8 @@
 // «Репетиция» → настройки игры в формате readWordLane (wordLaneConfig.js): нода { rotate_phone: { plan } } читается как обычная нода игры, только с cfg.plan. Записи автора и озвучки фразы пока нет (hasAudio: false) —
-// диктор играет куски из библиотеки слов (cfg.extraWords — слова разминки, «Различи» и фразы: их тоже готовит тап «Начать»).
-import { normalizePlan, planTexts } from './rehearsalPlan.js'
+// диктор играет куски из библиотеки слов (cfg.extraWords — слова разминки, «Различи» и фразы: их тоже готовит тап «Начать»; при запуске одного этапа «Шлифовки» — только слова этого этапа, rehearsalPrepare.js;
+// cfg.firstLines — реплики Пита первых секунд: к старту ждём только их, остальные докачиваются фоном).
+import { normalizePlan } from './rehearsalPlan.js'
+import { neededTexts, firstLines } from './rehearsalPrepare.js'
 import { planFor, fixtureIdOf, nextFixture, DEFAULT_FIXTURE } from './rehearsalFixtures.js'
 
 export function readRehearsalCfg(rawPlan) {
@@ -17,7 +19,8 @@ export function readRehearsalCfg(rawPlan) {
     audio: null,
     clips: null,
     confusers: plan.chunks.map(() => []),
-    extraWords: planTexts(plan),
+    extraWords: neededTexts(plan),
+    firstLines: firstLines(plan),
     plan,
   }
 }
