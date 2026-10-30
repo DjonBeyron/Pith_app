@@ -4,7 +4,8 @@ import { unlockPlate } from './wordLanePlateSound.js'
 import { prepareClips, prepareWords, rewakeClips } from './wordLaneClips.js'
 import { playSpan, clipsFor } from './wordLaneAudio.js'
 import { libItems } from './wordLaneLib.js'
-import { linesItems } from './wordLaneCatLines.js'
+import { linesItems, lineKey } from './wordLaneCatLines.js'
+import { prefetchWords } from './wordLaneFetch.js'
 import { rewarmWordElements } from '../../word-audio/wordAudioPlayer.js'
 import { openGameMic } from '../../../../shared/lib/gameMic.js'
 import { gameAudioSession } from '../../../../shared/lib/gameMicSession.js'
@@ -20,19 +21,34 @@ export const WORDS_WAIT_MS = 2500 // сколько максимум ждём п
 // Звук тапа «Начать» игры «Повтори за диктором». ПОРЯДОК ВАЖЕН (iPhone, iOS 18): getUserMedia и смена navigator.audioSession.type переводят аудиосессию в «запись + воспроизведение», и всё, что было
 // разбужено ДО этого, iOS помечает прерванным — play() таких элементов молчит. Раньше звук будился первым, микрофон открывался вторым — и первые куски диктора/кота молчали до следующего тапа
 // (в журнале: «[word-audio] элементы слов сброшены… прерывание аудиосессии» сразу после старта). Теперь, всё ещё в жесте (userActivation живёт ~5 с):
+//  0. скачивание и измерение озвучки (prefetchWords) начинается СРАЗУ и идёт параллельно шагам 1–2: сеть и декодирование аудиосессию не трогают, а раньше стартовали только после settle;
 //  1. тип аудиосессии (gameAudioSession.begin) и микрофон (getUserMedia) — первыми, синхронно в тапе;
 //  2. ждём, пока прерывание уляжется (gameAudioWarm.settle: тишина SETTLE_QUIET_MS и контекст не 'interrupted', потолок SETTLE_MAX_MS);
 //  3. будим звук (wakeGameAudio): синтезатор, слоты слов диктора и кота, запись автора, мяу/ноты, прогретый элемент приложения, слова урока, звуки интерфейса;
-//  4. ждём подготовку озвучки (≤ WORDS_WAIT_MS): длины слов нужны плану диктора. Игра начинается после этого (RotatePhoneModule).
+//  4. ждём подготовку озвучки (≤ WORDS_WAIT_MS): длины слов нужны плану диктора. Игра начинается после этого (RotatePhoneModule). Ждём только НУЖНОЕ К СТАРТУ (wordsPlan.now: слова и реплики первых стадий);
+//     остальные реплики Пита (wordsPlan.late; cfg.firstLines задаёт репетиция) слоты получают в том же тапе, а файлы качаются и измеряются фоном, после нужных, — они не держат старт и не нагружают первые кадры.
 // Каждый шаг помечается в gameStartTrace (тап, mic, settle, wake, ready, tap-wait) — из отметок строится временная шкала «Почему первая реплика тихая» (wordLaneSilentDiag.js); отсрочка первой реплики кота
 // (wordLaneLineGate.js) ждёт отметки ready. settled.activation === false (жест истёк, пока открывался микрофон) → needsTap: RotatePhoneModule показывает «Тапни, чтобы начать» и открывает игру после касания.
 // Прерывание уже в игре (звонок, наушники, режим микрофона «close») снова запускает прогрев (rewakeGameAudio) — сразу, если жест жив, иначе на ближайшем касании (gameAudioWarm).
+
+/**
+ * Что готовить в тапе: { now, late } — [{ key, url }]. now: куски фразы, слова-запутыватели («Различи» — только озвучка), слова репетиции (cfg.extraWords) и озвученные реплики кота, которые прозвучат в начале
+ * (cfg.firstLines — id реплик первых стадий репетиции; нет списка — все реплики, как в обычной игре); late: остальные реплики — слоты будятся сразу, файлы докачиваются фоном
+ */
+export function wordsPlan({ cfg, lines }) {
+  const all = linesItems(lines)
+  const first = cfg.firstLines ? new Set(cfg.firstLines.map(lineKey)) : null
+  const words = libItems([...cfg.chunks, ...cfg.confusers.flat(), ...(cfg.extraWords ?? [])])
+  return { now: [...words, ...all.filter(x => !first || first.has(x.key))], late: first ? all.filter(x => !first.has(x.key)) : [] }
+}
 
 /** Разбудить всё, что играет в игре (только в жесте). Возвращает промис «озвучка кусков готова» */
 export function wakeGameAudio({ cfg, audioSrc, lines }) {
   unlockVoice()
   // Звуки диктора: куски фразы — отдельными файлами из библиотеки озвучки слов (слоты будятся тишиной в жесте), запись автора — только финал (вся фраза; у одного слова — если слова нет в библиотеке)
-  const wordsReady = prepareWords([...libItems([...cfg.chunks, ...cfg.confusers.flat(), ...(cfg.extraWords ?? [])]), ...linesItems(lines)]) // куски фразы, слова-запутыватели («Различи» — только озвучка), слова репетиции (cfg.extraWords) и озвученные реплики кота; заодно измеряется, где в файле звучит голос (без «хвоста»)
+  const { now, late } = wordsPlan({ cfg, lines })
+  const wordsReady = prepareWords(now) // заодно измеряется, где в файле звучит голос (без «хвоста»)
+  if (late.length) prepareWords(late, { after: wordsReady }).catch(() => {}) // фоном, после нужных к старту
   if (cfg.hasAudio && audioSrc) {
     prepareTrack(audioSrc) // запасной путь: общий файл с перемоткой (элемент будится в жесте)
     const n = cfg.chunks.length
@@ -63,11 +79,13 @@ export function rewakeGameAudio({ audioSrc }) {
  * (прерываний, мс, состояние контекста), needsTap — жест истёк и прогрев ждёт касания (игру открывать после тапа). deps — подмена зависимостей в тестах.
  */
 export function startGameAudio({ cfg, audioSrc, lines }, deps = {}) {
-  const { warm = gameAudioWarm, session = gameAudioSession, hold = gameMicHold, openMic = openGameMic, wake = wakeGameAudio, rewake = rewakeGameAudio, wordsWaitMs = WORDS_WAIT_MS, trace = gameStartTrace } = deps
+  const { warm = gameAudioWarm, session = gameAudioSession, hold = gameMicHold, openMic = openGameMic, wake = wakeGameAudio, rewake = rewakeGameAudio, wordsWaitMs = WORDS_WAIT_MS, trace = gameStartTrace, prefetch = prefetchWords } = deps
   trace.begin() // хронология старта: отсчёт от тапа
   warm.begin() // следим за прерываниями с этой секунды
   session.begin() // 1. тип аудиосессии (настройка в Админ → «Голос»): до открытия микрофона, в том же тапе
   const micPromise = openMic() // 1. микрофон: getUserMedia вызывается синхронно в жесте (диалога нет, если доступ уже выдан); один поток на всю игру
+  const plan = wordsPlan({ cfg, lines })
+  prefetch(plan.now).then(() => prefetch(plan.late)) // 0. озвучка качается и измеряется, пока открывается микрофон и улягается сессия (слотов ещё нет — аудиосессию это не трогает)
   return (async () => {
     const mic = await micPromise
     trace.mark('mic', { mic })

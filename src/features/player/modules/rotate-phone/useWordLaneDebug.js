@@ -78,7 +78,7 @@ export function createDebugSession({ enabled, now, weak = null, getStream = () =
       unsub ??= probe.subscribe(take)
     },
     /** Выход из игры (и ложное размонтирование StrictMode): отписаться и остановить запись; финальная выгрузка (prepare) от этого не портится */
-    disarm() { setStudentDebug(null); setCatDebug(null); unsub?.(); unsub = null; recorder.stop() },
+    disarm() { setStudentDebug(null); setCatDebug(null); unsub?.(); unsub = null; probe.release?.(); recorder.stop() },
     /** Финал: запись остановлена, аудио готово к выгрузке (один раз; Promise → части записи [{ mime, base64, startedAtMs }]) */
     prepare() { return (prep ??= Promise.all([recorder.stop(), probe.queryPermission('end')]).then(() => prepareAudio(recorder)).catch(() => [])) },
   }

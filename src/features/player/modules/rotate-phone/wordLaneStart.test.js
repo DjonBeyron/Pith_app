@@ -8,7 +8,7 @@ vi.mock('./wordLaneNotes.js', () => ({ unlockNotes: rec('unlockNotes'), releaseN
 vi.mock('./wordLaneClips.js', () => ({ prepareWords: vi.fn(() => { calls.push('prepareWords'); return Promise.resolve(true) }), prepareClips: rec('prepareClips'), rewakeClips: rec('rewakeClips') }))
 vi.mock('./wordLaneAudio.js', () => ({ playSpan: s => s, clipsFor: () => ({ start: 0, end: 1 }) }))
 vi.mock('./wordLaneLib.js', () => ({ libItems: () => [] }))
-vi.mock('./wordLaneCatLines.js', () => ({ linesItems: () => [] }))
+vi.mock('./wordLaneCatLines.js', () => ({ linesItems: () => [], lineKey: id => `line:${id}` }))
 vi.mock('../../word-audio/wordAudioPlayer.js', () => ({ rewarmWordElements: rec('rewarmWords') }))
 vi.mock('../../../../shared/lib/primedAudio.js', () => ({ primeAudio: rec('primeAudio') }))
 vi.mock('../../../../shared/lib/sounds.js', () => ({ preloadSounds: rec('preloadSounds'), unlockAudio: rec('unlockAudio'), onAudioInterrupted: () => () => {}, soundCtxState: () => null }))

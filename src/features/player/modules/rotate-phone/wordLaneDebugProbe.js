@@ -11,6 +11,7 @@ import { setGameAudioSink } from '../../../../shared/lib/gameAudioSink.js'
 // через приёмник gameAudioSink. Громкость самого воспроизведения без Web Audio (AnalyserNode на iOS ломает звук) видна только в записи микрофона — её RMS по окнам речи считает scripts/dictor-debug-report.mjs.
 export const PROBE_KEEP = 3000
 export const TICK_MS = 500
+export const TICK_ELS = 8 // сколько звучащих элементов описывает один audio-tick (остальные — числом n): запись не растёт вместе с числом слотов
 
 const cut = (s, n = 80) => String(s ?? '').replace(/\s+/g, ' ').slice(0, n)
 const safe = fn => { try { return fn() } catch { return null } }
@@ -99,8 +100,9 @@ export function createProbe({ win = globalThis.window, doc = globalThis.document
   }
   const stopTick = () => { if (ticker) { clearInterval(ticker); ticker = 0 } }
   const tick = () => {
+    for (const el of playing) if (el.paused || el.ended) playing.delete(el) // 'pause' / 'ended' мог прийти РАНЬШЕ 'playing' (разбудка слота: play() и сразу pause()) — без этой проверки элемент жил бы в playing вечно: таймер тикал бы после игры, а каждая игра добавляла бы ещё десятки <audio>
     if (!playing.size) { stopTick(); return }
-    emit('audio-tick', { as: nav?.audioSession?.type ?? null, vis: doc?.visibilityState ?? null, els: [...playing].map(el => ({ el: idOf(el), vol: el.volume, muted: !!el.muted, t: Math.round((el.currentTime ?? 0) * 100) / 100 })) })
+    emit('audio-tick', { as: nav?.audioSession?.type ?? null, vis: doc?.visibilityState ?? null, n: playing.size, els: [...playing].slice(0, TICK_ELS).map(el => ({ el: idOf(el), vol: el.volume, muted: !!el.muted, t: Math.round((el.currentTime ?? 0) * 100) / 100 })) })
   }
   function watchElement(el) {
     if (!el || watched.has(el)) return
@@ -108,7 +110,7 @@ export function createProbe({ win = globalThis.window, doc = globalThis.document
     const stopped = type => () => { emit(type, media(el)); playing.delete(el); if (!playing.size) stopTick() }
     el.addEventListener('playing', () => {
       emit('playing', { ...media(el), first: !firstSound }); if (!firstSound) { firstSound = true; emit('first-sound', { ...media(el) }) }
-      playing.add(el); if (!ticker) ticker = setInterval(tick, TICK_MS)
+      if (!el.paused) { playing.add(el); if (!ticker) ticker = setInterval(tick, TICK_MS) } // уже на паузе (pause пришёл раньше playing) — не звучит, не отслеживаем
     })
     el.addEventListener('volumechange', () => emit('volumechange', media(el)))
     el.addEventListener('ended', stopped('ended'))
@@ -183,6 +185,8 @@ export function createProbe({ win = globalThis.window, doc = globalThis.document
       safe(() => nav.permissions.query({ name: 'microphone' }).then(st => { emit('permission', { tag: 'start', state: st.state }); st.addEventListener?.('change', () => emit('permission', { tag: 'change', state: st.state })) }, () => {}))
     },
     uninstall() { undo.splice(0).reverse().forEach(fn => safe(fn)); installed = false },
+    /** Игра закончилась: список звучащих сброшен, таймер audio-tick остановлен (пробник живёт всю страницу, а элементы игры — нет) */
+    release() { playing.clear(); stopTick() },
     queryPermission,
     setDescribeMic(fn) { describeMic = fn },
     snapshot: () => events.slice(),
