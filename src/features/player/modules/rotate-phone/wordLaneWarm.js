@@ -17,12 +17,14 @@ import { getCatLines } from '../../../../shared/api/catLinesApi.js'
 /** Подпись набора озвучки (куски, слова, первые реплики, адреса реплик): изменилась — готовить заново («Готовлю звук…» на карточке) */
 export const warmSig = (cfg, lines) => JSON.stringify([cfg.chunks, cfg.confusers, cfg.extraWords ?? null, cfg.firstLines ?? null, Object.values(lines ?? {}).map(l => l?.url ?? null)])
 
-/** Карточка показана: качаем и декодируем ВСЮ озвучку сразу (нужное к старту — первым в списке). → промис «готово» (не отклоняется); deps подставляются в тестах */
-export function warmGameSounds({ cfg, lines }, { prefetch = prefetchWords, list = listWordAudio, measure = true, onListed = null, warmOwn = () => { warmRewardBuffers(); warmPlateBuffer() } } = {}) {
+/** Карточка показана (и снова — после каждой игры, пока карточка на экране; и для СЛЕДУЮЩЕГО плана репетиции — пока идёт итог): качаем и декодируем ВСЮ озвучку сразу (нужное к старту — первым в списке). → промис «готово» (не отклоняется); deps подставляются в тестах */
+export function warmGameSounds({ cfg, lines }, { prefetch = prefetchWords, list = listWordAudio, measure = true, onListed = null, onItems = null, warmOwn = () => { warmRewardBuffers(); warmPlateBuffer() } } = {}) {
   if (measure) { try { warmOwn() } catch { /* прогрев только ускоряет */ } } // мяу/ноты и плашка: небольшие буферы, декодируются без жеста (только при Web Audio)
   return Promise.resolve().then(list).catch(() => null).then(() => {
     try { onListed?.() } catch { /* подпись карточки не должна ломать прогрев */ }
-    return prefetch(warmItems(wordsPlan({ cfg, lines })), { measure }) // ВСЁ сразу: сеть параллельна, декодирование по 3 файла; нужное к старту стоит в списке первым
+    const items = warmItems(wordsPlan({ cfg, lines }))
+    try { onItems?.(items) } catch { /* карточка запоминает свои файлы, чтобы отпустить при закрытии */ }
+    return prefetch(items, { measure }) // ВСЁ сразу: сеть параллельна, декодирование по 3 файла; нужное к старту стоит в списке первым
   }).catch(() => undefined)
 }
 

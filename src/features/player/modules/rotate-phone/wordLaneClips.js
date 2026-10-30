@@ -122,13 +122,14 @@ export const wordBufferMs = (key, rate = 1) => bufferMsOf(wordSlotKey(key), rate
 
 export const clipsState = slotsState
 
-/** Игра закрыта (или поставлена на паузу: keepBuffers — декодированные звуки остаются, «Продолжить» не декодирует заново). Всё идущее обрывается, слоты и скачанное отпускаются */
-export function releaseClips({ keepBuffers = false } = {}) {
+/** Игра закрыта (или поставлена на паузу: keepBuffers — декодированные звуки остаются, «Продолжить» не декодирует заново; keepWarm — конец игры при открытой карточке: контекст и слоты отпущены, а скачанное и декодированное остаётся, повторный тап не ждёт прогрев заново, буферы отпускает карточка при закрытии, wordLaneFetch.dropWarmed). Всё идущее обрывается, слоты и скачанное отпускаются */
+export function releaseClips({ keepBuffers = false, keepWarm = false } = {}) {
   generation += 1
   stopGameBuffers()
-  dropFetched() // и то, что скачано заранее в тапе (prefetchWords), даже если слоты так и не создали (микрофон не дали)
+  if (!keepWarm) dropFetched() // и то, что скачано заранее в тапе (prefetchWords), даже если слоты так и не создали (микрофон не дали)
   releaseSlots()
   if (keepBuffers) return
-  dropBuffers(); forgetWordBuffers(); dropSoundBuffers()
+  forgetWordBuffers()
+  if (!keepWarm) { dropBuffers(); dropSoundBuffers() }
   closeGameCtx()
 }

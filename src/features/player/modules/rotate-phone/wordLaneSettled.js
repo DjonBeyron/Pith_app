@@ -14,3 +14,5 @@ export const isSettled = url => state.has(url)
 /** Подписка на каждый обработанный файл. → отписка */
 export function onSettled(cb) { subs.add(cb); return () => subs.delete(cb) }
 export function clearSettled() { state.clear() }
+/** Забыть отметки отдельных файлов (карточка игры закрыта: её набор отпущен, wordLaneFetch.dropWarmed) */
+export function forgetSettled(urls) { for (const u of urls) state.delete(u) }

@@ -21,7 +21,7 @@ describe('createTake: запись и слова', () => {
   it('begin: запись на потоке игры с потолком TAKE_MAX_MS; getUserMedia не зовётся (поток чужой)', () => {
     const record = vi.fn(() => okRec())
     make({ record }).begin(null)
-    expect(record).toHaveBeenCalledWith({ stream, maxMs: TAKE_MAX_MS }); expect(TAKE_MAX_MS).toBe(9000)
+    expect(record).toHaveBeenCalledWith({ stream, maxMs: TAKE_MAX_MS, log: expect.any(Function) }); expect(TAKE_MAX_MS).toBe(9000)
   })
 
   it('finish: слушатель отдаёт итог (flush), запись останавливается, слова приводятся к шкале записи, measure и note — чисто', async () => {
@@ -84,13 +84,13 @@ describe('createTake: сбои записи → зеркало с дикторо
   it('нет потока (getStream бросил / null): запись всё равно пробуется и сообщает сбой; finish не бросает', async () => {
     const record = vi.fn(() => failRec('dead-stream'))
     const r = await failed(record, { getStream: () => { throw new Error('mic') } })
-    expect(record).toHaveBeenCalledWith({ stream: null, maxMs: TAKE_MAX_MS }); expect(r.mirror.note.key).toBe('fail')
+    expect(record).toHaveBeenCalledWith({ stream: null, maxMs: TAKE_MAX_MS, log: expect.any(Function) }); expect(r.mirror.note.key).toBe('fail')
   })
   it('поток-обещание отклонён — запись с null (сбой), не зависание', async () => {
     const record = vi.fn(() => failRec('dead-stream'))
     const t = make({ record, getStream: () => Promise.reject(new Error('denied')) })
     t.begin(null); await Promise.resolve(); await Promise.resolve()
-    expect(record).toHaveBeenCalledWith({ stream: null, maxMs: TAKE_MAX_MS })
+    expect(record).toHaveBeenCalledWith({ stream: null, maxMs: TAKE_MAX_MS, log: expect.any(Function) })
     expect((await t.finish(null)).mirror.note.key).toBe('fail')
   })
   it('запись не отдала файл за STOP_WAIT_MS — сбой timeout', async () => {

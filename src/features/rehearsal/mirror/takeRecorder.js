@@ -3,6 +3,7 @@
 // Сбой записи (нет MediaRecorder, поток мёртв, пустой файл) не бросает из recordTake: handle.ok === false, а stop() отклоняется ошибкой с кодом (err.code: 'no-recorder' | 'dead-stream' | 'failed' | 'empty' | 'cancelled'),
 // чтобы сценарий обрабатывал сбой в одном месте — вокруг await stop().
 import { analyzeBlob } from './mirrorRms.js'
+import { pickTakeMime } from './takeMime.js'
 
 export const MAX_TAKE_MS = 8000
 
@@ -12,9 +13,10 @@ const hasLiveTrack = stream => { try { return !!stream && stream.getTracks().som
 /**
  * recordTake({ stream, maxMs = 8000, mimeType? }) → { ok, error, stop(): Promise<Take>, cancel() }.
  * Take = { blob, url (objectURL), durationMs, rms (0..1, средний RMS голоса по WebAudio) }. stop() можно звать повторно (тот же промис); запись сама останавливается через maxMs — stop() тогда вернёт готовый дубль.
- * deps (для тестов): Recorder (класс вместо MediaRecorder), analyze (вместо decodeAudioData), now.
+ * mimeType не задан — pickTakeMime (формат, который и пишется, и играет в <audio>: на iPhone mp4, а не webm); log(строка) получает «rec-start mime=… (почему)».
+ * deps (для тестов): Recorder (класс вместо MediaRecorder), analyze (вместо decodeAudioData), now, canPlayType.
  */
-export function recordTake({ stream, maxMs = MAX_TAKE_MS, mimeType } = {}, deps = {}) {
+export function recordTake({ stream, maxMs = MAX_TAKE_MS, mimeType, log = () => {} } = {}, deps = {}) {
   const Recorder = deps.Recorder ?? (typeof MediaRecorder !== 'undefined' ? MediaRecorder : null)
   const analyze = deps.analyze ?? analyzeBlob
   const now = deps.now ?? (() => Date.now())
@@ -25,7 +27,9 @@ export function recordTake({ stream, maxMs = MAX_TAKE_MS, mimeType } = {}, deps 
   if (!Recorder) return broken('no-recorder')
   if (!hasLiveTrack(stream)) return broken('dead-stream')
   let rec
+  let why = 'задан вызывающим'
   try {
+    if (!mimeType) ({ mimeType, why } = pickTakeMime({ Recorder, canPlayType: deps.canPlayType }))
     const ok = mimeType && typeof Recorder.isTypeSupported === 'function' ? Recorder.isTypeSupported(mimeType) : !!mimeType
     rec = ok ? new Recorder(stream, { mimeType }) : new Recorder(stream)
   } catch { return broken('failed') }
@@ -50,10 +54,10 @@ export function recordTake({ stream, maxMs = MAX_TAKE_MS, mimeType } = {}, deps 
       const blob = new Blob(parts, { type: rec.mimeType || mimeType || 'audio/webm' })
       if (!blob.size) throw fail('empty')
       const info = await analyze(blob) // длительность из декодированного звука точнее часов: MediaRecorder пишет webm без длины
-      settle.resolve({ blob, url: URL.createObjectURL(blob), durationMs: info?.durationMs ?? Math.max(0, endedAt - startedAt), rms: info?.rms ?? 0 })
+      settle.resolve({ blob, mime: blob.type, url: URL.createObjectURL(blob), durationMs: info?.durationMs ?? Math.max(0, endedAt - startedAt), rms: info?.rms ?? 0 })
     } catch (e) { settle.reject(e?.code ? e : fail('failed', e?.message)) }
   }
-  try { startedAt = now(); rec.start(); timer = setTimeout(halt, Math.max(200, Number(maxMs) || MAX_TAKE_MS)) } catch { return broken('failed') }
+  try { startedAt = now(); rec.start(); try { log(`[take] rec-start mime=${rec.mimeType || mimeType || 'по умолчанию'} (${why})`) } catch { /* журнал не мешает записи */ } timer = setTimeout(halt, Math.max(200, Number(maxMs) || MAX_TAKE_MS)) } catch { return broken('failed') }
 
   return {
     ok: true,

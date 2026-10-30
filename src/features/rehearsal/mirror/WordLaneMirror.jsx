@@ -12,7 +12,7 @@ export default function WordLaneMirror({ dictor, student, chunks, measure, note,
   const failed = !student?.url
   const view = useMemo(() => buildMirrorView({ dictor, student: failed ? null : student, chunks, measure }), [dictor, student, failed, chunks, measure])
   const audioRef = useRef(null)
-  const { phase, lit, start } = useMirrorPlayback({ dictor, student, view, audioRef })
+  const { phase, lit, start, problem } = useMirrorPlayback({ dictor, student, view, audioRef })
   const shown = failed ? FAIL_NOTE : (note?.text ? note : noteFor(measure, chunks))
   const canPlay = !!dictor?.play || !failed
   return (
@@ -20,6 +20,7 @@ export default function WordLaneMirror({ dictor, student, chunks, measure, note,
       <MirrorLane who="Пит" side="dictor" lane={{ ...view.dictor, lit: lit.d }} />
       {view.student && <MirrorLane who="Ты" side="student" lane={{ ...view.student, lit: lit.s }} />}
       {canPlay && <button type="button" className="wlMirBtn" onClick={start} disabled={phase !== 'idle'} data-testid="wl-mirror-compare">{phase !== 'idle' ? '…' : failed ? 'Послушать' : 'Сравнить'}</button>}
+      {problem && <p className="wlMirErr" role="alert" data-testid="wl-mirror-error">{problem}</p>}
       <p className="wlMirNote" data-key={shown.key} data-testid="wl-mirror-note">{shown.text}</p>
       <button type="button" className="wlMirBtn wlMirBtn--main" onClick={onDone} data-testid="wl-mirror-done">Дальше</button>
       {!failed && <audio ref={audioRef} src={student.url} preload="auto" />}

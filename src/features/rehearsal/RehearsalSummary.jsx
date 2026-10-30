@@ -1,9 +1,12 @@
 // Итог репетиции (акт 6): фраза, перевод, темп дубля и заметка Пита (из зеркала), XP (симуляция, rehearsalSim.js), «Ещё минутку?» — следующая фраза, «Готово» — выйти.
 // result — итог симуляции { xp, capped, words, phraseDone, tempo, note } или null, пока не посчитан; onAgain — null, если следующего плана нет.
 // Темп (tempoLabel, rehearsalMirror.js): «×1.3» — речь длиннее, чем у Пита, на 30 %; разница меньше 10 % — «как у Пита»; записи нет — «—».
+import { useEffect } from 'react'
 import { tempoLabel } from './rehearsalMirror.js'
 
-export default function RehearsalSummary({ plan, result, onAgain = null, onDone }) {
+// onShown — итог показан (один раз): карточка игры прогревает озвучку СЛЕДУЮЩЕГО плана, пока ученик читает итог («Ещё минутку?» стартует без ожидания)
+export default function RehearsalSummary({ plan, result, onAgain = null, onShown = null, onDone }) {
+  useEffect(() => { onShown?.() }, []) // eslint-disable-line react-hooks/exhaustive-deps
   return (
     <div className="wlReveal rhScreen rhSummary" data-testid="rh-summary">
       <div className="wlRevealLabel">Фраза твоя</div>

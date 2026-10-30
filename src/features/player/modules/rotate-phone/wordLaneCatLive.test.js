@@ -82,4 +82,9 @@ describe('кот игры — «живой Пит v2» подключён', () =
     expect(flow).toContain('look()?.lineStart()')
     expect(flow).toContain('look()?.lineEnd()')
   })
+  it('хвост кота спрятан (display: none у data-part=tail): при пружине выскакивания он торчал из-под нижнего края рядом с головой, тело (плечи) остаётся', () => {
+    const css = read('../../../../styles/player/modules/word-lane.css').replace(/\/\*[\s\S]*?\*\//g, '')
+    expect(css).toMatch(/\.wlCat \[data-part='tail'\] \{ display: none; \}/)
+    expect(css).not.toMatch(/data-part='body'\] \{ display: none/)
+  })
 })

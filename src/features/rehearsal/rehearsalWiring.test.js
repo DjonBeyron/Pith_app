@@ -83,7 +83,7 @@ describe('игра, модуль, настройки, звук', () => {
     expect(game).toContain("import RehearsalActs from '../../../rehearsal/RehearsalActs.jsx'")
     expect(game).toContain('plan: cfg.plan, forceDebug, onFinished })')
     expect(game).toContain("phase !== 'discern' && !cfg.plan")
-    expect(game).toContain('<RehearsalActs f={f} cfg={cfg} onAgain={onAgain} />')
+    expect(game).toContain('<RehearsalActs f={f} cfg={cfg} onAgain={onAgain} onSummary={onSummary} />')
     expect(game).toContain('data-act={f.rh.on ? f.stageObj?.act : undefined}')
   })
   it('RotatePhoneModule: «Ещё минутку?» — следующий план и перезапуск игры в том же тапе; по концу игры — снова план ноды', () => {

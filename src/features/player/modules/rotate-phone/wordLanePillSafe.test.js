@@ -100,6 +100,14 @@ describe('контур не зависит от data-live / data-lock (оба р
     const sel = rulesOf(pillCss).filter(r => /\bopacity:/.test(r.body) && /\.wlPill(?![A-Za-z])/.test(r.sel) && !/::|\.wlGhost|\.wlPace|\.wlPillFill|\.wlPillLine/.test(r.sel)).map(r => r.sel)
     expect(sel.every(s => /data-fail|data-phase='lanes'/.test(s))).toBe(true)
   })
+  it('припаркованные посреди экрана пилюли (фаза lanes) невидимы: все 12 стопкой дают меньше уровня из 255 (обычный режим, слой не нулевой), в безопасном — opacity 0', () => {
+    const body = rulesOf(pillCss).find(r => r.sel === ".wl[data-phase='lanes'] .wlPill").body
+    const op = Number(/opacity:\s*([\d.]+)/.exec(body)[1])
+    expect(op).toBeGreaterThan(0)                                   // opacity: 0 браузер не растеризует — прогрев слоёв потерял бы смысл
+    expect(1 - (1 - op) ** 12).toBeLessThan(1 / 255)               // раньше 0,01 × 12 ≈ 11 % — на OLED пилюли были видны
+    expect(body).toContain('will-change')
+    expect(rulesOf(safeCss).find(r => r.sel === ".wl[data-phase='lanes'] .wlField.wl--safe .wlPill" && /opacity/.test(r.body)).body).toMatch(/opacity:\s*0\s*;/)
+  })
   it('пул не гасит контур между take и give: ни одной записи opacity / visibility / display пилюле', () => {
     const pool = read('./wordLanePool.js').replace(/\/\/.*$/gm, '')
     expect(pool).not.toMatch(/put\(parts\[k\]\.el, '(opacity|visibility|display|filter)'/)   // тень слова и метка темпа (ghost, pace) — внутри клипа, не контур

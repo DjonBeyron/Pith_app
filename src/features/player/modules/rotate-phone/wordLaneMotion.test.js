@@ -59,7 +59,7 @@ describe('щелчок не сдвигает пилюлю', () => {
 
 describe('подлагивание в начале: прогрев слоёв, статичный кот, счётчик плавности', () => {
   it('в фазе lanes пилюли стоят посреди экрана почти прозрачными — слои растеризуются до выезда первой пилюли', () => {
-    expect(css).toMatch(/\.wl\[data-phase='lanes'\] \.wlPill \{[^}]*translate: -50% calc\(50dvh - 50%\);[^}]*opacity: 0\.01/)
+    expect(css).toMatch(/\.wl\[data-phase='lanes'\] \.wlPill \{[^}]*translate: -50% calc\(50dvh - 50%\);[^}]*opacity: 0\.0002/)   // не 0,01: 12 пилюль стопкой давали ≈ 11 % и были видны на OLED (wordLanePillSafe.test.js)
   })
   it('кот без идл-анимаций SVG (scn--live) — они идут в основном потоке; «живой Пит v2» (scn--v2) включён, на слабом устройстве добавляется scn--lite', () => {
     expect(read('./WordLaneCat.jsx')).toContain("className={`scn scn--v2 wlCat${lite ? ' scn--lite' : ''}`}")

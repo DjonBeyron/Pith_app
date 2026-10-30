@@ -144,13 +144,13 @@ export function useWordLaneFlow({ chunks, translation, lang, clips = null, audio
   const finish = useCallback(() => {
     if (finishedRef.current) return
     finishedRef.current = true; dbg.event('finish')
-    stopVoice(); releaseNotes(); releaseClips(); clearTimers(); endGameAudio(); closeGameMic()
+    stopVoice(); releaseNotes(); releaseClips({ keepWarm: true }); clearTimers(); endGameAudio(); closeGameMic()
     listenerRef.current?.dispose()
     onFinished?.()
   }, [onFinished, clearTimers, dbg])
 
   useGameAudioModes(() => setMicEpoch(e => e + 1)) // режимы проверки на iPhone: тип аудиосессии и глушение дорожки на время речи (useGameAudioModes)
-  useEffect(() => () => { closeGameMic(); stopVoice(); releaseNotes(); releaseClips(); clearTimeout(noteTimerRef.current); clearTimeout(hintTimerRef.current); timersRef.current.forEach(clearTimeout); listenerRef.current?.dispose() }, [])
+  useEffect(() => () => { closeGameMic(); stopVoice(); releaseNotes(); releaseClips({ keepWarm: true }); clearTimeout(noteTimerRef.current); clearTimeout(hintTimerRef.current); timersRef.current.forEach(clearTimeout); listenerRef.current?.dispose() }, [])
 
   // Вступление
   useEffect(() => {

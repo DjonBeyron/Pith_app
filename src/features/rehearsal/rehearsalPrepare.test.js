@@ -45,7 +45,7 @@ describe('hasIntroLine: вступление Пита', () => {
 })
 
 describe('firstLines: реплики Пита первых секунд', () => {
-  it('вступление и реплика первого акта; у итога — «Фраза твоя»; у заставки — только вступление', () => {
+  it('вступление и реплика первого акта; у итога — «Отлично, получилось!»; у заставки — только вступление', () => {
     expect(firstLines(base)).toEqual(['rh_start', 'rh_warmup'])
     expect(firstLines(withOnly('read'))).toEqual(['rh_read_why']) // один этап «Шлифовки»: без вступления
     expect(firstLines(withOnly('build'))).toEqual(['rh_build'])
