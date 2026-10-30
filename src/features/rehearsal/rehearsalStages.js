@@ -90,7 +90,8 @@ export function buildRehearsalStages({ plan, rate = 1, lib = () => null }) {
         push({ type: 'discern', act: 'discern', sid: `discern-${i}`, round: { kind: 'discern', title: 'Различи' }, prompts: discernPrompts([w.text], 0, w.confusers).map(p => ({ ...p, text: w.text })), sayText: w.text, cond: act.cond })
         wordStage('discern', { ...w, lane: n === 1 ? 1 : w.lane >= 0 ? w.lane : 1, translation: '' }, `discern-say-${i}`, 1, { cond: act.cond, noLabel: true, hintWord: w.text }) // потом слово надо сказать (словарь — тройка)
       })
-    } else if (act.id === 'take') {
+    } else if (act.id === 'intro') announce(act, { line: null }) // «Шлифовка → Заставка»: плашка, потом финал игры
+    else if (act.id === 'take') {
       announce(act, { title: 'Дубль. Три, два, один…', ms: RH_TAKE_MS })
       push({ type: 'take', act: 'take', sid: 'take', step: stepOf('take', act.parts, { labels: [], record: true }) }) // record: слушатель без затвора тишины (паузы между кусками должны остаться паузами) и сразу начинает следующий заход
     } else push({ type: act.id, act: act.id, sid: act.id, line: act.line }) // mirror: реплика Пита «Слушаем: сначала я, потом ты.»; summary: без реплики (её говорит директор актов)

@@ -149,7 +149,7 @@ function RotateLive({ node, file, onDone, forceDebug, bare, startRef, onStatus }
   }, [startRef, start])
   useEffect(() => { onStatus?.({ phase, busy, ready, problem }) }, [onStatus, phase, busy, ready, problem])
 
-  const game = phase === 'game' && <WordLaneGame key={gameKey} cfg={cfg} audioSrc={cfg.hasAudio ? audioSrc : null} lines={lines} forceDebug={forceDebug} onRestart={restart} onAgain={cfg.plan ? another : null} onFinished={finished} />
+  const game = phase === 'game' && <WordLaneGame key={gameKey} cfg={cfg} audioSrc={cfg.hasAudio ? audioSrc : null} lines={lines} forceDebug={forceDebug} onRestart={restart} onAgain={cfg.plan && !cfg.plan.only ? another : null} onFinished={finished} />
   const extra = (
     <>
       {phase === 'tap' && <RotateTapHint onTap={tapped} />}

@@ -9,6 +9,7 @@
 //  6 summary        — итог.
 // Правила пропуска: нет озвучки кусков — читка без подсветки; промахов ≥ MANY_MISSES к акту 4 — акт 4 один раз и без 4а; одно слово — акты 1 и 3 схлопываются в «слово ×2», акт 2 пропускается.
 import { warmupWords, discernWords, wordsOfChunk } from './rehearsalPlan.js'
+import { pickActs } from './rehearsalOnly.js'
 
 export const MANY_MISSES = 3                       // столько промахов до акта 4 — и он сокращается, а «Различи» пропускается
 export const PRE_BLIND_ACTS = ['warmup', 'word', 'read', 'build']  // акты, чьи промахи считаются «к акту 4»
@@ -24,10 +25,10 @@ export function backSteps(n) {
 
 /**
  * @param {object} plan — нормализованный RehearsalPlan
- * @param {{ hasVoice?: boolean }} o — hasVoice: хотя бы один кусок озвучен в библиотеке (без озвучки читка идёт без подсветки)
+ * @param {{ hasVoice?: boolean, only?: string }} o — hasVoice: хотя бы один кусок озвучен в библиотеке (без озвучки читка идёт без подсветки); only: этап шлифовки (rehearsalOnly.js) — оставить акты только его (по умолчанию plan.only)
  * @returns {{ plan, acts: object[] }}
  */
-export function buildActs(plan, { hasVoice = true } = {}) {
+export function buildActs(plan, { hasVoice = true, only = plan.only } = {}) {
   const { chunks } = plan
   const n = chunks.length
   const all = chunks.map((_, i) => i)
@@ -57,5 +58,5 @@ export function buildActs(plan, { hasVoice = true } = {}) {
   acts.push({ id: 'take', title: 'Дубль', line: 'rh_take', parts: all })
   acts.push({ id: 'mirror', title: 'Зеркало', line: 'rh_mirror' })
   acts.push({ id: 'summary', title: 'Итог' })
-  return { plan, acts }
+  return { plan, acts: pickActs(acts, only) } // only: «Шлифовка репетиции» — один этап вместо всего сценария
 }

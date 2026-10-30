@@ -20,8 +20,13 @@ export function loadRehearsalForm(store = globalThis.localStorage) {
     return { mode: MODES.includes(v?.mode) ? v.mode : d.mode, fixture, json: typeof v?.json === 'string' && v.json.trim() ? v.json : fixtureJson(fixture) }
   } catch { return d }
 }
+// Подписчики формы: «Тест игры» и «Шлифовка репетиции» (Админ → «Голос») читают одну и ту же форму (фикстуру и JSON плана) — кто сохранил, тот оповещает другого
+const listeners = new Set()
+export function subscribeRehearsalForm(fn) { listeners.add(fn); return () => { listeners.delete(fn) } }
+
 export function saveRehearsalForm(form, store = globalThis.localStorage) {
   try { store?.setItem(REHEARSAL_TEST_KEY, JSON.stringify(form)) } catch { /* приватный режим — живёт до перезагрузки */ }
+  listeners.forEach(fn => { try { fn(form) } catch { /* подписчик не должен мешать сохранению */ } })
 }
 
 /** Текст JSON → { plan, error }: нормализованный план или понятная ошибка (не JSON / нет ни одного куска) */

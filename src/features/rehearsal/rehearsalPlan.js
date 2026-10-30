@@ -5,6 +5,7 @@
 //     stressed: [номера ударных кусков, пока вручную], audio: { phrase: { url, timings } | null, words: 'lib' }, source: 'sim' | 'memory' | 'node' }
 import { parsePhrase, normText, MAX_CONFUSERS } from '../player/modules/rotate-phone/wordLaneRecipe.js'
 import { SLOT_COUNT } from '../player/modules/rotate-phone/wordLaneTimeline.js'
+import { ONLY_IDS } from './rehearsalOnly.js'
 
 export const SOURCES = ['sim', 'memory', 'node']
 export const MAX_PLAN_WORDS = 8
@@ -46,6 +47,7 @@ export function normalizePlan(raw) {
     stressed,
     audio: { phrase: phrase && typeof phrase.url === 'string' && phrase.url ? { url: phrase.url, timings: Array.isArray(phrase.timings) ? phrase.timings : [] } : null, words: 'lib' },
     source: SOURCES.includes(raw.source) ? raw.source : 'node',
+    ...(ONLY_IDS.includes(raw.only) ? { only: raw.only } : {}), // «Шлифовка репетиции»: играть только этот этап (rehearsalOnly.js)
   }
 }
 

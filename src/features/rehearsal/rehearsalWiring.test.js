@@ -91,7 +91,7 @@ describe('игра, модуль, настройки, звук', () => {
     expect(mod).toContain("import { nextPlan } from '../../../rehearsal/rehearsalCfg.js'")
     expect(mod).toContain('const cfg = useMemo(() => (plan ? readWordLane({ plan }) : nodeCfg), [plan, nodeCfg])')
     expect(mod).toContain('flushSync(() => { setPlan(next); setGameKey(k => k + 1) })')
-    expect(mod).toContain('onAgain={cfg.plan ? another : null}')
+    expect(mod).toContain('onAgain={cfg.plan && !cfg.plan.only ? another : null}')
     expect(mod).toContain('leaveFullscreen(); setPlan(null)')
   })
   it('readWordLane принимает rotate_phone.plan; тап «Начать» готовит слова репетиции; реплики Пита — в каталоге реплик кота', () => {
