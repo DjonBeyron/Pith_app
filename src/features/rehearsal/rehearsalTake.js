@@ -28,7 +28,7 @@ export function createTake({ chunks, rate = 1, lang, getStream, record = recordT
       const start = stream => {
         if (over || rec) return
         at = now()
-        rec = record({ stream, maxMs: TAKE_MAX_MS })
+        rec = record({ stream, maxMs: TAKE_MAX_MS, log })
         if (!rec.ok) log(`[rehearsal] запись дубля не началась: ${rec.error}`)
       }
       let mic = null

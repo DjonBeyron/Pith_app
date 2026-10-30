@@ -8,7 +8,7 @@
 //  • prefetchWords(items) — при показе карточки игры, в начале урока и в тапе: скачать и измерить, ничего не создавая (слоты создаёт и будит prepareWords позже, в жесте); dropFetched() — игра закрыта, скачанное отпускаем (измерения живут до перезагрузки).
 import { speechBounds } from './wordLaneTrim.js'
 import { webAudioOn } from '../../../../shared/lib/gameAudioCtx.js'
-import { settle, clearSettled } from './wordLaneSettled.js'
+import { settle, clearSettled, forgetSettled } from './wordLaneSettled.js'
 
 export const MEASURE_PARALLEL = 3 // сколько файлов измеряется (декодируется) одновременно
 export const MEASURE_BREATH_MS = 0 // передышка основному потоку после каждого замера
@@ -31,6 +31,9 @@ const longFiles = new Set()   // адреса, которые не станут 
 export const bufferOfUrl = url => bufferCache.get(url) ?? null
 /** Игра закрыта: буферы отпускаются (измерения голоса остаются до перезагрузки) */
 export function dropBuffers() { bufferCache.clear(); longFiles.clear(); clearSettled() }
+
+/** Карточка игры закрыта: отпускаются только её файлы (буферы, скачанное, отметки «обработан»); прогрев чужой карточки остаётся */
+export function dropWarmed(urls) { for (const u of urls) { bufferCache.delete(u); longFiles.delete(u); blobs.delete(u) } forgetSettled(urls) }
 
 /** Голос в файле по ссылке: { lead, ms } или null (файл ещё не измеряли / не вышло) */
 export const speechOfUrl = url => speechCache.get(url) ?? null

@@ -70,6 +70,8 @@
 .wlMirNote[data-key='fail'] { border-left-color: #c26a6a; }
 .wlMirNote[data-key='fail']::before { color: #c26a6a; }
 
+.wlMirErr { margin: 0; padding: 10px 14px; border-left: 3px solid #c26a6a; border-radius: 12px; background: var(--wl-card); color: #e8b4b4; font-size: 14px; line-height: 1.4; } /* запись не играет ни в <audio>, ни буфером (useMirrorPlayback.NO_PLAY_TEXT) */
+
 /* Демо-блок админки (MirrorDemoBlock.jsx): экран зеркала в рамке ширины телефона */
 .wlMirDemoFrame { max-width: 420px; margin: 10px 0; border: 1px solid #2a2e37; border-radius: 16px; overflow: hidden; }
 

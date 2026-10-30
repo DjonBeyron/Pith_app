@@ -5,7 +5,7 @@ import RehearsalSummary from './RehearsalSummary.jsx'
 // это подписи дорожек (labelsFor → rehearsalStages.labelsForRehearsal), их рисует сама игра. Здесь: перевод фразы под падающей фразой (заставка), ярлык-плашка «Чётко — для последнего ряда» / «Обычно» над дорожками
 // ОДНОЙ строкой с многоточием (решение владельца: подпись не на пилюле, §6 п. 4), экран зеркала (WordLaneMirror из mirror/: две полосы «Пит / Ты», «Сравнить», одна заметка; данные — rh.mirror от useRehearsalTake) и экран итога.
 // Не репетиция (f.rh.on = false) — ничего не рисует.
-export default function RehearsalActs({ f, cfg, onAgain = null }) {
+export default function RehearsalActs({ f, cfg, onAgain = null, onSummary = null }) {
   const rh = f.rh
   if (!rh?.on) return null
   const type = f.stage === 'run' ? f.stageObj?.type : null
@@ -19,7 +19,7 @@ export default function RehearsalActs({ f, cfg, onAgain = null }) {
           <WordLaneMirror dictor={rh.mirror.dictor} student={rh.mirror.student} chunks={cfg.plan.chunks} measure={rh.mirror.measure} note={rh.mirror.note} onDone={f.next} />
         </div>
       )}
-      {type === 'summary' && <RehearsalSummary plan={cfg.plan} result={rh.result} onAgain={onAgain} onDone={f.finish} />}
+      {type === 'summary' && <RehearsalSummary plan={cfg.plan} result={rh.result} onAgain={onAgain} onShown={onSummary} onDone={f.finish} />}
     </>
   )
 }

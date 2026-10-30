@@ -23,6 +23,7 @@
 }
 .wlField.wl--safe .wlPill::before { display: none; }          /* «выдоха» кольца в безопасном режиме нет */
 .wl[data-phase='lanes'] .wlField.wl--safe .wlPill { will-change: auto; }
+.wl[data-phase='lanes'] .wlField.wl--safe .wlPill { opacity: 0; }       /* слоёв в безопасном режиме нет — прогревать нечего, припаркованные посреди экрана пилюли невидимы совсем (без остаточных 0,0002) */
 .wlField.wl--safe .wlPill[data-held] { transform: translateZ(0); }
 .wlField.wl--safe .wlPill[data-voice] { filter: none; transition: none; --glow: 0 0 14px 3px rgba(var(--rgb), 0.9); }
 .wlField.wl--safe .wlPill[data-fail] { opacity: 1; transition: none; --rgb: 123, 132, 148; --c: #7b8494; }   /* «не успел»: серая, но целая — контур не гаснет */

@@ -16,6 +16,7 @@ describe('каталог реплик Пита', () => {
     const t = Object.fromEntries(REHEARSAL_LINES.map(l => [l.id, l.text]))
     expect(t.rh_read_why).toContain('Слушай ритм, не слова — так фраза звучит по-настоящему') // решение владельца §6 п. 2
     expect(t.rh_clear).toBe('А теперь чётко — как для последнего ряда.'); expect(t.rh_normal).toBe('И ещё раз, обычно.')
+    expect(t.rh_done).toBe('Отлично, получилось! Ещё одну?') // решение владельца: сказать проще
     expect(t.rh_blind_hint).toContain('{word}'); expect(t.rh_take).toBe('Дубль. Три, два, один…')
     expect(REHEARSAL_LINES.every(l => l.text.length <= MAX_LINE_CHARS && l.when)).toBe(true)
   })

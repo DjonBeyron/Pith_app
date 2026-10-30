@@ -54,7 +54,7 @@ export function takeWordsOf(listeners, recAt) {
 
 /** Всё для экрана «зеркало»: take — { url, durationMs, rms } | null; words — takeWordsOf; dictor — makeMirrorDictor; dictorRms — громкость файлов диктора или null */
 export function buildMirror({ chunks, take, words = [], dictor, dictorRms = null }) {
-  const student = take ? { url: take.url, words, durationMs: take.durationMs, rms: take.rms, unit: 'ms' } : null
+  const student = take ? { url: take.url, blob: take.blob ?? null, words, durationMs: take.durationMs, rms: take.rms, unit: 'ms' } : null
   const measure = student ? measureTake({ dictor: { words: dictor.words, durationMs: dictor.durationMs, rms: dictorRms ?? undefined }, student, chunks }) : null
   return { dictor, student, measure, note: noteFor(measure, chunks), tempo: measure?.tempo ?? null }
 }

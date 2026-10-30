@@ -33,7 +33,7 @@ const FAIL_TEXT = {
   sub: 'Распознавание речи не запустилось: нет модели или микрофон не открылся. Проверь доступ к микрофону и попробуй ещё раз.',
 }
 
-export default function WordLaneGame({ cfg, audioSrc, lines = null, forceDebug = false, onRestart = null, onAgain = null, onFinished }) {
+export default function WordLaneGame({ cfg, audioSrc, lines = null, forceDebug = false, onRestart = null, onAgain = null, onSummary = null, onFinished }) {
   const rootRef = useRef(null)
   const [tapMode, setTapMode] = useState(readTapMode) // «тап вместо речи» (HUD, админ): тап по дорожке в очереди ученика засчитывает следующую цель — проверка механики и анимаций без голоса
   const [safe0] = useState(readPillSafe) // «безопасные слои пилюль» (HUD): класс только на старте, дальше его меняет сам HUD через classList — className не меняется, React его не трогает
@@ -73,7 +73,7 @@ export default function WordLaneGame({ cfg, audioSrc, lines = null, forceDebug =
             {f.dbg.enabled && <WordLaneDebugButton dbg={f.dbg} />}
           </div>
         )}
-        <RehearsalActs f={f} cfg={cfg} onAgain={onAgain} />
+        <RehearsalActs f={f} cfg={cfg} onAgain={onAgain} onSummary={onSummary} />
         {debug && <WordLaneDebug />}
         {debug && <WordLanePerf />}
         <Mic mode={f.mic} levels={f.levels} note={f.note} visible={phase === 'student'} />

@@ -66,7 +66,8 @@ describe('подключение', () => {
   it('карточка игры: качает при показе, пока качается — «Готовлю звук…» (кнопку «Начать» не блокирует); в тапе prefetch берёт те же скачанные файлы', () => {
     const mod = read('./RotatePhoneModule.jsx')
     expect(mod).toContain("import { warmGameSounds, warmSig } from './wordLaneWarm.js'")
-    expect(mod).toContain('warmGameSounds({ cfg, lines }, { onListed: () => setListed(sig) })')
+    expect(mod).toContain('warmGameSounds({ cfg: c, lines }, { onItems:')
+    expect(mod).toContain("if (phase === 'wait') warm(cfg, { onListed: () => setListed(sig) })") // и после каждой игры (wordLaneWarmRepeat.test.js)
     expect(mod).toContain("phase === 'wait' && !wp.all && <WordLaneWarmBar wp={wp} />")
     expect(mod).toContain("label={phase === 'wait' && !wp.open ? wp.label : null}") // кнопка: «Готовлю звук… 7/15», пока ворота закрыты
     expect(mod).toContain('disabled={busy || locked}') // прогрев в блокировку не входит: тап разрешён, игра ждёт ворота

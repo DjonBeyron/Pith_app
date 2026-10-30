@@ -12,6 +12,7 @@ import { nextPlan } from '../../../rehearsal/rehearsalCfg.js'
 import { stopVoice } from './wordLaneVoice.js'
 import { releaseNotes } from './wordLaneNotes.js'
 import { releaseClips } from './wordLaneClips.js'
+import { dropWarmed } from './wordLaneFetch.js'
 import { normalizeLines } from './wordLaneCatLines.js'
 import { startGameAudio } from './wordLaneStart.js'
 import { warmGameSounds, warmSig } from './wordLaneWarm.js'
@@ -96,11 +97,16 @@ function RotateLive({ node, file, onDone, forceDebug, bare, startRef, onStatus }
   // игра ждёт ворота в startGameAudio (не дольше 8 с с тапа). Остальные файлы докачиваются фоном.
   const sig = useMemo(() => warmSig(cfg, lines), [cfg, lines])
   const [listed, setListed] = useState('') // подпись набора, для которого библиотека слов уже спрошена (до этого слов в плане нет, и «0 из 0» выглядело бы готовым)
-  useEffect(() => { warmGameSounds({ cfg, lines }, { onListed: () => setListed(sig) }) }, [cfg, lines, sig])
+  // Прогрев — и после КАЖДОЙ игры (phase снова 'wait'), и для следующего плана «Ещё минутку?» (пока идёт итог): буферы держим до закрытия карточки (releaseClips keepWarm, dropWarmed)
+  const warmed = useRef(new Set()) // адреса, которые прогрела эта карточка: при закрытии отпускаются только они
+  const warm = useCallback((c, opts = {}) => warmGameSounds({ cfg: c, lines }, { onItems: items => items.forEach(i => warmed.current.add(i.url)), ...opts }), [lines])
+  useEffect(() => { if (phase === 'wait') warm(cfg, { onListed: () => setListed(sig) }) }, [cfg, sig, phase, warm])
+  useEffect(() => () => dropWarmed([...warmed.current]), [])
+  const prewarmNext = useCallback(() => { const next = nextPlan(cfg.plan); if (next) warm(readWordLane({ plan: next })) }, [cfg, warm])
   const wp = useWarmProgress(cfg, lines, listed === sig)
 
   /** Не стартовали (микрофон не дали): отпустить всё, что подняли в жесте */
-  const abortGame = useCallback(() => { stopVoice(); releaseNotes(); releaseClips(); endGameAudio(); closeGameMic(); leaveFullscreen() }, [])
+  const abortGame = useCallback(() => { stopVoice(); releaseNotes(); releaseClips({ keepWarm: true }); endGameAudio(); closeGameMic(); leaveFullscreen() }, [])
 
   const start = useCallback(async () => {
     if (busy || phase !== 'wait' || !ready) return
@@ -158,7 +164,7 @@ function RotateLive({ node, file, onDone, forceDebug, bare, startRef, onStatus }
   }, [startRef, start])
   useEffect(() => { onStatus?.({ phase, busy, ready, problem, warm: wp.open ? '' : wp.label }) }, [onStatus, phase, busy, ready, problem, wp.open, wp.label])
 
-  const game = phase === 'game' && <WordLaneGame key={gameKey} cfg={cfg} audioSrc={cfg.hasAudio ? audioSrc : null} lines={lines} forceDebug={forceDebug} onRestart={restart} onAgain={cfg.plan && !cfg.plan.only ? another : null} onFinished={finished} />
+  const game = phase === 'game' && <WordLaneGame key={gameKey} cfg={cfg} audioSrc={cfg.hasAudio ? audioSrc : null} lines={lines} forceDebug={forceDebug} onRestart={restart} onAgain={cfg.plan && !cfg.plan.only ? another : null} onSummary={cfg.plan && !cfg.plan.only ? prewarmNext : null} onFinished={finished} />
   const extra = (
     <>
       {phase === 'tap' && <RotateTapHint onTap={tapped} />}
