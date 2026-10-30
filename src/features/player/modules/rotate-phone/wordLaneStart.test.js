@@ -93,6 +93,62 @@ describe('startGameAudio: порядок в жесте', () => {
   })
 })
 
+describe('startGameAudio: хронология и «Тапни, чтобы начать»', () => {
+  const marks = d => d.trace.mark.mock.calls.map(c => c[0])
+  const withTrace = over => deps({ trace: { begin: vi.fn(() => calls.push('trace.begin')), mark: vi.fn(), setNeedsTap: vi.fn() }, ...over })
+
+  it('хронология идёт от тапа: trace.begin — первым, дальше mic → settle → wake → ready; прогрев «готов» только после ожидания озвучки', async () => {
+    const d = withTrace()
+    const p = startGameAudio({ cfg, audioSrc: null, lines: null }, d)
+    expect(calls[0]).toBe('trace.begin')
+    const r = await p
+    expect(marks(d)).toEqual(['mic', 'settle', 'wake', 'ready'])
+    expect(d.trace.mark).toHaveBeenCalledWith('mic', { mic: 'granted' })
+    expect(d.trace.mark).toHaveBeenCalledWith('ready', { words: 'ready' })
+    expect(r.needsTap).toBe(false)
+  })
+
+  it('озвучка кусков не успела за WORDS_WAIT_MS — ready с words: timeout (игра не ждёт дольше), сбой пробуждения — wake ok: false', async () => {
+    vi.useFakeTimers()
+    const d = withTrace({ wake: vi.fn(() => new Promise(() => {})) })
+    startGameAudio({ cfg, audioSrc: null, lines: null }, d)
+    await vi.advanceTimersByTimeAsync(WORDS_WAIT_MS + 20)
+    expect(d.trace.mark).toHaveBeenCalledWith('ready', { words: 'timeout' })
+    vi.useRealTimers()
+    const bad = withTrace({ wake: vi.fn(() => { throw new Error('boom') }) })
+    await startGameAudio({ cfg, audioSrc: null, lines: null }, bad)
+    expect(bad.trace.mark).toHaveBeenCalledWith('wake', { ok: false, error: 'boom' })
+  })
+
+  it('жест истёк до прогрева (settled.activation === false): needsTap, отметка tap-wait, прогрев ждёт касания; игра открывается после тапа', async () => {
+    const d = withTrace()
+    d.warm.settle = vi.fn(() => Promise.resolve({ interrupts: 0, waitedMs: 900, activation: false }))
+    const r = await startGameAudio({ cfg, audioSrc: null, lines: null }, d)
+    expect(r.needsTap).toBe(true)
+    expect(d.warm.rewarmOnGesture).toHaveBeenCalledTimes(1)
+    expect(d.trace.setNeedsTap).toHaveBeenCalledWith(true)
+    expect(marks(d)).toContain('tap-wait')
+    expect(d.trace.mark).toHaveBeenCalledWith('settle', expect.objectContaining({ activation: false, waitedMs: 900 }))
+  })
+})
+
+describe('RotatePhoneModule: «Тапни, чтобы начать»', () => {
+  it('needsTap → фаза tap с RotateTapHint (портал поверх игры), касание: прогрев в жесте, если слушатель касаний ещё не сработал, и только потом фаза game', async () => {
+    const { readFileSync } = await import('node:fs')
+    const src = readFileSync(new URL('./RotatePhoneModule.jsx', import.meta.url), 'utf8')
+    expect(src).toContain('const { mic, needsTap } = await startGameAudio({ cfg, audioSrc, lines })')
+    expect(src).toContain("setPhase(needsTap ? 'tap' : 'game')")
+    expect(src).toContain("{phase === 'tap' && <RotateTapHint onTap={tapped} />}")
+    expect(src).toContain('if (gameAudioWarm.status().armed) gameAudioWarm.rewarm(')
+    expect(src.indexOf('gameAudioWarm.rewarm(')).toBeLessThan(src.indexOf("gameStartTrace.mark('hint-tap'"))
+    const hint = readFileSync(new URL('./RotateTapHint.jsx', import.meta.url), 'utf8')
+    expect(hint).toContain('Тапни, чтобы начать')
+    expect(hint).toContain('createPortal')
+    expect(hint).toContain('onClick={onTap}')
+    expect(readFileSync(new URL('../../../../styles/player/modules/rotate-phone.css', import.meta.url), 'utf8')).toMatch(/\.rotateTapHint \{[^}]*position: fixed; inset: 0; z-index: 10001/)
+  })
+})
+
 describe('wakeGameAudio / rewakeGameAudio: что будится', () => {
   it('первый прогрев: синтезатор, слоты слов, запись автора и её клипы, ноты, прогретый элемент, слова урока, звуки интерфейса — и возвращает промис готовности слов', async () => {
     const ready = wakeGameAudio({ cfg, audioSrc: 'a.mp3', lines: null })

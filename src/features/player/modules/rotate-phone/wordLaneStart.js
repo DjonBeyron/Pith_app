@@ -10,6 +10,7 @@ import { openGameMic } from '../../../../shared/lib/gameMic.js'
 import { gameAudioSession } from '../../../../shared/lib/gameMicSession.js'
 import { gameMicHold } from '../../../../shared/lib/gameMicHold.js'
 import { gameAudioWarm } from '../../../../shared/lib/gameAudioWarm.js'
+import { gameStartTrace } from '../../../../shared/lib/gameStartTrace.js'
 import { primeAudio } from '../../../../shared/lib/primedAudio.js'
 import { preloadSounds, unlockAudio } from '../../../../shared/lib/sounds.js'
 import { pLog } from '../../../../shared/lib/debug.js'
@@ -23,6 +24,8 @@ export const WORDS_WAIT_MS = 2500 // сколько максимум ждём п
 //  2. ждём, пока прерывание уляжется (gameAudioWarm.settle: тишина SETTLE_QUIET_MS и контекст не 'interrupted', потолок SETTLE_MAX_MS);
 //  3. будим звук (wakeGameAudio): синтезатор, слоты слов диктора и кота, запись автора, мяу/ноты, прогретый элемент приложения, слова урока, звуки интерфейса;
 //  4. ждём подготовку озвучки (≤ WORDS_WAIT_MS): длины слов нужны плану диктора. Игра начинается после этого (RotatePhoneModule).
+// Каждый шаг помечается в gameStartTrace (тап, mic, settle, wake, ready, tap-wait) — из отметок строится временная шкала «Почему первая реплика тихая» (wordLaneSilentDiag.js); отсрочка первой реплики кота
+// (wordLaneLineGate.js) ждёт отметки ready. settled.activation === false (жест истёк, пока открывался микрофон) → needsTap: RotatePhoneModule показывает «Тапни, чтобы начать» и открывает игру после касания.
 // Прерывание уже в игре (звонок, наушники, режим микрофона «close») снова запускает прогрев (rewakeGameAudio) — сразу, если жест жив, иначе на ближайшем касании (gameAudioWarm).
 
 /** Разбудить всё, что играет в игре (только в жесте). Возвращает промис «озвучка кусков готова» */
@@ -56,24 +59,32 @@ export function rewakeGameAudio({ audioSrc }) {
 }
 
 /**
- * Вызывать СИНХРОННО в обработчике тапа «Начать» (весь синхронный префикс — в жесте). Возвращает промис { mic, settled }: mic — 'granted' | 'denied' | 'unavailable', settled — итог ожидания
- * (прерываний, мс, состояние контекста). deps — подмена зависимостей в тестах.
+ * Вызывать СИНХРОННО в обработчике тапа «Начать» (весь синхронный префикс — в жесте). Возвращает промис { mic, settled, needsTap }: mic — 'granted' | 'denied' | 'unavailable', settled — итог ожидания
+ * (прерываний, мс, состояние контекста), needsTap — жест истёк и прогрев ждёт касания (игру открывать после тапа). deps — подмена зависимостей в тестах.
  */
 export function startGameAudio({ cfg, audioSrc, lines }, deps = {}) {
-  const { warm = gameAudioWarm, session = gameAudioSession, hold = gameMicHold, openMic = openGameMic, wake = wakeGameAudio, rewake = rewakeGameAudio, wordsWaitMs = WORDS_WAIT_MS } = deps
+  const { warm = gameAudioWarm, session = gameAudioSession, hold = gameMicHold, openMic = openGameMic, wake = wakeGameAudio, rewake = rewakeGameAudio, wordsWaitMs = WORDS_WAIT_MS, trace = gameStartTrace } = deps
+  trace.begin() // хронология старта: отсчёт от тапа
   warm.begin() // следим за прерываниями с этой секунды
   session.begin() // 1. тип аудиосессии (настройка в Админ → «Голос»): до открытия микрофона, в том же тапе
   const micPromise = openMic() // 1. микрофон: getUserMedia вызывается синхронно в жесте (диалога нет, если доступ уже выдан); один поток на всю игру
   return (async () => {
     const mic = await micPromise
+    trace.mark('mic', { mic })
     hold.parkNow() // режим «микрофон только в фазе ученика»: доступ получен — поток закрываем, к очереди ученика откроем заново (в остальных режимах no-op)
     warm.markSelf()
     const settled = await warm.settle() // 2.
+    trace.mark('settle', { waitedMs: settled.waitedMs, interrupts: settled.interrupts, ctx: settled.ctx ?? null, activation: settled.activation ?? null })
     warm.onRewarm(() => rewake({ audioSrc })) // прерывание после этого места — повторный прогрев
     let wordsReady
-    try { wordsReady = wake({ cfg, audioSrc, lines }) } catch (e) { pLog(`[rotate] звук диктора не разбудился: ${e?.message ?? e}`); wordsReady = Promise.resolve(false) } // 3.
-    if (settled.activation === false) warm.rewarmOnGesture('жест истёк, пока открывался микрофон (диалог доступа)') // play() вне жеста iOS не разрешит: разбудим ещё раз на ближайшем касании
-    await Promise.race([wordsReady, new Promise(r => setTimeout(r, wordsWaitMs))]) // 4.
-    return { mic, settled }
+    try { wordsReady = wake({ cfg, audioSrc, lines }); trace.mark('wake', { ok: true }) } catch (e) { pLog(`[rotate] звук диктора не разбудился: ${e?.message ?? e}`); wordsReady = Promise.resolve(false); trace.mark('wake', { ok: false, error: e?.message ?? String(e) }) } // 3.
+    const needsTap = settled.activation === false
+    if (needsTap) {
+      warm.rewarmOnGesture('жест истёк, пока открывался микрофон (диалог доступа)') // play() вне жеста iOS не разрешит: разбудим ещё раз на ближайшем касании
+      trace.setNeedsTap(true); trace.mark('tap-wait', { why: 'жест истёк до прогрева' })
+    }
+    const words = await Promise.race([wordsReady.then(ok => (ok ? 'ready' : 'failed'), () => 'failed'), new Promise(r => setTimeout(() => r('timeout'), wordsWaitMs))]) // 4.
+    trace.mark('ready', { words })
+    return { mic, settled, needsTap }
   })()
 }

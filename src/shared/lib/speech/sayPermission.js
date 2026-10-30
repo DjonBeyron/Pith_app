@@ -17,11 +17,11 @@
 import { getRecognitionCtor, queryMicPermission } from './speechSupport.js'
 import { CANT_SPEAK_KEY } from './cantSpeakFlag.js'
 import { isFirefoxBrowser } from './sayBrowser.js'
+import { micWorked, MIC_GRANTED_KEY, DENIED_KEY } from './micWorked.js'
 
 export const EXPLAINED_KEY = 'pithy_say_explained_v1'
-export const DENIED_KEY = 'pithy_say_denied_session'
 export const PRE_SHOWN_KEY = 'pithy_say_pre_shown_session'
-export const MIC_GRANTED_KEY = 'pithy_say_mic_granted_v1'
+export { MIC_GRANTED_KEY, DENIED_KEY } // ключи «микрофон работал / отказали» — в micWorked.js (его берёт игра, не таща за собой проверку нативного распознавания)
 export const INTRO_SEEN_KEY = 'pithy_say_intro_seen_v1'
 export { CANT_SPEAK_KEY } // ключ и чтение флага для плеера — в cantSpeakFlag.js (без импортов)
 
@@ -64,10 +64,11 @@ export const micGate = d => (d.action === 'fallback' ? 'blocked' : d.action === 
 
 export function createSayPermission({
   local = pick('localStorage'), session = pick('sessionStorage'),
-  queryPerm = queryMicPermission, isSupported = () => !!getRecognitionCtor(), isBlockedBrowser = isFirefoxBrowser,
+  queryPerm = queryMicPermission, isSupported = () => !!getRecognitionCtor(), isBlockedBrowser = isFirefoxBrowser, shared = null, // shared (micWorked) — флаг «микрофон работал», выставленный игрой (gameMic.js)
 } = {}) {
   let perm = 'unavailable' // последний ответ query (он асинхронный, а start() нужен синхронно в тапе — поэтому кэш)
   let micOk = false        // в ЭТОМ запуске приложения распознавание реально началось (диалог ОС позади)
+  const ok = () => micOk || !!shared?.isOk()
   let checked = false      // Permissions API хотя бы раз ответил (или не смог): до этого perm — просто «не знаем», и «доступ выдан» на кнопке — не новость (useDelayedMicState)
 
   return {
@@ -85,16 +86,16 @@ export function createSayPermission({
     isDenied: () => read(session, DENIED_KEY),
     isPreShown: () => read(session, PRE_SHOWN_KEY),
     isCantSpeak: () => read(session, CANT_SPEAK_KEY),
-    isMicOk: () => micOk,
+    isMicOk: ok,
     /** Всё, что нужно кнопке для вида «нет доступа / доступ выдан» (sayMicState.micVisualState): ответ query, флаг «уже открывался», «работал в этом запуске» и «вводный попап видели» */
-    access: () => ({ permission: perm, flag: read(local, MIC_GRANTED_KEY), sessionOk: micOk, introSeen: read(local, INTRO_SEEN_KEY) }),
+    access: () => ({ permission: perm, flag: read(local, MIC_GRANTED_KEY), sessionOk: ok(), introSeen: read(local, INTRO_SEEN_KEY) }),
     supported: () => isSupported(),
     markExplained: () => write(local, EXPLAINED_KEY, true),
     markIntroSeen: () => write(local, INTRO_SEEN_KEY, true),
     markPreShown: () => write(session, PRE_SHOWN_KEY, true),
     /** Для тестов админа: подсказки микрофона снова как в первый раз (полное и вводное пояснение, без отказа и «Не могу говорить») */
     resetHints() {
-      micOk = false
+      micOk = false; shared?.reset()
       write(local, EXPLAINED_KEY, false)
       write(local, MIC_GRANTED_KEY, false)
       write(local, INTRO_SEEN_KEY, false)
@@ -107,7 +108,7 @@ export function createSayPermission({
     decide() {
       const r = decideMic({
         supported: isSupported(), cantSpeak: read(session, CANT_SPEAK_KEY), denied: read(session, DENIED_KEY),
-        perm, explained: read(local, EXPLAINED_KEY), introSeen: read(local, INTRO_SEEN_KEY), micOk, preShown: read(session, PRE_SHOWN_KEY), browserBlocked: isBlockedBrowser(),
+        perm, explained: read(local, EXPLAINED_KEY), introSeen: read(local, INTRO_SEEN_KEY), micOk: ok(), preShown: read(session, PRE_SHOWN_KEY), browserBlocked: isBlockedBrowser(),
       })
       if (r.reason === 'denied' && !read(session, DENIED_KEY)) write(session, DENIED_KEY, true)
       return r
@@ -115,5 +116,5 @@ export function createSayPermission({
   }
 }
 
-export const sayPermission = createSayPermission()
+export const sayPermission = createSayPermission({ shared: micWorked })
 export const resetMicHints = () => sayPermission.resetHints()

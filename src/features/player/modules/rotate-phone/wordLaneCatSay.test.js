@@ -13,8 +13,10 @@ function mk({ up = true, slot = true, play = true } = {}) {
   const mute = vi.fn()
   const timers = []
   const log = vi.fn()
-  const deps = { catApi: { current: api }, listenerRef: { current: { mute } }, has: vi.fn(() => slot), play: vi.fn(() => play), setTimer: (fn, ms) => { timers.push({ fn, ms }); return timers.length }, log }
-  return { api, mute, timers, log, deps }
+  const open = vi.fn(() => vi.fn())
+  const say = vi.fn(() => true)
+  const deps = { catApi: { current: api }, listenerRef: { current: { mute } }, has: vi.fn(() => slot), play: vi.fn(() => play), say, slotOf: vi.fn(() => ({ exists: true })), open, setTimer: (fn, ms) => { timers.push({ fn, ms }); return timers.length }, log }
+  return { api, mute, timers, log, deps, open, say }
 }
 
 describe('реплика кота: старт', () => {
@@ -22,7 +24,7 @@ describe('реплика кота: старт', () => {
     const m = mk()
     const r = startCatLine({ id: 'your_turn', line: lines.your_turn, ...m.deps })
     expect(r).toMatchObject({ ms: 2000, rise: 0, voiced: true, timer: 0 })
-    expect(m.deps.play).toHaveBeenCalledWith(lineKey('your_turn'))
+    expect(m.deps.play).toHaveBeenCalledWith(lineKey('your_turn'), expect.any(Function)) // второй аргумент — приёмник исхода play() для журнала «[cat-voice]»
     const [track, ms, meta] = m.api.speak.mock.calls[0]
     expect(ms).toBe(2000)
     expect(meta).toEqual({ id: 'your_turn' })
@@ -62,6 +64,41 @@ describe('реплика кота: старт', () => {
     startCatLine({ id: 'your_turn', line: lines.your_turn, ...m.deps })
     expect(m.api.speak).not.toHaveBeenCalled()
     expect(m.log).toHaveBeenCalledWith('cat-line-silent', { id: 'your_turn', reason: 'no-slot' })
+  })
+
+  it('журнал «[cat-voice]»: реплика со слотом — open(source slot) и исход play() уходит в его done; нет озвучки / нет слота — source none с причиной', () => {
+    const m = mk()
+    const done = vi.fn(); m.open.mockReturnValue(done)
+    startCatLine({ id: 'your_turn', line: lines.your_turn, ...m.deps })
+    expect(m.open).toHaveBeenCalledWith(expect.objectContaining({ id: 'your_turn', source: 'slot' }))
+    expect(m.deps.play.mock.calls[0][1]).toBe(done)
+    const a = mk()
+    startCatLine({ id: 'try_again', line: lines.try_again, ...a.deps })
+    expect(a.open).toHaveBeenCalledWith(expect.objectContaining({ source: 'none', why: 'у реплики нет озвучки (url)' }))
+    const b = mk({ slot: false })
+    startCatLine({ id: 'your_turn', line: lines.your_turn, ...b.deps })
+    expect(b.open).toHaveBeenCalledWith(expect.objectContaining({ source: 'none', why: 'слот не подготовлен' }))
+  })
+
+  it('слот не успел (voice: synth): реплику говорит голос системы с русской речью, рот и микрофон — как у обычной; причина и ожидание уходят в журнал', () => {
+    const m = mk({ slot: false })
+    const r = startCatLine({ id: 'your_turn', line: lines.your_turn, voice: 'synth', waitedMs: 1500, why: 'слот не успел за 1500 мс', ...m.deps })
+    expect(r.voiced).toBe(true)
+    expect(m.say).toHaveBeenCalledWith('Теперь твоя очередь', 'ru-RU', expect.any(Function))
+    expect(m.deps.play).not.toHaveBeenCalled()
+    expect(m.open).toHaveBeenCalledWith(expect.objectContaining({ id: 'your_turn', source: 'synth', waitedMs: 1500, why: 'слот не успел за 1500 мс' }))
+    expect(m.api.speak).toHaveBeenCalledTimes(1)
+    expect(m.mute).toHaveBeenCalledWith(2000 + LINE_PAUSE_MS)
+  })
+
+  it('голос системы не запустился (нет синтезатора / «без звука») — cat-line-silent no-synth, рот не двигается, done получает rejected', () => {
+    const m = mk({ slot: false })
+    const done = vi.fn(); m.open.mockReturnValue(done)
+    m.say.mockReturnValue(false)
+    startCatLine({ id: 'your_turn', line: lines.your_turn, voice: 'synth', ...m.deps })
+    expect(m.api.speak).not.toHaveBeenCalled()
+    expect(done).toHaveBeenCalledWith({ play: 'rejected', error: 'speak() не запустился' })
+    expect(m.log).toHaveBeenCalledWith('cat-line-silent', { id: 'your_turn', reason: 'no-synth' })
   })
 
   it('скорость голоса укорачивает реплику, и рот идёт за ней', () => {

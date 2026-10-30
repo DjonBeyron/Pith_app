@@ -21,8 +21,9 @@ function env(over = {}) {
   })
   const interrupt = () => { st.ctx = 'interrupted'; st.session = 'interrupted'; st.listeners.forEach(cb => cb()) }
   const recover = () => { st.ctx = 'running'; st.session = 'active' }
-  const tap = () => { const ev = { target: null }; ;(st.docL.pointerdown ?? new Set()).forEach(f => f(ev)) }
-  return { st, warm, notes, log, resume, interrupt, recover, tap }
+  const fire = (type, ev = {}) => (st.docL[type] ?? new Set()).forEach(f => f({ type, target: null, ...ev }))
+  const tap = () => fire('pointerup', { pointerType: 'touch' }) // касание пальцем: жестом iOS считает pointerup / touchend / click, а не pointerdown
+  return { st, warm, notes, log, resume, interrupt, recover, tap, fire }
 }
 const kinds = (e, k) => e.notes.filter(n => n[0] === k).map(n => n[1])
 
@@ -166,5 +167,43 @@ describe('прерывание посреди игры: повторный пр�
     off(); e.warm.rewarm('ещё раз')
     expect(good).toHaveBeenCalledTimes(1)
     expect(e.log.some(m => m.includes('boom'))).toBe(true)
+  })
+})
+
+describe('касание-спаситель: только события, которые iOS считает жестом', () => {
+  async function armed() {
+    const e = env()
+    const fn = vi.fn()
+    e.warm.begin(); e.warm.onRewarm(fn)
+    e.st.active = false
+    e.interrupt(); e.recover()
+    await vi.advanceTimersByTimeAsync(SETTLE_QUIET_MS + 200)
+    expect(e.warm.status().armed).toBe(true)
+    return { e, fn }
+  }
+  it('pointerdown от пальца — НЕ жест (play() в нём отклоняется): прогрев ждёт pointerup / touchend / click', async () => {
+    const { e, fn } = await armed()
+    e.fire('pointerdown', { pointerType: 'touch' })
+    expect(fn).not.toHaveBeenCalled()
+    expect(e.warm.status().armed).toBe(true)
+    e.fire('touchend')
+    expect(fn).toHaveBeenCalledTimes(1)
+    expect(e.notes.find(n => n[1].step === 'rewarm')[1]).toMatchObject({ via: 'touchend' })
+  })
+  it('pointerdown мыши — жест (десктоп), click — тоже; в журнале прогрева видно, каким событием сработало', async () => {
+    const a = await armed()
+    a.e.fire('pointerdown', { pointerType: 'mouse' })
+    expect(a.fn).toHaveBeenCalledTimes(1)
+    const b = await armed()
+    b.e.fire('click')
+    expect(b.fn).toHaveBeenCalledTimes(1)
+    expect(b.e.notes.filter(n => n[1].step === 'rewarm').at(-1)[1].via).toBe('click')
+  })
+  it('status() отдаёт время последнего прерывания (по нему отличают «слот прерван уже после пробуждения»)', () => {
+    const e = env()
+    e.warm.begin()
+    expect(e.warm.status().lastInterruptAt).toBe(0)
+    e.interrupt()
+    expect(e.warm.status().lastInterruptAt).toBeGreaterThan(0)
   })
 })

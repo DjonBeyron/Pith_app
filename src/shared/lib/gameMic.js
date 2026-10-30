@@ -4,7 +4,7 @@
 // раз в тапе «Начать» (это жест, и запрос приходит в понятный момент) с ограничениями ниже, живёт до конца игры/урока, а распознаватель каждой ступени берёт его готовым (voskEngine opts.stream) и не
 // останавливает. Треки по умолчанию НЕ выключаем (enabled = false на iOS мог остановить захват): между ступенями поток просто никуда не подключён. Глушение дорожки на время речи Пита и диктора —
 // отдельный режим для проверки на телефоне (gameMicHold.js, настройка pithy_game_mic_hold_v1), тип аудиосессии iOS — gameMicSession.js (pithy_game_audio_session_v1).
-import { sayPermission } from './speech/sayPermission.js'
+import { micWorked } from './speech/micWorked.js'
 import { isIos } from './soundVolume.js'
 import { pLog } from './debug.js'
 import { readAudioSessionMode, readMicHoldMode } from './gameAudioSettings.js'
@@ -48,12 +48,12 @@ export async function openGameMic() {
     stream = s
     opened = constraints
     parked = false; taken = false
-    sayPermission.markMicOk()
+    micWorked.markOk()
     pLog(`[mic] игровой поток открыт (один на игру): эхо ${constraints.echoCancellation ? 'вкл' : 'выкл'}, шумодав ${constraints.noiseSuppression ? 'вкл' : 'выкл'}`)
     return 'granted'
   } catch (e) {
     pLog(`[mic] доступ не получен: ${e?.name ?? e}`)
-    if (e?.name === 'NotAllowedError' || e?.name === 'SecurityError') { sayPermission.markDenied(); return 'denied' }
+    if (e?.name === 'NotAllowedError' || e?.name === 'SecurityError') { micWorked.markDenied(); return 'denied' }
     return 'unavailable'
   }
 }

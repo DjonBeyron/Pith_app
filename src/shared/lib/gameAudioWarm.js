@@ -33,16 +33,20 @@ export function createAudioWarm({
 
   const pending = () => ctxState() === 'interrupted' || sessionState() === 'interrupted' || (lastAt > 0 && now() - lastAt < SETTLE_QUIET_MS)
 
+  // Что iOS считает жестом (HTML: «activation triggering input event»): mousedown, pointerdown ТОЛЬКО мыши, pointerup не-мыши, touchend, click. pointerdown от пальца жестом НЕ является — раньше прогрев
+  // срабатывал на нём, и play() элементов на iPhone отклонялся (NotAllowedError) прямо в «тапе-спасителе»: тишина оставалась до следующего касания.
+  const GESTURE_EVENTS = ['pointerdown', 'pointerup', 'touchend', 'click']
+  const isGesture = ev => !(ev?.type === 'pointerdown' && ev.pointerType && ev.pointerType !== 'mouse')
   function disarm() {
     if (!armed || !doc) { armed = null; return }
-    doc.removeEventListener('pointerdown', armed, true); doc.removeEventListener('touchend', armed, true)
+    GESTURE_EVENTS.forEach(t => doc.removeEventListener(t, armed, true))
     armed = null
   }
   function arm(why) {
     if (armed || !doc) return
-    armed = () => { disarm(); try { resume() } catch { /* контекст сам разберётся */ } api.rewarm(`касание (${why})`) }
-    doc.addEventListener('pointerdown', armed, true); doc.addEventListener('touchend', armed, true)
-    note('audio-warm', { step: 'armed', why })
+    armed = ev => { if (!isGesture(ev)) return; disarm(); try { resume() } catch { /* контекст сам разберётся */ } api.rewarm(`касание (${why})`, ev?.type ?? null) }
+    GESTURE_EVENTS.forEach(t => doc.addEventListener(t, armed, true))
+    note('audio-warm', { step: 'armed', why, activation: active() })
   }
 
   function onInterrupt() {
@@ -92,9 +96,9 @@ export function createAudioWarm({
       })
     },
     /** Прогреть всё, что зарегистрировано (onRewarm), прямо сейчас */
-    rewarm(why = 'вручную') {
+    rewarm(why = 'вручную', via = null) {
       disarm()
-      note('audio-warm', { step: 'rewarm', why, n: rewarmers.size, activation: active(), ctx: ctxState() })
+      note('audio-warm', { step: 'rewarm', why, via, n: rewarmers.size, activation: active(), ctx: ctxState() })
       log(`[audio-warm] повторный прогрев звука игры (${why})`)
       for (const fn of rewarmers) { try { fn(why) } catch (e) { log(`[audio-warm] прогрев не удался: ${e?.message ?? e}`) } }
     },
@@ -113,7 +117,7 @@ export function createAudioWarm({
       disarm()
       rewarmers.clear()
     },
-    status: () => ({ watching, interrupts, settling, armed: !!armed, rewarmers: rewarmers.size }),
+    status: () => ({ watching, interrupts, settling, armed: !!armed, rewarmers: rewarmers.size, lastInterruptAt: lastAt }),
   }
   return api
 }

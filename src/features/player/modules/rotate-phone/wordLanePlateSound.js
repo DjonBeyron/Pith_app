@@ -4,10 +4,15 @@
 // поэтому unlockPlate() зовёт startGameAudio (wordLaneStart.js, тап «Начать» и повторный прогрев) рядом с unlockNotes(), а releaseNotes() — releasePlate(): слот живёт и умирает вместе с нотами.
 // Звук уважает тишину приложения: «полная тишина» (soundQuiet.holdSilence — вкладка «Голос» и т. п.), «без звука» в уроке (lessonVolume) и громкость игры (админка «Звуки игры»); каждое проигрывание пишется в кольцо
 // soundLog (диагностика «что играло перед записью»). «Без звука» у награды плашку не выключает: плашка — не награда.
+// Диагностика тишины (iPhone): каждое проигрывание оставляет строку «[plate-sound] play() → …» (исход play(), readyState, userActivation, audioSession.type, мс с тапа) и событие 'plate-sound' в журнале отладки — как реплики кота.
 import { getLessonMuted } from '../../lessonVolume.js'
 import { isSilenced } from '../../../../shared/lib/soundQuiet.js'
 import { logElementSound } from '../../../../shared/lib/soundLog.js'
 import { getRewardVolume } from '../../../../shared/lib/rewardSound.js'
+import { gameAudioNote } from '../../../../shared/lib/gameAudioSink.js'
+import { pLog } from '../../../../shared/lib/debug.js'
+import { watchPlay } from './wordLanePlayWatch.js'
+import { audioEnv, PLAY_TEXT } from './wordLaneCatVoiceLog.js'
 
 export const PLATE_MS = 130        // длина звука: ≤ 150 мс, чтобы не залезть в слушатель
 export const PLATE_FROM_HZ = 480   // тон в начале
@@ -61,9 +66,16 @@ export function unlockPlate() {
     const a = new Audio(hush)
     a.preload = 'auto'
     a.volume = getRewardVolume()
-    a.play().then(() => { a.pause(); a.src = url; a.load() }).catch(() => {})
+    a.play().then(() => { a.pause(); a.src = url; a.load() }).catch(err => { pLog(`[plate-sound] пробуждение слота отклонено (${err?.name ?? err}) — звук плашки может молчать до следующего прогрева`); gameAudioNote('plate-sound', { wake: 'rejected', error: err?.name ?? String(err ?? 'error') }) })
     el = a
   } catch { el = null }
+}
+
+/** Исход play() плашки → строка журнала плеера и событие отладки */
+function reportPlate(res, env) {
+  const d = { play: res.play, ...(res.error ? { error: res.error } : {}), playMs: res.ms, rs: res.rs, activation: env.activation, as: env.as, sinceTap: env.sinceTap, sinceSettle: env.sinceSettle, interrupts: env.interrupts }
+  try { pLog(`[plate-sound] play() → ${PLAY_TEXT[d.play] ?? d.play}${d.error ? ` (${d.error})` : ''}, ${d.playMs} мс; readyState=${d.rs ?? '—'}; userActivation=${d.activation === 'alive' ? 'жив' : d.activation === 'expired' ? 'истёк' : '—'}; audioSession.type=${d.as ?? '—'}; с тапа ${d.sinceTap ?? '—'} мс; прерываний с тапа ${d.interrupts ?? '—'}`) } catch { /* журнал не мешает игре */ }
+  gameAudioNote('plate-sound', d)
 }
 
 /** Сыграть звук плашки. false — не сыграл (нет элемента, «без звука» в уроке, полная тишина приложения, не разрешили) */
@@ -74,7 +86,10 @@ export function playPlate() {
     el.volume = getRewardVolume()    // iOS игнорирует; Android/десктоп слушаются
     el.currentTime = 0
     logElementSound('audio-play', 'wl-plate', el)
-    el.play().catch(() => {})
+    const env = audioEnv()
+    const p = el.play()
+    watchPlay(el, p, res => reportPlate(res, env))
+    p?.catch?.(() => {})
     return true
   } catch { return false }
 }

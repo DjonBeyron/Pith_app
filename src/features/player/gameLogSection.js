@@ -1,6 +1,8 @@
 // Раздел «Игра «Повтори за диктором»» в общем текстовом журнале плеера (downloadDebugLog.js, кнопка «Лог и версия» в шапке урока): краткая хронология последней игры из её дампа
 // (useWordLaneDebug → getLastWordLaneDump). Нужен потому, что владелец присылает именно этот текстовый журнал, а не JSON «Скачать отладку» из игры. Сюда не попадает ничего тяжёлого:
 // запись голоса (base64) и уровни громкости пропускаются, длинные строки режутся, а сама хронология ограничена MAX_LINES (начало и конец). Чистые функции — проверяются тестами.
+import { diagnoseFirstLine, silentDiagLines } from './modules/rotate-phone/wordLaneSilentDiag.js'
+
 export const MAX_LINES = 400      // сколько строк хронологии максимум; больше — начало (HEAD_LINES) и конец, середина свёрнута в одну строку
 export const HEAD_LINES = 100
 export const MAX_FIELD = 140      // длина одного значения в строке
@@ -10,6 +12,7 @@ export const MAX_PARTIALS = 120   // черновиков распознаван
 const PROBE_KINDS = new Set([
   'probe-install', 'permission', 'gum-call', 'gum-result', 'game-mic', 'track', 'play-call', 'play-result', 'first-sound', 'media-error', 'audio-session', 'mic-hold',
   'audiocontext', 'audiocontext-state', 'visibility', 'fullscreen', 'pagehide', 'pageshow', 'speech-speak', 'speech-event',
+  'audio-warm', 'audio-interrupt', 'start-mark', 'plate-sound', // старт звука: тап, микрофон, settle, прогрев, прерывания, плашка (раздел «Почему первая реплика тихая»)
 ])
 const SKIP_TYPES = new Set(['level', 'grammar'])
 
@@ -66,6 +69,11 @@ export function countsLine(events = []) {
   return Object.entries(n).map(([k, v]) => `${k}:${v}`).join(' ')
 }
 
+/** Раздел «Почему первая реплика тихая» (wordLaneSilentDiag.js); сбой диагностики не ломает журнал */
+function diagLines(events) {
+  try { return [...silentDiagLines(diagnoseFirstLine(events)), ''] } catch { return [] }
+}
+
 /** Строки раздела для журнала плеера; dump — результат getLastWordLaneDump() (или null: игры не было / отладка была выключена) */
 export function buildGameLogSection(dump) {
   const title = '--- Игра «Повтори за диктором» (последний запуск) ---'
@@ -78,6 +86,7 @@ export function buildGameLogSection(dump) {
     `устройство: ${short(dump.device?.ua ?? '')} weak=${dump.device?.weak ?? '?'} экран=${short(dump.device?.screen ?? '')}`,
     `микрофон игры: ${game ? `open=${game.open} platform=${game.platform} processing=${game.processing} audioSession=${game.audioSessionMode} micHold=${game.micHoldMode} tracks=${short(game.tracks)} settings=${short(game.settings)}` : 'не открыт'}`,
     `записано: ${events.length} событий (${countsLine(events)}); вытеснено: ${dump.dropped ?? 0}`,
+    ...diagLines(events),
     ...clip(pickEvents(events).map(eventLine)),
     '',
   ]

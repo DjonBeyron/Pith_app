@@ -5,6 +5,7 @@
 import { getLessonMuted, getVoiceRate } from '../../lessonVolume.js'
 import { pLog } from '../../../../shared/lib/debug.js'
 import { speechBounds } from './wordLaneTrim.js'
+import { watchPlay } from './wordLanePlayWatch.js'
 
 export const FADE_IN_S = 0.004
 export const FADE_OUT_S = 0.012
@@ -55,6 +56,12 @@ function ensureSlots() {
   return slots
 }
 
+/** Разбудить элемент слота тишиной (play → pause) и записать исход: wokeAt — когда разбудили (performance.now), wokeErr — имя ошибки, если play() тишины отклонён (жеста нет — слот НЕ разбужен) */
+function startWake(e, a, set, after = null) {
+  e.wokeAt = 0; e.wokeErr = null
+  e.woke = a.play().then(() => { try { a.pause() } catch { /* уже на паузе */ } if (e.a === a) e.wokeAt = performance.now() }, err => { e.wokeErr = err?.name ?? String(err ?? 'error') }).then(() => { if (after && slots === set && e.a === a) after() })
+}
+
 /** Создать слот key и разбудить его (только в жесте). Повторный вызов с тем же ключом — тот же слот */
 function wake(key) {
   const set = ensureSlots()
@@ -62,7 +69,8 @@ function wake(key) {
   const a = new Audio(set.silence)
   a.preload = 'auto'
   a.setAttribute('playsinline', '')
-  const e = { a, woke: a.play().then(() => a.pause()).catch(() => {}), url: null }
+  const e = { a, woke: null, url: null, wokeAt: 0, wokeErr: null }
+  startWake(e, a, set)
   set.els.set(key, e)
   return e
 }
@@ -82,7 +90,7 @@ export function rewakeClips() {
     a.preload = 'auto'
     a.setAttribute('playsinline', '')
     e.a = a
-    e.woke = a.play().then(() => a.pause()).catch(() => {}).then(() => { if (slots === set && e.a === a && e.url) { a.src = e.url; a.load() } })
+    startWake(e, a, set, () => { if (e.url) { a.src = e.url; a.load() } })
     n += 1
   }
   pLog(`[word-lane] слоты звука разбужены заново: ${n}`)
@@ -163,8 +171,8 @@ async function decodeAndSlice(src, uniq, set) {
   }
 }
 
-/** Сыграть слот. false — слота нет/звук не готов (вызывающий идёт запасным путём; при «без звука» играет muted) */
-function playSlot(key) {
+/** Сыграть слот. false — слота нет/звук не готов (вызывающий идёт запасным путём; при «без звука» играет muted). onResult(res) — исход play() (wordLanePlayWatch.js), для журнала «[cat-voice]» */
+function playSlot(key, onResult = null) {
   const e = slots?.els.get(key)
   if (!e?.url) return false
   try {
@@ -172,15 +180,28 @@ function playSlot(key) {
     e.a.muted = getLessonMuted()
     e.a.playbackRate = getVoiceRate()
     e.a.currentTime = 0
-    e.a.play().catch(err => pLog(`[word-lane] звук не пошёл: ${err?.name ?? err}`))
+    const p = e.a.play()
+    watchPlay(e.a, p, onResult)
+    p?.catch?.(err => pLog(`[word-lane] звук не пошёл: ${err?.name ?? err}`))
     return true
   } catch { return false }
+}
+
+/** Состояние слота перед проигрыванием (диагностика тишины): { exists, hasUrl, prepared (разбужен тишиной и звук подставлен), rs (readyState), paused, wokeAt (performance.now, 0 — не разбужен), wokeErr } */
+export function slotInfo(key) {
+  const e = slots?.els.get(key)
+  if (!e) return { exists: false, hasUrl: false, prepared: false, rs: null, paused: null, wokeAt: 0, wokeErr: null }
+  let rs = null, paused = null, srcOk = false
+  try { rs = e.a.readyState ?? null; paused = !!e.a.paused; srcOk = !!e.url && (e.a.src === e.url || String(e.a.src).endsWith(String(e.url))) } catch { /* элемент недоступен */ }
+  return { exists: true, hasUrl: !!e.url, prepared: !!e.url && e.wokeAt > 0 && srcOk, rs, paused, wokeAt: e.wokeAt, wokeErr: e.wokeErr }
 }
 
 /** Клип записи автора по отрезку */
 export const playClip = span => playSlot(`s:${spanKey(span)}`)
 /** Озвучка куска из библиотеки по ключу слова (wordKey) */
-export const playWordSlot = key => playSlot(wordSlotKey(key))
+export const playWordSlot = (key, onResult = null) => playSlot(wordSlotKey(key), onResult)
+/** Состояние слота озвучки куска по ключу слова */
+export const wordSlotInfo = key => slotInfo(wordSlotKey(key))
 /** Есть ли готовая озвучка куска (слот с подгруженным звуком) */
 export const hasWordSlot = key => !!slots?.els.get(wordSlotKey(key))?.url
 
