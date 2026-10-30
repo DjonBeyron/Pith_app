@@ -208,18 +208,19 @@ describe('проводка и аудит исходников', () => {
     expect(read('./WordLaneCat.jsx')).toContain('freeze() { voice.stop()')
     expect(read('./useCatLines.js')).toContain('return { text, sayLine, stop, busyLeft }')
   })
-  it('CSS: попап паузы выше кота (кот z-index 8, попап 9), оба в .wlStage, порядок подключения hud → pause; фон попапа плотный', () => {
+  it('попап паузы — плотная подложка на весь экран (fixed, z-index 60) вне .wlStage, карточка внутри; порядок подключения hud → pause', () => {
     const pause = read('../../../../styles/player/modules/word-lane-pause.css')
-    expect(pause).toMatch(/\.wlPause \{[^}]*z-index: 9/)
-    expect(pause).toMatch(/\.wlPause \{[^}]*background: #15181f/)                     // у .wlFail фон 0,97: кот просвечивал сквозь попап
+    expect(pause).toMatch(/\.wlPauseBack \{[^}]*position: fixed; inset: 0; z-index: 60/)
+    expect(pause).toMatch(/\.wlPauseBack \{[^}]*background: #15181f/)                  // плотный фон: сквозь 0,97 кот просвечивал
+    expect(pause).toMatch(/\.wlPause \{[^}]*position: relative; left: auto; bottom: auto; transform: none/) // карточка внутри подложки, не absolute у низа как .wlFail
     expect(read('../../../../styles/player/modules/word-lane.css')).toMatch(/\.wlStage > \.wlCat\.scn \{[^}]*z-index: 8/)
     const index = read('../../../../index.css')
-    expect(index.indexOf('word-lane-hud.css')).toBeGreaterThan(0)
     expect(index.indexOf('word-lane-pause.css')).toBeGreaterThan(index.indexOf('word-lane-hud.css')) // .wlPause после .wlFail: при равной специфичности побеждает пауза
     const game = read('./WordLaneGame.jsx')
     const stage = game.slice(game.indexOf('<div className="wlStage">'), game.indexOf('<button type="button" className="wlClose"'))
-    expect(stage).toContain('<WordLaneCat apiRef={catApi} />')                            // кот и попап — прямые дети одного .wlStage: сравниваются z-index, а не вложенные контексты
-    expect(stage).toContain('<WordLanePause pause={pause} onExit={f.finish} />')
+    expect(stage).not.toContain('<WordLanePause')                                           // попап НЕ в .wlStage (там кот): подложка fixed поверх всего
+    expect(game.slice(game.indexOf('className="wlClose"'))).toContain('{f.paused && <WordLanePause pause={pause} onExit={f.finish} />}')
+    expect(read('./WordLanePause.jsx')).toContain('<div className="wlPauseBack" data-testid="wl-pause-back">')
   })
   it('CSS: на паузе кот уходит под нижний край (иначе торчит из-под попапа); правило длиннее выскакивания и пружины', () => {
     const pause = read('../../../../styles/player/modules/word-lane-pause.css')

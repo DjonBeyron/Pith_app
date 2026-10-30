@@ -1,5 +1,6 @@
 /* Пауза игры «Повтори за диктором» (свернули приложение, useWordLanePause). Оверлей — как .wlFail (word-lane-hud.css), но нейтральная рамка: это не ошибка. */
-.wlPause { border-color: #3a3d46; z-index: 9; background: #15181f; } /* выше кота (8): кот стоит поверх всего в игре, а попап паузы — поверх кота. Фон ПЛОТНЫЙ (у .wlFail 0,97): сквозь 3 % прозрачности кот просвечивал тёмным силуэтом — владелец видел «попап под котом» */
+.wlPauseBack { position: fixed; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: center; background: #15181f; } /* подложка на ВЕСЬ экран поверх всего в игре (кот 8, HUD 9): владелец на iPhone видел попап «под котом», пока карточка лежала в .wlStage рядом с котом */
+.wlPause { position: relative; left: auto; bottom: auto; transform: none; border-color: #3a3d46; z-index: 9; background: #15181f; } /* карточка внутри подложки, а не absolute у низа (как .wlFail); фон плотный, как у подложки */
 /* Пауза: кот прячется под нижний край. Раньше он оставался торчать (freeze только закрывает рот) и выглядывал из-под попапа внизу (его шея и усы — за краем окна, но поверх фона игры) — выглядело, будто кот стоит перед попапом.
    Тот же «спрятан» (transform, переход), что у кота в word-lane.css; селектор длиннее (.wl[data-phase] + wlCat--up), поэтому перебивает и выскакивание, и пружину. */
 .wl[data-phase='paused'] .wlStage > .wlCat.scn.wlCat--up { transform: translate(-50%, 108%); transition: transform 0.3s ease-in; }

@@ -74,7 +74,6 @@ export default function WordLaneGame({ cfg, audioSrc, lines = null, forceDebug =
         {debug && <WordLaneDebug />}
         {debug && <WordLanePerf />}
         <Mic mode={f.mic} levels={f.levels} note={f.note} visible={phase === 'student'} />
-        {f.paused && <WordLanePause pause={pause} onExit={f.finish} />}
         {f.mic === 'failed' && !f.paused && (
           <div className="wlFail" role="alert" data-testid="wl-fail">
             <p className="wlFailTitle">{FAIL_TEXT.title}</p>
@@ -87,6 +86,7 @@ export default function WordLaneGame({ cfg, audioSrc, lines = null, forceDebug =
         )}
       </div>
       <button type="button" className="wlClose" onClick={f.finish} aria-label="Закрыть" data-testid="wl-close"><X size={20} /></button>
+      {f.paused && <WordLanePause pause={pause} onExit={f.finish} />}
       {f.dbg.enabled && <Hud dbg={f.dbg} rootRef={rootRef} onRestartStage={f.restartStage} onRestartGame={onRestart} onExit={f.finish} setTapMode={setTapMode} />}
     </div>,
     document.body,
