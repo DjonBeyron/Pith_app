@@ -84,12 +84,17 @@ function furTail(t) {   // хвост в своих координатах (на
   return t.replace(/(<path class="tl-fill"[^>]*\/>)/, `$1${locks}`)
 }
 // в режиме mia белая мордочка и капля на лбу — цвета меха (на фото лицо одноцветное), остальные белые пятна (грудь, лапки, кончик хвоста) остаются
-const noFacePatch = h => h.replace(/(<path d="M296 346\.8[^"]*") fill="#ffffff"/, `$1 fill="${FUR}"`)
-const headS = mode === 'mia' ? recolor(mouth(noFacePatch(mia.head))) : recolor(mouth(blush(whisk(muzzle(cutDeco(mia.head))))))
+const MUZ = '#727480'   // мордочка и щёки чуть светлее меха
+const BRIDGE = 'M296 268C307 290 311 322 301 347L291 347C281 322 285 290 296 268Z'   // светлая полоска от переносицы к носу
+const noFacePatch = h => h
+  .replace(/(<path d="M296 346\.8[^"]*?)M296 192[^"]*" fill="#ffffff"/, `$1${BRIDGE}" fill="${MUZ}"`)   // мордочка + переносица вместо белых мордочки и капли
+  .replace(/fill="#f58aaa" opacity="0\.55"/, `fill="${MUZ}" opacity="0.7"`)                            // щёки светлее вместо розового румянца
+const noWhite = x => x.replace(/ fill="#ffffff"/g, ` fill="${FUR}"`)   // грудь, лапки и кончик хвоста — цвета меха: белых пятен в шерсти нет
+const headS = mode === 'mia' ? recolor(mouth(whisk(noFacePatch(mia.head)))) : recolor(mouth(blush(whisk(muzzle(cutDeco(mia.head))))))
 const head = fluffy ? furHead(headS) + furTicks(SHADE) : headS
-const bodyS = mode === 'mia' ? recolor(mia.body) : body(mia.body)
+const bodyS = mode === 'mia' ? noWhite(recolor(mia.body)) : body(mia.body)
 const bodyF = fluffy ? bodyS + chestRuff({ fill: LIGHT, fill2: FUR, ol: OL }) : bodyS
-const tailS = mode === 'mia' ? recolor(mia.tail) : tail(mia.tail)
+const tailS = mode === 'mia' ? noWhite(recolor(mia.tail)) : tail(mia.tail)
 const tailF = fluffy ? furTail(tailS) : tailS
 const eyes = EYES.map(eye).join('') + EYES.map(brow).join('')
 
