@@ -84,7 +84,7 @@ def ring():
     tube = [c for c in components(bright, 60) if not (c[115, :].any() or c[204, :].any() or c[:, 105].any() or c[:, 299].any())]
     whole = np.zeros((H, W), bool)
     for c in tube: whole |= c
-    outl = morph(whole, 4, 'd')
+    outl = morph(whole, 3, 'd')
     return region_path(outl, F, 0.8, 3), [region_path(c, F, 0.6, 2) for c in tube]
 
 # ── розовое: бантик, ошейник, сердечко (обводка тёмно-малиновая, заливка розовая) ──

@@ -35,7 +35,7 @@ def silhouette():
     mask[55:250, 600:770] = mm[55:250, 600:770]; mask[:232, 430:600] = False; mask[232:300, 430:600] = True
     for x in range(418, 613):                                                   # верх головы между ушами — лёгкий купол (виден только у ушей, остальное под бантиком)
         top = 243 - int(20 * math.sin(math.pi * (x - 418) / 195) ** 0.7); mask[top:243, x] = True
-    mask[140:188, :169] = False                                                 # колечко-серёжка вне силуэта
+    mask[130:200, :163] = False                                                 # колечко-серёжка вне силуэта
     mask |= closing(mask, 14) & box(100, 500, 900, 690)                          # усы поверх края щёк
     mask = fill_holes(closing(mask, 4))                                         # блики и зрачки
     return morph(opening(mask, 3), 7, 'e')
@@ -43,7 +43,16 @@ def silhouette():
 _sil = None
 def contour():
     global _sil
-    if _sil is None: _sil = outer_contour(silhouette())
+    if _sil is None:
+        _sil = outer_contour(silhouette())
+        ys = _sil[:, 1]; edge = np.nonzero((_sil[:, 0] < 200) & (ys > 98) & (ys < 228))[0]      # левое ухо в месте колечка: край выпрямляется между ровными участками
+        if len(edge):
+            a, b = edge.min(), edge.max(); y0, y1 = 100, 226
+            pa = _sil[a:b + 1]; xa = pa[np.argmin(np.abs(pa[:, 1] - y0)), 0]; xb = pa[np.argmin(np.abs(pa[:, 1] - y1)), 0]
+            keep = [i for i in range(a, b + 1) if _sil[i, 1] <= y0 or _sil[i, 1] >= y1]
+            line = np.array([(xa + (xb - xa) * (y - y0) / (y1 - y0) - 3.5 * 4 * ((y - y0) / (y1 - y0)) * (1 - (y - y0) / (y1 - y0)), y) for y in np.arange(y1, y0, -1.0)])
+            lo = [i for i in keep if _sil[i, 1] >= y1]; hi = [i for i in keep if _sil[i, 1] <= y0]
+            _sil = np.vstack([_sil[:a], _sil[lo[0]:lo[-1] + 1] if lo else _sil[:0], line, _sil[hi[0]:hi[-1] + 1] if hi else _sil[:0], _sil[b + 1:]])
     return _sil
 def at(S_, p): return int(np.argmin(np.hypot(*(S_ - np.array(p)).T)))
 
