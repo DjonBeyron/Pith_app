@@ -51,18 +51,32 @@ body = (f'<path d="{body_d}" fill="{FURC}"/>' + ''.join(fill(x) for x in shade_b
 # ── голова ──
 mouth = {k: mia['head'][mia['head'].index(f'<path class="{k}"'):].split('/>', 1)[0] + '/>' for k in ('mm', 'mt', 'mf', 'ml')}
 import re
-MT = json.loads(json.dumps(mia['mouthTable']))                                   # таблица форм Мии; линии тоньше (как у кошки с рисунка), закрытая — своя
-for e in MT.values():
-    e['m']['sw'] = round(e['m']['sw'] * 0.72, 1)
-    if e.get('l'): e['l']['sw'] = round(e['l']['sw'] * 0.72, 1)
-MT['X']['m'].update(d=mouth_closed(), sw=5.2)
+# Рот: девять форм (X A B C D E F G H — коды Rhubarb), те же и в том же виде, что у Пита и Мии, включая язык (mt) и зубы (mf). Формы лежат в координатах рига,
+# где ножка рта начинается в (296.4, 348.9); у этой кошки рот чуть ниже и правее (по рисунку), поэтому вся таблица сдвигается на (DX, DY).
+# Закрытая форма X — по рисунку («:3»). Линии рта тоньше (×0.72), как у кошки с рисунка.
+DX, DY = F(521, 592)[0] - 296.4, F(521, 592)[1] - 348.9
+def shift_path(d, dx, dy):
+    """Сдвиг абсолютного пути (M L C Q H V Z) на dx dy: у M L C Q числа идут парами x y, у H только x, у V только y"""
+    out = []; cmd = ''; k = 0
+    for t in re.findall(r'[MLCQHVZ]|-?\d*\.?\d+', d):
+        if t.isalpha(): cmd = t; k = 0; out.append(t); continue
+        v = float(t) + (dx if cmd == 'H' or (cmd in 'MLCQ' and k % 2 == 0) else dy)
+        out.append(f'{v:.1f}'); k += 1
+    return ' '.join(out)
+MT = json.loads(json.dumps(mia['mouthTable']))
+for code, e in MT.items():
+    e['t'] = shift_path(e['t'], DX, DY) if e['t'] else ''
+    e['f'] = shift_path(e['f'], DX, DY) if e['f'] else ''
+    e['m']['d'] = shift_path(e['m']['d'], DX, DY); e['m']['sw'] = round(e['m']['sw'] * 0.72, 1)
+    if e.get('l'): e['l']['d'] = shift_path(e['l']['d'], DX, DY); e['l']['sw'] = round(e['l']['sw'] * 0.72, 1)
+MT['X'] = dict(t='', f='', m=dict(d=mouth_closed(), fill='none', sw=5.2))
 mouth['mm'] = re.sub(r' d="[^"]*"', f' d="{MT["X"]["m"]["d"]}"', mouth["mm"].replace("#000", OL), count=1).replace('stroke-width="6"', 'stroke-width="5.2"')
 mouth['ml'] = mouth['ml'].replace('#000', OL)
 wh = ''.join(f'<path class="wh wh-{s} wh-{r}" d="{d}" fill="{c}"/>' for s, r, d, c in whiskers())
 nose_d, nose_c = nose()
 head = (RING_BEHIND + f'<path d="{head_d}" fill="{FURC}"/>' + ''.join(fill(x) for x in face_light()) + stroke(head_d) + ''.join(f'<path d="{p}" fill="{OL}"/>' for p in edge_blobs())
         + ''.join(fill(x) for x in ear_inner()) + ''.join(fill(x) for x in ear_lines()) + ''.join(fill(x) for x in brow_hairs())
-        + '<g class="brows"></g>' + ''.join(mouth[k] for k in ('mm', 'mt', 'mf', 'ml')) + f'<path d="{nose_d}" fill="{nose_c}"/>' + wh
+        + '<g class="brows"></g>' + '<g class="mouth">' + ''.join(mouth[k] for k in ('mm', 'mt', 'mf', 'ml')) + '</g>' + f'<path d="{nose_d}" fill="{nose_c}"/>' + wh
         + RING_TOP + star(208, 262, 28, OL, '#cdedbe') + star(835, 262, 28, OL, '#cdedbe') + pink_group(pk['bow']) + knot() + '<g class="dc"></g>')
 
 # ── глаза (состояние base) ──
