@@ -49,10 +49,10 @@ describe('стиль зеркала на дорожках: 375 px, lite, reduced
     expect(css).toMatch(/\.rhCmpBar \{[^}]*top: 71%/); expect(css).not.toMatch(/\.rhCmpBar \{[^}]*bottom:/)
     expect(css).toMatch(/\.rhNote \{[^}]*width: calc\(100% - 32px\)/)
   })
-  it('пилюли сравнения появляются плавно (только opacity); подпись «Пит» / «Ты» — на самой пилюле (::after), без новых узлов', () => {
+  it('пилюли сравнения появляются плавно (только opacity); подписей на самих пилюлях нет — подпись одна на горизонтальной подложке', () => {
     expect(css).toMatch(/\.wlPill\[data-still\] \{ animation: rhStillIn 0\.6s/)
     expect(css).toMatch(/@keyframes rhStillIn \{ from \{ opacity: 0; \} to \{ opacity: 1; \} \}/)
-    expect(css).toMatch(/\.wlPill\[data-tag\]::after \{[^}]*content: attr\(data-tag\)/)
+    expect(css).not.toMatch(/\.wlPill\[data-tag\]::after/)
     expect(css).not.toMatch(/transition:[^;]*(width|left|height|top|box-shadow|background)/)
   })
   it('слабое устройство и reduced-motion: без анимации появления, звучащий кусок — статичный белый контур без filter', () => {
@@ -63,5 +63,34 @@ describe('стиль зеркала на дорожках: 375 px, lite, reduced
   it('пул чистит признаки сравнения при возврате пилюли; движок знает сцену mirror', () => {
     const pool = read('../../player/modules/rotate-phone/wordLanePool.js')
     for (const a of ['data-still', 'data-tag', 'data-cmp']) expect(pool).toContain(`'${a}'`)
+  })
+})
+
+describe('заметка в два слоя: плашка между подложками и вердикт Пита (v3.3.87)', () => {
+  const src = read('./MirrorCompare.jsx')
+  it('Пит говорит вердикт один раз, когда сравнение прозвучало (или играть нечего): noteLine(shown) → say; «Дальше» сперва гасит Пита', () => {
+    expect(src).toContain('const line = problem ? null : noteLine(shown)')
+    expect(src).toContain('const open = heard || !canPlay')
+    expect(src).toMatch(/if \(open && line && !said\.current\) \{ said\.current = true; say\?\.\(line\) \}/)
+    expect(src).toContain('const next = () => { hush?.(); onDone() }')
+    expect(src).toContain('onClick={next}')
+  })
+  it('сбой записи: плашка сразу, а реплика — после диктора (heard); у «ошибки воспроизведения» реплики нет', () => {
+    expect(src).toContain('(heard || failed || !canPlay || problem) && <p className=')
+    expect(src).toContain('problem ? null : noteLine(shown)')
+  })
+  it('«чисто» — золотая плашка (классы wlTurn rhNote--gold, слабое устройство без бликов); обычная — без wlTurn', () => {
+    expect(src).toContain("const gold = shown.key === 'clean'")
+    expect(src).toContain("`rhNote${gold ? ` wlTurn rhNote--gold${lite ? ' wlTurn--lite' : ''}` : ''}`")
+  })
+  it('стиль: плашка стоит в зазоре между подложками (top 42,4 %, не 11,5 %); золотая — цвет «Памяти», косой блик дважды, transform; lite и reduced-motion без бликов; CSS подключён', () => {
+    const mirrorCss = read('../../../styles/player/modules/rehearsal-mirror.css')
+    expect(mirrorCss).toMatch(/\.rhNote \{[^}]*top: 42\.4%/); expect(mirrorCss).not.toMatch(/\.rhNote \{[^}]*top: 11\.5%/)
+    const gold = read('../../../styles/player/modules/rehearsal-gold.css')
+    expect(read('../../../index.css')).toContain("@import './styles/player/modules/rehearsal-gold.css';")
+    expect(gold).toMatch(/border: 2px solid var\(--phrase-gold, #ffd257\)/); expect(gold).toMatch(/--wl-plate-tex/)
+    expect(gold).toMatch(/animation: rhGoldSweep 1\.3s ease-in-out 0\.55s 2 both/) // два прохода, не бесконечно
+    expect(gold).not.toMatch(/infinite/); expect(gold).toMatch(/\.weak-device \.rhNote--gold::before \{ display: none; \}/)
+    expect(gold).toMatch(/prefers-reduced-motion: reduce\)[\s\S]*display: none/)
   })
 })

@@ -10,6 +10,7 @@ import { reducedMotion } from './laneConveyorDrive.js'
 
 // Дорожки и пилюли игры. Три колонки разделены линиями; пилюли — вертикальные пустые капсулы (без надписей) из пула POOL штук: движок (useWordLanePills) выдаёт их кускам и повторам
 // ступени, ставит дорожку (data-lane: x и цвет — ступени «Моей памяти»: зелёная с одной обводкой, синяя с двумя, фиолетовая с тремя), запускает полёт и пишет заливку.
+// «Дубль и зеркало» (v3.3.87): под пилюлями лежат две горизонтальные подложки-ленты .wlBand (скрыты; включает и заливает сцена wordLaneMirrorBands.js).
 // Сверху и снизу экран затемнён (wlFade, над пилюлями): пилюли выезжают из тьмы и уходят во тьму. Под подписями три «огонька» — прогресс повторов ступени.
 // Подсказка ученику (видна только пока слышен голос): «тень» слова диктора внутри пилюли — полоски, ширина которых повторяет громкость слова снизу вверх, и метка темпа --pace.
 // Линии уровня на пилюле нет (v3.3.84: горизонтальные линии внутри пилюли убраны по замечанию владельца): заливка — ровный тон с мягким краем.
@@ -32,6 +33,7 @@ function WordLanePills({ scene, levels, fx, live, sceneApi, visible, onLane, arm
         {[0, 1, 2].map(k => <i key={k} />)}
         {LANE_EDGES.map(x => <b key={x} className="wlLaneEdge" style={{ left: `${x}%` }} />)}
       </div>
+      {['pit', 'you'].map(side => <div key={side} className="wlBand" data-band={side} aria-hidden="true"><i className="wlBandFill" /></div>)}
       {Array.from({ length: POOL }, (_, i) => (
         <div key={i} data-pill className="wlPill" data-lane={i % SLOT_COUNT} style={{ left: `${LANE_X[i % SLOT_COUNT]}%`, width: `${PILL_W}%`, height: `${PILL_H}%` }} data-testid={`wl-pill-${i}`}>
           <span className="wlPillClip">

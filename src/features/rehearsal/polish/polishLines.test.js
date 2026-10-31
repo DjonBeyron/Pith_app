@@ -7,6 +7,8 @@ import { buildActs } from '../rehearsalRecipe.js'
 import { fixturePlan } from '../rehearsalFixtures.js'
 import { normalizeLines } from '../../player/modules/rotate-phone/wordLaneCatLines.js'
 import { missingPitLines, pitVoiceCount, voiceMissingPitLines, voiceMissingTexts } from '../rehearsalVoice.js'
+import { NOTE_LINES } from '../mirror/noteLine.js'
+const NOTE_IDS = Object.values(NOTE_LINES) // вердикт зеркала: rh_note_*
 
 // Реплики Пита по этапам «Шлифовки»: какие реплики на каком этапе, «озвучено 2/3», что без озвучки и почему
 const voiced = ids => normalizeLines({ lines: Object.fromEntries(ids.map(id => [id, { text: REHEARSAL_LINES.find(l => l.id === id).text, url: `u/${id}.mp3`, duration: 2 }])) })
@@ -31,7 +33,7 @@ describe('реплики по этапам', () => {
   it('ключи вариантов (b, c) стоят в ACT_LINES рядом с основным ключом и попадают в «Озвучить реплики»; без вариантов (rh_blind_hint, rh_discern) — один ключ', () => {
     for (const [act, ids] of Object.entries(ACT_LINES)) for (const id of ids) expect(ACT_LINES[act], id).toEqual(expect.arrayContaining(lineVariants(baseLineId(id))))
     expect(ACT_LINES.build).toEqual(['rh_build', 'rh_build_b', 'rh_build_c', 'rh_clear', 'rh_clear_b', 'rh_clear_c', 'rh_normal'])
-    expect(ACT_LINES.take).toEqual(['rh_take', 'rh_mirror'])
+    expect(ACT_LINES.take).toEqual(['rh_take', 'rh_mirror', ...NOTE_IDS]) // и вердикт зеркала: rh_note_*
     expect(lineVariants('rh_blind_hint')).toEqual(['rh_blind_hint']); expect(lineVariants('rh_discern')).toEqual(['rh_discern'])
     expect(missingPitLines(null).map(m => m.id)).toEqual(expect.arrayContaining(['rh_done_b', 'rh_start_b', 'rh_clear_c', 'rh_blind_hint_pre']))
     expect(missingPitLines(null)).toHaveLength(REHEARSAL_LINES.length - 1) // все, кроме шаблона со {word}
@@ -49,7 +51,7 @@ describe('реплики по этапам', () => {
     expect(actVoiceCount('build', lines)).toEqual({ done: 2, total: 7, templates: 0 }) // rh_build и rh_clear — по три ключа, rh_normal — один
     expect(actVoiceCount('blind', lines)).toEqual({ done: 1, total: 2, templates: 1 }) // rh_blind и «Начни с» озвучиваются, «Начни с {word}» — шаблон
     expect(actVoiceCount('intro', lines)).toEqual({ done: 0, total: 2, templates: 0 })
-    expect(actLineRows('take', lines).map(r => r.id)).toEqual(['rh_take', 'rh_mirror'])
+    expect(actLineRows('take', lines).map(r => r.id)).toEqual(['rh_take', 'rh_mirror', ...NOTE_IDS])
     expect(actVoiceCount('build', null)).toEqual({ done: 0, total: 7, templates: 0 })
   })
   it('общий счётчик «озвучено N из M» совпадает с pitVoiceCount; список «без озвучки» = недостающие + шаблонные', () => {

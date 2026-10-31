@@ -14,7 +14,7 @@ import { fixtureSource, fixturePlan } from '/src/features/rehearsal/rehearsalFix
 import { planTexts } from '/src/features/rehearsal/rehearsalPlan.js'
 
 // Стенд «Репетиция с Питом» (dev, в сборку не входит): настоящий сценарий актов на игре «Повтори за диктором» без входа, Supabase и настоящей модели Vosk.
-//  • ?fixture=three|two|one|none — план из фикстур; ?seed=… — семя случайностей внутри актов, ?only=take — только дубль и зеркало (этап шлифовки: take, warmup, read, build, blind, discern, summary) (по умолчанию от даты и фразы); ?voice=1 — библиотека слов с тестовой озвучкой (WAV с гудками, у каждого слова своя длина), ?voice=0 — без озвучки (голос системы);
+//  • ?fixture=three|two|one|none — план из фикстур; ?seed=… — семя случайностей внутри актов, ?only=take — только дубль и зеркало (этап шлифовки: take, warmup, read, build, blind, discern, summary) (по умолчанию от даты и фразы); ?clean=1 — речь дубля без длинной паузы (заметка «чисто», золотая плашка); ?voice=1 — библиотека слов с тестовой озвучкой (WAV с гудками, у каждого слова своя длина), ?voice=0 — без озвучки (голос системы);
 //  • модель Vosk — заглушка: тап вместо речи (localStorage pithy_wl_tap_v1=1) работает как обычно; в стадии «дубль» драйвер ставит window.__speakAt — заглушка «произносит» фразу по сценарию SPEECH
 //    (слова с таймингами, пауза 0,8 с перед «to learn» → заход Vosk заканчивается эндпойнтом, слушатель начинает следующий), а запись MediaRecorder идёт с настоящего (фейкового) микрофона Chromium.
 const params = new URLSearchParams(location.search)
@@ -38,7 +38,7 @@ await listWordAudio()
 
 // Модель Vosk: готова сразу; распознаватель молчит, пока драйвер не включит речь (window.__speakAt, мс по performance.now()). Время слов — секунды от первого куска звука захода (как у настоящего Vosk)
 const miss = (params.get('miss') || '').split(',') // ?miss=trying — дубль без этого слова (пропуск куска: пустая пилюля с полосками)
-const SPEECH = [["i'm", 0.0, 0.3], ['trying', 0.38, 0.9], ['to', 1.7, 1.82], ['learn', 1.82, 2.32]].filter(w => !miss.includes(w[0])) // секунды от window.__speakAt; пауза 0,8 с перед «to»
+const SPEECH = (params.get('clean') ? [["i'm", 0.0, 0.3], ['trying', 0.38, 0.9], ['to', 1.0, 1.12], ['learn', 1.12, 1.62]] : [["i'm", 0.0, 0.3], ['trying', 0.38, 0.9], ['to', 1.7, 1.82], ['learn', 1.82, 2.32]]).filter(w => !miss.includes(w[0])) // секунды от window.__speakAt; пауза 0,8 с перед «to»
 const consumed = new Set() // слова, которые уже отдал прежний заход
 class Rec {
   constructor() { this.h = {}; this.born = 0; this.last = ''; this.ended = false }

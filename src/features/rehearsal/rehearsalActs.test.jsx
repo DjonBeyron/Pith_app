@@ -58,7 +58,7 @@ describe('интерфейс актов', () => {
     expect(out).toContain('<audio src="blob:take"')
     expect(out).not.toContain('rh-mirror-note') // заметка — после того, как сравнение прозвучало
     for (const old of ['rhScreen', 'rhMirror', 'wl-mirror', 'wlMirLane', '<b>Пит</b>', '<b>Ты</b>', 'Зеркало — скоро']) expect(out).not.toContain(old)
-    expect(buildMirror({ chunks: CHUNKS, take: { url: 'blob:take', durationMs: 2600, rms: 0.09 }, words, dictor }).note.text).toBe('Порядок верный, темп мой. Чисто.')
+    expect(buildMirror({ chunks: CHUNKS, take: { url: 'blob:take', durationMs: 2600, rms: 0.09 }, words, dictor }).note.text).toBe('Идеальное произношение!')
   })
   it('зеркало без записи (сбой): «Послушать» и заметка о сбое сразу; без данных зеркала ничего не рисуется', () => {
     const mirror = { dictor: { ...DICTOR, leadMs: 0, play() {} }, student: null, measure: null, note: noteFor(null), tempo: null }
@@ -73,12 +73,12 @@ describe('интерфейс актов', () => {
     expect(labelsForRehearsal(mir, CHUNKS)).toEqual([{ text: "I'm", on: true }, { text: 'trying', on: true }, { text: 'to learn', on: true }])
     expect(labelsForRehearsal(mir, ['hello'])).toEqual([{ text: '', on: false }, { text: 'hello', on: true }, { text: '', on: false }]) // одно слово — на средней дорожке
   })
-  it('итог: фраза, перевод, темп, заметка Пита, XP, «Ещё минутку?» и «Готово»', () => {
+  it('итог: окно-плашка (.wlTurn): фраза, перевод, темп, заметка Пита, XP, «Хочешь ещё?», «Ещё одну» и «Нет»', () => {
     const result = { xp: 2, capped: false, tempo: 1.3, note: { key: 'tempo', text: 'Ты медленнее меня на 30 %.' } }
     const out = html(RehearsalActs, { f: baseF({ stageObj: { type: 'summary' }, phase: 'summary', rh: { on: true, tag: '', result } }), cfg, onAgain() {} })
     expect(out).toContain("I&#x27;m trying to learn"); expect(out).toContain('Я пытаюсь научиться')
     expect(out).toMatch(/rh-summary-tempo">×1\.3</); expect(out).toContain('rh-summary-note">Ты медленнее меня на 30 %.<'); expect(out).toMatch(/rh-summary-xp">\+2</)
-    expect(out).toContain('Ещё минутку?'); expect(out).toContain('Готово')
+    expect(out).toContain('wlTurn rhScreen rhSumPlate'); expect(out).toContain('Хочешь ещё?'); expect(out).toMatch(/rh-again">Ещё одну</); expect(out).toMatch(/rh-done">Нет</); expect(out).not.toContain('Ещё минутку')
   })
   it('итог: записи нет — темп «—», заметка о сбое; XP ещё не посчитан — «…», темп и заметка «—»', () => {
     const fail = html(RehearsalSummary, { plan, result: { xp: 1, capped: false, tempo: null, note: noteFor(null) }, onDone() {} })
@@ -92,9 +92,9 @@ describe('интерфейс актов', () => {
     expect(tempoLabel(1.1)).toBe('×1.1'); expect(tempoLabel(0.9)).toBe('×0.9')
     expect(tempoLabel(null)).toBe('—'); expect(tempoLabel(undefined)).toBe('—'); expect(tempoLabel(0)).toBe('—')
   })
-  it('итог: нет следующего плана — «Ещё минутку?» нет; XP ещё не посчитан — «…»; потолок дня подписан', () => {
+  it('итог: нет следующего плана — «Ещё одну» и вопроса нет, одна кнопка «Готово»; XP ещё не посчитан — «…»; потолок дня подписан', () => {
     const none = html(RehearsalSummary, { plan, result: null, onDone() {} })
-    expect(none).not.toContain('rh-again'); expect(none).toMatch(/rh-summary-xp">…</)
+    expect(none).not.toContain('rh-again'); expect(none).not.toContain('Хочешь ещё?'); expect(none).toMatch(/rh-done">Готово</); expect(none).toMatch(/rh-summary-xp">…</)
     expect(html(RehearsalSummary, { plan, result: { xp: 0, capped: true }, onAgain() {}, onDone() {} })).toContain('+0 (потолок дня)')
   })
   it('пауза или стадия вне run: экраны зеркала и итога не показываются', () => {

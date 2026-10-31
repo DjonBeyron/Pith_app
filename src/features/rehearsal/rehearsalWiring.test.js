@@ -53,7 +53,7 @@ describe('дубль и зеркало (акт 5)', () => {
   const acts = read('./RehearsalActs.jsx'), director = read('./useRehearsalActs.js'), take = read('./useRehearsalTake.js')
   it('стадия mirror — зеркало на дорожках: MirrorCompare с данными rh.mirror, раскладка rh.compare идёт в сцену движка; отдельного экрана и заглушки нет', () => {
     expect(acts).toContain("import MirrorCompare from './mirror/MirrorCompare.jsx'")
-    expect(acts).toContain("{type === 'mirror' && rh.mirror && <MirrorCompare mirror={rh.mirror} chunks={cfg.plan.chunks} sceneApi={f.sceneApi} since={f.at} onDone={f.next} />}")
+    expect(acts).toContain("{type === 'mirror' && rh.mirror && <MirrorCompare mirror={rh.mirror} chunks={cfg.plan.chunks} sceneApi={f.sceneApi} since={f.at} say={rh.say} hush={rh.hush} onDone={f.next} />}")
     expect(acts).not.toMatch(/WordLaneMirror|MirrorStub|Зеркало — скоро|rhMirror/)
     for (const gone of ['RehearsalMirrorStub.jsx', 'mirror/WordLaneMirror.jsx', 'mirror/MirrorLane.jsx', 'mirror/mirrorLane.js']) expect(existsSync(new URL(`./${gone}`, import.meta.url))).toBe(false)
     expect(existsSync(new URL('../admin/speech/MirrorDemoBlock.jsx', import.meta.url))).toBe(false)

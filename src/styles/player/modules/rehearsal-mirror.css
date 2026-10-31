@@ -1,5 +1,5 @@
 /* «Дубль и зеркало» на дорожках (v3.3.86, акт 5 репетиции; features/rehearsal/mirror/MirrorCompare.jsx, сцена движка wordLaneMirrorScene.js). Отдельного экрана нет: дорожки встают сами, на них две ленты пилюль —
-   верхняя Пит, нижняя ты (кусок i на дорожке i, цвет пилюли — цвет дорожки), под ними кнопки, над дорожками одна заметка Пита на месте ярлыков (.rhTag). Раскладка в процентах экрана, рассчитана на 375 px.
+   верхняя Пит, нижняя ты (кусок i на дорожке i, цвет пилюли — цвет дорожки), под ними кнопки, между подложками «Пит» и «твоя фраза» одна плашка заметки Пита (.rhNote). Раскладка в процентах экрана, рассчитана на 375 px.
    Пилюли — из общего пула (.wlPill): data-still = pit | you — стоят на месте и дорожек не запускают; data-tag — подпись на самой пилюле; data-voice — кусок звучит (общее свечение «Различи», word-lane-pill.css);
    пропуск — data-wrong (полоски, word-lane-pill-wrong.css). Анимации — только opacity и свойство filter из общего свечения; на слабом устройстве и при reduced-motion их нет. */
 
@@ -8,22 +8,7 @@
 .wlPill[data-still='you'] { animation-delay: 0.3s; }
 @keyframes rhStillIn { from { opacity: 0; } to { opacity: 1; } }
 
-/* Маленькая подпись на самой пилюле («Пит» / «Ты»), над ней, по центру; рисуется ::after (узлов не прибавляет; кольцо-подсказка data-hint здесь не бывает) */
-.wlPill[data-tag]::after {
-  content: attr(data-tag);
-  position: absolute;
-  left: 50%;
-  bottom: calc(100% + 5px);
-  transform: translateX(-50%);
-  font-size: 11px;
-  font-weight: 800;
-  line-height: 1;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  white-space: nowrap;
-  color: rgba(var(--rgb), 0.95);
-  pointer-events: none;
-}
+/* Подписей на самих пилюлях нет (v3.3.87): подпись «Пит» / «Твоя фраза» — одна на ленту, на горизонтальной подложке (rehearsal-bands.css) */
 
 /* Слабое устройство (.wl--lite на поле, .weak-device на <html>): пилюли появляются сразу, звучащая — статично белым контуром, без свечения (filter) и перехода */
 .wl--lite .wlPill[data-still], .weak-device .wlPill[data-still] { animation: none; }
@@ -33,27 +18,28 @@
   .wlPill[data-still][data-voice] { transition: none; }
 }
 
-/* Заметка Пита: одна, подписью над дорожками на месте ярлыков, до трёх строк; мягко проявляется, когда сравнение прозвучало */
+/* Заметка Пита (v3.3.87): плашка с конкретикой стоит МЕЖДУ горизонтальными подложками «Пит» (до 39,2 %) и «твоя фраза» (с 45,6 %), по центру зазора (42,4 %), до двух строк; мягко проявляется, когда сравнение прозвучало.
+   Пит при этом озвучивает общий вердикт (rh_note_*), здесь — какие слова, перед чем пауза. «Чисто» — золотая плашка с бликами (rehearsal-gold.css) */
 .rhNote {
   left: 50%;
-  top: 11.5%;
-  transform: translateX(-50%);
+  top: 42.4%;
+  transform: translate(-50%, -50%);
   width: calc(100% - 32px);
   max-width: 420px;
   box-sizing: border-box;
-  padding: 6px 14px;
+  padding: 5px 14px;
   border-radius: 14px;
   border: 1.5px solid var(--wl-accent);
   background: rgba(11, 13, 17, 0.92);
   color: #f2f3f7;
   font-size: 13px;
   font-weight: 700;
-  line-height: 1.3;
+  line-height: 1.25;
   text-align: center;
   overflow-wrap: anywhere;
   display: -webkit-box;
   -webkit-box-orient: vertical;
-  -webkit-line-clamp: 3;
+  -webkit-line-clamp: 2;
   overflow: hidden;
   z-index: 4;
   pointer-events: none;
