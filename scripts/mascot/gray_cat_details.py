@@ -156,34 +156,16 @@ def pink_details(m):
         if abs(cx - 635) > 45 or abs(cy - 212) > 45: res.append((region_path(fill_holes(x), F, 1.0, 4), color(x, 1)))
     return res
 
-# ── тело: тени бёдер, пальчики, внутренние тёмные линии (ноги, лапы) ──
-def body_shade():
-    c = classes(); m = opening(c['shade'] & morph(silhouette(), 2, 'e') & box(150, 880, 900, 1260), 3)
-    big_, small = [], []
-    for x in components(m, 40): (big_ if x.sum() > 1500 else small).append(x)
-    rounded = lambda x: closing(opening(x, 11), 11)                                 # острые уголки теней скруглены (тени мягкие, не «клинья»)
-    return [(region_path(rounded(x), F, 1.4, 9, 180, 4), color(x)) for x in big_], [(region_path(x, F, 0.8, 2), color(x, 1)) for x in small]
-def body_lines():
-    dark = classes()['dark'] & box(150, 775, 900, 1260) & ~box(470, 1100, 566, 1150); inner = morph(silhouette(), 9, 'e')
-    res = []
-    for x in components(dark & inner, 150):
-        for _ in range(4): x = morph(x, 1, 'd') & dark                 # дотянуть до внешней обводки (под неё)
-        res.append((region_path(x, F, 1.0, 6, 180), '#262432'))
-    return res
-
 def heart(cx, cy, w, h, f=F):
     """Сердечко (кулон) по центру обводки: cx cy — центр, w h — размеры в пикселях рисунка"""
     P = lambda dx, dy: '%.1f %.1f' % f(cx + dx * w, cy + dy * h)
     return (f'M{P(0, .5)}C{P(-.1, .38)} {P(-.5, .2)} {P(-.5, -.12)}C{P(-.5, -.42)} {P(-.16, -.5)} {P(0, -.24)}'
             f'C{P(.16, -.5)} {P(.5, -.42)} {P(.5, -.12)}C{P(.5, .2)} {P(.1, .38)} {P(0, .5)}Z')
 
-def edge_blobs(part):
-    """Места, где обводка на рисунке толще или ломаная: точная тёмная область поверх обводки. part='head' — бугорки у основания ушей (двигаются с головой),
-    part='body' — бугорки у шеи и стык передних лап (принадлежат телу и не должны ехать вместе с головой). У стыка лап порог темноты строже (70),
-    чтобы стебелёк между лапами не получился толще, чем на рисунке"""
-    boxes = dict(head=((148, 362, 250, 460, 85), (782, 362, 886, 460, 85)), body=((286, 752, 338, 797, 85), (688, 752, 742, 797, 85)))[part]
+def edge_blobs():
+    """Бугорки шерсти у основания ушей на прежнем рисунке (обводка там толще и ломаная): точная тёмная область поверх обводки головы"""
     res = []
-    for x0, y0, x1, y1, thr in boxes:
-        dark = blur(LUM, 1) < thr
-        for m in components(dark & box(x0, y0, x1, y1), 200): res.append(region_path(m, F, 1.0, 4 if part == 'body' else 2, 90 if part == 'body' else 40))
+    for x0, y0, x1, y1 in ((148, 362, 250, 460), (782, 362, 886, 460)):
+        dark = blur(LUM, 1) < 85
+        for m in components(dark & box(x0, y0, x1, y1), 200): res.append(region_path(m, F, 1.0, 2, 40))
     return res

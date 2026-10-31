@@ -3,10 +3,12 @@
 # Этап 1 — только форма: рисунок повторяет эталон, анимаций нет. Использование: python3 build_gray_cat.py <папка_результата>
 #   → gray_cat.json (спрайт) и gray_cat.svg (превью); дальше gray.json можно положить в src/features/scene/v2/sprites/mascot/ и подключить в mascots.js.
 import json, sys, os
+import numpy as np
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from gray_cat_regions import *
 from gray_cat_details import *
 from gray_cat_faces import build_states
+import gray_cat_body as GB
 
 out = sys.argv[1] if len(sys.argv) > 1 else '/tmp/gray-cat'; os.makedirs(out, exist_ok=True)
 mia = json.load(open(f'{HERE}/../../src/features/scene/v2/sprites/mascot/mia.json', encoding='utf8'))
@@ -14,17 +16,20 @@ OL, FURC, SW = '#262432', '#646774', 7.5             # обводка, мех, �
 fill = lambda p: f'<path d="{p[0]}" fill="{p[1]}"/>'
 stroke = lambda d, w=SW, c=OL: f'<path d="{d}" fill="none" stroke="{c}" stroke-width="{w}" stroke-linecap="round" stroke-linejoin="round"/>'
 
-# ── части силуэта ──
-head_P, body_P, tail_P = parts()
-head_d, body_d = outline_path(head_P, F), outline_path(body_P, F, smooth_zone=(465, 1130, 570, 1250))
-axis, tail_w = tail_axis(tail_P); tail_d = bezier_path(simplify_open(axis, 0.8), False, 70, FT, set())
+head_P = parts()[0]; head_d = outline_path(head_P, F)                    # силуэт головы — по прежнему рисунку
+
+# ── тело, лапы и хвост — по чистому рисунку (gray_cat_body.py): обводка сплошной областью, хвост линией по оси ──
+FB = lambda x, y: F(*GB.M(x, y))                                      # чистый рисунок → координаты спрайта
+body_fill_d, body_outline_d, _, _ = GB.parts(FB)
+axis, tail_wx = GB.tail_line(); tail_w = tail_wx * GB.KS * S                  # толщина между центрами обводки, единицы спрайта
+px_ = axis[np.argmin(np.abs(axis[:, 0] - 800))]; TBX, TBY = FB(*px_)           # качается хвост вокруг точки, где он уходит под бедро
+tail_d = bezier_path(simplify_open(axis, 0.8), False, 70, lambda x, y: (FB(x, y)[0] - TBX, FB(x, y)[1] - TBY), set())
 
 # ── хвост (в начале координат основания, как у Мии) ──
-tail = (f'<path d="{tail_d}" fill="none" stroke="{OL}" stroke-width="{tail_w * S + SW:.1f}" stroke-linecap="round" stroke-linejoin="round"/>'
-        f'<path class="tl-fill" d="{tail_d}" fill="none" stroke="{FURC}" stroke-width="{tail_w * S - SW:.1f}" stroke-linecap="round" stroke-linejoin="round"/>')   # хвост — две линии постоянной толщины: тёмная широкая и мех
+tail = (f'<path d="{tail_d}" fill="none" stroke="{OL}" stroke-width="{tail_w + SW:.1f}" stroke-linecap="round" stroke-linejoin="round"/>'
+        f'<path class="tl-fill" d="{tail_d}" fill="none" stroke="{FURC}" stroke-width="{tail_w - SW:.1f}" stroke-linecap="round" stroke-linejoin="round"/>')   # хвост — две линии постоянной толщины: тёмная широкая и мех
 
-# ── тело: заливка, тени бёдер, обводка, пальчики, линии ног и лап, ошейник с сердечком ──
-shade_big, toes = body_shade()
+# ── тело: заливка, пальчики, обводка (даже-нечётная область по чистому рисунку), ошейник с сердечком ──
 pk = pink_parts(); CRIM = hexc(im[pk['collar'] & (blur(LUM, 1) < 95)].mean(0))
 def pink_group(m):
     d, f = pink(m)
@@ -47,10 +52,8 @@ def pendant():
     hd = heart(521, 825, 62, 66); x, y = F(501, 811)
     return (f'<path d="{hd}" fill="{PINK_L}" stroke="{CRIM}" stroke-width="4.4" stroke-linejoin="round"/>'
             f'<path d="M{x:.1f} {y + 4:.1f}C{x - 1:.1f} {y - 1:.1f} {x + 2:.1f} {y - 4:.1f} {x + 7:.1f} {y - 4:.1f}" fill="none" stroke="#ffffff" stroke-width="3.2" stroke-linecap="round" opacity=".95"/>')
-def paw_stem_markup():   # два тонких стебелька между передними лапками с просветом
-    return ''.join(f'<path d="{bezier_path(simplify_open(smooth_open(s, 3), 0.6), False, 70, F, set())}" fill="none" stroke="{OL}" stroke-width="{SW}" stroke-linecap="round" stroke-linejoin="round"/>' for s in paw_stems())
-body = (f'<path d="{body_d}" fill="{FURC}"/>' + ''.join(fill(x) for x in shade_big) + stroke(body_d) + ''.join(f'<path d="{p}" fill="{OL}"/>' for p in edge_blobs('body')) + paw_stem_markup() + ''.join(fill(x) for x in toes)
-        + ''.join(f'<path d="{d}" fill="{c}"/>' for d, c in body_lines()) + collar() + pendant())
+body = (f'<path d="{body_fill_d}" fill="{FURC}"/>' + ''.join(f'<path d="{d}" fill="none" stroke="{c}" stroke-width="{w}" stroke-linecap="round"/>' for d, c, w in GB.toes(FB))
+        + f'<path d="{body_outline_d}" fill="{OL}" fill-rule="evenodd"/>' + collar() + pendant())
 
 # ── голова ──
 mouth = {k: mia['head'][mia['head'].index(f'<path class="{k}"'):].split('/>', 1)[0] + '/>' for k in ('mm', 'mt', 'mf', 'ml')}
@@ -86,7 +89,7 @@ mouth['mm'] = re.sub(r' d="[^"]*"', f' d="{MT["X"]["m"]["d"]}"', mouth["mm"].rep
 mouth['ml'] = mouth['ml'].replace('#000', OL)
 wh = ''.join(f'<path class="wh wh-{s} wh-{r}" d="{d}" fill="none" stroke="{c}" stroke-width="{w}" stroke-linecap="round"/>' for s, r, d, c, w in whiskers())
 nose_d, nose_c = nose()
-head = (RING_BEHIND + f'<path d="{head_d}" fill="{FURC}"/>' + ''.join(fill(x) for x in face_light()) + stroke(head_d) + ''.join(f'<path d="{p}" fill="{OL}"/>' for p in edge_blobs('head'))
+head = (RING_BEHIND + f'<path d="{head_d}" fill="{FURC}"/>' + ''.join(fill(x) for x in face_light()) + stroke(head_d) + ''.join(f'<path d="{p}" fill="{OL}"/>' for p in edge_blobs())
         + ''.join(fill(x) for x in ear_inner()) + ''.join(fill(x) for x in ear_lines())
         + '<g class="brows"></g>' + '<g class="mouth">' + ''.join(mouth[k] for k in ('mm', 'mt', 'mf', 'ml')) + '</g>' + f'<path d="{nose_d}" fill="{nose_c}"/>' + wh
         + RING_TOP + star(208, 262, 28, OL, '#cdedbe') + star(835, 262, 28, OL, '#cdedbe') + pink_group(pk['bow']) + knot() + '<g class="dc"></g>')
@@ -108,7 +111,7 @@ for e in MT.values():
 eyes = STATES['base']['eyes']
 
 # ── вписывание в коробку 200×240 (как export_sprites.mjs) ──
-x0, x1, y0, y1 = F(95, 0)[0], F(1070, 0)[0], F(0, 62)[1], F(0, 1240)[1]
+x0, x1, y0, y1 = F(95, 0)[0], F(1105, 0)[0], F(0, 62)[1], F(0, 1250)[1]
 vx, vy, vw, vh = x0 - 10, y0 - 8, x1 - x0 + 20, y1 - y0 + 16
 k = min(200 / vw, 240 / vh)
 sprite = dict(id='gray', title='Серая кошка', gender='female', native='left',

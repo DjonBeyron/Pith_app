@@ -70,10 +70,6 @@ def chin_arc(x_from, x_to, step=8):
         pts.append((x, (run + end) / 2))
     return np.array(pts, float)
 
-LN, RN = (329, 718), (700, 721)                                                # места, где шея выходит из-под головы
-TS, TE = (826, 1062), (795, 1173)                                              # где хвост выходит из-под тела / уходит под него
-NR = [(697, 727), (704, 737), (711, 748), (715, 760), (715, 772), (714, 782)]  # край шеи у подбородка (по рисунку; в силуэте здесь лишний «пенёк»)
-NL = [(336, 725), (327, 733), (317, 745), (310, 755), (307, 765), (307, 776), (303, 783)]
 def spline(pts, step=2.0):
     """Плавная линия через опорные точки (Catmull-Rom), густо — чтобы определитель углов не принимал изгиб за излом"""
     P = np.array(pts, float); out = []
@@ -90,47 +86,12 @@ def dense(pts, step=2.0):
     for a, b in zip(P[:-1], P[1:]):
         n = max(1, int(np.hypot(*(b - a)) / step)); out += [a + (b - a) * k / n for k in range(n)]
     out.append(P[-1]); return np.array(out)
-def paw_arcs():
-    """Нижний край передних лап: центры тёмной обводки по столбцам — две дуги, сходящиеся острым уголком между лапами (по x вниз к краю рисунка)"""
-    dark = blur(LUM, 1) < 85; pts = []
-    for x in range(424, 616, 3):
-        ys = [y for y in range(1175, 1250) if dark[y, x]]
-        if not ys: continue
-        run = [ys[-1]]
-        for y in reversed(ys[:-1]):
-            if run[-1] - y > 1: break
-            run.append(y)
-        pts.append((x, (run[0] + run[-1]) / 2))
-    P = np.array(pts, float)
-    return P[np.abs(P[:, 0] - 517) >= 9]                                         # самый стык (острый уголок) заменён гладким мостиком; стебельки — отдельно (paw_stems)
-PAW_STEM = 9.5                                                               # на сколько px рисунка ось стебелька лапки отстоит от оси между лапками (даёт просвет между обводками)
-def paw_stems():
-    """Две внутренние линии между передними лапками (ref-координаты): от ног вниз, не сливаясь, до дуг лап. Между ними остаётся узкий просвет цвета меха"""
-    arcs = paw_arcs(); L, Rt = arcs[arcs[:, 0] < 517][-1], arcs[arcs[:, 0] > 517][0]
-    left = [(503.5, 1085), (506, 1115), (508, 1145), (517 - PAW_STEM, 1172), (L[0] + 2, L[1] - 10), tuple(L)]            # ноги сходятся (по рисунку: слева x 504, справа 543 на y 1098)
-    right = [(543, 1085), (538, 1115), (531, 1145), (517 + PAW_STEM, 1172), (Rt[0] - 2, Rt[1] - 10), tuple(Rt)]
-    return spline(left, 2.0), spline(right, 2.0)
-def thin(P, k, root_x=885, extra=6, step=9):
-    """Контур, уменьшенный на k пикселей со всех сторон (хвост тоньше): заливка многоугольника → эрозия → внешняя граница.
-    У корня (левее root_x) эрозия плавно растёт ещё на extra px — хвост сужается к телу, а не «утолщается» там, где выходит из-под бедра"""
-    img = Image.new('L', (W, H), 0); ImageDraw.Draw(img).polygon([tuple(p) for p in P], fill=255); m = np.array(img) > 0
-    out = morph(m, k, 'e')
-    for d in range(1, extra + 1):
-        x1 = root_x - (d - 1) * step; x0 = 0 if d == extra else root_x - d * step
-        cols = np.zeros((H, W), bool); cols[:, x0:x1] = True; out = (out & ~cols) | (morph(m, k + d, 'e') & cols)
-    return outer_contour(out)
+LN, RN = (329, 718), (700, 721)                                                # места, где шея выходит из-под головы (на прежнем рисунке)
 def parts():
-    S_ = contour(); iL, iR, iA, iB = at(S_, LN), at(S_, RN), at(S_, TS), at(S_, TE)
-    jR, jL = at(S_, (717, 794)), at(S_, (300, 800))
-    head = np.vstack([S_[iL:], S_[:iR + 1], chin_arc(RN[0] - 8, LN[0] + 10)])
-    idx = [i for i in range(iB, jL + 1) if 424 < S_[i, 0] < 616 and S_[i, 1] > 1185]       # низ передних лап — по рисунку (острый уголок между лапами)
-    bottom = S_[iB:jL + 1]
-    if idx:
-        a, b = idx[0] - iB, idx[-1] - iB
-        bottom = np.vstack([bottom[:a], spline(paw_arcs()[::-1], 2.0), bottom[b + 1:]])
-    body = np.vstack([spline(NR), S_[jR:iA], spline([(823, 1060), (820, 1078), (813, 1096), (803, 1118), (791, 1140)]), bottom, spline(NL[::-1]), dense([(336, 725), (352, 698), (680, 698), (697, 727)])[1:-1]])
-    tail = np.vstack([S_[iA:iB + 1], dense([S_[iB], (775, 1140), (790, 1070), S_[iA]])[1:-1]])
-    return head, body, tail
+    """Силуэт головы на прежнем рисунке: край (центр обводки) от левой шеи вверх по ушам и вниз до правой шеи + нижний край — по обводке подбородка.
+    Возвращает (голова, None, None): тело и хвост теперь берутся с чистого рисунка (gray_cat_body.py)"""
+    S_ = contour(); iL, iR = at(S_, LN), at(S_, RN)
+    return np.vstack([S_[iL:], S_[:iR + 1], chin_arc(RN[0] - 8, LN[0] + 10)]), None, None
 def outline_path(P, f, eps=1.2, sm=8, smooth_zone=None):
     """Контур → кривая. smooth_zone=(x0, y0, x1, y1) — где углов быть не должно (все изломы там сглаживаются)"""
     Q, cs = smart_outline(P, eps, sm, 5, 28)
@@ -152,16 +113,3 @@ def classes():
     return C
 inside_cat = lambda er=9: morph(silhouette(), er - 7, 'e')
 
-def tail_axis(P):
-    """Хвост — линия постоянной толщины по оси: ось снята скелетом с контура хвоста (ref-координаты), корень продолжен вглубь тела.
-    Возвращает (ось, толщина между центрами обводки в px рисунка). Толщина — медиана расстояния от оси до края на видимой части хвоста (эрозией до исчезновения
-    точки оси). Так основание не «кривое» и не утолщается при качании"""
-    img = Image.new('L', (W, H), 0); ImageDraw.Draw(img).polygon([tuple(p) for p in P], fill=255); m = np.array(img) > 0
-    line, _ = skeleton_line(m); line = smooth_open(line, 8)
-    if line[0][0] > line[-1][0]: line = line[::-1]                                     # корень (левее) — в начале
-    depth = np.zeros(len(line)); cur = m; pts = np.rint(line).astype(int)
-    for k in range(2, 80, 2):                                                        # два шага эрозии (крест + квадрат) = 2 px по восьмиугольнику
-        cur = morph(cur, 2, 'e'); alive = cur[pts[:, 1], pts[:, 0]]; depth[alive] = k
-    vis = depth[line[:, 0] > 850]; wid = 2 * float(np.median(vis)) + 1 if len(vis) else 60.0
-    d = line[0] - line[min(10, len(line) - 1)]; d = d / (np.hypot(*d) or 1)            # продолжение корня под бедро
-    return np.vstack([line[0] + d * 70, line[0] + d * 35, line]), wid - 2 * TAIL_THIN
