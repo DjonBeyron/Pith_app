@@ -4,7 +4,7 @@ const { chromium } = require('playwright'); const fs = require('fs'), path = req
   const [, , page_, dir, fpsS] = process.argv, fps = +fpsS
   const b = await chromium.launch(); const p = await b.newPage({ viewport: { width: 540, height: 960 }, deviceScaleFactor: 2 })
   const errs = []; p.on('pageerror', e => errs.push(String(e)))
-  await p.goto('file://' + path.resolve(page_)); await p.waitForTimeout(300)
+  await p.goto('file://' + path.resolve(page_.split('#')[0]) + (page_.includes('#') ? '#' + page_.split('#')[1] : '')); await p.waitForTimeout(300)
   const total = await p.evaluate(() => TL.total), n = Math.round(total * fps)
   for (let i = 0; i < n; i++) {
     await p.evaluate(t => render(t), i / fps)

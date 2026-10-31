@@ -183,3 +183,11 @@ def rot_move(d, ang, cx, cy, dx=0.0, dy=0.0):
     """Поворот пути на ang градусов (по часовой на экране) вокруг (cx, cy) и сдвиг на (dx, dy)"""
     c, s = np.cos(np.radians(ang)), np.sin(np.radians(ang))
     return map_pairs(d, lambda x, y: (cx + (x - cx) * c - (y - cy) * s + dx, cy + (x - cx) * s + (y - cy) * c + dy))
+
+def scale_markup(m, k, ox, oy):
+    """Масштаб разметки (path d, ellipse cx cy rx ry, зрачки data-x data-y) вокруг точки (ox, oy). Толщины линий не трогаются: обводка головы остаётся такой же, как у тела"""
+    sc = lambda v, o: o + (v - o) * k
+    m = re.sub(r' d="([^"]*)"', lambda mo: ' d="%s"' % scale_path(mo.group(1), k, k, ox, oy), m)
+    for a, o in (('cx', ox), ('data-x', ox), ('cy', oy), ('data-y', oy)): m = re.sub(rf' {a}="(-?[\d.]+)"', lambda mo, a=a, o=o: f' {a}="{sc(float(mo.group(1)), o):.1f}"', m)
+    for a in ('rx', 'ry'): m = re.sub(rf' {a}="(-?[\d.]+)"', lambda mo, a=a: f' {a}="{float(mo.group(1)) * k:.1f}"', m)
+    return m

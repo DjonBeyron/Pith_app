@@ -46,7 +46,7 @@ def pendant():
     hd = heart(521, 837, 64, 68); x, y = F(500, 822)
     return (f'<path d="{hd}" fill="{PINK_L}" stroke="{CRIM}" stroke-width="6.4" stroke-linejoin="round"/>'
             f'<path d="M{x:.1f} {y + 4:.1f}C{x - 1:.1f} {y - 1:.1f} {x + 2:.1f} {y - 4:.1f} {x + 7:.1f} {y - 4:.1f}" fill="none" stroke="#ffffff" stroke-width="3.2" stroke-linecap="round" opacity=".95"/>')
-body = (f'<path d="{body_d}" fill="{FURC}"/>' + ''.join(fill(x) for x in shade_big) + stroke(body_d) + ''.join(fill(x) for x in toes)
+body = (f'<path d="{body_d}" fill="{FURC}"/>' + ''.join(fill(x) for x in shade_big) + stroke(body_d) + ''.join(f'<path d="{p}" fill="{OL}"/>' for p in edge_blobs('body')) + ''.join(fill(x) for x in toes)
         + ''.join(f'<path d="{d}" fill="{c}"/>' for d, c in body_lines()) + collar() + pendant())
 
 # ── голова ──
@@ -83,13 +83,25 @@ mouth['mm'] = re.sub(r' d="[^"]*"', f' d="{MT["X"]["m"]["d"]}"', mouth["mm"].rep
 mouth['ml'] = mouth['ml'].replace('#000', OL)
 wh = ''.join(f'<path class="wh wh-{s} wh-{r}" d="{d}" fill="{c}"/>' for s, r, d, c in whiskers())
 nose_d, nose_c = nose()
-head = (RING_BEHIND + f'<path d="{head_d}" fill="{FURC}"/>' + ''.join(fill(x) for x in face_light()) + stroke(head_d) + ''.join(f'<path d="{p}" fill="{OL}"/>' for p in edge_blobs())
+head = (RING_BEHIND + f'<path d="{head_d}" fill="{FURC}"/>' + ''.join(fill(x) for x in face_light()) + stroke(head_d) + ''.join(f'<path d="{p}" fill="{OL}"/>' for p in edge_blobs('head'))
         + ''.join(fill(x) for x in ear_inner()) + ''.join(fill(x) for x in ear_lines())
         + '<g class="brows"></g>' + '<g class="mouth">' + ''.join(mouth[k] for k in ('mm', 'mt', 'mf', 'ml')) + '</g>' + f'<path d="{nose_d}" fill="{nose_c}"/>' + wh
         + RING_TOP + star(208, 262, 28, OL, '#cdedbe') + star(835, 262, 28, OL, '#cdedbe') + pink_group(pk['bow']) + knot() + '<g class="dc"></g>')
 
 # ── глаза (состояние base) ──
 STATES = build_states(mia['states'], FURC, OL)                              # шесть лиц Мии (веки, взгляд, брови — под глаза этой кошки)
+
+# ── голова чуть меньше (0.9 вокруг шеи): геометрия головы, глаз, бровей, рта и таблицы форм рта; толщины линий те же, что у тела ──
+HK, HO = 0.9, (296.0, 442.0)
+head = scale_markup(head, HK, *HO)
+for s in STATES.values():
+    s['eyes'] = scale_markup(s['eyes'], HK, *HO); s['brows'] = scale_markup(s['brows'], HK, *HO)
+    if s['mouth']: s['mouth'] = scale_path(s['mouth'], HK, HK, *HO)
+for e in MT.values():
+    for key in ('t', 'f'):
+        if e[key]: e[key] = scale_path(e[key], HK, HK, *HO)
+    e['m']['d'] = scale_path(e['m']['d'], HK, HK, *HO)
+    if e.get('l'): e['l']['d'] = scale_path(e['l']['d'], HK, HK, *HO)
 eyes = STATES['base']['eyes']
 
 # ── вписывание в коробку 200×240 (как export_sprites.mjs) ──

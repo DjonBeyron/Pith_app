@@ -1,15 +1,29 @@
-<!doctype html><html><head><meta charset="utf-8"><title>Серая кошка — видео</title>
+<!doctype html><html><head><meta charset="utf-8"><title>Серая кошка говорит</title>
 <style>
-html, body { margin: 0; height: 100%; overflow: hidden; background: radial-gradient(120% 90% at 50% 38%, #f6ecf3 0%, #dccbe2 55%, #b8a3c8 100%); font-family: system-ui, "Helvetica Neue", Arial, sans-serif; }
+html, body { margin: 0; height: 100%; background: #1d1a22; color: #eee; font-family: system-ui, "Helvetica Neue", Arial, sans-serif; }
+body { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; }
+#stage { position: relative; height: calc(100vh - 118px); aspect-ratio: 3 / 4; max-width: 100vw; overflow: hidden; border-radius: 14px;
+  background: radial-gradient(120% 90% at 50% 38%, #f6ecf3 0%, #dccbe2 55%, #b8a3c8 100%); }
+body.cap { gap: 0; } body.cap #stage { height: 100vh; aspect-ratio: 9 / 16; border-radius: 0; } body.cap #ui { display: none; }
 #cat { position: absolute; inset: 0; width: 100%; height: 100%; }
-#sub { position: absolute; left: 5%; right: 5%; bottom: 4%; text-align: center; color: #2b2133; opacity: 0; background: rgba(255,255,255,.82); border-radius: 22px; padding: 14px 18px 12px; box-shadow: 0 4px 18px rgba(43,33,51,.22); }
+#sub { position: absolute; left: 5%; right: 5%; bottom: 3.5%; text-align: center; color: #2b2133; opacity: 0; background: rgba(255,255,255,.82); border-radius: 22px; padding: 14px 18px 12px; box-shadow: 0 4px 18px rgba(43,33,51,.22); }
 #sub b { display: block; font-size: 34px; line-height: 1.15; font-weight: 700; letter-spacing: .2px; }
 #sub i { display: block; margin-top: 6px; font-size: 21px; font-style: normal; opacity: .72; }
+#stage { container-type: size; } #sub b { font-size: 4.6cqw; } #sub i { font-size: 3cqw; } #sub { padding: 10px 14px 9px; bottom: 2.5%; }
+#ui { width: min(94vw, 560px); display: grid; gap: 7px; font-size: 14px; }
+#ui .row { display: flex; gap: 6px; align-items: center; justify-content: center; flex-wrap: wrap; }
+#ui button, #ui select { font: inherit; padding: 6px 12px; border-radius: 8px; border: 1px solid #fff3; background: #fff1; color: inherit; cursor: pointer; }
+#ui button:hover { background: #fff2; } #ui input[type=range] { flex: 1; min-width: 160px; }
+#info { opacity: .8; font-variant-numeric: tabular-nums; text-align: center; }
 </style></head><body>
-<svg id="cat" xmlns="http://www.w3.org/2000/svg" viewBox="46 -17 500 889" preserveAspectRatio="xMidYMid slice"><defs><radialGradient id="sh"><stop offset="0" stop-color="#2b2133" stop-opacity=".30"/><stop offset="1" stop-color="#2b2133" stop-opacity="0"/></radialGradient></defs>
+<div id="stage"><svg id="cat" xmlns="http://www.w3.org/2000/svg" viewBox="22 0 620 827" preserveAspectRatio="xMidYMid slice"><defs><radialGradient id="sh"><stop offset="0" stop-color="#2b2133" stop-opacity=".30"/><stop offset="1" stop-color="#2b2133" stop-opacity="0"/></radialGradient></defs>
 <ellipse cx="300" cy="742" rx="250" ry="26" fill="url(#sh)"/>
 <g id="tailT"><g id="tailR"></g></g><g id="body"></g><g id="head"><g id="tilt"></g></g></svg>
-<div id="sub"><b></b><i></i></div>
+<div id="sub"><b></b><i></i></div></div>
+<div id="ui"><div class="row"><button id="bPrev" title="Кадр назад (←)">◀ кадр</button><button id="bPlay" title="Пуск / пауза (пробел)">▶ Играть</button><button id="bNext" title="Кадр вперёд (→)">кадр ▶</button>
+<select id="speed"><option value="0.1">0,1×</option><option value="0.25">0,25×</option><option value="0.5">0,5×</option><option selected value="1">1×</option></select>
+<label><input type="checkbox" id="snd"> звук</label></div>
+<div class="row"><input type="range" id="seek" min="0" max="0" step="1" value="0"></div><div id="info"></div></div><audio id="au" preload="auto"></audio>
 <script>
 const SP = __SPRITE__, TL = __TIMELINE__;
 const $ = id => document.getElementById(id), Q = (r, c) => r.querySelector('.' + c);
@@ -67,12 +81,26 @@ function render(t) {
   const per = ((t + 1.0) % 4.2) / 4.2, nat = per < 0.93 ? 1 : per < 0.95 ? lerp(1, 0.08, (per - 0.93) / 0.02) : per < 0.97 ? 0.08 : lerp(0.08, 1, (per - 0.97) / 0.03);
   const bl = t - blinkAt, forced = bl >= 0 && bl < 0.18 ? 1 - 0.92 * Math.sin(Math.PI * bl / 0.18) : 1, ey = Math.min(nat, forced), ecx = eyeBB.x + eyeBB.width / 2, ecy = eyeBB.y + eyeBB.height / 2;
   eyes.setAttribute('transform', `translate(${ecx} ${ecy}) scale(1 ${ey}) translate(${-ecx} ${-ecy})`);
-  // камера: медленный наезд на лицо (1 → 1,18), центр кадра поднимается к голове
-  const kz = sm(t / TL.total), z = 1 + 0.18 * kz, W = 500 / z, Hh = 889 / z, cx = 296, cy = lerp(392, 318, kz);
-  $('cat').setAttribute('viewBox', `${cx - W / 2} ${cy - Hh / 2} ${W} ${Hh}`);
-  // субтитры: текущая реплика (английский + русский)
+    // субтитры: текущая реплика (английский + русский)
   const L = TL.lines.find(l => t >= l.start - 0.1 && t <= l.start + l.dur + 0.5), sub = $('sub');
   if (L) { sub.firstChild.textContent = L.text; sub.lastChild.textContent = L.tr; sub.style.opacity = Math.min(clamp((t - L.start + 0.1) / 0.15), clamp((L.start + L.dur + 0.5 - t) / 0.25)) } else sub.style.opacity = 0;
 }
-setFace('base', -9); render(0);
+const CAP = location.hash === '#cap'; document.body.classList.toggle('cap', CAP); if (CAP) $('cat').setAttribute('viewBox', '46 -17 500 889');   // кадр видео — вертикальный, хвост за краем; плеер — весь кот
+const FPS = TL.fps, NF = Math.round(TL.total * FPS); let cur = 0, playing = false, last = 0, speed = 1;
+const info = $('info'), seek = $('seek'), au = $('au'); seek.max = NF - 1; if (typeof AUDIO !== 'undefined') au.src = AUDIO;
+function show(t) {
+  render(t); const v = visemeAt(t); seek.value = Math.round(t * FPS);
+  info.textContent = `кадр ${Math.round(t * FPS) + 1} / ${NF} · ${t.toFixed(2)} с · лицо: ${curFace} · рот: ${v}`;
+}
+function go(t) { cur = clamp(t, 0, (NF - 1) / FPS); show(cur); if (playing && $('snd').checked) { au.currentTime = cur } }
+function play(on) {
+  playing = on; $('bPlay').textContent = on ? '⏸ Пауза' : '▶ Играть';
+  if (on) { if (cur >= (NF - 1) / FPS) cur = 0; last = performance.now(); if ($('snd').checked) { au.currentTime = cur; au.playbackRate = speed; au.play() } requestAnimationFrame(tick) } else au.pause();
+}
+function tick(now) { if (!playing) return; cur += (now - last) / 1000 * speed; last = now; if (cur >= (NF - 1) / FPS) { cur = 0; if ($('snd').checked) au.currentTime = 0 } show(cur); requestAnimationFrame(tick) }
+$('bPlay').onclick = () => play(!playing); $('bPrev').onclick = () => { play(false); go(cur - 1 / FPS) }; $('bNext').onclick = () => { play(false); go(cur + 1 / FPS) };
+seek.oninput = () => { go(+seek.value / FPS) }; $('speed').onchange = e => { speed = +e.target.value; au.playbackRate = speed };
+$('snd').onchange = () => { if (!$('snd').checked) au.pause(); else if (playing) { au.currentTime = cur; au.play() } };
+addEventListener('keydown', e => { if (e.code === 'Space') { e.preventDefault(); play(!playing) } else if (e.code === 'ArrowLeft') { play(false); go(cur - (e.shiftKey ? 10 : 1) / FPS) } else if (e.code === 'ArrowRight') { play(false); go(cur + (e.shiftKey ? 10 : 1) / FPS) } });
+setFace('base', -9); show(0);
 </script></body></html>
