@@ -33,9 +33,9 @@ def knot():   # узелок бантика: кружок с обводкой и
             f'<path d="M{x - 6:.1f} {y - 5:.1f}C{x - 3:.1f} {y - 9:.1f} {x + 3:.1f} {y - 9:.1f} {x + 6:.1f} {y - 5:.1f}" fill="none" stroke="#fe96b8" stroke-width="3.5" stroke-linecap="round"/>')
 PINK, PINK_L = '#ee5186', '#fe96b8'
 def ring_markup():
-    (top_o, top_w), (bot_o, bot_w) = ring()
-    mk = lambda o, w: f'<path d="{o}" fill="{OL}"/><path d="{w}" fill="#ffffff"/>'
-    return mk(top_o, top_w), mk(bot_o, bot_w)             # (поверх головы, за ухом)
+    (top_o, top_w), full = ring_paths()
+    line = lambda d, w, c, cap: f'<path d="{d}" fill="none" stroke="{c}" stroke-width="{w:.1f}" stroke-linecap="{cap}" stroke-linejoin="round"/>'
+    return line(top_o, RING_O, OL, 'round') + line(top_w, RING_W, '#ffffff', 'round'), line(full, RING_O, OL, 'round') + line(full, RING_W, '#ffffff', 'round')   # (поверх головы, за ухом)
 RING_TOP, RING_BEHIND = ring_markup()
 def collar():   # лента ошейника: верх уходит под подбородок головы, края и низ — как на рисунке
     P = lambda x, y: '%.1f %.1f' % F(x, y)
