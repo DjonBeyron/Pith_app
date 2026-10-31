@@ -15,7 +15,7 @@ import { voskRuntime } from '/src/shared/lib/vosk/voskRuntime.js'
 // Модель Vosk — заглушка (тап вместо речи: localStorage pithy_wl_tap_v1=1); библиотека слов пуста — слова прозвучат голосом системы. Скриншоты и сценарий — scratchpad/rh/polish.cjs.
 // Реплики Пита: часть озвучена (тихий wav из data:), остальные без озвучки — видно «озвучено N из M», «Послушать» и список «без озвучки»; ElevenLabs в стенде недоступен — «Озвучить» покажет ошибку текстом
 const WAV = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA='
-const voiced = { rh_start: 'Сегодня репетируем одну фразу. Ты её знаешь — осталось сделать своей.', rh_build: 'Собираем с конца: конец фразы должен звучать увереннее всего.', rh_clear: 'А теперь чётко — как для последнего ряда.' }
+const voiced = { rh_start: 'Повторим то, что учили, и прокачаем произношение', rh_build: 'Собираем фразу с конца, так конец звучит увереннее всего', rh_clear: 'А теперь чётко, как для последнего ряда' }
 const lines = Object.fromEntries(Object.entries(voiced).map(([id, text]) => [id, { text, url: WAV, duration: 1 }]))
 supabase.from = table => ({ select: () => ({ eq: () => (table === 'word_audio' ? Promise.resolve({ data: [], error: null }) : { maybeSingle: () => Promise.resolve({ data: { value: { lines } }, error: null }) }) }) })
 await listWordAudio()

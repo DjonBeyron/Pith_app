@@ -2,13 +2,13 @@
 //  0 заставка       — падает фраза, открываются дорожки (это вступление директора, в списке актов её нет);
 //  1 warmup         — разминка: по слову «к повтору», над дорожкой слова ПЕРЕВОД, цель — слово (у одного слова — act word: «слово ×2» вместо разминки и сборки);
 //  2 read           — читка: диктор говорит всю фразу из кусков библиотеки, куски подсвечиваются по очереди, потом человек повторяет один раз; Пит говорит, зачем это (§6 п. 2);
-//  3 build          — сборка с конца [2] → [1,2] → [0,1,2]: диктор ×1, человек ×1, промах — ступень ещё раз (не больше одного повтора); последняя ступень — человек ×2: «чётко» → «обычно» (§6 п. 1, 4);
+//  3 build          — сборка с конца [2] → [1,2] → [0,1,2]: диктор ×1, человек ×1, промах — ступень ещё раз (не больше одного повтора); последняя ступень — человек ×2: «чётко» → «обычно» (§6 п. 1, 4; порядок фиксирован);
 //  4 blind          — без текста: подписей и перевода нет, фраза ×2 (второй раз — только если промахов к этому акту меньше MANY_MISSES); застрял 3 с — Пит подсказывает первое слово;
 //  4a discern       — различи: только у слов с двойниками, только если промахов мало; тап по услышанному, потом сказать слово;
-//  5 take / mirror  — дубль (плашка «Дубль. Три, два, один…», вся фраза ×1 и запись голоса — useRehearsalTake) и зеркало (экран сравнения «Пит / Ты» и одна заметка — модуль mirror/);
+//  5 take / mirror  — дубль (плашка «Дубль», отсчёт тремя нотами, «поехали», вся фраза ×1 и запись голоса — useRehearsalTake) и зеркало (экран сравнения «Пит / Ты» и одна заметка — модуль mirror/);
 //  6 summary        — итог.
 // Случайность ВНУТРИ актов (CONCEPT_REHEARSAL.md §8, семя plan.seed — rehearsalSeed.js; что именно выбирается — rehearsalVariety.js, rehearsalDiscern.js, rehearsalLines.js): порядок слов разминки (первое — самое просроченное) и их дорожки,
-// реплики Пита (act.line — уже конкретный вариант ключа), «чётко / обычно» и первая ступень при двух кусках, подсказки «без текста», раскладка «Различи». Порядок актов, структура ступеней при трёх кусках и зеркало последним — не случайны.
+// реплики Пита (act.line — уже конкретный вариант ключа), первая ступень сборки при двух кусках, подсказки «без текста», раскладка «Различи». Порядок актов, структура ступеней при трёх кусках и зеркало последним — не случайны.
 // Правила пропуска: нет озвучки кусков — читка без подсветки; промахов ≥ MANY_MISSES к акту 4 — акт 4 один раз и без 4а; одно слово — акты 1 и 3 схлопываются в «слово ×2», акт 2 пропускается.
 import { warmupWords, discernWords, wordsOfChunk } from './rehearsalPlan.js'
 import { pickActs } from './rehearsalOnly.js'
@@ -39,7 +39,7 @@ export function buildActs(plan, { hasVoice = true, only = plan.only } = {}) {
   const all = chunks.map((_, i) => i)
   const words = orderWarmup(warmupWords(plan), plan.seed, { center: n === 1 }) // первое — самое просроченное, остальные вперемешку; дорожки случайные (у одного слова — по центру)
   const discern = discernWords(plan).map((w, i) => ({ ...w, prompts: discernLayout(w, plan.seed, i) }))
-  const L = (base, o) => sessionLine(plan, base, o) // вариант реплики на эту сессию (rehearsalLines.js)
+  const L = base => sessionLine(plan, base) // вариант реплики на эту сессию (rehearsalLines.js)
   const acts = []
   if (n === 1) {
     acts.push({ id: 'word', title: 'Слово', line: L('rh_warmup'), words, reps: 2 })
@@ -49,11 +49,11 @@ export function buildActs(plan, { hasVoice = true, only = plan.only } = {}) {
     const bv = buildVariety(n, plan.seed)
     const steps = backSteps(n)
     const final = steps.pop()
-    const passes = [{ id: 'build-clear', tag: CLEAR_TAG, line: L('rh_clear') }, { id: 'build-normal', tag: NORMAL_TAG, line: L('rh_normal', { first: bv.normalFirst }) }]
+    const passes = [{ id: 'build-clear', tag: CLEAR_TAG, line: L('rh_clear') }, { id: 'build-normal', tag: NORMAL_TAG, line: L('rh_normal') }] // всегда «чётко», потом «обычно»: реплика «обычно» начинается с «И ещё раз»
     acts.push({
       id: 'build', title: 'Сборка с конца', line: L('rh_build'),
       steps: steps.map((parts, i) => ({ id: `build-${i}`, parts: bv.altStart ? [0] : parts, retry: true })), // два куска: первая ступень [1] или [0]; три — всегда [2] → [1,2]
-      final: { id: 'build-final', parts: final, passes: bv.normalFirst ? passes.reverse() : passes },
+      final: { id: 'build-final', parts: final, passes },
     })
   }
   const first = wordsOfChunk(chunks[0])[0] ?? chunks[0]

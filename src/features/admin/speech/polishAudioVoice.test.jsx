@@ -89,13 +89,13 @@ describe('озвучка реплик и кусков', () => {
     expect(all).toMatch(/<button[^>]*disabled=""[^>]*data-testid="rh-polish-voice-pit"/); expect(all).toContain('Реплики озвучены')
     expect(renderToStaticMarkup(createElement(PolishVoice, { v: voiceStub({ lines: null }) }))).toContain('загружаю…')
   })
-  it('карточка этапа: «озвучено 2/9», у озвученных — «Послушать» с <audio src>, у остальных причина', () => {
+  it('карточка этапа: «озвучено 2/7», у озвученных — «Послушать» с <audio src>, у остальных причина', () => {
     const out = renderToStaticMarkup(createElement(PolishCardLines, { act: 'build', lines: voiced(['rh_build', 'rh_clear']) }))
-    expect(out).toContain('Реплики Пита: озвучено 2/9')
+    expect(out).toContain('Реплики Пита: озвучено 2/7')
     expect(out.match(/>Послушать</g)).toHaveLength(2); expect(out).toContain('<audio src="https://r2/rh_build.mp3"'); expect(out).toContain('data-testid="rh-polish-listen-rh_clear"')
     expect(out).toContain('нет озвучки')
     const blind = renderToStaticMarkup(createElement(PolishCardLines, { act: 'blind', lines: voiced(['rh_blind']) }))
-    expect(blind).toContain('озвучено 1/3'); expect(blind).toContain('+ 1 со словом, не озвучивается'); expect(blind).toContain('{word} не озвучивается')
+    expect(blind).toContain('озвучено 1/2'); expect(blind).toContain('+ 1 со словом, не озвучивается'); expect(blind).toContain('{word} не озвучивается')
     expect(renderToStaticMarkup(createElement(PolishCardLines, { act: 'intro', lines: null }))).toContain('загружаю…')
   })
   it('«Послушать»: <audio> с url озвучки, воспроизведение — в тапе', () => {

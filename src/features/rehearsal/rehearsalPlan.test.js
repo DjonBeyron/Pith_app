@@ -89,6 +89,12 @@ describe('фикстуры и поставщик плана', () => {
     expect(nextPlan(fixturePlan('one')).phrase).toBe(fixturePlan('none').phrase)
     expect(nextPlan(normalizePlan({ phrase: 'zz' })).phrase).toBe(fixturePlan('two').phrase)
   })
+  it('номер запуска в тапе (plan.run): первого плана нет; «Ещё минутку?» даёт 1, 2…; нормализация его хранит (реплики старта и итога — «ещё раз»)', () => {
+    expect('run' in fixturePlan('three')).toBe(false); expect(normalizePlan({ phrase: 'a | b', run: 0 }).run).toBeUndefined(); expect(normalizePlan({ phrase: 'a | b', run: 'x' }).run).toBeUndefined()
+    const second = nextPlan(fixturePlan('three')), third = nextPlan(second)
+    expect([second.run, third.run]).toEqual([1, 2]); expect(normalizePlan({ ...third }).run).toBe(2)
+    expect(readRehearsalCfg(second).plan.run).toBe(1); expect(readRehearsalCfg(second).firstLines[0]).toBe('rh_start_b'); expect(readRehearsalCfg(fixturePlan('three')).firstLines[0]).toBe('rh_start')
+  })
 })
 
 describe('нода с планом читается как игра', () => {

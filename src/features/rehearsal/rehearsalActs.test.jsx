@@ -15,6 +15,7 @@ import { noteFor } from './mirror/mirrorNotes.js'
 import { baseLineId, lineVariants } from './rehearsalLines.js'
 import { sessionLogLine } from './rehearsalVariety.js'
 import { buildActs } from './rehearsalRecipe.js'
+import { countdownMs } from './rehearsalCountdown.js'
 
 const read = rel => readFileSync(new URL(rel, import.meta.url), 'utf8')
 const plan = { ...fixturePlan('three'), seed: 'd' } // семя 'd': разминка начинается со слова learn (sid warmup-1)
@@ -109,17 +110,14 @@ describe('useRehearsalActs', () => {
     expect(baseLineId(rh.failLine(stages.find(s => s.act === 'warmup' && s.type === 'warmup')))).toBe('rh_warmup_miss')
     expect(rh.failLine(stages.find(s => s.sid === 'build-0'))).toBeNull()
   })
-  it('«над этим словом ещё поработаем»: один из вариантов, два раза подряд один и тот же не говорится (в рамках сессии)', () => {
+  it('«Опа, кажется, слово немного забылось»: один текст (решение владельца), всегда rh_warmup_miss', () => {
     const { rh, stages } = probe()
     const w = stages.find(s => s.act === 'warmup' && s.type === 'warmup')
-    const said = Array.from({ length: 40 }, () => rh.failLine(w))
-    said.forEach((id, i) => { expect(lineVariants('rh_warmup_miss')).toContain(id); if (i) expect(id).not.toBe(said[i - 1]) })
-    expect(new Set(said).size).toBe(3)
-    expect(probe().rh.failLine(w)).toBe(probe().rh.failLine(w)) // одно семя плана — та же последовательность с начала сессии
+    expect(Array.from({ length: 10 }, () => rh.failLine(w))).toEqual(Array(10).fill('rh_warmup_miss')); expect(lineVariants('rh_warmup_miss')).toEqual(['rh_warmup_miss'])
   })
-  it('строка журнала старта: семя и что выбрано в каждом акте; вступление и итог берут вариант от семени плана', () => {
+  it('строка журнала старта: семя и что выбрано в каждом акте; вступление и итог берут вариант по номеру запуска (plan.run)', () => {
     const line = sessionLogLine(plan, buildActs(plan, { only: null }).acts)
-    expect(line).toBe('[rehearsal] seed=d варианты: разминка learn@0 > trying@1, читка rh_read_why_c, сборка чётко > обычно, без текста слово > перевод, различи learn lean→0, earn+lean→2')
+    expect(line).toBe('[rehearsal] seed=d варианты: разминка learn@0 > trying@1, читка rh_read_why, сборка чётко > обычно, без текста слово > перевод, различи learn lean→0, earn+lean→2')
     const src = read('./useRehearsalActs.js')
     expect(src).toContain("sessionLine(plan, 'rh_start')"); expect(src).toContain("sessionLine(plan, 'rh_done')"); expect(src).toContain('pLog(sessionLogLine(')
   })
@@ -127,7 +125,7 @@ describe('useRehearsalActs', () => {
     const { stages } = probe()
     const b0 = stages.find(s => s.sid === 'blind-0'), b1 = stages.find(s => s.sid === 'blind-1')
     expect([b0.hintKinds, b1.hintKinds]).toEqual([['word', 'tr'], ['tr', 'word']])
-    expect(read('./useRehearsalActs.js')).toContain("if (h.kind === 'word') { sayLine('rh_blind_hint'")
+    expect(read('./useRehearsalActs.js')).toContain("if (h.kind === 'word') wordTimer = sayWordHint({ word: h.word, lines, rate, sayLine, sayText })")
   })
   it('nextIdx идёт мимо пропущенных ступеней (повтор — только после промаха); holdMs держит плашку, пока Пит говорит', () => {
     const { rh, stages } = probe()
@@ -139,6 +137,20 @@ describe('useRehearsalActs', () => {
     expect(rh.holdMs(ann)).toBeGreaterThan(ann.ms)
     expect(rh.holdMs(stages.find(s => s.type === 'turn'))).toBe(1500)
     expect(rh.holdMs({ ms: 900, line: 'rh_clear' })).toBeGreaterThan(900)
+  })
+  it('плашка со счётом: «давай разомнёмся» → три ноты → слово (after); «Дубль» → три ноты → «поехали» (before); holdMs включает отсчёт', () => {
+    const { rh, stages } = probe()
+    const warm = stages.find(s => s.sid === 'warmup-ann'), take = stages.find(s => s.sid === 'take-ann')
+    expect([warm.count, take.count]).toEqual(['after', 'before'])
+    const lineOnly = rh.holdMs({ ...warm, count: undefined })
+    expect(rh.holdMs(warm)).toBe(lineOnly + countdownMs() + 20) // реплика на 20 мс позже, чем без счёта: отсчёт стартует от её конца
+    expect(rh.holdMs(take)).toBeGreaterThanOrEqual(LINE_AT_MS + countdownMs() + 600 + 7 * 65) // нет озвучки: «поехали» по оценке 65 мс на знак
+    expect(rh.holdMs({ ms: 1700, count: 'before' })).toBe(Math.max(1700, LINE_AT_MS + countdownMs())) // счёт без реплики
+    expect(probe({ cat: { busyLeft: () => 2000 } }).rh.holdMs(warm) - rh.holdMs(warm)).toBe(2000) // Пит ещё договаривает прошлую реплику — отсчёт ждёт
+  })
+  it('отсчёт и «Начни с» подключены в директоре: таймеры гасятся с репликой, ноты греются заранее', () => {
+    const src = read('./useRehearsalActs.js')
+    expect(src).toContain('warmCountdown(); return releaseCountdown'); expect(src).toContain('stopCount = startCountdown()'); expect(src).toContain('return () => { ids.forEach(clearTimeout); stopCount?.() }')
   })
   it('пока Пит занят прошлой репликой, плашка ждёт её конца', () => {
     const free = probe().rh.holdMs({ ms: 100, line: 'rh_clear' })

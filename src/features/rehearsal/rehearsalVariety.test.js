@@ -1,7 +1,9 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { orderWarmup, buildVariety, blindVariety, chunkTranslation, describeVariants, overdueRank, LANE_COUNT } from './rehearsalVariety.js'
 import { discernLayout, describeLayout } from './rehearsalDiscern.js'
-import { stuckHint, hintEntry, hintAt } from './rehearsalHints.js'
+import { stuckHint, hintEntry, hintAt, sayWordHint, HINT_WORD_GAP_MS } from './rehearsalHints.js'
+import { baseLineId } from './rehearsalLines.js'
+import { normalizeLines } from '../player/modules/rotate-phone/wordLaneCatLines.js'
 import { buildActs } from './rehearsalRecipe.js'
 import { buildRehearsalStages } from './rehearsalStages.js'
 import { fixturePlan } from './rehearsalFixtures.js'
@@ -83,16 +85,16 @@ describe('разминка: порядок и дорожки', () => {
 })
 
 describe('сборка с конца', () => {
-  it('«чётко / обычно»: какая первая — случайно; теги и sid стоят за своими проходами', () => {
-    const first = new Set()
+  it('«чётко», потом «обычно» — всегда в этом порядке (реплика «обычно» начинается с «И ещё раз»); теги и sid стоят за своими проходами', () => {
     for (const seed of SEEDS) {
       const p = acts(seeded('three', seed)).find(a => a.id === 'build').final.passes
-      expect(p.map(x => x.id).sort()).toEqual(['build-clear', 'build-normal']); first.add(p[0].id)
-      expect(p.find(x => x.id === 'build-clear').tag).toBe('Чётко — для последнего ряда')
+      expect(p.map(x => x.id)).toEqual(['build-clear', 'build-normal'])
+      expect(p[0].tag).toBe('Чётко — для последнего ряда'); expect(p[1].tag).toBe('Обычно')
+      expect(baseLineId(p[0].line)).toBe('rh_clear'); expect(p[1].line).toBe('rh_normal')
       const st = stagesOf(seeded('three', seed)).stages.filter(s => s.sid.startsWith('build-') && s.type === 'student' && /clear|normal/.test(s.sid))
       expect(st.map(s => s.sid)).toEqual(p.map(x => x.id))
     }
-    expect(first).toEqual(new Set(['build-clear', 'build-normal']))
+    expect(Object.keys(buildVariety(3, 'x'))).toEqual(['altStart']) // порядок проходов больше не выбирается
   })
   it('два куска: первая ступень иногда [1], иногда [0], потом [0,1]; один и три куска — структура не меняется', () => {
     const first = new Set()
@@ -102,13 +104,6 @@ describe('сборка с конца', () => {
       expect(buildVariety(3, seed).altStart).toBe(false); expect(buildVariety(1, seed).altStart).toBe(false)
     }
     expect(first).toEqual(new Set(['0', '1']))
-  })
-  it('если «обычно» идёт первым, реплика «и ещё раз, обычно» ему не достаётся', () => {
-    for (const seed of SEEDS) {
-      const p = acts(seeded('three', seed)).find(a => a.id === 'build').final.passes
-      const normal = p.find(x => x.id === 'build-normal')
-      if (p[0] === normal) expect(normal.line).not.toBe('rh_normal')
-    }
   })
 })
 
@@ -173,5 +168,29 @@ describe('«Различи»: двойник и дорожки', () => {
     const plan = seeded('three', 'd')
     const d = stagesOf(plan).stages.find(s => s.type === 'discern')
     expect(d.prompts).toEqual(acts(plan).find(a => a.id === 'discern').words[0].prompts)
+  })
+})
+
+describe('голос подсказки «Начни с слово»', () => {
+  const voiced = (o = {}) => normalizeLines({ lines: { rh_blind_hint_pre: { text: 'Начни с', url: 'u/pre.mp3', duration: 0.6, ...o } } })
+  it('есть озвучка «Начни с»: сначала она (подпись целиком), слово — после неё и паузы', () => {
+    const sayLine = vi.fn(() => true), sayText = vi.fn(), setTimer = vi.fn(() => 7)
+    expect(sayWordHint({ word: "I'm", lines: voiced(), rate: 1, sayLine, sayText, setTimer })).toBe(7)
+    expect(sayLine).toHaveBeenCalledTimes(1); expect(sayLine).toHaveBeenCalledWith('rh_blind_hint_pre', { caption: "Начни с I'm" })
+    expect(sayText).not.toHaveBeenCalled(); expect(setTimer).toHaveBeenCalledWith(expect.any(Function), 600 + HINT_WORD_GAP_MS)
+    setTimer.mock.calls[0][0](); expect(sayText).toHaveBeenCalledWith("I'm")
+  })
+  it('скорость голоса урока укорачивает паузу до слова', () => {
+    const setTimer = vi.fn(() => 1)
+    sayWordHint({ word: 'x', lines: voiced(), rate: 2, sayLine: () => true, sayText() {}, setTimer })
+    expect(setTimer).toHaveBeenCalledWith(expect.any(Function), 300 + HINT_WORD_GAP_MS)
+  })
+  it('нет озвучки «Начни с» или Пит занят — как раньше: подпись «Начни с слово» и только слово сразу', () => {
+    for (const lines of [normalizeLines(null), voiced()]) {
+      const sayLine = vi.fn(() => false), sayText = vi.fn(), setTimer = vi.fn()
+      expect(sayWordHint({ word: 'go', lines, rate: 1, sayLine, sayText, setTimer })).toBe(0)
+      expect(sayLine).toHaveBeenLastCalledWith('rh_blind_hint', { word: 'go' }); expect(sayText).toHaveBeenCalledWith('go'); expect(setTimer).not.toHaveBeenCalled()
+    }
+    expect(baseLineId('rh_blind_hint_pre')).toBe('rh_blind_hint_pre')
   })
 })

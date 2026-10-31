@@ -2,6 +2,7 @@
 // Сценарий от источника не зависит. Чистые функции — проверяются тестами.
 //   { phrase: 'I'm | trying | to learn', translation, lang, chunks: ['I'm','trying','to learn'],
 //     words: [{ text, translation, due, lapses, confusers: [≤2 слова-двойника] }],
+//     run: номер запуска в одном тапе (нет — 0; «Ещё минутку?» даёт 1, 2…; по нему реплики старта и итога — rehearsalLines.sessionLine),
 //     seed: 'строка семени случайностей внутри актов (rehearsalSeed.js; нет в JSON — «дата|фраза»)', stressed: [номера ударных кусков, пока вручную], audio: { phrase: { url, timings } | null, words: 'lib' }, source: 'sim' | 'memory' | 'node' }
 import { parsePhrase, normText, MAX_CONFUSERS } from '../player/modules/rotate-phone/wordLaneRecipe.js'
 import { SLOT_COUNT } from '../player/modules/rotate-phone/wordLaneTimeline.js'
@@ -49,6 +50,7 @@ export function normalizePlan(raw) {
     stressed,
     audio: { phrase: phrase && typeof phrase.url === 'string' && phrase.url ? { url: phrase.url, timings: Array.isArray(phrase.timings) ? phrase.timings : [] } : null, words: 'lib' },
     source: SOURCES.includes(raw.source) ? raw.source : 'node',
+    ...(Math.floor(Number(raw.run)) > 0 ? { run: Math.floor(Number(raw.run)) } : {}), // «Ещё минутку?»: не первый запуск в тапе (rehearsalCfg.nextPlan)
     ...(ONLY_IDS.includes(raw.only) ? { only: raw.only } : {}), // «Шлифовка репетиции»: играть только этот этап (rehearsalOnly.js)
   }
 }

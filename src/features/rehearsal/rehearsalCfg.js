@@ -25,5 +25,5 @@ export function readRehearsalCfg(rawPlan) {
   }
 }
 
-/** «Ещё минутку?»: следующая фикстура по кругу; у плана не из фикстур (JSON из админки) — тоже следующая после фикстуры по умолчанию */
-export const nextPlan = plan => planFor('sim', { fixture: nextFixture(fixtureIdOf(plan) ?? DEFAULT_FIXTURE) })
+/** «Ещё минутку?»: следующая фикстура по кругу; у плана не из фикстур (JSON из админки) — тоже следующая после фикстуры по умолчанию. run +1: номер запуска в этом тапе (реплики старта и итога — «ещё раз», rehearsalLines.sessionLine); и «Ещё минутку?», и прогрев следующего плана берут план отсюда */
+export const nextPlan = plan => normalizePlan({ ...planFor('sim', { fixture: nextFixture(fixtureIdOf(plan) ?? DEFAULT_FIXTURE) }), run: (plan?.run ?? 0) + 1 })

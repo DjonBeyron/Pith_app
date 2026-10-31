@@ -82,9 +82,9 @@ describe('only и семя', () => {
     }
   })
   it('одно семя — одни и те же стадии на этапе, другое семя — другие', () => {
-    const sid = seed => stagesOf(seeded(seed), 'build').filter(x => x.type === 'student').map(x => x.sid)
+    const sid = seed => stagesOf(seeded(seed), 'warmup').filter(x => x.type === 'warmup').map(x => `${x.sid}@${x.word.lane}`)
     expect(sid('a')).toEqual(sid('a'))
-    expect(sid('a')).not.toEqual(sid('d')) // 'a': «обычно» первым, 'd': «чётко»
+    expect(sid('a')).not.toEqual(sid('d')) // дорожки слов разминки зависят от семени
   })
   it('planForAct и normalizePlan сохраняют семя', () => {
     expect(planForAct(seeded('z'), 'blind').seed).toBe('z')

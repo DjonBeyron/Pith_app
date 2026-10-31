@@ -10,12 +10,16 @@ import { reportSession } from './rehearsalSim.js'
 import { useRehearsalTake } from './useRehearsalTake.js'
 import { scheduleMetro } from './rehearsalMetro.js'
 import { hasIntroLine } from './rehearsalPrepare.js'
-import { stuckHint, hintEntry } from './rehearsalHints.js'
+import { stuckHint, hintEntry, sayWordHint } from './rehearsalHints.js'
 import { demoSummary } from './polish/polishDemo.js'
+import { stageTiming } from './rehearsalCountdown.js'
+import { startCountdown, warmCountdown, releaseCountdown } from './rehearsalCountdownSound.js'
 
 // Директор «Репетиции с Питом» поверх useWordLaneFlow: всё, что сценарию актов нужно сверх обычной игры, — в одном хуке; директору остаются точки подключения (его next / стадии / реакции движка).
 //  • журнал актов (rec ← реакции движка win / miss / fail): по нему решаются повтор ступени сборки, сокращение акта 4 и пропуск «Различи» (nextIdx), подпись слабого слова в «без текста» (hintLanes), итог (reportSession);
 //  • реплики Пита: на старте стадии (stage.line, через busyLeft — ждёт, пока Пит договорит прошлую), «это слово и будем тренировать» на первом промахе разминки; holdMs — плашка акта держится, пока Пит говорит;
+//  • отсчёт тремя нотами (stage.count, rehearsalCountdown.js): 'after' — после реплики стадии (разминка), 'before' — до реплики (дубль: «Дубль» → ноты → «поехали»); holdMs учитывает его длину;
+//  • вступление и итог — по номеру запуска в тапе (plan.run, rehearsalLines.sessionLine): первый — rh_start / rh_done, «Ещё минутку?» — rh_start_b / rh_done_b;
 //  • подсветка куска в читке (hl: один таймер по stage.metro, rehearsalMetro.js), «застрял 3 с» в акте «без текста» (слушатель молчит STUCK_MS — Пит подсказывает первое слово, подпись куска на HINT_LABEL_MS);
 //  • дубль и зеркало (акт 5): запись на стадии take и данные экрана mirror (темп, заметка Пита) — useRehearsalTake; на стадии mirror Пит говорит rh_mirror (stage.line);
 //  • итог на экране summary: симуляция памяти и XP (rehearsalSim.js) — один раз, в память сессии и журнал отладки; темп и заметка зеркала идут туда же.
@@ -50,11 +54,18 @@ export function useRehearsalActs({ plan, stages, stage, at, stageObj, setS, sayL
     return () => clearTimeout(t)
   }, [on, stage, intro, sayLine, startLine])
 
-  // Реплика стадии: ждём, пока Пит договорит прошлую
+  // Раскладка стадии по времени: реплика Пита (ждёт, пока он договорит прошлую) и отсчёт тремя нотами (stage.count) — rehearsalCountdown.stageTiming
+  const timingOf = st => stageTiming({ order: st.count ?? null, lead: LINE_AT_MS, busyMs: cat.busyLeft(), lineMs: st.line ? lineMs(fillLine(lines?.[st.line]), rate) : 0, pause: LINE_PAUSE_MS, minMs: st.ms, hasLine: !!st.line })
+  useEffect(() => { if (!on) return undefined; warmCountdown(); return releaseCountdown }, [on]) // ноты отсчёта декодируются заранее (первая должна прозвучать вовремя)
+
+  // Реплика стадии и отсчёт; смена стадии, пауза и выход гасят оба таймера
   useEffect(() => {
-    if (!running?.line) return undefined
-    const t = setTimeout(() => sayLine(running.line), LINE_AT_MS + cat.busyLeft() + 20)
-    return () => clearTimeout(t)
+    if (!running || (!running.line && !running.count)) return undefined
+    const t = timingOf(running), ids = []
+    let stopCount = null
+    if (running.line) ids.push(setTimeout(() => sayLine(running.line), t.lineAt))
+    if (t.countAt != null) ids.push(setTimeout(() => { stopCount = startCountdown() }, t.countAt))
+    return () => { ids.forEach(clearTimeout); stopCount?.() }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [running, at])
 
@@ -67,18 +78,18 @@ export function useRehearsalActs({ plan, stages, stage, at, stageObj, setS, sayL
   // «Без текста»: слушатель молчит 3 с — Пит подсказывает первое слово, подпись куска на 2 с
   useEffect(() => {
     if (running?.act !== 'blind' || !running.hintWord) return undefined
-    let last = Date.now(), shown = 0, labelTimer = 0
+    let last = Date.now(), shown = 0, labelTimer = 0, wordTimer = 0
     const id = setInterval(() => {
       last = Math.max(last, listenerRef.current?.heardAt?.() ?? 0)
       if (shown >= MAX_STUCK_HINTS || Date.now() - last < STUCK_MS || cat.busyLeft() > 0) return
       const h = stuckHint(running, shown)
       shown += 1; last = Date.now()
-      if (h.kind === 'word') { sayLine('rh_blind_hint', { word: h.word }); sayText(h.word) } // перевод куска не озвучивается — только подпись
+      if (h.kind === 'word') wordTimer = sayWordHint({ word: h.word, lines, rate, sayLine, sayText }) // перевод куска не озвучивается — только подпись
       setS(p => ({ ...p, hint: [hintEntry(h)] }))
       clearTimeout(labelTimer)
       labelTimer = setTimeout(() => setS(p => ({ ...p, hint: [] })), HINT_LABEL_MS)
     }, 400)
-    return () => { clearInterval(id); clearTimeout(labelTimer) }
+    return () => { clearInterval(id); clearTimeout(labelTimer); clearTimeout(wordTimer) }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [running, at])
 
@@ -109,10 +120,7 @@ export function useRehearsalActs({ plan, stages, stage, at, stageObj, setS, sayL
     /** Следующая стадия, на которую идём: пропущенные по правилам (cond) обходятся */
     nextIdx,
     /** Сколько держать плашку (announce / turn): пока Пит договорит прошлую реплику и скажет свою */
-    holdMs: st => {
-      if (!on || !st?.line) return st.ms
-      return Math.max(st.ms, LINE_AT_MS + cat.busyLeft() + lineMs(fillLine(lines?.[st.line]), rate) + LINE_PAUSE_MS)
-    },
+    holdMs: st => (!on || (!st?.line && !st?.count) ? st.ms : timingOf(st).holdMs),
     /** Дорожки со слабыми словами разминки: в «без текста» у них видна подпись */
     hintLanes: st => (on && st?.act === 'blind' && st.type === 'student' ? weakLanes(journal, stages) : []),
   }

@@ -29,7 +29,7 @@ export function useCatLines({ lines, rate, catApi, listenerRef }) {
     const { ms, rise, timer } = startCatLine({ id, line, rate, catApi, listenerRef, ...extra })
     riseRef.current = timer
     busyRef.current = now + rise + ms + LINE_PAUSE_MS
-    setText(line.text)
+    setText(line.caption ?? line.text) // caption: подпись длиннее озвучки (rehearsalLines.fillLine)
     clearTimeout(timerRef.current)
     timerRef.current = setTimeout(() => setText(''), rise + ms + TEXT_TAIL_MS)
   }

@@ -6,6 +6,7 @@ import { createJournal, record, shouldRun, nextRunnable, weakLanes, missesIn } f
 import { engineKind, isStudentStage } from './rehearsalKinds.js'
 import { fixturePlan } from './rehearsalFixtures.js'
 import { baseLineId } from './rehearsalLines.js'
+import { countdownMs } from './rehearsalCountdown.js'
 
 const VOICED = () => ({ ms: 600, lead: 0 }) // куски озвучены в библиотеке слов
 // Семя 'd' (rehearsalVariety / rehearsalDiscern): три куска — разминка learn (дорожка 0) → trying (дорожка 1), «чётко» → «обычно», при «застрял» сначала слово, потом перевод куска; «Различи»: learn / lean на 0 и 2, потом все три
@@ -108,15 +109,25 @@ describe('акты на стадиях', () => {
     const say = stages.find(s => s.sid === 'discern-say-0')
     expect(say.noLabel).toBe(true); expect(say.step.extra).toEqual(expect.arrayContaining(['earn', 'lean']))
   })
-  it('дубль: плашка «Дубль. Три, два, один…» и вся фраза ×1 как обычная ступень ученика; зеркало и итог — экраны', () => {
+  it('дубль: плашка «Дубль» (потом отсчёт тремя нотами и «поехали») и вся фраза ×1 как обычная ступень ученика; зеркало и итог — экраны', () => {
     const { stages } = build('three')
     const ann = stages.find(s => s.sid === 'take-ann')
-    expect(ann.round.title).toBe('Дубль. Три, два, один…'); expect(ann.ms).toBe(RH_TAKE_MS); expect(baseLineId(ann.line)).toBe('rh_take')
+    expect(ann.round.title).toBe('Дубль'); expect(ann.ms).toBe(RH_TAKE_MS); expect(baseLineId(ann.line)).toBe('rh_take'); expect(ann.count).toBe('before')
     const take = stages.find(s => s.type === 'take')
     expect(take.step.reps).toHaveLength(1); expect(take.step.parts).toEqual([0, 1, 2])
     expect(stages.at(-2).type).toBe('mirror'); expect(stages.at(-1).type).toBe('summary')
   })
-  it('дубль идёт с записью (step.record: слушатель без затвора тишины); окон речи Пита на нём нет — реплика «Дубль…» на плашке до него; остальные ступени без record', () => {
+  it('отсчёт тремя нотами: на плашке разминки (после реплики) и на плашке дубля (до реплики «поехали»); на остальных плашках его нет', () => {
+    const { stages } = build('three')
+    expect(stages.filter(s => s.count).map(s => `${s.sid}:${s.count}`)).toEqual(['warmup-ann:after', 'take-ann:before'])
+    expect(baseLineId(stages.find(s => s.sid === 'warmup-ann').line)).toBe('rh_warmup')
+    expect(RH_TAKE_MS).toBeGreaterThanOrEqual(250 + countdownMs() + 800) // плашка дубля не короче: пауза, три ноты, «поехали»
+    const one = build('one').stages // «слово ×2» вместо разминки — тоже с отсчётом
+    expect(one.filter(s => s.count).map(s => `${s.sid}:${s.count}`)).toEqual(['word-ann:after', 'take-ann:before'])
+    expect(build('three', { plan: { ...plan('three'), only: 'take' } }).stages.find(s => s.sid === 'take-ann').count).toBe('before') // шлифовка дубля: отсчёт тот же
+    expect(stages.every(s => s.type === 'announce' || !s.count)).toBe(true)
+  })
+  it('дубль идёт с записью (step.record: слушатель без затвора тишины); окон речи Пита на нём нет — реплика «поехали» на плашке до него; остальные ступени без record', () => {
     const { stages } = build('three')
     const take = stages.find(s => s.type === 'take')
     expect(take.step.record).toBe(true); expect(take.line).toBeUndefined(); expect(take.ms).toBeUndefined()

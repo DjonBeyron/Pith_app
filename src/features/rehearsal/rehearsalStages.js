@@ -1,7 +1,7 @@
 // «Репетиция с Питом»: акты рецепта (rehearsalRecipe.js) → плоский список стадий в ТОМ ЖЕ формате, что у wordLaneStages.js (директор useWordLaneFlow проходит их по порядку), плюс новые типы стадий (rehearsalKinds.js).
 // Стадии — те же announce / dictor / turn / student / discern, и новые warmup, read, take, mirror, summary. Что есть у каждой, сверх формата игры:
 //  act   — какому акту принадлежит (warmup, word, read, build, blind, discern, take, mirror, summary); sid — ключ журнала (rehearsalJournal);
-//  line  — id реплики Пита на старте стадии (announce: директор держит плашку, пока Пит говорит); tag — ярлык-плашка над дорожками («Чётко — для последнего ряда», §6 п. 4); cond — «идти ли»: { retry: sid } / { few: true };
+//  line  — id реплики Пита на старте стадии (announce: директор держит плашку, пока Пит говорит); count — отсчёт тремя нотами (rehearsalCountdown.js): 'after' — после реплики (разминка), 'before' — до реплики (дубль); tag — ярлык-плашка над дорожками («Чётко — для последнего ряда», §6 п. 4); cond — «идти ли»: { retry: sid } / { few: true };
 //  step  — у ученика сверх обычного: record (take: идёт запись дубля, useRehearsalTake), chunks (тексты дорожек, если цель — слово, а не кусок), chunkMs, extra (слова словаря Vosk, кроме целей — двойники и слова фразы), maxWords;
 //  warmup: word { text, translation, lane }, caption (перевод над дорожкой); read и ученик читки: metro — [{ chunk, at, ms }] подсветка кусков по времени от старта стадии;
 //  blind (ученик): hintWord / hintLane / hintTr / hintKinds — подсказки, если застрял на 3 секунды (какая первая — rehearsalHints.js); discern: sayText — слово, которое произносит диктор (вместо куска фразы).
@@ -19,7 +19,7 @@ import { hintAt } from './rehearsalHints.js'
 export const RH_ANNOUNCE_MS = 1700  // плашка акта
 export const RH_TURN_MS = 1500      // «Теперь твоя очередь»
 export const RH_TAG_MS = 1200       // плашка перед «чётко» / «обычно»
-export const RH_TAKE_MS = 2400      // «Дубль. Три, два, один…»
+export const RH_TAKE_MS = 3200      // плашка «Дубль»: пауза до первой ноты, отсчёт тремя нотами (1,6 с), «поехали»; если Пит ещё говорит или озвучка длиннее — плашка держится дольше (useRehearsalActs.holdMs)
 export const MAX_VOCAB = 8          // слов словаря Vosk сверх цели
 
 const rep = parts => ({ parts })
@@ -39,7 +39,7 @@ export function buildRehearsalStages({ plan, rate = 1, lib = () => null }) {
   const stages = []
   const push = s => { stages.push({ ...s, idx: stages.length }); return s }
 
-  const announce = (act, o = {}) => push({ type: 'announce', act: act.id, sid: `${o.sid ?? act.id}-ann`, round: { kind: act.id, title: o.title ?? act.title }, ms: o.ms ?? RH_ANNOUNCE_MS, line: o.line === undefined ? act.line : o.line, tag: o.tag, cond: o.cond })
+  const announce = (act, o = {}) => push({ type: 'announce', act: act.id, sid: `${o.sid ?? act.id}-ann`, round: { kind: act.id, title: o.title ?? act.title }, ms: o.ms ?? RH_ANNOUNCE_MS, line: o.line === undefined ? act.line : o.line, tag: o.tag, cond: o.cond, ...(o.count ? { count: o.count } : {}) })
   const stepOf = (id, parts, o = {}) => ({ id, kind: 'student', parts, text: textOf(chunks, parts), labels: all, active: parts, reps: [rep(parts)], ...o })
   const dictorOf = step => planDictor({ step, chunks, clips: null, audio: null, rate, clipMode: () => false, lib })
   const vocabFor = w => { // словарь Vosk: двойники слова, потом слова фразы, потом двойники других слов
@@ -57,7 +57,7 @@ export function buildRehearsalStages({ plan, rate = 1, lib = () => null }) {
 
   for (const act of acts) {
     if (act.id === 'warmup' || act.id === 'word') {
-      announce(act)
+      announce(act, { count: 'after' }) // «давай разомнёмся…» → три ноты → первое слово
       act.words.forEach(w => wordStage(act.id, w, `${act.id}-${w.idx ?? 0}`, act.reps ?? 1)) // sid — по номеру слова в плане (w.idx), а не по порядку сессии: по нему журнал и итог находят ступень
     } else if (act.id === 'read') {
       announce(act)
@@ -94,7 +94,7 @@ export function buildRehearsalStages({ plan, rate = 1, lib = () => null }) {
       })
     } else if (act.id === 'intro') announce(act, { line: null }) // «Шлифовка → Заставка»: плашка, потом финал игры
     else if (act.id === 'take') {
-      announce(act, { title: 'Дубль. Три, два, один…', ms: RH_TAKE_MS })
+      announce(act, { title: 'Дубль', ms: RH_TAKE_MS, count: 'before' }) // плашка «Дубль» → три ноты → «поехали» → запись
       push({ type: 'take', act: 'take', sid: 'take', step: stepOf('take', act.parts, { labels: [], record: true }) }) // record: слушатель без затвора тишины (паузы между кусками должны остаться паузами) и сразу начинает следующий заход
     } else push({ type: act.id, act: act.id, sid: act.id, line: act.line }) // mirror: реплика Пита «Слушаем, сначала я, потом ты»; summary: без реплики (её говорит директор актов)
   }

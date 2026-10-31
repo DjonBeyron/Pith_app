@@ -53,7 +53,11 @@ describe('firstLines: реплики Пита первых секунд', () => 
     expect(bases(firstLines(withOnly('build')))).toEqual(['rh_build'])
     expect(bases(firstLines(withOnly('summary')))).toEqual(['rh_done'])
     expect(bases(firstLines(withOnly('intro')))).toEqual(['rh_start'])
-    expect(firstLines({ ...base, seed: 'd' })).toEqual(['rh_start', 'rh_warmup_b']) // одно семя — один и тот же вариант: в подготовке звука, в рецепте и в директоре
+    expect(firstLines({ ...base, seed: 'd' })).toEqual(['rh_start', 'rh_warmup']) // у разминки один текст
+  })
+  it('«Ещё минутку?» (plan.run ≥ 1): вступление и итог — повторные тексты rh_start_b и rh_done_b; шлифовка одного акта (run нет) — первый запуск', () => {
+    expect(firstLines({ ...base, run: 1 })).toEqual(['rh_start_b', 'rh_warmup']); expect(firstLines({ ...withOnly('summary'), run: 2 })).toEqual(['rh_done_b'])
+    expect(firstLines(withOnly('intro'))).toEqual(['rh_start']); expect(firstLines(withOnly('summary'))).toEqual(['rh_done'])
   })
   it('настройки игры несут и слова, и первые реплики', () => {
     const cfg = readRehearsalCfg(withOnly('read'))

@@ -25,14 +25,14 @@ describe('реплики по этапам', () => {
         for (const id of ids) expect(ACT_LINES[actOf[a.id]], `${seed}: ${a.id} → ${id}`).toContain(id)
       }
     }
-    expect(ACT_LINES.intro).toEqual(['rh_start', 'rh_start_b', 'rh_start_c']); expect(ACT_LINES.summary).toEqual(['rh_done', 'rh_done_b', 'rh_done_c']); expect(ACT_LINES.blind).toContain('rh_blind_hint'); expect(ACT_LINES.warmup).toContain('rh_warmup_miss_c')
+    expect(ACT_LINES.intro).toEqual(['rh_start', 'rh_start_b']); expect(ACT_LINES.summary).toEqual(['rh_done', 'rh_done_b']); expect(ACT_LINES.blind).toEqual(['rh_blind', 'rh_blind_hint', 'rh_blind_hint_pre']); expect(ACT_LINES.warmup).toEqual(['rh_warmup', 'rh_warmup_miss'])
   })
-  it('новые ключи вариантов (b, c) стоят в ACT_LINES рядом с основным ключом и попадают в «Озвучить реплики»; без вариантов (rh_blind_hint, rh_discern) — один ключ', () => {
+  it('ключи вариантов (b, c) стоят в ACT_LINES рядом с основным ключом и попадают в «Озвучить реплики»; без вариантов (rh_blind_hint, rh_discern) — один ключ', () => {
     for (const [act, ids] of Object.entries(ACT_LINES)) for (const id of ids) expect(ACT_LINES[act], id).toEqual(expect.arrayContaining(lineVariants(baseLineId(id))))
-    expect(ACT_LINES.build).toEqual(['rh_build', 'rh_build_b', 'rh_build_c', 'rh_clear', 'rh_clear_b', 'rh_clear_c', 'rh_normal', 'rh_normal_b', 'rh_normal_c'])
-    expect(ACT_LINES.take).toEqual(['rh_take', 'rh_take_b', 'rh_take_c', 'rh_mirror', 'rh_mirror_b', 'rh_mirror_c'])
+    expect(ACT_LINES.build).toEqual(['rh_build', 'rh_build_b', 'rh_build_c', 'rh_clear', 'rh_clear_b', 'rh_clear_c', 'rh_normal'])
+    expect(ACT_LINES.take).toEqual(['rh_take', 'rh_mirror'])
     expect(lineVariants('rh_blind_hint')).toEqual(['rh_blind_hint']); expect(lineVariants('rh_discern')).toEqual(['rh_discern'])
-    expect(missingPitLines(null).map(m => m.id)).toEqual(expect.arrayContaining(['rh_done_b', 'rh_done_c', 'rh_start_c', 'rh_normal_b']))
+    expect(missingPitLines(null).map(m => m.id)).toEqual(expect.arrayContaining(['rh_done_b', 'rh_start_b', 'rh_clear_c', 'rh_blind_hint_pre']))
     expect(missingPitLines(null)).toHaveLength(REHEARSAL_LINES.length - 1) // все, кроме шаблона со {word}
   })
   it('состояния: озвучена (url), нет озвучки, со {word} — не озвучивается (с причиной)', () => {
@@ -43,13 +43,13 @@ describe('реплики по этапам', () => {
     expect(by.rh_blind_hint).toMatchObject({ state: 'template', template: true, why: TEMPLATE_WHY })
     expect(TEMPLATE_WHY).toContain('{word} не озвучивается'); expect(rows).toHaveLength(REHEARSAL_LINES.length)
   })
-  it('счётчик этапа: «озвучено 2/9»; реплика со {word} в счёт не входит и считается отдельно', () => {
+  it('счётчик этапа: «озвучено 2/7»; реплика со {word} в счёт не входит и считается отдельно', () => {
     const lines = voiced(['rh_build', 'rh_clear', 'rh_blind'])
-    expect(actVoiceCount('build', lines)).toEqual({ done: 2, total: 9, templates: 0 }) // у каждой реплики акта — основной ключ и два варианта
-    expect(actVoiceCount('blind', lines)).toEqual({ done: 1, total: 3, templates: 1 })
-    expect(actVoiceCount('intro', lines)).toEqual({ done: 0, total: 3, templates: 0 })
-    expect(actLineRows('take', lines).map(r => r.id)).toEqual(['rh_take', 'rh_take_b', 'rh_take_c', 'rh_mirror', 'rh_mirror_b', 'rh_mirror_c'])
-    expect(actVoiceCount('build', null)).toEqual({ done: 0, total: 9, templates: 0 })
+    expect(actVoiceCount('build', lines)).toEqual({ done: 2, total: 7, templates: 0 }) // rh_build и rh_clear — по три ключа, rh_normal — один
+    expect(actVoiceCount('blind', lines)).toEqual({ done: 1, total: 2, templates: 1 }) // rh_blind и «Начни с» озвучиваются, «Начни с {word}» — шаблон
+    expect(actVoiceCount('intro', lines)).toEqual({ done: 0, total: 2, templates: 0 })
+    expect(actLineRows('take', lines).map(r => r.id)).toEqual(['rh_take', 'rh_mirror'])
+    expect(actVoiceCount('build', null)).toEqual({ done: 0, total: 7, templates: 0 })
   })
   it('общий счётчик «озвучено N из M» совпадает с pitVoiceCount; список «без озвучки» = недостающие + шаблонные', () => {
     const lines = voiced(['rh_start', 'rh_warmup', 'rh_take'])
