@@ -32,16 +32,28 @@ describe('normalizePlan', () => {
 })
 
 describe('слова разминки и «Различи»', () => {
-  it('2–3 слова «к повтору», у каждого дорожка — кусок, где оно стоит', () => {
+  it('в разминке ВСЕ слова фразы: «к повтору» первыми, потом остальные в порядке фразы; у каждого дорожка — кусок, где оно стоит', () => {
     const w = warmupWords(fixturePlan('three'))
-    expect(w.map(x => [x.text, x.lane])).toEqual([['trying', 1], ['learn', 2]])
-    const many = normalizePlan({ phrase: 'a b | c d | e f', words: ['a', 'c', 'e', 'f'].map(t => ({ text: t, due: true })) })
-    expect(warmupWords(many)).toHaveLength(MAX_WARMUP)
+    expect(w.map(x => [x.text, x.lane])).toEqual([['trying', 1], ['learn', 2], ["I'm", 0], ['to', 2]])
+    expect(w.map(x => x.due)).toEqual([true, true, false, false])
+    expect(w[0]).toMatchObject({ translation: 'пытаюсь', lapses: 1 }) // слово с карточкой несёт её перевод
+    expect(w[2]).toMatchObject({ translation: '', lapses: 0, confusers: [] }) // слово без карточки — пустой перевод
   })
-  it('нет слов «к повтору» — два любых слова плана, а нет и их — два слова из фразы без перевода', () => {
-    expect(warmupWords(fixturePlan('none')).map(x => x.text)).toEqual(['where', 'from'])
+  it('слова фразы без повторов («to» дважды — одно слово); карточка, чьего слова нет во фразе дословно, идёт в конец', () => {
+    const p = normalizePlan({ phrase: 'to be | or not | to be', words: [{ text: 'maybe', due: true }, { text: 'be' }] })
+    expect(warmupWords(p).map(x => x.text)).toEqual(['maybe', 'to', 'be', 'or', 'not'])
+  })
+  it('слов больше потолка MAX_WARMUP — отрезаются слова без «к повтору», «к повтору» остаются', () => {
+    const long = normalizePlan({ phrase: 'a1 a2 a3 a4 a5 | a6 a7 a8 a9 | b1 b2 b3 b4', words: [{ text: 'b4', due: true }, { text: 'b3', due: true }] })
+    const w = warmupWords(long)
+    expect(w).toHaveLength(MAX_WARMUP)
+    expect(w.slice(0, 2).map(x => x.text)).toEqual(['b3', 'b4']) // порядок как во фразе внутри «к повтору»
+    expect(w.map(x => x.text)).not.toContain('b2')
+  })
+  it('нет слов «к повтору» — всё равно все слова фразы (карточки плана и слова без карточки), порядок как во фразе', () => {
+    expect(warmupWords(fixturePlan('none')).map(x => x.text)).toEqual(['where', 'are', 'you', 'from'])
     const bare = warmupWords(normalizePlan({ phrase: 'Where | are you | from' }))
-    expect(bare).toHaveLength(2)
+    expect(bare.map(x => x.text)).toEqual(['Where', 'are', 'you', 'from'])
     expect(bare.every(x => x.translation === '' && !x.due)).toBe(true)
   })
   it('одно слово — одно слово разминки на центральной дорожке', () => {

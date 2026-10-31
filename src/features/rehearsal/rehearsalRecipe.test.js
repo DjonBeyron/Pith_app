@@ -24,9 +24,15 @@ describe('акты', () => {
     expect(acts[1].word.text).toBe('remember')
     expect(acts[1].passes).toHaveLength(1)
   })
-  it('фраза без слов «к повтору»: разминка на двух любых словах', () => {
+  it('фраза без слов «к повтору»: разминка на всех словах фразы', () => {
     const w = buildActs(fixturePlan('none')).acts[0].words
-    expect(w.map(x => x.text)).toEqual(['where', 'from'])
+    expect(w.map(x => x.text).sort()).toEqual(['are', 'from', 'where', 'you'])
+  })
+  it('разминка: первым — самое просроченное, дальше слова «к повтору», и только потом остальные слова фразы (для любого семени)', () => {
+    for (const seed of ['a', 'b', 'c', 'd', 'e', 'f']) {
+      const w = buildActs({ ...fixturePlan('three'), seed }).acts[0].words
+      expect(w.map(x => x.due)).toEqual([true, true, false, false]); expect(w[0].text).toBe('learn'); expect(w.map(x => x.text).sort()).toEqual(["I'm", 'learn', 'to', 'trying'])
+    }
   })
 })
 
@@ -63,8 +69,8 @@ describe('правила пропуска и сокращения', () => {
   it('читка: Пит говорит, зачем она (решение §6 п. 2)', () => {
     expect(baseLineId(buildActs(fixturePlan('three')).acts.find(a => a.id === 'read').line)).toBe('rh_read_why')
   })
-  it('план без слов вообще — разминка всё равно из слов фразы', () => {
+  it('план без слов вообще — разминка всё равно из всех слов фразы', () => {
     const w = buildActs(normalizePlan({ phrase: 'Where | are you | from' })).acts[0].words
-    expect(w).toHaveLength(2)
+    expect(w).toHaveLength(4)
   })
 })

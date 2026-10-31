@@ -9,7 +9,7 @@ import { baseLineId } from './rehearsalLines.js'
 import { countdownMs } from './rehearsalCountdown.js'
 
 const VOICED = () => ({ ms: 600, lead: 0 }) // куски озвучены в библиотеке слов
-// Семя 'd' (rehearsalVariety / rehearsalDiscern): три куска — разминка learn (дорожка 0) → trying (дорожка 1), «чётко» → «обычно», при «застрял» сначала слово, потом перевод куска; «Различи»: learn / lean на 0 и 2, потом все три
+// Семя 'd' (rehearsalVariety / rehearsalDiscern): три куска — разминка learn (дорожка 1) → trying (0) → to (2) → I'm (0), «чётко» → «обычно», при «застрял» сначала слово, потом перевод куска; «Различи»: три дорожки, learn на 2, потом на 0
 const plan = (id, seed = 'd') => ({ ...fixturePlan(id), seed })
 const build = (id, o = {}) => buildRehearsalStages({ plan: plan(id, o.seed), rate: 1, lib: () => null, ...o })
 const types = st => st.map(s => `${s.type}:${s.sid}`)
@@ -34,7 +34,7 @@ describe('акты на стадиях', () => {
   it('три куска: порядок стадий по актам', () => {
     const { stages } = build('three')
     expect(types(stages)).toEqual([
-      'announce:warmup-ann', 'warmup:warmup-1', 'warmup:warmup-0',
+      'announce:warmup-ann', 'warmup:warmup-1', 'warmup:warmup-0', 'warmup:warmup-3', 'warmup:warmup-2', // все слова фразы
       'announce:read-ann', 'read:read-d', 'turn:read-t', 'student:read-s',
       'announce:build-ann', 'dictor:build-0-d', 'turn:build-0-t', 'student:build-0', 'dictor:build-0r-d', 'turn:build-0r-t', 'student:build-0r',
       'dictor:build-1-d', 'turn:build-1-t', 'student:build-1', 'dictor:build-1r-d', 'turn:build-1r-t', 'student:build-1r',
@@ -46,10 +46,10 @@ describe('акты на стадиях', () => {
   })
   it('разминка: слово по переводу — цель слово, пилюля в дорожке слова, словарь Vosk — слова фразы и двойники', () => {
     const w = build('three').stages.find(s => s.sid === 'warmup-1')
-    expect(w.word).toMatchObject({ text: 'learn', lane: 0, chunkLane: 2, idx: 1 }) // дорожка пилюли случайная (семя), chunkLane — где слово стоит во фразе, idx — номер в плане (по нему sid)
-    expect(w.step.parts).toEqual([0])
-    expect(w.step.chunks).toEqual(['learn', '', ''])
-    expect(w.step.chunkMs[0]).toBeGreaterThan(0)
+    expect(w.word).toMatchObject({ text: 'learn', lane: 1, chunkLane: 2, idx: 1 }) // дорожка пилюли случайная (семя), chunkLane — где слово стоит во фразе, idx — номер в плане (по нему sid)
+    expect(w.step.parts).toEqual([1])
+    expect(w.step.chunks).toEqual(['', 'learn', ''])
+    expect(w.step.chunkMs[1]).toBeGreaterThan(0)
     expect(stepTargets(w.step, w.step.chunks).texts).toEqual(['learn'])
     expect(w.step.extra).toEqual(expect.arrayContaining(['earn', 'lean', 'trying']))
     expect(w.step.extra).not.toContain('learn')
@@ -102,8 +102,7 @@ describe('акты на стадиях', () => {
     const { stages } = build('three')
     const d = stages.find(s => s.type === 'discern')
     expect(d.prompts).toHaveLength(2)
-    expect(d.prompts[0].texts.filter(Boolean).sort()).toEqual(['lean', 'learn']) // первая подсказка — слово и ОДИН случайный двойник
-    expect(d.prompts[1].texts.filter(Boolean).sort()).toEqual(['earn', 'lean', 'learn']) // вторая — слово и оба двойника
+    for (const p of d.prompts) expect(p.texts.filter(Boolean).sort()).toEqual(['earn', 'lean', 'learn']) // обе подсказки — три дорожки: слово и оба двойника
     expect(d.prompts.every(p => p.text === 'learn')).toBe(true)
     expect(d.sayText).toBe('learn')
     const say = stages.find(s => s.sid === 'discern-say-0')
@@ -177,9 +176,9 @@ describe('подписи дорожек', () => {
   const at = sid => stages.find(s => s.sid === sid)
   const texts = l => l.map(x => x.text)
   it('разминка: над дорожкой слова — перевод, остальные пусты; после «не успел» — подсказка словом', () => {
-    expect(texts(labelsFor(at('warmup-1'), chunks, [], []))).toEqual(['учиться', '', ''])
-    expect(labelsFor(at('warmup-1'), chunks, [], [])[0].on).toBe(true)
-    expect(texts(labelsFor(at('warmup-1'), chunks, [], [0]))).toEqual(['learn', '', ''])
+    expect(texts(labelsFor(at('warmup-1'), chunks, [], []))).toEqual(['', 'учиться', ''])
+    expect(labelsFor(at('warmup-1'), chunks, [], [])[1].on).toBe(true)
+    expect(texts(labelsFor(at('warmup-1'), chunks, [], [1]))).toEqual(['', 'learn', ''])
   })
   it('сборка: подписи всех кусков, ярче куски ступени', () => {
     const l = labelsFor(at('build-1'), chunks, [], [])

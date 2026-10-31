@@ -37,6 +37,15 @@ export const EXIT_TRAVEL_MS = ((EXIT_Y - OPEN_Y) / SPEED) * 1000
  */
 export const pillYAt = (t, at) => OPEN_Y + (SPEED * (t - at)) / 1000
 
+// «Слушает» ли пилюля. Пилюля, ушедшая за край экрана на DEAF_OFFSCREEN_PCT % своей высоты и больше (вниз — «не успел» у ранних кусков повтора, вверх — ещё не выкатилась), глохнет: не наливается голосом, не принимает слово,
+// не даёт щелчок, ноту, XP и взлёт. Положение считается из таймлайна (центр y = ENTER_Y + SPEED·t, wordLaneStudent.yOfPill), а не из DOM: на слабом телефоне замер геометрии каждый кадр дорог.
+export const DEAF_OFFSCREEN_PCT = 80                                     // 80 % высоты пилюли за краем экрана — глухая (ровно 80 % — уже глухая)
+const VISIBLE_Y = (PILL_H * (100 - DEAF_OFFSCREEN_PCT)) / 100            // сколько % высоты экрана остаётся видно у такой пилюли (20 % от PILL_H = 4)
+export const LISTEN_Y_MIN = -PILL_H / 2 + VISIBLE_Y                      // центр выше этого (−6) — пилюля почти целиком над экраном
+export const LISTEN_Y_MAX = 100 + PILL_H / 2 - VISIBLE_Y                 // центр ниже этого (106) — почти целиком под экраном
+/** Пилюля с центром на высоте y (%) слушает: за краем меньше DEAF_OFFSCREEN_PCT % её высоты. Границы (−6 и 106) уже глухие */
+export const isListening = y => y > LISTEN_Y_MIN && y < LISTEN_Y_MAX
+
 const clamp01 = v => Math.min(1, Math.max(0, v))
 /** Мягкое торможение к концу (пилюля «садится» в зону) */
 export const easeOutCubic = u => 1 - (1 - clamp01(u)) ** 3

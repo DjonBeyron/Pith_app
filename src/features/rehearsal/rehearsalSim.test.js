@@ -49,7 +49,7 @@ describe('подсчёт по журналу', () => {
   })
   it('слова в журнале соответствуют стадиям рецепта (sid разминки)', () => {
     const { stages } = buildRehearsalStages({ plan, lib: () => null })
-    expect(stages.filter(s => s.type === 'warmup' && s.act === 'warmup').map(s => s.sid).sort()).toEqual(['warmup-0', 'warmup-1']) // порядок слов в сессии случайный, sid — номер слова в плане (по нему итог находит ступень)
+    expect(stages.filter(s => s.type === 'warmup' && s.act === 'warmup').map(s => s.sid).sort()).toEqual(['warmup-0', 'warmup-1', 'warmup-2', 'warmup-3']) // все слова фразы; порядок слов в сессии случайный, sid — номер слова в плане (по нему итог находит ступень)
   })
 })
 

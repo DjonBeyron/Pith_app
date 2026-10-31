@@ -47,11 +47,12 @@ export function buildRehearsalStages({ plan, rate = 1, lib = () => null }) {
     return [...w.confusers, ...chunks.flatMap(wordsOfChunk), ...plan.words.flatMap(x => x.confusers)].filter(t => { const k = normText(t); if (!k || seen.has(k)) return false; seen.add(k); return true }).slice(0, MAX_VOCAB)
   }
   /** Ступень «слово»: цель — слово, а не кусок; дорожка слова, пилюля в ней; над дорожкой перевод (caption) */
+  const oneWord = n === 1 && wordsOfChunk(chunks[0]).length === 1 // фраза из одного слова: перевод слова = перевод фразы; иначе у слова без карточки подписи нет (перевод всей фразы над одним словом сбивает)
   const wordStage = (act, w, sid, reps, o = {}) => {
     const texts3 = ['', '', ''], ms3 = [0, 0, 0]
     texts3[w.lane] = w.text; ms3[w.lane] = msOf(w.text)
     const step = { id: sid, kind: 'student', parts: [w.lane], text: w.text, labels: [], active: [w.lane], reps: Array.from({ length: reps }, () => rep([w.lane])), chunks: texts3, chunkMs: ms3, extra: vocabFor(w), maxWords: 2 }
-    return push({ type: 'warmup', act, sid, step, word: w, caption: w.translation || plan.translation, ...o })
+    return push({ type: 'warmup', act, sid, step, word: w, caption: w.translation || (oneWord ? plan.translation : ''), ...o })
   }
   const metroOf = (parts, durs) => parts.map((chunk, k) => ({ chunk, at: Math.round(TRAVEL_MS + durs.slice(0, k).reduce((a, d) => a + d + PIECE_PAD_MS, 0)), ms: Math.round(durs[k]) }))
 

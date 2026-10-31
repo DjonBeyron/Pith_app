@@ -126,7 +126,7 @@ describe('useRehearsalActs', () => {
   })
   it('строка журнала старта: семя и что выбрано в каждом акте; вступление и итог берут вариант по номеру запуска (plan.run)', () => {
     const line = sessionLogLine(plan, buildActs(plan, { only: null }).acts)
-    expect(line).toBe('[rehearsal] seed=d варианты: разминка learn@0 > trying@1, читка rh_read_why, сборка чётко > обычно, без текста слово > перевод, различи learn lean→0, earn+lean→2')
+    expect(line).toBe("[rehearsal] seed=d варианты: разминка learn@1 > trying@0 > to@2 > I'm@0, читка rh_read_why, сборка чётко > обычно, без текста слово > перевод, различи learn lean+earn→2, lean+earn→0")
     const src = read('./useRehearsalActs.js')
     expect(src).toContain("sessionLine(plan, 'rh_start')"); expect(src).toContain("sessionLine(plan, 'rh_done')"); expect(src).toContain('pLog(sessionLogLine(')
   })

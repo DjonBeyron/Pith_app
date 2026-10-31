@@ -1,21 +1,27 @@
 // «Различи» репетиции (CONCEPT_REHEARSAL.md §8): подсказки раунда по семени плана. Формат подсказки тот же, что у discernPrompts (wordLaneRecipe.js): { id, parts, answer: [дорожка], slots, texts, stagger, lead }, но
 // раскладка не фиксирована: какой двойник всплывёт и на какой дорожке стоит верное слово — случайно (rngFor(seed, 'discern-N')), числа берутся в фиксированном порядке. Чистые функции без React.
-//  • первая подсказка — слово и ОДИН двойник (крайние дорожки 0 и 2); если двойников два — случайный из них; вторая — слово и все двойники (с двумя двойниками — три дорожки, с одним — снова две);
-//  • верная дорожка — случайная из занятых; во второй подсказке — не та же, что в первой (верное слово «каждый раз на другой дорожке», как у обычного «Различи»);
+//  • в каждой подсказке ВСЕГДА три дорожки: верное слово и два других (решение владельца, v3.3.85): двойники слова (до двух; если их два — оба, в каждой подсказке), нехватку добирают слова фразы и двойники других слов (pool, как vocabFor в rehearsalStages.js);
+//    только если во всей фразе и плане не набралось двух слов — дорожек меньше (одно слово без других слов вообще);
+//  • верная дорожка — случайная из трёх; во второй подсказке — не та же, что в первой (верное слово «каждый раз на другой дорожке», как у обычного «Различи»);
 //  • слова-двойники по дорожкам расставлены вперемешку.
-import { DISCERN_LEAD_MS, DISCERN_STAGGER_MS, DISCERN_PROMPTS } from '../player/modules/rotate-phone/wordLaneRecipe.js'
+import { DISCERN_LEAD_MS, DISCERN_STAGGER_MS, DISCERN_PROMPTS, MAX_CONFUSERS, normText } from '../player/modules/rotate-phone/wordLaneRecipe.js'
 import { rngFor, rngInt, rngShuffle } from './rehearsalSeed.js'
 
-/** Подсказки слова word ({ text, confusers }) — по номеру слова в акте i; без двойников подсказок нет */
-export function discernLayout(word, seed, i = 0) {
-  const doubles = word.confusers ?? []
-  if (!doubles.length) return []
+/** Два других слова для подсказки: двойники слова, потом слова pool (слова фразы и двойники других слов) без повторов и без самого слова */
+function pickOthers(word, pool, rng) {
+  const seen = new Set([normText(word.text)])
+  const take = list => rngShuffle(rng, list).filter(t => { const k = normText(t); if (!k || seen.has(k)) return false; seen.add(k); return true })
+  return [...take(word.confusers ?? []), ...take(pool)].slice(0, MAX_CONFUSERS)
+}
+
+/** Подсказки слова word ({ text, confusers }) — по номеру слова в акте i; pool — слова, чем добить до двух других (нет двойников — подсказок нет) */
+export function discernLayout(word, seed, i = 0, pool = []) {
+  if (!(word.confusers ?? []).length) return []
   const rng = rngFor(seed, `discern-${i}`)
-  const one = doubles[rngInt(rng, doubles.length)]
   let prev = -1
   return Array.from({ length: DISCERN_PROMPTS }, (_, j) => {
-    const others = j === 0 ? [one] : doubles
-    const slots = others.length >= 2 ? [0, 1, 2] : [0, 2]
+    const others = pickOthers(word, pool, rng)
+    const slots = Array.from({ length: others.length + 1 }, (_, l) => l)
     const free = slots.filter(l => l !== prev)
     const answer = free[rngInt(rng, free.length)]
     prev = answer

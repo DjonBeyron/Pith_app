@@ -1,11 +1,10 @@
 import { describe, it, expect, vi } from 'vitest'
 import { orderWarmup, buildVariety, blindVariety, chunkTranslation, describeVariants, overdueRank, LANE_COUNT } from './rehearsalVariety.js'
-import { discernLayout, describeLayout } from './rehearsalDiscern.js'
 import { stuckHint, hintEntry, hintAt, sayWordHint, HINT_WORD_GAP_MS } from './rehearsalHints.js'
 import { baseLineId } from './rehearsalLines.js'
 import { normalizeLines } from '../player/modules/rotate-phone/wordLaneCatLines.js'
 import { buildActs } from './rehearsalRecipe.js'
-import { buildRehearsalStages } from './rehearsalStages.js'
+import { buildRehearsalStages, labelsForRehearsal } from './rehearsalStages.js'
 import { fixturePlan } from './rehearsalFixtures.js'
 import { warmupWords, normalizePlan } from './rehearsalPlan.js'
 import { orderLanes } from '../player/modules/rotate-phone/wordLaneRecipe.js'
@@ -70,14 +69,34 @@ describe('разминка: порядок и дорожки', () => {
     const w = ['b', 'c', 'd', 'e'].map(t => word(t, 0)).concat(word('a', 5))
     expect(new Set(SEEDS.map(s => orderWarmup(w, s).map(x => x.text).join(''))).size).toBeGreaterThan(5)
   })
+  it('все слова фразы: после самого просроченного идут остальные «к повтору» (вперемешку), и только потом слова без «к повтору» (тоже вперемешку)', () => {
+    const w = [word('p', 0, false), word('q', 0, false), word('r', 0, false), word('s', 2), word('t', 1), word('u', 1), word('v', 9, false)]
+    const firstOf = new Set(), dueTail = new Set(), tail = new Set()
+    for (const seed of SEEDS) {
+      const o = orderWarmup(w, seed).map(x => x.text)
+      expect(o[0]).toBe('s'); expect([...o.slice(1, 3)].sort()).toEqual(['t', 'u']); expect([...o.slice(3)].sort()).toEqual(['p', 'q', 'r', 'v'])
+      firstOf.add(o[0]); dueTail.add(o.slice(1, 3).join()); tail.add(o.slice(3).join())
+    }
+    expect(firstOf.size).toBe(1); expect(dueTail.size).toBe(2); expect(tail.size).toBeGreaterThan(5)
+    const fix = acts(seeded('three', 'x')).find(a => a.id === 'warmup').words
+    expect(fix.map(x => x.due)).toEqual([true, true, false, false]) // «trying», «learn» — раньше «I'm» и «to»
+  })
   it('дорожка слова — одна из трёх, не та же, что у предыдущего слова; idx — номер слова в плане, chunkLane — где оно стоит во фразе', () => {
     const seen = new Set()
     for (const seed of SEEDS) {
       const o = orderWarmup(warmupWords(fixturePlan('three')), seed)
       o.forEach((x, i) => { expect(x.lane).toBeGreaterThanOrEqual(0); expect(x.lane).toBeLessThan(LANE_COUNT); if (i) expect(x.lane).not.toBe(o[i - 1].lane); seen.add(x.lane) })
-      expect(o.map(x => [x.text, x.idx, x.chunkLane]).sort()).toEqual([['learn', 1, 2], ['trying', 0, 1]])
+      expect(o.map(x => [x.text, x.idx, x.chunkLane]).sort()).toEqual([["I'm", 2, 0], ['learn', 1, 2], ['to', 3, 2], ['trying', 0, 1]])
     }
     expect(seen).toEqual(new Set([0, 1, 2])) // не всегда «своя» дорожка
+  })
+  it('слово фразы без карточки: перевода нет (перевод всей фразы над одним словом не показываем) — дорожка пуста, «не успел» подсказывает само слово; у фразы из одного слова перевод фразы остаётся', () => {
+    const chunks = ["I'm", 'trying', 'to learn']
+    const to = stagesOf(seeded('three', 'd')).stages.find(s => s.sid === 'warmup-3')
+    expect(to.word).toMatchObject({ text: 'to', translation: '' }); expect(to.caption).toBe('')
+    expect(labelsForRehearsal(to, chunks, [], []).map(x => x.text)).toEqual(['', '', ''])
+    expect(labelsForRehearsal(to, chunks, [to.word.lane], []).map(x => x.text).filter(Boolean)).toEqual(['to'])
+    expect(stagesOf(seeded('one', 'd')).stages.find(s => s.sid === 'word-0').caption).toBe('помнить')
   })
   it('одно слово — дорожка по центру, как раньше', () => {
     for (const seed of SEEDS) expect(acts(seeded('one', seed))[0].words.map(w => w.lane)).toEqual([1])
@@ -132,27 +151,7 @@ describe('без текста: подсказки «застрял»', () => {
   })
 })
 
-describe('«Различи»: двойник и дорожки', () => {
-  const learn = { text: 'learn', confusers: ['earn', 'lean'] }
-  it('первая подсказка — слово и один случайный двойник, вторая — слово и оба; верное слово на разных дорожках в двух подсказках', () => {
-    const doubles = new Set(), answers = new Set()
-    for (const seed of SEEDS) {
-      const [a, b] = discernLayout(learn, seed, 0)
-      const shown = p => p.texts.filter(Boolean).sort()
-      expect(shown(a)).toHaveLength(2); doubles.add(shown(a).find(t => t !== 'learn')); expect(shown(b)).toEqual(['earn', 'lean', 'learn'])
-      expect(a.slots).toEqual([0, 2]); expect(b.slots).toEqual([0, 1, 2])
-      for (const p of [a, b]) { expect(p.texts[p.answer[0]]).toBe('learn'); expect(p.slots).toContain(p.answer[0]); answers.add(p.answer[0]) }
-      expect(a.answer[0]).not.toBe(b.answer[0])
-    }
-    expect(doubles).toEqual(new Set(['earn', 'lean'])); expect(answers).toEqual(new Set([0, 1, 2]))
-  })
-  it('один двойник — две дорожки (0 и 2), верная на разных; без двойников подсказок нет; формат как у discernPrompts', () => {
-    const one = discernLayout({ text: 'remember', confusers: ['remind'] }, 's', 0)
-    expect(one).toHaveLength(2); expect(one.every(p => p.slots.join() === '0,2')).toBe(true); expect(one[0].answer[0]).not.toBe(one[1].answer[0])
-    expect(discernLayout({ text: 'x', confusers: [] }, 's', 0)).toEqual([])
-    expect(one[0]).toMatchObject({ id: 'discern-0-0', parts: [0], text: 'remember' }); expect(one[0].stagger).toBeGreaterThan(0); expect(one[0].lead).toBeGreaterThan(0)
-    expect(describeLayout(one)).toMatch(/^remind→[02], remind→[02]$/)
-  })
+describe('«Различи»: ряд дорожек и раскладка в стадиях (сама раскладка — rehearsalDiscern.test.js)', () => {
   it('ряд дорожек раунда перемешан по семени (orderLanes с rng) и всё равно не естественный; без rng — как раньше', () => {
     expect(orderLanes(3)).toEqual([2, 0, 1]); expect(orderLanes(2)).toEqual([1, 0]); expect(orderLanes(1, rngFor('s'))).toEqual([0])
     const seen = new Set()

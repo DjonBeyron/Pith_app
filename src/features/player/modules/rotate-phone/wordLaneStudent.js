@@ -16,7 +16,7 @@
 //    понимает только цель целиком («i am trying»), а не «trying» после «i am». Хвост, на котором повтор принят или не успели, следующему не достаётся (spentTail) — только новый черновик.
 //  • Время ступени ограничено (budget): последовательный показ растягивает ступень, если ученик не успевает, поэтому после budget новые повторы не выкатываются, а недоигранные считаются потерянными.
 //  • Ступень закончена (done), когда каждый повтор принят или потерян и ничего не летит.
-import { ENTER_Y, EXIT_Y, SPEED, LOCK_MS, FILL_CAP, PRE_CONFIRM_CAP, breathStep, fillTo, drainStep, easeInOut } from './wordLaneTimeline.js'
+import { ENTER_Y, EXIT_Y, SPEED, LOCK_MS, FILL_CAP, PRE_CONFIRM_CAP, LISTEN_Y_MIN, LISTEN_Y_MAX, isListening, breathStep, fillTo, drainStep, easeInOut } from './wordLaneTimeline.js'
 import { tokenize } from '../../../../shared/lib/speech/speechMatch.js'
 import { laneOf, stepTargets, textOf } from './wordLaneRecipe.js'
 import { estChunkMs } from './wordLaneAudio.js'
@@ -44,12 +44,12 @@ export const repLifeMs = offLast => offLast + ((FAIL_Y - ENTER_Y) / SPEED) * 100
 /** Бюджет времени ступени, мс: число повторов × (жизнь самого долгого повтора + 1 с) + 3 с — столько хватает, чтобы показать каждый повтор один раз с запасом; дальше новые не выкатываются */
 export const budgetOf = (count, lifeMs) => count * (lifeMs + BUDGET_PAD_MS) + BUDGET_BASE_MS
 
-/** Повтор на экране: можно ли взять — первая пилюля открылась, последняя ещё не ушла вниз */
+/** Повтор на экране: можно ли взять — первая пилюля открылась, последняя ещё не ушла вниз, и ни один не принятый кусок не ушёл под экран на 80 % и больше (LISTEN_Y_MAX: глухой кусок не принять, повтор дожидается «не успел») */
 export function isClaimable(rep) {
   if (rep.state !== 'fly') return false
   const first = rep.pills[0]
   const last = rep.pills.at(-1)
-  return first.y >= CLAIM_FROM_Y && last.y <= CLAIM_TO_Y
+  return first.y >= CLAIM_FROM_Y && last.y <= CLAIM_TO_Y && rep.pills.every(p => p.state !== 'fly' || p.y < LISTEN_Y_MAX)
 }
 
 /** Защёлкнуть пилюлю: заливка идёт к 100 % с момента at (мс), щелчок и нота — когда она дойдёт */
@@ -59,6 +59,7 @@ const lockPill = (p, at, delay = 0) => { p.state = 'lock'; p.from = p.p; p.lockA
 function stepLocks(g, rep, t, events) {
   rep.pills.forEach((p, i) => {
     if (p.state !== 'lock') return
+    if (p.y <= LISTEN_Y_MIN) { p.lockAt = Math.max(p.lockAt, t); return }   // кусок принят, но пилюля ещё почти целиком над экраном (выкатится позже): щелчок, нота и взлёт — когда она въедет, а не за кадром
     const u = (t - p.lockAt) / LOCK_MS
     const order = rep.parts.length > 1 ? i : rep.note
     if (u >= 0 && !p.snapped) {
@@ -197,6 +198,6 @@ function stepFill(rep, dt, { level, confirmed, spoken, t, events }) {
     if (p.state !== 'fly') return
     const done = rep.tk >= rep.cum[i + 1]
     if (done && i < rep.parts.length - 1) { lockPill(p, t); events.push({ type: 'piece-ok', rep, pill: p, piece: i }); return } // слова куска произнесены — зелёный сразу, не ждём конца повтора
-    p.p = done ? fillTo(p.p, dt, FILL_CAP) : i === active ? breathStep(p.p, dt, voice, cap) : fillTo(p.p, dt, 0)  // последний кусок договорён (ждём принятия повтора) — держится на FILL_CAP; остальные ждут
+    p.p = !isListening(p.y) ? fillTo(p.p, dt, 0) : done ? fillTo(p.p, dt, FILL_CAP) : i === active ? breathStep(p.p, dt, voice, cap) : fillTo(p.p, dt, 0)  // пилюля за краем экрана на 80 % и больше не наливается; последний кусок договорён (ждём принятия повтора) — держится на FILL_CAP; остальные ждут
   })
 }
