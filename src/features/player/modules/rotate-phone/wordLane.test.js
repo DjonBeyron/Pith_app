@@ -131,7 +131,7 @@ describe('вёрстка и подключения', () => {
     expect(css).not.toMatch(/^\.wlPill(Fill)? \{[^}]*transition/m) // движок сам пишет каждый кадр: переходы отставили бы пилюлю от речи
     expect(DROP_MS).toBe(1000); expect(css).toContain('animation: wlDrop 1s')
     expect(LANES_MS).toBe(900)
-    expect(plateCss).toContain('wlTurnOut var(--wl-turn-ms, 2.2s)')                         // длительность плашки — переменная --wl-turn-ms по стадии (ANNOUNCE_MS / TURN_STAGE_MS), запасная — TURN_MS 2200
+    expect(plateCss).toContain('wlTurnIn 0.3s')                                             // появление плашки; уход — WAAPI по кривой взлёта пилюли (wordLanePlateExit.js), не CSS
   })
 
   it('модуль, стили и редактор подключены', () => {

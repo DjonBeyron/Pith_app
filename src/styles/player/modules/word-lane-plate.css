@@ -2,7 +2,8 @@
    микрофон — word-lane-mic.css (v3.3.84: плашка вынесена сюда из word-lane-mic.css).
 
    Появление: «колебание» окон приложения (popSheetWobble, pop-spring.css) — растёт из нуля от СЕРЕДИНЫ плашки, чуть перелетает и встаёт (кривая cubic-bezier(0.34, 1.25, 0.64, 1) даёт перелёт сама), 0,3 с. Растёт свойство
-   scale (не transform), а затухание в конце — отдельная анимация transform + opacity на всю длину показа (--wl-turn-ms из стадии; TURN_MS 2200 по умолчанию): две анимации на разных свойствах друг друга не перебивают.
+   scale (не transform). Уход (v3.3.85) в CSS не описан: плашка улетает вверх по кривой взлёта пилюли одной WAAPI-анимацией (translate + rotate + scale + opacity, wordLanePlateExit.js → riseFrames), её запускает
+   WordLaneTurnPlate при leaving; здесь только затухание lite (.wlTurn--leave).
 
    Центровка — НЕ через left: 50% + translate(-50%, -50%) (замечание владельца: «масштабируются от бока»): свойство scale применяется ДО transform, то есть вокруг центра разметки плашки, а он при left/top: 50 % лежит
    на пол-плашки правее и ниже центра экрана — плашка росла из точки у своего угла. Теперь плашка центрируется самой вёрсткой — inset: 0 + margin: auto + fit-content, transform-origin — центр (по умолчанию) и ни одного
@@ -28,15 +29,11 @@
   font-size: clamp(20px, 6.2vw, 30px);
   font-weight: 800;
   text-align: center;
-  animation: wlTurnIn 0.3s cubic-bezier(0.34, 1.25, 0.64, 1) backwards, wlTurnOut var(--wl-turn-ms, 2.2s) ease-in both;
+  animation: wlTurnIn 0.3s cubic-bezier(0.34, 1.25, 0.64, 1) backwards;
 }
 @keyframes wlTurnIn {
   from { scale: 0; }
   to   { scale: 1; }
-}
-@keyframes wlTurnOut {
-  0%, 82% { opacity: 1; }
-  100%    { opacity: 0; transform: scale(0.95); }
 }
 /* Блеск узора от центра: один раз, с задержкой на рост плашки (0,3 с) */
 .wlTurn::after {
@@ -61,15 +58,14 @@
   10%, 70% { opacity: 1; }
   to   { -webkit-mask-size: 340% 340%; mask-size: 340% 340%; opacity: 0; }
 }
-/* Слабое устройство (lite) и reduced-motion: без колебания — только проявление в начале (0,25 с) и уход в конце; узор статичный, блеска нет */
-.wlTurn--lite { animation: wlTurnFade var(--wl-turn-ms, 2.2s) ease both; }
+/* Слабое устройство (lite) и reduced-motion: без колебания и без полёта — проявление в начале (0,25 с) и затухание при уходе (.wlTurn--leave, 0,25 с = PLATE_EXIT_LITE_MS); узор статичный, блеска нет */
+.wlTurn--lite { animation: wlTurnFadeIn 0.25s ease both; }
+.wlTurn--lite.wlTurn--leave { animation: wlTurnFadeOut 0.25s ease both; }
 .wlTurn--lite::after, .weak-device .wlTurn::after { display: none; }
-@keyframes wlTurnFade {
-  0%   { opacity: 0; }
-  11%, 82% { opacity: 1; }
-  100% { opacity: 0; }
-}
+@keyframes wlTurnFadeIn  { from { opacity: 0; } to { opacity: 1; } }
+@keyframes wlTurnFadeOut { from { opacity: 1; } to { opacity: 0; } }
 @media (prefers-reduced-motion: reduce) {
-  .wlTurn { animation: wlTurnFade var(--wl-turn-ms, 2.2s) ease both; } /* без колебания: плашка просто проявляется и гаснет, звук остаётся */
+  .wlTurn { animation: wlTurnFadeIn 0.25s ease both; } /* без колебания: плашка просто проявляется и гаснет, звук остаётся */
+  .wlTurn.wlTurn--leave { animation: wlTurnFadeOut 0.25s ease both; }
   .wlTurn::after { display: none; }
 }
