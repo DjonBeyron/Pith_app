@@ -33,8 +33,10 @@ def knot():   # узелок бантика: кружок с обводкой и
             f'<path d="M{x - 6:.1f} {y - 5:.1f}C{x - 3:.1f} {y - 9:.1f} {x + 3:.1f} {y - 9:.1f} {x + 6:.1f} {y - 5:.1f}" fill="none" stroke="#fe96b8" stroke-width="3.5" stroke-linecap="round"/>')
 PINK, PINK_L = '#ee5186', '#fe96b8'
 def ring_markup():
-    outl, tube = ring()
-    return f'<path d="{outl}" fill="{OL}"/>' + ''.join(f'<path d="{t}" fill="#ffffff"/>' for t in tube)
+    (top_o, top_w), (bot_o, bot_w) = ring()
+    mk = lambda o, w: f'<path d="{o}" fill="{OL}"/><path d="{w}" fill="#ffffff"/>'
+    return mk(top_o, top_w), mk(bot_o, bot_w)             # (поверх головы, за ухом)
+RING_TOP, RING_BEHIND = ring_markup()
 def collar():   # лента ошейника: верх уходит под подбородок головы, края и низ — как на рисунке
     P = lambda x, y: '%.1f %.1f' % F(x, y)
     d = f'M{P(380, 715)}C{P(368, 742)} {P(376, 765)} {P(412, 776)}C{P(450, 792)} {P(490, 796)} {P(520, 796)}C{P(550, 796)} {P(590, 792)} {P(628, 776)}C{P(664, 765)} {P(672, 742)} {P(660, 715)}Z'
@@ -58,10 +60,10 @@ mouth['mm'] = re.sub(r' d="[^"]*"', f' d="{MT["X"]["m"]["d"]}"', mouth["mm"].rep
 mouth['ml'] = mouth['ml'].replace('#000', OL)
 wh = ''.join(f'<path class="wh wh-{s} wh-{r}" d="{d}" fill="{c}"/>' for s, r, d, c in whiskers())
 nose_d, nose_c = nose()
-head = (f'<path d="{head_d}" fill="{FURC}"/>' + ''.join(fill(x) for x in face_light()) + stroke(head_d) + ''.join(f'<path d="{p}" fill="{OL}"/>' for p in edge_blobs())
+head = (RING_BEHIND + f'<path d="{head_d}" fill="{FURC}"/>' + ''.join(fill(x) for x in face_light()) + stroke(head_d) + ''.join(f'<path d="{p}" fill="{OL}"/>' for p in edge_blobs())
         + ''.join(fill(x) for x in ear_inner()) + ''.join(fill(x) for x in ear_lines()) + ''.join(fill(x) for x in brow_hairs())
         + '<g class="brows"></g>' + ''.join(mouth[k] for k in ('mm', 'mt', 'mf', 'ml')) + f'<path d="{nose_d}" fill="{nose_c}"/>' + wh
-        + ring_markup() + star(208, 262, 28, OL, '#cdedbe') + star(835, 262, 28, OL, '#cdedbe') + pink_group(pk['bow']) + knot() + '<g class="dc"></g>')
+        + RING_TOP + star(208, 262, 28, OL, '#cdedbe') + star(835, 262, 28, OL, '#cdedbe') + pink_group(pk['bow']) + knot() + '<g class="dc"></g>')
 
 # ── глаза (состояние base) ──
 def eye_markup(side):

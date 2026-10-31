@@ -79,13 +79,15 @@ def star(cx, cy, r, ol, fill):
     return (f'<path d="{d}" fill="{fill}" stroke="{ol}" stroke-width="3.2" stroke-linejoin="round"/>'
             f'<ellipse cx="{F(cx - r * .3, cy - r * .25)[0]:.1f}" cy="{F(cx - r * .3, cy - r * .25)[1]:.1f}" rx="2.4" ry="3.2" fill="#ffffff" opacity=".9"/>')
 def ring():
-    """Колечко в левом ухе: белая трубка (замкнутые светлые области внутри обводки) + тёмный ободок вокруг неё, как на рисунке"""
+    """Колечко в левом ухе: белая трубка + тёмный ободок, как на рисунке. Верхний отрезок трубки лежит поверх края уха, нижний уходит ЗА ухо.
+    Поэтому возвращается две части: верх (только то, что над ухом, x ≥ 162 и выше нижнего отрезка — рисуется поверх головы) и всё колечко целиком (под головой: край и заливка уха закрывают то, что за ухом)"""
     bx = box(105, 115, 300, 205); bright = (LUM > 190) & bx
     tube = [c for c in components(bright, 60) if not (c[115, :].any() or c[204, :].any() or c[:, 105].any() or c[:, 299].any())]
     whole = np.zeros((H, W), bool)
     for c in tube: whole |= c
-    outl = morph(whole, 3, 'd')
-    return region_path(outl, F, 0.8, 3), [region_path(c, F, 0.6, 2) for c in tube]
+    outl = morph(whole, 3, 'd'); cut = 170
+    part = lambda rows: (region_path(outl & rows, F, 0.8, 3), region_path(whole & rows, F, 0.6, 2))
+    return part(box(162, 0, W, cut + 3)), part(box(0, 0, W, H))
 
 # ── розовое: бантик, ошейник, сердечко (обводка тёмно-малиновая, заливка розовая) ──
 def pink_parts():
