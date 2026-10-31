@@ -120,6 +120,8 @@ export function useRehearsalActs({ plan, stages, stage, at, stageObj, setS, sayL
 
   return {
     on, hl, result, journal, quiet: quiet.quiet, plateOk: quiet.plateOk,
+    /** Сколько мс Пит ещё занят: реплика + пауза после неё (LINE_PAUSE_MS ≈ 40 кадров). Движок пилюль не выкатывает новую пилюлю, пока > 0 (stepStudent hold): выезд — через ~0,6 с после конца реплики; без плана 0 */
+    pitLeft: () => (on ? cat.busyLeft() : 0),
     /** Стадия просит следующую: если отсчёт тремя нотами ещё не доиграл, переход ждёт его конца */
     afterCount: fn => gate.after(fn),
     /** Экран зеркала: { dictor, student, measure, note, tempo } (записи нет — student и measure null) */

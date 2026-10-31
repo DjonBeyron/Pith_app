@@ -1,20 +1,23 @@
-// Модель конвейера дорожки (v3.3.85): скорость пунктира на дорожке с разгоном и торможением. Чистый модуль — без React, DOM и часов: время приходит шагом dt, проверяется тестами (wordLaneConveyorModel.test.js).
+// Модель конвейера дорожки (v3.3.85, плавнее с v3.3.87): скорость пунктира на дорожке с разгоном и торможением. Чистый модуль — без React, DOM и часов: время приходит шагом dt, проверяется тестами (wordLaneConveyorModel.test.js).
 // Одна дорожка — одно состояние (независимо от соседних): idle → ignite → accel → run → decel → idle.
 //  idle    — стоит, пунктир еле виден (REST_A);
-//  ignite  — «зажигание», IGNITE_MS: яркость волной бежит по пунктиру сверху вниз (wave 0 → 1), штрихи стоят;
-//  accel   — ACCEL_MS: скорость и яркость плавно (smoothstep) растут до рабочих; рабочая скорость = скорость пилюль (SPEED, wordLaneTimeline.js);
+//  ignite  — «зажигание», IGNITE_MS: яркость волной бежит по пунктиру сверху вниз (wave 0 → 1), штрихи стоят; общая яркость нарастает плавно (smoothstep) от покоя до LIT — не ступенькой;
+//  accel   — ACCEL_MS: скорость растёт по мягкой кривой «медленный старт» (easeInSoft: smootherstep — ускорение тоже начинается с нуля), яркость доходит от LIT до полной; рабочая скорость = скорость пилюль (SPEED, wordLaneTimeline.js);
 //  run     — едет с рабочей скоростью;
-//  decel   — DECEL_MS: плавное замедление до нуля и спад яркости.
-// Когда дорожке ехать (want): на ней есть пилюли, либо дорожка «взведена» (armed — игра дала команду, wordLaneConveyorArm.js) и пилюль ещё не было, либо они пропали не больше HOLD_MS назад
-// (пауза между повторами ученика не должна останавливать конвейер). Остановка начинается, когда пилюль на дорожке не осталось (улетели вверх, ушли вниз, сцена кончилась), а не по смене стадии.
+//  decel   — DECEL_MS: плавное замедление до нуля, яркость спадает вместе со скоростью (пропорционально), а не после остановки.
+// Когда дорожке ехать (want). Два режима:
+//  • по пилюлям (обычная нода, команда '1'): на ней есть пилюли, либо дорожка «взведена» (armed — игра дала команду, wordLaneConveyorStart.js) и пилюль ещё не было, либо они пропали не больше HOLD_MS назад
+//    (пауза между повторами ученика не должна останавливать конвейер). Остановка начинается, когда пилюль на дорожке не осталось, а не по смене стадии;
+//  • «акт идёт» (репетиция, команда '2', keep): дорожка едет непрерывно, пока идёт акт, — есть на ней пилюли или нет (Пит говорит, ученик промахнулся, стадии сменяют друг друга). Тормозит она только когда команду сняли
+//    (граница акта: плашка следующего) и пилюли, которые ещё летят, ушли.
 // Старт идёт за CONVEYOR_LEAD_MS до того, как выедет пилюля, — к ней дорожка уже на рабочей скорости (момент старта — wordLaneConveyorStart.js).
 import { SPEED } from './wordLaneTimeline.js'
 
-export const IGNITE_MS = 240   // волна яркости по пунктиру (200–300 мс)
-export const ACCEL_MS = 420    // разгон до рабочей скорости
-export const DECEL_MS = 700    // торможение
+export const IGNITE_MS = 300   // волна яркости по пунктиру (200–300 мс)
+export const ACCEL_MS = 900    // разгон до рабочей скорости (v3.3.87: было 420 — движение начиналось рывком)
+export const DECEL_MS = 700    // торможение (не менять без mirror/MirrorCompare.jsx: автозапуск зеркала ждёт остановки дорожек на DECEL_MS)
 export const HOLD_MS = 400     // пилюль нет столько мс — дорожка начинает тормозить
-export const CONVEYOR_LEAD_MS = IGNITE_MS + ACCEL_MS // зажигание + разгон = 660 мс ≈ 40 кадров: за столько до выезда пилюли дорожку включают
+export const CONVEYOR_LEAD_MS = IGNITE_MS + ACCEL_MS // зажигание + разгон = 1200 мс (72 кадра): за столько до выезда первой пилюли акта дорожку включают
 export const RUN_SPEED = SPEED // dvh в секунду (высота экрана — 100 dvh, SPEED — % высоты в секунду)
 export const PERIOD = 11       // период пунктира, dvh
 export const REST_A = 0.14     // прозрачность пунктира в покое («еле-еле»)
@@ -23,24 +26,27 @@ export const LIT = 0.55        // доля яркости, которую вол
 export const WAVE_PAD = 12     // волна стартует выше экрана и уходит ниже на столько dvh
 
 export const ease = x => (x <= 0 ? 0 : x >= 1 ? 1 : x * x * (3 - 2 * x))
+/** Мягкий старт: smootherstep — скорость и её прирост начинаются с нуля, к концу кривая тоже ложится без излома (у smoothstep прирост в начале уже ненулевой) */
+export const easeInSoft = x => (x <= 0 ? 0 : x >= 1 ? 1 : x * x * x * (x * (x * 6 - 15) + 10))
 
 export const createLane = () => ({ phase: 'idle', t: 0, s: 0, g: 0, s0: 0, g0: 0, y: 0, seen: false, gone: 0 })
 
-/** Дорожке сейчас ехать? Обновляет «видела пилюли» (seen) и «сколько мс их нет» (gone) */
-function wantRun(L, dt, armed, pills) {
+/** Дорожке сейчас ехать? Обновляет «видела пилюли» (seen) и «сколько мс их нет» (gone). keep — акт идёт (команда '2'): едет, пока команда стоит, пилюли не нужны */
+function wantRun(L, dt, armed, pills, keep) {
   if (pills > 0) { L.seen = true; L.gone = 0 } else if (L.seen) L.gone += dt
   if (!armed && pills === 0) { L.seen = false; L.gone = 0 } // команду сняли и пилюль нет — следующий запуск начнётся с нуля
+  if (armed && keep) return true
   return pills > 0 || (armed && (!L.seen || L.gone < HOLD_MS))
 }
 
 function go(L, phase, t = 0) { L.phase = phase; L.t = t; L.s0 = L.s; L.g0 = L.g }
 
 /**
- * Шаг дорожки на dt мс. armed — дорожке дана команда ехать, pills — сколько пилюль сейчас на ней, still — без движения (слабое устройство, reduced-motion: только яркость, y не меняется).
+ * Шаг дорожки на dt мс. armed — дорожке дана команда ехать, keep — и держать ход, пока идёт акт (даже без пилюль), pills — сколько пилюль сейчас на ней, still — без движения (слабое устройство, reduced-motion: только яркость, y не меняется).
  * Меняет L и возвращает его: s (скорость, dvh/с), g (яркость 0…1), y (сдвиг пунктира 0…PERIOD).
  */
-export function stepLane(L, dt, { armed = false, pills = 0, still = false } = {}) {
-  const want = wantRun(L, dt, armed, pills)
+export function stepLane(L, dt, { armed = false, pills = 0, still = false, keep = false } = {}) {
+  const want = wantRun(L, dt, armed, pills, keep)
   if (L.phase === 'idle') { if (want) go(L, 'ignite', dt) }
   else {
     L.t += dt
@@ -48,12 +54,11 @@ export function stepLane(L, dt, { armed = false, pills = 0, still = false } = {}
     else if (want && L.phase === 'decel') go(L, 'accel')
   }
   if (L.phase === 'ignite') {
-    L.s = 0; L.g = LIT
+    L.s = 0; L.g = L.g0 + (LIT - L.g0) * ease(L.t / IGNITE_MS) // яркость нарастает вместе с волной, не ступенькой
     if (L.t >= IGNITE_MS) go(L, 'accel', L.t - IGNITE_MS)
   }
   if (L.phase === 'accel') {
-    const e = ease(L.t / ACCEL_MS)
-    L.s = L.s0 + (RUN_SPEED - L.s0) * e; L.g = L.g0 + (1 - L.g0) * e
+    L.s = L.s0 + (RUN_SPEED - L.s0) * easeInSoft(L.t / ACCEL_MS); L.g = L.g0 + (1 - L.g0) * ease(L.t / ACCEL_MS)
     if (L.t >= ACCEL_MS) { L.s = RUN_SPEED; L.g = 1; L.phase = 'run' }
   } else if (L.phase === 'decel') {
     const e = ease(L.t / DECEL_MS)

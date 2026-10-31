@@ -7,10 +7,10 @@ import { RUN_NONE } from './wordLaneRunLanes.js'
 import { plateCueMs } from '../../../rehearsal/rehearsalConveyorCue.js'
 import { stageTiming, countdownPlan, QUIET_RISE_MS } from '../../../rehearsal/rehearsalCountdown.js'
 
-// Момент «старт конвейера» — один источник для репетиции и для обычной ноды (v3.3.85)
+// Момент «старт конвейера» — один источник для репетиции и для обычной ноды (v3.3.85; акты репетиции — wordLaneActConveyor.test.js)
 const read = rel => readFileSync(fileURLToPath(new URL(rel, import.meta.url)), 'utf8')
 
-describe('igniteAtMs: за CONVEYOR_LEAD_MS (≈ 40 кадров) до конца сигнала', () => {
+describe('igniteAtMs: за CONVEYOR_LEAD_MS до конца сигнала', () => {
   it('обычная нода: сигнала нет — берётся конец плашки', () => {
     expect(igniteAtMs({ holdMs: 1700 })).toBe(1700 - CONVEYOR_LEAD_MS)
     expect(igniteAtMs({ holdMs: 1500, cueMs: null })).toBe(1500 - CONVEYOR_LEAD_MS)
@@ -22,9 +22,9 @@ describe('igniteAtMs: за CONVEYOR_LEAD_MS (≈ 40 кадров) до конц�
     expect(igniteAtMs({ holdMs: 2000, cueMs: 9000 })).toBe(2000 - CONVEYOR_LEAD_MS)
     expect(igniteAtMs({ holdMs: 300, cueMs: 200 })).toBe(0)
   })
-  it('запас — около 40 кадров (0,65 с)', () => {
-    expect(CONVEYOR_LEAD_MS).toBeGreaterThanOrEqual(640)
-    expect(CONVEYOR_LEAD_MS).toBeLessThanOrEqual(680)
+  it('запас — зажигание + мягкий разгон: 1,2 с (72 кадра) до выезда первой пилюли акта', () => {
+    expect(CONVEYOR_LEAD_MS).toBeGreaterThanOrEqual(1100)
+    expect(CONVEYOR_LEAD_MS).toBeLessThanOrEqual(1300)
   })
 })
 

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { ENTER_Y, EXIT_Y, SPEED, LOCK_MS, OPEN_Y, FILL_CAP, PRE_CONFIRM_CAP } from './wordLaneTimeline.js'
+import { ENTER_Y, EXIT_Y, SPEED, LOCK_MS, OPEN_Y, FILL_CAP, PRE_CONFIRM_CAP, LISTEN_Y_MIN } from './wordLaneTimeline.js'
 import { createStudentGame, stepStudent, REP_GAP_MS, MAX_TRIES, CLAIM_FROM_Y, CLAIM_TO_Y, FAIL_Y, LEAD_IN_MS, LOCK_STAGGER_MS, isClaimable } from './wordLaneStudent.js'
 import { buildRecipe, stepTargets } from './wordLaneRecipe.js'
 
@@ -181,9 +181,11 @@ describe('голос и заливка: только на подтверждён
 })
 
 describe('границы', () => {
-  it('claimable: только повтор на экране между CLAIM_FROM_Y и CLAIM_TO_Y', () => {
+  it('claimable: только повтор на экране между порогом слуха первой пилюли (видно 51 %, LISTEN_Y_MIN) и CLAIM_TO_Y', () => {
     const rep = (y0, y1, state = 'fly') => ({ state, pills: [{ y: y0 }, { y: y1 }] })
-    expect(isClaimable(rep(CLAIM_FROM_Y, CLAIM_TO_Y))).toBe(true)
+    expect(isClaimable(rep(LISTEN_Y_MIN, CLAIM_TO_Y))).toBe(true)
+    expect(isClaimable(rep(LISTEN_Y_MIN - 0.1, 50))).toBe(false)
+    expect(isClaimable(rep(CLAIM_FROM_Y, 50))).toBe(false)                     // прежний порог (−4) выше слуха — пилюля ещё больше чем наполовину за краем
     expect(isClaimable(rep(CLAIM_FROM_Y - 1, 50))).toBe(false)
     expect(isClaimable(rep(50, CLAIM_TO_Y + 1))).toBe(false)
     expect(isClaimable(rep(50, 60, 'lock'))).toBe(false)

@@ -4,7 +4,7 @@ import {
 } from './wordLaneConveyor.js'
 import { SPEED } from './wordLaneTimeline.js'
 
-// Модель конвейера дорожки (v3.3.85): idle → ignite → accel → run → decel → idle, каждая дорожка сама по себе
+// Модель конвейера дорожки (v3.3.85, плавнее с v3.3.87): idle → ignite → accel → run → decel → idle, каждая дорожка сама по себе
 const STEP = 1000 / 60
 const run = (L, ms, inp) => { for (let t = 0; t < ms - 1e-6; t += STEP) stepLane(L, STEP, inp) ; return L }
 const ON = { armed: true, pills: 1 }
@@ -16,10 +16,11 @@ describe('конвейер: скорости и времена', () => {
     expect(IGNITE_MS).toBeGreaterThanOrEqual(200)
     expect(IGNITE_MS).toBeLessThanOrEqual(300)
   })
-  it('старт за ≈ 40 кадров (0,66 с) = зажигание + разгон; торможение 0,6–0,8 с', () => {
+  it('старт за зажигание + разгон (1,2 с): разгон длиннее прежних 420 мс; торможение 0,6–0,8 с', () => {
     expect(CONVEYOR_LEAD_MS).toBe(IGNITE_MS + ACCEL_MS)
-    expect(CONVEYOR_LEAD_MS / STEP).toBeGreaterThan(38)
-    expect(CONVEYOR_LEAD_MS / STEP).toBeLessThan(42)
+    expect(ACCEL_MS).toBeGreaterThanOrEqual(800)                       // движение начинается плавнее: разгон вдвое длиннее прежнего
+    expect(CONVEYOR_LEAD_MS / STEP).toBeGreaterThan(60)
+    expect(CONVEYOR_LEAD_MS / STEP).toBeLessThan(80)
     expect(DECEL_MS).toBeGreaterThanOrEqual(600)
     expect(DECEL_MS).toBeLessThanOrEqual(800)
   })

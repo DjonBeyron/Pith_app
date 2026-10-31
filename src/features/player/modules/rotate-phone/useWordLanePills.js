@@ -121,7 +121,8 @@ export function useWordLanePills(rootRef, { scene, levels, fx, live, sceneApi })
         const seq = liveRef.current.seq
         const sig = liveRef.current.signal?.() ?? {}
         const confirmed = Date.now() - (sig.heardAt ?? 0) < CONFIRM_MS // распознаватель недавно что-то услышал: речь настоящая, а не шум или эхо
-        for (const e of stepStudent(g, t, { level, seq, misses: liveRef.current.misses, confirmed, tail: sig.tail ?? null })) handle(e)
+        const hold = (fxRef.current?.pitLeft?.() ?? 0) > 0 // репетиция: Пит ещё говорит (реплика + пауза ≈ 40 кадров) — новая пилюля не выезжает
+        for (const e of stepStudent(g, t, { level, seq, misses: liveRef.current.misses, confirmed, tail: sig.tail ?? null, hold })) handle(e)
         const now2 = performance.now()
         const byId = held.size ? new Map(g.pills.map(x => [x.id, x])) : null // одна карта на кадр вместо поиска по массиву на каждую пилюлю
         for (const [id, k] of held) {
