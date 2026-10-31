@@ -6,18 +6,19 @@ import re
 from gray_cat_details import *
 
 DX, DY = F(521, 592)[0] - 296.4, F(521, 592)[1] - 348.9           # сдвиг формул рта Мии под рот этой кошки (так же сдвинута таблица форм)
-# lid — доля высоты радужки под веком; gaze — сдвиг взгляда (px рисунка); brows — (сдвиг по y в единицах спрайта, поворот °) для левой и правой стороны
+# lid — какая доля верхней половины глаза закрыта веком; slant — скос века к носу; gaze — сдвиг взгляда (px рисунка); brows — (сдвиг по y в единицах спрайта, поворот °)
+# для левой и правой стороны. pupil — свой масштаб зрачка, если не брать из Мии (у этой кошки зрачок-щель шире, поэтому «увлечена» мягче: круглый, не «монета»)
 FACES = {
     'base':     dict(lid=0.00, gaze=(0, 0),    brows=((0, 0), (0, 0))),
-    'roll':     dict(lid=0.12, gaze=(0, -30),  brows=((-10, 0), (-10, 0))),                 # зрачки вверх под веки, брови высоко
+    'roll':     dict(lid=0.10, gaze=(0, -30),  brows=((-10, 0), (-10, 0))),                 # зрачки вверх под веки, брови высоко
     'smirk':    dict(lid=0.30, gaze=(22, 0),   brows=((-13, -4), (3, 0))),                  # взгляд искоса, левая бровь высоко, правая ниже
-    'pathos':   dict(lid=0.47, gaze=(0, 14),   brows=((-9, 0), (-9, 0))),                   # полуприкрытые веки, взгляд сверху вниз
-    'sneer':    dict(lid=0.62, gaze=(24, 10),  brows=((6, 12), (6, -12))),                  # прищур, брови сдвинуты книзу к носу
-    'interest': dict(lid=0.00, gaze=(10, 0),   brows=((-6, -3), (-6, 3))),                  # любопытный взгляд, брови чуть вверх (зрачок расширяет движок)
+    'pathos':   dict(lid=0.40, gaze=(0, 10),   brows=((-9, 0), (-9, 0))),                   # полуприкрытые веки, взгляд сверху вниз
+    'sneer':    dict(lid=0.30, slant=0.30, gaze=(24, 8), brows=((6, 12), (6, -12))),        # прищур со скосом к носу, брови сдвинуты книзу
+    'interest': dict(lid=0.00, gaze=(0, 0),    brows=((-6, -3), (-6, 3)), pupil=[1.55, 1.0]),   # внимательный взгляд прямо, зрачок круглеет
 }
 
-def eye_markup(side, lid, gaze, fur, ol):
-    e = eye(side, lid, gaze); px, py = e['pc']; fill = lambda p: f'<path d="{p[0]}" fill="{p[1]}"/>'
+def eye_markup(side, lid, gaze, slant, fur, ol):
+    e = eye(side, lid, gaze, slant); px, py = e['pc']; fill = lambda p: f'<path d="{p[0]}" fill="{p[1]}"/>'
     out = (fill(e['sil']) + fill(e['amber']) + fill(e['core']) + f'<path class="pu" data-x="{px:.1f}" data-y="{py:.1f}" d="{e["pupil"][0]}" fill="{e["pupil"][1]}"/>'
            + ''.join(fill(h) for h in e['hl']))
     if e['lid']:
@@ -41,7 +42,7 @@ def build_states(mia_states, fur='#646774', ol='#262432'):
     hairs = brow_hairs(); res = {}
     for name, f in FACES.items():
         m = mia_states[name]
-        res[name] = dict(eyes=eye_markup('l', f['lid'], f['gaze'], fur, ol) + eye_markup('r', f['lid'], (-f['gaze'][0] if name == 'sneer' else f['gaze'][0], f['gaze'][1]), fur, ol),
+        res[name] = dict(eyes=eye_markup('l', f['lid'], f['gaze'], f.get('slant', 0), fur, ol) + eye_markup('r', f['lid'], (-f['gaze'][0] if name == 'sneer' else f['gaze'][0], f['gaze'][1]), f.get('slant', 0), fur, ol),
                          brows=brows_markup(hairs, f['brows']), deco='', mouth=shift_path(m['mouth'], DX, DY) if m['mouth'] else None,
-                         pupil=m['pupil'], tilt=m['tilt'])
+                         pupil=f.get('pupil', m['pupil']), tilt=m['tilt'])
     return res

@@ -25,23 +25,33 @@ def eye_masks(side):
                        edge=hexc(im[amber & ~core & c['amber']].mean(0)), mid=hexc(im[core & c['amber']].mean(0)), dark=color(union & c['dark'], 0))
     return _eyes[side]
 
-def eye(side, lid=0.0, gaze=(0, 0)):
-    """Глаз в состоянии: lid — доля высоты радужки, закрытая верхним веком (0 — открыт); gaze — сдвиг зрачка и светлой середины (px рисунка).
-    Веко НЕ накладка: нарисованная форма глаза укорачивается сверху — обводка идёт по линии века (верхний ободок толще, как у Мии), радужка, зрачок
-    и блики обрезаются по ней. Так глаз прикрывается, а не закрывается шторкой. Зрачок и середина сдвигаются взглядом и обрезаются по радужке"""
+def warp_rows(m, yc, s_top, s_bot):
+    """Вертикальное сжатие маски к линии уголков глаза yc: выше линии — в s_top раз (по столбцам), ниже — в s_bot раз. Так прикрывается настоящий глаз:
+    верхнее веко опускается, нижнее чуть поднимается, а уголки остаются на месте"""
+    yy = np.arange(H)[:, None].astype(float); s = np.where(yy < yc, s_top[None, :], s_bot[None, :])
+    src = yc + (yy - yc) / s; ok = (src >= 0) & (src <= H - 1)
+    return m[np.clip(np.rint(src).astype(int), 0, H - 1), np.arange(W)[None, :]] & ok
+
+def eye(side, lid=0.0, gaze=(0, 0), slant=0.0):
+    """Глаз в состоянии. lid — какая доля верхней половины глаза закрыта веком (0 — открыт, 1 — закрыт: щель по линии уголков); slant — скос века (>0: к носу веко ниже,
+    сердитый прищур); gaze — сдвиг зрачка и светлой середины (px рисунка).
+    Как закрываются глаза у животных: верхнее веко идёт сверху вниз, нижнее чуть поднимается, уголки неподвижны, видимая часть остаётся «линзой» (дугой вверх),
+    а радужка и зрачок не сплющиваются — их просто закрывает веко. Поэтому форма глаза сжимается к линии уголков, а содержимое (радужка, зрачок, блики) обрезается по ней"""
     M = eye_masks(side); gx, gy = int(round(gaze[0])), int(round(gaze[1]))
-    amber, union = M['amber'], M['union']
+    amber, union, hls = M['amber'], M['union'], M['hl']
     if lid > 0:
-        x0, x1, y0, y1 = M['box']; cx, hw = (x0 + x1) / 2, (x1 - x0) / 2; Ld = lid * (y1 - y0)
-        cut = np.array([y0 + Ld * (1 - 0.55 * ((x - cx) / hw) ** 2) for x in range(W)])        # к уголкам веко опускается слабее, чем в середине
-        yy = np.arange(H)[:, None]; below = yy >= cut[None, :]; band = yy >= (cut - 13)[None, :]   # 13 px — толщина ободка глаза на рисунке
-        union, amber = union & band, amber & below
-    else: below = np.ones((H, W), bool)
+        ys, xs = np.nonzero(union); xl, xr = xs.min(), xs.max()
+        yc = (ys[xs <= xl + 3].mean() + ys[xs >= xr - 3].mean()) / 2                           # линия уголков глаза
+        cx, hw = (xl + xr) / 2, (xr - xl) / 2; inner = 1 if side == 'l' else -1               # у левого глаза к носу — вправо
+        w = np.clip((np.arange(W) - cx) / hw * inner, -1, 1)
+        s_top = np.clip(1 - lid - slant * w, 0.04, 1.0); s_bot = np.full(W, 1 - 0.35 * lid)
+        union = morph(warp_rows(union, yc, s_top, s_bot), int(round(3 * lid)), 'd')           # ободок у века чуть толще
+        amber = warp_rows(amber, yc, s_top, s_bot); hls = [m & amber for m in hls]
     mv = lambda m, k=1.0: shift(shift(m, int(round(gy * k)), 0), 0, int(round(gx * k))) & amber
     pup = mv(M['pup']); core = mv(M['core'], 0.7); px, py = centroid(M['pup'])
     return dict(sil=(region_path(union, F, 1.0, 6), M['dark']), amber=(region_path(amber, F, 1.0, 6), M['edge']),
                 core=(region_path(core, F, 1.0, 8), M['mid']), pupil=(region_path(pup, F, 0.8, 2), '#1e1c22'),
-                hl=[(region_path(m & below, F, 0.6, 1), '#ffffff') for m in M['hl'] if (m & below).sum() > 8], pc=F(px + gx, py + gy), lid=None)
+                hl=[(region_path(m, F, 0.6, 1), '#ffffff') for m in hls if m.sum() > 8], pc=F(px + gx, py + gy), lid=None)
 
 # ── мордочка: светлая зона от переносицы к носу и подбородку, щёки ──
 def face_light():
