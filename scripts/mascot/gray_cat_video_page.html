@@ -23,7 +23,7 @@ body.cap { gap: 0; } body.cap #stage { height: 100vh; aspect-ratio: 9 / 16; bord
 <div id="sub"><b></b><i></i></div></div>
 <div id="ui"><div class="row"><button id="bPrev" title="Кадр назад (←)">◀ кадр</button><button id="bPlay" title="Пуск / пауза (пробел)">▶ Играть</button><button id="bNext" title="Кадр вперёд (→)">кадр ▶</button>
 <select id="speed"><option value="0.1">0,1×</option><option value="0.25">0,25×</option><option value="0.5">0,5×</option><option selected value="1">1×</option></select>
-<button id="bBg" title="Фон: проверочный (светлый+тёмный) / лавандовый / серый">фон</button><label><input type="checkbox" id="snd"> звук</label></div>
+<button id="bBg" title="Фон: проверочный (светлый+тёмный) / лавандовый / серый">фон</button><label><input type="checkbox" id="snd"> звук</label><label><input type="checkbox" id="subs" checked> субтитры</label></div>
 <div class="row"><input type="range" id="seek" min="0" max="0" step="1" value="0"></div><div id="info"></div></div><audio id="au" preload="auto"></audio>
 <script>
 const SP = __SPRITE__, TL = __TIMELINE__;
@@ -98,6 +98,7 @@ function tick(now) { if (!playing) return; cur += (now - last) / 1000 * speed; l
 $('bPlay').onclick = () => play(!playing); $('bPrev').onclick = () => { play(false); go(cur - 1 / FPS) }; $('bNext').onclick = () => { play(false); go(cur + 1 / FPS) };
 seek.oninput = () => { go(+seek.value / FPS) }; $('speed').onchange = e => { speed = +e.target.value; au.playbackRate = speed };
 let bgMode = 1; const setBg = m => { bgMode = m % 3; $('stage').className = ['', 'bg1', 'bg2'][bgMode] }; $('bBg').onclick = () => setBg(bgMode + 1); if (!CAP) setBg(1);
+$('subs').onchange = () => { $('sub').style.display = $('subs').checked ? '' : 'none' };
 $('snd').onchange = () => { if (!$('snd').checked) au.pause(); else if (playing) { au.currentTime = cur; au.play() } };
 addEventListener('keydown', e => { if (e.code === 'Space') { e.preventDefault(); play(!playing) } else if (e.code === 'ArrowLeft') { play(false); go(cur - (e.shiftKey ? 10 : 1) / FPS) } else if (e.code === 'ArrowRight') { play(false); go(cur + (e.shiftKey ? 10 : 1) / FPS) } });
 show(0);

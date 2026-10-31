@@ -90,7 +90,6 @@ def dense(pts, step=2.0):
     for a, b in zip(P[:-1], P[1:]):
         n = max(1, int(np.hypot(*(b - a)) / step)); out += [a + (b - a) * k / n for k in range(n)]
     out.append(P[-1]); return np.array(out)
-PAW_GAP = 4                                                                  # на сколько px рисунка раздвинуты передние лапки
 def paw_arcs():
     """Нижний край передних лап: центры тёмной обводки по столбцам — две дуги, сходящиеся острым уголком между лапами (по x вниз к краю рисунка)"""
     dark = blur(LUM, 1) < 85; pts = []
@@ -102,12 +101,15 @@ def paw_arcs():
             if run[-1] - y > 1: break
             run.append(y)
         pts.append((x, (run[0] + run[-1]) / 2))
-    P = np.array(pts, float); P = P[np.abs(P[:, 0] - 517) >= 9]
-    L, Rt = P[P[:, 0] < 517], P[P[:, 0] > 517]
-    L[:, 0] -= PAW_GAP; Rt[:, 0] += PAW_GAP                                      # лапки раздвинуты: обводки не слипаются
-    apex = min(L[-1, 1], Rt[0, 1]) - 30                                          # между лапками неглубокая выемка до просвета (стебелёк от ног спускается в неё)
-    notch = np.array([(L[-1, 0] + 3, L[-1, 1] - 12), (511, apex + 9), (517, apex), (523, apex + 9), (Rt[0, 0] - 3, Rt[0, 1] - 12)])
-    return np.vstack([L, notch, Rt])
+    P = np.array(pts, float)
+    return P[np.abs(P[:, 0] - 517) >= 9]                                         # самый стык (острый уголок) заменён гладким мостиком; стебельки — отдельно (paw_stems)
+PAW_STEM = 9.5                                                               # на сколько px рисунка ось стебелька лапки отстоит от оси между лапками (даёт просвет между обводками)
+def paw_stems():
+    """Две внутренние линии между передними лапками (ref-координаты): от ног вниз, не сливаясь, до дуг лап. Между ними остаётся узкий просвет цвета меха"""
+    arcs = paw_arcs(); L, Rt = arcs[arcs[:, 0] < 517][-1], arcs[arcs[:, 0] > 517][0]
+    left = [(503.5, 1085), (506, 1115), (508, 1145), (517 - PAW_STEM, 1172), (L[0] + 2, L[1] - 10), tuple(L)]            # ноги сходятся (по рисунку: слева x 504, справа 543 на y 1098)
+    right = [(543, 1085), (538, 1115), (531, 1145), (517 + PAW_STEM, 1172), (Rt[0] - 2, Rt[1] - 10), tuple(Rt)]
+    return spline(left, 2.0), spline(right, 2.0)
 def thin(P, k, root_x=885, extra=6, step=9):
     """Контур, уменьшенный на k пикселей со всех сторон (хвост тоньше): заливка многоугольника → эрозия → внешняя граница.
     У корня (левее root_x) эрозия плавно растёт ещё на extra px — хвост сужается к телу, а не «утолщается» там, где выходит из-под бедра"""
@@ -125,12 +127,15 @@ def parts():
     bottom = S_[iB:jL + 1]
     if idx:
         a, b = idx[0] - iB, idx[-1] - iB
-        bottom = np.vstack([bottom[:a], dense(paw_arcs()[::-1], 2.0), bottom[b + 1:]])
+        bottom = np.vstack([bottom[:a], spline(paw_arcs()[::-1], 2.0), bottom[b + 1:]])
     body = np.vstack([spline(NR), S_[jR:iA], spline([(823, 1060), (820, 1078), (813, 1096), (803, 1118), (791, 1140)]), bottom, spline(NL[::-1]), dense([(336, 725), (352, 698), (680, 698), (697, 727)])[1:-1]])
     tail = np.vstack([S_[iA:iB + 1], dense([S_[iB], (775, 1140), (790, 1070), S_[iA]])[1:-1]])
-    return head, body, thin(tail, TAIL_THIN)
-def outline_path(P, f, eps=1.2, sm=8):
-    Q, cs = smart_outline(P, eps, sm, 5, 28); return bezier_path(Q, True, 70, f, set(cs))
+    return head, body, tail
+def outline_path(P, f, eps=1.2, sm=8, smooth_zone=None):
+    """Контур → кривая. smooth_zone=(x0, y0, x1, y1) — где углов быть не должно (все изломы там сглаживаются)"""
+    Q, cs = smart_outline(P, eps, sm, 5, 28)
+    if smooth_zone: cs = [c for c in cs if not (smooth_zone[0] <= Q[c][0] <= smooth_zone[2] and smooth_zone[1] <= Q[c][1] <= smooth_zone[3])]
+    return bezier_path(Q, True, 70, f, set(cs))
 
 # ── цветовые классы ──
 def cls():
@@ -146,3 +151,17 @@ def classes():
     if C is None: C = cls()
     return C
 inside_cat = lambda er=9: morph(silhouette(), er - 7, 'e')
+
+def tail_axis(P):
+    """Хвост — линия постоянной толщины по оси: ось снята скелетом с контура хвоста (ref-координаты), корень продолжен вглубь тела.
+    Возвращает (ось, толщина между центрами обводки в px рисунка). Толщина — медиана расстояния от оси до края на видимой части хвоста (эрозией до исчезновения
+    точки оси). Так основание не «кривое» и не утолщается при качании"""
+    img = Image.new('L', (W, H), 0); ImageDraw.Draw(img).polygon([tuple(p) for p in P], fill=255); m = np.array(img) > 0
+    line, _ = skeleton_line(m); line = smooth_open(line, 8)
+    if line[0][0] > line[-1][0]: line = line[::-1]                                     # корень (левее) — в начале
+    depth = np.zeros(len(line)); cur = m; pts = np.rint(line).astype(int)
+    for k in range(2, 80, 2):                                                        # два шага эрозии (крест + квадрат) = 2 px по восьмиугольнику
+        cur = morph(cur, 2, 'e'); alive = cur[pts[:, 1], pts[:, 0]]; depth[alive] = k
+    vis = depth[line[:, 0] > 850]; wid = 2 * float(np.median(vis)) + 1 if len(vis) else 60.0
+    d = line[0] - line[min(10, len(line) - 1)]; d = d / (np.hypot(*d) or 1)            # продолжение корня под бедро
+    return np.vstack([line[0] + d * 70, line[0] + d * 35, line]), wid - 2 * TAIL_THIN

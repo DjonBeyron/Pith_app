@@ -32,21 +32,30 @@ def warp_rows(m, yc, s_top, s_bot):
     src = yc + (yy - yc) / s; ok = (src >= 0) & (src <= H - 1)
     return m[np.clip(np.rint(src).astype(int), 0, H - 1), np.arange(W)[None, :]] & ok
 
+RING_LOW, RING_TOP_W = 7, 12                                       # толщина ободка глаза (px рисунка): низ и бока / верхняя «подводка»
+def eye_ring(lens, yc):
+    """Ободок вокруг видимой части глаза: везде RING_LOW, а выше линии уголков плавно толще до RING_TOP_W. Строится вокруг формы глаза, поэтому толщина
+    не меняется, когда глаз сужается веком"""
+    ys, xs = np.nonzero(lens); y0, y1, x0, x1 = ys.min() - 20, ys.max() + 21, xs.min() - 20, xs.max() + 21
+    sub = lens[y0:y1, x0:x1]; yy = np.arange(y1 - y0)[:, None]; ring = morph(sub, RING_LOW, 'd')
+    for k in range(RING_LOW + 1, RING_TOP_W + 1): ring |= morph(sub, k, 'd') & (yy < (yc - y0) - (k - RING_LOW) * 5)
+    out = np.zeros_like(lens); out[y0:y1, x0:x1] = ring; return out
+
 def eye(side, lid=0.0, gaze=(0, 0), slant=0.0):
     """Глаз в состоянии. lid — какая доля верхней половины глаза закрыта веком (0 — открыт, 1 — закрыт: щель по линии уголков); slant — скос века (>0: к носу веко ниже,
     сердитый прищур); gaze — сдвиг зрачка и светлой середины (px рисунка).
     Как закрываются глаза у животных: верхнее веко идёт сверху вниз, нижнее чуть поднимается, уголки неподвижны, видимая часть остаётся «линзой» (дугой вверх),
-    а радужка и зрачок не сплющиваются — их просто закрывает веко. Поэтому форма глаза сжимается к линии уголков, а содержимое (радужка, зрачок, блики) обрезается по ней"""
-    M = eye_masks(side); gx, gy = int(round(gaze[0])), int(round(gaze[1]))
-    amber, union, hls = M['amber'], M['union'], M['hl']
+    а радужка и зрачок не сплющиваются — их просто закрывает веко. Форма глаза сжимается к линии уголков, содержимое обрезается по ней, а ободок (eye_ring) строится
+    вокруг получившейся формы с той же толщиной, что у открытого глаза"""
+    M = eye_masks(side); gx, gy = int(round(gaze[0])), int(round(gaze[1])); amber, hls = M['amber'], M['hl']
+    ys, xs = np.nonzero(M['union']); xl, xr = xs.min(), xs.max()
+    yc = (ys[xs <= xl + 3].mean() + ys[xs >= xr - 3].mean()) / 2                               # линия уголков глаза
     if lid > 0:
-        ys, xs = np.nonzero(union); xl, xr = xs.min(), xs.max()
-        yc = (ys[xs <= xl + 3].mean() + ys[xs >= xr - 3].mean()) / 2                           # линия уголков глаза
         cx, hw = (xl + xr) / 2, (xr - xl) / 2; inner = 1 if side == 'l' else -1               # у левого глаза к носу — вправо
         w = np.clip((np.arange(W) - cx) / hw * inner, -1, 1)
         s_top = np.clip(1 - lid - slant * w, 0.04, 1.0); s_bot = np.full(W, 1 - 0.35 * lid)
         amber = warp_rows(amber, yc, s_top, s_bot); hls = [m & amber for m in hls]
-        union = morph(fill_holes(amber), 12, 'd')                                              # ободок — та же толщина, что у открытого глаза (12 px), а не сжатый вместе с глазом
+    union = eye_ring(fill_holes(amber), yc)
     mv = lambda m, k=1.0: shift(shift(m, int(round(gy * k)), 0), 0, int(round(gx * k))) & amber
     pup = mv(M['pup']); core = mv(M['core'], 0.7); px, py = centroid(M['pup'])
     return dict(sil=(region_path(union, F, 1.0, 6), M['dark']), amber=(region_path(amber, F, 1.0, 6), M['edge']),
@@ -101,7 +110,7 @@ def whiskers():
     out = []
     for side in 'lr':
         s = sorted([r for r in res if r[1] == side])
-        for k, r in enumerate(s): out.append((side, 'u' if k == 0 else 'd') + tuple(r[2:]))
+        for k, r in enumerate(s): out.append((side, 'u' if k == 0 else 'd', r[2], r[3], round(r[4] * 0.5, 1)))      # усы вдвое тоньше волосков
     return out
 
 # ── серёжки: колечко и звёздочки (по рисунку) ──
@@ -155,11 +164,11 @@ def body_shade():
     rounded = lambda x: closing(opening(x, 11), 11)                                 # острые уголки теней скруглены (тени мягкие, не «клинья»)
     return [(region_path(rounded(x), F, 1.4, 9, 180, 4), color(x)) for x in big_], [(region_path(x, F, 0.8, 2), color(x, 1)) for x in small]
 def body_lines():
-    dark = classes()['dark'] & box(150, 775, 900, 1260) & ~box(470, 1108, 566, 1162); inner = morph(silhouette(), 9, 'e')
+    dark = classes()['dark'] & box(150, 775, 900, 1260) & ~box(470, 1100, 566, 1150); inner = morph(silhouette(), 9, 'e')
     res = []
     for x in components(dark & inner, 150):
         for _ in range(4): x = morph(x, 1, 'd') & dark                 # дотянуть до внешней обводки (под неё)
-        res.append((region_path(x, F, 1.0, 5), '#262432'))
+        res.append((region_path(x, F, 1.0, 6, 180), '#262432'))
     return res
 
 def heart(cx, cy, w, h, f=F):
@@ -172,9 +181,9 @@ def edge_blobs(part):
     """Места, где обводка на рисунке толще или ломаная: точная тёмная область поверх обводки. part='head' — бугорки у основания ушей (двигаются с головой),
     part='body' — бугорки у шеи и стык передних лап (принадлежат телу и не должны ехать вместе с головой). У стыка лап порог темноты строже (70),
     чтобы стебелёк между лапами не получился толще, чем на рисунке"""
-    boxes = dict(head=((148, 362, 250, 460, 85), (782, 362, 886, 460, 85)), body=((286, 752, 338, 797, 85), (688, 752, 742, 797, 85), (470, 1092, 566, 1162, 68)))[part]
+    boxes = dict(head=((148, 362, 250, 460, 85), (782, 362, 886, 460, 85)), body=((286, 752, 338, 797, 85), (688, 752, 742, 797, 85)))[part]
     res = []
     for x0, y0, x1, y1, thr in boxes:
         dark = blur(LUM, 1) < thr
-        for m in components(dark & box(x0, y0, x1, y1), 200): res.append(region_path(m, F, 0.7, 2, 40))
+        for m in components(dark & box(x0, y0, x1, y1), 200): res.append(region_path(m, F, 1.0, 4 if part == 'body' else 2, 90 if part == 'body' else 40))
     return res

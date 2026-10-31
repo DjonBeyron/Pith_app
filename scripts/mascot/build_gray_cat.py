@@ -16,11 +16,12 @@ stroke = lambda d, w=SW, c=OL: f'<path d="{d}" fill="none" stroke="{c}" stroke-w
 
 # ── части силуэта ──
 head_P, body_P, tail_P = parts()
-head_d, body_d = outline_path(head_P, F), outline_path(body_P, F)
-tail_d = outline_path(tail_P, FT)
+head_d, body_d = outline_path(head_P, F), outline_path(body_P, F, smooth_zone=(465, 1130, 570, 1250))
+axis, tail_w = tail_axis(tail_P); tail_d = bezier_path(simplify_open(axis, 0.8), False, 70, FT, set())
 
 # ── хвост (в начале координат основания, как у Мии) ──
-tail = f'<path class="tl-fill" d="{tail_d}" fill="{FURC}" stroke="{OL}" stroke-width="{SW}" stroke-linejoin="round"/>'
+tail = (f'<path d="{tail_d}" fill="none" stroke="{OL}" stroke-width="{tail_w * S + SW:.1f}" stroke-linecap="round" stroke-linejoin="round"/>'
+        f'<path class="tl-fill" d="{tail_d}" fill="none" stroke="{FURC}" stroke-width="{tail_w * S - SW:.1f}" stroke-linecap="round" stroke-linejoin="round"/>')   # хвост — две линии постоянной толщины: тёмная широкая и мех
 
 # ── тело: заливка, тени бёдер, обводка, пальчики, линии ног и лап, ошейник с сердечком ──
 shade_big, toes = body_shade()
@@ -46,7 +47,9 @@ def pendant():
     hd = heart(521, 825, 62, 66); x, y = F(501, 811)
     return (f'<path d="{hd}" fill="{PINK_L}" stroke="{CRIM}" stroke-width="4.4" stroke-linejoin="round"/>'
             f'<path d="M{x:.1f} {y + 4:.1f}C{x - 1:.1f} {y - 1:.1f} {x + 2:.1f} {y - 4:.1f} {x + 7:.1f} {y - 4:.1f}" fill="none" stroke="#ffffff" stroke-width="3.2" stroke-linecap="round" opacity=".95"/>')
-body = (f'<path d="{body_d}" fill="{FURC}"/>' + ''.join(fill(x) for x in shade_big) + stroke(body_d) + ''.join(f'<path d="{p}" fill="{OL}"/>' for p in edge_blobs('body')) + ''.join(fill(x) for x in toes)
+def paw_stem_markup():   # два тонких стебелька между передними лапками с просветом
+    return ''.join(f'<path d="{bezier_path(simplify_open(smooth_open(s, 3), 0.6), False, 70, F, set())}" fill="none" stroke="{OL}" stroke-width="{SW}" stroke-linecap="round" stroke-linejoin="round"/>' for s in paw_stems())
+body = (f'<path d="{body_d}" fill="{FURC}"/>' + ''.join(fill(x) for x in shade_big) + stroke(body_d) + ''.join(f'<path d="{p}" fill="{OL}"/>' for p in edge_blobs('body')) + paw_stem_markup() + ''.join(fill(x) for x in toes)
         + ''.join(f'<path d="{d}" fill="{c}"/>' for d, c in body_lines()) + collar() + pendant())
 
 # ── голова ──

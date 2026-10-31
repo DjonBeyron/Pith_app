@@ -214,14 +214,14 @@ def skeleton_line(mask, step=1.0):
             for y, x in rm: im[y, x] = 0; ch = True
     pts = {(int(x), int(y)) for y, x in zip(*np.nonzero(im))}
     nbrs = lambda p: [(p[0] + dx, p[1] + dy) for dx in (-1, 0, 1) for dy in (-1, 0, 1) if (dx or dy) and (p[0] + dx, p[1] + dy) in pts]
-    ends = [p for p in pts if len(nbrs(p)) == 1] or [min(pts)]
-    best = []
-    for s in ends:                                  # из каждого конца идём по оси; берём самый длинный путь
-        path = [s]; seen = {s}
-        while True:
-            nx = [q for q in nbrs(path[-1]) if q not in seen]
-            if not nx: break
-            q = min(nx, key=lambda q: abs(q[0] - path[-1][0]) + abs(q[1] - path[-1][1])); path.append(q); seen.add(q)
-        if len(path) > len(best): best = path
+    def bfs(s):                                     # самый длинный путь по оси (диаметр графа): отростки-«шпоры» не мешают
+        par = {s: None}; q = deque([s]); last = s
+        while q:
+            c = q.popleft(); last = c
+            for n in nbrs(c):
+                if n not in par: par[n] = c; q.append(n)
+        return last, par
+    a_, _ = bfs(next(iter(pts))); b_, par = bfs(a_); best = []; c = b_
+    while c is not None: best.append(c); c = par[c]
     line = np.array([(x + x0 - 1, y + y0 - 1) for x, y in best], float)
     return line, float(mask.sum()) / max(len(line), 1)
