@@ -32,7 +32,8 @@ describe('директор игры (useWordLaneFlow)', () => {
     expect(flow).toContain('const word = stages[sRef.current.idx]?.sayText; if (word) { handlers.sayText(word); return }')
   })
   it('плашки держатся, пока Пит говорит (holdMs); директор отдаёт rh и next для экранов зеркала и итога', () => {
-    expect(flow).toContain('ids.push(setTimeout(next, rh.holdMs(stageObj)))')
+    expect(flow).toContain('ids.push(setTimeout(() => rh.afterCount(next), rh.holdMs(stageObj)))') // переход ждёт конца отсчёта нотами
+    expect(flow).toContain('labelsFor(rh.quiet ? null :'); expect(flow).toContain("const plate = !rh.plateOk ? ''") // пока Пит говорит, ни подписей, ни плашки
     expect(flow).toContain('return { ...s, dbg, rh, next, catLine: cat.text, phase,')
   })
   it('дубль и зеркало: слушатель дубля без затвора и без паузы между заходами; на дубле Пит молчит; стадия закончилась — rh.leave дописывает дубль и только потом next', () => {

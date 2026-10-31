@@ -174,7 +174,7 @@ export function useWordLaneFlow({ chunks, translation, lang, clips = null, audio
     let releaseHold = null
     const look = () => catApi?.current?.look // взгляд кота: ref читается в момент вызова (кот мог ещё не смонтироваться)
     if (stageObj.type === 'announce' || stageObj.type === 'turn') {
-      ids.push(setTimeout(next, rh.holdMs(stageObj)))
+      ids.push(setTimeout(() => rh.afterCount(next), rh.holdMs(stageObj))) // отсчёт тремя нотами не обрывается сменой стадии (rh.afterCount)
       if (stageObj.type === 'announce') ids.push(setTimeout(() => sayLine(`round_${stageObj.round.kind}`), LINE_AT_MS))
       else if (s.idx === stages.findIndex(x => x.type === 'turn')) ids.push(setTimeout(() => sayLine('your_turn'), LINE_AT_MS)) // «твоя очередь» — только в первый раз
     }
@@ -243,7 +243,7 @@ export function useWordLaneFlow({ chunks, translation, lang, clips = null, audio
   }), [s.lid, s.seq, s.misses, listenId])
   const phase = s.stage === 'run' ? (engineKind(stageObj) ?? 'idle') : s.stage
   const shown = s.stage === 'paused' && s.from === 'run' ? stages[s.idx] : stageObj // на паузе подписи дорожек остаются на месте
-  const labels = labelsFor(shown?.type === 'announce' ? stages[s.idx + 1] : shown, chunks, lanes, [...s.hint, ...rh.hintLanes(shown)], rh.hl) // под плашкой раунда уже видны подписи следующей стадии
-  const plate = stageObj?.type === 'announce' ? stageObj.round.title : stageObj?.type === 'turn' ? 'Теперь твоя очередь' : ''
+  const labels = labelsFor(rh.quiet ? null : shown?.type === 'announce' ? stages[s.idx + 1] : shown, chunks, lanes, [...s.hint, ...rh.hintLanes(shown)], rh.hl) // под плашкой раунда уже видны подписи следующей стадии
+  const plate = !rh.plateOk ? '' : stageObj?.type === 'announce' ? stageObj.round.title : stageObj?.type === 'turn' ? 'Теперь твоя очередь' : ''
   return { ...s, dbg, rh, next, catLine: cat.text, phase, stageObj, scene, live, labels, plate, plateMs: stageObj?.ms ?? 0, levels, fx, sceneApi, xpApi, onLane, retryMic, restartStage, pause, paused: s.stage === 'paused', pausedIntro: s.stage === 'paused' && s.from !== 'run', finish, translation, text: textOf(chunks, chunks.map((_, i) => i)) }
 }

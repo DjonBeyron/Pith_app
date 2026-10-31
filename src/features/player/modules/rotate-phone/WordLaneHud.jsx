@@ -3,6 +3,8 @@ import { Settings, X } from 'lucide-react'
 import { APP_VERSION } from '../../../../shared/lib/version.js'
 import { isMicProcessingOn, setMicProcessingOn, describeGameMic } from '../../../../shared/lib/gameMic.js'
 import { readAudioSessionMode, readMicHoldMode, writeMicHoldMode } from '../../../../shared/lib/gameAudioSettings.js'
+import { MIC_GAIN_LEVELS, readMicGainId, writeMicGainId, micGainLogLine } from '../../../../shared/lib/gameMicGain.js'
+import { pLog } from '../../../../shared/lib/debug.js'
 import { WHISKER_MODES, getWhiskerMode, setWhiskerMode } from '../../../scene/v2/whiskerWrite.js'
 import { isWeakDevice } from '../../../../shared/lib/deviceTier.js'
 import { voskRuntime } from '../../../../shared/lib/vosk/voskRuntime.js'
@@ -21,7 +23,7 @@ import {
 const SESSION_OPTS = [['play-and-record', 'Запись+воспр.'], ['auto', 'Авто'], ['phases', 'По фазам']]
 const HOLD_OPTS = [['none', 'Не глушить'], ['enabled-false', 'Глушить дорожку'], ['close', 'Закрывать микрофон']]
 const REWARD_LABEL = { meow: 'Мяу', off: 'Без звука' } // остальное из REWARD_SOUNDS — прежние ноты
-const WHEN = { now: 'сразу', restart: 'после «Игра заново»', reload: 'после перезагрузки' }
+const WHEN = { now: 'сразу', step: 'со следующей ступени', restart: 'после «Игра заново»', reload: 'после перезагрузки' }
 const REFRESH_MS = 1000
 
 function Row({ label, when, children, testid }) {
@@ -53,7 +55,7 @@ export default function WordLaneHud({ dbg, rootRef, onRestartStage, onRestartGam
   }
 
   const info = describeHud({ mic: describeGameMic, vosk: () => voskRuntime.snapshot(), weak: isWeakDevice, whiskers: getWhiskerMode, version: APP_VERSION })
-  const procOn = isMicProcessingOn(), session = readAudioSessionMode(), hold = readMicHoldMode()
+  const gainId = readMicGainId(), procOn = isMicProcessingOn(), session = readAudioSessionMode(), hold = readMicHoldMode()
   const reward = getRewardSound(), volume = getRewardVolume(), safe = readPillSafe(), rate = getVoiceRate(), lite = readWeakStored() ?? isWeakDevice(), tap = readTapMode(), whisk = getWhiskerMode()
   const act = fn => () => { fn(); refresh() }
   const close = () => setOpen(false)
@@ -81,6 +83,9 @@ export default function WordLaneHud({ dbg, rootRef, onRestartStage, onRestartGam
 
       <Row label="Обработка микрофона (эхо/шум)" when="restart" testid="wl-hud-proc">
         <Chip on={procOn} onClick={act(() => setMicProcessingOn(!procOn))} testid="wl-hud-proc-toggle">{procOn ? 'Вкл (хрип!)' : 'Выкл'}</Chip>
+      </Row>
+      <Row label="Чувствительность микрофона" when="step" testid="wl-hud-gain">
+        {MIC_GAIN_LEVELS.map(l => <Chip key={l.id} on={gainId === l.id} onClick={act(() => { writeMicGainId(l.id); pLog(micGainLogLine()) })} testid={`wl-hud-gain-${l.id}`}>{l.title}</Chip>)}
       </Row>
       <Row label="Аудиосессия iOS" when="now" testid="wl-hud-session">
         {SESSION_OPTS.map(([v, t]) => <Chip key={v} on={session === v} onClick={act(() => applyAudioSessionMode(v))} testid={`wl-hud-session-${v}`}>{t}</Chip>)}

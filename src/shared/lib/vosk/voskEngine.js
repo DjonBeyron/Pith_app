@@ -9,6 +9,7 @@ import { createGate } from './voskGate.js'
 import { createRecorder } from './voskRecord.js'
 import { createAudioSession } from '../speech/speechAudioSession.js'
 import { createCaptureContext, releaseCapture } from './voskCapture.js'
+import { wireInput } from './voskGain.js'
 
 const CHUNK = 4096 // кадров на один вызов ScriptProcessor (по умолчанию; модуль «Сказать фразу» просит 2048 — уровень голоса чаще)
 const CHUNKS = [1024, 2048, 4096, 8192] // допустимые размеры opts.chunk
@@ -103,6 +104,7 @@ export function unloadEngine(model) {
  * Для «Сказать фразу» (медленная речь): gate (true — voskGate.js не отдаёт декодеру тишину дольше ≈0,4 с подряд, иначе его эндпойнтер сам обрывает запись на паузе 0,5–2 с), cleanPartial (как
  * считать текст для авто-стопа: без [unk] — «слово услышано» только настоящее), isComplete(текст) → true, когда в partial уже вся фраза: затвор открывается, а авто-стоп ждёт completeMs вместо autoStopMs
  * (stopBy 'full'). stats.gatedMs — сколько мс тишины не отдали движку.
+ * opts.gain (>1) — программное усиление микрофона перед Vosk: GainNode + мягкий ограничитель (voskGain.js, игра: gameMicGain.js); без него звук идёт напрямую.
  * opts.stream — готовый MediaStream: тогда getUserMedia не зовётся (второго диалога разрешения нет), а по концу сеанса треки остаются живыми — ими владеет вызывающий.
  * opts.record (true — только «Сказать фразу» с режимом «голосовое с текстом»): сырые куски звука ДО затвора копятся в памяти (voskRecord.js), а в stats.audio приходит клип
  * { ok, blob (WAV 16 кГц), durationMs, peaks } либо { ok: false, reason }; без флага stats.audio = null и память не тратится. Звук нигде не сохраняется и не отправляется.
@@ -123,6 +125,7 @@ export async function startListening(model, grammar, cb, opts = {}) {
   const micMs = ms(tap)
   const Ctx = window.AudioContext || window.webkitAudioContext
   let ctx, rec
+  let chain = [] // узлы усиления (opts.gain): отключаются вместе с остальными
   try {
     ctx = createCaptureContext(Ctx)
     rec = grammar ? new model.KaldiRecognizer(ctx.sampleRate, grammar) : new model.KaldiRecognizer(ctx.sampleRate) // без словаря — открытый (свободные фразы)
@@ -141,7 +144,7 @@ export async function startListening(model, grammar, cb, opts = {}) {
     recorder?.reset()
     clearInterval(timer); clearTimeout(st.drain)
     try { rec.remove() } catch { /* уже удалён */ }
-    releaseCapture({ stream: own ? stream : null, nodes: [node, src], ctx, done: release }) // треки → узлы → close() → только потом аудиосессия 'auto'
+    releaseCapture({ stream: own ? stream : null, nodes: [node, src, ...chain], ctx, done: release }) // треки → узлы → close() → только потом аудиосессия 'auto'
   }
   rec.on('partialresult', m => {
     if (st.done || !m.result.partial) return
@@ -194,7 +197,7 @@ export async function startListening(model, grammar, cb, opts = {}) {
     st.chunks++
     if (st.stopAt != null) finalize() // остановку просили раньше: этот кусок — последний, дальше хвост тишины и итог
   }
-  src.connect(node)
+  chain = wireInput(ctx, src, node, opts.gain) // источник → [усиление → ограничитель →] узел распознавателя
   node.connect(ctx.destination) // без подключения к выходу ScriptProcessor в части браузеров не вызывается (на выход идёт тишина)
   try { cb.onReady?.({ micMs }) } catch { /* подписчик не должен ломать запись */ }
   const finalize = () => { // последний кусок звука доставлен (или вышло время ожидания): выключаем микрофон, досылаем тишину, просим итог

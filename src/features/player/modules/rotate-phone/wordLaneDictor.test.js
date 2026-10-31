@@ -1,8 +1,9 @@
 import { describe, it, expect } from 'vitest'
-import { planDictor, REP_MIN_MS, FIRST_AT_PAD_MS } from './wordLaneDictor.js'
+import { planDictor, REP_MIN_MS, FIRST_AT_PAD_MS, DICTOR_RISE_MS } from './wordLaneDictor.js'
 import { buildRecipe } from './wordLaneRecipe.js'
 import { clipsFromTimings, utterances, clipsFromFills } from './wordLaneAudio.js'
 import { pillYAt, TRAVEL_MS, OPEN_Y, ENTER_Y, END_TAIL_MS } from './wordLaneTimeline.js'
+import { RISE_MS } from './wordLaneRise.js'
 
 const chunks = ["I'm", 'trying', 'to learn']
 const recipe = buildRecipe(chunks)
@@ -35,7 +36,8 @@ describe('план диктора: ступень «I\'m» ×3', () => {
   })
   it('конец ступени — конец последнего повтора + хвост; рот кота открывается только во время высказывания', () => {
     const last = plan.reps.at(-1)
-    expect(plan.listenMs).toBeCloseTo(last.at + last.ms + END_TAIL_MS, 6)
+    expect(plan.listenMs).toBeCloseTo(last.at + last.ms + END_TAIL_MS + DICTOR_RISE_MS, 6) // к ступени добавлено время взлёта пилюль Пита
+    expect(DICTOR_RISE_MS).toBe(RISE_MS)
     expect(plan.mouth(last.at - 100)).toBe(0)
     expect(plan.mouth(plan.listenMs)).toBe(0)
     let opened = 0

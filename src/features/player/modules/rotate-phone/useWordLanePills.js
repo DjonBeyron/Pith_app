@@ -5,13 +5,14 @@ import { createStudentGame, stepStudent, isClaimable } from './wordLaneStudent.j
 import { createVoiceGate } from './wordLaneVoiceGate.js'
 import { snapPill, missPill, SNAP_LEAD_MS } from './wordLaneSnap.js'
 import { runOrderScene } from './wordLaneOrderScene.js'
+import { riseRep } from './wordLaneDictorRise.js'
 
 // Движок пилюль игры «Повтори за диктором». ДВИЖЕНИЕ пилюль ведёт композитор (wordLaneMotion.js: одна линейная WAAPI-анимация на пилюлю — скорость конвейера постоянна), поэтому лаги основного
 // потока на смартфонах (Vosk, React, щелчок с искрами) на ход не влияют. JS каждый кадр считает только логику и заливку. Пилюли — из пула (wordLanePool.js): живой повтор один (до трёх кусков) плюс догоняющие вниз пилюли предыдущих повторов.
 // Что делает движок, определяет сцена (scene), которую меняет сценарий игры (useWordLaneFlow) на каждой ступени:
 //  idle    — ничего не показано, пилюли в пуле;
 //  dictor  — { plan (wordLaneDictor.planDictor) }: каждой пилюле плана — полёт, чтобы к началу её слова она была полностью открыта; заливка в такт речи (pillFill по кривой громкости клипа);
-//            слово кончилось — щелчок и «огонёк» повтора; рот кота — по plan.mouth. Звук включает сценарий (по тем же временам);
+//            слово кончилось — щелчок и «огонёк» повтора, потом пилюли повтора взлетают вверх с вспышкой дорожки (wordLaneDictorRise.js) — ровно как у ученика после верного ответа; рот кота — по plan.mouth. Звук включает сценарий (по тем же временам);
 //  student — { step, chunks, estMs, curves }: конвейер ученика (wordLaneStudent.js) — ОДИН живой повтор за раз: следующий выкатывается, когда предыдущий принят или не успели (и прошла пауза); события
 //            (spawn / piece-ok / claim / snap / win / fail / miss / done) → пилюли и реакции fx. Заливка p всех пилюль повтора считается одним шагом stepStudent, а тут за кадр просто рисуется (paintFill) —
 //            голос показывает только пилюля ТЕКУЩЕГО куска («в процессе» — бледная, дышит с голосом: до подтверждения речи распознаванием — слегка, после — до 85 %); кусок, чьи слова произнесены, защёлкивается сразу (piece-ok →
@@ -61,7 +62,7 @@ export function useWordLanePills(rootRef, { scene, levels, fx, live, sceneApi })
             h.snapped = true
             const lastPiece = h.p.chunk === plan.reps[h.p.rep].parts.at(-1)
             snapPill(pool.el(h.k), h.p.lane, { full: lastPiece }) // вспышка и искры — один раз на повтор (когда он договорён), у остальных кусков только хлопок
-            if (lastPiece) light(h.p.rep) // повтор договорён — «огонёк»
+            if (lastPiece) { light(h.p.rep); riseRep(pool, held, h.p.rep) } // повтор договорён — «огонёк», пилюли Пита взлетают как у ученика после верного ответа (вспышка дорожки + взлёт)
           }
         }
         fxRef.current?.mouth?.(plan.mouth(t), plan.mouthCode(t)) // рот: громкость решает, звучит ли слово, буквы — какой формы рот (на «о» круглый)

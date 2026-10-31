@@ -45,7 +45,7 @@ export default function WordLaneGame({ cfg, audioSrc, lines = null, forceDebug =
   const single = cfg.chunks.length === 1 && phase !== 'discern' && !cfg.plan // у одного слова текст стоит крупно — кроме «Различи»: там слова на пилюлях, а верное над дорожками не выдаём
   const showSlots = phase !== 'drop'
   const intro = phase === 'drop' || phase === 'lanes' || f.pausedIntro
-  const heads = intro ? cfg.chunks.map(text => ({ text, on: true })) : f.labels
+  const heads = intro && !cfg.plan ? cfg.chunks.map(text => ({ text, on: true })) : intro ? f.labels.map(() => ({ text: '', on: false })) : f.labels // заставка репетиции: слов сверху нет (v3.3.84)
   const debug = isWordLaneDebug()
 
   return createPortal(

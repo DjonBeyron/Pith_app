@@ -28,10 +28,19 @@ describe('интерфейс актов', () => {
     expect(html(RehearsalActs, { f: baseF({ rh: { on: false } }), cfg })).toBe('')
     expect(html(RehearsalActs, { f: { rh: null }, cfg })).toBe('')
   })
-  it('заставка: перевод фразы под падающей фразой; в акте — нет', () => {
+  it('заставка: сверху ни фразы, ни перевода (v3.3.84) — только дорожки; в акте перевода тоже нет', () => {
     const intro = html(RehearsalActs, { f: baseF({ stage: 'drop', phase: 'drop', stageObj: null }), cfg })
-    expect(intro).toContain('data-testid="rh-translation"'); expect(intro).toContain('Я пытаюсь научиться')
+    expect(intro).not.toContain('rh-translation'); expect(intro).not.toContain('Я пытаюсь научиться')
     expect(html(RehearsalActs, { f: baseF(), cfg })).not.toContain('rh-translation')
+    const game = read('../player/modules/rotate-phone/WordLaneGame.jsx')
+    expect(game).toContain("const heads = intro && !cfg.plan ? cfg.chunks.map(text => ({ text, on: true })) : intro ? f.labels.map(() => ({ text: '', on: false })) : f.labels") // репетиция: подписи пустые на заставке; обычная нода — как раньше
+  })
+  it('пока Пит договаривает реплику (rh.quiet), ярлык, зеркало и итог не показываются — только дорожки и кот', () => {
+    const tag = { on: true, tag: 'Чётко — для последнего ряда', result: null, mirror: null }
+    expect(html(RehearsalActs, { f: baseF({ rh: { ...tag, quiet: false } }), cfg })).toContain('rhTag')
+    expect(html(RehearsalActs, { f: baseF({ rh: { ...tag, quiet: true } }), cfg })).toBe('')
+    expect(html(RehearsalActs, { f: baseF({ stageObj: { type: 'summary' }, rh: { ...tag, tag: '', quiet: true } }), cfg })).toBe('')
+    expect(html(RehearsalActs, { f: baseF({ stageObj: { type: 'summary' }, rh: { ...tag, tag: '', quiet: false } }), cfg })).toContain('rh-summary')
   })
   it('ярлык-плашка «Чётко — для последнего ряда» — одна строка над дорожками, не на пилюле', () => {
     const out = html(RehearsalActs, { f: baseF({ rh: { on: true, tag: 'Чётко — для последнего ряда' } }), cfg })
@@ -148,9 +157,11 @@ describe('useRehearsalActs', () => {
     expect(rh.holdMs({ ms: 1700, count: 'before' })).toBe(Math.max(1700, LINE_AT_MS + countdownMs())) // счёт без реплики
     expect(probe({ cat: { busyLeft: () => 2000 } }).rh.holdMs(warm) - rh.holdMs(warm)).toBe(2000) // Пит ещё договаривает прошлую реплику — отсчёт ждёт
   })
-  it('отсчёт и «Начни с» подключены в директоре: таймеры гасятся с репликой, ноты греются заранее', () => {
+  it('отсчёт и «Начни с» подключены в директоре: ноты греются заранее, стартуют, когда Пит договорил, стадия ждёт их конца, таймеры гасятся со сменой стадии', () => {
     const src = read('./useRehearsalActs.js')
-    expect(src).toContain('warmCountdown(); return releaseCountdown'); expect(src).toContain('stopCount = startCountdown()'); expect(src).toContain('return () => { ids.forEach(clearTimeout); stopCount?.() }')
+    expect(src).toContain('warmCountdown(); return releaseCountdown'); expect(src).toContain('stopCount = scheduleStageCount({ countAt: t.countAt, busyLeft: () => cat.busyLeft(), gate })')
+    expect(src).toContain('return () => { ids.forEach(clearTimeout); stopCount?.() }'); expect(src).toContain('afterCount: fn => gate.after(fn)')
+    expect(src).not.toContain('startCountdown')
   })
   it('пока Пит занят прошлой репликой, плашка ждёт её конца', () => {
     const free = probe().rh.holdMs({ ms: 100, line: 'rh_clear' })

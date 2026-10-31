@@ -7,11 +7,13 @@ import { laneOf, textOf } from './wordLaneRecipe.js'
 import { clipsFor, playSpan, estChunkMs } from './wordLaneAudio.js'
 import { MIN_WORD_MS } from './wordLanePlan.js'
 import { mouthTrack, codeAt } from './wordLaneVisemes.js'
+import { RISE_MS } from './wordLaneRise.js'
 
 export const REP_MIN_MS = 1500     // шаг между повторами не короче: пилюли одной дорожки (20 % высоты ≈ 0,8 с пути) не налезают друг на друга
 export const REP_GAP_MS = 800      // пауза после высказывания до следующего повтора
 export const FIRST_AT_PAD_MS = 80  // слово первого повтора — через столько после полного открытия первой пилюли
 export const PIECE_GAP_MS = 80     // пауза между кусками, когда каждый звучит отдельным файлом из библиотеки
+export const DICTOR_RISE_MS = RISE_MS // пилюли Пита после примера улетают вверх так же, как у ученика после верного ответа (wordLaneDictorRise.js): время взлёта добавлено к ступени диктора
 
 /**
  * @param {object} p step — ступень рецепта (reps: [{ parts }]); chunks — тексты кусков; clips — клипы файла (clipsFromTimings/clipsFromFills) или null; audio — { wave, duration } для кривых заливки;
@@ -58,7 +60,7 @@ export function planDictor({ step, chunks, clips = null, audio = null, rate = 1,
     })
   }
   const last = reps.at(-1)
-  const listenMs = last ? last.at + last.ms + END_TAIL_MS : 0
+  const listenMs = last ? last.at + last.ms + END_TAIL_MS + DICTOR_RISE_MS : 0 // слово договорено → хвост → взлёт пилюль → «твоя очередь»
 
   // Громкость диктора в момент t — рот кота: по реальной волне файла, а без неё — пульсация на время слов
   const wave = audio?.wave

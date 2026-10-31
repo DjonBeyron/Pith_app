@@ -9,6 +9,7 @@ import { cleanPartial } from '../../../../shared/lib/vosk/voskResult.js'
 import { createRmsLevel } from '../../../../shared/lib/vosk/sayVoskLevel.js'
 import { sayAudioSessionType } from '../../../../shared/lib/speech/sayAudioSession.js'
 import { pLog } from '../../../../shared/lib/debug.js'
+import { readMicGain } from '../../../../shared/lib/gameMicGain.js'
 import { analyzeTargets, targetGrammar } from './wordLaneMatch.js'
 import { SLOT_COUNT } from './wordLaneTimeline.js'
 
@@ -36,7 +37,7 @@ export const MISS_SETTLE_MS = 550 // «чужое слово» из чернов
  * из звука и сжимает тайминги; нужно, когда по словам меряют паузы — дубль репетиции), restartMs — через сколько мс начинать следующий заход (0 — сразу, слова после паузы не теряются).
  * flush(ms) — дубль закончен: просит у Vosk итог текущего захода (stop), ждёт его (не дольше ms) и больше заходов не начинает; после него words() полные. Зависимости подставляются в тестах.
  */
-export function createWordListener({ word, targets: targetsIn, expected = SLOT_COUNT, maxWords = SLOT_COUNT, getStream = null, isHeld = () => false, onChange, onDebug = null, gate = true, restartMs = RESTART_MS, runtime = voskRuntime, listen = startListening, level = createRmsLevel(), now = () => Date.now(), setTimer = setTimeout, clearTimer = clearTimeout }) {
+export function createWordListener({ word, targets: targetsIn, expected = SLOT_COUNT, maxWords = SLOT_COUNT, getStream = null, isHeld = () => false, onChange, onDebug = null, gate = true, restartMs = RESTART_MS, runtime = voskRuntime, listen = startListening, micGain = readMicGain, level = createRmsLevel(), now = () => Date.now(), setTimer = setTimeout, clearTimer = clearTimeout }) {
   const targets = targetsIn?.length ? targetsIn : [word]
   let seq = [], misses = 0            // накоплено за все заходы
   let base = { seq: [], misses: 0 }   // накоплено до текущего захода
@@ -141,7 +142,8 @@ export function createWordListener({ word, targets: targetsIn, expected = SLOT_C
     publish({ status: 'starting' })
     Promise.resolve()
       .then(() => listen(model, grammar, callbacks, {
-        autoStopMs: PAUSE_STOP_MS, completeMs: FULL_STOP_MS, maxMs: SESSION_MAX_MS, session: sayAudioSessionType(), chunk: 2048, stream: getStream?.() ?? undefined, // готовый поток игры (iPhone) — без нового диалога; куски по 2048 кадров (≈ 46 мс при 44,1 кГц, 43 мс при 48 кГц): громкость для пилюль приходит ≈ 22 раза в секунду, а главный поток получает вдвое меньше вызовов (1024 кадров — 23 мс — на слабом телефоне съедали заметную долю кадра);
+        autoStopMs: PAUSE_STOP_MS, completeMs: FULL_STOP_MS, maxMs: SESSION_MAX_MS, session: sayAudioSessionType(), chunk: 2048, stream: getStream?.() ?? undefined, gain: micGain(), // gain: «Чувствительность микрофона» HUD (gameMicGain.js) — усиление перед Vosk; уровень для колец считается уже по усиленному звуку
+        // готовый поток игры (iPhone) — без нового диалога; куски по 2048 кадров (≈ 46 мс при 44,1 кГц, 43 мс при 48 кГц): громкость для пилюль приходит ≈ 22 раза в секунду, а главный поток получает вдвое меньше вызовов (1024 кадров — 23 мс — на слабом телефоне съедали заметную долю кадра);
         gate, cleanPartial, isComplete: text => analyzeTargets(text, targets).seq.length >= remaining(),
       }))
       .then(h => { if (disposed || cur !== session) { try { h?.cancel() } catch { /* уже свободен */ } return } session.handle = h; if (session.stopped) h.stop() },

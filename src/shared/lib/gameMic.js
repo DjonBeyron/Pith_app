@@ -9,6 +9,7 @@ import { isIos } from './soundVolume.js'
 import { pLog } from './debug.js'
 import { readAudioSessionMode, readMicHoldMode } from './gameAudioSettings.js'
 import { gameMicGesture } from './gameMicGesture.js'
+import { micGainLogLine, readMicGain } from './gameMicGain.js'
 
 // БЕЗ эхо- и шумоподавления: пока открыт поток с echoCancellation, iOS включает «голосовую обработку» (как в звонке) для ВСЕГО звука страницы, а Android Chrome — коммуникационный режим: озвучка диктора
 // хрипит и шипит, как плёнка. Без неё воспроизведение чистое; автоусиление оставлено — тихий голос слышно. Эхо диктора в микрофон не мешает: слушатель стартует после диктора, а ворота голоса глушат ноты-награды.
@@ -34,6 +35,9 @@ let taken = false  // распознаватель взял поток (getGameM
 // Живой и НЕ заглушённый системой: iOS при прерывании аудиосессии оставляет трек live, но muted — он пишет тишину
 const live = s => !!s && s.getTracks().some(t => t.readyState === 'live' && !t.muted)
 
+/** Что реально применил браузер к дорожке (getSettings): iOS Safari не всегда выполняет autoGainControl — по этой строке видно, помогает ли системное автоусиление */
+const trackLine = s => { try { const t = s.getTracks()[0]?.getSettings?.() ?? {}; return `[mic] дорожка применила: эхо ${t.echoCancellation ?? '—'}, шумодав ${t.noiseSuppression ?? '—'}, автоусиление ${t.autoGainControl ?? '—'}` } catch { return '[mic] настройки дорожки недоступны' } }
+
 /** В тапе: открыть поток (диалог ОС — единственный). Возвращает 'granted' | 'denied' | 'unavailable' */
 export async function openGameMic() {
   gameMicGesture.grant() // сюда приходит жест (автоматические пути проверяют gameMicGesture.needed() до вызова): «нужен жест» снят
@@ -50,6 +54,8 @@ export async function openGameMic() {
     parked = false; taken = false
     micWorked.markOk()
     pLog(`[mic] игровой поток открыт (один на игру): эхо ${constraints.echoCancellation ? 'вкл' : 'выкл'}, шумодав ${constraints.noiseSuppression ? 'вкл' : 'выкл'}`)
+    pLog(micGainLogLine())
+    pLog(trackLine(s))
     return 'granted'
   } catch (e) {
     pLog(`[mic] доступ не получен: ${e?.name ?? e}`)
@@ -129,5 +135,5 @@ export function describeGameMic() {
   try { settings = stream?.getTracks()[0]?.getSettings?.() ?? null } catch { /* трек уже выгружен */ }
   try { tracks = stream?.getTracks().map(t => ({ enabled: t.enabled, muted: !!t.muted, readyState: t.readyState })) ?? null } catch { /* трек уже выгружен */ }
   const ua = String((typeof navigator !== 'undefined' && navigator.userAgent) || '')
-  return { constraints: opened ?? gameMicConstraints(), settings, platform: isIos() ? 'ios' : /Android/i.test(ua) ? 'android' : 'other', processing: isMicProcessingOn(), open: !!stream, parked, tracks, audioSessionMode: readAudioSessionMode(), micHoldMode: readMicHoldMode() }
+  return { constraints: opened ?? gameMicConstraints(), settings, platform: isIos() ? 'ios' : /Android/i.test(ua) ? 'android' : 'other', processing: isMicProcessingOn(), open: !!stream, parked, tracks, audioSessionMode: readAudioSessionMode(), micHoldMode: readMicHoldMode(), gain: readMicGain() }
 }

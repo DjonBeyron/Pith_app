@@ -13,12 +13,16 @@ import { hasIntroLine } from './rehearsalPrepare.js'
 import { stuckHint, hintEntry, sayWordHint } from './rehearsalHints.js'
 import { demoSummary } from './polish/polishDemo.js'
 import { stageTiming } from './rehearsalCountdown.js'
-import { startCountdown, warmCountdown, releaseCountdown } from './rehearsalCountdownSound.js'
+import { warmCountdown, releaseCountdown } from './rehearsalCountdownSound.js'
+import { createCountGate, scheduleStageCount } from './rehearsalCountdownRun.js'
+import { lineVoiced } from './rehearsalQuiet.js'
+import { usePitQuiet } from './usePitQuiet.js'
 
 // Директор «Репетиции с Питом» поверх useWordLaneFlow: всё, что сценарию актов нужно сверх обычной игры, — в одном хуке; директору остаются точки подключения (его next / стадии / реакции движка).
 //  • журнал актов (rec ← реакции движка win / miss / fail): по нему решаются повтор ступени сборки, сокращение акта 4 и пропуск «Различи» (nextIdx), подпись слабого слова в «без текста» (hintLanes), итог (reportSession);
 //  • реплики Пита: на старте стадии (stage.line, через busyLeft — ждёт, пока Пит договорит прошлую), «это слово и будем тренировать» на первом промахе разминки; holdMs — плашка акта держится, пока Пит говорит;
-//  • отсчёт тремя нотами (stage.count, rehearsalCountdown.js): 'after' — после реплики стадии (разминка), 'before' — до реплики (дубль: «Дубль» → ноты → «поехали»); holdMs учитывает его длину;
+//  • отсчёт тремя нотами (stage.count, rehearsalCountdown.js): 'after' — после реплики стадии (разминка), 'before' — до реплики (дубль: «Дубль» → ноты → «поехали»); holdMs учитывает его длину, а afterCount не отпускает стадию, пока отсчёт не доиграл (rehearsalCountdownRun.js);
+//  • тишина экрана (rehearsalQuiet.js, usePitQuiet.js): пока Пит говорит озвученную реплику на старте стадии, rh.quiet — плашка, подписи, перевод и экраны скрыты, видны только дорожки и кот; rh.plateOk — плашка может быть на экране;
 //  • вступление и итог — по номеру запуска в тапе (plan.run, rehearsalLines.sessionLine): первый — rh_start / rh_done, «Ещё минутку?» — rh_start_b / rh_done_b;
 //  • подсветка куска в читке (hl: один таймер по stage.metro, rehearsalMetro.js), «застрял 3 с» в акте «без текста» (слушатель молчит STUCK_MS — Пит подсказывает первое слово, подпись куска на HINT_LABEL_MS);
 //  • дубль и зеркало (акт 5): запись на стадии take и данные экрана mirror (темп, заметка Пита) — useRehearsalTake; на стадии mirror Пит говорит rh_mirror (stage.line);
@@ -55,19 +59,27 @@ export function useRehearsalActs({ plan, stages, stage, at, stageObj, setS, sayL
   }, [on, stage, intro, sayLine, startLine])
 
   // Раскладка стадии по времени: реплика Пита (ждёт, пока он договорит прошлую) и отсчёт тремя нотами (stage.count) — rehearsalCountdown.stageTiming
-  const timingOf = st => stageTiming({ order: st.count ?? null, lead: LINE_AT_MS, busyMs: cat.busyLeft(), lineMs: st.line ? lineMs(fillLine(lines?.[st.line]), rate) : 0, pause: LINE_PAUSE_MS, minMs: st.ms, hasLine: !!st.line })
+  const timingOf = st => stageTiming({ order: st.count ?? null, lead: LINE_AT_MS, busyMs: cat.busyLeft(), lineMs: st.line ? lineMs(fillLine(lines?.[st.line]), rate) : 0, pause: LINE_PAUSE_MS, minMs: st.ms, hasLine: !!st.line, quiet: lineVoiced(lines, st.line) })
   useEffect(() => { if (!on) return undefined; warmCountdown(); return releaseCountdown }, [on]) // ноты отсчёта декодируются заранее (первая должна прозвучать вовремя)
 
-  // Реплика стадии и отсчёт; смена стадии, пауза и выход гасят оба таймера
+  // Реплика стадии и отсчёт (стартует, когда Пит договорил, и не отпускает стадию до конца нот); смена стадии, пауза и выход гасят таймеры и ноты
+  const [gate] = useState(createCountGate)
   useEffect(() => {
     if (!running || (!running.line && !running.count)) return undefined
     const t = timingOf(running), ids = []
     let stopCount = null
     if (running.line) ids.push(setTimeout(() => sayLine(running.line), t.lineAt))
-    if (t.countAt != null) ids.push(setTimeout(() => { stopCount = startCountdown() }, t.countAt))
+    if (t.countAt != null) stopCount = scheduleStageCount({ countAt: t.countAt, busyLeft: () => cat.busyLeft(), gate })
     return () => { ids.forEach(clearTimeout); stopCount?.() }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [running, at])
+
+  // Тишина экрана: пока Пит говорит озвученную реплику на старте стадии (или итога), на экране только дорожки и кот
+  const quietLine = !running ? null : running.type === 'summary' ? doneLine : running.line ?? null
+  const quiet = usePitQuiet({
+    on, key: quietLine ? `${running.idx}:${at}` : null, voiced: lineVoiced(lines, quietLine), order: running?.count ?? null, busyLeft: () => cat.busyLeft(),
+    timing: () => ({ lineAt: running.type === 'summary' ? 0 : timingOf(running).lineAt, lineMs: lineMs(fillLine(lines?.[quietLine]), rate) }),
+  })
 
   // Подсветка кусков по времени (читка и повтор ученика): один таймер на ближайшее событие (rehearsalMetro.js); смена стадии и размонтирование его снимают и гасят подсветку
   useEffect(() => {
@@ -102,7 +114,9 @@ export function useRehearsalActs({ plan, stages, stage, at, stageObj, setS, sayL
   }, [running])
 
   return {
-    on, hl, result, journal,
+    on, hl, result, journal, quiet: quiet.quiet, plateOk: quiet.plateOk,
+    /** Стадия просит следующую: если отсчёт тремя нотами ещё не доиграл, переход ждёт его конца */
+    afterCount: fn => gate.after(fn),
     /** Экран зеркала: { dictor, student, measure, note, tempo } (записи нет — student и measure null) */
     mirror: take.mirror,
     /** Стадия закончилась: дубль сначала дописывается (запись, слова), потом go(); остальные стадии — сразу go() */

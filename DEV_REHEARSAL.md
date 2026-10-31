@@ -2,7 +2,7 @@
 
 Документ для того, кто продолжит работу (в том числе для небольших моделей): что уже сделано, какие проблемы
 встретились и как они решены, что запрещено и почему, как проверять. Концепция игры — `CONCEPT_REHEARSAL.md`
-(§1–§8); хронология по версиям — статусы в `PROJECT.md` (v3.3.42–v3.3.83). Здесь — сжатая карта и выводы.
+(§1–§8); хронология по версиям — статусы в `PROJECT.md` (v3.3.42–v3.3.84). Здесь — сжатая карта и выводы.
 
 Правила проекта (`CLAUDE.md`) действуют полностью: файлы ≤ 250 строк ориентир / 400 потолок, `APP_VERSION` +1 на
 любую правку кода, строка в `STRUCTURE.md` на каждый новый файл, вся работа в тестовой ветке `claude/cool-euler-bb396v`.
@@ -30,14 +30,14 @@
 - Кот: `WordLaneCat.jsx`, `wordLaneCatVoice.js`, `wordLaneCatSay.js`, `wordLaneCatLines.js` (каталог реплик,
   `MAX_LINE_CHARS` 120), `wordLaneCatFade.js`; усы — `src/features/scene/v2/whiskerDrive.js` / `whiskerWrite.js` (общие с живым Питом).
 - Пилюли: `wordLaneWave.js`, `wordLaneRise.js` (взлёт по синусоиде), `word-lane-pill-wrong.css` (полоски промаха),
-  `wordLaneLaneFlash.js` (вспышка дорожки при попадании).
+  `wordLaneLaneFlash.js` (вспышка дорожки при попадании), `wordLaneDictorRise.js` (взлёт пилюль Пита после примера, как у ученика).
 - Диагностика: `wordLaneSilentDiag.js` (почему реплика без звука), `wordLaneCatVoiceLog.js`, `gameStartTrace.js`.
 - HUD ⚙ в игре: `WordLaneHud.jsx` + `wordLaneHudSettings.js`; пауза: `useWordLanePause.js` + `WordLanePause.jsx`.
 
 Общий звук — `src/shared/lib/`: `gameAudioCtx.js` (один игровой `AudioContext`, `unlockGameCtx` в жесте),
 `gameBufferPlay.js` (`playGameBuffer`), `gameMic.js` (микрофон игры, обработка системой выкл), `gameMicSession.js`
 (тип аудиосессии iOS), `gameMicHold.js` (что делать с дорожкой микрофона, пока говорит Пит), `gameMicGesture.js`
-(микрофон только из тапа после паузы), `gameAudioSettings.js`, `micWorked.js`.
+(микрофон только из тапа после паузы), `gameMicGain.js` (чувствительность микрофона, усиление перед Vosk — `vosk/voskGain.js`), `gameAudioSettings.js`, `micWorked.js`.
 
 Сценарий репетиции — `src/features/rehearsal/`:
 - План и данные: `rehearsalPlan.js`, `rehearsalFixtures.js`, `rehearsalSim.js`, `rehearsalSeed.js` (mulberry32,
@@ -47,7 +47,7 @@
 - Директор и UI: `useRehearsalActs.js` (журнал актов, повтор ступени ≤ 1, правила пропуска), `rehearsalJournal.js`,
   `RehearsalActs.jsx`, `RehearsalSummary.jsx`, `rehearsalPrepare.js` (что греть первым).
 - Реплики Пита: `rehearsalLines.js` — ключи `rh_*`; `rh_start` / `rh_done` по два текста по номеру запуска (`plan.run`), `rh_build` / `rh_clear` по три, остальные один; `pickLine` / `sessionLine`,
-  `fillLine` для `{word}` и `caption`. Отсчёт тремя нотами: `rehearsalCountdown.js` (план и раскладка по времени) + `rehearsalCountdownSound.js` (звук). Тексты входят в общий каталог кота, озвучка — ElevenLabs → R2 по ключу.
+  `fillLine` для `{word}` и `caption`. Отсчёт тремя нотами: `rehearsalCountdown.js` (план и раскладка по времени) + `rehearsalCountdownSynth.js` (ноты) + `rehearsalCountdownSound.js` (звук) + `rehearsalCountdownRun.js` (старт после Пита, стадия ждёт конца). Тишина экрана, пока Пит говорит: `rehearsalQuiet.js` + `usePitQuiet.js`. Тексты входят в общий каталог кота, озвучка — ElevenLabs → R2 по ключу.
 - Дубль и зеркало: `rehearsalTake.js` / `useRehearsalTake.js`, `mirror/` (`takeRecorder.js`, `takeMime.js`,
   `mirrorMeasure.js`, `mirrorNotes.js`, `WordLaneMirror.jsx`, `useMirrorPlayback.js`).
 - Шлифовка (админ): `polish/` — `audioPresets.js` (режимы звука A–H), `audioRun.js` (прогон по режимам),
@@ -151,6 +151,16 @@
 Причина: настройки `rotate_cat_lines` хранят текст вместе с озвучкой, `normalizeLines` брала сохранённый текст, а «не озвучено» считалось только по пустому `url`.
 Решение: для `rh_*` текст в коде (`rehearsalLines.js`) — источник правды. Сохранённый текст другой → `normalizeLines` отдаёт текст из каталога без `url / duration / words` (`isStaleLine`, `lineVoiced`); реплика попадает в `missingPitLines`, в счётчик «не озвучено» и переозвучивается («Озвучить реплики (ElevenLabs)»), в настройки пишется новый текст. Реплики игры (`split_words`, `your_turn`…) правятся в редакторе ноды, там же. Старые файлы озвучки в R2 остаются (сами не удаляются). Тест — `staleLines.test.js`.
 
+### 3.8 Отсчёт нотами молчал на iPhone (v3.3.82 → v3.3.84)
+Причина: игра запускается из вкладки «Голос», а вкладка держит «полную тишину приложения» (`soundQuiet.holdSilence('admin-voice')`). Отсчёт проверял `isSilenced()` и пропускал все три ноты; «мяу» награды (`playNote`) этой проверки не делает — оно слышно. Стенды и тесты вкладки «Голос» не имели, поэтому не ловили.
+Решение: звуки ВНУТРИ игры (Пит, мяу, ноты отсчёта) `isSilenced` не проверяют — тишину гасит только «без звука» урока. Ноты отсчёта синтезируются сразу в AudioBuffer (без WAV и `decodeAudioData`), громче нот награды (RMS 0,2 против ≈ 0,04 при громкости награды 0,5), громкость — своя фиксированная в GainNode. Каждая нота пишет в журнал `[countdown] …` (сыграна или причина). Стадия не уходит, пока отсчёт не доиграл (`rh.afterCount`); ноты стартуют, когда Пит реально договорил. (Звук плашки `wordLanePlateSound.js` по-прежнему проверяет `isSilenced` — из вкладки «Голос» он тоже молчит; решение за владельцем.)
+
+### 3.9 Чувствительность микрофона
+Обработку системой включать нельзя (§3.1). Поэтому усиление программное: `voskEngine` по `opts.gain` строит цепочку источник → GainNode (×2 / ×4) → DynamicsCompressor (мягкий ограничитель) → ScriptProcessor. Второго захвата нет: тот же поток. Настройка в HUD ⚙ (`pithy_game_mic_gain_v1`, по умолчанию ×2); кольца уровня и ворота голоса видят уже усиленный звук. `autoGainControl: true` в ограничениях остался, но iOS Safari его не гарантирует — в журнале строка `[mic] дорожка применила: …`.
+
+### 3.10 Пример Пита и тишина экрана
+Пилюли диктора после примера взлетают (`wordLaneDictorRise.js`), время взлёта входит в `planDictor.listenMs`. Пока Пит говорит ОЗВУЧЕННУЮ реплику на старте стадии, `rh.quiet` прячет плашку, подписи, ярлык и экраны (только дорожки и кот); конец реплики — по занятости кота (`cat.busyLeft`). В заставке (падение фразы) сверху нет ни слов, ни перевода.
+
 ## 4. Запреты и стражи (не обходить)
 | Правило | Почему | Страж |
 |---|---|---|
@@ -159,6 +169,8 @@
 | Обработка микрофона системой выкл, режим B по умолчанию | хрип только при `echoCancellation: true` | `audioPresets.test.js`, `gameMicConstraints.test.jsx` |
 | Микрофон после паузы — только из тапа | иначе повторные диалоги доступа | `gameMicClose.test.js`, `useWordLanePause` тесты |
 | Громкость — через GainNode, не `audio.volume` | iOS игнорирует `volume` | `gameBufferPlay.test.js` |
+| Звуки внутри игры (отсчёт, Пит, мяу) не зависят от `isSilenced`, награды и ползунка награды | вкладка «Голос» держит полную тишину, игра идёт поверх неё | `rehearsalCountdownSound.test.js` |
+| Чувствительность микрофона — только программное усиление (GainNode + ограничитель), обработка системой выкл | её включение даёт хрип | `gameMicGain.test.js` |
 | Нет `Math.random` в репетиции | воспроизводимость по семени | `rehearsalSeed.test.js` |
 | Нет оборота «фраза твоя», реплики без «Верно!/Отлично!», в текстах нет `.` `…` `!` `—` `–` | стиль уроков и озвучка ElevenLabs, решение владельца | `rehearsalLines.test.js` |
 | `useWordLaneFlow.js` ≤ 250 строк, файлов > 250 строк ≤ 60 | правило проекта | `fileLineLimit.test.js` |
