@@ -4,6 +4,7 @@ import { generateSpeech } from '../../../shared/lib/ttsApi.js'
 import { uploadToR2, deleteFromR2 } from '../../../shared/lib/r2.js'
 import { probeAudioDuration } from '../../../shared/lib/audioUtils.js'
 import { getCatLines, saveCatLines } from '../../../shared/api/catLinesApi.js'
+import { REHEARSAL_LINE_IDS } from '../../rehearsal/rehearsalLines.js'
 import { CAT_LINES, MAX_LINE_CHARS, normalizeLines, withText, linesToSave, lineMs } from '../../player/modules/rotate-phone/wordLaneCatLines.js'
 import { mouthTrack } from '../../player/modules/rotate-phone/wordLaneVisemes.js'
 import WordLaneCat from '../../player/modules/rotate-phone/WordLaneCat.jsx'
@@ -80,7 +81,7 @@ export default function CatLinesPanel() {
           return (
             <div key={d.id} className="catLine" data-testid={`cat-line-${d.id}`}>
               <div className="catLineWhen">{d.when}</div>
-              <input className="nodeRotateInput" value={line.text} maxLength={MAX_LINE_CHARS} onChange={e => commit({ ...lines, [d.id]: withText(line, e.target.value) }, line.url && e.target.value.trim() !== line.text ? line.url : null)} aria-label={`Реплика: ${d.when}`} />
+              <input className="nodeRotateInput" value={line.text} maxLength={MAX_LINE_CHARS} readOnly={REHEARSAL_LINE_IDS.includes(d.id)} title={REHEARSAL_LINE_IDS.includes(d.id) ? 'Текст реплики репетиции задан в коде (rehearsalLines.js); здесь только озвучка' : undefined} onChange={e => commit({ ...lines, [d.id]: withText(line, e.target.value) }, line.url && e.target.value.trim() !== line.text ? line.url : null)} aria-label={`Реплика: ${d.when}`} />
               <div className="catLineRow">
                 <button type="button" className="nodeAudioTtsBtn" onClick={() => voice(d.id)} disabled={!line.text.trim() || !!state.busy}>{state.busy === d.id ? '…' : '🔊 Озвучить'}</button>
                 <button type="button" className="nodeTablePickerBtn" onClick={() => play(d.id)} title="Проиграть реплику и показать рот Пита">▶</button>

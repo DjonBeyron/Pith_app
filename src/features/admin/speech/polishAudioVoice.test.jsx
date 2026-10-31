@@ -24,6 +24,7 @@ import { PRESET_KEY, currentPresetId } from '../../rehearsal/polish/audioPresets
 import { RUNS_KEY, listRuns } from '../../rehearsal/polish/audioRunLog.js'
 import { setLastWordLaneSession } from '../../player/modules/rotate-phone/wordLaneLastDump.js'
 import { POLISH_ACTS } from '../../rehearsal/polish/polishActs.js'
+import { OPEN_KEY } from './usePolishOpen.js'
 import { REHEARSAL_LINES } from '../../rehearsal/rehearsalLines.js'
 import { normalizeLines } from '../../player/modules/rotate-phone/wordLaneCatLines.js'
 import { MIC_HOLD_KEY } from '../../../shared/lib/gameAudioSettings.js'
@@ -105,13 +106,18 @@ describe('озвучка реплик и кусков', () => {
 })
 
 describe('блок целиком', () => {
-  it('селектор режимов и строка реплик над карточками; на каждой карточке свои реплики', () => {
-    vi.stubGlobal('localStorage', memStore({ [PRESET_KEY]: 'F' }))
+  it('селектор режимов и строка реплик в «Настройках» над карточками; на каждой развёрнутой карточке свои реплики', () => {
+    vi.stubGlobal('localStorage', memStore({ [PRESET_KEY]: 'F', [OPEN_KEY]: JSON.stringify(['settings', ...POLISH_ACTS.map(a => a.id)]) }))
     const out = renderToStaticMarkup(createElement(RehearsalPolishBlock))
     const at = id => out.indexOf(`data-testid="${id}"`)
     expect(at('rh-polish-audio')).toBeGreaterThan(0); expect(at('rh-polish-audio')).toBeLessThan(at('rh-polish-voice')); expect(at('rh-polish-voice')).toBeLessThan(at('rh-polish-list'))
     expect(out).toMatch(/<option value="F" selected/); expect(out).toContain('data-testid="rh-polish-run-modes"'); expect(out).toContain('data-testid="rh-polish-pit"')
     for (const a of POLISH_ACTS) expect(out).toContain(`data-testid="rh-polish-lines-${a.id}"`)
+  })
+  it('«Настройки» свёрнуты — режима звука и озвучки на экране нет, но сводка знает режим F', () => {
+    vi.stubGlobal('localStorage', memStore({ [PRESET_KEY]: 'F' }))
+    const out = renderToStaticMarkup(createElement(RehearsalPolishBlock))
+    expect(out).not.toContain('data-testid="rh-polish-audio"'); expect(out).not.toContain('data-testid="rh-polish-voice"'); expect(out).toContain('звук F')
   })
 })
 
@@ -181,9 +187,9 @@ describe('проводка и размер', () => {
     expect(read('../../player/gameLogSection.js')).toContain('Режим звука:')
     expect(read('../../player/modules/rotate-phone/wordLaneDebugExport.js')).toContain('audioModeInfo')
   })
-  it('файлы не длиннее 250 строк; стили в admin-speech.css', () => {
+  it('файлы не длиннее 250 строк; стили в admin-rehearsal-polish.css', () => {
     for (const f of ['PolishAudioMode.jsx', 'PolishVoice.jsx', 'PolishCardLines.jsx', 'PolishListen.jsx', 'usePolishAudioRun.js', 'usePolishVoice.js', 'RehearsalPolishBlock.jsx']) expect(read(`./${f}`).split('\n').length, f).toBeLessThanOrEqual(250)
-    const css = read('../../../styles/admin-speech.css')
+    const css = read('../../../styles/admin-rehearsal-polish.css')
     for (const c of ['.rhpAudio', '.rhpVoice', '.rhpLines', '.rhpLine ']) expect(css).toContain(c)
   })
 })

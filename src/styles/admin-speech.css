@@ -109,25 +109,3 @@
 .aspMeterNum { flex: none; font-size: 12px; color: #ccc; font-variant-numeric: tabular-nums; }
 /* «Тест игры» → «Репетиция (симуляция)»: поле JSON плана (GameTestRehearsal.jsx) */
 .aspJson { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 12px; line-height: 1.4; resize: vertical; white-space: pre; overflow: auto; }
-/* «Шлифовка репетиции» (RehearsalPolishBlock.jsx): карточка на каждый этап репетиции — запуск, число комментариев, экспорт и очистка */
-.rhpList { display: flex; flex-direction: column; gap: 8px; margin: 0; padding: 0; list-style: none; }
-.rhpCard { display: flex; flex-direction: column; gap: 6px; padding: 10px; background: #1a1d22; border: 1px solid #2a2d34; border-radius: 10px; }
-.rhpHead { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; font-size: 14px; color: #e0e0e0; }
-.rhpCount { font-size: 12px; color: #888; white-space: nowrap; }
-.rhpCard .aspSay { padding: 8px 16px; font-size: 14px; }
-/* «Шлифовка репетиции»: режим звука и прогон по режимам (PolishAudioMode.jsx), озвучка (PolishVoice.jsx), реплики на карточке (PolishCardLines.jsx) */
-.rhpAudio, .rhpVoice { display: flex; flex-direction: column; gap: 8px; padding: 10px; background: #1a1d22; border: 1px solid #2a2d34; border-radius: 10px; }
-.rhpAudio .aspHint, .rhpVoice .aspHint { margin: 0; }
-.rhpRunRow { display: flex; flex-direction: column; gap: 8px; }
-.rhpRunRow .aspSay { align-self: stretch; }
-.rhpAudio .aspHint strong { color: #ccc; font-weight: 600; }
-.rhpRun { display: flex; flex-direction: column; gap: 6px; padding-top: 6px; border-top: 1px solid #2a2d34; }
-.rhpVoiceRow { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 10px; font-size: 13px; color: #e0e0e0; }
-.rhpUnvoiced summary { font-size: 12px; color: #aaa; cursor: pointer; }
-.rhpUnvoiced ul { margin: 6px 0 0; padding-left: 18px; }
-.rhpLines { display: flex; flex-direction: column; gap: 4px; }
-.rhpLineList { display: flex; flex-direction: column; gap: 4px; margin: 0; padding: 0; list-style: none; }
-.rhpLine { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 12px; color: #ccc; }
-.rhpLineText { min-width: 0; overflow-wrap: anywhere; }
-.rhpLineText code { color: #b6fe3b; }
-.rhpLine .aspChip { flex: none; }

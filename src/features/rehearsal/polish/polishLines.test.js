@@ -1,4 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
+import { POLISH_CARDS, FULL_ID, actAvailable, planForAct } from './polishActs.js'
 import { ACT_LINES, allLineRows, actLineRows, actVoiceCount, unvoicedRows, chunkCount, TEMPLATE_WHY, MISSING_WHY } from './polishLines.js'
 import { REHEARSAL_LINES, REHEARSAL_LINE_IDS, lineVariants, baseLineId } from '../rehearsalLines.js'
 import { ONLY_IDS } from '../rehearsalOnly.js'
@@ -95,5 +96,19 @@ describe('озвучка из блока', () => {
     await voiceMissingPitLines({ load: async () => ({ lines: {} }), speak: async t => ({ file: { text: t } }), upload: async () => 'u', probe: async () => 1, save: async () => {}, onStep: id => steps.push(id) })
     vi.restoreAllMocks()
     expect(steps[0]).toBe('rh_start'); expect(steps).not.toContain('rh_blind_hint'); expect(steps).toHaveLength(REHEARSAL_LINES.length - 1)
+  })
+})
+
+describe('«Полная игра» (карточка 1)', () => {
+  it('первая в POLISH_CARDS; доступна всегда, пока есть план; план — вся репетиция (без only), как у null', () => {
+    expect(POLISH_CARDS[0]).toMatchObject({ id: FULL_ID, title: 'Полная игра' }); expect(POLISH_CARDS.slice(1).map(a => a.id)).toEqual(ONLY_IDS)
+    const plan = fixturePlan('one')
+    expect(actAvailable(plan, FULL_ID)).toBe(true); expect(actAvailable(null, FULL_ID)).toBe(false)
+    expect(planForAct(plan, FULL_ID).only).toBeUndefined(); expect(planForAct(plan, null).only).toBeUndefined(); expect(planForAct(plan, 'build').only).toBe('build')
+  })
+  it('реплики полной игры — все реплики репетиции; счётчик озвученных общий', () => {
+    expect(actLineRows(FULL_ID, null)).toHaveLength(REHEARSAL_LINES.length)
+    const c = actVoiceCount(FULL_ID, voiced(['rh_start', 'rh_done']))
+    expect(c.done).toBe(2); expect(c.total + c.templates).toBe(REHEARSAL_LINES.length)
   })
 })

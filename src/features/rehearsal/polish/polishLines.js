@@ -1,6 +1,7 @@
 // Реплики Пита по этапам «Шлифовки репетиции»: какие реплики (rehearsalLines.js) звучат на каком этапе, сколько из них озвучено и что без озвучки (и почему). Озвучка живёт в настройках приложения (rotate_cat_lines,
 // формат — wordLaneCatLines.js), здесь только чтение: lines — normalizeLines(...) или null (ещё не загрузили). Чистые функции без React.
-import { REHEARSAL_LINES, lineVariants } from '../rehearsalLines.js'
+import { REHEARSAL_LINES, lineVariants, lineVoiced } from '../rehearsalLines.js'
+import { FULL_ID } from './polishActs.js'
 
 /** Этап шлифовки → основные ключи реплик, которые Пит говорит на нём (по рецепту rehearsalRecipe.js и useRehearsalActs.js) */
 const BASE_LINES = {
@@ -23,9 +24,9 @@ export const MISSING_WHY = 'нет озвучки: нажми «Озвучить
 /** Реплика с состоянием: { id, act, text, when, template ({word} в тексте), url, state ('ok' | 'missing' | 'template'), why } */
 function row(def, act, lines) {
   const template = def.text.includes('{')
-  const url = lines?.[def.id]?.url ?? null
+  const url = lineVoiced(def.id, lines?.[def.id]) ? lines[def.id].url : null // устаревшая озвучка (текст в коде другой) — как будто её нет
   const state = template ? 'template' : url ? 'ok' : 'missing'
-  return { id: def.id, act, text: lines?.[def.id]?.text ?? def.text, when: def.when, template, url, state, why: state === 'template' ? TEMPLATE_WHY : state === 'missing' ? MISSING_WHY : '' }
+  return { id: def.id, act, text: def.text, when: def.when, template, url, state, why: state === 'template' ? TEMPLATE_WHY : state === 'missing' ? MISSING_WHY : '' }
 }
 
 const ACT_OF = Object.fromEntries(Object.entries(ACT_LINES).flatMap(([act, ids]) => ids.map(id => [id, act])))
@@ -33,8 +34,8 @@ const ACT_OF = Object.fromEntries(Object.entries(ACT_LINES).flatMap(([act, ids])
 /** Все реплики репетиции с состоянием, в порядке каталога */
 export const allLineRows = lines => REHEARSAL_LINES.map(d => row(d, ACT_OF[d.id] ?? null, lines))
 
-/** Реплики одного этапа */
-export const actLineRows = (act, lines) => allLineRows(lines).filter(r => r.act === act)
+/** Реплики одного этапа; у «Полной игры» (FULL_ID) — все реплики репетиции */
+export const actLineRows = (act, lines) => allLineRows(lines).filter(r => act === FULL_ID || r.act === act)
 
 /** Сколько озвучено на этапе: { done, total (озвучиваемых), templates (с {word}, не озвучиваются) } */
 export function actVoiceCount(act, lines) {

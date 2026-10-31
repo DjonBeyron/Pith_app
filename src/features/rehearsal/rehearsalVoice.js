@@ -3,18 +3,18 @@ import { uploadToR2 } from '../../shared/lib/r2.js'
 import { probeAudioDuration } from '../../shared/lib/audioUtils.js'
 import { getCatLines, saveCatLines } from '../../shared/api/catLinesApi.js'
 import { normalizeLines, linesToSave } from '../player/modules/rotate-phone/wordLaneCatLines.js'
-import { REHEARSAL_LINES } from './rehearsalLines.js'
+import { REHEARSAL_LINES, lineVoiced } from './rehearsalLines.js'
 
 // Озвучка реплик Пита-тренера из «Теста игры» и «Шлифовки репетиции» (Админ → «Голос»): те же настройки, что у CatLinesPanel в редакторе ноды (app_settings → rotate_cat_lines): ElevenLabs → R2 → запись в реплики.
-// Озвучиваются только реплики репетиции без озвучки и без {word} в тексте (такую озвучить нельзя: Пит произносит само слово из библиотеки слов). Слова и куски — отдельно (voiceMissingTexts → generateWordAudio).
+// Озвучиваются только реплики репетиции без озвучки (или с устаревшей: текст в коде поменялся, rehearsalLines.js isStaleLine) и без {word} в тексте (такую озвучить нельзя: Пит произносит само слово из библиотеки слов). Слова и куски — отдельно (voiceMissingTexts → generateWordAudio).
 
 /** Реплики репетиции, которым не хватает озвучки: [{ id, text }] */
-export const missingPitLines = lines => REHEARSAL_LINES.filter(d => !d.text.includes('{') && !lines?.[d.id]?.url).map(d => ({ id: d.id, text: lines?.[d.id]?.text ?? d.text }))
+export const missingPitLines = lines => REHEARSAL_LINES.filter(d => !d.text.includes('{') && !lineVoiced(d.id, lines?.[d.id])).map(d => ({ id: d.id, text: d.text }))
 
 /** Сколько реплик репетиции уже озвучено и сколько озвучивается вообще → { done, total } */
 export function pitVoiceCount(lines) {
   const voiced = REHEARSAL_LINES.filter(d => !d.text.includes('{'))
-  return { done: voiced.filter(d => lines?.[d.id]?.url).length, total: voiced.length }
+  return { done: voiced.filter(d => lineVoiced(d.id, lines?.[d.id])).length, total: voiced.length }
 }
 
 /**
