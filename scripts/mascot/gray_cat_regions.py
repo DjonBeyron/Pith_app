@@ -2,6 +2,7 @@
 # Рисунок хранится в своих пикселях (1182×1330), в спрайт переводится преобразованием F (голова того же размера и на том же месте, что у Мии: нос в 296 347).
 # Сами слои собирает build_gray_cat.py; здесь только «что где лежит на картинке».
 import numpy as np, os, math
+from PIL import ImageDraw
 from PIL import Image
 from vec_trace import *
 
@@ -82,19 +83,42 @@ def spline(pts, step=2.0):
         for k in range(n):
             t = k / n; out.append(0.5 * ((2 * p1) + (-p0 + p2) * t + (2 * p0 - 5 * p1 + 4 * p2 - p3) * t * t + (-p0 + 3 * p1 - 3 * p2 + p3) * t ** 3))
     out.append(P[-1]); return np.array(out)
+TAIL_THIN = 3                                                                 # хвост на 3 px (с каждой стороны) тоньше, чем на рисунке
 def dense(pts, step=2.0):
     """Ломаная через опорные точки с шагом step (для замыкающих отрезков: сглаживанию нужны частые точки)"""
     P = np.array(pts, float); out = []
     for a, b in zip(P[:-1], P[1:]):
         n = max(1, int(np.hypot(*(b - a)) / step)); out += [a + (b - a) * k / n for k in range(n)]
     out.append(P[-1]); return np.array(out)
+def paw_arcs():
+    """Нижний край передних лап: центры тёмной обводки по столбцам — две дуги, сходящиеся острым уголком между лапами (по x вниз к краю рисунка)"""
+    dark = blur(LUM, 1) < 85; pts = []
+    for x in range(424, 616, 3):
+        ys = [y for y in range(1175, 1250) if dark[y, x]]
+        if not ys: continue
+        run = [ys[-1]]
+        for y in reversed(ys[:-1]):
+            if run[-1] - y > 1: break
+            run.append(y)
+        pts.append((x, (run[0] + run[-1]) / 2))
+    P = np.array(pts, float)
+    return P[np.abs(P[:, 0] - 517) >= 9]                                         # самый стык (острый уголок) даёт точная тёмная область, а не обводка по двум дугам
+def thin(P, k):
+    """Контур, уменьшенный на k пикселей со всех сторон (хвост тоньше): заливка многоугольника → эрозия → внешняя граница"""
+    img = Image.new('L', (W, H), 0); ImageDraw.Draw(img).polygon([tuple(p) for p in P], fill=255)
+    return outer_contour(morph(np.array(img) > 0, k, 'e'))
 def parts():
     S_ = contour(); iL, iR, iA, iB = at(S_, LN), at(S_, RN), at(S_, TS), at(S_, TE)
     jR, jL = at(S_, (717, 794)), at(S_, (300, 800))
     head = np.vstack([S_[iL:], S_[:iR + 1], chin_arc(RN[0] - 8, LN[0] + 10)])
-    body = np.vstack([spline(NR), S_[jR:iA], spline([(823, 1060), (820, 1078), (813, 1096), (803, 1118), (791, 1140)]), S_[iB:jL + 1], spline(NL[::-1]), dense([(336, 725), (352, 698), (680, 698), (697, 727)])[1:-1]])
+    idx = [i for i in range(iB, jL + 1) if 424 < S_[i, 0] < 616 and S_[i, 1] > 1185]       # низ передних лап — по рисунку (острый уголок между лапами)
+    bottom = S_[iB:jL + 1]
+    if idx:
+        a, b = idx[0] - iB, idx[-1] - iB
+        bottom = np.vstack([bottom[:a], dense(paw_arcs()[::-1], 2.0), bottom[b + 1:]])
+    body = np.vstack([spline(NR), S_[jR:iA], spline([(823, 1060), (820, 1078), (813, 1096), (803, 1118), (791, 1140)]), bottom, spline(NL[::-1]), dense([(336, 725), (352, 698), (680, 698), (697, 727)])[1:-1]])
     tail = np.vstack([S_[iA:iB + 1], dense([S_[iB], (775, 1140), (790, 1070), S_[iA]])[1:-1]])
-    return head, body, tail
+    return head, body, thin(tail, TAIL_THIN)
 def outline_path(P, f, eps=1.2, sm=8):
     Q, cs = smart_outline(P, eps, sm, 5, 28); return bezier_path(Q, True, 70, f, set(cs))
 

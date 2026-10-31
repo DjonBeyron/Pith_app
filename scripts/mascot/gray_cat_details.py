@@ -122,10 +122,10 @@ def body_shade():
     for x in components(m, 40): (big_ if x.sum() > 1500 else small).append(x)
     return [(region_path(x, F, 1.4, 4, 70, 4), color(x)) for x in big_], [(region_path(x, F, 0.8, 2), color(x, 1)) for x in small]
 def body_lines():
-    dark = classes()['dark'] & box(150, 775, 900, 1260); inner = morph(silhouette(), 9, 'e')
+    dark = classes()['dark'] & box(150, 775, 900, 1260) & ~box(470, 1108, 566, 1250); inner = morph(silhouette(), 9, 'e')
     res = []
     for x in components(dark & inner, 150):
-        for _ in range(6): x = morph(x, 1, 'd') & dark                 # дотянуть до внешней обводки (под неё)
+        for _ in range(4): x = morph(x, 1, 'd') & dark                 # дотянуть до внешней обводки (под неё)
         res.append((region_path(x, F, 1.0, 5), '#262432'))
     return res
 
@@ -136,8 +136,10 @@ def heart(cx, cy, w, h, f=F):
             f'C{P(.16, -.5)} {P(.5, -.42)} {P(.5, -.12)}C{P(.5, .2)} {P(.1, .38)} {P(0, .5)}Z')
 
 def edge_blobs():
-    """Места, где обводка на рисунке толще или ломаная (бугорки шерсти у основания ушей): точная тёмная область поверх обводки"""
-    dark = blur(LUM, 1) < 85; res = []
-    for b in ((148, 362, 250, 460), (782, 362, 886, 460), (286, 752, 338, 797), (688, 752, 742, 797)):
-        for m in components(dark & box(*b), 200): res.append(region_path(m, F, 0.7, 2, 40))
+    """Места, где обводка на рисунке толще или ломаная (бугорки шерсти у основания ушей и шеи, стык передних лап): точная тёмная область поверх обводки.
+    У стыка лап порог темноты строже (70), чтобы стебелёк между лапами не получился толще, чем на рисунке"""
+    res = []
+    for x0, y0, x1, y1, thr in ((148, 362, 250, 460, 85), (782, 362, 886, 460, 85), (286, 752, 338, 797, 85), (688, 752, 742, 797, 85), (470, 1092, 566, 1250, 68)):
+        dark = blur(LUM, 1) < thr
+        for m in components(dark & box(x0, y0, x1, y1), 200): res.append(region_path(m, F, 0.7, 2, 40))
     return res
