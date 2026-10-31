@@ -1,0 +1,47 @@
+/* Золотая плашка «Идеальное произношение!» (v3.3.87, заметка «чисто» зеркала; features/rehearsal/mirror/MirrorCompare.jsx): стоит там же, где обычная плашка заметки (.rhNote, rehearsal-mirror.css — между подложками «Пит»
+   и «твоя фраза»), но золотая, как постоянная память (--phrase-gold #ffd257 из memory-phrases; граница и текст), с узором и блеском плашек игры. Классы на узле: .rhNote.wlTurn.rhNote--gold — узор (--wl-plate-tex),
+   блеск узора от центра (::after) и появление (wlTurnIn) приходят от .wlTurn (word-lane-plate.css), здесь — золотая раскраска, центровка в зазоре и ещё одна пара бликов: светлая косая полоса (::before) пробегает по плашке
+   слева направо ДВА раза (не бесконечно), только transform. На слабом устройстве (.wlTurn--lite, .weak-device) и при reduced-motion — без бликов: статичный узор и мягкое проявление. */
+.rhNote.rhNote--gold {
+  inset: auto;
+  left: 50%;
+  top: 42.4%;
+  margin: 0;
+  width: fit-content;
+  min-width: 62%;
+  height: auto;
+  padding: 9px 22px;
+  border: 2px solid var(--phrase-gold, #ffd257);
+  border-radius: 999px;
+  background: var(--wl-plate-tex), var(--wl-plate-tex), rgba(30, 24, 8, 0.95);
+  box-shadow: 0 0 16px rgba(255, 210, 87, 0.28);
+  color: var(--phrase-gold, #ffd257);
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  display: block;
+  animation: wlTurnIn 0.3s cubic-bezier(0.34, 1.25, 0.64, 1) backwards;
+}
+.rhNote--gold::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 38%;
+  pointer-events: none;
+  background: linear-gradient(100deg, transparent, rgba(255, 236, 170, 0.5), transparent);
+  transform: translateX(-130%) skewX(-18deg);
+  animation: rhGoldSweep 1.3s ease-in-out 0.55s 2 both;
+}
+@keyframes rhGoldSweep {
+  from { transform: translateX(-130%) skewX(-18deg); }
+  to   { transform: translateX(330%) skewX(-18deg); }
+}
+.rhNote--gold.wlTurn--lite { animation: wlTurnFadeIn 0.25s ease both; box-shadow: none; }
+.rhNote--gold.wlTurn--lite::before, .weak-device .rhNote--gold::before { display: none; }
+@media (prefers-reduced-motion: reduce) {
+  .rhNote.rhNote--gold { animation: wlTurnFadeIn 0.25s ease both; }
+  .rhNote--gold::before { display: none; }
+}

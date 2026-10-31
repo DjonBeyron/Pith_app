@@ -15,7 +15,7 @@ export default function RehearsalActs({ f, cfg, onAgain = null, onSummary = null
   return (
     <>
       {rh.tag && <div className="rhTag" key={rh.tag} data-testid="rh-tag">{rh.tag}</div>}
-      {type === 'mirror' && rh.mirror && <MirrorCompare mirror={rh.mirror} chunks={cfg.plan.chunks} sceneApi={f.sceneApi} since={f.at} onDone={f.next} />}
+      {type === 'mirror' && rh.mirror && <MirrorCompare mirror={rh.mirror} chunks={cfg.plan.chunks} sceneApi={f.sceneApi} since={f.at} say={rh.say} hush={rh.hush} onDone={f.next} />}
       {type === 'summary' && <RehearsalSummary plan={cfg.plan} result={rh.result} onAgain={onAgain} onShown={onSummary} onDone={f.finish} />}
     </>
   )

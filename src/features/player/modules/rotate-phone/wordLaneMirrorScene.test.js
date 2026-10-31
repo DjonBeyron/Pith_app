@@ -31,15 +31,15 @@ function fakePool(size = 12) {
 const sceneFor = student => ({ kind: 'mirror', layout: compareLayout({ chunks: CHUNKS, student: { url: 'blob:x' }, measure: measureTake({ dictor: DICTOR, student, chunks: CHUNKS }) }) })
 
 describe('сцена «зеркало» движка пилюль: две ленты на остановленных дорожках', () => {
-  it('чистый дубль: шесть пилюль без полёта — Пит сверху, ты снизу, на каждой дорожке пара; подписи «Пит» / «Ты»', () => {
+  it('чистый дубль: шесть пилюль без полёта — Пит сверху, ты снизу, на каждой дорожке пара; подписей на самих пилюлях нет', () => {
     const { pool, els, calls } = fakePool()
     runMirrorScene({ pool, scene: sceneFor(STUDENT_CLEAN) })
     expect(calls.take).toHaveLength(6)
     expect(calls.take.every(t => t.opts.flight === false)).toBe(true) // без полёта: пилюли стоят
     expect(calls.take.map(t => t.lane)).toEqual([0, 1, 2, 0, 1, 2])
     expect(calls.place.map(p => p.y)).toEqual([PIT_Y, PIT_Y, PIT_Y, YOU_Y, YOU_Y, YOU_Y])
-    expect(els.slice(0, 3).map(e => [e.attrs.get('data-still'), e.attrs.get('data-tag')])).toEqual([['pit', 'Пит'], ['pit', 'Пит'], ['pit', 'Пит']])
-    expect(els.slice(3, 6).map(e => [e.attrs.get('data-still'), e.attrs.get('data-tag')])).toEqual([['you', 'Ты'], ['you', 'Ты'], ['you', 'Ты']])
+    expect(els.slice(0, 3).map(e => [e.attrs.get('data-still'), e.attrs.get('data-tag')])).toEqual([['pit', undefined], ['pit', undefined], ['pit', undefined]])
+    expect(els.slice(3, 6).map(e => [e.attrs.get('data-still'), e.attrs.get('data-tag')])).toEqual([['you', undefined], ['you', undefined], ['you', undefined]])
   })
   it('заливка: у Пита полная; у «Ты» — по измерениям; залитые принятые (data-lock), пропуск — пустая с полосками data-wrong; искр и «выдоха» кольца нет', () => {
     const { pool, els, calls } = fakePool()
@@ -70,7 +70,7 @@ describe('сцена «зеркало» движка пилюль: две лен
     expect(els.some(e => e.attrs.has('data-voice'))).toBe(false); expect(calls.unplace).toHaveLength(6)
   })
   it('пул 12 пилюль вмещает сравнение; ленты не заходят в затемнение сверху и снизу', () => {
-    expect(PIT_Y - PILL_H / 2).toBeGreaterThan(FADE_TOP + 6) // над верхней пилюлей остаётся место под подпись
+    expect(PIT_Y - PILL_H / 2).toBeGreaterThan(FADE_TOP + 3) // верх пилюли ниже затемнения, подпись подложки — над ней
     expect(YOU_Y + PILL_H / 2).toBeLessThan(100 - FADE_BOTTOM)
     expect(PIT_Y + PILL_H / 2).toBeLessThan(YOU_Y - PILL_H / 2) // ленты не налезают друг на друга
   })

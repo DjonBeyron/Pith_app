@@ -13,43 +13,64 @@ vi.mock('./takeBuffer.js', () => ({ playTakeBuffer: (...a) => buffer.play(...a) 
 
 const { useMirrorPlayback, NO_PLAY_TEXT } = await import('./useMirrorPlayback.js')
 
-// «Сравнить» на iPhone: <audio> не играет webm/opus (play() → NotSupportedError). Раньше запись молча не звучала; теперь — запасной путь (буфер Web Audio) и честное сообщение, если не вышло и он
+// Запись играет Web Audio с выравниванием громкости (playTakeBuffer → GainNode), <audio> — запасной путь: iPhone не играл webm/opus, контекст игры мог не запуститься
 const spans = { dictor: [], student: [] }
 const student = { url: 'blob:take', blob: { size: 4 }, durationMs: 50 }
 const fakeAudio = play => ({ currentTime: 0, listeners: {}, addEventListener(e, f) { this.listeners[e] = f }, removeEventListener() {}, pause() {}, play })
-const run = async (audio, st = student) => {
+const run = async (audio, st = student, extra = {}) => {
   h.i = 0; h.j = 0
-  const hook = useMirrorPlayback({ dictor: null, student: st, spans, audioRef: { current: audio } })
+  const hook = useMirrorPlayback({ dictor: null, student: st, spans, audioRef: { current: audio }, ...extra })
   await hook.start()
   h.i = 0; h.j = 0
-  return useMirrorPlayback({ dictor: null, student: st, spans, audioRef: { current: audio } })
+  return useMirrorPlayback({ dictor: null, student: st, spans, audioRef: { current: audio }, ...extra })
 }
 beforeEach(() => { h.states = []; h.refs = []; buffer.play = vi.fn(async () => 'ended') })
 
-describe('useMirrorPlayback: запись не играет в <audio>', () => {
-  it('play() отклонён (NotSupportedError) — играет буфер Web Audio, сообщения нет; повторное «Сравнить» сразу буфером', async () => {
-    const play = vi.fn(() => Promise.reject(Object.assign(new Error('x'), { name: 'NotSupportedError' })))
-    const audio = fakeAudio(play)
-    const r = await run(audio)
-    expect(buffer.play).toHaveBeenCalledWith(student.blob)
-    expect(r.problem).toBe('')
-    expect(r.phase).toBe('idle')
-    await r.start()
-    expect(play).toHaveBeenCalledTimes(1)   // <audio> второй раз не пробуем
-    expect(buffer.play).toHaveBeenCalledTimes(2)
+describe('useMirrorPlayback: запись играет через Web Audio, <audio> — запасной путь', () => {
+  it('основной путь: буфер Web Audio с целью громкости диктора; <audio> не трогаем, сообщения нет', async () => {
+    const play = vi.fn(() => Promise.resolve())
+    const r = await run(fakeAudio(play), student, { targetRms: 0.12 })
+    expect(buffer.play).toHaveBeenCalledTimes(1)
+    expect(buffer.play.mock.calls[0][0]).toBe(student.blob)
+    expect(buffer.play.mock.calls[0][1]).toMatchObject({ targetRms: 0.12 })
+    expect(play).not.toHaveBeenCalled()
+    expect(r.problem).toBe(''); expect(r.phase).toBe('idle')
   })
-  it('буфер тоже не вышел — «Запись не воспроизводится на этом устройстве» вместо тихого провала', async () => {
+  it('буфер не вышел (не декодируется / контекст не запустился) — играет <audio>, сообщения нет; повторное «Сравнить» сразу <audio>', async () => {
     buffer.play = vi.fn(async () => 'unsupported')
-    const r = await run(fakeAudio(() => Promise.reject(new Error('NotSupportedError'))))
+    const audio = fakeAudio(() => { queueMicrotask(() => audio.listeners.ended?.()); return Promise.resolve() })
+    const play = vi.spyOn(audio, 'play')
+    const r = await run(audio)
+    expect(buffer.play).toHaveBeenCalledTimes(1); expect(play).toHaveBeenCalledTimes(1)
+    expect(r.problem).toBe(''); expect(r.phase).toBe('idle')
+    await r.start()
+    expect(buffer.play).toHaveBeenCalledTimes(1) // буфер второй раз не пробуем
+    expect(play).toHaveBeenCalledTimes(2)
+  })
+  it('<audio> тоже не сыграл (NotSupportedError) — «Запись не воспроизводится на этом устройстве» вместо тихого провала', async () => {
+    buffer.play = vi.fn(async () => 'unsupported')
+    const r = await run(fakeAudio(() => Promise.reject(Object.assign(new Error('x'), { name: 'NotSupportedError' }))))
     expect(r.problem).toBe(NO_PLAY_TEXT)
     expect(NO_PLAY_TEXT).toBe('Запись не воспроизводится на этом устройстве')
     expect(r.phase).toBe('idle')
   })
-  it('<audio> сыграл (ended) — запасной путь не нужен', async () => {
+  it('нет blob (старый путь) — сразу <audio>', async () => {
     const audio = fakeAudio(() => { queueMicrotask(() => audio.listeners.ended?.()); return Promise.resolve() })
-    const r = await run(audio)
-    expect(buffer.play).not.toHaveBeenCalled()
-    expect(r.problem).toBe('')
+    const r = await run(audio, { url: 'blob:x', durationMs: 50 })
+    expect(buffer.play).not.toHaveBeenCalled(); expect(r.problem).toBe('')
+  })
+})
+
+// Подложки лент наливаются вместе со звуком (onSound → sceneApi.fill): Пит — с задержкой leadMs на длину плана диктора, «ты» — когда пошёл звук записи, на длину записи
+describe('useMirrorPlayback: onSound — синхронная заливка подложек', () => {
+  it('сброс, потом Пит (leadMs, durationMs диктора), потом «ты» в момент onStart буфера (durationMs записи)', async () => {
+    const events = []
+    buffer.play = vi.fn(async (blob, o) => { events.push('buffer'); o.onStart(); return 'ended' })
+    const dictor = { leadMs: 25, durationMs: 1800, play: async () => { events.push('dictor') } }
+    h.i = 0; h.j = 0
+    const hook = useMirrorPlayback({ dictor, student, spans, audioRef: { current: null }, onSound: e => events.push(e) })
+    await hook.start()
+    expect(events).toEqual([null, { side: 'pit', delayMs: 25, durationMs: 1800 }, 'dictor', 'buffer', { side: 'you', delayMs: 0, durationMs: 50 }])
   })
 })
 

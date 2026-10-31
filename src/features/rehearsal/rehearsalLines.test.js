@@ -7,6 +7,8 @@ import { startCatLine } from '../player/modules/rotate-phone/wordLaneCatSay.js'
 import { missingPitLines, pitVoiceCount, voiceMissingPitLines } from './rehearsalVoice.js'
 import { buildRehearsalStages } from './rehearsalStages.js'
 import { fixturePlan } from './rehearsalFixtures.js'
+import { NOTE_LINES } from './mirror/noteLine.js'
+const NOTE_IDS = Object.values(NOTE_LINES) // вердикт зеркала: rh_note_*
 
 const read = rel => readFileSync(new URL(rel, import.meta.url), 'utf8')
 
@@ -116,7 +118,7 @@ describe('озвучка реплик Пита из «Теста игры»', ()
 // Варианты реплик (CONCEPT_REHEARSAL.md §8 и решения владельца 2026-10-31): два текста только у старта и итога (по номеру запуска), у сборки (rh_build, rh_clear) остались прежние по три, у остальных один
 describe('варианты реплик Пита', () => {
   const RANDOM = ['rh_build', 'rh_clear']
-  const ONE = ['rh_warmup', 'rh_warmup_miss', 'rh_read_why', 'rh_normal', 'rh_blind', 'rh_blind_hint', 'rh_blind_hint_pre', 'rh_discern', 'rh_take', 'rh_mirror']
+  const ONE = ['rh_warmup', 'rh_warmup_miss', 'rh_read_why', 'rh_normal', 'rh_blind', 'rh_blind_hint', 'rh_blind_hint_pre', 'rh_discern', 'rh_take', 'rh_mirror', ...NOTE_IDS]
   it('rh_start и rh_done — два ключа (основной, _b); rh_build и rh_clear — по три; остальные — один', () => {
     for (const b of ['rh_start', 'rh_done']) expect(lineVariants(b), b).toEqual([b, `${b}_b`])
     for (const b of RANDOM) expect(lineVariants(b), b).toEqual([b, `${b}_b`, `${b}_c`])

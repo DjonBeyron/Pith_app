@@ -7,8 +7,11 @@
 /* Ярлык-плашка над дорожками: ОДНА строка, длинный текст обрезается многоточием, на пилюлях подписи нет */
 .rhTag { left: 50%; top: 11.5%; transform: translateX(-50%); max-width: calc(100% - 32px); box-sizing: border-box; padding: 5px 14px; border-radius: 999px; border: 1.5px solid var(--wl-accent); background: rgba(11, 13, 17, 0.92); color: var(--wl-accent); font-size: 13px; font-weight: 800; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; z-index: 4; pointer-events: none; animation: rhTagIn 0.28s ease-out both; }
 
-/* Итог — на каркасе .wlReveal; «Дубль и зеркало» рисуется прямо на дорожках (пилюли, заметка, кнопки — rehearsal-mirror.css) */
+/* Итог (v3.3.87) — окно «хочешь ещё» в стиле плашек: класс .wlTurn (word-lane-plate.css: узор, блеск от центра, центровка вёрсткой, появление, lite-затухание) + .rhSumPlate (ширина по экрану, содержимое слева направо,
+   текст по центру). Уход — rehearsalExit.js: окно улетает вверх, сцена опускается и тает; «Дубль и зеркало» рисуется прямо на дорожках (пилюли, заметка, кнопки — rehearsal-mirror.css) */
 .rhScreen { z-index: 7; }
+.rhSumPlate { width: min(90%, 420px); padding: 20px 20px 18px; font-size: 16px; }
+.rhSumAsk { margin: 0 0 10px; font-size: clamp(18px, 5.4vw, 24px); font-weight: 800; line-height: 1.2; }
 .rhSumTr { margin: 4px 0 10px; font-size: clamp(18px, 5.6vw, 26px); font-weight: 800; line-height: 1.2; color: var(--wl-accent); }
 .rhStats { display: grid; gap: 6px; margin: 0 0 16px; text-align: left; }
 .rhStats > div { display: flex; justify-content: space-between; gap: 12px; font-size: 14px; }
@@ -17,6 +20,8 @@
 .rhStats dt { color: #9aa0b4; }
 .rhStats dd { margin: 0; font-weight: 800; }
 .rhBtns { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.rhBtns--row { flex-direction: row; justify-content: center; }
+.rhBtns--row .wlNext { min-width: 0; flex: 1 1 0; max-width: 190px; }
 .rhGhost { background: #14171c; color: #f2f3f7; border: 1.5px solid #3a4150; }
 
 @keyframes rhFade { from { opacity: 0; } to { opacity: 1; } }

@@ -27,7 +27,7 @@ import { useCompareScene } from './mirror/useCompareScene.js'
 //  • тишина экрана (rehearsalQuiet.js, usePitQuiet.js): пока Пит говорит озвученную реплику на старте стадии, rh.quiet — плашка, подписи, перевод и экраны скрыты, видны только дорожки и кот; rh.plateOk — плашка может быть на экране;
 //  • вступление и итог — по номеру запуска в тапе (plan.run, rehearsalLines.sessionLine): первый — rh_start / rh_done, «Ещё минутку?» — rh_start_b / rh_done_b;
 //  • подсветка куска в читке (hl: один таймер по stage.metro, rehearsalMetro.js), «застрял 3 с» в акте «без текста» (слушатель молчит STUCK_MS — Пит подсказывает первое слово, подпись куска на HINT_LABEL_MS);
-//  • дубль и зеркало (акт 5): запись на стадии take и данные сравнения mirror (темп, заметка Пита) — useRehearsalTake; на стадии mirror Пит говорит rh_mirror (stage.line), потом на остановленных дорожках появляется сравнение (compare);
+//  • дубль и зеркало (акт 5): запись на стадии take и данные сравнения mirror (темп, заметка Пита) — useRehearsalTake; на стадии mirror Пит говорит rh_mirror (stage.line), потом на остановленных дорожках появляется сравнение (compare), а после прослушивания Пит озвучивает вердикт (rh_note_*, say — зовёт MirrorCompare);
 //  • итог на экране summary: симуляция памяти и XP (rehearsalSim.js) — один раз, в память сессии и журнал отладки; темп и заметка зеркала идут туда же.
 // Без плана (обычная нода игры) хук ничего не делает: nextIdx / holdMs возвращают то же, что директор взял бы сам.
 export const LINE_AT_MS = 250       // реплика на старте стадии — чуть позже появления плашки
@@ -120,6 +120,8 @@ export function useRehearsalActs({ plan, stages, stage, at, stageObj, setS, sayL
 
   return {
     on, hl, result, journal, quiet: quiet.quiet, plateOk: quiet.plateOk,
+    /** Пит говорит реплику (вердикт зеркала — mirror/MirrorCompare.jsx) и «замолчи» перед выходом из зеркала (иначе занятый Пит пропустит реплику итога) */
+    say: sayLine, hush: cat.stop,
     /** Стадия просит следующую: если отсчёт тремя нотами ещё не доиграл, переход ждёт его конца */
     afterCount: fn => gate.after(fn),
     /** Экран зеркала: { dictor, student, measure, note, tempo } (записи нет — student и measure null) */
