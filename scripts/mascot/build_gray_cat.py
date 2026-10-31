@@ -69,6 +69,31 @@ for code, e in MT.items():
     e['f'] = shift_path(e['f'], DX, DY) if e['f'] else ''
     e['m']['d'] = shift_path(e['m']['d'], DX, DY); e['m']['sw'] = round(e['m']['sw'] * 0.72, 1)
     if e.get('l'): e['l']['d'] = shift_path(e['l']['d'], DX, DY); e['l']['sw'] = round(e['l']['sw'] * 0.72, 1)
+def scale_path(d, sx, sy, ox, oy):
+    """Масштаб абсолютного пути вокруг точки (ox, oy)"""
+    out = []; cmd = ''; k = 0
+    for t in re.findall(r'[MLCQHVZ]|-?\d*\.?\d+', d):
+        if t.isalpha(): cmd = t; k = 0; out.append(t); continue
+        v = float(t); x_axis = cmd == 'H' or (cmd in 'MLCQ' and k % 2 == 0)
+        v = ox + (v - ox) * sx if x_axis else oy + (v - oy) * sy
+        out.append(f'{v:.1f}'); k += 1
+    return ' '.join(out)
+LIP = (F(521, 592)[0], 370.0)                                        # центр верхней губы открытого рта (x ножки, y линии губ)
+def adjust(code, e):
+    """Подгонка форм под размер этой кошки (рот на рисунке мелкий): D и E меньше, у G короче зубы и без лишней нижней дуги, у H язык не торчит.
+    Сначала масштабируется всё сразу, потом отдельные части (зубы, язык)"""
+    k = dict(D=(0.72, 0.72), E=(0.85, 0.85), G=(1.0, 0.8)).get(code)
+    if k:
+        for key in ('t', 'f'):
+            if e[key]: e[key] = scale_path(e[key], *k, *LIP)
+        e['m']['d'] = scale_path(e['m']['d'], *k, *LIP)
+        if e.get('l'): e['l']['d'] = scale_path(e['l']['d'], *k, *LIP)
+    if code == 'G':
+        e['l']['d'] = re.split(r'(?=M)', e['l']['d'])[-1]                     # остаётся только линия верхней губы; нижняя дуга выглядела вторым ртом
+        e['f'] = scale_path(e['f'], 0.95, 0.8, LIP[0], 366.4)                 # зубы короче и не торчат за губу
+    if code == 'H':
+        e['t'] = scale_path(e['t'], 0.82, 0.82, LIP[0], 391.0)                # язык меньше, сидит в глубине рта
+for code, e in MT.items(): adjust(code, e)
 MT['X'] = dict(t='', f='', m=dict(d=mouth_closed(), fill='none', sw=5.2))
 mouth['mm'] = re.sub(r' d="[^"]*"', f' d="{MT["X"]["m"]["d"]}"', mouth["mm"].replace("#000", OL), count=1).replace('stroke-width="6"', 'stroke-width="5.2"')
 mouth['ml'] = mouth['ml'].replace('#000', OL)
