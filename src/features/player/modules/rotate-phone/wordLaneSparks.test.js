@@ -27,7 +27,7 @@ function rig() {
   let t = 5000
   vi.spyOn(performance, 'now').mockImplementation(() => t)
   const pills = Array.from({ length: POOL }, () => {
-    const pill = fakeEl({ '.wlPillFill': fakeEl(), '.wlPillClip': fakeEl({}, { offsetHeight: 154 }), '.wlPillLine': fakeEl(), '.wlPillSparks i': fakeEl(), '.wlGhost': fakeEl(), '.wlPace': fakeEl() })
+    const pill = fakeEl({ '.wlPillFill': fakeEl(), '.wlPillClip': fakeEl({}, { offsetHeight: 154 }), '.wlPillSparks i': fakeEl(), '.wlGhost': fakeEl(), '.wlPace': fakeEl() })
     pill.animate = vi.fn(() => ({ currentTime: 0, cancel: vi.fn(), finished: new Promise(() => {}) }))
     return pill
   })
@@ -152,46 +152,17 @@ describe('искры: вне клипа заливки, едут за уровн
     expect(css).not.toMatch(/\.wlPillFill::(before|after)/)
     expect(css).not.toMatch(/wlRiseFar|wlRiseNear/)
   })
-  it('пул: <i> искр получает те же --pill-h (при взятии) и --fill (на каждом изменении заливки), что и линия; 0 при выдаче; на слабом устройстве узла может не быть', () => {
+  it('пул: <i> искр получает --pill-h (при взятии) и --fill (на каждом изменении заливки); 0 при выдаче; на слабом устройстве узла может не быть', () => {
     const { pool, pills } = rig()
     const k = pool.take(0, { flight: false })
-    const sp = pills[k].parts['.wlPillSparks i'], line = pills[k].parts['.wlPillLine']
+    const sp = pills[k].parts['.wlPillSparks i']
     expect(sp.style.props['--pill-h']).toBe('154px')
     pool.paintFill(k, 0.4); pool.paintFill(k, 0.4); pool.paintFill(k, 0.75)
     expect(sp.style.props['--fill']).toBe('0.750')
-    expect(sp.style.props['--fill']).toBe(line.style.props['--fill'])
     pool.give(k)
     expect(sp.style.props['--fill']).toBe('0.000')
-    const bare = createPool({ querySelectorAll: sel => (sel === '[data-pill]' ? [fakeEl({ '.wlPillFill': fakeEl(), '.wlGhost': fakeEl(), '.wlPace': fakeEl(), '.wlPillLine': fakeEl() })] : []), classList: { contains: () => false } })
+    const bare = createPool({ querySelectorAll: sel => (sel === '[data-pill]' ? [fakeEl({ '.wlPillFill': fakeEl(), '.wlGhost': fakeEl(), '.wlPace': fakeEl() })] : []), classList: { contains: () => false } })
     const k2 = bare.take(0, { flight: false })
     expect(() => bare.paintFill(k2, 0.5)).not.toThrow()
-  })
-})
-
-describe('ширина линии уровня по ходу заливки', () => {
-  // зеркало формулы из CSS (--lt — «шатёр», --lw — smoothstep от него); формулу в самом CSS проверяет первый тест
-  const lt = f => Math.min(1, Math.max(0, Math.min(f / 0.7, (1 - f) / 0.3)))
-  const lw = f => lt(f) * lt(f) * (3 - 2 * lt(f))
-  it('в CSS: --lt = clamp(0, min(fill / 0.7, (1 − fill) / 0.3), 1), --lw — smoothstep от него, scaleX(--lw) у линии; оба свойства зарегистрированы без наследования', () => {
-    expect(css).toContain('--lt: clamp(0, min(var(--fill, 0) / 0.7, (1 - var(--fill, 0)) / 0.3), 1);')
-    expect(css).toContain('--lw: calc(var(--lt) * var(--lt) * (3 - 2 * var(--lt)));')
-    expect(css).toMatch(/@property --lt \{ syntax: '<number>'; inherits: false; initial-value: 0; \}/)
-    expect(css).toMatch(/@property --lw \{ syntax: '<number>'; inherits: false; initial-value: 0; \}/)
-    expect(block('.wlPillLine')).toMatch(/scaleX\(var\(--lw, 0\)\)/)
-  })
-  it('рождается в центре (0 при --fill = 0), к 0,7 — максимум (112 % пилюли), к 1,0 снова 0; плавно и монотонно по обе стороны', () => {
-    expect(lw(0)).toBe(0)
-    expect(lw(0.7)).toBe(1)
-    expect(lw(1)).toBe(0)
-    for (let f = 0.02; f <= 0.7; f += 0.02) expect(lw(f)).toBeGreaterThanOrEqual(lw(f - 0.02))
-    for (let f = 0.72; f <= 1; f += 0.02) expect(lw(f)).toBeLessThanOrEqual(lw(f - 0.02))
-    expect(lw(0.35)).toBeCloseTo(0.5, 6)                                         // середина подъёма — ровно половина
-    expect(lw(0.85)).toBeCloseTo(0.5, 6)                                         // середина спада — тоже
-    expect(block('.wlPillLine')).toMatch(/width: 112%;/)
-  })
-  it('сжатие центральное (transform-origin по умолчанию), ядро, ореол и мерцание — дети линии, в безопасном режиме то же правило (блик меняется, ширина — нет)', () => {
-    expect(block('.wlPillLine')).not.toMatch(/transform-origin/)
-    expect(safeCss).not.toMatch(/\.wlPillLine \{[^}]*(transform|width)/)
-    expect(css).not.toMatch(/\.wlPillLine[^{]*\{[^}]*filter/)
   })
 })

@@ -20,8 +20,8 @@ function rig({ classes = [] } = {}) {
   let t = 5000
   vi.spyOn(performance, 'now').mockImplementation(() => t)
   const pills = Array.from({ length: POOL }, () => {
-    const line = fakeEl()
-    const pill = fakeEl({ '.wlPillFill': fakeEl(), '.wlPillClip': fakeEl({}, { offsetHeight: 154 }), '.wlPillLine': line, '.wlGhost': fakeEl(), '.wlPace': fakeEl() })
+    const sp = fakeEl()
+    const pill = fakeEl({ '.wlPillFill': fakeEl(), '.wlPillClip': fakeEl({}, { offsetHeight: 154 }), '.wlPillSparks i': sp, '.wlGhost': fakeEl(), '.wlPace': fakeEl() })
     pill.animate = vi.fn(() => ({ currentTime: 0, cancel: vi.fn(), finished: new Promise(() => {}) }))
     return pill
   })
@@ -121,7 +121,7 @@ describe('взлёт заполненной пилюли', () => {
     expect(pills[k].has('data-rise')).toBe(true)
     expect(pills[k].has('data-held')).toBe(true)
     expect(pool.rise(k)).toBeNull()
-    expect(pills[k].parts['.wlPillLine'].style.props['--fill']).toBe('1.000')
+    expect(pills[k].parts['.wlPillSparks i'].style.props['--fill']).toBe('1.000')
     await Promise.resolve()
     expect(pills[k].has('data-held')).toBe(true)                                      // ещё летит
     done()

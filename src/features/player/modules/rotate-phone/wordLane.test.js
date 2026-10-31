@@ -122,7 +122,7 @@ describe('слушатель: счёт копится по заходам', () =
 
 describe('вёрстка и подключения', () => {
   const css = readLane()
-  const micCss = read('../../../../styles/player/modules/word-lane-mic.css')
+  const plateCss = read('../../../../styles/player/modules/word-lane-plate.css')
 
   it('длительности CSS совпадают с JS', () => {
     // Заливка пилюли = положение линии: CSS-перехода у неё нет (иначе отстанет), кроме фазы turn, где пилюли пустеют
@@ -131,7 +131,7 @@ describe('вёрстка и подключения', () => {
     expect(css).not.toMatch(/^\.wlPill(Fill)? \{[^}]*transition/m) // движок сам пишет каждый кадр: переходы отставили бы пилюлю от речи
     expect(DROP_MS).toBe(1000); expect(css).toContain('animation: wlDrop 1s')
     expect(LANES_MS).toBe(900)
-    expect(micCss).toContain('wlTurnOut var(--wl-turn-ms, 2.2s)')                         // длительность плашки — переменная --wl-turn-ms по стадии (ANNOUNCE_MS / TURN_STAGE_MS), запасная — TURN_MS 2200
+    expect(plateCss).toContain('wlTurnOut var(--wl-turn-ms, 2.2s)')                         // длительность плашки — переменная --wl-turn-ms по стадии (ANNOUNCE_MS / TURN_STAGE_MS), запасная — TURN_MS 2200
   })
 
   it('модуль, стили и редактор подключены', () => {

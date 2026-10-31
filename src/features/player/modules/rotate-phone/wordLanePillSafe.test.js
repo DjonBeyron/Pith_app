@@ -28,14 +28,14 @@ describe('безопасный режим: ключ и класс', () => {
     vi.stubGlobal('localStorage', { getItem: () => { throw new Error('blocked') } })
     expect(isPillSafe()).toBe(false)
   })
-  it('WordLanePills сама ставит wl--safe на .wlField по ключу и кладёт в пилюлю линию уровня', () => {
+  it('WordLanePills сама ставит wl--safe на .wlField по ключу и не кладёт в пилюлю линию уровня', () => {
     const html = () => renderToStaticMarkup(createElement(WordLanePills, { scene: { kind: 'idle' }, levels: null, fx: {}, live: { seq: [], misses: 0 }, sceneApi: { current: null }, visible: true }))
     vi.stubGlobal('localStorage', { getItem: () => null })
     expect(html()).toContain('class="wlField"')
     vi.stubGlobal('localStorage', { getItem: () => '1' })
     const on = html()
     expect(on).toContain('class="wlField wl--safe"')
-    expect(on.match(/class="wlPillLine"/g)).toHaveLength(POOL)
+    expect(on).not.toContain('wlPillLine')
   })
 })
 
@@ -68,9 +68,9 @@ describe('безопасный режим: вёрстка без слоёв', ()
     expect(safeCss).toMatch(/\.wlPill\[data-fail\] \{ opacity: 1; transition: none; --rgb: 123, 132, 148;/)
     expect(safeCss).toMatch(/\.wlPill\[data-voice\] \{ filter: none; transition: none; --glow:/)
   })
-  it('состояния заливки: «в процессе», «принято», «не успел» — без частиц, специфичность выше обычных правил; кромка --edge остаётся', () => {
-    expect(safeCss).toMatch(/:not\(\[data-lock\]\):not\(\[data-fail\]\) \.wlPillFill \{ background: var\(--edge\) 0 0 \/ 100% 14px no-repeat, rgba\(var\(--rgb\), 0\.35\); \}/)
-    expect(safeCss).toMatch(/\[data-lock\]:not\(\[data-fail\]\) \.wlPillFill \{ background: var\(--edge\) 0 0 \/ 100% 14px no-repeat, var\(--c\); \}/)
+  it('состояния заливки: «в процессе», «принято», «не успел» — без частиц, специфичность выше обычных правил; мягкий край --edge остаётся', () => {
+    expect(safeCss).toMatch(/:not\(\[data-lock\]\):not\(\[data-fail\]\) \.wlPillFill \{ background: linear-gradient\(to bottom, rgba\(var\(--rgb\), 0\), rgba\(var\(--rgb\), 0\.35\) 8px\); \}/)
+    expect(safeCss).toMatch(/\[data-lock\]:not\(\[data-fail\]\) \.wlPillFill \{ background: linear-gradient\(to bottom, rgba\(var\(--rgb\), 0\), var\(--c\) 8px\); \}/)
     expect(safeCss).toContain('.wlField.wl--safe .wlPill[data-fail] .wlPillFill { background: #7b8494; }')
   })
   it('искры в безопасном режиме: те же узлы и анимации (transform / translate / opacity на композиторе — сдвиг фона красил бы два слоя на пилюлю каждый кадр), но без will-change', () => {
@@ -97,7 +97,7 @@ describe('контур не зависит от data-live / data-lock (оба р
     }
   })
   it('opacity у самой пилюли — только «не успел» (обычный режим, серая и бледная по замыслу) и невидимый прогрев слоёв', () => {
-    const sel = rulesOf(pillCss).filter(r => /\bopacity:/.test(r.body) && /\.wlPill(?![A-Za-z])/.test(r.sel) && !/::|\.wlGhost|\.wlPace|\.wlPillFill|\.wlPillLine/.test(r.sel)).map(r => r.sel)
+    const sel = rulesOf(pillCss).filter(r => /\bopacity:/.test(r.body) && /\.wlPill(?![A-Za-z])/.test(r.sel) && !/::|\.wlGhost|\.wlPace|\.wlPillFill/.test(r.sel)).map(r => r.sel)
     expect(sel.every(s => /data-fail|data-phase='lanes'/.test(s))).toBe(true)
   })
   it('припаркованные посреди экрана пилюли (фаза lanes) невидимы: все 12 стопкой дают меньше уровня из 255 (обычный режим, слой не нулевой), в безопасном — opacity 0', () => {
@@ -124,8 +124,7 @@ function rig({ classes = [] } = {}) {
   let t = 5000
   vi.spyOn(performance, 'now').mockImplementation(() => t)
   const pills = Array.from({ length: POOL }, () => {
-    const line = fakeEl()
-    const pill = fakeEl({ '.wlPillFill': fakeEl(), '.wlPillClip': fakeEl({}, { offsetHeight: 154 }), '.wlPillLine': line, '.wlGhost': fakeEl(), '.wlPace': fakeEl() })
+    const pill = fakeEl({ '.wlPillFill': fakeEl(), '.wlPillClip': fakeEl({}, { offsetHeight: 154 }), '.wlPillSparks i': fakeEl(), '.wlGhost': fakeEl(), '.wlPace': fakeEl() })
     pill.animate = vi.fn(() => ({ currentTime: 0, cancel: vi.fn(), finished: new Promise(() => {}) }))
     return pill
   })
@@ -152,51 +151,25 @@ describe('пул: безопасный режим не ставит will-change;
   })
 })
 
-describe('сверкающая линия уровня', () => {
-  const line = rulesOf(pillCss).find(r => r.sel === '.wlPillLine').body
-  it('на самой пилюле: максимальная ширина 112 %, left -6 %, высота 2 px, положение по --fill и --pill-h и сжатие scaleX по --lw (ширина по ходу заливки), прозрачна при --fill = 0', () => {
-    expect(line).toMatch(/left: -6%;/)
-    expect(line).toMatch(/width: 112%;/)
-    expect(line).toMatch(/height: 2px;/)
-    expect(line).toMatch(/transform: translateY\(calc\(\(1 - var\(--fill, 0\)\) \* var\(--pill-h, 0px\)\)\) scaleX\(var\(--lw, 0\)\)/)
-    expect(line).toMatch(/opacity: min\(1, calc\(var\(--fill, 0\) \* 40\)\)/)
-    expect(pillCss).not.toMatch(/\.wlPillClip[^{]*\.wlPillLine/)                     // не внутри клипа заливки
-  })
-  it('концы сужаются к нулю: горизонтальный градиент transparent → цвет → белый → цвет → transparent и эллипс; ореол — отдельный слой бледнее и выше, без filter', () => {
-    const core = rulesOf(pillCss).find(r => r.sel === '.wlPillLine::after').body
-    expect(core).toMatch(/linear-gradient\(to right, transparent, rgba\(var\(--rgb\), 0\.9\) \d+%, #fff 50%, rgba\(var\(--rgb\), 0\.9\) \d+%, transparent\)/)
-    expect(pillCss).toMatch(/\.wlPillLine::before, \.wlPillLine::after \{[^}]*border-radius: 50%/)
-    const halo = rulesOf(pillCss).find(r => r.sel === '.wlPillLine::before').body
-    expect(halo).toMatch(/top: -4px; bottom: -4px/)
-    expect(halo).toMatch(/opacity: 0\.35/)
-    expect(pillCss).not.toMatch(/\.wlPillLine[^{]*\{[^}]*filter/)
-  })
-  it('мерцание opacity .7 ↔ 1 за 1,1 с; «не успел» гасит линию', () => {
-    expect(pillCss).toMatch(/\.wlPill\[data-held\] \.wlPillLine::after \{ animation: wlLineTwinkle 1\.1s ease-in-out infinite; \}/)
-    expect(pillCss).toMatch(/@keyframes wlLineTwinkle \{ 0%, 100% \{ opacity: 0\.7; \} 50% \{ opacity: 1; \} \}/)
-    expect(pillCss).toContain('.wlPill[data-fail] .wlPillLine { opacity: 0; }')
-  })
-  it('в безопасном режиме мерцание — бегущий блик (background-position), без opacity-анимации и слоя', () => {
-    expect(safeCss).toMatch(/\.wlPillLine::after \{\s*animation: wlSafeGlint 1\.1s ease-in-out infinite alternate;/)
-    expect(safeCss).toMatch(/@keyframes wlSafeGlint \{ from \{ background-position/)
-    expect(safeCss).not.toMatch(/@keyframes wlSafeGlint[^}]*opacity/)
-  })
-  it('пул: --pill-h пишется один раз при взятии (один замер), --fill — при каждом изменении заливки, 0 при выдаче', () => {
+describe('пул пишет уровень заливки искрам (линии уровня нет)', () => {
+  it('--pill-h пишется один раз при взятии (один замер), --fill — при каждом изменении заливки, 0 при выдаче; в безопасном режиме линии уровня нет и в CSS', () => {
+    expect(safeCss).not.toContain('wlPillLine')
+    expect(safeCss).not.toContain('wlSafeGlint')
     const { pool, pills } = rig()
     const k = pool.take(0, { flight: false })
     const clip = pills[k].parts['.wlPillClip']
-    const line = pills[k].parts['.wlPillLine']
-    expect(line.style.props['--pill-h']).toBe('154px')
-    expect(line.style.props['--fill']).toBe('0.000')
+    const sp = pills[k].parts['.wlPillSparks i']
+    expect(sp.style.props['--pill-h']).toBe('154px')
+    expect(sp.style.props['--fill']).toBe('0.000')
     pool.paintFill(k, 0.3); pool.paintFill(k, 0.3); pool.paintFill(k, 0.64)
-    expect(line.style.props['--fill']).toBe('0.640')
+    expect(sp.style.props['--fill']).toBe('0.640')
     pool.paintFill(k, 1.4)
-    expect(line.style.props['--fill']).toBe('1.000')
-    expect(line.style.props['--pill-h']).toBe('154px')
+    expect(sp.style.props['--fill']).toBe('1.000')
+    expect(sp.style.props['--pill-h']).toBe('154px')
     clip.offsetHeight = 999                                                          // пересчёт высоты в кадрах не происходит
     pool.paintFill(k, 0.7)
-    expect(line.style.props['--pill-h']).toBe('154px')
+    expect(sp.style.props['--pill-h']).toBe('154px')
     pool.give(k)
-    expect(line.style.props['--fill']).toBe('0.000')
+    expect(sp.style.props['--fill']).toBe('0.000')
   })
 })

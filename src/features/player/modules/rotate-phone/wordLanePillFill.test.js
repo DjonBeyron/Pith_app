@@ -53,22 +53,30 @@ describe('контур пилюли: настоящий border, не inset-те�
     const onPill = opacityRules.filter(sel => /\.wlPill(?![A-Za-z])/.test(sel) && !/::before|::after|\.wlGhost|\.wlPace|\.wlPillFill/.test(sel))
     expect(onPill.every(sel => /data-fail|data-phase='lanes'/.test(sel))).toBe(true) // только «не успел» и невидимый прогрев слоёв
     expect(css).not.toMatch(/data-lock\]\):not\(\[data-fail\]\) \.wlPillFill \{[^}]*opacity/)
-    expect(css).toMatch(/\.wlPill:not\(\[data-lock\]\):not\(\[data-fail\]\) \.wlPillFill \{ --edge: [^;]+; background: var\(--edge\) 0 0 \/ 100% 14px no-repeat, rgba\(var\(--rgb\), 0\.35\); \}/)
+    expect(css).toMatch(/\.wlPill:not\(\[data-lock\]\):not\(\[data-fail\]\) \.wlPillFill \{ background: linear-gradient\(to bottom, rgba\(var\(--rgb\), 0\), rgba\(var\(--rgb\), 0\.35\) 8px\); \}/)
     expect(css).not.toMatch(/\.wlPillFill \{[^}]*opacity/)
   })
 })
 
-describe('светящаяся кромка заливки — первый слой фона', () => {
+describe('мягкий край заливки — без горизонтальной линии (v3.3.84)', () => {
   const css = pillCss()
-  it('полоска 2 px: у заливки «в процессе» цвета дорожки, без box-shadow (градиент: растр один раз)', () => {
-    expect(block(css, '.wlPillFill')).toMatch(/background: var\(--edge\) 0 0 \/ 100% 14px no-repeat, linear-gradient\(to top/)
-    expect(css).toMatch(/:not\(\[data-lock\]\):not\(\[data-fail\]\) \.wlPillFill \{ --edge: linear-gradient\(to bottom, var\(--c\) 0 2px, rgba\(var\(--rgb\), 0\.5\) 2px, transparent\);/)
+  it('край — начало единого градиента заливки: верхние 8 px от прозрачного к цвету (сквозь них виден фон пилюли), без светлой черты 2 px, без отдельного слоя и mask; без box-shadow', () => {
+    expect(block(css, '.wlPillFill')).toMatch(/background: linear-gradient\(to bottom, rgba\(var\(--rgb\), 0\), var\(--c\) 8px, rgba\(var\(--rgb\), 0\.78\)\);/)
+    expect(css).not.toMatch(/--edge|255, 255, 255, 0\.6|0 2px, rgba/)
+    expect(css).not.toMatch(/\.wlPillFill[^{]*\{[^}]*mask/)
     expect([...css.matchAll(/\.wlPillFill[^{]*\{[^}]*box-shadow/g)]).toHaveLength(0)
   })
-  it('«принято» — спокойная светлая кромка (та же --edge по умолчанию), «не успел» — фон сплошной серый, кромки нет', () => {
-    expect(block(css, '.wlPillFill')).toMatch(/--edge: linear-gradient\(to bottom, rgba\(255, 255, 255, 0\.6\) 0 2px/)
-    expect(css).toMatch(/\.wlPill\[data-lock\]:not\(\[data-fail\]\) \.wlPillFill \{ background: var\(--edge\) 0 0 \/ 100% 14px no-repeat, var\(--c\); \}/)
+  it('«принято» — сплошной цвет дорожки с тем же мягким краем, «не успел» — фон сплошной серый, края нет', () => {
+    expect(css).toMatch(/\.wlPill\[data-lock\]:not\(\[data-fail\]\) \.wlPillFill \{ background: linear-gradient\(to bottom, rgba\(var\(--rgb\), 0\), var\(--c\) 8px\); \}/)
     expect(css).toContain('.wlPill[data-fail] .wlPillFill { background: #7b8494; }')
+  })
+  it('горизонтальных черт внутри пилюли нет: ни линии уровня (узла и стилей), ни «тени» слова и метки темпа на экране', () => {
+    expect(css).not.toContain('wlPillLine')
+    expect(block(css, '.wlGhost')).toMatch(/display: none;/)
+    expect(block(css, '.wlPace')).toMatch(/display: none;/)
+    const html = renderToStaticMarkup(createElement(WordLanePills, { scene: { kind: 'idle' }, levels: null, fx: {}, live: { seq: [], misses: 0 }, sceneApi: { current: null }, visible: true }))
+    expect(html).not.toContain('wlPillLine')
+    expect(html).toContain('<span class="wlGhost"></span>')                       // полосок-детей у «тени» больше нет
   })
 })
 
