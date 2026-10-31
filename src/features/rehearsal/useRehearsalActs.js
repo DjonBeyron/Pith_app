@@ -17,6 +17,7 @@ import { warmCountdown, releaseCountdown } from './rehearsalCountdownSound.js'
 import { createCountGate, scheduleStageCount } from './rehearsalCountdownRun.js'
 import { lineVoiced } from './rehearsalQuiet.js'
 import { usePitQuiet } from './usePitQuiet.js'
+import { plateCueMs } from './rehearsalConveyorCue.js'
 
 // Директор «Репетиции с Питом» поверх useWordLaneFlow: всё, что сценарию актов нужно сверх обычной игры, — в одном хуке; директору остаются точки подключения (его next / стадии / реакции движка).
 //  • журнал актов (rec ← реакции движка win / miss / fail): по нему решаются повтор ступени сборки, сокращение акта 4 и пропуск «Различи» (nextIdx), подпись слабого слова в «без текста» (hintLanes), итог (reportSession);
@@ -135,6 +136,8 @@ export function useRehearsalActs({ plan, stages, stage, at, stageObj, setS, sayL
     nextIdx,
     /** Сколько держать плашку (announce / turn): пока Пит договорит прошлую реплику и скажет свою */
     holdMs: st => (!on || (!st?.line && !st?.count) ? st.ms : timingOf(st).holdMs),
+    /** Конец сигнала перед пилюлями на плашке (мс от её начала: реплика Пита / последняя нота): от него зажигается конвейер (wordLaneConveyorStart.js); null — сигнала нет, берётся конец плашки */
+    cueMs: st => (on && (st?.line || st?.count) ? plateCueMs({ order: st.count ?? null, timing: timingOf(st), lineMs: st.line ? lineMs(fillLine(lines?.[st.line]), rate) : 0, voiced: lineVoiced(lines, st.line) }) : null),
     /** Дорожки со слабыми словами разминки: в «без текста» у них видна подпись */
     hintLanes: st => (on && st?.act === 'blind' && st.type === 'student' ? weakLanes(journal, stages) : []),
   }
