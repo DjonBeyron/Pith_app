@@ -1,0 +1,78 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Серая кошка — видео</title>
+<style>
+html, body { margin: 0; height: 100%; overflow: hidden; background: radial-gradient(120% 90% at 50% 38%, #f6ecf3 0%, #dccbe2 55%, #b8a3c8 100%); font-family: system-ui, "Helvetica Neue", Arial, sans-serif; }
+#cat { position: absolute; inset: 0; width: 100%; height: 100%; }
+#sub { position: absolute; left: 5%; right: 5%; bottom: 4%; text-align: center; color: #2b2133; opacity: 0; background: rgba(255,255,255,.82); border-radius: 22px; padding: 14px 18px 12px; box-shadow: 0 4px 18px rgba(43,33,51,.22); }
+#sub b { display: block; font-size: 34px; line-height: 1.15; font-weight: 700; letter-spacing: .2px; }
+#sub i { display: block; margin-top: 6px; font-size: 21px; font-style: normal; opacity: .72; }
+</style></head><body>
+<svg id="cat" xmlns="http://www.w3.org/2000/svg" viewBox="46 -17 500 889" preserveAspectRatio="xMidYMid slice"><defs><radialGradient id="sh"><stop offset="0" stop-color="#2b2133" stop-opacity=".30"/><stop offset="1" stop-color="#2b2133" stop-opacity="0"/></radialGradient></defs>
+<ellipse cx="300" cy="742" rx="250" ry="26" fill="url(#sh)"/>
+<g id="tailT"><g id="tailR"></g></g><g id="body"></g><g id="head"><g id="tilt"></g></g></svg>
+<div id="sub"><b></b><i></i></div>
+<script>
+const SP = __SPRITE__, TL = __TIMELINE__;
+const $ = id => document.getElementById(id), Q = (r, c) => r.querySelector('.' + c);
+const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v)), sm = x => { x = clamp(x); return x * x * (3 - 2 * x) }, lerp = (a, b, k) => a + (b - a) * k;
+const [bx, by] = SP.tailBase; $('tailT').setAttribute('transform', `translate(${bx} ${by})`);
+$('tailR').innerHTML = SP.tail; $('body').innerHTML = SP.body;
+$('tilt').innerHTML = SP.head + '<g id="eyes"></g>';
+const eyes = $('eyes'), brows = Q($('tilt'), 'brows'), dc = Q($('tilt'), 'dc'), mouth = Q($('tilt'), 'mouth');
+const mm = Q($('tilt'), 'mm'), mt = Q($('tilt'), 'mt'), mf = Q($('tilt'), 'mf'), ml = Q($('tilt'), 'ml'), wh = [...$('tilt').querySelectorAll('.wh')];
+eyes.innerHTML = SP.states.base.eyes;
+const bodyBB = $('body').getBBox(), headBB = $('head').getBBox(), eyeBB = eyes.getBBox();
+const whBB = wh.map(w => w.getBBox());
+let curFace = null, faceSince = -9, prevFace = 'base', blinkAt = -9;
+
+const faceAt = t => { let f = TL.faces[0]; for (const x of TL.faces) if (x[0] <= t) f = x; return f };
+function talkAmount(t) { let v = 0; for (const l of TL.lines) v = Math.max(v, clamp((t - l.start + 0.05) / 0.3) * clamp((l.start + l.dur + 0.25 - t) / 0.3)); return v }
+function visemeAt(t) { for (const l of TL.lines) if (t >= l.start && t < l.start + l.dur) { const r = t - l.start; for (const c of l.cues) if (r >= c[0] && r < c[1]) return c[2] } return 'X' }
+function setFace(name, t) {
+  prevFace = curFace || 'base'; curFace = name; faceSince = t; const s = SP.states[name];
+  eyes.innerHTML = s.eyes; brows.innerHTML = s.brows; dc.innerHTML = s.deco || ''; blinkAt = t;      // смена лица прячется за морганием
+}
+function setMouth(code, face) {
+  let e = SP.mouthTable[code]; if (code === 'X' && SP.states[face].mouth) e = { t: '', f: '', m: { d: SP.states[face].mouth, fill: 'none', sw: 6 } };
+  mm.setAttribute('d', e.m.d); mm.setAttribute('fill', e.m.fill); mm.setAttribute('stroke-width', e.m.sw); mt.setAttribute('d', e.t); mf.setAttribute('d', e.f); ml.setAttribute('d', e.l ? e.l.d : '');
+  if (e.l) ml.setAttribute('stroke-width', e.l.sw);
+  mouth.removeAttribute('transform'); mt.removeAttribute('transform');
+  if (code === 'D' || code === 'E') { const b = mouth.getBBox(), cx = b.x + b.width / 2, cy = b.y + b.height * 0.1; mouth.setAttribute('transform', `translate(${cx} ${cy}) scale(1.18) translate(${-cx} ${-cy})`) }   // как scene-v2-pit.css
+  if (code === 'D' && e.t) { const b = mt.getBBox(), cx = b.x + b.width / 2; mt.setAttribute('transform', `translate(${cx} ${b.y}) scale(1.2) translate(${-cx} ${-b.y})`) }
+}
+const rotAbout = (a, cx, cy) => `rotate(${a} ${cx} ${cy})`;
+
+function render(t) {
+  const f = faceAt(t)[1]; if (f !== curFace) setFace(f, t);
+  const talk = talkAmount(t), st = SP.states[f], ps = SP.states[prevFace];
+  setMouth(visemeAt(t), f);
+  // усы: вокруг корня у морды, как scene-v2-pit.css (верхние и нижние — с разным периодом и фазой)
+  wh.forEach((w, i) => {
+    const c = w.getAttribute('class'), left = c.includes('wh-l'), low = c.includes('wh-d'), per = low ? 0.72 : 0.6, ph = low ? -0.25 : 0, b = whBB[i];
+    const k = 0.5 - 0.5 * Math.cos(2 * Math.PI * (t + ph) / per), a = left ? lerp(4, -3, k) * talk : lerp(-4, 3, k) * talk;
+    w.setAttribute('transform', rotAbout(a, left ? b.x + b.width : b.x, b.y + b.height / 2));
+  });
+  // голова: покачивание 4,4 с + кивок при речи 0,9 с; тело дышит 3,6 с; хвост 2,8 с (амплитуды движка ×2 — на весь экран иначе почти не видно)
+  const sway = -1.4 * Math.cos(2 * Math.PI * t / 4.4) * 2, nodA = -0.4 * talk * Math.cos(2 * Math.PI * t / 0.9) * 2, nodY = -talk * (1 - Math.cos(2 * Math.PI * t / 0.9)) * 2;
+  const ox = headBB.x + headBB.width / 2, oy = headBB.y + headBB.height * 0.85;
+  $('head').setAttribute('transform', `translate(${ox} ${oy}) rotate(${sway + nodA}) translate(0 ${nodY}) translate(${-ox} ${-oy})`);
+  const br = 0.5 - 0.5 * Math.cos(2 * Math.PI * t / 3.6), sx = 1 + 0.01 * br * 2, sy = 1 + 0.025 * br * 2, bcx = bodyBB.x + bodyBB.width / 2, bcy = bodyBB.y + bodyBB.height;
+  $('body').setAttribute('transform', `translate(${bcx} ${bcy}) scale(${sx} ${sy}) translate(${-bcx} ${-bcy})`);
+  const tk = 0.5 - 0.5 * Math.cos(2 * Math.PI * t / 2.8); $('tailR').setAttribute('transform', `rotate(${lerp(-9 - 4 * talk, 10 + 4 * talk, tk) * 1.4})`);
+  // наклон головы и зрачки по лицу: плавно (0,3 с / 0,35 с), от предыдущего лица
+  const k3 = sm((t - faceSince) / 0.3), k35 = sm((t - faceSince) / 0.35);
+  Q($('tilt'), 'brows'); $('tilt').setAttribute('transform', `rotate(${lerp(ps.tilt, st.tilt, k3) * 1.0} 297 440)`);
+  const pa = lerp(ps.pupil[0], st.pupil[0], k35), pb = lerp(ps.pupil[1], st.pupil[1], k35);
+  eyes.querySelectorAll('.pu').forEach(p => { p.style.transformBox = 'fill-box'; p.style.transformOrigin = '50% 50%'; p.style.transform = `scale(${pa} ${pb})` });
+  // моргание: раз в 4,2 с и при смене лица (0,18 с)
+  const per = ((t + 1.0) % 4.2) / 4.2, nat = per < 0.93 ? 1 : per < 0.95 ? lerp(1, 0.08, (per - 0.93) / 0.02) : per < 0.97 ? 0.08 : lerp(0.08, 1, (per - 0.97) / 0.03);
+  const bl = t - blinkAt, forced = bl >= 0 && bl < 0.18 ? 1 - 0.92 * Math.sin(Math.PI * bl / 0.18) : 1, ey = Math.min(nat, forced), ecx = eyeBB.x + eyeBB.width / 2, ecy = eyeBB.y + eyeBB.height / 2;
+  eyes.setAttribute('transform', `translate(${ecx} ${ecy}) scale(1 ${ey}) translate(${-ecx} ${-ecy})`);
+  // камера: медленный наезд на лицо (1 → 1,18), центр кадра поднимается к голове
+  const kz = sm(t / TL.total), z = 1 + 0.18 * kz, W = 500 / z, Hh = 889 / z, cx = 296, cy = lerp(392, 318, kz);
+  $('cat').setAttribute('viewBox', `${cx - W / 2} ${cy - Hh / 2} ${W} ${Hh}`);
+  // субтитры: текущая реплика (английский + русский)
+  const L = TL.lines.find(l => t >= l.start - 0.1 && t <= l.start + l.dur + 0.5), sub = $('sub');
+  if (L) { sub.firstChild.textContent = L.text; sub.lastChild.textContent = L.tr; sub.style.opacity = Math.min(clamp((t - L.start + 0.1) / 0.15), clamp((L.start + L.dur + 0.5 - t) / 0.25)) } else sub.style.opacity = 0;
+}
+setFace('base', -9); render(0);
+</script></body></html>
