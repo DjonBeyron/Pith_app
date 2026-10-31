@@ -1,80 +1,68 @@
-/* «Дубль и зеркало» (акт 5 репетиции, src/features/rehearsal/mirror/): экран сравнения — две полосы (Пит / Ты) с пилюлями кусков по таймингам, «Сравнить», заметка Пита, «Дальше».
-   Стиль игры «Повтори за диктором» (word-lane.css): тёмный фон, цвета дорожек --lvl1..3 (кусок i → дорожка i % 3), акцент --wl-accent. Анимации — только opacity и transform.
-   Раскладка рассчитана на 375 px: боковые поля 16 px, полоса — вся ширина, пилюли — проценты ширины полосы (left / width из mirrorLane.js). */
-.wlMirror {
-  --wl-bg: #0e1116;
-  --wl-card: #14171c;
-  --wl-accent: var(--lvl1, #b6fe3b);
-  --wl-ink: #0d1500;
-  box-sizing: border-box;
-  width: 100%;
-  min-height: 100%;
-  padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  background: var(--wl-bg);
-  color: #f2f3f7;
-  font-family: inherit;
-}
+/* «Дубль и зеркало» на дорожках (v3.3.86, акт 5 репетиции; features/rehearsal/mirror/MirrorCompare.jsx, сцена движка wordLaneMirrorScene.js). Отдельного экрана нет: дорожки встают сами, на них две ленты пилюль —
+   верхняя Пит, нижняя ты (кусок i на дорожке i, цвет пилюли — цвет дорожки), под ними кнопки, над дорожками одна заметка Пита на месте ярлыков (.rhTag). Раскладка в процентах экрана, рассчитана на 375 px.
+   Пилюли — из общего пула (.wlPill): data-still = pit | you — стоят на месте и дорожек не запускают; data-tag — подпись на самой пилюле; data-voice — кусок звучит (общее свечение «Различи», word-lane-pill.css);
+   пропуск — data-wrong (полоски, word-lane-pill-wrong.css). Анимации — только opacity и свойство filter из общего свечения; на слабом устройстве и при reduced-motion их нет. */
 
-.wlMirHead { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px; font-size: 12px; color: #9aa0b4; }
-.wlMirHead b { font-size: 13px; font-weight: 800; color: #f2f3f7; }
+/* Лента появляется плавно, когда дорожки уже тормозят: Пит сразу, «ты» чуть позже */
+.wlPill[data-still] { animation: rhStillIn 0.6s ease-out both; }
+.wlPill[data-still='you'] { animation-delay: 0.3s; }
+@keyframes rhStillIn { from { opacity: 0; } to { opacity: 1; } }
 
-/* Полоса: тёмная плашка, пилюли и зазоры лежат поверх по left / width в процентах */
-.wlMirTrack { position: relative; height: 46px; border-radius: 12px; background: var(--wl-card); overflow: hidden; }
-
-.wlMirPill {
-  --c: var(--lvl1, #b6fe3b);
-  --rgb: var(--lvl1-rgb, 182, 254, 59);
+/* Маленькая подпись на самой пилюле («Пит» / «Ты»), над ней, по центру; рисуется ::after (узлов не прибавляет; кольцо-подсказка data-hint здесь не бывает) */
+.wlPill[data-tag]::after {
+  content: attr(data-tag);
   position: absolute;
-  top: 6px;
-  bottom: 6px;
-  min-width: 38px;
-  box-sizing: border-box;
-  padding: 0 4px;
-  border: 2px solid rgba(var(--rgb), 0.9);
-  border-radius: 999px;
-  background: rgba(var(--rgb), 0.14);
-  color: #f2f3f7;
-  font-size: 12px;
-  font-weight: 700;
-  line-height: 30px;
-  text-align: center;
+  left: 50%;
+  bottom: calc(100% + 5px);
+  transform: translateX(-50%);
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  opacity: 0.6;
-  transition: opacity 0.15s linear, transform 0.15s ease-out;
+  color: rgba(var(--rgb), 0.95);
+  pointer-events: none;
 }
-.wlMirPill[data-lane='1'] { --c: var(--lvl2, #4fb3ee); --rgb: var(--lvl2-rgb, 79, 179, 238); }
-.wlMirPill[data-lane='2'] { --c: var(--lvl3, #9a76f8); --rgb: var(--lvl3-rgb, 154, 118, 248); }
-/* Загорается по ходу звука: слой цвета дорожки проявляется (opacity), пилюля чуть крупнее (transform) */
-.wlMirPill::after { content: ''; position: absolute; inset: 0; background: rgba(var(--rgb), 0.42); opacity: 0; transition: opacity 0.15s linear; pointer-events: none; }
-.wlMirPill[data-lit] { opacity: 1; transform: scale(1.06); }
-.wlMirPill[data-lit]::after { opacity: 1; }
-/* Пропущенный кусок: пустое место с пунктирным контуром */
-.wlMirPill[data-ghost] { border-style: dashed; border-color: rgba(var(--rgb), 0.55); background: transparent; color: #9aa0b4; opacity: 0.9; }
-/* Нет слов диктора по кускам — одна общая полоса длины */
-.wlMirPill--whole { opacity: 0.35; }
-/* Пауза длиннее, чем у диктора: подсвеченный зазор между пилюлями */
-.wlMirGap { position: absolute; top: 10px; bottom: 10px; min-width: 6px; border-radius: 6px; background: rgba(255, 180, 74, 0.28); border: 1px dashed rgba(255, 180, 74, 0.85); box-sizing: border-box; }
 
-.wlMirBtn { min-height: 48px; padding: 0 20px; border: 1px solid #3a3d46; border-radius: 14px; background: transparent; color: #e0e3ec; font: inherit; font-size: 15px; font-weight: 700; cursor: pointer; }
-.wlMirBtn:disabled { opacity: 0.6; cursor: default; }
-.wlMirBtn--main { margin-top: auto; border: 0; background: var(--wl-accent); color: var(--wl-ink); }
-
-/* Заметка Пита — одна, коротко */
-.wlMirNote { margin: 0; padding: 12px 14px; border-left: 3px solid var(--wl-accent); border-radius: 12px; background: var(--wl-card); font-size: 15px; line-height: 1.4; overflow-wrap: anywhere; }
-.wlMirNote::before { content: 'Пит'; display: block; margin-bottom: 2px; font-size: 11px; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; color: var(--wl-accent); }
-.wlMirNote[data-key='fail'] { border-left-color: #c26a6a; }
-.wlMirNote[data-key='fail']::before { color: #c26a6a; }
-
-.wlMirErr { margin: 0; padding: 10px 14px; border-left: 3px solid #c26a6a; border-radius: 12px; background: var(--wl-card); color: #e8b4b4; font-size: 14px; line-height: 1.4; } /* запись не играет ни в <audio>, ни буфером (useMirrorPlayback.NO_PLAY_TEXT) */
-
-/* Демо-блок админки (MirrorDemoBlock.jsx): экран зеркала в рамке ширины телефона */
-.wlMirDemoFrame { max-width: 420px; margin: 10px 0; border: 1px solid #2a2e37; border-radius: 16px; overflow: hidden; }
-
+/* Слабое устройство (.wl--lite на поле, .weak-device на <html>): пилюли появляются сразу, звучащая — статично белым контуром, без свечения (filter) и перехода */
+.wl--lite .wlPill[data-still], .weak-device .wlPill[data-still] { animation: none; }
+.wl--lite .wlPill[data-still][data-voice], .weak-device .wlPill[data-still][data-voice] { filter: none; transition: none; border-color: #fff; }
 @media (prefers-reduced-motion: reduce) {
-  .wlMirPill, .wlMirPill::after { transition: none; }
+  .wlPill[data-still] { animation: none; }
+  .wlPill[data-still][data-voice] { transition: none; }
 }
+
+/* Заметка Пита: одна, подписью над дорожками на месте ярлыков, до трёх строк; мягко проявляется, когда сравнение прозвучало */
+.rhNote {
+  left: 50%;
+  top: 11.5%;
+  transform: translateX(-50%);
+  width: calc(100% - 32px);
+  max-width: 420px;
+  box-sizing: border-box;
+  padding: 6px 14px;
+  border-radius: 14px;
+  border: 1.5px solid var(--wl-accent);
+  background: rgba(11, 13, 17, 0.92);
+  color: #f2f3f7;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.3;
+  text-align: center;
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
+  z-index: 4;
+  pointer-events: none;
+  animation: rhFade 0.4s ease-out both;
+}
+.rhNote[data-key='fail'], .rhNote[data-key='error'] { border-color: #c26a6a; color: #e8b4b4; }
+
+/* Кнопки под лентой «ты»: «Сравнить» / «Ещё раз» и «Дальше» (в итог). Не у самого нижнего края: там кот (Пит) выглядывает в разных местах экрана (--cat-x) и перекрыл бы кнопку; полоса 71–80 % между нижней пилюлей (до 68 %) и макушкой кота свободна */
+.rhCmpBar { left: 0; right: 0; top: 71%; box-sizing: border-box; padding: 0 16px; display: flex; justify-content: center; gap: 10px; z-index: 6; }
+.rhCmpBtn { min-width: 0; min-height: 48px; padding: 0 22px; border: 1.5px solid #3a4150; border-radius: 14px; background: rgba(20, 23, 28, 0.92); color: #f2f3f7; font: inherit; font-size: 15px; font-weight: 800; cursor: pointer; }
+.rhCmpBtn:disabled { opacity: 0.6; cursor: default; }
+.rhCmpBtn--main { border: 0; background: var(--wl-accent); color: var(--wl-ink); }

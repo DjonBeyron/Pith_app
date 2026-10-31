@@ -3,8 +3,7 @@ import { createLane, stepLane, laneLook, settled, PERIOD, WAVE_PAD } from './wor
 // Привод конвейера: один rAF на все три дорожки (по образцу scene/v2/whiskerDrive.js). Каждый кадр — шаг модели (wordLaneConveyor.js) для каждой дорожки и запись трёх CSS-переменных в её колонку
 // .wlLanes i: --run-y (сдвиг пунктира, dvh — едет transform ::before), --run-a (прозрачность штрихов — яркость), --run-w (позиция волны «зажигания» вдоль пунктира; 999dvh — волны нет, всё горит ровно).
 // Стили — word-lane-lane-run.css. Запись только при изменении значения. Все дорожки встали (idle) — цикл засыпает сам; будят его команда (setArmed), появление / уход пилюль и снятие паузы.
-// Пилюли на дорожке считаются по DOM: у взятой из пула пилюли стоит data-held, дорожка — data-lane (wordLanePool.take); give снимает data-held. MutationObserver на корне поля срабатывает только на эти два
-// признака — движок пилюль (useWordLanePills) трогать не нужно. Слабое устройство (wl--lite) и reduced-motion (still): без движения, только яркость (волны тоже нет). Пауза игры — привод стоит, состояние сохраняется.
+// Пилюли на дорожке считаются по DOM: у взятой из пула пилюли стоит data-held, дорожка — data-lane (wordLanePool.take); give снимает data-held. Пилюли, стоящие на месте (data-still: «Дубль и зеркало» на дорожках, wordLaneMirrorScene.js), не считаются: дорожки под ними остановлены. MutationObserver на корне поля срабатывает только на эти признаки — движок пилюль (useWordLanePills) трогать не нужно. Слабое устройство (wl--lite) и reduced-motion (still): без движения, только яркость (волны тоже нет). Пауза игры — привод стоит, состояние сохраняется.
 export const MAX_DT = 64        // шаг модели за кадр не больше 64 мс: после паузы вкладки разгон не перепрыгивает
 export const NO_WAVE = '999dvh'
 
@@ -16,7 +15,7 @@ export const waveLocal = (wave, y) => `${(-WAVE_PAD + wave * (100 + 2 * WAVE_PAD
 export function createConveyorDrive({
   root, still = false, now = () => globalThis.performance.now(),
   raf = f => globalThis.requestAnimationFrame(f), caf = i => globalThis.cancelAnimationFrame(i),
-  observe = (el, fn) => { const o = new globalThis.MutationObserver(fn); o.observe(el, { subtree: true, attributes: true, attributeFilter: ['data-held', 'data-lane'] }); return () => o.disconnect() },
+  observe = (el, fn) => { const o = new globalThis.MutationObserver(fn); o.observe(el, { subtree: true, attributes: true, attributeFilter: ['data-held', 'data-lane', 'data-still'] }); return () => o.disconnect() },
 }) {
   const cols = [...root.querySelectorAll('.wlLanes i')]
   const lanes = cols.map(createLane)
@@ -43,7 +42,7 @@ export function createConveyorDrive({
   const wake = () => { if (id === null && !paused && cols.length) { last = now(); id = raf(frame) } }
   const recount = () => {
     pills = cols.map(() => 0)
-    for (const el of root.querySelectorAll('.wlPill[data-held]')) { const k = Number(el.dataset.lane); if (k >= 0 && k < pills.length) pills[k] += 1 }
+    for (const el of root.querySelectorAll('.wlPill[data-held]:not([data-still])')) { const k = Number(el.dataset.lane); if (k >= 0 && k < pills.length) pills[k] += 1 }
     wake()
   }
   const stopObserving = observe(root, recount)

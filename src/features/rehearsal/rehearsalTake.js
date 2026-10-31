@@ -6,7 +6,7 @@
 //    'no-record') → take = null: зеркало покажет полосу диктора и заметку о сбое (noteFor(null)). finish не бросает;
 //  cancel() — вышли из игры или стадии до конца: запись отменяется.
 import { recordTake } from './mirror/takeRecorder.js'
-import { libraryRms } from './mirror/dictorFromLibrary.js'
+import { libraryRms } from './mirror/libraryRms.js'
 import { makeMirrorDictor, takeWordsOf, buildMirror } from './rehearsalMirror.js'
 
 export const TAKE_MAX_MS = 9000     // потолок записи дубля

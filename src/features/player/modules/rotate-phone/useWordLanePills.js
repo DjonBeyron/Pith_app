@@ -6,6 +6,7 @@ import { createVoiceGate } from './wordLaneVoiceGate.js'
 import { snapPill, missPill, SNAP_LEAD_MS } from './wordLaneSnap.js'
 import { runOrderScene } from './wordLaneOrderScene.js'
 import { riseRep } from './wordLaneDictorRise.js'
+import { runMirrorScene } from './wordLaneMirrorScene.js'
 
 // Движок пилюль игры «Повтори за диктором». ДВИЖЕНИЕ пилюль ведёт композитор (wordLaneMotion.js: одна линейная WAAPI-анимация на пилюлю — скорость конвейера постоянна), поэтому лаги основного
 // потока на смартфонах (Vosk, React, щелчок с искрами) на ход не влияют. JS каждый кадр считает только логику и заливку. Пилюли — из пула (wordLanePool.js): живой повтор один (до трёх кусков) плюс догоняющие вниз пилюли предыдущих повторов.
@@ -17,7 +18,8 @@ import { riseRep } from './wordLaneDictorRise.js'
 //            (spawn / piece-ok / claim / snap / win / fail / miss / done) → пилюли и реакции fx. Заливка p всех пилюль повтора считается одним шагом stepStudent, а тут за кадр просто рисуется (paintFill) —
 //            голос показывает только пилюля ТЕКУЩЕГО куска («в процессе» — бледная, дышит с голосом: до подтверждения речи распознаванием — слегка, после — до 85 %); кусок, чьи слова произнесены, защёлкивается сразу (piece-ok →
 //            data-lock, зелёная сплошная), не дожидаясь конца повтора; красная вспышка (miss) — на первом незащёлкнутом куске; «тень» слова внутри пилюли — лишь после неверно сказанного;
-//  order   — { prompts, lanes, count }: раунд «Порядок» на время (wordLaneOrderScene.js) — на подсказку диктора выкатываются пилюли во всех дорожках, sceneApi.current.tap(lane) — тап ученика (у сцены student — nextTarget() для ручного режима).
+//  order   — { prompts, lanes, count }: раунд «Порядок» на время (wordLaneOrderScene.js) — на подсказку диктора выкатываются пилюли во всех дорожках, sceneApi.current.tap(lane) — тап ученика (у сцены student — nextTarget() для ручного режима);
+//  mirror  — { layout }: «Дубль и зеркало» (wordLaneMirrorScene.js) — на остановившихся дорожках две ленты пилюль без полёта (Пит / ты); sceneApi.current.lit(side, i) подсвечивает звучащий кусок.
 // fx — реакции игры: win(order, rect) — пилюля ученика принята (XP, нота, кот), miss() — чужое слово, fail(info) — не успел, mouth(level, code) — рот кота (code — форма по букве, у диктора), say(parts) — диктор называет подсказку (раунд «Порядок»), finished(locked) — ступень закончена.
 const setApi = (ref, value) => { if (ref) ref.current = value } // ref приходит пропсом — меняем его вне компонента
 
@@ -140,6 +142,14 @@ export function useWordLanePills(rootRef, { scene, levels, fx, live, sceneApi })
     if (kind === 'order') {
       setDots(0)
       const run = runOrderScene({ pool, scene, fxRef })
+      setApi(sceneApi, run.api)
+      return () => { run.stop(); setApi(sceneApi, null); pool.giveAll() }
+    }
+
+    // ---------- зеркало (сравнение на дорожках) ----------
+    if (kind === 'mirror') {
+      setDots(0)
+      const run = runMirrorScene({ pool, scene })
       setApi(sceneApi, run.api)
       return () => { run.stop(); setApi(sceneApi, null); pool.giveAll() }
     }

@@ -6,7 +6,7 @@ import RehearsalActs from './RehearsalActs.jsx'
 import RehearsalSummary from './RehearsalSummary.jsx'
 import { useRehearsalActs, STUCK_MS, LINE_AT_MS } from './useRehearsalActs.js'
 import { fixturePlan } from './rehearsalFixtures.js'
-import { buildRehearsalStages } from './rehearsalStages.js'
+import { buildRehearsalStages, labelsForRehearsal } from './rehearsalStages.js'
 import { createJournal, record } from './rehearsalJournal.js'
 import { normalizeLines } from '../player/modules/rotate-phone/wordLaneCatLines.js'
 import { buildMirror, tempoLabel } from './rehearsalMirror.js'
@@ -49,21 +49,29 @@ describe('интерфейс актов', () => {
     expect(css).toMatch(/\.rhTag \{[^}]*white-space: nowrap[^}]*text-overflow: ellipsis/)
     expect(css).toMatch(/\.rhTag \{[^}]*max-width: calc\(100% - 32px\)/)
   })
-  it('зеркало: экран сравнения «Пит / Ты» (WordLaneMirror) на весь экран вместо заглушки, заметка Пита, «Сравнить» и «Дальше»', () => {
+  it('зеркало на дорожках: нет отдельного экрана — только «Сравнить», «Дальше» и аудио записи; заметка Пита появляется после прослушивания', () => {
     const dictor = { ...DICTOR, leadMs: 0, play() {}, cancel() {} }
     const words = STUDENT_CLEAN.words.map(w => ({ ...w, start: w.start * 1000, end: w.end * 1000 }))
     const mirror = buildMirror({ chunks: CHUNKS, take: { url: 'blob:take', durationMs: 2600, rms: 0.09 }, words, dictor })
     const out = html(RehearsalActs, { f: baseF({ stageObj: { type: 'mirror' }, phase: 'mirror', rh: { on: true, tag: '', result: null, mirror } }), cfg })
-    expect(out).toContain('class="rhScreen rhMirror"'); expect(out).toContain('data-testid="rh-mirror"'); expect(out).toContain('data-testid="wl-mirror"')
-    expect(out).toContain('<b>Пит</b>'); expect(out).toContain('<b>Ты</b>'); expect(out).toContain('data-testid="wl-mirror-compare"'); expect(out).toContain('>Сравнить<'); expect(out).toContain('data-testid="wl-mirror-done"')
-    expect(out).toContain('Порядок верный, темп мой. Чисто.'); expect(out).toContain('<audio src="blob:take"')
-    expect(out).not.toContain('Зеркало — скоро'); expect(out).not.toContain('rh-mirror-next')
+    expect(out).toContain('data-testid="rh-mirror"'); expect(out).toContain('class="rhCmpBar"'); expect(out).toContain('data-testid="rh-mirror-compare"'); expect(out).toContain('>Сравнить<'); expect(out).toContain('data-testid="rh-mirror-done"'); expect(out).toContain('>Дальше<')
+    expect(out).toContain('<audio src="blob:take"')
+    expect(out).not.toContain('rh-mirror-note') // заметка — после того, как сравнение прозвучало
+    for (const old of ['rhScreen', 'rhMirror', 'wl-mirror', 'wlMirLane', '<b>Пит</b>', '<b>Ты</b>', 'Зеркало — скоро']) expect(out).not.toContain(old)
+    expect(buildMirror({ chunks: CHUNKS, take: { url: 'blob:take', durationMs: 2600, rms: 0.09 }, words, dictor }).note.text).toBe('Порядок верный, темп мой. Чисто.')
   })
-  it('зеркало без записи (сбой): полоса Пита, «Послушать», заметка о сбое; без данных зеркала экран не рисуется', () => {
+  it('зеркало без записи (сбой): «Послушать» и заметка о сбое сразу; без данных зеркала ничего не рисуется', () => {
     const mirror = { dictor: { ...DICTOR, leadMs: 0, play() {} }, student: null, measure: null, note: noteFor(null), tempo: null }
     const out = html(RehearsalActs, { f: baseF({ stageObj: { type: 'mirror' }, phase: 'mirror', rh: { on: true, tag: '', result: null, mirror } }), cfg })
-    expect(out).toContain('data-fail="true"'); expect(out).not.toContain('<b>Ты</b>'); expect(out).toContain('>Послушать<'); expect(out).toContain('Запись не получилась')
+    expect(out).toContain('data-fail="true"'); expect(out).toContain('>Послушать<'); expect(out).toContain('Запись не получилась'); expect(out).toContain('data-testid="rh-mirror-note"'); expect(out).toContain('data-key="fail"'); expect(out).not.toContain('<audio')
     expect(html(RehearsalActs, { f: baseF({ stageObj: { type: 'mirror' }, phase: 'mirror' }), cfg })).not.toContain('rh-mirror')
+  })
+  it('пока Пит говорит (rh.quiet) кнопок и заметки зеркала нет; ярлыки дорожек стадии mirror — куски фразы над своими дорожками', () => {
+    const mirror = { dictor: { ...DICTOR, leadMs: 0, play() {} }, student: null, measure: null, note: noteFor(null), tempo: null }
+    expect(html(RehearsalActs, { f: baseF({ stageObj: { type: 'mirror' }, phase: 'mirror', rh: { on: true, tag: '', quiet: true, mirror } }), cfg })).toBe('')
+    const mir = buildRehearsalStages({ plan, rate: 1, lib: () => null }).stages.find(s => s.type === 'mirror')
+    expect(labelsForRehearsal(mir, CHUNKS)).toEqual([{ text: "I'm", on: true }, { text: 'trying', on: true }, { text: 'to learn', on: true }])
+    expect(labelsForRehearsal(mir, ['hello'])).toEqual([{ text: '', on: false }, { text: 'hello', on: true }, { text: '', on: false }]) // одно слово — на средней дорожке
   })
   it('итог: фраза, перевод, темп, заметка Пита, XP, «Ещё минутку?» и «Готово»', () => {
     const result = { xp: 2, capped: false, tempo: 1.3, note: { key: 'tempo', text: 'Ты медленнее меня на 30 %.' } }
@@ -187,11 +195,13 @@ describe('useRehearsalActs', () => {
     expect(go).toHaveBeenCalledTimes(3)
     expect(rh.mirror).toBeNull()
   })
-  it('стадия mirror без дубля (take обошли): экран зеркала всё равно есть — диктор и заметка о сбое', () => {
+  it('стадия mirror без дубля (take обошли): зеркало всё равно есть — диктор и заметка о сбое', () => {
     const { rh, stages } = probe({ stageObj: undefined })
-    expect(rh.mirror).toBeNull()
-    const m = probe({ stageObj: stages.find(s => s.type === 'mirror') }).rh.mirror
+    expect(rh.mirror).toBeNull(); expect(rh.compare).toBeNull()
+    const mp = probe({ stageObj: stages.find(s => s.type === 'mirror') }).rh
+    const m = mp.mirror
     expect(m.student).toBeNull(); expect(m.measure).toBeNull(); expect(m.note.key).toBe('fail'); expect(m.dictor.words.length).toBeGreaterThan(0)
+    expect(mp.compare.pit).toHaveLength(3); expect(mp.compare.you).toEqual([]) // на дорожках только лента Пита
   })
   it('без плана: leave тоже сразу go, зеркала нет', () => {
     const go = vi.fn(); const { rh } = probe({ plan: null, stageObj: { type: 'take' } })

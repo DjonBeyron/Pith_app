@@ -232,8 +232,8 @@ export function useWordLaneFlow({ chunks, translation, lang, clips = null, audio
     if (kind === 'dictor') return { kind: 'dictor', plan: stageObj.plan, at: s.at }
     if (kind === 'student') return { kind: 'student', step: stageObj.step, chunks: stageObj.step.chunks ?? chunks, estMs: c => (stageObj.step.chunkMs ?? chunkMs)[c], curves: chunkCurves, at: s.at }
     if (kind === 'order' || kind === 'discern') return { kind: 'order', prompts: stageObj.prompts, lanes, count: chunks.length, at: s.at }
-    return IDLE
-  }, [s.stage, s.at, stageObj, chunks, chunkMs, chunkCurves, lanes])
+    return kind === 'mirror' && rh.compare ? { kind: 'mirror', layout: rh.compare, at: s.at } : IDLE // «Дубль и зеркало»: сравнение на остановленных дорожках (rh.compare — раскладка, когда Пит договорил)
+  }, [s.stage, s.at, stageObj, chunks, chunkMs, chunkCurves, lanes, rh.compare])
 
   // «Слух» для движка пилюль: меняется только когда продвинулся счёт слов / промахов (не на каждую перерисовку) — иначе мемоизированные пилюли перерисовывались бы вместе с оверлеем.
   // signal: недосказанная цель и когда распознаватель последний раз что-то слышал (повторный черновик с тем же текстом слушатель пропускает, но «слышал» отмечает — heardAt)

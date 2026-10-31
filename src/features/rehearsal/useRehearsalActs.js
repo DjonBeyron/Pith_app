@@ -18,6 +18,7 @@ import { createCountGate, scheduleStageCount } from './rehearsalCountdownRun.js'
 import { lineVoiced } from './rehearsalQuiet.js'
 import { usePitQuiet } from './usePitQuiet.js'
 import { plateCueMs } from './rehearsalConveyorCue.js'
+import { useCompareScene } from './mirror/useCompareScene.js'
 
 // Директор «Репетиции с Питом» поверх useWordLaneFlow: всё, что сценарию актов нужно сверх обычной игры, — в одном хуке; директору остаются точки подключения (его next / стадии / реакции движка).
 //  • журнал актов (rec ← реакции движка win / miss / fail): по нему решаются повтор ступени сборки, сокращение акта 4 и пропуск «Различи» (nextIdx), подпись слабого слова в «без текста» (hintLanes), итог (reportSession);
@@ -26,7 +27,7 @@ import { plateCueMs } from './rehearsalConveyorCue.js'
 //  • тишина экрана (rehearsalQuiet.js, usePitQuiet.js): пока Пит говорит озвученную реплику на старте стадии, rh.quiet — плашка, подписи, перевод и экраны скрыты, видны только дорожки и кот; rh.plateOk — плашка может быть на экране;
 //  • вступление и итог — по номеру запуска в тапе (plan.run, rehearsalLines.sessionLine): первый — rh_start / rh_done, «Ещё минутку?» — rh_start_b / rh_done_b;
 //  • подсветка куска в читке (hl: один таймер по stage.metro, rehearsalMetro.js), «застрял 3 с» в акте «без текста» (слушатель молчит STUCK_MS — Пит подсказывает первое слово, подпись куска на HINT_LABEL_MS);
-//  • дубль и зеркало (акт 5): запись на стадии take и данные экрана mirror (темп, заметка Пита) — useRehearsalTake; на стадии mirror Пит говорит rh_mirror (stage.line);
+//  • дубль и зеркало (акт 5): запись на стадии take и данные сравнения mirror (темп, заметка Пита) — useRehearsalTake; на стадии mirror Пит говорит rh_mirror (stage.line), потом на остановленных дорожках появляется сравнение (compare);
 //  • итог на экране summary: симуляция памяти и XP (rehearsalSim.js) — один раз, в память сессии и журнал отладки; темп и заметка зеркала идут туда же.
 // Без плана (обычная нода игры) хук ничего не делает: nextIdx / holdMs возвращают то же, что директор взял бы сам.
 export const LINE_AT_MS = 250       // реплика на старте стадии — чуть позже появления плашки
@@ -82,6 +83,9 @@ export function useRehearsalActs({ plan, stages, stage, at, stageObj, setS, sayL
     timing: () => ({ lineAt: running.type === 'summary' ? 0 : timingOf(running).lineAt, lineMs: lineMs(fillLine(lines?.[quietLine]), rate) }),
   })
 
+  // Дубль и зеркало на дорожках: когда Пит договорил реплику стадии mirror, на остановленных дорожках появляется сравнение (раскладка — rh.compare, рисует движок пилюль; сам экран — mirror/MirrorCompare.jsx)
+  const compare = useCompareScene({ active: running?.type === 'mirror' && !quiet.quiet, mirror: take.mirror, chunks: plan?.chunks })
+
   // Подсветка кусков по времени (читка и повтор ученика): один таймер на ближайшее событие (rehearsalMetro.js); смена стадии и размонтирование его снимают и гасят подсветку
   useEffect(() => {
     if (!running?.metro?.length) return undefined
@@ -120,6 +124,8 @@ export function useRehearsalActs({ plan, stages, stage, at, stageObj, setS, sayL
     afterCount: fn => gate.after(fn),
     /** Экран зеркала: { dictor, student, measure, note, tempo } (записи нет — student и measure null) */
     mirror: take.mirror,
+    /** Раскладка сравнения на дорожках (mirrorCompare.compareLayout) или null: не стадия mirror, Пит ещё говорит, дубля нет */
+    compare,
     /** Стадия закончилась: дубль сначала дописывается (запись, слова), потом go(); остальные стадии — сразу go() */
     leave: take.leave,
     tag: running?.tag ?? '',

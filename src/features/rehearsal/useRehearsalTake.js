@@ -8,12 +8,12 @@ import { makeMirrorDictor } from './rehearsalMirror.js'
 import { createTake } from './rehearsalTake.js'
 import { rngFor } from './rehearsalSeed.js'
 
-// Дубль и зеркало (акт 5) в директоре актов — обёртка над createTake (rehearsalTake.js): запись на стадии take и данные экрана mirror. Вызывает useRehearsalActs.
+// Дубль и зеркало (акт 5) в директоре актов — обёртка над createTake (rehearsalTake.js): запись на стадии take и данные сравнения mirror. Вызывает useRehearsalActs.
 //  • вход в стадию take → запись на потоке игры. Окон речи Пита на этой стадии нет (плашка «Дубль. Три, два, один…» — отдельная стадия до неё, а на «не успел» Пит на дубле молчит), gameMicHold дорожку не глушит;
 //  • leave(stage, go) — директор зовёт его, когда стадия закончилась (вместо сразу next): для take дубль сначала дописывается (слушатель, запись, measure, note), и ТОЛЬКО потом go() → next → экран mirror.
 //    Остальные стадии и игра без плана — сразу go();
 //  • сбой записи → зеркало с диктором и заметкой о сбое; стадию take обошли — то же;
-//  • objectURL дубля освобождается при выходе с экрана зеркала и при выходе из игры; недописанная запись отменяется.
+//  • objectURL дубля освобождается при выходе из стадии зеркала и при выходе из игры; недописанная запись отменяется.
 const none = { student: null, measure: null, note: noteFor(null), tempo: null }
 
 export function useRehearsalTake({ plan, running, at, listenerRef, rate, lang }) {

@@ -15,6 +15,7 @@ import { planTexts, wordsOfChunk } from './rehearsalPlan.js'
 import { buildActs } from './rehearsalRecipe.js'
 import { rngFor } from './rehearsalSeed.js'
 import { hintAt } from './rehearsalHints.js'
+import { compareLane } from './mirror/mirrorCompare.js'
 
 export const RH_ANNOUNCE_MS = 1700  // плашка акта
 export const RH_TURN_MS = 1500      // «Теперь твоя очередь»
@@ -105,7 +106,8 @@ export function buildRehearsalStages({ plan, rate = 1, lib = () => null }) {
 /** Подписи дорожек на стадии репетиции: { text, on }[3]. hint — дорожки, где показать подпись (после «не успел», «застрял», слабое слово), hl — какой кусок подсвечен сейчас (читка), −1 — никакой */
 export function labelsForRehearsal(stage, chunks, hint = [], hl = -1) {
   const out = blank()
-  if (!stage || ['discern', 'mirror', 'summary'].includes(stage.type)) return out
+  if (!stage || ['discern', 'summary'].includes(stage.type)) return out
+  if (stage.type === 'mirror') { chunks.forEach((text, i) => { out[compareLane(i, chunks.length)] = { text, on: true } }); return out } // «Дубль и зеркало» на дорожках: куски фразы над теми дорожками, где они стоят
   if (stage.type === 'warmup') {
     const lane = stage.word.lane
     const h = hintAt(hint, lane)
