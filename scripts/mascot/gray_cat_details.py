@@ -25,23 +25,23 @@ def eye_masks(side):
                        edge=hexc(im[amber & ~core & c['amber']].mean(0)), mid=hexc(im[core & c['amber']].mean(0)), dark=color(union & c['dark'], 0))
     return _eyes[side]
 
-def eye(side, lid=0.0, gaze=(0, 0), fur='#646774', ol='#262432'):
+def eye(side, lid=0.0, gaze=(0, 0)):
     """Глаз в состоянии: lid — доля высоты радужки, закрытая верхним веком (0 — открыт); gaze — сдвиг зрачка и светлой середины (px рисунка).
-    Зрачок и середина обрезаются по радужке, блики остаются на месте. Веко — заливка цветом меха с тёмной линией по нижнему краю"""
+    Веко НЕ накладка: нарисованная форма глаза укорачивается сверху — обводка идёт по линии века (верхний ободок толще, как у Мии), радужка, зрачок
+    и блики обрезаются по ней. Так глаз прикрывается, а не закрывается шторкой. Зрачок и середина сдвигаются взглядом и обрезаются по радужке"""
     M = eye_masks(side); gx, gy = int(round(gaze[0])), int(round(gaze[1]))
-    mv = lambda m, k=1.0: shift(shift(m, int(round(gy * k)), 0), 0, int(round(gx * k))) & M['amber']
-    pup = mv(M['pup']); core = mv(M['core'], 0.7)
-    px, py = centroid(M['pup']); out = dict(sil=(region_path(M['union'], F, 1.0, 6), M['dark']), amber=(region_path(M['amber'], F, 1.0, 6), M['edge']),
-               core=(region_path(core, F, 1.0, 8), M['mid']), pupil=(region_path(pup, F, 0.8, 2), '#1e1c22'),
-               hl=[(region_path(m, F, 0.6, 1), '#ffffff') for m in M['hl']], pc=F(px + gx, py + gy), lid=None)
+    amber, union = M['amber'], M['union']
     if lid > 0:
         x0, x1, y0, y1 = M['box']; cx, hw = (x0 + x1) / 2, (x1 - x0) / 2; Ld = lid * (y1 - y0)
-        cut = lambda x: y0 + Ld * (1 - 0.55 * ((x - cx) / hw) ** 2)                         # к уголкам веко опускается слабее, чем в середине
-        yy, xx = np.mgrid[0:H, 0:W]; below = yy < np.array([cut(x) for x in range(W)])[None, :]
-        lm = M['amber'] & below
-        line = np.array([(x, cut(x)) for x in range(int(x0), int(x1) + 1) if M['amber'][min(int(cut(x)) + 2, H - 1), x]], float)
-        out['lid'] = (region_path(lm, F, 1.0, 5, 70, 1), bezier_path(simplify_open(line, 0.8), False, 70, F, set()))
-    return out
+        cut = np.array([y0 + Ld * (1 - 0.55 * ((x - cx) / hw) ** 2) for x in range(W)])        # к уголкам веко опускается слабее, чем в середине
+        yy = np.arange(H)[:, None]; below = yy >= cut[None, :]; band = yy >= (cut - 13)[None, :]   # 13 px — толщина ободка глаза на рисунке
+        union, amber = union & band, amber & below
+    else: below = np.ones((H, W), bool)
+    mv = lambda m, k=1.0: shift(shift(m, int(round(gy * k)), 0), 0, int(round(gx * k))) & amber
+    pup = mv(M['pup']); core = mv(M['core'], 0.7); px, py = centroid(M['pup'])
+    return dict(sil=(region_path(union, F, 1.0, 6), M['dark']), amber=(region_path(amber, F, 1.0, 6), M['edge']),
+                core=(region_path(core, F, 1.0, 8), M['mid']), pupil=(region_path(pup, F, 0.8, 2), '#1e1c22'),
+                hl=[(region_path(m & below, F, 0.6, 1), '#ffffff') for m in M['hl'] if (m & below).sum() > 8], pc=F(px + gx, py + gy), lid=None)
 
 # ── мордочка: светлая зона от переносицы к носу и подбородку, щёки ──
 def face_light():
