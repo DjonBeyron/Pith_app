@@ -15,7 +15,7 @@
 //   task?: { kind: 'translate'|'say'|'repeat', lineIndex, prompt?, accept[], hint?, answers[]?, keywords[]?, passRatio?, strict? }   // задание (sceneTask.js; голосовые say/repeat — sceneTaskVoice.js)
 // }
 // Character: { kind: 'cat', gender: 'male' | 'female', name, palette: { fur, accent, belly?, eye?, stripe? },
-//              skin?: 'kit' | 'mia' (маскот вместо обычного кота: sprites/mascot), pupilReaction?: true, extraFace?: true
+//              skin?: 'kit' | 'mia' | 'mia2' | 'mia2' (маскот вместо обычного кота: sprites/mascot), pupilReaction?: true, extraFace?: true
 //              (реакция зрачков и дополнительная мимика маскота — выключатели),
 //              stripes: true, voice: { pitch 0…2, rate 0.1…10, voiceId?, stability?, similarity?, speed?,
 //                                      translationVoiceId? } }

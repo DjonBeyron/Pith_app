@@ -63,7 +63,7 @@ describe('сцена с маскотами: схема', () => {
   it('парсер из JSON сохраняет маскотов и лица', () => {
     const { scene, errors } = parseSceneV2(JSON.stringify(demoMascotScene))
     expect(errors).toEqual([])
-    expect(scene.characters.b.skin).toBe('mia')
+    expect(scene.characters.b.skin).toBe('mia2') // в шаблоне играет новая Мия
     expect(scene.timeline[2].face).toBe('love')
   })
 })

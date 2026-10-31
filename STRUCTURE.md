@@ -2425,6 +2425,7 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | `spriteRegistry.js` | Реестр `SPRITES` (id, title, category, kind, viewBox, size, anchor, slots, nodeCount, status-бейдж, build): 2 кота + 2 маскота (Пит, Мия — `skin`, `checkKind: 'mascot'`), 15 предметов, 2 фона; `getSprite`, `catSprite(gender)`, `characterSprite(character)` (маскот по `skin`, иначе кот по полу), `backgroundSprite`, `spritesForSlot`, `PROP_IDS` |
 | `mascot/mascots.js` | Реестр маскотов (Пит, Мия): пакеты из JSON, `SKINS`, состояния лица (`facesOf`, `isFaceOf`), подписи `FACE_NOTES`, цвет метки говорящего |
 | `mascot/kit.json`, `mia.json` | Рисунок маскотов — готовые пакеты (хвост, тело, голова, таблица 9 форм рта, состояния лица: глаза, брови, декор, рот в покое, наклон, зрачок). Генерятся `scripts/mascot/export_sprites.mjs` |
+| `mascot/mia2.json` | Мия (скин `mia2`, новая серая кошка): тот же формат пакета; собирается `scripts/mascot/build_gray_cat.py <папка> <путь к mia2.json>`. Прежняя Мия (`mia.json`) теперь называется Кетти |
 | `mascot/markupTree.js` | Разметка пакета (`<g>/<path>…`) → деревья `svgTree`: разбор, поиск по классу, копия |
 | `mascot/mascotSprite.js` | `buildMascot(skin, { face, flip, pupilReaction, extraFace, mouth })` — дерево маскота с теми же частями и классами анимаций, что у обычного кота; лицо подставляется при сборке |
 | `mascot/mascotMouth.js` | Рот маскота без React: формы closed / half / open драйвера → формы Rhubarb X / C / D из таблицы пакета, пишутся в узлы рта; закрытый рот берёт «рот в покое» лица |

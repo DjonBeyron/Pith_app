@@ -8,7 +8,7 @@ export const demoMascotScene = {
   location: 'cafe',
   characters: {
     a: { kind: 'cat', gender: 'male', name: 'Пит', skin: 'kit', pupilReaction: true, extraFace: true, voice: { pitch: 0.8, rate: 0.95 } },
-    b: { kind: 'cat', gender: 'female', name: 'Мия', skin: 'mia', pupilReaction: true, extraFace: true, voice: { pitch: 1.3, rate: 0.9 } },
+    b: { kind: 'cat', gender: 'female', name: 'Мия', skin: 'mia2', pupilReaction: true, extraFace: true, voice: { pitch: 1.3, rate: 0.9 } },
   },
   slots: {
     window: 'window',

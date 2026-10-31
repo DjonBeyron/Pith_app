@@ -126,4 +126,12 @@ json.dump(sprite, open(f'{out}/gray_cat.json', 'w', encoding='utf8'), ensure_asc
 svg = (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="{vx:.0f} {vy:.0f} {vw:.0f} {vh:.0f}" width="{vw:.0f}" height="{vh:.0f}"><rect x="{vx:.0f}" y="{vy:.0f}" width="{vw:.0f}" height="{vh:.0f}" fill="#f5f3ef"/>'
        f'<g transform="translate({TBX:.1f} {TBY:.1f})">{tail}</g>{body}{head}{eyes}</svg>')
 open(f'{out}/gray_cat.svg', 'w', encoding='utf8').write(svg)
+
+# ── спрайт для приложения (python3 build_gray_cat.py <папка> <путь/mia2.json>): без служебных полей плеера, числа как у остальных маскотов (".95" → "0.95", "6.0" → "6") ──
+def clean(v):
+    if isinstance(v, dict): return {k: clean(x) for k, x in v.items() if k not in ('browHairs', 'browPivot', 'brow')}
+    if isinstance(v, str): return re.sub(r'="(-?)\.(\d+)"', r'="\g<1>0.\2"', re.sub(r'="(-?\d+)\.0"', r'="\1"', v))
+    return v
+if len(sys.argv) > 2:
+    json.dump(clean(dict(sprite, id='mia2', title='Мия')), open(sys.argv[2], 'w', encoding='utf8'), ensure_ascii=False, separators=(',', ':')); print('для приложения:', sys.argv[2])
 print('готово', out, 'размер', len(json.dumps(sprite)) // 1024, 'КБ; узлов', svg.count('<path') + svg.count('<ellipse'))

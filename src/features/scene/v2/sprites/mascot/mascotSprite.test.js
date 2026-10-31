@@ -19,12 +19,22 @@ describe('разбор разметки', () => {
 })
 
 describe('маскоты: пакеты', () => {
-  it('два скина с состояниями; base есть у каждого', () => {
-    expect(SKINS).toEqual(['kit', 'mia'])
+  it('три скина с состояниями; base есть у каждого', () => {
+    expect(SKINS).toEqual(['kit', 'mia', 'mia2'])
     expect(facesOf('kit')).toEqual(['base', 'pretend', 'shy', 'love', 'bliss'])
     expect(facesOf('mia')).toEqual(['base', 'roll', 'smirk', 'pathos', 'sneer', 'interest'])
     expect(isSkin('kit')).toBe(true); expect(isSkin('x')).toBe(false); expect(isSkin('toString')).toBe(false)
     expect(isFaceOf('mia', 'love')).toBe(false)
+    expect(facesOf('mia2')).toEqual(['base', 'roll', 'smirk', 'pathos', 'sneer', 'interest']) // те же лица, что у Кетти
+  })
+  it('Мия (mia2): девять форм рта с языком, усы отдельными линиями, зрачки, контейнеры бровей и декора', () => {
+    const pack = MASCOT_PACKS.mia2
+    expect(Object.keys(pack.mouthTable)).toEqual(['X', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'])
+    expect(['C', 'D', 'E', 'H'].every(c => pack.mouthTable[c].t)).toBe(true) // язык виден
+    const s = treeToString(buildMascot('mia2'))
+    expect(s.match(/class="wh wh-[lr] wh-[ud]"/g)).toHaveLength(4)
+    expect(s.match(/class="pu"/g)).toHaveLength(2)
+    expect(parseMarkup(pack.head).length).toBeGreaterThan(0); expect(pack.head).toContain('class="brows"'); expect(pack.head).toContain('class="dc"')
   })
 })
 

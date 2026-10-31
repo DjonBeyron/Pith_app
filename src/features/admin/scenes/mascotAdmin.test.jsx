@@ -24,7 +24,7 @@ describe('образ персонажа в сборщике', () => {
       const n = next.timeline[i]
       if (l.who === 'b') { expect(n.face).toBeUndefined(); expect(n.react).toBe(l.react) } else { expect(n.react).toBeUndefined(); expect(n.face).toBe(l.face) }
     })
-    expect(s.characters.b.skin).toBe('mia') // исходник не тронут
+    expect(s.characters.b.skin).toBe('mia2') // исходник не тронут
   })
   it('возврат к обычному коту убирает поля маскота, имя остаётся', () => {
     const next = setSkin(scene(), 'a', null)
@@ -60,10 +60,10 @@ describe('образ персонажа в сборщике', () => {
 })
 
 describe('разметка форм', () => {
-  it('MascotFields: три образа и два выключателя у маскота; у обычного кота выключателей нет', () => {
+  it('MascotFields: образы (обычный кот, Пит, Кетти, Мия) и два выключателя у маскота; у обычного кота выключателей нет', () => {
     const s = scene()
     const html = renderToStaticMarkup(<MascotFields who="a" character={s.characters.a} actions={{}} />)
-    expect(html).toContain('Обычный кот'); expect(html).toContain('>Пит<'); expect(html).toContain('>Мия<')
+    expect(html).toContain('Обычный кот'); expect(html).toContain('>Пит<'); expect(html).toContain('>Кетти<'); expect(html).toContain('>Мия<')
     expect(html).toContain('Реакция зрачков'); expect(html).toContain('Дополнительная мимика')
     const plain = renderToStaticMarkup(<MascotFields who="a" character={{ name: 'x', gender: 'male' }} actions={{}} />)
     expect(plain).not.toContain('Реакция зрачков')
@@ -83,7 +83,7 @@ describe('разметка форм', () => {
     expect(renderToStaticMarkup(<LineFaceFields prefix="p" index={0} line={s.timeline[0]} characters={plain} actions={{}} />)).toBe('')
   })
   it('галерея: карточка маскота с лицами, ртом и выключателями; проверка ок', () => {
-    const html = renderToStaticMarkup(<SpriteCard sprite={getSprite('mascot-mia')} />)
+    const html = renderToStaticMarkup(<SpriteCard sprite={getSprite('mascot-mia2')} />)
     expect(html).toContain('Мия'); expect(html).toContain('interest'); expect(html).toContain('Реакция зрачков'); expect(html).toContain('>ок<')
     expect(renderToStaticMarkup(<MascotControls skin="kit" value={{ face: 'shy', mouth: 'open', pupilReaction: true, extraFace: true }} onChange={() => {}} />)).toContain('aria-checked="true"')
   })

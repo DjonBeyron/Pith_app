@@ -10,15 +10,15 @@ import { normalizeSceneV2 } from '../sceneSchemaV2.js'
 
 export const DEFAULT_AUDIO = '/scene-cmp/pit-line.wav'
 export const DEFAULT_WORDS = '/scene-cmp/pit-line.json'
-const LINE_BY_SKIN = { kit: 'pit-line', mia: 'mia-line' }
-const CHARACTER = { kit: { gender: 'male', name: 'Пит' }, mia: { gender: 'female', name: 'Мия' } }
+const LINE_BY_SKIN = { kit: 'pit-line', mia: 'mia-line', mia2: 'mia-line' }
+const CHARACTER = { kit: { gender: 'male', name: 'Пит' }, mia: { gender: 'female', name: 'Кетти' }, mia2: { gender: 'female', name: 'Мия' } }
 // Файл без audioMeta.hash сцена не примет (нормализация), а стенду нужен env внутри audioMeta — ставим служебный hash
 const STAND_HASH = '0'.repeat(64)
 
 export function readStandParams(search) {
   const q = new URLSearchParams(search)
   const audio = q.get('audio')
-  const skin = q.get('skin') === 'mia' ? 'mia' : 'kit'
+  const skin = ['mia', 'mia2'].includes(q.get('skin')) ? q.get('skin') : 'kit'
   const line = `/scene-cmp/${LINE_BY_SKIN[skin]}`
   return {
     skin,

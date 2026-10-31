@@ -31,7 +31,7 @@ export const IDLE_AWAY_Y = 1.5
 
 const clamp = v => Math.max(-MAX_LOOK, Math.min(MAX_LOOK, v))
 
-// getEl(who) → корень маскота | null; skinOf(who) → 'kit' | 'mia' | null (у обычного кота зрачки не трогаем)
+// getEl(who) → корень маскота | null; skinOf(who) → 'kit' | 'mia' | 'mia2' | null (у обычного кота зрачки не трогаем)
 export function createPupilLook({ whos = ['a', 'b'], getEl, skinOf = () => 'kit', timers = globalThis, rand = Math.random }) {
   const solo = whos.length < 2
   const off = {}                 // who → { x, y }: текущий сдвиг поверх взгляда на собеседника, px спрайта на экране
