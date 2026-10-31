@@ -40,7 +40,7 @@ describe('воспроизводимость', () => {
   })
   it('порядок актов не случайный, структура ступеней при трёх кусках не меняется, зеркало последнее перед итогом', () => {
     const base = acts(seeded('three', 'x')).map(a => a.id)
-    expect(base).toEqual(['warmup', 'read', 'build', 'blind', 'discern', 'take', 'mirror', 'summary'])
+    expect(base).toEqual(['warmup', 'discern', 'build', 'read', 'blind', 'take', 'mirror', 'summary'])
     for (const seed of SEEDS) {
       const a = acts(seeded('three', seed))
       expect(a.map(x => x.id), seed).toEqual(base)
@@ -79,23 +79,24 @@ describe('разминка: порядок и дорожки', () => {
     }
     expect(firstOf.size).toBe(1); expect(dueTail.size).toBe(2); expect(tail.size).toBeGreaterThan(5)
     const fix = acts(seeded('three', 'x')).find(a => a.id === 'warmup').words
-    expect(fix.map(x => x.due)).toEqual([true, true, false, false]) // «trying», «learn» — раньше «I'm» и «to»
+    expect(fix.map(x => x.due)).toEqual([true, true, false]) // «trying», «learn» — раньше «I'm» (слов без карточки и «to» в разминке нет)
   })
   it('дорожка слова — одна из трёх, не та же, что у предыдущего слова; idx — номер слова в плане, chunkLane — где оно стоит во фразе', () => {
     const seen = new Set()
     for (const seed of SEEDS) {
       const o = orderWarmup(warmupWords(fixturePlan('three')), seed)
       o.forEach((x, i) => { expect(x.lane).toBeGreaterThanOrEqual(0); expect(x.lane).toBeLessThan(LANE_COUNT); if (i) expect(x.lane).not.toBe(o[i - 1].lane); seen.add(x.lane) })
-      expect(o.map(x => [x.text, x.idx, x.chunkLane]).sort()).toEqual([["I'm", 2, 0], ['learn', 1, 2], ['to', 3, 2], ['trying', 0, 1]])
+      expect(o.map(x => [x.text, x.idx, x.chunkLane]).sort()).toEqual([["I'm", 2, 0], ['learn', 1, 2], ['trying', 0, 1]])
     }
     expect(seen).toEqual(new Set([0, 1, 2])) // не всегда «своя» дорожка
   })
-  it('слово фразы без карточки: перевода нет (перевод всей фразы над одним словом не показываем) — дорожка пуста, «не успел» подсказывает само слово; у фразы из одного слова перевод фразы остаётся', () => {
+  it('слово без карточки («to») в разминку не идёт; у слова с карточкой над дорожкой перевод, «не успел» подсказывает само слово; у фразы из одного слова перевод фразы остаётся', () => {
     const chunks = ["I'm", 'trying', 'to learn']
-    const to = stagesOf(seeded('three', 'd')).stages.find(s => s.sid === 'warmup-3')
-    expect(to.word).toMatchObject({ text: 'to', translation: '' }); expect(to.caption).toBe('')
-    expect(labelsForRehearsal(to, chunks, [], []).map(x => x.text)).toEqual(['', '', ''])
-    expect(labelsForRehearsal(to, chunks, [to.word.lane], []).map(x => x.text).filter(Boolean)).toEqual(['to'])
+    const st = stagesOf(seeded('three', 'd')).stages
+    expect(st.filter(s => s.type === 'warmup' && s.act === 'warmup').map(s => s.word.text).sort()).toEqual(["I'm", 'learn', 'trying'])
+    const im = st.find(s => s.sid === 'warmup-2')
+    expect(im.word).toMatchObject({ text: "I'm", translation: 'я' }); expect(im.caption).toBe('я')
+    expect(labelsForRehearsal(im, chunks, [im.word.lane], []).map(x => x.text).filter(Boolean)).toEqual(["I'm"])
     expect(stagesOf(seeded('one', 'd')).stages.find(s => s.sid === 'word-0').caption).toBe('помнить')
   })
   it('одно слово — дорожка по центру, как раньше', () => {
@@ -136,7 +137,8 @@ describe('без текста: подсказки «застрял»', () => {
     expect(first).toEqual(new Set(['word', 'tr']))
   })
   it('перевод куска: слово плана из первого куска с переводом, иначе перевод фразы; нет перевода — только «слово»', () => {
-    expect(chunkTranslation(fixturePlan('three'))).toBe('Я пытаюсь научиться')
+    expect(chunkTranslation(fixturePlan('three'))).toBe('я') // карточка «I'm» из первого куска
+    expect(chunkTranslation(normalizePlan({ phrase: 'a | b', translation: 'Фраза' }))).toBe('Фраза')
     expect(chunkTranslation(normalizePlan({ phrase: 'trying | to learn', translation: 'x', words: [{ text: 'trying', translation: 'пытаюсь' }] }))).toBe('пытаюсь')
     const bare = normalizePlan({ phrase: 'a | b', seed: 's' })
     expect(blindVariety(bare)).toEqual({ kinds: ['word'], reversed: ['word'], tr: '' })

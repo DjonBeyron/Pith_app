@@ -104,7 +104,17 @@ describe('игра, модуль, настройки, звук', () => {
     expect(read(`${RP}wordLaneStart.js`)).toContain('...(cfg.extraWords ?? [])')
     expect(read(`${RP}wordLaneCatLines.js`)).toContain('export const CAT_LINES = [...GAME_LINES, ...REHEARSAL_LINES]')
     expect(read(`${RP}wordLaneStages.js`)).toContain('if (plan) return buildRehearsalStages({ plan, rate, lib })')
-    expect(read(`${RP}wordLaneStages.js`)).toContain('if (stage?.act) return labelsForRehearsal(stage, chunks, hint, hl)')
+    expect(read(`${RP}wordLaneStages.js`)).toContain('if (stage?.act) return labelsForRehearsal(stage, chunks, hint)')
+  })
+  it('читка-караоке (v3.3.87): игра подставляет ReadKaraoke вместо подписей на акте read; стили подключены; без filter и Math.random', () => {
+    const game = read(`${RP}WordLaneGame.jsx`)
+    expect(game).toContain("import ReadKaraoke from '../../../rehearsal/read/ReadKaraoke.jsx'")
+    expect(game).toContain("f.stageObj?.act === 'read'"); expect(game).toContain('<ReadKaraoke heads={heads}')
+    expect(read('../../index.css')).toContain("@import './styles/player/modules/rehearsal-read.css';")
+    expect(read('../../index.css')).toContain("@import './styles/player/modules/rehearsal-discern.css';"); expect(read('../../styles/player/modules/rehearsal-discern.css')).toContain('.wlPillClip[data-word]::before')
+    const css = read('../../styles/player/modules/rehearsal-read.css')
+    expect(css).toContain('.rkCursor'); expect(css).not.toMatch(/filter|box-shadow|@keyframes/)
+    for (const f of ['readKaraoke.js', 'useReadKaraoke.js', 'ReadKaraoke.jsx']) expect(read(`./read/${f}`), f).not.toContain('Math.random')
   })
   it('стили подключены в index.css; не трогаем чужие файлы стилей пилюль и микрофона', () => {
     expect(read('../../index.css')).toContain("@import './styles/player/modules/rehearsal.css';")

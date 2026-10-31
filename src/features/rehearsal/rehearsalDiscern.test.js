@@ -1,5 +1,8 @@
 import { describe, it, expect } from 'vitest'
-import { discernLayout, describeLayout } from './rehearsalDiscern.js'
+import { discernLayout, describeLayout, SAY_AFTER_OPEN_MS } from './rehearsalDiscern.js'
+import { TRAVEL_MS } from '../player/modules/rotate-phone/wordLaneTimeline.js'
+import { maxDelayOf } from '../player/modules/rotate-phone/wordLaneOrder.js'
+import { DISCERN_LEAD_MS as DISCERN_LEAD_MS_OLD } from '../player/modules/rotate-phone/wordLaneRecipe.js'
 import { buildActs } from './rehearsalRecipe.js'
 import { fixturePlan } from './rehearsalFixtures.js'
 import { phraseWords } from './rehearsalPlan.js'
@@ -43,6 +46,14 @@ describe('discernLayout: три дорожки в каждой подсказк�
     expect(p[0]).toMatchObject({ id: 'discern-0-0', parts: [0], text: 'learn' }); expect(p[0].stagger).toBeGreaterThan(0); expect(p[0].lead).toBeGreaterThan(0)
     expect(discernLayout(learn, 's', 0)).toEqual(p)
     expect(describeLayout(discernLayout({ text: 'learn', confusers: ['earn'] }, 's', 0, ['learn', 'to']))).toMatch(/^(earn\+to|to\+earn)→\d, (earn\+to|to\+earn)→\d$/)
+  })
+  it('верное слово не звучит перед тройкой: слова написаны на пилюлях (written) и молчат, слово — один раз (sayAt), когда открылась последняя пилюля', () => {
+    for (const p of discernLayout(learn, 's', 0)) {
+      expect(p.written).toBe(true)
+      expect(p.sayAt).toBe(p.lead + (p.slots.length - 1) * p.stagger + TRAVEL_MS + SAY_AFTER_OPEN_MS)
+      expect(p.sayAt).toBeGreaterThan(maxDelayOf(p) + TRAVEL_MS - 1) // не раньше полного открытия последней пилюли
+      expect(p.lead).toBeLessThan(DISCERN_LEAD_MS_OLD) // пред-слова нет, ждать его не нужно
+    }
   })
   it('в рецепте раскладка трёхдорожечная, а добивка берётся из слов фразы (pool)', () => {
     for (const seed of ['a', 'b', 'c']) {

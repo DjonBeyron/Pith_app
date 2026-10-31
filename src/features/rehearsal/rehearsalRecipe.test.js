@@ -10,29 +10,40 @@ const ids = acts => acts.map(a => a.id)
 
 // Рецепт репетиции (CONCEPT_REHEARSAL.md §3 + решения §6): акты и ступени из плана
 describe('акты', () => {
-  it('три куска с двойником: разминка → читка → сборка → без текста → «Различи» → дубль → зеркало → итог', () => {
-    expect(ids(buildActs(fixturePlan('three')).acts)).toEqual(['warmup', 'read', 'build', 'blind', 'discern', 'take', 'mirror', 'summary'])
+  it('три куска с двойником: разминка → «Различи» → сборка → читка → без текста → дубль → зеркало → итог (v3.3.87)', () => {
+    expect(ids(buildActs(fixturePlan('three')).acts)).toEqual(['warmup', 'discern', 'build', 'read', 'blind', 'take', 'mirror', 'summary'])
   })
   it('без двойников акта «Различи» нет', () => {
-    expect(ids(buildActs(fixturePlan('two')).acts)).toEqual(['warmup', 'read', 'build', 'blind', 'take', 'mirror', 'summary'])
+    expect(ids(buildActs(fixturePlan('two')).acts)).toEqual(['warmup', 'build', 'read', 'blind', 'take', 'mirror', 'summary'])
   })
   it('одно слово: разминка и сборка схлопнуты в «слово ×2», читки нет, «без текста» — слово по переводу', () => {
     const { acts } = buildActs(fixturePlan('one'))
-    expect(ids(acts)).toEqual(['word', 'blind', 'discern', 'take', 'mirror', 'summary'])
+    expect(ids(acts)).toEqual(['word', 'discern', 'blind', 'take', 'mirror', 'summary'])
     expect(acts[0]).toMatchObject({ reps: 2 })
     expect(acts[0].words).toHaveLength(1)
-    expect(acts[1].word.text).toBe('remember')
-    expect(acts[1].passes).toHaveLength(1)
+    expect(acts[2].word.text).toBe('remember')
+    expect(acts[2].passes).toHaveLength(1)
   })
-  it('фраза без слов «к повтору»: разминка на всех словах фразы', () => {
+  it('фраза без слов «к повтору»: разминка на словах с карточкой, слов без карточки (are, you) нет', () => {
     const w = buildActs(fixturePlan('none')).acts[0].words
-    expect(w.map(x => x.text).sort()).toEqual(['are', 'from', 'where', 'you'])
+    expect(w.map(x => x.text).sort()).toEqual(['from', 'where'])
   })
-  it('разминка: первым — самое просроченное, дальше слова «к повтору», и только потом остальные слова фразы (для любого семени)', () => {
+  it('разминка: первым — самое просроченное, дальше слова «к повтору», и только потом остальные слова с карточкой (для любого семени); «to» (служебное) и слов без карточки нет', () => {
     for (const seed of ['a', 'b', 'c', 'd', 'e', 'f']) {
       const w = buildActs({ ...fixturePlan('three'), seed }).acts[0].words
-      expect(w.map(x => x.due)).toEqual([true, true, false, false]); expect(w[0].text).toBe('learn'); expect(w.map(x => x.text).sort()).toEqual(["I'm", 'learn', 'to', 'trying'])
+      expect(w.map(x => x.due)).toEqual([true, true, false]); expect(w[0].text).toBe('learn'); expect(w.map(x => x.text).sort()).toEqual(["I'm", 'learn', 'trying'])
     }
+  })
+  it('«Различи» стоит сразу после разминки, а у одного слова — сразу после «слова ×2»; сборка → читка → без текста', () => {
+    const order = id => ids(buildActs(fixturePlan(id)).acts)
+    expect(order('three').slice(0, 3)).toEqual(['warmup', 'discern', 'build'])
+    expect(order('three').indexOf('read')).toBe(order('three').indexOf('build') + 1)
+    expect(order('three').indexOf('blind')).toBe(order('three').indexOf('read') + 1)
+    expect(order('one').slice(0, 2)).toEqual(['word', 'discern'])
+  })
+  it('нет ни одного слова с карточкой — разминки нет, остальные акты на месте', () => {
+    const acts = buildActs(normalizePlan({ phrase: 'Where | are you | from' })).acts
+    expect(ids(acts)).toEqual(['build', 'read', 'blind', 'take', 'mirror', 'summary'])
   })
 })
 
@@ -59,8 +70,8 @@ describe('правила пропуска и сокращения', () => {
     expect(blind).toMatchObject({ hintWord: "I'm", hintLane: 0 })
     expect(MANY_MISSES).toBe(3)
   })
-  it('«Различи» — тоже только пока промахов мало', () => {
-    expect(buildActs(fixturePlan('three')).acts.find(a => a.id === 'discern').cond).toEqual({ few: true })
+  it('«Различи» стоит до «без текста», правило «много промахов» к нему не относится (v3.3.87): условия пропуска нет', () => {
+    expect(buildActs(fixturePlan('three')).acts.find(a => a.id === 'discern').cond).toBeUndefined()
   })
   it('нет озвучки кусков — читка без подсветки', () => {
     expect(buildActs(fixturePlan('three'), { hasVoice: false }).acts.find(a => a.id === 'read').highlight).toBe(false)
@@ -69,8 +80,8 @@ describe('правила пропуска и сокращения', () => {
   it('читка: Пит говорит, зачем она (решение §6 п. 2)', () => {
     expect(baseLineId(buildActs(fixturePlan('three')).acts.find(a => a.id === 'read').line)).toBe('rh_read_why')
   })
-  it('план без слов вообще — разминка всё равно из всех слов фразы', () => {
-    const w = buildActs(normalizePlan({ phrase: 'Where | are you | from' })).acts[0].words
-    expect(w).toHaveLength(4)
+  it('служебное слово с карточкой в разминку не идёт', () => {
+    const acts = buildActs(normalizePlan({ phrase: 'Where | are you | from', words: [{ text: 'are', translation: 'есть', due: true }, { text: 'you', translation: 'ты' }] })).acts
+    expect(acts[0].words.map(x => x.text)).toEqual(['you'])
   })
 })

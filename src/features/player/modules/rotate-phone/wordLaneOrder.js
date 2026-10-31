@@ -43,7 +43,7 @@ export function stepOrder(g, t) {
     // «Порядок»: диктор называет, когда пилюли уже видны. «Различи»: искомое слово — сразу (sayAt), пилюли выкатятся после него
     if (!g.said && t >= g.spawnAt + (prompt.texts ? prompt.sayAt ?? 0 : late + ORDER_SAY_DELAY_MS)) { g.said = true; out.push({ type: 'say', parts: prompt.parts }) }
     // «Различи»: слово каждой пилюли звучит, когда она полностью открылась
-    if (prompt.texts) for (const lane of prompt.slots) {
+    if (prompt.texts && !prompt.written) for (const lane of prompt.slots) { // written: слова написаны на пилюлях и молчат (репетиция, «Различи»: слово звучит один раз, когда открылась вся тройка)
       if (!g.voiced.has(lane) && t >= g.spawnAt + laneDelayOf(prompt, lane) + TRAVEL_MS) { g.voiced.add(lane); out.push({ type: 'word', lane, text: prompt.texts[lane] }) }
     }
     if (orderY(g, t, late) > FAIL_Y) { // не успел — когда ушла вниз последняя пилюля
@@ -66,6 +66,7 @@ export function stepOrder(g, t) {
  */
 export function tapLane(g, lane, t) {
   if (g.finished || g.state !== 'fly') return []
+  if (g.prompts[g.i].written && !g.said) return [] // репетиция, «Различи»: пока слово не прозвучало, тап вслепую не засчитывается
   const y = orderY(g, t, laneDelayOf(g.prompts[g.i], lane)) // у «Различи» пилюли выкатываются по очереди — у каждой своя высота
   if (y < (g.prompts[g.i].texts ? OPEN_Y : CLAIM_FROM_Y) || y > FAIL_Y) return [] // «Различи»: слово пилюли должно уже прозвучать (она открылась)
   const slots = g.prompts[g.i].slots

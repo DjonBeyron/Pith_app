@@ -7,10 +7,10 @@ import { FULL_ID } from './polishActs.js'
 const BASE_LINES = {
   intro: ['rh_start'],
   warmup: ['rh_warmup', 'rh_warmup_miss'],
-  read: ['rh_read_why'],
-  build: ['rh_build', 'rh_clear', 'rh_normal'],
-  blind: ['rh_blind', 'rh_blind_hint', 'rh_blind_hint_pre'],
   discern: ['rh_discern'],
+  build: ['rh_build', 'rh_clear', 'rh_normal'],
+  read: ['rh_read_why'],
+  blind: ['rh_blind', 'rh_blind_hint', 'rh_blind_hint_pre'],
   take: ['rh_take', 'rh_mirror'],
   summary: ['rh_done'],
 }

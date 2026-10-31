@@ -61,8 +61,8 @@ export function listenStepOf(stages, idx) {
 }
 
 /** Подписи дорожек на стадии: { text, on }[3] — текст куска над дорожкой и подсвечена ли она (участвует в ступени). Пустой текст — подписи нет (вслепую) */
-export function labelsFor(stage, chunks, lanes, hint = [], hl = -1) {
-  if (stage?.act) return labelsForRehearsal(stage, chunks, hint, hl) // репетиция: перевод вместо куска, пусто «без текста», подсветка читки
+export function labelsFor(stage, chunks, lanes, hint = []) {
+  if (stage?.act) return labelsForRehearsal(stage, chunks, hint) // репетиция: перевод вместо куска, пусто «без текста», яркие подписи читки
   const n = chunks.length
   const out = Array.from({ length: 3 }, () => ({ text: '', on: false }))
   if (stage?.type === 'discern') return out // «Различи»: слова написаны на самих пилюлях, над дорожками пусто (верное слово не выдаём)

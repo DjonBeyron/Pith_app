@@ -15,8 +15,10 @@ import WordLaneComment from './WordLaneComment.jsx'
 import WordLaneTurnPlate from './WordLaneTurnPlate.jsx'
 import { useWordLaneLeavingPlates } from './useWordLaneLeavingPlates.js'
 import RehearsalActs from '../../../rehearsal/RehearsalActs.jsx'
+import ReadKaraoke from '../../../rehearsal/read/ReadKaraoke.jsx'
+import { isWeakDevice } from '../../../../shared/lib/deviceTier.js'
 import { isWordLaneDebug } from './wordLaneConfig.js'
-import { readPillSafe, readTapMode } from './wordLaneHudSettings.js'
+import { readPillSafe, readTapMode, readWeakStored } from './wordLaneHudSettings.js'
 import { useWordLaneFlow } from './useWordLaneFlow.js'
 import { useWordLanePause } from './useWordLanePause.js'
 import { WORD_Y } from './wordLaneTimeline.js'
@@ -38,6 +40,7 @@ const FAIL_TEXT = {
 export default function WordLaneGame({ cfg, audioSrc, lines = null, forceDebug = false, onRestart = null, onAgain = null, onSummary = null, onFinished }) {
   const rootRef = useRef(null)
   const [tapMode, setTapMode] = useState(readTapMode) // «тап вместо речи» (HUD, админ): тап по дорожке в очереди ученика засчитывает следующую цель — проверка механики и анимаций без голоса
+  const [lite] = useState(() => readWeakStored() ?? isWeakDevice()) // слабое устройство: читка репетиции без курсора (ReadKaraoke)
   const [safe0] = useState(readPillSafe) // «безопасные слои пилюль» (HUD): класс только на старте, дальше его меняет сам HUD через classList — className не меняется, React его не трогает
   const [comment, setComment] = useState(null) // открыт оверлей комментария к этапу репетиции (шлифовка): { snap (что было на экране в момент тапа 💬), at }
   const catApi = useRef(null) // Пит (кот-маскот): рот по голосу и реакции лицом — через api, минуя React на кадрах
@@ -50,6 +53,7 @@ export default function WordLaneGame({ cfg, audioSrc, lines = null, forceDebug =
   const showSlots = phase !== 'drop'
   const intro = phase === 'drop' || phase === 'lanes' || f.pausedIntro
   const heads = intro && !cfg.plan ? cfg.chunks.map(text => ({ text, on: true })) : intro ? f.labels.map(() => ({ text: '', on: false })) : f.labels // заставка репетиции: слов сверху нет (v3.3.84)
+  const karaoke = f.rh.on && f.stage === 'run' && f.stageObj?.act === 'read' && !intro // акт «Читка»: слова заливаются зелёным под голос Пита / игрока (rehearsal/read/)
   const debug = isWordLaneDebug()
 
   return createPortal(
@@ -62,7 +66,9 @@ export default function WordLaneGame({ cfg, audioSrc, lines = null, forceDebug =
           ? <div className="wlWord" style={{ top: `${WORD_Y}%` }} data-testid="wl-word">{cfg.chunks[0]}</div>
           : (
             <div className="wlHeads" style={{ top: `${WORD_Y}%` }} data-testid="wl-heads">
-              {heads.map((h, i) => <span key={i} className={`wlHead${h.on ? ' wlHead--on' : ''}${h.text ? '' : ' wlHead--empty'}`} data-testid={`wl-head-${i}`}>{h.text}</span>)}
+              {karaoke
+                ? <ReadKaraoke heads={heads} stage={f.stageObj} at={f.at} chunks={cfg.chunks} live={f.live} ready={f.lid === f.stageObj?.step?.id} lite={lite} />
+                : heads.map((h, i) => <span key={i} className={`wlHead${h.on ? ' wlHead--on' : ''}${h.text ? '' : ' wlHead--empty'}`} data-testid={`wl-head-${i}`}>{h.text}</span>)}
             </div>
           )}
         {/* Подписи реплик Пита (белое облачко с текстом) убраны в v3.3.84: кот только говорит; f.catLine остаётся в комментариях владельца (commentSnapshot) */}

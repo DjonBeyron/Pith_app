@@ -22,10 +22,10 @@ describe('neededTexts: озвучка, которую качает тап', () =
     }
     expect(neededTexts(withOnly('read'))).toEqual(base.chunks)
   })
-  it('«Различи»: слово акта и его двойники (запутыватели звучат на пилюлях)', () => {
+  it('«Различи»: нужно само слово акта; двойники на пилюлях молчат (слово звучит один раз), озвучка им не нужна', () => {
     const t = neededTexts(withOnly('discern'))
     const dis = base.words.find(w => w.confusers.length)
-    expect(t).toContain(dis.text); for (const c of dis.confusers) expect(t).toContain(c)
+    expect(t).toContain(dis.text); for (const c of dis.confusers) expect(t).not.toContain(c)
   })
   it('разминка: куски и слова «к повтору»; без повторов в списке', () => {
     const t = neededTexts(withOnly('warmup'))

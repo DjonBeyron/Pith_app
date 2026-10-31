@@ -118,6 +118,8 @@
 @import './styles/player/modules/word-lane-comment.css';
 @import './styles/player/modules/rehearsal-mirror.css';
 @import './styles/player/modules/rehearsal.css';
+@import './styles/player/modules/rehearsal-read.css';
+@import './styles/player/modules/rehearsal-discern.css';
 @import './styles/player/message.css';
 @import './styles/player/modules/audio.css';
 @import './styles/player/modules/circle.css';
