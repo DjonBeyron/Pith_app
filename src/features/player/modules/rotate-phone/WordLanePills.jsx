@@ -5,6 +5,8 @@ import { useWordLanePills } from './useWordLanePills.js'
 import { isWeakDevice } from '../../../../shared/lib/deviceTier.js'
 import { isPillSafe } from './wordLanePillSafe.js'
 import { RUN_NONE } from './wordLaneRunLanes.js'
+import { useLaneConveyor } from './useLaneConveyor.js'
+import { reducedMotion } from './laneConveyorDrive.js'
 
 // Дорожки и пилюли игры. Три колонки разделены линиями; пилюли — вертикальные пустые капсулы (без надписей) из пула POOL штук: движок (useWordLanePills) выдаёт их кускам и повторам
 // ступени, ставит дорожку (data-lane: x и цвет — ступени «Моей памяти»: зелёная с одной обводкой, синяя с двумя, фиолетовая с тремя), запускает полёт и пишет заливку.
@@ -13,18 +15,21 @@ import { RUN_NONE } from './wordLaneRunLanes.js'
 // Линии уровня на пилюле нет (v3.3.84: горизонтальные линии внутри пилюли убраны по замечанию владельца): заливка — ровный тон с мягким краем.
 // Контур — настоящий border пилюли (не inset-тень: на iOS она мигала; обводка одна, внешних колец в покое нет), заливка — строго внутри него (.wlPillClip с отступом); у взятой из пула пилюли data-held (слои искр стоят всегда),
 // у наливающейся data-live — тогда идут искры (<span class="wlPillSparks"><i><b/><b/></i></span> на самой пилюле, вне клипа заливки: вылетают выше контура и гаснут; <i> едет за уровнем заливки, ему пул пишет --fill / --pill-h).
-// run — строка '101' (wordLaneRunLanes.js): на каких дорожках сейчас едут пилюли; такой колонке .wlLanes i ставится data-run — по ней бегут штрихи конвейера (word-lane-lane-run.css).
+// armed — строка '101' (useConveyorArm.js → wordLaneConveyorStart.armedLanes): каким дорожкам дана команда ехать. Пунктир на дорожке ведёт привод (useLaneConveyor.js → laneConveyorDrive.js, модель — wordLaneConveyor.js): в покое еле виден,
+// «зажигается» волной, плавно разгоняется до скорости пилюль и тормозит, когда пилюль на дорожке не осталось (их считает по data-held / data-lane); paused — игра на паузе, привод стоит. Стили — word-lane-lane-run.css.
 // Мемоизирован (memo): пилюли (12 штук × 9 узлов) перерисовываются, только когда сменилась сцена / «слух» / видимость, а не на каждый шаг оверлея (подпись кота, подсказка, награда). Все пропсы стабильны
 // по ссылке: сцена, слух и колбэки — useMemo / useCallback в useWordLaneFlow. Сами пилюли живут вне React: движок (useWordLanePills) пишет им стили и анимации прямо в DOM.
-function WordLanePills({ scene, levels, fx, live, sceneApi, visible, onLane, run = RUN_NONE }) {
+function WordLanePills({ scene, levels, fx, live, sceneApi, visible, onLane, armed = RUN_NONE, paused = false }) {
   const rootRef = useRef(null)
   const [lite] = useState(isWeakDevice) // слабое устройство (wl--lite): без частиц в заливке (word-lane-pill.css)
   const [safe] = useState(isPillSafe) // «безопасный» режим слоёв для iOS (wl--safe, localStorage pithy_wl_pill_safe_v1 = 1): без will-change и слоёв частиц, контур дважды (word-lane-pill-safe.css)
   useWordLanePills(rootRef, { scene, levels, fx, live, sceneApi })
+  const [still] = useState(() => lite || reducedMotion()) // слабое устройство и reduced-motion: пунктир без движения, только яркость
+  useLaneConveyor(rootRef, { armed, paused, still })
   return (
     <div ref={rootRef} className={`wlField${lite ? ' wl--lite' : ''}${safe ? ' wl--safe' : ''}`} data-testid="wl-field">
       <div className={`wlLanes${visible ? ' wlLanes--in' : ''}`} aria-hidden="true" data-testid="wl-lanes">
-        {[0, 1, 2].map(k => <i key={k} data-run={run[k] === '1' ? '1' : undefined} />)}
+        {[0, 1, 2].map(k => <i key={k} />)}
         {LANE_EDGES.map(x => <b key={x} className="wlLaneEdge" style={{ left: `${x}%` }} />)}
       </div>
       {Array.from({ length: POOL }, (_, i) => (
