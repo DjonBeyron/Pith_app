@@ -106,11 +106,12 @@ def simplify_closed(P, eps):
 
 def simplify_open(P, eps): return P[_dp(P, eps)]
 
-def bezier_path(Q, closed=True, corner_deg=70, f=lambda x, y: (x, y)):
+def bezier_path(Q, closed=True, corner_deg=70, f=lambda x, y: (x, y), corners=None):
     """Гладкая кривая через опорные точки (Catmull-Rom → кубические Безье). Вершины с поворотом острее corner_deg остаются углами.
     f — преобразование координат рисунка → координаты спрайта"""
     n = len(Q); P = [f(x, y) for x, y in Q]
     def corner(i):
+        if corners is not None: return i in corners
         a, b, c = np.array(P[(i - 1) % n]), np.array(P[i]), np.array(P[(i + 1) % n])
         u, v = b - a, c - b
         if not np.hypot(*u) or not np.hypot(*v): return False
@@ -129,3 +130,24 @@ def region_path(mask, f, eps=1.6, sm=3, corner_deg=70, grow=0):
     if grow: mask = morph(mask, grow, 'd')
     P = smooth_closed(outer_contour(fill_holes(mask)), sm)
     return bezier_path(simplify_closed(P, eps), True, corner_deg, f)
+
+def find_corners(P, win=6, ang=55):
+    """Острые углы замкнутой ломаной: места, где направление за ±win точек меняется больше чем на ang градусов (берётся локальный максимум)"""
+    N = len(P); a = P - np.roll(P, win, 0); b = np.roll(P, -win, 0) - P
+    cosang = (a * b).sum(1) / (np.hypot(*a.T) * np.hypot(*b.T) + 1e-9); turn = np.degrees(np.arccos(np.clip(cosang, -1, 1)))
+    out = []
+    for i in range(N):
+        if turn[i] > ang and turn[i] == turn[[(i + k) % N for k in range(-win, win + 1)]].max(): out.append(i)
+    return out
+
+def smart_outline(P, eps=1.2, n=8, win=6, ang=55):
+    """Сглаживание замкнутого контура с сохранением углов: ломаная режется в углах, каждый кусок сглаживается отдельно (концы на месте), потом упрощается.
+    Возвращает (опорные точки, номера опорных точек-углов)"""
+    P = smooth_closed(P, 2); cs = find_corners(P, win, ang)
+    if not cs: Q = simplify_closed(smooth_closed(P, n), eps); return Q, []
+    N = len(P); Q = []; corner_ids = []
+    for k, c in enumerate(cs):
+        e = cs[(k + 1) % len(cs)]; seg = np.array([P[(c + j) % N] for j in range(((e - c) % N or N) + 1)])
+        sm = np.array([seg[max(j - min(n, j, len(seg) - 1 - j), 0):j + min(n, j, len(seg) - 1 - j) + 1].mean(0) for j in range(len(seg))])
+        v = simplify_open(sm, eps); corner_ids.append(len(Q)); Q.extend(v[:-1].tolist())
+    return np.array(Q), corner_ids

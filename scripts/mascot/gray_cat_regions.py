@@ -31,18 +31,19 @@ def centroid(m): ys, xs = np.nonzero(m); return xs.mean(), ys.mean()
 # ── силуэт (центр линии обводки) ──
 def silhouette():
     mask = (np.abs(im - BG).sum(2) > 130) & ~((R - G > 55) & (R > 150))        # без бантика и ошейника: розовое — не силуэт
-    mx = np.clip(2 * OX - np.arange(W), 0, W - 1); mm = mask[:, mx]            # правое ухо под бантиком — по симметрии с левым
-    mask[110:250, 600:745] = mm[110:250, 600:745]; mask[:232, 430:600] = False; mask[232:300, 430:600] = True
+    mx = np.clip(2 * OX - 6 - np.arange(W), 0, W - 1); mm = mask[:, mx]            # правое ухо под бантиком — по симметрии с левым
+    mask[55:250, 600:770] = mm[55:250, 600:770]; mask[:232, 430:600] = False; mask[232:300, 430:600] = True
     for x in range(418, 613):                                                   # верх головы между ушами — лёгкий купол (виден только у ушей, остальное под бантиком)
         top = 243 - int(20 * math.sin(math.pi * (x - 418) / 195) ** 0.7); mask[top:243, x] = True
-    mask[130:200, :163] = False                                                 # колечко-серёжка вне силуэта
-    mask = fill_holes(closing(mask, 7))                                         # усы и блики поверх морды
-    return morph(opening(mask, 5), 7, 'e')
+    mask[140:188, :169] = False                                                 # колечко-серёжка вне силуэта
+    mask |= closing(mask, 14) & box(100, 500, 900, 690)                          # усы поверх края щёк
+    mask = fill_holes(closing(mask, 4))                                         # блики и зрачки
+    return morph(opening(mask, 3), 7, 'e')
 
 _sil = None
 def contour():
     global _sil
-    if _sil is None: _sil = smooth_closed(outer_contour(silhouette()), 4)
+    if _sil is None: _sil = outer_contour(silhouette())
     return _sil
 def at(S_, p): return int(np.argmin(np.hypot(*(S_ - np.array(p)).T)))
 
@@ -61,13 +62,32 @@ def chin_arc(x_from, x_to, step=8):
 
 LN, RN = (329, 718), (700, 721)                                                # места, где шея выходит из-под головы
 TS, TE = (826, 1062), (795, 1173)                                              # где хвост выходит из-под тела / уходит под него
+NR = [(697, 727), (704, 737), (711, 748), (715, 760), (715, 772), (714, 782)]  # край шеи у подбородка (по рисунку; в силуэте здесь лишний «пенёк»)
+NL = [(336, 725), (327, 733), (317, 745), (310, 755), (307, 765), (307, 776), (303, 783)]
+def spline(pts, step=2.0):
+    """Плавная линия через опорные точки (Catmull-Rom), густо — чтобы определитель углов не принимал изгиб за излом"""
+    P = np.array(pts, float); out = []
+    for i in range(len(P) - 1):
+        p0, p1, p2, p3 = P[max(i - 1, 0)], P[i], P[i + 1], P[min(i + 2, len(P) - 1)]
+        n = max(2, int(np.hypot(*(p2 - p1)) / step))
+        for k in range(n):
+            t = k / n; out.append(0.5 * ((2 * p1) + (-p0 + p2) * t + (2 * p0 - 5 * p1 + 4 * p2 - p3) * t * t + (-p0 + 3 * p1 - 3 * p2 + p3) * t ** 3))
+    out.append(P[-1]); return np.array(out)
+def dense(pts, step=2.0):
+    """Ломаная через опорные точки с шагом step (для замыкающих отрезков: сглаживанию нужны частые точки)"""
+    P = np.array(pts, float); out = []
+    for a, b in zip(P[:-1], P[1:]):
+        n = max(1, int(np.hypot(*(b - a)) / step)); out += [a + (b - a) * k / n for k in range(n)]
+    out.append(P[-1]); return np.array(out)
 def parts():
     S_ = contour(); iL, iR, iA, iB = at(S_, LN), at(S_, RN), at(S_, TS), at(S_, TE)
+    jR, jL = at(S_, (717, 794)), at(S_, (300, 800))
     head = np.vstack([S_[iL:], S_[:iR + 1], chin_arc(RN[0] - 8, LN[0] + 10)])
-    body = np.vstack([S_[iR:iA], [(822, 1100), (812, 1140)], S_[iB:iL + 1], [(LN[0], LN[1] - 20), (RN[0], RN[1] - 20)]])
-    tail = np.vstack([S_[iA:iB + 1], [(775, 1140), (790, 1070)]])
+    body = np.vstack([spline(NR), S_[jR:iA], spline([(823, 1060), (820, 1078), (813, 1096), (803, 1118), (791, 1140)]), S_[iB:jL + 1], spline(NL[::-1]), dense([(336, 725), (352, 698), (680, 698), (697, 727)])[1:-1]])
+    tail = np.vstack([S_[iA:iB + 1], dense([S_[iB], (775, 1140), (790, 1070), S_[iA]])[1:-1]])
     return head, body, tail
-def outline_path(P, f, eps=1.8, sm=10): return bezier_path(simplify_closed(smooth_closed(P, sm), eps), True, 70, f)
+def outline_path(P, f, eps=1.2, sm=8):
+    Q, cs = smart_outline(P, eps, sm, 5, 28); return bezier_path(Q, True, 70, f, set(cs))
 
 # ── цветовые классы ──
 def cls():

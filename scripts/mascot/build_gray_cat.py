@@ -32,26 +32,36 @@ def knot():   # узелок бантика: кружок с обводкой и
     return (f'<ellipse cx="{x:.1f}" cy="{y:.1f}" rx="15" ry="16" fill="{pink(pk["bow"])[1]}" stroke="{CRIM}" stroke-width="{SW}"/>'
             f'<path d="M{x - 6:.1f} {y - 5:.1f}C{x - 3:.1f} {y - 9:.1f} {x + 3:.1f} {y - 9:.1f} {x + 6:.1f} {y - 5:.1f}" fill="none" stroke="#fe96b8" stroke-width="3.5" stroke-linecap="round"/>')
 PINK, PINK_L = '#ee5186', '#fe96b8'
+def ring_markup():
+    outl, tube = ring()
+    return f'<path d="{outl}" fill="{OL}"/>' + ''.join(f'<path d="{t}" fill="#ffffff"/>' for t in tube)
 def collar():   # лента ошейника: верх уходит под подбородок головы, края и низ — как на рисунке
     P = lambda x, y: '%.1f %.1f' % F(x, y)
     d = f'M{P(380, 715)}C{P(368, 742)} {P(376, 765)} {P(412, 776)}C{P(450, 792)} {P(490, 796)} {P(520, 796)}C{P(550, 796)} {P(590, 792)} {P(628, 776)}C{P(664, 765)} {P(672, 742)} {P(660, 715)}Z'
     return f'<path d="{d}" fill="{PINK}" stroke="{CRIM}" stroke-width="7" stroke-linejoin="round"/>'
 def pendant():
-    hd = heart(523, 832, 70, 62); x, y = F(505, 838)
-    return (f'<path d="{hd}" fill="{PINK_L}" stroke="{CRIM}" stroke-width="{SW}" stroke-linejoin="round"/>'
-            f'<path d="M{x:.1f} {y + 3:.1f}C{x - 1:.1f} {y - 3:.1f} {x + 3:.1f} {y - 6:.1f} {x + 8:.1f} {y - 6:.1f}" fill="none" stroke="#ffffff" stroke-width="3.2" stroke-linecap="round" opacity=".9"/>')
+    hd = heart(521, 837, 64, 68); x, y = F(500, 822)
+    return (f'<path d="{hd}" fill="{PINK_L}" stroke="{CRIM}" stroke-width="6.4" stroke-linejoin="round"/>'
+            f'<path d="M{x:.1f} {y + 4:.1f}C{x - 1:.1f} {y - 1:.1f} {x + 2:.1f} {y - 4:.1f} {x + 7:.1f} {y - 4:.1f}" fill="none" stroke="#ffffff" stroke-width="3.2" stroke-linecap="round" opacity=".95"/>')
 body = (f'<path d="{body_d}" fill="{FURC}"/>' + ''.join(fill(x) for x in shade_big) + stroke(body_d) + ''.join(fill(x) for x in toes)
         + ''.join(f'<path d="{d}" fill="{c}"/>' for d, c in body_lines()) + collar() + pendant())
 
 # ── голова ──
 mouth = {k: mia['head'][mia['head'].index(f'<path class="{k}"'):].split('/>', 1)[0] + '/>' for k in ('mm', 'mt', 'mf', 'ml')}
-mouth['mm'] = mouth['mm'].replace('#000', OL); mouth['ml'] = mouth['ml'].replace('#000', OL)
+import re
+MT = json.loads(json.dumps(mia['mouthTable']))                                   # таблица форм Мии; линии тоньше (как у кошки с рисунка), закрытая — своя
+for e in MT.values():
+    e['m']['sw'] = round(e['m']['sw'] * 0.72, 1)
+    if e.get('l'): e['l']['sw'] = round(e['l']['sw'] * 0.72, 1)
+MT['X']['m'].update(d=mouth_closed(), sw=5.2)
+mouth['mm'] = re.sub(r' d="[^"]*"', f' d="{MT["X"]["m"]["d"]}"', mouth["mm"].replace("#000", OL), count=1).replace('stroke-width="6"', 'stroke-width="5.2"')
+mouth['ml'] = mouth['ml'].replace('#000', OL)
 wh = ''.join(f'<path class="wh wh-{s} wh-{r}" d="{d}" fill="{c}"/>' for s, r, d, c in whiskers())
 nose_d, nose_c = nose()
-head = (f'<path d="{head_d}" fill="{FURC}"/>' + ''.join(fill(x) for x in face_light()) + stroke(head_d)
+head = (f'<path d="{head_d}" fill="{FURC}"/>' + ''.join(fill(x) for x in face_light()) + stroke(head_d) + ''.join(f'<path d="{p}" fill="{OL}"/>' for p in edge_blobs())
         + ''.join(fill(x) for x in ear_inner()) + ''.join(fill(x) for x in ear_lines()) + ''.join(fill(x) for x in brow_hairs())
         + '<g class="brows"></g>' + ''.join(mouth[k] for k in ('mm', 'mt', 'mf', 'ml')) + f'<path d="{nose_d}" fill="{nose_c}"/>' + wh
-        + ring(173, 170, OL) + star(208, 262, 28, OL, '#cdedbe') + star(835, 262, 28, OL, '#cdedbe') + pink_group(pk['bow']) + knot() + '<g class="dc"></g>')
+        + ring_markup() + star(208, 262, 28, OL, '#cdedbe') + star(835, 262, 28, OL, '#cdedbe') + pink_group(pk['bow']) + knot() + '<g class="dc"></g>')
 
 # ── глаза (состояние base) ──
 def eye_markup(side):
@@ -66,7 +76,7 @@ vx, vy, vw, vh = x0 - 10, y0 - 8, x1 - x0 + 20, y1 - y0 + 16
 k = min(200 / vw, 240 / vh)
 sprite = dict(id='gray', title='Серая кошка', gender='female', native='left',
               fit=dict(k=round(k, 5), tx=round(-vx * k, 3), ty=round(240 - (vy + vh) * k, 3)), tailBase=[round(TBX), round(TBY)],
-              tail=tail, body=body, head=head, mouthTable=mia['mouthTable'], neck=[297, 445],
+              tail=tail, body=body, head=head, mouthTable=MT, neck=[297, 445],
               states=dict(base=dict(eyes=eyes, brows='', deco='', mouth=None, pupil=[1, 1], tilt=0)))
 json.dump(sprite, open(f'{out}/gray_cat.json', 'w', encoding='utf8'), ensure_ascii=False, separators=(',', ':'))
 svg = (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="{vx:.0f} {vy:.0f} {vw:.0f} {vh:.0f}" width="{vw:.0f}" height="{vh:.0f}"><rect x="{vx:.0f}" y="{vy:.0f}" width="{vw:.0f}" height="{vh:.0f}" fill="#f5f3ef"/>'

@@ -33,7 +33,14 @@ def face_light():
 def nose():
     m = (np.abs(im - np.array([77, 62, 72])).sum(2) < 60) & box(470, 548, 565, 612)
     n = big(components(m, 80))[0]
-    return region_path(n, F, 0.8, 2), color(n, 1)
+    P = lambda x, y: '%.1f %.1f' % F(x, y)       # скруглённый треугольник: широкий верх, мягкий кончик
+    d = f'M{P(497, 567)}C{P(495, 559)} {P(503, 559)} {P(510, 560)}L{P(527, 560)}C{P(536, 559)} {P(541, 563)} {P(538, 569)}C{P(534, 577)} {P(526, 584)} {P(518, 590)}C{P(510, 584)} {P(500, 577)} {P(497, 567)}Z'
+    return d, color(n, 1)
+def mouth_closed():
+    """Закрытый рот по рисунку: короткая ножка от носа и две дуги (мордочка «:3»)"""
+    P = lambda x, y: '%.1f %.1f' % F(x, y)
+    return (f'M{P(521, 592)}L{P(521, 607)}C{P(518, 622)} {P(506, 630)} {P(490, 629)}C{P(476, 628)} {P(468, 616)} {P(468, 602)}'
+            f'M{P(521, 607)}C{P(524, 622)} {P(536, 630)} {P(547, 629)}C{P(560, 628)} {P(568, 617)} {P(567, 605)}')
 
 # ── уши: внутренность и тёмные «волоски» ──
 def ear_inner():
@@ -71,10 +78,14 @@ def star(cx, cy, r, ol, fill):
     d = 'M' + 'L'.join('%.1f %.1f' % p for p in P) + 'Z'
     return (f'<path d="{d}" fill="{fill}" stroke="{ol}" stroke-width="3.2" stroke-linejoin="round"/>'
             f'<ellipse cx="{F(cx - r * .3, cy - r * .25)[0]:.1f}" cy="{F(cx - r * .3, cy - r * .25)[1]:.1f}" rx="2.4" ry="3.2" fill="#ffffff" opacity=".9"/>')
-def ring(cx, cy, ol):
-    (x, y) = F(cx, cy)
-    return (f'<ellipse cx="{x:.1f}" cy="{y:.1f}" rx="23" ry="8" transform="rotate(-10 {x:.1f} {y:.1f})" fill="none" stroke="{ol}" stroke-width="4.6"/>'
-            f'<ellipse cx="{x:.1f}" cy="{y:.1f}" rx="23" ry="8" transform="rotate(-10 {x:.1f} {y:.1f})" fill="none" stroke="#ffffff" stroke-width="2.2"/>')
+def ring():
+    """Колечко в левом ухе: белая трубка (замкнутые светлые области внутри обводки) + тёмный ободок вокруг неё, как на рисунке"""
+    bx = box(105, 115, 300, 205); bright = (LUM > 190) & bx
+    tube = [c for c in components(bright, 60) if not (c[115, :].any() or c[204, :].any() or c[:, 105].any() or c[:, 299].any())]
+    whole = np.zeros((H, W), bool)
+    for c in tube: whole |= c
+    outl = morph(whole, 4, 'd')
+    return region_path(outl, F, 0.8, 3), [region_path(c, F, 0.6, 2) for c in tube]
 
 # ── розовое: бантик, ошейник, сердечко (обводка тёмно-малиновая, заливка розовая) ──
 def pink_parts():
@@ -117,5 +128,12 @@ def body_lines():
 def heart(cx, cy, w, h, f=F):
     """Сердечко (кулон) по центру обводки: cx cy — центр, w h — размеры в пикселях рисунка"""
     P = lambda dx, dy: '%.1f %.1f' % f(cx + dx * w, cy + dy * h)
-    return (f'M{P(0, .5)}C{P(-.08, .36)} {P(-.5, .16)} {P(-.5, -.14)}C{P(-.5, -.44)} {P(-.14, -.52)} {P(0, -.2)}'
-            f'C{P(.14, -.52)} {P(.5, -.44)} {P(.5, -.14)}C{P(.5, .16)} {P(.08, .36)} {P(0, .5)}Z')
+    return (f'M{P(0, .5)}C{P(-.1, .38)} {P(-.5, .2)} {P(-.5, -.12)}C{P(-.5, -.42)} {P(-.16, -.5)} {P(0, -.24)}'
+            f'C{P(.16, -.5)} {P(.5, -.42)} {P(.5, -.12)}C{P(.5, .2)} {P(.1, .38)} {P(0, .5)}Z')
+
+def edge_blobs():
+    """Места, где обводка на рисунке толще или ломаная (бугорки шерсти у основания ушей): точная тёмная область поверх обводки"""
+    dark = blur(LUM, 1) < 85; res = []
+    for b in ((148, 362, 250, 460), (782, 362, 886, 460), (286, 752, 338, 797), (688, 752, 742, 797)):
+        for m in components(dark & box(*b), 200): res.append(region_path(m, F, 0.7, 2, 40))
+    return res
