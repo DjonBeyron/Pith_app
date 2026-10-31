@@ -13,6 +13,7 @@ import WordLanePause from './WordLanePause.jsx'
 import WordLaneCommentButton from './WordLaneCommentButton.jsx'
 import WordLaneComment from './WordLaneComment.jsx'
 import WordLaneTurnPlate from './WordLaneTurnPlate.jsx'
+import { useWordLaneLeavingPlates } from './useWordLaneLeavingPlates.js'
 import RehearsalActs from '../../../rehearsal/RehearsalActs.jsx'
 import { isWordLaneDebug } from './wordLaneConfig.js'
 import { readPillSafe, readTapMode } from './wordLaneHudSettings.js'
@@ -43,6 +44,7 @@ export default function WordLaneGame({ cfg, audioSrc, lines = null, forceDebug =
   const f = useWordLaneFlow({ chunks: cfg.chunks, translation: cfg.translation, lang: cfg.lang, clips: cfg.clips, audioSrc, audio: cfg.audio, catApi, lines, confusers: cfg.confusers, plan: cfg.plan, forceDebug, onFinished })
   const pause = useWordLanePause({ f, cfg, audioSrc, lines }) // свернули приложение — пауза сразу, «Продолжить» открывает микрофон из тапа (useWordLanePause.js)
   const { phase } = f
+  const plates = useWordLaneLeavingPlates(f.plate, f.idx) // плашка остаётся в DOM на время ухода (улетает вверх, как пилюля): useWordLaneLeavingPlates.js
   const single = cfg.chunks.length === 1 && phase !== 'discern' && !cfg.plan // у одного слова текст стоит крупно — кроме «Различи»: там слова на пилюлях, а верное над дорожками не выдаём
   const showSlots = phase !== 'drop'
   const intro = phase === 'drop' || phase === 'lanes' || f.pausedIntro
@@ -64,7 +66,7 @@ export default function WordLaneGame({ cfg, audioSrc, lines = null, forceDebug =
           )}
         {/* Подписи реплик Пита (белое облачко с текстом) убраны в v3.3.84: кот только говорит; f.catLine остаётся в комментариях владельца (commentSnapshot) */}
         {tapMode && phase === 'student' && <div className="wlTapHint" data-testid="wl-tap-hint">Тап вместо речи: тапни дорожку</div>}
-        {f.plate && <WordLaneTurnPlate key={f.idx} text={f.plate} ms={f.plateMs} />}
+        {plates.map(p => <WordLaneTurnPlate key={p.id} text={p.text} leaving={p.leaving} />)}
         {phase === 'reveal' && (
           <div className="wlReveal" data-testid="wl-reveal">
             <div className="wlRevealPhrase">{f.text}</div>
