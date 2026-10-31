@@ -1,5 +1,5 @@
 /* Игра «Повтори за диктором»: пилюли (WordLanePills.jsx, useWordLanePills.js, wordLanePool.js). Контур (настоящий border пилюли — ОДНА обводка), заливка внутри него, светящаяся кромка (фон заливки), искры над заливкой
-   (.wlPillSparks, вне клипа: вылетают выше контура и гаснут), одноразовый «выдох» кольца в начале заливки и линия уровня, у которой ширина растёт и тает вместе с заливкой; «в процессе» / «принято» / «не успел»; «худ»
+   (.wlPillSparks, вне клипа: вылетают выше контура и гаснут), одноразовый «выдох» кольца в начале заливки (линии уровня нет); «в процессе» / «принято» / «не успел»; «худ»
    ученика (тень слова и метка темпа). Раскладка экрана, дорожки и затемнения — word-lane.css; микрофон и плашки — word-lane-mic.css. */
 
 /* Пилюли: вертикальные капсулы, пустые внутри. Тёмное тело, цветная обводка (1/2/3 кольца) и внутренний свет — как блоки ступеней «Моей памяти».
@@ -38,18 +38,17 @@
 .wl--lite .wlPill::before, .weak-device .wlPill::before { display: none; }
 .wlPillClip { position: absolute; inset: var(--gap); border-radius: 999px; overflow: hidden; }
 /* Заливка: слой на всю высоту капсулы, сдвинутый вниз; движок пишет ему style.transform: translateY((1 − p)·100 %) — слой въезжает снизу, его верхний край ЕДЕТ (scaleY сжимал бы градиент). Обрезку по капсуле держит .wlPillClip.
-   Светящаяся кромка — первый слой ФОНА заливки (полоска 2 px цвета дорожки и мягкий свет, стекающий вниз; градиент, не box-shadow: растр один раз). Частиц в самой заливке нет — искры лежат над ней (.wlPillSparks, ниже).
-   Здесь — спокойная кромка («принято», диктор): светлая полоска без свечения; яркая — у заливки «в процессе» (ниже); у data-fail фон сплошной серый, кромки нет */
+   Мягкий край — начало ЕДИНОГО градиента заливки: верхние 8 px идут от прозрачного к цвету заливки, сквозь них виден фон пилюли (светлой черты и отдельного слоя нет; градиент, не mask и не box-shadow: растр один раз). Частиц в самой заливке нет — искры лежат над ней (.wlPillSparks, ниже).
+   Край один и тот же во всех состояниях («принято», «в процессе», диктор); у data-fail фон сплошной серый, края нет */
 .wlPillFill {
-  --edge: linear-gradient(to bottom, rgba(255, 255, 255, 0.6) 0 2px, rgba(255, 255, 255, 0.12) 2px, transparent);
   position: absolute;
   inset: 0;
-  background: var(--edge) 0 0 / 100% 14px no-repeat, linear-gradient(to top, rgba(var(--rgb), 0.78), var(--c));
+  background: linear-gradient(to bottom, rgba(var(--rgb), 0), var(--c) 8px, rgba(var(--rgb), 0.78));
   transform: translateY(100%);                             /* заливку пишет движок прямо в style.transform */
 }
 /* Искры вместо пыльцы. .wlPillSparks — НЕ в клипе заливки: это <span> на самой пилюле (внутри <i>, а в нём два <b> — слои), поэтому искры вылетают выше верхнего контура и там гаснут. Внешний <span> — неподвижная «рамка» с теми же
    боковыми отступами и нижним скруглением, что у клипа, но на --ov (48 px) выше него; overflow hidden не пускает искры за боковые стороны и под низ. Внутренний <i> едет за уровнем заливки: его transform — тот же
-   сдвиг, что у линии (--fill / --pill-h пишет пул, paintFill), верхний край <i> всегда на --ov выше поверхности, а маска-градиент гасит искры от поверхности вверх до этого края: искры рождаются в заливке,
+   сдвиг заливки (--fill / --pill-h пишет пул, paintFill), верхний край <i> всегда на --ov выше поверхности, а маска-градиент гасит искры от поверхности вверх до этого края: искры рождаются в заливке,
    поднимаются через поверхность и тают над ней (у полной пилюли — выше контура). Две анимируемые «плитки» на пилюлю — два <b> внутри <i> (настоящие узлы, а не ::before / ::after: покадровая запись --fill меняет стиль <i>, и стили его псевдоэлементов с анимациями пересчитывались бы вместе с ним — замер: +14 мс на кадр при шести наливающихся пилюлях; у дочерних узлов стиль не меняется): градиентные точки (по шесть-семь разных сдвигов по x) с разной
    высотой плитки, поэтому расходятся по скорости и фазе: A — подъём 3,1 с, B — 4,7 с, плюс медленное покачивание по x (свойство translate, 2,3 с и 3,7 с, туда-обратно) и мерцание opacity .65 ↔ 1.
    Подъём ровно на высоту плитки (124 и 141 px), поэтому цикл бесшовный. Только transform / translate / opacity, без layout и filter. Сдвиг фазы по дорожкам — отрицательные задержки --da / --sa (плитка A) и --db / --sb (B): три пилюли не дышат в такт.
@@ -93,49 +92,11 @@
 @keyframes wlSwayA { from { translate: -3px 0; } to { translate: 3px 0; } }
 @keyframes wlSwayB { from { translate: 3px 0; } to { translate: -3px 0; } }
 
-/* Сверкающая линия уровня: тонкая светлая черта на верхнем краю заливки, НА САМОЙ ПИЛЮЛЕ (не в клипе заливки), края сужаются к нулю и на 6 % выходят за левый и правый края пилюли. Это <i class="wlPillLine">
-   (::after у пилюли занят кольцом подсказки). Движок пишет ей --fill (0…1, paintFill) и --pill-h (высота ёмкости заливки .wlPillClip в px, один замер при взятии пилюли, take), положение — transform,
-   прозрачность нулевая при --fill = 0 (min(1, --fill·40): к 2,5 % заливки линия уже полная). Ядро линии (::after) — эллипс 2 px: концы сужаются сами, плюс горизонтальный градиент к нулю; ореол (::before) —
-   тот же эллипс выше (8 px) и бледнее, радиальным градиентом (не filter и не тень). Мерцание ядра и ореола — opacity .7 ↔ 1 за 1,1 с (в безопасном режиме — сдвиг блика в фоне, word-lane-pill-safe.css).
-   При data-fail («не успел») линия гаснет. Слой линии (will-change) — только у взятой пилюли (data-held): как и остальные слои, стоит от take до give */
-@property --fill { syntax: '<number>'; inherits: false; initial-value: 0; }          /* не наследуются: покадровая запись --fill не пересчитывает стили псевдоэлементов линии */
+/* Заливка без горизонтальных линий (v3.3.84, замечание владельца с iPhone: «в пилюлях бывают горизонтальные линии»). Раньше на верхнем краю заливки лежали две черты: сверкающая линия уровня (<i class="wlPillLine">,
+   2 px, выходила за края пилюли) и светлая полоска 2 px в фоне заливки; на WebKit при дробном translateY края этих черт ещё и давали лишнюю полосу. Теперь край заливки — мягкий переход 10 px в цвет
+   тела пилюли (верхние 8 px градиента заливки прозрачные → цвет), отдельной линии нет ни в «в процессе», ни в «принято». --fill и --pill-h остаются только у <i> искр: они едут за уровнем заливки. */
+@property --fill { syntax: '<number>'; inherits: false; initial-value: 0; }          /* не наследуются: покадровая запись --fill не пересчитывает стили потомков */
 @property --pill-h { syntax: '<length>'; inherits: false; initial-value: 0px; }
-/* Ширина линии зависит от заливки: рождается в центре (ширина 0 при --fill = 0), к --fill = 0,7 плавно вырастает до максимума (112 % пилюли, как раньше), от 0,7 к 1 так же плавно сжимается обратно к нулю в центре.
-   --lt — «шатёр» (треугольник 0 → 1 в 0,7 → 0 в 1,0), --lw — он же, сглаженный (smoothstep: ни излома у максимума, ни рывка у краёв); линия сжимается scaleX вокруг своего центра (transform-origin по умолчанию), а ядро
-   (::after), ореол (::before) и мерцание — её дети и сужаются вместе с ней. Чистая функция от --fill, которую пул пишет и так: ни JS на кадр, ни layout (scaleX — композитор). Оба свойства — @property без наследования:
-   покадровая запись --fill пересчитывает только саму линию, не её псевдоэлементы. Безопасный режим использует то же правило (word-lane-pill-safe.css меняет только блик). */
-@property --lt { syntax: '<number>'; inherits: false; initial-value: 0; }
-@property --lw { syntax: '<number>'; inherits: false; initial-value: 0; }
-.wlPillLine {
-  --lt: clamp(0, min(var(--fill, 0) / 0.7, (1 - var(--fill, 0)) / 0.3), 1);
-  --lw: calc(var(--lt) * var(--lt) * (3 - 2 * var(--lt)));
-  position: absolute;
-  left: -6%;
-  width: 112%;
-  top: calc(var(--gap) - 1px);                             /* центр линии на верхнем крае ёмкости (absolute считается от padding-box, как и .wlPillClip) */
-  height: 2px;
-  pointer-events: none;
-  transform: translateY(calc((1 - var(--fill, 0)) * var(--pill-h, 0px))) scaleX(var(--lw, 0));
-  opacity: min(1, calc(var(--fill, 0) * 40));
-}
-.wlPillLine::before, .wlPillLine::after { content: ''; position: absolute; border-radius: 50%; pointer-events: none; }
-.wlPillLine::after {
-  inset: 0;
-  background: linear-gradient(to right, transparent, rgba(var(--rgb), 0.9) 8%, #fff 50%, rgba(var(--rgb), 0.9) 92%, transparent);
-}
-.wlPillLine::before {
-  left: 6%; right: 6%; top: -4px; bottom: -4px;
-  opacity: 0.35;
-  background: radial-gradient(ellipse at center, rgba(var(--rgb), 0.85), rgba(var(--rgb), 0.3) 45%, transparent 72%);
-}
-.wlPill[data-held] .wlPillLine { will-change: transform; }
-.wlPill[data-held] .wlPillLine::after { animation: wlLineTwinkle 1.1s ease-in-out infinite; }
-.wlPill[data-held] .wlPillLine::before { animation: wlLineTwinkleHalo 1.1s ease-in-out infinite; }
-.wlPill[data-fail] .wlPillLine { opacity: 0; }
-@keyframes wlLineTwinkle { 0%, 100% { opacity: 0.7; } 50% { opacity: 1; } }
-@keyframes wlLineTwinkleHalo { 0%, 100% { opacity: 0.25; } 50% { opacity: 0.4; } }
-.wl--lite .wlPillLine::before, .weak-device .wlPillLine::before { display: none; }   /* слабое устройство: без ореола… */
-.wl--lite .wlPillLine::after, .weak-device .wlPillLine::after { animation: none !important; }   /* …и без мерцания */
 
 /* «Различи»: у пилюли звучит её слово — она светится (слов на экране нет, только озвучка) */
 .wlPill[data-voice] { filter: brightness(1.6) drop-shadow(0 0 14px rgba(var(--rgb), 0.9)); transition: filter 0.12s ease-out; }
@@ -151,13 +112,15 @@
    не держит, прогревать там нечего — там opacity: 0 (word-lane-pill-safe.css) */
 .wl[data-phase='lanes'] .wlPill { translate: -50% calc(50dvh - 50%); opacity: 0.0002; will-change: transform, translate, scale; } /* слои на время прогрева; дальше их держит только take (wordLanePool.js) */
 
-/* «Худ» в пилюле ученика реагирует ТОЛЬКО на голос: «тень» слова диктора (полоски по высоте, ширина = громкость куска слова) и метка темпа --pace (чёрточка, бегущая вверх в темпе диктора
+/* v3.3.84: «тень» слова (горизонтальные полоски, они появлялись на 3 с после неверно сказанного) и метка темпа — тоже горизонтальные черты внутри пилюли; владелец просит убрать любые горизонтальные линии,
+   поэтому оба слоя скрыты (display: none: не рисуются и не участвуют в вёрстке; полосок-детей в разметке больше нет, движок пишет им opacity вхолостую). Описание ниже — как было задумано.
+   «Худ» в пилюле ученика реагирует ТОЛЬКО на голос: «тень» слова диктора (полоски по высоте, ширина = громкость куска слова) и метка темпа --pace (чёрточка, бегущая вверх в темпе диктора
    с первого звука). Без голоса обе скрыты (opacity 0), пока ученик говорит — движок (useWordLanePills) пишет им opacity по громкости голоса и позицию метки; после принятия слова гаснут.
    Прозрачность следует за голосом почти без задержки (0,1 с), поэтому статичного худа нет. */
 .wlGhost {
   position: absolute;
   inset: 8% 0;
-  display: flex;
+  display: none;
   flex-direction: column-reverse;
   align-items: center;
   justify-content: space-between;
@@ -167,6 +130,7 @@
 .wlGhost i { display: block; height: 6%; border-radius: 99px; background: rgba(var(--rgb), 0.55); }
 .wlPace {
   position: absolute;
+  display: none;
   inset: 0 8%;
   opacity: 0;
   transform: translateY(0);                                /* линия у нижнего края блока; движок сдвигает блок вверх на долю высоты (translateY(-pace·100%)): двигает композитор */
@@ -174,13 +138,13 @@
 }
 .wlPace::after { content: ''; position: absolute; left: 0; right: 0; bottom: -1.5px; height: 3px; border-radius: 2px; background: #fff; box-shadow: 0 0 8px rgba(255, 255, 255, 0.7); }
 
-/* «Честность оценки»: пока слово не подтверждено распознаванием, заливка голосом — «в процессе»: ровный бледный тон цвета дорожки (альфа .35 в самом цвете, а не opacity слоя — кромка и частицы остаются яркими)
-   и яркая светящаяся кромка сверху; подтвердили (data-lock) — сплошной цвет дорожки и спокойная светлая кромка. Видно разницу между «меня слышно» и «слово засчитано». Штриховки нет: заливка едет translateY,
+/* «Честность оценки»: пока слово не подтверждено распознаванием, заливка голосом — «в процессе»: ровный бледный тон цвета дорожки (альфа .35 в самом цвете, а не opacity слоя — искры остаются яркими)
+   с мягким краем сверху; подтвердили (data-lock) — сплошной цвет дорожки. Видно разницу между «меня слышно» и «слово засчитано». Штриховки нет: заливка едет translateY,
    край движется, не растягиваясь. Контур пилюли в обоих состояниях один и тот же. Красного фона нет: красное — только вспышка промаха (missPill). В фазе диктора заливка всегда сплошная
    (data-lock стоит у всех); серый «не успел» (data-fail) ниже. */
 .wl[data-phase='student'] .wlPillFill { transition: background-color 0.15s linear; }
-.wl[data-phase='student'] .wlPill:not([data-lock]):not([data-fail]) .wlPillFill { --edge: linear-gradient(to bottom, var(--c) 0 2px, rgba(var(--rgb), 0.5) 2px, transparent); background: var(--edge) 0 0 / 100% 14px no-repeat, rgba(var(--rgb), 0.35); }
-.wl[data-phase='student'] .wlPill[data-lock]:not([data-fail]) .wlPillFill { background: var(--edge) 0 0 / 100% 14px no-repeat, var(--c); }
+.wl[data-phase='student'] .wlPill:not([data-lock]):not([data-fail]) .wlPillFill { background: linear-gradient(to bottom, rgba(var(--rgb), 0), rgba(var(--rgb), 0.35) 8px); }
+.wl[data-phase='student'] .wlPill[data-lock]:not([data-fail]) .wlPillFill { background: linear-gradient(to bottom, rgba(var(--rgb), 0), var(--c) 8px); }
 
 /* «Не успел»: пилюля ушла вниз без принятого слова — гаснет и серая (data-fail); её выкатят снова */
 .wlPill[data-fail] { opacity: 0.4; transition: opacity 0.5s ease; }

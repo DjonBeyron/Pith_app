@@ -68,3 +68,14 @@ describe('useCatLines: отсрочка первой реплики', () => {
     expect(cat2.busyLeft()).toBe(0)
   })
 })
+
+describe('подпись реплики Пита не рисуется на экране (v3.3.84)', () => {
+  it('в игре нет облачка .wlSay / wl-say: кот только говорит, текст остаётся в комментариях владельца (f.catLine → commentSnapshot)', async () => {
+    const { readFileSync } = await import('node:fs')
+    const game = readFileSync(new URL('./WordLaneGame.jsx', import.meta.url), 'utf8')
+    const css = readFileSync(new URL('../../../../styles/player/modules/word-lane.css', import.meta.url), 'utf8')
+    expect(game).not.toMatch(/wlSay|wl-say|\{f\.catLine\}/)
+    expect(css).not.toContain('.wlSay')
+    expect(readFileSync(new URL('../../../rehearsal/polish/commentSnapshot.js', import.meta.url), 'utf8')).toContain('cat: f.catLine')
+  })
+})

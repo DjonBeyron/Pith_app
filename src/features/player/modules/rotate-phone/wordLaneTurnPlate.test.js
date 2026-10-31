@@ -50,7 +50,7 @@ describe('плашка: разметка и звук при появлении',
 })
 
 describe('CSS: «колебание» как у окон приложения', () => {
-  const css = read('../../../../styles/player/modules/word-lane-mic.css')
+  const css = read('../../../../styles/player/modules/word-lane-plate.css')
   const pop = read('../../../../styles/pop-spring.css')
   const WOBBLE = 'cubic-bezier(0.34, 1.25, 0.64, 1)'
   it('кривая та же, что у popSheetWobble (pop-spring.css): рост из нуля от середины с перелётом', () => {
@@ -58,27 +58,75 @@ describe('CSS: «колебание» как у окон приложения', 
     expect(pop).toContain(`animation: popSheetWobble 0.3s ${WOBBLE} backwards`)
     expect(css).toMatch(new RegExp(`\\.wlTurn \\{[^}]*animation: wlTurnIn 0\\.3s ${WOBBLE.replace(/[()]/g, '\\$&')} backwards`))
     expect(css).toMatch(/@keyframes wlTurnIn \{\s*from \{ scale: 0; \}\s*to\s*\{ scale: 1; \}/)
-    expect(css).toMatch(/\.wlTurn \{[^}]*\n {2}top: 50%;[^}]*transform: translate\(-50%, -50%\)/)   // центр плашки — центр роста (transform-origin по умолчанию 50 % 50 %)
-    expect(css).not.toMatch(/\.wlTurn \{[^}]*transform-origin/)
+    expect(css).not.toMatch(/\.wlTurn \{[^}]*transform-origin/)                                  // origin по умолчанию — центр плашки
   })
   it('рост — свойство scale, уход — transform + opacity на всю длину показа (--wl-turn-ms): анимации на разных свойствах не перебивают друг друга', () => {
     expect(css).toContain('wlTurnOut var(--wl-turn-ms, 2.2s) ease-in both')
     const inK = css.slice(css.indexOf('@keyframes wlTurnIn'), css.indexOf('@keyframes wlTurnOut'))
     expect(inK).not.toMatch(/opacity|transform/)
-    const outK = css.slice(css.indexOf('@keyframes wlTurnOut'), css.indexOf('.wlTurn--lite'))
-    expect(outK).toMatch(/0%, 82% \{ opacity: 1;/)
-    expect(outK).toMatch(/100%\s*\{ opacity: 0; transform: translate\(-50%, -50%\) scale\(0\.95\)/)
+    const outK = css.slice(css.indexOf('@keyframes wlTurnOut'), css.indexOf('/* Блеск узора'))
+    expect(outK).toMatch(/0%, 82% \{ opacity: 1; \}/)
+    expect(outK).toMatch(/100%\s*\{ opacity: 0; transform: scale\(0\.95\); \}/)
     expect(outK).not.toMatch(/scale: /)
   })
   it('lite и reduced-motion: без колебания — только проявление и уход (wlTurnFade), без wlTurnIn', () => {
     expect(css).toMatch(/\.wlTurn--lite \{ animation: wlTurnFade var\(--wl-turn-ms, 2\.2s\) ease both; \}/)
-    const fade = css.slice(css.indexOf('@keyframes wlTurnFade'), css.indexOf('/* Микрофон'))
+    const fade = css.slice(css.indexOf('@keyframes wlTurnFade'), css.indexOf('@media (prefers-reduced-motion'))
     expect(fade).toMatch(/0%\s*\{ opacity: 0; \}/)
     expect(fade).toMatch(/11%, 82% \{ opacity: 1; \}/)
     expect(fade).toMatch(/100% \{ opacity: 0; \}/)
     const rm = css.slice(css.indexOf('@media (prefers-reduced-motion: reduce)'))
     expect(rm).toMatch(/\.wlTurn \{ animation: wlTurnFade var\(--wl-turn-ms, 2\.2s\) ease both; \}/)
+    expect(rm).toContain('.wlTurn::after { display: none; }')
     expect(rm).not.toMatch(/\.wlTurn[^{]*\{[^}]*0\.01s/)                                            // раньше 0,01 с с fill both обнуляло плашку до того, как её увидят
+  })
+})
+
+describe('CSS: плашка центрирована вёрсткой и растёт от середины (v3.3.84)', () => {
+  const css = read('../../../../styles/player/modules/word-lane-plate.css')
+  const rule = css.match(/\n\.wlTurn \{([^}]*)\}/)[1]
+  it('центр — inset: 0 + margin: auto + fit-content, а не left/top 50 % с translate(-50%, -50%): scale считается до transform, и с translate плашка росла бы из точки у своего угла', () => {
+    expect(rule).toMatch(/inset: 0;/)
+    expect(rule).toMatch(/margin: auto;/)
+    expect(rule).toMatch(/width: fit-content;/)
+    expect(rule).toMatch(/height: fit-content;/)
+    expect(rule.replace(/url\("[^"]*"\)/, '')).not.toMatch(/left:|top:|translate|transform-origin/)  // без тайла узора (в нём translate самого SVG)
+    expect(css.replace(/\/\*[\s\S]*?\*\//g, '')).not.toMatch(/translate\(-50%/)           // ни в покое, ни в кадрах ухода
+  })
+  it('плашка одна: WordLaneGame монтирует одну WordLaneTurnPlate на turn / announce / «Дубль» / «Различи»', () => {
+    const game = read('./WordLaneGame.jsx')
+    expect(game.match(/<WordLaneTurnPlate /g)).toHaveLength(1)
+    expect(read('./useWordLaneFlow.js')).toContain("stageObj?.type === 'announce' ? stageObj.round.title : stageObj?.type === 'turn' ? 'Теперь твоя очередь' : ''")
+  })
+})
+
+describe('CSS: узор и блеск от центра, как у окна серии (v3.3.84)', () => {
+  const css = read('../../../../styles/player/modules/word-lane-plate.css')
+  const shell = read('../../../../styles/shell-v2.css')
+  const code = css.replace(/\/\*[\s\S]*?\*\//g, '')
+  it('узор — тот же тайл, что --v2-tex-f окна серии (копия: на слабом устройстве общие текстуры обнулены), два слоя на тёмном фоне', () => {
+    const tile = css.match(/--wl-plate-tex: (url\("[^"]+"\));/)[1]
+    expect(shell).toContain(`--v2-tex-f: ${tile};`)
+    expect(code).toMatch(/background: var\(--wl-plate-tex\), var\(--wl-plate-tex\), rgba\(11, 13, 17, 0\.94\);/)
+  })
+  it('блеск — маска-кольцо от центра (mask-size 0 → 340 %) по трём слоям узора, как .sgWave; один раз (1 повтор), без filter и бесконечности', () => {
+    const streak = read('../../../../styles/streak-gate.css')
+    expect(streak).toContain('transparent 0 44%, #000 60%, transparent 76%')
+    expect(code).toContain('transparent 0 44%, #000 60%, transparent 76%')
+    expect(code).toMatch(/\.wlTurn::after \{[^}]*background: var\(--wl-plate-tex\), var\(--wl-plate-tex\), var\(--wl-plate-tex\);/)
+    expect(code).toMatch(/animation: wlTurnShine 1\.1s ease-out 0\.25s 1 both;/)
+    expect(code).toMatch(/@keyframes wlTurnShine \{[^@]*mask-size: 0% 0%;[^@]*mask-size: 340% 340%;/)
+    expect(code).not.toMatch(/infinite|filter|mix-blend-mode/)
+  })
+  it('lite (.wlTurn--lite), слабое устройство и reduced-motion: блеска нет, узор остаётся статичным (он в background самой плашки)', () => {
+    expect(code).toContain('.wlTurn--lite::after, .weak-device .wlTurn::after { display: none; }')
+    expect(code.slice(code.indexOf('@media (prefers-reduced-motion'))).toContain('.wlTurn::after { display: none; }')
+    expect(code).not.toMatch(/\.wlTurn--lite[^{]*\{[^}]*background/)
+  })
+  it('файл подключён в index.css после word-lane-mic.css, в старом файле плашки нет', () => {
+    const index = read('../../../../index.css')
+    expect(index.indexOf('word-lane-plate.css')).toBeGreaterThan(index.indexOf('word-lane-mic.css'))
+    expect(read('../../../../styles/player/modules/word-lane-mic.css')).not.toContain('.wlTurn')
   })
 })
 
