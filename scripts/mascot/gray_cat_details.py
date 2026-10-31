@@ -85,9 +85,11 @@ def ring():
     tube = [c for c in components(bright, 60) if not (c[115, :].any() or c[204, :].any() or c[:, 105].any() or c[:, 299].any())]
     whole = np.zeros((H, W), bool)
     for c in tube: whole |= c
+    low = whole & box(0, 172, W, H)
+    for k in range(1, 11): whole |= shift(low, 0, k)               # нижний отрезок продолжается под обводку уха — его конец прячется за ухом, без «колпачка»
     outl = morph(whole, 3, 'd'); cut = 170
-    part = lambda rows: (region_path(outl & rows, F, 0.8, 3), region_path(whole & rows, F, 0.6, 2))
-    return part(box(162, 0, W, cut + 3)), part(box(0, 0, W, H))
+    part = lambda ro, rw: (region_path(outl & ro, F, 0.8, 3), region_path(whole & rw, F, 0.6, 2))
+    return part(box(166, 0, W, cut + 3), box(160, 0, W, cut + 3)), part(box(0, 0, W, H), box(0, 0, W, H))   # белая трубка начинается левее ободка — на стыке слоёв нет тёмной черты
 
 # ── розовое: бантик, ошейник, сердечко (обводка тёмно-малиновая, заливка розовая) ──
 def pink_parts():
