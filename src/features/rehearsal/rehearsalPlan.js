@@ -8,6 +8,7 @@ import { parsePhrase, normText, MAX_CONFUSERS } from '../player/modules/rotate-p
 import { SLOT_COUNT } from '../player/modules/rotate-phone/wordLaneTimeline.js'
 import { ONLY_IDS } from './rehearsalOnly.js'
 import { cleanSeed, seedFor } from './rehearsalSeed.js'
+import { isStopWord } from './rehearsalStopWords.js'
 
 export const SOURCES = ['sim', 'memory', 'node']
 export const MAX_PLAN_WORDS = 8
@@ -76,15 +77,19 @@ export function phraseWords(chunks) {
 }
 
 /**
- * Слова разминки (акт 1): ВСЕ слова фразы (решение владельца, v3.3.85), без повторов. Слово с карточкой в плане несёт её перевод, «к повтору» и промахи; слово без карточки — пустой перевод (его не показываем).
+ * Слова разминки (акт 1; v3.3.87, решение владельца): ТОЛЬКО слова с карточкой (в плане есть слово с переводом), без служебных слов (rehearsalStopWords.js: to, a, the, is …) — даже если карточка для них есть.
+ * Слову без карточки дорожке нечего подписать, поэтому в разминку оно не идёт. Исключение — фраза из ОДНОГО слова: оно идёт всегда (над ним перевод всей фразы). Повторы слов фразы схлопнуты.
  * Карточки, чьего слова нет во фразе дословно, тоже идут в разминку (в конец). Порядок: «к повтору» первыми, потом остальные, внутри — как во фразе; порядок сессии потом задаёт orderWarmup. Не больше MAX_WARMUP.
  * У каждого — дорожка (lane): кусок, в котором оно стоит. Одно слово во фразе — одна дорожка по центру.
  */
 export function warmupWords(plan) {
   const n = plan.chunks.length
   const tokens = phraseWords(plan.chunks)
+  const lone = n === 1 && tokens.length === 1 // одно слово: карточка не нужна, перевод — перевод фразы
   const cards = plan.words.filter(w => !tokens.some(t => same(t, w.text)))
-  const all = [...tokens.map(t => plan.words.find(w => same(w.text, t)) ?? { text: t, translation: '', due: false, lapses: 0, confusers: [] }), ...cards]
+  const bare = t => ({ text: t, translation: '', due: false, lapses: 0, confusers: [] })
+  const all = [...tokens.map(t => plan.words.find(w => same(w.text, t)) ?? (lone ? bare(t) : null)), ...cards]
+    .filter(w => w && (lone || (w.translation && !isStopWord(w.text))))
   return [...all.filter(w => w.due), ...all.filter(w => !w.due)].slice(0, MAX_WARMUP).map((w, i) => {
     const at = laneOfWord(plan.chunks, w.text)
     return { ...w, lane: n === 1 ? 1 : at >= 0 ? at : i % n }

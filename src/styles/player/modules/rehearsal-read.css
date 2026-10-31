@@ -1,0 +1,19 @@
+/* Читка-караоке «Репетиции с Питом» (features/rehearsal/read/): подписи кусков над дорожками (.wlHead из word-lane.css) разбиты на слова, слова заливаются зелёным под голос Пита, впереди идёт курсор «|».
+   Движение пишет JS прямо в стили (useReadKaraoke.js): clip-path у слоя .rkFill и transform одного узла .rkCursor. Ни фильтров, ни теней, ни анимаций — только clip-path, opacity и transform. */
+
+.rkHead { --rk-green: #7dffa6; }
+.rkWord { position: relative; display: inline-block; }
+.rkFill { position: absolute; left: 0; top: 0; color: var(--rk-green); white-space: nowrap; clip-path: inset(0 100% 0 0); pointer-events: none; }
+.rkFill::before { content: attr(data-t); }
+
+/* «Теперь твоя очередь»: зелёное плавно уходит, слова снова белые (переход только на этой стадии: у новой стадии слой сразу непрозрачный) */
+.rkHead--off .rkFill { opacity: 0; transition: opacity 0.7s ease; }
+
+/* Курсор: один узел, без размера. «|» (.rkBar) и кружок (.rkDot) центрированы по высоте слова --rk-h; прячутся scale(0), пока не нужны */
+.rkCursor { position: absolute; left: 0; top: 0; width: 0; height: var(--rk-h, 1.15em); pointer-events: none; will-change: transform; }
+.rkBar, .rkDot { position: absolute; background: var(--rk-green, #7dffa6); transform: scale(0); }
+.rkBar { left: -1.5px; top: 0; width: 3px; height: 100%; border-radius: 2px; }
+.rkDot { left: -3.5px; top: calc(50% - 3.5px); width: 7px; height: 7px; border-radius: 50%; }
+.rkCursor--off { display: none; }
+html.weak-device .rkCursor { display: none; }
+@media (prefers-reduced-motion: reduce) { .rkHead--off .rkFill { transition-duration: 0.01s; } }

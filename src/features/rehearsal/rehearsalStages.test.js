@@ -2,14 +2,13 @@ import { describe, it, expect } from 'vitest'
 import { buildRehearsalStages, labelsForRehearsal, RH_TAKE_MS, MAX_VOCAB } from './rehearsalStages.js'
 import { buildStages, listenStepOf, labelsFor } from '../player/modules/rotate-phone/wordLaneStages.js'
 import { stepTargets } from '../player/modules/rotate-phone/wordLaneRecipe.js'
-import { createJournal, record, shouldRun, nextRunnable, weakLanes, missesIn } from './rehearsalJournal.js'
 import { engineKind, isStudentStage } from './rehearsalKinds.js'
 import { fixturePlan } from './rehearsalFixtures.js'
 import { baseLineId } from './rehearsalLines.js'
 import { countdownMs } from './rehearsalCountdown.js'
 
 const VOICED = () => ({ ms: 600, lead: 0 }) // куски озвучены в библиотеке слов
-// Семя 'd' (rehearsalVariety / rehearsalDiscern): три куска — разминка learn (дорожка 1) → trying (0) → to (2) → I'm (0), «чётко» → «обычно», при «застрял» сначала слово, потом перевод куска; «Различи»: три дорожки, learn на 2, потом на 0
+// Семя 'd' (rehearsalVariety / rehearsalDiscern): три куска — разминка (только слова с карточкой) learn → trying → I'm, «чётко» → «обычно», при «застрял» сначала слово, потом перевод куска; «Различи»: три дорожки, learn на 2, потом на 0
 const plan = (id, seed = 'd') => ({ ...fixturePlan(id), seed })
 const build = (id, o = {}) => buildRehearsalStages({ plan: plan(id, o.seed), rate: 1, lib: () => null, ...o })
 const types = st => st.map(s => `${s.type}:${s.sid}`)
@@ -34,22 +33,23 @@ describe('акты на стадиях', () => {
   it('три куска: порядок стадий по актам', () => {
     const { stages } = build('three')
     expect(types(stages)).toEqual([
-      'announce:warmup-ann', 'warmup:warmup-1', 'warmup:warmup-0', 'warmup:warmup-3', 'warmup:warmup-2', // все слова фразы
-      'announce:read-ann', 'read:read-d', 'turn:read-t', 'student:read-s',
+      'announce:warmup-ann', 'warmup:warmup-1', 'warmup:warmup-0', 'warmup:warmup-2', // слова с карточкой (без «to» и слов без карточки)
+      'announce:discern-0-ann', 'discern:discern-0', 'warmup:discern-say-0', // «Различи» сразу после разминки
       'announce:build-ann', 'dictor:build-0-d', 'turn:build-0-t', 'student:build-0', 'dictor:build-0r-d', 'turn:build-0r-t', 'student:build-0r',
       'dictor:build-1-d', 'turn:build-1-t', 'student:build-1', 'dictor:build-1r-d', 'turn:build-1r-t', 'student:build-1r',
       'dictor:build-final-d', 'announce:build-clear-ann', 'student:build-clear', 'announce:build-normal-ann', 'student:build-normal',
+      'announce:read-ann', 'read:read-d', 'turn:read-t', 'student:read-s', // читка после сборки
       'announce:blind-ann', 'student:blind-0', 'student:blind-1',
-      'announce:discern-0-ann', 'discern:discern-0', 'warmup:discern-say-0',
       'announce:take-ann', 'take:take', 'mirror:mirror', 'summary:summary',
     ])
   })
   it('разминка: слово по переводу — цель слово, пилюля в дорожке слова, словарь Vosk — слова фразы и двойники', () => {
     const w = build('three').stages.find(s => s.sid === 'warmup-1')
-    expect(w.word).toMatchObject({ text: 'learn', lane: 1, chunkLane: 2, idx: 1 }) // дорожка пилюли случайная (семя), chunkLane — где слово стоит во фразе, idx — номер в плане (по нему sid)
-    expect(w.step.parts).toEqual([1])
-    expect(w.step.chunks).toEqual(['', 'learn', ''])
-    expect(w.step.chunkMs[1]).toBeGreaterThan(0)
+    expect(w.word).toMatchObject({ text: 'learn', chunkLane: 2, idx: 1 }) // дорожка пилюли случайная (семя), chunkLane — где слово стоит во фразе, idx — номер в плане (по нему sid)
+    const lane = w.word.lane
+    expect(w.step.parts).toEqual([lane])
+    expect(w.step.chunks).toEqual(['', '', ''].map((_, i) => (i === lane ? 'learn' : '')))
+    expect(w.step.chunkMs[lane]).toBeGreaterThan(0)
     expect(stepTargets(w.step, w.step.chunks).texts).toEqual(['learn'])
     expect(w.step.extra).toEqual(expect.arrayContaining(['earn', 'lean', 'trying']))
     expect(w.step.extra).not.toContain('learn')
@@ -57,7 +57,7 @@ describe('акты на стадиях', () => {
     expect(w.step.maxWords).toBe(2)
     expect(w.caption).toBe('учиться')
   })
-  it('читка: диктор говорит всю фразу куски за куском (один повтор), подсветка по таймингам, потом ученик один раз', () => {
+  it('читка: диктор говорит всю фразу куски за куском (один повтор), тайминги кусков для заливки-караоке, потом ученик один раз', () => {
     const { stages } = build('three', { lib: VOICED })
     const read = stages.find(s => s.type === 'read')
     expect(read.plan.reps).toHaveLength(1)
@@ -68,10 +68,10 @@ describe('акты на стадиях', () => {
     expect(stu.step.reps).toHaveLength(1)
     expect(stu.metro.map(m => m.chunk)).toEqual([0, 1, 2])
   })
-  it('нет озвучки кусков — читка без подсветки (metro пуст); есть — с подсветкой', () => {
+  it('нет озвучки кусков — у Пита читка без заливки (metro пуст), у игрока заливка идёт за его голосом по ожидаемому темпу (metro есть); с озвучкой — оба', () => {
     const mute = build('three')
     expect(mute.stages.find(s => s.type === 'read').metro).toEqual([])
-    expect(mute.stages.find(s => s.sid === 'read-s').metro).toEqual([])
+    expect(mute.stages.find(s => s.sid === 'read-s').metro).toHaveLength(3)
     const voiced = build('three', { lib: VOICED })
     expect(voiced.stages.find(s => s.type === 'read').metro).toHaveLength(3)
     expect(voiced.stages.find(s => s.sid === 'read-s').metro).toHaveLength(3)
@@ -95,16 +95,18 @@ describe('акты на стадиях', () => {
     const { stages } = build('three')
     const b0 = stages.find(s => s.sid === 'blind-0'), b1 = stages.find(s => s.sid === 'blind-1')
     expect(b0.step.labels).toEqual([]); expect(b1.cond).toEqual({ few: true })
-    expect(b0).toMatchObject({ hintWord: "I'm", hintLane: 0, hintKinds: ['word', 'tr'], hintTr: 'Я пытаюсь научиться' }); expect(b1.hintKinds).toEqual(['tr', 'word']) // подсказки: сначала слово, потом перевод; второй проход — наоборот
+    expect(b0).toMatchObject({ hintWord: "I'm", hintLane: 0, hintKinds: ['word', 'tr'], hintTr: 'я' }); expect(b1.hintKinds).toEqual(['tr', 'word']) // подсказки: сначала слово, потом перевод; второй проход — наоборот
     expect(stepTargets(b0.step, ['I\'m', 'trying', 'to learn']).texts).toEqual(["I'm trying to learn"])
   })
-  it('«Различи»: стадия discern с двойниками, диктор называет слово (sayText), потом слово надо сказать (словарь — тройка)', () => {
+  it('«Различи»: Пит объясняет задание (rh_discern на плашке), слово звучит один раз при трёх дорожках (sayAt после открытия последней пилюли, пилюли молчат), потом слово надо сказать (словарь — тройка)', () => {
     const { stages } = build('three')
     const d = stages.find(s => s.type === 'discern')
     expect(d.prompts).toHaveLength(2)
     for (const p of d.prompts) expect(p.texts.filter(Boolean).sort()).toEqual(['earn', 'lean', 'learn']) // обе подсказки — три дорожки: слово и оба двойника
     expect(d.prompts.every(p => p.text === 'learn')).toBe(true)
     expect(d.sayText).toBe('learn')
+    for (const p of d.prompts) { expect(p.written).toBe(true); expect(p.sayAt).toBeGreaterThan(p.lead + (p.slots.length - 1) * p.stagger) } // слово не раньше, чем откроется последняя пилюля
+    expect(stages.find(s => s.sid === 'discern-0-ann').line).toBe('rh_discern')
     const say = stages.find(s => s.sid === 'discern-say-0')
     expect(say.noLabel).toBe(true); expect(say.step.extra).toEqual(expect.arrayContaining(['earn', 'lean']))
   })
@@ -138,12 +140,12 @@ describe('акты на стадиях', () => {
     expect(baseLineId(stages.find(s => s.type === 'mirror').line)).toBe('rh_mirror'); expect(stages.find(s => s.type === 'summary').line).toBeUndefined()
     expect(recipe.acts.find(a => a.id === 'mirror').line).toBe(stages.find(s => s.type === 'mirror').line)
   })
-  it('одно слово: «слово ×2» вместо разминки и сборки, потом слово по переводу, различи, дубль', () => {
+  it('одно слово: «слово ×2» вместо разминки и сборки, потом «Различи», слово по переводу, дубль', () => {
     const { stages } = build('one')
-    expect(types(stages)).toEqual(['announce:word-ann', 'warmup:word-0', 'announce:blind-ann', 'warmup:blind-0', 'announce:discern-0-ann', 'discern:discern-0', 'warmup:discern-say-0', 'announce:take-ann', 'take:take', 'mirror:mirror', 'summary:summary'])
+    expect(types(stages)).toEqual(['announce:word-ann', 'warmup:word-0', 'announce:discern-0-ann', 'discern:discern-0', 'warmup:discern-say-0', 'announce:blind-ann', 'warmup:blind-0', 'announce:take-ann', 'take:take', 'mirror:mirror', 'summary:summary'])
     expect(stages[1].step.reps).toHaveLength(2)
-    expect(stages[3].hintWord).toBe('remember')
-    expect(stages[3].caption).toBe('помнить')
+    expect(stages[6].hintWord).toBe('remember')
+    expect(stages[6].caption).toBe('помнить')
   })
   it('у каждой стадии свой idx и sid; sid не повторяются', () => {
     for (const id of ['three', 'two', 'one', 'none']) {
@@ -176,9 +178,11 @@ describe('подписи дорожек', () => {
   const at = sid => stages.find(s => s.sid === sid)
   const texts = l => l.map(x => x.text)
   it('разминка: над дорожкой слова — перевод, остальные пусты; после «не успел» — подсказка словом', () => {
-    expect(texts(labelsFor(at('warmup-1'), chunks, [], []))).toEqual(['', 'учиться', ''])
-    expect(labelsFor(at('warmup-1'), chunks, [], [])[1].on).toBe(true)
-    expect(texts(labelsFor(at('warmup-1'), chunks, [], [1]))).toEqual(['', 'learn', ''])
+    const lane = at('warmup-1').word.lane
+    const only = t => ['', '', ''].map((_, i) => (i === lane ? t : ''))
+    expect(texts(labelsFor(at('warmup-1'), chunks, [], []))).toEqual(only('учиться'))
+    expect(labelsFor(at('warmup-1'), chunks, [], [])[lane].on).toBe(true)
+    expect(texts(labelsFor(at('warmup-1'), chunks, [], [lane]))).toEqual(only('learn'))
   })
   it('сборка: подписи всех кусков, ярче куски ступени', () => {
     const l = labelsFor(at('build-1'), chunks, [], [])
@@ -190,11 +194,11 @@ describe('подписи дорожек', () => {
     expect(texts(labelsFor(at('blind-0'), chunks, [], [0]))).toEqual(["I'm", '', ''])
     expect(texts(labelsFor(at('blind-0'), chunks, [], [{ lane: 0, text: 'Я пытаюсь' }]))).toEqual(['Я пытаюсь', '', '']) // подсказка-перевод куска: свой текст на дорожке
   })
-  it('читка: подсвечен только звучащий кусок (hl), без подсветки — все ярко', () => {
-    expect(labelsFor(at('read-d'), chunks, [], [], 1).map(x => x.on)).toEqual([false, true, false])
-    expect(labelsFor(at('read-s'), chunks, [], [], -1).map(x => x.on)).toEqual([false, false, false])
-    const plain = build('three').stages.find(s => s.type === 'read') // без озвучки подсветки нет — все куски ярко
-    expect(labelsForRehearsal(plain, chunks, [], -1).every(x => x.on)).toBe(true)
+  it('читка: подписи всех кусков белые и яркие (заливку зелёным рисует караоке, ReadKaraoke), с озвучкой и без неё', () => {
+    expect(labelsFor(at('read-d'), chunks, [], []).map(x => x.on)).toEqual([true, true, true])
+    expect(labelsFor(at('read-s'), chunks, [], []).map(x => x.text)).toEqual(chunks)
+    const plain = build('three').stages.find(s => s.type === 'read') // без озвучки — те же яркие подписи, без заливки
+    expect(labelsForRehearsal(plain, chunks, []).every(x => x.on)).toBe(true)
   })
   it('«Различи» и итог — над дорожками пусто; «Различи»-слово без подписи, пока не подсказали', () => {
     expect(texts(labelsFor(at('discern-0'), chunks, [0, 1, 2], []))).toEqual(['', '', ''])
@@ -205,43 +209,5 @@ describe('подписи дорожек', () => {
   it('ярлык над дорожками не на пилюле: у стадий «чётко / обычно» подписи кусков остаются обычными, а tag лежит на стадии', () => {
     expect(texts(labelsFor(at('build-clear'), chunks, [], []))).toEqual(chunks)
     expect(at('build-clear').tag.length).toBeGreaterThan(0)
-  })
-})
-
-describe('журнал и правила пропуска', () => {
-  const { stages } = build('three')
-  const st = sid => stages.find(s => s.sid === sid)
-  it('ступень повторяется, только если у неё был промах (один раз)', () => {
-    const j = createJournal()
-    expect(shouldRun(st('build-0r'), j)).toBe(false)
-    record(j, st('build-0'), 'fail')
-    expect(shouldRun(st('build-0r'), j)).toBe(true); expect(shouldRun(st('build-1r'), j)).toBe(false)
-    expect(nextRunnable(stages, st('build-0').idx + 1, j)).toBe(st('build-0r-d').idx)
-    const clean = createJournal(); record(clean, st('build-0'), 'win')
-    expect(nextRunnable(stages, st('build-0').idx + 1, clean)).toBe(st('build-1-d').idx) // повтор пропущен
-  })
-  it('промахов ≥ 3 к акту 4: второй проход «без текста» и «Различи» пропускаются, зеркало остаётся', () => {
-    const j = createJournal()
-    record(j, st('warmup-0'), 'miss'); record(j, st('read-s'), 'fail'); record(j, st('build-0'), 'miss')
-    expect(missesIn(j)).toBe(3)
-    expect(shouldRun(st('blind-0'), j)).toBe(true); expect(shouldRun(st('blind-1'), j)).toBe(false)
-    expect(shouldRun(st('discern-0-ann'), j)).toBe(false); expect(shouldRun(st('discern-0'), j)).toBe(false); expect(shouldRun(st('discern-say-0'), j)).toBe(false)
-    expect(nextRunnable(stages, st('blind-0').idx + 1, j)).toBe(st('take-ann').idx)
-    expect(shouldRun(st('mirror'), j)).toBe(true)
-  })
-  it('промахов мало — идут оба прохода и «Различи»; промахи самого акта 4 не в счёт', () => {
-    const j = createJournal()
-    record(j, st('warmup-0'), 'miss'); record(j, st('blind-0'), 'fail'); record(j, st('blind-0'), 'fail'); record(j, st('blind-0'), 'fail')
-    expect(shouldRun(st('blind-1'), j)).toBe(true); expect(shouldRun(st('discern-0'), j)).toBe(true)
-  })
-  it('слово разминки, не давшееся дважды, — слабая дорожка (в «без текста» у неё подпись)', () => {
-    const j = createJournal()
-    record(j, st('warmup-1'), 'fail'); expect(weakLanes(j, stages)).toEqual([])
-    record(j, st('warmup-1'), 'miss'); expect(weakLanes(j, stages)).toEqual([2])
-  })
-  it('мусор в журнал не попадает', () => {
-    const j = createJournal()
-    record(j, null, 'win'); record(j, st('take'), 'bogus')
-    expect(j.stages).toEqual({})
   })
 })

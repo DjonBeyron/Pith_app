@@ -120,6 +120,8 @@
 @import './styles/player/modules/rehearsal-bands.css';
 @import './styles/player/modules/rehearsal-gold.css';
 @import './styles/player/modules/rehearsal.css';
+@import './styles/player/modules/rehearsal-read.css';
+@import './styles/player/modules/rehearsal-discern.css';
 @import './styles/player/message.css';
 @import './styles/player/modules/audio.css';
 @import './styles/player/modules/circle.css';

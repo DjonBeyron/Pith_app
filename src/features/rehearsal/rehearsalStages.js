@@ -3,8 +3,8 @@
 //  act   — какому акту принадлежит (warmup, word, read, build, blind, discern, take, mirror, summary); sid — ключ журнала (rehearsalJournal);
 //  line  — id реплики Пита на старте стадии (announce: директор держит плашку, пока Пит говорит); count — отсчёт тремя нотами (rehearsalCountdown.js): 'after' — после реплики (разминка), 'before' — до реплики (дубль); tag — ярлык-плашка над дорожками («Чётко — для последнего ряда», §6 п. 4); cond — «идти ли»: { retry: sid } / { few: true };
 //  step  — у ученика сверх обычного: record (take: идёт запись дубля, useRehearsalTake), chunks (тексты дорожек, если цель — слово, а не кусок), chunkMs, extra (слова словаря Vosk, кроме целей — двойники и слова фразы), maxWords;
-//  warmup: word { text, translation, lane }, caption (перевод над дорожкой); read и ученик читки: metro — [{ chunk, at, ms }] подсветка кусков по времени от старта стадии;
-//  blind (ученик): hintWord / hintLane / hintTr / hintKinds — подсказки, если застрял на 3 секунды (какая первая — rehearsalHints.js); discern: sayText — слово, которое произносит диктор (вместо куска фразы).
+//  warmup: word { text, translation, lane }, caption (перевод над дорожкой); read и ученик читки: metro — [{ chunk, at, ms }] (тайминги кусков от старта стадии: по ним читка-караоке, read/readKaraoke.js, заливает слова; у read без озвучки кусков пусто);
+//  blind (ученик): hintWord / hintLane / hintTr / hintKinds — подсказки, если застрял на 3 секунды (какая первая — rehearsalHints.js); discern: sayText — слово, которое диктор говорит ОДИН раз, когда три дорожки уже на экране (prompts[].sayAt, слова написаны на пилюлях и молчат — written; вместо куска фразы).
 import { orderLanes, textOf, normText } from '../player/modules/rotate-phone/wordLaneRecipe.js'
 import { planDictor } from '../player/modules/rotate-phone/wordLaneDictor.js'
 import { estChunkMs } from '../player/modules/rotate-phone/wordLaneAudio.js'
@@ -68,7 +68,7 @@ export function buildRehearsalStages({ plan, rate = 1, lib = () => null }) {
       const sstep = stepOf('read-s', act.parts)
       push({ type: 'read', act: 'read', sid: 'read-d', step: dstep, plan: dplan, metro: act.highlight ? dplan.reps[0].pieces.map(p => ({ chunk: p.chunk, at: Math.round(p.at), ms: Math.round(p.ms) })) : [] })
       push({ type: 'turn', act: 'read', sid: 'read-t', step: sstep, ms: RH_TURN_MS })
-      push({ type: 'student', act: 'read', sid: 'read-s', step: sstep, metro: act.highlight ? metroOf(act.parts, act.parts.map(i => chunkMs[i])) : [] })
+      push({ type: 'student', act: 'read', sid: 'read-s', step: sstep, metro: metroOf(act.parts, act.parts.map(i => chunkMs[i])) }) // у игрока ожидаемый темп нужен всегда (караоке идёт за его голосом), у Пита — только если куски озвучены
     } else if (act.id === 'build') {
       announce(act)
       const group = (st, suffix, cond) => {
@@ -103,8 +103,8 @@ export function buildRehearsalStages({ plan, rate = 1, lib = () => null }) {
   return { recipe: { chunks, rounds: [], acts, plan }, stages, chunkMs, chunkCurves: chunks.map(() => null), lanes: orderLanes(n, rngFor(plan.seed, 'lanes')), clipMode: () => false }
 }
 
-/** Подписи дорожек на стадии репетиции: { text, on }[3]. hint — дорожки, где показать подпись (после «не успел», «застрял», слабое слово), hl — какой кусок подсвечен сейчас (читка), −1 — никакой */
-export function labelsForRehearsal(stage, chunks, hint = [], hl = -1) {
+/** Подписи дорожек на стадии репетиции: { text, on }[3]. hint — дорожки, где показать подпись (после «не успел», «застрял», слабое слово). Читка: подписи всех кусков яркие и белые, зелёным их заливает караоке (rehearsal/ReadKaraoke.jsx) */
+export function labelsForRehearsal(stage, chunks, hint = []) {
   const out = blank()
   if (!stage || ['discern', 'summary'].includes(stage.type)) return out
   if (stage.type === 'mirror') { chunks.forEach((text, i) => { out[compareLane(i, chunks.length)] = { text, on: true } }); return out } // «Дубль и зеркало» на дорожках: куски фразы над теми дорожками, где они стоят
@@ -119,7 +119,7 @@ export function labelsForRehearsal(stage, chunks, hint = [], hl = -1) {
   if (!step) return out
   chunks.forEach((c, lane) => {
     const h = hintAt(hint, lane)
-    if (step.labels.includes(lane)) out[lane] = { text: c, on: stage.metro?.length ? hl === lane : step.active.includes(lane) } // читка: подсвечен кусок, который звучит; сборка: куски ступени
+    if (step.labels.includes(lane)) out[lane] = { text: c, on: step.active.includes(lane) } // читка: все куски; сборка: куски ступени
     else if (h != null) out[lane] = { text: h.text ?? c, on: true } // подсказка: подпись куска или (перевод куска при «застрял») свой текст
   })
   return out

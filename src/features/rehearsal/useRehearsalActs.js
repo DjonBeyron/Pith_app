@@ -8,7 +8,6 @@ import { pLog } from '../../shared/lib/debug.js'
 import { createJournal, record, nextRunnable, weakLanes } from './rehearsalJournal.js'
 import { reportSession } from './rehearsalSim.js'
 import { useRehearsalTake } from './useRehearsalTake.js'
-import { scheduleMetro } from './rehearsalMetro.js'
 import { hasIntroLine } from './rehearsalPrepare.js'
 import { stuckHint, hintEntry, sayWordHint } from './rehearsalHints.js'
 import { demoSummary } from './polish/polishDemo.js'
@@ -26,8 +25,8 @@ import { useCompareScene } from './mirror/useCompareScene.js'
 //  • отсчёт тремя нотами (stage.count, rehearsalCountdown.js): 'after' — после реплики стадии (разминка), 'before' — до реплики (дубль: «Дубль» → ноты → «поехали»); holdMs учитывает его длину, а afterCount не отпускает стадию, пока отсчёт не доиграл (rehearsalCountdownRun.js);
 //  • тишина экрана (rehearsalQuiet.js, usePitQuiet.js): пока Пит говорит озвученную реплику на старте стадии, rh.quiet — плашка, подписи, перевод и экраны скрыты, видны только дорожки и кот; rh.plateOk — плашка может быть на экране;
 //  • вступление и итог — по номеру запуска в тапе (plan.run, rehearsalLines.sessionLine): первый — rh_start / rh_done, «Ещё минутку?» — rh_start_b / rh_done_b;
-//  • подсветка куска в читке (hl: один таймер по stage.metro, rehearsalMetro.js), «застрял 3 с» в акте «без текста» (слушатель молчит STUCK_MS — Пит подсказывает первое слово, подпись куска на HINT_LABEL_MS);
-//  • дубль и зеркало (акт 5): запись на стадии take и данные сравнения mirror (темп, заметка Пита) — useRehearsalTake; на стадии mirror Пит говорит rh_mirror (stage.line), потом на остановленных дорожках появляется сравнение (compare), а после прослушивания Пит озвучивает вердикт (rh_note_*, say — зовёт MirrorCompare);
+//  • «застрял 3 с» в акте «без текста» (слушатель молчит STUCK_MS — Пит подсказывает первое слово, подпись куска на HINT_LABEL_MS);
+//  • дубль и зеркало (акт 5): запись на стадии take и данные сравнения mirror (темп, заметка Пита) — useRehearsalTake; на стадии mirror Пит говорит rh_mirror (stage.line), потом на остановленных дорожках появляется сравнение (compare);
 //  • итог на экране summary: симуляция памяти и XP (rehearsalSim.js) — один раз, в память сессии и журнал отладки; темп и заметка зеркала идут туда же.
 // Без плана (обычная нода игры) хук ничего не делает: nextIdx / holdMs возвращают то же, что директор взял бы сам.
 export const LINE_AT_MS = 250       // реплика на старте стадии — чуть позже появления плашки
@@ -37,7 +36,6 @@ export const MAX_STUCK_HINTS = 2    // подсказок на ступень
 
 export function useRehearsalActs({ plan, stages, stage, at, stageObj, setS, sayLine, sayText, cat, lines, rate, lang, listenerRef }) {
   const [journal] = useState(createJournal)
-  const [hl, setHl] = useState(-1)
   const [result, setResult] = useState(null)
   const on = !!plan
   const running = on && stage === 'run' ? stageObj : null
@@ -86,12 +84,6 @@ export function useRehearsalActs({ plan, stages, stage, at, stageObj, setS, sayL
   // Дубль и зеркало на дорожках: когда Пит договорил реплику стадии mirror, на остановленных дорожках появляется сравнение (раскладка — rh.compare, рисует движок пилюль; сам экран — mirror/MirrorCompare.jsx)
   const compare = useCompareScene({ active: running?.type === 'mirror' && !quiet.quiet, mirror: take.mirror, chunks: plan?.chunks })
 
-  // Подсветка кусков по времени (читка и повтор ученика): один таймер на ближайшее событие (rehearsalMetro.js); смена стадии и размонтирование его снимают и гасят подсветку
-  useEffect(() => {
-    if (!running?.metro?.length) return undefined
-    return scheduleMetro(running.metro, { start: at, set: setHl })
-  }, [running, at])
-
   // «Без текста»: слушатель молчит 3 с — Пит подсказывает первое слово, подпись куска на 2 с
   useEffect(() => {
     if (running?.act !== 'blind' || !running.hintWord) return undefined
@@ -119,7 +111,7 @@ export function useRehearsalActs({ plan, stages, stage, at, stageObj, setS, sayL
   }, [running])
 
   return {
-    on, hl, result, journal, quiet: quiet.quiet, plateOk: quiet.plateOk,
+    on, result, journal, quiet: quiet.quiet, plateOk: quiet.plateOk,
     /** Сколько мс Пит ещё занят: реплика + пауза после неё (LINE_PAUSE_MS ≈ 40 кадров). Движок пилюль не выкатывает новую пилюлю, пока > 0 (stepStudent hold): выезд — через ~0,6 с после конца реплики; без плана 0 */
     pitLeft: () => (on ? cat.busyLeft() : 0),
     /** Пит говорит реплику (вердикт зеркала — mirror/MirrorCompare.jsx) и «замолчи» перед выходом из зеркала (иначе занятый Пит пропустит реплику итога) */

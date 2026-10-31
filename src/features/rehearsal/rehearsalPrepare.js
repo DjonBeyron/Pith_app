@@ -12,13 +12,13 @@ const dedupe = list => { const seen = new Set(); return list.filter(t => { const
 
 /**
  * Тексты, озвучку которых готовит тап. Полная репетиция — все (planTexts). Один этап «Шлифовки» (plan.only) — куски фразы и слова только его актов: слова разминки / «слово ×2» / «Без текста» одного слова
- * и слова «Различи» с двойниками (там звучит и запутыватель). Остальным актам (читка, сборка, дубль, зеркало) хватает кусков.
+ * и слово «Различи» (двойники на пилюлях молчат). Остальным актам (читка, сборка, дубль, зеркало) хватает кусков.
  */
 export function neededTexts(plan) {
   if (!plan.only) return planTexts(plan)
   const out = [...plan.chunks]
   for (const a of buildActs(plan).acts) {
-    for (const w of a.words ?? []) out.push(w.text, ...(a.id === 'discern' ? w.confusers : []))
+    for (const w of a.words ?? []) out.push(w.text) // «Различи»: звучит только само слово (пилюли-двойники молчат, v3.3.87)
     if (a.word) out.push(a.word.text)
   }
   return dedupe(out)
