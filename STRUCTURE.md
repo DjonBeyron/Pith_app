@@ -305,6 +305,7 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | `scripts/mascot/gray_cat_demo.py` | Страница-превью серой кошки (`gray_cat_demo.html`): 9 форм рта с языком и зубами, усы качаются при речи, кивок, хвост, моргание — по правилам «живого Пита v2». `python3 gray_cat_demo.py <папка с gray_cat.json>` |
 | `scripts/mascot/gray_cat_regions.py` | Для серой кошки: силуэт, цветовые классы и деление контура на голову / тело / хвост (преобразование рисунка в координаты Мии) |
 | `scripts/mascot/gray_cat_details.py` | Для серой кошки: глаза, мордочка, уши, усы, серёжки, бантик, тени тела, линии лап |
+| `scripts/mascot/gray_cat_faces.py` | Лица серой кошки (обычное, закатила глаза, ухмылка, пафос, презрение, увлечена): веки, взгляд, брови-волоски под её глаза; наклон, реакция зрачка и рот в покое — из `mia.json` |
 | `scripts/mascot/vec_trace.py` | Векторизация по картинке на numpy: маска → контур → гладкие кривые Безье (общий инструмент) |
 | `scripts/mascot/source/gray_ref.webp` | Эталонный рисунок серой кошки (по нему строится `build_gray_cat.py`) |
 | `scripts/mascot/bake_avatar.mjs` | Запекает аватарку Пита для шапки чата: голова маскота крупно на светлом фоне, PNG 108×108 (Chromium); в `run.sh` затем → WebP (`src/shared/assets/pitAvatar.webp`) |

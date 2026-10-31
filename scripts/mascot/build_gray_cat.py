@@ -6,6 +6,7 @@ import json, sys, os
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from gray_cat_regions import *
 from gray_cat_details import *
+from gray_cat_faces import build_states
 
 out = sys.argv[1] if len(sys.argv) > 1 else '/tmp/gray-cat'; os.makedirs(out, exist_ok=True)
 mia = json.load(open(f'{HERE}/../../src/features/scene/v2/sprites/mascot/mia.json', encoding='utf8'))
@@ -55,29 +56,12 @@ import re
 # где ножка рта начинается в (296.4, 348.9); у этой кошки рот чуть ниже и правее (по рисунку), поэтому вся таблица сдвигается на (DX, DY).
 # Закрытая форма X — по рисунку («:3»). Линии рта тоньше (×0.72), как у кошки с рисунка.
 DX, DY = F(521, 592)[0] - 296.4, F(521, 592)[1] - 348.9
-def shift_path(d, dx, dy):
-    """Сдвиг абсолютного пути (M L C Q H V Z) на dx dy: у M L C Q числа идут парами x y, у H только x, у V только y"""
-    out = []; cmd = ''; k = 0
-    for t in re.findall(r'[MLCQHVZ]|-?\d*\.?\d+', d):
-        if t.isalpha(): cmd = t; k = 0; out.append(t); continue
-        v = float(t) + (dx if cmd == 'H' or (cmd in 'MLCQ' and k % 2 == 0) else dy)
-        out.append(f'{v:.1f}'); k += 1
-    return ' '.join(out)
 MT = json.loads(json.dumps(mia['mouthTable']))
 for code, e in MT.items():
     e['t'] = shift_path(e['t'], DX, DY) if e['t'] else ''
     e['f'] = shift_path(e['f'], DX, DY) if e['f'] else ''
     e['m']['d'] = shift_path(e['m']['d'], DX, DY); e['m']['sw'] = round(e['m']['sw'] * 0.72, 1)
     if e.get('l'): e['l']['d'] = shift_path(e['l']['d'], DX, DY); e['l']['sw'] = round(e['l']['sw'] * 0.72, 1)
-def scale_path(d, sx, sy, ox, oy):
-    """Масштаб абсолютного пути вокруг точки (ox, oy)"""
-    out = []; cmd = ''; k = 0
-    for t in re.findall(r'[MLCQHVZ]|-?\d*\.?\d+', d):
-        if t.isalpha(): cmd = t; k = 0; out.append(t); continue
-        v = float(t); x_axis = cmd == 'H' or (cmd in 'MLCQ' and k % 2 == 0)
-        v = ox + (v - ox) * sx if x_axis else oy + (v - oy) * sy
-        out.append(f'{v:.1f}'); k += 1
-    return ' '.join(out)
 LIP = (F(521, 592)[0], 370.0)                                        # центр верхней губы открытого рта (x ножки, y линии губ)
 def adjust(code, e):
     """Подгонка форм под размер этой кошки (рот на рисунке мелкий): D и E меньше, у G короче зубы и без лишней нижней дуги, у H язык не торчит.
@@ -94,22 +78,19 @@ def adjust(code, e):
     if code == 'H':
         e['t'] = scale_path(e['t'], 0.82, 0.82, LIP[0], 391.0)                # язык меньше, сидит в глубине рта
 for code, e in MT.items(): adjust(code, e)
-MT['X'] = dict(t='', f='', m=dict(d=mouth_closed(), fill='none', sw=5.2))
-mouth['mm'] = re.sub(r' d="[^"]*"', f' d="{MT["X"]["m"]["d"]}"', mouth["mm"].replace("#000", OL), count=1).replace('stroke-width="6"', 'stroke-width="5.2"')
+MT['X'] = dict(t='', f='', m=dict(d=mouth_closed(), fill='none', sw=5.6))
+mouth['mm'] = re.sub(r' d="[^"]*"', f' d="{MT["X"]["m"]["d"]}"', mouth["mm"].replace("#000", OL), count=1).replace('stroke-width="6"', 'stroke-width="5.6"')
 mouth['ml'] = mouth['ml'].replace('#000', OL)
 wh = ''.join(f'<path class="wh wh-{s} wh-{r}" d="{d}" fill="{c}"/>' for s, r, d, c in whiskers())
 nose_d, nose_c = nose()
 head = (RING_BEHIND + f'<path d="{head_d}" fill="{FURC}"/>' + ''.join(fill(x) for x in face_light()) + stroke(head_d) + ''.join(f'<path d="{p}" fill="{OL}"/>' for p in edge_blobs())
-        + ''.join(fill(x) for x in ear_inner()) + ''.join(fill(x) for x in ear_lines()) + ''.join(fill(x) for x in brow_hairs())
+        + ''.join(fill(x) for x in ear_inner()) + ''.join(fill(x) for x in ear_lines())
         + '<g class="brows"></g>' + '<g class="mouth">' + ''.join(mouth[k] for k in ('mm', 'mt', 'mf', 'ml')) + '</g>' + f'<path d="{nose_d}" fill="{nose_c}"/>' + wh
         + RING_TOP + star(208, 262, 28, OL, '#cdedbe') + star(835, 262, 28, OL, '#cdedbe') + pink_group(pk['bow']) + knot() + '<g class="dc"></g>')
 
 # ── глаза (состояние base) ──
-def eye_markup(side):
-    e = eye(side); px, py = e['pc']
-    return (fill(e['sil']) + fill(e['amber']) + fill(e['core'])
-            + f'<path class="pu" data-x="{px:.1f}" data-y="{py:.1f}" d="{e["pupil"][0]}" fill="{e["pupil"][1]}"/>' + ''.join(fill(h) for h in e['hl']))
-eyes = eye_markup('l') + eye_markup('r')
+STATES = build_states(mia['states'], FURC, OL)                              # шесть лиц Мии (веки, взгляд, брови — под глаза этой кошки)
+eyes = STATES['base']['eyes']
 
 # ── вписывание в коробку 200×240 (как export_sprites.mjs) ──
 x0, x1, y0, y1 = F(95, 0)[0], F(1070, 0)[0], F(0, 62)[1], F(0, 1240)[1]
@@ -118,7 +99,7 @@ k = min(200 / vw, 240 / vh)
 sprite = dict(id='gray', title='Серая кошка', gender='female', native='left',
               fit=dict(k=round(k, 5), tx=round(-vx * k, 3), ty=round(240 - (vy + vh) * k, 3)), tailBase=[round(TBX), round(TBY)],
               tail=tail, body=body, head=head, mouthTable=MT, neck=[297, 445],
-              states=dict(base=dict(eyes=eyes, brows='', deco='', mouth=None, pupil=[1, 1], tilt=0)))
+              states=STATES)
 json.dump(sprite, open(f'{out}/gray_cat.json', 'w', encoding='utf8'), ensure_ascii=False, separators=(',', ':'))
 svg = (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="{vx:.0f} {vy:.0f} {vw:.0f} {vh:.0f}" width="{vw:.0f}" height="{vh:.0f}"><rect x="{vx:.0f}" y="{vy:.0f}" width="{vw:.0f}" height="{vh:.0f}" fill="#f5f3ef"/>'
        f'<g transform="translate({TBX:.1f} {TBY:.1f})">{tail}</g>{body}{head}{eyes}</svg>')

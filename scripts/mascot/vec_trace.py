@@ -1,6 +1,6 @@
 # Векторизация по картинке (numpy + PIL, без OpenCV): маска → внешний контур → сглаживание → упрощение → гладкие кривые Безье.
 # Общий инструмент для gray_cat_regions.py: из эталонного рисунка берутся силуэты и цветовые области, а не рисуются на глаз.
-import numpy as np
+import numpy as np, re
 from collections import deque
 
 OFFS4 = [(0, 1), (1, 0), (0, -1), (-1, 0)]
@@ -151,3 +151,35 @@ def smart_outline(P, eps=1.2, n=8, win=6, ang=55):
         sm = np.array([seg[max(j - min(n, j, len(seg) - 1 - j), 0):j + min(n, j, len(seg) - 1 - j) + 1].mean(0) for j in range(len(seg))])
         v = simplify_open(sm, eps); corner_ids.append(len(Q)); Q.extend(v[:-1].tolist())
     return np.array(Q), corner_ids
+
+# ── преобразования готовых путей (абсолютные M L C Q H V Z) ──
+def shift_path(d, dx, dy):
+    """Сдвиг абсолютного пути (M L C Q H V Z) на dx dy: у M L C Q числа идут парами x y, у H только x, у V только y"""
+    out = []; cmd = ''; k = 0
+    for t in re.findall(r'[MLCQHVZ]|-?\d*\.?\d+', d):
+        if t.isalpha(): cmd = t; k = 0; out.append(t); continue
+        v = float(t) + (dx if cmd == 'H' or (cmd in 'MLCQ' and k % 2 == 0) else dy)
+        out.append(f'{v:.1f}'); k += 1
+    return ' '.join(out)
+def scale_path(d, sx, sy, ox, oy):
+    """Масштаб абсолютного пути вокруг точки (ox, oy)"""
+    out = []; cmd = ''; k = 0
+    for t in re.findall(r'[MLCQHVZ]|-?\d*\.?\d+', d):
+        if t.isalpha(): cmd = t; k = 0; out.append(t); continue
+        v = float(t); x_axis = cmd == 'H' or (cmd in 'MLCQ' and k % 2 == 0)
+        v = ox + (v - ox) * sx if x_axis else oy + (v - oy) * sy
+        out.append(f'{v:.1f}'); k += 1
+    return ' '.join(out)
+def map_pairs(d, fn):
+    """Каждая пара (x, y) пути → fn(x, y); для путей из M / L / C / Q / Z (без H и V): поворот, сдвиг, любой аффинный перенос"""
+    toks = re.findall(r'[MLCQZ]|-?\d*\.?\d+', d); out = []; nums = []
+    for t in toks + ['Z']:
+        if t.isalpha():
+            for i in range(0, len(nums) - 1, 2): x, y = fn(nums[i], nums[i + 1]); out += [f'{x:.1f}', f'{y:.1f}']
+            nums = []; out.append(t)
+        else: nums.append(float(t))
+    return ' '.join(out[:-1])
+def rot_move(d, ang, cx, cy, dx=0.0, dy=0.0):
+    """Поворот пути на ang градусов (по часовой на экране) вокруг (cx, cy) и сдвиг на (dx, dy)"""
+    c, s = np.cos(np.radians(ang)), np.sin(np.radians(ang))
+    return map_pairs(d, lambda x, y: (cx + (x - cx) * c - (y - cy) * s + dx, cy + (x - cx) * s + (y - cy) * c + dy))

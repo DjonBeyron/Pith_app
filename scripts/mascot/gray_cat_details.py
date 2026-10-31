@@ -10,19 +10,37 @@ def big(masks, n=1): return sorted(masks, key=lambda m: -m.sum())[:n]
 
 # ── глаза: тёмный силуэт (обводка), янтарная радужка (два тона), зрачок-щель, блики ──
 EYE_BOX = {'l': (240, 425, 448, 592), 'r': (586, 425, 792, 592)}
-def eye(side):
+_eyes = {}
+def eye_masks(side):
+    """Области глаза на рисунке: силуэт с ободком, янтарная радужка, светлая середина, зрачок, блики (считаются один раз на глаз)"""
+    if side in _eyes: return _eyes[side]
     c = classes(); x0, y0, x1, y1 = EYE_BOX[side]; bx = box(x0, y0, x1, y1)
     cx, cy = (x0 + x1) // 2, (y0 + y1) // 2 + 8
     union = fill_holes(component(bx & (c['dark'] | c['amber'] | (LUM > 190)), (cx, cy)))
     amber = fill_holes(component(bx & c['amber'], (cx - 40, cy + 30)))
     core = morph(amber, 22, 'e')
     pup = component(bx & c['dark'] & amber & morph(amber, 3, 'e'), (cx, cy))
-    hl = [m for m in components(bx & (LUM > 205) & amber, 20)]
-    px, py = centroid(pup)
-    edge = hexc(im[amber & ~morph(amber, 22, 'e') & c['amber']].mean(0)); mid = hexc(im[core & c['amber']].mean(0))
-    out = dict(sil=(region_path(union, F, 1.0, 6), color(union & c['dark'], 0)), amber=(region_path(amber, F, 1.0, 6), edge),
-               core=(region_path(core, F, 1.0, 8), mid), pupil=(region_path(pup, F, 0.8, 2), '#1e1c22'),
-               hl=[(region_path(m, F, 0.6, 1), '#ffffff') for m in hl], pc=F(px, py))
+    ys, xs = np.nonzero(amber)
+    _eyes[side] = dict(union=union, amber=amber, core=core, pup=pup, hl=components(bx & (LUM > 205) & amber, 20), box=(xs.min(), xs.max(), ys.min(), ys.max()),
+                       edge=hexc(im[amber & ~core & c['amber']].mean(0)), mid=hexc(im[core & c['amber']].mean(0)), dark=color(union & c['dark'], 0))
+    return _eyes[side]
+
+def eye(side, lid=0.0, gaze=(0, 0), fur='#646774', ol='#262432'):
+    """Глаз в состоянии: lid — доля высоты радужки, закрытая верхним веком (0 — открыт); gaze — сдвиг зрачка и светлой середины (px рисунка).
+    Зрачок и середина обрезаются по радужке, блики остаются на месте. Веко — заливка цветом меха с тёмной линией по нижнему краю"""
+    M = eye_masks(side); gx, gy = int(round(gaze[0])), int(round(gaze[1]))
+    mv = lambda m, k=1.0: shift(shift(m, int(round(gy * k)), 0), 0, int(round(gx * k))) & M['amber']
+    pup = mv(M['pup']); core = mv(M['core'], 0.7)
+    px, py = centroid(M['pup']); out = dict(sil=(region_path(M['union'], F, 1.0, 6), M['dark']), amber=(region_path(M['amber'], F, 1.0, 6), M['edge']),
+               core=(region_path(core, F, 1.0, 8), M['mid']), pupil=(region_path(pup, F, 0.8, 2), '#1e1c22'),
+               hl=[(region_path(m, F, 0.6, 1), '#ffffff') for m in M['hl']], pc=F(px + gx, py + gy), lid=None)
+    if lid > 0:
+        x0, x1, y0, y1 = M['box']; cx, hw = (x0 + x1) / 2, (x1 - x0) / 2; Ld = lid * (y1 - y0)
+        cut = lambda x: y0 + Ld * (1 - 0.55 * ((x - cx) / hw) ** 2)                         # к уголкам веко опускается слабее, чем в середине
+        yy, xx = np.mgrid[0:H, 0:W]; below = yy < np.array([cut(x) for x in range(W)])[None, :]
+        lm = M['amber'] & below
+        line = np.array([(x, cut(x)) for x in range(int(x0), int(x1) + 1) if M['amber'][min(int(cut(x)) + 2, H - 1), x]], float)
+        out['lid'] = (region_path(lm, F, 1.0, 5, 70, 1), bezier_path(simplify_open(line, 0.8), False, 70, F, set()))
     return out
 
 # ── мордочка: светлая зона от переносицы к носу и подбородку, щёки ──

@@ -1,4 +1,4 @@
-# Страница-превью серой кошки: рот из девяти форм (X A B C D E F G H) с языком и зубами, усы качаются при речи, кивок головы, хвост, моргание.
+# Страница-превью серой кошки: шесть лиц Мии (веки, взгляд, брови, наклон, зрачки), рот из девяти форм (X A B C D E F G H) с языком и зубами, усы качаются при речи, кивок головы, хвост, моргание.
 # Правила анимации те же, что у «живого Пита v2» (scene-v2-pit.css, scene-v2-cat.css): усы вращаются вокруг корня у морды, широкие формы D/E чуть увеличивают рот,
 # язык в D вытягивается. Использование: python3 gray_cat_demo.py <папка_с_gray_cat.json> → gray_cat_demo.html рядом (самодостаточный файл).
 import json, sys, os
@@ -31,6 +31,9 @@ button.on { background: #e2457c; color: #fff; border-color: #e2457c; }
 @keyframes whR { 0%, 100% { rotate: -4deg; } 50% { rotate: 3deg; } }
 .talking .wh-l { animation: whL .6s ease-in-out infinite; } .talking .wh-r { animation: whR .6s ease-in-out infinite; }
 .talking .wh-d { animation-duration: .72s; animation-delay: -.25s; }
+/* зрачки и наклон головы по лицу — scene-v2-cat.css */
+.pu { transform-box: fill-box; transform-origin: 50% 50%; transition: transform .35s ease-out; }
+.mx-tilt { transform-origin: 297px 440px; transform-box: view-box; transition: transform .3s ease-in-out; }
 /* кивок головы и хвост */
 .cat-head { transform-box: fill-box; transform-origin: 50% 85%; }
 @keyframes nod { 0%, 100% { transform: rotate(-0.4deg) translateY(0); } 50% { transform: rotate(0.4deg) translateY(-2px); } }
@@ -42,14 +45,23 @@ button.on { background: #e2457c; color: #fff; border-color: #e2457c; }
 @keyframes blink { 0%, 94%, 100% { transform: scaleY(1); } 97% { transform: scaleY(.08); } }
 '''
 JS = '''
-const T = %s;
+const T = %s, ST = %s; let face = 'base';
 const q = c => document.querySelector('.' + c), cat = document.getElementById('cat'), head = q('cat-head');
 function setMouth(code) {
-  const e = T[code]; head.dataset.vis = code;
+  let e = T[code]; head.dataset.vis = code;
+  if (code === 'X' && ST[face].mouth) e = { t: '', f: '', m: { d: ST[face].mouth, fill: 'none', sw: 6 } };   // закрытый рот берёт «рот в покое» лица
   q('mm').setAttribute('d', e.m.d); q('mm').setAttribute('fill', e.m.fill); q('mm').setAttribute('stroke-width', e.m.sw);
   q('mt').setAttribute('d', e.t); q('mf').setAttribute('d', e.f);
   q('ml').setAttribute('d', e.l ? e.l.d : ''); if (e.l) q('ml').setAttribute('stroke-width', e.l.sw);
   document.querySelectorAll('.codes button').forEach(b => b.classList.toggle('on', b.dataset.c === code));
+}
+function setFace(name) {
+  face = name; const s = ST[name];
+  q('cat-eyes').innerHTML = s.eyes; q('brows').innerHTML = s.brows;
+  document.querySelectorAll('.pu').forEach(p => p.setAttribute('transform', `scale(${s.pupil[0]} ${s.pupil[1]})`));
+  q('mx-tilt').style.transform = `rotate(${s.tilt}deg)`;
+  document.querySelectorAll('.faces button').forEach(b => b.classList.toggle('on', b.dataset.f === name));
+  if (!document.body.classList.contains('talking')) setMouth(head.dataset.vis);
 }
 let timer = null; const SEQ = 'XBCDCEAXBGCDHCFXCBDAC';
 function say(on) {
@@ -59,12 +71,14 @@ function say(on) {
 }
 const bar = document.querySelector('.codes');
 for (const c of Object.keys(T)) { const b = document.createElement('button'); b.textContent = c; b.dataset.c = c; b.onclick = () => { say(false); setMouth(c); }; bar.append(b); }
+const NAMES = { base: 'Обычное', roll: 'Закатила глаза', smirk: 'Ухмылка', pathos: 'Пафос', sneer: 'Презрение', interest: 'Увлечена' };
+for (const f of Object.keys(ST)) { const b = document.createElement('button'); b.textContent = NAMES[f]; b.dataset.f = f; b.onclick = () => setFace(f); document.querySelector('.faces').append(b); }
 document.getElementById('talk').onclick = e => say(!document.body.classList.contains('talking'));
-setMouth('X'); say(true);
+setFace('base'); setMouth('X'); say(true);
 '''
 html = (f'<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Серая кошка: рот и усы</title>'
         f'<style>{CSS}</style></head><body><div id="wrap">{svg}</div><div class="bar"><button id="talk" class="on">Говорить</button></div>'
-        f'<div class="bar codes"></div><div class="hint">X закрытый · A–H — формы рта по буквам озвучки (D, E — широко, язык виден в C D E H). Усы качаются, пока кошка говорит.</div>'
-        f'<script>{JS % json.dumps(sp["mouthTable"], ensure_ascii=False)}</script></body></html>')
+        f'<div class="bar faces"></div><div class="bar codes"></div><div class="hint">X закрытый · A–H — формы рта по буквам озвучки (D, E — широко, язык виден в C D E H). Усы качаются, пока кошка говорит. Лица — как у Мии: веки, взгляд, брови, рот в покое, наклон головы, реакция зрачков.</div>'
+        f'<script>{JS % (json.dumps(sp["mouthTable"], ensure_ascii=False), json.dumps(sp["states"], ensure_ascii=False))}</script></body></html>')
 open(f'{out}/gray_cat_demo.html', 'w', encoding='utf8').write(html)
 print('готово', f'{out}/gray_cat_demo.html', len(html) // 1024, 'КБ')
