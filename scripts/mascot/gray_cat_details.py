@@ -9,6 +9,7 @@ def paths(masks, f=F, eps=1.4, sm=2, grow=0, col=None):
 def big(masks, n=1): return sorted(masks, key=lambda m: -m.sum())[:n]
 
 # ── глаза: тёмный силуэт (обводка), янтарная радужка (два тона), зрачок-щель, блики ──
+IRIS_EDGE, IRIS_MID = '#c99a14', '#e6b422'                          # радужка Мии: насыщенный золотой (глубже и темнее лимонного Пита #fee05e; на рисунке было бледнее: #d6b65d / #ddbe66)
 EYE_BOX = {'l': (240, 425, 448, 592), 'r': (586, 425, 792, 592)}
 _eyes = {}
 def eye_masks(side):
@@ -22,7 +23,7 @@ def eye_masks(side):
     pup = component(bx & c['dark'] & amber & morph(amber, 3, 'e'), (cx, cy))
     ys, xs = np.nonzero(amber)
     _eyes[side] = dict(union=union, amber=amber, core=core, pup=pup, hl=components(bx & (LUM > 205) & amber, 20), box=(xs.min(), xs.max(), ys.min(), ys.max()),
-                       edge=hexc(im[amber & ~core & c['amber']].mean(0)), mid=hexc(im[core & c['amber']].mean(0)), dark=color(union & c['dark'], 0))
+                       edge=IRIS_EDGE, mid=IRIS_MID, dark=color(union & c['dark'], 0))
     return _eyes[side]
 
 def warp_rows(m, yc, s_top, s_bot):
