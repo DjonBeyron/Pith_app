@@ -41,10 +41,10 @@ RING_TOP, RING_BEHIND = ring_markup()
 def collar():   # лента ошейника: верх уходит под подбородок головы, края и низ — как на рисунке
     P = lambda x, y: '%.1f %.1f' % F(x, y)
     d = f'M{P(380, 715)}C{P(368, 742)} {P(376, 765)} {P(412, 776)}C{P(450, 792)} {P(490, 796)} {P(520, 796)}C{P(550, 796)} {P(590, 792)} {P(628, 776)}C{P(664, 765)} {P(672, 742)} {P(660, 715)}Z'
-    return f'<path d="{d}" fill="{PINK}" stroke="{CRIM}" stroke-width="7" stroke-linejoin="round"/>'
+    return f'<path d="{d}" fill="{PINK}" stroke="{CRIM}" stroke-width="4.6" stroke-linejoin="round"/>'
 def pendant():
-    hd = heart(521, 837, 64, 68); x, y = F(500, 822)
-    return (f'<path d="{hd}" fill="{PINK_L}" stroke="{CRIM}" stroke-width="6.4" stroke-linejoin="round"/>'
+    hd = heart(521, 825, 62, 66); x, y = F(501, 811)
+    return (f'<path d="{hd}" fill="{PINK_L}" stroke="{CRIM}" stroke-width="4.4" stroke-linejoin="round"/>'
             f'<path d="M{x:.1f} {y + 4:.1f}C{x - 1:.1f} {y - 1:.1f} {x + 2:.1f} {y - 4:.1f} {x + 7:.1f} {y - 4:.1f}" fill="none" stroke="#ffffff" stroke-width="3.2" stroke-linecap="round" opacity=".95"/>')
 body = (f'<path d="{body_d}" fill="{FURC}"/>' + ''.join(fill(x) for x in shade_big) + stroke(body_d) + ''.join(f'<path d="{p}" fill="{OL}"/>' for p in edge_blobs('body')) + ''.join(fill(x) for x in toes)
         + ''.join(f'<path d="{d}" fill="{c}"/>' for d, c in body_lines()) + collar() + pendant())
@@ -81,7 +81,7 @@ for code, e in MT.items(): adjust(code, e)
 MT['X'] = dict(t='', f='', m=dict(d=mouth_closed(), fill='none', sw=5.6))
 mouth['mm'] = re.sub(r' d="[^"]*"', f' d="{MT["X"]["m"]["d"]}"', mouth["mm"].replace("#000", OL), count=1).replace('stroke-width="6"', 'stroke-width="5.6"')
 mouth['ml'] = mouth['ml'].replace('#000', OL)
-wh = ''.join(f'<path class="wh wh-{s} wh-{r}" d="{d}" fill="{c}"/>' for s, r, d, c in whiskers())
+wh = ''.join(f'<path class="wh wh-{s} wh-{r}" d="{d}" fill="none" stroke="{c}" stroke-width="{w}" stroke-linecap="round"/>' for s, r, d, c, w in whiskers())
 nose_d, nose_c = nose()
 head = (RING_BEHIND + f'<path d="{head_d}" fill="{FURC}"/>' + ''.join(fill(x) for x in face_light()) + stroke(head_d) + ''.join(f'<path d="{p}" fill="{OL}"/>' for p in edge_blobs('head'))
         + ''.join(fill(x) for x in ear_inner()) + ''.join(fill(x) for x in ear_lines())
@@ -92,7 +92,7 @@ head = (RING_BEHIND + f'<path d="{head_d}" fill="{FURC}"/>' + ''.join(fill(x) fo
 STATES = build_states(mia['states'], FURC, OL)                              # шесть лиц Мии (веки, взгляд, брови — под глаза этой кошки)
 
 # ── голова чуть меньше (0.9 вокруг шеи): геометрия головы, глаз, бровей, рта и таблицы форм рта; толщины линий те же, что у тела ──
-HK, HO = 0.9, (296.0, 442.0)
+HK, HO = 0.85, (296.0, 442.0)
 head = scale_markup(head, HK, *HO)
 for s in STATES.values():
     s['eyes'] = scale_markup(s['eyes'], HK, *HO); s['brows'] = scale_markup(s['brows'], HK, *HO)

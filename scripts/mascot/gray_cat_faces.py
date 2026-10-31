@@ -28,14 +28,14 @@ def eye_markup(side, lid, gaze, slant, fur, ol):
 def brows_markup(hairs, params):
     """Волоски-брови: каждая сторона поворачивается вокруг своего центра и сдвигается; сторона — по средней x пути относительно оси морды (296)"""
     sides = {'l': [], 'r': []}
-    for d, c in hairs:
+    for d, c, w in hairs:
         xs = [float(v) for v in re.findall(r'-?\d*\.?\d+', d)][0::2]
-        sides['l' if sum(xs) / len(xs) < 296 else 'r'].append((d, c))
+        sides['l' if sum(xs) / len(xs) < 296 else 'r'].append((d, c, w))
     out = ''
     for side, (dy, rot) in zip('lr', params):
-        pts = [float(v) for d, _ in sides[side] for v in re.findall(r'-?\d*\.?\d+', d)]
+        pts = [float(v) for d, _, _ in sides[side] for v in re.findall(r'-?\d*\.?\d+', d)]
         cx, cy = sum(pts[0::2]) / len(pts[0::2]), sum(pts[1::2]) / len(pts[1::2])
-        for d, c in sides[side]: out += f'<path d="{rot_move(d, rot, cx, cy, 0, dy) if (dy or rot) else d}" fill="{c}"/>'
+        for d, c, w in sides[side]: out += f'<path d="{rot_move(d, rot, cx, cy, 0, dy) if (dy or rot) else d}" fill="none" stroke="{c}" stroke-width="{w}" stroke-linecap="round"/>'
     return out
 
 def build_states(mia_states, fur='#646774', ol='#262432'):

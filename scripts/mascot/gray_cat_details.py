@@ -45,8 +45,8 @@ def eye(side, lid=0.0, gaze=(0, 0), slant=0.0):
         cx, hw = (xl + xr) / 2, (xr - xl) / 2; inner = 1 if side == 'l' else -1               # у левого глаза к носу — вправо
         w = np.clip((np.arange(W) - cx) / hw * inner, -1, 1)
         s_top = np.clip(1 - lid - slant * w, 0.04, 1.0); s_bot = np.full(W, 1 - 0.35 * lid)
-        union = morph(warp_rows(union, yc, s_top, s_bot), int(round(3 * lid)), 'd')           # ободок у века чуть толще
         amber = warp_rows(amber, yc, s_top, s_bot); hls = [m & amber for m in hls]
+        union = morph(fill_holes(amber), 12, 'd')                                              # ободок — та же толщина, что у открытого глаза (12 px), а не сжатый вместе с глазом
     mv = lambda m, k=1.0: shift(shift(m, int(round(gy * k)), 0), 0, int(round(gx * k))) & amber
     pup = mv(M['pup']); core = mv(M['core'], 0.7); px, py = centroid(M['pup'])
     return dict(sil=(region_path(union, F, 1.0, 6), M['dark']), amber=(region_path(amber, F, 1.0, 6), M['edge']),
@@ -80,11 +80,15 @@ def ear_lines():
         m = opening(c['shade'] & box(x0, 90, x1, 300), 2)
         res += [(region_path(x, F, 0.8, 2), color(x, 1)) for x in components(m, 60)]
     return res
+def line_path(m):
+    """Тонкая линия по маске: ось (открытая кривая) + цвет + толщина в единицах спрайта — рисуется обводкой постоянной толщины со скруглёнными концами"""
+    line, w = skeleton_line(m); line = smooth_open(line, 3)
+    return bezier_path(simplify_open(line, 0.6), False, 70, F, set()), color(m, 1), round(min(max(w * S, 2.8), 4.6), 1)
 def brow_hairs():
     c = classes(); res = []
     for x0, x1 in ((220, 420), (610, 810)):
         m = (blur(LUM, 1) > 128) & (B > R + 8) & box(x0, 335, x1, 425)
-        res += [(region_path(x, F, 0.8, 2), color(x, 1)) for x in components(m, 70)]
+        res += [line_path(x) for x in components(m, 70)]
     return res
 
 # ── усы: четыре светлых штриха; у левых корень справа, у правых слева (так их качает scene-v2-pit.css) ──
@@ -93,11 +97,11 @@ def whiskers():
     res = []
     for x in components(m & box(60, 500, 1000, 700), 120):
         cx, cy = centroid(x); side = 'l' if cx < OX else 'r'
-        res.append((cy, side, region_path(x, F, 0.7, 2, 70), color(x, 1)))
+        res.append((cy, side) + line_path(x))
     out = []
     for side in 'lr':
         s = sorted([r for r in res if r[1] == side])
-        for k, r in enumerate(s): out.append((side, 'u' if k == 0 else 'd', r[2], r[3]))
+        for k, r in enumerate(s): out.append((side, 'u' if k == 0 else 'd') + tuple(r[2:]))
     return out
 
 # ── серёжки: колечко и звёздочки (по рисунку) ──
@@ -148,9 +152,10 @@ def body_shade():
     c = classes(); m = opening(c['shade'] & morph(silhouette(), 2, 'e') & box(150, 880, 900, 1260), 3)
     big_, small = [], []
     for x in components(m, 40): (big_ if x.sum() > 1500 else small).append(x)
-    return [(region_path(x, F, 1.4, 4, 70, 4), color(x)) for x in big_], [(region_path(x, F, 0.8, 2), color(x, 1)) for x in small]
+    rounded = lambda x: closing(opening(x, 11), 11)                                 # острые уголки теней скруглены (тени мягкие, не «клинья»)
+    return [(region_path(rounded(x), F, 1.4, 9, 180, 4), color(x)) for x in big_], [(region_path(x, F, 0.8, 2), color(x, 1)) for x in small]
 def body_lines():
-    dark = classes()['dark'] & box(150, 775, 900, 1260) & ~box(470, 1108, 566, 1250); inner = morph(silhouette(), 9, 'e')
+    dark = classes()['dark'] & box(150, 775, 900, 1260) & ~box(470, 1108, 566, 1162); inner = morph(silhouette(), 9, 'e')
     res = []
     for x in components(dark & inner, 150):
         for _ in range(4): x = morph(x, 1, 'd') & dark                 # дотянуть до внешней обводки (под неё)
@@ -167,7 +172,7 @@ def edge_blobs(part):
     """Места, где обводка на рисунке толще или ломаная: точная тёмная область поверх обводки. part='head' — бугорки у основания ушей (двигаются с головой),
     part='body' — бугорки у шеи и стык передних лап (принадлежат телу и не должны ехать вместе с головой). У стыка лап порог темноты строже (70),
     чтобы стебелёк между лапами не получился толще, чем на рисунке"""
-    boxes = dict(head=((148, 362, 250, 460, 85), (782, 362, 886, 460, 85)), body=((286, 752, 338, 797, 85), (688, 752, 742, 797, 85), (470, 1092, 566, 1250, 68)))[part]
+    boxes = dict(head=((148, 362, 250, 460, 85), (782, 362, 886, 460, 85)), body=((286, 752, 338, 797, 85), (688, 752, 742, 797, 85), (470, 1092, 566, 1162, 68)))[part]
     res = []
     for x0, y0, x1, y1, thr in boxes:
         dark = blur(LUM, 1) < thr

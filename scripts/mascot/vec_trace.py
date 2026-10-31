@@ -104,6 +104,9 @@ def simplify_closed(P, eps):
     l = _dp(P[:h + 1], eps); r = _dp(P[h:], eps)
     return P[l[:-1] + [h + x for x in r[:-1]]]
 
+def smooth_open(P, n=3):
+    """Скользящее среднее по открытой ломаной (концы остаются на месте)"""
+    return np.array([P[max(i - min(n, i, len(P) - 1 - i), 0):i + min(n, i, len(P) - 1 - i) + 1].mean(0) for i in range(len(P))])
 def simplify_open(P, eps): return P[_dp(P, eps)]
 
 def bezier_path(Q, closed=True, corner_deg=70, f=lambda x, y: (x, y), corners=None):
@@ -191,3 +194,34 @@ def scale_markup(m, k, ox, oy):
     for a, o in (('cx', ox), ('data-x', ox), ('cy', oy), ('data-y', oy)): m = re.sub(rf' {a}="(-?[\d.]+)"', lambda mo, a=a, o=o: f' {a}="{sc(float(mo.group(1)), o):.1f}"', m)
     for a in ('rx', 'ry'): m = re.sub(rf' {a}="(-?[\d.]+)"', lambda mo, a=a: f' {a}="{float(mo.group(1)) * k:.1f}"', m)
     return m
+
+def skeleton_line(mask, step=1.0):
+    """Ось тонкой линии (усы, волоски): утончение Жанга—Суня по маске → точки по порядку от одного конца к другому → [(x, y)…] и средняя толщина (px).
+    Ось не «рвётся» на краях антиалиасинга и даёт линию постоянной толщины со скруглёнными концами"""
+    ys, xs = np.nonzero(mask); y0, x0 = ys.min() - 2, xs.min() - 2
+    im = np.pad(mask[y0:ys.max() + 3, x0:xs.max() + 3], 1).astype(np.uint8); ch = True
+    nb = lambda y, x: [im[y - 1, x], im[y - 1, x + 1], im[y, x + 1], im[y + 1, x + 1], im[y + 1, x], im[y + 1, x - 1], im[y, x - 1], im[y - 1, x - 1]]
+    while ch:
+        ch = False
+        for pas in (0, 1):
+            rm = []
+            for y, x in zip(*np.nonzero(im)):
+                P = nb(y, x)
+                if not 2 <= sum(P) <= 6 or sum((P[i] == 0 and P[(i + 1) % 8] == 1) for i in range(8)) != 1: continue
+                if pas == 0 and (P[0] * P[2] * P[4] or P[2] * P[4] * P[6]): continue
+                if pas == 1 and (P[0] * P[2] * P[6] or P[0] * P[4] * P[6]): continue
+                rm.append((y, x))
+            for y, x in rm: im[y, x] = 0; ch = True
+    pts = {(int(x), int(y)) for y, x in zip(*np.nonzero(im))}
+    nbrs = lambda p: [(p[0] + dx, p[1] + dy) for dx in (-1, 0, 1) for dy in (-1, 0, 1) if (dx or dy) and (p[0] + dx, p[1] + dy) in pts]
+    ends = [p for p in pts if len(nbrs(p)) == 1] or [min(pts)]
+    best = []
+    for s in ends:                                  # из каждого конца идём по оси; берём самый длинный путь
+        path = [s]; seen = {s}
+        while True:
+            nx = [q for q in nbrs(path[-1]) if q not in seen]
+            if not nx: break
+            q = min(nx, key=lambda q: abs(q[0] - path[-1][0]) + abs(q[1] - path[-1][1])); path.append(q); seen.add(q)
+        if len(path) > len(best): best = path
+    line = np.array([(x + x0 - 1, y + y0 - 1) for x, y in best], float)
+    return line, float(mask.sum()) / max(len(line), 1)

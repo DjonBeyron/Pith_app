@@ -90,6 +90,7 @@ def dense(pts, step=2.0):
     for a, b in zip(P[:-1], P[1:]):
         n = max(1, int(np.hypot(*(b - a)) / step)); out += [a + (b - a) * k / n for k in range(n)]
     out.append(P[-1]); return np.array(out)
+PAW_GAP = 4                                                                  # на сколько px рисунка раздвинуты передние лапки
 def paw_arcs():
     """Нижний край передних лап: центры тёмной обводки по столбцам — две дуги, сходящиеся острым уголком между лапами (по x вниз к краю рисунка)"""
     dark = blur(LUM, 1) < 85; pts = []
@@ -101,12 +102,21 @@ def paw_arcs():
             if run[-1] - y > 1: break
             run.append(y)
         pts.append((x, (run[0] + run[-1]) / 2))
-    P = np.array(pts, float)
-    return P[np.abs(P[:, 0] - 517) >= 9]                                         # самый стык (острый уголок) даёт точная тёмная область, а не обводка по двум дугам
-def thin(P, k):
-    """Контур, уменьшенный на k пикселей со всех сторон (хвост тоньше): заливка многоугольника → эрозия → внешняя граница"""
-    img = Image.new('L', (W, H), 0); ImageDraw.Draw(img).polygon([tuple(p) for p in P], fill=255)
-    return outer_contour(morph(np.array(img) > 0, k, 'e'))
+    P = np.array(pts, float); P = P[np.abs(P[:, 0] - 517) >= 9]
+    L, Rt = P[P[:, 0] < 517], P[P[:, 0] > 517]
+    L[:, 0] -= PAW_GAP; Rt[:, 0] += PAW_GAP                                      # лапки раздвинуты: обводки не слипаются
+    apex = min(L[-1, 1], Rt[0, 1]) - 30                                          # между лапками неглубокая выемка до просвета (стебелёк от ног спускается в неё)
+    notch = np.array([(L[-1, 0] + 3, L[-1, 1] - 12), (511, apex + 9), (517, apex), (523, apex + 9), (Rt[0, 0] - 3, Rt[0, 1] - 12)])
+    return np.vstack([L, notch, Rt])
+def thin(P, k, root_x=885, extra=6, step=9):
+    """Контур, уменьшенный на k пикселей со всех сторон (хвост тоньше): заливка многоугольника → эрозия → внешняя граница.
+    У корня (левее root_x) эрозия плавно растёт ещё на extra px — хвост сужается к телу, а не «утолщается» там, где выходит из-под бедра"""
+    img = Image.new('L', (W, H), 0); ImageDraw.Draw(img).polygon([tuple(p) for p in P], fill=255); m = np.array(img) > 0
+    out = morph(m, k, 'e')
+    for d in range(1, extra + 1):
+        x1 = root_x - (d - 1) * step; x0 = 0 if d == extra else root_x - d * step
+        cols = np.zeros((H, W), bool); cols[:, x0:x1] = True; out = (out & ~cols) | (morph(m, k + d, 'e') & cols)
+    return outer_contour(out)
 def parts():
     S_ = contour(); iL, iR, iA, iB = at(S_, LN), at(S_, RN), at(S_, TS), at(S_, TE)
     jR, jL = at(S_, (717, 794)), at(S_, (300, 800))
