@@ -81,6 +81,6 @@ describe('щелчок пилюли', () => {
     const eng = readFileSync(fileURLToPath(new URL('./useWordLanePills.js', import.meta.url)), 'utf8')
     expect(eng).toContain('h.snapped = true')
     expect(eng).toContain("e.type === 'snap'")
-    expect(eng).toContain('snapPill(pool.el(k), e.pill.lane)')
+    expect(eng).toContain('snapPill(pool.el(k), e.pill.lane, { full: e.full })')   // вспышка и искры — один раз на повтор (у последнего защёлкнутого куска), у остальных кусков только хлопок
   })
 })

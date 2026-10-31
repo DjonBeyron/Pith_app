@@ -1,24 +1,28 @@
 import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
-import { DROP_MS, LANES_MS, voiceFillStep, drainStep, VOICE_THRESHOLD, FILL_CAP } from './wordLaneTimeline.js'
+import { DROP_MS, LANES_MS, breathStep, drainStep, VOICE_THRESHOLD, FILL_CAP } from './wordLaneTimeline.js'
 import { analyzeHeard, wordGrammar } from './wordLaneMatch.js'
 import { readWordLane, DEMO_WORD } from './wordLaneConfig.js'
 import { createWordListener } from './wordLaneListen.js'
 
 const read = rel => readFileSync(fileURLToPath(new URL(rel, import.meta.url)), 'utf8')
+const readLane = () => read('../../../../styles/player/modules/word-lane.css') + read('../../../../styles/player/modules/word-lane-pill.css') // раскладка и пилюли: одна вёрстка игры в двух файлах
 
 describe('заливка пилюли голосом ученика', () => {
-  it('тишина не двигает и не сливает; голос наливает быстрее при большей громкости; выше FILL_CAP голос не заливает', () => {
-    expect(voiceFillStep(0.3, 0.1, 0)).toBe(0.3)
-    expect(voiceFillStep(0.3, 0.1, VOICE_THRESHOLD)).toBe(0.3)
-    const quiet = voiceFillStep(0, 0.1, 0.2)
-    const loud = voiceFillStep(0, 0.1, 0.6)
+  it('тишина не наливает (заливка спадает мягко, а не рывком); голос наливает быстрее при большей громкости; выше FILL_CAP голос не заливает', () => {
+    expect(breathStep(0.3, 0.016, 0)).toBeLessThan(0.3)
+    expect(breathStep(0.3, 0.016, 0)).toBeGreaterThan(0.25)
+    expect(breathStep(0.3, 0.016, VOICE_THRESHOLD)).toBeLessThan(0.3)
+    expect(breathStep(0, 0.1, 0)).toBe(0)
+    const quiet = breathStep(0, 0.1, 0.1)
+    const loud = breathStep(0, 0.1, 0.6)
     expect(loud).toBeGreaterThan(quiet)
     expect(quiet).toBeGreaterThan(0)
     let p = 0
-    for (let i = 0; i < 200; i++) p = voiceFillStep(p, 0.05, 1)
-    expect(p).toBe(FILL_CAP)
+    for (let i = 0; i < 200; i++) p = breathStep(p, 0.05, 1)
+    expect(p).toBeLessThanOrEqual(FILL_CAP)
+    expect(p).toBeGreaterThan(FILL_CAP - 0.001)
   })
 
   it('чужое слово сливает заливку, не уходя ниже нуля', () => {
@@ -117,17 +121,17 @@ describe('слушатель: счёт копится по заходам', () =
 })
 
 describe('вёрстка и подключения', () => {
-  const css = read('../../../../styles/player/modules/word-lane.css')
-  const micCss = read('../../../../styles/player/modules/word-lane-mic.css')
+  const css = readLane()
+  const plateCss = read('../../../../styles/player/modules/word-lane-plate.css')
 
   it('длительности CSS совпадают с JS', () => {
     // Заливка пилюли = положение линии: CSS-перехода у неё нет (иначе отстанет), кроме фазы turn, где пилюли пустеют
-    expect(css).toMatch(/\.wlPillFill \{[^}]*transform: scaleY\(0\)/)                          // заливку пишет движок прямо в style.transform fill-слоя
+    expect(css).toMatch(/\.wlPillFill \{[^}]*transform: translateY\(100%\)/)                    // заливку пишет движок прямо в style.transform fill-слоя: translateY((1 − p)·100 %), край едет, не растягиваясь
     expect(css).toContain('translate: -50% calc(var(--y) * 1dvh - 50%)') // стартовое положение — свойство translate (сам ход — WAAPI)
     expect(css).not.toMatch(/^\.wlPill(Fill)? \{[^}]*transition/m) // движок сам пишет каждый кадр: переходы отставили бы пилюлю от речи
     expect(DROP_MS).toBe(1000); expect(css).toContain('animation: wlDrop 1s')
     expect(LANES_MS).toBe(900)
-    expect(micCss).toContain('animation: wlTurn 2.2s')                                    // длительность плашки переопределяется inline по стадии (ANNOUNCE_MS / TURN_STAGE_MS)
+    expect(plateCss).toContain('wlTurnOut var(--wl-turn-ms, 2.2s)')                         // длительность плашки — переменная --wl-turn-ms по стадии (ANNOUNCE_MS / TURN_STAGE_MS), запасная — TURN_MS 2200
   })
 
   it('модуль, стили и редактор подключены', () => {
@@ -144,12 +148,26 @@ describe('вёрстка и подключения', () => {
     expect(read('../../../lessons/LaunchPreloader.jsx')).toContain("n.type === 'rotate_phone') && <LaunchMicAsk />")
   })
 
-  it('тап «Начать» будит звук и полный экран ДО любого await, микрофон проверяется до игры', () => {
+  it('тап «Начать»: полный экран и startGameAudio (тип сессии → микрофон) вызываются ДО любого await, игра открывается после', () => {
     const mod = read('./RotatePhoneModule.jsx')
-    const body = mod.slice(mod.indexOf('const start = useCallback'))
-    expect(body.indexOf('unlockVoice()')).toBeLessThan(body.indexOf('await'))
-    expect(body.indexOf('requestFullscreen')).toBeLessThan(body.indexOf('await'))
-    expect(body.indexOf('ensureMicAccess()')).toBeLessThan(body.indexOf("setPhase('game')"))
+    const body = mod.slice(mod.indexOf('const start = useCallback'), mod.indexOf('const restart = useCallback'))
+    const call = body.indexOf('await startGameAudio({')
+    expect(call).toBeGreaterThan(0)
+    expect(body.slice(0, call)).not.toMatch(/await/) // всё до вызова — в жесте (сам вызов синхронно открывает сессию и микрофон)
+    expect(body.indexOf('requestFullscreen')).toBeLessThan(call)
+    expect(call).toBeLessThan(body.indexOf("setPhase('game')"))
+    expect(body).not.toContain('unlockVoice()') // звук диктора будится не здесь, а после открытия микрофона (wordLaneStart.js)
+    expect(mod).toContain("if (mic !== 'granted') { abortGame()") // микрофон не дали — игра не открывается
+    expect(mod.slice(mod.indexOf('const restart = useCallback'))).toContain('startGameAudio({ cfg, audioSrc, lines })') // «Игра заново» — тот же порядок
+  })
+
+  it('wordLaneStart: синхронный префикс — тип сессии и микрофон; звук будится после ожидания (settle), а не до микрофона', () => {
+    const start = read('./wordLaneStart.js')
+    const body = start.slice(start.indexOf('export function startGameAudio'))
+    const order = ['session.begin()', 'openMic()', 'await micPromise', 'warm.settle()', 'wake({ cfg'].map(t => body.indexOf(t))
+    expect(order.every(i => i > 0)).toBe(true)
+    expect([...order].sort((a, b) => a - b)).toEqual(order)
+    expect(body.indexOf('await')).toBeGreaterThan(body.indexOf('openMic()')) // до первого await — только begin, session, openMic
   })
 
   it('редактор ноды: ElevenLabs-озвучка → тайминги → клипы; таймлайн — на узлах таймлайна таблицы', () => {
@@ -167,7 +185,7 @@ describe('вёрстка и подключения', () => {
   it('игра берёт озвучку ноды (file_id) и план по таймлайну', () => {
     expect(read('./RotatePhoneModule.jsx')).toContain('useAudioSource(node, file)')
     expect(read('./RotatePhoneModule.jsx')).toContain('audioSrc={cfg.hasAudio ? audioSrc : null}')
-    expect(read('./useWordLaneFlow.js')).toContain('buildStages({ chunks, clips, audio, rate, lib, confusers })')
+    expect(read('./useWordLaneFlow.js')).toContain('buildStages({ chunks, clips, audio, rate, lib, confusers, plan })')
     expect(read('./WordLaneGame.jsx')).toContain('clips: cfg.clips')
   })
 

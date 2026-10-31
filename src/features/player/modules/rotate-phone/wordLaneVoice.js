@@ -1,6 +1,7 @@
-// Голос диктора в игре «Повтори за диктором»: слово звучит из библиотеки озвучки (word_audio, ключ wordKey), а если записи нет — голосом системы (speechSynthesis).
-// Порядок попыток: прогретый <audio> приложения (primedAudio — ему iOS уже разрешил играть без свежего жеста, а слова в игре идут по таймеру) → проигрыватель слов урока (wordAudioPlayer) →
-// речь системы. Звук урока «без звука» и скорость голоса из шапки учитываются во всех трёх. unlockVoice() звать из тапа «Начать»: будит синтезатор, чтобы он потом заговорил сам.
+// Голос диктора в игре «Повтори за диктором»: слово звучит из библиотеки озвучки (word_audio, ключ wordKey). Голоса системы (speechSynthesis) в игре и в репетиции НЕТ: на iPhone синтез захватывает аудиосессию
+// (микрофон глохнет на ~12 с, AudioContext «interrupted», речь стартует с задержкой или обрывается «canceled») — поэтому куска без озвучки диктор не произносит: пилюля едет без звука, в журнал пишется строка.
+// Порядок попыток: прогретый <audio> приложения (primedAudio — ему iOS уже разрешил играть без свежего жеста, а слова в игре идут по таймеру) → проигрыватель слов урока (wordAudioPlayer) → тишина.
+// Звук урока «без звука» и скорость голоса из шапки учитываются в обоих путях. Страж: voiceNoSynth.test.js.
 import { cachedWordAudio } from '../../../../shared/lib/wordAudio/wordAudioApi.js'
 import { wordKey } from '../../../../shared/lib/wordAudio/wordKey.js'
 import { playPrimed, stopPrimed } from '../../../../shared/lib/primedAudio.js'
@@ -8,31 +9,16 @@ import { playWord, stopWord } from '../../word-audio/wordAudioPlayer.js'
 import { getLessonMuted, getVoiceRate } from '../../lessonVolume.js'
 import { pLog } from '../../../../shared/lib/debug.js'
 
-const synth = () => (typeof window !== 'undefined' && 'speechSynthesis' in window ? window.speechSynthesis : null)
-
-/** Из тапа «Начать»: разбудить синтезатор речи (iOS говорит по таймеру только после первого запуска из жеста). Тихо: пустая реплика */
-export function unlockVoice() {
-  try { const s = synth(); if (s) { s.cancel(); const u = new SpeechSynthesisUtterance(' '); u.volume = 0; s.speak(u) } } catch { /* без синтезатора голос диктора — из библиотеки */ }
-}
-
-/** Сказать слово. Возвращает чем: 'primed' | 'word' | 'synth' | null (тишина — слова нет в библиотеке и синтезатора нет) */
-export function speakWord(word, lang = 'en-US') {
+/** Сказать слово. Возвращает чем: 'primed' | 'word' | null (тишина: слова нет в библиотеке, «без звука» в уроке — тогда причина в журнале «[word-lane] кусок … без озвучки») */
+export function speakWord(word) {
   const key = wordKey(word)
   const row = key ? cachedWordAudio()?.get(key) : null
   if (row?.url) {
     if (playPrimed(row.url, { muted: getLessonMuted(), rate: getVoiceRate() })) return 'primed'
     if (playWord(key)) return 'word'
   }
-  const s = synth()
-  if (!s || getLessonMuted()) return null
-  try {
-    s.cancel()
-    const u = new SpeechSynthesisUtterance(String(word))
-    u.lang = lang
-    u.rate = getVoiceRate()
-    s.speak(u)
-    return 'synth'
-  } catch (e) { pLog(`[word-lane] голос диктора не заговорил: ${e?.message ?? e}`); return null }
+  if (!getLessonMuted()) pLog(`[word-lane] кусок «${word}» без озвучки (${row?.url ? 'проигрыватель не принял' : 'нет в библиотеке слов'}) — синтез речи запрещён, пилюля едет без звука`)
+  return null
 }
 
 let track = null   // <audio> озвучки автора (готовится в тапе «Начать», играет по таймеру фазы)
@@ -66,6 +52,9 @@ export function prepareTrack(src) {
     a.play().then(() => { if (track !== a) return; a.pause(); a.src = src; a.load() }).catch(() => { if (track === a) { a.src = src; a.load() } })
   } catch { track = null; trackSrc = null }
 }
+
+/** После прерывания аудиосессии (в жесте): элемент записи автора мёртв — готовим новый тем же путём, что в тапе «Начать». Нет записи — ничего */
+export function rewakeTrack() { const src = trackSrc; if (src) prepareTrack(src) }
 
 function releaseTrack() { if (track) { try { track.pause(); track.removeAttribute('src') } catch { /* уже свободен */ } } track = null; trackSrc = null }
 
@@ -111,5 +100,4 @@ export function stopVoice() {
   releaseTrack()
   try { stopPrimed() } catch { /* не играл */ }
   try { stopWord() } catch { /* не играл */ }
-  try { synth()?.cancel() } catch { /* не играл */ }
 }

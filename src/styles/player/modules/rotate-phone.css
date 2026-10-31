@@ -67,6 +67,13 @@
   color: #9aa0b4;
 }
 
+.playerRotateWarm {
+  margin: 8px 2px 0;
+  font-size: 12px;
+  line-height: 1.3;
+  color: #9aa0b4;
+}
+
 .playerRotateStart {
   flex-shrink: 0;
   padding: 9px 13px;
@@ -79,3 +86,20 @@
   cursor: pointer;
 }
 .playerRotateStart:disabled { opacity: 0.6; cursor: default; }
+/* Ворота закрыты: «Готовлю звук… 7/15» — компактно, в две строки (длинная подпись не должна наезжать на описание) */
+.playerRotateStart--warm { max-width: 96px; padding: 7px 9px; font-size: 12px; line-height: 1.25; white-space: normal; text-align: center; }
+
+/* «Тапни, чтобы начать» (RotateTapHint): жест истёк до прогрева звука — одно касание экрана включает звук и открывает игру. Поверх игры (z-index игры 10000), с отступами под вырез */
+.rotateTapHint {
+  position: fixed; inset: 0; z-index: 10001;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
+  padding: env(safe-area-inset-top) 16px env(safe-area-inset-bottom);
+  background: rgba(14, 16, 19, 0.92);
+  cursor: pointer; -webkit-tap-highlight-color: transparent;
+}
+.rotateTapHintText {
+  padding: 12px 22px; border-radius: 14px; background: #b6fe3b; color: #0d1500;
+  font-size: 18px; font-weight: 800; animation: rotateTapHintPulse 1.4s ease-in-out infinite;
+}
+.rotateTapHintSub { font-size: 13px; color: #9aa0b4; }
+@keyframes rotateTapHintPulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }

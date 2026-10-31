@@ -98,48 +98,10 @@
 .wlDot--1 { --dc: var(--lvl1, #b6fe3b); } .wlDot--2 { --dc: var(--lvl2, #4fb3ee); } .wlDot--3 { --dc: var(--lvl3, #9a76f8); }
 .wlDot--on { background: var(--dc); box-shadow: 0 0 10px var(--dc); }
 
-/* Пилюли: вертикальные капсулы, пустые внутри. Тёмное тело, цветная обводка (1/2/3 кольца) и внутренний свет — как блоки ступеней «Моей памяти».
-   Положение — transform из --y (центр, % высоты экрана; за верхним краем пилюля вне кадра), top:0 — чтобы двигала только GPU-трансформация */
-.wlPill {
-  --c: var(--lvl1, #b6fe3b);
-  --rgb: var(--lvl1-rgb, 182, 254, 59);
-  --y: -14;
-  top: 0;
-  translate: -50% calc(var(--y) * 1dvh - 50%);               /* стартовое положение (за верхним краем); сам ход — WAAPI-анимация свойства translate на композиторе (wordLaneMotion.js). Именно translate, а не transform: хлопок (scale) не должен масштабировать сдвиг */
-  will-change: translate, scale;
-  border-radius: 999px;
-  background: linear-gradient(to bottom, rgba(var(--rgb), 0.14), rgba(var(--rgb), 0.04)), var(--wl-card);
-  box-shadow: inset 0 0 0 2px rgba(var(--rgb), 0.9), inset 0 0 18px -6px rgba(var(--rgb), 0.5);
-}
-.wlPill[data-lane='1'] { --c: var(--lvl2, #4fb3ee); --rgb: var(--lvl2-rgb, 79, 179, 238); }
-.wlPill[data-lane='2'] { --c: var(--lvl3, #9a76f8); --rgb: var(--lvl3-rgb, 154, 118, 248); }
-/* Эхо-кольца снаружи, как 2-я и 3-я обводки ступеней «Моей памяти» (зазор рисует фон): у 2-й пилюли одно кольцо, у 3-й два. Обрезку заливки держит .wlPillClip, поэтому кольца не срезаются */
-.wlPill[data-lane='1'] { box-shadow: inset 0 0 0 2px rgba(var(--rgb), 0.95), inset 0 0 18px -6px rgba(var(--rgb), 0.5), 0 0 0 4px var(--wl-bg), 0 0 0 5.5px rgba(var(--rgb), 0.5); }
-.wlPill[data-lane='2'] { box-shadow: inset 0 0 0 2.5px rgba(var(--rgb), 0.95), inset 0 0 18px -6px rgba(var(--rgb), 0.55), 0 0 0 4px var(--wl-bg), 0 0 0 5.5px rgba(var(--rgb), 0.5), 0 0 0 9.5px var(--wl-bg), 0 0 0 11px rgba(var(--rgb), 0.3); }
-.wlPillClip { position: absolute; inset: 0; border-radius: 999px; overflow: hidden; }
-.wlPillFill {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(to top, rgba(var(--rgb), 0.78), var(--c));
-  transform: scaleY(0);                                    /* заливку (scaleY 0…1) пишет движок прямо в style.transform */
-  transform-origin: 50% 100%;
-  will-change: transform;
-}
-
-/* «Различи»: у пилюли звучит её слово — она светится (слов на экране нет, только озвучка) */
-.wlPill[data-voice] { filter: brightness(1.6) drop-shadow(0 0 14px rgba(var(--rgb), 0.9)); transition: filter 0.12s ease-out; }
-
-/* Раунд «Порядок»: три невидимые кнопки-дорожки поверх сцены (тап по дорожке), верная дорожка после ошибок подсвечивается кольцом */
+/* Раунд «Порядок»: три невидимые кнопки-дорожки поверх сцены (тап по дорожке); перевод фразы в подсказке */
 .wlTap { inset: 0; display: flex; z-index: 5; pointer-events: auto; }
 .wlTapLane { flex: 1; border: 0; padding: 0; background: transparent; -webkit-tap-highlight-color: transparent; cursor: pointer; }
-.wlPill[data-hint]::after { content: ''; position: absolute; inset: -8px; border-radius: 999px; border: 3px solid #fff; animation: wlHintPulse 0.7s ease-in-out infinite; pointer-events: none; }
-@keyframes wlHintPulse { 0%, 100% { opacity: 0.2; transform: scale(0.98); } 50% { opacity: 0.95; transform: scale(1.03); } }
 .wlRevealPhrase { margin-top: 6px; font-size: clamp(22px, 7vw, 34px); font-weight: 800; text-align: center; }
-
-/* Прогрев слоёв: пока дорожки проявляются (фаза lanes), пилюли стоят посреди экрана почти прозрачными — браузер успевает растеризовать их слои (кольца, градиенты), и в момент выезда
-   первой пилюли диктора слои уже готовы (раньше первая пилюля растеризовалась на лету — подлагивание в начале). В фазе listen анимация полёта перекрывает translate, opacity возвращается */
-.wl[data-phase='lanes'] .wlPill { translate: -50% calc(50dvh - 50%); opacity: 0.01; }
-
 
 @media (prefers-reduced-motion: reduce) {
   .wlWord { animation-duration: 0.01s; }
@@ -154,37 +116,6 @@
 .wlDbg--hold { border-radius: 0; transform: rotate(45deg); background: #ff5d73; } .wlDbg--hold span { color: #ff5d73; transform: rotate(-45deg); left: 8px; top: 2px; }
 .wlDbg--anchor { background: #b6fe3b; } .wlDbg--anchor span { color: #b6fe3b; }
 .wlDbg--lane { background: #9aa0b4; } .wlDbg--lane span { color: #9aa0b4; left: -8px; top: -14px; }
-
-/* «Худ» в пилюле ученика реагирует ТОЛЬКО на голос: «тень» слова диктора (полоски по высоте, ширина = громкость куска слова) и метка темпа --pace (чёрточка, бегущая вверх в темпе диктора
-   с первого звука). Без голоса обе скрыты (opacity 0), пока ученик говорит — движок (useWordLanePills) пишет им opacity по громкости голоса и позицию метки; после принятия слова гаснут.
-   Прозрачность следует за голосом почти без задержки (0,1 с), поэтому статичного худа нет. */
-.wlGhost {
-  position: absolute;
-  inset: 8% 0;
-  display: flex;
-  flex-direction: column-reverse;
-  align-items: center;
-  justify-content: space-between;
-  opacity: 0;
-  transition: opacity 0.1s linear;
-}
-.wlGhost i { display: block; height: 6%; border-radius: 99px; background: rgba(var(--rgb), 0.55); }
-.wlPace {
-  position: absolute;
-  inset: 0 8%;
-  opacity: 0;
-  transform: translateY(0);                                /* линия у нижнего края блока; движок сдвигает блок вверх на долю высоты (translateY(-pace·100%)): двигает композитор */
-  will-change: transform, opacity;
-  transition: opacity 0.1s linear;
-}
-.wlPace::after { content: ''; position: absolute; left: 0; right: 0; bottom: -1.5px; height: 3px; border-radius: 2px; background: #fff; box-shadow: 0 0 8px rgba(255, 255, 255, 0.7); }
-
-/* «Честность оценки»: пока слово не подтверждено распознаванием, заливка голосом — «ожидающая» (полупрозрачная, со штриховкой); подтвердили (data-lock) — сплошная.
-   Видно разницу между «меня слышно» и «слово засчитано». В фазе диктора заливка всегда сплошная (data-lock стоит у всех) */
-.wl[data-phase='student'] .wlPill:not([data-lock]) .wlPillFill {
-  opacity: 0.6;
-  background: repeating-linear-gradient(135deg, rgba(var(--rgb), 0.85) 0 7px, rgba(var(--rgb), 0.45) 7px 14px);
-}
 
 /* Пит: из нижнего края выскакивает только голова (viewBox обрезан по голове, тело не рисуется), в разных местах (--cat-x, %), вдвое крупнее прежнего кота; позади пилюль.
    Класс .scn нужен спрайту (scene-v2.css); .scn--live (идл-анимации) НЕ ставим — анимации SVG идут в основном потоке и подлагивали бы пилюли; остальное от .scn (рамка, фон, обрезка, aspect-ratio 9/16) сбрасываем */
@@ -201,13 +132,15 @@
   pointer-events: none;
   z-index: 8;                                                     /* кот — поверх ВСЕГО интерфейса (пилюли, затемнения, микрофон, плашки); кликов не ловит */
   transform: translate(-50%, 108%);                               /* спрятан под нижним краем */
-  transition: transform 0.55s cubic-bezier(0.34, 1.45, 0.5, 1);   /* выскакивает с «пружиной» */
+  transition: transform 0.42s cubic-bezier(0.4, 0, 0.6, 1);       /* прячется плавно (ease-in-out, без отскока: с «пружиной» голова при уходе рвалась вниз и дребезжала у края) */
 }
-/* Реплика кота: подпись над его местом внизу */
-.wlSay { position: absolute; left: 50%; bottom: calc(24% + env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 6; max-width: 84%; padding: 10px 16px; border-radius: 16px; background: rgba(255, 255, 255, 0.95); color: #1b1f2a; font-size: 17px; font-weight: 600; text-align: center; animation: wlSayIn 0.25s ease-out; pointer-events: none; }
-@keyframes wlSayIn { from { opacity: 0; transform: translate(-50%, 8px); } }
-.wlStage > .wlCat.scn.wlCat--up { transform: translate(-50%, 4%); } /* торчит голова целиком, от ушей до шеи; за краем только срез плеч */
+.wlStage > .wlCat.scn.wlCat--up { transform: translate(-50%, 4%); transition: transform 0.55s cubic-bezier(0.34, 1.45, 0.5, 1); } /* торчит голова целиком, от ушей до шеи; за краем только срез плеч; выскакивает с «пружиной» */
 .wlCatSvg { display: block; width: 100%; height: 100%; overflow: visible; }
+/* Лица кота: головы всех лиц собраны в дереве один раз (WordLaneCat.jsx), видна одна — по data-face на корне; смена лица = смена атрибута, SVG-дерево React не пересобирает */
+/* Хвост кота в игре не нужен: viewBox обрезан по голове, но у .wlCat и svg overflow: visible (усы и уши не режутся), поэтому хвост (data-part=tail), поднимающийся сбоку от головы, торчал рядом с ней при выскакивании. Узел прячем целиком (тело — плечи входят в кадр — остаётся) */
+.wlCat [data-part='tail'] { display: none; }
+.wlCat [data-part='head'] { display: none; }
+.wlCat[data-face='base'] [data-part='head'][data-face='base'], .wlCat[data-face='love'] [data-part='head'][data-face='love'], .wlCat[data-face='shy'] [data-part='head'][data-face='shy'] { display: inline; }
 
 /* XP за принятую пилюлю: цифра летит вверх (общий XpFloat плеера), счётчик в углу растёт, когда цифра долетела */
 .wlXp {
@@ -227,7 +160,11 @@
 .wlXp--pop { animation: wlXpPop 0.5s ease-out; }
 @keyframes wlXpPop { 0% { transform: scale(1); } 40% { transform: scale(1.18); } 100% { transform: scale(1); } }
 
-/* «Не успел»: пилюля ушла вниз без принятого слова — гаснет и серая (data-fail); её выкатят снова */
-.wlPill[data-fail] { opacity: 0.4; transition: opacity 0.5s ease; }
-.wlPill[data-fail] .wlPillFill { background: #7b8494; }
-.wlPill[data-fail] .wlGhost, .wlPill[data-fail] .wlPace { opacity: 0 !important; }
+
+/* «Живой Пит v2» у кота (WordLaneCat.jsx, wordLaneCatLook.js): зрачки и широкие формы рта — общие правила scene-v2-pit.css (.scn--v2). Усы здесь качает не CSS, а whiskerDrive.js
+   (угол пишется из rAF — style.rotate / style.transform / атрибут transform по выбору в HUD, амплитуда плавно 0 ↔ 1 — одинаково в Chromium и Safari); якорь усов — в scene-v2-pit.css. Слабое устройство (.scn--lite): без усов и зрачков, остаётся рот */
+/* --talk (scene-v2-cat.css: @property, наследуется, переход 0,3 с на .scn-cat) на корне кота не переходим: смена зарегистрированного наследуемого свойства каждый кадр перепросчитывала стили всего поддерева кота
+   (≈140 узлов; замер при CPU 4×: +2,9 мс на кадр, стили +70 %). Усам --talk не нужен */
+.wlCat.scn--v2 .scn-cat { transition: none; }
+/* Смена лица (реакции love / shy): новая голова проявляется поверх прежней за ~140 мс (wordLaneCatFade.js), прежняя остаётся видимой, пока идёт переход */
+.wlCat [data-part='head'].wlHead--out { display: inline; }

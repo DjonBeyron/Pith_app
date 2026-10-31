@@ -1,6 +1,8 @@
 import { getPlayerLines } from '../../shared/lib/debug.js'
 import { sendToSink, debugFileName } from '../debugTools/debugSink.js'
 import { buildPerfSection } from './perfLogSection.js'
+import { buildGameLogSection } from './gameLogSection.js'
+import { getLastWordLaneDump } from './modules/rotate-phone/wordLaneLastDump.js'
 
 // ВРЕМЕННО (разбор рассинхрона голосовых, 2026-09-20): в лог идут только
 // события голосовых (audioDebug.js), всё остальное заглушено — так файл
@@ -22,17 +24,22 @@ function buildDebugLogText({ nodeAppearLog, debugItems, events }) {
     ``,
   ]
   if (AUDIO_ONLY) {
+    // `[cat-voice]` / `[plate-sound]` — почему реплика Пита или плашка могли быть тихими (источник, слот, исход play(), жест; wordLaneCatVoiceLog.js)
+    // `[audio-mode]` — пресет звука «Шлифовки репетиции» (A…H), применённый перед запуском этапа (polish/audioPresets.js)
     // `[scene]` — трасса сцен/кружка (sceneTrace.js: тапы, раскрытие, состояния режиссёра, файл/синтез, кольцо) — без неё разбор
     // «кружок не звучит / кольцо висит / тап выбивает» по логу невозможен
     lines.push(`--- Audio (события голосовых: mount / dur / play / hb / gap / ev / end) + предзагрузка + сцены [scene] ---`,
-      ...playerLines.filter(l => l.includes('[audio-') || l.includes('AudioModule') || l.includes('[preload]') || l.includes('[word-audio]') || l.includes('[scene]')),
+      ...playerLines.filter(l => l.includes('[audio-') || l.includes('AudioModule') || l.includes('[preload]') || l.includes('[word-audio]') || l.includes('[scene]') || l.includes('[cat-voice]') || l.includes('[plate-sound]') || l.includes('[audio-mode]')),
       ``,
       // Загрузки — чтобы видеть, успел ли blob к моменту play() или голосовое
       // играло с сервера в лоб (start/ready относительно msg — момента показа)
       `--- Downloads ---`,
       ...debugItems.map(d =>
         `#${d.seq} ${d.type} ${d.status} http=${d.httpStatus ?? '-'} ${d.sizeKb ?? '-'}KB start=${d.startTs} ready=${d.readyTs} msg=${d.msgTs ?? '-'} ${d.error ?? ''}`
-      ))
+      ),
+      ``,
+      // Игра «Повтори за диктором»: краткая хронология последнего запуска (доступы, play(), аудиосессия, стадии, распознавание, пилюли) — владелец присылает именно этот журнал, а не JSON игры
+      ...buildGameLogSection(getLastWordLaneDump()))
     return lines.join('\n')
   }
   lines.push(
@@ -57,6 +64,8 @@ function buildDebugLogText({ nodeAppearLog, debugItems, events }) {
     ...events.map(e =>
       `${e.type} урок=${e.lessonId} попытка=${e.attempt} время=${e.timeMs ?? '?'}мс «${e.option}» сессия=${e.sessionId}`
     ),
+    ``,
+    ...buildGameLogSection(getLastWordLaneDump()),
   )
   return lines.join('\n')
 }

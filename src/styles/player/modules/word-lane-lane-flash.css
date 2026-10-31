@@ -1,0 +1,17 @@
+/* Игра «Повтори за диктором»: верный ответ подсвечивает дорожку. Пул (wordLanePool.js → wordLaneLaneFlash.js) на win ставит на колонку дорожки (.wlLanes i) и на её кромки (.wlLaneEdge рядом) атрибут
+   data-win = a | b (две одинаковые анимации по очереди: смена имени перезапускает вспышку без пересчёта вёрстки); по animationend атрибут снимается. Вспышка 0,6 с: слой колонки — мягкая заливка цветом дорожки
+   (--lvl1..3) 0 → .25 → 0 (opacity), кромка — белая линия 1 px 0 → .35 → 0 поверх обычной (.16). Слои (::after) существуют только пока стоит data-win — в покое никакой цены. Только opacity: композитор, без filter.
+   Слабое устройство (.wl--lite / .weak-device): data-win = s — короткая (0,3 с, таймер в wordLaneLaneFlash.js) статичная подсветка без анимации. */
+@keyframes wlLaneFlashA { 0% { opacity: 0; } 40% { opacity: var(--pk); } 100% { opacity: 0; } }
+@keyframes wlLaneFlashB { 0% { opacity: 0; } 40% { opacity: var(--pk); } 100% { opacity: 0; } }
+.wlLanes i { position: relative; }
+.wlLanes i:nth-child(1) { --rgb: var(--lvl1-rgb, 182, 254, 59); }
+.wlLanes i:nth-child(2) { --rgb: var(--lvl2-rgb, 79, 179, 238); }
+.wlLanes i:nth-child(3) { --rgb: var(--lvl3-rgb, 154, 118, 248); }
+.wlLanes i[data-win]::after, .wlLaneEdge[data-win]::after { content: ''; position: absolute; pointer-events: none; opacity: 0; }
+.wlLanes i[data-win]::after { --pk: 0.25; inset: 0; background: linear-gradient(to bottom, rgba(var(--rgb), 0.15), rgba(var(--rgb), 0.9) 22%, rgba(var(--rgb), 0.9) 78%, rgba(var(--rgb), 0.15)); }
+.wlLaneEdge[data-win]::after { --pk: 0.35; left: -1px; top: 0; bottom: 0; width: 1px; background: #fff; }
+.wlLanes [data-win='a']::after { animation: wlLaneFlashA 0.6s ease-out 1 both; }
+.wlLanes [data-win='b']::after { animation: wlLaneFlashB 0.6s ease-out 1 both; }
+.wlLanes i[data-win='s']::after { opacity: 0.16; }
+.wlLanes .wlLaneEdge[data-win='s']::after { opacity: 0.3; }

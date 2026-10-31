@@ -1,0 +1,25 @@
+/* Игра «Повтори за диктором»: косые полоски на пилюле — «неверно» (data-wrong: ученик сказал чужое слово, ставит missPill в wordLaneSnap.js) и «не успел» (data-fail). Раньше промах был разовым:
+   дрожь и красная вспышка 0,7 с, потом пилюля выглядела как прежде, а «не успел» — только серая заливка с прозрачностью .4. Теперь признак остаётся на пилюле, пока она не защёлкнулась (data-lock снимает полоски)
+   или не вернулась в пул (clean в wordLanePool.js убирает data-wrong). Полоски — отдельный слой .wlPillClip::after поверх заливки и пустого тела (клип держит их внутри контура): repeating-linear-gradient 45°,
+   ширина полосы 6 px, цвет дорожки (--rgb) и тёмный. «Не успел» — те же полоски, но серые и бледнее (на пилюле и так opacity .4). Появляются за 0,2 с — opacity слоя (композитор, filter нет); на слабом устройстве
+   (.wl--lite / .weak-device) — сразу, без перехода. Безопасный режим (.wl--safe, iOS): слой тот же, но без opacity-перехода (переключение композитного слоя во время полёта — риск мигания контура): прозрачность
+   полосок --wl-sa переходит за те же 0,2 с как зарегистрированное число — это перерисовка одной пилюли, без новых слоёв. Красного здесь нет: красное — только вспышка промаха (missPill). */
+@property --wl-sa { syntax: '<number>'; inherits: false; initial-value: 1; }
+.wlPill { --st1-rgb: var(--rgb); --st1-a: 0.8; --st2-a: 0.75; }
+.wlPill[data-fail] { --st1-rgb: 176, 184, 198; --st1-a: 0.5; --st2-a: 0.6; }               /* «не успел»: серые, бледнее */
+.wlPillClip::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s ease-out;
+  background: repeating-linear-gradient(45deg, rgba(var(--st1-rgb), calc(var(--st1-a) * var(--wl-sa))) 0 6px, rgba(10, 12, 16, calc(var(--st2-a) * var(--wl-sa))) 6px 12px);
+}
+.wlPill[data-wrong]:not([data-lock]) .wlPillClip::after, .wlPill[data-fail] .wlPillClip::after { opacity: 1; }
+.wl--lite .wlPillClip::after, .weak-device .wlPillClip::after { transition: none; }          /* слабое устройство: полоски сразу, без анимации */
+
+.wlField.wl--safe .wlPillClip::after { opacity: 1; --wl-sa: 0; transition: --wl-sa 0.2s ease-out; }
+.wlField.wl--safe .wlPill[data-wrong]:not([data-lock]) .wlPillClip::after, .wlField.wl--safe .wlPill[data-fail] .wlPillClip::after { --wl-sa: 1; }
+.wlField.wl--safe .wlPill[data-fail] { --st1-a: 0.4; --st2-a: 0.5; }                         /* в безопасном режиме «не успел» без opacity .4 — полоски тусклее сами */
+.wlField.wl--safe.wl--lite .wlPillClip::after, .weak-device .wlField.wl--safe .wlPillClip::after { transition: none; }

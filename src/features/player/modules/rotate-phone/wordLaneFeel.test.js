@@ -9,7 +9,8 @@ import { clipsFromFills } from './wordLaneAudio.js'
 import { createStudentGame, stepStudent } from './wordLaneStudent.js'
 
 const read = rel => readFileSync(fileURLToPath(new URL(rel, import.meta.url)), 'utf8')
-const css = read('../../../../styles/player/modules/word-lane.css')
+const readLane = () => read('../../../../styles/player/modules/word-lane.css') + read('../../../../styles/player/modules/word-lane-pill.css') // раскладка и пилюли: одна вёрстка игры в двух файлах
+const css = readLane()
 
 // «Ощущение» игры: затемнения сверху/снизу, кот поверх всего, отклик пилюль без опоздания, старт диктора без простоя
 describe('затемнения сверху и снизу', () => {
@@ -74,9 +75,9 @@ describe('отклик пилюль без опоздания', () => {
   })
 
   it('слушатель стартует под плашкой «твоя очередь» (тяжёлый запуск Vosk — не во время хода пилюль), слова до конвейера ученика не считаются', () => {
-    expect(read('./wordLaneStages.js')).toContain("if (s.type === 'turn' || s.type === 'student') return s.step")
+    expect(read('./wordLaneStages.js')).toContain("if (s.type === 'turn' || isStudentStage(s)) return s.step")
     expect(read('./useWordLanePills.js')).toContain('g.seenSeq = liveRef.current.seq.length')
-    expect(read('./wordLaneListen.js')).toContain('chunk: 1024')      // куски по 64 мс — уровень голоса для пилюль приходит чаще
+    expect(read('./wordLaneListen.js')).toContain('chunk: 2048')      // куски по 2048 кадров (≈ 46 мс): уровень голоса для пилюль приходит ≈ 22 раза в секунду, главный поток — вдвое меньше вызовов, чем при 1024
   })
 })
 

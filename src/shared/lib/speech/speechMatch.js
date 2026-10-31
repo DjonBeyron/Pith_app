@@ -3,7 +3,7 @@
 import { foldNumbers } from './numberWords.js'
 
 // Сокращения → полная форма (чтобы «I'm» и «I am» совпадали). Апострофы приводим к ' заранее
-const CONTRACTIONS = {
+export const CONTRACTIONS = {
   "i'm": 'i am', "you're": 'you are', "we're": 'we are', "they're": 'they are',
   "he's": 'he is', "she's": 'she is', "it's": 'it is', "that's": 'that is', "there's": 'there is',
   "what's": 'what is', "who's": 'who is', "here's": 'here is', "let's": 'let us',
@@ -36,6 +36,37 @@ export function tokenize(text) {
     else out.push(w.replace(/'/g, '')) // «john's» → «johns»: чужие апострофы просто убираем
   }
   return out.filter(Boolean)
+}
+
+// Обратная таблица для словаря Vosk: «i am» → ["i'm"], «can not» → ["can't", "cannot"]. Разговорные gonna/wanna/gotta и ain't в словарь не просим (tokenize их по-прежнему понимает)
+const SLANG = new Set(["ain't", 'gonna', 'wanna', 'gotta'])
+const CONTRACT_BY = {}
+for (const [c, full] of Object.entries(CONTRACTIONS)) if (!SLANG.has(c)) (CONTRACT_BY[full] ??= []).push(c)
+const MAX_FORM_SPOTS = 8 // мест, где можно сократить, не больше — иначе только две крайние формы
+
+/**
+ * Все записи фразы для словаря Vosk: раздельная («i am trying») первой и слитная («i'm trying»); если сократить можно в нескольких местах — и смешанные (до `maxForms`, иначе только две крайние).
+ * Слова — как в tokenize (нижний регистр, числа словами). Пример: «I'm trying» → ["i am trying", "i'm trying"]; «cannot go» → ["can not go", "can't go", "cannot go"].
+ */
+export function phraseForms(text, maxForms = 6) {
+  const t = tokenize(text)
+  if (!t.length) return []
+  const spots = t.filter((w, i) => CONTRACT_BY[`${w} ${t[i + 1]}`]).length
+  const gen = i => {
+    if (i >= t.length) return [[]]
+    const alts = CONTRACT_BY[`${t[i]} ${t[i + 1]}`]
+    return [...gen(i + 1).map(r => [t[i], ...r]), ...(alts ? alts.flatMap(a => gen(i + 2).map(r => [a, ...r])) : [])]
+  }
+  let forms = spots && spots <= MAX_FORM_SPOTS ? [...new Set(gen(0).map(r => r.join(' ')))] : [t.join(' ')]
+  if (spots > MAX_FORM_SPOTS || forms.length > maxForms) {
+    const first = []
+    for (let i = 0; i < t.length; i++) {
+      const alts = CONTRACT_BY[`${t[i]} ${t[i + 1]}`]
+      if (alts) { first.push(alts[0]); i++ } else first.push(t[i])
+    }
+    forms = [...new Set([t.join(' '), first.join(' ')])]
+  }
+  return forms
 }
 
 /** Расстояние Левенштейна между двумя словами */

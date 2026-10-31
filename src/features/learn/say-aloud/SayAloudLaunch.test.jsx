@@ -73,9 +73,9 @@ describe('места запуска (связка по исходникам)', (
   it('микрофон просим только по тапу «Начать» на готовой модели, до любых await', () => {
     const src = read('./SayAloudOverlay.jsx')
     const begin = src.slice(src.indexOf('const begin = () =>'), src.indexOf('const finished'))
-    expect(begin).toContain('micNeedsHold() ? openGameMic() : ensureMicAccess()')
+    expect(begin).toContain('const asked = openGameMic()') // на всех платформах один поток без эхо/шумоподавления (gameMic)
     expect(begin).not.toMatch(/await /)
-    expect(src.match(/ensureMicAccess\(\)|openGameMic\(\)/g)).toHaveLength(2) // одно место запроса (в строке выбора)
+    expect(src.match(/ensureMicAccess\(\)|openGameMic\(\)/g)).toHaveLength(1) // одно место запроса
     // порядок экрана: итог → не готов Vosk → «Начать» (idle) → ожидание → нет микрофона → игра
     const order = ['result', "vosk.status !== 'ready'", "mic === 'idle'", "mic === 'pending'", "mic !== 'granted'"].map(k => src.indexOf(k, src.indexOf('let body')))
     expect(order).toEqual([...order].sort((x, y) => x - y))

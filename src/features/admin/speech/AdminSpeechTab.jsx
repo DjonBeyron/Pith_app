@@ -8,12 +8,17 @@ import { useContextSeries } from './useContextSeries.js'
 import { useRestartSeries } from './useRestartSeries.js'
 import { useTabSilence } from './useTabSilence.js'
 import { phraseFor } from './controlSeries.js'
+import RehearsalPolishBlock from './RehearsalPolishBlock.jsx'
 import SpeechCapsBlock from './SpeechCapsBlock.jsx'
 import SimpleTestsBlock from './SimpleTestsBlock.jsx'
 import SpeechTestBlock from './SpeechTestBlock.jsx'
 import SpeechLogBlock from './SpeechLogBlock.jsx'
 import SpeechSayBlock from './SpeechSayBlock.jsx'
 import SoundDiagBlock from './SoundDiagBlock.jsx'
+import GameMicBlock from './GameMicBlock.jsx'
+import GameSoundsBlock from './GameSoundsBlock.jsx'
+import GameTestBlock from './GameTestBlock.jsx'
+import MirrorDemoBlock from './MirrorDemoBlock.jsx'
 import SpeechMemo from './SpeechMemo.jsx'
 import SpeechCaptureMemo from './SpeechCaptureMemo.jsx'
 import '../../../styles/admin-speech.css'
@@ -66,8 +71,13 @@ export default function AdminSpeechTab() {
     <div className="aeWrap" ref={rootRef}>
       <div className="aeHead"><span className="aeTitle">Голос (проба распознавания речи)</span></div>
       <p className="aeHint">Тест Web Speech API перед модулем «Сказать фразу». Ничего не отправляется на наш сервер и не сохраняется, кроме журнала в этом браузере.</p>
+      <RehearsalPolishBlock />
       <SpeechCapsBlock caps={caps} perm={perm} />
       <SoundDiagBlock />
+      <GameMicBlock />
+      <GameSoundsBlock />
+      <GameTestBlock />
+      <MirrorDemoBlock />
       <SpeechSayBlock />
       <SimpleTestsBlock caps={caps} reference={reference} lang={lang} setLang={changeLang} probe={probe} series={series} onPickStep={pickStep} restart={restartApi} dwell={ap.settings.dwell} onDwell={v => ap.update({ dwell: v })} />
       <SpeechTestBlock caps={caps} reference={reference} setReference={changeReference} lang={lang} setLang={changeLang} probe={probe} cap={cap} ap={ap} />

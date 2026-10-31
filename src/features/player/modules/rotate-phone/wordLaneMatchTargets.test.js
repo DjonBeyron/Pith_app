@@ -25,13 +25,39 @@ describe('несколько целей: что услышал Vosk', () => {
     expect(analyzeTargets('hello', P, false).tail).toBeNull()
     expect(analyzeTargets('', P, false).tail).toBeNull()
   })
+  it('черновик: начало цели — не промах (пауза между словами «I\'m … trying»), хвост хранит, сколько слов уже произнесено', () => {
+    const P = ["I'm trying"]
+    expect(analyzeTargets('i am', P, false)).toEqual({ seq: [], misses: 0, tail: { target: 0, tokens: 2 } })   // раньше: misses 1 — «i» промах, «am» — последнее слово
+    expect(analyzeTargets('i am trying', P, false)).toEqual({ seq: [0], misses: 0, tail: null })
+    const L = ["I'm trying to learn"]
+    expect(analyzeTargets('i am trying to', L, false)).toEqual({ seq: [], misses: 0, tail: { target: 0, tokens: 4 } }) // раньше: misses 3
+    expect(analyzeTargets('i', P, false)).toEqual({ seq: [], misses: 0, tail: { target: 0, tokens: 1 } })
+  })
+  it('черновик: хвостовой [unk] игнорируется, чужое слово — промах, только когда за ним уже началась цель', () => {
+    const P = ["I'm trying"]
+    expect(analyzeTargets('i am [unk]', P, false)).toEqual({ seq: [], misses: 0, tail: { target: 0, tokens: 2 } })
+    expect(analyzeTargets('[unk]', P, false)).toEqual({ seq: [], misses: 0, tail: null })
+    expect(analyzeTargets('cat', P, false).misses).toBe(0)                                   // последнее слово ещё может измениться
+    expect(analyzeTargets('cat i am', P, false)).toEqual({ seq: [], misses: 1, tail: { target: 0, tokens: 2 } })  // «cat» устоялось: за ним началась цель
+    expect(analyzeTargets('cat i am trying', P, false)).toMatchObject({ seq: [0], misses: 1 })
+    expect(analyzeTargets('i am trying cat dog', P, false)).toMatchObject({ seq: [0], misses: 1 })
+    expect(analyzeTargets('i am [unk] trying', P, false).misses).toBe(1)                  // [unk] посреди речи — не хвост
+  })
+  it('итог (final): всё, что не вошло в цели целиком, — промах, включая недосказанное начало; хвост по-прежнему найден', () => {
+    const P = ["I'm trying"]
+    expect(analyzeTargets('i am', P, true)).toEqual({ seq: [], misses: 2, tail: { target: 0, tokens: 2 } })
+    expect(analyzeTargets('cat i am', P, true).misses).toBe(3)
+    expect(analyzeTargets('i am trying', P, true)).toEqual({ seq: [0], misses: 0, tail: null })
+    expect(analyzeTargets('i am trying [unk]', P, true)).toMatchObject({ seq: [0], misses: 1 })
+  })
   it('одна цель из нескольких слов — одно попадание', () => {
     expect(analyzeTargets('to learn to learn', ['to learn']).seq).toEqual([0, 0])
   })
   it('словарь: все последовательности длиной 1–max из целей и [unk]; три цели × 3 = 84 + [unk]', () => {
-    const g = JSON.parse(targetGrammar(T, 3))
+    const T3 = ['go', 'trying', 'to learn']                                  // без сокращений: записей по одной (сокращения — wordLaneContractions.test.js)
+    const g = JSON.parse(targetGrammar(T3, 3))
     expect(g).toContain('trying')
-    expect(g).toContain('i am trying to learn')
+    expect(g).toContain('go trying to learn')
     expect(g).toContain('trying [unk] trying')
     expect(g.at(-1)).toBe('[unk]')
     expect(g.length).toBe(4 + 16 + 64 + 1)

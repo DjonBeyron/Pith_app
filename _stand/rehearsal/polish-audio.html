@@ -1,0 +1,28 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>rehearsal polish audio harness</title>
+<style>body{margin:0;background:#0e1013;color:#fff;font-family:system-ui}#root{padding:12px}.aeHint{font-size:12px;color:#888}</style></head>
+<body><div id="root"></div>
+<script type="module">
+import React from 'react'
+import { createRoot } from 'react-dom/client'
+import '/src/index.css'
+import '/src/styles/admin-speech.css'
+import RehearsalPolishBlock from '/src/features/admin/speech/RehearsalPolishBlock.jsx'
+import { supabase } from '/src/shared/api/supabase.js'
+import { listWordAudio } from '/src/shared/lib/wordAudio/wordAudioApi.js'
+import { voskRuntime } from '/src/shared/lib/vosk/voskRuntime.js'
+
+// Стенд «Шлифовка репетиции → режим звука и озвучка» (dev, в сборку не входит): настоящий блок из вкладки «Голос» (RehearsalPolishBlock) с настоящей игрой, без входа, Supabase и модели Vosk.
+// Модель Vosk — заглушка (тап вместо речи: localStorage pithy_wl_tap_v1=1); библиотека слов пуста — слова прозвучат голосом системы. Скриншоты и сценарий — scratchpad/rh/polish.cjs.
+// Реплики Пита: часть озвучена (тихий wav из data:), остальные без озвучки — видно «озвучено N из M», «Послушать» и список «без озвучки»; ElevenLabs в стенде недоступен — «Озвучить» покажет ошибку текстом
+const WAV = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA='
+const voiced = { rh_start: 'Повторим то, что учили, и прокачаем произношение', rh_build: 'Собираем фразу с конца, так конец звучит увереннее всего', rh_clear: 'А теперь чётко, как для последнего ряда' }
+const lines = Object.fromEntries(Object.entries(voiced).map(([id, text]) => [id, { text, url: WAV, duration: 1 }]))
+supabase.from = table => ({ select: () => ({ eq: () => (table === 'word_audio' ? Promise.resolve({ data: [], error: null }) : { maybeSingle: () => Promise.resolve({ data: { value: { lines } }, error: null }) }) }) })
+await listWordAudio()
+class Rec { constructor() { this.h = {} } setWords() {} on(ev, cb) { this.h[ev] = cb } remove() {} acceptWaveform() {} retrieveFinalResult() {} }
+voskRuntime.acquire = () => () => {}
+voskRuntime.whenSettled = async () => ({ ok: true })
+voskRuntime.warmNow = () => {}
+voskRuntime.getModel = () => ({ KaldiRecognizer: Rec })
+createRoot(document.getElementById('root')).render(React.createElement('div', { className: 'aeWrap' }, React.createElement('p', { className: 'aeHint' }, 'Голос (проба распознавания речи)'), React.createElement(RehearsalPolishBlock)))
+</script></body></html>

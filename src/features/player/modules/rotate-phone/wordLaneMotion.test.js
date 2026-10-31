@@ -5,21 +5,25 @@ import { startFlight, cancelFlights, setFlightRate, FLIGHT_MS, ANIM_MS, flightPo
 import { ENTER_Y, EXIT_Y, SPEED } from './wordLaneTimeline.js'
 
 const read = rel => readFileSync(fileURLToPath(new URL(rel, import.meta.url)), 'utf8')
-const css = read('../../../../styles/player/modules/word-lane.css')
+const readLane = () => read('../../../../styles/player/modules/word-lane.css') + read('../../../../styles/player/modules/word-lane-pill.css') // раскладка и пилюли: одна вёрстка игры в двух файлах
+const css = readLane()
 
 describe('ход пилюль — на композиторе (WAAPI), а не по кадрам из JS', () => {
   const fakeEl = () => { const calls = []; return { calls, animate(frames, opts) { const a = { frames, opts, currentTime: null, cancelled: false, rate: 1, cancel() { this.cancelled = true }, updatePlaybackRate(r) { this.rate = r } }; calls.push(a); return a } } }
 
-  it('один линейный полёт от ENTER_Y до EXIT_Y: длительность по скорости конвейера, easing linear, fill both', () => {
+  it('один полёт от ENTER_Y до EXIT_Y: длительность по скорости конвейера, easing linear, fill both; кадры — один translate по y, прямая без волны и наклона', () => {
     const el = fakeEl()
     const a = startFlight(el, -300)
     expect(FLIGHT_MS).toBeCloseTo(((EXIT_Y - ENTER_Y) / SPEED) * 1000, 6)
     expect(a.opts).toMatchObject({ duration: ANIM_MS, easing: 'linear', fill: 'both' })
     expect(ANIM_MS).toBeGreaterThan(FLIGHT_MS + 60000)               // не «finished» посреди игры: currentTime анимации — часы фазы
-    expect(a.frames).toHaveLength(3)
-    expect(a.frames[0].translate).toBe(flightPosition(ENTER_Y))
-    expect(a.frames[1]).toMatchObject({ translate: flightPosition(EXIT_Y), offset: FLIGHT_MS / ANIM_MS })   // долетела до EXIT_Y ровно за FLIGHT_MS
-    expect(a.frames[2].translate).toBe(flightPosition(EXIT_Y))      // и дальше стоит за краем
+    const f = a.frames
+    expect(f).toHaveLength(3)                                        // старт, ENTER_Y → EXIT_Y, «стоит за краем»
+    expect(f[0]).toEqual({ translate: flightPosition(ENTER_Y) })
+    expect(f[1]).toMatchObject({ translate: flightPosition(EXIT_Y) })
+    expect(f[1].offset).toBeCloseTo(FLIGHT_MS / ANIM_MS, 10)         // долетела до EXIT_Y ровно за FLIGHT_MS
+    expect(f[2]).toEqual({ translate: flightPosition(EXIT_Y) })      // и дальше стоит за краем
+    expect(f.every(x => !('rotate' in x) && !('scale' in x) && !('opacity' in x))).toBe(true) // ни наклона, ни scale хлопка, ни opacity
     expect(a.currentTime).toBe(-300)                                 // ещё не выкатилась: ждёт за краем
     expect(flightPosition(10)).toBe('-50% calc(10.000dvh - 50%)')
   })
@@ -43,7 +47,7 @@ describe('ход пилюль — на композиторе (WAAPI), а не �
 
 describe('щелчок не сдвигает пилюлю', () => {
   it('положение — свойство translate, хлопок — scale, дрожь — transform: они в разных слотах цепочки и друг другу не мешают', () => {
-    expect(read('./wordLaneMotion.js')).toContain('{ translate: flightPosition(ENTER_Y) }')
+    expect(read('./wordLaneMotion.js')).toContain('{ translate: flightPosition(EXIT_Y), offset: FLIGHT_MS / ANIM_MS }')
     const snap = read('./wordLaneSnap.js')
     expect(snap).toContain('{ scale: 1.12, offset: 0.38 }')
     expect(snap).not.toMatch(/animate\(\[[^\]]*translate:/)                // у промаха теперь transform
@@ -55,10 +59,10 @@ describe('щелчок не сдвигает пилюлю', () => {
 
 describe('подлагивание в начале: прогрев слоёв, статичный кот, счётчик плавности', () => {
   it('в фазе lanes пилюли стоят посреди экрана почти прозрачными — слои растеризуются до выезда первой пилюли', () => {
-    expect(css).toMatch(/\.wl\[data-phase='lanes'\] \.wlPill \{[^}]*translate: -50% calc\(50dvh - 50%\);[^}]*opacity: 0\.01/)
+    expect(css).toMatch(/\.wl\[data-phase='lanes'\] \.wlPill \{[^}]*translate: -50% calc\(50dvh - 50%\);[^}]*opacity: 0\.0002/)   // не 0,01: 12 пилюль стопкой давали ≈ 11 % и были видны на OLED (wordLanePillSafe.test.js)
   })
-  it('кот без идл-анимаций SVG (scn--live) — они идут в основном потоке', () => {
-    expect(read('./WordLaneCat.jsx')).toContain('className="scn wlCat"')
+  it('кот без идл-анимаций SVG (scn--live) — они идут в основном потоке; «живой Пит v2» (scn--v2) включён, на слабом устройстве добавляется scn--lite', () => {
+    expect(read('./WordLaneCat.jsx')).toContain("className={`scn scn--v2 wlCat${lite ? ' scn--lite' : ''}`}")
     expect(read('./WordLaneCat.jsx')).not.toMatch(/className="[^"]*scn--live/)
   })
   it('по флагу отладки показывается счётчик плавности (к/с, самый долгий кадр, подвисания с фазой)', () => {

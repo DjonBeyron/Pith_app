@@ -1,0 +1,45 @@
+/* Игра «Повтори за диктором»: «безопасный» режим слоёв пилюль для iOS Safari (класс wl--safe на .wlField; включает localStorage pithy_wl_pill_safe_v1 = 1, см. wordLanePillSafe.js). Основные правила — word-lane-pill.css,
+   здесь только то, что в безопасном режиме иначе. Зачем: на iPhone (iOS 18, Safari) контур пилюли пропадал в полёте и возвращался, когда в заливку приходил звук — браузер пересобирал дерево композитных слоёв
+   (will-change у пилюли и заливки, слои частиц с visibility и translate-переходом, анимации на псевдоэлементах), и граница пилюли выпадала из растра. Здесь:
+   • ни одного will-change (пул тоже не ставит его при wl--safe); у летящей пилюли постоянный слой — transform: translateZ(0), он стоит от take до give и не переключается;
+   • контур рисуется ДВАЖДЫ: border (как в обычном режиме) и outline поверх него (отрицательный offset на толщину обводки — ровно по border): потеряется один — останется другой;
+   • никаких visibility и переключений слоёв: заливка — один слой без псевдоэлементов и без частиц; мягкий край уровня — начало градиента заливки. Искры (.wlPillSparks, как в обычном режиме: вне клипа, выше контура) — те же две
+     плитки градиентных точек (два <b> внутри <i>) и те же анимации, но без will-change: пилюля не наливается — блок искр display: none (не слой, а вёрстка), наливается — display: block и анимации идут;
+   • «выдоха» кольца нет (в обычном режиме — word-lane-pill.css): у пилюли одна обводка (border + outline поверх), и в безопасном режиме тоже;
+   • мягкий внутренний свет — не inset-тень, а боковые полосы в фоне; «Различи» (data-voice) светится внешней тенью, а не filter; «не успел» (data-fail) серый, но не прозрачный — контур остаётся.
+   Специфичность: .wlField.wl--safe + правило обычного режима (в том числе .wl[data-phase=…]), поэтому каждое правило здесь сильнее своего двойника; файл подключается после word-lane-pill.css. */
+/* Пилюля: без will-change (и в фазе прогрева lanes тоже), постоянный слой у взятой, контур дважды, свет без inset */
+.wlField.wl--safe .wlPill {
+  --glow: 0 0 0 0 transparent;                               /* свечение «Различи» — внешняя тень */
+  will-change: auto;
+  outline: var(--ring) solid rgba(var(--rgb), 0.9);
+  outline-offset: calc(var(--ring) * -1);                    /* поверх border, внутрь от края: второй раз тот же контур */
+  background:
+    radial-gradient(ellipse closest-side at 50% 50%, transparent 62%, rgba(var(--rgb), 0.2)),
+    linear-gradient(to bottom, rgba(var(--rgb), 0.14), rgba(var(--rgb), 0.04)),
+    var(--wl-card);
+  background-origin: border-box;
+  box-shadow: var(--glow);                                   /* внешних орбит (теней-колец) нет: обводка одна */
+}
+.wlField.wl--safe .wlPill::before { display: none; }          /* «выдоха» кольца в безопасном режиме нет */
+.wl[data-phase='lanes'] .wlField.wl--safe .wlPill { will-change: auto; }
+.wl[data-phase='lanes'] .wlField.wl--safe .wlPill { opacity: 0; }       /* слоёв в безопасном режиме нет — прогревать нечего, припаркованные посреди экрана пилюли невидимы совсем (без остаточных 0,0002) */
+.wlField.wl--safe .wlPill[data-held] { transform: translateZ(0); }
+.wlField.wl--safe .wlPill[data-voice] { filter: none; transition: none; --glow: 0 0 14px 3px rgba(var(--rgb), 0.9); }
+.wlField.wl--safe .wlPill[data-fail] { opacity: 1; transition: none; --rgb: 123, 132, 148; --c: #7b8494; }   /* «не успел»: серая, но целая — контур не гаснет */
+
+/* Заливка: один слой, без псевдоэлементов и без частиц (искры — над ней, ниже), поверх цвета — как в обычном режиме по состояниям */
+.wlField.wl--safe .wlPillFill {
+  will-change: auto;
+  background: linear-gradient(to bottom, rgba(var(--rgb), 0), var(--c) 8px, rgba(var(--rgb), 0.78));
+}
+.wl[data-phase='student'] .wlField.wl--safe .wlPill:not([data-lock]):not([data-fail]) .wlPillFill { background: linear-gradient(to bottom, rgba(var(--rgb), 0), rgba(var(--rgb), 0.35) 8px); }
+.wl[data-phase='student'] .wlField.wl--safe .wlPill[data-lock]:not([data-fail]) .wlPillFill { background: linear-gradient(to bottom, rgba(var(--rgb), 0), var(--c) 8px); }
+.wlField.wl--safe .wlPill[data-fail] .wlPillFill { background: #7b8494; }
+
+/* Искры: тот же блок и те же анимации (transform / translate / opacity, 3,1 и 4,7 с, покачивание, фаза по дорожкам), что в обычном режиме, но без will-change. Не наливается — display: none (блок не в вёрстке и не в слоях);
+   наливается — display: block, анимации идут; открывает блок и правило data-live обычного режима (непрозрачность 1). Замер: переписанные под сдвиг фона (background-position) искры красили бы два слоя на пилюлю каждый кадр —
+   +26 мс на кадр при шести наливающихся (CPU 4×), поэтому анимации — на композиторе, как и в обычном режиме. На слабом устройстве (wl--lite) искр нет */
+.wlField.wl--safe .wlPillSparks { display: none; }
+.wlField.wl--safe:not(.wl--lite) .wlPill[data-live]:not([data-fail]) .wlPillSparks { display: block; }
+.wlField.wl--safe .wlPill[data-held] .wlPillSparks i, .wlField.wl--safe .wlPill[data-held] .wlPillSparks b { will-change: auto; }

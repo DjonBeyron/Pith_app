@@ -1,5 +1,6 @@
 // «Щелчок» пилюли игры «Повтори за диктором»: в момент, когда пилюля залита целиком, пилюля хлопает — scale 1 → 1.12 → 1, вспышка (белая заливка и кольцо,
 // расходящееся наружу), искры вверх (общий залп приложения burstParticles.fireBurst, но локальный — из верхней кромки пилюли) и короткая вибрация там, где она есть (Android).
+// Кольцо вспышки отсчитывается от края пилюли с учётом её border (absolute считается от padding-box): inset = −2 px − --ring.
 // Всё императивно (WAAPI на композиторе): React не перерисовывается, а анимация не мешает кадрам линии. Звать из движка пилюль (useWordLanePills) ровно один раз на пилюлю за фазу.
 import { fireBurst } from '../../../../shared/lib/burstParticles.js'
 import { levelHex } from '../../../../shared/lib/memory/memoryLevels.js'
@@ -30,22 +31,28 @@ function flash(host, css, frames, ms) {
   a.finished.then(() => el.remove()).catch(() => el.remove())
 }
 
-/** pill — DOM-элемент пилюли (.wlPill), k — её номер 0…2 */
-export function snapPill(pill, k) {
+/**
+ * pill — DOM-элемент пилюли (.wlPill), k — её номер 0…2. full (по умолчанию true) — полный щелчок: хлопок, белая вспышка, кольцо, залп искр, вибрация. У повтора из нескольких кусков полный щелчок —
+ * ОДИН на повтор (full: true только у одного куска), остальные куски лишь хлопают (full: false): на каждый кусок вспышки и 14 искр давали кучу слоёв и анимаций в самый тяжёлый момент игры
+ */
+export function snapPill(pill, k, { full = true } = {}) {
   if (!pill) return
   pill.animate(POP_FRAMES, { duration: POP_MS, easing: 'cubic-bezier(0.33, 0, 0.2, 1)' })
+  if (!full) return
   const clip = pill.querySelector('.wlPillClip')
   const c = levelHex(k + 1)
   if (clip) flash(clip, 'inset:0;border-radius:999px;background:#fff;', [{ opacity: 0.7 }, { opacity: 0 }], FLASH_MS * 0.75)
-  flash(pill, `inset:-2px;border-radius:999px;border:3px solid ${c};`, [{ opacity: 0.8, transform: 'scale(1)' }, { opacity: 0, transform: 'scale(1.45, 1.2)' }], FLASH_MS)
+  flash(pill, `inset:calc(-2px - var(--ring));border-radius:999px;border:3px solid ${c};`, [{ opacity: 0.8, transform: 'scale(1)' }, { opacity: 0, transform: 'scale(1.45, 1.2)' }], FLASH_MS)
   const r = pill.getBoundingClientRect()
   fireBurst({ count: SPARK_COUNT, size: 3.5, colors: sparkColors(k), origin: { x: r.left + r.width / 2, y: r.top + 6, spread: r.width * 0.7, life: 0.8, reach: 260 } })
   try { navigator.vibrate?.(14) } catch { /* не везде есть */ }
 }
 
-/** Промах ученика: красная вспышка и короткая дрожь пилюли (transform: translateX — положение пилюли живёт в свойстве translate и в этой анимации не участвует) */
+/** Промах ученика: красная вспышка и короткая дрожь пилюли (transform: translateX — положение пилюли живёт в свойстве translate и в этой анимации не участвует). Пилюля остаётся помеченной data-wrong — косые полоски
+ *  (word-lane-pill-wrong.css), пока не защёлкнулась (data-lock) или не вернулась в пул (clean в wordLanePool.js) */
 export function missPill(pill) {
   if (!pill) return
+  pill.setAttribute?.('data-wrong', '1')
   pill.animate([{ transform: 'translateX(0)' }, { transform: 'translateX(-6px)', offset: 0.2 }, { transform: 'translateX(6px)', offset: 0.4 }, { transform: 'translateX(-3px)', offset: 0.6 }, { transform: 'translateX(0)' }], { duration: 560, easing: 'ease-out' })
   const clip = pill.querySelector('.wlPillClip')
   if (clip) flash(clip, 'inset:0;border-radius:999px;background:rgba(255,93,115,0.55);', [{ opacity: 1 }, { opacity: 0 }], 700)

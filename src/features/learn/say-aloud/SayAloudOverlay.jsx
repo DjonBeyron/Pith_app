@@ -4,7 +4,6 @@ import { X } from 'lucide-react'
 import VoskReadyNotice from '../../../shared/ui/VoskReadyNotice.jsx'
 import { useVoskReady } from '../../../shared/lib/vosk/useVoskReady.js'
 import { closeGameMic, openGameMic } from '../../../shared/lib/gameMic.js'
-import { ensureMicAccess, micNeedsHold } from '../../../shared/lib/micAccess.js'
 import { track } from '../../../shared/lib/analytics/track.js'
 import { SAY_ALOUD_ROUND } from '../../../shared/lib/analytics/eventNames.js'
 import { sendSayAloudResult } from '../../../shared/api/sayAloudApi.js'
@@ -23,11 +22,11 @@ export default function SayAloudOverlay({ words, onClose }) {
 
   const aliveRef = useRef(true)
   useEffect(() => { aliveRef.current = true; return () => { aliveRef.current = false } }, [])
-  useEffect(() => () => closeGameMic(), []) // iPhone: поток открыт на весь раунд — закрываем при выходе (индикатор микрофона гаснет)
-  // Тап «Начать» — жест: запрос микрофона уходит сразу, до любых await (iPhone — один поток на весь раунд, gameMic; остальные — доступ запоминается)
+  useEffect(() => () => closeGameMic(), []) // поток открыт на весь раунд — закрываем при выходе (индикатор микрофона гаснет)
+  // Тап «Начать» — жест: запрос микрофона уходит сразу, до любых await (на всех платформах один поток на весь раунд, gameMic, без эхо/шумоподавления)
   const begin = () => {
     setMic('pending')
-    const asked = micNeedsHold() ? openGameMic() : ensureMicAccess()
+    const asked = openGameMic()
     asked.then(r => { if (aliveRef.current) setMic(r || 'unavailable') })
   }
 

@@ -37,6 +37,13 @@ describe('mouthVisemes — дорожка кодов по буквам', () => {
     for (let i = 1; i < long.length; i++) expect(long[i].at).toBeCloseTo(long[i - 1].end)
   })
 
+  it('английское слово — по сочетаниям букв, как у кота «Поворота телефона»: «learn» — H E B (округлое «ear»), «nice» — B D B (немое e); русское по-прежнему по буквам', () => {
+    expect(buildCodeTrack([w('learn', 0, 0.8)]).map(s => s.code)).toEqual(['H', 'E', 'B'])
+    expect(buildCodeTrack([w('nice', 0, 0.8)]).map(s => s.code)).toEqual(['B', 'D', 'B'])
+    expect(buildCodeTrack([w('Learn,', 0, 0.8)]).map(s => s.code)).toEqual(['H', 'E', 'B'])   // регистр и знаки не мешают
+    expect(buildCodeTrack([w('мама', 0, 0.8)]).map(s => s.code)).toEqual(['A', 'D', 'A', 'D'])
+  })
+
   it('слово короче 70 мс остаётся одним отрезком (его не выбросить)', () => {
     const tr = buildCodeTrack([w('a', 0, 0.04)])
     expect(tr).toHaveLength(1)

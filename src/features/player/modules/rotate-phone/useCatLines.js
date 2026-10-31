@@ -1,34 +1,61 @@
 import { useState, useRef, useEffect } from 'react'
-import { playWordSlot } from './wordLaneClips.js'
-import { lineKey, lineMs, LINE_PAUSE_MS, LINE_COOLDOWN_MS } from './wordLaneCatLines.js'
-import { mouthTrack } from './wordLaneVisemes.js'
+import { LINE_PAUSE_MS, LINE_COOLDOWN_MS } from './wordLaneCatLines.js'
+import { startCatLine } from './wordLaneCatSay.js'
+import { lineReadiness, waitForLine, LINE_WAIT_MS } from './wordLaneLineGate.js'
+import { fillLine } from '../../../rehearsal/rehearsalLines.js'
 
 const TEXT_TAIL_MS = 900 // подпись держится ещё столько после конца реплики
 
-// Реплики кота (wordLaneCatLines.js) в игре: sayLine(id) — кот говорит реплику: подпись на экране, озвучка из слота (подготовлен в тапе «Начать»), рот по буквам текста; микрофон на это время
-// «не слушает» (динамик не должен засчитаться голосом). Нет озвучки — только подпись. Одну и ту же реплику не чаще LINE_COOLDOWN_MS, две подряд не накладываются. Возвращает { text, sayLine }:
-// text — подпись, пока реплика звучит (пусто — нет).
+// v3.3.84: подпись реплики на экране НЕ показывается (кот только говорит; облачко .wlSay убрано из WordLaneGame) — text живёт для комментариев владельца (commentSnapshot) и журнала.
+// Реплики кота (wordLaneCatLines.js) в игре: sayLine(id) — кот говорит реплику: подпись на экране, озвучка из слота (подготовлен в тапе «Начать»), рот по буквам текста, микрофон на это время «не слушает»
+// (динамик не должен засчитаться голосом). Как именно стартует звук и рот — wordLaneCatSay.js (голова спрятана — сначала выскакивает; нет озвучки — только подпись), здесь — когда: одну и ту же реплику не чаще
+// LINE_COOLDOWN_MS, две подряд не накладываются. Возвращает { text, sayLine, stop, busyLeft }: text — подпись, пока реплика звучит (пусто — нет); stop — оборвать реплику (пауза); busyLeft() — сколько мс кот ещё занят.
+// sayLine(id, vars): в тексте реплики {word} заменяется на vars.word (реплики Пита-тренера; такая реплика подписью, без озвучки — fillLine).
+// Начало игры (iPhone): озвученная реплика не стартует, пока прогрев не закончен и слот реплики не готов (wordLaneLineGate.js) — ждёт до LINE_WAIT_MS (3 с; подпись и рот появляются вместе со звуком); не дождалась —
+// реплика остаётся подписью (рот по тексту, без звука; голоса системы в игре нет), причина в журнале «[cat-voice]». Для вызывающего sayLine в обоих случаях true («реплика принята»), кот занят на время ожидания.
 export function useCatLines({ lines, rate, catApi, listenerRef }) {
   const [text, setText] = useState('')
   const lastRef = useRef(new Map()) // id → когда последний раз говорил
   const busyRef = useRef(0)
   const timerRef = useRef(0)
-  useEffect(() => () => clearTimeout(timerRef.current), [])
+  const riseRef = useRef(0)
+  const gateRef = useRef(null) // отмена ожидания слота
+  const cancelGate = () => { gateRef.current?.(); gateRef.current = null }
+  useEffect(() => () => { clearTimeout(timerRef.current); clearTimeout(riseRef.current); cancelGate() }, [])
 
-  const sayLine = id => {
-    const line = lines?.[id]
+  const speak = (id, line, extra = {}) => {
+    gateRef.current = null
+    const now = Date.now()
+    clearTimeout(riseRef.current)
+    const { ms, rise, timer } = startCatLine({ id, line, rate, catApi, listenerRef, ...extra })
+    riseRef.current = timer
+    busyRef.current = now + rise + ms + LINE_PAUSE_MS
+    setText(line.caption ?? line.text) // caption: подпись длиннее озвучки (rehearsalLines.fillLine)
+    clearTimeout(timerRef.current)
+    timerRef.current = setTimeout(() => setText(''), rise + ms + TEXT_TAIL_MS)
+  }
+
+  const sayLine = (id, vars = null) => {
+    const line = fillLine(lines?.[id], vars)
     const now = Date.now()
     if (!line || now < busyRef.current || now - (lastRef.current.get(id) ?? -Infinity) < LINE_COOLDOWN_MS) return false
-    const ms = lineMs(line, rate)
-    const voiced = !!line.url && playWordSlot(lineKey(id))
     lastRef.current.set(id, now)
-    busyRef.current = now + ms + LINE_PAUSE_MS
-    setText(line.text)
-    clearTimeout(timerRef.current)
-    timerRef.current = setTimeout(() => setText(''), ms + TEXT_TAIL_MS)
-    if (voiced) { listenerRef?.current?.mute?.(ms + LINE_PAUSE_MS); catApi?.current?.speak?.(mouthTrack(line.text, ms, line.words), ms) } else catApi?.current?.peek?.(ms + 400)
+    if (!line.url) { speak(id, line); return true } // нет озвучки — подпись, ждать нечего
+    const check = () => lineReadiness(id)
+    if (check().ready) { speak(id, line); return true }
+    busyRef.current = now + LINE_WAIT_MS + 100 // ждём слот: другие реплики не лезут вперёд
+    cancelGate()
+    gateRef.current = waitForLine(check, {
+      onReady: waited => speak(id, line, { waitedMs: waited }),
+      onTimeout: (waited, why) => speak(id, line, { voice: 'none', waitedMs: waited, why }),
+    })
     return true
   }
 
-  return { text, sayLine }
+  /** Пауза: реплика обрывается — подпись и таймеры сняты, «занят» сброшен (после «Продолжить» кот снова может говорить); звук слота гасит releaseClips, рот и взгляд — catApi.freeze */
+  const stop = () => { clearTimeout(timerRef.current); clearTimeout(riseRef.current); cancelGate(); busyRef.current = 0; setText('') }
+
+  const busyLeft = () => Math.max(0, busyRef.current - Date.now())
+
+  return { text, sayLine, stop, busyLeft }
 }

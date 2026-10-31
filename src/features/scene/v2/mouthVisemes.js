@@ -50,7 +50,7 @@ function mergeSame(segs) {
 }
 
 // Отрезки одного слова: пока есть короче minHold (и их больше одного), самый короткий отдаёт время более длинному соседу
-function holdWord(segs, minHold) {
+export function holdWord(segs, minHold) {
   let s = mergeSame(segs)
   while (s.length > 1) {
     let k = -1

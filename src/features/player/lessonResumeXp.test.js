@@ -139,7 +139,7 @@ describe('«Продолжить урок» — восстановленная �
   })
 
   it('«переверни телефон» не запускает тренажёр заново на истории', () => {
-    expect(rotate).toContain("useState(node.isHistory ? 'finished' : 'wait')") // игра на истории не стартует
+    expect(rotate).toContain('if (node.isHistory) return <RotateCard cfg={readWordLane(node.typeData?.rotate_phone)} done />') // на истории — готовая карточка «закончена»: игра не стартует, Vosk не греется
     expect(rotate).toContain('!playedRef.current') // и цепочку не двигает
   })
 

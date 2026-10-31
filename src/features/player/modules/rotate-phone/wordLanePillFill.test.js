@@ -1,0 +1,185 @@
+import { describe, it, expect, vi, afterEach } from 'vitest'
+import { readFileSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
+import { createElement } from 'react'
+import { renderToStaticMarkup } from 'react-dom/server'
+import { createPool, LIVE_HOLD_MS, LIVE_HOLD_LOCK_MS, POOL } from './wordLanePool.js'
+import { RING_MIN_LVL } from './wordLaneMicLevel.js'
+import { VOICE_THRESHOLD } from './wordLaneTimeline.js'
+import { isWeakDevice } from '../../../../shared/lib/deviceTier.js'
+import WordLanePills from './WordLanePills.jsx'
+
+vi.mock('../../../../shared/lib/deviceTier.js', () => ({ isWeakDevice: vi.fn(() => false) }))
+
+// Контур пилюли (border, ровно одна обводка), заливка внутри него, светящаяся кромка и тонкие кольца микрофона, которые молчат в тишине (word-lane-pill.css, word-lane-mic.css, wordLanePool.js). Искры, «выдох» кольца и ширина линии — wordLaneSparks.test.js.
+const read = rel => readFileSync(fileURLToPath(new URL(rel, import.meta.url)), 'utf8')
+const strip = css => css.replace(/\/\*[\s\S]*?\*\//g, '')
+const pillCss = () => strip(read('../../../../styles/player/modules/word-lane-pill.css'))
+const micCss = () => strip(read('../../../../styles/player/modules/word-lane-mic.css'))
+const block = (css, selector) => css.match(new RegExp(`(?:^|\\n)${selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')} \\{([^}]*)\\}`))?.[1] ?? ''
+
+describe('контур пилюли: настоящий border, не inset-тень; заливка строго внутри', () => {
+  const css = pillCss()
+  it('обводка — border самой пилюли (на iOS inset-тень на слое с will-change мигала); inset-теней-обводок нет, остался только мягкий внутренний свет', () => {
+    const pill = block(css, '.wlPill')
+    expect(pill).toMatch(/border: var\(--ring\) solid rgba\(var\(--rgb\), 0\.9\)/)
+    expect(pill).toMatch(/box-shadow: inset 0 0 18px -6px/)                    // свет с размытием, а не кольцо
+    expect(css).not.toMatch(/inset 0 0 0 var\(--ring\)/)                       // кольца-тени нет нигде
+    expect(css).not.toMatch(/\.wlPill::before \{[^}]*(box-shadow|outline)/)       // отдельного слоя-контура над заливкой нет (::before — только одноразовое кольцо-«выдох», без теней)
+    expect(css).toMatch(/\.wlPill\[data-lane='2'\] \{[^}]*--ring: 2\.5px/)
+  })
+  it('у пилюли всегда ровно одна обводка: внешних орбит (теней-колец вокруг контура) нет ни у одной дорожки; border у дорожек 1 и 2 чуть ярче', () => {
+    expect(css).not.toMatch(/0 0 0 [\d.]+px (var\(--wl-bg\)|rgba)/)                   // ни зазора фоном, ни кольца-тени вокруг пилюли
+    for (const lane of ['1', '2']) {
+      const b = [...css.matchAll(new RegExp(`\\.wlPill\\[data-lane='${lane}'\\] \\{([^}]*)\\}`, 'g'))].map(m => m[1]).join(' ')
+      expect(b).toMatch(/border-color: rgba\(var\(--rgb\), 0\.95\)/)
+      for (const m of b.matchAll(/box-shadow: ([^;]+);/g)) expect(m[1]).toMatch(/^inset 0 0 18px -6px rgba\(var\(--rgb\), 0\.\d+\)$/) // из теней только внутренний свет
+    }
+  })
+  it('контейнер заливки отступает на --gap от внутреннего края border (absolute считается от padding-box) и обрезает её капсулой', () => {
+    const clip = block(css, '.wlPillClip')
+    expect(clip).toMatch(/inset: var\(--gap\);/)
+    expect(clip).not.toContain('--ring')                                       // толщину обводки в отступ не добавляем: border уже вне padding-box
+    expect(clip).toMatch(/border-radius: 999px/)
+    expect(clip).toMatch(/overflow: hidden/)
+    expect(block(css, '.wlPillFill')).not.toMatch(/overflow/)                  // частиц в самой заливке нет (искры — вне клипа), обрезку держит клип
+    expect(css).toMatch(/\.wlPill\[data-hint\]::after \{[^}]*inset: calc\(-8px - var\(--ring\)\)/) // кольца-подсказки отсчитываются от padding-box
+  })
+  it('вспышка-кольцо щелчка тоже учитывает border пилюли', () => {
+    expect(read('./wordLaneSnap.js')).toContain('inset:calc(-2px - var(--ring))')
+  })
+  it('на фазе «в процессе» контур не тускнеет: opacity нет ни на пилюле, ни на заливке; бледность — альфа в цвете заливки', () => {
+    const opacityRules = [...css.matchAll(/([^{}]+)\{([^}]*\bopacity:[^}]*)\}/g)].map(m => m[1].trim())
+    const onPill = opacityRules.filter(sel => /\.wlPill(?![A-Za-z])/.test(sel) && !/::before|::after|\.wlGhost|\.wlPace|\.wlPillFill/.test(sel))
+    expect(onPill.every(sel => /data-fail|data-phase='lanes'/.test(sel))).toBe(true) // только «не успел» и невидимый прогрев слоёв
+    expect(css).not.toMatch(/data-lock\]\):not\(\[data-fail\]\) \.wlPillFill \{[^}]*opacity/)
+    expect(css).toMatch(/\.wlPill:not\(\[data-lock\]\):not\(\[data-fail\]\) \.wlPillFill \{ background: linear-gradient\(to bottom, rgba\(var\(--rgb\), 0\), rgba\(var\(--rgb\), 0\.35\) 8px\); \}/)
+    expect(css).not.toMatch(/\.wlPillFill \{[^}]*opacity/)
+  })
+})
+
+describe('мягкий край заливки — без горизонтальной линии (v3.3.84)', () => {
+  const css = pillCss()
+  it('край — начало единого градиента заливки: верхние 8 px от прозрачного к цвету (сквозь них виден фон пилюли), без светлой черты 2 px, без отдельного слоя и mask; без box-shadow', () => {
+    expect(block(css, '.wlPillFill')).toMatch(/background: linear-gradient\(to bottom, rgba\(var\(--rgb\), 0\), var\(--c\) 8px, rgba\(var\(--rgb\), 0\.78\)\);/)
+    expect(css).not.toMatch(/--edge|255, 255, 255, 0\.6|0 2px, rgba/)
+    expect(css).not.toMatch(/\.wlPillFill[^{]*\{[^}]*mask/)
+    expect([...css.matchAll(/\.wlPillFill[^{]*\{[^}]*box-shadow/g)]).toHaveLength(0)
+  })
+  it('«принято» — сплошной цвет дорожки с тем же мягким краем, «не успел» — фон сплошной серый, края нет', () => {
+    expect(css).toMatch(/\.wlPill\[data-lock\]:not\(\[data-fail\]\) \.wlPillFill \{ background: linear-gradient\(to bottom, rgba\(var\(--rgb\), 0\), var\(--c\) 8px\); \}/)
+    expect(css).toContain('.wlPill[data-fail] .wlPillFill { background: #7b8494; }')
+  })
+  it('горизонтальных черт внутри пилюли нет: ни линии уровня (узла и стилей), ни «тени» слова и метки темпа на экране', () => {
+    expect(css).not.toContain('wlPillLine')
+    expect(block(css, '.wlGhost')).toMatch(/display: none;/)
+    expect(block(css, '.wlPace')).toMatch(/display: none;/)
+    const html = renderToStaticMarkup(createElement(WordLanePills, { scene: { kind: 'idle' }, levels: null, fx: {}, live: { seq: [], misses: 0 }, sceneApi: { current: null }, visible: true }))
+    expect(html).not.toContain('wlPillLine')
+    expect(html).toContain('<span class="wlGhost"></span>')                       // полосок-детей у «тени» больше нет
+  })
+})
+
+describe('слабое устройство', () => {
+  it('слабое устройство: WordLanePills ставит wl--lite на свой корень, обычное — нет', () => {
+    const html = () => renderToStaticMarkup(createElement(WordLanePills, { scene: { kind: 'idle' }, levels: null, fx: {}, live: { seq: [], misses: 0 }, sceneApi: { current: null }, visible: true }))
+    expect(html()).not.toContain('wl--lite')
+    isWeakDevice.mockReturnValueOnce(true)
+    expect(html()).toContain('class="wlField wl--lite"')
+  })
+})
+
+// Пул на поддельном DOM: у элемента есть style, атрибуты и animate; время — подменённое performance.now
+function fakeEl(parts = {}) {
+  const attrs = new Map()
+  return {
+    style: {}, dataset: {}, parts,
+    setAttribute: (k, v) => attrs.set(k, v), removeAttribute: k => attrs.delete(k), getAttribute: k => attrs.get(k) ?? null,
+    animate: () => ({ currentTime: 0, cancel: vi.fn() }),
+    querySelector: sel => parts[sel] ?? null, querySelectorAll: () => [],
+  }
+}
+function rig() {
+  let t = 5000
+  vi.spyOn(performance, 'now').mockImplementation(() => t)
+  const pills = Array.from({ length: POOL }, () => fakeEl({ '.wlPillFill': fakeEl(), '.wlGhost': fakeEl(), '.wlPace': fakeEl() }))
+  const pool = createPool({ querySelectorAll: sel => (sel === '[data-pill]' ? pills : []) })
+  return { pool, pills, advance: ms => { t += ms } }
+}
+afterEach(() => vi.restoreAllMocks())
+
+describe('data-live: пилюля «наливается» (пул пишет в paintFill)', () => {
+  it('рост заливки → data-live; перестала расти → гаснет через LIVE_HOLD_MS; пустая заливка — не наливается', () => {
+    const { pool, pills, advance } = rig()
+    const k = pool.take(0, { flight: false })
+    pool.paintFill(k, 0)
+    expect(pills[k].getAttribute('data-live')).toBeNull()
+    advance(16); pool.paintFill(k, 0.1)
+    expect(pills[k].getAttribute('data-live')).toBe('1')
+    advance(LIVE_HOLD_MS - 20); pool.paintFill(k, 0.1)
+    expect(pills[k].getAttribute('data-live')).toBe('1')                       // пауза в росте короче выдержки — частицы не мигают
+    advance(40); pool.paintFill(k, 0.1)
+    expect(pills[k].getAttribute('data-live')).toBeNull()
+  })
+  it('спад заливки — не «наливается»', () => {
+    const { pool, pills, advance } = rig()
+    const k = pool.take(1, { flight: false })
+    advance(16); pool.paintFill(k, 0.5)
+    advance(LIVE_HOLD_MS + 10); pool.paintFill(k, 0.45)
+    expect(pills[k].getAttribute('data-live')).toBeNull()
+  })
+  it('после принятия (data-lock) частицы идут ещё LIVE_HOLD_LOCK_MS (1,2 с) и гаснут', () => {
+    const { pool, pills, advance } = rig()
+    const k = pool.take(2, { flight: false })
+    advance(16); pool.paintFill(k, 0.9)
+    pool.attr(k, 'data-lock')
+    advance(16); pool.paintFill(k, 1)                                          // доливается до конца — последний рост
+    advance(LIVE_HOLD_LOCK_MS - 40); pool.paintFill(k, 1)
+    expect(pills[k].getAttribute('data-live')).toBe('1')
+    expect(LIVE_HOLD_LOCK_MS).toBe(1200)
+    advance(60); pool.paintFill(k, 1)
+    expect(pills[k].getAttribute('data-live')).toBeNull()
+  })
+  it('give и повторная выдача сбрасывают признак; DOM пишется только при смене', () => {
+    const { pool, pills, advance } = rig()
+    const k = pool.take(0, { flight: false })
+    advance(16); pool.paintFill(k, 0.3)
+    const set = vi.spyOn(pills[k], 'setAttribute')
+    advance(16); pool.paintFill(k, 0.35); advance(16); pool.paintFill(k, 0.4)
+    expect(set).not.toHaveBeenCalled()                                         // уже горит — ни одной лишней записи
+    pool.give(k)
+    expect(pills[k].getAttribute('data-live')).toBeNull()
+    const k2 = pool.take(0, { flight: false })
+    expect(pills[k2].getAttribute('data-live')).toBeNull()
+  })
+})
+
+describe('кольца микрофона: тонкие, тусклые и молчат без голоса', () => {
+  const css = micCss()
+  it('порог --ring-min в CSS = RING_MIN_LVL в JS и выше VOICE_THRESHOLD', () => {
+    expect(Number(css.match(/--ring-min: ([\d.]+);/)[1])).toBe(RING_MIN_LVL)
+    expect(RING_MIN_LVL).toBe(0.08)
+    expect(RING_MIN_LVL).toBeGreaterThan(VOICE_THRESHOLD)
+  })
+  it('линии 1 px (внутреннее 1,5 px), масштаб как раньше', () => {
+    expect(block(css, '.wlMicRings i')).toMatch(/border: 1px solid var\(--wl-accent\)/)
+    expect(css).toMatch(/\.wlMicRings i:nth-child\(1\) \{ border-width: 1\.5px; \}/)
+    expect(css).toContain('.wlMic--listening .wlMicRings i { transform: scale(calc(1 + var(--lvl, 0) * 0.8));')
+    expect(css).toContain('.wlMic--listening .wlMicRings i:nth-child(2) { transform: scale(calc(1 + var(--lvl, 0) * 1.1));')
+  })
+  it('пики прозрачности .22 / .16 / .11, ниже порога — ноль (нет «фонового» уровня, как было 0.12)', () => {
+    const gate = 'clamp(0, (var(--lvl, 0) - var(--ring-min)) * var(--ring-gain), 1)'
+    expect(css).toContain(`.wlMic--listening .wlMicRings i { transform: scale(calc(1 + var(--lvl, 0) * 0.8)); opacity: calc(${gate} * 0.22); }`)
+    expect(css).toContain(`i:nth-child(2) { transform: scale(calc(1 + var(--lvl, 0) * 1.1)); opacity: calc(${gate} * 0.16); }`)
+    expect(css).toContain(`i:nth-child(3) { transform: scale(calc(1 + var(--lvl, 0) * 1.4)); opacity: calc(${gate} * 0.11); }`)
+    expect(css).not.toMatch(/opacity: calc\(0\.12/)
+    expect(block(css, '.wlMicRings i')).toMatch(/opacity: 0;/)
+  })
+  it('starting: «дыхание» остаётся, но тусклое (пик не выше .2); кнопка и свечение — как раньше; ручного режима (manual) в CSS больше нет', () => {
+    expect(css).toMatch(/\.wlMic--starting \.wlMicRings i \{ animation: wlBreath/)
+    expect(css).not.toContain('wlMic--manual')
+    const peak = Number(css.match(/@keyframes wlBreath[\s\S]*?35%\s*\{ opacity: ([\d.]+); \}/)[1])
+    expect(peak).toBeLessThanOrEqual(0.2)
+    expect(css).toContain('.wlMic--listening .wlMicBtn::after { opacity: calc(var(--lvl, 0) * 0.8); }')
+  })
+})

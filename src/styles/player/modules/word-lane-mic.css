@@ -1,28 +1,9 @@
-/* Игра «Повтори за диктором»: плашка «Теперь твоя очередь», микрофон с волнами и перевод в финале (WordLaneGame.jsx, WordLaneMic.jsx). Раскладка и слои — word-lane.css. */
+/* Игра «Повтори за диктором»: микрофон с волнами и перевод в финале (WordLaneGame.jsx, WordLaneMic.jsx); плашки по центру — word-lane-plate.css. Раскладка и слои — word-lane.css. */
 
-/* Плашка по центру экрана: выезжает, держится, уходит (TURN_MS 2200) */
-.wlTurn {
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
-  padding: 16px 26px;
-  border-radius: 18px;
-  border: 2px solid var(--wl-accent);
-  background: rgba(11, 13, 17, 0.94);
-  font-size: clamp(20px, 6.2vw, 30px);
-  font-weight: 800;
-  white-space: nowrap;
-  animation: wlTurn 2.2s ease both;
-}
-@keyframes wlTurn {
-  0%   { opacity: 0; transform: translate(-50%, -50%) scale(0.7); }
-  14%  { opacity: 1; transform: translate(-50%, -50%) scale(1.04); }
-  22%  { transform: translate(-50%, -50%) scale(1); }
-  82%  { opacity: 1; }
-  100% { opacity: 0; transform: translate(-50%, -50%) scale(0.95); }
-}
-
-/* Микрофон: внизу по центру, выезжает снизу (MIC_IN_MS 600). Круглая кнопка с зелёной обводкой и три кольца-волны вокруг неё */
+/* Микрофон: внизу по центру, выезжает снизу (MIC_IN_MS 600). Круглая кнопка с зелёной обводкой и три кольца-волны вокруг неё.
+   Отклик на голос (listening): WordLaneMic.jsx пишет ОДНУ переменную --lvl (0…1) на .wlMicBox каждый кадр, всё остальное считается здесь:
+   кнопка растёт на 14 %, за ней вспыхивает свечение (псевдоэлемент: меняется только opacity, тень не перерисовывается), кольца расходятся до ×1,8 / ×2,1 / ×2,4 (тонкие, 1 px, и только когда есть голос: порог --ring-min).
+   transition у этих свойств нет намеренно: атаку в один кадр и спад (120 мс) даёт источник уровня, браузерная плавность только размазала бы отклик. */
 .wlMic {
   left: 0;
   right: 0;
@@ -45,24 +26,31 @@
   font-size: 15px;
   font-weight: 600;
   color: #c3cad8;
+  position: relative;
+  z-index: 1; /* подпись над кольцами: внешнее кольцо на пике заходит на её строку */
 }
-.wlMicBox { position: relative; width: 88px; height: 88px; display: flex; align-items: center; justify-content: center; }
+.wlMicBox { position: relative; width: 88px; height: 88px; display: flex; align-items: center; justify-content: center; --ring-min: 0.08; --ring-gain: 5; } /* --ring-min — порог речи для колец (= RING_MIN_LVL в wordLaneMicLevel.js, сверено тестом): ниже кольца невидимы; --ring-gain — насколько круто они проявляются выше порога (полная яркость при порог + 1/gain) */
 .wlMicRings { position: absolute; inset: 0; pointer-events: none; }
 .wlMicRings i {
   position: absolute;
   inset: 0;
   box-sizing: border-box;
   border-radius: 50%;
-  border: 2px solid var(--wl-accent);
+  border: 1px solid var(--wl-accent);                        /* тонкие линии волн: 1 px (внутреннее — 1,5 px) и каждая тусклее предыдущей — наружу */
   opacity: 0;
   will-change: transform, opacity;
 }
-.wlMic--manual .wlMicRings i, .wlMic--starting .wlMicRings i { animation: wlBreath 2.1s ease-in-out infinite; }
-.wlMic--manual .wlMicRings i:nth-child(2), .wlMic--starting .wlMicRings i:nth-child(2) { animation-delay: 0.7s; }
-.wlMic--manual .wlMicRings i:nth-child(3), .wlMic--starting .wlMicRings i:nth-child(3) { animation-delay: 1.4s; }
+.wlMicRings i:nth-child(1) { border-width: 1.5px; }
+/* Кольца молчат, пока голоса нет: --lvl ниже --ring-min → opacity 0 (никакого фонового «дыхания» в режиме listening). Выше порога яркость растёт с громкостью до пиков .22 / .16 / .11 (внешнее самое тусклое) */
+.wlMic--listening .wlMicRings i { transform: scale(calc(1 + var(--lvl, 0) * 0.8)); opacity: calc(clamp(0, (var(--lvl, 0) - var(--ring-min)) * var(--ring-gain), 1) * 0.22); }
+.wlMic--listening .wlMicRings i:nth-child(2) { transform: scale(calc(1 + var(--lvl, 0) * 1.1)); opacity: calc(clamp(0, (var(--lvl, 0) - var(--ring-min)) * var(--ring-gain), 1) * 0.16); }
+.wlMic--listening .wlMicRings i:nth-child(3) { transform: scale(calc(1 + var(--lvl, 0) * 1.4)); opacity: calc(clamp(0, (var(--lvl, 0) - var(--ring-min)) * var(--ring-gain), 1) * 0.11); }
+.wlMic--starting .wlMicRings i { animation: wlBreath 2.1s ease-in-out infinite; } /* включаюсь: тусклое «дыхание» — единственный признак жизни */
+.wlMic--starting .wlMicRings i:nth-child(2) { animation-delay: 0.7s; }
+.wlMic--starting .wlMicRings i:nth-child(3) { animation-delay: 1.4s; }
 @keyframes wlBreath {
   0%   { transform: scale(1);    opacity: 0; }
-  35%  { opacity: 0.35; }
+  35%  { opacity: 0.18; }
   100% { transform: scale(1.5);  opacity: 0; }
 }
 .wlMicBtn {
@@ -76,23 +64,24 @@
   justify-content: center;
   background: #15181f;
   color: var(--wl-accent);
-  cursor: pointer;
   transition: background 0.25s, color 0.25s, transform 0.25s;
+  isolation: isolate;
 }
-.wlMic--listening .wlMicBtn { background: var(--wl-accent); color: var(--wl-ink); transform: scale(1.08); }
+.wlMicBtn::after { /* свечение: тень нарисована один раз, по голосу меняется только opacity */
+  content: '';
+  position: absolute;
+  inset: -3px;
+  z-index: -1;
+  border-radius: 50%;
+  box-shadow: 0 0 26px 5px var(--wl-accent);
+  opacity: 0;
+  pointer-events: none;
+}
+.wlMic--listening .wlMicBtn { background: var(--wl-accent); color: var(--wl-ink); transform: scale(calc(1 + var(--lvl, 0) * 0.14)); transition: background 0.25s, color 0.25s; }
+.wlMic--listening .wlMicBtn::after { opacity: calc(var(--lvl, 0) * 0.8); }
+/* слабое устройство: без колец и свечения — дышит только кнопка */
+.wlMic--lite.wlMic--listening .wlMicRings, .wlMic--lite.wlMic--listening .wlMicBtn::after { display: none; }
 .wlMic--done .wlMicBtn { background: var(--wl-accent); border-color: var(--wl-accent); color: var(--wl-ink); }
-
-.wlSkip {
-  right: 16px;
-  bottom: calc(30px + env(safe-area-inset-bottom));
-  padding: 8px 14px;
-  border: 1px solid #3a3d46;
-  border-radius: 12px;
-  background: transparent;
-  color: #9aa0b4;
-  font-size: 13px;
-  cursor: pointer;
-}
 
 /* Финал: перевод по центру, кнопка «Дальше» */
 .wlReveal {
@@ -127,6 +116,6 @@
 
 @media (prefers-reduced-motion: reduce) {
   .wlMic { transition-duration: 0.01s; }
-  .wlTurn, .wlReveal { animation-duration: 0.01s; }
+  .wlReveal { animation-duration: 0.01s; }
 }
 
