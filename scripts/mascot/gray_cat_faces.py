@@ -38,11 +38,24 @@ def brows_markup(hairs, params):
         for d, c, w in sides[side]: out += f'<path d="{rot_move(d, rot, cx, cy, 0, dy) if (dy or rot) else d}" fill="none" stroke="{c}" stroke-width="{w}" stroke-linecap="round"/>'
     return out
 
+def brow_pack(hairs):
+    """Брови для плавной анимации в странице-плеере: волоски по сторонам (разметка без поворота) и центр поворота каждой стороны. Состояния хранят только параметры
+    (сдвиг, поворот) в поле brow — страница сама переходит между ними плавно"""
+    sides = {'l': [], 'r': []}
+    for d, c, w in hairs:
+        xs = [float(v) for v in re.findall(r'-?\d*\.?\d+', d)][0::2]; sides['l' if sum(xs) / len(xs) < 296 else 'r'].append((d, c, w))
+    pack = {}; piv = {}
+    for s, items in sides.items():
+        pts = [float(v) for d, _, _ in items for v in re.findall(r'-?\d*\.?\d+', d)]
+        piv[s] = [sum(pts[0::2]) / len(pts[0::2]), sum(pts[1::2]) / len(pts[1::2])]
+        pack[s] = ''.join(f'<path d="{d}" fill="none" stroke="{c}" stroke-width="{w}" stroke-linecap="round"/>' for d, c, w in items)
+    return pack, piv
+
 def build_states(mia_states, fur='#646774', ol='#262432'):
     hairs = brow_hairs(); res = {}
     for name, f in FACES.items():
         m = mia_states[name]
         res[name] = dict(eyes=eye_markup('l', f['lid'], f['gaze'], f.get('slant', 0), fur, ol) + eye_markup('r', f['lid'], (-f['gaze'][0] if name == 'sneer' else f['gaze'][0], f['gaze'][1]), f.get('slant', 0), fur, ol),
                          brows=brows_markup(hairs, f['brows']), deco='', mouth=shift_path(m['mouth'], DX, DY) if m['mouth'] else None,
-                         pupil=f.get('pupil', m['pupil']), tilt=m['tilt'])
+                         pupil=f.get('pupil', m['pupil']), tilt=m['tilt'], brow=[list(p) for p in f['brows']])
     return res

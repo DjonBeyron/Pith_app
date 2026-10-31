@@ -93,11 +93,12 @@ def line_path(m):
     """Тонкая линия по маске: ось (открытая кривая) + цвет + толщина в единицах спрайта — рисуется обводкой постоянной толщины со скруглёнными концами"""
     line, w = skeleton_line(m); line = smooth_open(line, 3)
     return bezier_path(simplify_open(line, 0.6), False, 70, F, set()), color(m, 1), round(min(max(w * S, 2.8), 4.6), 1)
+BROW_C, BROW_W = '#c5c8d4', 1.9                                          # брови: тоньше усов и чуть тусклее (усы #d6d9e5, 2.3)
 def brow_hairs():
     c = classes(); res = []
     for x0, x1 in ((220, 420), (610, 810)):
         m = (blur(LUM, 1) > 128) & (B > R + 8) & box(x0, 335, x1, 425)
-        res += [line_path(x) for x in components(m, 70)]
+        res += [(p, BROW_C, BROW_W) for p, _, _ in (line_path(x) for x in components(m, 70))]
     return res
 
 # ── усы: четыре светлых штриха; у левых корень справа, у правых слева (так их качает scene-v2-pit.css) ──

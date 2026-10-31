@@ -7,7 +7,7 @@ import numpy as np
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from gray_cat_regions import *
 from gray_cat_details import *
-from gray_cat_faces import build_states
+from gray_cat_faces import build_states, brow_pack
 import gray_cat_body as GB
 
 out = sys.argv[1] if len(sys.argv) > 1 else '/tmp/gray-cat'; os.makedirs(out, exist_ok=True)
@@ -109,6 +109,10 @@ for e in MT.values():
     e['m']['d'] = scale_path(e['m']['d'], HK, HK, *HO)
     if e.get('l'): e['l']['d'] = scale_path(e['l']['d'], HK, HK, *HO)
 eyes = STATES['base']['eyes']
+BROW_HAIRS, BROW_PIV = brow_pack(brow_hairs())                                  # брови для плавных переходов в плеере (в движке — готовая разметка состояний)
+BROW_HAIRS = {s: scale_markup(m, HK, *HO) for s, m in BROW_HAIRS.items()}
+BROW_PIV = {s: [HO[0] + (p[0] - HO[0]) * HK, HO[1] + (p[1] - HO[1]) * HK] for s, p in BROW_PIV.items()}
+for s in STATES.values(): s['brow'] = [[round(dy * HK, 2), rot] for dy, rot in s['brow']]
 
 # ── вписывание в коробку 200×240 (как export_sprites.mjs) ──
 x0, x1, y0, y1 = F(95, 0)[0], F(1105, 0)[0], F(0, 62)[1], F(0, 1250)[1]
@@ -117,7 +121,7 @@ k = min(200 / vw, 240 / vh)
 sprite = dict(id='gray', title='Серая кошка', gender='female', native='left',
               fit=dict(k=round(k, 5), tx=round(-vx * k, 3), ty=round(240 - (vy + vh) * k, 3)), tailBase=[round(TBX), round(TBY)],
               tail=tail, body=body, head=head, mouthTable=MT, neck=[297, 445],
-              states=STATES)
+              states=STATES, browHairs=BROW_HAIRS, browPivot=BROW_PIV)
 json.dump(sprite, open(f'{out}/gray_cat.json', 'w', encoding='utf8'), ensure_ascii=False, separators=(',', ':'))
 svg = (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="{vx:.0f} {vy:.0f} {vw:.0f} {vh:.0f}" width="{vw:.0f}" height="{vh:.0f}"><rect x="{vx:.0f}" y="{vy:.0f}" width="{vw:.0f}" height="{vh:.0f}" fill="#f5f3ef"/>'
        f'<g transform="translate({TBX:.1f} {TBY:.1f})">{tail}</g>{body}{head}{eyes}</svg>')
