@@ -1,0 +1,75 @@
+# Серая кошка по эталонному рисунку (source/gray_ref.webp) как маскот того же устройства, что Пит и Мия: слои хвост / тело / голова, глаза в состоянии base,
+# рот из четырёх узлов (mm mt mf ml) с таблицей форм Мии, усы с классами wh wh-l|wh-r wh-u|wh-d, контейнеры brows и dc для мимики, зрачки с классом pu.
+# Этап 1 — только форма: рисунок повторяет эталон, анимаций нет. Использование: python3 build_gray_cat.py <папка_результата>
+#   → gray_cat.json (спрайт) и gray_cat.svg (превью); дальше gray.json можно положить в src/features/scene/v2/sprites/mascot/ и подключить в mascots.js.
+import json, sys, os
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from gray_cat_regions import *
+from gray_cat_details import *
+
+out = sys.argv[1] if len(sys.argv) > 1 else '/tmp/gray-cat'; os.makedirs(out, exist_ok=True)
+mia = json.load(open(f'{HERE}/../../src/features/scene/v2/sprites/mascot/mia.json', encoding='utf8'))
+OL, FURC, SW = '#262432', '#646774', 7.5             # обводка, мех, толщина обводки (6.5 px рисунка × масштаб ≈ 7.5)
+fill = lambda p: f'<path d="{p[0]}" fill="{p[1]}"/>'
+stroke = lambda d, w=SW, c=OL: f'<path d="{d}" fill="none" stroke="{c}" stroke-width="{w}" stroke-linecap="round" stroke-linejoin="round"/>'
+
+# ── части силуэта ──
+head_P, body_P, tail_P = parts()
+head_d, body_d = outline_path(head_P, F), outline_path(body_P, F)
+tail_d = outline_path(tail_P, FT)
+
+# ── хвост (в начале координат основания, как у Мии) ──
+tail = f'<path class="tl-fill" d="{tail_d}" fill="{FURC}" stroke="{OL}" stroke-width="{SW}" stroke-linejoin="round"/>'
+
+# ── тело: заливка, тени бёдер, обводка, пальчики, линии ног и лап, ошейник с сердечком ──
+shade_big, toes = body_shade()
+pk = pink_parts(); CRIM = hexc(im[pk['collar'] & (blur(LUM, 1) < 95)].mean(0))
+def pink_group(m):
+    d, f = pink(m)
+    return f'<path d="{d}" fill="{f}" stroke="{CRIM}" stroke-width="7" stroke-linejoin="round"/>' + ''.join(fill(x) for x in pink_details(m))
+def knot():   # узелок бантика: кружок с обводкой и бликом
+    x, y = F(635, 212)
+    return (f'<ellipse cx="{x:.1f}" cy="{y:.1f}" rx="15" ry="16" fill="{pink(pk["bow"])[1]}" stroke="{CRIM}" stroke-width="{SW}"/>'
+            f'<path d="M{x - 6:.1f} {y - 5:.1f}C{x - 3:.1f} {y - 9:.1f} {x + 3:.1f} {y - 9:.1f} {x + 6:.1f} {y - 5:.1f}" fill="none" stroke="#fe96b8" stroke-width="3.5" stroke-linecap="round"/>')
+PINK, PINK_L = '#ee5186', '#fe96b8'
+def collar():   # лента ошейника: верх уходит под подбородок головы, края и низ — как на рисунке
+    P = lambda x, y: '%.1f %.1f' % F(x, y)
+    d = f'M{P(380, 715)}C{P(368, 742)} {P(376, 765)} {P(412, 776)}C{P(450, 792)} {P(490, 796)} {P(520, 796)}C{P(550, 796)} {P(590, 792)} {P(628, 776)}C{P(664, 765)} {P(672, 742)} {P(660, 715)}Z'
+    return f'<path d="{d}" fill="{PINK}" stroke="{CRIM}" stroke-width="7" stroke-linejoin="round"/>'
+def pendant():
+    hd = heart(523, 832, 70, 62); x, y = F(505, 838)
+    return (f'<path d="{hd}" fill="{PINK_L}" stroke="{CRIM}" stroke-width="{SW}" stroke-linejoin="round"/>'
+            f'<path d="M{x:.1f} {y + 3:.1f}C{x - 1:.1f} {y - 3:.1f} {x + 3:.1f} {y - 6:.1f} {x + 8:.1f} {y - 6:.1f}" fill="none" stroke="#ffffff" stroke-width="3.2" stroke-linecap="round" opacity=".9"/>')
+body = (f'<path d="{body_d}" fill="{FURC}"/>' + ''.join(fill(x) for x in shade_big) + stroke(body_d) + ''.join(fill(x) for x in toes)
+        + ''.join(f'<path d="{d}" fill="{c}"/>' for d, c in body_lines()) + collar() + pendant())
+
+# ── голова ──
+mouth = {k: mia['head'][mia['head'].index(f'<path class="{k}"'):].split('/>', 1)[0] + '/>' for k in ('mm', 'mt', 'mf', 'ml')}
+mouth['mm'] = mouth['mm'].replace('#000', OL); mouth['ml'] = mouth['ml'].replace('#000', OL)
+wh = ''.join(f'<path class="wh wh-{s} wh-{r}" d="{d}" fill="{c}"/>' for s, r, d, c in whiskers())
+nose_d, nose_c = nose()
+head = (f'<path d="{head_d}" fill="{FURC}"/>' + ''.join(fill(x) for x in face_light()) + stroke(head_d)
+        + ''.join(fill(x) for x in ear_inner()) + ''.join(fill(x) for x in ear_lines()) + ''.join(fill(x) for x in brow_hairs())
+        + '<g class="brows"></g>' + ''.join(mouth[k] for k in ('mm', 'mt', 'mf', 'ml')) + f'<path d="{nose_d}" fill="{nose_c}"/>' + wh
+        + ring(173, 170, OL) + star(208, 262, 28, OL, '#cdedbe') + star(835, 262, 28, OL, '#cdedbe') + pink_group(pk['bow']) + knot() + '<g class="dc"></g>')
+
+# ── глаза (состояние base) ──
+def eye_markup(side):
+    e = eye(side); px, py = e['pc']
+    return (fill(e['sil']) + fill(e['amber']) + fill(e['core'])
+            + f'<path class="pu" data-x="{px:.1f}" data-y="{py:.1f}" d="{e["pupil"][0]}" fill="{e["pupil"][1]}"/>' + ''.join(fill(h) for h in e['hl']))
+eyes = eye_markup('l') + eye_markup('r')
+
+# ── вписывание в коробку 200×240 (как export_sprites.mjs) ──
+x0, x1, y0, y1 = F(95, 0)[0], F(1070, 0)[0], F(0, 62)[1], F(0, 1240)[1]
+vx, vy, vw, vh = x0 - 10, y0 - 8, x1 - x0 + 20, y1 - y0 + 16
+k = min(200 / vw, 240 / vh)
+sprite = dict(id='gray', title='Серая кошка', gender='female', native='left',
+              fit=dict(k=round(k, 5), tx=round(-vx * k, 3), ty=round(240 - (vy + vh) * k, 3)), tailBase=[round(TBX), round(TBY)],
+              tail=tail, body=body, head=head, mouthTable=mia['mouthTable'], neck=[297, 445],
+              states=dict(base=dict(eyes=eyes, brows='', deco='', mouth=None, pupil=[1, 1], tilt=0)))
+json.dump(sprite, open(f'{out}/gray_cat.json', 'w', encoding='utf8'), ensure_ascii=False, separators=(',', ':'))
+svg = (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="{vx:.0f} {vy:.0f} {vw:.0f} {vh:.0f}" width="{vw:.0f}" height="{vh:.0f}"><rect x="{vx:.0f}" y="{vy:.0f}" width="{vw:.0f}" height="{vh:.0f}" fill="#f5f3ef"/>'
+       f'<g transform="translate({TBX:.1f} {TBY:.1f})">{tail}</g>{body}{head}{eyes}</svg>')
+open(f'{out}/gray_cat.svg', 'w', encoding='utf8').write(svg)
+print('готово', out, 'размер', len(json.dumps(sprite)) // 1024, 'КБ; узлов', svg.count('<path') + svg.count('<ellipse'))
