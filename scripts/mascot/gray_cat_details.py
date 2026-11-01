@@ -59,9 +59,9 @@ def eye(side, lid=0.0, gaze=(0, 0), slant=0.0, half_moon=False):
         xx = np.arange(W); w = np.clip((xx - cx) / hw * inner, -1, 1); hgt = y1 - y0
         line = y0 + lid * hgt + slant * 0.35 * hgt * w - 0.05 * hgt * (1 - w ** 2)             # ровное веко: ниже у носа, в середине слегка выгнуто вверх
         yy = np.arange(H)[:, None]; amber = amber & (yy >= line[None, :]); hls = [m & amber for m in hls]
-        # круглый зрачок: центр на трети высоты видимой части от веко-линии, радиус так, чтобы низ зрачка не доходил до нижнего края
+        # круглый зрачок: центр почти на линии века — верхняя половина закрыта веком; радиус такой, что низ зрачка далеко от нижнего края
         px0, py0 = centroid(M['pup']); pxc = int(round(px0 + gx)); col = np.nonzero(amber[:, pxc])[0]
-        top, bot = col.min(), col.max(); vis = bot - top; r = 0.38 * vis; pcy = top + 0.50 * vis
+        top, bot = col.min(), col.max(); vis = bot - top; r = 0.42 * vis; pcy = top + 0.03 * vis
         yy2, xx2 = np.mgrid[0:H, 0:W]; pupil_round = (((xx2 - pxc) ** 2 + (yy2 - pcy) ** 2) <= r * r) & amber
         gx = gy = 0
     elif lid > 0:
