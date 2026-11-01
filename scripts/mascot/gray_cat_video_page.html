@@ -1,4 +1,4 @@
-<!doctype html><html><head><meta charset="utf-8"><title>Серая кошка и Пит: одна раскадровка</title>
+<!doctype html><html><head><meta charset="utf-8"><title>Мия и Пит: одна раскадровка</title>
 <style>
 html, body { margin: 0; height: 100%; background: #1d1a22; color: #eee; font-family: system-ui, "Helvetica Neue", Arial, sans-serif; }
 body { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; }
@@ -16,7 +16,7 @@ body.cap { gap: 0; } body.cap #stage { height: 100vh; border-radius: 0; } body.c
 <g id="gA"></g><g id="gB"></g></svg></div>
 <div id="ui"><div class="row"><button id="bPrev" title="Кадр назад (←)">◀ кадр</button><button id="bPlay" title="Пуск / пауза (пробел)">▶ Играть</button><button id="bNext" title="Кадр вперёд (→)">кадр ▶</button>
 <select id="speed"><option value="0.1">0,1×</option><option value="0.25">0,25×</option><option value="0.5">0,5×</option><option selected value="1">1×</option></select>
-<button id="bBg" title="Фон: проверочный (светлый+тёмный) / лавандовый / серый">фон</button><label><input type="checkbox" id="snd"> звук</label></div>
+<button id="bBg" title="Фон: проверочный (светлый+тёмный) / лавандовый / серый">фон</button><label><input type="checkbox" id="snd" checked> звук</label></div>
 <div class="row"><input type="range" id="seek" min="0" max="0" step="1" value="0"></div><div id="info"></div></div><audio id="au" preload="auto"></audio>
 <script>
 const SP = __SPRITE__, PIT = __PIT__, TL = __TIMELINE__;
@@ -37,7 +37,7 @@ function mount(sp, g, label, faceName) {
   c.headBB = head.getBBox(); c.eyeBB = eyes.getBBox(); c.whBB = c.wh.map(w => w.getBBox());
   return c;
 }
-const A = mount(SP, $('gA'), 'Серая кошка', n => n), P = mount(PIT, $('gB'), 'Пит', n => PITMAP[n] || 'base');
+const A = mount(SP, $('gA'), 'Мия', n => n), P = mount(PIT, $('gB'), 'Пит', n => PITMAP[n] || 'base');
 { // Пит правее серой кошки; общий кадр и подписи
   const a = A.root.getBBox(), b = P.root.getBBox(), gap = 50, dx = a.x + a.width + gap - b.x; $('gB').setAttribute('transform', `translate(${dx} 0)`);
   const x0 = a.x - 30, x1 = b.x + dx + b.width + 30, y0 = Math.min(a.y, b.y) - 20, y1 = Math.max(a.y + a.height, b.y + b.height) + 70; A.cx = a.x + a.width / 2; P.cx = b.x + dx + b.width / 2 - dx;
@@ -110,7 +110,7 @@ function play(on) {
 function tick(now) { if (!playing) return; cur += (now - last) / 1000 * speed; last = now; if (cur >= (NF - 1) / FPS) { cur = 0; if ($('snd').checked) au.currentTime = 0 } show(cur); requestAnimationFrame(tick) }
 $('bPlay').onclick = () => play(!playing); $('bPrev').onclick = () => { play(false); go(cur - 1 / FPS) }; $('bNext').onclick = () => { play(false); go(cur + 1 / FPS) };
 seek.oninput = () => go(+seek.value / FPS); $('speed').onchange = e => { speed = +e.target.value; au.playbackRate = speed };
-let bgMode = 0; const setBg = m => { bgMode = m % 3; $('stage').className = ['', 'bg1', 'bg2'][bgMode] }; $('bBg').onclick = () => setBg(bgMode + 1);
+let bgMode = 0; const setBg = m => { bgMode = m % 3; $('stage').className = ['', 'bg1', 'bg2'][bgMode] }; $('bBg').onclick = () => setBg(bgMode + 1); if (CAP) setBg(1);
 $('snd').onchange = () => { if (!$('snd').checked) au.pause(); else if (playing) { au.currentTime = cur; au.play() } };
 addEventListener('keydown', e => { if (e.code === 'Space') { e.preventDefault(); play(!playing) } else if (e.code === 'ArrowLeft') { play(false); go(cur - (e.shiftKey ? 10 : 1) / FPS) } else if (e.code === 'ArrowRight') { play(false); go(cur + (e.shiftKey ? 10 : 1) / FPS) } });
 show(0);
