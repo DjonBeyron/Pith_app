@@ -13,13 +13,16 @@ import WordLanePause from './WordLanePause.jsx'
 import WordLaneCommentButton from './WordLaneCommentButton.jsx'
 import WordLaneComment from './WordLaneComment.jsx'
 import WordLaneTurnPlate from './WordLaneTurnPlate.jsx'
+import { useWordLaneLeavingPlates } from './useWordLaneLeavingPlates.js'
 import RehearsalActs from '../../../rehearsal/RehearsalActs.jsx'
+import ReadKaraoke from '../../../rehearsal/read/ReadKaraoke.jsx'
+import { isWeakDevice } from '../../../../shared/lib/deviceTier.js'
 import { isWordLaneDebug } from './wordLaneConfig.js'
-import { readPillSafe, readTapMode } from './wordLaneHudSettings.js'
+import { readPillSafe, readTapMode, readWeakStored } from './wordLaneHudSettings.js'
 import { useWordLaneFlow } from './useWordLaneFlow.js'
 import { useWordLanePause } from './useWordLanePause.js'
 import { WORD_Y } from './wordLaneTimeline.js'
-import { runLanes } from './wordLaneRunLanes.js'
+import { useConveyorArm } from './useConveyorArm.js'
 
 // Вертикальная игра «Повтори за диктором» (полный экран, портрет). Фраза из кусков (до трёх) стоит над дорожками: кусок над своей дорожкой, дорожки слева направо читаются как предложение.
 // Раунды: наращивание (диктор — ученик по ступеням «кусок ×3 → следующий ×3 → вместе ×3 …»), «Порядок» (тап по дорожкам), «Вслепую» (ни текста, ни перевода) → перевод. Одно слово (фраза из одного куска)
@@ -37,34 +40,40 @@ const FAIL_TEXT = {
 export default function WordLaneGame({ cfg, audioSrc, lines = null, forceDebug = false, onRestart = null, onAgain = null, onSummary = null, onFinished }) {
   const rootRef = useRef(null)
   const [tapMode, setTapMode] = useState(readTapMode) // «тап вместо речи» (HUD, админ): тап по дорожке в очереди ученика засчитывает следующую цель — проверка механики и анимаций без голоса
+  const [lite] = useState(() => readWeakStored() ?? isWeakDevice()) // слабое устройство: читка репетиции без курсора (ReadKaraoke)
   const [safe0] = useState(readPillSafe) // «безопасные слои пилюль» (HUD): класс только на старте, дальше его меняет сам HUD через classList — className не меняется, React его не трогает
   const [comment, setComment] = useState(null) // открыт оверлей комментария к этапу репетиции (шлифовка): { snap (что было на экране в момент тапа 💬), at }
   const catApi = useRef(null) // Пит (кот-маскот): рот по голосу и реакции лицом — через api, минуя React на кадрах
   const f = useWordLaneFlow({ chunks: cfg.chunks, translation: cfg.translation, lang: cfg.lang, clips: cfg.clips, audioSrc, audio: cfg.audio, catApi, lines, confusers: cfg.confusers, plan: cfg.plan, forceDebug, onFinished })
   const pause = useWordLanePause({ f, cfg, audioSrc, lines }) // свернули приложение — пауза сразу, «Продолжить» открывает микрофон из тапа (useWordLanePause.js)
   const { phase } = f
+  const plates = useWordLaneLeavingPlates(f.plate, f.idx) // плашка остаётся в DOM на время ухода (улетает вверх, как пилюля): useWordLaneLeavingPlates.js
+  const armed = useConveyorArm(f) // какие дорожки взведены: конвейер зажигается за 0,66 с до конца реплики Пита / плашки (wordLaneConveyorStart.js), остановку решает привод по пилюлям на дорожке
   const single = cfg.chunks.length === 1 && phase !== 'discern' && !cfg.plan // у одного слова текст стоит крупно — кроме «Различи»: там слова на пилюлях, а верное над дорожками не выдаём
   const showSlots = phase !== 'drop'
   const intro = phase === 'drop' || phase === 'lanes' || f.pausedIntro
   const heads = intro && !cfg.plan ? cfg.chunks.map(text => ({ text, on: true })) : intro ? f.labels.map(() => ({ text: '', on: false })) : f.labels // заставка репетиции: слов сверху нет (v3.3.84)
+  const karaoke = f.rh.on && f.stage === 'run' && f.stageObj?.act === 'read' && !intro // акт «Читка»: слова заливаются зелёным под голос Пита / игрока (rehearsal/read/)
   const debug = isWordLaneDebug()
 
   return createPortal(
     <div ref={rootRef} className={safe0 ? 'wl wl--safe' : 'wl'} data-phase={phase} data-act={f.rh.on ? f.stageObj?.act : undefined} data-sid={f.rh.on ? f.stageObj?.sid : undefined} data-testid="wl">
       <div className="wlStage">
         <WordLaneCat apiRef={catApi} />
-        <WordLanePills scene={f.scene} levels={f.levels} fx={f.fx} live={f.live} sceneApi={f.sceneApi} visible={showSlots} run={runLanes(f.stageObj)} onLane={phase === 'order' || phase === 'discern' || (tapMode && phase === 'student') ? f.onLane : null} />
+        <WordLanePills scene={f.scene} levels={f.levels} fx={f.fx} live={f.live} sceneApi={f.sceneApi} visible={showSlots} armed={armed} paused={f.paused} onLane={phase === 'order' || phase === 'discern' || (tapMode && phase === 'student') ? f.onLane : null} />
         <WordLaneXp apiRef={f.xpApi} />
         {single
           ? <div className="wlWord" style={{ top: `${WORD_Y}%` }} data-testid="wl-word">{cfg.chunks[0]}</div>
           : (
             <div className="wlHeads" style={{ top: `${WORD_Y}%` }} data-testid="wl-heads">
-              {heads.map((h, i) => <span key={i} className={`wlHead${h.on ? ' wlHead--on' : ''}${h.text ? '' : ' wlHead--empty'}`} data-testid={`wl-head-${i}`}>{h.text}</span>)}
+              {karaoke
+                ? <ReadKaraoke heads={heads} stage={f.stageObj} at={f.at} chunks={cfg.chunks} live={f.live} ready={f.lid === f.stageObj?.step?.id} lite={lite} />
+                : heads.map((h, i) => <span key={i} className={`wlHead${h.on ? ' wlHead--on' : ''}${h.text ? '' : ' wlHead--empty'}`} data-testid={`wl-head-${i}`}>{h.text}</span>)}
             </div>
           )}
         {/* Подписи реплик Пита (белое облачко с текстом) убраны в v3.3.84: кот только говорит; f.catLine остаётся в комментариях владельца (commentSnapshot) */}
         {tapMode && phase === 'student' && <div className="wlTapHint" data-testid="wl-tap-hint">Тап вместо речи: тапни дорожку</div>}
-        {f.plate && <WordLaneTurnPlate key={f.idx} text={f.plate} ms={f.plateMs} />}
+        {plates.map(p => <WordLaneTurnPlate key={p.id} text={p.text} leaving={p.leaving} />)}
         {phase === 'reveal' && (
           <div className="wlReveal" data-testid="wl-reveal">
             <div className="wlRevealPhrase">{f.text}</div>

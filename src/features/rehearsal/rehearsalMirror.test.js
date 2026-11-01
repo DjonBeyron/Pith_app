@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from 'vitest'
 import { makeMirrorDictor, takeWordsOf, buildMirror, DICTOR_GAP_MS, DICTOR_TAIL_MS } from './rehearsalMirror.js'
 import { CHUNKS, DICTOR, STUDENT_CLEAN, STUDENT_MISSING } from './mirror/mirrorFixtures.js'
 
-// Сборка экрана зеркала: диктор из кусков библиотеки, слова слушателя игры → шкала записи, measure / note / темп
+// Сборка данных зеркала (сравнение на дорожках): диктор из кусков библиотеки, слова слушателя игры → шкала записи, measure / note / темп
 const LIB = [{ ms: 400, lead: 50 }, { ms: 500, lead: 30 }, { ms: 600, lead: 0 }]
 const lib = i => LIB[i] ?? null
 const ms = sec => Math.round(sec * 1000)

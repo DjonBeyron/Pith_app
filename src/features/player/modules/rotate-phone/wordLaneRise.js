@@ -41,15 +41,16 @@ const smooth = t => { const x = Math.min(1, Math.max(0, t)); return x * x * (3 -
 /**
  * Кадры взлёта из y (% высоты экрана; спуск прямой, поэтому x = 0 и наклон 0): путь по y линеен по ходу анимации, по x — синусоида с фазой 0 (стартует с x = 0), наклон оси — по касательной (tiltDeg);
  * разница между касательной в старте и нулевым наклоном спуска гаснет за RISE_TILT_BLEND пути (стык без скачка). Масштаб 1 → RISE_SCALE по своей кривой (riseScale, кадр на каждой точке), гашение на последних 25 %.
+ * pos(y, dx) — формат translate кадра: по умолчанию положение пилюли на экране (wavePosition); плашки (wordLanePlateExit.js, v3.3.85) берут ТУ ЖЕ кривую, но со сдвигом от своего места.
  */
-export function riseFrames(y0, h = viewHeightPx()) {
+export function riseFrames(y0, h = viewHeightPx(), pos = wavePosition) {
   const dydo = ((RISE_END_Y - y0) / 100) * h                                         // ход по y, px за весь взлёт (вверх — отрицательный)
   const tiltAt = o => tiltDeg(sine(RISE_WAVE_PX, RISE_WAVES, 0, o).dx, dydo)
   const gap = -tiltAt(0)
   const marks = new Set([RISE_FADE_FROM])
   for (let i = 0; i <= RISE_STEPS; i++) marks.add(i / RISE_STEPS)
   return [...marks].sort((a, b) => a - b).map(o => {
-    const f = { offset: o, translate: wavePosition(y0 + (RISE_END_Y - y0) * o, sine(RISE_WAVE_PX, RISE_WAVES, 0, o).x), rotate: waveRotate(tiltAt(o) + gap * (1 - smooth(o / RISE_TILT_BLEND))) }
+    const f = { offset: o, translate: pos(y0 + (RISE_END_Y - y0) * o, sine(RISE_WAVE_PX, RISE_WAVES, 0, o).x), rotate: waveRotate(tiltAt(o) + gap * (1 - smooth(o / RISE_TILT_BLEND))) }
     if (o > 0) f.scale = Number(riseScale(o).toFixed(4))                            // у первого кадра scale нет: старт «из-под анимации» (хлопок щелчка может ещё идти)
     if (o === RISE_FADE_FROM) f.opacity = 1
     if (o === 1) f.opacity = 0

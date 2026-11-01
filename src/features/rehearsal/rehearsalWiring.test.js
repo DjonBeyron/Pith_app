@@ -34,7 +34,7 @@ describe('директор игры (useWordLaneFlow)', () => {
   it('плашки держатся, пока Пит говорит (holdMs); директор отдаёт rh и next для экранов зеркала и итога', () => {
     expect(flow).toContain('ids.push(setTimeout(() => rh.afterCount(next), rh.holdMs(stageObj)))') // переход ждёт конца отсчёта нотами
     expect(flow).toContain('labelsFor(rh.quiet ? null :'); expect(flow).toContain("const plate = !rh.plateOk ? ''") // пока Пит говорит, ни подписей, ни плашки
-    expect(flow).toContain('return { ...s, dbg, rh, next, catLine: cat.text, phase,')
+    expect(flow).toContain('return { ...s, stages, dbg, rh, next, catLine: cat.text, phase,')
   })
   it('дубль и зеркало: слушатель дубля без затвора и без паузы между заходами; на дубле Пит молчит; стадия закончилась — rh.leave дописывает дубль и только потом next', () => {
     expect(flow).toContain('gate: !listenStep.record, restartMs: listenStep.record ? 0 : undefined')
@@ -51,13 +51,21 @@ describe('директор игры (useWordLaneFlow)', () => {
 
 describe('дубль и зеркало (акт 5)', () => {
   const acts = read('./RehearsalActs.jsx'), director = read('./useRehearsalActs.js'), take = read('./useRehearsalTake.js')
-  it('экран mirror — WordLaneMirror с данными rh.mirror, заглушка удалена целиком', () => {
-    expect(acts).toContain("import WordLaneMirror from './mirror/WordLaneMirror.jsx'")
-    expect(acts).toContain("{type === 'mirror' && rh.mirror && (")
-    expect(acts).toContain('<WordLaneMirror dictor={rh.mirror.dictor} student={rh.mirror.student} chunks={cfg.plan.chunks} measure={rh.mirror.measure} note={rh.mirror.note} onDone={f.next} />')
-    expect(existsSync(new URL('./RehearsalMirrorStub.jsx', import.meta.url))).toBe(false)
-    expect(acts).not.toMatch(/MirrorStub|Зеркало — скоро/)
-    expect(read('../../../STRUCTURE.md')).not.toContain('RehearsalMirrorStub')
+  it('стадия mirror — зеркало на дорожках: MirrorCompare с данными rh.mirror, раскладка rh.compare идёт в сцену движка; отдельного экрана и заглушки нет', () => {
+    expect(acts).toContain("import MirrorCompare from './mirror/MirrorCompare.jsx'")
+    expect(acts).toContain("{type === 'mirror' && rh.mirror && <MirrorCompare mirror={rh.mirror} chunks={cfg.plan.chunks} sceneApi={f.sceneApi} since={f.at} say={rh.say} hush={rh.hush} onDone={f.next} />}")
+    expect(acts).not.toMatch(/WordLaneMirror|MirrorStub|Зеркало — скоро|rhMirror/)
+    for (const gone of ['RehearsalMirrorStub.jsx', 'mirror/WordLaneMirror.jsx', 'mirror/MirrorLane.jsx', 'mirror/mirrorLane.js']) expect(existsSync(new URL(`./${gone}`, import.meta.url))).toBe(false)
+    expect(existsSync(new URL('../admin/speech/MirrorDemoBlock.jsx', import.meta.url))).toBe(false)
+    expect(director).toContain("import { useCompareScene } from './mirror/useCompareScene.js'")
+    expect(director).toContain("useCompareScene({ active: running?.type === 'mirror' && !quiet.quiet, mirror: take.mirror, chunks: plan?.chunks })")
+    expect(director).toContain('    compare,')
+    const flow = read(`${RP}useWordLaneFlow.js`), pills = read(`${RP}useWordLanePills.js`)
+    expect(flow).toContain("return kind === 'mirror' && rh.compare ? { kind: 'mirror', layout: rh.compare, at: s.at } : IDLE")
+    expect(flow).toContain('lanes, rh.compare])')
+    expect(pills).toContain("if (kind === 'mirror') {"); expect(pills).toContain('runMirrorScene({ pool, scene })')
+    const st = read('../../../STRUCTURE.md')
+    for (const gone of ['WordLaneMirror', 'MirrorLane.jsx', 'MirrorDemoBlock', 'mirrorLane.js', 'mirrorListen', 'dictorFromLibrary', 'RehearsalMirrorStub']) expect(st, gone).not.toContain(gone)
   })
   it('директор актов: запись и зеркало — useRehearsalTake, темп и заметка идут в итог (reportSession)', () => {
     expect(director).toContain("import { useRehearsalTake } from './useRehearsalTake.js'")
@@ -71,10 +79,6 @@ describe('дубль и зеркало (акт 5)', () => {
     expect(read('./rehearsalTake.js') + take + read('./rehearsalMirror.js')).not.toMatch(/getUserMedia|startListening|listenTake|voskRuntime/)
     expect(take).toContain('releaseTake(takeRef.current)')
     expect(take).toContain('cancel()')
-  })
-  it('демо слушает Vosk напрямую (mirrorListen) — только в админском демо-блоке, в игре не используется', () => {
-    const files = readdirSync(fileURLToPath(new URL('./', import.meta.url))).filter(f => /\.jsx?$/.test(f) && !/\.test\./.test(f))
-    expect(files.filter(f => read(`./${f}`).includes('mirrorListen'))).toEqual([])
   })
 })
 
@@ -100,7 +104,17 @@ describe('игра, модуль, настройки, звук', () => {
     expect(read(`${RP}wordLaneStart.js`)).toContain('...(cfg.extraWords ?? [])')
     expect(read(`${RP}wordLaneCatLines.js`)).toContain('export const CAT_LINES = [...GAME_LINES, ...REHEARSAL_LINES]')
     expect(read(`${RP}wordLaneStages.js`)).toContain('if (plan) return buildRehearsalStages({ plan, rate, lib })')
-    expect(read(`${RP}wordLaneStages.js`)).toContain('if (stage?.act) return labelsForRehearsal(stage, chunks, hint, hl)')
+    expect(read(`${RP}wordLaneStages.js`)).toContain('if (stage?.act) return labelsForRehearsal(stage, chunks, hint)')
+  })
+  it('читка-караоке (v3.3.87): игра подставляет ReadKaraoke вместо подписей на акте read; стили подключены; без filter и Math.random', () => {
+    const game = read(`${RP}WordLaneGame.jsx`)
+    expect(game).toContain("import ReadKaraoke from '../../../rehearsal/read/ReadKaraoke.jsx'")
+    expect(game).toContain("f.stageObj?.act === 'read'"); expect(game).toContain('<ReadKaraoke heads={heads}')
+    expect(read('../../index.css')).toContain("@import './styles/player/modules/rehearsal-read.css';")
+    expect(read('../../index.css')).toContain("@import './styles/player/modules/rehearsal-discern.css';"); expect(read('../../styles/player/modules/rehearsal-discern.css')).toContain('.wlPillClip[data-word]::before')
+    const css = read('../../styles/player/modules/rehearsal-read.css')
+    expect(css).toContain('.rkCursor'); expect(css).not.toMatch(/filter|box-shadow|@keyframes/)
+    for (const f of ['readKaraoke.js', 'useReadKaraoke.js', 'ReadKaraoke.jsx']) expect(read(`./read/${f}`), f).not.toContain('Math.random')
   })
   it('стили подключены в index.css; не трогаем чужие файлы стилей пилюль и микрофона', () => {
     expect(read('../../index.css')).toContain("@import './styles/player/modules/rehearsal.css';")

@@ -28,7 +28,7 @@ export function scoreSession(plan, journal) {
   const blindOk = blind.length > 0 && blind.every(sid => cleanOf(journal, sid))
   const blindBad = blind.some(sid => badOf(journal, sid) > 0)
   const due = plan.words.filter(w => w.due)
-  const list = [...plan.words, ...warm.filter(w => !plan.words.some(p => normText(p.text) === normText(w.text)))]
+  const list = plan.words // в память идут слова с карточкой; слова фразы без карточки (разминка идёт по всем словам фразы) в ней не заводятся
   const words = list.map(w => {
     const wi = warm.findIndex(x => normText(x.text) === normText(w.text))
     const sid = wi >= 0 ? warmupSid(plan, wi) : null

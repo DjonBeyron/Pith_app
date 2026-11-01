@@ -21,9 +21,9 @@ const opened = (ids = ALL_IDS, init = {}) => memStore({ [OPEN_KEY]: JSON.stringi
 const comment = text => makeComment({ text, snap: { stage: { act: 'build' } }, settings: {}, t: 1000 })
 
 describe('карточки этапов', () => {
-  it('девять карточек с номерами: «1. Полная игра» первой, затем Заставка, Разминка, Читка, Сборка с конца, Без текста, Различи, Дубль и зеркало, Итог', () => {
+  it('девять карточек с номерами: «1. Полная игра» первой, затем Заставка, Разминка, Различи, Сборка с конца, Читка, Без текста, Дубль и зеркало, Итог', () => {
     const out = render()
-    expect(POLISH_ACTS.map(a => a.title)).toEqual(['Заставка', 'Разминка', 'Читка', 'Сборка с конца', 'Без текста', 'Различи', 'Дубль и зеркало', 'Итог'])
+    expect(POLISH_ACTS.map(a => a.title)).toEqual(['Заставка', 'Разминка', 'Различи', 'Сборка с конца', 'Читка', 'Без текста', 'Дубль и зеркало', 'Итог'])
     expect(POLISH_CARDS.map(a => a.title)).toEqual(['Полная игра', ...POLISH_ACTS.map(a => a.title)])
     const at = POLISH_CARDS.map(a => out.indexOf(`data-testid="rh-polish-${a.id}"`))
     expect(at.every(i => i > 0)).toBe(true)

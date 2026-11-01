@@ -8,10 +8,11 @@ import { parsePhrase, normText, MAX_CONFUSERS } from '../player/modules/rotate-p
 import { SLOT_COUNT } from '../player/modules/rotate-phone/wordLaneTimeline.js'
 import { ONLY_IDS } from './rehearsalOnly.js'
 import { cleanSeed, seedFor } from './rehearsalSeed.js'
+import { isStopWord } from './rehearsalStopWords.js'
 
 export const SOURCES = ['sim', 'memory', 'node']
 export const MAX_PLAN_WORDS = 8
-export const MAX_WARMUP = 3        // слов «к повтору» в разминке
+export const MAX_WARMUP = 12       // потолок слов в разминке (слов фразы бывает больше; сверх потолка отрезаются слова без «к повтору»)
 export const MAX_DISCERN = 2       // слов в акте «Различи»
 
 const clean = v => String(v ?? '').trim().slice(0, 80)
@@ -68,24 +69,28 @@ export function laneOfWord(chunks, text) {
 
 const same = (a, b) => normText(a) === normText(b)
 
+/** Слова фразы без повторов (по порядку в фразе; «I'm» и «i'm» — одно слово) */
+export function phraseWords(chunks) {
+  const out = []
+  for (const t of chunks.flatMap(wordsOfChunk)) if (normText(t) && !out.some(x => same(x, t))) out.push(t)
+  return out
+}
+
 /**
- * Слова разминки (акт 1): 2–3 слова «к повтору»; нет таких (или одно) — добираем любыми словами плана, потом словами фразы (без перевода). У каждого — дорожка (lane): кусок, в котором оно стоит.
- * Одно слово во фразе — одна дорожка по центру.
+ * Слова разминки (акт 1; v3.3.87, решение владельца): ТОЛЬКО слова с карточкой (в плане есть слово с переводом), без служебных слов (rehearsalStopWords.js: to, a, the, is …) — даже если карточка для них есть.
+ * Слову без карточки дорожке нечего подписать, поэтому в разминку оно не идёт. Исключение — фраза из ОДНОГО слова: оно идёт всегда (над ним перевод всей фразы). Повторы слов фразы схлопнуты.
+ * Карточки, чьего слова нет во фразе дословно, тоже идут в разминку (в конец). Порядок: «к повтору» первыми, потом остальные, внутри — как во фразе; порядок сессии потом задаёт orderWarmup. Не больше MAX_WARMUP.
+ * У каждого — дорожка (lane): кусок, в котором оно стоит. Одно слово во фразе — одна дорожка по центру.
  */
 export function warmupWords(plan) {
   const n = plan.chunks.length
-  const picked = plan.words.filter(w => w.due).slice(0, MAX_WARMUP)
-  const want = n === 1 ? 1 : 2
-  const rest = plan.words.filter(w => !picked.includes(w))
-  while (picked.length < want && rest.length) picked.push(rest.shift())
-  if (picked.length < want) {
-    const tokens = plan.chunks.flatMap(wordsOfChunk).filter(w => normText(w).length >= 3)
-    for (const t of [...tokens.slice(Math.floor(tokens.length / 2)), ...tokens]) {
-      if (picked.length >= want) break
-      if (!picked.some(p => same(p.text, t))) picked.push({ text: t, translation: '', due: false, lapses: 0, confusers: [] })
-    }
-  }
-  return picked.map((w, i) => {
+  const tokens = phraseWords(plan.chunks)
+  const lone = n === 1 && tokens.length === 1 // одно слово: карточка не нужна, перевод — перевод фразы
+  const cards = plan.words.filter(w => !tokens.some(t => same(t, w.text)))
+  const bare = t => ({ text: t, translation: '', due: false, lapses: 0, confusers: [] })
+  const all = [...tokens.map(t => plan.words.find(w => same(w.text, t)) ?? (lone ? bare(t) : null)), ...cards]
+    .filter(w => w && (lone || (w.translation && !isStopWord(w.text))))
+  return [...all.filter(w => w.due), ...all.filter(w => !w.due)].slice(0, MAX_WARMUP).map((w, i) => {
     const at = laneOfWord(plan.chunks, w.text)
     return { ...w, lane: n === 1 ? 1 : at >= 0 ? at : i % n }
   })

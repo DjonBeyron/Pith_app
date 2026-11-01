@@ -4,14 +4,14 @@ import { fileURLToPath } from 'node:url'
 import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { runLanes, RUN_NONE, RUN_ALL } from './wordLaneRunLanes.js'
-import { SPEED } from './wordLaneTimeline.js'
+import { PERIOD, REST_A, RUN_A } from './wordLaneConveyor.js'
 import WordLanePills from './WordLanePills.jsx'
 
 vi.mock('../../../../shared/lib/deviceTier.js', () => ({ isWeakDevice: () => false }))
 
-// Конвейер на дорожке (v3.3.84): штрихи бегут по дорожкам, на которых едут пилюли; гаснут, когда дорожка стоит
+// Конвейер на дорожке: runLanes — дорожки стадии с пилюлями (v3.3.84); разметка и стили пунктира (v3.3.85: одна линия по центру, привод вместо CSS-анимации)
 const read = rel => readFileSync(fileURLToPath(new URL(rel, import.meta.url)), 'utf8')
-const html = run => renderToStaticMarkup(createElement(WordLanePills, { scene: { kind: 'idle' }, levels: null, fx: {}, live: { seq: [], misses: 0 }, sceneApi: { current: null }, visible: true, ...(run ? { run } : {}) }))
+const html = armed => renderToStaticMarkup(createElement(WordLanePills, { scene: { kind: 'idle' }, levels: null, fx: {}, live: { seq: [], misses: 0 }, sceneApi: { current: null }, visible: true, ...(armed ? { armed } : {}) }))
 
 describe('runLanes: какие дорожки идут на стадии', () => {
   it('диктор и ученик — дорожки ступени (active, иначе parts); «Порядок» и «Различи» — все три', () => {
@@ -34,34 +34,38 @@ describe('runLanes: какие дорожки идут на стадии', () =>
 })
 
 describe('разметка и CSS конвейера', () => {
-  it('data-run ставится только колонкам, которые идут; по умолчанию ни одной; узлов не прибавляется (три колонки как были)', () => {
-    expect(html()).not.toContain('data-run')
-    const on = html('101')
-    expect(on.match(/<i data-run="1"><\/i>/g)).toHaveLength(2)
-    expect(on).toContain('<i data-run="1"></i><i></i><i data-run="1"></i>')
-    expect(html('111').match(/data-run="1"/g)).toHaveLength(3)
+  it('в разметке три колонки без атрибутов и без новых узлов: состояние дорожек пишет привод в CSS-переменные', () => {
+    for (const armed of [undefined, '101', '111']) {
+      const h = html(armed)
+      expect(h).not.toContain('data-run')
+      expect(h).toContain('<i></i><i></i><i></i>')
+    }
   })
-  it('игра считает run из стадии: runLanes(f.stageObj) передаётся в WordLanePills', () => {
-    expect(read('./WordLaneGame.jsx')).toContain('run={runLanes(f.stageObj)}')
+  it('WordLanePills запускает привод (useLaneConveyor) с armed и paused, слабое устройство / reduced-motion — still', () => {
+    const src = read('./WordLanePills.jsx')
+    expect(src).toContain('useLaneConveyor(rootRef, { armed, paused, still })')
+    expect(src).toContain('lite || reducedMotion()')
+    expect(read('./useLaneConveyor.js')).toContain('createConveyorDrive')
   })
   const css = read('../../../../styles/player/modules/word-lane-lane-run.css')
   const code = css.replace(/\/\*[\s\S]*?\*\//g, '')
-  it('один слой ::before колонки; едет transform за период со скоростью пилюль: период 8 dvh / SPEED % в секунду', () => {
-    const period = 8
-    const sec = Number(code.match(/animation: wlLaneRun ([\d.]+)s linear infinite/)[1])
-    expect(sec).toBeCloseTo(period / SPEED, 2)
-    expect(code).toMatch(/--run-p: 8dvh;/)
-    expect(code).toMatch(/@keyframes wlLaneRun \{ to \{ transform: translateY\(8dvh\); \} \}/)
+  it('один слой ::before колонки: пунктир 1 px по центру дорожки, период из модели (PERIOD dvh), без CSS-анимации и filter', () => {
+    expect(code).toContain(`--run-p: ${PERIOD}dvh;`)
+    expect(code).toMatch(/left: calc\(50% - 0\.5px\);\s*width: 1px;/)
     expect(code).toMatch(/top: calc\(var\(--run-p\) \* -1\);/)
-    expect(code).not.toMatch(/filter|background-position|:after/)
+    expect(code).toMatch(/transform: translate3d\(0, var\(--run-y, 0dvh\), 0\);/)
+    expect(code).toMatch(/mask-image: repeating-linear-gradient\(to bottom, #000 0 [\d.]+dvh, transparent [\d.]+dvh var\(--run-p\)\)/)
+    expect(code).not.toMatch(/animation|@keyframes|transition|filter|::after|background-position/)
   })
-  it('штрихи видны только у колонки с data-run, появляются и гаснут плавно (opacity-переход)', () => {
-    expect(code).toMatch(/\.wlLanes i::before \{[^}]*opacity: 0;[^}]*transition: opacity 0\.4s/)
-    expect(code).toMatch(/\.wlLanes i\[data-run\]::before \{ opacity: 1;/)
+  it('в покое видно всегда, но еле-еле (прозрачность по умолчанию = REST_A); яркость ведёт --run-a, волна «зажигания» — --run-w', () => {
+    expect(code).toContain(`var(--run-a, ${REST_A})`)
+    expect(code).toMatch(/var\(--run-w, 999dvh\)/)
+    expect(code).not.toMatch(/opacity: 0;/)
+    expect(RUN_A).toBeGreaterThan(REST_A)
   })
-  it('слабое устройство (wl--lite, weak-device) и reduced-motion: штрихи статичны, без анимации и слоя', () => {
-    expect(code).toMatch(/\.wl--lite \.wlLanes i\[data-run\]::before, \.weak-device \.wlLanes i\[data-run\]::before \{ animation: none; will-change: auto; \}/)
-    expect(code.slice(code.indexOf('@media (prefers-reduced-motion'))).toMatch(/animation: none/)
+  it('цвет дорожки — --rgb колонки; слабое устройство (wl--lite, weak-device) слой без will-change', () => {
+    expect(code).toContain('rgba(var(--rgb),')
+    expect(code).toMatch(/\.wl--lite \.wlLanes i::before, \.weak-device \.wlLanes i::before \{ will-change: auto; \}/)
   })
   it('файл подключён в index.css, ≤ 250 строк', () => {
     expect(read('../../../../index.css')).toContain("@import './styles/player/modules/word-lane-lane-run.css'")

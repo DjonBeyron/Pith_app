@@ -9,7 +9,7 @@ export const FIXTURES = {
     title: 'Три куска, двойник learn / earn / lean',
     plan: {
       phrase: "I'm | trying | to learn", translation: 'Я пытаюсь научиться', stressed: [1, 2],
-      words: [word('trying', 'пытаюсь', 1), word('learn', 'учиться', 2, ['earn', 'lean'])],
+      words: [word('trying', 'пытаюсь', 1), word('learn', 'учиться', 2, ['earn', 'lean']), word("I'm", 'я', 0, [], false)],
     },
   },
   two: {

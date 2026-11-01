@@ -22,10 +22,10 @@ describe('рецепт с only', () => {
   const three = fixturePlan('three')
   it('каждый этап оставляет только свои акты (дубль идёт с зеркалом, заставка — одна плашка)', () => {
     const got = Object.fromEntries(ONLY_IDS.map(id => [id, ids(buildActs(three, { only: id }).acts)]))
-    expect(got).toEqual({ intro: ['intro'], warmup: ['warmup'], read: ['read'], build: ['build'], blind: ['blind'], discern: ['discern'], take: ['take', 'mirror'], summary: ['summary'] })
+    expect(got).toEqual({ intro: ['intro'], warmup: ['warmup'], discern: ['discern'], build: ['build'], read: ['read'], blind: ['blind'], take: ['take', 'mirror'], summary: ['summary'] })
   })
   it('без only — весь сценарий как раньше; only берётся и из самого плана', () => {
-    expect(ids(buildActs(three).acts)).toEqual(['warmup', 'read', 'build', 'blind', 'discern', 'take', 'mirror', 'summary'])
+    expect(ids(buildActs(three).acts)).toEqual(['warmup', 'discern', 'build', 'read', 'blind', 'take', 'mirror', 'summary'])
     expect(ids(buildActs(withOnly(three, 'read')).acts)).toEqual(['read'])
     expect(ids(buildActs(withOnly(three, 'read'), { only: 'build' }).acts)).toEqual(['build']) // явный параметр сильнее
   })
@@ -35,7 +35,7 @@ describe('рецепт с only', () => {
     expect(ids(buildActs(fixturePlan('one'), { only: 'warmup' }).acts)).toEqual(['word']) // у одного слова разминка — «слово ×2»
   })
   it('таблица этапов: названия по порядку сценария, onlyOf сводит акт к этапу, незнакомое — заставка, pickActs без only не трогает', () => {
-    expect(ONLY_IDS.map(id => ONLY_TITLES[id])).toEqual(['Заставка', 'Разминка', 'Читка', 'Сборка с конца', 'Без текста', 'Различи', 'Дубль и зеркало', 'Итог'])
+    expect(ONLY_IDS.map(id => ONLY_TITLES[id])).toEqual(['Заставка', 'Разминка', 'Различи', 'Сборка с конца', 'Читка', 'Без текста', 'Дубль и зеркало', 'Итог'])
     expect(['warmup', 'word', 'read', 'build', 'blind', 'discern', 'take', 'mirror', 'summary', 'intro', 'нет'].map(onlyOf)).toEqual(['warmup', 'warmup', 'read', 'build', 'blind', 'discern', 'take', 'take', 'summary', 'intro', 'intro'])
     const acts = [{ id: 'a' }]
     expect(pickActs(acts, null)).toBe(acts); expect(pickActs(acts, 'нет такого')).toBe(acts)
@@ -108,8 +108,8 @@ describe('план с only', () => {
   it('какие этапы есть в плане: у одного слова нет читки и сборки, у фразы без двойников нет «Различи»; заставка и итог — всегда', () => {
     const avail = plan => POLISH_ACTS.filter(a => actAvailable(plan, a.id)).map(a => a.id)
     expect(avail(fixturePlan('three'))).toEqual(ONLY_IDS)
-    expect(avail(fixturePlan('two'))).toEqual(['intro', 'warmup', 'read', 'build', 'blind', 'take', 'summary'])
-    expect(avail(fixturePlan('one'))).toEqual(['intro', 'warmup', 'blind', 'discern', 'take', 'summary'])
+    expect(avail(fixturePlan('two'))).toEqual(['intro', 'warmup', 'build', 'read', 'blind', 'take', 'summary'])
+    expect(avail(fixturePlan('one'))).toEqual(['intro', 'warmup', 'discern', 'blind', 'take', 'summary'])
     expect(actAvailable(null, 'intro')).toBe(false)
   })
 })

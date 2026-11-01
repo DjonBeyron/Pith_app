@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
-import { createPool, LIVE_HOLD_MS, LIVE_HOLD_LOCK_MS, POOL } from './wordLanePool.js'
+import { createPool, fillTransform, LIVE_HOLD_MS, LIVE_HOLD_LOCK_MS, POOL } from './wordLanePool.js'
 import { RING_MIN_LVL } from './wordLaneMicLevel.js'
 import { VOICE_THRESHOLD } from './wordLaneTimeline.js'
 import { isWeakDevice } from '../../../../shared/lib/deviceTier.js'
@@ -69,6 +69,16 @@ describe('мягкий край заливки — без горизонталь
   it('«принято» — сплошной цвет дорожки с тем же мягким краем, «не успел» — фон сплошной серый, края нет', () => {
     expect(css).toMatch(/\.wlPill\[data-lock\]:not\(\[data-fail\]\) \.wlPillFill \{ background: linear-gradient\(to bottom, rgba\(var\(--rgb\), 0\), var\(--c\) 8px\); \}/)
     expect(css).toContain('.wlPill[data-fail] .wlPillFill { background: #7b8494; }')
+  })
+  it('принятая пилюля залита на 100 % без прозрачной полосы сверху (v3.3.87): слой заливки на высоту мягкого края (8 px) выше клипа, при translateY(0) край — над клипом и обрезан', () => {
+    const fill = block(css, '.wlPillFill')
+    const grad = fill.match(/linear-gradient\(to bottom, rgba\(var\(--rgb\), 0\), var\(--c\) (\d+)px/)
+    const over = fill.match(/inset: -(\d+)px 0 0;/)
+    expect(grad).not.toBeNull(); expect(over).not.toBeNull()
+    expect(Number(over[1])).toBeGreaterThanOrEqual(Number(grad[1]))             // перекрытие не меньше мягкого края
+    expect(fillTransform(1)).toBe('translateY(0.0%)')                           // полная заливка: слой на месте, его верхние 8 px (прозрачный переход) выше клипа
+    expect(fillTransform(0)).toBe('translateY(100.0%)')                         // пустая: слой целиком ниже клипа (его высота = клип + 8 px, 100 % собственной высоты)
+    expect(block(css, '.wlPillClip')).toMatch(/overflow: hidden/)               // верх слоя обрезан капсулой
   })
   it('горизонтальных черт внутри пилюли нет: ни линии уровня (узла и стилей), ни «тени» слова и метки темпа на экране', () => {
     expect(css).not.toContain('wlPillLine')

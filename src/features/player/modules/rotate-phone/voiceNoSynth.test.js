@@ -12,7 +12,7 @@ const ENTRIES = [
   'features/player/modules/rotate-phone/wordLaneStart.js',
   'features/player/modules/rotate-phone/wordLaneWarm.js',
   'features/rehearsal/rehearsalMirror.js',
-  'features/rehearsal/mirror/dictorFromLibrary.js',
+  'features/rehearsal/mirror/libraryRms.js',
 ]
 // Явно разрешено: наблюдатель отладки. Он только оборачивает speechSynthesis.speak, чтобы записать в журнал «синтез заговорил» (доказательство, что его в игре нет); сам не говорит.
 const ALLOWED = new Set(['features/player/modules/rotate-phone/wordLaneDebugProbe.js'])
@@ -45,7 +45,7 @@ describe('в игре и репетиции нет голоса системы',
   const files = graph(ENTRIES)
   it('граф импортов собран (иначе сторож зелёный впустую): игра, диктор, кот, зеркало', () => {
     expect(files.size).toBeGreaterThan(60)
-    for (const f of ['features/player/modules/rotate-phone/wordLaneVoice.js', 'features/player/modules/rotate-phone/wordLaneCatSay.js', 'features/player/modules/rotate-phone/useCatLines.js', 'features/rehearsal/mirror/dictorFromLibrary.js', 'features/rehearsal/rehearsalMirror.js']) expect(files.has(f)).toBe(true)
+    for (const f of ['features/player/modules/rotate-phone/wordLaneVoice.js', 'features/player/modules/rotate-phone/wordLaneCatSay.js', 'features/player/modules/rotate-phone/useCatLines.js', 'features/rehearsal/mirror/libraryRms.js', 'features/rehearsal/rehearsalMirror.js']) expect(files.has(f)).toBe(true)
   })
   it('ни в одном модуле графа нет speechSynthesis / SpeechSynthesisUtterance (кроме наблюдателя отладки)', () => {
     const bad = [...files].filter(([f, t]) => !ALLOWED.has(f) && /speechSynthesis|SpeechSynthesisUtterance/.test(strip(t))).map(([f]) => f)

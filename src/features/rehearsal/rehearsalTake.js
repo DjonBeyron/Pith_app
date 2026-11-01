@@ -6,7 +6,7 @@
 //    'no-record') → take = null: зеркало покажет полосу диктора и заметку о сбое (noteFor(null)). finish не бросает;
 //  cancel() — вышли из игры или стадии до конца: запись отменяется.
 import { recordTake } from './mirror/takeRecorder.js'
-import { libraryRms } from './mirror/dictorFromLibrary.js'
+import { libraryRms } from './mirror/libraryRms.js'
 import { makeMirrorDictor, takeWordsOf, buildMirror } from './rehearsalMirror.js'
 
 export const TAKE_MAX_MS = 9000     // потолок записи дубля
@@ -15,8 +15,8 @@ export const RMS_WAIT_MS = 1200     // громкость файлов дикт�
 
 const wait = ms => new Promise(resolve => setTimeout(resolve, ms))
 
-/** rng — поток случайности от семени плана (заметка Пита при равных измерениях выбирается из вариантов); нет — основной вариант. Зависимости (record, loudness, dictorOf, now, log) подставляются в тестах */
-export function createTake({ chunks, rate = 1, lang, rng = null, getStream, record = recordTake, loudness = libraryRms, dictorOf = makeMirrorDictor, now = () => Date.now(), log = () => {} }) {
+/** Зависимости (record, loudness, dictorOf, now, log) подставляются в тестах */
+export function createTake({ chunks, rate = 1, lang, getStream, record = recordTake, loudness = libraryRms, dictorOf = makeMirrorDictor, now = () => Date.now(), log = () => {} }) {
   const listeners = new Set()
   let rec = null
   let at = 0       // старт записи (мс по now())
@@ -50,7 +50,7 @@ export function createTake({ chunks, rate = 1, lang, rng = null, getStream, reco
       const words = takeWordsOf(ls.map(l => ({ words: l.words(), startedAt: l.startedAt() })), at)
       const dictor = dictorOf({ chunks, rate, lang })
       const dictorRms = take ? await Promise.race([loudness(chunks), wait(RMS_WAIT_MS).then(() => null)]).catch(() => null) : null
-      const mirror = buildMirror({ chunks, take, words, dictor, dictorRms, rng })
+      const mirror = buildMirror({ chunks, take, words, dictor, dictorRms })
       log(`[rehearsal] дубль: ${take ? `${take.durationMs} мс, rms ${Number(take.rms).toFixed(3)}` : `записи нет (${error})`}; слов Vosk ${words.length}; темп ${mirror.tempo ?? '—'}; заметка «${mirror.note.key}»`)
       return { take, error, words, mirror }
     },

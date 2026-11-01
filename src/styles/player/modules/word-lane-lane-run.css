@@ -1,27 +1,30 @@
-/* Игра «Повтори за диктором»: конвейер на дорожке — когда дорожка «идёт» (на ней едут пилюли; wordLaneRunLanes.js → WordLanePills ставит data-run колонке .wlLanes i), по её краям бегут короткие штрихи цвета дорожки
-   вниз, в сторону пилюль и с их скоростью: видно, какая дорожка пошла. Штрихи появляются плавно (0,4 с) со стартом стадии — чуть раньше первой пилюли (она выкатывается из тьмы) — и гаснут, когда дорожка останавливается.
-   Один слой на дорожку — ::before колонки (узлов в разметке не прибавляется, на пилюли слоёв нет): два столбика штрихов 2 px у краёв колонки (пилюля шириной 22 % экрана оставляет по краям свободные поля, штрихи видны
-   рядом с пилюлей), сдвинуты друг от друга на полпериода. Слой выше колонки на период и едет transform: translateY(0 → период) за период — бесшовно, на композиторе (фон не перерисовывается, filter нет). Период 8 dvh,
-   скорость SPEED = 26 % высоты в секунду (wordLaneTimeline.js) → 8 / 26 с = 0,308 с на период: штрихи едут ровно со скоростью пилюль. На слабом устройстве (.wl--lite на .wlField, .weak-device на <html>) и при
-   reduced-motion — те же штрихи без движения. Цвет — --rgb колонки (word-lane-lane-flash.css). Вспышка верного ответа (::after колонки) этим слоем не затрагивается. */
+/* Игра «Повтори за диктором»: конвейер на дорожке (v3.3.85) — ОДНА тонкая пунктирная линия по центру дорожки, вдоль движения пилюль. В покое она видна всегда, но еле-еле (цвет дорожки, прозрачность 0,14); когда
+   дорожка едет, штрихи ярче (до 0,52) и бегут вниз со скоростью пилюль. Скорость, яркость и «зажигание» ведёт JS-привод (useLaneConveyor.js → laneConveyorDrive.js, модель — wordLaneConveyor.js): дорожки независимы,
+   у каждой разгон (волна яркости по штрихам сверху вниз, потом плавный разгон), рабочий ход и плавное торможение. CSS-анимации нет — привод пишет в колонку .wlLanes i три переменные:
+     --run-y  сдвиг пунктира, dvh (0 … период), едет transform слоя — на композиторе, без перерисовки;
+     --run-a  прозрачность штрихов (яркость);
+     --run-w  позиция светлой полосы «зажигания» в координатах слоя; 999dvh — полосы нет, штрихи горят ровно --run-a.
+   Один слой на дорожку — ::before колонки (узлов в разметке не прибавляется, пилюль и их слоёв не касается; ::after колонки занят вспышкой верного ответа — word-lane-lane-flash.css). Слой выше колонки на период
+   (--run-p = PERIOD в wordLaneConveyor.js, 11 dvh) и сдвигается на --run-y — бесшовно. Штрихи: фон-градиент (яркость вдоль линии: за полосой — --run-a, впереди — покой) сквозь маску из штрихов 2,2 dvh на период
+   11 dvh: линия 1 px, штрихи редкие. filter нет. Слабое устройство (.wl--lite) и reduced-motion: привод не двигает пунктир (--run-y не меняется), слой без will-change. Цвет — --rgb колонки (word-lane-lane-flash.css). */
 .wlLanes i::before {
-  --run-p: 8dvh;
+  --run-p: 11dvh;
   content: '';
   position: absolute;
-  left: 0;
-  right: 0;
+  left: calc(50% - 0.5px);
+  width: 1px;
   top: calc(var(--run-p) * -1);
   bottom: 0;
   pointer-events: none;
-  opacity: 0;
-  transition: opacity 0.4s ease;
-  background:
-    linear-gradient(to bottom, rgba(var(--rgb), 0.5) 0 3dvh, transparent 3dvh) 9% 0 / 2px var(--run-p) repeat-y,
-    linear-gradient(to bottom, rgba(var(--rgb), 0.5) 0 3dvh, transparent 3dvh) 91% calc(var(--run-p) / 2) / 2px var(--run-p) repeat-y;
+  transform: translate3d(0, var(--run-y, 0dvh), 0);
+  will-change: transform;
+  background: linear-gradient(
+    to bottom,
+    rgba(var(--rgb), var(--run-a, 0.14)) calc(var(--run-w, 999dvh) - 10dvh),
+    rgba(var(--rgb), calc(var(--run-a, 0.14) + 0.4)) var(--run-w, 999dvh),
+    rgba(var(--rgb), 0.14) calc(var(--run-w, 999dvh) + 6dvh)
+  );
+  -webkit-mask-image: repeating-linear-gradient(to bottom, #000 0 2.2dvh, transparent 2.2dvh var(--run-p));
+  mask-image: repeating-linear-gradient(to bottom, #000 0 2.2dvh, transparent 2.2dvh var(--run-p));
 }
-.wlLanes i[data-run]::before { opacity: 1; will-change: transform; animation: wlLaneRun 0.308s linear infinite; }
-@keyframes wlLaneRun { to { transform: translateY(8dvh); } }
-.wl--lite .wlLanes i[data-run]::before, .weak-device .wlLanes i[data-run]::before { animation: none; will-change: auto; }
-@media (prefers-reduced-motion: reduce) {
-  .wlLanes i[data-run]::before { animation: none; will-change: auto; }
-}
+.wl--lite .wlLanes i::before, .weak-device .wlLanes i::before { will-change: auto; }

@@ -17,33 +17,34 @@ beforeEach(() => { fx.effects.length = 0; fx.weak = false; fx.plays = 0 })
 afterEach(() => { vi.restoreAllMocks() })
 
 describe('плашка: разметка и звук при появлении', () => {
-  it('разметка: .wlTurn с текстом и длиной показа в --wl-turn-ms (а не inline animation-duration, который перебил бы анимацию появления)', () => {
-    const html = renderToStaticMarkup(createElement(WordLaneTurnPlate, { text: 'Теперь твоя очередь', ms: 2400 }))
+  it('разметка: .wlTurn с текстом; уходящая плашка получает класс wlTurn--leave; inline animation-duration нет (он перебил бы анимацию появления)', () => {
+    const html = renderToStaticMarkup(createElement(WordLaneTurnPlate, { text: 'Теперь твоя очередь' }))
+    expect(renderToStaticMarkup(createElement(WordLaneTurnPlate, { text: 'x', leaving: true }))).toContain('class="wlTurn wlTurn--leave"')
     expect(html).toContain('class="wlTurn"')
     expect(html).toContain('data-testid="wl-turn"')
     expect(html).toContain('Теперь твоя очередь')
-    expect(html).toContain('--wl-turn-ms:2400ms')
     expect(html).not.toContain('animation-duration')
   })
   it('lite (слабое устройство): класс wlTurn--lite — без колебания', () => {
     fx.weak = true
-    expect(renderToStaticMarkup(createElement(WordLaneTurnPlate, { text: 'x', ms: 1000 }))).toContain('class="wlTurn wlTurn--lite"')
+    expect(renderToStaticMarkup(createElement(WordLaneTurnPlate, { text: 'x' }))).toContain('class="wlTurn wlTurn--lite"')
   })
   it('звук играет при монтировании — ровно один раз, в lite тоже', () => {
-    renderToStaticMarkup(createElement(WordLaneTurnPlate, { text: 'x', ms: 1000 }))
-    expect(fx.effects).toHaveLength(1)
+    renderToStaticMarkup(createElement(WordLaneTurnPlate, { text: 'x' }))
+    expect(fx.effects).toHaveLength(2)                                                            // звук при монтировании + запуск ухода по leaving
     fx.effects[0]()
     expect(fx.plays).toBe(1)
     fx.weak = true
     fx.effects.length = 0
-    renderToStaticMarkup(createElement(WordLaneTurnPlate, { text: 'x', ms: 1000 }))
+    renderToStaticMarkup(createElement(WordLaneTurnPlate, { text: 'x' }))
     fx.effects[0]()
     expect(fx.plays).toBe(2)
   })
   it('эффект без зависимостей-пересрабатывания: пустой список зависимостей (только при монтировании), игра ставит key = номер шага', () => {
     expect(read('./WordLaneTurnPlate.jsx')).toContain('useEffect(() => { playPlate() }, [])')
     const game = read('./WordLaneGame.jsx')
-    expect(game).toContain('{f.plate && <WordLaneTurnPlate key={f.idx} text={f.plate} ms={f.plateMs} />}')
+    expect(game).toContain('{plates.map(p => <WordLaneTurnPlate key={p.id} text={p.text} leaving={p.leaving} />)}')
+    expect(game).toContain('useWordLaneLeavingPlates(f.plate, f.idx)')
     expect(game).toContain("import WordLaneTurnPlate from './WordLaneTurnPlate.jsx'")
     expect(game).not.toContain('className="wlTurn"')
   })
@@ -60,23 +61,20 @@ describe('CSS: «колебание» как у окон приложения', 
     expect(css).toMatch(/@keyframes wlTurnIn \{\s*from \{ scale: 0; \}\s*to\s*\{ scale: 1; \}/)
     expect(css).not.toMatch(/\.wlTurn \{[^}]*transform-origin/)                                  // origin по умолчанию — центр плашки
   })
-  it('рост — свойство scale, уход — transform + opacity на всю длину показа (--wl-turn-ms): анимации на разных свойствах не перебивают друг друга', () => {
-    expect(css).toContain('wlTurnOut var(--wl-turn-ms, 2.2s) ease-in both')
-    const inK = css.slice(css.indexOf('@keyframes wlTurnIn'), css.indexOf('@keyframes wlTurnOut'))
+  it('рост — свойство scale; уходит плашка не CSS-анимацией на всю стадию, а WAAPI-полётом (wordLanePlateExit.js)', () => {
+    expect(css).not.toContain('wlTurnOut')
+    expect(css).not.toContain('--wl-turn-ms')
+    const inK = css.slice(css.indexOf('@keyframes wlTurnIn'), css.indexOf('/* Блеск узора'))
     expect(inK).not.toMatch(/opacity|transform/)
-    const outK = css.slice(css.indexOf('@keyframes wlTurnOut'), css.indexOf('/* Блеск узора'))
-    expect(outK).toMatch(/0%, 82% \{ opacity: 1; \}/)
-    expect(outK).toMatch(/100%\s*\{ opacity: 0; transform: scale\(0\.95\); \}/)
-    expect(outK).not.toMatch(/scale: /)
   })
-  it('lite и reduced-motion: без колебания — только проявление и уход (wlTurnFade), без wlTurnIn', () => {
-    expect(css).toMatch(/\.wlTurn--lite \{ animation: wlTurnFade var\(--wl-turn-ms, 2\.2s\) ease both; \}/)
-    const fade = css.slice(css.indexOf('@keyframes wlTurnFade'), css.indexOf('@media (prefers-reduced-motion'))
-    expect(fade).toMatch(/0%\s*\{ opacity: 0; \}/)
-    expect(fade).toMatch(/11%, 82% \{ opacity: 1; \}/)
-    expect(fade).toMatch(/100% \{ opacity: 0; \}/)
+  it('lite и reduced-motion: без колебания — проявление (wlTurnFadeIn) и затухание при уходе (wlTurnFadeOut, 0,25 с), без wlTurnIn', () => {
+    expect(css).toMatch(/\.wlTurn--lite \{ animation: wlTurnFadeIn 0\.25s ease both; \}/)
+    expect(css).toMatch(/\.wlTurn--lite\.wlTurn--leave \{ animation: wlTurnFadeOut 0\.25s ease both; \}/)
+    expect(css).toMatch(/@keyframes wlTurnFadeIn\s*\{ from \{ opacity: 0; \} to \{ opacity: 1; \} \}/)
+    expect(css).toMatch(/@keyframes wlTurnFadeOut \{ from \{ opacity: 1; \} to \{ opacity: 0; \} \}/)
     const rm = css.slice(css.indexOf('@media (prefers-reduced-motion: reduce)'))
-    expect(rm).toMatch(/\.wlTurn \{ animation: wlTurnFade var\(--wl-turn-ms, 2\.2s\) ease both; \}/)
+    expect(rm).toMatch(/\.wlTurn \{ animation: wlTurnFadeIn 0\.25s ease both; \}/)
+    expect(rm).toMatch(/\.wlTurn\.wlTurn--leave \{ animation: wlTurnFadeOut 0\.25s ease both; \}/)
     expect(rm).toContain('.wlTurn::after { display: none; }')
     expect(rm).not.toMatch(/\.wlTurn[^{]*\{[^}]*0\.01s/)                                            // раньше 0,01 с с fill both обнуляло плашку до того, как её увидят
   })

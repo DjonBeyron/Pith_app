@@ -130,4 +130,23 @@ describe('раунд «Порядок» на время: пилюли едут, 
     expect(tapLane(g2, 2, s2 + 2500 + 400)).toEqual([])                                  // пилюля 3 ещё не открылась — слово не прозвучало
     expect(tapLane(g2, 2, s2 + 2500 + TRAVEL_MS + 200)[0].type).toBe('ok')
   })
+
+  it('«Различи» репетиции (written + sayAt): слова написаны на пилюлях и молчат, слово звучит один раз — когда открылась последняя пилюля; до этого тап не засчитывается', () => {
+    const dp = [{ id: 'd', parts: [0], answer: [1], slots: [0, 1, 2], texts: ['tying', 'trying', 'drying'], stagger: 500, lead: 400, written: true, sayAt: 400 + 2 * 500 + TRAVEL_MS + 200 }]
+    const g = createOrderGame({ prompts: dp, lanes })
+    const events = []
+    for (let t = 0; t <= 6000; t += DT) for (const e of stepOrder(g, t)) events.push({ t, ...e })
+    const spawn = events.find(e => e.type === 'spawn').t
+    expect(events.filter(e => e.type === 'word')).toEqual([])                              // слова пилюль не звучат
+    const say = events.filter(e => e.type === 'say')
+    expect(say).toHaveLength(1)                                                           // слово — один раз
+    expect(say[0].t - spawn).toBeGreaterThanOrEqual(400 + 2 * 500 + TRAVEL_MS + 200 - DT) // не раньше, чем откроется последняя пилюля
+    const g2 = createOrderGame({ prompts: dp, lanes })
+    const s2 = spawnNext(g2)
+    stepOrder(g2, s2 + 1500)
+    expect(tapLane(g2, 1, s2 + 1500)).toEqual([])                                         // слово ещё не звучало — тап вслепую не считается
+    const sayAt = s2 + dp[0].sayAt
+    stepOrder(g2, sayAt)
+    expect(tapLane(g2, 1, sayAt + 50)[0].type).toBe('ok')
+  })
 })
