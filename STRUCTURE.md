@@ -2975,6 +2975,8 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | `feedSignalsStore.js` | Клиентский стор конфига: зеркало в localStorage `pithy_feed_signals_v1`, `prefetchFeedSignals()` (один запрос на старте из ShellV2), `getFeedSignals`/`useFeedSignals` (useSyncExternalStore), `setFeedSignals` (админ: сохранить и применить), `rollbackFeedSignalsTo`, `refreshFeedSignals`; ошибка сети/нет строки → DEFAULT (legacy) |
 
 ### `src/shared/lib/prompts/` — бюджет вопросов Пита (этап A1; вид — `shared/ui/PromptSheet.jsx`, хост — `app/PromptHost.jsx`)
+| `src/app/PromptPit.jsx` | Пит, выглядывающий из-за карточки уведомления (шторки `PromptSheet`): только голова, без хвоста и тела; зацикленное моргание, взгляд и усы — чистый CSS (`styles/prompt-pit.css`); на слабом устройстве и при reduced-motion без петель |
+| `src/styles/prompt-pit.css` | Положение и анимации Пита за карточкой уведомления: появляется через 0,45 с после карточки, петли моргания, взгляда и усов |
 Единая шторка снизу (вопрос / подсказка / предложение / напоминание) под одним бюджетом: частота, приоритет, паузы, самовыключение. Правила — в PLAN_NEW_USER.md → A1. Чистые функции без React; интеграция в ленту и интерфейс — отдельными задачами. События — `PROMPT_*` в `analytics/eventNames.js`.
 | Файл | Зачем нужен |
 |------|-------------|

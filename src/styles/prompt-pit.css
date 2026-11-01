@@ -1,0 +1,52 @@
+/* Пит выглядывает из-за карточки уведомления (shared/ui/PromptPit.jsx внутри .promptSheetWrap). Лежит ПОД карточкой (она z-index: 1 и непрозрачная),
+   поэтому нижняя часть головы скрыта сама; хвост и тело не нужны. Появляется после карточки (задержка .45 с), потом живёт петлёй:
+   моргание, взгляд из стороны в сторону, лёгкое подёргивание усов. Только transform / translate / rotate (дёшево). */
+.promptPit {
+  position: absolute;
+  left: 20px;
+  bottom: calc(100% - 20px);   /* 20 px головы заходят под карточку */
+  width: 98px;
+  height: 83px;
+  z-index: 0;
+  pointer-events: none;
+  animation: promptPitUp 0.55s cubic-bezier(0.34, 1.45, 0.5, 1) 0.45s both;
+}
+.promptPitSvg { display: block; width: 100%; height: 100%; overflow: visible; }
+.promptPit [data-part='tail'], .promptPit [data-part='body'] { display: none; }
+
+@keyframes promptPitUp {
+  from { transform: translateY(70px); opacity: 0; }
+  1% { opacity: 1; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+/* Моргание: общий scnBlink (scene-v2-cat.css, ресница закрывается на 5 %), период 4,6 с */
+.promptPit:not(.promptPit--lite) .cat-eyes {
+  transform-box: fill-box;
+  transform-origin: 50% 50%;
+  animation: scnBlink 4.6s linear 1.4s infinite;
+}
+/* Зрачки: вправо, вниз-вправо, влево, пауза в центре (единицы спрайта) */
+.promptPit:not(.promptPit--lite) .pu {
+  transform-box: fill-box;
+  animation: promptPitLook 7s ease-in-out 1.2s infinite;
+}
+@keyframes promptPitLook {
+  0%, 14% { translate: 0 0; }
+  22%, 40% { translate: 6px 1px; }
+  50%, 56% { translate: 0 0; }
+  64%, 82% { translate: -6px -1px; }
+  92%, 100% { translate: 0 0; }
+}
+/* Усы: вокруг корня у морды, верхние и нижние в разной фазе */
+.promptPit:not(.promptPit--lite) .wh { transform-box: fill-box; }
+.promptPit:not(.promptPit--lite) .wh-l { transform-origin: 100% 50%; animation: promptPitWhL 2.6s ease-in-out infinite; }
+.promptPit:not(.promptPit--lite) .wh-r { transform-origin: 0 50%; animation: promptPitWhR 2.6s ease-in-out infinite; }
+.promptPit:not(.promptPit--lite) .wh-d { animation-duration: 3.1s; animation-delay: -0.8s; }
+@keyframes promptPitWhL { 0%, 100% { rotate: 3deg; } 50% { rotate: -3deg; } }
+@keyframes promptPitWhR { 0%, 100% { rotate: -3deg; } 50% { rotate: 3deg; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .promptPit { animation: none; }
+  .promptPit .cat-eyes, .promptPit .pu, .promptPit .wh { animation: none; }
+}

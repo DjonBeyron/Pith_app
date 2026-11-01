@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef } from 'react'
-import PitAvatar from './PitAvatar.jsx'
 
 export const REPLY_MS = 3000 // реплика Пита после ответа висит 3 с
 const SWIPE_DY = 40          // смахивание вниз дальше 40 px = «закрыть»
@@ -10,12 +9,12 @@ const MAX_ANSWERS = 3
 // отличаются лишь акцентом (класс promptSheet--<kind>, styles/prompt-sheet.css). Что показывать и когда — решает бюджет
 // (shared/lib/prompts), здесь только вид. Без text рисовать нечего: «шторкой без разметки» живут кандидаты ленты
 // («Ловля», «О чём диалог», подсказки) — они берут у бюджета разрешение, а показывают себя сами.
-// Пропсы: prompt = { id, kind, text, answers: [{ id, label }], later?, reply?: { [answerId]: строка } } | null.
+// Пропсы: pit — узел «Пит за карточкой» (его даёт PromptHost: app/PromptPit.jsx; shared не знает про features, без него — просто карточка); prompt = { id, kind, text, answers: [{ id, label }], later?, reply?: { [answerId]: строка } } | null.
 //   onAnswer(id) — зовётся СРАЗУ по тапу (ответ пишется в бюджет без задержки); onDismiss() — крестик/смахивание;
 //   onLater() — «Спроси позже»; onReplyEnd() — реплика отыграла (необязательный).
 // Реплика Пита (prompt.reply[id]) — только вид: компонент сам держит снимок шторки 3 с и показывает строку вместо кнопок,
 // хотя слот бюджета уже свободен (prompt стал null). Крестик/смахивание во время реплики просто убирают её.
-export default function PromptSheet({ prompt, onAnswer, onDismiss, onLater, onReplyEnd }) {
+export default function PromptSheet({ prompt, onAnswer, onDismiss, onLater, onReplyEnd, pit = null }) {
   const [reply, setReply] = useState(null) // { prompt, text } — снимок шторки с репликой
   const startY = useRef(null)
   const endRef = useRef(onReplyEnd)
@@ -46,9 +45,9 @@ export default function PromptSheet({ prompt, onAnswer, onDismiss, onLater, onRe
   }
 
   return (
-    <div key={view.id} className={`promptSheet promptSheet--${view.kind}`} role="dialog" aria-live="polite"
-      onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
-      <span className="promptSheetAvatar"><PitAvatar size={40} /></span>
+    <div key={view.id} className="promptSheetWrap">
+      {pit}
+      <div className={`promptSheet promptSheet--${view.kind}`} role="dialog" aria-live="polite" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
       <div className="promptSheetBody">
         <p className="promptSheetText">{reply ? reply.text : view.text}</p>
         {!reply && (answers.length > 0 || view.later) && (
@@ -61,6 +60,7 @@ export default function PromptSheet({ prompt, onAnswer, onDismiss, onLater, onRe
         )}
       </div>
       <button type="button" className="promptSheetClose" aria-label="Закрыть" onClick={close}>×</button>
+      </div>
     </div>
   )
 }

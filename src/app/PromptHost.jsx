@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { usePromptSlot } from '../shared/lib/prompts/usePromptSlot.js'
 import { PromptSlotContext } from '../shared/lib/prompts/usePromptSlotContext.js'
 import PromptSheet from '../shared/ui/PromptSheet.jsx'
+import PromptPit from './PromptPit.jsx'
 
 // Хозяин единого слота вопросов Пита: один usePromptSlot на приложение (ShellV2 оборачивает им весь интерфейс),
 // слот отдаётся через контекст (usePromptSlotContext) ленте и вкладкам — они зовут request(кандидат), — а шторку рисует здесь.
@@ -17,7 +18,7 @@ export default function PromptHost({ children, feedActive = true }) {
   return (
     <PromptSlotContext.Provider value={slot}>
       {children}
-      <PromptSheet prompt={slot.current} onAnswer={slot.answer} onDismiss={slot.dismiss} onLater={slot.later} />
+      <PromptSheet prompt={slot.current} onAnswer={slot.answer} onDismiss={slot.dismiss} onLater={slot.later} pit={<PromptPit />} />
     </PromptSlotContext.Provider>
   )
 }
