@@ -99,21 +99,28 @@ def line_path(m):
     line, w = skeleton_line(m); line = smooth_open(line, 3)
     return bezier_path(simplify_open(line, 0.6), False, 70, F, set()), color(m, 1), round(min(max(w * S, 2.8), 4.6), 1)
 BROW_C, BROW_W, BROW_PATCH = '#c2c6d3', 2.0, '#6b6e7c'                  # бровь: тонкая светлая дужка; под ней еле заметное осветление шерсти (чуть светлее меха #646774, как под носом и ртом)
+BROW_LIFT = 15.5                                                          # на сколько px образца брови подняты в обычном лице (≈ как в «пафосе»: 9 единиц спрайта)
 def brow_hairs():
-    """Две брови: короткие тонкие дужки повыше (внешний конец чуть ниже внутреннего) и под каждой — овальное пятно осветлённой шерсти, почти незаметное.
-    Левая задана в координатах образца, правая — её отражение. Элемент (путь, цвет, толщина): толщина 0 — залитое пятно, иначе линия"""
+    """Две брови: короткие тонкие дужки (внешний конец чуть ниже внутреннего) и под каждой — пятно осветлённой шерсти почти незаметного тона той же формы, что дужка:
+    изогнутый полумесяц, чуть длиннее и шире линии, сужающийся к концам. Левая задана в координатах образца, правая — её отражение.
+    Элемент (путь, цвет, толщина): толщина 0 — залитое пятно, иначе линия"""
     P = lambda x, y: '%.1f %.1f' % F(x, y)
-    arc = (302, 428, 342, 391, 388, 413)                                      # внешний конец, изгиб, внутренний конец
-    cx, cy, rx, ry = 345, 414, 68, 29; k = .5523                              # овал пятна (4 кривые Безье)
-    oval = (f'M{P(cx + rx, cy)}C{P(cx + rx, cy + ry * k)} {P(cx + rx * k, cy + ry)} {P(cx, cy + ry)}C{P(cx - rx * k, cy + ry)} {P(cx - rx, cy + ry * k)} {P(cx - rx, cy)}'
-            f'C{P(cx - rx, cy - ry * k)} {P(cx - rx * k, cy - ry)} {P(cx, cy - ry)}C{P(cx + rx * k, cy - ry)} {P(cx + rx, cy - ry * k)} {P(cx + rx, cy)}Z')
+    arc = (302, 428 - BROW_LIFT, 342, 391 - BROW_LIFT, 388, 413 - BROW_LIFT)         # внешний конец, изгиб, внутренний конец
     mir = lambda v: tuple(x if i % 2 else 1033 - x for i, x in enumerate(v))
+    def band(a_, hw=13.0, ext=0.14, n=22):
+        """Полумесяц вдоль квадратичной дужки: ширина hw по середине, к концам сужается; по длине чуть выходит за дужку (ext)"""
+        A, C, B = np.array(a_[0:2], float), np.array(a_[2:4], float), np.array(a_[4:6], float)
+        pt = lambda t: (1 - t) ** 2 * A + 2 * (1 - t) * t * C + t ** 2 * B
+        dp = lambda t: 2 * (1 - t) * (C - A) + 2 * t * (B - C)
+        ts = np.linspace(-ext, 1 + ext, n); up, lo = [], []
+        for t in ts:
+            g = dp(t); g = g / (np.hypot(*g) or 1); nrm = np.array([-g[1], g[0]]); w = hw * max(np.sin(np.pi * (t + ext) / (1 + 2 * ext)), 0) ** 0.8
+            up.append(pt(t) + nrm * w); lo.append(pt(t) - nrm * w)
+        pts = up + lo[::-1]
+        return 'M' + 'L'.join(P(*p) for p in pts) + 'Z'
     out = []
-    for oval_c, a_ in (((cx, cy, rx, ry), arc), ((1033 - cx, cy, rx, ry), mir(arc))):
-        cx_, cy_, rx_, ry_ = oval_c
-        o = (f'M{P(cx_ + rx_, cy_)}C{P(cx_ + rx_, cy_ + ry_ * k)} {P(cx_ + rx_ * k, cy_ + ry_)} {P(cx_, cy_ + ry_)}C{P(cx_ - rx_ * k, cy_ + ry_)} {P(cx_ - rx_, cy_ + ry_ * k)} {P(cx_ - rx_, cy_)}'
-             f'C{P(cx_ - rx_, cy_ - ry_ * k)} {P(cx_ - rx_ * k, cy_ - ry_)} {P(cx_, cy_ - ry_)}C{P(cx_ + rx_ * k, cy_ - ry_)} {P(cx_ + rx_, cy_ - ry_ * k)} {P(cx_ + rx_, cy_)}Z')
-        out += [(o, BROW_PATCH, 0), (f'M{P(a_[0], a_[1])}Q{P(a_[2], a_[3])} {P(a_[4], a_[5])}', BROW_C, BROW_W)]
+    for a_ in (arc, mir(arc)):
+        out += [(band(a_), BROW_PATCH, 0), (f'M{P(a_[0], a_[1])}Q{P(a_[2], a_[3])} {P(a_[4], a_[5])}', BROW_C, BROW_W)]
     return out
 
 # ── усы: четыре светлых штриха; у левых корень справа, у правых слева (так их качает scene-v2-pit.css) ──
