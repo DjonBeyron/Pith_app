@@ -71,7 +71,7 @@ function say(on) {
 }
 const bar = document.querySelector('.codes');
 for (const c of Object.keys(T)) { const b = document.createElement('button'); b.textContent = c; b.dataset.c = c; b.onclick = () => { say(false); setMouth(c); }; bar.append(b); }
-const NAMES = { base: 'Обычное', roll: 'Закатила глаза', smirk: 'Ухмылка', pathos: 'Пафос', sneer: 'Презрение', interest: 'Увлечена' };
+const NAMES = { base: 'Обычное', roll: 'Закатила глаза', smirk: 'Ухмылка', pathos: 'Пафос', sneer: 'Презрение', interest: 'Увлечена', grump: 'Недовольство' };
 for (const f of Object.keys(ST)) { const b = document.createElement('button'); b.textContent = NAMES[f]; b.dataset.f = f; b.onclick = () => setFace(f); document.querySelector('.faces').append(b); }
 document.getElementById('talk').onclick = e => say(!document.body.classList.contains('talking'));
 setFace('base'); setMouth('X'); say(true);

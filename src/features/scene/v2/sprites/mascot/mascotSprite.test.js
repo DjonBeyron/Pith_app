@@ -25,7 +25,7 @@ describe('маскоты: пакеты', () => {
     expect(facesOf('mia')).toEqual(['base', 'roll', 'smirk', 'pathos', 'sneer', 'interest'])
     expect(isSkin('kit')).toBe(true); expect(isSkin('x')).toBe(false); expect(isSkin('toString')).toBe(false)
     expect(isFaceOf('mia', 'love')).toBe(false)
-    expect(facesOf('mia2')).toEqual(['base', 'roll', 'smirk', 'pathos', 'sneer', 'interest']) // те же лица, что у Кетти
+    expect(facesOf('mia2')).toEqual(['base', 'roll', 'smirk', 'pathos', 'sneer', 'grump', 'interest']) // лица Кетти + «недовольство» (по фото хмурого кота)
   })
   it('Мия (mia2): девять форм рта с языком, усы отдельными линиями, зрачки, контейнеры бровей и декора', () => {
     const pack = MASCOT_PACKS.mia2
