@@ -98,13 +98,23 @@ def line_path(m):
     """Тонкая линия по маске: ось (открытая кривая) + цвет + толщина в единицах спрайта — рисуется обводкой постоянной толщины со скруглёнными концами"""
     line, w = skeleton_line(m); line = smooth_open(line, 3)
     return bezier_path(simplify_open(line, 0.6), False, 70, F, set()), color(m, 1), round(min(max(w * S, 2.8), 4.6), 1)
-BROW_C, BROW_W = '#c2c6d3', 3.0                                          # брови Мии: две мягкие дужки, светлее меха, но тусклее усов
+BROW_C, BROW_W, BROW_PATCH = '#c2c6d3', 2.0, '#6b6e7c'                  # бровь: тонкая светлая дужка; под ней еле заметное осветление шерсти (чуть светлее меха #646774, как под носом и ртом)
 def brow_hairs():
-    """Две милые брови (по одной над глазом): короткая мягкая дуга, внешний конец чуть ниже внутреннего. Левая задана в координатах образца, правая — её отражение"""
+    """Две брови: короткие тонкие дужки повыше (внешний конец чуть ниже внутреннего) и под каждой — овальное пятно осветлённой шерсти, почти незаметное.
+    Левая задана в координатах образца, правая — её отражение. Элемент (путь, цвет, толщина): толщина 0 — залитое пятно, иначе линия"""
     P = lambda x, y: '%.1f %.1f' % F(x, y)
-    left = (283, 446, 338, 404, 398, 430)                                       # внешний конец, изгиб, внутренний конец
-    right = tuple(v if i % 2 else 1033 - v for i, v in enumerate(left))
-    return [(f'M{P(a, b)}Q{P(c, d_)} {P(e, f_)}', BROW_C, BROW_W) for a, b, c, d_, e, f_ in (left, right)]
+    arc = (302, 428, 342, 391, 388, 413)                                      # внешний конец, изгиб, внутренний конец
+    cx, cy, rx, ry = 345, 414, 68, 29; k = .5523                              # овал пятна (4 кривые Безье)
+    oval = (f'M{P(cx + rx, cy)}C{P(cx + rx, cy + ry * k)} {P(cx + rx * k, cy + ry)} {P(cx, cy + ry)}C{P(cx - rx * k, cy + ry)} {P(cx - rx, cy + ry * k)} {P(cx - rx, cy)}'
+            f'C{P(cx - rx, cy - ry * k)} {P(cx - rx * k, cy - ry)} {P(cx, cy - ry)}C{P(cx + rx * k, cy - ry)} {P(cx + rx, cy - ry * k)} {P(cx + rx, cy)}Z')
+    mir = lambda v: tuple(x if i % 2 else 1033 - x for i, x in enumerate(v))
+    out = []
+    for oval_c, a_ in (((cx, cy, rx, ry), arc), ((1033 - cx, cy, rx, ry), mir(arc))):
+        cx_, cy_, rx_, ry_ = oval_c
+        o = (f'M{P(cx_ + rx_, cy_)}C{P(cx_ + rx_, cy_ + ry_ * k)} {P(cx_ + rx_ * k, cy_ + ry_)} {P(cx_, cy_ + ry_)}C{P(cx_ - rx_ * k, cy_ + ry_)} {P(cx_ - rx_, cy_ + ry_ * k)} {P(cx_ - rx_, cy_)}'
+             f'C{P(cx_ - rx_, cy_ - ry_ * k)} {P(cx_ - rx_ * k, cy_ - ry_)} {P(cx_, cy_ - ry_)}C{P(cx_ + rx_ * k, cy_ - ry_)} {P(cx_ + rx_, cy_ - ry_ * k)} {P(cx_ + rx_, cy_)}Z')
+        out += [(o, BROW_PATCH, 0), (f'M{P(a_[0], a_[1])}Q{P(a_[2], a_[3])} {P(a_[4], a_[5])}', BROW_C, BROW_W)]
+    return out
 
 # ── усы: четыре светлых штриха; у левых корень справа, у правых слева (так их качает scene-v2-pit.css) ──
 def whiskers():

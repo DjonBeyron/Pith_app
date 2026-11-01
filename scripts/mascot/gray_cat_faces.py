@@ -25,6 +25,10 @@ def eye_markup(side, lid, gaze, slant, fur, ol):
         out += f'<path d="{e["lid"][0]}" fill="{fur}"/><path d="{e["lid"][1]}" fill="none" stroke="{ol}" stroke-width="5.2" stroke-linecap="round"/>'
     return out
 
+def _brow_path(d, c, w):
+    """Бровь — линия (w > 0) или залитое пятно осветлённой шерсти под ней (w = 0)"""
+    return f'<path d="{d}" fill="{c}"/>' if not w else f'<path d="{d}" fill="none" stroke="{c}" stroke-width="{w}" stroke-linecap="round"/>'
+
 def brows_markup(hairs, params):
     """Волоски-брови: каждая сторона поворачивается вокруг своего центра и сдвигается; сторона — по средней x пути относительно оси морды (296)"""
     sides = {'l': [], 'r': []}
@@ -35,7 +39,7 @@ def brows_markup(hairs, params):
     for side, (dy, rot) in zip('lr', params):
         pts = [float(v) for d, _, _ in sides[side] for v in re.findall(r'-?\d*\.?\d+', d)]
         cx, cy = sum(pts[0::2]) / len(pts[0::2]), sum(pts[1::2]) / len(pts[1::2])
-        for d, c, w in sides[side]: out += f'<path d="{rot_move(d, rot, cx, cy, 0, dy) if (dy or rot) else d}" fill="none" stroke="{c}" stroke-width="{w}" stroke-linecap="round"/>'
+        for d, c, w in sides[side]: out += _brow_path(rot_move(d, rot, cx, cy, 0, dy) if (dy or rot) else d, c, w)
     return out
 
 def brow_pack(hairs):
@@ -48,7 +52,7 @@ def brow_pack(hairs):
     for s, items in sides.items():
         pts = [float(v) for d, _, _ in items for v in re.findall(r'-?\d*\.?\d+', d)]
         piv[s] = [sum(pts[0::2]) / len(pts[0::2]), sum(pts[1::2]) / len(pts[1::2])]
-        pack[s] = ''.join(f'<path d="{d}" fill="none" stroke="{c}" stroke-width="{w}" stroke-linecap="round"/>' for d, c, w in items)
+        pack[s] = ''.join(_brow_path(d, c, w) for d, c, w in items)
     return pack, piv
 
 def build_states(mia_states, fur='#646774', ol='#262432'):
