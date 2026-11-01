@@ -19,7 +19,7 @@
   display: flex;
   align-items: flex-start;
   gap: 10px;
-  padding: 10px 10px 10px 12px;
+  padding: 12px 14px;
   background: #1a1d22;
   border: 1px solid var(--ps-accent);
   border-radius: 16px;
@@ -32,7 +32,7 @@
 .promptSheet--offer { --ps-accent: #ffb84d; }
 .promptSheet--reminder { --ps-accent: #c08bff; }
 
-.promptSheetBody { flex: 1 1 auto; min-width: 0; }
+.promptSheetBody { flex: 1 1 auto; min-width: 0; padding: 0 22px; text-align: center; }   /* фраза и кнопки по центру; боковые поля уравновешивают крестик */
 .promptSheetText {
   margin: 2px 0 0;
   font-size: 14px;
@@ -43,7 +43,7 @@
   -webkit-box-orient: vertical;
   overflow-wrap: anywhere;
 }
-.promptSheetActions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.promptSheetActions { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; margin-top: 8px; }
 .promptSheetBtn,
 .promptSheetLater {
   min-height: 34px;
@@ -57,10 +57,12 @@
 .promptSheetBtn { background: transparent; color: #f2f5f7; border: 1px solid var(--ps-accent); }
 .promptSheetLater { background: transparent; color: #8b93a0; border: 1px solid transparent; }
 .promptSheetClose {
-  flex: 0 0 auto;
+  position: absolute;
+  top: 4px;
+  right: 4px;
   width: 32px;
   height: 32px;
-  margin: -4px -4px 0 0;
+  margin: 0;
   padding: 0;
   background: transparent;
   border: 0;

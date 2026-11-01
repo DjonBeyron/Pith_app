@@ -1,21 +1,22 @@
 /* Пит выглядывает из-за карточки уведомления (shared/ui/PromptPit.jsx внутри .promptSheetWrap). Лежит ПОД карточкой (она z-index: 1 и непрозрачная),
-   поэтому нижняя часть головы скрыта сама; хвост и тело не нужны. Появляется после карточки (задержка .45 с), потом живёт петлёй:
+   поэтому нижняя часть скрыта сама; хвоста нет, тело (плечи, грудь) видно. Появляется после карточки (задержка .45 с), потом живёт петлёй:
    моргание, взгляд из стороны в сторону, лёгкое подёргивание усов. Только transform / translate / rotate (дёшево). */
 .promptPit {
   position: absolute;
   left: 20px;
-  bottom: calc(100% - 20px);   /* 20 px головы заходят под карточку */
+  bottom: calc(100% - 14px);   /* 14 px заходят под карточку: видны голова целиком и плечи с грудью */
   width: 98px;
-  height: 83px;
+  height: 108px;
+  clip-path: inset(-30px -30px 0 -30px);   /* снизу режем по кадру (тело дальше не показываем), уши и усы по бокам и сверху не режем */
   z-index: 0;
   pointer-events: none;
   animation: promptPitUp 0.55s cubic-bezier(0.34, 1.45, 0.5, 1) 0.45s both;
 }
 .promptPitSvg { display: block; width: 100%; height: 100%; overflow: visible; }
-.promptPit [data-part='tail'], .promptPit [data-part='body'] { display: none; }
+.promptPit [data-part='tail'] { display: none; }   /* хвоста в этом режиме нет; тело (плечи, грудь) видно */
 
 @keyframes promptPitUp {
-  from { transform: translateY(70px); opacity: 0; }
+  from { transform: translateY(100px); opacity: 0; }
   1% { opacity: 1; }
   to { transform: translateY(0); opacity: 1; }
 }
