@@ -72,6 +72,12 @@
   cursor: pointer;
 }
 
+/* Уход: сначала Пит прячется за карточку (0,38 с, prompt-pit.css), потом карточка опускается и гаснет (задержка 0,38 с) */
+.promptSheetWrap--out { pointer-events: none; animation: promptSheetOut 0.25s cubic-bezier(0.4, 0, 1, 1) 0.38s both; }
+@keyframes promptSheetOut {
+  from { transform: translateY(0); opacity: 1; }
+  to { transform: translateY(24px); opacity: 0; }
+}
 @keyframes promptSheetIn {
   from { transform: translateY(24px); opacity: 0; }
   to { transform: translateY(0); opacity: 1; }

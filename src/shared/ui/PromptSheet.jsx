@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 
 export const REPLY_MS = 3000 // реплика Пита после ответа висит 3 с
+export const EXIT_MS = 650   // уход: Пит прячется за карточку (0,38 с), потом уходит сама карточка (0,25 с) — styles/prompt-sheet.css
 const SWIPE_DY = 40          // смахивание вниз дальше 40 px = «закрыть»
 const MAX_ANSWERS = 3
 
@@ -26,7 +27,21 @@ export default function PromptSheet({ prompt, onAnswer, onDismiss, onLater, onRe
     return () => clearTimeout(t)
   }, [reply])
 
-  const view = reply ? reply.prompt : prompt
+  const shown = (reply ? reply.prompt : prompt)?.text ? (reply ? reply.prompt : prompt) : null
+  // Обратная анимация: шторка исчезла (ответ, крестик, слот свободен) — ещё EXIT_MS рисуем её снимок: Пит прячется за карточку, затем уходит карточка
+  const [exiting, setExiting] = useState(null)
+  const lastRef = useRef(null)
+  useEffect(() => {
+    if (shown) { lastRef.current = shown; return undefined }
+    const last = lastRef.current
+    if (!last) return undefined
+    lastRef.current = null
+    const t1 = setTimeout(() => setExiting(last), 0)
+    const t2 = setTimeout(() => setExiting(null), EXIT_MS)
+    return () => { clearTimeout(t1); clearTimeout(t2) }
+  }, [shown])
+  const leaving = !shown && !!exiting
+  const view = shown ?? exiting
   if (!view?.text) return null
   const answers = (view.answers ?? []).slice(0, MAX_ANSWERS)
 
@@ -45,7 +60,7 @@ export default function PromptSheet({ prompt, onAnswer, onDismiss, onLater, onRe
   }
 
   return (
-    <div key={view.id} className="promptSheetWrap">
+    <div key={view.id} className={`promptSheetWrap${leaving ? ' promptSheetWrap--out' : ''}`} aria-hidden={leaving || undefined}>
       {pit}
       <div className={`promptSheet promptSheet--${view.kind}`} role="dialog" aria-live="polite" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
       <div className="promptSheetBody">

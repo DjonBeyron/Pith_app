@@ -4,7 +4,7 @@
 .promptPit {
   position: absolute;
   left: 20px;
-  bottom: calc(100% - 14px);   /* 14 px заходят под карточку: видны голова целиком и плечи с грудью */
+  bottom: calc(100% - 28px);   /* 28 px заходят под карточку: видны голова целиком и верх плеч (на 15 % ниже прежнего) */
   width: 98px;
   height: 108px;
   clip-path: inset(-30px -30px 0 -30px);   /* снизу режем по кадру (тело дальше не показываем), уши и усы по бокам и сверху не режем */
@@ -16,9 +16,17 @@
 .promptPit [data-part='tail'] { display: none; }   /* хвоста в этом режиме нет; тело (плечи, грудь) видно */
 
 @keyframes promptPitUp {
-  from { transform: translateY(100px); opacity: 0; }
-  1% { opacity: 1; }
+  from { transform: translateY(84px); opacity: 0; }
+  35% { opacity: 1; }
   to { transform: translateY(0); opacity: 1; }
+}
+/* Обратная анимация: Пит прячется за карточку (она уходит следом — prompt-sheet.css, .promptSheetWrap--out) */
+.promptSheetWrap--out .promptPit { animation: promptPitDown 0.38s cubic-bezier(0.5, 0, 0.75, 0.4) both; }
+.promptSheetWrap--out .promptPit .cat-eyes, .promptSheetWrap--out .promptPit .pu, .promptSheetWrap--out .promptPit .wh { animation: none; }
+@keyframes promptPitDown {
+  from { transform: translateY(0); opacity: 1; }
+  60% { opacity: 1; }
+  to { transform: translateY(84px); opacity: 0; }
 }
 
 /* Моргание: общий scnBlink (scene-v2-cat.css, ресница закрывается на 5 %), период 4,6 с */
@@ -48,6 +56,6 @@
 @keyframes promptPitWhR { 0%, 100% { rotate: -3deg; } 50% { rotate: 3deg; } }
 
 @media (prefers-reduced-motion: reduce) {
-  .promptPit { animation: none; }
+  .promptPit, .promptSheetWrap--out .promptPit { animation: none; }
   .promptPit .cat-eyes, .promptPit .pu, .promptPit .wh { animation: none; }
 }
