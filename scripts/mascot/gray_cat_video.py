@@ -25,7 +25,7 @@ for start, l in SAY:
 w = wave.open(f'{out}/gray_cat_speech.wav', 'wb'); w.setnchannels(1); w.setsampwidth(2); w.setframerate(SR); w.writeframes(struct.pack('<%dh' % len(buf), *buf)); w.close()
 
 # ── раскадровка: лицо по времени (имена лиц Мии), реплики с метками рта ──
-FACES = [(0.0, 'base'), (0.9, 'pathos'), (1.7, 'smirk'), (2.85, 'roll'), (3.75, 'interest'), (4.85, 'smirk'), (6.0, 'pathos'), (6.9, 'base')]
+FACES = [(0.0, 'base'), (0.9, 'pathos'), (1.7, 'smirk'), (2.85, 'roll'), (3.75, 'interest'), (4.85, 'grump'), (6.9, 'base')]       # «недовольство» — на конце второй реплики и после неё
 TL = dict(total=TOTAL, fps=FPS, faces=FACES, lines=[dict(start=s, dur=l['dur'], cues=l['mouthCues'] if isinstance(l['mouthCues'], list) else json.loads(l['mouthCues']), text=l['text'], tr=l['tr']) for s, l in SAY])
 page = open(f'{HERE}/gray_cat_video_page.html', encoding='utf8').read().replace('__SPRITE__', json.dumps(sp, ensure_ascii=False)).replace('__PIT__', json.dumps(pit, ensure_ascii=False)).replace('__TIMELINE__', json.dumps(TL, ensure_ascii=False))
 open(f'{out}/gray_cat_video.html', 'w', encoding='utf8').write(page)
