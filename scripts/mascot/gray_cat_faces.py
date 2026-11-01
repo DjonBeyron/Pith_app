@@ -14,13 +14,13 @@ FACES = {
     'smirk':    dict(lid=0.30, gaze=(22, 0),   brows=((-4, -4), (12, 0))),                  # взгляд искоса, левая бровь высоко, правая ниже
     'pathos':   dict(lid=0.40, gaze=(0, 10),   brows=((0, 0), (0, 0))),                     # полуприкрытые веки, взгляд сверху вниз (брови уже высоко, как в обычном лице)
     'sneer':    dict(lid=0.30, slant=0.30, gaze=(24, 8), brows=((15, 12), (15, -12))),      # прищур со скосом к носу, брови сдвинуты книзу
-    'grump':    dict(lid=0.60, slant=0.50, gaze=(0, 7), brows=((19, 15), (19, -15)), pupil=[0.78, 1.0], tilt=0,       # «недовольство» (по фото хмурого кота): тяжёлые веки, внутренние уголки ниже, брови сдвинуты к носу,
+    'grump':    dict(lid=0.46, slant=0.22, half_moon=True, gaze=(0, 7), brows=((17, 12), (17, -12)), pupil=[1.0, 1.0], tilt=0,       # «недовольство» (по фото хмурого кота): тяжёлые веки, внутренние уголки ниже, брови сдвинуты к носу,
                        mouth='M296 349V361M272 373Q296 361 320 373'),                                            # маленький рот уголками вниз; взгляд прямо и чуть вниз
     'interest': dict(lid=0.00, gaze=(0, 0),    brows=((3, -3), (3, 3)), pupil=[1.55, 1.0]),   # внимательный взгляд прямо, зрачок круглеет
 }
 
-def eye_markup(side, lid, gaze, slant, fur, ol):
-    e = eye(side, lid, gaze, slant); px, py = e['pc']; fill = lambda p: f'<path d="{p[0]}" fill="{p[1]}"/>'
+def eye_markup(side, lid, gaze, slant, fur, ol, half_moon=False):
+    e = eye(side, lid, gaze, slant, half_moon); px, py = e['pc']; fill = lambda p: f'<path d="{p[0]}" fill="{p[1]}"/>'
     out = (fill(e['sil']) + fill(e['amber']) + fill(e['core']) + f'<path class="pu" data-x="{px:.1f}" data-y="{py:.1f}" d="{e["pupil"][0]}" fill="{e["pupil"][1]}"/>'
            + ''.join(fill(h) for h in e['hl']))
     if e['lid']:
@@ -62,7 +62,7 @@ def build_states(mia_states, fur='#646774', ol='#262432'):
     for name, f in FACES.items():
         m = mia_states.get(name, {})                                                    # у нового лица (grump) нет прототипа у Кетти — рот, зрачок и наклон заданы в FACES
         mouth = f.get('mouth', m.get('mouth'))
-        res[name] = dict(eyes=eye_markup('l', f['lid'], f['gaze'], f.get('slant', 0), fur, ol) + eye_markup('r', f['lid'], (-f['gaze'][0] if name == 'sneer' else f['gaze'][0], f['gaze'][1]), f.get('slant', 0), fur, ol),
+        res[name] = dict(eyes=eye_markup('l', f['lid'], f['gaze'], f.get('slant', 0), fur, ol, f.get('half_moon', False)) + eye_markup('r', f['lid'], (-f['gaze'][0] if name == 'sneer' else f['gaze'][0], f['gaze'][1]), f.get('slant', 0), fur, ol, f.get('half_moon', False)),
                          brows=brows_markup(hairs, f['brows']), deco='', mouth=shift_path(mouth, DX, DY) if mouth else None,
                          pupil=f.get('pupil', m.get('pupil', [1, 1])), tilt=f.get('tilt', m.get('tilt', 0)), brow=[list(p) for p in f['brows']])
     return res
