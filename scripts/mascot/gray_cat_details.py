@@ -62,7 +62,7 @@ def eye(side, lid=0.0, gaze=(0, 0), slant=0.0, half_moon=False):
         # круглый зрачок: центр почти на линии века — верхняя половина закрыта веком; радиус такой, что низ зрачка далеко от нижнего края
         px0, py0 = centroid(M['pup']); pxc = int(round(px0 + gx)); col = np.nonzero(amber[:, pxc])[0]
         top, bot = col.min(), col.max(); vis = bot - top; r = 0.42 * vis; pcy = top + 0.03 * vis
-        yy2, xx2 = np.mgrid[0:H, 0:W]; pupil_round = (((xx2 - pxc) ** 2 + (yy2 - pcy) ** 2) <= r * r) & amber
+        yy2, xx2 = np.mgrid[0:H, 0:W]; pupil_round = ((((xx2 - pxc) ** 2 + (yy2 - pcy) ** 2) <= r * r) | ((np.abs(xx2 - pxc) <= r) & (yy2 <= pcy))) & amber        # круг + «колонна» вверх до века: зрачок плотно прилегает к скошенному веку без щели
         gx = gy = 0
     elif lid > 0:
         cx, hw = (xl + xr) / 2, (xr - xl) / 2; inner = 1 if side == 'l' else -1               # у левого глаза к носу — вправо
@@ -75,7 +75,7 @@ def eye(side, lid=0.0, gaze=(0, 0), slant=0.0, half_moon=False):
     if pupil_round is not None: pup = pupil_round; px, py = centroid(pupil_round); core = core & amber
     return dict(sil=(region_path(union, F, 1.0, 6), M['dark']), amber=(region_path(amber, F, 1.0, 6), M['edge']),
                 core=(region_path(core, F, 1.0, 8), M['mid']), pupil=(region_path(pup, F, 0.8, 2), '#1e1c22'),
-                hl=[(region_path(m, F, 0.6, 1), '#ffffff') for m in hls if m.sum() > 8], pc=F(px + gx, py + gy), lid=None)
+                hl=[(region_path(m, F, 0.6, 1), '#ffffff') for m in hls if m.sum() > (60 if half_moon else 8)], pc=F(px + gx, py + gy), lid=None)
 
 # ── мордочка: светлая зона от переносицы к носу и подбородку, щёки ──
 def face_light():

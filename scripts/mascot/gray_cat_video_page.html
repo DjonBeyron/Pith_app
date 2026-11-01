@@ -63,7 +63,8 @@ function setMouth(c, code, face) {
 
 function renderCat(c, t, ctx) {
   const { fi, since, prevI, talk, vis } = ctx, sp = c.sp, face = c.faceName(TL.faces[fi][1]), prev = c.faceName(TL.faces[prevI][1]);
-  if (face !== c.cur) setFace(c, face);
+  const lagFace = c.faceName(TL.faces[ctx.lagFi][1]);                              // глаза и брови без бровей-пакета меняются, когда глаз закрыт моргание
+  if (lagFace !== c.cur) setFace(c, lagFace);
   const st = sp.states[face], ps = sp.states[prev];
   setMouth(c, vis, face);
   // усы: вокруг корня у морды, как scene-v2-pit.css (верхние и нижние — с разным периодом и фазой)
@@ -86,14 +87,16 @@ function renderCat(c, t, ctx) {
     const i = s === 'l' ? 0 : 1, a = ps.brow[i], b = st.brow[i], dy = lerp(a[0], b[0], kb), rot = lerp(a[1], b[1], kb), pv = sp.browPivot[s];
     c[s === 'l' ? 'bl' : 'br'].setAttribute('transform', `translate(0 ${dy}) rotate(${rot} ${pv[0]} ${pv[1]})`);
   }
-  // моргание: раз в 4,2 с и при смене лица (0,18 с)
-  const per = ((t + 1.0) % 4.2) / 4.2, nat = per < 0.93 ? 1 : per < 0.95 ? lerp(1, 0.08, (per - 0.93) / 0.02) : per < 0.97 ? 0.08 : lerp(0.08, 1, (per - 0.97) / 0.03);
-  const bl = t - ctx.blinkAt, forced = bl >= 0 && bl < 0.18 ? 1 - 0.92 * Math.sin(Math.PI * bl / 0.18) : 1, ey = Math.min(nat, forced), ecx = c.eyeBB.x + c.eyeBB.width / 2, ecy = c.eyeBB.y + c.eyeBB.height / 2;
+  // моргание (0,18 с): при каждой смене лица и несколько естественных в свободных местах раскадровки — события не накладываются, поэтому глаз не «дёргается» по нескольку раз
+  let ey = 1; for (const e of BLINKS) { const dt = t - e; if (dt >= 0 && dt < 0.18) ey = Math.min(ey, 1 - 0.92 * Math.sin(Math.PI * dt / 0.18)) }
+  const ecx = c.eyeBB.x + c.eyeBB.width / 2, ecy = c.eyeBB.y + c.eyeBB.height / 2;
   c.eyes.setAttribute('transform', `translate(${ecx} ${ecy}) scale(1 ${ey}) translate(${-ecx} ${-ecy})`);
 }
 
+const NATURAL_BLINKS = [0.3, 2.3, 4.3, 5.9, 7.4];                                    // естественные моргания: между сменами лица (≥ 0,3 с от любой смены)
+const BLINKS = TL.faces.slice(1).map(f => f[0]).concat(NATURAL_BLINKS);
 function render(t) {
-  const fi = faceIdx(t), ctx = { fi, since: TL.faces[fi][0], prevI: Math.max(fi - 1, 0), talk: talkAmount(t), vis: visemeAt(t) }; ctx.blinkAt = fi ? ctx.since : -9;
+  const fi = faceIdx(t), ctx = { fi, lagFi: faceIdx(t - 0.09), since: TL.faces[fi][0], prevI: Math.max(fi - 1, 0), talk: talkAmount(t), vis: visemeAt(t) }; ctx.blinkAt = fi ? ctx.since : -9;
   renderCat(A, t, ctx); renderCat(P, t, ctx); return ctx;
 }
 
