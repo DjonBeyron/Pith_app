@@ -12,7 +12,8 @@ import gray_cat_body as GB
 
 out = sys.argv[1] if len(sys.argv) > 1 else '/tmp/gray-cat'; os.makedirs(out, exist_ok=True)
 mia = json.load(open(f'{HERE}/../../src/features/scene/v2/sprites/mascot/mia.json', encoding='utf8'))
-OL, FURC, SW = '#262432', '#646774', 7.5             # обводка, мех, толщина обводки (6.5 px рисунка × масштаб ≈ 7.5)
+K_OUT = float(os.environ.get('OUTLINE', '1'))                      # OUTLINE=0.65 — вся главная обводка (голова, тело, лапы, хвост) тоньше на 35%
+OL, FURC, SW = '#262432', '#646774', 7.5 * K_OUT   # обводка, мех, толщина обводки (6.5 px рисунка × масштаб ≈ 7.5)
 fill = lambda p: f'<path d="{p[0]}" fill="{p[1]}"/>'
 stroke = lambda d, w=SW, c=OL: f'<path d="{d}" fill="none" stroke="{c}" stroke-width="{w}" stroke-linecap="round" stroke-linejoin="round"/>'
 
@@ -20,7 +21,7 @@ head_P = parts()[0]; head_d = outline_path(head_P, F)                    # си�
 
 # ── тело, лапы и хвост — по чистому рисунку (gray_cat_body.py): обводка сплошной областью, хвост линией по оси ──
 FB = lambda x, y: F(*GB.M(x, y))                                      # чистый рисунок → координаты спрайта
-body_fill_d, body_outline_d, _, _ = GB.parts(FB)
+body_fill_d, body_outline_d, _, _ = GB.parts(FB, (3, 2) if K_OUT < 1 else (0, 0))
 axis, tail_wx = GB.tail_line(); tail_w = tail_wx * GB.KS * S                  # толщина между центрами обводки, единицы спрайта
 px_ = axis[np.argmin(np.abs(axis[:, 0] - 800))]; TBX, TBY = FB(*px_)           # качается хвост вокруг точки, где он уходит под бедро
 tail_d = bezier_path(simplify_open(axis, 0.8), False, 70, lambda x, y: (FB(x, y)[0] - TBX, FB(x, y)[1] - TBY), set())
@@ -89,7 +90,7 @@ mouth['mm'] = re.sub(r' d="[^"]*"', f' d="{MT["X"]["m"]["d"]}"', mouth["mm"].rep
 mouth['ml'] = mouth['ml'].replace('#000', OL)
 wh = ''.join(f'<path class="wh wh-{s} wh-{r}" d="{d}" fill="none" stroke="{c}" stroke-width="{w}" stroke-linecap="round"/>' for s, r, d, c, w in whiskers())
 nose_d, nose_c = nose()
-head = (RING_BEHIND + f'<path d="{head_d}" fill="{FURC}"/>' + ''.join(fill(x) for x in face_light()) + stroke(head_d) + ''.join(f'<path d="{p}" fill="{OL}"/>' for p in edge_blobs())
+head = (RING_BEHIND + f'<path d="{head_d}" fill="{FURC}"/>' + ''.join(fill(x) for x in face_light()) + stroke(head_d) + ''.join(f'<path d="{p}" fill="{OL}"/>' for p in (edge_blobs() if K_OUT >= 1 else []))
         + ''.join(fill(x) for x in ear_inner()) + ''.join(fill(x) for x in ear_lines())
         + '<g class="brows"></g>' + '<g class="mouth">' + ''.join(mouth[k] for k in ('mm', 'mt', 'mf', 'ml')) + '</g>' + f'<path d="{nose_d}" fill="{nose_c}"/>' + wh
         + RING_TOP + star(208, 262, 28, OL, '#cdedbe') + star(835, 262, 28, OL, '#cdedbe') + pink_group(pk['bow']) + knot() + '<g class="dc"></g>')
