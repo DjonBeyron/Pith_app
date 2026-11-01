@@ -2,11 +2,14 @@ import { useState, useEffect } from 'react'
 import { haptic } from '../shared/lib/haptics.js'
 import { purgeShellAndReload } from '../shared/lib/shellClient.js'
 import { useUpdateAvailable } from './useUpdateAvailable.js'
+import PromptPit from './PromptPit.jsx'
 
 // Плашка «Доступна новая версия». Основной сигнал — сообщение service worker'а: он уже поставил кеш новой сборки
 // (кеш оболочки, public/push-sw.js), и reload отдаст её мгновенно. Без кеша оболочки (dev, воркер выключен) — как раньше,
 // по /version.json (генерируется при сборке, см. vite.config.js). Логика «когда показать» — useUpdateAvailable.js.
 // Автоматической перезагрузки нет: только по тапу «Обновить».
+// Из-за верхнего края плашки выглядывает Пит (PromptPit.jsx, тот же приём, что у шторки вопросов): обёртка .updateToastWrap держит положение,
+// сама плашка лежит над ним и закрывает нижнюю часть Пита.
 // tab — активная вкладка оболочки. Нужна не сама по себе: по её смене снятая
 // кнопкой «Позже» плашка возвращается (обновиться всё-таки надо).
 export default function UpdateToast({ tab }) {
@@ -51,21 +54,24 @@ export default function UpdateToast({ tab }) {
 
   if (!available || dismissed) return null
   return (
-    <div className="updateToast">
-      <div className="updateToastCol">
-        <span className="updateToastText">
-          {offline ? 'Нет сети' : 'Доступна новая версия'}
-        </span>
-        <span className="updateToastSub">
-          {offline ? 'Подключись и попробуй снова' : 'Приложение перезагрузится'}
-        </span>
+    <div className="updateToastWrap pitPeekWrap">
+      <PromptPit />
+      <div className="updateToast">
+        <div className="updateToastCol">
+          <span className="updateToastText">
+            {offline ? 'Нет сети' : 'Доступна новая версия'}
+          </span>
+          <span className="updateToastSub">
+            {offline ? 'Подключись и попробуй снова' : 'Приложение перезагрузится'}
+          </span>
+        </div>
+        <button className="updateToastLater" onClick={handleLater}>
+          Позже
+        </button>
+        <button className="updateToastBtn" onClick={handleClick}>
+          Обновить
+        </button>
       </div>
-      <button className="updateToastLater" onClick={handleLater}>
-        Позже
-      </button>
-      <button className="updateToastBtn" onClick={handleClick}>
-        Обновить
-      </button>
     </div>
   )
 }

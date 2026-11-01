@@ -2,7 +2,7 @@
    Маленькая, поверх контента, над нижней панелью; сама не уходит.
    Расположение: по центру через margin auto (а не translateX(-50%)) — анимация появления только прозрачность,
    кнопки не «уезжают» из-под пальца. Над плашкой «Доступна новая версия» (.updateToast, z-index 950, лежит на
-   ~этом же месте): она раньше перекрывала крестик, и тап уходил в неё. Дальше — .updateToast ~ .resumeToast */
+   ~этом же месте): она раньше перекрывала крестик, и тап уходил в неё. Дальше — .updateToastWrap ~ .resumeToast */
 .resumeToast {
   position: fixed;
   left: 0;
@@ -25,7 +25,7 @@
 }
 
 /* Плашка обновления на экране — резервируем под неё место (её высота ≈ 56px + зазор), чтобы не накладывались */
-.updateToast ~ .resumeToast { bottom: calc(76px + env(safe-area-inset-bottom, 0px) + 56px + 8px); }
+.updateToastWrap ~ .resumeToast { bottom: calc(76px + env(safe-area-inset-bottom, 0px) + 56px + 8px); }
 
 @keyframes resumeToastIn {
   from { opacity: 0; }

@@ -3,12 +3,22 @@
    ненавязчиво; тап по кнопке перезагружает страницу.
    ──────────────────────────────────────────────────────────────────── */
 
-.updateToast {
+/* Обёртка держит положение (над нижней навигацией, по центру), появление и слой; плашка внутри лежит над Питом */
+.updateToastWrap {
+  --pit-w: 76px;
+  --pit-hide: 22px;
   position: fixed;
   bottom: calc(76px + env(safe-area-inset-bottom, 0px));
   left: 50%;
   transform: translateX(-50%);
   z-index: 950;
+  animation: updateToastIn 0.38s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.updateToastWrap .promptPit { left: 14px; }
+
+.updateToast {
+  position: relative;
+  z-index: 1;
   display: flex;
   align-items: center;
   /* Плашка не переносится по строкам (всё nowrap), поэтому отступы скупые:
@@ -19,7 +29,6 @@
   border-radius: 13px;
   padding: 9px 8px 9px 12px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
-  animation: updateToastIn 0.38s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 @keyframes updateToastIn {
