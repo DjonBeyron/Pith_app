@@ -12,7 +12,7 @@ import gray_cat_body as GB
 
 out = sys.argv[1] if len(sys.argv) > 1 else '/tmp/gray-cat'; os.makedirs(out, exist_ok=True)
 mia = json.load(open(f'{HERE}/../../src/features/scene/v2/sprites/mascot/mia.json', encoding='utf8'))
-K_OUT = float(os.environ.get('OUTLINE', '1'))                      # OUTLINE=0.65 — вся главная обводка (голова, тело, лапы, хвост) тоньше на 35%
+K_OUT = float(os.environ.get('OUTLINE', '0.65'))                      # вся главная обводка (голова, тело, лапы, хвост) тоньше на 35% (OUTLINE=1 — прежняя толщина)
 OL, FURC, SW = '#262432', '#646774', 7.5 * K_OUT   # обводка, мех, толщина обводки (6.5 px рисунка × масштаб ≈ 7.5)
 fill = lambda p: f'<path d="{p[0]}" fill="{p[1]}"/>'
 stroke = lambda d, w=SW, c=OL: f'<path d="{d}" fill="none" stroke="{c}" stroke-width="{w}" stroke-linecap="round" stroke-linejoin="round"/>'
@@ -21,7 +21,7 @@ head_P = parts()[0]; head_d = outline_path(head_P, F)                    # си�
 
 # ── тело, лапы и хвост — по чистому рисунку (gray_cat_body.py): обводка сплошной областью, хвост линией по оси ──
 FB = lambda x, y: F(*GB.M(x, y))                                      # чистый рисунок → координаты спрайта
-body_fill_d, body_outline_d, _, _ = GB.parts(FB, (3, 2) if K_OUT < 1 else (0, 0))
+body_fill_d, body_outline_d, _, _ = GB.parts(FB, 3 if K_OUT < 1 else 0)
 axis, tail_wx = GB.tail_line(); tail_w = tail_wx * GB.KS * S                  # толщина между центрами обводки, единицы спрайта
 px_ = axis[np.argmin(np.abs(axis[:, 0] - 800))]; TBX, TBY = FB(*px_)           # качается хвост вокруг точки, где он уходит под бедро
 tail_d = bezier_path(simplify_open(axis, 0.8), False, 70, lambda x, y: (FB(x, y)[0] - TBX, FB(x, y)[1] - TBY), set())
@@ -45,14 +45,17 @@ def ring_markup():
     line = lambda d, w, c, cap: f'<path d="{d}" fill="none" stroke="{c}" stroke-width="{w:.1f}" stroke-linecap="{cap}" stroke-linejoin="round"/>'
     return line(top_o, RING_O, OL, 'round') + line(top_w, RING_W, '#ffffff', 'round'), line(full, RING_O, OL, 'round') + line(full, RING_W, '#ffffff', 'round')   # (поверх головы, за ухом)
 RING_TOP, RING_BEHIND = ring_markup()
-def collar():   # лента ошейника: верх уходит под подбородок головы, края и низ — как на рисунке
-    P = lambda x, y: '%.1f %.1f' % F(x, y)
+# Ошейник и кулон — в цветах Пита: лента цвета его шерсти (#bc82fa) с тонкой тёмно-фиолетовой обводкой (#582e99), кулон-сердечко фиолетовый (#9353dd, как тени Пита).
+# Лента уже и ниже, чем была (ширина ×0.86, высота ×0.70 от прежней), сердечко прикреплено к её нижнему краю
+COLLAR, COLLAR_OL, HEART, HEART_L = '#bc82fa', '#582e99', '#9353dd', '#d5bdf7'
+def collar():   # лента ошейника: верх уходит под подбородок головы
+    P = lambda x, y: '%.1f %.1f' % F(520 + (x - 520) * 0.86, 715 + (y - 715) * 0.70)
     d = f'M{P(380, 715)}C{P(368, 742)} {P(376, 765)} {P(412, 776)}C{P(450, 792)} {P(490, 796)} {P(520, 796)}C{P(550, 796)} {P(590, 792)} {P(628, 776)}C{P(664, 765)} {P(672, 742)} {P(660, 715)}Z'
-    return f'<path d="{d}" fill="{PINK}" stroke="{CRIM}" stroke-width="4.6" stroke-linejoin="round"/>'
+    return f'<path d="{d}" fill="{COLLAR}" stroke="{COLLAR_OL}" stroke-width="3" stroke-linejoin="round"/>'
 def pendant():
-    hd = heart(521, 825, 62, 66); x, y = F(501, 811)
-    return (f'<path d="{hd}" fill="{PINK_L}" stroke="{CRIM}" stroke-width="4.4" stroke-linejoin="round"/>'
-            f'<path d="M{x:.1f} {y + 4:.1f}C{x - 1:.1f} {y - 1:.1f} {x + 2:.1f} {y - 4:.1f} {x + 7:.1f} {y - 4:.1f}" fill="none" stroke="#ffffff" stroke-width="3.2" stroke-linecap="round" opacity=".95"/>')
+    hd = heart(520, 799, 54, 58); x, y = F(503, 788)                 # верх сердечка заходит на нижний край ленты (низ ленты в центре ≈ y 772)
+    return (f'<path d="{hd}" fill="{HEART}" stroke="{COLLAR_OL}" stroke-width="3" stroke-linejoin="round"/>'
+            f'<path d="M{x:.1f} {y + 3:.1f}C{x - 1:.1f} {y - 1:.1f} {x + 2:.1f} {y - 3:.1f} {x + 6:.1f} {y - 3:.1f}" fill="none" stroke="{HEART_L}" stroke-width="2.8" stroke-linecap="round" opacity=".95"/>')
 body = (f'<path d="{body_fill_d}" fill="{FURC}"/>' + ''.join(f'<path d="{d}" fill="none" stroke="{c}" stroke-width="{w}" stroke-linecap="round"/>' for d, c, w in GB.toes(FB))
         + f'<path d="{body_outline_d}" fill="{OL}" fill-rule="evenodd"/>' + collar() + pendant())
 
@@ -93,7 +96,7 @@ nose_d, nose_c = nose()
 head = (RING_BEHIND + f'<path d="{head_d}" fill="{FURC}"/>' + ''.join(fill(x) for x in face_light()) + stroke(head_d) + ''.join(f'<path d="{p}" fill="{OL}"/>' for p in (edge_blobs() if K_OUT >= 1 else []))
         + ''.join(fill(x) for x in ear_inner()) + ''.join(fill(x) for x in ear_lines())
         + '<g class="brows"></g>' + '<g class="mouth">' + ''.join(mouth[k] for k in ('mm', 'mt', 'mf', 'ml')) + '</g>' + f'<path d="{nose_d}" fill="{nose_c}"/>' + wh
-        + RING_TOP + star(208, 262, 28, OL, '#cdedbe') + star(835, 262, 28, OL, '#cdedbe') + pink_group(pk['bow']) + knot() + '<g class="dc"></g>')
+        + RING_TOP + star(208, 262, 28, OL, '#cdedbe') + star(835, 262, 28, OL, '#cdedbe') + '<g class="dc"></g>')
 
 # ── глаза (состояние base) ──
 STATES = build_states(mia['states'], FURC, OL)                              # шесть лиц Мии (веки, взгляд, брови — под глаза этой кошки)

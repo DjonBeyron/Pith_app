@@ -29,19 +29,20 @@ def body_network(top=740):
 def silhouette_all():
     comps = components(DARK, 5000); big = max(comps, key=lambda m: m.sum()); return fill_holes(big)
 
-def parts(f, thin=(0, 0)):
+def parts(f, thin=0):
     """(заливка тела, обводка тела evenodd, …) — пути в координатах спрайта; f — преобразование (x, y) чистого рисунка → спрайт.
-    thin=(снаружи, внутри) — на сколько px рисунка утончить обводку: внешняя граница уходит внутрь на первое число, внутренняя (края «дырок» меха) — наружу на второе;
-    при толщине ≈14 px (3, 2) даёт ≈9 px (−35%)"""
-    n = body_network()
-    topy = np.nonzero(n[700:900].any(1))[0][0] + 700                                           # верхний срез линий шеи
-    l_top = (float(np.nonzero(n[topy + 2, :400])[0].mean()), topy + 2); r_top = (float(np.nonzero(n[topy + 2, 400:])[0].mean()) + 400, topy + 2)
+    thin — на сколько шагов эрозии утончить линии тела (3 шага ≈ −4,8 px из 14, то есть примерно −35%): утончается сама сеть линий, поэтому толщина
+    уменьшается ровно по всей длине, а на стыке с хвостом линия не пропадает"""
+    n = body_network(); n0 = n                                                                    # n0 — линии как нарисованы (по ним находим срез у шеи)
+    if thin:                                                                                       # узкие места (стык с хвостом, концы линий) не трогаем: иначе линия там рвётся
+        er = morph(n, thin, 'e'); n = er | (n & ~morph(er, thin, 'd'))
+        n = morph(morph(n, 2, 'd'), 2, 'e')                                                        # залечить разрывы в 1–2 px на стыках
+    topy = np.nonzero(n0[700:900].any(1))[0][0] + 700                                           # верхний срез линий шеи
+    l_top = (float(np.nonzero(n0[topy + 2, :400])[0].mean()), topy + 2); r_top = (float(np.nonzero(n0[topy + 2, 400:])[0].mean()) + 400, topy + 2)
     top = Image.new('L', (EW, EH), 0); d = ImageDraw.Draw(top)
     d.line([l_top, (l_top[0] + 60, 640), (r_top[0] - 60, 640), r_top], fill=255, width=16, joint='curve')      # перемычка глубоко под головой (на экране скрыта)
     closed = n | (np.array(top) > 0); sil = fill_holes(closed)
     holes = [h for h in components(sil & ~closed, 300)]
-    if thin[0]: sil = morph(sil, thin[0], 'e')
-    if thin[1]: holes = [morph(h, thin[1], 'd') & sil for h in holes]
     cont = lambda m: region_path(m, f, 1.1, 5, 60)
     outline = ' '.join([cont(sil)] + [cont(h) for h in holes])
     return cont(sil), outline, sil, holes

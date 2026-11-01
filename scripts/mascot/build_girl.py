@@ -179,11 +179,19 @@ def star_stud(pts, y, side, P, r=12.5, rot=0.0, inset=14):
     return (f'<path d="M{"L".join(pp)}Z" fill="#bddcab" stroke="{ol}" stroke-width="5.5" stroke-linejoin="round"/>'
             f'<path d="M{"L".join(pp)}Z" fill="#bddcab" stroke="#bddcab" stroke-width="2.2" stroke-linejoin="round"/>'
             f'<ellipse cx="{cx - r * .22:.1f}" cy="{cy - r * .24:.1f}" rx="{r * .22:.1f}" ry="{r * .3:.1f}" fill="#f0fae8" transform="rotate(-25 {cx:.1f} {cy:.1f})"/>')   # зеленоватый камешек с бликом
+def heart_stud(pts, y, side, r=13.0, inset=14):
+    """Нежно-розовое сердечко-гвоздик на передней стороне уха у края (вместо прежних звёздочек; колечка в ухе больше нет). Рисует те же сердечки, что ketty_hearts.py"""
+    x = edge_at(pts, y, side); x2 = edge_at(pts, y + 16, side); x1 = edge_at(pts, y - 16, side)
+    tx, ty = x2 - x1, 32.0; n_ = math.hypot(tx, ty); tx, ty = tx / n_, ty / n_
+    nx, ny = (-ty, tx) if side < 0 else (ty, -tx); cx, cy = x - nx * inset, y - ny * inset
+    w, h = r * 2.08, r * 1.92
+    P_ = lambda dx, dy: '%.1f %.1f' % (cx + dx * w, cy + dy * h)
+    d = (f'M{P_(0, .5)}C{P_(-.1, .38)} {P_(-.5, .2)} {P_(-.5, -.12)}C{P_(-.5, -.42)} {P_(-.16, -.5)} {P_(0, -.24)}C{P_(.16, -.5)} {P_(.5, -.42)} {P_(.5, -.12)}C{P_(.5, .2)} {P_(.1, .38)} {P_(0, .5)}Z')
+    return (f'<path d="{d}" fill="#ffc9db" stroke="#e58aa8" stroke-width="3.4" stroke-linejoin="round"/>'
+            f'<path d="M{cx - w * .3:.1f} {cy - h * .02:.1f}C{cx - w * .32:.1f} {cy - h * .2:.1f} {cx - w * .2:.1f} {cy - h * .3:.1f} {cx - w * .08:.1f} {cy - h * .26:.1f}" fill="none" stroke="#ffffff" stroke-width="2.6" stroke-linecap="round" opacity="0.9"/>')
 def earrings(P, fill_d):
-    pts = outline_pts(fill_d); ear = path_from_d(fill_d, Transform())
-    # левое ухо: только верхнее (плоское) колечко + звёздочка ниже; правое ухо: звёздочка на уровне колечка. Звёздочки — камешки-проколы
-    return (ear_ring(pts, 114, -1, P, ear, rot=-4, kind='flat') + star_stud(pts, 158, -1, P, rot=8)
-            + star_stud(pts, 162, 1, P, rot=-6))
+    pts = outline_pts(fill_d)
+    return heart_stud(pts, 158, -1) + heart_stud(pts, 162, 1)           # два сердечка вместо колечка и звёздочек
 
 # ── миндалевидные глаза (по референсу): вытянутая форма, наружный уголок выше и острее, плотная линия верхнего века со «стрелкой», радужка прикрыта веками ──
 K = 0.86                                            # общий масштаб глаза относительно рисунка выше
