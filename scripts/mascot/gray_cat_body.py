@@ -13,7 +13,7 @@ KS, EA, OA = 0.85, (400.0, 1300.0), (517.0, 1205.0)          # масштаб, �
 def M(x, y): return OA[0] + KS * (x - EA[0]), OA[1] + KS * (y - EA[1])        # чистый рисунок → координаты старого
 
 def _box(m, x0, y0, x1, y1): m[max(y0, 0):y1, max(x0, 0):x1] = True; return m
-HAUNCH = [(960, 745), (1000, 761), (1040, 781), (1080, 792), (1120, 794), (1160, 789), (1200, 774), (1220, 763), (1240, 750), (1262, 742), (1433, 742)]   # (y, x) правый край бедра (центр обводки)
+HAUNCH = [(960, 745), (1000, 761), (1040, 781), (1080, 792), (1120, 794), (1160, 789), (1200, 774), (1220, 763), (1240, 758), (1262, 770), (1433, 770)]   # (y, x) правый край бедра (центр обводки)
 
 def tail_zone():
     """Правее бедра (с запасом 10 px, чтобы линия бедра осталась целой): здесь хвост"""
@@ -23,7 +23,7 @@ def tail_zone():
 def body_network(top=740):
     """Тёмные линии тела: без головы, подвески и хвоста. Сверху у шеи линии обрываются там, где их закрывает голова"""
     n = DARK.copy(); n[:top] = False
-    n = n & ~_box(np.zeros_like(n), 222, 0, 626, 800) & ~_box(np.zeros_like(n), 380, 800, 480, 915) & ~tail_zone()
+    n = n & ~_box(np.zeros_like(n), 222, 0, 626, 800) & ~_box(np.zeros_like(n), 380, 800, 480, 915) & ~tail_zone() & ~_box(np.zeros_like(n), 762, 1256, 800, 1282)           # огрызок нижней линии хвоста у лапы
     return n
 
 def silhouette_all():
@@ -35,12 +35,13 @@ def parts(f, thin=0):
     уменьшается ровно по всей длине, а на стыке с хвостом линия не пропадает"""
     n = body_network(); n0 = n                                                                    # n0 — линии как нарисованы (по ним находим срез у шеи)
     if thin:                                                                                       # узкие места (стык с хвостом, концы линий) не трогаем: иначе линия там рвётся
-        er = morph(n, thin, 'e'); n = er | (n & ~morph(er, thin, 'd'))
+        er = morph(n, thin, 'e'); keep = n & ~morph(er, thin, 'd') & _box(np.zeros_like(n), 560, 1150, 700, 1330)   # узкое место — только стык лапы с хвостом
+        n = er | keep
         n = morph(morph(n, 2, 'd'), 2, 'e')                                                        # залечить разрывы в 1–2 px на стыках
     topy = np.nonzero(n0[700:900].any(1))[0][0] + 700                                           # верхний срез линий шеи
     l_top = (float(np.nonzero(n0[topy + 2, :400])[0].mean()), topy + 2); r_top = (float(np.nonzero(n0[topy + 2, 400:])[0].mean()) + 400, topy + 2)
     top = Image.new('L', (EW, EH), 0); d = ImageDraw.Draw(top)
-    d.line([l_top, (l_top[0] + 60, 640), (r_top[0] - 60, 640), r_top], fill=255, width=16, joint='curve')      # перемычка глубоко под головой (на экране скрыта)
+    d.line([l_top, (l_top[0] + 60, 640), (r_top[0] - 60, 640), r_top], fill=255, width=16 - 2 * thin, joint='curve')      # перемычка глубоко под головой (на экране скрыта)
     closed = n | (np.array(top) > 0); sil = fill_holes(closed)
     holes = [h for h in components(sil & ~closed, 300)]
     cont = lambda m: region_path(m, f, 1.1, 5, 60)

@@ -81,26 +81,30 @@ def mouth_closed():
             f'M{P(521, 607)}C{P(524, 622)} {P(536, 630)} {P(547, 629)}C{P(560, 628)} {P(568, 617)} {P(567, 605)}')
 
 # ── уши: внутренность и тёмные «волоски» ──
+def _mirror(m):
+    """Отражение маски относительно оси морды (левое ухо → правое): на образце правое ухо частично закрывал бант, поэтому берём чистое левое"""
+    mx = np.clip(2 * OX - 6 - np.arange(W), 0, W - 1); return m[:, mx]
 def ear_inner():
-    m = opening(classes()['rose'] & box(150, 60, 900, 420), 6)
-    return [(region_path(x, F, 1.2, 4, 70, 3), color(x)) for x in components(m, 3000)]
+    left = opening(classes()['rose'] & box(150, 60, OX, 420), 6)
+    both = left | (_mirror(left) & (np.arange(W)[None, :] > OX))
+    col = color(left)                                                          # цвет — по левому (чистому) уху
+    return [(region_path(x, F, 1.2, 4, 70, 3), col) for x in components(both, 3000)]
 def ear_lines():
     c = classes(); res = []
-    for x0, x1 in ((180, 390), (650, 860)):
-        m = opening(c['shade'] & box(x0, 90, x1, 300), 2)
-        res += [(region_path(x, F, 0.8, 2), color(x, 1)) for x in components(m, 60)]
-    return res
+    left = opening(c['shade'] & box(180, 90, 390, 300), 2); both = left | (_mirror(left) & (np.arange(W)[None, :] > OX))
+    col = color(left, 1)
+    return [(region_path(x, F, 0.8, 2), col) for x in components(both, 60)]
 def line_path(m):
     """Тонкая линия по маске: ось (открытая кривая) + цвет + толщина в единицах спрайта — рисуется обводкой постоянной толщины со скруглёнными концами"""
     line, w = skeleton_line(m); line = smooth_open(line, 3)
     return bezier_path(simplify_open(line, 0.6), False, 70, F, set()), color(m, 1), round(min(max(w * S, 2.8), 4.6), 1)
-BROW_C, BROW_W = '#c5c8d4', 1.9                                          # брови: тоньше усов и чуть тусклее (усы #d6d9e5, 2.3)
+BROW_C, BROW_W = '#c2c6d3', 3.0                                          # брови Мии: две мягкие дужки, светлее меха, но тусклее усов
 def brow_hairs():
-    c = classes(); res = []
-    for x0, x1 in ((220, 420), (610, 810)):
-        m = (blur(LUM, 1) > 128) & (B > R + 8) & box(x0, 335, x1, 425)
-        res += [(p, BROW_C, BROW_W) for p, _, _ in (line_path(x) for x in components(m, 70))]
-    return res
+    """Две милые брови (по одной над глазом): короткая мягкая дуга, внешний конец чуть ниже внутреннего. Левая задана в координатах образца, правая — её отражение"""
+    P = lambda x, y: '%.1f %.1f' % F(x, y)
+    left = (283, 446, 338, 404, 398, 430)                                       # внешний конец, изгиб, внутренний конец
+    right = tuple(v if i % 2 else 1033 - v for i, v in enumerate(left))
+    return [(f'M{P(a, b)}Q{P(c, d_)} {P(e, f_)}', BROW_C, BROW_W) for a, b, c, d_, e, f_ in (left, right)]
 
 # ── усы: четыре светлых штриха; у левых корень справа, у правых слева (так их качает scene-v2-pit.css) ──
 def whiskers():
