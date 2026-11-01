@@ -1,0 +1,4554 @@
+{
+  "format": "pithy-lesson",
+  "version": 1,
+  "lesson": {
+    "title": "Both",
+    "nodeCount": 139
+  },
+  "nodes": [
+    {
+      "ref": "n1",
+      "type": "scene",
+      "seq": 1,
+      "pos": [
+        0,
+        0
+      ],
+      "note": "СЦЕНА: кружок Пита, один кот крупно, без облачков (текст реплик в кружке не показывается). Озвучку записать кнопкой «Озвучить» в редакторе сцены",
+      "data": {
+        "scene": {
+          "version": 2,
+          "id": "both-intro",
+          "title": "Кот с двумя чашками",
+          "location": "cafe",
+          "characters": {
+            "a": {
+              "kind": "cat",
+              "gender": "male",
+              "name": "Пит",
+              "palette": {
+                "fur": "#f2a65a",
+                "belly": "#fde7c8",
+                "accent": "#f6a9a3",
+                "eye": "#5aa36b",
+                "stripe": "#d9843d"
+              },
+              "stripes": true,
+              "voice": {
+                "pitch": 1,
+                "rate": 1
+              }
+            }
+          },
+          "slots": {
+            "table": "table",
+            "table-left": "pastry-plate",
+            "window": "window",
+            "wall-menu": "menu-board",
+            "wall-art": "picture",
+            "ceiling": "pendant-lamp",
+            "counter": "coffee-machine",
+            "floor-left": "plant",
+            "floor-right": "floor-lamp",
+            "table-right": "laptop"
+          },
+          "timeline": [
+            {
+              "who": "a",
+              "text": "Мия хочет и кофе, и чай, так что беру оба.",
+              "emotion": "happy"
+            },
+            {
+              "who": "a",
+              "text": "Как сказать по-английски оба? Сегодня учим both.",
+              "emotion": "surprised"
+            }
+          ],
+          "options": {
+            "bubbles": true
+          }
+        },
+        "mode": "circle",
+        "showBubbles": false,
+        "start": "auto",
+        "crop": {
+          "x": 0,
+          "y": 0,
+          "scale": 1
+        }
+      },
+      "triggers": [
+        {
+          "if": "played",
+          "then": "n2"
+        }
+      ]
+    },
+    {
+      "ref": "n2",
+      "type": "word_choice",
+      "seq": 2,
+      "pos": [
+        560,
+        0
+      ],
+      "data": {
+        "options": [
+          {
+            "text": "I want both",
+            "isCorrect": true
+          },
+          {
+            "text": "I want all",
+            "isCorrect": false
+          },
+          {
+            "text": "I want two",
+            "isCorrect": false
+          }
+        ],
+        "sendPickToChat": true
+      },
+      "triggers": [
+        {
+          "if": "word_correct",
+          "then": "n4"
+        },
+        {
+          "if": "variant",
+          "variantLabel": "I want both",
+          "then": null
+        },
+        {
+          "if": "variant",
+          "variantLabel": "I want all",
+          "then": null
+        },
+        {
+          "if": "variant",
+          "variantLabel": "I want two",
+          "then": null
+        },
+        {
+          "if": "word_wrong",
+          "then": "n3"
+        }
+      ]
+    },
+    {
+      "ref": "n3",
+      "type": "text",
+      "seq": 139,
+      "pos": [
+        560,
+        480
+      ],
+      "data": {
+        "content": "не совсем) когда нужно и то и другое, то есть двое сразу, подходит слово {g:both}:\n{g:I want both}",
+        "hardWrap": true
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1500,
+          "then": "n5"
+        }
+      ]
+    },
+    {
+      "ref": "n4",
+      "type": "reaction",
+      "seq": 3,
+      "pos": [
+        1120,
+        0
+      ],
+      "data": {
+        "emoji": "☕",
+        "target": "student"
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1400,
+          "then": "n5"
+        }
+      ]
+    },
+    {
+      "ref": "n5",
+      "type": "text",
+      "seq": 4,
+      "pos": [
+        1680,
+        0
+      ],
+      "data": {
+        "content": "как тебе удобнее: сначала разберём основу или сразу в практику?",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1500,
+          "then": "n6"
+        }
+      ]
+    },
+    {
+      "ref": "n6",
+      "type": "word_choice",
+      "seq": 5,
+      "pos": [
+        2240,
+        0
+      ],
+      "note": "Меню-развилка, не тест",
+      "data": {
+        "reward": false,
+        "options": [
+          {
+            "text": "Сначала объясни 📖",
+            "isCorrect": true
+          },
+          {
+            "text": "Сразу к практике 💪",
+            "isCorrect": true
+          }
+        ],
+        "sendPickToChat": true
+      },
+      "triggers": [
+        {
+          "if": "word_correct",
+          "then": "n7"
+        },
+        {
+          "if": "word_wrong",
+          "then": null
+        },
+        {
+          "if": "variant",
+          "variantLabel": "Сначала объясни 📖",
+          "then": "n7"
+        },
+        {
+          "if": "variant",
+          "variantLabel": "Сразу к практике 💪",
+          "then": "n79"
+        }
+      ]
+    },
+    {
+      "ref": "n7",
+      "type": "system",
+      "seq": 6,
+      "pos": [
+        4100,
+        0
+      ],
+      "data": {
+        "content": "Часть 1 · both это двое"
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1600,
+          "then": "n8"
+        }
+      ]
+    },
+    {
+      "ref": "n8",
+      "type": "audio",
+      "seq": 7,
+      "pos": [
+        4660,
+        0
+      ],
+      "note": "ОЗВУЧКА: both это оба, то есть и то и другое, и речь всегда про двоих",
+      "needs": "audio — озвучка реплики",
+      "data": {
+        "text": "{g:both} это {w:оба}, то есть {l:и то и другое}, и речь всегда про двоих",
+        "showText": true
+      },
+      "triggers": [
+        {
+          "if": "played",
+          "then": "n9"
+        }
+      ]
+    },
+    {
+      "ref": "n9",
+      "type": "photo",
+      "seq": 8,
+      "pos": [
+        5220,
+        0
+      ],
+      "note": "ФОТО: сгенерировать в редакторе по imagePrompt",
+      "needs": "photo",
+      "data": {
+        "caption": "Мия взяла себе кофе и чай ☕",
+        "imagePrompt": "Мультяшная девушка держит в одной руке чашку кофе, в другой чашку чая, довольная, кафе, светлый фон, без текста",
+        "crop": {
+          "x": 0,
+          "y": 0,
+          "scale": 1
+        }
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 2200,
+          "then": "n10"
+        }
+      ]
+    },
+    {
+      "ref": "n10",
+      "type": "text",
+      "seq": 9,
+      "pos": [
+        5780,
+        0
+      ],
+      "data": {
+        "content": "кста, у Мии дома два кота, и она обожает обоих 😍",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1500,
+          "then": "n11"
+        }
+      ]
+    },
+    {
+      "ref": "n11",
+      "type": "text",
+      "seq": 10,
+      "pos": [
+        6340,
+        0
+      ],
+      "data": {
+        "content": "а как сказать {t:«Мия любит обоих котов»}?",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1500,
+          "then": "n12"
+        }
+      ]
+    },
+    {
+      "ref": "n12",
+      "type": "phrase_assembly",
+      "seq": 11,
+      "pos": [
+        6900,
+        0
+      ],
+      "data": {
+        "words": [
+          "Mia",
+          "likes",
+          "both",
+          "cats"
+        ],
+        "distractors": [
+          {
+            "text": "all"
+          },
+          {
+            "text": "cat"
+          },
+          {
+            "text": "two"
+          }
+        ],
+        "responseWrong": "не совсем) котов двое, значит нужно {g:both}"
+      },
+      "triggers": [
+        {
+          "if": "phrase_correct",
+          "then": "n14"
+        },
+        {
+          "if": "variant",
+          "variantLabel": "all",
+          "then": null
+        },
+        {
+          "if": "variant",
+          "variantLabel": "cat",
+          "then": null
+        },
+        {
+          "if": "variant",
+          "variantLabel": "two",
+          "then": null
+        },
+        {
+          "if": "phrase_wrong",
+          "then": "n13"
+        }
+      ]
+    },
+    {
+      "ref": "n13",
+      "type": "text",
+      "seq": 138,
+      "pos": [
+        6900,
+        480
+      ],
+      "data": {
+        "content": "близко) котов двое, значит {g:both}, а слово {g:cats} во множественном числе:\n{g:Mia likes both cats}",
+        "hardWrap": true
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1500,
+          "then": "n15"
+        }
+      ]
+    },
+    {
+      "ref": "n14",
+      "type": "reaction",
+      "seq": 12,
+      "pos": [
+        7460,
+        0
+      ],
+      "data": {
+        "emoji": "🐱",
+        "target": "student"
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1400,
+          "then": "n15"
+        }
+      ]
+    },
+    {
+      "ref": "n15",
+      "type": "audio",
+      "seq": 13,
+      "pos": [
+        8020,
+        0
+      ],
+      "note": "ОЗВУЧКА: Мия и Том застряли в пробке, оба злятся. Как сказать «оба из них»?",
+      "needs": "audio — озвучка реплики",
+      "data": {
+        "text": "Мия и Том застряли в пробке, оба злятся. Как сказать {t:«оба из них»}?",
+        "showText": true
+      },
+      "triggers": [
+        {
+          "if": "played",
+          "then": "n16"
+        }
+      ]
+    },
+    {
+      "ref": "n16",
+      "type": "word_choice",
+      "seq": 14,
+      "pos": [
+        8580,
+        0
+      ],
+      "data": {
+        "options": [
+          {
+            "text": "both of them",
+            "isCorrect": true
+          },
+          {
+            "text": "both them",
+            "isCorrect": false
+          },
+          {
+            "text": "all of them",
+            "isCorrect": false
+          }
+        ],
+        "sendPickToChat": true
+      },
+      "triggers": [
+        {
+          "if": "word_correct",
+          "then": "n18"
+        },
+        {
+          "if": "variant",
+          "variantLabel": "both of them",
+          "then": null
+        },
+        {
+          "if": "variant",
+          "variantLabel": "both them",
+          "then": null
+        },
+        {
+          "if": "variant",
+          "variantLabel": "all of them",
+          "then": null
+        },
+        {
+          "if": "word_wrong",
+          "then": "n17"
+        }
+      ]
+    },
+    {
+      "ref": "n17",
+      "type": "text",
+      "seq": 137,
+      "pos": [
+        8580,
+        480
+      ],
+      "data": {
+        "content": "неа) перед {g:them} нужно ещё одно маленькое слово, {g:of}:\n{g:both of them}",
+        "hardWrap": true
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1500,
+          "then": "n19"
+        }
+      ]
+    },
+    {
+      "ref": "n18",
+      "type": "reaction",
+      "seq": 15,
+      "pos": [
+        9140,
+        0
+      ],
+      "data": {
+        "emoji": "🚗",
+        "target": "student"
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1400,
+          "then": "n19"
+        }
+      ]
+    },
+    {
+      "ref": "n19",
+      "type": "audio",
+      "seq": 16,
+      "pos": [
+        9700,
+        0
+      ],
+      "note": "ОЗВУЧКА: Видишь? Вместо существительного стоит them, и между ними появилось of: both of и кто-то, us, you или them",
+      "needs": "audio — озвучка реплики",
+      "data": {
+        "text": "Видишь? Вместо существительного стоит {g:them}, и между ними появилось {g:of}: {g:both of} и {l:кто-то}, {g:us}, {g:you} или {g:them}",
+        "showText": true
+      },
+      "triggers": [
+        {
+          "if": "played",
+          "then": "n20"
+        }
+      ]
+    },
+    {
+      "ref": "n20",
+      "type": "sticker",
+      "seq": 17,
+      "pos": [
+        10260,
+        0
+      ],
+      "note": "СТИКЕР: сгенерировать в редакторе по imagePrompt",
+      "needs": "photo/video — сам стикер",
+      "data": {
+        "imagePrompt": "Мультяшный кот машет двумя лапами сразу, светлый фон, без текста",
+        "crop": {
+          "x": 0,
+          "y": 0,
+          "scale": 1
+        },
+        "muted": true,
+        "isVideo": false,
+        "autoSound": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1200,
+          "then": "n21"
+        }
+      ]
+    },
+    {
+      "ref": "n21",
+      "type": "text",
+      "seq": 18,
+      "pos": [
+        10820,
+        0
+      ],
+      "data": {
+        "content": "Мия пишет: я люблю и рок, и джаз 🎸",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1500,
+          "then": "n22"
+        }
+      ]
+    },
+    {
+      "ref": "n22",
+      "type": "text",
+      "seq": 19,
+      "pos": [
+        11380,
+        0
+      ],
+      "data": {
+        "content": "как сказать {t:«она любит и рок, и джаз»}?",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1500,
+          "then": "n23"
+        }
+      ]
+    },
+    {
+      "ref": "n23",
+      "type": "phrase_assembly",
+      "seq": 20,
+      "pos": [
+        11940,
+        0
+      ],
+      "data": {
+        "words": [
+          "She",
+          "likes",
+          "both",
+          "rock",
+          "and",
+          "jazz"
+        ],
+        "distractors": [
+          {
+            "text": "all"
+          },
+          {
+            "text": "or"
+          },
+          {
+            "text": "they"
+          }
+        ],
+        "responseWrong": "не совсем) нужна пара {g:both} и {g:and}"
+      },
+      "triggers": [
+        {
+          "if": "phrase_correct",
+          "then": "n25"
+        },
+        {
+          "if": "variant",
+          "variantLabel": "all",
+          "then": null
+        },
+        {
+          "if": "variant",
+          "variantLabel": "or",
+          "then": null
+        },
+        {
+          "if": "variant",
+          "variantLabel": "they",
+          "then": null
+        },
+        {
+          "if": "phrase_wrong",
+          "then": "n24"
+        }
+      ]
+    },
+    {
+      "ref": "n24",
+      "type": "text",
+      "seq": 136,
+      "pos": [
+        11940,
+        480
+      ],
+      "data": {
+        "content": "не то) две вещи соединяет пара {g:both} и {g:and}, а не {x:or}:\n{g:She likes both rock and jazz}",
+        "hardWrap": true
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1500,
+          "then": "n26"
+        }
+      ]
+    },
+    {
+      "ref": "n25",
+      "type": "reaction",
+      "seq": 21,
+      "pos": [
+        12500,
+        0
+      ],
+      "data": {
+        "emoji": "🎸",
+        "target": "student"
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1400,
+          "then": "n26"
+        }
+      ]
+    },
+    {
+      "ref": "n26",
+      "type": "table",
+      "seq": 22,
+      "pos": [
+        13060,
+        0
+      ],
+      "note": "ОЗВУЧКА таблицы (скрипт идёт по ячейкам слева направо, сверху вниз; метку «Проверить» поставить при монтаже после последней ячейки): Смотри, всё вместе. Both и cats, оба кота. Both of и them, оба из них. И both, rock and jazz, это и рок, и джаз. Ничего сложного, во всех случаях речь про двоих",
+      "needs": "audio — только для режима dictator",
+      "data": {
+        "mode": "dictator",
+        "table": {
+          "rows": [
+            {
+              "id": "r0",
+              "heightPct": 25
+            },
+            {
+              "id": "r1",
+              "heightPct": 25
+            },
+            {
+              "id": "r2",
+              "heightPct": 25
+            },
+            {
+              "id": "r3",
+              "heightPct": 25
+            }
+          ],
+          "cells": [
+            {
+              "id": "h0",
+              "col": 0,
+              "row": 0,
+              "value": "Начало",
+              "colspan": 1,
+              "rowspan": 1,
+              "fontSize": 11,
+              "isHeader": true
+            },
+            {
+              "id": "h1",
+              "col": 1,
+              "row": 0,
+              "value": "Дальше",
+              "colspan": 1,
+              "rowspan": 1,
+              "fontSize": 11,
+              "isHeader": true
+            },
+            {
+              "id": "h2",
+              "col": 2,
+              "row": 0,
+              "value": "Значит",
+              "colspan": 1,
+              "rowspan": 1,
+              "fontSize": 11,
+              "isHeader": true
+            },
+            {
+              "id": "r0c0",
+              "col": 0,
+              "row": 1,
+              "value": "both",
+              "colspan": 1,
+              "rowspan": 1,
+              "fontSize": 13
+            },
+            {
+              "id": "r0c1",
+              "col": 1,
+              "row": 1,
+              "value": "cats",
+              "colspan": 1,
+              "rowspan": 1,
+              "fontSize": 15
+            },
+            {
+              "id": "r0c2",
+              "col": 2,
+              "row": 1,
+              "value": "оба кота",
+              "colspan": 1,
+              "rowspan": 1,
+              "fontSize": 13
+            },
+            {
+              "id": "r1c0",
+              "col": 0,
+              "row": 2,
+              "value": "both of",
+              "colspan": 1,
+              "rowspan": 1,
+              "fontSize": 13
+            },
+            {
+              "id": "r1c1",
+              "col": 1,
+              "row": 2,
+              "value": "them",
+              "colspan": 1,
+              "rowspan": 1,
+              "fontSize": 15
+            },
+            {
+              "id": "r1c2",
+              "col": 2,
+              "row": 2,
+              "value": "оба из них",
+              "colspan": 1,
+              "rowspan": 1,
+              "fontSize": 13
+            },
+            {
+              "id": "r2c0",
+              "col": 0,
+              "row": 3,
+              "value": "both",
+              "colspan": 1,
+              "rowspan": 1,
+              "fontSize": 13
+            },
+            {
+              "id": "r2c1",
+              "col": 1,
+              "row": 3,
+              "value": "rock and jazz",
+              "colspan": 1,
+              "rowspan": 1,
+              "fontSize": 15
+            },
+            {
+              "id": "r2c2",
+              "col": 2,
+              "row": 3,
+              "value": "и рок, и джаз",
+              "colspan": 1,
+              "rowspan": 1,
+              "fontSize": 13
+            }
+          ],
+          "columns": [
+            {
+              "id": "c0",
+              "widthPct": 32
+            },
+            {
+              "id": "c1",
+              "widthPct": 36
+            },
+            {
+              "id": "c2",
+              "widthPct": 32
+            }
+          ],
+          "colCount": 3,
+          "rowCount": 4
+        },
+        "chatCaption": "как используем both",
+        "script": "Смотри, всё вместе. Both и cats, оба кота. Both of и them, оба из них. И both, rock and jazz, это и рок, и джаз. Ничего сложного, во всех случаях речь про двоих",
+        "sendToChat": true
+      },
+      "triggers": [
+        {
+          "if": "table_correct",
+          "then": "n27"
+        },
+        {
+          "if": "table_wrong",
+          "then": null
+        }
+      ]
+    },
+    {
+      "ref": "n27",
+      "type": "pin_message",
+      "seq": 23,
+      "pos": [
+        13620,
+        0
+      ],
+      "data": {
+        "content": "{g:both} + {w:двое}: {g:both cats}, {g:both of us}"
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1800,
+          "then": "n28"
+        }
+      ]
+    },
+    {
+      "ref": "n28",
+      "type": "audio",
+      "seq": 24,
+      "pos": [
+        14180,
+        0
+      ],
+      "note": "ОЗВУЧКА: Tom helps both of us",
+      "needs": "audio — озвучка реплики",
+      "data": {
+        "text": "{g:Tom helps both of us}",
+        "showText": false
+      },
+      "triggers": [
+        {
+          "if": "played",
+          "then": "n29"
+        }
+      ]
+    },
+    {
+      "ref": "n29",
+      "type": "word_choice",
+      "seq": 25,
+      "pos": [
+        14740,
+        0
+      ],
+      "data": {
+        "options": [
+          {
+            "text": "Том помогает нам обоим",
+            "isCorrect": true
+          },
+          {
+            "text": "Том помогает всем",
+            "isCorrect": false
+          },
+          {
+            "text": "Том помогает мне",
+            "isCorrect": false
+          }
+        ],
+        "sendPickToChat": true,
+        "voicePhrase": "Tom helps both of us"
+      },
+      "triggers": [
+        {
+          "if": "word_correct",
+          "then": "n31"
+        },
+        {
+          "if": "variant",
+          "variantLabel": "Том помогает нам обоим",
+          "then": null
+        },
+        {
+          "if": "variant",
+          "variantLabel": "Том помогает всем",
+          "then": null
+        },
+        {
+          "if": "variant",
+          "variantLabel": "Том помогает мне",
+          "then": null
+        },
+        {
+          "if": "word_wrong",
+          "then": "n30"
+        }
+      ]
+    },
+    {
+      "ref": "n30",
+      "type": "text",
+      "seq": 135,
+      "pos": [
+        14740,
+        480
+      ],
+      "data": {
+        "content": "почти) {g:both of us} это {t:мы оба}, поэтому {g:Tom helps both of us} это {t:Том помогает нам обоим}",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1500,
+          "then": "n32"
+        }
+      ]
+    },
+    {
+      "ref": "n31",
+      "type": "reaction",
+      "seq": 26,
+      "pos": [
+        15300,
+        0
+      ],
+      "data": {
+        "emoji": "🙌",
+        "target": "student"
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1400,
+          "then": "n32"
+        }
+      ]
+    },
+    {
+      "ref": "n32",
+      "type": "system",
+      "seq": 27,
+      "pos": [
+        17160,
+        0
+      ],
+      "data": {
+        "content": "Часть 2 · где стоит both"
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1600,
+          "then": "n33"
+        }
+      ]
+    },
+    {
+      "ref": "n33",
+      "type": "text",
+      "seq": 28,
+      "pos": [
+        17720,
+        0
+      ],
+      "data": {
+        "content": "мы с Мией оба обожаем кофе, оба!!",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1500,
+          "then": "n34"
+        }
+      ]
+    },
+    {
+      "ref": "n34",
+      "type": "text",
+      "seq": 29,
+      "pos": [
+        18280,
+        0
+      ],
+      "data": {
+        "content": "как сказать {t:«мы оба любим кофе»}?",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1500,
+          "then": "n35"
+        }
+      ]
+    },
+    {
+      "ref": "n35",
+      "type": "phrase_assembly",
+      "seq": 30,
+      "pos": [
+        18840,
+        0
+      ],
+      "data": {
+        "words": [
+          "We",
+          "both",
+          "like",
+          "coffee"
+        ],
+        "distractors": [
+          {
+            "text": "all"
+          },
+          {
+            "text": "they"
+          },
+          {
+            "text": "likes"
+          }
+        ],
+        "answers": [
+          [
+            "Both",
+            "of",
+            "us",
+            "like",
+            "coffee"
+          ]
+        ],
+        "responseWrong": "не совсем) {g:both} встаёт сразу после {g:we}"
+      },
+      "triggers": [
+        {
+          "if": "phrase_correct",
+          "then": "n37"
+        },
+        {
+          "if": "variant",
+          "variantLabel": "all",
+          "then": null
+        },
+        {
+          "if": "variant",
+          "variantLabel": "they",
+          "then": null
+        },
+        {
+          "if": "variant",
+          "variantLabel": "likes",
+          "then": null
+        },
+        {
+          "if": "phrase_wrong",
+          "then": "n36"
+        }
+      ]
+    },
+    {
+      "ref": "n36",
+      "type": "text",
+      "seq": 134,
+      "pos": [
+        18840,
+        480
+      ],
+      "data": {
+        "content": "не совсем) {g:both} встаёт сразу после {g:we}, перед глаголом:\n{g:We both like coffee}",
+        "hardWrap": true
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1500,
+          "then": "n38"
+        }
+      ]
+    },
+    {
+      "ref": "n37",
+      "type": "reaction",
+      "seq": 31,
+      "pos": [
+        19400,
+        0
+      ],
+      "data": {
+        "emoji": "☕",
+        "target": "student"
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1400,
+          "then": "n38"
+        }
+      ]
+    },
+    {
+      "ref": "n38",
+      "type": "audio",
+      "seq": 32,
+      "pos": [
+        19960,
+        0
+      ],
+      "note": "ОЗВУЧКА: Смотри: both стоит после we, прямо перед like. С обычными глаголами both идёт перед ними",
+      "needs": "audio — озвучка реплики",
+      "data": {
+        "text": "Смотри: {g:both} стоит после {g:we}, прямо перед {g:like}. С обычными глаголами {g:both} идёт {l:перед ними}",
+        "showText": true
+      },
+      "triggers": [
+        {
+          "if": "played",
+          "then": "n39"
+        }
+      ]
+    },
+    {
+      "ref": "n39",
+      "type": "photo",
+      "seq": 33,
+      "pos": [
+        20520,
+        0
+      ],
+      "note": "ФОТО: сгенерировать в редакторе по imagePrompt",
+      "needs": "photo",
+      "data": {
+        "caption": "Мы с Мией после смены, оба вымотались 😮‍💨",
+        "imagePrompt": "Мультяшный кот и кошка сидят на диване в кафе, оба уставшие, откинулись на спинку, светлый фон, без текста",
+        "crop": {
+          "x": 0,
+          "y": 0,
+          "scale": 1
+        }
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 2200,
+          "then": "n40"
+        }
+      ]
+    },
+    {
+      "ref": "n40",
+      "type": "text",
+      "seq": 34,
+      "pos": [
+        21080,
+        0
+      ],
+      "data": {
+        "content": "а как сказать {t:«мы оба устали»}?",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1500,
+          "then": "n41"
+        }
+      ]
+    },
+    {
+      "ref": "n41",
+      "type": "word_choice",
+      "seq": 35,
+      "pos": [
+        21640,
+        0
+      ],
+      "data": {
+        "options": [
+          {
+            "text": "We are both tired",
+            "isCorrect": true
+          },
+          {
+            "text": "We both tired are",
+            "isCorrect": false
+          },
+          {
+            "text": "We are tired both",
+            "isCorrect": false
+          }
+        ],
+        "sendPickToChat": true
+      },
+      "triggers": [
+        {
+          "if": "word_correct",
+          "then": "n43"
+        },
+        {
+          "if": "variant",
+          "variantLabel": "We are both tired",
+          "then": null
+        },
+        {
+          "if": "variant",
+          "variantLabel": "We both tired are",
+          "then": null
+        },
+        {
+          "if": "variant",
+          "variantLabel": "We are tired both",
+          "then": null
+        },
+        {
+          "if": "word_wrong",
+          "then": "n42"
+        }
+      ]
+    },
+    {
+      "ref": "n42",
+      "type": "text",
+      "seq": 133,
+      "pos": [
+        21640,
+        480
+      ],
+      "data": {
+        "content": "близко) с {g:are} всё наоборот: {g:both} встаёт {w:после} него:\n{g:We are both tired}",
+        "hardWrap": true
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1500,
+          "then": "n44"
+        }
+      ]
+    },
+    {
+      "ref": "n43",
+      "type": "reaction",
+      "seq": 36,
+      "pos": [
+        22200,
+        0
+      ],
+      "data": {
+        "emoji": "😴",
+        "target": "student"
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1400,
+          "then": "n44"
+        }
+      ]
+    },
+    {
+      "ref": "n44",
+      "type": "table",
+      "seq": 37,
+      "pos": [
+        22760,
+        0
+      ],
+      "note": "ОЗВУЧКА таблицы (скрипт идёт по ячейкам слева направо, сверху вниз; метку «Проверить» поставить при монтаже после последней ячейки): Смотри, где стоит both. С обычным глаголом both идёт перед ним, we both like tea. А с am, is, are наоборот, both идёт после, we are both tired",
+      "needs": "audio — только для режима dictator",
+      "data": {
+        "mode": "dictator",
+        "table": {
+          "rows": [
+            {
+              "id": "r0",
+              "heightPct": 33
+            },
+            {
+              "id": "r1",
+              "heightPct": 33
+            },
+            {
+              "id": "r2",
+              "heightPct": 33
+            }
+          ],
+          "cells": [
+            {
+              "id": "h0",
+              "col": 0,
+              "row": 0,
+              "value": "Глагол",
+              "colspan": 1,
+              "rowspan": 1,
+              "fontSize": 11,
+              "isHeader": true
+            },
+            {
+              "id": "h1",
+              "col": 1,
+              "row": 0,
+              "value": "Где both",
+              "colspan": 1,
+              "rowspan": 1,
+              "fontSize": 11,
+              "isHeader": true
+            },
+            {
+              "id": "h2",
+              "col": 2,
+              "row": 0,
+              "value": "Пример",
+              "colspan": 1,
+              "rowspan": 1,
+              "fontSize": 11,
+              "isHeader": true
+            },
+            {
+              "id": "r0c0",
+              "col": 0,
+              "row": 1,
+              "value": "обычный",
+              "colspan": 1,
+              "rowspan": 1,
+              "fontSize": 13
+            },
+            {
+              "id": "r0c1",
+              "col": 1,
+              "row": 1,
+              "value": "перед",
+              "colspan": 1,
+              "rowspan": 1,
+              "fontSize": 15
+            },
+            {
+              "id": "r0c2",
+              "col": 2,
+              "row": 1,
+              "value": "We both like tea",
+              "colspan": 1,
+              "rowspan": 1,
+              "fontSize": 13
+            },
+            {
+              "id": "r1c0",
+              "col": 0,
+              "row": 2,
+              "value": "am, is, are",
+              "colspan": 1,
+              "rowspan": 1,
+              "fontSize": 13
+            },
+            {
+              "id": "r1c1",
+              "col": 1,
+              "row": 2,
+              "value": "после",
+              "colspan": 1,
+              "rowspan": 1,
+              "fontSize": 15
+            },
+            {
+              "id": "r1c2",
+              "col": 2,
+              "row": 2,
+              "value": "We are both tired",
+              "colspan": 1,
+              "rowspan": 1,
+              "fontSize": 13
+            }
+          ],
+          "columns": [
+            {
+              "id": "c0",
+              "widthPct": 38
+            },
+            {
+              "id": "c1",
+              "widthPct": 22
+            },
+            {
+              "id": "c2",
+              "widthPct": 40
+            }
+          ],
+          "colCount": 3,
+          "rowCount": 3
+        },
+        "chatCaption": "где стоит both",
+        "script": "Смотри, где стоит both. С обычным глаголом both идёт перед ним, we both like tea. А с am, is, are наоборот, both идёт после, we are both tired",
+        "sendToChat": true
+      },
+      "triggers": [
+        {
+          "if": "table_correct",
+          "then": "n45"
+        },
+        {
+          "if": "table_wrong",
+          "then": null
+        }
+      ]
+    },
+    {
+      "ref": "n45",
+      "type": "text",
+      "seq": 38,
+      "pos": [
+        23320,
+        0
+      ],
+      "data": {
+        "content": "даа 😏 порядок такой: {g:are} и сразу {g:both}",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1500,
+          "then": "n46"
+        }
+      ]
+    },
+    {
+      "ref": "n46",
+      "type": "audio",
+      "seq": 39,
+      "pos": [
+        23880,
+        0
+      ],
+      "note": "ОЗВУЧКА: They are both late",
+      "needs": "audio — озвучка реплики",
+      "data": {
+        "text": "{g:They are both late}",
+        "showText": false
+      },
+      "triggers": [
+        {
+          "if": "played",
+          "then": "n47"
+        }
+      ]
+    },
+    {
+      "ref": "n47",
+      "type": "word_choice",
+      "seq": 40,
+      "pos": [
+        24440,
+        0
+      ],
+      "data": {
+        "options": [
+          {
+            "text": "Они оба опоздали",
+            "isCorrect": true
+          },
+          {
+            "text": "Они оба дома",
+            "isCorrect": false
+          },
+          {
+            "text": "Они оба рады",
+            "isCorrect": false
+          }
+        ],
+        "sendPickToChat": true,
+        "voicePhrase": "They are both late"
+      },
+      "triggers": [
+        {
+          "if": "word_correct",
+          "then": "n49"
+        },
+        {
+          "if": "variant",
+          "variantLabel": "Они оба опоздали",
+          "then": null
+        },
+        {
+          "if": "variant",
+          "variantLabel": "Они оба дома",
+          "then": null
+        },
+        {
+          "if": "variant",
+          "variantLabel": "Они оба рады",
+          "then": null
+        },
+        {
+          "if": "word_wrong",
+          "then": "n48"
+        }
+      ]
+    },
+    {
+      "ref": "n48",
+      "type": "text",
+      "seq": 132,
+      "pos": [
+        24440,
+        480
+      ],
+      "data": {
+        "content": "неа) {g:late} это {t:поздно}, значит {g:They are both late} это {t:они оба опоздали}",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1500,
+          "then": "n50"
+        }
+      ]
+    },
+    {
+      "ref": "n49",
+      "type": "reaction",
+      "seq": 41,
+      "pos": [
+        25000,
+        0
+      ],
+      "data": {
+        "emoji": "⏰",
+        "target": "student"
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1400,
+          "then": "n50"
+        }
+      ]
+    },
+    {
+      "ref": "n50",
+      "type": "audio",
+      "seq": 42,
+      "pos": [
+        25560,
+        0
+      ],
+      "note": "ОЗВУЧКА: Теперь вслух про нас с Мией: мы оба голодные, начни с We are both, а дальше любое слово",
+      "needs": "audio — озвучка реплики",
+      "data": {
+        "text": "Теперь вслух про нас с Мией: мы оба голодные, начни с {g:We are both}, а дальше любое слово",
+        "showText": true
+      },
+      "triggers": [
+        {
+          "if": "played",
+          "then": "n51"
+        }
+      ]
+    },
+    {
+      "ref": "n51",
+      "type": "say_phrase",
+      "seq": 43,
+      "pos": [
+        26120,
+        0
+      ],
+      "data": {
+        "lang": "en-US",
+        "phrase": "We are both hungry",
+        "translation": "Мы оба голодные",
+        "keywords": "",
+        "threshold": 70,
+        "strict": true,
+        "hintsOn": true,
+        "voiceReply": true,
+        "hintSilence": "Не слышу тебя) говори чуть громче и ближе к микрофону",
+        "hintPartial": "Близко) верно: {ok}, не хватило: {missed}",
+        "pattern": "(We are|We're) both **",
+        "startHint": "We are both — мы оба",
+        "hintMismatch": "Начни с We are both и добавь любое слово, например hungry)"
+      },
+      "triggers": [
+        {
+          "if": "say_done",
+          "then": "n53"
+        },
+        {
+          "if": "say_wrong",
+          "then": "n52"
+        }
+      ]
+    },
+    {
+      "ref": "n52",
+      "type": "text",
+      "seq": 131,
+      "pos": [
+        26120,
+        480
+      ],
+      "data": {
+        "content": "не то) начни с {g:We are both} и добавь любое слово)",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1500,
+          "then": "n56"
+        }
+      ]
+    },
+    {
+      "ref": "n53",
+      "type": "text",
+      "seq": 44,
+      "pos": [
+        26680,
+        0
+      ],
+      "data": {
+        "content": "так-так, дай послушать)",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1500,
+          "then": "n54"
+        }
+      ]
+    },
+    {
+      "ref": "n54",
+      "type": "audio",
+      "seq": 45,
+      "pos": [
+        27240,
+        0
+      ],
+      "note": "ОЗВУЧКА: ого, ты уже строишь фразу с both сам: We are both и дальше любое слово",
+      "needs": "audio — озвучка реплики",
+      "data": {
+        "text": "ого, ты уже строишь фразу с {g:both} сам: {g:We are both} и дальше любое слово",
+        "showText": true
+      },
+      "triggers": [
+        {
+          "if": "played",
+          "then": "n55"
+        }
+      ]
+    },
+    {
+      "ref": "n55",
+      "type": "reaction",
+      "seq": 46,
+      "pos": [
+        27800,
+        0
+      ],
+      "data": {
+        "emoji": "🔥",
+        "target": "student"
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1400,
+          "then": "n56"
+        }
+      ]
+    },
+    {
+      "ref": "n56",
+      "type": "scene",
+      "seq": 47,
+      "pos": [
+        29660,
+        0
+      ],
+      "note": "СЦЕНА: диалог двух котов в пузыре. Озвучку записать в редакторе сцены",
+      "data": {
+        "scene": {
+          "version": 2,
+          "id": "both-duo",
+          "title": "Пит и Мия в кафе",
+          "location": "cafe",
+          "characters": {
+            "a": {
+              "kind": "cat",
+              "gender": "male",
+              "name": "Пит",
+              "skin": "kit",
+              "voice": {
+                "pitch": 0.8,
+                "rate": 0.95
+              }
+            },
+            "b": {
+              "kind": "cat",
+              "gender": "female",
+              "name": "Мия",
+              "skin": "mia2",
+              "voice": {
+                "pitch": 1.3,
+                "rate": 0.9
+              }
+            }
+          },
+          "slots": {
+            "table": "table",
+            "table-left": "pastry-plate",
+            "window": "window",
+            "wall-menu": "menu-board",
+            "wall-art": "picture",
+            "ceiling": "pendant-lamp",
+            "counter": "coffee-machine",
+            "floor-left": "plant",
+            "floor-right": "floor-lamp",
+            "table-right": "laptop"
+          },
+          "timeline": [
+            {
+              "who": "a",
+              "text": "Mia, we both need coffee.",
+              "emotion": "tired",
+              "translation": "Мия, нам обоим нужен кофе."
+            },
+            {
+              "who": "b",
+              "text": "Yes! We are both so tired.",
+              "emotion": "tired",
+              "translation": "Да! Мы оба так устали."
+            },
+            {
+              "who": "a",
+              "text": "Let's order both: coffee and tea.",
+              "emotion": "happy",
+              "translation": "Давай закажем оба: кофе и чай."
+            },
+            {
+              "who": "b",
+              "text": "Great idea! Both of us win.",
+              "emotion": "happy",
+              "translation": "Отличная идея! Мы оба в выигрыше."
+            }
+          ],
+          "options": {
+            "bubbles": true
+          }
+        },
+        "mode": "bubble",
+        "showBubbles": true,
+        "start": "auto",
+        "crop": {
+          "x": 0,
+          "y": 0,
+          "scale": 1
+        }
+      },
+      "triggers": [
+        {
+          "if": "played",
+          "then": "n57"
+        }
+      ]
+    },
+    {
+      "ref": "n57",
+      "type": "system",
+      "seq": 48,
+      "pos": [
+        31520,
+        0
+      ],
+      "data": {
+        "content": "Часть 3 · both, all, neither"
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1600,
+          "then": "n58"
+        }
+      ]
+    },
+    {
+      "ref": "n58",
+      "type": "audio",
+      "seq": 49,
+      "pos": [
+        32080,
+        0
+      ],
+      "note": "ОЗВУЧКА: Рядом с both живут похожие слова: если двое, это both, а если трое и больше, это all. Считай, сколько их",
+      "needs": "audio — озвучка реплики",
+      "data": {
+        "text": "Рядом с {g:both} живут похожие слова: если двое, это {g:both}, а если трое и больше, это {g:all}. {l:Считай, сколько их}",
+        "showText": true
+      },
+      "triggers": [
+        {
+          "if": "played",
+          "then": "n59"
+        }
+      ]
+    },
+    {
+      "ref": "n59",
+      "type": "photo",
+      "seq": 50,
+      "pos": [
+        32640,
+        0
+      ],
+      "note": "ФОТО: сгенерировать в редакторе по imagePrompt",
+      "needs": "photo",
+      "data": {
+        "caption": "Нас за столиком трое: я, Мия и Том, едим пончики 🍩",
+        "imagePrompt": "Мультяшные кот, кошка и парень сидят за столиком в кафе, на столе пончики, светлый фон, без текста",
+        "crop": {
+          "x": 0,
+          "y": 0,
+          "scale": 1
+        }
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 2200,
+          "then": "n60"
+        }
+      ]
+    },
+    {
+      "ref": "n60",
+      "type": "text",
+      "seq": 51,
+      "pos": [
+        33200,
+        0
+      ],
+      "data": {
+        "content": "а как сказать {t:«мы все любим пончики»}, ведь нас трое?",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1500,
+          "then": "n61"
+        }
+      ]
+    },
+    {
+      "ref": "n61",
+      "type": "word_choice",
+      "seq": 52,
+      "pos": [
+        33760,
+        0
+      ],
+      "data": {
+        "options": [
+          {
+            "text": "We all like donuts",
+            "isCorrect": true
+          },
+          {
+            "text": "We both like donuts",
+            "isCorrect": false
+          },
+          {
+            "text": "We all likes donuts",
+            "isCorrect": false
+          }
+        ],
+        "sendPickToChat": true
+      },
+      "triggers": [
+        {
+          "if": "word_correct",
+          "then": "n63"
+        },
+        {
+          "if": "variant",
+          "variantLabel": "We all like donuts",
+          "then": null
+        },
+        {
+          "if": "variant",
+          "variantLabel": "We both like donuts",
+          "then": null
+        },
+        {
+          "if": "variant",
+          "variantLabel": "We all likes donuts",
+          "then": null
+        },
+        {
+          "if": "word_wrong",
+          "then": "n62"
+        }
+      ]
+    },
+    {
+      "ref": "n62",
+      "type": "text",
+      "seq": 130,
+      "pos": [
+        33760,
+        480
+      ],
+      "data": {
+        "content": "почти) нас трое, а {g:both} только про двоих, значит {g:all}:\n{g:We all like donuts}",
+        "hardWrap": true
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1500,
+          "then": "n64"
+        }
+      ]
+    },
+    {
+      "ref": "n63",
+      "type": "reaction",
+      "seq": 53,
+      "pos": [
+        34320,
+        0
+      ],
+      "data": {
+        "emoji": "🍩",
+        "target": "student"
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1400,
+          "then": "n64"
+        }
+      ]
+    },
+    {
+      "ref": "n64",
+      "type": "text",
+      "seq": 54,
+      "pos": [
+        34880,
+        0
+      ],
+      "data": {
+        "content": "Мия смотрит на кофе и чай, и ей не хочется ни того, ни другого((",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1500,
+          "then": "n65"
+        }
+      ]
+    },
+    {
+      "ref": "n65",
+      "type": "text",
+      "seq": 55,
+      "pos": [
+        35440,
+        0
+      ],
+      "data": {
+        "content": "как сказать одним словом {t:«ни то, ни другое»}?",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1500,
+          "then": "n66"
+        }
+      ]
+    },
+    {
+      "ref": "n66",
+      "type": "word_choice",
+      "seq": 56,
+      "pos": [
+        36000,
+        0
+      ],
+      "data": {
+        "options": [
+          {
+            "text": "neither",
+            "isCorrect": true
+          },
+          {
+            "text": "both",
+            "isCorrect": false
+          },
+          {
+            "text": "all",
+            "isCorrect": false
+          }
+        ],
+        "sendPickToChat": true
+      },
+      "triggers": [
+        {
+          "if": "word_correct",
+          "then": "n68"
+        },
+        {
+          "if": "variant",
+          "variantLabel": "neither",
+          "then": null
+        },
+        {
+          "if": "variant",
+          "variantLabel": "both",
+          "then": null
+        },
+        {
+          "if": "variant",
+          "variantLabel": "all",
+          "then": null
+        },
+        {
+          "if": "word_wrong",
+          "then": "n67"
+        }
+      ]
+    },
+    {
+      "ref": "n67",
+      "type": "text",
+      "seq": 129,
+      "pos": [
+        36000,
+        480
+      ],
+      "data": {
+        "content": "не совсем) двое, и не подходит ни один, это {g:neither}, наоборот от {g:both}",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1500,
+          "then": "n69"
+        }
+      ]
+    },
+    {
+      "ref": "n68",
+      "type": "reaction",
+      "seq": 57,
+      "pos": [
+        36560,
+        0
+      ],
+      "data": {
+        "emoji": "🙅",
+        "target": "student"
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1400,
+          "then": "n69"
+        }
+      ]
+    },
+    {
+      "ref": "n69",
+      "type": "audio",
+      "seq": 58,
+      "pos": [
+        37120,
+        0
+      ],
+      "note": "ОЗВУЧКА: neither это ни тот, ни другой, а both это и тот, и другой: слова-зеркала",
+      "needs": "audio — озвучка реплики",
+      "data": {
+        "text": "{g:neither} это {w:ни тот, ни другой}, а {g:both} это {w:и тот, и другой}: {l:слова-зеркала}",
+        "showText": true
+      },
+      "triggers": [
+        {
+          "if": "played",
+          "then": "n70"
+        }
+      ]
+    },
+    {
+      "ref": "n70",
+      "type": "sticker",
+      "seq": 59,
+      "pos": [
+        37680,
+        0
+      ],
+      "note": "СТИКЕР: сгенерировать в редакторе по imagePrompt",
+      "needs": "photo/video — сам стикер",
+      "data": {
+        "imagePrompt": "Мультяшный кот держит два зеркальных отражения себя, светлый фон, без текста",
+        "crop": {
+          "x": 0,
+          "y": 0,
+          "scale": 1
+        },
+        "muted": true,
+        "isVideo": false,
+        "autoSound": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1200,
+          "then": "n71"
+        }
+      ]
+    },
+    {
+      "ref": "n71",
+      "type": "table",
+      "seq": 60,
+      "pos": [
+        38240,
+        0
+      ],
+      "note": "ОЗВУЧКА таблицы (скрипт идёт по ячейкам слева направо, сверху вниз; метку «Проверить» поставить при монтаже после последней ячейки): Смотри, считаем, сколько их. Двое, both, we both like tea. Трое и больше, all, we all like tea. А если не подходит ни один из двоих, neither, neither of us",
+      "needs": "audio — только для режима dictator",
+      "data": {
+        "mode": "dictator",
+        "table": {
+          "rows": [
+            {
+              "id": "r0",
+              "heightPct": 25
+            },
+            {
+              "id": "r1",
+              "heightPct": 25
+            },
+            {
+              "id": "r2",
+              "heightPct": 25
+            },
+            {
+              "id": "r3",
+              "heightPct": 25
+            }
+          ],
+          "cells": [
+            {
+              "id": "h0",
+              "col": 0,
+              "row": 0,
+              "value": "Сколько",
+              "colspan": 1,
+              "rowspan": 1,
+              "fontSize": 11,
+              "isHeader": true
+            },
+            {
+              "id": "h1",
+              "col": 1,
+              "row": 0,
+              "value": "Слово",
+              "colspan": 1,
+              "rowspan": 1,
+              "fontSize": 11,
+              "isHeader": true
+            },
+            {
+              "id": "h2",
+              "col": 2,
+              "row": 0,
+              "value": "Пример",
+              "colspan": 1,
+              "rowspan": 1,
+              "fontSize": 11,
+              "isHeader": true
+            },
+            {
+              "id": "r0c0",
+              "col": 0,
+              "row": 1,
+              "value": "двое",
+              "colspan": 1,
+              "rowspan": 1,
+              "fontSize": 13
+            },
+            {
+              "id": "r0c1",
+              "col": 1,
+              "row": 1,
+              "value": "both",
+              "colspan": 1,
+              "rowspan": 1,
+              "fontSize": 15
+            },
+            {
+              "id": "r0c2",
+              "col": 2,
+              "row": 1,
+              "value": "We both like tea",
+              "colspan": 1,
+              "rowspan": 1,
+              "fontSize": 13
+            },
+            {
+              "id": "r1c0",
+              "col": 0,
+              "row": 2,
+              "value": "трое и больше",
+              "colspan": 1,
+              "rowspan": 1,
+              "fontSize": 13
+            },
+            {
+              "id": "r1c1",
+              "col": 1,
+              "row": 2,
+              "value": "all",
+              "colspan": 1,
+              "rowspan": 1,
+              "fontSize": 15
+            },
+            {
+              "id": "r1c2",
+              "col": 2,
+              "row": 2,
+              "value": "We all like tea",
+              "colspan": 1,
+              "rowspan": 1,
+              "fontSize": 13
+            },
+            {
+              "id": "r2c0",
+              "col": 0,
+              "row": 3,
+              "value": "ни один из двоих",
+              "colspan": 1,
+              "rowspan": 1,
+              "fontSize": 13
+            },
+            {
+              "id": "r2c1",
+              "col": 1,
+              "row": 3,
+              "value": "neither",
+              "colspan": 1,
+              "rowspan": 1,
+              "fontSize": 15
+            },
+            {
+              "id": "r2c2",
+              "col": 2,
+              "row": 3,
+              "value": "neither of us",
+              "colspan": 1,
+              "rowspan": 1,
+              "fontSize": 13
+            }
+          ],
+          "columns": [
+            {
+              "id": "c0",
+              "widthPct": 38
+            },
+            {
+              "id": "c1",
+              "widthPct": 22
+            },
+            {
+              "id": "c2",
+              "widthPct": 40
+            }
+          ],
+          "colCount": 3,
+          "rowCount": 4
+        },
+        "chatCaption": "сколько их",
+        "script": "Смотри, считаем, сколько их. Двое, both, we both like tea. Трое и больше, all, we all like tea. А если не подходит ни один из двоих, neither, neither of us",
+        "sendToChat": true
+      },
+      "triggers": [
+        {
+          "if": "table_correct",
+          "then": "n72"
+        },
+        {
+          "if": "table_wrong",
+          "then": null
+        }
+      ]
+    },
+    {
+      "ref": "n72",
+      "type": "pin_message",
+      "seq": 61,
+      "pos": [
+        38800,
+        0
+      ],
+      "data": {
+        "content": "{g:both} двое, {g:all} трое и больше, {g:neither} ни один"
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1800,
+          "then": "n73"
+        }
+      ]
+    },
+    {
+      "ref": "n73",
+      "type": "audio",
+      "seq": 62,
+      "pos": [
+        39360,
+        0
+      ],
+      "note": "ОЗВУЧКА: We all like sushi",
+      "needs": "audio — озвучка реплики",
+      "data": {
+        "text": "{g:We all like sushi}",
+        "showText": false
+      },
+      "triggers": [
+        {
+          "if": "played",
+          "then": "n74"
+        }
+      ]
+    },
+    {
+      "ref": "n74",
+      "type": "phrase_assembly",
+      "seq": 63,
+      "pos": [
+        39920,
+        0
+      ],
+      "data": {
+        "words": [
+          "We",
+          "all",
+          "like",
+          "sushi"
+        ],
+        "distractors": [
+          {
+            "text": "both"
+          },
+          {
+            "text": "likes"
+          },
+          {
+            "text": "they"
+          }
+        ],
+        "responseWrong": "не совсем) {g:all} это все, а не двое"
+      },
+      "triggers": [
+        {
+          "if": "phrase_correct",
+          "then": "n76"
+        },
+        {
+          "if": "variant",
+          "variantLabel": "both",
+          "then": null
+        },
+        {
+          "if": "variant",
+          "variantLabel": "likes",
+          "then": null
+        },
+        {
+          "if": "variant",
+          "variantLabel": "they",
+          "then": null
+        },
+        {
+          "if": "phrase_wrong",
+          "then": "n75"
+        }
+      ]
+    },
+    {
+      "ref": "n75",
+      "type": "text",
+      "seq": 128,
+      "pos": [
+        39920,
+        480
+      ],
+      "data": {
+        "content": "близко) {g:all} это {t:все}, а не двое:\n{g:We all like sushi}",
+        "hardWrap": true
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1500,
+          "then": "n77"
+        }
+      ]
+    },
+    {
+      "ref": "n76",
+      "type": "reaction",
+      "seq": 64,
+      "pos": [
+        40480,
+        0
+      ],
+      "data": {
+        "emoji": "🍣",
+        "target": "student"
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1400,
+          "then": "n77"
+        }
+      ]
+    },
+    {
+      "ref": "n77",
+      "type": "audio",
+      "seq": 65,
+      "pos": [
+        42340,
+        0
+      ],
+      "note": "ОЗВУЧКА: С основой разобрались: both это двое, а all и neither его соседи. Всю формулу соберём в самом конце, а пока выбирай: закончить или потренироваться",
+      "needs": "audio — озвучка реплики",
+      "data": {
+        "text": "С основой разобрались: {g:both} это {l:двое}, а {g:all} и {g:neither} его соседи. Всю формулу соберём в самом конце, а пока выбирай: закончить или потренироваться",
+        "showText": true
+      },
+      "triggers": [
+        {
+          "if": "played",
+          "then": "n78"
+        }
+      ]
+    },
+    {
+      "ref": "n78",
+      "type": "word_choice",
+      "seq": 66,
+      "pos": [
+        42900,
+        0
+      ],
+      "note": "Меню-развилка, не тест",
+      "data": {
+        "reward": false,
+        "options": [
+          {
+            "text": "Закончить ✅",
+            "isCorrect": true
+          },
+          {
+            "text": "Ещё потренируюсь 💪",
+            "isCorrect": true
+          }
+        ],
+        "sendPickToChat": true
+      },
+      "triggers": [
+        {
+          "if": "word_correct",
+          "then": "n79"
+        },
+        {
+          "if": "word_wrong",
+          "then": null
+        },
+        {
+          "if": "variant",
+          "variantLabel": "Закончить ✅",
+          "then": "n134"
+        },
+        {
+          "if": "variant",
+          "variantLabel": "Ещё потренируюсь 💪",
+          "then": "n79"
+        }
+      ]
+    },
+    {
+      "ref": "n79",
+      "type": "text",
+      "seq": 67,
+      "pos": [
+        44760,
+        0
+      ],
+      "data": {
+        "content": "Ну раз с {g:both} ты уже знаком, давай проверим, как оно работает в деле 💪",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1500,
+          "then": "n80"
+        }
+      ]
+    },
+    {
+      "ref": "n80",
+      "type": "audio",
+      "seq": 68,
+      "pos": [
+        45320,
+        0
+      ],
+      "note": "ОЗВУЧКА: Будет три уровня, и каждый чуть сложнее предыдущего",
+      "needs": "audio — озвучка реплики",
+      "data": {
+        "text": "Будет три уровня, и {l:каждый чуть сложнее} предыдущего",
+        "showText": true
+      },
+      "triggers": [
+        {
+          "if": "played",
+          "then": "n81"
+        }
+      ]
+    },
+    {
+      "ref": "n81",
+      "type": "system",
+      "seq": 69,
+      "pos": [
+        46580,
+        0
+      ],
+      "data": {
+        "content": "Уровень 1 · разогрев"
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1600,
+          "then": "n82"
+        }
+      ]
+    },
+    {
+      "ref": "n82",
+      "type": "text",
+      "seq": 70,
+      "pos": [
+        47140,
+        0
+      ],
+      "data": {
+        "content": "Мия зовёт меня в кино, и мы оба в восторге 🤩",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1500,
+          "then": "n83"
+        }
+      ]
+    },
+    {
+      "ref": "n83",
+      "type": "text",
+      "seq": 71,
+      "pos": [
+        47700,
+        0
+      ],
+      "data": {
+        "content": "помоги ответить ей: {t:«мы оба любим кино»}",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1500,
+          "then": "n84"
+        }
+      ]
+    },
+    {
+      "ref": "n84",
+      "type": "phrase_assembly",
+      "seq": 72,
+      "pos": [
+        48260,
+        0
+      ],
+      "data": {
+        "words": [
+          "Both",
+          "of",
+          "us",
+          "love",
+          "movies"
+        ],
+        "distractors": [
+          {
+            "text": "all"
+          },
+          {
+            "text": "them"
+          },
+          {
+            "text": "you"
+          }
+        ],
+        "answers": [
+          [
+            "We",
+            "both",
+            "love",
+            "movies"
+          ]
+        ],
+        "responseWrong": "не совсем) двое, значит {g:both}"
+      },
+      "triggers": [
+        {
+          "if": "phrase_correct",
+          "then": "n86"
+        },
+        {
+          "if": "variant",
+          "variantLabel": "all",
+          "then": null
+        },
+        {
+          "if": "variant",
+          "variantLabel": "them",
+          "then": null
+        },
+        {
+          "if": "variant",
+          "variantLabel": "you",
+          "then": null
+        },
+        {
+          "if": "phrase_wrong",
+          "then": "n85"
+        }
+      ]
+    },
+    {
+      "ref": "n85",
+      "type": "text",
+      "seq": 127,
+      "pos": [
+        48260,
+        480
+      ],
+      "data": {
+        "content": "неа) нас двое, значит {g:Both of us love movies}, или короче {g:We both love movies}",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1500,
+          "then": "n87"
+        }
+      ]
+    },
+    {
+      "ref": "n86",
+      "type": "reaction",
+      "seq": 73,
+      "pos": [
+        48820,
+        0
+      ],
+      "data": {
+        "emoji": "🎬",
+        "target": "student"
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1400,
+          "then": "n87"
+        }
+      ]
+    },
+    {
+      "ref": "n87",
+      "type": "text",
+      "seq": 74,
+      "pos": [
+        49380,
+        0
+      ],
+      "data": {
+        "content": "а ну-ка зацени на слух 👂",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1500,
+          "then": "n88"
+        }
+      ]
+    },
+    {
+      "ref": "n88",
+      "type": "audio",
+      "seq": 75,
+      "pos": [
+        49940,
+        0
+      ],
+      "note": "ОЗВУЧКА: Both cats sleep",
+      "needs": "audio — озвучка реплики",
+      "data": {
+        "text": "{g:Both cats sleep}",
+        "showText": false
+      },
+      "triggers": [
+        {
+          "if": "played",
+          "then": "n89"
+        }
+      ]
+    },
+    {
+      "ref": "n89",
+      "type": "word_choice",
+      "seq": 76,
+      "pos": [
+        50500,
+        0
+      ],
+      "data": {
+        "options": [
+          {
+            "text": "Оба кота спят",
+            "isCorrect": true
+          },
+          {
+            "text": "Все коты спят",
+            "isCorrect": false
+          },
+          {
+            "text": "Оба кота едят",
+            "isCorrect": false
+          }
+        ],
+        "sendPickToChat": true,
+        "voicePhrase": "Both cats sleep"
+      },
+      "triggers": [
+        {
+          "if": "word_correct",
+          "then": "n91"
+        },
+        {
+          "if": "variant",
+          "variantLabel": "Оба кота спят",
+          "then": null
+        },
+        {
+          "if": "variant",
+          "variantLabel": "Все коты спят",
+          "then": null
+        },
+        {
+          "if": "variant",
+          "variantLabel": "Оба кота едят",
+          "then": null
+        },
+        {
+          "if": "word_wrong",
+          "then": "n90"
+        }
+      ]
+    },
+    {
+      "ref": "n90",
+      "type": "text",
+      "seq": 126,
+      "pos": [
+        50500,
+        480
+      ],
+      "data": {
+        "content": "не то) {g:both} это {t:оба}, поэтому {g:Both cats sleep} это {t:оба кота спят}",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1500,
+          "then": "n92"
+        }
+      ]
+    },
+    {
+      "ref": "n91",
+      "type": "reaction",
+      "seq": 77,
+      "pos": [
+        51060,
+        0
+      ],
+      "data": {
+        "emoji": "😸",
+        "target": "student"
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1400,
+          "then": "n92"
+        }
+      ]
+    },
+    {
+      "ref": "n92",
+      "type": "audio",
+      "seq": 78,
+      "pos": [
+        51620,
+        0
+      ],
+      "note": "ОЗВУЧКА: Скажи вслух «мы оба хотим чай»: начни с We both want, а дальше любое слово",
+      "needs": "audio — озвучка реплики",
+      "data": {
+        "text": "Скажи вслух {t:«мы оба хотим чай»}: начни с {g:We both want}, а дальше любое слово",
+        "showText": true
+      },
+      "triggers": [
+        {
+          "if": "played",
+          "then": "n93"
+        }
+      ]
+    },
+    {
+      "ref": "n93",
+      "type": "say_phrase",
+      "seq": 79,
+      "pos": [
+        52180,
+        0
+      ],
+      "data": {
+        "lang": "en-US",
+        "phrase": "We both want tea",
+        "translation": "Мы оба хотим чай",
+        "keywords": "",
+        "threshold": 70,
+        "strict": true,
+        "hintsOn": true,
+        "voiceReply": true,
+        "hintSilence": "Не слышу тебя) говори чуть громче и ближе к микрофону",
+        "hintPartial": "Близко) верно: {ok}, не хватило: {missed}",
+        "pattern": "We both want **",
+        "startHint": "We both want — мы оба хотим",
+        "hintMismatch": "Начни с We both want и добавь любое слово, например tea)"
+      },
+      "triggers": [
+        {
+          "if": "say_done",
+          "then": "n95"
+        },
+        {
+          "if": "say_wrong",
+          "then": "n94"
+        }
+      ]
+    },
+    {
+      "ref": "n94",
+      "type": "text",
+      "seq": 125,
+      "pos": [
+        52180,
+        480
+      ],
+      "data": {
+        "content": "почти) начни с {g:We both want} и добавь любое слово)",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1500,
+          "then": "n96"
+        }
+      ]
+    },
+    {
+      "ref": "n95",
+      "type": "text",
+      "seq": 80,
+      "pos": [
+        52740,
+        0
+      ],
+      "data": {
+        "content": "да)) 🍵",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1500,
+          "then": "n96"
+        }
+      ]
+    },
+    {
+      "ref": "n96",
+      "type": "system",
+      "seq": 81,
+      "pos": [
+        54000,
+        0
+      ],
+      "data": {
+        "content": "Уровень 2 · оба, все или ни один"
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1600,
+          "then": "n97"
+        }
+      ]
+    },
+    {
+      "ref": "n97",
+      "type": "audio",
+      "seq": 82,
+      "pos": [
+        54560,
+        0
+      ],
+      "note": "ОЗВУЧКА: Давай смешаем похожие слова, а ты считай, сколько их",
+      "needs": "audio — озвучка реплики",
+      "data": {
+        "text": "Давай смешаем похожие слова, а ты {l:считай, сколько их}",
+        "showText": true
+      },
+      "triggers": [
+        {
+          "if": "played",
+          "then": "n98"
+        }
+      ]
+    },
+    {
+      "ref": "n98",
+      "type": "photo",
+      "seq": 83,
+      "pos": [
+        55120,
+        0
+      ],
+      "note": "ФОТО: сгенерировать в редакторе по imagePrompt",
+      "needs": "photo",
+      "data": {
+        "caption": "Идём втроём по улице: я, Мия и Том 🚶",
+        "imagePrompt": "Мультяшные кот, кошка и парень идут по улице втроём, весёлые, светлый фон, без текста",
+        "crop": {
+          "x": 0,
+          "y": 0,
+          "scale": 1
+        }
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 2200,
+          "then": "n99"
+        }
+      ]
+    },
+    {
+      "ref": "n99",
+      "type": "text",
+      "seq": 84,
+      "pos": [
+        55680,
+        0
+      ],
+      "data": {
+        "content": "а здесь нужно {g:all}, {g:both} или {g:neither}?\n{g:Mia, Tom and I ___ love sushi}",
+        "hardWrap": true
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1500,
+          "then": "n100"
+        }
+      ]
+    },
+    {
+      "ref": "n100",
+      "type": "word_choice",
+      "seq": 85,
+      "pos": [
+        56240,
+        0
+      ],
+      "data": {
+        "options": [
+          {
+            "text": "all",
+            "isCorrect": true
+          },
+          {
+            "text": "both",
+            "isCorrect": false
+          },
+          {
+            "text": "neither",
+            "isCorrect": false
+          }
+        ],
+        "sendPickToChat": true
+      },
+      "triggers": [
+        {
+          "if": "word_correct",
+          "then": "n102"
+        },
+        {
+          "if": "variant",
+          "variantLabel": "all",
+          "then": null
+        },
+        {
+          "if": "variant",
+          "variantLabel": "both",
+          "then": null
+        },
+        {
+          "if": "variant",
+          "variantLabel": "neither",
+          "then": null
+        },
+        {
+          "if": "word_wrong",
+          "then": "n101"
+        }
+      ]
+    },
+    {
+      "ref": "n101",
+      "type": "text",
+      "seq": 124,
+      "pos": [
+        56240,
+        480
+      ],
+      "data": {
+        "content": "не совсем) нас трое, а {g:both} только про двоих, значит {g:all}",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1500,
+          "then": "n103"
+        }
+      ]
+    },
+    {
+      "ref": "n102",
+      "type": "reaction",
+      "seq": 86,
+      "pos": [
+        56800,
+        0
+      ],
+      "data": {
+        "emoji": "🍣",
+        "target": "student"
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1400,
+          "then": "n103"
+        }
+      ]
+    },
+    {
+      "ref": "n103",
+      "type": "text",
+      "seq": 87,
+      "pos": [
+        57360,
+        0
+      ],
+      "data": {
+        "content": "а теперь только мы с Мией:\n{g:Mia and I ___ like jazz}",
+        "hardWrap": true
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1500,
+          "then": "n104"
+        }
+      ]
+    },
+    {
+      "ref": "n104",
+      "type": "word_choice",
+      "seq": 88,
+      "pos": [
+        57920,
+        0
+      ],
+      "data": {
+        "options": [
+          {
+            "text": "both",
+            "isCorrect": true
+          },
+          {
+            "text": "all",
+            "isCorrect": false
+          },
+          {
+            "text": "neither",
+            "isCorrect": false
+          }
+        ],
+        "sendPickToChat": true
+      },
+      "triggers": [
+        {
+          "if": "word_correct",
+          "then": "n106"
+        },
+        {
+          "if": "variant",
+          "variantLabel": "both",
+          "then": null
+        },
+        {
+          "if": "variant",
+          "variantLabel": "all",
+          "then": null
+        },
+        {
+          "if": "variant",
+          "variantLabel": "neither",
+          "then": null
+        },
+        {
+          "if": "word_wrong",
+          "then": "n105"
+        }
+      ]
+    },
+    {
+      "ref": "n105",
+      "type": "text",
+      "seq": 123,
+      "pos": [
+        57920,
+        480
+      ],
+      "data": {
+        "content": "близко) нас двое, значит {g:both}:\n{g:Mia and I both like jazz}",
+        "hardWrap": true
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1500,
+          "then": "n107"
+        }
+      ]
+    },
+    {
+      "ref": "n106",
+      "type": "reaction",
+      "seq": 89,
+      "pos": [
+        58480,
+        0
+      ],
+      "data": {
+        "emoji": "🎷",
+        "target": "student"
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1400,
+          "then": "n107"
+        }
+      ]
+    },
+    {
+      "ref": "n107",
+      "type": "photo",
+      "seq": 90,
+      "pos": [
+        59040,
+        0
+      ],
+      "note": "ФОТО: сгенерировать в редакторе по imagePrompt",
+      "needs": "photo",
+      "data": {
+        "caption": "Мия и Том сегодня в хорошем настроении 😊",
+        "imagePrompt": "Мультяшные девушка и парень смеются вместе, вокруг яркий день, без текста",
+        "crop": {
+          "x": 0,
+          "y": 0,
+          "scale": 1
+        }
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 2200,
+          "then": "n108"
+        }
+      ]
+    },
+    {
+      "ref": "n108",
+      "type": "audio",
+      "seq": 91,
+      "pos": [
+        59600,
+        0
+      ],
+      "note": "ОЗВУЧКА: Собери фразу «Мия и Том оба рады»",
+      "needs": "audio — озвучка реплики",
+      "data": {
+        "text": "Собери фразу {t:«Мия и Том оба рады»}",
+        "showText": true
+      },
+      "triggers": [
+        {
+          "if": "played",
+          "then": "n109"
+        }
+      ]
+    },
+    {
+      "ref": "n109",
+      "type": "phrase_assembly",
+      "seq": 92,
+      "pos": [
+        60160,
+        0
+      ],
+      "data": {
+        "words": [
+          "Mia",
+          "and",
+          "Tom",
+          "are",
+          "both",
+          "happy"
+        ],
+        "distractors": [
+          {
+            "text": "all"
+          },
+          {
+            "text": "is"
+          },
+          {
+            "text": "neither"
+          }
+        ],
+        "responseWrong": "не совсем) после {g:are} слово {g:both} идёт следом"
+      },
+      "triggers": [
+        {
+          "if": "phrase_correct",
+          "then": "n111"
+        },
+        {
+          "if": "variant",
+          "variantLabel": "all",
+          "then": null
+        },
+        {
+          "if": "variant",
+          "variantLabel": "is",
+          "then": null
+        },
+        {
+          "if": "variant",
+          "variantLabel": "neither",
+          "then": null
+        },
+        {
+          "if": "phrase_wrong",
+          "then": "n110"
+        }
+      ]
+    },
+    {
+      "ref": "n110",
+      "type": "text",
+      "seq": 122,
+      "pos": [
+        60160,
+        480
+      ],
+      "data": {
+        "content": "неа) с {g:are} слово {g:both} идёт после него:\n{g:Mia and Tom are both happy}",
+        "hardWrap": true
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1500,
+          "then": "n112"
+        }
+      ]
+    },
+    {
+      "ref": "n111",
+      "type": "reaction",
+      "seq": 93,
+      "pos": [
+        60720,
+        0
+      ],
+      "data": {
+        "emoji": "😄",
+        "target": "student"
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1400,
+          "then": "n112"
+        }
+      ]
+    },
+    {
+      "ref": "n112",
+      "type": "text",
+      "seq": 94,
+      "pos": [
+        61280,
+        0
+      ],
+      "data": {
+        "content": "напечатай {t:«оба кота»}: тапай по светящимся буквам",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1500,
+          "then": "n113"
+        }
+      ]
+    },
+    {
+      "ref": "n113",
+      "type": "type_word",
+      "seq": 95,
+      "pos": [
+        61840,
+        0
+      ],
+      "data": {
+        "word": "both cats",
+        "extraLetters": "dk",
+        "responseWrong": "не то) котов двое, значит перед {g:cats} нужно {g:both}"
+      },
+      "triggers": [
+        {
+          "if": "type_correct",
+          "then": "n115"
+        },
+        {
+          "if": "type_wrong",
+          "then": "n114"
+        }
+      ]
+    },
+    {
+      "ref": "n114",
+      "type": "text",
+      "seq": 121,
+      "pos": [
+        61840,
+        480
+      ],
+      "data": {
+        "content": "не то) котов двое, {g:both cats}",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1500,
+          "then": "n116"
+        }
+      ]
+    },
+    {
+      "ref": "n115",
+      "type": "reaction",
+      "seq": 96,
+      "pos": [
+        62400,
+        0
+      ],
+      "data": {
+        "emoji": "🐾",
+        "target": "student"
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1400,
+          "then": "n116"
+        }
+      ]
+    },
+    {
+      "ref": "n116",
+      "type": "system",
+      "seq": 97,
+      "pos": [
+        63660,
+        0
+      ],
+      "data": {
+        "content": "Уровень 3 · без подсказок"
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1600,
+          "then": "n117"
+        }
+      ]
+    },
+    {
+      "ref": "n117",
+      "type": "sticker",
+      "seq": 98,
+      "pos": [
+        64220,
+        0
+      ],
+      "note": "СТИКЕР: сгенерировать в редакторе по imagePrompt",
+      "needs": "photo/video — сам стикер",
+      "data": {
+        "imagePrompt": "Мультяшный кот в шоке с открытым ртом, добрался до последнего уровня, светлый фон, без текста",
+        "crop": {
+          "x": 0,
+          "y": 0,
+          "scale": 1
+        },
+        "muted": true,
+        "isVideo": false,
+        "autoSound": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1200,
+          "then": "n118"
+        }
+      ]
+    },
+    {
+      "ref": "n118",
+      "type": "text",
+      "seq": 99,
+      "pos": [
+        64780,
+        0
+      ],
+      "data": {
+        "content": "Мия пишет: тебе больше нравится лето или зима? 😅",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1500,
+          "then": "n119"
+        }
+      ]
+    },
+    {
+      "ref": "n119",
+      "type": "sticker",
+      "seq": 100,
+      "pos": [
+        65340,
+        0
+      ],
+      "note": "СТИКЕР: сгенерировать в редакторе по imagePrompt",
+      "needs": "photo/video — сам стикер",
+      "data": {
+        "imagePrompt": "Мультяшная кошка с телефоном задумчиво смотрит в экран, светлый фон, без текста",
+        "crop": {
+          "x": 0,
+          "y": 0,
+          "scale": 1
+        },
+        "muted": true,
+        "isVideo": false,
+        "autoSound": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1200,
+          "then": "n120"
+        }
+      ]
+    },
+    {
+      "ref": "n120",
+      "type": "audio",
+      "seq": 101,
+      "pos": [
+        65900,
+        0
+      ],
+      "note": "ОЗВУЧКА: Ответь ей вслух, что тебе нравятся оба времени года: начни с I like both, дальше по-своему",
+      "needs": "audio — озвучка реплики",
+      "data": {
+        "text": "Ответь ей вслух, что тебе нравятся оба времени года: начни с {g:I like both}, дальше по-своему",
+        "showText": true
+      },
+      "triggers": [
+        {
+          "if": "played",
+          "then": "n121"
+        }
+      ]
+    },
+    {
+      "ref": "n121",
+      "type": "say_phrase",
+      "seq": 102,
+      "pos": [
+        66460,
+        0
+      ],
+      "data": {
+        "lang": "en-US",
+        "phrase": "I like both summer and winter",
+        "translation": "Мне нравятся и лето, и зима",
+        "keywords": "",
+        "threshold": 70,
+        "strict": true,
+        "hintsOn": false,
+        "voiceReply": true,
+        "hintSilence": "Не слышу тебя) говори чуть громче и ближе к микрофону",
+        "hintPartial": "Близко) верно: {ok}, не хватило: {missed}",
+        "pattern": "I like both **",
+        "startHint": "I like both — мне нравятся оба",
+        "hintMismatch": "Начни с I like both и добавь любое слово, например summer and winter)"
+      },
+      "triggers": [
+        {
+          "if": "say_done",
+          "then": "n123"
+        },
+        {
+          "if": "say_wrong",
+          "then": "n122"
+        }
+      ]
+    },
+    {
+      "ref": "n122",
+      "type": "text",
+      "seq": 120,
+      "pos": [
+        66460,
+        480
+      ],
+      "data": {
+        "content": "почти) начни с {g:I like both} и добавь любое слово)",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1500,
+          "then": "n126"
+        }
+      ]
+    },
+    {
+      "ref": "n123",
+      "type": "text",
+      "seq": 103,
+      "pos": [
+        67020,
+        0
+      ],
+      "data": {
+        "content": "слушаю, что получилось)",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1500,
+          "then": "n124"
+        }
+      ]
+    },
+    {
+      "ref": "n124",
+      "type": "audio",
+      "seq": 104,
+      "pos": [
+        67580,
+        0
+      ],
+      "note": "ОЗВУЧКА: у тебя уже получается строить такие фразы без подсказок: I like both и дальше любое слово",
+      "needs": "audio — озвучка реплики",
+      "data": {
+        "text": "у тебя уже получается строить такие фразы без подсказок: {g:I like both} и дальше любое слово",
+        "showText": true
+      },
+      "triggers": [
+        {
+          "if": "played",
+          "then": "n125"
+        }
+      ]
+    },
+    {
+      "ref": "n125",
+      "type": "reaction",
+      "seq": 105,
+      "pos": [
+        68140,
+        0
+      ],
+      "data": {
+        "emoji": "🔥",
+        "target": "student"
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1400,
+          "then": "n126"
+        }
+      ]
+    },
+    {
+      "ref": "n126",
+      "type": "audio",
+      "seq": 106,
+      "pos": [
+        68700,
+        0
+      ],
+      "note": "ОЗВУЧКА: Mia and Tom are both here",
+      "needs": "audio — озвучка реплики",
+      "data": {
+        "text": "{g:Mia and Tom are both here}",
+        "showText": false
+      },
+      "triggers": [
+        {
+          "if": "played",
+          "then": "n127"
+        }
+      ]
+    },
+    {
+      "ref": "n127",
+      "type": "word_choice",
+      "seq": 107,
+      "pos": [
+        69260,
+        0
+      ],
+      "data": {
+        "options": [
+          {
+            "text": "Мия и Том оба здесь",
+            "isCorrect": true
+          },
+          {
+            "text": "Мия и Том оба дома",
+            "isCorrect": false
+          },
+          {
+            "text": "Мии и Тома здесь нет",
+            "isCorrect": false
+          }
+        ],
+        "sendPickToChat": true,
+        "voicePhrase": "Mia and Tom are both here"
+      },
+      "triggers": [
+        {
+          "if": "word_correct",
+          "then": "n129"
+        },
+        {
+          "if": "variant",
+          "variantLabel": "Мия и Том оба здесь",
+          "then": null
+        },
+        {
+          "if": "variant",
+          "variantLabel": "Мия и Том оба дома",
+          "then": null
+        },
+        {
+          "if": "variant",
+          "variantLabel": "Мии и Тома здесь нет",
+          "then": null
+        },
+        {
+          "if": "word_wrong",
+          "then": "n128"
+        }
+      ]
+    },
+    {
+      "ref": "n128",
+      "type": "text",
+      "seq": 119,
+      "pos": [
+        69260,
+        480
+      ],
+      "data": {
+        "content": "не совсем) {g:here} это {t:здесь}, поэтому {g:Mia and Tom are both here} это {t:Мия и Том оба здесь}",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1500,
+          "then": "n130"
+        }
+      ]
+    },
+    {
+      "ref": "n129",
+      "type": "reaction",
+      "seq": 108,
+      "pos": [
+        69820,
+        0
+      ],
+      "data": {
+        "emoji": "👏",
+        "target": "student"
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1400,
+          "then": "n130"
+        }
+      ]
+    },
+    {
+      "ref": "n130",
+      "type": "audio",
+      "seq": 109,
+      "pos": [
+        70380,
+        0
+      ],
+      "note": "ОЗВУЧКА: Неожиданность: Мия зовёт нас на вечеринку. Скажи, что вы с ней оба готовы, начни с We are both",
+      "needs": "audio — озвучка реплики",
+      "data": {
+        "text": "Неожиданность: Мия зовёт нас на вечеринку. Скажи, что вы с ней оба готовы, начни с {g:We are both}",
+        "showText": true
+      },
+      "triggers": [
+        {
+          "if": "played",
+          "then": "n131"
+        }
+      ]
+    },
+    {
+      "ref": "n131",
+      "type": "say_phrase",
+      "seq": 110,
+      "pos": [
+        70940,
+        0
+      ],
+      "data": {
+        "lang": "en-US",
+        "phrase": "We are both ready",
+        "translation": "Мы оба готовы",
+        "keywords": "",
+        "threshold": 70,
+        "strict": true,
+        "hintsOn": false,
+        "voiceReply": true,
+        "hintSilence": "Не слышу тебя) говори чуть громче и ближе к микрофону",
+        "hintPartial": "Близко) верно: {ok}, не хватило: {missed}",
+        "pattern": "(We are|We're) both **",
+        "startHint": "We are both — мы оба",
+        "hintMismatch": "Начни с We are both и добавь любое слово, например ready)"
+      },
+      "triggers": [
+        {
+          "if": "say_done",
+          "then": "n133"
+        },
+        {
+          "if": "say_wrong",
+          "then": "n132"
+        }
+      ]
+    },
+    {
+      "ref": "n132",
+      "type": "text",
+      "seq": 118,
+      "pos": [
+        70940,
+        480
+      ],
+      "data": {
+        "content": "близко) начни с {g:We are both} и добавь любое слово)",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1500,
+          "then": "n134"
+        }
+      ]
+    },
+    {
+      "ref": "n133",
+      "type": "text",
+      "seq": 111,
+      "pos": [
+        71500,
+        0
+      ],
+      "data": {
+        "content": "огонь)) 🎉",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1500,
+          "then": "n134"
+        }
+      ]
+    },
+    {
+      "ref": "n134",
+      "type": "system",
+      "seq": 112,
+      "pos": [
+        73360,
+        0
+      ],
+      "data": {
+        "content": "Финал"
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1600,
+          "then": "n135"
+        }
+      ]
+    },
+    {
+      "ref": "n135",
+      "type": "text",
+      "seq": 113,
+      "pos": [
+        73920,
+        0
+      ],
+      "data": {
+        "content": "Если коротко: {g:both} это {l:двое сразу}, а трое и больше уже {g:all}",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1500,
+          "then": "n136"
+        }
+      ]
+    },
+    {
+      "ref": "n136",
+      "type": "table",
+      "seq": 114,
+      "pos": [
+        74480,
+        0
+      ],
+      "note": "ОЗВУЧКА таблицы (скрипт идёт по ячейкам слева направо, сверху вниз; метку «Проверить» поставить при монтаже после последней ячейки): Смотри, всё вместе. С вещью, both, Mia likes both cats. С местоимением, both of, both of us. Парой, both и and, both rock and jazz. С обычным глаголом, we both, we both like tea. А после are, are both, we are both tired. Везде речь про двоих",
+      "needs": "audio — только для режима dictator",
+      "data": {
+        "mode": "dictator",
+        "table": {
+          "rows": [
+            {
+              "id": "r0",
+              "heightPct": 17
+            },
+            {
+              "id": "r1",
+              "heightPct": 17
+            },
+            {
+              "id": "r2",
+              "heightPct": 17
+            },
+            {
+              "id": "r3",
+              "heightPct": 17
+            },
+            {
+              "id": "r4",
+              "heightPct": 17
+            },
+            {
+              "id": "r5",
+              "heightPct": 17
+            }
+          ],
+          "cells": [
+            {
+              "id": "h0",
+              "col": 0,
+              "row": 0,
+              "value": "Как",
+              "colspan": 1,
+              "rowspan": 1,
+              "fontSize": 11,
+              "isHeader": true
+            },
+            {
+              "id": "h1",
+              "col": 1,
+              "row": 0,
+              "value": "Слово",
+              "colspan": 1,
+              "rowspan": 1,
+              "fontSize": 11,
+              "isHeader": true
+            },
+            {
+              "id": "h2",
+              "col": 2,
+              "row": 0,
+              "value": "Пример",
+              "colspan": 1,
+              "rowspan": 1,
+              "fontSize": 11,
+              "isHeader": true
+            },
+            {
+              "id": "r0c0",
+              "col": 0,
+              "row": 1,
+              "value": "с вещью",
+              "colspan": 1,
+              "rowspan": 1,
+              "fontSize": 13
+            },
+            {
+              "id": "r0c1",
+              "col": 1,
+              "row": 1,
+              "value": "both",
+              "colspan": 1,
+              "rowspan": 1,
+              "fontSize": 15
+            },
+            {
+              "id": "r0c2",
+              "col": 2,
+              "row": 1,
+              "value": "Mia likes both cats",
+              "colspan": 1,
+              "rowspan": 1,
+              "fontSize": 13
+            },
+            {
+              "id": "r1c0",
+              "col": 0,
+              "row": 2,
+              "value": "с местоимением",
+              "colspan": 1,
+              "rowspan": 1,
+              "fontSize": 13
+            },
+            {
+              "id": "r1c1",
+              "col": 1,
+              "row": 2,
+              "value": "both of",
+              "colspan": 1,
+              "rowspan": 1,
+              "fontSize": 15
+            },
+            {
+              "id": "r1c2",
+              "col": 2,
+              "row": 2,
+              "value": "both of us",
+              "colspan": 1,
+              "rowspan": 1,
+              "fontSize": 13
+            },
+            {
+              "id": "r2c0",
+              "col": 0,
+              "row": 3,
+              "value": "парой",
+              "colspan": 1,
+              "rowspan": 1,
+              "fontSize": 13
+            },
+            {
+              "id": "r2c1",
+              "col": 1,
+              "row": 3,
+              "value": "both and",
+              "colspan": 1,
+              "rowspan": 1,
+              "fontSize": 15
+            },
+            {
+              "id": "r2c2",
+              "col": 2,
+              "row": 3,
+              "value": "both rock and jazz",
+              "colspan": 1,
+              "rowspan": 1,
+              "fontSize": 13
+            },
+            {
+              "id": "r3c0",
+              "col": 0,
+              "row": 4,
+              "value": "с глаголом",
+              "colspan": 1,
+              "rowspan": 1,
+              "fontSize": 13
+            },
+            {
+              "id": "r3c1",
+              "col": 1,
+              "row": 4,
+              "value": "we both",
+              "colspan": 1,
+              "rowspan": 1,
+              "fontSize": 15
+            },
+            {
+              "id": "r3c2",
+              "col": 2,
+              "row": 4,
+              "value": "We both like tea",
+              "colspan": 1,
+              "rowspan": 1,
+              "fontSize": 13
+            },
+            {
+              "id": "r4c0",
+              "col": 0,
+              "row": 5,
+              "value": "после are",
+              "colspan": 1,
+              "rowspan": 1,
+              "fontSize": 13
+            },
+            {
+              "id": "r4c1",
+              "col": 1,
+              "row": 5,
+              "value": "are both",
+              "colspan": 1,
+              "rowspan": 1,
+              "fontSize": 15
+            },
+            {
+              "id": "r4c2",
+              "col": 2,
+              "row": 5,
+              "value": "We are both tired",
+              "colspan": 1,
+              "rowspan": 1,
+              "fontSize": 13
+            }
+          ],
+          "columns": [
+            {
+              "id": "c0",
+              "widthPct": 33
+            },
+            {
+              "id": "c1",
+              "widthPct": 23
+            },
+            {
+              "id": "c2",
+              "widthPct": 44
+            }
+          ],
+          "colCount": 3,
+          "rowCount": 6
+        },
+        "chatCaption": "вся формула both",
+        "script": "Смотри, всё вместе. С вещью, both, Mia likes both cats. С местоимением, both of, both of us. Парой, both и and, both rock and jazz. С обычным глаголом, we both, we both like tea. А после are, are both, we are both tired. Везде речь про двоих",
+        "sendToChat": true
+      },
+      "triggers": [
+        {
+          "if": "table_correct",
+          "then": "n137"
+        },
+        {
+          "if": "table_wrong",
+          "then": null
+        }
+      ]
+    },
+    {
+      "ref": "n137",
+      "type": "scene",
+      "seq": 115,
+      "pos": [
+        75040,
+        0
+      ],
+      "note": "СЦЕНА: кружок Пита, один кот крупно, без облачков (текст реплик в кружке не показывается). Озвучку записать кнопкой «Озвучить» в редакторе сцены",
+      "data": {
+        "scene": {
+          "version": 2,
+          "id": "both-outro",
+          "title": "Кот и Мия идут за кофе",
+          "location": "cafe",
+          "characters": {
+            "a": {
+              "kind": "cat",
+              "gender": "male",
+              "name": "Пит",
+              "palette": {
+                "fur": "#f2a65a",
+                "belly": "#fde7c8",
+                "accent": "#f6a9a3",
+                "eye": "#5aa36b",
+                "stripe": "#d9843d"
+              },
+              "stripes": true,
+              "voice": {
+                "pitch": 1,
+                "rate": 1
+              }
+            }
+          },
+          "slots": {
+            "table": "table",
+            "table-left": "pastry-plate",
+            "window": "window",
+            "wall-menu": "menu-board",
+            "wall-art": "picture",
+            "ceiling": "pendant-lamp",
+            "counter": "coffee-machine",
+            "floor-left": "plant",
+            "floor-right": "floor-lamp",
+            "table-right": "laptop"
+          },
+          "timeline": [
+            {
+              "who": "a",
+              "text": "Теперь ты знаешь both: оба, и то и другое.",
+              "emotion": "happy"
+            },
+            {
+              "who": "a",
+              "text": "Нас с Мией двое, значит скажем: we both! Повторим?",
+              "emotion": "surprised"
+            }
+          ],
+          "options": {
+            "bubbles": true
+          }
+        },
+        "mode": "circle",
+        "showBubbles": false,
+        "start": "auto",
+        "crop": {
+          "x": 0,
+          "y": 0,
+          "scale": 1
+        }
+      },
+      "triggers": [
+        {
+          "if": "played",
+          "then": "n138"
+        }
+      ]
+    },
+    {
+      "ref": "n138",
+      "type": "word_choice",
+      "seq": 116,
+      "pos": [
+        75600,
+        0
+      ],
+      "note": "Меню-развилка, не тест",
+      "data": {
+        "reward": false,
+        "options": [
+          {
+            "text": "Закончить ✅",
+            "isCorrect": true
+          },
+          {
+            "text": "Ещё один круг 💪",
+            "isCorrect": true
+          }
+        ],
+        "sendPickToChat": true
+      },
+      "triggers": [
+        {
+          "if": "word_correct",
+          "then": "n139"
+        },
+        {
+          "if": "word_wrong",
+          "then": null
+        },
+        {
+          "if": "variant",
+          "variantLabel": "Закончить ✅",
+          "then": "n139"
+        },
+        {
+          "if": "variant",
+          "variantLabel": "Ещё один круг 💪",
+          "then": "n81"
+        }
+      ]
+    },
+    {
+      "ref": "n139",
+      "type": "text",
+      "seq": 117,
+      "pos": [
+        76160,
+        0
+      ],
+      "data": {
+        "content": "Пока, и удачи с {g:both} 👋",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1500,
+          "then": null
+        }
+      ]
+    }
+  ],
+  "zones": [
+    {
+      "id": "zone-both-1",
+      "x": -150,
+      "y": -150,
+      "width": 2848,
+      "height": 1040,
+      "label": "Вход",
+      "color": "#b6fe3b"
+    },
+    {
+      "id": "zone-both-2",
+      "x": 3950,
+      "y": -150,
+      "width": 11808,
+      "height": 1040,
+      "label": "Часть 1 · both = двое",
+      "color": "#ffd166"
+    },
+    {
+      "id": "zone-both-3",
+      "x": 17010,
+      "y": -150,
+      "width": 11248,
+      "height": 1040,
+      "label": "Часть 2 · где стоит both",
+      "color": "#ef476f"
+    },
+    {
+      "id": "zone-both-4",
+      "x": 29510,
+      "y": -150,
+      "width": 608,
+      "height": 1040,
+      "label": "Диалог",
+      "color": "#118ab2"
+    },
+    {
+      "id": "zone-both-5",
+      "x": 31370,
+      "y": -150,
+      "width": 9568,
+      "height": 1040,
+      "label": "Часть 3 · похожие слова",
+      "color": "#9b5de5"
+    },
+    {
+      "id": "zone-both-6",
+      "x": 42190,
+      "y": -150,
+      "width": 1168,
+      "height": 1040,
+      "label": "Итог",
+      "color": "#06d6a0"
+    },
+    {
+      "id": "zone-both-7",
+      "x": 44610,
+      "y": -150,
+      "width": 27348,
+      "height": 1040,
+      "label": "Ещё практика",
+      "color": "#118ab2"
+    },
+    {
+      "id": "zone-both-8",
+      "x": 73210,
+      "y": -150,
+      "width": 3408,
+      "height": 1040,
+      "label": "Финал",
+      "color": "#ff9f1c"
+    }
+  ],
+  "wordCard": {
+    "tag": "слово · оба",
+    "nodes": [
+      {
+        "type": "text",
+        "text": "**both** значит «оба»: речь всегда про двоих, и то и другое."
+      },
+      {
+        "type": "cases",
+        "items": [
+          {
+            "label": "рядом с вещью",
+            "example": "Mia likes **both** cats",
+            "tr": "Мия любит обоих котов",
+            "mark": 0
+          },
+          {
+            "label": "с местоимением",
+            "example": "**both** of us",
+            "tr": "мы оба"
+          },
+          {
+            "label": "рядом с глаголом",
+            "example": "We **both** like tea",
+            "tr": "мы оба любим чай"
+          }
+        ]
+      },
+      {
+        "type": "dialog",
+        "left": "Пит",
+        "right": "Мия",
+        "lines": [
+          {
+            "side": "l",
+            "text": "Coffee or tea, Mia?",
+            "tr": "Кофе или чай, Мия?"
+          },
+          {
+            "side": "r",
+            "text": "I want **both**!",
+            "tr": "Я хочу оба!"
+          },
+          {
+            "side": "l",
+            "text": "I don't want **both**, one is enough.",
+            "tr": "Я не хочу оба, одного хватит.",
+            "neg": true
+          },
+          {
+            "side": "r",
+            "text": "Fine, we **both** get tea.",
+            "tr": "Ладно, оба берём чай."
+          }
+        ]
+      }
+    ]
+  }
+}
