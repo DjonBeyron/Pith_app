@@ -40,3 +40,4 @@ test-results/
 # не должны попадать в основной репозиторий как embedded git repo
 .claude/worktrees/
 lesson-drafts/eval/*.prompt.txt
+__pycache__/
