@@ -40,6 +40,9 @@ const REF = (caption, targetTitle) => main('lesson_ref', { caption, isModule: fa
 const pendingWrong = []
 // Вводное слово ветки ошибки — по кругу, чтобы соседние ветки начинались по-разному и ни одно не занимало больше четверти (R-opener, R-opener-adjacent)
 const OPENERS = ['не совсем)', 'близко)', 'неа)', 'не то)', 'почти)', 'упс)']
+const HINTS = ['подумай, сколько их', 'вспомни, где стоит both', 'проверь слово both', 'фраза ведь про двоих']
+let hintN = 0
+const shortWrong = () => `${OPENERS[openerN++ % OPENERS.length]} ${HINTS[hintN++ % HINTS.length]}`
 const reopen = t => (t ?? '').replace(/^(не совсем|близко|неа|не то|но нет|почти|упс)\)\s*/i, () => `${OPENERS[openerN++ % OPENERS.length]} `)
 let openerN = 0
 function wrong(task, content0, trig, skip = 1) {
@@ -74,14 +77,14 @@ function companion(task, { slot, type = 'text', text }) {
   task.data.signals = [...(task.data.signals ?? []), { slot, ref: c.ref }]
 }
 function PA(words, distractors, { wrongText, responseWrong, timeLimitSec, signals = [], answers }) {
-  const n = main('phrase_assembly', { words: words.split(' '), distractors: distractors.map(t => ({ text: t })), ...(answers ? { answers } : {}), responseWrong: reopen(responseWrong), ...(timeLimitSec ? { timeLimitSec } : {}) })
+  const n = main('phrase_assembly', { words: words.split(' '), distractors: distractors.map(t => ({ text: t })), ...(answers ? { answers } : {}), responseWrong: shortWrong(), ...(timeLimitSec ? { timeLimitSec } : {}) })
   for (const sg of signals) companion(n, sg)
   for (const t of distractors) n.triggers.push({ if: 'variant', variantLabel: t, then: null })
   wrong(n, wrongText, 'phrase_wrong')
   return n
 }
 function TW(word, extraLetters, responseWrong, wrongText) {
-  const n = main('type_word', { word, extraLetters, responseWrong: reopen(responseWrong) })
+  const n = main('type_word', { word, extraLetters, responseWrong: shortWrong() })
   wrong(n, wrongText, 'type_wrong')
   return n
 }
@@ -128,12 +131,13 @@ zone('Часть 1 · both = двое', '#ffd166')
 byKey.part1 = SYS('Часть 1 · both это двое').ref
 A('{g:both} это {w:оба}, то есть {l:и то и другое}, и речь всегда про двоих')
 P('Мия взяла себе кофе и чай ☕', 'Мультяшная девушка держит в одной руке чашку кофе, в другой чашку чая, довольная, кафе, светлый фон, без текста')
-T('кста, у Мии дома два кота, и она обожает обоих 😍')
-T('Как сказать {t:«Мия любит обоих котов»}?')
+T('кста, у Мии дома два кота, и она обожает обоих)')
+T('😍')
+T('А ну-ка попробуй сказать {t:«Мия любит обоих котов»}')
 PA('Mia likes both cats', ['all', 'cat', 'two'], { responseWrong: 'не совсем) котов двое, значит нужно {g:both}', wrongText: 'не совсем) котов двое, значит {g:both}, а {g:cats} с {g:s} на конце:\n{g:Mia likes both cats}' })
 R('🐱')
 T('{g:both} стоит {l:перед} {g:cats}, а {g:likes} остаётся как был')
-A('Том, друг Мии, ехал к ней, и они застряли в пробке, оба злятся. Как сказать {t:«оба из них»}?')
+A('Мия ехала к нам с Томом, нашим другом, и они застряли в пробке, оба злятся. Как сказать {t:«оба из них»}?')
 WC(['both of them', 'both them', 'all of them'], { wrongText: 'неа) перед {g:them} нужно ещё одно маленькое слово, {g:of}:\n{g:both of them}' })
 R('🚗')
 A('Видишь? Вместо слова про предмет стоит {g:them}, и между ними появилось {g:of}: {g:both of} и {l:кто-то}, {g:us}, {g:you} или {g:them}')
@@ -146,7 +150,7 @@ TABLE('dictator', 'как используем both', ['Начало', 'Даль
 PIN('{g:both} + {w:двое}: {g:both cats}, {g:both of us}')
 T('а ну-ка на слух 👂')
 A('{g:Tom helps both of us}', false)
-WC(['Том помогает нам обоим', 'Том помогает всем', 'Том помогает мне'], { wrongText: 'близко) вслушайся в {g:both of us}, это про двоих', voicePhrase: 'Tom helps both of us' })
+WC(['Том помогает нам обоим', 'Том помогает всем', 'Том помогает мне'], { wrongText: 'близко) {g:both of us} это про нас двоих, значит Том помогает нам обоим', voicePhrase: 'Tom helps both of us' })
 R('🙌')
 endZone()
 
@@ -159,16 +163,16 @@ PA('We both like coffee', ['all', 'they', 'likes'], { answers: [['Both', 'of', '
 R('☕')
 A('Смотри: {g:both} стоит после {g:we}, прямо перед {g:like}. С обычными глаголами {g:both} идёт {l:перед ними}')
 P('Мия после смены вымоталась, как и я 😮‍💨', 'Мультяшный кот и кошка сидят на диване в кафе, оба уставшие, откинулись на спинку, светлый фон, без текста')
-T('Как сказать {t:«мы оба устали»}?')
-WC(['We are both tired', 'We both tired are', 'We are tired both'], { wrongText: 'неа) после {g:are} слово {g:both} идёт следом, как в {g:We are both tired}, потому что {g:are} уже сказал, кто мы' })
+T('Давай переведём {t:«мы оба устали»}')
+WC(['We are both tired', 'We both tired are', 'We are tired both'], { wrongText: 'неа) после {g:are} слово {g:both} идёт следом: {g:We are both tired}' })
 R('😴')
-T('даа 😴 это {t:«мы оба устали»}')
-TABLE('dictator', 'где стоит both', ['Глагол', 'Где both', 'Пример'], [['обычный', 'перед', 'We both like tea'], ['am, is, are', 'после', 'We are both tired']], { script: 'Теперь про место слова. С обычным глаголом both идёт перед ним, we both like tea. А с am, is, are наоборот, both идёт после, we are both tired' })
-T('ну а теперь на слух 👂')
+T('ага, {t:«мы оба устали»} 😴')
+TABLE('dictator', 'где стоит both', ['Глагол', 'Где both', 'Пример'], [['обычный', 'перед', 'We both like pie'], ['am, is, are', 'после', 'We are both tired']], { script: 'Теперь про место слова. С обычным глаголом both идёт перед ним, we both like pie. А с am, is, are наоборот, both идёт после, we are both tired' })
+T('теперь только звук, без текста')
 A('{g:They are both late}', false)
-WC(['Они оба опоздали', 'Они оба дома', 'Они оба рады'], { wrongText: 'близко) прислушайся к слову {g:late}', voicePhrase: 'They are both late' })
+WC(['Они оба опоздали', 'Они оба дома', 'Они оба рады'], { wrongText: 'близко) {g:late} значит опоздали, а {g:both} про двоих', voicePhrase: 'They are both late' })
 R('⏰')
-A('Теперь вслух про нас с Мией: {t:«мы оба голодные»}, можно и {g:We are}, и {g:We\'re}: полная чуть строже, короткая живее')
+A('Теперь вслух про нас с Мией: {t:«мы оба голодные»}, можно и {g:We are}, и {g:We\'re}: полная чуть строже, короткая живее. Дальше после {g:both} можно любое слово')
 SAY('We are both hungry', 'Мы оба голодные', { pattern: '(We are|We\'re) both **', startHint: 'We are both — мы оба', hintMismatch: 'Начни с We are both и добавь любое слово, например hungry)', wrongText: 'близко) начни с {g:We are both} и добавь любое слово)', listen: 'так-так, дай послушать)', comment: 'ого, ты уже строишь фразу с {g:both} сам: {g:We are both} и дальше любое слово' })
 endZone()
 
@@ -195,9 +199,9 @@ T('Как сказать одним словом {t:«ни то, ни друго
 WC(['neither', 'both', 'all'], { wrongText: 'неа) двое, и не подходит ни один, это {g:neither}, наоборот от {g:both}' })
 R('🙅')
 A('{g:neither} это {w:ни тот, ни другой}, а {g:both} это {w:и тот, и другой}: {l:слова-зеркала}')
-TABLE('dictator', 'сколько их', ['Сколько', 'Слово', 'Пример'], [['двое', 'both', 'We both like tea'], ['трое и больше', 'all', 'We all like tea'], ['ни один из двоих', 'neither', 'neither of us']], { script: 'Считаем, сколько их. Двое, both, we both like tea. Трое и больше, all, we all like tea. А если не подходит ни один из двоих, neither, neither of us' })
+TABLE('dictator', 'сколько их', ['Сколько', 'Слово', 'Пример'], [['двое', 'both', 'We both like pie'], ['трое и больше', 'all', 'We all like pie'], ['ни один из двоих', 'neither', 'neither of us']], { script: 'Считаем, сколько их. Двое, both, we both like pie. Трое и больше, all, we all like pie. А если не подходит ни один из двоих, neither, neither of us' })
 PIN('{g:both} двое, {g:all} трое и больше, {g:neither} ни один')
-T('и ещё раз на слух 👂')
+T('и ещё одна без текста')
 A('{g:We all like sushi}', false)
 PA('We all like sushi', ['both', 'likes', 'they'], { responseWrong: 'не совсем) {g:all} это все, а не двое', wrongText: 'неа) {g:all} это {t:все}, а не двое: {g:We all like sushi}' })
 R('🍣')
@@ -215,16 +219,17 @@ zone('Ещё практика', '#118ab2')
 byKey.train = T('Ну раз с {g:both} ты уже знаком, давай проверим, как оно работает в деле 💪').ref
 A('Будет три уровня, и {l:каждый чуть сложнее} предыдущего')
 byKey.lvl1 = LEVEL('Уровень 1 · разогрев').ref
-T('Мия зовёт меня в кино, и мы оба в восторге 🤩')
-T('Помоги ответить ей: {t:«мы оба любим кино»}')
+T('Мия зовёт меня в кино, и мы оба в восторге)')
+T('🤩')
+T('Помоги ответить Мии: {t:«мы оба любим кино»}')
 PA('Both of us love movies', ['all', 'them', 'you'], { answers: [['We', 'both', 'love', 'movies']], responseWrong: 'не совсем) двое, значит {g:both}', wrongText: 'не совсем) нас двое, значит {g:Both of us love movies}, или короче {g:We both love movies}' })
 R('🎬')
-T('а ну-ка зацени на слух 👂')
+T('у Тома дома два пса, зацени на слух 👂')
 A('{g:Both dogs sleep}', false)
-WC(['Оба пса спят', 'Все псы спят', 'Оба пса едят'], { wrongText: 'близко) вслушайся в первое слово, оно про двоих', voicePhrase: 'Both dogs sleep' })
+WC(['Оба пса спят', 'Все псы спят', 'Оба пса едят'], { wrongText: 'близко) {g:Both dogs} это оба пса, и они спят', voicePhrase: 'Both dogs sleep' })
 R('🐶')
-A('Скажи вслух {t:«мы оба хотим чай»}: начни с {g:We both want}, а дальше любое слово')
-SAY('We both want tea', 'Мы оба хотим чай', { pattern: 'We both want **', startHint: 'We both want — мы оба хотим', hintMismatch: 'Начни с We both want и добавь любое слово, например tea)', wrongText: 'близко) начни с {g:We both want} и добавь любое слово)', listen: 'ну-ка, давай послушаю)', comment: 'ого, у тебя уже получается говорить про двоих без подсказок' })
+A('Скажи вслух {t:«мы оба хотим суп»}: начни с {g:We both want}, а дальше любое слово')
+SAY('We both want soup', 'Мы оба хотим суп', { pattern: 'We both want **', startHint: 'We both want — мы оба хотим', hintMismatch: 'Начни с We both want и добавь любое слово, например soup)', wrongText: 'близко) начни с {g:We both want} и добавь любое слово)', listen: 'ну-ка, давай послушаю)', comment: 'видно, что {g:We both} уже ложится на язык' })
 byKey.lvl2 = LEVEL('Уровень 2 · оба, все или ни один').ref
 A('Давай смешаем похожие слова, а ты {l:считай, сколько их}')
 P('Мия, Том и я идём по улице втроём 🚶', 'Мультяшные кот, кошка и парень идут по улице втроём, весёлые, светлый фон, без текста')
@@ -232,34 +237,39 @@ T('А здесь нужно {g:all}, {g:both} или {g:neither}?\n{g:Mia, Tom a
 WC(['all', 'both', 'neither'], { wrongText: 'неа) нас трое, а {g:both} только про двоих, значит {g:all}' })
 R('🍝')
 T('А теперь только мы с Мией:\n{g:Mia and I ___ like chess}')
-WC(['both', 'all', 'neither'], { wrongText: 'не то) нас двое, значит {g:both}:\n{g:Mia and I both like jazz}' })
+WC(['both', 'all', 'neither'], { wrongText: 'не то) нас двое, значит {g:both}:\n{g:Mia and I both like chess}' })
 R('♟️')
 P('Мия и Том радуются вместе 😊', 'Мультяшные девушка и парень смеются вместе, вокруг яркий день, без текста')
-A('Собери фразу {t:«Мия и Том оба рады»}')
+A('А теперь собери фразу {t:«Мия и Том оба рады»}')
 PA('Mia and Tom are both happy', ['all', 'is', 'neither'], { responseWrong: 'не совсем) после {g:are} слово {g:both} идёт следом', wrongText: 'не совсем) с {g:are} слово {g:both} идёт после него: {g:Mia and Tom are both happy}' })
 R('😄')
+T('зацени ещё раз без текста')
+A('{g:Both of them speak French}', false)
+WC(['Оба из них говорят по-французски', 'Все они говорят по-французски', 'Никто не говорит по-французски'], { wrongText: 'близко) вслушайся в начало фразы, оно про двоих', voicePhrase: 'Both of them speak French' })
+R('🇫🇷')
 T('Напечатай {t:«оба глаза»}: тапай по светящимся буквам')
 TW('both eyes', 'dv', 'не то) глаз двое, значит перед {g:eyes} нужно {g:both}', 'но нет) глаз двое, значит {g:both eyes}')
 R('👀')
-A('Скажи вслух {t:«оба из них улыбаются»}, начни с {g:Both of them}')
-SAY('Both of them smile', 'Оба из них улыбаются', { pattern: 'Both of them **', startHint: 'Both of them — оба из них', hintMismatch: 'Начни с Both of them и добавь любое слово, например smile)', wrongText: 'близко) начни с {g:Both of them} и добавь любое слово)', listen: 'секунду, слушаю)', comment: 'да, фраза про двоих у тебя звучит ровно' })
+A('Скажи вслух {t:«оба из них улыбаются»}, начни с {g:Both of them} и добавь любое слово')
+SAY('Both of them smile', 'Оба из них улыбаются', { pattern: 'Both of them **', startHint: 'Both of them — оба из них', hintMismatch: 'Начни с Both of them и добавь любое слово, например smile)', wrongText: 'близко) начни с {g:Both of them} и добавь любое слово)', listen: 'сек, слушаю)', comment: 'фраза про двоих у тебя строится сама: {g:Both of them} и дальше действие' })
 byKey.lvl3 = LEVEL('Уровень 3 · без подсказок').ref
+T('😲')
 T('я кстати забыл спросить: Мия пишет, что тебе больше нравится, лето или зима?')
 A('Ответь ей вслух, что нравятся оба: скажи по-английски {t:«мне нравятся и лето, и зима»}')
-SAY('I like both summer and winter', 'Мне нравятся и лето, и зима', { pattern: 'I like both **', hintsOff: true, hintMismatch: 'Скажи про оба времени года и добавь любое слово)', wrongText: 'не то) нужно сказать, что нравятся оба времени года, любыми словами)', listen: 'слушаю, что получилось)', comment: 'у тебя уже получается строить такие фразы без подсказок' })
-T('а теперь на слух 👂')
-A('{g:My parents are both home}', false)
-WC(['Мои родители оба дома', 'Мои родители оба на работе', 'Родителей нет дома'], { wrongText: 'неа) вслушайся в слова {g:both} и {g:home}', voicePhrase: 'My parents are both home' })
+SAY('I like both summer and winter', 'Мне нравятся и лето, и зима', { pattern: 'I like both **', hintsOff: true, hintMismatch: 'Скажи про оба времени года и добавь любое слово)', wrongText: 'не то) нужно сказать, что нравятся оба времени года, любыми словами)', listen: 'слушаю, что получилось)', comment: 'ты уже строишь ответы без опоры на начало фразы' })
+T('Мия пишет, что можно заходить, а дома только её родители')
+A('{g:Her parents are both home}', false)
+WC(['Её родители оба дома', 'Её родители оба на работе', 'Её родителей нет дома'], { wrongText: 'неа) вслушайся в слова {g:both} и {g:home}', voicePhrase: 'Her parents are both home' })
 R('👏')
-A('Неожиданность: Мия зовёт нас на вечеринку. Скажи ей по-английски {t:«мы оба готовы»}, можно и {g:We are}, и {g:We\'re}: полная чуть строже, короткая живее')
-SAY('We are both ready', 'Мы оба готовы', { pattern: '(Both of us are|We are both|We\'re both) **', hintsOff: true, hintMismatch: 'Скажи, что вы оба готовы, и добавь любое слово)', wrongText: 'не совсем) нужно сказать, что вы оба готовы, со словом {g:both})', listen: 'ну-ка, что получилось)', comment: 'у тебя уже получается говорить без подсказок' })
+A('Ой, Мия только что позвала нас на вечеринку. Скажи ей по-английски {t:«мы оба готовы»}, можно и {g:We are}, и {g:We\'re}: полная чуть строже, короткая живее')
+SAY('We are both ready', 'Мы оба готовы', { pattern: '(Both of us are|We are both|We\'re both) **', hintsOff: true, hintMismatch: 'Скажи, что вы оба готовы, и добавь любое слово)', wrongText: 'не совсем) нужно сказать, что вы оба готовы, со словом {g:both})', listen: 'сек, что получилось)', comment: 'тут {g:both} встаёт на место без подсказок' })
 endZone()
 
 // ───────────────────────────── ФИНАЛ ─────────────────────────────
 zone('Финал', '#ff9f1c')
 byKey.final = SYS('Финал').ref
 T('Если коротко: {g:both} это {l:двое сразу}, а трое и больше уже {g:all}')
-TABLE('dictator', 'вся формула both', ['Как', 'Слово', 'Пример'], [['с вещью', 'both', 'Mia likes both cats'], ['с местоимением', 'both of', 'both of us'], ['парой', 'both and', 'both rock and jazz'], ['с глаголом', 'we both', 'We both like tea'], ['после are', 'are both', 'We are both tired']], { widths: [33, 23, 44], script: 'Смотри, всё вместе. С вещью, both, Mia likes both cats. С местоимением, both of, both of us. Парой, both и and, both rock and jazz. С обычным глаголом, we both, we both like tea. А после are, are both, we are both tired. Везде речь про двоих' })
+TABLE('dictator', 'вся формула both', ['Как', 'Слово', 'Пример'], [['с вещью', 'both', 'Mia likes both cats'], ['с местоимением', 'both of', 'both of us'], ['парой', 'both and', 'both rock and jazz'], ['с глаголом', 'we both', 'We both like pie'], ['после are', 'are both', 'We are both tired']], { widths: [33, 23, 44], script: 'Смотри, всё вместе. С вещью, both, Mia likes both cats. С местоимением, both of, both of us. Парой, both и and, both rock and jazz. С обычным глаголом, we both, we both like pie. А после are, are both, we are both tired. Везде речь про двоих' })
 SCENE('both-outro', 'Кот и Мия идут за кофе', 'circle', [
   { who: 'a', text: 'Теперь ты знаешь both: оба, и то и другое.', emotion: 'happy' },
   { who: 'a', text: 'Нас с Мией двое, значит скажем: we both! Повторим?', emotion: 'surprised' },
@@ -285,7 +295,7 @@ const out = {
       { type: 'cases', items: [
         { label: 'рядом с вещью', example: 'Mia likes **both** cats', tr: 'Мия любит обоих котов', mark: 0 },
         { label: 'с местоимением', example: '**both** of us', tr: 'мы оба' },
-        { label: 'рядом с глаголом', example: 'We **both** like tea', tr: 'мы оба любим чай' },
+        { label: 'рядом с глаголом', example: 'We **both** like pie', tr: 'мы оба любим пирог' },
       ] },
       { type: 'dialog', left: 'Пит', right: 'Мия', lines: [
         { side: 'l', text: 'Coffee or tea, Mia?', tr: 'Кофе или чай, Мия?' },
