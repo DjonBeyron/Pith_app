@@ -44,4 +44,11 @@ describe('разметка выделений', () => {
     expect(highlights.filter(h => h.mode === 'strike')).toHaveLength(1)
     expect(toMarkup(text, highlights)).toBe('нужно {l:действие} и {x:лишний}')
   })
+
+  it('{o:} оранжевый + bold: слово вне рамок урока, разбор и обратно', () => {
+    const { text, highlights } = parseMarkup('between {g:both} and {o:of}')
+    expect(text).toBe('between both and of')
+    expect(highlights.filter(h => h.color === '#ffa94d')).toHaveLength(2)
+    expect(toMarkup(text, highlights)).toBe('between {g:both} and {o:of}')
+  })
 })

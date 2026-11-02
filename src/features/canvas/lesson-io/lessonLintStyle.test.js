@@ -30,6 +30,7 @@ describe('живой стиль реплик', () => {
   it('пол ученика: «успел», «угадал» — замечание, «я не заметил» (Пит о себе) и нейтральные формы — нет', () => {
     expect(checkStyle([t('a', 'успел) красота')]).join()).toContain('[R-gender] a')
     expect(checkStyle([t('a', 'ты угадал))')]).join()).toContain('[R-gender] a')
+    expect(checkStyle([t('a', 'ого, ты уже строишь фразу с both сам')]).join()).toContain('[R-gender] a')
     expect(checkStyle([t('a', 'давай, я сделаю вид, что я не заметил)')]).filter(w => /gender/.test(w))).toEqual([])
     expect(checkStyle([t('a', 'Собрал фразу с конца 🔥')]).join()).toContain('[R-gender] a')
     expect(checkStyle([t('a', 'Ритм поймал 👌')]).join()).toContain('[R-gender] a')

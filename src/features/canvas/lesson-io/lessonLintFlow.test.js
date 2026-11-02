@@ -118,6 +118,13 @@ describe('практика, в которую входят через пункт
     { if: 'variant', variantLabel: 'Практика', then: 't' }, { if: 'variant', variantLabel: 'Объясни', then: null }] }
   const text = { ref: 't', type: 'text', data: { content: 'мы идём в парк: We go to the park' }, triggers: [{ if: 'timer', then: 's' }] }
   const say = { ref: 's', type: 'say_phrase', data: { phrase: 'We go to the park' }, triggers: [] }
+  it('произношение: рядом транскрипция — английскую фразу показывают сразу, тавтологии нет', () => {
+    const tr = { ref: 'tr', type: 'text', data: { content: 'так звучит: [boʊθ]' }, triggers: [{ if: 'timer', then: 'sp' }] }
+    const sp = { ref: 'sp', type: 'audio', data: { text: 'повтори: both of us' }, triggers: [{ if: 'played', then: 's' }] }
+    const sy = { ref: 's', type: 'say_phrase', data: { phrase: 'both of us' }, triggers: [] }
+    expect(checkFlow([tr, sp, sy]).filter(w => /R-tautology/.test(w))).toEqual([])
+    expect(checkFlow([{ ...tr, data: { content: 'так звучит слово' } }, sp, sy]).join()).toContain('[R-tautology] s')
+  })
   it('ветка практики не считается «веткой ошибки»: тавтология в ней ловится', () => {
     expect(checkFlow([menu, text, say]).join()).toContain('[R-tautology] s')
   })

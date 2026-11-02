@@ -5,6 +5,7 @@
 //   {u:слово}  голубой + bold + подчёркивание — главный акцент {b:буква}  bold без цвета — буква внутри прозы
 //   {l:слово}  главная мысль: текст остаётся серым, под ним белое подчёркивание (БЕЗ цвета и bold)
 //   {x:слово}  лишнее / неверное: красный + зачёркнутый
+//   {o:слово}  оранжевый + bold — слово или правило ВНЕ рамок этого урока (of, окончание -s): объясняется отдельным уроком
 //   {p:i}      плашка на 1–2 буквах внутри слова (y → i)       Метки не вкладываются друг в друга.
 // Чистые функции, без React. Если разметки в тексте нет — данные возвращаются как есть (ручные highlights не трогаем).
 /** Базовый серый всего текста нод: реальный серый цвет (раньше — белый с прозрачностью .75: это тяжелее в отрисовке и «гасило» белое подчёркивание) */
@@ -12,9 +13,9 @@ export const BASE_GRAY = '#c6c6c6'
 const LEGACY_BASE = h => String(h.color).toLowerCase() === '#ffffff' && h.opacity === 0.75 // старый базовый: тоже считается базовым
 /** Базовая подложка текста (новая или старая) */
 export const isBaseHighlight = h => h.mode === 'text' && (String(h.color).toLowerCase() === BASE_GRAY || LEGACY_BASE(h))
-const GREEN = '#b6fe3b', WHITE = '#ffffff', CYAN = '#6bfabc', DARK = '#12140d', TRANSLATION = '#fdfcfc', RED = '#ff5a5a'
+const GREEN = '#b6fe3b', WHITE = '#ffffff', CYAN = '#6bfabc', DARK = '#12140d', TRANSLATION = '#fdfcfc', RED = '#ff5a5a', ORANGE = '#ffa94d'
 const TEXT_KEYS = ['content', 'text', 'caption']
-const MARK = /\{([gwtubplx]):([^}]*)\}/g
+const MARK = /\{([gwtubplxo]):([^}]*)\}/g
 
 const hl = (start, end, mode, color, opacity = 1, extra = {}) => ({ end, mode, ...(color ? { color } : {}), start, ...(opacity != null ? { opacity } : {}), ...extra })
 
@@ -46,6 +47,7 @@ export function parseMarkup(src) {
     if (k === 'b') highlights.push(hl(a, b, 'bold', null, null))
     if (k === 'l') highlights.push(hl(a, b, 'underline', WHITE))
     if (k === 'x') highlights.push(hl(a, b, 'text', RED), hl(a, b, 'strike', RED))
+    if (k === 'o') highlights.push(hl(a, b, 'text', ORANGE), hl(a, b, 'bold', ORANGE))
     if (k === 'p') highlights.push(hl(a, b, 'bg', GREEN, 1, { pin: true }), hl(a, b, 'text', DARK))
   }
   return { text, highlights }
@@ -71,6 +73,7 @@ export function applyMarkup(data) {
 export function classifyStyle({ color, bold, italic, underline, strike, pin }) {
   if (pin) return 'p'
   const eq = c => String(color ?? '').toLowerCase() === c
+  if (eq(ORANGE) && bold) return 'o'
   if (eq(GREEN) && bold) return 'g'
   if (eq(TRANSLATION) || italic) return 't'
   if (eq(CYAN) && (underline || bold)) return 'u'
@@ -80,7 +83,7 @@ export function classifyStyle({ color, bold, italic, underline, strike, pin }) {
   if (!color && bold) return 'b'
   return null
 }
-export const MARK_NAMES = { l: 'главное: белое подчёркивание', x: 'лишнее: красное зачёркнутое', g: 'английская форма', t: 'перевод', w: 'русский термин', u: 'главный акцент', b: 'буква в прозе', p: 'плашка на букве' }
+export const MARK_NAMES = { l: 'главное: белое подчёркивание', x: 'лишнее: красное зачёркнутое', g: 'английская форма', t: 'перевод', w: 'русский термин', u: 'главный акцент', b: 'буква в прозе', p: 'плашка на букве', o: 'вне рамок урока (оранжевый)' }
 
 /**
  * Обратное преобразование: текст + highlights → строка с метками {g:..}. Нужен, чтобы пример, раскрашенный в редакторе (тем же

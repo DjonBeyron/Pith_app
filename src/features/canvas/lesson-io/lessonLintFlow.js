@@ -73,6 +73,17 @@ function checkTextRuns(nodes) {
   return out
 }
 
+// Транскрипция [boʊθ] в трёх-четырёх предыдущих нодах цепочки: это мини-блок «как звучит» (транскрипция, объяснение звука, «повтори»)
+const IPA = /\[[^\]]*[ˈˌʊθðəæɪʃʒŋɔɑɒʌɛ][^\]]*\]/
+function hasTranscriptionBefore(nodes, n) {
+  let layer = predecessors(nodes, n.ref)
+  for (let step = 0; step < 4 && layer.length; step++) {
+    if (layer.some(p => IPA.test(textOf(p)))) return true
+    layer = layer.flatMap(p => predecessors(nodes, p.ref))
+  }
+  return false
+}
+
 /** Тавтология: ответ задания дословно уже прозвучал в предыдущих нодах — ученик перепечатывает, а не думает */
 function checkTautology(nodes) {
   const out = []
@@ -87,6 +98,8 @@ function checkTautology(nodes) {
       near.push(...layer)
       layer = layer.flatMap(p => predecessors(nodes, p.ref))
     }
+    // Упражнение на произношение (рядом транскрипция [boʊθ]): английскую фразу показывают сразу, говорить её и нужно — не тавтология (решение автора 2026-11-02)
+    if (n.type === 'say_phrase' && hasTranscriptionBefore(nodes, n)) continue
     for (const p of near) {
       if (EXERCISES.has(p.type) || hint.has(p.ref)) continue // предыдущее задание и подсказки ветки ошибки — не «пояснение»
       if (n.type === 'word_choice' && /\?/.test(textOf(p))) continue // вопрос, называющий кандидата («а здесь нужно am?»), — вызов к выбору, а не ответ (разбор «I'm»)
