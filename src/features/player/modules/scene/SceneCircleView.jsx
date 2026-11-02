@@ -47,7 +47,7 @@ export default function SceneCircleView({
   useEffect(() => {
     if (settle && status === 'playing') { trace?.('сворачивание повтора → режиссёр на паузу, поза успокаивается'); apiRef.current?.pause() }
   }, [settle, status, apiRef, trace])
-  const viewBox = useMemo(() => sceneCircleViewBox({ solo: isSolo(scene), crop }), [scene, crop])
+  const viewBox = useMemo(() => sceneCircleViewBox({ solo: isSolo(scene), skin: scene?.characters?.a?.skin, crop }), [scene, crop])
   const last = Math.max(0, (scene.timeline?.length ?? 1) - 1)
   const near = useSceneNear(rootRef, isHistory || frozenEnded)
   const idle = !isHistory && status !== 'playing'

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { sceneCircleFit, sceneCircleViewBox, CIRCLE_SHOW_W, CIRCLE_CENTER_Y, CIRCLE_SOLO } from './sceneCircleFit.js'
+import { sceneCircleFit, sceneCircleViewBox, CIRCLE_SHOW_W, CIRCLE_CENTER_Y, CIRCLE_SOLO, CIRCLE_SOLO_SKIN } from './sceneCircleFit.js'
 import { SCENE_W, SCENE_H } from '../../../scene/v2/sprites/backgrounds.js'
 
 // Кадрирование сцены в кружок: две головы (по умолчанию) и одна голова одиночной сцены по центру
@@ -112,5 +112,19 @@ describe('sceneCircleViewBox — тот же кадр, что у обёртки 
     expect(x).toBeCloseTo(-left / w * 360, 1)
     expect(y).toBeCloseTo(-top / h * 640, 1)
     expect(s).toBeCloseTo(d / w * 360, 1)
+  })
+
+  it('маскоты: голова кота skin в центре круга (свой центр у kit / mia / mia2), без skin как раньше', () => {
+    const d = 200
+    for (const [skin, f] of Object.entries(CIRCLE_SOLO_SKIN)) {
+      const st = sceneCircleFit(d, { solo: true, skin })
+      expect(px(st.left) + f.centerX / SCENE_W * px(st.width)).toBeCloseTo(d / 2, 1)
+      expect(px(st.top) + f.centerY / SCENE_H * px(st.height)).toBeCloseTo(d / 2, 1)
+    }
+    expect(sceneCircleFit(d, { solo: true, skin: null })).toEqual(sceneCircleFit(d, { solo: true }))
+    // кадр, подогнанный автором вручную (crop не по умолчанию), рамка маскота не трогает
+    const crop = { x: 0, y: 18, scale: 0.82 }
+    expect(sceneCircleFit(d, { solo: true, skin: 'kit', crop })).toEqual(sceneCircleFit(d, { solo: true, crop }))
+    expect(sceneCircleViewBox({ solo: true, skin: 'mia2' })).not.toBe(sceneCircleViewBox({ solo: true }))
   })
 })

@@ -23,7 +23,8 @@ const specs = [
   { type: 'phrase_assembly', data: { words: ['I', 'asked', 'for', 'both'], distractors: [{ text: 'all' }, { text: 'we' }, { text: 'two' }], responseWrong: 'не совсем) подумай, сколько их' }, trig: { if: 'phrase_correct' }, wrong: 'phrase_wrong', wrongText: 'близко) Мия просила оба напитка, и слово про двоих {g:both} стоит в конце:\n{g:I asked for both}', variants: ['all', 'we', 'two'] },
   { type: 'reaction', data: { emoji: '👌', target: 'student' }, trig: { if: 'timer', ms: 1400 } },
   { type: 'text', data: { content: 'да, она сказала так:\n{g:I asked for both. Where is my tea?}', hardWrap: true, pro: true, proText: 'Я просила оба. Где мой чай?' }, trig: { if: 'timer', ms: 2200 }, note: 'Про-режим: кнопка перевода на пузыре' },
-  { type: 'text', data: { content: 'а я ей ответил:\n{g:Sorry, Mia! Both are here. Coffee and tea.}', hardWrap: true, pro: true, proText: 'Прости, Мия! Оба здесь. Кофе и чай.' }, trig: { if: 'timer', ms: 2200, then: null }, note: 'Про-режим: кнопка перевода на пузыре' },
+  { type: 'text', data: { content: 'а я ей ответил:', hardWrap: false }, trig: { if: 'timer', ms: 1500 } },
+  { type: 'text', data: { content: '{g:Sorry, Mia! Both are here. Coffee and tea.}', hardWrap: false, pro: true, proText: 'Прости, Мия! Оба здесь. Кофе и чай.' }, trig: { if: 'timer', ms: 2200, then: null }, note: 'Про-режим: кнопка перевода на пузыре' },
 ]
 
 const nodes = [], zones = []

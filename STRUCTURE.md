@@ -1501,6 +1501,10 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | `scripts/lesson-eval.mjs` | Калибровка судьи: `--build "группа"` собирает из примеров правил проверочный урок + ожидание + промпт в `lesson-drafts/eval/`; `--score "группа" ответ.json` — поймал / пропустил / ложно, recall; `--groups` |
 | `lesson-drafts/at.json` | Урок «At» (235 нод, 7 зон, 3 сцены), собран по новой системе: правила из `rules.json`, шлюз, 11 судей по группам. Первая проверка новой системы на реальном уроке (PROJECT.md «Урок At») |
 | `lesson-drafts/gen/gen-at.mjs` | Генератор урока «At» (DSL: T/A/P/WC/PA/SAY…, ветки ошибок, зоны, раскладка) — правки по замечаниям судей вносятся сюда и урок пересобирается: `node lesson-drafts/gen/gen-at.mjs` |
+| `lesson-drafts/both.json` | Урок «Both» (тип «просто слово», черновик 1: 161 нода, 8 зон, 3 сцены), собран `gen-both.mjs`. Будет пересобран по решениям автора (маскоты, лапы, финал с Мией) |
+| `lesson-drafts/both.ending.json` | Финал урока «Both» отдельным файлом (11 нод): Мия присоединяется к чату, кружки Мии (`mia2`) и Пита (`kit`), сборка `I asked for both`, два текста в про-режиме с переводом |
+| `lesson-drafts/gen/gen-both.mjs` | Генератор урока «Both» (DSL как в `gen-at.mjs`) |
+| `lesson-drafts/gen/gen-both-ending.mjs` | Генератор финала урока «Both» (`both.ending.json`) |
 | `lesson-drafts/im.json` | Урок «I'm» (264 ноды, 7 зон, 3 сцены): проверка системы на новом уроке — ОДНА история (суббота Пита: утро → кафе с Кейт → парк → кино → ночь, линия Пит → Кейт), I'm + состояние, she's/you're/we're/they're, вчера was/were, завтра I'll be, ловушка «действие без связки». Шлюз + судьи по группам (PROJECT.md «Урок I'm») |
 | `lesson-drafts/gen/gen-im.mjs` | Генератор урока «I'm» (тот же DSL, что `gen-at.mjs`; сцена-диалог с Кейт-кошкой): правки по замечаниям судей вносятся сюда: `node lesson-drafts/gen/gen-im.mjs` |
 | `lesson-drafts/gen/gen-im-dsl.mjs` | Помощники генератора урока «I'm» (T/A/P/WC/PA/SAY/TABLE/SCENE…, ветки ошибок, зоны, раскладка), вынесены из `gen-im.mjs` ради лимита 400 строк; сюжет и тексты урока остаются в `gen-im.mjs`. |

@@ -48,7 +48,7 @@ export default function NodeSceneCrop({ tData, scene, mode, onChange }) {
         style={{ width: FRAME_PX[mode] + 'px' }}
       >
         {circle
-          ? <div className="playerSceneCircleInner" style={sceneCircleFit(w, { solo: isSolo(scene), crop })}>{preview}</div>
+          ? <div className="playerSceneCircleInner" style={sceneCircleFit(w, { solo: isSolo(scene), skin: scene?.characters?.a?.skin, crop })}>{preview}</div>
           : <div className="playerSceneCrop" style={sceneBubbleCropStyle(crop) ?? { position: 'absolute', inset: 0 }}>{preview}</div>}
       </div>
       <NodeCropControls

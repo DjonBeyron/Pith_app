@@ -20,8 +20,20 @@ export const CIRCLE_CENTER_Y = 410
 // круг показывает полосу шириной ≈107 ед. (320/3) (кот шириной ≈ 104 ед. почти во всю ширину), уши целиком, голова и плечи в круге
 export const CIRCLE_SOLO = { showW: 320 / 3, centerY: 520 }
 
+// Маскоты (skin kit / mia / mia2) нарисованы со своим смещением головы внутри клетки кота: рамка кружка под рыжего кота резала им уши
+// и уводила голову вбок. Центр головы замерен по отрисовке спрайтов (клетка кота 200 ед., в сцене x = 110 + 0.7·X, y = 444 + 0.7·Y):
+// kit — голова по центру x ≈ 93.5, уши с y ≈ 21; mia (Кетти) — x ≈ 91.8, уши с y ≈ 10; mia2 (Мия) — x ≈ 116.5, уши с y ≈ 30
+export const CIRCLE_SOLO_SKIN = {
+  kit: { centerX: 175.5, centerY: 507 },
+  mia: { centerX: 174.5, centerY: 500 },
+  mia2: { centerX: 191.5, centerY: 507 },
+}
+// Рамка маскота — только когда автор кадр руками не подгонял (crop по умолчанию): подогнанный в редакторе crop (как у to.mascot.json) остаётся как был
+const isDefaultCrop = c => c.x === 0 && c.y === 0 && c.scale === 1
+const soloFrame = (solo, skin, crop) => ({ centerX: SCENE_W / 2, centerY: CIRCLE_SOLO.centerY, ...(solo && isDefaultCrop(normalizeSceneCrop(crop)) ? CIRCLE_SOLO_SKIN[skin] : null) })
+
 export function sceneCircleFit(diameter, {
-  solo = false, showW = solo ? CIRCLE_SOLO.showW : CIRCLE_SHOW_W, centerY = solo ? CIRCLE_SOLO.centerY : CIRCLE_CENTER_Y, crop = null,
+  solo = false, skin = null, crop = null, showW = solo ? CIRCLE_SOLO.showW : CIRCLE_SHOW_W, centerY = solo ? soloFrame(solo, skin, crop).centerY : CIRCLE_CENTER_Y, centerX = solo ? soloFrame(solo, skin, crop).centerX : SCENE_W / 2,
 } = {}) {
   const d = Math.max(0, Number(diameter) || 0)
   const c = normalizeSceneCrop(crop)
@@ -32,7 +44,7 @@ export function sceneCircleFit(diameter, {
     position: 'absolute',
     width: Math.round(w * 100) / 100 + 'px',
     height: Math.round(h * 100) / 100 + 'px',
-    left: Math.round((-(w - d) / 2 + c.x * u) * 100) / 100 + 'px',
+    left: Math.round((d / 2 - centerX / SCENE_W * w + c.x * u) * 100) / 100 + 'px',
     top: Math.round((d / 2 - centerY / SCENE_H * h + c.y * u) * 100) / 100 + 'px',
   }
 }
@@ -42,11 +54,11 @@ export function sceneCircleFit(diameter, {
 // (обёртка sceneCircleFit — 3,4 d × 6 d, растёт ещё вдвое при раскрытии: на iPhone такой слой не помещается в текстуру, плитки
 // гаснут — «чёрные мелькания» при появлении и тапе). Сдвиг x/y в единицах сцены не зависит от диаметра (x px круга d=200 → showW/200 ед.)
 export function sceneCircleViewBox({
-  solo = false, showW = solo ? CIRCLE_SOLO.showW : CIRCLE_SHOW_W, centerY = solo ? CIRCLE_SOLO.centerY : CIRCLE_CENTER_Y, crop = null,
+  solo = false, skin = null, crop = null, showW = solo ? CIRCLE_SOLO.showW : CIRCLE_SHOW_W, centerY = solo ? soloFrame(solo, skin, crop).centerY : CIRCLE_CENTER_Y, centerX = solo ? soloFrame(solo, skin, crop).centerX : SCENE_W / 2,
 } = {}) {
   const c = normalizeSceneCrop(crop)
   const side = showW / c.scale
   const k = showW / (SCENE_CROP_REF_W * c.scale)
   const r = v => Math.round(v * 1000) / 1000
-  return `${r(SCENE_W / 2 - side / 2 - c.x * k)} ${r(centerY - side / 2 - c.y * k)} ${r(side)} ${r(side)}`
+  return `${r(centerX - side / 2 - c.x * k)} ${r(centerY - side / 2 - c.y * k)} ${r(side)} ${r(side)}`
 }
