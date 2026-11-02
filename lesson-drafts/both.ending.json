@@ -1,0 +1,367 @@
+{
+  "format": "pithy-lesson",
+  "version": 1,
+  "lesson": {
+    "title": "Both",
+    "nodeCount": 10
+  },
+  "nodes": [
+    {
+      "ref": "n1",
+      "type": "system",
+      "pos": [
+        0,
+        0
+      ],
+      "data": {
+        "content": "Мия присоединилась к чату"
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1600,
+          "then": "n2"
+        }
+      ],
+      "seq": 1
+    },
+    {
+      "ref": "n2",
+      "type": "scene",
+      "pos": [
+        560,
+        0
+      ],
+      "note": "СЦЕНА: кружок Мии (skin mia2), высокомерная и требовательная. Озвучку записать в редакторе сцены",
+      "data": {
+        "scene": {
+          "version": 2,
+          "id": "both-end-mia",
+          "title": "Кружок Мии",
+          "location": "cafe",
+          "characters": {
+            "a": {
+              "kind": "cat",
+              "gender": "female",
+              "name": "Мия",
+              "skin": "mia2",
+              "voice": {
+                "pitch": 1.3,
+                "rate": 0.9
+              }
+            }
+          },
+          "slots": {
+            "table": "table",
+            "wall-art": "picture",
+            "table-left": "coffee-cup",
+            "table-right": "pastry-plate",
+            "window": "window",
+            "wall-menu": "menu-board",
+            "ceiling": "pendant-lamp",
+            "counter": "coffee-machine",
+            "floor-left": "plant",
+            "floor-right": "floor-lamp"
+          },
+          "timeline": [
+            {
+              "who": "a",
+              "text": "Pit. I asked for both.",
+              "emotion": "neutral",
+              "face": "sneer"
+            },
+            {
+              "who": "a",
+              "text": "Where is my tea?",
+              "emotion": "neutral",
+              "face": "grump"
+            }
+          ],
+          "options": {
+            "bubbles": true
+          }
+        },
+        "mode": "circle",
+        "showBubbles": false,
+        "start": "auto",
+        "crop": {
+          "x": 0,
+          "y": 0,
+          "scale": 1
+        }
+      },
+      "triggers": [
+        {
+          "if": "played",
+          "then": "n3"
+        }
+      ],
+      "seq": 2
+    },
+    {
+      "ref": "n3",
+      "type": "text",
+      "pos": [
+        1120,
+        0
+      ],
+      "data": {
+        "content": "😡",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1500,
+          "then": "n4"
+        }
+      ],
+      "seq": 3
+    },
+    {
+      "ref": "n4",
+      "type": "scene",
+      "pos": [
+        1680,
+        0
+      ],
+      "note": "СЦЕНА: кружок Пита (skin kit), виноватый. Озвучку записать в редакторе сцены",
+      "data": {
+        "scene": {
+          "version": 2,
+          "id": "both-end-pit",
+          "title": "Кружок Пита",
+          "location": "cafe",
+          "characters": {
+            "a": {
+              "kind": "cat",
+              "gender": "male",
+              "name": "Пит",
+              "skin": "kit",
+              "voice": {
+                "pitch": 0.8,
+                "rate": 0.95
+              }
+            }
+          },
+          "slots": {
+            "table": "table",
+            "wall-art": "picture",
+            "table-left": "coffee-cup",
+            "table-right": "pastry-plate",
+            "window": "window",
+            "wall-menu": "menu-board",
+            "ceiling": "pendant-lamp",
+            "counter": "coffee-machine",
+            "floor-left": "plant",
+            "floor-right": "floor-lamp"
+          },
+          "timeline": [
+            {
+              "who": "a",
+              "text": "Sorry, Mia! Both are here.",
+              "emotion": "surprised",
+              "face": "shy"
+            },
+            {
+              "who": "a",
+              "text": "Coffee and tea.",
+              "emotion": "neutral",
+              "face": "pretend"
+            }
+          ],
+          "options": {
+            "bubbles": true
+          }
+        },
+        "mode": "circle",
+        "showBubbles": false,
+        "start": "auto",
+        "crop": {
+          "x": 0,
+          "y": 0,
+          "scale": 1
+        }
+      },
+      "triggers": [
+        {
+          "if": "played",
+          "then": "n5"
+        }
+      ],
+      "seq": 4
+    },
+    {
+      "ref": "n5",
+      "type": "audio",
+      "pos": [
+        2240,
+        0
+      ],
+      "note": "ОЗВУЧКА: Пит, с облегчением и лёгким смущением; без «она у меня такая» (они не друзья, но симпатичны друг другу)",
+      "needs": "audio — озвучка реплики",
+      "data": {
+        "text": "фух, пронесло. Тапни на её кружок и послушай ещё раз, а потом попробуй разобраться, что она мне сказала",
+        "showText": true
+      },
+      "triggers": [
+        {
+          "if": "played",
+          "then": "n6"
+        }
+      ],
+      "seq": 5
+    },
+    {
+      "ref": "n6",
+      "type": "phrase_assembly",
+      "pos": [
+        2800,
+        0
+      ],
+      "data": {
+        "words": [
+          "I",
+          "asked",
+          "for",
+          "both"
+        ],
+        "distractors": [
+          {
+            "text": "all"
+          },
+          {
+            "text": "we"
+          },
+          {
+            "text": "two"
+          }
+        ],
+        "responseWrong": "не совсем) подумай, сколько их"
+      },
+      "triggers": [
+        {
+          "if": "phrase_correct",
+          "then": "n7"
+        },
+        {
+          "if": "variant",
+          "variantLabel": "all",
+          "then": null
+        },
+        {
+          "if": "variant",
+          "variantLabel": "we",
+          "then": null
+        },
+        {
+          "if": "variant",
+          "variantLabel": "two",
+          "then": null
+        },
+        {
+          "if": "phrase_wrong",
+          "then": "n10"
+        }
+      ],
+      "seq": 6
+    },
+    {
+      "ref": "n7",
+      "type": "reaction",
+      "pos": [
+        3360,
+        0
+      ],
+      "data": {
+        "emoji": "👌",
+        "target": "student"
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1400,
+          "then": "n8"
+        }
+      ],
+      "seq": 7
+    },
+    {
+      "ref": "n8",
+      "type": "text",
+      "pos": [
+        3920,
+        0
+      ],
+      "note": "Про-режим: кнопка перевода на пузыре",
+      "data": {
+        "content": "да, она сказала так:\n{g:I asked for both. Where is my tea?}",
+        "hardWrap": true,
+        "pro": true,
+        "proText": "Я просила оба. Где мой чай?"
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 2200,
+          "then": "n9"
+        }
+      ],
+      "seq": 8
+    },
+    {
+      "ref": "n9",
+      "type": "text",
+      "pos": [
+        4480,
+        0
+      ],
+      "note": "Про-режим: кнопка перевода на пузыре",
+      "data": {
+        "content": "а я ей ответил:\n{g:Sorry, Mia! Both are here. Coffee and tea.}",
+        "hardWrap": true,
+        "pro": true,
+        "proText": "Прости, Мия! Оба здесь. Кофе и чай."
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 2200,
+          "then": null
+        }
+      ],
+      "seq": 9
+    },
+    {
+      "ref": "n10",
+      "type": "text",
+      "data": {
+        "content": "близко) Мия просила оба напитка, и слово про двоих {g:both} стоит в конце: {g:I asked for both}",
+        "hardWrap": false
+      },
+      "triggers": [
+        {
+          "if": "timer",
+          "ms": 1500,
+          "then": "n8"
+        }
+      ],
+      "pos": [
+        2800,
+        480
+      ],
+      "seq": 10
+    }
+  ],
+  "zones": [
+    {
+      "id": "zone-both-end",
+      "x": -150,
+      "y": -150,
+      "width": 5190,
+      "height": 960,
+      "label": "Финал · Мия в чате",
+      "color": "#ff9f1c"
+    }
+  ]
+}
