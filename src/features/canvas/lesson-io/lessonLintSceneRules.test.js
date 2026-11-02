@@ -96,6 +96,11 @@ describe('правила сцен урока-слова (S1–S4, S7, S8)', () =
     const solo = good()
     solo[2] = sc('n3', 3, pit(['try it', 'try']), 'bubble')
     expect(codes(solo)).toEqual(['R-scene-middle:e'])
+    // кружок Мии (одиночный маскот mia2) в середине допустим, а обычный одиночный кот нет
+    const miaScene = { ...pit(['Pit, try it now.', 'Do not try me.']), characters: { a: { kind: 'cat', gender: 'female', name: 'Мия', skin: 'mia2' } } }
+    const mia = good()
+    mia[2] = sc('n3', 3, miaScene, 'circle')
+    expect(codes(mia)).toEqual([])
   })
   it('S8: придуманный audioUrl (без audioMeta) — предупреждение; реплики без аудио — needsVoice', () => {
     const fake = good()

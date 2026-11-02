@@ -13,7 +13,7 @@ import { wordKey } from '../../../shared/lib/wordAudio/wordKey.js'
 //  · [R-scene-word]    S3: целевое слово (заголовок) есть в тексте каждой сцены (предупреждение);
 //  · [R-scene-lines]   S4: 2–6 реплик в сцене (в кружке Пита ровно 2: формат без task пропускает меньше двух), ≤ 12 слов в реплике;
 //  · [R-scene-task]    S7: у сцены урока нет task (плеер урока задания не играет);
-//  · [R-scene-middle]  S7: сцены между кружками — диалог двух котов, mode bubble;
+//  · [R-scene-middle]  S7: сцены между кружками — диалог двух котов, mode bubble (или кружок Мии: одиночная сцена маскота mia / mia2);
 //  · [R-scene-voice]   S8: audioUrl без audioMeta — озвучку выдумали (предупреждение); реплика БЕЗ audioUrl —
 //                      [R-scene-silent] предупреждение «прозвучит беззвучно»: синтез устройства в плеере выключен
 //                      (linePlayback.SCENE_DEVICE_SYNTH), звук сцен — только файлы из сборщика (sceneVoiceNeeds — тот же список для шлюза).
@@ -27,6 +27,8 @@ const linesOf = n => (Array.isArray(n.data?.scene?.timeline) ? n.data.scene.time
 const FUNCTION_WORDS = new Set(['to', 'the', 'a', 'an', 'in', 'on', 'at', 'for', 'of', 'with', 'by', 'from', 'and', 'or', 'but', 'is', 'am', 'are'])
 const wordsIn = s => String(s ?? '').trim().split(/\s+/).filter(Boolean).length
 const isPitCircle = n => (n.data?.mode) === 'circle' && isSolo(n.data?.scene)
+// Кружок Мии (одиночная сцена с маскотом mia / mia2): допустим в середине урока, например «Мия присоединилась к чату» в финале слова
+const isMiaCircle = n => isPitCircle(n) && ['mia', 'mia2'].includes(n.data?.scene?.characters?.a?.skin)
 
 // Корень слова для простого поиска форм: try / trying → «tr» (tries, tried), make → «mak»
 const stemOf = w => (w.length >= 3 ? w.replace(/(ing|ed|es|s)$/, m => (w.length - m.length >= 2 ? '' : m)).replace(/[ey]$/, '') : w)
@@ -91,7 +93,7 @@ export function checkSceneRules(nodes, { title } = {}) {
     })
     // S7
     if (n.data?.scene?.task) out.push(err(n.ref, 'R-scene-task', 'S7: у сцены урока нет task — плеер урока задания не играет'))
-    if (n !== first && n !== last) {
+    if (n !== first && n !== last && !isMiaCircle(n)) {
       const mode = n.data?.mode ?? 'bubble'
       if (mode !== 'bubble' || isSolo(n.data?.scene)) out.push(err(n.ref, 'R-scene-middle', 'S7: сцена в середине урока — диалог двух котов (a и b) в mode "bubble"'))
     }

@@ -1501,7 +1501,7 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | `scripts/lesson-eval.mjs` | Калибровка судьи: `--build "группа"` собирает из примеров правил проверочный урок + ожидание + промпт в `lesson-drafts/eval/`; `--score "группа" ответ.json` — поймал / пропустил / ложно, recall; `--groups` |
 | `lesson-drafts/at.json` | Урок «At» (235 нод, 7 зон, 3 сцены), собран по новой системе: правила из `rules.json`, шлюз, 11 судей по группам. Первая проверка новой системы на реальном уроке (PROJECT.md «Урок At») |
 | `lesson-drafts/gen/gen-at.mjs` | Генератор урока «At» (DSL: T/A/P/WC/PA/SAY…, ветки ошибок, зоны, раскладка) — правки по замечаниям судей вносятся сюда и урок пересобирается: `node lesson-drafts/gen/gen-at.mjs` |
-| `lesson-drafts/both.json` | Урок «Both» (тип «просто слово», черновик 1: 161 нода, 8 зон, 3 сцены), собран `gen-both.mjs`. Будет пересобран по решениям автора (маскоты, лапы, финал с Мией) |
+| `lesson-drafts/both.json` | Урок «Both» (тип «просто слово», версия 2: 179 нод, 9 зон, 4 сцены на маскотах Пит `kit` и Мия `mia2`), собран `gen-both.mjs`: завязка в кафе, части про both / место слова / похожие слова (`photo_choice`), мини-блок «как звучит», практика 3 уровня, финал «Мия присоединилась к чату» |
 | `lesson-drafts/both.ending.json` | Финал урока «Both» отдельным файлом (11 нод): Мия присоединяется к чату, кружки Мии (`mia2`) и Пита (`kit`), сборка `I asked for both`, два текста в про-режиме с переводом |
 | `lesson-drafts/gen/gen-both.mjs` | Генератор урока «Both» (DSL как в `gen-at.mjs`) |
 | `lesson-drafts/gen/gen-both-ending.mjs` | Генератор финала урока «Both» (`both.ending.json`) |
