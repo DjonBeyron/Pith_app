@@ -336,8 +336,8 @@
       "ref": "n10",
       "type": "text",
       "data": {
-        "content": "близко) Мия просила оба напитка, и слово про двоих {g:both} стоит в конце: {g:I asked for both}",
-        "hardWrap": false
+        "content": "близко) Мия просила оба напитка, и слово про двоих {g:both} стоит в конце:\n{g:I asked for both}",
+        "hardWrap": true
       },
       "triggers": [
         {
