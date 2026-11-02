@@ -131,8 +131,8 @@ const DUO = { a: CAT_PIT.a, b: MIA }
 // ───────────────────────────── ВХОД ─────────────────────────────
 zone('Вход', '#b6fe3b')
 SCENE('both-open', 'Пит у стойки кафе', 'circle', [
-  { who: 'a', text: 'Бариста спрашивает меня: coffee or tea?', emotion: 'neutral', face: 'base' },
-  { who: 'a', text: 'А я хочу и то и другое. Как ответить? Слово both.', emotion: 'surprised', face: 'pretend' },
+  { who: 'a', text: 'Я у стойки, бариста спрашивает: coffee or tea?', emotion: 'neutral', face: 'base' },
+  { who: 'a', text: 'Хочу и то и другое. Кажется, это both? Помоги сказать целиком.', emotion: 'surprised', face: 'pretend' },
 ])
 WC(['I want both', 'I want all', 'I want two'], { wrongText: 'не совсем) когда нужно и то и другое, то есть двое сразу, подходит слово {g:both}:\n{g:I want both}' })
 R('☕')
@@ -207,9 +207,10 @@ endZone()
 // ───────────────────────────── ДИАЛОГ ─────────────────────────────
 zone('Диалог', '#118ab2')
 SCENE('both-duo', 'Мия и Пит у стойки', 'bubble', [
-  { who: 'a', text: 'Mia, the barista asks: coffee or tea?', emotion: 'neutral', face: 'base', translation: 'Мия, бариста спрашивает: кофе или чай?' },
-  { who: 'b', text: 'Both. I will be at our table.', emotion: 'neutral', face: 'pathos', translation: 'Оба. Я буду за нашим столиком.' },
-  { who: 'a', text: 'Both? Got it!', emotion: 'surprised', face: 'shy', translation: 'Оба? Понял!' },
+  { who: 'a', text: 'Mia, coffee or tea?', emotion: 'neutral', face: 'base', translation: 'Мия, кофе или чай?' },
+  { who: 'b', text: 'Both. Quickly.', emotion: 'neutral', face: 'pathos', translation: 'Оба. Быстро.' },
+  { who: 'a', text: 'Both? Okay!', emotion: 'surprised', face: 'shy', translation: 'Оба? Хорошо!' },
+  { who: 'b', text: 'I will be at the table.', emotion: 'neutral', face: 'sneer', translation: 'Я буду за столиком.' },
 ], DUO)
 endZone()
 

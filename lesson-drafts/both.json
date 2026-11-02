@@ -48,13 +48,13 @@
           "timeline": [
             {
               "who": "a",
-              "text": "Бариста спрашивает меня: coffee or tea?",
+              "text": "Я у стойки, бариста спрашивает: coffee or tea?",
               "emotion": "neutral",
               "face": "base"
             },
             {
               "who": "a",
-              "text": "А я хочу и то и другое. Как ответить? Слово both.",
+              "text": "Хочу и то и другое. Кажется, это both? Помоги сказать целиком.",
               "emotion": "surprised",
               "face": "pretend"
             }
@@ -2162,24 +2162,31 @@
           "timeline": [
             {
               "who": "a",
-              "text": "Mia, the barista asks: coffee or tea?",
+              "text": "Mia, coffee or tea?",
               "emotion": "neutral",
               "face": "base",
-              "translation": "Мия, бариста спрашивает: кофе или чай?"
+              "translation": "Мия, кофе или чай?"
             },
             {
               "who": "b",
-              "text": "Both. I will be at our table.",
+              "text": "Both. Quickly.",
               "emotion": "neutral",
               "face": "pathos",
-              "translation": "Оба. Я буду за нашим столиком."
+              "translation": "Оба. Быстро."
             },
             {
               "who": "a",
-              "text": "Both? Got it!",
+              "text": "Both? Okay!",
               "emotion": "surprised",
               "face": "shy",
-              "translation": "Оба? Понял!"
+              "translation": "Оба? Хорошо!"
+            },
+            {
+              "who": "b",
+              "text": "I will be at the table.",
+              "emotion": "neutral",
+              "face": "sneer",
+              "translation": "Я буду за столиком."
             }
           ],
           "options": {
