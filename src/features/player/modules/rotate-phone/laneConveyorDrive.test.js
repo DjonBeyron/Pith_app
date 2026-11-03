@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { createConveyorDrive, waveLocal, NO_WAVE, MAX_DT } from './laneConveyorDrive.js'
-import { IGNITE_MS, ACCEL_MS, DECEL_MS, HOLD_MS, REST_A, RUN_A, RUN_SPEED, PERIOD } from './wordLaneConveyor.js'
+import { createConveyorDrive, MAX_DT } from './laneConveyorDrive.js'
+import { IGNITE_MS, BLINK_MS, ACCEL_MS, DECEL_MS, HOLD_MS, REST_A, RUN_A, RUN_SPEED } from './wordLaneConveyor.js'
 
 // Привод конвейера на подставном DOM: колонки .wlLanes i и пилюли [data-held] с data-lane; время и rAF — вручную
 function setup(opts = {}) {
@@ -42,17 +42,20 @@ describe('привод конвейера: запись в колонки и ж�
     expect(h.v(1, '--run-y')).toBe('0.00dvh')
     expect(h.v(0, '--run-y')).toMatch(/dvh$/)
   })
-  it('зажигание: --run-w бежит по пунктиру, затем волны нет (999dvh); штрихи стоят (y = 0)', () => {
+  it('зажигание: яркость --run-a плавно мигает (покой → ярко → покой, 2 раза), штрихи стоят (y = 0), --run-w больше не пишется', () => {
     const h = setup()
     h.drive.setArmed('100')
-    h.frames(50)
-    const w1 = parseFloat(h.v(0, '--run-w'))
-    h.frames(120)
-    const w2 = parseFloat(h.v(0, '--run-w'))
-    expect(w2).toBeGreaterThan(w1)
+    const seen = []
+    for (let t = 0; t < IGNITE_MS; t += 1000 / 60) { h.frames(1000 / 60); seen.push(Number(h.v(0, '--run-a'))) }
+    expect(Math.max(...seen)).toBeGreaterThan(REST_A + (RUN_A - REST_A) * 0.8)       // вспыхнуло почти до рабочей яркости
+    const mid = seen[Math.round(BLINK_MS / (1000 / 60)) - 1]
+    expect(mid).toBeLessThan(REST_A + (RUN_A - REST_A) * 0.15)                       // между миганиями вернулось в покой
+    const peaks = seen.filter((a, i) => i > 0 && i < seen.length - 1 && a > seen[i - 1] && a >= seen[i + 1]).length
+    expect(peaks).toBe(2)
     expect(h.v(0, '--run-y')).toBe('0.00dvh')
-    h.frames(IGNITE_MS + 200)
-    expect(h.v(0, '--run-w')).toBe(NO_WAVE)
+    expect(h.v(0, '--run-w')).toBeUndefined()
+    h.frames(ACCEL_MS + 300)
+    expect(h.drive.state().phases[0]).toBe('run')
   })
   it('пилюли на дорожке (data-held + data-lane) держат ход и без команды; улетели — торможение, потом цикл засыпает', () => {
     const h = setup()
@@ -107,12 +110,11 @@ describe('привод конвейера: запись в колонки и ж�
     expect(h.drive.state().phases[0]).toBe('run')
     expect(MAX_DT).toBeLessThanOrEqual(64)
   })
-  it('still (слабое устройство, reduced-motion): пунктир не двигается и без волны, но яркость работает', () => {
+  it('still (слабое устройство, reduced-motion): пунктир не двигается и не мигает, но яркость работает', () => {
     const h = setup({ still: true })
     h.setHeld([0])
     h.frames(IGNITE_MS + ACCEL_MS + 400)
     expect(h.v(0, '--run-y')).toBe('0.00dvh')
-    expect(h.v(0, '--run-w')).toBe(NO_WAVE)
     expect(Number(h.v(0, '--run-a'))).toBeCloseTo(RUN_A, 2)
   })
   it('запись только при изменении значения', () => {
@@ -123,7 +125,7 @@ describe('привод конвейера: запись в колонки и ж�
     h.frames(IGNITE_MS + ACCEL_MS + 2000)
     const before = writes
     h.frames(500)
-    // на рабочей скорости пишется один --run-y за кадр, яркость и волна стоят
+    // на рабочей скорости пишется один --run-y за кадр, яркость стоит
     expect(writes - before).toBeLessThanOrEqual(31)
   })
   it('dispose снимает цикл и наблюдателя', () => {
@@ -134,12 +136,12 @@ describe('привод конвейера: запись в колонки и ж�
   })
 })
 
-describe('waveLocal: позиция волны в координатах слоя', () => {
-  it('волна идёт сверху вниз (растёт), учитывает высоту слоя над колонкой и сдвиг y', () => {
-    expect(parseFloat(waveLocal(0, 0))).toBeLessThan(parseFloat(waveLocal(0.5, 0)))
-    expect(parseFloat(waveLocal(1, 0))).toBeGreaterThan(100)
-    expect(parseFloat(waveLocal(0.5, 3))).toBeCloseTo(parseFloat(waveLocal(0.5, 0)) - 3, 2)
-    expect(parseFloat(waveLocal(0, 0))).toBeLessThan(PERIOD)
+describe('still: без мигания — яркость поднимается плавно, не колеблется', () => {
+  it('в зажигании --run-a только растёт', () => {
+    const h = setup({ still: true })
+    h.setHeld([0])
+    let prev = REST_A
+    for (let t = 0; t < IGNITE_MS; t += 1000 / 60) { h.frames(1000 / 60); const a = Number(h.v(0, '--run-a')); expect(a).toBeGreaterThanOrEqual(prev - 1e-9); prev = a }
   })
   it('рабочая скорость = SPEED (dvh/с)', () => {
     expect(A(RUN_SPEED)).toBe(26)

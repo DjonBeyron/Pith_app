@@ -2,8 +2,8 @@
 // скоростью; пока они на экране, ученик должен тапнуть ПРАВИЛЬНЫЕ дорожки: подсказка — один кусок (тап по его дорожке) или вся фраза (тап по дорожкам в порядке звучания). Успел — пилюля
 // заливается и щёлкает; не успел (пилюли ушли вниз) — «не успел», та же подсказка звучит снова (до ORDER_MAX_TRIES раз, потом идём дальше). Неверная дорожка не штрафуется: дрожит, после
 // HINT_AFTER ошибок верная подсвечивается кольцом. Чистая логика без DOM — время приходит аргументом, проверяется тестами.
-import { ENTER_Y, OPEN_Y, SPEED, TRAVEL_MS } from './wordLaneTimeline.js'
-import { CLAIM_FROM_Y, FAIL_Y } from './wordLaneStudent.js'
+import { ENTER_Y, OPEN_Y, SPEED, TRAVEL_MS, isListening } from './wordLaneTimeline.js'
+import { FAIL_Y } from './wordLaneStudent.js'
 
 export const HINT_AFTER = 2          // столько ошибок на подсказке — и верная дорожка подсвечивается
 export const ORDER_MAX_TRIES = 3     // сколько раз подсказка выкатывается, если ученик не успел
@@ -68,7 +68,7 @@ export function tapLane(g, lane, t) {
   if (g.finished || g.state !== 'fly') return []
   if (g.prompts[g.i].written && !g.said) return [] // репетиция, «Различи»: пока слово не прозвучало, тап вслепую не засчитывается
   const y = orderY(g, t, laneDelayOf(g.prompts[g.i], lane)) // у «Различи» пилюли выкатываются по очереди — у каждой своя высота
-  if (y < (g.prompts[g.i].texts ? OPEN_Y : CLAIM_FROM_Y) || y > FAIL_Y) return [] // «Различи»: слово пилюли должно уже прозвучать (она открылась)
+  if (!isListening(y) || (g.prompts[g.i].texts && y < OPEN_Y) || y > FAIL_Y) return [] // недоступная пилюля (v3.3.101: вышла из-за верха меньше чем на 90 % или ушла вниз на 50 %) тап не получает; «Различи»: слово пилюли должно уже прозвучать (она открылась)
   const slots = g.prompts[g.i].slots
   if (slots && !slots.includes(lane)) return [] // «Различи»: в этой дорожке пилюли нет — тап никуда не попал
   const exp = expectedLanes(g)

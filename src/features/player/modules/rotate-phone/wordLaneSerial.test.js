@@ -128,7 +128,7 @@ describe('время ступени ограничено', () => {
 
   it('принятые повторы бюджет не трогает: быстрые ответы — все три приняты', () => {
     const g = game(build[0])
-    const log = run(g, (t, gm) => { const c = gm.reps.find(r => r.state === 'fly'); return c && c.pills[0].y > 5 && !c.said ? ((c.said = true), { hit: 0 }) : null }, 30000)
+    const log = run(g, (t, gm) => { const c = gm.reps.find(r => r.state === 'fly'); return c && c.pills[0].y > 10 && !c.said ? ((c.said = true), { hit: 0 }) : null }, 30000)
     expect(types(log, 'done')[0].locked).toBe(3)
   })
 })

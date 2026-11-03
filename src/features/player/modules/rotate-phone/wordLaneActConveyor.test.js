@@ -1,56 +1,93 @@
 import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
-import { actLanes, actArmedLanes, isActStart, armedLanes, KEEP_CHAR } from './wordLaneConveyorStart.js'
+import { upcomingLanes, previousLanes, actArmedLanes, isActStart, armedLanes, KEEP_CHAR } from './wordLaneConveyorStart.js'
+import { runLanes } from './wordLaneRunLanes.js'
 import { RUN_NONE } from './wordLaneRunLanes.js'
 import { createConveyorDrive } from './laneConveyorDrive.js'
 import { buildRehearsalStages } from '../../../rehearsal/rehearsalStages.js'
 import { fixturePlan, FIXTURE_IDS } from '../../../rehearsal/rehearsalFixtures.js'
 
-// Конвейер в актах репетиции (v3.3.87): внутри акта едет непрерывно на всех дорожках акта (Пит говорит, слово переезжает на другую дорожку, стадии сменяются), тормозит только на границе акта и перед зеркалом / итогом
+// Конвейер в актах репетиции (v3.3.101): едет дорожка, где сейчас пилюли, и та, где они будут следующими (зажигается заранее); непрерывно — лишь дорожка, на которой пилюли идут подряд (до v3.3.101 ехали все дорожки акта)
 const read = rel => readFileSync(fileURLToPath(new URL(rel, import.meta.url)), 'utf8')
 const st = (act, type, active = []) => ({ act, type, step: { active } })
+const lanesOf = str => str.split('').map((c, k) => (c === '1' ? k : -1)).filter(k => k >= 0)
+const lanesOf2 = str => str.split('').map((c, k) => (c === '2' ? k : -1)).filter(k => k >= 0)
 
-describe('actLanes / isActStart: дорожки акта', () => {
+describe('upcomingLanes / previousLanes / isActStart', () => {
   const stages = [
     st('warmup', 'announce'), st('warmup', 'warmup', [1]), st('warmup', 'warmup', [0]), st('warmup', 'warmup', [2]),
     st('read', 'announce'), st('read', 'read', [0, 1, 2]), st('read', 'turn', [0, 1, 2]), st('read', 'student', [0, 1, 2]),
     { act: 'mirror', type: 'mirror' }, { act: 'summary', type: 'summary' },
   ]
-  it('объединение дорожек всех стадий акта: разминка по словам на 2-й, 1-й и 3-й дорожках — все три едут весь акт', () => {
-    for (const i of [0, 1, 2, 3]) expect(actLanes(stages, i)).toBe('222')
-    expect(actLanes([st('a', 'announce'), st('a', 'warmup', [1]), st('a', 'warmup', [1])], 1)).toBe('020')
+  it('ближайшая следующая стадия с пилюлями в том же акте — только её дорожки, не весь акт', () => {
+    expect(upcomingLanes(stages, 0)).toEqual([1])
+    expect(upcomingLanes(stages, 1)).toEqual([0])
+    expect(upcomingLanes(stages, 2)).toEqual([2])
+    expect(upcomingLanes(stages, 3)).toEqual([])               // слов в акте больше нет
+    expect(upcomingLanes(stages, 4)).toEqual([0, 1, 2])         // через плашку
+    expect(upcomingLanes(stages, 7)).toEqual([])                // дальше другой акт
   })
-  it('зеркало, итог, нет акта — дорожек нет', () => {
-    expect(actLanes(stages, 8)).toBe(RUN_NONE)
-    expect(actLanes(stages, 9)).toBe(RUN_NONE)
-    expect(actLanes([{ type: 'announce' }], 0)).toBe(RUN_NONE)
-    expect(actLanes(stages, 99)).toBe(RUN_NONE)
+  it('правила пропуска (nextIdx) учитываются: пропущенная стадия не зажигает дорожку', () => {
+    expect(upcomingLanes(stages, 1, i => (i === 2 ? 3 : i))).toEqual([2])
   })
-  it('граница акта — его первая стадия', () => {
+  it('дорожки стадии с пилюлями перед плашкой — те, по которым конвейер ехал до неё', () => {
+    expect(previousLanes(stages, 6)).toEqual([0, 1, 2])
+    expect(previousLanes(stages, 0)).toEqual([])
+    expect(previousLanes(stages, 4)).toEqual([])                // акт начался заново
+  })
+  it('зеркало, итог, нет акта, конец списка — дорожек нет', () => {
+    expect(upcomingLanes(stages, 8)).toEqual([])
+    expect(upcomingLanes([{ type: 'announce' }], 0)).toEqual([])
+    expect(upcomingLanes(stages, 99)).toEqual([])
+    expect(actArmedLanes({ stages, idx: 8, ignited: true })).toBe(RUN_NONE)
+    expect(actArmedLanes({ stages, idx: 9, ignited: true })).toBe(RUN_NONE)
+  })
+  it('граница акта — его первая стадия; команда «держать ход» — «2», не «1»', () => {
     expect([0, 1, 3, 4, 5, 8, 9].map(i => isActStart(stages, i))).toEqual([true, false, false, true, false, true, true])
     expect(isActStart([{ type: 'announce' }], 0)).toBe(false)
-  })
-  it('команда акта — «2» (держать ход), не «1» (по пилюлям)', () => {
     expect(KEEP_CHAR).toBe('2')
   })
 })
 
-describe('actArmedLanes: когда команда стоит', () => {
-  const stages = [st('a', 'announce'), st('a', 'warmup', [0]), st('a', 'warmup', [2]), st('b', 'announce'), st('b', 'dictor', [1])]
-  it('плашка — граница акта: до момента зажигания команды нет, после — дорожки акта', () => {
-    expect(actArmedLanes({ stages, idx: 0, ignited: false })).toBe(RUN_NONE)
-    expect(actArmedLanes({ stages, idx: 0, ignited: true })).toBe('202')
-    expect(actArmedLanes({ stages, idx: 3, ignited: false })).toBe(RUN_NONE)
-    expect(actArmedLanes({ stages, idx: 3, ignited: true })).toBe('020')
+describe('actArmedLanes: едет только дорожка, где сейчас пилюля, следующая зажигается заранее (v3.3.101)', () => {
+  // разминка: слово на 1-й, потом на 3-й дорожке; потом сборка: ступени [2] → [1,2]
+  const stages = [st('w', 'announce'), st('w', 'warmup', [0]), st('w', 'warmup', [2]), st('b', 'announce'), st('b', 'dictor', [2]), st('b', 'turn', [2]), st('b', 'student', [2]), st('b', 'dictor', [1, 2]), st('b', 'turn', [1, 2]), st('b', 'student', [1, 2])]
+  it('разминка: слово на дорожке 1 — едет одна дорожка, на третью команды нет, пока слово не кончилось', () => {
+    expect(actArmedLanes({ stages, idx: 1 })).toBe('200')
+    expect(actArmedLanes({ stages, idx: 2 })).toBe('002')
   })
-  it('внутри акта — дорожки акта сразу, зажигание не нужно (и между словами не меняются)', () => {
-    expect(actArmedLanes({ stages, idx: 1 })).toBe('202')
-    expect(actArmedLanes({ stages, idx: 2 })).toBe('202')
-    expect(actArmedLanes({ stages, idx: 4 })).toBe('020')
+  it('слово закончилось (leaving): следующая дорожка зажигается заранее, прежняя переходит на «по пилюлям» и тормозит, когда они ушли', () => {
+    expect(actArmedLanes({ stages, idx: 1, leaving: true })).toBe('102')
+    expect(actArmedLanes({ stages, idx: 2, leaving: true })).toBe('001')   // слов дальше нет — только тормозит
   })
-  it('первая стадия акта — не плашка, а пилюли: дорожки акта сразу', () => {
-    expect(actArmedLanes({ stages: [st('x', 'student', [2]), st('x', 'student', [0])], idx: 0 })).toBe('202')
+  it('то же слово подряд на той же дорожке — едет непрерывно, без торможения', () => {
+    const same = [st('w', 'announce'), st('w', 'warmup', [1]), st('w', 'warmup', [1])]
+    expect(actArmedLanes({ stages: same, idx: 1, leaving: true })).toBe('020')
+  })
+  it('первая плашка акта: до зажигания команды нет (дорожки прошлого акта тормозят), после — дорожка первой стадии', () => {
+    expect(actArmedLanes({ stages, idx: 0 })).toBe(RUN_NONE)
+    expect(actArmedLanes({ stages, idx: 0, ignited: true })).toBe('200')
+    expect(actArmedLanes({ stages, idx: 3 })).toBe(RUN_NONE)
+    expect(actArmedLanes({ stages, idx: 3, ignited: true })).toBe('002')
+  })
+  it('сборка: плашка «твоя очередь» между диктором и учеником на той же дорожке — не тормозит', () => {
+    expect(actArmedLanes({ stages, idx: 4 })).toBe('002')
+    expect(actArmedLanes({ stages, idx: 5 })).toBe('002')
+    expect(actArmedLanes({ stages, idx: 6 })).toBe('002')
+  })
+  it('сборка, ступень [2] → [1,2]: на выходе зажигается дорожка 1, дорожка 2 идёт подряд и не тормозит; плашка перед диктором новой ступени не отключает дорожку 1', () => {
+    expect(actArmedLanes({ stages, idx: 6, leaving: true })).toBe('022')
+    expect(actArmedLanes({ stages, idx: 7 })).toBe('022')
+    expect(actArmedLanes({ stages, idx: 8 })).toBe('022')
+  })
+  it('на плашке внутри акта дорожка, которой ещё не было, ждёт момента зажигания; прежняя без пилюль — «0»', () => {
+    const s = [st('a', 'announce'), st('a', 'student', [0]), st('a', 'turn', [2]), st('a', 'student', [2])]
+    expect(actArmedLanes({ stages: s, idx: 2 })).toBe(RUN_NONE)
+    expect(actArmedLanes({ stages: s, idx: 2, ignited: true })).toBe('002')
+  })
+  it('первая стадия акта — не плашка, а пилюли: её дорожки сразу', () => {
+    expect(actArmedLanes({ stages: [st('x', 'student', [2]), st('x', 'student', [0])], idx: 0 })).toBe('002')
   })
   it('без акта (стадии обычной ноды) и вне списка — ни одной', () => {
     expect(actArmedLanes({ stages: [{ type: 'student', step: { active: [0] } }], idx: 0 })).toBe(RUN_NONE)
@@ -58,29 +95,27 @@ describe('actArmedLanes: когда команда стоит', () => {
   })
 })
 
-describe('настоящие стадии репетиции (все фикстуры): команда не прерывается внутри акта', () => {
+describe('настоящие стадии репетиции (все фикстуры): за раз едет не больше дорожек, чем нужно', () => {
   for (const id of FIXTURE_IDS) {
     const { stages } = buildRehearsalStages({ plan: fixturePlan(id) })
-    it(`фикстура ${id}: внутри акта строка одна и та же на всех стадиях, у границы акта до зажигания — пусто`, () => {
-      expect(stages.length).toBeGreaterThan(3)
+    it(`фикстура ${id}: на стадии с пилюлями команда «2» только на её дорожках; на выходе — ещё и на дорожках следующей стадии акта и больше ни на каких`, () => {
       stages.forEach((s, i) => {
-        const full = actArmedLanes({ stages, idx: i, ignited: true })
-        expect(full).toBe(actLanes(stages, i))
-        const before = actArmedLanes({ stages, idx: i, ignited: false })
-        if (isActStart(stages, i) && (s.type === 'announce' || s.type === 'turn')) expect(before).toBe(RUN_NONE)
-        else expect(before).toBe(full)
-        if (i > 0 && stages[i - 1].act === s.act) expect(actArmedLanes({ stages, idx: i })).toBe(actArmedLanes({ stages, idx: i - 1, ignited: true }))
+        const own = lanesOf(runLanes(s))
+        if (!own.length) return
+        const cmd = actArmedLanes({ stages, idx: i })
+        expect(lanesOf2(cmd)).toEqual(own)
+        const out = actArmedLanes({ stages, idx: i, leaving: true })
+        const next = upcomingLanes(stages, i)
+        expect(lanesOf2(out)).toEqual([...new Set([...own.filter(k => next.includes(k)), ...next])].sort())
+        own.filter(k => !next.includes(k)).forEach(k => expect(out[k]).toBe('1'))
       })
     })
-    it(`фикстура ${id}: разминка — все дорожки её слов едут весь акт; зеркало и итог — дорожек нет`, () => {
-      const warm = stages.map((s, i) => ({ s, i })).filter(x => x.s.act === 'warmup')
-      if (warm.length) {
-        const lanes = new Set(warm.filter(x => x.s.type === 'warmup').map(x => x.s.word.lane))
-        const str = actArmedLanes({ stages, idx: warm.at(-1).i })
-        for (const lane of lanes) expect(str[lane]).toBe(KEEP_CHAR)
-        expect(new Set(warm.slice(1).map(x => actArmedLanes({ stages, idx: x.i }))).size).toBe(1) // между словами строка не меняется — конвейер не тормозит
-      }
-      for (const [i, s] of stages.entries()) if (s.type === 'mirror' || s.type === 'summary') expect(actArmedLanes({ stages, idx: i, ignited: true })).toBe(RUN_NONE)
+    it(`фикстура ${id}: разминка — между словами на разных дорожках за раз «2» стоит не больше чем на двух (текущая и зажигаемая заранее); зеркало и итог — дорожек нет`, () => {
+      stages.forEach((s, i) => {
+        for (const leaving of [false, true]) for (const ignited of [false, true]) expect(lanesOf2(actArmedLanes({ stages, idx: i, ignited, leaving })).length).toBeLessThanOrEqual(3)
+        if (s.act === 'warmup') expect(lanesOf2(actArmedLanes({ stages, idx: i, ignited: true })).length).toBeLessThanOrEqual(1)
+        if (s.type === 'mirror' || s.type === 'summary') expect(actArmedLanes({ stages, idx: i, ignited: true, leaving: true })).toBe(RUN_NONE)
+      })
     })
   }
 })
@@ -89,11 +124,12 @@ describe('обычная нода (без плана) — прежняя схе�
   it('armedLanes не знает про акты и отдаёт «1»', () => {
     expect(armedLanes({ stageObj: { type: 'student', step: { active: [0, 2] } } })).toBe('101')
   })
-  it('хук: в репетиции — actArmedLanes, без плана — armedLanes; таймер зажигания только на границе акта', () => {
+  it('хук: в репетиции — actArmedLanes с leaving и правилами пропуска, без плана — armedLanes; таймер зажигания на каждой плашке', () => {
     const src = read('./useConveyorArm.js')
-    expect(src).toContain('if (rh.on) return stage === \'run\' ? actArmedLanes({ stages, idx, ignited })')
+    expect(src).toContain('actArmedLanes({ stages, idx, ignited, leaving: leaving === idx, nextIdx: rh.nextIdx })')
     expect(src).toContain('return armedLanes({ stageObj, nextStage: stages[idx + 1] ?? null, ignited })')
-    expect(src).toContain('plate && (!rh.on || isActStart(stages, idx))')
+    expect(src).toContain('const needTimer = plate')
+    expect(read('./useWordLaneFlow.js')).toContain('setS(p => ({ ...p, leaving: at }))') // директор говорит «ступень закончена»
   })
 })
 

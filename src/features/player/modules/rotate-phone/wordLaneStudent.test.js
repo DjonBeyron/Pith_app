@@ -171,21 +171,21 @@ describe('голос и заливка: только на подтверждён
     expect(g.reps[0].pills[0].p).toBeLessThan(0.05)
     expect(g.reps[0].tk).toBe(0)
   })
-  it('слово принимается, как только пилюля ВИДНА (CLAIM_FROM_Y у верхнего края), а не после полного открытия', () => {
+  it('слово принимается, как только пилюля вышла из-за верхнего края на 90 % (LISTEN_Y_MIN), а не после полного открытия (OPEN_Y)', () => {
     expect(CLAIM_FROM_Y).toBeLessThanOrEqual(0)
     const g = game(build[0])
-    const log = run(g, once(700, 0) && (t => ({ hit: t >= 700 && !g.reps[0].said ? ((g.reps[0].said = true), 0) : null })), 3000)
+    const log = run(g, once(900, 0) && (t => ({ hit: t >= 900 && !g.reps[0].said ? ((g.reps[0].said = true), 0) : null })), 3000)
     expect(of(log, 'claim')).toHaveLength(1)
-    expect(of(log, 'claim')[0].t).toBeLessThan(900)     // пилюля выкатилась в 0 мс, к 700 мс её центр ≈ +4 % — уже видна
+    expect(of(log, 'claim')[0].t).toBeLessThan(1100)    // пилюля выкатилась в 0 мс, к 900 мс её центр ≈ +9,4 % — видно больше 90 % (LISTEN_Y_MIN = 8 %)
   })
 })
 
 describe('границы', () => {
-  it('claimable: только повтор на экране между порогом слуха первой пилюли (видно 51 %, LISTEN_Y_MIN) и CLAIM_TO_Y', () => {
+  it('claimable: только повтор на экране между порогом слуха первой пилюли (видно 90 %, LISTEN_Y_MIN) и CLAIM_TO_Y', () => {
     const rep = (y0, y1, state = 'fly') => ({ state, pills: [{ y: y0 }, { y: y1 }] })
     expect(isClaimable(rep(LISTEN_Y_MIN, CLAIM_TO_Y))).toBe(true)
     expect(isClaimable(rep(LISTEN_Y_MIN - 0.1, 50))).toBe(false)
-    expect(isClaimable(rep(CLAIM_FROM_Y, 50))).toBe(false)                     // прежний порог (−4) выше слуха — пилюля ещё больше чем наполовину за краем
+    expect(isClaimable(rep(CLAIM_FROM_Y, 50))).toBe(false)                     // прежний порог (−4) выше слуха — пилюля ещё больше чем на 10 % за краем
     expect(isClaimable(rep(CLAIM_FROM_Y - 1, 50))).toBe(false)
     expect(isClaimable(rep(50, CLAIM_TO_Y + 1))).toBe(false)
     expect(isClaimable(rep(50, 60, 'lock'))).toBe(false)

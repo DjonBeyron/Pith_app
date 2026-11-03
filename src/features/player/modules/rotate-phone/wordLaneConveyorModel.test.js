@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import {
-  createLane, stepLane, laneLook, settled, ease, IGNITE_MS, ACCEL_MS, DECEL_MS, HOLD_MS, CONVEYOR_LEAD_MS, RUN_SPEED, PERIOD, REST_A, RUN_A,
+  createLane, stepLane, laneLook, settled, ease, blink, BLINK_MS, BLINKS, IGNITE_MS, ACCEL_MS, DECEL_MS, HOLD_MS, CONVEYOR_LEAD_MS, RUN_SPEED, PERIOD, REST_A, RUN_A,
 } from './wordLaneConveyor.js'
 import { SPEED } from './wordLaneTimeline.js'
 
@@ -13,8 +13,10 @@ describe('конвейер: скорости и времена', () => {
   it('рабочая скорость равна скорости пилюль (SPEED), пунктир 1 px редкий: период больше прежних 8 dvh', () => {
     expect(RUN_SPEED).toBe(SPEED)
     expect(PERIOD).toBeGreaterThan(8)
-    expect(IGNITE_MS).toBeGreaterThanOrEqual(200)
-    expect(IGNITE_MS).toBeLessThanOrEqual(300)
+    expect(BLINK_MS).toBe(250)
+    expect(BLINKS).toBeGreaterThanOrEqual(2)
+    expect(BLINKS).toBeLessThanOrEqual(3)
+    expect(IGNITE_MS).toBe(BLINK_MS * BLINKS)
   })
   it('старт за зажигание + разгон (1,2 с): разгон длиннее прежних 420 мс; торможение 0,6–0,8 с', () => {
     expect(CONVEYOR_LEAD_MS).toBe(IGNITE_MS + ACCEL_MS)
@@ -39,19 +41,29 @@ describe('одна дорожка: зажигание → разгон → хо�
     expect(L.y).toBe(0)
     expect(settled([L])).toBe(true)
   })
-  it('зажигание: IGNITE_MS штрихи стоят, волна идёт 0 → 1, яркость выше покоя; потом разгон', () => {
+  it('зажигание: штрихи стоят, яркость плавно мигает 2 раза (покой → ярко → покой), волны нет; потом разгон', () => {
     const L = createLane()
     stepLane(L, STEP, ON)
     expect(L.phase).toBe('ignite')
-    const waves = []
-    for (let t = STEP; t < IGNITE_MS - STEP; t += STEP) { stepLane(L, STEP, ON); waves.push(laneLook(L).wave); expect(L.y).toBe(0); expect(L.s).toBe(0) }
-    expect(waves[0]).toBeLessThan(0.2)
-    expect(waves.at(-1)).toBeGreaterThan(0.8)
-    expect(waves.every((w, i) => i === 0 || w > waves[i - 1])).toBe(true)
-    expect(laneLook(L).a).toBeGreaterThan(REST_A)
-    run(L, STEP * 3, ON)
+    const a = [laneLook(L).a]
+    for (let t = STEP; t < IGNITE_MS - STEP; t += STEP) { stepLane(L, STEP, ON); a.push(laneLook(L).a); expect(L.y).toBe(0); expect(L.s).toBe(0); expect(laneLook(L).wave).toBeUndefined() }
+    const peaks = a.filter((v, i) => i > 0 && i < a.length - 1 && v > a[i - 1] && v >= a[i + 1]).length
+    const dips = a.filter((v, i) => i > 0 && i < a.length - 1 && v < a[i - 1] && v <= a[i + 1]).length
+    expect(peaks).toBe(BLINKS)
+    expect(dips).toBe(BLINKS - 1)                                                       // между миганиями — возврат в покой
+    expect(Math.max(...a)).toBeCloseTo(RUN_A, 1)                                        // пик — рабочая яркость
+    expect(a[0] - REST_A).toBeLessThan((RUN_A - REST_A) * 0.1)                          // старт из покоя, не ступенькой
+    expect(Math.max(...a.slice(1).map((v, i) => Math.abs(v - a[i])))).toBeLessThan((RUN_A - REST_A) * 0.25) // без скачков (максимум наклона синусоиды за кадр ≈ 0,21)
+    run(L, STEP * 4, ON)
     expect(L.phase).toBe('accel')
-    expect(laneLook(L).wave).toBe(null)
+  })
+  it('blink: синусоида 0 → 1 → 0 за BLINK_MS, на стыках циклов 0 с нулевым наклоном', () => {
+    expect(blink(0)).toBeCloseTo(0, 9)
+    expect(blink(BLINK_MS / 2)).toBeCloseTo(1, 9)
+    expect(blink(BLINK_MS)).toBeCloseTo(0, 9)
+    expect(blink(BLINK_MS * 1.5)).toBeCloseTo(1, 9)
+    expect(blink(IGNITE_MS)).toBeCloseTo(0, 9)
+    expect(blink(BLINK_MS * 0.01)).toBeLessThan(0.002)
   })
   it('разгон плавный: скорость растёт монотонно без скачков и приходит к SPEED за зажигание + разгон', () => {
     const L = createLane()
@@ -124,7 +136,7 @@ describe('одна дорожка: зажигание → разгон → хо�
     run(L, 1500, { armed: true, pills: 0 })
     expect(L.phase).toBe('run')
   })
-  it('хотят снова посреди торможения: разгон идёт от текущей скорости, без рывка и без нового зажигания', () => {
+  it('хотят снова посреди торможения: разгон идёт от текущей скорости, без рывка и без нового мигания', () => {
     const L = createLane()
     run(L, 2000, ON)
     run(L, DECEL_MS / 2, { armed: false, pills: 0 }) // команды нет и пилюль нет — пауза HOLD_MS не нужна, тормозит сразу
@@ -133,7 +145,6 @@ describe('одна дорожка: зажигание → разгон → хо�
     stepLane(L, STEP, ON)
     expect(L.phase).toBe('accel')
     expect(Math.abs(L.s - before)).toBeLessThan(RUN_SPEED * 0.1)
-    expect(laneLook(L).wave).toBe(null)
   })
   it('still (слабое устройство / reduced-motion): пунктир не двигается, яркость работает', () => {
     const L = createLane()

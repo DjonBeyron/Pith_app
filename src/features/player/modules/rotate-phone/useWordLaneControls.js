@@ -20,7 +20,7 @@ export function useWordLaneControls({ stages, sRef, setS, setMicEpoch, clearTime
   const restartStage = useCallback(() => {
     const cur = sRef.current
     const live = cur.stage === 'paused' ? cur.from : cur.stage
-    const fresh = { hint: [], seq: [], misses: 0, lid: '', note: '' }
+    const fresh = { hint: [], seq: [], misses: 0, lid: '', note: '', leaving: -1 }
     if (cur.stage === 'paused' && live !== 'run') { // свернули во вступлении: роняем слово и открываем дорожки сначала
       clearTimers(); stopVoice(); dbg.event('restart-stage', { idx: 0, to: 0, from: live })
       setS(p => ({ ...p, ...fresh, stage: 'drop', idx: 0, at: performance.now() })); setMicEpoch(e => e + 1)
