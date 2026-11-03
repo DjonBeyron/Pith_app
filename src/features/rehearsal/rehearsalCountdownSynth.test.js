@@ -41,3 +41,16 @@ describe('синтез нот отсчёта', () => {
     dropNoteBuffers()
   })
 })
+
+// v3.3.101: нота звучит дольше шага между нотами — к моменту следующей ноты она ещё слышна и затухает (хвост), ноты накладываются
+describe('хвост ноты отсчёта', () => {
+  it('нота длиннее шага; в момент следующей ноты (шаг 500 мс) она ещё звучит, но тише, чем в начале', () => {
+    const n = countdownPlan()[0]
+    expect(n.ms).toBeGreaterThan(500); expect(n.ms).toBe(750)
+    const a = synthNote(n, 8000)
+    const win = (from, to) => peak(a.subarray(8 * from, 8 * to))
+    expect(win(500, 560)).toBeGreaterThan(0.01)             // хвост за шагом ещё слышен
+    expect(win(500, 560)).toBeLessThan(win(20, 80) * 0.5)   // но тише начала
+    expect(win(700, 750)).toBeLessThan(win(500, 550))       // и дальше затухает
+  })
+})

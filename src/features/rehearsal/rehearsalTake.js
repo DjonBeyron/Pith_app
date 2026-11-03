@@ -51,7 +51,7 @@ export function createTake({ chunks, rate = 1, lang, getStream, record = recordT
       const dictor = dictorOf({ chunks, rate, lang })
       const dictorRms = take ? await Promise.race([loudness(chunks), wait(RMS_WAIT_MS).then(() => null)]).catch(() => null) : null
       const mirror = buildMirror({ chunks, take, words, dictor, dictorRms })
-      log(`[rehearsal] дубль: ${take ? `${take.durationMs} мс, rms ${Number(take.rms).toFixed(3)}` : `записи нет (${error})`}; слов Vosk ${words.length}; темп ${mirror.tempo ?? '—'}; заметка «${mirror.note.key}»`)
+      log(`[rehearsal] дубль: ${take ? `${take.durationMs} мс${take.voice ? ` (речь ${take.voice.startMs}…${take.voice.endMs} мс)` : ''}, rms ${Number(take.rms).toFixed(3)}` : `записи нет (${error})`}; слов Vosk ${words.length}; темп ${mirror.tempo ?? '—'}; заметка «${mirror.note.key}»`)
       return { take, error, words, mirror }
     },
 

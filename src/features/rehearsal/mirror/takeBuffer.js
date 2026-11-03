@@ -2,9 +2,10 @@
 // (gameBufferPlay.playGameBuffer, как звуки диктора и кота). → 'ended' (доиграло) | 'unsupported' (не декодируется, нет контекста игры или он не запустился: экран зеркала скажет «Запись не воспроизводится
 // на этом устройстве», а не промолчит). Буфер декодируется один раз на файл (кэш по blob; warmTake декодирует заранее, чтобы «Сравнить» не ждало). С v3.3.87 это ОСНОВНОЙ путь воспроизведения дубля: запись
 // тише голоса Пита, и играть её надо через GainNode — множитель takeGain.js (цель — громкость диктора targetRms, потолок по пику, без клиппинга), у <audio> на iPhone громкость не меняется. onStart — звук действительно пошёл
-// (по нему стартуют подсветка кусков и заливка подложки). deps — для тестов: decode, play.
+// (по нему стартуют подсветка кусков и заливка подложки). trim = { startMs, endMs } (v3.3.101, voiceSpan.js) — играется только этот отрезок (речь без тишины по краям); нет — вся запись. deps — для тестов: decode, play.
 import { playGameBuffer } from '../../../shared/lib/gameBufferPlay.js'
 import { bufferGain } from './takeGain.js'
+import { sliceBuffer } from './bufferSlice.js'
 
 const decoded = new WeakMap() // blob → промис AudioBuffer | null
 
@@ -22,10 +23,11 @@ export function warmTake(blob, { decode = decodeBlob } = {}) {
   return p
 }
 
-export function playTakeBuffer(blob, { decode = decodeBlob, play = playGameBuffer, tailMs = 1500, targetRms = null, onStart = null } = {}) {
+export function playTakeBuffer(blob, { decode = decodeBlob, play = playGameBuffer, tailMs = 1500, targetRms = null, onStart = null, trim = null, slice = sliceBuffer } = {}) {
   if (!blob) return Promise.resolve('unsupported')
-  return warmTake(blob, { decode }).then(buffer => {
-    if (!buffer) return 'unsupported'
+  return warmTake(blob, { decode }).then(full => {
+    if (!full) return 'unsupported'
+    const buffer = trim ? slice(full, trim) : full // играем отрезок с речью; громкость (bufferGain) считается по нему же
     return new Promise(resolve => {
       let done = false
       const end = r => { if (done) return; done = true; clearTimeout(timer); resolve(r) }

@@ -14,7 +14,7 @@ export function synthNote(n, rate = 44100) {
   let sumSq = 0
   let peak = 0
   for (let i = 0; i < len; i++) {
-    const env = Math.min(1, i / attack) * (1 - i / len) ** 1.4
+    const env = Math.min(1, i / attack) * (1 - i / len) ** 2
     let x = 0
     COUNT_HARMONICS.forEach((a, h) => { x += a * Math.sin((2 * Math.PI * n.freq * (h + 1) * i) / rate) })
     out[i] = x * env

@@ -1,0 +1,13 @@
+<!doctype html><html><head><meta charset="utf-8"><title>cat heads</title>
+<style>body{margin:0;background:#0e1013}#root{position:relative;width:400px;height:340px}</style></head>
+<body><div id="root" class="wl"><div class="wlStage" style="position:absolute;inset:0"></div></div>
+<script type="module">
+import React from 'react'
+import { createRoot } from 'react-dom/client'
+import '/src/index.css'
+import WordLaneCat from '/src/features/player/modules/rotate-phone/WordLaneCat.jsx'
+// Стенд лиц кота игры (dev): кот выдвинут, лицо переключается из консоли: window.__api.react('shy', 99999)
+const apiRef = { current: null }; window.__api = new Proxy({}, { get: (_, k) => apiRef.current?.[k] })
+createRoot(document.querySelector('.wlStage')).render(React.createElement(WordLaneCat, { apiRef }))
+setTimeout(() => { apiRef.current?.peek(999999); window.__ready = true }, 300)
+</script></body></html>

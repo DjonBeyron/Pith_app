@@ -111,7 +111,7 @@ describe('игра, модуль, настройки, звук', () => {
     expect(game).toContain("import ReadKaraoke from '../../../rehearsal/read/ReadKaraoke.jsx'")
     expect(game).toContain("f.stageObj?.act === 'read'"); expect(game).toContain('<ReadKaraoke heads={heads}')
     expect(read('../../index.css')).toContain("@import './styles/player/modules/rehearsal-read.css';")
-    expect(read('../../index.css')).toContain("@import './styles/player/modules/rehearsal-discern.css';"); expect(read('../../styles/player/modules/rehearsal-discern.css')).toContain('.wlPillClip[data-word]::before')
+    expect(read('../../index.css')).not.toContain('rehearsal-discern.css') // v3.3.101: слово на пилюле «Различи» не пишется
     const css = read('../../styles/player/modules/rehearsal-read.css')
     expect(css).toContain('.rkCursor'); expect(css).not.toMatch(/filter|box-shadow|@keyframes/)
     for (const f of ['readKaraoke.js', 'useReadKaraoke.js', 'ReadKaraoke.jsx']) expect(read(`./read/${f}`), f).not.toContain('Math.random')
