@@ -22,7 +22,7 @@ describe('igniteAtMs: за CONVEYOR_LEAD_MS до конца сигнала', () 
     expect(igniteAtMs({ holdMs: 2000, cueMs: 9000 })).toBe(2000 - CONVEYOR_LEAD_MS)
     expect(igniteAtMs({ holdMs: 300, cueMs: 200 })).toBe(0)
   })
-  it('запас — зажигание + мягкий разгон: 1,2 с (72 кадра) до выезда первой пилюли акта', () => {
+  it('запас — зажигание (2 мигания) + мягкий разгон: 1,3 с (78 кадров) до выезда первой пилюли акта', () => {
     expect(CONVEYOR_LEAD_MS).toBeGreaterThanOrEqual(1100)
     expect(CONVEYOR_LEAD_MS).toBeLessThanOrEqual(1300)
   })

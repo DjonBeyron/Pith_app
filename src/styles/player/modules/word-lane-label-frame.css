@@ -1,0 +1,22 @@
+/* Рамка новой подписи над дорожкой (v3.3.101, WordLaneHeads): подпись появилась — вокруг неё рамка цвета дорожки, плавно проявляется (0,25 с) и к 1,2 с плавно гаснет; пользователь замечает «вот оно, слово».
+   Рамка — ::before подписи (абсолютный слой, раскладку не двигает), анимируется только opacity — без filter. data-new = 1 / 2: две одинаковые анимации с разными именами, чтобы рамка играла заново, если подпись сменилась,
+   пока шла прежняя. Рамку снимает JS (useLabelFrames) через 1,3 с. Слабое устройство (data-lite на .wlHeads) и reduced-motion: рамка без анимации, висит 1 с (JS снимает data-new). Цвет — как у дорожки (--lvl*-rgb). */
+.wlHeads .wlHead:nth-child(1) { --rgb: var(--lvl1-rgb, 182, 254, 59); }
+.wlHeads .wlHead:nth-child(2) { --rgb: var(--lvl2-rgb, 79, 179, 238); }
+.wlHeads .wlHead:nth-child(3) { --rgb: var(--lvl3-rgb, 154, 118, 248); }
+.wlHead { position: relative; }
+.wlHead[data-new]::before {
+  content: '';
+  position: absolute;
+  inset: -5px 2px;
+  border: 2px solid rgba(var(--rgb), 0.95);
+  border-radius: 12px;
+  pointer-events: none;
+  opacity: 0;
+}
+.wlHead[data-new='1']::before { animation: wlHeadFrameA 1.2s ease both; }
+.wlHead[data-new='2']::before { animation: wlHeadFrameB 1.2s ease both; }
+@keyframes wlHeadFrameA { 0% { opacity: 0; } 20% { opacity: 1; } 65% { opacity: 1; } 100% { opacity: 0; } }
+@keyframes wlHeadFrameB { 0% { opacity: 0; } 20% { opacity: 1; } 65% { opacity: 1; } 100% { opacity: 0; } }
+.wlHeads[data-lite] .wlHead[data-new]::before { animation: none; opacity: 1; }
+@media (prefers-reduced-motion: reduce) { .wlHead[data-new]::before { animation: none; opacity: 1; } }

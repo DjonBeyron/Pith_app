@@ -2,6 +2,7 @@ import { memo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
 import WordLanePills from './WordLanePills.jsx'
+import WordLaneHeads from './WordLaneHeads.jsx'
 import WordLaneMic from './WordLaneMic.jsx'
 import WordLaneDebug from './WordLaneDebug.jsx'
 import WordLaneDebugButton from './WordLaneDebugButton.jsx'
@@ -23,6 +24,7 @@ import { useWordLaneFlow } from './useWordLaneFlow.js'
 import { useWordLanePause } from './useWordLanePause.js'
 import { WORD_Y } from './wordLaneTimeline.js'
 import { useConveyorArm } from './useConveyorArm.js'
+import { useLabelFrames } from './useLaneLabels.js'
 
 // Вертикальная игра «Повтори за диктором» (полный экран, портрет). Фраза из кусков (до трёх) стоит над дорожками: кусок над своей дорожкой, дорожки слева направо читаются как предложение.
 // Раунды: наращивание (диктор — ученик по ступеням «кусок ×3 → следующий ×3 → вместе ×3 …»), «Порядок» (тап по дорожкам), «Вслепую» (ни текста, ни перевода) → перевод. Одно слово (фраза из одного куска)
@@ -53,6 +55,7 @@ export default function WordLaneGame({ cfg, audioSrc, lines = null, forceDebug =
   const showSlots = phase !== 'drop'
   const intro = phase === 'drop' || phase === 'lanes' || f.pausedIntro
   const heads = intro && !cfg.plan ? cfg.chunks.map(text => ({ text, on: true })) : intro ? f.labels.map(() => ({ text: '', on: false })) : f.labels // заставка репетиции: слов сверху нет (v3.3.84)
+  const fresh = useLabelFrames(heads, lite) // рамка вокруг новой подписи (WordLaneHeads)
   const karaoke = f.rh.on && f.stage === 'run' && f.stageObj?.act === 'read' && !intro // акт «Читка»: слова заливаются зелёным под голос Пита / игрока (rehearsal/read/)
   const debug = isWordLaneDebug()
 
@@ -65,10 +68,10 @@ export default function WordLaneGame({ cfg, audioSrc, lines = null, forceDebug =
         {single
           ? <div className="wlWord" style={{ top: `${WORD_Y}%` }} data-testid="wl-word">{cfg.chunks[0]}</div>
           : (
-            <div className="wlHeads" style={{ top: `${WORD_Y}%` }} data-testid="wl-heads">
+            <div className="wlHeads" style={{ top: `${WORD_Y}%` }} data-testid="wl-heads" data-lite={lite || undefined}>
               {karaoke
                 ? <ReadKaraoke heads={heads} stage={f.stageObj} at={f.at} chunks={cfg.chunks} live={f.live} ready={f.lid === f.stageObj?.step?.id} lite={lite} />
-                : heads.map((h, i) => <span key={i} className={`wlHead${h.on ? ' wlHead--on' : ''}${h.text ? '' : ' wlHead--empty'}`} data-testid={`wl-head-${i}`}>{h.text}</span>)}
+                : <WordLaneHeads heads={heads} fresh={fresh} />}
             </div>
           )}
         {/* Подписи реплик Пита (белое облачко с текстом) убраны в v3.3.84: кот только говорит; f.catLine остаётся в комментариях владельца (commentSnapshot) */}

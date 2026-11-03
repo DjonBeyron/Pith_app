@@ -105,6 +105,7 @@
 @import './styles/player/modules/rotate-phone.css';
 @import './styles/player/modules/unknown-node.css';
 @import './styles/player/modules/word-lane.css';
+@import './styles/player/modules/word-lane-label-frame.css';
 @import './styles/player/modules/word-lane-pill.css';
 @import './styles/player/modules/word-lane-pill-safe.css';
 @import './styles/player/modules/word-lane-pill-wrong.css';

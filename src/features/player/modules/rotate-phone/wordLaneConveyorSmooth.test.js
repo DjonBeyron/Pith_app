@@ -9,26 +9,29 @@ const run = (L, ms, inp) => { for (let t = 0; t < ms - 1e-6; t += STEP) stepLane
 const ON = { armed: true, pills: 1 }
 
 describe('плавность (v3.3.87): пунктир зажигается мягко, разгон — с медленным стартом, торможение гасит яркость вместе со скоростью', () => {
-  it('яркость при зажигании нарастает плавно: за кадр не больше 6 % шкалы, первый кадр почти не отличается от покоя (раньше — ступенька до LIT)', () => {
+  it('яркость при мигании и разгоне меняется без скачков: за кадр не больше четверти шкалы (наклон синусоиды); после мигания перед разгоном — снова покой', () => {
     const L = createLane()
     let prev = laneLook(L).a, maxJump = 0
     for (let t = 0; t < IGNITE_MS + ACCEL_MS; t += STEP) {
       stepLane(L, STEP, ON)
       const a = laneLook(L).a
-      expect(a).toBeGreaterThanOrEqual(prev - 1e-9)
-      maxJump = Math.max(maxJump, a - prev); prev = a
+      if (t >= IGNITE_MS + STEP) expect(a).toBeGreaterThanOrEqual(prev - 1e-9) // разгон — яркость только растёт
+      maxJump = Math.max(maxJump, Math.abs(a - prev)); prev = a
     }
-    expect(maxJump).toBeLessThan((RUN_A - REST_A) * 0.06)
+    expect(maxJump).toBeLessThan((RUN_A - REST_A) * 0.25)
     const first = stepLane(createLane(), STEP, ON)
-    expect(laneLook(first).a - REST_A).toBeLessThan((RUN_A - REST_A) * 0.02)
-    expect(LIT).toBeGreaterThan(0.3)
+    expect(laneLook(first).a - REST_A).toBeLessThan((RUN_A - REST_A) * 0.1)
+    const end = createLane(); run(end, IGNITE_MS, ON)
+    expect(laneLook(end).a - REST_A).toBeLessThan((RUN_A - REST_A) * 0.02)
   })
-  it('к концу зажигания яркость доходит до LIT, а к концу разгона — до полной', () => {
+  it('still (lite / reduced-motion): без мигания — яркость монотонно доходит до LIT к концу зажигания, к концу разгона — до полной', () => {
     const L = createLane()
-    run(L, IGNITE_MS - STEP, ON)
+    let prev = 0
+    for (let t = 0; t < IGNITE_MS - STEP; t += STEP) { stepLane(L, STEP, { ...ON, still: true }); expect(L.g).toBeGreaterThanOrEqual(prev - 1e-9); prev = L.g }
     expect(L.g).toBeGreaterThan(LIT * 0.9)
-    run(L, ACCEL_MS + 2 * STEP, ON)
+    run(L, ACCEL_MS + 2 * STEP, { ...ON, still: true })
     expect(L.g).toBe(1)
+    expect(LIT).toBeGreaterThan(0.3)
   })
   it('easeInSoft: smootherstep — на концах 0 и 1, середина 0,5, старт медленнее smoothstep (прирост в начале ≈ 0)', () => {
     expect(easeInSoft(0)).toBe(0); expect(easeInSoft(1)).toBe(1); expect(easeInSoft(0.5)).toBeCloseTo(0.5, 9)

@@ -57,9 +57,9 @@ describe('разметка и CSS конвейера', () => {
     expect(code).toMatch(/mask-image: repeating-linear-gradient\(to bottom, #000 0 [\d.]+dvh, transparent [\d.]+dvh var\(--run-p\)\)/)
     expect(code).not.toMatch(/animation|@keyframes|transition|filter|::after|background-position/)
   })
-  it('в покое видно всегда, но еле-еле (прозрачность по умолчанию = REST_A); яркость ведёт --run-a, волна «зажигания» — --run-w', () => {
+  it('в покое видно всегда, но еле-еле (прозрачность по умолчанию = REST_A); яркость (в том числе мигание) ведёт --run-a, волны нет', () => {
     expect(code).toContain(`var(--run-a, ${REST_A})`)
-    expect(code).toMatch(/var\(--run-w, 999dvh\)/)
+    expect(code).not.toContain('--run-w')
     expect(code).not.toMatch(/opacity: 0;/)
     expect(RUN_A).toBeGreaterThan(REST_A)
   })

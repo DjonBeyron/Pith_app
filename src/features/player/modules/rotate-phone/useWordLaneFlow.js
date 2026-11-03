@@ -4,7 +4,7 @@ import { createRmsLevel } from '../../../../shared/lib/vosk/sayVoskLevel.js'
 import { createWordListener } from './wordLaneListen.js'
 import { speakWord, playTrack, stopVoice } from './wordLaneVoice.js'
 import { playNote, releaseNotes } from './wordLaneNotes.js'
-import { buildStages, listenStepOf, labelsFor } from './wordLaneStages.js'
+import { buildStages, listenStepOf } from './wordLaneStages.js'; import { useBuiltLabels } from './useLaneLabels.js'
 import { stepTargets, textOf } from './wordLaneRecipe.js'
 import { clipsFor, playSpan, estChunkMs } from './wordLaneAudio.js'
 import { playClip, playWordSlot, releaseClips, speechOfUrl, wordBufferMs } from './wordLaneClips.js'
@@ -73,7 +73,7 @@ export function useWordLaneFlow({ chunks, translation, lang, clips = null, audio
 
   const later = useCallback((fn, ms) => { const id = setTimeout(() => { timersRef.current.delete(id); fn() }, Math.max(0, ms)); timersRef.current.add(id); return id }, [])
   const clearTimers = useCallback(() => { timersRef.current.forEach(clearTimeout); timersRef.current.clear() }, [])
-  const go = useCallback((stage, idx = 0) => setS(p => ({ ...p, stage, idx, at: performance.now(), hint: [] })), [])
+  const go = useCallback((stage, idx = 0) => setS(p => ({ ...p, stage, idx, at: performance.now(), hint: [], leaving: -1 })), [])
   const next = useCallback(() => { const i = nextIdx(sRef.current.idx + 1); if (i >= stages.length) go('reveal', i); else go('run', i) }, [go, stages.length, nextIdx])
 
   // Звук куска: слот библиотеки слов (подготовлен в тапе «Начать») → озвучка библиотеки обычным путём → без звука (голоса системы нет, строка в журнале)
@@ -132,7 +132,7 @@ export function useWordLaneFlow({ chunks, translation, lang, clips = null, audio
       gameMicHold.holdFor(sayMs) // окно речи диктора (глушение дорожки / фаза аудиосессии — режимы проверки на iPhone)
       say(parts)
     },
-    finished() { const at = sRef.current.idx; later(() => rh.leave(stages[at], () => { if (sRef.current.idx === at && sRef.current.stage === 'run') next() }), EXIT_PAUSE_MS) }, // rh.leave: дубль репетиции сначала дописывается (запись, слова), потом next
+    finished() { const at = sRef.current.idx; setS(p => ({ ...p, leaving: at })); later(() => rh.leave(stages[at], () => { if (sRef.current.idx === at && sRef.current.stage === 'run') next() }), EXIT_PAUSE_MS) }, // rh.leave: дубль репетиции сначала дописывается (запись, слова), потом next
   }
   const handlersRef = useRef(handlers)
   useEffect(() => { handlersRef.current = handlers })
@@ -243,7 +243,7 @@ export function useWordLaneFlow({ chunks, translation, lang, clips = null, audio
   }), [s.lid, s.seq, s.misses, listenId])
   const phase = s.stage === 'run' ? (engineKind(stageObj) ?? 'idle') : s.stage
   const shown = s.stage === 'paused' && s.from === 'run' ? stages[s.idx] : stageObj // на паузе подписи дорожек остаются на месте
-  const labels = labelsFor(rh.quiet ? null : shown?.type === 'announce' ? stages[s.idx + 1] : shown, chunks, lanes, [...s.hint, ...rh.hintLanes(shown)]) // под плашкой раунда уже видны подписи следующей стадии
+  const labels = useBuiltLabels({ stages, stage: shown?.type === 'announce' ? stages[s.idx + 1] : shown, quiet: rh.quiet, chunks, lanes, hint: [...s.hint, ...rh.hintLanes(shown)] }) // под плашкой раунда уже видны подписи следующей стадии
   const plate = !rh.plateOk ? '' : stageObj?.type === 'announce' ? stageObj.round.title : stageObj?.type === 'turn' ? 'Теперь твоя очередь' : ''
   return { ...s, stages, dbg, rh, next, catLine: cat.text, phase, stageObj, scene, live, labels, plate, plateMs: stageObj?.ms ?? 0, levels, fx, sceneApi, xpApi, onLane, retryMic, restartStage, pause, paused: s.stage === 'paused', pausedIntro: s.stage === 'paused' && s.from !== 'run', finish, translation, text: textOf(chunks, chunks.map((_, i) => i)) }
 }
