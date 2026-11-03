@@ -1,0 +1,6 @@
+/* Раздел «Как играть» в блоке стенда «Мини-игра 2.0» (Game2Howto.jsx): сворачиваемый, открыт по умолчанию; читается на 375 px без горизонтальной прокрутки */
+.g2Howto { margin: 4px 0 10px; padding: 8px 10px; border: 1px solid rgba(128, 128, 128, 0.35); border-radius: 10px; font-size: 13px; line-height: 1.4; }
+.g2HowtoSum { cursor: pointer; font-size: 14px; font-weight: 800; }
+.g2HowtoP { margin: 8px 0 0; overflow-wrap: anywhere; }
+.g2HowtoSteps { margin: 8px 0 0; padding-left: 0; list-style: none; display: flex; flex-direction: column; gap: 6px; }
+.g2HowtoSteps li { overflow-wrap: anywhere; }

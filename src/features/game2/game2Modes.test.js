@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { MODES, SEQUENCE, nextStep, resumeFrom, dbGain, SHADOW_DB, SPEED_UP, GAME2_LINES, MAX_CATCH_TRIES } from './game2Modes.js'
+import { MODES, MODE_IDS, SEQUENCE, nextStep, resumeFrom, dbGain, SHADOW_DB, SPEED_UP, GAME2_LINES, MAX_CATCH_TRIES } from './game2Modes.js'
 import { REHEARSAL_LINES } from '../rehearsal/rehearsalLines.js'
 import { CAT_LINES, normalizeLines } from '../player/modules/rotate-phone/wordLaneCatLines.js'
 import { emptyScore, withResult, summaryRows } from './game2Score.js'
@@ -57,5 +57,18 @@ describe('итог', () => {
     s = withResult(s, 'shadow', 3, 4)
     expect(summaryRows(s).map(r => r.text)).toEqual(['2 из 2', '3 из 4', '—', '—'])
     expect(summaryRows(emptyScore()).every(r => r.text === '—')).toBe(true)
+  })
+})
+
+describe('сигнал «говори»', () => {
+  it('ход пользователя — «Ловлю», «Тень», «По памяти», «Скорость»; «Слушаю» и служебные режимы — нет; у каждого режима с лентой своя строка-инструкция', () => {
+    expect(MODE_IDS.filter(id => MODES[id].turn)).toEqual(['catch', 'shadow', 'recall', 'speed'])
+    expect(MODE_IDS.filter(id => MODES[id].turn).every(id => MODES[id].input !== 'none')).toBe(true)
+    expect(MODES.listen.instr).toBe('Слушай и смотри, говорить не надо')
+    expect(MODES.catch.instr).toBe('Скажи слово, когда услышишь его')
+    expect(MODES.shadow.instr).toBe('Говори вместе с Питом')
+    expect(MODES.recall.instr).toBe('Скажи фразу сам')
+    expect(MODES.speed.instr).toBe('Ещё раз, быстрее')
+    for (const id of ['listen', 'catch', 'shadow', 'recall', 'speed']) expect(MODES[id].plate).toBeTruthy()
   })
 })

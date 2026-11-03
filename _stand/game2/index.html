@@ -51,7 +51,7 @@ const consumed = new Set()
 const spoken = () => {
   const g = window.__g2
   if (!g || !['catch', 'shadow', 'recall', 'speed'].includes(g.mode)) return []
-  if (g.startedAt !== seenStart) { seenStart = g.startedAt; consumed.clear(); attempts[g.mode] = (attempts[g.mode] || 0) + 1 }
+  if (g.pills !== seenStart) { seenStart = g.pills; consumed.clear(); attempts[g.mode] = (attempts[g.mode] || 0) + 1 }
   if (g.mode === 'catch' && params.get('catchMiss') === '1' && attempts.catch === 1) return []
   if (params.get('silent') === g.mode) return []
   return g.pills.filter(p => !miss.includes(p.text.toLowerCase())).map(p => ({ i: p.i, w: p.text.toLowerCase(), at: g.startedAt + p.startMs + 100, to: g.startedAt + p.startMs + 100 + 250 }))

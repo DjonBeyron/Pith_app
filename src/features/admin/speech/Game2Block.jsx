@@ -13,6 +13,8 @@ import useGame2Launch from '../../game2/useGame2Launch.js'
 import { game2Cfg } from '../../game2/game2Cfg.js'
 import { game2DebugFile } from '../../game2/game2Log.js'
 import '../../../styles/admin-rehearsal-polish.css'
+import '../../../styles/admin-game2-howto.css'
+import Game2Howto from '../../game2/Game2Howto.jsx'
 
 // Админ → «Голос» → «Мини-игра 2.0 (стенд)» (под «Шлифовкой репетиции»): проверка новой механики — одна лента времени вместо трёх дорожек (CONCEPT_GAME2.md, src/features/game2/).
 // Фикстура плана (rehearsalFixtures.js) — какая фраза; «Озвучить фразу (ElevenLabs)» — озвучка ЦЕЛОЙ фразы с таймингами слов (нет её — лента идёт на оценке таймингов, подпись «фраза не озвучена»);
@@ -37,6 +39,7 @@ export default function Game2Block({ save = saveDebugFile }) {
     <section className="aspBlock rhpBlock" data-testid="g2-block">
       <h3 className="aspH">Мини-игра 2.0 (стенд)</h3>
       <p className="rhpHint">Одна лента времени: слушаю, ловлю, тень, по памяти, скорость. Без памяти и XP.</p>
+      <Game2Howto />
       <label className="aspLabel">Фраза (фикстура плана)
         <select className="aspInput" value={fixture} disabled={playing || g.busy} onChange={e => setFixture(e.target.value)} data-testid="g2-fixture">
           {FIXTURE_IDS.map(id => <option key={id} value={id}>{FIXTURES[id].title}</option>)}

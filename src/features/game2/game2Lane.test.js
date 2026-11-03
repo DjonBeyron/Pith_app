@@ -14,11 +14,11 @@ const timeline = rate => buildTimeline({ words, due: dueFlags(words, plan), ...t
 function rig(mode, { rate = 1, cancelAt = null } = {}) {
   let t = 1000 // абсолютное время теста (ненулевое: t0 берётся из now())
   const queue = []
-  const marks = [], calls = [], ts = []
+  const marks = [], calls = [], ts = [], wins = []
   const handlers = {}
   const voice = { start: o => { calls.push(['voice', Math.round(t - base), o.rate, o.gain]); o.onStart?.(); return true }, stop: () => calls.push(['voice-stop']) }
   const base = t
-  const lane = { setT: v => ts.push(v), mark: (i, st, o) => marks.push([Math.round(t - base), i, st, o?.rise ?? null]) }
+  const lane = { win: (i, on) => wins.push([Math.round(t - base), i, on]), setT: v => ts.push(v), mark: (i, st, o) => marks.push([Math.round(t - base), i, st, o?.rise ?? null]) }
   const hints = []
   const tl = timeline(rate)
   const done = runLane({
@@ -29,7 +29,7 @@ function rig(mode, { rate = 1, cancelAt = null } = {}) {
   const run = (until = 12000, step = 20) => { while (t - base < until && queue.length) { for (const f of queue.splice(0)) f(); t += step } }
   // «Слово услышано» в момент абсолютного времени at (+ запаздывание Vosk): как будто пришло из слушателя
   const hear = (text, atMs) => { run(atMs); handlers.onHeard?.({ text, at: base + atMs + HEARD_LAG_MS, tap: false }) }
-  return { done, run, hear, marks, calls, ts, hints, tl, now: () => t - base }
+  return { done, run, hear, marks, calls, ts, hints, wins, tl, now: () => t - base }
 }
 
 describe('«Слушаю»: пилюля горит в момент своего слова', () => {
@@ -49,6 +49,22 @@ describe('«Слушаю»: пилюля горит в момент своего
     expect(a.calls.find(c => c[0] === 'voice').slice(2)).toEqual([1, MODES.shadow.gain])
     const b = rig(MODES.speed, { rate: 1.2 }); b.run(); await b.done
     expect(b.calls.find(c => c[0] === 'voice').slice(2)).toEqual([1.2, MODES.speed.gain])
+  })
+})
+
+describe('«Ловлю»: окно слова видно глазами', () => {
+  it('пилюля светится (win on) с начала окна до конца слова + 0,8 с; пойманная гаснет сразу, остальные — когда окно прошло', async () => {
+    const r = rig(MODES.catch)
+    const [trying, learn] = r.tl.pills.filter(p => p.due)
+    r.hear('trying', trying.startMs + 100)
+    r.run()
+    await r.done
+    const on = i => r.wins.find(w => w[1] === i && w[2] === true)[0]
+    const off = i => r.wins.find(w => w[1] === i && w[2] === false)[0]
+    expect(on(trying.i)).toBeGreaterThanOrEqual(trying.startMs - 800); expect(on(trying.i)).toBeLessThan(trying.startMs - 800 + 60)
+    expect(off(trying.i)).toBeLessThan(trying.startMs + 400) // поймана — окно закрыто сразу
+    expect(off(learn.i)).toBeGreaterThanOrEqual(learn.endMs + 800) // не поймана — светится до конца окна
+    expect(r.wins.every(w => [trying.i, learn.i].includes(w[1]))).toBe(true) // свет только у слов к повтору
   })
 })
 
