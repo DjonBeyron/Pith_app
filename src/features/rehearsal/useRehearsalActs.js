@@ -38,6 +38,7 @@ export function useRehearsalActs({ plan, stages, stage, at, stageObj, setS, sayL
   const [journal] = useState(createJournal)
   const [result, setResult] = useState(null)
   const on = !!plan
+  const race = plan?.game === 'race' // «Гонка с Питом» (features/pitrace) — свои акты и итог на том же директоре: вступление race_start, итог и журнал ведёт useRaceActs
   const running = on && stage === 'run' ? stageObj : null
   const take = useRehearsalTake({ plan, running, at, listenerRef, rate, lang })
   const nextIdx = useCallback(i => (on ? nextRunnable(stages, i, journal) : i), [on, stages, journal]) // стабильна: на ней держится next директора
@@ -45,10 +46,10 @@ export function useRehearsalActs({ plan, stages, stage, at, stageObj, setS, sayL
   const intro = on && hasIntroLine(plan)
   // Случайность внутри актов (CONCEPT_REHEARSAL.md §8): семя плана — одна сессия воспроизводима; что выбрано, пишется в журнал отладки один раз на запуск
   useEffect(() => {
-    if (plan) pLog(sessionLogLine(plan, buildActs(plan, { only: null }).acts))
-  }, [plan])
-  const startLine = useMemo(() => (plan ? sessionLine(plan, 'rh_start') : null), [plan]) // вариант реплики вступления и итога — на всю сессию (rehearsalLines.js)
-  const doneLine = useMemo(() => (plan ? sessionLine(plan, 'rh_done') : null), [plan])
+    if (plan && !race) pLog(sessionLogLine(plan, buildActs(plan, { only: null }).acts))
+  }, [plan, race])
+  const startLine = useMemo(() => (plan ? sessionLine(plan, race ? 'race_start' : 'rh_start') : null), [plan, race]) // вариант реплики вступления и итога — на всю сессию (rehearsalLines.js)
+  const doneLine = useMemo(() => (plan ? sessionLine(plan, race ? 'race_done' : 'rh_done') : null), [plan, race])
   const missRef = useRef(null) // реплика «над этим словом ещё поработаем» — несколько раз за сессию: свой поток от семени, повтор подряд запрещён
   const missLine = () => { missRef.current ??= { rng: rngFor(plan.seed, 'line:rh_warmup_miss'), last: {} }; return pickLine('rh_warmup_miss', missRef.current.rng, missRef.current.last) }
   // Вступление: Пит говорит про фразу, пока она падает (при запуске одного этапа «Шлифовки» его нет — rehearsalPrepare.hasIntroLine)
@@ -104,7 +105,7 @@ export function useRehearsalActs({ plan, stages, stage, at, stageObj, setS, sayL
 
   // Итог: симуляция памяти и XP — один раз на выходе на экран summary
   useEffect(() => {
-    if (running?.type !== 'summary') return undefined
+    if (running?.type !== 'summary' || race) return undefined // у гонки итог считает useRaceActs
     const t = setTimeout(() => { setResult(plan.only === 'summary' ? reportSession({ plan, ...demoSummary(plan) }) : reportSession({ plan, journal, mirror: take.mirror })); sayLine(doneLine) }, 0) // «Шлифовка → Итог»: результат подставной (polish/polishDemo.js)
     return () => clearTimeout(t)
     // eslint-disable-next-line react-hooks/exhaustive-deps

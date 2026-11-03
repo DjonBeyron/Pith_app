@@ -56,14 +56,14 @@ export default function WordLaneGame({ cfg, audioSrc, lines = null, forceDebug =
   const intro = phase === 'drop' || phase === 'lanes' || f.pausedIntro
   const heads = intro && !cfg.plan ? cfg.chunks.map(text => ({ text, on: true })) : intro ? f.labels.map(() => ({ text: '', on: false })) : f.labels // заставка репетиции: слов сверху нет (v3.3.84)
   const fresh = useLabelFrames(heads, lite) // рамка вокруг новой подписи (WordLaneHeads)
-  const karaoke = f.rh.on && f.stage === 'run' && f.stageObj?.act === 'read' && !intro // акт «Читка»: слова заливаются зелёным под голос Пита / игрока (rehearsal/read/)
+  const karaoke = f.rh.on && f.stage === 'run' && ['read', 'descent'].includes(f.stageObj?.act) && !intro // акт «Читка»: слова заливаются зелёным под голос Пита / игрока (rehearsal/read/)
   const debug = isWordLaneDebug()
 
   return createPortal(
-    <div ref={rootRef} className={safe0 ? 'wl wl--safe' : 'wl'} data-phase={phase} data-act={f.rh.on ? f.stageObj?.act : undefined} data-sid={f.rh.on ? f.stageObj?.sid : undefined} data-testid="wl">
+    <div ref={rootRef} className={safe0 ? 'wl wl--safe' : 'wl'} data-phase={phase} data-act={f.rh.on ? f.stageObj?.act : undefined} data-sid={f.rh.on ? f.stageObj?.sid : undefined} data-streak={f.rh.race?.streakMode} data-testid="wl">
       <div className="wlStage">
         <WordLaneCat apiRef={catApi} />
-        <WordLanePills scene={f.scene} levels={f.levels} fx={f.fx} live={f.live} sceneApi={f.sceneApi} visible={showSlots} armed={armed} paused={f.paused} onLane={phase === 'order' || phase === 'discern' || (tapMode && phase === 'student') ? f.onLane : null} />
+        <WordLanePills scene={f.scene} levels={f.levels} fx={f.fx} live={f.live} sceneApi={f.sceneApi} visible={showSlots} armed={armed} paused={f.paused} onLane={phase === 'order' || (phase === 'discern' && !f.stageObj?.speak) || (tapMode && (phase === 'student' || f.stageObj?.speak)) ? f.onLane : null} />
         <WordLaneXp apiRef={f.xpApi} />
         {single
           ? <div className="wlWord" style={{ top: `${WORD_Y}%` }} data-testid="wl-word">{cfg.chunks[0]}</div>
@@ -89,7 +89,7 @@ export default function WordLaneGame({ cfg, audioSrc, lines = null, forceDebug =
         <RehearsalActs f={f} cfg={cfg} onAgain={onAgain} onSummary={onSummary} />
         {debug && <WordLaneDebug />}
         {debug && <WordLanePerf />}
-        <Mic mode={f.mic} levels={f.levels} note={f.note} visible={phase === 'student'} />
+        <Mic mode={f.mic} levels={f.levels} note={f.note} visible={phase === 'student' || !!f.stageObj?.speak} />
         {f.mic === 'failed' && !f.paused && (
           <div className="wlFail" role="alert" data-testid="wl-fail">
             <p className="wlFailTitle">{FAIL_TEXT.title}</p>

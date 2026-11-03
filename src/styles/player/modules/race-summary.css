@@ -1,0 +1,5 @@
+/* Итог «Гонки с Питом» (features/pitrace/RaceSummary.jsx): плашка в стиле итога репетиции (.wlTurn.rhSumPlate, rehearsal.css); здесь только то, чего там нет — золото, когда во всех раундах золото, и цвет медали вершины. */
+.raceSum--gold { border-color: var(--phrase-gold, #ffd257); box-shadow: 0 0 18px rgba(255, 210, 87, 0.3); }
+.raceSum--gold .wlRevealLabel { color: var(--phrase-gold, #ffd257); }
+.raceSum [data-medal='gold'] { color: var(--phrase-gold, #ffd257); }
+.raceSum [data-medal='silver'] { color: #d7dbe6; }

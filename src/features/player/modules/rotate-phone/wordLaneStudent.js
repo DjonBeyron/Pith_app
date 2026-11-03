@@ -37,7 +37,7 @@ let debugSink = null
 /** Отладка («Скачать отладку», wordLaneDebug): fn(events, g, input) получает события каждого шага, где они были; null — выключено, шаг ничего не тратит и логика не меняется */
 export const setStudentDebug = fn => { debugSink = fn }
 
-export const yOfPill = (pill, t) => ENTER_Y + (SPEED * (t - pill.spawnAt)) / 1000
+export const yOfPill = (pill, t) => ENTER_Y + (SPEED * (pill.speed ?? 1) * (t - pill.spawnAt)) / 1000 // speed: «Гонка с Питом» — пилюля быстрее конвейера (rep.speed)
 
 /** Сколько мс повтор живёт на экране от выката первой пилюли до ухода последней ниже FAIL_Y (offLast — смещение выката последней пилюли) */
 export const repLifeMs = offLast => offLast + ((FAIL_Y - ENTER_Y) / SPEED) * 1000
@@ -83,7 +83,7 @@ export function createStudentGame({ step, chunks, estMs = c => estChunkMs(chunks
     const offs = durs.map((_, k) => durs.slice(0, k).reduce((a, d) => a + d + PIECE_PAD_MS, 0))
     const cnt = rp.parts.map(c => Math.max(1, tokenize(chunks[c]).length))
     const cum = cnt.reduce((a, k) => [...a, a.at(-1) + k], [0])      // сколько слов цели приходится на начало каждого куска и на конец всех
-    return { idx, parts: rp.parts, target: repTarget[idx], text: textOf(chunks, rp.parts), state: 'todo', tries: 0, pills: [], tk: 0, cnt, cum, durs, offs, lanes: rp.parts.map(c => laneOf(n, c, idx)) }
+    return { idx, parts: rp.parts, target: repTarget[idx], text: textOf(chunks, rp.parts), state: 'todo', tries: 0, pills: [], tk: 0, cnt, cum, durs, offs, lanes: rp.lane != null ? [rp.lane] : rp.parts.map(c => laneOf(n, c, idx)), speed: rp.speed ?? 1, cap: rp.cap ?? null, reveal: rp.reveal ?? null } // lane / speed / cap / reveal — «Гонка с Питом»: своя дорожка, скорость, подпись внутри пилюли и слово, которое проявится при промахе
   })
   const life = Math.max(0, ...reps.map(r => repLifeMs(r.offs.at(-1))))
   return { t: 0, maxTries, leadIn, budget: budget ?? budgetOf(reps.length, life), reps, pills: [], nextId: 1, nextSpawn: 0, claimed: 0, locked: 0, failed: [], seenSeq: 0, seenMisses: 0, spentTail: null, finished: false, spawned: 0, waited: 0 }
@@ -164,7 +164,7 @@ export function stepStudent(g, t, { level = 0, seq = [], misses = 0, confirmed =
     if (rep) {
       const base = g.spawned === 0 ? t - g.leadIn : t
       rep.spawnAt = base
-      rep.pills = rep.parts.map((chunk, i) => ({ id: g.nextId++, rep: rep.idx, chunk, lane: rep.lanes[i], piece: i, spawnAt: base + rep.offs[i], ms: rep.durs[i], y: ENTER_Y, p: 0, state: 'fly', gone: false, snapped: false }))
+      rep.pills = rep.parts.map((chunk, i) => ({ id: g.nextId++, rep: rep.idx, chunk, lane: rep.lanes[i], piece: i, spawnAt: base + rep.offs[i], ms: rep.durs[i], speed: rep.speed, y: ENTER_Y, p: 0, state: 'fly', gone: false, snapped: false }))
       rep.pills.forEach(p => { p.y = yOfPill(p, t) })
       rep.state = 'fly'; rep.tk = 0; rep.drain = false
       g.spawned += 1

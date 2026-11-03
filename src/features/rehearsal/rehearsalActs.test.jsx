@@ -136,7 +136,7 @@ describe('useRehearsalActs', () => {
     const line = sessionLogLine(plan, buildActs(plan, { only: null }).acts)
     expect(line).toBe("[rehearsal] seed=d варианты: разминка learn@0 > trying@1 > I'm@0, различи learn lean+earn→2, lean+earn→0, сборка чётко > обычно, читка rh_read_why, без текста слово > перевод")
     const src = read('./useRehearsalActs.js')
-    expect(src).toContain("sessionLine(plan, 'rh_start')"); expect(src).toContain("sessionLine(plan, 'rh_done')"); expect(src).toContain('pLog(sessionLogLine(')
+    expect(src).toContain("sessionLine(plan, race ? 'race_start' : 'rh_start')"); expect(src).toContain("sessionLine(plan, race ? 'race_done' : 'rh_done')"); expect(src).toContain('pLog(sessionLogLine(')
   })
   it('«застрял»: подсказки по порядку ступени (какая первая — по семени), перевод — подписью без речи', () => {
     const { stages } = probe()

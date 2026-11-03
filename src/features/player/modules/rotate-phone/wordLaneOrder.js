@@ -27,6 +27,18 @@ export const maxDelayOf = prompt => (prompt.stagger && prompt.slots ? (prompt.le
 /** Высота центра пилюли текущей подсказки в момент t; delay — задержка выкатки пилюли этой дорожки (laneDelayOf) */
 export const orderY = (g, t, delay = 0) => ENTER_Y + (SPEED * (t - g.spawnAt - delay)) / 1000
 
+/** Подсказка провалена в момент t (не успел; «Гонка с Питом» — ещё и сказал чужое слово): ещё одна попытка или, если попытки вышли, дальше. События fail { lost } и, в конце раунда, done */
+export function failPrompt(g, t) {
+  const out = []
+  g.tries += 1
+  const lost = g.tries >= g.maxTries
+  out.push({ type: 'fail', prompt: g.prompts[g.i], lost })
+  g.state = 'gap'; g.nextAt = t + ORDER_GAP_MS
+  if (lost) { g.lost += 1; g.i += 1; g.tries = 0 }
+  if (g.i >= g.prompts.length) { g.finished = true; g.state = 'done'; out.push({ type: 'done', mistakes: g.mistakes, lost: g.lost }) }
+  return out
+}
+
 /**
  * Шаг игры в момент t. События: spawn { prompt, tries } — выкатить пилюли; say { parts } — диктор называет подсказку; word { lane, text } — «Различи»: у пилюли открылось слово, оно звучит; fail { prompt, lost } — не успел; done { mistakes, lost } — раунд закончен.
  */
@@ -46,14 +58,7 @@ export function stepOrder(g, t) {
     if (prompt.texts && !prompt.written) for (const lane of prompt.slots) { // written: слова написаны на пилюлях и молчат (репетиция, «Различи»: слово звучит один раз, когда открылась вся тройка)
       if (!g.voiced.has(lane) && t >= g.spawnAt + laneDelayOf(prompt, lane) + TRAVEL_MS) { g.voiced.add(lane); out.push({ type: 'word', lane, text: prompt.texts[lane] }) }
     }
-    if (orderY(g, t, late) > FAIL_Y) { // не успел — когда ушла вниз последняя пилюля
-      g.tries += 1
-      const lost = g.tries >= g.maxTries
-      out.push({ type: 'fail', prompt: g.prompts[g.i], lost })
-      g.state = 'gap'; g.nextAt = t + ORDER_GAP_MS
-      if (lost) { g.lost += 1; g.i += 1; g.tries = 0 }
-      if (g.i >= g.prompts.length) { g.finished = true; g.state = 'done'; out.push({ type: 'done', mistakes: g.mistakes, lost: g.lost }) }
-    }
+    if (orderY(g, t, late) > FAIL_Y) out.push(...failPrompt(g, t)) // не успел — когда ушла вниз последняя пилюля
   }
   return out
 }

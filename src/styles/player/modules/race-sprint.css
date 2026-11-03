@@ -1,0 +1,31 @@
+/* «Гонка с Питом»: пилюли «Разгона» и «Слушай и лови» (features/pitrace, CONCEPT_RACE.md). Подпись внутри пилюли — перевод (data-cap, его ставит пул wordLanePool.take), а не над дорожкой: пилюля вертикальная капсула 22 % × 20 % экрана,
+   текст по центру, мелкий (на 375 px — 11–13 px), переносится по слогам. Упущенная пилюля (data-fail) с полосками не уезжает за край, а всплывает до 60 % высоты (pool.linger: ~1,7 с), и на ней за 0,35 с проявляется английское слово (data-reveal: пул заменяет подпись) — пока она падала бы вниз, слово было бы за краем экрана.
+   Серия: data-streak на корне игры (WordLaneGame) — 3 верных подряд (gold) пилюли вспыхивают золотом, 5 (fire) — ещё и тёплое свечение. Анимации — только opacity и свойство box-shadow ровно у пилюли; на слабом устройстве и при reduced-motion их нет. */
+.wlPill[data-cap]:not([data-hint])::after {
+  content: attr(data-cap);
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 5px;
+  box-sizing: border-box;
+  text-align: center;
+  font-size: clamp(10px, 3.1vw, 13px);
+  font-weight: 800;
+  line-height: 1.1;
+  overflow-wrap: anywhere;
+  color: #f4f6fb;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.65);
+  pointer-events: none;
+}
+.wlPill[data-cap][data-lock]:not([data-hint])::after { color: #0b0d11; text-shadow: none; } /* принятая пилюля светлая — подпись тёмная */
+.wlPill[data-cap][data-fail]:not([data-hint])::after { color: #c9cdd8; }
+.wlPill[data-reveal]:not([data-hint])::after { color: #fff; font-size: clamp(11px, 3.4vw, 14px); animation: raceReveal 0.35s ease 0.1s both; }
+@keyframes raceReveal { from { opacity: 0; } to { opacity: 1; } }
+
+/* Серия: золото. Переменные пилюли (--c, --rgb) перекрывают цвет дорожки (специфичность выше, чем у .wlPill[data-lane]) */
+.wl[data-streak='gold'] .wlPill, .wl[data-streak='fire'] .wlPill { --c: #ffd257; --rgb: 255, 210, 87; }
+.wl[data-streak='fire'] .wlPill { box-shadow: inset 0 0 18px -6px rgba(var(--rgb), 0.6), 0 0 14px rgba(255, 150, 60, 0.45); }
+.weak-device .wl[data-streak='fire'] .wlPill { box-shadow: inset 0 0 18px -6px rgba(var(--rgb), 0.5); }
+@media (prefers-reduced-motion: reduce) { .wlPill[data-reveal]::after { animation: none; } }

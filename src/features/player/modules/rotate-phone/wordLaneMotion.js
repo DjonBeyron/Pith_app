@@ -17,10 +17,11 @@ export const flightPosition = y => `-50% calc(${y.toFixed(3)}dvh - 50%)`
  * Запустить полёт пилюли el. atMs — сколько мс полёта уже прошло (отрицательное — ещё не выкатилась: пилюля ждёт за верхним краем). Возвращает Animation; fill 'both' держит пилюлю
  * за краем до выката и после ухода.
  */
-export function startFlight(el, atMs = 0) {
+export function startFlight(el, atMs = 0, speed = 1) { // speed — «Гонка с Питом»: пилюля едет быстрее конвейера (playbackRate); положение — по-прежнему функция currentTime
   // Анимация длится дольше самого полёта (после EXIT_Y пилюля стоит за краем): она не «finished» посреди игры, и её currentTime — надёжные часы фазы (их читает движок)
   const a = el.animate([{ translate: flightPosition(ENTER_Y) }, { translate: flightPosition(EXIT_Y), offset: FLIGHT_MS / ANIM_MS }, { translate: flightPosition(EXIT_Y) }], { duration: ANIM_MS, easing: 'linear', fill: 'both' })
-  a.currentTime = atMs
+  if (speed !== 1) a.playbackRate = speed
+  a.currentTime = atMs * speed
   return a
 }
 

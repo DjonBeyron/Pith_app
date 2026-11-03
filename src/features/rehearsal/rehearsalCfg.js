@@ -9,7 +9,7 @@ export function readRehearsalCfg(rawPlan) {
   const plan = normalizePlan(rawPlan)
   if (!plan) return null
   return {
-    title: 'Репетиция с Питом',
+    title: plan.game === 'race' ? 'Гонка с Питом' : 'Репетиция с Питом',
     chunks: plan.chunks,
     word: plan.chunks.join(' '),
     translation: plan.translation,
@@ -26,4 +26,4 @@ export function readRehearsalCfg(rawPlan) {
 }
 
 /** «Ещё минутку?»: следующая фикстура по кругу; у плана не из фикстур (JSON из админки) — тоже следующая после фикстуры по умолчанию. run +1: номер запуска в этом тапе (реплики старта и итога — «ещё раз», rehearsalLines.sessionLine); и «Ещё минутку?», и прогрев следующего плана берут план отсюда */
-export const nextPlan = plan => normalizePlan({ ...planFor('sim', { fixture: nextFixture(fixtureIdOf(plan) ?? DEFAULT_FIXTURE) }), run: (plan?.run ?? 0) + 1 })
+export const nextPlan = plan => normalizePlan({ ...planFor('sim', { fixture: nextFixture(fixtureIdOf(plan) ?? DEFAULT_FIXTURE) }), run: (plan?.run ?? 0) + 1, ...(plan?.game === 'race' ? { game: 'race' } : {}) }) // гонка остаётся гонкой: «Ещё заезд» — следующий план

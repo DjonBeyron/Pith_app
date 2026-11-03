@@ -1,5 +1,6 @@
 import MirrorCompare from './mirror/MirrorCompare.jsx'
 import RehearsalSummary from './RehearsalSummary.jsx'
+import RaceActs from '../pitrace/RaceActs.jsx'
 
 // Интерфейс актов «Репетиции с Питом» поверх игры (WordLaneGame, портал уже в .wlStage): то, чего нет в обычной игре. Перевод над дорожкой слова, подсветка кусков в читке и пустые подписи «без текста» —
 // это подписи дорожек (labelsFor → rehearsalStages.labelsForRehearsal), их рисует сама игра. Здесь: ярлык-плашка «Чётко — для последнего ряда» / «Обычно» над дорожками
@@ -10,6 +11,7 @@ import RehearsalSummary from './RehearsalSummary.jsx'
 export default function RehearsalActs({ f, cfg, onAgain = null, onSummary = null }) {
   const rh = f.rh
   if (!rh?.on) return null
+  if (cfg.plan.game === 'race') return <RaceActs f={f} cfg={cfg} onAgain={onAgain} onSummary={onSummary} /> // «Гонка с Питом»: лестница «Вершины» и итог (features/pitrace)
   const type = f.stage === 'run' ? f.stageObj?.type : null
   if (rh.quiet) return null
   return (

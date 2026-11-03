@@ -54,6 +54,6 @@ export function withSeed(json, seed) {
 }
 
 /** Что озвучивает библиотека слов для плана: куски, слова, двойники, слова фразы — [{ text, key (wordKey или null), has (есть в библиотеке lib: Map key → строка) }] */
-export function textRows(plan, lib) {
-  return planTexts(plan).map(raw => { const key = wordKey(raw); return { text: cleanWordText(raw), key, has: !!(key && lib?.get(key)) } })
+export function textRows(plan, lib, texts = planTexts(plan)) {
+  return texts.map(raw => { const key = wordKey(raw); return { text: cleanWordText(raw), key, has: !!(key && lib?.get(key)) } })
 }

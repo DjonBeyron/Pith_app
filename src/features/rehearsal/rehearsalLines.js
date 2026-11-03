@@ -5,6 +5,7 @@
 // В тексте может быть {word} — слово подставляется в момент реплики; такая реплика не озвучивается целиком (озвучка сказала бы «слово в скобках»). Для «Начни с {word}» есть отдельный озвучиваемый ключ
 // rh_blind_hint_pre («Начни с»): Пит говорит его, затем само слово из библиотеки слов (useRehearsalActs). Подпись на экране остаётся целой.
 import { rngFor, rngInt } from './rehearsalSeed.js'
+import { RACE_LINES } from '../pitrace/raceLines.js'
 
 // Одна реплика = ключ + 1–3 варианта текста ОДНОГО смысла (CONCEPT_REHEARSAL.md §8): вариант a — основной ключ (rh_done), b и c — отдельные ключи в каталоге (rh_done_b, rh_done_c). Так озвучка по ключу, кнопка «Озвучить реплики»,
 // редактор ноды и «Шлифовка» (polishLines.js) работают с каждым вариантом как с обычной репликой. Какой вариант прозвучит в сессии — pickLine / sessionLine ниже.
@@ -50,7 +51,7 @@ const SUFFIX = ['', '_b', '_c']
 
 export const REHEARSAL_LINES = SPEC.flatMap(d => d.texts.map((text, i) => ({ id: `${d.id}${SUFFIX[i]}`, text, when: d.runWhen ? `${d.when} (${d.runWhen[i]})` : i ? `${d.when} — вариант ${SUFFIX[i].slice(1)}` : d.when })))
 export const REHEARSAL_LINE_IDS = REHEARSAL_LINES.map(l => l.id)
-const TEXT_OF = Object.fromEntries(REHEARSAL_LINES.map(l => [l.id, l.text]))
+const TEXT_OF = Object.fromEntries([...REHEARSAL_LINES, ...RACE_LINES].map(l => [l.id, l.text])) // реплики «Гонки с Питом» (race/raceLines.js) устаревают по тому же правилу
 
 /** Тексты реплик репетиции — в коде (источник правды): у сохранённой в настройках реплики другой текст → её озвучка говорит старое, реплика устарела. Не реплика репетиции или текста нет — false */
 export const isStaleLine = (id, text) => typeof text === 'string' && !!text.trim() && id in TEXT_OF && text.trim() !== TEXT_OF[id]

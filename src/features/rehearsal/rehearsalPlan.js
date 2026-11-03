@@ -7,6 +7,7 @@
 import { parsePhrase, normText, MAX_CONFUSERS } from '../player/modules/rotate-phone/wordLaneRecipe.js'
 import { SLOT_COUNT } from '../player/modules/rotate-phone/wordLaneTimeline.js'
 import { ONLY_IDS } from './rehearsalOnly.js'
+import { RACE_ROUNDS } from '../pitrace/raceOnly.js'
 import { cleanSeed, seedFor } from './rehearsalSeed.js'
 import { isStopWord } from './rehearsalStopWords.js'
 
@@ -53,6 +54,7 @@ export function normalizePlan(raw) {
     source: SOURCES.includes(raw.source) ? raw.source : 'node',
     ...(Math.floor(Number(raw.run)) > 0 ? { run: Math.floor(Number(raw.run)) } : {}), // «Ещё минутку?»: не первый запуск в тапе (rehearsalCfg.nextPlan)
     ...(ONLY_IDS.includes(raw.only) ? { only: raw.only } : {}), // «Шлифовка репетиции»: играть только этот этап (rehearsalOnly.js)
+    ...(raw.game === 'race' ? { game: 'race', ...(RACE_ROUNDS.includes(raw.round) ? { round: raw.round } : {}), extraWords: (Array.isArray(raw.extraWords) ? raw.extraWords : []).map(normalizeWord).filter(Boolean).slice(0, 12) } : {}), // «Гонка с Питом» (features/pitrace): game, round — один раунд (raceOnly.js), extraWords — слова с переводом, которыми добирают «Разгон»
   }
 }
 

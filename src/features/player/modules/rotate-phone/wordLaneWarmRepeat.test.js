@@ -76,7 +76,7 @@ describe('карточка игры (RotatePhoneModule) и игра', () => {
   })
   it('«Ещё минутку?»: пока идёт итог, прогревается набор СЛЕДУЮЩЕГО плана (onSummary → RehearsalSummary.onShown)', () => {
     expect(card).toContain('const prewarmNext = useCallback(() => { const next = nextPlan(cfg.plan); if (next) warm(readWordLane({ plan: next })) }, [cfg, warm])')
-    expect(card).toContain('onSummary={cfg.plan && !cfg.plan.only ? prewarmNext : null}')
+    expect(card).toContain('onSummary={cfg.plan && !cfg.plan.only && !cfg.plan.round ? prewarmNext : null}')
     expect(read('./WordLaneGame.jsx')).toContain('onSummary={onSummary}')
     expect(read('../../../rehearsal/RehearsalActs.jsx')).toContain('onShown={onSummary}')
     expect(read('../../../rehearsal/RehearsalSummary.jsx')).toContain('useEffect(() => { onShown?.() }, [])')

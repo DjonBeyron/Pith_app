@@ -1,0 +1,70 @@
+import { describe, it, expect } from 'vitest'
+import { initRace, reduceRace, climbTarget, STREAK_GOLD, STREAK_FIRE } from './raceState.js'
+import { buildRaceStages } from './raceStages.js'
+import { fixturePlan } from '../rehearsal/rehearsalFixtures.js'
+import { normalizePlan } from '../rehearsal/rehearsalPlan.js'
+
+const plan = normalizePlan({ ...fixturePlan('three'), game: 'race' })
+const { stages } = buildRaceStages({ plan })
+const stageOf = (act, type) => stages.find(s => s.act === act && s.type === type)
+const sprintStage = stageOf('sprint', 'student')
+const ev = (s, t, stage, info) => reduceRace(s, { t, stage, info })
+function feed(s, list) { const out = []; for (const e of list) { const r = ev(s, e[0], e[1], e[2]); s = r.state; out.push(r) } return { s, out } }
+
+describe('состояние гонки: события движка → серия, слух, лестница', () => {
+  it('разгон: серия растёт на верных, на 3 — золото и «ну, погнали», на 5 — «огонь»; промах и «не успел» обнуляют, слово — к повтору', () => {
+    let s = ev(initRace(), 'enter', sprintStage).state
+    expect(s.sprint.words.length).toBeGreaterThanOrEqual(6)
+    const wins = Array.from({ length: 5 }, (_, i) => ['win', sprintStage, { idx: i }])
+    const { s: s5, out } = feed(s, wins)
+    expect(out.map(r => r.say)).toEqual([null, null, 'race_sprint_streak', null, 'race_sprint_fire'])
+    expect(s5.streak).toBe(5); expect(s5.streakMode).toBe('fire'); expect(STREAK_GOLD).toBe(3); expect(STREAK_FIRE).toBe(5)
+    expect(out[2].state.streakMode).toBe('gold')
+    const miss = ev(s5, 'miss', sprintStage, { idx: 5 }).state
+    expect(miss.streak).toBe(0); expect(miss.streakMode).toBeUndefined(); expect(miss.sprint.results[5].miss).toBe(true)
+    const fail = ev(s5, 'fail', sprintStage, { idx: 5 })
+    expect(fail.state.streak).toBe(0); expect(fail.log).toContain('к повтору'); expect(fail.state.best).toBe(5)
+  })
+  it('слух: верное слово — заход засчитан; промах или «не успел» — «мимо, слушай ещё» (заход повторится), счёт промахов растёт', () => {
+    const c0 = stages.find(s => s.act === 'catch' && s.type === 'discern')
+    let s = ev(initRace(), 'enter', c0).state
+    expect(s.catch.words[0]).toBe(c0.word.text)
+    const f = ev(s, 'fail', c0); expect(f.say).toBe('race_catch_miss'); expect(f.state.catch.results[0]).toEqual({ ok: false, bad: 1 })
+    const w = ev(f.state, 'win', c0); expect(w.say).toBeNull(); expect(w.state.catch.results[0]).toEqual({ ok: true, bad: 1 })
+  })
+  it('вершина: заходы и ступень по событиям; nextIdx лестницы ведёт на ступень k + 1 после попадания, ниже после промаха, на плашку вершины после верха', () => {
+    const k = n => stages.find(s => s.sid === `climb-${n}`)
+    const at = s => climbTarget(stages, stages[stages.indexOf(k(1))], s)
+    let s = ev(initRace(), 'enter', k(1)).state
+    expect(s.climb.attempts).toBe(1)
+    s = ev(s, 'win', k(1)).state
+    expect(stages[at(s)].sid).toBe('climb-2')
+    s = ev(ev(s, 'enter', k(2)).state, 'fail', k(2)).state // стоял на 1-й, остаётся
+    expect(stages[at(s)].sid).toBe('climb-2')
+    for (const n of [2, 3, 4]) s = ev(ev(s, 'enter', k(n)).state, 'win', k(n)).state
+    expect(s.climb.top).toBe(true)
+    expect(stages[at(s)].sid).toBe('climb-top')
+    expect(climbTarget(stages, stages[0], s)).toBeNull() // не лестница — обычный порядок стадий
+  })
+  it('подсказка: на втором промахе ступени редюсер просит Пита сказать слово этой ступени', () => {
+    const k = n => stages.find(s => s.sid === `climb-${n}`)
+    let s = ev(initRace(), 'enter', k(1)).state
+    s = ev(ev(s, 'win', k(1)).state, 'enter', k(2)).state
+    const first = ev(s, 'fail', k(2)); expect(first.hint).toBeNull()
+    const second = ev(ev(first.state, 'enter', k(2)).state, 'fail', k(2))
+    expect(second.hint).toBe(2); expect(k(2).word).toBe('trying')
+  })
+  it('спуск: win приходит на каждый кусок фразы — считается только последний (info.last)', () => {
+    const d = stageOf('descent', 'student')
+    const mid = reduceRace(initRace(), { t: 'win', stage: d, info: { last: false, count: 3 } })
+    expect(mid.state.descent).toBeNull(); expect(mid.log).toBeNull()
+    const end = reduceRace(mid.state, { t: 'win', stage: d, info: { last: true, count: 3 } })
+    expect(end.state.descent).toBe('ok'); expect(end.log).toContain('спуск')
+  })
+  it('спуск: один раз — верно или нет; чужие стадии и события без race игнорируются', () => {
+    const d = stageOf('descent', 'student')
+    expect(ev(initRace(), 'win', d).state.descent).toBe('ok')
+    expect(ev(initRace(), 'fail', d).state.descent).toBe('miss')
+    expect(ev(initRace(), 'win', { act: 'sprint', type: 'student' }).state).toEqual(initRace())
+  })
+})

@@ -4,6 +4,8 @@ import { normText } from '../player/modules/rotate-phone/wordLaneRecipe.js'
 import { planTexts } from './rehearsalPlan.js'
 import { buildActs } from './rehearsalRecipe.js'
 import { sessionLine } from './rehearsalLines.js'
+import { raceTexts, raceFirstLines } from '../pitrace/raceTexts.js'
+import { buildRaceActs } from '../pitrace/raceRecipe.js'
 
 export const START_LINE = 'rh_start'  // вступление: Пит говорит про фразу, пока она падает (основной ключ: вариант выбирается по семени плана, sessionLine)
 export const SUMMARY_LINE = 'rh_done' // итог говорит директор актов (useRehearsalActs), у акта summary своей реплики нет (основной ключ, как выше)
@@ -15,6 +17,7 @@ const dedupe = list => { const seen = new Set(); return list.filter(t => { const
  * и слово «Различи» (двойники на пилюлях молчат). Остальным актам (читка, сборка, дубль, зеркало) хватает кусков.
  */
 export function neededTexts(plan) {
+  if (plan.game === 'race') return raceTexts(plan) // «Гонка с Питом»: слова всех раундов и добор «Разгона»
   if (!plan.only) return planTexts(plan)
   const out = [...plan.chunks]
   for (const a of buildActs(plan).acts) {
@@ -25,10 +28,11 @@ export function neededTexts(plan) {
 }
 
 /** Говорит ли Пит вступление «Сегодня репетируем одну фразу…» (пока фраза падает). Полная репетиция и «Шлифовка → Заставка» — да; один другой этап «Шлифовки» — нет: вступление (≈ 4,5 с речи) перед каждым запуском одного акта только задерживает то, что шлифуют */
-export const hasIntroLine = plan => !plan.only || plan.only === 'intro'
+export const hasIntroLine = plan => (plan.game === 'race' ? !plan.round : !plan.only || plan.only === 'intro') // гонка: вступление race_start — только в полной гонке, не в одном раунде
 
 /** Реплики Пита, которые прозвучат в первые секунды: вступление (если есть) и реплика первого акта (у итога — «Вооу, получилось»). Остальные докачиваются фоном */
 export function firstLines(plan) {
+  if (plan.game === 'race') return raceFirstLines(plan, buildRaceActs(plan).acts)
   const first = buildActs(plan).acts[0]
   const own = first?.line ?? (first?.id === 'summary' ? sessionLine(plan, SUMMARY_LINE) : null)
   return [...(hasIntroLine(plan) ? [sessionLine(plan, START_LINE)] : []), ...(own ? [own] : [])]

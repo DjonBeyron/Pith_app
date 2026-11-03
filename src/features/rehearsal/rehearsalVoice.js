@@ -8,12 +8,12 @@ import { REHEARSAL_LINES, lineVoiced } from './rehearsalLines.js'
 // Озвучка реплик Пита-тренера из «Теста игры» и «Шлифовки репетиции» (Админ → «Голос»): те же настройки, что у CatLinesPanel в редакторе ноды (app_settings → rotate_cat_lines): ElevenLabs → R2 → запись в реплики.
 // Озвучиваются только реплики репетиции без озвучки (или с устаревшей: текст в коде поменялся, rehearsalLines.js isStaleLine) и без {word} в тексте (такую озвучить нельзя: Пит произносит само слово из библиотеки слов). Слова и куски — отдельно (voiceMissingTexts → generateWordAudio).
 
-/** Реплики репетиции, которым не хватает озвучки: [{ id, text }] */
-export const missingPitLines = lines => REHEARSAL_LINES.filter(d => !d.text.includes('{') && !lineVoiced(d.id, lines?.[d.id])).map(d => ({ id: d.id, text: d.text }))
+/** Реплики репетиции (или другой набор list — «Гонка с Питом»: RACE_LINES), которым не хватает озвучки: [{ id, text }] */
+export const missingPitLines = (lines, list = REHEARSAL_LINES) => list.filter(d => !d.text.includes('{') && !lineVoiced(d.id, lines?.[d.id])).map(d => ({ id: d.id, text: d.text }))
 
 /** Сколько реплик репетиции уже озвучено и сколько озвучивается вообще → { done, total } */
-export function pitVoiceCount(lines) {
-  const voiced = REHEARSAL_LINES.filter(d => !d.text.includes('{'))
+export function pitVoiceCount(lines, list = REHEARSAL_LINES) {
+  const voiced = list.filter(d => !d.text.includes('{'))
   return { done: voiced.filter(d => lineVoiced(d.id, lines?.[d.id])).length, total: voiced.length }
 }
 
@@ -21,9 +21,9 @@ export function pitVoiceCount(lines) {
  * Озвучить недостающие реплики и записать в настройки приложения; onStep(id) — какая озвучивается. → число озвученных. Зависимости подставляются в тестах.
  * Реплика не получилась (ElevenLabs, R2, нет прав админа) — то, что успело озвучиться до неё, всё равно записывается, а ошибка уходит наверх.
  */
-export async function voiceMissingPitLines({ onStep = () => {}, speak = generateSpeech, upload = uploadToR2, probe = probeAudioDuration, load = getCatLines, save = saveCatLines } = {}) {
+export async function voiceMissingPitLines({ list = REHEARSAL_LINES, onStep = () => {}, speak = generateSpeech, upload = uploadToR2, probe = probeAudioDuration, load = getCatLines, save = saveCatLines } = {}) {
   const lines = normalizeLines(await load())
-  const todo = missingPitLines(lines)
+  const todo = missingPitLines(lines, list)
   let done = 0
   try {
     for (const { id, text } of todo) {

@@ -1,0 +1,69 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>race harness</title>
+<style>body{margin:0;background:#0e1013;color:#fff;font-family:system-ui}#root{padding:16px}</style></head>
+<body><div id="root"></div>
+<script type="module">
+import React from 'react'
+import { createRoot } from 'react-dom/client'
+import '/src/index.css'
+import RotatePhoneModule from '/src/features/player/modules/rotate-phone/RotatePhoneModule.jsx'
+import { supabase } from '/src/shared/api/supabase.js'
+import { listWordAudio } from '/src/shared/lib/wordAudio/wordAudioApi.js'
+import { wordKey } from '/src/shared/lib/wordAudio/wordKey.js'
+import { voskRuntime } from '/src/shared/lib/vosk/voskRuntime.js'
+import { fixtureSource, fixturePlan } from '/src/features/rehearsal/rehearsalFixtures.js'
+import { raceTexts } from '/src/features/pitrace/raceTexts.js'
+import { extrasOf, catchSets, climbWords, sprintWords } from '/src/features/pitrace/raceWords.js'
+import { normalizePlan } from '/src/features/rehearsal/rehearsalPlan.js'
+
+// Стенд «Гонка с Питом» (dev, в сборку не входит): настоящие раунды гонки на игре «Повтори за диктором» без входа, Supabase и телефона.
+//  • ?fixture=three|two|one|none — план из фикстур; ?seed=… — семя случайностей; ?only=sprint|catch|climb|descent — один раунд (иначе полная гонка);
+//  • озвучка слов и кусков — синтетические гудки (wav ниже), реплики Пита без озвучки (подпись без звука); ?voice=0 — и слова без озвучки;
+//  • Vosk — заглушка: речь подаёт драйвер очередью window.__sayQueue (строки «слова через пробел»): следующий кусок звука микрофона закрывает заход с этим текстом — как итог Vosk; тап вместо речи (localStorage pithy_wl_tap_v1=1) работает как обычно.
+const params = new URLSearchParams(location.search)
+const fixture = params.get('fixture') || 'three'
+const voice = params.get('voice') !== '0'
+
+const wav = ms => { // лидирующая тишина 80 мс + гудок ms мс, 8 кГц
+  const rate = 8000, lead = 0.08, sec = lead + ms / 1000, n = Math.floor(rate * sec)
+  const buf = new ArrayBuffer(44 + n * 2), v = new DataView(buf)
+  const str = (o, s) => [...s].forEach((c, i) => v.setUint8(o + i, c.charCodeAt(0)))
+  str(0, 'RIFF'); v.setUint32(4, 36 + n * 2, true); str(8, 'WAVE'); str(12, 'fmt '); v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true)
+  v.setUint32(24, rate, true); v.setUint32(28, rate * 2, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true); str(36, 'data'); v.setUint32(40, n * 2, true)
+  for (let i = 0; i < n; i++) { const t = i / rate; v.setInt16(44 + i * 2, t >= lead ? Math.round(Math.sin(2 * Math.PI * 330 * t) * 9000) : 0, true) }
+  return { url: URL.createObjectURL(new Blob([buf], { type: 'audio/wav' })), duration: sec }
+}
+
+const plan = { ...fixtureSource(fixture), game: 'race', ...(params.get('seed') ? { seed: params.get('seed') } : {}), ...(params.get('only') ? { round: params.get('only') } : {}) }
+plan.extraWords = extrasOf(fixturePlan(fixture))
+const texts = raceTexts({ ...fixturePlan(fixture), extraWords: plan.extraWords })
+const rows = voice ? texts.map(text => ({ key: wordKey(text), ...wav(180 + 70 * text.replace(/\s/g, '').length) })).filter(r => r.key) : []
+supabase.from = table => ({ select: () => ({ eq: () => (table === 'word_audio' ? Promise.resolve({ data: rows, error: null }) : { maybeSingle: () => Promise.resolve({ data: null, error: null }) }) }) })
+await listWordAudio()
+
+// Модель Vosk: готова сразу; заход закрывается текстом из очереди window.__sayQueue (следующая порция звука микрофона), пустая очередь — тишина
+window.__sayQueue = []
+class Rec {
+  constructor() { this.h = {}; this.ended = false }
+  setWords() {}
+  on(ev, cb) { this.h[ev] = cb }
+  remove() {}
+  acceptWaveform() {
+    if (this.ended || !window.__sayQueue.length) return
+    const text = window.__sayQueue.shift(), words = text.split(' ').filter(Boolean)
+    this.ended = true
+    this.h.partialresult?.({ result: { partial: text } })
+    this.h.result?.({ result: { text, result: words.map((w, i) => ({ word: w, conf: 1, start: +(i * 0.3).toFixed(2), end: +(i * 0.3 + 0.25).toFixed(2) })) } })
+  }
+  retrieveFinalResult() { if (!this.ended) { this.ended = true; this.h.result?.({ result: { text: '', result: [] } }) } }
+}
+voskRuntime.acquire = () => () => {}
+voskRuntime.whenSettled = async () => ({ ok: true })
+voskRuntime.warmNow = () => {}
+voskRuntime.getModel = () => ({ KaldiRecognizer: Rec })
+
+const node = { id: 'race-stand', type: 'rotate_phone', isHistory: false, typeData: { rotate_phone: { plan } } }
+window.__done = null
+const np = normalizePlan(plan) // для драйвера скриншотов (shoot.mjs): слова раундов по тому же плану и семени
+window.__race = { sprint: sprintWords(np), catches: catchSets(np), climb: climbWords(np), chunks: np.chunks }
+createRoot(document.getElementById('root')).render(React.createElement(RotatePhoneModule, { node, file: null, forceDebug: true, onDone: v => { window.__done = v } }))
+</script></body></html>

@@ -78,7 +78,7 @@ export function useWordLanePills(rootRef, { scene, levels, fx, live, sceneApi })
     if (kind === 'student') {
       const { step, chunks, estMs, curves } = scene
       setDots(step.reps.length)
-      const g = createStudentGame({ step, chunks, estMs })
+      const g = createStudentGame({ step, chunks, estMs, maxTries: step.maxTries })
       const held = new Map() // id пилюли → номер в пуле
       g.seenSeq = liveRef.current.seq.length; g.seenMisses = liveRef.current.misses // слушатель стартует ещё в «твоей очереди» — слова до начала конвейера не считаем
       let raw = 0
@@ -97,7 +97,7 @@ export function useWordLanePills(rootRef, { scene, levels, fx, live, sceneApi })
         if (e.type === 'spawn') {
           fxRef.current?.peek?.(2600) // повтор выкатился — сейчас будет говорить ученик: кот уже на месте
           for (const p of e.pills) {
-            const k = pool.take(p.lane, { atMs: performance.now() - t0 - p.spawnAt, curve: blind ? null : curves?.[p.chunk] ?? null })
+            const k = pool.take(p.lane, { atMs: performance.now() - t0 - p.spawnAt, curve: blind ? null : curves?.[p.chunk] ?? null, speed: p.speed, cap: e.rep.cap })
             if (k != null) held.set(p.id, k)
           }
         } else if (e.type === 'piece-ok') lockPiece(e.pill) // слова куска произнесены — он зеленеет сразу (его заливку доведёт движок, щелчок и нота придут событиями snap / win)
@@ -105,8 +105,8 @@ export function useWordLanePills(rootRef, { scene, levels, fx, live, sceneApi })
           e.rep.pills.forEach(lockPiece) // остальные куски (защёлкнутые раньше уже зелёные)
           light(claimedReps++)
         } else if (e.type === 'snap') { const k = held.get(e.pill.id); if (k != null) snapPill(pool.el(k), e.pill.lane, { full: e.full }) } // отклик — в момент, когда кусок принят; вспышка и искры — один раз на повтор (у последнего защёлкнутого куска), остальные куски только хлопают
-        else if (e.type === 'win') { gate.mute(performance.now()); const k = held.get(e.pill.id); pool.flashLane(e.pill.lane); fxRef.current?.win?.(e.order, k != null ? pool.el(k).getBoundingClientRect() : null, { last: e.last, count: e.rep.pills.length }); if (k != null && pool.rise(k)) held.delete(e.pill.id) } // нота-награда: микрофон слышит динамик — голосом это не считаем. last / count: XP одна цифра на повтор (когда принят последний кусок). Залитая пилюля улетает вверх (pool.rise, wordLaneRise.js) и возвращается в пул сама, по окончании взлёта: из рук движка её отпускаем (иначе уход «за нижний край» вернул бы её в пул посреди взлёта); конвейер о ней не знает — ни fly, ни lock, спавн следующего повтора она не держит
-        else if (e.type === 'fail') { e.pills.forEach(p => { const k = held.get(p.id); if (k != null) { pool.attr(k, 'data-fail'); pool.hint(k, '0', null) } }); fxRef.current?.fail?.(e) }
+        else if (e.type === 'win') { gate.mute(performance.now()); const k = held.get(e.pill.id); pool.flashLane(e.pill.lane); fxRef.current?.win?.(e.order, k != null ? pool.el(k).getBoundingClientRect() : null, { last: e.last, count: e.rep.pills.length, idx: e.rep.idx }); if (k != null && pool.rise(k)) held.delete(e.pill.id) } // нота-награда: микрофон слышит динамик — голосом это не считаем. last / count: XP одна цифра на повтор (когда принят последний кусок). Залитая пилюля улетает вверх (pool.rise, wordLaneRise.js) и возвращается в пул сама, по окончании взлёта: из рук движка её отпускаем (иначе уход «за нижний край» вернул бы её в пул посреди взлёта); конвейер о ней не знает — ни fly, ни lock, спавн следующего повтора она не держит
+        else if (e.type === 'fail') { e.pills.forEach(p => { const k = held.get(p.id); if (k != null) { pool.attr(k, 'data-fail'); pool.hint(k, '0', null); if (e.rep.reveal) { pool.cap(k, e.rep.reveal); pool.attr(k, 'data-reveal'); pool.linger(k); held.delete(p.id) } } }); fxRef.current?.fail?.(e) } // reveal: «Гонка с Питом» — на упущенной пилюле проявляется английское слово
         else if (e.type === 'miss') {
           const k = e.rep ? held.get(e.rep.pills.find(p => p.state === 'fly')?.id) : null // красная вспышка — на первом куске, который ещё не принят (принятые остаются зелёными)
           if (k != null) missPill(pool.el(k))
@@ -142,7 +142,7 @@ export function useWordLanePills(rootRef, { scene, levels, fx, live, sceneApi })
     // ---------- порядок ----------
     if (kind === 'order') {
       setDots(0)
-      const run = runOrderScene({ pool, scene, fxRef })
+      const run = runOrderScene({ pool, scene, fxRef, liveRef })
       setApi(sceneApi, run.api)
       return () => { run.stop(); setApi(sceneApi, null); pool.giveAll() }
     }

@@ -106,7 +106,7 @@ export function buildRehearsalStages({ plan, rate = 1, lib = () => null }) {
 /** Подписи дорожек на стадии репетиции: { text, on }[3]. hint — дорожки, где показать подпись (после «не успел», «застрял», слабое слово). Читка: подписи всех кусков яркие и белые, зелёным их заливает караоке (rehearsal/ReadKaraoke.jsx) */
 export function labelsForRehearsal(stage, chunks, hint = []) {
   const out = blank()
-  if (!stage || ['discern', 'summary'].includes(stage.type)) return out
+  if (!stage || ['discern', 'summary'].includes(stage.type) || ['sprint', 'catch', 'climb'].includes(stage.act)) return out // «Гонка с Питом»: слова в пилюлях / на лестнице, над дорожками пусто
   if (stage.type === 'mirror') { chunks.forEach((text, i) => { out[compareLane(i, chunks.length)] = { text, on: true } }); return out } // «Дубль и зеркало» на дорожках: куски фразы над теми дорожками, где они стоят
   if (stage.type === 'warmup') {
     const lane = stage.word.lane
