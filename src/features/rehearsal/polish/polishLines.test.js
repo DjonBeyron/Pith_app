@@ -15,7 +15,7 @@ const voiced = ids => normalizeLines({ lines: Object.fromEntries(ids.map(id => [
 
 describe('реплики по этапам', () => {
   it('каждая реплика репетиции стоит ровно на одном этапе; этапы — те же, что карточки', () => {
-    expect(Object.keys(ACT_LINES)).toEqual(ONLY_IDS)
+    expect(Object.keys(ACT_LINES)).toEqual([...ONLY_IDS, 'game2']) // этапы шлифовки и «Мини-игра 2.0» (стенд: свои реплики rh2_*, карточки у неё нет)
     const all = Object.values(ACT_LINES).flat()
     expect([...all].sort()).toEqual([...REHEARSAL_LINE_IDS].sort())
     expect(new Set(all).size).toBe(all.length)

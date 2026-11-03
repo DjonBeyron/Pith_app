@@ -14,6 +14,7 @@ const BASE_LINES = {
   blind: ['rh_blind', 'rh_blind_hint', 'rh_blind_hint_pre'],
   take: ['rh_take', 'rh_mirror', ...Object.values(NOTE_LINES)], // дубль и зеркало: «поехали», «послушаем» и вердикт по заметке (rh_note_*)
   summary: ['rh_done'],
+  game2: ['rh2_start', 'rh2_listen', 'rh2_catch', 'rh2_catch_miss', 'rh2_shadow', 'rh2_recall', 'rh2_speed', 'rh2_done'], // «Мини-игра 2.0» (стенд, Админ → «Голос»): не этап репетиции и не карточка шлифовки, но реплики озвучиваются тем же списком
 }
 
 /** Этап шлифовки → ключи реплик ВМЕСТЕ с вариантами (rh_done, rh_done_b, rh_done_c): какой прозвучит в сессии, выбирает семя плана (CONCEPT_REHEARSAL.md §8), озвучиваются и слушаются все */

@@ -8,6 +8,7 @@ import { missingPitLines, pitVoiceCount, voiceMissingPitLines } from './rehearsa
 import { buildRehearsalStages } from './rehearsalStages.js'
 import { fixturePlan } from './rehearsalFixtures.js'
 import { NOTE_LINES } from './mirror/noteLine.js'
+import { GAME2_LINES } from '../game2/game2Modes.js'
 const NOTE_IDS = Object.values(NOTE_LINES) // вердикт зеркала: rh_note_*
 
 const read = rel => readFileSync(new URL(rel, import.meta.url), 'utf8')
@@ -123,7 +124,8 @@ describe('варианты реплик Пита', () => {
     for (const b of ['rh_start', 'rh_done']) expect(lineVariants(b), b).toEqual([b, `${b}_b`])
     for (const b of RANDOM) expect(lineVariants(b), b).toEqual([b, `${b}_b`, `${b}_c`])
     for (const b of ONE) expect(lineVariants(b), b).toEqual([b])
-    expect(REHEARSAL_LINES).toHaveLength(2 * 2 + RANDOM.length * 3 + ONE.length)
+    expect(REHEARSAL_LINES).toHaveLength(2 * 2 + RANDOM.length * 3 + ONE.length + GAME2_LINES.length) // + реплики «Мини-игры 2.0» (rh2_*, по одному тексту)
+    for (const b of GAME2_LINES) expect(lineVariants(b), b).toEqual([b])
     for (const id of REHEARSAL_LINE_IDS) expect(lineVariants(baseLineId(id))).toContain(id)
     expect(baseLineId('rh_blind_hint_pre')).toBe('rh_blind_hint_pre'); expect(baseLineId('rh_start_b')).toBe('rh_start')
     expect(LINE_IDS).toEqual(expect.arrayContaining(['rh_done_b', 'rh_start_b', 'rh_blind_hint_pre'])) // варианты — обычные ключи каталога: озвучка, редактор ноды, слоты

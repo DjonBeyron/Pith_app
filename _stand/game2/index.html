@@ -1,0 +1,83 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>game2 harness</title>
+<style>body{margin:0;background:#0e1013;color:#fff;font-family:system-ui}#root{padding:12px}.aeHint{font-size:12px;color:#888}</style></head>
+<body><div id="root"></div>
+<script type="module">
+import React from 'react'
+import { createRoot } from 'react-dom/client'
+import '/src/index.css'
+import '/src/styles/admin-speech.css'
+import Game2Block from '/src/features/admin/speech/Game2Block.jsx'
+import { supabase } from '/src/shared/api/supabase.js'
+import { listWordAudio } from '/src/shared/lib/wordAudio/wordAudioApi.js'
+import { voskRuntime } from '/src/shared/lib/vosk/voskRuntime.js'
+import { phraseKey } from '/src/features/game2/game2Phrase.js'
+
+// Стенд «Мини-игра 2.0» (dev, в сборку не входит): настоящий блок из вкладки «Голос» (Game2Block) с настоящей лентой, Питом и звуком, без входа, Supabase и модели Vosk.
+//  • ?fixture=three — фраза «I'm trying to learn» (к повтору: trying, learn); ?voiced=0 — фраза не озвучена (лента на оценке таймингов, подпись «фраза не озвучена»); ?lines=1 — реплики Пита озвучены (гудки по длине текста)
+//  • фраза озвучена синтетическим wav: гудок на каждое слово по таймингам TIMINGS (тишина между ними), настоящий тракт: скачать → декодировать → AudioBuffer → GainNode
+//  • Vosk — заглушка: window.__g2Expose = true включает window.__g2 = { mode, startedAt, pills } (его пишет useGame2Flow); поддельный распознаватель «говорит» слова пилюль через 100 мс после начала слова
+//    (режимы catch / shadow / recall / speed). ?catchMiss=1 — первая попытка «Ловлю» молчит (промах и повтор); ?silent=recall — «По памяти» молчит (подсказка «Начни с»); ?miss=learn — слово не говорится нигде
+//  • тап вместо речи: localStorage pithy_wl_tap_v1=1. Сценарий и скриншоты — _stand/game2/shoot.mjs (Playwright, 375×812)
+const params = new URLSearchParams(location.search)
+const fixture = params.get('fixture') || 'three'
+const voiced = params.get('voiced') !== '0'
+const miss = (params.get('miss') || '').split(',').filter(Boolean)
+const TEXT = "I'm trying to learn"
+const TIMINGS = [{ w: "I'm", t: 0.25, e: 0.55 }, { w: 'trying', t: 0.7, e: 1.25 }, { w: 'to', t: 1.35, e: 1.5 }, { w: 'learn', t: 1.6, e: 2.15 }]
+window.__g2Expose = true
+
+const wav = (sec, beeps, rate = 8000) => {
+  const n = Math.floor(rate * sec), buf = new ArrayBuffer(44 + n * 2), v = new DataView(buf)
+  const str = (o, s) => [...s].forEach((c, i) => v.setUint8(o + i, c.charCodeAt(0)))
+  str(0, 'RIFF'); v.setUint32(4, 36 + n * 2, true); str(8, 'WAVE'); str(12, 'fmt '); v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true)
+  v.setUint32(24, rate, true); v.setUint32(28, rate * 2, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true); str(36, 'data'); v.setUint32(40, n * 2, true)
+  for (let i = 0; i < n; i++) { const t = i / rate; const b = beeps.find(x => t >= x.t && t < x.e); v.setInt16(44 + i * 2, b ? Math.round(Math.sin(2 * Math.PI * (300 + 60 * beeps.indexOf(b)) * t) * 9000) : 0, true) }
+  return { url: URL.createObjectURL(new Blob([buf], { type: 'audio/wav' })), duration: sec }
+}
+
+const phraseWav = voiced ? wav(2.5, TIMINGS) : null
+const phrases = phraseWav ? { [phraseKey(TEXT)]: { text: TEXT, url: phraseWav.url, duration: phraseWav.duration, words: TIMINGS } } : {}
+const LINE_IDS = ['rh2_start', 'rh2_listen', 'rh2_catch', 'rh2_catch_miss', 'rh2_shadow', 'rh2_recall', 'rh2_speed', 'rh2_done', 'rh_blind_hint_pre']
+const lineTexts = { rh2_start: 'Одна фраза, сначала слушай, потом лови слово, потом говори со мной, потом сам', rh2_listen: 'Сначала просто слушай и смотри, как идёт фраза', rh2_catch: 'Теперь лови слово, скажи его, как только услышишь', rh2_catch_miss: 'Проскочило, слушай ещё раз', rh2_shadow: 'Говори вместе со мной, не отставай', rh2_recall: 'А теперь сам, без меня и без подсказок', rh2_speed: 'Ещё раз, чуть быстрее', rh2_done: 'Вот так это и звучит, хочешь ещё?', rh_blind_hint_pre: 'Начни с' }
+const catLines = params.get('lines') === '1' ? { lines: Object.fromEntries(LINE_IDS.map(id => { const sec = Math.max(0.6, lineTexts[id].length * 0.05); const w = wav(sec, [{ t: 0.1, e: sec - 0.1 }]); return [id, { text: lineTexts[id], url: w.url, duration: w.duration, words: null }] })) } : null
+
+supabase.from = table => ({ select: () => ({ eq: (c, key) => (table === 'word_audio' ? Promise.resolve({ data: [], error: null }) : { maybeSingle: () => Promise.resolve({ data: { value: key === 'game2_phrases' ? phrases : catLines }, error: null }) }) }) })
+await listWordAudio()
+
+// Поддельный Vosk: «говорит» слова пилюль текущего прохода (window.__g2). Заход заканчивается эндпойнтом, когда остались неотвеченные слова и пауза ≥ 0,5 с — как у настоящего.
+const attempts = {}
+let seenStart = 0
+const consumed = new Set()
+const spoken = () => {
+  const g = window.__g2
+  if (!g || !['catch', 'shadow', 'recall', 'speed'].includes(g.mode)) return []
+  if (g.startedAt !== seenStart) { seenStart = g.startedAt; consumed.clear(); attempts[g.mode] = (attempts[g.mode] || 0) + 1 }
+  if (g.mode === 'catch' && params.get('catchMiss') === '1' && attempts.catch === 1) return []
+  if (params.get('silent') === g.mode) return []
+  return g.pills.filter(p => !miss.includes(p.text.toLowerCase())).map(p => ({ i: p.i, w: p.text.toLowerCase(), at: g.startedAt + p.startMs + 100, to: g.startedAt + p.startMs + 100 + 250 }))
+}
+class Rec {
+  constructor() { this.h = {}; this.born = 0; this.last = ''; this.ended = false }
+  setWords() {}
+  on(ev, cb) { this.h[ev] = cb }
+  remove() {}
+  doneNow() { const now = performance.now(); return spoken().filter(x => !consumed.has(x.i) && x.to <= now) }
+  out(ws) { return ws.map(x => ({ word: x.w, conf: 1, start: +((x.at - this.born) / 1000).toFixed(3), end: +((x.to - this.born) / 1000).toFixed(3) })) }
+  emit(ws) { this.ended = true; ws.forEach(x => consumed.add(x.i)); this.h.result?.({ result: { text: ws.map(x => x.w).join(' '), result: this.out(ws) } }) }
+  acceptWaveform() {
+    if (this.ended) return
+    this.born ||= performance.now()
+    const ws = this.doneNow()
+    const text = ws.map(x => x.w).join(' ')
+    if (text && text !== this.last) { this.last = text; this.h.partialresult?.({ result: { partial: text } }) }
+    const rest = spoken().some(x => !consumed.has(x.i) && !ws.some(w => w.i === x.i))
+    if (ws.length && rest && performance.now() - ws.at(-1).to >= 500) this.emit(ws)
+  }
+  retrieveFinalResult() { if (!this.ended) { this.born ||= performance.now(); this.emit(this.doneNow()) } }
+}
+voskRuntime.acquire = () => () => {}
+voskRuntime.whenSettled = async () => ({ ok: true })
+voskRuntime.warmNow = () => {}
+voskRuntime.getModel = () => ({ KaldiRecognizer: Rec })
+createRoot(document.getElementById('root')).render(React.createElement('div', { className: 'aeWrap' }, React.createElement('p', { className: 'aeHint' }, 'Голос (проба распознавания речи)'), React.createElement(Game2Block)))
+</script></body></html>
