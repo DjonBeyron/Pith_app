@@ -12,6 +12,7 @@ import { extrasOf } from '../../pitrace/raceWords.js'
 import { raceDebugFile } from '../../pitrace/raceLog.js'
 import RaceHowto from '../../pitrace/RaceHowto.jsx'
 import usePolishVoice from './usePolishVoice.js'
+import { whyNotIdle } from './launchWhy.js'
 import '../../../styles/admin-rehearsal-polish.css'
 import '../../../styles/admin-game2-howto.css'
 
@@ -72,10 +73,11 @@ export default function RaceBlock({ save = saveDebugFile }) {
         {RACE_ROUNDS.map(r => <button key={r} type="button" className="aspChip" onClick={() => launch(r)} disabled={!idle || !racePlan} data-testid={`race-run-${r}`}>{RACE_TITLES[r]}</button>)}
         <button type="button" className="aspChip" onClick={exportLog} data-testid="race-export">Скачать отладку</button>
       </div>
+      {!idle && !playing && <p className="rhpHint" role="status" data-testid="race-why">{whyNotIdle(status)}</p>}
       {status.warm && <p className="rhpHint" role="status" data-testid="race-warm">{status.warm}</p>}
       {note && <p className="rhpHint" role="status" data-testid="race-note">{note}</p>}
       {status.problem && <p className="aspErr" role="alert" data-testid="race-problem">{status.problem}</p>}
-      {racePlan && <RotatePhoneModule key={voice.rev} node={node} bare forceDebug startRef={startRef} onStatus={setStatus} />}
+      {racePlan && <RotatePhoneModule linesRev={voice.rev} node={node} bare forceDebug startRef={startRef} onStatus={setStatus} />}
     </section>
   )
 }
