@@ -23,6 +23,14 @@ export const POP_FRAMES = [
   { scale: 1 },
 ]
 
+/** Хлопок пилюли с масштабом полёта (data-edge, «Гонка»): без явных кадров 1 в начале и конце — они берутся из-под анимации, пилюля не прыгает с 0,85 на 1 */
+export const POP_EDGE_FRAMES = [{ scale: 1.12, offset: 0.38 }, { scale: 0.985, offset: 0.74 }]
+
+/** Микро-анимация неверного слова на пилюле «Разгона» (data-quiet): дрожь и красная вспышка обводки, 200 мс; без полос, без filter */
+export const SOFT_MISS_MS = 200
+export const SOFT_MISS_SHAKE = [{ transform: 'translateX(0)' }, { transform: 'translateX(-5px)', offset: 0.25 }, { transform: 'translateX(5px)', offset: 0.55 }, { transform: 'translateX(-2px)', offset: 0.8 }, { transform: 'translateX(0)' }]
+export const SOFT_MISS_RING = [{ outline: '3px solid rgba(255,93,115,0)', outlineOffset: '0px' }, { outline: '3px solid rgba(255,93,115,0.95)', outlineOffset: '0px', offset: 0.3 }, { outline: '3px solid rgba(255,93,115,0)', outlineOffset: '0px' }]
+
 function flash(host, css, frames, ms) {
   const el = document.createElement('i')
   el.style.cssText = `position:absolute;pointer-events:none;${css}`
@@ -37,7 +45,7 @@ function flash(host, css, frames, ms) {
  */
 export function snapPill(pill, k, { full = true } = {}) {
   if (!pill) return
-  pill.animate(POP_FRAMES, { duration: POP_MS, easing: 'cubic-bezier(0.33, 0, 0.2, 1)' })
+  pill.animate(pill.hasAttribute?.('data-edge') ? POP_EDGE_FRAMES : POP_FRAMES, { duration: POP_MS, easing: 'cubic-bezier(0.33, 0, 0.2, 1)' })
   if (!full) return
   const clip = pill.querySelector('.wlPillClip')
   const c = levelHex(k + 1)
@@ -52,6 +60,11 @@ export function snapPill(pill, k, { full = true } = {}) {
  *  (word-lane-pill-wrong.css), пока не защёлкнулась (data-lock) или не вернулась в пул (clean в wordLanePool.js) */
 export function missPill(pill) {
   if (!pill) return
+  if (pill.hasAttribute?.('data-quiet')) { // «Разгон»: только микро-анимация на пилюле (дрожь + красная обводка 200 мс), без data-wrong (полос) и вспышки внутри
+    pill.animate(SOFT_MISS_SHAKE, { duration: SOFT_MISS_MS, easing: 'ease-out' })
+    pill.animate(SOFT_MISS_RING, { duration: SOFT_MISS_MS, easing: 'ease-out' })
+    return
+  }
   pill.setAttribute?.('data-wrong', '1')
   pill.animate([{ transform: 'translateX(0)' }, { transform: 'translateX(-6px)', offset: 0.2 }, { transform: 'translateX(6px)', offset: 0.4 }, { transform: 'translateX(-3px)', offset: 0.6 }, { transform: 'translateX(0)' }], { duration: 560, easing: 'ease-out' })
   const clip = pill.querySelector('.wlPillClip')

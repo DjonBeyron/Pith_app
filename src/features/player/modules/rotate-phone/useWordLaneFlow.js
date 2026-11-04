@@ -102,7 +102,7 @@ export function useWordLaneFlow({ chunks, translation, lang, clips = null, audio
       catApi?.current?.peek?.()
       if (rep.last) xpApi.current?.add(XP_PER_PILL * rep.count, rect) // у повтора из нескольких кусков одна цифра («+6»), когда принят последний кусок
     },
-    miss(e) { rh.rec('miss', e?.rep); catApi?.current?.react('shy', 1300) },
+    miss(e) { rh.rec('miss', e?.rep); catApi?.current?.react('shy', 1300) }, claim(e) { rh.claim?.(e.rep) },
     fail(e) {
       catApi?.current?.react('shy', 1300); rh.rec('fail', e.rep)
       const st = stages[sRef.current.idx]
@@ -137,7 +137,7 @@ export function useWordLaneFlow({ chunks, translation, lang, clips = null, audio
   const handlersRef = useRef(handlers)
   useEffect(() => { handlersRef.current = handlers })
   const [fx] = useState(() => ({
-    win: (...a) => handlersRef.current.win(...a), miss: (...a) => handlersRef.current.miss(...a), fail: (...a) => handlersRef.current.fail(...a),
+    win: (...a) => handlersRef.current.win(...a), miss: (...a) => handlersRef.current.miss(...a), claim: (...a) => handlersRef.current.claim(...a), fail: (...a) => handlersRef.current.fail(...a),
     mouth: (...a) => handlersRef.current.mouth(...a), peek: (...a) => handlersRef.current.peek(...a), say: (...a) => handlersRef.current.say(...a), sayText: (...a) => handlersRef.current.sayText(...a), finished: (...a) => handlersRef.current.finished(...a), pitLeft: () => handlersRef.current.pitLeft(),
   }))
 

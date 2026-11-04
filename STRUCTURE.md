@@ -592,6 +592,8 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | `player/modules/rehearsal-read.css` | Читка-караоке (v3.3.87; `rehearsal/read/`): слова подписей `.rkWord` с зелёным слоем `.rkFill` (открывается `clip-path` слева направо) и курсор `.rkCursor` («\|» `.rkBar` и кружок `.rkDot` в одном узле, двигается `transform`); на стадии «твоя очередь» зелёное плавно уходит (`.rkHead--off`); на слабом устройстве курсора нет. Без filter и анимаций |
 | `player/modules/race-sprint.css` | «Гонка с Питом» (`features/pitrace/`): подпись внутри пилюли `data-cap` (перевод «Разгона» и «Слушай и лови»), проявление английского слова на упущенной пилюле `data-reveal`, золото серии `data-streak` на корне игры (3 — золотые пилюли, 5 — ещё и свечение) |
 | `player/modules/race-charge.css` | Заставка-«зарядка» гонки (`features/pitrace/RaceCharge.jsx`; подключён из `race-sprint.css`): дорожки скрыты (`data-charge`), пилюли памяти и искры, бар сверху из цветных сегментов, полосатый заполненный бар |
+| `player/modules/race-pill-fill.css` | Пилюли гонки (подключён из `race-sprint.css`): заливка с гранями — светлая кромка у края заливки и блик при приросте (`data-live`), без filter и линии; тихий промах «Разгона» (`data-quiet`) — без косых полос. |
+| `player/modules/race-weak.css` | Итог гонки (подключён из `race-summary.css`): блок «Самые слабые слова» — чипы цветов красный / жёлтый / зелёный, перевод мелко. |
 | `player/modules/race-climb.css` | «Гонка с Питом», раунд «Вершина» (`features/pitrace/RaceClimb.jsx`, `RaceHero.jsx`): острова-пилюли зигзагом (`.raceIsland`, подпись скрыта до взятия), мир (`.raceWorld`, `--cam`) под героем-капсулой цвета дорожки, золото вершины и плашка (`rehearsal-gold.css`); пилюли и дорожки движка в раунде скрыты (`data-act='climb'`) |
 | `player/modules/race-climb-timer.css` | Общий таймер «Вершины» (`features/pitrace/RaceClimbBar.jsx`): полоска сверху с учётом safe-area, секунды, всплывающее «+5», красная при малом остатке |
 | `player/modules/race-climb-hero.css` | «Вершина»: герой-капсула с растущей фразой (`RaceHero.jsx`): светлая капсула, шрифт `--cf` по длине, влёт и вылет слова; подключён из `race-climb.css` (index.css на пределе 250 строк) |
@@ -1197,10 +1199,13 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 Набор актов и стадий для того же движка «Повтори за диктором» (три дорожки, Vosk): план `RehearsalPlan` с `game: 'race'` → акты → стадии того же формата, что у репетиции; директор — обёртка над директором репетиции. Файлы одной ответственности, не длиннее 250 строк.
 | Файл | Зачем нужен |
 |------|-------------|
-| `raceLines.js` | Реплики Пита `race_*` (16 штук, в т. ч. `race_trap_pre/mid/short`, в т. ч. `race_climb_time`, без точек, тире и `!`): входят в общий каталог кота `CAT_LINES` рядом с `rh_*` |
+| `raceLines.js` | Реплики Пита `race_*` (19 штук: мини-реплики успеха `race_good_1..4`, `race_sprint_round2`; серий нет, в т. ч. `race_trap_pre/mid/short`, в т. ч. `race_climb_time`, без точек, тире и `!`): входят в общий каталог кота `CAT_LINES` рядом с `rh_*` |
 | `raceOnly.js` | «Только этот раунд»: `RACE_ROUNDS` (sprint, catch, climb, descent), названия, `pickRound` — план с `round` оставляет в рецепте один раунд |
 | `raceWords.js` | Слова раундов из плана: `sprintWords` (6–10 слов с переводом, добор чужими, дорожка по семени, скорость +5 % за пилюлю), `catchSets` (три захода, три дорожки с переводами, ловушки-двойники), `climbWords`, `extrasOf`, `vocabOf` |
 | `raceCharge.js` | План заставки (чистые функции, от семени): слова памяти с `level`, старт и прилёт пилюль так, что последняя в T = длина речи Пита, искры, сегменты бара (в сумме 100 %), `chargeOn` — когда заставка на экране |
+| `raceGood.js` | Мини-реплики успеха «Разгона»: план по семени (`goodPlan`) — первое верное слово и далее раз в 3–4 верных слова одна из `race_good_1..4`, подряд не повторяются. |
+| `raceSprint2.js` | Второй круг «Разгона»: слова с ошибками первого круга + 1–2 удавшихся (по семени), скорость +10 % к концу первого и +5 % на пилюлю (`round2Words`), переход директора мимо круга или на него (`sprintTarget`). |
+| `raceWeak.js` | «Самые слабые слова» итога: счёт слабости (ошибка в круге 1 = 2, в круге 2 = 3, верно = 0), цвет чипа, список не больше 8 слабыми первыми (`weakWords`). |
 | `raceRecipe.js` | Рецепт: из плана — акты `sprint` → `catch` → `climb` → `descent` → `summary` (или один раунд) |
 | `raceTexts.js` | Что готовить в тапе «Начать»: тексты для озвучки (с добором «Разгона») и первые реплики |
 | `raceStageKit.js` | Общий набор сборки стадий: длина озвучки слова, `push`, плашка раунда (`announce`), шаг ученика (`stepOf`) |
@@ -1228,6 +1233,7 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | `raceDirector.test.jsx`, `raceEngine.test.js`, `raceRender.test.jsx` | Тесты: директор без React-рантайма, точки расширения движка (голосовой ответ «Слушай и лови», скорость, подписи пилюль), рендер итога, блока админки и «Как тестировать» |
 | `raceOnlyVosk.test.js` | Страж: в папке только Vosk, без `speechSynthesis` и `Math.random`, без `getUserMedia`, файлы не длиннее 250 строк |
 | `raceQueue.test.js`, `raceCharge.test.js`, `raceAnnounce.test.jsx` | Тесты очереди пилюль «Разгона», плана заставки, плашек этапов с заданием и скрытого микрофона |
+| `raceGood.test.js`, `raceSprint2.test.js`, `raceWeak.test.js` | Тесты мини-реплик успеха (план от семени), второго круга «Разгона» (слова, скорость, переход директора) и списка слабых слов итога. |
 
 ### `src/features/rehearsal/polish/` — «Шлифовка репетиции» (комментарии владельца к этапам, Админ → «Голос»)
 Блок `admin/speech/RehearsalPolishBlock.jsx` запускает каждый этап репетиции отдельно; в игре кнопка 💬 (`WordLaneCommentButton.jsx`) ставит игру на паузу и пишет комментарий со снимком экрана, настроек и журнала; экспорт — JSON этапа.
@@ -1771,6 +1777,7 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | `modules/rotate-phone/wordLaneVoiceGate.test.js` | Тесты ворот: шум и щелчки не голос, голос ≈ 100 мс, паузы не рвут, шумная комната, эхо ноты |
 | `modules/rotate-phone/wordLaneMotion.js` | Ход пилюль на композиторе: `startFlight` (одна WAAPI-анимация `translate` ENTER_Y → EXIT_Y, линейно, ПРЯМАЯ — без волны и наклона; дольше полёта на 120 с), `cancelFlights`, `setFlightRate`; `flightPosition` |
 | `modules/rotate-phone/wordLaneMotion.test.js` | Тесты: полёт (длительность, кадры, translate вместо transform), щелчок не сдвигает пилюлю, прогрев слоёв, статичный кот, худ только по голосу |
+| `modules/rotate-phone/wordLaneEdge.test.js` | Тесты масштаба пилюль у краёв (`edge`: 0,85 у краёв, 1 на 50 %, по умолчанию выкл) и тихого промаха (`data-quiet`: дрожь и обводка 200 мс, без полос). |
 | `modules/rotate-phone/wordLaneFeel.test.js` | Тесты «ощущения»: затемнения сверху/снизу (высоты = константам), кот поверх всего, диктор начинает при полном открытии пилюли, отклик щелчка (диктор — с упреждением, ученик — на claim), слушатель стартует в «твоей очереди», перемотка опоздавшего звука |
 | `modules/rotate-phone/wordLaneCatPeek.test.js` | Тесты мест и времени выскакивания кота |
 | `modules/rotate-phone/wordLaneCatFade.test.js` | Тесты плавной смены лица: порядок голов в DOM, какая голова получает opacity-анимацию, отмена, отсутствие WAAPI |

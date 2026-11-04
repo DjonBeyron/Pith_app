@@ -36,12 +36,27 @@ describe('useRaceActs: директор гонки поверх директор
     renderToStaticMarkup(createElement(P))
     expect(out.race).toBeUndefined(); expect(out.on).toBe(true); expect(out.failLine({ act: 'build' })).toBeNull()
   })
-  it('разгон: серия 3 — «ну, погнали», серия 5 — «огонь»; промах обнуляет серию', () => {
-    const { rh, sayLine } = probe('sprint')
+  it('разгон: на принятии слова Пит говорит мини-реплику успеха по плану (первое слово и далее раз в 3–4), «ну, погнали» и «огонь» не звучат', () => {
+    const { rh, sayLine, stages } = probe('sprint')
+    const st = stages.find(s => s.sid === 'sprint')
+    for (let i = 0; i < st.words.length; i++) rh.claim({ idx: i })
+    expect(sayLine.mock.calls.map(c => c[0])).toEqual(st.good.map(g => g.id))
+    expect(sayLine.mock.calls.length).toBeGreaterThanOrEqual(2)
     for (let i = 0; i < 5; i++) rh.rec('win', { idx: i })
-    expect(sayLine.mock.calls.map(c => c[0])).toEqual(['race_sprint_streak', 'race_sprint_fire'])
-    rh.rec('miss', { idx: 5 }); rh.rec('win', { idx: 6 }); rh.rec('win', { idx: 7 }); rh.rec('win', { idx: 8 })
-    expect(sayLine.mock.calls.map(c => c[0]).filter(x => x === 'race_sprint_streak')).toHaveLength(2) // после промаха серия набирается заново
+    expect(sayLine.mock.calls.map(c => c[0]).some(x => /streak|fire/.test(x))).toBe(false) // победа слов серию голосом не объявляет
+  })
+  it('разгон: второй круг — после первого с ошибкой директор идёт на объявление второго (слова вписаны), без ошибок — мимо него', () => {
+    const { rh, stages } = probe('sprint')
+    const i1 = stages.findIndex(s => s.sid === 'sprint')
+    for (let i = 0; i < stages[i1].words.length; i++) rh.rec('win', { idx: i })
+    const clean = rh.nextIdx(i1 + 1)
+    expect(stages[clean].act).toBe('catch') // ошибок не было — второго круга нет
+    const bad = probe('sprint')
+    bad.rh.rec('fail', { idx: 0 })
+    const go = bad.rh.nextIdx(i1 + 1)
+    expect(bad.stages[go].sid).toBe('sprint2-ann')
+    expect(bad.stages[go + 1].words.length).toBeGreaterThanOrEqual(2)
+    expect(bad.stages[go + 1].words.some(w => w.idx === 0)).toBe(true)
   })
   it('на «не успел» директор игры реплик не говорит (failLine пуст): «ой, соскользнул» «Вершины» и «мимо» слуха говорит редюсер', () => {
     const { rh, stages } = probe('sprint')

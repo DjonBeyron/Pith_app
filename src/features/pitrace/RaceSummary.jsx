@@ -4,7 +4,7 @@ import { startExit, exitMs } from '../rehearsal/rehearsalExit.js'
 import { climbTitle } from './raceSim.js'
 
 // Итог гонки (CONCEPT_RACE.md, «Финиш») — плашка в стиле итога репетиции (RehearsalSummary.jsx: узор .wlTurn, блеск от центра, полёт при выходе rehearsalExit.js): разгон N/M, слух N/3, вершина — медаль, спуск ✓ / ✗, XP,
-// вопрос «Ещё заезд?» и кнопки «Ещё заезд» (следующий план, run + 1) и «Нет». result — итог raceSim.reportRace или null, пока не посчитан; onAgain — null, если следующего плана нет (один раунд, шлифовка).
+// под счётом «Самые слабые слова» — чипы слов разгона от слабых к сильным (raceWeak.js, не больше 8), цвет по слабости, перевод мелко; вопрос «Ещё заезд?» и кнопки «Ещё заезд» (следующий план, run + 1) и «Нет». result — итог raceSim.reportRace или null, пока не посчитан; onAgain — null, если следующего плана нет (один раунд, шлифовка).
 // onShown — итог показан (один раз): карточка игры прогревает озвучку следующего плана. (Не путать с features/race/RaceSummary.jsx — итогом супер-урока недельной гонки: это другая функция.)
 const mark = d => (d === 'ok' ? '✓' : d === 'miss' ? '✗' : '—')
 
@@ -33,6 +33,12 @@ export default function RaceSummary({ plan, result, onAgain = null, onShown = nu
         <div><dt>Спуск</dt><dd data-testid="race-summary-descent">{r ? mark(r.descent) : '…'}</dd></div>
         <div><dt>XP</dt><dd data-testid="race-summary-xp">{r ? `+${r.xp}${r.capped ? ' (потолок дня)' : ''}` : '…'}</dd></div>
       </dl>
+      {r?.weak?.length > 0 && (
+        <section className="raceWeak" data-testid="race-weak">
+          <h3 className="raceWeakTitle">Самые слабые слова</h3>
+          <ul className="raceWeakList">{r.weak.map(w => <li key={w.text} className="raceWeakChip" data-tone={w.tone} data-testid="race-weak-chip"><span className="raceWeakWord">{w.text}</span>{w.translation && <span className="raceWeakCap">{w.translation}</span>}</li>)}</ul>
+        </section>
+      )}
       {onAgain && <div className="rhSumAsk" data-testid="race-summary-ask">Ещё заезд?</div>}
       <div className="rhBtns rhBtns--row">
         {onAgain && <button type="button" className="wlNext" onClick={onAgain} disabled={leaving} data-testid="race-again">Ещё заезд</button>}

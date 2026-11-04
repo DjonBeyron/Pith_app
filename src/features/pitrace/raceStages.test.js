@@ -28,19 +28,20 @@ describe('стадии гонки в формате движка', () => {
   it('порядок: плашка и разгон, плашка и три захода, плашка и ступени с плашками вершины и «время вышло», спуск (плашка, читка, «твоя очередь», ответ), итог', () => {
     const st = build().stages
     const seq = st.map(s => `${s.act}:${s.type}`)
-    expect(seq[0]).toBe('sprint:announce'); expect(seq[1]).toBe('sprint:student')
-    expect(seq.slice(2, 6)).toEqual(['catch:announce', 'catch:discern', 'catch:discern', 'catch:discern'])
+    expect(seq.slice(0, 4)).toEqual(['sprint:announce', 'sprint:student', 'sprint:announce', 'sprint:student']) // первый и второй круг разгона (второй идёт, только если были ошибки)
+    expect(seq.slice(4, 8)).toEqual(['catch:announce', 'catch:discern', 'catch:discern', 'catch:discern'])
     expect(of(st, 'climb').filter(s => s.type === 'student')).toHaveLength(4)
     expect(seq.slice(-5)).toEqual(['descent:announce', 'descent:read', 'descent:turn', 'descent:student', 'summary:summary'])
-    expect(st.filter(s => s.type === 'announce').map(s => s.line)).toEqual(['race_sprint', 'race_catch', 'race_climb', 'race_climb_top', 'race_climb_time', 'race_descent'])
+    expect(st.filter(s => s.type === 'announce').map(s => s.line)).toEqual(['race_sprint', 'race_sprint_round2', 'race_catch', 'race_climb', 'race_climb_top', 'race_climb_time', 'race_descent'])
   })
-  it('разгон: одна ступень ученика, по повтору на пилюлю; у повтора своя дорожка, скорость (+5 %), перевод внутри и слово, которое проявится при промахе', () => {
+  it('разгон: одна ступень ученика, по повтору на пилюлю; у повтора своя дорожка, скорость (+5 %), перевод внутри, без слова, которое проявлялось при промахе (тихий промах)', () => {
     const [s] = of(build().stages, 'sprint').filter(x => x.type === 'student')
     const { reps, chunks } = s.step
     expect(isStudentStage(s)).toBe(true)
     expect(reps.length).toBeGreaterThanOrEqual(6)
     expect(reps[0].speed).toBe(1); expect(reps[1].speed).toBeCloseTo(1.05, 3)
-    expect(reps.every((r, i) => r.parts[0] === i && [0, 1, 2].includes(r.lane) && r.cap && r.reveal === chunks[i])).toBe(true)
+    expect(reps.every((r, i) => r.parts[0] === i && [0, 1, 2].includes(r.lane) && r.cap && r.reveal === undefined)).toBe(true)
+    expect(s.step).toMatchObject({ quiet: true, edge: true, holdAll: true, overlap: true }); expect(s.step.id).toBe('sprint')
     expect(s.step.maxTries).toBe(1) // упущенную пилюлю не повторяют
     expect(s.step.labels).toEqual([]) // перевод внутри пилюли, а не над дорожкой
     expect(stepTargets(s.step, chunks).texts.length).toBe(new Set(chunks).size) // цели — английские слова, словарь Vosk шире (двойники)
@@ -50,7 +51,7 @@ describe('стадии гонки в формате движка', () => {
     const [s] = of(build().stages, 'sprint').filter(x => x.type === 'student')
     const g = createStudentGame({ step: s.step, chunks: s.step.chunks, estMs: () => 400 })
     expect(g.reps.map(r => r.lanes[0])).toEqual(s.step.reps.map(r => r.lane))
-    expect(g.reps[1].cap).toBe(s.step.reps[1].cap); expect(g.reps[2].reveal).toBe(s.step.chunks[2])
+    expect(g.reps[1].cap).toBe(s.step.reps[1].cap); expect(g.reps[2].reveal).toBeNull()
     const p0 = { spawnAt: 0, speed: 1 }, p1 = { spawnAt: 0, speed: 1.05 }
     expect(yOfPill(p1, 1000) - yOfPill(p0, 1000)).toBeCloseTo(SPEED * 0.05, 5)
     expect(yOfPill({ spawnAt: 0 }, 1000)).toBe(yOfPill(p0, 1000))

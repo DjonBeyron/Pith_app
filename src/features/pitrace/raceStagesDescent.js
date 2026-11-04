@@ -15,7 +15,7 @@ export function descentStages(kit, act) {
   const rate = kit.rate * act.rate
   const all = chunks.map((_, i) => i)
   const chunkMs = chunks.map((c, i) => (lib(i)?.ms ?? estChunkMs(c)) / rate)
-  const mk = (id, o = {}) => stepOf(id, { parts: act.parts, text: textOf(chunks, act.parts), labels: all, active: act.parts, reps: [{ parts: act.parts }], chunkMs, ...o })
+  const mk = (id, o = {}) => stepOf(id, { parts: act.parts, text: textOf(chunks, act.parts), labels: all, active: act.parts, reps: [{ parts: act.parts }], chunkMs, edge: true, ...o })
   announce(act)
   const dstep = mk('descent-d')
   const dplan = planDictor({ step: dstep, chunks, clips: null, audio: null, rate, clipMode: () => false, lib })

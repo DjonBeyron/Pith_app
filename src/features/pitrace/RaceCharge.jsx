@@ -4,11 +4,12 @@ import { reducedMotion } from '../player/modules/rotate-phone/laneConveyorDrive.
 import { getVoiceRate } from '../player/lessonVolume.js'
 import { buildRaceActs } from './raceRecipe.js'
 import { raceFirstLines } from './raceTexts.js'
-import { chargeMs, chargePlan, BAR_MIN_PX, BAR_MAX_PX } from './raceCharge.js'
+import { chargeMs, chargePlan, barHeight, flyDist, waveX, BAR_FULL_PX, BAR_THIN_MS, BAR_BUMP, BAR_BUMP_MS, WAVE_STEPS } from './raceCharge.js'
 
 // Заставка-«зарядка» памятью (CONCEPT_RACE.md, «Заставка»; план — raceCharge.js, стили — race-charge.css). Пока Пит говорит race_start и объявляет первый этап, дорожек не видно (data-charge на корне игры,
-// его ставит RaceActs), а снизу вверх летят пилюли со словами памяти (цвет — ступень слова) и микро-частицы; сверху бар: каждая долетевшая пилюля добавляет свой сегмент своего цвета и делает бар толще,
-// к моменту прилёта последней он заполнен, затем становится полосатым (data-full) и стоит до начала первого раунда, после чего плавно уходит (leaving). Полёт — Web Animations (transform / opacity), на слабом
+// его ставит RaceActs), а снизу вверх летят пилюли со словами памяти (цвет — ступень слова, лёгкая синусоида по x) и микро-частицы; сверху бар: каждая долетевшая пилюля добавляет свой сегмент своего цвета и делает бар толще,
+// пилюля прилетает ЦЕНТРОМ в центр бара (flyDist), в момент касания бар быстро утолщается до 2× и возвращается (BAR_BUMP_MS), пилюля гаснет в баре. К моменту прилёта последней бар заполнен (сплошные цветные сегменты, без полос;
+// data-full) и плавно худеет до BAR_FULL_PX, стоит до начала первого раунда, после чего плавно уходит (leaving). Полёт — Web Animations (transform / opacity), на слабом
 // устройстве (lite) частиц нет, при reduced-motion пилюли не летят — бар заполняется ступеньками. Снаружи компонент монтирует и размонтирует RaceActs: on — заставка идёт; после on = false бар доживает FADE_MS.
 const FADE_MS = 700
 const FILL_MS = 260 // заливка сегмента бара перед прилётом пилюли
@@ -28,22 +29,26 @@ function ChargeRun({ plan, lines, leaving }) {
     const el = root.current
     const timer = setTimeout(() => setFull(true), totalMs + 40)
     if (el?.animate) {
-      const dist = Math.max(200, el.clientHeight - 62) // до бара: пилюля останавливается под ним и гаснет
-      const fly = (node, o, big) => node?.animate([{ transform: 'translateY(0)', opacity: 1 }, { transform: `translateY(${-dist}px)`, opacity: 1, offset: 0.9 }, { transform: `translateY(${-dist - (big ? 12 : 4)}px)`, opacity: 0 }], { delay: o.startAt, duration: o.flyMs, fill: 'both', easing: 'linear' })
+      const bar = el.querySelector('[data-bar]')
+      const n = segments.length
+      const box = el.getBoundingClientRect()
+      const barTop = bar ? bar.getBoundingClientRect().top - box.top : 0
+      const wave = (dist, o) => Array.from({ length: WAVE_STEPS + 1 }, (_, k) => { const u = k / WAVE_STEPS; return { transform: `translate(${waveX(o.wave, u).toFixed(2)}px, ${(-dist * u).toFixed(1)}px)`, opacity: 1, offset: u * 0.94 } })
+      const fly = (node, o, dist) => node?.animate([...wave(dist, o), { transform: `translate(0px, ${-dist}px) scale(0.6)`, opacity: 0 }], { delay: o.startAt, duration: o.flyMs, fill: 'both', easing: 'linear' })
       if (!still) {
-        pills.forEach(p => fly(el.querySelector(`[data-pill="${p.i}"]`), p, true))
-        sparks.forEach(s => fly(el.querySelector(`[data-spark="${s.i}"]`), s, false))
+        pills.forEach(p => { const node = el.querySelector(`[data-pill="${p.i}"]`); fly(node, p, flyDist({ height: box.height, pillH: node?.offsetHeight ?? 28, barTop, i: p.i, n })) }) // прилёт: центр пилюли — в центре бара
+        sparks.forEach(sp => { const node = el.querySelector(`[data-spark="${sp.i}"]`); node?.animate([{ transform: 'translateY(0)', opacity: 1 }, { transform: `translateY(${-Math.max(200, box.height - 62)}px)`, opacity: 1, offset: 0.9 }, { transform: `translateY(${-Math.max(200, box.height - 62) - 4}px)`, opacity: 0 }], { delay: sp.startAt, duration: sp.flyMs, fill: 'both', easing: 'linear' }) })
       }
       segments.forEach(s => {
         const node = el.querySelector(`[data-seg="${s.i}"]`)
         if (still) node?.animate([{ opacity: 0, transform: 'none' }, { opacity: 1, transform: 'none' }], { delay: s.at, duration: 1, fill: 'both' })
         else node?.animate([{ transform: 'scaleX(0)' }, { transform: 'scaleX(1)' }], { delay: Math.max(0, s.at - FILL_MS), duration: Math.min(FILL_MS, s.at), fill: 'both', easing: 'ease-out' })
+        if (!still) bar?.animate([{ scale: '1 1' }, { scale: `1 ${BAR_BUMP}`, offset: 0.35 }, { scale: '1 1' }], { delay: Math.max(0, s.at - BAR_BUMP_MS * 0.35), duration: BAR_BUMP_MS, easing: 'ease-in-out' }) // касание: бар быстро утолщается до 2× и возвращается
       })
-      const k = segments.length // бар толстеет ступенькой с каждой долетевшей пилюлей
-      const h = i => `${BAR_MIN_PX + ((BAR_MAX_PX - BAR_MIN_PX) * i) / k}px`
-      const keys = [{ height: h(0), offset: 0 }]
-      segments.forEach((s, i) => { keys.push({ height: h(i), offset: Math.min(1, Math.max(0, (s.at - 120) / totalMs)) }, { height: h(i + 1), offset: Math.min(1, s.at / totalMs) }) })
-      el.querySelector('[data-bar]')?.animate(keys, { duration: totalMs, fill: 'both', easing: 'linear' })
+      const keys = [{ height: `${barHeight(0, n)}px`, offset: 0 }] // бар толстеет ступенькой с каждой долетевшей пилюлей…
+      segments.forEach((s, i) => { keys.push({ height: `${barHeight(i, n)}px`, offset: Math.min(1, Math.max(0, (s.at - 120) / totalMs)) }, { height: `${barHeight(i + 1, n)}px`, offset: Math.min(1, s.at / totalMs) }) })
+      bar?.animate(keys, { duration: totalMs, fill: 'both', easing: 'linear' })
+      bar?.animate([{ height: `${barHeight(n, n)}px` }, { height: `${BAR_FULL_PX}px` }], { delay: totalMs + 40, duration: BAR_THIN_MS, fill: 'both', easing: 'ease-in-out' }) // …а полный плавно худеет до тонкой полоски
     }
     return () => clearTimeout(timer)
   }, [pills, sparks, segments, totalMs, still])

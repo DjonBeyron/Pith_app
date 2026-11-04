@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
-import { chargePlan, chargeWords, chargeMs, chargeOn, levelColor, CHARGE_FALLBACK_MS, CHARGE_MAX, CHARGE_SPARKS } from './raceCharge.js'
+import { chargePlan, chargeWords, chargeMs, chargeOn, levelColor, barHeight, flyDist, waveX, BAR_MIN_PX, BAR_MAX_PX, BAR_FULL_PX, BAR_BUMP, BAR_BUMP_MS, WAVE_PX, CHARGE_FALLBACK_MS, CHARGE_MAX, CHARGE_SPARKS } from './raceCharge.js'
 import { fixturePlan } from '../rehearsal/rehearsalFixtures.js'
 import { normalizePlan } from '../rehearsal/rehearsalPlan.js'
 import { extrasOf } from './raceWords.js'
@@ -58,10 +58,36 @@ describe('заставка-зарядка: план', () => {
     expect(chargeOn({ stage: 'run', idx: 1, stageObj: { type: 'student' } })).toBe(false)
     expect(chargeOn({ stage: 'paused', idx: 0 })).toBe(true); expect(chargeOn({ stage: 'paused', idx: 4 })).toBe(false)
   })
-  it('без Math.random; стили подключены; цвета — переменные уровней памяти; бар заполненный полосатый', () => {
+  it('без Math.random; стили подключены; цвета — переменные уровней памяти; бар заполненный без полос', () => {
     for (const f of ['./raceCharge.js', './RaceCharge.jsx']) expect(read(f)).not.toContain('Math.random')
     const css = read('../../styles/player/modules/race-charge.css')
     expect(read('../../styles/player/modules/race-sprint.css')).toContain("@import './race-charge.css';")
-    expect(css).toContain('.wl[data-charge] .wlLanes'); expect(css).toContain('repeating-linear-gradient(45deg'); expect(css).not.toMatch(/\bfilter:/)
+    expect(css).toContain('.wl[data-charge] .wlLanes'); expect(css).not.toContain('repeating-linear-gradient('); expect(css).not.toMatch(/\bfilter:/)
+  })
+  it('прилёт строго в центр бара: конечная точка пилюли (центр) = центр бара в момент касания, у каждой пилюли', () => {
+    const height = 700, pillH = 28, barTop = 51, n = 9
+    for (let i = 0; i < n; i++) {
+      const dist = flyDist({ height, pillH, barTop, i, n })
+      const pillCenterEnd = height + pillH / 2 - dist
+      expect(pillCenterEnd).toBeCloseTo(barTop + barHeight(i + 1, n) / 2, 6)
+    }
+    expect(barHeight(0, 9)).toBe(BAR_MIN_PX); expect(barHeight(9, 9)).toBe(BAR_MAX_PX)
+  })
+  it('лёгкая синусоида по x: малая амплитуда, на старте и на прилёте сдвиг ровно 0 (пилюля приходит в центр), у пилюль есть волна по семени', () => {
+    const { pills } = chargePlan(plan(), 5000)
+    for (const p of pills) {
+      expect(p.wave.sign === 1 || p.wave.sign === -1).toBe(true); expect([1, 1.5, 2]).toContain(p.wave.waves)
+      expect(waveX(p.wave, 0)).toBeCloseTo(0, 6); expect(waveX(p.wave, 1)).toBeCloseTo(0, 6)
+      for (let u = 0; u <= 1; u += 0.05) expect(Math.abs(waveX(p.wave, u))).toBeLessThanOrEqual(WAVE_PX + 1e-9)
+    }
+    expect(WAVE_PX).toBeLessThanOrEqual(10); expect(new Set(pills.map(p => p.wave.sign)).size).toBeGreaterThan(0)
+    expect(waveX(null, 0.3)).toBe(0)
+  })
+  it('бар: касание утолщает до 2× за ~180 мс, заполненный худеет до тонкой полоски (6 px), косых полос нет, пилюля летит до бара и гаснет там', () => {
+    expect(BAR_BUMP).toBe(2); expect(BAR_BUMP_MS).toBeGreaterThanOrEqual(150); expect(BAR_BUMP_MS).toBeLessThanOrEqual(200)
+    expect(BAR_FULL_PX).toBeLessThan(BAR_MAX_PX); expect(BAR_FULL_PX).toBe(6)
+    const src = read('./RaceCharge.jsx'), css = read('../../styles/player/modules/race-charge.css')
+    expect(src).toContain('flyDist('); expect(src).toContain('BAR_BUMP'); expect(src).toContain('BAR_FULL_PX'); expect(src).not.toMatch(/data-full.*stripe|repeating/)
+    expect(css).not.toContain('repeating-linear-gradient(')
   })
 })

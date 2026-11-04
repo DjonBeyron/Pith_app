@@ -8,13 +8,14 @@ import { applySession } from '../rehearsal/rehearsalSim.js'
 import { normText } from '../player/modules/rotate-phone/wordLaneRecipe.js'
 import { climbWords } from './raceWords.js'
 import { medalOf } from './raceLadder.js'
+import { weakWords } from './raceWeak.js'
 
 export const MEDAL_TITLES = { gold: 'золото', silver: 'серебро', finish: 'без медали', none: '—' }
 
 /** Строка «Вершины» в итоге: медаль; не дошёл до вершины (время вышло, потолок заходов) — «без медали, N из M ступеней»; раунда не было — «—» */
 export const climbTitle = r => (r.medal === 'none' && r.climbTotal > 0 ? `без медали, ${r.climbRung} из ${r.climbTotal} ступеней` : MEDAL_TITLES[r.medal])
 
-/** Итог по состоянию гонки: { sprint: { hit, total }, catchOk, catchTotal, medal, descent, phraseDone, words: [{ text, hit, miss }], xp, misses, gold } */
+/** Итог по состоянию гонки: { sprint: { hit, total }, catchOk, catchTotal, medal, descent, phraseDone, words: [{ text, hit, miss }], xp, misses, gold, weak: [{ text, translation, score, tone }] (самые слабые слова разгона, raceWeak.js) } */
 export function scoreRace(plan, race) {
   const results = Object.entries(race.sprint.results)
   const sprintTotal = race.sprint.words.length
@@ -38,7 +39,7 @@ export function scoreRace(plan, race) {
   const misses = (sprintTotal - sprintHit) + catchList.reduce((a, r) => a + r.bad, 0) + Object.values(race.climb?.fails ?? {}).reduce((a, n) => a + n, 0) + (descent === 'miss' ? 1 : 0)
   const phraseDone = descent === 'ok' || !!race.climb?.top
   const gold = sprintTotal > 0 && sprintHit === sprintTotal && catchList.length > 0 && catchList.every(r => r.ok && !r.bad) && medal === 'gold' && descent === 'ok'
-  return { sprint: { hit: sprintHit, total: sprintTotal }, catchOk, catchTotal: catchList.length, medal, climbRung: race.climb?.rung ?? 0, climbTotal: race.climb?.n ?? 0, timedOut: !!race.climb?.timedOut, descent, phraseDone, words: mem, xp, misses, gold }
+  return { sprint: { hit: sprintHit, total: sprintTotal }, catchOk, catchTotal: catchList.length, medal, climbRung: race.climb?.rung ?? 0, climbTotal: race.climb?.n ?? 0, timedOut: !!race.climb?.timedOut, descent, phraseDone, words: mem, xp, misses, gold, weak: weakWords(race.sprint) }
 }
 
 /** Итог одним вызовом: подсчёт → запись в память сессии (rehearsalSim.applySession) → строка в журнал отладки. Вызывает директор useRaceActs на экране итога */

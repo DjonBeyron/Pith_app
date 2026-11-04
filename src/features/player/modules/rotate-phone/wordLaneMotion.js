@@ -17,9 +17,26 @@ export const flightPosition = y => `-50% calc(${y.toFixed(3)}dvh - 50%)`
  * Запустить полёт пилюли el. atMs — сколько мс полёта уже прошло (отрицательное — ещё не выкатилась: пилюля ждёт за верхним краем). Возвращает Animation; fill 'both' держит пилюлю
  * за краем до выката и после ухода.
  */
-export function startFlight(el, atMs = 0, speed = 1) { // speed — «Гонка с Питом»: пилюля едет быстрее конвейера (playbackRate); положение — по-прежнему функция currentTime
+export const EDGE_SCALE = 0.85     // «Гонка с Питом» (edge): у краёв экрана пилюля чуть меньше…
+export const EDGE_MID_Y = 50       // …к 50 % высоты — обычного размера
+const EDGE_STEPS = 16
+
+/** Масштаб пилюли на высоте y (% экрана): 1 на середине, EDGE_SCALE у входа и у ухода, плавно (smoothstep) */
+export function edgeScale(y) {
+  const d = Math.min(1, Math.max(0, y < EDGE_MID_Y ? (EDGE_MID_Y - y) / (EDGE_MID_Y - ENTER_Y) : (y - EDGE_MID_Y) / (EXIT_Y - EDGE_MID_Y)))
+  return +(1 - (1 - EDGE_SCALE) * d * d * (3 - 2 * d)).toFixed(4)
+}
+
+/** Кадры полёта с масштабом: положение — как у прямого полёта, scale — по edgeScale от высоты (одна анимация на композиторе: translate + scale) */
+export function edgeFrames() {
+  const marks = [...new Set([...Array.from({ length: EDGE_STEPS + 1 }, (_, i) => i / EDGE_STEPS), (EDGE_MID_Y - ENTER_Y) / (EXIT_Y - ENTER_Y)])].sort((a, b) => a - b) // и точная середина (50 %): там ровно обычный размер
+  const frames = marks.map(u => { const y = ENTER_Y + (EXIT_Y - ENTER_Y) * u; return { translate: flightPosition(y), scale: edgeScale(y), offset: u * (FLIGHT_MS / ANIM_MS) } })
+  return [...frames, { translate: flightPosition(EXIT_Y), scale: edgeScale(EXIT_Y) }]
+}
+
+export function startFlight(el, atMs = 0, speed = 1, edge = false) { // edge — «Гонка с Питом»: пилюля у краёв меньше (edgeFrames); по умолчанию выключено // speed — «Гонка с Питом»: пилюля едет быстрее конвейера (playbackRate); положение — по-прежнему функция currentTime
   // Анимация длится дольше самого полёта (после EXIT_Y пилюля стоит за краем): она не «finished» посреди игры, и её currentTime — надёжные часы фазы (их читает движок)
-  const a = el.animate([{ translate: flightPosition(ENTER_Y) }, { translate: flightPosition(EXIT_Y), offset: FLIGHT_MS / ANIM_MS }, { translate: flightPosition(EXIT_Y) }], { duration: ANIM_MS, easing: 'linear', fill: 'both' })
+  const a = el.animate(edge ? edgeFrames() : [{ translate: flightPosition(ENTER_Y) }, { translate: flightPosition(EXIT_Y), offset: FLIGHT_MS / ANIM_MS }, { translate: flightPosition(EXIT_Y) }], { duration: ANIM_MS, easing: 'linear', fill: 'both' })
   if (speed !== 1) a.playbackRate = speed
   a.currentTime = atMs * speed
   return a
