@@ -181,3 +181,33 @@ describe('журнал владельца (iPhone, 3.3.75, «Разминка»,
     expect(silentDiagLines(d).join('\n')).toContain('нет (синтез запрещён)')
   })
 })
+
+describe('diagnoseFirstLine: после фона/блокировки (ctx-interrupted-after-bg)', () => {
+  const stuck = (over = {}) => line(1800, { source: 'buffer', play: 'ctx-stuck', slot: null, ...over })
+
+  it('ctx-stuck, а до тапа был возврат из фона (audio-life visible) — «после фона AudioContext не запустился»; «ctx-not-running» остаётся вторичным признаком', () => {
+    const ev = [mk(-60000, 'audio-life', { what: 'visibility hidden', ctx: 'running', as: 'play-and-record' }), mk(-30000, 'audio-life', { what: 'visibility visible', ctx: 'interrupted', as: 'auto' }), ...startMarks(), stuck()]
+    const d = diagnoseFirstLine(ev)
+    expect(d.cause).toBe('ctx-interrupted-after-bg')
+    expect(d.causes).toEqual(['ctx-interrupted-after-bg', 'ctx-not-running'])
+    expect(d.title).toBe(CAUSE_TITLE['ctx-interrupted-after-bg'])
+  })
+
+  it('причину подсказывает и отметка ctx (afterBg), даже если журнал прошлой минуты обрезан; шкала показывает «пересоздан»', () => {
+    const ev = [...startMarks(), mk(-1100, 'start-mark', { name: 'ctx', state: 'interrupted', recreated: true, afterBg: 'focus после 40 с в фоне', ms: 650 }), stuck()]
+    const d = diagnoseFirstLine(ev)
+    expect(d.cause).toBe('ctx-interrupted-after-bg')
+    expect(d.timeline.some(t => t.what.includes('ПЕРЕСОЗДАН') && t.what.includes('после фона'))).toBe(true)
+  })
+
+  it('без фона ctx-stuck остаётся обычным «ctx-not-running»; возврат из фона давно (раньше 10 минут) в счёт не идёт', () => {
+    expect(diagnoseFirstLine([...startMarks(), stuck()]).cause).toBe('ctx-not-running')
+    const old = [mk(-2000 - 700000, 'audio-life', { what: 'visibility visible', ctx: 'running', as: null }), ...startMarks(), stuck()]
+    expect(diagnoseFirstLine(old).cause).toBe('ctx-not-running')
+  })
+
+  it('контекст после фона пересоздан и реплика заиграла — это не тишина (ducking-ветка, не фон)', () => {
+    const ev = [mk(-30000, 'audio-life', { what: 'visibility visible', ctx: 'interrupted', as: 'auto' }), ...startMarks(), line(1800, { source: 'buffer', play: 'started', slot: null })]
+    expect(diagnoseFirstLine(ev).causes).not.toContain('ctx-interrupted-after-bg')
+  })
+})

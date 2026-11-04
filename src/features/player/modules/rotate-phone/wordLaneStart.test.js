@@ -104,7 +104,7 @@ describe('startGameAudio: хронология и «Тапни, чтобы на�
     const p = startGameAudio({ cfg, audioSrc: null, lines: null }, d)
     expect(calls[0]).toBe('trace.begin')
     const r = await p
-    expect(marks(d)).toEqual(['mic', 'settle', 'wake', 'ready'])
+    expect(marks(d)).toEqual(['mic', 'settle', 'ctx', 'wake', 'ready'])
     expect(d.trace.mark).toHaveBeenCalledWith('mic', { mic: 'granted' })
     expect(d.trace.mark).toHaveBeenCalledWith('ready', expect.objectContaining({ words: 'ready', gate: 'all', ctx: null }))
     expect(r.needsTap).toBe(false)
@@ -169,5 +169,37 @@ describe('wakeGameAudio / rewakeGameAudio: что будится', () => {
     calls.length = 0
     rewakeGameAudio({ audioSrc: null })
     expect(calls).not.toContain('rewakeTrack')
+  })
+})
+
+describe('startGameAudio: повторный старт после фона/блокировки (needsRewake)', () => {
+  const withTrace = over => deps({ trace: { begin: vi.fn(), mark: vi.fn(), setNeedsTap: vi.fn() }, install: vi.fn(() => calls.push('install')), ...over })
+
+  it('звук помечен «после фона»: в жесте (синхронно) пересоздаётся контекст, ensureCtx идёт после settle и до wake; отметка ctx несёт причину', async () => {
+    const d = withTrace({
+      consume: vi.fn(() => 'visibility visible после 30 с в фоне'),
+      recreateCtx: vi.fn(() => calls.push('recreateCtx')),
+      ensureCtx: vi.fn(() => { calls.push('ensureCtx'); return Promise.resolve({ state: 'running', recreated: false, ms: 5 }) }),
+    })
+    const p = startGameAudio({ cfg, audioSrc: null, lines: null }, d)
+    expect(calls.slice(0, 5)).toEqual(['install', 'recreateCtx', 'warm.begin', 'session.begin', 'openMic']) // полный путь начинается в тапе, не дожидаясь await
+    expect(d.recreateCtx).toHaveBeenCalledWith(expect.stringContaining('после фона'))
+    await p
+    expect(calls.indexOf('ensureCtx')).toBeGreaterThan(calls.indexOf('warm.settle'))
+    expect(calls.indexOf('ensureCtx')).toBeLessThan(calls.indexOf('wake'))
+    expect(d.trace.mark).toHaveBeenCalledWith('ctx', { state: 'running', recreated: false, afterBg: 'visibility visible после 30 с в фоне', ms: 5 })
+  })
+
+  it('метки нет (обычный старт): контекст заранее не пересоздаётся; зависший resume → ensureCtx сообщает recreated, отметка ctx это показывает', async () => {
+    const d = withTrace({ consume: vi.fn(() => null), recreateCtx: vi.fn(), ensureCtx: vi.fn(() => Promise.resolve({ state: 'running', recreated: true, ms: 310 })) })
+    await startGameAudio({ cfg, audioSrc: null, lines: null }, d)
+    expect(d.recreateCtx).not.toHaveBeenCalled()
+    expect(d.trace.mark).toHaveBeenCalledWith('ctx', { state: 'running', recreated: true, afterBg: null, ms: 310 })
+  })
+
+  it('слушатели фона ставятся на каждом старте (идемпотентно); старт не падает, если контекст так и не запустился', async () => {
+    const d = withTrace({ consume: () => null, ensureCtx: () => Promise.resolve({ state: 'interrupted', recreated: true, ms: 640 }) })
+    await expect(startGameAudio({ cfg, audioSrc: null, lines: null }, d)).resolves.toMatchObject({ mic: 'granted' })
+    expect(d.install).toHaveBeenCalledTimes(1)
   })
 })

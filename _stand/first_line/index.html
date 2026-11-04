@@ -6,7 +6,7 @@
 <script>
 (() => {
   const params = new URLSearchParams(location.search)
-  const kase = params.get('case') || 'ok' // ok | expired | expired-nogesture | slow | reject | abort | swap | pending4s
+  const kase = params.get('case') || 'ok' // ok | expired | expired-nogesture | slow | reject | abort | swap | pending4s | bgdead
   window.__case = kase
   // Путь звука: по умолчанию Web Audio (буферы); ?webaudio=off — аварийный выключатель игры (pithy_game_web_audio_v1 = off): прежние <audio>-слоты. Нужен, чтобы показать сценарий владельца на СТАРОМ пути.
   try { if (params.get('webaudio') === 'off') localStorage.setItem('pithy_game_web_audio_v1', 'off'); else localStorage.removeItem('pithy_game_web_audio_v1') } catch { /* без хранилища — по умолчанию */ }
@@ -16,6 +16,17 @@
   if (window.AudioBufferSourceNode) {
     const origStart = AudioBufferSourceNode.prototype.start
     AudioBufferSourceNode.prototype.start = function start(...a) { window.__bufStarts.push({ at: performance.now(), dur: this.buffer?.duration ?? 0, rate: this.playbackRate.value }); return origStart.apply(this, a) }
+  }
+  // bgdead (iPhone: свернули/заблокировали, вернулись, тап «Полная гонка»): драйвер до тапа шлёт hidden → visible и ставит __bgDead; ПЕРВЫЙ игровой AudioContext после этого «мёртвый» —
+  // state 'interrupted', resume() не завершается никогда (как после блокировки на iOS). Определяем «игровой» по стеку (gameAudioCtx.js): контексты звуков интерфейса не трогаем. Пересозданный контекст живой.
+  window.__deadCtxs = 0
+  if (kase === 'bgdead' && window.AudioContext) {
+    const Orig = window.AudioContext
+    window.AudioContext = class extends Orig {
+      constructor(...a) { super(...a); if (window.__bgDead && !window.__deadUsed && /gameAudioCtx/.test(new Error().stack || '')) { window.__deadUsed = true; this.__dead = true; window.__deadCtxs += 1 } }
+      get state() { return this.__dead ? 'interrupted' : super.state }
+      resume() { return this.__dead ? new Promise(() => {}) : super.resume() }
+    }
   }
   window.__active = false
   Object.defineProperty(navigator, 'userActivation', { get: () => ({ isActive: window.__active, hasBeenActive: true }), configurable: true })
@@ -87,6 +98,7 @@ import { getPlayerLines } from '/src/shared/lib/debug.js'
 //  • ?case=ok — всё в жесте; expired — жест истекает, пока открывается микрофон: игра ждёт касания (подсказка); expired-nogesture — то же, но «касание» программное (без жеста): прежний сбой, виден в разделе;
 //    slow — файлы реплик грузятся 6 с (или ?delay=мс; при 30000 слот не успевает за 3 с → реплика подписью без звука, голос системы НЕ включается); reject — play() реплики отклоняется;
 //    abort — пробуждение слотов прерывает «система» (AbortError) — это не отказ, реплика идёт из слота; swap — пробуждение висит 1,2 с, смена src за это время оборвала бы его (счётчик abortBySwap должен быть 0).
+//    bgdead — после «фона» (hidden → visible до тапа) первый игровой AudioContext мёртв (interrupted, resume() висит): старт должен пересоздать контекст в жесте (ctx.recreated), реплики идут через буфер.
 //    Во всех случаях speechSynthesis подменён заглушкой: synthCalls должен быть 0 (иначе «iOS» заглушила бы микрофон — trackEvents). Отчёт: window.__report().
 const params = new URLSearchParams(location.search)
 probe.install() // как делает ShellV2 при включённой отладке: события тапа «Начать» попадают в журнал игры
@@ -123,13 +135,14 @@ window.__report = () => {
   return {
     silent: body.silentFirstLine,
     section: buildGameLogSection(dump),
-    log: getPlayerLines().filter(l => /\[cat-voice\]|\[plate-sound\]|\[audio-warm\]|\[warm\]/.test(l)),
+    log: getPlayerLines().filter(l => /\[cat-voice\]|\[plate-sound\]|\[audio-warm\]|\[warm\]|\[audio\]|\[game-audio\]/.test(l)),
     exportKeys: Object.keys(body).filter(k => k !== 'events' && k !== 'audio'),
     synthCalls: window.__synthCalls, abortBySwap: window.__abortBySwap, abortBySystem: window.__abortBySystem,
     trackEvents: (dump.events ?? []).filter(e => e.type === 'probe' && e.kind === 'track').map(e => e.event),
     catVoice: (dump.events ?? []).filter(e => e.type === 'event' && e.kind === 'cat-voice').map(e => ({ id: e.id, source: e.source, noSynth: !!e.noSynth, play: e.play, playMs: e.playMs ?? null, slot: e.slot })),
     catSpeak: (dump.events ?? []).filter(e => e.type === 'event' && e.kind === 'cat-speak').map(e => e.id),
     ready: (dump.events ?? []).filter(e => e.type === 'probe' && e.kind === 'start-mark' && e.name === 'ready').map(e => ({ sinceTap: e.sinceTap, words: e.words, gate: e.gate ?? null, done: e.done ?? null, total: e.total ?? null, ctx: e.ctx ?? null }))[0] ?? null,
+    ctxMark: (dump.events ?? []).filter(e => e.type === 'probe' && e.kind === 'start-mark' && e.name === 'ctx').map(e => ({ state: e.state, recreated: e.recreated, afterBg: e.afterBg ?? null, ms: e.ms }))[0] ?? null, deadCtxs: window.__deadCtxs,
     bufStarts: window.__bufStarts.map(b => ({ sinceTap: Math.round(b.at - (window.__tapAt ?? b.at)), dur: +b.dur.toFixed(2), rate: b.rate })),
   }
 }

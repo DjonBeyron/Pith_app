@@ -13,7 +13,7 @@ export const MAX_PARTIALS = 120   // черновиков распознаван
 const PROBE_KINDS = new Set([
   'probe-install', 'permission', 'gum-call', 'gum-result', 'game-mic', 'track', 'play-call', 'play-result', 'first-sound', 'media-error', 'audio-session', 'mic-hold',
   'audiocontext', 'audiocontext-state', 'visibility', 'fullscreen', 'pagehide', 'pageshow', 'speech-speak', 'speech-event',
-  'audio-warm', 'audio-interrupt', 'start-mark', 'plate-sound', // старт звука: тап, микрофон, settle, прогрев, прерывания, плашка (раздел «Почему первая реплика тихая»)
+  'audio-warm', 'audio-interrupt', 'audio-life', 'game-ctx', 'start-mark', 'plate-sound', // старт звука: тап, микрофон, settle, прогрев, прерывания, плашка (раздел «Почему первая реплика тихая»)
 ])
 const SKIP_TYPES = new Set(['level', 'grammar'])
 
