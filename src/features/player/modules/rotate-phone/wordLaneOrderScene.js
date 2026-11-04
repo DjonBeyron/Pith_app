@@ -28,7 +28,7 @@ export function runOrderScene({ pool, scene, fxRef, liveRef = null }) {
       if (e.type === 'spawn') {
         const set = { spawnAt: g.spawnAt + maxDelayOf(e.prompt), pills: new Map(), taken: new Set() } // spawnAt — когда выкатилась последняя пилюля
         for (const lane of e.prompt.slots ?? Array.from({ length: count }, (_, k) => k)) { // «Различи»: пилюли только в дорожках со словами
-          const k = pool.take(lane, { atMs: performance.now() - t0 - g.spawnAt - laneDelayOf(e.prompt, lane), cap: e.prompt.caps?.[lane] }) // «Различи»: пилюли выкатываются по очереди (пока не выкатилась — ждёт за краем)
+          const k = pool.take(lane, { atMs: performance.now() - t0 - g.spawnAt - laneDelayOf(e.prompt, lane), cap: e.prompt.caps?.[lane], edge: e.prompt.edge }) // «Различи»: пилюли выкатываются по очереди (пока не выкатилась — ждёт за краем)
           if (k == null) continue
           set.pills.set(lane, k)
         }

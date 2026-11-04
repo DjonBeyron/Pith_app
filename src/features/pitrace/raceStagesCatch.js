@@ -16,7 +16,7 @@ export function catchStages(kit, act) {
   act.sets.forEach((c, i) => {
     const sid = `catch-${i}`
     const lead = Math.round(msOf(c.text) + CATCH_AFTER_WORD_MS) // слово звучит с первой миллисекунды захода; первая пилюля выезжает, когда оно кончилось
-    const prompt = { id: `${sid}-p`, parts: [0], answer: [c.answer], slots: c.slots, texts: c.texts, caps: c.caps, stagger: DISCERN_STAGGER_MS, lead, voiceFrom: lead + (c.slots.length - 1) * DISCERN_STAGGER_MS + TRAVEL_MS + SAY_AFTER_OPEN_MS, text: c.text, written: true, sayAt: 0 }
+    const prompt = { id: `${sid}-p`, parts: [0], answer: [c.answer], slots: c.slots, texts: c.texts, caps: c.caps, stagger: DISCERN_STAGGER_MS, lead, voiceFrom: lead + (c.slots.length - 1) * DISCERN_STAGGER_MS + TRAVEL_MS + SAY_AFTER_OPEN_MS, text: c.text, written: true, sayAt: 0, edge: true }
     const step = stepOf(sid, { parts: [0], text: c.text, chunks: [c.text], chunkMs: [msOf(c.text)], reps: [{ parts: [0] }], extra: vocabOf([c.text], [...c.decoys, ...c.word.confusers, ...kit.doubles(c.text)]), maxWords: 1 })
     push({ type: 'discern', act: 'catch', sid, ci: i, prompts: [prompt], sayText: c.text, speak: true, maxTries: (act.retries ?? 1) + 1, step, word: c.word })
   })

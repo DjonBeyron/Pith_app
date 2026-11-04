@@ -7,10 +7,11 @@ import { leftMs, isOut } from './raceClimbTimer.js'
 import { reportRace } from './raceSim.js'
 import { DESCENT_RATE } from './raceRecipe.js'
 import { sayTrap } from './raceTrapVoice.js'
+import { sprintTarget } from './raceSprint2.js'
 
 // Директор «Гонки с Питом» (CONCEPT_RACE.md) поверх директора репетиции: useWordLaneFlow зовёт ЭТОТ хук вместо useRehearsalActs. Без плана гонки (plan.game !== 'race') он возвращает то, что вернул бы useRehearsalActs, —
 // остальные хуки внутри бездействуют. Что делает для гонки сверх репетиции (реплики на старте стадий, отсчёт, тишина экрана, вступление race_start, пауза — всё это уже у useRehearsalActs, он знает про plan.game):
-//  • состояние раундов (raceState.js): реакции движка win / miss / fail приходят в rec(kind, info) → серия «Разгона» (3 — золото и «ну, погнали», 5 — «огонь»), заходы «Слушай и лови», лестница «Вершины»; экран читает rh.race;
+//  • состояние раундов (raceState.js): реакции движка win / miss / fail приходят в rec(kind, info) → «Разгон» (мини-реплики успеха на принятии слова, два круга: raceGood.js, raceSprint2.js), заходы «Слушай и лови», лестница «Вершины»; экран читает rh.race;
 //  • nextIdx: после ступени лестницы идёт стадия не «следующая по списку», а та, что решает лестница (k + 1 после попадания, ниже после соскальзывания, плашка вершины — после верха; raceState.climbTarget);
 //  • подсказка «Вершины»: на 2-м промахе одной ступени Пит говорит новое слово голосом (sayText), реплика соскальзывания в этот раз пропускается (её говорит редюсер); 3-й промах — подпись мигает (race.climb.blink);
 //  • ловушка-двойник (raceTrap.js): на промахе директор берёт у слушателя, что услышал Vosk (listener.heard()), редюсер узнаёт двойника — Пит говорит «это двойник, а нужно слово» по кускам (raceTrapVoice.js), вместо «соскользнул» и подсказки;
@@ -84,10 +85,13 @@ export function useRaceActs(args) {
   }, [on, running, plan, box])
 
   const baseNext = rh.nextIdx // стабильна (useCallback в useRehearsalActs): на ней держится next директора
-  const nextIdx = useCallback(i => (on ? climbTarget(stages, stages[i - 1], box.s) ?? baseNext(i) : baseNext(i)), [on, stages, box, baseNext])
+  const seed = plan?.seed
+  const nextIdx = useCallback(i => (on ? climbTarget(stages, stages[i - 1], box.s) ?? sprintTarget(stages, stages[i - 1], box.s.sprint, seed) ?? baseNext(i) : baseNext(i)), [on, stages, box, baseNext, seed])
   if (!on) return rh
   return {
     ...rh, result, race: view, nextIdx,
+    /** Слово «Разгона» принято (раньше, чем щёлкнет заливка): Пит говорит мини-реплику успеха, следующая пилюля ждёт его */
+    claim(e) { if (running) apply({ t: 'claim', stage: running, info: e }) },
     rec(kind, info) {
       rh.rec(kind, info)
       if (!running) return

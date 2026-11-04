@@ -13,7 +13,25 @@ export const CHARGE_MAX = 14           // пилюль не больше (узл
 export const CHARGE_FLY_MS = 1500      // полёт одной пилюли снизу вверх (на короткой заставке — не больше 40 % её длины)
 export const CHARGE_SPARKS = 24        // микро-частицы (на слабом устройстве не рисуются)
 export const BAR_MIN_PX = 4            // бар сверху: пустой — тонкий…
-export const BAR_MAX_PX = 14           // …полный — толстый (растёт ступеньками с каждой долетевшей пилюлей)
+export const BAR_MAX_PX = 14           // …пока наполняется — толстеет (растёт ступеньками с каждой долетевшей пилюлей)…
+export const BAR_FULL_PX = 6           // …а заполненный плавно худеет до обычной тонкой полоски (без косых полос: полный бар — сплошные цветные сегменты)
+export const BAR_THIN_MS = 500         // за сколько бар худеет после заполнения
+export const BAR_BUMP = 2              // касание пилюлей: бар по высоте быстро утолщается до 2× и возвращается…
+export const BAR_BUMP_MS = 180         // …за 180 мс
+export const WAVE_PX = 7               // пилюля летит слегка по синусоиде: размах по x (px), на старте и в баре сдвиг 0
+export const WAVE_STEPS = 14           // точек синусоиды в кадрах полёта
+
+/** Толщина бара после i долетевших пилюль из n, px: ступенька за пилюлю от BAR_MIN_PX до BAR_MAX_PX */
+export const barHeight = (i, n) => BAR_MIN_PX + ((BAR_MAX_PX - BAR_MIN_PX) * i) / Math.max(1, n)
+
+/**
+ * Путь пилюли до бара, px вверх: пилюля стоит верхним краем на низу заставки (height — высота заставки), высота пилюли pillH; прилёт — её ЦЕНТР в центре бара в момент касания
+ * (верх бара barTop + половина его толщины после i + 1 долетевших пилюль из n).
+ */
+export const flyDist = ({ height, pillH, barTop, i, n }) => height + pillH / 2 - (barTop + barHeight(i + 1, n) / 2)
+
+/** Сдвиг по x (px) на доле пути u (0…1) у пилюли с волной wave = { sign, waves }: синусоида, на старте и на прилёте ровно 0 (waves — 1, 1,5 или 2 периода) */
+export const waveX = (wave, u) => (wave ? wave.sign * WAVE_PX * Math.sin(2 * Math.PI * wave.waves * u) : 0)
 
 export const levelColor = level => `var(--lvl${Math.min(4, Math.max(0, level | 0))})`
 
@@ -34,7 +52,7 @@ export function chargeWords(plan) {
 
 /**
  * План заставки длиной totalMs.
- * → { totalMs, pills: [{ i, text, level, color, x (% ширины), startAt, flyMs, arriveAt, from, to }], sparks: [{ i, x, startAt, flyMs, size, color }], segments: [{ i, level, color, from, to, at }] }
+ * → { totalMs, pills: [{ i, text, level, color, x (% ширины), startAt, flyMs, arriveAt, wave, from, to }], sparks: [{ i, x, startAt, flyMs, size, color }], segments: [{ i, level, color, from, to, at }] }
  * Пилюли идут в порядке прилёта (i); последняя прилетает ровно в totalMs; сегменты бара — по одному на пилюлю, в порядке прилёта, в сумме ровно 100 %.
  */
 export function chargePlan(plan, totalMs = CHARGE_FALLBACK_MS) {
@@ -43,13 +61,14 @@ export function chargePlan(plan, totalMs = CHARGE_FALLBACK_MS) {
   const total = Math.max(1000, Math.round(totalMs))
   if (!n) return { totalMs: total, pills: [], sparks: [], segments: [] }
   const rng = rngFor(plan.seed, 'race-charge')
+  const wrng = rngFor(plan.seed, 'race-charge-wave') // волна — свой поток: порядок и разброс пилюль от неё не зависят
   const order = rngShuffle(rng, words)
   const fly = Math.min(CHARGE_FLY_MS, total * 0.4)
   const gap = (total - fly) / n
   const pills = order.map((w, i) => {
     const arriveAt = i === n - 1 ? total : Math.round(fly + gap * (i + 1) + (rng() - 0.5) * gap * 0.5) // к последней — ровно T, у остальных небольшой разброс (порядок прилёта не ломается: ±¼ шага)
     const flyMs = Math.round(Math.min(arriveAt, fly * (0.85 + rng() * 0.3)))
-    return { i, text: w.text, level: w.level, color: levelColor(w.level), x: 14 + rngInt(rng, 73), startAt: arriveAt - flyMs, flyMs, arriveAt }
+    return { i, text: w.text, level: w.level, color: levelColor(w.level), x: 14 + rngInt(rng, 73), startAt: arriveAt - flyMs, flyMs, arriveAt, wave: { sign: wrng() < 0.5 ? -1 : 1, waves: [1, 1.5, 2][rngInt(wrng, 3)] } }
   })
   const share = 100 / n
   const segments = pills.map(p => ({ i: p.i, level: p.level, color: p.color, from: +(p.i * share).toFixed(3), to: p.i === n - 1 ? 100 : +((p.i + 1) * share).toFixed(3), at: p.arriveAt }))

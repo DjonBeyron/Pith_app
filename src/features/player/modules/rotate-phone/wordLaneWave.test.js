@@ -68,7 +68,7 @@ describe('волна — только у взлёта, спуск прямой',
   })
   it('в коде спуска нет волны: wordLaneMotion.js не импортирует wordLaneWave, а пул передаёт в startFlight только элемент и время', () => {
     expect(read('./wordLaneMotion.js')).not.toMatch(/import .*wordLaneWave|flightPose|flightFrames|rotate:/)
-    expect(read('./wordLanePool.js')).toContain('startFlight(el, atMs, speed)')
+    expect(read('./wordLanePool.js')).toContain('startFlight(el, atMs, speed, scaled)')
     expect(read('./wordLaneWave.js')).not.toMatch(/FLIGHT_WAVE|flightPose|flightPhase/)
   })
 })

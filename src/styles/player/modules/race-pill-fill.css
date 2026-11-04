@@ -1,0 +1,24 @@
+/* «Гонка с Питом»: заливка пилюль с «гранями» и тихий промах «Разгона» (features/pitrace, CONCEPT_RACE.md). Пилюли гонки — те, у кого есть подпись внутри (data-cap).
+   Грани заливки: у видимого края заливки — светлая кромка 2 px (светлый тон цвета дорожки, у принятой пилюли почти белая) и фаска под ней (светлое пятно за 8 px тает к цвету заливки); при каждом приросте заливки (data-live: пул ставит его,
+   пока заливка растёт) край на 0,12 с вспыхивает мягким свечением вверх от кромки. Это кромка САМОЙ заливки, не отдельная линия и не уровень на пилюле. Только фон и box-shadow слоя заливки: filter нет;
+   на слабом устройстве (.wl--lite / .weak-device) свечения нет, кромка остаётся. Безопасный режим (.wl--safe, iOS) — те же градиенты поверх его собственных (word-lane-pill-safe.css).
+   Тихий промах (data-quiet, step.quiet у «Разгона»): косых полос нет ни на неверном слове, ни на упущенной пилюле — неверное слово даёт лишь короткую дрожь с красной обводкой (missPill в wordLaneSnap.js, 200 мс),
+   упущенная пилюля просто уезжает вниз (data-fail ей не ставится, английское слово не всплывает). */
+.wlPill[data-quiet] .wlPillClip::after { display: none; }
+
+.wlPill[data-cap] { --rim: color-mix(in srgb, var(--c) 45%, #fff); }
+.wl[data-phase='student'] .wlPill[data-cap]:not([data-fail]) .wlPillFill,
+.wl[data-phase='student'] .wlField.wl--safe .wlPill[data-cap]:not([data-fail]) .wlPillFill {
+  background:
+    linear-gradient(to bottom, rgba(255, 255, 255, 0) 0, rgba(255, 255, 255, 0) 5px, color-mix(in srgb, var(--rim) 85%, transparent) 6px, var(--rim) 8px, rgba(255, 255, 255, 0.24) 8px, rgba(255, 255, 255, 0) 18px),
+    linear-gradient(to bottom, rgba(var(--rgb), 0) 0, rgba(var(--rgb), 0.5) 6px, rgba(var(--rgb), 0.38) 8px);
+  transition: background-color 0.15s linear, box-shadow 0.12s ease-out;
+}
+.wl[data-phase='student'] .wlPill[data-cap][data-lock]:not([data-fail]) .wlPillFill,
+.wl[data-phase='student'] .wlField.wl--safe .wlPill[data-cap][data-lock]:not([data-fail]) .wlPillFill {
+  background:
+    linear-gradient(to bottom, rgba(255, 255, 255, 0) 0, rgba(255, 255, 255, 0) 5px, rgba(255, 255, 255, 0.7) 6px, rgba(255, 255, 255, 0.95) 8px, rgba(255, 255, 255, 0.28) 8px, rgba(255, 255, 255, 0) 20px),
+    linear-gradient(to bottom, rgba(var(--rgb), 0) 0, var(--c) 8px);
+}
+.wl[data-phase='student'] .wlPill[data-cap][data-live]:not([data-fail]) .wlPillFill { box-shadow: 0 -3px 10px 1px rgba(var(--rgb), 0.8); }
+.wl--lite .wlPill[data-cap] .wlPillFill, .weak-device .wlPill[data-cap] .wlPillFill { box-shadow: none !important; transition: none; }

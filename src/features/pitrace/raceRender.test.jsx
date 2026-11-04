@@ -29,6 +29,15 @@ describe('итог (RaceSummary) и RaceActs', () => {
     const one = html(RaceSummary, { plan, result, onDone() {} }); expect(one).not.toContain('race-again'); expect(one).toContain('>Готово<')
     expect(html(RaceSummary, { plan, result: null, onDone() {} })).toContain('…')
   })
+  it('итог: «Самые слабые слова» — чипы от слабых к сильным, цвет по слабости, перевод мелко; без слабых слов блока нет', () => {
+    const weak = [{ text: 'learn', translation: 'учить', score: 5, tone: 'red' }, { text: 'try', translation: 'пробовать', score: 2, tone: 'yellow' }, { text: 'to', translation: '', score: 0, tone: 'green' }]
+    const h = html(RaceSummary, { plan, result: { ...result, weak }, onDone() {} })
+    expect(h).toContain('Самые слабые слова'); expect(h.match(/data-testid="race-weak-chip"/g)).toHaveLength(3)
+    expect(h.indexOf('data-tone="red"')).toBeLessThan(h.indexOf('data-tone="yellow"')); expect(h.indexOf('data-tone="yellow"')).toBeLessThan(h.indexOf('data-tone="green"'))
+    expect(h).toContain('raceWeakCap">учить<'); expect(h.indexOf('race-summary-xp')).toBeLessThan(h.indexOf('race-weak'))
+    expect(html(RaceSummary, { plan, result, onDone() {} })).not.toContain('race-weak')
+    expect(read('../../styles/player/modules/race-summary.css')).toContain("@import './race-weak.css'")
+  })
   it('RaceActs: стадия итога — плашка, стадия лестницы — лестница, остальное — ничего; тишина экрана (Пит говорит) скрывает всё', () => {
     const f = o => ({ stage: 'run', stageObj: { type: 'summary' }, rh: { on: true, quiet: false, result: null, race: null }, finish() {}, ...o })
     const cfg = { plan }

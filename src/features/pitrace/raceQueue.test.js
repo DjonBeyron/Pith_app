@@ -9,7 +9,7 @@ import { normalizePlan } from '../rehearsal/rehearsalPlan.js'
 // «Разгон» — очередь пилюль (step.overlap): дорожки 0, 1, 2, 0 …; следующая пилюля выезжает сразу, как текущая принята или недоступна; скорость +5 % сохраняется.
 const plan = normalizePlan({ ...fixturePlan('three'), game: 'race' })
 const sprint = () => buildStages({ chunks: plan.chunks, plan, rate: 1 }).stages.find(s => s.act === 'sprint' && s.type === 'student')
-const make = () => { const s = sprint(); return { s, g: createStudentGame({ step: s.step, chunks: s.step.chunks, estMs: () => 400, maxTries: s.step.maxTries }), targets: stepTargets(s.step, s.step.chunks).repTarget } }
+const make = (o = {}) => { const s = sprint(); return { s, g: createStudentGame({ step: { ...s.step, ...o }, chunks: s.step.chunks, estMs: () => 400, maxTries: s.step.maxTries }), targets: stepTargets(s.step, s.step.chunks).repTarget } }
 /** Шаги по 16 мс, пока не случится событие нужного типа (или не пройдёт limit мс); input — функция времени */
 function run(g, from, type, input = () => ({}), limit = 12000) {
   for (let t = from; t < from + limit; t += 16) {
@@ -27,7 +27,7 @@ describe('«Разгон»: очередь пилюль', () => {
     s.step.reps.forEach((r, i) => expect(r.speed).toBeCloseTo(1.05 ** i, 3))
   })
   it('верный ответ: следующая пилюля выезжает в тот же шаг, пока прежняя взлетает (две живые); слушаем только новую', () => {
-    const { g, targets } = make()
+    const { g, targets } = make({ goodAt: [] }) // принятие без мини-реплики Пита — выезд сразу
     const first = run(g, 0, 'spawn'); expect(first.ev.find(e => e.type === 'spawn').rep.idx).toBe(0)
     let t = first.t
     while (!g.reps[0].pills.every(p => p.y >= LISTEN_Y_MIN)) stepStudent(g, (t += 16))
@@ -44,6 +44,17 @@ describe('«Разгон»: очередь пилюль', () => {
     expect(stepStudent(g, (t += 16), { seq: [targets[0], targets[0], targets[0]], confirmed: true }).some(e => e.type === 'miss' && e.wrong)).toBe(true)
     while (g.reps[1].drain) stepStudent(g, (t += 16), { seq: [targets[0], targets[0], targets[0]] })
     expect(stepStudent(g, (t += 16), { seq: [targets[0], targets[0], targets[0], targets[1]], confirmed: true }).some(e => e.type === 'claim' && e.rep.idx === 1)).toBe(true)
+  })
+  it('принятие с мини-репликой успеха (goodAt): следующая пилюля выезжает не в тот же шаг, а через claimGap; пока Пит говорит (hold), ждёт и следующие пилюли', () => {
+    const { s, g, targets } = make()
+    expect(s.step.goodAt[0]).toBe(1); expect(s.step.holdAll).toBe(true)
+    const first = run(g, 0, 'spawn')
+    let t = first.t
+    while (!g.reps[0].pills.every(p => p.y >= LISTEN_Y_MIN)) stepStudent(g, (t += 16))
+    const claim = stepStudent(g, (t += 16), { seq: [targets[0]], confirmed: true })
+    expect(claim.map(e => e.type)).toContain('claim'); expect(claim.some(e => e.type === 'spawn')).toBe(false)
+    expect(stepStudent(g, (t += 16), { hold: true }).some(e => e.type === 'spawn')).toBe(false) // Пит говорит — ждём
+    expect(stepStudent(g, (t += 600), { hold: false }).some(e => e.type === 'spawn')).toBe(true) // договорил — пилюля выехала
   })
   it('недоступная пилюля (ответить уже нельзя): следующая выезжает в тот же шаг, не дожидаясь полного ухода прежней', () => {
     const { g } = make()
