@@ -8,7 +8,7 @@ export const FALLBACK_NAME = 'vosk-fallback.js'
 export const voskSource = root => resolve(root, 'node_modules/vosk-browser/dist/vosk.js')
 
 export function voskFallbackPlugin() {
-  let root = process.cwd()
+  let root = '.' // до configResolved не используется: Vite отдаёт корень сам
   let outDir = ''
   return {
     name: 'pithy-vosk-fallback',
