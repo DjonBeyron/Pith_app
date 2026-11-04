@@ -12,7 +12,7 @@ const view = (status, extra = {}) => ({ status, ...extra })
 export function readyView({ result, bg, asked = false }) {
   if (result?.ok) return view('ready')
   if (!result) return view('preparing')
-  if (result.reason !== 'no-model') return view('failed', { text: result.text || '' })
+  if (result.reason !== 'no-model') return view('failed', { text: result.text || '', stage: result.stage || '' })
   // Модели нет в кэше телефона
   if (bg.state === 'cached') return view('preparing') // докачалась прямо сейчас — прогрев пойдёт сам
   if (bg.state === 'downloading') return view('downloading', { pct: bg.pct, detail: bg.total > 0 ? `${fmtMb(bg.loaded)} из ${fmtMb(bg.total)}` : fmtMb(bg.loaded) })

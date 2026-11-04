@@ -10,6 +10,7 @@ import { createRecorder } from './voskRecord.js'
 import { createAudioSession } from '../speech/speechAudioSession.js'
 import { createCaptureContext, releaseCapture } from './voskCapture.js'
 import { wireInput } from './voskGain.js'
+import { loadVoskFallback } from './voskLibFallback.js'
 
 const CHUNK = 4096 // кадров на один вызов ScriptProcessor (по умолчанию; модуль «Сказать фразу» просит 2048 — уровень голоса чаще)
 const CHUNKS = [1024, 2048, 4096, 8192] // допустимые размеры opts.chunk
@@ -25,7 +26,8 @@ export function heapMb(perf = globalThis.performance) {
 
 /** Библиотека (отдельный чанк). UMD-сборка отдаёт Model либо в самом модуле, либо в default, либо в globalThis.Vosk */
 export async function importVosk() {
-  const mod = await import('vosk-browser')
+  let mod
+  try { mod = await import('vosk-browser') } catch (e) { mod = { Model: (await loadVoskFallback(e)).Model } } // см. voskLibFallback.js
   const api = typeof mod.Model === 'function' ? mod : typeof mod.default?.Model === 'function' ? mod.default : globalThis.Vosk
   if (!api || typeof api.Model !== 'function') throw new Error('vosk-browser загрузился без класса Model')
   return api

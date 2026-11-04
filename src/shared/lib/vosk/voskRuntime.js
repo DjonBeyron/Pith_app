@@ -134,7 +134,7 @@ export function createVoskRuntime(deps = {}) {
   /** Результат для режима «Только Vosk»: { ok: true } | { ok: false, reason, text } | null (ещё идёт) */
   function settled() {
     if (st.model) return { ok: true }
-    if (st.stage === 'failed' || isBroken()) return { ok: false, reason: 'failed', text: `ошибка ${STAGE_FAIL_TEXT[st.failure?.stage] ?? 'прогрева'}: ${st.failure?.text || st.brokenWhy || 'без подробностей'}` }
+    if (st.stage === 'failed' || isBroken()) return { ok: false, reason: 'failed', stage: st.failure?.stage, text: `ошибка ${STAGE_FAIL_TEXT[st.failure?.stage] ?? 'прогрева'}: ${st.failure?.text || st.brokenWhy || 'без подробностей'}` }
     if (st.cached === false) return { ok: false, reason: 'no-model', text: 'модели Vosk нет в кэше телефона' }
     return null
   }

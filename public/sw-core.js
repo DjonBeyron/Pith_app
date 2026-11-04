@@ -134,6 +134,20 @@
     return !(/\.(js|css|svg|png|webmanifest)$/.test(String(url)) && /text\/html/i.test(res.ct || ''))
   }
 
+  // Попадание в кеше для /assets/*: годно ли оно. Негодное (js/css как text/html, не 200, редирект) удаляем из кеша и идём в сеть
+  // в обход HTTP-кеша (cache: 'reload' для js/css-чанка). res = { ok, redirected, ct }; нет попадания (null) — обычный промах
+  function assetHit(url, res) {
+    if (!res) return { use: false, drop: false, reload: false }
+    if (validPrecache(url, res)) return { use: true, drop: false, reload: false }
+    return { use: false, drop: true, reload: /\.(js|css)$/.test(String(url)) }
+  }
+  // Ответ из сети кладём в кеш только годный
+  var assetStorable = function (url, res) { return !!res && validPrecache(url, res) }
+  // Сообщение drop-asset: путь запроса начинается с префикса (только /assets/...)
+  var matchesDropPrefix = function (pathname, prefix) {
+    return typeof prefix === 'string' && prefix.indexOf('/assets/') === 0 && String(pathname).indexOf(prefix) === 0
+  }
+
   // Порядок предзагрузки: сначала точка входа и страница (при проблеме падаем быстро), потом остальное
   var precacheOrder = function (urls) {
     var rank = function (u) { return u === '/' ? 0 : /\/assets\/index-.*\.(js|css)$/.test(u) ? 1 : 2 }
@@ -156,6 +170,6 @@
     OFFLINE_SHELL: OFFLINE_SHELL, configured: configured, cacheName: cacheName, isShellName: isShellName, isNosw: isNosw, route: route,
     normState: normState, isDisabled: isDisabled, isBlocked: isBlocked, disableState: disableState, enableState: enableState,
     blockBuild: blockBuild, bootCheck: bootCheck, confirmBoot: confirmBoot, decideNav: decideNav, fastShellHit: fastShellHit, preloadUsable: preloadUsable, afterFastNav: afterFastNav, shellActive: shellActive,
-    planRotation: planRotation, fetchMode: fetchMode, validPrecache: validPrecache, precacheOrder: precacheOrder, statusView: statusView,
+    planRotation: planRotation, fetchMode: fetchMode, validPrecache: validPrecache, assetHit: assetHit, assetStorable: assetStorable, matchesDropPrefix: matchesDropPrefix, precacheOrder: precacheOrder, statusView: statusView,
   }
 })

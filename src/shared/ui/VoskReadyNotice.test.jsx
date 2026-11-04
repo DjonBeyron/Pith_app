@@ -27,6 +27,12 @@ describe('VoskReadyNotice — общее уведомление «нужно с�
     expect(failed).toContain('Распознавание речи не включилось')
     expect(failed).toContain('Ещё раз')
   })
+  it('сбой загрузки библиотеки: подсказка и «Перезагрузить» вместо «Ещё раз»', () => {
+    const out = html({ status: 'failed', stage: 'importing-lib', text: 'x' })
+    expect(out).toContain('Библиотека не загрузилась, перезагрузи страницу')
+    expect(out).toContain('data-testid="vosk-reload"')
+    expect(out).not.toContain('Ещё раз')
+  })
   it('ждём сеть; готовлю; готово — ничего', () => {
     expect(html({ status: 'waiting', text: 'Нет сети — докачаем, как только она появится' })).toContain('Нет сети')
     expect(html({ status: 'preparing' })).toContain('Готовлю распознавание речи')

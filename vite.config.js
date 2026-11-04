@@ -4,6 +4,7 @@ import react from '@vitejs/plugin-react'
 import { APP_VERSION } from './src/shared/lib/version.js'
 import { debugSink } from './tools/viteDebugSink.js'
 import { shellCachePlugin } from './tools/viteShellCache.js'
+import { voskFallbackPlugin } from './tools/viteVoskFallback.js'
 
 // Собранный CSS (~115 КБ) Vite вставляет в <head> как render-blocking <link> —
 // браузер не рисует ни одного кадра (включая инлайновый сплэш), пока файл не
@@ -56,7 +57,7 @@ export default defineConfig({
   // и кладёт их в _debug/ (папка вне git), чтобы Claude читал их прямо с диска
   // shellCachePlugin (tools/viteShellCache.js) — кеш оболочки: после сборки подставляет BUILD_ID и список предзагрузки в
   // dist/push-sw.js, метку сборки в dist/index.html и пишет dist/precache.json
-  plugins: [react(), nonBlockingCss, splashVersion, emitVersionJson, shellCachePlugin({ version: APP_VERSION }), debugSink()],
+  plugins: [react(), nonBlockingCss, splashVersion, emitVersionJson, shellCachePlugin({ version: APP_VERSION }), voskFallbackPlugin(), debugSink()],
   define: {
     __BUILD_TIME__: JSON.stringify(new Date().toISOString()),
   },

@@ -213,14 +213,39 @@ async function resource(e, kind) {
   const st = await loadState()
   if (!Core.shellActive(st, Date.now())) return fetch(e.request)
   const hit = await caches.match(e.request, kind === 'static' ? { cacheName: SHELL, ignoreSearch: true, ignoreVary: true } : { ignoreVary: true })
-  if (hit) return hit
-  const res = await fetch(e.request)
-  if (kind === 'asset' && res.ok && !res.redirected && await markOf(SHELL)) {
+  let reload = false
+  if (hit && kind === 'asset') {
+    // Испорченный ответ в кеше (js как text/html и т. п.) не отдаём: стираем и идём в сеть мимо HTTP-кеша
+    const v = Core.assetHit(new URL(e.request.url).pathname, { ok: hit.ok, redirected: hit.redirected, ct: hit.headers.get('content-type') || '' })
+    if (v.use) return hit
+    await dropBad(e.request).catch(() => {})
+    reload = v.reload
+  } else if (hit) return hit
+  const res = await fetch(reload ? new Request(e.request, { cache: 'reload' }) : e.request)
+  const ok = kind === 'asset' && Core.assetStorable(new URL(e.request.url).pathname, { ok: res.ok, redirected: res.redirected, ct: res.headers.get('content-type') || '' })
+  if (ok && await markOf(SHELL)) {
     const copy = res.clone()
     const put = caches.open(SHELL).then(c => c.put(e.request, copy)).catch(() => {})
     try { e.waitUntil(put) } catch { /* событие уже завершено — запись всё равно идёт */ }
   }
   return res
+}
+
+// Удалить запись запроса из всех кешей оболочки (где нашлась)
+async function dropBad(req) {
+  const names = await shellNames()
+  await Promise.all(names.map(n => caches.open(n).then(c => c.delete(req, { ignoreVary: true }))))
+}
+// drop-asset: стереть из всех кешей оболочки записи с путём, начинающимся на prefix; вернуть сколько
+async function dropByPrefix(prefix) {
+  let n = 0
+  for (const name of await shellNames()) {
+    const c = await caches.open(name)
+    for (const r of await c.keys()) {
+      if (Core.matchesDropPrefix(new URL(r.url).pathname, prefix) && await c.delete(r)) n++
+    }
+  }
+  return n
 }
 
 self.addEventListener('fetch', e => {
@@ -245,6 +270,7 @@ self.addEventListener('message', e => {
   else if (!ON) { if (e.ports && e.ports[0]) e.waitUntil(reply(statusReply)) }
   else if (d.type === 'boot-ok') e.waitUntil(loadState().then(st => (Core.confirmBoot(st, d.buildId) ? saveState() : null)))
   else if (d.type === 'shell-status') e.waitUntil(reply(statusReply))
+  else if (d.type === 'drop-asset') e.waitUntil(reply(async () => ({ type: 'drop-asset', dropped: await dropByPrefix(d.prefix) })))
   else if (d.type === 'purge-shell') {
     e.waitUntil(reply(async () => {
       const st = await loadState()
