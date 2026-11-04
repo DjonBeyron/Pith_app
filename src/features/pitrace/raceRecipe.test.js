@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { buildRaceActs, DESCENT_RATE } from './raceRecipe.js'
-import { sprintWords, catchSets, climbWords, extrasOf, SPRINT_MIN, SPRINT_MAX, SPEED_STEP, CATCH_COUNT } from './raceWords.js'
-import { pickRound, RACE_ROUNDS } from './raceOnly.js'
+import { sprintWords, catchWords, climbWords, extrasOf, SPRINT_MIN, SPRINT_MAX, SPEED_STEP, TRAP_SHARE } from './raceWords.js'
+import { pickRound, RACE_ROUNDS, STAGES_ROUND, isRound } from './raceOnly.js'
 import { FIXTURE_IDS, fixturePlan } from '../rehearsal/rehearsalFixtures.js'
 import { normalizePlan } from '../rehearsal/rehearsalPlan.js'
 
@@ -38,24 +38,31 @@ describe('рецепт гонки: акты из плана репетиции',
     expect(w.map(x => x.lane)).toEqual(w.map((_, i) => i % 3)) // слева направо по кругу, не по семени
     expect(sprintWords(race('three', { seed: 'другое семя' })).map(x => x.lane)).toEqual(w.map(x => x.lane))
   })
-  it('слушай и лови: три захода; на каждом три дорожки с переводами — верное слово и два других; двойники слова — ловушками', () => {
-    const plan = race('three')
-    const sets = catchSets(plan)
-    expect(sets).toHaveLength(CATCH_COUNT)
-    for (const s of sets) {
-      expect(s.slots).toEqual([0, 1, 2])
-      expect(s.texts[s.answer]).toBe(s.text)
-      expect(new Set(s.texts).size).toBe(3)
-      expect(s.caps.every(Boolean)).toBe(true) // внутри каждой пилюли русский перевод
+  it('слушай и лови (инверсия разгона): те же слова в другом порядке, дорожки по очереди, скорость +5 %; ~70 % переводов верные, ~30 % чужие (перевод другого слова раунда), первая пилюля всегда верная', () => {
+    for (const id of FIXTURE_IDS) {
+      const plan = race(id)
+      const base = sprintWords(plan), w = catchWords(plan)
+      expect(w.map(x => x.text).sort()).toEqual(base.map(x => x.text).sort()) // состав тот же
+      expect(w.map(x => x.lane)).toEqual(w.map((_, i) => i % 3))
+      w.forEach((x, i) => { expect(x.idx).toBe(i); expect(x.speed).toBeCloseTo(SPEED_STEP ** i, 3) })
+      expect(w[0].trap).toBe(false)
+      const traps = w.filter(x => x.trap)
+      expect(traps.length).toBe(Math.max(1, Math.round(w.length * TRAP_SHARE)))
+      for (const x of w) {
+        if (!x.trap) { expect(x.shown).toBe(x.translation); expect(x.foreign).toBeNull(); continue }
+        expect(x.shown).not.toBe(x.translation) // чужой перевод
+        const f = w.find(y => y.text === x.foreign)
+        expect(f).toBeTruthy(); expect(f.text).not.toBe(x.text); expect(x.shown).toBe(f.translation) // перевод именно другого слова раунда
+      }
     }
-    const learn = sets.find(s => s.text === 'learn')
-    expect(learn.decoys).not.toContain('earn') // у двойника нет перевода — на пилюле был бы чужой английский текст и выдал бы ответ
-    const trapped = race('three', { words: [{ text: 'learn', translation: 'учиться', due: true, confusers: ['earn', 'lean'] }, { text: 'earn', translation: 'зарабатывать' }, { text: 'lean', translation: 'наклоняться' }, { text: 'trying', translation: 'пытаюсь' }] })
-    const t = catchSets(trapped).find(s => s.text === 'learn')
-    expect(t.decoys.sort()).toEqual(['earn', 'lean']) // двойники из памяти с переводом едут ловушками вместо случайных слов
-    expect(t.caps.sort()).toEqual(['зарабатывать', 'наклоняться', 'учиться'].sort())
-    expect(sets[1].answer).not.toBe(sets[0].answer) // верное слово не на той же дорожке два захода подряд
-    expect(buildRaceActs(plan).acts.find(a => a.id === 'catch').retries).toBe(1) // заход повторяется один раз
+  })
+  it('слушай и лови: раскладка по семени (rngFor) — одно семя даёт одно и то же, другое — другой порядок; акт несёт слова и задание', () => {
+    const plan = race('three')
+    expect(JSON.stringify(catchWords(plan))).toBe(JSON.stringify(catchWords(race('three'))))
+    expect(catchWords(race('three', { seed: 'другое семя' })).map(x => x.text)).not.toEqual(catchWords(plan).map(x => x.text))
+    const act = buildRaceActs(plan).acts.find(a => a.id === 'catch')
+    expect(act.words).toEqual(catchWords(plan)); expect(act.line).toBe('race_catch'); expect(act.sets).toBeUndefined()
+    expect(act.task).toBe('я говорю слово, а ты повтори его, только если перевод на пилюле верный')
   })
   it('вершина: N ступеней = N слов фразы по порядку; спуск — вся фраза, один раз, на скорости 1,1', () => {
     expect(climbWords(race('three'))).toEqual(["I'm", 'trying', 'to', 'learn'])
@@ -70,6 +77,13 @@ describe('рецепт гонки: акты из плана репетиции',
     for (const r of RACE_ROUNDS) expect(ids(buildRaceActs(race('three', { round: r })).acts)).toEqual([r])
     expect(ids(buildRaceActs(normalizePlan({ ...fixturePlan('three'), game: 'race', round: 'нет такого' })).acts)).toHaveLength(5)
     expect(pickRound([{ id: 'sprint' }, { id: 'summary' }], 'sprint')).toEqual([{ id: 'sprint' }])
+  })
+  it('«два этапа + финал» (round = stages): разгон, слушай и лови и итог — без вершины и спуска; план его принимает, плашки реплики race_start нет', () => {
+    expect(STAGES_ROUND).toBe('stages'); expect(isRound('stages')).toBe(true); expect(isRound('нет')).toBe(false)
+    const plan = race('three', { round: STAGES_ROUND })
+    expect(plan.round).toBe('stages')
+    expect(ids(buildRaceActs(plan).acts)).toEqual(['sprint', 'catch', 'summary'])
+    expect(pickRound([{ id: 'sprint' }, { id: 'catch' }, { id: 'climb' }, { id: 'descent' }, { id: 'summary' }], STAGES_ROUND).map(a => a.id)).toEqual(['sprint', 'catch', 'summary'])
   })
   it('случайности — только от семени: Math.random в рецепте нет, одно семя — один и тот же рецепт', () => {
     const a = JSON.stringify(buildRaceActs(race('three')).acts), b = JSON.stringify(buildRaceActs(race('three')).acts)

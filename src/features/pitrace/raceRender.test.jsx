@@ -58,7 +58,7 @@ describe('админка: блок «Гонка с Питом (стенд)» и 
   it('блок: фикстура, статус реплик race_*, куски, тап, «Полная гонка» и четыре раунда, «Скачать отладку», «Как тестировать»', () => {
     const h = html(RaceBlock, {})
     expect(h).toContain('Гонка с Питом (стенд)')
-    for (const id of ['race-fixture', 'race-lines-status', 'race-voice-lines', 'race-chunks-status', 'race-voice-chunks', 'race-trans-status', 'race-voice-trans', 'race-tap-mode', 'race-run-full', 'race-run-sprint', 'race-run-catch', 'race-run-climb', 'race-run-descent', 'race-export', 'race-howto']) expect(h).toContain(`data-testid="${id}"`)
+    for (const id of ['race-fixture', 'race-lines-status', 'race-voice-lines', 'race-chunks-status', 'race-voice-chunks', 'race-trans-status', 'race-voice-trans', 'race-tap-mode', 'race-run-full', 'race-run-sprint', 'race-run-catch', 'race-run-climb', 'race-run-descent', 'race-run-stages', 'race-export', 'race-howto']) expect(h).toContain(`data-testid="${id}"`)
     for (const t of ['Полная гонка', 'Разгон', 'Слушай и лови', 'Вершина', 'Спуск', 'Скачать отладку', 'Тап вместо речи']) expect(h).toContain(t)
     expect(h).toContain('Реплики Пита race_*')
   })
@@ -68,16 +68,16 @@ describe('админка: блок «Гонка с Питом (стенд)» и 
     const src = read('../admin/speech/RaceBlock.jsx')
     expect(src).toContain("game: 'race', round: round ?? undefined"); expect(src).toContain('bare forceDebug startRef={startRef}'); expect(src).toContain('list: RACE_LINES')
   })
-  it('«Как тестировать»: восемь шагов, раздел сворачиваемый; тот же текст лежит в CONCEPT_RACE.md слово в слово', () => {
+  it('«Как тестировать»: десять шагов, раздел сворачиваемый; тот же текст лежит в CONCEPT_RACE.md слово в слово', () => {
     const h = html(RaceHowto, {})
     expect(h).toContain('<details class="g2Howto" open=""'); expect(h).toContain(HOWTO_TITLE)
-    expect(HOWTO_STEPS).toHaveLength(8)
+    expect(HOWTO_STEPS).toHaveLength(10)
     const md = read('../../../CONCEPT_RACE.md')
     expect(md).toContain('## Как тестировать')
     for (const s of HOWTO_STEPS) expect(md).toContain(s)
     expect(howtoMarkdown()).toContain(HOWTO_STEPS[3])
     const all = HOWTO_STEPS.join(' ') // проверки доработок: слово до пилюль, общий таймер и +5 с, острова зигзагом, сальто, время вышло
-    for (const t of ['сначала Пит произносит слово', 'старт 12 секунд', '+5 секунд', 'зигзагом', 'сальто', 'время вышло']) expect(all).toContain(t)
+    for (const t of ['Пит голосом называет английское слово', 'промолчать', 'Два этапа + финал', '450 мс', 'ПОД бар', 'шлейф', 'старт 12 секунд', '+5 секунд', 'зигзагом', 'сальто', 'время вышло']) expect(all).toContain(t)
     expect(md.split('\n').length).toBeLessThanOrEqual(150)
   })
   it('«Скачать отладку»: файл с журналом плеера и отдельным полем строк [race]', () => {

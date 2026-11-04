@@ -11,7 +11,7 @@ const sprintStage = stageOf('sprint', 'student')
 const ev = (s, t, stage, info) => reduceRace(s, { t, stage, info })
 function feed(s, list) { const out = []; for (const e of list) { const r = ev(s, e[0], e[1], e[2]); s = r.state; out.push(r) } return { s, out } }
 
-describe('состояние гонки: события движка → серия, слух, лестница', () => {
+describe('состояние гонки: события движка → серия, лестница', () => {
   it('разгон: серия растёт на верных, на 3 — золото, на 5 — огонь, голосом серий нет; промах и «не успел» обнуляют, слово — к повтору', () => {
     let s = ev(initRace(), 'enter', sprintStage).state
     expect(s.sprint.words.length).toBeGreaterThanOrEqual(6)
@@ -25,14 +25,14 @@ describe('состояние гонки: события движка → сер�
     const fail = ev(s5, 'fail', sprintStage, { idx: 5 })
     expect(fail.state.streak).toBe(0); expect(fail.log).toContain('к повтору'); expect(fail.state.best).toBe(5)
   })
-  it('разгон: мини-реплика успеха на принятии слова по плану круга (первое верное и далее раз в 3–4), в других раундах claim ничего не делает', () => {
+  it('разгон: мини-реплика успеха на принятии слова по плану круга (первое верное и далее раз в 3–4), в «Вершине» claim ничего не делает (в «Слушай и лови» он работает как в разгоне: raceStateCatch.test.js)', () => {
     let s = ev(initRace(), 'enter', sprintStage).state
     const said = []
     for (let i = 0; i < sprintStage.words.length; i++) { const r = ev(s, 'claim', sprintStage, { idx: i }); s = r.state; said.push(r.say) }
     expect(said.filter(Boolean)).toEqual(sprintStage.good.map(g => g.id))
     expect(said.findIndex(Boolean)).toBe(0) // первое принятое слово — уже реплика
     expect(said.every(x => x === null || x.startsWith('race_good_'))).toBe(true)
-    const c = stages.find(x => x.act === 'catch' && x.type === 'discern')
+    const c = stages.find(x => x.act === 'climb' && x.type === 'student')
     expect(ev(s, 'claim', c).state).toBe(s)
   })
   it('разгон, второй круг: результаты пишутся отдельно (r2), слова круга и счёт принятий — свои', () => {
@@ -46,13 +46,6 @@ describe('состояние гонки: события движка → сер�
     expect(s.sprint.r2.results).toEqual({ 1: { hit: true, miss: false }, 2: { hit: false, miss: true } })
     expect(s.sprint.results).toEqual({ 0: { hit: false, miss: true } }) // первый круг не тронут
     expect(s.sprint.claims).toBe(0)
-  })
-  it('слух: верное слово — заход засчитан; промах или «не успел» — «мимо, слушай ещё» (заход повторится), счёт промахов растёт', () => {
-    const c0 = stages.find(s => s.act === 'catch' && s.type === 'discern')
-    let s = ev(initRace(), 'enter', c0).state
-    expect(s.catch.words[0]).toBe(c0.word.text)
-    const f = ev(s, 'fail', c0); expect(f.say).toBe('race_catch_miss'); expect(f.state.catch.results[0]).toEqual({ ok: false, bad: 1 })
-    const w = ev(f.state, 'win', c0); expect(w.say).toBeNull(); expect(w.state.catch.results[0]).toEqual({ ok: true, bad: 1 })
   })
   it('вершина: заходы и ступень по событиям; nextIdx лестницы ведёт на ступень k + 1 после попадания, ниже после промаха, на плашку вершины после верха', () => {
     const k = n => stages.find(s => s.sid === `climb-${n}`)

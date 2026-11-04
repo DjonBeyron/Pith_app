@@ -102,7 +102,7 @@ export function useWordLaneFlow({ chunks, translation, lang, clips = null, audio
       catApi?.current?.peek?.()
       if (rep.last) xpApi.current?.add(XP_PER_PILL * rep.count, rect) // у повтора из нескольких кусков одна цифра («+6»), когда принят последний кусок
     },
-    miss(e) { rh.rec('miss', e?.rep); catApi?.current?.react('shy', 1300, !!stages[sRef.current.idx]?.step?.quiet) }, claim(e) { rh.claim?.(e.rep) }, pre(e) { rh.pre?.(e.rep) },
+    miss(e) { rh.rec('miss', e?.rep); catApi?.current?.react('shy', 1300, !!stages[sRef.current.idx]?.step?.quiet) }, claim(e) { rh.claim?.(e.rep, e.ms) }, pre(e) { rh.pre?.(e.rep) },
     fail(e) {
       const st = stages[sRef.current.idx]
       catApi?.current?.react('shy', 1300, !!st?.step?.quiet); rh.rec('fail', e.rep) // quiet («Разгон»): упущенная пилюля уезжает молча — голова Пита не двигается (react с still)
@@ -122,7 +122,7 @@ export function useWordLaneFlow({ chunks, translation, lang, clips = null, audio
       const sp = speechOfUrl(r?.row.url), k = rate > 0 ? rate : 1, file = wordBufferMs(r?.key) || (Number(r?.row.duration) > 0 ? Number(r.row.duration) * 1000 : 0)
       const ms = Math.round((sp?.ms ?? (file || estChunkMs(text))) / k), lead = Math.round((sp?.lead ?? 0) / k) // звук идёт с начала файла, слово — после тишины lead: рот стартует вместе со словом, а длится до конца файла
       const total = Math.round(Math.max(lead + ms, file / k))
-      gameMicHold.holdFor(total); if (opts?.ru) cat.holdBusy?.(total) // перевод: Пит занят, следующая пилюля ждёт конца слова
+      gameMicHold.holdFor(total); if (opts?.ru || opts?.hold) cat.holdBusy?.(total) // перевод «Разгона» / слово «Слушай и лови» (opts.hold): Пит занят, следующая пилюля ждёт конца слова
       catApi?.current?.speak?.(mouthTrack(text, ms).map(x => ({ ...x, at: x.at + lead, end: x.end + lead })), total)
     },
     say(parts) { // подсказка раунда «Порядок»: кот выскакивает, диктор называет куски
@@ -231,7 +231,7 @@ export function useWordLaneFlow({ chunks, translation, lang, clips = null, audio
     const kind = engineKind(stageObj)
     if (kind === 'dictor') return { kind: 'dictor', plan: stageObj.plan, at: s.at }
     if (kind === 'student') return { kind: 'student', step: stageObj.step, chunks: stageObj.step.chunks ?? chunks, estMs: c => (stageObj.step.chunkMs ?? chunkMs)[c], curves: chunkCurves, at: s.at }
-    if (kind === 'order' || kind === 'discern') return { kind: 'order', prompts: stageObj.prompts, lanes, count: chunks.length, at: s.at, speak: stageObj.speak, maxTries: stageObj.maxTries }
+    if (kind === 'order' || kind === 'discern') return { kind: 'order', prompts: stageObj.prompts, lanes, count: chunks.length, at: s.at, maxTries: stageObj.maxTries }
     return kind === 'mirror' && rh.compare ? { kind: 'mirror', layout: rh.compare, at: s.at } : IDLE // «Дубль и зеркало»: сравнение на остановленных дорожках (rh.compare — раскладка, когда Пит договорил)
   }, [s.stage, s.at, stageObj, chunks, chunkMs, chunkCurves, lanes, rh.compare])
 

@@ -1,0 +1,6 @@
+/* Итог «Гонки с Питом»: метрики над «Самыми слабыми словами» (features/pitrace/RaceSummary.jsx, расчёт — raceMetrics.js). Две компактные строки без таблицы (на 375 px переносятся по словам):
+   точность по этапам и время ответа / ловушки. Только текст, без filter и анимаций. */
+.raceMetrics { margin: 0 0 12px; text-align: left; }
+.raceMetricsRow { margin: 0 0 3px; font-size: 13px; font-weight: 600; line-height: 1.35; color: #f4f6fb; overflow-wrap: anywhere; }
+.raceMetricsRow b { font-weight: 800; }
+.raceMetricsRow span + span::before { content: ' · '; opacity: 0.5; }

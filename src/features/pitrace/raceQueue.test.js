@@ -3,6 +3,7 @@ import { buildStages } from '../player/modules/rotate-phone/wordLaneStages.js'
 import { createStudentGame, stepStudent, isDeaf, liveRep, yOfPill, FAIL_Y } from '../player/modules/rotate-phone/wordLaneStudent.js'
 import { stepTargets } from '../player/modules/rotate-phone/wordLaneRecipe.js'
 import { LISTEN_Y_MIN, LISTEN_Y_MAX } from '../player/modules/rotate-phone/wordLaneTimeline.js'
+import { PRE_SAY_GAP_MS } from './raceStageKit.js'
 import { fixturePlan } from '../rehearsal/rehearsalFixtures.js'
 import { normalizePlan } from '../rehearsal/rehearsalPlan.js'
 
@@ -32,10 +33,13 @@ describe('«Разгон»: очередь пилюль', () => {
     let t = first.t
     while (!g.reps[0].pills.every(p => p.y >= LISTEN_Y_MIN)) stepStudent(g, (t += 16))
     const ev = stepStudent(g, (t += 16), { seq: [targets[0]], confirmed: true })
-    expect(ev.map(e => e.type)).toEqual(expect.arrayContaining(['claim', 'pre'])) // сначала Пит говорит перевод следующей (preSay), пилюля — на следующем кадре, если он не занял Пита
+    expect(ev.map(e => e.type)).toContain('claim'); expect(ev.some(e => e.type === 'pre')).toBe(false) // выдержка PRE_SAY_GAP_MS: перевод следующей пилюли — не сразу после зачёта
+    t += PRE_SAY_GAP_MS - 40
+    expect(stepStudent(g, t, { seq: [targets[0]], confirmed: true }).some(e => e.type === 'pre' || e.type === 'spawn')).toBe(false)
+    expect(stepStudent(g, (t += 80), { seq: [targets[0]], confirmed: true }).some(e => e.type === 'pre')).toBe(true) // выдержка вышла: Пит говорит перевод следующей (preSay), пилюля — на следующем кадре, если он не занял Пита
     const sp = stepStudent(g, (t += 16), { seq: [targets[0]], confirmed: true }).find(e => e.type === 'spawn')
     expect(sp.rep.idx).toBe(1); expect(sp.pills[0].lane).toBe(1); expect(sp.pills[0].speed).toBeCloseTo(1.05, 3)
-    expect(g.reps[0].state).toBe('lock'); expect(g.reps[1].state).toBe('fly')
+    expect(['lock', 'won']).toContain(g.reps[0].state); expect(g.reps[1].state).toBe('fly')
     expect(g.pills.length).toBe(2) // уходящая (взлетает) и новая
     expect(liveRep(g).idx).toBe(1)
     // слушатель слушает новую: пока она не открылась, слово — «ничьё» (late); открылась — слово первой пилюли для неё чужое, слово второй принимается
@@ -62,13 +66,33 @@ describe('«Разгон»: очередь пилюль', () => {
     const { g } = make()
     const first = run(g, 0, 'spawn')
     const f = run(g, first.t, 'fail')
-    const ev = [...f.ev, ...stepStudent(g, f.t + 16)] // «не успел»: сразу перевод следующей (pre), пилюля — следующим кадром
-    expect(ev.find(e => e.type === 'fail').rep.idx).toBe(0); expect(f.ev.some(e => e.type === 'pre')).toBe(true)
+    expect(f.ev.find(e => e.type === 'fail').rep.idx).toBe(0); expect(f.ev.some(e => e.type === 'pre')).toBe(false) // после «не успел» та же выдержка перед переводом следующей
+    expect(stepStudent(g, f.t + PRE_SAY_GAP_MS - 40).some(e => e.type === 'pre' || e.type === 'spawn')).toBe(false)
+    const ev = [...stepStudent(g, f.t + PRE_SAY_GAP_MS + 20), ...stepStudent(g, f.t + PRE_SAY_GAP_MS + 40)] // выдержка вышла: перевод следующей (pre), пилюля — следующим кадром
+    expect(ev.some(e => e.type === 'pre')).toBe(true)
     const sp = ev.find(e => e.type === 'spawn')
     expect(sp.rep.idx).toBe(1); expect(sp.pills[0].lane).toBe(1)
     expect(g.failed.some(p => !p.gone)).toBe(true) // прежняя ещё на экране, доезжает вниз
     expect(g.pills.length).toBe(2)
     expect(FAIL_Y).toBeLessThan(LISTEN_Y_MAX) // «не успел» (96) наступает раньше, чем пилюля ушла на 50 % (100)
+  })
+  it('выдержка перед переводом: PRE_SAY_GAP_MS = 450 мс в ступени (step.preGap); на принятии с репликой успеха паузы сверх неё нет — перевод идёт сразу, как Пит договорил', () => {
+    const { s, g, targets } = make()
+    expect(PRE_SAY_GAP_MS).toBe(450); expect(s.step.preGap).toBe(PRE_SAY_GAP_MS); expect(g.preGap).toBe(PRE_SAY_GAP_MS)
+    const first = run(g, 0, 'spawn'); let t = first.t
+    while (!g.reps[0].pills.every(p => p.y >= LISTEN_Y_MIN)) stepStudent(g, (t += 16))
+    expect(s.step.goodAt[0]).toBe(1) // первое принятие — с репликой успеха
+    const claim = stepStudent(g, (t += 16), { seq: [targets[0]], confirmed: true })
+    expect(claim.map(e => e.type)).toContain('claim')
+    expect(g.nextSpawn - t).toBeLessThan(PRE_SAY_GAP_MS) // claimGap, а не выдержка
+    expect(stepStudent(g, (t += 16), { hold: true }).some(e => e.type === 'pre')).toBe(false) // Пит говорит реплику
+    expect(stepStudent(g, (t += 100), { hold: false }).some(e => e.type === 'pre')).toBe(true) // договорил — перевод сразу, без дополнительных 450 мс
+  })
+  it('без preGap (обычная игра) следующая пилюля не ждёт выдержки', () => {
+    const { g, targets } = make({ preGap: 0, goodAt: [] })
+    const first = run(g, 0, 'spawn'); let t = first.t
+    while (!g.reps[0].pills.every(p => p.y >= LISTEN_Y_MIN)) stepStudent(g, (t += 16))
+    expect(stepStudent(g, (t += 16), { seq: [targets[0]], confirmed: true }).map(e => e.type)).toEqual(expect.arrayContaining(['claim', 'pre']))
   })
   it('isDeaf: пилюля ниже LISTEN_Y_MAX недоступна', () => {
     const rep = y => ({ state: 'fly', pills: [{ state: 'fly', y }] })

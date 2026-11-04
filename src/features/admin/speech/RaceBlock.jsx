@@ -6,7 +6,7 @@ import { readTapMode, writeTapMode } from '../../player/modules/rotate-phone/wor
 import { FIXTURES, FIXTURE_IDS } from '../../rehearsal/rehearsalFixtures.js'
 import { loadRehearsalForm, saveRehearsalForm, subscribeRehearsalForm, parsePlanJson, fixtureJson } from '../../rehearsal/rehearsalTestForm.js'
 import { RACE_LINES } from '../../pitrace/raceLines.js'
-import { RACE_ROUNDS, RACE_TITLES } from '../../pitrace/raceOnly.js'
+import { RACE_ROUNDS, RACE_TITLES, STAGES_ROUND } from '../../pitrace/raceOnly.js'
 import { raceTexts } from '../../pitrace/raceTexts.js'
 import { extrasOf } from '../../pitrace/raceWords.js'
 import { raceDebugFile } from '../../pitrace/raceLog.js'
@@ -80,6 +80,7 @@ export default function RaceBlock({ save = saveDebugFile }) {
       <div className="rhpVoiceRow">
         <button type="button" className="aspSay" onClick={() => launch(null)} disabled={!idle || !racePlan} data-testid="race-run-full">Полная гонка</button>
         {RACE_ROUNDS.map(r => <button key={r} type="button" className="aspChip" onClick={() => launch(r)} disabled={!idle || !racePlan} data-testid={`race-run-${r}`}>{RACE_TITLES[r]}</button>)}
+        <button type="button" className="aspChip" onClick={() => launch(STAGES_ROUND)} disabled={!idle || !racePlan} data-testid="race-run-stages">{RACE_TITLES[STAGES_ROUND]}</button>
         <button type="button" className="aspChip" onClick={exportLog} data-testid="race-export">Скачать отладку</button>
       </div>
       {!idle && !playing && <p className="rhpHint" role="status" data-testid="race-why">{whyNotIdle(status)}</p>}

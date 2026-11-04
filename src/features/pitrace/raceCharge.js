@@ -37,6 +37,23 @@ export const flyDx = ({ width, x, barLeft, barWidth }) => barLeft + barWidth / 2
 
 const ease = t => t * t * (3 - 2 * t) // ease-in-out (smoothstep)
 
+// «Размытие движения» без filter (запрет проекта): у летящей пилюли шлейф — копии-призраки (box-shadow), градиент-хвост (::before, высота --tail) и лёгкое растяжение по оси движения (scale 1 → 1,15 → 1).
+// Всё это только в обычном режиме: на слабом устройстве (lite) и при reduced-motion шлейфа нет.
+export const STRETCH_MAX = 1.15  // растяжение по вертикали на середине разгона
+export const STRETCH_END = 0.85  // к этой доле пути пилюля снова не растянута (перед входом под бар)
+export const TAIL_MIN_PX = 12    // хвост: от…
+export const TAIL_MAX_PX = 56    // …до (по скорости)
+export const TAIL_PER_SPEED = 70 // px хвоста на 1 px/мс скорости
+
+/** Растяжение пилюли по оси движения на доле пути u (0…1): 1 на старте, пик STRETCH_MAX посередине разгона, снова ровно 1 к STRETCH_END и до прилёта */
+export const stretchAt = u => (u >= STRETCH_END ? 1 : 1 + (STRETCH_MAX - 1) * Math.sin((Math.PI * Math.max(0, u)) / STRETCH_END))
+
+/** Высота хвоста, px: чем быстрее пилюля (путь dist px за flyMs мс), тем длиннее */
+export const tailPx = (dist, flyMs) => Math.round(Math.min(TAIL_MAX_PX, Math.max(TAIL_MIN_PX, (dist / Math.max(1, flyMs)) * TAIL_PER_SPEED)))
+
+/** Подпись пилюли заставки: длинное слово обрезается (у пилюли нет overflow: hidden — хвост-шлейф должен быть виден) */
+export const pillLabel = (text, max = 16) => (text.length > max ? `${text.slice(0, max - 1)}…` : text)
+
 /** Кадры касания бара (свойство scale, по высоте): от текущего значения (первого кадра нет — берётся из-под анимации, при частых касаниях без скачка) к BAR_BUMP по ease-in-out за BAR_BUMP_MS, обратно к 1 за BAR_BACK_MS; duration = BAR_BUMP_MS + BAR_BACK_MS, пик на offset BAR_BUMP_MS / duration */
 export function bumpFrames(steps = 6) {
   const d = BAR_BUMP_MS + BAR_BACK_MS, peak = BAR_BUMP_MS / d

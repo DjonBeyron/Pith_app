@@ -144,7 +144,7 @@ export function useWordLanePills(rootRef, { scene, levels, fx, live, sceneApi })
     // ---------- порядок ----------
     if (kind === 'order') {
       setDots(0)
-      const run = runOrderScene({ pool, scene, fxRef, liveRef })
+      const run = runOrderScene({ pool, scene, fxRef })
       setApi(sceneApi, run.api)
       return () => { run.stop(); setApi(sceneApi, null); pool.giveAll() }
     }

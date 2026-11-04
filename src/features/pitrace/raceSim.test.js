@@ -11,32 +11,40 @@ const { stages } = buildRaceStages({ plan })
 const stage = sid => stages.find(s => s.sid === sid)
 const memory = () => { const m = new Map(); return { getItem: k => m.get(k) ?? null, setItem: (k, v) => m.set(k, v) } }
 function play(events) { let s = initRace(); for (const [t, sid, info] of events) s = reduceRace(s, { t, stage: stage(sid), info }).state; return s }
-const ENTER_ALL = [['enter', 'sprint'], ['enter', 'catch-0'], ['enter', 'catch-1'], ['enter', 'catch-2']]
+const ENTER_ALL = [['enter', 'sprint'], ['enter', 'catch']]
+const words = stage('catch').words
+const iBad = words.findIndex(w => !w.trap) // верная пилюля, на которой ошибёмся
+const catchGold = words.flatMap((w, i) => (w.trap ? [['fail', 'catch', { idx: i }]] : [['claim', 'catch', { idx: i, ms: 1000 + i * 100 }], ['win', 'catch', { idx: i }]])) // верные — сказано, ловушки — пропущены
 const goldRun = () => play([
-  ...ENTER_ALL, ...Array.from({ length: 6 }, (_, i) => ['win', 'sprint', { idx: i }]),
-  ['win', 'catch-0'], ['win', 'catch-1'], ['win', 'catch-2'],
+  ...ENTER_ALL, ...stage('sprint').words.flatMap((_, i) => [['claim', 'sprint', { idx: i, ms: 900 }], ['win', 'sprint', { idx: i }]]),
+  ...catchGold,
   ...[1, 2, 3, 4].flatMap(k => [['enter', `climb-${k}`], ['win', `climb-${k}`]]),
   ['win', 'descent-s'],
 ])
 
 describe('итог гонки и симуляция памяти', () => {
-  it('золото везде: разгон 6/6, слух 3/3, вершина — золото, спуск верно; Пит говорит «золото»', () => {
+  it('золото везде: разгон и слух без ошибок (ловушки пропущены), вершина — золото, спуск верно; Пит говорит «золото»; в итоге метрики и слабые слова', () => {
     const r = scoreRace(plan, goldRun())
-    expect(r.sprint).toEqual({ hit: 6, total: 6 }); expect(r.catchOk).toBe(3); expect(r.catchTotal).toBe(3)
+    const n = stage('sprint').words.length
+    expect(r.sprint).toEqual({ hit: n, total: n }); expect(r.catchOk).toBe(words.length); expect(r.catchTotal).toBe(words.length)
+    expect(r.metrics.accuracy).toEqual({ sprint: { hit: n, total: n }, catch: { hit: words.length, total: words.length } }); expect(r.metrics.avgMs).toBeGreaterThan(0)
+    expect(r.metrics.traps.dodged).toBe(r.metrics.traps.total); expect(r.weak.every(w => w.score === 0)).toBe(true)
     expect(r.medal).toBe('gold'); expect(r.descent).toBe('ok'); expect(r.gold).toBe(true); expect(r.phraseDone).toBe(true)
     expect(MEDAL_TITLES.gold).toBe('золото')
   })
-  it('промахи: слово разгона с промахом — к повтору (miss), заход слуха с провалом и ступень вершины тоже; золота нет', () => {
+  it('промахи: слово разгона с промахом — к повтору (miss), верная пилюля слуха с провалом и «поверил чужому переводу» тоже, ступень вершины тоже; золота нет', () => {
+    const iTrap = words.findIndex(w => w.trap)
     const s = play([
       ...ENTER_ALL, ['win', 'sprint', { idx: 0 }], ['miss', 'sprint', { idx: 1 }], ['fail', 'sprint', { idx: 1 }], ['win', 'sprint', { idx: 2 }],
-      ['fail', 'catch-0'], ['win', 'catch-0'], ['win', 'catch-1'], ['fail', 'catch-2'],
+      ['fail', 'catch', { idx: iBad }], ['miss', 'catch', { idx: iTrap, believed: true }], ['fail', 'catch', { idx: iTrap }],
       ['enter', 'climb-1'], ['win', 'climb-1'], ['enter', 'climb-2'], ['fail', 'climb-2'], ['enter', 'climb-2'], ['fail', 'climb-2'],
       ['fail', 'descent-s'],
     ])
     const r = scoreRace(plan, s)
-    expect(r.sprint.hit).toBe(2); expect(r.sprint.total).toBe(6)
-    expect(r.catchOk).toBe(2); expect(r.medal).toBe('none'); expect(r.descent).toBe('miss'); expect(r.gold).toBe(false); expect(r.phraseDone).toBe(false)
+    expect(r.sprint.hit).toBe(2); expect(r.sprint.total).toBe(stage('sprint').words.length)
+    expect(r.catchOk).toBe(0); expect(r.catchTotal).toBe(words.length); expect(r.metrics.traps).toEqual({ dodged: 0, total: words.filter(w => w.trap).length }); expect(r.medal).toBe('none'); expect(r.descent).toBe('miss'); expect(r.gold).toBe(false); expect(r.phraseDone).toBe(false)
     expect(r.misses).toBeGreaterThanOrEqual(5)
+    expect(r.weak.find(w => w.text === words[iTrap].text).score).toBeGreaterThanOrEqual(2) // «поверил» записан на слово, которое сказал Пит
     const trying = r.words.find(w => w.text === 'trying') // ступень 2 — слово trying: на ней 2 промаха
     expect(trying.miss).toBeGreaterThan(0)
   })
@@ -56,7 +64,7 @@ describe('итог гонки и симуляция памяти', () => {
   it('в журнал отладки идёт одна строка [race] итог', () => {
     const log = vi.fn()
     reportRace({ plan, race: goldRun(), store: memory(), log })
-    expect(log).toHaveBeenCalledTimes(1); expect(log.mock.calls[0][0]).toMatch(/^\[race\] итог .*разгон 6\/6, слух 3\/3, вершина золото, спуск верно/)
+    expect(log).toHaveBeenCalledTimes(1); expect(log.mock.calls[0][0]).toMatch(/^\[race\] итог .*разгон (\d+)\/\1, слух (\d+)\/\2, ответ в среднем \d+ мс, вершина золото, спуск верно/)
   })
   it('XP не больше потолка дня, общего с репетицией; повторный итог в тот же день добирает только остаток', () => {
     const store = memory(), now = Date.UTC(2026, 10, 3, 12)

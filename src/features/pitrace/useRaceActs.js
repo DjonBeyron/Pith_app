@@ -11,7 +11,7 @@ import { sprintTarget } from './raceSprint2.js'
 
 // Директор «Гонки с Питом» (CONCEPT_RACE.md) поверх директора репетиции: useWordLaneFlow зовёт ЭТОТ хук вместо useRehearsalActs. Без плана гонки (plan.game !== 'race') он возвращает то, что вернул бы useRehearsalActs, —
 // остальные хуки внутри бездействуют. Что делает для гонки сверх репетиции (реплики на старте стадий, отсчёт, тишина экрана, вступление race_start, пауза — всё это уже у useRehearsalActs, он знает про plan.game):
-//  • состояние раундов (raceState.js): реакции движка win / miss / fail приходят в rec(kind, info) → «Разгон» (мини-реплики успеха на принятии слова, два круга: raceGood.js, raceSprint2.js), заходы «Слушай и лови», лестница «Вершины»; экран читает rh.race;
+//  • состояние раундов (raceState.js): реакции движка win / miss / fail приходят в rec(kind, info) → «Разгон» и «Слушай и лови» (мини-реплики успеха на принятии слова, время ответа, два круга: raceGood.js, raceSprint2.js), лестница «Вершины»; экран читает rh.race;
 //  • nextIdx: после ступени лестницы идёт стадия не «следующая по списку», а та, что решает лестница (k + 1 после попадания, ниже после соскальзывания, плашка вершины — после верха; raceState.climbTarget);
 //  • подсказка «Вершины»: на 2-м промахе одной ступени Пит говорит новое слово голосом (sayText), реплика соскальзывания в этот раз пропускается (её говорит редюсер); 3-й промах — подпись мигает (race.climb.blink);
 //  • ловушка-двойник (raceTrap.js): на промахе директор берёт у слушателя, что услышал Vosk (listener.heard()), редюсер узнаёт двойника — Пит говорит «это двойник, а нужно слово» по кускам (raceTrapVoice.js), вместо «соскользнул» и подсказки;
@@ -86,21 +86,22 @@ export function useRaceActs(args) {
 
   const baseNext = rh.nextIdx // стабильна (useCallback в useRehearsalActs): на ней держится next директора
   const seed = plan?.seed
-  const nextIdx = useCallback(i => (on ? climbTarget(stages, stages[i - 1], box.s) ?? sprintTarget(stages, stages[i - 1], box.s.sprint, seed) ?? baseNext(i) : baseNext(i)), [on, stages, box, baseNext, seed])
+  const nextIdx = useCallback(i => (on ? climbTarget(stages, stages[i - 1], box.s) ?? sprintTarget(stages, stages[i - 1], box.s[stages[i - 1]?.act], seed) ?? baseNext(i) : baseNext(i)), [on, stages, box, baseNext, seed])
   if (!on) return rh
   return {
     ...rh, result, race: view, nextIdx,
-    /** Слово «Разгона» принято (раньше, чем щёлкнет заливка): Пит говорит мини-реплику успеха, следующая пилюля ждёт его */
-    claim(e) { if (running) apply({ t: 'claim', stage: running, info: e }) },
-    /** Перед выездом пилюли «Разгона» (движок: событие 'pre'): Пит говорит русский перевод слова из библиотеки (raceTrans.js); озвучки нет — молча, пилюля выезжает сразу. Пилюля ждёт, пока он договорит (pitLeft) */
-    pre(rep) { if (running?.act === 'sprint' && rep?.cap) sayRef.current.sayText?.(rep.cap, { ru: true }) },
+    /** Слово «Разгона» / «Слушай и лови» принято (раньше, чем щёлкнет заливка): время ответа ms (от выезда пилюли) — в результаты; Пит говорит мини-реплику успеха, следующая пилюля ждёт его */
+    claim(rep, ms) { if (running) apply({ t: 'claim', stage: running, info: { idx: rep?.idx, ms } }) },
+    /** Перед выездом пилюли (движок: событие 'pre'): в «Разгоне» Пит говорит русский перевод слова из библиотеки (raceTrans.js), в «Слушай и лови» — английское слово (rep.say, библиотека слов); озвучки нет — молча, пилюля выезжает сразу.
+     *  Пилюля ждёт, пока он договорит (pitLeft) */
+    pre(rep) { if (running?.act === 'sprint' && rep?.cap) sayRef.current.sayText?.(rep.cap, { ru: true }); else if (running?.act === 'catch' && rep?.say) sayRef.current.sayText?.(rep.say, { hold: true }) },
     rec(kind, info) {
       rh.rec(kind, info)
       if (!running) return
       apply({ t: kind, stage: running, info: kind === 'miss' ? { ...info, heard: listenerRef?.current?.heard?.() ?? '' } : info }) // на промахе — что услышал Vosk: двойник слова ступени ломает ловушку
       if (kind === 'miss' && running.act === 'climb' && running.type === 'student') jump(climbStageIdx(stages, box.s.climb)) // сказал не то — соскальзывание: ступень-стадия перезапускается (слово ступени звучит подсказкой при 2-м промахе)
     },
-    // Реплик на «не успел» из директора игры нет: ответы «Слушай и лови» и «ой, соскользнул» «Вершины» говорит редюсер (raceState.js)
+    // Реплик на «не успел» из директора игры нет: «ой, соскользнул» «Вершины» говорит редюсер (raceState.js)
     failLine: () => '',
   }
 }

@@ -62,11 +62,28 @@ describe('useRaceActs: директор гонки поверх директор
     const { rh, stages } = probe('sprint')
     for (const sid of ['sprint', 'descent-s', 'climb-1']) expect(rh.failLine(stages.find(s => s.sid === sid))).toBe('')
   })
-  it('слух: провал захода — «мимо, слушай ещё»; верное слово — без реплики', () => {
-    const a = probe('catch-0'); a.rh.rec('fail', undefined)
-    expect(a.sayLine.mock.calls.map(c => c[0])).toEqual(['race_catch_miss'])
-    const b = probe('catch-0'); b.rh.rec('win', undefined)
-    expect(b.sayLine).not.toHaveBeenCalled()
+  it('слушай и лови: принятие слова пишет время ответа и говорит мини-реплику успеха; «не успел» и промах реплик не вызывают (редюсер молчит)', () => {
+    const { rh, sayLine, stages } = probe('catch')
+    const st = stages.find(s => s.sid === 'catch'), i = st.words.findIndex(w => !w.trap)
+    rh.claim({ idx: i }, 1500)
+    expect(sayLine.mock.calls.map(c => c[0])).toEqual([st.good[0].id])
+    const t = probe('catch'); t.rh.rec('fail', { idx: 1 }); t.rh.rec('miss', { idx: 1 }); expect(t.sayLine).not.toHaveBeenCalled()
+  })
+  it('перед выездом пилюли Пит говорит: в разгоне — русский перевод (ru), в «Слушай и лови» — английское слово (hold: Пит занят); без озвучки — молча', () => {
+    const sp = probe('sprint'); sp.rh.pre({ cap: 'учиться', say: 'learn' })
+    expect(sp.sayText).toHaveBeenCalledWith('учиться', { ru: true })
+    const ct = probe('catch'); ct.rh.pre({ cap: 'учиться', say: 'learn' })
+    expect(ct.sayText).toHaveBeenCalledWith('learn', { hold: true })
+    const none = probe('catch'); none.rh.pre({ cap: 'x' }); expect(none.sayText).not.toHaveBeenCalled()
+  })
+  it('слушай и лови: после первого круга с ошибкой директор идёт на объявление второго (catch2-ann, слова вписаны), без ошибок — мимо него; ловушка, на которую не поддался, ошибкой не считается', () => {
+    const { rh, stages } = probe('catch')
+    const i1 = stages.findIndex(s => s.sid === 'catch'), st = stages[i1]
+    st.words.forEach((w, i) => rh.rec(w.trap ? 'fail' : 'win', { idx: i })) // верные пилюли — слово сказано, ловушки уехали («не успел» = пропущена) — всё верно
+    expect(stages[rh.nextIdx(i1 + 1)].act).toBe('climb') // ошибок не было — второго круга нет
+    const bad = probe('catch'); bad.rh.rec('miss', { idx: st.words.findIndex(w => w.trap), believed: true })
+    const go = bad.rh.nextIdx(i1 + 1)
+    expect(bad.stages[go].sid).toBe('catch2-ann'); expect(bad.stages[go + 1].sid).toBe('catch2'); expect(bad.stages[go + 1].words.length).toBeGreaterThanOrEqual(2)
   })
   it('вершина: nextIdx идёт на ступень k + 1 после попадания, остаётся после промаха на первой ступени; «ой, соскользнул» на промахе, а на 2-м промахе ступени Пит говорит слово голосом вместо него', () => {
     const win = probe('climb-1'); win.rh.rec('win')
@@ -88,7 +105,7 @@ describe('useRaceActs: директор гонки поверх директор
     expect(setS).toHaveBeenCalledTimes(1)
     const next = setS.mock.calls[0][0]({ idx: 99, at: 0, stage: 'run' })
     expect(next).toMatchObject({ stage: 'run', hint: [], leaving: -1 }); expect(h.stages[next.idx].sid).toMatch(/^climb-\d$/); expect(next.at).toBeGreaterThanOrEqual(0)
-    const c = probe('catch-0', { setS }); c.rh.rec('miss'); expect(setS).toHaveBeenCalledTimes(1)
+    const c = probe('catch', { setS }); c.rh.rec('miss'); expect(setS).toHaveBeenCalledTimes(1)
   })
   it('вершина: ловушка — на промахе директор спрашивает у слушателя, что услышано; двойник слова ступени 4 — «мимо, это двойник» (озвучки нет) вместо «соскользнул», подсказка голосом не нужна; прочее слово — обычный промах', () => {
     const run = heard => {

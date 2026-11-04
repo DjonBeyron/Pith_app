@@ -17,37 +17,41 @@ export const setHinted = (box, k) => { box.hinted = k }
 export const takeHinted = box => { const k = box.hinted; box.hinted = null; return k }
 export const markEntered = (box, key) => { box.entered = key }
 
-export const initRace = () => ({ round: '', streak: 0, best: 0, streakMode: undefined, sprint: { words: [], caps: {}, results: {}, claims: 0, r2: null }, catch: { results: {}, words: {} }, climb: null, descent: null })
+export const initRace = () => ({ round: '', streak: 0, best: 0, streakMode: undefined, sprint: { words: [], caps: {}, traps: [], results: {}, claims: 0, r2: null }, catch: { words: [], caps: {}, traps: [], results: {}, claims: 0, r2: null }, climb: null, descent: null })
 
 const modeOf = n => (n >= STREAK_FIRE ? 'fire' : n >= STREAK_GOLD ? 'gold' : undefined)
 const same = (s, patch) => ({ state: { ...s, ...patch } })
 const wordTitle = w => `«${w}»`
 
-function sprint(s, kind, stage, info) {
-  const second = stage.sid === 'sprint2'
+// «Разгон» и «Слушай и лови» — одна механика очереди пилюль, состояние одинаковой формы: s.sprint / s.catch = { words, caps, traps, results: { номер пилюли: { hit, miss, ms, trap, believed } }, claims, r2 } (r2 — то же для второго круга).
+// hit — верное действие (слово сказано верно / ловушку пропустил), miss — ошибка (чужое слово, «не успел», «поверил чужому переводу»), ms — время ответа от выезда пилюли до зачёта, trap — пилюля с чужим переводом, believed — на ней сказал слово.
+function queue(s, kind, stage, info) {
+  const k = stage.act, second = stage.sid === `${k}2`
   const i = info?.idx
-  const word = i != null ? stage.words[i]?.text : null
-  const cur = second ? s.sprint.r2 ?? { words: [], results: {}, claims: 0 } : s.sprint
-  const prev = i != null ? cur.results[i] ?? { hit: false, miss: false } : null
-  const results = i != null ? { ...cur.results, [i]: kind === 'win' ? { ...prev, hit: true } : { ...prev, miss: true } } : cur.results
-  const put = patch => (second ? { ...s.sprint, r2: { ...cur, ...patch } } : { ...s.sprint, ...patch })
-  const tag = second ? ' (второй круг)' : ''
-  if (kind === 'claim') { // слово принято: мини-реплика успеха по плану круга (raceGood.js), следующая пилюля ждёт, пока Пит договорит
+  const w = i != null ? stage.words[i] : null
+  const word = w?.text ?? null
+  const base = s[k]
+  const cur = second ? base.r2 ?? { words: [], results: {}, claims: 0 } : base
+  const prev = i != null ? { hit: false, miss: false, ...cur.results[i] } : null
+  const put = patch => (second ? { ...base, r2: { ...cur, ...patch } } : { ...base, ...patch })
+  const done = patch => put({ results: i != null ? { ...cur.results, [i]: { ...prev, ...patch } } : cur.results })
+  const tag = `${k === 'catch' ? 'слух' : 'разгон'}${second ? ' (второй круг)' : ''}`
+  const fell = (patch, log) => ({ ...same(s, { streak: 0, streakMode: undefined, [k]: done(patch) }), log: `${tag}: ${wordTitle(word ?? '…')} ${log}, серия 0, слово к повтору` })
+  if (kind === 'claim') { // слово принято: время ответа и мини-реплика успеха по плану круга (raceGood.js), следующая пилюля ждёт, пока Пит договорит
     const claims = cur.claims + 1
-    return { ...same(s, { sprint: put({ claims }) }), say: stage.good?.find(g => g.at === claims)?.id ?? null }
+    const timed = i != null ? { results: { ...cur.results, [i]: { ...prev, ms: info.ms ?? prev.ms ?? null } } } : {}
+    return { ...same(s, { [k]: put({ claims, ...timed }) }), say: stage.good?.find(g => g.at === claims)?.id ?? null }
+  }
+  if (w?.trap) { // пилюля с чужим переводом: верное действие — промолчать
+    if (kind === 'miss') return info.believed ? fell({ trap: true, miss: true, believed: true }, 'поверил чужому переводу') : { state: s }
+    if (kind === 'fail' && !prev.believed) { const streak = s.streak + 1; return { ...same(s, { streak, best: Math.max(s.best, streak), streakMode: modeOf(streak), [k]: done({ trap: true, hit: true }) }), log: `${tag}: ${wordTitle(word)} ловушка пропущена, серия ${streak}` } }
+    return { ...same(s, { [k]: done({ trap: true, hit: true }) }), log: `${tag}: ${wordTitle(word)} ловушка, до этого поверил` }
   }
   if (kind === 'win') {
     const streak = s.streak + 1
-    return { ...same(s, { streak, best: Math.max(s.best, streak), streakMode: modeOf(streak), sprint: put({ results }) }), log: `разгон${tag}: ${wordTitle(word)} верно, серия ${streak}` }
+    return { ...same(s, { streak, best: Math.max(s.best, streak), streakMode: modeOf(streak), [k]: done({ hit: true }) }), log: `${tag}: ${wordTitle(word)} верно${prev?.ms ? ` за ${prev.ms} мс` : ''}, серия ${streak}` }
   }
-  return { ...same(s, { streak: 0, streakMode: undefined, sprint: put({ results }) }), log: `разгон${tag}: ${wordTitle(word ?? '…')} ${kind === 'fail' ? 'не успел' : 'промах'}, серия 0, слово к повтору` }
-}
-
-function catchRound(s, kind, stage) {
-  const prev = s.catch.results[stage.ci] ?? { ok: false, bad: 0 }
-  const res = kind === 'win' ? { ...prev, ok: true } : { ...prev, bad: prev.bad + 1 }
-  const say = kind === 'fail' ? 'race_catch_miss' : null // провал захода (чужое слово или не успел): Пит «мимо, слушай ещё», заход повторится один раз
-  return { ...same(s, { catch: { ...s.catch, results: { ...s.catch.results, [stage.ci]: res } } }), say, log: `слух ${stage.ci + 1}: ${wordTitle(stage.word.text)} ${kind === 'win' ? 'верно' : kind === 'fail' ? 'промах, заход повторится' : 'не та дорожка'}` }
+  return fell({ miss: true }, kind === 'fail' ? 'не успел' : 'промах')
 }
 
 function climbRound(s, kind, stage, info) {
@@ -65,9 +69,11 @@ function climbRound(s, kind, stage, info) {
 
 function enter(s, stage, now) {
   if (stage.type === 'announce') return stage.round?.title ? { ...same(s, { round: stage.act }), log: `раунд: ${stage.round.title}` } : { state: s }
-  if (stage.act === 'sprint' && stage.sid === 'sprint2') return { ...same(s, { sprint: { ...s.sprint, r2: { words: stage.words.map(w => w.text), results: {}, claims: 0 } } }), log: `разгон, второй круг: ${stage.words.length} пилюль (${stage.words.map(w => w.text).join(', ')})` }
-  if (stage.act === 'sprint') return { ...same(s, { sprint: { ...s.sprint, words: stage.words.map(w => w.text), caps: Object.fromEntries(stage.words.map(w => [w.text, w.translation])) } }), log: `разгон: ${stage.words.length} пилюль` }
-  if (stage.act === 'catch') return same(s, { catch: { words: { ...s.catch.words, [stage.ci]: stage.word.text }, results: { ...s.catch.results, [stage.ci]: s.catch.results[stage.ci] ?? { ok: false, bad: 0 } } } })
+  if ((stage.act === 'sprint' || stage.act === 'catch') && stage.type === 'student') {
+    const k = stage.act, name = k === 'catch' ? 'слух' : 'разгон', texts = stage.words.map(w => w.text), traps = stage.words.map(w => !!w.trap)
+    if (stage.sid === `${k}2`) return { ...same(s, { [k]: { ...s[k], r2: { words: texts, traps, results: {}, claims: 0 } } }), log: `${name}, второй круг: ${texts.length} пилюль (${texts.join(', ')})` }
+    return { ...same(s, { [k]: { ...s[k], words: texts, traps, caps: Object.fromEntries(stage.words.map(w => [w.text, w.translation])) } }), log: `${name}: ${texts.length} пилюль${traps.some(Boolean) ? `, ловушек ${traps.filter(Boolean).length}` : ''}` }
+  }
   if (stage.act === 'climb' && stage.type === 'student') { const c = ladder.enter(s.climb ?? ladder.initClimb(stage.n, stage.trap), now); return same(s, { climb: c }) }
   return { state: s }
 }
@@ -75,11 +81,10 @@ function enter(s, stage, now) {
 /** Итог шага: { state, say, hint, log } (say / hint / log — null, если нечего) */
 export function reduceRace(s, ev) {
   const { t, stage, info, now } = ev
-  if (!stage?.race || (t === 'win' && info?.last === false) || (t === 'claim' && stage.act !== 'sprint')) return { state: s, say: null, hint: null, trap: null, log: null } // win приходит на каждую пилюлю повтора (спуск — три куска): считаем только последнюю
+  if (!stage?.race || (t === 'win' && info?.last === false) || (t === 'claim' && !['sprint', 'catch'].includes(stage.act))) return { state: s, say: null, hint: null, trap: null, log: null } // win приходит на каждую пилюлю повтора (спуск — три куска): считаем только последнюю
   let r
   if (t === 'enter') r = enter(s, stage, now)
-  else if (stage.act === 'sprint' && stage.type === 'student') r = sprint(s, t, stage, info)
-  else if (stage.act === 'catch') r = catchRound(s, t, stage)
+  else if ((stage.act === 'sprint' || stage.act === 'catch') && stage.type === 'student') r = queue(s, t, stage, info)
   else if (stage.act === 'climb' && stage.type === 'student') r = climbRound(s, t, stage, info)
   else if (stage.act === 'descent' && stage.type === 'student' && t !== 'miss') r = { ...same(s, { descent: t === 'win' ? 'ok' : 'miss' }), log: `спуск: ${t === 'win' ? 'фраза сказана' : 'не успел'}` }
   else r = { state: s }

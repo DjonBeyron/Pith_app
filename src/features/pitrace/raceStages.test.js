@@ -7,8 +7,7 @@ import { SPEED } from '../player/modules/rotate-phone/wordLaneTimeline.js'
 import { fixturePlan } from '../rehearsal/rehearsalFixtures.js'
 import { normalizePlan } from '../rehearsal/rehearsalPlan.js'
 import { isStudentStage, engineKind } from '../rehearsal/rehearsalKinds.js'
-import { estChunkMs } from '../player/modules/rotate-phone/wordLaneAudio.js'
-import { CATCH_AFTER_WORD_MS } from './raceStagesCatch.js'
+import { PRE_SAY_GAP_MS } from './raceStageKit.js'
 import { CLIMB_STEP_SPEED, CLIMB_PILL_Y0 } from './raceClimbTimer.js'
 
 const plan = (id = 'three', extra = {}) => normalizePlan({ ...fixturePlan(id), game: 'race', ...extra })
@@ -25,14 +24,14 @@ describe('стадии гонки в формате движка', () => {
     expect(rh.stages.some(s => s.race)).toBe(false)
     expect(buildRaceStages({ plan: plan() }).stages.map(s => s.type)).toEqual(r.stages.map(s => s.type))
   })
-  it('порядок: плашка и разгон, плашка и три захода, плашка и ступени с плашками вершины и «время вышло», спуск (плашка, читка, «твоя очередь», ответ), итог', () => {
+  it('порядок: плашка и разгон, плашка и «Слушай и лови» (по два круга), плашка и ступени с плашками вершины и «время вышло», спуск (плашка, читка, «твоя очередь», ответ), итог', () => {
     const st = build().stages
     const seq = st.map(s => `${s.act}:${s.type}`)
     expect(seq.slice(0, 4)).toEqual(['sprint:announce', 'sprint:student', 'sprint:announce', 'sprint:student']) // первый и второй круг разгона (второй идёт, только если были ошибки)
-    expect(seq.slice(4, 8)).toEqual(['catch:announce', 'catch:discern', 'catch:discern', 'catch:discern'])
+    expect(seq.slice(4, 8)).toEqual(['catch:announce', 'catch:student', 'catch:announce', 'catch:student']) // «Слушай и лови» — инверсия разгона: тоже два круга
     expect(of(st, 'climb').filter(s => s.type === 'student')).toHaveLength(4)
     expect(seq.slice(-5)).toEqual(['descent:announce', 'descent:read', 'descent:turn', 'descent:student', 'summary:summary'])
-    expect(st.filter(s => s.type === 'announce').map(s => s.line)).toEqual(['race_sprint', 'race_sprint_round2', 'race_catch', 'race_climb', 'race_climb_top', 'race_climb_time', 'race_descent'])
+    expect(st.filter(s => s.type === 'announce').map(s => s.line)).toEqual(['race_sprint', 'race_sprint_round2', 'race_catch', 'race_sprint_round2', 'race_climb', 'race_climb_top', 'race_climb_time', 'race_descent'])
   })
   it('разгон: одна ступень ученика, по повтору на пилюлю; у повтора своя дорожка, скорость (+5 %), перевод внутри, без слова, которое проявлялось при промахе (тихий промах)', () => {
     const [s] = of(build().stages, 'sprint').filter(x => x.type === 'student')
@@ -58,26 +57,33 @@ describe('стадии гонки в формате движка', () => {
     const plain = createStudentGame({ step: { reps: [{ parts: [0] }, { parts: [1] }], parts: [0, 1] }, chunks: ['a', 'b'] })
     expect(plain.reps.map(r => [r.lanes[0], r.speed, r.cap])).toEqual([[0, 1, null], [1, 1, null]])
   })
-  it('слушай и лови: три захода типа discern; пилюли молчат (written), слово — голосом (sayText), ответ голосом (speak), слушатель берёт ступень; заход повторяется один раз', () => {
+  it('слушай и лови (инверсия разгона): та же ступень одной пилюли, у повтора перевод внутри (cap), английское слово для голоса Пита (say), ловушки (trap); второй круг catch2; сцены discern / speak больше нет', () => {
     const stages = build().stages
-    const st = of(stages, 'catch').filter(s => s.type === 'discern')
-    expect(st).toHaveLength(3)
-    for (const s of st) {
-      expect(engineKind(s)).toBe('discern')
-      expect(s.speak).toBe(true); expect(s.maxTries).toBe(2)
-      expect(s.sayText).toBe(s.prompts[0].text)
-      expect(s.prompts[0].written).toBe(true)
-      const p = s.prompts[0] // слово звучит ДО пилюль: сразу (sayAt 0), пилюли выезжают после слова + 300 мс, речь считается, когда все три открылись
-      expect(p.sayAt).toBe(0); expect(p.lead).toBe(Math.round(estChunkMs(s.sayText) + CATCH_AFTER_WORD_MS)) // длина слова (нет озвучки — оценка) + пауза
-      expect(p.voiceFrom).toBeGreaterThan(p.lead)
-      expect(s.prompts[0].caps.filter(Boolean)).toHaveLength(3)
-      expect(s.prompts[0].texts[s.prompts[0].answer[0]]).toBe(s.sayText)
-      expect(s.step.chunks).toEqual([s.sayText]) // верно засчитывается только оно
-      expect(s.step.extra.length).toBeGreaterThanOrEqual(2) // чужие слова и двойники — в словаре, но не цели
-    }
-    const i = stages.indexOf(st[0])
-    expect(listenStepOf(stages, i)).toBe(st[0].step) // слушатель — на заходе
-    expect(listenStepOf(stages, i - 1)).toBe(st[0].step) // и уже под плашкой раунда
+    const st = of(stages, 'catch').filter(s => s.type === 'student')
+    expect(st.map(s => s.sid)).toEqual(['catch', 'catch2'])
+    expect(of(stages, 'catch').some(s => s.type === 'discern' || s.speak)).toBe(false)
+    const [s] = st, { reps, chunks } = s.step
+    expect(isStudentStage(s)).toBe(true); expect(engineKind(s)).toBe('student')
+    expect(s.step).toMatchObject({ id: 'catch', quiet: true, edge: true, holdAll: true, overlap: true, preSay: true, preGap: PRE_SAY_GAP_MS, maxTries: 1 })
+    expect(s.step.labels).toEqual([])
+    expect(reps.length).toBe(s.words.length)
+    reps.forEach((r, i) => {
+      const w = s.words[i]
+      expect(r.parts).toEqual([i]); expect(r.lane).toBe(i % 3); expect(r.cap).toBe(w.shown); expect(r.say).toBe(w.text); expect(r.trap).toBe(w.trap)
+      expect(chunks[i]).toBe(w.text) // цель — английское слово (то, что Пит сказал голосом)
+    })
+    expect(reps.some(r => r.trap)).toBe(true); expect(reps[0].trap).toBe(false)
+    const g = createStudentGame({ step: s.step, chunks, estMs: () => 400, maxTries: 1 })
+    expect(g.reps.map(r => [r.trap, r.say])).toEqual(reps.map(r => [r.trap, r.say]))
+    const i = stages.indexOf(s)
+    expect(listenStepOf(stages, i)).toBe(s.step) // слушатель — на ступени
+    expect(stages.filter(x => x.act === 'catch' && x.type === 'announce').map(x => x.line)).toEqual(['race_catch', 'race_sprint_round2'])
+  })
+  it('разгон и слушай и лови собираются одним набором (raceStageKit.queueStep): общие флаги и выдержка PRE_SAY_GAP_MS; у разгона нет say / trap', () => {
+    const stages = build().stages
+    const sp = of(stages, 'sprint').find(x => x.type === 'student').step, ct = of(stages, 'catch').find(x => x.type === 'student').step
+    for (const k of ['quiet', 'edge', 'holdAll', 'overlap', 'preSay', 'preGap', 'claimGap', 'maxTries']) expect(sp[k]).toEqual(ct[k])
+    expect(sp.reps.every(r => r.say === undefined && r.trap === undefined)).toBe(true)
   })
   it('вершина: ступень k — первые k слов одним высказыванием; пилюля — одна, подписей над дорожками нет, времени ступени нет (пилюля почти стоит), maxTries 1', () => {
     const st = of(build().stages, 'climb').filter(s => s.type === 'student')

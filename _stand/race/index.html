@@ -12,11 +12,11 @@ import { wordKey } from '/src/shared/lib/wordAudio/wordKey.js'
 import { voskRuntime } from '/src/shared/lib/vosk/voskRuntime.js'
 import { fixtureSource, fixturePlan } from '/src/features/rehearsal/rehearsalFixtures.js'
 import { raceTexts } from '/src/features/pitrace/raceTexts.js'
-import { extrasOf, catchSets, climbWords, sprintWords } from '/src/features/pitrace/raceWords.js'
+import { extrasOf, catchWords, climbWords, sprintWords } from '/src/features/pitrace/raceWords.js'
 import { normalizePlan } from '/src/features/rehearsal/rehearsalPlan.js'
 
 // Стенд «Гонка с Питом» (dev, в сборку не входит): настоящие раунды гонки на игре «Повтори за диктором» без входа, Supabase и телефона.
-//  • ?fixture=three|two|one|none — план из фикстур; ?seed=… — семя случайностей; ?only=sprint|catch|climb|descent — один раунд (иначе полная гонка);
+//  • ?fixture=three|two|one|none — план из фикстур; ?seed=… — семя случайностей; ?only=sprint|catch|climb|descent — один раунд, ?only=stages — «два этапа + финал» (иначе полная гонка);
 //  • озвучка слов и кусков — синтетические гудки (wav ниже), реплики Пита без озвучки (подпись без звука); ?voice=0 — и слова без озвучки;
 //  • Vosk — заглушка: речь подаёт драйвер очередью window.__sayQueue (строки «слова через пробел»): следующий кусок звука микрофона закрывает заход с этим текстом — как итог Vosk; тап вместо речи (localStorage pithy_wl_tap_v1=1) работает как обычно.
 const params = new URLSearchParams(location.search)
@@ -64,6 +64,6 @@ voskRuntime.getModel = () => ({ KaldiRecognizer: Rec })
 const node = { id: 'race-stand', type: 'rotate_phone', isHistory: false, typeData: { rotate_phone: { plan } } }
 window.__done = null
 const np = normalizePlan(plan) // для драйвера скриншотов (shoot.mjs): слова раундов по тому же плану и семени
-window.__race = { sprint: sprintWords(np), catches: catchSets(np), climb: climbWords(np), chunks: np.chunks }
+window.__race = { sprint: sprintWords(np), catches: catchWords(np), climb: climbWords(np), chunks: np.chunks }
 createRoot(document.getElementById('root')).render(React.createElement(RotatePhoneModule, { node, file: null, forceDebug: true, onDone: v => { window.__done = v } }))
 </script></body></html>

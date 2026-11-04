@@ -90,7 +90,7 @@ export default function WordLaneGame({ cfg, audioSrc, lines = null, forceDebug =
         <RehearsalActs f={f} cfg={cfg} lines={lines} onAgain={onAgain} onSummary={onSummary} />
         {debug && <WordLaneDebug />}
         {debug && <WordLanePerf />}
-        {cfg.plan?.game !== 'race' && <Mic mode={f.mic} levels={f.levels} note={f.note} visible={phase === 'student' || !!f.stageObj?.speak} />} {/* гонка: индикатора уровня микрофона нет (CONCEPT_RACE.md) */}
+        {cfg.plan?.game !== 'race' && <Mic mode={f.mic} levels={f.levels} note={f.note} visible={phase === 'student'} />} {/* гонка: индикатора уровня микрофона нет (CONCEPT_RACE.md) */}
         {f.mic === 'failed' && !f.paused && (
           <div className="wlFail" role="alert" data-testid="wl-fail">
             <p className="wlFailTitle">{FAIL_TEXT.title}</p>

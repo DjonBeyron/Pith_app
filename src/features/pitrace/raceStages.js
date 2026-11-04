@@ -1,7 +1,6 @@
 // «Гонка с Питом»: акты рецепта (raceRecipe.js) → плоский список стадий в ТОМ ЖЕ формате, что у rehearsalStages.js / wordLaneStages.js (директор useWordLaneFlow проходит их по порядку). wordLaneStages.buildStages
-// делегирует сюда, когда у плана game === 'race'. Раунды по файлам: raceStagesSprint.js, raceStagesCatch.js, raceStagesClimb.js, raceStagesDescent.js; общее — raceStageKit.js.
-// Стадии гонки (все с race: true и act): announce — плашка раунда с репликой Пита (line); student — «Разгон» (одна ступень на все пилюли), ступени лестницы «Вершины», ответ «Спуска»; discern — заход «Слушай и лови»
-// (speak: ответ голосом); read / turn — читка Пита в «Спуске»; summary — итог. buildStages возвращает { recipe, stages, chunkMs, chunkCurves, lanes, clipMode }, как buildStages движка.
+// делегирует сюда, когда у плана game === 'race'. Раунды по файлам: raceStagesSprint.js, raceStagesCatch.js (оба — очередь пилюль, общая сборка в raceStageKit.js), raceStagesClimb.js, raceStagesDescent.js; общее — raceStageKit.js.
+// Стадии гонки (все с race: true и act): announce — плашка раунда с репликой Пита (line); student — «Разгон» и «Слушай и лови» (одна ступень на все пилюли круга), ступени лестницы «Вершины», ответ «Спуска»; read / turn — читка Пита в «Спуске»; summary — итог. buildStages возвращает { recipe, stages, chunkMs, chunkCurves, lanes, clipMode }, как buildStages движка.
 import { orderLanes } from '../player/modules/rotate-phone/wordLaneRecipe.js'
 import { estChunkMs } from '../player/modules/rotate-phone/wordLaneAudio.js'
 import { rngFor } from '../rehearsal/rehearsalSeed.js'

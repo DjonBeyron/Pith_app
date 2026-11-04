@@ -25,3 +25,21 @@ describe('«Самые слабые слова»: raceWeak', () => {
     expect(weakWords(null)).toEqual([]); expect(weakWords({ words: [], results: {} })).toEqual([])
   })
 })
+
+describe('«Самые слабые слова»: оба этапа', () => {
+  const stages = (sp, ct) => ({ sprint: sprint(sp), catch: { words: ['c', 'a', 'b', 'd'], caps: { a: 'а', b: 'б', c: 'в', d: 'г' }, traps: [false, true, false, true], results: {}, r2: null, ...ct } })
+  it('счёт — сумма по этапам: ошибка в «Слушай и лови» = 2 (в круге 2 = 3), «поверил чужому переводу» = 2 на слово, которое сказал Пит; верно и пропущенная ловушка = 0', () => {
+    const race = stages({}, { results: { 0: ok, 1: { hit: true, miss: true, believed: true, trap: true }, 2: { hit: false, miss: true }, 3: { hit: true, miss: false, trap: true } } })
+    const list = weakWords(race)
+    expect(list.map(w => [w.text, w.score])).toEqual([['b', 4], ['a', 2], ['d', 2], ['c', 0]]) // b: разгон 2 + катч 2; a: катч «поверил» 2; d: разгон 2; c: 0
+    expect(list[0].translation).toBe('б'); expect(list[0].tone).toBe('red')
+  })
+  it('второй круг слуха: ошибка снова — +3; слова только из слуха (нет в разгоне) тоже попадают в список', () => {
+    const race = stages({ words: ['a', 'b'], results: { 0: ok, 1: ok } }, { words: ['a', 'x'], caps: { a: 'а', x: 'икс' }, results: { 0: miss, 1: ok }, r2: { words: ['a'], results: { 0: miss } } })
+    expect(weakWords(race).map(w => [w.text, w.score])).toEqual([['a', 5], ['b', 0], ['x', 0]])
+    expect(weakWords(race)[2].translation).toBe('икс')
+  })
+  it('без слуха (только разгон) результат тот же, что у одного этапа', () => {
+    expect(weakWords({ sprint: sprint(), catch: undefined }).map(w => w.score)).toEqual(weakWords(sprint()).map(w => w.score))
+  })
+})
