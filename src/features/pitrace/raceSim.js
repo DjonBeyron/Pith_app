@@ -11,6 +11,9 @@ import { medalOf } from './raceLadder.js'
 
 export const MEDAL_TITLES = { gold: 'золото', silver: 'серебро', finish: 'без медали', none: '—' }
 
+/** Строка «Вершины» в итоге: медаль; не дошёл до вершины (время вышло, потолок заходов) — «без медали, N из M ступеней»; раунда не было — «—» */
+export const climbTitle = r => (r.medal === 'none' && r.climbTotal > 0 ? `без медали, ${r.climbRung} из ${r.climbTotal} ступеней` : MEDAL_TITLES[r.medal])
+
 /** Итог по состоянию гонки: { sprint: { hit, total }, catchOk, catchTotal, medal, descent, phraseDone, words: [{ text, hit, miss }], xp, misses, gold } */
 export function scoreRace(plan, race) {
   const results = Object.entries(race.sprint.results)
@@ -35,13 +38,13 @@ export function scoreRace(plan, race) {
   const misses = (sprintTotal - sprintHit) + catchList.reduce((a, r) => a + r.bad, 0) + Object.values(race.climb?.fails ?? {}).reduce((a, n) => a + n, 0) + (descent === 'miss' ? 1 : 0)
   const phraseDone = descent === 'ok' || !!race.climb?.top
   const gold = sprintTotal > 0 && sprintHit === sprintTotal && catchList.length > 0 && catchList.every(r => r.ok && !r.bad) && medal === 'gold' && descent === 'ok'
-  return { sprint: { hit: sprintHit, total: sprintTotal }, catchOk, catchTotal: catchList.length, medal, descent, phraseDone, words: mem, xp, misses, gold }
+  return { sprint: { hit: sprintHit, total: sprintTotal }, catchOk, catchTotal: catchList.length, medal, climbRung: race.climb?.rung ?? 0, climbTotal: race.climb?.n ?? 0, timedOut: !!race.climb?.timedOut, descent, phraseDone, words: mem, xp, misses, gold }
 }
 
 /** Итог одним вызовом: подсчёт → запись в память сессии (rehearsalSim.applySession) → строка в журнал отладки. Вызывает директор useRaceActs на экране итога */
 export function reportRace({ plan, race, store, now, log = pLog }) {
   const score = scoreRace(plan, race)
   const saved = applySession(plan, score, { store, now })
-  log(`[race] итог «${plan.phrase}»: разгон ${score.sprint.hit}/${score.sprint.total}, слух ${score.catchOk}/${score.catchTotal}, вершина ${MEDAL_TITLES[score.medal]}, спуск ${score.descent === 'ok' ? 'верно' : score.descent === 'miss' ? 'нет' : '—'}, XP +${saved.xp}${saved.capped ? ' (потолок дня)' : ''}, слова ${score.words.map(w => `${w.text} ${w.hit}/${w.miss}`).join(', ') || '—'}`)
+  log(`[race] итог «${plan.phrase}»: разгон ${score.sprint.hit}/${score.sprint.total}, слух ${score.catchOk}/${score.catchTotal}, вершина ${climbTitle(score)}, спуск ${score.descent === 'ok' ? 'верно' : score.descent === 'miss' ? 'нет' : '—'}, XP +${saved.xp}${saved.capped ? ' (потолок дня)' : ''}, слова ${score.words.map(w => `${w.text} ${w.hit}/${w.miss}`).join(', ') || '—'}`)
   return { ...score, xp: saved.xp, capped: saved.capped }
 }

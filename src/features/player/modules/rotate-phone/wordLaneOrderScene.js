@@ -7,9 +7,11 @@ import { snapPill, missPill } from './wordLaneSnap.js'
 // fx: sayText(текст) — звучит слово пилюли («Различи»), say(parts) — диктор называет подсказку, win(order, rect) — верный тап, miss() — неверный, fail({ order, lost }) — не успел, finished() — раунд закончен.
 const HINT_RING_MS = 1600
 const VOICE_GLOW_MS = 700 // пилюля светится, пока звучит её слово («Различи»)
+const PIT_WAIT_MS = 8000  // «Слушай и лови»: дольше этого заход не ждёт, пока Пит договорит (страховка от зависшей реплики; как MAX_HOLD_MS у ученика)
 
 // «Гонка с Питом», раунд «Слушай и лови» (scene.speak): верное слово отвечают голосом — слушатель (liveRef.seq / misses) сам «тапает» верную дорожку, чужое слово провал подсказки (failPrompt, заход повторяется);
-// подписи внутри пилюль — prompt.caps (перевод), при провале на пилюлях проявляются слова prompt.texts; scene.maxTries — сколько раз заход повторится.
+// подписи внутри пилюль — prompt.caps (перевод), при провале на пилюлях проявляются слова prompt.texts; scene.maxTries — сколько раз заход повторится. Слово звучит ДО пилюль: заход не начинается, пока Пит договаривает
+// предыдущую реплику (fx.pitLeft, как у пилюль «Разгона»), пилюли выезжают через prompt.lead после начала слова, а голос ученика раньше prompt.voiceFrom (мс от начала захода) не считается.
 export function runOrderScene({ pool, scene, fxRef, liveRef = null }) {
   const { prompts, lanes, count } = scene
   const g = createOrderGame({ prompts, lanes, maxTries: scene.maxTries })
@@ -19,6 +21,7 @@ export function runOrderScene({ pool, scene, fxRef, liveRef = null }) {
   const timers = []
   let raf = 0
   const cur = () => sets.at(-1)
+  let waited = 0, lastTick = t0
 
   const handle = events => {
     for (const e of events) {
@@ -48,11 +51,14 @@ export function runOrderScene({ pool, scene, fxRef, liveRef = null }) {
     const word = fresh.includes(0), wrong = !word && (fresh.length > 0 || live.misses > seenMiss)
     seenSeq = live.seq.length; seenMiss = live.misses
     if (!g.said || g.state !== 'fly' || g.finished) return
+    if (t < g.spawnAt + (g.prompts[g.i].voiceFrom ?? 0)) return // слово Пита ещё звучит, пилюль нет: речь (эхо, торопливый ответ) не считается — слова выше уже стёрты из очереди
     if (word) api.tap(g.prompts[g.i].answer[0])
     else if (wrong) handle(failPrompt(g, t))
   }
   const tick = now => {
     const t = now - t0
+    if (scene.speak && g.state === 'gap' && waited < PIT_WAIT_MS && (fxRef.current?.pitLeft?.() ?? 0) > 0) { waited += now - lastTick; g.nextAt = Math.max(g.nextAt, t + 50) } // Пит ещё говорит — заход ждёт
+    lastTick = now
     handle(stepOrder(g, t))
     heard(t)
     for (const set of [...sets]) { // ушла за нижний край — пилюли в пул

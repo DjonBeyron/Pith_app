@@ -2,7 +2,7 @@
 //  0 старт      — падает фраза, открываются дорожки, Пит говорит race_start (это вступление директора, в списке актов его нет; один раунд — без него);
 //  1 sprint     — «Разгон»: 6–10 пилюль с переводом внутри, каждая на 5 % быстрее предыдущей; сказать английское слово, пока пилюля доступна;
 //  2 catch      — «Слушай и лови»: три захода, три дорожки с переводами, Пит называет слово голосом; промах — заход повторяется один раз;
-//  3 climb      — «Вершина»: лестница из N ступеней (слова фразы), ступень k — сказать первые k слов; промах — соскальзывание;
+//  3 climb      — «Вершина»: N островков зигзагом по трём дорожкам (слова фразы), ступень k — сказать первые k слов; промах — соскальзывание; общий таймер 12 с + 5 с за ступень;
 //  4 descent    — «Спуск»: Пит говорит всю фразу на скорости 1,1, потом человек — один раз;
 //  5 summary    — итог: разгон N/M, слух N/3, вершина — медаль, спуск, XP.
 // Правила пропуска: нет слов с переводом (и у других планов) — нет «Разгона» и «Слушай и лови»; у плана без слов фразы (пустые куски невозможны) «Вершина» есть всегда. plan.round — один раунд (raceOnly.js, итога нет).
@@ -23,7 +23,7 @@ export function buildRaceActs(plan) {
   const acts = []
   if (words.length) acts.push({ id: 'sprint', title: 'Разгон', line: 'race_sprint', words })
   if (sets.length) acts.push({ id: 'catch', title: 'Слушай и лови', line: 'race_catch', sets, retries: 1 })
-  if (climb.length) acts.push({ id: 'climb', title: 'Вершина', line: 'race_climb', words: climb, topLine: 'race_climb_top' })
+  if (climb.length) acts.push({ id: 'climb', title: 'Вершина', line: 'race_climb', words: climb, topLine: 'race_climb_top', timeLine: 'race_climb_time' })
   acts.push({ id: 'descent', title: 'Спуск', line: 'race_descent', parts: all, rate: DESCENT_RATE })
   acts.push({ id: 'summary', title: 'Итог' })
   return { plan, acts: pickRound(acts, plan.round) }

@@ -125,6 +125,7 @@
 @import './styles/player/modules/rehearsal-read.css';
 @import './styles/player/modules/race-sprint.css';
 @import './styles/player/modules/race-climb.css';
+@import './styles/player/modules/race-climb-timer.css';
 @import './styles/player/modules/race-summary.css';
 @import './styles/player/message.css';
 @import './styles/player/modules/audio.css';

@@ -30,9 +30,13 @@ describe('лестница «Вершины»: события → ступень
     const first = run(4, ['win', 'fail']).c // стоял на 1-й
     expect(first.rung).toBe(1); expect(first.lit).toEqual([true, false, false, false]); expect(targetOf(first)).toBe(2)
   })
-  it('сказал не то (miss) — только дрожь, ступень решает время (fail)', () => {
-    const r = apply(enter(initClimb(3)), 'miss')
-    expect(r.climb.rung).toBe(0); expect(r.climb.last).toBe('shake'); expect(r.climb.attempts).toBe(1); expect(r.hint).toBeNull()
+  it('сказал не то (miss) — как «не успел»: соскальзывание на остров вниз (на первом — дрожь), ступень-цель остаётся; прыжок помнит, откуда', () => {
+    const r = apply(enter(initClimb(3), 0), 'miss')
+    expect(r.climb.rung).toBe(0); expect(r.climb.last).toBe('slip'); expect(r.climb.attempts).toBe(1); expect(r.hint).toBeNull()
+    const c = run(4, ['win', 'win', 'miss']).c // стоял на 2-м, заход на 3-ю не удался
+    expect(c.rung).toBe(1); expect(c.from).toBe(2); expect(c.last).toBe('slip'); expect(c.lit).toEqual([true, false, false, false]); expect(targetOf(c)).toBe(2)
+    const w = run(4, ['win', 'win']).c
+    expect(w.from).toBe(1); expect(w.rung).toBe(2); expect(w.wins).toBe(2)
   })
   it('подсказки: 2-й промах одной ступени — Пит говорит слово k голосом, 3-й — подпись мигает; взятая ступень сбрасывает счёт', () => {
     const { c, hints } = run(4, ['win', 'fail', 'fail', 'fail']) // ступень 2: промахи на ней идут подряд (стоим на 1-й, остаёмся)

@@ -43,11 +43,9 @@ describe('useRaceActs: директор гонки поверх директор
     rh.rec('miss', { idx: 5 }); rh.rec('win', { idx: 6 }); rh.rec('win', { idx: 7 }); rh.rec('win', { idx: 8 })
     expect(sayLine.mock.calls.map(c => c[0]).filter(x => x === 'race_sprint_streak')).toHaveLength(2) // после промаха серия набирается заново
   })
-  it('разгон и спуск: на «не успел» реплик нет (только подпись в игре), «Вершина» — «ой, соскользнул»', () => {
+  it('на «не успел» директор игры реплик не говорит (failLine пуст): «ой, соскользнул» «Вершины» и «мимо» слуха говорит редюсер', () => {
     const { rh, stages } = probe('sprint')
-    expect(rh.failLine(stages.find(s => s.sid === 'sprint'))).toBe('')
-    expect(rh.failLine(stages.find(s => s.sid === 'descent-s'))).toBe('')
-    expect(rh.failLine(stages.find(s => s.sid === 'climb-1'))).toBe('race_climb_slip')
+    for (const sid of ['sprint', 'descent-s', 'climb-1']) expect(rh.failLine(stages.find(s => s.sid === sid))).toBe('')
   })
   it('слух: провал захода — «мимо, слушай ещё»; верное слово — без реплики', () => {
     const a = probe('catch-0'); a.rh.rec('fail', undefined)
@@ -55,16 +53,31 @@ describe('useRaceActs: директор гонки поверх директор
     const b = probe('catch-0'); b.rh.rec('win', undefined)
     expect(b.sayLine).not.toHaveBeenCalled()
   })
-  it('вершина: nextIdx идёт на ступень k + 1 после попадания, остаётся после промаха на первой ступени; на 2-м промахе ступени Пит говорит слово голосом, реплика соскальзывания пропущена', () => {
+  it('вершина: nextIdx идёт на ступень k + 1 после попадания, остаётся после промаха на первой ступени; «ой, соскользнул» на промахе, а на 2-м промахе ступени Пит говорит слово голосом вместо него', () => {
     const win = probe('climb-1'); win.rh.rec('win')
     expect(win.stages[win.rh.nextIdx(win.stages.findIndex(s => s.sid === 'climb-1') + 1)].sid).toBe('climb-2')
     const p = probe('climb-2'); const i2 = p.stages.findIndex(s => s.sid === 'climb-2')
     p.rh.rec('fail') // стоим на земле: цель — ступень 1 (директор не видел win), ступень не растёт
     expect(p.stages[p.rh.nextIdx(i2 + 1)].sid).toBe('climb-1')
     const h = probe('climb-1')
-    h.rh.rec('fail'); expect(h.sayText).not.toHaveBeenCalled(); expect(h.rh.failLine({ act: 'climb' })).toBe('race_climb_slip')
+    h.rh.rec('fail'); expect(h.sayText).not.toHaveBeenCalled(); expect(h.sayLine.mock.calls.map(c => c[0])).toEqual(['race_climb_slip'])
     h.rh.rec('fail'); expect(h.sayText).toHaveBeenCalledWith("I'm") // подсказка: новое слово ступени голосом
-    expect(h.rh.failLine({ act: 'climb' })).toBe(''); expect(h.rh.failLine({ act: 'climb' })).toBe('race_climb_slip')
+    expect(h.sayLine.mock.calls.map(c => c[0])).toEqual(['race_climb_slip']) // на подсказке соскальзывание без реплики: говорит слово
+  })
+  it('вершина: сказал не то (miss) — соскальзывание и директор сам перезапускает стадию ступени (setS на нужный индекс с новой отметкой времени); на «Спуске» и слухе miss ничего не перезапускает', () => {
+    const setS = vi.fn()
+    const h = probe('climb-2', { setS })
+    h.rh.rec('win') // стоим на 1-м острове (директор видит win ступени 1 как событие текущей стадии)
+    h.rh.rec('miss')
+    expect(h.sayLine.mock.calls.map(c => c[0])).toEqual(['race_climb_slip'])
+    expect(setS).toHaveBeenCalledTimes(1)
+    const next = setS.mock.calls[0][0]({ idx: 99, at: 0, stage: 'run' })
+    expect(next).toMatchObject({ stage: 'run', hint: [], leaving: -1 }); expect(h.stages[next.idx].sid).toMatch(/^climb-\d$/); expect(next.at).toBeGreaterThanOrEqual(0)
+    const c = probe('catch-0', { setS }); c.rh.rec('miss'); expect(setS).toHaveBeenCalledTimes(1)
+  })
+  it('вершина: общий таймер — директор следит за временем (эффект), а по концу ведёт на плашку climb-time; проводка в коде', () => {
+    const src = read('./useRaceActs.js')
+    expect(src).toContain("apply({ t: 'timeout', stage: running })"); expect(src).toContain('climbStageIdx(stages, box.s.climb)'); expect(src).toContain('leftMs({ t0: clT0, wins: clWins }')
   })
   it('вступление race_start — в полной гонке; у одного раунда его нет; первые реплики, тексты и «Ещё заезд» держат game: race', () => {
     expect(hasIntroLine(racePlan())).toBe(true); expect(hasIntroLine(racePlan({ round: 'catch' }))).toBe(false)
