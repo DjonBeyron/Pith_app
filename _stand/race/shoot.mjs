@@ -1,4 +1,4 @@
-// Скриншоты стенда «Гонка с Питом» (Playwright, 375×812): ROUND=sprint|catch|climb|descent|full node _stand/race/shoot.mjs
+// Скриншоты стенда «Гонка с Питом» (Playwright, 375×812): ROUND=sprint|catch|climb|descent|full node _stand/race/shoot.mjs (ROUND=climb CLIMB=timeout — снять «время вышло»)
 // Dev-сервер: npx vite --port 5411 --strictPort; PW_CHROMIUM_PATH=/opt/pw-browsers/chromium; OUT=каталог для картинок (по умолчанию /tmp/raceshots).
 // Речь человека — очередь window.__sayQueue стенда (index.html): драйвер читает экран (подписи пилюль, лестницу, номер ступени) и «говорит» нужные слова; специально делает промахи, чтобы показать серию, проявление слова, соскальзывание и подсказку.
 import { chromium } from '@playwright/test'
@@ -54,13 +54,17 @@ async function sprint(page, { missAt = -1, skipAt = -1, shots = true } = {}) {
   console.log('sprint pills handled', n)
 }
 
-// «Слушай и лови»: слово называет Пит (в стенде без озвучки — тишина), драйвер знает ответ из window.__race и говорит его через ~3,4 с после выката пилюль (Пит называет слово на ~3-й секунде);
+// «Слушай и лови»: слово называет Пит ДО пилюль (в стенде — гудок), драйвер знает ответ из window.__race и говорит его через ~3,4 с после выезда пилюль (когда открылась последняя);
 // первый заход — чужое слово из словаря (провал, заход повторится), потом верное; дальше два захода сразу верно
 async function catchRound(page, { wrongFirst = true } = {}) {
   const sets = await page.evaluate(() => window.__race.catches.map(c => ({ text: c.text, decoys: c.decoys })))
   const fresh = () => page.waitForFunction(() => document.querySelectorAll('.wlPill[data-held][data-cap]:not([data-fail]):not([data-reveal])').length >= 3, null, { timeout: 20000, polling: 30 })
   for (let i = 0; i < sets.length; i++) {
     await waitSid(page, `catch-${i}`)
+    await sleep(350)
+    const early = await page.evaluate(() => document.querySelectorAll('.wlPill[data-held][data-cap]').length) // слово Пита уже звучит, пилюль на экране ещё нет
+    console.log(`catch-${i}: пилюль сразу после начала захода ${early} (ожидается 0)`)
+    if (i === 0) await shot(page, '19-catch-word-first')
     await fresh()
     await sleep(1800); if (i === 0) await shot(page, '20-catch-pills')
     await sleep(1600) // слово Пита уже прозвучало
@@ -76,30 +80,28 @@ async function catchRound(page, { wrongFirst = true } = {}) {
   }
 }
 
-// «Вершина»: ступени 1–2 берём, на 3-й — чужое слово, потом три раза «не успел» (соскальзывание, подсказка голосом после 2-го, мигание подписи после 3-го), затем берём всё до верха
-async function climb(page) {
+// «Вершина»: ступени 1–2 берём (снимки сальто и приземления), на 3-й — чужое слово (соскок вниз), потом берём всё до верха. CLIMB=timeout: берём две ступени и молчим — ждём, пока выйдет общее время
+async function climb(page, { timeout = false } = {}) {
   const words = await page.evaluate(() => window.__race.climb)
-  const target = () => page.evaluate(() => { const t = document.querySelector('.raceStep[data-target]'); return t ? Number(t.style.getPropertyValue('--i')) : 0 })
-  const rung = () => page.evaluate(() => Number(document.querySelector('.raceClimb')?.style.getPropertyValue('--rung') ?? -1))
-  await page.waitForSelector('.raceClimb', { timeout: 60000 }); await sleep(500); await shot(page, '30-climb-start')
-  const failsAt3 = { n: 0 }
+  const target = () => page.evaluate(() => { const t = document.querySelector('.raceIsland[data-target]'); return t ? Number(t.style.getPropertyValue('--k')) : 0 })
+  await page.waitForSelector('.raceClimb', { timeout: 60000 }); await sleep(700); await shot(page, '30-climb-start')
+  if (process.env.SIDS) await page.evaluate(() => { let last = ''; const t0 = performance.now(); setInterval(() => { const sid = document.querySelector('[data-testid="wl"]')?.dataset.sid; if (sid !== last) { last = sid; console.log('[race] sid ' + sid + ' +' + Math.round(performance.now() - t0)) } }, 50) }) // SIDS=1: когда меняются стадии
+  let slipped = false
   const end = Date.now() + 170000
-  let shots = new Set()
-  const once = async (name, fn = async () => {}) => { if (!shots.has(name)) { shots.add(name); await fn(); await shot(page, name) } }
   while (Date.now() < end) {
-    if (await page.$('[data-testid="race-top-plate"]')) { await sleep(600); await shot(page, '35-climb-top'); break }
+    if (await page.$('[data-testid="race-top-plate"]')) { await sleep(600); await shot(page, '36-climb-top'); break }
+    if (await page.$('[data-testid="race-time-up"]')) { await sleep(500); await shot(page, '37-climb-time-up'); break }
     const r = await root(page)
     if (r?.act !== 'climb') { await sleep(150); continue }
     const k = await target()
     if (!k) { await sleep(150); continue }
-    await page.waitForFunction(kk => { const b = document.querySelector('.raceStep[data-target] .raceBar'); return !!b && Number(document.querySelector('.raceStep[data-target]').style.getPropertyValue('--i')) === kk }, k, { timeout: 8000 }).catch(() => {})
-    await sleep(1400) // пилюля уже видна
-    if (k === 3 && failsAt3.n === 0) { await say(page, 'to to'); await sleep(700); await once('31-climb-shake'); failsAt3.n = 1; await sleep(4300); await once('32-climb-slip'); continue }
-    if (k === 3 && failsAt3.n >= 1 && failsAt3.n < 3) { failsAt3.n += 1; await sleep(4500); if (failsAt3.n === 3) await once('33-climb-blink'); continue }
-    await say(page, words.slice(0, k).join(' ').toLowerCase())
-    await sleep(700); if (k === 2) await once('34-climb-two-steps')
-    await waitSid(page, `climb-${k}`, 1000).catch(() => {})
-    await sleep(1500)
+    await waitSid(page, `climb-${k}`, 8000).catch(() => {}) // говорим только когда идёт стадия именно этой ступени (раньше речь пропадает)
+    await sleep(300) // пилюля уже стоит
+    if (timeout && k === 3) { await sleep(2000); continue } // молчим: общий таймер дойдёт до нуля
+    if (k === 3 && !slipped) { await say(page, 'table'); await sleep(250); await shot(page, '34-climb-slip-mid'); await sleep(900); await shot(page, '35-climb-slipped'); slipped = true; await sleep(800); continue }
+    console.log('say k=' + k, new Date().toISOString().slice(11, 23)); await say(page, words.slice(0, k).join(' ').toLowerCase())
+    if (k === 2) { await sleep(330); await shot(page, '31-climb-salto-mid'); await sleep(700); await shot(page, '32-climb-landed') } else await sleep(500)
+    await sleep(400)
   }
 }
 
@@ -124,7 +126,7 @@ const { ctx, page } = await open(`only=${ROUND === 'full' ? '' : ROUND}&seed=r1`
 try {
   if (ROUND === 'sprint') { await sleep(1500); await shot(page, '09-sprint-start'); await sprint(page, { missAt: 4 }) }
   else if (ROUND === 'catch') await catchRound(page)
-  else if (ROUND === 'climb') await climb(page)
+  else if (ROUND === 'climb') await climb(page, { timeout: process.env.CLIMB === 'timeout' })
   else if (ROUND === 'descent') await descent(page)
   else await full(page)
   await sleep(2000)

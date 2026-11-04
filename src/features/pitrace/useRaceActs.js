@@ -2,7 +2,8 @@ import { useState, useRef, useEffect, useCallback } from 'react'
 import { pLog } from '../../shared/lib/debug.js'
 import { useRehearsalActs } from '../rehearsal/useRehearsalActs.js'
 import { setRateBoost } from '../player/modules/rotate-phone/wordLaneBuffers.js'
-import { makeBox, putState, setHinted, takeHinted, markEntered, reduceRace, climbTarget } from './raceState.js'
+import { makeBox, putState, markEntered, reduceRace, climbTarget, climbStageIdx } from './raceState.js'
+import { leftMs, isOut } from './raceClimbTimer.js'
 import { reportRace } from './raceSim.js'
 import { DESCENT_RATE } from './raceRecipe.js'
 
@@ -10,12 +11,13 @@ import { DESCENT_RATE } from './raceRecipe.js'
 // остальные хуки внутри бездействуют. Что делает для гонки сверх репетиции (реплики на старте стадий, отсчёт, тишина экрана, вступление race_start, пауза — всё это уже у useRehearsalActs, он знает про plan.game):
 //  • состояние раундов (raceState.js): реакции движка win / miss / fail приходят в rec(kind, info) → серия «Разгона» (3 — золото и «ну, погнали», 5 — «огонь»), заходы «Слушай и лови», лестница «Вершины»; экран читает rh.race;
 //  • nextIdx: после ступени лестницы идёт стадия не «следующая по списку», а та, что решает лестница (k + 1 после попадания, ниже после соскальзывания, плашка вершины — после верха; raceState.climbTarget);
-//  • подсказка «Вершины»: на 2-м промахе одной ступени Пит говорит новое слово голосом (sayText), реплика соскальзывания в этот раз пропускается (failLine); 3-й промах — подпись мигает (race.climb.blink);
+//  • подсказка «Вершины»: на 2-м промахе одной ступени Пит говорит новое слово голосом (sayText), реплика соскальзывания в этот раз пропускается (её говорит редюсер); 3-й промах — подпись мигает (race.climb.blink);
+//  • «Вершина»: сказал не то (miss) — соскальзывание сразу, стадия ступени перезапускается (jump); общий таймер подъёма (raceClimbTimer.js) — когда время вышло, переход на плашку climb-time;
 //  • «Спуск»: на время читки и ответа слова и куски играют с playbackRate 1,1 (wordLaneBuffers.setRateBoost);
 //  • итог: на экране summary — raceSim.reportRace (память сессии и XP тем же путём, что у репетиции), Пит говорит race_done_gold или race_done; result — для RaceSummary;
 //  • журнал отладки: строки «[race] …» (раунд, слово, попал / промах, серия, ступень, заходы, итог).
 export function useRaceActs(args) {
-  const { plan, stages, stage, at, stageObj, sayLine, sayText } = args
+  const { plan, stages, stage, at, stageObj, setS, sayLine, sayText } = args
   const rh = useRehearsalActs(args)
   const on = plan?.game === 'race'
   const running = on && stage === 'run' ? stageObj : null
@@ -26,13 +28,30 @@ export function useRaceActs(args) {
   useEffect(() => { sayRef.current = { sayLine, sayText } })
 
   const apply = useCallback(ev => {
-    const r = reduceRace(box.s, ev)
+    const r = reduceRace(box.s, { ...ev, now: performance.now() })
     if (r.state === box.s && !r.say && !r.hint && !r.log) return
     putState(box, r.state); setView(r.state)
     if (r.log) pLog(`[race] ${r.log}`)
     if (r.say) sayRef.current.sayLine?.(r.say)
-    if (r.hint) { setHinted(box, r.hint); sayRef.current.sayText?.(ev.stage.word) } // подсказка «Вершины»: новое слово голосом из библиотеки
+    if (r.hint) sayRef.current.sayText?.(ev.stage.word) // подсказка «Вершины»: новое слово голосом из библиотеки
   }, [box])
+
+  // Прыжок директора на стадию i (промах ступени, время вышло): стадия перезапускается с новой отметкой времени
+  const jump = useCallback(i => { if (i >= 0) setS(p => ({ ...p, stage: 'run', idx: i, at: performance.now(), hint: [], leaving: -1 })) }, [setS])
+
+  // Общий таймер «Вершины»: время вышло — подъём заканчивается на текущем островке, директор переходит на плашку climb-time (Пит: race_climb_time). Пересчитывается на каждой взятой ступени (добавка времени)
+  const climbRun = running?.act === 'climb' && running.type === 'student'
+  const cl = view.climb
+  const clT0 = cl?.t0, clWins = cl?.wins, clDone = !cl || cl.top || cl.over || cl.timedOut
+  useEffect(() => {
+    if (!climbRun || clDone || clT0 == null) return undefined
+    const t = setTimeout(() => {
+      if (!isOut(box.s.climb, performance.now() + 20)) return
+      apply({ t: 'timeout', stage: running })
+      jump(climbStageIdx(stages, box.s.climb))
+    }, leftMs({ t0: clT0, wins: clWins }, performance.now()) + 10)
+    return () => clearTimeout(t)
+  }, [climbRun, clDone, clT0, clWins, running, stages, apply, jump, box])
 
   // Начало стадии (раунд, заход, ступень лестницы): один раз на запуск стадии (at — её отметка времени)
   useEffect(() => {
@@ -64,8 +83,13 @@ export function useRaceActs(args) {
   if (!on) return rh
   return {
     ...rh, result, race: view, nextIdx,
-    rec(kind, info) { rh.rec(kind, info); if (running) apply({ t: kind, stage: running, info }) },
-    // Реплика на «не успел»: «Вершина» — «ой, соскользнул» (при подсказке голосом — тишина, говорит слово), остальные раунды без реплик (ответ «Слушай и лови» — в редюсере)
-    failLine(st) { if (st?.act === 'climb') return takeHinted(box) ? '' : 'race_climb_slip'; return '' },
+    rec(kind, info) {
+      rh.rec(kind, info)
+      if (!running) return
+      apply({ t: kind, stage: running, info })
+      if (kind === 'miss' && running.act === 'climb' && running.type === 'student') jump(climbStageIdx(stages, box.s.climb)) // сказал не то — соскальзывание: ступень-стадия перезапускается (слово ступени звучит подсказкой при 2-м промахе)
+    },
+    // Реплик на «не успел» из директора игры нет: ответы «Слушай и лови» и «ой, соскользнул» «Вершины» говорит редюсер (raceState.js)
+    failLine: () => '',
   }
 }

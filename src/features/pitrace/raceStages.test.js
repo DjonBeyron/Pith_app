@@ -7,6 +7,9 @@ import { SPEED } from '../player/modules/rotate-phone/wordLaneTimeline.js'
 import { fixturePlan } from '../rehearsal/rehearsalFixtures.js'
 import { normalizePlan } from '../rehearsal/rehearsalPlan.js'
 import { isStudentStage, engineKind } from '../rehearsal/rehearsalKinds.js'
+import { estChunkMs } from '../player/modules/rotate-phone/wordLaneAudio.js'
+import { CATCH_AFTER_WORD_MS } from './raceStagesCatch.js'
+import { CLIMB_STEP_SPEED, CLIMB_PILL_Y0 } from './raceClimbTimer.js'
 
 const plan = (id = 'three', extra = {}) => normalizePlan({ ...fixturePlan(id), game: 'race', ...extra })
 const build = (p = plan(), rate = 1) => buildStages({ chunks: p.chunks, plan: p, rate })
@@ -22,14 +25,14 @@ describe('стадии гонки в формате движка', () => {
     expect(rh.stages.some(s => s.race)).toBe(false)
     expect(buildRaceStages({ plan: plan() }).stages.map(s => s.type)).toEqual(r.stages.map(s => s.type))
   })
-  it('порядок: плашка и разгон, плашка и три захода, плашка и ступени с плашкой вершины, спуск (плашка, читка, «твоя очередь», ответ), итог', () => {
+  it('порядок: плашка и разгон, плашка и три захода, плашка и ступени с плашками вершины и «время вышло», спуск (плашка, читка, «твоя очередь», ответ), итог', () => {
     const st = build().stages
     const seq = st.map(s => `${s.act}:${s.type}`)
     expect(seq[0]).toBe('sprint:announce'); expect(seq[1]).toBe('sprint:student')
     expect(seq.slice(2, 6)).toEqual(['catch:announce', 'catch:discern', 'catch:discern', 'catch:discern'])
     expect(of(st, 'climb').filter(s => s.type === 'student')).toHaveLength(4)
     expect(seq.slice(-5)).toEqual(['descent:announce', 'descent:read', 'descent:turn', 'descent:student', 'summary:summary'])
-    expect(st.filter(s => s.type === 'announce').map(s => s.line)).toEqual(['race_sprint', 'race_catch', 'race_climb', 'race_climb_top', 'race_descent'])
+    expect(st.filter(s => s.type === 'announce').map(s => s.line)).toEqual(['race_sprint', 'race_catch', 'race_climb', 'race_climb_top', 'race_climb_time', 'race_descent'])
   })
   it('разгон: одна ступень ученика, по повтору на пилюлю; у повтора своя дорожка, скорость (+5 %), перевод внутри и слово, которое проявится при промахе', () => {
     const [s] = of(build().stages, 'sprint').filter(x => x.type === 'student')
@@ -63,6 +66,9 @@ describe('стадии гонки в формате движка', () => {
       expect(s.speak).toBe(true); expect(s.maxTries).toBe(2)
       expect(s.sayText).toBe(s.prompts[0].text)
       expect(s.prompts[0].written).toBe(true)
+      const p = s.prompts[0] // слово звучит ДО пилюль: сразу (sayAt 0), пилюли выезжают после слова + 300 мс, речь считается, когда все три открылись
+      expect(p.sayAt).toBe(0); expect(p.lead).toBe(Math.round(estChunkMs(s.sayText) + CATCH_AFTER_WORD_MS)) // длина слова (нет озвучки — оценка) + пауза
+      expect(p.voiceFrom).toBeGreaterThan(p.lead)
       expect(s.prompts[0].caps.filter(Boolean)).toHaveLength(3)
       expect(s.prompts[0].texts[s.prompts[0].answer[0]]).toBe(s.sayText)
       expect(s.step.chunks).toEqual([s.sayText]) // верно засчитывается только оно
@@ -72,14 +78,16 @@ describe('стадии гонки в формате движка', () => {
     expect(listenStepOf(stages, i)).toBe(st[0].step) // слушатель — на заходе
     expect(listenStepOf(stages, i - 1)).toBe(st[0].step) // и уже под плашкой раунда
   })
-  it('вершина: ступень k — первые k слов одним высказыванием; пилюли — одна, подписей над дорожками нет, silence-таймер — «не успел» движка (maxTries 1)', () => {
+  it('вершина: ступень k — первые k слов одним высказыванием; пилюля — одна, подписей над дорожками нет, времени ступени нет (пилюля почти стоит), maxTries 1', () => {
     const st = of(build().stages, 'climb').filter(s => s.type === 'student')
     expect(st.map(s => s.step.text)).toEqual(["I'm", "I'm trying", "I'm trying to", "I'm trying to learn"])
     expect(st.map(s => s.k)).toEqual([1, 2, 3, 4])
     expect(st.every(s => s.step.maxTries === 1 && s.step.reps.length === 1 && s.step.labels.length === 0)).toBe(true)
     expect(st.map(s => s.step.maxWords)).toEqual([1, 2, 2, 2])
     expect(labelsFor(st[0], ['a', 'b', 'c'], [0, 1, 2]).every(l => !l.text)).toBe(true)
-    expect(of(build().stages, 'climb').at(-1).sid).toBe('climb-top')
+    expect(st.every(s => s.step.reps[0].speed === CLIMB_STEP_SPEED && s.step.reps[0].y0 === CLIMB_PILL_Y0)).toBe(true) // собственное «не успел» движка ≈ 36 с: время ограничивает общий таймер
+    const tail = of(build().stages, 'climb').slice(-2)
+    expect(tail.map(s => s.sid)).toEqual(['climb-top', 'climb-time']); expect(tail.map(s => s.line)).toEqual(['race_climb_top', 'race_climb_time'])
   })
   it('спуск: читка на rate 1,1 (озвучка короче в 1,1 раза), потом человек ровно один раз всей фразой', () => {
     const slow = buildRaceStages({ plan: plan(), rate: 1 }).stages, fast = buildRaceStages({ plan: plan(), rate: 1 }).stages

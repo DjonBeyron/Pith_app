@@ -27,73 +27,93 @@ function setup(over = {}) {
   const run = runOrderScene({ pool, scene, fxRef: { current: fx }, liveRef: live })
   const tickTo = t => { now = t; queue.splice(0).forEach(cb => cb(t)) }
   const advance = (from, to) => { for (let t = from; t <= to; t += 50) tickTo(t); return to }
-  const prompt = { ...stage.prompts[0], sayAt: ORDER_START_MS + stage.prompts[0].sayAt } // слово Пита — от выкатки подсказки, а она — через ORDER_START_MS от старта раунда
-  return { run, pool, fx, live, advance, tickTo, prompt }
+  const prompt = stage.prompts[0]
+  const T0 = ORDER_START_MS // подсказка выкатывается через ORDER_START_MS от старта раунда: слово Пита звучит сразу (sayAt 0)
+  const open = T0 + prompt.voiceFrom + 150 // слово кончилось, пилюли выехали и открылись, голос ученика уже считается
+  return { run, pool, fx, live, advance, tickTo, prompt, T0, open }
 }
 
 describe('движок: «Слушай и лови» отвечают голосом', () => {
-  it('пилюли берут подписи prompt.caps (перевод); слово Пита звучит один раз (sayAt)', () => {
-    const { run, pool, fx, advance, prompt } = setup()
-    advance(0, prompt.sayAt - 100)
-    expect(fx.say).not.toHaveBeenCalled()
-    expect(pool.take.mock.calls.map(c => c[1].cap)).toEqual(prompt.caps.filter(Boolean).length === 3 ? [prompt.caps[0], prompt.caps[1], prompt.caps[2]] : [])
-    advance(prompt.sayAt - 50, prompt.sayAt + 200)
+  it('слово Пита звучит СРАЗУ при начале захода, пилюли с подписями prompt.caps (перевод) выезжают только через prompt.lead после него', () => {
+    const { run, pool, fx, advance, prompt, T0 } = setup()
+    expect(prompt.sayAt).toBe(0); expect(prompt.lead).toBeGreaterThanOrEqual(300); expect(prompt.voiceFrom).toBeGreaterThan(prompt.lead)
+    advance(0, T0 - 100)
+    expect(fx.say).not.toHaveBeenCalled(); expect(pool.take).not.toHaveBeenCalled()
+    advance(T0 - 50, T0 + 100)
+    expect(fx.say).toHaveBeenCalledTimes(1) // слово — первым
+    const atMs = pool.take.mock.calls.map(c => c[1].atMs)
+    expect(pool.take.mock.calls.map(c => c[1].cap)).toEqual([prompt.caps[0], prompt.caps[1], prompt.caps[2]])
+    expect(Math.max(...atMs)).toBeLessThan(0) // ни одна пилюля ещё не выкатилась: все ждут за краем (atMs < 0)
+    expect(Math.min(...atMs)).toBeLessThanOrEqual(-prompt.lead + 200) // а первая выедет, когда слово кончится (+ пауза)
+    advance(T0 + 150, T0 + 400)
     expect(fx.say).toHaveBeenCalledTimes(1)
     run.stop()
   })
-  it('верное слово, услышанное после слова Пита, засчитывается тапом верной дорожки; до слова Пита голос не считается', () => {
-    const { run, pool, fx, live, advance, prompt } = setup()
-    let t = advance(0, 800)
-    live.current = { seq: [0], misses: 0 } // голос до слова Пита (эхо, шум): не засчитывается
-    t = advance(t + 50, prompt.sayAt - 100)
+  it('Пит ещё говорит (fx.pitLeft) — заход не начинается: ни слова, ни пилюль; договорил — пошло', () => {
+    let left = 1500
+    const s = setup()
+    s.fx.pitLeft = vi.fn(() => left)
+    const t = s.advance(0, 1500)
+    expect(s.fx.say).not.toHaveBeenCalled(); expect(s.pool.take).not.toHaveBeenCalled()
+    left = 0
+    s.advance(t + 50, t + 400)
+    expect(s.fx.say).toHaveBeenCalledTimes(1)
+    s.run.stop()
+  })
+  it('верное слово засчитывается тапом верной дорожки только когда пилюли выехали; раньше (пока слово Пита звучит) голос не считается', () => {
+    const { run, pool, fx, live, advance, prompt, T0, open } = setup()
+    let t = advance(0, T0 + 200)
+    live.current = { seq: [0], misses: 0 } // голос, пока Пит говорит слово (эхо, торопливый ответ): не засчитывается
+    t = advance(t + 50, open - 100)
     expect(fx.win).not.toHaveBeenCalled(); expect(fx.fail).not.toHaveBeenCalled()
-    t = advance(t + 50, prompt.sayAt + 300)
-    live.current = { seq: [0, 0], misses: 0 } // слово сказано, пока Пит уже назвал своё
+    t = advance(t + 50, open + 300)
+    live.current = { seq: [0, 0], misses: 0 } // слово сказано после выезда пилюль
     advance(t + 50, t + 200)
     expect(fx.win).toHaveBeenCalledTimes(1); expect(pool.paintFill).toHaveBeenCalled(); expect(pool.flashLane).toHaveBeenCalledWith(prompt.answer[0])
     run.stop()
   })
-  it('чужое слово (промах слушателя) — провал захода: fail, заход повторяется один раз с тем же словом, на пилюлях проявляются слова', () => {
-    const { run, pool, fx, live, advance, prompt } = setup()
-    let t = advance(0, prompt.sayAt + 300)
+  it('чужое слово (промах слушателя) — провал захода: fail, заход повторяется один раз с тем же словом (слово, потом пилюли), на пилюлях проявляются слова', () => {
+    const { run, pool, fx, live, advance, prompt, open } = setup()
+    let t = advance(0, open + 300)
     live.current = { seq: [], misses: 1 }
     t = advance(t + 50, t + 150)
     expect(fx.fail).toHaveBeenCalledWith({ order: true, lost: false }) // первый провал: заход ещё повторится
     expect(pool.cap).toHaveBeenCalledWith(expect.anything(), expect.any(String)); expect(pool.linger).toHaveBeenCalled(); expect(fx.win).not.toHaveBeenCalled() // слова проявились, упущенные пилюли всплыли читаться
+    expect(fx.say).toHaveBeenCalledTimes(1)
     t = advance(t + 50, t + ORDER_GAP_MS + 200)
-    expect(pool.take.mock.calls.length).toBeGreaterThan(3) // те же три пилюли выкатились заново
-    t = advance(t + 50, t + prompt.sayAt + 400)
-    expect(fx.say).toHaveBeenCalledTimes(2) // слово Пита звучит снова
+    expect(fx.say).toHaveBeenCalledTimes(2) // слово Пита звучит снова — сразу при повторе…
+    expect(pool.take.mock.calls.length).toBe(6); expect(pool.take.mock.calls.at(-1)[1].atMs).toBeLessThan(0) // …а те же три пилюли выкатятся заново позже, ждут за краем
+    t = advance(t + 50, t + prompt.voiceFrom + 400)
     live.current = { seq: [], misses: 2 }
     advance(t + 50, t + 150)
     expect(fx.fail).toHaveBeenLastCalledWith({ order: true, lost: true }); expect(fx.finished).toHaveBeenCalledTimes(1) // повтор был один — дальше раунд закончен
     run.stop()
   })
   it('чужое слово из словаря слушателя (цель с номером больше 0 — двойник или другое слово раунда) — тоже провал, а не ответ', () => {
-    const { run, fx, live, advance, prompt } = setup()
-    advance(0, prompt.sayAt + 300)
+    const { run, fx, live, advance, open } = setup()
+    advance(0, open + 300)
     live.current = { seq: [2], misses: 0 }
-    advance(prompt.sayAt + 350, prompt.sayAt + 450)
+    advance(open + 350, open + 450)
     expect(fx.fail).toHaveBeenCalledTimes(1); expect(fx.win).not.toHaveBeenCalled()
     run.stop()
   })
   it('тап вместо речи: не та дорожка — тоже провал захода, верная — засчитана', () => {
-    const { run, fx, advance, prompt } = setup()
-    advance(0, prompt.sayAt + 300)
+    const { run, fx, advance, prompt, open } = setup()
+    advance(0, open + 300)
     run.api.tap((prompt.answer[0] + 1) % 3)
     expect(fx.fail).toHaveBeenCalledTimes(1); expect(fx.miss).not.toHaveBeenCalled()
     run.stop()
     const b = setup()
-    b.advance(0, b.prompt.sayAt + 300)
+    b.advance(0, b.open + 300)
     b.run.api.tap(b.prompt.answer[0])
     expect(b.fx.win).toHaveBeenCalledTimes(1)
     b.run.stop()
   })
   it('без scene.speak голос ничего не решает (обычный «Различи» отвечают тапом)', () => {
-    const { run, fx, live, advance, prompt } = setup({ speak: false })
-    advance(0, prompt.sayAt + 300)
+    const { run, fx, live, advance, open } = setup({ speak: false })
+    advance(0, open + 300)
     live.current = { seq: [0], misses: 1 }
-    advance(prompt.sayAt + 350, prompt.sayAt + 600)
+    advance(open + 350, open + 600)
     expect(fx.win).not.toHaveBeenCalled(); expect(fx.fail).not.toHaveBeenCalled()
     run.stop()
   })

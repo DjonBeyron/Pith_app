@@ -46,6 +46,26 @@ describe('состояние гонки: события движка → сер�
     expect(stages[at(s)].sid).toBe('climb-top')
     expect(climbTarget(stages, stages[0], s)).toBeNull() // не лестница — обычный порядок стадий
   })
+  it('вершина, общий таймер: первый заход запускает часы, взятая ступень +1 к запасу; timeout — подъём стоит на текущем острове, дальше плашка climb-time, а после climb-top она перескакивается', () => {
+    const k = n => stages.find(s => s.sid === `climb-${n}`)
+    let s = reduceRace(initRace(), { t: 'enter', stage: k(1), now: 7000 }).state
+    expect(s.climb.t0).toBe(7000)
+    s = ev(s, 'win', k(1)).state; s = reduceRace(s, { t: 'enter', stage: k(2), now: 9000 }).state
+    expect(s.climb.t0).toBe(7000); expect(s.climb.wins).toBe(1)
+    const out = reduceRace(s, { t: 'timeout', stage: k(2) })
+    expect(out.state.climb).toMatchObject({ timedOut: true, rung: 1, top: false }); expect(out.log).toContain('время вышло')
+    expect(stages[climbTarget(stages, k(2), out.state)].sid).toBe('climb-time')
+    const top = stages.find(x => x.sid === 'climb-top'), time = stages.find(x => x.sid === 'climb-time')
+    expect(stages[climbTarget(stages, top, { climb: { top: true } })].sid).toBe(stages[stages.indexOf(time) + 1].sid) // плашку «время вышло» после вершины пропускаем
+    expect(climbTarget(stages, time, out.state)).toBeNull() // после climb-time — обычный порядок: спуск
+  })
+  it('вершина: сказал не то (miss) — соскальзывание с репликой «ой, соскользнул»; на подсказке голосом реплики нет, Пит говорит слово', () => {
+    const k = n => stages.find(s => s.sid === `climb-${n}`)
+    let s = ev(ev(initRace(), 'enter', k(1)).state, 'win', k(1)).state
+    s = ev(s, 'enter', k(2)).state
+    const first = ev(s, 'miss', k(2)); expect(first.say).toBe('race_climb_slip'); expect(first.state.climb.last).toBe('slip'); expect(first.hint).toBeNull()
+    const second = ev(ev(first.state, 'enter', k(2)).state, 'miss', k(2)); expect(second.hint).toBe(2); expect(second.say).toBeNull()
+  })
   it('подсказка: на втором промахе ступени редюсер просит Пита сказать слово этой ступени', () => {
     const k = n => stages.find(s => s.sid === `climb-${n}`)
     let s = ev(initRace(), 'enter', k(1)).state

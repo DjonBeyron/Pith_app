@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { plateLite } from '../player/modules/rotate-phone/wordLanePlateExit.js'
 import { startExit, exitMs } from '../rehearsal/rehearsalExit.js'
-import { MEDAL_TITLES } from './raceSim.js'
+import { climbTitle } from './raceSim.js'
 
 // Итог гонки (CONCEPT_RACE.md, «Финиш») — плашка в стиле итога репетиции (RehearsalSummary.jsx: узор .wlTurn, блеск от центра, полёт при выходе rehearsalExit.js): разгон N/M, слух N/3, вершина — медаль, спуск ✓ / ✗, XP,
 // вопрос «Ещё заезд?» и кнопки «Ещё заезд» (следующий план, run + 1) и «Нет». result — итог raceSim.reportRace или null, пока не посчитан; onAgain — null, если следующего плана нет (один раунд, шлифовка).
@@ -29,7 +29,7 @@ export default function RaceSummary({ plan, result, onAgain = null, onShown = nu
       <dl className="rhStats">
         <div><dt>Разгон</dt><dd data-testid="race-summary-sprint">{r ? `${r.sprint.hit}/${r.sprint.total}` : '…'}</dd></div>
         <div><dt>Слух</dt><dd data-testid="race-summary-catch">{r ? `${r.catchOk}/${r.catchTotal}` : '…'}</dd></div>
-        <div><dt>Вершина</dt><dd data-testid="race-summary-climb" data-medal={r?.medal}>{r ? MEDAL_TITLES[r.medal] : '…'}</dd></div>
+        <div><dt>Вершина</dt><dd data-testid="race-summary-climb" data-medal={r?.medal}>{r ? climbTitle(r) : '…'}</dd></div>
         <div><dt>Спуск</dt><dd data-testid="race-summary-descent">{r ? mark(r.descent) : '…'}</dd></div>
         <div><dt>XP</dt><dd data-testid="race-summary-xp">{r ? `+${r.xp}${r.capped ? ' (потолок дня)' : ''}` : '…'}</dd></div>
       </dl>
