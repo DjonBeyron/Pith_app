@@ -18,6 +18,7 @@ tools/*
 !tools/prepare-video.bat
 !tools/viteDebugSink.js
 !tools/viteShellCache.js
+!tools/viteVoskFallback.js
 
 # Дебаг-записи от тулбара (rrweb + отчёты) — приходят сюда через debugSink,
 # нужны только локально, в git им делать нечего
