@@ -15,6 +15,7 @@ import WordLaneCommentButton from './WordLaneCommentButton.jsx'
 import WordLaneComment from './WordLaneComment.jsx'
 import WordLaneTurnPlate from './WordLaneTurnPlate.jsx'
 import { useWordLaneLeavingPlates } from './useWordLaneLeavingPlates.js'
+import { chargeOn } from '../../../pitrace/raceCharge.js'
 import RehearsalActs from '../../../rehearsal/RehearsalActs.jsx'
 import ReadKaraoke from '../../../rehearsal/read/ReadKaraoke.jsx'
 import { isWeakDevice } from '../../../../shared/lib/deviceTier.js'
@@ -60,7 +61,7 @@ export default function WordLaneGame({ cfg, audioSrc, lines = null, forceDebug =
   const debug = isWordLaneDebug()
 
   return createPortal(
-    <div ref={rootRef} className={safe0 ? 'wl wl--safe' : 'wl'} data-phase={phase} data-act={f.rh.on ? f.stageObj?.act : undefined} data-sid={f.rh.on ? f.stageObj?.sid : undefined} data-streak={f.rh.race?.streakMode} data-testid="wl">
+    <div ref={rootRef} className={safe0 ? 'wl wl--safe' : 'wl'} data-phase={phase} data-act={f.rh.on ? f.stageObj?.act : undefined} data-sid={f.rh.on ? f.stageObj?.sid : undefined} data-streak={f.rh.race?.streakMode} data-charge={cfg.plan?.game === 'race' && chargeOn(f) ? '' : undefined} data-testid="wl">
       <div className="wlStage">
         <WordLaneCat apiRef={catApi} />
         <WordLanePills scene={f.scene} levels={f.levels} fx={f.fx} live={f.live} sceneApi={f.sceneApi} visible={showSlots} armed={armed} paused={f.paused} onLane={phase === 'order' || (phase === 'discern' && !f.stageObj?.speak) || (tapMode && (phase === 'student' || f.stageObj?.speak)) ? f.onLane : null} />
@@ -86,10 +87,10 @@ export default function WordLaneGame({ cfg, audioSrc, lines = null, forceDebug =
             {f.dbg.enabled && <WordLaneDebugButton dbg={f.dbg} />}
           </div>
         )}
-        <RehearsalActs f={f} cfg={cfg} onAgain={onAgain} onSummary={onSummary} />
+        <RehearsalActs f={f} cfg={cfg} lines={lines} onAgain={onAgain} onSummary={onSummary} />
         {debug && <WordLaneDebug />}
         {debug && <WordLanePerf />}
-        <Mic mode={f.mic} levels={f.levels} note={f.note} visible={phase === 'student' || !!f.stageObj?.speak} />
+        {cfg.plan?.game !== 'race' && <Mic mode={f.mic} levels={f.levels} note={f.note} visible={phase === 'student' || !!f.stageObj?.speak} />} {/* гонка: индикатора уровня микрофона нет (CONCEPT_RACE.md) */}
         {f.mic === 'failed' && !f.paused && (
           <div className="wlFail" role="alert" data-testid="wl-fail">
             <p className="wlFailTitle">{FAIL_TEXT.title}</p>

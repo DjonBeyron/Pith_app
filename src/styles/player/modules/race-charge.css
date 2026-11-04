@@ -1,0 +1,42 @@
+/* «Гонка с Питом»: заставка-«зарядка» памятью (features/pitrace/RaceCharge.jsx, план — raceCharge.js, CONCEPT_RACE.md «Заставка»). Пока Пит говорит race_start и объявляет первый этап, дорожек нет вовсе
+   (data-charge на корне игры: пунктир конвейера, линии и огоньки скрыты; когда заставка кончается, они проявляются обычным переходом .wlLanes 0,8 с). Снизу вверх летят пилюли со словами памяти
+   (--c — цвет ступени слова, --lvl0…--lvl4 из memory-levels.css) и микро-частицы 2–3 px; сверху бар: сегменты цветов долетевших пилюль (по одному на пилюлю, без градиента), бар толстеет с каждой.
+   Заполненный бар (data-full) — косые цветные полоски (как у data-wrong, word-lane-pill-wrong.css), стоит до начала первого раунда, потом уходит (data-leaving). Полёт ведёт Web Animations
+   (transform / opacity), здесь только раскладка и вид; без filter, без масштабирования пилюль. */
+.wl[data-charge] .wlLanes, .wl[data-charge] .wlDots { opacity: 0; }
+
+.raceCharge { inset: 0; z-index: 1; overflow: hidden; pointer-events: none; transition: opacity 0.6s ease; }
+.raceCharge[data-leaving] { opacity: 0; }
+.raceChargeBar {
+  position: absolute;
+  top: calc(env(safe-area-inset-top, 0px) + 14px);
+  left: 16px;
+  right: 60px; /* справа остаётся крестик выхода */
+  height: 4px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.1);
+}
+.raceChargeSeg { position: absolute; top: 0; bottom: 0; transform-origin: left center; transform: scaleX(0); }
+.raceCharge[data-full] .raceChargeSeg { background-image: repeating-linear-gradient(45deg, rgba(10, 12, 16, 0.5) 0 6px, rgba(255, 255, 255, 0.08) 6px 12px); }
+.raceChargePill {
+  position: absolute;
+  top: 100%;
+  translate: -50% 0; /* центр по x; transform остаётся полёту */
+  max-width: 44%;
+  padding: 6px 13px;
+  box-sizing: border-box;
+  border: 2px solid var(--c);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--c) 30%, #0b0d11);
+  color: #f4f6fb;
+  font-size: clamp(12px, 3.6vw, 15px);
+  font-weight: 800;
+  line-height: 1.1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.raceChargeSpark { position: absolute; top: 100%; border-radius: 50%; opacity: 0.9; }
+.weak-device .raceCharge, .weak-device .raceCharge[data-leaving] { transition: none; }
+@media (prefers-reduced-motion: reduce) { .raceCharge { transition: none; } }

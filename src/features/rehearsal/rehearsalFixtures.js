@@ -2,21 +2,21 @@
 // planFor(source, { fixture }) — единственный поставщик плана: сейчас только 'sim' (фикстура), потом 'memory' (wordMemory / phraseMemory) и 'node' (автор задал фразу в ноде).
 import { normalizePlan } from './rehearsalPlan.js'
 
-const word = (text, translation, lapses, confusers = [], due = true) => ({ text, translation, due, lapses, confusers })
+const word = (text, translation, lapses, confusers = [], due = true, level = 1) => ({ text, translation, due, lapses, confusers, level }) // level — ступень памяти 0–4 (цвет --lvl0…--lvl4)
 
 export const FIXTURES = {
   three: {
     title: 'Три куска, двойник learn / earn / lean',
     plan: {
       phrase: "I'm | trying | to learn", translation: 'Я пытаюсь научиться', stressed: [1, 2],
-      words: [word('trying', 'пытаюсь', 1), word('learn', 'учиться', 2, ['earn', 'lean']), word("I'm", 'я', 0, [], false)],
+      words: [word('trying', 'пытаюсь', 1, [], true, 2), word('learn', 'учиться', 2, ['earn', 'lean'], true, 0), word("I'm", 'я', 0, [], false, 4)],
     },
   },
   two: {
     title: 'Два куска, без двойников',
     plan: {
       phrase: 'Nice | to meet you', translation: 'Приятно познакомиться', stressed: [1],
-      words: [word('meet', 'встретить', 1), word('nice', 'приятно', 1)],
+      words: [word('meet', 'встретить', 1, [], true, 1), word('nice', 'приятно', 1, [], true, 3)],
     },
   },
   one: {
@@ -27,7 +27,7 @@ export const FIXTURES = {
     title: 'Фраза без слов «к повтору»',
     plan: {
       phrase: 'Where | are you | from', translation: 'Откуда ты', stressed: [2],
-      words: [word('where', 'где', 0, [], false), word('from', 'откуда', 0, [], false)],
+      words: [word('where', 'где', 0, [], false, 4), word('from', 'откуда', 0, [], false, 3)],
     },
   },
 }

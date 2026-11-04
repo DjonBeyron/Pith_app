@@ -59,10 +59,10 @@ describe('админка: блок «Гонка с Питом (стенд)» и 
     const src = read('../admin/speech/RaceBlock.jsx')
     expect(src).toContain("game: 'race', round: round ?? undefined"); expect(src).toContain('bare forceDebug startRef={startRef}'); expect(src).toContain('list: RACE_LINES')
   })
-  it('«Как тестировать»: семь шагов, раздел сворачиваемый; тот же текст лежит в CONCEPT_RACE.md слово в слово', () => {
+  it('«Как тестировать»: восемь шагов, раздел сворачиваемый; тот же текст лежит в CONCEPT_RACE.md слово в слово', () => {
     const h = html(RaceHowto, {})
     expect(h).toContain('<details class="g2Howto" open=""'); expect(h).toContain(HOWTO_TITLE)
-    expect(HOWTO_STEPS).toHaveLength(7)
+    expect(HOWTO_STEPS).toHaveLength(8)
     const md = read('../../../CONCEPT_RACE.md')
     expect(md).toContain('## Как тестировать')
     for (const s of HOWTO_STEPS) expect(md).toContain(s)

@@ -21,10 +21,10 @@ export function buildRaceActs(plan) {
   const climb = climbWords(plan)
   const all = plan.chunks.map((_, i) => i)
   const acts = []
-  if (words.length) acts.push({ id: 'sprint', title: 'Разгон', line: 'race_sprint', words })
-  if (sets.length) acts.push({ id: 'catch', title: 'Слушай и лови', line: 'race_catch', sets, retries: 1 })
-  if (climb.length) acts.push({ id: 'climb', title: 'Вершина', line: 'race_climb', words: climb, topLine: 'race_climb_top', timeLine: 'race_climb_time' })
-  acts.push({ id: 'descent', title: 'Спуск', line: 'race_descent', parts: all, rate: DESCENT_RATE })
+  if (words.length) acts.push({ id: 'sprint', title: 'Разгон', task: 'проверим, как ты помнишь слова из своей памяти', line: 'race_sprint', words })
+  if (sets.length) acts.push({ id: 'catch', title: 'Слушай и лови', task: 'я называю слово, а ты говоришь его, пока едет его перевод', line: 'race_catch', sets, retries: 1 })
+  if (climb.length) acts.push({ id: 'climb', title: 'Вершина', task: 'собираем фразу по слову, с каждым шагом длиннее', line: 'race_climb', words: climb, topLine: 'race_climb_top', timeLine: 'race_climb_time' })
+  acts.push({ id: 'descent', title: 'Спуск', task: 'повтори всю фразу за мной на скорости', line: 'race_descent', parts: all, rate: DESCENT_RATE })
   acts.push({ id: 'summary', title: 'Итог' })
   return { plan, acts: pickRound(acts, plan.round) }
 }

@@ -30,14 +30,13 @@ describe('рецепт гонки: акты из плана репетиции',
     expect(extrasOf(mine).map(x => x.text)).toContain('pencil') // plan.extraWords важнее фикстур
     expect(sprintWords(mine).map(x => x.text)).toEqual(expect.arrayContaining(['remember', 'pencil']))
   })
-  it('скорость по пилюлям: первая ×1, каждая следующая на 5 % быстрее; дорожки случайные, но по семени', () => {
+  it('скорость по пилюлям: первая ×1, каждая следующая на 5 % быстрее; дорожки строго по очереди 0, 1, 2, 0, 1, 2', () => {
     const w = sprintWords(race('three'))
     expect(w[0].speed).toBe(1)
     w.forEach((x, i) => expect(x.speed).toBeCloseTo(SPEED_STEP ** i, 3))
     expect(w[1].speed / w[0].speed).toBeCloseTo(1.05, 3)
-    expect(sprintWords(race('three')).map(x => x.lane)).toEqual(w.map(x => x.lane)) // одно семя — те же дорожки
-    expect(sprintWords(race('three', { seed: 'другое семя' })).map(x => x.lane)).not.toEqual(w.map(x => x.lane))
-    expect(w.every(x => [0, 1, 2].includes(x.lane))).toBe(true)
+    expect(w.map(x => x.lane)).toEqual(w.map((_, i) => i % 3)) // слева направо по кругу, не по семени
+    expect(sprintWords(race('three', { seed: 'другое семя' })).map(x => x.lane)).toEqual(w.map(x => x.lane))
   })
   it('слушай и лови: три захода; на каждом три дорожки с переводами — верное слово и два других; двойники слова — ловушками', () => {
     const plan = race('three')

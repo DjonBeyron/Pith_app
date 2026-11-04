@@ -143,6 +143,6 @@ describe('взлёт заполненной пилюли', () => {
     const dictor = eng.slice(eng.indexOf("kind === 'dictor'"), eng.indexOf("kind === 'student'"))
     expect(dictor).not.toContain('rise(')
     const student = read('./wordLaneStudent.js')
-    expect(student).toContain("r.state === 'fly' || r.state === 'lock'")              // спавн ждёт только живой повтор: взлетающие пилюли (повтор уже won) его не держат
+    expect(student).toContain("r.state === 'lock' && !g.overlap")              // спавн ждёт только живой повтор (в очереди «Гонки» — ещё и не принятый, но доступный): взлетающие пилюли (повтор уже won) его не держат
   })
 })

@@ -591,6 +591,7 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | `player/modules/rehearsal.css` | «Репетиция с Питом» (`features/rehearsal/RehearsalActs.jsx`) поверх игры: перевод под фразой в заставке `.rhTr`, ярлык-плашка «Чётко / Обычно» над дорожками `.rhTag` (одна строка, многоточие), экран итога `.rhScreen` на каркасе `.wlReveal` (зеркало на дорожках — `rehearsal-mirror.css`) |
 | `player/modules/rehearsal-read.css` | Читка-караоке (v3.3.87; `rehearsal/read/`): слова подписей `.rkWord` с зелёным слоем `.rkFill` (открывается `clip-path` слева направо) и курсор `.rkCursor` («\|» `.rkBar` и кружок `.rkDot` в одном узле, двигается `transform`); на стадии «твоя очередь» зелёное плавно уходит (`.rkHead--off`); на слабом устройстве курсора нет. Без filter и анимаций |
 | `player/modules/race-sprint.css` | «Гонка с Питом» (`features/pitrace/`): подпись внутри пилюли `data-cap` (перевод «Разгона» и «Слушай и лови»), проявление английского слова на упущенной пилюле `data-reveal`, золото серии `data-streak` на корне игры (3 — золотые пилюли, 5 — ещё и свечение) |
+| `player/modules/race-charge.css` | Заставка-«зарядка» гонки (`features/pitrace/RaceCharge.jsx`; подключён из `race-sprint.css`): дорожки скрыты (`data-charge`), пилюли памяти и искры, бар сверху из цветных сегментов, полосатый заполненный бар |
 | `player/modules/race-climb.css` | «Гонка с Питом», раунд «Вершина» (`features/pitrace/RaceClimb.jsx`, `RaceHero.jsx`): острова-пилюли зигзагом (`.raceIsland`, подпись скрыта до взятия), мир (`.raceWorld`, `--cam`) под героем-капсулой цвета дорожки, золото вершины и плашка (`rehearsal-gold.css`); пилюли и дорожки движка в раунде скрыты (`data-act='climb'`) |
 | `player/modules/race-climb-timer.css` | Общий таймер «Вершины» (`features/pitrace/RaceClimbBar.jsx`): полоска сверху с учётом safe-area, секунды, всплывающее «+5», красная при малом остатке |
 | `player/modules/race-climb-hero.css` | «Вершина»: герой-капсула с растущей фразой (`RaceHero.jsx`): светлая капсула, шрифт `--cf` по длине, влёт и вылет слова; подключён из `race-climb.css` (index.css на пределе 250 строк) |
@@ -1199,6 +1200,7 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | `raceLines.js` | Реплики Пита `race_*` (16 штук, в т. ч. `race_trap_pre/mid/short`, в т. ч. `race_climb_time`, без точек, тире и `!`): входят в общий каталог кота `CAT_LINES` рядом с `rh_*` |
 | `raceOnly.js` | «Только этот раунд»: `RACE_ROUNDS` (sprint, catch, climb, descent), названия, `pickRound` — план с `round` оставляет в рецепте один раунд |
 | `raceWords.js` | Слова раундов из плана: `sprintWords` (6–10 слов с переводом, добор чужими, дорожка по семени, скорость +5 % за пилюлю), `catchSets` (три захода, три дорожки с переводами, ловушки-двойники), `climbWords`, `extrasOf`, `vocabOf` |
+| `raceCharge.js` | План заставки (чистые функции, от семени): слова памяти с `level`, старт и прилёт пилюль так, что последняя в T = длина речи Пита, искры, сегменты бара (в сумме 100 %), `chargeOn` — когда заставка на экране |
 | `raceRecipe.js` | Рецепт: из плана — акты `sprint` → `catch` → `climb` → `descent` → `summary` (или один раунд) |
 | `raceTexts.js` | Что готовить в тапе «Начать»: тексты для озвучки (с добором «Разгона») и первые реплики |
 | `raceStageKit.js` | Общий набор сборки стадий: длина озвучки слова, `push`, плашка раунда (`announce`), шаг ученика (`stepOf`) |
@@ -1213,17 +1215,19 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | `raceSim.js` | Итог и память: `scoreRace` (разгон N/M, слух N/3, медаль, спуск, золото, слова), `reportRace` (память и XP через `rehearsalSim.applySession`, строка `[race]` в журнал) |
 | `useRaceActs.js` | Директор гонки поверх `useRehearsalActs`: журнал событий, серия, подсказки лестницы, общий таймер подъёма, перезапуск ступени на промахе, `nextIdx` лестницы, скорость 1,1 на «Спуске», итог |
 | `RaceActs.jsx` | Интерфейс актов поверх игры: лестница «Вершины» и итог; зовёт `RehearsalActs`, когда у плана `game === 'race'` |
+| `RaceCharge.jsx` | Заставка-«зарядка» памятью: пилюли со словами памяти (цвет — ступень слова) и искры летят снизу вверх, сверху бар заполняется сегментами цветов долетевших пилюль, к концу речи Пита полосатый, потом уходит; Web Animations |
 | `RaceClimb.jsx` | Подъём «Вершины»: острова зигзагом с номерами и скрытыми подписями на «мире», который съезжает под героя, надпись «Время вышло», золотая плашка вершины |
 | `RaceHero.jsx` | Герой-альпинист «Вершины»: всегда в одной точке экрана по вертикали; прыжок с сальто, соскок и дрожь через Web Animations API |
 | `RaceClimbBar.jsx` | Общий таймер «Вершины» сверху экрана: полоска, секунды, всплывающее «+5» |
 | `RaceSummary.jsx` | Плашка итога в стиле итога репетиции: разгон, слух, медаль, спуск, XP; «Ещё заезд» / «Нет» |
 | `raceLog.js` | «Скачать отладку» для стенда: журнал плеера и строки `[race]` отдельным полем |
-| `raceHowto.js`, `RaceHowto.jsx` | Инструкция «Как тестировать» (семь шагов): один источник текста для блока в админке и для `CONCEPT_RACE.md` |
+| `raceHowto.js`, `RaceHowto.jsx` | Инструкция «Как тестировать» (восемь шагов): один источник текста для блока в админке и для `CONCEPT_RACE.md` |
 | `raceRecipe.test.js`, `raceStages.test.js`, `raceLadder.test.js`, `raceState.test.js`, `raceSim.test.js`, `raceLines.test.js` | Тесты: рецепт, стадии в формате движка, лестница, состояние, итог и память, каталог реплик |
 | `raceClimbCam.test.js`, `raceClimbTimer.test.js`, `raceClimbRender.test.jsx` | Тесты «Вершины»: геометрия островов и кадры прыжка, общий таймер и «время вышло», рендер островов, таймера и стилей |
 | `raceTrap.test.js`, `raceCapsule.test.js`, `raceStoneRender.test.jsx` | Тесты ловушек (раскладка, реакция, одна на подъём, голос), капсулы и камней с переводом на экране |
 | `raceDirector.test.jsx`, `raceEngine.test.js`, `raceRender.test.jsx` | Тесты: директор без React-рантайма, точки расширения движка (голосовой ответ «Слушай и лови», скорость, подписи пилюль), рендер итога, блока админки и «Как тестировать» |
 | `raceOnlyVosk.test.js` | Страж: в папке только Vosk, без `speechSynthesis` и `Math.random`, без `getUserMedia`, файлы не длиннее 250 строк |
+| `raceQueue.test.js`, `raceCharge.test.js`, `raceAnnounce.test.jsx` | Тесты очереди пилюль «Разгона», плана заставки, плашек этапов с заданием и скрытого микрофона |
 
 ### `src/features/rehearsal/polish/` — «Шлифовка репетиции» (комментарии владельца к этапам, Админ → «Голос»)
 Блок `admin/speech/RehearsalPolishBlock.jsx` запускает каждый этап репетиции отдельно; в игре кнопка 💬 (`WordLaneCommentButton.jsx`) ставит игру на паузу и пишет комментарий со снимком экрана, настроек и журнала; экспорт — JSON этапа.

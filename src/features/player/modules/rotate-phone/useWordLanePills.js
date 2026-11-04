@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { TRAVEL_MS, pillFill } from './wordLaneTimeline.js'
 import { createPool } from './wordLanePool.js'
-import { createStudentGame, stepStudent, isClaimable } from './wordLaneStudent.js'
+import { createStudentGame, stepStudent, isClaimable, liveRep } from './wordLaneStudent.js'
 import { createVoiceGate } from './wordLaneVoiceGate.js'
 import { snapPill, missPill, SNAP_LEAD_MS } from './wordLaneSnap.js'
 import { runOrderScene } from './wordLaneOrderScene.js'
@@ -91,7 +91,7 @@ export function useWordLanePills(rootRef, { scene, levels, fx, live, sceneApi })
       const t0 = performance.now()
       const off = levels?.subscribe(l => { raw = l })
       const blind = !step.labels.length
-      setApi(sceneApi, { nextTarget: () => (g.reps.filter(isClaimable)[0] ?? g.reps.find(r => r.state === 'fly') ?? null)?.target ?? null }) // ручной режим: тап по микрофону = «сказал» ближайший повтор
+      setApi(sceneApi, { nextTarget: () => (g.reps.filter(isClaimable)[0] ?? liveRep(g))?.target ?? null }) // ручной режим: тап по микрофону = «сказал» ближайший повтор
       const lockPiece = pill => { const k = held.get(pill.id); if (k != null) pool.attr(k, 'data-lock') }
       const handle = e => {
         if (e.type === 'spawn') {

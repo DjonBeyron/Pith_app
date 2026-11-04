@@ -1,7 +1,7 @@
 // План репетиции (RehearsalPlan, CONCEPT_REHEARSAL.md §4): что репетируем в одной сессии. Поставщик плана — planFor(source) (rehearsalFixtures.js): сейчас фикстура, потом память слов и фраз, потом нода.
 // Сценарий от источника не зависит. Чистые функции — проверяются тестами.
 //   { phrase: 'I'm | trying | to learn', translation, lang, chunks: ['I'm','trying','to learn'],
-//     words: [{ text, translation, due, lapses, confusers: [≤2 слова-двойника] }],
+//     words: [{ text, translation, due, lapses, confusers: [≤2 слова-двойника], level: 0–4 (ступень памяти слова, как --lvl0…--lvl4; нет — 1; потом из word_memory.step / settled_on) }],
 //     run: номер запуска в одном тапе (нет — 0; «Ещё минутку?» даёт 1, 2…; по нему реплики старта и итога — rehearsalLines.sessionLine),
 //     seed: 'строка семени случайностей внутри актов (rehearsalSeed.js; нет в JSON — «дата|фраза»)', stressed: [номера ударных кусков, пока вручную], audio: { phrase: { url, timings } | null, words: 'lib' }, source: 'sim' | 'memory' | 'node' }
 import { parsePhrase, normText, MAX_CONFUSERS } from '../player/modules/rotate-phone/wordLaneRecipe.js'
@@ -18,6 +18,9 @@ export const MAX_DISCERN = 2       // слов в акте «Различи»
 
 const clean = v => String(v ?? '').trim().slice(0, 80)
 
+/** Ступень памяти слова 0–4 (цвет --lvl0…--lvl4); не число — 1 (новое) */
+const levelOf = v => (Number.isFinite(Number(v)) && v !== null && v !== '' ? Math.min(4, Math.max(0, Math.floor(Number(v)))) : 1)
+
 function normalizeWord(raw) {
   const text = clean(raw?.text)
   if (!text) return null
@@ -30,7 +33,7 @@ function normalizeWord(raw) {
     seen.add(key); confusers.push(w)
     if (confusers.length >= MAX_CONFUSERS) break
   }
-  return { text, translation: clean(raw?.translation), due: !!raw?.due, lapses: Math.max(0, Math.floor(Number(raw?.lapses) || 0)), confusers }
+  return { text, translation: clean(raw?.translation), due: !!raw?.due, lapses: Math.max(0, Math.floor(Number(raw?.lapses) || 0)), confusers, level: levelOf(raw?.level) }
 }
 
 /** Что угодно (JSON из админки, фикстура) → план или null, если нет ни одного куска. Куски: chunks или phrase через «|» (до трёх) */
