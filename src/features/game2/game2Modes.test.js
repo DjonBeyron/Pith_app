@@ -12,7 +12,7 @@ describe('режимы «Мини-игры 2.0»', () => {
     expect(got).toEqual(SEQUENCE)
   })
   it('у каждого режима своя реплика Пита rh2_*, и она есть в каталоге (озвучивается кнопкой «Озвучить реплики»)', () => {
-    expect(GAME2_LINES).toHaveLength(8)
+    expect(GAME2_LINES).toHaveLength(10)
     for (const id of GAME2_LINES) { expect(CAT_LINES.some(l => l.id === id), id).toBe(true); expect(REHEARSAL_LINES.find(l => l.id === id).when).toMatch(/^Мини-игра 2\.0 \(стенд\)/) }
     for (const m of SEQUENCE) expect(MODES[m].line).toBe(`rh2_${m}`)
     expect(normalizeLines(null).rh2_catch_miss.text).toBe('Проскочило, слушай ещё раз')
@@ -25,10 +25,10 @@ describe('режимы «Мини-игры 2.0»', () => {
     expect([MODES.recall.show, MODES.recall.labels, MODES.recall.voice, MODES.recall.hint]).toEqual(['all', false, false, true])
     expect(MODES.start.show).toBe('none')
   })
-  it('«Тень» тише на 6 дБ (GainNode), «Скорость» — ×1,2 и тоже тише; окна: «Ловлю» 0,8 с, «Тень» 1 с', () => {
+  it('«Тень» тише на 6 дБ (GainNode), «Скорость» — ×1,2 и тоже тише; окна: «Ловлю» ±0,8 с, «Тень» и «Скорость» от слова Пита до +1 с, «По памяти» ±1 с', () => {
     expect(SHADOW_DB).toBe(-6); expect(MODES.shadow.gain).toBeCloseTo(0.501, 3); expect(dbGain(0)).toBe(1)
     expect(MODES.speed.rate).toBe(SPEED_UP); expect(MODES.speed.rate).toBe(1.2); expect(MODES.speed.gain).toBe(MODES.shadow.gain)
-    expect([MODES.catch.window, MODES.shadow.window, MODES.recall.window]).toEqual([800, 1000, 1000])
+    expect([MODES.catch.window, MODES.shadow.window, MODES.speed.window, MODES.recall.window]).toEqual([800, { from: 0, to: 1000 }, { from: 0, to: 1000 }, 1000])
     expect(MODES.listen.rate).toBe(1); expect(MODES.listen.gain).toBe(1)
   })
 })
@@ -49,6 +49,21 @@ describe('«Ловлю»: повтор после промаха', () => {
   })
 })
 
+describe('«Тень»: тексты и подсказки', () => {
+  it('реплики: rh2_shadow заменена (без точек и тире), есть rh2_shadow_lag и rh2_shadow_next; все в каталоге', () => {
+    const t = id => normalizeLines(null)[id].text
+    expect(t('rh2_shadow')).toBe('говори за мной сразу, не жди, пока я закончу, держись в хвосте моего голоса')
+    expect(t('rh2_shadow_lag')).toBe('ты отстал, догоняй'); expect(t('rh2_shadow_next')).toBe('вот так, теперь чуть быстрее')
+    for (const id of ['rh2_shadow', 'rh2_shadow_lag', 'rh2_shadow_next']) { expect(GAME2_LINES).toContain(id); expect(t(id)).not.toMatch(/[.…!—–]/) }
+  })
+  it('«Скорость» после «По памяти» начинается с rh2_shadow_next; rh2_speed — только при продолжении с неё; остальные переходы без изменений', () => {
+    expect(nextStep('recall')).toEqual({ mode: 'speed', say: 'rh2_shadow_next' })
+    expect(nextStep('shadow')).toEqual({ mode: 'recall', say: 'rh2_recall' })
+    expect(MODES.speed.line).toBe('rh2_speed')
+    expect([MODES.shadow.lag, MODES.speed.lag, MODES.recall.lag, MODES.catch.lag]).toEqual([true, true, undefined, undefined])
+  })
+})
+
 describe('итог', () => {
   it('результат режима: повтор «Ловлю» не ухудшает лучшую попытку', () => {
     let s = withResult(emptyScore(), 'catch', 1, 2)
@@ -66,9 +81,9 @@ describe('сигнал «говори»', () => {
     expect(MODE_IDS.filter(id => MODES[id].turn).every(id => MODES[id].input !== 'none')).toBe(true)
     expect(MODES.listen.instr).toBe('Слушай и смотри, говорить не надо')
     expect(MODES.catch.instr).toBe('Скажи слово, когда услышишь его')
-    expect(MODES.shadow.instr).toBe('Говори вместе с Питом')
+    expect(MODES.shadow.instr).toBe('Повторяй за Питом с отставанием на полслова, не жди конца фразы')
     expect(MODES.recall.instr).toBe('Скажи фразу сам')
-    expect(MODES.speed.instr).toBe('Ещё раз, быстрее')
+    expect(MODES.speed.instr).toBe(MODES.shadow.instr) // одна строка в «Тени» и «Скорости»
     for (const id of ['listen', 'catch', 'shadow', 'recall', 'speed']) expect(MODES[id].plate).toBeTruthy()
   })
 })

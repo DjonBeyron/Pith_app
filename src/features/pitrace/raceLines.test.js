@@ -5,8 +5,8 @@ import { isStaleLine, lineVoiced } from '../rehearsal/rehearsalLines.js'
 import { missingPitLines, pitVoiceCount } from '../rehearsal/rehearsalVoice.js'
 
 describe('реплики Пита в гонке: каталог', () => {
-  it('тринадцать ключей race_*, тексты из задания', () => {
-    expect(RACE_LINE_IDS).toEqual(['race_start', 'race_sprint', 'race_sprint_streak', 'race_sprint_fire', 'race_catch', 'race_catch_miss', 'race_climb', 'race_climb_slip', 'race_climb_top', 'race_climb_time', 'race_descent', 'race_done_gold', 'race_done'])
+  it('шестнадцать ключей race_*, тексты из задания', () => {
+    expect(RACE_LINE_IDS).toEqual(['race_start', 'race_sprint', 'race_sprint_streak', 'race_sprint_fire', 'race_catch', 'race_catch_miss', 'race_climb', 'race_climb_slip', 'race_trap_pre', 'race_trap_mid', 'race_trap_short', 'race_climb_top', 'race_climb_time', 'race_descent', 'race_done_gold', 'race_done'])
     const t = Object.fromEntries(RACE_LINES.map(l => [l.id, l.text]))
     expect(t.race_start).toBe('Три заезда, разгон, слух и вершина, погнали')
     expect(t.race_sprint).toBe('Разгон, видишь перевод, говори слово, скорость растёт')
@@ -14,6 +14,7 @@ describe('реплики Пита в гонке: каталог', () => {
     expect(t.race_catch).toBe('Теперь на слух, я говорю слово, а ты скажи его по-английски, оно среди трёх')
     expect(t.race_catch_miss).toBe('мимо, слушай ещё')
     expect(t.race_climb).toBe('Забирайся, по слову за шаг, скажи первое'); expect(t.race_climb_slip).toBe('ой, соскользнул, ещё раз'); expect(t.race_climb_top).toBe('Вершина, вот так это и звучит'); expect(t.race_climb_time).toBe('время вышло, но ты высоко забрался')
+    expect(t.race_trap_pre).toBe('это'); expect(t.race_trap_mid).toBe('а нужно'); expect(t.race_trap_short).toBe('мимо, это двойник') // ловушка-двойник: «это {двойник}, а нужно {слово}» собирается из кусков (raceTrapVoice.js)
     expect(t.race_descent).toBe('А теперь вниз на скорости, повтори за мной всю фразу')
     expect(t.race_done_gold).toBe('Золото, идеально'); expect(t.race_done).toBe('Финиш, завтра ещё заезд?')
   })
@@ -27,7 +28,7 @@ describe('реплики Пита в гонке: каталог', () => {
   it('входят в общий каталог кота рядом с rh_*, ключи уникальны; редактор ноды и настройки видят их сами', () => {
     expect(LINE_IDS).toEqual(expect.arrayContaining(RACE_LINE_IDS))
     expect(new Set(LINE_IDS).size).toBe(LINE_IDS.length)
-    expect(CAT_LINES.slice(-13).map(l => l.id)).toEqual(RACE_LINE_IDS)
+    expect(CAT_LINES.slice(-16).map(l => l.id)).toEqual(RACE_LINE_IDS)
     expect(Object.keys(normalizeLines(null))).toEqual(LINE_IDS)
     expect(normalizeLines(null).race_catch_miss.text).toBe('мимо, слушай ещё')
   })
@@ -39,8 +40,8 @@ describe('реплики Пита в гонке: каталог', () => {
     expect(lineVoiced('race_start', l.race_start)).toBe(true); expect(lineVoiced('race_done', l.race_done)).toBe(false)
   })
   it('озвучка в админке с фильтром: считается только по гонке, реплики репетиции не мешают', () => {
-    expect(pitVoiceCount(null, RACE_LINES)).toEqual({ done: 0, total: 13 })
+    expect(pitVoiceCount(null, RACE_LINES)).toEqual({ done: 0, total: 16 })
     expect(missingPitLines(normalizeLines({ lines: { race_start: { text: RACE_LINES[0].text, url: 'u', duration: 1 } } }), RACE_LINES).map(x => x.id)).not.toContain('race_start')
-    expect(missingPitLines(null, RACE_LINES)).toHaveLength(13)
+    expect(missingPitLines(null, RACE_LINES)).toHaveLength(16)
   })
 })

@@ -35,11 +35,12 @@ const pct = x => `${(x * 100).toFixed(2)}%`
 
 /**
  * Кадры Web Animations API для прыжка j (jumpOf): move — на внешнем элементе героя (left), arc — на внутреннем (transform: дуга, сальто, приседание), options — параметры обоих.
- * lite — слабое устройство или reduced-motion: ни дуги, ни сальто, перенос с затуханием. Только transform / opacity / left, без filter.
+ * j.fromLeft / j.toLeft (необязательные строки CSS) — положение left вместо долей fromX / toX. lite — слабое устройство или reduced-motion: ни дуги, ни сальто, перенос с затуханием. Только transform / opacity / left, без filter.
  */
 export function heroFrames(j, lite = false) {
   const base = { duration: j.ms, fill: 'both' }
-  const move = [{ left: pct(j.fromX) }, { left: pct(j.toX) }]
+  const L = x => pct(x), fromL = j.fromLeft ?? L(j.fromX), toL = j.toLeft ?? L(j.toX) // fromLeft / toLeft — строки CSS (капсула прижата к краям экрана, raceCapsule.capLeft); без них — доли ширины
+  const move = [{ left: fromL }, { left: toL }]
   if (lite) return { move, arc: [{ opacity: 0.35 }, { opacity: 1 }], options: { move: { ...base, duration: LITE_MS, easing: 'ease-out' }, arc: { ...base, duration: LITE_MS } } }
   const opts = { move: { ...base, easing: 'ease-in-out' }, arc: base }
   if (j.kind === 'up') {
@@ -68,5 +69,5 @@ export function heroFrames(j, lite = false) {
     }
   }
   const shake = [0, -5, 5, -3, 0].map(x => ({ transform: `translateX(${x}px)` }))
-  return { move: [{ left: pct(j.toX) }, { left: pct(j.toX) }], arc: shake, options: { move: { ...base, duration: SHAKE_MS }, arc: { ...base, duration: SHAKE_MS } } }
+  return { move: [{ left: toL }, { left: toL }], arc: shake, options: { move: { ...base, duration: SHAKE_MS }, arc: { ...base, duration: SHAKE_MS } } }
 }

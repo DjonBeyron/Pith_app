@@ -1,5 +1,5 @@
 import { visiblePills } from './timelinePlan.js'
-import { creditWord, expiredPills, isStuck, inWindow, HEARD_LAG_MS } from './game2Hits.js'
+import { creditWord, expiredPills, isStuck, isLagging, inWindow, winTail, HEARD_LAG_MS } from './game2Hits.js'
 import { micState } from './game2MicLog.js'
 
 // Один проход ленты (один режим) — не React: часы, голос, слушатель и отметки пилюль. Всё внешнее приходит аргументами (тесты подставляют поддельные часы и слушатель).
@@ -7,6 +7,8 @@ import { micState } from './game2MicLog.js'
 //  • «Слушаю» (fill: karaoke): пилюля загорается в момент своего слова (lane.mark lit) и гаснет, когда слово кончилось;
 //  • режимы со словами пользователя (input): слушатель живёт на проход, услышанное слово приписывается пилюле (creditWord: то же слово, момент в окне). Попал — hit (в «Ловлю» пилюля ещё и улетает вверх),
 //    окно прошло — miss (полоски, пилюля уезжает вниз). «По памяти»: застрял на 3 с — подсказка первого слова (onHint), проход держится ещё HINT_HOLD_MS;
+//  • «Тень» и «Скорость» (mode.lag): окно слова — от начала слова Пита до +1,0 с (game2Hits.SHADOW_WIN), раньше голоса Пита слово не засчитывается; отстал (последнее засчитанное слово позади слова Пита на 2 и больше, isLagging) —
+//    один раз за проход onLag (Пит говорит «ты отстал, догоняй»);
 //  • «Ловлю»: пока окно слова открыто (±0,8 с вокруг слова пилюли) и слово не сказано, пилюля светится ярче (lane.win) — окно видно глазами;
 //  • слушатель с ready() (game2Listen.js): часы ленты запускаются, когда микрофон открыт и словарь Vosk готов (не дольше READY_MAX_MS), иначе первые слова фразы уходят в компиляцию словаря; без ready() — сразу;
 //  • конец: слово последней пилюли и голос закончились + окно + хвост; отмена (cancelled) — сразу, пилюли остаются как есть.
@@ -15,13 +17,13 @@ export const TAIL_MS = 400
 export const READY_WAIT_MS = 4500 // сколько лента ждёт готовности слушателя
 export const HINT_HOLD_MS = 2500 // после подсказки «По памяти» проход ещё столько открыт: подпись «Начни с» успевают прочитать
 
-export function runLane({ mode, timeline, lane, voice = null, makeListener = null, onHint = null, cancelled = () => false, now = () => performance.now(), raf = f => requestAnimationFrame(f), log = () => {}, state = micState, onBegin = null }) {
+export function runLane({ mode, timeline, lane, voice = null, makeListener = null, onHint = null, onLag = null, cancelled = () => false, now = () => performance.now(), raf = f => requestAnimationFrame(f), log = () => {}, state = micState, onBegin = null }) {
   const pills = visiblePills(timeline, mode.show)
   const win = mode.window ?? 0
   const filled = new Set(), marked = new Set(), lit = new Set(), done = new Set(), opened = new Set()
-  let endAt = Math.max(timeline.endMs, mode.voice ? timeline.voiceAtMs + timeline.voiceMs : 0) + win + TAIL_MS
+  let endAt = Math.max(timeline.endMs, mode.voice ? timeline.voiceAtMs + timeline.voiceMs : 0) + winTail(win) + TAIL_MS
   let t0 = now()
-  let voiceOn = false, hinted = false, listener = null
+  let voiceOn = false, hinted = false, lagged = false, listener = null
 
   const onHeard = ({ text, at, tap }) => {
     const t = at - t0 - (tap ? 0 : HEARD_LAG_MS)
@@ -68,6 +70,11 @@ export function runLane({ mode, timeline, lane, voice = null, makeListener = nul
       }
       if (mode.input !== 'none') {
         for (const p of expiredPills(pills, filled, marked, t, win)) { marked.add(p.i); lane.mark(p.i, 'miss') }
+      }
+      if (mode.lag && listener && !lagged && isLagging({ pills, filled, t })) {
+        lagged = true
+        log(`${mode.id}: отстал больше чем на слово — «ты отстал, догоняй»`)
+        onLag?.()
       }
       if (mode.hint && pills.length && !hinted && isStuck({ t, firstStartMs: pills[0].startMs, credited: filled.size, hinted })) {
         hinted = true

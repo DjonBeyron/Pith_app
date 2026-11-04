@@ -3,7 +3,7 @@
 //  • Разгон: слова фразы с карточкой и переводом, без служебных (warmupWords), «к повтору» первыми; если их меньше SPRINT_MIN — добираем словами с переводом из plan.extraWords, а нет их — из других фикстур (в будущем — из памяти);
 //    у каждой пилюли своя случайная дорожка и скорость: первая ×1, каждая следующая на 5 % быстрее;
 //  • Слушай и лови: первые три слова разгона; в заходе три дорожки: верное слово и два других — двойники слова из памяти (confusers, если у них есть перевод: внутри пилюли русский текст), потом остальные слова раунда;
-//  • Вершина: слова фразы по порядку (wordsOfChunk всех кусков).
+//  • Вершина: слова фразы по порядку (wordsOfChunk всех кусков), переводы на камнях — из карточек плана (climbHints).
 import { warmupWords, wordsOfChunk } from '../rehearsal/rehearsalPlan.js'
 import { orderWarmup } from '../rehearsal/rehearsalVariety.js'
 import { isStopWord } from '../rehearsal/rehearsalStopWords.js'
@@ -63,6 +63,9 @@ export function catchSets(plan, words = sprintWords(plan)) {
 
 /** Слова лестницы «Вершины»: слова всех кусков фразы по порядку (ступень k — первые k слов) */
 export const climbWords = plan => plan.chunks.flatMap(wordsOfChunk)
+
+/** Переводы слов лестницы по порядку (из карточек плана, plan.words): у слова без карточки — пустая строка (на камне только номер) */
+export const climbHints = plan => climbWords(plan).map(w => plan.words.find(x => key(x.text) === key(w))?.translation ?? '')
 
 /** Словарь Vosk сверх целей: переданные слова без целей и повторов, не больше MAX_VOCAB */
 export function vocabOf(targets, extra = []) {

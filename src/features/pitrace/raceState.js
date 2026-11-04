@@ -1,9 +1,11 @@
 // Состояние «Гонки с Питом» по ходу раундов — чистый редюсер без React (по нему работают директор useRaceActs, экран RaceClimb / RaceSummary и итог raceSim): события движка → серия «Разгона», результаты «Слушай и лови», лестница «Вершины», «Спуск».
 //  ev = { t: 'enter' | 'win' | 'miss' | 'fail' | 'timeout', stage, info, now }: stage — стадия (raceStages.js: act, words, ci, k, n), info — что знает движок о событии (info.idx — номер пилюли «Разгона»); enter — стадия началась;
+//  info.heard — что услышал Vosk (ставит директор на промахе): двойник слова ступени с ловушкой (raceTrap.js) — ловушка осыпается, trap в ответе = { said, word }, Пит говорит про двойника;
 //  now — часы (мс, performance.now): на первом заходе «Вершины» стартует общий таймер; timeout — общее время подъёма вышло (посылает директор).
-//  reduceRace(state, ev) → { state, say, hint, log }: say — реплика Пита (серия 3 и 5), hint — слово, которое Пит произносит голосом (подсказка «Вершины»), log — строка журнала «[race] …».
+//  reduceRace(state, ev) → { state, say, hint, trap, log }: say — реплика Пита (серия 3 и 5), hint — слово, которое Пит произносит голосом (подсказка «Вершины»), trap — { said, word } (ловушка сработала), log — строка журнала «[race] …».
 import * as ladder from './raceLadder.js'
 import { CLIMB_BONUS_MS } from './raceClimbTimer.js'
+import { trapSaid } from './raceTrap.js'
 
 export const STREAK_GOLD = 3  // серия: пилюли вспыхивают золотом, Пит говорит race_sprint_streak
 export const STREAK_FIRE = 5  // серия: Пит говорит race_sprint_fire
@@ -40,36 +42,39 @@ function catchRound(s, kind, stage) {
   return { ...same(s, { catch: { ...s.catch, results: { ...s.catch.results, [stage.ci]: res } } }), say, log: `слух ${stage.ci + 1}: ${wordTitle(stage.word.text)} ${kind === 'win' ? 'верно' : kind === 'fail' ? 'промах, заход повторится' : 'не та дорожка'}` }
 }
 
-function climbRound(s, kind, stage) {
-  const c = s.climb ?? ladder.initClimb(stage.n)
+function climbRound(s, kind, stage, info) {
+  const c = s.climb ?? ladder.initClimb(stage.n, stage.trap)
   if (kind === 'timeout') { const climb = ladder.timeOut(c); return { ...same(s, { climb }), log: `вершина: время вышло на ступени ${climb.rung} из ${climb.n}, заходов ${climb.attempts}` } }
-  const { climb, hint } = ladder.apply(c, kind)
+  const said = kind === 'miss' ? trapSaid(info?.heard, stage.word, stage.confusers) : null // двойник вместо слова (только на ступени с ловушкой это что-то меняет)
+  const { climb, hint, trapped } = ladder.apply(c, kind, said)
   const k = ladder.targetOf(c)
   const text = kind === 'win' ? `ступень ${k} взята, времени +${CLIMB_BONUS_MS / 1000} с` : `ступень ${k} ${kind === 'miss' ? 'сказано не то' : 'не взята'}, соскальзывание на ${climb.rung}`
-  const say = kind !== 'win' && !hint ? 'race_climb_slip' : null // на подсказке голосом Пит говорит слово, а не «соскользнул»
-  return { ...same(s, { climb }), hint, say, log: `вершина: ${text}, заходов ${climb.attempts}${climb.top ? ', вершина' : ''}${hint ? `, подсказка голосом: ступень ${hint}` : ''}${climb.over ? ', потолок заходов' : ''}` }
+  const say = kind !== 'win' && !hint && !trapped ? 'race_climb_slip' : null // на подсказке голосом Пит говорит слово, на ловушке — про двойника, а не «соскользнул»
+  const fell = kind === 'win' && c.trap?.state === 'stand' && climb.trap?.state === 'fell'
+  const extra = `${hint ? `, подсказка голосом: ступень ${hint}` : ''}${trapped ? `, ловушка: сказал двойник «${trapped}»` : ''}${fell ? ', ловушка провалилась' : ''}`
+  return { ...same(s, { climb }), hint, say, trap: trapped ? { said: trapped, word: stage.word } : null, log: `вершина: ${text}, заходов ${climb.attempts}${climb.top ? ', вершина' : ''}${extra}${climb.over ? ', потолок заходов' : ''}` }
 }
 
 function enter(s, stage, now) {
   if (stage.type === 'announce') return stage.round?.title ? { ...same(s, { round: stage.act }), log: `раунд: ${stage.round.title}` } : { state: s }
   if (stage.act === 'sprint') return { ...same(s, { sprint: { ...s.sprint, words: stage.words.map(w => w.text) } }), log: `разгон: ${stage.words.length} пилюль` }
   if (stage.act === 'catch') return same(s, { catch: { words: { ...s.catch.words, [stage.ci]: stage.word.text }, results: { ...s.catch.results, [stage.ci]: s.catch.results[stage.ci] ?? { ok: false, bad: 0 } } } })
-  if (stage.act === 'climb' && stage.type === 'student') { const c = ladder.enter(s.climb ?? ladder.initClimb(stage.n), now); return same(s, { climb: c }) }
+  if (stage.act === 'climb' && stage.type === 'student') { const c = ladder.enter(s.climb ?? ladder.initClimb(stage.n, stage.trap), now); return same(s, { climb: c }) }
   return { state: s }
 }
 
 /** Итог шага: { state, say, hint, log } (say / hint / log — null, если нечего) */
 export function reduceRace(s, ev) {
   const { t, stage, info, now } = ev
-  if (!stage?.race || (t === 'win' && info?.last === false)) return { state: s, say: null, hint: null, log: null } // win приходит на каждую пилюлю повтора (спуск — три куска): считаем только последнюю
+  if (!stage?.race || (t === 'win' && info?.last === false)) return { state: s, say: null, hint: null, trap: null, log: null } // win приходит на каждую пилюлю повтора (спуск — три куска): считаем только последнюю
   let r
   if (t === 'enter') r = enter(s, stage, now)
   else if (stage.act === 'sprint' && stage.type === 'student') r = sprint(s, t, stage, info)
   else if (stage.act === 'catch') r = catchRound(s, t, stage)
-  else if (stage.act === 'climb' && stage.type === 'student') r = climbRound(s, t, stage)
+  else if (stage.act === 'climb' && stage.type === 'student') r = climbRound(s, t, stage, info)
   else if (stage.act === 'descent' && stage.type === 'student' && t !== 'miss') r = { ...same(s, { descent: t === 'win' ? 'ok' : 'miss' }), log: `спуск: ${t === 'win' ? 'фраза сказана' : 'не успел'}` }
   else r = { state: s }
-  return { state: r.state, say: r.say ?? null, hint: r.hint ?? null, log: r.log ?? null }
+  return { state: r.state, say: r.say ?? null, hint: r.hint ?? null, trap: r.trap ?? null, log: r.log ?? null }
 }
 
 /** Какой индекс стадии идёт после стадии cur (подъём «Вершины»): ступень k, плашка вершины climb-top или «время вышло» climb-time; null — решает обычный порядок стадий.

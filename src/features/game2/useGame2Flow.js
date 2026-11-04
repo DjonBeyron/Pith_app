@@ -107,6 +107,7 @@ export default function useGame2Flow({ plan, phrase, catApi, laneApi, cat, liste
             })
             return (activeRef.current = l)
           },
+          onLag: () => { catRef.current.sayLine('rh2_shadow_lag') }, // «Тень» / «Скорость»: отстал больше чем на слово — Пит один раз за проход говорит «ты отстал, догоняй»
           onHint: p => { laneApi.current?.label(p.i); catRef.current.sayLine(HINT_LINE); setHint(p.text); clearTimeout(hintTimer.current); hintTimer.current = setTimeout(() => setHint(''), HINT_SHOW_MS) }, // пилюля первого слова к 3-й секунде уже ушла вниз, поэтому слово ещё и подписью на экране
         })
       },

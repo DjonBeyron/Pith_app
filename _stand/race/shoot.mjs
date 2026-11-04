@@ -1,4 +1,4 @@
-// Скриншоты стенда «Гонка с Питом» (Playwright, 375×812): ROUND=sprint|catch|climb|descent|full node _stand/race/shoot.mjs (ROUND=climb CLIMB=timeout — снять «время вышло»)
+// Скриншоты стенда «Гонка с Питом» (Playwright, 375×812): ROUND=sprint|catch|climb|descent|full node _stand/race/shoot.mjs (ROUND=climb CLIMB=trap — ловушка-двойник на 4-й ступени; CLIMB=timeout — снять «время вышло»)
 // Dev-сервер: npx vite --port 5411 --strictPort; PW_CHROMIUM_PATH=/opt/pw-browsers/chromium; OUT=каталог для картинок (по умолчанию /tmp/raceshots).
 // Речь человека — очередь window.__sayQueue стенда (index.html): драйвер читает экран (подписи пилюль, лестницу, номер ступени) и «говорит» нужные слова; специально делает промахи, чтобы показать серию, проявление слова, соскальзывание и подсказку.
 import { chromium } from '@playwright/test'
@@ -81,12 +81,12 @@ async function catchRound(page, { wrongFirst = true } = {}) {
 }
 
 // «Вершина»: ступени 1–2 берём (снимки сальто и приземления), на 3-й — чужое слово (соскок вниз), потом берём всё до верха. CLIMB=timeout: берём две ступени и молчим — ждём, пока выйдет общее время
-async function climb(page, { timeout = false } = {}) {
+async function climb(page, { timeout = false, trap = false } = {}) {
   const words = await page.evaluate(() => window.__race.climb)
   const target = () => page.evaluate(() => { const t = document.querySelector('.raceIsland[data-target]'); return t ? Number(t.style.getPropertyValue('--k')) : 0 })
   await page.waitForSelector('.raceClimb', { timeout: 60000 }); await sleep(700); await shot(page, '30-climb-start')
   if (process.env.SIDS) await page.evaluate(() => { let last = ''; const t0 = performance.now(); setInterval(() => { const sid = document.querySelector('[data-testid="wl"]')?.dataset.sid; if (sid !== last) { last = sid; console.log('[race] sid ' + sid + ' +' + Math.round(performance.now() - t0)) } }, 50) }) // SIDS=1: когда меняются стадии
-  let slipped = false
+  let slipped = false, trapped = false
   const end = Date.now() + 170000
   while (Date.now() < end) {
     if (await page.$('[data-testid="race-top-plate"]')) { await sleep(600); await shot(page, '36-climb-top'); break }
@@ -99,6 +99,7 @@ async function climb(page, { timeout = false } = {}) {
     await sleep(300) // пилюля уже стоит
     if (timeout && k === 3) { await sleep(2000); continue } // молчим: общий таймер дойдёт до нуля
     if (k === 3 && !slipped) { await say(page, 'table'); await sleep(250); await shot(page, '34-climb-slip-mid'); await sleep(900); await shot(page, '35-climb-slipped'); slipped = true; await sleep(800); continue }
+    if (trap && k === 4 && !trapped) { trapped = true; await shot(page, '33-trap-stand'); for (let t = 0; t < 6 && !(await page.$('.raceTrap[data-state="crumbled"]')); t++) { await say(page, 'earn'); await page.waitForSelector('.raceTrap[data-state="crumbled"]', { timeout: 1200 }).catch(() => {}) } /* первые слова очереди стенда бывают потеряны на перезапуске слушателя: повторяем, пока камень не осыпется; снимок — сразу, пока крошится */ await shot(page, '38-trap-crumble'); await sleep(900); await shot(page, '39-trap-slipped'); await sleep(800); continue } // CLIMB=trap: на 4-й ступени (learn) говорим двойника earn — ловушка осыпается, потом берём верно (ловушки уже нет)
     console.log('say k=' + k, new Date().toISOString().slice(11, 23)); await say(page, words.slice(0, k).join(' ').toLowerCase())
     if (k === 2) { await sleep(330); await shot(page, '31-climb-salto-mid'); await sleep(700); await shot(page, '32-climb-landed') } else await sleep(500)
     await sleep(400)
@@ -126,11 +127,11 @@ const { ctx, page } = await open(`only=${ROUND === 'full' ? '' : ROUND}&seed=r1`
 try {
   if (ROUND === 'sprint') { await sleep(1500); await shot(page, '09-sprint-start'); await sprint(page, { missAt: 4 }) }
   else if (ROUND === 'catch') await catchRound(page)
-  else if (ROUND === 'climb') await climb(page, { timeout: process.env.CLIMB === 'timeout' })
+  else if (ROUND === 'climb') await climb(page, { timeout: process.env.CLIMB === 'timeout', trap: process.env.CLIMB === 'trap' })
   else if (ROUND === 'descent') await descent(page)
   else await full(page)
   await sleep(2000)
   await shot(page, '99-end')
   const lines = await page.evaluate(async () => (await import('/src/shared/lib/debug.js')).getPlayerLines())
-  console.log(lines.filter(l => l.includes('[race]')).join('\n')) // журнал гонки: то, что получит «Скачать отладку»
+  console.log(lines.filter(l => (process.env.DUMP ? new RegExp(process.env.DUMP) : /\[race\]/).test(l)).join('\n')) // журнал гонки: то, что получит «Скачать отладку»
 } finally { await ctx.close(); await browser.close() }

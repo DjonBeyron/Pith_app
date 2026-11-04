@@ -6,26 +6,30 @@ import { makeBox, putState, markEntered, reduceRace, climbTarget, climbStageIdx 
 import { leftMs, isOut } from './raceClimbTimer.js'
 import { reportRace } from './raceSim.js'
 import { DESCENT_RATE } from './raceRecipe.js'
+import { sayTrap } from './raceTrapVoice.js'
 
 // Директор «Гонки с Питом» (CONCEPT_RACE.md) поверх директора репетиции: useWordLaneFlow зовёт ЭТОТ хук вместо useRehearsalActs. Без плана гонки (plan.game !== 'race') он возвращает то, что вернул бы useRehearsalActs, —
 // остальные хуки внутри бездействуют. Что делает для гонки сверх репетиции (реплики на старте стадий, отсчёт, тишина экрана, вступление race_start, пауза — всё это уже у useRehearsalActs, он знает про plan.game):
 //  • состояние раундов (raceState.js): реакции движка win / miss / fail приходят в rec(kind, info) → серия «Разгона» (3 — золото и «ну, погнали», 5 — «огонь»), заходы «Слушай и лови», лестница «Вершины»; экран читает rh.race;
 //  • nextIdx: после ступени лестницы идёт стадия не «следующая по списку», а та, что решает лестница (k + 1 после попадания, ниже после соскальзывания, плашка вершины — после верха; raceState.climbTarget);
 //  • подсказка «Вершины»: на 2-м промахе одной ступени Пит говорит новое слово голосом (sayText), реплика соскальзывания в этот раз пропускается (её говорит редюсер); 3-й промах — подпись мигает (race.climb.blink);
+//  • ловушка-двойник (raceTrap.js): на промахе директор берёт у слушателя, что услышал Vosk (listener.heard()), редюсер узнаёт двойника — Пит говорит «это двойник, а нужно слово» по кускам (raceTrapVoice.js), вместо «соскользнул» и подсказки;
 //  • «Вершина»: сказал не то (miss) — соскальзывание сразу, стадия ступени перезапускается (jump); общий таймер подъёма (raceClimbTimer.js) — когда время вышло, переход на плашку climb-time;
 //  • «Спуск»: на время читки и ответа слова и куски играют с playbackRate 1,1 (wordLaneBuffers.setRateBoost);
 //  • итог: на экране summary — raceSim.reportRace (память сессии и XP тем же путём, что у репетиции), Пит говорит race_done_gold или race_done; result — для RaceSummary;
 //  • журнал отладки: строки «[race] …» (раунд, слово, попал / промах, серия, ступень, заходы, итог).
 export function useRaceActs(args) {
-  const { plan, stages, stage, at, stageObj, setS, sayLine, sayText } = args
+  const { plan, stages, stage, at, stageObj, setS, sayLine, sayText, lines, rate, listenerRef } = args
   const rh = useRehearsalActs(args)
   const on = plan?.game === 'race'
   const running = on && stage === 'run' ? stageObj : null
   const [box] = useState(makeBox) // s — актуальное состояние (читает nextIdx без перерисовки), hinted — подсказка голосом сказана на этом промахе (raceState.makeBox)
   const [view, setView] = useState(box.s)
   const [result, setResult] = useState(null)
-  const sayRef = useRef({ sayLine, sayText }) // свежие реплики берёт эффект ниже; первый рендер — из аргументов
-  useEffect(() => { sayRef.current = { sayLine, sayText } })
+  const sayRef = useRef({ sayLine, sayText, lines, rate }) // свежие реплики берёт эффект ниже; первый рендер — из аргументов
+  useEffect(() => { sayRef.current = { sayLine, sayText, lines, rate } })
+  const trapRef = useRef(() => {}) // отмена недосказанной подсказки про двойника (стадия сменилась, выход)
+  useEffect(() => () => trapRef.current(), [])
 
   const apply = useCallback(ev => {
     const r = reduceRace(box.s, { ...ev, now: performance.now() })
@@ -34,6 +38,7 @@ export function useRaceActs(args) {
     if (r.log) pLog(`[race] ${r.log}`)
     if (r.say) sayRef.current.sayLine?.(r.say)
     if (r.hint) sayRef.current.sayText?.(ev.stage.word) // подсказка «Вершины»: новое слово голосом из библиотеки
+    if (r.trap) { trapRef.current(); trapRef.current = sayTrap({ ...r.trap, ...sayRef.current }) } // ловушка: «это двойник, а нужно слово»
   }, [box])
 
   // Прыжок директора на стадию i (промах ступени, время вышло): стадия перезапускается с новой отметкой времени
@@ -86,7 +91,7 @@ export function useRaceActs(args) {
     rec(kind, info) {
       rh.rec(kind, info)
       if (!running) return
-      apply({ t: kind, stage: running, info })
+      apply({ t: kind, stage: running, info: kind === 'miss' ? { ...info, heard: listenerRef?.current?.heard?.() ?? '' } : info }) // на промахе — что услышал Vosk: двойник слова ступени ломает ловушку
       if (kind === 'miss' && running.act === 'climb' && running.type === 'student') jump(climbStageIdx(stages, box.s.climb)) // сказал не то — соскальзывание: ступень-стадия перезапускается (слово ступени звучит подсказкой при 2-м промахе)
     },
     // Реплик на «не успел» из директора игры нет: ответы «Слушай и лови» и «ой, соскользнул» «Вершины» говорит редюсер (raceState.js)

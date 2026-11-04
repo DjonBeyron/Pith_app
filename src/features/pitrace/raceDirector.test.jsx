@@ -75,6 +75,19 @@ describe('useRaceActs: директор гонки поверх директор
     expect(next).toMatchObject({ stage: 'run', hint: [], leaving: -1 }); expect(h.stages[next.idx].sid).toMatch(/^climb-\d$/); expect(next.at).toBeGreaterThanOrEqual(0)
     const c = probe('catch-0', { setS }); c.rh.rec('miss'); expect(setS).toHaveBeenCalledTimes(1)
   })
+  it('вершина: ловушка — на промахе директор спрашивает у слушателя, что услышано; двойник слова ступени 4 — «мимо, это двойник» (озвучки нет) вместо «соскользнул», подсказка голосом не нужна; прочее слово — обычный промах', () => {
+    const run = heard => {
+      const h = probe('climb-4', { listenerRef: { current: { heard: () => heard } }, setS() {} })
+      for (let i = 0; i < 3; i++) h.rh.rec('win') // стоим на ступени 3
+      h.rh.rec('miss', {})
+      return h
+    }
+    const trap = run('earn')
+    expect(trap.sayLine.mock.calls).toEqual([['race_trap_short', { caption: 'это earn, а нужно learn' }]]); expect(trap.sayText).not.toHaveBeenCalled()
+    const plain = run('table')
+    expect(plain.sayLine.mock.calls.map(c => c[0])).toEqual(['race_climb_slip'])
+    expect(read('./useRaceActs.js')).toContain('listenerRef?.current?.heard?.()')
+  })
   it('вершина: общий таймер — директор следит за временем (эффект), а по концу ведёт на плашку climb-time; проводка в коде', () => {
     const src = read('./useRaceActs.js')
     expect(src).toContain("apply({ t: 'timeout', stage: running })"); expect(src).toContain('climbStageIdx(stages, box.s.climb)'); expect(src).toContain('leftMs({ t0: clT0, wins: clWins }')

@@ -1,0 +1,15 @@
+/* «Гонка с Питом», раунд «Вершина»: герой — капсула с растущей фразой (features/pitrace/RaceHero.jsx, raceCapsule.js). Внешний .raceHero — точка на дорожке (left ставит React и кадры прыжка, капсула прижата к краям экрана через --cw),
+   .raceHeroIn — дуга и сальто (WAAPI, вращается вокруг точки героя), .raceCap — сама капсула: нейтральный светлый цвет с тонкой обводкой, шрифт --cf мельчает по длине текста, не шире 86 % экрана.
+   Новое слово влетает (raceCapIn, 350 мс, после приземления), при соскоке последнее вылетает вниз на остров (raceCapOut). Базовое состояние — конечное (слово на месте, вылетевшего нет): без анимаций (слабое устройство,
+   reduced-motion — отключены в race-climb.css) остаётся просто смена текста. Только transform / opacity, без filter. */
+.raceHero { position: absolute; width: 0; height: var(--ih); bottom: calc(var(--hb) * 1dvh); z-index: 2; }
+.raceHeroIn { position: absolute; left: 0; top: 0; width: 0; height: 100%; }
+.raceCap { position: absolute; left: 0; bottom: 0; transform: translateX(-50%); box-sizing: border-box; display: flex; align-items: center; justify-content: center; width: max-content; min-width: 34px; max-width: 86vw; min-height: var(--ih); padding: 4px 13px; border-radius: 999px; border: 1.5px solid rgba(255, 255, 255, 0.75); background: linear-gradient(to bottom, #f6f8fb, #dbe0ea); color: #14171c; font-size: var(--cf); font-weight: 800; line-height: 1.15; text-align: center; box-shadow: 0 5px 14px -6px rgba(0, 0, 0, 0.65); }
+.raceCap[data-empty] { padding: 4px 0; }
+.raceCapText { position: relative; display: block; }
+.raceCapIn { display: inline-block; animation: raceCapIn 0.35s ease-out 0.62s 1 both; }
+.raceCapOut { position: absolute; left: 100%; top: 0; margin-left: 4px; white-space: nowrap; opacity: 0; animation: raceCapOut 0.35s ease-in 1 both; }
+.raceClimb[data-top] .raceCap { border-color: var(--gold); background: linear-gradient(to bottom, #ffe9a6, #ffd257); box-shadow: 0 0 16px -2px rgba(255, 210, 87, 0.6); }
+
+@keyframes raceCapIn { 0% { opacity: 0; transform: translateY(5dvh) scale(1.35); } 100% { opacity: 1; transform: none; } }
+@keyframes raceCapOut { 0% { opacity: 1; transform: translate(0, 0); } 100% { opacity: 0; transform: translate(-30%, 9dvh) scale(0.8); } }

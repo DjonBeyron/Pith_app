@@ -4,3 +4,6 @@
 .g2HowtoP { margin: 8px 0 0; overflow-wrap: anywhere; }
 .g2HowtoSteps { margin: 8px 0 0; padding-left: 0; list-style: none; display: flex; flex-direction: column; gap: 6px; }
 .g2HowtoSteps li { overflow-wrap: anywhere; }
+.g2HowtoTable { width: 100%; margin: 6px 0; border-collapse: collapse; font-size: 12px; }
+.g2HowtoTable th, .g2HowtoTable td { padding: 3px 6px; border: 1px solid rgba(128, 128, 128, 0.35); text-align: left; vertical-align: top; overflow-wrap: anywhere; }
+.g2HowtoTable th { font-weight: 800; }

@@ -19,17 +19,17 @@ function rig(mode, { rate = 1, cancelAt = null } = {}) {
   const voice = { start: o => { calls.push(['voice', Math.round(t - base), o.rate, o.gain]); o.onStart?.(); return true }, stop: () => calls.push(['voice-stop']) }
   const base = t
   const lane = { win: (i, on) => wins.push([Math.round(t - base), i, on]), setT: v => ts.push(v), mark: (i, st, o) => marks.push([Math.round(t - base), i, st, o?.rise ?? null]) }
-  const hints = []
+  const hints = [], lags = []
   const tl = timeline(rate)
   const done = runLane({
     mode, timeline: tl, lane, voice, now: () => t, raf: f => queue.push(f), cancelled: () => cancelAt != null && t - base >= cancelAt,
     makeListener: onHeard => { handlers.onHeard = onHeard; return { start: () => calls.push(['listen-start']), dispose: () => calls.push(['listen-stop']) } },
-    onHint: p => hints.push(p.i),
+    onHint: p => hints.push(p.i), onLag: () => lags.push(Math.round(t - base)),
   })
   const run = (until = 12000, step = 20) => { while (t - base < until && queue.length) { for (const f of queue.splice(0)) f(); t += step } }
   // «Слово услышано» в момент абсолютного времени at (+ запаздывание Vosk): как будто пришло из слушателя
   const hear = (text, atMs) => { run(atMs); handlers.onHeard?.({ text, at: base + atMs + HEARD_LAG_MS, tap: false }) }
-  return { done, run, hear, marks, calls, ts, hints, wins, tl, now: () => t - base }
+  return { done, run, hear, marks, calls, ts, hints, lags, wins, tl, now: () => t - base }
 }
 
 describe('«Слушаю»: пилюля горит в момент своего слова', () => {
@@ -127,6 +127,44 @@ describe('«Тень» и «По памяти»: заливка по распо�
     r.hear("I'm", r.tl.pills[0].startMs + 50)
     r.run()
     expect((await r.done).hinted).toBe(false)
+  })
+})
+
+describe('«Тень» и «Скорость»: окно от слова Пита до +1 с, «ты отстал»', () => {
+  it('слово до голоса Пита не засчитывается, внутри окна — да, позже +1 с — нет (пилюля не поймана)', async () => {
+    const r = rig(MODES.shadow)
+    const [p0, p1, p2] = r.tl.pills
+    r.hear(p0.text, p0.startMs + 50)            // сразу вместе с Питом: можно
+    r.hear(p1.text, p1.startMs - 300)           // раньше голоса Пита: не засчитано
+    r.hear(p1.text, p1.startMs + 400)           // на полслова позади: засчитано
+    r.hear(p2.text, p2.startMs + 1100)          // позже +1 с: уже промах
+    r.run()
+    const res = await r.done
+    expect(r.marks.filter(m => m[2] === 'hit').map(m => m[1])).toEqual([0, 1])
+    expect(r.marks.some(m => m[1] === 2 && m[2] === 'miss')).toBe(true); expect(res.credited).toBe(2)
+  })
+  it('«По памяти» окно прежнее ±1 с: слово чуть раньше своей пилюли засчитывается', async () => {
+    const r = rig(MODES.recall)
+    const p1 = r.tl.pills[1]
+    r.hear(p1.text, p1.startMs - 300)
+    r.run()
+    expect(r.marks.some(m => m[1] === 1 && m[2] === 'hit')).toBe(true)
+  })
+  it('ученик отстал больше чем на слово (молчит): «ты отстал» ровно один раз за проход, после начала слов Пита', async () => {
+    const r = rig(MODES.shadow)
+    r.run()
+    await r.done
+    expect(r.lags).toHaveLength(1); expect(r.lags[0]).toBeGreaterThanOrEqual(r.tl.pills[1].startMs)
+  })
+  it('говорит на полслова позади — не отстал; «Скорость» то же правило; в «По памяти» и «Ловлю» подсказки нет', async () => {
+    const a = rig(MODES.shadow)
+    for (const p of a.tl.pills) a.hear(p.text, p.startMs + 250)
+    a.run(); await a.done
+    expect(a.lags).toEqual([])
+    const b = rig(MODES.speed, { rate: 1.2 }); b.run(); await b.done
+    expect(b.lags).toHaveLength(1)
+    const c = rig(MODES.recall); c.run(); await c.done
+    expect(c.lags).toEqual([])
   })
 })
 

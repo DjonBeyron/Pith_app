@@ -30,7 +30,7 @@ describe('сценарий сессии', () => {
     const s = setup()
     const score = await runSession(s.env, { dueCount: s.due })
     expect(s.modes).toEqual(['start', 'listen', 'catch', 'shadow', 'recall', 'speed', 'done'])
-    expect(s.said).toEqual(['rh2_start', 'rh2_listen', 'rh2_catch', 'rh2_shadow', 'rh2_recall', 'rh2_speed', 'rh2_done'])
+    expect(s.said).toEqual(['rh2_start', 'rh2_listen', 'rh2_catch', 'rh2_shadow', 'rh2_recall', 'rh2_shadow_next', 'rh2_done'])
     expect(s.lanes).toEqual(['listen', 'catch', 'shadow', 'recall', 'speed'])
     expect(score.catch).toEqual({ hit: 2, total: 2 }); expect(score.shadow).toEqual({ hit: 4, total: 4 })
   })

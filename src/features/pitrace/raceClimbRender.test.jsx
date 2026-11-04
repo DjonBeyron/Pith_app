@@ -39,7 +39,7 @@ describe('острова «Вершины» (RaceClimb)', () => {
     expect(h).toContain(`data-testid="race-word-1">${esc(words[0])}</span>`); expect(h).toContain(`data-testid="race-word-2">${words[1]}</span>`)
     expect(h).toContain('data-testid="race-word-3"></span>'); expect(h).toContain('data-last="hit"')
     expect(h).toContain('--cam:90'); expect(html(RaceClimb, { climb: climbAt(['win', 'win', 'win', 'win']), words, phrase: 'x' })).toContain('--cam:180')
-    expect(h).toMatch(/class="raceHero" data-lane="1" style="left:50.00%"/) // 2-я ступень — средняя дорожка
+    expect(h).toMatch(/class="raceHero" data-lane="1" style="left:clamp\(calc\(var\(--cw\) \/ 2 \+ 8px\), 50.00%/) // 2-я ступень — средняя дорожка
     expect(h).toMatch(/data-here="1" data-testid="race-step-2"/); expect(h).toMatch(/data-target="1" data-testid="race-step-3"/) // герой на втором, цель — третий
   })
   it('соскользнул: подпись оставленного острова гаснет; промах на третьем заходе — подпись мигает; вершина — золото и плашка', () => {
