@@ -4,7 +4,7 @@ import '../../../scene/v2/scene-v2.css'
 import '../../../scene/v2/scene-v2-cat.css'
 import '../../../scene/v2/scene-v2-pit.css'
 import { isWeakDevice } from '../../../../shared/lib/deviceTier.js'
-import { CAT_SPOTS, catPeek } from './wordLaneCatPeek.js'
+import { CAT_SPOTS, catPeek, holdForReact } from './wordLaneCatPeek.js'
 import { createCatVoice } from './wordLaneCatVoice.js'
 import { createMouthHold } from './wordLaneMouthHold.js'
 import { CAT_FACES, buildCat } from './wordLaneCatTree.js'
@@ -20,7 +20,7 @@ import { crossfadeHeads } from './wordLaneCatFade.js'
 //  • apiRef.current.speak(track, ms, meta?) — реплика кота: рот идёт по дорожке track (wordLaneVisemes.mouthTrack) ms миллисекунд, на это время микрофонный mouth() рот не трогает (отбрасывается и считается в журнале), усы держатся до конца;
 //    кот «говорит», зрачки расширяются в начале; нет дорожки — запасной цикл форм, рот не стоит. Логика — wordLaneCatVoice.js; события cat-speak / cat-speak-end попадают в отладку (wordLaneCatDebug.js).
 //    Голос есть — голова выскакивает (в новом месте), голоса нет HIDE_AFTER_MS — прячется (wordLaneCatPeek.js); apiRef.current.isUp() — голова сейчас торчит;
-//  • apiRef.current.react(face, ms) — реакция лицом на время ('love' — сердечки, пилюля принята; 'shy' — отвёл взгляд, слово не то) — голова торчит всё это время;
+//  • apiRef.current.react(face, ms, still) — реакция лицом на время ('love' — сердечки, пилюля принята; 'shy' — отвёл взгляд, слово не то) — голова торчит всё это время; still = true — только лицо, голова не двигается (quiet «Разгона»);
 //  • apiRef.current.peek(ms) — просто выскочить на время;
 //  • apiRef.current.freeze() — пауза игры: реплика обрывается, рот закрывается, взгляд гаснет, усы плавно доезжают до покоя (хвост is-tail, talkTail.js);
 //  • apiRef.current.look.lineStart() / word() / lineEnd() — взгляд: речь началась (зрачки расширяются) / граница слова (саккада) / речь кончилась; apiRef.current.talking(on) — усы вручную.
@@ -81,9 +81,9 @@ function WordLaneCat({ apiRef, skin = 'kit' }) {
       mouth: voice.mouth,
       speak: voice.speak,
       isUp: peek.isUp,
-      react(next, ms = 1500) {
+      react(next, ms = 1500, still = false) { // still — лицо без движения головы (тихий промах «Разгона»)
         setFace(next)
-        peek.hold(ms)
+        holdForReact(peek, ms, still)
         clearTimeout(timerRef.current)
         timerRef.current = setTimeout(() => setFace('base'), ms)
       },

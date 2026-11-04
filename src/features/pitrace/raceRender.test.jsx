@@ -58,7 +58,7 @@ describe('админка: блок «Гонка с Питом (стенд)» и 
   it('блок: фикстура, статус реплик race_*, куски, тап, «Полная гонка» и четыре раунда, «Скачать отладку», «Как тестировать»', () => {
     const h = html(RaceBlock, {})
     expect(h).toContain('Гонка с Питом (стенд)')
-    for (const id of ['race-fixture', 'race-lines-status', 'race-voice-lines', 'race-chunks-status', 'race-voice-chunks', 'race-tap-mode', 'race-run-full', 'race-run-sprint', 'race-run-catch', 'race-run-climb', 'race-run-descent', 'race-export', 'race-howto']) expect(h).toContain(`data-testid="${id}"`)
+    for (const id of ['race-fixture', 'race-lines-status', 'race-voice-lines', 'race-chunks-status', 'race-voice-chunks', 'race-trans-status', 'race-voice-trans', 'race-tap-mode', 'race-run-full', 'race-run-sprint', 'race-run-catch', 'race-run-climb', 'race-run-descent', 'race-export', 'race-howto']) expect(h).toContain(`data-testid="${id}"`)
     for (const t of ['Полная гонка', 'Разгон', 'Слушай и лови', 'Вершина', 'Спуск', 'Скачать отладку', 'Тап вместо речи']) expect(h).toContain(t)
     expect(h).toContain('Реплики Пита race_*')
   })

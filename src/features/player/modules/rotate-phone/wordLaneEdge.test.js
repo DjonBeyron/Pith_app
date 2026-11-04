@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest'
 import { readFileSync } from 'node:fs'
-import { edgeScale, edgeFrames, startFlight, EDGE_SCALE, EDGE_MID_Y, FLIGHT_MS, ANIM_MS } from './wordLaneMotion.js'
+import { edgeScale, edgeFrames, startFlight, EDGE_SCALE, EDGE_ZONE, edgeScaleAt, FLIGHT_MS, ANIM_MS } from './wordLaneMotion.js'
 import { ENTER_Y, EXIT_Y } from './wordLaneTimeline.js'
 import { missPill, snapPill, POP_EDGE_FRAMES, SOFT_MISS_MS } from './wordLaneSnap.js'
 
@@ -9,15 +9,19 @@ const read = f => readFileSync(new URL(f, import.meta.url), 'utf8')
 const el = (attrs = []) => ({ animate: vi.fn(() => ({ currentTime: 0 })), setAttribute: vi.fn(), hasAttribute: n => attrs.includes(n), querySelector: () => null })
 
 describe('масштаб пилюль у краёв (edge)', () => {
-  it('у входа и ухода 0,85, на 50 % высоты обычный размер, между — плавно, по положению', () => {
+  it('рост до 1 за первые 15 % пути, убывание на последних 15 %, посередине ровно 1', () => {
     expect(edgeScale(ENTER_Y)).toBeCloseTo(EDGE_SCALE, 3); expect(edgeScale(EXIT_Y)).toBeCloseTo(EDGE_SCALE, 3)
-    expect(edgeScale(EDGE_MID_Y)).toBe(1); expect(EDGE_MID_Y).toBe(50); expect(EDGE_SCALE).toBe(0.85)
-    const ys = [-14, 0, 20, 35, 50, 65, 80, 100, 118]
-    const sc = ys.map(edgeScale)
-    for (let i = 1; i < sc.length; i++) expect(Math.abs(sc[i] - sc[i - 1])).toBeLessThan(0.1)
-    expect(sc.every(v => v >= EDGE_SCALE && v <= 1)).toBe(true)
+    expect(EDGE_SCALE).toBe(0.85); expect(EDGE_ZONE).toBe(0.15)
+    expect(edgeScaleAt(EDGE_ZONE)).toBe(1); expect(edgeScaleAt(1 - EDGE_ZONE)).toBe(1)
+    for (const u of [0.15, 0.2, 0.3, 0.5, 0.7, 0.85]) expect(edgeScaleAt(u)).toBe(1)
+    const grow = [0, 0.03, 0.06, 0.09, 0.12, 0.15].map(edgeScaleAt)
+    for (let i = 1; i < grow.length; i++) expect(grow[i]).toBeGreaterThan(grow[i - 1])
+    expect(edgeScaleAt(0.075)).toBeCloseTo(0.925, 3)
+    const shrink = [0.85, 0.88, 0.91, 0.94, 0.97, 1].map(edgeScaleAt)
+    for (let i = 1; i < shrink.length; i++) expect(shrink[i]).toBeLessThan(shrink[i - 1])
+    expect(edgeScaleAt(0.5 - 1e-9)).toBe(1)
   })
-  it('кадры полёта: положение как у прямого полёта, scale на каждом кадре, пик 1 в середине пути; offset не больше доли полёта', () => {
+  it('кадры полёта: положение как у прямого полёта, scale на каждом кадре, 1 между зонами 15 %/85 %; offset не больше доли полёта', () => {
     const f = edgeFrames()
     expect(f.every(k => k.translate && k.scale)).toBe(true)
     expect(f[0].scale).toBeCloseTo(EDGE_SCALE, 3); expect(Math.max(...f.map(k => k.scale))).toBe(1)

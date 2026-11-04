@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { createStudentGame, stepStudent } from './wordLaneStudent.js'
-import { breathStep, FILL_CAP, PRE_CONFIRM_CAP } from './wordLaneTimeline.js'
+import { breathStep, FILL_CAP, PRE_CONFIRM_CAP, VOICE_THRESHOLD, BREATH_FULL_LEVEL, BREATH_CURVE, BREATH_ATTACK_MS } from './wordLaneTimeline.js'
+import { sensitiveLevel } from './wordLaneConfig.js'
 import { buildRecipe } from './wordLaneRecipe.js'
 
 // Заливка пилюль фазы ученика: пока слово куска не распознано, текущая пилюля показывает только голос («дыхание» — мягко, не выше FILL_CAP), распознанный кусок зеленеет (piece-ok),
@@ -19,7 +20,7 @@ describe('заливка: голос текущего куска, распозн
     const up = []
     for (let i = 0; i < 40; i++) { p = breathStep(p, DT / 1000, 1); up.push(p) }
     expect(Math.max(...up)).toBeLessThanOrEqual(FILL_CAP + 1e-9)
-    expect(up[0]).toBeLessThan(0.16)                                   // первый кадр — не скачок
+    expect(up[0]).toBeLessThan(0.2)                                   // первый кадр — не скачок
     expect(up.every((v, i) => i === 0 || v >= up[i - 1])).toBe(true)
     expect(up.at(-1)).toBeGreaterThan(FILL_CAP * 0.9)
     const attack = up.findIndex(v => v >= FILL_CAP * 0.5)
@@ -46,7 +47,7 @@ describe('заливка: голос текущего куска, распозн
     }
     expect(peak).toBeGreaterThan(0.5)
     expect(peak).toBeLessThanOrEqual(FILL_CAP + 1e-9)
-    expect(maxJump).toBeLessThan(0.16)
+    expect(maxJump).toBeLessThan(0.2)
     expect(g.reps[0].pills[0].p).toBeLessThan(peak)                    // голос кончился, а слово не распознано — заливка спадает, зелёного нет
     expect(g.reps[0].pills[0].state).toBe('fly')
   })
@@ -114,6 +115,17 @@ describe('до подтверждения речи', () => {
     expect(peakBefore).toBeLessThanOrEqual(PRE_CONFIRM_CAP + 1e-9)
     expect(g.reps[0].pills[0].p).toBeGreaterThan(PRE_CONFIRM_CAP + 0.2)
     expect(g.reps[0].pills[0].p).toBeLessThanOrEqual(FILL_CAP + 1e-9)
-    expect(maxJump).toBeLessThan(0.16)
+    expect(maxJump).toBeLessThan(0.2)
+  })
+
+  it('чувствительность (v3.3.111): тихий голос с усилением ×2 наливает заметно; порог ниже прежнего 0,04; кривая круче; атака не рвёт кадр', () => {
+    expect(VOICE_THRESHOLD).toBeLessThanOrEqual(0.02); expect(BREATH_FULL_LEVEL).toBeLessThanOrEqual(0.22); expect(BREATH_CURVE).toBeLessThanOrEqual(0.5); expect(BREATH_ATTACK_MS).toBeLessThan(90)
+    const tail = (lvl, frames) => { let p = 0; for (let i = 0; i < frames; i++) p = breathStep(p, DT / 1000, lvl); return p }
+    expect(breathStep(0, 1, 0.03)).toBeGreaterThan(0)                  // 0,03 раньше не наливало вообще (порог 0,04)
+    expect(breathStep(0, 1, VOICE_THRESHOLD)).toBe(0)                  // ровно порог — ещё тишина
+    expect(tail(0.05, 12)).toBeGreaterThan(0.25)                       // тихая речь за 12 кадров (≈ 0,2 с) — заметная заливка
+    expect(tail(0.12, 40)).toBeGreaterThan(FILL_CAP * 0.7)             // обычная речь доливает почти до потолка
+    expect(tail(1, 60)).toBeLessThanOrEqual(FILL_CAP + 1e-9)           // потолок прежний
+    expect(sensitiveLevel(0.012)).toBeGreaterThan(VOICE_THRESHOLD * 4) // тихая речь (rms 0,012) после лог-кривой — уже выше порога
   })
 })

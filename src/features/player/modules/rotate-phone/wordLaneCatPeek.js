@@ -24,3 +24,6 @@ export function catPeek({ spots = CAT_SPOTS, now, show, hide }) {
     spot: () => spots[i] ?? null,
   }
 }
+
+/** Реакция лицом: обычно голова торчит на время ms (peek.hold — она выскакивает снизу и прячется); still (quiet-режим «Разгона» — тихий промах) — лицо меняется на месте, голова НЕ двигается (ни выскока, ни смены места) */
+export const holdForReact = (peek, ms, still = false) => { if (!still) peek.hold(ms) }

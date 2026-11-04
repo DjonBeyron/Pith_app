@@ -19,7 +19,7 @@ describe('подсказка ученику: темп и «тень» слова
     const fillTime = () => { let p = 0; let t = 0; while (p < FILL_CAP * 0.95 && t < 10) { p = breathStep(p, 0.016, 1); t += 0.016 } return t * 1000 }
     expect(fillTime()).toBeGreaterThan(150)
     expect(fillTime()).toBeLessThan(500)
-    expect(breathStep(0, 0.016, 1)).toBeLessThan(0.16)                         // первый кадр — не скачок
+    expect(breathStep(0, 0.016, 1)).toBeLessThan(0.2)                         // первый кадр — не скачок
     expect(breathStep(0.2, 0.1, VOICE_THRESHOLD)).toBeLessThan(0.2)            // не громче порога — не наливает (заливка спадает)
   })
 
@@ -176,7 +176,7 @@ describe('XP за пилюлю, ноты, Пит', () => {
     const cat = read('./WordLaneCat.jsx')
     expect(read('./wordLaneCatTree.js')).toContain("buildMascot(skin, { face, flip: false })") // головы лиц собираются один раз (wordLaneCatTree.js), смена лица — атрибут
     expect(cat).toContain("buildCat(skin)")
-    expect(cat).toContain("react(next, ms = 1500)")
+    expect(cat).toContain("react(next, ms = 1500, still = false)")
     expect(cat).toContain('drawCatMouth(')
     expect(read('./wordLaneCatLook.js')).toContain('setMouth(')
     const flow = read('./useWordLaneFlow.js')

@@ -57,5 +57,8 @@ export function useCatLines({ lines, rate, catApi, listenerRef }) {
 
   const busyLeft = () => Math.max(0, busyRef.current - Date.now())
 
-  return { text, sayLine, stop, busyLeft }
+  /** Пит занят ещё ms (+ короткая пауза): говорит слово не репликой (перевод «Разгона») — следующая пилюля ждёт, реплики не лезут вперёд */
+  const holdBusy = ms => { busyRef.current = Math.max(busyRef.current, Date.now() + ms + 80) }
+
+  return { text, sayLine, stop, busyLeft, holdBusy }
 }

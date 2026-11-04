@@ -15,7 +15,7 @@ import { listWordAudio } from '../../../../shared/lib/wordAudio/wordAudioApi.js'
 import { getCatLines } from '../../../../shared/api/catLinesApi.js'
 
 /** Подпись набора озвучки (куски, слова, первые реплики, адреса реплик): изменилась — готовить заново («Готовлю звук…» на карточке) */
-export const warmSig = (cfg, lines) => JSON.stringify([cfg.chunks, cfg.confusers, cfg.extraWords ?? null, cfg.firstLines ?? null, Object.values(lines ?? {}).map(l => l?.url ?? null)])
+export const warmSig = (cfg, lines) => JSON.stringify([cfg.chunks, cfg.confusers, cfg.extraWords ?? null, cfg.firstLines ?? null, cfg.translations ?? null, Object.values(lines ?? {}).map(l => l?.url ?? null)])
 
 /** Карточка показана (и снова — после каждой игры, пока карточка на экране; и для СЛЕДУЮЩЕГО плана репетиции — пока идёт итог): качаем и декодируем ВСЮ озвучку сразу (нужное к старту — первым в списке). → промис «готово» (не отклоняется); deps подставляются в тестах */
 export function warmGameSounds({ cfg, lines }, { prefetch = prefetchWords, list = listWordAudio, measure = true, onListed = null, onItems = null, warmOwn = () => { warmRewardBuffers(); warmPlateBuffer() } } = {}) {

@@ -2,6 +2,7 @@
 // диктор играет куски из библиотеки слов (cfg.extraWords — слова разминки, «Различи» и фразы: их тоже готовит тап «Начать»; при запуске одного этапа «Шлифовки» — только слова этого этапа, rehearsalPrepare.js;
 // cfg.firstLines — реплики Пита первых секунд: к старту ждём только их, остальные докачиваются фоном).
 import { normalizePlan } from './rehearsalPlan.js'
+import { sprintTransTexts } from '../pitrace/raceTrans.js'
 import { neededTexts, firstLines } from './rehearsalPrepare.js'
 import { planFor, fixtureIdOf, nextFixture, DEFAULT_FIXTURE } from './rehearsalFixtures.js'
 
@@ -21,6 +22,7 @@ export function readRehearsalCfg(rawPlan) {
     confusers: plan.chunks.map(() => []),
     extraWords: neededTexts(plan),
     firstLines: firstLines(plan),
+    translations: plan.game === 'race' ? sprintTransTexts(plan) : [], // русские переводы слов «Разгона»: Пит говорит их голосом перед пилюлей, тап «Начать» качает озвучку вместе с кусками (raceTrans.js)
     plan,
   }
 }

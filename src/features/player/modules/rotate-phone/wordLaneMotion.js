@@ -17,21 +17,24 @@ export const flightPosition = y => `-50% calc(${y.toFixed(3)}dvh - 50%)`
  * Запустить полёт пилюли el. atMs — сколько мс полёта уже прошло (отрицательное — ещё не выкатилась: пилюля ждёт за верхним краем). Возвращает Animation; fill 'both' держит пилюлю
  * за краем до выката и после ухода.
  */
-export const EDGE_SCALE = 0.85     // «Гонка с Питом» (edge): у краёв экрана пилюля чуть меньше…
-export const EDGE_MID_Y = 50       // …к 50 % высоты — обычного размера
+export const EDGE_SCALE = 0.85     // «Гонка с Питом» (edge): на входе и на уходе пилюля чуть меньше…
+export const EDGE_ZONE = 0.15      // …масштаб растёт до 1 на первых 15 % пути (после выезда из-за края), убывает на последних 15 %; посередине пути — ровно 1
 const EDGE_STEPS = 16
 
-/** Масштаб пилюли на высоте y (% экрана): 1 на середине, EDGE_SCALE у входа и у ухода, плавно (smoothstep) */
-export function edgeScale(y) {
-  const d = Math.min(1, Math.max(0, y < EDGE_MID_Y ? (EDGE_MID_Y - y) / (EDGE_MID_Y - ENTER_Y) : (y - EDGE_MID_Y) / (EXIT_Y - EDGE_MID_Y)))
+/** Масштаб пилюли на доле пути u (0…1): EDGE_SCALE в начале, к EDGE_ZONE — 1, до 1 − EDGE_ZONE — 1, затем плавно (smoothstep) обратно к EDGE_SCALE */
+export function edgeScaleAt(u) {
+  const d = Math.min(1, Math.max(0, u < 0.5 ? 1 - u / EDGE_ZONE : 1 - (1 - u) / EDGE_ZONE)) // 1 у края, 0 вне зоны
   return +(1 - (1 - EDGE_SCALE) * d * d * (3 - 2 * d)).toFixed(4)
 }
 
-/** Кадры полёта с масштабом: положение — как у прямого полёта, scale — по edgeScale от высоты (одна анимация на композиторе: translate + scale) */
+/** То же по высоте y (% экрана) */
+export const edgeScale = y => edgeScaleAt((y - ENTER_Y) / (EXIT_Y - ENTER_Y))
+
+/** Кадры полёта с масштабом: положение — как у прямого полёта, scale — по edgeScale от положения (одна анимация на композиторе: translate + scale) */
 export function edgeFrames() {
-  const marks = [...new Set([...Array.from({ length: EDGE_STEPS + 1 }, (_, i) => i / EDGE_STEPS), (EDGE_MID_Y - ENTER_Y) / (EXIT_Y - ENTER_Y)])].sort((a, b) => a - b) // и точная середина (50 %): там ровно обычный размер
-  const frames = marks.map(u => { const y = ENTER_Y + (EXIT_Y - ENTER_Y) * u; return { translate: flightPosition(y), scale: edgeScale(y), offset: u * (FLIGHT_MS / ANIM_MS) } })
-  return [...frames, { translate: flightPosition(EXIT_Y), scale: edgeScale(EXIT_Y) }]
+  const marks = [...new Set([...Array.from({ length: EDGE_STEPS + 1 }, (_, i) => i / EDGE_STEPS), EDGE_ZONE, 1 - EDGE_ZONE])].sort((a, b) => a - b) // и точные границы зон: до них масштаб растёт, между ними — 1
+  const frames = marks.map(u => { const y = ENTER_Y + (EXIT_Y - ENTER_Y) * u; return { translate: flightPosition(y), scale: edgeScaleAt(u), offset: u * (FLIGHT_MS / ANIM_MS) } })
+  return [...frames, { translate: flightPosition(EXIT_Y), scale: edgeScaleAt(1) }]
 }
 
 export function startFlight(el, atMs = 0, speed = 1, edge = false) { // edge — «Гонка с Питом»: пилюля у краёв меньше (edgeFrames); по умолчанию выключено // speed — «Гонка с Питом»: пилюля едет быстрее конвейера (playbackRate); положение — по-прежнему функция currentTime

@@ -16,6 +16,7 @@
 //    понимает только цель целиком («i am trying»), а не «trying» после «i am». Хвост, на котором повтор принят или не успели, следующему не достаётся (spentTail) — только новый черновик.
 //  • Время ступени ограничено (budget): последовательный показ растягивает ступень, если ученик не успевает, поэтому после budget новые повторы не выкатываются, а недоигранные считаются потерянными.
 //  • Очередь («Гонка с Питом», step.overlap = true, «Разгон»): живых повторов может быть два. Следующий повтор выкатывается СРАЗУ, когда текущий принят (claim — без паузы REP_GAP_MS, а пока Пит договаривает реплику серии, выкат не ждёт) или стал недоступным (isDeaf: ушёл за нижний край на DEAF_OFFSCREEN_PCT %); принятый улетает вверх, недоступный доезжает вниз сам. Слушатель и заливка работают только с ПОСЛЕДНИМ выкатанным повтором (liveRep).
+//  • step.preSay («Разгон»): перед выездом каждой пилюли событие 'pre' (Пит говорит перевод), выезд — когда он договорил (hold);
 //  • step.holdAll / step.claimGap / step.goodAt («Разгон»): следующая пилюля выезжает не раньше, чем Пит договорит (hold действует и на следующие пилюли); после принятия слова с номером из goodAt — с паузой claimGap мс (за неё директор успевает начать реплику успеха).
 //  • Ступень закончена (done), когда каждый повтор принят или потерян и ничего не летит.
 import { ENTER_Y, EXIT_Y, SPEED, LOCK_MS, FILL_CAP, PRE_CONFIRM_CAP, LISTEN_Y_MIN, LISTEN_Y_MAX, isListening, breathStep, fillTo, drainStep, easeInOut } from './wordLaneTimeline.js'
@@ -94,7 +95,7 @@ export function createStudentGame({ step, chunks, estMs = c => estChunkMs(chunks
     return { idx, parts: rp.parts, target: repTarget[idx], text: textOf(chunks, rp.parts), state: 'todo', tries: 0, pills: [], tk: 0, cnt, cum, durs, offs, lanes: rp.lane != null ? [rp.lane] : rp.parts.map(c => laneOf(n, c, idx)), speed: rp.speed ?? 1, y0: rp.y0 ?? null, cap: rp.cap ?? null, reveal: rp.reveal ?? null } // lane / speed / cap / reveal — «Гонка с Питом»: своя дорожка, скорость, подпись внутри пилюли и слово, которое проявится при промахе
   })
   const life = Math.max(0, ...reps.map(r => repLifeMs(r.offs.at(-1))))
-  return { t: 0, overlap, holdAll: !!step.holdAll, claimGap: step.claimGap ?? 0, gapAt: step.goodAt ?? [], maxTries, leadIn, budget: budget ?? budgetOf(reps.length, life), reps, pills: [], nextId: 1, nextSpawn: 0, claimed: 0, locked: 0, failed: [], seenSeq: 0, seenMisses: 0, spentTail: null, finished: false, spawned: 0, waited: 0 }
+  return { t: 0, overlap, holdAll: !!step.holdAll, preSay: !!step.preSay, claimGap: step.claimGap ?? 0, gapAt: step.goodAt ?? [], maxTries, leadIn, budget: budget ?? budgetOf(reps.length, life), reps, pills: [], nextId: 1, nextSpawn: 0, claimed: 0, locked: 0, failed: [], seenSeq: 0, seenMisses: 0, spentTail: null, finished: false, spawned: 0, waited: 0 }
 }
 
 /**
@@ -172,7 +173,8 @@ export function stepStudent(g, t, { level = 0, seq = [], misses = 0, confirmed =
   else if (spawnReady) {
     if (t >= g.budget) g.reps.forEach(r => { if (r.state === 'todo') r.state = 'lost' })   // время ступени вышло: недоигранное потеряно
     const rep = g.reps.filter(r => r.state === 'todo').sort((a, b) => a.tries - b.tries || a.idx - b.idx)[0]
-    if (rep) {
+    if (rep && g.preSay && !rep.pre && !hold) { rep.pre = true; events.push({ type: 'pre', rep }) } // «Гонка» (step.preSay): перед выездом Пит говорит перевод (fx.pre → озвучка, Пит занят): пилюля выедет на следующем кадре, а если он заговорил — когда договорит (hold). Реплика успеха уже договорена: hold её держит; нет озвучки — пилюля выезжает сразу
+    else if (rep) {
       const base = g.spawned === 0 ? t - g.leadIn : t
       rep.spawnAt = base
       rep.pills = rep.parts.map((chunk, i) => ({ id: g.nextId++, rep: rep.idx, chunk, lane: rep.lanes[i], piece: i, spawnAt: base + rep.offs[i], ms: rep.durs[i], speed: rep.speed, y0: rep.y0 ?? undefined, y: rep.y0 ?? ENTER_Y, p: 0, state: 'fly', gone: false, snapped: false }))

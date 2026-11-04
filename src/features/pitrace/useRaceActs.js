@@ -92,6 +92,8 @@ export function useRaceActs(args) {
     ...rh, result, race: view, nextIdx,
     /** Слово «Разгона» принято (раньше, чем щёлкнет заливка): Пит говорит мини-реплику успеха, следующая пилюля ждёт его */
     claim(e) { if (running) apply({ t: 'claim', stage: running, info: e }) },
+    /** Перед выездом пилюли «Разгона» (движок: событие 'pre'): Пит говорит русский перевод слова из библиотеки (raceTrans.js); озвучки нет — молча, пилюля выезжает сразу. Пилюля ждёт, пока он договорит (pitLeft) */
+    pre(rep) { if (running?.act === 'sprint' && rep?.cap) sayRef.current.sayText?.(rep.cap, { ru: true }) },
     rec(kind, info) {
       rh.rec(kind, info)
       if (!running) return

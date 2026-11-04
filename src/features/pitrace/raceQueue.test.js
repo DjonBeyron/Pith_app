@@ -32,8 +32,8 @@ describe('«Разгон»: очередь пилюль', () => {
     let t = first.t
     while (!g.reps[0].pills.every(p => p.y >= LISTEN_Y_MIN)) stepStudent(g, (t += 16))
     const ev = stepStudent(g, (t += 16), { seq: [targets[0]], confirmed: true })
-    expect(ev.map(e => e.type)).toEqual(expect.arrayContaining(['claim', 'spawn']))
-    const sp = ev.find(e => e.type === 'spawn')
+    expect(ev.map(e => e.type)).toEqual(expect.arrayContaining(['claim', 'pre'])) // сначала Пит говорит перевод следующей (preSay), пилюля — на следующем кадре, если он не занял Пита
+    const sp = stepStudent(g, (t += 16), { seq: [targets[0]], confirmed: true }).find(e => e.type === 'spawn')
     expect(sp.rep.idx).toBe(1); expect(sp.pills[0].lane).toBe(1); expect(sp.pills[0].speed).toBeCloseTo(1.05, 3)
     expect(g.reps[0].state).toBe('lock'); expect(g.reps[1].state).toBe('fly')
     expect(g.pills.length).toBe(2) // уходящая (взлетает) и новая
@@ -54,14 +54,16 @@ describe('«Разгон»: очередь пилюль', () => {
     const claim = stepStudent(g, (t += 16), { seq: [targets[0]], confirmed: true })
     expect(claim.map(e => e.type)).toContain('claim'); expect(claim.some(e => e.type === 'spawn')).toBe(false)
     expect(stepStudent(g, (t += 16), { hold: true }).some(e => e.type === 'spawn')).toBe(false) // Пит говорит — ждём
+    expect(stepStudent(g, (t += 600), { hold: false }).some(e => e.type === 'pre')).toBe(true) // реплика успеха договорена — теперь перевод
+    expect(stepStudent(g, (t += 16), { hold: true }).some(e => e.type === 'spawn')).toBe(false) // Пит говорит перевод — ждём
     expect(stepStudent(g, (t += 600), { hold: false }).some(e => e.type === 'spawn')).toBe(true) // договорил — пилюля выехала
   })
   it('недоступная пилюля (ответить уже нельзя): следующая выезжает в тот же шаг, не дожидаясь полного ухода прежней', () => {
     const { g } = make()
     const first = run(g, 0, 'spawn')
     const f = run(g, first.t, 'fail')
-    const ev = f.ev
-    expect(ev.find(e => e.type === 'fail').rep.idx).toBe(0)
+    const ev = [...f.ev, ...stepStudent(g, f.t + 16)] // «не успел»: сразу перевод следующей (pre), пилюля — следующим кадром
+    expect(ev.find(e => e.type === 'fail').rep.idx).toBe(0); expect(f.ev.some(e => e.type === 'pre')).toBe(true)
     const sp = ev.find(e => e.type === 'spawn')
     expect(sp.rep.idx).toBe(1); expect(sp.pills[0].lane).toBe(1)
     expect(g.failed.some(p => !p.gone)).toBe(true) // прежняя ещё на экране, доезжает вниз

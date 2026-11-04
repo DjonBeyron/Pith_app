@@ -16,8 +16,10 @@ export const BAR_MIN_PX = 4            // бар сверху: пустой — 
 export const BAR_MAX_PX = 14           // …пока наполняется — толстеет (растёт ступеньками с каждой долетевшей пилюлей)…
 export const BAR_FULL_PX = 6           // …а заполненный плавно худеет до обычной тонкой полоски (без косых полос: полный бар — сплошные цветные сегменты)
 export const BAR_THIN_MS = 500         // за сколько бар худеет после заполнения
-export const BAR_BUMP = 2              // касание пилюлей: бар по высоте быстро утолщается до 2× и возвращается…
-export const BAR_BUMP_MS = 180         // …за 180 мс
+export const BAR_BUMP = 2              // касание пилюлей: бар по высоте плавно (ease-in-out, без ступеньки) утолщается до 2× за BAR_BUMP_MS…
+export const BAR_BUMP_MS = 220         // …пик — ровно в момент касания…
+export const BAR_BACK_MS = 260         // …и так же плавно возвращается за BAR_BACK_MS
+export const START_BELOW_PX = 60       // пилюля стартует на столько px НИЖЕ нижнего края заставки (из-за нижнего затемнения, как пилюли игры выезжают из-за верхнего края)
 export const WAVE_PX = 7               // пилюля летит слегка по синусоиде: размах по x (px), на старте и в баре сдвиг 0
 export const WAVE_STEPS = 14           // точек синусоиды в кадрах полёта
 
@@ -25,10 +27,37 @@ export const WAVE_STEPS = 14           // точек синусоиды в ка�
 export const barHeight = (i, n) => BAR_MIN_PX + ((BAR_MAX_PX - BAR_MIN_PX) * i) / Math.max(1, n)
 
 /**
- * Путь пилюли до бара, px вверх: пилюля стоит верхним краем на низу заставки (height — высота заставки), высота пилюли pillH; прилёт — её ЦЕНТР в центре бара в момент касания
+ * Путь пилюли до бара, px вверх: пилюля стоит верхним краем на START_BELOW_PX ниже низа заставки (height — высота заставки), высота пилюли pillH; прилёт — её ЦЕНТР в центре бара по y в момент касания
  * (верх бара barTop + половина его толщины после i + 1 долетевших пилюль из n).
  */
-export const flyDist = ({ height, pillH, barTop, i, n }) => height + pillH / 2 - (barTop + barHeight(i + 1, n) / 2)
+export const flyDist = ({ height, pillH, barTop, i, n }) => height + START_BELOW_PX + pillH / 2 - (barTop + barHeight(i + 1, n) / 2)
+
+/** Сдвиг по x (px) от места пилюли (x % ширины width, центр) до ЦЕНТРА бара: пилюля прилетает строго в центр бара и по x (синусоида waveX на прилёте — 0) */
+export const flyDx = ({ width, x, barLeft, barWidth }) => barLeft + barWidth / 2 - (width * x) / 100
+
+const ease = t => t * t * (3 - 2 * t) // ease-in-out (smoothstep)
+
+/** Кадры касания бара (свойство scale, по высоте): от текущего значения (первого кадра нет — берётся из-под анимации, при частых касаниях без скачка) к BAR_BUMP по ease-in-out за BAR_BUMP_MS, обратно к 1 за BAR_BACK_MS; duration = BAR_BUMP_MS + BAR_BACK_MS, пик на offset BAR_BUMP_MS / duration */
+export function bumpFrames(steps = 6) {
+  const d = BAR_BUMP_MS + BAR_BACK_MS, peak = BAR_BUMP_MS / d
+  const up = Array.from({ length: steps }, (_, k) => ({ scale: `1 ${(1 + (BAR_BUMP - 1) * ease((k + 1) / steps)).toFixed(4)}`, offset: (peak * (k + 1)) / steps }))
+  const down = Array.from({ length: steps }, (_, k) => ({ scale: `1 ${(BAR_BUMP - (BAR_BUMP - 1) * ease((k + 1) / steps)).toFixed(4)}`, offset: peak + ((1 - peak) * (k + 1)) / steps }))
+  return { frames: [...up, ...down], duration: d }
+}
+
+/**
+ * Толщина бара ОДНОЙ анимацией (height): ступенька за пилюлю (подъём за BAR_BUMP_MS перед касанием) и в конце худение до BAR_FULL_PX. Худеть бар начинает, когда последнее касание
+ * вернулось (totalMs + BAR_BACK_MS): последний подъём, касание и худение не накладываются. → { keys: [{ height, offset }], duration }
+ */
+export function barKeys(segments, totalMs) {
+  const n = segments.length, thinAt = totalMs + BAR_BACK_MS, duration = thinAt + BAR_THIN_MS
+  const off = ms => Math.min(1, Math.max(0, ms / duration))
+  const keys = [{ height: `${barHeight(0, n)}px`, offset: 0 }]
+  segments.forEach((s, i) => { keys.push({ height: `${barHeight(i, n)}px`, offset: off(Math.max(s.at - BAR_BUMP_MS, i ? segments[i - 1].at : 0)) }, // подъём не раньше прилёта прежней: офсеты не убывают
+    { height: `${barHeight(i + 1, n)}px`, offset: off(s.at) }) })
+  keys.push({ height: `${barHeight(n, n)}px`, offset: off(thinAt) }, { height: `${BAR_FULL_PX}px`, offset: 1 })
+  return { keys, duration }
+}
 
 /** Сдвиг по x (px) на доле пути u (0…1) у пилюли с волной wave = { sign, waves }: синусоида, на старте и на прилёте ровно 0 (waves — 1, 1,5 или 2 периода) */
 export const waveX = (wave, u) => (wave ? wave.sign * WAVE_PX * Math.sin(2 * Math.PI * wave.waves * u) : 0)

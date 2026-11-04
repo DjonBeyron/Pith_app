@@ -114,6 +114,7 @@ export function useWordLanePills(rootRef, { scene, levels, fx, live, sceneApi })
           if (e.rep && !step.quiet) ghostUntil.set(e.rep.idx, performance.now() + GHOST_MS) // сказано не то — показываем «тень» слова: как оно звучит и сколько длится
           fxRef.current?.miss?.(e)
         }
+        else if (e.type === 'pre') fxRef.current?.pre?.(e) // «Разгон»: Пит говорит перевод перед выездом пилюли (useRaceActs.pre)
         else if (e.type === 'done') fxRef.current?.finished?.(e.locked)
       }
       const tick = now => {

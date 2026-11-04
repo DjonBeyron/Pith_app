@@ -8,7 +8,7 @@ import { buildStages, listenStepOf } from './wordLaneStages.js'; import { useBui
 import { stepTargets, textOf } from './wordLaneRecipe.js'
 import { clipsFor, playSpan, estChunkMs } from './wordLaneAudio.js'
 import { playClip, playWordSlot, releaseClips, speechOfUrl, wordBufferMs } from './wordLaneClips.js'
-import { makeLib, libRow } from './wordLaneLib.js'
+import { makeLib, libRow } from './wordLaneLib.js'; import { transRow } from '../../../pitrace/raceTrans.js'
 import { mouthTrack } from './wordLaneVisemes.js'
 import { useCatLines } from './useCatLines.js'
 import { useWordLaneDebug } from './useWordLaneDebug.js'
@@ -102,12 +102,12 @@ export function useWordLaneFlow({ chunks, translation, lang, clips = null, audio
       catApi?.current?.peek?.()
       if (rep.last) xpApi.current?.add(XP_PER_PILL * rep.count, rect) // у повтора из нескольких кусков одна цифра («+6»), когда принят последний кусок
     },
-    miss(e) { rh.rec('miss', e?.rep); catApi?.current?.react('shy', 1300) }, claim(e) { rh.claim?.(e.rep) },
+    miss(e) { rh.rec('miss', e?.rep); catApi?.current?.react('shy', 1300, !!stages[sRef.current.idx]?.step?.quiet) }, claim(e) { rh.claim?.(e.rep) }, pre(e) { rh.pre?.(e.rep) },
     fail(e) {
-      catApi?.current?.react('shy', 1300); rh.rec('fail', e.rep)
       const st = stages[sRef.current.idx]
-      const said = e.order || st?.type === 'take' ? false : sayLine(rh.failLine(st) ?? (st?.step?.reps?.[0]?.parts?.length > 1 ? 'split_words' : 'try_again')) // не получилось сказать несколько кусков — кот советует говорить раздельно
-      if (!said) flash(e.order ? 'Не успел — тапай дорожки, пока пилюли на экране' : 'Не успел — говори, пока пилюли на экране')
+      catApi?.current?.react('shy', 1300, !!st?.step?.quiet); rh.rec('fail', e.rep) // quiet («Разгон»): упущенная пилюля уезжает молча — голова Пита не двигается (react с still)
+      const said = e.order || st?.type === 'take' || st?.step?.quiet ? false : sayLine(rh.failLine(st) ?? (st?.step?.reps?.[0]?.parts?.length > 1 ? 'split_words' : 'try_again')) // не получилось сказать несколько кусков — кот советует говорить раздельно
+      if (!said && !st?.step?.quiet) flash(e.order ? 'Не успел — тапай дорожки, пока пилюли на экране' : 'Не успел — говори, пока пилюли на экране')
       if (!e.order && st?.step && !st.step.labels.length) { // вслепую: после «не успел» показываем, что это за кусок
         setS(p => ({ ...p, hint: e.rep.parts }))
         clearTimeout(hintTimerRef.current)
@@ -116,13 +116,13 @@ export function useWordLaneFlow({ chunks, translation, lang, clips = null, audio
     },
     mouth(level, code) { catApi?.current?.mouth(level, code); if (dbg.enabled && isStudentStage(stages[sRef.current.idx])) dbg.gate(level > 0) }, // gate: голос после ворот (двигает пилюли) — пишем смену состояния
     peek(ms) { catApi?.current?.peek?.(ms) }, pitLeft: () => rh.pitLeft(), // pitLeft: Пит ещё говорит — новая пилюля ждёт (репетиция)
-    sayText(text) { // «Различи»: звучит слово пилюли (верное или запутыватель) — из библиотеки слов, нет её — без звука; рот кота по буквам слова
-      const r = libRow(text); dbg.note('word')
-      if (!(r && playWordSlot(r.key))) speakWord(text)
+    sayText(text, opts) { // «Различи»: звучит слово пилюли (верное или запутыватель) — из библиотеки слов, нет её — без звука; рот кота по буквам слова
+      const r = opts?.ru ? transRow(text) : libRow(text); if (opts?.ru && !r) return; dbg.note('word') // opts.ru — перевод «Разгона» (useRaceActs.pre): только озвучка из библиотеки (ключ ru:…), нет её — молча, без голоса системы
+      if (!(r && playWordSlot(r.key))) { if (opts?.ru) return; speakWord(text) }
       const sp = speechOfUrl(r?.row.url), k = rate > 0 ? rate : 1, file = wordBufferMs(r?.key) || (Number(r?.row.duration) > 0 ? Number(r.row.duration) * 1000 : 0)
       const ms = Math.round((sp?.ms ?? (file || estChunkMs(text))) / k), lead = Math.round((sp?.lead ?? 0) / k) // звук идёт с начала файла, слово — после тишины lead: рот стартует вместе со словом, а длится до конца файла
       const total = Math.round(Math.max(lead + ms, file / k))
-      gameMicHold.holdFor(total)
+      gameMicHold.holdFor(total); if (opts?.ru) cat.holdBusy?.(total) // перевод: Пит занят, следующая пилюля ждёт конца слова
       catApi?.current?.speak?.(mouthTrack(text, ms).map(x => ({ ...x, at: x.at + lead, end: x.end + lead })), total)
     },
     say(parts) { // подсказка раунда «Порядок»: кот выскакивает, диктор называет куски
@@ -138,7 +138,7 @@ export function useWordLaneFlow({ chunks, translation, lang, clips = null, audio
   useEffect(() => { handlersRef.current = handlers })
   const [fx] = useState(() => ({
     win: (...a) => handlersRef.current.win(...a), miss: (...a) => handlersRef.current.miss(...a), claim: (...a) => handlersRef.current.claim(...a), fail: (...a) => handlersRef.current.fail(...a),
-    mouth: (...a) => handlersRef.current.mouth(...a), peek: (...a) => handlersRef.current.peek(...a), say: (...a) => handlersRef.current.say(...a), sayText: (...a) => handlersRef.current.sayText(...a), finished: (...a) => handlersRef.current.finished(...a), pitLeft: () => handlersRef.current.pitLeft(),
+    mouth: (...a) => handlersRef.current.mouth(...a), peek: (...a) => handlersRef.current.peek(...a), pre: (...a) => handlersRef.current.pre(...a), say: (...a) => handlersRef.current.say(...a), sayText: (...a) => handlersRef.current.sayText(...a), finished: (...a) => handlersRef.current.finished(...a), pitLeft: () => handlersRef.current.pitLeft(),
   }))
 
   const finish = useCallback(() => {

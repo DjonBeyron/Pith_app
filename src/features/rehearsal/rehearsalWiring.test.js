@@ -38,7 +38,7 @@ describe('директор игры (useWordLaneFlow)', () => {
   })
   it('дубль и зеркало: слушатель дубля без затвора и без паузы между заходами; на дубле Пит молчит; стадия закончилась — rh.leave дописывает дубль и только потом next', () => {
     expect(flow).toContain('gate: !listenStep.record, restartMs: listenStep.record ? 0 : undefined')
-    expect(flow).toContain("const said = e.order || st?.type === 'take' ? false : sayLine(rh.failLine(st)")
+    expect(flow).toContain("const said = e.order || st?.type === 'take' || st?.step?.quiet ? false : sayLine(rh.failLine(st)")
     expect(flow).toContain("later(() => rh.leave(stages[at], () => { if (sRef.current.idx === at && sRef.current.stage === 'run') next() }), EXIT_PAUSE_MS)")
     expect(flow).toContain('cat, lines, rate, lang, listenerRef })')
     expect(flow).not.toMatch(/onChange: \(\{[^}]*words/) // слова Vosk в onChange не идут (перерисовок не плодят)

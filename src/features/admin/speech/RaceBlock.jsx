@@ -12,6 +12,7 @@ import { extrasOf } from '../../pitrace/raceWords.js'
 import { raceDebugFile } from '../../pitrace/raceLog.js'
 import RaceHowto from '../../pitrace/RaceHowto.jsx'
 import usePolishVoice from './usePolishVoice.js'
+import useTransVoice from './useTransVoice.js'
 import { whyNotIdle } from './launchWhy.js'
 import '../../../styles/admin-rehearsal-polish.css'
 import '../../../styles/admin-game2-howto.css'
@@ -33,11 +34,13 @@ export default function RaceBlock({ save = saveDebugFile }) {
   const racePlan = useMemo(() => (plan ? { ...plan, game: 'race', round: round ?? undefined, extraWords: extrasOf(plan) } : null), [plan, round])
   const node = useMemo(() => ({ id: 'race-stand', type: 'rotate_phone', isHistory: false, typeData: { rotate_phone: { plan: racePlan } } }), [racePlan])
   const voice = usePolishVoice({ plan: racePlan, list: RACE_LINES, texts: raceTexts })
+  const trans = useTransVoice({ plan: racePlan }) // переводы слов разгона: Пит говорит их голосом перед пилюлей
   const playing = status.phase === 'game'
   const idle = !playing && !status.busy && status.ready
-  const working = !!voice.busy
+  const working = !!voice.busy || trans.busy
   const linesAll = voice.pit.done >= voice.pit.total
   const chunksAll = voice.chunks.done >= voice.chunks.total
+  const transAll = trans.done >= trans.total
 
   const launch = id => { flushSync(() => setRound(id)); startRef.current?.() } // нода обновляется синхронно, чтобы start() взял план раунда; всё в одном тапе (жест)
   const pickFixture = fixture => { const next = { ...rform, fixture, json: fixtureJson(fixture) }; setRform(next); saveRehearsalForm(next) }
@@ -64,6 +67,12 @@ export default function RaceBlock({ save = saveDebugFile }) {
           <span data-testid="race-chunks-status">Куски и слова фразы: озвучено {voice.chunks.done} из {voice.chunks.total}</span>
           <button type="button" className="aspChip" onClick={voice.voiceChunks} disabled={playing || working || !racePlan || chunksAll} data-testid="race-voice-chunks">{voice.busy === 'chunks' ? 'Озвучиваю…' : chunksAll ? 'Куски озвучены' : 'Озвучить куски фразы'}</button>
         </div>
+        <div className="rhpVoiceRow">
+          <span data-testid="race-trans-status">Переводы слов (русский голос Пита): озвучено {trans.done} из {trans.total}</span>
+          <button type="button" className="aspChip" onClick={trans.voice} disabled={playing || working || !racePlan || transAll} data-testid="race-voice-trans">{trans.busy ? 'Озвучиваю…' : transAll ? 'Переводы озвучены' : 'Озвучить переводы (ElevenLabs)'}</button>
+        </div>
+        {trans.busy && trans.step && <div className="aspHint" role="status">озвучиваю {trans.step}…</div>}
+        {Object.keys(trans.errors).length > 0 && <p className="aspErr" role="alert" data-testid="race-trans-error">Не озвучилось: {Object.entries(trans.errors).map(([k, e]) => `${k} (${e})`).join('; ')}. Нужны права админа и доступ к ElevenLabs.</p>}
         {working && voice.step && <div className="aspHint" role="status">озвучиваю {voice.step}…</div>}
         {voice.error && <p className="aspErr" role="alert" data-testid="race-voice-error">Не озвучилось: {voice.error}. Нужны права админа и доступ к ElevenLabs.</p>}
       </div>

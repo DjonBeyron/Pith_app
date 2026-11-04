@@ -11,7 +11,7 @@ describe('реплики Пита в гонке: каталог', () => {
     expect(t.race_start).toBe('Три заезда, разгон, слух и вершина, погнали')
     expect(t.race_sprint).toBe('Разгон, успей сказать по-английски слово, перевод которого едет вниз, пока оно не убежало')
     expect([1, 2, 3, 4].map(k => t[`race_good_${k}`])).toEqual(['отличное произношение', 'звучит очень хорошо', 'вот это да, чисто', 'как носитель, ну почти'])
-    expect(t.race_sprint_round2).toBe('а теперь ещё раз и чуть быстрее, слова, которые не дались')
+    expect(t.race_sprint_round2).toBe('а теперь давай повысим скорость')
     expect(t.race_sprint_streak).toBeUndefined(); expect(t.race_sprint_fire).toBeUndefined() // серий «ну, погнали» и «огонь» больше нет
     expect(t.race_catch).toBe('Слушай и лови, я называю слово, а ты говоришь его, пока едет его перевод')
     expect(t.race_catch_miss).toBe('мимо, слушай ещё')

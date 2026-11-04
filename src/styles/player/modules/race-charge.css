@@ -21,7 +21,7 @@
 .raceChargeSeg { position: absolute; top: 0; bottom: 0; transform-origin: left center; transform: scaleX(0); }
 .raceChargePill {
   position: absolute;
-  top: 100%;
+  top: calc(100% + 60px); /* START_BELOW_PX: старт ниже нижнего края — из-за затемнения */
   translate: -50% 0; /* центр по x; transform остаётся полёту */
   max-width: 44%;
   padding: 6px 13px;

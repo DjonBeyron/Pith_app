@@ -4,6 +4,7 @@ import { unlockPlate } from './wordLanePlateSound.js'
 import { prepareClips, prepareWords, rewakeClips } from './wordLaneClips.js'
 import { playSpan, clipsFor } from './wordLaneAudio.js'
 import { libItems } from './wordLaneLib.js'
+import { transItems } from '../../../pitrace/raceTrans.js'
 import { linesItems, lineKey } from './wordLaneCatLines.js'
 import { prefetchWords } from './wordLaneFetch.js'
 import { waitWarmGate, GATE_MAX_MS } from './wordLaneGate.js'
@@ -46,10 +47,11 @@ export { GATE_MAX_MS } // потолок ожидания ворот с тапа
 export function wordsPlan({ cfg, lines }) {
   const all = linesItems(lines)
   const first = cfg.firstLines ? new Set(cfg.firstLines.map(lineKey)) : null
-  const words = libItems([...cfg.chunks, ...cfg.confusers.flat(), ...(cfg.extraWords ?? [])])
+  const trans = transItems(cfg.translations) // «Гонка»: озвучка русских переводов «Разгона» — первыми среди слов: первая пилюля выезжает после перевода
+  const words = [...trans, ...libItems([...cfg.chunks, ...cfg.confusers.flat(), ...(cfg.extraWords ?? [])])]
   const lineNow = all.filter(x => !first || first.has(x.key))
   const one = libItems(cfg.chunks.slice(0, 1)).length // кусок первой ступени
-  return first ? { now: [...lineNow, ...words], late: all.filter(x => !first.has(x.key)), firstCount: lineNow.length + one } : { now: [...words, ...lineNow], late: [], firstCount: one } // у репетиции реплики первых стадий качаются и декодируются ПЕРВЫМИ: заговорит Пит, а куски диктора понадобятся через секунды
+  return first ? { now: [...lineNow, ...words], late: all.filter(x => !first.has(x.key)), firstCount: lineNow.length + one + Math.min(2, trans.length) } : { now: [...words, ...lineNow], late: [], firstCount: one + Math.min(2, trans.length) } // у репетиции реплики первых стадий качаются и декодируются ПЕРВЫМИ: заговорит Пит, а куски диктора понадобятся через секунды
 }
 
 /** Все файлы озвучки игры по важности: [{ key, url }] (нужное к старту, затем фон) — для ворот и счётчика прогрева */
