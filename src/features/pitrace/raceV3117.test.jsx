@@ -27,9 +27,9 @@ describe('плашки гонки', () => {
   it('brief: 3–5 слов у каждого акта и у объявления; реплика Пита (task) длинная и не тронута', () => {
     const acts = buildRaceActs(plan).acts.filter(a => a.id !== 'summary')
     for (const a of acts) { expect(a.brief.split(/\s+/).length).toBeGreaterThanOrEqual(3); expect(a.brief.split(/\s+/).length).toBeLessThanOrEqual(5); expect(a.task.split(/\s+/).length).toBeGreaterThan(5) }
-    expect(acts.find(a => a.id === 'sprint').brief).toBe('скажи слово по переводу'); expect(acts.find(a => a.id === 'catch').brief).toBe('повтори, если перевод верный')
+    expect(acts.find(a => a.id === 'sprint').brief).toBe('скажи слово по переводу'); expect(acts.find(a => a.id === 'catch').brief).toBe('назови перевод слова'); expect(acts.find(a => a.id === 'sprint').title).toBe('Вспомни на слух')
     const ann = stages.filter(s => s.type === 'announce' && s.round.brief)
-    expect(ann.length).toBeGreaterThanOrEqual(4); expect(stages.find(s => s.sid === 'climb-top').round.brief).toBeUndefined(); expect(stages.find(s => s.sid === 'sprint2-ann').round.brief).toBeUndefined()
+    expect(ann.length).toBeGreaterThanOrEqual(3); expect(stages.find(s => s.sid === 'catch-ann').round.title).toBe(''); expect(stages.find(s => s.sid === 'climb-top').round.brief).toBeUndefined(); expect(stages.find(s => s.sid === 'sprint2-ann').round.brief).toBeUndefined()
   })
   it('плашка заставки: название и brief, без барРеф-морфа; уход — data-out', () => {
     const h = renderToStaticMarkup(createElement(RaceChargePlate, { title: 'Разгон', task: 'длинное задание из многих слов подряд для Пита', brief: 'скажи слово по переводу' }))
@@ -38,7 +38,8 @@ describe('плашки гонки', () => {
     const src = read('./RaceChargePlate.jsx'); expect(src).not.toContain('animate('); expect(src).not.toContain('clip-path'); expect(src).not.toContain('MORPH')
   })
   it('плашка появляется РАНЬШЕ: сразу с началом речи Пита (plateAt), до бара и морфа; стоит до plateEnd', () => {
-    const i = stages.findIndex(s => s.sid === 'catch-ann'), p = roundPlan({ plan, stages, i, lines: null, rate: 1 })
+    const withPlate = stages.map(s => (s.sid === 'catch-ann' ? { ...s, charge: true, round: { ...s.round, title: 'Вспомни на слух', task: 'задание', brief: 'скажи слово' } } : s)) // морф в плашку — ветка 'stage' (в игре с v3.3.118 проход B объявляется без плашки)
+    const i = stages.findIndex(s => s.sid === 'catch-ann'), p = roundPlan({ plan, stages: withPlate, i, lines: null, rate: 1 })
     expect(p.o.plateAt).toBeLessThan(p.o.morphAt); expect(p.o.plateAt).toBeLessThan(500); expect(p.o.plateEnd).toBeGreaterThan(p.o.morphAt); expect(p.round.brief).toBeTruthy()
     const o = openingPlan(plan, null, 1); expect(o.stageAt + o.lineAt).toBeLessThan(o.morphAt)
     expect(read('./RaceCharge.jsx')).toContain('plateAt: o.stageAt + o.lineAt')

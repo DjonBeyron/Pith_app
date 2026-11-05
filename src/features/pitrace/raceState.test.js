@@ -35,6 +35,20 @@ describe('состояние гонки: события движка → сер�
     const c = stages.find(x => x.act === 'climb' && x.type === 'student')
     expect(ev(s, 'claim', c).state).toBe(s)
   })
+  it('принятие слова: время ответа и признак «в последний момент» (late) пишутся в результат слова; зачёт после него остаётся верным', () => {
+    let s = ev(initRace(), 'enter', sprintStage).state
+    s = ev(s, 'claim', sprintStage, { idx: 0, ms: 900, late: false }).state; s = ev(s, 'win', sprintStage, { idx: 0 }).state
+    s = ev(s, 'claim', sprintStage, { idx: 1, ms: 2500, late: true }).state; s = ev(s, 'win', sprintStage, { idx: 1 }).state
+    expect(s.sprint.results[0]).toMatchObject({ hit: true, ms: 900, late: false }); expect(s.sprint.results[1]).toMatchObject({ hit: true, ms: 2500, late: true })
+  })
+  it('редюсер: пилюля-ловушка (механика жива, в проходе B не используется) — молчание верно, сказал перевод — «поверил»', () => {
+    const base = stageOf('catch', 'student'), catchStage = { ...base, words: base.words.map((w, k) => (k === 2 ? { ...w, trap: true } : w)) }, i = 2 // ловушек в проходе B в игре нет (v3.3.118), механика редюсера жива
+    let s = ev(initRace(), 'enter', catchStage).state
+    expect(s.catch.traps[i]).toBe(true)
+    const quiet = ev(s, 'fail', catchStage, { idx: i }).state; expect(quiet.catch.results[i]).toMatchObject({ trap: true, hit: true }); expect(quiet.streak).toBe(1)
+    const said = ev(ev(s, 'miss', catchStage, { idx: i, believed: true }).state, 'fail', catchStage, { idx: i }).state
+    expect(said.catch.results[i]).toMatchObject({ trap: true, hit: true, miss: true, believed: true }); expect(said.streak).toBe(0)
+  })
   it('разгон, второй круг: результаты пишутся отдельно (r2), слова круга и счёт принятий — свои', () => {
     const second = stages.find(x => x.sid === 'sprint2')
     second.fill(sprintStage.words.slice(0, 3).map((w, idx) => ({ ...w, idx })))

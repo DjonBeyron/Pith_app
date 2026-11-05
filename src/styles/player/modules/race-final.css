@@ -1,0 +1,25 @@
+/* Экран итога «Встряхни память» на всю сцену (features/pitrace/RaceSummary.jsx): не плашка, а полноценный экран — заголовок, счёт проходов, метрики двумя строками, список слов (race-weak.css, прокручивается внутри),
+   кнопки «Ещё раз» / «Готово» внизу. Класс .wlTurn остаётся ради появления и ухода (rehearsalExit.js), размер и положение переопределены. На 375×812 без горизонтального скролла, отступы — по safe-area. */
+.raceSum.raceFinal.wlTurn {
+  inset: 0;
+  margin: 0;
+  width: auto;
+  height: auto;
+  max-width: none;
+  display: flex;
+  flex-direction: column;
+  padding: calc(env(safe-area-inset-top, 0px) + 66px) 16px calc(env(safe-area-inset-bottom, 0px) + 14px); /* сверху — под кнопки «назад» и «пауза» верхней панели */
+  z-index: 30; /* выше Пита и кнопок админа: итог закрывает всю сцену */
+  border-radius: 0;
+  border-width: 0;
+  text-align: left;
+  font-size: 15px;
+  overflow: hidden;
+}
+.raceFinalHead { flex: 0 0 auto; margin: 0 0 10px; text-align: center; }
+.raceFinalHead .wlRevealLabel { font-size: clamp(18px, 5.6vw, 24px); }
+.raceFinalPhrase { margin-top: 2px; font-size: 14px; font-weight: 600; opacity: 0.75; overflow-wrap: anywhere; }
+.raceFinal .rhStats { flex: 0 0 auto; margin: 0 0 8px; gap: 3px; }
+.raceFinal .raceMetrics { flex: 0 0 auto; margin: 0 0 10px; }
+.raceFinalBtns { flex: 0 0 auto; width: 100%; padding-top: 4px; }
+.raceFinal .raceFinalDup { display: none; } /* счёт проходов уже в первой строке метрик */

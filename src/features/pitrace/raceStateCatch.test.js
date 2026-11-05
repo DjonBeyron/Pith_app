@@ -7,7 +7,8 @@ import { normalizePlan } from '../rehearsal/rehearsalPlan.js'
 // «Слушай и лови» в состоянии гонки (raceState.js): результаты копятся отдельно (catch.results), как у разгона: hit / miss / ms / trap / believed.
 const plan = normalizePlan({ ...fixturePlan('three'), game: 'race' })
 const { stages } = buildRaceStages({ plan })
-const stage = stages.find(s => s.sid === 'catch')
+const base = stages.find(s => s.sid === 'catch')
+const stage = { ...base, words: base.words.map((w, i) => (i === 2 ? { ...w, trap: true } : w)) } // в игре с v3.3.118 ловушек в проходе B нет, механика редюсера жива: ловушка подставляется на 3-е слово
 const second = stages.find(s => s.sid === 'catch2')
 const ev = (s, t, st, info) => reduceRace(s, { t, stage: st, info })
 const entered = () => ev(initRace(), 'enter', stage).state

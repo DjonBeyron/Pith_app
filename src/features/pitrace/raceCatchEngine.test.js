@@ -10,7 +10,9 @@ import { normalizePlan } from '../rehearsal/rehearsalPlan.js'
 // «Слушай и лови» на движке пилюль (wordLaneStudent.js): ступень та же, что у разгона; у пилюли с чужим переводом (rep.trap) слово не принимается — это «поверил», а упущенная пилюля — верное действие.
 const plan = normalizePlan({ ...fixturePlan('three'), game: 'race' })
 const stage = buildStages({ chunks: plan.chunks, plan, rate: 1 }).stages.find(s => s.act === 'catch' && s.type === 'student' && s.sid === 'catch')
-const make = () => ({ g: createStudentGame({ step: { ...stage.step, goodAt: [] }, chunks: stage.step.chunks, estMs: () => 400, maxTries: 1 }), targets: stepTargets(stage.step, stage.step.chunks).repTarget })
+// В игре с v3.3.118 ловушек в проходе B нет (на пилюле всегда перевод слова Пита), но механика движка (rep.trap) жива: ловушка подставляется на 3-ю пилюлю
+const trapped = { ...stage.step, goodAt: [], reps: stage.step.reps.map((r, i) => (i === 2 ? { ...r, trap: true } : r)) }
+const make = () => ({ g: createStudentGame({ step: trapped, chunks: stage.step.chunks, estMs: () => 400, maxTries: 1 }), targets: stepTargets(stage.step, stage.step.chunks).repTarget })
 function until(g, from, type, input = () => ({}), limit = 15000) {
   for (let t = from; t < from + limit; t += 16) { const ev = stepStudent(g, t, input(t)); if (ev.some(e => e.type === type)) return { t, ev } }
   return null
@@ -61,5 +63,18 @@ describe('«Слушай и лови»: движок', () => {
     const t = reach(g, 0)
     const ev = stepStudent(g, t + 16, { seq: [targets[1]], confirmed: true })
     expect(ev.find(e => e.type === 'miss').wrong).toBe(true); expect(g.reps[0].believed).toBeUndefined()
+  })
+  it('проход B: на пилюле с чужим английским словом ЛЮБОЕ сказанное слово — «поверил» (не только перевод слова Пита)', () => {
+    const { g, targets } = make()
+    const iTrap = g.reps.findIndex(r => r.trap), other = targets.findIndex((_, k) => k !== iTrap)
+    const t = reach(g, iTrap)
+    stepStudent(g, t + 16, { seq: [targets[other]], confirmed: true })
+    expect(g.reps[iTrap].believed).toBe(true)
+  })
+  it('claim несёт положение пилюли y (% высоты экрана): по нему директор отличает ответ «в последний момент» (ниже LATE_Y)', () => {
+    const { g, targets } = make()
+    const t = reach(g, 0)
+    const claim = stepStudent(g, t + 16, { seq: [targets[0]], confirmed: true }).find(e => e.type === 'claim')
+    expect(Number.isFinite(claim.y)).toBe(true); expect(claim.y).toBe(g.reps[0].pills[0].y)
   })
 })

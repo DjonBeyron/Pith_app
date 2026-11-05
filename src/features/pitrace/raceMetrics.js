@@ -3,7 +3,7 @@
 //  • avgMs — среднее время ответа на слово, мс: от выезда пилюли до зачёта, по верным ответам обоих этапов и кругов (нет ни одного — null);
 //  • slowest — самое медленное верное слово: { text, ms } или null;
 //  • traps — ловушки «Слушай и лови» (пилюли с чужим переводом): { dodged — не поддался, total } по первому кругу.
-import { failedIn } from './raceSprint2.js'
+import { failedIn } from './raceExtraRound.js'
 
 const ok = r => !failedIn(r)
 

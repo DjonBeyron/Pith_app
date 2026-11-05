@@ -10,7 +10,7 @@ export function readRehearsalCfg(rawPlan) {
   const plan = normalizePlan(rawPlan)
   if (!plan) return null
   return {
-    title: plan.game === 'race' ? 'Гонка с Питом' : 'Репетиция с Питом',
+    title: plan.game === 'race' ? 'Встряхни память' : 'Репетиция с Питом',
     chunks: plan.chunks,
     word: plan.chunks.join(' '),
     translation: plan.translation,

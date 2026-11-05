@@ -151,7 +151,7 @@ export function stepStudent(g, t, { level = 0, seq = [], misses = 0, confirmed =
   for (const heard of fresh.slice(0, newHits)) {
     const rep = target?.state === 'fly' && target.target === heard && !target.trap ? target : null // пилюля-ловушка («Слушай и лови»: чужой перевод) слова не принимает
     if (!rep) {
-      if (target?.state === 'fly') { if (target.trap && target.target === heard) target.believed = true; events.push({ type: 'miss', rep: target, wrong: true }); target.drain = true } else events.push({ type: 'late' })
+      if (target?.state === 'fly') { if (target.trap) target.believed = true; events.push({ type: 'miss', rep: target, wrong: true }); target.drain = true } else events.push({ type: 'late' })
       continue
     }
     rep.state = 'lock'; rep.lockAt = t; rep.drain = false; rep.note = g.claimed % 3; g.claimed += 1
@@ -160,7 +160,7 @@ export function stepStudent(g, t, { level = 0, seq = [], misses = 0, confirmed =
     rep.pills.forEach(p => { if (p.state === 'fly') lockPill(p, t, j++ * LOCK_STAGGER_MS) }) // куски, не защёлкнутые раньше, — по очереди
     if (g.claimGap && g.gapAt.includes(g.claimed)) g.nextSpawn = Math.max(g.nextSpawn, t + g.claimGap)   // «Гонка»: на принятиях, где Пит скажет реплику успеха (step.goodAt — номера принятий), следующая пилюля выезжает не в тот же кадр, а чуть позже: реплика (fx.claim) успевает занять Пита, и выезд ждёт её конца (holdAll); остальные принятия — выезд сразу
     else if (g.preGap) g.nextSpawn = Math.max(g.nextSpawn, t + g.preGap)   // без реплики успеха — выдержка step.preGap перед переводом следующей пилюли; с репликой — только claimGap, перевод идёт сразу после неё
-    events.push({ type: 'claim', rep, order: rep.note, ms: Math.round(t - rep.spawnAt) }) // ms — время ответа: от выезда пилюли до принятия слова
+    events.push({ type: 'claim', rep, order: rep.note, ms: Math.round(t - rep.spawnAt), y: rep.pills[0]?.y }) // ms — время ответа: от выезда пилюли до принятия слова; y — где пилюля в этот миг (% высоты экрана): ниже отметки raceExtraRound.LATE_Y — ответ «в последний момент»
   }
   const newMisses = Math.max(0, misses - g.seenMisses)
   g.seenMisses = Math.max(g.seenMisses, misses)

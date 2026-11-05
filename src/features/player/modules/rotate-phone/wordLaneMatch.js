@@ -2,9 +2,11 @@
 // Ученик повторяет слово SLOT_COUNT раз подряд. Vosk отдаёт partial — «try try [unk] try»: слова слоя (hit) и всё остальное (miss: [unk] или чужое слово).
 // Слов в одной попытке может быть несколько — сколько услышано, столько слоёв и заливается; каждое неверное слово — «отшатывание» линии.
 import { tokenize, phraseForms } from '../../../../shared/lib/speech/speechMatch.js'
+import { tokenizeRu, phraseFormsRu } from '../../../../shared/lib/speech/speechMatchRu.js'
 import { SLOT_COUNT } from './wordLaneTimeline.js'
 
 const UNK = '[unk]'
+const tokenizerOf = lang => (lang === 'ru' ? tokenizeRu : tokenize) // русские цели («Встряхни память», проход «назови перевод»): кириллица, ё ≡ е
 
 /**
  * Сколько услышанных слов (с позиции i) составляют цель целиком, 0 — не составляют. Сравнение по токенам с границами по СЛОВАМ: «i'm» (одно слово Vosk) ≡ «i am» (два слова) —
@@ -63,13 +65,13 @@ export function wordGrammar(word, max = SLOT_COUNT) {
  * Начало какой-либо цели с позиции i: слова heard[i…], которые идут как её первые слова (целиком, без конца — иначе это уже попадание). Возвращает { target, tokens, words } (самое длинное начало;
  * при равенстве — цель подлиннее) или null. tokens — сколько слов цели (после раскрытия сокращений) произнесено, words — сколько слов heard на это ушло.
  */
-function prefixAt(heard, i, toks, order) {
+function prefixAt(heard, i, toks, order, tk = tokenize) {
   let best = null
   for (const k of order) {
     let m = 0
     let w = 0
     for (; i + w < heard.length; w++) {
-      const ws = tokenize(heard[i + w])
+      const ws = tk(heard[i + w])
       if (!ws.length || m + ws.length > toks[k].length - 1 || ws.some((x, q) => x !== toks[k][m + q])) break
       m += ws.length
     }
@@ -84,12 +86,13 @@ function prefixAt(heard, i, toks, order) {
  * (звук, который ещё не разобран); слова, которыми начинается какая-то цель, — «i am» из «i am trying» (пауза между словами цели — не ошибка), в том числе с любого места («cat i am»: cat — промах, «i am» — начало цели).
  * final=true (итог): всё, что не вошло в цели целиком, — промах. targets — тексты целей (как угодно: сокращения раскроются).
  */
-export function analyzeTargets(raw, targets, final = true) {
-  const toks = targets.map(t => tokenize(t))
+export function analyzeTargets(raw, targets, final = true, lang = 'en') {
+  const tk = tokenizerOf(lang)
+  const toks = targets.map(t => tk(t))
   const order = toks.map((t, i) => i).filter(i => toks[i].length).sort((a, b) => toks[b].length - toks[a].length)
   let heard = String(raw ?? '').toLowerCase().split(/\s+/).filter(Boolean)
   if (!final) while (heard.at(-1) === UNK) heard = heard.slice(0, -1)
-  const ht = heard.map(h => tokenize(h))
+  const ht = heard.map(h => tk(h))
   const seq = []
   let misses = 0
   let tail = null   // недосказанная цель: начало цели, которое тянется до конца услышанного
@@ -98,7 +101,7 @@ export function analyzeTargets(raw, targets, final = true) {
     let hitWords = 0
     for (const k of order) { hitWords = takeTarget(ht, i, toks[k]); if (hitWords) { hit = k; break } }
     if (hit != null) { seq.push(hit); i += hitWords; continue }
-    const pre = prefixAt(heard, i, toks, order)
+    const pre = prefixAt(heard, i, toks, order, tk)
     if (pre && !tail && i + pre.words === heard.length) tail = { target: pre.target, tokens: pre.tokens }
     if (pre && !final) { i += pre.words; continue }   // начало цели в черновике — не промах (в итоге недосказанное — уже промах)
     if ((final || i < heard.length - 1) && (heard[i] === UNK || ht[i].length)) misses++
@@ -112,9 +115,10 @@ export function analyzeTargets(raw, targets, final = true) {
  * Повторы одной цели подряд («try try try») Vosk видит одним высказыванием и не подменяет чужое слово целью.
  * Цель с сокращением даёт две записи («I'm» → «i am» и «i'm»; speechMatch.phraseForms), поэтому число фраз растёт: цели «I'm», «trying», «to learn» и max = 3 — 5 слов в уровне, 5 + 25 + 125 + [unk].
  */
-export function targetGrammar(targets, max = SLOT_COUNT, known = null) {
+export function targetGrammar(targets, max = SLOT_COUNT, known = null, lang = 'en') {
   // каждая цель — во всех записях: «I'm trying» → «i am trying» и «i'm trying» (Vosk отдаёт то, что услышал; analyzeTargets принимает обе). known(слово) — необязательный фильтр по словарю модели
-  const words = [...new Set(targets.flatMap(t => phraseForms(t)).filter(f => !known || f.split(' ').every(known)))]
+  const forms = lang === 'ru' ? phraseFormsRu : phraseForms // русская модель: слова кириллицей строчными, «ё» и «е» (speechMatchRu.js)
+  const words = [...new Set(targets.flatMap(t => forms(t)).filter(f => !known || f.split(' ').every(known)))]
   if (!words.length) return null
   let level = [[]]
   const out = []

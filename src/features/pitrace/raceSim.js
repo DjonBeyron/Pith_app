@@ -11,7 +11,7 @@ import { climbWords } from './raceWords.js'
 import { medalOf } from './raceLadder.js'
 import { weakWords } from './raceWeak.js'
 import { raceMetrics } from './raceMetrics.js'
-import { failedIn } from './raceSprint2.js'
+import { failedIn } from './raceExtraRound.js'
 
 export const MEDAL_TITLES = { gold: 'золото', silver: 'серебро', finish: 'без медали', none: '—' }
 
@@ -42,7 +42,7 @@ export function scoreRace(plan, race) {
   const misses = (sprintTotal - sprintHit) + (catchTotal - catchOk) + Object.values(race.climb?.fails ?? {}).reduce((a, n) => a + n, 0) + (descent === 'miss' ? 1 : 0)
   const phraseDone = descent === 'ok' || !!race.climb?.top
   const gold = sprintTotal > 0 && sprintHit === sprintTotal && catchTotal > 0 && catchOk === catchTotal && medal === 'gold' && descent === 'ok'
-  return { sprint: { hit: sprintHit, total: sprintTotal }, catchOk, catchTotal, medal, climbRung: race.climb?.rung ?? 0, climbTotal: race.climb?.n ?? 0, timedOut: !!race.climb?.timedOut, descent, phraseDone, words: mem, xp, misses, gold, weak: weakWords(race), metrics: raceMetrics(race) }
+  return { sprint: { hit: sprintHit, total: sprintTotal }, catchOk, catchTotal, medal, climbRung: race.climb?.rung ?? 0, climbTotal: race.climb?.n ?? 0, timedOut: !!race.climb?.timedOut, descent, phraseDone, words: mem, xp, misses, gold, weak: weakWords(race, 12), metrics: raceMetrics(race) }
 }
 
 /** Итог одним вызовом: подсчёт → запись в память сессии (rehearsalSim.applySession) → строка в журнал отладки. Вызывает директор useRaceActs на экране итога */

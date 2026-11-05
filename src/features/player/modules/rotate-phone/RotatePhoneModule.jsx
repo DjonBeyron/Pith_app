@@ -5,6 +5,7 @@ import { useAudioSource } from '../audio/useAudioSource.js'
 import PlayerBubble from '../../PlayerBubble.jsx'
 import VoskReadyNotice from '../../../../shared/ui/VoskReadyNotice.jsx'
 import { useVoskReady } from '../../../../shared/lib/vosk/useVoskReady.js'
+import { setRuReady } from '../../../pitrace/raceRu.js'
 import WordLaneGame from './WordLaneGame.jsx'
 import RotateTapHint from './RotateTapHint.jsx'
 import { readWordLane } from './wordLaneConfig.js'
@@ -98,6 +99,8 @@ function RotateLive({ node, file, onDone, forceDebug, bare, startRef, onStatus, 
   const ready = vosk.status === 'ready'
   const [phase, setPhase] = useState('wait') // wait → (race: ask — сцена с попапом) → (tap: жест истёк, ждём касания) → game → finished (в тест-запуске после игры снова wait)
   const race = cfg.plan?.game === 'race'
+  const voskRu = useVoskReady({ lang: 'ru', hold: false, on: race }) // «Встряхни память», проход B: русская модель скачана? (в память не грузим — это делает переключатель слуха игры); нет её — проход B на тапе
+  useEffect(() => { setRuReady(race && voskRu.status === 'ready') }, [race, voskRu.status])
   const ask = useRaceAsk({ onTap })
   const [hold, setHold] = useState(false) // «Гонка»: сцена открыта, звук ещё готовится — часы игры стоят, Пит уже на экране
   const genRef = useRef(0) // номер запуска: ответ startGameAudio старого запуска (игру закрыли) ничего не меняет

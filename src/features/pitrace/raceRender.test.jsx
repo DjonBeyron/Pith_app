@@ -20,19 +20,19 @@ const noBar = h => h.replace(/<div class="raceBar"[\s\S]*?<\/div><\/div>/, '') /
 
 describe('итог (RaceSummary) и RaceActs', () => {
   const result = { sprint: { hit: 5, total: 7 }, catchOk: 2, catchTotal: 3, medal: 'silver', descent: 'ok', xp: 2, capped: false, gold: false }
-  it('плашка итога: разгон N/M, слух N/3, вершина — медаль, спуск ✓, XP; «Ещё заезд» и «Нет»', () => {
+  it('плашка итога: разгон N/M, слух N/3, вершина — медаль, спуск ✓, XP; «Ещё раз» и «Нет»; экран итога на всю сцену', () => {
     const h = html(RaceSummary, { plan, result, onAgain() {}, onDone() {} })
     expect(h).toContain('data-testid="race-summary-sprint">5/7<'); expect(h).toContain('data-testid="race-summary-catch">2/3<')
     expect(h).toContain('>серебро<'); expect(h).toContain('>✓<'); expect(h).toContain('>+2<')
-    expect(h).toContain('data-testid="race-again"'); expect(h).toContain('>Ещё заезд<'); expect(h).toContain('>Нет<'); expect(h).toContain('wlTurn rhScreen rhSumPlate')
+    expect(h).toContain('data-testid="race-again"'); expect(h).toContain('>Ещё раз<'); expect(h).toContain('>Нет<'); expect(h).toContain('wlTurn rhScreen raceFinal'); expect(h).toContain('Встряхни память: итог')
     expect(html(RaceSummary, { plan, result: { ...result, gold: true, medal: 'gold' }, onDone() {} })).toContain('raceSum--gold')
     const one = html(RaceSummary, { plan, result, onDone() {} }); expect(one).not.toContain('race-again'); expect(one).toContain('>Готово<')
     expect(html(RaceSummary, { plan, result: null, onDone() {} })).toContain('…')
   })
-  it('итог: «Самые слабые слова» — чипы от слабых к сильным, цвет по слабости, перевод мелко; без слабых слов блока нет', () => {
-    const weak = [{ text: 'learn', translation: 'учить', score: 5, tone: 'red' }, { text: 'try', translation: 'пробовать', score: 2, tone: 'yellow' }, { text: 'to', translation: '', score: 0, tone: 'green' }]
+  it('итог: список слов от слабых к сильным — строки с цветом по слабости, переводом и пометкой; без слабых слов блока нет', () => {
+    const weak = [{ text: 'learn', translation: 'учить', score: 5, tone: 'red', note: 'ошибка' }, { text: 'try', translation: 'пробовать', score: 2, tone: 'yellow', note: 'поздно' }, { text: 'to', translation: '', score: 0, tone: 'green', note: 'верно' }]
     const h = html(RaceSummary, { plan, result: { ...result, weak }, onDone() {} })
-    expect(h).toContain('Самые слабые слова'); expect(h.match(/data-testid="race-weak-chip"/g)).toHaveLength(3)
+    expect(h).toContain('от слабых к сильным'); expect(h).toContain('raceWeakNote" data-testid="race-weak-note">ошибка<'); expect(h.match(/data-testid="race-weak-chip"/g)).toHaveLength(3)
     expect(h.indexOf('data-tone="red"')).toBeLessThan(h.indexOf('data-tone="yellow"')); expect(h.indexOf('data-tone="yellow"')).toBeLessThan(h.indexOf('data-tone="green"'))
     expect(h).toContain('raceWeakCap">учить<'); expect(h.indexOf('race-summary-xp')).toBeLessThan(h.indexOf('race-weak'))
     expect(html(RaceSummary, { plan, result, onDone() {} })).not.toContain('race-weak')
@@ -54,16 +54,16 @@ describe('итог (RaceSummary) и RaceActs', () => {
   })
 })
 
-describe('админка: блок «Гонка с Питом (стенд)»', () => {
+describe('админка: блок «Встряхни память (стенд)»', () => {
   const withOpen = (open, fn) => { vi.stubGlobal('localStorage', { getItem: () => (open ? JSON.stringify(['race-settings']) : null), setItem() {} }); try { return fn() } finally { vi.unstubAllGlobals() } }
-  it('блок (настройки развёрнуты): фикстура, статус реплик race_*, куски, тап, «Полная гонка» и четыре раунда, «Два этапа + финал», «Скачать отладку»', () => {
+  it('блок (настройки развёрнуты): фикстура, статус реплик race_*, куски, тап, «Полная гонка» и четыре раунда, «Вспомни на слух + финал», «Скачать отладку»', () => {
     const h = withOpen(true, () => html(RaceBlock, {}))
-    expect(h).toContain('Гонка с Питом (стенд)')
+    expect(h).toContain('Встряхни память (стенд)'); expect(h).toContain('race-ru-address'); expect(h).toContain('race-ru-need') // адрес русской модели и подсказка про тап без неё
     for (const id of ['race-fixture', 'race-lines-status', 'race-voice-lines', 'race-chunks-status', 'race-voice-chunks', 'race-trans-status', 'race-voice-trans', 'race-tap-mode', 'race-run-full', 'race-run-sprint', 'race-run-catch', 'race-run-climb', 'race-run-descent', 'race-run-stages', 'race-export']) expect(h).toContain(`data-testid="${id}"`)
-    for (const t of ['Полная гонка', 'Разгон', 'Слушай и лови', 'Вершина', 'Спуск', 'Скачать отладку', 'Тап вместо речи']) expect(h).toContain(t)
+    for (const t of ['Полная гонка', 'Проход A', 'Проход B', 'Вершина', 'Спуск', 'Скачать отладку', 'Тап вместо речи']) expect(h).toContain(t)
     expect(h).toContain('Реплики Пита race_*'); expect(h).not.toContain('race-howto'); expect(h).not.toContain('Как тестировать'); expect(h).not.toContain('race-ask') // плашка-вопрос открывается только по тапу
   })
-  it('раскладка на 375 px: первой идёт крупная кнопка «Два этапа + финал», потом «Полная гонка» и раунды, «Настройки» свёрнуты (фикстура, озвучки, тап внутри)', () => {
+  it('раскладка на 375 px: первой идёт крупная кнопка «Вспомни на слух + финал», потом «Полная гонка» и раунды, «Настройки» свёрнуты (фикстура, озвучки, тап внутри)', () => {
     const h = withOpen(false, () => html(RaceBlock, {}))
     const at = id => h.indexOf(`data-testid="${id}"`)
     expect(at('race-run-stages')).toBeGreaterThan(0); expect(at('race-run-stages')).toBeLessThan(at('race-run-full')); expect(at('race-run-full')).toBeLessThan(at('race-run-sprint')); expect(at('race-run-sprint')).toBeLessThan(at('race-settings-toggle'))

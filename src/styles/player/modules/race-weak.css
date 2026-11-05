@@ -1,24 +1,28 @@
-/* Итог «Гонки с Питом»: «Самые слабые слова» (features/pitrace/RaceSummary.jsx, счёт — raceWeak.js). Чипы слов «Разгона» от самых слабых к самым сильным; цвет — по слабости: красный (data-tone="red"), жёлтый, зелёный;
-   перевод мелко под словом. Не больше 8 чипов, на 375 px помещаются в два-три ряда. Только фон и обводка, без filter и анимаций. */
-.raceWeak { margin: 0 0 14px; text-align: left; }
+/* Итог «Встряхни память»: список слов от самых слабых к самым сильным (features/pitrace/RaceSummary.jsx, счёт и пометка — raceWeak.js). Строка в стиле «Моей памяти»: слово и перевод слева, пометка
+   («ошибка» / «молчал» / «поздно» / «верно») справа, цвет по слабости: красный, жёлтый, зелёный (как уровни --lvl). Список прокручивается внутри экрана итога (race-final.css). Только фон и обводка, без filter и анимаций. */
+.raceWeak { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; margin: 0 0 10px; text-align: left; }
 .raceWeakTitle { margin: 0 0 6px; font-size: 12px; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; opacity: 0.7; }
-.raceWeakList { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.raceWeakList { display: flex; flex-direction: column; gap: 6px; flex: 1 1 auto; min-height: 0; margin: 0; padding: 0 2px 2px 0; list-style: none; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
 .raceWeakChip {
   --wk: 182, 254, 59;
   display: flex;
-  flex-direction: column;
   align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex: 0 0 auto;
   min-width: 0;
-  max-width: 100%;
-  padding: 4px 11px 3px;
+  padding: 8px 12px;
   box-sizing: border-box;
-  border: 1.5px solid rgba(var(--wk), 0.85);
-  border-radius: 999px;
-  background: rgba(var(--wk), 0.16);
+  border: 1.5px solid rgba(var(--wk), 0.75);
+  border-left-width: 5px;
+  border-radius: 12px;
+  background: rgba(var(--wk), 0.12);
   color: #f4f6fb;
-  line-height: 1.15;
+  line-height: 1.2;
 }
 .raceWeakChip[data-tone='red'] { --wk: 255, 93, 115; }
 .raceWeakChip[data-tone='yellow'] { --wk: 255, 210, 87; }
-.raceWeakWord { font-size: 14px; font-weight: 800; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
-.raceWeakCap { font-size: 10px; font-weight: 600; opacity: 0.75; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
+.raceWeakText { display: flex; flex-direction: column; min-width: 0; }
+.raceWeakWord { font-size: 16px; font-weight: 800; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.raceWeakCap { font-size: 12px; font-weight: 600; opacity: 0.75; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.raceWeakNote { flex: 0 0 auto; padding: 2px 9px; border-radius: 999px; font-size: 12px; font-weight: 800; background: rgba(var(--wk), 0.22); color: rgb(var(--wk)); }
