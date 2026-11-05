@@ -13,7 +13,7 @@ await ctx.addInitScript(() => localStorage.setItem('pithy_weak_device_v6', '0'))
 const page = await ctx.newPage()
 page.on('pageerror', e => console.log('PAGEERROR', e.message))
 let T0 = Date.now()
-page.on('console', m => { const t = m.text(); if (/\[race\]|\[cat\] очередь: \+реплика|отсчёт|ноты/.test(t)) console.log('LOG +' + (Date.now() - T0) + ' мс', t) })
+page.on('console', m => { const t = m.text(); if (/\[race\]|\[speech\]|\[cat\] очередь: \+реплика|отсчёт|ноты/.test(t)) console.log('LOG +' + (Date.now() - T0) + ' мс', t) })
 const shot = async name => { await page.screenshot({ path: `${OUT}/${name}.png` }); console.log('shot', name) }
 
 await page.goto(`${BASE}?only=${process.env.ONLY ?? 'sprint'}&seed=r1&ask=none`) // ONLY= (пусто) — полная гонка с race_start

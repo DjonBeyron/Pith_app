@@ -65,10 +65,10 @@ describe('{word} в реплике', () => {
   })
   it('useCatLines.sayLine(id, vars) подставляет слово; busyLeft() сообщает, сколько Пит ещё занят', () => {
     const src = read('../player/modules/rotate-phone/useCatLines.js')
-    expect(src).toContain('const sayLine = (id, vars = null) => {')
+    expect(src).toContain('const sayLine = (id, vars = null, opts = null) => {')
     expect(src).toContain('const line = fillLine(lines?.[id], vars)')
     expect(src).toContain('const busyLeft = () => Math.max(0, busyRef.current - Date.now())')
-    expect(src).toContain('return { text, sayLine, sayLineLater, praiseTakeoff, stop, reset, busyLeft, holdBusy }')
+    expect(src).toContain('return { text, sayLine, sayLineLater, praiseTakeoff, stop, onStop, reset, busyLeft, holdBusy }')
   })
 })
 

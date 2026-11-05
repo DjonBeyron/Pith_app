@@ -9,6 +9,7 @@ import { fillLine } from '../rehearsal/rehearsalLines.js'
 import { lineVoiced } from '../rehearsal/rehearsalQuiet.js'
 import { buildRaceActs } from './raceRecipe.js'
 import { raceFirstLines } from './raceTexts.js'
+import { RACE_START_LEAD_MS } from './raceStartTrace.js'
 
 export const MORPH_MS = 600        // бар → плашка: последние ~600 мс речи Пита
 export const PLATE_HOLD_MS = 1200  // плашка держится столько после конца речи, потом три ноты
@@ -26,8 +27,8 @@ export function openingPlan(plan, lines = null, rate = 1) {
   const startMs = ms(startId), firstMs = ms(firstId)
   if (!startMs && !firstMs) return { startMs, firstMs, stageAt: DROP_MS + LANES_MS, lineAt: 0, speechEnd: OPEN_FALLBACK_MS, morphAt: OPEN_FALLBACK_MS - MORPH_MS, plateEnd: OPEN_FALLBACK_MS + PLATE_HOLD_MS, countAt: OPEN_FALLBACK_MS + PLATE_HOLD_MS, pause: PLATE_HOLD_MS }
   const stageAt = DROP_MS + LANES_MS
-  const busyMs = startMs ? Math.max(0, LEAD_MS + startMs + LINE_PAUSE_MS - stageAt) : 0 // race_start начинается через LEAD_MS и занимает Пита ещё на паузу после реплики
+  const busyMs = startMs ? Math.max(0, RACE_START_LEAD_MS + startMs + LINE_PAUSE_MS - stageAt) : 0 // race_start начинается через RACE_START_LEAD_MS (сразу) и занимает Пита ещё на паузу после реплики
   const t = stageTiming({ order: 'after', lead: LEAD_MS, busyMs, lineMs: firstMs, pause: PLATE_HOLD_MS, minMs: 0, hasLine: !!firstId, quiet: lineVoiced(lines, firstId), plan: countdownPlan({ soft: true }) })
-  const speechEnd = Math.max(stageAt + (t.lineAt ?? 0) + firstMs, startMs ? LEAD_MS + startMs : 0) // Пит уже наверху (голова не выскакивает заново): звук идёт сразу
+  const speechEnd = Math.max(stageAt + (t.lineAt ?? 0) + firstMs, startMs ? RACE_START_LEAD_MS + startMs : 0) // Пит уже наверху (голова не выскакивает заново): звук идёт сразу
   return { startMs, firstMs, stageAt, lineAt: t.lineAt ?? 0, speechEnd, morphAt: Math.max(1000, speechEnd - MORPH_MS), plateEnd: speechEnd + PLATE_HOLD_MS, countAt: stageAt + (t.countAt ?? 0), pause: PLATE_HOLD_MS }
 }

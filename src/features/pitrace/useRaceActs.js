@@ -10,7 +10,8 @@ import { sayTrap } from './raceTrapVoice.js'
 import { sprintTarget } from './raceSprint2.js'
 import { takeoffOn, playTakeoffAfter } from './raceTakeoffSound.js'
 import { rewardMs } from '../player/modules/rotate-phone/wordLaneNotes.js'
-import { GOOD_IDS, GOOD_DELAY_MS, GOOD_ARM_MS } from './raceGood.js'
+import { GOOD_IDS } from './raceGood.js'
+import { useRaceSpeech, speakTranslation } from './useRaceSpeech.js'
 
 /** Журнал голоса перевода: какое слово и какой перевод Пит говорит перед выездом этой пилюли (одна запись повтора: слово, перевод, дорожка, скорость). Расхождение с записью слова круга — строка «РАССИНХРОН» (не должно быть никогда) */
 function logPre(stage, rep) {
@@ -31,8 +32,10 @@ function logPre(stage, rep) {
 //  • журнал отладки: строки «[race] …» (раунд, слово, попал / промах, серия, ступень, заходы, итог).
 export function useRaceActs(args) {
   const { plan, stages, stage, at, stageObj, setS, sayLine, sayLineLater, sayText, lines, rate, listenerRef } = args
-  const rh = useRehearsalActs(args)
   const on = plan?.game === 'race'
+  const speech = useRaceSpeech({ on, cat: args.cat, sayLine }) // секвенсор речи (raceSpeech.js): зачёт → похвала → перевод → выезд; свои отступы от РЕАЛЬНОГО конца речи
+  const rh = useRehearsalActs(on && args.cat ? { ...args, cat: { ...args.cat, busyLeft: () => Math.max(args.cat.busyLeft(), speech.pendingMs()) } } : args) // расписание реплик этапа знает, что похвала ещё впереди
+  const praiseRef = useRef(null) // похвала, которую reduceRace назначил на этот зачёт (apply → claim)
   const running = on && stage === 'run' ? stageObj : null
   const [box] = useState(makeBox) // s — актуальное состояние (читает nextIdx без перерисовки), hinted — подсказка голосом сказана на этом промахе (raceState.makeBox)
   const [view, setView] = useState(box.s)
@@ -47,7 +50,7 @@ export function useRaceActs(args) {
     if (r.state === box.s && !r.say && !r.hint && !r.log) return
     putState(box, r.state); setView(r.state)
     if (r.log) pLog(`[race] ${r.log}`)
-    if (r.say) { if (GOOD_IDS.includes(r.say)) sayRef.current.sayLineLater?.(r.say, null, GOOD_DELAY_MS, GOOD_ARM_MS); else sayRef.current.sayLine?.(r.say) } // ЛЮБАЯ похвала — один путь: Пит занят с зачёта, голос через GOOD_DELAY_MS после ВЗЛЁТА пилюли (rec('win') → cat.praiseTakeoff); не сразу, как раньше
+    if (r.say) { if (GOOD_IDS.includes(r.say)) praiseRef.current = r.say; else sayRef.current.sayLine?.(r.say) } // ЛЮБАЯ похвала — один путь: секвенсор речи (claim → speech.claim(id)): голос через GOOD_DELAY_MS после ВЗЛЁТА пилюли, перевод — через AFTER_GOOD_GAP_MS после РЕАЛЬНОГО конца похвалы
     if (r.hint) sayRef.current.sayText?.(ev.stage.word) // подсказка «Вершины»: новое слово голосом из библиотеки
     if (r.trap) { trapRef.current(); trapRef.current = sayTrap({ ...r.trap, ...sayRef.current }) } // ловушка: «это двойник, а нужно слово»
   }, [box])
@@ -101,14 +104,22 @@ export function useRaceActs(args) {
   return {
     ...rh, result, race: view, nextIdx,
     /** Слово «Разгона» / «Слушай и лови» принято (раньше, чем щёлкнет заливка): время ответа ms (от выезда пилюли) — в результаты; Пит говорит мини-реплику успеха, следующая пилюля ждёт его */
-    claim(rep, ms) { if (running) apply({ t: 'claim', stage: running, info: { idx: rep?.idx, ms } }) },
+    claim(rep, ms) { if (!running) return; praiseRef.current = null; apply({ t: 'claim', stage: running, info: { idx: rep?.idx, ms } }); speech.claim(praiseRef.current); praiseRef.current = null },
     /** Перед выездом пилюли (движок: событие 'pre'): в «Разгоне» Пит говорит русский перевод слова из библиотеки (raceTrans.js), в «Слушай и лови» — английское слово (rep.say, библиотека слов); озвучки нет — молча, пилюля выезжает сразу.
      *  Пилюля ждёт, пока он договорит (pitLeft) */
-    pre(rep) { logPre(running, rep); if (running?.act === 'sprint' && rep?.cap) sayRef.current.sayText?.(rep.cap, { ru: true }); else if (running?.act === 'catch' && rep?.say) sayRef.current.sayText?.(rep.say, { hold: true }) },
+    pre(rep) {
+      logPre(running, rep)
+      if (running?.act === 'sprint' && rep?.cap) speakTranslation(speech, o => sayRef.current.sayText?.(rep.cap, { ru: true, ...o }))
+      else if (running?.act === 'catch' && rep?.say) speakTranslation(speech, o => sayRef.current.sayText?.(rep.say, { hold: true, ...o }))
+      else speech.translation(0) // говорить нечего: пилюля выезжает сразу
+    },
+    /** Пит ещё занят (мс): секвенсор запрещает перевод до отступа после похвалы (LOCK_MS), иначе — реплики и перевод (cat.busyLeft) */
+    pitLeft: () => Math.max(speech.holdMs(), args.cat?.busyLeft?.() ?? 0),
     rec(kind, info) {
       rh.rec(kind, info)
       if (!running) return
-      if (kind === 'win' && info?.last !== false) args.cat?.praiseTakeoff?.() // пилюля взлетает: с этого мгновения идёт задержка похвалы
+      if (kind === 'win' && info?.last !== false) speech.riseStart() // пилюля взлетает: с этого мгновения идёт задержка похвалы
+      if (kind === 'fail' && ['sprint', 'catch'].includes(running.act)) speech.pillGone('missed') // «не успел»: отступ до перевода следующего слова
       if (takeoffOn(running, kind, info)) playTakeoffAfter(rewardMs(info?.order ?? 0)) // взлёт принятой пилюли: глиссандо ми → ля ПОСЛЕ ноты награды, а не вместе с ней (только ступени-очереди гонки)
       apply({ t: kind, stage: running, info: kind === 'miss' ? { ...info, heard: listenerRef?.current?.heard?.() ?? '' } : info }) // на промахе — что услышал Vosk: двойник слова ступени ломает ловушку
       if (kind === 'miss' && running.act === 'climb' && running.type === 'student') jump(climbStageIdx(stages, box.s.climb)) // сказал не то — соскальзывание: ступень-стадия перезапускается (слово ступени звучит подсказкой при 2-м промахе)

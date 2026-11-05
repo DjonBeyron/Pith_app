@@ -87,8 +87,9 @@ export function attach(set, e, url, own) {
   apply()
 }
 
-function fireSlot(e, onResult) {
+function fireSlot(e, onResult, onEnd = null) {
   try {
+    if (onEnd) e.a.addEventListener?.('ended', onEnd, { once: true }) // конец воспроизведения (событие ended элемента; пауза его не вызывает)
     if (e.a.src !== e.url) e.a.src = e.url // звук ещё не подставлен (attach ждёт пробуждения) — подставляем сейчас
     e.a.muted = getLessonMuted()
     e.a.playbackRate = getVoiceRate()
@@ -102,15 +103,15 @@ function fireSlot(e, onResult) {
 
 /**
  * Сыграть слот. false — слота нет/звук не готов (вызывающий идёт запасным путём; при «без звука» играет muted). onResult(res) — исход play() (wordLanePlayWatch.js), для журнала «[cat-voice]». onStart() — звук принят
- * (у элемента «стартовал» = play() вызван: настоящего старта не узнать — 'playing' может не прийти вовсе). play() тишины ещё не завершился — src не трогаем (смена src оборвала бы его: AbortError),
+ * (у элемента «стартовал» = play() вызван: настоящего старта не узнать — 'playing' может не прийти вовсе). onEnd() — звук доиграл (событие ended элемента). play() тишины ещё не завершился — src не трогаем (смена src оборвала бы его: AbortError),
  * ждём его до WAKE_WAIT_MS, потом играем (true — «примет», исход придёт в onResult).
  */
-export function playSlot(key, onResult = null, onStart = null) {
+export function playSlot(key, onResult = null, onStart = null, onEnd = null) {
   const e = slots?.els.get(key)
   if (!e?.url) return false
-  if (!e.wakePending) { const ok = fireSlot(e, onResult); if (ok) onStart?.(); return ok }
+  if (!e.wakePending) { const ok = fireSlot(e, onResult, onEnd); if (ok) onStart?.(); return ok }
   let fired = false
-  const go = () => { if (fired) return; fired = true; clearTimeout(t); if (slots?.els.get(key) !== e) return; if (fireSlot(e, onResult)) onStart?.(); else onResult?.({ play: 'rejected', error: 'слот не сыграл', ms: 0, rs: null }) }
+  const go = () => { if (fired) return; fired = true; clearTimeout(t); if (slots?.els.get(key) !== e) return; if (fireSlot(e, onResult, onEnd)) onStart?.(); else onResult?.({ play: 'rejected', error: 'слот не сыграл', ms: 0, rs: null }) }
   const t = setTimeout(go, WAKE_WAIT_MS)
   e.woke.then(go)
   return true

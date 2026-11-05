@@ -206,7 +206,7 @@ describe('проводка и аудит исходников', () => {
     expect(flow).toContain('useWordLaneControls({')
     expect(flow).toMatch(/restartStage, pause, paused: s\.stage === 'paused'/)
     expect(read('./WordLaneCat.jsx')).toContain('freeze() { voice.stop()')
-    expect(read('./useCatLines.js')).toContain('return { text, sayLine, sayLineLater, praiseTakeoff, stop, reset, busyLeft, holdBusy }')
+    expect(read('./useCatLines.js')).toContain('return { text, sayLine, sayLineLater, praiseTakeoff, stop, onStop, reset, busyLeft, holdBusy }')
   })
   it('попап паузы — плотная подложка на весь экран (fixed, z-index 60) вне .wlStage, карточка внутри; порядок подключения hud → pause', () => {
     const pause = read('../../../../styles/player/modules/word-lane-pause.css')

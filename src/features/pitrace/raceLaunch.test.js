@@ -86,7 +86,7 @@ describe('Пит почти сразу и журнал старта', () => {
     const game = read('../player/modules/rotate-phone/WordLaneGame.jsx')
     expect(game).toContain('if (startHold) { catApi.current?.peek?.(PIT_PEEK_MS); raceStart.pit() }')
     const cat = read('../player/modules/rotate-phone/useCatLines.js')
-    expect(cat).toContain('raceStart.line()'); expect(cat).toContain('}, { maxMs: waitMs })'); expect(cat).toContain('waitMs = LINE_WAIT_MS')
+    expect(cat).toContain('raceStart.line()'); expect(cat).toContain('{ maxMs: waitMs, pollMs:'); expect(cat).toContain('waitMs = LINE_WAIT_MS')
     const flow = read('../player/modules/rotate-phone/useWordLaneFlow.js')
     expect(flow).toContain("waitMs: plan?.game === 'race' ? RACE_LINE_WAIT_MS : undefined"); expect(flow).toContain('if (hold) return undefined; const t = setTimeout(() => go(\'lanes\'), DROP_MS)')
     expect(read('../rehearsal/useRehearsalActs.js')).toContain("if (!on || stage !== 'drop' || !intro || hold) return undefined")
@@ -98,10 +98,10 @@ describe('ворота старта гонки ждут только первы�
   const lines = id => ({ url: `https://x/${id}.mp3`, text: id, duration: 3 })
   const ls = { race_start: lines('race_start'), race_sprint: lines('race_sprint'), race_catch: lines('race_catch'), race_climb: lines('race_climb') }
   const cfg = { chunks: plan.chunks, confusers: [], extraWords: [], translations: [], firstLines: ['race_start', 'race_sprint'], plan }
-  it('firstCount = число озвученных первых реплик, gateMin 0: куски фразы и переводы не держат Пита', () => {
+  it('firstCount = 1 (только race_start), gateMin 0: реплика первого этапа, куски фразы и переводы не держат Пита (v3.3.117)', () => {
     const p = wordsPlan({ cfg, lines: ls })
-    expect(p.gateMin).toBe(0); expect(p.firstCount).toBe(2); expect(p.now.slice(0, 2).map(x => x.key)).toEqual(['line:race_start', 'line:race_sprint'])
-    expect(gateSize(p.firstCount, 20, p.gateMin)).toBe(2); expect(gateSize(2, 20)).toBe(GATE_MIN) // у репетиции по-прежнему не меньше 5
+    expect(p.gateMin).toBe(0); expect(p.firstCount).toBe(1); expect(p.now.slice(0, 2).map(x => x.key)).toEqual(['line:race_start', 'line:race_sprint'])
+    expect(gateSize(p.firstCount, 20, p.gateMin)).toBe(1); expect(gateSize(2, 20)).toBe(GATE_MIN) // у репетиции по-прежнему не меньше 5
     expect(wordsPlan({ cfg: { ...cfg, plan: { ...plan, game: undefined } }, lines: ls }).gateMin).toBeUndefined()
   })
   it('ворота открываются по «первые N», как только готовы две реплики, хотя слова и остальные реплики ещё качаются', async () => {

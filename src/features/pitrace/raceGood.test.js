@@ -40,10 +40,12 @@ describe('похвала начинается с задержкой после �
     expect(GOOD_DELAY_MS).toBeGreaterThanOrEqual(400); expect(GOOD_DELAY_MS).toBeLessThanOrEqual(600)
     const src = read('./useRaceActs.js')
     expect(src).toContain('GOOD_IDS.includes(r.say)')
-    expect(src).toContain('sayLineLater?.(r.say, null, GOOD_DELAY_MS, GOOD_ARM_MS)') // любая похвала, не только на claim
+    expect(src).toContain('praiseRef.current = r.say') // любая похвала, не только на claim: id уходит секвенсору речи (v3.3.117)
     expect(src).not.toContain("ev.t === 'claim' && GOOD_IDS") // единый путь
-    expect(src).toContain('praiseTakeoff') // отсчёт задержки — от взлёта пилюли (win)
-    expect(read('../player/modules/rotate-phone/useWordLaneFlow.js')).toContain('cat.sayLineLater(id, vars, ms')
+    expect(src).not.toContain('sayLineLater?.(r.say') // старый разрозненный таймер гонке не нужен
+    expect(src).toContain('speech.riseStart()') // отсчёт задержки — от взлёта пилюли (win)
+    expect(src).toContain('speech.claim(praiseRef.current)')
+    expect(read('../player/modules/rotate-phone/useWordLaneFlow.js')).toContain('cat.sayLineLater(id, vars, ms') // для репетиции остаётся
   })
   it('на зачёте Пит занят С ЭТОГО МОМЕНТА: пока идёт задержка (hold от резерва), следующая пилюля не выезжает; реплика кончилась — выезжает', () => {
     const plan = normalizePlan({ ...fixturePlan('three'), game: 'race' })

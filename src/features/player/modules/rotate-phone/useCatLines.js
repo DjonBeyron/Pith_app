@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { LINE_PAUSE_MS, LINE_COOLDOWN_MS, lineKey } from './wordLaneCatLines.js'
 import { startCatLine } from './wordLaneCatSay.js'
-import { lineReadiness, waitForLine, LINE_WAIT_MS } from './wordLaneLineGate.js'
+import { lineReadiness, waitForLine, LINE_WAIT_MS, LINE_POLL_MS } from './wordLaneLineGate.js'
 import { fillLine } from '../../../rehearsal/rehearsalLines.js'
 import { bufferMissing, recoverLine, nudgeCtx } from './wordLaneLineRecover.js'
 import { hasWordSlot } from './wordLaneClips.js'
@@ -33,6 +33,7 @@ export function useCatLines({ lines, rate, catApi, listenerRef, waitMs = LINE_WA
   const riseRef = useRef(0)
   const lateRef = useRef(0) // таймер отложенной реплики (sayLineLater)
   const armRef = useRef(null) // ждущая взлёта похвала: запускает отсчёт её задержки (praiseTakeoff)
+  const stopRef = useRef(new Set()) // подписчики на остановку (пауза, выход): секвенсор речи гонки сбрасывает свои таймеры
   const gateRef = useRef(null) // отмена ожидания слота
   const cancelGate = () => { gateRef.current?.(); gateRef.current = null }
   useEffect(() => () => { clearTimeout(timerRef.current); clearTimeout(riseRef.current); clearTimeout(lateRef.current); cancelGate() }, [])
@@ -49,11 +50,14 @@ export function useCatLines({ lines, rate, catApi, listenerRef, waitMs = LINE_WA
   const speak = (id, line, extra = {}) => {
     gateRef.current = null
     const now = Date.now()
-    raceStart.line() // «Гонка»: первая реплика после тапа «Говорю / Тапаю» — строка «[race] старт: Пит через N мс, реплика через M мс»
     clearTimeout(riseRef.current)
-    const { ms, rise, timer } = startCatLine({ id, line, rate, catApi, listenerRef, ...extra })
+    const { onSpeak, onEnd, pause = LINE_PAUSE_MS, ...say } = extra // onSpeak({ ms, voiced }) — реплика пошла; onEnd — звук доиграл; pause — занятость после конца (секвенсор гонки: 0, отступ ведёт он сам)
+    const done = () => { if (pause === 0) busyRef.current = Math.min(busyRef.current, Date.now()); try { onEnd?.() } catch { /* секвенсор не ломает звук */ } } // реальный конец: «занят» снимается сразу, а не по оценке
+    const { ms, rise, timer, voiced } = startCatLine({ id, line, rate, catApi, listenerRef, onSound: () => raceStart.line(), onEnd: done, ...say }) // «Гонка»: строка «[race] старт: …» — по ФАКТУ начала звука первой реплики
+    if (!voiced) { raceStart.line(); if (onEnd) setTimeout(done, rise + ms) } // звука не будет (только подпись): конец — по оценке
+    try { onSpeak?.({ ms: rise + ms, voiced }) } catch { /* журнал не мешает */ }
     riseRef.current = timer
-    busyRef.current = now + rise + ms + LINE_PAUSE_MS
+    busyRef.current = now + rise + ms + pause
     setText(line.caption ?? line.text) // caption: подпись длиннее озвучки (rehearsalLines.fillLine)
     clearTimeout(timerRef.current)
     timerRef.current = setTimeout(() => setText(''), rise + ms + TEXT_TAIL_MS)
@@ -66,30 +70,32 @@ export function useCatLines({ lines, rate, catApi, listenerRef, waitMs = LINE_WA
     pLog(`[cat] реплика «${id}» пропущена: ${why}`)
   }
 
-  const sayLine = (id, vars = null) => {
+  const sayLine = (id, vars = null, opts = null) => { // opts (v3.3.117): { onSpeak, onEnd, pause, noRise } — секвенсор гонки (raceSpeech.js)
     const line = fillLine(lines?.[id], vars)
     const now = Date.now()
     if (!line) { skipped(id, 'такой реплики нет в настройках'); return false }
     if (now < busyRef.current) { skipped(id, `Пит занят ещё ${Math.round(busyRef.current - now)} мс (busy)`); return false }
     if (now - (lastRef.current.get(id) ?? -Infinity) < LINE_COOLDOWN_MS) { skipped(id, 'кулдаун: недавно уже говорил'); return false }
     lastRef.current.set(id, now)
-    if (!line.url) { speak(id, line); return true } // нет озвучки — подпись, ждать нечего
+    const o = opts ?? {}
+    if (!line.url) { speak(id, line, o); return true } // нет озвучки — подпись, ждать нечего
     if (bufferMissing(id)) recoverLine(id, line) // страховка: буфера нет в памяти — докачать, не доверяя реестру прогрева
     const check = () => {
       if (bufferMissing(id)) return { ready: false, why: 'буфера реплики нет в памяти (докачивается)' }
       nudgeCtx() // контекст не 'running' (iOS после фона) — подтолкнуть resume()
       return lineReadiness(id)
     }
-    if (check().ready) { speak(id, line); return true }
+    if (check().ready) { speak(id, line, o); return true }
     busyRef.current = now + waitMs + 100 // ждём слот: другие реплики не лезут вперёд
+    if (waitMs !== LINE_WAIT_MS) catApi?.current?.peek?.(waitMs + 600) // «Гонка»: пока реплика ждёт звук, голова Пита наверху (не прячется)
     cancelGate()
     gateRef.current = waitForLine(check, {
-      onReady: waited => speak(id, line, { waitedMs: waited }),
+      onReady: waited => speak(id, line, { ...o, waitedMs: waited }),
       onTimeout: (waited, why) => {
-        if (hasWordSlot(lineKey(id))) { pLog(`[cat] реплика «${id}»: ожидание готовности вышло (${why}), но буфер есть — пробую играть`); speak(id, line, { waitedMs: waited, why }) } // лучше попытка (playGameBuffer сам сделает resume), чем тишина
-        else { pLog(`[cat] реплика «${id}»: звука нет в памяти за ${waited} мс (${why}) — только подпись`); speak(id, line, { voice: 'none', waitedMs: waited, why }) }
+        if (hasWordSlot(lineKey(id))) { pLog(`[cat] реплика «${id}»: ожидание готовности вышло (${why}), но буфер есть — пробую играть`); speak(id, line, { ...o, waitedMs: waited, why }) } // лучше попытка (playGameBuffer сам сделает resume), чем тишина
+        else { pLog(`[cat] реплика «${id}»: звука нет в памяти за ${waited} мс (${why}) — только подпись`); speak(id, line, { ...o, voice: 'none', waitedMs: waited, why }) }
       },
-    }, { maxMs: waitMs })
+    }, { maxMs: waitMs, pollMs: waitMs === LINE_WAIT_MS ? LINE_POLL_MS : 30 }) // «Гонка»: опрос чаще — реплика стартует по готовности, а не на следующем тике
     return true
   }
 
@@ -123,12 +129,14 @@ export function useCatLines({ lines, rate, catApi, listenerRef, waitMs = LINE_WA
   const praiseTakeoff = () => { armRef.current?.() }
 
   /** Пауза: реплика обрывается — подпись и таймеры сняты, «занят» сброшен (после «Продолжить» кот снова может говорить); звук слота гасит releaseClips, рот и взгляд — catApi.freeze */
-  const stop = () => { clearTimeout(timerRef.current); clearTimeout(riseRef.current); clearTimeout(lateRef.current); lateRef.current = 0; armRef.current = null; cancelGate(); busyRef.current = 0; setText('') }
+  const stop = () => { clearTimeout(timerRef.current); clearTimeout(riseRef.current); clearTimeout(lateRef.current); lateRef.current = 0; armRef.current = null; cancelGate(); busyRef.current = 0; setText(''); stopRef.current.forEach(fn => { try { fn() } catch { /* подписчик не мешает паузе */ } }) }
+  /** Подписка на остановку реплик (stop): → отписка */
+  const onStop = fn => { stopRef.current.add(fn); return () => stopRef.current.delete(fn) }
 
   const busyLeft = () => Math.max(0, busyRef.current - Date.now())
 
   /** Пит занят ещё ms (+ короткая пауза): говорит слово не репликой (перевод «Разгона») — следующая пилюля ждёт, реплики не лезут вперёд */
   const holdBusy = ms => { busyRef.current = Math.max(busyRef.current, Date.now() + ms + 80) }
 
-  return { text, sayLine, sayLineLater, praiseTakeoff, stop, reset, busyLeft, holdBusy }
+  return { text, sayLine, sayLineLater, praiseTakeoff, stop, onStop, reset, busyLeft, holdBusy }
 }

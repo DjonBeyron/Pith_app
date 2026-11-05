@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi, afterEach } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
@@ -11,6 +11,7 @@ import { hasIntroLine, neededTexts, firstLines } from '../rehearsal/rehearsalPre
 import { nextPlan, readRehearsalCfg } from '../rehearsal/rehearsalCfg.js'
 
 const read = rel => readFileSync(new URL(rel, import.meta.url), 'utf8')
+afterEach(() => vi.useRealTimers())
 const racePlan = (extra = {}) => normalizePlan({ ...fixturePlan('three'), game: 'race', ...extra })
 
 // Директор гонки без React-рантайма (эффекты на сервере не идут): функции, которые директор игры зовёт в обработчиках
@@ -37,14 +38,14 @@ describe('useRaceActs: директор гонки поверх директор
     expect(out.race).toBeUndefined(); expect(out.on).toBe(true); expect(out.failLine({ act: 'build' })).toBeNull()
   })
   it('разгон: на принятии слова Пит говорит мини-реплику успеха по плану (первое слово и далее раз в 3–4), «ну, погнали» и «огонь» не звучат', () => {
+    vi.useFakeTimers()
     const { rh, sayLine, sayLineLater, stages } = probe('sprint')
     const st = stages.find(s => s.sid === 'sprint')
-    for (let i = 0; i < st.words.length; i++) rh.claim({ idx: i })
-    expect(sayLineLater.mock.calls.map(c => c[0])).toEqual(st.good.map(g => g.id)) // похвала идёт только через sayLineLater (задержка от взлёта), не сразу
-    expect(sayLine).not.toHaveBeenCalled()
-    expect(sayLineLater.mock.calls.length).toBeGreaterThanOrEqual(2)
-    for (let i = 0; i < 5; i++) rh.rec('win', { idx: i })
-    expect(sayLineLater.mock.calls.map(c => c[0]).some(x => /streak|fire/.test(x))).toBe(false) // победа слов серию голосом не объявляет
+    for (let i = 0; i < st.words.length; i++) { rh.claim({ idx: i }); rh.rec('win', { idx: i, last: true }); vi.advanceTimersByTime(600) } // зачёт → взлёт → через 500 мс секвенсор речи говорит похвалу
+    expect(sayLine.mock.calls.map(c => c[0])).toEqual(st.good.map(g => g.id)) // похвала идёт только через секвенсор (задержка от взлёта), не сразу, и не через sayLineLater
+    expect(sayLineLater).not.toHaveBeenCalled()
+    expect(sayLine.mock.calls.length).toBeGreaterThanOrEqual(2)
+    expect(sayLine.mock.calls.map(c => c[0]).some(x => /streak|fire/.test(x))).toBe(false) // победа слов серию голосом не объявляет
   })
   it('разгон: второй круг — после первого с ошибкой директор идёт на объявление второго (слова вписаны), без ошибок — мимо него', () => {
     const { rh, stages } = probe('sprint')
@@ -64,17 +65,18 @@ describe('useRaceActs: директор гонки поверх директор
     for (const sid of ['sprint', 'descent-s', 'climb-1']) expect(rh.failLine(stages.find(s => s.sid === sid))).toBe('')
   })
   it('слушай и лови: принятие слова пишет время ответа и говорит мини-реплику успеха; «не успел» и промах реплик не вызывают (редюсер молчит)', () => {
-    const { rh, sayLine, sayLineLater, stages } = probe('catch')
+    vi.useFakeTimers()
+    const { rh, sayLine, stages } = probe('catch')
     const st = stages.find(s => s.sid === 'catch'), i = st.words.findIndex(w => !w.trap)
-    rh.claim({ idx: i }, 1500)
-    expect(sayLineLater.mock.calls.map(c => c[0])).toEqual([st.good[0].id]); expect(sayLine).not.toHaveBeenCalled()
+    rh.claim({ idx: i }, 1500); rh.rec('win', { idx: i, last: true }); vi.advanceTimersByTime(600)
+    expect(sayLine.mock.calls.map(c => c[0])).toEqual([st.good[0].id])
     const t = probe('catch'); t.rh.rec('fail', { idx: 1 }); t.rh.rec('miss', { idx: 1 }); expect(t.sayLine).not.toHaveBeenCalled()
   })
   it('перед выездом пилюли Пит говорит: в разгоне — русский перевод (ru), в «Слушай и лови» — английское слово (hold: Пит занят); без озвучки — молча', () => {
     const sp = probe('sprint'); sp.rh.pre({ cap: 'учиться', say: 'learn' })
-    expect(sp.sayText).toHaveBeenCalledWith('учиться', { ru: true })
+    expect(sp.sayText).toHaveBeenCalledWith('учиться', expect.objectContaining({ ru: true, onSay: expect.any(Function), onEnd: expect.any(Function) })) // onSay / onEnd — секвенсор речи
     const ct = probe('catch'); ct.rh.pre({ cap: 'учиться', say: 'learn' })
-    expect(ct.sayText).toHaveBeenCalledWith('learn', { hold: true })
+    expect(ct.sayText).toHaveBeenCalledWith('learn', expect.objectContaining({ hold: true }))
     const none = probe('catch'); none.rh.pre({ cap: 'x' }); expect(none.sayText).not.toHaveBeenCalled()
   })
   it('слушай и лови: после первого круга с ошибкой директор идёт на объявление второго (catch2-ann, слова вписаны), без ошибок — мимо него; ловушка, на которую не поддался, ошибкой не считается', () => {

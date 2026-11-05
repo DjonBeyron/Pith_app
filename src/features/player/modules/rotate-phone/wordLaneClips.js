@@ -100,12 +100,12 @@ export const playClip = span => playSlot(`s:${spanKey(span)}`)
 
 /**
  * Озвучка куска / реплики из библиотеки по ключу слова (wordKey). Буфер — через Web Audio (если скорость голоса 1× или элемента нет), иначе <audio>-слот. false — нечем играть (вызывающий идёт запасным путём).
- * onResult(res) — один раз: { play, ms, ... } ('started' у буфера, 'ok' / 'rejected' / 'no-playing' / 'pending' у <audio>); onStart() — звук стартовал (у буфера — по факту; у <audio> — когда play() вызван).
+ * onResult(res) — один раз: { play, ms, ... } ('started' у буфера, 'ok' / 'rejected' / 'no-playing' / 'pending' у <audio>); onStart() — звук стартовал (у буфера — по факту; у <audio> — когда play() вызван); onEnd() — звук доиграл (ended источника: у буфера — AudioBufferSourceNode, у <audio> — элемент).
  */
-export function playWordSlot(key, onResult = null, onStart = null) {
+export function playWordSlot(key, onResult = null, onStart = null, onEnd = null) {
   const k = wordSlotKey(key)
-  if (!elementPreferred(k) && playWordBuffer(k, onResult, onStart)) return true
-  return playSlot(k, onResult, onStart)
+  if (!elementPreferred(k) && playWordBuffer(k, onResult, onStart, onEnd)) return true
+  return playSlot(k, onResult, onStart, onEnd)
 }
 
 /** Состояние слота озвучки куска по ключу слова. У буфера: prepared (декодирован), buffer: true, ms, ctx — состояние игрового контекста */
