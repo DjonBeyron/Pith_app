@@ -115,7 +115,7 @@ describe('конвейер: три независимые дорожки', () =>
     expect(r).toContain(`--run-p: ${RACE_PERIOD}dvh`); expect(r).toContain('mask-image: none'); expect(r).toContain('width: 12px') // маски нет, слой шириной 12 px — под поперечную черту
     const layers = /background:\s*([^;]*);/.exec(r)[1].split(/repeat-y,\s*linear-gradient\(/)
     expect(layers.length).toBe(3) // короткие штрихи вдоль, поперечная черта, точки
-    const shorts = [...layers[0].matchAll(/var\(--run-c\) ([\d.]+)dvh ([\d.]+)dvh/g)].map(m => +(m[2] - m[1]).toFixed(2))
+    const shorts = [...layers[0].matchAll(/var\(--run-c\) ([\d.]+)(?:dvh)? ([\d.]+)dvh/g)].map(m => +(m[2] - m[1]).toFixed(2))
     expect(shorts).toEqual([1.2, 1.2, 1.2, 1.2, 1.2, 1.2]) // шесть коротких штрихов вдоль дорожки (3 + 3), 1 px по центру
     expect(layers[0]).toContain('center top / 1px var(--run-p)')
     expect(layers[1]).toContain('9dvh calc(9dvh + 1.5px)'); expect(layers[1]).toContain('left top / 12px var(--run-p)') // одна длинная черта поперёк, во всю ширину слоя
