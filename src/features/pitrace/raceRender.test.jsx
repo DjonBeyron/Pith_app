@@ -4,11 +4,9 @@ import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import RaceSummary from './RaceSummary.jsx'
 import RaceActs from './RaceActs.jsx'
-import RaceHowto from './RaceHowto.jsx'
 import RaceBlock from '../admin/speech/RaceBlock.jsx'
 import RehearsalActs from '../rehearsal/RehearsalActs.jsx'
 import { initClimb } from './raceLadder.js'
-import { HOWTO_STEPS, HOWTO_TITLE, howtoMarkdown } from './raceHowto.js'
 import { fixturePlan } from '../rehearsal/rehearsalFixtures.js'
 import { normalizePlan } from '../rehearsal/rehearsalPlan.js'
 import { raceDebugFile } from './raceLog.js'
@@ -54,31 +52,27 @@ describe('итог (RaceSummary) и RaceActs', () => {
   })
 })
 
-describe('админка: блок «Гонка с Питом (стенд)» и инструкция', () => {
-  it('блок: фикстура, статус реплик race_*, куски, тап, «Полная гонка» и четыре раунда, «Скачать отладку», «Как тестировать»', () => {
-    const h = html(RaceBlock, {})
+describe('админка: блок «Гонка с Питом (стенд)»', () => {
+  const withOpen = (open, fn) => { vi.stubGlobal('localStorage', { getItem: () => (open ? JSON.stringify(['race-settings']) : null), setItem() {} }); try { return fn() } finally { vi.unstubAllGlobals() } }
+  it('блок (настройки развёрнуты): фикстура, статус реплик race_*, куски, тап, «Полная гонка» и четыре раунда, «Два этапа + финал», «Скачать отладку»', () => {
+    const h = withOpen(true, () => html(RaceBlock, {}))
     expect(h).toContain('Гонка с Питом (стенд)')
-    for (const id of ['race-fixture', 'race-lines-status', 'race-voice-lines', 'race-chunks-status', 'race-voice-chunks', 'race-trans-status', 'race-voice-trans', 'race-tap-mode', 'race-run-full', 'race-run-sprint', 'race-run-catch', 'race-run-climb', 'race-run-descent', 'race-run-stages', 'race-export', 'race-howto']) expect(h).toContain(`data-testid="${id}"`)
+    for (const id of ['race-fixture', 'race-lines-status', 'race-voice-lines', 'race-chunks-status', 'race-voice-chunks', 'race-trans-status', 'race-voice-trans', 'race-tap-mode', 'race-run-full', 'race-run-sprint', 'race-run-catch', 'race-run-climb', 'race-run-descent', 'race-run-stages', 'race-export']) expect(h).toContain(`data-testid="${id}"`)
     for (const t of ['Полная гонка', 'Разгон', 'Слушай и лови', 'Вершина', 'Спуск', 'Скачать отладку', 'Тап вместо речи']) expect(h).toContain(t)
-    expect(h).toContain('Реплики Пита race_*')
+    expect(h).toContain('Реплики Пита race_*'); expect(h).not.toContain('race-howto'); expect(h).not.toContain('Как тестировать'); expect(h).not.toContain('race-ask') // плашка-вопрос открывается только по тапу
   })
-  it('блок стоит в «Голос» над «Мини-игрой 2.0» и запускает игру нодой с game: race и round', () => {
+  it('раскладка на 375 px: первой идёт крупная кнопка «Два этапа + финал», потом «Полная гонка» и раунды, «Настройки» свёрнуты (фикстура, озвучки, тап внутри)', () => {
+    const h = withOpen(false, () => html(RaceBlock, {}))
+    const at = id => h.indexOf(`data-testid="${id}"`)
+    expect(at('race-run-stages')).toBeGreaterThan(0); expect(at('race-run-stages')).toBeLessThan(at('race-run-full')); expect(at('race-run-full')).toBeLessThan(at('race-run-sprint')); expect(at('race-run-sprint')).toBeLessThan(at('race-settings-toggle'))
+    expect(h).toContain('aspSay rhpBig'); expect(h).toContain('aria-expanded="false"'); expect(h).toContain('data-testid="race-settings-summary"')
+    for (const id of ['race-fixture', 'race-voice-lines', 'race-tap-mode']) expect(h).not.toContain(`data-testid="${id}"`)
+  })
+  it('блок стоит самым первым во вкладке «Голос» (над «Шлифовкой репетиции») и запускает игру нодой с game: race и round', () => {
     const tab = read('../admin/speech/AdminSpeechTab.jsx')
-    expect(tab.indexOf('<RaceBlock />')).toBeGreaterThan(0); expect(tab.indexOf('<RaceBlock />')).toBeLessThan(tab.indexOf('<Game2Block />'))
+    expect(tab.indexOf('<RaceBlock />')).toBeGreaterThan(0); expect(tab.indexOf('<RaceBlock />')).toBeLessThan(tab.indexOf('<RehearsalPolishBlock />')); expect(tab.indexOf('<RehearsalPolishBlock />')).toBeLessThan(tab.indexOf('<Game2Block />'))
     const src = read('../admin/speech/RaceBlock.jsx')
     expect(src).toContain("game: 'race', round: round ?? undefined"); expect(src).toContain('bare forceDebug startRef={startRef}'); expect(src).toContain('list: RACE_LINES')
-  })
-  it('«Как тестировать»: десять шагов, раздел сворачиваемый; тот же текст лежит в CONCEPT_RACE.md слово в слово', () => {
-    const h = html(RaceHowto, {})
-    expect(h).toContain('<details class="g2Howto" open=""'); expect(h).toContain(HOWTO_TITLE)
-    expect(HOWTO_STEPS).toHaveLength(10)
-    const md = read('../../../CONCEPT_RACE.md')
-    expect(md).toContain('## Как тестировать')
-    for (const s of HOWTO_STEPS) expect(md).toContain(s)
-    expect(howtoMarkdown()).toContain(HOWTO_STEPS[3])
-    const all = HOWTO_STEPS.join(' ') // проверки доработок: слово до пилюль, общий таймер и +5 с, острова зигзагом, сальто, время вышло
-    for (const t of ['Пит голосом называет английское слово', 'промолчать', 'Два этапа + финал', '450 мс', 'ПОД бар', 'шлейф', 'старт 12 секунд', '+5 секунд', 'зигзагом', 'сальто', 'время вышло']) expect(all).toContain(t)
-    expect(md.split('\n').length).toBeLessThanOrEqual(150)
   })
   it('«Скачать отладку»: файл с журналом плеера и отдельным полем строк [race]', () => {
     const f = raceDebugFile({ now: new Date('2026-11-03T10:00:00Z'), lines: ['[warm] x', '[race] разгон: «learn» верно, серия 1'] })

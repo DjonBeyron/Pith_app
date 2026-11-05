@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
-import { chargePlan, chargeWords, chargeMs, chargeOn, levelColor, barHeight, flyDist, flyDx, bumpFrames, barKeys, waveX, START_BELOW_PX, BAR_BACK_MS, BAR_THIN_MS, BAR_MIN_PX, BAR_MAX_PX, BAR_FULL_PX, BAR_BUMP, BAR_BUMP_MS, WAVE_PX, CHARGE_FALLBACK_MS, CHARGE_MAX, CHARGE_SPARKS } from './raceCharge.js'
+import { chargePlan, chargeWords, chargeMs, chargeOn, levelColor, barHeight, flyDist, flyDx, bumpFrames, barKeys, START_BELOW_PX, BAR_BACK_MS, BAR_THIN_MS, BAR_MIN_PX, BAR_MAX_PX, BAR_FULL_PX, BAR_BUMP, BAR_BUMP_MS, CHARGE_FALLBACK_MS, CHARGE_MAX, CHARGE_SPARKS } from './raceCharge.js'
 import { fixturePlan } from '../rehearsal/rehearsalFixtures.js'
 import { normalizePlan } from '../rehearsal/rehearsalPlan.js'
 import { extrasOf } from './raceWords.js'
@@ -73,15 +73,9 @@ describe('заставка-зарядка: план', () => {
     }
     expect(barHeight(0, 9)).toBe(BAR_MIN_PX); expect(barHeight(9, 9)).toBe(BAR_MAX_PX)
   })
-  it('лёгкая синусоида по x: малая амплитуда, на старте и на прилёте сдвиг ровно 0 (пилюля приходит в центр), у пилюль есть волна по семени', () => {
+  it('у каждой пилюли есть знак волны по семени (кривая — raceChargePath.js, тест raceChargePath.test.js)', () => {
     const { pills } = chargePlan(plan(), 5000)
-    for (const p of pills) {
-      expect(p.wave.sign === 1 || p.wave.sign === -1).toBe(true); expect([1, 1.5, 2]).toContain(p.wave.waves)
-      expect(waveX(p.wave, 0)).toBeCloseTo(0, 6); expect(waveX(p.wave, 1)).toBeCloseTo(0, 6)
-      for (let u = 0; u <= 1; u += 0.05) expect(Math.abs(waveX(p.wave, u))).toBeLessThanOrEqual(WAVE_PX + 1e-9)
-    }
-    expect(WAVE_PX).toBeLessThanOrEqual(10); expect(new Set(pills.map(p => p.wave.sign)).size).toBeGreaterThan(0)
-    expect(waveX(null, 0.3)).toBe(0)
+    for (const p of pills) expect(p.wave.sign === 1 || p.wave.sign === -1).toBe(true)
   })
   it('бар: касание утолщает до 2× за ~180 мс, заполненный худеет до тонкой полоски (6 px), косых полос нет, пилюля летит до бара и гаснет там', () => {
     expect(BAR_BUMP).toBe(2); expect(BAR_BUMP_MS).toBe(220); expect(BAR_BACK_MS).toBe(260)
@@ -99,7 +93,7 @@ describe('заставка-зарядка: план', () => {
       const startTop = height + START_BELOW_PX // верх пилюли в начале пути: за нижним краем
       expect(startTop).toBeGreaterThan(height)
       const dx = flyDx({ width, x: p.x, barLeft, barWidth })
-      expect((width * p.x) / 100 + dx + waveX(p.wave, 1)).toBeCloseTo(barLeft + barWidth / 2, 6) // центр пилюли по x = центр бара
+      expect((width * p.x) / 100 + dx).toBeCloseTo(barLeft + barWidth / 2, 6) // центр пилюли по x = центр бара
       const dist = flyDist({ height, pillH, barTop, i: p.i, n })
       expect(startTop + pillH / 2 - dist).toBeCloseTo(barTop + barHeight(p.i + 1, n) / 2, 6) // и по y
     }

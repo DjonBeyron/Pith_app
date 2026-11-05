@@ -21,6 +21,8 @@ export function buildRaceStages({ plan, rate = 1, lib = () => null }) {
     if (ROUNDS[act.id]) ROUNDS[act.id](kit, act)
     else kit.push({ type: 'summary', act: 'summary', sid: 'summary', line: null }) // итог: реплику говорит директор (useRaceActs): золото или обычная
   }
+  const first = kit.stages[0]
+  if (first?.type === 'announce') Object.assign(first, { count: 'after', soft: true }) // старт: после race_start и объявления первого этапа (бар заставки заполнен) — три нежные ноты (шаг 600 мс, нота 1,1 с), первая пилюля — после них
   const { chunks } = plan
   const r = kit.rate
   return { recipe: { chunks, rounds: [], acts, plan }, stages: kit.stages, chunkMs: chunks.map((c, i) => (lib(i)?.ms ?? estChunkMs(c)) / r), chunkCurves: chunks.map(() => null), lanes: orderLanes(chunks.length, rngFor(plan.seed, 'lanes')), clipMode: () => false }

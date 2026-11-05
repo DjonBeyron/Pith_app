@@ -5,8 +5,8 @@ import { isStaleLine, lineVoiced } from '../rehearsal/rehearsalLines.js'
 import { missingPitLines, pitVoiceCount } from '../rehearsal/rehearsalVoice.js'
 
 describe('реплики Пита в гонке: каталог', () => {
-  it('восемнадцать ключей race_*, тексты из задания', () => {
-    expect(RACE_LINE_IDS).toEqual(['race_start', 'race_sprint', 'race_good_1', 'race_good_2', 'race_good_3', 'race_good_4', 'race_sprint_round2', 'race_catch', 'race_climb', 'race_climb_slip', 'race_trap_pre', 'race_trap_mid', 'race_trap_short', 'race_climb_top', 'race_climb_time', 'race_descent', 'race_done_gold', 'race_done'])
+  it('ключи race_*, тексты из задания (последний — вопрос плашки «Говорю / Тапаю»)', () => {
+    expect(RACE_LINE_IDS).toEqual(['race_start', 'race_sprint', 'race_good_1', 'race_good_2', 'race_good_3', 'race_good_4', 'race_sprint_round2', 'race_catch', 'race_climb', 'race_climb_slip', 'race_trap_pre', 'race_trap_mid', 'race_trap_short', 'race_climb_top', 'race_climb_time', 'race_descent', 'race_done_gold', 'race_done', 'race_ask_voice'])
     const t = Object.fromEntries(RACE_LINES.map(l => [l.id, l.text]))
     expect(t.race_start).toBe('Три заезда, разгон, слух и вершина, погнали')
     expect(t.race_sprint).toBe('Разгон, успей сказать по-английски слово, перевод которого едет вниз, пока оно не убежало')
@@ -19,6 +19,7 @@ describe('реплики Пита в гонке: каталог', () => {
     expect(t.race_trap_pre).toBe('это'); expect(t.race_trap_mid).toBe('а нужно'); expect(t.race_trap_short).toBe('мимо, это двойник') // ловушка-двойник: «это {двойник}, а нужно {слово}» собирается из кусков (raceTrapVoice.js)
     expect(t.race_descent).toBe('Спуск, повтори всю фразу за мной на скорости')
     expect(t.race_done_gold).toBe('Золото, идеально'); expect(t.race_done).toBe('Финиш, завтра ещё заезд?')
+    expect(t.race_ask_voice).toBe('Сможешь сейчас говорить вслух или сыграем тапами?')
   })
   it('для озвучки: без точек, многоточий, восклицательных знаков и тире; не длиннее предела; у каждой есть «когда»', () => {
     for (const l of RACE_LINES) {
@@ -30,7 +31,7 @@ describe('реплики Пита в гонке: каталог', () => {
   it('входят в общий каталог кота рядом с rh_*, ключи уникальны; редактор ноды и настройки видят их сами', () => {
     expect(LINE_IDS).toEqual(expect.arrayContaining(RACE_LINE_IDS))
     expect(new Set(LINE_IDS).size).toBe(LINE_IDS.length)
-    expect(CAT_LINES.slice(-18).map(l => l.id)).toEqual(RACE_LINE_IDS)
+    expect(CAT_LINES.slice(-RACE_LINES.length).map(l => l.id)).toEqual(RACE_LINE_IDS)
     expect(Object.keys(normalizeLines(null))).toEqual(LINE_IDS)
     expect(normalizeLines(null).race_catch_miss).toBeUndefined()
   })
@@ -42,8 +43,8 @@ describe('реплики Пита в гонке: каталог', () => {
     expect(lineVoiced('race_start', l.race_start)).toBe(true); expect(lineVoiced('race_done', l.race_done)).toBe(false)
   })
   it('озвучка в админке с фильтром: считается только по гонке, реплики репетиции не мешают', () => {
-    expect(pitVoiceCount(null, RACE_LINES)).toEqual({ done: 0, total: 18 })
+    expect(pitVoiceCount(null, RACE_LINES)).toEqual({ done: 0, total: RACE_LINES.length })
     expect(missingPitLines(normalizeLines({ lines: { race_start: { text: RACE_LINES[0].text, url: 'u', duration: 1 } } }), RACE_LINES).map(x => x.id)).not.toContain('race_start')
-    expect(missingPitLines(null, RACE_LINES)).toHaveLength(18)
+    expect(missingPitLines(null, RACE_LINES)).toHaveLength(RACE_LINES.length)
   })
 })

@@ -11,7 +11,7 @@ import { useRehearsalTake } from './useRehearsalTake.js'
 import { hasIntroLine } from './rehearsalPrepare.js'
 import { stuckHint, hintEntry, sayWordHint } from './rehearsalHints.js'
 import { demoSummary } from './polish/polishDemo.js'
-import { stageTiming } from './rehearsalCountdown.js'
+import { stageTiming, countdownPlan } from './rehearsalCountdown.js'
 import { warmCountdown, releaseCountdown } from './rehearsalCountdownSound.js'
 import { createCountGate, scheduleStageCount } from './rehearsalCountdownRun.js'
 import { lineVoiced } from './rehearsalQuiet.js'
@@ -60,8 +60,8 @@ export function useRehearsalActs({ plan, stages, stage, at, stageObj, setS, sayL
   }, [on, stage, intro, sayLine, startLine])
 
   // Раскладка стадии по времени: реплика Пита (ждёт, пока он договорит прошлую) и отсчёт тремя нотами (stage.count) — rehearsalCountdown.stageTiming
-  const timingOf = st => stageTiming({ order: st.count ?? null, lead: LINE_AT_MS, busyMs: cat.busyLeft(), lineMs: st.line ? lineMs(fillLine(lines?.[st.line]), rate) : 0, pause: LINE_PAUSE_MS, minMs: st.ms, hasLine: !!st.line, quiet: lineVoiced(lines, st.line) })
-  useEffect(() => { if (!on) return undefined; warmCountdown(); return releaseCountdown }, [on]) // ноты отсчёта декодируются заранее (первая должна прозвучать вовремя)
+  const timingOf = st => stageTiming({ order: st.count ?? null, lead: LINE_AT_MS, busyMs: cat.busyLeft(), lineMs: st.line ? lineMs(fillLine(lines?.[st.line]), rate) : 0, pause: LINE_PAUSE_MS, minMs: st.ms, hasLine: !!st.line, quiet: lineVoiced(lines, st.line), plan: countdownPlan({ soft: !!st.soft }) })
+  useEffect(() => { if (!on) return undefined; warmCountdown(race); return releaseCountdown }, [on, race]) // ноты отсчёта декодируются заранее (первая должна прозвучать вовремя)
 
   // Реплика стадии и отсчёт (стартует, когда Пит договорил, и не отпускает стадию до конца нот); смена стадии, пауза и выход гасят таймеры и ноты
   const [gate] = useState(createCountGate)
@@ -70,7 +70,7 @@ export function useRehearsalActs({ plan, stages, stage, at, stageObj, setS, sayL
     const t = timingOf(running), ids = []
     let stopCount = null
     if (running.line) ids.push(setTimeout(() => sayLine(running.line), t.lineAt))
-    if (t.countAt != null) stopCount = scheduleStageCount({ countAt: t.countAt, busyLeft: () => cat.busyLeft(), gate })
+    if (t.countAt != null) stopCount = scheduleStageCount({ countAt: t.countAt, busyLeft: () => cat.busyLeft(), gate, soft: !!running.soft })
     return () => { ids.forEach(clearTimeout); stopCount?.() }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [running, at])
@@ -140,7 +140,7 @@ export function useRehearsalActs({ plan, stages, stage, at, stageObj, setS, sayL
     /** Сколько держать плашку (announce / turn): пока Пит договорит прошлую реплику и скажет свою */
     holdMs: st => (!on || (!st?.line && !st?.count) ? st.ms : timingOf(st).holdMs),
     /** Конец сигнала перед пилюлями на плашке (мс от её начала: реплика Пита / последняя нота): от него зажигается конвейер (wordLaneConveyorStart.js); null — сигнала нет, берётся конец плашки */
-    cueMs: st => (on && (st?.line || st?.count) ? plateCueMs({ order: st.count ?? null, timing: timingOf(st), lineMs: st.line ? lineMs(fillLine(lines?.[st.line]), rate) : 0, voiced: lineVoiced(lines, st.line) }) : null),
+    cueMs: st => (on && (st?.line || st?.count) ? plateCueMs({ order: st.count ?? null, timing: timingOf(st), lineMs: st.line ? lineMs(fillLine(lines?.[st.line]), rate) : 0, voiced: lineVoiced(lines, st.line), soft: !!st.soft }) : null),
     /** Дорожки со слабыми словами разминки: в «без текста» у них видна подпись */
     hintLanes: st => (on && st?.act === 'blind' && st.type === 'student' ? weakLanes(journal, stages) : []),
   }

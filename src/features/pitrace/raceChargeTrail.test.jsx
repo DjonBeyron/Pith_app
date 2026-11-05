@@ -3,7 +3,8 @@ import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { readFileSync } from 'node:fs'
 import RaceCharge from './RaceCharge.jsx'
-import { stretchAt, tailPx, pillLabel, STRETCH_MAX, STRETCH_END, TAIL_MIN_PX, TAIL_MAX_PX } from './raceCharge.js'
+import { pillLabel } from './raceCharge.js'
+import { stretchAt, STRETCH_MAX } from './raceChargePath.js'
 import { fixturePlan } from '../rehearsal/rehearsalFixtures.js'
 import { normalizePlan } from '../rehearsal/rehearsalPlan.js'
 import { extrasOf } from './raceWords.js'
@@ -18,21 +19,21 @@ const z = sel => Number(/z-index:\s*(\d+)/.exec(rule(sel))?.[1] ?? NaN)
 const plan = (() => { const p = normalizePlan({ ...fixturePlan('three'), game: 'race' }); return { ...p, extraWords: extrasOf(p) } })()
 
 describe('шлейф пилюли заставки', () => {
-  it('растяжение: 1 на старте, пик STRETCH_MAX посередине, снова 1 к STRETCH_END и до прилёта', () => {
-    expect(stretchAt(0)).toBe(1)
-    expect(stretchAt(STRETCH_END / 2)).toBeCloseTo(STRETCH_MAX, 5)
-    expect(stretchAt(STRETCH_END)).toBe(1); expect(stretchAt(1)).toBe(1)
-    for (const u of [0.1, 0.3, 0.6, 0.8]) { expect(stretchAt(u)).toBeGreaterThanOrEqual(1); expect(stretchAt(u)).toBeLessThanOrEqual(STRETCH_MAX) }
-  })
-  it('хвост длиннее у быстрой пилюли, в пределах от TAIL_MIN_PX до TAIL_MAX_PX', () => {
-    expect(tailPx(800, 1500)).toBeLessThan(tailPx(800, 700))
-    expect(tailPx(800, 100000)).toBe(TAIL_MIN_PX); expect(tailPx(800, 1)).toBe(TAIL_MAX_PX)
+  it('растяжение: 1 на старте и к прилёту, не выше 1,08 на всём пути, пик в первой половине', () => {
+    expect(STRETCH_MAX).toBeLessThanOrEqual(1.08)
+    expect(stretchAt(0)).toBe(1); expect(stretchAt(1)).toBe(1)
+    let peak = 0, at = 0
+    for (let u = 0; u <= 1.0001; u += 0.01) { const v = stretchAt(u); expect(v).toBeGreaterThanOrEqual(1); expect(v).toBeLessThanOrEqual(1.08 + 1e-9); if (v > peak) { peak = v; at = u } }
+    expect(peak).toBeGreaterThan(1.07); expect(at).toBeLessThan(0.5); expect(stretchAt(0.9)).toBeLessThan(stretchAt(0.5))
   })
   it('длинное слово обрезается, короткое нет', () => { expect(pillLabel('learn')).toBe('learn'); expect(pillLabel('extraordinarily-long-word').length).toBe(16) })
-  it('в CSS шлейф — только при data-trail, без filter; хвост и призраки без лишнего DOM (псевдоэлемент и box-shadow)', () => {
-    expect(css).not.toMatch(/filter\s*:/)
-    expect(rule('.raceCharge[data-trail] .raceChargePill')).toMatch(/box-shadow/)
-    expect(rule('.raceCharge[data-trail] .raceChargePill::before')).toMatch(/linear-gradient\(to bottom/)
+  it('в CSS шлейф — только при data-trail, без filter, без призраков (box-shadow) и без --tail: один мягкий хвост-градиент', () => {
+    expect(css).not.toMatch(/filter\s*:/); expect(css).not.toMatch(/box-shadow/); expect(css).not.toContain('--tail')
+    const tail = rule('.raceCharge[data-trail] .raceChargePill::before')
+    expect(tail).toMatch(/linear-gradient\(to bottom, color-mix\(in srgb, var\(--c\) \d+%, transparent\), transparent\)/); expect(tail).toMatch(/border-radius:\s*0 0 999px 999px/)
+    expect(Number(/height:\s*(\d+)%/.exec(tail)?.[1])).toBeLessThanOrEqual(120) // хвост не выше 1,2 высоты пилюли
+    const peaks = [...css.slice(css.indexOf('@keyframes raceTail')).split('}')[0].matchAll(/opacity:\s*([\d.]+)/g)].map(m => Number(m[1]))
+    expect(Math.max(...peaks)).toBeLessThanOrEqual(0.35); expect(peaks.at(-1)).toBe(0) // прозрачность ≤ 0,35 и ноль к прилёту
     expect(rule('.raceChargePill')).not.toMatch(/box-shadow/)
   })
 })

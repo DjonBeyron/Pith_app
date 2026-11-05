@@ -59,10 +59,11 @@ export default function WordLaneGame({ cfg, audioSrc, lines = null, forceDebug =
   const fresh = useLabelFrames(heads, lite) // рамка вокруг новой подписи (WordLaneHeads)
   const karaoke = f.rh.on && f.stage === 'run' && ['read', 'descent'].includes(f.stageObj?.act) && !intro // акт «Читка»: слова заливаются зелёным под голос Пита / игрока (rehearsal/read/)
   const debug = isWordLaneDebug()
+  const race = cfg.plan?.game === 'race' // гонка: подсказки «Тап вместо речи» над дорожкой нет (тап выбирается плашкой «Говорю / Тапаю» до старта), фон с узором
 
   return createPortal(
     <div ref={rootRef} className={safe0 ? 'wl wl--safe' : 'wl'} data-phase={phase} data-act={f.rh.on ? f.stageObj?.act : undefined} data-sid={f.rh.on ? f.stageObj?.sid : undefined} data-streak={f.rh.race?.streakMode} data-charge={cfg.plan?.game === 'race' && chargeOn(f) ? '' : undefined} data-testid="wl">
-      <div className="wlStage">
+      <div className="wlStage" data-tex={race && !lite ? '' : undefined}>
         <WordLaneCat apiRef={catApi} />
         <WordLanePills scene={f.scene} levels={f.levels} fx={f.fx} live={f.live} sceneApi={f.sceneApi} visible={showSlots} armed={armed} paused={f.paused} onLane={phase === 'order' || (phase === 'discern' && !f.stageObj?.speak) || (tapMode && (phase === 'student' || f.stageObj?.speak)) ? f.onLane : null} />
         <WordLaneXp apiRef={f.xpApi} />
@@ -76,7 +77,7 @@ export default function WordLaneGame({ cfg, audioSrc, lines = null, forceDebug =
             </div>
           )}
         {/* Подписи реплик Пита (белое облачко с текстом) убраны в v3.3.84: кот только говорит; f.catLine остаётся в комментариях владельца (commentSnapshot) */}
-        {tapMode && phase === 'student' && <div className="wlTapHint" data-testid="wl-tap-hint">Тап вместо речи: тапни дорожку</div>}
+        {tapMode && !race && phase === 'student' && <div className="wlTapHint" data-testid="wl-tap-hint">Тап вместо речи: тапни дорожку</div>}
         {plates.map(p => <WordLaneTurnPlate key={p.id} text={p.text} leaving={p.leaving} />)}
         {phase === 'reveal' && (
           <div className="wlReveal" data-testid="wl-reveal">

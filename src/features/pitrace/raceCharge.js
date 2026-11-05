@@ -20,8 +20,6 @@ export const BAR_BUMP = 2              // касание пилюлей: бар 
 export const BAR_BUMP_MS = 220         // …пик — ровно в момент касания…
 export const BAR_BACK_MS = 260         // …и так же плавно возвращается за BAR_BACK_MS
 export const START_BELOW_PX = 60       // пилюля стартует на столько px НИЖЕ нижнего края заставки (из-за нижнего затемнения, как пилюли игры выезжают из-за верхнего края)
-export const WAVE_PX = 7               // пилюля летит слегка по синусоиде: размах по x (px), на старте и в баре сдвиг 0
-export const WAVE_STEPS = 14           // точек синусоиды в кадрах полёта
 
 /** Толщина бара после i долетевших пилюль из n, px: ступенька за пилюлю от BAR_MIN_PX до BAR_MAX_PX */
 export const barHeight = (i, n) => BAR_MIN_PX + ((BAR_MAX_PX - BAR_MIN_PX) * i) / Math.max(1, n)
@@ -32,24 +30,10 @@ export const barHeight = (i, n) => BAR_MIN_PX + ((BAR_MAX_PX - BAR_MIN_PX) * i) 
  */
 export const flyDist = ({ height, pillH, barTop, i, n }) => height + START_BELOW_PX + pillH / 2 - (barTop + barHeight(i + 1, n) / 2)
 
-/** Сдвиг по x (px) от места пилюли (x % ширины width, центр) до ЦЕНТРА бара: пилюля прилетает строго в центр бара и по x (синусоида waveX на прилёте — 0) */
+/** Сдвиг по x (px) от места пилюли (x % ширины width, центр) до ЦЕНТРА бара: пилюля прилетает строго в центр бара и по x (кривая raceChargePath.js на прилёте — ровно в центр) */
 export const flyDx = ({ width, x, barLeft, barWidth }) => barLeft + barWidth / 2 - (width * x) / 100
 
 const ease = t => t * t * (3 - 2 * t) // ease-in-out (smoothstep)
-
-// «Размытие движения» без filter (запрет проекта): у летящей пилюли шлейф — копии-призраки (box-shadow), градиент-хвост (::before, высота --tail) и лёгкое растяжение по оси движения (scale 1 → 1,15 → 1).
-// Всё это только в обычном режиме: на слабом устройстве (lite) и при reduced-motion шлейфа нет.
-export const STRETCH_MAX = 1.15  // растяжение по вертикали на середине разгона
-export const STRETCH_END = 0.85  // к этой доле пути пилюля снова не растянута (перед входом под бар)
-export const TAIL_MIN_PX = 12    // хвост: от…
-export const TAIL_MAX_PX = 56    // …до (по скорости)
-export const TAIL_PER_SPEED = 70 // px хвоста на 1 px/мс скорости
-
-/** Растяжение пилюли по оси движения на доле пути u (0…1): 1 на старте, пик STRETCH_MAX посередине разгона, снова ровно 1 к STRETCH_END и до прилёта */
-export const stretchAt = u => (u >= STRETCH_END ? 1 : 1 + (STRETCH_MAX - 1) * Math.sin((Math.PI * Math.max(0, u)) / STRETCH_END))
-
-/** Высота хвоста, px: чем быстрее пилюля (путь dist px за flyMs мс), тем длиннее */
-export const tailPx = (dist, flyMs) => Math.round(Math.min(TAIL_MAX_PX, Math.max(TAIL_MIN_PX, (dist / Math.max(1, flyMs)) * TAIL_PER_SPEED)))
 
 /** Подпись пилюли заставки: длинное слово обрезается (у пилюли нет overflow: hidden — хвост-шлейф должен быть виден) */
 export const pillLabel = (text, max = 16) => (text.length > max ? `${text.slice(0, max - 1)}…` : text)
@@ -75,9 +59,6 @@ export function barKeys(segments, totalMs) {
   keys.push({ height: `${barHeight(n, n)}px`, offset: off(thinAt) }, { height: `${BAR_FULL_PX}px`, offset: 1 })
   return { keys, duration }
 }
-
-/** Сдвиг по x (px) на доле пути u (0…1) у пилюли с волной wave = { sign, waves }: синусоида, на старте и на прилёте ровно 0 (waves — 1, 1,5 или 2 периода) */
-export const waveX = (wave, u) => (wave ? wave.sign * WAVE_PX * Math.sin(2 * Math.PI * wave.waves * u) : 0)
 
 export const levelColor = level => `var(--lvl${Math.min(4, Math.max(0, level | 0))})`
 
@@ -114,7 +95,7 @@ export function chargePlan(plan, totalMs = CHARGE_FALLBACK_MS) {
   const pills = order.map((w, i) => {
     const arriveAt = i === n - 1 ? total : Math.round(fly + gap * (i + 1) + (rng() - 0.5) * gap * 0.5) // к последней — ровно T, у остальных небольшой разброс (порядок прилёта не ломается: ±¼ шага)
     const flyMs = Math.round(Math.min(arriveAt, fly * (0.85 + rng() * 0.3)))
-    return { i, text: w.text, level: w.level, color: levelColor(w.level), x: 14 + rngInt(rng, 73), startAt: arriveAt - flyMs, flyMs, arriveAt, wave: { sign: wrng() < 0.5 ? -1 : 1, waves: [1, 1.5, 2][rngInt(wrng, 3)] } }
+    return { i, text: w.text, level: w.level, color: levelColor(w.level), x: 14 + rngInt(rng, 73), startAt: arriveAt - flyMs, flyMs, arriveAt, wave: { sign: wrng() < 0.5 ? -1 : 1 } }
   })
   const share = 100 / n
   const segments = pills.map(p => ({ i: p.i, level: p.level, color: p.color, from: +(p.i * share).toFixed(3), to: p.i === n - 1 ? 100 : +((p.i + 1) * share).toFixed(3), at: p.arriveAt }))

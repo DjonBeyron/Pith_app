@@ -72,8 +72,8 @@ export default function AdminSpeechTab() {
     <div className="aeWrap" ref={rootRef}>
       <div className="aeHead"><span className="aeTitle">Голос (проба распознавания речи)</span></div>
       <p className="aeHint">Тест Web Speech API перед модулем «Сказать фразу». Ничего не отправляется на наш сервер и не сохраняется, кроме журнала в этом браузере.</p>
-      <RehearsalPolishBlock />
       <RaceBlock />
+      <RehearsalPolishBlock />
       <Game2Block />
       <SpeechCapsBlock caps={caps} perm={perm} />
       <SoundDiagBlock />

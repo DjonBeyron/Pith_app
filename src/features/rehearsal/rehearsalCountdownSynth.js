@@ -5,23 +5,28 @@ export const COUNT_RMS = 0.2      // громкость ноты по RMS (до�
 export const COUNT_PEAK = 0.9     // пик не выше (иначе масштаб ноты уменьшается: без щелчка перегруза)
 export const COUNT_HARMONICS = [1, 0.5, 0.25] // доли основного тона, 2-й и 3-й гармоник
 const ATTACK_S = 0.012
+export const SOFT_ATTACK_S = 0.04 // «нежная» нота (n.soft, отсчёт гонки): мягкая атака 40 мс…
+export const SOFT_GAIN = 0.5      // …на 6 дБ тише обычной (20·log10(0,5) ≈ −6,02)…
+const SOFT_TAIL = 1.5             // …чистый синус без гармоник и долгое затухание: огибающая (1 − t)^1,5 вместо квадрата
 
 /** Отсчёты ноты n плана (countdownPlan) на частоте rate: Float32Array в −1…1. Мягкий вход, затухание к концу, RMS = COUNT_RMS × level, пик ≤ COUNT_PEAK */
 export function synthNote(n, rate = 44100) {
   const len = Math.max(1, Math.floor((rate * n.ms) / 1000))
-  const attack = Math.max(1, Math.floor(rate * ATTACK_S))
+  const soft = !!n.soft
+  const attack = Math.max(1, Math.floor(rate * (soft ? SOFT_ATTACK_S : ATTACK_S)))
+  const harmonics = soft ? [1] : COUNT_HARMONICS
   const out = new Float32Array(len)
   let sumSq = 0
   let peak = 0
   for (let i = 0; i < len; i++) {
-    const env = Math.min(1, i / attack) * (1 - i / len) ** 2
+    const env = Math.min(1, i / attack) * (1 - i / len) ** (soft ? SOFT_TAIL : 2)
     let x = 0
-    COUNT_HARMONICS.forEach((a, h) => { x += a * Math.sin((2 * Math.PI * n.freq * (h + 1) * i) / rate) })
+    harmonics.forEach((a, h) => { x += a * Math.sin((2 * Math.PI * n.freq * (h + 1) * i) / rate) })
     out[i] = x * env
     sumSq += out[i] * out[i]
   }
   const rms = Math.sqrt(sumSq / len)
-  let k = rms > 0 ? (COUNT_RMS * (n.level ?? 1)) / rms : 0
+  let k = rms > 0 ? (COUNT_RMS * (n.level ?? 1) * (soft ? SOFT_GAIN : 1)) / rms : 0
   for (let i = 0; i < len; i++) peak = Math.max(peak, Math.abs(out[i]) * k)
   if (peak > COUNT_PEAK) k *= COUNT_PEAK / peak
   for (let i = 0; i < len; i++) out[i] *= k
@@ -33,7 +38,7 @@ const cache = new Map() // `${частота}:${k}` → AudioBuffer
 /** AudioBuffer ноты n для контекста ctx (создаётся один раз на частоту). null — не вышло (нет createBuffer / исключение) */
 export function noteBuffer(ctx, n) {
   const rate = ctx?.sampleRate || 44100
-  const key = `${rate}:${n.k}`
+  const key = `${rate}:${n.k}${n.soft ? ':soft' : ''}`
   if (cache.has(key)) return cache.get(key)
   try {
     const data = synthNote(n, rate)
