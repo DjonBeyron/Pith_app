@@ -19,10 +19,11 @@ import { gameMicHold } from '../../../../shared/lib/gameMicHold.js'
 //  • Дорожка рта — по таймингам слов озвучки, нет их — по тексту на всю длительность реплики (mouthTrack); длина озвучки (line.duration) ставит тайминги по долям файла, тишина в начале файла остаётся тишиной.
 export const CAT_RISE_MS = 260
 
-/** → { ms (длительность реплики), rise (задержка звука, мс), voiced (будет ли звук), timer (таймер старта или 0) } */
+/** → { ms (длительность реплики), rise (задержка звука, мс), voiced (будет ли звук), timer (таймер старта или 0) }. onSound() — звук ДЕЙСТВИТЕЛЬНО начался; onEnd() — звук доиграл (ended источника; у неозвученной реплики не приходит — вызывающий считает конец сам);
+ *  noRise (v3.3.117, «Гонка»: race_start) — звук не ждёт выскакивания головы: голова поднимается параллельно, а не 260 мс ДО звука */
 export function startCatLine({
   id, line, rate = 1, catApi = null, listenerRef = null, has = hasWordSlot, play = playWordSlot, slotOf = wordSlotInfo, open = openCatVoice,
-  setTimer = setTimeout, log = catDebug, hold = gameMicHold, voice = 'slot', waitedMs = 0, why = null,
+  setTimer = setTimeout, log = catDebug, hold = gameMicHold, voice = 'slot', waitedMs = 0, why = null, onSound = null, onEnd = null, noRise = false,
 }) {
   const key = lineKey(id)
   const real = wordBufferMs(key) // настоящая длина озвучки по буферу (мс при скорости 1×); нет буфера — длительность из настроек реплики
@@ -32,7 +33,7 @@ export function startCatLine({
   if (voice === 'none' && line.text) { // слот не подготовился, голоса системы нет: подпись + рот по тексту, без звука
     log('cat-line-silent', { id, reason: 'no-synth' })
     open({ id, source: 'none', slot: slotOf(key), waitedMs, why, noSynth: true })()
-    const rise0 = api()?.isUp?.() === false ? CAT_RISE_MS : 0
+    const rise0 = api()?.isUp?.() === false && !noRise ? CAT_RISE_MS : 0
     const mouth = () => api()?.speak?.(mouthTrack(line.text, ms, line.words, eff.duration), ms, { id })
     api()?.peek?.(rise0 + ms + 400)
     return { ms, rise: rise0, voiced: false, timer: rise0 ? setTimer(mouth, rise0) : (mouth(), 0) }
@@ -45,7 +46,8 @@ export function startCatLine({
     api()?.peek?.(ms + 400)
     return { ms, rise: 0, voiced: false, timer: 0 }
   }
-  const rise = api()?.isUp?.() === false ? CAT_RISE_MS : 0 // голова спрятана — сначала выскочить
+  const headDown = api()?.isUp?.() === false
+  const rise = headDown && !noRise ? CAT_RISE_MS : 0 // голова спрятана — сначала выскочить (noRise: параллельно со звуком)
   listenerRef?.current?.mute?.(rise + ms + LINE_PAUSE_MS)
   const speak = () => { api()?.speak?.(mouthTrack(line.text, ms, line.words, eff.duration), ms, { id }); hold?.holdFor?.(ms) }
   const silent = reason => { log('cat-line-silent', { id, reason }); api()?.peek?.(ms + 400) }
@@ -53,11 +55,11 @@ export function startCatLine({
     const slot = slotOf(key)
     const done = open({ id, source: slot.buffer ? 'buffer' : 'slot', slot, waitedMs, why })
     let started = false
-    const onStart = () => { started = true; speak() } // рот — по факту старта звука
+    const onStart = () => { started = true; speak(); try { onSound?.() } catch { /* журнал старта не мешает звуку */ } } // рот — по факту старта звука
     const onResult = res => { done(res); if (!started && res?.play !== 'ok' && res?.play !== 'started') silent(res?.play ?? 'no-start') } // звук не стартовал (контекст не запустился): подпись без рта
-    if (!play(key, onResult, onStart)) { done({ play: 'rejected', error: 'слот не сыграл' }); silent('no-slot') }
+    if (!play(key, onResult, onStart, onEnd)) { done({ play: 'rejected', error: 'слот не сыграл' }); silent('no-slot') }
   }
-  if (!rise) { go(); return { ms, rise, voiced: true, timer: 0 } }
+  if (!rise) { if (headDown) api().peek?.(ms + 400); go(); return { ms, rise, voiced: true, timer: 0 } } // noRise и голова спрятана: поднимаем её, звук идёт сразу
   api().peek(rise + ms + 400)
   return { ms, rise, voiced: true, timer: setTimer(go, rise) }
 }

@@ -24,12 +24,21 @@ describe('реплика кота: старт', () => {
     const m = mk()
     const r = startCatLine({ id: 'your_turn', line: lines.your_turn, ...m.deps })
     expect(r).toMatchObject({ ms: 2000, rise: 0, voiced: true, timer: 0 })
-    expect(m.deps.play).toHaveBeenCalledWith(lineKey('your_turn'), expect.any(Function), expect.any(Function)) // исход play() для журнала «[cat-voice]» и колбэк старта звука (по нему открывается рот)
+    expect(m.deps.play).toHaveBeenCalledWith(lineKey('your_turn'), expect.any(Function), expect.any(Function), null) // исход play() для журнала «[cat-voice]» и колбэк старта звука (по нему открывается рот)
     const [track, ms, meta] = m.api.speak.mock.calls[0]
     expect(ms).toBe(2000)
     expect(meta).toEqual({ id: 'your_turn' })
     expect(track[0].at).toBeGreaterThanOrEqual(200 - 1)           // первое слово — на 0,2 с, а не в нуле
     expect(m.mute).toHaveBeenCalledWith(2000 + LINE_PAUSE_MS)
+  })
+
+  it('noRise (race_start): голова спрятана — она поднимается параллельно, звук без задержки CAT_RISE_MS; onEnd уходит источнику, onSound — по факту старта', () => {
+    const m = mk({ up: false }), onEnd = vi.fn(), onSound = vi.fn()
+    const r = startCatLine({ id: 'your_turn', line: lines.your_turn, noRise: true, onEnd, onSound, ...m.deps })
+    expect(r).toMatchObject({ rise: 0, voiced: true, timer: 0 })
+    expect(m.api.peek).toHaveBeenCalledWith(2000 + 400); expect(onSound).toHaveBeenCalledTimes(1)
+    expect(m.deps.play).toHaveBeenCalledWith(lineKey('your_turn'), expect.any(Function), expect.any(Function), onEnd)
+    expect(m.timers).toHaveLength(0)
   })
 
   it('голова спрятана: сначала выскакивает (peek), звук и рот — через CAT_RISE_MS; микрофон молчит и на это время', () => {

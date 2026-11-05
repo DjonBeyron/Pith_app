@@ -5,6 +5,8 @@ import { pLog } from '../../shared/lib/debug.js'
 
 export const RACE_HOLD_MAX_MS = 1500     // часы игры стоят, пока готовится звук, но не дольше — дальше игра идёт, а реплика Пита ждёт сама
 export const RACE_LINE_WAIT_MS = 1500    // реплика Пита в начале гонки ждёт готовности слота не дольше (обычная игра — 3 с, wordLaneLineGate.LINE_WAIT_MS)
+export const RACE_GATE_MS = 400          // ворота первой реплики (race_start, один файл) ждут не дольше (с тапа): не готов — игра идёт, Пит заговорит по готовности (голова уже наверху и не прячется, useCatLines)
+export const RACE_START_LEAD_MS = 0      // race_start начинается сразу после старта часов игры (у остальных стадий — useRehearsalActs.LINE_AT_MS 250 мс «после плашки»); звук не ждёт выскакивания головы (noRise)
 export const PIT_PEEK_MS = RACE_HOLD_MAX_MS + 600 // сколько голова торчит, пока игра держит часы и ждёт первую реплику (дальше её держит сама речь)
 
 export function createStartTrace({ now = () => performance.now(), log = pLog } = {}) {

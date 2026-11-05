@@ -9,6 +9,7 @@ import { createJournal, record, nextRunnable, weakLanes } from './rehearsalJourn
 import { reportSession } from './rehearsalSim.js'
 import { useRehearsalTake } from './useRehearsalTake.js'
 import { hasIntroLine } from './rehearsalPrepare.js'
+import { RACE_START_LEAD_MS } from '../pitrace/raceStartTrace.js'
 import { stuckHint, hintEntry, sayWordHint } from './rehearsalHints.js'
 import { demoSummary } from './polish/polishDemo.js'
 import { stageTiming, countdownPlan } from './rehearsalCountdown.js'
@@ -55,9 +56,9 @@ export function useRehearsalActs({ plan, stages, stage, at, stageObj, setS, sayL
   // Вступление: Пит говорит про фразу, пока она падает (при запуске одного этапа «Шлифовки» его нет — rehearsalPrepare.hasIntroLine)
   useEffect(() => {
     if (!on || stage !== 'drop' || !intro || hold) return undefined // hold («Гонка»): звук ещё готовится, часы игры стоят — вступление ждёт
-    const t = setTimeout(() => sayLine(startLine), LINE_AT_MS)
+    const t = setTimeout(() => sayLine(startLine, null, race ? { noRise: true } : undefined), race ? RACE_START_LEAD_MS : LINE_AT_MS) // «Гонка»: race_start сразу и без ожидания головы
     return () => clearTimeout(t)
-  }, [on, stage, intro, sayLine, startLine, hold])
+  }, [on, stage, intro, sayLine, startLine, hold, race])
 
   // Раскладка стадии по времени: реплика Пита (ждёт, пока он договорит прошлую) и отсчёт тремя нотами (stage.count) — rehearsalCountdown.stageTiming
   const timingOf = st => stageTiming({ order: st.count ?? null, lead: LINE_AT_MS, busyMs: cat.busyLeft(), lineMs: st.line ? lineMs(fillLine(lines?.[st.line]), rate) : 0, pause: st.pause ?? LINE_PAUSE_MS, minMs: st.ms, hasLine: !!st.line, quiet: lineVoiced(lines, st.line), plan: countdownPlan({ soft: !!st.soft }) })

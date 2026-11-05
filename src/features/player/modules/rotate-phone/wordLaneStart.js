@@ -19,8 +19,9 @@ import { gameStartTrace } from '../../../../shared/lib/gameStartTrace.js'
 import { primeAudio } from '../../../../shared/lib/primedAudio.js'
 import { preloadSounds, unlockAudio } from '../../../../shared/lib/sounds.js'
 import { pLog } from '../../../../shared/lib/debug.js'
+import { RACE_GATE_MS } from '../../../pitrace/raceStartTrace.js'
 
-export const FAST_CTX_WAIT_MS = 250 // быстрый старт гонки: resume контекста ждём не дольше (микрофон открывается параллельно)
+export const FAST_CTX_WAIT_MS = 200 // быстрый старт гонки: resume контекста ждём не дольше (идёт ПАРАЛЛЕЛЬНО воротам и регистрации буферов; микрофон открывается тоже параллельно; сам playGameBuffer при необходимости дожмёт resume)
 export { GATE_MAX_MS } // потолок ожидания ворот с тапа (wordLaneGate.js); заменил WORDS_WAIT_MS = 2,5 с
 
 // Звук тапа «Начать» игры «Повтори за диктором». ПОРЯДОК ВАЖЕН (iPhone, iOS 18): getUserMedia и смена navigator.audioSession.type переводят аудиосессию в «запись + воспроизведение», и всё, что было
@@ -52,7 +53,10 @@ export function wordsPlan({ cfg, lines }) {
   const words = [...trans, ...libItems([...cfg.chunks, ...cfg.confusers.flat(), ...(cfg.extraWords ?? [])])]
   const lineNow = all.filter(x => !first || first.has(x.key))
   const one = libItems(cfg.chunks.slice(0, 1)).length // кусок первой ступени
-  if (cfg.plan?.game === 'race' && first) return { now: [...lineNow, ...words], late: all.filter(x => !first.has(x.key)), firstCount: lineNow.length, gateMin: 0 } // «Гонка»: ворота ждут ТОЛЬКО первые реплики Пита (race_start, реплика первого этапа); куски и переводы догреваются к первой пилюле, Пит не ждёт сеть
+  if (cfg.plan?.game === 'race' && first) { // «Гонка» (v3.3.117): ворота ждут ТОЛЬКО race_start (один файл, он первый в списке и качается первым); реплика первого этапа, куски и переводы догреваются фоном к первой пилюле, Пит не ждёт сеть
+    const start = lineNow.filter(x => x.key === lineKey('race_start')), rest = lineNow.filter(x => x.key !== lineKey('race_start'))
+    return { now: [...start, ...rest, ...words], late: all.filter(x => !first.has(x.key)), firstCount: start.length || lineNow.length, gateMin: 0 } // нет озвучки race_start (или один раунд без вступления) — ждём первую реплику, какая есть
+  }
   return first ? { now: [...lineNow, ...words], late: all.filter(x => !first.has(x.key)), firstCount: lineNow.length + one + Math.min(2, trans.length) } : { now: [...words, ...lineNow], late: [], firstCount: one + Math.min(2, trans.length) } // у репетиции реплики первых стадий качаются и декодируются ПЕРВЫМИ: заговорит Пит, а куски диктора понадобятся через секунды
 }
 
@@ -96,7 +100,7 @@ export function rewakeGameAudio({ audioSrc }) {
  * (прерываний, мс, состояние контекста), needsTap — жест истёк и прогрев ждёт касания (игру открывать после тапа). deps — подмена зависимостей в тестах.
  */
 export function startGameAudio({ cfg, audioSrc, lines, onLineReady = null }, deps = {}) {
-  const { warm = gameAudioWarm, session = gameAudioSession, hold = gameMicHold, openMic = openGameMic, wake = wakeGameAudio, rewake = rewakeGameAudio, gateMaxMs = GATE_MAX_MS, trace = gameStartTrace, prefetch = prefetchWords, unlockCtx = unlockGameCtx, gate = waitWarmGate, install = installGameAudioLife, consume = consumeRewake, recreateCtx = recreateGameCtx, ensureCtx = ensureGameCtxRunning } = deps
+  const { warm = gameAudioWarm, session = gameAudioSession, hold = gameMicHold, openMic = openGameMic, wake = wakeGameAudio, rewake = rewakeGameAudio, gateMaxMs = GATE_MAX_MS, trace = gameStartTrace, prefetch = prefetchWords, unlockCtx = unlockGameCtx, gate = waitWarmGate, install = installGameAudioLife, consume = consumeRewake, recreateCtx = recreateGameCtx, ensureCtx = ensureGameCtxRunning, raceGateMs = RACE_GATE_MS } = deps
   trace.begin() // хронология старта: отсчёт от тапа
   install() // слушатели фона/возврата (gameAudioLife.js): идемпотентно; без них метка «звук после фона» не ставится
   const suspect = consume() // звук возвращался из фона/блокировки с прошлого старта → полный путь: старый контекст не доверен, в этом же жесте создаём свежий
@@ -113,10 +117,9 @@ export function startGameAudio({ cfg, audioSrc, lines, onLineReady = null }, dep
   // Быстрый путь (v3.3.115): resume (≤ FAST_CTX_WAIT_MS, без пересоздания — контекст может быть 'interrupted', пока идёт смена сессии) → регистрация буферов (wake) → ворота первых реплик → отметка ready: реплика играет,
   // пока микрофон ещё открывается. Весь обычный путь (mic → settle → ctx → wake) идёт следом и повторно будит звук после смены сессии — как раньше.
   const openLines = async () => {
-    const r = await ensureCtx({ why: 'быстрый старт гонки', waitMs: FAST_CTX_WAIT_MS, recreate: false })
-    trace.mark('ctx', { state: r?.state ?? null, recreated: false, afterBg: suspect ?? null, ms: r?.ms ?? null, early: true })
+    const ctxWait = ensureCtx({ why: 'быстрый старт гонки', waitMs: FAST_CTX_WAIT_MS, recreate: false }).then(r => { trace.mark('ctx', { state: r?.state ?? null, recreated: false, afterBg: suspect ?? null, ms: r?.ms ?? null, early: true }); return r }) // resume идёт параллельно регистрации буферов и воротам (раньше — друг за другом: сумма ожиданий)
     try { wake({ cfg, audioSrc, lines }); trace.mark('wake', { ok: true, ctx: gameCtxState(), early: true }) } catch (e) { pLog(`[rotate] звук диктора не разбудился: ${e?.message ?? e}`) }
-    const g = await gate({ items: warmItems(plan), firstCount: plan.firstCount, min: plan.gateMin, maxMs: gateMaxMs, sinceTapMs: trace.sinceTap?.() ?? 0 })
+    const [g] = await Promise.all([gate({ items: warmItems(plan), firstCount: plan.firstCount, min: plan.gateMin, maxMs: raceGateMs, sinceTapMs: trace.sinceTap?.() ?? 0 }), ctxWait.catch(() => null)])
     trace.mark('ready', { words: g.by === 'timeout' ? 'timeout' : 'ready', gate: g.by, done: g.ok, total: g.total, firstN: g.firstN, ms: g.ms, ctx: gameCtxState(), early: true })
     pLog(`[race] старт: звук реплик готов через ${trace.sinceTap?.() ?? '—'} мс с тапа, микрофон ещё открывается, ctx=${gameCtxState() ?? 'нет'}`)
     try { onLineReady?.() } catch { /* игра не зависит от колбэка */ }

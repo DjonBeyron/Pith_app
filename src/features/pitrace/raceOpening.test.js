@@ -1,3 +1,4 @@
+import { RACE_START_LEAD_MS } from './raceStartTrace.js'
 import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { openingPlan, MORPH_MS, PLATE_HOLD_MS, LEAD_MS } from './raceOpening.js'
@@ -17,10 +18,10 @@ const lines = { race_start: { text: 'Три заезда', url: 'u1', duration: 
 
 describe('расписание открытия: слова → бар → плашка → ноты', () => {
   it('константы: морф 600 мс, плашка 1,2 с после речи', () => { expect([MORPH_MS, PLATE_HOLD_MS, LEAD_MS]).toEqual([600, 1200, 250]) })
-  it('речь Пита: race_start с 250 мс, реплика этапа — в стадии 0 после него; конец речи, морф за 600 мс до него, плашка уходит через 1,2 с после речи', () => {
+  it('речь Пита: race_start сразу (RACE_START_LEAD_MS), реплика этапа — в стадии 0 после него; конец речи, морф за 600 мс до него, плашка уходит через 1,2 с после речи', () => {
     const o = openingPlan(mk(), lines)
     expect(o.startMs).toBe(5000); expect(o.firstMs).toBe(6000); expect(o.stageAt).toBe(DROP_MS + LANES_MS)
-    const busy = Math.max(0, LEAD_MS + 5000 + 600 - o.stageAt) // Пит ещё занят race_start на входе в стадию 0
+    const busy = Math.max(0, RACE_START_LEAD_MS + 5000 + 600 - o.stageAt) // Пит ещё занят race_start на входе в стадию 0
     expect(o.lineAt).toBe(LEAD_MS + busy + 20)
     expect(o.speechEnd).toBe(o.stageAt + o.lineAt + 6000)
     expect(o.morphAt).toBe(o.speechEnd - MORPH_MS); expect(o.plateEnd).toBe(o.speechEnd + PLATE_HOLD_MS)
@@ -30,7 +31,7 @@ describe('расписание открытия: слова → бар → пл�
     expect(o.countAt).toBe(o.speechEnd + PLATE_HOLD_MS); expect(o.pause).toBe(PLATE_HOLD_MS)
     const first = buildRaceStages({ plan: mk(), rate: 1 }).stages[0]
     expect(first).toMatchObject({ type: 'announce', charge: true, count: 'after', soft: true, pause: PLATE_HOLD_MS, line: 'race_sprint' })
-    const t = stageTiming({ order: 'after', lead: LEAD_MS, busyMs: Math.max(0, LEAD_MS + 5000 + 600 - o.stageAt), lineMs: 6000, pause: first.pause, minMs: first.ms, hasLine: true, quiet: true, plan: countdownPlan({ soft: true }) })
+    const t = stageTiming({ order: 'after', lead: LEAD_MS, busyMs: Math.max(0, RACE_START_LEAD_MS + 5000 + 600 - o.stageAt), lineMs: 6000, pause: first.pause, minMs: first.ms, hasLine: true, quiet: true, plan: countdownPlan({ soft: true }) })
     expect(o.stageAt + t.countAt).toBe(o.countAt); expect(t.holdMs).toBeGreaterThanOrEqual(t.countAt + 1200 + 1100) // стадия держится до конца третьей ноты
   })
   it('слова летят до морфа: последняя пилюля прилетает ровно в morphAt, сегменты бара заполнены к началу морфа', () => {
