@@ -1,0 +1,20 @@
+/* «Гонка с Питом»: постоянный тонкий бар сверху (features/pitrace/RaceBar.jsx, модель raceBar.js, CONCEPT_RACE.md «Бар живёт весь разгон», v3.3.115). Те же место и размер, что у бара заставки (race-charge.css .raceChargeBar): 6 px высотой, скругление 999 px,
+   по центру между кнопками «назад» (слева) и «пауза» (справа) панели — отступы по бокам 56 px + safe-area; центр на линии кнопок (safe-area-inset-top + 28 px). Сегмент = слово круга цветом ступени памяти; сыгранная пилюля гасит свой сегмент
+   (data-spent): он сжимается к правому краю и тает — бар «тратится» слева направо. Пока бар прячется (не ступень ученика), он плавно гаснет вместе с сегментами. Только transform / opacity. Слой 3 — как у бара заставки (кнопки панели выше). Без filter. */
+.raceBar {
+  position: absolute;
+  top: calc(env(safe-area-inset-top, 0px) + 25px);
+  left: calc(env(safe-area-inset-left, 0px) + 56px);
+  right: calc(env(safe-area-inset-right, 0px) + 56px);
+  height: 6px;
+  z-index: 3;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.35s ease;
+}
+.raceBar[data-on] { opacity: 1; }
+.raceBarTrack { position: absolute; inset: 0; border-radius: 999px; overflow: hidden; background: rgba(255, 255, 255, 0.1); }
+.raceBarSeg { position: absolute; top: 0; bottom: 0; transform-origin: right center; transition: transform 0.3s ease, opacity 0.3s ease; }
+.raceBarSeg[data-spent] { transform: scaleX(0); opacity: 0; }
+.weak-device .raceBar, .weak-device .raceBarSeg { transition: none; }
+@media (prefers-reduced-motion: reduce) { .raceBar, .raceBarSeg { transition: none; } }

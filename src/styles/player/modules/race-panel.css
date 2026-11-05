@@ -1,0 +1,52 @@
+/* «Гонка с Питом»: верхняя панель (features/pitrace/RacePanel.jsx, CONCEPT_RACE.md «Верхняя панель», v3.3.115). Слева «назад» (общая .backBtn приложения, back-button.css), справа «пауза / плей», между ними по центру короткий прогресс-бар (race-bar.css).
+   Все три — на одной линии: верх = safe-area-inset-top + 10 px, высота кнопок 36 px, центр линии = safe + 28 px (на неё выровнен бар). Кнопки администратора (⚙ HUD, 💬 комментарий) — строкой НИЖЕ панели, справа, мельче (28 px). Только .wl[data-race] (гонка);
+   репетиция и обычная нода остаются с крестиком .wlClose и кнопкой ⚙ в углу. Слои: кнопки z-index 7 выше бара (3) и заставки, HUD-панель (z-index 9) открывается поверх. Без filter. */
+.wl .raceBack {
+  position: absolute;
+  top: calc(env(safe-area-inset-top, 0px) + 10px);
+  left: calc(env(safe-area-inset-left, 0px) + 10px);
+  z-index: 7;
+  width: 36px;
+  height: 36px;
+}
+.wl .raceBack svg { width: 14px; height: 14px; }
+.racePause {
+  position: absolute;
+  top: calc(env(safe-area-inset-top, 0px) + 10px);
+  right: calc(env(safe-area-inset-right, 0px) + 10px);
+  z-index: 7;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.09);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.07);
+  color: #e8e8ea;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+.racePause:active { background: rgba(255, 255, 255, 0.24); color: #fff; }
+
+/* Кнопки администратора: строка под панелью, справа, мельче (28 px). ⚙ — самая правая, 💬 — левее неё */
+.wl[data-race] .wlHudBtn, .wl[data-race] .wlCmtBtn {
+  top: calc(env(safe-area-inset-top, 0px) + 54px);
+  width: 28px;
+  height: 28px;
+}
+.wl[data-race] .wlHudBtn { right: calc(env(safe-area-inset-right, 0px) + 10px); }
+.wl[data-race] .wlCmtBtn { right: calc(env(safe-area-inset-right, 0px) + 44px); }
+.wl[data-race] .wlHudBtn svg, .wl[data-race] .wlCmtBtn svg { width: 14px; height: 14px; }
+
+/* Счётчик XP (.wlXp) раньше стоял в правом верхнем углу — там теперь «пауза»: у гонки он уходит в ту же строку под панелью, но слева (мельче) */
+.wl[data-race] .wlXp {
+  top: calc(env(safe-area-inset-top, 0px) + 54px);
+  left: calc(env(safe-area-inset-left, 0px) + 14px);
+  right: auto;
+  padding: 3px 10px;
+  font-size: 12px;
+}

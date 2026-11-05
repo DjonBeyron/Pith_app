@@ -24,6 +24,8 @@ export function buildRaceStages({ plan, rate = 1, lib = () => null }) {
   }
   const first = kit.stages[0]
   if (first?.type === 'announce') Object.assign(first, { count: 'after', soft: true, charge: true, pause: PLATE_HOLD_MS }) // старт: бар заставки САМ становится плашкой этапа (charge: отдельной плашки нет, raceOpening.js), плашка держится PLATE_HOLD_MS после речи Пита; потом три нежные ноты (шаг 600 мс, нота 1,1 с), первая пилюля — после них
+  const second = kit.stages.find((x, i) => i > 0 && x.sid === 'catch-ann')
+  if (second) second.charge = true // этап 2: бар заряжается словами этапа 2 и сам становится его плашкой (RaceRoundCharge.jsx), отдельной плашки announce нет
   const { chunks } = plan
   const r = kit.rate
   return { recipe: { chunks, rounds: [], acts, plan }, stages: kit.stages, chunkMs: chunks.map((c, i) => (lib(i)?.ms ?? estChunkMs(c)) / r), chunkCurves: chunks.map(() => null), lanes: orderLanes(chunks.length, rngFor(plan.seed, 'lanes')), clipMode: () => false }

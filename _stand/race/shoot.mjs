@@ -33,7 +33,7 @@ const waitAct = (page, act, timeout = 90000) => page.waitForFunction(a => docume
 // «Разгон»: на каждую видимую пилюлю с подписью-переводом говорим английское слово; пилюля №missAt — чужое слово (промах), №skipAt — молчим (не успел)
 async function sprint(page, { missAt = -1, skipAt = -1, shots = true } = {}) {
   const handled = new Set()
-  let n = 0, gold = false, miss = false, fail = false, first = false, badge = false
+  let n = 0, gold = false, miss = false, fail = false, first = false
   const end = Date.now() + 90000
   while (Date.now() < end) {
     const r = await root(page)
@@ -48,7 +48,6 @@ async function sprint(page, { missAt = -1, skipAt = -1, shots = true } = {}) {
     }
     if (shots && !gold && (await root(page))?.streak === 'gold') { gold = true; await sleep(250); await shot(page, '11-sprint-streak-gold') }
     if (shots && !fail && (await page.$('.wlPill[data-reveal]'))) { fail = true; await sleep(700); await shot(page, '12-sprint-reveal') }
-    if (shots && !badge && (await page.$('[data-testid="race-speed"][data-on]'))) { badge = true; console.log('бейдж скорости:', await page.$eval('[data-testid="race-speed"]', e => e.textContent)); await shot(page, '13-sprint-speed-badge'); const dash = []; for (let k = 0; k < 8; k++) { dash.push(await page.$eval('.wlLanes i', e => e.style.getPropertyValue('--run-dash') + '/' + e.style.getPropertyValue('--run-a') + '/' + (e.parentElement.dataset.wave ?? '-'))); await sleep(90) } console.log('импульс дорожек (штрих/яркость/волна):', dash.join('  ')); await shot(page, '14-lane-pulse') } // «×1,05 …»: бейдж у верха сцены на 1 с при смене скорости
     miss ||= false
     await sleep(80)
   }

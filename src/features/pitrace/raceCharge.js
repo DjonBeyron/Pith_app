@@ -67,13 +67,13 @@ export function chargeWords(plan) {
  * → { totalMs, pills: [{ i, text, level, color, x (% ширины), startAt, flyMs, arriveAt, wave, from, to }], sparks: [{ i, x, startAt, flyMs, size, color }], segments: [{ i, level, color, from, to, at }] }
  * Пилюли идут в порядке прилёта (i); последняя прилетает ровно в totalMs; сегменты бара — по одному на пилюлю, в порядке прилёта, в сумме ровно 100 %.
  */
-export function chargePlan(plan, totalMs = 4000) {
-  const words = chargeWords(plan)
+export function chargePlan(plan, totalMs = 4000, wordList = null, tag = 'race-charge') { // tag — поток случайностей (у второго круга и этапа 2 свой, чтобы разброс не повторял начало игры) // wordList — слова круга [{ text, level }] (v3.3.115: бар заряжается словами КРУГА, по сегменту на слово — потом расходуется по пилюле, raceBar.js); нет — слова плана и добор (chargeWords)
+  const words = wordList ? wordList.slice(0, CHARGE_MAX) : chargeWords(plan)
   const n = words.length
   const total = Math.max(1000, Math.round(totalMs))
   if (!n) return { totalMs: total, pills: [], sparks: [], segments: [] }
-  const rng = rngFor(plan.seed, 'race-charge')
-  const wrng = rngFor(plan.seed, 'race-charge-wave') // волна — свой поток: порядок и разброс пилюль от неё не зависят
+  const rng = rngFor(plan.seed, tag)
+  const wrng = rngFor(plan.seed, `${tag}-wave`) // волна — свой поток: порядок и разброс пилюль от неё не зависят
   const order = rngShuffle(rng, words)
   const fly = Math.min(CHARGE_FLY_MS, total * 0.4)
   const gap = (total - fly) / n
