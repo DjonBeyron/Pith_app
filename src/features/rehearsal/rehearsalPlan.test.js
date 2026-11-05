@@ -23,7 +23,7 @@ describe('normalizePlan', () => {
   })
   it('слова: пустые отбрасываются, двойники без повторов и самого слова, не больше двух; ударные — только существующие куски', () => {
     const p = normalizePlan({ phrase: 'a | b', words: [{ text: 'learn', due: true, lapses: 2.7, confusers: ['earn', 'Earn', 'learn', 'lean', 'lern'] }, { text: '  ' }, null], stressed: [1, 1, 5, -1, 'x'] })
-    expect(p.words).toEqual([{ text: 'learn', translation: '', due: true, lapses: 2, confusers: ['earn', 'lean'] }])
+    expect(p.words).toEqual([{ text: 'learn', translation: '', due: true, lapses: 2, confusers: ['earn', 'lean'], level: 1 }])
     expect(p.stressed).toEqual([1])
   })
   it('озвучка фразы: только с url; слова всегда из библиотеки', () => {

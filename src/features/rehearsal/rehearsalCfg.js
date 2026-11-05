@@ -2,6 +2,7 @@
 // диктор играет куски из библиотеки слов (cfg.extraWords — слова разминки, «Различи» и фразы: их тоже готовит тап «Начать»; при запуске одного этапа «Шлифовки» — только слова этого этапа, rehearsalPrepare.js;
 // cfg.firstLines — реплики Пита первых секунд: к старту ждём только их, остальные докачиваются фоном).
 import { normalizePlan } from './rehearsalPlan.js'
+import { sprintTransTexts } from '../pitrace/raceTrans.js'
 import { neededTexts, firstLines } from './rehearsalPrepare.js'
 import { planFor, fixtureIdOf, nextFixture, DEFAULT_FIXTURE } from './rehearsalFixtures.js'
 
@@ -9,7 +10,7 @@ export function readRehearsalCfg(rawPlan) {
   const plan = normalizePlan(rawPlan)
   if (!plan) return null
   return {
-    title: 'Репетиция с Питом',
+    title: plan.game === 'race' ? 'Гонка с Питом' : 'Репетиция с Питом',
     chunks: plan.chunks,
     word: plan.chunks.join(' '),
     translation: plan.translation,
@@ -21,9 +22,10 @@ export function readRehearsalCfg(rawPlan) {
     confusers: plan.chunks.map(() => []),
     extraWords: neededTexts(plan),
     firstLines: firstLines(plan),
+    translations: plan.game === 'race' ? sprintTransTexts(plan) : [], // русские переводы слов «Разгона»: Пит говорит их голосом перед пилюлей, тап «Начать» качает озвучку вместе с кусками (raceTrans.js)
     plan,
   }
 }
 
 /** «Ещё минутку?»: следующая фикстура по кругу; у плана не из фикстур (JSON из админки) — тоже следующая после фикстуры по умолчанию. run +1: номер запуска в этом тапе (реплики старта и итога — «ещё раз», rehearsalLines.sessionLine); и «Ещё минутку?», и прогрев следующего плана берут план отсюда */
-export const nextPlan = plan => normalizePlan({ ...planFor('sim', { fixture: nextFixture(fixtureIdOf(plan) ?? DEFAULT_FIXTURE) }), run: (plan?.run ?? 0) + 1 })
+export const nextPlan = plan => normalizePlan({ ...planFor('sim', { fixture: nextFixture(fixtureIdOf(plan) ?? DEFAULT_FIXTURE) }), run: (plan?.run ?? 0) + 1, ...(plan?.game === 'race' ? { game: 'race' } : {}) }) // гонка остаётся гонкой: «Ещё заезд» — следующий план

@@ -14,6 +14,8 @@
 //  slot-not-ready         — слот реплики не был готов к моменту реплики (не разбужен / звук не подставлен / ждали слот и не дождались — говорил голос системы);
 //  interrupted-after-warm — iOS прервал аудиосессию уже ПОСЛЕ пробуждения слотов, повторного прогрева до реплики не было;
 //  play-rejected          — play() отклонён (имя ошибки: NotAllowedError — нет жеста);
+//  ctx-interrupted-after-bg — буферный путь: игровой AudioContext не запустился (ctx-stuck), а перед игрой приложение уходило в фон / блокировалось (probe:audio-life visible / pageshow / focus, или отметка ctx.afterBg) —
+//                           iOS прервал аудиосессию и контекст «умер» (resume() не завершается); gameAudioLife.js + пересоздание контекста в жесте (gameAudioCtx.ensureGameCtxRunning);
 //  ctx-not-running        — буферный путь (Web Audio, source=buffer): игровой AudioContext не стал 'running' за 300 мс (play = ctx-stuck) — прерван iOS или не открыт в жесте, звук не стартовал (рот кота тоже);
 //  buffer-missing         — буферный путь: к реплике нет декодированного буфера (play = rejected при slot.buffer / слот не подготовлен) — озвучка не успела скачаться и декодироваться;
 //  play-not-started       — play() принят, но 'playing' не пришло за 700 мс (элемент прерван / не загружен);
@@ -27,6 +29,7 @@ export const CAUSE_TITLE = {
   'slot-not-ready': 'слот не готов к реплике',
   'interrupted-after-warm': 'прерывание после прогрева',
   'play-rejected': 'play() отклонён',
+  'ctx-interrupted-after-bg': 'после фона/блокировки AudioContext игры не запустился',
   'ctx-not-running': 'AudioContext игры не запущен (буферный путь)',
   'buffer-missing': 'нет декодированного буфера реплики',
   'play-not-started': 'play() принят, но звук не заиграл',
@@ -41,6 +44,7 @@ export const CAUSE_TEXT = {
   'slot-not-ready': 'К моменту реплики слот озвучки не был готов (не разбужен тишиной, звук не подставлен или не успел подгрузиться). Реплика ждала слот (до 1,5 с в версиях до 3.3.76 — потом говорил голос системы; с 3.3.76 — до 3 с, потом подпись без звука).',
   'interrupted-after-warm': 'После пробуждения слотов iOS ещё раз прервал аудиосессию (смена типа сессии / микрофон) и пометил элементы прерванными; повторный прогрев до реплики не прошёл.',
   'play-rejected': 'Браузер отклонил play() слота реплики (обычно NotAllowedError — нет свежего жеста или элемент прерван).',
+  'ctx-interrupted-after-bg': 'Перед этой игрой приложение сворачивалось или телефон блокировался: iOS прервал аудиосессию, игровой AudioContext остался прерванным/мёртвым (resume() не завершился за 300 мс), реплика не стартовала. В журнале: строки «[audio] visibility …», отметка ctx (пересоздан ли контекст, state после). Если контекст пересоздан и всё равно тишина — смотри audioSession.type и дорожку микрофона.',
   'ctx-not-running': 'Реплика шла через Web Audio, но игровой AudioContext не стал running за 300 мс (прерван iOS при смене сессии/открытии микрофона или не открыт в жесте): источник не стартовал, звука и рта кота не было. Помогает повторный прогрев в жесте (resume).',
   'buffer-missing': 'Реплика шла через Web Audio, но декодированного буфера к ней не было: озвучка не успела скачаться и декодироваться (медленная сеть) или декодирование не вышло. См. «озвучка слов» в отметке ready на шкале.',
   'play-not-started': 'play() принят, но событие playing не пришло — элемент прерван аудиосессией или не загружен.',
@@ -53,6 +57,7 @@ export const CAUSE_TEXT = {
 const probeOf = (events, kind, pick = () => true) => events.filter(e => e.type === 'probe' && e.kind === kind && pick(e))
 const markAfter = (events, name, base) => probeOf(events, 'start-mark', e => e.name === name && (base == null || e.t >= base - 50))[0] ?? null
 const SAME_TAP_MS = 1500 // отметка tap и «реплика − sinceTap» описывают один тап, если расходятся меньше чем на столько
+export const BG_LOOKBACK_MS = 600000 // возврат из фона, после которого игра считается «после фона»: не раньше 10 минут до тапа
 export const MUTE_AFTER_SYNTH_MS = 3000 // дорожку заглушили не позже, чем через столько после реплики голосом системы
 
 /** Нулевая точка последней игры журнала (t тапа): отметка tap, сверенная с sinceTap реплик; отметки нет — из реплики; реплик нет — последний tap. null — тапа не найти */
@@ -81,11 +86,13 @@ function timelineText(e) {
   if (e.kind === 'start-mark') {
     const m = {
       tap: 'тап «Начать»', mic: `микрофон: ${e.mic ?? '—'}`, wake: e.ok === false ? `прогрев звука упал: ${e.error ?? ''}` : 'прогрев звука запущен (wakeGameAudio)', 'tap-wait': `жест истёк — ждём касания (${e.why ?? ''})`, 'hint-tap': 'касание «Тапни, чтобы начать»',
+      ctx: `AudioContext игры: ${e.state ?? '—'}${e.recreated ? ', ПЕРЕСОЗДАН (resume не завершился)' : ''}${e.afterBg ? `, после фона (${e.afterBg})` : ''}`,
       settle: `settle: ждали ${e.waitedMs ?? '—'} мс, прерываний ${e.interrupts ?? 0}, контекст ${e.ctx ?? '—'}, жест ${e.activation === false ? 'истёк' : 'жив'}`,
       ready: `прогрев закончен, озвучка слов: ${e.words ?? '—'}`,
     }
     return m[e.name] ?? `отметка ${e.name}`
   }
+  if (e.kind === 'audio-life') return `${e.what}: контекст ${e.ctx ?? 'нет'}, тип сессии ${e.as ?? '—'}`
   if (e.kind === 'audio-interrupt') return `прерывание аудиосессии №${e.n}${e.self ? ' (своё: микрофон / тип сессии)' : ''}, контекст ${e.ctx ?? '—'}, жест ${e.activation === false ? 'истёк' : 'жив'}`
   if (e.kind === 'audio-warm' && e.step === 'rewarm') return `повторный прогрев (${e.why}), жест ${e.activation === false ? 'истёк' : 'жив'}${e.via ? `, событие ${e.via}` : ''}`
   if (e.kind === 'audio-warm' && e.step === 'armed') return `ждём касания для прогрева (${e.why})`
@@ -107,6 +114,8 @@ export function diagnoseFirstLine(events = []) {
   const settle = markAfter(evs, 'settle', base)
   const wake = markAfter(evs, 'wake', base)
   const ready = markAfter(evs, 'ready', base)
+  const ctxMark = markAfter(evs, 'ctx', base)
+  const afterBg = probeOf(evs, 'audio-life', e => /visible|pageshow|focus/.test(e.what ?? '') && e.t < first.t && e.t >= (base ?? first.t) - BG_LOOKBACK_MS).length > 0 || !!ctxMark?.afterBg // вернулись из фона незадолго до игры
   const expired = (settle && settle.activation === false) || !!markAfter(evs, 'tap-wait', base)
   const goodRewarm = probeOf(evs, 'audio-warm', e => e.step === 'rewarm' && e.activation !== false && e.t > (settle?.t ?? -Infinity) && e.t <= first.t).length > 0
   const lastInt = probeOf(evs, 'audio-interrupt', e => e.t < first.t && e.t > (wake?.t ?? Infinity)).at(-1) ?? null
@@ -119,6 +128,7 @@ export function diagnoseFirstLine(events = []) {
   if (first.source === 'none' && !first.noSynth) causes.push('no-voice')
   else if ((first.play === 'ok' || first.play === 'started') && !mute) causes.push('ducking')
   else {
+    if (first.source === 'buffer' && first.play === 'ctx-stuck' && afterBg) causes.push('ctx-interrupted-after-bg')
     if (first.source === 'buffer' && first.play === 'ctx-stuck') causes.push('ctx-not-running')
     if (first.source === 'buffer' && (first.play === 'rejected' || first.slot?.prepared === false)) causes.push('buffer-missing')
     if (expired && !goodRewarm) causes.push('gesture-expired')

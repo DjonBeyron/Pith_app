@@ -9,6 +9,8 @@ import { useRestartSeries } from './useRestartSeries.js'
 import { useTabSilence } from './useTabSilence.js'
 import { phraseFor } from './controlSeries.js'
 import RehearsalPolishBlock from './RehearsalPolishBlock.jsx'
+import RaceBlock from './RaceBlock.jsx'
+import Game2Block from './Game2Block.jsx'
 import SpeechCapsBlock from './SpeechCapsBlock.jsx'
 import SimpleTestsBlock from './SimpleTestsBlock.jsx'
 import SpeechTestBlock from './SpeechTestBlock.jsx'
@@ -70,7 +72,9 @@ export default function AdminSpeechTab() {
     <div className="aeWrap" ref={rootRef}>
       <div className="aeHead"><span className="aeTitle">Голос (проба распознавания речи)</span></div>
       <p className="aeHint">Тест Web Speech API перед модулем «Сказать фразу». Ничего не отправляется на наш сервер и не сохраняется, кроме журнала в этом браузере.</p>
+      <RaceBlock />
       <RehearsalPolishBlock />
+      <Game2Block />
       <SpeechCapsBlock caps={caps} perm={perm} />
       <SoundDiagBlock />
       <GameMicBlock />

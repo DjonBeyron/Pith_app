@@ -4,12 +4,13 @@ import { makeNoteWav, wavRms } from '../player/modules/rotate-phone/wordLaneNote
 
 // Отсчёт тремя нотами перед разминкой и дублем (решение владельца 2026-10-31): план нот и раскладка стадии по времени
 describe('план отсчёта', () => {
-  it('три коротких ноты до — ми — соль с паузой 0,5 с; последняя чуть громче', () => {
+  it('три ноты до — ми — соль с шагом 0,5 с, каждая звучит 1,5 шага; последняя чуть громче', () => {
     const p = countdownPlan()
     expect(p).toHaveLength(3)
     expect(p.map(n => n.freq)).toEqual([523.25, 659.25, 783.99]); expect(p.map(n => n.freq)).toEqual(COUNT_FREQS)
     expect(p.map(n => n.at)).toEqual([0, COUNT_STEP_MS, 2 * COUNT_STEP_MS]); expect(COUNT_STEP_MS).toBe(500)
-    expect(p.every(n => n.ms === COUNT_NOTE_MS && n.ms < COUNT_STEP_MS)).toBe(true) // отрывистые: звук кончается до следующей ноты
+    expect(p.every(n => n.ms === COUNT_NOTE_MS && n.ms > COUNT_STEP_MS)).toBe(true) // нота дольше шага (хвост с затуханием): ноты накладываются
+    expect(COUNT_NOTE_MS).toBe(750); expect(COUNT_NOTE_MS).toBe(1.5 * COUNT_STEP_MS); expect(countdownMs()).toBe(1950)
     expect(p.map(n => n.k)).toEqual([0, 1, 2]); expect(p[2].level).toBeGreaterThan(p[0].level)
   })
   it('длительность: от первой ноты до конца последней и хвоста; шаг и длину ноты можно задать', () => {
@@ -17,7 +18,7 @@ describe('план отсчёта', () => {
     expect(countdownMs(countdownPlan({ step: 400, ms: 100 }), 0)).toBe(900)
     expect(countdownMs([])).toBe(0)
   })
-  it('ноты — обычные WAV «лесенки» игры (makeNoteWav): короткие, 16 бит, равны по энергии', () => {
+  it('ноты — обычные WAV «лесенки» игры (makeNoteWav), 16 бит, равны по энергии', () => {
     const wavs = countdownPlan().map(n => makeNoteWav(n.freq, n.ms, n.level))
     for (const w of wavs) { expect(String.fromCharCode(...w.slice(0, 4))).toBe('RIFF'); expect(w.length).toBe(44 + Math.floor((22050 * COUNT_NOTE_MS) / 1000) * 2) }
     expect(wavRms(wavs[2]) / wavRms(wavs[0])).toBeCloseTo(1.2, 1)

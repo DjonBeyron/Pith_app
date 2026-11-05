@@ -14,6 +14,7 @@ import { releaseNotes } from './wordLaneNotes.js'
 import { releaseClips } from './wordLaneClips.js'
 import { dropWarmed } from './wordLaneFetch.js'
 import { normalizeLines } from './wordLaneCatLines.js'
+import { installGameAudioLife } from '../../../../shared/lib/gameAudioLife.js'
 import { startGameAudio } from './wordLaneStart.js'
 import { warmGameSounds, warmSig } from './wordLaneWarm.js'
 import { useWarmProgress } from './useWarmProgress.js'
@@ -44,10 +45,10 @@ const leaveFullscreen = () => { try { if (document.fullscreenElement) document.e
 // Переворот экрана в горизонталь — позже, отдельным этапом.
 // Тест-запуск из админки (GameTestBlock): bare — без карточки (только уведомление Vosk, сообщение и сама игра), startRef.current() — запуск из чужого тапа (жест сохраняется), игра по окончании не «закрывает» ноду,
 // а возвращается в ожидание (кнопку можно нажать ещё раз); forceDebug включает журнал и HUD настроек, не требуя общего тумблера; onStatus({ phase, busy, ready, problem, warm }) сообщает состояние наружу.
-export default function RotatePhoneModule({ node, file, onDone, forceDebug = false, bare = false, startRef = null, onStatus = null }) {
+export default function RotatePhoneModule({ node, file, onDone, forceDebug = false, bare = false, startRef = null, onStatus = null, linesRev = 0 }) {
   // История («Продолжить урок»): ноду ученик уже прошёл — игру заново не запускаем, Vosk не греем, цепочку не двигаем
   if (node.isHistory) return <RotateCard cfg={readWordLane(node.typeData?.rotate_phone)} done />
-  return <RotateLive node={node} file={file} onDone={onDone} forceDebug={forceDebug} bare={bare} startRef={startRef} onStatus={onStatus} />
+  return <RotateLive node={node} file={file} onDone={onDone} forceDebug={forceDebug} bare={bare} startRef={startRef} onStatus={onStatus} linesRev={linesRev} />
 }
 
 function RotateCard({ cfg, done = false, busy = false, locked = false, onStart = null, label = null, children = null }) {
@@ -76,7 +77,7 @@ function RotateCard({ cfg, done = false, busy = false, locked = false, onStart =
   )
 }
 
-function RotateLive({ node, file, onDone, forceDebug, bare, startRef, onStatus }) {
+function RotateLive({ node, file, onDone, forceDebug, bare, startRef, onStatus, linesRev }) {
   // Настройки игры не должны меняться от перерисовок плеера: новый объект node.typeData на каждый рендер пересобирал бы рецепт посреди игры (сбрасывая ступень и звук) — ключ по содержимому
   const tdKey = JSON.stringify(node.typeData?.rotate_phone ?? null)
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -84,6 +85,7 @@ function RotateLive({ node, file, onDone, forceDebug, bare, startRef, onStatus }
   const [plan, setPlan] = useState(null) // «Ещё минутку?» в репетиции: следующий план вместо плана ноды
   const cfg = useMemo(() => (plan ? readWordLane({ plan }) : nodeCfg), [plan, nodeCfg])
   const { src: audioSrc } = useAudioSource(node, file) // озвучка ElevenLabs из ноды (file_id) — если автор её сгенерировал
+  useEffect(() => { installGameAudioLife() }, []) // следим за фоном/блокировкой и между играми: возврат помечает звук «подозрительным», следующий старт идёт полным путём (gameAudioLife.js)
   const vosk = useVoskReady({ why: 'lesson' }) // распознавание только Vosk: модель в памяти или уведомление «Нужно скачать»
   const ready = vosk.status === 'ready'
   const [phase, setPhase] = useState('wait') // wait → (tap: жест истёк, ждём касания) → game → finished (в тест-запуске после игры снова wait)
@@ -92,7 +94,7 @@ function RotateLive({ node, file, onDone, forceDebug, bare, startRef, onStatus }
   const [gameKey, setGameKey] = useState(0) // «Игра заново» из HUD: новый ключ — игра монтируется с нуля
   const playedRef = useRef(false)
   const [lines, setLines] = useState(() => normalizeLines(null)) // реплики кота (общие настройки приложения): тексты по умолчанию, пока не догрузились
-  useEffect(() => { getCatLines().then(raw => setLines(normalizeLines(raw))) }, [])
+  useEffect(() => { getCatLines().then(raw => setLines(normalizeLines(raw))) }, [linesRev]) // linesRev растёт после озвучки реплик в админке: перечитать, не пересоздавая модуль (иначе Vosk греется заново и кнопка запуска серая до 25 с)
   // Озвучку кусков и реплик Пита качаем и декодируем ЗАРАНЕЕ и ВСЮ сразу, пока карточка на экране (wordLaneWarm.js). Ворота (wordLaneGate.js): пока не готовы первые N файлов, кнопка «Готовлю звук… 7/15»; тап разрешён —
   // игра ждёт ворота в startGameAudio (не дольше 8 с с тапа). Остальные файлы докачиваются фоном.
   const sig = useMemo(() => warmSig(cfg, lines), [cfg, lines])
@@ -162,9 +164,9 @@ function RotateLive({ node, file, onDone, forceDebug, bare, startRef, onStatus }
     startRef.current = start
     return () => { startRef.current = null }
   }, [startRef, start])
-  useEffect(() => { onStatus?.({ phase, busy, ready, problem, warm: wp.open ? '' : wp.label }) }, [onStatus, phase, busy, ready, problem, wp.open, wp.label])
+  useEffect(() => { onStatus?.({ phase, busy, ready, problem, vosk: vosk.status, warm: wp.open ? '' : wp.label }) }, [onStatus, phase, busy, ready, problem, vosk.status, wp.open, wp.label])
 
-  const game = phase === 'game' && <WordLaneGame key={gameKey} cfg={cfg} audioSrc={cfg.hasAudio ? audioSrc : null} lines={lines} forceDebug={forceDebug} onRestart={restart} onAgain={cfg.plan && !cfg.plan.only ? another : null} onSummary={cfg.plan && !cfg.plan.only ? prewarmNext : null} onFinished={finished} />
+  const game = phase === 'game' && <WordLaneGame key={gameKey} cfg={cfg} audioSrc={cfg.hasAudio ? audioSrc : null} lines={lines} forceDebug={forceDebug} onRestart={restart} onAgain={cfg.plan && !cfg.plan.only && !cfg.plan.round ? another : null} onSummary={cfg.plan && !cfg.plan.only && !cfg.plan.round ? prewarmNext : null} onFinished={finished} />
   const extra = (
     <>
       {phase === 'tap' && <RotateTapHint onTap={tapped} />}

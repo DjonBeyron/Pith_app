@@ -1,5 +1,5 @@
 /* Горизонтальные пилюли-подложки «Дубля и зеркала» (v3.3.87; wordLaneMirrorBands.js, узлы — WordLanePills.jsx). Одна широкая пилюля обнимает тройку вертикальных пилюль ленты (Пит сверху, «твоя фраза» снизу)
-   во всю ширину дорожек, подпись зелёным по центру сверху внутри — один раз на ленту. Лежит ПОД вертикальными пилюлями (в DOM раньше них, z-index не нужен), цвет нейтральный полупрозрачный, как у плашек.
+   во всю ширину дорожек, подпись зелёным по центру сверху внутри — один раз на ленту. Лежит ПОД вертикальными пилюлями (в DOM раньше них, z-index не нужен), цвет тёмный (почти чёрный, как у плашек; v3.3.101) — пунктир дорожек под ней почти не просвечивает.
    Серая заливка при прослушивании — .wlBandFill, scaleX 0 → 1 слева направо (WAAPI, wordLaneMirrorBands.fill): слой подложки, вертикальные пилюли не перекрывает. Раскладка в dvh, как у пилюль (pool.place):
    --by — центр вертикальных пилюль ленты (% высоты), PILL_H = 20; сверху запас на подпись, снизу чуть меньше. Анимации — opacity (появление) и transform (заливка); на слабом устройстве появление без анимации. */
 .wlBand { display: none; }
@@ -13,12 +13,12 @@
   overflow: hidden;
   border-radius: 9dvh;
   border: 1.5px solid rgba(255, 255, 255, 0.2);
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(11, 13, 17, 0.94); /* почти чёрный, как у плашек: пунктир дорожек под подложкой почти не виден (v3.3.101) */
   pointer-events: none;
   animation: rhStillIn 0.6s ease-out both;
 }
 .wlBand[data-band='you'] { animation-delay: 0.3s; }
-.wlBandFill { position: absolute; inset: 0; background: rgba(255, 255, 255, 0.17); transform: scaleX(0); transform-origin: 0 50%; }
+.wlBandFill { position: absolute; inset: 0; background: rgba(255, 255, 255, 0.2); transform: scaleX(0); transform-origin: 0 50%; }
 .wlBand[data-on]::after {
   content: attr(data-tag);
   position: absolute;

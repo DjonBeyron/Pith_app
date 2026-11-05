@@ -1,0 +1,14 @@
+/* «Гонка с Питом», раунд «Вершина»: ловушка-двойник (features/pitrace/raceTrap.js, RaceClimb.jsx) — треснутый тёмный камень с двойником по-английски рядом с островом своей ступени, на соседней дорожке на той же высоте
+   (низ камня на уровне верха острова, как у островов: --k · --gap). Состояния (data-state): stand — стоит; crumbled — человек сказал двойника, камень осыпается (400 мс); fell — сказал верное слово, камень проваливается вниз.
+   Базовое состояние осыпавшегося и упавшего — невидим (opacity 0), поэтому без анимаций (слабое устройство, reduced-motion — отключены в race-climb.css) камень просто исчезает. Только transform / opacity, без filter. */
+.raceTrap { position: absolute; width: 25%; margin-left: -12.5%; height: calc(var(--ih) * 0.95); bottom: calc((var(--hb) + var(--k) * var(--gap)) * 1dvh - var(--ih) * 0.95); box-sizing: border-box; display: flex; align-items: center; justify-content: center; overflow: hidden; border-radius: 46% 54% 48% 52% / 54% 46% 56% 44%; border: 2px solid #7c818e; background: radial-gradient(ellipse at 40% 20%, #4a4e59, #25282f 75%); opacity: 0; }
+.raceTrap[data-state='stand'] { opacity: 1; }
+.raceTrap::before { content: ''; position: absolute; inset: 0; background: linear-gradient(112deg, transparent 38%, rgba(0, 0, 0, 0.7) 39%, rgba(0, 0, 0, 0.7) 41%, transparent 42%), linear-gradient(68deg, transparent 63%, rgba(0, 0, 0, 0.6) 64%, rgba(0, 0, 0, 0.6) 66%, transparent 67%); }
+.raceTrapWord { position: relative; font-size: clamp(12px, 3.8vw, 17px); font-weight: 800; color: #ff9a8a; white-space: nowrap; }
+.raceClimb[data-crumble] .raceWorld { transition-delay: 0.4s; } /* камень сначала осыпается, потом мир съезжает под героем (герой и слово из капсулы — с той же задержкой) */
+.raceClimb[data-crumble] .raceCapOut { animation-delay: 0.4s; }
+.raceTrap[data-state='crumbled'] { animation: raceCrumble 0.4s ease-in 1 both; }
+.raceTrap[data-state='fell'] { animation: raceTrapFall 0.5s ease-in 0.3s 1 both; }
+
+@keyframes raceCrumble { 0% { opacity: 1; transform: none; } 35% { opacity: 1; transform: translateY(0.8dvh) rotate(-5deg) scale(0.96, 0.92); } 100% { opacity: 0; transform: translateY(5dvh) rotate(11deg) scale(0.5); } }
+@keyframes raceTrapFall { 0% { opacity: 1; transform: none; } 100% { opacity: 0; transform: translateY(30dvh) rotate(6deg); } }

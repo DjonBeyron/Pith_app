@@ -89,7 +89,7 @@ export default function RehearsalPolishBlock({ save = saveDebugFile }) {
             comments={a.id === FULL_ID ? 0 : listComments(a.id).length} armed={armed === a.id} note={notes[a.id]} onExport={() => exportAct(a.id)} onClear={() => clearAct(a.id)} />
         ))}
       </ul>
-      {plan && <RotatePhoneModule key={voice.rev} node={node} bare forceDebug startRef={startRef} onStatus={setStatus} onDone={refresh} />}
+      {plan && <RotatePhoneModule linesRev={voice.rev} node={node} bare forceDebug startRef={startRef} onStatus={setStatus} onDone={refresh} />}
     </section>
   )
 }

@@ -12,7 +12,7 @@ const hasLiveTrack = stream => { try { return !!stream && stream.getTracks().som
 
 /**
  * recordTake({ stream, maxMs = 8000, mimeType? }) → { ok, error, stop(): Promise<Take>, cancel() }.
- * Take = { blob, url (objectURL), durationMs, rms (0..1, средний RMS голоса по WebAudio) }. stop() можно звать повторно (тот же промис); запись сама останавливается через maxMs — stop() тогда вернёт готовый дубль.
+ * Take = { blob, url (objectURL), durationMs, rms (0..1, средний RMS голоса по WebAudio), voice ({ startMs, endMs } — где в записи речь, voiceSpan.js; null — речи нет / обрезать нечего) }. stop() можно звать повторно (тот же промис); запись сама останавливается через maxMs — stop() тогда вернёт готовый дубль.
  * mimeType не задан — pickTakeMime (формат, который и пишется, и играет в <audio>: на iPhone mp4, а не webm); log(строка) получает «rec-start mime=… (почему)».
  * deps (для тестов): Recorder (класс вместо MediaRecorder), analyze (вместо decodeAudioData), now, canPlayType.
  */
@@ -54,7 +54,7 @@ export function recordTake({ stream, maxMs = MAX_TAKE_MS, mimeType, log = () => 
       const blob = new Blob(parts, { type: rec.mimeType || mimeType || 'audio/webm' })
       if (!blob.size) throw fail('empty')
       const info = await analyze(blob) // длительность из декодированного звука точнее часов: MediaRecorder пишет webm без длины
-      settle.resolve({ blob, mime: blob.type, url: URL.createObjectURL(blob), durationMs: info?.durationMs ?? Math.max(0, endedAt - startedAt), rms: info?.rms ?? 0 })
+      settle.resolve({ blob, mime: blob.type, url: URL.createObjectURL(blob), durationMs: info?.durationMs ?? Math.max(0, endedAt - startedAt), rms: info?.rms ?? 0, voice: info?.voice ?? null })
     } catch (e) { settle.reject(e?.code ? e : fail('failed', e?.message)) }
   }
   try { startedAt = now(); rec.start(); try { log(`[take] rec-start mime=${rec.mimeType || mimeType || 'по умолчанию'} (${why})`) } catch { /* журнал не мешает записи */ } timer = setTimeout(halt, Math.max(200, Number(maxMs) || MAX_TAKE_MS)) } catch { return broken('failed') }

@@ -12,10 +12,11 @@
 // только <i> внутри .wlPillSparks (искры вне клипа заливки едут за уровнем заливки).
 // data-ring — «выдох» кольца: ставится ОДИН раз за выдачу пилюли, когда data-live появился впервые (начало заливки), и снимается в clean (take / give); после этого CSS-анимация кольца (0,75 с) не повторяется.
 import { LANE_X, PILL_W } from './wordLaneTimeline.js'
-import { startFlight } from './wordLaneMotion.js'
+import { startFlight, flightPosition } from './wordLaneMotion.js'
 import { fillProfile } from './wordLaneTimeline.js'
 import { flightY, startRise } from './wordLaneRise.js'
 import { createLaneFlash } from './wordLaneLaneFlash.js'
+import { isWeakDevice } from '../../../../shared/lib/deviceTier.js'
 
 export const POOL = 12
 export const WILL_PILL = 'transform, translate, scale' // слои взятой пилюли: полёт (translate), хлопок (scale) и дрожка промаха (transform); transform в списке — гарантия слоя там, где will-change по translate/scale слой не создаёт
@@ -71,7 +72,7 @@ export function createPool(root) {
   const clean = k => {
     Object.assign(rise[k], { v: 0, at: -1e9, on: false, ringed: false }); parts[k].el.removeAttribute('data-live')
     paintFill(k, 0); hint(k, '0', null)
-    for (const a of ['data-lock', 'data-fail', 'data-wrong', 'data-hint', 'data-voice', 'data-rise', 'data-ring', 'data-still', 'data-tag', 'data-cmp']) parts[k].el.removeAttribute(a)
+    for (const a of ['data-lock', 'data-fail', 'data-wrong', 'data-hint', 'data-voice', 'data-rise', 'data-ring', 'data-still', 'data-tag', 'data-cmp', 'data-cap', 'data-reveal', 'data-quiet', 'data-edge']) parts[k].el.removeAttribute(a)
   }
   /** Тень слова: ширина полосок по громкости куска слова диктора (без кривой — ровно) */
   const shape = (k, curve) => {
@@ -92,9 +93,22 @@ export function createPool(root) {
     paintFill, hint, shape, give,
     /** Верный ответ: дорожка lane коротко вспыхивает цветом дорожки, кромки рядом — ярче (data-win на колонке и кромках, снимается по animationend) */
     flashLane: lane => laneFlash.flash(lane),
+    /** «Гонка с Питом»: упущенная пилюля не уезжает за край, а всплывает до высоты to (% экрана), держится и гаснет за ms мс — на ней успевают прочитать проявившееся слово; потом возвращается в пул сама (снимается с рук движка вызывающим) */
+    linger(k, { to = 60, ms = 1700 } = {}) {
+      const l = live.get(k)
+      if (!l) return
+      const from = l.anim ? flightY(l.anim) : to
+      try { l.anim?.cancel() } catch { /* уже снята */ }
+      const pos = y => ({ translate: flightPosition(y) })
+      const a = parts[k].el.animate([{ ...pos(from), opacity: 1 }, { ...pos(to), opacity: 1, offset: 0.2 }, { ...pos(to), opacity: 1, offset: 0.82 }, { ...pos(to), opacity: 0 }], { duration: ms, easing: 'ease-out', fill: 'both' })
+      l.anim = a
+      a.finished?.then(() => { if (live.get(k) === l) give(k) }).catch(() => { /* снята раньше (give / смена сцены) */ })
+    },
+    /** Подпись внутри пилюли (data-cap): «Гонка с Питом» — перевод, при промахе английское слово; пусто — подпись снята */
+    cap: (k, text) => { if (text) parts[k].el.setAttribute('data-cap', text); else parts[k].el.removeAttribute('data-cap') },
     attr: (k, name, on = true) => { if (on) parts[k].el.setAttribute(name, '1'); else parts[k].el.removeAttribute(name) },
     /** Выдать пилюлю под дорожку lane; atMs — сколько мс полёта уже прошло (отрицательное — ждёт за краем). Без полёта (static) — стоит на месте. Возвращает номер или null, если пул пуст */
-    take(lane, { atMs = 0, curve = null, flight = true } = {}) {
+    take(lane, { atMs = 0, curve = null, flight = true, speed = 1, cap = null, edge = false, quiet = false } = {}) { // speed — во сколько раз пилюля быстрее конвейера, cap — подпись внутри (data-cap), edge — у краёв экрана меньше (scale 0,85; на слабом устройстве без масштаба), quiet — промах без полос (data-quiet): «Гонка с Питом»
       const k = free.pop()
       if (k == null) return null
       const { el, fill, sparks } = parts[k]
@@ -103,10 +117,15 @@ export function createPool(root) {
       if (!safe()) { el.style.willChange = WILL_PILL; fill.style.willChange = WILL_FILL }
       el.setAttribute('data-held', '1')
       el.dataset.lane = String(lane)
+      if (speed !== 1) el.dataset.speed = String(speed); else delete el.dataset.speed // скорость пилюли «Гонки» — по ней пунктир дорожки едет быстрее (laneConveyorDrive)
       put(el, 'left', `${LANE_X[lane]}%`); put(el, 'width', `${PILL_W}%`)
       if (sparks) put(sparks, '--pill-h', `${tall[k]}px`)
       shape(k, curve)
-      live.set(k, { anim: flight ? startFlight(el, atMs) : null, lane, rise: null })
+      if (cap) el.setAttribute('data-cap', cap)
+      if (quiet) el.setAttribute('data-quiet', '1')
+      const scaled = edge && !isWeakDevice()
+      if (scaled) el.setAttribute('data-edge', '1')
+      live.set(k, { anim: flight ? startFlight(el, atMs, speed, scaled) : null, lane, rise: null })
       return k
     },
     giveAll() { for (const k of [...live.keys()]) give(k) },

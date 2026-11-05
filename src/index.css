@@ -105,9 +105,11 @@
 @import './styles/player/modules/rotate-phone.css';
 @import './styles/player/modules/unknown-node.css';
 @import './styles/player/modules/word-lane.css';
+@import './styles/player/modules/word-lane-label-frame.css';
 @import './styles/player/modules/word-lane-pill.css';
 @import './styles/player/modules/word-lane-pill-safe.css';
 @import './styles/player/modules/word-lane-pill-wrong.css';
+@import './styles/player/modules/game2-lane.css';
 @import './styles/player/modules/word-lane-lane-flash.css';
 @import './styles/player/modules/word-lane-lane-run.css';
 @import './styles/player/modules/word-lane-mic.css';
@@ -121,7 +123,10 @@
 @import './styles/player/modules/rehearsal-gold.css';
 @import './styles/player/modules/rehearsal.css';
 @import './styles/player/modules/rehearsal-read.css';
-@import './styles/player/modules/rehearsal-discern.css';
+@import './styles/player/modules/race-sprint.css';
+@import './styles/player/modules/race-climb.css';
+@import './styles/player/modules/race-climb-timer.css';
+@import './styles/player/modules/race-summary.css';
 @import './styles/player/message.css';
 @import './styles/player/modules/audio.css';
 @import './styles/player/modules/circle.css';

@@ -1,0 +1,24 @@
+/* Итог «Гонки с Питом»: «Самые слабые слова» (features/pitrace/RaceSummary.jsx, счёт — raceWeak.js). Чипы слов «Разгона» от самых слабых к самым сильным; цвет — по слабости: красный (data-tone="red"), жёлтый, зелёный;
+   перевод мелко под словом. Не больше 8 чипов, на 375 px помещаются в два-три ряда. Только фон и обводка, без filter и анимаций. */
+.raceWeak { margin: 0 0 14px; text-align: left; }
+.raceWeakTitle { margin: 0 0 6px; font-size: 12px; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; opacity: 0.7; }
+.raceWeakList { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.raceWeakChip {
+  --wk: 182, 254, 59;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 0;
+  max-width: 100%;
+  padding: 4px 11px 3px;
+  box-sizing: border-box;
+  border: 1.5px solid rgba(var(--wk), 0.85);
+  border-radius: 999px;
+  background: rgba(var(--wk), 0.16);
+  color: #f4f6fb;
+  line-height: 1.15;
+}
+.raceWeakChip[data-tone='red'] { --wk: 255, 93, 115; }
+.raceWeakChip[data-tone='yellow'] { --wk: 255, 210, 87; }
+.raceWeakWord { font-size: 14px; font-weight: 800; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
+.raceWeakCap { font-size: 10px; font-weight: 600; opacity: 0.75; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }

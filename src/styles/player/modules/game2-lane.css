@@ -1,0 +1,112 @@
+/* «Мини-игра 2.0» (стенд, src/features/game2/): одна вертикальная лента времени вместо трёх дорожек. Корень — тот же .wl / .wlStage, что у игры «Повтори за диктором» (word-lane.css: тёмный фон, крестик, Пит-кот,
+   переменные --wl-*), здесь только лента. Пилюли — капсулы той же внешности, что .wlPill (word-lane-pill.css: тёмное тело --wl-card, обводка цвета --rgb, внутренний свет), но горизонтальные, с подписью.
+   Все пилюли режима лежат в одной дорожке .g2Track, которая едет вниз одним transform (Game2Lane.setT пишет его покадрово); состояние пилюль — атрибут data-state (lit / done / hit / miss / gone / fly),
+   его ставит лента прямо в DOM. Слабое устройство (data-lite на ленте): без свечения и без анимации заливки — заливка встаёт сразу. */
+
+/* Цвет ленты — сигнал «чей ход»: «Слушаю» (говорить не надо) — нейтральный холодный серо-синий; ход пользователя (data-turn='1') — цвет кнопки микрофона игры (--wl-accent) */
+.g2 { --rgb: 150, 164, 196; --g2-ink: var(--wl-ink, #0d1500); --g2-mic-rgb: var(--lvl1-rgb, 182, 254, 59); }
+.g2[data-turn='1'] { --rgb: var(--g2-mic-rgb); }
+
+/* Лента: колонка по центру (--g2-w от ширины экрана) на всю высоту; сверху и снизу пилюли выезжают из тьмы / уходят в неё (маска вместо двух затемнений: узлов меньше) */
+.wlStage > .g2Lane {
+  top: 0; bottom: 0;
+  left: calc((100% - var(--g2-w, 66%)) / 2);
+  width: var(--g2-w, 66%);
+  overflow: hidden;
+  pointer-events: none;
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 10%, #000 84%, transparent 100%);
+  mask-image: linear-gradient(to bottom, transparent 0, #000 10%, #000 84%, transparent 100%);
+}
+.g2[data-mode='done'] .g2Lane { opacity: 0.25; }
+.g2Track { position: absolute; left: 0; right: 0; top: 0; height: 0; will-change: transform; }
+.g2Fly { position: absolute; inset: 0; pointer-events: none; }
+
+/* Линия «сейчас»: тонкая, с мягким свечением вокруг; пилюля проходит её, пока звучит слово */
+.g2Line { position: absolute; left: 0; right: 0; top: var(--g2-line, 55%); height: 2px; margin-top: -1px; background: rgba(var(--rgb), 0.95); box-shadow: 0 0 10px rgba(var(--rgb), 0.7); z-index: 3; pointer-events: none; }
+.g2[data-turn='1'] .g2Line { height: 3px; margin-top: -1.5px; box-shadow: 0 0 14px rgba(var(--rgb), 0.9); }
+.g2Line::after { content: ''; position: absolute; left: 0; right: 0; top: -14px; height: 30px; background: linear-gradient(to bottom, transparent, rgba(var(--rgb), 0.1), transparent); }
+
+/* Пилюля: капсула во всю ширину ленты (с боковым отступом), тело — как у .wlPill; высота одна у всех (style.height, game2Geometry.PILL_H) */
+.g2Pill {
+  position: absolute; left: 4%; right: 4%;
+  box-sizing: border-box;
+  display: flex; align-items: center; justify-content: center;
+  overflow: hidden;
+  border: 2px solid rgba(var(--rgb), 0.5);
+  border-radius: 999px;
+  background: linear-gradient(to bottom, rgba(var(--rgb), 0.12), rgba(var(--rgb), 0.03)), var(--wl-card, #14171c);
+  box-shadow: inset 0 0 14px -6px rgba(var(--rgb), 0.5);
+  color: #f2f3f7;
+}
+.g2Fly .g2Pill { right: auto; }
+.g2PillFill {
+  position: absolute; inset: 0;
+  background: linear-gradient(to top, rgba(var(--rgb), 0.95), rgba(var(--rgb), 0.72));
+  transform: scaleY(0); transform-origin: 50% 100%;
+}
+.g2PillText { position: relative; z-index: 1; max-width: 92%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 19px; font-weight: 800; line-height: 1; letter-spacing: 0.01em; }
+.g2Lane[data-labels='0'] .g2PillText { visibility: hidden; }
+.g2Lane[data-labels='0'] .g2Pill[data-label] .g2PillText { visibility: visible; }
+
+/* Слово «к повтору»: обводка ярче и толще, свечение и метка-точка слева; служебные слова не мельче обычных (слушатели теряют их чаще всего) */
+.g2Pill[data-due] { border: 3px solid rgb(var(--rgb)); box-shadow: 0 0 12px rgba(var(--rgb), 0.45), inset 0 0 14px -4px rgba(var(--rgb), 0.6); }
+.g2Pill[data-due]::before { content: ''; position: absolute; z-index: 2; left: 9px; top: 50%; width: 6px; height: 6px; margin-top: -3px; border-radius: 50%; background: rgb(var(--rgb)); }
+/* «Ловлю»: окно слова (±0,8 с) открыто — пилюля светится ярче и тело подсвечено: окно видно глазами */
+.g2Pill[data-window] { border-color: #fff; background: linear-gradient(to bottom, rgba(var(--rgb), 0.5), rgba(var(--rgb), 0.28)), var(--wl-card, #14171c); box-shadow: 0 0 22px rgba(var(--rgb), 0.95), inset 0 0 16px rgba(var(--rgb), 0.8); }
+.g2Lane[data-lite] .g2Pill[data-window] { box-shadow: 0 0 0 2px rgba(var(--rgb), 0.9); }
+
+/* «Слушаю»: пилюля горит, пока звучит слово — заливка снизу вверх за время слова (--ms), потом тускнеет; текст темнеет на середине заливки */
+.g2Pill[data-state='lit'] .g2PillFill { animation: g2Fill var(--ms, 300ms) linear forwards; }
+.g2Pill[data-state='lit'] .g2PillText { animation: g2Ink var(--ms, 300ms) steps(1) forwards; }
+@keyframes g2Fill { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+@keyframes g2Ink { 0%, 49% { color: #f2f3f7; } 50%, 100% { color: var(--g2-ink); } }
+.g2Pill[data-state='done'] .g2PillFill { transform: scaleY(1); opacity: 0.3; }
+.g2Pill[data-state='done'] .g2PillText { color: #c3cad8; }
+
+/* Слово сказано: пилюля залита (в «Ловлю» тут же улетает копией — .g2Fly); не успел — косые полоски цвета ленты и серая обводка, пилюля уезжает вниз */
+.g2Pill[data-state='hit'], .g2Pill[data-state='fly'] { box-shadow: 0 0 14px rgba(var(--rgb), 0.7); }
+.g2Pill[data-state='hit'] .g2PillFill, .g2Pill[data-state='fly'] .g2PillFill { transform: scaleY(1); transition: transform 0.14s ease-out; }
+.g2Pill[data-state='hit'] .g2PillText, .g2Pill[data-state='fly'] .g2PillText { color: var(--g2-ink); }
+.g2Pill[data-state='miss'] { border-color: rgba(176, 184, 198, 0.55); box-shadow: none; opacity: 0.8; }
+.g2Pill[data-state='miss']::after { content: ''; position: absolute; inset: 0; z-index: 2; background: repeating-linear-gradient(45deg, rgba(var(--rgb), 0.55) 0 6px, rgba(10, 12, 16, 0.7) 6px 12px); }
+.g2Pill[data-state='gone'] { visibility: hidden; }
+
+/* Слабое устройство: без свечения, заливка сразу, кольцо и плашка без анимации */
+.g2 .g2Lane[data-lite] ~ .g2Ring { animation: none; }
+.g2 .g2Lane[data-lite] ~ .g2Plate { animation: g2PlateLite 1.5s steps(1) both; }
+@keyframes g2PlateLite { 0%, 99% { opacity: 1; } 100% { opacity: 0; } }
+.g2Lane[data-lite] .g2Pill, .g2Lane[data-lite] .g2Pill[data-due], .g2Lane[data-lite] .g2Pill[data-state] { box-shadow: none; }
+.g2Lane[data-lite] .g2Pill[data-state='lit'] .g2PillFill { animation: none; transform: scaleY(1); }
+.g2Lane[data-lite] .g2Pill[data-state='lit'] .g2PillText { animation: none; color: var(--g2-ink); }
+.g2Lane[data-lite] .g2Pill[data-state='gone'] { opacity: 0; visibility: visible; }
+.g2Lane[data-lite] .g2PillFill { transition: none; }
+
+/* Касание ленты («тап вместо речи»): слой на весь экран, ближайшую пилюлю ищет Game2Lane.TapLayer */
+.wlStage > .g2TapLayer { inset: 0; z-index: 4; touch-action: manipulation; }
+
+/* Кольцо-микрофон у линии «сейчас» (ход пользователя): слева от ленты, на высоте линии; пульсирует (на слабом устройстве — без анимации) */
+.wlStage > .g2Ring { top: calc(var(--g2-line, 55%) - 22px); left: max(8px, calc((100% - var(--g2-w, 66%)) / 2 - 52px)); width: 44px; height: 44px; box-sizing: border-box; display: flex; align-items: center; justify-content: center; border-radius: 50%; border: 2px solid rgb(var(--rgb)); color: rgb(var(--rgb)); background: rgba(14, 17, 22, 0.9); z-index: 5; pointer-events: none; animation: g2Pulse 1.3s ease-out infinite; }
+@keyframes g2Pulse { 0% { box-shadow: 0 0 0 0 rgba(var(--rgb), 0.65); } 100% { box-shadow: 0 0 0 16px rgba(var(--rgb), 0); } }
+
+/* Плашка режима над лентой: 1,5 с и гаснет сама (анимация, без таймеров); постоянная строка-инструкция — под названием режима, на весь режим */
+.wlStage > .g2Plate { top: 18%; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 10px; padding: 12px 22px; border-radius: 16px; background: rgba(11, 13, 17, 0.94); border: 2px solid rgb(var(--rgb)); color: rgb(var(--rgb)); font-size: 22px; font-weight: 800; white-space: nowrap; z-index: 7; pointer-events: none; animation: g2PlateLife 1.5s ease both; }
+@keyframes g2PlateLife { 0% { opacity: 0; scale: 0.7; } 12% { opacity: 1; scale: 1; } 78% { opacity: 1; } 100% { opacity: 0; } }
+.wlStage > .g2Instr { top: calc(env(safe-area-inset-top) + 54px); left: 50%; transform: translateX(-50%); width: max-content; max-width: calc(100% - 32px); padding: 6px 14px; border-radius: 12px; background: rgba(21, 24, 31, 0.9); font-size: 16px; font-weight: 700; line-height: 1.25; color: #f2f3f7; text-align: center; z-index: 5; pointer-events: none; }
+.g2[data-turn='1'] .g2Instr { color: rgb(var(--rgb)); }
+
+/* Название режима и заметки сверху */
+.wlStage > .g2Mode { top: calc(env(safe-area-inset-top) + 18px); left: 50%; transform: translateX(-50%); padding: 5px 14px; border-radius: 999px; background: rgba(21, 24, 31, 0.9); border: 1px solid rgba(var(--rgb), 0.5); font-size: 12px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; color: rgb(var(--rgb)); white-space: nowrap; z-index: 5; }
+.wlStage > .g2Note { top: calc(env(safe-area-inset-top) + 100px); left: 50%; transform: translateX(-50%); max-width: calc(100% - 32px); font-size: 11px; color: #9aa0b4; text-align: center; z-index: 5; }
+.wlStage > .g2Note--bad { color: #f3a6a6; }
+
+/* Подсказка «По памяти»: слово, с которого начать, — подписью (пилюля первого слова к этому времени уже ушла вниз) */
+.wlStage > .g2Hint { top: 24%; left: 50%; transform: translateX(-50%); padding: 8px 16px; border-radius: 999px; background: rgba(21, 24, 31, 0.92); border: 1.5px solid rgb(var(--rgb)); font-size: 18px; color: #c3cad8; white-space: nowrap; z-index: 6; }
+.g2Hint b { color: rgb(var(--rgb)); font-weight: 800; }
+
+/* Итог: плашка — .wlTurn (word-lane-plate.css) + .rhStats (rehearsal.css); здесь только компактнее — на 375×812 вместе с котом помещается */
+.g2Sum.rhSumPlate { padding: 16px 18px 14px; }
+.g2Sum .wlRevealPhrase { margin-bottom: 10px; font-size: clamp(18px, 6vw, 26px); }
+.g2Stats { margin-bottom: 12px; }
+
+/* Индикатор уровня микрофона (WordLaneMic) — правее центра, чтобы Пит-кот слева внизу его не закрывал */
+.wlStage > .wlMic { left: 42%; }

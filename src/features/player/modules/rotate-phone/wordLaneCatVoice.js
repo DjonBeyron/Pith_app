@@ -8,11 +8,12 @@ import { catDebug } from './wordLaneCatDebug.js'
 //    такие попытки считаются (micBlocked) и попадают в журнал отладки.
 //  • speak(track, ms, meta?) — реплика: рот идёт по дорожке track ms мс. Дорожки нет (пустой текст) — рот «жуёт» запасным циклом (chatterTrack), а не стоит. Усы (talking) подтверждаются каждый кадр и держатся
 //    до конца реплики; конец — по кадру ИЛИ по таймеру (если кадры не идут: вкладка в фоне, перегруз): что бы ни случилось, реплика закрывается и микрофон снова ведёт рот. Новых rAF сверх прежнего нет: один цикл на реплику.
+//  • queue (необязательно) — очередь речи Пита (wordLaneCatQueue.js): speak() ставит в неё элемент, голова не прячется между соседними элементами. Без неё — прежний peek.hold(ms + 400).
 //  • stop() — компонент размонтирован/пересобран: цикл и таймер сняты, реплика закрыта (раньше флаг «идёт реплика» оставался, и микрофон навсегда переставал двигать рот).
 const END_SLACK_MS = 80 // таймер конца реплики срабатывает на столько позже расчётного конца: кадр успевает сам закрыть реплику
 
 export function createCatVoice({
-  hold, look, peek, drawn = () => 0, now = () => performance.now(), raf = f => requestAnimationFrame(f), caf = id => cancelAnimationFrame(id),
+  hold, look, peek, queue = null, drawn = () => 0, now = () => performance.now(), raf = f => requestAnimationFrame(f), caf = id => cancelAnimationFrame(id),
   setTimer = setTimeout, clearTimer = clearTimeout, log = catDebug,
 }) {
   let line = null // { id, t0, ms, track, d0, micBlocked }
@@ -51,7 +52,7 @@ export function createCatVoice({
       const has = Array.isArray(track) && track.length > 0
       line = { id: meta?.id ?? null, t0: now(), ms, track: has ? track : chatterTrack(ms), d0: drawn(), micBlocked: 0 }
       log('cat-speak', { id: line.id, ms: Math.round(ms), trackLen: has ? track.length : 0, empty: !has, up: peek.isUp() })
-      peek.hold(ms + 400)
+      if (queue) queue.add(meta?.kind ?? 'реплика', ms, meta); else peek.hold(ms + 400) // одна очередь речи (wordLaneCatQueue.js): голова поднимается один раз на всю очередь
       look.lineStart(); look.talking(true)
       hold.set(codeAt(line.track, 0))
       rafId = raf(step)

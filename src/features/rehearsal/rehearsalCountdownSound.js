@@ -9,29 +9,30 @@ import { playGameBuffer } from '../../shared/lib/gameBufferPlay.js'
 import { pLog } from '../../shared/lib/debug.js'
 import { makeNoteWav } from '../player/modules/rotate-phone/wordLaneNotes.js'
 import { countdownPlan, countdownMs } from './rehearsalCountdown.js'
-import { noteBuffer, dropNoteBuffers } from './rehearsalCountdownSynth.js'
+import { noteBuffer, dropNoteBuffers, SOFT_GAIN } from './rehearsalCountdownSynth.js'
 
 export const COUNT_GAIN = 1      // громкость отсчёта в GainNode: фиксированная, от награды не зависит
 const WAV_LOUD = 2.3             // запасной WAV: уровень относительно нот награды (RMS 0,08 → ≈ 0,18; makeNoteWav сам держит пик)
-const wavOf = n => makeNoteWav(n.freq, n.ms, n.level * WAV_LOUD)
-const els = new Map() // запасной путь: k → { a, url }
+const wavOf = n => makeNoteWav(n.freq, n.ms, n.level * WAV_LOUD * (n.soft ? SOFT_GAIN : 1))
+const els = new Map() // запасной путь: ключ ноты (elKey) → { a, url }
+const elKey = n => `${n.soft ? 's' : 'n'}${n.k}`
 const say = (log, text) => { try { log(`[countdown] ${text}`) } catch { /* журнал не мешает звуку */ } }
 const label = n => `нота ${n.k + 1}/3`
 
-/** Подготовить ноты заранее (без жеста; безопасно звать много раз) и разбудить контекст, если он не 'running'. Нет Web Audio — ничего (запасной <audio> создаётся при первой ноте) */
-export function warmCountdown() {
+/** Подготовить ноты заранее (без жеста; безопасно звать много раз) и разбудить контекст, если он не 'running'. soft — ноты «нежного» отсчёта гонки. Нет Web Audio — ничего (запасной <audio> создаётся при первой ноте) */
+export function warmCountdown(soft = false) {
   if (!webAudioOn()) return
   const c = getGameCtx()
   if (!c) return
-  for (const n of countdownPlan()) noteBuffer(c, n)
+  for (const n of countdownPlan({ soft })) noteBuffer(c, n)
   if (c.state !== 'running') { try { Promise.resolve(c.resume()).catch(() => {}) } catch { /* вне жеста iOS может не пустить: нота сама попробует ещё раз */ } }
 }
 
 function playElement(n, log) {
   if (typeof Audio === 'undefined') { say(log, `${label(n)} НЕ сыграна: нет ни Web Audio, ни <audio>`); return false }
   try {
-    let e = els.get(n.k)
-    if (!e) { const url = URL.createObjectURL(new Blob([wavOf(n)], { type: 'audio/wav' })); e = { a: new Audio(url), url }; els.set(n.k, e) }
+    let e = els.get(elKey(n))
+    if (!e) { const url = URL.createObjectURL(new Blob([wavOf(n)], { type: 'audio/wav' })); e = { a: new Audio(url), url }; els.set(elKey(n), e) }
     e.a.volume = Math.min(1, COUNT_GAIN)
     e.a.currentTime = 0
     e.a.play().then(() => say(log, `${label(n)} сыграна через <audio> (Web Audio выключен)`), err => say(log, `${label(n)} НЕ сыграна: <audio> отказал (${err?.name ?? err})`))
@@ -62,7 +63,7 @@ export function playCountdownNote(n, { log = pLog } = {}) {
  * play/setTimer/log подставляются в тестах
  */
 export function startCountdown({ plan = countdownPlan(), play = playCountdownNote, setTimer = setTimeout, clearTimer = clearTimeout, onDone = null, log = pLog } = {}) {
-  warmCountdown()
+  warmCountdown(!!plan[0]?.soft)
   const played = []
   const ids = plan.map(n => setTimer(() => { played.push(!!play(n)) }, n.at))
   ids.push(setTimer(() => { say(log, `отсчёт: сыграно ${played.filter(Boolean).length} из ${plan.length}`); onDone?.() }, countdownMs(plan)))

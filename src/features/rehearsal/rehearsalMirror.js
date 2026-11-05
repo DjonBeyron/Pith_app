@@ -52,9 +52,20 @@ export function takeWordsOf(listeners, recAt) {
   return out.sort((a, b) => a.start - b.start)
 }
 
+/** Дубль для зеркала. Есть take.voice ({ startMs, endMs }, voiceSpan.js) — играет, считается и показывается только речь без тишины по краям: durationMs — обрезанный, слова Vosk сдвинуты на начало обрезки (слова целиком до неё
+ *  отбрасываются), trim — отрезок для воспроизведения (takeBuffer.playTakeBuffer / <audio>); fullMs — вся запись. Нет voice — запись как есть */
+export function studentOf(take, words = []) {
+  const base = { url: take.url, blob: take.blob ?? null, rms: take.rms, unit: 'ms' }
+  const v = take.voice
+  if (!(v && v.endMs > v.startMs)) return { ...base, words, durationMs: take.durationMs }
+  const durationMs = v.endMs - v.startMs
+  const shifted = words.map(w => ({ ...w, start: Math.max(0, w.start - v.startMs), end: Math.min(durationMs, w.end - v.startMs) })).filter(w => w.end > 0)
+  return { ...base, words: shifted, durationMs, trim: { startMs: v.startMs, endMs: v.endMs }, fullMs: take.durationMs }
+}
+
 /** Всё для «зеркала» на дорожках: take — { url, durationMs, rms } | null; words — takeWordsOf; dictor — makeMirrorDictor; dictorRms — громкость файлов диктора или null */
 export function buildMirror({ chunks, take, words = [], dictor, dictorRms = null }) {
-  const student = take ? { url: take.url, blob: take.blob ?? null, words, durationMs: take.durationMs, rms: take.rms, unit: 'ms' } : null
+  const student = take ? studentOf(take, words) : null
   const measure = student ? measureTake({ dictor: { words: dictor.words, durationMs: dictor.durationMs, rms: dictorRms ?? undefined }, student, chunks }) : null
   return { dictor, student, measure, note: noteFor(measure, chunks), tempo: measure?.tempo ?? null, dictorRms } // dictorRms — цель громкости при воспроизведении дубля (mirror/takeGain.js)
 }

@@ -1,0 +1,44 @@
+/* Блок «Гонка с Питом (стенд)» (admin/speech/RaceBlock.jsx): крупная кнопка запуска «Два этапа + финал» и плашка-вопрос «Говорю / Тапаю» (RaceAsk.jsx) перед стартом.
+   Плашка — тот же класс .wlTurn, что у плашек игры (word-lane-plate.css: узор-тайл, рамка, рост из центра, блеск один раз); здесь только затемнение экрана, положение в потоке (в игре плашка абсолютная) и кнопки.
+   Цвета акцента .wl здесь нет (плашка вне игры), поэтому --wl-accent задан. На 375 px: плашка не шире экрана минус 32 px, кнопки в ряд, без горизонтальной прокрутки. */
+.aspSay.rhpBig { width: 100%; padding: 14px 16px; font-size: 17px; box-sizing: border-box; } /* два класса: .aspSay (admin-speech.css) подключается позже и иначе перебил бы размер */
+.aspSay.rhpBig:disabled { opacity: 0.5; }
+
+.raceAsk {
+  --wl-accent: var(--lvl1, #b6fe3b);
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: env(safe-area-inset-top) 16px env(safe-area-inset-bottom);
+  box-sizing: border-box;
+  background: rgba(5, 6, 9, 0.66);
+  color: #f4f6fb;
+}
+.raceAskPlate.wlTurn {
+  position: relative;
+  inset: auto;
+  margin: 0;
+  width: min(100%, 340px);
+  padding: 20px 18px 14px;
+  font-size: clamp(18px, 5.4vw, 24px);
+}
+.raceAskText { margin: 0 0 14px; line-height: 1.3; }
+.raceAskListen { margin: -6px 0 12px; }
+.raceAskBtns { display: flex; gap: 10px; }
+.raceAskBtn {
+  flex: 1;
+  padding: 12px 8px;
+  border-radius: 14px;
+  border: 2px solid rgba(255, 255, 255, 0.28);
+  background: rgba(255, 255, 255, 0.06);
+  color: inherit;
+  font: inherit;
+  font-size: 18px;
+  font-weight: 800;
+  cursor: pointer;
+}
+.raceAskBtn[data-main] { border-color: var(--wl-accent); background: var(--wl-accent); color: #0d1500; } /* прошлый выбор — подсвечен по умолчанию */
+.raceAskCancel { margin-top: 10px; padding: 6px 12px; border: 0; background: none; color: #9aa0b4; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }

@@ -9,6 +9,7 @@ import { playTakeBuffer } from './takeBuffer.js'
 
 const IDLE_LIT = { d: -1, s: -1 }
 const TAIL_MS = 1500 // запасной выход, если <audio> не сообщил о конце
+const TRIM_TAIL_MS = 60 // у обрезанной записи (student.trim) конец — по таймеру: durationMs уже без тишины
 export const NO_PLAY_TEXT = 'Запись не воспроизводится на этом устройстве' // ни буфер Web Audio, ни <audio> не сыграли запись
 
 export function useMirrorPlayback({ dictor, student, spans, audioRef, targetRms = null, onSound = null }) {
@@ -52,7 +53,7 @@ export function useMirrorPlayback({ dictor, student, spans, audioRef, targetRms 
         const begin = () => { if (!alive()) return; schedule('s', spans.student, 0); onSound?.({ side: 'you', delayMs: 0, durationMs: Number(student.durationMs) || 0 }) }
         let played = false
         if (student.blob && !viaAudio.current) { // основной путь: Web Audio с выравниванием громкости
-          const res = await playTakeBuffer(student.blob, { targetRms, onStart: begin })
+          const res = await playTakeBuffer(student.blob, { targetRms, onStart: begin, trim: student.trim ?? null })
           clear()
           if (!alive()) return
           played = res === 'ended'
@@ -65,8 +66,8 @@ export function useMirrorPlayback({ dictor, student, spans, audioRef, targetRms 
             const fail = () => { failed = true; finish() }
             a.addEventListener('ended', finish)
             a.addEventListener('error', fail)
-            timers.current.push(setTimeout(finish, (Number(student.durationMs) || 0) + TAIL_MS))
-            try { a.currentTime = 0 } catch { /* ещё не загружен */ }
+            timers.current.push(setTimeout(finish, (Number(student.durationMs) || 0) + (student.trim ? TRIM_TAIL_MS : TAIL_MS))) // с обрезкой <audio> сам не остановится на её конце — гасим по таймеру
+            try { a.currentTime = (student.trim?.startMs ?? 0) / 1000 } catch { /* ещё не загружен */ }
             Promise.resolve(a.play()).then(begin, fail) // iPhone: NotSupportedError на webm/opus
           })
           clear()

@@ -8,12 +8,9 @@ import { snapPill, missPill } from './wordLaneSnap.js'
 const HINT_RING_MS = 1600
 const VOICE_GLOW_MS = 700 // пилюля светится, пока звучит её слово («Различи»)
 
-const clipOf = (pool, k) => pool.el(k)?.querySelector?.('.wlPillClip')
-const unlabel = (pool, k) => clipOf(pool, k)?.removeAttribute?.('data-word') // пилюля возвращается в пул без слова
-
 export function runOrderScene({ pool, scene, fxRef }) {
   const { prompts, lanes, count } = scene
-  const g = createOrderGame({ prompts, lanes })
+  const g = createOrderGame({ prompts, lanes, maxTries: scene.maxTries })
   const t0 = performance.now()
   const sets = [] // подсказка → { spawnAt, pills: Map(дорожка → номер в пуле), taken: Set(дорожек) }
   const timers = []
@@ -25,9 +22,8 @@ export function runOrderScene({ pool, scene, fxRef }) {
       if (e.type === 'spawn') {
         const set = { spawnAt: g.spawnAt + maxDelayOf(e.prompt), pills: new Map(), taken: new Set() } // spawnAt — когда выкатилась последняя пилюля
         for (const lane of e.prompt.slots ?? Array.from({ length: count }, (_, k) => k)) { // «Различи»: пилюли только в дорожках со словами
-          const k = pool.take(lane, { atMs: performance.now() - t0 - g.spawnAt - laneDelayOf(e.prompt, lane) }) // «Различи»: пилюли выкатываются по очереди (пока не выкатилась — ждёт за краем)
+          const k = pool.take(lane, { atMs: performance.now() - t0 - g.spawnAt - laneDelayOf(e.prompt, lane), edge: e.prompt.edge }) // «Различи»: пилюли выкатываются по очереди (пока не выкатилась — ждёт за краем)
           if (k == null) continue
-          if (e.prompt.written) clipOf(pool, k)?.setAttribute('data-word', e.prompt.texts[lane]) // репетиция, «Различи»: слово написано на пилюле (rehearsal-discern.css), пилюля молчит
           set.pills.set(lane, k)
         }
         sets.push(set)
@@ -45,7 +41,7 @@ export function runOrderScene({ pool, scene, fxRef }) {
     handle(stepOrder(g, t))
     for (const set of [...sets]) { // ушла за нижний край — пилюли в пул
       if (ENTER_Y + (SPEED * (t - set.spawnAt)) / 1000 < EXIT_Y) continue
-      set.pills.forEach(k => { unlabel(pool, k); pool.give(k) })
+      set.pills.forEach(k => { pool.give(k) })
       sets.splice(sets.indexOf(set), 1)
     }
     raf = requestAnimationFrame(tick)
@@ -68,7 +64,7 @@ export function runOrderScene({ pool, scene, fxRef }) {
           if (e.hint && want != null) { pool.attr(want, 'data-hint'); timers.push(setTimeout(() => pool.attr(want, 'data-hint', false), HINT_RING_MS)) }
           fxRef.current?.miss?.()
         } else if (e.type === 'next') {
-          set.pills.forEach((kk, ln) => { if (!set.taken.has(ln)) { unlabel(pool, kk); pool.give(kk); set.pills.delete(ln) } }) // раунд пошёл дальше — лишние пилюли подсказки убираем
+          set.pills.forEach((kk, ln) => { if (!set.taken.has(ln)) { pool.give(kk); set.pills.delete(ln) } }) // раунд пошёл дальше — лишние пилюли подсказки убираем
         } else if (e.type === 'done') fxRef.current?.finished?.()
       }
     },

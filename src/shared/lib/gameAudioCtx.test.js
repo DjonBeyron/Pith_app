@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { webAudioOn, getGameCtx, gameCtxState, unlockGameCtx, onGameCtxInterrupted, closeGameCtx } from './gameAudioCtx.js'
+import { webAudioOn, getGameCtx, gameCtxState, unlockGameCtx, onGameCtxInterrupted, closeGameCtx, recreateGameCtx, ensureGameCtxRunning } from './gameAudioCtx.js'
 import { makeFakeWebAudio } from './fakeWebAudio.js'
 import { createAudioWarm } from './gameAudioWarm.js'
 
@@ -86,6 +86,53 @@ describe('gameAudioWarm смотрит на игровой контекст', ()
     await vi.advanceTimersByTimeAsync(400)
     expect(rewarm).toHaveBeenCalled()
     warm.end()
+    vi.useRealTimers()
+  })
+})
+
+describe('«мёртвый» контекст после фона (iOS): пересоздание в жесте', () => {
+  it('recreateGameCtx: старый закрыт, создан новый, события старого новый не трогают', () => {
+    const a = getGameCtx()
+    a.setState('interrupted')
+    const b = recreateGameCtx('тест')
+    expect(a.closed).toBe(true)
+    expect(b).not.toBe(a)
+    expect(gameCtxState()).toBe('suspended')
+    expect(fake.ctxs).toHaveLength(2)
+    a.setState('running')
+    expect(gameCtxState()).toBe('suspended')
+  })
+
+  it('ensureGameCtxRunning: контекст живой → resume проходит, пересоздания нет', async () => {
+    const r = await ensureGameCtxRunning()
+    expect(r).toMatchObject({ state: 'running', recreated: false })
+    expect(fake.ctxs).toHaveLength(1)
+  })
+
+  it('resume() завис (interrupted после блокировки) дольше 300 мс → контекст пересоздан в том же жесте; новый запускается', async () => {
+    vi.useFakeTimers()
+    getGameCtx().setState('interrupted')
+    fake.resumeMode = 'hang'
+    const p = ensureGameCtxRunning()
+    await vi.advanceTimersByTimeAsync(299)
+    expect(fake.ctxs).toHaveLength(1) // ещё ждём
+    fake.resumeMode = 'ok' // новый контекст resume() выполнит
+    await vi.advanceTimersByTimeAsync(5)
+    const r = await p
+    expect(fake.ctxs).toHaveLength(2)
+    expect(fake.ctxs[0].closed).toBe(true)
+    expect(r).toMatchObject({ state: 'running', recreated: true })
+    vi.useRealTimers()
+  })
+
+  it('и новый контекст не запустился — пересоздаём только один раз, состояние возвращается как есть', async () => {
+    vi.useFakeTimers()
+    fake.resumeMode = 'hang'
+    const p = ensureGameCtxRunning({ waitMs: 100 })
+    await vi.advanceTimersByTimeAsync(400)
+    const r = await p
+    expect(fake.ctxs).toHaveLength(2)
+    expect(r).toMatchObject({ state: 'suspended', recreated: true })
     vi.useRealTimers()
   })
 })

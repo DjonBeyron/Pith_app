@@ -1,0 +1,21 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>race admin harness</title>
+<style>body{margin:0;background:#0e1013;color:#fff;font-family:system-ui}#root{padding:12px}</style></head>
+<body><div id="root"></div>
+<script type="module">
+import React from 'react'
+import { createRoot } from 'react-dom/client'
+import '/src/index.css'
+import '/src/styles/admin-speech.css'
+import RaceBlock from '/src/features/admin/speech/RaceBlock.jsx'
+import { supabase } from '/src/shared/api/supabase.js'
+import { voskRuntime } from '/src/shared/lib/vosk/voskRuntime.js'
+
+// Стенд блока админки «Гонка с Питом» (dev, в сборку не входит): тот же RaceBlock без входа — для скриншотов раскладки и плашки «Говорю / Тапаю» (Playwright, 375×812)
+supabase.from = () => ({ select: () => ({ eq: () => Object.assign(Promise.resolve({ data: [], error: null }), { maybeSingle: () => Promise.resolve({ data: null, error: null }) }), maybeSingle: () => Promise.resolve({ data: null, error: null }) }) })
+class Rec { constructor() { this.h = {} } setWords() {} on(ev, cb) { this.h[ev] = cb } remove() {} acceptWaveform() {} retrieveFinalResult() {} }
+voskRuntime.acquire = () => () => {}
+voskRuntime.whenSettled = async () => ({ ok: true })
+voskRuntime.warmNow = () => {}
+voskRuntime.getModel = () => ({ KaldiRecognizer: Rec })
+createRoot(document.getElementById('root')).render(React.createElement(RaceBlock))
+</script></body></html>

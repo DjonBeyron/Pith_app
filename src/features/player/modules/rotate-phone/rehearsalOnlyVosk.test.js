@@ -57,15 +57,15 @@ function crawl(entries) {
   return { files: seen, hits }
 }
 
-const entries = [path.join(HERE, 'WordLaneGame.jsx'), path.join(HERE, 'RotatePhoneModule.jsx'), ...walk(path.join(SRC, 'features/rehearsal')).filter(isSource)]
+const entries = [path.join(HERE, 'WordLaneGame.jsx'), path.join(HERE, 'RotatePhoneModule.jsx'), ...walk(path.join(SRC, 'features/rehearsal')).filter(isSource), ...walk(path.join(SRC, 'features/game2')).filter(isSource)]
 const { files, hits } = crawl(entries)
 const rel = f => path.relative(SRC, f).split(path.sep).join('/')
 
-describe('игра и репетиция слушают только Vosk', () => {
+describe('игра, репетиция и «Мини-игра 2.0» (features/game2) слушают только Vosk', () => {
   it('граф импортов от WordLaneGame / RotatePhoneModule / rehearsal охватывает игру целиком (страж не пустой)', () => {
     const names = [...files].map(rel)
     expect(files.size).toBeGreaterThan(60)
-    for (const must of ['features/player/modules/rotate-phone/useWordLaneFlow.js', 'features/player/modules/rotate-phone/wordLaneListen.js', 'features/rehearsal/useRehearsalActs.js', 'features/player/modules/rotate-phone/wordLaneStart.js']) expect(names).toContain(must)
+    for (const must of ['features/player/modules/rotate-phone/useWordLaneFlow.js', 'features/player/modules/rotate-phone/wordLaneListen.js', 'features/rehearsal/useRehearsalActs.js', 'features/player/modules/rotate-phone/wordLaneStart.js', 'features/game2/useGame2Flow.js', 'features/game2/game2Listen.js']) expect(names).toContain(must)
   })
 
   it('ни один модуль графа не использует SpeechRecognition / webkitSpeechRecognition и не подключает speechController / sayVoicePlan / speechSupport', () => {

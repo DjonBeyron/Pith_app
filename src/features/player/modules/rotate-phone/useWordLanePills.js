@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { TRAVEL_MS, pillFill } from './wordLaneTimeline.js'
 import { createPool } from './wordLanePool.js'
-import { createStudentGame, stepStudent, isClaimable } from './wordLaneStudent.js'
+import { createStudentGame, stepStudent, isClaimable, liveRep } from './wordLaneStudent.js'
 import { createVoiceGate } from './wordLaneVoiceGate.js'
 import { snapPill, missPill, SNAP_LEAD_MS } from './wordLaneSnap.js'
 import { runOrderScene } from './wordLaneOrderScene.js'
@@ -78,7 +78,7 @@ export function useWordLanePills(rootRef, { scene, levels, fx, live, sceneApi })
     if (kind === 'student') {
       const { step, chunks, estMs, curves } = scene
       setDots(step.reps.length)
-      const g = createStudentGame({ step, chunks, estMs })
+      const g = createStudentGame({ step, chunks, estMs, maxTries: step.maxTries })
       const held = new Map() // id пилюли → номер в пуле
       g.seenSeq = liveRef.current.seq.length; g.seenMisses = liveRef.current.misses // слушатель стартует ещё в «твоей очереди» — слова до начала конвейера не считаем
       let raw = 0
@@ -91,28 +91,30 @@ export function useWordLanePills(rootRef, { scene, levels, fx, live, sceneApi })
       const t0 = performance.now()
       const off = levels?.subscribe(l => { raw = l })
       const blind = !step.labels.length
-      setApi(sceneApi, { nextTarget: () => (g.reps.filter(isClaimable)[0] ?? g.reps.find(r => r.state === 'fly') ?? null)?.target ?? null }) // ручной режим: тап по микрофону = «сказал» ближайший повтор
+      setApi(sceneApi, { nextTarget: () => (g.reps.filter(isClaimable)[0] ?? liveRep(g))?.target ?? null }) // ручной режим: тап по микрофону = «сказал» ближайший повтор
       const lockPiece = pill => { const k = held.get(pill.id); if (k != null) pool.attr(k, 'data-lock') }
       const handle = e => {
         if (e.type === 'spawn') {
           fxRef.current?.peek?.(2600) // повтор выкатился — сейчас будет говорить ученик: кот уже на месте
           for (const p of e.pills) {
-            const k = pool.take(p.lane, { atMs: performance.now() - t0 - p.spawnAt, curve: blind ? null : curves?.[p.chunk] ?? null })
+            const k = pool.take(p.lane, { atMs: performance.now() - t0 - p.spawnAt, curve: blind ? null : curves?.[p.chunk] ?? null, speed: p.speed, cap: e.rep.cap, edge: step.edge, quiet: step.quiet })
             if (k != null) held.set(p.id, k)
           }
         } else if (e.type === 'piece-ok') lockPiece(e.pill) // слова куска произнесены — он зеленеет сразу (его заливку доведёт движок, щелчок и нота придут событиями snap / win)
         else if (e.type === 'claim') {
           e.rep.pills.forEach(lockPiece) // остальные куски (защёлкнутые раньше уже зелёные)
           light(claimedReps++)
+          fxRef.current?.claim?.(e) // слово принято (раньше щелчка заливки): «Гонка» говорит мини-реплику успеха, пока следующая пилюля ждёт
         } else if (e.type === 'snap') { const k = held.get(e.pill.id); if (k != null) snapPill(pool.el(k), e.pill.lane, { full: e.full }) } // отклик — в момент, когда кусок принят; вспышка и искры — один раз на повтор (у последнего защёлкнутого куска), остальные куски только хлопают
-        else if (e.type === 'win') { gate.mute(performance.now()); const k = held.get(e.pill.id); pool.flashLane(e.pill.lane); fxRef.current?.win?.(e.order, k != null ? pool.el(k).getBoundingClientRect() : null, { last: e.last, count: e.rep.pills.length }); if (k != null && pool.rise(k)) held.delete(e.pill.id) } // нота-награда: микрофон слышит динамик — голосом это не считаем. last / count: XP одна цифра на повтор (когда принят последний кусок). Залитая пилюля улетает вверх (pool.rise, wordLaneRise.js) и возвращается в пул сама, по окончании взлёта: из рук движка её отпускаем (иначе уход «за нижний край» вернул бы её в пул посреди взлёта); конвейер о ней не знает — ни fly, ни lock, спавн следующего повтора она не держит
-        else if (e.type === 'fail') { e.pills.forEach(p => { const k = held.get(p.id); if (k != null) { pool.attr(k, 'data-fail'); pool.hint(k, '0', null) } }); fxRef.current?.fail?.(e) }
+        else if (e.type === 'win') { gate.mute(performance.now()); const k = held.get(e.pill.id); pool.flashLane(e.pill.lane); fxRef.current?.win?.(e.order, k != null ? pool.el(k).getBoundingClientRect() : null, { last: e.last, count: e.rep.pills.length, idx: e.rep.idx }); if (k != null && pool.rise(k)) held.delete(e.pill.id) } // нота-награда: микрофон слышит динамик — голосом это не считаем. last / count: XP одна цифра на повтор (когда принят последний кусок). Залитая пилюля улетает вверх (pool.rise, wordLaneRise.js) и возвращается в пул сама, по окончании взлёта: из рук движка её отпускаем (иначе уход «за нижний край» вернул бы её в пул посреди взлёта); конвейер о ней не знает — ни fly, ни lock, спавн следующего повтора она не держит
+        else if (e.type === 'fail') { if (!step.quiet) e.pills.forEach(p => { const k = held.get(p.id); if (k != null) { pool.attr(k, 'data-fail'); pool.hint(k, '0', null); if (e.rep.reveal) { pool.cap(k, e.rep.reveal); pool.attr(k, 'data-reveal'); pool.linger(k); held.delete(p.id) } } }); fxRef.current?.fail?.(e) } // reveal: «Гонка с Питом» — на упущенной пилюле проявляется английское слово
         else if (e.type === 'miss') {
           const k = e.rep ? held.get(e.rep.pills.find(p => p.state === 'fly')?.id) : null // красная вспышка — на первом куске, который ещё не принят (принятые остаются зелёными)
           if (k != null) missPill(pool.el(k))
-          if (e.rep) ghostUntil.set(e.rep.idx, performance.now() + GHOST_MS) // сказано не то — показываем «тень» слова: как оно звучит и сколько длится
+          if (e.rep && !step.quiet) ghostUntil.set(e.rep.idx, performance.now() + GHOST_MS) // сказано не то — показываем «тень» слова: как оно звучит и сколько длится
           fxRef.current?.miss?.(e)
         }
+        else if (e.type === 'pre') fxRef.current?.pre?.(e) // «Разгон»: Пит говорит перевод перед выездом пилюли (useRaceActs.pre)
         else if (e.type === 'done') fxRef.current?.finished?.(e.locked)
       }
       const tick = now => {

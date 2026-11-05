@@ -1,0 +1,29 @@
+// «Гонка с Питом»: акты рецепта (raceRecipe.js) → плоский список стадий в ТОМ ЖЕ формате, что у rehearsalStages.js / wordLaneStages.js (директор useWordLaneFlow проходит их по порядку). wordLaneStages.buildStages
+// делегирует сюда, когда у плана game === 'race'. Раунды по файлам: raceStagesSprint.js, raceStagesCatch.js (оба — очередь пилюль, общая сборка в raceStageKit.js), raceStagesClimb.js, raceStagesDescent.js; общее — raceStageKit.js.
+// Стадии гонки (все с race: true и act): announce — плашка раунда с репликой Пита (line); student — «Разгон» и «Слушай и лови» (одна ступень на все пилюли круга), ступени лестницы «Вершины», ответ «Спуска»; read / turn — читка Пита в «Спуске»; summary — итог. buildStages возвращает { recipe, stages, chunkMs, chunkCurves, lanes, clipMode }, как buildStages движка.
+import { orderLanes } from '../player/modules/rotate-phone/wordLaneRecipe.js'
+import { estChunkMs } from '../player/modules/rotate-phone/wordLaneAudio.js'
+import { rngFor } from '../rehearsal/rehearsalSeed.js'
+import { buildRaceActs } from './raceRecipe.js'
+import { createKit } from './raceStageKit.js'
+import { sprintStages } from './raceStagesSprint.js'
+import { catchStages } from './raceStagesCatch.js'
+import { climbStages } from './raceStagesClimb.js'
+import { descentStages } from './raceStagesDescent.js'
+
+const ROUNDS = { sprint: sprintStages, catch: catchStages, climb: climbStages, descent: descentStages }
+
+/** → { recipe, stages, chunkMs, chunkCurves, lanes, clipMode } — как buildStages (wordLaneStages.js) */
+export function buildRaceStages({ plan, rate = 1, lib = () => null }) {
+  const kit = createKit({ plan, rate, lib })
+  const { acts } = buildRaceActs(plan)
+  for (const act of acts) {
+    if (ROUNDS[act.id]) ROUNDS[act.id](kit, act)
+    else kit.push({ type: 'summary', act: 'summary', sid: 'summary', line: null }) // итог: реплику говорит директор (useRaceActs): золото или обычная
+  }
+  const first = kit.stages[0]
+  if (first?.type === 'announce') Object.assign(first, { count: 'after', soft: true }) // старт: после race_start и объявления первого этапа (бар заставки заполнен) — три нежные ноты (шаг 600 мс, нота 1,1 с), первая пилюля — после них
+  const { chunks } = plan
+  const r = kit.rate
+  return { recipe: { chunks, rounds: [], acts, plan }, stages: kit.stages, chunkMs: chunks.map((c, i) => (lib(i)?.ms ?? estChunkMs(c)) / r), chunkCurves: chunks.map(() => null), lanes: orderLanes(chunks.length, rngFor(plan.seed, 'lanes')), clipMode: () => false }
+}

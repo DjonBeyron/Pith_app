@@ -45,7 +45,10 @@ export default function VoskReadyNotice({ vosk }) {
         <>
           <p className="voskNoticeTitle">Распознавание речи не включилось</p>
           <p className="voskNoticeSub">{vosk.text || 'Попробуй ещё раз чуть позже'}</p>
-          <button type="button" className="voskNoticeBtn" onClick={vosk.retry}>Ещё раз</button>
+          {vosk.stage === 'importing-lib' && <p className="voskNoticeSub">Библиотека не загрузилась, перезагрузи страницу</p>}
+          {vosk.stage === 'importing-lib'
+            ? <button type="button" className="voskNoticeBtn" onClick={() => window.location.reload()} data-testid="vosk-reload">Перезагрузить</button>
+            : <button type="button" className="voskNoticeBtn" onClick={vosk.retry}>Ещё раз</button>}
         </>
       )}
     </div>

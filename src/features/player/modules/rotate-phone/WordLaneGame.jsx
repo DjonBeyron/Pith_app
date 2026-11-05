@@ -2,6 +2,7 @@ import { memo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
 import WordLanePills from './WordLanePills.jsx'
+import WordLaneHeads from './WordLaneHeads.jsx'
 import WordLaneMic from './WordLaneMic.jsx'
 import WordLaneDebug from './WordLaneDebug.jsx'
 import WordLaneDebugButton from './WordLaneDebugButton.jsx'
@@ -14,6 +15,7 @@ import WordLaneCommentButton from './WordLaneCommentButton.jsx'
 import WordLaneComment from './WordLaneComment.jsx'
 import WordLaneTurnPlate from './WordLaneTurnPlate.jsx'
 import { useWordLaneLeavingPlates } from './useWordLaneLeavingPlates.js'
+import { chargeOn } from '../../../pitrace/raceCharge.js'
 import RehearsalActs from '../../../rehearsal/RehearsalActs.jsx'
 import ReadKaraoke from '../../../rehearsal/read/ReadKaraoke.jsx'
 import { isWeakDevice } from '../../../../shared/lib/deviceTier.js'
@@ -23,6 +25,8 @@ import { useWordLaneFlow } from './useWordLaneFlow.js'
 import { useWordLanePause } from './useWordLanePause.js'
 import { WORD_Y } from './wordLaneTimeline.js'
 import { useConveyorArm } from './useConveyorArm.js'
+import { conveyorSpeedHint } from './wordLaneConveyorSpeed.js'
+import { useLabelFrames } from './useLaneLabels.js'
 
 // Вертикальная игра «Повтори за диктором» (полный экран, портрет). Фраза из кусков (до трёх) стоит над дорожками: кусок над своей дорожкой, дорожки слева направо читаются как предложение.
 // Раунды: наращивание (диктор — ученик по ступеням «кусок ×3 → следующий ×3 → вместе ×3 …»), «Порядок» (тап по дорожкам), «Вслепую» (ни текста, ни перевода) → перевод. Одно слово (фраза из одного куска)
@@ -48,31 +52,34 @@ export default function WordLaneGame({ cfg, audioSrc, lines = null, forceDebug =
   const pause = useWordLanePause({ f, cfg, audioSrc, lines }) // свернули приложение — пауза сразу, «Продолжить» открывает микрофон из тапа (useWordLanePause.js)
   const { phase } = f
   const plates = useWordLaneLeavingPlates(f.plate, f.idx) // плашка остаётся в DOM на время ухода (улетает вверх, как пилюля): useWordLaneLeavingPlates.js
+  const speed = conveyorSpeedHint(f.stages, f.stage === 'run' ? f.idx : -1) // «Гонка с Питом»: скорость первой пилюли ближайшей стадии — пунктир набирает её заранее (wordLaneConveyorSpeed.js)
   const armed = useConveyorArm(f) // какие дорожки взведены: конвейер зажигается за 0,66 с до конца реплики Пита / плашки (wordLaneConveyorStart.js), остановку решает привод по пилюлям на дорожке
   const single = cfg.chunks.length === 1 && phase !== 'discern' && !cfg.plan // у одного слова текст стоит крупно — кроме «Различи»: там слова на пилюлях, а верное над дорожками не выдаём
   const showSlots = phase !== 'drop'
   const intro = phase === 'drop' || phase === 'lanes' || f.pausedIntro
   const heads = intro && !cfg.plan ? cfg.chunks.map(text => ({ text, on: true })) : intro ? f.labels.map(() => ({ text: '', on: false })) : f.labels // заставка репетиции: слов сверху нет (v3.3.84)
-  const karaoke = f.rh.on && f.stage === 'run' && f.stageObj?.act === 'read' && !intro // акт «Читка»: слова заливаются зелёным под голос Пита / игрока (rehearsal/read/)
+  const fresh = useLabelFrames(heads, lite) // рамка вокруг новой подписи (WordLaneHeads)
+  const karaoke = f.rh.on && f.stage === 'run' && ['read', 'descent'].includes(f.stageObj?.act) && !intro // акт «Читка»: слова заливаются зелёным под голос Пита / игрока (rehearsal/read/)
   const debug = isWordLaneDebug()
+  const race = cfg.plan?.game === 'race' // гонка: подсказки «Тап вместо речи» над дорожкой нет (тап выбирается плашкой «Говорю / Тапаю» до старта), фон с узором
 
   return createPortal(
-    <div ref={rootRef} className={safe0 ? 'wl wl--safe' : 'wl'} data-phase={phase} data-act={f.rh.on ? f.stageObj?.act : undefined} data-sid={f.rh.on ? f.stageObj?.sid : undefined} data-testid="wl">
-      <div className="wlStage">
+    <div ref={rootRef} className={safe0 ? 'wl wl--safe' : 'wl'} data-phase={phase} data-act={f.rh.on ? f.stageObj?.act : undefined} data-sid={f.rh.on ? f.stageObj?.sid : undefined} data-streak={f.rh.race?.streakMode} data-charge={cfg.plan?.game === 'race' && chargeOn(f) ? '' : undefined} data-testid="wl">
+      <div className="wlStage" data-tex={race && !lite ? '' : undefined}>
         <WordLaneCat apiRef={catApi} />
-        <WordLanePills scene={f.scene} levels={f.levels} fx={f.fx} live={f.live} sceneApi={f.sceneApi} visible={showSlots} armed={armed} paused={f.paused} onLane={phase === 'order' || phase === 'discern' || (tapMode && phase === 'student') ? f.onLane : null} />
+        <WordLanePills scene={f.scene} levels={f.levels} fx={f.fx} live={f.live} sceneApi={f.sceneApi} visible={showSlots} armed={armed} speed={speed} paused={f.paused} speedKey={f.stage === 'run' ? f.idx : -1} onLane={phase === 'order' || (phase === 'discern' && !f.stageObj?.speak) || (tapMode && (phase === 'student' || f.stageObj?.speak)) ? f.onLane : null} />
         <WordLaneXp apiRef={f.xpApi} />
         {single
           ? <div className="wlWord" style={{ top: `${WORD_Y}%` }} data-testid="wl-word">{cfg.chunks[0]}</div>
           : (
-            <div className="wlHeads" style={{ top: `${WORD_Y}%` }} data-testid="wl-heads">
+            <div className="wlHeads" style={{ top: `${WORD_Y}%` }} data-testid="wl-heads" data-lite={lite || undefined}>
               {karaoke
                 ? <ReadKaraoke heads={heads} stage={f.stageObj} at={f.at} chunks={cfg.chunks} live={f.live} ready={f.lid === f.stageObj?.step?.id} lite={lite} />
-                : heads.map((h, i) => <span key={i} className={`wlHead${h.on ? ' wlHead--on' : ''}${h.text ? '' : ' wlHead--empty'}`} data-testid={`wl-head-${i}`}>{h.text}</span>)}
+                : <WordLaneHeads heads={heads} fresh={fresh} />}
             </div>
           )}
         {/* Подписи реплик Пита (белое облачко с текстом) убраны в v3.3.84: кот только говорит; f.catLine остаётся в комментариях владельца (commentSnapshot) */}
-        {tapMode && phase === 'student' && <div className="wlTapHint" data-testid="wl-tap-hint">Тап вместо речи: тапни дорожку</div>}
+        {tapMode && !race && phase === 'student' && <div className="wlTapHint" data-testid="wl-tap-hint">Тап вместо речи: тапни дорожку</div>}
         {plates.map(p => <WordLaneTurnPlate key={p.id} text={p.text} leaving={p.leaving} />)}
         {phase === 'reveal' && (
           <div className="wlReveal" data-testid="wl-reveal">
@@ -83,10 +90,10 @@ export default function WordLaneGame({ cfg, audioSrc, lines = null, forceDebug =
             {f.dbg.enabled && <WordLaneDebugButton dbg={f.dbg} />}
           </div>
         )}
-        <RehearsalActs f={f} cfg={cfg} onAgain={onAgain} onSummary={onSummary} />
+        <RehearsalActs f={f} cfg={cfg} lines={lines} onAgain={onAgain} onSummary={onSummary} />
         {debug && <WordLaneDebug />}
         {debug && <WordLanePerf />}
-        <Mic mode={f.mic} levels={f.levels} note={f.note} visible={phase === 'student'} />
+        {cfg.plan?.game !== 'race' && <Mic mode={f.mic} levels={f.levels} note={f.note} visible={phase === 'student'} />} {/* гонка: индикатора уровня микрофона нет (CONCEPT_RACE.md) */}
         {f.mic === 'failed' && !f.paused && (
           <div className="wlFail" role="alert" data-testid="wl-fail">
             <p className="wlFailTitle">{FAIL_TEXT.title}</p>

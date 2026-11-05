@@ -69,3 +69,5 @@
   .wlTurn.wlTurn--leave { animation: wlTurnFadeOut 0.25s ease both; }
   .wlTurn::after { display: none; }
 }
+/* Задание под названием раунда («Гонка с Питом»: «Разгон» и под ним «проверим, как ты помнишь слова…»): строкой мельче и тоньше; у плашек без задания элемента нет */
+.wlTurnTask { margin-top: 8px; font-size: clamp(14px, 4.2vw, 18px); font-weight: 600; line-height: 1.3; opacity: 0.82; }

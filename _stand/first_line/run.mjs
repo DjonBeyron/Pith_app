@@ -1,4 +1,4 @@
-// Playwright-драйвер стенда «Первая реплика Пита»: node _stand/first_line/run.mjs <ok|expired|expired-nogesture|slow|reject|abort|swap|pending4s> [port] [папка скриншотов] [доп. параметры адреса, например delay=30000 или webaudio=off — прежний <audio>-путь]
+// Playwright-драйвер стенда «Первая реплика Пита»: node _stand/first_line/run.mjs <ok|expired|expired-nogesture|slow|reject|abort|swap|pending4s|bgdead> [port] [папка скриншотов] [доп. параметры адреса, например delay=30000 или webaudio=off — прежний <audio>-путь]
 // Нужен запущенный dev-сервер (npx vite --port <port>) и PW_CHROMIUM_PATH (Chromium без playwright install). Печатает вывод раздела «Почему первая реплика тихая», шкалу, строки «[cat-voice]» и ключи файла отладки.
 import { chromium } from '@playwright/test'
 
@@ -16,6 +16,15 @@ try {
   page.on('pageerror', e => console.log('PAGEERROR', e.message))
   await page.goto(`http://localhost:${port}/_stand/first_line/index.html?case=${kase}${extra}`)
   await page.waitForSelector('[data-testid="rotate-start"]:not([disabled])', { timeout: 30000 })
+  if (kase === 'bgdead') { // «свернули и вернулись»: события фона до тапа; игровой контекст после этого мёртв (см. эмуляцию в index.html)
+    await page.evaluate(() => {
+      let vis = 'visible'
+      Object.defineProperty(document, 'visibilityState', { get: () => vis, configurable: true })
+      vis = 'hidden'; document.dispatchEvent(new Event('visibilitychange'))
+      window.__bgDead = true
+      vis = 'visible'; document.dispatchEvent(new Event('visibilitychange'))
+    })
+  }
   await page.click('[data-testid="rotate-start"]')
   if (kase.startsWith('expired')) {
     await page.waitForSelector('[data-testid="rotate-tap-hint"]', { timeout: 20000 })
@@ -34,6 +43,7 @@ try {
   console.log(rep.log.join('\n'))
   console.log('\n-- реплики кота --', JSON.stringify(rep.catVoice))
   console.log(`-- синтез речи: вызовов speak() = ${rep.synthCalls}; события дорожки микрофона: ${rep.trackEvents.join(',') || 'нет'}; обрывы пробуждения: нашей сменой src = ${rep.abortBySwap}, системой = ${rep.abortBySystem}`)
+  console.log(`-- отметка ctx: ${JSON.stringify(rep.ctxMark)}; «мёртвых» контекстов создано: ${rep.deadCtxs}`)
   console.log(`\n-- отметка ready: ${JSON.stringify(rep.ready)}`)
   console.log(`-- AudioBufferSourceNode.start(): ${rep.bufStarts.length} шт.; с тапа (мс): ${rep.bufStarts.map(b => b.sinceTap).join(', ') || '—'}`)
   const bufLines = rep.catVoice.filter(v => v.source === 'buffer')

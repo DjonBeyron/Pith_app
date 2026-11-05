@@ -4,10 +4,12 @@ import { unlockPlate } from './wordLanePlateSound.js'
 import { prepareClips, prepareWords, rewakeClips } from './wordLaneClips.js'
 import { playSpan, clipsFor } from './wordLaneAudio.js'
 import { libItems } from './wordLaneLib.js'
+import { transItems } from '../../../pitrace/raceTrans.js'
 import { linesItems, lineKey } from './wordLaneCatLines.js'
-import { prefetchWords } from './wordLaneFetch.js'
+import { prefetchWords, reviveWarm } from './wordLaneFetch.js'
 import { waitWarmGate, GATE_MAX_MS } from './wordLaneGate.js'
-import { unlockGameCtx, gameCtxState } from '../../../../shared/lib/gameAudioCtx.js'
+import { unlockGameCtx, gameCtxState, recreateGameCtx, ensureGameCtxRunning } from '../../../../shared/lib/gameAudioCtx.js'
+import { installGameAudioLife, consumeRewake } from '../../../../shared/lib/gameAudioLife.js'
 import { rewarmWordElements } from '../../word-audio/wordAudioPlayer.js'
 import { openGameMic } from '../../../../shared/lib/gameMic.js'
 import { gameAudioSession } from '../../../../shared/lib/gameMicSession.js'
@@ -45,10 +47,11 @@ export { GATE_MAX_MS } // потолок ожидания ворот с тапа
 export function wordsPlan({ cfg, lines }) {
   const all = linesItems(lines)
   const first = cfg.firstLines ? new Set(cfg.firstLines.map(lineKey)) : null
-  const words = libItems([...cfg.chunks, ...cfg.confusers.flat(), ...(cfg.extraWords ?? [])])
+  const trans = transItems(cfg.translations) // «Гонка»: озвучка русских переводов «Разгона» — первыми среди слов: первая пилюля выезжает после перевода
+  const words = [...trans, ...libItems([...cfg.chunks, ...cfg.confusers.flat(), ...(cfg.extraWords ?? [])])]
   const lineNow = all.filter(x => !first || first.has(x.key))
   const one = libItems(cfg.chunks.slice(0, 1)).length // кусок первой ступени
-  return first ? { now: [...lineNow, ...words], late: all.filter(x => !first.has(x.key)), firstCount: lineNow.length + one } : { now: [...words, ...lineNow], late: [], firstCount: one } // у репетиции реплики первых стадий качаются и декодируются ПЕРВЫМИ: заговорит Пит, а куски диктора понадобятся через секунды
+  return first ? { now: [...lineNow, ...words], late: all.filter(x => !first.has(x.key)), firstCount: lineNow.length + one + Math.min(2, trans.length) } : { now: [...words, ...lineNow], late: [], firstCount: one + Math.min(2, trans.length) } // у репетиции реплики первых стадий качаются и декодируются ПЕРВЫМИ: заговорит Пит, а куски диктора понадобятся через секунды
 }
 
 /** Все файлы озвучки игры по важности: [{ key, url }] (нужное к старту, затем фон) — для ворот и счётчика прогрева */
@@ -91,13 +94,18 @@ export function rewakeGameAudio({ audioSrc }) {
  * (прерываний, мс, состояние контекста), needsTap — жест истёк и прогрев ждёт касания (игру открывать после тапа). deps — подмена зависимостей в тестах.
  */
 export function startGameAudio({ cfg, audioSrc, lines }, deps = {}) {
-  const { warm = gameAudioWarm, session = gameAudioSession, hold = gameMicHold, openMic = openGameMic, wake = wakeGameAudio, rewake = rewakeGameAudio, gateMaxMs = GATE_MAX_MS, trace = gameStartTrace, prefetch = prefetchWords, unlockCtx = unlockGameCtx, gate = waitWarmGate } = deps
+  const { warm = gameAudioWarm, session = gameAudioSession, hold = gameMicHold, openMic = openGameMic, wake = wakeGameAudio, rewake = rewakeGameAudio, gateMaxMs = GATE_MAX_MS, trace = gameStartTrace, prefetch = prefetchWords, unlockCtx = unlockGameCtx, gate = waitWarmGate, install = installGameAudioLife, consume = consumeRewake, recreateCtx = recreateGameCtx, ensureCtx = ensureGameCtxRunning } = deps
   trace.begin() // хронология старта: отсчёт от тапа
+  install() // слушатели фона/возврата (gameAudioLife.js): идемпотентно; без них метка «звук после фона» не ставится
+  const suspect = consume() // звук возвращался из фона/блокировки с прошлого старта → полный путь: старый контекст не доверен, в этом же жесте создаём свежий
+  if (suspect) recreateCtx(`повторный старт после фона (${suspect})`)
   warm.begin() // следим за прерываниями с этой секунды
   session.begin() // 1. тип аудиосессии (настройка в Админ → «Голос»): до открытия микрофона, в том же тапе
   const micPromise = openMic() // 1. микрофон: getUserMedia вызывается синхронно в жесте (диалога нет, если доступ уже выдан); один поток на всю игру
   unlockCtx() // 1. игровой AudioContext (Web Audio) — создать и resume() в этом же жесте, пока он жив
   const plan = wordsPlan({ cfg, lines })
+  const revived = reviveWarm(warmItems(plan)) // страховка второго запуска: реестр «обработан» не доверен — отметки без буфера в памяти и оборванные докачки сбрасываются, файлы качаются заново, ворота ждут настоящий результат
+  if (revived.failed || revived.noBuffer || revived.stuck) pLog(`[warm] страховка: ${revived.noBuffer} файлов отмечены готовыми, но буфера в памяти нет; ${revived.failed} — с оборванной докачкой; ${revived.stuck} — запрос завис: качаю и декодирую заново`)
   prefetch(warmItems(plan)) // 0. озвучка качается и декодируется ВСЯ сразу (нужное к старту — первым в списке), пока открывается микрофон и улягается сессия (слотов ещё нет — аудиосессию это не трогает)
   return (async () => {
     const mic = await micPromise
@@ -106,6 +114,8 @@ export function startGameAudio({ cfg, audioSrc, lines }, deps = {}) {
     warm.markSelf()
     const settled = await warm.settle() // 2.
     trace.mark('settle', { waitedMs: settled.waitedMs, interrupts: settled.interrupts, ctx: settled.ctx ?? null, activation: settled.activation ?? null })
+    const ctxRes = await ensureCtx({ why: suspect ? 'повторный старт после фона' : 'старт игры' }) // 2б. контекст ДОЛЖЕН быть 'running': resume() не завершился за 300 мс («мёртвый» после фона) → пересоздаём в этом же жесте
+    trace.mark('ctx', { state: ctxRes?.state ?? null, recreated: !!ctxRes?.recreated, afterBg: suspect ?? null, ms: ctxRes?.ms ?? null })
     warm.onRewarm(() => rewake({ audioSrc })) // прерывание после этого места — повторный прогрев
     try { wake({ cfg, audioSrc, lines }); trace.mark('wake', { ok: true, ctx: gameCtxState() }) } catch (e) { pLog(`[rotate] звук диктора не разбудился: ${e?.message ?? e}`); trace.mark('wake', { ok: false, error: e?.message ?? String(e) }) } // 3.
     const needsTap = settled.activation === false
@@ -115,6 +125,7 @@ export function startGameAudio({ cfg, audioSrc, lines }, deps = {}) {
     }
     const g = await gate({ items: warmItems(plan), firstCount: plan.firstCount, maxMs: gateMaxMs, sinceTapMs: trace.sinceTap?.() ?? 0 }) // 4. ворота: первые N готовы / все / таймаут (8 с с тапа)
     trace.mark('ready', { words: g.by === 'timeout' ? 'timeout' : 'ready', gate: g.by, done: g.ok, total: g.total, firstN: g.firstN, ms: g.ms, ...(g.missing?.length ? { missing: g.missing.slice(0, 12) } : {}), ctx: gameCtxState() })
+    pLog(`[audio] состояние ctx=${gameCtxState() ?? 'нет'} перед первой репликой${gameCtxState() === 'running' ? '' : ' — НЕ running: реплики Пита могут не зазвучать до касания'}`)
     return { mic, settled, needsTap }
   })()
 }

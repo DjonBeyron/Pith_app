@@ -76,7 +76,7 @@ describe('подложки: разметка и стиль', () => {
     expect(css.replace(/\/\*[\s\S]*?\*\//g, '')).not.toMatch(/z-index/)
     expect(css).toMatch(/\.wlBand\[data-on\]::after \{[^}]*content: attr\(data-tag\)[^}]*left: 50%[^}]*color: var\(--wl-accent\)/s)
     expect(css).toMatch(/\.wlBandFill \{[^}]*transform: scaleX\(0\)[^}]*transform-origin: 0 50%/)
-    expect(css).toMatch(/border-radius: 9dvh/); expect(css).toMatch(/rgba\(255, 255, 255, 0\.05\)/)
+    expect(css).toMatch(/border-radius: 9dvh/); expect(css).toMatch(/background: rgba\(11, 13, 17, 0\.94\)/) /* тёмная подложка: пунктир дорожек не просвечивает */
     expect(css).toMatch(/\.weak-device \.wlBand\[data-on\] \{ animation: none; \}/)
   })
   it('в старом CSS зеркала подписи на пилюлях нет', () => {

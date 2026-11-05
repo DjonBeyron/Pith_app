@@ -19,11 +19,15 @@ export const wordBufferMs = (key, rate = 1) => { const b = wordBuffer(key); retu
 /** Состояние слота-буфера для диагностики: { buffer: true, ms, ctx } или null, если буфера нет */
 export const wordBufferInfo = key => { const b = wordBuffer(key); return b ? { buffer: true, ms: Math.round(b.duration * 1000), ctx: gameCtxState() } : null }
 
+let rateBoost = 1
+/** «Гонка с Питом», «Спуск»: слова и куски играют быстрее скорости голоса урока в k раз (1 — как обычно); директор включает на время раунда и снимает после */
+export const setRateBoost = k => { rateBoost = k > 0 ? k : 1 }
+
 /** Сыграть буфер слота. false — буфера нет (идти на <audio>). onStart() — звук действительно стартовал; onResult({ play: 'started' | 'ctx-stuck' | 'rejected', ms, ctx }) — один раз */
 export function playWordBuffer(key, onResult = null, onStart = null) {
   const buffer = wordBuffer(key)
   if (!buffer) return false
-  return playGameBuffer(buffer, { rate: getVoiceRate(), gain: getLessonMuted() ? 0 : 1, onStart, onResult })
+  return playGameBuffer(buffer, { rate: getVoiceRate() * rateBoost, gain: getLessonMuted() ? 0 : 1, onStart, onResult })
 }
 
 const ready = new Map()   // id → AudioBuffer

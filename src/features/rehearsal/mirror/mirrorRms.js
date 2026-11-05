@@ -1,4 +1,5 @@
-// «Дубль и зеркало»: громкость голоса в записи. Средний RMS только по «голосовым» кускам (по 20 мс): тишина до и после фразы не должна занижать цифру. Чистая функция, без DOM.
+// «Дубль и зеркало»: громкость голоса в записи (и, с v3.3.101, границы речи — voiceSpan.js). Средний RMS только по «голосовым» кускам (по 20 мс): тишина до и после фразы не должна занижать цифру. Чистая функция, без DOM.
+import { voiceSpan } from './voiceSpan.js'
 const FRAME_S = 0.02
 const FLOOR = 0.008        // тише этого — шум комнаты, не голос
 const REL = 0.25           // кусок считается голосом, если его RMS не меньше этой доли самого громкого куска
@@ -20,7 +21,7 @@ export function voicedRms(samples, rate) {
   return Math.min(1, Math.sqrt(voiced.reduce((s, m) => s + m, 0) / voiced.length))
 }
 
-/** Декодировать записанный/скачанный звук (Blob) → { rms, durationMs } или null (нет WebAudio / файл не разобрался) */
+/** Декодировать записанный/скачанный звук (Blob) → { rms, durationMs, voice: { startMs, endMs } | null } или null (нет WebAudio / файл не разобрался) */
 export async function analyzeBlob(blob) {
   try {
     const Ctx = typeof window !== 'undefined' ? window.OfflineAudioContext || window.webkitOfflineAudioContext : null
@@ -29,6 +30,6 @@ export async function analyzeBlob(blob) {
     const ch = audio.numberOfChannels
     const mono = new Float32Array(audio.length)
     for (let c = 0; c < ch; c++) { const d = audio.getChannelData(c); for (let i = 0; i < mono.length; i++) mono[i] += d[i] / ch }
-    return { rms: voicedRms(mono, audio.sampleRate), durationMs: Math.round(audio.duration * 1000) }
+    return { rms: voicedRms(mono, audio.sampleRate), durationMs: Math.round(audio.duration * 1000), voice: voiceSpan(mono, audio.sampleRate) }
   } catch { return null }
 }

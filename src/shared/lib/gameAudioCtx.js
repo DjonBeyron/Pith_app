@@ -4,6 +4,7 @@
 //  • Контекст создаётся лениво (getGameCtx) и «открывается» в жесте — unlockGameCtx(): resume() + тихий отсчёт в 1 кадр (классический разбуд iOS). Зовут: тап «Начать» (синхронная часть startGameAudio), повторный прогрев
 //    после прерывания (rewakeGameAudio, в жесте или на ближайшем касании) и gameAudioWarm.settle (resume, пока контекст 'interrupted').
 //  • iOS при смене типа аудиосессии (play-and-record) и открытии микрофона переводит контекст в 'interrupted'. Буферы при этом не страдают (они не привязаны к контексту) — нужен только resume() после прерывания.
+//    «Мёртвый» после фона/блокировки (resume() висит) пересоздаётся в жесте — ensureGameCtxRunning / recreateGameCtx (старт игры, wordLaneStart.js); пометка «звук после фона» — gameAudioLife.js.
 //    Закрытый ('closed') контекст пересоздаётся при следующем обращении. Подписчики прерываний (onGameCtxInterrupted) — gameAudioWarm: он запускает повторный прогрев.
 //  • У Vosk (voskEngine) и у звуков интерфейса (sounds.js) СВОИ контексты — этот модуль их не касается. В play-and-record два-три контекста допустимы; gameAudioWarm смотрит на сумму (ctxState: любой 'interrupted').
 //  • Аварийный выключатель: localStorage pithy_game_web_audio_v1 = 'off' (gameAudioSettings.js) — игра идёт прежними <audio>-слотами.
@@ -73,4 +74,39 @@ export function closeGameCtx() {
   ctx = null
   if (!c) return
   try { c.onstatechange = null; c.close?.()?.catch?.(() => {}) } catch { /* уже закрыт */ }
+}
+
+/**
+ * Пересоздать игровой контекст в жесте: старый закрывается (iOS после блокировки/фона иногда оставляет его «мёртвым»: 'interrupted'/'suspended', resume() не завершается никогда), создаётся новый.
+ * Декодированные AudioBuffer не привязаны к контексту (играют в любом, при другой частоте — с пересэмплированием), GainNode и источники создаются на каждый звук заново (gameBufferPlay) — перепривязывать нечего.
+ * → новый контекст или null (Web Audio нет). Причина уходит в журнал: «[audio] ctx пересоздан: …»
+ */
+export function recreateGameCtx(why) {
+  const old = ctx
+  const was = old?.state ?? 'нет'
+  ctx = null
+  if (old) { try { old.onstatechange = null; old.close?.()?.catch?.(() => {}) } catch { /* уже закрыт */ } }
+  pLog(`[audio] ctx пересоздан: ${why} (был ${was})`)
+  gameAudioNote('game-ctx', { recreated: true, why, was })
+  return getGameCtx()
+}
+
+/**
+ * Убедиться, что игровой контекст ЗАПУЩЕН (после settle, пока жест жив): resume(); не стал 'running' за waitMs (300 мс) — «мёртвый» (iOS после фона), пересоздаём в том же жесте и пробуем ещё раз.
+ * → { state, recreated, ms } (state null — Web Audio нет). Пересоздание не чаще одного раза за вызов; повторный провал — состояние в журнал, звук пойдёт после касания (gameAudioWarm).
+ */
+export async function ensureGameCtxRunning({ why = 'старт игры', waitMs = 300, now = () => performance.now(), setTimer = setTimeout, clearTimer = clearTimeout } = {}) {
+  const t0 = now()
+  const tryRun = async () => {
+    let timer
+    const state = await Promise.race([unlockGameCtx(), new Promise(res => { timer = setTimer(() => res('timeout'), waitMs) })])
+    clearTimer(timer)
+    return state === 'timeout' ? gameCtxState() : state
+  }
+  let state = await tryRun()
+  if (state == null || state === 'running') { pLog(`[audio] состояние ctx=${state ?? 'нет Web Audio'} (${why})`); return { state, recreated: false, ms: Math.round(now() - t0) } }
+  recreateGameCtx(`resume не завершился за ${waitMs} мс, ${why}`)
+  state = await tryRun()
+  pLog(`[audio] состояние ctx=${state ?? 'нет'} после пересоздания (${why})`)
+  return { state, recreated: true, ms: Math.round(now() - t0) }
 }

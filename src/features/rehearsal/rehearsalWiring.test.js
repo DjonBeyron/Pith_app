@@ -10,7 +10,7 @@ const RP = '../player/modules/rotate-phone/'
 describe('директор игры (useWordLaneFlow)', () => {
   const flow = read(`${RP}useWordLaneFlow.js`)
   it('план приходит в стадии (buildStages delegates), акты — хук useRehearsalActs, пропуски — nextIdx', () => {
-    expect(flow).toContain("import { useRehearsalActs } from '../../../rehearsal/useRehearsalActs.js'")
+    expect(flow).toContain("import { useRaceActs as useRehearsalActs } from '../../../pitrace/useRaceActs.js'") // директор гонки оборачивает директор репетиции
     expect(flow).toContain('confusers = null, plan = null, forceDebug = false, onFinished })')
     expect(flow).toContain('const rh = useRehearsalActs({ plan, stages, stage: s.stage, at: s.at, stageObj, setS, sayLine,')
     expect(flow).toContain('const i = nextIdx(sRef.current.idx + 1)')
@@ -25,20 +25,20 @@ describe('директор игры (useWordLaneFlow)', () => {
     expect(flow).toContain('else if (isStudentStage(stageObj)) look()?.lineStart()')
   })
   it('реакции движка попадают в журнал актов (win / miss / fail); «не успел» в разминке — реплика Пита; «Различи» называет слово', () => {
-    expect(flow).toContain("rh.rec('win'); if (playNote(order))")
-    expect(flow).toContain("miss() { rh.rec('miss');")
-    expect(flow).toContain("rh.rec('fail')")
+    expect(flow).toContain("rh.rec('win', rep); if (playNote(order))")
+    expect(flow).toContain("miss(e) { rh.rec('miss', e?.rep);")
+    expect(flow).toContain("rh.rec('fail', e.rep)")
     expect(flow).toContain("sayLine(rh.failLine(st) ?? (st?.step?.reps?.[0]?.parts?.length > 1 ? 'split_words' : 'try_again'))")
     expect(flow).toContain('const word = stages[sRef.current.idx]?.sayText; if (word) { handlers.sayText(word); return }')
   })
   it('плашки держатся, пока Пит говорит (holdMs); директор отдаёт rh и next для экранов зеркала и итога', () => {
     expect(flow).toContain('ids.push(setTimeout(() => rh.afterCount(next), rh.holdMs(stageObj)))') // переход ждёт конца отсчёта нотами
-    expect(flow).toContain('labelsFor(rh.quiet ? null :'); expect(flow).toContain("const plate = !rh.plateOk ? ''") // пока Пит говорит, ни подписей, ни плашки
+    expect(flow).toContain('useBuiltLabels({ stages, stage:'); expect(flow).toContain('quiet: rh.quiet'); expect(flow).toContain("const plate = !rh.plateOk ? ''") // пока Пит говорит, ни подписей, ни плашки
     expect(flow).toContain('return { ...s, stages, dbg, rh, next, catLine: cat.text, phase,')
   })
   it('дубль и зеркало: слушатель дубля без затвора и без паузы между заходами; на дубле Пит молчит; стадия закончилась — rh.leave дописывает дубль и только потом next', () => {
     expect(flow).toContain('gate: !listenStep.record, restartMs: listenStep.record ? 0 : undefined')
-    expect(flow).toContain("const said = e.order || st?.type === 'take' ? false : sayLine(rh.failLine(st)")
+    expect(flow).toContain("const said = e.order || st?.type === 'take' || st?.step?.quiet ? false : sayLine(rh.failLine(st)")
     expect(flow).toContain("later(() => rh.leave(stages[at], () => { if (sRef.current.idx === at && sRef.current.stage === 'run') next() }), EXIT_PAUSE_MS)")
     expect(flow).toContain('cat, lines, rate, lang, listenerRef })')
     expect(flow).not.toMatch(/onChange: \(\{[^}]*words/) // слова Vosk в onChange не идут (перерисовок не плодят)
@@ -88,7 +88,7 @@ describe('игра, модуль, настройки, звук', () => {
     expect(game).toContain("import RehearsalActs from '../../../rehearsal/RehearsalActs.jsx'")
     expect(game).toContain('plan: cfg.plan, forceDebug, onFinished })')
     expect(game).toContain("phase !== 'discern' && !cfg.plan")
-    expect(game).toContain('<RehearsalActs f={f} cfg={cfg} onAgain={onAgain} onSummary={onSummary} />')
+    expect(game).toContain('<RehearsalActs f={f} cfg={cfg} lines={lines} onAgain={onAgain} onSummary={onSummary} />')
     expect(game).toContain('data-act={f.rh.on ? f.stageObj?.act : undefined}')
   })
   it('RotatePhoneModule: «Ещё минутку?» — следующий план и перезапуск игры в том же тапе; по концу игры — снова план ноды', () => {
@@ -96,22 +96,22 @@ describe('игра, модуль, настройки, звук', () => {
     expect(mod).toContain("import { nextPlan } from '../../../rehearsal/rehearsalCfg.js'")
     expect(mod).toContain('const cfg = useMemo(() => (plan ? readWordLane({ plan }) : nodeCfg), [plan, nodeCfg])')
     expect(mod).toContain('flushSync(() => { setPlan(next); setGameKey(k => k + 1) })')
-    expect(mod).toContain('onAgain={cfg.plan && !cfg.plan.only ? another : null}')
+    expect(mod).toContain('onAgain={cfg.plan && !cfg.plan.only && !cfg.plan.round ? another : null}')
     expect(mod).toContain('leaveFullscreen(); setPlan(null)')
   })
   it('readWordLane принимает rotate_phone.plan; тап «Начать» готовит слова репетиции; реплики Пита — в каталоге реплик кота', () => {
     expect(read(`${RP}wordLaneConfig.js`)).toContain('const rehearsal = td.plan ? readRehearsalCfg(td.plan) : null')
     expect(read(`${RP}wordLaneStart.js`)).toContain('...(cfg.extraWords ?? [])')
-    expect(read(`${RP}wordLaneCatLines.js`)).toContain('export const CAT_LINES = [...GAME_LINES, ...REHEARSAL_LINES]')
-    expect(read(`${RP}wordLaneStages.js`)).toContain('if (plan) return buildRehearsalStages({ plan, rate, lib })')
+    expect(read(`${RP}wordLaneCatLines.js`)).toContain('export const CAT_LINES = [...GAME_LINES, ...REHEARSAL_LINES, ...RACE_LINES]')
+    expect(read(`${RP}wordLaneStages.js`)).toContain("if (plan) return plan.game === 'race' ? buildRaceStages({ plan, rate, lib }) : buildRehearsalStages({ plan, rate, lib })")
     expect(read(`${RP}wordLaneStages.js`)).toContain('if (stage?.act) return labelsForRehearsal(stage, chunks, hint)')
   })
   it('читка-караоке (v3.3.87): игра подставляет ReadKaraoke вместо подписей на акте read; стили подключены; без filter и Math.random', () => {
     const game = read(`${RP}WordLaneGame.jsx`)
     expect(game).toContain("import ReadKaraoke from '../../../rehearsal/read/ReadKaraoke.jsx'")
-    expect(game).toContain("f.stageObj?.act === 'read'"); expect(game).toContain('<ReadKaraoke heads={heads}')
+    expect(game).toContain("['read', 'descent'].includes(f.stageObj?.act)"); expect(game).toContain('<ReadKaraoke heads={heads}')
     expect(read('../../index.css')).toContain("@import './styles/player/modules/rehearsal-read.css';")
-    expect(read('../../index.css')).toContain("@import './styles/player/modules/rehearsal-discern.css';"); expect(read('../../styles/player/modules/rehearsal-discern.css')).toContain('.wlPillClip[data-word]::before')
+    expect(read('../../index.css')).not.toContain('rehearsal-discern.css') // v3.3.101: слово на пилюле «Различи» не пишется
     const css = read('../../styles/player/modules/rehearsal-read.css')
     expect(css).toContain('.rkCursor'); expect(css).not.toMatch(/filter|box-shadow|@keyframes/)
     for (const f of ['readKaraoke.js', 'useReadKaraoke.js', 'ReadKaraoke.jsx']) expect(read(`./read/${f}`), f).not.toContain('Math.random')

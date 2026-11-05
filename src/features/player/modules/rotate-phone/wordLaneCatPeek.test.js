@@ -1,5 +1,6 @@
-import { describe, it, expect } from 'vitest'
-import { catPeek, CAT_SPOTS, HIDE_AFTER_MS, HIDE_MS, VOICE_AT } from './wordLaneCatPeek.js'
+import { describe, it, expect, vi } from 'vitest'
+import { readFileSync } from 'node:fs'
+import { catPeek, holdForReact, CAT_SPOTS, HIDE_AFTER_MS, HIDE_MS, VOICE_AT } from './wordLaneCatPeek.js'
 import { CAT_VIEWBOX } from './WordLaneCat.jsx'
 
 // Пит: из низа выскакивает только голова и торчит в разных местах
@@ -70,5 +71,15 @@ describe('Пит: голова выскакивает на голос и пря�
     expect(y).toBeLessThanOrEqual(20); expect(y + h).toBeGreaterThanOrEqual(142 + 10) // голова не срезана: ни ушей, ни подбородка с шеей
     expect(x).toBeLessThanOrEqual(14); expect(x + w).toBeGreaterThanOrEqual(172)      // и по бокам (уши, усы)
     expect(y + h).toBeLessThan(200)                                                    // а тело и ноги в кадр не попадают
+  })
+
+  it('quiet («Разгон»): реакция на промах без движения головы — holdForReact не зовёт peek.hold; обычная реакция зовёт', () => {
+    const peek = { hold: vi.fn() }
+    holdForReact(peek, 1300, true); expect(peek.hold).not.toHaveBeenCalled()
+    holdForReact(peek, 1300); expect(peek.hold).toHaveBeenCalledWith(1300)
+    const flow = readFileSync(new URL('./useWordLaneFlow.js', import.meta.url), 'utf8'), cat = readFileSync(new URL('./WordLaneCat.jsx', import.meta.url), 'utf8')
+    expect(flow.match(/react\('shy', 1300, !!/g)).toHaveLength(2) // и на miss, и на fail тихой стадии — still
+    expect(cat).toContain('react(next, ms = 1500, still = false)'); expect(cat).toContain('holdForReact(peek, ms, still)')
+    expect(flow).toContain("st?.step?.quiet ? false"); expect(flow).toContain('!said && !st?.step?.quiet')
   })
 })

@@ -166,7 +166,7 @@ describe('проводка', () => {
     expect(src).toContain('const how = await save(commentsFile(id, listComments(id)')
     expect(src.match(/await /g)).toHaveLength(2) // два await — оба сам save (комментарии и журналы прогона): файл собирается синхронно, в тапе
     expect(src).toContain('const how = await save(audio.runsFile())')
-    expect(src).toContain('<RotatePhoneModule key={voice.rev} node={node} bare forceDebug startRef={startRef}')
+    expect(src).toContain('<RotatePhoneModule linesRev={voice.rev} node={node} bare forceDebug startRef={startRef}')
     expect(src).toContain('const launch = id => { audio.beforeLaunch(id); flushSync(() => setOnly(id)); startRef.current?.() }') // режим звука применяется до start() игры, в том же тапе
   })
   it('«Тест игры» слушает ту же форму (фикстуру из «Шлифовки») и сохраняет её через общий saveRehearsalForm', () => {

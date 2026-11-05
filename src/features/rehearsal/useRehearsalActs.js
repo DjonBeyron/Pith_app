@@ -11,7 +11,7 @@ import { useRehearsalTake } from './useRehearsalTake.js'
 import { hasIntroLine } from './rehearsalPrepare.js'
 import { stuckHint, hintEntry, sayWordHint } from './rehearsalHints.js'
 import { demoSummary } from './polish/polishDemo.js'
-import { stageTiming } from './rehearsalCountdown.js'
+import { stageTiming, countdownPlan } from './rehearsalCountdown.js'
 import { warmCountdown, releaseCountdown } from './rehearsalCountdownSound.js'
 import { createCountGate, scheduleStageCount } from './rehearsalCountdownRun.js'
 import { lineVoiced } from './rehearsalQuiet.js'
@@ -38,6 +38,7 @@ export function useRehearsalActs({ plan, stages, stage, at, stageObj, setS, sayL
   const [journal] = useState(createJournal)
   const [result, setResult] = useState(null)
   const on = !!plan
+  const race = plan?.game === 'race' // «Гонка с Питом» (features/pitrace) — свои акты и итог на том же директоре: вступление race_start, итог и журнал ведёт useRaceActs
   const running = on && stage === 'run' ? stageObj : null
   const take = useRehearsalTake({ plan, running, at, listenerRef, rate, lang })
   const nextIdx = useCallback(i => (on ? nextRunnable(stages, i, journal) : i), [on, stages, journal]) // стабильна: на ней держится next директора
@@ -45,10 +46,10 @@ export function useRehearsalActs({ plan, stages, stage, at, stageObj, setS, sayL
   const intro = on && hasIntroLine(plan)
   // Случайность внутри актов (CONCEPT_REHEARSAL.md §8): семя плана — одна сессия воспроизводима; что выбрано, пишется в журнал отладки один раз на запуск
   useEffect(() => {
-    if (plan) pLog(sessionLogLine(plan, buildActs(plan, { only: null }).acts))
-  }, [plan])
-  const startLine = useMemo(() => (plan ? sessionLine(plan, 'rh_start') : null), [plan]) // вариант реплики вступления и итога — на всю сессию (rehearsalLines.js)
-  const doneLine = useMemo(() => (plan ? sessionLine(plan, 'rh_done') : null), [plan])
+    if (plan && !race) pLog(sessionLogLine(plan, buildActs(plan, { only: null }).acts))
+  }, [plan, race])
+  const startLine = useMemo(() => (plan ? sessionLine(plan, race ? 'race_start' : 'rh_start') : null), [plan, race]) // вариант реплики вступления и итога — на всю сессию (rehearsalLines.js)
+  const doneLine = useMemo(() => (plan ? sessionLine(plan, race ? 'race_done' : 'rh_done') : null), [plan, race])
   const missRef = useRef(null) // реплика «над этим словом ещё поработаем» — несколько раз за сессию: свой поток от семени, повтор подряд запрещён
   const missLine = () => { missRef.current ??= { rng: rngFor(plan.seed, 'line:rh_warmup_miss'), last: {} }; return pickLine('rh_warmup_miss', missRef.current.rng, missRef.current.last) }
   // Вступление: Пит говорит про фразу, пока она падает (при запуске одного этапа «Шлифовки» его нет — rehearsalPrepare.hasIntroLine)
@@ -59,8 +60,8 @@ export function useRehearsalActs({ plan, stages, stage, at, stageObj, setS, sayL
   }, [on, stage, intro, sayLine, startLine])
 
   // Раскладка стадии по времени: реплика Пита (ждёт, пока он договорит прошлую) и отсчёт тремя нотами (stage.count) — rehearsalCountdown.stageTiming
-  const timingOf = st => stageTiming({ order: st.count ?? null, lead: LINE_AT_MS, busyMs: cat.busyLeft(), lineMs: st.line ? lineMs(fillLine(lines?.[st.line]), rate) : 0, pause: LINE_PAUSE_MS, minMs: st.ms, hasLine: !!st.line, quiet: lineVoiced(lines, st.line) })
-  useEffect(() => { if (!on) return undefined; warmCountdown(); return releaseCountdown }, [on]) // ноты отсчёта декодируются заранее (первая должна прозвучать вовремя)
+  const timingOf = st => stageTiming({ order: st.count ?? null, lead: LINE_AT_MS, busyMs: cat.busyLeft(), lineMs: st.line ? lineMs(fillLine(lines?.[st.line]), rate) : 0, pause: LINE_PAUSE_MS, minMs: st.ms, hasLine: !!st.line, quiet: lineVoiced(lines, st.line), plan: countdownPlan({ soft: !!st.soft }) })
+  useEffect(() => { if (!on) return undefined; warmCountdown(race); return releaseCountdown }, [on, race]) // ноты отсчёта декодируются заранее (первая должна прозвучать вовремя)
 
   // Реплика стадии и отсчёт (стартует, когда Пит договорил, и не отпускает стадию до конца нот); смена стадии, пауза и выход гасят таймеры и ноты
   const [gate] = useState(createCountGate)
@@ -69,7 +70,7 @@ export function useRehearsalActs({ plan, stages, stage, at, stageObj, setS, sayL
     const t = timingOf(running), ids = []
     let stopCount = null
     if (running.line) ids.push(setTimeout(() => sayLine(running.line), t.lineAt))
-    if (t.countAt != null) stopCount = scheduleStageCount({ countAt: t.countAt, busyLeft: () => cat.busyLeft(), gate })
+    if (t.countAt != null) stopCount = scheduleStageCount({ countAt: t.countAt, busyLeft: () => cat.busyLeft(), gate, soft: !!running.soft })
     return () => { ids.forEach(clearTimeout); stopCount?.() }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [running, at])
@@ -104,7 +105,7 @@ export function useRehearsalActs({ plan, stages, stage, at, stageObj, setS, sayL
 
   // Итог: симуляция памяти и XP — один раз на выходе на экран summary
   useEffect(() => {
-    if (running?.type !== 'summary') return undefined
+    if (running?.type !== 'summary' || race) return undefined // у гонки итог считает useRaceActs
     const t = setTimeout(() => { setResult(plan.only === 'summary' ? reportSession({ plan, ...demoSummary(plan) }) : reportSession({ plan, journal, mirror: take.mirror })); sayLine(doneLine) }, 0) // «Шлифовка → Итог»: результат подставной (polish/polishDemo.js)
     return () => clearTimeout(t)
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -139,7 +140,7 @@ export function useRehearsalActs({ plan, stages, stage, at, stageObj, setS, sayL
     /** Сколько держать плашку (announce / turn): пока Пит договорит прошлую реплику и скажет свою */
     holdMs: st => (!on || (!st?.line && !st?.count) ? st.ms : timingOf(st).holdMs),
     /** Конец сигнала перед пилюлями на плашке (мс от её начала: реплика Пита / последняя нота): от него зажигается конвейер (wordLaneConveyorStart.js); null — сигнала нет, берётся конец плашки */
-    cueMs: st => (on && (st?.line || st?.count) ? plateCueMs({ order: st.count ?? null, timing: timingOf(st), lineMs: st.line ? lineMs(fillLine(lines?.[st.line]), rate) : 0, voiced: lineVoiced(lines, st.line) }) : null),
+    cueMs: st => (on && (st?.line || st?.count) ? plateCueMs({ order: st.count ?? null, timing: timingOf(st), lineMs: st.line ? lineMs(fillLine(lines?.[st.line]), rate) : 0, voiced: lineVoiced(lines, st.line), soft: !!st.soft }) : null),
     /** Дорожки со слабыми словами разминки: в «без текста» у них видна подпись */
     hintLanes: st => (on && st?.act === 'blind' && st.type === 'student' ? weakLanes(journal, stages) : []),
   }

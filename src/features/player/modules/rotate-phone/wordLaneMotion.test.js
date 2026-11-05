@@ -41,7 +41,7 @@ describe('ход пилюль — на композиторе (WAAPI), а не �
   it('движок пишет в DOM только заливку, худ и класс-атрибуты: положение пилюли JS не трогает (никаких --y в кадре)', () => {
     const eng = read('./useWordLanePills.js')
     expect(eng).not.toContain("setProperty('--y'")
-    expect(read('./wordLanePool.js')).toContain('startFlight(el, atMs)')            // полёт запускает пул, движок только выдаёт пилюли
+    expect(read('./wordLanePool.js')).toContain('startFlight(el, atMs, speed, scaled)')            // полёт запускает пул, движок только выдаёт пилюли
   })
 })
 

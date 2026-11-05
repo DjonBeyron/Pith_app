@@ -4,7 +4,7 @@ import { ORDER_START_MS } from './wordLaneOrder.js'
 
 vi.mock('./wordLaneSnap.js', () => ({ snapPill: vi.fn(), missPill: vi.fn() })) // щелчок пилюли рисует DOM — здесь не нужен
 
-// Сцена «Различи» репетиции (prompt.written): слово написано на пилюле (data-word на .wlPillClip), пилюли молчат, слово звучит один раз, до этого тап не засчитывается; пул и часы подставлены
+// Сцена «Различи» репетиции (prompt.written): слово на пилюле НЕ пишется (v3.3.101), пилюли молчат, слово звучит один раз, до этого тап не засчитывается; пул и часы подставлены
 afterEach(() => vi.unstubAllGlobals())
 
 function setup(prompt) {
@@ -23,10 +23,10 @@ function setup(prompt) {
 const prompt = (o = {}) => ({ id: 'd', parts: [0], answer: [1], slots: [0, 1, 2], texts: ['earn', 'learn', 'lean'], stagger: 500, lead: 400, ...o })
 
 describe('«Различи» с написанными словами', () => {
-  it('на каждой пилюле написано её слово, пилюли не озвучиваются; слово произносится один раз (sayAt)', () => {
+  it('на пилюлях текста нет, пилюли не озвучиваются; слово произносится один раз (sayAt)', () => {
     const { run, fx, clips, tickTo } = setup(prompt({ written: true, sayAt: 3000 }))
     for (let t = 0; t <= 2900; t += 50) tickTo(t)
-    expect(clips.map(c => c.attrs['data-word'])).toEqual(['earn', 'learn', 'lean'])
+    expect(clips.every(c => !('data-word' in c.attrs))).toBe(true) // текста на пилюлях нет
     expect(fx.sayText).not.toHaveBeenCalled(); expect(fx.say).not.toHaveBeenCalled()      // слово ещё не звучало
     expect(ORDER_START_MS).toBeLessThan(1000)
     for (let t = 2950; t <= 3600; t += 50) tickTo(t)
@@ -40,7 +40,7 @@ describe('«Различи» с написанными словами', () => {
     expect(fx.sayText.mock.calls.map(c => c[0])).toEqual(['earn', 'learn', 'lean'])
     run.stop()
   })
-  it('верный тап после слова: пилюля принята; пилюли с написанным словом, вернувшиеся в пул, слово теряют', () => {
+  it('верный тап после слова: пилюля принята; пилюли «Различи» остаются без текста', () => {
     const { run, pool, clips, tickTo } = setup(prompt({ written: true, sayAt: 3000 }))
     for (let t = 0; t <= 3300; t += 50) tickTo(t)
     run.api.tap(1); expect(pool.paintFill).not.toHaveBeenCalled() // слово ещё не прозвучало (sayAt отсчитывается от выкатки подсказки)
@@ -49,8 +49,8 @@ describe('«Различи» с написанными словами', () => {
     run.api.tap(1)
     expect(pool.paintFill).toHaveBeenCalled()
     for (let t = 3750; t <= 4000; t += 50) tickTo(t)
-    expect(clips[0].attrs['data-word']).toBeUndefined() // «next»: лишние пилюли убраны вместе со словом
-    expect(clips[1].attrs['data-word']).toBe('learn')   // принятая остаётся, пока едет
+    expect(clips.every(c => !('data-word' in c.attrs))).toBe(true)
+    expect(pool.give).toHaveBeenCalled() // «next»: лишние пилюли убраны
     run.stop()
   })
 })

@@ -1,0 +1,59 @@
+/* «Гонка с Питом»: заставка-«зарядка» памятью (features/pitrace/RaceCharge.jsx, план — raceCharge.js, CONCEPT_RACE.md «Заставка»). Пока Пит говорит race_start и объявляет первый этап, дорожек нет вовсе
+   (data-charge на корне игры: пунктир конвейера, линии и огоньки скрыты; когда заставка кончается, они проявляются обычным переходом .wlLanes 0,8 с). Снизу вверх летят пилюли со словами памяти
+   (--c — цвет ступени слова, --lvl0…--lvl4 из memory-levels.css) и микро-частицы 2–3 px; сверху бар: сегменты цветов долетевших пилюль (по одному на пилюлю, без градиента), бар толстеет с каждой; пилюля прилетает центром в центр бара, в момент касания бар утолщается до 2× (свойство scale от верхнего края,
+   transform-origin) и возвращается. Заполненный бар (data-full) — сплошные цветные сегменты, косых полос в нём нет никогда; он худеет до тонкой полоски, стоит до начала первого раунда, потом уходит (data-leaving).
+   Полёт, толщину и касание ведёт Web Animations (transform / opacity / height / scale), здесь только раскладка и вид; без filter.
+   СЛОИ (внутри заставки — `isolation: isolate`, чтобы бар не перекрыл крестик выхода .wlClose и кнопки HUD): бар (z-index 3) выше слоя пилюль (z-index 1), слой пилюль выше фона; слой обрезан clip-path по линии бара (его верхняя кромка + 2 px = середина самого тонкого бара), поэтому пилюля заходит ПОД бар и скрывается под ним.
+   ШЛЕЙФ («размытие движения» без filter, только при data-trail: не lite и не reduced-motion): без копий-призраков — один мягкий хвост-градиент (::before, ≤ 1,1 высоты пилюли, прозрачность ≤ 0,35, гаснет к прилёту) и
+   растяжение по оси движения не больше 1,08 (scale ведёт Web Animations, затухает к прилёту). Лишних DOM-узлов на пилюлю нет. */
+.wl[data-charge] .wlLanes, .wl[data-charge] .wlDots { opacity: 0; }
+
+.raceCharge { inset: 0; z-index: 1; isolation: isolate; overflow: hidden; pointer-events: none; transition: opacity 0.6s ease; }
+.raceCharge[data-leaving] { opacity: 0; }
+.raceChargeBar {
+  position: absolute;
+  top: calc(env(safe-area-inset-top, 0px) + 14px);
+  left: 16px;
+  right: 60px; /* справа остаётся крестик выхода */
+  height: 4px;
+  z-index: 3; /* выше пилюль: они заходят под бар */
+  border-radius: 999px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.1);
+  transform-origin: 50% 0; /* касание пилюли растягивает бар вниз от верхней кромки (scale) */
+}
+.raceChargeSeg { position: absolute; top: 0; bottom: 0; transform-origin: left center; transform: scaleX(0); }
+.raceChargePills { position: absolute; inset: 0; z-index: 1; clip-path: inset(calc(env(safe-area-inset-top, 0px) + 16px) 0 0 0); } /* верх среза = середина бара (бар: top 14 px + половина минимальных 4 px) */
+.raceChargePill {
+  position: absolute;
+  top: calc(100% + 60px); /* START_BELOW_PX: старт ниже нижнего края — из-за затемнения */
+  translate: -50% 0; /* центр по x; transform остаётся полёту */
+  max-width: 44%;
+  padding: 6px 13px;
+  box-sizing: border-box;
+  border: 2px solid var(--c);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--c) 30%, #0b0d11);
+  color: #f4f6fb;
+  font-size: clamp(12px, 3.6vw, 15px);
+  font-weight: 800;
+  line-height: 1.1;
+  white-space: nowrap; /* без overflow: hidden — хвост-шлейф ::before выходит за пилюлю; длинное слово обрезает pillLabel */
+}
+.raceCharge[data-trail] .raceChargePill::before { /* сдержанный хвост: один мягкий градиент цвет пилюли → прозрачный, до 1,1 высоты пилюли, прозрачность не выше 0,35 и гаснет к прилёту */
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 12%;
+  right: 12%;
+  height: 110%;
+  border-radius: 0 0 999px 999px;
+  background: linear-gradient(to bottom, color-mix(in srgb, var(--c) 70%, transparent), transparent);
+  opacity: 0;
+  pointer-events: none;
+  animation: raceTail var(--fly, 1s) linear var(--delay, 0s) both; /* --fly / --delay — время полёта пилюли (RaceCharge.jsx) */
+}
+@keyframes raceTail { 0% { opacity: 0; } 15% { opacity: 0.32; } 60% { opacity: 0.2; } 100% { opacity: 0; } }
+.raceChargeSpark { position: absolute; top: 100%; border-radius: 50%; opacity: 0.9; }
+.weak-device .raceCharge, .weak-device .raceCharge[data-leaving] { transition: none; }
+@media (prefers-reduced-motion: reduce) { .raceCharge { transition: none; } }

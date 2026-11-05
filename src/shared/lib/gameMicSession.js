@@ -22,7 +22,7 @@ export function createGameAudioSession({ nav = globalThis.navigator, store = glo
   const report = (why, requested, ok) => note('audio-session', { mode, why, requested, ok, as: api.current(), prev, supported: api.supported() })
   function apply(type, why) {
     if (!api.supported()) { report(why, type, false); return false }
-    if (api.current() === type) return true // уже так — не шумим в журнале
+    if (api.current() === type) { if (why === 'begin') report(`${why}:уже так`, type, true); return true } // уже так — в журнал только на старте (видно, каким тип пришёл после фона)
     const ok = api.set(type)
     if (ok) changed = true
     report(why, type, ok)
@@ -33,7 +33,7 @@ export function createGameAudioSession({ nav = globalThis.navigator, store = glo
     get active() { return active },
     /** Старт игры (тап «Начать», до openGameMic): запомнить прежний тип и поставить нужный по настройке. Повторный вызов — no-op */
     begin() {
-      if (active) return
+      if (active) { if (mode !== 'auto') apply(SESSION_LISTEN, 'begin-again'); return } // повторный старт без конца прошлой игры (после фона тип мог сброситься): ставим тип заново
       active = true; changed = false
       mode = readAudioSessionMode(store)
       prev = api.current()
