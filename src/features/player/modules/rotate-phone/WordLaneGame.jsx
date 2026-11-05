@@ -25,6 +25,7 @@ import { useWordLaneFlow } from './useWordLaneFlow.js'
 import { useWordLanePause } from './useWordLanePause.js'
 import { WORD_Y } from './wordLaneTimeline.js'
 import { useConveyorArm } from './useConveyorArm.js'
+import { conveyorSpeedHint } from './wordLaneConveyorSpeed.js'
 import { useLabelFrames } from './useLaneLabels.js'
 
 // Вертикальная игра «Повтори за диктором» (полный экран, портрет). Фраза из кусков (до трёх) стоит над дорожками: кусок над своей дорожкой, дорожки слева направо читаются как предложение.
@@ -51,6 +52,7 @@ export default function WordLaneGame({ cfg, audioSrc, lines = null, forceDebug =
   const pause = useWordLanePause({ f, cfg, audioSrc, lines }) // свернули приложение — пауза сразу, «Продолжить» открывает микрофон из тапа (useWordLanePause.js)
   const { phase } = f
   const plates = useWordLaneLeavingPlates(f.plate, f.idx) // плашка остаётся в DOM на время ухода (улетает вверх, как пилюля): useWordLaneLeavingPlates.js
+  const speed = conveyorSpeedHint(f.stages, f.stage === 'run' ? f.idx : -1) // «Гонка с Питом»: скорость первой пилюли ближайшей стадии — пунктир набирает её заранее (wordLaneConveyorSpeed.js)
   const armed = useConveyorArm(f) // какие дорожки взведены: конвейер зажигается за 0,66 с до конца реплики Пита / плашки (wordLaneConveyorStart.js), остановку решает привод по пилюлям на дорожке
   const single = cfg.chunks.length === 1 && phase !== 'discern' && !cfg.plan // у одного слова текст стоит крупно — кроме «Различи»: там слова на пилюлях, а верное над дорожками не выдаём
   const showSlots = phase !== 'drop'
@@ -65,7 +67,7 @@ export default function WordLaneGame({ cfg, audioSrc, lines = null, forceDebug =
     <div ref={rootRef} className={safe0 ? 'wl wl--safe' : 'wl'} data-phase={phase} data-act={f.rh.on ? f.stageObj?.act : undefined} data-sid={f.rh.on ? f.stageObj?.sid : undefined} data-streak={f.rh.race?.streakMode} data-charge={cfg.plan?.game === 'race' && chargeOn(f) ? '' : undefined} data-testid="wl">
       <div className="wlStage" data-tex={race && !lite ? '' : undefined}>
         <WordLaneCat apiRef={catApi} />
-        <WordLanePills scene={f.scene} levels={f.levels} fx={f.fx} live={f.live} sceneApi={f.sceneApi} visible={showSlots} armed={armed} paused={f.paused} onLane={phase === 'order' || (phase === 'discern' && !f.stageObj?.speak) || (tapMode && (phase === 'student' || f.stageObj?.speak)) ? f.onLane : null} />
+        <WordLanePills scene={f.scene} levels={f.levels} fx={f.fx} live={f.live} sceneApi={f.sceneApi} visible={showSlots} armed={armed} speed={speed} paused={f.paused} speedKey={f.stage === 'run' ? f.idx : -1} onLane={phase === 'order' || (phase === 'discern' && !f.stageObj?.speak) || (tapMode && (phase === 'student' || f.stageObj?.speak)) ? f.onLane : null} />
         <WordLaneXp apiRef={f.xpApi} />
         {single
           ? <div className="wlWord" style={{ top: `${WORD_Y}%` }} data-testid="wl-word">{cfg.chunks[0]}</div>

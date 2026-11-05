@@ -4,7 +4,7 @@
 //  ignite  — «зажигание» (v3.3.101), IGNITE_MS = BLINKS миганий по BLINK_MS: пунктир на месте плавно мигает — яркость покой → ярко → покой синусоидой (никаких рывков и волн), потом разгон. Слабое устройство / reduced-motion (still):
 //            без мигания, яркость просто плавно доходит до LIT;
 //  accel   — ACCEL_MS: скорость растёт по мягкой кривой «медленный старт» (easeInSoft: smootherstep — ускорение тоже начинается с нуля), яркость доходит до полной; рабочая скорость = скорость пилюль (SPEED, wordLaneTimeline.js);
-//  run     — едет с рабочей скоростью;
+//  run     — едет с рабочей скоростью; в «Гонке с Питом» пилюли разгона быстрее конвейера в speed раз — множитель speed плавно (SPEED_RAMP_MS) меняет рабочую скорость, пунктир едет быстрее пропорционально;
 //  decel   — DECEL_MS: плавное замедление до нуля, яркость спадает вместе со скоростью (пропорционально), а не после остановки.
 // Когда дорожке ехать (want). Два режима:
 //  • по пилюлям (обычная нода, команда '1'): на ней есть пилюли, либо дорожка «взведена» (armed — игра дала команду, wordLaneConveyorStart.js) и пилюль ещё не было, либо они пропали не больше HOLD_MS назад
@@ -21,7 +21,8 @@ export const ACCEL_MS = 800    // разгон до рабочей скорос�
 export const DECEL_MS = 700    // торможение (не менять без mirror/MirrorCompare.jsx: автозапуск зеркала ждёт остановки дорожек на DECEL_MS)
 export const HOLD_MS = 400     // пилюль нет столько мс — дорожка начинает тормозить
 export const CONVEYOR_LEAD_MS = IGNITE_MS + ACCEL_MS // зажигание + разгон = 1300 мс (78 кадров): за столько до выезда первой пилюли акта дорожку включают
-export const RUN_SPEED = SPEED // dvh в секунду (высота экрана — 100 dvh, SPEED — % высоты в секунду)
+export const RUN_SPEED = SPEED // dvh в секунду при множителе 1 (высота экрана — 100 dvh, SPEED — % высоты в секунду)
+export const SPEED_RAMP_MS = 800 // «Гонка с Питом»: множитель скорости (пилюли разгона быстрее) меняется плавно за столько мс, не рывком
 export const PERIOD = 11       // период пунктира, dvh
 export const REST_A = 0.14     // прозрачность пунктира в покое («еле-еле»)
 export const RUN_A = 0.52      // и на рабочей скорости
@@ -34,7 +35,14 @@ export const easeInSoft = x => (x <= 0 ? 0 : x >= 1 ? 1 : x * x * x * (x * (x * 
 /** Яркость мигания (0…1) через t мс зажигания: 0 → 1 → 0 за BLINK_MS, косинусом — без изломов на стыках циклов */
 export const blink = t => (1 - Math.cos((2 * Math.PI * Math.min(t, IGNITE_MS)) / BLINK_MS)) / 2
 
-export const createLane = () => ({ phase: 'idle', t: 0, s: 0, g: 0, s0: 0, g0: 0, y: 0, seen: false, gone: 0 })
+export const createLane = () => ({ phase: 'idle', t: 0, s: 0, g: 0, s0: 0, g0: 0, y: 0, seen: false, gone: 0, v: 1, vw: 1, v0: 1, vt: SPEED_RAMP_MS })
+
+/** Множитель рабочей скорости: v плавно (smoothstep за SPEED_RAMP_MS) идёт к wanted; новая цель в середине перехода — переход заново от текущего значения; дорожка стоит — множитель сразу новый (нечему рвать) */
+function stepSpeed(L, dt, wanted) {
+  if (!(wanted > 0)) return
+  if (wanted !== L.vw) { L.vw = wanted; L.v0 = L.v; L.vt = 0; if (L.phase === 'idle') { L.v = L.v0 = wanted; L.vt = SPEED_RAMP_MS } }
+  if (L.vt < SPEED_RAMP_MS) { L.vt = Math.min(SPEED_RAMP_MS, L.vt + dt); L.v = L.v0 + (L.vw - L.v0) * ease(L.vt / SPEED_RAMP_MS) }
+}
 
 /** Дорожке сейчас ехать? Обновляет «видела пилюли» (seen) и «сколько мс их нет» (gone). keep — акт идёт (команда '2'): едет, пока команда стоит, пилюли не нужны */
 function wantRun(L, dt, armed, pills, keep) {
@@ -50,8 +58,9 @@ function go(L, phase, t = 0) { L.phase = phase; L.t = t; L.s0 = L.s; L.g0 = L.g 
  * Шаг дорожки на dt мс. armed — дорожке дана команда ехать, keep — и держать ход, пока идёт акт (даже без пилюль), pills — сколько пилюль сейчас на ней, still — без движения (слабое устройство, reduced-motion: только яркость, y не меняется).
  * Меняет L и возвращает его: s (скорость, dvh/с), g (яркость 0…1), y (сдвиг пунктира 0…PERIOD).
  */
-export function stepLane(L, dt, { armed = false, pills = 0, still = false, keep = false } = {}) {
+export function stepLane(L, dt, { armed = false, pills = 0, still = false, keep = false, speed = 1 } = {}) {
   const want = wantRun(L, dt, armed, pills, keep)
+  stepSpeed(L, dt, speed)
   if (L.phase === 'idle') { if (want) go(L, 'ignite', dt) }
   else {
     L.t += dt
@@ -64,8 +73,10 @@ export function stepLane(L, dt, { armed = false, pills = 0, still = false, keep 
     if (L.t >= IGNITE_MS) go(L, 'accel', L.t - IGNITE_MS)
   }
   if (L.phase === 'accel') {
-    L.s = L.s0 + (RUN_SPEED - L.s0) * easeInSoft(L.t / ACCEL_MS); L.g = L.g0 + (1 - L.g0) * ease(L.t / ACCEL_MS)
-    if (L.t >= ACCEL_MS) { L.s = RUN_SPEED; L.g = 1; L.phase = 'run' }
+    L.s = L.s0 + (RUN_SPEED * L.v - L.s0) * easeInSoft(L.t / ACCEL_MS); L.g = L.g0 + (1 - L.g0) * ease(L.t / ACCEL_MS)
+    if (L.t >= ACCEL_MS) { L.s = RUN_SPEED * L.v; L.g = 1; L.phase = 'run' }
+  } else if (L.phase === 'run') {
+    L.s = RUN_SPEED * L.v // множитель идёт плавно (stepSpeed): скорость пунктира следует за скоростью пилюль
   } else if (L.phase === 'decel') {
     const e = ease(L.t / DECEL_MS)
     L.s = L.s0 * (1 - e); L.g = L.g0 * (1 - e)

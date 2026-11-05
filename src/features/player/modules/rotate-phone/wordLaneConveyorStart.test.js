@@ -91,7 +91,7 @@ describe('подключение', () => {
   it('игра берёт взведённые дорожки из useConveyorArm и отдаёт паузу в WordLanePills', () => {
     const game = read('./WordLaneGame.jsx')
     expect(game).toContain('useConveyorArm(f)')
-    expect(game).toContain('armed={armed} paused={f.paused}')
+    expect(game).toContain('armed={armed} speed={speed} paused={f.paused}')
     expect(read('./useWordLaneFlow.js')).toMatch(/return \{ \.\.\.s, stages,/)
   })
 })

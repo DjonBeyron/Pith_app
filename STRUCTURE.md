@@ -1795,6 +1795,11 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | `modules/rotate-phone/wordLaneEdge.test.js` | Тесты масштаба пилюль у краёв (`edge`: 0,85 у краёв, 1 на 50 %, по умолчанию выкл) и тихого промаха (`data-quiet`: дрожь и обводка 200 мс, без полос). |
 | `modules/rotate-phone/wordLaneFeel.test.js` | Тесты «ощущения»: затемнения сверху/снизу (высоты = константам), кот поверх всего, диктор начинает при полном открытии пилюли, отклик щелчка (диктор — с упреждением, ученик — на claim), слушатель стартует в «твоей очереди», перемотка опоздавшего звука |
 | `modules/rotate-phone/wordLaneCatPeek.test.js` | Тесты мест и времени выскакивания кота |
+| `modules/rotate-phone/wordLaneCatQueue.js` (+ `.test.js`) | Чистое: `createCatQueue` — одна очередь речи Пита (v3.3.113): реплика, перевод, слово идут подряд, голова поднимается один раз на всю очередь и прячется после последнего элемента (хвост `QUEUE_TAIL_MS`); `touch` только продлевает. Журнал «[cat] очередь: …» |
+| `modules/rotate-phone/wordLaneConveyorSpeed.js` (+ `.test.js`) | Чистое: `conveyorSpeedHint(stages, idx)` — множитель скорости первой пилюли ближайшей очереди «Гонки»: дорожки набирают скорость заранее (плавно, `SPEED_RAMP_MS` в `wordLaneConveyor.js`). Тесты: плавность модели, привод, подсказка стадий |
+| `modules/rotate-phone/wordLaneLineRecover.js` | «Страховка второго запуска» (v3.3.113): `bufferMissing` / `recoverLine` (докачать реплику, не доверяя реестру прогрева) и `nudgeCtx` (подтолкнуть `resume()` контекста перед репликой) |
+| `modules/rotate-phone/useCatLinesLater.test.js` | Тесты похвалы через `GOOD_DELAY_MS` (`sayLineLater`: Пит занят с зачёта), сброса «занят» при старте и страховки: буфера нет в памяти |
+| `modules/rotate-phone/wordLaneRevive.test.js` | Тесты `reviveWarm` (отметки `fail` / `ok` без буфера сбрасываются), таймаутов скачивания и декодирования, возврата из фона |
 | `modules/rotate-phone/wordLaneCatFade.test.js` | Тесты плавной смены лица: порядок голов в DOM, какая голова получает opacity-анимацию, отмена, отсутствие WAAPI |
 | `modules/rotate-phone/wordLaneCatLook.test.js` | Тесты взгляда кота (переменные на `.scn-cat`, дрейф только по `idle(true)`, `stop`), `is-talking` с задержкой снятия, `data-vis` у широких форм рта |
 | `modules/rotate-phone/wordLaneCatLive.test.js` | Тесты подключения «живого Пита v2» к коту: классы корня (`scn--v2`, `scn--lite` на слабом), усы без `scn--live`, события взгляда в игре |
@@ -3290,6 +3295,7 @@ A2 из `PLAN_NEW_USER.md`. Чистая модель без React и сети: 
 |---|---|
 | `index.html` | Страница Vite: репетиция с озвученными репликами Пита и эмуляцией правил iOS (play() без жеста отклоняется, жест живёт 5 с, getUserMedia держится 5,6 с). `?case=ok` — всё в жесте; `expired` — жест истёк, пока открывался микрофон (подсказка «Тапни, чтобы начать»); `expired-nogesture` — то же, но «касание» без жеста (прежний сбой); `slow` — файлы реплик грузятся 6 с; `reject` — play() отклоняется. `window.__report()` — раздел «Почему первая реплика тихая», строки журнала, ключи файла отладки |
 | `run.mjs` | Playwright-драйвер: `node _stand/first_line/run.mjs <case> [port] [папка скриншотов]` (нужен `npx vite --port <port>`, `PW_CHROMIUM_PATH`); печатает вывод и шкалу, снимает скриншоты подсказки и игры |
+| `run_second.mjs` | Playwright-драйвер сценария владельца «второй запуск после фона» (v3.3.113): игра → выход во время реплики → hidden/visible (мёртвый контекст, устаревший реестр прогрева; `hang` — запросы озвучки зависли) → второй старт; проверяет, что первая реплика звучит через буфер и «занят» не залип. Страница: `index.html?case=second&bare=1` |
 
 ### `_stand/cat_heads/` — стенд лиц кота игры (dev, в сборку не входит)
 
