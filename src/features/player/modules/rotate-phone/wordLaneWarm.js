@@ -6,7 +6,9 @@
 // При Web Audio прогрев ДЕКОДИРУЕТ озвучку в AudioBuffer (3 файла одновременно, без передышек; реплики первых секунд — первыми, см. wordsPlan) и заодно готовит буферы мяу/нот и плашки: к тапу «Начать» всё
 // «подготовлено» уже сейчас, тап ничего не качает и не будит, отметка ready приходит сразу (раньше — words=timeout из-за пробуждения 30 слотов <audio>).
 import { wordsPlan, warmItems } from './wordLaneStart.js'
-import { prefetchWords } from './wordLaneFetch.js'
+import { prefetchWords, reviveWarm } from './wordLaneFetch.js'
+import { onGameAudioReturn } from '../../../../shared/lib/gameAudioLife.js'
+import { pLog } from '../../../../shared/lib/debug.js'
 import { readWordLane } from './wordLaneConfig.js'
 import { warmRewardBuffers } from './wordLaneNotes.js'
 import { warmPlateBuffer } from './wordLanePlateSound.js'
@@ -17,6 +19,20 @@ import { getCatLines } from '../../../../shared/api/catLinesApi.js'
 /** Подпись набора озвучки (куски, слова, первые реплики, адреса реплик): изменилась — готовить заново («Готовлю звук…» на карточке) */
 export const warmSig = (cfg, lines) => JSON.stringify([cfg.chunks, cfg.confusers, cfg.extraWords ?? null, cfg.firstLines ?? null, cfg.translations ?? null, Object.values(lines ?? {}).map(l => l?.url ?? null)])
 
+// Возврат из фона при показанной карточке (iOS замораживает докачку и сеть, декодирование может не вернуться): прогрев последнего набора перепроверяется — оборванное и «готовое без буфера» качается заново. Один подписчик на страницу.
+let lastItems = null
+let offReturn = null
+function watchReturn() {
+  if (offReturn) return
+  offReturn = onGameAudioReturn(why => {
+    if (!lastItems) return
+    const r = reviveWarm(lastItems)
+    if (!r.failed && !r.noBuffer && !r.stuck) return
+    pLog(`[warm] возврат из фона (${why}): ${r.noBuffer} файлов без буфера в памяти, ${r.failed} с оборванной докачкой, ${r.stuck} с зависшим запросом — прогреваю заново`)
+    prefetchWords(lastItems)
+  })
+}
+
 /** Карточка показана (и снова — после каждой игры, пока карточка на экране; и для СЛЕДУЮЩЕГО плана репетиции — пока идёт итог): качаем и декодируем ВСЮ озвучку сразу (нужное к старту — первым в списке). → промис «готово» (не отклоняется); deps подставляются в тестах */
 export function warmGameSounds({ cfg, lines }, { prefetch = prefetchWords, list = listWordAudio, measure = true, onListed = null, onItems = null, warmOwn = () => { warmRewardBuffers(); warmPlateBuffer() } } = {}) {
   if (measure) { try { warmOwn() } catch { /* прогрев только ускоряет */ } } // мяу/ноты и плашка: небольшие буферы, декодируются без жеста (только при Web Audio)
@@ -24,6 +40,7 @@ export function warmGameSounds({ cfg, lines }, { prefetch = prefetchWords, list 
     try { onListed?.() } catch { /* подпись карточки не должна ломать прогрев */ }
     const items = warmItems(wordsPlan({ cfg, lines }))
     try { onItems?.(items) } catch { /* карточка запоминает свои файлы, чтобы отпустить при закрытии */ }
+    if (measure) { lastItems = items; watchReturn() }
     return prefetch(items, { measure }) // ВСЁ сразу: сеть параллельна, декодирование по 3 файла; нужное к старту стоит в списке первым
   }).catch(() => undefined)
 }

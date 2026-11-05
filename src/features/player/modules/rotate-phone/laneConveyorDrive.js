@@ -11,13 +11,15 @@ export const reducedMotion = () => { try { return !!globalThis.matchMedia?.('(pr
 export function createConveyorDrive({
   root, still = false, now = () => globalThis.performance.now(),
   raf = f => globalThis.requestAnimationFrame(f), caf = i => globalThis.cancelAnimationFrame(i),
-  observe = (el, fn) => { const o = new globalThis.MutationObserver(fn); o.observe(el, { subtree: true, attributes: true, attributeFilter: ['data-held', 'data-lane', 'data-still'] }); return () => o.disconnect() },
+  observe = (el, fn) => { const o = new globalThis.MutationObserver(fn); o.observe(el, { subtree: true, attributes: true, attributeFilter: ['data-held', 'data-lane', 'data-still', 'data-speed'] }); return () => o.disconnect() },
 }) {
   const cols = [...root.querySelectorAll('.wlLanes i')]
   const lanes = cols.map(createLane)
   const shown = cols.map(() => ({}))
   let armed = cols.map(() => false), keep = cols.map(() => false), pills = cols.map(() => 0)
   let id = null, last = 0, paused = false
+  let hint = null, hintKey = null, peak = 0 // «Гонка с Питом»: hint — скорость первой пилюли ближайшей стадии (дорожка набирает её ЗАРАНЕЕ, до выезда пилюли), peak — наибольшая скорость пилюль, виденных при этом hint
+  const wanted = () => Math.max(1, hint ?? 1, peak) // множитель скорости пунктира: пилюли разгона быстрее конвейера в speed раз; пунктир едет быстрее пропорционально, внутри стадии не откатывается между пилюлями
 
   const put = (i, name, value) => {
     if (shown[i][name] === value) return
@@ -31,13 +33,13 @@ export function createConveyorDrive({
   const frame = ts => {
     id = null
     const dt = Math.min(MAX_DT, Math.max(0, ts - last)); last = ts
-    lanes.forEach((L, i) => { draw(i, laneLook(stepLane(L, dt, { armed: armed[i], keep: keep[i], pills: pills[i], still }))) })
+    lanes.forEach((L, i) => { draw(i, laneLook(stepLane(L, dt, { armed: armed[i], keep: keep[i], pills: pills[i], still, speed: wanted() }))) })
     if (!settled(lanes) && !paused) id = raf(frame)
   }
   const wake = () => { if (id === null && !paused && cols.length) { last = now(); id = raf(frame) } }
   const recount = () => {
     pills = cols.map(() => 0)
-    for (const el of root.querySelectorAll('.wlPill[data-held]:not([data-still])')) { const k = Number(el.dataset.lane); if (k >= 0 && k < pills.length) pills[k] += 1 }
+    for (const el of root.querySelectorAll('.wlPill[data-held]:not([data-still])')) { const k = Number(el.dataset.lane); if (k >= 0 && k < pills.length) pills[k] += 1; peak = Math.max(peak, Number(el.dataset.speed) || 1) }
     wake()
   }
   const stopObserving = observe(root, recount)
@@ -45,11 +47,13 @@ export function createConveyorDrive({
   return {
     /** Команда игры: строка '101' — на каких дорожках сейчас можно ехать (wordLaneConveyorStart.armedLanes); '2' вместо '1' — акт репетиции идёт, дорожка едет непрерывно, пока команда стоит (пилюли не нужны) */
     setArmed(str) { armed = cols.map((_, i) => str?.[i] === '1' || str?.[i] === '2'); keep = cols.map((_, i) => str?.[i] === '2'); recount() },
+    /** Скорость первой пилюли ближайшей стадии (множитель к конвейеру; null — стадия без разгона): дорожки плавно (SPEED_RAMP_MS) набирают её до выезда пилюли. Смена подсказки или стадии (key — номер стадии) обнуляет «виденный максимум» */
+    setSpeedHint(v, key = null) { const h = v > 0 ? v : null; if (h === hint && key === hintKey) return; hint = h; hintKey = key; peak = 0; recount() },
     /** Пауза игры: привод стоит (кадры не идут, состояние сохраняется), снятие — продолжает */
     setPaused(on) { paused = !!on; if (paused) { if (id !== null) { caf(id); id = null } } else wake() },
     dispose() { if (id !== null) caf(id); id = null; stopObserving() },
     /** Для тестов и отладки */
-    state: () => ({ phases: lanes.map(L => L.phase), running: id !== null, pills: [...pills], armed: [...armed], keep: [...keep] }),
+    state: () => ({ phases: lanes.map(L => L.phase), running: id !== null, speed: wanted(), pills: [...pills], armed: [...armed], keep: [...keep] }),
     frame,
   }
 }

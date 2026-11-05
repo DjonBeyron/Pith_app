@@ -68,7 +68,7 @@ describe('{word} в реплике', () => {
     expect(src).toContain('const sayLine = (id, vars = null) => {')
     expect(src).toContain('const line = fillLine(lines?.[id], vars)')
     expect(src).toContain('const busyLeft = () => Math.max(0, busyRef.current - Date.now())')
-    expect(src).toContain('return { text, sayLine, stop, busyLeft, holdBusy }')
+    expect(src).toContain('return { text, sayLine, sayLineLater, stop, reset, busyLeft, holdBusy }')
   })
 })
 

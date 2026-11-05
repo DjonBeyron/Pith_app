@@ -6,6 +6,7 @@ import '../../../scene/v2/scene-v2-pit.css'
 import { isWeakDevice } from '../../../../shared/lib/deviceTier.js'
 import { CAT_SPOTS, catPeek, holdForReact } from './wordLaneCatPeek.js'
 import { createCatVoice } from './wordLaneCatVoice.js'
+import { createCatQueue } from './wordLaneCatQueue.js'
 import { createMouthHold } from './wordLaneMouthHold.js'
 import { CAT_FACES, buildCat } from './wordLaneCatTree.js'
 import { createCatLook, drawCatMouth, NO_LOOK } from './wordLaneCatLook.js'
@@ -76,7 +77,8 @@ function WordLaneCat({ apiRef, skin = 'kit' }) {
       hide: () => { hostRef.current?.classList.remove('wlCat--up'); look.idle(false) },
     })
     peekRef.current = peek
-    const voice = createCatVoice({ hold, look, peek, drawn: () => drawsRef.current })
+    const queue = createCatQueue({ peek, now: () => performance.now() }) // одна очередь речи: реплика, перевод, слово — голова поднимается один раз и прячется после последнего (wordLaneCatQueue.js)
+    const voice = createCatVoice({ hold, look, peek, queue, drawn: () => drawsRef.current })
     apiRef.current = {
       mouth: voice.mouth,
       speak: voice.speak,
@@ -87,12 +89,13 @@ function WordLaneCat({ apiRef, skin = 'kit' }) {
         clearTimeout(timerRef.current)
         timerRef.current = setTimeout(() => setFace('base'), ms)
       },
-      peek(ms = 1400) { peek.hold(ms) },
+      peek(ms = 1400) { queue.touch(ms) }, // только продлевает: поднятую голову не перезапускает
+      queue,
       look: { lineStart: look.lineStart, word: look.word, lineEnd: look.lineEnd },
       talking: look.talking,
-      freeze() { voice.stop(); clearTimeout(timerRef.current); setFace('base'); hold.set('closed'); look.lineEnd(); look.release() }, // пауза: реплика оборвана, рот закрыт, лицо плавно спокойное, взгляд погас, усы без выдержки доезжают до покоя (хвост is-tail, не рывок); голова остаётся где была
+      freeze() { voice.stop(); queue.reset(); clearTimeout(timerRef.current); setFace('base'); hold.set('closed'); look.lineEnd(); look.release() }, // пауза: реплика оборвана, рот закрыт, лицо плавно спокойное, взгляд погас, усы без выдержки доезжают до покоя (хвост is-tail, не рывок); голова остаётся где была
     }
-    return () => { apiRef.current = null; holdRef.current = null; voice.stop(); hold.dispose(); look.stop(); clearTimeout(timerRef.current); fadeRef.current?.(); fadeRef.current = null }
+    return () => { apiRef.current = null; holdRef.current = null; voice.stop(); queue.reset(); hold.dispose(); look.stop(); clearTimeout(timerRef.current); fadeRef.current?.(); fadeRef.current = null }
   }, [apiRef, lite, skin, draw])
 
   return (

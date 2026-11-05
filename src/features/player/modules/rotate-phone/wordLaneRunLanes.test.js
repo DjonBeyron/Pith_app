@@ -43,7 +43,7 @@ describe('разметка и CSS конвейера', () => {
   })
   it('WordLanePills запускает привод (useLaneConveyor) с armed и paused, слабое устройство / reduced-motion — still', () => {
     const src = read('./WordLanePills.jsx')
-    expect(src).toContain('useLaneConveyor(rootRef, { armed, paused, still })')
+    expect(src).toContain('useLaneConveyor(rootRef, { armed, paused, still, speed, speedKey })')
     expect(src).toContain('lite || reducedMotion()')
     expect(read('./useLaneConveyor.js')).toContain('createConveyorDrive')
   })

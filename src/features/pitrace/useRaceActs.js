@@ -8,6 +8,7 @@ import { reportRace } from './raceSim.js'
 import { DESCENT_RATE } from './raceRecipe.js'
 import { sayTrap } from './raceTrapVoice.js'
 import { sprintTarget } from './raceSprint2.js'
+import { GOOD_IDS, GOOD_DELAY_MS } from './raceGood.js'
 
 // Директор «Гонки с Питом» (CONCEPT_RACE.md) поверх директора репетиции: useWordLaneFlow зовёт ЭТОТ хук вместо useRehearsalActs. Без плана гонки (plan.game !== 'race') он возвращает то, что вернул бы useRehearsalActs, —
 // остальные хуки внутри бездействуют. Что делает для гонки сверх репетиции (реплики на старте стадий, отсчёт, тишина экрана, вступление race_start, пауза — всё это уже у useRehearsalActs, он знает про plan.game):
@@ -20,15 +21,15 @@ import { sprintTarget } from './raceSprint2.js'
 //  • итог: на экране summary — raceSim.reportRace (память сессии и XP тем же путём, что у репетиции), Пит говорит race_done_gold или race_done; result — для RaceSummary;
 //  • журнал отладки: строки «[race] …» (раунд, слово, попал / промах, серия, ступень, заходы, итог).
 export function useRaceActs(args) {
-  const { plan, stages, stage, at, stageObj, setS, sayLine, sayText, lines, rate, listenerRef } = args
+  const { plan, stages, stage, at, stageObj, setS, sayLine, sayLineLater, sayText, lines, rate, listenerRef } = args
   const rh = useRehearsalActs(args)
   const on = plan?.game === 'race'
   const running = on && stage === 'run' ? stageObj : null
   const [box] = useState(makeBox) // s — актуальное состояние (читает nextIdx без перерисовки), hinted — подсказка голосом сказана на этом промахе (raceState.makeBox)
   const [view, setView] = useState(box.s)
   const [result, setResult] = useState(null)
-  const sayRef = useRef({ sayLine, sayText, lines, rate }) // свежие реплики берёт эффект ниже; первый рендер — из аргументов
-  useEffect(() => { sayRef.current = { sayLine, sayText, lines, rate } })
+  const sayRef = useRef({ sayLine, sayLineLater, sayText, lines, rate }) // свежие реплики берёт эффект ниже; первый рендер — из аргументов
+  useEffect(() => { sayRef.current = { sayLine, sayLineLater, sayText, lines, rate } })
   const trapRef = useRef(() => {}) // отмена недосказанной подсказки про двойника (стадия сменилась, выход)
   useEffect(() => () => trapRef.current(), [])
 
@@ -37,7 +38,7 @@ export function useRaceActs(args) {
     if (r.state === box.s && !r.say && !r.hint && !r.log) return
     putState(box, r.state); setView(r.state)
     if (r.log) pLog(`[race] ${r.log}`)
-    if (r.say) sayRef.current.sayLine?.(r.say)
+    if (r.say) { if (ev.t === 'claim' && GOOD_IDS.includes(r.say) && sayRef.current.sayLineLater) sayRef.current.sayLineLater(r.say, null, GOOD_DELAY_MS); else sayRef.current.sayLine?.(r.say) } // похвала за верное слово — не в момент зачёта, а через GOOD_DELAY_MS (пилюля успевает взлететь); Пит занят с самого зачёта, следующая пилюля ждёт
     if (r.hint) sayRef.current.sayText?.(ev.stage.word) // подсказка «Вершины»: новое слово голосом из библиотеки
     if (r.trap) { trapRef.current(); trapRef.current = sayTrap({ ...r.trap, ...sayRef.current }) } // ловушка: «это двойник, а нужно слово»
   }, [box])

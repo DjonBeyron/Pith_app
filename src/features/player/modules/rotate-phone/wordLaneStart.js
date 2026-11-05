@@ -6,7 +6,7 @@ import { playSpan, clipsFor } from './wordLaneAudio.js'
 import { libItems } from './wordLaneLib.js'
 import { transItems } from '../../../pitrace/raceTrans.js'
 import { linesItems, lineKey } from './wordLaneCatLines.js'
-import { prefetchWords } from './wordLaneFetch.js'
+import { prefetchWords, reviveWarm } from './wordLaneFetch.js'
 import { waitWarmGate, GATE_MAX_MS } from './wordLaneGate.js'
 import { unlockGameCtx, gameCtxState, recreateGameCtx, ensureGameCtxRunning } from '../../../../shared/lib/gameAudioCtx.js'
 import { installGameAudioLife, consumeRewake } from '../../../../shared/lib/gameAudioLife.js'
@@ -104,6 +104,8 @@ export function startGameAudio({ cfg, audioSrc, lines }, deps = {}) {
   const micPromise = openMic() // 1. микрофон: getUserMedia вызывается синхронно в жесте (диалога нет, если доступ уже выдан); один поток на всю игру
   unlockCtx() // 1. игровой AudioContext (Web Audio) — создать и resume() в этом же жесте, пока он жив
   const plan = wordsPlan({ cfg, lines })
+  const revived = reviveWarm(warmItems(plan)) // страховка второго запуска: реестр «обработан» не доверен — отметки без буфера в памяти и оборванные докачки сбрасываются, файлы качаются заново, ворота ждут настоящий результат
+  if (revived.failed || revived.noBuffer || revived.stuck) pLog(`[warm] страховка: ${revived.noBuffer} файлов отмечены готовыми, но буфера в памяти нет; ${revived.failed} — с оборванной докачкой; ${revived.stuck} — запрос завис: качаю и декодирую заново`)
   prefetch(warmItems(plan)) // 0. озвучка качается и декодируется ВСЯ сразу (нужное к старту — первым в списке), пока открывается микрофон и улягается сессия (слотов ещё нет — аудиосессию это не трогает)
   return (async () => {
     const mic = await micPromise

@@ -13,10 +13,14 @@ let hiddenAt = null    // когда страница ушла в фон (мс) 
 let suspect = null     // причина «подозрительного» звука или null
 let flagged = 0        // сколько раз помечали (диагностика, тесты)
 
+const returnSubs = new Set() // подписчики «вернулись из фона» (прогрев карточки игры, wordLaneWarm.js)
+
 const sessionType = nav => { try { return nav?.audioSession?.type ?? null } catch { return null } }
 
 /** Пометить звук подозрительным: следующий старт игры сделает полную разблокировку (свежий контекст) */
 export function markGameAudioSuspect(why) { suspect = why; flagged += 1 }
+/** Подписка на возврат из фона (visible / pageshow / focus после ухода): cb(why). Карточка игры перепроверяет прогрев — докачка могла оборваться. → отписка */
+export function onGameAudioReturn(cb) { returnSubs.add(cb); return () => returnSubs.delete(cb) }
 /** Звук после фона подозрителен? → причина или null (не сбрасывает) */
 export const needsRewake = () => suspect
 /** Забрать пометку при старте игры → причина или null */
@@ -42,6 +46,7 @@ export function installGameAudioLife({ doc = typeof document !== 'undefined' ? d
     const ctx = ctxState()
     if (was || ctx === 'interrupted' || ctx === 'suspended') markGameAudioSuspect(`${what}${away != null ? ` после ${away} с в фоне` : ''}`)
     line(what, away != null ? `, в фоне ${away} с` : '')
+    if (was) for (const cb of [...returnSubs]) { try { cb(what) } catch { /* подписчик не должен ломать остальных */ } }
   }
   const onVis = () => { if (doc.visibilityState === 'hidden') gone('visibility hidden'); else back('visibility visible') }
   const onShow = ev => back(ev?.persisted ? 'pageshow (из кэша)' : 'pageshow')

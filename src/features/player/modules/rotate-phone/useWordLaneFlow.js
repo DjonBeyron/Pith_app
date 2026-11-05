@@ -68,8 +68,8 @@ export function useWordLaneFlow({ chunks, translation, lang, clips = null, audio
   const cat = useCatLines({ lines, rate, catApi, listenerRef }) // реплики кота: подпись + озвучка + рот по буквам
   const sayLineRef = useRef(cat.sayLine)
   useEffect(() => { sayLineRef.current = (...a) => { const said = cat.sayLine(...a); if (said) dbg.note(`cat:${a[0]}`); return said } }) // реплика кота попадает и в журнал отладки (окно mute вокруг неё)
-  const sayLine = (...a) => sayLineRef.current(...a) // обработчики и таймеры стадий всегда берут свежую версию (настройки реплик могут догрузиться) — а стадия из-за этого не перезапускается
-  const rh = useRehearsalActs({ plan, stages, stage: s.stage, at: s.at, stageObj, setS, sayLine, sayText: (...a) => handlersRef.current.sayText(...a), cat, lines, rate, lang, listenerRef }); const { nextIdx } = rh // акты репетиции: журнал, реплики Пита, правила пропуска
+  const sayLine = (...a) => sayLineRef.current(...a); const sayLineLater = (id, vars, ms) => cat.sayLineLater(id, vars, ms, said => { if (said) dbg.note(`cat:${id}`) }) // обработчики и таймеры стадий всегда берут свежую версию (настройки реплик могут догрузиться) — а стадия из-за этого не перезапускается // реплика успеха «Гонки» через ms мс после зачёта (Пит занят с зачёта)
+  const rh = useRehearsalActs({ plan, stages, stage: s.stage, at: s.at, stageObj, setS, sayLine, sayLineLater, sayText: (...a) => handlersRef.current.sayText(...a), cat, lines, rate, lang, listenerRef }); const { nextIdx } = rh // акты репетиции: журнал, реплики Пита, правила пропуска
 
   const later = useCallback((fn, ms) => { const id = setTimeout(() => { timersRef.current.delete(id); fn() }, Math.max(0, ms)); timersRef.current.add(id); return id }, [])
   const clearTimers = useCallback(() => { timersRef.current.forEach(clearTimeout); timersRef.current.clear() }, [])
@@ -123,7 +123,7 @@ export function useWordLaneFlow({ chunks, translation, lang, clips = null, audio
       const ms = Math.round((sp?.ms ?? (file || estChunkMs(text))) / k), lead = Math.round((sp?.lead ?? 0) / k) // звук идёт с начала файла, слово — после тишины lead: рот стартует вместе со словом, а длится до конца файла
       const total = Math.round(Math.max(lead + ms, file / k))
       gameMicHold.holdFor(total); if (opts?.ru || opts?.hold) cat.holdBusy?.(total) // перевод «Разгона» / слово «Слушай и лови» (opts.hold): Пит занят, следующая пилюля ждёт конца слова
-      catApi?.current?.speak?.(mouthTrack(text, ms).map(x => ({ ...x, at: x.at + lead, end: x.end + lead })), total)
+      catApi?.current?.speak?.(mouthTrack(text, ms).map(x => ({ ...x, at: x.at + lead, end: x.end + lead })), total, { id: text, kind: opts?.ru ? 'перевод' : 'слово' }) // meta: элемент одной очереди речи Пита (wordLaneCatQueue.js)
     },
     say(parts) { // подсказка раунда «Порядок»: кот выскакивает, диктор называет куски
       const word = stages[sRef.current.idx]?.sayText; if (word) { handlers.sayText(word); return } // репетиция, «Различи»: диктор называет слово, а не кусок фразы

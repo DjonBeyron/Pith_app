@@ -86,7 +86,7 @@ describe('дорожки на стадии mirror плавно останавл�
   it('стоящие пилюли (data-still) привод не считает: дорожки под лентой остановлены, а летящие пилюли по-прежнему держат ход', () => {
     const src = read('./laneConveyorDrive.js')
     expect(src).toContain("root.querySelectorAll('.wlPill[data-held]:not([data-still])')")
-    expect(src).toContain("attributeFilter: ['data-held', 'data-lane', 'data-still']")
+    expect(src).toContain("attributeFilter: ['data-held', 'data-lane', 'data-still', 'data-speed']")
     // привод на подставном DOM, где селектор исполняется как в браузере: пилюли [{ lane, still }]
     const cols = [0, 1, 2].map(() => { const c = { props: {}, style: { setProperty(k, v) { c.props[k] = v } } }; return c })
     let held = [], notify = () => {}, q = [], t = 1000

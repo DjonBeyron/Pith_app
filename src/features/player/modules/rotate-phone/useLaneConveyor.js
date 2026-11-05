@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react'
 import { createConveyorDrive } from './laneConveyorDrive.js'
 
 // React-обёртка привода конвейера (laneConveyorDrive.js): привод живёт на корне поля пилюль, команда armed ('101') и пауза приходят пропсами; на кадрах React не участвует.
-export function useLaneConveyor(rootRef, { armed, paused = false, still = false }) {
+export function useLaneConveyor(rootRef, { armed, paused = false, still = false, speed = null, speedKey = null }) {
   const drive = useRef(null)
   useEffect(() => {
     const root = rootRef.current
@@ -13,4 +13,5 @@ export function useLaneConveyor(rootRef, { armed, paused = false, still = false 
   }, [rootRef, still])
   useEffect(() => { drive.current?.setArmed(armed) }, [armed, still])
   useEffect(() => { drive.current?.setPaused(paused) }, [paused, still])
+  useEffect(() => { drive.current?.setSpeedHint(speed, speedKey) }, [speed, speedKey, still]) // скорость первой пилюли ближайшей стадии разгона: дорожки набирают её заранее
 }

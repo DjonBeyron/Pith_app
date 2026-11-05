@@ -117,6 +117,7 @@ export function createPool(root) {
       if (!safe()) { el.style.willChange = WILL_PILL; fill.style.willChange = WILL_FILL }
       el.setAttribute('data-held', '1')
       el.dataset.lane = String(lane)
+      if (speed !== 1) el.dataset.speed = String(speed); else delete el.dataset.speed // скорость пилюли «Гонки» — по ней пунктир дорожки едет быстрее (laneConveyorDrive)
       put(el, 'left', `${LANE_X[lane]}%`); put(el, 'width', `${PILL_W}%`)
       if (sparks) put(sparks, '--pill-h', `${tall[k]}px`)
       shape(k, curve)
