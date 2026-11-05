@@ -1,0 +1,23 @@
+/* «Гонка с Питом»: попап «Говорю / Тапаю» ВНУТРИ игры (features/pitrace/RaceAskPlate.jsx, CONCEPT_RACE.md «Попап внутри игры»). Сцена игры (.wl / .wlStage) уже открыта, фон с узором (data-tex), Пит ещё не выскочил;
+   плашка — тот же класс .wlTurn, что у плашек игры (word-lane-plate.css: узор-тайл, рамка, рост из центра, блеск один раз). Здесь только размер плашки в сцене и кнопки. На 375 px: плашка не шире экрана минус 32 px,
+   кнопки в ряд, без горизонтальной прокрутки. Пока человек не ответил, в сцене больше ничего нет: ни заставки, ни реплик, ни конвейера. */
+.raceAskPlate.wlTurn {
+  width: min(calc(100% - 32px), 340px);
+  padding: 20px 18px 14px;
+  font-size: clamp(18px, 5.4vw, 24px);
+}
+.raceAskText { margin: 0 0 14px; line-height: 1.3; }
+.raceAskBtns { display: flex; gap: 10px; }
+.raceAskBtn {
+  flex: 1;
+  padding: 12px 8px;
+  border-radius: 14px;
+  border: 2px solid rgba(255, 255, 255, 0.28);
+  background: rgba(255, 255, 255, 0.06);
+  color: inherit;
+  font: inherit;
+  font-size: 18px;
+  font-weight: 800;
+  cursor: pointer;
+}
+.raceAskBtn[data-main] { border-color: var(--wl-accent); background: var(--wl-accent); color: var(--wl-ink, #0d1500); } /* прошлый выбор — подсвечен по умолчанию */

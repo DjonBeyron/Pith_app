@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
-import { chargePlan, chargeWords, chargeMs, chargeOn, levelColor, barHeight, flyDist, flyDx, bumpFrames, barKeys, START_BELOW_PX, BAR_BACK_MS, BAR_THIN_MS, BAR_MIN_PX, BAR_MAX_PX, BAR_FULL_PX, BAR_BUMP, BAR_BUMP_MS, CHARGE_FALLBACK_MS, CHARGE_MAX, CHARGE_SPARKS } from './raceCharge.js'
+import { chargePlan, chargeWords, chargeOn, levelColor, flyDist, flyDx, haloKeys, nudgeFrames, ringFrames, START_BELOW_PX, BAR_CORE_PX, HALO_MAX, HALO_RISE_MS, FLASH_MS, RING_MS, NUDGE_PX, NUDGE_MS, CHARGE_MAX, CHARGE_SPARKS } from './raceCharge.js'
 import { fixturePlan } from '../rehearsal/rehearsalFixtures.js'
 import { normalizePlan } from '../rehearsal/rehearsalPlan.js'
 import { extrasOf } from './raceWords.js'
@@ -45,18 +45,16 @@ describe('заставка-зарядка: план', () => {
     expect(a.sparks.every(s => s.size >= 2 && s.size <= 3 && s.startAt >= 0)).toBe(true)
     expect(a.pills.every(p => p.x >= 14 && p.x <= 86)).toBe(true)
   })
-  it('пустой план слов — пустая заставка; без озвучки T = 4 с, с озвучкой — сумма lineMs', () => {
+  it('пустой план слов — пустая заставка; по умолчанию слова летят 4 с', () => {
     expect(chargePlan({ seed: 's', words: [], chunks: ['a'], extraWords: [] }, 4000).pills.length).toBeGreaterThanOrEqual(0)
-    expect(chargeMs(null, ['race_start', 'race_sprint'])).toBe(CHARGE_FALLBACK_MS)
-    const lines = { race_start: { text: 'a', url: 'u1', duration: 2.5 }, race_sprint: { text: 'b', url: 'u2', duration: 3 } }
-    expect(chargeMs(lines, ['race_start', 'race_sprint'])).toBe(5500)
-    expect(chargeMs({ race_start: lines.race_start }, ['race_start', 'race_sprint'])).toBe(2500) // озвучена одна — считаем её
+    expect(chargePlan(plan()).totalMs).toBe(4000)
   })
   it('заставка идёт на drop, lanes и на плашке первого этапа; на первом раунде и дальше — нет', () => {
     expect(chargeOn({ stage: 'drop' })).toBe(true); expect(chargeOn({ stage: 'lanes' })).toBe(true)
     expect(chargeOn({ stage: 'run', idx: 0, stageObj: { type: 'announce' } })).toBe(true)
     expect(chargeOn({ stage: 'run', idx: 1, stageObj: { type: 'student' } })).toBe(false)
     expect(chargeOn({ stage: 'paused', idx: 0 })).toBe(true); expect(chargeOn({ stage: 'paused', idx: 4 })).toBe(false)
+    expect(chargeOn({ stage: 'drop', hold: true })).toBe(false) // сцена открыта, звук готовится: заставка ещё не началась
   })
   it('без Math.random; стили подключены; цвета — переменные уровней памяти; бар заполненный без полос', () => {
     for (const f of ['./raceCharge.js', './RaceCharge.jsx']) expect(read(f)).not.toContain('Math.random')
@@ -64,60 +62,59 @@ describe('заставка-зарядка: план', () => {
     expect(read('../../styles/player/modules/race-sprint.css')).toContain("@import './race-charge.css';")
     expect(css).toContain('.wl[data-charge] .wlLanes'); expect(css).not.toContain('repeating-linear-gradient('); expect(css).not.toMatch(/\bfilter:/)
   })
-  it('прилёт строго в центр бара: конечная точка пилюли (центр) = центр бара в момент касания, у каждой пилюли', () => {
-    const height = 700, pillH = 28, barTop = 51, n = 9
-    for (let i = 0; i < n; i++) {
-      const dist = flyDist({ height, pillH, barTop, i, n })
-      const pillCenterEnd = height + START_BELOW_PX + pillH / 2 - dist
-      expect(pillCenterEnd).toBeCloseTo(barTop + barHeight(i + 1, n) / 2, 6)
-    }
-    expect(barHeight(0, 9)).toBe(BAR_MIN_PX); expect(barHeight(9, 9)).toBe(BAR_MAX_PX)
+  it('прилёт строго в центр бара: конечная точка пилюли (центр) = центр бара (постоянной высоты BAR_CORE_PX) в момент касания, у каждой пилюли', () => {
+    const height = 700, pillH = 28, barTop = 51
+    const dist = flyDist({ height, pillH, barTop })
+    expect(height + START_BELOW_PX + pillH / 2 - dist).toBeCloseTo(barTop + BAR_CORE_PX / 2, 6)
+    expect(BAR_CORE_PX).toBe(6)
   })
   it('у каждой пилюли есть знак волны по семени (кривая — raceChargePath.js, тест raceChargePath.test.js)', () => {
     const { pills } = chargePlan(plan(), 5000)
     for (const p of pills) expect(p.wave.sign === 1 || p.wave.sign === -1).toBe(true)
   })
-  it('бар: касание утолщает до 2× за ~180 мс, заполненный худеет до тонкой полоски (6 px), косых полос нет, пилюля летит до бара и гаснет там', () => {
-    expect(BAR_BUMP).toBe(2); expect(BAR_BUMP_MS).toBe(220); expect(BAR_BACK_MS).toBe(260)
-    expect(BAR_FULL_PX).toBeLessThan(BAR_MAX_PX); expect(BAR_FULL_PX).toBe(6)
+  it('бар: высота постоянная (не анимируется), скругление 999px; «толщину» даёт ореол — scaleY от центра; импакт — только transform / opacity', () => {
     const src = read('./RaceCharge.jsx'), css = read('../../styles/player/modules/race-charge.css')
-    expect(src).toContain('flyDist('); expect(src).toContain('BAR_BUMP'); expect(src).toContain('BAR_FULL_PX'); expect(src).not.toMatch(/data-full.*stripe|repeating/)
-    expect(css).not.toContain('repeating-linear-gradient(')
+    expect(src).toContain('flyDist('); expect(src).toContain('haloKeys('); expect(src).toContain('nudgeFrames('); expect(src).toContain('ringFrames(')
+    expect(src).not.toMatch(/height:\s*`/); expect(src).not.toContain('barKeys'); expect(src).not.toContain('bumpFrames') // высота бара не анимируется
+    expect(css).toMatch(/\.raceChargeBar \{[^}]*height: 6px;/); expect(css).toMatch(/\.raceChargeHalo \{[^}]*border-radius: 999px;[^}]*transform-origin: center/); expect(css).toMatch(/\.raceChargeTrack \{[^}]*border-radius: 999px/)
+    expect(css).not.toContain('repeating-linear-gradient('); expect(css).not.toMatch(/\bfilter:/)
+  })
+  it('ореол: scaleY ступенькой за пилюлю от 1 до HALO_MAX, подъём за HALO_RISE_MS до касания, офсеты не убывают, последний кадр = прилёт последней', () => {
+    for (const T of [2500, 4000, 7300]) {
+      const { segments } = chargePlan(plan(), T)
+      const { keys, duration } = haloKeys(segments)
+      expect(duration).toBe(segments.at(-1).at)
+      const offs = keys.map(k => k.offset); expect(offs).toEqual([...offs].sort((a, b) => a - b))
+      const v = keys.map(k => +k.transform.match(/scaleY\(([\d.]+)\)/)[1])
+      expect(v[0]).toBe(1); expect(v.at(-1)).toBeCloseTo(HALO_MAX, 3); expect(Math.max(...v)).toBeLessThanOrEqual(HALO_MAX + 1e-9)
+      for (let i = 1; i < v.length; i++) expect(v[i]).toBeGreaterThanOrEqual(v[i - 1] - 1e-9) // только растёт
+      expect(keys.at(-1).offset).toBe(1)
+      const k0 = keys[2]; expect(k0.offset * duration).toBeCloseTo(segments[0].at, 3); expect(keys[1].offset * duration).toBeCloseTo(Math.max(segments[0].at - HALO_RISE_MS, 0), 3)
+    }
+    expect(haloKeys([]).keys.length).toBeGreaterThan(0)
+  })
+  it('импакт: толчок бара translateY 2 px и обратно (200 мс), кольцо scale 0,6 → 1,6 и opacity → 0 за 350 мс, вспышка сегмента opacity 0,9 → 0 за 300 мс', () => {
+    const n = nudgeFrames()
+    expect(NUDGE_PX).toBe(2); expect(n.duration).toBe(NUDGE_MS); expect(n.frames.map(f => f.transform)).toEqual(['translateY(0)', 'translateY(2px)', 'translateY(0)']); expect(n.frames.map(f => f.offset)).toEqual([0, 0.35, 1])
+    const r = ringFrames()
+    expect(RING_MS).toBe(350); expect(r.duration).toBe(350); expect(r.frames[0].transform).toContain('scale(0.6)'); expect(r.frames.at(-1).transform).toContain('scale(1.6)'); expect(r.frames[0].opacity).toBeGreaterThan(0); expect(r.frames.at(-1).opacity).toBe(0)
+    const css = read('../../styles/player/modules/race-charge.css')
+    expect(FLASH_MS).toBe(300); expect(css).toMatch(/\.raceChargeSeg::after \{[^}]*animation: raceHit 0\.3s linear var\(--at, 0s\) 1 forwards/); expect(css).toContain('@keyframes raceHit { from { opacity: 0.9; } to { opacity: 0; } }')
+    expect(css).toMatch(/\.raceChargeSeg::after \{[^}]*opacity: 0;/) // до момента касания вспышки нет
+    const src = read('./RaceCharge.jsx'); expect((src.match(/data-ring/g) ?? []).length).toBe(2) // один узел кольца на бар (разметка + выбор), не по узлу на касание
   })
   it('старт пилюли ниже нижнего края (из-за затемнения) и прилёт строго в центр бара по x и по y', () => {
     expect(START_BELOW_PX).toBeGreaterThanOrEqual(40)
     expect(read('../../styles/player/modules/race-charge.css')).toContain(`top: calc(100% + ${START_BELOW_PX}px)`)
-    const height = 700, pillH = 28, barTop = 51, n = 9, width = 375, barLeft = 16, barWidth = width - 76
+    const height = 700, pillH = 28, barTop = 51, width = 375, barLeft = 16, barWidth = width - 76
     const { pills } = chargePlan(plan(), 5000)
     for (const p of pills) {
       const startTop = height + START_BELOW_PX // верх пилюли в начале пути: за нижним краем
       expect(startTop).toBeGreaterThan(height)
       const dx = flyDx({ width, x: p.x, barLeft, barWidth })
       expect((width * p.x) / 100 + dx).toBeCloseTo(barLeft + barWidth / 2, 6) // центр пилюли по x = центр бара
-      const dist = flyDist({ height, pillH, barTop, i: p.i, n })
-      expect(startTop + pillH / 2 - dist).toBeCloseTo(barTop + barHeight(p.i + 1, n) / 2, 6) // и по y
+      const dist = flyDist({ height, pillH, barTop })
+      expect(startTop + pillH / 2 - dist).toBeCloseTo(barTop + BAR_CORE_PX / 2, 6) // и по y
     }
-  })
-  it('касание бара: ease-in-out без первого кадра (берёт текущее значение), пик 2× в момент касания, возврат к 1; рост плавный', () => {
-    const { frames, duration } = bumpFrames()
-    expect(duration).toBe(BAR_BUMP_MS + BAR_BACK_MS)
-    const peak = frames.find(f => f.scale === '1 2.0000')
-    expect(peak.offset).toBeCloseTo(BAR_BUMP_MS / duration, 6); expect(frames.at(-1).scale).toBe('1 1.0000'); expect(frames.at(-1).offset).toBe(1)
-    expect(frames[0].offset).toBeGreaterThan(0) // нет кадра в 0: старт — из-под анимации
-    const v = frames.map(f => +f.scale.split(' ')[1])
-    for (let i = 1; i < v.length; i++) expect(Math.abs(v[i] - v[i - 1])).toBeLessThan(0.45)
-    expect(frames.map(f => f.offset)).toEqual([...frames.map(f => f.offset)].sort((a, b) => a - b))
-  })
-  it('толщина бара — одна анимация: офсеты не убывают, худение до 6 px начинается после возврата последнего касания и не пересекается с подъёмом', () => {
-    for (const T of [2500, 4000, 7300]) {
-      const { segments } = chargePlan(plan(), T)
-      const { keys, duration } = barKeys(segments, T)
-      const offs = keys.map(k => k.offset)
-      expect(offs).toEqual([...offs].sort((a, b) => a - b)); expect(duration).toBe(T + BAR_BACK_MS + BAR_THIN_MS)
-      expect(keys.at(-1)).toEqual({ height: `${BAR_FULL_PX}px`, offset: 1 })
-      const thin = keys.at(-2), top = keys.at(-3)
-      expect(thin.height).toBe(`${BAR_MAX_PX}px`); expect(thin.offset * duration).toBeCloseTo(T + BAR_BACK_MS, 3); expect(top.offset * duration).toBeLessThanOrEqual(T + 1e-6) // последний подъём кончился до худения
-    }
-    const src = read('./RaceCharge.jsx'); expect(src).not.toContain('BAR_THIN_MS'); expect(src).toContain('barKeys(')
   })
 })

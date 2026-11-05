@@ -1,11 +1,13 @@
-/* «Гонка с Питом»: заставка-«зарядка» памятью (features/pitrace/RaceCharge.jsx, план — raceCharge.js, CONCEPT_RACE.md «Заставка»). Пока Пит говорит race_start и объявляет первый этап, дорожек нет вовсе
-   (data-charge на корне игры: пунктир конвейера, линии и огоньки скрыты; когда заставка кончается, они проявляются обычным переходом .wlLanes 0,8 с). Снизу вверх летят пилюли со словами памяти
-   (--c — цвет ступени слова, --lvl0…--lvl4 из memory-levels.css) и микро-частицы 2–3 px; сверху бар: сегменты цветов долетевших пилюль (по одному на пилюлю, без градиента), бар толстеет с каждой; пилюля прилетает центром в центр бара, в момент касания бар утолщается до 2× (свойство scale от верхнего края,
-   transform-origin) и возвращается. Заполненный бар (data-full) — сплошные цветные сегменты, косых полос в нём нет никогда; он худеет до тонкой полоски, стоит до начала первого раунда, потом уходит (data-leaving).
-   Полёт, толщину и касание ведёт Web Animations (transform / opacity / height / scale), здесь только раскладка и вид; без filter.
-   СЛОИ (внутри заставки — `isolation: isolate`, чтобы бар не перекрыл крестик выхода .wlClose и кнопки HUD): бар (z-index 3) выше слоя пилюль (z-index 1), слой пилюль выше фона; слой обрезан clip-path по линии бара (его верхняя кромка + 2 px = середина самого тонкого бара), поэтому пилюля заходит ПОД бар и скрывается под ним.
-   ШЛЕЙФ («размытие движения» без filter, только при data-trail: не lite и не reduced-motion): без копий-призраков — один мягкий хвост-градиент (::before, ≤ 1,1 высоты пилюли, прозрачность ≤ 0,35, гаснет к прилёту) и
-   растяжение по оси движения не больше 1,08 (scale ведёт Web Animations, затухает к прилёту). Лишних DOM-узлов на пилюлю нет. */
+/* «Гонка с Питом»: заставка-«зарядка» памятью (features/pitrace/RaceCharge.jsx, план — raceCharge.js, расписание — raceOpening.js, CONCEPT_RACE.md «Заставка»). Пока Пит говорит race_start и реплику первого этапа, дорожек нет вовсе
+   (data-charge на корне игры: пунктир конвейера, линии и огоньки скрыты). Снизу вверх летят пилюли со словами памяти (--c — цвет ступени слова, --lvl0…--lvl4 из memory-levels.css) и микро-частицы 2–3 px;
+   сверху бар: сегменты цветов долетевших пилюль (по одному на пилюлю, без градиента). Пилюля прилетает центром в центр бара; бар заполнен — он САМ становится плашкой этапа (RaceChargePlate.jsx), плашка держится и уходит (data-leaving).
+   БАР: тонкая подложка постоянной высоты (6 px) с border-radius 999px — ВЫСОТА НЕ АНИМИРУЕТСЯ, скругления круглые всегда. «Толщину» набирает слой-ореол за баром (.raceChargeHalo, тот же радиус): transform: scaleY от центра (Web Animations).
+   ИМПАКТ касания, только transform / opacity: вспышка сегмента цветом слова (.raceChargeSeg::after, opacity 0,9 → 0 за 300 мс; момент — --at сегмента, animation-delay), кольцо-рябь (.raceChargeRing, один узел на бар, цвет --rc,
+   scale 0,6 → 1,6 за 350 мс — Web Animations) и толчок всего бара translateY(2px) и обратно (Web Animations). Без filter.
+   СЛОИ (внутри заставки — `isolation: isolate`, чтобы бар не перекрыл крестик выхода .wlClose и кнопки HUD): бар (z-index 3) выше слоя пилюль (z-index 1), плашка (z-index 4) выше бара; слой пилюль обрезан clip-path по линии бара,
+   поэтому пилюля заходит ПОД бар и скрывается под ним.
+   ШЛЕЙФ («размытие движения» без filter, только при data-trail: не lite и не reduced-motion): один мягкий хвост-градиент (::before) ПРЯМОУГОЛЬНЫЙ — ширина равна ширине пилюли, без скругления по бокам (border-radius: 0),
+   мягкий вертикальный градиент цвет → прозрачный, до 1,1 высоты пилюли, прозрачность ≤ 0,35, гаснет к прилёту; растяжение по оси движения не больше 1,08 (scale ведёт Web Animations). Лишних DOM-узлов на пилюлю нет. */
 .wl[data-charge] .wlLanes, .wl[data-charge] .wlDots { opacity: 0; }
 
 .raceCharge { inset: 0; z-index: 1; isolation: isolate; overflow: hidden; pointer-events: none; transition: opacity 0.6s ease; }
@@ -15,15 +17,36 @@
   top: calc(env(safe-area-inset-top, 0px) + 14px);
   left: 16px;
   right: 60px; /* справа остаётся крестик выхода */
-  height: 4px;
+  height: 6px; /* BAR_CORE_PX: постоянная; растёт только ореол */
   z-index: 3; /* выше пилюль: они заходят под бар */
-  border-radius: 999px;
-  overflow: hidden;
-  background: rgba(255, 255, 255, 0.1);
-  transform-origin: 50% 0; /* касание пилюли растягивает бар вниз от верхней кромки (scale) */
 }
+.raceChargeBar[data-morph] { animation: raceBarOut 0.6s ease-in both; } /* бар становится плашкой: сам тает, пока растёт плашка */
+@keyframes raceBarOut { to { opacity: 0; } }
+.raceChargeHalo { position: absolute; inset: 0; border-radius: 999px; background: rgba(255, 255, 255, 0.16); transform-origin: center; transform: scaleY(1); }
+.raceChargeTrack { position: absolute; inset: 0; border-radius: 999px; overflow: hidden; background: rgba(255, 255, 255, 0.1); }
 .raceChargeSeg { position: absolute; top: 0; bottom: 0; transform-origin: left center; transform: scaleX(0); }
-.raceChargePills { position: absolute; inset: 0; z-index: 1; clip-path: inset(calc(env(safe-area-inset-top, 0px) + 16px) 0 0 0); } /* верх среза = середина бара (бар: top 14 px + половина минимальных 4 px) */
+.raceChargeSeg::after { /* вспышка касания: цвет слова, светлее */
+  content: '';
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  background: color-mix(in srgb, var(--c, #fff) 45%, #fff);
+  animation: raceHit 0.3s linear var(--at, 0s) 1 forwards; /* до --at opacity 0 (fill только forwards) */
+}
+@keyframes raceHit { from { opacity: 0.9; } to { opacity: 0; } }
+.raceChargeRing { /* кольцо-рябь: центр бара, scale и opacity ведёт Web Animations */
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 30px;
+  height: 30px;
+  box-sizing: border-box;
+  border: 2px solid var(--rc, #fff);
+  border-radius: 50%;
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(0.6);
+}
+.raceChargePills { position: absolute; inset: 0; z-index: 1; clip-path: inset(calc(env(safe-area-inset-top, 0px) + 17px) 0 0 0); } /* верх среза = середина бара (бар: top 14 px + половина BAR_CORE_PX) */
 .raceChargePill {
   position: absolute;
   top: calc(100% + 60px); /* START_BELOW_PX: старт ниже нижнего края — из-за затемнения */
@@ -40,14 +63,14 @@
   line-height: 1.1;
   white-space: nowrap; /* без overflow: hidden — хвост-шлейф ::before выходит за пилюлю; длинное слово обрезает pillLabel */
 }
-.raceCharge[data-trail] .raceChargePill::before { /* сдержанный хвост: один мягкий градиент цвет пилюли → прозрачный, до 1,1 высоты пилюли, прозрачность не выше 0,35 и гаснет к прилёту */
+.raceCharge[data-trail] .raceChargePill::before { /* хвост: прямоугольник во всю ширину пилюли (с рамкой), без скругления; мягкий вертикальный градиент цвет → прозрачный */
   content: '';
   position: absolute;
   top: 100%;
-  left: 12%;
-  right: 12%;
+  left: -2px;
+  right: -2px;
   height: 110%;
-  border-radius: 0 0 999px 999px;
+  border-radius: 0;
   background: linear-gradient(to bottom, color-mix(in srgb, var(--c) 70%, transparent), transparent);
   opacity: 0;
   pointer-events: none;
@@ -55,5 +78,14 @@
 }
 @keyframes raceTail { 0% { opacity: 0; } 15% { opacity: 0.32; } 60% { opacity: 0.2; } 100% { opacity: 0; } }
 .raceChargeSpark { position: absolute; top: 100%; border-radius: 50%; opacity: 0.9; }
+
+/* Плашка этапа, в которую стал бар (RaceChargePlate.jsx): стиль .wlTurn (узор, рамка, блеск один раз); размер и место ведёт морф (Web Animations), без роста .wlTurn */
+.raceChargePlate.wlTurn { position: absolute; z-index: 4; display: flex; align-items: center; justify-content: center; animation: none; }
+.raceChargePlateBody { flex: 0 1 auto; min-width: 0; } /* ширину текста в итоговой плашке фиксирует RaceChargePlate.jsx (до роста) */
+.raceChargePlateBody > * { animation: raceBodyIn 0.35s ease-out 0.3s both; } /* название и задание проявляются ближе к концу морфа */
+@keyframes raceBodyIn { from { opacity: 0; } to { opacity: 1; } }
+.raceCharge[data-lite] .raceChargePlate.wlTurn { animation: wlTurnFadeIn 0.25s ease both; }
+.raceCharge[data-lite] .raceChargePlateBody > * { animation: none; }
+
 .weak-device .raceCharge, .weak-device .raceCharge[data-leaving] { transition: none; }
-@media (prefers-reduced-motion: reduce) { .raceCharge { transition: none; } }
+@media (prefers-reduced-motion: reduce) { .raceCharge { transition: none; } .raceChargeSeg::after { display: none; } .raceChargeBar[data-morph] { animation: none; opacity: 0; } }

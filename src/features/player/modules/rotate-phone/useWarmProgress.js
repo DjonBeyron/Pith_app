@@ -10,7 +10,7 @@ export function useWarmProgress(cfg, lines, listed = true) {
   const [, bump] = useReducer(n => n + 1, 0)
   useEffect(() => onSettled(bump), [])
   const plan = wordsPlan({ cfg, lines })
-  const p = warmProgress(warmItems(plan), plan.firstCount)
+  const p = warmProgress(warmItems(plan), plan.firstCount, plan.gateMin)
   const open = listed && p.open
   return { ...p, open, all: listed && p.all, label: warmLabel(p) }
 }

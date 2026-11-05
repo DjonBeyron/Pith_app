@@ -10,10 +10,7 @@ import { RACE_ROUNDS, RACE_TITLES, STAGES_ROUND } from '../../pitrace/raceOnly.j
 import { raceTexts } from '../../pitrace/raceTexts.js'
 import { extrasOf } from '../../pitrace/raceWords.js'
 import { raceDebugFile } from '../../pitrace/raceLog.js'
-import { ASK_LINE } from '../../pitrace/raceAskVoice.js'
-import RaceAsk from './RaceAsk.jsx'
 import PolishSettings from './PolishSettings.jsx'
-import useRaceAsk from './useRaceAsk.js'
 import usePolishOpen from './usePolishOpen.js'
 import usePolishVoice from './usePolishVoice.js'
 import useTransVoice from './useTransVoice.js'
@@ -24,8 +21,8 @@ import '../../../styles/admin-race-ask.css'
 // Админ → «Голос» → «Гонка с Питом (стенд)» (САМЫЙ ВЕРХ вкладки, над «Шлифовкой репетиции»): проверка новой игры на движке репетиции (CONCEPT_RACE.md, src/features/pitrace/). Раскладка на 375 px: крупная кнопка «Два этапа + финал» (актуальный режим),
 // под ней «Полная гонка», раунды и «Скачать отладку», ниже сворачиваемый раздел «Настройки» (по умолчанию свёрнут, состояние — usePolishOpen): фикстура плана (общая форма с «Шлифовкой репетиции» и «Тестом игры», rehearsalTestForm.js),
 // статус и кнопки озвучки реплик race_* (usePolishVoice → rehearsalVoice.voiceMissingPitLines с набором RACE_LINES), кусков фразы и переводов слов, «Тап вместо речи» (общий флаг игры pithy_wl_tap_v1).
-// Любая кнопка запуска сначала открывает плашку-вопрос «Говорю / Тапаю» (RaceAsk.jsx, useRaceAsk.js): выбор — свежий жест, в нём же start() модуля (startGameAudio: микрофон, звук, полный экран). План с game: 'race' и round (raceOnly.js);
-// один модуль игры на блок (RotatePhoneModule bare forceDebug startRef). «Скачать отладку» — журнал плеера, строки гонки помечены «[race]». Память и XP пишутся в симуляцию (sessionStorage), на сервер ничего не уходит.
+// Любая кнопка запуска только ОТКРЫВАЕТ сцену игры на весь экран с попапом «Говорю / Тапаю» (pitrace/RaceAskPlate.jsx, внутри RotatePhoneModule): пока человек не ответил, ничего не стартует; ответ — свежий жест, в нём же startGameAudio
+// (микрофон, звук). План с game: 'race' и round (raceOnly.js); один модуль игры на блок (RotatePhoneModule bare forceDebug startRef). «Скачать отладку» — журнал плеера, строки гонки помечены «[race]». Память и XP пишутся в симуляцию (sessionStorage), на сервер ничего не уходит.
 const SETTINGS_ID = 'race-settings'
 
 export default function RaceBlock({ save = saveDebugFile }) {
@@ -50,10 +47,7 @@ export default function RaceBlock({ save = saveDebugFile }) {
   const chunksAll = voice.chunks.done >= voice.chunks.total
   const transAll = trans.done >= trans.total
 
-  const launch = useCallback(id => { flushSync(() => setRound(id)); startRef.current?.() }, []) // нода обновляется синхронно, чтобы start() взял план раунда; всё в одном тапе (жест)
-  const asker = useRaceAsk({ launch, onTap: setTap })
-  const { watch } = asker
-  const onStatus = useCallback(s => { setStatus(s); watch(s) }, [watch])
+  const launch = useCallback(id => { flushSync(() => setRound(id)); startRef.current?.() }, []) // нода обновляется синхронно, чтобы start() взял план раунда и открыл сцену с попапом (полный экран — из этого тапа)
   const pickFixture = fixture => { const next = { ...rform, fixture, json: fixtureJson(fixture) }; setRform(next); saveRehearsalForm(next) }
   const flip = on => { setTap(on); writeTapMode(on) }
   async function exportLog() { setNote(SAVE_HOW[await save(raceDebugFile())] ?? SAVE_HOW.failed) }
@@ -62,10 +56,10 @@ export default function RaceBlock({ save = saveDebugFile }) {
   return (
     <section className="aspBlock rhpBlock" data-testid="race-block">
       <h3 className="aspH">Гонка с Питом (стенд)</h3>
-      <button type="button" className="aspSay rhpBig" onClick={() => asker.open(STAGES_ROUND)} disabled={!idle || !racePlan} data-testid="race-run-stages">{RACE_TITLES[STAGES_ROUND]}</button>
+      <button type="button" className="aspSay rhpBig" onClick={() => launch(STAGES_ROUND)} disabled={!idle || !racePlan} data-testid="race-run-stages">{RACE_TITLES[STAGES_ROUND]}</button>
       <div className="rhpVoiceRow">
-        <button type="button" className="aspChip" onClick={() => asker.open(null)} disabled={!idle || !racePlan} data-testid="race-run-full">Полная гонка</button>
-        {RACE_ROUNDS.map(r => <button key={r} type="button" className="aspChip" onClick={() => asker.open(r)} disabled={!idle || !racePlan} data-testid={`race-run-${r}`}>{RACE_TITLES[r]}</button>)}
+        <button type="button" className="aspChip" onClick={() => launch(null)} disabled={!idle || !racePlan} data-testid="race-run-full">Полная гонка</button>
+        {RACE_ROUNDS.map(r => <button key={r} type="button" className="aspChip" onClick={() => launch(r)} disabled={!idle || !racePlan} data-testid={`race-run-${r}`}>{RACE_TITLES[r]}</button>)}
         <button type="button" className="aspChip" onClick={exportLog} data-testid="race-export">Скачать отладку</button>
       </div>
       {!idle && !playing && <p className="rhpHint" role="status" data-testid="race-why">{whyNotIdle(status)}</p>}
@@ -100,8 +94,7 @@ export default function RaceBlock({ save = saveDebugFile }) {
         </div>
         <label className="aspLabelInline"><input type="checkbox" checked={tap} onChange={e => flip(e.target.checked)} disabled={playing} data-testid="race-tap-mode" /> Тап вместо речи (тап по дорожке засчитывает слово; флаг общий с игрой, перед стартом его выставляет плашка «Говорю / Тапаю»)</label>
       </PolishSettings>
-      {asker.ask && <RaceAsk choice={asker.choice} url={voice.lines?.[ASK_LINE]?.url ?? null} onPick={asker.pick} onCancel={asker.cancel} />}
-      {racePlan && <RotatePhoneModule linesRev={voice.rev} node={node} bare forceDebug startRef={startRef} onStatus={onStatus} />}
+      {racePlan && <RotatePhoneModule linesRev={voice.rev} node={node} bare forceDebug startRef={startRef} onStatus={setStatus} onTap={setTap} />}
     </section>
   )
 }

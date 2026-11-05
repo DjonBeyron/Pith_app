@@ -1,4 +1,4 @@
-import { memo, useRef, useState } from 'react'
+import { memo, useCallback, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
 import WordLanePills from './WordLanePills.jsx'
@@ -16,6 +16,8 @@ import WordLaneComment from './WordLaneComment.jsx'
 import WordLaneTurnPlate from './WordLaneTurnPlate.jsx'
 import { useWordLaneLeavingPlates } from './useWordLaneLeavingPlates.js'
 import { chargeOn } from '../../../pitrace/raceCharge.js'
+import RaceSpeedBadge from '../../../pitrace/RaceSpeedBadge.jsx'
+import { raceStart, PIT_PEEK_MS } from '../../../pitrace/raceStartTrace.js'
 import RehearsalActs from '../../../rehearsal/RehearsalActs.jsx'
 import ReadKaraoke from '../../../rehearsal/read/ReadKaraoke.jsx'
 import { isWeakDevice } from '../../../../shared/lib/deviceTier.js'
@@ -41,14 +43,17 @@ const FAIL_TEXT = {
   sub: 'Распознавание речи не запустилось: нет модели или микрофон не открылся. Проверь доступ к микрофону и попробуй ещё раз.',
 }
 
-export default function WordLaneGame({ cfg, audioSrc, lines = null, forceDebug = false, onRestart = null, onAgain = null, onSummary = null, onFinished }) {
+export default function WordLaneGame({ cfg, audioSrc, lines = null, forceDebug = false, startHold = false, onRestart = null, onAgain = null, onSummary = null, onFinished }) { // startHold — «Гонка»: сцена открыта сразу после ответа на попап, звук ещё готовится (RotatePhoneModule): часы игры стоят, Пит уже наверху
   const rootRef = useRef(null)
   const [tapMode, setTapMode] = useState(readTapMode) // «тап вместо речи» (HUD, админ): тап по дорожке в очереди ученика засчитывает следующую цель — проверка механики и анимаций без голоса
   const [lite] = useState(() => readWeakStored() ?? isWeakDevice()) // слабое устройство: читка репетиции без курсора (ReadKaraoke)
   const [safe0] = useState(readPillSafe) // «безопасные слои пилюль» (HUD): класс только на старте, дальше его меняет сам HUD через classList — className не меняется, React его не трогает
   const [comment, setComment] = useState(null) // открыт оверлей комментария к этапу репетиции (шлифовка): { snap (что было на экране в момент тапа 💬), at }
   const catApi = useRef(null) // Пит (кот-маскот): рот по голосу и реакции лицом — через api, минуя React на кадрах
-  const f = useWordLaneFlow({ chunks: cfg.chunks, translation: cfg.translation, lang: cfg.lang, clips: cfg.clips, audioSrc, audio: cfg.audio, catApi, lines, confusers: cfg.confusers, plan: cfg.plan, forceDebug, onFinished })
+  const f = useWordLaneFlow({ chunks: cfg.chunks, translation: cfg.translation, lang: cfg.lang, clips: cfg.clips, audioSrc, audio: cfg.audio, catApi, lines, confusers: cfg.confusers, plan: cfg.plan, forceDebug, hold: startHold, onFinished })
+  const speedBadge = useRef(null) // бейдж «×1,1 … ×1,5» (RaceSpeedBadge.jsx): привод дорожек сообщает новый множитель скорости, перерисовок React нет
+  const onSpeed = useCallback(v => speedBadge.current?.show(v), [])
+  useEffect(() => { if (startHold) { catApi.current?.peek?.(PIT_PEEK_MS); raceStart.pit() } }, []) // eslint-disable-line react-hooks/exhaustive-deps -- «Гонка»: Пит выскакивает при открытии сцены (≤ 300 мс, пружина головы) и ждёт первую реплику; раз за монтирование
   const pause = useWordLanePause({ f, cfg, audioSrc, lines }) // свернули приложение — пауза сразу, «Продолжить» открывает микрофон из тапа (useWordLanePause.js)
   const { phase } = f
   const plates = useWordLaneLeavingPlates(f.plate, f.idx) // плашка остаётся в DOM на время ухода (улетает вверх, как пилюля): useWordLaneLeavingPlates.js
@@ -67,8 +72,9 @@ export default function WordLaneGame({ cfg, audioSrc, lines = null, forceDebug =
     <div ref={rootRef} className={safe0 ? 'wl wl--safe' : 'wl'} data-phase={phase} data-act={f.rh.on ? f.stageObj?.act : undefined} data-sid={f.rh.on ? f.stageObj?.sid : undefined} data-streak={f.rh.race?.streakMode} data-charge={cfg.plan?.game === 'race' && chargeOn(f) ? '' : undefined} data-testid="wl">
       <div className="wlStage" data-tex={race && !lite ? '' : undefined}>
         <WordLaneCat apiRef={catApi} />
-        <WordLanePills scene={f.scene} levels={f.levels} fx={f.fx} live={f.live} sceneApi={f.sceneApi} visible={showSlots} armed={armed} speed={speed} paused={f.paused} speedKey={f.stage === 'run' ? f.idx : -1} onLane={phase === 'order' || (phase === 'discern' && !f.stageObj?.speak) || (tapMode && (phase === 'student' || f.stageObj?.speak)) ? f.onLane : null} />
+        <WordLanePills scene={f.scene} levels={f.levels} fx={f.fx} live={f.live} sceneApi={f.sceneApi} visible={showSlots} armed={armed} speed={speed} onSpeed={cfg.plan?.game === 'race' ? onSpeed : undefined} paused={f.paused} speedKey={f.stage === 'run' ? f.idx : -1} onLane={phase === 'order' || (phase === 'discern' && !f.stageObj?.speak) || (tapMode && (phase === 'student' || f.stageObj?.speak)) ? f.onLane : null} />
         <WordLaneXp apiRef={f.xpApi} />
+        {cfg.plan?.game === 'race' && <RaceSpeedBadge apiRef={speedBadge} />}
         {single
           ? <div className="wlWord" style={{ top: `${WORD_Y}%` }} data-testid="wl-word">{cfg.chunks[0]}</div>
           : (

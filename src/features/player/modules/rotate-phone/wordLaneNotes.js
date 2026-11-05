@@ -150,6 +150,16 @@ export function playNote(k) {
   } catch { return false }
 }
 
+/** Сколько мс звучит награда k выбранным вариантом (длина буфера с учётом тона; нет буфера — длина ноты). 0 — «без звука» (в админке или в уроке): «Гонка» играет взлёт сразу, без ожидания ноты */
+export function rewardMs(k) {
+  const mode = getRewardSound()
+  if (mode === 'off' || getLessonMuted()) return 0
+  const i = Math.min(Math.max(0, k), NOTES.length - 1)
+  const buf = webAudioOn() ? soundBuffer(bufferId(mode, i)) : null
+  const rate = mode === 'custom' ? REWARD_RATES[Math.min(i, REWARD_RATES.length - 1)] ?? 1 : 1
+  return Math.round(buf?.duration > 0 ? (buf.duration * 1000) / rate : NOTES[i].ms)
+}
+
 /** Админка, из тапа: проиграть тон k выбранным вариантом при текущей громкости (отдельный элемент, слоты игры не трогает). false — «без звука» или нечем */
 export function previewReward(k) {
   const mode = getRewardSound()

@@ -7,7 +7,7 @@ vi.mock('../../shared/lib/gameBufferPlay.js', () => ({ playGameBuffer: vi.fn(() 
 
 const made = []
 const fakeCtx = { sampleRate: 44100, createBuffer: (ch, len, rate) => { const data = new Float32Array(len); const b = { len, rate, data, copyToChannel: d => data.set(d), getChannelData: () => data }; made.push(b); return b } }
-const { synthTakeoff, takeoffBuffer, takeoffOn, playTakeoff, takeoffHz, dropTakeoffBuffer, TAKEOFF_MS, TAKEOFF_RMS, TAKEOFF_FROM_HZ, TAKEOFF_TO_HZ } = await import('./raceTakeoffSound.js')
+const { synthTakeoff, takeoffBuffer, takeoffOn, playTakeoff, takeoffHz, dropTakeoffBuffer, takeoffDelay, playTakeoffAfter, TAKEOFF_GAP_MIN_MS, TAKEOFF_GAP_MAX_MS, TAKEOFF_MS, TAKEOFF_RMS, TAKEOFF_FROM_HZ, TAKEOFF_TO_HZ } = await import('./raceTakeoffSound.js')
 const { COUNT_RMS, COUNT_PEAK } = await import('../rehearsal/rehearsalCountdownSynth.js')
 
 const rmsOf = a => Math.sqrt(a.reduce((s, v) => s + v * v, 0) / a.length)
@@ -59,6 +59,29 @@ describe('звук взлёта: когда играет', () => {
   it('подключён в директоре гонки (rec → win) и не в директоре репетиции', async () => {
     const { readFileSync } = await import('node:fs')
     const race = readFileSync(new URL('./useRaceActs.js', import.meta.url), 'utf8'), rh = readFileSync(new URL('../rehearsal/useRehearsalActs.js', import.meta.url), 'utf8')
-    expect(race).toContain('if (takeoffOn(running, kind, info)) playTakeoff()'); expect(rh).not.toContain('Takeoff')
+    expect(race).toContain('if (takeoffOn(running, kind, info)) playTakeoffAfter(rewardMs(info?.order ?? 0))'); expect(rh).not.toContain('Takeoff')
+  })
+})
+
+describe('звук взлёта: после ноты награды, а не вместе с ней', () => {
+  it('задержка = длина ноты награды, но не меньше 180 и не больше 600 мс; награды нет — сразу', () => {
+    expect([TAKEOFF_GAP_MIN_MS, TAKEOFF_GAP_MAX_MS]).toEqual([180, 600])
+    expect(takeoffDelay(380)).toBe(380); expect(takeoffDelay(120)).toBe(180); expect(takeoffDelay(560)).toBe(560); expect(takeoffDelay(1500)).toBe(600)
+    expect(takeoffDelay(0)).toBe(0); expect(takeoffDelay(-5)).toBe(0); expect(takeoffDelay(undefined)).toBe(0)
+  })
+  it('расписание: таймер на нужную задержку, звук играет только когда он сработал; журнал «[race] взлёт: звук …»', () => {
+    const play = vi.fn(() => true), timers = [], log = vi.fn()
+    const set = (fn, ms) => { timers.push({ fn, ms }); return timers.length }
+    playTakeoffAfter(380, { play, set, log })
+    expect(timers).toHaveLength(1); expect(timers[0].ms).toBe(380); expect(play).not.toHaveBeenCalled()
+    expect(log.mock.calls[0][0]).toBe('[race] взлёт: звук через 380 мс (нота награды 380 мс)')
+    timers[0].fn(); expect(play).toHaveBeenCalledTimes(1)
+  })
+  it('нота короче 180 мс — взлёт через 180; нет ноты — взлёт сразу, без таймера; отмена гасит таймер', () => {
+    const play = vi.fn(() => true), timers = [], log = vi.fn(), cleared = []
+    const set = (fn, ms) => { timers.push({ fn, ms }); return 7 }
+    playTakeoffAfter(100, { play, set, log }); expect(timers[0].ms).toBe(180)
+    playTakeoffAfter(0, { play, set, log }); expect(timers).toHaveLength(1); expect(play).toHaveBeenCalledTimes(1); expect(log.mock.calls[1][0]).toContain('ноты награды нет')
+    const off = playTakeoffAfter(300, { play, set, clear: id => cleared.push(id), log }); off(); expect(cleared).toEqual([7])
   })
 })

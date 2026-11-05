@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
-import RaceAsk from '../admin/speech/RaceAsk.jsx'
+import { RaceAskScene } from './RaceAskPlate.jsx'
 import { VOICE_CHOICE_KEY, ASK_LINE, askText, readVoiceChoice, writeVoiceChoice, tapFor, createTapGuard } from './raceAskVoice.js'
 import { RACE_LINES } from './raceLines.js'
 import { TAP_KEY, readTapMode, writeTapMode } from '../player/modules/rotate-phone/wordLaneHudSettings.js'
@@ -10,7 +10,7 @@ import { TAP_KEY, readTapMode, writeTapMode } from '../player/modules/rotate-pho
 // Плашка-вопрос «сможешь говорить?» перед стартом гонки (стенд): выбор запоминается, «Тапаю» включает тап на эту игру, потом прежнее значение возвращается; старт — из обработчика кнопки плашки (жест).
 const memory = () => { const m = new Map(); return { getItem: k => m.get(k) ?? null, setItem: (k, v) => m.set(k, String(v)), removeItem: k => m.delete(k), m } }
 const read = rel => readFileSync(new URL(rel, import.meta.url), 'utf8')
-const html = props => renderToStaticMarkup(createElement(RaceAsk, { choice: 'voice', onPick() {}, onCancel() {}, ...props }))
+const html = props => renderToStaticMarkup(createElement(RaceAskScene, { choice: 'voice', onPick() {}, onCancel() {}, ...props }))
 
 describe('выбор «Говорю / Тапаю»: хранилище', () => {
   it('ключ pithy_race_voice_choice_v1; по умолчанию «Говорю»; запоминается; мусор и сбой хранилища — «Говорю»', () => {
@@ -57,23 +57,26 @@ describe('режим тапа на время игры (createTapGuard)', () => 
   })
 })
 
-describe('плашка RaceAsk и проводка в блоке гонки', () => {
-  it('в стиле плашек игры (.wlTurn), текст вопроса, две кнопки; прошлый выбор подсвечен', () => {
+describe('попап «Говорю / Тапаю» внутри игры (RaceAskPlate) и проводка', () => {
+  it('внутри сцены игры (.wl > .wlStage с узором), плашка в стиле .wlTurn, текст вопроса, две кнопки; прошлый выбор подсвечен; Пита и заставки в сцене нет', () => {
     const h = html({})
-    expect(h).toContain('class="wlTurn raceAskPlate"'); expect(h).toContain('role="dialog"'); expect(h).toContain(askText())
+    expect(h).toContain('class="wl"'); expect(h).toContain('class="wlStage" data-tex=""'); expect(h).toContain('class="wlTurn raceAskPlate"'); expect(h).toContain('role="dialog"'); expect(h).toContain(askText())
     expect(h).toContain('data-testid="race-ask-voice"'); expect(h).toContain('>Говорю<'); expect(h).toContain('data-testid="race-ask-tap"'); expect(h).toContain('>Тапаю<')
     expect(h.match(/data-main="1"/g)).toHaveLength(1); expect(h.indexOf('data-main')).toBeLessThan(h.indexOf('data-testid="race-ask-tap"')) // подсвечена «Говорю»
     expect(html({ choice: 'tap' }).indexOf('data-main')).toBeGreaterThan(html({ choice: 'tap' }).indexOf('data-testid="race-ask-voice"')) // подсвечена «Тапаю»
-    expect(h).not.toContain('race-ask-listen'); expect(html({ url: 'https://x/ask.mp3' })).toContain('race-ask-listen') // «Послушать» — только у озвученной реплики
+    expect(html({ lite: true })).not.toContain('data-tex'); expect(h).toContain('wlClose')
+    for (const k of ['wlCat', 'raceCharge', 'wlPill', 'wlLanes', 'data-testid="wl-field"']) expect(h).not.toContain(k) // до ответа ничего из игры не рисуется
   })
-  it('любая кнопка запуска только открывает плашку; start() модуля зовётся из выбора на плашке (жест), а не из «Запустить»', () => {
-    const block = read('../admin/speech/RaceBlock.jsx'), hook = read('../admin/speech/useRaceAsk.js')
-    for (const k of ['asker.open(STAGES_ROUND)', 'asker.open(null)', 'asker.open(r)']) expect(block).toContain(k)
-    expect(block).not.toMatch(/onClick=\{\(\) => launch\(/); expect(block).toContain('const launch = useCallback(id => { flushSync(() => setRound(id)); startRef.current?.() }')
-    expect(block).toContain('<RaceAsk choice={asker.choice}'); expect(block).toContain('onStatus={onStatus}')
-    const pick = hook.slice(hook.indexOf('const pick'), hook.indexOf('const watch'))
-    expect(pick).toContain('launch(ask.round)'); expect(pick).toContain('writeVoiceChoice(picked'); expect(pick.indexOf('writeTapMode')).toBeLessThan(pick.indexOf('launch(')) // тап выставлен до старта игры
-    expect(hook.indexOf('const open')).toBeLessThan(hook.indexOf('const pick')); expect(hook.slice(hook.indexOf('const open'), hook.indexOf('const cancel'))).not.toContain('launch')
+  it('кнопка админ-блока только открывает сцену (launch → start() → openAsk); попапа в админ-блоке больше нет; выбор — жест в модуле игры', () => {
+    const block = read('../admin/speech/RaceBlock.jsx'), mod = read('../player/modules/rotate-phone/RotatePhoneModule.jsx')
+    for (const k of ['launch(STAGES_ROUND)', 'launch(null)', 'launch(r)']) expect(block).toContain(k)
+    expect(block).toContain('const launch = useCallback(id => { flushSync(() => setRound(id)); startRef.current?.() }'); expect(block).not.toMatch(/import [^\n]*RaceAsk/); expect(block).not.toMatch(/import [^\n]*useRaceAsk/); expect(block).toContain('onTap={setTap}')
+    const start = mod.slice(mod.indexOf('const start = useCallback'), mod.indexOf('/** «Говорю» / «Тапаю»'))
+    expect(start).toContain("if (race) { openAsk({ fullscreen, setPhase }); return }"); expect(start.indexOf('openAsk(')).toBeLessThan(start.indexOf('startGameAudio(')) // у гонки start() до ответа startGameAudio не зовёт
+    const pick = mod.slice(mod.indexOf('const pick = useCallback'), mod.indexOf('const cancelAsk'))
+    expect(pick).toContain('answerAsk('); expect(pick).toContain('startGameAudio({ cfg, audioSrc, lines })'); expect(mod).toContain("{phase === 'ask' && <RaceAskPlate choice={ask.choice} onPick={pick} onCancel={cancelAsk} />}")
+    expect(mod).toContain("const game = phase === 'game' && <WordLaneGame") // игра (Пит, заставка, реплики, конвейер) монтируется только после ответа
+    expect(mod).toContain("askAuto") // стенд отвечает сам
   })
   it('в игре гонки подсказки «Тап вместо речи» нет, фон с узором только у гонки и не на lite; репетиция и обычная нода — как были', () => {
     const g = read('../player/modules/rotate-phone/WordLaneGame.jsx')

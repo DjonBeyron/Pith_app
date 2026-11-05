@@ -93,7 +93,7 @@ describe('карточка ноды', () => {
     expect(mod).toContain('startRef.current = start')
     expect(mod).toContain("if (bare) { setPhase('wait'); onDone?.('shown') }")
     expect(mod).toContain('forceDebug={forceDebug}')
-    expect(read('./WordLaneGame.jsx')).toContain('forceDebug, onFinished })')
+    expect(read('./WordLaneGame.jsx')).toContain('forceDebug, hold: startHold, onFinished })')
     expect(read('./useWordLaneFlow.js')).toContain('force: forceDebug')
     expect(read('./useWordLaneDebug.js')).toContain('toggle: force || getPlayerDebugUiValue()')
   })

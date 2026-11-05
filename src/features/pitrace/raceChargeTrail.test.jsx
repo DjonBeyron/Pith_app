@@ -30,7 +30,7 @@ describe('шлейф пилюли заставки', () => {
   it('в CSS шлейф — только при data-trail, без filter, без призраков (box-shadow) и без --tail: один мягкий хвост-градиент', () => {
     expect(css).not.toMatch(/filter\s*:/); expect(css).not.toMatch(/box-shadow/); expect(css).not.toContain('--tail')
     const tail = rule('.raceCharge[data-trail] .raceChargePill::before')
-    expect(tail).toMatch(/linear-gradient\(to bottom, color-mix\(in srgb, var\(--c\) \d+%, transparent\), transparent\)/); expect(tail).toMatch(/border-radius:\s*0 0 999px 999px/)
+    expect(tail).toMatch(/linear-gradient\(to bottom, color-mix\(in srgb, var\(--c\) \d+%, transparent\), transparent\)/); expect(tail).toMatch(/border-radius:\s*0;/); expect(tail).toMatch(/left:\s*-2px;/); expect(tail).toMatch(/right:\s*-2px;/) // хвост прямоугольный: ширина пилюли (с рамкой), без скругления по бокам
     expect(Number(/height:\s*(\d+)%/.exec(tail)?.[1])).toBeLessThanOrEqual(120) // хвост не выше 1,2 высоты пилюли
     const peaks = [...css.slice(css.indexOf('@keyframes raceTail')).split('}')[0].matchAll(/opacity:\s*([\d.]+)/g)].map(m => Number(m[1]))
     expect(Math.max(...peaks)).toBeLessThanOrEqual(0.35); expect(peaks.at(-1)).toBe(0) // прозрачность ≤ 0,35 и ноль к прилёту
@@ -42,7 +42,7 @@ describe('слои заставки: пилюля заходит под бар',
   it('z-index: бар выше слоя пилюль, слой пилюль выше фона (0); слой обрезан по линии бара', () => {
     expect(z('.raceChargeBar')).toBeGreaterThan(z('.raceChargePills'))
     expect(z('.raceChargePills')).toBeGreaterThan(0)
-    expect(rule('.raceChargePills')).toMatch(/clip-path:\s*inset\(calc\(env\(safe-area-inset-top, 0px\) \+ 16px\)/)
+    expect(rule('.raceChargePills')).toMatch(/clip-path:\s*inset\(calc\(env\(safe-area-inset-top, 0px\) \+ 17px\)/)
     expect(rule('.raceChargePill')).not.toMatch(/z-index/) // пилюля внутри слоя пилюль, своего z-index нет (иначе перебила бы бар)
   })
   describe('разметка', () => {

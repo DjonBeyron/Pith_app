@@ -1,72 +1,57 @@
-// Заставка-«зарядка» памятью «Гонки с Питом» (CONCEPT_RACE.md, «Заставка»). Пока Пит говорит общую фразу (race_start) и объявляет первый этап, дорожек не видно: снизу вверх летят пилюли со словами из памяти
+// Заставка-«зарядка» памятью «Гонки с Питом» (CONCEPT_RACE.md, «Заставка»). Пока Пит говорит общую фразу (race_start) и реплику первого этапа, дорожек не видно: снизу вверх летят пилюли со словами из памяти
 // человека (слова плана и extraWords, как у «Разгона»), цвет пилюли — ступень памяти слова (--lvl0…--lvl4, memory-levels.css), а сверху бар заполняется кусками цветов долетевших пилюль. Бар заполнен ровно
 // к моменту, когда долетела последняя пилюля (T = длина речи Пита). Этот файл — чистый ПЛАН без DOM и часов: список пилюль (x, старт, время полёта, прилёт), искры и сегменты бара — всё от семени
 // плана (только rngFor), поэтому одна сессия воспроизводима. Рисует план RaceCharge.jsx (Web Animations), стили — race-charge.css.
 import { rngFor, rngInt, rngShuffle } from '../rehearsal/rehearsalSeed.js'
 import { normText } from '../player/modules/rotate-phone/wordLaneRecipe.js'
-import { lineMs } from '../player/modules/rotate-phone/wordLaneCatLines.js'
-import { lineVoiced } from '../rehearsal/rehearsalQuiet.js'
 import { extrasOf } from './raceWords.js'
 
-export const CHARGE_FALLBACK_MS = 4000 // озвучки реплик нет — заставка длится столько
 export const CHARGE_MAX = 14           // пилюль не больше (узлов в DOM: пилюли + искры + сегменты)
 export const CHARGE_FLY_MS = 1500      // полёт одной пилюли снизу вверх (на короткой заставке — не больше 40 % её длины)
 export const CHARGE_SPARKS = 24        // микро-частицы (на слабом устройстве не рисуются)
-export const BAR_MIN_PX = 4            // бар сверху: пустой — тонкий…
-export const BAR_MAX_PX = 14           // …пока наполняется — толстеет (растёт ступеньками с каждой долетевшей пилюлей)…
-export const BAR_FULL_PX = 6           // …а заполненный плавно худеет до обычной тонкой полоски (без косых полос: полный бар — сплошные цветные сегменты)
-export const BAR_THIN_MS = 500         // за сколько бар худеет после заполнения
-export const BAR_BUMP = 2              // касание пилюлей: бар по высоте плавно (ease-in-out, без ступеньки) утолщается до 2× за BAR_BUMP_MS…
-export const BAR_BUMP_MS = 220         // …пик — ровно в момент касания…
-export const BAR_BACK_MS = 260         // …и так же плавно возвращается за BAR_BACK_MS
+export const BAR_CORE_PX = 6           // бар — тонкая подложка постоянной высоты с border-radius 999px: скругления не меняются никогда (высота НЕ анимируется)…
+export const HALO_MAX = 2.4            // …«толщину» набирает слой-ореол за баром (тот же радиус): transform: scaleY от 1 до HALO_MAX ступенькой за пилюлю, origin по центру (raceCharge.haloKeys)
+export const HALO_RISE_MS = 220        // подъём ореола перед касанием очередной пилюли
+export const FLASH_MS = 300            // касание: вспышка сегмента цветом слова, opacity 0,9 → 0 (CSS, race-charge.css)
+export const RING_MS = 350             // кольцо-рябь от точки касания: scale 0,6 → 1,6, opacity → 0 (один узел на бар)
+export const NUDGE_PX = 2              // лёгкий толчок всего бара вниз и обратно (translateY) в момент касания
+export const NUDGE_MS = 200
 export const START_BELOW_PX = 60       // пилюля стартует на столько px НИЖЕ нижнего края заставки (из-за нижнего затемнения, как пилюли игры выезжают из-за верхнего края)
-
-/** Толщина бара после i долетевших пилюль из n, px: ступенька за пилюлю от BAR_MIN_PX до BAR_MAX_PX */
-export const barHeight = (i, n) => BAR_MIN_PX + ((BAR_MAX_PX - BAR_MIN_PX) * i) / Math.max(1, n)
 
 /**
  * Путь пилюли до бара, px вверх: пилюля стоит верхним краем на START_BELOW_PX ниже низа заставки (height — высота заставки), высота пилюли pillH; прилёт — её ЦЕНТР в центре бара по y в момент касания
- * (верх бара barTop + половина его толщины после i + 1 долетевших пилюль из n).
+ * (верх бара barTop + половина BAR_CORE_PX: бар постоянной высоты).
  */
-export const flyDist = ({ height, pillH, barTop, i, n }) => height + START_BELOW_PX + pillH / 2 - (barTop + barHeight(i + 1, n) / 2)
+export const flyDist = ({ height, pillH, barTop }) => height + START_BELOW_PX + pillH / 2 - (barTop + BAR_CORE_PX / 2)
 
 /** Сдвиг по x (px) от места пилюли (x % ширины width, центр) до ЦЕНТРА бара: пилюля прилетает строго в центр бара и по x (кривая raceChargePath.js на прилёте — ровно в центр) */
 export const flyDx = ({ width, x, barLeft, barWidth }) => barLeft + barWidth / 2 - (width * x) / 100
 
-const ease = t => t * t * (3 - 2 * t) // ease-in-out (smoothstep)
-
 /** Подпись пилюли заставки: длинное слово обрезается (у пилюли нет overflow: hidden — хвост-шлейф должен быть виден) */
 export const pillLabel = (text, max = 16) => (text.length > max ? `${text.slice(0, max - 1)}…` : text)
 
-/** Кадры касания бара (свойство scale, по высоте): от текущего значения (первого кадра нет — берётся из-под анимации, при частых касаниях без скачка) к BAR_BUMP по ease-in-out за BAR_BUMP_MS, обратно к 1 за BAR_BACK_MS; duration = BAR_BUMP_MS + BAR_BACK_MS, пик на offset BAR_BUMP_MS / duration */
-export function bumpFrames(steps = 6) {
-  const d = BAR_BUMP_MS + BAR_BACK_MS, peak = BAR_BUMP_MS / d
-  const up = Array.from({ length: steps }, (_, k) => ({ scale: `1 ${(1 + (BAR_BUMP - 1) * ease((k + 1) / steps)).toFixed(4)}`, offset: (peak * (k + 1)) / steps }))
-  const down = Array.from({ length: steps }, (_, k) => ({ scale: `1 ${(BAR_BUMP - (BAR_BUMP - 1) * ease((k + 1) / steps)).toFixed(4)}`, offset: peak + ((1 - peak) * (k + 1)) / steps }))
-  return { frames: [...up, ...down], duration: d }
-}
-
 /**
- * Толщина бара ОДНОЙ анимацией (height): ступенька за пилюлю (подъём за BAR_BUMP_MS перед касанием) и в конце худение до BAR_FULL_PX. Худеть бар начинает, когда последнее касание
- * вернулось (totalMs + BAR_BACK_MS): последний подъём, касание и худение не накладываются. → { keys: [{ height, offset }], duration }
+ * Ореол бара (слой за баром с тем же border-radius 999px): «толщина» набирается transform: scaleY с центром в середине, высота бара не анимируется — скругления остаются круглыми. Ступенька за пилюлю:
+ * подъём за HALO_RISE_MS до касания (не раньше прилёта прежней), к HALO_MAX — на последней. → { keys: [{ transform, offset, easing }], duration (до прилёта последней) }
  */
-export function barKeys(segments, totalMs) {
-  const n = segments.length, thinAt = totalMs + BAR_BACK_MS, duration = thinAt + BAR_THIN_MS
+export function haloKeys(segments) {
+  const n = segments.length, duration = Math.max(1, segments.at(-1)?.at ?? 1)
   const off = ms => Math.min(1, Math.max(0, ms / duration))
-  const keys = [{ height: `${barHeight(0, n)}px`, offset: 0 }]
-  segments.forEach((s, i) => { keys.push({ height: `${barHeight(i, n)}px`, offset: off(Math.max(s.at - BAR_BUMP_MS, i ? segments[i - 1].at : 0)) }, // подъём не раньше прилёта прежней: офсеты не убывают
-    { height: `${barHeight(i + 1, n)}px`, offset: off(s.at) }) })
-  keys.push({ height: `${barHeight(n, n)}px`, offset: off(thinAt) }, { height: `${BAR_FULL_PX}px`, offset: 1 })
+  const at = i => 1 + ((HALO_MAX - 1) * i) / Math.max(1, n)
+  const keys = [{ transform: `scaleY(${at(0)})`, offset: 0, easing: 'ease-in-out' }]
+  segments.forEach((sg, i) => {
+    keys.push({ transform: `scaleY(${at(i).toFixed(4)})`, offset: off(Math.max(sg.at - HALO_RISE_MS, i ? segments[i - 1].at : 0)), easing: 'ease-in-out' }, { transform: `scaleY(${at(i + 1).toFixed(4)})`, offset: off(sg.at), easing: 'linear' })
+  })
   return { keys, duration }
 }
 
-export const levelColor = level => `var(--lvl${Math.min(4, Math.max(0, level | 0))})`
+/** Толчок всего бара в момент касания: translateY 0 → NUDGE_PX (на 35 %) → 0, только transform; duration = NUDGE_MS */
+export const nudgeFrames = () => ({ frames: [{ transform: 'translateY(0)', offset: 0 }, { transform: `translateY(${NUDGE_PX}px)`, offset: 0.35 }, { transform: 'translateY(0)', offset: 1 }], duration: NUDGE_MS })
 
-/** Длительность заставки, мс: сумма длин озвученных реплик ids (race_start + реплика первого этапа); ни одной озвученной — CHARGE_FALLBACK_MS */
-export function chargeMs(lines, ids, rate = 1) {
-  const voiced = ids.filter(id => lineVoiced(lines, id))
-  return voiced.length ? voiced.reduce((sum, id) => sum + lineMs(lines[id], rate), 0) : CHARGE_FALLBACK_MS
-}
+/** Кольцо-рябь от точки касания: scale 0,6 → 1,6 и opacity 0,9 → 0 за RING_MS (центр кольца задаёт CSS) */
+export const ringFrames = () => ({ frames: [{ transform: 'translate(-50%, -50%) scale(0.6)', opacity: 0.9 }, { transform: 'translate(-50%, -50%) scale(1.6)', opacity: 0 }], duration: RING_MS })
+
+export const levelColor = level => `var(--lvl${Math.min(4, Math.max(0, level | 0))})`
 
 /** Слова памяти для заставки: слова плана и extraWords (как у «Разгона»), без повторов, до CHARGE_MAX; level — ступень памяти 0–4 (нет — 1) */
 export function chargeWords(plan) {
@@ -82,7 +67,7 @@ export function chargeWords(plan) {
  * → { totalMs, pills: [{ i, text, level, color, x (% ширины), startAt, flyMs, arriveAt, wave, from, to }], sparks: [{ i, x, startAt, flyMs, size, color }], segments: [{ i, level, color, from, to, at }] }
  * Пилюли идут в порядке прилёта (i); последняя прилетает ровно в totalMs; сегменты бара — по одному на пилюлю, в порядке прилёта, в сумме ровно 100 %.
  */
-export function chargePlan(plan, totalMs = CHARGE_FALLBACK_MS) {
+export function chargePlan(plan, totalMs = 4000) {
   const words = chargeWords(plan)
   const n = words.length
   const total = Math.max(1000, Math.round(totalMs))
@@ -108,5 +93,5 @@ export function chargePlan(plan, totalMs = CHARGE_FALLBACK_MS) {
   return { totalMs: total, pills, sparks, segments }
 }
 
-/** Заставка на экране? Пока падает фраза и открываются дорожки (drop, lanes) и пока стоит плашка первого этапа (стадия 0 — announce); дальше начинается первый раунд: дорожки проявляются, бар уходит */
-export const chargeOn = ({ stage, idx, stageObj = null }) => stage === 'drop' || stage === 'lanes' || (stage === 'run' && idx === 0 && stageObj?.type === 'announce') || (stage === 'paused' && idx === 0)
+/** Заставка на экране? Пока падает фраза и открываются дорожки (drop, lanes) и пока идёт стадия 0 (announce: бар стал плашкой этапа, потом ноты); дальше начинается первый раунд: дорожки проявляются. hold — сцена открыта, звук готовится: заставка ещё не началась */
+export const chargeOn = ({ stage, idx, stageObj = null, hold = false }) => !hold && (stage === 'drop' || stage === 'lanes' || (stage === 'run' && idx === 0 && stageObj?.type === 'announce') || (stage === 'paused' && idx === 0))

@@ -26,6 +26,10 @@ export const SPEED_RAMP_MS = 800 // «Гонка с Питом»: множите
 export const PERIOD = 11       // период пунктира, dvh
 export const REST_A = 0.14     // прозрачность пунктира в покое («еле-еле»)
 export const RUN_A = 0.52      // и на рабочей скорости
+export const PULSE_MS = 600    // «Гонка с Питом», второй круг и каждое +5 %: пунктир на столько мс ярче и с длинными штрихами (волна скорости сверху вниз — CSS data-wave, привод)
+export const PULSE_A = 0.9     // яркость штрихов в пике импульса (--run-a, обычно RUN_A = 0,52)
+export const PULSE_DASH = 1.4  // длина штрихов в пике (множитель к 2,2 dvh; --run-dash)
+export const PULSE_MIN_UP = 0.04 // импульс — когда множитель скорости вырос не меньше чем на 4 % (шаг гонки — 5 %)
 export const LIT = 0.55        // доля яркости, до которой доходит пунктир при «зажигании» без мигания (still)
 
 export const ease = x => (x <= 0 ? 0 : x >= 1 ? 1 : x * x * (3 - 2 * x))
@@ -35,12 +39,13 @@ export const easeInSoft = x => (x <= 0 ? 0 : x >= 1 ? 1 : x * x * x * (x * (x * 
 /** Яркость мигания (0…1) через t мс зажигания: 0 → 1 → 0 за BLINK_MS, косинусом — без изломов на стыках циклов */
 export const blink = t => (1 - Math.cos((2 * Math.PI * Math.min(t, IGNITE_MS)) / BLINK_MS)) / 2
 
-export const createLane = () => ({ phase: 'idle', t: 0, s: 0, g: 0, s0: 0, g0: 0, y: 0, seen: false, gone: 0, v: 1, vw: 1, v0: 1, vt: SPEED_RAMP_MS })
+export const createLane = () => ({ phase: 'idle', t: 0, s: 0, g: 0, s0: 0, g0: 0, y: 0, seen: false, gone: 0, v: 1, vw: 1, v0: 1, vt: SPEED_RAMP_MS, pt: PULSE_MS, pn: 0 }) // pt — сколько мс идёт импульс скорости (PULSE_MS — не идёт), pn — сколько импульсов было
 
 /** Множитель рабочей скорости: v плавно (smoothstep за SPEED_RAMP_MS) идёт к wanted; новая цель в середине перехода — переход заново от текущего значения; дорожка стоит — множитель сразу новый (нечему рвать) */
 function stepSpeed(L, dt, wanted) {
   if (!(wanted > 0)) return
-  if (wanted !== L.vw) { L.vw = wanted; L.v0 = L.v; L.vt = 0; if (L.phase === 'idle') { L.v = L.v0 = wanted; L.vt = SPEED_RAMP_MS } }
+  if (wanted !== L.vw) { if (L.phase !== 'idle' && wanted >= L.vw + PULSE_MIN_UP - 1e-9) { L.pt = 0; L.pn += 1 } // дорожка едет, скорость выросла — импульс (яркость и длина штрихов, laneLook)
+    L.vw = wanted; L.v0 = L.v; L.vt = 0; if (L.phase === 'idle') { L.v = L.v0 = wanted; L.vt = SPEED_RAMP_MS } }
   if (L.vt < SPEED_RAMP_MS) { L.vt = Math.min(SPEED_RAMP_MS, L.vt + dt); L.v = L.v0 + (L.vw - L.v0) * ease(L.vt / SPEED_RAMP_MS) }
 }
 
@@ -82,14 +87,19 @@ export function stepLane(L, dt, { armed = false, pills = 0, still = false, keep 
     L.s = L.s0 * (1 - e); L.g = L.g0 * (1 - e)
     if (L.t >= DECEL_MS) { L.s = 0; L.g = 0; L.phase = 'idle'; L.t = 0 }
   }
+  if (L.pt < PULSE_MS) L.pt = Math.min(PULSE_MS, L.pt + dt)
   if (!still && L.s > 0) L.y = (L.y + (L.s * dt) / 1000) % PERIOD
   return L
 }
 
-/** Что рисовать: y — сдвиг пунктира (dvh), a — прозрачность штрихов */
+/** Огибающая импульса скорости 0…1…0 за PULSE_MS (синус: без изломов на краях); 0 — импульса нет */
+export const pulseAt = pt => (pt >= PULSE_MS ? 0 : Math.sin((Math.PI * Math.max(0, pt)) / PULSE_MS))
+
+/** Что рисовать: y — сдвиг пунктира (dvh), a — прозрачность штрихов (на импульсе скорости растёт до PULSE_A), sy — длина штрихов (1 … PULSE_DASH), phase */
 export function laneLook(L) {
-  return { y: L.y, a: REST_A + (RUN_A - REST_A) * L.g, phase: L.phase }
+  const a = REST_A + (RUN_A - REST_A) * L.g, p = pulseAt(L.pt ?? PULSE_MS)
+  return { y: L.y, a: p > 0 ? a + (Math.max(a, PULSE_A) - a) * p : a, sy: 1 + (PULSE_DASH - 1) * p, phase: L.phase }
 }
 
 /** Все дорожки стоят — привод можно усыпить */
-export const settled = lanes => lanes.every(L => L.phase === 'idle')
+export const settled = lanes => lanes.every(L => L.phase === 'idle' && (L.pt ?? PULSE_MS) >= PULSE_MS)

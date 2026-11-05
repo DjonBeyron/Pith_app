@@ -8,7 +8,7 @@ import { buildStages, listenStepOf } from './wordLaneStages.js'; import { useBui
 import { stepTargets, textOf } from './wordLaneRecipe.js'
 import { clipsFor, playSpan, estChunkMs } from './wordLaneAudio.js'
 import { playClip, playWordSlot, releaseClips, speechOfUrl, wordBufferMs } from './wordLaneClips.js'
-import { makeLib, libRow } from './wordLaneLib.js'; import { transRow } from '../../../pitrace/raceTrans.js'
+import { makeLib, libRow } from './wordLaneLib.js'; import { transRow } from '../../../pitrace/raceTrans.js'; import { RACE_LINE_WAIT_MS } from '../../../pitrace/raceStartTrace.js'
 import { mouthTrack } from './wordLaneVisemes.js'
 import { useCatLines } from './useCatLines.js'
 import { useWordLaneDebug } from './useWordLaneDebug.js'
@@ -45,7 +45,7 @@ const LINE_AT_MS = 250       // реплика кота на плашке рау
 
 const IDLE = { kind: 'idle' }
 
-export function useWordLaneFlow({ chunks, translation, lang, clips = null, audioSrc = null, audio = null, catApi = null, lines = null, confusers = null, plan = null, forceDebug = false, onFinished }) {
+export function useWordLaneFlow({ chunks, translation, lang, clips = null, audioSrc = null, audio = null, catApi = null, lines = null, confusers = null, plan = null, forceDebug = false, hold = false, onFinished }) { // hold — «Гонка»: сцена уже открыта, звук ещё готовится; часы игры стоят (RotatePhoneModule)
   const [rate] = useState(getVoiceRate) // скорость голоса урока: на неё растянут план диктора
   const [lib] = useState(() => makeLib(chunks)) // озвучка кусков в библиотеке слов на момент старта игры (длины и наличие)
   const built = useMemo(() => buildStages({ chunks, clips, audio, rate, lib, confusers, plan }), [chunks, clips, audio, rate, lib, confusers, plan])
@@ -65,11 +65,11 @@ export function useWordLaneFlow({ chunks, translation, lang, clips = null, audio
   useEffect(() => { sRef.current = s })
   const stageObj = s.stage === 'run' ? stages[s.idx] : null
   const dbg = useWordLaneDebug({ chunks, translation, lang, stage: s.stage, idx: s.idx, stageObj, force: forceDebug }) // «Скачать отладку»: журнал и запись микрофона; выключено — пустые функции
-  const cat = useCatLines({ lines, rate, catApi, listenerRef }) // реплики кота: подпись + озвучка + рот по буквам
+  const cat = useCatLines({ lines, rate, catApi, listenerRef, waitMs: plan?.game === 'race' ? RACE_LINE_WAIT_MS : undefined }) // реплики кота: подпись + озвучка + рот по буквам
   const sayLineRef = useRef(cat.sayLine)
   useEffect(() => { sayLineRef.current = (...a) => { const said = cat.sayLine(...a); if (said) dbg.note(`cat:${a[0]}`); return said } }) // реплика кота попадает и в журнал отладки (окно mute вокруг неё)
   const sayLine = (...a) => sayLineRef.current(...a); const sayLineLater = (id, vars, ms) => cat.sayLineLater(id, vars, ms, said => { if (said) dbg.note(`cat:${id}`) }) // обработчики и таймеры стадий всегда берут свежую версию (настройки реплик могут догрузиться) — а стадия из-за этого не перезапускается // реплика успеха «Гонки» через ms мс после зачёта (Пит занят с зачёта)
-  const rh = useRehearsalActs({ plan, stages, stage: s.stage, at: s.at, stageObj, setS, sayLine, sayLineLater, sayText: (...a) => handlersRef.current.sayText(...a), cat, lines, rate, lang, listenerRef }); const { nextIdx } = rh // акты репетиции: журнал, реплики Пита, правила пропуска
+  const rh = useRehearsalActs({ plan, stages, stage: s.stage, at: s.at, stageObj, setS, sayLine, sayLineLater, sayText: (...a) => handlersRef.current.sayText(...a), cat, lines, rate, lang, listenerRef, hold }); const { nextIdx } = rh // акты репетиции: журнал, реплики Пита, правила пропуска
 
   const later = useCallback((fn, ms) => { const id = setTimeout(() => { timersRef.current.delete(id); fn() }, Math.max(0, ms)); timersRef.current.add(id); return id }, [])
   const clearTimers = useCallback(() => { timersRef.current.forEach(clearTimeout); timersRef.current.clear() }, [])
@@ -97,7 +97,7 @@ export function useWordLaneFlow({ chunks, translation, lang, clips = null, audio
   // Реакции игры (зовёт движок пилюль, useWordLanePills). Обработчики свежие на каждый рендер (handlers), а fx — стабильный объект-обёртка: движку не нужно перезапускаться
   const handlers = {
     win(order, rect, rep = { last: true, count: 1 }) { // rep — у ученика: последний ли это кусок повтора и сколько в нём кусков; раунды «Порядок» / «Различи» награждают пилюлю сразу
-      rh.rec('win', rep); if (playNote(order)) { listenerRef.current?.mute(900); dbg.note('note') }
+      rh.rec('win', { ...rep, order }); if (playNote(order)) { listenerRef.current?.mute(900); dbg.note('note') }
       catApi?.current?.react('love', 1600)
       catApi?.current?.peek?.()
       if (rep.last) xpApi.current?.add(XP_PER_PILL * rep.count, rect) // у повтора из нескольких кусков одна цифра («+6»), когда принят последний кусок
@@ -154,10 +154,10 @@ export function useWordLaneFlow({ chunks, translation, lang, clips = null, audio
 
   // Вступление
   useEffect(() => {
-    if (s.stage === 'drop') { const t = setTimeout(() => go('lanes'), DROP_MS); return () => clearTimeout(t) }
+    if (s.stage === 'drop') { if (hold) return undefined; const t = setTimeout(() => go('lanes'), DROP_MS); return () => clearTimeout(t) } // hold: звук ещё готовится — часы не идут
     if (s.stage === 'lanes') { const t = setTimeout(() => go('run', 0), LANES_MS); return () => clearTimeout(t) }
     return undefined
-  }, [s.stage, go])
+  }, [s.stage, go, hold])
 
   // Финал: кот хвалит, пока на экране перевод
   useEffect(() => {
@@ -244,6 +244,6 @@ export function useWordLaneFlow({ chunks, translation, lang, clips = null, audio
   const phase = s.stage === 'run' ? (engineKind(stageObj) ?? 'idle') : s.stage
   const shown = s.stage === 'paused' && s.from === 'run' ? stages[s.idx] : stageObj // на паузе подписи дорожек остаются на месте
   const labels = useBuiltLabels({ stages, stage: shown?.type === 'announce' ? stages[s.idx + 1] : shown, quiet: rh.quiet, chunks, lanes, hint: [...s.hint, ...rh.hintLanes(shown)] }) // под плашкой раунда уже видны подписи следующей стадии
-  const plate = !rh.plateOk ? '' : stageObj?.type === 'announce' ? [stageObj.round.title, stageObj.round.task].filter(Boolean).join('\n') : stageObj?.type === 'turn' ? 'Теперь твоя очередь' : ''
-  return { ...s, stages, dbg, rh, next, catLine: cat.text, phase, stageObj, scene, live, labels, plate, plateMs: stageObj?.ms ?? 0, levels, fx, sceneApi, xpApi, onLane, retryMic, restartStage, pause, paused: s.stage === 'paused', pausedIntro: s.stage === 'paused' && s.from !== 'run', finish, translation, text: textOf(chunks, chunks.map((_, i) => i)) }
+  const plate = !rh.plateOk || stageObj?.charge ? '' : stageObj?.type === 'announce' ? [stageObj.round.title, stageObj.round.task].filter(Boolean).join('\n') : stageObj?.type === 'turn' ? 'Теперь твоя очередь' : ''
+  return { ...s, hold, stages, dbg, rh, next, catLine: cat.text, phase, stageObj, scene, live, labels, plate, plateMs: stageObj?.ms ?? 0, levels, fx, sceneApi, xpApi, onLane, retryMic, restartStage, pause, paused: s.stage === 'paused', pausedIntro: s.stage === 'paused' && s.from !== 'run', finish, translation, text: textOf(chunks, chunks.map((_, i) => i)) }
 }

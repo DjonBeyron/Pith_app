@@ -6,6 +6,7 @@ import { fillLine } from '../../../rehearsal/rehearsalLines.js'
 import { bufferMissing, recoverLine, nudgeCtx } from './wordLaneLineRecover.js'
 import { hasWordSlot } from './wordLaneClips.js'
 import { pLog } from '../../../../shared/lib/debug.js'
+import { raceStart } from '../../../pitrace/raceStartTrace.js'
 
 const TEXT_TAIL_MS = 900 // подпись держится ещё столько после конца реплики
 const LATE_RESERVE_MS = 400 // отложенная реплика: Пит «занят» на задержку плюс столько — запас, пока таймер не сработал
@@ -23,7 +24,7 @@ const SKIP_LOG_MS = 1500 // «реплика пропущена: Пит заня
 // реплика остаётся подписью (рот по тексту, без звука; голоса системы в игре нет), причина в журнале «[cat-voice]». Для вызывающего sayLine в обоих случаях true («реплика принята»), кот занят на время ожидания.
 // Страховка второго запуска (v3.3.113, wordLaneLineRecover.js): реестр прогрева не считаем правдой — нет буфера реплики в памяти, качаем заново и ждём; контекст не 'running' — подталкиваем resume(); вышло время, а
 // буфер есть — всё равно пробуем играть (playGameBuffer сам сделает resume), а не молчим. Журнал: «[cat] …» (busy, пропуск реплики, докачка).
-export function useCatLines({ lines, rate, catApi, listenerRef }) {
+export function useCatLines({ lines, rate, catApi, listenerRef, waitMs = LINE_WAIT_MS }) { // waitMs — «Гонка»: реплика в начале ждёт слот не дольше 1,5 с (raceStartTrace.RACE_LINE_WAIT_MS)
   const [text, setText] = useState('')
   const lastRef = useRef(new Map()) // id → когда последний раз говорил
   const skipRef = useRef(new Map()) // id → когда последний раз писали «пропущена» в журнал
@@ -47,6 +48,7 @@ export function useCatLines({ lines, rate, catApi, listenerRef }) {
   const speak = (id, line, extra = {}) => {
     gateRef.current = null
     const now = Date.now()
+    raceStart.line() // «Гонка»: первая реплика после тапа «Говорю / Тапаю» — строка «[race] старт: Пит через N мс, реплика через M мс»
     clearTimeout(riseRef.current)
     const { ms, rise, timer } = startCatLine({ id, line, rate, catApi, listenerRef, ...extra })
     riseRef.current = timer
@@ -78,7 +80,7 @@ export function useCatLines({ lines, rate, catApi, listenerRef }) {
       return lineReadiness(id)
     }
     if (check().ready) { speak(id, line); return true }
-    busyRef.current = now + LINE_WAIT_MS + 100 // ждём слот: другие реплики не лезут вперёд
+    busyRef.current = now + waitMs + 100 // ждём слот: другие реплики не лезут вперёд
     cancelGate()
     gateRef.current = waitForLine(check, {
       onReady: waited => speak(id, line, { waitedMs: waited }),
@@ -86,7 +88,7 @@ export function useCatLines({ lines, rate, catApi, listenerRef }) {
         if (hasWordSlot(lineKey(id))) { pLog(`[cat] реплика «${id}»: ожидание готовности вышло (${why}), но буфер есть — пробую играть`); speak(id, line, { waitedMs: waited, why }) } // лучше попытка (playGameBuffer сам сделает resume), чем тишина
         else { pLog(`[cat] реплика «${id}»: звука нет в памяти за ${waited} мс (${why}) — только подпись`); speak(id, line, { voice: 'none', waitedMs: waited, why }) }
       },
-    })
+    }, { maxMs: waitMs })
     return true
   }
 
