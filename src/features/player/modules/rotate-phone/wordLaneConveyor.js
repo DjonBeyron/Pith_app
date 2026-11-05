@@ -26,10 +26,10 @@ export const SPEED_RAMP_MS = 800 // «Гонка с Питом»: множите
 export const PERIOD = 11       // период пунктира, dvh
 export const REST_A = 0.14     // прозрачность пунктира в покое («еле-еле»)
 export const RUN_A = 0.52      // и на рабочей скорости
-export const PULSE_MS = 600    // «Гонка с Питом», второй круг и каждое +5 %: пунктир на столько мс ярче и с длинными штрихами (волна скорости сверху вниз — CSS data-wave, привод)
-export const PULSE_A = 0.9     // яркость штрихов в пике импульса (--run-a, обычно RUN_A = 0,52)
-export const PULSE_DASH = 1.4  // длина штрихов в пике (множитель к 2,2 dvh; --run-dash)
-export const PULSE_MIN_UP = 0.04 // импульс — когда множитель скорости вырос не меньше чем на 4 % (шаг гонки — 5 %)
+export const PULSE_MS = 600    // «Гонка с Питом», ТОЛЬКО переход между первым и вторым кругом этапа (ускорение на 10 %, v3.3.115): пунктир на столько мс ярче и с чуть длиннее штрихами (мягкая волна сверху вниз — CSS data-wave, привод)
+export const PULSE_A = 0.7     // яркость штрихов в пике импульса (--run-a, обычно RUN_A = 0,52; было 0,9)
+export const PULSE_DASH = 1.2  // длина штрихов в пике (множитель к 2,2 dvh; --run-dash; было 1,4)
+export const PULSE_MIN_RATIO = 1.08 // импульс — когда множитель скорости вырос не меньше чем на 8 % разом: шаг +5 % за пилюлю блеска не даёт, старт второго круга (×1,1) — даёт
 export const LIT = 0.55        // доля яркости, до которой доходит пунктир при «зажигании» без мигания (still)
 
 export const ease = x => (x <= 0 ? 0 : x >= 1 ? 1 : x * x * (3 - 2 * x))
@@ -44,7 +44,7 @@ export const createLane = () => ({ phase: 'idle', t: 0, s: 0, g: 0, s0: 0, g0: 0
 /** Множитель рабочей скорости: v плавно (smoothstep за SPEED_RAMP_MS) идёт к wanted; новая цель в середине перехода — переход заново от текущего значения; дорожка стоит — множитель сразу новый (нечему рвать) */
 function stepSpeed(L, dt, wanted) {
   if (!(wanted > 0)) return
-  if (wanted !== L.vw) { if (L.phase !== 'idle' && wanted >= L.vw + PULSE_MIN_UP - 1e-9) { L.pt = 0; L.pn += 1 } // дорожка едет, скорость выросла — импульс (яркость и длина штрихов, laneLook)
+  if (wanted !== L.vw) { if (L.phase !== 'idle' && wanted >= L.vw * PULSE_MIN_RATIO - 1e-9) { L.pt = 0; L.pn += 1 } // дорожка едет, скорость выросла — импульс (яркость и длина штрихов, laneLook)
     L.vw = wanted; L.v0 = L.v; L.vt = 0; if (L.phase === 'idle') { L.v = L.v0 = wanted; L.vt = SPEED_RAMP_MS } }
   if (L.vt < SPEED_RAMP_MS) { L.vt = Math.min(SPEED_RAMP_MS, L.vt + dt); L.v = L.v0 + (L.vw - L.v0) * ease(L.vt / SPEED_RAMP_MS) }
 }

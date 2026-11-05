@@ -49,10 +49,10 @@ describe('расписание открытия: слова → бар → пл�
     expect(o.startMs).toBe(0); expect(o.firstMs).toBe(4000); expect(o.speechEnd).toBe(o.stageAt + o.lineAt + 4000)
   })
   it('нет Math.random; у первой стадии отдельной плашки нет (charge → plate пустая); морф — в RaceChargePlate, а не отдельная плашка announce', () => {
-    for (const f of ['./raceOpening.js', './RaceChargePlate.jsx', './RaceCharge.jsx']) expect(read(f)).not.toContain('Math.random')
+    for (const f of ['./raceOpening.js', './RaceChargePlate.jsx', './RaceCharge.jsx', './RaceChargeRun.jsx']) expect(read(f)).not.toContain('Math.random')
     expect(read('../player/modules/rotate-phone/useWordLaneFlow.js')).toContain("const plate = !rh.plateOk || stageObj?.charge ? ''")
     expect(read('../rehearsal/useRehearsalActs.js')).toContain('pause: st.pause ?? LINE_PAUSE_MS')
-    const rc = read('./RaceCharge.jsx')
-    expect(rc).toContain('openingPlan('); expect(rc).toContain('chargePlan(plan, o.morphAt)'); expect(rc).toContain('<RaceChargePlate'); expect(rc).toContain('at(o.morphAt, () => setMorph(true))'); expect(rc).toContain('at(o.plateEnd, () => setDone(true))')
+    const rc = read('./RaceCharge.jsx'), run = read('./RaceChargeRun.jsx')
+    expect(rc).toContain('openingPlan('); expect(rc).toContain('chargePlan(plan, o.morphAt, openingWords(a))'); expect(run).toContain('<RaceChargePlate'); expect(run).toContain('at(o.morphAt, () => setMorph(true))'); expect(run).toContain('at(o.plateEnd, () => setDone(true))')
   })
 })

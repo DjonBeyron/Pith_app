@@ -16,6 +16,8 @@ const read = rel => readFileSync(new URL(rel, import.meta.url), 'utf8')
 const plan = normalizePlan({ ...fixturePlan('three'), game: 'race' })
 const html = (el, props) => renderToStaticMarkup(createElement(el, props))
 
+const noBar = h => h.replace(/<div class="raceBar"[\s\S]*?<\/div><\/div>/, '') // постоянный бар сверху (RaceBar) есть всегда, спрятан стилем: в разметке проверяем остальное
+
 describe('итог (RaceSummary) и RaceActs', () => {
   const result = { sprint: { hit: 5, total: 7 }, catchOk: 2, catchTotal: 3, medal: 'silver', descent: 'ok', xp: 2, capped: false, gold: false }
   it('плашка итога: разгон N/M, слух N/3, вершина — медаль, спуск ✓, XP; «Ещё заезд» и «Нет»', () => {
@@ -41,9 +43,9 @@ describe('итог (RaceSummary) и RaceActs', () => {
     const cfg = { plan }
     expect(html(RaceActs, { f: f(), cfg })).toContain('race-summary')
     expect(html(RaceActs, { f: f({ stageObj: { type: 'student', act: 'climb', sid: 'climb-1' }, rh: { on: true, quiet: false, race: { climb: initClimb(4) } } }), cfg })).toContain('race-climb')
-    expect(html(RaceActs, { f: f({ stageObj: { type: 'student', act: 'sprint' } }), cfg })).toBe('')
-    expect(html(RaceActs, { f: f({ rh: { on: true, quiet: true } }), cfg })).toBe('')
-    expect(html(RaceActs, { f: f({ stage: 'paused' }), cfg })).toBe('')
+    expect(noBar(html(RaceActs, { f: f({ stageObj: { type: 'student', act: 'sprint' } }), cfg }))).toBe('')
+    expect(noBar(html(RaceActs, { f: f({ rh: { on: true, quiet: true } }), cfg }))).toBe('')
+    expect(noBar(html(RaceActs, { f: f({ stage: 'paused' }), cfg }))).toBe('')
   })
   it('RehearsalActs отдаёт гонке экран, когда у плана game = race; репетиция рисуется как раньше', () => {
     const f = { stage: 'run', stageObj: { type: 'summary' }, rh: { on: true, quiet: false, result: null, tag: '' }, finish() {}, next() {} }

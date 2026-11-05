@@ -6,17 +6,17 @@
    scale 0,6 → 1,6 за 350 мс — Web Animations) и толчок всего бара translateY(2px) и обратно (Web Animations). Без filter.
    СЛОИ (внутри заставки — `isolation: isolate`, чтобы бар не перекрыл крестик выхода .wlClose и кнопки HUD): бар (z-index 3) выше слоя пилюль (z-index 1), плашка (z-index 4) выше бара; слой пилюль обрезан clip-path по линии бара,
    поэтому пилюля заходит ПОД бар и скрывается под ним.
-   ШЛЕЙФ («размытие движения» без filter, только при data-trail: не lite и не reduced-motion): один мягкий хвост-градиент (::before) ПРЯМОУГОЛЬНЫЙ — ширина равна ширине пилюли, без скругления по бокам (border-radius: 0),
-   мягкий вертикальный градиент цвет → прозрачный, до 1,1 высоты пилюли, прозрачность ≤ 0,35, гаснет к прилёту; растяжение по оси движения не больше 1,08 (scale ведёт Web Animations). Лишних DOM-узлов на пилюлю нет. */
+   ШЛЕЙФ («размытие движения» без filter, только при data-trail: не lite и не reduced-motion, v3.3.115): один мягкий хвост-градиент в отдельном узле .raceChargeTail ПОД пилюлей (раньше в DOM), он начинается от середины пилюли, заходит под неё и перекрывает скругления по бокам,
+   ширина равна ширине пилюли с рамкой, ниже пилюли выступает на 1,15 её высоты, прозрачность ≤ 0,35, гаснет к прилёту; наклон — rotate по касательной к синусоиде движения (raceChargePath.tailAngle), растяжение по оси движения ≤ 1,08 (scale ведёт Web Animation). Бар (v3.3.115): 6 px между «назад» и «пауза», после заставки его продолжает постоянный RaceBar (race-bar.css). */
 .wl[data-charge] .wlLanes, .wl[data-charge] .wlDots { opacity: 0; }
 
 .raceCharge { inset: 0; z-index: 1; isolation: isolate; overflow: hidden; pointer-events: none; transition: opacity 0.6s ease; }
 .raceCharge[data-leaving] { opacity: 0; }
 .raceChargeBar {
   position: absolute;
-  top: calc(env(safe-area-inset-top, 0px) + 14px);
-  left: 16px;
-  right: 60px; /* справа остаётся крестик выхода */
+  top: calc(env(safe-area-inset-top, 0px) + 25px); /* центр бара на линии кнопок панели (safe + 28 px, race-panel.css), как у постоянного бара race-bar.css */
+  left: calc(env(safe-area-inset-left, 0px) + 56px); /* между «назад» (слева) и «пауза» (справа): бар короче */
+  right: calc(env(safe-area-inset-right, 0px) + 56px);
   height: 6px; /* BAR_CORE_PX: постоянная; растёт только ореол */
   z-index: 3; /* выше пилюль: они заходят под бар */
 }
@@ -46,12 +46,16 @@
   opacity: 0;
   transform: translate(-50%, -50%) scale(0.6);
 }
-.raceChargePills { position: absolute; inset: 0; z-index: 1; clip-path: inset(calc(env(safe-area-inset-top, 0px) + 17px) 0 0 0); } /* верх среза = середина бара (бар: top 14 px + половина BAR_CORE_PX) */
-.raceChargePill {
+.raceChargePills { position: absolute; inset: 0; z-index: 1; clip-path: inset(calc(env(safe-area-inset-top, 0px) + 28px) 0 0 0); } /* верх среза = середина бара (бар: top 25 px + половина BAR_CORE_PX) */
+.raceChargeFly { /* узел полёта (его ведёт Web Animations): хвост-шлейф лежит в нём ПОД пилюлей (раньше в DOM), пилюля — поверх */
   position: absolute;
   top: calc(100% + 60px); /* START_BELOW_PX: старт ниже нижнего края — из-за затемнения */
   translate: -50% 0; /* центр по x; transform остаётся полёту */
   max-width: 44%;
+}
+.raceChargePill {
+  position: relative; /* выше хвоста (идёт после него в DOM) */
+  display: block;
   padding: 6px 13px;
   box-sizing: border-box;
   border: 2px solid var(--c);
@@ -61,20 +65,21 @@
   font-size: clamp(12px, 3.6vw, 15px);
   font-weight: 800;
   line-height: 1.1;
-  white-space: nowrap; /* без overflow: hidden — хвост-шлейф ::before выходит за пилюлю; длинное слово обрезает pillLabel */
+  white-space: nowrap; /* без overflow: hidden; длинное слово обрезает pillLabel */
 }
-.raceCharge[data-trail] .raceChargePill::before { /* хвост: прямоугольник во всю ширину пилюли (с рамкой), без скругления; мягкий вертикальный градиент цвет → прозрачный */
-  content: '';
+.raceChargeTail { /* хвост-шлейф «размытия движения» (без filter, только при data-trail): прямоугольник во всю ширину пилюли с рамкой, начинается от СЕРЕДИНЫ пилюли (top 50 %) и заходит под неё — перекрывает скругления по бокам;
+                     ниже пилюли выступает на 1,15 её высоты. Мягкий вертикальный градиент цвет → прозрачный. Наклон — rotate по касательной к синусоиде (Web Animations, raceChargePath.tailFrames), точка крепления — верх хвоста */
   position: absolute;
-  top: 100%;
+  top: 50%;
   left: -2px;
   right: -2px;
-  height: 110%;
+  height: 165%;
   border-radius: 0;
   background: linear-gradient(to bottom, color-mix(in srgb, var(--c) 70%, transparent), transparent);
+  transform-origin: 50% 0;
   opacity: 0;
   pointer-events: none;
-  animation: raceTail var(--fly, 1s) linear var(--delay, 0s) both; /* --fly / --delay — время полёта пилюли (RaceCharge.jsx) */
+  animation: raceTail var(--fly, 1s) linear var(--delay, 0s) both; /* --fly / --delay — время полёта пилюли (RaceChargeRun.jsx) */
 }
 @keyframes raceTail { 0% { opacity: 0; } 15% { opacity: 0.32; } 60% { opacity: 0.2; } 100% { opacity: 0; } }
 .raceChargeSpark { position: absolute; top: 100%; border-radius: 50%; opacity: 0.9; }

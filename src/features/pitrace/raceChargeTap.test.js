@@ -48,7 +48,7 @@ describe('звук касания бара: когда играет', () => {
     expect(read('./raceChargeTap.js').replace(/\/\/.*$/gm, '')).not.toMatch(/isWeakDevice|reducedMotion|lite/)
   })
   it('в заставке — на каждый сегмент бара (момент касания), раньше возврата при reduced-motion: звук не зависит от графики', () => {
-    const src = read('./RaceCharge.jsx')
+    const src = read('./RaceChargeRun.jsx')
     expect(src).toContain('segments.forEach(s => at(s.at, () => {'); expect(src.indexOf('playChargeTap()')).toBeLessThan(src.indexOf('if (still || !ring?.animate) return'))
   })
 })

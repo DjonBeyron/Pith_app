@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import { TRAVEL_MS, pillFill } from './wordLaneTimeline.js'
+import { TRAVEL_MS, SPEED, ENTER_Y, EXIT_Y, pillFill } from './wordLaneTimeline.js'
 import { createPool } from './wordLanePool.js'
 import { createStudentGame, stepStudent, isClaimable, liveRep } from './wordLaneStudent.js'
 import { createVoiceGate } from './wordLaneVoiceGate.js'
@@ -7,6 +7,7 @@ import { snapPill, missPill, SNAP_LEAD_MS } from './wordLaneSnap.js'
 import { runOrderScene } from './wordLaneOrderScene.js'
 import { riseRep } from './wordLaneDictorRise.js'
 import { runMirrorScene } from './wordLaneMirrorScene.js'
+import { trioStep, shiftMs } from '../../../pitrace/raceTapTrio.js'
 
 // Движок пилюль игры «Повтори за диктором». ДВИЖЕНИЕ пилюль ведёт композитор (wordLaneMotion.js: одна линейная WAAPI-анимация на пилюлю — скорость конвейера постоянна), поэтому лаги основного
 // потока на смартфонах (Vosk, React, щелчок с искрами) на ход не влияют. JS каждый кадр считает только логику и заливку. Пилюли — из пула (wordLanePool.js): живой повтор один (до трёх кусков) плюс догоняющие вниз пилюли предыдущих повторов.
@@ -28,10 +29,11 @@ export const CONFIRM_MS = 1500  // речь считается подтверж�
 export const CAT_LEAD_MS = 700  // кот выскакивает за столько до начала голоса диктора (пружина 0,55 с)
 export const CAT_TAIL_MS = 500  // и торчит ещё столько после его конца
 
-export function useWordLanePills(rootRef, { scene, levels, fx, live, sceneApi }) {
+export function useWordLanePills(rootRef, { scene, levels, fx, live, sceneApi, trio = null }) { // trio — «Гонка», режим «Тапаю» (raceTapTrio.js): { seed, words, pool } — слово едет тремя пилюлями; решается на старте ступени
   const fxRef = useRef(fx)
   const liveRef = useRef(live)
-  useEffect(() => { fxRef.current = fx; liveRef.current = live })
+  const trioRef = useRef(trio)
+  useEffect(() => { fxRef.current = fx; liveRef.current = live; trioRef.current = trio })
 
   useEffect(() => {
     const root = rootRef.current
@@ -76,7 +78,9 @@ export function useWordLanePills(rootRef, { scene, levels, fx, live, sceneApi })
 
     // ---------- ученик ----------
     if (kind === 'student') {
-      const { step, chunks, estMs, curves } = scene
+      const { chunks, estMs, curves } = scene
+      const tr = trioRef.current ? trioStep(scene.step, trioRef.current) : null // режим тапа в гонке: три пилюли на слово (верная + две чужие), верная — обычная пилюля без ловушки
+      const step = tr ? tr.step : scene.step
       setDots(step.reps.length)
       const g = createStudentGame({ step, chunks, estMs, maxTries: step.maxTries })
       const held = new Map() // id пилюли → номер в пуле
@@ -91,7 +95,20 @@ export function useWordLanePills(rootRef, { scene, levels, fx, live, sceneApi })
       const t0 = performance.now()
       const off = levels?.subscribe(l => { raw = l })
       const blind = !step.labels.length
-      setApi(sceneApi, { nextTarget: () => (g.reps.filter(isClaimable)[0] ?? liveRep(g))?.target ?? null }) // ручной режим: тап по микрофону = «сказал» ближайший повтор
+      const decoys = [] // чужие пилюли тройки: { k (номер в пуле), lane, speed, born, end, hit }
+      const shake = d => { const now = performance.now(), y = ENTER_Y + (SPEED * d.speed * (now - d.born)) / 1000; return y > 0 && y < EXIT_Y - 6 && now < d.end } // чужая пилюля ещё на экране?
+      setApi(sceneApi, {
+        nextTarget: () => (g.reps.filter(isClaimable)[0] ?? liveRep(g))?.target ?? null, // ручной режим: тап по микрофону = «сказал» ближайший повтор
+        trio: !tr ? undefined : lane => { // тап по дорожке в тройке: true — это верная дорожка (игра засчитает слово), false — чужая пилюля: дрожь и miss
+          const rep = g.reps.filter(isClaimable)[0]
+          if (rep && rep.lanes[0] === lane) return true
+          const d = decoys.find(x => x.lane === lane && shake(x))
+          if (!d) return true
+          missPill(pool.el(d.k)); if (rep && !d.hit) fxRef.current?.miss?.({ rep })
+          d.hit = true
+          return false
+        },
+      })
       const lockPiece = pill => { const k = held.get(pill.id); if (k != null) pool.attr(k, 'data-lock') }
       const handle = e => {
         if (e.type === 'spawn') {
@@ -99,6 +116,11 @@ export function useWordLanePills(rootRef, { scene, levels, fx, live, sceneApi })
           for (const p of e.pills) {
             const k = pool.take(p.lane, { atMs: performance.now() - t0 - p.spawnAt, curve: blind ? null : curves?.[p.chunk] ?? null, speed: p.speed, cap: e.rep.cap, edge: step.edge, quiet: step.quiet })
             if (k != null) held.set(p.id, k)
+          }
+          if (tr) for (const d of tr.decoys(e.rep.idx)) { // чужие пилюли рядом с верной: те же скорость и подпись-перевод, сдвиг по высоте d.dy % (по семени)
+            const atMs = performance.now() - t0 - e.pills[0].spawnAt + shiftMs(d.dy, e.rep.speed, SPEED)
+            const k = pool.take(d.lane, { atMs, speed: e.rep.speed, cap: d.cap, edge: step.edge, quiet: step.quiet })
+            if (k != null) decoys.push({ k, lane: d.lane, speed: e.rep.speed, born: performance.now() - atMs, end: performance.now() + ((EXIT_Y - ENTER_Y) / (SPEED * e.rep.speed)) * 1000 - atMs, hit: false })
           }
         } else if (e.type === 'piece-ok') lockPiece(e.pill) // слова куска произнесены — он зеленеет сразу (его заливку доведёт движок, щелчок и нота придут событиями snap / win)
         else if (e.type === 'claim') {
@@ -134,6 +156,7 @@ export function useWordLanePills(rootRef, { scene, levels, fx, live, sceneApi })
           // «Тень» слова — только после неверно сказанного (и ненадолго): пока ученик говорит верно или молчит, внутри пилюли ничего лишнего
           pool.hint(k, now2 < (ghostUntil.get(p.rep) ?? 0) && p.state === 'fly' && g.reps[p.rep].state === 'fly' ? '0.6' : '0', null)
         }
+        for (let j = decoys.length - 1; j >= 0; j--) if (now2 > decoys[j].end) { pool.give(decoys[j].k); decoys.splice(j, 1) } // чужая пилюля ушла за нижний край — в пул
         fxRef.current?.mouth?.(level)
         raf = requestAnimationFrame(tick)
       }

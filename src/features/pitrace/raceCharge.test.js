@@ -57,7 +57,7 @@ describe('заставка-зарядка: план', () => {
     expect(chargeOn({ stage: 'drop', hold: true })).toBe(false) // сцена открыта, звук готовится: заставка ещё не началась
   })
   it('без Math.random; стили подключены; цвета — переменные уровней памяти; бар заполненный без полос', () => {
-    for (const f of ['./raceCharge.js', './RaceCharge.jsx']) expect(read(f)).not.toContain('Math.random')
+    for (const f of ['./raceCharge.js', './RaceCharge.jsx', './RaceChargeRun.jsx', './RaceRoundCharge.jsx', './raceRound.js', './raceBar.js', './RaceBar.jsx']) expect(read(f)).not.toContain('Math.random')
     const css = read('../../styles/player/modules/race-charge.css')
     expect(read('../../styles/player/modules/race-sprint.css')).toContain("@import './race-charge.css';")
     expect(css).toContain('.wl[data-charge] .wlLanes'); expect(css).not.toContain('repeating-linear-gradient('); expect(css).not.toMatch(/\bfilter:/)
@@ -73,7 +73,7 @@ describe('заставка-зарядка: план', () => {
     for (const p of pills) expect(p.wave.sign === 1 || p.wave.sign === -1).toBe(true)
   })
   it('бар: высота постоянная (не анимируется), скругление 999px; «толщину» даёт ореол — scaleY от центра; импакт — только transform / opacity', () => {
-    const src = read('./RaceCharge.jsx'), css = read('../../styles/player/modules/race-charge.css')
+    const src = read('./RaceChargeRun.jsx'), css = read('../../styles/player/modules/race-charge.css')
     expect(src).toContain('flyDist('); expect(src).toContain('haloKeys('); expect(src).toContain('nudgeFrames('); expect(src).toContain('ringFrames(')
     expect(src).not.toMatch(/height:\s*`/); expect(src).not.toContain('barKeys'); expect(src).not.toContain('bumpFrames') // высота бара не анимируется
     expect(css).toMatch(/\.raceChargeBar \{[^}]*height: 6px;/); expect(css).toMatch(/\.raceChargeHalo \{[^}]*border-radius: 999px;[^}]*transform-origin: center/); expect(css).toMatch(/\.raceChargeTrack \{[^}]*border-radius: 999px/)
@@ -101,7 +101,7 @@ describe('заставка-зарядка: план', () => {
     const css = read('../../styles/player/modules/race-charge.css')
     expect(FLASH_MS).toBe(300); expect(css).toMatch(/\.raceChargeSeg::after \{[^}]*animation: raceHit 0\.3s linear var\(--at, 0s\) 1 forwards/); expect(css).toContain('@keyframes raceHit { from { opacity: 0.9; } to { opacity: 0; } }')
     expect(css).toMatch(/\.raceChargeSeg::after \{[^}]*opacity: 0;/) // до момента касания вспышки нет
-    const src = read('./RaceCharge.jsx'); expect((src.match(/data-ring/g) ?? []).length).toBe(2) // один узел кольца на бар (разметка + выбор), не по узлу на касание
+    const src = read('./RaceChargeRun.jsx'); expect((src.match(/data-ring/g) ?? []).length).toBe(2) // один узел кольца на бар (разметка + выбор), не по узлу на касание
   })
   it('старт пилюли ниже нижнего края (из-за затемнения) и прилёт строго в центр бара по x и по y', () => {
     expect(START_BELOW_PX).toBeGreaterThanOrEqual(40)
