@@ -65,7 +65,7 @@ describe('повторный прогрев', () => {
 describe('карточка игры (RotatePhoneModule) и игра', () => {
   const card = read('./RotatePhoneModule.jsx')
   it('прогрев запускается заново, когда карточка снова в ожидании (phase === wait), а не один раз при монтировании', () => {
-    expect(card).toMatch(/useEffect\(\(\) => \{ if \(phase === 'wait'\) warm\(cfg, \{ onListed: \(\) => setListed\(sig\) \}\) \}, \[cfg, sig, phase, warm\]\)/)
+    expect(card).toMatch(/useEffect\(\(\) => \{ if \(phase === 'wait' \|\| phase === 'ask'\) warm\(cfg, \{ onListed: \(\) => setListed\(sig\) \}\) \}, \[cfg, sig, phase, warm\]\)/)
   })
   it('конец игры и срыв старта отпускают контекст, но оставляют прогретое; при закрытии карточки отпускаются её файлы', () => {
     expect(card).toContain('releaseClips({ keepWarm: true }); endGameAudio(); closeGameMic(); leaveFullscreen()')

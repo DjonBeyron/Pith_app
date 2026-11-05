@@ -43,7 +43,7 @@ describe('разметка и CSS конвейера', () => {
   })
   it('WordLanePills запускает привод (useLaneConveyor) с armed и paused, слабое устройство / reduced-motion — still', () => {
     const src = read('./WordLanePills.jsx')
-    expect(src).toContain('useLaneConveyor(rootRef, { armed, paused, still, speed, speedKey })')
+    expect(src).toContain('useLaneConveyor(rootRef, { armed, paused, still, speed, speedKey, onSpeed })')
     expect(src).toContain('lite || reducedMotion()')
     expect(read('./useLaneConveyor.js')).toContain('createConveyorDrive')
   })
@@ -54,7 +54,7 @@ describe('разметка и CSS конвейера', () => {
     expect(code).toMatch(/left: calc\(50% - 0\.5px\);\s*width: 1px;/)
     expect(code).toMatch(/top: calc\(var\(--run-p\) \* -1\);/)
     expect(code).toMatch(/transform: translate3d\(0, var\(--run-y, 0dvh\), 0\);/)
-    expect(code).toMatch(/mask-image: repeating-linear-gradient\(to bottom, #000 0 [\d.]+dvh, transparent [\d.]+dvh var\(--run-p\)\)/)
+    expect(code).toMatch(/mask-image: repeating-linear-gradient\(to bottom, #000 0 var\(--run-dash, [\d.]+dvh\), transparent var\(--run-dash, [\d.]+dvh\) var\(--run-p\)\)/)
     expect(code).not.toMatch(/animation|@keyframes|transition|filter|::after|background-position/)
   })
   it('в покое видно всегда, но еле-еле (прозрачность по умолчанию = REST_A); яркость (в том числе мигание) ведёт --run-a, волны нет', () => {

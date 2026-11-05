@@ -1,0 +1,18 @@
+/* «Гонка с Питом»: импульс скорости дорожек (второй круг и каждое +5 %, wordLaneConveyor.js PULSE_*, привод laneConveyorDrive.js; отдельно от word-lane-lane-run.css, где анимаций нет): на 600 мс штрихи ярче (--run-a до 0,9) и длиннее (--run-dash до 3,08 dvh = 2,2 × 1,4), а по дорожкам сверху вниз пробегает
+   «волна скорости» — мягкая полоса света (transform, один раз; привод переключает data-wave a ↔ b, чтобы анимация перезапускалась). На слабом устройстве и при reduced-motion привод её не включает. filter нет. */
+.wlLanes[data-wave]::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 22%;
+  pointer-events: none;
+  background: linear-gradient(to bottom, transparent, rgba(255, 255, 255, 0.16) 55%, transparent);
+  transform: translateY(-100%);
+}
+.wlLanes[data-wave='a']::after { animation: wlSpeedWaveA 0.6s ease-in forwards; }
+.wlLanes[data-wave='b']::after { animation: wlSpeedWaveB 0.6s ease-in forwards; }
+@keyframes wlSpeedWaveA { from { transform: translateY(-100%); } to { transform: translateY(455%); } }
+@keyframes wlSpeedWaveB { from { transform: translateY(-100%); } to { transform: translateY(455%); } }
+@media (prefers-reduced-motion: reduce) { .wlLanes[data-wave]::after { display: none; } }

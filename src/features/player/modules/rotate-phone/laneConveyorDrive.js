@@ -9,7 +9,7 @@ export const MAX_DT = 64        // шаг модели за кадр не бол
 export const reducedMotion = () => { try { return !!globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches } catch { return false } }
 
 export function createConveyorDrive({
-  root, still = false, now = () => globalThis.performance.now(),
+  root, still = false, onSpeed = null, now = () => globalThis.performance.now(),
   raf = f => globalThis.requestAnimationFrame(f), caf = i => globalThis.cancelAnimationFrame(i),
   observe = (el, fn) => { const o = new globalThis.MutationObserver(fn); o.observe(el, { subtree: true, attributes: true, attributeFilter: ['data-held', 'data-lane', 'data-still', 'data-speed'] }); return () => o.disconnect() },
 }) {
@@ -20,6 +20,7 @@ export function createConveyorDrive({
   let id = null, last = 0, paused = false
   let hint = null, hintKey = null, peak = 0 // «Гонка с Питом»: hint — скорость первой пилюли ближайшей стадии (дорожка набирает её ЗАРАНЕЕ, до выезда пилюли), peak — наибольшая скорость пилюль, виденных при этом hint
   const wanted = () => Math.max(1, hint ?? 1, peak) // множитель скорости пунктира: пилюли разгона быстрее конвейера в speed раз; пунктир едет быстрее пропорционально, внутри стадии не откатывается между пилюлями
+  let told = 1, waves = 0, waveEl = null // told — какой множитель скорости уже сообщили наверх (бейдж «×1,1», onSpeed); waves — сколько импульсов уже показала «волна скорости» (data-wave, word-lane-lane-run.css)
 
   const put = (i, name, value) => {
     if (shown[i][name] === value) return
@@ -29,18 +30,27 @@ export function createConveyorDrive({
   const draw = (i, look) => {
     put(i, '--run-y', `${look.y.toFixed(2)}dvh`)
     put(i, '--run-a', look.a.toFixed(3))
+    if (!still) put(i, '--run-dash', `${(2.2 * look.sy).toFixed(2)}dvh`) // импульс скорости: штрихи длиннее (до ×1,4); на слабом устройстве и при reduced-motion только яркость
   }
+  const wave = () => { // по дорожкам пробегает «волна скорости» сверху вниз (CSS-анимация; имя меняется a ↔ b, чтобы она перезапускалась на каждом импульсе)
+    const n = lanes.reduce((m, L) => Math.max(m, L.pn), 0)
+    if (still || n === waves) return
+    waves = n; waveEl ??= root.querySelector('.wlLanes')
+    if (waveEl) waveEl.dataset.wave = n % 2 ? 'a' : 'b'
+  }
+  const tell = () => { const w = wanted(); if (w !== told) { told = w; try { onSpeed?.(w) } catch { /* бейдж не должен ломать привод */ } } } // множитель скорости изменился — бейдж (RaceSpeedBadge)
   const frame = ts => {
     id = null
     const dt = Math.min(MAX_DT, Math.max(0, ts - last)); last = ts
     lanes.forEach((L, i) => { draw(i, laneLook(stepLane(L, dt, { armed: armed[i], keep: keep[i], pills: pills[i], still, speed: wanted() }))) })
+    wave()
     if (!settled(lanes) && !paused) id = raf(frame)
   }
   const wake = () => { if (id === null && !paused && cols.length) { last = now(); id = raf(frame) } }
   const recount = () => {
     pills = cols.map(() => 0)
     for (const el of root.querySelectorAll('.wlPill[data-held]:not([data-still])')) { const k = Number(el.dataset.lane); if (k >= 0 && k < pills.length) pills[k] += 1; peak = Math.max(peak, Number(el.dataset.speed) || 1) }
-    wake()
+    tell(); wake()
   }
   const stopObserving = observe(root, recount)
 

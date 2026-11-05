@@ -25,6 +25,7 @@ import { ENTER_Y, EXIT_Y, SPEED, LOCK_MS, FILL_CAP, PRE_CONFIRM_CAP, LISTEN_Y_MI
 import { tokenize } from '../../../../shared/lib/speech/speechMatch.js'
 import { laneOf, stepTargets, textOf } from './wordLaneRecipe.js'
 import { estChunkMs } from './wordLaneAudio.js'
+import { spawnEarly } from './wordLaneConveyorSpeed.js'
 
 export const REP_GAP_MS = 600           // пауза между повторами: от щелчка последнего куска принятого повтора (win) или от гашения «не успел» (fail) до выката следующего
 export const PIECE_PAD_MS = 120         // между пилюлями кусков одного повтора, поверх длины куска
@@ -102,10 +103,11 @@ export function createStudentGame({ step, chunks, estMs = c => estChunkMs(chunks
 
 /**
  * Шаг игры в момент t. input: level — громкость голоса (после ворот) 0…1, seq — накопленный по порядку список услышанных целей (номера), misses — накопленный счёт чужих слов, confirmed — речь подтверждена
- * распознаванием, tail — недосказанная цель { target, tokens }, hold — Пит договаривает реплику (репетиция): следующий повтор не выкатывается, пока hold, а время ступени (budget) на ожидание не тратится.
+ * распознаванием, tail — недосказанная цель { target, tokens }, hold — Пит договаривает реплику (репетиция): следующий повтор не выкатывается, пока hold, а время ступени (budget) на ожидание не тратится; pitMs — сколько мс Пит ещё занят
+ * (у «Гонки» повтор с уже сказанным переводом выезжает заранее, spawnEarly).
  * Возвращает события шага: spawn / piece-ok / claim / snap / win / fail / miss / late / done. Состояние g меняется на месте.
  */
-export function stepStudent(g, t, { level = 0, seq = [], misses = 0, confirmed = true, tail = null, hold = false } = {}) {
+export function stepStudent(g, t, { level = 0, seq = [], misses = 0, confirmed = true, tail = null, hold = false, pitMs = hold ? Infinity : 0 } = {}) {
   const events = []
   const dt = Math.max(0, t - g.t) / 1000
   g.t = t
@@ -171,12 +173,14 @@ export function stepStudent(g, t, { level = 0, seq = [], misses = 0, confirmed =
   // Следующий повтор — только когда нет живого и прошла пауза. Сначала повторы, которые ещё ни разу не выкатывали (меньше попыток), потом повторы неудачных: иначе не успевший один закрывал бы остальные от выката
   const busy = r => (r.state === 'fly' && !(g.overlap && isDeaf(r))) || (r.state === 'lock' && !g.overlap) // очередь: принятый (взлетает) и недоступный повторы выкат не держат
   const spawnReady = !g.finished && t >= g.nextSpawn && !g.reps.some(busy)
-  const wait = hold && (g.holdAll || !(g.overlap && g.spawned > 0))  // очередь: Пит ждёт только первую пилюлю, следующие выезжают сразу; у «Разгона» (step.holdAll) ждут все — пока Пит не договорит реплику успеха
+  const next = g.reps.filter(r => r.state === 'todo').sort((a, b) => a.tries - b.tries || a.idx - b.idx)[0]
+  const early = hold && !!next?.pre && spawnEarly(pitMs, next.speed)   // «Гонка»: перевод уже говорят — пилюля выезжает ЗА время пути до 50 % до конца речи, чтобы Пит договорил ровно к её 50 % (wordLaneConveyorSpeed.spawnEarly)
+  const wait = hold && !early && (g.holdAll || !(g.overlap && g.spawned > 0))  // очередь: Пит ждёт только первую пилюлю, следующие выезжают сразу; у «Разгона» (step.holdAll) ждут все — пока Пит не договорит реплику успеха
   g.waited = spawnReady && wait ? g.waited + dt * 1000 : 0
   if (spawnReady && wait && g.waited <= MAX_HOLD_MS) g.budget += dt * 1000   // Пит говорит: пилюля выедет через паузу после его реплики (busyLeft включает её), а ожидание ступень не съедает; дольше MAX_HOLD_MS не ждём — пилюля выедет в любом случае
   else if (spawnReady) {
     if (t >= g.budget) g.reps.forEach(r => { if (r.state === 'todo') r.state = 'lost' })   // время ступени вышло: недоигранное потеряно
-    const rep = g.reps.filter(r => r.state === 'todo').sort((a, b) => a.tries - b.tries || a.idx - b.idx)[0]
+    const rep = next?.state === 'todo' ? next : null   // время вышло — следующего уже нет
     if (rep && g.preSay && !rep.pre && !hold) { rep.pre = true; events.push({ type: 'pre', rep }) } // «Гонка» (step.preSay): перед выездом Пит говорит перевод (fx.pre → озвучка, Пит занят): пилюля выедет на следующем кадре, а если он заговорил — когда договорит (hold). Реплика успеха уже договорена: hold её держит; нет озвучки — пилюля выезжает сразу
     else if (rep) {
       const base = g.spawned === 0 ? t - g.leadIn : t

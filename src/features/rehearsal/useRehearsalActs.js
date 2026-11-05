@@ -34,7 +34,7 @@ export const STUCK_MS = 3000        // слушатель молчит стол�
 export const HINT_LABEL_MS = 2000   // подпись куска-подсказки
 export const MAX_STUCK_HINTS = 2    // подсказок на ступень
 
-export function useRehearsalActs({ plan, stages, stage, at, stageObj, setS, sayLine, sayText, cat, lines, rate, lang, listenerRef }) {
+export function useRehearsalActs({ plan, stages, stage, at, stageObj, setS, sayLine, sayText, cat, lines, rate, lang, listenerRef, hold = false }) {
   const [journal] = useState(createJournal)
   const [result, setResult] = useState(null)
   const on = !!plan
@@ -54,13 +54,13 @@ export function useRehearsalActs({ plan, stages, stage, at, stageObj, setS, sayL
   const missLine = () => { missRef.current ??= { rng: rngFor(plan.seed, 'line:rh_warmup_miss'), last: {} }; return pickLine('rh_warmup_miss', missRef.current.rng, missRef.current.last) }
   // Вступление: Пит говорит про фразу, пока она падает (при запуске одного этапа «Шлифовки» его нет — rehearsalPrepare.hasIntroLine)
   useEffect(() => {
-    if (!on || stage !== 'drop' || !intro) return undefined
+    if (!on || stage !== 'drop' || !intro || hold) return undefined // hold («Гонка»): звук ещё готовится, часы игры стоят — вступление ждёт
     const t = setTimeout(() => sayLine(startLine), LINE_AT_MS)
     return () => clearTimeout(t)
-  }, [on, stage, intro, sayLine, startLine])
+  }, [on, stage, intro, sayLine, startLine, hold])
 
   // Раскладка стадии по времени: реплика Пита (ждёт, пока он договорит прошлую) и отсчёт тремя нотами (stage.count) — rehearsalCountdown.stageTiming
-  const timingOf = st => stageTiming({ order: st.count ?? null, lead: LINE_AT_MS, busyMs: cat.busyLeft(), lineMs: st.line ? lineMs(fillLine(lines?.[st.line]), rate) : 0, pause: LINE_PAUSE_MS, minMs: st.ms, hasLine: !!st.line, quiet: lineVoiced(lines, st.line), plan: countdownPlan({ soft: !!st.soft }) })
+  const timingOf = st => stageTiming({ order: st.count ?? null, lead: LINE_AT_MS, busyMs: cat.busyLeft(), lineMs: st.line ? lineMs(fillLine(lines?.[st.line]), rate) : 0, pause: st.pause ?? LINE_PAUSE_MS, minMs: st.ms, hasLine: !!st.line, quiet: lineVoiced(lines, st.line), plan: countdownPlan({ soft: !!st.soft }) })
   useEffect(() => { if (!on) return undefined; warmCountdown(race); return releaseCountdown }, [on, race]) // ноты отсчёта декодируются заранее (первая должна прозвучать вовремя)
 
   // Реплика стадии и отсчёт (стартует, когда Пит договорил, и не отпускает стадию до конца нот); смена стадии, пауза и выход гасят таймеры и ноты

@@ -8,7 +8,8 @@ import { reportRace } from './raceSim.js'
 import { DESCENT_RATE } from './raceRecipe.js'
 import { sayTrap } from './raceTrapVoice.js'
 import { sprintTarget } from './raceSprint2.js'
-import { takeoffOn, playTakeoff } from './raceTakeoffSound.js'
+import { takeoffOn, playTakeoffAfter } from './raceTakeoffSound.js'
+import { rewardMs } from '../player/modules/rotate-phone/wordLaneNotes.js'
 import { GOOD_IDS, GOOD_DELAY_MS } from './raceGood.js'
 
 // Директор «Гонки с Питом» (CONCEPT_RACE.md) поверх директора репетиции: useWordLaneFlow зовёт ЭТОТ хук вместо useRehearsalActs. Без плана гонки (plan.game !== 'race') он возвращает то, что вернул бы useRehearsalActs, —
@@ -100,7 +101,7 @@ export function useRaceActs(args) {
     rec(kind, info) {
       rh.rec(kind, info)
       if (!running) return
-      if (takeoffOn(running, kind, info)) playTakeoff() // взлёт принятой пилюли: короткое глиссандо ми → ля (только ступени-очереди гонки)
+      if (takeoffOn(running, kind, info)) playTakeoffAfter(rewardMs(info?.order ?? 0)) // взлёт принятой пилюли: глиссандо ми → ля ПОСЛЕ ноты награды, а не вместе с ней (только ступени-очереди гонки)
       apply({ t: kind, stage: running, info: kind === 'miss' ? { ...info, heard: listenerRef?.current?.heard?.() ?? '' } : info }) // на промахе — что услышал Vosk: двойник слова ступени ломает ловушку
       if (kind === 'miss' && running.act === 'climb' && running.type === 'student') jump(climbStageIdx(stages, box.s.climb)) // сказал не то — соскальзывание: ступень-стадия перезапускается (слово ступени звучит подсказкой при 2-м промахе)
     },

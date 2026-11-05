@@ -11,7 +11,7 @@ describe('директор игры (useWordLaneFlow)', () => {
   const flow = read(`${RP}useWordLaneFlow.js`)
   it('план приходит в стадии (buildStages delegates), акты — хук useRehearsalActs, пропуски — nextIdx', () => {
     expect(flow).toContain("import { useRaceActs as useRehearsalActs } from '../../../pitrace/useRaceActs.js'") // директор гонки оборачивает директор репетиции
-    expect(flow).toContain('confusers = null, plan = null, forceDebug = false, onFinished })')
+    expect(flow).toContain('confusers = null, plan = null, forceDebug = false, hold = false, onFinished })')
     expect(flow).toContain('const rh = useRehearsalActs({ plan, stages, stage: s.stage, at: s.at, stageObj, setS, sayLine,')
     expect(flow).toContain('const i = nextIdx(sRef.current.idx + 1)')
   })
@@ -25,7 +25,7 @@ describe('директор игры (useWordLaneFlow)', () => {
     expect(flow).toContain('else if (isStudentStage(stageObj)) look()?.lineStart()')
   })
   it('реакции движка попадают в журнал актов (win / miss / fail); «не успел» в разминке — реплика Пита; «Различи» называет слово', () => {
-    expect(flow).toContain("rh.rec('win', rep); if (playNote(order))")
+    expect(flow).toContain("rh.rec('win', { ...rep, order }); if (playNote(order))")
     expect(flow).toContain("miss(e) { rh.rec('miss', e?.rep);")
     expect(flow).toContain("rh.rec('fail', e.rep)")
     expect(flow).toContain("sayLine(rh.failLine(st) ?? (st?.step?.reps?.[0]?.parts?.length > 1 ? 'split_words' : 'try_again'))")
@@ -33,14 +33,14 @@ describe('директор игры (useWordLaneFlow)', () => {
   })
   it('плашки держатся, пока Пит говорит (holdMs); директор отдаёт rh и next для экранов зеркала и итога', () => {
     expect(flow).toContain('ids.push(setTimeout(() => rh.afterCount(next), rh.holdMs(stageObj)))') // переход ждёт конца отсчёта нотами
-    expect(flow).toContain('useBuiltLabels({ stages, stage:'); expect(flow).toContain('quiet: rh.quiet'); expect(flow).toContain("const plate = !rh.plateOk ? ''") // пока Пит говорит, ни подписей, ни плашки
-    expect(flow).toContain('return { ...s, stages, dbg, rh, next, catLine: cat.text, phase,')
+    expect(flow).toContain('useBuiltLabels({ stages, stage:'); expect(flow).toContain('quiet: rh.quiet'); expect(flow).toContain("const plate = !rh.plateOk || stageObj?.charge ? ''") // пока Пит говорит, ни подписей, ни плашки
+    expect(flow).toContain('return { ...s, hold, stages, dbg, rh, next, catLine: cat.text, phase,')
   })
   it('дубль и зеркало: слушатель дубля без затвора и без паузы между заходами; на дубле Пит молчит; стадия закончилась — rh.leave дописывает дубль и только потом next', () => {
     expect(flow).toContain('gate: !listenStep.record, restartMs: listenStep.record ? 0 : undefined')
     expect(flow).toContain("const said = e.order || st?.type === 'take' || st?.step?.quiet ? false : sayLine(rh.failLine(st)")
     expect(flow).toContain("later(() => rh.leave(stages[at], () => { if (sRef.current.idx === at && sRef.current.stage === 'run') next() }), EXIT_PAUSE_MS)")
-    expect(flow).toContain('cat, lines, rate, lang, listenerRef })')
+    expect(flow).toContain('cat, lines, rate, lang, listenerRef, hold })')
     expect(flow).not.toMatch(/onChange: \(\{[^}]*words/) // слова Vosk в onChange не идут (перерисовок не плодят)
   })
   it('директор не раздулся: ≤ 250 строк; ручного режима по-прежнему нет', () => {
@@ -86,7 +86,7 @@ describe('игра, модуль, настройки, звук', () => {
   it('WordLaneGame: план в директор, одно слово репетиции не «крупно», один рендер актов и атрибуты акта на корне', () => {
     const game = read(`${RP}WordLaneGame.jsx`)
     expect(game).toContain("import RehearsalActs from '../../../rehearsal/RehearsalActs.jsx'")
-    expect(game).toContain('plan: cfg.plan, forceDebug, onFinished })')
+    expect(game).toContain('plan: cfg.plan, forceDebug, hold: startHold, onFinished })')
     expect(game).toContain("phase !== 'discern' && !cfg.plan")
     expect(game).toContain('<RehearsalActs f={f} cfg={cfg} lines={lines} onAgain={onAgain} onSummary={onSummary} />')
     expect(game).toContain('data-act={f.rh.on ? f.stageObj?.act : undefined}')

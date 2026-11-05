@@ -71,8 +71,8 @@ describe('hold: Пит говорит — пилюля ждёт', () => {
 
 describe('подключение', () => {
   it('движок пилюль берёт hold у Пита (fx.pitLeft), директор отдаёт его из busyLeft кота только в репетиции', () => {
-    expect(read('./useWordLanePills.js')).toContain('(fxRef.current?.pitLeft?.() ?? 0) > 0')
-    expect(read('./useWordLanePills.js')).toContain('tail: sig.tail ?? null, hold })')
+    expect(read('./useWordLanePills.js')).toContain('const pitMs = fxRef.current?.pitLeft?.() ?? 0, hold = pitMs > 0')
+    expect(read('./useWordLanePills.js')).toContain('tail: sig.tail ?? null, hold, pitMs })')
     expect(read('./useWordLaneFlow.js')).toContain('pitLeft: () => rh.pitLeft()')
     expect(read('./useWordLaneFlow.js')).toContain('pitLeft: () => handlersRef.current.pitLeft()')
     expect(read('../../../rehearsal/useRehearsalActs.js')).toContain('pitLeft: () => (on ? cat.busyLeft() : 0)')

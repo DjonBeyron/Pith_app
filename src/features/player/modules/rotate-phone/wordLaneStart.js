@@ -51,6 +51,7 @@ export function wordsPlan({ cfg, lines }) {
   const words = [...trans, ...libItems([...cfg.chunks, ...cfg.confusers.flat(), ...(cfg.extraWords ?? [])])]
   const lineNow = all.filter(x => !first || first.has(x.key))
   const one = libItems(cfg.chunks.slice(0, 1)).length // кусок первой ступени
+  if (cfg.plan?.game === 'race' && first) return { now: [...lineNow, ...words], late: all.filter(x => !first.has(x.key)), firstCount: lineNow.length, gateMin: 0 } // «Гонка»: ворота ждут ТОЛЬКО первые реплики Пита (race_start, реплика первого этапа); куски и переводы догреваются к первой пилюле, Пит не ждёт сеть
   return first ? { now: [...lineNow, ...words], late: all.filter(x => !first.has(x.key)), firstCount: lineNow.length + one + Math.min(2, trans.length) } : { now: [...words, ...lineNow], late: [], firstCount: one + Math.min(2, trans.length) } // у репетиции реплики первых стадий качаются и декодируются ПЕРВЫМИ: заговорит Пит, а куски диктора понадобятся через секунды
 }
 
@@ -123,7 +124,7 @@ export function startGameAudio({ cfg, audioSrc, lines }, deps = {}) {
       warm.rewarmOnGesture('жест истёк, пока открывался микрофон (диалог доступа)') // play() вне жеста iOS не разрешит: разбудим ещё раз на ближайшем касании
       trace.setNeedsTap(true); trace.mark('tap-wait', { why: 'жест истёк до прогрева' })
     }
-    const g = await gate({ items: warmItems(plan), firstCount: plan.firstCount, maxMs: gateMaxMs, sinceTapMs: trace.sinceTap?.() ?? 0 }) // 4. ворота: первые N готовы / все / таймаут (8 с с тапа)
+    const g = await gate({ items: warmItems(plan), firstCount: plan.firstCount, min: plan.gateMin, maxMs: gateMaxMs, sinceTapMs: trace.sinceTap?.() ?? 0 }) // 4. ворота: первые N готовы / все / таймаут (8 с с тапа)
     trace.mark('ready', { words: g.by === 'timeout' ? 'timeout' : 'ready', gate: g.by, done: g.ok, total: g.total, firstN: g.firstN, ms: g.ms, ...(g.missing?.length ? { missing: g.missing.slice(0, 12) } : {}), ctx: gameCtxState() })
     pLog(`[audio] состояние ctx=${gameCtxState() ?? 'нет'} перед первой репликой${gameCtxState() === 'running' ? '' : ' — НЕ running: реплики Пита могут не зазвучать до касания'}`)
     return { mic, settled, needsTap }

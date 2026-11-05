@@ -2,10 +2,13 @@
 // Играет тот же игровой AudioContext и тот же плеер (playGameBuffer), что ноты награды и отсчёта: буфер синтезируется прямо в AudioBuffer ОДИН раз на частоту дискретизации (как noteBuffer отсчёта), без файлов и декодирования.
 // Включается только у ступеней гонки (takeoffOn: win ступени-очереди sprint / catch); в репетиции и обычной игре его нет. Громкость — GainNode с фиксированной величиной (не зависит от ползунка награды), «без звука» урока гасит.
 // Нет Web Audio — тишина (запасного <audio> нет: звук слишком короткий, а мяу награды играет и так).
+// ПОРЯДОК (v3.3.114, замечание владельца: «звук взлёта начинается рано и перебивает ноту награды»): сначала нота награды (wordLaneNotes.playNote — она играет в тот же миг, что и зачёт), и только когда она отзвучала
+// (rewardMs, но не раньше TAKEOFF_GAP_MIN_MS = 180 мс и не позже TAKEOFF_GAP_MAX_MS), — глиссандо взлёта (playTakeoffAfter). Награды нет («без звука», выкл.) — взлёт сразу. Журнал: «[race] взлёт: звук …».
 import { getLessonMuted } from '../player/lessonVolume.js'
 import { webAudioOn, getGameCtx } from '../../shared/lib/gameAudioCtx.js'
 import { playGameBuffer } from '../../shared/lib/gameBufferPlay.js'
 import { COUNT_RMS, COUNT_PEAK } from '../rehearsal/rehearsalCountdownSynth.js'
+import { pLog } from '../../shared/lib/debug.js'
 
 export const TAKEOFF_FROM_HZ = 659.25 // E5 (ми)
 export const TAKEOFF_TO_HZ = 880      // A5 (ля)
@@ -66,4 +69,19 @@ export function playTakeoff({ play = playGameBuffer } = {}) {
   const c = getGameCtx()
   const buf = c ? takeoffBuffer(c) : null
   return buf ? !!play(buf, { gain: 1 }) : false
+}
+
+export const TAKEOFF_GAP_MIN_MS = 180 // взлёт не раньше, чем через столько после ноты награды (если нота есть)
+export const TAKEOFF_GAP_MAX_MS = 600 // и не позже: слишком поздний взлёт отрывается от картинки
+
+/** Через сколько мс после зачёта играть взлёт: нота награды звучит rewardMs — взлёт после неё, от 180 до 600 мс; награды нет (0) — сразу */
+export const takeoffDelay = rewardMs => (rewardMs > 0 ? Math.min(TAKEOFF_GAP_MAX_MS, Math.max(TAKEOFF_GAP_MIN_MS, Math.round(rewardMs))) : 0)
+
+/** Взлёт после ноты награды: таймер на takeoffDelay(rewardMs), в журнал — «[race] взлёт: звук через N мс (нота награды M мс)». → отмена. set / play / log подставляются в тестах */
+export function playTakeoffAfter(rewardMs, { play = playGameBuffer, set = setTimeout, clear = clearTimeout, log = pLog } = {}) {
+  const ms = takeoffDelay(rewardMs)
+  try { log(`[race] взлёт: звук через ${ms} мс${rewardMs > 0 ? ` (нота награды ${Math.round(rewardMs)} мс)` : ' (ноты награды нет)'}`) } catch { /* журнал не мешает игре */ }
+  if (ms <= 0) { playTakeoff({ play }); return () => {} }
+  const id = set(() => { playTakeoff({ play }) }, ms)
+  return () => clear(id)
 }

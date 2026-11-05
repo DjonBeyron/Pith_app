@@ -73,6 +73,6 @@ describe('стенд: кнопка «Два этапа + финал»', () => {
   it('в блоке гонки рядом с «Полной гонкой» и раундами; запускает round = stages', () => {
     const h = renderToStaticMarkup(createElement(RaceBlock))
     expect(h).toContain('data-testid="race-run-full"'); expect(h).toContain('data-testid="race-run-stages"'); expect(h).toContain('>Два этапа + финал<')
-    expect(readFileSync(new URL('../admin/speech/RaceBlock.jsx', import.meta.url), 'utf8')).toContain('asker.open(STAGES_ROUND)')
+    expect(readFileSync(new URL('../admin/speech/RaceBlock.jsx', import.meta.url), 'utf8')).toContain('launch(STAGES_ROUND)')
   })
 })

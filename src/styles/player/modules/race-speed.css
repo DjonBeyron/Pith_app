@@ -1,0 +1,23 @@
+/* «Гонка с Питом»: бейдж скорости дорожек (features/pitrace/RaceSpeedBadge.jsx, raceSpeedBadge.js, CONCEPT_RACE.md «Скорость дорожек»): небольшая плашка у верха сцены «×1,1 … ×1,5» — текущий множитель скорости.
+   Стиль плашек игры (word-lane-plate.css): тёмный фон, рамка акцента, скругление; появляется на 1 с при смене множителя (data-on), только opacity и transform. Не перехватывает касания; под крестиком выхода по z-index. */
+.raceSpeed {
+  position: absolute;
+  top: calc(env(safe-area-inset-top, 0px) + 12px);
+  left: 50%;
+  z-index: 5;
+  transform: translate(-50%, -8px);
+  padding: 4px 12px;
+  border: 2px solid var(--wl-accent);
+  border-radius: 14px;
+  background: rgba(11, 13, 17, 0.94);
+  color: #f4f6fb;
+  font-size: clamp(14px, 4.4vw, 18px);
+  font-weight: 800;
+  line-height: 1.2;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+.raceSpeed[data-on] { opacity: 1; transform: translate(-50%, 0); }
+.raceSpeed:empty { display: none; }
+@media (prefers-reduced-motion: reduce) { .raceSpeed { transition: none; } }

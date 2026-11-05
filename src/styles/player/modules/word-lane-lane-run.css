@@ -18,7 +18,7 @@
   transform: translate3d(0, var(--run-y, 0dvh), 0);
   will-change: transform;
   background: rgba(var(--rgb), var(--run-a, 0.14));
-  -webkit-mask-image: repeating-linear-gradient(to bottom, #000 0 2.2dvh, transparent 2.2dvh var(--run-p));
-  mask-image: repeating-linear-gradient(to bottom, #000 0 2.2dvh, transparent 2.2dvh var(--run-p));
+  -webkit-mask-image: repeating-linear-gradient(to bottom, #000 0 var(--run-dash, 2.2dvh), transparent var(--run-dash, 2.2dvh) var(--run-p));
+  mask-image: repeating-linear-gradient(to bottom, #000 0 var(--run-dash, 2.2dvh), transparent var(--run-dash, 2.2dvh) var(--run-p));
 }
 .wl--lite .wlLanes i::before, .weak-device .wlLanes i::before { will-change: auto; }
