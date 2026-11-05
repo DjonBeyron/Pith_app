@@ -93,9 +93,9 @@ export function recreateGameCtx(why) {
 
 /**
  * Убедиться, что игровой контекст ЗАПУЩЕН (после settle, пока жест жив): resume(); не стал 'running' за waitMs (300 мс) — «мёртвый» (iOS после фона), пересоздаём в том же жесте и пробуем ещё раз.
- * → { state, recreated, ms } (state null — Web Audio нет). Пересоздание не чаще одного раза за вызов; повторный провал — состояние в журнал, звук пойдёт после касания (gameAudioWarm).
+ * recreate: false (быстрый старт гонки, микрофон ещё открывается) — не пересоздавать, вернуть как есть. → { state, recreated, ms } (state null — Web Audio нет). Пересоздание не чаще одного раза за вызов; повторный провал — состояние в журнал, звук пойдёт после касания (gameAudioWarm).
  */
-export async function ensureGameCtxRunning({ why = 'старт игры', waitMs = 300, now = () => performance.now(), setTimer = setTimeout, clearTimer = clearTimeout } = {}) {
+export async function ensureGameCtxRunning({ why = 'старт игры', waitMs = 300, recreate = true, now = () => performance.now(), setTimer = setTimeout, clearTimer = clearTimeout } = {}) {
   const t0 = now()
   const tryRun = async () => {
     let timer
@@ -105,6 +105,7 @@ export async function ensureGameCtxRunning({ why = 'старт игры', waitMs
   }
   let state = await tryRun()
   if (state == null || state === 'running') { pLog(`[audio] состояние ctx=${state ?? 'нет Web Audio'} (${why})`); return { state, recreated: false, ms: Math.round(now() - t0) } }
+  if (!recreate) { pLog(`[audio] состояние ctx=${state} (${why}): resume не завершился за ${waitMs} мс, не пересоздаю — микрофон ещё открывается, контекст поднимется после него`); return { state, recreated: false, ms: Math.round(now() - t0) } } // быстрый старт гонки: iOS держит контекст 'interrupted', пока открывается микрофон
   recreateGameCtx(`resume не завершился за ${waitMs} мс, ${why}`)
   state = await tryRun()
   pLog(`[audio] состояние ctx=${state ?? 'нет'} после пересоздания (${why})`)

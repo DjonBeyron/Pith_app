@@ -136,3 +136,40 @@ describe('«Пит занят» и страховка второго запус�
     expect(logs.some(l => l.includes('звука нет в памяти'))).toBe(true)
   })
 })
+
+describe('похвала отсчитывается от ВЗЛЁТА пилюли (v3.3.115)', () => {
+  const ARM = 1800
+  it('зачёт → Пит занят, реплики нет; взлёт через 300 мс → реплика ещё через GOOD_DELAY_MS (а не через 500 мс от зачёта)', () => {
+    const cat = mk()
+    expect(cat.sayLineLater('race_good_1', null, GOOD_DELAY_MS, null, ARM)).toBe(true)
+    expect(cat.busyLeft()).toBeGreaterThan(GOOD_DELAY_MS) // резерв: ждём взлёт + задержка
+    vi.advanceTimersByTime(300); cat.praiseTakeoff()
+    vi.advanceTimersByTime(GOOD_DELAY_MS - 10)
+    expect(say).not.toHaveBeenCalled() // от зачёта уже 790 мс, но от взлёта ещё нет
+    vi.advanceTimersByTime(20)
+    expect(say).toHaveBeenCalledTimes(1)
+    expect(logs.some(l => l.includes(`[race] похвала через ${GOOD_DELAY_MS} мс (от взлёта пилюли)`))).toBe(true)
+  })
+  it('взлёта нет дольше GOOD_ARM_MS — страховка: отсчёт идёт сам; журнал называет причину', () => {
+    const cat = mk()
+    cat.sayLineLater('race_good_1', null, GOOD_DELAY_MS, null, ARM)
+    vi.advanceTimersByTime(ARM + GOOD_DELAY_MS - 10)
+    expect(say).not.toHaveBeenCalled()
+    vi.advanceTimersByTime(20)
+    expect(say).toHaveBeenCalledTimes(1)
+    expect(logs.some(l => l.includes('взлёта не было'))).toBe(true)
+  })
+  it('praiseTakeoff без ждущей похвалы ничего не делает; повторный вызов не сдвигает отсчёт; пауза снимает ожидание', () => {
+    const cat = mk()
+    cat.praiseTakeoff(); expect(say).not.toHaveBeenCalled()
+    cat.sayLineLater('race_good_2', null, GOOD_DELAY_MS, null, ARM)
+    cat.praiseTakeoff(); vi.advanceTimersByTime(300); cat.praiseTakeoff()
+    vi.advanceTimersByTime(GOOD_DELAY_MS - 290)
+    expect(say).toHaveBeenCalledTimes(1) // отсчёт шёл от ПЕРВОГО взлёта
+    say.mockClear()
+    const c2 = mk()
+    c2.sayLineLater('race_good_1', null, GOOD_DELAY_MS, null, ARM); c2.stop(); c2.praiseTakeoff()
+    vi.advanceTimersByTime(5000)
+    expect(say).not.toHaveBeenCalled(); expect(c2.busyLeft()).toBe(0)
+  })
+})

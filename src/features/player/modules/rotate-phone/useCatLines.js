@@ -32,6 +32,7 @@ export function useCatLines({ lines, rate, catApi, listenerRef, waitMs = LINE_WA
   const timerRef = useRef(0)
   const riseRef = useRef(0)
   const lateRef = useRef(0) // таймер отложенной реплики (sayLineLater)
+  const armRef = useRef(null) // ждущая взлёта похвала: запускает отсчёт её задержки (praiseTakeoff)
   const gateRef = useRef(null) // отмена ожидания слота
   const cancelGate = () => { gateRef.current?.(); gateRef.current = null }
   useEffect(() => () => { clearTimeout(timerRef.current); clearTimeout(riseRef.current); clearTimeout(lateRef.current); cancelGate() }, [])
@@ -40,7 +41,7 @@ export function useCatLines({ lines, rate, catApi, listenerRef, waitMs = LINE_WA
   const reset = (why = 'старте') => {
     const left = busyRef.current - Date.now()
     if (left > 0) pLog(`[cat] busy сброшен при ${why} (был поднят ещё на ${Math.round(left)} мс — реплики пропускались бы как «Пит занят»)`)
-    clearTimeout(timerRef.current); clearTimeout(riseRef.current); clearTimeout(lateRef.current); lateRef.current = 0; cancelGate()
+    clearTimeout(timerRef.current); clearTimeout(riseRef.current); clearTimeout(lateRef.current); lateRef.current = 0; armRef.current = null; cancelGate()
     busyRef.current = 0; lastRef.current.clear()
   }
   useEffect(() => { reset('старте'); return undefined }, []) // eslint-disable-line react-hooks/exhaustive-deps -- reset берёт только рефы
@@ -92,31 +93,42 @@ export function useCatLines({ lines, rate, catApi, listenerRef, waitMs = LINE_WA
     return true
   }
 
-  /** Реплика успеха через delayMs (зачёт слова → пилюля взлетает → потом голос Пита). Пит занят с этого момента; не вышло сказать — «занят» снимается. → принята ли (резерв поставлен) */
-  const sayLineLater = (id, vars, delayMs, onSaid = null) => {
+  /** Реплика успеха через delayMs. Пит занят с этого момента (резерв): следующая пилюля и перевод ждут. armMs > 0 (v3.3.115, «Гонка»): задержка отсчитывается не от зачёта, а от ВЗЛЁТА пилюли — её запускает
+   *  praiseTakeoff() (win движка); взлёта нет дольше armMs — идёт отсчёт сам (страховка). Не вышло сказать — «занят» снимается. → принята ли (резерв поставлен) */
+  const sayLineLater = (id, vars, delayMs, onSaid = null, armMs = 0) => {
     const line = fillLine(lines?.[id], vars)
     const now = Date.now()
     if (!line || now < busyRef.current || now - (lastRef.current.get(id) ?? -Infinity) < LINE_COOLDOWN_MS) return false
-    clearTimeout(lateRef.current)
-    const until = now + delayMs + LATE_RESERVE_MS
-    busyRef.current = until
-    pLog(`[cat] очередь: реплика «${id}» через ${delayMs} мс (Пит занят с зачёта)`)
-    lateRef.current = setTimeout(() => {
+    clearTimeout(lateRef.current); armRef.current = null
+    const r = { until: now + armMs + delayMs + LATE_RESERVE_MS }
+    busyRef.current = r.until
+    pLog(`[cat] очередь: реплика «${id}» через ${delayMs} мс${armMs ? ' после взлёта пилюли' : ''} (Пит занят с зачёта)`)
+    const fire = () => {
       lateRef.current = 0
-      if (busyRef.current === until) busyRef.current = 0 // резерв снят: sayLine сама поставит настоящую занятость
+      if (busyRef.current === r.until) busyRef.current = 0 // резерв снят: sayLine сама поставит настоящую занятость
       const said = sayLine(id, vars)
       try { onSaid?.(said) } catch { /* журнал не мешает игре */ }
-    }, delayMs)
+    }
+    const start = why => { // начало отсчёта задержки: от зачёта (без armMs) или от взлёта
+      armRef.current = null; clearTimeout(lateRef.current)
+      r.until = Date.now() + delayMs + LATE_RESERVE_MS; busyRef.current = r.until
+      pLog(`[race] похвала через ${delayMs} мс${why ? ` (${why})` : ''}; зачёт был ${Math.round(Date.now() - now)} мс назад`)
+      lateRef.current = setTimeout(fire, delayMs)
+    }
+    if (armMs > 0) { armRef.current = () => start('от взлёта пилюли'); lateRef.current = setTimeout(() => start('взлёта не было, отсчёт от зачёта'), armMs) } else start('')
     return true
   }
 
+  /** Пилюля взлетает (win движка): отсчёт задержки ждущей похвалы начинается с этого мгновения; ждущей нет — ничего */
+  const praiseTakeoff = () => { armRef.current?.() }
+
   /** Пауза: реплика обрывается — подпись и таймеры сняты, «занят» сброшен (после «Продолжить» кот снова может говорить); звук слота гасит releaseClips, рот и взгляд — catApi.freeze */
-  const stop = () => { clearTimeout(timerRef.current); clearTimeout(riseRef.current); clearTimeout(lateRef.current); lateRef.current = 0; cancelGate(); busyRef.current = 0; setText('') }
+  const stop = () => { clearTimeout(timerRef.current); clearTimeout(riseRef.current); clearTimeout(lateRef.current); lateRef.current = 0; armRef.current = null; cancelGate(); busyRef.current = 0; setText('') }
 
   const busyLeft = () => Math.max(0, busyRef.current - Date.now())
 
   /** Пит занят ещё ms (+ короткая пауза): говорит слово не репликой (перевод «Разгона») — следующая пилюля ждёт, реплики не лезут вперёд */
   const holdBusy = ms => { busyRef.current = Math.max(busyRef.current, Date.now() + ms + 80) }
 
-  return { text, sayLine, sayLineLater, stop, reset, busyLeft, holdBusy }
+  return { text, sayLine, sayLineLater, praiseTakeoff, stop, reset, busyLeft, holdBusy }
 }

@@ -23,20 +23,20 @@ describe('до ответа на попап ничего не стартует',
     expect(mod).toContain("const game = phase === 'game' && <WordLaneGame")
     expect(start.match(/startGameAudio\(/g)).toHaveLength(1) // в start() он есть только после выхода гонки (обычная игра); гонка зовёт его из pick
     const pick = mod.slice(mod.indexOf('const pick = useCallback'), mod.indexOf('const cancelAsk'))
-    expect(pick).toContain('startAudio: () => startGameAudio('); expect(pick).toContain("if (phase !== 'ask') return")
+    expect(pick).toContain('startAudio: hooks => startGameAudio({ cfg, audioSrc, lines, ...hooks })'); expect(pick).toContain("if (phase !== 'ask') return")
   })
 })
 
 describe('ответ на попап: жест', () => {
   const mk = (over = {}) => {
-    const calls = [], timers = []
+    const calls = [], timers = [], hooks = {}
     const audio = over.audio ?? Promise.resolve({ mic: 'granted', needsTap: false })
     const o = {
       choice: 'tap', ask: { pick: c => calls.push(`ask:${c}`) }, trace: { begin: () => calls.push('trace.begin') },
-      startAudio: () => { calls.push('startAudio'); return audio }, setPhase: p => calls.push(`phase:${p}`), setHold: h => calls.push(`hold:${h}`),
+      startAudio: h => { calls.push('startAudio'); hooks.h = h; return audio }, setPhase: p => calls.push(`phase:${p}`), setHold: h => calls.push(`hold:${h}`),
       onAudio: vi.fn(), setTimer: (fn, ms) => { timers.push({ fn, ms }); return timers.length }, clearTimer: () => calls.push('clear'), ...over,
     }
-    return { o, calls, timers }
+    return { o, calls, timers, hooks }
   }
   it('порядок: выбор и режим тапа → отсчёт «Пит через N мс» → hold → startGameAudio СИНХРОННО → игра открыта (phase game)', () => {
     const { o, calls } = mk()
@@ -48,6 +48,13 @@ describe('ответ на попап: жест', () => {
     answerAsk(o)
     expect(timers[0].ms).toBe(RACE_HOLD_MAX_MS); expect(RACE_HOLD_MAX_MS).toBe(1500)
     timers[0].fn(); expect(calls.at(-1)).toBe('hold:false')
+  })
+  it('звук реплик готов раньше микрофона (onLineReady): часы идут сразу, не ждут ни микрофон, ни потолок RACE_HOLD_MAX_MS', () => {
+    const { o, calls, timers, hooks } = mk({ audio: new Promise(() => {}) }) // микрофон ещё открывается
+    answerAsk(o)
+    hooks.h.onLineReady(); expect(calls.at(-1)).toBe('hold:false')
+    expect(timers).toHaveLength(1) // потолок остаётся страховкой
+    const stale = mk({ audio: new Promise(() => {}), current: () => false }); answerAsk(stale.o); stale.hooks.h.onLineReady(); expect(stale.calls).not.toContain('hold:false')
   })
   it('устаревший запуск (игру закрыли) ничего не меняет; актуальный — ответ startGameAudio доходит до модуля', async () => {
     const a = mk(); await answerAsk(a.o); expect(a.o.onAudio).toHaveBeenCalledWith({ mic: 'granted', needsTap: false })

@@ -144,7 +144,7 @@ window.__report = () => {
   return {
     silent: body.silentFirstLine,
     section: buildGameLogSection(dump),
-    log: getPlayerLines().filter(l => /\[cat-voice\]|\[cat\]|\[plate-sound\]|\[audio-warm\]|\[warm\]|\[audio\]|\[game-audio\]/.test(l)),
+    log: getPlayerLines().filter(l => /\[cat-voice\]|\[cat\]|\[pause\]|\[race\]|\[plate-sound\]|\[audio-warm\]|\[warm\]|\[audio\]|\[game-audio\]/.test(l)),
     exportKeys: Object.keys(body).filter(k => k !== 'events' && k !== 'audio'),
     synthCalls: window.__synthCalls, abortBySwap: window.__abortBySwap, abortBySystem: window.__abortBySystem,
     trackEvents: (dump.events ?? []).filter(e => e.type === 'probe' && e.kind === 'track').map(e => e.event),

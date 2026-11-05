@@ -74,7 +74,7 @@ describe('попап «Говорю / Тапаю» внутри игры (RaceAs
     const start = mod.slice(mod.indexOf('const start = useCallback'), mod.indexOf('/** «Говорю» / «Тапаю»'))
     expect(start).toContain("if (race) { openAsk({ fullscreen, setPhase }); return }"); expect(start.indexOf('openAsk(')).toBeLessThan(start.indexOf('startGameAudio(')) // у гонки start() до ответа startGameAudio не зовёт
     const pick = mod.slice(mod.indexOf('const pick = useCallback'), mod.indexOf('const cancelAsk'))
-    expect(pick).toContain('answerAsk('); expect(pick).toContain('startGameAudio({ cfg, audioSrc, lines })'); expect(mod).toContain("{phase === 'ask' && <RaceAskPlate choice={ask.choice} onPick={pick} onCancel={cancelAsk} />}")
+    expect(pick).toContain('answerAsk('); expect(pick).toContain('startGameAudio({ cfg, audioSrc, lines, ...hooks })'); expect(mod).toContain("{phase === 'ask' && <RaceAskPlate choice={ask.choice} onPick={pick} onCancel={cancelAsk} />}")
     expect(mod).toContain("const game = phase === 'game' && <WordLaneGame") // игра (Пит, заставка, реплики, конвейер) монтируется только после ответа
     expect(mod).toContain("askAuto") // стенд отвечает сам
   })

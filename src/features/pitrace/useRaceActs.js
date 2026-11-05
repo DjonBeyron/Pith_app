@@ -10,7 +10,14 @@ import { sayTrap } from './raceTrapVoice.js'
 import { sprintTarget } from './raceSprint2.js'
 import { takeoffOn, playTakeoffAfter } from './raceTakeoffSound.js'
 import { rewardMs } from '../player/modules/rotate-phone/wordLaneNotes.js'
-import { GOOD_IDS, GOOD_DELAY_MS } from './raceGood.js'
+import { GOOD_IDS, GOOD_DELAY_MS, GOOD_ARM_MS } from './raceGood.js'
+
+/** Журнал голоса перевода: какое слово и какой перевод Пит говорит перед выездом этой пилюли (одна запись повтора: слово, перевод, дорожка, скорость). Расхождение с записью слова круга — строка «РАССИНХРОН» (не должно быть никогда) */
+function logPre(stage, rep) {
+  if (!rep || !['sprint', 'catch'].includes(stage?.act)) return
+  const w = stage.words?.[rep.idx], want = stage.act === 'catch' ? w?.shown : w?.translation
+  pLog(`[race] голос: повтор ${rep.idx + 1}/${stage.words?.length ?? '?'}${stage.sid.endsWith('2') ? ' (второй круг)' : ''} слово «${rep.text}», ${stage.act === 'catch' ? 'говорит слово, на пилюле' : 'перевод'} «${rep.cap}», дорожка ${rep.lanes?.[0]}, скорость ${rep.speed}${w && want !== rep.cap ? `; РАССИНХРОН: в записи слова «${want}»` : ''}`)
+}
 
 // Директор «Гонки с Питом» (CONCEPT_RACE.md) поверх директора репетиции: useWordLaneFlow зовёт ЭТОТ хук вместо useRehearsalActs. Без плана гонки (plan.game !== 'race') он возвращает то, что вернул бы useRehearsalActs, —
 // остальные хуки внутри бездействуют. Что делает для гонки сверх репетиции (реплики на старте стадий, отсчёт, тишина экрана, вступление race_start, пауза — всё это уже у useRehearsalActs, он знает про plan.game):
@@ -40,7 +47,7 @@ export function useRaceActs(args) {
     if (r.state === box.s && !r.say && !r.hint && !r.log) return
     putState(box, r.state); setView(r.state)
     if (r.log) pLog(`[race] ${r.log}`)
-    if (r.say) { if (ev.t === 'claim' && GOOD_IDS.includes(r.say) && sayRef.current.sayLineLater) sayRef.current.sayLineLater(r.say, null, GOOD_DELAY_MS); else sayRef.current.sayLine?.(r.say) } // похвала за верное слово — не в момент зачёта, а через GOOD_DELAY_MS (пилюля успевает взлететь); Пит занят с самого зачёта, следующая пилюля ждёт
+    if (r.say) { if (GOOD_IDS.includes(r.say)) sayRef.current.sayLineLater?.(r.say, null, GOOD_DELAY_MS, GOOD_ARM_MS); else sayRef.current.sayLine?.(r.say) } // ЛЮБАЯ похвала — один путь: Пит занят с зачёта, голос через GOOD_DELAY_MS после ВЗЛЁТА пилюли (rec('win') → cat.praiseTakeoff); не сразу, как раньше
     if (r.hint) sayRef.current.sayText?.(ev.stage.word) // подсказка «Вершины»: новое слово голосом из библиотеки
     if (r.trap) { trapRef.current(); trapRef.current = sayTrap({ ...r.trap, ...sayRef.current }) } // ловушка: «это двойник, а нужно слово»
   }, [box])
@@ -97,10 +104,11 @@ export function useRaceActs(args) {
     claim(rep, ms) { if (running) apply({ t: 'claim', stage: running, info: { idx: rep?.idx, ms } }) },
     /** Перед выездом пилюли (движок: событие 'pre'): в «Разгоне» Пит говорит русский перевод слова из библиотеки (raceTrans.js), в «Слушай и лови» — английское слово (rep.say, библиотека слов); озвучки нет — молча, пилюля выезжает сразу.
      *  Пилюля ждёт, пока он договорит (pitLeft) */
-    pre(rep) { if (running?.act === 'sprint' && rep?.cap) sayRef.current.sayText?.(rep.cap, { ru: true }); else if (running?.act === 'catch' && rep?.say) sayRef.current.sayText?.(rep.say, { hold: true }) },
+    pre(rep) { logPre(running, rep); if (running?.act === 'sprint' && rep?.cap) sayRef.current.sayText?.(rep.cap, { ru: true }); else if (running?.act === 'catch' && rep?.say) sayRef.current.sayText?.(rep.say, { hold: true }) },
     rec(kind, info) {
       rh.rec(kind, info)
       if (!running) return
+      if (kind === 'win' && info?.last !== false) args.cat?.praiseTakeoff?.() // пилюля взлетает: с этого мгновения идёт задержка похвалы
       if (takeoffOn(running, kind, info)) playTakeoffAfter(rewardMs(info?.order ?? 0)) // взлёт принятой пилюли: глиссандо ми → ля ПОСЛЕ ноты награды, а не вместе с ней (только ступени-очереди гонки)
       apply({ t: kind, stage: running, info: kind === 'miss' ? { ...info, heard: listenerRef?.current?.heard?.() ?? '' } : info }) // на промахе — что услышал Vosk: двойник слова ступени ломает ловушку
       if (kind === 'miss' && running.act === 'climb' && running.type === 'student') jump(climbStageIdx(stages, box.s.climb)) // сказал не то — соскальзывание: ступень-стадия перезапускается (слово ступени звучит подсказкой при 2-м промахе)

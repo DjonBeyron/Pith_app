@@ -17,14 +17,14 @@ const racePlan = (extra = {}) => normalizePlan({ ...fixturePlan('three'), game: 
 function probe(stageSid, over = {}, plan = racePlan()) {
   const out = {}
   const stages = buildRaceStages({ plan, rate: 1, lib: () => null }).stages
-  const sayLine = vi.fn(), sayText = vi.fn()
+  const sayLine = vi.fn(), sayText = vi.fn(), sayLineLater = vi.fn(), praiseTakeoff = vi.fn()
   const stageObj = stages.find(s => s.sid === stageSid)
   function P() {
-    Object.assign(out, useRaceActs({ plan, stages, stage: 'run', at: 0, stageObj, setS() {}, sayLine, sayText, cat: { busyLeft: () => 0 }, lines: normalizeLines(null), rate: 1, listenerRef: { current: null }, ...over }))
+    Object.assign(out, useRaceActs({ plan, stages, stage: 'run', at: 0, stageObj, setS() {}, sayLine, sayLineLater, sayText, cat: { busyLeft: () => 0, praiseTakeoff }, lines: normalizeLines(null), rate: 1, listenerRef: { current: null }, ...over }))
     return null
   }
   renderToStaticMarkup(createElement(P))
-  return { rh: out, stages, sayLine, sayText }
+  return { rh: out, stages, sayLine, sayText, sayLineLater, praiseTakeoff }
 }
 
 describe('useRaceActs: директор гонки поверх директора репетиции', () => {
@@ -37,13 +37,14 @@ describe('useRaceActs: директор гонки поверх директор
     expect(out.race).toBeUndefined(); expect(out.on).toBe(true); expect(out.failLine({ act: 'build' })).toBeNull()
   })
   it('разгон: на принятии слова Пит говорит мини-реплику успеха по плану (первое слово и далее раз в 3–4), «ну, погнали» и «огонь» не звучат', () => {
-    const { rh, sayLine, stages } = probe('sprint')
+    const { rh, sayLine, sayLineLater, stages } = probe('sprint')
     const st = stages.find(s => s.sid === 'sprint')
     for (let i = 0; i < st.words.length; i++) rh.claim({ idx: i })
-    expect(sayLine.mock.calls.map(c => c[0])).toEqual(st.good.map(g => g.id))
-    expect(sayLine.mock.calls.length).toBeGreaterThanOrEqual(2)
+    expect(sayLineLater.mock.calls.map(c => c[0])).toEqual(st.good.map(g => g.id)) // похвала идёт только через sayLineLater (задержка от взлёта), не сразу
+    expect(sayLine).not.toHaveBeenCalled()
+    expect(sayLineLater.mock.calls.length).toBeGreaterThanOrEqual(2)
     for (let i = 0; i < 5; i++) rh.rec('win', { idx: i })
-    expect(sayLine.mock.calls.map(c => c[0]).some(x => /streak|fire/.test(x))).toBe(false) // победа слов серию голосом не объявляет
+    expect(sayLineLater.mock.calls.map(c => c[0]).some(x => /streak|fire/.test(x))).toBe(false) // победа слов серию голосом не объявляет
   })
   it('разгон: второй круг — после первого с ошибкой директор идёт на объявление второго (слова вписаны), без ошибок — мимо него', () => {
     const { rh, stages } = probe('sprint')
@@ -63,10 +64,10 @@ describe('useRaceActs: директор гонки поверх директор
     for (const sid of ['sprint', 'descent-s', 'climb-1']) expect(rh.failLine(stages.find(s => s.sid === sid))).toBe('')
   })
   it('слушай и лови: принятие слова пишет время ответа и говорит мини-реплику успеха; «не успел» и промах реплик не вызывают (редюсер молчит)', () => {
-    const { rh, sayLine, stages } = probe('catch')
+    const { rh, sayLine, sayLineLater, stages } = probe('catch')
     const st = stages.find(s => s.sid === 'catch'), i = st.words.findIndex(w => !w.trap)
     rh.claim({ idx: i }, 1500)
-    expect(sayLine.mock.calls.map(c => c[0])).toEqual([st.good[0].id])
+    expect(sayLineLater.mock.calls.map(c => c[0])).toEqual([st.good[0].id]); expect(sayLine).not.toHaveBeenCalled()
     const t = probe('catch'); t.rh.rec('fail', { idx: 1 }); t.rh.rec('miss', { idx: 1 }); expect(t.sayLine).not.toHaveBeenCalled()
   })
   it('перед выездом пилюли Пит говорит: в разгоне — русский перевод (ru), в «Слушай и лови» — английское слово (hold: Пит занят); без озвучки — молча', () => {

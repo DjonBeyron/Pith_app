@@ -15,6 +15,7 @@ import { releaseClips } from './wordLaneClips.js'
 import { dropWarmed } from './wordLaneFetch.js'
 import { normalizeLines } from './wordLaneCatLines.js'
 import { installGameAudioLife } from '../../../../shared/lib/gameAudioLife.js'
+import { getGameCtx } from '../../../../shared/lib/gameAudioCtx.js'
 import { startGameAudio } from './wordLaneStart.js'
 import { warmGameSounds, warmSig } from './wordLaneWarm.js'
 import { useWarmProgress } from './useWarmProgress.js'
@@ -115,6 +116,7 @@ function RotateLive({ node, file, onDone, forceDebug, bare, startRef, onStatus, 
   const warm = useCallback((c, opts = {}) => warmGameSounds({ cfg: c, lines }, { onItems: items => items.forEach(i => warmed.current.add(i.url)), ...opts }), [lines])
   useEffect(() => { if (phase === 'wait' || phase === 'ask') warm(cfg, { onListed: () => setListed(sig) }) }, [cfg, sig, phase, warm]) // и пока открыта сцена с попапом: реплики первых секунд и ноты греются ЗАРАНЕЕ (fetch и decode жеста не требуют)
   useEffect(() => () => dropWarmed([...warmed.current]), [])
+  useEffect(() => { if (phase === 'ask') getGameCtx() }, [phase]) // пока висит попап: AudioContext создаётся заранее (suspended, без звука и без жеста); в тапе остаётся только resume
   const prewarmNext = useCallback(() => { const next = nextPlan(cfg.plan); if (next) warm(readWordLane({ plan: next })) }, [cfg, warm])
   const wp = useWarmProgress(cfg, lines, listed === sig)
 
@@ -145,7 +147,7 @@ function RotateLive({ node, file, onDone, forceDebug, bare, startRef, onStatus, 
     if (phase !== 'ask') return
     const gen = ++genRef.current
     answerAsk({
-      choice, ask, trace: raceStart, setPhase, setHold, current: () => genRef.current === gen, startAudio: () => startGameAudio({ cfg, audioSrc, lines }),
+      choice, ask, trace: raceStart, setPhase, setHold, current: () => genRef.current === gen, startAudio: hooks => startGameAudio({ cfg, audioSrc, lines, ...hooks }),
       onAudio: ({ mic, needsTap }) => {
         pLog(`[rotate] игра «${cfg.word}»: микрофон ${mic}`)
         if (mic !== 'granted') { raceStart.cancel(); abortGame(); setProblem(MIC_PROBLEM[mic] ?? MIC_PROBLEM.unavailable); setHold(false); setPhase('wait'); return }

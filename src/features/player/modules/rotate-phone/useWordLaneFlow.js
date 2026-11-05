@@ -68,7 +68,7 @@ export function useWordLaneFlow({ chunks, translation, lang, clips = null, audio
   const cat = useCatLines({ lines, rate, catApi, listenerRef, waitMs: plan?.game === 'race' ? RACE_LINE_WAIT_MS : undefined }) // реплики кота: подпись + озвучка + рот по буквам
   const sayLineRef = useRef(cat.sayLine)
   useEffect(() => { sayLineRef.current = (...a) => { const said = cat.sayLine(...a); if (said) dbg.note(`cat:${a[0]}`); return said } }) // реплика кота попадает и в журнал отладки (окно mute вокруг неё)
-  const sayLine = (...a) => sayLineRef.current(...a); const sayLineLater = (id, vars, ms) => cat.sayLineLater(id, vars, ms, said => { if (said) dbg.note(`cat:${id}`) }) // обработчики и таймеры стадий всегда берут свежую версию (настройки реплик могут догрузиться) — а стадия из-за этого не перезапускается // реплика успеха «Гонки» через ms мс после зачёта (Пит занят с зачёта)
+  const sayLine = (...a) => sayLineRef.current(...a); const sayLineLater = (id, vars, ms, arm) => cat.sayLineLater(id, vars, ms, said => { if (said) dbg.note(`cat:${id}`) }, arm) // обработчики и таймеры стадий всегда берут свежую версию (настройки реплик могут догрузиться) — а стадия из-за этого не перезапускается // реплика успеха «Гонки» через ms мс после зачёта (Пит занят с зачёта)
   const rh = useRehearsalActs({ plan, stages, stage: s.stage, at: s.at, stageObj, setS, sayLine, sayLineLater, sayText: (...a) => handlersRef.current.sayText(...a), cat, lines, rate, lang, listenerRef, hold }); const { nextIdx } = rh // акты репетиции: журнал, реплики Пита, правила пропуска
 
   const later = useCallback((fn, ms) => { const id = setTimeout(() => { timersRef.current.delete(id); fn() }, Math.max(0, ms)); timersRef.current.add(id); return id }, [])
