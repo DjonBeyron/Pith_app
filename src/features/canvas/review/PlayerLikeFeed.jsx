@@ -14,6 +14,7 @@ import { answerText } from './lessonTranscript.js'
 import { nodeCopyText } from './nodeCopyText.js'
 import { useNearSlots } from './useNearSlots.js'
 import { GHOST_HEIGHT, showSlot } from './nearSlots.js'
+import { wheelStep } from './wheelStep.js'
 
 const NOOP = () => {}
 const NO_SET = new Set()
@@ -204,11 +205,14 @@ export default function PlayerLikeFeed({ items, canvasById, canvasNodes, files =
   // автору на его ПК она показалась хуже, возвращено как было)
   useEffect(() => {
     const box = phoneRef.current
+    let carry = 0 // дробный остаток дельты (scrollTop целочисленный): иначе точная мышь / тачпад «залипали» и шли рывками
     const onWheel = e => {
       const feed = outerRef.current
       if (!feed || e.ctrlKey) return
       e.preventDefault()
-      feed.scrollTop += e.deltaMode === 1 ? e.deltaY * 40 : e.deltaY
+      const step = wheelStep(carry, e.deltaY, e.deltaMode, feed.clientHeight)
+      carry = step.carry
+      if (step.px) feed.scrollTop += step.px
     }
     box?.addEventListener('wheel', onWheel, { passive: false })
     return () => box?.removeEventListener('wheel', onWheel)
