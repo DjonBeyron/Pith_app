@@ -53,6 +53,6 @@ describe('расписание открытия: слова → бар → пл�
     expect(read('../player/modules/rotate-phone/useWordLaneFlow.js')).toContain("const plate = !rh.plateOk || stageObj?.charge ? ''")
     expect(read('../rehearsal/useRehearsalActs.js')).toContain('pause: st.pause ?? LINE_PAUSE_MS')
     const rc = read('./RaceCharge.jsx'), run = read('./RaceChargeRun.jsx')
-    expect(rc).toContain('openingPlan('); expect(rc).toContain('chargePlan(plan, o.morphAt, openingWords(a))'); expect(run).toContain('<RaceChargePlate'); expect(run).toContain('at(o.morphAt, () => setMorph(true))'); expect(run).toContain('at(o.plateEnd, () => setDone(true))')
+    expect(rc).toContain('openingPlan('); expect(rc).toContain('chargePlan(plan, o.morphAt, openingWords(a))'); expect(run).toContain('<RaceChargePlate'); expect(run).toContain('at(o.plateAt ?? o.morphAt, () => setShown(true))'); expect(run).toContain('at(o.plateEnd, () => setDone(true))')
   })
 })

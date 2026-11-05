@@ -12,8 +12,8 @@ import ChargeRun from './RaceChargeRun.jsx'
 // БАР: тонкая подложка постоянной высоты с border-radius 999px — высота не анимируется, скругления круглые всегда. «Толщину» набирает слой-ореол за баром (тот же радиус): transform: scaleY от центра, ступенька за пилюлю (haloKeys).
 // ИМПАКТ касания (только transform / opacity): вспышка сегмента цветом слова (CSS, opacity 0,9 → 0 за 300 мс), кольцо-рябь от точки касания (один узел на бар, scale 0,6 → 1,6, 350 мс) и лёгкий толчок всего бара translateY(2px) и обратно;
 // на каждое касание — тихий «тык» (raceChargeTap.js; звук играет и на слабом устройстве, и при reduced-motion).
-// БАР → ПЛАШКА: когда последнее слово долетело (openingPlan.morphAt, за ~600 мс до конца речи Пита), бар САМ превращается в плашку этапа «Разгон + задание» (RaceChargePlate: clip-path от прямоугольника бара до плашки,
-// проявляются название и задание, узор плашки); плашка держится ~1,2 с после речи, затем заставка уходит (plateEnd). Отдельной плашки у первого этапа нет. Полёт — Web Animations (transform / opacity), на слабом устройстве (lite)
+// ПЛАШКА (v3.3.117): морфа «бар → плашка» больше нет — бар сам по себе (полный, 6 px, остаётся до первой пилюли), а плашка этапа «Разгон + кратко о задании» выскакивает РАНЬШЕ: сразу с началом речи Пита об этапе (plateAt = stageAt + lineAt),
+// колебанием popSheetWobble, стоит над летящими словами (z-index выше пилюль и бара) и держится до plateEnd (~1,2 с после речи), затем мягко уходит (scale 0,9 + opacity, 200 мс). Отдельной плашки у первого этапа нет. Полёт — Web Animations (transform / opacity), на слабом устройстве (lite)
 // частиц и шлейфа нет (шлейф — «размытие движения» без filter: один хвост-градиент, растяжение; raceCharge.js, data-trail), при reduced-motion пилюли не летят — бар заполняется ступеньками. Снаружи компонент монтирует и размонтирует RaceActs: on — заставка идёт; после on = false заставка доживает FADE_MS.
 // v3.3.115: слова заставки — слова ПЕРВОГО круга (по сегменту на слово), бар потом не исчезает, а расходуется по пилюле (RaceBar.jsx, raceBar.js). Показ одной заставки и её полёт — RaceChargeRun.jsx; здесь расписание начала игры и фаза «идёт / уходит».
 const FADE_MS = 700
@@ -21,7 +21,7 @@ const FADE_MS = 700
 function Opening({ plan, lines, leaving }) {
   const [view] = useState(() => {
     const o = openingPlan(plan, lines, getVoiceRate()), a = buildRaceActs(plan).acts
-    return { o, round: { title: a[0]?.title ?? '', task: a[0]?.task ?? '' }, ...chargePlan(plan, o.morphAt, openingWords(a)) } // слова летят до morphAt: к этому моменту бар заполнен
+    return { o: { ...o, plateAt: o.stageAt + o.lineAt }, round: { title: a[0]?.title ?? '', task: a[0]?.task ?? '', brief: a[0]?.brief ?? '' }, ...chargePlan(plan, o.morphAt, openingWords(a)) } // слова летят до morphAt: к этому моменту бар заполнен
   })
   return <ChargeRun view={view} leaving={leaving} plate />
 }

@@ -21,7 +21,7 @@ export default function RaceSummary({ plan, result, onAgain = null, onShown = nu
   const leave = () => { // «Нет» / «Готово»: окно улетает, игра опускается и растворяется, потом — завершение
     if (leaving) return
     setLeaving(true)
-    startExit(ref.current, lite)
+    startExit(ref.current, lite, true) // v3.3.117: окно итога уходит мягко (scale 0,9 + opacity), без полёта вверх
     timer.current = setTimeout(() => onDone?.(), exitMs(lite))
   }
   const r = result

@@ -30,10 +30,10 @@ describe('шлейф пилюли заставки', () => {
   it('в CSS хвост — отдельный узел .raceChargeTail ПОД пилюлей: от середины пилюли, прямоугольный, мягкий градиент, без filter / box-shadow / --tail', () => {
     expect(css).not.toMatch(/filter\s*:/); expect(css).not.toMatch(/box-shadow/); expect(css).not.toContain('--tail'); expect(css).not.toContain('.raceChargePill::before')
     const tail = rule('.raceChargeTail')
-    expect(tail).toMatch(/linear-gradient\(to bottom, color-mix\(in srgb, var\(--c\) \d+%, transparent\), transparent\)/); expect(tail).toMatch(/border-radius:\s*0;/); expect(tail).toMatch(/left:\s*-2px;/); expect(tail).toMatch(/right:\s*-2px;/) // хвост прямоугольный: ширина пилюли (с рамкой)
-    expect(tail).toMatch(/top:\s*50%;/) // начинается от середины пилюли и заходит под неё — перекрывает скругления по бокам
+    expect(tail).toMatch(/linear-gradient\(to bottom, color-mix\(in srgb, var\(--c\) \d+%, transparent\), transparent\)/); expect(tail).toMatch(/border-radius:\s*0;/); expect(tail).toMatch(/left:\s*0;/); expect(tail).toMatch(/right:\s*0;/) // хвост прямоугольный: ширина пилюли (с рамкой)
+    expect(tail).toMatch(/top:\s*0;/) // v3.3.117: от верхних углов пилюли (трапеция clip-path, raceChargePath.TAIL_POLY)
     expect(tail).toMatch(/transform-origin:\s*50% 0;/) // точка крепления — верх хвоста: rotate вращает вокруг неё
-    const h = Number(/height:\s*(\d+)%/.exec(tail)?.[1]); expect((h - 50 - 100) / 100).toBeLessThanOrEqual(1.2) // ниже пилюли выступает не больше 1,2 её высоты
+    const h = Number(/height:\s*(\d+)%/.exec(tail)?.[1]); expect((h - 100) / 100).toBeLessThanOrEqual(1.2) // ниже пилюли выступает не больше 1,2 её высоты
     expect(rule('.raceChargePill')).toMatch(/position:\s*relative;/) // пилюля выше хвоста (идёт после него в DOM, свой слой)
     const peaks = [...css.slice(css.indexOf('@keyframes raceTail')).split('}')[0].matchAll(/opacity:\s*([\d.]+)/g)].map(m => Number(m[1]))
     expect(Math.max(...peaks)).toBeLessThanOrEqual(0.35); expect(peaks.at(-1)).toBe(0) // прозрачность ≤ 0,35 и ноль к прилёту

@@ -43,7 +43,7 @@ describe('плашка: разметка и звук при появлении',
   it('эффект без зависимостей-пересрабатывания: пустой список зависимостей (только при монтировании), игра ставит key = номер шага', () => {
     expect(read('./WordLaneTurnPlate.jsx')).toContain('useEffect(() => { playPlate() }, [])')
     const game = read('./WordLaneGame.jsx')
-    expect(game).toContain('{plates.map(p => <WordLaneTurnPlate key={p.id} text={p.text} leaving={p.leaving} />)}')
+    expect(game).toContain('{plates.map(p => <WordLaneTurnPlate key={p.id} text={p.text} leaving={p.leaving} soft={race} />)}')
     expect(game).toContain('useWordLaneLeavingPlates(f.plate, f.idx)')
     expect(game).toContain("import WordLaneTurnPlate from './WordLaneTurnPlate.jsx'")
     expect(game).not.toContain('className="wlTurn"')
@@ -94,7 +94,7 @@ describe('CSS: плашка центрирована вёрсткой и рас�
   it('плашка одна: WordLaneGame монтирует одну WordLaneTurnPlate на turn / announce / «Дубль» / «Различи»', () => {
     const game = read('./WordLaneGame.jsx')
     expect(game.match(/<WordLaneTurnPlate /g)).toHaveLength(1)
-    expect(read('./useWordLaneFlow.js')).toContain("stageObj?.type === 'announce' ? [stageObj.round.title, stageObj.round.task].filter(Boolean).join('\\n') : stageObj?.type === 'turn' ? 'Теперь твоя очередь' : ''")
+    expect(read('./useWordLaneFlow.js')).toContain("stageObj?.type === 'announce' ? [stageObj.round.title, stageObj.round.brief ?? stageObj.round.task].filter(Boolean).join('\\n') : stageObj?.type === 'turn' ? 'Теперь твоя очередь' : ''")
   })
 })
 

@@ -244,6 +244,6 @@ export function useWordLaneFlow({ chunks, translation, lang, clips = null, audio
   const phase = s.stage === 'run' ? (engineKind(stageObj) ?? 'idle') : s.stage
   const shown = s.stage === 'paused' && s.from === 'run' ? stages[s.idx] : stageObj // на паузе подписи дорожек остаются на месте
   const labels = useBuiltLabels({ stages, stage: shown?.type === 'announce' ? stages[s.idx + 1] : shown, quiet: rh.quiet, chunks, lanes, hint: [...s.hint, ...rh.hintLanes(shown)] }) // под плашкой раунда уже видны подписи следующей стадии
-  const plate = !rh.plateOk || stageObj?.charge ? '' : stageObj?.type === 'announce' ? [stageObj.round.title, stageObj.round.task].filter(Boolean).join('\n') : stageObj?.type === 'turn' ? 'Теперь твоя очередь' : ''
+  const plate = !rh.plateOk || stageObj?.charge ? '' : stageObj?.type === 'announce' ? [stageObj.round.title, stageObj.round.brief ?? stageObj.round.task].filter(Boolean).join('\n') : stageObj?.type === 'turn' ? 'Теперь твоя очередь' : ''
   return { ...s, hold, stages, dbg, rh, next, catLine: cat.text, phase, stageObj, scene, live, labels, plate, plateMs: stageObj?.ms ?? 0, levels, fx, sceneApi, xpApi, onLane, retryMic, restartStage, pause, paused: s.stage === 'paused', pausedIntro: s.stage === 'paused' && s.from !== 'run', finish, translation, text: textOf(chunks, chunks.map((_, i) => i)) }
 }

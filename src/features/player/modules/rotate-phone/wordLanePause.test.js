@@ -211,7 +211,7 @@ describe('проводка и аудит исходников', () => {
   it('попап паузы — плотная подложка на весь экран (fixed, z-index 60) вне .wlStage, карточка внутри; порядок подключения hud → pause', () => {
     const pause = read('../../../../styles/player/modules/word-lane-pause.css')
     expect(pause).toMatch(/\.wlPauseBack \{[^}]*position: fixed; inset: 0; z-index: 60/)
-    expect(pause).toMatch(/\.wlPauseBack \{[^}]*background: #15181f/)                  // плотный фон: сквозь 0,97 кот просвечивал
+    expect(pause).toMatch(/\.wlPauseBack \{[^}]*background: rgba\(21, 24, 31, 0\.3\)/) // v3.3.117: игра затемнена на 30 %; карточка .wlPause остаётся плотной
     expect(pause).toMatch(/\.wlPause \{[^}]*position: relative; left: auto; bottom: auto; transform: none/) // карточка внутри подложки, не absolute у низа как .wlFail
     expect(read('../../../../styles/player/modules/word-lane.css')).toMatch(/\.wlStage > \.wlCat\.scn \{[^}]*z-index: 8/)
     const index = read('../../../../index.css')

@@ -21,9 +21,9 @@ export const exitMs = lite => (lite ? STAGE_EXIT_LITE_MS : STAGE_EXIT_MS)
  * Запустить уход: plate — окно итога (DOM), lite — plateLite(). Окно улетает (в lite его гасит класс компонента), дети сцены опускаются и гаснут.
  * Возвращает число анимаций сцены (0 — WAAPI или сцены нет: игру закрывают по таймеру всё равно).
  */
-export function startExit(plate, lite = plateLite()) {
+export function startExit(plate, lite = plateLite(), soft = false) { // soft — «Гонка с Питом»: окно итога не улетает, а мягко уходит CSS (scale 0,9 + opacity, race-plate.css)
   if (!plate) return 0
-  if (!lite) startPlateExit(plate)
+  if (!lite && !soft) startPlateExit(plate)
   const stage = plate.closest?.('.wlStage')
   if (!stage) return 0
   let n = 0

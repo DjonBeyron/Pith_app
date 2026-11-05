@@ -1,22 +1,22 @@
 import { useEffect, useRef, useState } from 'react'
 import { isWeakDevice } from '../../shared/lib/deviceTier.js'
 import { reducedMotion } from '../player/modules/rotate-phone/laneConveyorDrive.js'
-import { flyDist, flyDx, haloKeys, nudgeFrames, ringFrames, pillLabel } from './raceCharge.js'
-import { pathFrames, tailFrames } from './raceChargePath.js'
+import { flyDist, flyDx, haloKeys, haloReset, nudgeFrames, ringFrames, pillLabel } from './raceCharge.js'
+import { pathFrames, tailFrames, tailClip } from './raceChargePath.js'
 import { playChargeTap } from './raceChargeTap.js'
 import RaceChargePlate from './RaceChargePlate.jsx'
 
 // Один показ «зарядки» бара словами (CONCEPT_RACE.md, «Заставка» и «Бар живёт весь разгон»; план — raceCharge.chargePlan, стили — race-charge.css). Общий для трёх случаев: начало игры, этап 2 («Слушай и лови») — слова летят в бар
-// и бар САМ становится плашкой этапа (plate = true) — и второй круг («Разгон» / «Слушай и лови») — слова только заряжают бар, плашки нет (plate = false, ореол бара не растёт: тонкий бар, как у постоянного RaceBar.jsx).
-// view = { o: { morphAt, plateEnd }, round: { title, task }, pills, sparks, segments, totalMs } — расписание и план (RaceCharge.jsx, RaceRoundCharge.jsx). Полёт — Web Animations (transform / opacity / scale), хвост — отдельный узел под пилюлей
+// и сверху выскакивает плашка этапа (plate = true; морфа бара в плашку нет, бар остаётся полным 6 px до конца заставки, v3.3.117) — и второй круг («Разгон» / «Слушай и лови») — слова только заряжают бар, плашки нет (plate = false, ореол бара не растёт: тонкий бар, как у постоянного RaceBar.jsx).
+// view = { o: { plateAt, morphAt, plateEnd }, round: { title, task, brief }, pills, sparks, segments, totalMs } — расписание и план (RaceCharge.jsx, RaceRoundCharge.jsx). Полёт — Web Animations (transform / opacity / scale), хвост — отдельный узел под пилюлей
 // (.raceChargeTail, rotate по касательной к синусоиде, raceChargePath.tailFrames), на слабом устройстве и при reduced-motion частиц и хвоста нет (при reduced-motion пилюли не летят — бар заполняется ступеньками). Касание бара — тихий «тык» (raceChargeTap.js).
 const FILL_MS = 260 // заливка сегмента бара перед прилётом пилюли
 
 export default function ChargeRun({ view, leaving = false, plate = true }) {
-  const root = useRef(null), barRef = useRef(null)
+  const root = useRef(null)
   const [lite] = useState(isWeakDevice)
   const [still] = useState(reducedMotion)
-  const [full, setFull] = useState(false), [morph, setMorph] = useState(false), [done, setDone] = useState(false)
+  const [full, setFull] = useState(false), [shown, setShown] = useState(false), [done, setDone] = useState(false) // shown — плашка на экране, done — ей пора уходить
   const trail = !lite && !still // шлейф «размытия движения»: не на слабом устройстве и не при reduced-motion
   const { pills, sparks, segments, totalMs, o, round } = view
 
@@ -24,7 +24,8 @@ export default function ChargeRun({ view, leaving = false, plate = true }) {
     const el = root.current
     const timers = []
     const at = (ms, fn) => timers.push(setTimeout(fn, Math.max(0, ms)))
-    at(totalMs + 40, () => setFull(true)); if (plate) { at(o.morphAt, () => setMorph(true)); at(o.plateEnd, () => setDone(true)) }
+    at(totalMs + 40, () => { setFull(true); const halo = el?.querySelector('[data-halo]'); if (halo?.animate) { const rs = haloReset(); halo.animate(rs.frames, { duration: rs.duration, fill: 'both', easing: 'ease-out' }) } }) // слова долетели: бар полный, ореол-«толщина» оседает до тонкого 6 px
+    if (plate) { at(o.plateAt ?? o.morphAt, () => setShown(true)); at(o.plateEnd, () => setDone(true)) }
     const bar = el?.querySelector('[data-bar]'), ring = el?.querySelector('[data-ring]'), ringF = ringFrames()
     segments.forEach(s => at(s.at, () => {
       playChargeTap() // тихий «тык» о бар: звук, не графика — играет и на lite
@@ -61,8 +62,8 @@ export default function ChargeRun({ view, leaving = false, plate = true }) {
   }, [pills, sparks, segments, totalMs, o, still, trail, plate])
 
   return (
-    <div ref={root} className="raceCharge" data-leaving={leaving || done || undefined} data-full={full || undefined} data-trail={trail || undefined} data-lite={lite || still || undefined} data-round={plate ? undefined : '2'} data-testid="race-charge" aria-hidden="true">
-      <div ref={barRef} className="raceChargeBar" data-bar data-morph={morph || undefined} data-testid="race-charge-bar">
+    <div ref={root} className="raceCharge" data-leaving={leaving || undefined} data-full={full || undefined} data-trail={trail || undefined} data-lite={lite || still || undefined} data-round={plate ? undefined : '2'} data-testid="race-charge" aria-hidden="true">
+      <div className="raceChargeBar" data-bar data-testid="race-charge-bar">
         {plate && <i className="raceChargeHalo" data-halo />}
         <div className="raceChargeTrack">
           {segments.map(s => <i key={s.i} data-seg={s.i} className="raceChargeSeg" style={{ left: `${s.from}%`, width: `${s.to - s.from}%`, backgroundColor: s.color, '--c': s.color, '--at': `${s.at}ms` }} data-testid="race-charge-seg" />)}
@@ -73,14 +74,14 @@ export default function ChargeRun({ view, leaving = false, plate = true }) {
         <div className="raceChargePills" data-testid="race-charge-pills">
           {pills.map(p => (
             <span key={p.i} data-pill={p.i} className="raceChargeFly" style={{ left: `${p.x}%`, '--c': p.color }} data-testid="race-charge-pill">
-              {trail && <i className="raceChargeTail" data-tail={p.i} data-testid="race-charge-tail" />}
+              {trail && <i className="raceChargeTail" data-tail={p.i} style={{ clipPath: tailClip() }} data-testid="race-charge-tail" />}
               <span className="raceChargePill">{pillLabel(p.text)}</span>
             </span>
           ))}
         </div>
       )}
       {!lite && !still && sparks.map(s => <i key={s.i} data-spark={s.i} className="raceChargeSpark" style={{ left: `${s.x}%`, width: s.size, height: s.size, backgroundColor: s.color }} />)}
-      {plate && morph && <RaceChargePlate title={round.title} task={round.task} barRef={barRef} />}
+      {plate && shown && <RaceChargePlate title={round.title} task={round.task} brief={round.brief} out={leaving || done} />}
     </div>
   )
 }

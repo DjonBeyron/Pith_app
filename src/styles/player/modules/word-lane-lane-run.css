@@ -22,3 +22,11 @@
   mask-image: repeating-linear-gradient(to bottom, #000 0 var(--run-dash, 2.2dvh), transparent var(--run-dash, 2.2dvh) var(--run-p));
 }
 .wl--lite .wlLanes i::before, .weak-device .wlLanes i::before { will-change: auto; }
+/* «Гонка с Питом» (v3.3.117, .wl[data-race]): три дорожки читаются как независимые. У каждой свои скорость визуального хода (×0,96 / ×1 / ×1,04) и фаза старта — это в модели (wordLaneConveyor.js LANE_RATES / LANE_PHASES), привод пишет в --run-y;
+   узор пунктира — «---|---:---»: три коротких штриха (1,2 dvh), длинная черта (4,4), три коротких, двоеточие (две точки по 0,7) и дальше по кругу. Одна маска на дорожку (repeating-linear-gradient на том же ::before), новых узлов нет; период
+   узора --run-p = RACE_PERIOD (24 dvh), привод не меняет длину штрихов (на импульсе скорости — только яркость и волна). */
+.wl[data-race] .wlLanes i::before {
+  --run-p: 24dvh;
+  -webkit-mask-image: repeating-linear-gradient(to bottom, #000 0 1.2dvh, transparent 1.2dvh 2.2dvh, #000 2.2dvh 3.4dvh, transparent 3.4dvh 4.4dvh, #000 4.4dvh 5.6dvh, transparent 5.6dvh 7.2dvh, #000 7.2dvh 11.6dvh, transparent 11.6dvh 13.2dvh, #000 13.2dvh 14.4dvh, transparent 14.4dvh 15.4dvh, #000 15.4dvh 16.6dvh, transparent 16.6dvh 17.6dvh, #000 17.6dvh 18.8dvh, transparent 18.8dvh 20.4dvh, #000 20.4dvh 21.1dvh, transparent 21.1dvh 22.1dvh, #000 22.1dvh 22.8dvh, transparent 22.8dvh var(--run-p));
+  mask-image: repeating-linear-gradient(to bottom, #000 0 1.2dvh, transparent 1.2dvh 2.2dvh, #000 2.2dvh 3.4dvh, transparent 3.4dvh 4.4dvh, #000 4.4dvh 5.6dvh, transparent 5.6dvh 7.2dvh, #000 7.2dvh 11.6dvh, transparent 11.6dvh 13.2dvh, #000 13.2dvh 14.4dvh, transparent 14.4dvh 15.4dvh, #000 15.4dvh 16.6dvh, transparent 16.6dvh 17.6dvh, #000 17.6dvh 18.8dvh, transparent 18.8dvh 20.4dvh, #000 20.4dvh 21.1dvh, transparent 21.1dvh 22.1dvh, #000 22.1dvh 22.8dvh, transparent 22.8dvh var(--run-p));
+}

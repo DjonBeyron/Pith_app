@@ -53,5 +53,12 @@ export function tailAngle(dx, dist, sign, t) {
   return Math.max(-TAIL_MAX, Math.min(TAIL_MAX, TAIL_GAIN * Math.atan2(vx, vy)))
 }
 
+/**
+ * Форма хвоста (v3.3.117): трапеция ПОД пилюлей. Узел хвоста лежит в тех же границах, что пилюля по ширине (left: 0, right: 0, top: 0 — race-charge.css), поэтому верхняя кромка полигона (0 0 → 100% 0) = верхним углам пилюли;
+ * книзу хвост сужается (нижняя кромка 18 % … 82 %), острых углов снаружи пилюли нет. Вращение (tailFrames) — вокруг середины верхней кромки (transform-origin 50% 0), срез узла полёта по линии верха пилюли прячет часть кромки, ушедшую выше.
+ */
+export const TAIL_POLY = [[0, 0], [100, 0], [82, 100], [18, 100]]
+export const tailClip = () => `polygon(${TAIL_POLY.map(([x, y]) => `${x}% ${y}%`).join(', ')})`
+
 /** Ключевые кадры rotate хвоста (те же шаги, что у pathFrames): [{ rotate: '0.0123rad', offset }] */
 export const tailFrames = ({ dx, dist, sign, frames = PATH_FRAMES }) => Array.from({ length: frames + 1 }, (_, k) => ({ rotate: `${tailAngle(dx, dist, sign, k / frames).toFixed(4)}rad`, offset: k / frames }))

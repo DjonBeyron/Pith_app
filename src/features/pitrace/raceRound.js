@@ -21,7 +21,7 @@ export function roundKind(stages, i) {
 }
 
 /**
- * План зарядки стадии i: → { kind, o: { morphAt, plateEnd }, round: { title, task }, pills, sparks, segments, totalMs } или null (стадия без зарядки).
+ * План зарядки стадии i: → { kind, o: { plateAt (плашка появляется с началом речи Пита об этапе), morphAt (бар полон), plateEnd }, round: { title, task }, pills, sparks, segments, totalMs } или null (стадия без зарядки).
  * plan — план гонки (семя), lines — реплики Пита (длины), rate — скорость голоса.
  */
 export function roundPlan({ plan, stages, i, lines = null, rate = 1 }) {
@@ -31,7 +31,7 @@ export function roundPlan({ plan, stages, i, lines = null, rate = 1 }) {
   const len = stage.line ? lineMs(fillLine(lines?.[stage.line]), rate) : 0
   const speechEnd = len ? LEAD_MS + 20 + len : OPEN_FALLBACK_MS
   const tag = `race-charge-${stage.sid}`
-  if (kind === 'round2') return { kind, o: { morphAt: Infinity, plateEnd: Infinity }, round: { title: '', task: '' }, ...chargePlan(plan, Math.max(ROUND2_MIN_MS, speechEnd - ROUND2_LAG_MS), words, tag) }
+  if (kind === 'round2') return { kind, o: { plateAt: Infinity, morphAt: Infinity, plateEnd: Infinity }, round: { title: '', task: '', brief: '' }, ...chargePlan(plan, Math.max(ROUND2_MIN_MS, speechEnd - ROUND2_LAG_MS), words, tag) }
   const morphAt = Math.max(1000, speechEnd - MORPH_MS)
-  return { kind, o: { morphAt, plateEnd: speechEnd + STAGE_HOLD_MS }, round: { title: stage.round?.title ?? '', task: stage.round?.task ?? '' }, ...chargePlan(plan, morphAt, words, tag) }
+  return { kind, o: { plateAt: LEAD_MS + 20, morphAt, plateEnd: speechEnd + STAGE_HOLD_MS }, round: { title: stage.round?.title ?? '', task: stage.round?.task ?? '', brief: stage.round?.brief ?? '' }, ...chargePlan(plan, morphAt, words, tag) }
 }

@@ -24,6 +24,11 @@ export const CONVEYOR_LEAD_MS = IGNITE_MS + ACCEL_MS // зажигание + р�
 export const RUN_SPEED = SPEED // dvh в секунду при множителе 1 (высота экрана — 100 dvh, SPEED — % высоты в секунду)
 export const SPEED_RAMP_MS = 800 // «Гонка с Питом»: множитель скорости (пилюли разгона быстрее) меняется плавно за столько мс, не рывком
 export const PERIOD = 11       // период пунктира, dvh
+// «Гонка с Питом» (v3.3.117): три дорожки читаются независимо. У каждой свой визуальный ход (множитель к общему ±4 %: 0,96 / 1 / 1,04), своя фаза старта пунктира (сдвиг в долях периода) и узор «---|---:---» с периодом RACE_PERIOD
+// (три коротких штриха, длинная черта, три штриха, двоеточие; CSS — word-lane-lane-run.css, маска на ::before колонки, новых узлов нет). Всё детерминированно, без случайных чисел; у обычной ноды createLane() без номера дорожки — как раньше.
+export const RACE_PERIOD = 24  // период узора гонки, dvh
+export const LANE_RATES = [0.96, 1, 1.04]  // множитель визуального хода дорожек 0, 1, 2 (скорость пилюль не меняется)
+export const LANE_PHASES = [0, 0.37, 0.71] // сдвиг начала пунктира, доли RACE_PERIOD
 export const REST_A = 0.14     // прозрачность пунктира в покое («еле-еле»)
 export const RUN_A = 0.52      // и на рабочей скорости
 export const PULSE_MS = 600    // «Гонка с Питом», ТОЛЬКО переход между первым и вторым кругом этапа (ускорение на 10 %, v3.3.115): пунктир на столько мс ярче и с чуть длиннее штрихами (мягкая волна сверху вниз — CSS data-wave, привод)
@@ -39,7 +44,7 @@ export const easeInSoft = x => (x <= 0 ? 0 : x >= 1 ? 1 : x * x * x * (x * (x * 
 /** Яркость мигания (0…1) через t мс зажигания: 0 → 1 → 0 за BLINK_MS, косинусом — без изломов на стыках циклов */
 export const blink = t => (1 - Math.cos((2 * Math.PI * Math.min(t, IGNITE_MS)) / BLINK_MS)) / 2
 
-export const createLane = () => ({ phase: 'idle', t: 0, s: 0, g: 0, s0: 0, g0: 0, y: 0, seen: false, gone: 0, v: 1, vw: 1, v0: 1, vt: SPEED_RAMP_MS, pt: PULSE_MS, pn: 0 }) // pt — сколько мс идёт импульс скорости (PULSE_MS — не идёт), pn — сколько импульсов было
+export const createLane = (race = -1) => ({ k: LANE_RATES[race] ?? 1, per: LANE_RATES[race] ? RACE_PERIOD : PERIOD, phase: 'idle', t: 0, s: 0, g: 0, s0: 0, g0: 0, y: LANE_RATES[race] ? LANE_PHASES[race] * RACE_PERIOD : 0, seen: false, gone: 0, v: 1, vw: 1, v0: 1, vt: SPEED_RAMP_MS, pt: PULSE_MS, pn: 0 }) // pt — сколько мс идёт импульс скорости (PULSE_MS — не идёт), pn — сколько импульсов было
 
 /** Множитель рабочей скорости: v плавно (smoothstep за SPEED_RAMP_MS) идёт к wanted; новая цель в середине перехода — переход заново от текущего значения; дорожка стоит — множитель сразу новый (нечему рвать) */
 function stepSpeed(L, dt, wanted) {
@@ -61,7 +66,7 @@ function go(L, phase, t = 0) { L.phase = phase; L.t = t; L.s0 = L.s; L.g0 = L.g 
 
 /**
  * Шаг дорожки на dt мс. armed — дорожке дана команда ехать, keep — и держать ход, пока идёт акт (даже без пилюль), pills — сколько пилюль сейчас на ней, still — без движения (слабое устройство, reduced-motion: только яркость, y не меняется).
- * Меняет L и возвращает его: s (скорость, dvh/с), g (яркость 0…1), y (сдвиг пунктира 0…PERIOD).
+ * Меняет L и возвращает его: s (скорость, dvh/с), g (яркость 0…1), y (сдвиг пунктира 0…PERIOD; у дорожек гонки — 0…RACE_PERIOD, ход ×LANE_RATES). createLane(n): n = 0…2 — номер дорожки гонки, без номера — обычная дорожка.
  */
 export function stepLane(L, dt, { armed = false, pills = 0, still = false, keep = false, speed = 1 } = {}) {
   const want = wantRun(L, dt, armed, pills, keep)
@@ -88,7 +93,7 @@ export function stepLane(L, dt, { armed = false, pills = 0, still = false, keep 
     if (L.t >= DECEL_MS) { L.s = 0; L.g = 0; L.phase = 'idle'; L.t = 0 }
   }
   if (L.pt < PULSE_MS) L.pt = Math.min(PULSE_MS, L.pt + dt)
-  if (!still && L.s > 0) L.y = (L.y + (L.s * dt) / 1000) % PERIOD
+  if (!still && L.s > 0) L.y = (L.y + (L.s * L.k * dt) / 1000) % L.per
   return L
 }
 

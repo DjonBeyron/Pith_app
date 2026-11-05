@@ -7,11 +7,12 @@ import { plateLite, startPlateExit } from './wordLanePlateExit.js'
 // директор её снимает, но плашку держит useWordLaneLeavingPlates.js ещё на время ухода: она получает leaving и улетает вверх, как взлетает пилюля (wordLanePlateExit.js — та же кривая). Плашку монтирует WordLaneGame
 // с key = номер появления, поэтому на каждый шаг — новый экземпляр: звук и появление идут ровно один раз. На слабом устройстве (lite) и при reduced-motion колебаний, блеска и полёта нет — только проявление
 // и затухание (word-lane-plate.css); звук остаётся. Узор и блеск от центра, центровка — word-lane-plate.css. text может быть «название\nзадание» (раунды гонки): вторая строка — мелким подзаголовком (.wlTurnTask).
-export default function WordLaneTurnPlate({ text, leaving = false }) {
+// soft — «Гонка с Питом» (v3.3.117): плашка не улетает вверх, а мягко уходит scale 0,9 + opacity за 200 мс (CSS race-plate.css), появление — колебание popSheetWobble.
+export default function WordLaneTurnPlate({ text, leaving = false, soft = false }) {
   const [lite] = useState(plateLite) // lite — слабое устройство или reduced-motion: решается один раз при появлении
   const ref = useRef(null)
   useEffect(() => { playPlate() }, [])
-  useEffect(() => { if (leaving && !lite) startPlateExit(ref.current) }, [leaving, lite])
+  useEffect(() => { if (leaving && !lite && !soft) startPlateExit(ref.current) }, [leaving, lite, soft])
   const [title, task] = text.split('\n') // «название\nзадание»: задание (необязательное, «Гонка с Питом») — строкой под заголовком
   return (
     <div ref={ref} className={`wlTurn${lite ? ' wlTurn--lite' : ''}${leaving ? ' wlTurn--leave' : ''}`} data-testid="wl-turn">

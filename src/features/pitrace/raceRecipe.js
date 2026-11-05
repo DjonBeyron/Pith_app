@@ -21,10 +21,10 @@ export function buildRaceActs(plan) {
   const climb = climbWords(plan)
   const all = plan.chunks.map((_, i) => i)
   const acts = []
-  if (words.length) acts.push({ id: 'sprint', title: 'Разгон', task: 'успей сказать по-английски слово, перевод которого едет вниз, пока оно не убежало', line: 'race_sprint', words })
-  if (caught.length) acts.push({ id: 'catch', title: 'Слушай и лови', task: 'я говорю слово, а ты повтори его, только если перевод на пилюле верный', line: 'race_catch', words: caught })
-  if (climb.length) acts.push({ id: 'climb', title: 'Вершина', task: 'собираем фразу по слову, с каждым шагом длиннее', line: 'race_climb', words: climb, topLine: 'race_climb_top', timeLine: 'race_climb_time' })
-  acts.push({ id: 'descent', title: 'Спуск', task: 'повтори всю фразу за мной на скорости', line: 'race_descent', parts: all, rate: DESCENT_RATE })
+  if (words.length) acts.push({ id: 'sprint', title: 'Разгон', brief: 'скажи слово по переводу', task: 'успей сказать по-английски слово, перевод которого едет вниз, пока оно не убежало', line: 'race_sprint', words })
+  if (caught.length) acts.push({ id: 'catch', title: 'Слушай и лови', brief: 'повтори, если перевод верный', task: 'я говорю слово, а ты повтори его, только если перевод на пилюле верный', line: 'race_catch', words: caught })
+  if (climb.length) acts.push({ id: 'climb', title: 'Вершина', brief: 'собери фразу по словам', task: 'собираем фразу по слову, с каждым шагом длиннее', line: 'race_climb', words: climb, topLine: 'race_climb_top', timeLine: 'race_climb_time' })
+  acts.push({ id: 'descent', title: 'Спуск', brief: 'повтори всю фразу за мной', task: 'повтори всю фразу за мной на скорости', line: 'race_descent', parts: all, rate: DESCENT_RATE })
   acts.push({ id: 'summary', title: 'Итог' })
   return { plan, acts: pickRound(acts, plan.round) }
 }

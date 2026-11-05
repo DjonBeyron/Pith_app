@@ -1,0 +1,18 @@
+/* «Гонка с Питом»: плашки гонки (v3.3.117; CONCEPT_RACE.md «Плашки гонки»). Относится к плашкам этапов (WordLaneTurnPlate в .wl[data-race], плашка заставки RaceChargePlate), попапу «Говорю / Тапаю» (.wl[data-phase='ask']) и итогу (RaceSummary).
+   ПОЯВЛЕНИЕ — без полёта: scale с колебанием, как плашка в ленте рекомендаций при нажатии на ухо (popSheetWobble, pop-spring.css: 0,3 с, cubic-bezier(0.34, 1.25, 0.64, 1) даёт перелёт сама). УХОД — обратный мягкий: scale 0,9 + opacity → 0 за 200 мс
+   (раньше плашка улетала вверх по кривой взлёта пилюли — у плашек гонки этого больше нет: WordLaneTurnPlate soft, RaceSummary без startPlateExit). МИНИМАЛИЗМ: обводка 1 px, меньше текста — название и микро-описание задания (brief, 3–5 слов) мельче и тише.
+   lite (.wlTurn--lite) остаётся на проявлении / затухании word-lane-plate.css; reduced-motion — простое проявление и затухание. Только transform / opacity, без filter. */
+.wl[data-race] .wlTurn, .wl[data-phase='ask'] .wlTurn { border-width: 1px; }
+.wl[data-race] .wlTurn:not(.wlTurn--lite), .wl[data-phase='ask'] .wlTurn:not(.wlTurn--lite) { animation: popSheetWobble 0.3s cubic-bezier(0.34, 1.25, 0.64, 1) backwards; }
+.wl[data-race] .wlTurn--leave:not(.wlTurn--lite), .wl[data-race] .wlTurn[data-out]:not(.wlTurn--lite), .wl[data-race] .wlTurn[data-leaving]:not(.wlTurn--lite) { animation: raceTurnOut 0.2s ease-in both; pointer-events: none; }
+@keyframes raceTurnOut {
+  from { transform: scale(1); opacity: 1; }
+  to   { transform: scale(0.9); opacity: 0; }
+}
+/* плашка этапа: название и краткое задание, поменьше и потише */
+.wl[data-race] .wlTurn:not(.raceSum):not(.raceAskPlate) { padding: 12px 22px; font-size: clamp(18px, 5.4vw, 24px); }
+.wl[data-race] .wlTurn .wlTurnTask { margin-top: 4px; font-size: clamp(12px, 3.4vw, 14px); font-weight: 500; line-height: 1.25; opacity: 0.7; }
+@media (prefers-reduced-motion: reduce) {
+  .wl[data-race] .wlTurn:not(.wlTurn--lite), .wl[data-phase='ask'] .wlTurn:not(.wlTurn--lite) { animation: wlTurnFadeIn 0.25s ease both; }
+  .wl[data-race] .wlTurn--leave:not(.wlTurn--lite), .wl[data-race] .wlTurn[data-out]:not(.wlTurn--lite), .wl[data-race] .wlTurn[data-leaving]:not(.wlTurn--lite) { animation: wlTurnFadeOut 0.25s ease both; }
+}

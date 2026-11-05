@@ -86,7 +86,7 @@ describe('попап «Говорю / Тапаю» внутри игры (RaceAs
     const op = Number(/opacity:\s*([\d.]+)/.exec(css)?.[1])
     expect(op).toBeGreaterThanOrEqual(0.04); expect(op).toBeLessThanOrEqual(0.06)
     expect(css).not.toMatch(/animation|transition|filter\s*:|transform\s*:/); expect(css).toContain('.wlStage[data-tex]::before'); expect(css).toContain('pointer-events: none'); expect(css).toContain('.weak-device .wlStage[data-tex]::before { display: none; }')
-    expect(css).toContain("%3Cpath d='M26 30 C28 18 44 14 54 22") // тайл узора плашек (word-lane-plate.css)
+    expect(css).toContain("%3Cpath d='M28 118 C34 92 66 82 92 94") // v3.3.117: хаотичный узор плашки «Старт» уроков (--mg-tex-start, lessons-chain-textures.css)
     expect(read('../../styles/player/modules/word-lane-plate.css')).toContain("%3Cpath d='M26 30 C28 18 44 14 54 22")
     expect(read('../../styles/player/modules/race-sprint.css')).toContain("@import './race-stage-bg.css'")
   })

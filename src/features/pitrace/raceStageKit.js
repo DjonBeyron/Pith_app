@@ -27,7 +27,7 @@ export function createKit({ plan, rate = 1, lib = () => null }) {
     /** Двойники слова из плана (для словаря Vosk и ловушек) */
     doubles: word => plan.words.find(w => normText(w.text) === normText(word))?.confusers ?? [],
     /** Плашка раунда: Пит говорит реплику акта (директор держит плашку, пока он говорит) */
-    announce: (act, o = {}) => push({ type: 'announce', act: act.id, sid: `${o.sid ?? act.id}-ann`, round: { kind: o.kind ?? act.id, title: o.title ?? act.title, task: o.task ?? act.task }, ms: o.ms ?? RACE_ANNOUNCE_MS, line: o.line === undefined ? act.line : o.line }),
+    announce: (act, o = {}) => push({ type: 'announce', act: act.id, sid: `${o.sid ?? act.id}-ann`, round: { kind: o.kind ?? act.id, title: o.title ?? act.title, task: o.task ?? act.task, brief: o.brief ?? (o.task === undefined ? act.brief : undefined) }, ms: o.ms ?? RACE_ANNOUNCE_MS, line: o.line === undefined ? act.line : o.line }),
   }
 }
 

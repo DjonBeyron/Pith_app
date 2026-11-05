@@ -14,7 +14,8 @@ export function createConveyorDrive({
   observe = (el, fn) => { const o = new globalThis.MutationObserver(fn); o.observe(el, { subtree: true, attributes: true, attributeFilter: ['data-held', 'data-lane', 'data-still', 'data-speed'] }); return () => o.disconnect() },
 }) {
   const cols = [...root.querySelectorAll('.wlLanes i')]
-  const lanes = cols.map(createLane)
+  const race = !!root.closest?.('[data-race]') // «Гонка с Питом»: дорожки независимы (ход ±4 %, своя фаза, узор «---|---:---»), wordLaneConveyor.js
+  const lanes = cols.map((_, i) => createLane(race ? i : -1))
   const shown = cols.map(() => ({}))
   let armed = cols.map(() => false), keep = cols.map(() => false), pills = cols.map(() => 0)
   let id = null, last = 0, paused = false
@@ -30,7 +31,7 @@ export function createConveyorDrive({
   const draw = (i, look) => {
     put(i, '--run-y', `${look.y.toFixed(2)}dvh`)
     put(i, '--run-a', look.a.toFixed(3))
-    if (!still) put(i, '--run-dash', `${(2.2 * look.sy).toFixed(2)}dvh`) // импульс скорости: штрихи длиннее (до ×1,4); на слабом устройстве и при reduced-motion только яркость
+    if (!still && !race) put(i, '--run-dash', `${(2.2 * look.sy).toFixed(2)}dvh`) // импульс скорости: штрихи длиннее (до ×1,4); на слабом устройстве и при reduced-motion только яркость
   }
   const wave = () => { // по дорожкам пробегает «волна скорости» сверху вниз (CSS-анимация; имя меняется a ↔ b, чтобы она перезапускалась на каждом импульсе)
     const n = lanes.reduce((m, L) => Math.max(m, L.pn), 0)

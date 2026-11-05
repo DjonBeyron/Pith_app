@@ -86,7 +86,7 @@ export default function WordLaneGame({ cfg, audioSrc, lines = null, forceDebug =
           )}
         {/* Подписи реплик Пита (белое облачко с текстом) убраны в v3.3.84: кот только говорит; f.catLine остаётся в комментариях владельца (commentSnapshot) */}
         {tapMode && !race && phase === 'student' && <div className="wlTapHint" data-testid="wl-tap-hint">Тап вместо речи: тапни дорожку</div>}
-        {plates.map(p => <WordLaneTurnPlate key={p.id} text={p.text} leaving={p.leaving} />)}
+        {plates.map(p => <WordLaneTurnPlate key={p.id} text={p.text} leaving={p.leaving} soft={race} />)}
         {phase === 'reveal' && (
           <div className="wlReveal" data-testid="wl-reveal">
             <div className="wlRevealPhrase">{f.text}</div>

@@ -11,6 +11,7 @@ export const CHARGE_FLY_MS = 1500      // полёт одной пилюли с�
 export const CHARGE_SPARKS = 24        // микро-частицы (на слабом устройстве не рисуются)
 export const BAR_CORE_PX = 6           // бар — тонкая подложка постоянной высоты с border-radius 999px: скругления не меняются никогда (высота НЕ анимируется)…
 export const HALO_MAX = 2.4            // …«толщину» набирает слой-ореол за баром (тот же радиус): transform: scaleY от 1 до HALO_MAX ступенькой за пилюлю, origin по центру (raceCharge.haloKeys)
+export const HALO_RESET_MS = 260       // слова долетели: ореол оседает до тонкого бара
 export const HALO_RISE_MS = 220        // подъём ореола перед касанием очередной пилюли
 export const FLASH_MS = 300            // касание: вспышка сегмента цветом слова, opacity 0,9 → 0 (CSS, race-charge.css)
 export const RING_MS = 350             // кольцо-рябь от точки касания: scale 0,6 → 1,6, opacity → 0 (один узел на бар)
@@ -44,6 +45,9 @@ export function haloKeys(segments) {
   })
   return { keys, duration }
 }
+
+/** Слова долетели, бар полный: ореол-«толщина» оседает от HALO_MAX до 1 (бар остаётся тонким, 6 px, на всё время до первой пилюли). → { frames, duration } */
+export const haloReset = () => ({ frames: [{ transform: `scaleY(${HALO_MAX})` }, { transform: 'scaleY(1)' }], duration: HALO_RESET_MS })
 
 /** Толчок всего бара в момент касания: translateY 0 → NUDGE_PX (на 35 %) → 0, только transform; duration = NUDGE_MS */
 export const nudgeFrames = () => ({ frames: [{ transform: 'translateY(0)', offset: 0 }, { transform: `translateY(${NUDGE_PX}px)`, offset: 0.35 }, { transform: 'translateY(0)', offset: 1 }], duration: NUDGE_MS })
