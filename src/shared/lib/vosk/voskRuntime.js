@@ -28,7 +28,7 @@ export function createVoskRuntime(deps = {}) {
   }
   const st = {
     cached: null, model: null, loading: null, run: null, users: 0, holds: {}, acquires: 0, lastAcquire: null, timer: 0, retryTimer: 0, unwatch: null,
-    brokenUntil: 0, brokenWhy: '', failures: 0, failure: null, lastError: '', warmAt: 0, loadedAt: 0, freeAt: 0, lastLoad: null,
+    expecting: false, brokenUntil: 0, brokenWhy: '', failures: 0, failure: null, lastError: '', warmAt: 0, loadedAt: 0, freeAt: 0, lastLoad: null,
     stage: 'idle', stageAt: 0, trigger: '', trace: [],
   }
   const listeners = new Set()
@@ -167,6 +167,21 @@ export function createVoskRuntime(deps = {}) {
       startLoad(trigger, { force: true })
       return st.loading ?? Promise.resolve()
     },
+    /** Выгрузить модель СЕЙЧАС, даже если её кто-то держит (переключение языка в игре «Встряхни память»: две модели в памяти iPhone вместе рискованны; держатели остаются, вернуть модель — warmNow). false — выгружать было нечего */
+    evict(why = 'переключение') {
+      d.clearTimer(st.timer); st.timer = 0; st.freeAt = 0
+      if (st.loading) { abandon(st.run); st.run = null; st.loading = null }
+      const model = st.model
+      if (!model) return false
+      st.model = null; st.loadedAt = 0
+      try { d.unload(model) } catch { /* воркер уже остановлен */ }
+      enter('idle', `модель выгружена из памяти (${why})`)
+      return true
+    },
+    /** Модель скоро будет (идёт переключение языка в игре): слушатели ждут её, а не сообщают «нет модели». on: false — переключение закончилось */
+    expect(on) { st.expecting = !!on },
+    /** Лежит ли модель в кэше телефона (без прогрева: в память не грузим) — для экрана, которому важно только «скачано ли» */
+    checkCached: async () => !!(await d.peek(d.url())),
     /** Только для тестов и ожидания в админке: промис идущего прогрева */
     whenReady: () => st.loading ?? Promise.resolve(),
     /** Дождаться конца прогрева (готов / ошибка / нет модели) не дольше ms: { ok, reason?, text? }. Только для режима «Только Vosk» */
@@ -183,7 +198,7 @@ export function createVoskRuntime(deps = {}) {
     /** Подписка на смену этапа (для живой подписи «грузится библиотека…»). Возвращает отписку */
     subscribe(fn) { listeners.add(fn); return () => listeners.delete(fn) },
     /** Синхронный снимок для выбора движка на тапе: cached (null — ещё не проверяли), loaded (модель в памяти), loading, libReady, stage, brokenUntil (broken — пауза идёт сейчас) */
-    snapshot: () => ({ cached: st.cached, loaded: !!st.model, loading: !!st.loading, libReady: !!st.model, stage: st.stage, broken: isBroken(), brokenUntil: st.brokenUntil, brokenWhy: st.brokenWhy }),
+    snapshot: () => ({ expecting: st.expecting, cached: st.cached, loaded: !!st.model, loading: !!st.loading, libReady: !!st.model, stage: st.stage, broken: isBroken(), brokenUntil: st.brokenUntil, brokenWhy: st.brokenWhy }),
     getModel: () => st.model,
     /** Подробности для админской диагностики: сколько владельцев (и каких) держат прогрев, сколько раз его просили, этап и журнал этапов, кто запустил, ошибка, когда выгрузится (метки — d.now(), 0 — нет) */
     info: () => ({

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { weakWords, weakTone, WEAK_MAX, WEAK_R1, WEAK_R2 } from './raceWeak.js'
+import { weakWords, weakTone, WEAK_MAX, WEAK_R1, WEAK_R2, WEAK_LATE } from './raceWeak.js'
 
 const miss = { hit: false, miss: false }, ok = { hit: true, miss: false }
 const sprint = (extra = {}) => ({ words: ['a', 'b', 'c', 'd'], caps: { a: 'а', b: 'б', c: 'в', d: 'г' }, results: { 0: ok, 1: miss, 2: ok, 3: miss }, r2: null, ...extra })
@@ -9,7 +9,8 @@ describe('«Самые слабые слова»: raceWeak', () => {
     expect(WEAK_R1).toBe(2); expect(WEAK_R2).toBe(3)
     const list = weakWords(sprint())
     expect(list.map(w => [w.text, w.score])).toEqual([['b', 2], ['d', 2], ['a', 0], ['c', 0]])
-    expect(list[0]).toEqual({ text: 'b', translation: 'б', score: 2, tone: 'yellow' })
+    expect(list[0]).toEqual({ text: 'b', translation: 'б', score: 2, tone: 'yellow', note: 'молчал' })
+    expect(list.map(w => w.note)).toEqual(['молчал', 'молчал', 'верно', 'верно']) // пометка: ошибка / молчал / поздно / верно
   })
   it('второй круг: не дался снова — 5 (красный), удался — остаётся 2; слово из круга 2 ошиблось, хотя в круге 1 было верно, — 3', () => {
     const list = weakWords(sprint({ r2: { words: ['d', 'b', 'a'], results: { 0: miss, 1: ok, 2: miss } } }))
@@ -41,5 +42,21 @@ describe('«Самые слабые слова»: оба этапа', () => {
   })
   it('без слуха (только разгон) результат тот же, что у одного этапа', () => {
     expect(weakWords({ sprint: sprint(), catch: undefined }).map(w => w.score)).toEqual(weakWords(sprint()).map(w => w.score))
+  })
+})
+
+describe('«Самые слабые слова»: ответ «в последний момент»', () => {
+  it('слово засчитано, но поздно (late) — 1 балл слабости (жёлтый); в дополнительном круге тоже 1; ошибка важнее позднего ответа', () => {
+    expect(WEAK_LATE).toBe(1)
+    const late = { hit: true, miss: false, late: true }
+    const list = weakWords(sprint({ results: { 0: late, 1: ok, 2: miss, 3: { hit: false, miss: true, late: true } }, r2: { words: ['a', 'b'], results: { 0: late, 1: ok } } }))
+    expect(list.map(w => [w.text, w.score, w.tone])).toEqual([['a', 2, 'yellow'], ['c', 2, 'yellow'], ['d', 2, 'yellow'], ['b', 0, 'green']]) // a: поздно в круге 1 (1) + поздно в дополнительном (1); c, d: ошибка (2), поздний ответ не добавляется к ошибке
+  })
+})
+
+describe('пометка слова в итоге (note)', () => {
+  it('ошибка (сказал не то) хуже молчания, молчание хуже позднего ответа, поздний хуже верного; берётся худшее по кругам', () => {
+    const r = sprint({ words: ['a', 'b', 'c', 'd'], results: { 0: { hit: false, miss: true }, 1: { hit: false, miss: false }, 2: { hit: true, late: true }, 3: ok }, r2: { words: ['d'], results: { 0: { hit: true, late: true } } } })
+    expect(Object.fromEntries(weakWords(r, 12).map(w => [w.text, w.note]))).toEqual({ a: 'ошибка', b: 'молчал', c: 'поздно', d: 'поздно' })
   })
 })

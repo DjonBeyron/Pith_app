@@ -3,7 +3,7 @@ import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { useRaceActs } from './useRaceActs.js'
 import { buildRaceStages } from './raceStages.js'
-import { sprintTarget } from './raceSprint2.js'
+import { extraTarget } from './raceExtraRound.js'
 import { GOOD_IDS, GOOD_DELAY_MS, GOOD_ARM_MS } from './raceGood.js'
 import { fixturePlan } from '../rehearsal/rehearsalFixtures.js'
 import { normalizePlan } from '../rehearsal/rehearsalPlan.js'
@@ -73,7 +73,7 @@ describe('похвала: один путь для всех зачётов', () 
     vi.useFakeTimers()
     const { stages } = buildRaceStages({ plan, rate: 1, lib: () => null })
     const first = stages.find(s => s.sid === 'sprint')
-    sprintTarget(stages, first, { results: Object.fromEntries(first.words.map((_, i) => [i, { hit: i > 1, miss: false }])) }, plan.seed)
+    extraTarget(stages, first, { results: Object.fromEntries(first.words.map((_, i) => [i, { hit: i > 1, miss: false }])) }, plan.seed)
     const h = probe('sprint2', stages)
     const n = h.stageObj.words.length
     for (let i = 0; i < n; i++) claimAndRise(h, { idx: i }, 800)

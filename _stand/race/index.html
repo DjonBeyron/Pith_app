@@ -10,14 +10,15 @@ import { supabase } from '/src/shared/api/supabase.js'
 import { listWordAudio } from '/src/shared/lib/wordAudio/wordAudioApi.js'
 import { wordKey } from '/src/shared/lib/wordAudio/wordKey.js'
 import { voskRuntime } from '/src/shared/lib/vosk/voskRuntime.js'
+import { voskRuntimeRu } from '/src/shared/lib/vosk/voskRuntimes.js'
 import { fixtureSource, fixturePlan } from '/src/features/rehearsal/rehearsalFixtures.js'
 import { raceTexts } from '/src/features/pitrace/raceTexts.js'
 import { extrasOf, catchWords, climbWords, sprintWords } from '/src/features/pitrace/raceWords.js'
 import { normalizePlan } from '/src/features/rehearsal/rehearsalPlan.js'
 
-// Стенд «Гонка с Питом» (dev, в сборку не входит): настоящие раунды гонки на игре «Повтори за диктором» без входа, Supabase и телефона.
+// Стенд «Встряхни память» («Гонка с Питом», dev, в сборку не входит): настоящие раунды гонки на игре «Повтори за диктором» без входа, Supabase и телефона.
 //  • ?ask=voice|tap — ответ на попап «Говорю / Тапаю» внутри игры (по умолчанию voice), ?ask=none — стоять на попапе;
-//  • ?fixture=three|two|one|none — план из фикстур; ?seed=… — семя случайностей; ?only=sprint|catch|climb|descent — один раунд, ?only=stages — «два этапа + финал» (иначе полная гонка);
+//  • ?fixture=three|two|one|none — план из фикстур; ?seed=… — семя случайностей; ?only=sprint|catch|climb|descent — один раунд, ?only=stages — «Вспомни на слух + финал»; ?ru=0 — русская модель не скачана (проход B на тапе) (иначе полная гонка);
 //  • озвучка слов и кусков — синтетические гудки (wav ниже), реплики Пита без озвучки (подпись без звука); ?voice=0 — и слова без озвучки;
 //  • Vosk — заглушка: речь подаёт драйвер очередью window.__sayQueue (строки «слова через пробел»): следующий кусок звука микрофона закрывает заход с этим текстом — как итог Vosk; тап вместо речи (localStorage pithy_wl_tap_v1=1) работает как обычно.
 const params = new URLSearchParams(location.search)
@@ -62,6 +63,12 @@ voskRuntime.acquire = () => () => {}
 voskRuntime.whenSettled = async () => ({ ok: true })
 voskRuntime.warmNow = () => {}
 voskRuntime.getModel = () => ({ KaldiRecognizer: Rec })
+voskRuntime.evict = () => true; voskRuntime.expect = () => {}
+// Русская модель: тоже заглушка (?ru=0 — «не скачана», проход B пойдёт тапом); переключение моделей отрабатывает по-настоящему (evict / acquire / expect), модель-заглушка отдаётся сразу
+for (const k of ['acquire']) voskRuntimeRu[k] = () => () => {}
+voskRuntimeRu.whenSettled = async () => ({ ok: true }); voskRuntimeRu.warmNow = () => {}; voskRuntimeRu.evict = () => true; voskRuntimeRu.expect = () => {}
+voskRuntimeRu.checkCached = async () => params.get('ru') !== '0'
+voskRuntimeRu.getModel = () => ({ KaldiRecognizer: Rec })
 
 const node = { id: 'race-stand', type: 'rotate_phone', isHistory: false, typeData: { rotate_phone: { plan } } }
 window.__done = null

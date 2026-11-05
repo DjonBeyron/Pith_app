@@ -17,12 +17,14 @@ vi.mock('../../shared/lib/deviceTier.js', () => ({ isWeakDevice: vi.fn(() => fal
 const plan = (() => { const p = normalizePlan({ ...fixturePlan('three'), game: 'race' }); return { ...p, extraWords: extrasOf(p) } })()
 const { stages } = buildRaceStages({ plan })
 const at = sid => stages.findIndex(s => s.sid === sid)
+// «Этап с плашкой и флагом charge» (бар сам становится плашкой): в игре с v3.3.118 такого нет (один этап «Вспомни на слух», проход B объявляется без плашки), но ветка 'stage' в raceRound.js жива — проверяем её на подставленной стадии
+const withPlate = stages.map(s => (s.sid === 'catch-ann' ? { ...s, charge: true, round: { ...s.round, title: 'Вспомни на слух', task: 'задание этапа', brief: 'скажи слово' } } : s))
 
 describe('какая зарядка у какой стадии', () => {
-  it('sprint2-ann и catch2-ann — второй круг (плашки нет), catch-ann — этап 2 (флаг charge), первая стадия и обычные — без зарядки посреди игры', () => {
-    expect(roundKind(stages, at('sprint2-ann'))).toBe('round2'); expect(roundKind(stages, at('catch2-ann'))).toBe('round2')
-    expect(roundKind(stages, at('catch-ann'))).toBe('stage')
-    expect(stages[at('catch-ann')].charge).toBe(true) // отдельной плашки announce у этапа 2 нет: бар становится плашкой (useWordLaneFlow.plate пустая при charge)
+  it('sprint2-ann, catch-ann (проход B, «теперь наоборот») и catch2-ann — зарядка без плашки; объявление с плашкой и флагом charge — морф в плашку; первая стадия и обычные — без зарядки посреди игры', () => {
+    expect(roundKind(stages, at('sprint2-ann'))).toBe('round2'); expect(roundKind(stages, at('catch2-ann'))).toBe('round2'); expect(roundKind(stages, at('catch-ann'))).toBe('round2')
+    expect(stages[at('catch-ann')].round.title).toBe(''); expect(stages[at('catch-ann')].charge).toBeUndefined(); expect(stages[at('catch-ann')].line).toBe('race_catch')
+    expect(roundKind(withPlate, at('catch-ann'))).toBe('stage')
     expect(roundKind(stages, 0)).toBeNull() // начало игры — своя заставка (RaceCharge.jsx)
     expect(roundKind(stages, at('sprint'))).toBeNull(); expect(roundKind(stages, at('climb-ann'))).toBeNull(); expect(roundKind(stages, -1)).toBeNull()
   })
@@ -46,10 +48,14 @@ describe('план зарядки', () => {
     expect(p.o.morphAt).toBe(Infinity); expect(p.round.title).toBe('')
     expect(p.segments.map(s => s.color)).toEqual(p.pills.map(x => x.color)) // цвет сегмента = ступень слова
   })
-  it('этап 2: слова этапа 2, морф в плашку «Слушай и лови» раньше конца плашки', () => {
-    const i = at('catch-ann'), p = roundPlan({ plan, stages, i, lines }); expect(p.kind).toBe('stage')
-    expect(p.segments.length).toBe(stages[i + 1].words.length); expect(p.round.title).toBe('Слушай и лови'); expect(p.round.task).toBeTruthy()
+  it('объявление с плашкой: слова круга, морф в плашку раньше её конца', () => {
+    const i = at('catch-ann'), p = roundPlan({ plan, stages: withPlate, i, lines }); expect(p.kind).toBe('stage')
+    expect(p.segments.length).toBe(stages[i + 1].words.length); expect(p.round.title).toBe('Вспомни на слух'); expect(p.round.task).toBeTruthy()
     expect(p.o.morphAt).toBeGreaterThanOrEqual(1000); expect(p.o.plateEnd - p.o.morphAt).toBeGreaterThan(STAGE_HOLD_MS - 1); expect(p.totalMs).toBe(Math.max(1000, Math.round(p.o.morphAt)))
+  })
+  it('проход B (catch-ann): слова прохода летят в бар без плашки и морфа', () => {
+    const i = at('catch-ann'), p = roundPlan({ plan, stages, i, lines }); expect(p.kind).toBe('round2')
+    expect(p.segments.length).toBe(stages[i + 1].words.length); expect(p.o.morphAt).toBe(Infinity); expect(p.round.title).toBe('')
   })
   it('воспроизводимо (одно семя — один план), у каждого показа свой поток; стадия без зарядки — null', () => {
     const i = at('sprint2-ann'), a = roundPlan({ plan, stages, i }), b = roundPlan({ plan, stages, i })
@@ -65,8 +71,9 @@ describe('разметка RaceRoundCharge', () => {
     const h = html(at('sprint2-ann'))
     expect(h).toContain('data-round="2"'); expect(h).not.toContain('raceChargeHalo'); expect(h).not.toContain('race-charge-plate'); expect(h).toContain('race-charge-pill'); expect(h).toContain('data-trail="true"')
   })
-  it('этап 2: бар с ореолом (толщина перед плашкой), разметка заряда', () => {
-    const h = html(at('catch-ann')); expect(h).toContain('raceChargeHalo'); expect(h).not.toContain('data-round')
+  it('объявление с плашкой: бар с ореолом (толщина перед плашкой), разметка заряда; проход B — как второй круг, без ореола', () => {
+    const h = renderToStaticMarkup(createElement(RaceRoundCharge, { plan, stages: withPlate, i: at('catch-ann'), at: 1 })); expect(h).toContain('raceChargeHalo'); expect(h).not.toContain('data-round')
+    expect(html(at('catch-ann'))).toContain('data-round="2"')
   })
   it('стадия без зарядки — пустая разметка', () => { expect(html(at('sprint'))).toBe('') })
 })

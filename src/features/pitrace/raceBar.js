@@ -46,7 +46,7 @@ export function barOf({ stage, race }) {
 
 /**
  * Слова для зарядки бара перед стадией stage (по объявлению: sprint-ann, sprint2-ann, catch-ann, catch2-ann) — слова следующей за ней ступени ученика. → [{ text, level }] или [] (бар не заряжается: другая стадия)
- * stages — все стадии, i — номер объявления. Круг 2 вписывается в ступень директором (raceSprint2.js) ДО объявления, поэтому слова второго круга уже здесь.
+ * stages — все стадии, i — номер объявления. Круг 2 вписывается в ступень директором (raceExtraRound.js) ДО объявления, поэтому слова второго круга уже здесь.
  */
 export function chargeWordsOf(stages, i) {
   const a = stages?.[i], n = stages?.[i + 1]

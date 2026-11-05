@@ -5,14 +5,14 @@
 // (лента / видео / файлы урока / фон / экономия трафика), но по-прежнему не качает офлайн.
 import { pLog } from '../debug.js'
 import * as netBusy from '../netBusy.js'
-import { readModelUrl } from './voskConfig.js'
+import { modelUrlOf } from './voskConfigRu.js'
 import { VoskError, isRetryable, errorText } from './voskErrors.js'
 import { peekCached, cacheAvailable, requestPersist, deleteModel } from './voskStorage.js'
 import { canStart, envSnapshot, isStopped, setStopped, nextDelay, pollDelay, chunkPause, MAX_ATTEMPTS } from './voskBgPolicy.js'
 import { backgroundDownload } from './voskBgDownload.js'
 import { clearParts } from './voskParts.js'
 import { acquireLock } from './voskBgLock.js'
-import { setBgStatus, resetBgStatus, getBgStatus } from './voskBgStatus.js'
+import { bgStatusOf } from './voskBgStatus.js'
 
 let persistAsked = false
 const persistOnce = nav => { if (persistAsked) return Promise.resolve(); persistAsked = true; return requestPersist(nav) }
@@ -40,7 +40,9 @@ function withDefaults(deps) {
     ...deps,
   }
   d.store ??= (() => { try { return globalThis.localStorage } catch { return null } })()
-  d.url ??= readModelUrl()
+  d.lang = deps.lang === 'ru' ? 'ru' : 'en' // какая модель: русская (проход «называй перевод» игры «Встряхни память») качается своим запуском, своим статусом и своим замком
+  d.status = bgStatusOf(d.lang)
+  d.url ??= modelUrlOf(d.lang)
   d.fetchFn ??= globalThis.fetch?.bind(globalThis)
   d.snapshot = () => envSnapshot({ nav: d.nav, doc: d.doc, busy: d.busy, stopped: isStopped(d.store) })
   return d
@@ -48,12 +50,12 @@ function withDefaults(deps) {
 
 async function run(signal, deps) {
   const d = withDefaults(deps)
-  setBgStatus({ state: 'check', reason: null, error: '' })
-  if (!d.fetchFn || !cacheAvailable(d.cachesApi)) return setBgStatus({ state: 'error', error: 'нет Cache Storage или fetch (нужен https)' })
-  if (isStopped(d.store)) return setBgStatus({ state: 'off' })
-  if (await peekCached(d.url, d.cachesApi)) return setBgStatus({ state: 'cached', pct: 100 })
-  const release = await d.lock({ nav: d.nav, store: d.store })
-  if (!release) return setBgStatus({ state: 'other' })
+  d.status.set({ state: 'check', reason: null, error: '' })
+  if (!d.fetchFn || !cacheAvailable(d.cachesApi)) return d.status.set({ state: 'error', error: 'нет Cache Storage или fetch (нужен https)' })
+  if (isStopped(d.store)) return d.status.set({ state: 'off' })
+  if (await peekCached(d.url, d.cachesApi)) return d.status.set({ state: 'cached', pct: 100 })
+  const release = await d.lock({ nav: d.nav, store: d.store, lang: d.lang })
+  if (!release) return d.status.set({ state: 'other' })
   try {
     d.persist(d.nav)
     await attempts(signal, d)
@@ -66,9 +68,9 @@ async function attempts(signal, d) {
     for (;;) {
       if (signal.aborted) throw new VoskError('cancelled')
       const v = d.force && d.nav?.onLine !== false ? { ok: true } : canStart(d.snapshot())
-      if (v.ok) { if (getBgStatus().state !== 'downloading') setBgStatus({ state: 'downloading', reason: null }); return }
+      if (v.ok) { if (d.status.get().state !== 'downloading') d.status.set({ state: 'downloading', reason: null }); return }
       if (v.reason === 'off') throw new VoskError('cancelled')
-      if (getBgStatus().reason !== v.reason || getBgStatus().state !== 'waiting') { setBgStatus({ state: 'waiting', reason: v.reason }); d.log(`ждём: ${v.reason}`) }
+      if (d.status.get().reason !== v.reason || d.status.get().state !== 'waiting') { d.status.set({ state: 'waiting', reason: v.reason }); d.log(`ждём: ${v.reason}`) }
       await d.sleep(pollDelay(v.reason), signal)
     }
   }
@@ -76,41 +78,44 @@ async function attempts(signal, d) {
     fetchFn: d.fetchFn, cachesApi: d.cachesApi, signal, gate, now: d.now, chunkBytes: d.chunkBytes, stallMs: d.stallMs,
     pause: () => d.sleep(chunkPause(d.rand()), signal), watchBusy: d.watchBusy, shouldYield: () => !d.force && (d.busy.net() || d.busy.feed()),
     log: d.log,
-    onProgress: ({ loaded, total, mode }) => setBgStatus({ state: 'downloading', reason: null, loaded, total, mode, pct: total > 0 ? Math.min(100, Math.floor((loaded / total) * 100)) : null }),
+    onProgress: ({ loaded, total, mode }) => d.status.set({ state: 'downloading', reason: null, loaded, total, mode, pct: total > 0 ? Math.min(100, Math.floor((loaded / total) * 100)) : null }),
   }
   let failures = 0
   for (;;) {
     try {
       const r = await backgroundDownload(d.url, ctx)
       d.log(`модель в кэше: ${r.size} байт, режим ${r.mode}`)
-      return setBgStatus({ state: 'cached', pct: 100, reason: null, error: '', mode: r.mode })
+      return d.status.set({ state: 'cached', pct: 100, reason: null, error: '', mode: r.mode })
     } catch (e) {
-      if (signal.aborted || e?.code === 'cancelled') return setBgStatus({ state: isStopped(d.store) ? 'off' : 'idle', reason: null })
+      if (signal.aborted || e?.code === 'cancelled') return d.status.set({ state: isStopped(d.store) ? 'off' : 'idle', reason: null })
       if (d.nav?.onLine !== false) failures++ // обрыв из-за офлайна попытку не тратит: gate всё равно дождётся сети
       d.log(`ошибка (${e?.code ?? e?.name}): ${errorText(e)}; попытка ${failures}/${MAX_ATTEMPTS}`)
-      setBgStatus({ state: 'error', error: errorText(e), attempt: failures })
+      d.status.set({ state: 'error', error: errorText(e), attempt: failures })
       if (!isRetryable(e) || failures >= MAX_ATTEMPTS) return
-      try { await d.sleep(nextDelay(Math.max(1, failures)), signal) } catch { return setBgStatus({ state: isStopped(d.store) ? 'off' : 'idle' }) }
+      try { await d.sleep(nextDelay(Math.max(1, failures)), signal) } catch { return d.status.set({ state: isStopped(d.store) ? 'off' : 'idle' }) }
     }
   }
 }
 
-let current = null // { ctl, promise } — единственный запуск в этой вкладке
+const currents = {} // { en|ru: { ctl, promise } } — по одному запуску на модель в этой вкладке
 
-/** Запустить (один раз; повторный вызов вернёт идущий). Никогда не бросает. deps — подмена среды в тестах */
+const langOf = deps => (deps?.lang === 'ru' ? 'ru' : 'en')
+
+/** Запустить (один раз на модель; повторный вызов вернёт идущий). Никогда не бросает. deps — подмена среды в тестах; deps.lang 'ru' — русская модель (свой статус, замок и адрес) */
 export function startBackground(deps = {}) {
-  if (current) return current.promise
+  const lang = langOf(deps)
+  if (currents[lang]) return currents[lang].promise
   const ctl = new AbortController()
   const promise = run(ctl.signal, deps)
-    .catch(e => { pLog(`[vosk-bg] сбой планировщика: ${e?.message || e}`); setBgStatus({ state: 'error', error: errorText(e) }) })
-    .finally(() => { if (current?.ctl === ctl) current = null })
-  current = { ctl, promise }
+    .catch(e => { pLog(`[vosk-bg] сбой планировщика: ${e?.message || e}`); bgStatusOf(lang).set({ state: 'error', error: errorText(e) }) })
+    .finally(() => { if (currents[lang]?.ctl === ctl) currents[lang] = null })
+  currents[lang] = { ctl, promise }
   return promise
 }
 
-/** Остановить текущий запуск (флаг «стоп» не трогает). Вернёт промис, когда запуск реально закончился */
-export function abortBackground() {
-  const c = current
+/** Остановить текущий запуск модели lang (флаг «стоп» не трогает). Вернёт промис, когда запуск реально закончился */
+export function abortBackground(lang = 'en') {
+  const c = currents[lang]
   if (!c) return Promise.resolve()
   c.ctl.abort()
   return c.promise
@@ -119,7 +124,7 @@ export function abortBackground() {
 /** Админ (диагностика в уроке): «Загрузить модель сейчас» — остановить текущий запуск (он мог ждать тишины), снять флаг «стоп» и начать заново вне очереди (force). Промис — до конца загрузки */
 export async function forceBackground(deps = {}) {
   setStopped(false, deps.store)
-  await abortBackground()
+  await abortBackground(langOf(deps))
   return startBackground({ ...deps, force: true })
 }
 
@@ -128,6 +133,6 @@ export async function resetBackgroundCache(deps = {}) {
   await abortBackground()
   await deleteModel(deps.cachesApi, deps.idb)
   await clearParts(deps.cachesApi)
-  resetBgStatus()
+  bgStatusOf().reset()
   if (!isStopped(deps.store)) startBackground(deps)
 }

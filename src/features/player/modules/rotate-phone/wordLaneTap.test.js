@@ -56,7 +56,7 @@ describe('проводка в игре', () => {
   it('WordLaneGame: кнопки дорожек и подсказка в очереди ученика только при tapMode; HUD переключает его сразу (setTapMode)', () => {
     const game = read('./WordLaneGame.jsx')
     expect(game).toContain('const [tapMode, setTapMode] = useState(readTapMode)')
-    expect(game).toContain("onLane={phase === 'order' || (phase === 'discern' && !f.stageObj?.speak) || (tapMode && (phase === 'student' || f.stageObj?.speak)) ? laneTap : null}")
+    expect(game).toContain("onLane={phase === 'order' || (phase === 'discern' && !f.stageObj?.speak) || ((tapMode || f.stageObj?.step?.tapOnly) && (phase === 'student' || f.stageObj?.speak)) ? laneTap : null}")
     expect(game).toContain(`{tapMode && !race && phase === 'student' && <div className="wlTapHint" data-testid="wl-tap-hint">`)
     expect(game).toContain('setTapMode={setTapMode}')
     expect(read('../../../../styles/player/modules/word-lane-hud.css')).toContain('.wlTapHint {')

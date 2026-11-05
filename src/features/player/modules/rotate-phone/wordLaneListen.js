@@ -3,7 +3,7 @@
 // Микрофон открывается внутри start() (getUserMedia; доступ ученик дал заранее), модель берётся из voskRuntime (прогрета при входе в урок). Нет модели — status 'unavailable':
 // игра переходит на ручной режим (тап по микрофону = одно произнесённое слово). Уровень голоса (RMS кусков звука) идёт в level — им дышат кольца микрофона.
 // Заход кончается сам (все повторы услышаны / пауза / потолок записи); не хватает слов — следующий заход начинается автоматически, счёт копится, пока не выйдет общее время OVERALL_MS.
-import { voskRuntime } from '../../../../shared/lib/vosk/voskRuntime.js'
+import { runtimeOf } from '../../../../shared/lib/vosk/voskRuntimes.js'
 import { startListening } from '../../../../shared/lib/vosk/voskEngine.js'
 import { cleanPartial } from '../../../../shared/lib/vosk/voskResult.js'
 import { createRmsLevel } from '../../../../shared/lib/vosk/sayVoskLevel.js'
@@ -22,6 +22,8 @@ export const DEAD_MS = 2500       // микрофон отдаёт ТОЧНУЮ 
 const SESSION_MAX_MS = 20000
 const RESTART_MS = 150
 export const FLUSH_MS = 1500      // flush(): сколько ждём итог последнего захода после stop(), потом отдаём что есть
+export const MODEL_WAIT_MS = 9000 // модель догружается после переключения языка (runtime.expect / loading): слушатель ждёт её не дольше
+const WAIT_POLL_MS = 150
 export const MISS_SETTLE_MS = 550 // «чужое слово» из черновика (partial) засчитывается, только если продержалось столько мс: Vosk на ходу переслушивает слова («[unk] trying» → «i'm trying»), и пилюля не должна дёргаться как неверная зря
 
 /**
@@ -37,7 +39,7 @@ export const MISS_SETTLE_MS = 550 // «чужое слово» из чернов
  * из звука и сжимает тайминги; нужно, когда по словам меряют паузы — дубль репетиции), restartMs — через сколько мс начинать следующий заход (0 — сразу, слова после паузы не теряются).
  * flush(ms) — дубль закончен: просит у Vosk итог текущего захода (stop), ждёт его (не дольше ms) и больше заходов не начинает; после него words() полные. Зависимости подставляются в тестах.
  */
-export function createWordListener({ word, targets: targetsIn, expected = SLOT_COUNT, maxWords = SLOT_COUNT, getStream = null, isHeld = () => false, onChange, onDebug = null, gate = true, restartMs = RESTART_MS, runtime = voskRuntime, listen = startListening, micGain = readMicGain, level = createRmsLevel(), now = () => Date.now(), setTimer = setTimeout, clearTimer = clearTimeout }) {
+export function createWordListener({ word, targets: targetsIn, expected = SLOT_COUNT, maxWords = SLOT_COUNT, getStream = null, isHeld = () => false, onChange, onDebug = null, gate = true, restartMs = RESTART_MS, lang = 'en', noVosk = false, runtime = runtimeOf(lang), listen = startListening, micGain = readMicGain, level = createRmsLevel(), now = () => Date.now(), setTimer = setTimeout, clearTimer = clearTimeout }) {
   const targets = targetsIn?.length ? targetsIn : [word]
   let seq = [], misses = 0            // накоплено за все заходы
   let base = { seq: [], misses: 0 }   // накоплено до текущего захода
@@ -58,6 +60,7 @@ export function createWordListener({ word, targets: targetsIn, expected = SLOT_C
   const timed = []    // слова с таймингами за все заходы (мс от start())
   const waiters = new Set() // flush(): ждут конца текущего захода
   let closing = false // flush() вызван: новых заходов нет
+  let waitedAt = null // с какого момента ждём модель (после переключения языка она ещё грузится)
 
   const publish = patch => {
     if (patch.status) { status = patch.status; onDebug?.('status', { status, ...(patch.error ? { error: String(patch.error) } : {}) }) }
@@ -94,15 +97,20 @@ export function createWordListener({ word, targets: targetsIn, expected = SLOT_C
   function run() {
     base = { seq, misses } // до словаря: сколько слов ещё ждать, считается от накопленного
     absorbed = 0; lastRaw = base.misses; lastPartial = null
+    if (noVosk) { publish({ status: 'listening' }); return } // тап вместо речи, модель не нужна
     const model = runtime.getModel()
-    const grammar = model ? targetGrammar(targets, maxWords) : null
+    if (!model && (runtime.snapshot?.().expecting || runtime.snapshot?.().loading)) { // модель догружается (переключение языка в игре): ждём её, не дольше MODEL_WAIT_MS
+      waitedAt ??= now()
+      if (now() - waitedAt < MODEL_WAIT_MS) { publish({ status: 'starting' }); timer = setTimer(() => { if (!disposed && !cur && !closing) run() }, WAIT_POLL_MS); return }
+    }
+    const grammar = model ? targetGrammar(targets, maxWords, null, lang) : null
     if (!model || !grammar) { publish({ status: 'unavailable' }); return }
     onDebug?.('grammar', { targets, grammar })
     const session = { handle: null, stopped: false }
     const sessionAt = now() - startedAt // старт захода на общей шкале слов
     cur = session
     const part = (raw, final, stats = null) => {
-      const r = analyzeTargets(raw, targets, final)
+      const r = analyzeTargets(raw, targets, final, lang)
       const rawMisses = base.misses + r.misses
       if (now() < mutedUntil) absorbed += Math.max(0, rawMisses - lastRaw) // «чужое слово» во время ноты-награды — это эхо динамика, не ошибка ученика
       lastRaw = rawMisses
@@ -144,7 +152,7 @@ export function createWordListener({ word, targets: targetsIn, expected = SLOT_C
       .then(() => listen(model, grammar, callbacks, {
         autoStopMs: PAUSE_STOP_MS, completeMs: FULL_STOP_MS, maxMs: SESSION_MAX_MS, session: sayAudioSessionType(), chunk: 2048, stream: getStream?.() ?? undefined, gain: micGain(), // gain: «Чувствительность микрофона» HUD (gameMicGain.js) — усиление перед Vosk; уровень для колец считается уже по усиленному звуку
         // готовый поток игры (iPhone) — без нового диалога; куски по 2048 кадров (≈ 46 мс при 44,1 кГц, 43 мс при 48 кГц): громкость для пилюль приходит ≈ 22 раза в секунду, а главный поток получает вдвое меньше вызовов (1024 кадров — 23 мс — на слабом телефоне съедали заметную долю кадра);
-        gate, cleanPartial, isComplete: text => analyzeTargets(text, targets).seq.length >= remaining(),
+        gate, cleanPartial, isComplete: text => analyzeTargets(text, targets, true, lang).seq.length >= remaining(),
       }))
       .then(h => { if (disposed || cur !== session) { try { h?.cancel() } catch { /* уже свободен */ } return } session.handle = h; if (session.stopped) h.stop() },
         e => { if (cur === session) { pLog(`[word-lane] микрофон не открылся: ${e?.name ?? e}`); cur = null; publish({ status: 'error', error: e?.name || 'mic' }) } })
@@ -171,7 +179,7 @@ export function createWordListener({ word, targets: targetsIn, expected = SLOT_C
         stop()
       })
     },
-    available: () => !!runtime.getModel(),
+    available: () => noVosk || !!runtime.getModel(),
     /** Когда распознаватель последний раз что-то слышал (включая повторные черновики с тем же текстом, которые onChange уже не получает) */
     heardAt: () => heardAt,
     /** Что услышал движок последним («…» вместо неразобранного слова): директор «Гонки» по нему узнаёт «сказал двойник» на промахе */

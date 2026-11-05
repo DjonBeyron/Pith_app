@@ -133,7 +133,7 @@ describe('useRaceActs: директор гонки поверх директор
     expect(neededTexts(racePlan())).toEqual(expect.arrayContaining(['learn', 'earn', 'to learn']))
     expect(neededTexts(racePlan()).length).toBeGreaterThan(neededTexts(normalizePlan(fixturePlan('three'))).length) // добор «Разгона»
     const next = nextPlan(racePlan()); expect(next.game).toBe('race'); expect(next.run).toBe(1); expect(next.phrase).not.toBe(racePlan().phrase)
-    expect(readRehearsalCfg(racePlan()).title).toBe('Гонка с Питом')
+    expect(readRehearsalCfg(racePlan()).title).toBe('Встряхни память')
     expect(nextPlan(normalizePlan(fixturePlan('three'))).game).toBeUndefined()
   })
   it('проводка: игра зовёт директор гонки, спуск включает setRateBoost 1,1, итог — reportRace; журнал — строки [race]', () => {

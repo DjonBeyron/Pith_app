@@ -13,6 +13,7 @@ const memory = () => { const m = new Map(); return { getItem: k => m.get(k) ?? n
 function play(events) { let s = initRace(); for (const [t, sid, info] of events) s = reduceRace(s, { t, stage: stage(sid), info }).state; return s }
 const ENTER_ALL = [['enter', 'sprint'], ['enter', 'catch']]
 const words = stage('catch').words
+words[2] = { ...words[2], trap: true } // в игре с v3.3.118 ловушек в проходе B нет; редюсер и итог их по-прежнему понимают — подставляем одну
 const iBad = words.findIndex(w => !w.trap) // верная пилюля, на которой ошибёмся
 const catchGold = words.flatMap((w, i) => (w.trap ? [['fail', 'catch', { idx: i }]] : [['claim', 'catch', { idx: i, ms: 1000 + i * 100 }], ['win', 'catch', { idx: i }]])) // верные — сказано, ловушки — пропущены
 const goldRun = () => play([

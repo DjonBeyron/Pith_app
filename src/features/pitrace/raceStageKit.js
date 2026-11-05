@@ -1,4 +1,4 @@
-// Общий набор для сборки стадий «Гонки с Питом» (raceStages*.js): длина озвучки слова, список стадий, плашка раунда, шаг ученика. Чистые функции. Формат стадий — тот же, что у репетиции (rehearsalStages.js) и обычной игры
+// Общий набор для сборки стадий игры «Встряхни память» («Гонка с Питом») (raceStages*.js): длина озвучки слова, список стадий, плашка раунда, шаг ученика. Чистые функции. Формат стадий — тот же, что у репетиции (rehearsalStages.js) и обычной игры
 // (wordLaneStages.js): announce / dictor / turn / student / discern; сверх формата — race: true, act (sprint, catch, climb, descent, summary) и поля раундов (words, k, ci).
 import { normText } from '../player/modules/rotate-phone/wordLaneRecipe.js'
 import { makeLib } from '../player/modules/rotate-phone/wordLaneLib.js'
@@ -6,6 +6,7 @@ import { estChunkMs } from '../player/modules/rotate-phone/wordLaneAudio.js'
 import { raceTexts } from './raceTexts.js'
 import { vocabOf } from './raceWords.js'
 import { goodPlan } from './raceGood.js'
+import { standbyWords } from './raceStandby.js'
 
 export const RACE_ANNOUNCE_MS = 1700 // плашка раунда
 export const RACE_TOP_MS = 2600      // вершина: золотая плашка и реплика Пита
@@ -35,31 +36,38 @@ export function createKit({ plan, rate = 1, lib = () => null }) {
 export const stepOf = (id, o) => ({ id, kind: 'student', labels: [], active: [0, 1, 2], ...o })
 
 /**
- * Ступень очереди пилюль «Разгона» и «Слушай и лови» (одна общая механика, CONCEPT_RACE.md): N повторов по одному слову, у каждого своя дорожка (lane) и скорость (speed); rep(w) — поля, чем этап отличается (cap — перевод внутри пилюли,
- * say — слово, которое Пит говорит голосом перед выездом, trap — пилюля с чужим переводом). Флаги ступени (движок читает их сам, wordLaneStudent.js): overlap — очередь, следующая пилюля выезжает сразу, как текущая принята или недоступна;
+ * Ступень очереди пилюль проходов A и B (одна общая механика, CONCEPT_RACE.md): N повторов по одному слову, у каждого своя дорожка (lane) и скорость (speed); rep(w) — поля, чем проход отличается (cap — надпись внутри пилюли,
+ * say — слово, которое Пит говорит голосом перед выездом, trap — пилюля с чужим английским словом). Флаги ступени (движок читает их сам, wordLaneStudent.js): overlap — очередь, следующая пилюля выезжает сразу, как текущая принята или недоступна;
  * quiet — промах без полос и без английского слова (на неверное слово микро-анимация на самой пилюле, упущенная уезжает молча); edge — у краёв экрана пилюля чуть меньше; holdAll — следующая пилюля ждёт, пока Пит договорит; preSay — перед выездом
  * Пит говорит перевод / слово (useRaceActs.pre); preGap — выдержка PRE_SAY_GAP_MS перед этим голосом после зачёта и «не успел»; claimGap + goodAt — на принятиях с репликой успеха (raceGood.js) следующая пилюля через CLAIM_GAP_MS. maxTries 1: упущенную не повторяют.
+ * o: target(w) — что ученик должен СКАЗАТЬ (по умолчанию английское слово; в проходе B — русский перевод), lang 'ru' — слушает русская модель (словарь — переводы круга, двойников нет), tapOnly — модель не нужна: ответ только тапом по трём пилюлям.
  */
-export function queueStep(kit, id, words, good, rep) {
-  const targets = words.map(w => w.text)
+export function queueStep(kit, id, words, good, rep, o = {}) {
+  const targets = words.map(w => o.target?.(w) ?? w.text)
   return stepOf(id, {
     parts: words.map((_, i) => i), text: targets.join(' '), chunks: targets, chunkMs: targets.map(t => kit.msOf(t)),
     reps: words.map((w, i) => ({ parts: [i], lane: w.lane, speed: w.speed, ...rep(w) })),
-    extra: vocabOf(targets, words.flatMap(w => [...w.confusers, ...kit.doubles(w.text)])), maxWords: 2, maxTries: 1, overlap: true,
+    extra: o.lang === 'ru' ? [] : vocabOf(targets, words.flatMap(w => [...w.confusers, ...kit.doubles(w.text)])), maxWords: 2, maxTries: 1, overlap: true,
     quiet: true, edge: true, holdAll: true, preSay: true, preGap: PRE_SAY_GAP_MS, claimGap: CLAIM_GAP_MS, goodAt: good.map(g => g.at),
+    ...(o.lang ? { lang: o.lang } : {}), ...(o.tapOnly ? { tapOnly: true } : {}),
   })
 }
 
 /**
- * Стадии этапа-очереди act (sprint или catch): плашка + круг 1 (sid = act.id) + реплика второго круга + круг 2 (sid = act.id + '2'). Стадии второго круга стоят в списке всегда; директор идёт на них, только если в первом круге были ошибки,
- * и перед этим вписывает слова в круг 2 (stage.fill, raceSprint2.js). rep(w) — как у queueStep.
+ * Стадии прохода act (sprint или catch): [переключение слуха, если o.before] + плашка (или объявление без плашки, o.plain) + круг 1 (sid = act.id) + реплика дополнительного круга + круг 2 (sid = act.id + '2'). Стадии круга 2 стоят в списке всегда;
+ * директор идёт на них, только если слабых слов две и больше, и перед этим вписывает слова в круг 2 (stage.fill, raceExtraRound.js). rep(w) — как у queueStep. o.mapStandby(w) — как дежурное слово выглядит в этом проходе
+ * (поля shown / trap); дежурные слова лежат в stage.standby круга 1. o.lang / o.tapOnly / o.target — см. queueStep; у круга 1 есть demote(): русская модель не включилась — проход переводится на тап.
  */
-export function queueStages(kit, act, rep) {
+export function queueStages(kit, act, rep, o = {}) {
   const { push, announce, plan } = kit
   const sid2 = `${act.id}2`
-  const round = (sid, list, first) => { const good = goodPlan(plan.seed, sid, list.length, { first }); return { type: 'student', act: act.id, sid, step: queueStep(kit, sid, list, good, rep), words: list, good } }
-  announce(act)
-  push(round(act.id, act.words, true))
+  const ctl = { lang: o.lang, tapOnly: !!o.tapOnly }
+  const standby = standbyWords(act.words).map(w => o.mapStandby?.(w) ?? w)
+  const round = (sid, list, first) => { const good = goodPlan(plan.seed, sid, list.length, { first }); return { type: 'student', act: act.id, sid, step: queueStep(kit, sid, list, good, rep, { target: o.target, lang: ctl.lang, tapOnly: ctl.tapOnly }), words: list, good } }
+  const demote = () => { ctl.lang = undefined; ctl.tapOnly = true; kit.stages.filter(x => x.act === act.id && x.type === 'student').forEach(x => { delete x.step.lang; x.step.tapOnly = true }) }
+  o.before?.()
+  announce(act, o.plain ? { title: '', task: '', ms: ROUND2_ANN_MS } : undefined)
+  push({ ...round(act.id, act.words, true), standby, demote })
   announce(act, { sid: sid2, title: '', task: '', line: 'race_sprint_round2', ms: ROUND2_ANN_MS })
   push({ ...round(sid2, act.words, false), fill: list => Object.assign(kit.stages.find(x => x.sid === sid2), round(sid2, list, false)) })
 }

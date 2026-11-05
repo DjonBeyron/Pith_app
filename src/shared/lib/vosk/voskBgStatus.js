@@ -5,22 +5,34 @@ import { REASON_TEXT } from './voskBgPolicy.js'
 import { fmtMb } from './voskDownload.js'
 
 export const INITIAL_STATUS = { state: 'idle', pct: null, loaded: 0, total: null, reason: null, error: '', mode: null, attempt: 0 }
-let snap = INITIAL_STATUS
-const subs = new Set()
 
-export const getBgStatus = () => snap
-export function setBgStatus(patch) {
-  snap = { ...snap, ...patch }
-  subs.forEach(f => f())
+/** Одно хранилище статуса фоновой загрузки: get / set / reset / subscribe / onCached. Английская модель — основное (ниже), русская — отдельное (lang 'ru'), чтобы их загрузки не путали статус друг друга */
+export function createBgStatus() {
+  let snap = INITIAL_STATUS
+  const subs = new Set()
+  const get = () => snap
+  const set = patch => { snap = { ...snap, ...patch }; subs.forEach(f => f()) }
+  const subscribe = fn => { subs.add(fn); return () => subs.delete(fn) }
+  /** Один раз сообщить, когда статус стал «в кэше» (переход, а не каждый шаг прогресса). Возвращает отписку */
+  const onCached = fn => {
+    let was = snap.state === 'cached'
+    return subscribe(() => { const now = snap.state === 'cached'; const fire = now && !was; was = now; if (fire) fn() })
+  }
+  return { get, set, reset: () => set({ ...INITIAL_STATUS }), subscribe, onCached }
 }
-export const resetBgStatus = () => setBgStatus({ ...INITIAL_STATUS })
-export function subscribeBgStatus(fn) { subs.add(fn); return () => subs.delete(fn) }
-/** Один раз сообщить, когда статус стал «в кэше» (переход, а не каждый шаг прогресса). Возвращает отписку. Для прогрева модели, если фоновая загрузка закончилась при открытой панели */
-export function onBgCached(fn) {
-  let was = snap.state === 'cached'
-  return subscribeBgStatus(() => { const now = snap.state === 'cached'; const fire = now && !was; was = now; if (fire) fn() })
-}
-export const useBgStatus = () => useSyncExternalStore(subscribeBgStatus, getBgStatus)
+
+const main = createBgStatus()
+const ru = createBgStatus()
+/** Хранилище статуса по языку модели: 'ru' — русская, иначе английская */
+export const bgStatusOf = (lang = 'en') => (lang === 'ru' ? ru : main)
+
+export const getBgStatus = main.get
+export const setBgStatus = main.set
+export const resetBgStatus = main.reset
+export const subscribeBgStatus = main.subscribe
+/** Один раз сообщить, когда статус стал «в кэше» (lang — какая модель). Возвращает отписку. Для прогрева модели, если фоновая загрузка закончилась при открытой панели */
+export const onBgCached = (fn, lang = 'en') => bgStatusOf(lang).onCached(fn)
+export const useBgStatus = (lang = 'en') => { const st = bgStatusOf(lang); return useSyncExternalStore(st.subscribe, st.get) }
 
 /** Одна строка для админа. inCache — модель уже лежит в кэше (по peek), даже если фоновая загрузка в этой сессии ничего не качала */
 export function bgStatusText(s, inCache = false) {

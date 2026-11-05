@@ -60,9 +60,9 @@ describe('границы слоёв и бандл', () => {
     expect(users).toEqual(['shared/lib/vosk/voskEngine.js'])
     expect(code(read('shared/lib/vosk/voskEngine.js'))).not.toMatch(/^import[^\n]*vosk-browser/m)
   })
-  it('прогрев модели (acquire) зовут только распознаватель модуля, ранний прогрев урока (sayLessonWarm.js, отдельный чанк) и общая проверка готовности useVoskReady (мини-игра «Скажи вслух», тоже лениво); панель-обёртка и App не тянут Vosk в основной бандл', () => {
+  it('прогрев модели (acquire) зовут только распознаватель модуля, ранний прогрев урока (sayLessonWarm.js, отдельный чанк) и общая проверка готовности useVoskReady (мини-игра «Скажи вслух», тоже лениво), переключатель слуха «Встряхни память» (pitrace/raceSwitch.js: русская модель) и её фасад voskRuntimes.js; панель-обёртка и App не тянут Vosk в основной бандл', () => {
     const acquirers = files.filter(p => /\.acquire\(/.test(code(readFileSync(p, 'utf8')))).map(p => p.slice(src.length)).sort()
-    expect(acquirers).toEqual(['shared/lib/speech/sayLessonWarm.js', 'shared/lib/speech/sayRecognizer.js', 'shared/lib/vosk/useVoskReady.js'])
+    expect(acquirers).toEqual(['features/pitrace/raceSwitch.js', 'shared/lib/speech/sayLessonWarm.js', 'shared/lib/speech/sayRecognizer.js', 'shared/lib/vosk/useVoskReady.js', 'shared/lib/vosk/voskRuntimes.js'])
     expect(code(read('features/learn/say-aloud/SayAloudLaunch.jsx'))).toContain("lazy(() => import('./SayAloudOverlay.jsx'))") // хук читает runtime только из слоя игры, вкладка «Память» его статически не тянет
     expect(code(read('features/player/useLessonWarmups.js'))).toContain("import('../../shared/lib/speech/sayLessonWarm.js')") // плеер урока не тянет runtime / движок статически
     expect(code(read('features/player/PlayerPanels.jsx'))).not.toMatch(/voskRuntime|sayLessonWarm|voskEngine/)

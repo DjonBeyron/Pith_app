@@ -102,7 +102,7 @@ export function useWordLaneFlow({ chunks, translation, lang, clips = null, audio
       catApi?.current?.peek?.()
       if (rep.last) xpApi.current?.add(XP_PER_PILL * rep.count, rect) // у повтора из нескольких кусков одна цифра («+6»), когда принят последний кусок
     },
-    miss(e) { rh.rec('miss', e?.rep); catApi?.current?.react('shy', 1300, !!stages[sRef.current.idx]?.step?.quiet) }, claim(e) { rh.claim?.(e.rep, e.ms) }, pre(e) { rh.pre?.(e.rep) },
+    miss(e) { rh.rec('miss', e?.rep); catApi?.current?.react('shy', 1300, !!stages[sRef.current.idx]?.step?.quiet) }, claim(e) { rh.claim?.(e.rep, e.ms, e.y) }, pre(e) { rh.pre?.(e.rep) },
     fail(e) {
       const st = stages[sRef.current.idx]
       catApi?.current?.react('shy', 1300, !!st?.step?.quiet); rh.rec('fail', e.rep) // quiet («Разгон»): упущенная пилюля уезжает молча — голова Пита не двигается (react с still)
@@ -193,7 +193,7 @@ export function useWordLaneFlow({ chunks, translation, lang, clips = null, audio
     const { texts } = stepTargets(listenStep, listenStep.chunks ?? chunks) // репетиция: цель — слово (step.chunks), словарь Vosk шире цели (step.extra)
     let wordsHeard = 0
     const l = createWordListener({
-      targets: [...texts, ...(listenStep.extra ?? [])], expected: listenStep.reps.length, maxWords: listenStep.maxWords, gate: !listenStep.record, restartMs: listenStep.record ? 0 : undefined, level: rms, getStream: guardStream(getGameMic), isHeld: gameMicHold.active, onDebug: dbg.enabled ? dbg.listen : null,
+      targets: [...texts, ...(listenStep.extra ?? [])], expected: listenStep.reps.length, maxWords: listenStep.maxWords, lang: listenStep.lang, noVosk: !!listenStep.tapOnly, gate: !listenStep.record, restartMs: listenStep.record ? 0 : undefined, level: rms, getStream: guardStream(getGameMic), isHeld: gameMicHold.active, onDebug: dbg.enabled ? dbg.listen : null,
       onChange: ({ status, seq, misses, heard, tail, heardAt }) => {
         signalRef.current = { tail, heardAt }
         const words = seq.length * 8 + (tail?.tokens ?? 0) // растёт с каждым услышанным словом (недосказанная цель — по токенам, засчитанная — по номеру в seq)

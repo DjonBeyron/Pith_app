@@ -55,10 +55,11 @@ describe('чужие пилюли', () => {
 
 describe('ступень для движка в тапе', () => {
   it('верная пилюля — обычный перевод слова; ловушка «Слушай и лови» снята (выбор и есть задание); остальные поля ступени целы', () => {
-    const t = trioStep(catchSt.step, ctx(catchSt))
+    const trapped = { ...catchSt.step, reps: catchSt.step.reps.map((r, i) => (i === 1 ? { ...r, trap: true } : r)) } // ловушек в проходе B больше нет, но тройка всё равно снимает их с ступени
+    const t = trioStep(trapped, ctx(catchSt))
     t.step.reps.forEach((r, i) => { expect(r.cap).toBe(catchSt.words[i].translation); expect(r.trap).toBe(false); expect(r.say).toBe(catchSt.step.reps[i].say) })
-    expect(catchSt.words.some(w => w.trap)).toBe(true) // в исходной ступени ловушки были, в тройке их нет
-    expect(t.step.overlap).toBe(true); expect(t.step.maxTries).toBe(1); expect(catchSt.step.reps.some(r => r.trap)).toBe(true) // исходная ступень не мутирована
+    expect(trapped.reps.some(r => r.trap)).toBe(true) // в исходной ступени ловушка была, в тройке её нет
+    expect(t.step.overlap).toBe(true); expect(t.step.maxTries).toBe(1); expect(trapped.reps[1].trap).toBe(true) // исходная ступень не мутирована
     expect(trioStep({ reps: [] }, ctx(sprint))).toBeNull(); expect(trioStep(sprint.step, { words: [] })).toBeNull()
   })
   it('движок принимает ступень тройки: верная пилюля одна на повтор, цель — слово повтора', () => {

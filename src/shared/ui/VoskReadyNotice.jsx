@@ -1,27 +1,30 @@
 import { NEED_TITLE } from '../lib/vosk/voskReadyView.js'
+import { VOSK_RU_SIZE_TEXT } from '../lib/vosk/voskConfigRu.js'
 import '../../styles/vosk-notice.css'
 
 // Уведомление «Нужно скачать распознавание речи (≈39 МБ)» — общее для всех мест, где нужен Vosk (мини-игра «Скажи вслух», дальше «Сказать фразу»; решение 20 плана нового пользователя).
 // Получает результат useVoskReady (status + download/retry) и рисует нужное состояние: готовим / нужно скачать (кнопка) / качается (прогресс) / ждём сеть / ошибка загрузки / не включилось.
-// Системное распознавание не предлагается и не подставляется. Готово (ready) — ничего не рисует: экран показывает свой контент.
+// Системное распознавание не предлагается и не подставляется. Готово (ready) — ничего не рисует: экран показывает свой контент. vosk.lang === 'ru' — русская модель («Встряхни память», проход «назови перевод»): те же состояния, другие слова.
 export default function VoskReadyNotice({ vosk }) {
   const { status } = vosk
   if (status === 'ready') return null
   if (status === 'preparing') return <p className="voskNotice voskNotice--plain" role="status" data-testid="vosk-notice">Готовлю распознавание речи…</p>
 
+  const ru = vosk.lang === 'ru'
+  const what = ru ? 'русское распознавание речи' : 'распознавание речи'
   const pct = Number.isFinite(vosk.pct) ? Math.max(0, Math.min(100, vosk.pct)) : null
   return (
     <div className="voskNotice" role="status" data-status={status} data-testid="vosk-notice">
       {status === 'need' && (
         <>
-          <p className="voskNoticeTitle">{NEED_TITLE}</p>
+          <p className="voskNoticeTitle">{ru ? `Нужно скачать русское распознавание речи (${VOSK_RU_SIZE_TEXT})` : NEED_TITLE}</p>
           <p className="voskNoticeSub">Оно работает прямо на телефоне. Скачать нужно один раз</p>
           <button type="button" className="voskNoticeBtn" onClick={vosk.download} data-testid="vosk-download">Скачать</button>
         </>
       )}
       {status === 'downloading' && (
         <>
-          <p className="voskNoticeTitle">Скачиваем распознавание речи…</p>
+          <p className="voskNoticeTitle">Скачиваем {what}…</p>
           <div className="voskNoticeBar" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={pct ?? undefined}>
             <i style={{ width: `${pct ?? 4}%` }} />
           </div>
@@ -43,7 +46,7 @@ export default function VoskReadyNotice({ vosk }) {
       )}
       {status === 'failed' && (
         <>
-          <p className="voskNoticeTitle">Распознавание речи не включилось</p>
+          <p className="voskNoticeTitle">{ru ? 'Русское распознавание речи не включилось' : 'Распознавание речи не включилось'}</p>
           <p className="voskNoticeSub">{vosk.text || 'Попробуй ещё раз чуть позже'}</p>
           {vosk.stage === 'importing-lib' && <p className="voskNoticeSub">Библиотека не загрузилась, перезагрузи страницу</p>}
           {vosk.stage === 'importing-lib'
