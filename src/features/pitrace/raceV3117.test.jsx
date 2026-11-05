@@ -109,15 +109,16 @@ describe('конвейер: три независимые дорожки', () =>
     const [da, db, dc] = [a, b, c].map(adv); expect(da).toBeLessThan(db); expect(db).toBeLessThan(dc); expect(da / db).toBeCloseTo(0.96, 2); expect(dc / db).toBeCloseTo(1.04, 2)
     expect(createLane().k).toBe(1); expect(createLane().y).toBe(0); expect(createLane().per).toBe(PERIOD) // обычная нода без изменений
   })
-  it('привод включает режим гонки по [data-race] на корне и не пишет длину штрихов; CSS — «---|---:---» одной маской с периодом RACE_PERIOD', () => {
+  it('привод включает режим гонки по [data-race] на корне и не пишет длину штрихов; CSS — узор-линейка: три поперечных деления, вертикальная черта, три деления, две точки', () => {
     const drv = read('../player/modules/rotate-phone/laneConveyorDrive.js'); expect(drv).toContain("closest?.('[data-race]')"); expect(drv).toContain('createLane(race ? i : -1)')
     const c = strip(css('word-lane-lane-run.css')), r = /\.wl\[data-race\] \.wlLanes i::before \{[^}]*\}/.exec(c)[0]
-    expect(r).toContain(`--run-p: ${RACE_PERIOD}dvh`); expect(r.match(/mask-image: repeating-linear-gradient/g).length).toBe(2) // -webkit- и стандартное свойство: одна и та же маска
-    const m = /(?<!-webkit-)mask-image: repeating-linear-gradient\(to bottom, ([^;]*)\);/.exec(r)[1]
-    const segs = [...m.matchAll(/(#000|transparent) ([\d.]+)(?:dvh)? (?:([\d.]+)dvh|var\(--run-p\))/g)].map(x => ({ on: x[1] === '#000', from: Number(x[2]), to: x[3] ? Number(x[3]) : RACE_PERIOD }))
-    const on = segs.filter(s => s.on).map(s => +(s.to - s.from).toFixed(2))
-    expect(on).toEqual([1.2, 1.2, 1.2, 4.4, 1.2, 1.2, 1.2, 0.7, 0.7]) // три коротких, длинная, три коротких, две точки
-    expect(segs.at(-1).to).toBe(RACE_PERIOD); expect(segs[0].from).toBe(0); segs.forEach((s, i) => { if (i) expect(s.from).toBe(segs[i - 1].to) })
+    expect(r).toContain(`--run-p: ${RACE_PERIOD}dvh`); expect(r).toContain('mask-image: none'); expect(r).toContain('width: 10px') // маски нет, слой шириной 10 px — деления поперёк дорожки
+    const layers = /background:\s*([^;]*);/.exec(r)[1].split(/repeat-y,\s*linear-gradient\(/)
+    expect(layers.length).toBe(3) // деления, черта, точки
+    expect((layers[0].match(/var\(--run-c\) [\d.]+(?:dvh)? (?:calc\([^)]*\)|1px)/g) || []).length).toBe(6) // шесть поперечных делений по 1 px (3 + 3)
+    expect(layers[1]).toContain('7.2dvh 11.6dvh') // вертикальная черта 4,4 dvh
+    expect((layers[2].match(/var\(--run-c\)/g) || []).length).toBe(2) // две точки
+    expect(r).toContain('left top / 10px var(--run-p) repeat-y'); expect(r).toContain('center top / 1px var(--run-p) repeat-y'); expect(r).toContain('center top / 2px var(--run-p) repeat-y') // деления во всю ширину, черта и точки по центру
     expect(c).not.toMatch(/animation|@keyframes|filter/)
   })
 })
