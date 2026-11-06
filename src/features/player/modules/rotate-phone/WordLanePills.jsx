@@ -20,11 +20,11 @@ import { reducedMotion } from './laneConveyorDrive.js'
 // «зажигается» волной, плавно разгоняется до скорости пилюль и тормозит, когда пилюль на дорожке не осталось (их считает по data-held / data-lane); paused — игра на паузе, привод стоит. Стили — word-lane-lane-run.css.
 // Мемоизирован (memo): пилюли (12 штук × 9 узлов) перерисовываются, только когда сменилась сцена / «слух» / видимость, а не на каждый шаг оверлея (подпись кота, подсказка, награда). Все пропсы стабильны
 // по ссылке: сцена, слух и колбэки — useMemo / useCallback в useWordLaneFlow. Сами пилюли живут вне React: движок (useWordLanePills) пишет им стили и анимации прямо в DOM.
-function WordLanePills({ scene, levels, fx, live, sceneApi, visible, onLane, armed = RUN_NONE, paused = false, speed = null, speedKey = null, trio = null }) {
+function WordLanePills({ scene, levels, fx, live, sceneApi, visible, onLane, armed = RUN_NONE, paused = false, speed = null, speedKey = null, trio = null, dodge = false }) {
   const rootRef = useRef(null)
   const [lite] = useState(isWeakDevice) // слабое устройство (wl--lite): без частиц в заливке (word-lane-pill.css)
   const [safe] = useState(isPillSafe) // «безопасный» режим слоёв для iOS (wl--safe, localStorage pithy_wl_pill_safe_v1 = 1): без will-change и слоёв частиц, контур дважды (word-lane-pill-safe.css)
-  useWordLanePills(rootRef, { scene, levels, fx, live, sceneApi, trio })
+  useWordLanePills(rootRef, { scene, levels, fx, live, sceneApi, trio, dodge })
   const [still] = useState(() => lite || reducedMotion()) // слабое устройство и reduced-motion: пунктир без движения, только яркость
   useLaneConveyor(rootRef, { armed, paused, still, speed, speedKey })
   return (

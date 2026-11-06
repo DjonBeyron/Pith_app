@@ -67,13 +67,14 @@ export default function WordLaneGame({ cfg, audioSrc, lines = null, forceDebug =
   const debug = isWordLaneDebug()
   const race = cfg.plan?.game === 'race' // гонка: подсказки «Тап вместо речи» над дорожкой нет (тап выбирается плашкой «Говорю / Тапаю» до старта), фон с узором, верхняя панель вместо крестика
   const trio = useMemo(() => (race && trioFor({ tap: tapMode, stage: f.stageObj }) ? trioCtx(cfg.plan, f.stageObj) : null), [race, tapMode, f.stageObj, cfg.plan]) // «Тапаю»: «Разгон» и «Слушай и лови» — три пилюли на слово (raceTapTrio.js); решается на старте ступени
+  const dodge = race && !tapMode && !f.stageObj?.step?.tapOnly && !['climb', 'descent'].includes(f.stageObj?.act) // «Говорю»: Пит под пилюлей и уворачивается (pitrace/raceDodge.js); тап, вершина и спуск — без уворота
   const laneTap = useCallback(lane => { const api = f.sceneApi.current; if (api?.trio && !api.trio(lane)) return; f.onLane(lane) }, [f.sceneApi, f.onLane]) // eslint-disable-line react-hooks/exhaustive-deps -- тройка: тап по чужой пилюле — ошибка (дрожь), по верной дорожке — слово засчитывается как обычно
 
   return createPortal(
     <div ref={rootRef} className={safe0 ? 'wl wl--safe' : 'wl'} data-phase={phase} data-act={f.rh.on ? f.stageObj?.act : undefined} data-sid={f.rh.on ? f.stageObj?.sid : undefined} data-streak={f.rh.race?.streakMode} data-charge={cfg.plan?.game === 'race' && chargeOn(f) ? '' : undefined} data-race={race ? '' : undefined} data-testid="wl">
       <div className="wlStage" data-tex={race && !lite ? '' : undefined}>
         <WordLaneCat apiRef={catApi} />
-        <WordLanePills scene={f.scene} levels={f.levels} fx={f.fx} live={f.live} sceneApi={f.sceneApi} visible={showSlots} armed={armed} speed={speed} paused={f.paused} speedKey={f.stage === 'run' ? f.idx : -1} trio={trio} onLane={phase === 'order' || (phase === 'discern' && !f.stageObj?.speak) || ((tapMode || f.stageObj?.step?.tapOnly) && (phase === 'student' || f.stageObj?.speak)) ? laneTap : null} />
+        <WordLanePills scene={f.scene} levels={f.levels} fx={f.fx} live={f.live} sceneApi={f.sceneApi} visible={showSlots} armed={armed} speed={speed} paused={f.paused} speedKey={f.stage === 'run' ? f.idx : -1} trio={trio} dodge={dodge} onLane={phase === 'order' || (phase === 'discern' && !f.stageObj?.speak) || ((tapMode || f.stageObj?.step?.tapOnly) && (phase === 'student' || f.stageObj?.speak)) ? laneTap : null} />
         <WordLaneXp apiRef={f.xpApi} />
         {single
           ? <div className="wlWord" style={{ top: `${WORD_Y}%` }} data-testid="wl-word">{cfg.chunks[0]}</div>
