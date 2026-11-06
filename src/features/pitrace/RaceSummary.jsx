@@ -3,13 +3,14 @@ import { plateLite } from '../player/modules/rotate-phone/wordLanePlateExit.js'
 import { startExit, exitMs } from '../rehearsal/rehearsalExit.js'
 import { climbTitle } from './raceSim.js'
 import RaceMetrics from './RaceMetrics.jsx'
+import RaceAccuracyBar from './RaceAccuracyBar.jsx'
 import { STAGES_ROUND } from './raceOnly.js'
 
 // Итог гонки (CONCEPT_RACE.md, «Финиш») — плашка в стиле итога репетиции (RehearsalSummary.jsx: узор .wlTurn, блеск от центра, полёт при выходе rehearsalExit.js): разгон N/M, слух N/3, вершина — медаль, спуск ✓ / ✗, XP,
 // над ними метрики (RaceMetrics.jsx, raceMetrics.js): точность по этапам, среднее время ответа, самое медленное слово, ловушки; под счётом «Самые слабые слова» — чипы слов обоих этапов от слабых к сильным (raceWeak.js, не больше 8), цвет по слабости, перевод мелко;
 // в режиме «Вспомни на слух + финал» (plan.round === 'stages') строк «Вершина» и «Спуск» нет; вопрос «Ещё заезд?» и кнопки «Ещё заезд» (следующий план, run + 1) и «Нет». result — итог raceSim.reportRace или null, пока не посчитан; onAgain — null, если следующего плана нет (один раунд, шлифовка).
 // onShown — итог показан (один раз): карточка игры прогревает озвучку следующего плана. (Не путать с features/race/RaceSummary.jsx — итогом супер-урока недельной гонки: это другая функция.)
-// Экран итога на всю сцену (v3.3.118): заголовок «Встряхни память: итог», счёт проходов, метрики двумя строками, список слов от слабых к сильным (строка: слово, перевод, пометка, цвет по слабости — стиль «Моей памяти»), кнопки внизу.
+// Экран итога на всю сцену (v3.3.118): заголовок «Встряхни память: итог», счёт проходов, метрики двумя строками, список слов от слабых к сильным (строка: слово, перевод, пометка, цвет по слабости — стиль «Моей памяти»; у каждого слова — полоса точности RaceAccuracyBar.jsx, raceAccuracy.js), кнопки внизу.
 const mark = d => (d === 'ok' ? '✓' : d === 'miss' ? '✗' : '—')
 
 export default function RaceSummary({ plan, result, onAgain = null, onShown = null, onDone }) {
@@ -42,7 +43,7 @@ export default function RaceSummary({ plan, result, onAgain = null, onShown = nu
       {r?.weak?.length > 0 && (
         <section className="raceWeak" data-testid="race-weak">
           <h3 className="raceWeakTitle">Слова: от слабых к сильным</h3>
-          <ul className="raceWeakList">{r.weak.map(w => <li key={w.text} className="raceWeakChip" data-tone={w.tone} data-note={w.note} data-testid="race-weak-chip"><span className="raceWeakText"><span className="raceWeakWord">{w.text}</span>{w.translation && <span className="raceWeakCap">{w.translation}</span>}</span><span className="raceWeakNote" data-testid="race-weak-note">{w.note}</span></li>)}</ul>
+          <ul className="raceWeakList">{r.weak.map(w => <li key={w.text} className="raceWeakChip" data-tone={w.tone} data-note={w.note} data-testid="race-weak-chip"><span className="raceWeakText"><span className="raceWeakWord">{w.text}</span>{w.translation && <span className="raceWeakCap">{w.translation}</span>}</span><span className="raceWeakNote" data-testid="race-weak-note">{w.note}</span><RaceAccuracyBar acc={w.acc} /></li>)}</ul>
         </section>
       )}
       <div className="rhBtns rhBtns--row raceFinalBtns">

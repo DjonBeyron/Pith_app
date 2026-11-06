@@ -62,10 +62,12 @@ describe('итог гонки и симуляция памяти', () => {
     expect(word[1].dueOn).toBe(dayKey(now + 86400000)) // промах — завтра
     expect(bad.getItem(SIM_KEY)).toBeTruthy()
   })
-  it('в журнал отладки идёт одна строка [race] итог', () => {
+  it('в журнал отладки идёт строка [race] итог и по строке точности на каждое слово итога', () => {
     const log = vi.fn()
-    reportRace({ plan, race: goldRun(), store: memory(), log })
-    expect(log).toHaveBeenCalledTimes(1); expect(log.mock.calls[0][0]).toMatch(/^\[race\] итог .*разгон (\d+)\/\1, слух (\d+)\/\2, ответ в среднем \d+ мс, вершина золото, спуск верно/)
+    const r = reportRace({ plan, race: goldRun(), store: memory(), log })
+    expect(log).toHaveBeenCalledTimes(1 + r.weak.length); expect(r.weak.length).toBeGreaterThan(0)
+    r.weak.forEach((w, i) => expect(log.mock.calls[i + 1][0]).toMatch(new RegExp(`^\\[race\\] итог: «${w.text}» \\d+ %`)))
+    expect(log.mock.calls[0][0]).toMatch(/^\[race\] итог .*разгон (\d+)\/\1, слух (\d+)\/\2, ответ в среднем \d+ мс, вершина золото, спуск верно/)
   })
   it('XP не больше потолка дня, общего с репетицией; повторный итог в тот же день добирает только остаток', () => {
     const store = memory(), now = Date.UTC(2026, 10, 3, 12)

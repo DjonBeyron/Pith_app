@@ -1,0 +1,14 @@
+/* Полоса точности слова в списке итога «Встряхни память» (features/pitrace/RaceAccuracyBar.jsx, расчёт — raceAccuracy.js): под словом и пометкой строки (.raceWeakChip, race-weak.css) — дорожка 6 px с заливкой
+   по проценту, число процентов справа и расшифровка одной строкой мелким. Цвет — ступени «Моей памяти» (memory-levels.css): < 40 % красноватый (как красный чип слабого слова), 40–55 --lvl1, 55–70 --lvl2,
+   70–85 --lvl3, от 85 --lvl4 (золото — сплошной цвет, без блика). Только фон, без фильтров, теней и анимаций; на 375 px строка не шире экрана (min-width: 0, многоточие). */
+.raceWeakChip { flex-wrap: wrap; row-gap: 6px; }
+.raceAcc { --acc: 255, 93, 115; flex: 1 0 100%; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.raceAcc--1 { --acc: var(--lvl1-rgb); }
+.raceAcc--2 { --acc: var(--lvl2-rgb); }
+.raceAcc--3 { --acc: var(--lvl3-rgb); }
+.raceAcc--4 { --acc: var(--lvl4-rgb); }
+.raceAccRow { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.raceAccTrack { position: relative; flex: 1 1 auto; min-width: 0; height: 6px; border-radius: 999px; background: rgba(255, 255, 255, 0.1); overflow: hidden; }
+.raceAccFill { position: absolute; top: 0; bottom: 0; left: 0; max-width: 100%; border-radius: inherit; background: rgb(var(--acc)); }
+.raceAccPct { flex: 0 0 auto; min-width: 3.4em; font-size: 12px; font-weight: 800; text-align: right; color: rgb(var(--acc)); font-variant-numeric: tabular-nums; }
+.raceAccNote { min-width: 0; font-size: 11px; font-weight: 600; opacity: 0.7; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

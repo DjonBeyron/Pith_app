@@ -2,6 +2,7 @@
 @import './race-metrics.css'; /* метрики: точность по этапам, время ответа, ловушки */
 @import './race-weak.css'; /* список слов от слабых к сильным (строки с пометкой) */
 @import './race-final.css'; /* экран итога на всю сцену */
+@import './race-accuracy.css'; /* полоса точности у каждого слова итога (raceAccuracy.js) */
 .raceSum--gold { border-color: var(--phrase-gold, #ffd257); box-shadow: 0 0 18px rgba(255, 210, 87, 0.3); }
 .raceSum--gold .wlRevealLabel { color: var(--phrase-gold, #ffd257); }
 .raceSum [data-medal='gold'] { color: var(--phrase-gold, #ffd257); }
