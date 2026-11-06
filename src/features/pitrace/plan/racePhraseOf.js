@@ -1,9 +1,10 @@
 // Одна фраза плана «Встряхни память» (этап 2 «Фразы», контракт plan.phrases — CONCEPT_RACE.md, «Данные: план из памяти»): модуль curricula → { id, text, key, words, ru, own, level, audio }. Чистые функции без сети.
 //   words — слова модуля: lesson_ids.slice(1, -1) → wordKey(lesson.title) (как learnView.js); уроков нет (без сети) — слова из word_translations, нет и их — слова названия;
 //   translation — из curricula.word_translations, level — levelOfWord(строка word_memory) (нет строки — 0);
-//   ru — смысл по-русски: app_settings.race_phrase_ru[key] → curricula.title_translation → '';
+//   ru — смысл по-русски: app_settings.race_phrase_ru[key] → черновик racePhraseRuDefaults.js → curricula.title_translation → '';
 //   audio — целая фраза: app_settings.game2_phrases['rh2_phrase:' + key] ({ url, duration }), нет файла — null (Пит читает по словам).
 import { normText } from '../../player/modules/rotate-phone/wordLaneRecipe.js'
+import { defaultPhraseRu } from './racePhraseRuDefaults.js'
 import { wordKey } from '../../../shared/lib/wordAudio/wordKey.js'
 import { levelOfWord } from '../../../shared/lib/memory/memoryLevels.js'
 
@@ -39,8 +40,8 @@ export function phraseAudio(audioMap, key) {
   return { url: e.url, duration: Number(e.duration) > 0 ? Number(e.duration) : null }
 }
 
-/** Смысл по-русски: race_phrase_ru[key] → перевод названия → '' */
-export const phraseRu = (ruMap, key, fallback) => clean(ruMap?.[key]) || clean(fallback)
+/** Смысл по-русски: race_phrase_ru[key] (правка админа) → черновик (racePhraseRuDefaults.js) → перевод названия → '' */
+export const phraseRu = (ruMap, key, fallback) => clean(ruMap?.[key]) || defaultPhraseRu(key) || clean(fallback)
 
 /** Минимум уровней слов (нет слов — 0) */
 export const phraseLevel = words => (words.length ? Math.min(...words.map(w => w.level)) : 0)
