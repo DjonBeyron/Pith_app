@@ -41,7 +41,8 @@ describe('racePhraseMeaning', () => {
     expect(isDirty(saved, { a: 'новое' })).toBe(true)
   })
   it('смыслы попадают в набор озвучки переводов (transTexts) и в свой набор блока', () => {
-    expect(transTexts({ words: [{ text: 'meet', translation: 'встретить' }], chunks: [], extraWords: [{ text: 'where', translation: 'где' }], phrases: plan.phrases })).toEqual(['встретить', 'где', 'скажи, что рад знакомству'])
+    const texts = transTexts({ words: [{ text: 'meet', translation: 'встретить' }], chunks: [], extraWords: [{ text: 'where', translation: 'где' }], phrases: plan.phrases })
+    expect(texts).toEqual(expect.arrayContaining(['встретить', 'где', 'скажи, что рад знакомству'])); expect(texts.at(-1)).toBe('скажи, что рад знакомству') // слова (с добором до 6 дежурными, v3.3.138) → смыслы фраз последними
     expect(meaningTexts(meaningRows(plan))).toEqual(['скажи, что рад знакомству'])
   })
   it('разметка: поля, «озвучено», «читается по словам», кнопки', () => {
