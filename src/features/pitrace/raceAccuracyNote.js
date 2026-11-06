@@ -1,6 +1,7 @@
 // Короткая расшифровка точности слова для итога «Встряхни память» и строка журнала (CONCEPT_RACE.md, раздел 0, «Точность слова»): по wordAccuracy (raceAccuracy.js) — одна строка мелким под полосой,
-// например «A 1,8 с · B промах · доп. круг ✓». Проход: время зачёта; «после промаха 2,1 с»; «промах» (было «не то» и зачёта нет); «не успел» (молчал); ловушка B — «ловушка ✓» / «поверил». Чистые функции без React.
+// например «A 1,8 с · B промах · доп. круг ✓ · во фразе Nice to meet you спутал». Проход: время зачёта; «после промаха 2,1 с»; «промах» (было «не то» и зачёта нет); «не успел» (молчал); ловушка B — «ловушка ✓» / «поверил». Чистые функции без React.
 import { fmtMs } from './raceMetrics.js'
+import { phraseNote } from './raceStatePhrases.js'
 
 /** Пометка одного результата пилюли */
 function resNote(r) {
@@ -24,6 +25,8 @@ export function accNote(acc) {
   const ex = parts.filter(([, p]) => p.extra && p.first.length)
   if (ex.length === 1) out.push(`доп. круг ${ex[0][1].extra.done ? '✓' : '✗'}`)
   else if (ex.length === 2) out.push(`доп. круг ${ex.map(([k, p]) => `${k} ${p.extra.done ? '✓' : '✗'}`).join(' ')}`)
+  const ph = phraseNote(acc.f) // этап «Фразы»: «во фразе Nice to meet you спутал»
+  if (ph) out.push(ph)
   return out.join(' · ')
 }
 

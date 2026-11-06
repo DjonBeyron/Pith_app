@@ -1,11 +1,12 @@
 // Состояние игры «Встряхни память» («Гонка с Питом») по ходу раундов — чистый редюсер без React (по нему работают директор useRaceActs, экран RaceClimb / RaceSummary и итог raceSim): события движка → серия «Разгона», результаты «Слушай и лови», лестница «Вершины», «Спуск».
-//  ev = { t: 'enter' | 'win' | 'miss' | 'fail' | 'timeout' | 'claim', stage, info, now }: stage — стадия (raceStages.js: act, words, ci, k, n), info — что знает движок о событии (info.idx — номер пилюли «Разгона»); enter — стадия началась;
+//  ev = { t: 'enter' | 'win' | 'miss' | 'fail' | 'timeout' | 'claim' | 'phrase', stage, info, now } (phrase — итог хода этапа «Фразы», info — событие raceStatePhrases.phraseEvent: s.phrases пополняется): stage — стадия (raceStages.js: act, words, ci, k, n), info — что знает движок о событии (info.idx — номер пилюли «Разгона»); enter — стадия началась;
 //  info.heard — что услышал Vosk (ставит директор на промахе): двойник слова ступени с ловушкой (raceTrap.js) — ловушка осыпается, trap в ответе = { said, word }, Пит говорит про двойника;
 //  now — часы (мс, performance.now): на первом заходе «Вершины» стартует общий таймер; timeout — общее время подъёма вышло (посылает директор).
 //  reduceRace(state, ev) → { state, say, hint, trap, log }: say — реплика Пита (мини-реплика успеха «Разгона» на принятии слова), hint — слово, которое Пит произносит голосом (подсказка «Вершины»), trap — { said, word } (ловушка сработала), log — строка журнала «[race] …».
 import * as ladder from './raceLadder.js'
 import { CLIMB_BONUS_MS } from './raceClimbTimer.js'
 import { trapSaid } from './raceTrap.js'
+import { phraseStep } from './raceStatePhrases.js'
 
 export const STREAK_GOLD = 3  // серия: пилюли вспыхивают золотом (голосом серии больше нет: мини-реплики успеха — raceGood.js)
 export const STREAK_FIRE = 5  // серия: тёплое свечение
@@ -17,7 +18,7 @@ export const setHinted = (box, k) => { box.hinted = k }
 export const takeHinted = box => { const k = box.hinted; box.hinted = null; return k }
 export const markEntered = (box, key) => { box.entered = key }
 
-export const initRace = () => ({ round: '', streak: 0, best: 0, streakMode: undefined, sprint: { words: [], caps: {}, traps: [], results: {}, claims: 0, r2: null }, catch: { words: [], caps: {}, traps: [], results: {}, claims: 0, r2: null }, climb: null, descent: null })
+export const initRace = () => ({ round: '', streak: 0, best: 0, streakMode: undefined, sprint: { words: [], caps: {}, traps: [], results: {}, claims: 0, r2: null }, catch: { words: [], caps: {}, traps: [], results: {}, claims: 0, r2: null }, climb: null, descent: null, phrases: [] })
 
 const modeOf = n => (n >= STREAK_FIRE ? 'fire' : n >= STREAK_GOLD ? 'gold' : undefined)
 const same = (s, patch) => ({ state: { ...s, ...patch } })
@@ -87,6 +88,7 @@ export function reduceRace(s, ev) {
   if (!stage?.race || (t === 'win' && info?.last === false) || (t === 'claim' && !['sprint', 'catch'].includes(stage.act))) return { state: s, say: null, hint: null, trap: null, log: null } // win приходит на каждую пилюлю повтора (спуск — три куска): считаем только последнюю
   let r
   if (t === 'enter') r = enter(s, stage, now)
+  else if (t === 'phrase') r = info?.phraseKey ? phraseStep(s, info) : { state: s }
   else if ((stage.act === 'sprint' || stage.act === 'catch') && stage.type === 'student') r = queue(s, t, stage, info)
   else if (stage.act === 'climb' && stage.type === 'student') r = climbRound(s, t, stage, info)
   else if (stage.act === 'descent' && stage.type === 'student' && t !== 'miss') r = { ...same(s, { descent: t === 'win' ? 'ok' : 'miss' }), log: `спуск: ${t === 'win' ? 'фраза сказана' : 'не успел'}` }

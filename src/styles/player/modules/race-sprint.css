@@ -9,6 +9,7 @@
 @import './race-ask-plate.css'; /* попап «Говорю / Тапаю» внутри игры */
 @import './race-stage-bg.css'; /* еле заметный узор плашек на фоне игры (не lite) */
 @import './race-pill-fill.css'; /* грани заливки пилюль гонки и тихий промах «Разгона» (без полос) */
+@import './word-lane-wide.css'; /* этап «Фразы»: широкая лента и широкие пилюли, подпись смысла */
 .wlPill[data-cap]:not([data-hint])::after {
   content: attr(data-cap);
   position: absolute;

@@ -1,0 +1,70 @@
+/* «Встряхни память», этап 2 «Фразы» (features/pitrace/racePhraseScene.js, CONCEPT_RACE.md «Этап 2» → «Лента и круги»): широкая лента и широкие пилюли.
+   Лента: пока идёт акт фраз (data-act='phrases' на корне игры, WordLaneGame), три дорожки за 0,6 с съезжаются к центру — крайние колонки .wlLanes i сдвигаются на свою ширину к средней
+   и гаснут, разделители .wlLaneEdge расходятся к краям ленты (5 % и 95 %); на выходе из этапа всё разъезжается обратно. Новых узлов нет, только transform и opacity; конвейер (узор «нить») идёт по средней.
+   Широкая пилюля (pool.take wide → data-wide, left 50 %, WIDE_W × WIDE_H из wordLaneTimeline.js): капсула со скруглением, текст фразы в ::after (data-cap) в две строки, шрифт clamp(14px, 4vw, 18px);
+   data-faded — бледный текст (круг «Скажи»); заливка по горизонтали (pool.paintRow: translateX слоя заливки), сегменты по словам — тонкие разделители фоном клипа шириной 100 % / --segs;
+   data-hot — верная пилюля после ошибки подсвечена (обводка ярче), перед тем как взлететь сама. Искр у широкой пилюли нет. Подпись смысла над лентой (.racePhraseRu, один узел сцены) — только opacity.
+   filter нет; на слабом устройстве и при reduced-motion переходы мгновенные. */
+.wl[data-race] .wlLanes i, .wl[data-race] .wlLaneEdge { transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.25s ease; }
+.wl[data-race][data-act='phrases'] .wlLanes i, .wl[data-race][data-act='phrases'] .wlLaneEdge { transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease 0.3s; }
+.wl[data-race][data-act='phrases'] .wlLanes i:nth-child(1) { transform: translateX(100%); opacity: 0; }
+.wl[data-race][data-act='phrases'] .wlLanes i:nth-child(3) { transform: translateX(-100%); opacity: 0; }
+.wl[data-race][data-act='phrases'] .wlLaneEdge:nth-of-type(1) { transform: translateX(-28.33vw); }
+.wl[data-race][data-act='phrases'] .wlLaneEdge:nth-of-type(2) { transform: translateX(28.33vw); }
+.weak-device .wl[data-race] .wlLanes i, .weak-device .wl[data-race] .wlLaneEdge { transition: none; }
+@media (prefers-reduced-motion: reduce) { .wl[data-race] .wlLanes i, .wl[data-race] .wlLaneEdge { transition: none; } }
+
+/* Широкая пилюля */
+.wlPill[data-wide] { border-radius: 22px; }
+.wlPill[data-wide]::before { border-radius: 22px; }
+.wlPill[data-wide] .wlPillClip {
+  border-radius: 18px;
+  background: linear-gradient(to right, transparent calc(100% - 1px), rgba(255, 255, 255, 0.14) 0) 0 0 / calc(100% / var(--segs, 1)) 100% repeat-x;
+}
+.wlPill[data-wide]:not([data-segs]) .wlPillClip { background: none; }
+.wlPill[data-wide] .wlPillSparks { display: none; }
+.wl[data-phase='student'] .wlPill[data-wide][data-cap]:not([data-fail]) .wlPillFill,
+.wl[data-phase='student'] .wlField.wl--safe .wlPill[data-wide][data-cap]:not([data-fail]) .wlPillFill {
+  inset: 0 -8px 0 0;
+  background: linear-gradient(to left, rgba(var(--rgb), 0) 0, rgba(var(--rgb), 0.55) 8px, rgba(var(--rgb), 0.4));
+  box-shadow: none;
+}
+.wl[data-phase='student'] .wlPill[data-wide][data-cap][data-lock]:not([data-fail]) .wlPillFill,
+.wl[data-phase='student'] .wlField.wl--safe .wlPill[data-wide][data-cap][data-lock]:not([data-fail]) .wlPillFill {
+  background: linear-gradient(to left, rgba(var(--rgb), 0) 0, var(--c) 8px);
+}
+.wlPill[data-wide][data-cap]:not([data-hint])::after {
+  padding: 0 16px;
+  font-size: clamp(14px, 4vw, 18px);
+  line-height: 1.18;
+  overflow-wrap: break-word;
+  overflow: hidden;
+}
+.wlPill[data-wide][data-faded]:not([data-lock])::after { color: rgba(244, 246, 251, 0.42); }
+.wlPill[data-wide][data-hot] { border-color: #fff; }
+.wlPill[data-wide][data-hot]::after { color: #fff; }
+
+/* Пит на этапе — по центру. «Голосом» он и так в слежении по центру (wlCat--track, raceHeadDepth.js); «Пальцами» стоит слева (--cat-x 20) — на время акта его сдвигает свойство translate
+   (не transform: им Пит прячется и выглядывает), переход 0,6 с туда и обратно; переходы transform прежние (word-lane.css) */
+.wl[data-race] .wlStage > .wlCat.scn:not(.wlCat--track) { transition: transform 0.42s cubic-bezier(0.4, 0, 0.6, 1), translate 0.6s cubic-bezier(0.4, 0, 0.2, 1); }
+.wl[data-race] .wlStage > .wlCat.scn.wlCat--up:not(.wlCat--track) { transition: transform 0.55s cubic-bezier(0.34, 1.45, 0.5, 1), translate 0.6s cubic-bezier(0.4, 0, 0.2, 1); }
+.wl[data-race][data-act='phrases'] .wlStage > .wlCat.scn:not(.wlCat--track) { translate: calc((50 - var(--cat-x, 20)) * 1vw) 0; } /* сцена во всю ширину экрана */
+
+/* Подпись смысла над лентой: когда озвучки смысла нет, Пит молчит, а смысл написан */
+.racePhraseRu {
+  position: absolute;
+  left: 8%;
+  right: 8%;
+  top: 15%;
+  z-index: 6;
+  text-align: center;
+  font-size: clamp(14px, 4.2vw, 18px);
+  font-weight: 800;
+  line-height: 1.25;
+  color: #f4f6fb;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.7);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+.racePhraseRu[data-on] { opacity: 1; }

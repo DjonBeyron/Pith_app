@@ -31,7 +31,7 @@ describe('стадии гонки в формате движка', () => {
     expect(seq.slice(4, 8)).toEqual(['catch:announce', 'catch:student', 'catch:announce', 'catch:student']) // «Слушай и лови» — инверсия разгона: тоже два круга
     expect(of(st, 'climb').filter(s => s.type === 'student')).toHaveLength(4)
     expect(seq.slice(-5)).toEqual(['descent:announce', 'descent:read', 'descent:turn', 'descent:student', 'summary:summary'])
-    expect(st.filter(s => s.type === 'announce').map(s => s.line)).toEqual([null, 'race_sprint_round2', 'race_catch_tap', 'race_sprint_round2', 'race_climb', 'race_climb_top', 'race_climb_time', 'race_descent'])
+    expect(st.filter(s => s.type === 'announce').map(s => s.line)).toEqual([null, 'race_sprint_round2', 'race_catch_tap', 'race_sprint_round2', 'race_phrases', null, 'race_climb', 'race_climb_top', 'race_climb_time', 'race_descent'])
   })
   it('разгон: одна ступень ученика, по повтору на пилюлю; у повтора своя дорожка, скорость (+5 %), перевод внутри, без слова, которое проявлялось при промахе (тихий промах)', () => {
     const [s] = of(build().stages, 'sprint').filter(x => x.type === 'student')
@@ -84,9 +84,9 @@ describe('стадии гонки в формате движка', () => {
   it('проход B голосом (русская модель скачана, «Говорю»): перед ним плашка переключения слуха, step.lang = ru, цели — переводы; в полной гонке перед вершиной слух возвращается; demote переводит проход на тап', () => {
     const stages = buildRaceStages({ plan: plan(), tap: false, ru: true }).stages
     const sw = stages.filter(x => x.switchTo), ids = stages.map(x => x.sid)
-    expect(sw.map(x => [x.sid, x.switchTo, x.line])).toEqual([['catch-sw', 'ru', 'race_switch_ru'], ['climb-sw', 'en', null]])
+    expect(sw.map(x => [x.sid, x.switchTo, x.line])).toEqual([['catch-sw', 'ru', 'race_switch_ru'], ['phrases-sw', 'en', null]]) // фразы слушает английская модель: слух возвращается перед ними, перед вершиной уже не нужно
     expect(sw[0].round.title).toBe('Секунду'); expect(sw[0].round.brief).toBe('переключаю слух')
-    expect(ids.indexOf('catch2')).toBeLessThan(ids.indexOf('climb-sw')); expect(ids.indexOf('sprint2')).toBeLessThan(ids.indexOf('catch-sw')); expect(ids.indexOf('catch-sw')).toBeLessThan(ids.indexOf('catch-ann'))
+    expect(ids.indexOf('catch2')).toBeLessThan(ids.indexOf('phrases-sw')); expect(ids.indexOf('phrases-sw')).toBeLessThan(ids.indexOf('phrases-ann')); expect(ids.indexOf('sprint2')).toBeLessThan(ids.indexOf('catch-sw')); expect(ids.indexOf('catch-sw')).toBeLessThan(ids.indexOf('catch-ann'))
     const [b, b2] = of(stages, 'catch').filter(x => x.type === 'student')
     expect(b.step.lang).toBe('ru'); expect(b.step.tapOnly).toBeUndefined(); expect(b.step.extra).toEqual([]); expect(b2.step.lang).toBe('ru')
     expect(of(stages, 'sprint').find(x => x.type === 'student').step.lang).toBeUndefined() // проход A — английская модель
