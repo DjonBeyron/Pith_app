@@ -10,7 +10,7 @@ describe('фразы плана из памяти: минимум три, тек
   it('0 своих: текущая из плана (модуля нет) + две дежурные', () => {
     const p = buildPhrases({ base: OTHER, deps: deps() })
     expect(p).toHaveLength(PHRASES_MIN)
-    expect(p[0]).toMatchObject({ id: 'plan:i am trying to learn', own: true, ru: 'Я пытаюсь научиться' })
+    expect(p[0]).toMatchObject({ id: 'plan:i am trying to learn', own: true, ru: 'скажи, что пытаешься учиться' }) // черновик (racePhraseRuDefaults) важнее перевода плана
     expect(ids(p.slice(1))).toEqual(['m3', 'm1'])
     expect(p.slice(1).every(x => !x.own)).toBe(true)
   })
@@ -71,12 +71,14 @@ describe('поля фразы', () => {
     const [m1] = buildPhrases({ base: BASE, deps: deps({ lessons: [] }) })
     expect(m1.words.map(w => w.text)).toEqual(['nice', 'meet', 'you'])
   })
-  it('ru: race_phrase_ru → title_translation → пусто', () => {
+  it('ru: race_phrase_ru → черновик → title_translation → пусто', () => {
     const ruMap = { 'nice to meet you': 'скажи, что рад знакомству' }
     expect(buildPhrases({ base: BASE, deps: deps({ ruMap }) })[0].ru).toBe('скажи, что рад знакомству')
-    expect(buildPhrases({ base: BASE, deps: deps() })[0].ru).toBe('перевод Nice to meet you')
+    expect(buildPhrases({ base: BASE, deps: deps() })[0].ru).toBe('скажи, что рад знакомству') // черновик для Nice to meet you
     const bare = CURRICULA.map(m => ({ ...m, title_translation: null }))
-    expect(buildPhrases({ base: BASE, deps: deps({ curricula: bare }) })[0].ru).toBe('')
+    expect(buildPhrases({ base: BASE, deps: deps({ curricula: bare }) })[0].ru).toBe('скажи, что рад знакомству')
+    const other = buildPhrases({ base: BASE, deps: deps({ curricula: bare }) }).find(x => !x.own && !x.ru) // у фразы без черновика и перевода — пусто
+    expect(other === undefined || other.ru === '').toBe(true)
   })
   it('audio: из game2_phrases, иначе null', () => {
     const audioMap = { 'rh2_phrase:nice to meet you': { url: 'https://x/a.mp3', duration: 1.4 }, 'rh2_phrase:how old are you': { url: '' } }

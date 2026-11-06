@@ -12,7 +12,7 @@ describe('buildMemoryPlan: контракт plan.phrases / plan.extraWords', () 
     const plan = buildMemoryPlan({ base: { ...BASE, round: 'sprint' }, deps: deps({ memory: [row('morning', 2)] }) })
     expect(plan).toMatchObject({ phrase: BASE.phrase, seed: 's1', round: 'sprint', game: 'race', source: 'memory' })
     expect(plan.phrases[0]).toEqual({
-      id: 'm1', text: 'Nice to meet you', key: 'nice to meet you', own: true, level: 0, audio: null, ru: 'перевод Nice to meet you',
+      id: 'm1', text: 'Nice to meet you', key: 'nice to meet you', own: true, level: 0, audio: null, ru: 'скажи, что рад знакомству', // черновик смысла важнее перевода названия
       words: [{ text: 'nice', translation: 'пер-nice', level: 0 }, { text: 'meet', translation: 'пер-meet', level: 0 }, { text: 'you', translation: 'пер-you', level: 0 }],
     })
     expect(plan.extraWords[0]).toEqual({ text: 'morning', translation: 'пер-morning', level: 1, due: false, lapses: 0 })
