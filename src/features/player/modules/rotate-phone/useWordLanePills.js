@@ -97,7 +97,7 @@ export function useWordLanePills(rootRef, { scene, levels, fx, live, sceneApi, t
       const t0 = performance.now()
       const off = levels?.subscribe(l => { raw = l })
       const blind = !step.labels.length
-      const dodger = dodgeRef.current && !tr ? createDodgeDrive({ cat: root.parentElement?.querySelector('.wlCat'), peek: ms => fxRef.current?.peek?.(ms) }) : null // «Говорю» гонки: Пит под пилюлей, уворот перед «не успел»
+      const dodger = dodgeRef.current && !tr ? createDodgeDrive({ cat: root.parentElement?.querySelector('.wlCat'), lanes: step.reps.map(r => r.lane), peek: ms => fxRef.current?.peek?.(ms) }) : null // «Говорю» гонки: Пит ныряет / прыгает к дорожке следующей пилюли (pitrace/raceDodgeDrive.js)
       const decoys = [] // чужие пилюли тройки: { k (номер в пуле), lane, speed, born, end, hit }
       const shake = d => { const now = performance.now(), y = ENTER_Y + (SPEED * d.speed * (now - d.born)) / 1000; return y > 0 && y < EXIT_Y - 6 && now < d.end } // чужая пилюля ещё на экране?
       setApi(sceneApi, {
@@ -139,7 +139,7 @@ export function useWordLanePills(rootRef, { scene, levels, fx, live, sceneApi, t
           if (e.rep && !step.quiet) ghostUntil.set(e.rep.idx, performance.now() + GHOST_MS) // сказано не то — показываем «тень» слова: как оно звучит и сколько длится
           fxRef.current?.miss?.(e)
         }
-        else if (e.type === 'pre') fxRef.current?.pre?.(e) // «Разгон»: Пит говорит перевод перед выездом пилюли (useRaceActs.pre)
+        else if (e.type === 'pre') fxRef.current?.pre?.(dodger ? { ...e, wait: dodger.left } : e) // «Разгон»: Пит говорит перевод перед выездом пилюли (useRaceActs.pre); wait — сколько он ещё ныряет к её дорожке
         else if (e.type === 'done') fxRef.current?.finished?.(e.locked)
       }
       const tick = now => {
@@ -149,8 +149,9 @@ export function useWordLanePills(rootRef, { scene, levels, fx, live, sceneApi, t
         const sig = liveRef.current.signal?.() ?? {}
         const confirmed = Date.now() - (sig.heardAt ?? 0) < CONFIRM_MS // распознаватель недавно что-то услышал: речь настоящая, а не шум или эхо
         const pitMs = fxRef.current?.pitLeft?.() ?? 0, hold = pitMs > 0 // репетиция: Пит ещё говорит (реплика + пауза ≈ 40 кадров) — новая пилюля не выезжает; «Гонка»: перевод уже говорят — выезд за время пути до конца речи (pitMs)
-        for (const e of stepStudent(g, t, { level, seq, misses: liveRef.current.misses, confirmed, tail: sig.tail ?? null, hold, pitMs })) handle(e)
-        dodger?.step(g.pills, t)
+        const evs = stepStudent(g, t, { level, seq, misses: liveRef.current.misses, confirmed, tail: sig.tail ?? null, hold, pitMs })
+        for (const e of evs) handle(e)
+        dodger?.step(g.pills, t, evs)
         const now2 = performance.now()
         const byId = held.size ? new Map(g.pills.map(x => [x.id, x])) : null // одна карта на кадр вместо поиска по массиву на каждую пилюлю
         for (const [id, k] of held) {

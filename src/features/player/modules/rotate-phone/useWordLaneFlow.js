@@ -102,7 +102,7 @@ export function useWordLaneFlow({ chunks, translation, lang, clips = null, audio
       catApi?.current?.peek?.()
       if (rep.last) xpApi.current?.add(XP_PER_PILL * rep.count, rect) // у повтора из нескольких кусков одна цифра («+6»), когда принят последний кусок
     },
-    miss(e) { rh.rec('miss', e?.rep); catApi?.current?.react('shy', 1300, !!stages[sRef.current.idx]?.step?.quiet) }, claim(e) { rh.claim?.(e.rep, e.ms, e.y) }, pre(e) { rh.pre?.(e.rep) },
+    miss(e) { rh.rec('miss', e?.rep); catApi?.current?.react('shy', 1300, !!stages[sRef.current.idx]?.step?.quiet) }, claim(e) { rh.claim?.(e.rep, e.ms, e.y) }, pre(e) { rh.pre?.(e.rep, e) },
     fail(e) {
       const st = stages[sRef.current.idx]
       catApi?.current?.react('shy', 1300, !!st?.step?.quiet); rh.rec('fail', e.rep) // quiet («Разгон»): упущенная пилюля уезжает молча — голова Пита не двигается (react с still)

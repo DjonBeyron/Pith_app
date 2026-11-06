@@ -66,7 +66,7 @@ describe('проводка', () => {
     expect(read('../player/modules/rotate-phone/useWordLanePills.js')).toContain("e.type === 'pre'")
     expect(read('./useRaceActs.js')).toContain('{ ru: true, ...o }')
     const flow = read('../player/modules/rotate-phone/useWordLaneFlow.js')
-    expect(flow).toContain('pre(e) { rh.pre?.(e.rep) }'); expect(flow).toContain('pre: (...a) => handlersRef.current.pre(...a)')
+    expect(flow).toContain('pre(e) { rh.pre?.(e.rep, e) }'); expect(flow).toContain('pre: (...a) => handlersRef.current.pre(...a)')
     expect(flow).toContain('opts?.ru ? transRow(text) : libRow(text)'); expect(flow).toContain('if (opts?.ru) return; speakWord(text)'); expect(flow).toContain('cat.holdBusy?.(total); opts.onSay?.(total)')
     expect(read('../player/modules/rotate-phone/wordLaneStart.js')).toContain('transItems(cfg.translations)')
     expect(read('../player/modules/rotate-phone/wordLaneWarm.js')).toContain('cfg.translations')

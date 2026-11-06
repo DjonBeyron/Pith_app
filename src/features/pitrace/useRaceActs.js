@@ -15,6 +15,8 @@ import { rewardMs } from '../player/modules/rotate-phone/wordLaneNotes.js'
 import { ALL_GOOD_IDS } from './raceGood.js'
 import { useRaceSpeech, speakTranslation } from './useRaceSpeech.js'
 import { createRuJournal } from './raceRuLog.js'
+import { createSurfaceWait } from './raceDiveWait.js'
+import { LOCK_MS } from './raceSpeech.js'
 
 /** Журнал голоса перевода: какое слово и какой перевод Пит говорит перед выездом этой пилюли (одна запись повтора: слово, перевод, дорожка, скорость). Расхождение с записью слова круга — строка «РАССИНХРОН» (не должно быть никогда) */
 function logPre(stage, rep) {
@@ -49,6 +51,8 @@ export function useRaceActs(args) {
   const [ru] = useState(createRuJournal) // проход B на русской модели: одна строка журнала «[ru] …» на слово (raceRuLog.js)
   const ruLog = (rep, result, level) => { const w = running?.words?.[rep?.idx], line = ru.finish({ idx: rep?.idx, word: w?.text, expected: w?.translation, said: listenerRef?.current?.said?.(), level, result }); if (line) pLog(line) }
   const ruOn = running?.act === 'catch' && running?.step?.lang === 'ru'
+  const [surface] = useState(() => createSurfaceWait({ log: pLog })) // «Говорю»: слово следующей пилюли ждёт, пока Пит вынырнет / допрыгнет на её дорожку (raceDiveWait.js)
+  useEffect(() => () => surface.cancel(), [running, surface])
   const trapRef = useRef(() => {}) // отмена недосказанной подсказки про двойника (стадия сменилась, выход)
   useEffect(() => () => trapRef.current(), [])
 
@@ -114,16 +118,19 @@ export function useRaceActs(args) {
     claim(rep, ms, y) { if (!running) return; if (ruOn) ruLog(rep, 'claim', rep?.pills?.[0]?.p); praiseRef.current = null; apply({ t: 'claim', stage: running, info: { idx: rep?.idx, ms, late: isLate(y), life: pillLifeMs(rep?.speed), fill: rep?.pills?.[0]?.p, tap: !!running.step?.tapOnly } }); speech.claim(praiseRef.current); praiseRef.current = null },
     /** Перед выездом пилюли (движок: событие 'pre'): в «Разгоне» Пит говорит русский перевод слова из библиотеки (raceTrans.js), в «Слушай и лови» — английское слово (rep.say, библиотека слов); озвучки нет — молча, пилюля выезжает сразу.
      *  Пилюля ждёт, пока он договорит (pitLeft) */
-    pre(rep) {
+    pre(rep, e) {
       logPre(running, rep)
       if (ruOn) { listenerRef?.current?.resetSaid?.(); ru.start(rep?.idx) } // новое слово прохода B: журнал слушает его с чистого листа
       const said = rep?.say ?? rep?.cap // проход A: Пит говорит перевод (rep.say); надпись пилюли (rep.cap) в тапе английская — её не озвучиваем (v3.3.127)
-      if (running?.act === 'sprint' && said) speakTranslation(speech, o => sayRef.current.sayText?.(said, { ru: true, ...o }))
-      else if (running?.act === 'catch' && rep?.say) speakTranslation(speech, o => sayRef.current.sayText?.(rep.say, { hold: true, ...o }))
-      else speech.translation(0) // говорить нечего: пилюля выезжает сразу
+      const act = running?.act
+      surface.run(e?.wait, () => { // e.wait — «Говорю»: Пит ещё ныряет / прыгает к дорожке этой пилюли; слово — когда он на месте (одна точка ожидания, журнал «[dodge] речь ждала…»)
+        if (act === 'sprint' && said) speakTranslation(speech, o => sayRef.current.sayText?.(said, { ru: true, ...o }))
+        else if (act === 'catch' && rep?.say) speakTranslation(speech, o => sayRef.current.sayText?.(rep.say, { hold: true, ...o }))
+        else speech.translation(0) // говорить нечего: пилюля выезжает сразу
+      })
     },
     /** Пит ещё занят (мс): секвенсор запрещает перевод до отступа после похвалы (LOCK_MS), иначе — реплики и перевод (cat.busyLeft) */
-    pitLeft: () => Math.max(speech.holdMs(), args.cat?.busyLeft?.() ?? 0, sw.pendingMs()), // идёт переключение слуха — пилюли тоже ждут
+    pitLeft: () => Math.max(speech.holdMs(), args.cat?.busyLeft?.() ?? 0, sw.pendingMs(), surface.pending() ? LOCK_MS : 0), // идёт переключение слуха или Пит ещё выныривает к слову — пилюли тоже ждут
     rec(kind, info) {
       rh.rec(kind, info)
       if (!running) return
