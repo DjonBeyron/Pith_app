@@ -57,7 +57,7 @@ describe('состояние гонки: события движка → сер�
     s = ev(s, 'enter', second).state
     expect(s.sprint.r2.words).toEqual(sprintStage.words.slice(0, 3).map(w => w.text))
     s = ev(s, 'win', second, { idx: 1 }).state; s = ev(s, 'miss', second, { idx: 2 }).state
-    expect(s.sprint.r2.results).toEqual({ 1: { hit: true, miss: false }, 2: { hit: false, miss: true } })
+    expect(s.sprint.r2.results).toEqual({ 1: { hit: true, miss: false }, 2: { hit: false, miss: true, wrong: 1 } })
     expect(s.sprint.results).toEqual({ 0: { hit: false, miss: true } }) // первый круг не тронут
     expect(s.sprint.claims).toBe(0)
   })

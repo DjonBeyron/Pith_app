@@ -22,8 +22,10 @@ export const initRace = () => ({ round: '', streak: 0, best: 0, streakMode: unde
 const modeOf = n => (n >= STREAK_FIRE ? 'fire' : n >= STREAK_GOLD ? 'gold' : undefined)
 const same = (s, patch) => ({ state: { ...s, ...patch } })
 const wordTitle = w => `«${w}»`
+/** Данные для точности слова из зачёта (useRaceActs.claim): life — окно жизни пилюли, мс; fill — заливка голосом 0…1; tap — ответ тапом */
+const accInfo = info => ({ ...(info.life > 0 ? { life: info.life } : {}), ...(Number.isFinite(info.fill) ? { fill: info.fill } : {}), ...(info.tap ? { tap: true } : {}) })
 
-// Проходы A (sprint) и B (catch) — одна механика очереди пилюль, состояние одинаковой формы: s.sprint / s.catch = { words, caps, traps, results: { номер пилюли: { hit, miss, ms, late, trap, believed } }, claims, r2 } (r2 — то же для дополнительного круга).
+// Проходы A (sprint) и B (catch) — одна механика очереди пилюль, состояние одинаковой формы: s.sprint / s.catch = { words, caps, traps, results: { номер пилюли: { hit, miss, ms, late, trap, believed, life, fill, tap, wrong } }, claims, r2 } (r2 — то же для дополнительного круга).
 // hit — верное действие (слово сказано верно / ловушку пропустил), miss — ошибка (чужое слово, «не успел», «поверил чужому слову»), ms — время ответа от выезда пилюли до зачёта, late — ответ «в последний момент» (пилюля уже ниже LATE_Y, raceExtraRound.js), trap — пилюля с чужим английским словом, believed — на ней сказал слово.
 function queue(s, kind, stage, info) {
   const k = stage.act, second = stage.sid === `${k}2`
@@ -36,10 +38,11 @@ function queue(s, kind, stage, info) {
   const put = patch => (second ? { ...base, r2: { ...cur, ...patch } } : { ...base, ...patch })
   const done = patch => put({ results: i != null ? { ...cur.results, [i]: { ...prev, ...patch } } : cur.results })
   const tag = `${k === 'catch' ? 'проход B' : 'проход A'}${second ? ' (второй круг)' : ''}`
-  const fell = (patch, log) => ({ ...same(s, { streak: 0, streakMode: undefined, [k]: done(patch) }), log: `${tag}: ${wordTitle(word ?? '…')} ${log}, серия 0, слово к повтору` })
+  const wrong = kind === 'miss' && prev ? { wrong: (prev.wrong ?? 0) + 1 } : {} // сколько раз на пилюле было «не то» (голосом или тапом по чужой) — для точности слова (raceAccuracy.js)
+  const fell = (patch, log) => ({ ...same(s, { streak: 0, streakMode: undefined, [k]: done({ ...patch, ...wrong }) }), log: `${tag}: ${wordTitle(word ?? '…')} ${log}, серия 0, слово к повтору` })
   if (kind === 'claim') { // слово принято: время ответа и мини-реплика успеха по плану круга (raceGood.js), следующая пилюля ждёт, пока Пит договорит
     const claims = cur.claims + 1
-    const timed = i != null ? { results: { ...cur.results, [i]: { ...prev, ms: info.ms ?? prev.ms ?? null, late: !!info.late } } } : {}
+    const timed = i != null ? { results: { ...cur.results, [i]: { ...prev, ms: info.ms ?? prev.ms ?? null, late: !!info.late, ...accInfo(info) } } } : {}
     return { ...same(s, { [k]: put({ claims, ...timed }) }), say: stage.good?.find(g => g.at === claims)?.id ?? null }
   }
   if (w?.trap) { // пилюля с чужим переводом: верное действие — промолчать

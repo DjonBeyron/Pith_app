@@ -3,7 +3,7 @@
 //  • слово «к повтору» идёт в память, если оно из плана (слова добора «Разгона» из чужих планов в память не пишутся);
 //  • промах слова: «Разгон» и «Слушай и лови» (ошибка, пропуск, «поверил чужому переводу»), ступень «Вершины», на которой k-е слово не получилось; верно — слово сказано без промаха хотя бы в одном раунде;
 //  • золото — везде: разгон и «Слушай и лови» без ошибок, золото вершины, спуск — Пит говорит race_done_gold;
-//  • в итог идут и метрики (raceMetrics.js: точность по этапам, среднее время ответа, самое медленное слово, ловушки), и слабые слова обоих этапов (raceWeak.js).
+//  • в итог идут и метрики (raceMetrics.js: точность по этапам, среднее время ответа, самое медленное слово, ловушки), и все слова обоих этапов от слабых к сильным (raceWeak.js) с точностью каждого (raceAccuracy.js; в журнал — строка «[race] итог: «слово» N %» на слово).
 import { pLog } from '../../shared/lib/debug.js'
 import { applySession } from '../rehearsal/rehearsalSim.js'
 import { normText } from '../player/modules/rotate-phone/wordLaneRecipe.js'
@@ -11,6 +11,8 @@ import { climbWords } from './raceWords.js'
 import { medalOf } from './raceLadder.js'
 import { weakWords } from './raceWeak.js'
 import { raceMetrics } from './raceMetrics.js'
+import { withAccuracy } from './raceAccuracy.js'
+import { accLogLine } from './raceAccuracyNote.js'
 import { failedIn } from './raceExtraRound.js'
 
 export const MEDAL_TITLES = { gold: 'золото', silver: 'серебро', finish: 'без медали', none: '—' }
@@ -18,7 +20,7 @@ export const MEDAL_TITLES = { gold: 'золото', silver: 'серебро', fi
 /** Строка «Вершины» в итоге: медаль; не дошёл до вершины (время вышло, потолок заходов) — «без медали, N из M ступеней»; раунда не было — «—» */
 export const climbTitle = r => (r.medal === 'none' && r.climbTotal > 0 ? `без медали, ${r.climbRung} из ${r.climbTotal} ступеней` : MEDAL_TITLES[r.medal])
 
-/** Итог по состоянию гонки: { sprint: { hit, total }, catchOk, catchTotal, medal, descent, phraseDone, words: [{ text, hit, miss }], xp, misses, gold, weak: [{ text, translation, score, tone }] (самые слабые слова, raceWeak.js), metrics (raceMetrics.js) } */
+/** Итог по состоянию гонки: { sprint: { hit, total }, catchOk, catchTotal, medal, descent, phraseDone, words: [{ text, hit, miss }], xp, misses, gold, weak: [{ text, translation, score, tone, note, acc }] (все слова проходов от слабых к сильным, raceWeak.js, с точностью raceAccuracy.js), metrics (raceMetrics.js) } */
 export function scoreRace(plan, race) {
   const results = Object.entries(race.sprint.results)
   const sprintTotal = race.sprint.words.length
@@ -42,7 +44,7 @@ export function scoreRace(plan, race) {
   const misses = (sprintTotal - sprintHit) + (catchTotal - catchOk) + Object.values(race.climb?.fails ?? {}).reduce((a, n) => a + n, 0) + (descent === 'miss' ? 1 : 0)
   const phraseDone = descent === 'ok' || !!race.climb?.top
   const gold = sprintTotal > 0 && sprintHit === sprintTotal && catchTotal > 0 && catchOk === catchTotal && medal === 'gold' && descent === 'ok'
-  return { sprint: { hit: sprintHit, total: sprintTotal }, catchOk, catchTotal, medal, climbRung: race.climb?.rung ?? 0, climbTotal: race.climb?.n ?? 0, timedOut: !!race.climb?.timedOut, descent, phraseDone, words: mem, xp, misses, gold, weak: weakWords(race, 12), metrics: raceMetrics(race) }
+  return { sprint: { hit: sprintHit, total: sprintTotal }, catchOk, catchTotal, medal, climbRung: race.climb?.rung ?? 0, climbTotal: race.climb?.n ?? 0, timedOut: !!race.climb?.timedOut, descent, phraseDone, words: mem, xp, misses, gold, weak: withAccuracy(race, weakWords(race, Infinity)), metrics: raceMetrics(race) }
 }
 
 /** Итог одним вызовом: подсчёт → запись в память сессии (rehearsalSim.applySession) → строка в журнал отладки. Вызывает директор useRaceActs на экране итога */
@@ -50,5 +52,6 @@ export function reportRace({ plan, race, store, now, log = pLog }) {
   const score = scoreRace(plan, race)
   const saved = applySession(plan, score, { store, now })
   log(`[race] итог «${plan.phrase}»: разгон ${score.sprint.hit}/${score.sprint.total}, слух ${score.catchOk}/${score.catchTotal}${score.metrics.avgMs != null ? `, ответ в среднем ${score.metrics.avgMs} мс` : ''}, вершина ${climbTitle(score)}, спуск ${score.descent === 'ok' ? 'верно' : score.descent === 'miss' ? 'нет' : '—'}, XP +${saved.xp}${saved.capped ? ' (потолок дня)' : ''}, слова ${score.words.map(w => `${w.text} ${w.hit}/${w.miss}`).join(', ') || '—'}`)
+  for (const w of score.weak) log(`[race] ${accLogLine(w)}`) // точность каждого слова итога — одной строкой (raceAccuracy.js), владелец присылает журнал
   return { ...score, xp: saved.xp, capped: saved.capped }
 }
