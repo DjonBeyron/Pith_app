@@ -32,6 +32,18 @@ let parked = false // режим 'close' (gameMicHold): поток закрыт 
 let reopening = null // Promise<'granted'|'denied'|'unavailable'>, пока идёт повторное открытие после parkGameMic
 let taken = false  // распознаватель взял поток (getGameMic) с момента последнего открытия — его сеанс жив на этих треках
 
+const lostSubs = new Set() // «дорожка микрофона заглушена/оборвалась системой» (iOS при уходе в фон): gameAudioSignals.js ставит паузу
+/** Подписка на mute / ended дорожки игрового потока: cb(kind, { readyState, muted }). Свои stop() сюда не попадают (ended приходит только при обрыве системой). → отписка */
+export function onGameMicLost(cb) { lostSubs.add(cb); return () => lostSubs.delete(cb) }
+function watchTracks(s) {
+  for (const t of s.getTracks?.() ?? []) {
+    const fire = kind => () => { if (stream !== s) return; for (const cb of lostSubs) { try { cb(kind, { readyState: t.readyState, muted: !!t.muted }) } catch { /* подписчик не должен ломать остальных */ } } }
+    try { t.addEventListener?.('mute', fire('mute')); t.addEventListener?.('ended', fire('ended')) } catch { /* без событий дорожки */ }
+  }
+}
+/** Дорожки игрового потока одной строкой для журнала: «live/enabled, muted…» или «нет потока» */
+export const micTracksLine = () => { try { return stream ? stream.getTracks().map(t => `${t.readyState}${t.muted ? '/muted' : ''}${t.enabled === false ? '/off' : ''}`).join(',') || 'без дорожек' : 'нет потока' } catch { return 'недоступно' } }
+
 // Живой и НЕ заглушённый системой: iOS при прерывании аудиосессии оставляет трек live, но muted — он пишет тишину
 const live = s => !!s && s.getTracks().some(t => t.readyState === 'live' && !t.muted)
 
@@ -50,6 +62,7 @@ export async function openGameMic() {
     if (mine !== epoch) { try { s.getTracks().forEach(t => t.stop()) } catch { /* уже остановлен */ } pLog('[mic] поток открылся уже после закрытия игры — закрыт'); return 'unavailable' }
     if (stream && stream !== s) { try { stream.getTracks().forEach(t => t.stop()) } catch { /* уже остановлен */ } } // прежний (оборванный/заглушённый) поток не оставляем висеть
     stream = s
+    watchTracks(s)
     opened = constraints
     parked = false; taken = false
     micWorked.markOk()

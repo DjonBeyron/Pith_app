@@ -135,6 +135,17 @@ function warmGainBuffers() {
 }
 onSoundVolumeChange(warmGainBuffers)
 
+// Жёсткий перезапуск звука игры после фона (gameAudioRestart.js, тап «Продолжить» — жест): прежний контекст мог остаться 'interrupted' навсегда, а элементы — прерванными.
+// Закрываем его, выбрасываем кэш и создаём всё заново прямо в этом жесте. → { was, now } для журнала
+export function resetSoundCtx(why) {
+  const old = ctx, was = old?.state ?? null
+  ctx = null
+  if (old) { try { old.onstatechange = null; Promise.resolve(old.close?.()).catch(() => {}) } catch { /* уже закрыт */ } }
+  evictAll(why); resetPrimed()
+  if (typeof window !== 'undefined' && (window.AudioContext || window.webkitAudioContext)) { try { preloadSounds(); unlockAudio() } catch { /* звуки интерфейса — не условие игры */ } }
+  return { was, now: ctx?.state ?? null }
+}
+
 // Call synchronously in gesture handler — resumes AudioContext.
 // iOS gesture unlock is page-wide: after this, HTMLAudioElement.play() from
 // setTimeout fires instantly without the ~700ms first-play delay.

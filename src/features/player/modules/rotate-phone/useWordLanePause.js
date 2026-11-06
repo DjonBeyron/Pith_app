@@ -1,20 +1,26 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { startGameAudio } from './wordLaneStart.js'
 import { subscribePauseEvents } from './wordLanePauseEvents.js'
+import { readTapMode } from './wordLaneHudSettings.js'
 import { markGameAudioSuspect, needsRewake } from '../../../../shared/lib/gameAudioLife.js'
 import { gameCtxState } from '../../../../shared/lib/gameAudioCtx.js'
+import { subscribeAudioLoss } from '../../../../shared/lib/gameAudioSignals.js'
+import { restartGameAudio, SOUND_DEAD_TEXT } from '../../../../shared/lib/gameAudioRestart.js'
 import { pLog } from '../../../../shared/lib/debug.js'
 
 // Пауза игры «Повтори за диктором» при сворачивании приложения (iPhone, iOS 18, Safari). Подписка на visibilitychange → hidden и pagehide: игра СРАЗУ встаёт на паузу (f.pause из useWordLaneControls:
 // таймеры, голос, слушатель, микрофон, кот, пилюли) и показывает оверлей «Игра на паузе» (WordLanePause). Микрофон после возврата сам НЕ открывается (иначе Safari снова спрашивает доступ вне жеста):
 // «Продолжить» — это жест, в нём синхронно открывается микрофон и будится звук (startGameAudio — тот же порядок, что в «Начать» и в перезапуске игры из HUD: тип сессии → микрофон → ждём, пока iOS улёжется →
 // будим звук; если приложение уходило в фон — полный путь с новым AudioContext, v3.3.115: пауза помечает звук подозрительным сама), и только после этого ступень идёт сначала (f.restartStage: диктор → очередь ученика). Свернули ещё раз, пока микрофон открывался, — перезапуска нет, остаёмся на паузе.
+// v3.3.120: паузу ставят ещё и потеря звука без ухода страницы (контекст 'interrupted'/'suspended' не по нашей воле, дорожка микрофона mute/ended — gameAudioSignals.js), а «Продолжить» — ЖЁСТКИЙ
+// перезапуск (gameAudioRestart.js): все контексты закрываются и создаются заново, в голосе микрофон останавливается и открывается снова в этом жесте, потом проверка «звук идёт» (running + пробный звук).
+// Проверка не прошла — пауза остаётся с «Звук не вернулся, нажми „Продолжить“ ещё раз» вместо тихой игры.
 const MIC_PROBLEM = {
   denied: 'Нет доступа к микрофону. Разреши микрофон для сайта в настройках браузера и нажми «Продолжить» ещё раз.',
   unavailable: 'Микрофон недоступен. Нажми «Продолжить» ещё раз или выйди.',
 }
 
-export function useWordLanePause({ f, cfg, audioSrc, lines, dbg = f.dbg, startAudio = startGameAudio }) {
+export function useWordLanePause({ f, cfg, audioSrc, lines, dbg = f.dbg, startAudio = startGameAudio, restart = restartGameAudio, isVoice = () => !readTapMode() }) {
   const [busy, setBusy] = useState(false)    // «Продолжить» открывает микрофон и будит звук (до пары секунд)
   const [problem, setProblem] = useState('') // микрофон не открылся — честное сообщение на оверлее
   const fRef = useRef(f)
@@ -33,25 +39,37 @@ export function useWordLanePause({ f, cfg, audioSrc, lines, dbg = f.dbg, startAu
       if (!fRef.current.pause(why)) episodeRef.current = false // финал / игра уже закончена: пауза не нужна, следующий уход — заново
     }
     const off = subscribePauseEvents(hide)
-    return () => { goneRef.current = true; off() }
+    const offLoss = subscribeAudioLoss(hide) // звук/микрофон потеряны без ухода страницы — та же пауза
+    return () => { goneRef.current = true; off(); offLoss() }
   }, [])
 
   /** Тап «Продолжить» (жест): микрофон и звук открываются синхронно в нём, потом ступень сначала */
   const resume = useCallback(() => {
     if (busy || !fRef.current.paused) return
     setBusy(true); setProblem(''); goneRef.current = false; episodeRef.current = false // свернули снова, пока микрофон открывался, — новая пауза
-    dbg.event('resume'); pLog(`[pause] «Продолжить»: открываю микрофон из тапа и бужу звук (ctx=${gameCtxState() ?? 'нет'}, пометка звука: ${needsRewake() ?? 'нет'})`)
+    dbg.event('resume'); pLog(`[pause] «Продолжить»: жёсткий перезапуск звука и микрофона из тапа (ctx=${gameCtxState() ?? 'нет'}, пометка звука: ${needsRewake() ?? 'нет'})`)
+    const voice = isVoice()
     let p
-    try { p = Promise.resolve(startAudio({ cfg, audioSrc, lines })) } catch (e) { p = Promise.reject(e) } // синхронный префикс startGameAudio — openGameMic прямо в жесте
-    p.then(r => r?.mic ?? 'unavailable', () => 'unavailable').then(mic => {
+    try { p = Promise.resolve(restart({ voice, why: '«Продолжить»', start: deps => startAudio({ cfg, audioSrc, lines }, deps) })) } catch (e) { p = Promise.reject(e) } // синхронный префикс — закрытие контекстов и openGameMic прямо в жесте
+    p.catch(() => ({ ok: false, mic: 'unavailable' })).then(r => {
       if (goneRef.current) { setBusy(false); return } // свернули снова (pause уже всё закрыла) или игра закрыта: перезапуска нет
       setBusy(false)
-      if (mic === 'granted') { if (fRef.current.paused) fRef.current.restartStage(); return } // игру могли закрыть («Выйти»), пока микрофон открывался
-      pLog(`[pause] микрофон не открылся (${mic}) — остаёмся на паузе`)
-      fRef.current.pause('mic-' + mic) // закрыть всё, что успел поднять startGameAudio (сессия, прогрев, поток)
-      setProblem(MIC_PROBLEM[mic] ?? MIC_PROBLEM.unavailable)
+      const mic = r?.mic ?? 'unavailable'
+      if (mic !== 'granted') {
+        pLog(`[pause] микрофон не открылся (${mic}) — остаёмся на паузе`)
+        fRef.current.pause('mic-' + mic) // закрыть всё, что успел поднять старт звука (сессия, прогрев, поток)
+        setProblem(MIC_PROBLEM[mic] ?? MIC_PROBLEM.unavailable)
+        return
+      }
+      if (!r.ok) {
+        pLog(`[pause] звук не вернулся (${r.failed ?? '—'}) — остаёмся на паузе, жду ещё один тап`)
+        fRef.current.pause('sound-dead')
+        setProblem(SOUND_DEAD_TEXT)
+        return
+      }
+      if (fRef.current.paused) fRef.current.restartStage() // игру могли закрыть («Выйти»), пока микрофон открывался
     })
-  }, [busy, cfg, audioSrc, lines, dbg, startAudio])
+  }, [busy, cfg, audioSrc, lines, dbg, startAudio, restart, isVoice])
 
   return { paused: f.paused, pausedIntro: f.pausedIntro, busy, problem, resume }
 }

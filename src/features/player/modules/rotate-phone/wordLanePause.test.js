@@ -19,7 +19,7 @@ vi.mock('./wordLaneNotes.js', () => ({ releaseNotes: () => calls.push('releaseNo
 vi.mock('./wordLaneClips.js', () => ({ releaseClips: () => calls.push('releaseClips') }))
 vi.mock('./useGameAudioModes.js', () => ({ endGameAudio: () => calls.push('endGameAudio') }))
 vi.mock('./wordLaneStart.js', () => ({ startGameAudio: vi.fn() }))
-vi.mock('../../../../shared/lib/gameMic.js', () => ({ closeGameMic: () => calls.push('closeGameMic') }))
+vi.mock('../../../../shared/lib/gameMic.js', () => ({ closeGameMic: () => calls.push('closeGameMic'), openGameMic: () => Promise.resolve('granted'), micTracksLine: () => 'нет потока', onGameMicLost: () => () => {} }))
 
 import { useWordLaneControls } from './useWordLaneControls.js'
 import { useWordLanePause } from './useWordLanePause.js'
@@ -125,7 +125,7 @@ describe('useWordLanePause: подписка на сворачивание и «
     const { f, start, hook, cfg } = setup()
     hook.resume()
     expect(start).toHaveBeenCalledTimes(1) // тот же тик, что и тап — жест жив
-    expect(start).toHaveBeenCalledWith({ cfg, audioSrc: 'a.mp3', lines: { x: 1 } })
+    expect(start).toHaveBeenCalledWith({ cfg, audioSrc: 'a.mp3', lines: { x: 1 } }, expect.objectContaining({ recreateCtx: expect.any(Function), consume: expect.any(Function) })) // через координатор жёсткого перезапуска (gameAudioRestart.js)
     expect(f.restartStage).not.toHaveBeenCalled()
     expect(f.dbg.event).toHaveBeenCalledWith('resume')
     await tick()

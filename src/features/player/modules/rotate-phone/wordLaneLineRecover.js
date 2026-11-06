@@ -4,6 +4,7 @@ import { fetchBlob, measureSpeech } from './wordLaneFetch.js'
 import { forgetSettled } from './wordLaneSettled.js'
 import { lineKey } from './wordLaneCatLines.js'
 import { webAudioOn, gameCtxState, unlockGameCtx } from '../../../../shared/lib/gameAudioCtx.js'
+import { micTracksLine } from '../../../../shared/lib/gameMic.js'
 import { pLog } from '../../../../shared/lib/debug.js'
 
 // «Страховка второго запуска» (v3.3.113, замечание владельца: «игра → выход → свернул → снова игра — Пит немой»): перед ПЕРВОЙ репликой не доверяем реестру прогрева (wordLaneSettled.js: «обработан» ≠ «есть буфер в памяти»:
@@ -29,7 +30,7 @@ export function nudgeCtx({ now = () => performance.now(), log = pLog } = {}) {
   const st = gameCtxState()
   if (st == null || st === 'running' || now() - nudgedAt < NUDGE_EVERY_MS) return st
   nudgedAt = now()
-  log(`[audio] состояние ctx=${st} перед репликой — подталкиваю resume()`)
+  log(`[audio] состояние ctx=${st} перед репликой (дорожки микрофона ${micTracksLine()}) — подталкиваю resume(); не поднимется — сигнал потери звука поставит паузу (gameAudioSignals.js)`)
   try { unlockGameCtx() } catch { /* контекст сам разберётся */ }
   return st
 }

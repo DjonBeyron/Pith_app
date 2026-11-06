@@ -7,6 +7,7 @@
 //    «Мёртвый» после фона/блокировки (resume() висит) пересоздаётся в жесте — ensureGameCtxRunning / recreateGameCtx (старт игры, wordLaneStart.js); пометка «звук после фона» — gameAudioLife.js.
 //    Закрытый ('closed') контекст пересоздаётся при следующем обращении. Подписчики прерываний (onGameCtxInterrupted) — gameAudioWarm: он запускает повторный прогрев.
 //  • У Vosk (voskEngine) и у звуков интерфейса (sounds.js) СВОИ контексты — этот модуль их не касается. В play-and-record два-три контекста допустимы; gameAudioWarm смотрит на сумму (ctxState: любой 'interrupted').
+//    Жёсткий перезапуск по «Продолжить» (gameAudioRestart.js) закрывает и пересоздаёт все три; смену состояния игрового контекста не по нашей воле ловит gameAudioSignals.js (onGameCtxState).
 //  • Аварийный выключатель: localStorage pithy_game_web_audio_v1 = 'off' (gameAudioSettings.js) — игра идёт прежними <audio>-слотами.
 import { readWebAudioMode } from './gameAudioSettings.js'
 import { gameAudioNote } from './gameAudioSink.js'
@@ -14,6 +15,7 @@ import { pLog } from './debug.js'
 
 let ctx = null
 const interruptSubs = new Set()
+const stateSubs = new Set() // любая смена состояния текущего контекста (gameAudioSignals.js: «контекст ушёл в interrupted/suspended не по нашей воле» → пауза)
 
 const ctorOf = () => { const g = globalThis; return g.AudioContext || g.webkitAudioContext || g.window?.AudioContext || g.window?.webkitAudioContext || null }
 
@@ -26,6 +28,7 @@ export const gameCtxState = () => ctx?.state ?? null
 function onChange(c) {
   pLog(`[game-audio] AudioContext игры → ${c.state}`)
   gameAudioNote('game-ctx', { state: c.state })
+  for (const cb of stateSubs) { try { cb(c.state) } catch { /* подписчик не должен ломать остальных */ } }
   if (c.state !== 'interrupted') return
   for (const cb of interruptSubs) { try { cb() } catch { /* подписчик не должен ломать остальных */ } }
 }
@@ -67,6 +70,12 @@ export function unlockGameCtx() {
 
 /** Подписка на прерывание игрового контекста (iOS: звонок, наушники, смена типа сессии). → отписка */
 export function onGameCtxInterrupted(cb) { interruptSubs.add(cb); return () => interruptSubs.delete(cb) }
+
+/** Подписка на смену состояния игрового контекста: cb(state). Свои закрытие и пересоздание сюда не попадают (onstatechange снимается до close). → отписка */
+export function onGameCtxState(cb) { stateSubs.add(cb); return () => stateSubs.delete(cb) }
+
+/** Текущий контекст как есть (не создаёт новый) — для проверки и журнала перезапуска (gameAudioRestart.js) */
+export const peekGameCtx = () => ctx
 
 /** Игра закрыта: контекст закрывается (аудиопоток системы освобождается); следующая игра создаст новый */
 export function closeGameCtx() {

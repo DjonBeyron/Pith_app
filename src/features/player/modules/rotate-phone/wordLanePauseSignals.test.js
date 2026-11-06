@@ -111,3 +111,49 @@ describe('после пересоздания AudioContext ничего конт
   })
 })
 
+describe('«Продолжить» — жёсткий перезапуск (gameAudioRestart.js) и сигналы потери звука (v3.3.120)', () => {
+  const tick = () => new Promise(r => setTimeout(r, 0))
+  function setup({ restart, voice = true } = {}) {
+    const e = env()
+    vi.stubGlobal('document', e.doc); vi.stubGlobal('window', e.win)
+    const f = { paused: true, pausedIntro: false, pause: vi.fn(() => true), restartStage: vi.fn(), dbg: { event: vi.fn() } }
+    const start = vi.fn(() => Promise.resolve({ mic: 'granted' }))
+    const hook = useWordLanePause({ f, cfg: { w: 1 }, audioSrc: 'a', lines: null, startAudio: start, restart, isVoice: () => voice })
+    return { e, f, start, hook }
+  }
+  it('голос: координатор зовётся синхронно в тапе с voice: true и стартом через startGameAudio(args, deps); звук жив — ступень сначала', async () => {
+    vi.useRealTimers()
+    const restart = vi.fn(({ start }) => { start({ openMic: 'x' }); return Promise.resolve({ ok: true, mic: 'granted' }) })
+    const { f, start, hook } = setup({ restart })
+    hook.resume()
+    expect(restart).toHaveBeenCalledWith(expect.objectContaining({ voice: true }))
+    expect(start).toHaveBeenCalledWith({ cfg: { w: 1 }, audioSrc: 'a', lines: null }, { openMic: 'x' })
+    await tick(); expect(f.restartStage).toHaveBeenCalledTimes(1)
+  })
+  it('тап: координатор получает voice: false (микрофон не трогает)', () => {
+    const restart = vi.fn(() => Promise.resolve({ ok: true, mic: 'granted' }))
+    setup({ restart, voice: false }).hook.resume()
+    expect(restart).toHaveBeenCalledWith(expect.objectContaining({ voice: false }))
+  })
+  it('звук не вернулся (ok: false) — ступень НЕ перезапускается, пауза остаётся (sound-dead), причина в журнале', async () => {
+    vi.useRealTimers()
+    const restart = vi.fn(() => Promise.resolve({ ok: false, mic: 'granted', failed: 'контекст interrupted' }))
+    const { f, hook } = setup({ restart })
+    hook.resume(); await tick()
+    expect(f.restartStage).not.toHaveBeenCalled(); expect(f.pause).toHaveBeenCalledWith('sound-dead')
+    expect(logs.some(l => l.includes('звук не вернулся (контекст interrupted)'))).toBe(true)
+  })
+  it('игровой контекст ушёл в interrupted без ухода страницы и не вернулся — пауза (ctx-interrupted)', async () => {
+    const { makeFakeWebAudio } = await import('../../../../shared/lib/fakeWebAudio.js')
+    const { getGameCtx, closeGameCtx } = await import('../../../../shared/lib/gameAudioCtx.js')
+    const { CONFIRM_MS } = await import('../../../../shared/lib/gameAudioSignals.js')
+    const fake = makeFakeWebAudio({ state: 'running' }); fake.resumeMode = 'hang'
+    vi.stubGlobal('AudioContext', fake.Ctx); vi.stubGlobal('localStorage', { getItem: () => null, setItem() {}, removeItem() {} })
+    const { f } = setup({ restart: vi.fn() })
+    f.paused = false
+    getGameCtx().setState('interrupted')
+    vi.advanceTimersByTime(CONFIRM_MS + 10)
+    expect(f.pause).toHaveBeenCalledWith('ctx-interrupted')
+    closeGameCtx()
+  })
+})
