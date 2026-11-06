@@ -71,7 +71,8 @@ describe('итог: метрики над «Слабыми словами», р�
 
 describe('стенд: кнопка «Пинг-понг + финал»', () => {
   it('в блоке гонки рядом с «Полной гонкой» и раундами; запускает round = stages', () => {
-    const h = renderToStaticMarkup(createElement(RaceBlock))
+    vi.stubGlobal('localStorage', { getItem: () => JSON.stringify(['race-old']), setItem() {} }) // прежние кнопки — в раскрытом «Старое (old)»
+    let h; try { h = renderToStaticMarkup(createElement(RaceBlock)) } finally { vi.unstubAllGlobals() }
     expect(h).toContain('data-testid="race-run-full"'); expect(h).toContain('data-testid="race-run-stages"'); expect(h).toContain('>Пинг-понг + финал<')
     expect(readFileSync(new URL('../admin/speech/RaceBlock.jsx', import.meta.url), 'utf8')).toContain('launch(STAGES_ROUND)')
   })

@@ -1,3 +1,4 @@
-/* Блок «Гонка с Питом (стенд)» (admin/speech/RaceBlock.jsx): крупная кнопка запуска «Два этапа + финал». Попап «Говорю / Тапаю» живёт не здесь, а внутри игры (pitrace/RaceAskPlate.jsx, race-ask-plate.css): кнопки админ-блока только открывают сцену. */
+/* Блок «Гонка с Питом (стенд)» (admin/speech/RaceBlock.jsx): крупная кнопка «Встряхни память» (режим по умолчанию), таблица «Озвучка Пита» — admin-race-voice.css. Попап «Говорю / Тапаю» живёт не здесь, а внутри игры (pitrace/RaceAskPlate.jsx, race-ask-plate.css): кнопки админ-блока только открывают сцену. */
+@import './admin-race-voice.css'; /* таблица «Озвучка Пита» */
 .aspSay.rhpBig { width: 100%; padding: 14px 16px; font-size: 17px; box-sizing: border-box; } /* два класса: .aspSay (admin-speech.css) подключается позже и иначе перебил бы размер */
 .aspSay.rhpBig:disabled { opacity: 0.5; }

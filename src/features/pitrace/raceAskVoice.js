@@ -17,8 +17,8 @@ export const MIC_HINTS = {
 /** Подсказка в попапе по ответу startGameAudio (mic) */
 export const micHint = mic => MIC_HINTS[mic] ?? MIC_HINTS.unavailable
 
-/** Текст вопроса на плашке — реплика race_ask_voice из каталога (одна на плашку и на озвучку) */
-export const askText = () => RACE_LINES.find(l => l.id === ASK_LINE)?.text ?? ''
+/** Текст вопроса на плашке — реплика race_ask_voice (одна на плашку и на озвучку): из реплик настроек lines (правка в админке главнее), нет — из каталога */
+export const askText = lines => lines?.[ASK_LINE]?.text || (RACE_LINES.find(l => l.id === ASK_LINE)?.text ?? '')
 
 /** Прошлый выбор: 'voice' | 'tap'; нет хранилища, пусто или мусор — 'voice' */
 export function readVoiceChoice(store = globalThis.localStorage) {

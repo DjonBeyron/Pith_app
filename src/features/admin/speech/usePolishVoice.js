@@ -43,5 +43,7 @@ export default function usePolishVoice({ plan, list = undefined, texts = undefin
     setChunkErrors(failed); setStep(''); setBusy('')
   }, [voiceTexts, rows, generate])
 
-  return { lines, rows, rev, busy, step, error, chunkErrors, pit: pitVoiceCount(lines, list), chunks: chunkCount(rows), voicePit, voiceChunks }
+  const reload = useCallback(() => setRev(n => n + 1), []) // реплики поменяли снаружи (таблица «Озвучка Пита»): перечитать и дать игре свежие
+
+  return { lines, rows, rev, busy, step, error, chunkErrors, pit: pitVoiceCount(lines, list), chunks: chunkCount(rows), voicePit, voiceChunks, reload }
 }

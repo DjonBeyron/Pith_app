@@ -1,0 +1,21 @@
+/* Таблица «Озвучка Пита» (admin/speech/RaceVoiceTable.jsx, RaceVoiceRow.jsx): строки — карточки (на 375 px без горизонтального скролла): id и статус в одну строку, текст полем на всю ширину, кнопки справа. */
+.rvTop { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; font-size: 13px; }
+.rvTop > span { flex: 1 1 100%; color: #aab; }
+.rvGroup { margin: 4px 0 0; font-size: 13px; font-weight: 600; color: #ccd; }
+.rvList { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.rvRow { display: flex; flex-direction: column; gap: 4px; padding: 6px 8px; background: #191c21; border: 1px solid #262a31; border-radius: 8px; min-width: 0; }
+.rvRow[data-status='none'] { border-color: #5a3a2a; }
+.rvRow[data-status='changed'] { border-color: #5a512a; }
+.rvHead { display: flex; align-items: baseline; gap: 6px; min-width: 0; font-size: 11px; }
+.rvId { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #889; font-size: 11px; }
+.rvStatus { flex: none; padding: 1px 6px; border-radius: 6px; font-size: 11px; }
+.rvStatus-ok { background: #1f3a28; color: #8fd6a2; }
+.rvStatus-none { background: #3d2620; color: #f0a58c; }
+.rvStatus-changed { background: #3b3520; color: #e8d27a; }
+.rvDur { flex: none; color: #889; }
+.rvLabel { font-size: 12px; color: #aab; overflow-wrap: anywhere; }
+.rvEdit { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.rvEdit .rvText { flex: 1 1 auto; min-width: 0; width: auto; box-sizing: border-box; }
+.rvEdit .aspChip { flex: none; }
+.rvSub > summary { cursor: pointer; font-size: 13px; color: #ccd; padding: 4px 0; }
+.rvSub[open] > .rvList { margin-top: 6px; }
