@@ -111,7 +111,7 @@ describe('подключение', () => {
   const src = f => readFileSync(new URL(f, import.meta.url), 'utf8')
   it('директор актов отдаёт rh.quiet / rh.plateOk, считает тихой стадию с озвученной репликой (и итог — rh_done), RehearsalActs прячет экраны', () => {
     const acts = src('./useRehearsalActs.js')
-    expect(acts).toContain('usePitQuiet({'); expect(acts).toContain("running.type === 'summary' ? doneLine : running.line ?? null"); expect(acts).toContain('quiet: quiet.quiet, plateOk: quiet.plateOk')
+    expect(acts).toContain('usePitQuiet({'); expect(acts).toContain("running.type === 'summary' ? doneLine : lineOf(running)"); expect(acts).toContain('quiet: quiet.quiet, plateOk: quiet.plateOk')
     expect(src('./RehearsalActs.jsx')).toContain('if (rh.quiet) return null')
   })
   it('в rehearsal нет Math.random и нового speechSynthesis', () => {

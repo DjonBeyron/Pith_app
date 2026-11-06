@@ -57,8 +57,11 @@
 }
 .wlHudChip--on { border-color: var(--wl-accent, #b6fe3b); color: var(--wl-accent, #b6fe3b); }
 .wlHudActions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
+.wlHudActions--top { margin: 0 0 12px; } /* «Скачать / Скопировать журнал» — сразу под сводкой, без прокрутки */
 .wlHudAct { min-height: 40px; padding: 8px; border: 1px solid #3a3d46; border-radius: 10px; background: transparent; color: #e0e3ec; font: inherit; font-size: 13px; cursor: pointer; }
 .wlHudAct--exit { border-color: #6b2f2f; color: #f19a9a; }
+/* Пауза (свернули приложение): шестерёнка и её панель — НАД подложкой паузы (.wlPauseBack, z-index 60, word-lane-pause.css), чтобы «Скачать журнал» был доступен, пока висит «Продолжить» */
+.wl[data-phase='paused'] .wlHudBtn, .wl[data-phase='paused'] .wlHud { z-index: 61; }
 .wlHudStatus { margin-top: 8px; color: #9aa0b4; font-size: 12px; }
 
 /* Игра не смогла слушать (нет модели / микрофон отказал): честное сообщение вместо ручного режима */

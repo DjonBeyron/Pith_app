@@ -12,6 +12,8 @@ import { getVoiceRate, setVoiceRate, VOICE_RATES } from '../../lessonVolume.js'
 import { getRewardSound, setRewardSound, getRewardVolume, setRewardVolume, REWARD_SOUNDS } from './wordLaneMeow.js'
 import { unlockNotes } from './wordLaneNotes.js'
 import { prepareAudio, buildDebugFile, saveDebugFile, SAVE_HOW } from './wordLaneDebugExport.js'
+import { buildJournalFile, liveHeader, copyText, COPY_HOW } from './wordLaneJournal.js'
+import { ruReady } from '../../../pitrace/raceRu.js'
 import {
   readPillSafe, writePillSafe, applyPillSafe, readWeakStored, writeWeakStored, applyAudioSessionMode, describeHud, readTapMode, writeTapMode,
 } from './wordLaneHudSettings.js'
@@ -20,6 +22,7 @@ import {
 // отладочном интерфейсе (dbg.enabled — тумблер админки, pithy_wl_debug_v1 или тест-запуск из админки). Своё состояние (открыта ли панель, значения переключателей) — здесь, а не в useWordLaneFlow;
 // игра подписана на HUD только через стабильные колбэки, так что пилюли и кот при его работе не перерисовываются (WordLaneGame держит HUD в memo, а класс wl--safe ставится прямо на корень).
 // Каждый пункт помечен, когда он вступает в силу: «сразу» / «после «Игра заново»» / «после перезагрузки» (wordLaneHudSettings.js). Значения читаются из хранилищ при каждой перерисовке.
+// Первые кнопки — «Скачать журнал» / «Скопировать журнал» (wordLaneJournal.js): журнал всего сеанса страницы; на паузе шестерёнка поднята над подложкой (word-lane-hud.css).
 const SESSION_OPTS = [['play-and-record', 'Запись+воспр.'], ['auto', 'Авто'], ['phases', 'По фазам']]
 const HOLD_OPTS = [['none', 'Не глушить'], ['enabled-false', 'Глушить дорожку'], ['close', 'Закрывать микрофон']]
 const REWARD_LABEL = { meow: 'Мяу', off: 'Без звука' } // остальное из REWARD_SOUNDS — прежние ноты
@@ -70,6 +73,10 @@ export default function WordLaneHud({ dbg, rootRef, onRestartStage, onRestartGam
     } catch { setStatus(SAVE_HOW.failed) }
   }
 
+  const journalFile = () => buildJournalFile({ header: liveHeader({ version: APP_VERSION, tap, ru: ruReady(), en: info.vosk }) }) // журнал всего сеанса страницы (gameJournal): доступен и на паузе — шестерёнка поднята над её подложкой
+  const saveJournal = async () => { setStatus('Готовлю журнал…'); try { const how = await saveDebugFile(journalFile()); setStatus(`${SAVE_HOW[how] ?? SAVE_HOW.failed} (журнал)`) } catch { setStatus(SAVE_HOW.failed) } }
+  const copyJournal = async () => { const how = await copyText(journalFile().text).catch(() => 'failed'); setStatus(COPY_HOW[how] ?? COPY_HOW.failed) }
+
   return (
     <div className="wlHud" role="dialog" aria-label="Настройки отладки" data-testid="wl-hud">
       <div className="wlHudHead"><strong>Настройки игры · v{info.version}</strong><button type="button" className="wlHudX" onClick={close} aria-label="Закрыть панель" data-testid="wl-hud-close"><X size={16} /></button></div>
@@ -79,6 +86,10 @@ export default function WordLaneHud({ dbg, rootRef, onRestartStage, onRestartGam
         <div>Vosk: <b>{info.vosk}</b></div>
         <div>Lite (слабое устройство): <b>{info.lite}</b></div>
         <div>Усы (способ записи): <b>{info.whiskers}</b></div>
+      </div>
+      <div className="wlHudActions wlHudActions--top" data-testid="wl-hud-journal-row">{/* журнал — первым: после сворачивания его открывают поверх паузы и сразу присылают */}
+        <button type="button" className="wlHudAct" onClick={saveJournal} data-no-unlock="" data-testid="wl-hud-journal">Скачать журнал</button>
+        <button type="button" className="wlHudAct" onClick={copyJournal} data-no-unlock="" data-testid="wl-hud-journal-copy">Скопировать журнал</button>
       </div>
 
       <Row label="Обработка микрофона (эхо/шум)" when="restart" testid="wl-hud-proc">

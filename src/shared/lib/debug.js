@@ -1,3 +1,5 @@
+import { gameJournal } from './gameJournal.js'
+
 const KEY = 'pithy_debug'
 
 let enabled = false
@@ -110,6 +112,7 @@ export function dbg(...args) {
 export function pLog(...args) {
   const line = `[${stamp()}] ${args.map(toText).join(' ')}`
   pushCapped(playerLines, line)
+  gameJournal.add(...args) // журнал игры на весь сеанс (шестерёнка игры → «Скачать журнал»): не чистится вместе с журналом плеера
   if (enabled && mirror) console.log('[PLAYER]', ...args)
 }
 

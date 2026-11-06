@@ -83,7 +83,7 @@ describe('подключение', () => {
   it('директор репетиции отдаёт cueMs из того же plateCueMs, что проверен выше; хук useConveyorArm берёт holdMs и cueMs директора', () => {
     const acts = read('../../../rehearsal/useRehearsalActs.js')
     expect(acts).toContain("import { plateCueMs } from './rehearsalConveyorCue.js'")
-    expect(acts).toMatch(/cueMs: st => \(on && \(st\?\.line \|\| st\?\.count\) \? plateCueMs\(/)
+    expect(acts).toMatch(/cueMs: st => \(on && \(lineOf\(st\) \|\| st\?\.count\) \? plateCueMs\(/)
     const hook = read('./useConveyorArm.js')
     expect(hook).toContain('igniteAtMs({ holdMs: rh.holdMs(stageObj), cueMs: rh.cueMs(stageObj) })')
     expect(hook).toContain('clearTimeout(t)')

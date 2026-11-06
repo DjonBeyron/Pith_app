@@ -16,8 +16,12 @@ export const PLATE_HOLD_MS = 1200  // плашка держится стольк
 export const OPEN_FALLBACK_MS = 4000 // реплик нет вообще (не озвучены) — слова летят столько
 export const LEAD_MS = 250         // реплика Пита — через столько после начала сцены / стадии (useRehearsalActs.LINE_AT_MS)
 
+/** Реплика, которая звучит сразу со стартом часов вместо race_start: у игры без вступления (plan.round — один раунд или «Вспомни на слух + финал») — реплика первой стадии (её объявление); иначе null.
+ *  Раньше она ждала падения фразы и дорожек (DROP_MS + LANES_MS) и LEAD_MS — 2,1 с тишины после входа в игру. Директор (useRehearsalActs) говорит её на стадии drop, у самой стадии 0 реплики уже нет */
+export const earlyStageLine = (plan, stages) => (plan?.game === 'race' && plan.round && stages?.[0]?.line ? stages[0].line : null)
+
 /**
- * → { startMs, firstMs, stageAt (начало стадии 0), lineAt (мс от начала стадии), speechEnd, morphAt (бар заполнен, начинается морф), plateEnd (плашка уходит), countAt (первая нота), pause (stage.pause) }
+ * → { startMs, firstMs, early (реплика этапа звучит сразу — нет вступления), stageAt (начало стадии 0), lineAt (мс от начала стадии), plateAt (плашка этапа — с началом речи о нём), speechEnd, morphAt (бар заполнен, начинается морф), plateEnd (плашка уходит), countAt (первая нота), pause (stage.pause) }
  * Всё в мс от начала часов игры. lines — настройки реплик (озвучка и длины), rate — скорость голоса урока.
  */
 export function openingPlan(plan, lines = null, rate = 1) {
@@ -25,10 +29,16 @@ export function openingPlan(plan, lines = null, rate = 1) {
   const startId = plan.round ? null : ids[0], firstId = plan.round ? ids[0] : ids[1]
   const ms = id => (id ? lineMs(fillLine(lines?.[id]), rate) : 0) // как у директора (useRehearsalActs.timingOf): длина озвучки, у неозвученной реплики — оценка по тексту (подпись и рот идут столько же)
   const startMs = ms(startId), firstMs = ms(firstId)
-  if (!startMs && !firstMs) return { startMs, firstMs, stageAt: DROP_MS + LANES_MS, lineAt: 0, speechEnd: OPEN_FALLBACK_MS, morphAt: OPEN_FALLBACK_MS - MORPH_MS, plateEnd: OPEN_FALLBACK_MS + PLATE_HOLD_MS, countAt: OPEN_FALLBACK_MS + PLATE_HOLD_MS, pause: PLATE_HOLD_MS }
+  if (!startMs && !firstMs) return { startMs, firstMs, early: false, stageAt: DROP_MS + LANES_MS, lineAt: 0, plateAt: DROP_MS + LANES_MS, speechEnd: OPEN_FALLBACK_MS, morphAt: OPEN_FALLBACK_MS - MORPH_MS, plateEnd: OPEN_FALLBACK_MS + PLATE_HOLD_MS, countAt: OPEN_FALLBACK_MS + PLATE_HOLD_MS, pause: PLATE_HOLD_MS }
   const stageAt = DROP_MS + LANES_MS
+  if (plan.round) { // нет вступления: реплика этапа звучит сразу (earlyStageLine), с паузой стадии после неё; стадия 0 только ждёт, пока Пит договорит, и ведёт ноты
+    const speechEnd = RACE_START_LEAD_MS + firstMs, busyMs = Math.max(0, speechEnd + PLATE_HOLD_MS - stageAt)
+    const t = stageTiming({ order: 'after', lead: LEAD_MS, busyMs, lineMs: 0, pause: PLATE_HOLD_MS, minMs: 0, hasLine: false, quiet: false, plan: countdownPlan({ soft: true }) })
+    const countAt = stageAt + (t.countAt ?? 0)
+    return { startMs, firstMs, early: true, stageAt, lineAt: 0, plateAt: RACE_START_LEAD_MS, speechEnd, morphAt: Math.max(1000, speechEnd - MORPH_MS), plateEnd: countAt, countAt, pause: PLATE_HOLD_MS }
+  }
   const busyMs = startMs ? Math.max(0, RACE_START_LEAD_MS + startMs + LINE_PAUSE_MS - stageAt) : 0 // race_start начинается через RACE_START_LEAD_MS (сразу) и занимает Пита ещё на паузу после реплики
   const t = stageTiming({ order: 'after', lead: LEAD_MS, busyMs, lineMs: firstMs, pause: PLATE_HOLD_MS, minMs: 0, hasLine: !!firstId, quiet: lineVoiced(lines, firstId), plan: countdownPlan({ soft: true }) })
   const speechEnd = Math.max(stageAt + (t.lineAt ?? 0) + firstMs, startMs ? RACE_START_LEAD_MS + startMs : 0) // Пит уже наверху (голова не выскакивает заново): звук идёт сразу
-  return { startMs, firstMs, stageAt, lineAt: t.lineAt ?? 0, speechEnd, morphAt: Math.max(1000, speechEnd - MORPH_MS), plateEnd: speechEnd + PLATE_HOLD_MS, countAt: stageAt + (t.countAt ?? 0), pause: PLATE_HOLD_MS }
+  return { startMs, firstMs, early: false, stageAt, lineAt: t.lineAt ?? 0, plateAt: stageAt + (t.lineAt ?? 0), speechEnd, morphAt: Math.max(1000, speechEnd - MORPH_MS), plateEnd: speechEnd + PLATE_HOLD_MS, countAt: stageAt + (t.countAt ?? 0), pause: PLATE_HOLD_MS }
 }

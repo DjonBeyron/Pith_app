@@ -21,7 +21,7 @@ const page = await ctx.newPage()
 page.on('pageerror', e => console.log('PAGEERROR', e.message))
 const sleep = ms => new Promise(r => setTimeout(r, ms))
 
-await page.goto(`${BASE}?seed=r1&ask=none&lines=1`)
+await page.goto(`${BASE}?seed=r1&ask=none&lines=1${process.env.ONLY ? `&only=${process.env.ONLY}` : ''}`)
 await page.waitForSelector('[data-testid="rotate-start"]:not([disabled])', { timeout: 30000 })
 await sleep(1500) // карточка успела прогреться, как у человека
 await page.click('[data-testid="rotate-start"]')
@@ -39,9 +39,9 @@ if (MODE === 'deny') {
 } else {
   await page.waitForSelector('[data-testid="wl"]', { timeout: 8000 })
   console.log('игра открыта через', Math.round(await page.evaluate(() => performance.now()) - t0), 'мс после ответа')
-  await sleep(2500)
+  await sleep(1000); await page.screenshot({ path: `${OUT}/${MODE}${process.env.ONLY ? `-${process.env.ONLY}` : ''}-game-1s.png` }); await sleep(1500)
 }
 console.log('getUserMedia вызовов:', await page.evaluate(() => window.__gum.length))
 const lines = await page.evaluate(async () => (await import('/src/shared/lib/debug.js')).getPlayerLines())
-console.log(lines.filter(l => /\[race\] старт|\[warm\] гонка|\[mic\]|\[cat\] реплика «race_start»|\[cat-voice\]|race_start/.test(l)).slice(0, 30).join('\n'))
+console.log(lines.filter(l => /\[start\]|\[race\] старт|\[warm\] гонка|\[mic\]|\[cat\] реплика «race_start»|\[cat-voice\]|race_start/.test(l)).slice(0, 50).join('\n'))
 await ctx.close(); await browser.close()

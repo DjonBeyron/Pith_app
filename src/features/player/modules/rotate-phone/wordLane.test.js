@@ -164,7 +164,7 @@ describe('вёрстка и подключения', () => {
   it('wordLaneStart: синхронный префикс — тип сессии и микрофон; звук будится после ожидания (settle), а не до микрофона (быстрый путь гонки — отдельно, wordLaneStartFast.test.js)', () => {
     const start = read('./wordLaneStart.js')
     const body = start.slice(start.indexOf('export function startGameAudio'))
-    const order = ['session.begin()', 'openMic()', 'await micPromise', 'warm.settle()', "trace.mark('wake', { ok: true, ctx: gameCtxState() })"].map(t => body.indexOf(t))
+    const order = ['session.begin()', 'openMic()', 'await micPromise', 'warm.settle(', "trace.mark('wake', { ok: true, ctx: gameCtxState() })"].map(t => body.indexOf(t))
     expect(order.every(i => i > 0)).toBe(true)
     expect([...order].sort((a, b) => a - b)).toEqual(order)
     expect(body.indexOf('await')).toBeGreaterThan(body.indexOf('openMic()')) // до первого await — только begin, session, openMic

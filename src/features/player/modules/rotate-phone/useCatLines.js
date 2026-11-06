@@ -7,6 +7,7 @@ import { bufferMissing, recoverLine, nudgeCtx } from './wordLaneLineRecover.js'
 import { hasWordSlot } from './wordLaneClips.js'
 import { pLog } from '../../../../shared/lib/debug.js'
 import { raceStart } from '../../../pitrace/raceStartTrace.js'
+import { raceChron } from '../../../pitrace/raceStartChron.js'
 
 const TEXT_TAIL_MS = 900 // подпись держится ещё столько после конца реплики
 const LATE_RESERVE_MS = 400 // отложенная реплика: Пит «занят» на задержку плюс столько — запас, пока таймер не сработал
@@ -52,9 +53,9 @@ export function useCatLines({ lines, rate, catApi, listenerRef, waitMs = LINE_WA
     const now = Date.now()
     clearTimeout(riseRef.current)
     const { onSpeak, onEnd, pause = LINE_PAUSE_MS, ...say } = extra // onSpeak({ ms, voiced }) — реплика пошла; onEnd — звук доиграл; pause — занятость после конца (секвенсор гонки: 0, отступ ведёт он сам)
-    const done = () => { if (pause === 0) busyRef.current = Math.min(busyRef.current, Date.now()); try { onEnd?.() } catch { /* секвенсор не ломает звук */ } } // реальный конец: «занят» снимается сразу, а не по оценке
-    const { ms, rise, timer, voiced } = startCatLine({ id, line, rate, catApi, listenerRef, onSound: () => raceStart.line(), onEnd: done, ...say }) // «Гонка»: строка «[race] старт: …» — по ФАКТУ начала звука первой реплики
-    if (!voiced) { raceStart.line({ voiced: false }); if (onEnd) setTimeout(done, rise + ms) } // звука не будет (только подпись): конец — по оценке
+    const done = () => { raceChron.step('ended', `первая реплика доиграла (ended источника): «${id}»`); if (pause === 0) busyRef.current = Math.min(busyRef.current, Date.now()); try { onEnd?.() } catch { /* секвенсор не ломает звук */ } } // реальный конец: «занят» снимается сразу, а не по оценке
+    const { ms, rise, timer, voiced } = startCatLine({ id, line, rate, catApi, listenerRef, onSound: () => raceStart.line({ id }), onEnd: done, ...say }) // «Гонка»: строка «[race] старт: …» — по ФАКТУ начала звука первой реплики
+    if (!voiced) { raceStart.line({ voiced: false, id }); if (onEnd) setTimeout(done, rise + ms) } // звука не будет (только подпись): конец — по оценке
     try { onSpeak?.({ ms: rise + ms, voiced }) } catch { /* журнал не мешает */ }
     riseRef.current = timer
     busyRef.current = now + rise + ms + pause
@@ -85,7 +86,9 @@ export function useCatLines({ lines, rate, catApi, listenerRef, waitMs = LINE_WA
       nudgeCtx() // контекст не 'running' (iOS после фона) — подтолкнуть resume()
       return lineReadiness(id)
     }
-    if (check().ready) { speak(id, line, o); return true }
+    const first = check()
+    raceChron.step('say', `sayLine(«${id}») вызван${first.ready ? ' — буфер готов, звук сразу' : ` — ждёт слот: ${first.why}`}`) // хронология старта гонки (вне запуска гонки — молчит)
+    if (first.ready) { speak(id, line, o); return true }
     busyRef.current = now + waitMs + 100 // ждём слот: другие реплики не лезут вперёд
     if (waitMs !== LINE_WAIT_MS) catApi?.current?.peek?.(waitMs + 600) // «Гонка»: пока реплика ждёт звук, голова Пита наверху (не прячется)
     cancelGate()

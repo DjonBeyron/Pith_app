@@ -29,7 +29,7 @@ describe('speech-end: источник даёт ended', () => {
   it('старт: race_start сразу и без ожидания головы, ворота первой реплики не дольше 400 мс', () => {
     expect(RACE_START_LEAD_MS).toBe(0)
     expect(RACE_GATE_MS).toBeLessThanOrEqual(400)
-    expect(read('../rehearsal/useRehearsalActs.js')).toContain('{ noRise: true }')
+    expect(read('../rehearsal/useRehearsalActs.js')).toContain('{ noRise: true')
     expect(read(rp + 'wordLaneStart.js')).toContain('maxMs: raceGateMs')
   })
 })

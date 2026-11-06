@@ -10,6 +10,7 @@ import { reportSession } from './rehearsalSim.js'
 import { useRehearsalTake } from './useRehearsalTake.js'
 import { hasIntroLine } from './rehearsalPrepare.js'
 import { RACE_START_LEAD_MS } from '../pitrace/raceStartTrace.js'
+import { earlyStageLine } from '../pitrace/raceOpening.js'
 import { stuckHint, hintEntry, sayWordHint } from './rehearsalHints.js'
 import { demoSummary } from './polish/polishDemo.js'
 import { stageTiming, countdownPlan } from './rehearsalCountdown.js'
@@ -45,6 +46,8 @@ export function useRehearsalActs({ plan, stages, stage, at, stageObj, setS, sayL
   const nextIdx = useCallback(i => (on ? nextRunnable(stages, i, journal) : i), [on, stages, journal]) // стабильна: на ней держится next директора
 
   const intro = on && hasIntroLine(plan)
+  const early = on && !intro ? earlyStageLine(plan, stages) : null // «Гонка» без вступления (раунд, «Вспомни на слух + финал»): реплика первой стадии звучит СРАЗУ со стартом часов, как race_start, — а не после падения фразы и дорожек (≈ 2,1 с тишины)
+  const lineOf = st => (early && st?.idx === 0 ? null : st?.line ?? null) // у первой стадии её реплика уже сказана на старте: стадия только ждёт, пока Пит договорит (busyLeft), и ведёт ноты
   // Случайность внутри актов (CONCEPT_REHEARSAL.md §8): семя плана — одна сессия воспроизводима; что выбрано, пишется в журнал отладки один раз на запуск
   useEffect(() => {
     if (plan && !race) pLog(sessionLogLine(plan, buildActs(plan, { only: null }).acts))
@@ -55,29 +58,29 @@ export function useRehearsalActs({ plan, stages, stage, at, stageObj, setS, sayL
   const missLine = () => { missRef.current ??= { rng: rngFor(plan.seed, 'line:rh_warmup_miss'), last: {} }; return pickLine('rh_warmup_miss', missRef.current.rng, missRef.current.last) }
   // Вступление: Пит говорит про фразу, пока она падает (при запуске одного этапа «Шлифовки» его нет — rehearsalPrepare.hasIntroLine)
   useEffect(() => {
-    if (!on || stage !== 'drop' || !intro || hold) return undefined // hold («Гонка»): звук ещё готовится, часы игры стоят — вступление ждёт
-    const t = setTimeout(() => sayLine(startLine, null, race ? { noRise: true } : undefined), race ? RACE_START_LEAD_MS : LINE_AT_MS) // «Гонка»: race_start сразу и без ожидания головы
+    if (!on || stage !== 'drop' || !(intro || early) || hold) return undefined // hold («Гонка»): звук ещё готовится, часы игры стоят — вступление ждёт
+    const t = setTimeout(() => sayLine(intro ? startLine : early, null, race ? { noRise: true, ...(intro ? {} : { pause: stages[0]?.pause ?? LINE_PAUSE_MS }) } : undefined), race ? RACE_START_LEAD_MS : LINE_AT_MS) // «Гонка»: race_start (или реплика первой стадии) сразу и без ожидания головы
     return () => clearTimeout(t)
-  }, [on, stage, intro, sayLine, startLine, hold, race])
+  }, [on, stage, intro, early, sayLine, startLine, hold, race]) // eslint-disable-line react-hooks/exhaustive-deps -- stages[0].pause читается в момент старта
 
   // Раскладка стадии по времени: реплика Пита (ждёт, пока он договорит прошлую) и отсчёт тремя нотами (stage.count) — rehearsalCountdown.stageTiming
-  const timingOf = st => stageTiming({ order: st.count ?? null, lead: LINE_AT_MS, busyMs: cat.busyLeft(), lineMs: st.line ? lineMs(fillLine(lines?.[st.line]), rate) : 0, pause: st.pause ?? LINE_PAUSE_MS, minMs: st.ms, hasLine: !!st.line, quiet: lineVoiced(lines, st.line), plan: countdownPlan({ soft: !!st.soft }) })
+  const timingOf = st => { const ln = lineOf(st); return stageTiming({ order: st.count ?? null, lead: LINE_AT_MS, busyMs: cat.busyLeft(), lineMs: ln ? lineMs(fillLine(lines?.[ln]), rate) : 0, pause: st.pause ?? LINE_PAUSE_MS, minMs: st.ms, hasLine: !!ln, quiet: lineVoiced(lines, ln), plan: countdownPlan({ soft: !!st.soft }) }) }
   useEffect(() => { if (!on) return undefined; warmCountdown(race); return releaseCountdown }, [on, race]) // ноты отсчёта декодируются заранее (первая должна прозвучать вовремя)
 
   // Реплика стадии и отсчёт (стартует, когда Пит договорил, и не отпускает стадию до конца нот); смена стадии, пауза и выход гасят таймеры и ноты
   const [gate] = useState(createCountGate)
   useEffect(() => {
-    if (!running || (!running.line && !running.count)) return undefined
+    if (!running || (!lineOf(running) && !running.count)) return undefined
     const t = timingOf(running), ids = []
     let stopCount = null
-    if (running.line) ids.push(setTimeout(() => sayLine(running.line), t.lineAt))
+    if (lineOf(running)) ids.push(setTimeout(() => sayLine(lineOf(running)), t.lineAt))
     if (t.countAt != null) stopCount = scheduleStageCount({ countAt: t.countAt, busyLeft: () => cat.busyLeft(), gate, soft: !!running.soft })
     return () => { ids.forEach(clearTimeout); stopCount?.() }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [running, at])
 
   // Тишина экрана: пока Пит говорит озвученную реплику на старте стадии (или итога), на экране только дорожки и кот
-  const quietLine = !running ? null : running.type === 'summary' ? doneLine : running.line ?? null
+  const quietLine = !running ? null : running.type === 'summary' ? doneLine : lineOf(running)
   const quiet = usePitQuiet({
     on, key: quietLine ? `${running.idx}:${at}` : null, voiced: lineVoiced(lines, quietLine), order: running?.count ?? null, busyLeft: () => cat.busyLeft(),
     timing: () => ({ lineAt: running.type === 'summary' ? 0 : timingOf(running).lineAt, lineMs: lineMs(fillLine(lines?.[quietLine]), rate) }),
@@ -139,9 +142,9 @@ export function useRehearsalActs({ plan, stages, stage, at, stageObj, setS, sayL
     /** Следующая стадия, на которую идём: пропущенные по правилам (cond) обходятся */
     nextIdx,
     /** Сколько держать плашку (announce / turn): пока Пит договорит прошлую реплику и скажет свою */
-    holdMs: st => (!on || (!st?.line && !st?.count) ? st.ms : timingOf(st).holdMs),
+    holdMs: st => (!on || (!lineOf(st) && !st?.count) ? st.ms : timingOf(st).holdMs),
     /** Конец сигнала перед пилюлями на плашке (мс от её начала: реплика Пита / последняя нота): от него зажигается конвейер (wordLaneConveyorStart.js); null — сигнала нет, берётся конец плашки */
-    cueMs: st => (on && (st?.line || st?.count) ? plateCueMs({ order: st.count ?? null, timing: timingOf(st), lineMs: st.line ? lineMs(fillLine(lines?.[st.line]), rate) : 0, voiced: lineVoiced(lines, st.line), soft: !!st.soft }) : null),
+    cueMs: st => (on && (lineOf(st) || st?.count) ? plateCueMs({ order: st.count ?? null, timing: timingOf(st), lineMs: lineOf(st) ? lineMs(fillLine(lines?.[lineOf(st)]), rate) : 0, voiced: lineVoiced(lines, lineOf(st)), soft: !!st.soft }) : null),
     /** Дорожки со слабыми словами разминки: в «без текста» у них видна подпись */
     hintLanes: st => (on && st?.act === 'blind' && st.type === 'student' ? weakLanes(journal, stages) : []),
   }

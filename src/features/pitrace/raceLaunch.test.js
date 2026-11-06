@@ -104,10 +104,10 @@ describe('Пит почти сразу и журнал старта', () => {
     const game = read('../player/modules/rotate-phone/WordLaneGame.jsx')
     expect(game).toContain('if (startHold) { catApi.current?.peek?.(PIT_PEEK_MS); raceStart.pit() }')
     const cat = read('../player/modules/rotate-phone/useCatLines.js')
-    expect(cat).toContain('raceStart.line()'); expect(cat).toContain('raceStart.line({ voiced: false })'); expect(cat).toContain('{ maxMs: waitMs, pollMs:'); expect(cat).toContain('waitMs = LINE_WAIT_MS')
+    expect(cat).toContain('raceStart.line({ id })'); expect(cat).toContain('raceStart.line({ voiced: false, id })'); expect(cat).toContain('{ maxMs: waitMs, pollMs:'); expect(cat).toContain('waitMs = LINE_WAIT_MS')
     const flow = read('../player/modules/rotate-phone/useWordLaneFlow.js')
     expect(flow).toContain("waitMs: plan?.game === 'race' ? RACE_LINE_WAIT_MS : undefined"); expect(flow).toContain('if (hold) return undefined; const t = setTimeout(() => go(\'lanes\'), DROP_MS)')
-    expect(read('../rehearsal/useRehearsalActs.js')).toContain("if (!on || stage !== 'drop' || !intro || hold) return undefined")
+    expect(read('../rehearsal/useRehearsalActs.js')).toContain("if (!on || stage !== 'drop' || !(intro || early) || hold) return undefined")
   })
 })
 

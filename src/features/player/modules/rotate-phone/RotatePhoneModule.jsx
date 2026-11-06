@@ -16,6 +16,7 @@ import { releaseClips } from './wordLaneClips.js'
 import { dropWarmed } from './wordLaneFetch.js'
 import { normalizeLines } from './wordLaneCatLines.js'
 import { installGameAudioLife } from '../../../../shared/lib/gameAudioLife.js'
+import { installPageJournal } from '../../../../shared/lib/gameJournalPage.js'
 import { startGameAudio } from './wordLaneStart.js'
 import { warmGameSounds, warmSig } from './wordLaneWarm.js'
 import { useWarmProgress } from './useWarmProgress.js'
@@ -91,7 +92,7 @@ function RotateLive({ node, file, onDone, forceDebug, bare, startRef, onStatus, 
   const [plan, setPlan] = useState(null) // «Ещё минутку?» в репетиции: следующий план вместо плана ноды
   const cfg = useMemo(() => (plan ? readWordLane({ plan }) : nodeCfg), [plan, nodeCfg])
   const { src: audioSrc } = useAudioSource(node, file) // озвучка ElevenLabs из ноды (file_id) — если автор её сгенерировал
-  useEffect(() => { installGameAudioLife() }, []) // следим за фоном/блокировкой и между играми: возврат помечает звук «подозрительным», следующий старт идёт полным путём (gameAudioLife.js)
+  useEffect(() => { installGameAudioLife(); installPageJournal() }, []) // журнал игры: события страницы (свернули / вернули, freeze, audioSession, дорожка микрофона) — на весь сеанс (gameJournalPage.js); следим за фоном/блокировкой и между играми: возврат помечает звук «подозрительным», следующий старт идёт полным путём (gameAudioLife.js)
   const vosk = useVoskReady({ why: 'lesson' }) // распознавание только Vosk: модель в памяти или уведомление «Нужно скачать»
   const ready = vosk.status === 'ready'
   const [phase, setPhase] = useState('wait') // wait → (race: ask — сцена с попапом) → (tap: жест истёк, ждём касания) → game → finished (в тест-запуске после игры снова wait)
