@@ -97,8 +97,8 @@ describe('слушатель: выбор модели по языку', () => {
 })
 
 describe('адрес русской модели', () => {
-  it('по умолчанию — tar.gz на том же хосте, что английская; VITE_VOSK_RU_MODEL_URL важнее; сохранённый админом важнее всего', () => {
-    expect(VOSK_RU_MODEL_URL).toMatch(/vosk-model-small-ru-0\.22\.tar\.gz$/); expect(VOSK_RU_MODEL_URL.split('/models/')[0]).toBe(VOSK_MODEL_URL.split('/models/')[0])
+  it('по умолчанию — tar.gz из нашего public/vosk (свой домен, без github.io); VITE_VOSK_RU_MODEL_URL важнее; сохранённый админом важнее всего', () => {
+    expect(VOSK_RU_MODEL_URL).toBe('/vosk/vosk-model-small-ru-0.22.tar.gz'); expect(VOSK_RU_MODEL_URL).not.toMatch(/github\.io/); expect(VOSK_MODEL_URL).toMatch(/^https:/)
     expect(defaultRuModelUrl({})).toBe(VOSK_RU_MODEL_URL); expect(defaultRuModelUrl({ VITE_VOSK_RU_MODEL_URL: ' https://r2/ru.tar.gz ' })).toBe('https://r2/ru.tar.gz')
     const st = memStore(); expect(readRuModelUrl(st, {})).toBe(VOSK_RU_MODEL_URL)
     writeRuModelUrl('https://mine/ru.tar.gz', st); expect(st.getItem(VOSK_RU_URL_KEY)).toBe('https://mine/ru.tar.gz'); expect(readRuModelUrl(st, { VITE_VOSK_RU_MODEL_URL: 'x' })).toBe('https://mine/ru.tar.gz')

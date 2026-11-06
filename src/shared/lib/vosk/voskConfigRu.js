@@ -1,9 +1,10 @@
 // Русская модель Vosk (проход «назови перевод» игры «Встряхни память»): та же схема адреса, что у английской (voskConfig.js), — свой ключ админа и своя переменная окружения.
-// Порядок: адрес, сохранённый админом в блоке «Встряхни память» (localStorage) → VITE_VOSK_RU_MODEL_URL (Vercel) → встроенный запасной (github.io, тот же хост, что у английской).
-// Библиотека vosk-browser читает модели ТОЛЬКО в виде tar.gz (zip она не открывает), поэтому запасной адрес — архив tar.gz, а свой файл админ кладёт в бакет R2 тоже в tar.gz.
+// Порядок: адрес, сохранённый админом в блоке «Встряхни память» (localStorage) → VITE_VOSK_RU_MODEL_URL (Vercel) → встроенный: файл из нашего же репозитория
+// (`public/vosk/vosk-model-small-ru-0.22.tar.gz`, раздаёт Vercel с того же домена; адрес на github.io у vosk-browser отвечал 404, v3.3.119).
+// Библиотека vosk-browser читает модели ТОЛЬКО в виде tar.gz с одной папкой внутри (zip она не открывает); свой файл админ кладёт в бакет R2 тоже в tar.gz.
 import { readModelUrl } from './voskConfig.js'
 
-export const VOSK_RU_MODEL_URL = 'https://ccoreilly.github.io/vosk-browser/models/vosk-model-small-ru-0.22.tar.gz'
+export const VOSK_RU_MODEL_URL = '/vosk/vosk-model-small-ru-0.22.tar.gz'
 export const VOSK_RU_URL_KEY = 'pithy_admin_vosk_ru_model_url_v1'
 export const VOSK_RU_SIZE_TEXT = '≈45 МБ'
 

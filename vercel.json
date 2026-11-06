@@ -28,6 +28,15 @@
       ]
     },
     {
+      "source": "/vosk/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
+    },
+    {
       "source": "/(push-sw\\.js|sw-core\\.js|net-guard\\.js|offline\\.html)",
       "headers": [
         {
