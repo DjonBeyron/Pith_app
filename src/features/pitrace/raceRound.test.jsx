@@ -17,8 +17,8 @@ vi.mock('../../shared/lib/deviceTier.js', () => ({ isWeakDevice: vi.fn(() => fal
 const plan = (() => { const p = normalizePlan({ ...fixturePlan('three'), game: 'race' }); return { ...p, extraWords: extrasOf(p) } })()
 const { stages } = buildRaceStages({ plan })
 const at = sid => stages.findIndex(s => s.sid === sid)
-// «Этап с плашкой и флагом charge» (бар сам становится плашкой): в игре с v3.3.118 такого нет (один этап «Вспомни на слух», проход B объявляется без плашки), но ветка 'stage' в raceRound.js жива — проверяем её на подставленной стадии
-const withPlate = stages.map(s => (s.sid === 'catch-ann' ? { ...s, charge: true, round: { ...s.round, title: 'Вспомни на слух', task: 'задание этапа', brief: 'скажи слово' } } : s))
+// «Этап с плашкой и флагом charge» (бар сам становится плашкой): в игре с v3.3.118 такого нет (один этап «Пинг-понг», проход B объявляется без плашки), но ветка 'stage' в raceRound.js жива — проверяем её на подставленной стадии
+const withPlate = stages.map(s => (s.sid === 'catch-ann' ? { ...s, charge: true, round: { ...s.round, title: 'Пинг-понг', task: 'задание этапа', brief: 'скажи слово' } } : s))
 
 describe('какая зарядка у какой стадии', () => {
   it('sprint2-ann, catch-ann (проход B, «теперь наоборот») и catch2-ann — зарядка без плашки; объявление с плашкой и флагом charge — морф в плашку; первая стадия и обычные — без зарядки посреди игры', () => {
@@ -50,7 +50,7 @@ describe('план зарядки', () => {
   })
   it('объявление с плашкой: слова круга, морф в плашку раньше её конца', () => {
     const i = at('catch-ann'), p = roundPlan({ plan, stages: withPlate, i, lines }); expect(p.kind).toBe('stage')
-    expect(p.segments.length).toBe(stages[i + 1].words.length); expect(p.round.title).toBe('Вспомни на слух'); expect(p.round.task).toBeTruthy()
+    expect(p.segments.length).toBe(stages[i + 1].words.length); expect(p.round.title).toBe('Пинг-понг'); expect(p.round.task).toBeTruthy()
     expect(p.o.morphAt).toBeGreaterThanOrEqual(1000); expect(p.o.plateEnd - p.o.morphAt).toBeGreaterThan(STAGE_HOLD_MS - 1); expect(p.totalMs).toBe(Math.max(1000, Math.round(p.o.morphAt)))
   })
   it('проход B (catch-ann): слова прохода летят в бар без плашки и морфа', () => {

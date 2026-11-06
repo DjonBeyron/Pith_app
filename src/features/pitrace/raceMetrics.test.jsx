@@ -39,7 +39,7 @@ describe('метрики итога: raceMetrics', () => {
   })
 })
 
-describe('итог: метрики над «Слабыми словами», режим «Вспомни на слух + финал»', () => {
+describe('итог: метрики над «Слабыми словами», режим «Пинг-понг + финал»', () => {
   const result = { sprint: { hit: 3, total: 4 }, catchOk: 2, catchTotal: 4, medal: 'none', descent: null, xp: 1, capped: false, gold: false, metrics: raceMetrics(race), weak: [{ text: 'b', translation: 'б', score: 5, tone: 'red' }] }
   it('две строки: точность по этапам и время ответа / ловушки; блок идёт перед «Слабыми словами»; без таблицы', () => {
     const h = html({ result })
@@ -55,7 +55,7 @@ describe('итог: метрики над «Слабыми словами», р�
     const h = html({ result: { ...result, metrics: m } })
     expect(h).toContain('race-metrics-acc'); expect(h).not.toContain('race-metrics-time'); expect(h).not.toContain('race-metrics-traps')
   })
-  it('режим «Вспомни на слух + финал» (plan.round = stages): строк «Вершина» и «Спуск» нет, разгон, слух и XP остаются; в полной гонке они есть', () => {
+  it('режим «Пинг-понг + финал» (plan.round = stages): строк «Вершина» и «Спуск» нет, разгон, слух и XP остаются; в полной гонке они есть', () => {
     const two = html({ result }, normalizePlan({ ...fixturePlan('three'), game: 'race', round: 'stages' }))
     expect(two).not.toContain('race-summary-climb'); expect(two).not.toContain('race-summary-descent')
     expect(two).toContain('race-summary-sprint'); expect(two).toContain('race-summary-catch'); expect(two).toContain('race-summary-xp'); expect(two).toContain('race-metrics')
@@ -69,10 +69,10 @@ describe('итог: метрики над «Слабыми словами», р�
   })
 })
 
-describe('стенд: кнопка «Вспомни на слух + финал»', () => {
+describe('стенд: кнопка «Пинг-понг + финал»', () => {
   it('в блоке гонки рядом с «Полной гонкой» и раундами; запускает round = stages', () => {
     const h = renderToStaticMarkup(createElement(RaceBlock))
-    expect(h).toContain('data-testid="race-run-full"'); expect(h).toContain('data-testid="race-run-stages"'); expect(h).toContain('>Вспомни на слух + финал<')
+    expect(h).toContain('data-testid="race-run-full"'); expect(h).toContain('data-testid="race-run-stages"'); expect(h).toContain('>Пинг-понг + финал<')
     expect(readFileSync(new URL('../admin/speech/RaceBlock.jsx', import.meta.url), 'utf8')).toContain('launch(STAGES_ROUND)')
   })
 })

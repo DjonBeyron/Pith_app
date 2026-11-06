@@ -56,14 +56,14 @@ describe('итог (RaceSummary) и RaceActs', () => {
 
 describe('админка: блок «Встряхни память (стенд)»', () => {
   const withOpen = (open, fn) => { vi.stubGlobal('localStorage', { getItem: () => (open ? JSON.stringify(['race-settings']) : null), setItem() {} }); try { return fn() } finally { vi.unstubAllGlobals() } }
-  it('блок (настройки развёрнуты): фикстура, статус реплик race_*, куски, тап, «Полная гонка» и четыре раунда, «Вспомни на слух + финал», «Скачать отладку»', () => {
+  it('блок (настройки развёрнуты): фикстура, статус реплик race_*, куски, тап, «Полная гонка» и четыре раунда, «Пинг-понг + финал», «Скачать отладку»', () => {
     const h = withOpen(true, () => html(RaceBlock, {}))
     expect(h).toContain('Встряхни память (стенд)'); expect(h).toContain('race-ru-address'); expect(h).toContain('race-ru-need') // адрес русской модели и подсказка про тап без неё
     for (const id of ['race-fixture', 'race-lines-status', 'race-voice-lines', 'race-chunks-status', 'race-voice-chunks', 'race-trans-status', 'race-voice-trans', 'race-tap-mode', 'race-run-full', 'race-run-sprint', 'race-run-catch', 'race-run-climb', 'race-run-descent', 'race-run-stages', 'race-export']) expect(h).toContain(`data-testid="${id}"`)
     for (const t of ['Полная гонка', 'Проход A', 'Проход B', 'Вершина', 'Спуск', 'Скачать отладку', 'Тап вместо речи']) expect(h).toContain(t)
     expect(h).toContain('Реплики Пита race_*'); expect(h).not.toContain('race-howto'); expect(h).not.toContain('Как тестировать'); expect(h).not.toContain('race-ask') // плашка-вопрос открывается только по тапу
   })
-  it('раскладка на 375 px: первой идёт крупная кнопка «Вспомни на слух + финал», потом «Полная гонка» и раунды, «Настройки» свёрнуты (фикстура, озвучки, тап внутри)', () => {
+  it('раскладка на 375 px: первой идёт крупная кнопка «Пинг-понг + финал», потом «Полная гонка» и раунды, «Настройки» свёрнуты (фикстура, озвучки, тап внутри)', () => {
     const h = withOpen(false, () => html(RaceBlock, {}))
     const at = id => h.indexOf(`data-testid="${id}"`)
     expect(at('race-run-stages')).toBeGreaterThan(0); expect(at('race-run-stages')).toBeLessThan(at('race-run-full')); expect(at('race-run-full')).toBeLessThan(at('race-run-sprint')); expect(at('race-run-sprint')).toBeLessThan(at('race-settings-toggle'))

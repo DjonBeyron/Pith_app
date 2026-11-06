@@ -21,7 +21,7 @@ import { whyNotIdle } from './launchWhy.js'
 import '../../../styles/admin-rehearsal-polish.css'
 import '../../../styles/admin-race-ask.css'
 
-// Админ → «Голос» → «Встряхни память (стенд)» (САМЫЙ ВЕРХ вкладки, над «Шлифовкой репетиции»; прежнее имя «Гонка с Питом»): проверка новой игры на движке репетиции (CONCEPT_RACE.md, src/features/pitrace/). Раскладка на 375 px: крупная кнопка «Вспомни на слух + финал» (актуальный режим),
+// Админ → «Голос» → «Встряхни память (стенд)» (САМЫЙ ВЕРХ вкладки, над «Шлифовкой репетиции»; прежнее имя «Гонка с Питом»): проверка новой игры на движке репетиции (CONCEPT_RACE.md, src/features/pitrace/). Раскладка на 375 px: крупная кнопка «Пинг-понг + финал» (актуальный режим),
 // под ней «Полная гонка», проходы, вершина, спуск и «Скачать отладку», под кнопками — статус русской модели слуха для прохода B (VoskReadyNotice, кнопка «Скачать»; без неё проход B идёт тапом), ниже сворачиваемый раздел «Настройки» (по умолчанию свёрнут, состояние — usePolishOpen): фикстура плана (общая форма с «Шлифовкой репетиции» и «Тестом игры», rehearsalTestForm.js),
 // статус и кнопки озвучки реплик race_* (usePolishVoice → rehearsalVoice.voiceMissingPitLines с набором RACE_LINES), кусков фразы и переводов слов, «Тап вместо речи» (общий флаг игры pithy_wl_tap_v1).
 // Любая кнопка запуска только ОТКРЫВАЕТ сцену игры на весь экран с попапом «Говорю / Тапаю» (pitrace/RaceAskPlate.jsx, внутри RotatePhoneModule): пока человек не ответил, ничего не стартует; ответ — свежий жест, в нём же startGameAudio
@@ -73,7 +73,7 @@ export default function RaceBlock({ save = saveDebugFile }) {
       {status.problem && <p className="aspErr" role="alert" data-testid="race-problem">{status.problem}</p>}
       {error && <p className="aspErr" role="alert" data-testid="race-error">{error}</p>}
       <PolishSettings open={isOpen(SETTINGS_ID)} onToggle={() => toggle(SETTINGS_ID)} summary={summary} testid="race-settings">
-        <p className="rhpHint">Один этап «Вспомни на слух» из двух проходов (скажи слово по переводу, назови перевод) и финал; в «Полной гонке» после него вершина и спуск. Память и XP — в симуляции.</p>
+        <p className="rhpHint">Один этап «Пинг-понг» из двух проходов (скажи слово по переводу, назови перевод) и финал; в «Полной гонке» после него вершина и спуск. Память и XP — в симуляции.</p>
         <label className="aspLabel">Фраза (фикстура плана)
           <select className="aspInput" value={rform.fixture} disabled={playing} onChange={e => pickFixture(e.target.value)} data-testid="race-fixture">
             {FIXTURE_IDS.map(id => <option key={id} value={id}>{FIXTURES[id].title}</option>)}

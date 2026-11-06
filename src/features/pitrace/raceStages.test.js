@@ -95,7 +95,7 @@ describe('стадии гонки в формате движка', () => {
     expect(b.step.lang).toBeUndefined(); expect(b.step.tapOnly).toBe(true); expect(b2.step.tapOnly).toBe(true)
     expect(of(buildRaceStages({ plan: plan(), tap: true, ru: true }).stages, 'catch').some(x => x.switchTo)).toBe(false) // «Тапаю»: модель не нужна
     const tp = buildRaceStages({ plan: plan(), tap: true, ru: true }).stages; expect([lineOf(tp, 'sprint-ann'), lineOf(tp, 'catch-ann')]).toEqual([null, 'race_catch_tap']) // «Пальцами»: объявление про тап — у прохода B
-    expect(of(buildRaceStages({ plan: plan('three', { round: 'stages' }), tap: false, ru: true }).stages, 'climb')).toHaveLength(0) // «Вспомни на слух + финал»: вершины нет — возвращать слух перед ней не нужно
+    expect(of(buildRaceStages({ plan: plan('three', { round: 'stages' }), tap: false, ru: true }).stages, 'climb')).toHaveLength(0) // «Пинг-понг + финал»: вершины нет — возвращать слух перед ней не нужно
   })
   it('разгон и слушай и лови собираются одним набором (raceStageKit.queueStep): общие флаги и выдержка PRE_SAY_GAP_MS; у разгона say = перевод (его Пит говорит и в тапе), trap нет', () => {
     const stages = build().stages

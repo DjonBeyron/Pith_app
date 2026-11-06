@@ -131,7 +131,7 @@ describe('useRaceActs: директор гонки поверх директор
   })
   it('вступление race_start — в полной гонке; у одного раунда его нет; первые реплики, тексты и «Ещё заезд» держат game: race', () => {
     expect(hasIntroLine(racePlan())).toBe(true); expect(hasIntroLine(racePlan({ round: 'catch' }))).toBe(false)
-    expect(hasIntroLine(racePlan({ round: 'stages' }))).toBe(true); expect(hasIntroLine(racePlan({ round: 'sprint' }))).toBe(true) // стартовая фраза режима и в «Вспомни на слух + финал»
+    expect(hasIntroLine(racePlan({ round: 'stages' }))).toBe(true); expect(hasIntroLine(racePlan({ round: 'sprint' }))).toBe(true) // стартовая фраза режима и в «Пинг-понг + финал»
     expect(firstLines(racePlan())).toEqual(['race_start']); expect(firstLines(racePlan({ round: 'stages' }))).toEqual(['race_start']); expect(raceFirstLines(racePlan(), buildRaceActs(racePlan(), true, true).acts, true)).toEqual(['race_start_tap']); expect(firstLines(racePlan({ round: 'climb' }))).toEqual(['race_climb'])
     expect(neededTexts(racePlan())).toEqual(expect.arrayContaining(['learn', 'earn', 'to learn']))
     expect(neededTexts(racePlan()).length).toBeGreaterThan(neededTexts(normalizePlan(fixturePlan('three'))).length) // добор «Разгона»

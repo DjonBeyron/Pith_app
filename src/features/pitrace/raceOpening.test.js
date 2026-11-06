@@ -47,7 +47,7 @@ describe('расписание открытия: слова → бар → пл�
     const none = openingPlan(mk(), null)
     expect(none.speechEnd).toBe(4000); expect(none.morphAt).toBe(3400); expect(none.plateEnd).toBe(5200)
   })
-  it('«Вспомни на слух + финал» и «Проход A»: тоже стартовая фраза (раньше — реплика этапа); одиночные Вершина и Спуск, проход B — вступления нет, реплика этапа звучит СРАЗУ со стартом часов', () => {
+  it('«Пинг-понг + финал» и «Проход A»: тоже стартовая фраза (раньше — реплика этапа); одиночные Вершина и Спуск, проход B — вступления нет, реплика этапа звучит СРАЗУ со стартом часов', () => {
     const st = openingPlan(mk({ round: 'stages' }), lines)
     expect(st.startMs).toBe(5000); expect(st.early).toBe(true); expect(st.speechEnd).toBe(RACE_START_LEAD_MS + 5000)
     for (const round of ['stages', 'sprint']) { const p = mk({ round }), { stages } = buildRaceStages({ plan: p, rate: 1 }); expect(earlyStageLine(p, stages)).toBeNull() }

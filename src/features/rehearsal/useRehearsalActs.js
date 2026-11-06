@@ -47,7 +47,7 @@ export function useRehearsalActs({ plan, stages, stage, at, stageObj, setS, sayL
   const nextIdx = useCallback(i => (on ? nextRunnable(stages, i, journal) : i), [on, stages, journal]) // стабильна: на ней держится next директора
 
   const intro = on && hasIntroLine(plan)
-  const early = on && !intro ? earlyStageLine(plan, stages) : null // «Гонка» без вступления (раунд, «Вспомни на слух + финал»): реплика первой стадии звучит СРАЗУ со стартом часов, как race_start, — а не после падения фразы и дорожек (≈ 2,1 с тишины)
+  const early = on && !intro ? earlyStageLine(plan, stages) : null // «Гонка» без вступления (раунд, «Пинг-понг + финал»): реплика первой стадии звучит СРАЗУ со стартом часов, как race_start, — а не после падения фразы и дорожек (≈ 2,1 с тишины)
   const lineOf = st => (early && st?.idx === 0 ? null : st?.line ?? null) // у первой стадии её реплика уже сказана на старте: стадия только ждёт, пока Пит договорит (busyLeft), и ведёт ноты
   // Случайность внутри актов (CONCEPT_REHEARSAL.md §8): семя плана — одна сессия воспроизводима; что выбрано, пишется в журнал отладки один раз на запуск
   useEffect(() => {
