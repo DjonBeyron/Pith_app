@@ -1,20 +1,25 @@
-/* «Пит ныряет и уворачивается» (режим «Говорю» гонки; привод — src/features/pitrace/raceDodgeDrive.js, модель — raceDodge.js). Подключается из word-lane.css (@import).
-   .wlCat--track: голова встаёт по центру (left: 50 %), положение ведёт <svg class="wlCatSvg">: x — transform: translateX(--wl-dx), глубина нырка — translate: 0 --wl-dy.
-   Это два разных свойства с разными переходами: пока голова под краем, x переставляется мгновенно, а выныривание идёт по translate. Только композитор (без layout и filter).
-   По x голова не скользит никогда. data-dodge: set — без перехода; dive-down — голова уходит за нижний край 0,17 с (ease-in; таймер выныривания — через 0,2 с, запас на занятый кадр); dive-up — выныривает 0,22 с с лёгким перелётом;
-   jump — прыжок-пружина 0,18 с + наклон и сжатие (keyframes, rotate / scale). Подъём головы (transform самого .wlCat, word-lane.css) остаётся отдельным. */
-.wlStage > .wlCat.scn.wlCat--track { left: 50%; }
+/* «Пит ныряет и уворачивается» (режим «Говорю» гонки; глубина и x — src/features/pitrace/raceHeadDepth.js, решение «что делать» — raceDodgeDrive.js, модель — raceDodge.js). Подключается из word-lane.css (@import).
+   .wlCat--track: голова стоит по центру (left: 50 %) и НЕПОДВИЖНА — подъём / уход по классу wlCat--up и правило паузы (108 %) её больше не двигают (word-lane.css, word-lane-pause.css: :not(.wlCat--track)).
+   Положение ведёт ОДИН владелец через <svg class="wlCatSvg">: x — transform: translateX(--wl-dx), глубина — translate: 0 --wl-dy (оба на .wlCat, пишутся только при изменении).
+   Разные свойства — разные переходы: пока голова под краем, x переставляется мгновенно, а выныривание идёт по translate. Только композитор (без layout и filter); will-change держит слой головы постоянно —
+   без него Safari снимал слой после каждого перехода и перерисовывал SVG со сдвигом на долю пикселя (мелкий рывок, когда голова «встала»).
+   По x голова не скользит никогда. data-dodge: set — без перехода; dive-down — за нижний край 0,17 с (ease-in); dive-up — выныривает 0,22 с с лёгким перелётом; hide — уход, когда речь кончилась (0,3 с);
+   rise — подъём для речи (0,44 с, пружина); jump — прыжок-пружина 0,18 с + наклон и сжатие (keyframes, rotate / scale) и шлейф (::before). */
+.wl .wlStage > .wlCat.scn.wlCat--track { left: 50%; transform: translate(-50%, 4%); transition: none; }
 .wlCat--track .wlCatSvg {
   transform: translateX(var(--wl-dx, 0%));
   translate: 0 var(--wl-dy, 0%);
   transform-origin: 50% 100%;
   transition: none;
+  will-change: transform, translate;
 }
 .wlCat--track[data-dodge='dive-down'] .wlCatSvg { transition: translate 0.17s cubic-bezier(0.5, 0, 0.75, 0.5); }
 .wlCat--track[data-dodge='dive-up'] .wlCatSvg { transition: translate 0.22s cubic-bezier(0.25, 1.5, 0.5, 1); }
+.wlCat--track[data-dodge='hide'] .wlCatSvg { transition: translate 0.3s cubic-bezier(0.4, 0, 0.6, 1); }
+.wlCat--track[data-dodge='rise'] .wlCatSvg { transition: translate 0.44s cubic-bezier(0.34, 1.45, 0.5, 1); }
 .wlCat--track[data-dodge='jump'] .wlCatSvg { transition: transform 0.18s cubic-bezier(0.2, 1.45, 0.45, 1); animation: wlCatDodgeR 0.36s ease-out; }
 .wlCat--track[data-dodge='jump'][data-dir='l'] .wlCatSvg { animation-name: wlCatDodgeL; }
-/* data-hop чередуется на каждом прыжке: имя анимации меняется — наклон играет заново, даже если прыжок идёт сразу за прыжком в ту же сторону */
+/* data-hop чередуется на каждом прыжке: имя анимации меняется — наклон и шлейф играют заново, даже если прыжок идёт сразу за прыжком в ту же сторону */
 .wlCat--track[data-dodge='jump'][data-hop='1'] .wlCatSvg { animation-name: wlCatDodgeR1; }
 .wlCat--track[data-dodge='jump'][data-hop='1'][data-dir='l'] .wlCatSvg { animation-name: wlCatDodgeL1; }
 /* прыжок: голова отшатывается от пилюли (наклон в сторону рывка), сплющивается и распрямляется */
@@ -22,8 +27,47 @@
 @keyframes wlCatDodgeL { 0% { rotate: 0deg; scale: 1; } 35% { rotate: -9deg; scale: 1.08 0.9; } 70% { rotate: 2deg; scale: 0.98 1.03; } 100% { rotate: 0deg; scale: 1; } }
 @keyframes wlCatDodgeR1 { 0% { rotate: 0deg; scale: 1; } 35% { rotate: 9deg; scale: 1.08 0.9; } 70% { rotate: -2deg; scale: 0.98 1.03; } 100% { rotate: 0deg; scale: 1; } }
 @keyframes wlCatDodgeL1 { 0% { rotate: 0deg; scale: 1; } 35% { rotate: -9deg; scale: 1.08 0.9; } 70% { rotate: 2deg; scale: 0.98 1.03; } 100% { rotate: 0deg; scale: 1; } }
-/* слабое устройство (scn--lite) и reduced-motion — нырок и прыжок мгновенные, без пружины и наклона; порядок событий тот же */
+
+/* Шлейф прыжка — «линии скорости», как в аниме: четыре тонких штриха позади головы (противоположно рывку), расходятся от неё, растягиваются и гаснут за 0,3 с. Новых узлов нет: ::before головы
+   (размер — как у головы, едет за ней тем же переходом по translate: --wl-dx), штрихи — фоновые градиенты. Перезапуск — data-hop (два имени анимации), сторона — data-dir. Анимация — только transform / opacity.
+   z-index: -1 — под головой (внутри слоя .wlCat). Слабое устройство и reduced-motion — без шлейфа. */
+.wlCat--track::before {
+  content: '';
+  position: absolute;
+  top: 24%;
+  height: 46%;
+  left: -56%;
+  width: 100%;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0;
+  translate: var(--wl-dx, 0%) 0;
+  transform-origin: 100% 50%;
+  --wl-line: rgba(255, 255, 255, 0.6);
+  background:
+    linear-gradient(to left, var(--wl-line), transparent) 100% 4% / 58% 2px no-repeat,
+    linear-gradient(to left, var(--wl-line), transparent) 100% 36% / 84% 2px no-repeat,
+    linear-gradient(to left, var(--wl-line), transparent) 100% 66% / 70% 2px no-repeat,
+    linear-gradient(to left, var(--wl-line), transparent) 100% 96% / 50% 2px no-repeat;
+}
+.wlCat--track[data-dir='l']::before {
+  left: 56%;
+  transform-origin: 0% 50%;
+  background:
+    linear-gradient(to right, var(--wl-line), transparent) 0% 4% / 58% 2px no-repeat,
+    linear-gradient(to right, var(--wl-line), transparent) 0% 36% / 84% 2px no-repeat,
+    linear-gradient(to right, var(--wl-line), transparent) 0% 66% / 70% 2px no-repeat,
+    linear-gradient(to right, var(--wl-line), transparent) 0% 96% / 50% 2px no-repeat;
+}
+.wlCat--track[data-dodge='jump']::before { transition: translate 0.18s cubic-bezier(0.2, 1.45, 0.45, 1); animation: wlCatTrail 0.3s ease-out both; }
+.wlCat--track[data-dodge='jump'][data-hop='1']::before { animation-name: wlCatTrail1; }
+@keyframes wlCatTrail { 0% { opacity: 0; transform: scale(0.2, 0.6); } 22% { opacity: 1; transform: scale(0.9, 1); } 100% { opacity: 0; transform: scale(1.3, 1.35); } }
+@keyframes wlCatTrail1 { 0% { opacity: 0; transform: scale(0.2, 0.6); } 22% { opacity: 1; transform: scale(0.9, 1); } 100% { opacity: 0; transform: scale(1.3, 1.35); } }
+
+/* слабое устройство (scn--lite) и reduced-motion — переходы мгновенные, без пружины, наклона и шлейфа; порядок событий тот же */
 .wlCat--track.scn--lite[data-dodge] .wlCatSvg { transition: none; animation: none; }
+.wlCat--track.scn--lite::before { content: none; }
 @media (prefers-reduced-motion: reduce) {
   .wlCat--track .wlCatSvg, .wlCat--track[data-dodge] .wlCatSvg { transition: none; animation: none; }
+  .wlCat--track::before { content: none; }
 }

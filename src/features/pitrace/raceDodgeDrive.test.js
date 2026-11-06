@@ -3,15 +3,15 @@ import { readFileSync } from 'node:fs'
 import { createDodgeDrive, measureHead, planLine, PEEK_MS, DOWN_Y } from './raceDodgeDrive.js'
 import { HEAD_TOP, leadOf, DIVE_DOWN_MS, DIVE_MS, JUMP_MS } from './raceDodge.js'
 
-// Привод «Пит ныряет и уворачивается» на поддельной голове (в тестах нет DOM): класс слежения, --wl-dx / --wl-dy у svg, data-dodge и их порядок, журнал «[dodge]», ожидание left(); CSS — только transform / translate / opacity
+// Привод «Пит ныряет и уворачивается» на поддельной голове (в тестах нет DOM): класс слежения, --wl-dx / --wl-dy у головы (raceHeadDepth.js), data-dodge и их порядок, журнал «[dodge]», ожидание left(); CSS — только transform / translate / opacity
 function fakeCat({ catX = '', up = true, lite = false } = {}) {
   const vars = {}
-  const svg = { style: { setProperty: (k, v) => { vars[k] = v } } }
+  const svg = { style: {} }
   const cls = new Set([...(up ? ['wlCat--up'] : []), ...(lite ? ['scn--lite'] : [])])
   const seen = []
   const dataset = new Proxy({}, { set: (o, k, v) => { o[k] = v; if (k === 'dodge') seen.push(v); return true } })
   const cat = {
-    dataset, style: { getPropertyValue: () => catX },
+    dataset, style: { getPropertyValue: () => catX, setProperty: (k, v) => { vars[k] = v } },
     classList: { add: c => cls.add(c), contains: c => cls.has(c) },
     querySelector: () => svg, parentElement: null, offsetWidth: 0, offsetHeight: 0,
   }
@@ -24,7 +24,7 @@ function clock() {
     now: () => t,
     setTimer: (fn, ms) => { const id = timers.length + 1; timers.push({ id, at: t + ms, fn }); return id },
     clearTimer: id => { const k = timers.findIndex(x => x.id === id); if (k >= 0) timers.splice(k, 1) },
-    go(ms) { t += ms; for (const x of timers.filter(y => y.at <= t)) { timers.splice(timers.indexOf(x), 1); x.fn() } },
+    go(ms) { const end = t + ms; for (let x = timers.filter(y => y.at <= end).sort((a, b) => a.at - b.at)[0]; x; x = timers.filter(y => y.at <= end).sort((a, b) => a.at - b.at)[0]) { timers.splice(timers.indexOf(x), 1); t = Math.max(t, x.at); x.fn() } t = end }, // таймеры по порядку срабатывания, и те, что поставлены внутри
   }
 }
 const pill = (y, o = {}) => ({ id: 'a', rep: 0, lane: 0, y, speed: 1, state: 'fly', ...o })
@@ -82,13 +82,13 @@ describe('raceDodgeDrive', () => {
     const hop = cat.dataset.hop
     expect(d.left()).toBeGreaterThan(JUMP_MS) // пилюля ещё идёт над головой
     d.step([pill(106, { state: 'failed' })], 1500)
-    expect(seen.slice(-2)).toEqual(['jump', 'jump'])
+    expect(seen.slice(-2)).toEqual(['dive-up', 'jump']) // data-dodge пишется только при смене: второй прыжок перезапускает наклон и шлейф через data-hop
     expect(cat.dataset.hop).not.toBe(hop)
     expect(cat.dataset.dodgeX).toBe('27')
   })
   it('голова спрятана: нырок не нужен — x сразу (set), речь не ждёт', () => {
     const { d, seen, vars } = make({ up: false })
-    expect(seen).toEqual(['set', 'set'])
+    expect(seen).toEqual(['set']) // x переставлен без перехода, data-dodge не трогали
     expect(vars['--wl-dx']).toBe('-46.00%')
     expect(d.left()).toBe(0)
   })
@@ -128,20 +128,35 @@ describe('word-lane-cat-dodge.css', () => {
   it('подключён из word-lane.css', () => {
     expect(readFileSync(new URL('../../styles/player/modules/word-lane.css', import.meta.url), 'utf8')).toMatch(/@import '\.\/word-lane-cat-dodge\.css';/)
   })
-  it('без filter; анимируются только transform / translate / rotate / scale; x без перехода нигде, кроме прыжка', () => {
+  it('без filter; анимируются только transform / translate / rotate / scale / opacity; x без перехода нигде, кроме прыжка', () => {
     expect(rules).not.toMatch(/filter\s*:/)
     for (const m of rules.matchAll(/transition:\s*([^;]+);/g)) if (m[1].trim() !== 'none') expect(m[1]).toMatch(/^(transform|translate) /)
     for (const kf of rules.matchAll(/@keyframes\s+\w+\s*\{([\s\S]*?)\}\s*\}/g)) {
       const props = [...kf[1].matchAll(/([a-z-]+)\s*:/g)].map(x => x[1])
-      expect(props.every(p => ['rotate', 'scale'].includes(p))).toBe(true)
+      expect(props.every(p => ['rotate', 'scale', 'transform', 'opacity'].includes(p))).toBe(true)
     }
     expect([...rules.matchAll(/transition:\s*transform[^;]*;/g)]).toHaveLength(1)
     expect(rules).toMatch(/\[data-dodge='jump'\] \.wlCatSvg \{ transition: transform/)
-    expect(rules).toMatch(/\[data-dodge='dive-down'\] \.wlCatSvg \{ transition: translate/)
-    expect(rules).toMatch(/\[data-dodge='dive-up'\] \.wlCatSvg \{ transition: translate/)
+    for (const m of ['dive-down', 'dive-up', 'hide', 'rise']) expect(rules).toMatch(new RegExp(`\\[data-dodge='${m}'\\] \\.wlCatSvg \\{ transition: translate`))
   })
-  it('нырок и прыжок укладываются в 160–250 мс', () => {
-    for (const m of rules.matchAll(/transition:\s*(?:transform|translate) ([\d.]+)s/g)) { expect(Number(m[1])).toBeGreaterThanOrEqual(0.16); expect(Number(m[1])).toBeLessThanOrEqual(0.25) }
+  it('нырок и прыжок укладываются в 160–250 мс, уход и подъём для речи — не дольше 0,45 с', () => {
+    for (const m of rules.matchAll(/\[data-dodge='([\w-]+)'\][^{]*\{ transition: (?:transform|translate) ([\d.]+)s/g)) {
+      const s = Number(m[2])
+      if (['hide', 'rise'].includes(m[1])) expect(s).toBeLessThanOrEqual(0.45)
+      else { expect(s).toBeGreaterThanOrEqual(0.16); expect(s).toBeLessThanOrEqual(0.25) }
+    }
+  })
+  it('в слежении .wlCat неподвижен (подъём и пауза его не двигают), слой головы постоянный', () => {
+    expect(rules).toMatch(/\.wl \.wlStage > \.wlCat\.scn\.wlCat--track \{ left: 50%; transform: translate\(-50%, 4%\); transition: none; \}/)
+    expect(rules).toMatch(/will-change: transform, translate;/)
+  })
+  it('шлейф прыжка: ::before головы (без новых узлов), перезапуск data-hop, сторона data-dir, едет за головой по --wl-dx', () => {
+    expect(rules).toMatch(/\.wlCat--track::before \{[^}]*content: '';[^}]*opacity: 0;[^}]*translate: var\(--wl-dx, 0%\) 0;/)
+    expect(rules).toMatch(/\.wlCat--track\[data-dir='l'\]::before \{/)
+    expect(rules).toMatch(/\[data-dodge='jump'\]::before \{ transition: translate 0\.18s[^}]*animation: wlCatTrail 0\.3s/)
+    expect(rules).toMatch(/\[data-dodge='jump'\]\[data-hop='1'\]::before \{ animation-name: wlCatTrail1; \}/)
+    expect(rules).toMatch(/\.wlCat--track\.scn--lite::before \{ content: none; \}/)
+    expect(rules).toMatch(/prefers-reduced-motion: reduce\) \{[\s\S]*\.wlCat--track::before \{ content: none; \}/)
   })
   it('слабое устройство и reduced-motion — без пружины', () => {
     expect(rules).toMatch(/scn--lite\[data-dodge\] \.wlCatSvg \{ transition: none; animation: none; \}/)

@@ -224,7 +224,7 @@ describe('проводка и аудит исходников', () => {
   })
   it('CSS: на паузе кот уходит под нижний край (иначе торчит из-под попапа); правило длиннее выскакивания и пружины', () => {
     const pause = read('../../../../styles/player/modules/word-lane-pause.css')
-    expect(pause).toMatch(/\.wl\[data-phase='paused'\] \.wlStage > \.wlCat\.scn\.wlCat--up \{[^}]*transform: translate\(-50%, 108%\)/)
+    expect(pause).toMatch(/\.wl\[data-phase='paused'\] \.wlStage > \.wlCat\.scn\.wlCat--up:not\(\.wlCat--track\) \{[^}]*transform: translate\(-50%, 108%\)/) // голова в слежении гонки на паузе ныряет сама (raceHeadDepth.js)
     expect(read('../../../../styles/player/modules/word-lane.css')).toMatch(/\.wlStage > \.wlCat\.scn \{[^}]*transform: translate\(-50%, 108%\)/)  // то же положение «спрятан», что у кота по умолчанию
     expect(read('../../../../styles/player/modules/word-lane.css')).toContain('.wlStage > .wlCat.scn.wlCat--up { transform: translate(-50%, 4%)')
   })
