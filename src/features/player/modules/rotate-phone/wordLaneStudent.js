@@ -23,6 +23,7 @@
 //  • Ступень закончена (done), когда каждый повтор принят или потерян и ничего не летит.
 import { ENTER_Y, EXIT_Y, SPEED, LOCK_MS, FILL_CAP, PRE_CONFIRM_CAP, LISTEN_Y_MIN, LISTEN_Y_MAX, isListening, breathStep, fillTo, drainStep, easeInOut } from './wordLaneTimeline.js'
 import { tokenize } from '../../../../shared/lib/speech/speechMatch.js'
+import { wordCountRu } from '../../../../shared/lib/speech/speechMatchRu.js'
 import { laneOf, stepTargets, textOf } from './wordLaneRecipe.js'
 import { estChunkMs } from './wordLaneAudio.js'
 import { spawnEarly } from './wordLaneConveyorSpeed.js'
@@ -93,7 +94,7 @@ export function createStudentGame({ step, chunks, estMs = c => estChunkMs(chunks
   const reps = step.reps.map((rp, idx) => {
     const durs = rp.parts.map(c => estMs(c))
     const offs = durs.map((_, k) => durs.slice(0, k).reduce((a, d) => a + d + PIECE_PAD_MS, 0))
-    const cnt = rp.parts.map(c => Math.max(1, tokenize(chunks[c]).length))
+    const cnt = rp.parts.map(c => (step.lang === 'ru' ? wordCountRu(chunks[c]) : Math.max(1, tokenize(chunks[c]).length))) // русский перевод: английский tokenize стирал кириллицу (у «добрый день» было 1 слово)
     const cum = cnt.reduce((a, k) => [...a, a.at(-1) + k], [0])      // сколько слов цели приходится на начало каждого куска и на конец всех
     return { idx, parts: rp.parts, target: repTarget[idx], text: textOf(chunks, rp.parts), state: 'todo', tries: 0, pills: [], tk: 0, cnt, cum, durs, offs, lanes: rp.lane != null ? [rp.lane] : rp.parts.map(c => laneOf(n, c, idx)), speed: rp.speed ?? 1, y0: rp.y0 ?? null, cap: rp.cap ?? null, say: rp.say ?? null, trap: !!rp.trap, reveal: rp.reveal ?? null } // lane / speed / cap / reveal — «Гонка с Питом»: своя дорожка, скорость, подпись внутри пилюли и слово, которое проявится при промахе
   })
@@ -221,6 +222,7 @@ function stepFill(rep, dt, { level, confirmed, spoken, t, events }) {
   const cap = confirmed ? FILL_CAP : PRE_CONFIRM_CAP                                // речь подтверждена распознаванием — до FILL_CAP; ещё нет (шум, эхо, лаг partial) — лишь слегка
   rep.pills.forEach((p, i) => {
     if (p.state !== 'fly') return
+    rep.peak = Math.max(rep.peak ?? 0, p.p) // самая полная заливка повтора — журнал «не успел» прохода B (уровень)
     const done = rep.tk >= rep.cum[i + 1]
     if (done && i < rep.parts.length - 1) { lockPill(p, t); events.push({ type: 'piece-ok', rep, pill: p, piece: i }); return } // слова куска произнесены — зелёный сразу, не ждём конца повтора
     p.p = !isListening(p.y) ? fillTo(p.p, dt, 0) : done ? fillTo(p.p, dt, FILL_CAP) : i === active ? breathStep(p.p, dt, voice, cap) : fillTo(p.p, dt, 0)  // пилюля за краем экрана на 80 % и больше не наливается; последний кусок договорён (ждём принятия повтора) — держится на FILL_CAP; остальные ждут

@@ -14,6 +14,7 @@ import { takeoffOn, playTakeoffAfter } from './raceTakeoffSound.js'
 import { rewardMs } from '../player/modules/rotate-phone/wordLaneNotes.js'
 import { ALL_GOOD_IDS } from './raceGood.js'
 import { useRaceSpeech, speakTranslation } from './useRaceSpeech.js'
+import { createRuJournal } from './raceRuLog.js'
 
 /** Журнал голоса перевода: какое слово и какой перевод Пит говорит перед выездом этой пилюли (одна запись повтора: слово, перевод, дорожка, скорость). Расхождение с записью слова круга — строка «РАССИНХРОН» (не должно быть никогда) */
 function logPre(stage, rep) {
@@ -45,6 +46,9 @@ export function useRaceActs(args) {
   const [result, setResult] = useState(null)
   const sayRef = useRef({ sayLine, sayLineLater, sayText, lines, rate }) // свежие реплики берёт эффект ниже; первый рендер — из аргументов
   useEffect(() => { sayRef.current = { sayLine, sayLineLater, sayText, lines, rate } })
+  const [ru] = useState(createRuJournal) // проход B на русской модели: одна строка журнала «[ru] …» на слово (raceRuLog.js)
+  const ruLog = (rep, result, level) => { const w = running?.words?.[rep?.idx], line = ru.finish({ idx: rep?.idx, word: w?.text, expected: w?.translation, said: listenerRef?.current?.said?.(), level, result }); if (line) pLog(line) }
+  const ruOn = running?.act === 'catch' && running?.step?.lang === 'ru'
   const trapRef = useRef(() => {}) // отмена недосказанной подсказки про двойника (стадия сменилась, выход)
   useEffect(() => () => trapRef.current(), [])
 
@@ -107,11 +111,12 @@ export function useRaceActs(args) {
   return {
     ...rh, result, race: view, nextIdx,
     /** Слово прохода A / B принято (раньше, чем щёлкнет заливка): время ответа ms (от выезда пилюли) и y (положение пилюли, % высоты: ниже LATE_Y — ответ «в последний момент») — в результаты, и для точности слова (raceAccuracy.js) — окно жизни пилюли по её скорости, заливка голосом в миг зачёта, тап ли это; Пит говорит мини-реплику успеха, следующая пилюля ждёт его */
-    claim(rep, ms, y) { if (!running) return; praiseRef.current = null; apply({ t: 'claim', stage: running, info: { idx: rep?.idx, ms, late: isLate(y), life: pillLifeMs(rep?.speed), fill: rep?.pills?.[0]?.p, tap: !!running.step?.tapOnly } }); speech.claim(praiseRef.current); praiseRef.current = null },
+    claim(rep, ms, y) { if (!running) return; if (ruOn) ruLog(rep, 'claim', rep?.pills?.[0]?.p); praiseRef.current = null; apply({ t: 'claim', stage: running, info: { idx: rep?.idx, ms, late: isLate(y), life: pillLifeMs(rep?.speed), fill: rep?.pills?.[0]?.p, tap: !!running.step?.tapOnly } }); speech.claim(praiseRef.current); praiseRef.current = null },
     /** Перед выездом пилюли (движок: событие 'pre'): в «Разгоне» Пит говорит русский перевод слова из библиотеки (raceTrans.js), в «Слушай и лови» — английское слово (rep.say, библиотека слов); озвучки нет — молча, пилюля выезжает сразу.
      *  Пилюля ждёт, пока он договорит (pitLeft) */
     pre(rep) {
       logPre(running, rep)
+      if (ruOn) { listenerRef?.current?.resetSaid?.(); ru.start(rep?.idx) } // новое слово прохода B: журнал слушает его с чистого листа
       if (running?.act === 'sprint' && rep?.cap) speakTranslation(speech, o => sayRef.current.sayText?.(rep.cap, { ru: true, ...o }))
       else if (running?.act === 'catch' && rep?.say) speakTranslation(speech, o => sayRef.current.sayText?.(rep.say, { hold: true, ...o }))
       else speech.translation(0) // говорить нечего: пилюля выезжает сразу
@@ -122,6 +127,8 @@ export function useRaceActs(args) {
       rh.rec(kind, info)
       if (!running) return
       if (kind === 'win' && info?.last !== false) speech.riseStart() // пилюля взлетает: с этого мгновения идёт задержка похвалы
+      if (ruOn && kind === 'miss') ru.miss(listenerRef?.current?.heard?.())
+      if (ruOn && kind === 'fail') ruLog(info, 'fail', info?.peak)
       if (kind === 'fail' && ['sprint', 'catch'].includes(running.act)) speech.pillGone('missed') // «не успел»: отступ до перевода следующего слова
       if (takeoffOn(running, kind, info)) playTakeoffAfter(rewardMs(info?.order ?? 0)) // взлёт принятой пилюли: глиссандо ми → ля ПОСЛЕ ноты награды, а не вместе с ней (только ступени-очереди гонки)
       apply({ t: kind, stage: running, info: kind === 'miss' ? { ...info, heard: listenerRef?.current?.heard?.() ?? '' } : info }) // на промахе — что услышал Vosk: двойник слова ступени ломает ловушку

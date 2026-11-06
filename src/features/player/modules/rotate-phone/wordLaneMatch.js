@@ -2,7 +2,7 @@
 // Ученик повторяет слово SLOT_COUNT раз подряд. Vosk отдаёт partial — «try try [unk] try»: слова слоя (hit) и всё остальное (miss: [unk] или чужое слово).
 // Слов в одной попытке может быть несколько — сколько услышано, столько слоёв и заливается; каждое неверное слово — «отшатывание» линии.
 import { tokenize, phraseForms } from '../../../../shared/lib/speech/speechMatch.js'
-import { tokenizeRu, phraseFormsRu } from '../../../../shared/lib/speech/speechMatchRu.js'
+import { tokenizeRu, phraseFormsRu, altsRu } from '../../../../shared/lib/speech/speechMatchRu.js'
 import { SLOT_COUNT } from './wordLaneTimeline.js'
 
 const UNK = '[unk]'
@@ -88,7 +88,9 @@ function prefixAt(heard, i, toks, order, tk = tokenize) {
  */
 export function analyzeTargets(raw, targets, final = true, lang = 'en') {
   const tk = tokenizerOf(lang)
-  const toks = targets.map(t => tk(t))
+  const ru = lang === 'ru'
+  const alts = ru ? targets.flatMap((t, k) => altsRu(t).map(a => ({ k, toks: tk(a) }))) : targets.map((t, k) => ({ k, toks: tk(t) })) // русский перевод — любой из вариантов («пытаться, стараться»)
+  const toks = alts.map(a => a.toks)
   const order = toks.map((t, i) => i).filter(i => toks[i].length).sort((a, b) => toks[b].length - toks[a].length)
   let heard = String(raw ?? '').toLowerCase().split(/\s+/).filter(Boolean)
   if (!final) while (heard.at(-1) === UNK) heard = heard.slice(0, -1)
@@ -99,11 +101,12 @@ export function analyzeTargets(raw, targets, final = true, lang = 'en') {
   for (let i = 0; i < heard.length;) {
     let hit = null
     let hitWords = 0
-    for (const k of order) { hitWords = takeTarget(ht, i, toks[k]); if (hitWords) { hit = k; break } }
+    for (const j of order) { hitWords = takeTarget(ht, i, toks[j]); if (hitWords) { hit = alts[j].k; break } }
     if (hit != null) { seq.push(hit); i += hitWords; continue }
     const pre = prefixAt(heard, i, toks, order, tk)
-    if (pre && !tail && i + pre.words === heard.length) tail = { target: pre.target, tokens: pre.tokens }
+    if (pre && !tail && i + pre.words === heard.length) tail = { target: alts[pre.target].k, tokens: pre.tokens }
     if (pre && !final) { i += pre.words; continue }   // начало цели в черновике — не промах (в итоге недосказанное — уже промах)
+    if (ru && seq.length) { i++; continue }            // русский: слова ПОСЛЕ сказанного перевода — продолжение фразы («спасибо большое», «приятно познакомиться»), не ошибка
     if ((final || i < heard.length - 1) && (heard[i] === UNK || ht[i].length)) misses++
     i++
   }

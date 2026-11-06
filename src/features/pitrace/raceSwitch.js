@@ -35,10 +35,10 @@ export function createSwitcher({ en, ru, setTimer = setTimeout, log = () => {} }
     await sleep(SETTLE_MS)
     releaseRu = ru.acquire('race')
     const r = await ru.whenSettled(READY_MS)
-    ru.expect(false)
-    if (r?.ok) { state = 'ru'; log(`слух: русская модель в памяти за ${Date.now() - t0} мс`); return { ok: true } }
+    if (r?.ok) { ru.expect(false); state = 'ru'; log(`слух: русская модель в памяти за ${Date.now() - t0} мс`); return { ok: true } }
     log(`слух: русская модель не включилась (${r?.text ?? 'без подробностей'}), проход на тапе`)
     await backToEn('русская не включилась')
+    ru.expect(false) // только теперь: до этого слушатель прохода B ждёт модель, а не сообщает «нет модели» — директор сразу переведёт проход на тап (stage.demote)
     return { ok: false, text: r?.text ?? '' }
   }
 

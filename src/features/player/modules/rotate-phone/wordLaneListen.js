@@ -24,6 +24,9 @@ const RESTART_MS = 150
 export const FLUSH_MS = 1500      // flush(): сколько ждём итог последнего захода после stop(), потом отдаём что есть
 export const MODEL_WAIT_MS = 9000 // модель догружается после переключения языка (runtime.expect / loading): слушатель ждёт её не дольше
 const WAIT_POLL_MS = 150
+export const SWITCH_WAIT_MS = 22000 // идёт переключение языка (runtime.expect, raceSwitch.READY_MS = 20 с): ждём модель столько, а не MODEL_WAIT_MS — иначе медленная распаковка русской модели на iPhone кончалась «нет модели» при живом переключении
+export const RU_SETTLE_MS = 350   // русская модель: попадание из черновика засчитывается, только если черновик продержался столько мс (или пришёл итог) — маленькая модель на ходу меняет одну цель на другую («я» → «где», «пытаюсь» → «учиться»)
+export const RU_FULL_TOKENS = 99  // хвост «цель сказана, ждём подтверждения»: пилюля этой цели наливается до FILL_CAP, пока попадание не засчитано
 export const MISS_SETTLE_MS = 550 // «чужое слово» из черновика (partial) засчитывается, только если продержалось столько мс: Vosk на ходу переслушивает слова («[unk] trying» → «i'm trying»), и пилюля не должна дёргаться как неверная зря
 
 /**
@@ -61,6 +64,11 @@ export function createWordListener({ word, targets: targetsIn, expected = SLOT_C
   const waiters = new Set() // flush(): ждут конца текущего захода
   let closing = false // flush() вызван: новых заходов нет
   let waitedAt = null // с какого момента ждём модель (после переключения языка она ещё грузится)
+  let hitTimer = 0    // русская модель: ожидание, устоится ли попадание из черновика (RU_SETTLE_MS)
+  let pend = null     // русская модель: неподтверждённый счёт из черновика (seq), его возьмёт таймер или итог
+  let said = { partial: '', final: '' } // что распознаватель услышал с последнего resetSaid(): журнал слова прохода B
+  const settleRu = lang === 'ru'
+  const tapOnly = () => (typeof noVosk === 'function' ? !!noVosk() : !!noVosk) // функция — тап включили по ходу (русская модель не включилась, stage.demote)
 
   const publish = patch => {
     if (patch.status) { status = patch.status; onDebug?.('status', { status, ...(patch.error ? { error: String(patch.error) } : {}) }) }
@@ -77,7 +85,7 @@ export function createWordListener({ word, targets: targetsIn, expected = SLOT_C
     if (disposed || cur !== session) return
     cur = null
     onDebug?.('session-end', { by: st })
-    clearTimer(timer); clearTimer(missTimer)
+    clearTimer(timer); clearTimer(missTimer); clearTimer(hitTimer); pend = null
     waiters.forEach(w => w())
     if (closing) return
     if (now() - startedAt >= OVERALL_MS) { publish({ status: 'timeout' }); return }
@@ -97,20 +105,29 @@ export function createWordListener({ word, targets: targetsIn, expected = SLOT_C
   function run() {
     base = { seq, misses } // до словаря: сколько слов ещё ждать, считается от накопленного
     absorbed = 0; lastRaw = base.misses; lastPartial = null
-    if (noVosk) { publish({ status: 'listening' }); return } // тап вместо речи, модель не нужна
+    if (tapOnly()) { publish({ status: 'listening' }); return } // тап вместо речи, модель не нужна
     const model = runtime.getModel()
-    if (!model && (runtime.snapshot?.().expecting || runtime.snapshot?.().loading)) { // модель догружается (переключение языка в игре): ждём её, не дольше MODEL_WAIT_MS
+    const snap = runtime.snapshot?.()
+    if (!model && (snap?.expecting || snap?.loading)) { // модель догружается: ждём её, не дольше MODEL_WAIT_MS (а пока идёт переключение языка в игре — SWITCH_WAIT_MS)
       waitedAt ??= now()
-      if (now() - waitedAt < MODEL_WAIT_MS) { publish({ status: 'starting' }); timer = setTimer(() => { if (!disposed && !cur && !closing) run() }, WAIT_POLL_MS); return }
+      if (now() - waitedAt < (snap.expecting ? SWITCH_WAIT_MS : MODEL_WAIT_MS)) { publish({ status: 'starting' }); timer = setTimer(() => { if (!disposed && !cur && !closing) run() }, WAIT_POLL_MS); return }
     }
     const grammar = model ? targetGrammar(targets, maxWords, null, lang) : null
-    if (!model || !grammar) { publish({ status: 'unavailable' }); return }
+    if (!model || !grammar) { if (waitedAt != null) pLog(`[word-lane] модель ${lang} не дождались за ${now() - waitedAt} мс`); publish({ status: 'unavailable' }); return }
     onDebug?.('grammar', { targets, grammar })
     const session = { handle: null, stopped: false }
     const sessionAt = now() - startedAt // старт захода на общей шкале слов
     cur = session
+    const commit = list => { // русская модель: счёт засчитан — заход закрываем, следующее слово слушает свежий распознаватель (словарь — не больше maxWords слов за заход)
+      pend = null; clearTimer(hitTimer)
+      if (disposed || cur !== session) return
+      publish({ seq: list, tail: null, heardAt: now() })
+      if (!session.stopped && !closing) stop()
+    }
     const part = (raw, final, stats = null) => {
       const r = analyzeTargets(raw, targets, final, lang)
+      const heardText = String(raw ?? '').trim()
+      if (heardText) said = { ...said, [final ? 'final' : 'partial']: heardText }
       const rawMisses = base.misses + r.misses
       if (now() < mutedUntil) absorbed += Math.max(0, rawMisses - lastRaw) // «чужое слово» во время ноты-награды — это эхо динамика, не ошибка ученика
       lastRaw = rawMisses
@@ -120,7 +137,13 @@ export function createWordListener({ word, targets: targetsIn, expected = SLOT_C
       // Итог (final) — промах настоящий сразу; в черновике он должен устояться: следующий partial может переслушать слово, и тогда промаха не было
       const settled = final || count <= misses
       onDebug?.(final ? 'final' : 'partial', { raw, seq: r.seq, misses: r.misses, count, settled, tail: r.tail, muted: now() < mutedUntil, absorbed, ...(stats ? { stopBy: stats.stopBy, gatedMs: stats.gatedMs, maxGapMs: stats.maxGapMs, lateChunks: stats.lateChunks } : {}) })
-      publish({ seq: base.seq.concat(r.seq), ...(settled ? { misses: count } : {}), heard: words || heard, tail: r.tail, heardAt: words ? now() : 0 })
+      let next = base.seq.concat(r.seq), tl = r.tail
+      if (settleRu) { // попадание из черновика ждёт RU_SETTLE_MS (пилюля его цели тем временем наливается); итог берёт своё, а если выронил слово черновика — черновое
+        if (final) { clearTimer(hitTimer); if (pend && pend.length > next.length) next = pend }
+        else if (next.length > seq.length) { clearTimer(hitTimer); pend = next; tl = { target: r.seq.at(-1), tokens: RU_FULL_TOKENS }; next = null; hitTimer = setTimer(() => commit(pend), RU_SETTLE_MS) }
+        else if (pend) { next = null; tl = { target: pend.at(-1), tokens: RU_FULL_TOKENS } } // черновик опустел («приятно» → «»): модель колеблется, слово было — ждём выдержку или итог
+      }
+      publish({ ...(next ? { seq: next } : {}), ...(settled ? { misses: count } : {}), heard: words || heard, tail: tl, heardAt: words ? now() : 0 })
       if (!settled) missTimer = setTimer(() => { if (!disposed && cur === session) publish({ misses: count }) }, MISS_SETTLE_MS)
     }
     const callbacks = {
@@ -179,7 +202,10 @@ export function createWordListener({ word, targets: targetsIn, expected = SLOT_C
         stop()
       })
     },
-    available: () => noVosk || !!runtime.getModel(),
+    available: () => tapOnly() || !!runtime.getModel(),
+    /** Что распознаватель услышал с прошлого resetSaid(): последний черновик и последний итог (сырые строки Vosk) — журнал слова прохода B */
+    said: () => ({ ...said }),
+    resetSaid() { said = { partial: '', final: '' } },
     /** Когда распознаватель последний раз что-то слышал (включая повторные черновики с тем же текстом, которые onChange уже не получает) */
     heardAt: () => heardAt,
     /** Что услышал движок последним («…» вместо неразобранного слова): директор «Гонки» по нему узнаёт «сказал двойник» на промахе */
@@ -197,7 +223,7 @@ export function createWordListener({ word, targets: targetsIn, expected = SLOT_C
     level,
     dispose() {
       disposed = true
-      clearTimer(timer); clearTimer(missTimer)
+      clearTimer(timer); clearTimer(missTimer); clearTimer(hitTimer)
       waiters.forEach(w => w())
       const c = cur
       cur = null

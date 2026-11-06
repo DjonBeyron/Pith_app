@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { tokenizeRu, normTextRu, phraseFormsRu } from '../../../../shared/lib/speech/speechMatchRu.js'
 import { analyzeTargets, targetGrammar } from './wordLaneMatch.js'
-import { createWordListener, MODEL_WAIT_MS } from './wordLaneListen.js'
+import { createWordListener, MODEL_WAIT_MS, SWITCH_WAIT_MS } from './wordLaneListen.js'
 import { runtimeOf, voskRuntimeRu } from '../../../../shared/lib/vosk/voskRuntimes.js'
 import { voskRuntime } from '../../../../shared/lib/vosk/voskRuntime.js'
 import { modelUrlOf, readRuModelUrl, writeRuModelUrl, resetRuModelUrl, defaultRuModelUrl, VOSK_RU_MODEL_URL, VOSK_RU_URL_KEY } from '../../../../shared/lib/vosk/voskConfigRu.js'
@@ -30,7 +30,8 @@ describe('русские цели: что услышал Vosk (analyzeTargets с
     expect(analyzeTargets('я пытаюсь учиться', targets, true, 'ru').seq).toEqual([2, 0, 1])
   })
   it('чужое слово и [unk] — промахи; ё ≡ е; регистр не важен; недосказанная многословная цель — хвост', () => {
-    expect(analyzeTargets('учиться [unk]', targets, true, 'ru')).toMatchObject({ seq: [1], misses: 1 })
+    expect(analyzeTargets('[unk] учиться', targets, true, 'ru')).toMatchObject({ seq: [1], misses: 1 })
+    expect(analyzeTargets('учиться [unk]', targets, true, 'ru')).toMatchObject({ seq: [1], misses: 0 }) // после сказанного перевода — продолжение фразы, не ошибка
     expect(analyzeTargets('Ещё', ['еще'], true, 'ru').seq).toEqual([0]); expect(analyzeTargets('еще', ['ещё'], true, 'ru').seq).toEqual([0])
     expect(analyzeTargets('кот', targets, true, 'ru')).toMatchObject({ seq: [], misses: 1 })
     expect(analyzeTargets('я', ['я пытаюсь'], false, 'ru').tail).toEqual({ target: 0, tokens: 1 })
@@ -85,7 +86,14 @@ describe('слушатель: выбор модели по языку', () => {
     const seen2 = []; let t2 = 0; const tm = []
     const l2 = createWordListener({ targets: ['учиться'], lang: 'ru', runtime: { getModel: () => null, snapshot: () => snap }, listen: fakeListen([], {}), onChange: s => seen2.push(s.status), now: () => t2, setTimer: fn => { tm.push(fn); return tm.length } })
     l2.start(); t2 += MODEL_WAIT_MS + 1; tm.shift()()
+    expect(seen2.at(-1)).toBe('starting') // идёт переключение языка: ждём дольше MODEL_WAIT_MS (распаковка русской модели на iPhone бывает 10–20 с)
+    t2 += SWITCH_WAIT_MS; tm.shift()()
     expect(seen2.at(-1)).toBe('unavailable'); l2.dispose()
+    snap = { expecting: false, loading: true } // просто грузится (без переключения) — прежний предел MODEL_WAIT_MS
+    const seen3 = []; let t3 = 0; const tm3 = []
+    const l3 = createWordListener({ targets: ['учиться'], lang: 'ru', runtime: { getModel: () => null, snapshot: () => snap }, listen: fakeListen([], {}), onChange: s => seen3.push(s.status), now: () => t3, setTimer: fn => { tm3.push(fn); return tm3.length } })
+    l3.start(); t3 += MODEL_WAIT_MS + 1; tm3.shift()()
+    expect(seen3.at(-1)).toBe('unavailable'); l3.dispose()
     snap = { expecting: false, loading: false }
   })
   it('noVosk (тап вместо речи в проходе без русской модели): модель не нужна, цели засчитываются через tap()', () => {
