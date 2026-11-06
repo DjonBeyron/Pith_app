@@ -18,8 +18,8 @@ const uniqTexts = list => {
   return list.map(t => cleanWordText(t)).filter(t => { const k = transKey(t); if (!k || seen.has(k)) return false; seen.add(k); return true })
 }
 
-/** Все переводы плана: слова плана и extraWords (то, что может поехать в «Разгоне»); для озвучки в админке */
-export const transTexts = plan => uniqTexts([...(plan.words ?? []), ...extrasOf(plan)].map(w => w.translation).filter(Boolean))
+/** Все переводы плана: слова плана и extraWords (то, что может поехать в «Разгоне») и русские смыслы фраз этапа 2 (plan.phrases[].ru — Пит говорит их в круге «Пойми»); для озвучки в админке */
+export const transTexts = plan => uniqTexts([...[...(plan.words ?? []), ...extrasOf(plan)].map(w => w.translation), ...(plan.phrases ?? []).map(p => p?.ru)].filter(Boolean))
 
 /** Переводы слов «Разгона» по порядку выезда — их готовит прогрев игры к старту */
 export const sprintTransTexts = plan => uniqTexts(sprintWords(plan).map(w => w.translation).filter(Boolean))

@@ -145,3 +145,20 @@ export async function saveAudioStaticWaveform(on) {
   }
   return !!on
 }
+
+// Любой ключ app_settings целиком (jsonb). Ошибку чтения не бросает: нет строки / нет прав — null.
+export async function getAppSetting(key) {
+  dbg('[DB READ] app_settings', key)
+  const { data, error } = await supabase.from('app_settings').select('value').eq('key', key).maybeSingle()
+  if (error) { dbg('[DB ERROR] app_settings read', key, error.message); return null }
+  return data?.value ?? null
+}
+
+// Записать ключ целиком (только админ, RLS app_settings_write_admin; .select() — отсечённый политикой UPDATE не выглядит успехом).
+export async function saveAppSetting(key, value) {
+  dbg('[DB WRITE] app_settings', key)
+  const { data, error } = await supabase.from('app_settings').upsert({ key, value, updated_at: new Date().toISOString() }, { onConflict: 'key' }).select('key')
+  if (error) { dbg('[DB ERROR] app_settings save', key, error.message); throw error }
+  if (!data?.length) throw new Error('Сохранение не применилось: сервер не подтвердил запись (нужны права админа)')
+  return value
+}

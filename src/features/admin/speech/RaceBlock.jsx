@@ -17,6 +17,7 @@ import { useVoskReady } from '../../../shared/lib/vosk/useVoskReady.js'
 import usePolishOpen from './usePolishOpen.js'
 import usePolishVoice from './usePolishVoice.js'
 import useTransVoice from './useTransVoice.js'
+import RacePhraseMeaning from './RacePhraseMeaning.jsx'
 import { whyNotIdle } from './launchWhy.js'
 import '../../../styles/admin-rehearsal-polish.css'
 import '../../../styles/admin-race-ask.css'
@@ -97,6 +98,7 @@ export default function RaceBlock({ save = saveDebugFile }) {
           {working && voice.step && <div className="aspHint" role="status">озвучиваю {voice.step}…</div>}
           {voice.error && <p className="aspErr" role="alert" data-testid="race-voice-error">Не озвучилось: {voice.error}. Нужны права админа и доступ к ElevenLabs.</p>}
         </div>
+        <RacePhraseMeaning plan={racePlan} locked={playing} />
         <RuModelAddress locked={playing} />
         <label className="aspLabelInline"><input type="checkbox" checked={tap} onChange={e => flip(e.target.checked)} disabled={playing} data-testid="race-tap-mode" /> Тап вместо речи (тап по дорожке засчитывает слово; флаг общий с игрой, перед стартом его выставляет плашка «Голосом / Пальцами»)</label>
       </PolishSettings>

@@ -5,7 +5,7 @@ import { voiceMissingTexts } from '../../rehearsal/rehearsalVoice.js'
 import { transTexts, transRows } from '../../pitrace/raceTrans.js'
 
 // Озвучка русских переводов «Разгона» в блоке «Гонка с Питом (стенд)»: те же ElevenLabs (голос Пита, язык по тексту) → R2 → библиотека слов, ключ `ru:перевод` (raceTrans.js).
-// Набор — переводы слов плана и extraWords. Нужны права админа. done / total — «озвучено N из M»; voice() озвучивает недостающие по одному (voiceMissingTexts).
+// Набор — переводы слов плана и extraWords и смыслы фраз этапа 2 (transTexts); блок «Смысл фразы» (RacePhraseMeaning.jsx) подставляет свой набор texts — сохранённые смыслы. Нужны права админа. done / total — «озвучено N из M»; voice() озвучивает недостающие по одному (voiceMissingTexts).
 export default function useTransVoice({ plan, texts = transTexts, voiceTexts = voiceMissingTexts, generate = generateWordAudio }) {
   const [lib, setLib] = useState(() => cachedWordAudio())
   const [busy, setBusy] = useState(false)
