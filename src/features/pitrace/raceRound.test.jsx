@@ -23,7 +23,7 @@ const withPlate = stages.map(s => (s.sid === 'catch-ann' ? { ...s, charge: true,
 describe('какая зарядка у какой стадии', () => {
   it('sprint2-ann, catch-ann (проход B, «теперь наоборот») и catch2-ann — зарядка без плашки; объявление с плашкой и флагом charge — морф в плашку; первая стадия и обычные — без зарядки посреди игры', () => {
     expect(roundKind(stages, at('sprint2-ann'))).toBe('round2'); expect(roundKind(stages, at('catch2-ann'))).toBe('round2'); expect(roundKind(stages, at('catch-ann'))).toBe('round2')
-    expect(stages[at('catch-ann')].round.title).toBe(''); expect(stages[at('catch-ann')].charge).toBeUndefined(); expect(stages[at('catch-ann')].line).toBe('race_catch')
+    expect(stages[at('catch-ann')].round.title).toBe(''); expect(stages[at('catch-ann')].charge).toBeUndefined(); expect(stages[at('catch-ann')].line).toBe('race_catch_tap')
     expect(roundKind(withPlate, at('catch-ann'))).toBe('stage')
     expect(roundKind(stages, 0)).toBeNull() // начало игры — своя заставка (RaceCharge.jsx)
     expect(roundKind(stages, at('sprint'))).toBeNull(); expect(roundKind(stages, at('climb-ann'))).toBeNull(); expect(roundKind(stages, -1)).toBeNull()

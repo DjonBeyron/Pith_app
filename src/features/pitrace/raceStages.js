@@ -21,7 +21,7 @@ const ROUNDS = { sprint: sprintStages, catch: catchStages, climb: climbStages, d
 /** → { recipe, stages, chunkMs, chunkCurves, lanes, clipMode } — как buildStages (wordLaneStages.js) */
 export function buildRaceStages({ plan, rate = 1, lib = () => null, tap = readTapMode(), ru = ruReady() }) {
   const kit = createKit({ plan, rate, lib, tap })
-  const { acts } = buildRaceActs(plan)
+  const { acts } = buildRaceActs(plan, tap, ru)
   const byVoice = passBByVoice({ tap, ready: ru }) // проход B слушает русская модель (иначе тап по трём пилюлям, без переключения слуха)
   let russian = false // слух сейчас русский: перед «Вершиной» (английские слова) его надо вернуть
   for (const act of acts) {

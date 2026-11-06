@@ -25,11 +25,11 @@ describe('объявление этапов: название + задание',
       expect(RACE_LINES.find(l => l.id === s.line).text).toBe(`${title}, ${task}`)
     }
     expect(stages.find(s => s.sid === 'climb-top').round.task).toBeUndefined() // плашка вершины без задания
-    const b = stages.find(s => s.sid === 'catch-ann'); expect(b.line).toBe('race_catch'); expect(b.round.title).toBe(''); expect(b.round.task).toBe('') // проход B: Пит говорит, плашки нет
+    const b = stages.find(s => s.sid === 'catch-ann'); expect(b.line).toBe('race_catch_tap'); expect(b.round.title).toBe(''); expect(b.round.task).toBe('') // проход B: Пит говорит, плашки нет
     expect(RACE_LINES.find(l => l.id === 'race_catch').text).toBe(CATCH_LINE)
   })
   it('реплики без точек, тире и восклицаний', () => {
-    for (const id of [...Object.keys(TASKS), 'race_catch', 'race_switch_ru', 'race_start']) expect(RACE_LINES.find(l => l.id === id).text).not.toMatch(/[.!—–]/)
+    for (const id of [...Object.keys(TASKS), 'race_catch', 'race_sprint_tap', 'race_catch_tap', 'race_switch_ru', 'race_start']) expect(RACE_LINES.find(l => l.id === id).text).not.toMatch(/[.!—–]/)
   })
   it('WordLaneTurnPlate: «название и задание через перевод строки» — задание строкой под заголовком; без задания как раньше', () => {
     const h = renderToStaticMarkup(createElement(WordLaneTurnPlate, { text: 'Разгон\nпроверим, как ты помнишь слова из своей памяти' }))

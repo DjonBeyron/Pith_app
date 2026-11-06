@@ -25,7 +25,7 @@ const stages = buildRaceStages({ plan }).stages
 
 describe('плашки гонки', () => {
   it('brief: 3–5 слов у каждого акта и у объявления; реплика Пита (task) длинная и не тронута', () => {
-    const acts = buildRaceActs(plan).acts.filter(a => a.id !== 'summary')
+    const acts = buildRaceActs(plan, false, true).acts.filter(a => a.id !== 'summary')
     for (const a of acts) { expect(a.brief.split(/\s+/).length).toBeGreaterThanOrEqual(3); expect(a.brief.split(/\s+/).length).toBeLessThanOrEqual(5); expect(a.task.split(/\s+/).length).toBeGreaterThan(5) }
     expect(acts.find(a => a.id === 'sprint').brief).toBe('скажи слово по переводу'); expect(acts.find(a => a.id === 'catch').brief).toBe('назови перевод слова'); expect(acts.find(a => a.id === 'sprint').title).toBe('Вспомни на слух')
     const ann = stages.filter(s => s.type === 'announce' && s.round.brief)
@@ -117,10 +117,10 @@ describe('конвейер: три независимые дорожки', () =>
     const layers = /background:\s*([^;]*);/.exec(r)[1].split(/repeat-y,\s*linear-gradient\(/)
     expect(layers.length).toBe(2) // короткие штрихи вдоль и поперечная черта, без точек
     const shorts = [...layers[0].matchAll(/var\(--run-c\) ([\d.]+)(?:dvh)? ([\d.]+)dvh/g)].map(m => +(m[2] - m[1]).toFixed(2))
-    expect(shorts).toEqual([1.2, 1.2, 1.2]) // три коротких штриха вдоль дорожки, зазор 1 dvh (0–1,2 / 2,2–3,4 / 4,4–5,6)
-    expect(layers[0]).toContain('transparent 1.2dvh 2.2dvh'); expect(layers[0]).toContain('transparent 3.4dvh 4.4dvh'); expect(layers[0]).toContain('center top / 1px 8dvh') // группа 8 dvh, 24 кратно 8
-    expect(layers[1]).toContain('6.6dvh calc(6.6dvh + 1.5px)'); expect(layers[1]).toContain('left top / 12px 8dvh') // одна длинная черта поперёк, во всю ширину слоя, после третьего штриха
-    expect(RACE_PERIOD % 8).toBe(0)
+    expect(shorts).toEqual([1.2, 1.2, 1.2]) // три коротких штриха вдоль дорожки, зазор 4 dvh (0–1,2 / 5,2–6,4 / 10,4–11,6)
+    expect(layers[0]).toContain('transparent 1.2dvh 5.2dvh'); expect(layers[0]).toContain('transparent 6.4dvh 10.4dvh'); expect(layers[0]).toContain('transparent 11.6dvh 19.6dvh'); expect(layers[0]).toContain('center top / 1px 19.6dvh') // группа = период 19,6 dvh
+    expect(layers[1]).toContain('15.6dvh calc(15.6dvh + 1px)'); expect(layers[1]).toContain('left top / 12px 19.6dvh') // одна черта поперёк толщиной 1 px (как штрихи), во всю ширину слоя, после третьего штриха
+    expect(RACE_PERIOD).toBe(19.6); expect(r).toContain(`--run-p: ${RACE_PERIOD}dvh`) // привод и узор совпадают — шов не прыгает
     expect(c).not.toMatch(/animation|@keyframes|filter/)
   })
 })

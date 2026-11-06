@@ -46,7 +46,7 @@ describe('расписание открытия: слова → бар → пл�
     expect(none.speechEnd).toBe(4000); expect(none.morphAt).toBe(3400); expect(none.plateEnd).toBe(5200)
   })
   it('один раунд (plan.round): вступления race_start нет, плашка — раунда', () => {
-    const o = openingPlan(mk({ round: 'catch' }), { race_catch: { text: 'Лови', url: 'u3', duration: 4 }, race_start: lines.race_start })
+    const o = openingPlan(mk({ round: 'catch' }), { race_catch_tap: { text: 'Лови', url: 'u3', duration: 4 }, race_start: lines.race_start })
     expect(o.startMs).toBe(0); expect(o.firstMs).toBe(4000); expect(o.speechEnd).toBe(o.stageAt + o.lineAt + 4000)
   })
   it('нет Math.random; у первой стадии отдельной плашки нет (charge → plate пустая); морф — в RaceChargePlate, а не отдельная плашка announce', () => {

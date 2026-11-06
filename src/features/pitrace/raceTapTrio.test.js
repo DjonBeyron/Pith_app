@@ -12,8 +12,8 @@ const read = rel => readFileSync(new URL(rel, import.meta.url), 'utf8')
 const plan = (() => { const p = normalizePlan({ ...fixturePlan('three'), game: 'race' }); return { ...p, extraWords: extrasOf(p) } })()
 const stages = buildRaceStages({ plan }).stages
 const sprint = stages.find(s => s.sid === 'sprint' && s.type === 'student'), catchSt = stages.find(s => s.sid === 'catch' && s.type === 'student')
-const ctx = st => trioCtx(plan, st) // надпись по языку прохода: A — перевод, B — английское слово
-const keyOf = st => (st === catchSt ? 'text' : 'translation')
+const ctx = st => trioCtx(plan, st) // тап: пилюли — язык ответа, противоположный речи Пита: A (Пит говорит перевод) — английские слова, B (Пит говорит слово) — переводы
+const keyOf = st => (st === catchSt ? 'translation' : 'text')
 
 describe('режим тапа включает тройку только в «Разгоне» и «Слушай и лови»', () => {
   it('trioFor: тап и ступень ученика этих актов — да; голос, другие акты, плашки — нет', () => {
@@ -26,19 +26,19 @@ describe('режим тапа включает тройку только в «Р
 })
 
 describe('чужие пилюли', () => {
-  it('на каждое слово ровно две чужие: на двух других дорожках, подписи на языке голоса Пита (проход A — переводы, проход B — английские слова), разные, не слово верной пилюли', () => {
+  it('на каждое слово ровно две чужие: на двух других дорожках, подписи на языке ответа, противоположном речи Пита (проход A — английские слова, проход B — переводы), разные, не слово верной пилюли', () => {
     for (const st of [sprint, catchSt]) {
       const t = trioStep(st.step, ctx(st))
       st.step.reps.forEach((r, i) => {
         const d = t.decoys(i), right = st.words[i][keyOf(st)].toLowerCase()
         expect(d.length).toBe(2); expect(d.map(x => x.lane).sort()).toEqual([0, 1, 2].filter(l => l !== r.lane))
-        expect(new Set(d.map(x => x.cap.toLowerCase())).size).toBe(2); if (st === catchSt) d.forEach(x => expect(/[а-яё]/i.test(x.cap)).toBe(false)); else d.forEach(x => expect(/[а-яё]/i.test(x.cap)).toBe(true)); d.forEach(x => { expect(x.cap.toLowerCase()).not.toBe(right); expect(x.cap).not.toBe('…') })
+        expect(new Set(d.map(x => x.cap.toLowerCase())).size).toBe(2); if (st === catchSt) d.forEach(x => expect(/[а-яё]/i.test(x.cap)).toBe(true)); else d.forEach(x => expect(/[а-яё]/i.test(x.cap)).toBe(false)); d.forEach(x => { expect(x.cap.toLowerCase()).not.toBe(right); expect(x.cap).not.toBe('…') })
       })
     }
   })
   it('сдвиг по высоте — по семени, не больше ±8 % экрана; воспроизводим, у разных слов и семян разный', () => {
     expect(TRIO_SHIFT).toBe(8)
-    const all = sprint.words.flatMap((_, i) => decoysOf({ seed: plan.seed, sid: 'sprint', words: sprint.words, i, lane: sprint.step.reps[i].lane, pool: transPool(plan) }))
+    const all = sprint.words.flatMap((_, i) => decoysOf({ seed: plan.seed, sid: 'sprint', words: sprint.words, i, lane: sprint.step.reps[i].lane, pool: transPool(plan, 'text'), key: 'text' }))
     all.forEach(d => expect(Math.abs(d.dy)).toBeLessThanOrEqual(8))
     expect(new Set(all.map(d => d.dy)).size).toBeGreaterThan(all.length / 2) // не ровная линейка
     const a = decoysOf({ seed: 'x', sid: 'sprint', words: sprint.words, i: 0, lane: 0 }), b = decoysOf({ seed: 'x', sid: 'sprint', words: sprint.words, i: 0, lane: 0 }), c = decoysOf({ seed: 'y', sid: 'sprint', words: sprint.words, i: 0, lane: 0 })
@@ -55,29 +55,31 @@ describe('чужие пилюли', () => {
 })
 
 describe('язык надписи', () => {
-  it('capKey: проход A — translation, проход B — text; transPool по ключу даёт слова нужного языка без повторов', () => {
-    expect(capKey(sprint)).toBe('translation'); expect(capKey(catchSt)).toBe('text')
+  it('capKey: проход A — text (Пит говорит перевод, пилюли английские), проход B — translation; transPool по ключу даёт слова нужного языка без повторов', () => {
+    expect(capKey(sprint)).toBe('text'); expect(capKey(catchSt)).toBe('translation')
     const en = transPool(plan, 'text'); expect(en.length).toBeGreaterThan(3); expect(new Set(en.map(x => x.toLowerCase())).size).toBe(en.length)
     expect(en.every(x => !/[а-яё]/i.test(x))).toBe(true); expect(transPool(plan).every(x => /[а-яё]/i.test(x))).toBe(true)
   })
-  it('проход B в тапе: верная пилюля — слово Пита, чужие — английские слова других слов круга / добора (не переводы)', () => {
+  it('проход B в тапе: Пит говорит слово, верная пилюля — его перевод, чужие — переводы других слов круга / добора (не английские слова)', () => {
     const t = trioStep(catchSt.step, ctx(catchSt))
-    catchSt.words.forEach((w, i) => { expect(t.step.reps[i].cap).toBe(w.text); t.decoys(i).forEach(d => { expect(d.cap).not.toBe(w.text); expect(catchSt.words.map(x => x.translation)).not.toContain(d.cap) }) })
+    catchSt.words.forEach((w, i) => { expect(t.step.reps[i].cap).toBe(w.translation); expect(t.step.reps[i].say).toBe(w.text); t.decoys(i).forEach(d => { expect(d.cap).not.toBe(w.translation); expect(catchSt.words.map(x => x.text)).not.toContain(d.cap) }) })
   })
 })
 
 describe('ступень для движка в тапе', () => {
-  it('верная пилюля — надпись на языке Пита (в проходе B английское слово); ловушка «Слушай и лови» снята (выбор и есть задание); остальные поля ступени целы', () => {
+  it('верная пилюля — надпись противоположного языка (в проходе B перевод); ловушка «Слушай и лови» снята (выбор и есть задание); остальные поля ступени целы', () => {
     const trapped = { ...catchSt.step, reps: catchSt.step.reps.map((r, i) => (i === 1 ? { ...r, trap: true } : r)) } // ловушек в проходе B больше нет, но тройка всё равно снимает их с ступени
     const t = trioStep(trapped, ctx(catchSt))
-    t.step.reps.forEach((r, i) => { expect(r.cap).toBe(catchSt.words[i].text); expect(r.trap).toBe(false); expect(r.say).toBe(catchSt.step.reps[i].say) })
+    t.step.reps.forEach((r, i) => { expect(r.cap).toBe(catchSt.words[i].translation); expect(r.trap).toBe(false); expect(r.say).toBe(catchSt.step.reps[i].say) })
     expect(trapped.reps.some(r => r.trap)).toBe(true) // в исходной ступени ловушка была, в тройке её нет
     expect(t.step.overlap).toBe(true); expect(t.step.maxTries).toBe(1); expect(trapped.reps[1].trap).toBe(true) // исходная ступень не мутирована
     expect(trioStep({ reps: [] }, ctx(sprint))).toBeNull(); expect(trioStep(sprint.step, { words: [] })).toBeNull()
   })
   it('движок принимает ступень тройки: верная пилюля одна на повтор, цель — слово повтора', () => {
     const t = trioStep(sprint.step, ctx(sprint)), g = createStudentGame({ step: t.step, chunks: sprint.step.chunks, maxTries: 1 })
-    expect(g.reps.length).toBe(sprint.words.length); g.reps.forEach((r, i) => { expect(r.pills.length).toBe(0); expect(r.cap).toBe(sprint.words[i].translation); expect(r.trap).toBe(false) })
+    expect(g.reps.length).toBe(sprint.words.length); g.reps.forEach((r, i) => { expect(r.pills.length).toBe(0); expect(r.cap).toBe(sprint.words[i].text); expect(r.trap).toBe(false) })
+    expect(sprint.step.reps[0].cap).toBe(sprint.words[0].translation) // «Говорю» не тронут: на единственной пилюле то, что Пит произнёс (проход A — перевод)
+    expect(catchSt.step.reps[0].cap).toBe(catchSt.words[0].text) // проход B голосом — английское слово Пита
   })
 })
 

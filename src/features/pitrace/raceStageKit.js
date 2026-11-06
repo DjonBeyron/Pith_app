@@ -56,7 +56,7 @@ export function queueStep(kit, id, words, good, rep, o = {}) {
 /**
  * Стадии прохода act (sprint или catch): [переключение слуха, если o.before] + плашка (или объявление без плашки, o.plain) + круг 1 (sid = act.id) + реплика дополнительного круга + круг 2 (sid = act.id + '2'). Стадии круга 2 стоят в списке всегда;
  * директор идёт на них, только если слабых слов две и больше, и перед этим вписывает слова в круг 2 (stage.fill, raceExtraRound.js). rep(w) — как у queueStep. o.mapStandby(w) — как дежурное слово выглядит в этом проходе
- * (поля shown / trap); дежурные слова лежат в stage.standby круга 1. o.goodIds — из каких реплик успеха выбирать (проход B: только race_good_ok); o.lang / o.tapOnly / o.target — см. queueStep; у круга 1 есть demote(): русская модель не включилась — проход переводится на тап.
+ * (поля shown / trap); дежурные слова лежат в stage.standby круга 1. o.goodIds — из каких реплик успеха выбирать (проход B: только race_good_ok); o.lang / o.tapOnly / o.target — см. queueStep; у круга 1 есть demote(): русская модель не включилась — проход переводится на тап (и реплика объявления меняется на o.tapLine).
  */
 export function queueStages(kit, act, rep, o = {}) {
   const { push, announce, plan } = kit
@@ -64,7 +64,7 @@ export function queueStages(kit, act, rep, o = {}) {
   const ctl = { lang: o.lang, tapOnly: !!o.tapOnly }
   const standby = standbyWords(act.words).map(w => o.mapStandby?.(w) ?? w)
   const round = (sid, list, first) => { const good = goodPlan(plan.seed, sid, list.length, { first, ids: o.goodIds }); return { type: 'student', act: act.id, sid, step: queueStep(kit, sid, list, good, rep, { target: o.target, lang: ctl.lang, tapOnly: ctl.tapOnly }), words: list, good } }
-  const demote = () => { ctl.lang = undefined; ctl.tapOnly = true; kit.stages.filter(x => x.act === act.id && x.type === 'student').forEach(x => { delete x.step.lang; x.step.tapOnly = true }) }
+  const demote = () => { if (o.tapLine) { const a = kit.stages.find(x => x.sid === `${act.id}-ann`); if (a) a.line = o.tapLine } ctl.lang = undefined; ctl.tapOnly = true; kit.stages.filter(x => x.act === act.id && x.type === 'student').forEach(x => { delete x.step.lang; x.step.tapOnly = true }) }
   o.before?.()
   announce(act, o.plain ? { title: '', task: '', ms: ROUND2_ANN_MS } : undefined)
   push({ ...round(act.id, act.words, true), standby, demote })

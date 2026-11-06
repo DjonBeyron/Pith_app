@@ -31,7 +31,7 @@ describe('стадии гонки в формате движка', () => {
     expect(seq.slice(4, 8)).toEqual(['catch:announce', 'catch:student', 'catch:announce', 'catch:student']) // «Слушай и лови» — инверсия разгона: тоже два круга
     expect(of(st, 'climb').filter(s => s.type === 'student')).toHaveLength(4)
     expect(seq.slice(-5)).toEqual(['descent:announce', 'descent:read', 'descent:turn', 'descent:student', 'summary:summary'])
-    expect(st.filter(s => s.type === 'announce').map(s => s.line)).toEqual(['race_sprint', 'race_sprint_round2', 'race_catch', 'race_sprint_round2', 'race_climb', 'race_climb_top', 'race_climb_time', 'race_descent'])
+    expect(st.filter(s => s.type === 'announce').map(s => s.line)).toEqual(['race_sprint', 'race_sprint_round2', 'race_catch_tap', 'race_sprint_round2', 'race_climb', 'race_climb_top', 'race_climb_time', 'race_descent'])
   })
   it('разгон: одна ступень ученика, по повтору на пилюлю; у повтора своя дорожка, скорость (+5 %), перевод внутри, без слова, которое проявлялось при промахе (тихий промах)', () => {
     const [s] = of(build().stages, 'sprint').filter(x => x.type === 'student')
@@ -77,7 +77,7 @@ describe('стадии гонки в формате движка', () => {
     expect(g.reps.map(r => [r.trap, r.say])).toEqual(reps.map(r => [!!r.trap, r.say]))
     const i = stages.indexOf(s)
     expect(listenStepOf(stages, i)).toBe(s.step) // слушатель — на ступени
-    expect(stages.filter(x => x.act === 'catch' && x.type === 'announce').map(x => x.line)).toEqual(['race_catch', 'race_sprint_round2'])
+    expect(stages.filter(x => x.act === 'catch' && x.type === 'announce').map(x => x.line)).toEqual(['race_catch_tap', 'race_sprint_round2'])
     expect(s.step.tapOnly).toBe(true); expect(s.step.lang).toBeUndefined() // русской модели в этом тесте нет — проход B на тапе, переключения слуха нет
     expect(stages.some(x => x.switchTo)).toBe(false)
   })
@@ -90,8 +90,11 @@ describe('стадии гонки в формате движка', () => {
     const [b, b2] = of(stages, 'catch').filter(x => x.type === 'student')
     expect(b.step.lang).toBe('ru'); expect(b.step.tapOnly).toBeUndefined(); expect(b.step.extra).toEqual([]); expect(b2.step.lang).toBe('ru')
     expect(of(stages, 'sprint').find(x => x.type === 'student').step.lang).toBeUndefined() // проход A — английская модель
-    b.demote(); expect(b.step.lang).toBeUndefined(); expect(b.step.tapOnly).toBe(true); expect(b2.step.tapOnly).toBe(true)
+    const lineOf = (st, sid) => st.find(x => x.sid === sid).line; expect(lineOf(stages, 'catch-ann')).toBe('race_catch'); expect(lineOf(stages, 'sprint-ann')).toBe('race_sprint') // «Говорю» с русской моделью — прежние реплики
+    b.demote(); expect(lineOf(stages, 'catch-ann')).toBe('race_catch_tap') // русская модель не включилась — проход B на тапе, реплика тап-вариант
+    expect(b.step.lang).toBeUndefined(); expect(b.step.tapOnly).toBe(true); expect(b2.step.tapOnly).toBe(true)
     expect(of(buildRaceStages({ plan: plan(), tap: true, ru: true }).stages, 'catch').some(x => x.switchTo)).toBe(false) // «Тапаю»: модель не нужна
+    const tp = buildRaceStages({ plan: plan(), tap: true, ru: true }).stages; expect([lineOf(tp, 'sprint-ann'), lineOf(tp, 'catch-ann')]).toEqual(['race_sprint_tap', 'race_catch_tap']) // «Тапаю»: объявления про тап
     expect(of(buildRaceStages({ plan: plan('three', { round: 'stages' }), tap: false, ru: true }).stages, 'climb')).toHaveLength(0) // «Вспомни на слух + финал»: вершины нет — возвращать слух перед ней не нужно
   })
   it('разгон и слушай и лови собираются одним набором (raceStageKit.queueStep): общие флаги и выдержка PRE_SAY_GAP_MS; у разгона нет say / trap', () => {
