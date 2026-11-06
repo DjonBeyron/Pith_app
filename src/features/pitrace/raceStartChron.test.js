@@ -3,7 +3,7 @@ import { createStartChron, longestStep, START_VOICE_MS, CHRON_WINDOW_MS } from '
 import { createStartTrace, RACE_ENTRY_LINE_MS, RACE_SETTLE_QUIET_MS } from './raceStartTrace.js'
 import { SETTLE_QUIET_MS } from '../../shared/lib/gameAudioWarm.js'
 
-// Хронология старта «[start]»: мс от тапа «Начать», каждый шаг один раз, в конце — итог «от входа в игру до голоса M мс (цель ≤ 400), от тапа «Говорю» до голоса N мс; самый долгий шаг …», «ДОЛЬШЕ».
+// Хронология старта «[start]»: мс от тапа «Начать», каждый шаг один раз, в конце — итог «от входа в игру до голоса M мс (цель ≤ 400), от тапа «Голосом» до голоса N мс; самый долгий шаг …», «ДОЛЬШЕ».
 function mk() {
   let t = 0
   const out = []
@@ -22,20 +22,20 @@ describe('хронология старта [start]', () => {
     go(1400); c.step('mic', 'getUserMedia ответил'); go(1400); c.step('mic', 'повтор'); go(1530); c.step('enter', 'вход в игру'); go(1620)
     const r = c.voice({ id: 'race_sprint' })
     expect(out[0]).toBe('[start] +0 мс тап «Начать» (жест): сцена с попапом, тихий прогрев')
-    expect(out).toContain('[start] +900 мс тап «Говорю»'); expect(out.filter(s => s.startsWith('[start] +') && s.includes('ответил'))).toHaveLength(1); expect(out.some(s => s.includes('повтор'))).toBe(false)
+    expect(out).toContain('[start] +900 мс тап «Голосом»'); expect(out.filter(s => s.startsWith('[start] +') && s.includes('ответил'))).toHaveLength(1); expect(out.some(s => s.includes('повтор'))).toBe(false)
     expect(out).toContain('[start] +1620 мс голос Пита: источник звука стартовал («race_sprint»)')
     expect(r).toEqual({ entry: 90, ask: 720, longest: { label: 'getUserMedia ответил', prev: 'getUserMedia вызван', ms: 495 } })
-    expect(out.at(-1)).toBe('[start] итог: от входа в игру до голоса Пита 90 мс (цель ≤ 400), от тапа «Говорю» до голоса 720 мс; самый долгий шаг — «getUserMedia ответил» (495 мс после «getUserMedia вызван»)')
+    expect(out.at(-1)).toBe('[start] итог: от входа в игру до голоса Пита 90 мс (цель ≤ 400), от тапа «Голосом» до голоса 720 мс; самый долгий шаг — «getUserMedia ответил» (495 мс после «getUserMedia вызван»)')
     expect(c.voice()).toBeNull() // итог один раз за запуск
   })
   it('голос позже 400 мс после входа — «ДОЛЬШЕ»; первая реплика без звука помечена', () => {
     const { c, out, go } = mk()
     c.tap(); c.ask('tap'); go(10); c.step('enter', 'вход в игру'); go(10 + START_VOICE_MS + 1)
     c.voice({ voiced: false })
-    expect(out.at(-1)).toMatch(/итог: от входа в игру до голоса Пита 401 мс .*от тапа «Тапаю».* — ДОЛЬШЕ \(без звука\)$/)
+    expect(out.at(-1)).toMatch(/итог: от входа в игру до голоса Пита 401 мс .*от тапа «Пальцами».* — ДОЛЬШЕ \(без звука\)$/)
     expect(START_VOICE_MS).toBe(RACE_ENTRY_LINE_MS)
   })
-  it('повторный ответ (микрофон не дали → «Тапаю»): шаги прошлой попытки стёрты, итог по новой', () => {
+  it('повторный ответ (микрофон не дали → «Пальцами»): шаги прошлой попытки стёрты, итог по новой', () => {
     const { c, out, go } = mk()
     c.tap(); go(500); c.ask('voice'); go(600); c.step('mic', 'getUserMedia ответил: denied'); go(2000); c.ask('tap'); go(2010); c.step('mic', 'не должен быть'); c.step('enter', 'вход'); go(2100)
     expect(c.voice().ask).toBe(100)

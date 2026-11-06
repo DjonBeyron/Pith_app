@@ -4,7 +4,7 @@ import { normText } from '../player/modules/rotate-phone/wordLaneRecipe.js'
 import { planTexts } from './rehearsalPlan.js'
 import { buildActs } from './rehearsalRecipe.js'
 import { sessionLine } from './rehearsalLines.js'
-import { raceTexts, raceFirstLines } from '../pitrace/raceTexts.js'
+import { raceTexts, raceFirstLines, raceHasStart } from '../pitrace/raceTexts.js'
 import { buildRaceActs } from '../pitrace/raceRecipe.js'
 
 export const START_LINE = 'rh_start'  // вступление: Пит говорит про фразу, пока она падает (основной ключ: вариант выбирается по семени плана, sessionLine)
@@ -28,7 +28,7 @@ export function neededTexts(plan) {
 }
 
 /** Говорит ли Пит вступление «Сегодня репетируем одну фразу…» (пока фраза падает). Полная репетиция и «Шлифовка → Заставка» — да; один другой этап «Шлифовки» — нет: вступление (≈ 4,5 с речи) перед каждым запуском одного акта только задерживает то, что шлифуют */
-export const hasIntroLine = plan => (plan.game === 'race' ? !plan.round : !plan.only || plan.only === 'intro') // гонка: вступление race_start — только в полной гонке, не в одном раунде
+export const hasIntroLine = plan => (plan.game === 'race' ? raceHasStart(plan) : !plan.only || plan.only === 'intro') // гонка: стартовая фраза (race_start / race_start_tap) — в полной гонке, «Вспомни на слух + финал» и «Проходе A», не в другом одиночном раунде
 
 /** Реплики Пита, которые прозвучат в первые секунды: вступление (если есть) и реплика первого акта (у итога — «Вооу, получилось»). Остальные докачиваются фоном */
 export function firstLines(plan) {

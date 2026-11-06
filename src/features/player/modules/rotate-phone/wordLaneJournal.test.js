@@ -7,11 +7,11 @@ import { createGameJournal } from '../../../../shared/lib/gameJournal.js'
 const read = rel => readFileSync(new URL(rel, import.meta.url), 'utf8')
 
 describe('журнал из шестерёнки', () => {
-  it('заголовок: версия, устройство, режим говорю / тапаю, русская модель, снимок звука', () => {
+  it('заголовок: версия, устройство, режим голосом / пальцами, русская модель, снимок звука', () => {
     const h = journalHeader({ version: '3.3.123', ua: 'iPhone OS 18_7', tap: true, ru: false, en: 'готов', snap: 'ctx=running' }).join('\n')
-    expect(h).toContain('v3.3.123'); expect(h).toContain('устройство: iPhone OS 18_7'); expect(h).toContain('режим: тапаю (без микрофона)')
+    expect(h).toContain('v3.3.123'); expect(h).toContain('устройство: iPhone OS 18_7'); expect(h).toContain('режим: пальцами (без микрофона)')
     expect(h).toContain('русская модель Vosk: не готова; английская: готов'); expect(h).toContain('сейчас: ctx=running')
-    expect(journalHeader({ tap: false, ru: true }).join('\n')).toMatch(/режим: говорю \(микрофон\)[\s\S]*русская модель Vosk: готова/)
+    expect(journalHeader({ tap: false, ru: true }).join('\n')).toMatch(/режим: голосом \(микрофон\)[\s\S]*русская модель Vosk: готова/)
   })
   it('файл: pithy-journal-<дата-время>.txt, текст = заголовок + строки журнала', async () => {
     const journal = createGameJournal({ now: () => 5, clock: () => new Date(2026, 10, 6, 9, 8, 7) })

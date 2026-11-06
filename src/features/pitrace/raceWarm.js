@@ -50,9 +50,9 @@ export function createRaceWarm({ unlock = unlockGameCtx, ctxState = gameCtxState
     },
     /** Вход в игру: что из первых файлов уже в памяти (строка в журнал). → { ok, total, start } (start — декодирован ли race_start; null — его нет в списке) */
     entryReport() {
-      const st = items.find(i => i.key === lineKey('race_start'))
+      const st = items.find(i => i.key === lineKey('race_start') || i.key === lineKey('race_start_tap'))
       const r = { ok: items.filter(i => decoded(i.url)).length, total: items.length, start: st ? decoded(st.url) : null }
-      say(`[warm] гонка: вход в игру — в памяти ${r.ok}/${r.total}${st ? `, race_start ${r.start ? 'декодирован' : 'НЕ декодирован'}` : ''}, ctx=${ctxState() ?? 'нет'}${t0 != null ? `, прогрев начат ${Math.round(now() - t0)} мс назад` : ', прогрева в «Начать» не было'}`)
+      say(`[warm] гонка: вход в игру — в памяти ${r.ok}/${r.total}${st ? `, ${short(st.key)} ${r.start ? 'декодирован' : 'НЕ декодирован'}` : ''}, ctx=${ctxState() ?? 'нет'}${t0 != null ? `, прогрев начат ${Math.round(now() - t0)} мс назад` : ', прогрева в «Начать» не было'}`)
       return r
     },
     items: () => items.slice(),

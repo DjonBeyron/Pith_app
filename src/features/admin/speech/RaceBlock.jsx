@@ -98,7 +98,7 @@ export default function RaceBlock({ save = saveDebugFile }) {
           {voice.error && <p className="aspErr" role="alert" data-testid="race-voice-error">Не озвучилось: {voice.error}. Нужны права админа и доступ к ElevenLabs.</p>}
         </div>
         <RuModelAddress locked={playing} />
-        <label className="aspLabelInline"><input type="checkbox" checked={tap} onChange={e => flip(e.target.checked)} disabled={playing} data-testid="race-tap-mode" /> Тап вместо речи (тап по дорожке засчитывает слово; флаг общий с игрой, перед стартом его выставляет плашка «Говорю / Тапаю»)</label>
+        <label className="aspLabelInline"><input type="checkbox" checked={tap} onChange={e => flip(e.target.checked)} disabled={playing} data-testid="race-tap-mode" /> Тап вместо речи (тап по дорожке засчитывает слово; флаг общий с игрой, перед стартом его выставляет плашка «Голосом / Пальцами»)</label>
       </PolishSettings>
       {racePlan && <RotatePhoneModule linesRev={voice.rev} node={node} bare forceDebug startRef={startRef} onStatus={setStatus} onTap={setTap} />}
     </section>

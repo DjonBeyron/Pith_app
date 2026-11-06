@@ -18,7 +18,8 @@ describe('объявление этапов: название + задание',
   it('плашки раундов: title — название, task — задание; реплика Пита = «название, задание»', () => {
     const stages = buildStages({ chunks: plan.chunks, plan, rate: 1 }).stages
     const ann = stages.filter(s => s.type === 'announce' && TASKS[s.line])
-    expect(ann.map(s => s.line)).toEqual(['race_sprint', 'race_climb', 'race_descent'])
+    expect(ann.map(s => s.line)).toEqual(['race_climb', 'race_descent'])
+    const sp = stages.find(s => s.sid === 'sprint-ann'); expect(sp.line).toBeNull(); expect([sp.round.title, sp.round.task]).toEqual(TASKS.race_sprint) // плашка этапа A есть, отдельной реплики нет: её заменяет стартовая фраза
     for (const s of ann) {
       const [title, task] = TASKS[s.line]
       expect(s.round.title).toBe(title); expect(s.round.task).toBe(task)
@@ -29,7 +30,7 @@ describe('объявление этапов: название + задание',
     expect(RACE_LINES.find(l => l.id === 'race_catch').text).toBe(CATCH_LINE)
   })
   it('реплики без точек, тире и восклицаний', () => {
-    for (const id of [...Object.keys(TASKS), 'race_catch', 'race_sprint_tap', 'race_catch_tap', 'race_switch_ru', 'race_start']) expect(RACE_LINES.find(l => l.id === id).text).not.toMatch(/[.!—–]/)
+    for (const id of [...Object.keys(TASKS), 'race_catch', 'race_sprint_tap', 'race_catch_tap', 'race_switch_ru', 'race_start', 'race_start_tap']) expect(RACE_LINES.find(l => l.id === id).text).not.toMatch(/[.!—–]/)
   })
   it('WordLaneTurnPlate: «название и задание через перевод строки» — задание строкой под заголовком; без задания как раньше', () => {
     const h = renderToStaticMarkup(createElement(WordLaneTurnPlate, { text: 'Разгон\nпроверим, как ты помнишь слова из своей памяти' }))

@@ -54,8 +54,8 @@ describe('рецепт гонки: акты из плана репетиции',
     expect(catchWords(race('three', { seed: 'другое семя' })).map(x => x.text)).not.toEqual(catchWords(plan).map(x => x.text))
     const act = buildRaceActs(plan).acts.find(a => a.id === 'catch')
     expect(act.words).toEqual(catchWords(plan)); expect(act.line).toBe('race_catch_tap'); expect(buildRaceActs(plan, false, true).acts.find(a => a.id === 'catch').line).toBe('race_catch'); expect(act.sets).toBeUndefined()
-    const v = buildRaceActs(plan, false, true).acts; expect(v.find(a => a.id === 'catch').task).toBe('теперь наоборот, я говорю по-английски, а ты называешь перевод'); expect(v.find(a => a.id === 'sprint').line).toBe('race_sprint')
-    const t = buildRaceActs(plan, true, true).acts; expect(t.find(a => a.id === 'sprint').line).toBe('race_sprint_tap'); expect(t.find(a => a.id === 'catch').line).toBe('race_catch_tap'); expect(t.find(a => a.id === 'sprint').task).toMatch(/тапни/) // «Тапаю»: тап-реплики и задания
+    const v = buildRaceActs(plan, false, true).acts; expect(v.find(a => a.id === 'catch').task).toBe('теперь наоборот, я говорю по-английски, а ты называешь перевод'); expect(v.find(a => a.id === 'sprint').line).toBeNull() // объявления этапа A нет: звучит стартовая фраза race_start
+    const t = buildRaceActs(plan, true, true).acts; expect(t.find(a => a.id === 'sprint').line).toBeNull(); expect(t.find(a => a.id === 'catch').line).toBe('race_catch_tap'); expect(t.find(a => a.id === 'sprint').task).toMatch(/тапни/) // «Тапаю»: тап-реплики и задания
     expect(act.task).toMatch(/тапни перевод/); expect(act.title).toBe('Вспомни на слух')
   })
   it('вершина: N ступеней = N слов фразы по порядку; спуск — вся фраза, один раз, на скорости 1,1', () => {

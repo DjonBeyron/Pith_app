@@ -16,7 +16,7 @@ export const DESCENT_RATE = 1.1 // скорость «Спуска»: Пит и 
 
 /**
  * @param {object} plan — нормализованный RehearsalPlan (game: 'race')
- * tap — выбрано «Тапаю» (по умолчанию из настройки): тап-реплики race_sprint_tap / race_catch_tap и задания «тапни»; проход B на тапе и без русской модели.
+ * tap — выбрано «Тапаю» (по умолчанию из настройки): тап-реплика race_catch_tap (и стартовая race_start_tap, raceTexts.js) и задания «тапни»; проход B на тапе и без русской модели.
  * @returns {{ plan, acts: object[] }}
  */
 export function buildRaceActs(plan, tap = readTapMode(), ru = ruReady()) {
@@ -26,7 +26,7 @@ export function buildRaceActs(plan, tap = readTapMode(), ru = ruReady()) {
   const climb = climbWords(plan)
   const all = plan.chunks.map((_, i) => i)
   const acts = []
-  if (words.length) acts.push({ id: 'sprint', title: 'Вспомни на слух', brief: 'скажи слово по переводу', task: 'перевод едет вниз, скажи слово по-английски, пока не убежало', line: 'race_sprint', ...(tapA ? { brief: 'тапни слово по переводу', task: 'я говорю перевод, тапни нужное слово, пока не убежало', line: 'race_sprint_tap' } : {}), words })
+  if (words.length) acts.push({ id: 'sprint', title: 'Вспомни на слух', brief: 'скажи слово по переводу', task: 'перевод едет вниз, скажи слово по-английски, пока не убежало', line: null, ...(tapA ? { brief: 'тапни слово по переводу', task: 'я говорю перевод, тапни нужное слово, пока не убежало' } : {}), words }) // line: null (v3.3.131) — объявления этапа A нет: его заменяет стартовая фраза race_start / race_start_tap (raceTexts.raceStartId)
   if (caught.length) acts.push({ id: 'catch', title: 'Вспомни на слух', brief: 'назови перевод слова', task: 'теперь наоборот, я говорю по-английски, а ты называешь перевод', line: 'race_catch', ...(tapB ? { brief: 'тапни перевод слова', task: 'теперь наоборот, я говорю по-английски, а ты тапни перевод', line: 'race_catch_tap' } : {}), words: caught })
   if (climb.length) acts.push({ id: 'climb', title: 'Вершина', brief: 'собери фразу по словам', task: 'собираем фразу по слову, с каждым шагом длиннее', line: 'race_climb', words: climb, topLine: 'race_climb_top', timeLine: 'race_climb_time' })
   acts.push({ id: 'descent', title: 'Спуск', brief: 'повтори всю фразу за мной', task: 'повтори всю фразу за мной на скорости', line: 'race_descent', parts: all, rate: DESCENT_RATE })
