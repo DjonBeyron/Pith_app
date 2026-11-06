@@ -68,7 +68,7 @@ describe('карточка игры (RotatePhoneModule) и игра', () => {
     expect(card).toMatch(/useEffect\(\(\) => \{ if \(phase === 'wait' \|\| phase === 'ask'\) warm\(cfg, \{ onListed: \(\) => setListed\(sig\) \}\) \}, \[cfg, sig, phase, warm\]\)/)
   })
   it('конец игры и срыв старта отпускают контекст, но оставляют прогретое; при закрытии карточки отпускаются её файлы', () => {
-    expect(card).toContain('releaseClips({ keepWarm: true }); endGameAudio(); closeGameMic(); leaveFullscreen()')
+    expect(card).toContain('releaseClips({ keepWarm: true }); endGameAudio(); closeGameMic() }'); expect(card).toContain('const abortGame = useCallback(() => { releaseAudio(); leaveFullscreen() }')
     expect(card).toContain('useEffect(() => () => dropWarmed([...warmed.current]), [])')
     const flow = read('./useWordLaneFlow.js')
     expect(flow.match(/releaseClips\(\{ keepWarm: true \}\)/g)).toHaveLength(2) // конец (finish) и размонтирование игры, в том числе в «Ещё минутку?»

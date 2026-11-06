@@ -42,11 +42,11 @@ export function useWordLanePause({ f, cfg, audioSrc, lines, dbg = f.dbg, startAu
     setBusy(true); setProblem(''); goneRef.current = false; episodeRef.current = false // свернули снова, пока микрофон открывался, — новая пауза
     dbg.event('resume'); pLog(`[pause] «Продолжить»: открываю микрофон из тапа и бужу звук (ctx=${gameCtxState() ?? 'нет'}, пометка звука: ${needsRewake() ?? 'нет'})`)
     let p
-    try { p = Promise.resolve(startAudio({ cfg, audioSrc, lines })) } catch (e) { p = Promise.reject(e) } // синхронный префикс startGameAudio — openGameMic прямо в жесте
+    try { p = Promise.resolve(startAudio({ cfg, audioSrc, lines })) } catch (e) { p = Promise.reject(e) } // синхронный префикс startGameAudio — openGameMic прямо в жесте («Тапаю» в «Гонке» — без микрофона: mic 'off', wordLaneStart.MIC_OFF)
     p.then(r => r?.mic ?? 'unavailable', () => 'unavailable').then(mic => {
       if (goneRef.current) { setBusy(false); return } // свернули снова (pause уже всё закрыла) или игра закрыта: перезапуска нет
       setBusy(false)
-      if (mic === 'granted') { if (fRef.current.paused) fRef.current.restartStage(); return } // игру могли закрыть («Выйти»), пока микрофон открывался
+      if (mic === 'granted' || mic === 'off') { if (fRef.current.paused) fRef.current.restartStage(); return } // игру могли закрыть («Выйти»), пока микрофон открывался
       pLog(`[pause] микрофон не открылся (${mic}) — остаёмся на паузе`)
       fRef.current.pause('mic-' + mic) // закрыть всё, что успел поднять startGameAudio (сессия, прогрев, поток)
       setProblem(MIC_PROBLEM[mic] ?? MIC_PROBLEM.unavailable)

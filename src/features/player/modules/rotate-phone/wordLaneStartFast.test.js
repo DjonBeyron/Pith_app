@@ -73,10 +73,10 @@ describe('быстрый старт гонки: реплика не ждёт м�
     expect(calls.some(c => c.includes('(early)'))).toBe(false); expect(onLineReady).not.toHaveBeenCalled()
     expect(calls.filter(c => ['hold.parkNow', 'warm.settle', 'ensureCtx', 'wake', 'gate'].includes(c))).toEqual(['hold.parkNow', 'warm.settle', 'ensureCtx', 'wake', 'gate'])
   })
-  it('источник: контекст создаётся заранее на попапе, ensureGameCtxRunning умеет recreate: false (не оборвать идущую реплику)', async () => {
+  it('источник: контекст открывается заранее в жесте «Начать» (прогрев гонки), ensureGameCtxRunning умеет recreate: false (не оборвать идущую реплику)', async () => {
     const { readFileSync } = await import('node:fs')
-    const mod = readFileSync(new URL('./RotatePhoneModule.jsx', import.meta.url), 'utf8')
-    expect(mod).toContain("if (phase === 'ask') getGameCtx()")
+    const warm = readFileSync(new URL('../../../pitrace/raceWarm.js', import.meta.url), 'utf8')
+    expect(warm).toContain('unlock = unlockGameCtx'); expect(readFileSync(new URL('../../../pitrace/useRaceLaunch.js', import.meta.url), 'utf8')).toContain('prewarm: () => raceWarm.start({ cfg, lines })')
     const { ensureGameCtxRunning } = await import('../../../../shared/lib/gameAudioCtx.js')
     const r = await ensureGameCtxRunning({ why: 'тест', recreate: false, waitMs: 5 })
     expect(r.recreated).toBe(false); expect(gameCtxState()).toBeNull() // Web Audio в тесте нет — ничего не создано

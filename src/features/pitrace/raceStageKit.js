@@ -15,14 +15,14 @@ export const PRE_SAY_GAP_MS = 450    // «Разгон» и «Слушай и л
 export const CLAIM_GAP_MS = 60       // пауза после принятия слова с репликой успеха до выезда следующей пилюли
 export const ROUND2_ANN_MS = 400     // «плашки» второго круга нет: стадия держится, пока Пит говорит
 
-export function createKit({ plan, rate = 1, lib = () => null }) {
+export function createKit({ plan, rate = 1, lib = () => null, tap = false }) { // tap — «Тапаю»: все ступени без микрофона и Vosk (step.tapOnly), в том числе добранный второй круг
   const r = rate > 0 ? rate : 1
   const texts = raceTexts(plan)
   const textLib = makeLib(texts)
   const stages = []
   const push = s => { stages.push({ ...s, idx: stages.length, race: true }); return s }
   return {
-    plan, chunks: plan.chunks, rate: r, lib, stages, push,
+    plan, chunks: plan.chunks, rate: r, lib, stages, push, tap: !!tap,
     /** Длина озвучки слова или куска из библиотеки слов (нет её — оценка), мс; k — во сколько раз быстрее */
     msOf: (text, k = 1) => { const i = texts.findIndex(t => normText(t) === normText(text)); return (textLib(i)?.ms ?? estChunkMs(text)) / r / k },
     /** Двойники слова из плана (для словаря Vosk и ловушек) */
@@ -49,7 +49,7 @@ export function queueStep(kit, id, words, good, rep, o = {}) {
     reps: words.map((w, i) => ({ parts: [i], lane: w.lane, speed: w.speed, ...rep(w) })),
     extra: o.lang === 'ru' ? [] : vocabOf(targets, words.flatMap(w => [...w.confusers, ...kit.doubles(w.text)])), maxWords: 2, maxTries: 1, overlap: true,
     quiet: true, edge: true, holdAll: true, preSay: true, preGap: PRE_SAY_GAP_MS, claimGap: CLAIM_GAP_MS, goodAt: good.map(g => g.at),
-    ...(o.lang ? { lang: o.lang } : {}), ...(o.tapOnly ? { tapOnly: true } : {}),
+    ...(o.lang ? { lang: o.lang } : {}), ...(o.tapOnly || kit.tap ? { tapOnly: true } : {}),
   })
 }
 

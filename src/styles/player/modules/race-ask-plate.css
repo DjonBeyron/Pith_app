@@ -21,3 +21,6 @@
   cursor: pointer;
 }
 .raceAskBtn[data-main] { border-color: var(--wl-accent); background: var(--wl-accent); color: var(--wl-ink, #0d1500); } /* прошлый выбор — подсвечен по умолчанию */
+.raceAskBtn:disabled { cursor: default; opacity: 0.7; }
+.raceAskBtn[data-wait] { opacity: 1; font-size: 15px; } /* «Говорю» ждёт микрофон: «Разрешите микрофон…» / «Готовлю звук…» */
+.raceAskHint { margin: 12px 0 0; font-size: 14px; line-height: 1.35; font-weight: 600; color: var(--wl-warn, #ffb4a8); } /* микрофон не разрешён: остаёмся в попапе */
