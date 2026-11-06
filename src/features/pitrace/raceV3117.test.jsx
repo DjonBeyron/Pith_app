@@ -110,17 +110,17 @@ describe('конвейер: три независимые дорожки', () =>
     const [da, db, dc] = [a, b, c].map(adv); expect(da).toBeLessThan(db); expect(db).toBeLessThan(dc); expect(da / db).toBeCloseTo(0.96, 2); expect(dc / db).toBeCloseTo(1.04, 2)
     expect(createLane().k).toBe(1); expect(createLane().y).toBe(0); expect(createLane().per).toBe(PERIOD) // обычная нода без изменений
   })
-  it('привод включает режим гонки по [data-race] на корне и не пишет длину штрихов; CSS — узор «--- | ---»: три коротких штриха вдоль, длинная черта поперёк, три коротких, две точки', () => {
+  it('привод включает режим гонки по [data-race] на корне и не пишет длину штрихов; CSS — узор «- - - |»: три коротких штриха вдоль, длинная черта поперёк, и по кругу', () => {
     const drv = read('../player/modules/rotate-phone/laneConveyorDrive.js'); expect(drv).toContain("closest?.('[data-race]')"); expect(drv).toContain('createLane(race ? i : -1)')
     const c = strip(css('word-lane-lane-run.css')), r = /\.wl\[data-race\] \.wlLanes i::before \{[^}]*\}/.exec(c)[0]
     expect(r).toContain(`--run-p: ${RACE_PERIOD}dvh`); expect(r).toContain('mask-image: none'); expect(r).toContain('width: 12px') // маски нет, слой шириной 12 px — под поперечную черту
     const layers = /background:\s*([^;]*);/.exec(r)[1].split(/repeat-y,\s*linear-gradient\(/)
-    expect(layers.length).toBe(3) // короткие штрихи вдоль, поперечная черта, точки
+    expect(layers.length).toBe(2) // короткие штрихи вдоль и поперечная черта, без точек
     const shorts = [...layers[0].matchAll(/var\(--run-c\) ([\d.]+)(?:dvh)? ([\d.]+)dvh/g)].map(m => +(m[2] - m[1]).toFixed(2))
-    expect(shorts).toEqual([1.2, 1.2, 1.2, 1.2, 1.2, 1.2]) // шесть коротких штрихов вдоль дорожки (3 + 3), 1 px по центру
-    expect(layers[0]).toContain('center top / 1px var(--run-p)')
-    expect(layers[1]).toContain('9dvh calc(9dvh + 1.5px)'); expect(layers[1]).toContain('left top / 12px var(--run-p)') // одна длинная черта поперёк, во всю ширину слоя
-    expect((layers[2].match(/var\(--run-c\)/g) || []).length).toBe(2); expect(layers[2]).toContain('center top / 2px var(--run-p)') // две точки
+    expect(shorts).toEqual([1.2, 1.2, 1.2]) // три коротких штриха вдоль дорожки, зазор 1 dvh (0–1,2 / 2,2–3,4 / 4,4–5,6)
+    expect(layers[0]).toContain('transparent 1.2dvh 2.2dvh'); expect(layers[0]).toContain('transparent 3.4dvh 4.4dvh'); expect(layers[0]).toContain('center top / 1px 8dvh') // группа 8 dvh, 24 кратно 8
+    expect(layers[1]).toContain('6.6dvh calc(6.6dvh + 1.5px)'); expect(layers[1]).toContain('left top / 12px 8dvh') // одна длинная черта поперёк, во всю ширину слоя, после третьего штриха
+    expect(RACE_PERIOD % 8).toBe(0)
     expect(c).not.toMatch(/animation|@keyframes|filter/)
   })
 })

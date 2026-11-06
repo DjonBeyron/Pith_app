@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
-import { goodPlan, GOOD_IDS, GOOD_GAP_MIN, GOOD_GAP_MAX, GOOD_DELAY_MS } from './raceGood.js'
+import { goodPlan, GOOD_IDS, OK_IDS, OK_ID, GOOD_GAP_MIN, GOOD_GAP_MAX, GOOD_DELAY_MS } from './raceGood.js'
 import { RACE_LINES } from './raceLines.js'
 import { buildStages } from '../player/modules/rotate-phone/wordLaneStages.js'
 import { createStudentGame, stepStudent } from '../player/modules/rotate-phone/wordLaneStudent.js'
@@ -28,6 +28,11 @@ describe('мини-реплики успеха «Разгона»: план от
   it('второй круг (first: false): первая реплика не раньше 3-го верного слова', () => {
     const plan = goodPlan('s1', 'sprint2', 8, { first: false })
     expect(plan[0].at).toBeGreaterThanOrEqual(GOOD_GAP_MIN); expect(plan[0].at).toBeLessThanOrEqual(GOOD_GAP_MAX)
+  })
+  it('проход B (ids: OK_IDS): все реплики — race_good_ok «Отлично», частота та же (первое слово, шаг 3–4)', () => {
+    const b = goodPlan('s1', 'catch', 10, { ids: OK_IDS }), a = goodPlan('s1', 'catch', 10)
+    expect(b.every(g => g.id === OK_ID)).toBe(true); expect(b.map(g => g.at)).toEqual(a.map(g => g.at))
+    expect(RACE_LINES.find(l => l.id === OK_ID).text).toBe('Отлично')
   })
   it('ключи из каталога реплик, без Math.random', () => {
     expect(GOOD_IDS.every(id => RACE_LINES.some(l => l.id === id))).toBe(true)

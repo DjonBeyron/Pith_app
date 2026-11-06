@@ -85,10 +85,10 @@ describe('дополнительный круг: переход директор
       expect(extraTarget(stages, stages[0], two, plan.seed)).toBeNull() // не проход — обычный порядок
     })
   }
-  it('проход B: добор из дежурных слов получает поля прохода (shown — перевод, не ловушка)', () => {
+  it('проход B: добор из дежурных слов получает поля прохода (не ловушка)', () => {
     const { stages } = buildRaceStages({ plan })
     const first = stages.find(s => s.sid === 'catch'), second = stages.find(s => s.sid === 'catch2')
-    first.standby.forEach(w => { expect(w.shown).toBe(w.translation); expect(w.trap).toBe(false) })
+    first.standby.forEach(w => { expect(w.trap).toBe(false) })
     const all = { results: Object.fromEntries(first.words.map((_, i) => [i, { hit: false, miss: true }])) }
     extraTarget(stages, first, all, plan.seed)
     expect(second.words.length).toBeGreaterThanOrEqual(first.words.length)

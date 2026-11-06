@@ -4,7 +4,7 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { useRaceActs } from './useRaceActs.js'
 import { buildRaceStages } from './raceStages.js'
 import { extraTarget } from './raceExtraRound.js'
-import { GOOD_IDS, GOOD_DELAY_MS, GOOD_ARM_MS } from './raceGood.js'
+import { GOOD_IDS, ALL_GOOD_IDS, OK_ID, GOOD_DELAY_MS, GOOD_ARM_MS } from './raceGood.js'
 import { fixturePlan } from '../rehearsal/rehearsalFixtures.js'
 import { normalizePlan } from '../rehearsal/rehearsalPlan.js'
 import { normalizeLines } from '../player/modules/rotate-phone/wordLaneCatLines.js'
@@ -29,7 +29,7 @@ function probe(sid, stagesIn = null) {
   renderToStaticMarkup(createElement(P))
   return { rh: out, stages, stageObj, sayLine, sayLineLater }
 }
-const goodCalls = h => h.sayLine.mock.calls.filter(c => GOOD_IDS.includes(c[0]))
+const goodCalls = h => h.sayLine.mock.calls.filter(c => ALL_GOOD_IDS.includes(c[0]))
 const claimAndRise = (h, rep, ms, idx = rep.idx) => { h.rh.claim(rep, ms); h.rh.rec('win', { idx, last: true }); vi.advanceTimersByTime(GOOD_DELAY_MS + 50) } // зачёт → взлёт → похвала через 500 мс
 
 describe('похвала: один путь для всех зачётов', () => {
@@ -63,7 +63,7 @@ describe('похвала: один путь для всех зачётов', () 
     const h = probe('catch')
     const i = h.stageObj.words.findIndex(w => !w.trap), tr = h.stageObj.words.findIndex(w => w.trap)
     claimAndRise(h, { idx: i }, 1200)
-    expect(goodCalls(h)).toHaveLength(1)
+    expect(goodCalls(h)).toHaveLength(1); expect(goodCalls(h)[0][0]).toBe(OK_ID) // проход B: просто «Отлично», не похвала за произношение
     h.rh.rec('fail', { idx: tr }) // ловушка пропущена = верно
     h.rh.rec('miss', { idx: tr, believed: true })
     vi.advanceTimersByTime(5000)

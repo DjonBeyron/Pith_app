@@ -22,10 +22,10 @@
   mask-image: repeating-linear-gradient(to bottom, #000 0 var(--run-dash, 2.2dvh), transparent var(--run-dash, 2.2dvh) var(--run-p));
 }
 .wl--lite .wlLanes i::before, .weak-device .wlLanes i::before { will-change: auto; }
-/* «Встряхни память» (v3.3.117/118, .wl[data-race]): три дорожки читаются как независимые (свои скорость и фаза — wordLaneConveyor.js LANE_RATES/LANE_PHASES), период узора
-   --run-p = RACE_PERIOD (24 dvh). Узор по рисунку владельца «--- | ---»: три КОРОТКИХ штриха ВДОЛЬ дорожки (1 px × 1,2 dvh по центру), затем одна ДЛИННАЯ черта ПОПЕРЁК
-   (12 px × 1,5 px), снова три коротких, двоеточие (две точки 2 × 2 px) — и по кругу. Три слоя фона (сокращённая запись background с позицией/размером слоя) на одном ::before
-   (ширина 12 px вместо 1 px; маска не нужна): слой коротких штрихов (1 px по центру), слой поперечной черты (во всю ширину), слой точек (2 px по центру). Двигается весь ::before
+/* «Встряхни память» (.wl[data-race]): три дорожки читаются как независимые (свои скорость и фаза — wordLaneConveyor.js LANE_RATES/LANE_PHASES), период узора --run-p = RACE_PERIOD (24 dvh).
+   Узор по рисунку владельца «- - - |»: группа на 8 dvh — три КОРОТКИХ штриха ВДОЛЬ дорожки (1 px × 1,2 dvh по центру, зазор 1 dvh: 0–1,2 / 2,2–3,4 / 4,4–5,6 dvh), затем одна ДЛИННАЯ черта
+   ПОПЕРЁК (12 px × 1,5 px на 6,6 dvh), до 8 dvh пусто — и по кругу, три группы на период 24 dvh (24 кратно 8, бесшовно). Без точек и без второй тройки. Два слоя фона на одном ::before
+   (ширина 12 px вместо 1 px; маска не нужна): слой коротких штрихов (1 px по центру) и слой поперечной черты (во всю ширину), оба высотой 8 dvh с повтором по вертикали. Двигается весь ::before
    (transform --run-y), яркость — --run-a в цвете каждого слоя. Привод длину штрихов не меняет (на импульсе скорости — только яркость и волна). */
 .wl[data-race] .wlLanes i::before {
   --run-p: 24dvh;
@@ -35,7 +35,6 @@
   -webkit-mask-image: none;
   mask-image: none;
   background:
-    linear-gradient(to bottom, var(--run-c) 0 1.2dvh, transparent 1.2dvh 2.2dvh, var(--run-c) 2.2dvh 3.4dvh, transparent 3.4dvh 4.4dvh, var(--run-c) 4.4dvh 5.6dvh, transparent 5.6dvh 13.2dvh, var(--run-c) 13.2dvh 14.4dvh, transparent 14.4dvh 15.4dvh, var(--run-c) 15.4dvh 16.6dvh, transparent 16.6dvh 17.6dvh, var(--run-c) 17.6dvh 18.8dvh, transparent 18.8dvh var(--run-p)) center top / 1px var(--run-p) repeat-y,
-    linear-gradient(to bottom, transparent 0 9dvh, var(--run-c) 9dvh calc(9dvh + 1.5px), transparent calc(9dvh + 1.5px) var(--run-p)) left top / 12px var(--run-p) repeat-y,
-    linear-gradient(to bottom, transparent 0 20.4dvh, var(--run-c) 20.4dvh calc(20.4dvh + 2px), transparent calc(20.4dvh + 2px) 21.6dvh, var(--run-c) 21.6dvh calc(21.6dvh + 2px), transparent calc(21.6dvh + 2px) var(--run-p)) center top / 2px var(--run-p) repeat-y;
+    linear-gradient(to bottom, var(--run-c) 0 1.2dvh, transparent 1.2dvh 2.2dvh, var(--run-c) 2.2dvh 3.4dvh, transparent 3.4dvh 4.4dvh, var(--run-c) 4.4dvh 5.6dvh, transparent 5.6dvh 8dvh) center top / 1px 8dvh repeat-y,
+    linear-gradient(to bottom, transparent 0 6.6dvh, var(--run-c) 6.6dvh calc(6.6dvh + 1.5px), transparent calc(6.6dvh + 1.5px) 8dvh) left top / 12px 8dvh repeat-y;
 }

@@ -57,7 +57,7 @@ describe('стадии гонки в формате движка', () => {
     const plain = createStudentGame({ step: { reps: [{ parts: [0] }, { parts: [1] }], parts: [0, 1] }, chunks: ['a', 'b'] })
     expect(plain.reps.map(r => [r.lanes[0], r.speed, r.cap])).toEqual([[0, 1, null], [1, 1, null]])
   })
-  it('проход B (инверсия прохода A): та же ступень одной пилюли, на пилюле русский перевод (cap), английское слово для голоса Пита (say), цель — русский перевод, ловушки (trap); дополнительный круг catch2; сцены discern / speak больше нет', () => {
+  it('проход B (инверсия прохода A): та же ступень одной пилюли, на пилюле то же английское слово (cap = text), английское слово для голоса Пита (say), цель — русский перевод, ловушки (trap); дополнительный круг catch2; сцены discern / speak больше нет', () => {
     const stages = build().stages
     const st = of(stages, 'catch').filter(s => s.type === 'student')
     expect(st.map(s => s.sid)).toEqual(['catch', 'catch2'])
@@ -69,10 +69,10 @@ describe('стадии гонки в формате движка', () => {
     expect(reps.length).toBe(s.words.length)
     reps.forEach((r, i) => {
       const w = s.words[i]
-      expect(r.parts).toEqual([i]); expect(r.lane).toBe(i % 3); expect(r.cap).toBe(w.translation); expect(r.say).toBe(w.text); expect(r.trap).toBeUndefined() // ловушек нет
-      expect(chunks[i]).toBe(w.translation) // цель — русский перевод (то, что ученик говорит); в голосе Пита — английское слово, на пилюле — этот же перевод
+      expect(r.parts).toEqual([i]); expect(r.lane).toBe(i % 3); expect(r.cap).toBe(w.text); expect(r.say).toBe(w.text); expect(r.trap).toBeUndefined() // ловушек нет
+      expect(chunks[i]).toBe(w.translation) // цель — русский перевод (то, что ученик говорит); в голосе Пита и на пилюле — английское слово
     })
-    expect(reps.every(r => !r.trap)).toBe(true); expect(s.words.every(w => !w.trap && w.shown === w.translation)).toBe(true)
+    expect(reps.every(r => !r.trap)).toBe(true); expect(s.words.every(w => !w.trap)).toBe(true); expect(s.good.every(g => g.id === 'race_good_ok')).toBe(true) // проход B хвалит просто «Отлично»
     const g = createStudentGame({ step: s.step, chunks, estMs: () => 400, maxTries: 1 })
     expect(g.reps.map(r => [r.trap, r.say])).toEqual(reps.map(r => [!!r.trap, r.say]))
     const i = stages.indexOf(s)

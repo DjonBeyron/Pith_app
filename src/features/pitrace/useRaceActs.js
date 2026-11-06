@@ -11,13 +11,13 @@ import { extraTarget, isLate } from './raceExtraRound.js'
 import { useRaceSwitch } from './useRaceSwitch.js'
 import { takeoffOn, playTakeoffAfter } from './raceTakeoffSound.js'
 import { rewardMs } from '../player/modules/rotate-phone/wordLaneNotes.js'
-import { GOOD_IDS } from './raceGood.js'
+import { ALL_GOOD_IDS } from './raceGood.js'
 import { useRaceSpeech, speakTranslation } from './useRaceSpeech.js'
 
 /** Журнал голоса перевода: какое слово и какой перевод Пит говорит перед выездом этой пилюли (одна запись повтора: слово, перевод, дорожка, скорость). Расхождение с записью слова круга — строка «РАССИНХРОН» (не должно быть никогда) */
 function logPre(stage, rep) {
   if (!rep || !['sprint', 'catch'].includes(stage?.act)) return
-  const w = stage.words?.[rep.idx], want = stage.act === 'catch' ? w?.shown : w?.translation
+  const w = stage.words?.[rep.idx], want = stage.act === 'catch' ? w?.text : w?.translation
   pLog(`[race] голос: повтор ${rep.idx + 1}/${stage.words?.length ?? '?'}${stage.sid.endsWith('2') ? ' (второй круг)' : ''} слово «${w?.text ?? rep.text}», ${stage.act === 'catch' ? 'говорит слово, на пилюле' : 'перевод'} «${rep.cap}», дорожка ${rep.lanes?.[0]}, скорость ${rep.speed}${w && want !== rep.cap ? `; РАССИНХРОН: в записи слова «${want}»` : ''}`)
 }
 
@@ -52,7 +52,7 @@ export function useRaceActs(args) {
     if (r.state === box.s && !r.say && !r.hint && !r.log) return
     putState(box, r.state); setView(r.state)
     if (r.log) pLog(`[race] ${r.log}`)
-    if (r.say) { if (GOOD_IDS.includes(r.say)) praiseRef.current = r.say; else sayRef.current.sayLine?.(r.say) } // ЛЮБАЯ похвала — один путь: секвенсор речи (claim → speech.claim(id)): голос через GOOD_DELAY_MS после ВЗЛЁТА пилюли, перевод — через AFTER_GOOD_GAP_MS после РЕАЛЬНОГО конца похвалы
+    if (r.say) { if (ALL_GOOD_IDS.includes(r.say)) praiseRef.current = r.say; else sayRef.current.sayLine?.(r.say) } // ЛЮБАЯ похвала — один путь: секвенсор речи (claim → speech.claim(id)): голос через GOOD_DELAY_MS после ВЗЛЁТА пилюли, перевод — через AFTER_GOOD_GAP_MS после РЕАЛЬНОГО конца похвалы
     if (r.hint) sayRef.current.sayText?.(ev.stage.word) // подсказка «Вершины»: новое слово голосом из библиотеки
     if (r.trap) { trapRef.current(); trapRef.current = sayTrap({ ...r.trap, ...sayRef.current }) } // ловушка: «это двойник, а нужно слово»
   }, [box])

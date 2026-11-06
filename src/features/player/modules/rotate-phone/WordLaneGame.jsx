@@ -15,7 +15,7 @@ import WordLaneCommentButton from './WordLaneCommentButton.jsx'
 import WordLaneComment from './WordLaneComment.jsx'
 import WordLaneTurnPlate from './WordLaneTurnPlate.jsx'
 import RacePanel from '../../../pitrace/RacePanel.jsx'
-import { trioFor, transPool } from '../../../pitrace/raceTapTrio.js'
+import { trioFor, trioCtx } from '../../../pitrace/raceTapTrio.js'
 import { useWordLaneLeavingPlates } from './useWordLaneLeavingPlates.js'
 import { chargeOn } from '../../../pitrace/raceCharge.js'
 import { raceStart, PIT_PEEK_MS } from '../../../pitrace/raceStartTrace.js'
@@ -66,7 +66,7 @@ export default function WordLaneGame({ cfg, audioSrc, lines = null, forceDebug =
   const karaoke = f.rh.on && f.stage === 'run' && ['read', 'descent'].includes(f.stageObj?.act) && !intro // акт «Читка»: слова заливаются зелёным под голос Пита / игрока (rehearsal/read/)
   const debug = isWordLaneDebug()
   const race = cfg.plan?.game === 'race' // гонка: подсказки «Тап вместо речи» над дорожкой нет (тап выбирается плашкой «Говорю / Тапаю» до старта), фон с узором, верхняя панель вместо крестика
-  const trio = useMemo(() => (race && trioFor({ tap: tapMode, stage: f.stageObj }) ? { seed: cfg.plan.seed, words: f.stageObj.words, pool: transPool(cfg.plan) } : null), [race, tapMode, f.stageObj, cfg.plan]) // «Тапаю»: «Разгон» и «Слушай и лови» — три пилюли на слово (raceTapTrio.js); решается на старте ступени
+  const trio = useMemo(() => (race && trioFor({ tap: tapMode, stage: f.stageObj }) ? trioCtx(cfg.plan, f.stageObj) : null), [race, tapMode, f.stageObj, cfg.plan]) // «Тапаю»: «Разгон» и «Слушай и лови» — три пилюли на слово (raceTapTrio.js); решается на старте ступени
   const laneTap = useCallback(lane => { const api = f.sceneApi.current; if (api?.trio && !api.trio(lane)) return; f.onLane(lane) }, [f.sceneApi, f.onLane]) // eslint-disable-line react-hooks/exhaustive-deps -- тройка: тап по чужой пилюле — ошибка (дрожь), по верной дорожке — слово засчитывается как обычно
 
   return createPortal(

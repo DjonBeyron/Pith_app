@@ -34,10 +34,10 @@ for (const act of ['sprint', 'catch']) {
       extraTarget(stages, first, { results }, plan.seed)
       return { first, second }
     }
-    it('rep.cap каждого повтора = перевод его слова (word.shown у ловушек «Слушай и лови»); pre и spawn идут по порядку второго круга', () => {
+    it('rep.cap каждого повтора = то, что говорит Пит (проход A — перевод, проход B — английское слово); pre и spawn идут по порядку второго круга', () => {
       const { first, second } = mk()
       expect(second.words.length).toBeGreaterThan(0)
-      const want = w => (act === 'catch' ? w.shown : w.translation)
+      const want = w => (act === 'catch' ? w.text : w.translation) // текст пилюли = язык голоса Пита: проход B — английское слово
       second.words.forEach((w, i) => { expect(second.step.reps[i].cap).toBe(want(w)); expect(second.step.chunks[i]).toBe(act === 'catch' ? w.translation : w.text) }) // цель: проход A — английское слово, проход B — русский перевод
       const { pre, spawn } = drive(second, { ownOf: r => !r.trap })
       expect(spawn.map(r => r.idx)).toEqual(second.words.map((_, i) => i)) // все выехали по порядку
