@@ -1,0 +1,132 @@
+import { describe, it, expect } from 'vitest'
+import { createPhraseListener, PHRASE_OK, SETTLE_MS, JOIN_MS } from './racePhraseListen.js'
+import { createWordListener } from '../player/modules/rotate-phone/wordLaneListen.js'
+
+// Слушатель фраз этапа 2: подставной распознаватель (как в wordLaneRuListen.test.js) — partial / result подаются руками, таймеры ручные.
+const P = {
+  meet: { key: 'nice to meet you', words: ['nice', 'to', 'meet', 'you'] },
+  from: { key: 'where are you from', words: ['where', 'are', 'you', 'from'] },
+  learn: { key: "i'm trying to learn", words: ["I'm", 'trying', 'to', 'learn'] },
+  see: { key: 'nice to see you', words: ['nice', 'to', 'see', 'you'] },
+}
+function rig(phrases, { held = () => false, noModel = false } = {}) {
+  let t = 0
+  const timers = new Map(); let id = 0
+  const sessions = [], words = [], got = [], logs = [], errors = []
+  const now = () => t
+  const setTimer = (fn, ms) => { timers.set(++id, { fn, at: t + ms }); return id }
+  const clearTimer = k => timers.delete(k)
+  const listen = async (model, grammar, cb) => { const s = { cb, grammar, stopped: 0, cancelled: 0 }; sessions.push(s); cb.onReady?.(); return { stop() { s.stopped++ }, cancel() { s.cancelled++ } } }
+  const runtime = { getModel: () => (noModel ? null : 'M'), snapshot: () => ({}) }
+  const l = createPhraseListener({
+    phrases, getStream: () => null, isHeld: held, onWord: w => words.push(w), onPhrase: p => got.push(p), onError: e => errors.push(e), log: s => logs.push(s),
+    create: o => createWordListener({ ...o, listen, runtime, now, setTimer, clearTimer }), now, setTimer, clearTimer,
+  })
+  const advance = ms => { t += ms; for (const [k, x] of [...timers].sort((a, b) => a[1].at - b[1].at)) if (x.at <= t && timers.has(k)) { timers.delete(k); x.fn() } }
+  return { l, sessions, words, got, logs, errors, advance, cur: () => sessions.at(-1) }
+}
+const flush = () => new Promise(r => setTimeout(r, 0))
+const end = async (r, text, ms = 200) => { r.cur().cb.onResult(text, { words: [] }); r.advance(ms); await flush() }
+
+describe('createPhraseListener', () => {
+  it('порог 0.75; словарь — слова всех кандидатов без повторов', async () => {
+    expect(PHRASE_OK).toBe(0.75)
+    const r = rig([P.meet, P.see]); await flush()
+    const g = JSON.parse(r.cur().grammar)
+    expect(g).toContain('nice'); expect(g).toContain('see'); expect(g).toContain('meet')
+    expect(g.filter(x => x === 'nice')).toHaveLength(1)
+    r.l.stop()
+  })
+  it('три кандидата с общими словами + путаница: полная фраза засчитана сразу по черновику, слова по порядку', async () => {
+    const r = rig([P.meet, P.from, P.learn, P.see]); await flush()
+    r.cur().cb.onPartial('nice to')
+    expect(r.got).toEqual([])
+    r.cur().cb.onPartial('nice to meet you')
+    expect(r.got).toEqual([{ phraseKey: 'nice to meet you', ratio: 1, heard: 'nice to meet you' }])
+    const meet = r.words.filter(w => w.phraseKey === 'nice to meet you').map(w => w.index)
+    expect(meet).toEqual([0, 1, 2, 3])
+    expect(r.words.filter(w => w.phraseKey === 'nice to see you').map(w => w.index)).toEqual([0, 1, 3])
+    expect(r.logs.at(-1)).toMatch(/\[phrase-ear\] кандидаты .* услышал «nice to meet you» · лучший «nice to meet you» ratio 1\.00/)
+    expect(r.cur().stopped + r.cur().cancelled).toBeGreaterThan(0) // заход закрыт…
+    r.advance(10); await flush()
+    expect(r.sessions).toHaveLength(2) // …и слушаем заново
+    r.l.stop()
+  })
+  it('общее начало «nice to … you» без различающего слова — не засчитывается', async () => {
+    const r = rig([P.meet, P.see]); await flush()
+    await end(r, 'nice to you'); r.advance(SETTLE_MS)
+    expect(r.got).toEqual([])
+    expect(r.logs.some(s => s.includes('без совпадения'))).toBe(true)
+    r.l.stop()
+  })
+  it('фраза в два захода собирается; слово не теряется на стыке', async () => {
+    const r = rig([P.from, P.learn]); await flush()
+    r.cur().cb.onPartial('where are')
+    await end(r, 'where are')
+    expect(r.sessions).toHaveLength(2)
+    r.cur().cb.onPartial('you from')
+    expect(r.got).toEqual([{ phraseKey: 'where are you from', ratio: 1, heard: 'where are you from' }])
+    r.l.stop()
+  })
+  it('за пределами JOIN_MS прошлый заход забыт', async () => {
+    const r = rig([P.from, P.learn]); await flush()
+    await end(r, 'where are'); r.advance(JOIN_MS + 100); await flush()
+    r.cur().cb.onPartial('you from'); await end(r, 'you from'); r.advance(SETTLE_MS)
+    expect(r.got).toEqual([])
+    r.l.stop()
+  })
+  it('3 из 4: ждёт конца захода и паузу, потом зачёт с ratio 0.75; новое слово в паузе — продолжение', async () => {
+    const r = rig([P.learn, P.meet]); await flush()
+    r.cur().cb.onPartial("i'm trying to")
+    expect(r.got).toEqual([])
+    await end(r, "i'm trying to")
+    r.advance(SETTLE_MS - 300)
+    expect(r.got).toEqual([])
+    r.advance(300)
+    expect(r.got).toEqual([{ phraseKey: "i'm trying to learn", ratio: 0.75, heard: "i'm trying to" }])
+    r.l.stop()
+  })
+  it('один кандидат: 3 из 4, затем договорил в паузе — засчитано чисто', async () => {
+    const r = rig([P.meet]); await flush()
+    await end(r, 'nice to meet')
+    r.cur().cb.onPartial('you')
+    expect(r.got).toEqual([{ phraseKey: 'nice to meet you', ratio: 1, heard: 'nice to meet you' }])
+    r.l.stop()
+  })
+  it('повторяющееся слово во фразе считается дважды', async () => {
+    const r = rig([{ key: 'you and you', words: ['you', 'and', 'you'] }]); await flush()
+    r.cur().cb.onPartial('you and')
+    expect(r.words.map(w => w.index)).toEqual([0, 1])
+    r.cur().cb.onPartial('you and you')
+    expect(r.words.map(w => w.index)).toEqual([0, 1, 2])
+    expect(r.got).toHaveLength(1)
+    r.l.stop()
+  })
+  it('пока говорит Пит (isHeld) — не слушает', async () => {
+    let held = true
+    const r = rig([P.meet], { held: () => held }); await flush()
+    r.cur().cb.onPartial('nice to meet you')
+    expect(r.got).toEqual([]); expect(r.words).toEqual([])
+    held = false
+    r.cur().cb.onPartial('nice to meet you too')
+    expect(r.got).toHaveLength(1)
+    r.l.stop()
+  })
+  it('setPhrases пересобирает словарь и забывает услышанное; reset — слушает заново', async () => {
+    const r = rig([P.meet]); await flush()
+    r.cur().cb.onPartial('nice to')
+    r.l.setPhrases([P.from]); await flush()
+    expect(JSON.parse(r.cur().grammar)).toContain('where')
+    r.cur().cb.onPartial('where are you from')
+    expect(r.got.map(g => g.phraseKey)).toEqual(['where are you from'])
+    await flush(); const n = r.sessions.length
+    r.l.reset(); await flush()
+    expect(r.sessions.length).toBe(n + 1)
+    r.l.stop()
+  })
+  it('нет модели — onError("unavailable")', async () => {
+    const r = rig([P.meet], { noModel: true }); await flush()
+    expect(r.errors).toEqual(['unavailable'])
+    r.l.stop()
+  })
+})
