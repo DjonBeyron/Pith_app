@@ -92,7 +92,7 @@ describe('проводка', () => {
   })
   it('игра: тап-режим гонки включает trio для ступени «Разгона» / «Слушай и лови», тап идёт через laneTap (чужая — ошибка, верная — обычный путь)', () => {
     expect(game).toContain('trioFor({ tap: tapMode, stage: f.stageObj })'); expect(game).toContain('trio={trio}'); expect(game).toContain('if (api?.trio && !api.trio(lane)) return; f.onLane(lane)')
-    expect(read('../player/modules/rotate-phone/WordLanePills.jsx')).toContain('useWordLanePills(rootRef, { scene, levels, fx, live, sceneApi, trio })')
+    expect(read('../player/modules/rotate-phone/WordLanePills.jsx')).toContain('useWordLanePills(rootRef, { scene, levels, fx, live, sceneApi, trio, dodge })')
   })
   it('нет Math.random', () => { expect(read('./raceTapTrio.js')).not.toContain('Math.random') })
 })

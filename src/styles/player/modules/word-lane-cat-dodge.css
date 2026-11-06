@@ -1,0 +1,22 @@
+/* «Пит уворачивается» (режим «Говорю» гонки; привод — src/features/pitrace/raceDodgeDrive.js, модель — raceDodge.js). Подключается из word-lane.css (@import).
+   .wlCat--track: голова встаёт по центру (left: 50 %), x ведёт <svg class="wlCatSvg"> — transform: translateX(--wl-dx), только композитор (без layout и filter).
+   Подъём головы (transform самого .wlCat, word-lane.css) остаётся отдельным: говорящая голова едет и уворачивается вместе со всем.
+   data-dodge: set — без перехода; track — переезд под дорожку пилюли 0,3 с; out — рывок-пружина 0,16 с + наклон и сжатие (keyframes, rotate / scale); back — мягкий возврат 0,5 с. */
+.wlStage > .wlCat.scn.wlCat--track { left: 50%; }
+.wlCat--track .wlCatSvg {
+  transform: translateX(var(--wl-dx, 0%));
+  transform-origin: 50% 100%;
+  transition: transform 0.3s cubic-bezier(0.45, 0, 0.35, 1);
+}
+.wlCat--track[data-dodge='set'] .wlCatSvg { transition: none; }
+.wlCat--track[data-dodge='out'] .wlCatSvg { transition: transform 0.16s cubic-bezier(0.2, 1.45, 0.45, 1); animation: wlCatDodgeR 0.36s ease-out; }
+.wlCat--track[data-dodge='out'][data-dir='l'] .wlCatSvg { animation-name: wlCatDodgeL; }
+.wlCat--track[data-dodge='back'] .wlCatSvg { transition: transform 0.5s cubic-bezier(0.3, 0.75, 0.35, 1); }
+/* отскок: голова отшатывается от пилюли (наклон в сторону рывка), сплющивается и распрямляется */
+@keyframes wlCatDodgeR { 0% { rotate: 0deg; scale: 1; } 35% { rotate: 9deg; scale: 1.08 0.9; } 70% { rotate: -2deg; scale: 0.98 1.03; } 100% { rotate: 0deg; scale: 1; } }
+@keyframes wlCatDodgeL { 0% { rotate: 0deg; scale: 1; } 35% { rotate: -9deg; scale: 1.08 0.9; } 70% { rotate: 2deg; scale: 0.98 1.03; } 100% { rotate: 0deg; scale: 1; } }
+/* слабое устройство (scn--lite) — рывок и возврат мгновенные, без пружины и наклона; переезд под дорожку остаётся плавным (один transform) */
+.wlCat--track.scn--lite[data-dodge='out'] .wlCatSvg, .wlCat--track.scn--lite[data-dodge='back'] .wlCatSvg { transition: none; animation: none; }
+@media (prefers-reduced-motion: reduce) {
+  .wlCat--track .wlCatSvg, .wlCat--track[data-dodge] .wlCatSvg { transition: none; animation: none; }
+}

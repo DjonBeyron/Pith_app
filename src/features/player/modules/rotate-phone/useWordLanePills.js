@@ -8,6 +8,7 @@ import { runOrderScene } from './wordLaneOrderScene.js'
 import { riseRep } from './wordLaneDictorRise.js'
 import { runMirrorScene } from './wordLaneMirrorScene.js'
 import { trioStep, shiftMs } from '../../../pitrace/raceTapTrio.js'
+import { createDodgeDrive } from '../../../pitrace/raceDodgeDrive.js'
 
 // Движок пилюль игры «Повтори за диктором». ДВИЖЕНИЕ пилюль ведёт композитор (wordLaneMotion.js: одна линейная WAAPI-анимация на пилюлю — скорость конвейера постоянна), поэтому лаги основного
 // потока на смартфонах (Vosk, React, щелчок с искрами) на ход не влияют. JS каждый кадр считает только логику и заливку. Пилюли — из пула (wordLanePool.js): живой повтор один (до трёх кусков) плюс догоняющие вниз пилюли предыдущих повторов.
@@ -29,11 +30,12 @@ export const CONFIRM_MS = 1500  // речь считается подтверж�
 export const CAT_LEAD_MS = 700  // кот выскакивает за столько до начала голоса диктора (пружина 0,55 с)
 export const CAT_TAIL_MS = 500  // и торчит ещё столько после его конца
 
-export function useWordLanePills(rootRef, { scene, levels, fx, live, sceneApi, trio = null }) { // trio — «Гонка», режим «Тапаю» (raceTapTrio.js): { seed, words, pool } — слово едет тремя пилюлями; решается на старте ступени
+export function useWordLanePills(rootRef, { scene, levels, fx, live, sceneApi, trio = null, dodge = false }) { // dodge — «Гонка», режим «Говорю»: Пит стоит под дорожкой пилюли и уворачивается (pitrace/raceDodgeDrive.js); trio — «Гонка», режим «Тапаю» (raceTapTrio.js): { seed, words, pool } — слово едет тремя пилюлями; решается на старте ступени
   const fxRef = useRef(fx)
   const liveRef = useRef(live)
   const trioRef = useRef(trio)
-  useEffect(() => { fxRef.current = fx; liveRef.current = live; trioRef.current = trio })
+  const dodgeRef = useRef(dodge)
+  useEffect(() => { fxRef.current = fx; liveRef.current = live; trioRef.current = trio; dodgeRef.current = dodge })
 
   useEffect(() => {
     const root = rootRef.current
@@ -95,6 +97,7 @@ export function useWordLanePills(rootRef, { scene, levels, fx, live, sceneApi, t
       const t0 = performance.now()
       const off = levels?.subscribe(l => { raw = l })
       const blind = !step.labels.length
+      const dodger = dodgeRef.current && !tr ? createDodgeDrive({ cat: root.parentElement?.querySelector('.wlCat'), peek: ms => fxRef.current?.peek?.(ms) }) : null // «Говорю» гонки: Пит под пилюлей, уворот перед «не успел»
       const decoys = [] // чужие пилюли тройки: { k (номер в пуле), lane, speed, born, end, hit }
       const shake = d => { const now = performance.now(), y = ENTER_Y + (SPEED * d.speed * (now - d.born)) / 1000; return y > 0 && y < EXIT_Y - 6 && now < d.end } // чужая пилюля ещё на экране?
       setApi(sceneApi, {
@@ -147,6 +150,7 @@ export function useWordLanePills(rootRef, { scene, levels, fx, live, sceneApi, t
         const confirmed = Date.now() - (sig.heardAt ?? 0) < CONFIRM_MS // распознаватель недавно что-то услышал: речь настоящая, а не шум или эхо
         const pitMs = fxRef.current?.pitLeft?.() ?? 0, hold = pitMs > 0 // репетиция: Пит ещё говорит (реплика + пауза ≈ 40 кадров) — новая пилюля не выезжает; «Гонка»: перевод уже говорят — выезд за время пути до конца речи (pitMs)
         for (const e of stepStudent(g, t, { level, seq, misses: liveRef.current.misses, confirmed, tail: sig.tail ?? null, hold, pitMs })) handle(e)
+        dodger?.step(g.pills, t)
         const now2 = performance.now()
         const byId = held.size ? new Map(g.pills.map(x => [x.id, x])) : null // одна карта на кадр вместо поиска по массиву на каждую пилюлю
         for (const [id, k] of held) {
@@ -161,7 +165,7 @@ export function useWordLanePills(rootRef, { scene, levels, fx, live, sceneApi, t
         raf = requestAnimationFrame(tick)
       }
       raf = requestAnimationFrame(tick)
-      return () => { cancelAnimationFrame(raf); off?.(); pool.giveAll(); setApi(sceneApi, null) }
+      return () => { cancelAnimationFrame(raf); off?.(); dodger?.stop(); pool.giveAll(); setApi(sceneApi, null) }
     }
 
     // ---------- порядок ----------
