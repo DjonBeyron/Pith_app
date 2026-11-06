@@ -124,4 +124,10 @@ describe('стадии гонки в формате движка', () => {
     const st = build(plan('three', { round: 'catch' })).stages
     expect(new Set(st.map(s => s.act))).toEqual(new Set(['catch']))
   })
+  it('«Тапаю»: ни одна ступень не слушает голос (step.tapOnly → слушатель без Vosk и getUserMedia), добранный второй круг тоже; «Говорю» — голосом', () => {
+    const tap = buildRaceStages({ plan: plan(), tap: true, ru: true }).stages
+    expect(tap.filter(s => s.step).length).toBeGreaterThan(3); expect(tap.filter(s => s.step).every(s => s.step.tapOnly)).toBe(true)
+    const r2 = tap.find(s => s.sid === 'sprint2'); r2.fill(r2.words ?? []); expect(tap.find(s => s.sid === 'sprint2').step.tapOnly).toBe(true)
+    expect(of(buildRaceStages({ plan: plan(), tap: false, ru: true }).stages, 'sprint').some(s => s.step?.tapOnly)).toBe(false)
+  })
 })

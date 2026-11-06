@@ -111,7 +111,7 @@ describe('после пересоздания AudioContext ничего конт
   })
 })
 
-describe('«Продолжить» — жёсткий перезапуск (gameAudioRestart.js) и сигналы потери звука (v3.3.120)', () => {
+describe('«Продолжить» — жёсткий перезапуск (gameAudioRestart.js) и сигналы потери звука (v3.3.121)', () => {
   const tick = () => new Promise(r => setTimeout(r, 0))
   function setup({ restart, voice = true } = {}) {
     const e = env()

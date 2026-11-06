@@ -54,7 +54,7 @@ export function useCatLines({ lines, rate, catApi, listenerRef, waitMs = LINE_WA
     const { onSpeak, onEnd, pause = LINE_PAUSE_MS, ...say } = extra // onSpeak({ ms, voiced }) — реплика пошла; onEnd — звук доиграл; pause — занятость после конца (секвенсор гонки: 0, отступ ведёт он сам)
     const done = () => { if (pause === 0) busyRef.current = Math.min(busyRef.current, Date.now()); try { onEnd?.() } catch { /* секвенсор не ломает звук */ } } // реальный конец: «занят» снимается сразу, а не по оценке
     const { ms, rise, timer, voiced } = startCatLine({ id, line, rate, catApi, listenerRef, onSound: () => raceStart.line(), onEnd: done, ...say }) // «Гонка»: строка «[race] старт: …» — по ФАКТУ начала звука первой реплики
-    if (!voiced) { raceStart.line(); if (onEnd) setTimeout(done, rise + ms) } // звука не будет (только подпись): конец — по оценке
+    if (!voiced) { raceStart.line({ voiced: false }); if (onEnd) setTimeout(done, rise + ms) } // звука не будет (только подпись): конец — по оценке
     try { onSpeak?.({ ms: rise + ms, voiced }) } catch { /* журнал не мешает */ }
     riseRef.current = timer
     busyRef.current = now + rise + ms + pause

@@ -55,7 +55,7 @@ export function useWordLanePause({ f, cfg, audioSrc, lines, dbg = f.dbg, startAu
       if (goneRef.current) { setBusy(false); return } // свернули снова (pause уже всё закрыла) или игра закрыта: перезапуска нет
       setBusy(false)
       const mic = r?.mic ?? 'unavailable'
-      if (mic !== 'granted') {
+      if (mic !== 'granted' && mic !== 'off') { // 'off' — «Тапаю» в гонке: микрофон не нужен (wordLaneStart.MIC_OFF)
         pLog(`[pause] микрофон не открылся (${mic}) — остаёмся на паузе`)
         fRef.current.pause('mic-' + mic) // закрыть всё, что успел поднять старт звука (сессия, прогрев, поток)
         setProblem(MIC_PROBLEM[mic] ?? MIC_PROBLEM.unavailable)

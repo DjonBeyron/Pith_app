@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs'
 import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { RaceAskScene } from './RaceAskPlate.jsx'
-import { VOICE_CHOICE_KEY, ASK_LINE, askText, readVoiceChoice, writeVoiceChoice, tapFor, createTapGuard } from './raceAskVoice.js'
+import { VOICE_CHOICE_KEY, ASK_LINE, askText, readVoiceChoice, writeVoiceChoice, tapFor, createTapGuard, WAIT_LABELS, MIC_HINTS, micHint } from './raceAskVoice.js'
 import { RACE_LINES } from './raceLines.js'
 import { TAP_KEY, readTapMode, writeTapMode } from '../player/modules/rotate-phone/wordLaneHudSettings.js'
 
@@ -39,21 +39,23 @@ describe('режим тапа на время игры (createTapGuard)', () => 
   }
   it('«Тапаю» на игру, после игры возвращается прежнее (выкл → вкл → выкл)', () => {
     writeTapMode(false, s)
-    const r = flow('tap', [{ phase: 'wait', busy: true }, { phase: 'game' }, { phase: 'game' }, { phase: 'wait' }])
+    const r = flow('tap', [{ phase: 'ask' }, { phase: 'game' }, { phase: 'game' }, { phase: 'wait' }])
     expect(r.during).toBe(true); expect(r.after).toBe(false); expect(r.g.pending()).toBe(false)
+    const mid = flow('tap', [{ phase: 'ask' }, { phase: 'game' }]); expect(mid.after).toBe(true); expect(mid.g.pending()).toBe(true) // идёт игра — режим тапа держится
   })
   it('«Говорю» выключает тап на игру, если он был включён в «Настройках», и возвращает включённым', () => {
     writeTapMode(true, s)
     const r = flow('voice', [{ phase: 'game' }, { phase: 'wait' }])
     expect(r.during).toBe(false); expect(r.after).toBe(true); expect(s.getItem(TAP_KEY)).toBe('1')
   })
-  it('пока игра не началась, значение не возвращается; проблема запуска (микрофон) — возвращается; второй запуск не запоминает уже изменённое', () => {
+  it('пока виден попап (ждём микрофон / микрофон не дали) — не возвращается; попап закрыт крестиком — возвращается; второй выбор не запоминает уже изменённое', () => {
     writeTapMode(false, s)
     const g = createTapGuard()
-    g.begin(readTapMode(s)); writeTapMode(true, s)
-    expect(g.watch({ phase: 'wait', busy: true })).toBeNull(); expect(g.watch({ phase: 'wait', busy: false, ready: true })).toBeNull(); expect(g.pending()).toBe(true)
-    g.begin(readTapMode(s)) // запуск повторён, а прежний не вернулся: помним самое первое значение
-    expect(g.watch({ phase: 'wait', problem: 'Нет доступа к микрофону' })).toBe(false); expect(g.pending()).toBe(false); expect(g.watch({ phase: 'wait' })).toBeNull()
+    g.begin(readTapMode(s)); writeTapMode(false, s) // «Говорю»
+    expect(g.watch({ phase: 'ask' })).toBeNull(); expect(g.pending()).toBe(true) // микрофон не дали — остались в попапе
+    g.begin(readTapMode(s)); writeTapMode(true, s) // теперь «Тапаю»: помним самое первое значение
+    expect(g.watch({ phase: 'ask' })).toBeNull()
+    expect(g.watch({ phase: 'wait' })).toBe(false); expect(g.pending()).toBe(false); expect(g.watch({ phase: 'wait' })).toBeNull()
   })
 })
 
@@ -71,12 +73,23 @@ describe('попап «Говорю / Тапаю» внутри игры (RaceAs
     const block = read('../admin/speech/RaceBlock.jsx'), mod = read('../player/modules/rotate-phone/RotatePhoneModule.jsx')
     for (const k of ['launch(STAGES_ROUND)', 'launch(null)', 'launch(r)']) expect(block).toContain(k)
     expect(block).toContain('const launch = useCallback(id => { flushSync(() => setRound(id)); startRef.current?.() }'); expect(block).not.toMatch(/import [^\n]*RaceAsk/); expect(block).not.toMatch(/import [^\n]*useRaceAsk/); expect(block).toContain('onTap={setTap}')
-    const start = mod.slice(mod.indexOf('const start = useCallback'), mod.indexOf('/** «Говорю» / «Тапаю»'))
-    expect(start).toContain("if (race) { openAsk({ fullscreen, setPhase }); return }"); expect(start.indexOf('openAsk(')).toBeLessThan(start.indexOf('startGameAudio(')) // у гонки start() до ответа startGameAudio не зовёт
-    const pick = mod.slice(mod.indexOf('const pick = useCallback'), mod.indexOf('const cancelAsk'))
-    expect(pick).toContain('answerAsk('); expect(pick).toContain('startGameAudio({ cfg, audioSrc, lines, ...hooks })'); expect(mod).toContain("{phase === 'ask' && <RaceAskPlate choice={ask.choice} onPick={pick} onCancel={cancelAsk} />}")
+    const start = mod.slice(mod.indexOf('const start = useCallback'), mod.indexOf('/** Касание по «Тапни'))
+    expect(start).toContain('if (race) { openRace(fullscreen); return }'); expect(start.indexOf('openRace(')).toBeLessThan(start.indexOf('startGameAudio(')) // у гонки start() до ответа startGameAudio не зовёт
+    const hook = read('./useRaceLaunch.js')
+    const pick = hook.slice(hook.indexOf('const pick = useCallback'), hook.indexOf('const cancel = useCallback'))
+    expect(pick).toContain('answerAsk('); expect(pick).toContain('startGameAudio({ cfg, audioSrc, lines, ...hooks })'); expect(mod).toContain("{phase === 'ask' && <RaceAskPlate {...rl.plate} />}")
+    expect(pick).toContain('release(); setHint(micHint(mic))') // микрофон не дали — звук и микрофон отпущены, подсказка в попапе
+    expect(hook).toContain('plate: { choice: ask.choice, wait, hint, onPick: pick, onCancel: cancel }')
     expect(mod).toContain("const game = phase === 'game' && <WordLaneGame") // игра (Пит, заставка, реплики, конвейер) монтируется только после ответа
-    expect(mod).toContain("askAuto") // стенд отвечает сам
+    expect(mod).toContain('askAuto') // стенд отвечает сам
+  })
+  it('«Говорю» ждёт микрофон в попапе: кнопка «Разрешите микрофон…» / «Готовлю звук…», обе кнопки неактивны; отказ — подсказка, «Тапаю» доступно', () => {
+    const w = html({ wait: 'mic' })
+    expect(w).toContain('>Разрешите микрофон…<'); expect(w).toContain('data-wait="mic"'); expect(w.match(/disabled=""/g)).toHaveLength(2); expect(w).not.toContain('race-ask-hint')
+    expect(html({ wait: 'sound' })).toContain('>Готовлю звук…<')
+    const d = html({ hint: micHint('denied') })
+    expect(d).toContain('data-testid="race-ask-hint"'); expect(d).toContain('Микрофон не разрешён — выбери «Тапаю» или разреши в настройках Safari'); expect(d).not.toContain('disabled'); expect(d).toContain('>Тапаю<')
+    expect(WAIT_LABELS.mic).toBe('Разрешите микрофон…'); expect(micHint('мусор')).toBe(MIC_HINTS.unavailable)
   })
   it('в игре гонки подсказки «Тап вместо речи» нет, фон с узором только у гонки и не на lite; репетиция и обычная нода — как были', () => {
     const g = read('../player/modules/rotate-phone/WordLaneGame.jsx')

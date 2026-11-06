@@ -76,7 +76,7 @@ describe('микрофон игры: один поток на игру на лю
     const start = readFileSync(new URL('../../features/player/modules/rotate-phone/wordLaneStart.js', import.meta.url), 'utf8')
     expect(mod).toContain('startGameAudio({') // микрофон открывает wordLaneStart.js (тип сессии → микрофон → прогрев звука)
     expect(start).toContain('openMic = openGameMic')
-    expect(start).toContain('const micPromise = openMic()')
+    expect(start).toContain('const micPromise = useMic ? openMic() : Promise.resolve(MIC_OFF)') // «Тапаю» в «Гонке» — без микрофона
     expect(mod + start).not.toMatch(/micNeedsHold|ensureMicAccess/)
     const say = readFileSync(new URL('../../features/learn/say-aloud/SayAloudOverlay.jsx', import.meta.url), 'utf8')
     expect(say).toContain('const asked = openGameMic()')

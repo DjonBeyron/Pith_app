@@ -20,7 +20,7 @@ const ROUNDS = { sprint: sprintStages, catch: catchStages, climb: climbStages, d
 
 /** → { recipe, stages, chunkMs, chunkCurves, lanes, clipMode } — как buildStages (wordLaneStages.js) */
 export function buildRaceStages({ plan, rate = 1, lib = () => null, tap = readTapMode(), ru = ruReady() }) {
-  const kit = createKit({ plan, rate, lib })
+  const kit = createKit({ plan, rate, lib, tap })
   const { acts } = buildRaceActs(plan)
   const byVoice = passBByVoice({ tap, ready: ru }) // проход B слушает русская модель (иначе тап по трём пилюлям, без переключения слуха)
   let russian = false // слух сейчас русский: перед «Вершиной» (английские слова) его надо вернуть
@@ -30,6 +30,7 @@ export function buildRaceStages({ plan, rate = 1, lib = () => null, tap = readTa
     else if (ROUNDS[act.id]) ROUNDS[act.id](kit, act)
     else kit.push({ type: 'summary', act: 'summary', sid: 'summary', line: null }) // итог: реплику говорит директор (useRaceActs): золото или обычная
   }
+  if (tap) kit.stages.forEach(x => { if (x.step) x.step.tapOnly = true }) // «Тапаю»: ни одна ступень не слушает голос — слушатель без Vosk и без getUserMedia (wordLaneListen noVosk), микрофон игре не нужен
   const first = kit.stages[0]
   if (first?.type === 'announce') Object.assign(first, { count: 'after', soft: true, charge: true, pause: PLATE_HOLD_MS }) // старт: бар заставки САМ становится плашкой этапа (charge: отдельной плашки нет, raceOpening.js), плашка держится PLATE_HOLD_MS после речи Пита; потом три нежные ноты (шаг 600 мс, нота 1,1 с), первая пилюля — после них
   const { chunks } = plan

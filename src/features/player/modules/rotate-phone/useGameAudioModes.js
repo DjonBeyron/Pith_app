@@ -5,6 +5,7 @@ import { gameAudioSession } from '../../../../shared/lib/gameMicSession.js'
 import { gameAudioWarm } from '../../../../shared/lib/gameAudioWarm.js'
 import { gameMicGesture } from '../../../../shared/lib/gameMicGesture.js'
 import { pLog } from '../../../../shared/lib/debug.js'
+import { gameMicWanted } from '../../../../shared/lib/gameMicWant.js'
 
 // Режимы проверки на iPhone (Админ → «Голос» → «Микрофон игры») на время жизни игры «Повтори за диктором»: тип аудиосессии (gameMicSession, pithy_game_audio_session_v1) и глушение дорожки микрофона
 // на время речи Пита и диктора (gameMicHold, pithy_game_mic_hold_v1). Тип сессии ставится уже в тапе «Начать» (RotatePhoneModule); здесь он подтверждается при монтировании (StrictMode, перезапуск) и
@@ -15,7 +16,7 @@ export function endGameAudio() { gameMicHold.reset(); gameAudioSession.end(); ga
 
 export function useGameAudioModes(onReopened) {
   useEffect(() => {
-    gameAudioSession.begin()
+    if (gameMicWanted()) gameAudioSession.begin() // «Тапаю» в «Гонке»: микрофона нет — тип сессии записи (play-and-record) не ставим
     gameMicHold.setDeadHandler(why => {
       if (!hasGameMic() || gameMicGesture.needed()) return // после паузы (сворачивание) микрофон открывает только тап «Продолжить»
       pLog(`[mic] дорожка не ожила после глушения (${why}) — переоткрываю`)

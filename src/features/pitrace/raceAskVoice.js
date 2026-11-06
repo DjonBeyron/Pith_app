@@ -7,6 +7,15 @@ export const VOICE_CHOICE_KEY = 'pithy_race_voice_choice_v1'
 export const ASK_LINE = 'race_ask_voice'
 export const CHOICES = ['voice', 'tap']
 export const CHOICE_LABELS = { voice: 'Говорю', tap: 'Тапаю' }
+// «Говорю»: пока ждём ответ системы о микрофоне и пока звук улягается после смены аудиосессии, попап остаётся, кнопка показывает, чего ждём (второго нажатия нет)
+export const WAIT_LABELS = { mic: 'Разрешите микрофон…', sound: 'Готовлю звук…' }
+// Отказ или ошибка микрофона: остаёмся в попапе, подсказка под кнопками, «Тапаю» доступно
+export const MIC_HINTS = {
+  denied: 'Микрофон не разрешён — выбери «Тапаю» или разреши в настройках Safari',
+  unavailable: 'Микрофон не открылся — выбери «Тапаю» или попробуй ещё раз',
+}
+/** Подсказка в попапе по ответу startGameAudio (mic) */
+export const micHint = mic => MIC_HINTS[mic] ?? MIC_HINTS.unavailable
 
 /** Текст вопроса на плашке — реплика race_ask_voice из каталога (одна на плашку и на озвучку) */
 export const askText = () => RACE_LINES.find(l => l.id === ASK_LINE)?.text ?? ''
@@ -28,19 +37,18 @@ export const tapFor = choice => choice === 'tap'
 /**
  * Охранник режима тапа на время игры: «Тапаю» / «Говорю» меняют pithy_wl_tap_v1 на эту игру, потом прежнее значение возвращается.
  *  begin(current) — перед стартом: запомнить прежнее значение (один раз за игру: если прошлая игра не успела вернуть, второй запуск не запомнит уже изменённое);
- *  watch(status) — статус модуля игры (onStatus): → значение, которое пора вернуть, или null. Возврат — когда игра была в phase 'game' и закончилась, либо запуск не удался (status.problem).
+ *  watch(status) — статус модуля игры (phase): → значение, которое пора вернуть, или null. Пока виден попап (phase 'ask': ждём микрофон, микрофон не дали — выбор ещё можно поменять) и пока идёт игра ('game') — ждём;
+ *  любая другая фаза (попап закрыт крестиком, игра кончилась, запуск не удался) — возврат.
  */
 export function createTapGuard() {
   let prev = null
-  let seen = false
   return {
-    begin(current) { if (prev == null) prev = !!current; seen = false },
+    begin(current) { if (prev == null) prev = !!current },
     watch(status) {
       if (prev == null) return null
-      if (status?.phase === 'game') { seen = true; return null }
-      if (!seen && !status?.problem) return null
+      if (status?.phase === 'game' || status?.phase === 'ask') return null
       const back = prev
-      prev = null; seen = false
+      prev = null
       return back
     },
     pending: () => prev != null,
