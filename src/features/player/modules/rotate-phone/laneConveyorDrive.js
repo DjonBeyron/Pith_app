@@ -4,6 +4,8 @@ import { createLane, stepLane, laneLook, settled } from './wordLaneConveyor.js'
 // .wlLanes i: --run-y (сдвиг пунктира, dvh — едет transform ::before), --run-a (прозрачность штрихов — яркость; на «зажигании» её ведёт мигание, v3.3.101).
 // Стили — word-lane-lane-run.css. Запись только при изменении значения. Все дорожки встали (idle) — цикл засыпает сам; будят его команда (setArmed), появление / уход пилюль и снятие паузы. Команда '2' (акт репетиции идёт, v3.3.87): дорожка едет непрерывно, пока команда стоит, — без пилюль тоже (Пит говорит, ученик промахнулся, стадии сменяются); тормозит только когда команду сняли (граница акта) и летящие пилюли ушли.
 // Пилюли на дорожке считаются по DOM: у взятой из пула пилюли стоит data-held, дорожка — data-lane (wordLanePool.take); give снимает data-held. Пилюли, стоящие на месте (data-still: «Дубль и зеркало» на дорожках, wordLaneMirrorScene.js), не считаются: дорожки под ними остановлены. MutationObserver на корне поля срабатывает только на эти признаки — движок пилюль (useWordLanePills) трогать не нужно. Слабое устройство (wl--lite) и reduced-motion (still): без движения и без мигания, только яркость (still уходит в модель). Пауза игры — привод стоит, состояние сохраняется.
+// «Встряхни память» (v3.3.129): четвёртый знак команды 's' (wordLaneConveyorStart.SLOW_CHAR) — игра идёт, дорожки без команды ехать не встают, а держат медленный ход (модель: slow). Пауза в гонке — не заморозка на ходу,
+// а полная остановка: дорожки плавно тормозят до покоя (decel → idle), потом цикл засыпает; снятие паузы — снова зажигание.
 export const MAX_DT = 64        // шаг модели за кадр не больше 64 мс: после паузы вкладки разгон не перепрыгивает
 
 export const reducedMotion = () => { try { return !!globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches } catch { return false } }
@@ -18,7 +20,7 @@ export function createConveyorDrive({
   const lanes = cols.map((_, i) => createLane(race ? i : -1))
   const shown = cols.map(() => ({}))
   let armed = cols.map(() => false), keep = cols.map(() => false), pills = cols.map(() => 0)
-  let id = null, last = 0, paused = false
+  let id = null, last = 0, paused = false, slow = false
   let hint = null, hintKey = null, peak = 0 // «Гонка с Питом»: hint — скорость первой пилюли ближайшей стадии (дорожка набирает её ЗАРАНЕЕ, до выезда пилюли), peak — наибольшая скорость пилюль, виденных при этом hint
   const wanted = () => Math.max(1, hint ?? 1, peak) // множитель скорости пунктира: пилюли разгона быстрее конвейера в speed раз; пунктир едет быстрее пропорционально, внутри стадии не откатывается между пилюлями
   let waves = 0, waveEl = null // waves — сколько импульсов уже показала «волна скорости» (data-wave, word-lane-lane-run.css)
@@ -42,11 +44,12 @@ export function createConveyorDrive({
   const frame = ts => {
     id = null
     const dt = Math.min(MAX_DT, Math.max(0, ts - last)); last = ts
-    lanes.forEach((L, i) => { draw(i, laneLook(stepLane(L, dt, { armed: armed[i], keep: keep[i], pills: pills[i], still, speed: wanted() }))) })
+    const stop = paused && race // пауза гонки: тормозим до покоя (пилюли на паузе стоят — их не считаем)
+    lanes.forEach((L, i) => { draw(i, laneLook(stepLane(L, dt, stop ? { still, speed: wanted() } : { armed: armed[i], keep: keep[i], pills: pills[i], still, speed: wanted(), slow }))) })
     wave()
-    if (!settled(lanes) && !paused) id = raf(frame)
+    if (!settled(lanes) && (!paused || race)) id = raf(frame)
   }
-  const wake = () => { if (id === null && !paused && cols.length) { last = now(); id = raf(frame) } }
+  const wake = () => { if (id === null && (!paused || (race && !settled(lanes))) && cols.length) { last = now(); id = raf(frame) } }
   const recount = () => {
     pills = cols.map(() => 0)
     for (const el of root.querySelectorAll('.wlPill[data-held]:not([data-still])')) { const k = Number(el.dataset.lane); if (k >= 0 && k < pills.length) pills[k] += 1; peak = Math.max(peak, Number(el.dataset.speed) || 1) }
@@ -56,14 +59,14 @@ export function createConveyorDrive({
 
   return {
     /** Команда игры: строка '101' — на каких дорожках сейчас можно ехать (wordLaneConveyorStart.armedLanes); '2' вместо '1' — акт репетиции идёт, дорожка едет непрерывно, пока команда стоит (пилюли не нужны) */
-    setArmed(str) { armed = cols.map((_, i) => str?.[i] === '1' || str?.[i] === '2'); keep = cols.map((_, i) => str?.[i] === '2'); recount() },
+    setArmed(str) { armed = cols.map((_, i) => str?.[i] === '1' || str?.[i] === '2'); keep = cols.map((_, i) => str?.[i] === '2'); slow = str?.[3] === 's'; recount() },
     /** Скорость первой пилюли ближайшей стадии (множитель к конвейеру; null — стадия без разгона): дорожки плавно (SPEED_RAMP_MS) набирают её до выезда пилюли. Смена подсказки или стадии (key — номер стадии) обнуляет «виденный максимум» */
     setSpeedHint(v, key = null) { const h = v > 0 ? v : null; if (h === hint && key === hintKey) return; hint = h; hintKey = key; peak = 0; recount() },
-    /** Пауза игры: привод стоит (кадры не идут, состояние сохраняется), снятие — продолжает */
-    setPaused(on) { paused = !!on; if (paused) { if (id !== null) { caf(id); id = null } } else wake() },
+    /** Пауза игры: привод стоит (кадры не идут, состояние сохраняется), снятие — продолжает; в гонке — дорожки сначала плавно тормозят до покоя */
+    setPaused(on) { paused = !!on; if (paused && !race) { if (id !== null) { caf(id); id = null } } else wake() },
     dispose() { if (id !== null) caf(id); id = null; stopObserving() },
     /** Для тестов и отладки */
-    state: () => ({ phases: lanes.map(L => L.phase), running: id !== null, speed: wanted(), pills: [...pills], armed: [...armed], keep: [...keep] }),
+    state: () => ({ phases: lanes.map(L => L.phase), running: id !== null, speed: wanted(), pills: [...pills], armed: [...armed], keep: [...keep], slow }),
     frame,
   }
 }

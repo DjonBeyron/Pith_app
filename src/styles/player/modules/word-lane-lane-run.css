@@ -22,19 +22,19 @@
   mask-image: repeating-linear-gradient(to bottom, #000 0 var(--run-dash, 2.2dvh), transparent var(--run-dash, 2.2dvh) var(--run-p));
 }
 .wl--lite .wlLanes i::before, .weak-device .wlLanes i::before { will-change: auto; }
-/* «Встряхни память» (.wl[data-race]): три дорожки читаются как независимые (свои скорость и фаза — wordLaneConveyor.js LANE_RATES/LANE_PHASES), период узора --run-p = RACE_PERIOD (19,6 dvh).
-   Узор по рисунку владельца «- - - |»: группа на 19,6 dvh, зазоры между ВСЕМИ элементами по 4 dvh — три КОРОТКИХ штриха ВДОЛЬ дорожки (1 px × 1,2 dvh по центру: 0–1,2 / 5,2–6,4 / 10,4–11,6 dvh), затем одна
-   поперечная черта (12 px × 1 px, той же толщины, что штрихи, на 15,6 dvh), до 19,6 dvh пусто (зазор 4 dvh) — и по кругу, без точек и без второй тройки. Два слоя фона на одном ::before
-   (ширина 12 px вместо 1 px; маска не нужна): слой коротких штрихов (1 px по центру) и слой поперечной черты (во всю ширину), оба высотой 19,6 dvh с повтором по вертикали. Двигается весь ::before
-   (transform --run-y), яркость — --run-a в цвете каждого слоя. Привод длину штрихов не меняет (на импульсе скорости — только яркость и волна). */
+/* «Встряхни память» (.wl[data-race]): три дорожки читаются как независимые (свои скорость и фаза — wordLaneConveyor.js LANE_RATES/LANE_PHASES), период узора --run-p = RACE_PERIOD (51,6 dvh).
+   Узор по рисунку владельца «- - - |»: группа на 51,6 dvh, зазоры между ВСЕМИ элементами по 12 dvh (v3.3.129, втрое реже) — три КОРОТКИХ штриха ВДОЛЬ дорожки (1 px × 1,2 dvh по центру: 0–1,2 / 13,2–14,4 / 26,4–27,6 dvh), затем одна
+   поперечная черта (12 px × 1 px, той же толщины, что штрихи, на 39,6 dvh), до 51,6 dvh пусто (зазор 12 dvh) — и по кругу, без точек и без второй тройки. Два слоя фона на одном ::before
+   (ширина 12 px вместо 1 px; маска не нужна): слой коротких штрихов (1 px по центру) и слой поперечной черты (во всю ширину), оба высотой 51,6 dvh с повтором по вертикали. Двигается весь ::before
+   (transform --run-y; слой выше колонки на период: top −51,6 dvh, bottom 0 — узор покрывает всю дорожку при любом сдвиге), яркость — --run-a в цвете каждого слоя. Привод длину штрихов не меняет (на импульсе скорости — только яркость и волна). */
 .wl[data-race] .wlLanes i::before {
-  --run-p: 19.6dvh;
+  --run-p: 51.6dvh;
   --run-c: rgba(var(--rgb), var(--run-a, 0.14));
   left: calc(50% - 6px);
   width: 12px;
   -webkit-mask-image: none;
   mask-image: none;
   background:
-    linear-gradient(to bottom, var(--run-c) 0 1.2dvh, transparent 1.2dvh 5.2dvh, var(--run-c) 5.2dvh 6.4dvh, transparent 6.4dvh 10.4dvh, var(--run-c) 10.4dvh 11.6dvh, transparent 11.6dvh 19.6dvh) center top / 1px 19.6dvh repeat-y,
-    linear-gradient(to bottom, transparent 0 15.6dvh, var(--run-c) 15.6dvh calc(15.6dvh + 1px), transparent calc(15.6dvh + 1px) 19.6dvh) left top / 12px 19.6dvh repeat-y;
+    linear-gradient(to bottom, var(--run-c) 0 1.2dvh, transparent 1.2dvh 13.2dvh, var(--run-c) 13.2dvh 14.4dvh, transparent 14.4dvh 26.4dvh, var(--run-c) 26.4dvh 27.6dvh, transparent 27.6dvh 51.6dvh) center top / 1px 51.6dvh repeat-y,
+    linear-gradient(to bottom, transparent 0 39.6dvh, var(--run-c) 39.6dvh calc(39.6dvh + 1px), transparent calc(39.6dvh + 1px) 51.6dvh) left top / 12px 51.6dvh repeat-y;
 }

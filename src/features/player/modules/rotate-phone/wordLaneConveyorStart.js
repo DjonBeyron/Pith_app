@@ -71,3 +71,17 @@ export function actArmedLanes({ stages, idx, ignited = false, leaving = false, n
   const next = upcomingLanes(stages, idx, nextIdx)
   return join(next.filter(k => ignited || prev.includes(k)))
 }
+
+/** «Встряхни память» (v3.3.129): четвёртый знак команды — игра идёт, дорожки между этапами не встают, а едут медленно (laneConveyorDrive → модель slow) */
+export const SLOW_CHAR = 's'
+
+/**
+ * Команда гонки с «медленным ходом»: пока игра идёт (стадия гонки, не итог) и конвейер уже запускался (сейчас едет или раньше была стадия с пилюлями), к команде lanes дописывается SLOW_CHAR —
+ * на плашках, «Секунду», доп. круге и между проходами дорожки не встают. Пауза (stage 'paused'), итог, финал и всё до первого запуска — без него: дорожки тормозят до покоя.
+ */
+export function raceSlowLanes({ lanes, stages, idx, stage }) {
+  const cur = stage === 'run' ? stages?.[idx] : null
+  if (!cur?.race || cur.type === 'summary') return lanes
+  const started = /[12]/.test(lanes) || stages.slice(0, idx).some(isPill)
+  return started ? lanes + SLOW_CHAR : lanes
+}
