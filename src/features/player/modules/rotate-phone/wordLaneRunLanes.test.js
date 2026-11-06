@@ -49,16 +49,16 @@ describe('разметка и CSS конвейера', () => {
   })
   const css = read('../../../../styles/player/modules/word-lane-lane-run.css')
   const code = css.replace(/\/\*[\s\S]*?\*\//g, '')
-  it('один слой ::before колонки: пунктир 1 px по центру дорожки, период из модели (PERIOD dvh), без CSS-анимации и filter', () => {
-    expect(code).toContain(`--run-p: ${PERIOD}dvh;`)
+  it('один слой ::before колонки: пунктир 1 px по центру дорожки, период из модели (PERIOD dvh; в px его пишет привод — --run-px), без CSS-анимации и filter', () => {
+    expect(code).toContain(`--run-p: var(--run-px, ${PERIOD}dvh);`)
     expect(code).toMatch(/left: calc\(50% - 0\.5px\);\s*width: 1px;/)
     expect(code).toMatch(/top: calc\(var\(--run-p\) \* -1\);/)
-    expect(code).toMatch(/transform: translate3d\(0, var\(--run-y, 0dvh\), 0\);/)
+    expect(code).toMatch(/transform: translate3d\(0, var\(--run-y, 0px\), 0\);/)
     expect(code).toMatch(/mask-image: repeating-linear-gradient\(to bottom, #000 0 var\(--run-dash, [\d.]+dvh\), transparent var\(--run-dash, [\d.]+dvh\) var\(--run-p\)\)/)
     expect(code).not.toMatch(/animation|@keyframes|transition|filter|::after|background-position/)
   })
   it('в покое видно всегда, но еле-еле (прозрачность по умолчанию = REST_A); яркость (в том числе мигание) ведёт --run-a, волны нет', () => {
-    expect(code).toContain(`var(--run-a, ${REST_A})`)
+    expect(code).toContain(`opacity: var(--run-a, ${REST_A})`) // яркость — opacity слоя: композитор, без перерисовки
     expect(code).not.toContain('--run-w')
     expect(code).not.toMatch(/opacity: 0;/)
     expect(RUN_A).toBeGreaterThan(REST_A)

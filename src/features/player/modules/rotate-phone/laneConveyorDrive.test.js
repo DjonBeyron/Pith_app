@@ -30,7 +30,7 @@ describe('привод конвейера: запись в колонки и ж�
     expect(h.pending()).toBe(0)
     expect(h.drive.state().phases).toEqual(['idle', 'idle', 'idle'])
     expect(Number(h.v(0, '--run-a'))).toBeCloseTo(REST_A, 3)
-    expect(h.v(0, '--run-y')).toBe('0.00dvh')
+    expect(h.v(0, '--run-y')).toBe('0.000px')
   })
   it('взвели «101»: ехать начинают только эти дорожки, средняя в покое (яркость покоя, не движется)', () => {
     const h = setup()
@@ -39,8 +39,8 @@ describe('привод конвейера: запись в колонки и ж�
     expect(h.drive.state().phases).toEqual(['run', 'idle', 'run'])
     expect(Number(h.v(0, '--run-a'))).toBeCloseTo(RUN_A, 2)
     expect(Number(h.v(1, '--run-a'))).toBeCloseTo(REST_A, 3)
-    expect(h.v(1, '--run-y')).toBe('0.00dvh')
-    expect(h.v(0, '--run-y')).toMatch(/dvh$/)
+    expect(h.v(1, '--run-y')).toBe('0.000px')
+    expect(h.v(0, '--run-y')).toMatch(/px$/)
   })
   it('зажигание: яркость --run-a плавно мигает (покой → ярко → покой, 2 раза), штрихи стоят (y = 0), --run-w больше не пишется', () => {
     const h = setup()
@@ -52,7 +52,7 @@ describe('привод конвейера: запись в колонки и ж�
     expect(mid).toBeLessThan(REST_A + (RUN_A - REST_A) * 0.15)                       // между миганиями вернулось в покой
     const peaks = seen.filter((a, i) => i > 0 && i < seen.length - 1 && a > seen[i - 1] && a >= seen[i + 1]).length
     expect(peaks).toBe(2)
-    expect(h.v(0, '--run-y')).toBe('0.00dvh')
+    expect(h.v(0, '--run-y')).toBe('0.000px')
     expect(h.v(0, '--run-w')).toBeUndefined()
     h.frames(ACCEL_MS + 300)
     expect(h.drive.state().phases[0]).toBe('run')
@@ -114,7 +114,7 @@ describe('привод конвейера: запись в колонки и ж�
     const h = setup({ still: true })
     h.setHeld([0])
     h.frames(IGNITE_MS + ACCEL_MS + 400)
-    expect(h.v(0, '--run-y')).toBe('0.00dvh')
+    expect(h.v(0, '--run-y')).toBe('0.000px')
     expect(Number(h.v(0, '--run-a'))).toBeCloseTo(RUN_A, 2)
   })
   it('запись только при изменении значения', () => {

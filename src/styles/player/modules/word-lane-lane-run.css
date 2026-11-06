@@ -1,13 +1,14 @@
 /* Игра «Повтори за диктором»: конвейер на дорожке (v3.3.85) — ОДНА тонкая пунктирная линия по центру дорожки, вдоль движения пилюль. В покое она видна всегда, но еле-еле (цвет дорожки, прозрачность 0,14); когда
    дорожка едет, штрихи ярче (до 0,52) и бегут вниз со скоростью пилюль. Скорость, яркость и «зажигание» ведёт JS-привод (useLaneConveyor.js → laneConveyorDrive.js, модель — wordLaneConveyor.js): дорожки независимы,
    у каждой «зажигание» (пунктир на месте плавно мигает 2 раза по 250 мс — яркость покой → ярко → покой синусоидой, v3.3.101; потом плавный разгон), рабочий ход и плавное торможение. CSS-анимации нет — привод пишет в колонку .wlLanes i две переменные:
-     --run-y  сдвиг пунктира, dvh (0 … период), едет transform слоя — на композиторе, без перерисовки;
-     --run-a  прозрачность штрихов (яркость, в том числе мигание).
+     --run-y  сдвиг пунктира, px до пикселя устройства (0 … период), едет transform слоя — на композиторе, без перерисовки;
+     --run-px период узора, px (кратен пикселям устройства; v3.3.133 — из той же высоты экрана, что и сдвиг: шов на оборачивании не прыгает, laneConveyorPx.js);
+     --run-a  яркость — opacity слоя (в том числе мигание): композитор, без перерисовки градиента (раньше она была в цвете фона — каждый кадр перерисовки).
    Один слой на дорожку — ::before колонки (узлов в разметке не прибавляется, пилюль и их слоёв не касается; ::after колонки занят вспышкой верного ответа — word-lane-lane-flash.css). Слой выше колонки на период
-   (--run-p = PERIOD в wordLaneConveyor.js, 11 dvh) и сдвигается на --run-y — бесшовно. Штрихи: однотонный фон --run-a сквозь маску из штрихов 2,2 dvh на период
-   11 dvh: линия 1 px, штрихи редкие. filter нет. Слабое устройство (.wl--lite) и reduced-motion: привод не двигает пунктир (--run-y не меняется), слой без will-change. Цвет — --rgb колонки (word-lane-lane-flash.css). */
+   (--run-p = PERIOD в wordLaneConveyor.js, 11 dvh) и сдвигается на --run-y — бесшовно. Штрихи: однотонный фон (яркость — opacity) сквозь маску из штрихов 2,2 dvh на период
+   11 dvh: линия 1 px, штрихи редкие. filter нет. Слабое устройство (.wl--lite) и reduced-motion: привод не двигает пунктир (--run-y не меняется), слой без will-change. Колонка — contain: paint: слой, сдвинутый вниз за край, не меняет переполнение предков (раньше поле перерисовывалось каждый кадр). Цвет — --rgb колонки (word-lane-lane-flash.css). */
 .wlLanes i::before {
-  --run-p: 11dvh;
+  --run-p: var(--run-px, 11dvh);
   content: '';
   position: absolute;
   left: calc(50% - 0.5px);
@@ -15,22 +16,25 @@
   top: calc(var(--run-p) * -1);
   bottom: 0;
   pointer-events: none;
-  transform: translate3d(0, var(--run-y, 0dvh), 0);
-  will-change: transform;
-  background: rgba(var(--rgb), var(--run-a, 0.14));
+  transform: translate3d(0, var(--run-y, 0px), 0);
+  will-change: transform, opacity;
+  opacity: var(--run-a, 0.14);
+  background: rgb(var(--rgb));
   -webkit-mask-image: repeating-linear-gradient(to bottom, #000 0 var(--run-dash, 2.2dvh), transparent var(--run-dash, 2.2dvh) var(--run-p));
   mask-image: repeating-linear-gradient(to bottom, #000 0 var(--run-dash, 2.2dvh), transparent var(--run-dash, 2.2dvh) var(--run-p));
 }
+.wlLanes i { contain: paint; }
 .wl--lite .wlLanes i::before, .weak-device .wlLanes i::before { will-change: auto; }
 /* «Встряхни память» (.wl[data-race]): три дорожки читаются как независимые (свои скорость и фаза — wordLaneConveyor.js LANE_RATES/LANE_PHASES), период узора --run-p = RACE_PERIOD (51,6 dvh).
    Узор «нить с узелками» (v3.3.131): по центру дорожки тонкая нить 1 px из штрихов 0,7 dvh с шагом период/24 на половинной яркости (0,45 от --run-a) и три мягких узелка на период
-   (ядро 2 px, ореол до 6 px, полная --run-a). Два слоя фона на одном ::before шириной 14 px, маска не нужна. Двигается весь ::before (transform --run-y; слой выше колонки на период:
-   top −51,6 dvh, bottom 0 — узор покрывает всю дорожку при любом сдвиге), яркость — --run-a в цвете слоёв. Привод длину штрихов не меняет (на импульсе скорости — только яркость и волна). */
+   (ядро 2 px, ореол до 6 px, полная яркость). Два слоя фона на одном ::before шириной 14 px, маска не нужна. Двигается весь ::before (transform --run-y; слой выше колонки на период:
+   top −51,6 dvh, bottom 0 — узор покрывает всю дорожку при любом сдвиге). Период — --run-px из привода (51,6 dvh, округлённый до 24 пикселей устройства: шаг нити период/24 и узелков период/3 — целые пиксели),
+   яркость — opacity слоя (--run-a), цвета слоёв постоянные (v3.3.133: раньше --run-a стоял в цвете — каждый шаг яркости перерисовывал градиенты). Привод длину штрихов не меняет (на импульсе скорости — только яркость и волна). */
 .wl[data-race] .wlLanes i::before {
-  --run-p: 51.6dvh;
-  --run-c: rgba(var(--rgb), var(--run-a, 0.14));
-  --run-h: rgba(var(--rgb), calc(var(--run-a, 0.14) * 0.45));
-  --run-g: rgba(var(--rgb), calc(var(--run-a, 0.14) * 0.22));
+  --run-p: var(--run-px, 51.6dvh);
+  --run-c: rgb(var(--rgb));
+  --run-h: rgba(var(--rgb), 0.45);
+  --run-g: rgba(var(--rgb), 0.22);
   left: calc(50% - 7px);
   width: 14px;
   -webkit-mask-image: none;

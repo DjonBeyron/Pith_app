@@ -113,14 +113,15 @@ describe('конвейер: три независимые дорожки', () =>
   it('привод включает режим гонки по [data-race] на корне и не пишет длину штрихов; CSS — узор «нить с узелками»: тонкая нить 1 px и три узелка на период', () => {
     const drv = read('../player/modules/rotate-phone/laneConveyorDrive.js'); expect(drv).toContain("closest?.('[data-race]')"); expect(drv).toContain('createLane(race ? i : -1)')
     const c = strip(css('word-lane-lane-run.css')), r = /\.wl\[data-race\] \.wlLanes i::before \{[^}]*\}/.exec(c)[0]
-    expect(r).toContain(`--run-p: ${RACE_PERIOD}dvh`); expect(r).toContain('mask-image: none') // маски нет, узор — два слоя фона
+    expect(r).toContain(`--run-p: var(--run-px, ${RACE_PERIOD}dvh)`); expect(r).toContain('mask-image: none') // маски нет, узор — два слоя фона; период в px пишет привод (laneConveyorPx.js)
+    expect(r).toContain('--run-c: rgb(var(--rgb))'); expect(r).toContain('--run-h: rgba(var(--rgb), 0.45)'); expect(r).toContain('--run-g: rgba(var(--rgb), 0.22)'); expect(r).not.toContain('--run-a') // яркость не в цвете (иначе перерисовка градиентов)
     const layers = /background:\s*([^;]*);/.exec(r)[1].split(/repeat-y,\s*linear-gradient\(/)
     expect(layers.length).toBe(2) // узелки (радиальный слой) и нить (линейный)
     expect(layers[0]).toContain('radial-gradient(circle 7px'); expect(layers[0]).toContain('calc(var(--run-p) / 3)') // три узелка на период
     expect(layers[1]).toContain('0.7dvh'); expect(layers[1]).toContain('center 1.4dvh / 1px calc(var(--run-p) / 24)') // нить 1 px: штрихи 0,7 dvh, 24 на период
     expect(RACE_PERIOD).toBe(51.6)
     expect(c).not.toMatch(/animation|@keyframes|filter/)
-    const base = /\.wlLanes i::before \{[^}]*\}/.exec(c)[0]; expect(base).toContain('top: calc(var(--run-p) * -1)'); expect(base).toContain('bottom: 0'); expect(r).not.toMatch(/top:|bottom:|height:/) // слой выше дорожки на период (51,6 dvh) — узор покрывает её при любом сдвиге --run-y
+    const base = /\.wlLanes i::before \{[^}]*\}/.exec(c)[0]; expect(base).toContain('top: calc(var(--run-p) * -1)'); expect(base).toContain('bottom: 0'); expect(base).toContain('opacity: var(--run-a, 0.14)'); expect(base).toContain('will-change: transform, opacity'); expect(base).not.toMatch(/transition/); expect(c).toContain('.wlLanes i { contain: paint; }'); expect(r).not.toMatch(/top:|bottom:|height:/) // слой выше дорожки на период (51,6 dvh) — узор покрывает её при любом сдвиге --run-y
   })
 })
 
