@@ -36,3 +36,29 @@
 - Список фраз плана (`plan.phrases`; нет их — фраза урока `plan.phrase`), у каждой поле «Смысл по-русски (намерение, не перевод)», пример — «скажи, что рад знакомству». Фраза без целой озвучки (`audio === null`) помечена «читается по словам».
 - Сохранение — по кнопке «Сохранить» в `app_settings.race_phrase_ru` = `{ [key]: text }` (key = normText английской фразы, как `plan.phrases[].key`; пустой текст убирает ключ, ключи других уроков остаются). Пишет админ (`saveAppSetting`), читают все (`getAppSetting`).
 - Озвучка — кнопка «Озвучить смыслы (ElevenLabs)»: тот же путь, что у переводов слов (`useTransVoice` → `generateWordAudio` → R2 → `word_audio`, ключ `transKey(смысл)` = `ru:…`); «озвучено» — есть запись по этому ключу. `transTexts(plan)` тоже включает `plan.phrases[].ru`. В игре Пит говорит смысл через `sayText(ru, { ru: true })`.
+
+### Данные: план из памяти
+
+Слой данных — `src/features/pitrace/plan/` (чистые модули, данные аргументами; движок только читает план). Источник плана `'memory'`: `buildMemoryPlan({ base, deps })` → `{ ...base, game: 'race', source: 'memory', extraWords, phrases }`; `base` — план урока (на стенде — фикстура), `deps` — данные из `loadPlanDeps()` (`racePlanSources.js`: всё параллельно, кэш 5 минут, ошибка источника — пустой источник и строка в `errors`). `normalizePlan` (`rehearsalPlan.js`) принимает `phrases` (`racePhraseNorm.js`), `memoryPlan(base, deps)` и `planFor('memory', { fixture, deps })` — то же через нормализацию.
+
+**plan.phrases** — 3…6 фраз, без повторов по `key`:
+
+```
+{ id: '<curricula.id>' | 'plan:<key>' | 'reserve:<…>', text: curricula.title, key: normText(text),
+  words: [{ text, translation, level }],  // lesson_ids.slice(1, -1) → wordKey(lesson.title); без уроков — word_translations; перевод — word_translations модуля; level — levelOfWord (нет в памяти — 0)
+  ru: race_phrase_ru[key] → title_translation → '',   // смысл по-русски; озвучка — word_audio по transKey(ru)
+  own: true | false, level: минимум уровней слов (нет слов — 0),
+  audio: { url, duration } | null }        // app_settings.game2_phrases['rh2_phrase:' + key]; null — Пит читает по словам
+```
+
+Порядок: фраза текущего урока первой (`deps.currentId` / `base.moduleId` → модуль с той же фразой → фраза из самого плана, `id: 'plan:<key>'`, смысл — `base.translation`), затем свои — модуль начат (`fetchStartedModules`), закреплён (`phrase_memory`) или хоть одно его слово в памяти; среди своих сначала со слабыми словами (уровень ≤ 1, просрочено или с промахами), потом по уровню фразы, при равенстве — по семени (`rngFor(seed, 'race-phrases')`). Своих (с текущей) меньше трёх — добор дежурными до трёх.
+
+**Дежурные фразы** (`raceStandbyPhrases.js`) — первые три опубликованных модуля по `created_at` по возрастанию (равные — по id), `own: false`; та, что уже в плане своей, не повторяется. Модулей меньше трёх (нет сети) — запасные фразы из слов `STANDBY_WORDS`: «Nice to meet you», «Where are you from», «Remember» (`id: 'reserve:…'`).
+
+**plan.extraWords** — `[{ text, translation, level, due, lapses }]` ≤ 12: слова памяти (`listWordMemory`, гость — память гостя) с переводом из `word_translations` опубликованных модулей, без слов фразы плана; сначала просроченные, потом ниже уровень, потом больше промахов, при равенстве — по семени. Меньше шести — добор словами дежурных фраз до шести.
+
+**Дежурные слова** — слова дежурных фраз плана: `extrasOf` (добор «Разгона») берёт `plan.extraWords`, затем слова фраз `own: false`, и только если их меньше шести — старый запас (`STANDBY_WORDS` и слова фикстур); `standbyWords(taken, plan)` (дополнительный круг) — слова дежурных фраз, а меньше трёх — ещё `STANDBY_WORDS`.
+
+**Стенд**: Админ → «Голос» → «Встряхни память (стенд)» → «Настройки» → «План: фикстура / из памяти» (`RacePlanSource.jsx`, выбор помнится). «Из памяти» — сводка (слов памяти, добор, фраз — свои / дежурные; без смысла, без озвучки фразы, без озвучки смысла), перед запуском план идёт через `buildMemoryPlan`; в журнал одной строкой `[plan] источник: … · N слов памяти, добор K · M фраз (свои / дежурные) · без смысла: … · без озвучки фразы: … · без озвучки смысла: …`.
+
+**Чего пока нет в данных**: порядка модулей (дежурные — по дате создания); `race_phrase_ru` и `game2_phrases` читает только админ (ключей нет в `app_settings_public_keys`) — обычному пользователю до их добавления смысл придёт из `title_translation`, а фраза без озвучки (Пит читает по словам).

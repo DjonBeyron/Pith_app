@@ -162,3 +162,11 @@ export async function saveAppSetting(key, value) {
   if (!data?.length) throw new Error('Сохранение не применилось: сервер не подтвердил запись (нужны права админа)')
   return value
 }
+
+// Смысл фраз игры «Встряхни память» по-русски (этап 2 «Фразы», CONCEPT_PHRASES.md): ключ race_phrase_ru, значение { [normText фразы]: текст }.
+// Читает план из памяти (pitrace/plan/racePlanSources.js), пишет админ (RacePhraseMeaning.jsx через saveAppSetting). Нет строки, нет прав или ошибка — {} (смысл берётся из curricula.title_translation).
+export const RACE_PHRASE_RU_KEY = 'race_phrase_ru'
+export async function getRacePhraseRu() {
+  const v = await getAppSetting(RACE_PHRASE_RU_KEY)
+  return v && typeof v === 'object' && !Array.isArray(v) ? v : {}
+}

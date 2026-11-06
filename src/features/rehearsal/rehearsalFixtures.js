@@ -1,6 +1,6 @@
 // Фикстуры «памяти человека» для репетиции (CONCEPT_REHEARSAL.md §4): готовые планы, пока вкладка «Память» не подключена. Выбор — Админ → «Голос» → «Тест игры» → «Репетиция (симуляция)».
-// planFor(source, { fixture }) — единственный поставщик плана: сейчас только 'sim' (фикстура), потом 'memory' (wordMemory / phraseMemory) и 'node' (автор задал фразу в ноде).
-import { normalizePlan } from './rehearsalPlan.js'
+// planFor(source, { fixture, deps }) — единственный поставщик плана: 'sim' (фикстура), 'memory' (слова и фразы памяти, pitrace/plan/), потом 'node' (автор задал фразу в ноде).
+import { normalizePlan, memoryPlan } from './rehearsalPlan.js'
 
 const word = (text, translation, lapses, confusers = [], due = true, level = 1) => ({ text, translation, due, lapses, confusers, level }) // level — ступень памяти 0–4 (цвет --lvl0…--lvl4)
 
@@ -50,8 +50,9 @@ export function fixturePlan(id) {
 /** Какая фикстура лежит в плане (по фразе) — для «следующей»; нет такой — null */
 export const fixtureIdOf = plan => FIXTURE_IDS.find(id => fixturePlan(id).phrase === plan?.phrase) ?? null
 
-/** План для репетиции. Пока только source = 'sim' (фикстура); остальные источники ещё не подключены — null */
-export function planFor(source = 'sim', { fixture = DEFAULT_FIXTURE } = {}) {
+/** План для репетиции: 'sim' — фикстура; 'memory' — фикстура как план урока + данные памяти deps (racePlanSources.loadPlanDeps; нет deps — null); 'node' ещё не подключён — null */
+export function planFor(source = 'sim', { fixture = DEFAULT_FIXTURE, deps = null } = {}) {
   if (source === 'sim') return fixturePlan(fixture)
+  if (source === 'memory' && deps) return memoryPlan(fixturePlan(fixture), deps)
   return null
 }

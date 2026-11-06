@@ -10,7 +10,7 @@ import { isStopWord } from '../rehearsal/rehearsalStopWords.js'
 import { FIXTURE_IDS, fixtureSource } from '../rehearsal/rehearsalFixtures.js'
 import { rngFor, rngShuffle } from '../rehearsal/rehearsalSeed.js'
 import { normText } from '../player/modules/rotate-phone/wordLaneRecipe.js'
-import { STANDBY_WORDS } from './raceStandby.js'
+import { STANDBY_WORDS, standbyPhraseWords } from './raceStandby.js'
 
 export const SPRINT_MIN = 6      // меньше слов в «Разгоне» не бывает (если слов не хватает у плана, берём чужие)
 export const SPRINT_MAX = 10
@@ -21,11 +21,12 @@ const key = t => normText(t)
 const uniq = list => { const seen = new Set(); return list.filter(t => { const k = key(typeof t === 'string' ? t : t.text); if (!k || seen.has(k)) return false; seen.add(k); return true }) }
 const fixtureWords = () => FIXTURE_IDS.flatMap(id => (fixtureSource(id).words ?? []).map(w => ({ text: w.text, translation: w.translation, due: false, lapses: 0, confusers: w.confusers ?? [], level: w.level ?? 1 })))
 
-/** Слова с переводом, которыми добирают «Разгон»: plan.extraWords, нет их — слова других фикстур (без служебных и без слов самой фразы) */
+/** Слова с переводом, которыми добирают «Разгон» (без служебных и без слов самой фразы), по порядку: plan.extraWords (слова памяти), слова дежурных фраз plan.phrases (own: false), их меньше SPRINT_MIN — ещё старый запас (дежурные слова STANDBY_WORDS и слова других фикстур) */
 export function extrasOf(plan) {
   const own = new Set([...plan.words.map(w => key(w.text)), ...plan.chunks.flatMap(wordsOfChunk).map(key)])
-  const pool = plan.extraWords?.length ? plan.extraWords : [...STANDBY_WORDS, ...fixtureWords()] // нет слов из памяти — дежурные слова (raceStandby.js), а если их не хватает (слова плана совпали с ними) — слова других фикстур
-  return uniq(pool.filter(w => w.translation && !isStopWord(w.text) && !own.has(key(w.text))))
+  const fit = pool => uniq(pool.filter(w => w.translation && !isStopWord(w.text) && !own.has(key(w.text))))
+  const main = fit([...(plan.extraWords ?? []), ...standbyPhraseWords(plan)])
+  return main.length >= SPRINT_MIN ? main : fit([...main, ...STANDBY_WORDS, ...fixtureWords()])
 }
 
 /** Перевод слова: из слов плана, добора и фикстур; нет — null */

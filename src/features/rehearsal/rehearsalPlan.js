@@ -4,12 +4,15 @@
 //     words: [{ text, translation, due, lapses, confusers: [≤2 слова-двойника], level: 0–4 (ступень памяти слова, как --lvl0…--lvl4; нет — 1; потом из word_memory.step / settled_on) }],
 //     run: номер запуска в одном тапе (нет — 0; «Ещё минутку?» даёт 1, 2…; по нему реплики старта и итога — rehearsalLines.sessionLine),
 //     seed: 'строка семени случайностей внутри актов (rehearsalSeed.js; нет в JSON — «дата|фраза»)', stressed: [номера ударных кусков, пока вручную], audio: { phrase: { url, timings } | null, words: 'lib' }, source: 'sim' | 'memory' | 'node' }
+//   Гонка (game: 'race'): extraWords — слова добора, phrases — фразы этапа 2 [{ id, text, key, words: [{ text, translation, level }], ru, own, level, audio }] ≤ 6 (источник 'memory' — memoryPlan / buildMemoryPlan)
 import { parsePhrase, normText, MAX_CONFUSERS } from '../player/modules/rotate-phone/wordLaneRecipe.js'
 import { SLOT_COUNT } from '../player/modules/rotate-phone/wordLaneTimeline.js'
 import { ONLY_IDS } from './rehearsalOnly.js'
 import { isRound } from '../pitrace/raceOnly.js'
 import { cleanSeed, seedFor } from './rehearsalSeed.js'
 import { isStopWord } from './rehearsalStopWords.js'
+import { normalizePhrases } from '../pitrace/plan/racePhraseNorm.js'
+import { buildMemoryPlan } from '../pitrace/plan/racePlanMemory.js'
 
 export const SOURCES = ['sim', 'memory', 'node']
 export const MAX_PLAN_WORDS = 8
@@ -57,9 +60,12 @@ export function normalizePlan(raw) {
     source: SOURCES.includes(raw.source) ? raw.source : 'node',
     ...(Math.floor(Number(raw.run)) > 0 ? { run: Math.floor(Number(raw.run)) } : {}), // «Ещё минутку?»: не первый запуск в тапе (rehearsalCfg.nextPlan)
     ...(ONLY_IDS.includes(raw.only) ? { only: raw.only } : {}), // «Шлифовка репетиции»: играть только этот этап (rehearsalOnly.js)
-    ...(raw.game === 'race' ? { game: 'race', ...(isRound(raw.round) ? { round: raw.round } : {}), extraWords: (Array.isArray(raw.extraWords) ? raw.extraWords : []).map(normalizeWord).filter(Boolean).slice(0, 12) } : {}), // «Гонка с Питом» (features/pitrace): game, round — один раунд (raceOnly.js), extraWords — слова с переводом, которыми добирают «Разгон»
+    ...(raw.game === 'race' ? { game: 'race', ...(isRound(raw.round) ? { round: raw.round } : {}), extraWords: (Array.isArray(raw.extraWords) ? raw.extraWords : []).map(normalizeWord).filter(Boolean).slice(0, 12), phrases: normalizePhrases(raw.phrases) } : {}), // «Встряхни память» (features/pitrace): game, round — один раунд (raceOnly.js), extraWords — слова с переводом, которыми добирают «Разгон», phrases — фразы этапа 2 (pitrace/plan/racePhraseNorm.js)
   }
 }
+
+/** План из памяти (источник 'memory', CONCEPT_RACE.md → «Данные: план из памяти»): план урока base + загруженные данные deps (pitrace/plan/racePlanSources.js) → нормализованный план с phrases и extraWords; нет кусков — null */
+export const memoryPlan = (base, deps) => normalizePlan(buildMemoryPlan({ base, deps }))
 
 /** Слова куска (по пробелам, без знаков по краям) */
 export const wordsOfChunk = chunk => String(chunk ?? '').split(/\s+/).map(w => w.replace(/^[^\p{L}\p{N}']+|[^\p{L}\p{N}']+$/gu, '')).filter(Boolean)
