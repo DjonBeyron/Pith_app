@@ -62,7 +62,7 @@ export function queueStages(kit, act, rep, o = {}) {
   const { push, announce, plan } = kit
   const sid2 = `${act.id}2`
   const ctl = { lang: o.lang, tapOnly: !!o.tapOnly }
-  const standby = standbyWords(act.words).map(w => o.mapStandby?.(w) ?? w)
+  const standby = standbyWords(act.words, plan).map(w => o.mapStandby?.(w) ?? w)
   const round = (sid, list, first) => { const good = goodPlan(plan.seed, sid, list.length, { first, ids: o.goodIds }); return { type: 'student', act: act.id, sid, step: queueStep(kit, sid, list, good, rep, { target: o.target, lang: ctl.lang, tapOnly: ctl.tapOnly }), words: list, good } }
   const demote = () => { if (o.tapLine) { const a = kit.stages.find(x => x.sid === `${act.id}-ann`); if (a) a.line = o.tapLine } ctl.lang = undefined; ctl.tapOnly = true; kit.stages.filter(x => x.act === act.id && x.type === 'student').forEach(x => { delete x.step.lang; x.step.tapOnly = true }) }
   o.before?.()

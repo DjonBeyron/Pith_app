@@ -145,3 +145,16 @@ export async function saveAudioStaticWaveform(on) {
   }
   return !!on
 }
+
+// Смысл фраз игры «Встряхни память» по-русски (этап 2 «Фразы», CONCEPT_RACE.md →
+// «Данные: план из памяти»): ключ race_phrase_ru, значение { [normText фразы]: текст }.
+// Читает план из памяти (pitrace/plan/racePlanSources.js), пишет админ. Нет строки,
+// нет прав или ошибка — {} (смысл берётся из curricula.title_translation).
+export const RACE_PHRASE_RU_KEY = 'race_phrase_ru'
+export async function getRacePhraseRu() {
+  dbg('[DB READ] app_settings', RACE_PHRASE_RU_KEY)
+  const { data, error } = await supabase
+    .from('app_settings').select('value').eq('key', RACE_PHRASE_RU_KEY).maybeSingle()
+  if (error) { dbg('[DB ERROR] race_phrase_ru read', error.message); return {} }
+  return data?.value && typeof data.value === 'object' && !Array.isArray(data.value) ? data.value : {}
+}

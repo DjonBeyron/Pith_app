@@ -11,6 +11,8 @@ import { raceTexts } from '../../pitrace/raceTexts.js'
 import { extrasOf } from '../../pitrace/raceWords.js'
 import { raceDebugFile } from '../../pitrace/raceLog.js'
 import PolishSettings from './PolishSettings.jsx'
+import RacePlanSource from './RacePlanSource.jsx'
+import { buildMemoryPlan } from '../../pitrace/plan/racePlanMemory.js'
 import RuModelAddress from './RuModelAddress.jsx'
 import VoskReadyNotice from '../../../shared/ui/VoskReadyNotice.jsx'
 import { useVoskReady } from '../../../shared/lib/vosk/useVoskReady.js'
@@ -39,7 +41,8 @@ export default function RaceBlock({ save = saveDebugFile }) {
   const ru = useVoskReady({ lang: 'ru', hold: false }) // русская модель Vosk (проход B «назови перевод»): скачана ли; в память её грузит игра перед проходом
 
   const { plan, error } = useMemo(() => parsePlanJson(rform.json), [rform.json])
-  const racePlan = useMemo(() => (plan ? { ...plan, game: 'race', round: round ?? undefined, extraWords: extrasOf(plan) } : null), [plan, round])
+  const [planDeps, setPlanDeps] = useState(null)         // «План: из памяти» (RacePlanSource): данные памяти — план идёт через buildMemoryPlan; null — фикстура как есть
+  const racePlan = useMemo(() => { const p = plan ? { ...plan, game: 'race', round: round ?? undefined, extraWords: extrasOf(plan) } : null; return p && planDeps ? buildMemoryPlan({ base: p, deps: planDeps }) : p }, [plan, round, planDeps])
   const node = useMemo(() => ({ id: 'race-stand', type: 'rotate_phone', isHistory: false, typeData: { rotate_phone: { plan: racePlan } } }), [racePlan])
   const voice = usePolishVoice({ plan: racePlan, list: RACE_LINES, texts: raceTexts })
   const trans = useTransVoice({ plan: racePlan }) // переводы слов разгона: Пит говорит их голосом перед пилюлей
@@ -79,6 +82,7 @@ export default function RaceBlock({ save = saveDebugFile }) {
             {FIXTURE_IDS.map(id => <option key={id} value={id}>{FIXTURES[id].title}</option>)}
           </select>
         </label>
+        <RacePlanSource plan={racePlan} locked={playing} onDeps={setPlanDeps} />
         <div className="rhpVoice">
           <div className="rhpVoiceRow">
             <span data-testid="race-lines-status">Реплики Пита race_*: {voice.lines ? `озвучено ${voice.pit.done} из ${voice.pit.total}` : 'загружаю…'}</span>
