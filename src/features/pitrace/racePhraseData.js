@@ -47,4 +47,4 @@ export const phraseTexts = plan => phrasesOf(plan).flatMap(p => phraseWords(p.te
 export const phraseMeanings = plan => phrasesOf(plan).map(p => p.ru).filter(Boolean)
 
 /** План после normalizePlan (rehearsalCfg.js): пока нормализатор плана не знает фраз, plan.phrases из исходного плана переносятся как есть (их проверяет phrasesOf); фразы уже есть — план не трогаем */
-export const withPhrases = (plan, raw) => (plan?.game === 'race' && !plan.phrases && Array.isArray(raw?.phrases) ? { ...plan, phrases: raw.phrases } : plan)
+export const withPhrases = (plan, raw) => (plan?.game === 'race' && !plan.phrases?.length && Array.isArray(raw?.phrases) ? { ...plan, phrases: raw.phrases } : plan) // normalizePlan даёт phrases: [] — пустой список тоже «нет фраз» (v3.3.141)
