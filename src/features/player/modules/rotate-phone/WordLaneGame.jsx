@@ -19,6 +19,7 @@ import { trioFor, trioCtx } from '../../../pitrace/raceTapTrio.js'
 import { useWordLaneLeavingPlates } from './useWordLaneLeavingPlates.js'
 import { chargeOn } from '../../../pitrace/raceCharge.js'
 import { raceStart, PIT_PEEK_MS } from '../../../pitrace/raceStartTrace.js'
+import { trackHead } from '../../../pitrace/raceDodgeDrive.js'
 import RehearsalActs from '../../../rehearsal/RehearsalActs.jsx'
 import ReadKaraoke from '../../../rehearsal/read/ReadKaraoke.jsx'
 import { isWeakDevice } from '../../../../shared/lib/deviceTier.js'
@@ -52,6 +53,7 @@ export default function WordLaneGame({ cfg, audioSrc, lines = null, forceDebug =
   const [comment, setComment] = useState(null) // открыт оверлей комментария к этапу репетиции (шлифовка): { snap (что было на экране в момент тапа 💬), at }
   const catApi = useRef(null) // Пит (кот-маскот): рот по голосу и реакции лицом — через api, минуя React на кадрах
   const f = useWordLaneFlow({ chunks: cfg.chunks, translation: cfg.translation, lang: cfg.lang, clips: cfg.clips, audioSrc, audio: cfg.audio, catApi, lines, confusers: cfg.confusers, plan: cfg.plan, forceDebug, hold: startHold, onFinished })
+  useEffect(() => { if (cfg.plan?.game === 'race' && !tapMode) trackHead(rootRef.current?.querySelector('.wlCat')) }, [cfg.plan, tapMode]) // «Голосом»: Пит по центру с первой фразы, вертикаль ведёт один владелец (pitrace/raceHeadDepth.js); раньше выскакивания ниже
   useEffect(() => { if (startHold) { catApi.current?.peek?.(PIT_PEEK_MS); raceStart.pit() } }, []) // eslint-disable-line react-hooks/exhaustive-deps -- «Гонка»: Пит выскакивает при открытии сцены (≤ 300 мс, пружина головы) и ждёт первую реплику; раз за монтирование
   const pause = useWordLanePause({ f, cfg, audioSrc, lines }) // свернули приложение — пауза сразу, «Продолжить» открывает микрофон из тапа (useWordLanePause.js)
   const { phase } = f
