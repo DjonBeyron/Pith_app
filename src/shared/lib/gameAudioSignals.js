@@ -11,6 +11,10 @@ import { gameStartTrace } from './gameStartTrace.js'
 import { readAudioSessionMode, readMicHoldMode } from './gameAudioSettings.js'
 import { pLog } from './debug.js'
 
+const reporters = new Set() // прямые сигналы из кода: reportAudioLoss(why) → каждая живая подписка ставит паузу (сторож дорожки: «не ожила после глушения», v3.3.128)
+/** Сигнал потери из кода (например, gameMicHold: дорожка мёртвая): пауза без переоткрытия микрофона вне жеста — иначе iOS показывает диалог доступа */
+export const reportAudioLoss = why => { reporters.forEach(fn => { try { fn(why) } catch { /* подписчик сам пишет журнал */ } }) }
+
 export const CONFIRM_MS = 1200 // прерывание должно продержаться столько (и пережить наш resume), чтобы считаться потерей звука
 export const GRACE_MS = 4000   // столько после тапа старта сигналы контекста и микрофона не считаются
 
@@ -24,6 +28,8 @@ export function subscribeAudioLoss(onLoss, {
   isSelf = defaultSelf, sinceStart = defaultSince, setTimer = setTimeout, clearTimer = clearTimeout, log = pLog,
 } = {}) {
   let ctxTimer = 0, micTimer = 0
+  const direct = why => { log(`[audio] сигнал из кода: ${why} — пауза`); onLoss(why) }
+  reporters.add(direct)
   const quiet = what => {
     if (sinceStart() < GRACE_MS) { log(`[audio] сигнал «${what}» не считается: старт игры был ${Math.round(sinceStart())} мс назад`); return true }
     if (isSelf()) { log(`[audio] сигнал «${what}» не считается: прерывание вызвали мы (смена сессии / микрофон)`); return true }
@@ -49,9 +55,9 @@ export function subscribeAudioLoss(onLoss, {
     micTimer = setTimer(() => {
       micTimer = 0
       const line = micLine()
-      if (line.includes('muted') || line.includes('ended')) { log(`[audio] сигнал подтверждён: дорожка ${line} — пауза`); onLoss('mic-mute') }
+      if (line.includes('muted') || line.includes('ended') || !line.includes('live')) { log(`[audio] сигнал подтверждён: дорожка ${line} — пауза`); onLoss('mic-mute') } // «нет потока» — тоже не ожила (v3.3.128)
       else log(`[audio] сигнал снят: дорожка ожила (${line})`)
     }, CONFIRM_MS)
   })
-  return () => { clearTimer(ctxTimer); clearTimer(micTimer); ctxTimer = 0; micTimer = 0; try { offCtx?.() } catch { /* уже */ } try { offMic?.() } catch { /* уже */ } }
+  return () => { reporters.delete(direct); clearTimer(ctxTimer); clearTimer(micTimer); ctxTimer = 0; micTimer = 0; try { offCtx?.() } catch { /* уже */ } try { offMic?.() } catch { /* уже */ } }
 }

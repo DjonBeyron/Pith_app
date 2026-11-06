@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { subscribeAudioLoss, CONFIRM_MS, GRACE_MS } from './gameAudioSignals.js'
+import { subscribeAudioLoss, reportAudioLoss, CONFIRM_MS, GRACE_MS } from './gameAudioSignals.js'
 
 // Сигналы потери звука без ухода страницы: контекст 'interrupted'/'suspended' не по нашей воле (после resume и CONFIRM_MS) и дорожка микрофона 'ended' / 'mute' → пауза.
 // Не сигнал: первые GRACE_MS после старта, «прерывание наше», контекст вернулся сам.
@@ -41,6 +41,11 @@ describe('subscribeAudioLoss', () => {
     const t = setup(); t.mic('ended'); expect(t.loss).toHaveBeenCalledWith('mic-ended')
     const m = setup(); m.st.mic = 'live/muted'; m.mic('mute'); vi.advanceTimersByTime(CONFIRM_MS); expect(m.loss).toHaveBeenCalledWith('mic-mute')
     const u = setup(); u.st.mic = 'live/muted'; u.mic('mute'); u.st.mic = 'live'; vi.advanceTimersByTime(CONFIRM_MS); expect(u.loss).not.toHaveBeenCalled()
+    const n = setup(); n.st.mic = 'live/muted'; n.mic('mute'); n.st.mic = 'нет потока'; vi.advanceTimersByTime(CONFIRM_MS); expect(n.loss).toHaveBeenCalledWith('mic-mute') // поток пропал — не «ожила»
+  })
+  it('reportAudioLoss из кода (сторож дорожки) — пауза у живой подписки, после отписки тишина', () => {
+    const t = setup(); reportAudioLoss('mic-dead-ended'); expect(t.loss).toHaveBeenCalledWith('mic-dead-ended')
+    t.off(); reportAudioLoss('mic-dead-ended'); expect(t.loss).toHaveBeenCalledTimes(1)
   })
   it('отписка снимает обе подписки и таймеры', () => {
     const t = setup(); t.ctx('interrupted'); t.off(); vi.advanceTimersByTime(CONFIRM_MS * 2)
