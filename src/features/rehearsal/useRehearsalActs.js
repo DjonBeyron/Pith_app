@@ -11,6 +11,7 @@ import { useRehearsalTake } from './useRehearsalTake.js'
 import { hasIntroLine } from './rehearsalPrepare.js'
 import { RACE_START_LEAD_MS } from '../pitrace/raceStartTrace.js'
 import { earlyStageLine } from '../pitrace/raceOpening.js'
+import { raceStartId } from '../pitrace/raceTexts.js'
 import { stuckHint, hintEntry, sayWordHint } from './rehearsalHints.js'
 import { demoSummary } from './polish/polishDemo.js'
 import { stageTiming, countdownPlan } from './rehearsalCountdown.js'
@@ -52,14 +53,14 @@ export function useRehearsalActs({ plan, stages, stage, at, stageObj, setS, sayL
   useEffect(() => {
     if (plan && !race) pLog(sessionLogLine(plan, buildActs(plan, { only: null }).acts))
   }, [plan, race])
-  const startLine = useMemo(() => (plan ? sessionLine(plan, race ? 'race_start' : 'rh_start') : null), [plan, race]) // вариант реплики вступления и итога — на всю сессию (rehearsalLines.js)
+  const startLine = useMemo(() => (plan ? sessionLine(plan, race ? raceStartId() : 'rh_start') : null), [plan, race]) // вариант реплики вступления и итога — на всю сессию (rehearsalLines.js)
   const doneLine = useMemo(() => (plan ? sessionLine(plan, race ? 'race_done' : 'rh_done') : null), [plan, race])
   const missRef = useRef(null) // реплика «над этим словом ещё поработаем» — несколько раз за сессию: свой поток от семени, повтор подряд запрещён
   const missLine = () => { missRef.current ??= { rng: rngFor(plan.seed, 'line:rh_warmup_miss'), last: {} }; return pickLine('rh_warmup_miss', missRef.current.rng, missRef.current.last) }
   // Вступление: Пит говорит про фразу, пока она падает (при запуске одного этапа «Шлифовки» его нет — rehearsalPrepare.hasIntroLine)
   useEffect(() => {
     if (!on || stage !== 'drop' || !(intro || early) || hold) return undefined // hold («Гонка»): звук ещё готовится, часы игры стоят — вступление ждёт
-    const t = setTimeout(() => sayLine(intro ? startLine : early, null, race ? { noRise: true, ...(intro ? {} : { pause: stages[0]?.pause ?? LINE_PAUSE_MS }) } : undefined), race ? RACE_START_LEAD_MS : LINE_AT_MS) // «Гонка»: race_start (или реплика первой стадии) сразу и без ожидания головы
+    const t = setTimeout(() => sayLine(intro ? startLine : early, null, race ? { noRise: true, ...(intro && stages[0]?.line ? {} : { pause: stages[0]?.pause ?? LINE_PAUSE_MS }) } : undefined), race ? RACE_START_LEAD_MS : LINE_AT_MS) // «Гонка»: стартовая фраза режима (или реплика первой стадии) сразу и без ожидания головы; у стадии 0 нет своей реплики — пауза стадии идёт после фразы
     return () => clearTimeout(t)
   }, [on, stage, intro, early, sayLine, startLine, hold, race]) // eslint-disable-line react-hooks/exhaustive-deps -- stages[0].pause читается в момент старта
 

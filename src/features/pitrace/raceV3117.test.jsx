@@ -110,17 +110,15 @@ describe('конвейер: три независимые дорожки', () =>
     const [da, db, dc] = [a, b, c].map(adv); expect(da).toBeLessThan(db); expect(db).toBeLessThan(dc); expect(da / db).toBeCloseTo(0.96, 2); expect(dc / db).toBeCloseTo(1.04, 2)
     expect(createLane().k).toBe(1); expect(createLane().y).toBe(0); expect(createLane().per).toBe(PERIOD) // обычная нода без изменений
   })
-  it('привод включает режим гонки по [data-race] на корне и не пишет длину штрихов; CSS — узор «- - - |»: три коротких штриха вдоль, длинная черта поперёк, и по кругу', () => {
+  it('привод включает режим гонки по [data-race] на корне и не пишет длину штрихов; CSS — узор «нить с узелками»: тонкая нить 1 px и три узелка на период', () => {
     const drv = read('../player/modules/rotate-phone/laneConveyorDrive.js'); expect(drv).toContain("closest?.('[data-race]')"); expect(drv).toContain('createLane(race ? i : -1)')
     const c = strip(css('word-lane-lane-run.css')), r = /\.wl\[data-race\] \.wlLanes i::before \{[^}]*\}/.exec(c)[0]
-    expect(r).toContain(`--run-p: ${RACE_PERIOD}dvh`); expect(r).toContain('mask-image: none'); expect(r).toContain('width: 12px') // маски нет, слой шириной 12 px — под поперечную черту
+    expect(r).toContain(`--run-p: ${RACE_PERIOD}dvh`); expect(r).toContain('mask-image: none') // маски нет, узор — два слоя фона
     const layers = /background:\s*([^;]*);/.exec(r)[1].split(/repeat-y,\s*linear-gradient\(/)
-    expect(layers.length).toBe(2) // короткие штрихи вдоль и поперечная черта, без точек
-    const shorts = [...layers[0].matchAll(/var\(--run-c\) ([\d.]+)(?:dvh)? ([\d.]+)dvh/g)].map(m => +(m[2] - m[1]).toFixed(2))
-    expect(shorts).toEqual([1.2, 1.2, 1.2]) // три коротких штриха вдоль дорожки, зазор 12 dvh (0–1,2 / 13,2–14,4 / 26,4–27,6)
-    expect(layers[0]).toContain('transparent 1.2dvh 13.2dvh'); expect(layers[0]).toContain('transparent 14.4dvh 26.4dvh'); expect(layers[0]).toContain('transparent 27.6dvh 51.6dvh'); expect(layers[0]).toContain('center top / 1px 51.6dvh') // группа = период 51,6 dvh, зазоры 12 dvh
-    expect(layers[1]).toContain('39.6dvh calc(39.6dvh + 1px)'); expect(layers[1]).toContain('left top / 12px 51.6dvh') // одна черта поперёк толщиной 1 px (как штрихи), во всю ширину слоя, после третьего штриха
-    expect(RACE_PERIOD).toBe(51.6); expect(r).toContain(`--run-p: ${RACE_PERIOD}dvh`) // привод и узор совпадают — шов не прыгает
+    expect(layers.length).toBe(2) // узелки (радиальный слой) и нить (линейный)
+    expect(layers[0]).toContain('radial-gradient(circle 7px'); expect(layers[0]).toContain('calc(var(--run-p) / 3)') // три узелка на период
+    expect(layers[1]).toContain('0.7dvh'); expect(layers[1]).toContain('center 1.4dvh / 1px calc(var(--run-p) / 24)') // нить 1 px: штрихи 0,7 dvh, 24 на период
+    expect(RACE_PERIOD).toBe(51.6)
     expect(c).not.toMatch(/animation|@keyframes|filter/)
     const base = /\.wlLanes i::before \{[^}]*\}/.exec(c)[0]; expect(base).toContain('top: calc(var(--run-p) * -1)'); expect(base).toContain('bottom: 0'); expect(r).not.toMatch(/top:|bottom:|height:/) // слой выше дорожки на период (51,6 dvh) — узор покрывает её при любом сдвиге --run-y
   })

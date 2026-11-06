@@ -11,7 +11,7 @@ export function RaceAskScene({ choice, onPick, onCancel, wait = null, hint = '',
   return (
     <div className="wl" data-phase="ask" data-testid="race-ask-scene">
       <div className="wlStage" data-tex={lite ? undefined : ''}>
-        <div className="wlTurn raceAskPlate" role="dialog" aria-modal="true" aria-label="Сможешь говорить?" data-testid="race-ask-plate">
+        <div className="wlTurn raceAskPlate" role="dialog" aria-modal="true" aria-label="Как будешь ловить слова?" data-testid="race-ask-plate">
           <p className="raceAskText" data-testid="race-ask-text">{askText()}</p>
           <div className="raceAskBtns">
             {CHOICES.map(c => <button key={c} type="button" className="raceAskBtn" data-main={c === choice ? '1' : undefined} data-wait={wait && c === 'voice' ? wait : undefined} disabled={!!wait} onClick={() => onPick(c)} data-testid={`race-ask-${c}`}>{wait && c === 'voice' ? WAIT_LABELS[wait] : CHOICE_LABELS[c]}</button>)}

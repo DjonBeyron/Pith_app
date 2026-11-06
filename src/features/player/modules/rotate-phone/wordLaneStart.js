@@ -63,7 +63,8 @@ export function wordsPlan({ cfg, lines }) {
   const lineNow = all.filter(x => !first || first.has(x.key))
   const one = libItems(cfg.chunks.slice(0, 1)).length // кусок первой ступени
   if (cfg.plan?.game === 'race' && first) { // «Гонка» (v3.3.117): ворота ждут ТОЛЬКО race_start (один файл, он первый в списке и качается первым); реплика первого этапа, куски и переводы догреваются фоном к первой пилюле, Пит не ждёт сеть
-    const start = lineNow.filter(x => x.key === lineKey('race_start')), rest = lineNow.filter(x => x.key !== lineKey('race_start'))
+    const isStart = x => x.key === lineKey('race_start') || x.key === lineKey('race_start_tap') // стартовая фраза режима («Голосом» / «Пальцами»)
+    const start = lineNow.filter(isStart), rest = lineNow.filter(x => !isStart(x))
     return { now: [...start, ...rest, ...words], late: all.filter(x => !first.has(x.key)), firstCount: start.length || lineNow.length, gateMin: 0 } // нет озвучки race_start (или один раунд без вступления) — ждём первую реплику, какая есть
   }
   return first ? { now: [...lineNow, ...words], late: all.filter(x => !first.has(x.key)), firstCount: lineNow.length + one + Math.min(2, trans.length) } : { now: [...words, ...lineNow], late: [], firstCount: one + Math.min(2, trans.length) } // у репетиции реплики первых стадий качаются и декодируются ПЕРВЫМИ: заговорит Пит, а куски диктора понадобятся через секунды

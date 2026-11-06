@@ -8,7 +8,7 @@ import { pLog } from '../../shared/lib/debug.js'
 export const CHRON_WINDOW_MS = 20000 // столько мс после тапа «Начать» шаги ещё пишутся (попап + старт игры)
 export const START_VOICE_MS = 400    // цель: голос Пита не позже стольки мс после входа в игру (= raceStartTrace.RACE_ENTRY_LINE_MS)
 
-const CHOICE = { voice: 'Говорю', tap: 'Тапаю' }
+const CHOICE = { voice: 'Голосом', tap: 'Пальцами' }
 
 /** Самый долгий промежуток между соседними шагами, начиная с шага from: → { label, ms, prev } или null */
 export function longestStep(steps, from = 'ask') {
@@ -55,7 +55,7 @@ export function createStartChron({ now = () => performance.now(), log = pLog } =
       const v = at('voice'), e = at('enter'), a = at('ask')
       const r = { entry: e == null ? null : v - e, ask: a == null ? null : v - a, longest: longestStep(steps) }
       const slow = r.entry != null && r.entry > START_VOICE_MS
-      const parts = [`от входа в игру до голоса Пита ${r.entry ?? '—'} мс (цель ≤ ${START_VOICE_MS})`, `от тапа «${picked ?? 'Говорю / Тапаю'}» до голоса ${r.ask ?? '—'} мс`]
+      const parts = [`от входа в игру до голоса Пита ${r.entry ?? '—'} мс (цель ≤ ${START_VOICE_MS})`, `от тапа «${picked ?? 'Голосом / Пальцами'}» до голоса ${r.ask ?? '—'} мс`]
       const top = r.longest ? `; самый долгий шаг — «${r.longest.label}» (${r.longest.ms} мс после «${r.longest.prev}»)` : ''
       say(`[start] итог: ${parts.join(', ')}${top}${slow ? ' — ДОЛЬШЕ' : ''}${voiced ? '' : ' (без звука)'}`)
       return r
