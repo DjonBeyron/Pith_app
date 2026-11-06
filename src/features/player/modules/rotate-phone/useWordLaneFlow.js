@@ -193,7 +193,7 @@ export function useWordLaneFlow({ chunks, translation, lang, clips = null, audio
     const { texts } = stepTargets(listenStep, listenStep.chunks ?? chunks) // репетиция: цель — слово (step.chunks), словарь Vosk шире цели (step.extra)
     let wordsHeard = 0
     const l = createWordListener({
-      targets: [...texts, ...(listenStep.extra ?? [])], expected: listenStep.reps.length, maxWords: listenStep.maxWords, lang: listenStep.lang, noVosk: !!listenStep.tapOnly, gate: !listenStep.record, restartMs: listenStep.record ? 0 : undefined, level: rms, getStream: guardStream(getGameMic), isHeld: gameMicHold.active, onDebug: dbg.enabled ? dbg.listen : null,
+      targets: [...texts, ...(listenStep.extra ?? [])], expected: listenStep.reps.length, maxWords: listenStep.maxWords, lang: listenStep.lang, noVosk: () => !!listenStep.tapOnly, gate: !listenStep.record, restartMs: listenStep.record ? 0 : undefined, level: rms, getStream: guardStream(getGameMic), isHeld: gameMicHold.active, onDebug: dbg.enabled ? dbg.listen : null,
       onChange: ({ status, seq, misses, heard, tail, heardAt }) => {
         signalRef.current = { tail, heardAt }
         const words = seq.length * 8 + (tail?.tokens ?? 0) // растёт с каждым услышанным словом (недосказанная цель — по токенам, засчитанная — по номеру в seq)

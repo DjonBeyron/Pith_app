@@ -48,6 +48,7 @@ describe('переключатель слуха: английская → рус
     const r = await sw.toRu()
     expect(r.ok).toBe(false); expect(r.text).toBe('не открылась'); expect(sw.state()).toBe('en')
     expect(log).toContain('ru.release'); expect(log).toContain('en.warmNow(switch)'); expect(log.indexOf('ru.evict')).toBeLessThan(log.indexOf('en.warmNow(switch)'))
+    expect(log.at(-1)).toBe('ru.expect(false)') // слушатель прохода B ждёт модель до конца переключения: «нет модели» раньше перевода прохода на тап не прозвучит
   })
   it('переключения идут по очереди: «назад» не перебивает идущее «вперёд»', async () => {
     const log = []
