@@ -34,6 +34,8 @@ import useRaceLaunch from '../../../pitrace/useRaceLaunch.js'
 // Пауза после конца игры перед переходом дальше: подпись «закончена» должна успеть прочитаться
 const DONE_AFTER_MS = 700
 const FINISHED_TEXT = 'Голосовая тренировка закончена'
+const RACE_START = 'Встряхни память' // кнопка запуска игры вместо «Начать»
+const RACE_CAPTION = 'Игра с Питом: лови, говори и вспоминай слова урока'
 const MIC_PROBLEM = {
   denied: 'Нет доступа к микрофону. Разреши микрофон для сайта в настройках браузера и нажми «Начать» ещё раз.',
   unavailable: 'Микрофон недоступен на этом устройстве, поэтому игру не запустить.',
@@ -59,6 +61,7 @@ export default function RotatePhoneModule({ node, file, onDone, forceDebug = fal
 }
 
 function RotateCard({ cfg, done = false, busy = false, locked = false, onStart = null, label = null, children = null }) {
+  const race = cfg.plan?.game === 'race' // «Встряхни память»: своя подпись и кнопка (заголовок — cfg.title, rehearsalCfg.js); «Готовлю звук…» (label) — как у всех
   return (
     <div className="playerMsgRow">
       <PlayerBubble className="playerMsgBubble playerMsgBubble--lessonRef">
@@ -70,11 +73,11 @@ function RotateCard({ cfg, done = false, busy = false, locked = false, onStart =
           </span>
           <span className="playerLessonRefBody">
             <span className="playerRotateTitle">{done ? FINISHED_TEXT : cfg.title}</span>
-            <span className="playerRotateCaption">{done ? `${cfg.word} — ${cfg.translation || 'повторено'}` : cfg.chunks.length > 1 ? 'Повторяй за диктором: куски фразы, порядок, по памяти' : 'Послушай слово и повтори его вслух'}</span>
+            <span className="playerRotateCaption">{done ? `${cfg.word} — ${cfg.translation || 'повторено'}` : race ? RACE_CAPTION : cfg.chunks.length > 1 ? 'Повторяй за диктором: куски фразы, порядок, по памяти' : 'Послушай слово и повтори его вслух'}</span>
           </span>
           {!done && (
             <button type="button" className={`playerRotateStart${label ? ' playerRotateStart--warm' : ''}`} onClick={onStart} disabled={busy || locked} data-testid="rotate-start">
-              {label ?? (busy ? '…' : 'Начать')}
+              {label ?? (busy ? '…' : race ? RACE_START : 'Начать')}
             </button>
           )}
         </div>

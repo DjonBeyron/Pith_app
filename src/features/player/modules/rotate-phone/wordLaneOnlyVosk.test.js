@@ -58,6 +58,19 @@ describe('карточка ноды', () => {
     expect(out).toContain('data-testid="rotate-start"')
     expect(out).not.toMatch(/class="playerRotateStart"[^>]*disabled/)
   })
+  it('«Встряхни память» (plan.game race): заголовок, подпись и кнопка «Встряхни память» вместо «Начать»; репетиция — по-прежнему «Начать»', () => {
+    vosk.state = { status: 'ready', download() {}, retry() {} }
+    const plan = { phrase: 'nice | to meet you', words: [{ text: 'meet', translation: 'встретить' }] }
+    const race = renderToStaticMarkup(createElement(RotatePhoneModule, { node: node({ plan: { ...plan, game: 'race' } }) }))
+    expect(race).toContain('<span class="playerRotateTitle">Встряхни память</span>')
+    expect(race).toContain('Игра с Питом: лови, говори и вспоминай слова урока')
+    expect(race).toMatch(/data-testid="rotate-start"[^>]*>(Встряхни память|Готовлю звук[^<]*)</)
+    expect(race).not.toMatch(/data-testid="rotate-start"[^>]*>Начать</)
+    const reh = renderToStaticMarkup(createElement(RotatePhoneModule, { node: node({ plan }) }))
+    expect(reh).toContain('Репетиция с Питом')
+    expect(reh).not.toContain('Встряхни память')
+    expect(read('./RotatePhoneModule.jsx')).toContain("label ?? (busy ? '…' : race ? RACE_START : 'Начать')") // «Готовлю звук…» (label) сохраняется и у гонки
+  })
   it('Vosk надо скачать: уведомление с кнопкой «Скачать», игра не запускается', () => {
     vosk.state = { status: 'need', download() {}, retry() {} }
     const out = renderToStaticMarkup(createElement(RotatePhoneModule, { node: node() }))

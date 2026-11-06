@@ -5,6 +5,7 @@ import { setRateBoost } from '../player/modules/rotate-phone/wordLaneBuffers.js'
 import { makeBox, putState, markEntered, reduceRace, climbTarget, climbStageIdx } from './raceState.js'
 import { leftMs, isOut } from './raceClimbTimer.js'
 import { reportRace } from './raceSim.js'
+import { memoryOn, outcomesOf, pushRaceMemory } from './raceMemory.js'
 import { DESCENT_RATE } from './raceRecipe.js'
 import { sayTrap } from './raceTrapVoice.js'
 import { extraTarget, isLate } from './raceExtraRound.js'
@@ -33,7 +34,7 @@ function logPre(stage, rep) {
 //  • ловушка-двойник (raceTrap.js): на промахе директор берёт у слушателя, что услышал Vosk (listener.heard()), редюсер узнаёт двойника — Пит говорит «это двойник, а нужно слово» по кускам (raceTrapVoice.js), вместо «соскользнул» и подсказки;
 //  • «Вершина»: сказал не то (miss) — соскальзывание сразу, стадия ступени перезапускается (jump); общий таймер подъёма (raceClimbTimer.js) — когда время вышло, переход на плашку climb-time;
 //  • «Спуск»: на время читки и ответа слова и куски играют с playbackRate 1,1 (wordLaneBuffers.setRateBoost);
-//  • итог: на экране summary — raceSim.reportRace (память сессии и XP тем же путём, что у репетиции), Пит говорит race_done_gold или race_done; result — для RaceSummary;
+//  • итог: на экране summary — raceSim.reportRace (память сессии и XP тем же путём, что у репетиции), Пит говорит race_done_gold или race_done; result — для RaceSummary; память слов — raceMemory.pushRaceMemory (source 'game', один раз за игру, не на стенде);
 //  • журнал отладки: строки «[race] …» (раунд, слово, попал / промах, серия, ступень, заходы, итог).
 export function useRaceActs(args) {
   const { plan, stages, stage, at, stageObj, setS, sayLine, sayLineLater, sayText, lines, rate, listenerRef } = args
@@ -46,6 +47,7 @@ export function useRaceActs(args) {
   const [box] = useState(makeBox) // s — актуальное состояние (читает nextIdx без перерисовки), hinted — подсказка голосом сказана на этом промахе (raceState.makeBox)
   const [view, setView] = useState(box.s)
   const [result, setResult] = useState(null)
+  const memSent = useRef(false) // игра уже записана в память слов (повтор экрана итога и перерисовки не пишут второй раз)
   const sayRef = useRef({ sayLine, sayLineLater, sayText, lines, rate }) // свежие реплики берёт эффект ниже; первый рендер — из аргументов
   useEffect(() => { sayRef.current = { sayLine, sayLineLater, sayText, lines, rate } })
   const [ru] = useState(createRuJournal) // проход B на русской модели: одна строка журнала «[ru] …» на слово (raceRuLog.js)
@@ -104,7 +106,10 @@ export function useRaceActs(args) {
   // Итог: память и XP — один раз на выходе на экран summary
   useEffect(() => {
     if (!on || running?.type !== 'summary') return undefined
-    const t = setTimeout(() => { const res = reportRace({ plan, race: box.s }); setResult(res); sayRef.current.sayLine?.(res.gold ? 'race_done_gold' : 'race_done') }, 0)
+    const t = setTimeout(() => {
+      const res = reportRace({ plan, race: box.s }); setResult(res); sayRef.current.sayLine?.(res.gold ? 'race_done_gold' : 'race_done')
+      if (memoryOn(plan) && !memSent.current) { memSent.current = true; pushRaceMemory({ outcomes: outcomesOf(res), lessonId: plan.lessonId ?? null }).catch(e => pLog(`[memory] игра: сбой записи (${e?.message ?? e})`)) } // память слов: одно событие на слово, source 'game' (raceMemory.js), один раз за игру; результат — только в журнал
+    }, 0)
     return () => clearTimeout(t)
   }, [on, running, plan, box])
 
