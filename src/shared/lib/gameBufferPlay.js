@@ -10,6 +10,7 @@ import { getGameCtx } from './gameAudioCtx.js'
 export const RESUME_WAIT_MS = 300 // сколько ждём resume() контекста, который не 'running' (прервано iOS / ещё не открывали), прежде чем сдаться
 
 const playing = new Set() // { src, gain } — идущие источники
+let started = 0 // сколько звуков стартовало с загрузки страницы (журнал перезапуска звука после фона: «за N с после „Продолжить“ стартовало K»)
 
 function build(c, buffer, rate, gain) {
   const src = c.createBufferSource()
@@ -41,6 +42,7 @@ export function playGameBuffer(buffer, { rate = 1, gain = 1, onStart = null, onR
       node.src.start(c.currentTime || 0)
     } catch (e) { if (node) release(node); report('rejected', { error: e?.name ?? String(e ?? 'error') }); return }
     playing.add(node)
+    started += 1
     try { onStart?.() } catch { /* рот кота не должен ломать звук */ }
     report('started')
   }
@@ -60,6 +62,9 @@ export function stopGameBuffers() {
     release(node)
   }
 }
+
+/** Сколько звуков стартовало всего (диагностика перезапуска) */
+export const startedCount = () => started
 
 /** Сколько звуков идёт сейчас (диагностика, тесты) */
 export const playingCount = () => playing.size

@@ -10,6 +10,19 @@ import { pLog } from '../debug.js'
 
 export const CTX16K_KEY = 'pithy_vosk_ctx16k_v1'
 
+const open = new Set() // контексты захвата, которые ещё не закрыты (жёсткий перезапуск звука после фона закрывает все: gameAudioRestart.js)
+
+/** Сколько контекстов захвата открыто и в каком они состоянии (журнал перезапуска) */
+export const captureStates = () => [...open].map(c => c.state ?? '?')
+
+/** Закрыть все контексты захвата (прерванный iOS микрофонный контекст может держать аудиосессию без вывода). → сколько закрыто */
+export function closeAllCaptures() {
+  const list = [...open]
+  open.clear()
+  for (const c of list) { try { Promise.resolve(c.close?.()).catch(() => {}) } catch { /* уже закрыт */ } }
+  return list.length
+}
+
 export const isCtx16kOn = (store = globalThis.localStorage) => { try { return store?.getItem(CTX16K_KEY) === '1' } catch { return false } }
 
 /** AudioContext для записи: по умолчанию родная частота, 16000 — только по флагу (и с откатом, если браузер не умеет) */
@@ -17,6 +30,7 @@ export function createCaptureContext(Ctx, store = globalThis.localStorage) {
   let ctx
   if (isCtx16kOn(store)) { try { ctx = new Ctx({ sampleRate: 16000 }) } catch { /* нет поддержки — родная частота */ } }
   ctx ??= new Ctx()
+  open.add(ctx)
   logSound('audiocontext', 'capture')
   try { Promise.resolve(ctx.resume?.()).catch(() => {}) } catch { /* контекст и так работает */ }
   return ctx
@@ -27,6 +41,7 @@ export function releaseCapture({ stream, nodes = [], ctx, done = () => {}, log =
   let tracks = 0
   try { stream?.getTracks?.().forEach(tr => { try { if (tr.readyState !== 'ended') { tr.stop(); tracks++ } } catch { /* уже остановлен */ } }) } catch { /* ничего */ }
   for (const n of nodes) { try { n?.disconnect() } catch { /* уже отключён */ } }
+  if (ctx) open.delete(ctx)
   const state = ctx?.state ?? '—'
   const fin = why => {
     try { done() } catch { /* ничего */ }
