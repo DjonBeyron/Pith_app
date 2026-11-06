@@ -13,7 +13,7 @@ export function journalHeader({ version = '', ua = '', tap = false, ru = false, 
     `режим: ${tap ? 'тапаю (без микрофона)' : 'говорю (микрофон)'}`,
     `русская модель Vosk: ${ru ? 'готова (скачана)' : 'не готова'}; английская: ${en}`,
     `сейчас: ${snap}`,
-    'метка строки: мс от загрузки страницы, время дня; группы: [start] старт Пита, [page] свернули/вернули, [pause] пауза, [audio] звук, [warm] прогрев, [race] гонка, [cat] Пит, [ru] русский, [speech] речь',
+    'метка строки: мс от загрузки страницы, время дня; «Скопировать» — без строк [perf]/[suspects]/[салют]/mic-hold; группы: [start] старт Пита, [page] свернули/вернули, [pause] пауза, [audio] звук, [warm] прогрев, [race] гонка, [cat] Пит, [ru] русский, [speech] речь',
   ]
 }
 
@@ -44,5 +44,9 @@ export async function copyText(text, { nav = globalThis.navigator, doc = globalT
     return ok ? 'copied' : 'failed'
   } catch { return 'failed' }
 }
+
+/** Шум для вставки в чат: кадры [perf]/[suspects], салют, служебные mic-hold — их в «Скопировать» не берём (полный журнал — в файле «Скачать журнал») */
+export const NOISE = /\[perf\]|\[suspects\]|\[салют\]|mic-hold/
+export const compactText = text => text.split('\n').filter(l => !NOISE.test(l)).join('\n')
 
 export const COPY_HOW = { copied: 'Журнал скопирован — вставь его в чат', failed: 'Не получилось скопировать — попробуй «Скачать журнал»' }

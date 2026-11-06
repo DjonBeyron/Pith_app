@@ -3,5 +3,8 @@
 // перевод (preSay, raceTrans.js), перед этим — выдержка PRE_SAY_GAP_MS после зачёта и «не успел». Флаги ступени и дополнительный круг (стадии sprint2-ann / sprint2, слова вписывает директор — raceExtraRound.js) описаны в raceStageKit.js.
 // Реакции движка win / miss / fail / claim директор пишет в состояние (raceState.js).
 import { queueStages } from './raceStageKit.js'
+import { OK_IDS } from './raceGood.js'
 
-export const sprintStages = (kit, act) => queueStages(kit, act, w => ({ cap: w.translation }))
+// rep.say — что Пит ПРОИЗНОСИТ (всегда русский перевод, независимо от надписи: в тапе надпись английская, а говорит он всё равно перевод, v3.3.127); rep.cap — надпись пилюли.
+// В «Тапаю» похвала — одна реплика race_good_ok «Отлично»: за тап по пилюле хвалить звучание нелогично.
+export const sprintStages = (kit, act) => queueStages(kit, act, w => ({ cap: w.translation, say: w.translation }), { goodIds: kit.tap ? OK_IDS : undefined })

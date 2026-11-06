@@ -97,11 +97,11 @@ describe('стадии гонки в формате движка', () => {
     const tp = buildRaceStages({ plan: plan(), tap: true, ru: true }).stages; expect([lineOf(tp, 'sprint-ann'), lineOf(tp, 'catch-ann')]).toEqual(['race_sprint_tap', 'race_catch_tap']) // «Тапаю»: объявления про тап
     expect(of(buildRaceStages({ plan: plan('three', { round: 'stages' }), tap: false, ru: true }).stages, 'climb')).toHaveLength(0) // «Вспомни на слух + финал»: вершины нет — возвращать слух перед ней не нужно
   })
-  it('разгон и слушай и лови собираются одним набором (raceStageKit.queueStep): общие флаги и выдержка PRE_SAY_GAP_MS; у разгона нет say / trap', () => {
+  it('разгон и слушай и лови собираются одним набором (raceStageKit.queueStep): общие флаги и выдержка PRE_SAY_GAP_MS; у разгона say = перевод (его Пит говорит и в тапе), trap нет', () => {
     const stages = build().stages
     const sp = of(stages, 'sprint').find(x => x.type === 'student').step, ct = of(stages, 'catch').find(x => x.type === 'student').step
     for (const k of ['quiet', 'edge', 'holdAll', 'overlap', 'preSay', 'preGap', 'claimGap', 'maxTries']) expect(sp[k]).toEqual(ct[k])
-    expect(sp.reps.every(r => r.say === undefined && r.trap === undefined)).toBe(true)
+    expect(sp.reps.every(r => r.say === r.cap && typeof r.say === 'string' && r.trap === undefined)).toBe(true) // v3.3.127: в тапе cap станет английским, а say остаётся переводом
   })
   it('вершина: ступень k — первые k слов одним высказыванием; пилюля — одна, подписей над дорожками нет, времени ступени нет (пилюля почти стоит), maxTries 1', () => {
     const st = of(build().stages, 'climb').filter(s => s.type === 'student')

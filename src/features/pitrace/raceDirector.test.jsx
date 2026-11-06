@@ -73,7 +73,7 @@ describe('useRaceActs: директор гонки поверх директор
     const t = probe('catch'); t.rh.rec('fail', { idx: 1 }); t.rh.rec('miss', { idx: 1 }); expect(t.sayLine).not.toHaveBeenCalled()
   })
   it('перед выездом пилюли Пит говорит: в разгоне — русский перевод (ru), в «Слушай и лови» — английское слово (hold: Пит занят); без озвучки — молча', () => {
-    const sp = probe('sprint'); sp.rh.pre({ cap: 'учиться', say: 'learn' })
+    const sp = probe('sprint'); sp.rh.pre({ cap: 'learn', say: 'учиться' }) // тап: на пилюле английское слово, а говорит Пит перевод (rep.say)
     expect(sp.sayText).toHaveBeenCalledWith('учиться', expect.objectContaining({ ru: true, onSay: expect.any(Function), onEnd: expect.any(Function) })) // onSay / onEnd — секвенсор речи
     const ct = probe('catch'); ct.rh.pre({ cap: 'учиться', say: 'learn' })
     expect(ct.sayText).toHaveBeenCalledWith('learn', expect.objectContaining({ hold: true }))

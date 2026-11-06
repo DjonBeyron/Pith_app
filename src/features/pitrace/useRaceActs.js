@@ -20,7 +20,7 @@ import { createRuJournal } from './raceRuLog.js'
 function logPre(stage, rep) {
   if (!rep || !['sprint', 'catch'].includes(stage?.act)) return
   const w = stage.words?.[rep.idx], want = stage.act === 'catch' ? w?.text : w?.translation
-  pLog(`[race] голос: повтор ${rep.idx + 1}/${stage.words?.length ?? '?'}${stage.sid.endsWith('2') ? ' (второй круг)' : ''} слово «${w?.text ?? rep.text}», ${stage.act === 'catch' ? 'говорит слово, на пилюле' : 'перевод'} «${rep.cap}», дорожка ${rep.lanes?.[0]}, скорость ${rep.speed}${w && want !== rep.cap ? `; РАССИНХРОН: в записи слова «${want}»` : ''}`)
+  pLog(`[race] голос: повтор ${rep.idx + 1}/${stage.words?.length ?? '?'}${stage.sid.endsWith('2') ? ' (второй круг)' : ''} слово «${w?.text ?? rep.text}», ${stage.act === 'catch' ? 'говорит слово' : 'перевод'} «${rep.say ?? rep.cap}», на пилюле «${rep.cap}», дорожка ${rep.lanes?.[0]}, скорость ${rep.speed}${w && want !== (rep.say ?? rep.cap) ? `; РАССИНХРОН: в записи слова «${want}»` : ''}`)
 }
 
 // Директор игры «Встряхни память» («Гонка с Питом», CONCEPT_RACE.md) поверх директора репетиции: useWordLaneFlow зовёт ЭТОТ хук вместо useRehearsalActs. Без плана гонки (plan.game !== 'race') он возвращает то, что вернул бы useRehearsalActs, —
@@ -117,7 +117,8 @@ export function useRaceActs(args) {
     pre(rep) {
       logPre(running, rep)
       if (ruOn) { listenerRef?.current?.resetSaid?.(); ru.start(rep?.idx) } // новое слово прохода B: журнал слушает его с чистого листа
-      if (running?.act === 'sprint' && rep?.cap) speakTranslation(speech, o => sayRef.current.sayText?.(rep.cap, { ru: true, ...o }))
+      const said = rep?.say ?? rep?.cap // проход A: Пит говорит перевод (rep.say); надпись пилюли (rep.cap) в тапе английская — её не озвучиваем (v3.3.127)
+      if (running?.act === 'sprint' && said) speakTranslation(speech, o => sayRef.current.sayText?.(said, { ru: true, ...o }))
       else if (running?.act === 'catch' && rep?.say) speakTranslation(speech, o => sayRef.current.sayText?.(rep.say, { hold: true, ...o }))
       else speech.translation(0) // говорить нечего: пилюля выезжает сразу
     },

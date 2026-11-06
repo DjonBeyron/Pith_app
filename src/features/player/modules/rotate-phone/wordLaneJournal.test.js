@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest'
 import { readFileSync } from 'node:fs'
-import { journalHeader, buildJournalFile, copyText, COPY_HOW } from './wordLaneJournal.js'
+import { journalHeader, buildJournalFile, copyText, COPY_HOW, compactText } from './wordLaneJournal.js'
 import { createGameJournal } from '../../../../shared/lib/gameJournal.js'
 
 // «Скачать журнал» / «Скопировать журнал» в шестерёнке игры: txt с заголовком (версия, устройство, режим, модели), копирование — clipboard или запасной путь.
@@ -36,5 +36,12 @@ describe('журнал из шестерёнки', () => {
     expect(hud.indexOf('wl-hud-journal-row')).toBeLessThan(hud.indexOf('wl-hud-proc'))
     const z = Number(css.match(/\.wl\[data-phase='paused'\] \.wlHudBtn, \.wl\[data-phase='paused'\] \.wlHud \{ z-index: (\d+); \}/)?.[1])
     expect(z).toBeGreaterThan(Number(pause.match(/\.wlPauseBack \{[^}]*z-index: (\d+)/)[1]))
+  })
+})
+
+describe('compactText — «Скопировать» без шума', () => {
+  it('убирает [perf], [suspects], салют и mic-hold, остальное оставляет по порядку', () => {
+    const t = ['1 [perf] fps=60', '2 [start] тап', '3 [suspects] (tick)', '4 [note] mic-hold {}', '5 [салют] fireBurst', '6 [page] hidden', '7 [audio] перезапуск'].join('\n')
+    expect(compactText(t).split('\n')).toEqual(['2 [start] тап', '6 [page] hidden', '7 [audio] перезапуск'])
   })
 })
