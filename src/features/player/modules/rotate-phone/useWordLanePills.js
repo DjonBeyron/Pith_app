@@ -9,6 +9,7 @@ import { riseRep } from './wordLaneDictorRise.js'
 import { runMirrorScene } from './wordLaneMirrorScene.js'
 import { trioStep, shiftMs } from '../../../pitrace/raceTapTrio.js'
 import { createDodgeDrive } from '../../../pitrace/raceDodgeDrive.js'
+import { runPhraseScene } from '../../../pitrace/racePhraseScene.js'
 
 // Движок пилюль игры «Повтори за диктором». ДВИЖЕНИЕ пилюль ведёт композитор (wordLaneMotion.js: одна линейная WAAPI-анимация на пилюлю — скорость конвейера постоянна), поэтому лаги основного
 // потока на смартфонах (Vosk, React, щелчок с искрами) на ход не влияют. JS каждый кадр считает только логику и заливку. Пилюли — из пула (wordLanePool.js): живой повтор один (до трёх кусков) плюс догоняющие вниз пилюли предыдущих повторов.
@@ -76,6 +77,14 @@ export function useWordLanePills(rootRef, { scene, levels, fx, live, sceneApi, t
       }
       raf = requestAnimationFrame(tick)
       return () => { cancelAnimationFrame(raf); pool.giveAll() }
+    }
+
+    // ---------- «Встряхни память», этап «Фразы»: широкие пилюли на одной ленте (своя сцена, pitrace/racePhraseScene.js) ----------
+    if (kind === 'student' && scene.step?.phrases) {
+      setDots(0)
+      const run = runPhraseScene({ pool, root, scene, fxRef })
+      setApi(sceneApi, run.api)
+      return () => { run.stop(); setApi(sceneApi, null); pool.giveAll() }
     }
 
     // ---------- ученик ----------

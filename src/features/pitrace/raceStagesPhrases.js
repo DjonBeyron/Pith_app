@@ -1,0 +1,40 @@
+// Этап 2 «Фразы» игры «Встряхни память» → стадии (CONCEPT_RACE.md, «Этап 2» → «Лента и круги»). Акт phrases идёт после «Пинг-понга» и перед итогом (в полной гонке — до «Вершины»).
+// Стадии: плашка этапа (Пит: race_phrases; без озвучки — плашка с подписью) → круг 1 «Пойми» (sid phrases1) → плашка круга 2 (phrases2-ann, реплики нет) → круг 2 (sid phrases2).
+// Ступень круга — одна на весь круг, движок пилюль ведёт её своей сценой (step.phrases → racePhraseScene.js: широкие пилюли на одной ленте по центру), а не конвейером ученика:
+//  • круг 1 (mode 'pick'): ход на каждую свою фразу — Пит говорит смысл, три кандидата едут ОДНА ЗА ДРУГОЙ (интервал PHRASE_GAP_MS, скорость PHRASE_SPEED — в зоне чтения ≈ 3,5 с); тап по ленте или голос;
+//  • круг 2 голосом (mode 'say'): одна фраза на ход, бледный текст, сегменты по словам; скорость SAY_SPEED, ускорение — только после тишины (racePhraseScene.js);
+//  • круг 2 пальцами (mode 'hear'): Пит говорит фразу по-английски, по ленте три смысла по-русски.
+// Слух слов (wordLaneListen) на этих ступенях не нужен: tapOnly — у слушателя слов нет модели и микрофона; фразы слушает свой слушатель сцены (racePhraseListener.js), только голосом (phrases.voice).
+// quiet — промах без полос, «не успел» без реплики директора игры (её говорит директор гонки, racePhraseVoice.js). Порядок круга 2 директор правит перед входом (fill: слабые фразы круга 1 — последними).
+import { stepOf } from './raceStageKit.js'
+import { round1Turns, round2SayTurns, round2HearTurns, reorderWeak } from './racePhraseTurns.js'
+
+export const PHRASE_SPEED = 0.55 // круг 1 и «Узнай»: пилюля проезжает зону чтения (≈ 22…72 % высоты) за ≈ 3,5 с (конвейер — 26 % в секунду)
+export const SAY_SPEED = 0.4     // круг 2 голосом: ещё медленнее, ≈ 4,8 с в зоне чтения
+export const PHRASE_GAP_MS = 2600 // круг 1: следующий кандидат выезжает через столько после прошлого
+export const LANE = 1             // широкая лента — средняя дорожка (три дорожки съехались к центру)
+
+/** Ступень круга: одна на все ходы; reps — по ходу (для счёта, дорожек конвейера и скорости пунктира), phrases — что ведёт сцена */
+export function phraseStep(id, turns, { round, mode, voice, speed, gap = PHRASE_GAP_MS }) {
+  const texts = turns.map(t => t.target.text)
+  return stepOf(id, {
+    parts: turns.map((_, i) => i), text: texts.join(' '), chunks: texts, chunkMs: texts.map(() => 1000), active: [LANE],
+    reps: turns.map((t, i) => ({ parts: [i], lane: LANE, speed, cap: t.cands[0]?.cap })), maxWords: 4, maxTries: 1, quiet: true, tapOnly: true,
+    phrases: { round, mode, voice: !!voice, speed, gap, turns },
+  })
+}
+
+/** Стадии акта phrases (act.phrases — фразы плана, racePhraseData.phrasesOf) */
+export function phraseStages(kit, act) {
+  const { push, announce, plan, tap } = kit
+  const voice = !tap
+  announce(act)
+  const r1 = round1Turns(act.phrases, plan.seed)
+  push({ type: 'student', act: act.id, sid: 'phrases1', round: 1, turns: r1, step: phraseStep('phrases1', r1, { round: 1, mode: 'pick', voice, speed: PHRASE_SPEED }) })
+  const mode = voice ? 'say' : 'hear'
+  const base = voice ? round2SayTurns(act.phrases) : round2HearTurns(act.phrases, plan.seed)
+  if (!base.length) return
+  announce(act, voice ? { sid: 'phrases2', title: 'Скажи', task: 'скажи фразу по смыслу', line: null } : { sid: 'phrases2', title: 'Узнай', task: 'я говорю фразу, тапни её смысл', line: null })
+  const make = turns => ({ turns, step: phraseStep('phrases2', turns, { round: 2, mode, voice, speed: voice ? SAY_SPEED : PHRASE_SPEED }) })
+  push({ type: 'student', act: act.id, sid: 'phrases2', round: 2, base, ...make(base), fill: weak => Object.assign(kit.stages.find(x => x.sid === 'phrases2'), make(reorderWeak(base, weak))) })
+}

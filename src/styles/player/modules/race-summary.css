@@ -3,6 +3,7 @@
 @import './race-weak.css'; /* список слов от слабых к сильным (строки с пометкой) */
 @import './race-final.css'; /* экран итога на всю сцену */
 @import './race-accuracy.css'; /* полоса точности у каждого слова итога (raceAccuracy.js) */
+@import './race-phrases-weak.css'; /* блок «Слабые фразы» под списком слов */
 .raceSum--gold { border-color: var(--phrase-gold, #ffd257); box-shadow: 0 0 18px rgba(255, 210, 87, 0.3); }
 .raceSum--gold .wlRevealLabel { color: var(--phrase-gold, #ffd257); }
 .raceSum [data-medal='gold'] { color: var(--phrase-gold, #ffd257); }

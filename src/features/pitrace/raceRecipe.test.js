@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { buildRaceActs, DESCENT_RATE } from './raceRecipe.js'
 import { sprintWords, catchWords, climbWords, extrasOf, SPRINT_MIN, SPRINT_MAX, SPEED_STEP } from './raceWords.js'
-import { pickRound, RACE_ROUNDS, STAGES_ROUND, isRound } from './raceOnly.js'
+import { pickRound, RACE_ROUNDS, ONE_ROUNDS, STAGES_ROUND, PINGPONG_ROUND, RACE_TITLES, isRound } from './raceOnly.js'
 import { FIXTURE_IDS, fixturePlan } from '../rehearsal/rehearsalFixtures.js'
 import { normalizePlan } from '../rehearsal/rehearsalPlan.js'
 
@@ -9,11 +9,11 @@ const race = (id = 'three', extra = {}) => normalizePlan({ ...fixturePlan(id), g
 const ids = acts => acts.map(a => a.id)
 
 describe('рецепт гонки: акты из плана репетиции', () => {
-  it('полная гонка: разгон → слушай и лови → вершина → спуск → итог; план несёт game: race', () => {
+  it('полная гонка: разгон → слушай и лови → фразы → вершина → спуск → итог; план несёт game: race', () => {
     for (const id of FIXTURE_IDS) {
       const plan = race(id)
       expect(plan.game).toBe('race')
-      expect(ids(buildRaceActs(plan).acts)).toEqual(['sprint', 'catch', 'climb', 'descent', 'summary'])
+      expect(ids(buildRaceActs(plan).acts)).toEqual(['sprint', 'catch', 'phrases', 'climb', 'descent', 'summary']) // фразы плана-симуляции — фикстура (racePhraseData.phrasesOf)
     }
   })
   it('разгон: 6–10 пилюль; слов с переводом у плана меньше шести — добираются чужими (других фикстур / plan.extraWords)', () => {
@@ -68,16 +68,19 @@ describe('рецепт гонки: акты из плана репетиции',
     expect(acts.filter(a => a.id === 'descent')).toHaveLength(1)
   })
   it('один раунд (plan.round): только он и без итога; незнакомый раунд — все акты', () => {
-    for (const r of RACE_ROUNDS) expect(ids(buildRaceActs(race('three', { round: r })).acts)).toEqual([r])
-    expect(ids(buildRaceActs(normalizePlan({ ...fixturePlan('three'), game: 'race', round: 'нет такого' })).acts)).toHaveLength(5)
+    for (const r of ONE_ROUNDS) expect(ids(buildRaceActs(race('three', { round: r })).acts)).toEqual([r])
+    expect(RACE_ROUNDS).toEqual([...ONE_ROUNDS, PINGPONG_ROUND]) // кнопки блока: одиночные раунды и прежний режим
+    expect(ids(buildRaceActs(normalizePlan({ ...fixturePlan('three'), game: 'race', round: 'нет такого' })).acts)).toHaveLength(6)
     expect(pickRound([{ id: 'sprint' }, { id: 'summary' }], 'sprint')).toEqual([{ id: 'sprint' }])
   })
-  it('«два этапа + финал» (round = stages): разгон, слушай и лови и итог — без вершины и спуска; план его принимает, плашки реплики race_start нет', () => {
+  it('режимы: «Пинг-понг + фразы + финал» (stages, по умолчанию) и прежний «Пинг-понг + финал» (pingpong) — без вершины и спуска; план их принимает', () => {
     expect(STAGES_ROUND).toBe('stages'); expect(isRound('stages')).toBe(true); expect(isRound('нет')).toBe(false)
     const plan = race('three', { round: STAGES_ROUND })
     expect(plan.round).toBe('stages')
-    expect(ids(buildRaceActs(plan).acts)).toEqual(['sprint', 'catch', 'summary'])
-    expect(pickRound([{ id: 'sprint' }, { id: 'catch' }, { id: 'climb' }, { id: 'descent' }, { id: 'summary' }], STAGES_ROUND).map(a => a.id)).toEqual(['sprint', 'catch', 'summary'])
+    expect(ids(buildRaceActs(plan).acts)).toEqual(['sprint', 'catch', 'phrases', 'summary'])
+    expect(ids(buildRaceActs(race('three', { round: PINGPONG_ROUND })).acts)).toEqual(['sprint', 'catch', 'summary']); expect(isRound('pingpong')).toBe(true); expect(isRound('phrases')).toBe(true)
+    expect(RACE_TITLES[STAGES_ROUND]).toBe('Пинг-понг + фразы + финал'); expect(RACE_TITLES[PINGPONG_ROUND]).toBe('Пинг-понг + финал'); expect(RACE_TITLES.phrases).toBe('Фразы')
+    expect(pickRound([{ id: 'sprint' }, { id: 'catch' }, { id: 'climb' }, { id: 'descent' }, { id: 'summary' }], PINGPONG_ROUND).map(a => a.id)).toEqual(['sprint', 'catch', 'summary'])
   })
   it('случайности — только от семени: Math.random в рецепте нет, одно семя — один и тот же рецепт', () => {
     const a = JSON.stringify(buildRaceActs(race('three')).acts), b = JSON.stringify(buildRaceActs(race('three')).acts)

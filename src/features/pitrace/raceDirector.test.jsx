@@ -85,7 +85,7 @@ describe('useRaceActs: директор гонки поверх директор
     const { rh, stages } = probe('catch')
     const i1 = stages.findIndex(s => s.sid === 'catch'), st = stages[i1]
     st.words.forEach((w, i) => rh.rec(w.trap ? 'fail' : 'win', { idx: i })) // верные пилюли — слово сказано, ловушки уехали («не успел» = пропущена) — всё верно
-    expect(stages[rh.nextIdx(i1 + 1)].act).toBe('climb') // ошибок не было — второго круга нет
+    expect(stages[rh.nextIdx(i1 + 1)].act).toBe('phrases') // ошибок не было — второго круга нет, дальше этап «Фразы»
     const bad = probe('catch'); bad.rh.rec('miss', { idx: st.words.findIndex(w => w.trap), believed: true })
     const go = bad.rh.nextIdx(i1 + 1)
     expect(bad.stages[go].sid).toBe('catch2-ann'); expect(bad.stages[go + 1].sid).toBe('catch2'); expect(bad.stages[go + 1].words.length).toBeGreaterThanOrEqual(2)

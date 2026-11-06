@@ -3,11 +3,12 @@
 // cfg.firstLines — реплики Пита первых секунд: к старту ждём только их, остальные докачиваются фоном).
 import { normalizePlan } from './rehearsalPlan.js'
 import { sprintTransTexts } from '../pitrace/raceTrans.js'
+import { withPhrases } from '../pitrace/racePhraseData.js'
 import { neededTexts, firstLines } from './rehearsalPrepare.js'
 import { planFor, fixtureIdOf, nextFixture, DEFAULT_FIXTURE } from './rehearsalFixtures.js'
 
 export function readRehearsalCfg(rawPlan) {
-  const plan = normalizePlan(rawPlan)
+  const plan = withPhrases(normalizePlan(rawPlan), rawPlan) // этап «Фразы»: plan.phrases (racePhraseData.withPhrases)
   if (!plan) return null
   return {
     title: plan.game === 'race' ? 'Встряхни память' : 'Репетиция с Питом',

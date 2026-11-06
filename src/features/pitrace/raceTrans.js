@@ -4,6 +4,7 @@
 import { cachedWordAudio } from '../../shared/lib/wordAudio/wordAudioApi.js'
 import { cleanWordText } from '../../shared/lib/wordAudio/wordKey.js'
 import { sprintWords, extrasOf } from './raceWords.js'
+import { phraseMeanings } from './racePhraseData.js'
 
 export const TRANS_PREFIX = 'ru:'
 
@@ -18,11 +19,11 @@ const uniqTexts = list => {
   return list.map(t => cleanWordText(t)).filter(t => { const k = transKey(t); if (!k || seen.has(k)) return false; seen.add(k); return true })
 }
 
-/** Все переводы плана: слова плана и extraWords (то, что может поехать в «Разгоне»); для озвучки в админке */
-export const transTexts = plan => uniqTexts([...(plan.words ?? []), ...extrasOf(plan)].map(w => w.translation).filter(Boolean))
+/** Все переводы плана: слова плана и extraWords (то, что может поехать в «Разгоне») и смыслы фраз этапа 2 (Пит говорит их по-русски, racePhraseData.js); для озвучки в админке */
+export const transTexts = plan => uniqTexts([...[...(plan.words ?? []), ...extrasOf(plan)].map(w => w.translation).filter(Boolean), ...phraseMeanings(plan)])
 
-/** Переводы слов «Разгона» по порядку выезда — их готовит прогрев игры к старту */
-export const sprintTransTexts = plan => uniqTexts(sprintWords(plan).map(w => w.translation).filter(Boolean))
+/** Переводы слов «Разгона» по порядку выезда и смыслы фраз этапа 2 — их готовит прогрев игры к старту */
+export const sprintTransTexts = plan => uniqTexts([...sprintWords(plan).map(w => w.translation).filter(Boolean), ...phraseMeanings(plan)])
 
 /** Строка библиотеки с озвучкой перевода: { key, row } или null (нет озвучки / библиотека не загружена) */
 export function transRow(text, cache = cachedWordAudio()) {

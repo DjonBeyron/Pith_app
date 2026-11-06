@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { transKey, transTexts, sprintTransTexts, transRow, transItems, transRows, TRANS_PREFIX } from './raceTrans.js'
 import { sprintWords, extrasOf } from './raceWords.js'
+import { phraseMeanings } from './racePhraseData.js'
 import { buildStages } from '../player/modules/rotate-phone/wordLaneStages.js'
 import { createStudentGame, stepStudent } from '../player/modules/rotate-phone/wordLaneStudent.js'
 import { readRehearsalCfg } from '../rehearsal/rehearsalCfg.js'
@@ -22,7 +23,7 @@ describe('озвучка переводов: ключи и наборы', () => 
   it('переводы: слова плана и extraWords без повторов; для прогрева — только слова «Разгона» в порядке выезда', () => {
     const all = transTexts(racePlan), sprintT = sprintTransTexts(racePlan)
     expect(all.length).toBeGreaterThan(3); expect(new Set(all.map(transKey)).size).toBe(all.length)
-    expect(sprintT.length).toBeGreaterThan(0); expect(sprintT.length).toBeLessThanOrEqual(sprintWords(racePlan).length)
+    expect(sprintT.length).toBeGreaterThan(0); expect(sprintT.length).toBeLessThanOrEqual(sprintWords(racePlan).length + phraseMeanings(racePlan).length) // и смыслы фраз этапа 2
     sprintT.forEach(t => expect(all).toContain(t))
   })
   it('transRow / transItems: только записи с озвучкой, без повторов; transRows помечает озвученные', () => {

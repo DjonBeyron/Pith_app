@@ -17,6 +17,8 @@ import { useRaceSpeech, speakTranslation } from './useRaceSpeech.js'
 import { createRuJournal } from './raceRuLog.js'
 import { createSurfaceWait } from './raceDiveWait.js'
 import { LOCK_MS } from './raceSpeech.js'
+import { createPhraseVoice } from './racePhraseVoice.js'
+import { phraseEvent, fillPhrases2 } from './raceStatePhrases.js'
 
 /** Журнал голоса перевода: какое слово и какой перевод Пит говорит перед выездом этой пилюли (одна запись повтора: слово, перевод, дорожка, скорость). Расхождение с записью слова круга — строка «РАССИНХРОН» (не должно быть никогда) */
 function logPre(stage, rep) {
@@ -47,7 +49,9 @@ export function useRaceActs(args) {
   const [view, setView] = useState(box.s)
   const [result, setResult] = useState(null)
   const sayRef = useRef({ sayLine, sayLineLater, sayText, lines, rate }) // свежие реплики берёт эффект ниже; первый рендер — из аргументов
-  useEffect(() => { sayRef.current = { sayLine, sayLineLater, sayText, lines, rate } })
+  const [phr] = useState(createPhraseVoice) // этап «Фразы»: голос Пита перед ходом и после итога (racePhraseVoice.js); свежие реплики и Пит — phr.use в эффекте
+  useEffect(() => { sayRef.current = { sayLine, sayLineLater, sayText, lines, rate }; phr.use({ sayLine, sayText, cat: args.cat }) })
+  useEffect(() => { const off = phr.bindStop(); return () => { off?.(); phr.stop() } }, [phr]) // пауза (cat.stop) / выход — цепочка обрывается
   const [ru] = useState(createRuJournal) // проход B на русской модели: одна строка журнала «[ru] …» на слово (raceRuLog.js)
   const ruLog = (rep, result, level) => { const w = running?.words?.[rep?.idx], line = ru.finish({ idx: rep?.idx, word: w?.text, expected: w?.translation, said: listenerRef?.current?.said?.(), level, result }); if (line) pLog(line) }
   const ruOn = running?.act === 'catch' && running?.step?.lang === 'ru'
@@ -110,7 +114,7 @@ export function useRaceActs(args) {
 
   const baseNext = rh.nextIdx // стабильна (useCallback в useRehearsalActs): на ней держится next директора
   const seed = plan?.seed
-  const nextIdx = useCallback(i => (on ? climbTarget(stages, stages[i - 1], box.s) ?? extraTarget(stages, stages[i - 1], box.s[stages[i - 1]?.act], seed) ?? baseNext(i) : baseNext(i)), [on, stages, box, baseNext, seed])
+  const nextIdx = useCallback(i => (on ? climbTarget(stages, stages[i - 1], box.s) ?? extraTarget(stages, stages[i - 1], box.s[stages[i - 1]?.act], seed) ?? fillPhrases2(stages, stages[i - 1], box.s) ?? baseNext(i) : baseNext(i)), [on, stages, box, baseNext, seed]) // fillPhrases2: после круга 1 фраз — порядок круга 2 (слабые последними)
   if (!on) return rh
   return {
     ...rh, result, race: view, nextIdx,
@@ -119,6 +123,7 @@ export function useRaceActs(args) {
     /** Перед выездом пилюли (движок: событие 'pre'): в «Разгоне» Пит говорит русский перевод слова из библиотеки (raceTrans.js), в «Слушай и лови» — английское слово (rep.say, библиотека слов); озвучки нет — молча, пилюля выезжает сразу.
      *  Пилюля ждёт, пока он договорит (pitLeft) */
     pre(rep, e) {
+      if (running?.act === 'phrases') { phr.pre(rep, e); return } // этап «Фразы»: смысл / фраза голосом Пита (racePhraseVoice.js), ход ждёт его через pitLeft
       logPre(running, rep)
       if (ruOn) { listenerRef?.current?.resetSaid?.(); ru.start(rep?.idx) } // новое слово прохода B: журнал слушает его с чистого листа
       const said = rep?.say ?? rep?.cap // проход A: Пит говорит перевод (rep.say); надпись пилюли (rep.cap) в тапе английская — её не озвучиваем (v3.3.127)
@@ -130,10 +135,11 @@ export function useRaceActs(args) {
       })
     },
     /** Пит ещё занят (мс): секвенсор запрещает перевод до отступа после похвалы (LOCK_MS), иначе — реплики и перевод (cat.busyLeft) */
-    pitLeft: () => Math.max(speech.holdMs(), args.cat?.busyLeft?.() ?? 0, sw.pendingMs(), surface.pending() ? LOCK_MS : 0), // идёт переключение слуха или Пит ещё выныривает к слову — пилюли тоже ждут
+    pitLeft: () => Math.max(speech.holdMs(), args.cat?.busyLeft?.() ?? 0, sw.pendingMs(), surface.pending() ? LOCK_MS : 0, phr.left()), // идёт переключение слуха или Пит ещё выныривает к слову — пилюли тоже ждут
     rec(kind, info) {
       rh.rec(kind, info)
       if (!running) return
+      if (running.act === 'phrases') { const ev = phraseEvent(kind, info); if (ev) apply({ t: 'phrase', stage: running, info: ev }); phr.react(kind, info); return } // итог хода «Фраз»: событие в результаты и голос Пита
       if (kind === 'win' && info?.last !== false) speech.riseStart() // пилюля взлетает: с этого мгновения идёт задержка похвалы
       if (ruOn && kind === 'miss') ru.miss(listenerRef?.current?.heard?.())
       if (ruOn && kind === 'fail') ruLog(info, 'fail', info?.peak)

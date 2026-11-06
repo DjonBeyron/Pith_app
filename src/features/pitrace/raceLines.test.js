@@ -6,7 +6,7 @@ import { missingPitLines, pitVoiceCount } from '../rehearsal/rehearsalVoice.js'
 
 describe('реплики Пита в гонке: каталог', () => {
   it('ключи race_*, тексты из задания (последний — вопрос плашки «Голосом / Пальцами»)', () => {
-    expect(RACE_LINE_IDS).toEqual(['race_start', 'race_start_tap', 'race_sprint', 'race_sprint_tap', 'race_good_1', 'race_good_2', 'race_good_3', 'race_good_4', 'race_good_ok', 'race_sprint_round2', 'race_catch', 'race_catch_tap', 'race_switch_ru', 'race_climb', 'race_climb_slip', 'race_trap_pre', 'race_trap_mid', 'race_trap_short', 'race_climb_top', 'race_climb_time', 'race_descent', 'race_done_gold', 'race_done', 'race_ask_voice'])
+    expect(RACE_LINE_IDS).toEqual(['race_start', 'race_start_tap', 'race_sprint', 'race_sprint_tap', 'race_good_1', 'race_good_2', 'race_good_3', 'race_good_4', 'race_good_ok', 'race_sprint_round2', 'race_catch', 'race_catch_tap', 'race_switch_ru', 'race_climb', 'race_climb_slip', 'race_trap_pre', 'race_trap_mid', 'race_trap_short', 'race_climb_top', 'race_climb_time', 'race_descent', 'race_done_gold', 'race_done', 'race_ask_voice', 'race_phrases', 'race_phrase_yes', 'race_phrase_no'])
     const t = Object.fromEntries(RACE_LINES.map(l => [l.id, l.text]))
     expect(t.race_start).toBe('Встряхнём память, я говорю слова, а ты переводишь вслух'); expect(t.race_start_tap).toBe('Встряхнём память, я говорю слова, а ты ловишь перевод')
     expect(t.race_sprint).toBe('Вспомни на слух, перевод едет вниз, скажи слово по-английски, пока не убежало')
@@ -23,6 +23,7 @@ describe('реплики Пита в гонке: каталог', () => {
     expect(t.race_descent).toBe('Спуск, повтори всю фразу за мной на скорости')
     expect(t.race_done_gold).toBe('Золото, идеально'); expect(t.race_done).toBe('Финиш, завтра ещё заезд?')
     expect(t.race_ask_voice).toBe('Как будешь ловить слова, голосом или руками?')
+    expect(t.race_phrases).toBe('теперь фразы, я говорю, что сказать, а ты находишь как'); expect(t.race_phrase_yes).toBe('да, это оно'); expect(t.race_phrase_no).toBe('нет, это про другое') // этап 2 «Фразы»
   })
   it('для озвучки: без точек, многоточий, восклицательных знаков и тире; не длиннее предела; у каждой есть «когда»', () => {
     for (const l of RACE_LINES) {

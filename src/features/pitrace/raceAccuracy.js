@@ -12,11 +12,13 @@
 // Оценка прохода (A — «скажи слово», B — «назови перевод»): среднее P пилюль слова в круге 1 (P1). Если слово было слабым (raceExtraRound.weakIn) и попало в дополнительный круг (P2 — среднее P там):
 //    (г) проход = clamp(P1 − EXTRA_PENALTY + EXTRA_RECOVER·P2·(1 − P1)) — штраф за то, что круг понадобился, и частичное восстановление, если справился. Слово только в дополнительном круге (дежурное слово добора) — проход = P2.
 //    Удавшееся слово, взятое в дополнительный круг добором, его результатом не меняется.
-// Точность слова = round(100 · среднее по проходам, где слово было); ни одного прохода — 0. Уровень цвета (как ступени «Моей памяти», --lvl0…4): < 40 → 0, < 55 → 1, < 70 → 2, < 85 → 3, иначе 4.
+// Этап 2 «Фразы» (raceStatePhrases.phrasePart): каждый ход фразы со словом — чисто 1, нечисто (слово пропущено) 0,6, промах / «не успел» 0; среднее по ходам — ещё одна часть наравне с проходами.
+// Точность слова = round(100 · среднее по проходам и фразам, где слово было); ни одного — 0. Уровень цвета (как ступени «Моей памяти», --lvl0…4): < 40 → 0, < 55 → 1, < 70 → 2, < 85 → 3, иначе 4.
 import { failedIn, weakIn } from './raceExtraRound.js'
 import { normText } from '../player/modules/rotate-phone/wordLaneRecipe.js'
 import { ENTER_Y, SPEED, FILL_CAP } from '../player/modules/rotate-phone/wordLaneTimeline.js'
 import { FAIL_Y } from '../player/modules/rotate-phone/wordLaneStudent.js'
+import { phrasePart } from './raceStatePhrases.js'
 
 export const W_RESULT = 0.5
 export const W_SPEED = 0.3
@@ -71,12 +73,12 @@ export function passScore(pass, text) {
   return { score: needed ? clamp01(p1 - EXTRA_PENALTY + EXTRA_RECOVER * p2 * (1 - p1)) : clamp01(p1), first, extra: needed ? extra : null }
 }
 
-/** Точность слова text: { pct 0…100, level 0…4, a, b } (a / b — passScore проходов A и B или null) */
+/** Точность слова text: { pct 0…100, level 0…4, a, b, f } (a / b — passScore проходов A и B, f — вклад фраз phrasePart; нет — null) */
 export function wordAccuracy(race, text) {
-  const a = passScore(race?.sprint, text), b = passScore(race?.catch, text)
-  const parts = [a, b].filter(Boolean)
+  const a = passScore(race?.sprint, text), b = passScore(race?.catch, text), f = phrasePart(race?.phrases, text)
+  const parts = [a, b, f].filter(Boolean)
   const pct = parts.length ? Math.round(100 * mean(parts.map(x => x.score))) : 0
-  return { pct, level: accLevel(pct), a, b }
+  return { pct, level: accLevel(pct), a, b, f }
 }
 
 /** Слова итога (raceWeak.weakWords) с точностью: [{ ...слово, acc }] — слабые сверху (счёт слабости), при равном счёте — меньшая точность выше, дальше прежний порядок */

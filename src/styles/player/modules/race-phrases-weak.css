@@ -1,0 +1,22 @@
+/* Итог «Встряхни память»: блок «Слабые фразы» под списком слов (features/pitrace/RacePhrasesWeak.jsx): строка на фразу — текст и смысл мелко слева, «спутал с …» и метка круга 2 справа.
+   Цвет — красный (как слабое слово, race-weak.css); круг 1 ✓ и круг 2 ✓ — зелёные метки. Без анимаций и filter. */
+.racePhW { margin: 0 0 10px; text-align: left; }
+.racePhWList { display: flex; flex-direction: column; gap: 6px; max-height: 30dvh; margin: 0; padding: 0 2px 2px 0; list-style: none; overflow-y: auto; overscroll-behavior: contain; } /* слова над блоком не выдавливаются: у блока своя прокрутка */
+.racePhWRow {
+  --wk: 255, 93, 115;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+  padding: 8px 12px;
+  border: 1.5px solid rgba(var(--wk), 0.75);
+  border-left-width: 5px;
+  border-radius: 12px;
+  background: rgba(var(--wk), 0.12);
+  color: #f4f6fb;
+  line-height: 1.2;
+}
+.racePhWText { display: flex; flex-direction: column; flex: 1 1 60%; min-width: 0; }
+.racePhWPhrase { font-size: 15px; font-weight: 800; overflow-wrap: anywhere; }
+.racePhWNote, .racePhWR2 { flex: 0 0 auto; padding: 2px 9px; border-radius: 999px; font-size: 12px; font-weight: 800; background: rgba(var(--wk), 0.22); color: rgb(var(--wk)); }
+.racePhWNote[data-ok], .racePhWR2[data-ok] { --wk: 182, 254, 59; background: rgba(182, 254, 59, 0.18); color: rgb(182, 254, 59); }
