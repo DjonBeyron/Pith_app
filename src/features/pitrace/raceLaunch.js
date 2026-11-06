@@ -28,7 +28,7 @@ function enter(o, { ready, needsTap = false }) {
 export function answerAsk(o) {
   const { choice, ask, trace, startAudio, setHold, setWait = () => {}, onAudio, onDenied, current = () => true, clearTimer = clearTimeout } = o
   ask.pick(choice) // выбор запоминается, режим тапа на эту игру выставлен ДО старта игры
-  trace.ask?.()
+  trace.ask?.(choice) // и шаг «[start] тап «Говорю» / «Тапаю»» хронологии (raceStartChron.js)
   let ready = false
   const onLineReady = () => { ready = true; if (current()) setHold(false) }
   if (choice !== 'voice') { // «Тапаю»: без микрофона, игра сразу

@@ -42,7 +42,7 @@ describe('плашки гонки', () => {
     const i = stages.findIndex(s => s.sid === 'catch-ann'), p = roundPlan({ plan, stages: withPlate, i, lines: null, rate: 1 })
     expect(p.o.plateAt).toBeLessThan(p.o.morphAt); expect(p.o.plateAt).toBeLessThan(500); expect(p.o.plateEnd).toBeGreaterThan(p.o.morphAt); expect(p.round.brief).toBeTruthy()
     const o = openingPlan(plan, null, 1); expect(o.stageAt + o.lineAt).toBeLessThan(o.morphAt)
-    expect(read('./RaceCharge.jsx')).toContain('plateAt: o.stageAt + o.lineAt')
+    expect(o.plateAt).toBe(o.stageAt + o.lineAt); expect(read('./RaceCharge.jsx')).toContain('return { o,') // plateAt считает openingPlan (у игры без вступления — сразу)
     expect(roundPlan({ plan, stages, i: stages.findIndex(s => s.sid === 'sprint2-ann'), lines: null, rate: 1 }).o.plateAt).toBe(Infinity)
   })
   it('CSS: плашка выше пилюль и бара, рамка 1 px, wobble при появлении, уход scale 0,9 + opacity за 200 мс, без полёта', () => {

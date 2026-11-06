@@ -1,7 +1,7 @@
 import { RACE_START_LEAD_MS } from './raceStartTrace.js'
 import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
-import { openingPlan, MORPH_MS, PLATE_HOLD_MS, LEAD_MS } from './raceOpening.js'
+import { openingPlan, earlyStageLine, MORPH_MS, PLATE_HOLD_MS, LEAD_MS } from './raceOpening.js'
 import { chargePlan } from './raceCharge.js'
 import { buildRaceStages } from './raceStages.js'
 import { stageTiming, countdownPlan } from '../rehearsal/rehearsalCountdown.js'
@@ -45,9 +45,24 @@ describe('расписание открытия: слова → бар → пл�
     const none = openingPlan(mk(), null)
     expect(none.speechEnd).toBe(4000); expect(none.morphAt).toBe(3400); expect(none.plateEnd).toBe(5200)
   })
-  it('один раунд (plan.round): вступления race_start нет, плашка — раунда', () => {
+  it('один раунд / «Вспомни на слух + финал» (plan.round): вступления нет — реплика этапа звучит СРАЗУ со стартом часов (раньше — через 2,15 с), плашка с ней же; ноты — когда Пит договорил и выдержал паузу', () => {
     const o = openingPlan(mk({ round: 'catch' }), { race_catch: { text: 'Лови', url: 'u3', duration: 4 }, race_start: lines.race_start })
-    expect(o.startMs).toBe(0); expect(o.firstMs).toBe(4000); expect(o.speechEnd).toBe(o.stageAt + o.lineAt + 4000)
+    expect(o.startMs).toBe(0); expect(o.firstMs).toBe(4000); expect(o.early).toBe(true)
+    expect(o.speechEnd).toBe(RACE_START_LEAD_MS + 4000); expect(o.plateAt).toBe(RACE_START_LEAD_MS); expect(o.speechEnd).toBeLessThan(o.stageAt + LEAD_MS + 4000)
+    const busy = Math.max(0, o.speechEnd + PLATE_HOLD_MS - o.stageAt) // директор: busyLeft на входе в стадию 0 — реплика сказана на старте с паузой стадии
+    expect(o.countAt).toBe(o.stageAt + LEAD_MS + busy); expect(o.plateEnd).toBe(o.countAt); expect(o.morphAt).toBe(o.speechEnd - MORPH_MS)
+    for (const round of ['stages', 'sprint']) {
+      const p = mk({ round }), { stages } = buildRaceStages({ plan: p, rate: 1 })
+      expect(earlyStageLine(p, stages)).toBe(stages[0].line); expect(stages[0].line).toBeTruthy()
+    }
+    expect(earlyStageLine(mk(), buildRaceStages({ plan: mk(), rate: 1 }).stages)).toBeNull() // полная гонка: сразу звучит race_start
+    expect(openingPlan(mk(), lines)).toMatchObject({ early: false, plateAt: DROP_MS + LANES_MS + openingPlan(mk(), lines).lineAt })
+  })
+  it('директор: реплика первой стадии без вступления — на стадии drop (как race_start), у стадии 0 своей реплики уже нет', () => {
+    const src = read('../rehearsal/useRehearsalActs.js')
+    expect(src).toContain('earlyStageLine(plan, stages)'); expect(src).toContain("const lineOf = st => (early && st?.idx === 0 ? null : st?.line ?? null)")
+    expect(src).toContain('sayLine(intro ? startLine : early, null, race ? { noRise: true')
+    expect(src).not.toMatch(/running\.line\b/) // все места читают реплику стадии через lineOf
   })
   it('нет Math.random; у первой стадии отдельной плашки нет (charge → plate пустая); морф — в RaceChargePlate, а не отдельная плашка announce', () => {
     for (const f of ['./raceOpening.js', './RaceChargePlate.jsx', './RaceCharge.jsx', './RaceChargeRun.jsx']) expect(read(f)).not.toContain('Math.random')

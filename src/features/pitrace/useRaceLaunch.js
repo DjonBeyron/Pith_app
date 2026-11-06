@@ -3,6 +3,7 @@ import { startGameAudio } from '../player/modules/rotate-phone/wordLaneStart.js'
 import { pLog } from '../../shared/lib/debug.js'
 import useRaceAsk from './useRaceAsk.js'
 import { raceStart } from './raceStartTrace.js'
+import { raceChron } from './raceStartChron.js'
 import { openAsk, answerAsk } from './raceLaunch.js'
 import { raceWarm } from './raceWarm.js'
 import { micHint } from './raceAskVoice.js'
@@ -20,6 +21,7 @@ export default function useRaceLaunch({ on, phase, setPhase, cfg, audioSrc, line
 
   const open = useCallback(fullscreen => {
     setHint(''); setWait(null)
+    raceChron.tap() // хронология «[start]»: отсчёт от этого тапа
     openAsk({ fullscreen, setPhase, prewarm: () => raceWarm.start({ cfg, lines }) }) // жест «Начать»: AudioContext открыт, первые реплики и слова декодируются, пока виден попап
   }, [cfg, lines, setPhase])
 
@@ -40,7 +42,7 @@ export default function useRaceLaunch({ on, phase, setPhase, cfg, audioSrc, line
   }, [phase, wait, ask, cfg, audioSrc, lines, setPhase, release, onPlayed])
 
   const cancel = useCallback(() => {
-    genRef.current += 1; raceStart.cancel(); setWait(null); setHint('')
+    genRef.current += 1; raceStart.cancel(); raceChron.cancel(); setWait(null); setHint('')
     release() // «Говорю» мог уже открыть микрофон и сессию записи
     setPhase('wait'); leave()
   }, [release, leave, setPhase])
@@ -52,6 +54,12 @@ export default function useRaceLaunch({ on, phase, setPhase, cfg, audioSrc, line
     const t = setTimeout(() => pick(askAuto), 0)
     return () => clearTimeout(t)
   }, [phase, askAuto, hint, pick])
+  useEffect(() => { // хронология: сцена игры смонтирована (эффект родителя идёт после эффектов WordLaneGame) и её первый кадр
+    if (!on || phase !== 'game' || !raceChron.active()) return undefined
+    raceChron.step('mount', 'сцена игры смонтирована')
+    const id = requestAnimationFrame(() => raceChron.step('frame', 'первый кадр сцены'))
+    return () => cancelAnimationFrame(id)
+  }, [on, phase])
   const { watch } = ask
   useEffect(() => { if (on) watch({ phase: phase === 'tap' ? 'game' : phase }) }, [on, phase, watch]) // попап закрыт, игра кончилась — прежний режим тапа возвращается
 

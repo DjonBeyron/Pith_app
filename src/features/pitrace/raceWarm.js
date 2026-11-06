@@ -9,6 +9,7 @@ import { wordsPlan } from '../player/modules/rotate-phone/wordLaneStart.js'
 import { lineKey } from '../player/modules/rotate-phone/wordLaneCatLines.js'
 import { pLog } from '../../shared/lib/debug.js'
 import { GOOD_IDS } from './raceGood.js'
+import { raceChron } from './raceStartChron.js'
 
 export const WARM_FIRST_WORDS = 3 // сколько первых слов круга (переводы и куски) декодировать вместе с первыми репликами
 
@@ -25,7 +26,7 @@ export function raceWarmItems({ cfg, lines }) {
 
 const decodedDefault = url => !!bufferOfUrl(url) || settledOf(url) === 'ok'
 
-export function createRaceWarm({ unlock = unlockGameCtx, ctxState = gameCtxState, prefetch = prefetchWords, decoded = decodedDefault, log = pLog, now = () => performance.now() } = {}) {
+export function createRaceWarm({ unlock = unlockGameCtx, ctxState = gameCtxState, prefetch = prefetchWords, decoded = decodedDefault, log = pLog, now = () => performance.now(), chron = raceChron } = {}) {
   let items = []
   let t0 = null
   const say = text => { try { log(text) } catch { /* журнал не мешает игре */ } }
@@ -38,11 +39,13 @@ export function createRaceWarm({ unlock = unlockGameCtx, ctxState = gameCtxState
       let ctx
       try { ctx = Promise.resolve(unlock()) } catch { ctx = Promise.resolve(null) }
       say(`[warm] гонка: прогрев начат в «Начать» (без звука и микрофона), ctx=${ctxState() ?? 'нет'}; первыми декодирую ${items.length}: ${items.map(i => short(i.key)).join(', ') || '—'}`)
-      ctx.then(st => say(`[warm] гонка: AudioContext открыт в жесте «Начать»: ${st ?? 'нет Web Audio'} через ${Math.round(now() - at)} мс`), () => {})
+      chron?.step('ctx0', `AudioContext игры создан в жесте, state=${ctxState() ?? 'нет Web Audio'}; декодирую ${items.length} файлов`)
+      ctx.then(st => { say(`[warm] гонка: AudioContext открыт в жесте «Начать»: ${st ?? 'нет Web Audio'} через ${Math.round(now() - at)} мс`); chron?.step('ctx', `AudioContext ${st ?? 'нет Web Audio'}`) }, () => {})
       return Promise.resolve(items.length ? prefetch(items) : undefined).catch(() => {}).then(() => {
         if (t0 !== at) return
         const miss = items.filter(i => !decoded(i.url)).map(i => short(i.key))
         say(`[warm] гонка: декодировано ${items.length - miss.length}/${items.length} за ${Math.round(now() - at)} мс${miss.length ? `; нет в памяти: ${miss.join(', ')}` : ''}`)
+        chron?.step('decoded', `декодировано ${items.length - miss.length}/${items.length} файлов${miss.length ? ` (нет: ${miss.join(', ')})` : ''}`)
       })
     },
     /** Вход в игру: что из первых файлов уже в памяти (строка в журнал). → { ok, total, start } (start — декодирован ли race_start; null — его нет в списке) */
