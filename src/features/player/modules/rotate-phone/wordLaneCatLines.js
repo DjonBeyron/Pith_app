@@ -22,7 +22,8 @@ export const LINE_PAUSE_MS = 600      // после реплики кота ещ
 export const LINE_COOLDOWN_MS = 6000  // одну и ту же подсказку не чаще, чем раз в столько мс (иначе кот надоест)
 
 /** Сырые настройки (jsonb из app_settings или null) → все реплики каталога: { [id]: { text, url, duration, words } }; чужие ключи отбрасываются, пустой текст → по умолчанию.
- *  Реплики репетиции (rh_*): текст берётся из кода; сохранённый текст другой → озвучка устарела (говорит старое), url / duration / words сбрасываются — реплика попадает в «не озвучено» и переозвучивается. Реплики игры правятся в редакторе ноды. */
+ *  Реплики репетиции (rh_*): текст берётся из кода; сохранённый текст другой → озвучка устарела (говорит старое), url / duration / words сбрасываются — реплика попадает в «не озвучено» и переозвучивается. Реплики игры правятся в редакторе ноды.
+ *  custom: true — текст поправлен в админке (таблица «Озвучка Пита», admin/speech/raceLineText.js): он главнее каталога и не сбрасывается; said — текст, который говорит файл озвучки (до переозвучки ≠ text). */
 export function normalizeLines(raw) {
   const src = raw && typeof raw === 'object' ? raw.lines ?? raw : {}
   const out = {}
@@ -30,12 +31,15 @@ export function normalizeLines(raw) {
     const v = src?.[d.id] && typeof src[d.id] === 'object' ? src[d.id] : {}
     const text = typeof v.text === 'string' ? v.text.trim().slice(0, MAX_LINE_CHARS) : ''
     const duration = Number(v.duration)
-    if (isStaleLine(d.id, text)) { out[d.id] = { text: d.text, url: null, duration: null, words: null }; continue }
+    const custom = v.custom === true && !!text
+    if (!custom && isStaleLine(d.id, text)) { out[d.id] = { text: d.text, url: null, duration: null, words: null }; continue }
     out[d.id] = {
       text: text || d.text,
       url: typeof v.url === 'string' && v.url ? v.url : null,
       duration: duration > 0 ? duration : null,
       words: Array.isArray(v.words) && v.words.length ? v.words : null,
+      ...(custom ? { custom: true } : {}),
+      ...(typeof v.said === 'string' ? { said: v.said } : {}),
     }
   }
   return out
@@ -51,10 +55,13 @@ export function linesToSave(lines) {
   const out = {}
   for (const d of CAT_LINES) {
     const l = lines[d.id]
-    if (l && (l.text !== d.text || l.url)) out[d.id] = { text: l.text, url: l.url, duration: l.duration, words: l.words }
+    if (l && (l.text !== d.text || l.url || l.custom)) out[d.id] = { text: l.text, url: l.url, duration: l.duration, words: l.words, ...(l.custom ? { custom: true } : {}), ...(l.said != null ? { said: l.said } : {}) }
   }
   return { lines: out }
 }
+
+/** Реплики для игры: файл говорит не тот текст, что сохранён (said ≠ text, правка в админке без переозвучки) — озвучку не играем, остаётся подпись нового текста */
+export const playableLines = lines => Object.fromEntries(Object.entries(lines ?? {}).map(([id, l]) => [id, l?.said != null && l.said !== l.text ? { ...l, url: null, duration: null, words: null } : l]))
 
 /** Что подготовить в тапе «Начать» (слоты звука): реплики с озвучкой — [{ key, url }] */
 export const linesItems = lines => CAT_LINES.filter(d => lines?.[d.id]?.url).map(d => ({ key: lineKey(d.id), url: lines[d.id].url }))

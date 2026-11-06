@@ -55,7 +55,7 @@ describe('итог (RaceSummary) и RaceActs', () => {
 })
 
 describe('админка: блок «Встряхни память (стенд)»', () => {
-  const withOpen = (open, fn) => { vi.stubGlobal('localStorage', { getItem: () => (open ? JSON.stringify(['race-settings']) : null), setItem() {} }); try { return fn() } finally { vi.unstubAllGlobals() } }
+  const withOpen = (open, fn) => { vi.stubGlobal('localStorage', { getItem: () => JSON.stringify(open ? ['race-old', 'race-settings'] : ['race-old']), setItem() {} }); try { return fn() } finally { vi.unstubAllGlobals() } }
   it('блок (настройки развёрнуты): фикстура, статус реплик race_*, куски, тап, «Полная гонка» и четыре раунда, «Пинг-понг + финал», «Скачать отладку»', () => {
     const h = withOpen(true, () => html(RaceBlock, {}))
     expect(h).toContain('Встряхни память (стенд)'); expect(h).toContain('race-ru-address'); expect(h).toContain('race-ru-need') // адрес русской модели и подсказка про тап без неё

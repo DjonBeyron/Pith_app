@@ -6,7 +6,7 @@ import { raceStart } from './raceStartTrace.js'
 import { raceChron } from './raceStartChron.js'
 import { openAsk, answerAsk } from './raceLaunch.js'
 import { raceWarm } from './raceWarm.js'
-import { micHint } from './raceAskVoice.js'
+import { micHint, askText } from './raceAskVoice.js'
 
 // Проводка запуска «Встряхни память» в RotatePhoneModule (порядок — raceLaunch.js, CONCEPT_RACE.md «Попап внутри игры»): open — тап «Начать» (сцена с попапом + прогрев без звука, raceWarm.js), pick — «Говорю» / «Тапаю»
 // (жест: startGameAudio синхронно; «Говорю» ждёт микрофон в попапе — wait 'mic' / 'sound', отказ — подсказка hint в попапе; «Тапаю» — без микрофона, игра сразу), cancel — крестик попапа (поднятое в жесте отпускается),
@@ -63,5 +63,5 @@ export default function useRaceLaunch({ on, phase, setPhase, cfg, audioSrc, line
   const { watch } = ask
   useEffect(() => { if (on) watch({ phase: phase === 'tap' ? 'game' : phase }) }, [on, phase, watch]) // попап закрыт, игра кончилась — прежний режим тапа возвращается
 
-  return { hold, open, reset, plate: { choice: ask.choice, wait, hint, onPick: pick, onCancel: cancel } }
+  return { hold, open, reset, plate: { choice: ask.choice, wait, hint, text: askText(lines), onPick: pick, onCancel: cancel } }
 }

@@ -79,7 +79,7 @@ describe('попап «Голосом / Пальцами» внутри игры
     const pick = hook.slice(hook.indexOf('const pick = useCallback'), hook.indexOf('const cancel = useCallback'))
     expect(pick).toContain('answerAsk('); expect(pick).toContain('startGameAudio({ cfg, audioSrc, lines, ...hooks })'); expect(mod).toContain("{phase === 'ask' && <RaceAskPlate {...rl.plate} />}")
     expect(pick).toContain('release(); setHint(micHint(mic))') // микрофон не дали — звук и микрофон отпущены, подсказка в попапе
-    expect(hook).toContain('plate: { choice: ask.choice, wait, hint, onPick: pick, onCancel: cancel }')
+    expect(hook).toContain('plate: { choice: ask.choice, wait, hint, text: askText(lines), onPick: pick, onCancel: cancel }')
     expect(mod).toContain("const game = phase === 'game' && <WordLaneGame") // игра (Пит, заставка, реплики, конвейер) монтируется только после ответа
     expect(mod).toContain('askAuto') // стенд отвечает сам
   })

@@ -14,7 +14,7 @@ import { stopVoice } from './wordLaneVoice.js'
 import { releaseNotes } from './wordLaneNotes.js'
 import { releaseClips } from './wordLaneClips.js'
 import { dropWarmed } from './wordLaneFetch.js'
-import { normalizeLines } from './wordLaneCatLines.js'
+import { normalizeLines, playableLines } from './wordLaneCatLines.js'
 import { installGameAudioLife } from '../../../../shared/lib/gameAudioLife.js'
 import { installPageJournal } from '../../../../shared/lib/gameJournalPage.js'
 import { startGameAudio } from './wordLaneStart.js'
@@ -107,7 +107,7 @@ function RotateLive({ node, file, onDone, forceDebug, bare, startRef, onStatus, 
   const [gameKey, setGameKey] = useState(0) // «Игра заново» из HUD: новый ключ — игра монтируется с нуля
   const playedRef = useRef(false)
   const [lines, setLines] = useState(() => normalizeLines(null)) // реплики кота (общие настройки приложения): тексты по умолчанию, пока не догрузились
-  useEffect(() => { getCatLines().then(raw => setLines(normalizeLines(raw))) }, [linesRev]) // linesRev растёт после озвучки реплик в админке: перечитать, не пересоздавая модуль (иначе Vosk греется заново и кнопка запуска серая до 25 с)
+  useEffect(() => { getCatLines().then(raw => setLines(playableLines(normalizeLines(raw)))) }, [linesRev]) // linesRev растёт после озвучки реплик в админке: перечитать, не пересоздавая модуль (иначе Vosk греется заново и кнопка запуска серая до 25 с)
   // Озвучку кусков и реплик Пита качаем и декодируем ЗАРАНЕЕ и ВСЮ сразу, пока карточка на экране (wordLaneWarm.js). Ворота (wordLaneGate.js): пока не готовы первые N файлов, кнопка «Готовлю звук… 7/15»; тап разрешён —
   // игра ждёт ворота в startGameAudio (не дольше 8 с с тапа). Остальные файлы докачиваются фоном.
   const sig = useMemo(() => warmSig(cfg, lines), [cfg, lines])

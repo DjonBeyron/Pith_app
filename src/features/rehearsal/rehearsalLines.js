@@ -58,8 +58,8 @@ const TEXT_OF = Object.fromEntries([...REHEARSAL_LINES, ...RACE_LINES].map(l => 
 /** Тексты реплик репетиции — в коде (источник правды): у сохранённой в настройках реплики другой текст → её озвучка говорит старое, реплика устарела. Не реплика репетиции или текста нет — false */
 export const isStaleLine = (id, text) => typeof text === 'string' && !!text.trim() && id in TEXT_OF && text.trim() !== TEXT_OF[id]
 
-/** Реплика репетиции озвучена по-настоящему: есть файл, а текст, который он говорит, — текущий из кода */
-export const lineVoiced = (id, line) => !!line?.url && !isStaleLine(id, line.text)
+/** Реплика репетиции озвучена по-настоящему: есть файл, и он говорит текущий текст — из кода, а у поправленной в админке (custom) — сохранённый (said, если записан, совпадает с text) */
+export const lineVoiced = (id, line) => !!line?.url && (line.said == null || line.said === line.text) && (line.custom === true || !isStaleLine(id, line.text))
 
 /** Основной ключ реплики по любому её варианту: rh_done_b → rh_done; не вариант — тот же ключ */
 export const baseLineId = id => { const b = String(id ?? '').replace(/_[bc]$/, ''); return SPEC.some(d => d.id === b) ? b : id }
