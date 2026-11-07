@@ -12,6 +12,7 @@ import { trioStep, shiftMs } from '../../../pitrace/raceTapTrio.js'
 import { createDodgeDrive } from '../../../pitrace/raceDodgeDrive.js'
 import { runPhraseScene } from '../../../pitrace/racePhraseScene.js'
 import { logTrioTap } from '../../../pitrace/raceTapTrioLog.js'
+import { pLog } from '../../../../shared/lib/debug.js'
 
 // Движок пилюль игры «Повтори за диктором». ДВИЖЕНИЕ пилюль ведёт композитор (wordLaneMotion.js: одна линейная WAAPI-анимация на пилюлю — скорость конвейера постоянна), поэтому лаги основного
 // потока на смартфонах (Vosk, React, щелчок с искрами) на ход не влияют. JS каждый кадр считает только логику и заливку. Пилюли — из пула (wordLanePool.js): живой повтор один (до трёх кусков) плюс догоняющие вниз пилюли предыдущих повторов.
@@ -179,7 +180,11 @@ export function useWordLanePills(rootRef, { scene, levels, fx, live, sceneApi, t
         raf = requestAnimationFrame(tick)
       }
       raf = requestAnimationFrame(tick)
-      return () => { cancelAnimationFrame(raf); off?.(); dodger?.stop(); pool.giveAll(); setApi(sceneApi, null) }
+      return () => { // «Гонка»: ступень кончилась (done) — едущие пилюли (чужие пилюли последнего слова и т. п.) доезжают до края, а не исчезают (wordLaneCoast.js); пауза и перезапуск — убираются сразу
+        cancelAnimationFrame(raf); off?.(); dodger?.stop()
+        if (g.finished && root.closest?.('[data-race]')) { const n = pool.coast(k => pLog(`[conveyor] доехала «${pool.el(k)?.getAttribute('data-cap') ?? '?'}»`)).length; if (n) pLog(`[conveyor] ступень кончилась: доезжают ${n} пилюль`) }
+        pool.giveAll(); setApi(sceneApi, null)
+      }
     }
 
     // ---------- порядок ----------

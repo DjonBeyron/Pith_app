@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
-import { CENTER_Y, SILENCE_MS, SAY_BOOST, HOT_MS } from './racePhraseScene.js'
+import { CENTER_Y, HOT_MS } from './racePhraseScene.js'
 import { setupScene } from './racePhraseSceneRig.js'
 import { createPhraseListener, stubSay, stubDraft, stubCount } from './racePhraseListenStub.js'
 import { phraseStep, PHRASE_SPEED, SAY_SPEED, PHRASE_GAP_MS } from './raceStagesPhrases.js'
@@ -27,9 +27,12 @@ describe('сцена широкой ленты: круг 1 «Пойми»', () =
     for (const p of s.pool.taken) { expect(p.wide).toBe(true); expect(p.lane).toBe(1); expect(p.speed).toBe(PHRASE_SPEED); expect(p.quiet).toBe(true) }
     expect(s.pool.taken.map(p => p.cap)).toEqual(round1Turns(ph, 's1')[0].cands.map(c => c.cap))
   })
-  it('пилюля в зоне чтения 3–4 с', () => {
-    const zone = 50 / (SPEED * PHRASE_SPEED) // зона чтения ≈ 22…72 % высоты
-    expect(zone).toBeGreaterThanOrEqual(3); expect(zone).toBeLessThanOrEqual(4)
+  it('пилюля в зоне чтения ≈ 4,5 с (круг 1, «Узнай») и ≈ 7 с («Скажи»); кандидаты через gap: целиком на экране не больше двух', () => {
+    const zone = v => 50 / (SPEED * v) // зона чтения ≈ 22…72 % высоты
+    expect(zone(PHRASE_SPEED)).toBeGreaterThanOrEqual(4.3); expect(zone(PHRASE_SPEED)).toBeLessThanOrEqual(4.7)
+    expect(zone(SAY_SPEED)).toBeGreaterThanOrEqual(6.7); expect(zone(SAY_SPEED)).toBeLessThanOrEqual(7.4)
+    const step = (SPEED * PHRASE_SPEED * PHRASE_GAP_MS) / 1000 // шаг между кандидатами, % высоты
+    expect(2 * step).toBeGreaterThan(100 - 11) // три целиком (центры в 5,5…94,5 %) не помещаются
   })
   it('Пит ещё говорит — пилюли не выезжают', () => {
     const s = setup(pick(), { pit: 500 })
@@ -62,7 +65,7 @@ describe('сцена широкой ленты: круг 1 «Пойми»', () =
   })
   it('верная ушла — «не успел» (fx.fail); все ходы — fx.finished', () => {
     const s = setup(pick())
-    s.go(40000)
+    s.go(70000)
     expect(s.fx.fail).toHaveBeenCalledTimes(3); expect(s.fx.finished).toHaveBeenCalledTimes(1)
     expect(s.fx.fail.mock.calls.map(c => c[0].rep.res.ok)).toEqual([false, false, false])
   })
@@ -123,13 +126,14 @@ describe('сцена широкой ленты: круг 2 «Скажи»', () =
     stubSay('nice to meet you'); expect(s.fx.win.mock.calls[0][2].res).toMatchObject({ ratio: 1, clean: true })
     s.run.stop()
   })
-  it('пилюля едет медленно; после тишины SILENCE_MS — быстрее в SAY_BOOST раз, слово — снова медленно; ушла — fail с долей слов', () => {
+  it('пилюля едет с постоянной скоростью SAY_SPEED — тишина её не ускоряет (раньше ×2 после 3 с), слово не замедляет; ушла — fail с долей слов', () => {
     const s = setup(say(), { listen: createPhraseListener })
     s.go(600)
-    const p = s.pool.taken[0]
-    s.go(SILENCE_MS - 400); expect(p.rate).toBe(1)
-    s.go(600); expect(p.rate).toBe(SAY_BOOST)
-    stubSay('nice'); expect(p.rate).toBe(1)
+    const p = s.pool.taken[0], ys = []
+    for (let i = 0; i < 8; i++) { ys.push(s.pool.y(p.k)); s.go(1000); if (i === 5) stubSay('nice') }
+    const v = ys.slice(1).map((y, i) => y - ys[i]) // % за секунду
+    for (const d of v) expect(d).toBeCloseTo(SPEED * SAY_SPEED, 1)
+    expect(p.rate).toBe(1)
     s.go(30000)
     expect(s.fx.fail).toHaveBeenCalled(); expect(s.fx.fail.mock.calls[0][0].rep.res.ratio).toBe(0.25)
     expect(LISTEN_Y_MAX).toBeGreaterThan(90)
