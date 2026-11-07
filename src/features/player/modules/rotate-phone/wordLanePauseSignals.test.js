@@ -93,11 +93,11 @@ describe('useWordLanePause: один раз за уход и пометка зв
     e.winL.pagehide(); e.docL.freeze()
     expect(f.pause).toHaveBeenCalledTimes(2)
   })
-  it('источник: «Продолжить» зовёт тот же startGameAudio (recreateGameCtx при пометке, reviveWarm, rewake, openGameMic) — других путей нет', () => {
+  it('источник: «Продолжить» зовёт тот же startGameAudio (renewAudioSession / recreateGameCtx при пометке, reviveWarm, rewake, openGameMic) — других путей нет', () => {
     const pause = readFileSync(new URL('./useWordLanePause.js', import.meta.url), 'utf8')
     expect(pause).toContain("import { startGameAudio } from './wordLaneStart.js'")
     const start = readFileSync(new URL('./wordLaneStart.js', import.meta.url), 'utf8')
-    expect(start).toContain('const suspect = consume()'); expect(start).toContain('if (suspect) recreateCtx('); expect(start).toContain('reviveWarm(warmItems(plan))'); expect(start).toContain('warm.onRewarm(() => rewake({ audioSrc }))')
+    expect(start).toContain('const suspect = consume()'); expect(start).toContain('if (!why && suspect && !renewed) recreateCtx('); expect(start).toContain('needRenew({ suspect })'); expect(start).toContain('reviveWarm(warmItems(plan))'); expect(start).toContain('warm.onRewarm(() => rewake({ audioSrc }))')
   })
 })
 

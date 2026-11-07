@@ -6,12 +6,13 @@
 //  • iOS при смене типа аудиосессии (play-and-record) и открытии микрофона переводит контекст в 'interrupted'. Буферы при этом не страдают (они не привязаны к контексту) — нужен только resume() после прерывания.
 //    «Мёртвый» после фона/блокировки (resume() висит) пересоздаётся в жесте — ensureGameCtxRunning / recreateGameCtx (старт игры, wordLaneStart.js); пометка «звук после фона» — gameAudioLife.js.
 //    Закрытый ('closed') контекст пересоздаётся при следующем обращении. Подписчики прерываний (onGameCtxInterrupted) — gameAudioWarm: он запускает повторный прогрев.
-//  • У Vosk (voskEngine) и у звуков интерфейса (sounds.js) СВОИ контексты — этот модуль их не касается. В play-and-record два-три контекста допустимы; gameAudioWarm смотрит на сумму (ctxState: любой 'interrupted').
+//  • У Vosk (voskEngine) и у звуков интерфейса (sounds.js) СВОИ контексты — этот модуль их не касается (все записаны в audioContextRegistry.js). В play-and-record два-три контекста допустимы; gameAudioWarm смотрит на сумму (ctxState: любой 'interrupted').
 //    Жёсткий перезапуск по «Продолжить» (gameAudioRestart.js) закрывает и пересоздаёт все три; смену состояния игрового контекста не по нашей воле ловит gameAudioSignals.js (onGameCtxState).
 //  • Аварийный выключатель: localStorage pithy_game_web_audio_v1 = 'off' (gameAudioSettings.js) — игра идёт прежними <audio>-слотами.
 import { readWebAudioMode } from './gameAudioSettings.js'
 import { gameAudioNote } from './gameAudioSink.js'
 import { pLog } from './debug.js'
+import { createTracked, forget } from './audioContextRegistry.js'
 
 let ctx = null
 const interruptSubs = new Set()
@@ -39,8 +40,7 @@ export function getGameCtx() {
   if (ctx) return ctx
   if (!webAudioOn()) return null
   try {
-    const C = ctorOf()
-    const c = new C()
+    const c = createTracked('game', undefined, { Ctor: ctorOf(), onClose: x => { x.onstatechange = null; if (ctx === x) ctx = null } }) // реестр страницы: обновление сессии после фона закрывает все (gameAudioRenew.js)
     c.onstatechange = () => { if (ctx === c) onChange(c) }
     ctx = c
     pLog(`[game-audio] AudioContext игры создан, state=${c.state}, rate=${c.sampleRate ?? '—'}`)
@@ -82,6 +82,7 @@ export function closeGameCtx() {
   const c = ctx
   ctx = null
   if (!c) return
+  forget(c)
   try { c.onstatechange = null; c.close?.()?.catch?.(() => {}) } catch { /* уже закрыт */ }
 }
 
@@ -94,7 +95,7 @@ export function recreateGameCtx(why) {
   const old = ctx
   const was = old?.state ?? 'нет'
   ctx = null
-  if (old) { try { old.onstatechange = null; old.close?.()?.catch?.(() => {}) } catch { /* уже закрыт */ } }
+  if (old) { forget(old); try { old.onstatechange = null; old.close?.()?.catch?.(() => {}) } catch { /* уже закрыт */ } }
   pLog(`[audio] ctx пересоздан: ${why} (был ${was})`)
   gameAudioNote('game-ctx', { recreated: true, why, was })
   return getGameCtx()

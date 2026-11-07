@@ -5,6 +5,7 @@ import { resetPrimed } from './primedAudio.js'
 import { APP_VERSION } from './version.js'
 import { getSoundVolume, onSoundVolumeChange, needsGain, loadGainBuffer, playWithGain } from './soundVolume.js'
 import { suppressSound, isMicBusy, silenceReasons } from './soundQuiet.js'
+import { createTracked } from './audioContextRegistry.js'
 import { logSound, logElementSound } from './soundLog.js' // диагностика: любое воспроизведение страницей пишется в кольцо soundLog.js (корреляция с «глухим» микрофоном)
 
 // Громкость звуков интерфейса — глобальная настройка админа (audioSettings.js →
@@ -63,6 +64,14 @@ function onCtxStateChange() {
   if (isLessonOpen()) armGesture()
 }
 
+// Реестр закрыл контекст сам (обновление аудиосессии / возврат из фона): элементы тоже могли умереть — кэш выбрасываем, в уроке пересоздадим на ближайшем касании
+function onRegistryClose(c) {
+  c.onstatechange = null
+  if (ctx !== c) return
+  ctx = null; evictAll('контекст закрыт: обновление аудиосессии'); resetPrimed()
+  if (isLessonOpen()) armGesture()
+}
+
 let gestureArmed = false
 // Тап по микрофону «Сказать фразу» (data-no-unlock) разблокировкой звука не пользуемся: она ставит аудиосессию в игру ровно в
 // момент старта записи. Слушатель остаётся взведённым — сработает на ближайший другой жест
@@ -108,8 +117,8 @@ export function preloadSounds() {
   // Созданное вне жеста (playSound при пустом кэше после прерывания) меняем
   // на свежее — мы сейчас, как правило, внутри жеста
   if (lateMade.size) { lateMade.forEach(n => delete htmlCache[n]); lateMade.clear() }
-  if (!ctx) {
-    ctx = new (window.AudioContext || window.webkitAudioContext)()
+  if (!ctx || ctx.state === 'closed') { // реестр страницы (обновление аудиосессии после фона закрывает ВСЕ контексты — gameAudioRenew.js): тогда кэш выбрасывается, новый контекст — здесь, при следующем жесте
+    ctx = createTracked('sounds', undefined, { Ctor: window.AudioContext || window.webkitAudioContext, onClose: onRegistryClose })
     logSound('audiocontext', 'create')
     ctx.onstatechange = onCtxStateChange
     pLog(`[sound] AudioContext created state=${ctx.state}`)
@@ -134,17 +143,6 @@ function warmGainBuffers() {
   }
 }
 onSoundVolumeChange(warmGainBuffers)
-
-// Жёсткий перезапуск звука игры после фона (gameAudioRestart.js, тап «Продолжить» — жест): прежний контекст мог остаться 'interrupted' навсегда, а элементы — прерванными.
-// Закрываем его, выбрасываем кэш и создаём всё заново прямо в этом жесте. → { was, now } для журнала
-export function resetSoundCtx(why) {
-  const old = ctx, was = old?.state ?? null
-  ctx = null
-  if (old) { try { old.onstatechange = null; Promise.resolve(old.close?.()).catch(() => {}) } catch { /* уже закрыт */ } }
-  evictAll(why); resetPrimed()
-  if (typeof window !== 'undefined' && (window.AudioContext || window.webkitAudioContext)) { try { preloadSounds(); unlockAudio() } catch { /* звуки интерфейса — не условие игры */ } }
-  return { was, now: ctx?.state ?? null }
-}
 
 // Call synchronously in gesture handler — resumes AudioContext.
 // iOS gesture unlock is page-wide: after this, HTMLAudioElement.play() from

@@ -121,13 +121,13 @@ describe('useWordLanePause: подписка на сворачивание и «
     fx.cleanup()
     expect(docL.visibilitychange).toBeUndefined(); expect(winL.pagehide).toBeUndefined()
   })
-  it('«Продолжить»: startGameAudio (openGameMic) вызывается СИНХРОННО в тапе, ступень сначала — только после него; запись resume в журнале', async () => {
+  it('«Продолжить»: startGameAudio (openGameMic) вызывается сразу после обновления аудиосессии (единицы мс, жест жив), ступень сначала — только после него; запись resume в журнале', async () => {
     const { f, start, hook, cfg } = setup()
     hook.resume()
-    expect(start).toHaveBeenCalledTimes(1) // тот же тик, что и тап — жест жив
-    expect(start).toHaveBeenCalledWith({ cfg, audioSrc: 'a.mp3', lines: { x: 1 } }, expect.objectContaining({ recreateCtx: expect.any(Function), consume: expect.any(Function) })) // через координатор жёсткого перезапуска (gameAudioRestart.js)
-    expect(f.restartStage).not.toHaveBeenCalled()
     expect(f.dbg.event).toHaveBeenCalledWith('resume')
+    await tick()
+    expect(start).toHaveBeenCalledTimes(1)
+    expect(start).toHaveBeenCalledWith({ cfg, audioSrc: 'a.mp3', lines: { x: 1 } }, expect.objectContaining({ renewed: true, consume: expect.any(Function) })) // через координатор жёсткого перезапуска (gameAudioRestart.js → gameAudioRenew.js)
     await tick()
     expect(f.restartStage).toHaveBeenCalledTimes(1)
     expect(start.mock.invocationCallOrder[0]).toBeLessThan(f.restartStage.mock.invocationCallOrder[0])
@@ -141,7 +141,7 @@ describe('useWordLanePause: подписка на сворачивание и «
   it('свернули снова, пока микрофон открывался: перезапуска нет, остаёмся на паузе', async () => {
     let done
     const { f, hook, doc, docL } = setup({ startAudio: vi.fn(() => new Promise(r => { done = r })) })
-    hook.resume()
+    hook.resume(); await tick()
     doc.visibilityState = 'hidden'; docL.visibilitychange()
     done({ mic: 'granted' }); await tick()
     expect(f.pause).toHaveBeenCalledWith('hidden')

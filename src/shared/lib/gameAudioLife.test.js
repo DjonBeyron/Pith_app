@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { installGameAudioLife, needsRewake, consumeRewake, markGameAudioSuspect } from './gameAudioLife.js'
+import { installGameAudioLife, needsRewake, consumeRewake, markGameAudioSuspect, lastAway } from './gameAudioLife.js'
 
 // Фон/блокировка: журнал «[audio] visibility …», пометка «звук подозрительный» после возврата, идемпотентная установка
 const logs = vi.hoisted(() => [])
@@ -61,5 +61,11 @@ describe('gameAudioLife', () => {
     off()
     expect(e.docL.visibilitychange).toHaveLength(0)
     expect(needsRewake()).toBeNull()
+  })
+  it('lastAway: когда ушли в фон и сколько там были — не сбрасывается возвратом (обновление сессии смотрит, какие контексты старше)', () => {
+    t = 1000; e.doc.visibilityState = 'hidden'; e.fire(e.docL, 'visibilitychange')
+    expect(lastAway()).toEqual({ hiddenAt: 1000, awayMs: null })
+    t = 557000; e.doc.visibilityState = 'visible'; e.fire(e.docL, 'visibilitychange')
+    expect(lastAway()).toEqual({ hiddenAt: 1000, awayMs: 556000 })
   })
 })

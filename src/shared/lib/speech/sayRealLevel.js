@@ -9,6 +9,7 @@
 // при конце попытки/результате/ошибке/уходе панели. Ошибка getUserMedia — тихий откат на синтетический уровень (status 'error:Имя').
 
 import { logSound } from '../soundLog.js'
+import { createTracked } from '../audioContextRegistry.js'
 
 export const REAL_LEVEL_KEY = 'pithy_say_real_level_v1'
 export const REAL_FLOOR = 0.02   // RMS ниже — шум комнаты, кольца не трогает
@@ -113,7 +114,7 @@ export function createRealLevel({ getUserMedia, createAudioContext, onStatus = (
 /** Реальный менеджер для браузера: микрофон и контекст берутся из window (нужны только в тапе) */
 export const createBrowserRealLevel = onStatus => createRealLevel({
   getUserMedia: c => navigator.mediaDevices.getUserMedia(c), // нет mediaDevices — бросит, менеджер поймает
-  createAudioContext: () => { logSound('audiocontext', 'capture'); return new (window.AudioContext || window.webkitAudioContext)() },
+  createAudioContext: () => { logSound('audiocontext', 'capture'); return createTracked('level', undefined, { Ctor: window.AudioContext || window.webkitAudioContext }) },
   onStatus,
 })
 

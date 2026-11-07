@@ -12,6 +12,8 @@ let installed = null
 let hiddenAt = null    // когда страница ушла в фон (мс) — до возврата
 let suspect = null     // причина «подозрительного» звука или null
 let flagged = 0        // сколько раз помечали (диагностика, тесты)
+let lastHiddenAt = null // когда страница ушла в фон в последний раз (не сбрасывается возвратом): контексты, созданные раньше, «старше фона» (gameAudioRenew.js)
+let lastAwayMs = null   // сколько длился последний уход в фон, мс
 
 const returnSubs = new Set() // подписчики «вернулись из фона» (прогрев карточки игры, wordLaneWarm.js)
 
@@ -25,7 +27,9 @@ export function onGameAudioReturn(cb) { returnSubs.add(cb); return () => returnS
 export const needsRewake = () => suspect
 /** Забрать пометку при старте игры → причина или null */
 export function consumeRewake() { const w = suspect; suspect = null; return w }
-export const lifeStatus = () => ({ installed: !!installed, hiddenAt, suspect, flagged })
+export const lifeStatus = () => ({ installed: !!installed, hiddenAt, suspect, flagged, lastHiddenAt, lastAwayMs })
+/** Последний уход в фон: { hiddenAt, awayMs } (null — не уходили; awayMs null — ещё в фоне) */
+export const lastAway = () => ({ hiddenAt: lastHiddenAt, awayMs: lastAwayMs })
 
 /**
  * Подписаться на уход в фон и возврат (document: visibilitychange; window: pagehide / pageshow / blur / focus). Повторный вызов — no-op. deps — подмена в тестах.
@@ -38,10 +42,11 @@ export function installGameAudioLife({ doc = typeof document !== 'undefined' ? d
     pLog(`[audio] ${what}: ctx=${ctx ?? 'нет'}, audioSession.type=${as ?? '—'}${extra}`)
     gameAudioNote('audio-life', { what, ctx, as, suspect })
   }
-  const gone = what => { if (hiddenAt == null) hiddenAt = now(); line(what) }
+  const gone = what => { if (hiddenAt == null) { hiddenAt = now(); lastHiddenAt = hiddenAt; lastAwayMs = null } line(what) }
   const back = what => {
     const was = hiddenAt != null
     const away = was ? Math.round((now() - hiddenAt) / 1000) : null
+    if (was) lastAwayMs = now() - hiddenAt
     hiddenAt = null
     const ctx = ctxState()
     if (was || ctx === 'interrupted' || ctx === 'suspended') markGameAudioSuspect(`${what}${away != null ? ` после ${away} с в фоне` : ''}`)
@@ -59,7 +64,7 @@ export function installGameAudioLife({ doc = typeof document !== 'undefined' ? d
   installed = () => {
     doc.removeEventListener('visibilitychange', onVis)
     win.removeEventListener('pagehide', onHide); win.removeEventListener('pageshow', onShow); win.removeEventListener('blur', onBlur); win.removeEventListener('focus', onFocus)
-    installed = null; hiddenAt = null; suspect = null
+    installed = null; hiddenAt = null; suspect = null; lastHiddenAt = null; lastAwayMs = null
   }
   return installed
 }

@@ -24,6 +24,9 @@ import { raceChron } from '../../../pitrace/raceStartChron.js'
 import { SETTLE_MAX_MS } from '../../../../shared/lib/gameAudioWarm.js'
 import { readTapMode } from './wordLaneHudSettings.js'
 import { setGameMicWanted } from '../../../../shared/lib/gameMicWant.js'
+import { renewAudioSession, renewNeed } from '../../../../shared/lib/gameAudioRenew.js'
+import { armOutputCheck } from '../../../../shared/lib/gameAudioOutputCheck.js'
+import { installReturnClean } from '../../../../shared/lib/gameAudioReturnClean.js'
 
 export const FAST_CTX_WAIT_MS = 200 // быстрый старт гонки: resume контекста ждём не дольше (идёт ПАРАЛЛЕЛЬНО воротам и регистрации буферов; микрофон открывается тоже параллельно; сам playGameBuffer при необходимости дожмёт resume)
 export const MIC_OFF = 'off' // «Тапаю» в «Гонке»: микрофон игре не нужен и не открывается (startGameAudio → mic: 'off')
@@ -109,63 +112,77 @@ export function rewakeGameAudio({ audioSrc }) {
  * Вызывать СИНХРОННО в обработчике тапа «Начать» (весь синхронный префикс — в жесте). Возвращает промис { mic, settled, needsTap }: mic — 'granted' | 'denied' | 'unavailable' | 'off' (микрофон не нужен), settled — итог ожидания
  * (прерываний, мс, состояние контекста), needsTap — жест истёк и прогрев ждёт касания (игру открывать после тапа). mic: false («Тапаю», по умолчанию wantsMic(cfg)) — ни типа сессии записи, ни getUserMedia. onMic(mic) — ответ
  * системы о микрофоне пришёл (попап гонки меняет «Разрешите микрофон…» на «Готовлю звук…»). deps — подмена зависимостей в тестах.
+ * После фона (renewNeed) старт сначала ждёт полного обновления аудиосессии (renewAudioSession: единицы-десятки мс, жест ещё жив), потом идёт как обычно и проверяет вывод первой реплики (armOutputCheck).
  */
+const installAudioLife = () => { installGameAudioLife(); installReturnClean() }
+
 export function startGameAudio({ cfg, audioSrc, lines, onLineReady = null, onMic = null, mic: useMic = wantsMic(cfg) }, deps = {}) {
-  const { warm = gameAudioWarm, session = gameAudioSession, hold = gameMicHold, openMic = openGameMic, wake = wakeGameAudio, rewake = rewakeGameAudio, gateMaxMs = GATE_MAX_MS, trace = gameStartTrace, prefetch = prefetchWords, unlockCtx = unlockGameCtx, gate = waitWarmGate, install = installGameAudioLife, consume = consumeRewake, recreateCtx = recreateGameCtx, ensureCtx = ensureGameCtxRunning, raceGateMs = RACE_GATE_MS, ctxState = gameCtxState, chron = raceChron } = deps
+  const { warm = gameAudioWarm, session = gameAudioSession, hold = gameMicHold, openMic = openGameMic, wake = wakeGameAudio, rewake = rewakeGameAudio, gateMaxMs = GATE_MAX_MS, trace = gameStartTrace, prefetch = prefetchWords, unlockCtx = unlockGameCtx, gate = waitWarmGate, install = installAudioLife, consume = consumeRewake, recreateCtx = recreateGameCtx, ensureCtx = ensureGameCtxRunning, raceGateMs = RACE_GATE_MS, ctxState = gameCtxState, chron = raceChron,
+    renew = renewAudioSession, needRenew = renewNeed, armCheck = armOutputCheck, renewed = false } = deps
   trace.begin() // хронология старта: отсчёт от тапа
-  install() // слушатели фона/возврата (gameAudioLife.js): идемпотентно; без них метка «звук после фона» не ставится
-  const suspect = consume() // звук возвращался из фона/блокировки с прошлого старта → полный путь: старый контекст не доверен, в этом же жесте создаём свежий
-  if (suspect) recreateCtx(`повторный старт после фона (${suspect})`)
-  warm.begin() // следим за прерываниями с этой секунды
-  setGameMicWanted(useMic)
-  if (useMic) session.begin() // 1. тип аудиосессии (настройка в Админ → «Голос»): до открытия микрофона, в том же тапе. «Тапаю» — сессию записи не ставим вовсе
-  const fast = cfg?.plan?.game === 'race' // «Гонка»: реплика race_start НЕ ждёт микрофон (iOS открывает его 0,5–1,5 с) — звук поднимается сразу после resume контекста, микрофон открывается параллельно (нужен только к первой пилюле)
-  const step = (name, label) => (fast ? chron.step(name, label) : null) // хронология «[start]» (raceStartChron.js) — только у гонки
-  const micPromise = useMic ? openMic() : Promise.resolve(MIC_OFF) // 1. микрофон: getUserMedia вызывается синхронно в жесте (диалога нет, если доступ уже выдан); один поток на всю игру
-  unlockCtx() // 1. игровой AudioContext (Web Audio) — создать и resume() в этом же жесте, пока он жив
-  const plan = wordsPlan({ cfg, lines })
-  const revived = reviveWarm(warmItems(plan)) // страховка второго запуска: реестр «обработан» не доверен — отметки без буфера в памяти и оборванные докачки сбрасываются, файлы качаются заново, ворота ждут настоящий результат
-  if (revived.failed || revived.noBuffer || revived.stuck) pLog(`[warm] страховка: ${revived.noBuffer} файлов отмечены готовыми, но буфера в памяти нет; ${revived.failed} — с оборванной докачкой; ${revived.stuck} — запрос завис: качаю и декодирую заново`)
-  prefetch(warmItems(plan)) // 0. озвучка качается и декодируется ВСЯ сразу (нужное к старту — первым в списке), пока открывается микрофон и улягается сессия (слотов ещё нет — аудиосессию это не трогает)
-  if (useMic) step('gum', 'getUserMedia вызван (в жесте, после типа сессии)')
-  // Быстрый путь (v3.3.115): resume (≤ FAST_CTX_WAIT_MS, без пересоздания — контекст может быть 'interrupted', пока идёт смена сессии) → регистрация буферов (wake) → ворота первых реплик → отметка ready: реплика играет,
-  // пока микрофон ещё открывается. Весь обычный путь (mic → settle → ctx → wake) идёт следом и повторно будит звук после смены сессии — как раньше.
-  const openLines = async () => {
-    const ctxWait = ensureCtx({ why: 'быстрый старт гонки', waitMs: FAST_CTX_WAIT_MS, recreate: false }).then(r => { trace.mark('ctx', { state: r?.state ?? null, recreated: false, afterBg: suspect ?? null, ms: r?.ms ?? null, early: true }); return r }) // resume идёт параллельно регистрации буферов и воротам (раньше — друг за другом: сумма ожиданий)
-    try { wake({ cfg, audioSrc, lines }); trace.mark('wake', { ok: true, ctx: gameCtxState(), early: true }) } catch (e) { pLog(`[rotate] звук диктора не разбудился: ${e?.message ?? e}`) }
-    const [g] = await Promise.all([gate({ items: warmItems(plan), firstCount: plan.firstCount, min: plan.gateMin, maxMs: raceGateMs, sinceTapMs: trace.sinceTap?.() ?? 0 }), ctxWait.catch(() => null)])
-    trace.mark('ready', { words: g.by === 'timeout' ? 'timeout' : 'ready', gate: g.by, done: g.ok, total: g.total, firstN: g.firstN, ms: g.ms, ctx: gameCtxState(), early: true })
-    pLog(`[race] старт: звук реплик готов через ${trace.sinceTap?.() ?? '—'} мс с тапа, микрофон ещё открывается, ctx=${gameCtxState() ?? 'нет'}`)
-    step('gate', `звук реплик готов (ворота: ${g.by}, ${g.ok}/${g.total}), ctx=${gameCtxState() ?? 'нет'}`)
-    try { onLineReady?.() } catch { /* игра не зависит от колбэка */ }
-  }
-  return (async () => {
-    const early = fast ? openLines().catch(e => pLog(`[race] быстрый старт звука не вышел (${e?.message ?? e}) — обычный путь`)) : null
-    const mic = await micPromise
-    trace.mark('mic', { mic })
-    if (useMic) step('mic', `getUserMedia ответил: ${mic}${mic === 'granted' ? ' — попап «Готовлю звук…»' : ''}`)
-    try { onMic?.(mic) } catch { /* попап не мешает старту */ }
-    if (useMic) hold.parkNow() // режим «микрофон только в фазе ученика»: доступ получен — поток закрываем, к очереди ученика откроем заново (в остальных режимах no-op)
-    warm.markSelf()
-    const quietMs = fast ? RACE_SETTLE_QUIET_MS : undefined // гонка: короче (буферам Web Audio нужен только 'running' контекст; прерванный settle ждёт и так)
-    if (useMic) step('settle0', `«Готовлю звук»: жду, пока аудиосессия уляжется после смены на запись (iOS может прервать AudioContext): тишина ${quietMs ?? 250} мс без прерываний, потолок ${SETTLE_MAX_MS} мс`)
-    const settled = await warm.settle(quietMs ? { quietMs } : undefined) // 2.
-    if (useMic) step('settle', `аудиосессия улеглась за ${settled.waitedMs} мс: прерываний ${settled.interrupts}, ctx=${settled.ctx ?? '—'}${settled.timedOut ? ' (не дождались — потолок)' : ''}`)
-    trace.mark('settle', { waitedMs: settled.waitedMs, interrupts: settled.interrupts, ctx: settled.ctx ?? null, activation: settled.activation ?? null })
-    const ctxRes = fast && gameCtxState() === 'running' ? { state: 'running', recreated: false, ms: 0 } : await ensureCtx({ why: suspect ? 'повторный старт после фона' : 'старт игры' }) // быстрый путь: уже running — не трогаем (пересоздание оборвало бы идущую реплику) // 2б. контекст ДОЛЖЕН быть 'running': resume() не завершился за 300 мс («мёртвый» после фона) → пересоздаём в этом же жесте
-    trace.mark('ctx', { state: ctxRes?.state ?? null, recreated: !!ctxRes?.recreated, afterBg: suspect ?? null, ms: ctxRes?.ms ?? null })
-    warm.onRewarm(() => rewake({ audioSrc })) // прерывание после этого места — повторный прогрев
-    try { wake({ cfg, audioSrc, lines }); trace.mark('wake', { ok: true, ctx: gameCtxState() }) } catch (e) { pLog(`[rotate] звук диктора не разбудился: ${e?.message ?? e}`); trace.mark('wake', { ok: false, error: e?.message ?? String(e) }) } // 3.
-    const needsTap = settled.activation === false && !(fast && ctxState() === 'running') // «Гонка»: реплики и ноты играют буферами Web Audio — запущенному контексту жест уже не нужен (после диалога микрофона жест истёк, но звук жив)
-    if (settled.activation === false) {
-      warm.rewarmOnGesture('жест истёк, пока открывался микрофон (диалог доступа)') // play() вне жеста iOS не разрешит: разбудим ещё раз на ближайшем касании
-      if (needsTap) { trace.setNeedsTap(true); trace.mark('tap-wait', { why: 'жест истёк до прогрева' }) }
+  install() // слушатели фона/возврата (gameAudioLife.js) и закрытие контекстов при возврате без игры (gameAudioReturnClean.js): идемпотентно
+  const suspect = consume() // звук возвращался из фона/блокировки с прошлого старта → полный путь: старый контекст не доверен
+  // Полное обновление аудиосессии (gameAudioRenew.js): auto → закрыть ВСЕ контексты страницы → тип → новый игровой контекст → running. renewed — «Продолжить» уже обновил (gameAudioRestart.js)
+  const why = renewed ? null : needRenew({ suspect })
+  if (!why && suspect && !renewed) recreateCtx(`повторный старт после фона (${suspect})`) // короткий фон, старых контекстов нет — достаточно свежего игрового
+  if (!why) return startBody()
+  const again = () => renew({ reason: `звук не пошёл: ${why}`, wantType: useMic ? null : 'auto', applyType: useMic ? () => session.begin() : null })
+  return renew({ reason: why, wantType: useMic ? null : 'auto', applyType: useMic ? () => session.begin() : null })
+    .catch(e => { pLog(`[audio] renew упал: ${e?.message ?? e}`); return null })
+    .then(() => { try { armCheck({ renew: again }) } catch { /* проверка — не условие старта */ } return startBody() })
+
+  function startBody() {
+    warm.begin() // следим за прерываниями с этой секунды
+    setGameMicWanted(useMic)
+    if (useMic) session.begin() // 1. тип аудиосессии (настройка в Админ → «Голос»): до открытия микрофона, в том же тапе. «Тапаю» — сессию записи не ставим вовсе
+    const fast = cfg?.plan?.game === 'race' // «Гонка»: реплика race_start НЕ ждёт микрофон (iOS открывает его 0,5–1,5 с) — звук поднимается сразу после resume контекста, микрофон открывается параллельно (нужен только к первой пилюле)
+    const step = (name, label) => (fast ? chron.step(name, label) : null) // хронология «[start]» (raceStartChron.js) — только у гонки
+    const micPromise = useMic ? openMic() : Promise.resolve(MIC_OFF) // 1. микрофон: getUserMedia вызывается синхронно в жесте (диалога нет, если доступ уже выдан); один поток на всю игру
+    unlockCtx() // 1. игровой AudioContext (Web Audio) — создать и resume() в этом же жесте, пока он жив
+    const plan = wordsPlan({ cfg, lines })
+    const revived = reviveWarm(warmItems(plan)) // страховка второго запуска: реестр «обработан» не доверен — отметки без буфера в памяти и оборванные докачки сбрасываются, файлы качаются заново, ворота ждут настоящий результат
+    if (revived.failed || revived.noBuffer || revived.stuck) pLog(`[warm] страховка: ${revived.noBuffer} файлов отмечены готовыми, но буфера в памяти нет; ${revived.failed} — с оборванной докачкой; ${revived.stuck} — запрос завис: качаю и декодирую заново`)
+    prefetch(warmItems(plan)) // 0. озвучка качается и декодируется ВСЯ сразу (нужное к старту — первым в списке), пока открывается микрофон и улягается сессия (слотов ещё нет — аудиосессию это не трогает)
+    if (useMic) step('gum', 'getUserMedia вызван (в жесте, после типа сессии)')
+    // Быстрый путь (v3.3.115): resume (≤ FAST_CTX_WAIT_MS, без пересоздания — контекст может быть 'interrupted', пока идёт смена сессии) → регистрация буферов (wake) → ворота первых реплик → отметка ready: реплика играет,
+    // пока микрофон ещё открывается. Весь обычный путь (mic → settle → ctx → wake) идёт следом и повторно будит звук после смены сессии — как раньше.
+    const openLines = async () => {
+      const ctxWait = ensureCtx({ why: 'быстрый старт гонки', waitMs: FAST_CTX_WAIT_MS, recreate: false }).then(r => { trace.mark('ctx', { state: r?.state ?? null, recreated: false, afterBg: suspect ?? null, ms: r?.ms ?? null, early: true }); return r }) // resume идёт параллельно регистрации буферов и воротам (раньше — друг за другом: сумма ожиданий)
+      try { wake({ cfg, audioSrc, lines }); trace.mark('wake', { ok: true, ctx: gameCtxState(), early: true }) } catch (e) { pLog(`[rotate] звук диктора не разбудился: ${e?.message ?? e}`) }
+      const [g] = await Promise.all([gate({ items: warmItems(plan), firstCount: plan.firstCount, min: plan.gateMin, maxMs: raceGateMs, sinceTapMs: trace.sinceTap?.() ?? 0 }), ctxWait.catch(() => null)])
+      trace.mark('ready', { words: g.by === 'timeout' ? 'timeout' : 'ready', gate: g.by, done: g.ok, total: g.total, firstN: g.firstN, ms: g.ms, ctx: gameCtxState(), early: true })
+      pLog(`[race] старт: звук реплик готов через ${trace.sinceTap?.() ?? '—'} мс с тапа, микрофон ещё открывается, ctx=${gameCtxState() ?? 'нет'}`)
+      step('gate', `звук реплик готов (ворота: ${g.by}, ${g.ok}/${g.total}), ctx=${gameCtxState() ?? 'нет'}`)
+      try { onLineReady?.() } catch { /* игра не зависит от колбэка */ }
     }
-    await early // быстрый путь: ворота и отметка ready уже были (openLines), второй раз не ждём
-    if (fast) return { mic, settled, needsTap }
-    const g = await gate({ items: warmItems(plan), firstCount: plan.firstCount, min: plan.gateMin, maxMs: gateMaxMs, sinceTapMs: trace.sinceTap?.() ?? 0 }) // 4. ворота: первые N готовы / все / таймаут (8 с с тапа)
-    trace.mark('ready', { words: g.by === 'timeout' ? 'timeout' : 'ready', gate: g.by, done: g.ok, total: g.total, firstN: g.firstN, ms: g.ms, ...(g.missing?.length ? { missing: g.missing.slice(0, 12) } : {}), ctx: gameCtxState() })
-    pLog(`[audio] состояние ctx=${gameCtxState() ?? 'нет'} перед первой репликой${gameCtxState() === 'running' ? '' : ' — НЕ running: реплики Пита могут не зазвучать до касания'}`)
-    return { mic, settled, needsTap }
-  })()
+    return (async () => {
+      const early = fast ? openLines().catch(e => pLog(`[race] быстрый старт звука не вышел (${e?.message ?? e}) — обычный путь`)) : null
+      const mic = await micPromise
+      trace.mark('mic', { mic })
+      if (useMic) step('mic', `getUserMedia ответил: ${mic}${mic === 'granted' ? ' — попап «Готовлю звук…»' : ''}`)
+      try { onMic?.(mic) } catch { /* попап не мешает старту */ }
+      if (useMic) hold.parkNow() // режим «микрофон только в фазе ученика»: доступ получен — поток закрываем, к очереди ученика откроем заново (в остальных режимах no-op)
+      warm.markSelf()
+      const quietMs = fast ? RACE_SETTLE_QUIET_MS : undefined // гонка: короче (буферам Web Audio нужен только 'running' контекст; прерванный settle ждёт и так)
+      if (useMic) step('settle0', `«Готовлю звук»: жду, пока аудиосессия уляжется после смены на запись (iOS может прервать AudioContext): тишина ${quietMs ?? 250} мс без прерываний, потолок ${SETTLE_MAX_MS} мс`)
+      const settled = await warm.settle(quietMs ? { quietMs } : undefined) // 2.
+      if (useMic) step('settle', `аудиосессия улеглась за ${settled.waitedMs} мс: прерываний ${settled.interrupts}, ctx=${settled.ctx ?? '—'}${settled.timedOut ? ' (не дождались — потолок)' : ''}`)
+      trace.mark('settle', { waitedMs: settled.waitedMs, interrupts: settled.interrupts, ctx: settled.ctx ?? null, activation: settled.activation ?? null })
+      const ctxRes = fast && gameCtxState() === 'running' ? { state: 'running', recreated: false, ms: 0 } : await ensureCtx({ why: suspect ? 'повторный старт после фона' : 'старт игры' }) // быстрый путь: уже running — не трогаем (пересоздание оборвало бы идущую реплику) // 2б. контекст ДОЛЖЕН быть 'running': resume() не завершился за 300 мс («мёртвый» после фона) → пересоздаём в этом же жесте
+      trace.mark('ctx', { state: ctxRes?.state ?? null, recreated: !!ctxRes?.recreated, afterBg: suspect ?? null, ms: ctxRes?.ms ?? null })
+      warm.onRewarm(() => rewake({ audioSrc })) // прерывание после этого места — повторный прогрев
+      try { wake({ cfg, audioSrc, lines }); trace.mark('wake', { ok: true, ctx: gameCtxState() }) } catch (e) { pLog(`[rotate] звук диктора не разбудился: ${e?.message ?? e}`); trace.mark('wake', { ok: false, error: e?.message ?? String(e) }) } // 3.
+      const needsTap = settled.activation === false && !(fast && ctxState() === 'running') // «Гонка»: реплики и ноты играют буферами Web Audio — запущенному контексту жест уже не нужен (после диалога микрофона жест истёк, но звук жив)
+      if (settled.activation === false) {
+        warm.rewarmOnGesture('жест истёк, пока открывался микрофон (диалог доступа)') // play() вне жеста iOS не разрешит: разбудим ещё раз на ближайшем касании
+        if (needsTap) { trace.setNeedsTap(true); trace.mark('tap-wait', { why: 'жест истёк до прогрева' }) }
+      }
+      await early // быстрый путь: ворота и отметка ready уже были (openLines), второй раз не ждём
+      if (fast) return { mic, settled, needsTap }
+      const g = await gate({ items: warmItems(plan), firstCount: plan.firstCount, min: plan.gateMin, maxMs: gateMaxMs, sinceTapMs: trace.sinceTap?.() ?? 0 }) // 4. ворота: первые N готовы / все / таймаут (8 с с тапа)
+      trace.mark('ready', { words: g.by === 'timeout' ? 'timeout' : 'ready', gate: g.by, done: g.ok, total: g.total, firstN: g.firstN, ms: g.ms, ...(g.missing?.length ? { missing: g.missing.slice(0, 12) } : {}), ctx: gameCtxState() })
+      pLog(`[audio] состояние ctx=${gameCtxState() ?? 'нет'} перед первой репликой${gameCtxState() === 'running' ? '' : ' — НЕ running: реплики Пита могут не зазвучать до касания'}`)
+      return { mic, settled, needsTap }
+    })()
+  }
 }

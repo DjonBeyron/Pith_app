@@ -10,6 +10,7 @@ import { getGameCtx } from './gameAudioCtx.js'
 export const RESUME_WAIT_MS = 300 // сколько ждём resume() контекста, который не 'running' (прервано iOS / ещё не открывали), прежде чем сдаться
 
 const playing = new Set() // { src, gain } — идущие источники
+let startWatch = null // разовый наблюдатель «следующий звук стартовал» (gameAudioOutputCheck.js: идёт ли вывод после обновления сессии)
 let started = 0 // сколько звуков стартовало с загрузки страницы (журнал перезапуска звука после фона: «за N с после „Продолжить“ стартовало K»)
 
 function build(c, buffer, rate, gain) {
@@ -38,13 +39,14 @@ export function playGameBuffer(buffer, { rate = 1, gain = 1, onStart = null, onR
     let node
     try {
       node = build(c, buffer, rate > 0 ? rate : 1, Math.max(0, gain))
-      node.src.onended = () => { release(node); try { onEnd?.() } catch { /* подписчик не должен ломать звук */ } }
+      node.src.onended = () => { node.ended = true; release(node); try { onEnd?.() } catch { /* подписчик не должен ломать звук */ } }
       node.src.start(c.currentTime || 0)
     } catch (e) { if (node) release(node); report('rejected', { error: e?.name ?? String(e ?? 'error') }); return }
     playing.add(node)
     started += 1
     try { onStart?.() } catch { /* рот кота не должен ломать звук */ }
     report('started')
+    notifyWatch(c, node, buffer, { rate, gain, onStart, onEnd })
   }
   if (c.state === 'running') { begin(); return true }
   let settled = false
@@ -53,6 +55,18 @@ export function playGameBuffer(buffer, { rate = 1, gain = 1, onStart = null, onR
   try { p = c.resume() } catch { p = null }
   Promise.resolve(p).catch(() => {}).then(() => { if (settled || c.state !== 'running') return; settled = true; clearTimer(timer); begin() })
   return true
+}
+
+/** Следующий стартовавший звук → fn({ ctx, t0, durMs, ended(), replay() }) один раз (replay — оборвать и сыграть тот же буфер заново, в текущем контексте). → отписка */
+export function watchNextStart(fn) { startWatch = fn; return () => { if (startWatch === fn) startWatch = null } }
+
+function notifyWatch(c, node, buffer, opts) {
+  const w = startWatch
+  if (!w) return
+  startWatch = null
+  const durMs = Math.round(((buffer?.duration ?? 0) * 1000) / (opts.rate > 0 ? opts.rate : 1))
+  const replay = () => { try { node.src.onended = null; node.src.stop?.() } catch { /* уже закончил */ } release(node); return playGameBuffer(buffer, opts) }
+  try { w({ ctx: c, t0: Number(c.currentTime) || 0, durMs, ended: () => !!node.ended, replay }) } catch { /* наблюдатель не должен ломать звук */ }
 }
 
 /** Оборвать все идущие звуки игры (пауза / выход) */

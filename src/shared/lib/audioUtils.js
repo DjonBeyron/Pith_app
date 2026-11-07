@@ -1,3 +1,5 @@
+import { createTracked } from './audioContextRegistry.js'
+
 export const WAVEFORM_FPS = 30
 
 const BAR_W   = 2
@@ -61,7 +63,7 @@ export function probeAudioDuration(url, timeoutMs = 4000) {
 export async function analyzeWaveform(url) {
   const resp        = await fetch(url)
   const arrayBuffer = await resp.arrayBuffer()
-  const audioCtx    = new (window.AudioContext || window.webkitAudioContext)()
+  const audioCtx    = createTracked('waveform', undefined, { Ctor: window.AudioContext || window.webkitAudioContext }) // реестр страницы; закрывается сразу после декодирования
   let audioBuffer
   try {
     audioBuffer = await audioCtx.decodeAudioData(arrayBuffer)
