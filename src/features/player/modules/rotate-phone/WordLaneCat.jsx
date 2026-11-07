@@ -11,13 +11,16 @@ import { createMouthHold } from './wordLaneMouthHold.js'
 import { CAT_FACES, buildCat } from './wordLaneCatTree.js'
 import { createCatLook, drawCatMouth, NO_LOOK } from './wordLaneCatLook.js'
 import { crossfadeHeads } from './wordLaneCatFade.js'
+import { mouthSourceLine } from '../../../../shared/lib/mouthLevels.js'
+import { pLog } from '../../../../shared/lib/debug.js'
 
 // Пит (фиолетовый кот-маскот из конструктора сцен: buildMascot('kit')) — из нижнего края экрана выскакивает ТОЛЬКО ГОЛОВА (тело не рисуется: viewBox обрезан по голове) и торчит
 // в разных местах (CAT_SPOTS), вдвое крупнее прежнего кота. БЕЗ идл-анимаций тела (покачивание, дыхание, моргание — scn--live): анимации SVG идут в основном потоке и на смартфонах давали подлагивание в момент, когда кот выскакивает вместе с первым словом диктора; оживляют его только выскакивание (CSS-пружина на композиторе), рот по голосу и лицо-реакция.
 // «Живой Пит v2» (scn--v2, wordLaneCatLook.js) включён всегда — это новая игра: зрачки (взгляд, саккады по словам, расширение в начале речи, дрейф, пока кот выглядывает) — CSS-переменные по событиям, без rAF;
 // широкие формы рта крупнее (data-vis на голове); усы качаются, пока кот говорит (is-talking, word-lane.css). На слабом устройстве (scn--lite, isWeakDevice) — только рот, как раньше.
 // Управляется ИЗВНЕ через apiRef, минуя React на кадрах:
-//  • apiRef.current.mouth(level, code?) — громкость 0…1 → форма рта (closed / half / open); есть code (форма по букве, wordLaneVisemes) и звук слышен — рот этой формы (на «о» круглый); звук слышен (≥ VOICE_AT) — кот «говорит» (усы), с выдержкой 300 мс;
+//  • apiRef.current.hear(level) — уровень микрофона (голос игрока): только выглядывание головы, рот НЕ двигается (журнал «[mouth] источник рта …» при монтаже);
+//  • apiRef.current.mouth(level, code?) — громкость голоса Пита (диктор) 0…1 → форма рта (closed / half / open); есть code (форма по букве, wordLaneVisemes) и звук слышен — рот этой формы (на «о» круглый); звук слышен (≥ VOICE_AT) — кот «говорит» (усы), с выдержкой 300 мс;
 //  • apiRef.current.speak(track, ms, meta?) — реплика кота: рот идёт по дорожке track (wordLaneVisemes.mouthTrack) ms миллисекунд, на это время микрофонный mouth() рот не трогает (отбрасывается и считается в журнале), усы держатся до конца;
 //    кот «говорит», зрачки расширяются в начале; нет дорожки — запасной цикл форм, рот не стоит. Логика — wordLaneCatVoice.js; события cat-speak / cat-speak-end попадают в отладку (wordLaneCatDebug.js).
 //    Голос есть — голова выскакивает (в новом месте), голоса нет HIDE_AFTER_MS — прячется (wordLaneCatPeek.js); apiRef.current.isUp() — голова сейчас торчит;
@@ -68,6 +71,7 @@ function WordLaneCat({ apiRef, skin = 'kit' }) {
   useEffect(() => {
     if (!apiRef) return undefined
     const hold = createMouthHold({ apply: draw })
+    pLog(mouthSourceLine('запуск сцены'))
     holdRef.current = hold
     drawsRef.current = 0
     const look = lite ? NO_LOOK : createCatLook({ getRoot: () => groRef.current, skin })
@@ -81,6 +85,7 @@ function WordLaneCat({ apiRef, skin = 'kit' }) {
     const voice = createCatVoice({ hold, look, peek, queue, drawn: () => drawsRef.current })
     apiRef.current = {
       mouth: voice.mouth,
+      hear: voice.hear,
       speak: voice.speak,
       isUp: peek.isUp,
       react(next, ms = 1500, still = false) { // still — лицо без движения головы (тихий промах «Разгона»)

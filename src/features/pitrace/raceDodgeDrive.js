@@ -6,7 +6,8 @@
 //  • Слабое устройство (scn--lite) и reduced-motion — переходы мгновенные (CSS), речь их не ждёт; порядок тот же. Шлейф прыжка — word-lane-cat-dodge.css (::before головы, data-hop / data-dir).
 //  • left() — сколько мс ещё до того, как Пит встанет на место (нырок, прыжок, возврат из стороны): речь перед выездом пилюли ждёт этого (useRaceActs.pre, raceDiveWait.js).
 //  • x головы между ступенями хранится в data-dodge-x (и в цели raceHeadDepth): следующая ступень вынырнет сразу к своей дорожке.
-//  • Журнал: одна строка «[dodge] …» на переход (pLog).
+//  • Журнал: одна строка «[dodge] …» на переход (pLog); у каждого зачёта — «[dodge] зачёт N: голова …, следующая …, прыжок начат/нет → решение (почему)» (claimLine); переход не нужен — «[dodge] нырок подавлен — …»;
+//    начатый переход ещё идёт, а пришла новая цель — «[dodge] очередь: …» (новая цель выполнится одним переходом после него, raceHeadDepth.js).
 import { createDodge, HEAD_W, HEAD_TOP, DIVE_DOWN_MS, DIVE_UP_MS, CENTER, ASIDE } from './raceDodge.js'
 import { pLog } from '../../shared/lib/debug.js'
 import { headDepth, DOWN_Y } from './raceHeadDepth.js'
@@ -32,6 +33,15 @@ export function planLine(p, quick = false) {
   return `[dodge] ${p.kind === 'dive' ? 'нырок' : 'прыжок'} ${from} ${lab(p.toLane, false)} (${p.why}${p.same ? ', следующая на той же дорожке' : ''}${quick ? ', мгновенно' : ''})${pill} → x ${p.x.toFixed(1)} %`
 }
 
+const where = l => (l === CENTER ? 'в центре' : l === ASIDE ? 'в стороне' : l == null ? 'на прежнем месте' : `на дорожке ${l + 1}`)
+const decision = p => (p.kind === 'dive' ? 'нырок' : p.kind === 'jump' ? 'прыжок' : 'стоять')
+/** Строка журнала зачёта: где голова, где следующая, начат ли прыжок → что решено и почему */
+export function claimLine(p) {
+  const c = p.claim
+  const next = c.next === CENTER ? 'следующей нет' : `следующая на ${c.next + 1}`
+  return `[dodge] зачёт ${c.i + 1}: голова ${where(c.at)}, ${next}, прыжок ${c.jumped ? 'начат' : 'нет'}${c.late ? ', пилюля у головы' : ''} → ${decision(p)} (${p.why})`
+}
+
 const fastOf = cat => cat.classList.contains('scn--lite') || !!globalThis.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches
 /** Голова в слежении по центру с начала гонки «Голосом» (WordLaneGame): общие фразы и плашки до первой ступени — тоже по центру, глубину ведёт raceHeadDepth.js */
 export const trackHead = cat => (cat?.querySelector?.('.wlCatSvg') ? headDepth(cat, { headW: measureHead(cat).headW, fast: fastOf(cat) }) : null)
@@ -46,15 +56,22 @@ export function createDodgeDrive({ cat, lanes = [], peek = () => {}, log = pLog,
   let pills = []
   let peekAt = -Infinity
 
+  const queued = (p, busy = depth.left()) => { // переход ещё идёт (нырок / выныривание / прыжок) — новая цель ждёт его конца
+    if (busy > 0) log(`[dodge] очередь: ${decision(p)} ${lab(p.toLane, false)} (${p.why}) ждёт конца «${cat.dataset.dodge ?? '?'}» ${Math.round(busy)} мс`)
+  }
   const run = p => {
+    if (p?.claim) log(claimLine(p))
+    if (p?.suppressed) log(`[dodge] нырок подавлен — ${p.why.split('; ').at(-1)}`)
     if (!p?.kind) return
     cat.dataset.dodgeX = String(p.x)
-    if (p.kind === 'jump') { log(planLine(p, fast)); peek(PEEK_MS); depth.jump(p.x, p.dir); return } // peek до прыжка: голова уже «нужна», прыжок не ждёт
-    if (depth.sinking) log(`${planLine(p, fast)}; голова уже под краем — вынырнет здесь`) // нырок ещё идёт: вынырнет к новой цели одним переходом
-    else if (depth.under) log(`${planLine(p, true)}; голова спрятана`)
-    else log(planLine(p, fast))
+    if (p.kind === 'jump') { queued(p); log(planLine(p, fast)); peek(PEEK_MS); depth.jump(p.x, p.dir); return } // peek до прыжка: голова уже «нужна», прыжок не ждёт
+    const sinking = depth.sinking, under = depth.under, busy = depth.left()
     peek(PEEK_MS + DIVE_DOWN_MS + DIVE_UP_MS)
-    depth.dive(p.x)
+    if (!depth.dive(p.x)) { log(`[dodge] нырок подавлен — стоим: голова уже на месте (x ${p.x.toFixed(1)} %, ${p.why})`); return } // голова на виду и уже под целью: нырок на месте не нужен
+    if (busy > 0 && !sinking) queued(p, busy)
+    if (sinking) log(`${planLine(p, fast)}; голова уже под краем — вынырнет здесь`) // нырок ещё идёт: вынырнет к новой цели одним переходом
+    else if (under) log(`${planLine(p, true)}; голова спрятана`)
+    else log(planLine(p, fast))
   }
   run(model.start())
 
@@ -63,7 +80,7 @@ export function createDodgeDrive({ cat, lanes = [], peek = () => {}, log = pLog,
     step(list = [], t = 0, events = []) {
       pills = list
       for (const e of events) {
-        if (e.type === 'claim') run(model.claim(e.rep?.idx ?? 0))
+        if (e.type === 'claim') run(model.claim(e.rep?.idx ?? 0, list))
         else if (e.type === 'fail') run(model.fail(e.rep?.idx ?? 0))
       }
       const s = model.step(list, t)

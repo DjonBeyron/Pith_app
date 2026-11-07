@@ -175,7 +175,7 @@ export function useWordLanePills(rootRef, { scene, levels, fx, live, sceneApi, t
           pool.hint(k, now2 < (ghostUntil.get(p.rep) ?? 0) && p.state === 'fly' && g.reps[p.rep].state === 'fly' ? '0.6' : '0', null)
         }
         for (let j = decoys.length - 1; j >= 0; j--) if (now2 > decoys[j].end) { pool.give(decoys[j].k); decoys.splice(j, 1) } // чужая пилюля ушла за нижний край — в пул
-        fxRef.current?.mouth?.(level)
+        fxRef.current?.hear?.(level) // уровень микрофона (голос игрока): только выглядывание головы, рот Пита от него не двигается (wordLaneCatVoice.hear)
         raf = requestAnimationFrame(tick)
       }
       raf = requestAnimationFrame(tick)

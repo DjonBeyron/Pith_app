@@ -62,12 +62,13 @@ describe('ворота голоса: анимация только на наст
   })
 })
 
-describe('подключение: худ, заливка и рот кота — через ворота', () => {
+describe('подключение: худ, заливка и голова кота — через ворота (рот — нет)', () => {
   it('движок кормит конвейер ученика и худ громкостью после ворот; принятая пилюля глушит ворота', () => {
     const eng = read('./useWordLanePills.js')
     expect(eng).toContain('level = gate.step(raw, now, now - lastNow).level')
     expect(eng).toContain('stepStudent(g, t, { level, seq, misses: liveRef.current.misses, confirmed')
     expect(eng).toContain('gate.mute(performance.now())')
-    expect(eng).toContain('fxRef.current?.mouth?.(level)')
+    expect(eng).toContain('fxRef.current?.hear?.(level)') // микрофон → только выглядывание головы
+    expect(eng).not.toContain('fxRef.current?.mouth?.(level)') // рот Пита уровнем микрофона не кормится (v3.3.152)
   })
 })

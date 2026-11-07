@@ -38,11 +38,11 @@ describe('raceDodge — хореография', () => {
     const m = createDodge({ lanes: [2, 0, 1] })
     expect(m.start()).toMatchObject({ kind: 'dive', from: CENTER, toLane: 2, x: 73, waitMs: DIVE_MS, why: 'старт' })
   })
-  it('зачёт → нырок под дорожку следующей; на той же дорожке — нырок на месте', () => {
+  it('зачёт → нырок под дорожку следующей; на той же дорожке — стоит (нырок подавлен)', () => {
     const m = createDodge({ lanes: [2, 0, 0] })
     m.start()
-    expect(m.claim(0)).toMatchObject({ kind: 'dive', from: 2, toLane: 0, x: 27, why: 'зачёт' })
-    expect(m.claim(1)).toMatchObject({ kind: 'dive', from: 0, toLane: 0, x: 27 })
+    expect(m.claim(0)).toMatchObject({ kind: 'dive', from: 2, toLane: 0, x: 27, why: 'зачёт', claim: { i: 0, at: 2, next: 0, jumped: false, late: false } })
+    expect(m.claim(1)).toMatchObject({ kind: null, toLane: 0, x: 27, suppressed: true, why: expect.stringMatching(/стоим: уже на дорожке следующей/) })
   })
   it('пилюля дошла до Пита → прыжок на дорожку следующей (один раз), fail после него — ничего', () => {
     const m = createDodge({ lanes: [0, 2, 1] })
@@ -58,7 +58,7 @@ describe('raceDodge — хореография', () => {
     const m = createDodge({ lanes: [0, 1] })
     m.start()
     m.step([pill({ lane: 0, y: dodgeY() + 1 })])
-    expect(m.claim(0)).toMatchObject({ kind: null, toLane: 1, x: 50 })
+    expect(m.claim(0)).toMatchObject({ kind: null, toLane: 1, x: 50, suppressed: true, claim: { jumped: true } })
   })
   it('без прыжка (пилюля не дошла до головы) «не успел» — нырок к следующей', () => {
     const m = createDodge({ lanes: [0, 1] })
@@ -85,15 +85,17 @@ describe('raceDodge — хореография', () => {
     m.step([pill({ y: dodgeY() + 1 })])
     expect(m.claim(0)).toMatchObject({ kind: 'jump', toLane: 1, x: 50, why: 'зачёт' })
   })
-  it('последняя пилюля: зачёт → нырок в центр; «не успел» → в сторону, затем нырок в центр', () => {
+  it('последняя пилюля: зачёт → стоит (в центр — конец ступени); «не успел» → в сторону и стоит там до конца ступени', () => {
     const a = createDodge({ lanes: [0] })
     a.start()
-    expect(a.claim(0)).toMatchObject({ kind: 'dive', toLane: CENTER, x: 50 })
-    expect(a.end().kind).toBeNull()
+    expect(a.claim(0)).toMatchObject({ kind: null, toLane: 0, x: 27, suppressed: true, why: expect.stringMatching(/следующей нет/) })
+    expect(a.end()).toMatchObject({ kind: 'dive', toLane: CENTER, x: 50, why: 'конец ступени' })
     const b = createDodge({ lanes: [0] })
     b.start()
     expect(b.step([pill({ lane: 0, y: dodgeY() + 1 })]).plans[0]).toMatchObject({ kind: 'jump', toLane: ASIDE })
-    expect(b.step([]).plans[0]).toMatchObject({ kind: 'dive', toLane: CENTER, x: 50 })
+    expect(b.backIn([pill({ lane: 0, y: 96, state: 'failed' })])).toBe(0) // обратно не прыгает — речь не ждёт
+    expect(b.step([]).plans[0]).toMatchObject({ kind: null, suppressed: true })
+    expect(b.end()).toMatchObject({ kind: 'dive', from: ASIDE, toLane: CENTER })
   })
   it('конец ступени: не в центре — нырок в центр (и из стороны тоже)', () => {
     const m = createDodge({ lanes: [1, 1] })
@@ -111,6 +113,49 @@ describe('raceDodge — хореография', () => {
   it('по x не скользит: любой переход — нырок или прыжок', () => {
     const m = createDodge({ lanes: [0, 2, 1, 1] })
     const plans = [m.start(), m.claim(0), ...m.step([pill({ rep: 1, lane: 2, y: dodgeY() + 1 })]).plans, m.fail(1), ...m.step([pill({ rep: 2, id: 'c', lane: 1, y: dodgeY() + 1 })]).plans, ...m.step([]).plans, m.claim(3)]
-    expect(plans.filter(p => p.kind).map(p => p.kind)).toEqual(['dive', 'dive', 'jump', 'jump', 'jump', 'dive'])
+    expect(plans.filter(p => p.kind).map(p => p.kind)).toEqual(['dive', 'dive', 'jump', 'jump', 'jump'])
+  })
+})
+
+describe('raceDodge — поздний зачёт: нырок только если нужно сменить дорожку', () => {
+  const late = (o = {}) => pill({ y: dodgeY() - 2, ...o }) // низ у головы, но до порога прыжка ещё не дошёл
+  it('после начала прыжка (следующая на другой дорожке): стоит — уже под следующей', () => {
+    const m = createDodge({ lanes: [0, 2] })
+    m.start()
+    m.step([pill({ lane: 0, y: dodgeY() + 0.5 })])
+    expect(m.claim(0, [pill({ lane: 0, y: dodgeY() + 2, state: 'lock' })])).toMatchObject({ kind: null, suppressed: true, toLane: 2, claim: { jumped: true, late: true } })
+  })
+  it('в момент касания (порог прыжка, тот же кадр): дорожка другая — прыжок, а не нырок', () => {
+    const m = createDodge({ lanes: [0, 2] })
+    m.start()
+    const p = m.claim(0, [pill({ lane: 0, y: dodgeY() + 0.1, state: 'lock' })])
+    expect(p).toMatchObject({ kind: 'jump', toLane: 2, x: 73, dir: 1, why: 'зачёт в последний момент', claim: { jumped: false, late: true } })
+    expect(m.step([pill({ lane: 0, y: dodgeY() + 3, state: 'lock' })]).plans).toEqual([]) // засчитанная пилюля взлетает — второго прыжка нет
+  })
+  it('пилюля у головы, следующая на той же дорожке: стоит, ни нырка, ни прыжка', () => {
+    const m = createDodge({ lanes: [1, 1, 0] })
+    m.start()
+    expect(m.claim(0, [late({ state: 'lock' })])).toMatchObject({ kind: null, suppressed: true, toLane: 1, x: 50 })
+    expect(m.step([pill({ id: 'b', rep: 1, y: 30 })]).plans).toEqual([]) // следующая ещё далеко
+  })
+  it('последняя пилюля прохода, зачёт у головы: стоит; в сторону после прыжка — тоже стоит', () => {
+    const a = createDodge({ lanes: [2, 0] })
+    a.start(); a.claim(0)
+    expect(a.claim(1, [late({ rep: 1, lane: 0, state: 'lock' })])).toMatchObject({ kind: null, suppressed: true, toLane: 0 })
+    const b = createDodge({ lanes: [1] })
+    b.start()
+    b.step([pill({ y: dodgeY() + 0.5 })])
+    expect(b.claim(0, [pill({ y: dodgeY() + 2, state: 'lock' })])).toMatchObject({ kind: null, suppressed: true, toLane: ASIDE, claim: { jumped: true, next: CENTER } })
+  })
+  it('ранний зачёт (пилюля далеко), дорожка другая — нырок, как раньше', () => {
+    const m = createDodge({ lanes: [0, 2] })
+    m.start()
+    expect(m.claim(0, [pill({ lane: 0, y: 20, state: 'lock' })])).toMatchObject({ kind: 'dive', toLane: 2, claim: { late: false } })
+  })
+  it('«не успел» без прыжка: следующая на той же дорожке / следующей нет — стоит', () => {
+    const m = createDodge({ lanes: [1, 1] })
+    m.start()
+    expect(m.fail(0)).toMatchObject({ kind: null, suppressed: true })
+    expect(m.fail(1)).toMatchObject({ kind: null, suppressed: true, why: expect.stringMatching(/следующей нет/) })
   })
 })

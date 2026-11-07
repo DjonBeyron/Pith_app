@@ -115,7 +115,7 @@ export function useWordLaneFlow({ chunks, translation, lang, clips = null, audio
         hintTimerRef.current = setTimeout(() => setS(p => ({ ...p, hint: [] })), HINT_MS)
       }
     },
-    mouth(level, code) { catApi?.current?.mouth(level, code); if (dbg.enabled && isStudentStage(stages[sRef.current.idx])) dbg.gate(level > 0) }, // gate: голос после ворот (двигает пилюли) — пишем смену состояния
+    mouth(level, code) { catApi?.current?.mouth(level, code) }, hear(level) { catApi?.current?.hear?.(level); if (dbg.enabled && isStudentStage(stages[sRef.current.idx])) dbg.gate(level > 0) }, // mouth — голос Пита (диктор); hear — микрофон: только голова, рот не трогает; gate: голос после ворот
     peek(ms) { catApi?.current?.peek?.(ms) }, pitLeft: () => rh.pitLeft(), // pitLeft: Пит ещё говорит — новая пилюля ждёт (репетиция)
     sayText(text, opts) { // «Различи»: звучит слово пилюли (верное или запутыватель) — из библиотеки слов, нет её — без звука; рот кота по буквам слова
       const r = opts?.ru ? transRow(text) : libRow(text); if (opts?.ru && !r) return; dbg.note('word') // opts.ru — перевод «Разгона» (useRaceActs.pre): только озвучка из библиотеки (ключ ru:…), нет её — молча, без голоса системы
@@ -139,7 +139,7 @@ export function useWordLaneFlow({ chunks, translation, lang, clips = null, audio
   useEffect(() => { handlersRef.current = handlers })
   const [fx] = useState(() => ({
     win: (...a) => handlersRef.current.win(...a), miss: (...a) => handlersRef.current.miss(...a), claim: (...a) => handlersRef.current.claim(...a), fail: (...a) => handlersRef.current.fail(...a),
-    mouth: (...a) => handlersRef.current.mouth(...a), peek: (...a) => handlersRef.current.peek(...a), pre: (...a) => handlersRef.current.pre(...a), say: (...a) => handlersRef.current.say(...a), sayText: (...a) => handlersRef.current.sayText(...a), finished: (...a) => handlersRef.current.finished(...a), pitLeft: () => handlersRef.current.pitLeft(),
+    mouth: (...a) => handlersRef.current.mouth(...a), hear: (...a) => handlersRef.current.hear(...a), peek: (...a) => handlersRef.current.peek(...a), pre: (...a) => handlersRef.current.pre(...a), say: (...a) => handlersRef.current.say(...a), sayText: (...a) => handlersRef.current.sayText(...a), finished: (...a) => handlersRef.current.finished(...a), pitLeft: () => handlersRef.current.pitLeft(),
   }))
 
   const finish = useCallback(() => {

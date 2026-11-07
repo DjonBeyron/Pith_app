@@ -161,3 +161,20 @@ describe('журнал реплик кота в отладку', () => {
     expect(got).toHaveLength(1)
   })
 })
+
+describe('рот Пита — только от его озвучки, не от микрофона (v3.3.152)', () => {
+  it('hear(level) — уровень микрофона: голова выглядывает, рот и усы не двигаются', () => {
+    const s = stand()
+    for (const l of [0.05, 0.3, 0.9, 0.5, 0]) { s.voice.hear(l); s.advance(100) }
+    expect(s.drawn).toEqual([])
+    expect(s.look.talking).not.toHaveBeenCalled()
+    expect(s.peek.voice.mock.calls.map(c => c[0])).toEqual([0.05, 0.3, 0.9, 0.5, 0])
+  })
+  it('реплика Пита (speak) рот двигает, микрофон посреди неё — нет', () => {
+    const s = stand()
+    s.voice.speak(mouthTrack('Повторяй за мной', 1200), 1200, { id: 'x' })
+    s.run(1300, { mic: () => s.voice.hear(0.9) })
+    expect(s.drawn.length).toBeGreaterThan(3)
+    expect(s.drawn.at(-1)).toBe('closed')
+  })
+})

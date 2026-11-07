@@ -72,6 +72,20 @@ describe('raceHeadDepth: одна правда по вертикали', () => {
     expect(modes().at(-1)).toBe('jump'); expect(vars['--wl-dx']).toBe('46.00%')
     expect(d.left()).toBe(JUMP_MS - 50)
   })
+  it('нырок к тому же x на виду — не нырок (dive → false, ничего не пишется); нырок во время прыжка ждёт его конца', () => {
+    const { d, c, modes } = head()
+    d.dive(27); c.go(1000)
+    const n = modes().length
+    expect(d.dive(27)).toBe(false)
+    c.go(1000)
+    expect(modes().length).toBe(n)
+    d.jump(73, 1); c.go(50)
+    expect(d.dive(27)).toBe(true)
+    expect(modes().at(-1)).toBe('jump') // прыжок не обрывается
+    c.go(JUMP_MS - 50)
+    expect(modes().at(-1)).toBe('dive-down')
+    expect(d.dive(73)).toBe(true) // цель сменилась во время нырка — тем же переходом
+  })
   it('пауза посреди нырка: нырок доигрывает вниз и голова остаётся внизу; конец ступени — только цель', () => {
     const { d, c, set, modes, vars } = head()
     d.dive(27); c.go(80)

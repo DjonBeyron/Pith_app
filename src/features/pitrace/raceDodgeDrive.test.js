@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest'
 import { readFileSync } from 'node:fs'
-import { createDodgeDrive, measureHead, planLine, PEEK_MS, DOWN_Y } from './raceDodgeDrive.js'
+import { createDodgeDrive, measureHead, planLine, claimLine, PEEK_MS, DOWN_Y } from './raceDodgeDrive.js'
 import { HEAD_TOP, leadOf, DIVE_DOWN_MS, DIVE_MS, JUMP_MS } from './raceDodge.js'
 
 // Привод «Пит ныряет и уворачивается» на поддельной голове (в тестах нет DOM): класс слежения, --wl-dx / --wl-dy у головы (raceHeadDepth.js), data-dodge и их порядок, журнал «[dodge]», ожидание left(); CSS — только transform / translate / opacity
@@ -109,6 +109,48 @@ describe('raceDodgeDrive', () => {
     expect(seen.at(-1)).toBe('dive-up')
     expect(vars['--wl-dx']).toBe('46.00%')
     expect(d2.x).toBe(73)
+  })
+  it('поздний зачёт в момент касания (дорожка другая): прыжок, не нырок; журнал «зачёт 1: … → прыжок»', () => {
+    const { c, d, seen, log } = make()
+    c.go(500)
+    const n = seen.length
+    d.step([pill(atJump - 0.4, { state: 'lock' })], 500, [{ type: 'claim', rep: { idx: 0 } }])
+    expect(seen.slice(n)).toEqual(['jump'])
+    const lines = log.mock.calls.map(x => x[0])
+    expect(lines).toContain('[dodge] зачёт 1: голова на дорожке 1, следующая на 3, прыжок нет, пилюля у головы → прыжок (зачёт в последний момент)')
+    expect(lines.at(-1)).toMatch(/^\[dodge\] прыжок с 1 на 3 \(зачёт в последний момент\)/)
+  })
+  it('зачёт после начала прыжка: стоим, строка «нырок подавлен»; нового перехода нет', () => {
+    const { c, d, seen, log } = make()
+    c.go(500)
+    d.step([pill(atJump)], 500)
+    const n = seen.length
+    d.step([pill(atJump + 1, { state: 'lock' })], 520, [{ type: 'claim', rep: { idx: 0 } }])
+    expect(seen.length).toBe(n)
+    const lines = log.mock.calls.map(x => x[0])
+    expect(lines.at(-2)).toMatch(/^\[dodge\] зачёт 1: голова на дорожке 3, следующая на 3, прыжок начат, пилюля у головы → стоять/)
+    expect(lines.at(-1)).toBe('[dodge] нырок подавлен — стоим: уже под следующей')
+  })
+  it('следующая на той же дорожке / последняя пилюля: зачёт — голова стоит (ни dive-down, ни jump)', () => {
+    const { c, d, seen, log } = make({ lanes: [0, 0] })
+    c.go(500)
+    const n = seen.length
+    d.step([pill(60, { state: 'lock' })], 500, [{ type: 'claim', rep: { idx: 0 } }])
+    d.step([pill(60, { id: 'b', rep: 1, state: 'lock' })], 900, [{ type: 'claim', rep: { idx: 1 } }])
+    c.go(1000)
+    expect(seen.length).toBe(n)
+    const lines = log.mock.calls.map(x => x[0]).filter(l => l.includes('подавлен'))
+    expect(lines).toEqual(['[dodge] нырок подавлен — стоим: уже на дорожке следующей', '[dodge] нырок подавлен — стоим: следующей нет, в центр — в конце ступени'])
+  })
+  it('новая цель во время перехода — строка «очередь»', () => {
+    const { c, d, log } = make()
+    c.go(DIVE_DOWN_MS + 20) // стартовый нырок выныривает
+    d.step([pill(20, { state: 'lock' })], 10, [{ type: 'claim', rep: { idx: 0 } }])
+    expect(log.mock.calls.map(x => x[0])).toContainEqual(expect.stringMatching(/^\[dodge\] очередь: нырок на 3 \(зачёт\) ждёт конца «dive-up» \d+ мс/))
+  })
+  it('claimLine: формат', () => {
+    expect(claimLine({ kind: 'dive', why: 'зачёт', claim: { i: 0, at: 0, next: 2, jumped: false, late: false } })).toBe('[dodge] зачёт 1: голова на дорожке 1, следующая на 3, прыжок нет → нырок (зачёт)')
+    expect(claimLine({ kind: null, why: 'x', claim: { i: 2, at: 's', next: 'c', jumped: true, late: true } })).toBe('[dodge] зачёт 3: голова в стороне, следующей нет, прыжок начат, пилюля у головы → стоять (x)')
   })
   it('planLine: формат журнала', () => {
     expect(planLine({ kind: 'dive', from: 0, toLane: 1, x: 50, why: 'зачёт' })).toBe('[dodge] нырок с дорожки 1 на 2 (зачёт) → x 50.0 %')

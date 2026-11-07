@@ -7,7 +7,8 @@
 //  • Уход по peek (речь кончилась) ждёт HIDE_GRACE_MS: если голову снова позвали — она не дёргается. Нырок, пауза — сразу.
 //  • Пауза: голова ныряет (dive-down) и остаётся внизу; конец старой ступени (нырок в центр) только меняет цель. После паузы голова ждёт цель новой ступени (dive / jump) и выныривает ОДИН раз — под её дорожкой;
 //    цели нет за WAIT_TARGET_MS (ступень без пилюль) — выныривает на прежней цели (центр).
-//  • Прыжок — только на виду и после выныривания; пока голова внизу — это просто новая цель.
+//  • Прыжок — только на виду и после выныривания; пока голова внизу — это просто новая цель. Нырок, пришедший во время прыжка, ждёт его конца (прыжок не обрывается на полпути).
+//  • Нырок к тому же x, где голова уже стоит на виду (цель не меняется), — не нырок: dive() возвращает false, голова стоит (v3.3.152: «нырок на месте» после зачёта выглядел лишним).
 // Класс wlCat--up и фазу читает MutationObserver (один на голову за игру; в тестах — sync()). Часы и таймеры приходят аргументами.
 import { DIVE_DOWN_MS, DIVE_UP_MS, JUMP_MS } from './raceDodge.js'
 
@@ -53,6 +54,8 @@ export function createHeadDepth({
   const apply = () => {
     if (timer) return // переход доигрывает: новая цель — после него, одним переходом
     if (pos === 'up') {
+      const jumping = jumpUntil - now()
+      if (hold && jumping > 0) { until = jumpUntil; timer = setTimer(() => { timer = 0; apply() }, jumping); return } // нырок ждёт конца прыжка
       if (!want()) {
         const dive = hold || isPaused() || wait
         if (!dive && !graceDone) { if (!grace) grace = setTimer(() => { grace = 0; graceDone = true; apply() }, fx(HIDE_GRACE_MS)); return } // уход по peek — с выдержкой
@@ -71,7 +74,11 @@ export function createHeadDepth({
   }
   const self = {
     /** Нырок к x: на виду — вниз до конца, x переставляется под краем, выныривает; уже внизу или уходит — только новая цель (вынырнет к ней одним переходом) */
-    dive(x) { tx = x; kick = 'dive'; unwait(); if (pos === 'up') hold = true; apply() },
+    dive(x) {
+      const same = x === tx && pos === 'up' && !hold // голова на виду и уже здесь: нырять незачем
+      tx = x; kick = 'dive'; unwait(); if (pos === 'up' && !same) hold = true; apply()
+      return !same
+    },
     /** Прыжок к x (dir −1 / +1): на виду — сразу; выныривает — после выныривания; внизу — новая цель */
     jump(x, dir) { if (x === xW && x === tx && pos === 'up' && !timer) return; tx = x; kick = 'dive'; unwait(); if (pos === 'up' && !timer && want()) doJump(dir); else { if (pos === 'up') jumpDir = dir; apply() } },
     /** Перечитать класс wlCat--up и паузу (MutationObserver; тесты зовут сами) */

@@ -15,6 +15,7 @@ import { waitCtxRunning } from './gameAudioCheck.js'
 import { lastAway } from './gameAudioLife.js'
 import { gameAudioNote } from './gameAudioSink.js'
 import { pLog } from './debug.js'
+import { mouthSourceLine } from './mouthLevels.js'
 
 export const RENEW_AWAY_MS = 20000 // фон/блокировка дольше — обновляем сессию полностью
 
@@ -70,6 +71,7 @@ export async function renewAudioSession({ reason = 'старт', wantType = null
   const ctxMs = Math.round(d.now() - tc), ms = Math.round(d.now() - t0)
   const after = `${safe(d.describe) ?? '—'}; audioSession=${sessionText(sessionOf(d.nav))}`
   const kinds = c.kinds?.length ? ` (${c.kinds.join(', ')})` : ''
+  d.log(mouthSourceLine(`после renew: ${reason}`)) // рот Пита не слушает ни микрофон, ни анализаторы контекста — новый контекст его не перецепляет (строка для журнала владельца)
   d.log(`[audio] renew (${reason}): ДО — ${before}; auto; закрыто ${c.closed}${kinds}${c.timedOut ? `, не дождались ${c.timedOut}` : ''}${holdMs > 0 ? `; выдержка ${holdMs} мс` : ''}; тип ${type}; новый ctx ${w.state ?? 'нет Web Audio'} за ${ctxMs} мс; ПОСЛЕ — ${after}; всего ${ms} мс`)
   const ok = w.state == null || w.state === 'running'
   try { d.note('audio-renew', { reason, closed: c.closed, kinds: c.kinds, type, state: w.state, ms }) } catch { /* журнал не мешает */ }
