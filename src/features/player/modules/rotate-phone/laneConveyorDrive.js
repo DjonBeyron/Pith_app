@@ -1,6 +1,6 @@
 import { createLane, stepLane, laneLook, settled, RUN_SPEED, SPEED_RAMP_MS } from './wordLaneConveyor.js'
 import { pLog } from '../../../../shared/lib/debug.js'
-import { periodPx, shiftPx, pxText, viewOf } from './laneConveyorPx.js'
+import { periodPx, shiftPx, pxText, viewOf, RACE_SPLIT } from './laneConveyorPx.js'
 
 // Привод конвейера: один rAF на все три дорожки (по образцу scene/v2/whiskerDrive.js). Каждый кадр — шаг модели (wordLaneConveyor.js) для каждой дорожки и запись двух CSS-переменных в её колонку
 // .wlLanes i: --run-y (сдвиг узора, px до пикселя устройства — едет transform ::before), --run-a (яркость — opacity слоя ::before, композитор без перерисовки; на «зажигании» её ведёт мигание, v3.3.101).
@@ -27,8 +27,8 @@ export function createConveyorDrive({
   const tape = () => host?.hasAttribute?.('data-tape') === true // лента этапа «Фразы»: узор — со скоростью пилюли
   const lanes = cols.map((_, i) => createLane(race ? i : -1))
   const shown = cols.map(() => ({}))
-  let vp = view(), P = 0 // vp — высота экрана и dpr (кэш), P — период узора в px (у гонки кратен 24 пикселям устройства: шаг нити — целый пиксель)
-  const measure = () => { vp = view(); P = lanes.length ? periodPx(lanes[0].per, vp.h, vp.dpr, race ? 24 : 1) : 0 }
+  let vp = view(), P = 0 // vp — высота экрана и dpr (кэш), P — период узора в px (у гонки кратен RACE_SPLIT (12) пикселям устройства: шаг нити — целый пиксель)
+  const measure = () => { vp = view(); P = lanes.length ? periodPx(lanes[0].per, vp.h, vp.dpr, race ? RACE_SPLIT : 1) : 0 }
   let armed = cols.map(() => false), keep = cols.map(() => false), pills = cols.map(() => 0)
   let id = null, last = 0, paused = false, hold = false
   let hint = null, hintKey = null, peak = 0 // «Гонка с Питом»: hint — скорость первой пилюли ближайшей стадии (дорожка набирает её ЗАРАНЕЕ, до выезда пилюли), peak — наибольшая скорость пилюль, виденных при этом hint

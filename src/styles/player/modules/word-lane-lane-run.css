@@ -26,9 +26,9 @@
 .wlLanes i { contain: paint; }
 .wl--lite .wlLanes i::before, .weak-device .wlLanes i::before { will-change: auto; }
 /* «Встряхни память» (.wl[data-race]): три дорожки читаются как независимые (свои скорость и фаза — wordLaneConveyor.js LANE_RATES/LANE_PHASES), период узора --run-p = RACE_PERIOD (51,6 dvh).
-   Узор «нить с узелками» (v3.3.131): по центру дорожки тонкая нить 1 px из штрихов 0,7 dvh с шагом период/24 на половинной яркости (0,45 от --run-a) и три мягких узелка на период
+   Узор «нить с узелками» (v3.3.131): по центру дорожки тонкая нить 1 px из штрихов 0,7 dvh с шагом период/12 на половинной яркости (0,45 от --run-a) и два мягких узелка на период (вдвое реже — замечание владельца «расстояние больше между чёрточками и точками»; было период/24 и три узелка)
    (ядро 2 px, ореол до 6 px, полная яркость). Два слоя фона на одном ::before шириной 14 px, маска не нужна. Двигается весь ::before (transform --run-y; слой выше колонки на период:
-   top −51,6 dvh, bottom 0 — узор покрывает всю дорожку при любом сдвиге). Период — --run-px из привода (51,6 dvh, округлённый до 24 пикселей устройства: шаг нити период/24 и узелков период/3 — целые пиксели),
+   top −51,6 dvh, bottom 0 — узор покрывает всю дорожку при любом сдвиге). Период — --run-px из привода (51,6 dvh, округлённый до 12 пикселей устройства: шаг нити период/12 и узелков период/2 — целые пиксели),
    яркость — opacity слоя (--run-a), цвета слоёв постоянные (v3.3.133: раньше --run-a стоял в цвете — каждый шаг яркости перерисовывал градиенты). Привод длину штрихов не меняет (на импульсе скорости — только яркость и волна). */
 .wl[data-race] .wlLanes i::before {
   --run-p: var(--run-px, 51.6dvh);
@@ -40,6 +40,6 @@
   -webkit-mask-image: none;
   mask-image: none;
   background:
-    radial-gradient(circle 7px at 7px 7px, var(--run-c) 0 2px, var(--run-g) 3px, transparent 7px) 0 0 / 14px calc(var(--run-p) / 3) repeat-y,
-    linear-gradient(to bottom, var(--run-h) 0 0.7dvh, transparent 0.7dvh) center 1.4dvh / 1px calc(var(--run-p) / 24) repeat-y;
+    radial-gradient(circle 7px at 7px 7px, var(--run-c) 0 2px, var(--run-g) 3px, transparent 7px) 0 0 / 14px calc(var(--run-p) / 2) repeat-y,
+    linear-gradient(to bottom, var(--run-h) 0 0.7dvh, transparent 0.7dvh) center 1.4dvh / 1px calc(var(--run-p) / 12) repeat-y;
 }

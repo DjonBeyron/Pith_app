@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { snap, periodPx, shiftPx, pxText, viewOf } from './laneConveyorPx.js'
+import { snap, periodPx, shiftPx, pxText, viewOf, RACE_SPLIT } from './laneConveyorPx.js'
 import { createConveyorDrive } from './laneConveyorDrive.js'
 import { RACE_PERIOD, PERIOD } from './wordLaneConveyor.js'
 
@@ -9,10 +9,13 @@ const dev = (v, dpr) => Math.abs(v * dpr - Math.round(v * dpr)) < 1e-6
 describe('laneConveyorPx: чистые функции', () => {
   it('snap — до пикселя устройства; периоды кратны split пикселям устройства и близки к dvh', () => {
     expect(snap(1.26, 2)).toBe(1.5); expect(snap(1.2, 3)).toBeCloseTo(4 / 3, 9)
-    const P = periodPx(RACE_PERIOD, 812, 3, 24)
-    expect(dev(P / 24, 3)).toBe(true); expect(dev(P / 3, 3)).toBe(true) // шаг нити и узелков — целые пиксели устройства
-    expect(Math.abs(P - (RACE_PERIOD * 812) / 100)).toBeLessThanOrEqual(4) // визуально тот же период (≤ половины шага 8 px)
-    expect(periodPx(PERIOD, 812, 2)).toBe(89.5); expect(periodPx(RACE_PERIOD, 10, 1, 24)).toBe(24) // не меньше одного шага
+    expect(RACE_SPLIT).toBe(12) // узор «реже»: нить — период/12, узелки — период/2
+    for (const dpr of [1, 2, 3]) for (const h of [568, 667, 812, 926]) {
+      const P = periodPx(RACE_PERIOD, h, dpr, RACE_SPLIT)
+      expect(dev(P / 12, dpr)).toBe(true); expect(dev(P / 2, dpr)).toBe(true) // шаг нити и узелков — целые пиксели устройства
+      expect(Math.abs(P - (RACE_PERIOD * h) / 100)).toBeLessThanOrEqual(6 / dpr + 1e-9) // визуально тот же период (≤ половины шага)
+    }
+    expect(periodPx(PERIOD, 812, 2)).toBe(89.5); expect(periodPx(RACE_PERIOD, 10, 1, RACE_SPLIT)).toBe(12) // не меньше одного шага
   })
   it('shiftPx: доля периода до пикселя устройства, ровно период — 0; pxText без «-0»', () => {
     const P = 416
@@ -32,9 +35,9 @@ describe('привод гонки: px, запись при изменении, r
     const d = createConveyorDrive({ root, now: () => t, raf: () => 1, caf: () => {}, observe: () => () => {}, view: () => vp, onResize: fn => { resize = fn; return () => {} } })
     return { cols, d, vp, fire: () => resize(), step: ms => { for (let k = 0; k < ms; k += 1000 / 60) { t += 1000 / 60; d.frame(t) } } }
   }
-  it('период --run-px пишется сразу (до кадров), кратен 24 пикселям устройства; сдвиг — целые пиксели устройства и не выходит за период', () => {
+  it('период --run-px пишется сразу (до кадров), кратен 12 пикселям устройства; сдвиг — целые пиксели устройства и не выходит за период', () => {
     const { cols, d, step } = mk()
-    const P = parseFloat(cols[0].st['--run-px']); expect(cols[0].st['--run-px']).toBe(`${periodPx(RACE_PERIOD, 812, 3, 24).toFixed(3)}px`); expect(dev(P / 24, 3)).toBe(true)
+    const P = parseFloat(cols[0].st['--run-px']); expect(cols[0].st['--run-px']).toBe(`${periodPx(RACE_PERIOD, 812, 3, RACE_SPLIT).toFixed(3)}px`); expect(dev(P / 12, 3)).toBe(true)
     d.setArmed('222')
     let prev = null, wraps = 0
     for (let k = 0; k < 600; k++) { step(1000 / 60); const y = parseFloat(cols[1].st['--run-y']); expect(Math.abs(y * 3 - Math.round(y * 3))).toBeLessThan(0.005); expect(y).toBeLessThan(P); if (prev !== null && y < prev) wraps += 1; prev = y }
@@ -60,7 +63,7 @@ describe('привод гонки: px, запись при изменении, r
     const { cols, vp, fire } = mk()
     const P0 = cols[2].st['--run-px']
     vp.h = 700; fire()
-    expect(cols[2].st['--run-px']).not.toBe(P0); expect(cols[2].st['--run-px']).toBe(`${periodPx(RACE_PERIOD, 700, 3, 24).toFixed(3)}px`)
+    expect(cols[2].st['--run-px']).not.toBe(P0); expect(cols[2].st['--run-px']).toBe(`${periodPx(RACE_PERIOD, 700, 3, RACE_SPLIT).toFixed(3)}px`)
     expect(parseFloat(cols[2].st['--run-y'])).toBeLessThan(parseFloat(cols[2].st['--run-px']))
   })
 })

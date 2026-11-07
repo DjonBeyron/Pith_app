@@ -52,7 +52,7 @@ function WordLanePills({ scene, levels, fx, live, sceneApi, visible, onLane, arm
       {onLane && (
         <div className="wlTap" data-testid="wl-tap">
           {Array.from({ length: SLOT_COUNT }, (_, lane) => (
-            <button key={lane} type="button" className="wlTapLane" onPointerDown={e => { e.preventDefault(); onLane(lane) }} aria-label={`Дорожка ${lane + 1}`} data-testid={`wl-tap-${lane}`} />
+            <button key={lane} type="button" className="wlTapLane" onPointerDown={e => { e.preventDefault(); onLane(lane, { x: e.clientX, y: e.clientY }) }} aria-label={`Дорожка ${lane + 1}`} data-testid={`wl-tap-${lane}`} />
           ))}
         </div>
       )}

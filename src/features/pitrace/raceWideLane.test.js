@@ -8,7 +8,7 @@ import { createLaneFlash } from '../player/modules/rotate-phone/wordLaneLaneFlas
 
 vi.mock('../../shared/lib/deviceTier.js', () => ({ isWeakDevice: () => false }))
 
-// Широкая лента этапа «Фразы»: пилюли пула wide (по центру, 90 % × две строки) — та же капсула и вертикальная заливка, что у обычной, скорость и положение по часам полёта; CSS ленты, пилюли и подписи
+// Широкая лента этапа «Фразы»: пилюли пула wide (по центру, 90 % × две строки) — та же капсула, что у обычной, но заливка слева направо (translateX), скорость и положение по часам полёта; CSS ленты, пилюли и подписи
 const read = rel => readFileSync(new URL(rel, import.meta.url), 'utf8')
 const strip = css => css.replace(/\/\*[\s\S]*?\*\//g, '')
 function fakeEl(parts = {}) {
@@ -37,16 +37,23 @@ describe('широкая пилюля в пуле', () => {
     expect(pills[n].style.left).toBe(`${LANE_X[0]}%`); expect(pills[n].style.width).toBe(`${PILL_W}%`); expect(pills[n].style.height).toBe(`${PILL_H}%`)
     expect(WIDE_W).toBeGreaterThanOrEqual(85); expect(WIDE_W).toBeLessThanOrEqual(92)
   })
-  it('заливка — та же вертикальная, что у слова (paintFill), горизонтальной нет; положение по часам полёта (y), скорость — множитель к скорости выдачи (rate)', () => {
+  it('заливка широкой — слева направо (paintFill → translateX), обычной — снизу вверх (translateY); положение по часам полёта (y), скорость — множитель к скорости выдачи (rate)', () => {
     const { pool, pills } = rig()
     const k = pool.take(1, { wide: true, speed: 0.5 })
     expect(pool.paintRow).toBeUndefined()
-    pool.paintFill(k, 0.5); expect(pills[k].parts['.wlPillFill'].style.transform).toBe(fillTransform(0.5))
+    const fillOf = n => pills[n].parts['.wlPillFill'].style.transform
+    expect(fillOf(k)).toBe('translateX(-100.0%)')
+    pool.paintFill(k, 0.5); expect(fillOf(k)).toBe(fillTransform(0.5, true))
+    expect(fillTransform(0.5, true)).toBe('translateX(-50.0%)'); expect(fillTransform(1, true)).toBe('translateX(0.0%)')
     expect(fillTransform(0.5)).toBe('translateY(50.0%)')
-    const a = pills[k].anims[0]
-    a.currentTime = FLIGHT_MS / 2; expect(pool.y(k)).toBeCloseTo(52)
-    pool.rate(k, 2); expect(a.playbackRate).toBe(1)
-    pool.rate(k, 1); expect(a.playbackRate).toBe(0.5)
+    const n = pool.take(2, {})
+    pool.paintFill(n, 0.25); expect(fillOf(n)).toBe('translateY(75.0%)')
+    pool.give(k); const again = pool.take(0, {}); pool.paintFill(again, 0.5); expect(fillOf(again)).toBe('translateY(50.0%)') // вернулась в пул — ось снова вертикальная
+    const w = pool.take(1, { wide: true, speed: 0.5 })
+    const a = pills[w].anims.at(-1)
+    a.currentTime = FLIGHT_MS / 2; expect(pool.y(w)).toBeCloseTo(52)
+    pool.rate(w, 2); expect(a.playbackRate).toBe(1)
+    pool.rate(w, 1); expect(a.playbackRate).toBe(0.5)
   })
 })
 

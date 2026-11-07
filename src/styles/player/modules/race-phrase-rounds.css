@@ -50,3 +50,6 @@
 .wlPill[data-lock] .racePhraseMask b { color: inherit; opacity: 1; }
 .weak-device .racePhraseMask b { transition: none; }
 @media (prefers-reduced-motion: reduce) { .racePhraseMask b { transition: none; } }
+
+/* Тап мимо пилюль ленты (raceTapMiss.js, круг 1 и «Узнай»): мягкое кольцо в точке касания, вспышку (opacity) ведёт WAAPI; в покое невидимо */
+.raceTapMiss { position: absolute; left: -18px; top: -18px; width: 36px; height: 36px; border-radius: 50%; border: 2px solid rgba(244, 246, 251, 0.7); opacity: 0; pointer-events: none; z-index: 6; }

@@ -51,7 +51,7 @@ describe('слушатель: tap(target)', () => {
 describe('проводка в игре', () => {
   it('useWordLaneFlow.onLane: у «Порядка» — tap движка; у ученика (nextTarget) — listener.tap', () => {
     const flow = read('./useWordLaneFlow.js')
-    expect(flow).toContain("const onLane = useCallback(lane => { const api = sceneApi.current; if (api?.tap) api.tap(lane); else { const t = api?.nextTarget?.(); if (t != null) listenerRef.current?.tap(t) } }, [])")
+    expect(flow).toContain("const onLane = useCallback((lane, pt) => { const api = sceneApi.current; if (api?.tap) api.tap(lane, pt); else { const t = api?.nextTarget?.(); if (t != null) listenerRef.current?.tap(t) } }, [])")
   })
   it('WordLaneGame: кнопки дорожек и подсказка в очереди ученика только при tapMode; HUD переключает его сразу (setTapMode)', () => {
     const game = read('./WordLaneGame.jsx')
