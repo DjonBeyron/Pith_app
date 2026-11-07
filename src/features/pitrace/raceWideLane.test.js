@@ -37,7 +37,7 @@ describe('широкая пилюля в пуле', () => {
     expect(pills[n].style.left).toBe(`${LANE_X[0]}%`); expect(pills[n].style.width).toBe(`${PILL_W}%`); expect(pills[n].style.height).toBe(`${PILL_H}%`)
     expect(WIDE_W).toBeGreaterThanOrEqual(72); expect(WIDE_W).toBeLessThanOrEqual(78) // поля по 11–14 % (замечание владельца: широкие пилюли «Фраз» слишком широкие)
   })
-  it('заливка широкой — слева направо (paintFill → translateX), обычной — снизу вверх (translateY); положение по часам полёта (y), скорость — множитель к скорости выдачи (rate)', () => {
+  it('заливка широкой — слева направо (paintFill → translateX), обычной — снизу вверх (translateY); положение по часам полёта (y), скорость — постоянная, как при выдаче (rate нет)', () => {
     const { pool, pills } = rig()
     const k = pool.take(1, { wide: true, speed: 0.5 })
     expect(pool.paintRow).toBeUndefined()
@@ -52,8 +52,7 @@ describe('широкая пилюля в пуле', () => {
     const w = pool.take(1, { wide: true, speed: 0.5 })
     const a = pills[w].anims.at(-1)
     a.currentTime = FLIGHT_MS / 2; expect(pool.y(w)).toBeCloseTo(52)
-    pool.rate(w, 2); expect(a.playbackRate).toBe(1)
-    pool.rate(w, 1); expect(a.playbackRate).toBe(0.5)
+    expect(a.playbackRate).toBe(0.5); expect(pool.rate).toBeUndefined() // скорость постоянна: ускорения «Скажи» больше нет
   })
 })
 

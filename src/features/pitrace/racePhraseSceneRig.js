@@ -1,4 +1,4 @@
-// Для тестов сцены широкой ленты (racePhraseScene*.test.js): поддельный пул (положение — по поддельным часам и скорости, как у анимации полёта; заливка — число fill), поддельный rAF (кадр — tick вручную).
+// Для тестов сцены широкой ленты (racePhraseScene*.test.js): поддельный пул (положение — по поддельным часам и скорости, как у анимации полёта; заливка — число fill; coast / tail — доезд между кругами), поддельный rAF (кадр — tick вручную).
 import { vi } from 'vitest'
 import { runPhraseScene } from './racePhraseScene.js'
 import { ENTER_Y, SPEED } from '../player/modules/rotate-phone/wordLaneTimeline.js'
@@ -11,16 +11,16 @@ export function fakePool(clock) {
     take(lane, o) { const k = next++; const p = { k, lane, ...o, attrs: new Set(), vals: {}, born: clock.t - (o.atMs ?? 0), rate: 1, fill: 0, fills: [], el: el() }; live.set(k, p); pool.taken.push(p); return k },
     give: k => live.delete(k), fade: k => { pool.taken[k].faded = true; live.delete(k) }, rise: k => { live.get(k).rose = true; live.delete(k); return true },
     y: k => { const p = live.get(k); return p ? ENTER_Y + (SPEED * p.speed * p.rate * (clock.t - p.born)) / 1000 : null },
-    rate: (k, r) => { const p = live.get(k); if (!p) return; const y = pool.y(k); p.rate = r; p.born = clock.t - ((y - ENTER_Y) / (SPEED * p.speed * r)) * 1000 },
     attr: (k, n, on = true) => { const p = pool.taken[k]; if (on) { p.attrs.add(n); p.vals[n] = on === true ? '1' : String(on) } else { p.attrs.delete(n); delete p.vals[n] } },
     paintFill: (k, v) => { pool.taken[k].fill = v; pool.taken[k].fills.push(v) }, el: k => pool.taken[k].el, flashLane: vi.fn(),
+    coast(gone) { pool.coasted = [...live.keys()]; pool.onGone = gone; return pool.coasted }, tail: () => clock.tail ?? null, // доезд при смене ступени (wordLaneCoast.js): номера и «доехала»; tail — верх доезжающих прошлого круга
   }
   return pool
 }
 
 /** Сцена на поддельных часах: go(ms) — кадры по 16 мс */
 export function setupScene(step, o = {}) {
-  const clock = { t: 0 }
+  const clock = { t: 0, tail: o.tail ?? null }
   const pool = fakePool(clock)
   const fx = { pre: vi.fn(), win: vi.fn(), miss: vi.fn(), fail: vi.fn(), finished: vi.fn(), pitLeft: () => o.pit ?? 0 }
   const run = runPhraseScene({ pool, root: null, scene: { step }, fxRef: { current: fx }, now: () => clock.t, raf: () => 0, caf: () => {}, log: o.log ?? (() => {}), listen: o.listen ?? null, held: () => false, snap: () => {}, shake: () => {} })
