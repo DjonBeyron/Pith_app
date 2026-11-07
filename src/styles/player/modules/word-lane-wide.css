@@ -1,16 +1,17 @@
 /* «Встряхни память», этап 2 «Фразы» (features/pitrace/racePhraseScene.js, CONCEPT_RACE.md «Этап 2» → «Лента и круги»): широкая лента и широкие пилюли.
-   Лента: пока идёт акт фраз (data-act='phrases' на корне игры, WordLaneGame), три дорожки за 0,6 с съезжаются к центру — крайние колонки .wlLanes i сдвигаются на свою ширину к средней
-   и гаснут, разделители .wlLaneEdge расходятся к краям ленты (5 % и 95 %); на выходе из этапа всё разъезжается обратно. Новых узлов нет, только transform и opacity; конвейер (узор «нить») идёт по средней.
+   Лента: пока идёт акт фраз (data-tape на корне игры — wordLaneTape.js, ставит WordLaneGame; держится и на паузе), три дорожки за 0,6 с съезжаются к центру — крайние колонки .wlLanes i сдвигаются на свою ширину к средней
+   и гаснут, разделители .wlLaneEdge расходятся к краям ленты (5 % и 95 %); на выходе из этапа всё разъезжается обратно. Пауза и «Продолжить» (ступень сначала) атрибут не меняют — лента сразу в своём виде, без перехода.
+   Новых узлов нет, только transform и opacity; конвейер (узор «нить») идёт по средней со скоростью пилюли (laneConveyorDrive.js), вспышка верного ответа — на всю ленту (word-lane-lane-flash.css).
    Широкая пилюля (pool.take wide → data-wide, left 50 %, WIDE_W × WIDE_H из wordLaneTimeline.js): капсула со скруглением, текст фразы в ::after (data-cap) в две строки, шрифт clamp(14px, 4vw, 18px);
    data-faded — бледный текст (круг «Скажи»); заливка по горизонтали (pool.paintRow: translateX слоя заливки), сегменты по словам — тонкие разделители фоном клипа шириной 100 % / --segs;
    data-hot — верная пилюля после ошибки подсвечена (обводка ярче), перед тем как взлететь сама. Искр у широкой пилюли нет. Подпись смысла над лентой (.racePhraseRu, один узел сцены) — только opacity.
    filter нет; на слабом устройстве и при reduced-motion переходы мгновенные. */
 .wl[data-race] .wlLanes i, .wl[data-race] .wlLaneEdge { transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.25s ease; }
-.wl[data-race][data-act='phrases'] .wlLanes i, .wl[data-race][data-act='phrases'] .wlLaneEdge { transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease 0.3s; }
-.wl[data-race][data-act='phrases'] .wlLanes i:nth-child(1) { transform: translateX(100%); opacity: 0; }
-.wl[data-race][data-act='phrases'] .wlLanes i:nth-child(3) { transform: translateX(-100%); opacity: 0; }
-.wl[data-race][data-act='phrases'] .wlLaneEdge:nth-of-type(1) { transform: translateX(-28.33vw); }
-.wl[data-race][data-act='phrases'] .wlLaneEdge:nth-of-type(2) { transform: translateX(28.33vw); }
+.wl[data-race][data-tape] .wlLanes i, .wl[data-race][data-tape] .wlLaneEdge { transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease 0.3s; }
+.wl[data-race][data-tape] .wlLanes i:nth-child(1) { transform: translateX(100%); opacity: 0; }
+.wl[data-race][data-tape] .wlLanes i:nth-child(3) { transform: translateX(-100%); opacity: 0; }
+.wl[data-race][data-tape] .wlLaneEdge:nth-of-type(1) { transform: translateX(-28.33vw); }
+.wl[data-race][data-tape] .wlLaneEdge:nth-of-type(2) { transform: translateX(28.33vw); }
 .weak-device .wl[data-race] .wlLanes i, .weak-device .wl[data-race] .wlLaneEdge { transition: none; }
 @media (prefers-reduced-motion: reduce) { .wl[data-race] .wlLanes i, .wl[data-race] .wlLaneEdge { transition: none; } }
 

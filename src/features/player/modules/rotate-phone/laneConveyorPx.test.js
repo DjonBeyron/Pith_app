@@ -49,9 +49,9 @@ describe('привод гонки: px, запись при изменении, r
     expect(Math.max(...steps) - Math.min(...steps)).toBeLessThanOrEqual(1); expect(Math.min(...steps)).toBeGreaterThan(0) // без нулей и удвоений
     expect(cols[1].log.filter(k => k === '--run-a').length - n0).toBe(0)
   })
-  it('медленный ход: кадр без сдвига на пиксель устройства — без записи --run-y', () => {
-    const { cols, d, step } = mk({ h: 200, dpr: 1 }) // медленный ход ≈ 15 px/с: пиксель — раз в 4 кадра
-    d.setArmed('000s'); step(4000)
+  it('медленный узор: кадр без сдвига на пиксель устройства — без записи --run-y', () => {
+    const { cols, d, step } = mk({ h: 50, dpr: 1 }) // держать ход на низком экране ≈ 13 px/с: пиксель — раз в 4–5 кадров
+    d.setArmed('000h'); step(4000)
     const n0 = cols[0].log.filter(k => k === '--run-y').length
     step(1000)
     expect(cols[0].log.filter(k => k === '--run-y').length - n0).toBeLessThan(25)

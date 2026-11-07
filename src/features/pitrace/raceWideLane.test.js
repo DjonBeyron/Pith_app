@@ -3,6 +3,8 @@ import { readFileSync } from 'node:fs'
 import { createPool, POOL } from '../player/modules/rotate-phone/wordLanePool.js'
 import { WIDE_W, WIDE_H, PILL_W, PILL_H, LANE_X } from '../player/modules/rotate-phone/wordLaneTimeline.js'
 import { FLIGHT_MS } from '../player/modules/rotate-phone/wordLaneMotion.js'
+import { laneTape } from '../player/modules/rotate-phone/wordLaneTape.js'
+import { createLaneFlash } from '../player/modules/rotate-phone/wordLaneLaneFlash.js'
 
 vi.mock('../../shared/lib/deviceTier.js', () => ({ isWeakDevice: () => false }))
 
@@ -56,9 +58,10 @@ describe('стили широкой ленты', () => {
     expect(read('../../styles/player/modules/word-lane-wide.css').split('\n').length).toBeLessThanOrEqual(250)
   })
   it('акт фраз: крайние колонки съезжаются к средней и гаснут, разделители — к краям ленты; Пит «Пальцами» — по центру', () => {
-    expect(css).toContain(".wl[data-race][data-act='phrases'] .wlLanes i:nth-child(1) { transform: translateX(100%); opacity: 0; }")
-    expect(css).toContain(".wl[data-race][data-act='phrases'] .wlLanes i:nth-child(3) { transform: translateX(-100%); opacity: 0; }")
-    expect(css).toMatch(/data-act='phrases'\] \.wlLaneEdge:nth-of-type\(1\) \{ transform: translateX\(-/)
+    expect(css).toContain(".wl[data-race][data-tape] .wlLanes i:nth-child(1) { transform: translateX(100%); opacity: 0; }")
+    expect(css).toContain(".wl[data-race][data-tape] .wlLanes i:nth-child(3) { transform: translateX(-100%); opacity: 0; }")
+    expect(css).toMatch(/data-tape\] \.wlLaneEdge:nth-of-type\(1\) \{ transform: translateX\(-/)
+    expect(css).not.toMatch(/data-act='phrases'\] \.wlLan/) // лента — по data-tape (держится на паузе), не по акту стадии
     expect(css).toMatch(/0\.6s/)
     expect(css).toMatch(/data-act='phrases'\] \.wlStage > \.wlCat\.scn:not\(\.wlCat--track\) \{ translate:/)
   })
@@ -69,5 +72,43 @@ describe('стили широкой ленты', () => {
     expect(css).toMatch(/\.wlPill\[data-wide\] \.wlPillSparks \{ display: none; \}/)
     expect(css).toMatch(/calc\(100% \/ var\(--segs, 1\)\)/)
     expect(css).toMatch(/\.racePhraseRu\[data-on\] \{ opacity: 1; \}/)
+  })
+})
+
+describe('лента на паузе и после «Продолжить»; вспышка на всю ленту', () => {
+  const stages = [{ act: 'catch' }, { act: 'phrases', type: 'announce' }, { act: 'phrases', type: 'student' }]
+  it('laneTape: акт фраз — лента; на паузе со стадии фраз лента держится (атрибут не меняется — нет переходной анимации при «Продолжить»)', () => {
+    const f = (o) => ({ rh: { on: true }, stages, ...o })
+    expect(laneTape(f({ stage: 'run', idx: 2, stageObj: stages[2] }))).toBe(true)
+    expect(laneTape(f({ stage: 'run', idx: 1, stageObj: stages[1] }))).toBe(true)
+    expect(laneTape(f({ stage: 'paused', from: 'run', idx: 2, stageObj: null }))).toBe(true)
+    expect(laneTape(f({ stage: 'run', idx: 0, stageObj: stages[0] }))).toBe(false)
+    expect(laneTape(f({ stage: 'paused', from: 'drop', idx: 2, stageObj: null }))).toBe(false)
+    expect(laneTape({ ...f({ stage: 'run', idx: 2, stageObj: stages[2] }), rh: { on: false } })).toBe(false)
+    expect(read('../player/modules/rotate-phone/WordLaneGame.jsx')).toContain("data-tape={laneTape(f) ? '' : undefined}")
+  })
+  function field(tape) {
+    const mk = () => { const a = new Map(); return { a, setAttribute: (k, v) => a.set(k, v), removeAttribute: k => a.delete(k), getAttribute: k => a.get(k) ?? null } }
+    const cols = [mk(), mk(), mk()], edges = [mk(), mk()]
+    const lanes = { ...mk(), addEventListener: () => {}, querySelectorAll: sel => (sel === 'i' ? cols : sel === '.wlLaneEdge' ? edges : []) }
+    const root = { querySelector: sel => (sel === '.wlLanes' ? lanes : null), classList: { contains: () => false }, closest: () => ({ hasAttribute: k => tape && k === 'data-tape' }) }
+    return { root, cols, edges, lanes }
+  }
+  it('на ленте вспыхивает вся лента (data-win на .wlLanes) и обе её кромки, колонка — нет; без ленты — колонка, как раньше', () => {
+    vi.useFakeTimers()
+    const t = field(true); createLaneFlash(t.root).flash(1)
+    expect(t.lanes.getAttribute('data-win')).toBe('a'); expect(t.cols.map(c => c.getAttribute('data-win'))).toEqual([null, null, null])
+    expect(t.edges.map(c => c.getAttribute('data-win'))).toEqual(['a', 'a'])
+    vi.advanceTimersByTime(800); expect(t.lanes.getAttribute('data-win')).toBeNull() // ушли из этапа посреди вспышки — атрибут не залипает
+    const p = field(false); createLaneFlash(p.root).flash(1)
+    expect(p.lanes.getAttribute('data-win')).toBeNull(); expect(p.cols[1].getAttribute('data-win')).toBe('a')
+    vi.useRealTimers()
+  })
+  it('CSS: слой ленты ::before от края до края (5 … 95 %), цвет ленты (--lvl2), та же анимация только opacity', () => {
+    const fl = strip(read('../../styles/player/modules/word-lane-lane-flash.css'))
+    expect(fl).toMatch(/\.wl\[data-tape\] \.wlLanes\[data-win\]::before \{[^}]*left: 5%; right: 5%;[^}]*--lvl2-rgb/)
+    expect(fl).toContain(".wl[data-tape] .wlLanes[data-win='a']::before { animation: wlLaneFlashA 0.6s ease-out 1 both; }")
+    expect(fl).toContain(".wl[data-tape] .wlLanes[data-win='b']::before { animation: wlLaneFlashB 0.6s ease-out 1 both; }")
+    expect(fl).not.toMatch(/filter/)
   })
 })
