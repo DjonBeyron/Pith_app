@@ -12,7 +12,6 @@
 @import './word-lane-wide.css'; /* этап «Фразы»: широкая лента и широкие пилюли, подпись смысла */
 @import './word-lane-wide-fill.css'; /* этап «Фразы»: заливка широкой пилюли слева направо (translateX), вертикальная кромка */
 @import './race-phrase-rounds.css'; /* этап «Фразы»: вид кругов — плашки, рамки пилюль, маска слов «Скажи» */
-@import './race-phrase-demo.css'; /* этап «Фразы»: демо «можно по словам» на плашке круга «Скажи» (пилюля-образец, заливка) */
 .wlPill[data-cap]:not([data-hint])::after {
   content: attr(data-cap);
   position: absolute;

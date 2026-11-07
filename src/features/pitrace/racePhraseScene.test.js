@@ -117,7 +117,7 @@ describe('сцена широкой ленты: круг 2 «Скажи»', () =
     stubDraft('nice to meet'); expect(m()).toBe('Nice:full to:full meet:draft ▭▭▭:hidden') // прошлое слово подтверждено следующим
     stubSay('nice to meet you'); expect(s.fx.win).toHaveBeenCalledTimes(1)
     expect(m()).toBe('Nice:full to:full meet:full you:full') // итог: вся фраза
-    expect(log.mock.calls.at(-1)[0]).toMatch(/^\[phrases\] круг 2 «Скажи» \(голос\), ход 1\/3: цель/)
+    expect(log.mock.calls.at(-1)[0]).toMatch(/^\[phrases\] круг 2 «Скажи» \(голос\), ход 1\/6, проход 1\/2: цель .+ итог верно, слова 100 %, чисто$/)
     s.run.stop()
   })
   it('чисто — все слова; тап в «Скажи» не отвечает', () => {

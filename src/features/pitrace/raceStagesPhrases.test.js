@@ -73,13 +73,16 @@ describe('ходы кругов', () => {
     expect(JSON.stringify(round1Turns(ph, 'z'))).toBe(JSON.stringify(round1Turns(ph, 'z')))
     for (const f of ['racePhraseTurns.js', 'raceStagesPhrases.js', 'racePhraseScene.js', 'racePhraseVoice.js', 'raceStatePhrases.js', 'racePhraseData.js']) expect(readFileSync(new URL(`./${f}`, import.meta.url), 'utf8')).not.toMatch(/Math\.random\s*\(/)
   })
-  it('круг 2 голосом — по одной своей фразе; пальцами — три смысла (ru), верный один; слабые фразы круга 1 — последними', () => {
-    expect(round2SayTurns(ph).map(t => t.cands.length)).toEqual([1, 1, 1])
+  it('круг 2 голосом — по своей фразе ДВА хода подряд (проход 1, проход 2); пальцами — три смысла (ru), верный один, один ход; слабые фразы круга 1 — последними, пары не разрываются', () => {
+    const say = round2SayTurns(ph)
+    expect(say.map(t => t.cands.length)).toEqual([1, 1, 1, 1, 1, 1])
+    expect(say.map(t => t.pass)).toEqual([1, 2, 1, 2, 1, 2]); expect(say.map(t => t.idx)).toEqual([0, 1, 2, 3, 4, 5])
+    const keys = [...new Set(say.map(t => t.target.key))]
+    expect(say.map(t => t.target.key)).toEqual([keys[0], keys[0], keys[1], keys[1], keys[2], keys[2]])
     const h = round2HearTurns(ph, 's1')
-    for (const t of h) { expect(t.cands.map(c => c.cap)).toContain(t.target.ru); expect(new Set(t.cands.map(c => c.cap)).size).toBe(3) }
-    const keys = round2SayTurns(ph).map(t => t.target.key)
-    const re = reorderWeak(round2SayTurns(ph), [keys[0]])
-    expect(re.map(t => t.target.key)).toEqual([keys[1], keys[2], keys[0]]); expect(re.map(t => t.idx)).toEqual([0, 1, 2])
+    for (const t of h) { expect(t.pass).toBeUndefined(); expect(t.cands.map(c => c.cap)).toContain(t.target.ru); expect(new Set(t.cands.map(c => c.cap)).size).toBe(3) }
+    const re = reorderWeak(say, [keys[0]])
+    expect(re.map(t => `${t.target.key}#${t.pass}`)).toEqual([`${keys[1]}#1`, `${keys[1]}#2`, `${keys[2]}#1`, `${keys[2]}#2`, `${keys[0]}#1`, `${keys[0]}#2`]); expect(re.map(t => t.idx)).toEqual([0, 1, 2, 3, 4, 5])
   })
 })
 

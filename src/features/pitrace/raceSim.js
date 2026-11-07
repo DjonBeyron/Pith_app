@@ -41,8 +41,8 @@ export function scoreRace(plan, race) {
     const ph = phraseHits(race.phrases, w.text) // ходы этапа «Фразы», где было слово
     const hit = (sp && !failedIn(sp) ? 1 : 0) + (ct && !ct.trap && !failedIn(ct) ? 1 : 0) + ph.hit // ловушка, на которую не поддался, слову в память ничего не даёт
     const miss = (sp && failedIn(sp) ? 1 : 0) + (ct && failedIn(ct) ? 1 : 0) + (cm ? 1 : 0) + ph.miss
-    return { text: w.text, hit, miss, phraseHits: ph.hit, phraseMisses: ph.miss, played: !!(sp || ct || cm || ph.hit || ph.miss) }
-  }).filter(w => w.played).map(w => ({ text: w.text, hit: w.hit, miss: w.miss, phraseHits: w.phraseHits, phraseMisses: w.phraseMisses })) // phraseHits / phraseMisses — ходы фраз со словом (их читает raceMemory.outcomesOf)
+    return { text: w.text, hit, miss, phraseHits: ph.hit, phraseMisses: ph.miss, phraseUnclean: ph.unclean, played: !!(sp || ct || cm || ph.hit || ph.miss) }
+  }).filter(w => w.played).map(w => ({ text: w.text, hit: w.hit, miss: w.miss, phraseHits: w.phraseHits, phraseMisses: w.phraseMisses, ...(w.phraseUnclean ? { phraseUnclean: w.phraseUnclean } : {}) })) // phraseHits / phraseMisses / phraseUnclean — фразы со словом (их читает raceMemory.outcomesOf; «Скажи» — по двум проходам)
   const xp = plan.words.filter(w => w.due && mem.find(x => x.text === w.text)?.hit > 0).length
   const descent = race.descent
   const misses = (sprintTotal - sprintHit) + (catchTotal - catchOk) + Object.values(race.climb?.fails ?? {}).reduce((a, n) => a + n, 0) + (descent === 'miss' ? 1 : 0)
@@ -50,7 +50,7 @@ export function scoreRace(plan, race) {
   const gold = sprintTotal > 0 && sprintHit === sprintTotal && catchTotal > 0 && catchOk === catchTotal && medal === 'gold' && descent === 'ok'
   const listed = weakWords(race, Infinity)
   const weak = withAccuracy(race, [...listed, ...phraseOnlyWords(phrasesOf(plan), race.phrases, new Set(listed.map(w => normText(w.text))))])
-    .map(w => { const ph = phraseHits(race.phrases, w.text); return ph.hit || ph.miss ? { ...w, phraseHits: ph.hit, phraseMisses: ph.miss } : w })
+    .map(w => { const ph = phraseHits(race.phrases, w.text); return ph.hit || ph.miss ? { ...w, phraseHits: ph.hit, phraseMisses: ph.miss, ...(ph.unclean ? { phraseUnclean: ph.unclean } : {}) } : w })
   const pc = phraseCount(race.phrases)
   return { sprint: { hit: sprintHit, total: sprintTotal }, catchOk, catchTotal, phrasesOk: pc.ok, phrasesTotal: pc.total, phrases: phraseSummary(race.phrases), medal, climbRung: race.climb?.rung ?? 0, climbTotal: race.climb?.n ?? 0, timedOut: !!race.climb?.timedOut, descent, phraseDone, words: mem, xp, misses, gold, weak, metrics: raceMetrics(race) }
 }

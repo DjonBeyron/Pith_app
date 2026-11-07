@@ -1,8 +1,10 @@
 // Результаты этапа 2 «Фразы» игры «Встряхни память» (CONCEPT_RACE.md, «Этап 2» → «Лента и круги»): события ходов в состоянии гонки (raceState.js: s.phrases — список событий) и всё, что из них
 // считает итог: вклад во точность слов фразы (raceAccuracy.js), слабые фразы («с чем спутал», круг 2 ✓ / ✗), слова фраз, которых не было в «Пинг-понге», и порядок круга 2 (слабые — последними).
-// Событие: { t: 'phrase', phraseKey, text, ru, words (ключи слов фразы), round: 1 | 2, ok, late, confusedWith (key) , confusedText, ratio, clean }. Чистые функции без React.
+// Событие: { t: 'phrase', phraseKey, text, ru, words (ключи слов фразы), round: 1 | 2, mode, pass (круг «Скажи»: 1 — по словам, 2 — без остановок), ok, late, confusedWith (key), confusedText, ratio, clean,
+// smooth / maxPause (проход 2: без остановок, наибольшая пауза между словами, мс) }. Счёт «Фразы N/M» — по ходам: оба прохода «Скажи» — два хода. Чистые функции без React.
 import { normText } from '../player/modules/rotate-phone/wordLaneRecipe.js'
 import { weakTone } from './raceWeak.js'
+import { phraseUnits } from './racePhrasePasses.js'
 
 export const PHRASE_CLEAN = 1    // фраза верно и чисто (все слова)
 export const PHRASE_UNCLEAN = 0.6 // верно, но слово пропущено
@@ -17,6 +19,7 @@ export function phraseEvent(kind, rep) {
     t: 'phrase', phraseKey: rep.phraseKey, text: rep.text, ru: rep.ru ?? '', words: rep.words ?? [], round: rep.round === 2 ? 2 : 1, mode: rep.mode,
     ok: kind === 'win', late: kind === 'win' && !!r.late, confusedWith, confusedText: confusedWith ? rep.cands?.find(c => c.key === confusedWith)?.text ?? confusedWith : null,
     ratio: Number.isFinite(r.ratio) ? r.ratio : kind === 'win' ? 1 : 0, clean: kind === 'win' && r.clean !== false,
+    ...(rep.pass ? { pass: rep.pass } : {}), ...(rep.pass === 2 ? { smooth: kind === 'win' && r.smooth !== false, maxPause: r.maxPause ?? null } : {}),
   }
 }
 
@@ -42,16 +45,21 @@ export function phraseNote(part) {
   return `во фразе ${bad.text} ${!bad.ok ? (bad.confusedWith ? 'спутал' : 'не успел') : 'нечисто'}`
 }
 
-/** Фразы итога: [{ key, text, ru, r1: { ok, late, confusedText } | null, r2: { ok, clean, ratio } | null, weak }] по порядку первого хода; weak — что-то не так */
+/**
+ * Фразы итога: [{ key, text, ru, r1: { ok, late, confusedText } | null, r2: { ok, clean, ratio } | null, p2: { ok, clean, smooth, maxPause } | null, weak }] по порядку первого хода;
+ * r2 — круг 2 («Узнай» или проход 1 «Скажи»), p2 — проход 2 «Скажи» (без остановок); weak — что-то не так (в т. ч. проход 1 или 2 не чисто)
+ */
 export function phraseSummary(list) {
   const by = new Map()
   for (const e of list ?? []) {
-    const row = by.get(e.phraseKey) ?? { key: e.phraseKey, text: e.text, ru: e.ru, r1: null, r2: null }
+    const row = by.get(e.phraseKey) ?? { key: e.phraseKey, text: e.text, ru: e.ru, r1: null, r2: null, p2: null }
     if (e.round === 1) row.r1 = { ok: e.ok, late: e.late, confusedText: e.confusedText }
+    else if (e.pass === 2) row.p2 = { ok: e.ok, clean: e.clean, smooth: !!e.smooth, maxPause: e.maxPause ?? null }
     else row.r2 = { ok: e.ok, clean: e.clean, ratio: e.ratio }
     by.set(e.phraseKey, row)
   }
-  return [...by.values()].map(r => ({ ...r, weak: (!!r.r1 && (!r.r1.ok || r.r1.late)) || (!!r.r2 && (!r.r2.ok || !r.r2.clean)) }))
+  const bad = r => !!r && (!r.ok || !r.clean)
+  return [...by.values()].map(r => ({ ...r, weak: (!!r.r1 && (!r.r1.ok || r.r1.late)) || bad(r.r2) || bad(r.p2) }))
 }
 
 /** Сколько ходов фраз верно / всего (строка «Фразы» итога) */
@@ -67,10 +75,10 @@ export function fillPhrases2(stages, cur, s) {
   return null
 }
 
-/** Счёт слова text во фразах для памяти сессии: { hit, miss } — верных и неудачных ходов фраз со словом */
+/** Счёт слова text во фразах для памяти: { hit, miss, unclean } — по единицам racePhrasePasses.phraseUnits (круг 1 / «Узнай» — ход, «Скажи» — фраза по двум проходам: again — промах, hard — зачёт и unclean) */
 export function phraseHits(list, text) {
-  const ev = (list ?? []).filter(e => hasWord(e, text))
-  return { hit: ev.filter(e => e.ok).length, miss: ev.filter(e => !e.ok).length }
+  const ev = phraseUnits(list).filter(e => hasWord(e, text))
+  return { hit: ev.filter(e => e.ok).length, miss: ev.filter(e => !e.ok).length, unclean: ev.filter(e => e.ok && e.unclean).length }
 }
 
 /**

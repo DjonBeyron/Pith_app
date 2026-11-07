@@ -6,12 +6,19 @@
 //    sayText(слово, { hold, tight }) ВПРИТЫК: следующее слово стартует, как только у прежнего кончился голос (tight — без хвоста тишины файла), раньше на тишину в начале своего файла (не больше JOIN_OVERLAP_MS),
 //    без STEP_GAP_MS и без опроса занятости; буферы начинаются и кончаются тишиной — стык без щелчка. Журнал: «[phrase-voice] фраза «…»: целая запись / по словам (N)»;
 //  • верно — фраза (круг 1) и race_phrase_yes «да, это оно»; ошибка — race_phrase_no «нет, это про другое», верная фраза и её смысл; «не успел» — Пит читает верную фразу.
+//  • «Скажи», два прохода (racePhrasePasses.js): после прохода 1 «да» не звучит — перед проходом 2 (pre) сразу race_phrase_again «теперь повтори фразу без остановок» (и подпись над лентой);
+//    итог прохода 2: чисто — race_phrase_yes, с паузами — race_phrase_pauses «хорошо, только без пауз», не успел — Пит читает фразу.
 // Чистая логика с подставляемыми зависимостями: ctx() → { sayLine, sayText, cat } (или use(c) — директор кладёт свежие после рендера), hasRu(text) — есть ли озвучка смысла, audioOf(p) — целая запись фразы,
 // play(p, audio) — сыграть её, lead(word) — тишина в начале файла слова (мс).
 import { transRow } from './raceTrans.js'
 import { phraseWords } from './racePhraseData.js'
 import { phraseAudioOf, playPhraseAudio, wordLeadMs } from './racePhraseAudio.js'
 import { pLog } from '../../shared/lib/debug.js'
+import { RACE_LINES } from './raceLines.js'
+
+export const AGAIN_LINE = 'race_phrase_again'
+export const PAUSES_LINE = 'race_phrase_pauses'
+const AGAIN_TEXT = RACE_LINES.find(l => l.id === AGAIN_LINE)?.text ?? ''
 
 export const STEP_GAP_MS = 140 // между высказываниями цепочки
 export const POLL_MS = 60      // Пит ещё занят — проверить снова через столько
@@ -61,6 +68,7 @@ export function createPhraseVoice({ ctx = null, hasRu = text => !!transRow(text)
       const t = rep?.target
       if (!t) return
       if (rep.mode === 'hear') { chain(phrase(t)); return }
+      if (rep.pass === 2) { try { log(`[phrase-voice] перед ходом «${t.text ?? ''}» (say, проход 2): ${AGAIN_LINE}`) } catch { /* журнал */ } chain([{ line: AGAIN_LINE }]); e?.show?.(AGAIN_TEXT); return }
       const scene = rep.mode === 'pick' && t.scene ? t.scene : '' // круг 1 — ситуация (scene), пусто — смысл; круг 2 «Скажи» — всегда смысл
       const text = scene || t.ru
       const voiced = !!text && hasRu(text)
@@ -71,7 +79,8 @@ export function createPhraseVoice({ ctx = null, hasRu = text => !!transRow(text)
     react(kind, rep) {
       const t = rep?.target
       if (!t) return
-      if (kind === 'win') chain([...(rep.mode === 'pick' ? phrase(t) : rep.mode === 'hear' ? [meaning(t)] : []), { line: 'race_phrase_yes' }])
+      if (kind === 'win' && rep.pass === 1) return // проход 1 «Скажи»: дальше сразу проход 2 со своей репликой
+      if (kind === 'win') chain([...(rep.mode === 'pick' ? phrase(t) : rep.mode === 'hear' ? [meaning(t)] : []), { line: rep.pass === 2 && rep.res?.smooth === false ? PAUSES_LINE : 'race_phrase_yes' }])
       else if (kind === 'miss') chain([{ line: 'race_phrase_no' }, ...phrase(t), meaning(t)])
       else if (kind === 'fail') chain(phrase(t))
     },
