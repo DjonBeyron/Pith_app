@@ -170,3 +170,11 @@ export async function getRacePhraseRu() {
   const v = await getAppSetting(RACE_PHRASE_RU_KEY)
   return v && typeof v === 'object' && !Array.isArray(v) ? v : {}
 }
+
+// Ситуация фраз для круга 1 «Пойми» (этап 2 «Фразы», CONCEPT_PHRASES.md): ключ race_phrase_scene, значение { [normText фразы]: текст } — по образцу race_phrase_ru.
+// Читает план из памяти (racePlanSources.js), пишет админ (RacePhraseMeaning.jsx, таблица озвучки). Нет строки, нет прав или ошибка — {} (ситуация — черновик кода или пусто).
+export const RACE_PHRASE_SCENE_KEY = 'race_phrase_scene'
+export async function getRacePhraseScene() {
+  const v = await getAppSetting(RACE_PHRASE_SCENE_KEY)
+  return v && typeof v === 'object' && !Array.isArray(v) ? v : {}
+}

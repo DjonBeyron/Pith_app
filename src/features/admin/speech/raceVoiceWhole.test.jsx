@@ -25,7 +25,7 @@ describe('фразы целиком в таблице озвучки', () => {
     expect(voiceCount(rows)).toEqual({ done: 1, total: PHRASE_FIXTURE.length })
     expect(missingRows(rows).map(r => r.text)).toEqual(PHRASE_FIXTURE.slice(1).map(p => p.text))
     const src = readFileSync(new URL('./RaceVoiceTable.jsx', import.meta.url), 'utf8')
-    expect(src).toContain('const all = [...whole, ...lines, ...meanings, ...trans]')
+    expect(src).toContain('const all = [...whole, ...lines, ...meanings, ...scenes, ...trans]')
   })
   it('развёрнутая таблица показывает группу «Фразы целиком» с кнопкой «Озвучить»', () => {
     const deps = { cachedLines: () => ({ lines: {} }), loadLines: async () => ({ lines: {} }), loadMeanings: async () => ({}) }

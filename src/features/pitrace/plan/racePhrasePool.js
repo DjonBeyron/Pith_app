@@ -23,6 +23,7 @@ export function planContext(deps = {}) {
     memByWord,
     lessonById: new Map((Array.isArray(deps.lessons) ? deps.lessons : []).map(l => [l.id, l])),
     ruMap: deps.ruMap && typeof deps.ruMap === 'object' ? deps.ruMap : {},
+    sceneMap: deps.sceneMap && typeof deps.sceneMap === 'object' ? deps.sceneMap : {},
     audioMap: phraseAudioMap(deps.audioMap, deps.wordAudio), // целые фразы: word_audio phrase:<key> (главнее) и game2_phrases
     started: new Set(deps.startedIds ?? []),
     pinned: new Set((deps.phraseRows ?? []).map(r => r?.module_id).filter(Boolean)),

@@ -4,7 +4,8 @@ import { phrasesOf } from '../../pitrace/racePhraseData.js'
 import { phraseWordKey } from '../../pitrace/racePhraseAudio.js'
 
 // Таблица «Озвучка Пита» (Админ → «Голос» → «Встряхни память», RaceVoiceTable.jsx): чистая сборка строк и статусов без React.
-// Четыре группы: фразы целиком (английская фраза плана одной записью: word_audio, ключ phrase:<normText>, generateWordAudio — голос диктора слов), реплики игры (каталог raceLines.js, текст и озвучка — из настроек rotate_cat_lines), смыслы фраз плана (plan.phrases[].ru, app_settings.race_phrase_ru, озвучка в word_audio ключом ru:смысл)
+// Пять групп: фразы целиком (английская фраза плана одной записью: word_audio, ключ phrase:<normText>, generateWordAudio — голос диктора слов), реплики игры (каталог raceLines.js, текст и озвучка — из настроек rotate_cat_lines), смыслы фраз плана (plan.phrases[].ru, app_settings.race_phrase_ru, озвучка в word_audio ключом ru:смысл),
+// ситуации фраз для круга 1 (plan.phrases[].scene, app_settings.race_phrase_scene, озвучка так же — ru:ситуация)
 // и переводы слов (transTexts, только чтение: текст и есть ключ озвучки). Статус: ok — озвучено, none — нет озвучки, changed — текст изменён после озвучки (said ≠ text).
 export const STATUS_LABEL = { ok: 'озвучено', none: 'нет озвучки', changed: 'текст изменён после озвучки' }
 
@@ -28,7 +29,11 @@ const libStatus = (text, lib) => {
 /** Смыслы фраз плана: id — ключ фразы, label — английская фраза, text — смысл (сохранённый важнее плана) */
 export const meaningVoiceRows = (plan, saved, lib) => (plan ? meaningRows(plan, saved) : []).map(r => ({ id: r.key, group: 'meaning', label: r.text, text: r.ru, ...libStatus(r.ru, lib), editable: true }))
 
-/** Переводы слов плана без тех, что уже есть смыслами: id — ключ озвучки ru:…, текст не правится */
+/** Ситуации фраз (круг 1): id — 'scene:' + ключ фразы, phrase — ключ фразы (для сохранения), label — английская фраза, text — ситуация (сохранённая важнее плана; пустая — строка есть, её можно вписать) */
+export const sceneVoiceRows = (plan, savedScene, lib) => (plan ? meaningRows(plan, {}, savedScene) : [])
+  .map(r => ({ id: `scene:${r.key}`, phrase: r.key, group: 'scene', label: r.text, text: r.scene, ...libStatus(r.scene, lib), editable: true }))
+
+/** Переводы слов плана без тех, что уже есть смыслами или ситуациями (meanings — строки обеих групп): id — ключ озвучки ru:…, текст не правится */
 export function transVoiceRows(plan, meanings, lib) {
   if (!plan) return []
   const taken = new Set(meanings.map(r => transKey(r.text)).filter(Boolean))

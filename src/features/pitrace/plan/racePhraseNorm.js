@@ -1,4 +1,4 @@
-// Нормализация plan.phrases (этап 2 «Фразы» игры «Встряхни память», контракт — CONCEPT_RACE.md → «Данные: план из памяти»): что угодно → [{ id, text, key, words: [{ text, translation, level }], ru, own, level, audio }] ≤ 6.
+// Нормализация plan.phrases (этап 2 «Фразы» игры «Встряхни память», контракт — CONCEPT_RACE.md → «Данные: план из памяти»): что угодно → [{ id, text, key, words: [{ text, translation, level }], ru, scene, own, level, audio }] ≤ 6.
 // Вызывает normalizePlan (rehearsalPlan.js) для плана с game: 'race'. Фраза без текста отбрасывается, повторы (по key) схлопываются. Чистые функции.
 import { normText } from '../../player/modules/rotate-phone/wordLaneRecipe.js'
 
@@ -35,7 +35,7 @@ export function normalizePhrase(raw) {
   const words = normalizeWords(raw?.words)
   return {
     id: clean(raw?.id, 80) || `plan:${key}`, text, key, words,
-    ru: clean(raw?.ru, 160), own: !!raw?.own,
+    ru: clean(raw?.ru, 160), scene: clean(raw?.scene, 160), own: !!raw?.own,
     level: lvl(raw?.level, words.length ? Math.min(...words.map(w => w.level)) : 0),
     audio: normalizeAudio(raw?.audio),
   }

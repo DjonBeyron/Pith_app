@@ -6,7 +6,7 @@ import { RACE_LINES } from '../../pitrace/raceLines.js'
 import { normalizeLines, linesToSave, playableLines } from '../../player/modules/rotate-phone/wordLaneCatLines.js'
 import { lineVoiced } from '../../rehearsal/rehearsalLines.js'
 import { voicePitLines, missingPitLines } from '../../rehearsal/rehearsalVoice.js'
-import { lineStatus, lineRows, meaningVoiceRows, transVoiceRows, voiceCount, missingRows, durLabel } from './raceVoiceTable.js'
+import { lineStatus, lineRows, meaningVoiceRows, sceneVoiceRows, transVoiceRows, voiceCount, missingRows, durLabel } from './raceVoiceTable.js'
 import { editedLine, saveLineText } from './raceLineText.js'
 import { mainRaceMode, mainRaceTitle } from './raceMainMode.js'
 import { askText } from '../../pitrace/raceAskVoice.js'
@@ -71,6 +71,17 @@ describe('статусы и правка текста', () => {
     expect(m).toEqual([expect.objectContaining({ id: 'hi there', label: 'Hi there', text: 'скажи привет', status: 'none', editable: true })])
     const t = transVoiceRows(plan, m, lib)
     expect(t[0].text).toBe('кот'); expect(t.map(r => r.text)).not.toContain('скажи привет'); expect(t[0]).toMatchObject({ status: 'ok', editable: false })
+  })
+  it('ситуации (круг 1) — своей группой: id scene:<ключ>, сохранённая главнее плана, озвучка по ru:…, не повторяются в переводах', () => {
+    const plan = { words: [{ text: 'cat', translation: 'кот' }], extraWords: [], chunks: [], phrases: [{ key: 'hi there', text: 'Hi there', ru: 'поздоровайся', scene: 'ты встречаешь друга' }, { key: 'bye', text: 'Bye', ru: 'попрощайся' }] }
+    const lib = new Map([['ru:ты на улице', { url: 'u', duration: 1.1 }]])
+    const s = sceneVoiceRows(plan, { 'hi there': 'ты на улице' }, lib)
+    expect(s[0]).toMatchObject({ id: 'scene:hi there', phrase: 'hi there', group: 'scene', label: 'Hi there', text: 'ты на улице', status: 'ok', duration: 1.1, editable: true })
+    expect(s[1]).toMatchObject({ id: 'scene:bye', text: '', status: 'none' }) // пустую можно вписать; в счёт озвучки не идёт
+    expect(voiceCount(s)).toEqual({ done: 1, total: 1 })
+    expect(sceneVoiceRows(plan, {}, null)[0].text).toBe('ты встречаешь друга')
+    const m = meaningVoiceRows(plan, {}, lib), t = transVoiceRows(plan, [...m, ...s], lib)
+    expect(t.map(r => r.text)).toContain('кот'); expect(t.map(r => r.text)).not.toContain('ты на улице'); expect(t.map(r => r.text)).not.toContain('поздоровайся')
   })
 })
 

@@ -1,10 +1,12 @@
-// Одна фраза плана «Встряхни память» (этап 2 «Фразы», контракт plan.phrases — CONCEPT_RACE.md, «Данные: план из памяти»): модуль curricula → { id, text, key, words, ru, own, level, audio }. Чистые функции без сети.
+// Одна фраза плана «Встряхни память» (этап 2 «Фразы», контракт plan.phrases — CONCEPT_RACE.md, «Данные: план из памяти»): модуль curricula → { id, text, key, words, ru, scene, own, level, audio }. Чистые функции без сети.
 //   words — слова модуля: lesson_ids.slice(1, -1) → wordKey(lesson.title) (как learnView.js); уроков нет (без сети) — слова из word_translations, нет и их — слова названия;
 //   translation — из curricula.word_translations, level — levelOfWord(строка word_memory) (нет строки — 0);
 //   ru — смысл по-русски: app_settings.race_phrase_ru[key] → черновик racePhraseRuDefaults.js → curricula.title_translation → '';
+//   scene — ситуация (круг 1 «Пойми»): app_settings.race_phrase_scene[key] → черновик racePhraseSceneDefaults.js → '' (не перевод: пусто — круг 1 говорит ru);
 //   audio — целая фраза: word_audio['phrase:' + key] (озвучка админки «Фразы целиком», читают все) → app_settings.game2_phrases['rh2_phrase:' + key] ({ url, duration }), нет файла — null (Пит читает по словам).
 import { normText } from '../../player/modules/rotate-phone/wordLaneRecipe.js'
 import { defaultPhraseRu } from './racePhraseRuDefaults.js'
+import { defaultPhraseScene } from './racePhraseSceneDefaults.js'
 import { wordKey } from '../../../shared/lib/wordAudio/wordKey.js'
 import { levelOfWord } from '../../../shared/lib/memory/memoryLevels.js'
 
@@ -52,11 +54,14 @@ export function phraseAudio(audioMap, key) {
 /** Смысл по-русски: race_phrase_ru[key] (правка админа) → черновик (racePhraseRuDefaults.js) → перевод названия → '' */
 export const phraseRu = (ruMap, key, fallback) => clean(ruMap?.[key]) || defaultPhraseRu(key) || clean(fallback)
 
+/** Ситуация (круг 1): race_phrase_scene[key] (правка админа) → черновик (racePhraseSceneDefaults.js) → '' */
+export const phraseScene = (sceneMap, key) => clean(sceneMap?.[key]) || defaultPhraseScene(key)
+
 /** Минимум уровней слов (нет слов — 0) */
 export const phraseLevel = words => (words.length ? Math.min(...words.map(w => w.level)) : 0)
 
 /**
- * Фраза из модуля. ctx: { lessonById: Map, memByWord: Map слово → строка word_memory, ruMap, audioMap, own }.
+ * Фраза из модуля. ctx: { lessonById: Map, memByWord: Map слово → строка word_memory, ruMap, sceneMap, audioMap, own }.
  * Возвращает null, если у модуля нет названия.
  */
 export function phraseOfModule(mod, ctx = {}) {
@@ -65,7 +70,7 @@ export function phraseOfModule(mod, ctx = {}) {
   if (!key) return null
   const tr = moduleTranslations(mod)
   const words = moduleWordKeys(mod, ctx.lessonById).map(w => ({ text: w, translation: tr.get(w) ?? '', level: levelOfWord(ctx.memByWord?.get(w) ?? null) }))
-  return { id: String(mod.id), text, key, words, ru: phraseRu(ctx.ruMap, key, mod.title_translation), own: !!ctx.own, level: phraseLevel(words), audio: phraseAudio(ctx.audioMap, key) }
+  return { id: String(mod.id), text, key, words, ru: phraseRu(ctx.ruMap, key, mod.title_translation), scene: phraseScene(ctx.sceneMap, key), own: !!ctx.own, level: phraseLevel(words), audio: phraseAudio(ctx.audioMap, key) }
 }
 
 /**
@@ -79,5 +84,5 @@ export function phraseOfPlan(base, ctx = {}) {
   const cards = new Map((base?.words ?? []).map(w => [wordKey(w.text), w.translation ?? '']))
   const keys = [...new Set(text.split(' ').map(wordKey).filter(Boolean))]
   const words = keys.map(w => ({ text: w, translation: clean(cards.get(w), 80), level: levelOfWord(ctx.memByWord?.get(w) ?? null) }))
-  return { id: `plan:${key}`, text, key, words, ru: phraseRu(ctx.ruMap, key, base?.translation), own: true, level: phraseLevel(words), audio: phraseAudio(ctx.audioMap, key) }
+  return { id: `plan:${key}`, text, key, words, ru: phraseRu(ctx.ruMap, key, base?.translation), scene: phraseScene(ctx.sceneMap, key), own: true, level: phraseLevel(words), audio: phraseAudio(ctx.audioMap, key) }
 }

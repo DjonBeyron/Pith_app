@@ -11,6 +11,7 @@ const loaders = (over = {}) => ({
   phraseRows: async () => [],
   audioMap: async () => ({}),
   ruMap: async () => ({ 'nice to meet you': 'скажи, что рад' }),
+  sceneMap: async () => ({ 'nice to meet you': 'ты на вечеринке' }),
   wordAudio: () => new Map([['ru:скажи, что рад', { url: 'u' }]]),
   ...over,
 })
