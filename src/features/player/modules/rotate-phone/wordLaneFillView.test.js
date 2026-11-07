@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { createFillView, approachFill, FILL_MAX_STEP, FILL_UP_PER_S, FILL_DOWN_PER_S, FILL_ADVANCE } from './wordLaneFillView.js'
+import { createFillView, approachFill, approachFillFast, FILL_MAX_STEP, FILL_MAX_STEP_FAST, FILL_UP_PER_S, FILL_DOWN_PER_S, FILL_ADVANCE } from './wordLaneFillView.js'
 import { createStudentGame, stepStudent, PENDING_TOP, PENDING_MS } from './wordLaneStudent.js'
 import { buildRecipe } from './wordLaneRecipe.js'
 import { FILL_CAP } from './wordLaneTimeline.js'
@@ -33,6 +33,27 @@ describe('createFillView: экран догоняет цель плавно', ()
     v.step('a', 1, 16); v.step('a', 1, 16)
     expect(v.value('a')).toBeGreaterThan(0); expect(v.value('b')).toBe(0)
     v.forget('a'); expect(v.value('a')).toBe(0)
+  })
+})
+
+describe('approachFillFast: адаптивный догон заливки фразы («Скажи»)', () => {
+  const ride = (from, goal, dt, until = 1000) => { let v = from, t = 0; const out = [v]; while (t < until && v < goal - 1e-9) { v = approachFillFast(v, goal, dt); out.push(v); t += dt } return { t, out } }
+  it('большое отставание (быстрая речь, цель ушла на 3 слова) закрывается одним движением ≤ 220 мс — вдвое быстрее 2,5/с', () => {
+    const { t, out } = ride(0, 0.75, 16)
+    expect(t).toBeLessThanOrEqual(220); expect(t).toBeLessThan((0.75 / FILL_UP_PER_S) * 1000 * 0.75)
+    expect(out.every((v, i) => !i || v > out[i - 1])).toBe(true) // без остановок
+  })
+  it('малое отставание — не медленнее 2,5/с; у цели — ровно цель, без перелёта и дрожи; шаг за кадр ≤ FILL_MAX_STEP_FAST при длинном кадре', () => {
+    expect(approachFillFast(0.5, 0.51, 16)).toBe(0.51)
+    expect(approachFillFast(0.5, 0.6, 16)).toBeGreaterThanOrEqual(0.5 + FILL_UP_PER_S * 0.016 - 1e-9)
+    let v = 0.5; for (let i = 0; i < 40; i++) v = approachFillFast(v, 0.8, 16)
+    expect(v).toBe(0.8); expect(approachFillFast(v, 0.8, 16)).toBe(0.8)
+    expect(approachFillFast(0, 1, 100)).toBeLessThanOrEqual(FILL_MAX_STEP_FAST + 1e-9)
+  })
+  it('вниз — как approachFill; createFillView принимает кривую', () => {
+    expect(approachFillFast(0.8, 0.2, 50)).toBe(approachFill(0.8, 0.2, 50))
+    const v = createFillView(approachFillFast); v.step('p', 1, 16)
+    expect(v.value('p')).toBeCloseTo(approachFillFast(0, 1, 16), 9)
   })
 })
 

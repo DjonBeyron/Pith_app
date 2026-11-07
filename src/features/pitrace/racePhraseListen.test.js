@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { createPhraseListener, PHRASE_OK, SETTLE_MS, JOIN_MS } from './racePhraseListen.js'
+import { createPhraseListener, lastOnly, PHRASE_OK, SETTLE_MS, SETTLE_LAST_MS, QUIET_LAST_MS, LAST_HOLD_MS, JOIN_MS } from './racePhraseListen.js'
+import { scorePhrases } from './racePhraseScore.js'
 import { createWordListener } from '../player/modules/rotate-phone/wordLaneListen.js'
 
 // Слушатель фраз этапа 2: подставной распознаватель (как в wordLaneRuListen.test.js) — partial / result подаются руками, таймеры ручные.
@@ -85,15 +86,40 @@ describe('createPhraseListener', () => {
     expect(r.got).toEqual([])
     r.l.stop()
   })
-  it('3 из 4: ждёт конца захода и паузу, потом зачёт с ratio 0.75; новое слово в паузе — продолжение', async () => {
+  it('3 из 4 (пропущено слово в середине): ждёт конца захода и паузу SETTLE_MS, потом зачёт с ratio 0.75', async () => {
     const r = rig([P.learn, P.meet]); await flush()
-    r.cur().cb.onPartial("i'm trying to")
+    r.cur().cb.onPartial("i'm trying learn")
     expect(r.got).toEqual([])
-    await end(r, "i'm trying to")
+    await end(r, "i'm trying learn")
     r.advance(SETTLE_MS - 300)
     expect(r.got).toEqual([])
     r.advance(300)
-    expect(r.got).toEqual([{ phraseKey: "i'm trying to learn", ratio: 0.75, heard: "i'm trying to" }])
+    expect(r.got).toEqual([{ phraseKey: "i'm trying to learn", ratio: 0.75, heard: "i'm trying learn" }])
+    r.l.stop()
+  })
+  it('lastOnly: однозначный кандидат без одного ПОСЛЕДНЕГО слова', () => {
+    expect(lastOnly(scorePhrases([P.meet, P.from], 'nice to meet'))).toBe('nice to meet you')
+    expect(lastOnly(scorePhrases([P.meet, P.from], 'nice to you'))).toBe(null)
+    expect(lastOnly(scorePhrases([P.meet, P.see], 'nice to'))).toBe(null)
+  })
+  it('черновик без последнего слова и тишина: итог захода спрошен через QUIET_LAST_MS, итог с последним словом — зачёт чисто сразу', async () => {
+    const r = rig([P.meet, P.from]); await flush()
+    r.cur().cb.onLevel(0.05); r.cur().cb.onPartial('nice to meet')
+    r.advance(LAST_HOLD_MS); expect(r.cur().stopped).toBe(0)
+    r.cur().cb.onLevel(0.05); r.advance(QUIET_LAST_MS - 50); expect(r.cur().stopped).toBe(0) // звук ещё идёт — ждём
+    r.advance(60); r.advance(0); expect(r.cur().stopped).toBe(1)
+    expect(r.logs.some(s => s.includes('без последнего слова'))).toBe(true)
+    r.cur().cb.onResult('nice to meet you', { words: [] })
+    expect(r.got).toEqual([{ phraseKey: 'nice to meet you', ratio: 1, heard: 'nice to meet you' }])
+    r.l.stop()
+  })
+  it('без последнего слова и в итоге: зачёт 0.75 через SETTLE_LAST_MS; голос в паузе отодвигает решение', async () => {
+    const r = rig([P.meet, P.from]); await flush()
+    r.cur().cb.onPartial('nice to meet'); r.advance(QUIET_LAST_MS); await end(r, 'nice to meet', 0)
+    r.advance(SETTLE_LAST_MS - 100); await flush(); r.cur().cb.onLevel(0.05) // звук в новом заходе
+    r.advance(200); expect(r.got).toEqual([])
+    r.advance(SETTLE_LAST_MS); expect(r.got).toEqual([{ phraseKey: 'nice to meet you', ratio: 0.75, heard: 'nice to meet' }])
+    expect(r.logs.some(s => /\[phrase-ear\] черновик «nice to meet» \+0 мс/.test(s))).toBe(true)
     r.l.stop()
   })
   it('один кандидат: 3 из 4, затем договорил в паузе — засчитано чисто', async () => {

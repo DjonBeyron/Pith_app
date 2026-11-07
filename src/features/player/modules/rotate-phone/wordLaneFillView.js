@@ -17,11 +17,25 @@ export function approachFill(cur, goal, dtMs) {
   return g >= cur ? Math.min(g, cur + Math.min(FILL_MAX_STEP, FILL_UP_PER_S * dt)) : Math.max(g, cur - Math.min(FILL_MAX_STEP, FILL_DOWN_PER_S * dt))
 }
 
-/** Заливки нескольких пилюль: step(id, goal, dtMs) → значение на экране; value(id) — что на экране; forget(id) — пилюля ушла (следующая с тем же id начнёт с нуля) */
-export function createFillView() {
+// Адаптивный догон (заливка фразы «Скажи», замечание владельца 2026-11-07: «говорю быстро — пилюля должна заполняться быстро, без остановок, а не по шагам»): вверх шаг кадра — большее из
+// линейного FILL_UP_PER_S·dt и экспоненты lag·(1 − e^(−dt/FAST_TAU_MS)): большое отставание (быстрая речь — цель ушла на несколько слов) закрывается одним плавным движением за ≈ 3·τ ≈ 0,2 с,
+// маленькое — с той же скоростью 2,5/с, что раньше; у цели шаг обрезается ровно по цели (без перелёта и дрожи). Потолок кадра мягче — FILL_MAX_STEP_FAST. Вниз — как approachFill.
+export const FAST_TAU_MS = 70
+export const FILL_MAX_STEP_FAST = 0.3
+
+/** Один кадр адаптивного догона: cur — что на экране, goal — цель, dtMs — мс с прошлого кадра */
+export function approachFillFast(cur, goal, dtMs) {
+  const g = clamp01(goal), ms = Math.min(FILL_DT_MAX_MS, Math.max(0, dtMs))
+  if (g < cur) return approachFill(cur, g, dtMs)
+  const step = Math.max(FILL_UP_PER_S * ms / 1000, (g - cur) * (1 - Math.exp(-ms / FAST_TAU_MS)))
+  return Math.min(g, cur + Math.min(FILL_MAX_STEP_FAST, step))
+}
+
+/** Заливки нескольких пилюль: step(id, goal, dtMs) → значение на экране; value(id) — что на экране; forget(id) — пилюля ушла (следующая с тем же id начнёт с нуля); approach — кривая догона */
+export function createFillView(approach = approachFill) {
   const shown = new Map()
   return {
-    step(id, goal, dtMs) { const v = approachFill(shown.get(id) ?? 0, goal, dtMs); shown.set(id, v); return v },
+    step(id, goal, dtMs) { const v = approach(shown.get(id) ?? 0, goal, dtMs); shown.set(id, v); return v },
     value: id => shown.get(id) ?? 0,
     forget: id => { shown.delete(id) },
   }
