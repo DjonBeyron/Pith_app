@@ -2,7 +2,7 @@
 //   words — слова модуля: lesson_ids.slice(1, -1) → wordKey(lesson.title) (как learnView.js); уроков нет (без сети) — слова из word_translations, нет и их — слова названия;
 //   translation — из curricula.word_translations, level — levelOfWord(строка word_memory) (нет строки — 0);
 //   ru — смысл по-русски: app_settings.race_phrase_ru[key] → черновик racePhraseRuDefaults.js → curricula.title_translation → '';
-//   audio — целая фраза: app_settings.game2_phrases['rh2_phrase:' + key] ({ url, duration }), нет файла — null (Пит читает по словам).
+//   audio — целая фраза: word_audio['phrase:' + key] (озвучка админки «Фразы целиком», читают все) → app_settings.game2_phrases['rh2_phrase:' + key] ({ url, duration }), нет файла — null (Пит читает по словам).
 import { normText } from '../../player/modules/rotate-phone/wordLaneRecipe.js'
 import { defaultPhraseRu } from './racePhraseRuDefaults.js'
 import { wordKey } from '../../../shared/lib/wordAudio/wordKey.js'
@@ -33,7 +33,16 @@ export function moduleWordKeys(mod, lessonById) {
   return [...new Set(list.filter(Boolean))]
 }
 
-/** Озвучка целой фразы из карты game2_phrases: { url, duration } | null */
+export const PHRASE_WORD_PREFIX = 'phrase:' // ключ целой фразы в библиотеке word_audio: phrase:<normText> (рядом со словами и переводами ru:…)
+
+/** Карта озвучки фраз для плана: game2_phrases и поверх — записи word_audio с ключом phrase:<key> (второй источник, главнее: его читает и игрок без прав админа). wordAudio — Map библиотеки или null */
+export function phraseAudioMap(audioMap, wordAudio) {
+  const map = { ...(audioMap && typeof audioMap === 'object' ? audioMap : {}) }
+  if (wordAudio instanceof Map) for (const [k, row] of wordAudio) if (String(k).startsWith(PHRASE_WORD_PREFIX) && row?.url) map[`${PHRASE_AUDIO_PREFIX}${k.slice(PHRASE_WORD_PREFIX.length)}`] = { url: row.url, duration: row.duration }
+  return map
+}
+
+/** Озвучка целой фразы из карты (phraseAudioMap): { url, duration } | null */
 export function phraseAudio(audioMap, key) {
   const e = audioMap?.[`${PHRASE_AUDIO_PREFIX}${key}`]
   if (!e || typeof e.url !== 'string' || !e.url) return null

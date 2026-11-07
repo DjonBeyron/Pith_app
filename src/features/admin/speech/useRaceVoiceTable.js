@@ -9,10 +9,10 @@ import { RACE_LINES } from '../../pitrace/raceLines.js'
 import { transKey } from '../../pitrace/raceTrans.js'
 import { RACE_PHRASE_RU_KEY, meaningMap, mergeMeanings } from './racePhraseMeaning.js'
 import { saveLineText } from './raceLineText.js'
-import { lineRows, meaningVoiceRows, transVoiceRows } from './raceVoiceTable.js'
+import { lineRows, meaningVoiceRows, transVoiceRows, wholeRows } from './raceVoiceTable.js'
 
 // Данные и действия таблицы «Озвучка Пита» (RaceVoiceTable.jsx). Реплики — app_settings.rotate_cat_lines (озвучка voicePitLines: ElevenLabs → R2 → настройки, тот же путь, что «Озвучить реплики»),
-// смыслы и переводы — библиотека слов word_audio (generateWordAudio, ключ ru:текст, как useTransVoice). Каталог реплик берётся из raceLines.js как есть: новые реплики появляются в таблице сами.
+// смыслы, переводы и фразы целиком — библиотека слов word_audio (generateWordAudio, ключ ru:текст как у useTransVoice; фраза — phrase:<normText>, тот же английский голос диктора, что у слов). Каталог реплик берётся из raceLines.js как есть: новые реплики появляются в таблице сами.
 // После озвучки или правки текста зовётся onChange — блок поднимает linesRev модуля игры, и игра перечитывает реплики. Зависимости подставляются в тестах.
 const defaults = {
   loadLines: getCatLines, cachedLines: getCachedCatLines, loadMeanings: () => getAppSetting(RACE_PHRASE_RU_KEY), saveMeanings: v => saveAppSetting(RACE_PHRASE_RU_KEY, v),
@@ -46,7 +46,7 @@ export default function useRaceVoiceTable({ plan, list = RACE_LINES, onChange = 
 
   const groups = useMemo(() => {
     const meanings = meaningVoiceRows(plan, saved, lib)
-    return { lines: lineRows(list, lines), meanings, trans: transVoiceRows(plan, meanings, lib) }
+    return { whole: wholeRows(plan, lib), lines: lineRows(list, lines), meanings, trans: transVoiceRows(plan, meanings, lib) }
   }, [plan, saved, lib, list, lines])
 
   /** Озвучить строки (любых групп) заново; ошибки — по строкам */
@@ -57,9 +57,10 @@ export default function useRaceVoiceTable({ plan, list = RACE_LINES, onChange = 
       const ids = rows.filter(r => r.group === 'line').map(r => r.id)
       if (ids.length) Object.assign(failed, (await d.voiceLines({ ids, onStep: setStep })).failed)
       const words = rows.filter(r => r.group !== 'line')
-      const byKey = Object.fromEntries(words.map(r => [transKey(r.text), r.id]))
+      const keyOf = r => r.key ?? transKey(r.text) // фраза целиком — свой ключ phrase:…, смысл и перевод — ru:…
+      const byKey = Object.fromEntries(words.map(r => [keyOf(r), r.id]))
       if (words.length) {
-        const res = await d.voiceTexts(words.map(r => ({ key: transKey(r.text), text: r.text, has: false })), d.generate, setStep)
+        const res = await d.voiceTexts(words.map(r => ({ key: keyOf(r), text: r.text, has: false })), d.generate, setStep)
         for (const [k, e] of Object.entries(res.failed)) failed[byKey[k] ?? k] = e
       }
     } catch (e) { failed._all = e?.message || String(e) }

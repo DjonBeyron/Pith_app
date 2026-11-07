@@ -11,6 +11,7 @@ import { playClip, playWordSlot, releaseClips, speechOfUrl, wordBufferMs } from 
 import { makeLib, libRow } from './wordLaneLib.js'; import { transRow } from '../../../pitrace/raceTrans.js'; import { RACE_LINE_WAIT_MS } from '../../../pitrace/raceStartTrace.js'
 import { mouthTrack } from './wordLaneVisemes.js'
 import { useCatLines } from './useCatLines.js'
+import { missFace } from './wordLaneCatPeek.js'
 import { useWordLaneDebug } from './useWordLaneDebug.js'
 import { DROP_MS, LANES_MS } from './wordLaneTimeline.js'
 import { XP_PER_PILL, sensitiveLevel } from './wordLaneConfig.js'
@@ -102,7 +103,7 @@ export function useWordLaneFlow({ chunks, translation, lang, clips = null, audio
       catApi?.current?.peek?.()
       if (rep.last) xpApi.current?.add(XP_PER_PILL * rep.count, rect) // у повтора из нескольких кусков одна цифра («+6»), когда принят последний кусок
     },
-    miss(e) { rh.rec('miss', e?.rep); catApi?.current?.react('shy', 1300, !!stages[sRef.current.idx]?.step?.quiet) }, claim(e) { rh.claim?.(e.rep, e.ms, e.y) }, pre(e) { rh.pre?.(e.rep, e) },
+    miss(e) { rh.rec('miss', e?.rep); const face = missFace(plan?.game === 'race'); if (face) catApi?.current?.react(face, 1300, !!stages[sRef.current.idx]?.step?.quiet) }, claim(e) { rh.claim?.(e.rep, e.ms, e.y) }, pre(e) { rh.pre?.(e.rep, e) }, // гонка: на промах Пит не меняет лицо (missFace, wordLaneCatPeek.js)
     fail(e) {
       const st = stages[sRef.current.idx]
       catApi?.current?.react('shy', 1300, !!st?.step?.quiet); rh.rec('fail', e.rep) // quiet («Разгон»): упущенная пилюля уезжает молча — голова Пита не двигается (react с still)
@@ -121,7 +122,7 @@ export function useWordLaneFlow({ chunks, translation, lang, clips = null, audio
       if (!(r && playWordSlot(r.key, null, null, opts?.onEnd))) { if (opts?.ru) return; speakWord(text) }
       const sp = speechOfUrl(r?.row.url), k = rate > 0 ? rate : 1, file = wordBufferMs(r?.key) || (Number(r?.row.duration) > 0 ? Number(r.row.duration) * 1000 : 0)
       const ms = Math.round((sp?.ms ?? (file || estChunkMs(text))) / k), lead = Math.round((sp?.lead ?? 0) / k) // звук идёт с начала файла, слово — после тишины lead: рот стартует вместе со словом, а длится до конца файла
-      const total = Math.round(Math.max(lead + ms, file / k))
+      const total = Math.round(opts?.tight ? lead + ms : Math.max(lead + ms, file / k)) // opts.tight — фраза по словам (racePhraseVoice.js): Пит занят до конца ГОЛОСА слова, а не хвоста тишины файла — следующее слово встаёт впритык
       gameMicHold.holdFor(total); if (opts?.ru || opts?.hold) { cat.holdBusy?.(total); opts.onSay?.(total) } // opts.onSay / onEnd — секвенсор речи гонки (raceSpeech.js): звук пошёл (длина) / доиграл; перевод «Разгона» / слово «Слушай и лови» (opts.hold): Пит занят, следующая пилюля ждёт конца слова
       catApi?.current?.speak?.(mouthTrack(text, ms).map(x => ({ ...x, at: x.at + lead, end: x.end + lead })), total, { id: text, kind: opts?.ru ? 'перевод' : 'слово' }) // meta: элемент одной очереди речи Пита (wordLaneCatQueue.js)
     },

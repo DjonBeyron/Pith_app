@@ -1,8 +1,10 @@
 import { transKey, transTexts } from '../../pitrace/raceTrans.js'
 import { meaningRows } from './racePhraseMeaning.js'
+import { phrasesOf } from '../../pitrace/racePhraseData.js'
+import { phraseWordKey } from '../../pitrace/racePhraseAudio.js'
 
 // Таблица «Озвучка Пита» (Админ → «Голос» → «Встряхни память», RaceVoiceTable.jsx): чистая сборка строк и статусов без React.
-// Три группы: реплики игры (каталог raceLines.js, текст и озвучка — из настроек rotate_cat_lines), смыслы фраз плана (plan.phrases[].ru, app_settings.race_phrase_ru, озвучка в word_audio ключом ru:смысл)
+// Четыре группы: фразы целиком (английская фраза плана одной записью: word_audio, ключ phrase:<normText>, generateWordAudio — голос диктора слов), реплики игры (каталог raceLines.js, текст и озвучка — из настроек rotate_cat_lines), смыслы фраз плана (plan.phrases[].ru, app_settings.race_phrase_ru, озвучка в word_audio ключом ru:смысл)
 // и переводы слов (transTexts, только чтение: текст и есть ключ озвучки). Статус: ok — озвучено, none — нет озвучки, changed — текст изменён после озвучки (said ≠ text).
 export const STATUS_LABEL = { ok: 'озвучено', none: 'нет озвучки', changed: 'текст изменён после озвучки' }
 
@@ -32,6 +34,12 @@ export function transVoiceRows(plan, meanings, lib) {
   const taken = new Set(meanings.map(r => transKey(r.text)).filter(Boolean))
   return transTexts(plan).filter(t => !taken.has(transKey(t))).map(t => ({ id: transKey(t), group: 'trans', text: t, ...libStatus(t, lib), editable: false }))
 }
+
+/** Фразы плана целиком: id и key — ключ записи word_audio phrase:…, текст — английская фраза (не правится), статус и длительность — по библиотеке */
+export const wholeRows = (plan, lib) => (plan ? phrasesOf(plan) : []).filter(p => phraseWordKey(p)).map(p => {
+  const row = lib?.get(phraseWordKey(p))
+  return { id: phraseWordKey(p), key: phraseWordKey(p), group: 'whole', text: p.text, status: row?.url ? 'ok' : 'none', duration: row?.url ? row.duration ?? null : null, editable: false }
+})
 
 /** Строку можно озвучить: есть текст и в нём нет {word} */
 export const voiceable = r => !!String(r.text ?? '').trim() && !r.text.includes('{')

@@ -6,7 +6,7 @@ import { normText } from '../../player/modules/rotate-phone/wordLaneRecipe.js'
 import { wordKey } from '../../../shared/lib/wordAudio/wordKey.js'
 import { levelOfWord } from '../../../shared/lib/memory/memoryLevels.js'
 import { rngFor, rngShuffle, todayIso } from '../../rehearsal/rehearsalSeed.js'
-import { phraseOfModule, phraseOfPlan, allTranslations } from './racePhraseOf.js'
+import { phraseOfModule, phraseOfPlan, allTranslations, phraseAudioMap } from './racePhraseOf.js'
 import { standbyPhrases, standbyExtraWords } from './raceStandbyPhrases.js'
 
 export const PHRASES_MIN = 3
@@ -23,7 +23,7 @@ export function planContext(deps = {}) {
     memByWord,
     lessonById: new Map((Array.isArray(deps.lessons) ? deps.lessons : []).map(l => [l.id, l])),
     ruMap: deps.ruMap && typeof deps.ruMap === 'object' ? deps.ruMap : {},
-    audioMap: deps.audioMap && typeof deps.audioMap === 'object' ? deps.audioMap : {},
+    audioMap: phraseAudioMap(deps.audioMap, deps.wordAudio), // целые фразы: word_audio phrase:<key> (главнее) и game2_phrases
     started: new Set(deps.startedIds ?? []),
     pinned: new Set((deps.phraseRows ?? []).map(r => r?.module_id).filter(Boolean)),
     today: deps.today || todayIso(),

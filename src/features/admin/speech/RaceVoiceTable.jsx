@@ -3,13 +3,13 @@ import RaceVoiceRow from './RaceVoiceRow.jsx'
 import useRaceVoiceTable from './useRaceVoiceTable.js'
 import { voiceCount, missingRows, voiceable } from './raceVoiceTable.js'
 
-// Админ → «Голос» → «Встряхни память» → «Озвучка Пита»: все реплики игры (каталог raceLines.js), смыслы фраз текущего плана и (свёрнуто) переводы слов — текст, статус озвучки, переозвучка.
+// Админ → «Голос» → «Встряхни память» → «Озвучка Пита»: фразы плана целиком (английская фраза одной записью, game2_phrases), все реплики игры (каталог raceLines.js), смыслы фраз текущего плана и (свёрнуто) переводы слов — текст, статус озвучки, переозвучка.
 // Сворачивается (open / onToggle ведёт блок через usePolishOpen, по умолчанию свёрнуто). Сверху — «озвучено N из M», «Озвучить недостающие» и «Переозвучить все» (оба тратят ElevenLabs, второе — с подтверждением).
 // Сохранённый здесь текст реплики главнее каталога кода: игра говорит и показывает его (raceLineText.js), до переозвучки статус «текст изменён после озвучки».
 export default function RaceVoiceTable({ plan, locked = false, open, onToggle, onChange, confirm = q => globalThis.confirm?.(q) ?? false, deps }) {
   const t = useRaceVoiceTable({ plan, onChange, deps })
-  const { lines, meanings, trans } = t.groups
-  const all = [...lines, ...meanings, ...trans]
+  const { whole, lines, meanings, trans } = t.groups
+  const all = [...whole, ...lines, ...meanings, ...trans]
   const count = voiceCount(all)
   const missing = missingRows(all)
   const off = locked || t.busy || !t.loaded
@@ -26,6 +26,7 @@ export default function RaceVoiceTable({ plan, locked = false, open, onToggle, o
       {t.busy && <p className="rhpHint" role="status" data-testid="rv-step">{t.step ? `озвучиваю ${t.step}…` : 'работаю…'}</p>}
       {t.errors._all && <p className="aspErr" role="alert">Не озвучилось: {t.errors._all}</p>}
       {Object.keys(t.errors).length > 0 && <p className="rhpHint">Ошибки — в строках. Нужны права админа и доступ к ElevenLabs.</p>}
+      {whole.length > 0 && <><h4 className="rvGroup">Фразы целиком</h4><ul className="rvList" data-testid="rv-whole">{whole.map(row)}</ul></>}
       <h4 className="rvGroup">Реплики игры</h4>
       <ul className="rvList" data-testid="rv-lines">{lines.map(row)}</ul>
       {meanings.length > 0 && <><h4 className="rvGroup">Смыслы фраз плана</h4><ul className="rvList" data-testid="rv-meanings">{meanings.map(row)}</ul></>}
