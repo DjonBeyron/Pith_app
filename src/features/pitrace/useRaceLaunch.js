@@ -9,6 +9,7 @@ import { raceWarm } from './raceWarm.js'
 import { askText } from './raceAskVoice.js'
 import { micHelp, isStandalone, needsMicNote, MIC_NOTE_TEXT } from './raceMicHelp.js'
 import { gameMicAlive } from '../../shared/lib/gameMic.js'
+import { tipVisibleNow } from './raceMicSettingsTip.js'
 import { readMicGrantedAt } from '../../shared/lib/micGrantFlag.js'
 
 // Проводка запуска «Встряхни память» в RotatePhoneModule (порядок — raceLaunch.js, CONCEPT_RACE.md «Попап внутри игры»): open — тап «Начать» (сцена с попапом + прогрев без звука, raceWarm.js), pick — «Говорю» / «Тапаю»
@@ -21,11 +22,13 @@ export default function useRaceLaunch({ on, phase, setPhase, cfg, audioSrc, line
   const [wait, setWait] = useState(null)  // «Говорю»: 'mic' — ждём ответ системы о микрофоне, 'sound' — звук улягается после смены аудиосессии
   const [hint, setHint] = useState(null)  // микрофон не дали — плашка в попапе (raceMicHelp.micHelp)
   const [note, setNote] = useState('')    // до тапа: «iPhone спросит разрешение…» — поток сеанса ещё не открыт и не разрешали последний час
+  const [tip, setTip] = useState(false)    // карточка «Чтобы iPhone не спрашивал…» вместо строки note (raceMicSettingsTip.shouldShowTip)
   const genRef = useRef(0) // номер запуска: ответ startGameAudio старого запуска (попап закрыли, игра кончилась) ничего не меняет
 
   const open = useCallback(fullscreen => {
     setHint(null); setWait(null)
     setNote(needsMicNote({ alive: gameMicAlive(), grantedAt: readMicGrantedAt(), now: Date.now() }) ? MIC_NOTE_TEXT : '')
+    setTip(tipVisibleNow())
     raceChron.tap() // хронология «[start]»: отсчёт от этого тапа
     openAsk({ fullscreen, setPhase, prewarm: () => raceWarm.start({ cfg, lines }) }) // жест «Начать»: AudioContext открыт, первые реплики и слова декодируются, пока виден попап
   }, [cfg, lines, setPhase])
@@ -68,5 +71,5 @@ export default function useRaceLaunch({ on, phase, setPhase, cfg, audioSrc, line
   const { watch } = ask
   useEffect(() => { if (on) watch({ phase: phase === 'tap' ? 'game' : phase }) }, [on, phase, watch]) // попап закрыт, игра кончилась — прежний режим тапа возвращается
 
-  return { hold, open, reset, plate: { choice: ask.choice, wait, hint, note, text: askText(lines), onPick: pick, onCancel: cancel } }
+  return { hold, open, reset, plate: { choice: ask.choice, wait, hint, note, tip, onTipClose: () => setTip(false), text: askText(lines), onPick: pick, onCancel: cancel } }
 }

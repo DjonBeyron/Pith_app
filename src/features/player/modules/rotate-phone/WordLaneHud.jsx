@@ -14,6 +14,8 @@ import { unlockNotes } from './wordLaneNotes.js'
 import { prepareAudio, buildDebugFile, saveDebugFile, SAVE_HOW } from './wordLaneDebugExport.js'
 import { buildJournalFile, liveHeader, copyText, COPY_HOW, compactText } from './wordLaneJournal.js'
 import { ruReady } from '../../../pitrace/raceRu.js'
+import RaceMicSettingsTip from '../../../pitrace/RaceMicSettingsTip.jsx'
+import { isIOS, isStandalone, MIC_TIP_LABELS } from '../../../pitrace/raceMicHelp.js'
 import {
   readPillSafe, writePillSafe, applyPillSafe, readWeakStored, writeWeakStored, applyAudioSessionMode, describeHud, readTapMode, writeTapMode,
 } from './wordLaneHudSettings.js'
@@ -46,6 +48,7 @@ export default function WordLaneHud({ dbg, rootRef, onRestartStage, onRestartGam
   const [open, setOpen] = useState(defaultOpen)
   const [, setTick] = useState(0)
   const [status, setStatus] = useState('')
+  const [tipOpen, setTipOpen] = useState(false) // «Микрофон спрашивает каждый раз?» — та же карточка, что в попапе гонки; пункт только на iPhone / iPad
   const refresh = () => setTick(n => n + 1)
   useEffect(() => {
     if (!open) return undefined
@@ -126,6 +129,13 @@ export default function WordLaneHud({ dbg, rootRef, onRestartStage, onRestartGam
       <Row label="Усы: rotate / transform / attr" when="now" testid="wl-hud-whiskers">
         {WHISKER_MODES.map(m => <Chip key={m} on={whisk === m} onClick={act(() => setWhiskerMode(m))} testid={`wl-hud-whiskers-${m}`}>{m}</Chip>)}
       </Row>
+
+      {isIOS() && (
+        <div className="wlHudRow" data-testid="wl-hud-mictip">
+          <Chip on={tipOpen} onClick={() => setTipOpen(v => !v)} testid="wl-hud-mictip-toggle">{MIC_TIP_LABELS.open}</Chip>
+          {tipOpen && <RaceMicSettingsTip standalone={isStandalone()} onClose={() => setTipOpen(false)} />}
+        </div>
+      )}
 
       <div className="wlHudActions">
         <button type="button" className="wlHudAct" onClick={download} data-no-unlock="" data-testid="wl-hud-download">Скачать отладку</button>

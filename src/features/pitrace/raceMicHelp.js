@@ -28,3 +28,29 @@ export function micHelp(mic, standalone = false) {
   const order = standalone ? ['home', 'safari'] : ['safari', 'home']
   return { mic: kind, mode, title: MIC_HELP_TITLES[kind], paras: order.map(id => ({ id, text: MIC_HELP_TEXTS[id], current: id === mode })) }
 }
+
+// Подсказка «Чтобы iPhone не спрашивал микрофон каждый раз» (RaceMicSettingsTip.jsx, условия показа — raceMicSettingsTip.js). Тексты по режиму: в Safari доступна настройка сайта, в приложении с «Домой» — нет.
+export const MIC_TIP_TITLE = 'Чтобы iPhone не спрашивал микрофон каждый раз'
+export const MIC_TIP_TEXTS = {
+  safari: {
+    intro: 'Открой игру в Safari и разреши микрофон сайту насовсем:',
+    steps: ['Нажми «⋯» в строке адреса', 'Настройки веб-сайта', 'Микрофон', 'Разрешить'],
+    fallback: 'Или: Настройки iPhone → Приложения → Safari → Настройки для веб-сайтов → Микрофон → Разрешить.',
+  },
+  home: {
+    intro: 'Приложение с экрана «Домой» спрашивает микрофон один раз при каждом запуске, это ограничение iPhone. Чтобы не спрашивал вовсе, открой сайт в Safari и разреши микрофон там.',
+    steps: [], fallback: '',
+  },
+}
+export const MIC_TIP_LABELS = { done: 'Понятно', later: 'Напомнить позже', open: 'Микрофон спрашивает каждый раз?' }
+
+/** iPhone / iPad (в том числе iPadOS, который назвался Mac): по userAgent и числу касаний */
+export function isIOS(nav = globalThis.navigator) {
+  try { return /iPhone|iPad|iPod/.test(nav?.userAgent || '') || (nav?.platform === 'MacIntel' && (nav?.maxTouchPoints || 0) > 1) } catch { return false }
+}
+
+/** Текст подсказки по режиму: { mode, title, intro, steps, fallback } */
+export function micTip(standalone = false) {
+  const mode = standalone ? 'home' : 'safari'
+  return { mode, title: MIC_TIP_TITLE, ...MIC_TIP_TEXTS[mode] }
+}
