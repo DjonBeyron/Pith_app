@@ -4,10 +4,11 @@
 // ЕДИНЫЙ КОНВЕЙЕР: после итога хода остальные его пилюли не гаснут — они «отыграны» (data-spent, бледнее) и едут вниз, пока не уйдут за край (без взлёта, промаха и fail); следующий ход начинается, не дожидаясь их,
 // и его пилюли выезжают ЗА ними тем же потоком: новая пилюля — не раньше cfg.gap после предыдущей на ленте (скорость у всех одна — не наезжают, порядок сохраняется). Тап по отыгранной — ничего.
 // Вид пилюли — data-mode = режим круга (pick / say / hear, race-phrase-rounds.css): у круга 2 своя рамка и цвет, чтобы смена задания читалась сразу.
-//  • pick (круг 1 «Пойми») и hear (круг 2 «Узнай»): ТОЛЬКО тап по ленте — по пилюле, которая ближе всего к центру экрана (CENTER_Y); слушатель фраз здесь не создаётся. Верная — зачёт и взлёт целиком (fx.win);
+//  • pick (круг 1 «Пойми») и hear (круг 2 «Узнай»): ТОЛЬКО тап по ленте — по пилюле, В ЧЬЮ РАМКУ ПОПАЛ ПАЛЕЦ (raceTapHit.js: прямоугольники живых пилюль в момент pointerdown, допуск 12 px, зазор ≤ 24 px; мимо — подсветка точки,
+//    raceTapMiss.js; раньше брали «ближайшую к центру экрана» по прошлому кадру — тап по верхней пилюле засчитывался нижней: ложное «неверно»); журнал «[tap] y=… x=… попал: …»; слушатель фраз здесь не создаётся. Верная — зачёт и взлёт целиком (fx.win);
 //    чужая — дрожь (missPill), верная подсвечивается (data-hot) и взлетает сама через HOT_MS (fx.miss, confusedWith); верная ушла за край — «не успел» (fx.fail);
 //  • say (круг 2 «Скажи» голосом, слушатель фраз): одна пилюля, слова спрятаны маской-кирпичиками («Nice ▭▭ ▭▭▭▭ ▭▭▭», racePhraseMask.js / racePhraseMaskView.js) и проявляются по onWord (черновик — бледно, подтверждение — целиком),
-//    на итоге хода видна вся фраза; ОДНА заливка на всю фразу, как у слова (pool.paintFill, снизу вверх): цель — доля слов (слово в черновике — половина своего вклада,
+//    на итоге хода видна вся фраза; ОДНА заливка на всю фразу, слева направо (pool.paintFill широкой пилюли — translateX): цель — доля слов (слово в черновике — половина своего вклада,
 //    подтверждённое — целиком; первый черновик — сразу «аванс» FILL_ADVANCE слова), экран догоняет цель каждый кадр (wordLaneFillView.js). onPhrase с ratio ≥ PHRASE_OK — зачёт («чисто» — все слова), ушла — fail;
 //    едет медленно, после SILENCE_MS тишины (Пит не говорит, слов нет) — быстрее в SAY_BOOST раз, услышано слово — снова медленно.
 // Итог хода уходит директору в rep.res: { ok, late, confusedWith, ratio, clean }; журнал «[phrases] круг 1 «Пойми» (тап фразы), ход N/M: цель … кандидаты … итог …; остальные едут: N». Все ходы — fx.finished.
@@ -21,8 +22,10 @@ import { isLate } from './raceExtraRound.js'
 import { phraseTokens, phraseWords, phraseWordKeys } from './racePhraseData.js'
 import { phraseListen, pitTalking, PHRASE_OK } from './racePhraseListener.js'
 import { LANE } from './raceStagesPhrases.js'
+import { hitPill, tapLine } from './raceTapHit.js'
+import { tapMissMark } from './raceTapMiss.js'
 
-export const CENTER_Y = 50      // тап по ленте берёт пилюлю, чей центр ближе всего к середине экрана
+export const CENTER_Y = 50      // тап БЕЗ точки (стенд, тесты, клавиатура): берёт пилюлю, чей центр ближе всего к середине экрана; настоящий тап — по точке (raceTapHit.js)
 export const PRE_MIN_MS = 250   // после 'pre' — хотя бы столько, чтобы речь Пита успела начаться (pitLeft > 0)
 export const AFTER_MS = 600     // после итога хода — пауза до следующего (и пока Пит говорит)
 export const HOT_MS = 650       // после ошибки верная пилюля подсвечена столько, потом взлетает сама
@@ -46,6 +49,7 @@ export function runPhraseScene({ pool, root, scene, fxRef, listen = phraseListen
   const turns = cfg.turns ?? []
   const fx = () => fxRef?.current ?? {}
   const cap = caption(root)
+  const missMark = tapMissMark(root) // подсветка «мимо»
   const view = createFillView() // заливка «Скажи» на экране
   let ti = -1, phase = 'next', at = now(), pills = [], res = null, lit = new Set(), quietAt = 0, boost = false, frame = 0, stopped = false, timers = []
   let rolling = [], lastSpawn = -Infinity, heardW = new Map(), heardAt = -Infinity, shown = 0, lastT = now() // rolling — отыгранные пилюли прошлых ходов (едут вниз); heardW — слово → подтверждено ли
@@ -173,14 +177,26 @@ export function runPhraseScene({ pool, root, scene, fxRef, listen = phraseListen
     }
   }
 
+  /** Тап с точкой: прямоугольники всех едущих пилюль — в этот же момент (до следующего кадра они уедут); выбор — hitPill, журнал — каждый тап */
+  function tapAt(pt) {
+    const ride = riding().map(p => ({ p, id: p.k, cap: p.cand.cap, spent: p.spent || !pills.includes(p), rect: pool.el(p.k)?.getBoundingClientRect?.() ?? null }))
+    const r = hitPill(pt, ride)
+    log(tapLine(pt, ride, r) + (phase !== 'ride' || res ? ` — ход ${res ? 'решён' : 'не начат'}, тап не в счёт` : ''))
+    if (phase !== 'ride' || res) return
+    if (r.hit) pick(r.hit.p)
+    else if (r.why === 'мимо') missMark.show(pt)
+  }
+
   const loop = () => { if (stopped) return; tick(now()); frame = raf(loop) }
   frame = raf(loop)
 
   return {
     api: {
-      /** Тап по ленте (любая дорожка — вся лента): пилюля ближе всего к центру; отыгранная — ничего; «Скажи» тапом не отвечает */
-      tap() {
-        if (stopped || phase !== 'ride' || res || cfg.mode === 'say') return
+      /** Тап по ленте (любая дорожка — вся лента): pt = { x, y } точки касания — пилюля, в чью рамку попали (raceTapHit.js); без pt — ближе всего к центру; отыгранная — ничего; «Скажи» тапом не отвечает */
+      tap(_lane, pt) {
+        if (stopped || cfg.mode === 'say') return
+        if (pt) return tapAt(pt)
+        if (phase !== 'ride' || res) return
         const p = riding().filter(onScreen).sort((a, b) => Math.abs(a.y - CENTER_Y) - Math.abs(b.y - CENTER_Y))[0]
         if (p && !p.spent && pills.includes(p)) pick(p)
       },
@@ -188,6 +204,6 @@ export function runPhraseScene({ pool, root, scene, fxRef, listen = phraseListen
       state: () => ({ phase, turn: ti, mode: cfg.mode, listening: !!listener, pills: live().map(p => ({ key: p.cand.key, y: p.y, right: p.cand.right })), spent: riding().filter(p => p.spent).map(p => ({ key: p.cand.key, y: p.y })), res, fill: shown, mask: target()?.mask?.words() ?? null }),
     },
     tick,
-    stop() { stopped = true; caf(frame); timers.forEach(clearTimeout); listener?.stop(); cap.remove(); masks.forEach(m => m.remove()); masks.clear() },
+    stop() { stopped = true; caf(frame); timers.forEach(clearTimeout); listener?.stop(); cap.remove(); missMark.remove(); masks.forEach(m => m.remove()); masks.clear() },
   }
 }

@@ -26,8 +26,8 @@ export const LIVE_RISE_EPS = 0.0008  // рост за кадр меньше эт
 export const LIVE_HOLD_MS = 320      // после последнего роста заливки пилюля «наливается» ещё столько мс (в кадрах роста бывают паузы)
 export const LIVE_HOLD_LOCK_MS = 1200 // после принятия (data-lock) частицы идут ещё 1,2 с и гаснут
 
-/** Заливка v (0…1) → transform слоя заливки: сдвиг вверх из-под нижнего края (0 — слой целиком ниже пилюли, 1 — на месте) */
-export const fillTransform = v => `translateY(${((1 - Math.min(1, Math.max(0, v))) * 100).toFixed(1)}%)`
+/** Заливка v (0…1) → transform слоя заливки: сдвиг вверх из-под нижнего края (0 — слой целиком ниже пилюли, 1 — на месте). wide — широкая пилюля «Фраз»: слева направо, translateX из-за левого края */
+export const fillTransform = (v, wide = false) => { const e = (1 - Math.min(1, Math.max(0, v))) * 100; return wide ? `translateX(${(-e).toFixed(1)}%)` : `translateY(${e.toFixed(1)}%)` }
 
 export function createPool(root) {
   const els = [...root.querySelectorAll('[data-pill]')]
@@ -44,12 +44,13 @@ export function createPool(root) {
   const free = els.map((_, i) => i).reverse()
   const live = new Map() // индекс → { anim, lane, rise }
   const rise = els.map(() => ({ v: 0, at: -1e9, on: false, ringed: false })) // для data-live: прошлая заливка, когда последний раз росла, горит ли признак, давали ли уже «выдох» кольца
+  const flat = els.map(() => false)                           // ось заливки: true — широкая пилюля (слева направо, word-lane-wide-fill.css)
   const tall = els.map(() => 0)                               // высота ёмкости заливки, px (для линии уровня), замеряется при взятии
 
   const measure = k => { tall[k] = parts[k].clip?.offsetHeight || 0; return tall[k] }
   // Заливка — сдвиг слоя вверх: translateY((1 − v)·100 %). Край ЕДЕТ, а не растягивается (scaleY сжимал градиент заливки). Искрам — то же v в --fill
   const paintFill = (k, v) => {
-    put(parts[k].fill, 'transform', fillTransform(v))
+    put(parts[k].fill, 'transform', fillTransform(v, flat[k]))
     const { sparks } = parts[k]
     if (v > 0 && !tall[k] && measure(k)) { if (sparks) put(sparks, '--pill-h', `${tall[k]}px`) } // замер не удался при взятии (пилюля ещё не в вёрстке) — один раз повторяем
     const f = Math.min(1, Math.max(0, v)).toFixed(3)
@@ -70,7 +71,7 @@ export function createPool(root) {
     if (pace != null) put(parts[k].pace, 'transform', `translateY(${(-pace * 100).toFixed(1)}%)`)
   }
   const clean = k => {
-    Object.assign(rise[k], { v: 0, at: -1e9, on: false, ringed: false }); parts[k].el.removeAttribute('data-live')
+    Object.assign(rise[k], { v: 0, at: -1e9, on: false, ringed: false }); parts[k].el.removeAttribute('data-live'); flat[k] = false
     paintFill(k, 0); hint(k, '0', null)
     for (const a of ['data-lock', 'data-fail', 'data-wrong', 'data-hint', 'data-voice', 'data-rise', 'data-ring', 'data-still', 'data-tag', 'data-cmp', 'data-cap', 'data-reveal', 'data-quiet', 'data-edge', 'data-wide', 'data-faded', 'data-hot', 'data-spent', 'data-mode']) parts[k].el.removeAttribute(a)
   }
@@ -108,7 +109,7 @@ export function createPool(root) {
     cap: (k, text) => { if (text) parts[k].el.setAttribute('data-cap', text); else parts[k].el.removeAttribute('data-cap') },
     attr: (k, name, on = true) => { if (on) parts[k].el.setAttribute(name, on === true ? '1' : String(on)); else parts[k].el.removeAttribute(name) }, // on — строка: значение атрибута (data-mode = 'say' у «Фраз»)
     /** Выдать пилюлю под дорожку lane; atMs — сколько мс полёта уже прошло (отрицательное — ждёт за краем). Без полёта (static) — стоит на месте. Возвращает номер или null, если пул пуст */
-    take(lane, { atMs = 0, curve = null, flight = true, speed = 1, cap = null, edge = false, quiet = false, wide = false } = {}) { // wide — «Встряхни память», этап «Фразы»: широкая пилюля по центру (WIDE_W × WIDE_H, data-wide, word-lane-wide.css) — та же капсула и та же вертикальная заливка (paintFill), что у обычной // speed — во сколько раз пилюля быстрее конвейера, cap — подпись внутри (data-cap), edge — у краёв экрана меньше (scale 0,85; на слабом устройстве без масштаба), quiet — промах без полос (data-quiet): «Гонка с Питом»
+    take(lane, { atMs = 0, curve = null, flight = true, speed = 1, cap = null, edge = false, quiet = false, wide = false } = {}) { // wide — «Встряхни память», этап «Фразы»: широкая пилюля по центру (WIDE_W × WIDE_H, data-wide, word-lane-wide.css) — та же капсула; заливка (paintFill) — слева направо (translateX), что у обычной // speed — во сколько раз пилюля быстрее конвейера, cap — подпись внутри (data-cap), edge — у краёв экрана меньше (scale 0,85; на слабом устройстве без масштаба), quiet — промах без полос (data-quiet): «Гонка с Питом»
       const k = free.pop()
       if (k == null) return null
       const { el, fill, sparks } = parts[k]
@@ -119,7 +120,7 @@ export function createPool(root) {
       el.dataset.lane = String(lane)
       if (speed !== 1) el.dataset.speed = String(speed); else delete el.dataset.speed // скорость пилюли «Гонки» — по ней пунктир дорожки едет быстрее (laneConveyorDrive)
       put(el, 'left', wide ? '50%' : `${LANE_X[lane]}%`); put(el, 'width', `${wide ? WIDE_W : PILL_W}%`); put(el, 'height', `${wide ? WIDE_H : PILL_H}%`)
-      if (wide) el.setAttribute('data-wide', '1')
+      if (wide) { el.setAttribute('data-wide', '1'); flat[k] = true; paintFill(k, 0) } // широкая: заливка по X (пустая — слой левее клипа)
       if (sparks) put(sparks, '--pill-h', `${tall[k]}px`)
       shape(k, curve)
       if (cap) el.setAttribute('data-cap', cap)

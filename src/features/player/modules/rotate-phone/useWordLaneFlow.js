@@ -224,7 +224,7 @@ export function useWordLaneFlow({ chunks, translation, lang, clips = null, audio
 
   // Колбэки стабильны (useCallback): на них держатся мемоизированные пилюли, кот и микрофон
   /** Тап по дорожке: раунд «Порядок» — ответ в движке пилюль (он знает, какие пилюли на экране); очередь ученика в режиме «тап вместо речи» (HUD) — следующая цель сказана, через слушатель */
-  const onLane = useCallback(lane => { const api = sceneApi.current; if (api?.tap) api.tap(lane); else { const t = api?.nextTarget?.(); if (t != null) listenerRef.current?.tap(t) } }, [])
+  const onLane = useCallback((lane, pt) => { const api = sceneApi.current; if (api?.tap) api.tap(lane, pt); else { const t = api?.nextTarget?.(); if (t != null) listenerRef.current?.tap(t) } }, [])
   const { retryMic, restartStage, pause } = useWordLaneControls({ stages, sRef, setS, setMicEpoch, clearTimers, listenerRef, noteTimerRef, hintTimerRef, finishedRef, catApi, cat, dbg }) // «Ещё раз», перезапуск ступени, пауза (сворачивание)
 
   const scene = useMemo(() => {

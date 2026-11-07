@@ -11,6 +11,7 @@ import { runMirrorScene } from './wordLaneMirrorScene.js'
 import { trioStep, shiftMs } from '../../../pitrace/raceTapTrio.js'
 import { createDodgeDrive } from '../../../pitrace/raceDodgeDrive.js'
 import { runPhraseScene } from '../../../pitrace/racePhraseScene.js'
+import { logTrioTap } from '../../../pitrace/raceTapTrioLog.js'
 
 // Движок пилюль игры «Повтори за диктором». ДВИЖЕНИЕ пилюль ведёт композитор (wordLaneMotion.js: одна линейная WAAPI-анимация на пилюлю — скорость конвейера постоянна), поэтому лаги основного
 // потока на смартфонах (Vosk, React, щелчок с искрами) на ход не влияют. JS каждый кадр считает только логику и заливку. Пилюли — из пула (wordLanePool.js): живой повтор один (до трёх кусков) плюс догоняющие вниз пилюли предыдущих повторов.
@@ -113,10 +114,10 @@ export function useWordLanePills(rootRef, { scene, levels, fx, live, sceneApi, t
       const shake = d => { const now = performance.now(), y = ENTER_Y + (SPEED * d.speed * (now - d.born)) / 1000; return y > 0 && y < EXIT_Y - 6 && now < d.end } // чужая пилюля ещё на экране?
       setApi(sceneApi, {
         nextTarget: () => (g.reps.filter(isClaimable)[0] ?? liveRep(g))?.target ?? null, // ручной режим: тап по микрофону = «сказал» ближайший повтор
-        trio: !tr ? undefined : lane => { // тап по дорожке в тройке: true — это верная дорожка (игра засчитает слово), false — чужая пилюля: дрожь и miss
+        trio: !tr ? undefined : (lane, pt) => { // тап по дорожке в тройке: true — это верная дорожка (игра засчитает слово), false — чужая пилюля: дрожь и miss; pt — точка касания (журнал)
           const rep = g.reps.filter(isClaimable)[0]
-          if (rep && rep.lanes[0] === lane) return true
-          const d = decoys.find(x => x.lane === lane && shake(x))
+          const d = rep && rep.lanes[0] === lane ? null : decoys.find(x => x.lane === lane && shake(x))
+          logTrioTap(root, lane, pt, d ? 'чужая: ошибка' : rep && rep.lanes[0] === lane ? 'верная дорожка' : 'в игру (нет чужой на дорожке)')
           if (!d) return true
           missPill(pool.el(d.k)); if (rep && !d.hit) fxRef.current?.miss?.({ rep })
           d.hit = true
