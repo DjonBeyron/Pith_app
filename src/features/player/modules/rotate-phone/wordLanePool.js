@@ -72,7 +72,7 @@ export function createPool(root) {
   const clean = k => {
     Object.assign(rise[k], { v: 0, at: -1e9, on: false, ringed: false }); parts[k].el.removeAttribute('data-live')
     paintFill(k, 0); hint(k, '0', null)
-    for (const a of ['data-lock', 'data-fail', 'data-wrong', 'data-hint', 'data-voice', 'data-rise', 'data-ring', 'data-still', 'data-tag', 'data-cmp', 'data-cap', 'data-reveal', 'data-quiet', 'data-edge', 'data-wide', 'data-faded', 'data-hot', 'data-spent']) parts[k].el.removeAttribute(a)
+    for (const a of ['data-lock', 'data-fail', 'data-wrong', 'data-hint', 'data-voice', 'data-rise', 'data-ring', 'data-still', 'data-tag', 'data-cmp', 'data-cap', 'data-reveal', 'data-quiet', 'data-edge', 'data-wide', 'data-faded', 'data-hot', 'data-spent', 'data-mode']) parts[k].el.removeAttribute(a)
   }
   /** Тень слова: ширина полосок по громкости куска слова диктора (без кривой — ровно) */
   const shape = (k, curve) => {
@@ -106,7 +106,7 @@ export function createPool(root) {
     },
     /** Подпись внутри пилюли (data-cap): «Гонка с Питом» — перевод, при промахе английское слово; пусто — подпись снята */
     cap: (k, text) => { if (text) parts[k].el.setAttribute('data-cap', text); else parts[k].el.removeAttribute('data-cap') },
-    attr: (k, name, on = true) => { if (on) parts[k].el.setAttribute(name, '1'); else parts[k].el.removeAttribute(name) },
+    attr: (k, name, on = true) => { if (on) parts[k].el.setAttribute(name, on === true ? '1' : String(on)); else parts[k].el.removeAttribute(name) }, // on — строка: значение атрибута (data-mode = 'say' у «Фраз»)
     /** Выдать пилюлю под дорожку lane; atMs — сколько мс полёта уже прошло (отрицательное — ждёт за краем). Без полёта (static) — стоит на месте. Возвращает номер или null, если пул пуст */
     take(lane, { atMs = 0, curve = null, flight = true, speed = 1, cap = null, edge = false, quiet = false, wide = false } = {}) { // wide — «Встряхни память», этап «Фразы»: широкая пилюля по центру (WIDE_W × WIDE_H, data-wide, word-lane-wide.css) — та же капсула и та же вертикальная заливка (paintFill), что у обычной // speed — во сколько раз пилюля быстрее конвейера, cap — подпись внутри (data-cap), edge — у краёв экрана меньше (scale 0,85; на слабом устройстве без масштаба), quiet — промах без полос (data-quiet): «Гонка с Питом»
       const k = free.pop()

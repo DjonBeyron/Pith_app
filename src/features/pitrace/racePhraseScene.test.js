@@ -1,9 +1,9 @@
 import { describe, it, expect, vi } from 'vitest'
 import { CENTER_Y, SILENCE_MS, SAY_BOOST, HOT_MS } from './racePhraseScene.js'
 import { setupScene } from './racePhraseSceneRig.js'
-import { createPhraseListener, stubSay, stubCount } from './racePhraseListenStub.js'
+import { createPhraseListener, stubSay, stubDraft, stubCount } from './racePhraseListenStub.js'
 import { phraseStep, PHRASE_SPEED, SAY_SPEED, PHRASE_GAP_MS } from './raceStagesPhrases.js'
-import { round1Turns, round2SayTurns } from './racePhraseTurns.js'
+import { round1Turns, round2SayTurns, round2HearTurns } from './racePhraseTurns.js'
 import { phrasesOf } from './racePhraseData.js'
 import { PHRASE_FIXTURE } from './racePhraseFixture.js'
 import { SPEED, LISTEN_Y_MAX } from '../player/modules/rotate-phone/wordLaneTimeline.js'
@@ -44,7 +44,7 @@ describe('сцена широкой ленты: круг 1 «Пойми»', () =
     const rep = s.fx.win.mock.calls[0][2]
     expect(rep).toMatchObject({ last: true, count: 1, round: 1, phraseKey: t.target.key, res: { ok: true, late: false } })
     expect(s.pool.taken.find(p => p.cap === t.target.text).rose).toBe(true)
-    expect(log.mock.calls.at(-1)[0]).toMatch(/^\[phrases\] ход 1\/3: цель «.+» кандидаты «.+» \| «.+» \| «.+» итог верно; остальные едут: \d$/)
+    expect(log.mock.calls.at(-1)[0]).toMatch(/^\[phrases\] круг 1 «Пойми» \(тап фразы\), ход 1\/3: цель «.+» кандидаты «.+» \| «.+» \| «.+» итог верно; остальные едут: \d$/)
   })
   it('тап по чужой — дрожь, fx.miss с «с чем спутал», верная подсвечена и взлетает сама; чужая не гаснет, а едет дальше отыгранной', () => {
     const s = setup(pick())
@@ -66,18 +66,26 @@ describe('сцена широкой ленты: круг 1 «Пойми»', () =
     expect(s.fx.fail).toHaveBeenCalledTimes(3); expect(s.fx.finished).toHaveBeenCalledTimes(1)
     expect(s.fx.fail.mock.calls.map(c => c[0].rep.res.ok)).toEqual([false, false, false])
   })
-  it('голосом: слушатель фраз с кандидатами хода; сказал верную — зачёт, сказал чужую, когда её видно, — промах; стоп сцены — слушатель снят', () => {
+  it('круг 1 — только тап: слушатель фраз не создаётся даже при voice (голосом), сказанная фраза не засчитывается; пилюли с полным текстом, data-mode="pick"', () => {
+    const n = stubCount()
     const s = setup(pick(true), { listen: createPhraseListener }); const t0 = round1Turns(ph, 's1')[0]
-    expect(stubCount()).toBeGreaterThan(0)
+    expect(stubCount()).toBe(n); expect(s.run.api.state().listening).toBe(false)
     s.go(600)
     stubSay(t0.target.text)
+    expect(s.fx.win).not.toHaveBeenCalled()
+    for (const p of s.pool.taken) { expect(p.vals['data-mode']).toBe('pick'); expect(p.attrs.has('data-faded')).toBe(false); expect(t0.cands.map(c => c.cap)).toContain(p.cap) }
+    expect(untilCenter(s, t0.target.key)).toBeTruthy(); s.run.api.tap()
     expect(s.fx.win).toHaveBeenCalledTimes(1)
-    s.go(3000)
-    const t1 = round1Turns(ph, 's1')[1], w = t1.cands.find(c => !c.right)
-    expect(untilCenter(s, w.key)).toBeTruthy()
-    stubSay(w.cap)
-    expect(s.fx.miss).toHaveBeenCalledTimes(1)
-    const n = stubCount(); s.run.stop(); expect(stubCount()).toBe(n - 1)
+    s.run.stop()
+  })
+  it('круг 2 «Узнай» (пальцами): data-mode="hear", слушателя нет, журнал — круг 2 «Узнай» (тап смысла)', () => {
+    const log = vi.fn(); const t = round2HearTurns(ph, 's1')
+    const s = setup(phraseStep('phrases2', t, { round: 2, mode: 'hear', voice: false, speed: PHRASE_SPEED }), { log, listen: createPhraseListener })
+    s.go(500)
+    expect(s.run.api.state().listening).toBe(false); expect(s.pool.taken[0].vals['data-mode']).toBe('hear')
+    expect(untilCenter(s, t[0].target.key)).toBeTruthy(); s.run.api.tap()
+    expect(log.mock.calls.at(-1)[0]).toMatch(/^\[phrases\] круг 2 «Узнай» \(тап смысла\), ход 1\/\d: цель/)
+    s.run.stop()
   })
 })
 
@@ -94,6 +102,19 @@ describe('сцена широкой ленты: круг 2 «Скажи»', () =
     stubSay('nice to you')
     expect(s.fx.win).toHaveBeenCalledTimes(1)
     expect(s.fx.win.mock.calls[0][2].res).toMatchObject({ ok: true, ratio: 0.75, clean: false })
+    s.run.stop()
+  })
+  it('data-mode="say", слушатель есть; маска слов «N… to m… y…» снимается по onWord: черновик — бледно (draft), подтверждение — целиком; итог — вся фраза; журнал — круг 2 «Скажи» (голос)', () => {
+    const log = vi.fn(); const s = setup(say(), { listen: createPhraseListener, log })
+    s.go(600)
+    expect(s.run.api.state().listening).toBe(true); expect(s.pool.taken[0].vals['data-mode']).toBe('say')
+    const m = () => s.run.api.state().mask.map(w => `${w.text}:${w.state}`).join(' ')
+    expect(m()).toBe('N…:hidden to:full m…:hidden y…:hidden')
+    stubDraft('nice'); expect(m()).toBe('Nice:draft to:full m…:hidden y…:hidden')
+    stubDraft('nice to meet'); expect(m()).toBe('Nice:full to:full meet:draft y…:hidden') // прошлое слово подтверждено следующим
+    stubSay('nice to meet you'); expect(s.fx.win).toHaveBeenCalledTimes(1)
+    expect(m()).toBe('Nice:full to:full meet:full you:full') // итог: вся фраза
+    expect(log.mock.calls.at(-1)[0]).toMatch(/^\[phrases\] круг 2 «Скажи» \(голос\), ход 1\/3: цель/)
     s.run.stop()
   })
   it('чисто — все слова; тап в «Скажи» не отвечает', () => {

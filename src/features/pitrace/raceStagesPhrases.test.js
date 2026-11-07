@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { phrasesOf, hasPhrases, normalizePhrase, phraseTokens, phraseWordKeys, withPhrases, PHRASES_MIN } from './racePhraseData.js'
 import { round1Turns, round2SayTurns, round2HearTurns, reorderWeak, decoysFor } from './racePhraseTurns.js'
-import { phraseStages, PHRASE_SPEED, SAY_SPEED, LANE } from './raceStagesPhrases.js'
+import { phraseStages, PHRASE_SPEED, SAY_SPEED, LANE, ROUND_PLATES } from './raceStagesPhrases.js'
 import { buildRaceStages } from './raceStages.js'
 import { buildRaceActs } from './raceRecipe.js'
 import { PHRASE_FIXTURE } from './racePhraseFixture.js'
@@ -15,7 +15,7 @@ import { readRehearsalCfg } from '../rehearsal/rehearsalCfg.js'
 // Этап 2 «Фразы»: фразы плана, ходы кругов и стадии (CONCEPT_RACE.md, «Этап 2» → «Лента и круги»)
 const P = (key, ru, own = true) => ({ text: key, key, ru, own, words: [] })
 const plan = (o = {}) => withPhrases(normalizePlan({ ...fixturePlan('three'), source: 'node', game: 'race', ...o }), { phrases: PHRASE_FIXTURE, ...o })
-const kitOf = (p, tap = false) => { const stages = []; return { plan: p, tap, stages, push: s => { stages.push({ ...s, idx: stages.length, race: true }); return s }, announce: (act, o = {}) => stages.push({ type: 'announce', act: act.id, sid: `${o.sid ?? act.id}-ann`, line: o.line === undefined ? act.line : o.line, round: { title: o.title ?? act.title } }) } }
+const kitOf = (p, tap = false) => { const stages = []; return { plan: p, tap, stages, push: s => { stages.push({ ...s, idx: stages.length, race: true }); return s }, announce: (act, o = {}) => stages.push({ type: 'announce', act: act.id, sid: `${o.sid ?? act.id}-ann`, line: o.line === undefined ? act.line : o.line, round: { title: o.title ?? act.title, task: o.task, look: o.look } }) } }
 
 describe('фразы плана', () => {
   it('нормализация: пустые выбрасываются, key из текста, слова строчными для слушателя, ключи слов для точности', () => {
@@ -84,13 +84,13 @@ describe('ходы кругов', () => {
 })
 
 describe('стадии этапа', () => {
-  it('плашка race_phrases → круг 1 → плашка круга 2 (без реплики) → круг 2; ступени — своя сцена (step.phrases), слух слов выключен, лента — средняя дорожка', () => {
-    const k = kitOf(plan()); const act = buildRaceActs(plan()).acts.find(a => a.id === 'phrases')
+  it('голосом: плашка race_phrases → плашка круга 1 (race_phrases_pick) → круг 1 → плашка круга 2 (race_phrases_say) → круг 2; ступени — своя сцена (step.phrases), слух слов выключен, лента — средняя дорожка', () => {
+    const k = kitOf(plan()); const act = buildRaceActs(plan(), false).acts.find(a => a.id === 'phrases')
     phraseStages(k, act)
-    expect(k.stages.map(s => s.sid)).toEqual(['phrases-ann', 'phrases1', 'phrases2-ann', 'phrases2'])
-    expect(k.stages[0].line).toBe('race_phrases'); expect(k.stages[2].line).toBeNull()
-    const [s1, s2] = [k.stages[1], k.stages[3]]
-    expect(s1.step.phrases).toMatchObject({ round: 1, mode: 'pick', voice: true, speed: PHRASE_SPEED }); expect(s2.step.phrases).toMatchObject({ round: 2, mode: 'say', speed: SAY_SPEED })
+    expect(k.stages.map(s => s.sid)).toEqual(['phrases-ann', 'phrases1-ann', 'phrases1', 'phrases2-ann', 'phrases2'])
+    expect(k.stages.filter(s => s.type === 'announce').map(s => s.line)).toEqual(['race_phrases', 'race_phrases_pick', 'race_phrases_say'])
+    const [s1, s2] = [k.stages[2], k.stages[4]]
+    expect(s1.step.phrases).toMatchObject({ round: 1, mode: 'pick', voice: false, speed: PHRASE_SPEED }); expect(s2.step.phrases).toMatchObject({ round: 2, mode: 'say', voice: true, speed: SAY_SPEED }) // круг 1 — только тап и голосом
     for (const s of [s1, s2]) { expect(s.step.tapOnly).toBe(true); expect(s.step.quiet).toBe(true); expect(s.step.active).toEqual([LANE]); expect(s.step.reps.every(r => r.lane === LANE)).toBe(true) }
     expect(SAY_SPEED).toBeLessThan(1); expect(PHRASE_SPEED).toBeLessThan(1)
   })
@@ -99,6 +99,8 @@ describe('стадии этапа', () => {
     phraseStages(k, act)
     const s2 = k.stages.find(s => s.sid === 'phrases2')
     expect(s2.step.phrases.mode).toBe('hear'); expect(s2.step.phrases.voice).toBe(false)
+    expect(k.stages.filter(s => s.type === 'announce').map(s => s.line)).toEqual(['race_phrases_tap', 'race_phrases_pick', 'race_phrases_hear'])
+    expect(k.stages.find(s => s.sid === 'phrases1').step.phrases).toMatchObject({ mode: 'pick', voice: false })
     const first = s2.turns[0].target.key
     s2.fill([first]); const again = k.stages.find(s => s.sid === 'phrases2')
     expect(again.turns.at(-1).target.key).toBe(first); expect(again.step.phrases.turns.at(-1).target.key).toBe(first)
@@ -107,6 +109,19 @@ describe('стадии этапа', () => {
     const ids = buildRaceStages({ plan: plan(), tap: false, ru: true }).stages.map(s => s.sid)
     expect(ids.indexOf('catch2')).toBeLessThan(ids.indexOf('phrases-sw')); expect(ids.indexOf('phrases-sw')).toBeLessThan(ids.indexOf('phrases-ann')); expect(ids.indexOf('phrases2')).toBeLessThan(ids.indexOf('climb-ann'))
     expect(ids).not.toContain('climb-sw')
+  })
+  it('плашки кругов: круг 1 «Пойми · Тапни фразу» цвета ленты с пальцем, круг 2 акцентный: «Скажи · Скажи сам» с микрофоном или «Узнай · Тапни смысл» с пальцем', () => {
+    expect(ROUND_PLATES.pick).toEqual({ title: 'Пойми', task: 'Тапни фразу', line: 'race_phrases_pick', look: { tone: 'lane', icon: 'tap' } })
+    expect(ROUND_PLATES.say).toEqual({ title: 'Скажи', task: 'Скажи сам', line: 'race_phrases_say', look: { tone: 'accent', icon: 'mic' } })
+    expect(ROUND_PLATES.hear).toEqual({ title: 'Узнай', task: 'Тапни смысл', line: 'race_phrases_hear', look: { tone: 'accent', icon: 'tap' } })
+    for (const tap of [false, true]) {
+      const st = buildRaceStages({ plan: plan(), tap, ru: true }).stages
+      const r1 = st.find(s => s.sid === 'phrases1-ann'), r2 = st.find(s => s.sid === 'phrases2-ann')
+      expect(r1.round).toMatchObject({ title: 'Пойми', task: 'Тапни фразу', look: { tone: 'lane', icon: 'tap' } }); expect(r1.line).toBe('race_phrases_pick')
+      expect(r2.round).toMatchObject(tap ? { title: 'Узнай', task: 'Тапни смысл', look: { tone: 'accent' } } : { title: 'Скажи', task: 'Скажи сам', look: { tone: 'accent', icon: 'mic' } })
+      expect(r2.line).toBe(tap ? 'race_phrases_hear' : 'race_phrases_say')
+      expect(st.find(s => s.sid === 'phrases-ann').line).toBe(tap ? 'race_phrases_tap' : 'race_phrases')
+    }
   })
   it('режим по умолчанию — «Пинг-понг + фразы + финал»', () => {
     expect(RACE_TITLES[STAGES_ROUND]).toBe('Пинг-понг + фразы + финал')

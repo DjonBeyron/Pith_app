@@ -80,9 +80,10 @@ describe('круг 1: единый конвейер после зачёта', ()
     for (const p of others) expect(s.pool.live.has(p.k)).toBe(true)
     s.go(20000); expect(s.fx.fail.mock.calls.every(c => c[0].rep.idx > 0)).toBe(true)
   })
-  it('голосом отыгранную назвать нельзя: слушатель уже слушает кандидатов следующего хода', () => {
+  it('голосом круг 1 тоже только тап: фраза, сказанная вслух, не засчитывается ни у верной, ни у отыгранной', () => {
     const s = setupScene(phraseStep('phrases1', turns, { round: 1, mode: 'pick', voice: true, speed: PHRASE_SPEED }), { listen: createPhraseListener })
-    s.go(600); stubSay(turns[0].target.text); expect(s.fx.win).toHaveBeenCalledTimes(1)
+    s.go(600); stubSay(turns[0].target.text); expect(s.fx.win).not.toHaveBeenCalled()
+    untilCenter(s, turns[0].target.key); s.run.api.tap(); expect(s.fx.win).toHaveBeenCalledTimes(1)
     const spent = s.pool.taken.find(p => p.attrs.has('data-spent'))
     if (spent) { stubSay(spent.cap); expect(s.fx.miss).not.toHaveBeenCalled(); expect(s.fx.win).toHaveBeenCalledTimes(1) }
     expect(EXIT_Y).toBeGreaterThan(100)

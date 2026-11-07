@@ -43,8 +43,8 @@ describe('плашка: разметка и звук при появлении',
   it('эффект без зависимостей-пересрабатывания: пустой список зависимостей (только при монтировании), игра ставит key = номер шага', () => {
     expect(read('./WordLaneTurnPlate.jsx')).toContain('useEffect(() => { playPlate() }, [])')
     const game = read('./WordLaneGame.jsx')
-    expect(game).toContain('{plates.map(p => <WordLaneTurnPlate key={p.id} text={p.text} leaving={p.leaving} soft={race} />)}')
-    expect(game).toContain('useWordLaneLeavingPlates(f.plate, f.idx)')
+    expect(game).toContain('{plates.map(p => <WordLaneTurnPlate key={p.id} text={p.text} leaving={p.leaving} soft={race} look={p.look} />)}')
+    expect(game).toContain('useWordLaneLeavingPlates(f.plate, f.idx, f.stageObj?.round?.look)')
     expect(game).toContain("import WordLaneTurnPlate from './WordLaneTurnPlate.jsx'")
     expect(game).not.toContain('className="wlTurn"')
   })

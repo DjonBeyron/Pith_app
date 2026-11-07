@@ -8,11 +8,11 @@ export function fakePool(clock) {
   const el = () => ({ animate: () => ({}), getBoundingClientRect: () => ({ left: 0, top: 0, width: 10, height: 10 }), querySelector: () => null, hasAttribute: () => true, setAttribute() {} })
   const pool = {
     live, taken: [],
-    take(lane, o) { const k = next++; const p = { k, lane, ...o, attrs: new Set(), born: clock.t - (o.atMs ?? 0), rate: 1, fill: 0, fills: [], el: el() }; live.set(k, p); pool.taken.push(p); return k },
+    take(lane, o) { const k = next++; const p = { k, lane, ...o, attrs: new Set(), vals: {}, born: clock.t - (o.atMs ?? 0), rate: 1, fill: 0, fills: [], el: el() }; live.set(k, p); pool.taken.push(p); return k },
     give: k => live.delete(k), fade: k => { pool.taken[k].faded = true; live.delete(k) }, rise: k => { live.get(k).rose = true; live.delete(k); return true },
     y: k => { const p = live.get(k); return p ? ENTER_Y + (SPEED * p.speed * p.rate * (clock.t - p.born)) / 1000 : null },
     rate: (k, r) => { const p = live.get(k); if (!p) return; const y = pool.y(k); p.rate = r; p.born = clock.t - ((y - ENTER_Y) / (SPEED * p.speed * r)) * 1000 },
-    attr: (k, n, on = true) => { if (on) pool.taken[k].attrs.add(n); else pool.taken[k].attrs.delete(n) },
+    attr: (k, n, on = true) => { const p = pool.taken[k]; if (on) { p.attrs.add(n); p.vals[n] = on === true ? '1' : String(on) } else { p.attrs.delete(n); delete p.vals[n] } },
     paintFill: (k, v) => { pool.taken[k].fill = v; pool.taken[k].fills.push(v) }, el: k => pool.taken[k].el, flashLane: vi.fn(),
   }
   return pool
