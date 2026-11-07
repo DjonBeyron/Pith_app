@@ -2,9 +2,9 @@
    Лента: пока идёт акт фраз (data-tape на корне игры — wordLaneTape.js, ставит WordLaneGame; держится и на паузе), три дорожки за 0,6 с съезжаются к центру — крайние колонки .wlLanes i сдвигаются на свою ширину к средней
    и гаснут, разделители .wlLaneEdge расходятся к краям ленты (5 % и 95 %); на выходе из этапа всё разъезжается обратно. Пауза и «Продолжить» (ступень сначала) атрибут не меняют — лента сразу в своём виде, без перехода.
    Новых узлов нет, только transform и opacity; конвейер (узор «нить») идёт по средней со скоростью пилюли (laneConveyorDrive.js), вспышка верного ответа — на всю ленту (word-lane-lane-flash.css).
-   Широкая пилюля (pool.take wide → data-wide, left 50 %, WIDE_W × WIDE_H из wordLaneTimeline.js): капсула со скруглением, текст фразы в ::after (data-cap) в две строки, шрифт clamp(14px, 4vw, 18px);
-   data-faded — бледный текст (круг «Скажи»); заливка по горизонтали (pool.paintRow: translateX слоя заливки), сегменты по словам — тонкие разделители фоном клипа шириной 100 % / --segs;
-   data-hot — верная пилюля после ошибки подсвечена (обводка ярче), перед тем как взлететь сама. Искр у широкой пилюли нет. Подпись смысла над лентой (.racePhraseRu, один узел сцены) — только opacity.
+   Широкая пилюля (pool.take wide → data-wide, left 50 %, WIDE_W × WIDE_H из wordLaneTimeline.js): та же капсула, что обычная, текст фразы в ::after (data-cap) в две строки, шрифт clamp(14px, 4vw, 18px);
+   data-faded — бледный текст (круг «Скажи»); заливка одна на всю фразу, как у слова (pool.paintFill: translateY слоя заливки); data-spent — отыгранная пилюля круга 1 доезжает вниз бледной;
+   data-hot — верная пилюля после ошибки подсвечена (обводка ярче), перед тем как взлететь сама. Подпись смысла над лентой (.racePhraseRu, один узел сцены) — только opacity.
    filter нет; на слабом устройстве и при reduced-motion переходы мгновенные. */
 .wl[data-race] .wlLanes i, .wl[data-race] .wlLaneEdge { transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.25s ease; }
 .wl[data-race][data-tape] .wlLanes i, .wl[data-race][data-tape] .wlLaneEdge { transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease 0.3s; }
@@ -15,27 +15,12 @@
 .weak-device .wl[data-race] .wlLanes i, .weak-device .wl[data-race] .wlLaneEdge { transition: none; }
 @media (prefers-reduced-motion: reduce) { .wl[data-race] .wlLanes i, .wl[data-race] .wlLaneEdge { transition: none; } }
 
-/* Широкая пилюля */
-.wlPill[data-wide] { border-radius: 22px; }
-.wlPill[data-wide]::before { border-radius: 22px; }
-.wlPill[data-wide] .wlPillClip {
-  border-radius: 18px;
-  background: linear-gradient(to right, transparent calc(100% - 1px), rgba(255, 255, 255, 0.14) 0) 0 0 / calc(100% / var(--segs, 1)) 100% repeat-x;
-}
-.wlPill[data-wide]:not([data-segs]) .wlPillClip { background: none; }
-.wlPill[data-wide] .wlPillSparks { display: none; }
-.wl[data-phase='student'] .wlPill[data-wide][data-cap]:not([data-fail]) .wlPillFill,
-.wl[data-phase='student'] .wlField.wl--safe .wlPill[data-wide][data-cap]:not([data-fail]) .wlPillFill {
-  inset: 0 -8px 0 0;
-  background: linear-gradient(to left, rgba(var(--rgb), 0) 0, rgba(var(--rgb), 0.55) 8px, rgba(var(--rgb), 0.4));
-  box-shadow: none;
-}
-.wl[data-phase='student'] .wlPill[data-wide][data-cap][data-lock]:not([data-fail]) .wlPillFill,
-.wl[data-phase='student'] .wlField.wl--safe .wlPill[data-wide][data-cap][data-lock]:not([data-fail]) .wlPillFill {
-  background: linear-gradient(to left, rgba(var(--rgb), 0) 0, var(--c) 8px);
-}
+/* Широкая пилюля — ТА ЖЕ КАПСУЛА, что обычная (word-lane-pill.css), только шире и ниже: скругление 999px (полукруглые торцы — в той же пропорции к высоте), та же обводка, тело, внутренний свет,
+   та же вертикальная заливка снизу вверх с кромкой (race-pill-fill.css, data-cap) и те же искры. Своё — лишь «выдох» кольца (по ширине почти не растёт, иначе вылез бы за экран) и подпись в две строки. */
+.wlPill[data-wide][data-ring]::before { animation-name: wlExhaleWide; }
+@keyframes wlExhaleWide { 0% { opacity: 0; scale: 1 1; } 12% { opacity: 0.8; } 100% { opacity: 0; scale: 1.04 1.3; } }
 .wlPill[data-wide][data-cap]:not([data-hint])::after {
-  padding: 0 16px;
+  padding: 0 24px;
   font-size: clamp(14px, 4vw, 18px);
   line-height: 1.18;
   overflow-wrap: break-word;
@@ -44,6 +29,9 @@
 .wlPill[data-wide][data-faded]:not([data-lock])::after { color: rgba(244, 246, 251, 0.42); }
 .wlPill[data-wide][data-hot] { border-color: #fff; }
 .wlPill[data-wide][data-hot]::after { color: #fff; }
+/* Отыгранная пилюля круга 1 (data-spent: ход решён, она доезжает вниз единым конвейером) — бледнее, тап по ней ничего не делает */
+.wlPill[data-wide][data-spent] { opacity: 0.45; transition: opacity 0.3s ease; }
+.weak-device .wlPill[data-wide][data-spent] { transition: none; }
 
 /* Пит на этапе — по центру. «Голосом» он и так в слежении по центру (wlCat--track, raceHeadDepth.js); «Пальцами» стоит слева (--cat-x 20) — на время акта его сдвигает свойство translate
    (не transform: им Пит прячется и выглядывает), переход 0,6 с туда и обратно; переходы transform прежние (word-lane.css) */

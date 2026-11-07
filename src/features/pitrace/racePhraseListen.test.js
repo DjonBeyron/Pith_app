@@ -12,18 +12,18 @@ const P = {
 function rig(phrases, { held = () => false, noModel = false } = {}) {
   let t = 0
   const timers = new Map(); let id = 0
-  const sessions = [], words = [], got = [], logs = [], errors = []
+  const sessions = [], words = [], got = [], logs = [], errors = [], hears = []
   const now = () => t
   const setTimer = (fn, ms) => { timers.set(++id, { fn, at: t + ms }); return id }
   const clearTimer = k => timers.delete(k)
   const listen = async (model, grammar, cb) => { const s = { cb, grammar, stopped: 0, cancelled: 0 }; sessions.push(s); cb.onReady?.(); return { stop() { s.stopped++ }, cancel() { s.cancelled++ } } }
   const runtime = { getModel: () => (noModel ? null : 'M'), snapshot: () => ({}) }
   const l = createPhraseListener({
-    phrases, getStream: () => null, isHeld: held, onWord: w => words.push(w), onPhrase: p => got.push(p), onError: e => errors.push(e), log: s => logs.push(s),
+    phrases, getStream: () => null, isHeld: held, onWord: w => words.push(w), onHear: () => hears.push(t), onPhrase: p => got.push(p), onError: e => errors.push(e), log: s => logs.push(s),
     create: o => createWordListener({ ...o, listen, runtime, now, setTimer, clearTimer }), now, setTimer, clearTimer,
   })
   const advance = ms => { t += ms; for (const [k, x] of [...timers].sort((a, b) => a[1].at - b[1].at)) if (x.at <= t && timers.has(k)) { timers.delete(k); x.fn() } }
-  return { l, sessions, words, got, logs, errors, advance, cur: () => sessions.at(-1) }
+  return { l, sessions, words, got, logs, errors, hears, advance, cur: () => sessions.at(-1) }
 }
 const flush = () => new Promise(r => setTimeout(r, 0))
 const end = async (r, text, ms = 200) => { r.cur().cb.onResult(text, { words: [] }); r.advance(ms); await flush() }
@@ -50,6 +50,16 @@ describe('createPhraseListener', () => {
     expect(r.cur().stopped + r.cur().cancelled).toBeGreaterThan(0) // заход закрыт…
     r.advance(10); await flush()
     expect(r.sessions).toHaveLength(2) // …и слушаем заново
+    r.l.stop()
+  })
+  it('слова черновика — draft: true, итог захода подтверждает их ещё раз (draft: false); непустой черновик — onHear', async () => {
+    const r = rig([P.from, P.learn]); await flush()
+    r.cur().cb.onPartial('[unk]'); expect(r.hears).toHaveLength(0) // «…» без слов — не речь
+    r.cur().cb.onPartial('where are')
+    expect(r.hears).toHaveLength(1)
+    expect(r.words.filter(w => w.phraseKey === 'where are you from')).toEqual([{ phraseKey: 'where are you from', index: 0, text: 'where', draft: true }, { phraseKey: 'where are you from', index: 1, text: 'are', draft: true }])
+    await end(r, 'where are')
+    expect(r.words.filter(w => w.phraseKey === 'where are you from' && !w.draft).map(w => w.index)).toEqual([0, 1])
     r.l.stop()
   })
   it('общее начало «nice to … you» без различающего слова — не засчитывается', async () => {
