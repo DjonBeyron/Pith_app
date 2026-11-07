@@ -72,7 +72,7 @@ export function createPool(root) {
   const clean = k => {
     Object.assign(rise[k], { v: 0, at: -1e9, on: false, ringed: false }); parts[k].el.removeAttribute('data-live')
     paintFill(k, 0); hint(k, '0', null)
-    for (const a of ['data-lock', 'data-fail', 'data-wrong', 'data-hint', 'data-voice', 'data-rise', 'data-ring', 'data-still', 'data-tag', 'data-cmp', 'data-cap', 'data-reveal', 'data-quiet', 'data-edge', 'data-wide', 'data-segs', 'data-faded', 'data-hot']) parts[k].el.removeAttribute(a)
+    for (const a of ['data-lock', 'data-fail', 'data-wrong', 'data-hint', 'data-voice', 'data-rise', 'data-ring', 'data-still', 'data-tag', 'data-cmp', 'data-cap', 'data-reveal', 'data-quiet', 'data-edge', 'data-wide', 'data-faded', 'data-hot', 'data-spent']) parts[k].el.removeAttribute(a)
   }
   /** Тень слова: ширина полосок по громкости куска слова диктора (без кривой — ровно) */
   const shape = (k, curve) => {
@@ -108,7 +108,7 @@ export function createPool(root) {
     cap: (k, text) => { if (text) parts[k].el.setAttribute('data-cap', text); else parts[k].el.removeAttribute('data-cap') },
     attr: (k, name, on = true) => { if (on) parts[k].el.setAttribute(name, '1'); else parts[k].el.removeAttribute(name) },
     /** Выдать пилюлю под дорожку lane; atMs — сколько мс полёта уже прошло (отрицательное — ждёт за краем). Без полёта (static) — стоит на месте. Возвращает номер или null, если пул пуст */
-    take(lane, { atMs = 0, curve = null, flight = true, speed = 1, cap = null, edge = false, quiet = false, wide = false, segs = 0 } = {}) { // wide — «Встряхни память», этап «Фразы»: широкая пилюля по центру (WIDE_W × WIDE_H, data-wide, word-lane-wide.css), segs — сегментов заливки по словам (--segs) // speed — во сколько раз пилюля быстрее конвейера, cap — подпись внутри (data-cap), edge — у краёв экрана меньше (scale 0,85; на слабом устройстве без масштаба), quiet — промах без полос (data-quiet): «Гонка с Питом»
+    take(lane, { atMs = 0, curve = null, flight = true, speed = 1, cap = null, edge = false, quiet = false, wide = false } = {}) { // wide — «Встряхни память», этап «Фразы»: широкая пилюля по центру (WIDE_W × WIDE_H, data-wide, word-lane-wide.css) — та же капсула и та же вертикальная заливка (paintFill), что у обычной // speed — во сколько раз пилюля быстрее конвейера, cap — подпись внутри (data-cap), edge — у краёв экрана меньше (scale 0,85; на слабом устройстве без масштаба), quiet — промах без полос (data-quiet): «Гонка с Питом»
       const k = free.pop()
       if (k == null) return null
       const { el, fill, sparks } = parts[k]
@@ -119,7 +119,7 @@ export function createPool(root) {
       el.dataset.lane = String(lane)
       if (speed !== 1) el.dataset.speed = String(speed); else delete el.dataset.speed // скорость пилюли «Гонки» — по ней пунктир дорожки едет быстрее (laneConveyorDrive)
       put(el, 'left', wide ? '50%' : `${LANE_X[lane]}%`); put(el, 'width', `${wide ? WIDE_W : PILL_W}%`); put(el, 'height', `${wide ? WIDE_H : PILL_H}%`)
-      if (wide) { el.setAttribute('data-wide', '1'); if (segs > 0) { el.setAttribute('data-segs', String(segs)); put(el, '--segs', String(segs)) } }
+      if (wide) el.setAttribute('data-wide', '1')
       if (sparks) put(sparks, '--pill-h', `${tall[k]}px`)
       shape(k, curve)
       if (cap) el.setAttribute('data-cap', cap)
@@ -134,8 +134,6 @@ export function createPool(root) {
     y: k => (live.get(k)?.anim ? flightY(live.get(k).anim) : null),
     /** Скорость полёта: множитель r к скорости при выдаче (широкая пилюля «Скажи» ускоряется после тишины) */
     rate(k, r) { const l = live.get(k); if (!l?.anim) return; try { l.anim.updatePlaybackRate(l.base * r) } catch { /* без поддержки — едет как ехала */ } },
-    /** Заливка по горизонтали (широкая пилюля, сегменты по словам): v 0…1 — доля залитой ширины слева направо */
-    paintRow: (k, v) => put(parts[k].fill, 'transform', `translateX(${(-(1 - Math.min(1, Math.max(0, v))) * 100).toFixed(1)}%)`),
     /** Тихо погасить пилюлю (opacity за ms) и вернуть в пул */
     fade(k, ms = 280) {
       const l = live.get(k)

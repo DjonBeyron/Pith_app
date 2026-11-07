@@ -17,15 +17,16 @@ const clean = raw => String(raw ?? '').toLowerCase().split(/\s+/).filter(w => w 
 const norm = list => (list ?? []).map(p => ({ key: p.key, words: (p.words ?? []).map(w => String(typeof w === 'string' ? w : w?.text ?? '')).filter(Boolean) })).filter(p => p.key && p.words.length)
 
 /**
- * phrases — [{ key, words: ['nice', 'to', 'meet', 'you'] }]; onWord({ phraseKey, index, text }) — новое услышанное слово кандидата (каждое — один раз до зачёта/сброса);
+ * phrases — [{ key, words: ['nice', 'to', 'meet', 'you'] }]; onWord({ phraseKey, index, text, draft }) — новое услышанное слово кандидата: draft — пока только в черновике (partial), потом то же слово
+ * ещё раз с draft: false, когда его подтвердил итог захода (каждое — не больше двух раз до зачёта/сброса); onHear() — пришёл непустой черновик или итог (речь распознаётся: сцена двигает заливку «авансом»);
  * onPhrase({ phraseKey, ratio, heard }) — кандидат сказан (ratio — доля слов: 1 — чисто, 0.75 — одно пропущено); onError(status) — 'unavailable' (нет модели) или 'error' (микрофон / Vosk).
  * Слушать начинает сразу. Зависимости (create, log, now, setTimer, clearTimer, listen, runtime) подставляются в тестах.
  */
-export function createPhraseListener({ phrases: phrasesIn, lang = 'en', getStream, isHeld = () => false, onWord, onPhrase, onError, create = createWordListener, game2 = createGame2Listener, log = pLog, now = () => Date.now(), setTimer = setTimeout, clearTimer = clearTimeout }) {
+export function createPhraseListener({ phrases: phrasesIn, lang = 'en', getStream, isHeld = () => false, onWord, onHear, onPhrase, onError, create = createWordListener, game2 = createGame2Listener, log = pLog, now = () => Date.now(), setTimer = setTimeout, clearTimer = clearTimeout }) {
   let phrases = norm(phrasesIn)
   let past = []   // услышанное закрытых заходов: [{ text, at }]
   let current = '' // текущий заход (последний черновик / итог)
-  let sent = new Map() // ключ кандидата → Set отданных индексов слов
+  let sent = new Map() // ключ кандидата → Map(индекс слова → true, если уже подтверждён итогом; false — пока черновик)
   let settleTimer = 0
   let ear = null
   let gen = 0
@@ -34,21 +35,21 @@ export function createPhraseListener({ phrases: phrasesIn, lang = 'en', getStrea
   const heardNow = () => { const t = now(); past = past.filter(p => t - p.at <= JOIN_MS); return [...past.map(p => p.text), current].filter(Boolean).join(' ') }
   const clearState = () => { past = []; current = ''; sent = new Map(); clearTimer(settleTimer); settleTimer = 0 }
 
-  function words(scores) {
+  function words(scores, draft) {
     for (const s of scores) {
-      const got = sent.get(s.key) ?? new Set()
+      const got = sent.get(s.key) ?? new Map()
       sent.set(s.key, got)
       const p = phrases.find(x => x.key === s.key)
-      s.hits.forEach((ok, index) => { if (ok && !got.has(index)) { got.add(index); onWord?.({ phraseKey: s.key, index, text: p.words[index] }) } })
+      s.hits.forEach((ok, index) => { if (ok && (!got.has(index) || (!draft && !got.get(index)))) { got.set(index, !draft); onWord?.({ phraseKey: s.key, index, text: p.words[index], draft }) } })
     }
   }
 
-  function decide(settled) {
+  function decide(settled, draft = false) {
     if (disposed || !phrases.length) return false
     const heard = heardNow()
     if (!heard) return false
     const scores = scorePhrases(phrases, heard)
-    words(scores)
+    words(scores, draft)
     const picked = pickPhrase(scores, settled)
     if (picked) {
       log(earLine(phrases, heard, scores, picked))
@@ -67,9 +68,10 @@ export function createPhraseListener({ phrases: phrasesIn, lang = 'en', getStrea
       if (isHeld()) return // говорит Пит: его голос из динамика — не ученик
       const text = clean(data?.raw)
       if (kind === 'partial' && !text) return
+      if (text) onHear?.()
       current = text
       clearTimer(settleTimer); settleTimer = 0
-      decide(false)
+      decide(false, kind === 'partial')
     } else if (kind === 'session-end') {
       if (current) past.push({ text: current, at: now() })
       current = ''

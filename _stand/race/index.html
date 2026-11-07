@@ -20,14 +20,14 @@ import { PHRASE_FIXTURE } from '/src/features/pitrace/racePhraseFixture.js'
 import { phrasesOf, withPhrases } from '/src/features/pitrace/racePhraseData.js'
 import { round1Turns } from '/src/features/pitrace/racePhraseTurns.js'
 import { setPhraseListener } from '/src/features/pitrace/racePhraseListener.js'
-import { createPhraseListener as stubPhraseListener, stubSay } from '/src/features/pitrace/racePhraseListenStub.js'
+import { createPhraseListener as stubPhraseListener, stubSay, stubDraft } from '/src/features/pitrace/racePhraseListenStub.js'
 
 // Стенд «Встряхни память» («Гонка с Питом», dev, в сборку не входит): настоящие раунды гонки на игре «Повтори за диктором» без входа, Supabase и телефона.
 //  • ?ask=voice|tap — ответ на попап «Говорю / Тапаю» внутри игры (по умолчанию voice), ?ask=none — стоять на попапе; ?lines=1 — реплики Пита с озвучкой (гудки);
-//  • этап «Фразы»: plan.phrases — фикстура racePhraseFixture.js (3 свои + 1 дежурная, audio: null; ?phrases=0 — без фраз), ?only=phrases — один этап; слушатель фраз — подставной, речь драйвер подаёт window.__phraseSay('слова');
+//  • этап «Фразы»: plan.phrases — фикстура racePhraseFixture.js (3 свои + 1 дежурная, audio: null; ?phrases=0 — без фраз), ?only=phrases — один этап; слушатель фраз — подставной, речь драйвер подаёт window.__phraseSay('слова') (черновиком — window.__phraseDraft);
 //  • ?fixture=three|two|one|none — план из фикстур; ?seed=… — семя случайностей; ?only=sprint|catch|climb|descent — один раунд, ?only=stages — «Пинг-понг + фразы + финал», ?only=pingpong — «Пинг-понг + финал»; ?ru=0 — русская модель не скачана (проход B на тапе) (иначе полная гонка);
 //  • озвучка слов и кусков — синтетические гудки (wav ниже), реплики Пита без озвучки (подпись без звука); ?voice=0 — и слова без озвучки;
-//  • Vosk — заглушка: речь подаёт драйвер очередью window.__sayQueue (строки «слова через пробел»): следующий кусок звука микрофона закрывает заход с этим текстом — как итог Vosk; тап вместо речи (localStorage pithy_wl_tap_v1=1) работает как обычно.
+//  • Vosk — заглушка: речь подаёт драйвер очередью window.__sayQueue (строки «слова через пробел»): следующий кусок звука микрофона закрывает заход с этим текстом — как итог Vosk («~слова» — только черновик partial, заход не закрывается); тап вместо речи (localStorage pithy_wl_tap_v1=1) работает как обычно.
 const params = new URLSearchParams(location.search)
 const fixture = params.get('fixture') || 'three'
 const voice = params.get('voice') !== '0'
@@ -46,7 +46,7 @@ const wav = ms => { // лидирующая тишина 80 мс + гудок ms
 const plan = { ...fixtureSource(fixture), game: 'race', ...(params.get('seed') ? { seed: params.get('seed') } : {}), ...(params.get('only') ? { round: params.get('only') } : {}) }
 plan.extraWords = extrasOf(fixturePlan(fixture))
 if (params.get('phrases') !== '0') plan.phrases = PHRASE_FIXTURE
-setPhraseListener(stubPhraseListener); window.__phraseSay = stubSay // фразы «говорит» драйвер
+setPhraseListener(stubPhraseListener); window.__phraseSay = stubSay; window.__phraseDraft = stubDraft // фразы «говорит» драйвер
 const texts = raceTexts({ ...fixturePlan(fixture), extraWords: plan.extraWords })
 const rows = voice ? texts.map(text => ({ key: wordKey(text), ...wav(180 + 70 * text.replace(/\s/g, '').length) })).filter(r => r.key) : []
 // ?lines=1 — реплики Пита тоже с озвучкой (гудки): виден путь «буфер реплики декодирован в «Начать» → звук сразу после входа в игру» (журнал «[race] старт: реплика через M мс после входа в игру»)
@@ -64,6 +64,7 @@ class Rec {
   acceptWaveform() {
     if (this.ended || !window.__sayQueue.length) return
     const text = window.__sayQueue.shift(), words = text.split(' ').filter(Boolean)
+    if (text.startsWith('~')) { window.__partialAt = performance.now(); this.h.partialresult?.({ result: { partial: text.slice(1) } }); return } // черновик без итога (замер заливки)
     this.ended = true
     this.h.partialresult?.({ result: { partial: text } })
     this.h.result?.({ result: { text, result: words.map((w, i) => ({ word: w, conf: 1, start: +(i * 0.3).toFixed(2), end: +(i * 0.3 + 0.25).toFixed(2) })) } })

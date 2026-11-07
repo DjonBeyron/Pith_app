@@ -1,35 +1,16 @@
 import { describe, it, expect, vi } from 'vitest'
-import { runPhraseScene, CENTER_Y, SILENCE_MS, SAY_BOOST, HOT_MS, SHAKE_MS } from './racePhraseScene.js'
+import { CENTER_Y, SILENCE_MS, SAY_BOOST, HOT_MS } from './racePhraseScene.js'
+import { setupScene } from './racePhraseSceneRig.js'
 import { createPhraseListener, stubSay, stubCount } from './racePhraseListenStub.js'
 import { phraseStep, PHRASE_SPEED, SAY_SPEED, PHRASE_GAP_MS } from './raceStagesPhrases.js'
 import { round1Turns, round2SayTurns } from './racePhraseTurns.js'
 import { phrasesOf } from './racePhraseData.js'
 import { PHRASE_FIXTURE } from './racePhraseFixture.js'
-import { ENTER_Y, SPEED, LISTEN_Y_MAX } from '../player/modules/rotate-phone/wordLaneTimeline.js'
+import { SPEED, LISTEN_Y_MAX } from '../player/modules/rotate-phone/wordLaneTimeline.js'
 
-// Сцена широкой ленты без браузера: поддельный пул (положение — по поддельным часам и скорости, как у анимации полёта), поддельный rAF (кадр — tick вручную)
+// Сцена широкой ленты без браузера: поддельный пул и часы — racePhraseSceneRig.js. Единый конвейер круга 1 и заливка «Скажи» — racePhraseFlow.test.js
 const ph = phrasesOf({ phrases: PHRASE_FIXTURE })
-function fakePool(clock) {
-  const live = new Map(); let next = 0
-  const el = () => ({ animate: () => ({}), getBoundingClientRect: () => ({ left: 0, top: 0, width: 10, height: 10 }), querySelector: () => null, hasAttribute: () => true, setAttribute() {} })
-  const pool = {
-    live, taken: [],
-    take(lane, o) { const k = next++; const p = { k, lane, ...o, attrs: new Set(), born: clock.t - (o.atMs ?? 0), rate: 1, row: 0, el: el() }; live.set(k, p); pool.taken.push(p); return k },
-    give: k => live.delete(k), fade: k => live.delete(k), rise: k => { live.get(k).rose = true; live.delete(k); return true },
-    y: k => { const p = live.get(k); return p ? ENTER_Y + (SPEED * p.speed * p.rate * (clock.t - p.born)) / 1000 : null },
-    rate: (k, r) => { const p = live.get(k); if (!p) return; const y = pool.y(k); p.rate = r; p.born = clock.t - ((y - ENTER_Y) / (SPEED * p.speed * r)) * 1000 },
-    attr: (k, n) => pool.taken[k].attrs.add(n), paintRow: (k, v) => { pool.taken[k].row = v }, el: k => pool.taken[k].el, flashLane: vi.fn(),
-  }
-  return pool
-}
-function setup(step, o = {}) {
-  const clock = { t: 0 }
-  const pool = fakePool(clock)
-  const fx = { pre: vi.fn(), win: vi.fn(), miss: vi.fn(), fail: vi.fn(), finished: vi.fn(), pitLeft: () => o.pit ?? 0 }
-  const run = runPhraseScene({ pool, root: null, scene: { step }, fxRef: { current: fx }, now: () => clock.t, raf: () => 0, caf: () => {}, log: o.log ?? (() => {}), listen: o.listen ?? null, held: () => false, snap: () => {}, shake: () => {} })
-  const go = ms => { const end = clock.t + ms; while (clock.t < end) { clock.t = Math.min(end, clock.t + 16); run.tick(clock.t) } }
-  return { clock, pool, fx, run, go }
-}
+const setup = setupScene
 const pick = (voice = false) => { const t = round1Turns(ph, 's1'); return phraseStep('phrases1', t, { round: 1, mode: 'pick', voice, speed: PHRASE_SPEED }) }
 /** Ждать, пока пилюля key окажется у центра */
 const untilCenter = (s, key) => { for (let i = 0; i < 2000; i++) { const p = s.run.api.state().pills.find(x => x.key === key); if (p && Math.abs(p.y - CENTER_Y) < 3) return p; s.go(16) } return null }
@@ -63,9 +44,9 @@ describe('сцена широкой ленты: круг 1 «Пойми»', () =
     const rep = s.fx.win.mock.calls[0][2]
     expect(rep).toMatchObject({ last: true, count: 1, round: 1, phraseKey: t.target.key, res: { ok: true, late: false } })
     expect(s.pool.taken.find(p => p.cap === t.target.text).rose).toBe(true)
-    expect(log.mock.calls.at(-1)[0]).toMatch(/^\[phrases\] ход 1\/3: цель «.+» кандидаты «.+» \| «.+» \| «.+» итог верно$/)
+    expect(log.mock.calls.at(-1)[0]).toMatch(/^\[phrases\] ход 1\/3: цель «.+» кандидаты «.+» \| «.+» \| «.+» итог верно; остальные едут: \d$/)
   })
-  it('тап по чужой — дрожь, fx.miss с «с чем спутал», верная подсвечена и взлетает сама', () => {
+  it('тап по чужой — дрожь, fx.miss с «с чем спутал», верная подсвечена и взлетает сама; чужая не гаснет, а едет дальше отыгранной', () => {
     const s = setup(pick())
     s.go(500)
     const t0 = round1Turns(ph, 's1')[0], wrong = t0.cands.find(c => !c.right)
@@ -76,8 +57,8 @@ describe('сцена широкой ленты: круг 1 «Пойми»', () =
     const right = s.pool.taken.find(p => p.cap === t0.target.text)
     expect(right.attrs.has('data-hot')).toBe(true)
     const shaken = s.pool.taken.find(p => p.cap === wrong.cap)
-    expect(s.pool.live.has(shaken.k)).toBe(true) // чужая сначала дрожит, гаснет позже
-    return new Promise(r => setTimeout(r, Math.max(HOT_MS, SHAKE_MS) + 50)).then(() => { expect(right.rose).toBe(true); expect(s.pool.live.has(shaken.k)).toBe(false) })
+    expect(s.pool.live.has(shaken.k)).toBe(true); expect(shaken.attrs.has('data-spent')).toBe(true); expect(shaken.faded).toBeUndefined()
+    return new Promise(r => setTimeout(r, HOT_MS + 50)).then(() => { expect(right.rose).toBe(true); expect(s.pool.live.has(shaken.k)).toBe(true) })
   })
   it('верная ушла — «не успел» (fx.fail); все ходы — fx.finished', () => {
     const s = setup(pick())
@@ -102,12 +83,13 @@ describe('сцена широкой ленты: круг 1 «Пойми»', () =
 
 describe('сцена широкой ленты: круг 2 «Скажи»', () => {
   const say = () => phraseStep('phrases2', round2SayTurns(ph), { round: 2, mode: 'say', voice: true, speed: SAY_SPEED })
-  it('одна бледная пилюля с сегментами по словам; слово — сегмент; ratio ≥ 0,75 — зачёт, нечисто при пропущенном слове', () => {
+  it('одна бледная пилюля, без сегментов, заливка одна на всю фразу; ratio ≥ 0,75 — зачёт, нечисто при пропущенном слове', () => {
     const s = setup(say(), { listen: createPhraseListener })
     s.go(600)
     const p = s.pool.taken[0]
-    expect(s.pool.taken).toHaveLength(1); expect(p.attrs.has('data-faded')).toBe(true); expect(p.segs).toBe(4)
-    stubSay('nice to'); expect(p.row).toBe(0.5)
+    expect(s.pool.taken).toHaveLength(1); expect(p.attrs.has('data-faded')).toBe(true); expect(p.segs).toBeUndefined(); expect(p.wide).toBe(true)
+    stubSay('nice to'); s.go(600); expect(p.fill).toBeCloseTo(2.35 / 4, 2) // два слова + «аванс» следующего
+    s.go(1400); expect(p.fill).toBeCloseTo(0.5, 2) // черновиков давно нет — только слова
     expect(s.fx.win).not.toHaveBeenCalled()
     stubSay('nice to you')
     expect(s.fx.win).toHaveBeenCalledTimes(1)

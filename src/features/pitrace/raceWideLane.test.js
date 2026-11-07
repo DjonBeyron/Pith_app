@@ -1,12 +1,12 @@
 import { describe, it, expect, vi } from 'vitest'
 import { readFileSync } from 'node:fs'
-import { createPool, POOL } from '../player/modules/rotate-phone/wordLanePool.js'
+import { createPool, POOL, fillTransform } from '../player/modules/rotate-phone/wordLanePool.js'
 import { WIDE_W, WIDE_H, PILL_W, PILL_H, LANE_X } from '../player/modules/rotate-phone/wordLaneTimeline.js'
 import { FLIGHT_MS } from '../player/modules/rotate-phone/wordLaneMotion.js'
 
 vi.mock('../../shared/lib/deviceTier.js', () => ({ isWeakDevice: () => false }))
 
-// Широкая лента этапа «Фразы»: пилюли пула wide (по центру, 90 % × две строки), заливка по горизонтали, скорость и положение по часам полёта; CSS ленты, пилюли и подписи
+// Широкая лента этапа «Фразы»: пилюли пула wide (по центру, 90 % × две строки) — та же капсула и вертикальная заливка, что у обычной, скорость и положение по часам полёта; CSS ленты, пилюли и подписи
 const read = rel => readFileSync(new URL(rel, import.meta.url), 'utf8')
 const strip = css => css.replace(/\/\*[\s\S]*?\*\//g, '')
 function fakeEl(parts = {}) {
@@ -21,24 +21,26 @@ function fakeEl(parts = {}) {
 const rig = () => { const pills = Array.from({ length: POOL }, () => fakeEl({ '.wlPillFill': fakeEl(), '.wlGhost': fakeEl(), '.wlPace': fakeEl() })); return { pills, pool: createPool({ querySelectorAll: sel => (sel === '[data-pill]' ? pills : []) }) } }
 
 describe('широкая пилюля в пуле', () => {
-  it('wide: по центру, ширина WIDE_W, высота WIDE_H, data-wide, сегменты --segs; обычная пилюля после неё — снова узкая на своей дорожке', () => {
+  it('wide: по центру, ширина WIDE_W, высота WIDE_H, data-wide, без сегментов; data-spent снимается при возврате; обычная пилюля после неё — снова узкая на своей дорожке', () => {
     const { pool, pills } = rig()
-    const k = pool.take(1, { wide: true, segs: 4, cap: 'Nice to meet you', speed: 0.55 })
+    const k = pool.take(1, { wide: true, cap: 'Nice to meet you', speed: 0.55 })
     const el = pills[k]
     expect(el.style.left).toBe('50%'); expect(el.style.width).toBe(`${WIDE_W}%`); expect(el.style.height).toBe(`${WIDE_H}%`)
-    expect(el.getAttribute('data-wide')).toBe('1'); expect(el.getAttribute('data-segs')).toBe('4'); expect(el.style['--segs']).toBe('4')
+    expect(el.getAttribute('data-wide')).toBe('1'); expect(el.getAttribute('data-segs')).toBeNull(); expect(el.style['--segs']).toBeUndefined()
     expect(el.getAttribute('data-cap')).toBe('Nice to meet you')
+    pool.attr(k, 'data-spent')
     pool.give(k)
-    expect(el.getAttribute('data-wide')).toBeNull(); expect(el.getAttribute('data-segs')).toBeNull()
+    expect(el.getAttribute('data-wide')).toBeNull(); expect(el.getAttribute('data-spent')).toBeNull()
     const n = pool.take(0, {})
     expect(pills[n].style.left).toBe(`${LANE_X[0]}%`); expect(pills[n].style.width).toBe(`${PILL_W}%`); expect(pills[n].style.height).toBe(`${PILL_H}%`)
     expect(WIDE_W).toBeGreaterThanOrEqual(85); expect(WIDE_W).toBeLessThanOrEqual(92)
   })
-  it('заливка по горизонтали (paintRow), положение по часам полёта (y), скорость — множитель к скорости выдачи (rate)', () => {
+  it('заливка — та же вертикальная, что у слова (paintFill), горизонтальной нет; положение по часам полёта (y), скорость — множитель к скорости выдачи (rate)', () => {
     const { pool, pills } = rig()
-    const k = pool.take(1, { wide: true, segs: 4, speed: 0.5 })
-    pool.paintRow(k, 0.5); expect(pills[k].parts['.wlPillFill'].style.transform).toBe('translateX(-50.0%)')
-    pool.paintRow(k, 2); expect(pills[k].parts['.wlPillFill'].style.transform).toBe('translateX(0.0%)')
+    const k = pool.take(1, { wide: true, speed: 0.5 })
+    expect(pool.paintRow).toBeUndefined()
+    pool.paintFill(k, 0.5); expect(pills[k].parts['.wlPillFill'].style.transform).toBe(fillTransform(0.5))
+    expect(fillTransform(0.5)).toBe('translateY(50.0%)')
     const a = pills[k].anims[0]
     a.currentTime = FLIGHT_MS / 2; expect(pool.y(k)).toBeCloseTo(52)
     pool.rate(k, 2); expect(a.playbackRate).toBe(1)
@@ -62,12 +64,13 @@ describe('стили широкой ленты', () => {
     expect(css).toMatch(/0\.6s/)
     expect(css).toMatch(/data-act='phrases'\] \.wlStage > \.wlCat\.scn:not\(\.wlCat--track\) \{ translate:/)
   })
-  it('пилюля: текст в две строки шрифтом clamp(14px, 4vw, 18px), бледный (data-faded), подсветка верной (data-hot), заливка слева направо, искр нет', () => {
+  it('пилюля — та же капсула: скругление, рамка, тело и заливка не переопределены (только «выдох» кольца и подпись); текст в две строки, бледный (data-faded), подсветка верной (data-hot), отыгранная (data-spent)', () => {
     expect(css).toContain('font-size: clamp(14px, 4vw, 18px)')
     expect(css).toMatch(/\.wlPill\[data-wide\]\[data-faded\]:not\(\[data-lock\]\)::after \{ color: rgba/)
     expect(css).toMatch(/\.wlPill\[data-wide\]\[data-hot\]/)
-    expect(css).toMatch(/\.wlPill\[data-wide\] \.wlPillSparks \{ display: none; \}/)
-    expect(css).toMatch(/calc\(100% \/ var\(--segs, 1\)\)/)
+    expect(css).not.toMatch(/border-radius/); expect(css).not.toMatch(/--segs/); expect(css).not.toMatch(/\.wlPillFill/); expect(css).not.toMatch(/\.wlPillSparks/); expect(css).not.toMatch(/\.wlPillClip/)
+    expect(css).toMatch(/\.wlPill\[data-wide\]\[data-ring\]::before \{ animation-name: wlExhaleWide; \}/)
+    expect(css).toMatch(/\.wlPill\[data-wide\]\[data-spent\] \{ opacity: 0\.45;/)
     expect(css).toMatch(/\.racePhraseRu\[data-on\] \{ opacity: 1; \}/)
   })
 })

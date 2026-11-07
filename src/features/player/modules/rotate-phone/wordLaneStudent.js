@@ -27,6 +27,7 @@ import { wordCountRu } from '../../../../shared/lib/speech/speechMatchRu.js'
 import { laneOf, stepTargets, textOf } from './wordLaneRecipe.js'
 import { estChunkMs } from './wordLaneAudio.js'
 import { spawnEarly } from './wordLaneConveyorSpeed.js'
+import { FILL_ADVANCE } from './wordLaneFillView.js'
 
 export const REP_GAP_MS = 600           // пауза между повторами: от щелчка последнего куска принятого повтора (win) или от гашения «не успел» (fail) до выката следующего
 export const PIECE_PAD_MS = 120         // между пилюлями кусков одного повтора, поверх длины куска
@@ -39,6 +40,8 @@ export const LOCK_STAGGER_MS = 140      // куски принятого пов�
 export const MAX_HOLD_MS = 8000          // Пит не заставит ждать дольше (страховка от зависшей реплики): пилюля выезжает не позже
 export const BUDGET_PAD_MS = 1000       // запас на повтор в бюджете ступени…
 export const BUDGET_BASE_MS = 3000      // …и общий запас
+export const PENDING_TOP = 0.96         // слова последнего куска сказаны, ждём принятия (русская выдержка RU_SETTLE_MS + перерисовка): заливка не стоит на FILL_CAP, а дальше ползёт до этого уровня…
+export const PENDING_MS = 450           // …за столько мс; принятие доводит до 100 %
 
 let debugSink = null
 /** Отладка («Скачать отладку», wordLaneDebug): fn(events, g, input) получает события каждого шага, где они были; null — выключено, шаг ничего не тратит и логика не меняется */
@@ -108,7 +111,7 @@ export function createStudentGame({ step, chunks, estMs = c => estChunkMs(chunks
  * (у «Гонки» повтор с уже сказанным переводом выезжает заранее, spawnEarly).
  * Возвращает события шага: spawn / piece-ok / claim / snap / win / fail / miss / late / done. Состояние g меняется на месте.
  */
-export function stepStudent(g, t, { level = 0, seq = [], misses = 0, confirmed = true, tail = null, hold = false, pitMs = hold ? Infinity : 0 } = {}) {
+export function stepStudent(g, t, { level = 0, seq = [], misses = 0, confirmed = true, tail = null, hold = false, pitMs = hold ? Infinity : 0, heardT = -Infinity } = {}) { // heardT — когда (по шкале t) распознаватель последний раз что-то услышал: для «аванса» заливки
   const events = []
   const dt = Math.max(0, t - g.t) / 1000
   g.t = t
@@ -118,7 +121,7 @@ export function stepStudent(g, t, { level = 0, seq = [], misses = 0, confirmed =
     if (rep.state === 'todo') continue
     for (const p of rep.pills) p.y = yOfPill(p, t)
     if (rep.state === 'fly') {
-      if (isClaimable(rep)) stepFill(rep, dt, { level, confirmed, spoken, t, events })
+      if (isClaimable(rep)) stepFill(rep, dt, { level, confirmed, spoken, t, events, heardT })
       if (rep.pills.at(-1).y > FAIL_Y) {
         rep.state = rep.tries + 1 >= g.maxTries || t >= g.budget ? 'lost' : 'todo'
         rep.tries += 1
@@ -188,7 +191,7 @@ export function stepStudent(g, t, { level = 0, seq = [], misses = 0, confirmed =
       rep.spawnAt = base
       rep.pills = rep.parts.map((chunk, i) => ({ id: g.nextId++, rep: rep.idx, chunk, lane: rep.lanes[i], piece: i, spawnAt: base + rep.offs[i], ms: rep.durs[i], speed: rep.speed, y0: rep.y0 ?? undefined, y: rep.y0 ?? ENTER_Y, p: 0, state: 'fly', gone: false, snapped: false }))
       rep.pills.forEach(p => { p.y = yOfPill(p, t) })
-      rep.state = 'fly'; rep.tk = 0; rep.drain = false
+      rep.state = 'fly'; rep.tk = 0; rep.drain = false; rep.openAt = null
       g.spawned += 1
       g.pills = live().filter(p => !p.gone)
       events.push({ type: 'spawn', rep, pills: rep.pills })
@@ -206,8 +209,11 @@ export function stepStudent(g, t, { level = 0, seq = [], misses = 0, confirmed =
 /**
  * Заливка и куски ЖИВОГО повтора за один кадр (его пилюли видны). Модель: слово куска ещё не распознано — пилюля показывает только голос (breathStep), распознанный кусок зеленеет (piece-ok),
  * следующий до своего первого слова не наливается. Слив (drain) после чужого слова — у ещё не защёлкнутых кусков.
+ * «Аванс»: черновик распознавания пришёл после того, как повтор стал слышен (heardT ≥ openAt), а ученик говорит — цель текущего куска не ниже (сказанные слова куска + FILL_ADVANCE) / слов куска
+ * (первый partial сразу двигает заливку, а не ждёт следующего partial маленькой русской модели через 0,4–0,65 с; слова недосказанной цели — по одному). Экран догоняет цель плавно (wordLaneFillView.js).
  */
-function stepFill(rep, dt, { level, confirmed, spoken, t, events }) {
+function stepFill(rep, dt, { level, confirmed, spoken, t, events, heardT = -Infinity }) {
+  rep.openAt ??= t
   const open = rep.pills.filter(p => p.state === 'fly')
   if (rep.drain) {
     open.forEach(p => { p.p = drainStep(p.p, dt) })
@@ -220,11 +226,12 @@ function stepFill(rep, dt, { level, confirmed, spoken, t, events }) {
   const settled = active <= 0 || rep.pills.slice(0, active).every(p => p.state === 'won')       // предыдущие куски зелёные до конца: две пилюли повтора голосом не наливаются
   const voice = settled && (active === 0 || rep.tk > rep.cum[active]) ? level : 0   // голос наливает текущий кусок; следующий — когда его первое слово услышано
   const cap = confirmed ? FILL_CAP : PRE_CONFIRM_CAP                                // речь подтверждена распознаванием — до FILL_CAP; ещё нет (шум, эхо, лаг partial) — лишь слегка
+  const ahead = settled && active >= 0 && confirmed && heardT >= rep.openAt && (voice > 0 || tok > rep.cum[active]) ? Math.min(FILL_CAP, (rep.tk - rep.cum[active] + FILL_ADVANCE) / (rep.cnt[active] || 1)) : 0 // «аванс» по черновику
   rep.pills.forEach((p, i) => {
     if (p.state !== 'fly') return
     rep.peak = Math.max(rep.peak ?? 0, p.p) // самая полная заливка повтора — журнал «не успел» прохода B (уровень)
     const done = rep.tk >= rep.cum[i + 1]
     if (done && i < rep.parts.length - 1) { lockPill(p, t); events.push({ type: 'piece-ok', rep, pill: p, piece: i }); return } // слова куска произнесены — зелёный сразу, не ждём конца повтора
-    p.p = !isListening(p.y) ? fillTo(p.p, dt, 0) : done ? fillTo(p.p, dt, FILL_CAP) : i === active ? breathStep(p.p, dt, voice, cap) : fillTo(p.p, dt, 0)  // пилюля за краем экрана на 80 % и больше не наливается; последний кусок договорён (ждём принятия повтора) — держится на FILL_CAP; остальные ждут
+    p.p = !isListening(p.y) ? fillTo(p.p, dt, 0) : done ? Math.max(fillTo(p.p, dt, FILL_CAP), FILL_CAP + (PENDING_TOP - FILL_CAP) * Math.min(1, (t - (p.doneAt ??= t)) / PENDING_MS)) : i === active ? Math.max(breathStep(p.p, dt, voice, cap), ahead) : fillTo(p.p, dt, 0)  // пилюля за краем экрана на 80 % и больше не наливается; последний кусок договорён (ждём принятия повтора) — FILL_CAP и дальше ползёт к PENDING_TOP; остальные ждут
   })
 }

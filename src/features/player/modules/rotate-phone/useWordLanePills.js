@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { TRAVEL_MS, SPEED, ENTER_Y, EXIT_Y, pillFill } from './wordLaneTimeline.js'
 import { createPool } from './wordLanePool.js'
+import { createFillView } from './wordLaneFillView.js'
 import { createStudentGame, stepStudent, isClaimable, liveRep } from './wordLaneStudent.js'
 import { createVoiceGate } from './wordLaneVoiceGate.js'
 import { snapPill, missPill, SNAP_LEAD_MS } from './wordLaneSnap.js'
@@ -18,7 +19,7 @@ import { runPhraseScene } from '../../../pitrace/racePhraseScene.js'
 //  dictor  — { plan (wordLaneDictor.planDictor) }: каждой пилюле плана — полёт, чтобы к началу её слова она была полностью открыта; заливка в такт речи (pillFill по кривой громкости клипа);
 //            слово кончилось — щелчок и «огонёк» повтора, потом пилюли повтора взлетают вверх с вспышкой дорожки (wordLaneDictorRise.js) — ровно как у ученика после верного ответа; рот кота — по plan.mouth. Звук включает сценарий (по тем же временам);
 //  student — { step, chunks, estMs, curves }: конвейер ученика (wordLaneStudent.js) — ОДИН живой повтор за раз: следующий выкатывается, когда предыдущий принят или не успели (и прошла пауза); события
-//            (spawn / piece-ok / claim / snap / win / fail / miss / done) → пилюли и реакции fx. Заливка p всех пилюль повтора считается одним шагом stepStudent, а тут за кадр просто рисуется (paintFill) —
+//            (spawn / piece-ok / claim / snap / win / fail / miss / done) → пилюли и реакции fx. Заливка p всех пилюль повтора — ЦЕЛЬ, её считает шаг stepStudent, а на экран (paintFill) идёт значение, которое каждый кадр плавно догоняет цель (wordLaneFillView.js) —
 //            голос показывает только пилюля ТЕКУЩЕГО куска («в процессе» — бледная, дышит с голосом: до подтверждения речи распознаванием — слегка, после — до 85 %); кусок, чьи слова произнесены, защёлкивается сразу (piece-ok →
 //            data-lock, зелёная сплошная), не дожидаясь конца повтора; красная вспышка (miss) — на первом незащёлкнутом куске; «тень» слова внутри пилюли — лишь после неверно сказанного;
 //  order   — { prompts, lanes, count }: раунд «Порядок» на время (wordLaneOrderScene.js) — на подсказку диктора выкатываются пилюли во всех дорожках, sceneApi.current.tap(lane) — тап ученика (у сцены student — nextTarget() для ручного режима);
@@ -103,6 +104,7 @@ export function useWordLanePills(rootRef, { scene, levels, fx, live, sceneApi, t
       let claimedReps = 0
       const ghostUntil = new Map() // номер повтора → до какого момента показывать «тень» слова (только после неверно сказанного)
       const gate = createVoiceGate()
+      const view = createFillView() // экран догоняет цель заливки плавно, без ступенек
       const t0 = performance.now()
       const off = levels?.subscribe(l => { raw = l })
       const blind = !step.labels.length
@@ -152,21 +154,22 @@ export function useWordLanePills(rootRef, { scene, levels, fx, live, sceneApi, t
         else if (e.type === 'done') fxRef.current?.finished?.(e.locked)
       }
       const tick = now => {
-        const t = now - t0
+        const t = now - t0, dtMs = now - lastNow
         level = gate.step(raw, now, now - lastNow).level; lastNow = now
         const seq = liveRef.current.seq
         const sig = liveRef.current.signal?.() ?? {}
         const confirmed = Date.now() - (sig.heardAt ?? 0) < CONFIRM_MS // распознаватель недавно что-то услышал: речь настоящая, а не шум или эхо
         const pitMs = fxRef.current?.pitLeft?.() ?? 0, hold = pitMs > 0 // репетиция: Пит ещё говорит (реплика + пауза ≈ 40 кадров) — новая пилюля не выезжает; «Гонка»: перевод уже говорят — выезд за время пути до конца речи (pitMs)
-        const evs = stepStudent(g, t, { level, seq, misses: liveRef.current.misses, confirmed, tail: sig.tail ?? null, hold, pitMs })
+        const heardT = sig.heardAt ? t - (Date.now() - sig.heardAt) : -Infinity // когда распознаватель что-то услышал — на шкале ступени («аванс» заливки по первому черновику)
+        const evs = stepStudent(g, t, { level, seq, misses: liveRef.current.misses, confirmed, tail: sig.tail ?? null, hold, pitMs, heardT })
         for (const e of evs) handle(e)
         dodger?.step(g.pills, t, evs)
         const now2 = performance.now()
         const byId = held.size ? new Map(g.pills.map(x => [x.id, x])) : null // одна карта на кадр вместо поиска по массиву на каждую пилюлю
         for (const [id, k] of held) {
           const p = byId.get(id)
-          if (!p) { pool.give(k); held.delete(id); continue }   // ушла за нижний край
-          pool.paintFill(k, p.p)
+          if (!p) { pool.give(k); held.delete(id); view.forget(id); continue }   // ушла за нижний край
+          pool.paintFill(k, view.step(id, p.p, dtMs))
           // «Тень» слова — только после неверно сказанного (и ненадолго): пока ученик говорит верно или молчит, внутри пилюли ничего лишнего
           pool.hint(k, now2 < (ghostUntil.get(p.rep) ?? 0) && p.state === 'fly' && g.reps[p.rep].state === 'fly' ? '0.6' : '0', null)
         }
