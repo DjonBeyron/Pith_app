@@ -8,6 +8,7 @@ import { hasWordSlot } from './wordLaneClips.js'
 import { pLog } from '../../../../shared/lib/debug.js'
 import { raceStart } from '../../../pitrace/raceStartTrace.js'
 import { raceChron } from '../../../pitrace/raceStartChron.js'
+import { silentPause, createSilentNote } from '../../../pitrace/raceSilentLine.js'
 
 const TEXT_TAIL_MS = 900 // подпись держится ещё столько после конца реплики
 const LATE_RESERVE_MS = 400 // отложенная реплика: Пит «занят» на задержку плюс столько — запас, пока таймер не сработал
@@ -36,6 +37,7 @@ export function useCatLines({ lines, rate, catApi, listenerRef, waitMs = LINE_WA
   const armRef = useRef(null) // ждущая взлёта похвала: запускает отсчёт её задержки (praiseTakeoff)
   const stopRef = useRef(new Set()) // подписчики на остановку (пауза, выход): секвенсор речи гонки сбрасывает свои таймеры
   const gateRef = useRef(null) // отмена ожидания слота
+  const [noteSilent] = useState(() => createSilentNote(pLog)) // журнал неозвученных реплик гонки (один раз на реплику за игру)
   const cancelGate = () => { gateRef.current?.(); gateRef.current = null }
   useEffect(() => () => { clearTimeout(timerRef.current); clearTimeout(riseRef.current); clearTimeout(lateRef.current); cancelGate() }, [])
 
@@ -52,9 +54,11 @@ export function useCatLines({ lines, rate, catApi, listenerRef, waitMs = LINE_WA
     gateRef.current = null
     const now = Date.now()
     clearTimeout(riseRef.current)
-    const { onSpeak, onEnd, pause = LINE_PAUSE_MS, ...say } = extra // onSpeak({ ms, voiced }) — реплика пошла; onEnd — звук доиграл; pause — занятость после конца (секвенсор гонки: 0, отступ ведёт он сам)
+    const { onSpeak, onEnd, pause: pause0 = LINE_PAUSE_MS, ...say } = extra
+    const pause = silentPause(line, pause0) // гонка: неозвученная реплика — пауза после неё не дольше CAPTION_READ_MS (эха нет, raceSilentLine.js) // onSpeak({ ms, voiced }) — реплика пошла; onEnd — звук доиграл; pause — занятость после конца (секвенсор гонки: 0, отступ ведёт он сам)
     const done = () => { raceChron.step('ended', `первая реплика доиграла (ended источника): «${id}»`); if (pause === 0) busyRef.current = Math.min(busyRef.current, Date.now()); try { onEnd?.() } catch { /* секвенсор не ломает звук */ } } // реальный конец: «занят» снимается сразу, а не по оценке
     const { ms, rise, timer, voiced } = startCatLine({ id, line, rate, catApi, listenerRef, onSound: () => raceStart.line({ id }), onEnd: done, ...say }) // «Гонка»: строка «[race] старт: …» — по ФАКТУ начала звука первой реплики
+    if (!voiced && line.silent) noteSilent(id, rise + ms + pause) // «[say] реплика … без озвучки: подпись N мс» — раз на реплику
     if (!voiced) { raceStart.line({ voiced: false, id }); if (onEnd) setTimeout(done, rise + ms) } // звука не будет (только подпись): конец — по оценке
     try { onSpeak?.({ ms: rise + ms, voiced }) } catch { /* журнал не мешает */ }
     riseRef.current = timer

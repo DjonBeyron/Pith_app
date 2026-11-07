@@ -18,6 +18,8 @@ import { stageTiming, countdownPlan } from './rehearsalCountdown.js'
 import { warmCountdown, releaseCountdown } from './rehearsalCountdownSound.js'
 import { createCountGate, scheduleStageCount } from './rehearsalCountdownRun.js'
 import { lineVoiced } from './rehearsalQuiet.js'
+import { plateText } from '../player/modules/rotate-phone/wordLanePlateText.js'
+import { silentPause, silentMin } from '../pitrace/raceSilentLine.js' // гонка: неозвученная реплика — короткая пауза (CAPTION_READ_MS)
 import { usePitQuiet } from './usePitQuiet.js'
 import { plateCueMs } from './rehearsalConveyorCue.js'
 import { useCompareScene } from './mirror/useCompareScene.js'
@@ -65,7 +67,7 @@ export function useRehearsalActs({ plan, stages, stage, at, stageObj, setS, sayL
   }, [on, stage, intro, early, sayLine, startLine, hold, race]) // eslint-disable-line react-hooks/exhaustive-deps -- stages[0].pause читается в момент старта
 
   // Раскладка стадии по времени: реплика Пита (ждёт, пока он договорит прошлую) и отсчёт тремя нотами (stage.count) — rehearsalCountdown.stageTiming
-  const timingOf = st => { const ln = lineOf(st); return stageTiming({ order: st.count ?? null, lead: LINE_AT_MS, busyMs: cat.busyLeft(), lineMs: ln ? lineMs(fillLine(lines?.[ln]), rate) : 0, pause: st.pause ?? LINE_PAUSE_MS, minMs: st.ms, hasLine: !!ln, quiet: lineVoiced(lines, ln), plan: countdownPlan({ soft: !!st.soft }) }) }
+  const timingOf = st => { const ln = lineOf(st); return stageTiming({ order: st.count ?? null, lead: LINE_AT_MS, busyMs: cat.busyLeft(), lineMs: ln ? lineMs(fillLine(lines?.[ln]), rate) : 0, pause: silentPause(lines?.[ln], st.pause ?? LINE_PAUSE_MS), minMs: silentMin(lines?.[ln], st.ms), hasLine: !!ln, quiet: lineVoiced(lines, ln), plan: countdownPlan({ soft: !!st.soft }) }) }
   useEffect(() => { if (!on) return undefined; warmCountdown(race); return releaseCountdown }, [on, race]) // ноты отсчёта декодируются заранее (первая должна прозвучать вовремя)
 
   // Реплика стадии и отсчёт (стартует, когда Пит договорил, и не отпускает стадию до конца нот); смена стадии, пауза и выход гасят таймеры и ноты
@@ -142,6 +144,8 @@ export function useRehearsalActs({ plan, stages, stage, at, stageObj, setS, sayL
     failLine: st => (st?.act === 'warmup' || st?.act === 'word' ? missLine() : null),
     /** Следующая стадия, на которую идём: пропущенные по правилам (cond) обходятся */
     nextIdx,
+    /** Текст плашки стадии (announce / turn): «название\nзадание» (wordLanePlateText.js); гонка добавляет подпись неозвученной реплики (useRaceActs) */
+    plate: st => plateText(st),
     /** Сколько держать плашку (announce / turn): пока Пит договорит прошлую реплику и скажет свою */
     holdMs: st => (!on || (!lineOf(st) && !st?.count) ? st.ms : timingOf(st).holdMs),
     /** Конец сигнала перед пилюлями на плашке (мс от её начала: реплика Пита / последняя нота): от него зажигается конвейер (wordLaneConveyorStart.js); null — сигнала нет, берётся конец плашки */

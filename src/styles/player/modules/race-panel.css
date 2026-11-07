@@ -3,7 +3,7 @@
    репетиция и обычная нода остаются с крестиком .wlClose и кнопкой ⚙ в углу. Слои: кнопки z-index 7 выше бара (3) и заставки, HUD-панель (z-index 9) открывается поверх. Без filter. */
 .wl .raceBack {
   position: absolute;
-  top: calc(env(safe-area-inset-top, 0px) + 10px);
+  top: var(--wl-top); /* = env(safe-area-inset-top) + 10 px, word-lane.css: верх дорожек на этой же линии */
   left: calc(env(safe-area-inset-left, 0px) + 10px);
   z-index: 7;
   width: 36px;
@@ -12,7 +12,7 @@
 .wl .raceBack svg { width: 14px; height: 14px; }
 .racePause {
   position: absolute;
-  top: calc(env(safe-area-inset-top, 0px) + 10px);
+  top: var(--wl-top); /* = env(safe-area-inset-top) + 10 px, word-lane.css: верх дорожек на этой же линии */
   right: calc(env(safe-area-inset-right, 0px) + 10px);
   z-index: 7;
   width: 36px;

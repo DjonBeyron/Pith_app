@@ -12,6 +12,8 @@
 /* плашка этапа: название и краткое задание, поменьше и потише */
 .wl[data-race] .wlTurn:not(.raceSum):not(.raceAskPlate) { padding: 12px 22px; font-size: clamp(18px, 5.4vw, 24px); }
 .wl[data-race] .wlTurn .wlTurnTask { margin-top: 4px; font-size: clamp(12px, 3.4vw, 14px); font-weight: 500; line-height: 1.25; opacity: 0.7; }
+/* подпись неозвученной реплики Пита на плашке (raceSilentLine.js): пока голоса нет, задание читается текстом — как подпись демо (race-phrase-demo.css); переносится, плашку не раздувает */
+.wl[data-race] .wlTurn .wlTurnCap { max-width: min(300px, calc(100vw - 96px)); margin: 8px auto 0; font-size: clamp(12px, 3.4vw, 14px); font-weight: 500; line-height: 1.3; color: #f4f6fb; opacity: 0.85; }
 @media (prefers-reduced-motion: reduce) {
   .wl[data-race] .wlTurn:not(.wlTurn--lite), .wl[data-phase='ask'] .wlTurn:not(.wlTurn--lite) { animation: wlTurnFadeIn 0.25s ease both; }
   .wl[data-race] .wlTurn--leave:not(.wlTurn--lite), .wl[data-race] .wlTurn[data-out]:not(.wlTurn--lite), .wl[data-race] .wlTurn[data-leaving]:not(.wlTurn--lite) { animation: wlTurnFadeOut 0.25s ease both; }

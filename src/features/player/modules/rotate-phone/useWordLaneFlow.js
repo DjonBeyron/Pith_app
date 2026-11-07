@@ -103,7 +103,7 @@ export function useWordLaneFlow({ chunks, translation, lang, clips = null, audio
       catApi?.current?.peek?.()
       if (rep.last) xpApi.current?.add(XP_PER_PILL * rep.count, rect) // у повтора из нескольких кусков одна цифра («+6»), когда принят последний кусок
     },
-    miss(e) { rh.rec('miss', e?.rep); const face = missFace(plan?.game === 'race'); if (face) catApi?.current?.react(face, 1300, !!stages[sRef.current.idx]?.step?.quiet) }, claim(e) { rh.claim?.(e.rep, e.ms, e.y) }, pre(e) { rh.pre?.(e.rep, e) }, // гонка: на промах Пит не меняет лицо (missFace, wordLaneCatPeek.js)
+    miss(e) { rh.rec('miss', e?.rep); const face = missFace(plan?.game === 'race'); if (face) catApi?.current?.react(face, 1300, !!stages[sRef.current.idx]?.step?.quiet) }, claim(e) { rh.claim?.(e.rep, e.ms, e.y) }, pre(e) { rh.pre?.(e.rep, e) }, spawn(e) { rh.spawn?.(e) }, // гонка (spawn — выезд пилюли: журнал переходов raceTransChron.js): на промах Пит не меняет лицо (missFace, wordLaneCatPeek.js)
     fail(e) {
       const st = stages[sRef.current.idx]
       catApi?.current?.react('shy', 1300, !!st?.step?.quiet); rh.rec('fail', e.rep) // quiet («Разгон»): упущенная пилюля уезжает молча — голова Пита не двигается (react с still)
@@ -133,13 +133,13 @@ export function useWordLaneFlow({ chunks, translation, lang, clips = null, audio
       gameMicHold.holdFor(sayMs) // окно речи диктора (глушение дорожки / фаза аудиосессии — режимы проверки на iPhone)
       say(parts)
     },
-    finished() { const at = sRef.current.idx; setS(p => ({ ...p, leaving: at })); later(() => rh.leave(stages[at], () => { if (sRef.current.idx === at && sRef.current.stage === 'run') next() }), EXIT_PAUSE_MS) }, // rh.leave: дубль репетиции сначала дописывается (запись, слова), потом next
+    finished() { const at = sRef.current.idx; setS(p => ({ ...p, leaving: at })); later(() => rh.leave(stages[at], () => { if (sRef.current.idx === at && sRef.current.stage === 'run') next() }), rh.exitMs?.(stages[at]) ?? EXIT_PAUSE_MS) }, // exitMs — гонка: после круга фраз короче (useRaceActs) // rh.leave: дубль репетиции сначала дописывается (запись, слова), потом next
   }
   const handlersRef = useRef(handlers)
   useEffect(() => { handlersRef.current = handlers })
   const [fx] = useState(() => ({
     win: (...a) => handlersRef.current.win(...a), miss: (...a) => handlersRef.current.miss(...a), claim: (...a) => handlersRef.current.claim(...a), fail: (...a) => handlersRef.current.fail(...a),
-    mouth: (...a) => handlersRef.current.mouth(...a), hear: (...a) => handlersRef.current.hear(...a), peek: (...a) => handlersRef.current.peek(...a), pre: (...a) => handlersRef.current.pre(...a), say: (...a) => handlersRef.current.say(...a), sayText: (...a) => handlersRef.current.sayText(...a), finished: (...a) => handlersRef.current.finished(...a), pitLeft: () => handlersRef.current.pitLeft(),
+    mouth: (...a) => handlersRef.current.mouth(...a), hear: (...a) => handlersRef.current.hear(...a), peek: (...a) => handlersRef.current.peek(...a), pre: (...a) => handlersRef.current.pre(...a), spawn: (...a) => handlersRef.current.spawn(...a), say: (...a) => handlersRef.current.say(...a), sayText: (...a) => handlersRef.current.sayText(...a), finished: (...a) => handlersRef.current.finished(...a), pitLeft: () => handlersRef.current.pitLeft(),
   }))
 
   const finish = useCallback(() => {
@@ -245,6 +245,6 @@ export function useWordLaneFlow({ chunks, translation, lang, clips = null, audio
   const phase = s.stage === 'run' ? (engineKind(stageObj) ?? 'idle') : s.stage
   const shown = s.stage === 'paused' && s.from === 'run' ? stages[s.idx] : stageObj // на паузе подписи дорожек остаются на месте
   const labels = useBuiltLabels({ stages, stage: shown?.type === 'announce' ? stages[s.idx + 1] : shown, quiet: rh.quiet, chunks, lanes, hint: [...s.hint, ...rh.hintLanes(shown)] }) // под плашкой раунда уже видны подписи следующей стадии
-  const plate = !rh.plateOk || stageObj?.charge ? '' : stageObj?.type === 'announce' ? [stageObj.round.title, stageObj.round.brief ?? stageObj.round.task].filter(Boolean).join('\n') : stageObj?.type === 'turn' ? 'Теперь твоя очередь' : ''
+  const plate = !rh.plateOk || stageObj?.charge ? '' : rh.plate(stageObj) // текст плашки (wordLanePlateText.js); гонка — с подписью неозвученной реплики Пита (useRaceActs, raceSilentLine.js)
   return { ...s, hold, stages, dbg, rh, next, catLine: cat.text, phase, stageObj, scene, live, labels, plate, plateMs: stageObj?.ms ?? 0, levels, fx, sceneApi, xpApi, onLane, retryMic, restartStage, pause, paused: s.stage === 'paused', pausedIntro: s.stage === 'paused' && s.from !== 'run', finish, translation, text: textOf(chunks, chunks.map((_, i) => i)) }
 }

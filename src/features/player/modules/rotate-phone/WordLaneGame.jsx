@@ -20,6 +20,7 @@ import { useWordLaneLeavingPlates } from './useWordLaneLeavingPlates.js'
 import { chargeOn } from '../../../pitrace/raceCharge.js'
 import { raceStart, PIT_PEEK_MS } from '../../../pitrace/raceStartTrace.js'
 import { trackHead } from '../../../pitrace/raceDodgeDrive.js'
+import { raceLinesOf } from '../../../pitrace/raceSilentLine.js'
 import RehearsalActs from '../../../rehearsal/RehearsalActs.jsx'
 import ReadKaraoke from '../../../rehearsal/read/ReadKaraoke.jsx'
 import { isWeakDevice } from '../../../../shared/lib/deviceTier.js'
@@ -46,13 +47,14 @@ const FAIL_TEXT = {
   sub: 'Распознавание речи не запустилось: нет модели или микрофон не открылся. Проверь доступ к микрофону и попробуй ещё раз.',
 }
 
-export default function WordLaneGame({ cfg, audioSrc, lines = null, forceDebug = false, startHold = false, onRestart = null, onAgain = null, onSummary = null, onFinished }) { // startHold — «Гонка»: сцена открыта сразу после ответа на попап, звук ещё готовится (RotatePhoneModule): часы игры стоят, Пит уже наверху
+export default function WordLaneGame({ cfg, audioSrc, lines: rawLines = null, forceDebug = false, startHold = false, onRestart = null, onAgain = null, onSummary = null, onFinished }) { // startHold — «Гонка»: сцена открыта сразу после ответа на попап, звук ещё готовится (RotatePhoneModule): часы игры стоят, Пит уже наверху
   const rootRef = useRef(null)
   const [tapMode, setTapMode] = useState(readTapMode) // «тап вместо речи» (HUD, админ): тап по дорожке в очереди ученика засчитывает следующую цель — проверка механики и анимаций без голоса
   const [lite] = useState(() => readWeakStored() ?? isWeakDevice()) // слабое устройство: читка репетиции без курсора (ReadKaraoke)
   const [safe0] = useState(readPillSafe) // «безопасные слои пилюль» (HUD): класс только на старте, дальше его меняет сам HUD через classList — className не меняется, React его не трогает
   const [comment, setComment] = useState(null) // открыт оверлей комментария к этапу репетиции (шлифовка): { snap (что было на экране в момент тапа 💬), at }
   const catApi = useRef(null) // Пит (кот-маскот): рот по голосу и реакции лицом — через api, минуя React на кадрах
+  const lines = useMemo(() => (cfg.plan?.game === 'race' ? raceLinesOf(rawLines) : rawLines), [cfg.plan, rawLines]) // «Встряхни память»: неозвученные реплики — короткая подпись вместо тишины (raceSilentLine.js)
   const f = useWordLaneFlow({ chunks: cfg.chunks, translation: cfg.translation, lang: cfg.lang, clips: cfg.clips, audioSrc, audio: cfg.audio, catApi, lines, confusers: cfg.confusers, plan: cfg.plan, forceDebug, hold: startHold, onFinished })
   useEffect(() => { if (cfg.plan?.game === 'race' && !tapMode) trackHead(rootRef.current?.querySelector('.wlCat')) }, [cfg.plan, tapMode]) // «Голосом»: Пит по центру с первой фразы, вертикаль ведёт один владелец (pitrace/raceHeadDepth.js); раньше выскакивания ниже
   useEffect(() => { if (startHold) { catApi.current?.peek?.(PIT_PEEK_MS); raceStart.pit() } }, []) // eslint-disable-line react-hooks/exhaustive-deps -- «Гонка»: Пит выскакивает при открытии сцены (≤ 300 мс, пружина головы) и ждёт первую реплику; раз за монтирование

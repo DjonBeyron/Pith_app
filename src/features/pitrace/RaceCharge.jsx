@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { getVoiceRate } from '../player/lessonVolume.js'
 import { buildRaceActs } from './raceRecipe.js'
+import { raceFirstLines } from './raceTexts.js'
+import { plateCaption } from './raceSilentLine.js'
 import { openingPlan } from './raceOpening.js'
 import { chargePlan } from './raceCharge.js'
 import { openingWords } from './raceBar.js'
@@ -17,11 +19,12 @@ import ChargeRun from './RaceChargeRun.jsx'
 // частиц и шлейфа нет (шлейф — «размытие движения» без filter: один хвост-градиент, растяжение; raceCharge.js, data-trail), при reduced-motion пилюли не летят — бар заполняется ступеньками. Снаружи компонент монтирует и размонтирует RaceActs: on — заставка идёт; после on = false заставка доживает FADE_MS.
 // v3.3.115: слова заставки — слова ПЕРВОГО круга (по сегменту на слово), бар потом не исчезает, а расходуется по пилюле (RaceBar.jsx, raceBar.js). Показ одной заставки и её полёт — RaceChargeRun.jsx; здесь расписание начала игры и фаза «идёт / уходит».
 const FADE_MS = 700
+// round.cap — стартовая фраза Пита (race_start / race_start_tap), пока она не озвучена: подписью под заданием плашки (raceSilentLine.js), иначе игрок не узнал бы, что делать
 
 function Opening({ plan, lines, leaving }) {
   const [view] = useState(() => {
     const o = openingPlan(plan, lines, getVoiceRate()), a = buildRaceActs(plan).acts
-    return { o, round: { title: a[0]?.title ?? '', task: a[0]?.task ?? '', brief: a[0]?.brief ?? '' }, ...chargePlan(plan, o.morphAt, openingWords(a)) } // слова летят до morphAt: к этому моменту бар заполнен
+    return { o, round: { title: a[0]?.title ?? '', task: a[0]?.task ?? '', brief: a[0]?.brief ?? '', cap: plateCaption(lines, raceFirstLines(plan, a)[0]) }, ...chargePlan(plan, o.morphAt, openingWords(a)) } // слова летят до morphAt: к этому моменту бар заполнен
   })
   return <ChargeRun view={view} leaving={leaving} plate />
 }

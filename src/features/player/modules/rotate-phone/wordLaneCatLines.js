@@ -3,6 +3,7 @@
 // Реплика = { text, url (озвучка в R2 или null), duration (с), words (тайминги слов или null) }. Чистые функции — проверяются тестами.
 import { REHEARSAL_LINES, isStaleLine } from '../../../rehearsal/rehearsalLines.js'
 import { RACE_LINES } from '../../../pitrace/raceLines.js'
+import { SILENT_LINE_MS } from '../../../pitrace/raceSilentLine.js'
 
 const GAME_LINES = [
   { id: 'split_words', text: 'Пробуй сказать слова раздельно', when: 'ученик не смог сказать фразу из нескольких кусков' },
@@ -66,5 +67,5 @@ export const playableLines = lines => Object.fromEntries(Object.entries(lines ??
 /** Что подготовить в тапе «Начать» (слоты звука): реплики с озвучкой — [{ key, url }] */
 export const linesItems = lines => CAT_LINES.filter(d => lines?.[d.id]?.url).map(d => ({ key: lineKey(d.id), url: lines[d.id].url }))
 
-/** Сколько мс говорит реплика с озвучкой (rate — скорость голоса урока), без озвучки — оценка по тексту (подпись на экране) */
-export const lineMs = (line, rate = 1) => Math.round(((line?.duration > 0 ? line.duration * 1000 : (line?.text?.length ?? 0) * 65) / (rate > 0 ? rate : 1)))
+/** Сколько мс говорит реплика с озвучкой (rate — скорость голоса урока), без озвучки — оценка по тексту (подпись на экране); silent (гонка, raceSilentLine.js) — короткая подпись SILENT_LINE_MS */
+export const lineMs = (line, rate = 1) => (line?.silent ? SILENT_LINE_MS : Math.round(((line?.duration > 0 ? line.duration * 1000 : (line?.text?.length ?? 0) * 65) / (rate > 0 ? rate : 1))))

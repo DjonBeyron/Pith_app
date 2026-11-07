@@ -21,6 +21,10 @@ import { LOCK_MS } from './raceSpeech.js'
 import { createPhraseVoice } from './racePhraseVoice.js'
 import { phraseEvent, fillPhrases2 } from './raceStatePhrases.js'
 import { useRacePhraseDemo } from './useRacePhraseDemo.js'
+import { plateCaption } from './raceSilentLine.js'
+import { createTransChron } from './raceTransChron.js'
+import { PHRASE_EXIT_MS } from './raceStagesPhrases.js'
+import { plateText } from '../player/modules/rotate-phone/wordLanePlateText.js'
 
 /** Журнал голоса перевода: какое слово и какой перевод Пит говорит перед выездом этой пилюли (одна запись повтора: слово, перевод, дорожка, скорость). Расхождение с записью слова круга — строка «РАССИНХРОН» (не должно быть никогда) */
 function logPre(stage, rep) {
@@ -44,7 +48,11 @@ export function useRaceActs(args) {
   const on = plan?.game === 'race'
   const sw = useRaceSwitch({ on, running: on && stage === 'run' ? stageObj : null, stages }) // переключение слуха между проходами (английская ↔ русская модель Vosk, raceSwitch.js)
   const speech = useRaceSpeech({ on, cat: args.cat, sayLine }) // секвенсор речи (raceSpeech.js): зачёт → похвала → перевод → выезд; свои отступы от РЕАЛЬНОГО конца речи
-  const rh = useRehearsalActs(on && args.cat ? { ...args, cat: { ...args.cat, busyLeft: () => Math.max(args.cat.busyLeft(), speech.pendingMs()) } } : args) // расписание реплик этапа знает, что похвала ещё впереди
+  const [tr] = useState(() => createTransChron({ log: pLog })) // журнал переходов «[start] переход … → …: плашка / реплика / первая пилюля через N мс» (raceTransChron.js)
+  const lineRef = useRef(sayLine)
+  useEffect(() => { lineRef.current = sayLine })
+  const sayTr = useCallback((id, ...r) => { const ok = lineRef.current?.(id, ...r); if (ok) tr.line(id); return ok }, [tr]) // реплики стадий и стартовая — с отметкой в журнале переходов; функция стабильна (эффекты директора на ней не перезапускаются)
+  const rh = useRehearsalActs(on && args.cat ? { ...args, sayLine: sayTr, cat: { ...args.cat, busyLeft: () => Math.max(args.cat.busyLeft(), speech.pendingMs()) } } : args) // расписание реплик этапа знает, что похвала ещё впереди
   const praiseRef = useRef(null) // похвала, которую reduceRace назначил на этот зачёт (apply → claim)
   const running = on && stage === 'run' ? stageObj : null
   const demo = useRacePhraseDemo({ on, running, cat: args.cat, sayLine, sayText, lines }) // демо «можно по словам» на плашке круга «Скажи» (racePhraseDemo.js): переход плашки ждёт его конца
@@ -97,9 +105,14 @@ export function useRaceActs(args) {
     const key = `${running.idx}:${at}`
     if (box.entered === key) return undefined
     markEntered(box, key)
+    tr.stage(running); if (running.type === 'student' && !['sprint', 'catch', 'phrases'].includes(running.act)) tr.pill() // ступени «Вершины» без пилюль: переход кончается её началом
     const t = setTimeout(() => apply({ t: 'enter', stage: running }), 0)
     return () => clearTimeout(t)
-  }, [running, at, apply, box])
+  }, [running, at, apply, box, tr])
+
+  useEffect(() => { if (on && stage === 'drop') { tr.begin('старт'); if (stages[0]?.charge) tr.plate(stages[0].round?.title) } }, [on, stage, tr, stages]) // вход в игру: переход «старт → первая ступень»; плашка заставки (charge) — сразу со стартом
+  const plateNow = on && !!running && running.type === 'announce' && rh.plateOk && !running.charge && !!plateText(running, plateCaption(lines, running.line))
+  useEffect(() => { if (plateNow) tr.plate(running.round?.title || plateCaption(lines, running.line)) }, [plateNow, running, tr]) // eslint-disable-line react-hooks/exhaustive-deps -- lines читаются в момент показа
 
   // «Спуск»: слова и куски на скорости 1,1
   const descent = running?.act === 'descent' && ['read', 'turn', 'student'].includes(running.type)
@@ -125,13 +138,15 @@ export function useRaceActs(args) {
   if (!on) return rh
   return {
     ...rh, result, race: view, nextIdx,
-    afterCount: fn => rh.afterCount(() => demo.after(running, fn)), // плашка с stage.demo: сначала демо, потом следующая стадия
+    afterCount: fn => rh.afterCount(() => demo.after(running, fn)),
+    exitMs: st => (st?.act === 'phrases' ? PHRASE_EXIT_MS : undefined), // круг фраз кончился: до следующей стадии PHRASE_EXIT_MS, а не 1,3 с (Пит уже договорил итог хода)
+    plate: st => plateText(st, plateCaption(lines, st?.line)), // неозвученная реплика стадии — подписью на плашке (raceSilentLine.js) // плашка с stage.demo: сначала демо, потом следующая стадия
     /** Слово прохода A / B принято (раньше, чем щёлкнет заливка): время ответа ms (от выезда пилюли) и y (положение пилюли, % высоты: ниже LATE_Y — ответ «в последний момент») — в результаты, и для точности слова (raceAccuracy.js) — окно жизни пилюли по её скорости, заливка голосом в миг зачёта, тап ли это; Пит говорит мини-реплику успеха, следующая пилюля ждёт его */
-    claim(rep, ms, y) { if (!running) return; if (ruOn) ruLog(rep, 'claim', rep?.pills?.[0]?.p); praiseRef.current = null; apply({ t: 'claim', stage: running, info: { idx: rep?.idx, ms, late: isLate(y), life: pillLifeMs(rep?.speed), fill: rep?.pills?.[0]?.p, tap: !!running.step?.tapOnly } }); speech.claim(praiseRef.current); praiseRef.current = null },
+    claim(rep, ms, y) { if (!running) return; tr.last(); if (ruOn) ruLog(rep, 'claim', rep?.pills?.[0]?.p); praiseRef.current = null; apply({ t: 'claim', stage: running, info: { idx: rep?.idx, ms, late: isLate(y), life: pillLifeMs(rep?.speed), fill: rep?.pills?.[0]?.p, tap: !!running.step?.tapOnly } }); speech.claim(praiseRef.current); praiseRef.current = null },
     /** Перед выездом пилюли (движок: событие 'pre'): в «Разгоне» Пит говорит русский перевод слова из библиотеки (raceTrans.js), в «Слушай и лови» — английское слово (rep.say, библиотека слов); озвучки нет — молча, пилюля выезжает сразу.
      *  Пилюля ждёт, пока он договорит (pitLeft) */
     pre(rep, e) {
-      if (running?.act === 'phrases') { phr.pre(rep, e); return } // этап «Фразы»: смысл / фраза голосом Пита (racePhraseVoice.js), ход ждёт его через pitLeft
+      if (running?.act === 'phrases') { tr.pill(); phr.pre(rep, e); return } // этап «Фразы»: смысл / фраза голосом Пита (racePhraseVoice.js), ход ждёт его через pitLeft
       logPre(running, rep)
       if (ruOn) { listenerRef?.current?.resetSaid?.(); ru.start(rep?.idx) } // новое слово прохода B: журнал слушает его с чистого листа
       const said = rep?.say ?? rep?.cap // проход A: Пит говорит перевод (rep.say); надпись пилюли (rep.cap) в тапе английская — её не озвучиваем (v3.3.127)
@@ -142,10 +157,12 @@ export function useRaceActs(args) {
         else speech.translation(0) // говорить нечего: пилюля выезжает сразу
       })
     },
+    /** Пилюля выехала (движок: 'spawn'): первая после перехода закрывает строку журнала «[start] переход …» */
+    spawn: () => tr.pill(),
     /** Пит ещё занят (мс): секвенсор запрещает перевод до отступа после похвалы (LOCK_MS), иначе — реплики и перевод (cat.busyLeft) */
     pitLeft: () => Math.max(speech.holdMs(), args.cat?.busyLeft?.() ?? 0, sw.pendingMs(), surface.pending() ? LOCK_MS : 0, phr.left()), // идёт переключение слуха или Пит ещё выныривает к слову — пилюли тоже ждут
     rec(kind, info) {
-      rh.rec(kind, info)
+      rh.rec(kind, info); if (on) tr.last()
       if (!running) return
       if (running.act === 'phrases') { const ev = phraseEvent(kind, info); if (ev) apply({ t: 'phrase', stage: running, info: ev }); phr.react(kind, info); return } // итог хода «Фраз»: событие в результаты и голос Пита
       if (kind === 'win' && info?.last !== false) speech.riseStart() // пилюля взлетает: с этого мгновения идёт задержка похвалы

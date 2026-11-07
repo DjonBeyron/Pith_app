@@ -27,7 +27,7 @@ describe('панель: назад, пауза', () => {
     expect(read('../../shared/ui/BackButton.jsx')).toContain('{...rest}')
   })
   it('CSS: кнопки 36 px на линии safe-area + 10 px (центр safe + 28 px), бар между ними; ⚙ и 💬 — строкой ниже, справа, мельче (28 px)', () => {
-    expect(rule(css, '.wl .raceBack')).toMatch(/top: calc\(env\(safe-area-inset-top, 0px\) \+ 10px\)/); expect(rule(css, '.wl .raceBack')).toMatch(/left: calc\(env\(safe-area-inset-left, 0px\) \+ 10px\)/)
+    expect(rule(css, '.wl .raceBack')).toMatch(/top: var\(--wl-top\)/); expect(rule(css, '.racePause')).toMatch(/top: var\(--wl-top\)/); expect(read('../../styles/player/modules/word-lane.css')).toMatch(/--wl-top: calc\(env\(safe-area-inset-top, 0px\) \+ 10px\)/); expect(read('../../styles/player/modules/word-lane.css')).toMatch(/\.wlLanes \{ inset: var\(--wl-top\) 0 0;/) // верх кнопок = верх дорожек и разделителей (--wl-top) expect(rule(css, '.wl .raceBack')).toMatch(/left: calc\(env\(safe-area-inset-left, 0px\) \+ 10px\)/)
     expect(rule(css, '.racePause')).toMatch(/right: calc\(env\(safe-area-inset-right, 0px\) \+ 10px\)/); expect(rule(css, '.racePause')).toMatch(/width: 36px/)
     const admin = rule(css, '.wl[data-race] .wlHudBtn, .wl[data-race] .wlCmtBtn')
     expect(admin).toMatch(/top: calc\(env\(safe-area-inset-top, 0px\) \+ 54px\)/); expect(admin).toMatch(/width: 28px/) // ниже кнопок панели (10 + 36 = 46)

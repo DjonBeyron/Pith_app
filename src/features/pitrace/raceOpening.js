@@ -11,6 +11,7 @@ import { buildRaceActs } from './raceRecipe.js'
 import { readTapMode } from '../player/modules/rotate-phone/wordLaneHudSettings.js'
 import { raceFirstLines, raceHasStart } from './raceTexts.js'
 import { RACE_START_LEAD_MS } from './raceStartTrace.js'
+import { silentPause } from './raceSilentLine.js'
 
 export const MORPH_MS = 600        // бар → плашка: последние ~600 мс речи Пита
 export const PLATE_HOLD_MS = 1200  // плашка держится столько после конца речи, потом три ноты
@@ -33,12 +34,12 @@ export function openingPlan(plan, lines = null, rate = 1, tap = readTapMode()) {
   if (!startMs && !firstMs) return { startMs, firstMs, early: false, stageAt: DROP_MS + LANES_MS, lineAt: 0, plateAt: DROP_MS + LANES_MS, speechEnd: OPEN_FALLBACK_MS, morphAt: OPEN_FALLBACK_MS - MORPH_MS, plateEnd: OPEN_FALLBACK_MS + PLATE_HOLD_MS, countAt: OPEN_FALLBACK_MS + PLATE_HOLD_MS, pause: PLATE_HOLD_MS }
   const stageAt = DROP_MS + LANES_MS
   if (!firstId || (plan.round && !hasStart)) { // одна реплика на старте (стартовая фраза режима или реплика одиночного раунда, earlyStageLine) звучит сразу, с паузой стадии после неё; стадия 0 только ждёт, пока Пит договорит, и ведёт ноты
-    const soleMs = hasStart ? startMs : firstMs, speechEnd = RACE_START_LEAD_MS + soleMs, busyMs = Math.max(0, speechEnd + PLATE_HOLD_MS - stageAt)
+    const soleMs = hasStart ? startMs : firstMs, speechEnd = RACE_START_LEAD_MS + soleMs, busyMs = Math.max(0, speechEnd + silentPause(lines?.[hasStart ? startId : firstId], PLATE_HOLD_MS) - stageAt) // неозвученная — пауза CAPTION_READ_MS (как у useCatLines)
     const t = stageTiming({ order: 'after', lead: LEAD_MS, busyMs, lineMs: 0, pause: PLATE_HOLD_MS, minMs: 0, hasLine: false, quiet: false, plan: countdownPlan({ soft: true }) })
     const countAt = stageAt + (t.countAt ?? 0)
     return { startMs, firstMs, early: true, stageAt, lineAt: 0, plateAt: RACE_START_LEAD_MS, speechEnd, morphAt: Math.max(1000, speechEnd - MORPH_MS), plateEnd: countAt, countAt, pause: PLATE_HOLD_MS }
   }
-  const busyMs = startMs ? Math.max(0, RACE_START_LEAD_MS + startMs + LINE_PAUSE_MS - stageAt) : 0 // race_start начинается через RACE_START_LEAD_MS (сразу) и занимает Пита ещё на паузу после реплики
+  const busyMs = startMs ? Math.max(0, RACE_START_LEAD_MS + startMs + silentPause(lines?.[startId], LINE_PAUSE_MS) - stageAt) : 0 // race_start начинается через RACE_START_LEAD_MS (сразу) и занимает Пита ещё на паузу после реплики
   const t = stageTiming({ order: 'after', lead: LEAD_MS, busyMs, lineMs: firstMs, pause: PLATE_HOLD_MS, minMs: 0, hasLine: !!firstId, quiet: lineVoiced(lines, firstId), plan: countdownPlan({ soft: true }) })
   const speechEnd = Math.max(stageAt + (t.lineAt ?? 0) + firstMs, startMs ? RACE_START_LEAD_MS + startMs : 0) // Пит уже наверху (голова не выскакивает заново): звук идёт сразу
   return { startMs, firstMs, early: false, stageAt, lineAt: t.lineAt ?? 0, plateAt: stageAt + (t.lineAt ?? 0), speechEnd, morphAt: Math.max(1000, speechEnd - MORPH_MS), plateEnd: speechEnd + PLATE_HOLD_MS, countAt: stageAt + (t.countAt ?? 0), pause: PLATE_HOLD_MS }
