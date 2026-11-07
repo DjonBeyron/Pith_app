@@ -4,6 +4,7 @@ const PAUSE_TEXT = {
   title: 'Игра на паузе',
   sub: 'Ты свернул приложение. Продолжим с начала этой ступени',
   subIntro: 'Ты свернул приложение. Продолжим с начала',
+  subHere: 'Ты свернул приложение. Продолжим с того же места',
 }
 
 export default function WordLanePause({ pause, onExit }) {
@@ -11,7 +12,7 @@ export default function WordLanePause({ pause, onExit }) {
     <div className="wlPauseBack" data-testid="wl-pause-back">
     <div className="wlFail wlPause" role="alertdialog" aria-label={PAUSE_TEXT.title} data-testid="wl-pause">
       <p className="wlFailTitle">{PAUSE_TEXT.title}</p>
-      <p className="wlFailSub">{pause.pausedIntro ? PAUSE_TEXT.subIntro : PAUSE_TEXT.sub}</p>
+      <p className="wlFailSub">{pause.pausedIntro ? PAUSE_TEXT.subIntro : pause.pausedHere ? PAUSE_TEXT.subHere : PAUSE_TEXT.sub}</p>
       {pause.problem && <p className="wlFailSub wlPauseProblem" role="alert" data-testid="wl-pause-problem">{pause.problem}</p>}
       <div className="wlFailBtns">
         <button type="button" className="wlFailBtn wlFailBtn--main" onClick={pause.resume} disabled={pause.busy} data-testid="wl-pause-resume">{pause.busy ? '…' : 'Продолжить'}</button>

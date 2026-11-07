@@ -40,7 +40,7 @@ function logPre(stage, rep) {
 //  • итог: на экране summary — raceSim.reportRace (память сессии и XP тем же путём, что у репетиции), Пит говорит race_done_gold или race_done; result — для RaceSummary; память слов — raceMemory.pushRaceMemory (source 'game', один раз за игру, не на стенде);
 //  • журнал отладки: строки «[race] …» (раунд, слово, попал / промах, серия, ступень, заходы, итог).
 export function useRaceActs(args) {
-  const { plan, stages, stage, at, stageObj, setS, sayLine, sayLineLater, sayText, lines, rate, listenerRef } = args
+  const { plan, stages, stage, at, resume, stageObj, setS, sayLine, sayLineLater, sayText, lines, rate, listenerRef } = args
   const on = plan?.game === 'race'
   const sw = useRaceSwitch({ on, running: on && stage === 'run' ? stageObj : null, stages }) // переключение слуха между проходами (английская ↔ русская модель Vosk, raceSwitch.js)
   const speech = useRaceSpeech({ on, cat: args.cat, sayLine }) // секвенсор речи (raceSpeech.js): зачёт → похвала → перевод → выезд; свои отступы от РЕАЛЬНОГО конца речи
@@ -97,9 +97,9 @@ export function useRaceActs(args) {
     const key = `${running.idx}:${at}`
     if (box.entered === key) return undefined
     markEntered(box, key)
-    const t = setTimeout(() => apply({ t: 'enter', stage: running }), 0)
+    const t = setTimeout(() => apply({ t: 'enter', stage: running, from: resume?.at === at ? resume.n : 0 }), 0) // from — «Продолжить» с хода паузы: сыгранные ходы ступени остаются в результатах (raceState.enter)
     return () => clearTimeout(t)
-  }, [running, at, apply, box])
+  }, [running, at, resume, apply, box])
 
   // «Спуск»: слова и куски на скорости 1,1
   const descent = running?.act === 'descent' && ['read', 'turn', 'student'].includes(running.type)

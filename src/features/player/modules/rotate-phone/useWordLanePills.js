@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react'
 import { TRAVEL_MS, SPEED, ENTER_Y, EXIT_Y, pillFill } from './wordLaneTimeline.js'
 import { createPool } from './wordLanePool.js'
 import { createFillView } from './wordLaneFillView.js'
-import { createStudentGame, stepStudent, isClaimable, liveRep } from './wordLaneStudent.js'
+import { createStudentGame, stepStudent, isClaimable, liveRep, resumeIdx } from './wordLaneStudent.js'
 import { createVoiceGate } from './wordLaneVoiceGate.js'
 import { snapPill, missPill, SNAP_LEAD_MS } from './wordLaneSnap.js'
 import { runOrderScene } from './wordLaneOrderScene.js'
@@ -96,7 +96,7 @@ export function useWordLanePills(rootRef, { scene, levels, fx, live, sceneApi, t
       const tr = trioRef.current ? trioStep(scene.step, trioRef.current) : null // режим тапа в гонке: три пилюли на слово (верная + две чужие), верная — обычная пилюля без ловушки
       const step = tr ? tr.step : scene.step
       setDots(step.reps.length)
-      const g = createStudentGame({ step, chunks, estMs, maxTries: step.maxTries })
+      const g = createStudentGame({ step, chunks, estMs, maxTries: step.maxTries, from: scene.from ?? 0 }) // from — «Продолжить» в гонке: с повтора, на котором была пауза (useWordLaneControls)
       const held = new Map() // id пилюли → номер в пуле
       g.seenSeq = liveRef.current.seq.length; g.seenMisses = liveRef.current.misses // слушатель стартует ещё в «твоей очереди» — слова до начала конвейера не считаем
       let raw = 0
@@ -110,10 +110,11 @@ export function useWordLanePills(rootRef, { scene, levels, fx, live, sceneApi, t
       const t0 = performance.now()
       const off = levels?.subscribe(l => { raw = l })
       const blind = !step.labels.length
-      const dodger = dodgeRef.current && !tr ? createDodgeDrive({ cat: root.parentElement?.querySelector('.wlCat'), lanes: step.reps.map(r => r.lane), peek: ms => fxRef.current?.peek?.(ms) }) : null // «Говорю» гонки: Пит ныряет / прыгает к дорожке следующей пилюли (pitrace/raceDodgeDrive.js)
+      const dodger = dodgeRef.current && !tr ? createDodgeDrive({ cat: root.parentElement?.querySelector('.wlCat'), lanes: step.reps.map(r => r.lane), from: scene.from ?? 0, peek: ms => fxRef.current?.peek?.(ms) }) : null // «Говорю» гонки: Пит ныряет / прыгает к дорожке следующей пилюли (pitrace/raceDodgeDrive.js)
       const decoys = [] // чужие пилюли тройки: { k (номер в пуле), lane, speed, born, end, hit }
       const shake = d => { const now = performance.now(), y = ENTER_Y + (SPEED * d.speed * (now - d.born)) / 1000; return y > 0 && y < EXIT_Y - 6 && now < d.end } // чужая пилюля ещё на экране?
       setApi(sceneApi, {
+        resumeAt: () => resumeIdx(g), // пауза: с какого повтора «Продолжить» (useWordLaneControls.pause)
         nextTarget: () => (g.reps.filter(isClaimable)[0] ?? liveRep(g))?.target ?? null, // ручной режим: тап по микрофону = «сказал» ближайший повтор
         trio: !tr ? undefined : (lane, pt) => { // тап по дорожке в тройке: true — это верная дорожка (игра засчитает слово), false — чужая пилюля: дрожь и miss; pt — точка касания (журнал)
           const rep = g.reps.filter(isClaimable)[0]

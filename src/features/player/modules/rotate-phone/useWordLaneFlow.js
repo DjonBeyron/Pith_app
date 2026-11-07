@@ -70,7 +70,7 @@ export function useWordLaneFlow({ chunks, translation, lang, clips = null, audio
   const sayLineRef = useRef(cat.sayLine)
   useEffect(() => { sayLineRef.current = (...a) => { const said = cat.sayLine(...a); if (said) dbg.note(`cat:${a[0]}`); return said } }) // реплика кота попадает и в журнал отладки (окно mute вокруг неё)
   const sayLine = (...a) => sayLineRef.current(...a); const sayLineLater = (id, vars, ms, arm) => cat.sayLineLater(id, vars, ms, said => { if (said) dbg.note(`cat:${id}`) }, arm) // обработчики и таймеры стадий всегда берут свежую версию (настройки реплик могут догрузиться) — а стадия из-за этого не перезапускается // реплика успеха «Гонки» через ms мс после зачёта (Пит занят с зачёта)
-  const rh = useRehearsalActs({ plan, stages, stage: s.stage, at: s.at, stageObj, setS, sayLine, sayLineLater, sayText: (...a) => handlersRef.current.sayText(...a), cat, lines, rate, lang, listenerRef, hold }); const { nextIdx } = rh // акты репетиции: журнал, реплики Пита, правила пропуска
+  const rh = useRehearsalActs({ plan, stages, stage: s.stage, at: s.at, stageObj, setS, sayLine, sayLineLater, resume: s.resume, sayText: (...a) => handlersRef.current.sayText(...a), cat, lines, rate, lang, listenerRef, hold }); const { nextIdx } = rh // акты репетиции: журнал, реплики Пита, правила пропуска
 
   const later = useCallback((fn, ms) => { const id = setTimeout(() => { timersRef.current.delete(id); fn() }, Math.max(0, ms)); timersRef.current.add(id); return id }, [])
   const clearTimers = useCallback(() => { timersRef.current.forEach(clearTimeout); timersRef.current.clear() }, [])
@@ -225,16 +225,16 @@ export function useWordLaneFlow({ chunks, translation, lang, clips = null, audio
   // Колбэки стабильны (useCallback): на них держатся мемоизированные пилюли, кот и микрофон
   /** Тап по дорожке: раунд «Порядок» — ответ в движке пилюль (он знает, какие пилюли на экране); очередь ученика в режиме «тап вместо речи» (HUD) — следующая цель сказана, через слушатель */
   const onLane = useCallback((lane, pt) => { const api = sceneApi.current; if (api?.tap) api.tap(lane, pt); else { const t = api?.nextTarget?.(); if (t != null) listenerRef.current?.tap(t) } }, [])
-  const { retryMic, restartStage, pause } = useWordLaneControls({ stages, sRef, setS, setMicEpoch, clearTimers, listenerRef, noteTimerRef, hintTimerRef, finishedRef, catApi, cat, dbg }) // «Ещё раз», перезапуск ступени, пауза (сворачивание)
+  const { retryMic, restartStage, pause } = useWordLaneControls({ stages, sRef, setS, setMicEpoch, clearTimers, listenerRef, noteTimerRef, hintTimerRef, finishedRef, catApi, cat, dbg, sceneApi }) // «Ещё раз», перезапуск ступени, пауза (сворачивание)
 
   const scene = useMemo(() => {
     if (s.stage !== 'run' || !stageObj) return IDLE
     const kind = engineKind(stageObj)
     if (kind === 'dictor') return { kind: 'dictor', plan: stageObj.plan, at: s.at }
-    if (kind === 'student') return { kind: 'student', step: stageObj.step, chunks: stageObj.step.chunks ?? chunks, estMs: c => (stageObj.step.chunkMs ?? chunkMs)[c], curves: chunkCurves, at: s.at }
+    if (kind === 'student') return { kind: 'student', step: stageObj.step, chunks: stageObj.step.chunks ?? chunks, estMs: c => (stageObj.step.chunkMs ?? chunkMs)[c], curves: chunkCurves, at: s.at, from: s.resume?.at === s.at ? s.resume.n : 0 }
     if (kind === 'order' || kind === 'discern') return { kind: 'order', prompts: stageObj.prompts, lanes, count: chunks.length, at: s.at, maxTries: stageObj.maxTries }
     return kind === 'mirror' && rh.compare ? { kind: 'mirror', layout: rh.compare, at: s.at } : IDLE // «Дубль и зеркало»: сравнение на остановленных дорожках (rh.compare — раскладка, когда Пит договорил)
-  }, [s.stage, s.at, stageObj, chunks, chunkMs, chunkCurves, lanes, rh.compare])
+  }, [s.stage, s.at, s.resume, stageObj, chunks, chunkMs, chunkCurves, lanes, rh.compare])
 
   // «Слух» для движка пилюль: меняется только когда продвинулся счёт слов / промахов (не на каждую перерисовку) — иначе мемоизированные пилюли перерисовывались бы вместе с оверлеем.
   // signal: недосказанная цель и когда распознаватель последний раз что-то слышал (повторный черновик с тем же текстом слушатель пропускает, но «слышал» отмечает — heardAt)

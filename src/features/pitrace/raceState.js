@@ -1,6 +1,7 @@
 // Состояние игры «Встряхни память» («Гонка с Питом») по ходу раундов — чистый редюсер без React (по нему работают директор useRaceActs, экран RaceClimb / RaceSummary и итог raceSim): события движка → серия «Разгона», результаты «Слушай и лови», лестница «Вершины», «Спуск».
 //  ev = { t: 'enter' | 'win' | 'miss' | 'fail' | 'timeout' | 'claim' | 'phrase', stage, info, now } (phrase — итог хода этапа «Фразы», info — событие raceStatePhrases.phraseEvent: s.phrases пополняется): stage — стадия (raceStages.js: act, words, ci, k, n), info — что знает движок о событии (info.idx — номер пилюли «Разгона»); enter — стадия началась;
 //  info.heard — что услышал Vosk (ставит директор на промахе): двойник слова ступени с ловушкой (raceTrap.js) — ловушка осыпается, trap в ответе = { said, word }, Пит говорит про двойника;
+//  ev.from (enter) — «Продолжить» после паузы с пилюли from: круг не обнуляется (resumeQueue).
 //  now — часы (мс, performance.now): на первом заходе «Вершины» стартует общий таймер; timeout — общее время подъёма вышло (посылает директор).
 //  reduceRace(state, ev) → { state, say, hint, trap, log }: say — реплика Пита (мини-реплика успеха «Разгона» на принятии слова), hint — слово, которое Пит произносит голосом (подсказка «Вершины»), trap — { said, word } (ловушка сработала), log — строка журнала «[race] …».
 import * as ladder from './raceLadder.js'
@@ -71,9 +72,19 @@ function climbRound(s, kind, stage, info) {
   return { ...same(s, { climb }), hint, say, trap: trapped ? { said: trapped, word: stage.word } : null, log: `вершина: ${text}, заходов ${climb.attempts}${climb.top ? ', вершина' : ''}${extra}${climb.over ? ', потолок заходов' : ''}` }
 }
 
-function enter(s, stage, now) {
+/** «Продолжить» после паузы с пилюли from (useWordLaneControls): результаты пилюль до from остаются (принятая, но не долетевшая — верно: слово уже засчитано), с from — стираются
+ *  (эта пилюля сыграется заново, её промах до паузы не в счёт); claims — сколько осталось принятых. Круг не обнуляется — итог и память не теряют и не дублируют сыгранное */
+function resumeQueue(s, stage, from) {
+  const k = stage.act, second = stage.sid === `${k}2`, cur = (second ? s[k].r2 : s[k]) ?? { words: [], results: {}, claims: 0 }
+  const kept = Object.entries(cur.results).filter(([i]) => Number(i) < from).map(([i, r]) => [i, 'ms' in r && !r.hit ? { ...r, hit: true } : r])
+  const next = { ...cur, results: Object.fromEntries(kept), claims: kept.filter(([, r]) => 'ms' in r).length }
+  return { ...same(s, { [k]: second ? { ...s[k], r2: next } : { ...s[k], ...next } }), log: `${k === 'catch' ? 'проход B' : 'проход A'}${second ? ', второй круг' : ''}: продолжаем с пилюли ${from + 1} из ${stage.words.length}, сыграно ${kept.length}` }
+}
+
+function enter(s, stage, now, from = 0) {
   if (stage.type === 'announce') return stage.round?.title ? { ...same(s, { round: stage.act }), log: `раунд: ${stage.round.title}` } : { state: s }
   if ((stage.act === 'sprint' || stage.act === 'catch') && stage.type === 'student') {
+    if (from > 0) return resumeQueue(s, stage, from)
     const k = stage.act, name = k === 'catch' ? 'проход B' : 'проход A', texts = stage.words.map(w => w.text), traps = stage.words.map(w => !!w.trap)
     if (stage.sid === `${k}2`) return { ...same(s, { [k]: { ...s[k], r2: { words: texts, traps, results: {}, claims: 0 } } }), log: `${name}, второй круг: ${texts.length} пилюль (${texts.join(', ')})` }
     return { ...same(s, { [k]: { ...s[k], words: texts, traps, caps: Object.fromEntries(stage.words.map(w => [w.text, w.translation])) } }), log: `${name}: ${texts.length} пилюль${traps.some(Boolean) ? `, ловушек ${traps.filter(Boolean).length}` : ''}` }
@@ -87,7 +98,7 @@ export function reduceRace(s, ev) {
   const { t, stage, info, now } = ev
   if (!stage?.race || (t === 'win' && info?.last === false) || (t === 'claim' && !['sprint', 'catch'].includes(stage.act))) return { state: s, say: null, hint: null, trap: null, log: null } // win приходит на каждую пилюлю повтора (спуск — три куска): считаем только последнюю
   let r
-  if (t === 'enter') r = enter(s, stage, now)
+  if (t === 'enter') r = enter(s, stage, now, ev.from)
   else if (t === 'phrase') r = info?.phraseKey ? phraseStep(s, info) : { state: s }
   else if ((stage.act === 'sprint' || stage.act === 'catch') && stage.type === 'student') r = queue(s, t, stage, info)
   else if (stage.act === 'climb' && stage.type === 'student') r = climbRound(s, t, stage, info)
