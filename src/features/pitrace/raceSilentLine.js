@@ -25,6 +25,15 @@ export function plateCaption(lines, id) {
   return l?.silent ? l.caption ?? l.text ?? '' : ''
 }
 
+/**
+ * Подпись реплики над лентой (демо «Скажи», race_phrase_again перед проходом 2): ТОЛЬКО если реплика не озвучена — нет url в rotate_cat_lines (или её нет в настройках / они не загружены).
+ * Озвученная — '' (владелец, 2026-11-07: «сабы Пита я не просил»): озвучит реплику в админке — подпись исчезнет сама. Текст: caption → text → fallback (каталог)
+ */
+export function lineCaption(lines, id, fallback = '') {
+  const l = id ? lines?.[id] : null
+  return l?.url ? '' : l?.caption || l?.text || fallback
+}
+
 /** Журнал «[say] реплика <id> без озвучки: подпись N мс» — один раз на реплику. → note(id, ms) */
 export function createSilentNote(log) {
   const seen = new Set()

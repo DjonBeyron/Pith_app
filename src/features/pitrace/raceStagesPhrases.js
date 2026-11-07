@@ -11,6 +11,7 @@
 import { stepOf } from './raceStageKit.js'
 import { round1Turns, round2SayTurns, round2HearTurns, reorderWeak } from './racePhraseTurns.js'
 import { demoPhrase } from './racePhraseDemo.js'
+import { voicedPhraseTest } from './racePhraseWordVoice.js'
 
 // Скорости постоянные, без ускорений (2026-11-07, владелец: «нужно примерно как в первом этапе, но идут фразы, а не слова, и времени на ответ нужно больше»). Конвейер — SPEED 26 % высоты в секунду,
 // зона чтения ≈ 22…72 % высоты (50 %): время в ней = 50 / (26 · speed) с. Было 0,55 / 0,4 → 3,5 / 4,8 с (и у «Скажи» ускорение ×2 после 3 с тишины).
@@ -49,7 +50,7 @@ export function phraseStages(kit, act) {
   const base = voice ? round2SayTurns(act.phrases) : round2HearTurns(act.phrases, plan.seed)
   if (!base.length) return
   announce(act, { sid: 'phrases2', ...ROUND_PLATES[mode] })
-  const demo = voice ? demoPhrase(act.phrases, base) : null // демо на живой пилюле первым ходом «Скажи» (racePhraseDemoTurn.js; ворота — useRacePhraseDemo.js)
+  const demo = voice ? demoPhrase(act.phrases, base, voicedPhraseTest()) : null // демо на живой пилюле первым ходом «Скажи» (racePhraseDemoTurn.js; ворота — useRacePhraseDemo.js): запасная — только с озвучкой каждого слова
   const make = turns => ({ turns, step: phraseStep('phrases2', turns, { round: 2, mode, voice, speed: voice ? SAY_SPEED : PHRASE_SPEED, demo }) })
   push({ type: 'student', act: act.id, sid: 'phrases2', round: 2, base, ...make(base), fill: weak => Object.assign(kit.stages.find(x => x.sid === 'phrases2'), make(reorderWeak(base, weak))) })
 }

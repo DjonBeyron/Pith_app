@@ -2,14 +2,16 @@
 // Первым ходом круга (до первой настоящей фразы) сцена ленты выкатывает ЖИВУЮ широкую пилюлю «Скажи» с маской-кирпичиками демо-фразы (racePhraseDemoTurn.js), слушатель фраз на этом ходу не слушает,
 // а Пит играет за ученика: race_demo_1 «главное начать, смотри» → слово 1 диктором (sayText(слово, { hold, tight })), кирпичик открывается, заливка на долю → race_demo_2 «затем второе» → слово 2
 // → race_demo_3 «потом третье» → слово 3 → (слов больше трёх: race_demo_more «и так до конца» → остальные подряд) → вся фраза и 100 % → взлёт (как зачёт) → race_demo_go «теперь ты» → первый настоящий ход.
-// Реплика без озвучки (sayLine вернул false) — только подпись над лентой и LINE_SILENT_MS; подпись видна и с озвучкой. Здесь — чистая часть: какая фраза (demoPhrase), скрипт (runDemoScript,
+// Подпись реплики над лентой — ТОЛЬКО у неозвученной реплики (нет url в rotate_cat_lines, raceSilentLine.lineCaption; владелец: «сабы Пита я не просил»): озвученная звучит без подписи.
+// Слово — только из библиотеки слов: демо-фраза берётся с озвучкой КАЖДОГО слова (racePhraseWordVoice.js); слово всё же без озвучки — не звучит, журнал «[demo] слово … без озвучки», дальше по таймеру.
+// Перед словом скрипт ждёт, пока Пит освободится (busyLeft: хвост неозвученной реплики 0,65 с). Здесь — чистая часть: какая фраза (demoPhrase), скрипт (runDemoScript,
 // таймеры и голос подставляются), ворота на игру (createDemoGate: один раз за игру и не больше DEMO_MAX_SHOWS игр на устройстве — localStorage DEMO_KEY). Обрыв (пауза, сворачивание, смена стадии) — stop() сцены.
 import { phraseWords } from './racePhraseData.js'
 
 export const DEMO_LINES = ['race_demo_1', 'race_demo_2', 'race_demo_3'] // перед словами 1, 2, 3
 export const DEMO_MORE = 'race_demo_more' // слов больше трёх — перед остальными
 export const DEMO_GO = 'race_demo_go'     // после взлёта
-export const LINE_SILENT_MS = 650    // реплика без озвучки: подпись держится столько, потом слово (≤ 700 мс — замечание владельца)
+export const LINE_SILENT_MS = 650    // реплики нет в настройках (sayLine вернул false): подпись держится столько, потом слово (≤ 700 мс — замечание владельца)
 export const DEMO_LINE_GAP_MS = 150  // озвученная реплика договорена — до слова
 export const DEMO_WORD_GAP_MS = 250  // после голоса слова — до следующей реплики
 export const DEMO_RUN_GAP_MS = 120   // «и так до конца»: между словами подряд
@@ -22,10 +24,13 @@ export const DEMO_KEY = 'pithy_phrase_demo_seen_v1'
 
 const words = p => phraseWords(p?.text).length
 
-/** Демо-фраза: запасная (own: false), которой нет среди целей круга (turns), с текстом; самая короткая (при равенстве — по порядку плана). Нет — первая цель круга; нет и её — null */
-export function demoPhrase(phrases = [], turns = []) {
+/**
+ * Демо-фраза: запасная (own: false), которой нет среди целей круга (turns), с текстом и озвучкой каждого слова (voiced(text) — racePhraseWordVoice.phraseWordsVoiced); самая короткая (при равенстве —
+ * по порядку плана). Нет такой — первая цель круга; нет и её — null
+ */
+export function demoPhrase(phrases = [], turns = [], voiced = () => true) {
   const targets = new Set(turns.map(t => t.target?.key))
-  const spare = phrases.filter(p => !p.own && !targets.has(p.key) && words(p) > 0)
+  const spare = phrases.filter(p => !p.own && !targets.has(p.key) && words(p) > 0 && voiced(p.text))
   const best = spare.reduce((a, p) => (!a || words(p) < words(a) ? p : a), null)
   if (best && words(best) <= DEMO_MAX_WORDS) return { text: best.text, key: best.key, spare: true }
   const first = turns[0]?.target
@@ -61,10 +66,11 @@ export function demoPlan(n) {
 
 /**
  * Скрипт демо: шаги demoPlan по очереди. → { stop(), words, step() }.
- * sayLine(id, vars, opts) → озвучено ли / sayText(word, opts) — голос директора; busyLeft() — сколько Пит ещё занят (мс); lineText(id) — подпись реплики; show(text) — подпись над лентой ('' — снять);
+ * sayLine(id, vars, opts) → принята ли / sayText(word, opts) — голос директора; busyLeft() — сколько Пит ещё занят (мс); lineText(id) — подпись реплики ('' — реплика озвучена, подписи нет);
+ * hasWord(word) — есть ли озвучка слова (нет — слово не звучит, шаг 'mute', дальше по таймеру DEMO_WORD_MS); show(text) — подпись над лентой ('' — снять);
  * open(i, v) — кирпичик слова i открыт, цель заливки v; all() — вся фраза, 100 %; rise(done) — пилюля взлетает (done — когда можно дальше); onDone(); onStep(name, info) — журнал и тесты.
  */
-export function runDemoScript({ phrase, sayLine, sayText, busyLeft = () => 0, lineText = id => id, show = () => {}, open = () => {}, all = () => {}, rise = done => done(), onDone, onStep = () => {}, setTimer = setTimeout, clearTimer = clearTimeout }) {
+export function runDemoScript({ phrase, sayLine, sayText, busyLeft = () => 0, lineText = id => id, hasWord = () => true, show = () => {}, open = () => {}, all = () => {}, rise = done => done(), onDone, onStep = () => {}, setTimer = setTimeout, clearTimer = clearTimeout }) {
   const list = phraseWords(phrase?.text)
   const plan = demoPlan(list.length)
   let timer = 0, stopped = false, pos = -1, waited = 0
@@ -78,16 +84,19 @@ export function runDemoScript({ phrase, sayLine, sayText, busyLeft = () => 0, li
     const s = plan[pos]
     if (!s) { stopped = true; show(''); onStep('done'); onDone?.(); return }
     if (s.line) {
-      show(lineText(s.line))
+      const cap = lineText(s.line) || ''
+      show(cap) // подпись — только у неозвученной реплики; у озвученной '' (снять прежнюю)
       const said = !!sayLine?.(s.line, null, { pause: 0 }) // pause 0: «занят» снимается по реальному концу реплики
-      onStep('line', { id: s.line, said })
+      onStep('line', { id: s.line, said, cap: !!cap })
       if (said) at(DEMO_POLL_MS, () => free(() => at(DEMO_LINE_GAP_MS, next)))
-      else at(LINE_SILENT_MS, next)
+      else at(LINE_SILENT_MS, () => free(next))
     } else if (s.word != null) {
       let ms = 0
-      sayText?.(list[s.word], { hold: true, tight: true, onSay: m => { ms = m } }) // onSay приходит синхронно: длина голоса слова
+      const word = list[s.word], voiced = !!hasWord(word)
+      if (voiced) sayText?.(word, { hold: true, tight: true, onSay: m => { ms = m } }) // onSay приходит синхронно: длина голоса слова
       const v = (s.word + 1) / list.length
-      open(s.word, v); onStep('word', { i: s.word, word: list[s.word], v })
+      open(s.word, v); onStep('word', { i: s.word, word, v, voiced })
+      if (!voiced) onStep('mute', { i: s.word, word })
       const voice = ms > 0 ? ms : DEMO_WORD_MS
       const following = plan[pos + 1]
       at(voice + (following?.word != null ? DEMO_RUN_GAP_MS : following?.all ? 0 : DEMO_WORD_GAP_MS), next) // подряд — короткий зазор, последнее — сразу к 100 %

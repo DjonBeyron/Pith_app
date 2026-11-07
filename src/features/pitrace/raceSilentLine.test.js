@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
-import { raceLinesOf, silentPause, silentMin, plateCaption, createSilentNote, SILENT_LINE_MS, CAPTION_READ_MS, SILENT_HOLD_MS } from './raceSilentLine.js'
+import { raceLinesOf, silentPause, silentMin, plateCaption, lineCaption, createSilentNote, SILENT_LINE_MS, CAPTION_READ_MS, SILENT_HOLD_MS } from './raceSilentLine.js'
 import { lineMs, LINE_PAUSE_MS } from '../player/modules/rotate-phone/wordLaneCatLines.js'
 import { stageTiming } from '../rehearsal/rehearsalCountdown.js'
 
@@ -40,6 +40,14 @@ describe('неозвученные реплики гонки (raceSilentLine.js)
     expect(plateCaption(g, 'race_phrases')).toBe('')
     expect(plateCaption(g, null)).toBe('')
     expect(plateCaption({ x: { text: 'a', silent: true, caption: 'длинная подпись' } }, 'x')).toBe('длинная подпись')
+  })
+  it('подпись над лентой (демо, race_phrase_again) — только у неозвученной: есть url — пусто; нет url / нет реплики / настройки не загружены — текст (caption → text → каталог)', () => {
+    expect(lineCaption(lines, 'race_phrases', 'каталог')).toBe('')
+    expect(lineCaption(lines, 'race_catch', 'каталог')).toBe(lines.race_catch.text)
+    expect(lineCaption(g, 'race_catch')).toBe(lines.race_catch.text)
+    expect(lineCaption(lines, 'race_demo_1', 'главное начать, смотри')).toBe('главное начать, смотри')
+    expect(lineCaption(null, 'race_demo_1', 'каталог')).toBe('каталог')
+    expect(lineCaption({ x: { text: 'a', caption: 'длинная' } }, 'x')).toBe('длинная')
   })
   it('журнал «[say] реплика <id> без озвучки: подпись N мс» — один раз на реплику', () => {
     const log = vi.fn(), note = createSilentNote(log)

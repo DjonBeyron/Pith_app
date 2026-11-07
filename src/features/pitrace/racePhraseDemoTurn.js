@@ -13,7 +13,7 @@ export const RISE_WAIT_MS = 600    // заливка доезжает до 100 %
 export const AFTER_RISE_MS = 350   // после старта взлёта — до реплики «теперь ты»
 
 /**
- * → { tick(t), stop(), done(), state() }. pool / lane / speed — сцены; kit — голос директора { sayLine, sayText, busyLeft, text(id) }; show(text) — подпись над лентой; snap(el) — щелчок пилюли;
+ * → { tick(t), stop(), done(), state() }. pool / lane / speed — сцены; kit — голос директора { sayLine, sayText, busyLeft, text(id) — подпись неозвученной реплики, hasWord(w) }; show(text) — подпись над лентой; snap(el) — щелчок пилюли;
  * onDone() — демо доиграло (сцена переходит к первому ходу); log — журнал «[phrase-demo] …».
  */
 export function createDemoTurn({ pool, lane, speed, phrase, kit, show, snap = () => {}, now, onDone, log = () => {}, setTimer = setTimeout, clearTimer = clearTimeout }) {
@@ -40,11 +40,15 @@ export function createDemoTurn({ pool, lane, speed, phrase, kit, show, snap = ()
     timers.push(setTimer(done, AFTER_RISE_MS))
   }
   const script = runDemoScript({
-    phrase, sayLine: (...a) => kit?.sayLine?.(...a), sayText: (...a) => kit?.sayText?.(...a), busyLeft: () => kit?.busyLeft?.() ?? 0, lineText: id => kit?.text?.(id) ?? '', show,
+    phrase, sayLine: (...a) => kit?.sayLine?.(...a), sayText: (...a) => kit?.sayText?.(...a), busyLeft: () => kit?.busyLeft?.() ?? 0, lineText: id => kit?.text?.(id) ?? '', hasWord: w => kit?.hasWord?.(w) ?? true, show,
     open: (i, v) => { mask?.set(heardUpTo(i)); goal = v },
     all: () => { mask?.set(new Map(), true); goal = 1 },
     rise: done => { rising = done; riseAt = now() },
-    onStep: (name, info) => { if (name === 'line') say(`реплика ${info.id}${info.said ? '' : ' (подпись, без голоса)'}${y() == null ? '' : `, y ${Math.round(y())} %`}`); if (name === 'word') say(`слово ${info.i + 1} «${info.word}», заливка ${Math.round(info.v * 100)} %`) },
+    onStep: (name, info) => {
+      if (name === 'line') say(`реплика ${info.id}${info.cap ? ' (не озвучена — подпись)' : ''}${info.said ? '' : ' (не сказана)'}${y() == null ? '' : `, y ${Math.round(y())} %`}`)
+      if (name === 'word') say(`слово ${info.i + 1} «${info.word}», заливка ${Math.round(info.v * 100)} %`)
+      if (name === 'mute') { try { log(`[demo] слово «${info.word}» без озвучки — дальше по таймеру`) } catch { /* журнал не мешает демо */ } }
+    },
     onDone: () => { finished = true; say(`конец: ${Math.round(now() - t0)} мс`); onDone?.() },
     setTimer, clearTimer,
   })

@@ -70,10 +70,10 @@ describe('итог фразы по двум проходам', () => {
 function phraseHitsOf(list, text) { const h = phraseHits(list, text); return { hit: h.hit, miss: h.miss, phraseHits: h.hit, phraseMisses: h.miss, phraseUnclean: h.unclean } }
 
 describe('голос Пита на двух проходах', () => {
-  const make = () => {
+  const make = (lines = undefined) => {
     const said = [], timers = []
     const cat = { busyLeft: () => 0, holdBusy: () => {} }
-    const v = createPhraseVoice({ ctx: () => ({ sayLine: id => said.push(`line:${id}`), sayText: (t, op) => said.push(`${op?.ru ? 'ru' : 'en'}:${t}`), cat }), hasRu: () => true, log: () => {}, setTimer: fn => { timers.push(fn); return timers.length }, clearTimer: () => {} })
+    const v = createPhraseVoice({ ctx: () => ({ sayLine: id => said.push(`line:${id}`), sayText: (t, op) => said.push(`${op?.ru ? 'ru' : 'en'}:${t}`), cat, lines }), hasRu: () => true, log: () => {}, setTimer: fn => { timers.push(fn); return timers.length }, clearTimer: () => {} })
     const flush = () => { for (let i = 0; i < 50 && timers.length; i++) timers.shift()() }
     return { v, said, flush }
   }
@@ -81,6 +81,13 @@ describe('голос Пита на двух проходах', () => {
     const a = make(); a.v.react('win', { mode: 'say', pass: 1, target: nice, res: { ok: true } }); a.flush(); expect(a.said).toEqual([])
     const show = vi.fn(); a.v.pre({ mode: 'say', pass: 2, target: nice }, { show }); a.flush()
     expect(a.said).toEqual(['line:race_phrase_again']); expect(show).toHaveBeenCalledWith('теперь повтори фразу без остановок')
+  })
+  it('race_phrase_again озвучена (url в rotate_cat_lines) — без подписи над лентой; не озвучена — подпись текстом из настроек', () => {
+    const a = make({ race_phrase_again: { text: 'ещё раз, без остановок', url: 'https://r2/again.mp3' } }), show = vi.fn()
+    a.v.pre({ mode: 'say', pass: 2, target: nice }, { show }); a.flush()
+    expect(a.said).toEqual(['line:race_phrase_again']); expect(show).not.toHaveBeenCalled()
+    const b = make({ race_phrase_again: { text: 'ещё раз, без остановок', url: null } }), show2 = vi.fn()
+    b.v.pre({ mode: 'say', pass: 2, target: nice }, { show: show2 }); expect(show2).toHaveBeenCalledWith('ещё раз, без остановок')
   })
   it('проход 2: чисто — «да, это оно»; с паузами — «хорошо, только без пауз»; не успел — фраза', () => {
     const a = make(); a.v.react('win', { mode: 'say', pass: 2, target: nice, res: { smooth: true } }); a.flush(); expect(a.said).toEqual(['line:race_phrase_yes'])

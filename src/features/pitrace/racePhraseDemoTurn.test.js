@@ -19,7 +19,7 @@ function setup(o = {}) {
   const s = setupScene(step(), { listen: createPhraseListener, log: o.log })
   const gate = createDemoGate({ storage: o.storage ?? memStore() })
   const said = []
-  const kit = { claim: vi.fn(p => gate.claim(p)), end: vi.fn(why => gate.end(why)), sayLine: vi.fn(id => { said.push(id); return false }), sayText: vi.fn((w, op) => { said.push(`«${w}»`); op?.onSay?.(400) }), busyLeft: () => 0, text: id => `T:${id}` }
+  const kit = { claim: vi.fn(p => gate.claim(p)), end: vi.fn(why => gate.end(why)), sayLine: vi.fn(id => { said.push(id); return false }), sayText: vi.fn((w, op) => { said.push(`«${w}»`); op?.onSay?.(400) }), busyLeft: () => 0, text: id => `T:${id}`, ...(o.hasWord ? { hasWord: o.hasWord } : {}) }
   const pre = s.fx.pre
   s.fx.pre = vi.fn(e => { if (e.rep.demo) e.demo?.(o.noKit ? null : kit); else pre(e) })
   const go = ms => { const end = s.clock.t + ms; while (s.clock.t < end) { s.clock.t += 16; vi.advanceTimersByTime(16); s.run.tick(s.clock.t) } }
@@ -68,6 +68,13 @@ describe('демо-ход «Скажи» на живой пилюле', () => {
     expect(s.pool.taken.every(p => !p.attrs.has('data-demo'))).toBe(true)
     s.run.stop()
     const n = setup({ noKit: true }); n.go(400); expect(n.run.api.state().phase).not.toBe('demo'); n.run.stop()
+  })
+  it('слово демо без озвучки: не звучит, журнал «[demo] слово «…» без озвучки», кирпичик всё равно открывается и демо доходит до конца', () => {
+    const log = vi.fn(); const s = setup({ log, hasWord: w => w !== 'later' })
+    s.go(32); s.go(3300)
+    expect(s.said).toEqual(['race_demo_1', '«See»', 'race_demo_2', '«you»', 'race_demo_3'])
+    expect(log.mock.calls.map(c => c[0])).toContain('[demo] слово «later» без озвучки — дальше по таймеру')
+    s.go(3000); expect(s.kit.end).toHaveBeenCalledWith(''); s.run.stop()
   })
   it('стоп посреди демо (пауза, смена стадии): скрипт обрывается, ворота — «прервано», дальше Пит молчит', () => {
     const s = setup()

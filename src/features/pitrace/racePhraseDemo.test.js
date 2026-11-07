@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { readFileSync } from 'node:fs'
-import { demoPhrase, demoPlan, runDemoScript, createDemoGate, demoSeen, demoAllowed, markDemoShown, heardUpTo, DEMO_KEY, DEMO_MAX_SHOWS, LINE_SILENT_MS, DEMO_LINE_GAP_MS, DEMO_WORD_GAP_MS, DEMO_RUN_GAP_MS } from './racePhraseDemo.js'
+import { demoPhrase, demoPlan, runDemoScript, createDemoGate, demoSeen, demoAllowed, markDemoShown, heardUpTo, DEMO_KEY, DEMO_MAX_SHOWS, LINE_SILENT_MS, DEMO_LINE_GAP_MS, DEMO_WORD_GAP_MS, DEMO_RUN_GAP_MS, DEMO_WORD_MS } from './racePhraseDemo.js'
 import { createKit } from './raceStageKit.js'
 import { phraseStages } from './raceStagesPhrases.js'
 import { PHRASE_FIXTURE } from './racePhraseFixture.js'
@@ -20,6 +20,14 @@ describe('демо «Скажи»: какая фраза', () => {
     expect(demoPhrase(list, round2SayTurns(list))).toEqual({ text: 'Nice to meet you', key: 'nice to meet you', spare: false })
     const odd = [P('Nice to meet you'), { ...P('See you later', false) }]
     expect(demoPhrase(odd, [...round2SayTurns(odd), { target: odd[1] }]).text).toBe('Nice to meet you')
+  })
+  it('запасная без озвучки хоть одного слова (voiced) не берётся — первая фраза круга; озвученная запасная — берётся', () => {
+    const list = [P('Nice to meet you'), P('Where are you from'), P('See you later', false), P('Good night', false)]
+    const lib = new Set(['nice', 'to', 'meet', 'you', 'see', 'where', 'are', 'from'])
+    const voiced = t => t.split(' ').every(w => lib.has(w.toLowerCase()))
+    expect(demoPhrase(list, round2SayTurns(list), voiced)).toEqual({ text: 'Nice to meet you', key: 'nice to meet you', spare: false })
+    lib.add('later')
+    expect(demoPhrase(list, round2SayTurns(list), voiced).text).toBe('See you later')
   })
   it('запасная длиннее четырёх слов — первая фраза круга, если она короче; пусто — null', () => {
     const list = [P('Nice to meet you'), P('I will see you tomorrow morning', false)]
@@ -50,14 +58,15 @@ describe('демо «Скажи»: скрипт', () => {
     expect(tags(demoPlan(2))).toEqual(['race_demo_1', 'w0', 'race_demo_2', 'w1', 'all', 'rise', 'race_demo_go'])
   })
   const setup = (o = {}) => {
-    const log = [], shown = []
-    let busy = 0
+    const log = [], shown = [], steps = []
+    let busy = o.busy ?? 0
+    if (busy) setTimeout(() => { busy = 0 }, busy)
     const sayLine = vi.fn(id => { log.push(`line:${id}`); if (!o.voiced) return false; busy = 1000; setTimeout(() => { busy = 0 }, 1000); return true })
     const sayText = vi.fn((w, opts) => { log.push(`word:${w}`); expect(opts).toMatchObject({ hold: true, tight: true }); opts.onSay?.(400) })
     const onDone = vi.fn(() => log.push('done'))
-    const run = runDemoScript({ phrase: { text: o.text ?? 'See you later' }, sayLine, sayText, busyLeft: () => busy, lineText: id => `T(${id})`, show: t => shown.push(t),
-      open: (i, v) => log.push(`open:${i}:${v.toFixed(2)}`), all: () => log.push('all'), rise: done => { log.push('rise'); setTimeout(done, 300) }, onDone })
-    return { log, shown, run, onDone, sayLine }
+    const run = runDemoScript({ phrase: { text: o.text ?? 'See you later' }, sayLine, sayText, busyLeft: () => busy, lineText: o.lineText ?? (id => `T(${id})`), hasWord: o.hasWord, show: t => shown.push(t),
+      open: (i, v) => log.push(`open:${i}:${v.toFixed(2)}`), all: () => log.push('all'), rise: done => { log.push('rise'); setTimeout(done, 300) }, onDone, onStep: (n, i) => steps.push([n, i]) })
+    return { log, shown, run, onDone, sayLine, sayText, steps }
   }
   it('реплики без озвучки — подпись и LINE_SILENT_MS (≤ 700 мс); слово — голос 400 мс + зазор; 3 слова ≈ 4 с до взлёта', () => {
     expect(LINE_SILENT_MS).toBeLessThanOrEqual(700)
@@ -85,6 +94,27 @@ describe('демо «Скажи»: скрипт', () => {
     expect(log.at(-1)).toBe('open:0:0.33')
     vi.advanceTimersByTime(7000 - 1000 - DEMO_LINE_GAP_MS - 60)
     expect(onDone).toHaveBeenCalledTimes(1)
+  })
+  it('озвученная реплика (lineText → \'\') — подписи над лентой нет вовсе', () => {
+    const { shown, onDone } = setup({ voiced: true, lineText: () => '' })
+    vi.advanceTimersByTime(8000)
+    expect(onDone).toHaveBeenCalledTimes(1); expect(shown.every(t => t === '')).toBe(true)
+  })
+  it('слово без озвучки (hasWord → false) — не звучит, шаг mute, дальше по таймеру DEMO_WORD_MS (без висяка)', () => {
+    const { log, sayText, steps, onDone } = setup({ hasWord: w => w !== 'you' })
+    vi.advanceTimersByTime(LINE_SILENT_MS + 400 + DEMO_WORD_GAP_MS + LINE_SILENT_MS)
+    expect(log.slice(-2)).toEqual(['line:race_demo_2', 'open:1:0.67']); expect(sayText).toHaveBeenCalledTimes(1)
+    expect(steps.find(s => s[0] === 'mute')?.[1]).toEqual({ i: 1, word: 'you' })
+    vi.advanceTimersByTime(DEMO_WORD_MS + DEMO_WORD_GAP_MS)
+    expect(log.at(-1)).toBe('line:race_demo_3')
+    vi.advanceTimersByTime(8000); expect(onDone).toHaveBeenCalledTimes(1)
+  })
+  it('реплики нет в настройках (sayLine → false), а Пит ещё занят — слово ждёт busyLeft, а не звучит поверх', () => {
+    const { log } = setup({ busy: 2000 })
+    vi.advanceTimersByTime(2000)
+    expect(log).toEqual([]) // в начале ждём, пока Пит освободится
+    vi.advanceTimersByTime(60)
+    expect(log).toEqual(['line:race_demo_1'])
   })
   it('больше трёх слов: после «и так до конца» слова подряд с коротким зазором', () => {
     const { log } = setup({ text: 'Nice to meet you' })

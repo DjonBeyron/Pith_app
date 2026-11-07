@@ -53,10 +53,10 @@ describe('где Пит берёт целую запись фразы', () => {
 })
 
 describe('Пит читает фразу (racePhraseVoice)', () => {
-  const make = ({ audio = null, lead = () => 40, voiced = 300 } = {}) => {
+  const make = ({ audio = null, lead = () => 40, voiced = 300, hasWord = () => true } = {}) => {
     const said = [], logs = [], timers = [], cat = { busyLeft: () => 0, holdBusy: vi.fn(), onStop: () => () => {} }
     const sayText = (t, op) => { said.push(`${t}${op?.tight ? '/tight' : ''}`); op?.onSay?.(voiced) }
-    const v = createPhraseVoice({ ctx: () => ({ sayText, sayLine: id => said.push(`line:${id}`), cat }), hasRu: () => false, audioOf: () => audio, play: (p, a) => said.push(`whole:${a.url}`), lead, log: l => logs.push(l),
+    const v = createPhraseVoice({ ctx: () => ({ sayText, sayLine: id => said.push(`line:${id}`), cat }), hasRu: () => false, audioOf: () => audio, play: (p, a) => said.push(`whole:${a.url}`), lead, hasWord, log: l => logs.push(l),
       setTimer: (fn, ms) => { timers.push({ fn, ms }); return timers.length }, clearTimer: () => {} })
     const flush = () => { const gaps = []; for (let i = 0; i < 50 && timers.length; i++) { const t = timers.shift(); gaps.push(t.ms); t.fn() } return gaps }
     return { v, said, logs, flush, cat }
@@ -73,6 +73,12 @@ describe('Пит читает фразу (racePhraseVoice)', () => {
     expect(a.said).toEqual(['Nice/tight', 'to/tight', 'meet/tight', 'you/tight'])
     expect(gaps.slice(0, 3)).toEqual([260, 260, 260]); expect(gaps[3]).toBe(STEP_GAP_MS) // после последнего слова — обычный зазор цепочки
     expect(a.logs).toEqual(['[phrase-voice] фраза «Nice to meet you»: по словам (4)'])
+  })
+  it('слово без озвучки в библиотеке — строка журнала «слово … без озвучки» (чтение по словам не виснет: цепочка идёт по длине из onSay)', () => {
+    const a = make({ hasWord: w => w !== 'meet' })
+    a.v.pre({ mode: 'hear', target: nice }, {}); a.flush()
+    expect(a.said).toEqual(['Nice/tight', 'to/tight', 'meet/tight', 'you/tight'])
+    expect(a.logs).toEqual(['[phrase-voice] фраза «Nice to meet you»: по словам (4)', '[phrase-voice] слово «meet» без озвучки (нет в библиотеке слов) — не прозвучит'])
   })
   it('нахлёст ограничен JOIN_OVERLAP_MS (длинная тишина в начале файла не съедает конец прежнего слова)', () => {
     const a = make({ lead: () => 400 })
