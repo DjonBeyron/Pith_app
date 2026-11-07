@@ -1,34 +1,54 @@
-// Маска слов круга 2 «Скажи» этапа «Фразы» (CONCEPT_PHRASES.md, «Лента и круги»): слова фразы спрятаны до первой буквы с многоточием («Nice to meet you» → «N… to m… y…»)
-// и проявляются по мере речи: черновик слушателя — слово бледно (draft), подтверждение — полностью (full). Чистые функции без DOM; на экран маску кладёт racePhraseMaskView.js.
-// Правила: короткое слово (≤ SHORT_MAX букв, апостроф не считается: «I'm», «to», «a») видно целиком сразу — прятать его бессмысленно; у длинного видна первая буква («don't» → «d…»);
-// знаки по краям («you?», «"Hi») остаются на месте. Номер слова — как у phraseWords (racePhraseData.js) и слушателя: токены без букв и цифр номера не получают и видны всегда.
+// Маска слов круга 2 «Скажи» этапа «Фразы» (CONCEPT_PHRASES.md, «Лента и круги»), вариант «кирпичики» (выбор владельца 2026-11-07): спрятанное слово — ровная плашка
+// по длине слова без букв (текст — фигурные пробелы U+2007, по одному на букву; плашку рисует race-phrase-rounds.css), «Nice to meet you» → «Nice ▭▭ ▭▭▭▭ ▭▭▭».
+// Слова проявляются по мере речи: черновик слушателя — слово бледно (draft), подтверждение — целиком (full). Чистые функции без DOM; на экран маску кладёт racePhraseMaskView.js.
+// Что открыто сразу (правила владельца): первое слово всегда; короткое слово (≤ SHORT_MAX букв, апостроф не считается: «to», «a», «I'm»), если оно не сразу за другим открытым
+// словом (значит, второе слово фразы — никогда) и открытых коротких в фразе ещё меньше трёх. Знаки по краям («you?», «"Hi») остаются на месте.
+// Номер слова — как у phraseWords (racePhraseData.js) и слушателя: токены без букв и цифр номера не получают и видны всегда.
 export const SHORT_MAX = 2
-export const DOTS = '…'
+export const SHORT_OPEN_MAX = 3
+export const BRICK = ' '
 
 const EDGE = /^([^\p{L}\p{N}']*)(.*?)([^\p{L}\p{N}']*)$/u
 const letters = core => core.replace(/'/g, '').length
 
-/** Одно слово под маской: «meet» → «m…», «you?» → «y…?», «I'm» → «I'm» (короткое) */
+/** Одно слово плашкой: «meet» → «▭▭▭▭» (четыре фигурных пробела), «you?» → «▭▭▭?», «—» → «—» */
 export function maskWord(token) {
   const [, lead, core, tail] = String(token ?? '').match(EDGE) ?? ['', '', '', '']
-  if (!core || letters(core) <= SHORT_MAX) return String(token ?? '')
-  return `${lead}${core[0]}${DOTS}${tail}`
+  if (!core) return String(token ?? '')
+  return `${lead}${BRICK.repeat(letters(core))}${tail}`
+}
+
+/** Номера слов, открытых сразу (без речи): первое и короткие по правилам выше */
+export function openWords(text) {
+  const open = new Set()
+  let n = 0, shorts = 0, prevOpen = false
+  for (const token of String(text ?? '').trim().split(/\s+/)) {
+    const core = token.match(EDGE)?.[2] ?? ''
+    if (!core) continue
+    const index = n++
+    const show = index === 0 || (letters(core) <= SHORT_MAX && !prevOpen && shorts < SHORT_OPEN_MAX)
+    if (show && index) shorts++
+    if (show) open.add(index)
+    prevOpen = show
+  }
+  return open
 }
 
 /**
  * Фраза под маской: [{ text, state, index }] по токенам текста (через пробел). heard — Map номер слова → подтверждено ли (true — full, false — draft); all — показать всё (итог хода).
- * state: 'hidden' (маска), 'draft' (слово бледно), 'full' (слово целиком; короткие и токены без букв — всегда full).
+ * state: 'hidden' (плашка), 'draft' (слово бледно), 'full' (слово целиком; открытые сразу и токены без букв — всегда full).
  */
 export function maskPhrase(text, heard = new Map(), all = false) {
+  const open = openWords(text)
   let n = 0
   return String(text ?? '').trim().split(/\s+/).filter(Boolean).map(token => {
     const core = token.match(EDGE)?.[2] ?? ''
     const index = core ? n++ : -1
-    if (!core || all || letters(core) <= SHORT_MAX || heard.get(index) === true) return { text: token, state: 'full', index }
+    if (!core || all || open.has(index) || heard.get(index) === true) return { text: token, state: 'full', index }
     if (heard.has(index)) return { text: token, state: 'draft', index }
     return { text: maskWord(token), state: 'hidden', index }
   })
 }
 
-/** Маска строкой (журнал, тесты, стенд): «N… to m… y…» */
-export const maskLine = (text, heard, all) => maskPhrase(text, heard, all).map(w => w.text).join(' ')
+/** Маска строкой (журнал, тесты, стенд): плашки показаны как «▭» на букву — «Nice ▭▭ ▭▭▭▭ ▭▭▭» */
+export const maskLine = (text, heard, all) => maskPhrase(text, heard, all).map(w => w.text.replaceAll(BRICK, '▭')).join(' ')

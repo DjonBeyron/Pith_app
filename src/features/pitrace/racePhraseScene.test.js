@@ -104,14 +104,14 @@ describe('сцена широкой ленты: круг 2 «Скажи»', () =
     expect(s.fx.win.mock.calls[0][2].res).toMatchObject({ ok: true, ratio: 0.75, clean: false })
     s.run.stop()
   })
-  it('data-mode="say", слушатель есть; маска слов «N… to m… y…» снимается по onWord: черновик — бледно (draft), подтверждение — целиком; итог — вся фраза; журнал — круг 2 «Скажи» (голос)', () => {
+  it('data-mode="say", слушатель есть; маска слов «Nice ▭▭ ▭▭▭▭ ▭▭▭» снимается по onWord: черновик — бледно (draft), подтверждение — целиком; итог — вся фраза; журнал — круг 2 «Скажи» (голос)', () => {
     const log = vi.fn(); const s = setup(say(), { listen: createPhraseListener, log })
     s.go(600)
     expect(s.run.api.state().listening).toBe(true); expect(s.pool.taken[0].vals['data-mode']).toBe('say')
-    const m = () => s.run.api.state().mask.map(w => `${w.text}:${w.state}`).join(' ')
-    expect(m()).toBe('N…:hidden to:full m…:hidden y…:hidden')
-    stubDraft('nice'); expect(m()).toBe('Nice:draft to:full m…:hidden y…:hidden')
-    stubDraft('nice to meet'); expect(m()).toBe('Nice:full to:full meet:draft y…:hidden') // прошлое слово подтверждено следующим
+    const m = () => s.run.api.state().mask.map(w => `${w.text.replaceAll('\u2007', '▭')}:${w.state}`).join(' ')
+    expect(m()).toBe('Nice:full ▭▭:hidden ▭▭▭▭:hidden ▭▭▭:hidden') // первое слово открыто, «to» второе — спрятано
+    stubDraft('nice to'); expect(m()).toBe('Nice:full to:draft ▭▭▭▭:hidden ▭▭▭:hidden')
+    stubDraft('nice to meet'); expect(m()).toBe('Nice:full to:full meet:draft ▭▭▭:hidden') // прошлое слово подтверждено следующим
     stubSay('nice to meet you'); expect(s.fx.win).toHaveBeenCalledTimes(1)
     expect(m()).toBe('Nice:full to:full meet:full you:full') // итог: вся фраза
     expect(log.mock.calls.at(-1)[0]).toMatch(/^\[phrases\] круг 2 «Скажи» \(голос\), ход 1\/3: цель/)
