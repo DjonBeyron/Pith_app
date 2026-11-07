@@ -1,13 +1,13 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { micRequestBegin, micRequestEnd, micRequestPending, micRequestStamp, resetMicRequest, MIC_GRACE_MS } from './gameMicRequest.js'
-import { openGameMic, closeGameMic } from './gameMic.js'
+import { openGameMic, shutGameMic } from './gameMic.js'
 import { installGameAudioLife, onGameAudioReturn, consumeRewake, lastAway } from './gameAudioLife.js'
 
 // v3.3.147: «микрофон запрашивается» — от вызова getUserMedia до ответа и ещё MIC_GRACE_MS после: blur/focus от системного диалога доступа — не уход (журнал владельца: пауза посреди «Продолжить»)
 const logs = vi.hoisted(() => [])
 vi.mock('./debug.js', () => ({ pLog: m => logs.push(m) }))
 beforeEach(() => { logs.length = 0; resetMicRequest() })
-afterEach(() => { closeGameMic(); vi.unstubAllGlobals() })
+afterEach(() => { shutGameMic(); vi.unstubAllGlobals() })
 
 describe('gameMicRequest', () => {
   it('запрос → pending; ответ → ещё MIC_GRACE_MS pending, потом нет; журнал запроса и ответа', () => {
@@ -27,7 +27,7 @@ describe('gameMicRequest', () => {
     expect(micRequestStamp().pending).toBe(1); expect(micRequestPending()).toBe(true)
     answer(s); expect(await p).toBe('granted')
     expect(micRequestStamp().pending).toBe(0); expect(micRequestPending()).toBe(true) // окно после ответа
-    closeGameMic(); resetMicRequest()
+    shutGameMic(); resetMicRequest()
     vi.stubGlobal('navigator', { userAgent: 'x', mediaDevices: { getUserMedia: vi.fn().mockRejectedValue(Object.assign(new Error('no'), { name: 'NotAllowedError' })) } })
     expect(await openGameMic()).toBe('denied')
     expect(micRequestStamp().pending).toBe(0); expect(logs.some(l => l.includes('ответ NotAllowedError'))).toBe(true)

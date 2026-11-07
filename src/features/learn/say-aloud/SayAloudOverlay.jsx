@@ -22,7 +22,7 @@ export default function SayAloudOverlay({ words, onClose }) {
 
   const aliveRef = useRef(true)
   useEffect(() => { aliveRef.current = true; return () => { aliveRef.current = false } }, [])
-  useEffect(() => () => closeGameMic(), []) // поток открыт на весь раунд — закрываем при выходе (индикатор микрофона гаснет)
+  useEffect(() => () => closeGameMic(), []) // выход: дорожка выключается (поток один на сеанс страницы, gameMic.js)
   // Тап «Начать» — жест: запрос микрофона уходит сразу, до любых await (на всех платформах один поток на весь раунд, gameMic, без эхо/шумоподавления)
   const begin = () => {
     setMic('pending')

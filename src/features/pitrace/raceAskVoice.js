@@ -9,13 +9,7 @@ export const CHOICES = ['voice', 'tap']
 export const CHOICE_LABELS = { voice: 'Голосом', tap: 'Пальцами' }
 // «Говорю»: пока ждём ответ системы о микрофоне и пока звук улягается после смены аудиосессии, попап остаётся, кнопка показывает, чего ждём (второго нажатия нет)
 export const WAIT_LABELS = { mic: 'Разрешите микрофон…', sound: 'Готовлю звук…' }
-// Отказ или ошибка микрофона: остаёмся в попапе, подсказка под кнопками, «Тапаю» доступно
-export const MIC_HINTS = {
-  denied: 'Микрофон не разрешён — выбери «Пальцами» или разреши в настройках Safari',
-  unavailable: 'Микрофон не открылся — выбери «Пальцами» или попробуй ещё раз',
-}
-/** Подсказка в попапе по ответу startGameAudio (mic) */
-export const micHint = mic => MIC_HINTS[mic] ?? MIC_HINTS.unavailable
+// Отказ или ошибка микрофона и подсказка до первого диалога — raceMicHelp.js
 
 /** Текст вопроса на плашке — реплика race_ask_voice (одна на плашку и на озвучку): из реплик настроек lines (правка в админке главнее), нет — из каталога */
 export const askText = lines => lines?.[ASK_LINE]?.text || (RACE_LINES.find(l => l.id === ASK_LINE)?.text ?? '')

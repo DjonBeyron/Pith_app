@@ -19,7 +19,7 @@ vi.mock('./wordLaneNotes.js', () => ({ releaseNotes: () => calls.push('releaseNo
 vi.mock('./wordLaneClips.js', () => ({ releaseClips: () => calls.push('releaseClips') }))
 vi.mock('./useGameAudioModes.js', () => ({ endGameAudio: () => calls.push('endGameAudio') }))
 vi.mock('./wordLaneStart.js', () => ({ startGameAudio: vi.fn() }))
-vi.mock('../../../../shared/lib/gameMic.js', () => ({ closeGameMic: () => calls.push('closeGameMic'), openGameMic: () => Promise.resolve('granted'), micTracksLine: () => 'нет потока', onGameMicLost: () => () => {} }))
+vi.mock('../../../../shared/lib/gameMic.js', () => ({ closeGameMic: () => calls.push('closeGameMic'), openGameMic: () => Promise.resolve('granted'), micTracksLine: () => 'нет потока', onGameMicLost: () => () => {}, isGameMicIdle: () => false }))
 
 import { useWordLaneControls } from './useWordLaneControls.js'
 import { useWordLanePause } from './useWordLanePause.js'
@@ -53,7 +53,7 @@ describe('pause(): сворачивание в игре (ступень) — в�
     expect(c.listenerRef.current).toBeNull()
     expect(c.sRef.current).toMatchObject({ stage: 'paused', from: 'run', idx: 2, hint: [], note: '' })
     expect(c.dbg.event).toHaveBeenCalledWith('pause', expect.objectContaining({ why: 'hidden', stage: 'run', idx: 2 }))
-    expect(calls.indexOf('endGameAudio')).toBeLessThan(calls.indexOf('closeGameMic')) // окна речи закрыты до закрытия потока (как finish)
+    expect(calls.indexOf('endGameAudio')).toBeLessThan(calls.indexOf('closeGameMic')) // окна речи закрыты до выключения дорожки (как finish): сторож не включит её обратно
     expect(gameMicGesture.needed()).toBe(true) // дальше микрофон открывается только из тапа
   })
   it('во вступлении (drop) пауза тоже ставится (иначе слушатель следующей ступени открыл бы микрофон сам); откуда — запоминается', () => {
@@ -172,7 +172,7 @@ describe('микрофон после фона открывается тольк
     expect(await mic.reopenGameMic()).toBe('unavailable'); expect(gum).not.toHaveBeenCalled()
     expect(await mic.openGameMic()).toBe('granted'); expect(gum).toHaveBeenCalledTimes(1)
     expect(gesture.needed()).toBe(false)
-    mic.closeGameMic()
+    mic.shutGameMic()
   })
 })
 

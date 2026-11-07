@@ -27,7 +27,7 @@ function set(next) {
   if (open === next) return
   open = next
   if (typeof document !== 'undefined') document.documentElement.classList.toggle('lessonOpen', open)
-  if (!open) closeGameMic() // урок закрыт — игровой микрофон (iPhone: один поток на урок, открывается в тапе «Начать урок») закрываем, индикатор гаснет
+  if (!open) closeGameMic() // урок закрыт — дорожку игрового микрофона выключаем (поток жив до выгрузки страницы или 10 мин простоя, gameMic.js)
   listeners.forEach(fn => fn(open))
 }
 

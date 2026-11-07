@@ -47,7 +47,7 @@ describe('restartGameAudio: «Продолжить» идёт через обн�
     const { p, logs } = setup()
     const r = await p
     expect(r).toMatchObject({ ok: true, mic: 'granted', ctx: 'running', failed: null })
-    expect(r.steps).toEqual(['stop-buffers', 'mic-stop', 'renew', 'probe-live', 'mic-open', 'unlock', 'start-done', 'wait-running', 'probe', 'listener'])
+    expect(r.steps).toEqual(['stop-buffers', 'mic-off', 'renew', 'probe-live', 'mic-open', 'unlock', 'start-done', 'wait-running', 'probe', 'listener'])
     const L = logs()
     expect(L[0]).toMatch(/ДО — игровой ctx=нет, ctx интерфейса=interrupted, ctx микрофона=\[interrupted\], дорожки=live\/muted, audioSession=play-and-record\/active/)
     expect(L.find(l => l.includes('перезапуск: renew'))).toMatch(/закрыто 3 \(game, sounds, capture\) → тип play-and-record → новый ctx running за 12 мс/)

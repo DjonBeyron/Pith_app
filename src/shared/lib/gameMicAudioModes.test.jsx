@@ -7,7 +7,7 @@ import {
 import { createGameAudioSession } from './gameMicSession.js'
 import { createMicHold, HOLD_CHECK_MS } from './gameMicHold.js'
 import { setGameAudioSink, gameAudioNote } from './gameAudioSink.js'
-import { describeGameMic, closeGameMic } from './gameMic.js'
+import { describeGameMic, shutGameMic } from './gameMic.js'
 import GameMicBlock from '../../features/admin/speech/GameMicBlock.jsx'
 
 // Режимы для проверки на iPhone: тип аудиосессии и глушение дорожки микрофона на время речи Пита/диктора (A/B в Админ → «Голос»)
@@ -17,7 +17,7 @@ const track = (over = {}) => ({ enabled: true, muted: false, readyState: 'live',
 const streamOf = (...tracks) => ({ getAudioTracks: () => tracks, getTracks: () => tracks })
 const timers = () => { const q = []; return { q, setTimer: (fn, ms) => { q.push({ fn, ms }); return q.length }, clearTimer: id => { if (q[id - 1]) q[id - 1].fn = null }, run: () => { q.splice(0).forEach(t => t.fn?.()) } } }
 
-afterEach(() => { setGameAudioSink(null); closeGameMic(); vi.unstubAllGlobals() })
+afterEach(() => { setGameAudioSink(null); shutGameMic(); vi.unstubAllGlobals() })
 
 describe('настройки режимов читаются из localStorage', () => {
   it('по умолчанию (режим B): аудиосессия play-and-record, дорожка микрофона выключается на речь Пита; незнакомое значение = по умолчанию', () => {

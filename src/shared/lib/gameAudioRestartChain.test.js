@@ -59,6 +59,10 @@ describe('restartGameAudio: живой вывод до микрофона', () =
   it('жест истёк, но поток микрофона живой — getUserMedia не нужен, идём дальше', async () => {
     const { p, d } = setup({ active: false, micLine: 'live' })
     expect((await p).ok).toBe(true); expect(d.openMic).toHaveBeenCalled()
+    const off = setup({ active: false, micLine: 'live/off (жив, выключен)' }) // v3.3.148: на паузе дорожка выключена, поток жив — включится без getUserMedia
+    expect((await off.p).ok).toBe(true); expect(off.d.openMic).toHaveBeenCalled()
+    const muted = setup({ active: false, micLine: 'live/muted/off (жив, выключен)' }) // заглушена и жест истёк — ещё один тап
+    expect(await muted.p).toMatchObject({ ok: false, tapAgain: true })
   })
   it('вывод умер после открытия микрофона → журнал и ОДИН повтор всей цепочки (renew → проба → старт); второй провал — итог', async () => {
     const ok = setup({ probes: [true, false, true, true] })

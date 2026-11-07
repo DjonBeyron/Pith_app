@@ -1,11 +1,11 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
 import { micNeedsHold, confirmMicBeforeStart } from './micAccess.js'
-import { openGameMic, getGameMic, closeGameMic, GAME_MIC_CONSTRAINTS } from './gameMic.js'
+import { openGameMic, getGameMic, closeGameMic, shutGameMic, GAME_MIC_CONSTRAINTS } from './gameMic.js'
 
 const track = () => ({ readyState: 'live', enabled: true, stop() { this.readyState = 'ended' } })
 const fakeStream = () => { const t = track(); return { t, getTracks: () => [t] } }
 
-afterEach(() => { closeGameMic(); vi.unstubAllGlobals() })
+afterEach(() => { shutGameMic(); vi.unstubAllGlobals() })
 
 describe('iPhone: разрешение не запоминается — один поток на всю игру', () => {
   it('micNeedsHold: iPhone, iPad и iPadOS (притворяется Mac с тачем) — да; Android и десктоп — нет', () => {
@@ -59,7 +59,7 @@ describe('iPhone: разрешение не запоминается — оди�
     expect(readFileSync(new URL('../../features/player/modules/rotate-phone/useWordLaneFlow.js', import.meta.url), 'utf8')).toContain('dropGameMic(); openGameMic()')
   })
 
-  it('закрытие игры останавливает треки; оборвавшийся поток не отдаётся (распознаватель откроет сам)', async () => {
+  it('закрытие игры НЕ останавливает треки, а выключает (поток один на сеанс); оборвавшийся поток не отдаётся; настоящее закрытие — shutGameMic', async () => {
     const s = fakeStream()
     vi.stubGlobal('navigator', { mediaDevices: { getUserMedia: vi.fn().mockResolvedValue(s) } })
     await openGameMic()
@@ -67,8 +67,10 @@ describe('iPhone: разрешение не запоминается — оди�
     expect(getGameMic()).toBeNull()
     s.t.readyState = 'live'
     closeGameMic()
+    expect(s.t.readyState).toBe('live'); expect(s.t.enabled).toBe(false)
+    expect(getGameMic()).toBeNull() // вне игры поток слушателю не отдаётся — включает его только openGameMic
+    shutGameMic()
     expect(s.t.readyState).toBe('ended')
-    expect(getGameMic()).toBeNull()
   })
 
   it('отказ и отсутствие микрофона не бросают', async () => {

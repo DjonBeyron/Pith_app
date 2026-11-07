@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { readFileSync } from 'node:fs'
-import { openGameMic, getGameMic, closeGameMic, GAME_MIC_CONSTRAINTS, gameMicConstraints, isMicProcessingOn, setMicProcessingOn, describeGameMic, MIC_PROCESSING_KEY } from './gameMic.js'
+import { openGameMic, getGameMic, closeGameMic, shutGameMic, GAME_MIC_CONSTRAINTS, gameMicConstraints, isMicProcessingOn, setMicProcessingOn, describeGameMic, MIC_PROCESSING_KEY } from './gameMic.js'
 import { confirmMicBeforeStart } from './micAccess.js'
 import GameMicBlock from '../../features/admin/speech/GameMicBlock.jsx'
 
@@ -16,7 +16,7 @@ const fakeStream = (settings = { echoCancellation: false, noiseSuppression: fals
   return { t, getTracks: () => [t] }
 }
 
-afterEach(() => { closeGameMic(); vi.unstubAllGlobals() })
+afterEach(() => { shutGameMic(); vi.unstubAllGlobals() })
 
 describe('микрофон игры: по умолчанию без системной обработки', () => {
   it('ограничения по умолчанию: эхо и шумодав выключены, автоусиление включено, моно', () => {
@@ -51,7 +51,7 @@ describe('микрофон игры: по умолчанию без систем
     vi.stubGlobal('navigator', { userAgent: ANDROID, mediaDevices: { getUserMedia: gum } })
     await openGameMic()
     expect(gum).toHaveBeenLastCalledWith({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: true, channelCount: 1 } })
-    closeGameMic()
+    shutGameMic() // настоящее закрытие: следующий старт откроет новый поток с новым тумблером
     setMicProcessingOn(true, store)
     await openGameMic()
     expect(gum).toHaveBeenLastCalledWith({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true, channelCount: 1 } })
@@ -125,7 +125,8 @@ describe('describeGameMic — для отладочной выгрузки', () 
     expect(d.settings).toEqual(given)
     expect(d.open).toBe(true)
     expect(d.processing).toBe(true)
-    closeGameMic()
+    expect(closeGameMic() ?? describeGameMic()).toMatchObject({ open: true, idle: true }) // пауза / конец игры: поток жив, выключен
+    shutGameMic()
     expect(describeGameMic().settings).toBeNull()
   })
 })

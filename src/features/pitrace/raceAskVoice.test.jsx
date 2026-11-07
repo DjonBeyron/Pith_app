@@ -3,7 +3,8 @@ import { readFileSync } from 'node:fs'
 import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { RaceAskScene } from './RaceAskPlate.jsx'
-import { VOICE_CHOICE_KEY, ASK_LINE, askText, readVoiceChoice, writeVoiceChoice, tapFor, createTapGuard, WAIT_LABELS, MIC_HINTS, micHint } from './raceAskVoice.js'
+import { VOICE_CHOICE_KEY, ASK_LINE, askText, readVoiceChoice, writeVoiceChoice, tapFor, createTapGuard, WAIT_LABELS } from './raceAskVoice.js'
+import { micHelp, MIC_NOTE_TEXT, MIC_HELP_TEXTS, RETRY_LABEL } from './raceMicHelp.js'
 import { RACE_LINES } from './raceLines.js'
 import { TAP_KEY, readTapMode, writeTapMode } from '../player/modules/rotate-phone/wordLaneHudSettings.js'
 
@@ -78,8 +79,9 @@ describe('попап «Голосом / Пальцами» внутри игры
     const hook = read('./useRaceLaunch.js')
     const pick = hook.slice(hook.indexOf('const pick = useCallback'), hook.indexOf('const cancel = useCallback'))
     expect(pick).toContain('answerAsk('); expect(pick).toContain('startGameAudio({ cfg, audioSrc, lines, ...hooks })'); expect(mod).toContain("{phase === 'ask' && <RaceAskPlate {...rl.plate} />}")
-    expect(pick).toContain('release(); setHint(micHint(mic))') // микрофон не дали — звук и микрофон отпущены, подсказка в попапе
-    expect(hook).toContain('plate: { choice: ask.choice, wait, hint, text: askText(lines), onPick: pick, onCancel: cancel }')
+    expect(pick).toContain('release(); setHint(micHelp(mic, isStandalone()))') // микрофон не дали — звук и микрофон отпущены, плашка в попапе по режиму (Safari / «Домой»)
+    expect(hook).toContain('plate: { choice: ask.choice, wait, hint, note, text: askText(lines), onPick: pick, onCancel: cancel }')
+    expect(hook).toContain('needsMicNote({ alive: gameMicAlive(), grantedAt: readMicGrantedAt(), now: Date.now() }) ? MIC_NOTE_TEXT') // подсказка до тапа — при открытии попапа
     expect(mod).toContain("const game = phase === 'game' && <WordLaneGame") // игра (Пит, заставка, реплики, конвейер) монтируется только после ответа
     expect(mod).toContain('askAuto') // стенд отвечает сам
   })
@@ -87,9 +89,13 @@ describe('попап «Голосом / Пальцами» внутри игры
     const w = html({ wait: 'mic' })
     expect(w).toContain('>Разрешите микрофон…<'); expect(w).toContain('data-wait="mic"'); expect(w.match(/disabled=""/g)).toHaveLength(2); expect(w).not.toContain('race-ask-hint')
     expect(html({ wait: 'sound' })).toContain('>Готовлю звук…<')
-    const d = html({ hint: micHint('denied') })
-    expect(d).toContain('data-testid="race-ask-hint"'); expect(d).toContain('Микрофон не разрешён — выбери «Пальцами» или разреши в настройках Safari'); expect(d).not.toContain('disabled'); expect(d).toContain('>Пальцами<')
-    expect(WAIT_LABELS.mic).toBe('Разрешите микрофон…'); expect(micHint('мусор')).toBe(MIC_HINTS.unavailable)
+    const d = html({ hint: micHelp('denied', false), note: MIC_NOTE_TEXT })
+    expect(d).toContain('data-testid="race-ask-hint"'); expect(d).toContain('>Микрофон не разрешён<'); expect(d).not.toContain('disabled'); expect(d).toContain('>Пальцами<'); expect(d).toContain(`>${RETRY_LABEL}<`)
+    expect(d).toContain(MIC_HELP_TEXTS.safari.replace(/«/g, '«')); expect(d.indexOf('race-ask-help-safari')).toBeLessThan(d.indexOf('race-ask-help-home')); expect(d).not.toContain('race-ask-note') // отказ: подсказки «спросит» нет
+    expect(html({ hint: micHelp('unavailable', true) }).indexOf('race-ask-help-home')).toBeLessThan(html({ hint: micHelp('unavailable', true) }).indexOf('race-ask-help-safari'))
+    const n = html({ note: MIC_NOTE_TEXT })
+    expect(n).toContain('data-testid="race-ask-note"'); expect(n).toContain('один раз за запуск'); expect(n).toContain('>Голосом<'); expect(html({})).not.toContain('race-ask-note')
+    expect(WAIT_LABELS.mic).toBe('Разрешите микрофон…')
   })
   it('в игре гонки подсказки «Тап вместо речи» нет, фон с узором только у гонки и не на lite; репетиция и обычная нода — как были', () => {
     const g = read('../player/modules/rotate-phone/WordLaneGame.jsx')

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
-import { openGameMic, getGameMic, closeGameMic, parkGameMic, reopenGameMic, hasGameMic, isGameMicTaken, isGameMicParked, describeGameMic } from './gameMic.js'
+import { openGameMic, getGameMic, closeGameMic, shutGameMic, parkGameMic, reopenGameMic, hasGameMic, isGameMicTaken, isGameMicParked, describeGameMic } from './gameMic.js'
 import { createMicHold, PARK_MIN_MS } from './gameMicHold.js'
 import { createGameAudioSession } from './gameMicSession.js'
 import { readMicHoldMode, writeMicHoldMode, MIC_HOLD_KEY, MIC_HOLD_MODES } from './gameAudioSettings.js'
@@ -9,7 +9,7 @@ const memStore = (init = {}) => { const m = { ...init }; return { getItem: k => 
 const mkStream = () => { const t = { readyState: 'live', enabled: true, muted: false, stop() { this.readyState = 'ended' } }; return { t, getTracks: () => [t], getAudioTracks: () => [t] } }
 const nextTick = async () => { for (let i = 0; i < 6; i++) await Promise.resolve() }
 
-afterEach(() => { closeGameMic(); vi.unstubAllGlobals() })
+afterEach(() => { shutGameMic(); vi.unstubAllGlobals() })
 
 describe('настройка', () => {
   it("'close' — допустимое значение, читается и пишется; мусор — по умолчанию", () => {
@@ -86,17 +86,19 @@ describe('gameMic: закрыть поток на время речи и отк�
     resolveGum(mkStream()); await r
   })
 
-  it('конец игры (closeGameMic) во время повторного открытия: новый поток сразу закрывается — микрофон не остаётся включённым', async () => {
+  it('конец игры (closeGameMic) во время повторного открытия: новый поток остаётся живым, но выключенным — следующий старт возьмёт его без диалога', async () => {
     const first = mkStream(), late = mkStream()
     let resolveGum
-    vi.stubGlobal('navigator', { mediaDevices: { getUserMedia: vi.fn().mockResolvedValueOnce(first).mockImplementationOnce(() => new Promise(r => { resolveGum = r })) } })
+    const gum = vi.fn().mockResolvedValueOnce(first).mockImplementationOnce(() => new Promise(r => { resolveGum = r }))
+    vi.stubGlobal('navigator', { mediaDevices: { getUserMedia: gum } })
     await openGameMic(); parkGameMic()
     const r = reopenGameMic()
     closeGameMic()
     resolveGum(late)
-    expect(await r).toBe('unavailable')
-    expect(late.t.readyState).toBe('ended')
-    expect(hasGameMic()).toBe(false)
+    expect(await r).toBe('granted')
+    expect(late.t.readyState).toBe('live'); expect(late.t.enabled).toBe(false)
+    expect(getGameMic()).toBeNull()
+    expect(await openGameMic()).toBe('granted'); expect(late.t.enabled).toBe(true); expect(gum).toHaveBeenCalledTimes(2)
   })
 })
 

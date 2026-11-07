@@ -72,6 +72,15 @@ describe('ответ на попап: жест', () => {
       expect(calls).not.toContain('phase:game'); expect(calls).toContain('trace.cancel'); expect(o.onDenied).toHaveBeenCalledTimes(1); expect(o.onAudio).not.toHaveBeenCalled()
     }
   })
+  it('«Попробовать снова» после отказа — тот же путь «Голосом»: новый жест, startGameAudio с микрофоном; плашка отказа по режиму, подсказка до тапа — при открытии попапа', async () => {
+    const first = mk({ choice: 'voice', audio: Promise.resolve({ mic: 'denied' }) }); await answerAsk(first.o)
+    const again = mk({ choice: 'voice' }); await answerAsk(again.o) // кнопка «Попробовать снова» зовёт onPick('voice')
+    expect(again.calls).toContain('startAudio:mic=true'); expect(again.calls).toContain('phase:game')
+    const plate = read('./RaceAskPlate.jsx'), hook = read('./useRaceLaunch.js')
+    expect(plate).toContain("hint && c === 'voice' ? RETRY_LABEL"); expect(plate).toContain('onClick={() => onPick(c)}')
+    const open = hook.slice(hook.indexOf('const open = useCallback'), hook.indexOf('const pick = useCallback'))
+    expect(open).toContain('setNote(needsMicNote(') // подсказка решается до тапа (getUserMedia остаётся в жесте)
+  })
   it('«Говорю»: жест истёк, а контекст не запущен (needsTap) — «Тапни, чтобы начать»; устаревший запуск ничего не меняет', async () => {
     const a = mk({ choice: 'voice', audio: Promise.resolve({ mic: 'granted', needsTap: true }) }); await answerAsk(a.o); expect(a.calls).toContain('phase:tap'); expect(a.calls).not.toContain('phase:game')
     const b = mk({ choice: 'voice', current: () => false }); await answerAsk(b.o); expect(b.calls).not.toContain('phase:game'); expect(b.o.onAudio).not.toHaveBeenCalled(); expect(b.o.onDenied).not.toHaveBeenCalled()

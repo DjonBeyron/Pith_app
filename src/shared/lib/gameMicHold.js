@@ -8,8 +8,9 @@
 //    а если его сеанс жил на закрытых треках — игра перезапускает слушателя (setReopenHandler, как при «оглохшем» микрофоне). Закрывают окна диктора (begin({ dictor: true })) и реплики длиннее PARK_MIN_MS
 //    (holdFor), но реплика Пита НЕ закрывает поток, который сейчас держит распознаватель (иначе слушателя пришлось бы перезапускать посреди речи ученика).
 //  • Окно речи заодно переключает фазу аудиосессии (gameMicSession, режим 'phases'): speak на время речи, listen — после.
+// Поток вне игры / на паузе (gameMic.closeGameMic: «жив, выключен») окно речи не включает обратно: конец окна оставляет enabled = false и дорожку не проверяет.
 // Пока дорожка выключена, игровой уровень микрофона — ровная тишина: слушатель не должен считать её «оглохшим» микрофоном — для этого active() (wordLaneListen: isHeld).
-import { peekGameMic, parkGameMic, reopenGameMic } from './gameMic.js'
+import { peekGameMic, parkGameMic, reopenGameMic, isGameMicIdle } from './gameMic.js'
 import { gameAudioSession } from './gameMicSession.js'
 import { readMicHoldMode } from './gameAudioSettings.js'
 import { gameAudioNote } from './gameAudioSink.js'
@@ -20,7 +21,7 @@ export const PARK_MIN_MS = 800   // режим 'close': реплика коро�
 const tracksOf = s => { try { return s?.getAudioTracks ? s.getAudioTracks() : (s?.getTracks?.() ?? []) } catch { return [] } }
 const snap = t => ({ enabled: t.enabled, muted: !!t.muted, readyState: t.readyState })
 
-export function createMicHold({ getStream = peekGameMic, session = gameAudioSession, store = globalThis.localStorage, note = gameAudioNote, setTimer = setTimeout, clearTimer = clearTimeout, park = parkGameMic, reopen = reopenGameMic } = {}) {
+export function createMicHold({ getStream = peekGameMic, session = gameAudioSession, store = globalThis.localStorage, note = gameAudioNote, setTimer = setTimeout, clearTimer = clearTimeout, park = parkGameMic, reopen = reopenGameMic, isIdle = isGameMicIdle } = {}) {
   let depth = 0
   let held = [] // [{ t, was }] — дорожки, которые мы выключили
   let checkTimer = 0
@@ -85,8 +86,10 @@ export function createMicHold({ getStream = peekGameMic, session = gameAudioSess
     if (!held.length) return
     const list = held
     held = []
-    list.forEach(({ t, was }) => { try { t.enabled = was } catch { /* дорожка уже выгружена */ } })
-    note('mic-hold', { on: false, mode: readMicHoldMode(store), ...snap(list[0].t), tracks: list.length, depth })
+    const off = !!isIdle() // пауза / конец игры уже выключили поток: не включаем его обратно
+    list.forEach(({ t, was }) => { try { t.enabled = off ? false : was } catch { /* дорожка уже выгружена */ } })
+    note('mic-hold', { on: false, mode: readMicHoldMode(store), ...snap(list[0].t), tracks: list.length, depth, ...(off ? { idle: true } : {}) })
+    if (off) return
     checkTimer = setTimer(() => check(list), HOLD_CHECK_MS)
   }
 

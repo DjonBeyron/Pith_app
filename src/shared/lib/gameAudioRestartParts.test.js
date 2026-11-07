@@ -1,12 +1,12 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
 import { getGameCtx, closeGameCtx, recreateGameCtx, onGameCtxState, peekGameCtx } from './gameAudioCtx.js'
 import { createCaptureContext, releaseCapture, captureStates, closeAllCaptures } from './vosk/voskCapture.js'
-import { openGameMic, closeGameMic, onGameMicLost, micTracksLine } from './gameMic.js'
+import { openGameMic, closeGameMic, shutGameMic, onGameMicLost, micTracksLine } from './gameMic.js'
 import { makeFakeWebAudio } from './fakeWebAudio.js'
 
 // Детали, на которые опирается жёсткий перезапуск (gameAudioRestart.js): подписка на смену состояния игрового контекста, реестр контекстов захвата Vosk (закрыть все), события дорожки микрофона.
 const store = () => { const m = new Map(); return { getItem: k => m.get(k) ?? null, setItem: (k, v) => m.set(k, v), removeItem: k => m.delete(k) } }
-afterEach(() => { closeGameCtx(); closeGameMic(); vi.unstubAllGlobals() })
+afterEach(() => { closeGameCtx(); shutGameMic(); vi.unstubAllGlobals() })
 
 describe('gameAudioCtx: onGameCtxState / peekGameCtx', () => {
   it('смена состояния текущего контекста доходит до подписчика; своё закрытие и пересоздание — нет', () => {
@@ -43,12 +43,14 @@ describe('gameMic: события дорожки и строка состоян�
     const s = { getTracks: () => [t] }
     vi.stubGlobal('navigator', { userAgent: 'x', mediaDevices: { getUserMedia: vi.fn().mockResolvedValue(s) } })
     const got = []
-    const off = onGameMicLost(k => got.push(k))
+    const off = onGameMicLost((k, info) => got.push(info.idle ? `${k}:вне игры` : k))
     expect(micTracksLine()).toBe('нет потока')
     expect(await openGameMic()).toBe('granted')
     expect(micTracksLine()).toBe('live')
     t.muted = true; L.mute(); expect(got).toEqual(['mute']); expect(micTracksLine()).toBe('live/muted')
-    closeGameMic(); L.ended(); expect(got).toEqual(['mute'])
+    closeGameMic(); expect(micTracksLine()).toBe('live/muted/off (жив, выключен)'); expect(t.readyState).toBe('live') // пауза: поток жив, дорожка выключена
+    t.readyState = 'ended'; L.ended(); expect(got).toEqual(['mute', 'ended:вне игры']) // вне игры событие помечено — пауза игры его не считает
+    shutGameMic(); L.ended(); expect(got).toEqual(['mute', 'ended:вне игры'])
     off()
   })
 })

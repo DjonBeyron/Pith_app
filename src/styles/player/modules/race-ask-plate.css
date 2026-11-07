@@ -23,4 +23,7 @@
 .raceAskBtn[data-main] { border-color: var(--wl-accent); background: var(--wl-accent); color: var(--wl-ink, #0d1500); } /* прошлый выбор — подсвечен по умолчанию */
 .raceAskBtn:disabled { cursor: default; opacity: 0.7; }
 .raceAskBtn[data-wait] { opacity: 1; font-size: 15px; } /* «Говорю» ждёт микрофон: «Разрешите микрофон…» / «Готовлю звук…» */
-.raceAskHint { margin: 12px 0 0; font-size: 14px; line-height: 1.35; font-weight: 600; color: var(--wl-warn, #ffb4a8); } /* микрофон не разрешён: остаёмся в попапе */
+.raceAskHint { margin: 0 0 14px; font-size: 14px; line-height: 1.35; font-weight: 600; text-align: left; } /* микрофон не дали: два абзаца (raceMicHelp.js) над «Попробовать снова» / «Пальцами» */
+.raceAskHelp { margin: 0 0 8px; opacity: 0.8; overflow-wrap: anywhere; }
+.raceAskHelp[data-current] { opacity: 1; color: var(--wl-warn, #ffb4a8); } /* абзац текущего режима (Safari / приложение с «Домой») */
+.raceAskNote { margin: 12px 0 0; font-size: 13px; line-height: 1.35; opacity: 0.85; } /* до первого диалога: «iPhone спросит разрешение…» */

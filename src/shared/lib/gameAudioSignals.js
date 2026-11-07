@@ -2,10 +2,10 @@
 //  • Игровой AudioContext ушёл в 'interrupted' / 'suspended' НЕ по нашей воле (мы его не приостанавливаем, а своё закрытие и пересоздание снимают onstatechange заранее). Сразу пробуем resume():
 //    пока страница пишет микрофон, WebKit пускает его без жеста. Через CONFIRM_MS контекст так и не 'running' — сигнал (пауза, «Продолжить» — жёсткий перезапуск, gameAudioRestart.js).
 //  • Дорожка игрового микрофона: 'ended' (оборвана системой; свой stop() события не даёт) — сигнал сразу; 'mute' — если через CONFIRM_MS дорожка всё ещё заглушена.
-// Не сигнал: первые GRACE_MS после тапа «Начать» / «Продолжить» (getUserMedia и смена типа сессии прерывают контекст сами), окно «прерывание наше» (gameAudioWarm.selfWindow) и экспериментальные режимы,
+// Не сигнал: mute / ended дорожки, пока поток вне игры или на паузе (gameMic: «жив, выключен» — её проверит следующий старт), первые GRACE_MS после тапа «Начать» / «Продолжить» (getUserMedia и смена типа сессии прерывают контекст сами), окно «прерывание наше» (gameAudioWarm.selfWindow) и экспериментальные режимы,
 // которые сами меняют сессию посреди игры (тип 'phases', микрофон 'close'). Каждое решение — строка «[audio] сигнал …» в журнале. Чистая подписка: источники и таймеры подставляются в тестах. → отписка.
 import { onGameCtxState, gameCtxState, peekGameCtx } from './gameAudioCtx.js'
-import { onGameMicLost, micTracksLine } from './gameMic.js'
+import { onGameMicLost, micTracksLine, isGameMicIdle } from './gameMic.js'
 import { gameAudioWarm } from './gameAudioWarm.js'
 import { gameStartTrace } from './gameStartTrace.js'
 import { readAudioSessionMode, readMicHoldMode } from './gameAudioSettings.js'
@@ -24,7 +24,7 @@ const defaultSince = () => { const t = gameStartTrace.sinceTap?.(); return t == 
 const defaultResume = () => { try { Promise.resolve(peekGameCtx()?.resume?.()).catch(() => {}) } catch { /* решит подтверждение */ } }
 
 export function subscribeAudioLoss(onLoss, {
-  onCtx = onGameCtxState, ctxState = gameCtxState, resume = defaultResume, onMic = onGameMicLost, micLine = micTracksLine,
+  onCtx = onGameCtxState, ctxState = gameCtxState, resume = defaultResume, onMic = onGameMicLost, micLine = micTracksLine, micIdle = isGameMicIdle,
   isSelf = defaultSelf, sinceStart = defaultSince, setTimer = setTimeout, clearTimer = clearTimeout, log = pLog,
 } = {}) {
   let ctxTimer = 0, micTimer = 0
@@ -47,13 +47,15 @@ export function subscribeAudioLoss(onLoss, {
       else log(`[audio] сигнал снят: контекст вернулся (${now ?? 'нет'})`)
     }, CONFIRM_MS)
   })
-  const offMic = onMic(kind => {
+  const offMic = onMic((kind, info) => {
+    if (info?.idle || micIdle()) { log(`[audio] сигнал «микрофон ${kind}» не считается: поток вне игры / на паузе (дорожка выключена)`); return }
     if (quiet(`микрофон ${kind}`)) return
     if (kind === 'ended') { log(`[audio] сигнал: дорожка микрофона оборвана системой (${micLine()}) — пауза`); onLoss('mic-ended'); return }
     if (micTimer) return
     log(`[audio] сигнал: дорожка микрофона заглушена системой (${micLine()}) — жду ${CONFIRM_MS} мс`)
     micTimer = setTimer(() => {
       micTimer = 0
+      if (micIdle()) { log('[audio] сигнал снят: игра уже на паузе / закрыта (поток выключен)'); return }
       const line = micLine()
       if (line.includes('muted') || line.includes('ended') || !line.includes('live')) { log(`[audio] сигнал подтверждён: дорожка ${line} — пауза`); onLoss('mic-mute') } // «нет потока» — тоже не ожила (v3.3.128)
       else log(`[audio] сигнал снят: дорожка ожила (${line})`)

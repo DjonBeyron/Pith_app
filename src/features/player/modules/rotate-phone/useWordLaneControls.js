@@ -10,8 +10,8 @@ import { pLog } from '../../../../shared/lib/debug.js'
 
 // Управление ходом игры «Повтори за диктором» из интерфейса (вынесено из useWordLaneFlow.js): «Ещё раз» после отказа слушателя, перезапуск ступени (HUD и «Продолжить» после паузы) и ПАУЗА.
 // Пауза (сворачивание приложения, useWordLanePause) — сразу и целиком: стадия 'paused' (эффекты стадий и слушателя снимаются сами, сцена пилюль становится idle — пул возвращается в исходное),
-// а всё, что звучит, тикает и слушает, останавливается здесь же, синхронно: таймеры, голос/клипы/ноты, слушатель Vosk, реплика кота, окна речи и сессия аудио, микрофон. Микрофон после паузы автоматически
-// не открывается никогда (gameMicGesture): только из тапа «Продолжить». Во вступлении (drop / lanes) пауза тоже ставится — слушатель следующей ступени иначе открыл бы микрофон сам, — а «Продолжить» запускает
+// а всё, что звучит, тикает и слушает, останавливается здесь же, синхронно: таймеры, голос/клипы/ноты, слушатель Vosk, реплика кота, окна речи и сессия аудио; дорожка микрофона выключается (поток жив — один
+// на сеанс страницы, gameMic.closeGameMic). Включает её только тап «Продолжить» (gameMicGesture), без нового запроса, если дорожка пережила фон. Во вступлении (drop / lanes) пауза тоже ставится — слушатель следующей ступени иначе открыл бы микрофон сам, — а «Продолжить» запускает
 // вступление заново; на финале (reveal) пауза не нужна: микрофон закрывает «Дальше».
 export function useWordLaneControls({ stages, sRef, setS, setMicEpoch, clearTimers, listenerRef, noteTimerRef, hintTimerRef, finishedRef, catApi, cat, dbg }) {
   const retryMic = useCallback(() => { setS(p => ({ ...p, mic: 'starting' })); setMicEpoch(e => e + 1) }, [setS, setMicEpoch]) // «Ещё раз» после отказа слушателя: новый слушатель
@@ -45,9 +45,9 @@ export function useWordLaneControls({ stages, sRef, setS, setMicEpoch, clearTime
     clearTimeout(noteTimerRef.current); clearTimeout(hintTimerRef.current)
     listenerRef.current?.dispose(); listenerRef.current = null
     cat.stop(); catApi?.current?.freeze?.()
-    endGameAudio(); closeGameMic(); gameMicGesture.require() // окна речи закрыты, тип сессии возвращён, микрофон закрыт; открыть его теперь может только тап
+    endGameAudio(); closeGameMic(); gameMicGesture.require() // окна речи закрыты, тип сессии возвращён, дорожка выключена (поток жив); включить её теперь может только тап
     if (already) return true
-    dbg.event('pause', { why, stage: cur.stage, idx: cur.idx }); pLog(`[pause] игра на паузе (${why}): ступень ${cur.stage}/${cur.idx}, микрофон закрыт — откроется только по тапу «Продолжить»`)
+    dbg.event('pause', { why, stage: cur.stage, idx: cur.idx }); pLog(`[pause] игра на паузе (${why}): ступень ${cur.stage}/${cur.idx}, микрофон выключен (поток жив) — включится только по тапу «Продолжить»`)
     flushSync(() => setS(p => ({ ...p, stage: 'paused', from: p.stage, hint: [], note: '' }))) // сразу: эффекты стадий и слушатель снимаются до того, как сработает отложенный таймер
     return true
   }

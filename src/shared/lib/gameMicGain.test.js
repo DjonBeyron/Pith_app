@@ -2,13 +2,13 @@ import { describe, it, expect, vi, afterEach } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { MIC_GAIN_KEY, MIC_GAIN_LEVELS, DEFAULT_MIC_GAIN, readMicGainId, writeMicGainId, readMicGain, micGainLogLine } from './gameMicGain.js'
 import { wireInput, LIMITER } from './vosk/voskGain.js'
-import { closeGameMic, GAME_MIC_CONSTRAINTS } from './gameMic.js'
+import { shutGameMic, GAME_MIC_CONSTRAINTS } from './gameMic.js'
 
 const memStore = (init = {}) => { const m = { ...init }; return { getItem: k => (k in m ? m[k] : null), setItem: (k, v) => { m[k] = String(v) }, removeItem: k => { delete m[k] }, m } }
 const broken = { getItem() { throw new Error('private') }, setItem() { throw new Error('private') }, removeItem() { throw new Error('private') } }
 const read = rel => readFileSync(new URL(rel, import.meta.url), 'utf8')
 
-afterEach(() => { closeGameMic(); vi.unstubAllGlobals() })
+afterEach(() => { shutGameMic(); vi.unstubAllGlobals() })
 
 // «Чувствительность микрофона» (v3.3.84): тихо сказанное слово слышно — программное усиление перед Vosk, обработка системой остаётся выключенной
 describe('настройка pithy_game_mic_gain_v1', () => {
