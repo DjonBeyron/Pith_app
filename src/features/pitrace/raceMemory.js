@@ -5,7 +5,8 @@
 //  • верно после промаха или нечисто (поздно, «не то», понадобился дополнительный круг) → 'hard';
 //  • только промахи, зачёта нет ни разу → 'again';
 //  • слова, которых в игре не было (нет ни одного результата), — не трогаем.
-// Результаты фраз этапа 2 (поля слова phraseHits / phraseMisses — необязательные, появятся у движка фраз) складываются с пилюлями: попадание фразы — зачёт слову, промах фразы — промах.
+// Результаты фраз этапа 2 (поля слова phraseHits / phraseMisses / phraseUnclean — raceStatePhrases.phraseHits) складываются с пилюлями: попадание фразы — зачёт слову, промах фразы — промах;
+// круг «Скажи» — одна единица на фразу по двум проходам (racePhrasePasses.passOutcome): проход 1 не сказан — промах (again), проход 2 не «чисто» — зачёт, но нечисто (phraseUnclean → hard), оба чисто — зачёт (good).
 // pushRaceMemory — отправка: по одному слову ПОСЛЕДОВАТЕЛЬНО (не душим RPC), reviewWord из memoryApi.js (гость — сам уходит в guestMemory.js), журнал «[memory] …»; сбой сети финал не ломает.
 import { pLog } from '../../shared/lib/debug.js'
 import { reviewWord } from '../../shared/api/memoryApi.js'
@@ -80,6 +81,7 @@ export function outcomesOf(summary) {
     if (!e || phrased.has(e.text) || !(ph || pm)) continue
     phrased.add(e.text)
     e.hits += ph; e.misses += pm; e.passes++
+    if (num(w?.phraseUnclean) > 0) e.unclean = true // фраза «Скажи» с паузами / нечисто
   }
   for (const w of summary?.words ?? []) { // слова плана: «Вершина» — промах слова (words.miss), которого нет в пилюлях
     const e = at(w.text)

@@ -47,7 +47,7 @@ export function useRaceActs(args) {
   const rh = useRehearsalActs(on && args.cat ? { ...args, cat: { ...args.cat, busyLeft: () => Math.max(args.cat.busyLeft(), speech.pendingMs()) } } : args) // расписание реплик этапа знает, что похвала ещё впереди
   const praiseRef = useRef(null) // похвала, которую reduceRace назначил на этот зачёт (apply → claim)
   const running = on && stage === 'run' ? stageObj : null
-  const demo = useRacePhraseDemo({ on, running, cat: args.cat, sayLine, sayText, lines }) // демо «можно по словам» на плашке круга «Скажи» (racePhraseDemo.js): переход плашки ждёт его конца
+  const demo = useRacePhraseDemo({ on, cat: args.cat, sayLine, sayText, lines }) // демо-ход «Скажи» на живой пилюле (racePhraseDemoTurn.js): голос и ворота для сцены
   const [box] = useState(makeBox) // s — актуальное состояние (читает nextIdx без перерисовки), hinted — подсказка голосом сказана на этом промахе (raceState.makeBox)
   const [view, setView] = useState(box.s)
   const [result, setResult] = useState(null)
@@ -125,13 +125,12 @@ export function useRaceActs(args) {
   if (!on) return rh
   return {
     ...rh, result, race: view, nextIdx,
-    afterCount: fn => rh.afterCount(() => demo.after(running, fn)), // плашка с stage.demo: сначала демо, потом следующая стадия
     /** Слово прохода A / B принято (раньше, чем щёлкнет заливка): время ответа ms (от выезда пилюли) и y (положение пилюли, % высоты: ниже LATE_Y — ответ «в последний момент») — в результаты, и для точности слова (raceAccuracy.js) — окно жизни пилюли по её скорости, заливка голосом в миг зачёта, тап ли это; Пит говорит мини-реплику успеха, следующая пилюля ждёт его */
     claim(rep, ms, y) { if (!running) return; if (ruOn) ruLog(rep, 'claim', rep?.pills?.[0]?.p); praiseRef.current = null; apply({ t: 'claim', stage: running, info: { idx: rep?.idx, ms, late: isLate(y), life: pillLifeMs(rep?.speed), fill: rep?.pills?.[0]?.p, tap: !!running.step?.tapOnly } }); speech.claim(praiseRef.current); praiseRef.current = null },
     /** Перед выездом пилюли (движок: событие 'pre'): в «Разгоне» Пит говорит русский перевод слова из библиотеки (raceTrans.js), в «Слушай и лови» — английское слово (rep.say, библиотека слов); озвучки нет — молча, пилюля выезжает сразу.
      *  Пилюля ждёт, пока он договорит (pitLeft) */
     pre(rep, e) {
-      if (running?.act === 'phrases') { phr.pre(rep, e); return } // этап «Фразы»: смысл / фраза голосом Пита (racePhraseVoice.js), ход ждёт его через pitLeft
+      if (running?.act === 'phrases') { if (rep?.demo) e?.demo?.(demo.kit()); else phr.pre(rep, e); return } // этап «Фразы»: демо-ход просит голос и ворота; иначе смысл / фраза голосом Пита (racePhraseVoice.js), ход ждёт его через pitLeft
       logPre(running, rep)
       if (ruOn) { listenerRef?.current?.resetSaid?.(); ru.start(rep?.idx) } // новое слово прохода B: журнал слушает его с чистого листа
       const said = rep?.say ?? rep?.cap // проход A: Пит говорит перевод (rep.say); надпись пилюли (rep.cap) в тапе английская — её не озвучиваем (v3.3.127)

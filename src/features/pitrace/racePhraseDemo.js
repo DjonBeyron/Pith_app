@@ -1,20 +1,22 @@
-// Демо перед кругом 2 «Скажи» этапа «Фразы» (CONCEPT_PHRASES.md, «Демо перед кругом «Скажи»»; замечание владельца: «непонятно, что можно говорить по словам, а не фразу целиком»).
-// На плашке круга (phrases2-ann, «Скажи · Скажи сам»), когда Пит договорил race_phrases_say, директор не отпускает стадию сразу (useRacePhraseDemo → afterCount): Пит говорит race_phrases_demo
-// «смотри, можно по словам, я подсвечиваю каждое», через DEMO_LINE_GAP_MS читает демо-фразу по словам (sayText(слово, { hold, tight }) — диктор слов, как в игре), с каждым словом кирпичик слова
-// проявляется (маска racePhraseMask.js) и заливка демо-пилюли растёт слева направо; в конце вся фраза и 100 %, DEMO_END_MS — и круг начинается. Механике круга демо не мешает: слушатель фраз ещё не создан.
-// Демо-фраза — запасная (own: false, не цель круга 2), самая короткая; запасной нет — первая фраза круга. Только «Голосом» (у «Пальцами» stage.demo нет). Один раз за игру (gate.played) и не больше
-// DEMO_MAX_SHOWS игр подряд на устройстве (localStorage DEMO_KEY — счётчик показов). Пауза / сворачивание / смена стадии — stop(): демо обрывается, переход не зовётся (после «Продолжить» стадия
-// идёт сначала, демо уже сыграно — круг начинается сразу после реплики плашки). Чистая логика: таймеры, голос, вид и хранилище подставляются (тесты); DOM — racePhraseDemoView.js.
+// Демо перед кругом 2 «Скажи» этапа «Фразы» (CONCEPT_PHRASES.md, «Демо на живой пилюле»; замечание владельца: «демо должно быть натуральным, как будто играет пользователь»).
+// Первым ходом круга (до первой настоящей фразы) сцена ленты выкатывает ЖИВУЮ широкую пилюлю «Скажи» с маской-кирпичиками демо-фразы (racePhraseDemoTurn.js), слушатель фраз на этом ходу не слушает,
+// а Пит играет за ученика: race_demo_1 «главное начать, смотри» → слово 1 диктором (sayText(слово, { hold, tight })), кирпичик открывается, заливка на долю → race_demo_2 «затем второе» → слово 2
+// → race_demo_3 «потом третье» → слово 3 → (слов больше трёх: race_demo_more «и так до конца» → остальные подряд) → вся фраза и 100 % → взлёт (как зачёт) → race_demo_go «теперь ты» → первый настоящий ход.
+// Реплика без озвучки (sayLine вернул false) — только подпись над лентой и LINE_SILENT_MS; подпись видна и с озвучкой. Здесь — чистая часть: какая фраза (demoPhrase), скрипт (runDemoScript,
+// таймеры и голос подставляются), ворота на игру (createDemoGate: один раз за игру и не больше DEMO_MAX_SHOWS игр на устройстве — localStorage DEMO_KEY). Обрыв (пауза, сворачивание, смена стадии) — stop() сцены.
 import { phraseWords } from './racePhraseData.js'
 
-export const DEMO_LINE = 'race_phrases_demo'
-export const DEMO_LINE_GAP_MS = 300  // после реплики — до первого слова
-export const DEMO_WORD_GAP_MS = 350  // после конца голоса слова — до следующего
-export const DEMO_END_MS = 600       // вся фраза видна — столько, потом круг
+export const DEMO_LINES = ['race_demo_1', 'race_demo_2', 'race_demo_3'] // перед словами 1, 2, 3
+export const DEMO_MORE = 'race_demo_more' // слов больше трёх — перед остальными
+export const DEMO_GO = 'race_demo_go'     // после взлёта
+export const LINE_SILENT_MS = 650    // реплика без озвучки: подпись держится столько, потом слово (≤ 700 мс — замечание владельца)
+export const DEMO_LINE_GAP_MS = 150  // озвученная реплика договорена — до слова
+export const DEMO_WORD_GAP_MS = 250  // после голоса слова — до следующей реплики
+export const DEMO_RUN_GAP_MS = 120   // «и так до конца»: между словами подряд
 export const DEMO_WORD_MS = 450      // длина слова, если диктор не сказал свою (нет озвучки)
-export const DEMO_POLL_MS = 60       // Пит ещё говорит реплику — проверить снова через столько
+export const DEMO_POLL_MS = 60       // Пит ещё говорит — проверить снова через столько
 export const DEMO_LINE_CAP_MS = 4000 // дольше реплику не ждём
-export const DEMO_MAX_WORDS = 4      // длиннее — демо не уложится в ≈ 6 с: запасная фраза берётся покороче
+export const DEMO_MAX_WORDS = 4      // длиннее — демо не уложится в ≈ 6–7 с: запасная фраза берётся покороче
 export const DEMO_MAX_SHOWS = 3
 export const DEMO_KEY = 'pithy_phrase_demo_seen_v1'
 
@@ -47,67 +49,77 @@ export function markDemoShown(storage) {
 /** Слова 0..i подтверждены — для mask.set */
 export const heardUpTo = i => new Map(Array.from({ length: i + 1 }, (_, k) => [k, true]))
 
+/** Порядок скрипта: [{ line } | { word: i, run? } | { all } | { rise } | { line: go }] — для слов n */
+export function demoPlan(n) {
+  const out = []
+  for (let i = 0; i < n; i++) {
+    if (i < DEMO_LINES.length) out.push({ line: DEMO_LINES[i] }, { word: i })
+    else { if (i === DEMO_LINES.length) out.push({ line: DEMO_MORE }); out.push({ word: i, run: true }) }
+  }
+  return [...out, { all: true }, { rise: true }, { line: DEMO_GO }]
+}
+
 /**
- * Одно демо: реплика → DEMO_LINE_GAP_MS → слова (голос слова + DEMO_WORD_GAP_MS) → вся фраза → DEMO_END_MS → onDone. → { stop(), words }.
- * sayLine(id, vars, opts) / sayText(word, opts) — голос директора; busyLeft() — сколько Пит ещё занят (мс); mount({ text, caption }) → вид { show, step(heard, v), all(), hide(), remove() } или null;
- * onStep(name, info) — для журнала и тестов: 'line', 'word' { i, word, v }, 'all', 'done'.
+ * Скрипт демо: шаги demoPlan по очереди. → { stop(), words, step() }.
+ * sayLine(id, vars, opts) → озвучено ли / sayText(word, opts) — голос директора; busyLeft() — сколько Пит ещё занят (мс); lineText(id) — подпись реплики; show(text) — подпись над лентой ('' — снять);
+ * open(i, v) — кирпичик слова i открыт, цель заливки v; all() — вся фраза, 100 %; rise(done) — пилюля взлетает (done — когда можно дальше); onDone(); onStep(name, info) — журнал и тесты.
  */
-export function runPhraseDemo({ phrase, caption = '', sayLine, sayText, busyLeft = () => 0, mount = null, onDone, onStep = () => {}, setTimer = setTimeout, clearTimer = clearTimeout }) {
+export function runDemoScript({ phrase, sayLine, sayText, busyLeft = () => 0, lineText = id => id, show = () => {}, open = () => {}, all = () => {}, rise = done => done(), onDone, onStep = () => {}, setTimer = setTimeout, clearTimer = clearTimeout }) {
   const list = phraseWords(phrase?.text)
-  const view = mount?.({ text: phrase?.text ?? '', caption }) ?? null
-  let timer = 0, stopped = false, waited = 0
+  const plan = demoPlan(list.length)
+  let timer = 0, stopped = false, pos = -1, waited = 0
   const at = (ms, fn) => { timer = setTimer(() => { timer = 0; if (!stopped) fn() }, Math.max(0, ms)) }
-  const finish = () => {
-    view?.all(); onStep('all')
-    at(DEMO_END_MS, () => { stopped = true; view?.hide(); onStep('done'); onDone?.() })
+  const free = fn => { // Пит ещё говорит (хвост реплики плашки, своя реплика) — ждём, не дольше DEMO_LINE_CAP_MS
+    if (busyLeft() > 0 && waited < DEMO_LINE_CAP_MS) { waited += DEMO_POLL_MS; at(DEMO_POLL_MS, () => free(fn)); return }
+    waited = 0; fn()
   }
-  const word = i => {
-    let ms = 0
-    sayText?.(list[i], { hold: true, tight: true, onSay: m => { ms = m } }) // onSay приходит синхронно: длина голоса слова (без хвоста тишины файла)
-    const v = (i + 1) / list.length
-    view?.step(heardUpTo(i), v); onStep('word', { i, word: list[i], v })
-    const voice = ms > 0 ? ms : DEMO_WORD_MS
-    if (i + 1 < list.length) at(voice + DEMO_WORD_GAP_MS, () => word(i + 1))
-    else at(voice, finish)
+  const next = () => {
+    pos++
+    const s = plan[pos]
+    if (!s) { stopped = true; show(''); onStep('done'); onDone?.(); return }
+    if (s.line) {
+      show(lineText(s.line))
+      const said = !!sayLine?.(s.line, null, { pause: 0 }) // pause 0: «занят» снимается по реальному концу реплики
+      onStep('line', { id: s.line, said })
+      if (said) at(DEMO_POLL_MS, () => free(() => at(DEMO_LINE_GAP_MS, next)))
+      else at(LINE_SILENT_MS, next)
+    } else if (s.word != null) {
+      let ms = 0
+      sayText?.(list[s.word], { hold: true, tight: true, onSay: m => { ms = m } }) // onSay приходит синхронно: длина голоса слова
+      const v = (s.word + 1) / list.length
+      open(s.word, v); onStep('word', { i: s.word, word: list[s.word], v })
+      const voice = ms > 0 ? ms : DEMO_WORD_MS
+      const following = plan[pos + 1]
+      at(voice + (following?.word != null ? DEMO_RUN_GAP_MS : following?.all ? 0 : DEMO_WORD_GAP_MS), next) // подряд — короткий зазор, последнее — сразу к 100 %
+    } else if (s.all) { show(''); all(); onStep('all'); next() }
+    else if (s.rise) { onStep('rise'); rise(() => { if (!stopped) next() }) }
   }
-  const afterLine = () => {
-    if (busyLeft() > 0 && waited < DEMO_LINE_CAP_MS) { waited += DEMO_POLL_MS; at(DEMO_POLL_MS, afterLine); return }
-    at(DEMO_LINE_GAP_MS, () => (list.length ? word(0) : finish()))
-  }
-  const begin = () => { // Пит ещё договаривает реплику плашки (хвост занятости в десятки мс) — иначе sayLine пропустит реплику демо как «Пит занят»
-    if (busyLeft() > 0 && waited < DEMO_LINE_CAP_MS) { waited += DEMO_POLL_MS; at(DEMO_POLL_MS, begin); return }
-    waited = 0
-    const said = sayLine?.(DEMO_LINE, null, { pause: 0 }) // pause 0: «занят» снимается по реальному концу реплики, без хвоста LINE_PAUSE_MS
-    onStep('line', { said })
-    at(0, afterLine)
-  }
-  view?.show()
-  begin()
+  at(0, () => free(next))
   return {
     words: list,
-    stop() { if (stopped) return; stopped = true; if (timer) clearTimer(timer); timer = 0; view?.remove() },
+    step: () => plan[pos] ?? null,
+    stop() { if (stopped) return; stopped = true; if (timer) clearTimer(timer); timer = 0; show('') },
   }
 }
 
 /**
- * Ворота демо на всю игру: after(stage, fn, deps) — стадия просит переход; у стадии есть demo и демо в этой игре ещё не было (и лимит показов не исчерпан) — сначала демо, fn после него; иначе fn сразу.
- * stop(why) — оборвать идущее демо (fn не зовётся). deps — как у runPhraseDemo (без phrase / onDone). storage — хранилище счётчика (по умолчанию localStorage).
+ * Ворота демо на всю игру: claim(phrase) — сцена круга «Скажи» спрашивает перед первым ходом; true — играть (отмечено: «сыграно в этой игре» и +1 показ на устройстве), false — сразу первый ход.
+ * end(why) — демо кончилось ('' — доиграло) или оборвано (журнал). storage — хранилище счётчика (по умолчанию localStorage).
  */
 export function createDemoGate({ storage, max = DEMO_MAX_SHOWS, log = () => {} } = {}) {
-  let played = false, run = null
+  let played = false, active = false
   const say = s => { try { log(`[phrase-demo] ${s}`) } catch { /* журнал не мешает демо */ } }
   return {
-    after(stage, fn, deps = {}) {
-      const phrase = stage?.demo
-      if (!phrase || played) { fn(); return }
+    claim(phrase) {
+      if (!phrase || played) return false
       played = true
-      if (!demoAllowed(storage, max)) { say(`пропуск: уже показано ${demoSeen(storage)} раз (лимит ${max})`); fn(); return }
-      markDemoShown(storage)
-      say(`показ ${demoSeen(storage)}/${max}: «${phrase.text}»${phrase.spare ? ' (запасная фраза)' : ' (первая фраза круга)'}`)
-      run = runPhraseDemo({ ...deps, phrase, onDone: () => { run = null; say('конец — круг «Скажи» начинается'); fn() } })
+      if (!demoAllowed(storage, max)) { say(`пропуск: уже показано ${demoSeen(storage)} раз (лимит ${max})`); return false }
+      markDemoShown(storage); active = true
+      say(`показ ${demoSeen(storage)}/${max} на живой пилюле: «${phrase.text}»${phrase.spare ? ' (запасная фраза)' : ' (первая фраза круга)'}`)
+      return true
     },
-    stop(why = '') { if (!run) return; run.stop(); run = null; say(`прервано${why ? `: ${why}` : ''}`) },
-    active: () => !!run,
+    end(why = '') { if (!active) return; active = false; say(why ? `прервано: ${why}` : 'конец — первый ход круга «Скажи»') },
+    active: () => active,
     played: () => played,
   }
 }
