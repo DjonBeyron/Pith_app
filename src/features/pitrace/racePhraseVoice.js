@@ -1,6 +1,7 @@
 // Голос Пита на этапе 2 «Фразы» (CONCEPT_RACE.md, «Этап 2» → «Лента и круги»): что он говорит перед ходом и после итога хода. Директор гонки (useRaceActs) зовёт pre / react, сцена ленты (racePhraseScene.js)
 // ждёт, пока Пит договорит (pitLeft: занятость Пита + left() этой цепочки). Цепочка — по одному высказыванию: следующее ждёт, пока Пит освободится (cat.busyLeft), затем STEP_GAP_MS.
-//  • перед ходом: круги «Пойми» и «Скажи» — смысл по-русски (sayText(ru, { ru: true }) — озвучка word_audio по transKey); озвучки смысла нет — молча, подпись над лентой (e.show);
+//  • перед ходом: круг 1 «Пойми» — СИТУАЦИЯ (scene, контекст без подсказки слов; пусто — смысл ru), круг 2 «Скажи» — прямой смысл ru (sayText(текст, { ru: true }) — озвучка word_audio по transKey);
+//    озвучки нет — молча, подпись над лентой (e.show). Журнал: «[phrase-voice] перед ходом «…» (pick): ситуация / смысл «…»»;
 //    круг «Узнай» (пальцами) — фраза по-английски: целая запись (racePhraseAudio.js: phrase.audio или app_settings.game2_phrases; буфер прогрева, нет — <audio>); нет записи — по словам из библиотеки
 //    sayText(слово, { hold, tight }) ВПРИТЫК: следующее слово стартует, как только у прежнего кончился голос (tight — без хвоста тишины файла), раньше на тишину в начале своего файла (не больше JOIN_OVERLAP_MS),
 //    без STEP_GAP_MS и без опроса занятости; буферы начинаются и кончаются тишиной — стык без щелчка. Журнал: «[phrase-voice] фраза «…»: целая запись / по словам (N)»;
@@ -60,8 +61,11 @@ export function createPhraseVoice({ ctx = null, hasRu = text => !!transRow(text)
       const t = rep?.target
       if (!t) return
       if (rep.mode === 'hear') { chain(phrase(t)); return }
-      const m = meaning(t)
-      if (m) chain([m]); else if (t.ru) e?.show?.(t.ru)
+      const scene = rep.mode === 'pick' && t.scene ? t.scene : '' // круг 1 — ситуация (scene), пусто — смысл; круг 2 «Скажи» — всегда смысл
+      const text = scene || t.ru
+      const voiced = !!text && hasRu(text)
+      try { log(`[phrase-voice] перед ходом «${t.text ?? ''}» (${rep.mode}): ${scene ? 'ситуация' : 'смысл'} «${text ?? ''}»${voiced ? '' : ' (подпись, без голоса)'}`) } catch { /* журнал не мешает голосу */ }
+      if (voiced) chain([{ ru: text }]); else if (text) e?.show?.(text)
     },
     /** Итог хода: kind — win / miss / fail, rep.res — что вышло */
     react(kind, rep) {

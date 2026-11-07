@@ -4,7 +4,7 @@
 import { normText } from '../../player/modules/rotate-phone/wordLaneRecipe.js'
 import { STANDBY_WORDS } from '../raceStandby.js'
 import { levelOfWord } from '../../../shared/lib/memory/memoryLevels.js'
-import { phraseOfModule, phraseRu, phraseAudio, phraseLevel } from './racePhraseOf.js'
+import { phraseOfModule, phraseRu, phraseScene, phraseAudio, phraseLevel } from './racePhraseOf.js'
 
 export const STANDBY_COUNT = 3
 
@@ -28,7 +28,7 @@ export function reservePhrases(ctx = {}) {
   return RESERVE.map(r => {
     const key = normText(r.text)
     const words = r.words.map(t => { const s = STANDBY_WORDS.find(x => x.text === t); const row = ctx.memByWord?.get(t); return { text: t, translation: s.translation, level: row ? levelOfWord(row) : s.level } })
-    return { id: r.id, text: r.text, key, words, ru: phraseRu(ctx.ruMap, key, r.ru), own: false, level: phraseLevel(words), audio: phraseAudio(ctx.audioMap, key) }
+    return { id: r.id, text: r.text, key, words, ru: phraseRu(ctx.ruMap, key, r.ru), scene: phraseScene(ctx.sceneMap, key), own: false, level: phraseLevel(words), audio: phraseAudio(ctx.audioMap, key) }
   })
 }
 

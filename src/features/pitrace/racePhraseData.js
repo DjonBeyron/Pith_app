@@ -1,4 +1,4 @@
-// Фразы этапа 2 «Фразы» игры «Встряхни память» из плана (контракт этапа 2): plan.phrases = [{ id, text, key, words: [{ text, translation, level }], ru, own, level, audio }] строит слой данных,
+// Фразы этапа 2 «Фразы» игры «Встряхни память» из плана (контракт этапа 2): plan.phrases = [{ id, text, key, words: [{ text, translation, level }], ru, scene, own, level, audio }] строит слой данных,
 // движок их только читает и проверяет здесь (пустые и повторы выбрасываются, недостающее достраивается из текста). Плана с фразами ещё нет, а план — симуляция (source 'sim': фикстура админки, стенд) —
 // фразы из фикстуры racePhraseFixture.js, чтобы этап можно было проверить до слоя данных. Слова фразы для слушателя и сегментов заливки — токены текста (phraseTokens), для учёта точности — ещё и words. Чистые функции.
 import { normText } from '../player/modules/rotate-phone/wordLaneRecipe.js'
@@ -22,7 +22,7 @@ export function normalizePhrase(p) {
   const words = (Array.isArray(p.words) ? p.words : []).map(x => (typeof x === 'string' ? { text: x } : x)).filter(x => clean(x?.text))
     .map(x => ({ text: clean(x.text), translation: clean(x.translation), level: Number.isFinite(x.level) ? x.level : 1 }))
   return {
-    id: clean(p.id) || normText(text), text, key: clean(p.key) || normText(text), words, ru: clean(p.ru), own: p.own !== false,
+    id: clean(p.id) || normText(text), text, key: clean(p.key) || normText(text), words, ru: clean(p.ru), scene: clean(p.scene), own: p.own !== false,
     level: Number.isFinite(p.level) ? p.level : 1, audio: p.audio?.url ? { url: p.audio.url, duration: Number(p.audio.duration) || 0 } : null,
   }
 }
@@ -45,6 +45,9 @@ export const phraseTexts = plan => phrasesOf(plan).flatMap(p => phraseWords(p.te
 
 /** Смыслы фраз по-русски (озвучка word_audio по transKey, как переводы слов) */
 export const phraseMeanings = plan => phrasesOf(plan).map(p => p.ru).filter(Boolean)
+
+/** Ситуации фраз для круга 1 (озвучка та же: word_audio по transKey) */
+export const phraseScenes = plan => phrasesOf(plan).map(p => p.scene).filter(Boolean)
 
 /** План после normalizePlan (rehearsalCfg.js): пока нормализатор плана не знает фраз, plan.phrases из исходного плана переносятся как есть (их проверяет phrasesOf); фразы уже есть — план не трогаем */
 export const withPhrases = (plan, raw) => (plan?.game === 'race' && !plan.phrases?.length && Array.isArray(raw?.phrases) ? { ...plan, phrases: raw.phrases } : plan) // normalizePlan даёт phrases: [] — пустой список тоже «нет фраз» (v3.3.141)

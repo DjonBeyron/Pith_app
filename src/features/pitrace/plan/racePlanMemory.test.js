@@ -12,7 +12,7 @@ describe('buildMemoryPlan: контракт plan.phrases / plan.extraWords', () 
     const plan = buildMemoryPlan({ base: { ...BASE, round: 'sprint' }, deps: deps({ memory: [row('morning', 2)] }) })
     expect(plan).toMatchObject({ phrase: BASE.phrase, seed: 's1', round: 'sprint', game: 'race', source: 'memory' })
     expect(plan.phrases[0]).toEqual({
-      id: 'm1', text: 'Nice to meet you', key: 'nice to meet you', own: true, level: 0, audio: null, ru: 'скажи, что рад знакомству', // черновик смысла важнее перевода названия
+      id: 'm1', text: 'Nice to meet you', key: 'nice to meet you', own: true, level: 0, audio: null, ru: 'скажи, что рад знакомству', scene: 'ты знакомишься с новым человеком', // черновики смысла и ситуации перевода названия
       words: [{ text: 'nice', translation: 'пер-nice', level: 0 }, { text: 'meet', translation: 'пер-meet', level: 0 }, { text: 'you', translation: 'пер-you', level: 0 }],
     })
     expect(plan.extraWords[0]).toEqual({ text: 'morning', translation: 'пер-morning', level: 1, due: false, lapses: 0 })
@@ -27,7 +27,7 @@ describe('normalizePlan принимает phrases', () => {
     const plan = memoryPlan({ ...BASE, game: 'race' }, deps({ memory: [row('you', 3), row('good', 3)] }))
     expect(plan.source).toBe('memory')
     expect(plan.phrases).toHaveLength(6)
-    expect(Object.keys(plan.phrases[0]).sort()).toEqual(['audio', 'id', 'key', 'level', 'own', 'ru', 'text', 'words'])
+    expect(Object.keys(plan.phrases[0]).sort()).toEqual(['audio', 'id', 'key', 'level', 'own', 'ru', 'scene', 'text', 'words'])
     expect(plan.extraWords.length).toBeLessThanOrEqual(12)
   })
   it('мусор отбрасывается, повторы схлопываются, ≤ 6', () => {
@@ -35,7 +35,7 @@ describe('normalizePlan принимает phrases', () => {
       ...Array.from({ length: 8 }, (_, i) => ({ text: `Phrase ${i}`, own: 1 }))]
     const list = normalizePhrases(raw)
     expect(list).toHaveLength(MAX_PHRASES)
-    expect(list[0]).toEqual({ id: 'plan:hi there', text: 'Hi there', key: 'hi there', words: [{ text: 'hi', translation: '', level: 0 }, { text: 'there', translation: '', level: 4 }], ru: '', own: false, level: 0, audio: { url: 'u', duration: null } })
+    expect(list[0]).toEqual({ id: 'plan:hi there', text: 'Hi there', key: 'hi there', words: [{ text: 'hi', translation: '', level: 0 }, { text: 'there', translation: '', level: 4 }], ru: '', scene: '', own: false, level: 0, audio: { url: 'u', duration: null } })
     expect(list[1].own).toBe(true)
   })
   it('не гонка — phrases нет', () => {

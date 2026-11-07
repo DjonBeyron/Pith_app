@@ -84,8 +84,8 @@ describe('голос Пита на ходах (racePhraseVoice)', () => {
     const flush = () => { for (let i = 0; i < 50 && timers.length; i++) timers.shift()() }
     return { v, said, cat, flush }
   }
-  it('перед ходом — смысл по-русски; нет озвучки смысла — подпись над лентой (show); «Узнай» — фраза по-английски по словам', () => {
-    const a = make(); a.v.pre({ mode: 'pick', target: nice }, {}); a.flush(); expect(a.said).toEqual([`ru:${nice.ru}`])
+  it('перед ходом — круг 1 ситуация, «Скажи» смысл по-русски; нет озвучки — подпись над лентой (show); «Узнай» — фраза по-английски по словам', () => {
+    const a = make(); a.v.pre({ mode: 'pick', target: nice }, {}); a.flush(); expect(a.said).toEqual([`ru:${nice.scene}`])
     const b = make({ hasRu: () => false }); const show = vi.fn(); b.v.pre({ mode: 'say', target: nice }, { show }); b.flush(); expect(b.said).toEqual([]); expect(show).toHaveBeenCalledWith(nice.ru)
     const c = make(); c.v.pre({ mode: 'hear', target: nice }, {}); c.flush(); expect(c.said).toEqual(['en:Nice', 'en:to', 'en:meet', 'en:you'])
   })
