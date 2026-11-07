@@ -10,6 +10,7 @@
   --wl-card: #14171c;                         /* фон пилюль — как у блоков «Моей памяти» */
   --wl-accent: var(--lvl1, #b6fe3b);
   --wl-ink: #0d1500;
+  --wl-top: calc(env(safe-area-inset-top, 0px) + 10px); /* верх кнопок «назад» / пауза (крестик): от него же начинаются дорожки, разделители и узор — не выше кнопок (владелец, iPhone) */
   position: fixed;
   inset: 0;
   z-index: 10000;                 /* поверх плеера (200), вкладок, версии, заглушек (999) */
@@ -34,7 +35,7 @@
 
 .wlClose {
   position: absolute;
-  top: calc(env(safe-area-inset-top) + 10px);
+  top: var(--wl-top, calc(env(safe-area-inset-top) + 10px)); /* крестик живёт и вне .wl (попап гонки, Game2, «Скажи вслух») — там своя формула */
   left: calc(env(safe-area-inset-left) + 10px);
   z-index: 7;
   width: 36px;
@@ -80,8 +81,8 @@
   100% { transform: translateY(-50%); opacity: 1; }
 }
 
-/* Дорожки: три колонки во всю высоту, между ними тонкие разделители */
-.wlLanes { inset: 0; display: flex; opacity: 0; transition: opacity 0.8s ease; pointer-events: none; }
+/* Дорожки: три колонки от верха кнопок (--wl-top) до низа экрана, между ними тонкие разделители. Колонка (contain: paint) обрезает узор конвейера сверху; пилюли живут в .wlField во весь экран и выезжают из-за верхнего края, как раньше */
+.wlLanes { inset: var(--wl-top) 0 0; display: flex; opacity: 0; transition: opacity 0.8s ease; pointer-events: none; }
 .wlLanes--in { opacity: 1; }
 .wlLanes i { flex: 1; } /* колонки одного цвета с фоном: зазор между обводками пилюль (--wl-bg) сливается с дорожкой */
 .wlLaneEdge { position: absolute; top: 0; bottom: 0; width: 0; border-left: 1px solid rgba(255, 255, 255, 0.16); }

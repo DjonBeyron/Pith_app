@@ -94,7 +94,8 @@ describe('CSS: плашка центрирована вёрсткой и рас�
   it('плашка одна: WordLaneGame монтирует одну WordLaneTurnPlate на turn / announce / «Дубль» / «Различи»', () => {
     const game = read('./WordLaneGame.jsx')
     expect(game.match(/<WordLaneTurnPlate /g)).toHaveLength(1)
-    expect(read('./useWordLaneFlow.js')).toContain("stageObj?.type === 'announce' ? [stageObj.round.title, stageObj.round.brief ?? stageObj.round.task].filter(Boolean).join('\\n') : stageObj?.type === 'turn' ? 'Теперь твоя очередь' : ''")
+    expect(read('./useWordLaneFlow.js')).toContain("stageObj?.charge ? '' : rh.plate(stageObj)")
+    expect(read('./wordLanePlateText.js')).toContain("st?.type === 'announce' ? [st.round?.title, st.round?.brief ?? st.round?.task].filter(Boolean).join('\\n') : st?.type === 'turn' ? 'Теперь твоя очередь' : ''")
   })
 })
 

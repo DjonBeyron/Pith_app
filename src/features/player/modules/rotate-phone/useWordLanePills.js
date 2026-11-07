@@ -129,6 +129,7 @@ export function useWordLanePills(rootRef, { scene, levels, fx, live, sceneApi, t
       const lockPiece = pill => { const k = held.get(pill.id); if (k != null) pool.attr(k, 'data-lock') }
       const handle = e => {
         if (e.type === 'spawn') {
+          fxRef.current?.spawn?.(e) // гонка: выезд пилюли — в журнал переходов «[start] переход …» (raceTransChron.js)
           fxRef.current?.peek?.(2600) // повтор выкатился — сейчас будет говорить ученик: кот уже на месте
           for (const p of e.pills) {
             const k = pool.take(p.lane, { atMs: performance.now() - t0 - p.spawnAt, curve: blind ? null : curves?.[p.chunk] ?? null, speed: p.speed, cap: e.rep.cap, edge: step.edge, quiet: step.quiet })

@@ -27,12 +27,13 @@ describe('сцена широкой ленты: круг 1 «Пойми»', () =
     for (const p of s.pool.taken) { expect(p.wide).toBe(true); expect(p.lane).toBe(1); expect(p.speed).toBe(PHRASE_SPEED); expect(p.quiet).toBe(true) }
     expect(s.pool.taken.map(p => p.cap)).toEqual(round1Turns(ph, 's1')[0].cands.map(c => c.cap))
   })
-  it('пилюля в зоне чтения ≈ 4,5 с (круг 1, «Узнай») и ≈ 7 с («Скажи»); кандидаты через gap: целиком на экране не больше двух', () => {
+  it('пилюля в зоне чтения ≈ 4,5 с (круг 1, «Узнай») и ≈ 7 с («Скажи»); кандидаты через gap: шаг ≈ 27 % высоты, не наезжают', () => {
     const zone = v => 50 / (SPEED * v) // зона чтения ≈ 22…72 % высоты
     expect(zone(PHRASE_SPEED)).toBeGreaterThanOrEqual(4.3); expect(zone(PHRASE_SPEED)).toBeLessThanOrEqual(4.7)
     expect(zone(SAY_SPEED)).toBeGreaterThanOrEqual(6.7); expect(zone(SAY_SPEED)).toBeLessThanOrEqual(7.4)
     const step = (SPEED * PHRASE_SPEED * PHRASE_GAP_MS) / 1000 // шаг между кандидатами, % высоты
-    expect(2 * step).toBeGreaterThan(100 - 11) // три целиком (центры в 5,5…94,5 %) не помещаются
+    expect(step).toBeGreaterThanOrEqual(26); expect(step).toBeLessThanOrEqual(28) // шаг ≈ 27 % высоты: пилюля 11 % + воздух ≈ 1,5 пилюли (владелец: при 45 % «расстояние огромное»)
+    expect(step).toBeGreaterThan(11 * 2) // не наезжают: между соседними — больше высоты пилюли
   })
   it('Пит ещё говорит — пилюли не выезжают', () => {
     const s = setup(pick(), { pit: 500 })

@@ -17,11 +17,12 @@ export default function WordLaneTurnPlate({ text, leaving = false, soft = false,
   useEffect(() => { playPlate() }, [])
   useEffect(() => { if (leaving && !lite && !soft) startPlateExit(ref.current) }, [leaving, lite, soft])
   const Icon = ICONS[look?.icon] ?? null
-  const [title, task] = text.split('\n') // «название\nзадание»: задание (необязательное, «Гонка с Питом») — строкой под заголовком
+  const [title, task, cap] = text.split('\n') // «название\nзадание\nподпись»: задание (необязательное, «Гонка с Питом») — строкой под заголовком; подпись — текст неозвученной реплики Пита (raceSilentLine.js, wordLanePlateText.js)
   return (
     <div ref={ref} className={`wlTurn${lite ? ' wlTurn--lite' : ''}${leaving ? ' wlTurn--leave' : ''}`} data-tone={look?.tone} data-testid="wl-turn">
       {title}
       {task && <div className="wlTurnTask" data-testid="wl-turn-task">{Icon && <Icon className="wlTurnIcon" data-icon={look.icon} aria-hidden="true" data-testid="wl-turn-icon" />}{task}</div>}
+      {cap && <div className="wlTurnCap" data-testid="wl-turn-cap">{cap}</div>}
     </div>
   )
 }

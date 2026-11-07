@@ -81,7 +81,7 @@ export default function ChargeRun({ view, leaving = false, plate = true }) {
         </div>
       )}
       {!lite && !still && sparks.map(s => <i key={s.i} data-spark={s.i} className="raceChargeSpark" style={{ left: `${s.x}%`, width: s.size, height: s.size, backgroundColor: s.color }} />)}
-      {plate && shown && <RaceChargePlate title={round.title} task={round.task} brief={round.brief} out={leaving || done} />}
+      {plate && shown && <RaceChargePlate title={round.title} task={round.task} brief={round.brief} cap={round.cap} out={leaving || done} />}
     </div>
   )
 }
