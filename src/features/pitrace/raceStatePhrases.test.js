@@ -80,7 +80,7 @@ describe('голос Пита на ходах (racePhraseVoice)', () => {
   const make = (o = {}) => {
     const said = [], cat = { busy: 0, busyLeft: () => cat.busy, holdBusy: vi.fn(), onStop: vi.fn(() => () => {}) }
     const timers = []
-    const v = createPhraseVoice({ ctx: () => ({ sayLine: id => said.push(`line:${id}`), sayText: (t, op) => said.push(`${op?.ru ? 'ru' : 'en'}:${t}`), cat }), hasRu: o.hasRu ?? (() => true), play: url => said.push(`audio:${url}`), setTimer: fn => { timers.push(fn); return timers.length }, clearTimer: () => {} })
+    const v = createPhraseVoice({ ctx: () => ({ sayLine: id => said.push(`line:${id}`), sayText: (t, op) => said.push(`${op?.ru ? 'ru' : 'en'}:${t}`), cat }), hasRu: o.hasRu ?? (() => true), play: (p, a) => said.push(`audio:${a.url}`), log: () => {}, setTimer: fn => { timers.push(fn); return timers.length }, clearTimer: () => {} })
     const flush = () => { for (let i = 0; i < 50 && timers.length; i++) timers.shift()() }
     return { v, said, cat, flush }
   }

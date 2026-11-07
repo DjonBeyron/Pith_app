@@ -4,6 +4,7 @@
 import { normalizePlan } from './rehearsalPlan.js'
 import { sprintTransTexts } from '../pitrace/raceTrans.js'
 import { withPhrases } from '../pitrace/racePhraseData.js'
+import { phraseAudioItems } from '../pitrace/racePhraseAudio.js'
 import { neededTexts, firstLines } from './rehearsalPrepare.js'
 import { planFor, fixtureIdOf, nextFixture, DEFAULT_FIXTURE } from './rehearsalFixtures.js'
 
@@ -24,6 +25,7 @@ export function readRehearsalCfg(rawPlan) {
     extraWords: neededTexts(plan),
     firstLines: firstLines(plan),
     translations: plan.game === 'race' ? sprintTransTexts(plan) : [], // русские переводы слов «Разгона»: Пит говорит их голосом перед пилюлей, тап «Начать» качает озвучку вместе с кусками (raceTrans.js)
+    phraseAudio: plan.game === 'race' ? phraseAudioItems(plan) : [], // целые озвучки фраз этапа 2 (racePhraseAudio.js): докачиваются и декодируются фоном вместе с поздними репликами (wordsPlan.late)
     plan,
   }
 }

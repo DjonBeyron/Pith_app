@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest'
 import { readFileSync } from 'node:fs'
-import { catPeek, holdForReact, CAT_SPOTS, HIDE_AFTER_MS, HIDE_MS, VOICE_AT } from './wordLaneCatPeek.js'
+import { catPeek, holdForReact, missFace, CAT_SPOTS, HIDE_AFTER_MS, HIDE_MS, VOICE_AT } from './wordLaneCatPeek.js'
 import { CAT_VIEWBOX } from './WordLaneCat.jsx'
 
 // Пит: из низа выскакивает только голова и торчит в разных местах
@@ -78,8 +78,16 @@ describe('Пит: голова выскакивает на голос и пря�
     holdForReact(peek, 1300, true); expect(peek.hold).not.toHaveBeenCalled()
     holdForReact(peek, 1300); expect(peek.hold).toHaveBeenCalledWith(1300)
     const flow = readFileSync(new URL('./useWordLaneFlow.js', import.meta.url), 'utf8'), cat = readFileSync(new URL('./WordLaneCat.jsx', import.meta.url), 'utf8')
-    expect(flow.match(/react\('shy', 1300, !!/g)).toHaveLength(2) // и на miss, и на fail тихой стадии — still
+    expect(flow.match(/react\('shy', 1300, !!/g)).toHaveLength(1) // fail тихой стадии — still
+    expect(flow).toContain('react(face, 1300, !!stages[sRef.current.idx]?.step?.quiet)') // miss — тоже still (лицо — missFace)
     expect(cat).toContain('react(next, ms = 1500, still = false)'); expect(cat).toContain('holdForReact(peek, ms, still)')
     expect(flow).toContain("st?.step?.quiet ? false"); expect(flow).toContain('!said && !st?.step?.quiet')
+  })
+
+  it('гонка: на промах (не то слово, недоговорил) Пит лицо не меняет — голова shy сдвигала зрачки и рот (подёргивание); вне гонки — shy', () => {
+    expect(missFace(true)).toBeNull()
+    expect(missFace(false)).toBe('shy'); expect(missFace()).toBe('shy')
+    const flow = readFileSync(new URL('./useWordLaneFlow.js', import.meta.url), 'utf8')
+    expect(flow).toContain("const face = missFace(plan?.game === 'race'); if (face) catApi?.current?.react(face")
   })
 })

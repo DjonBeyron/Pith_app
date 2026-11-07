@@ -53,7 +53,7 @@ export { GATE_MAX_MS } // потолок ожидания ворот с тапа
 /**
  * Что готовить в тапе: { now, late } — [{ key, url }]. now: куски фразы, слова-запутыватели («Различи» — только озвучка), слова репетиции (cfg.extraWords) и озвученные реплики кота, которые прозвучат в начале
  * (cfg.firstLines — id реплик первых стадий репетиции; нет списка — все реплики, как в обычной игре); late: остальные реплики — докачиваются фоном; firstCount — сколько файлов с начала now нужно первым
- * стадиям (реплики первых секунд + кусок первой ступени): ворота (wordLaneGate.js) открываются, когда готовы они (не меньше GATE_MIN)
+ * стадиям (реплики первых секунд + кусок первой ступени); cfg.phraseAudio — целые озвучки фраз «Встряхни память» (racePhraseAudio.js) — в late, к этапу фраз: ворота (wordLaneGate.js) открываются, когда готовы они (не меньше GATE_MIN)
  */
 export function wordsPlan({ cfg, lines }) {
   const all = linesItems(lines)
@@ -65,9 +65,9 @@ export function wordsPlan({ cfg, lines }) {
   if (cfg.plan?.game === 'race' && first) { // «Гонка» (v3.3.117): ворота ждут ТОЛЬКО race_start (один файл, он первый в списке и качается первым); реплика первого этапа, куски и переводы догреваются фоном к первой пилюле, Пит не ждёт сеть
     const isStart = x => x.key === lineKey('race_start') || x.key === lineKey('race_start_tap') // стартовая фраза режима («Голосом» / «Пальцами»)
     const start = lineNow.filter(isStart), rest = lineNow.filter(x => !isStart(x))
-    return { now: [...start, ...rest, ...words], late: all.filter(x => !first.has(x.key)), firstCount: start.length || lineNow.length, gateMin: 0 } // нет озвучки race_start (или один раунд без вступления) — ждём первую реплику, какая есть
+    return { now: [...start, ...rest, ...words], late: [...all.filter(x => !first.has(x.key)), ...(cfg.phraseAudio ?? [])], firstCount: start.length || lineNow.length, gateMin: 0 } // нет озвучки race_start (или один раунд без вступления) — ждём первую реплику, какая есть
   }
-  return first ? { now: [...lineNow, ...words], late: all.filter(x => !first.has(x.key)), firstCount: lineNow.length + one + Math.min(2, trans.length) } : { now: [...words, ...lineNow], late: [], firstCount: one + Math.min(2, trans.length) } // у репетиции реплики первых стадий качаются и декодируются ПЕРВЫМИ: заговорит Пит, а куски диктора понадобятся через секунды
+  return first ? { now: [...lineNow, ...words], late: [...all.filter(x => !first.has(x.key)), ...(cfg.phraseAudio ?? [])], firstCount: lineNow.length + one + Math.min(2, trans.length) } : { now: [...words, ...lineNow], late: [], firstCount: one + Math.min(2, trans.length) } // у репетиции реплики первых стадий качаются и декодируются ПЕРВЫМИ: заговорит Пит, а куски диктора понадобятся через секунды
 }
 
 /** Все файлы озвучки игры по важности: [{ key, url }] (нужное к старту, затем фон) — для ворот и счётчика прогрева */

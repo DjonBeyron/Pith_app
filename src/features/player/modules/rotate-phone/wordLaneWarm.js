@@ -17,7 +17,7 @@ import { listWordAudio } from '../../../../shared/lib/wordAudio/wordAudioApi.js'
 import { getCatLines } from '../../../../shared/api/catLinesApi.js'
 
 /** Подпись набора озвучки (куски, слова, первые реплики, адреса реплик): изменилась — готовить заново («Готовлю звук…» на карточке) */
-export const warmSig = (cfg, lines) => JSON.stringify([cfg.chunks, cfg.confusers, cfg.extraWords ?? null, cfg.firstLines ?? null, cfg.translations ?? null, Object.values(lines ?? {}).map(l => l?.url ?? null)])
+export const warmSig = (cfg, lines) => JSON.stringify([cfg.chunks, cfg.confusers, cfg.extraWords ?? null, cfg.firstLines ?? null, cfg.translations ?? null, cfg.phraseAudio ?? null, Object.values(lines ?? {}).map(l => l?.url ?? null)])
 
 // Возврат из фона при показанной карточке (iOS замораживает докачку и сеть, декодирование может не вернуться): прогрев последнего набора перепроверяется — оборванное и «готовое без буфера» качается заново. Один подписчик на страницу.
 let lastItems = null
