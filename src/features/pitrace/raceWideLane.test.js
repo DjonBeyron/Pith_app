@@ -35,7 +35,7 @@ describe('широкая пилюля в пуле', () => {
     expect(el.getAttribute('data-wide')).toBeNull(); expect(el.getAttribute('data-spent')).toBeNull()
     const n = pool.take(0, {})
     expect(pills[n].style.left).toBe(`${LANE_X[0]}%`); expect(pills[n].style.width).toBe(`${PILL_W}%`); expect(pills[n].style.height).toBe(`${PILL_H}%`)
-    expect(WIDE_W).toBeGreaterThanOrEqual(85); expect(WIDE_W).toBeLessThanOrEqual(92)
+    expect(WIDE_W).toBeGreaterThanOrEqual(72); expect(WIDE_W).toBeLessThanOrEqual(78) // поля по 11–14 % (замечание владельца: широкие пилюли «Фраз» слишком широкие)
   })
   it('заливка широкой — слева направо (paintFill → translateX), обычной — снизу вверх (translateY); положение по часам полёта (y), скорость — множитель к скорости выдачи (rate)', () => {
     const { pool, pills } = rig()
@@ -78,9 +78,9 @@ describe('стили широкой ленты', () => {
     expect(css).toContain('font-size: clamp(14px, 4vw, 18px)')
     expect(css).toMatch(/\.wlPill\[data-wide\]\[data-faded\]:not\(\[data-lock\]\)::after \{ color: rgba/)
     expect(css).toMatch(/\.wlPill\[data-wide\]\[data-hot\]/)
-    expect(css).not.toMatch(/border-radius/); expect(css).not.toMatch(/--segs/); expect(css).not.toMatch(/\.wlPillFill/); expect(css).not.toMatch(/\.wlPillSparks/); expect(css).not.toMatch(/\.wlPillClip/)
+    expect(css).not.toMatch(/border-radius/); expect(css).not.toMatch(/--segs/); expect(css).not.toMatch(/\.wlPillFill/); expect(css).not.toMatch(/\.wlPillSparks/); expect(css.replace(/[^{}]*data-spent[^{}]*\{[^}]*\}/g, '')).not.toMatch(/\.wlPillClip/) // клип заливки — только у отыгранной (тускнеет на непрозрачном теле)
     expect(css).toMatch(/\.wlPill\[data-wide\]\[data-ring\]::before \{ animation-name: wlExhaleWide; \}/)
-    expect(css).toMatch(/\.wlPill\[data-wide\]\[data-spent\] \{ opacity: 0\.45;/)
+    expect(css).not.toMatch(/\.wlPill\[data-wide\]\[data-spent\] \{[^}]*opacity/); expect(css).toMatch(/\[data-spent\] > \.wlPillClip[^{]*\{ opacity: 0\.45;/) // отыгранная бледнее, но тело непрозрачное: сквозь него не просвечивает узор дорожки
     expect(css).toMatch(/\.racePhraseRu\[data-on\] \{ opacity: 1; \}/)
   })
 })

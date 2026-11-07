@@ -34,7 +34,7 @@
   justify-content: center;
   column-gap: 0.4em;
   row-gap: 0.3em;
-  padding: 0 26px;
+  padding: 0 18px;                                         /* поля под торцы капсулы; 18 px (было 26) — на суженной пилюле (WIDE_W 78 %) фраза из 7 слов под маской остаётся в две строки на 375 px */
   box-sizing: border-box;
   font-size: clamp(15px, 4.3vw, 19px);
   font-weight: 800;
