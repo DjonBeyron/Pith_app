@@ -9,6 +9,7 @@
 // quiet — промах без полос, «не успел» без реплики директора игры (её говорит директор гонки, racePhraseVoice.js). Порядок круга 2 директор правит перед входом (fill: слабые фразы круга 1 — последними).
 import { stepOf } from './raceStageKit.js'
 import { round1Turns, round2SayTurns, round2HearTurns, reorderWeak } from './racePhraseTurns.js'
+import { demoPhrase } from './racePhraseDemo.js'
 
 export const PHRASE_SPEED = 0.55 // круг 1 и «Узнай»: пилюля проезжает зону чтения (≈ 22…72 % высоты) за ≈ 3,5 с (конвейер — 26 % в секунду)
 export const SAY_SPEED = 0.4     // круг 2 голосом: ещё медленнее, ≈ 4,8 с в зоне чтения
@@ -44,6 +45,7 @@ export function phraseStages(kit, act) {
   const base = voice ? round2SayTurns(act.phrases) : round2HearTurns(act.phrases, plan.seed)
   if (!base.length) return
   announce(act, { sid: 'phrases2', ...ROUND_PLATES[mode] })
+  if (voice) kit.stages.at(-1).demo = demoPhrase(act.phrases, base) // демо «можно по словам» на плашке «Скажи» (racePhraseDemo.js, useRacePhraseDemo.js)
   const make = turns => ({ turns, step: phraseStep('phrases2', turns, { round: 2, mode, voice, speed: voice ? SAY_SPEED : PHRASE_SPEED }) })
   push({ type: 'student', act: act.id, sid: 'phrases2', round: 2, base, ...make(base), fill: weak => Object.assign(kit.stages.find(x => x.sid === 'phrases2'), make(reorderWeak(base, weak))) })
 }
