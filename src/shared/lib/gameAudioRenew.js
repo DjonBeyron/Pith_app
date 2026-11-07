@@ -35,14 +35,15 @@ export function renewNeed({ suspect = null, away = lastAway(), live = liveContex
 
 const DEFAULTS = {
   describe: () => describeCtxs(), closeAll: () => closeAll(), recreateCtx: recreateGameCtx, unlockCtx: unlockGameCtx, peekCtx: peekGameCtx,
-  waitRunning: getCtx => waitCtxRunning(getCtx), log: pLog, note: gameAudioNote, now: () => performance.now(),
+  waitRunning: getCtx => waitCtxRunning(getCtx), log: pLog, note: gameAudioNote, now: () => performance.now(), sleep: ms => new Promise(r => setTimeout(r, ms)),
 }
 
 /**
  * Обновить аудиосессию: auto → закрыть все контексты → тип → новый игровой контекст → running. Звать из жеста (старт игры, «Продолжить»): закрытие занимает единицы мс, жест ещё жив.
+ * holdMs — выдержка после закрытия всех контекстов до записи типа (повтор при мёртвом выводе, gameAudioRenewLive.js: iOS успевает снять сессию).
  * wantType — тип, если applyType не задан ('auto' — оставить снятым); applyType() — записать тип своим способом (голос: gameAudioSession.begin). → { ok, state, closed, kinds, type, steps, ms } (не отклоняется)
  */
-export async function renewAudioSession({ reason = 'старт', wantType = null, applyType = null } = {}, over = {}) {
+export async function renewAudioSession({ reason = 'старт', wantType = null, applyType = null, holdMs = 0 } = {}, over = {}) {
   const d = { ...DEFAULTS, nav: globalThis.navigator, ...over }
   const t0 = d.now()
   const steps = []
@@ -54,6 +55,7 @@ export async function renewAudioSession({ reason = 'старт', wantType = null
   try { c = await d.closeAll() } catch { c = null }
   c ??= { closed: 0, kinds: [], timedOut: 0 }
   steps.push('close')
+  if (holdMs > 0) { try { await d.sleep(holdMs) } catch { /* выдержка не обязательна */ } steps.push('hold') }
   if (applyType) safe(applyType)
   else if (wantType && wantType !== 'auto') setType(d.nav, wantType)
   const type = sessionOf(d.nav)?.type ?? '—'
@@ -68,7 +70,7 @@ export async function renewAudioSession({ reason = 'старт', wantType = null
   const ctxMs = Math.round(d.now() - tc), ms = Math.round(d.now() - t0)
   const after = `${safe(d.describe) ?? '—'}; audioSession=${sessionText(sessionOf(d.nav))}`
   const kinds = c.kinds?.length ? ` (${c.kinds.join(', ')})` : ''
-  d.log(`[audio] renew (${reason}): ДО — ${before}; auto; закрыто ${c.closed}${kinds}${c.timedOut ? `, не дождались ${c.timedOut}` : ''}; тип ${type}; новый ctx ${w.state ?? 'нет Web Audio'} за ${ctxMs} мс; ПОСЛЕ — ${after}; всего ${ms} мс`)
+  d.log(`[audio] renew (${reason}): ДО — ${before}; auto; закрыто ${c.closed}${kinds}${c.timedOut ? `, не дождались ${c.timedOut}` : ''}${holdMs > 0 ? `; выдержка ${holdMs} мс` : ''}; тип ${type}; новый ctx ${w.state ?? 'нет Web Audio'} за ${ctxMs} мс; ПОСЛЕ — ${after}; всего ${ms} мс`)
   const ok = w.state == null || w.state === 'running'
   try { d.note('audio-renew', { reason, closed: c.closed, kinds: c.kinds, type, state: w.state, ms }) } catch { /* журнал не мешает */ }
   return { ok, state: w.state, closed: c.closed, kinds: c.kinds ?? [], type, steps, ms }

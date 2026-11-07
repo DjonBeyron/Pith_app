@@ -10,6 +10,9 @@ import { pLog } from './debug.js'
 import { readAudioSessionMode, readMicHoldMode } from './gameAudioSettings.js'
 import { gameMicGesture } from './gameMicGesture.js'
 import { micGainLogLine, readMicGain } from './gameMicGain.js'
+import { micRequestBegin, micRequestEnd } from './gameMicRequest.js'
+
+export { micRequestPending } from './gameMicRequest.js' // blur/focus от нашего диалога доступа — не уход (wordLanePauseEvents.js)
 
 // БЕЗ эхо- и шумоподавления: пока открыт поток с echoCancellation, iOS включает «голосовую обработку» (как в звонке) для ВСЕГО звука страницы, а Android Chrome — коммуникационный режим: озвучка диктора
 // хрипит и шипит, как плёнка. Без неё воспроизведение чистое; автоусиление оставлено — тихий голос слышно. Эхо диктора в микрофон не мешает: слушатель стартует после диктора, а ворота голоса глушат ноты-награды.
@@ -58,7 +61,10 @@ export async function openGameMic() {
   try {
     const constraints = gameMicConstraints()
     const mine = epoch
-    const s = await navigator.mediaDevices.getUserMedia({ audio: constraints })
+    micRequestBegin() // диалог доступа iOS даёт blur/focus — пауза их не считает, пока ждём ответа и ещё 1,5 с
+    let s
+    try { s = await navigator.mediaDevices.getUserMedia({ audio: constraints }) } catch (e) { micRequestEnd(e?.name ?? 'ошибка'); throw e }
+    micRequestEnd(mine !== epoch ? 'granted (игра уже закрыта)' : 'granted')
     if (mine !== epoch) { try { s.getTracks().forEach(t => t.stop()) } catch { /* уже остановлен */ } pLog('[mic] поток открылся уже после закрытия игры — закрыт'); return 'unavailable' }
     if (stream && stream !== s) { try { stream.getTracks().forEach(t => t.stop()) } catch { /* уже остановлен */ } } // прежний (оборванный/заглушённый) поток не оставляем висеть
     stream = s

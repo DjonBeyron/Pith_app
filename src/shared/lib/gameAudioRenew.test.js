@@ -74,3 +74,16 @@ describe('renewNeed: когда обновлять сессию при стар�
     expect(renewNeed({ suspect: 'v', away: { hiddenAt: 5, awayMs: 30000 }, live: live(['sounds', 1]), session: { state: 'interrupted' } })).toBe('фон 30 с; живы контексты старше ухода в фон: sounds; audioSession.state=interrupted')
   })
 })
+
+describe('renewAudioSession: выдержка holdMs (повтор при мёртвом выводе)', () => {
+  it('после закрытия всех контекстов ждёт holdMs, потом тип и новый контекст; журнал «выдержка»', async () => {
+    const order = [], log = vi.fn()
+    const nav = { audioSession: { type: 'play-and-record', state: 'active' } }
+    await renewAudioSession({ reason: 'повтор', wantType: 'auto', holdMs: 1200 }, {
+      nav, describe: () => '—', closeAll: async () => { order.push('close'); return { closed: 1, kinds: ['game'] } }, sleep: async ms => order.push(`sleep:${ms}`),
+      recreateCtx: () => order.push('create'), unlockCtx: () => order.push('unlock'), peekCtx: () => ({ state: 'running' }), waitRunning: async () => ({ state: 'running' }), log, note: () => {}, now: () => 0,
+    })
+    expect(order).toEqual(['close', 'sleep:1200', 'create', 'unlock'])
+    expect(log.mock.calls.at(-1)[0]).toMatch(/выдержка 1200 мс/)
+  })
+})

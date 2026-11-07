@@ -22,7 +22,7 @@ function setup({ voice = true, ctx = fakeCtx('running'), startResult = { mic: 'g
     stopBuffers: vi.fn(() => order.push('stopBuffers')), started: () => 0,
     uiState: () => 'interrupted', captures: () => ['interrupted'],
     micLine: () => 'live/muted', closeMic: vi.fn(() => order.push('closeMic')), openMic: vi.fn(() => { order.push('openMic'); return Promise.resolve('granted') }),
-    consume: () => 'пауза: hidden', session: () => 'play-and-record/active', active: () => active,
+    consume: () => 'пауза: hidden', session: () => 'play-and-record/active', active: () => active, memo: {},
     waitRunning: vi.fn(async get => { order.push('waitRunning'); const s = waits ? waits.shift() : get()?.state ?? null; return { state: s, tries: 1, ms: 10 } }),
     probe: vi.fn(async () => { order.push('probe'); return probeOk ? { ok: true, ms: 50 } : { ok: false, ms: 1500, why: 'время контекста стоит' } }),
     log: vi.fn(), note: vi.fn(), now: () => 0,
@@ -38,7 +38,7 @@ describe('restartGameAudio: «Продолжить» идёт через обн�
     const { order, start, d, p } = setup()
     expect(order.slice(0, 3)).toEqual(['stopBuffers', 'closeMic', 'renew']) // renew начинается синхронно в тапе (auto), старт — после закрытия контекстов
     await p
-    expect(order.slice(0, 8)).toEqual(['stopBuffers', 'closeMic', 'renew', 'voiceType', 'start', 'session', 'openMic', 'unlockCtx'])
+    expect(order.slice(0, 9)).toEqual(['stopBuffers', 'closeMic', 'renew', 'voiceType', 'probe', 'start', 'session', 'openMic', 'unlockCtx']) // пробный звук после renew — ДО микрофона
     expect(d.renew).toHaveBeenCalledWith(expect.objectContaining({ reason: '«тест»', applyType: d.voiceType, wantType: null }))
     expect(start).toHaveBeenCalledWith(expect.objectContaining({ renewed: true, openMic: expect.any(Function), consume: expect.any(Function) }))
     expect(d.recreateCtx).not.toHaveBeenCalled() // новый контекст создал renew
@@ -47,7 +47,7 @@ describe('restartGameAudio: «Продолжить» идёт через обн�
     const { p, logs } = setup()
     const r = await p
     expect(r).toMatchObject({ ok: true, mic: 'granted', ctx: 'running', failed: null })
-    expect(r.steps).toEqual(['stop-buffers', 'mic-stop', 'renew', 'mic-open', 'unlock', 'start-done', 'wait-running', 'probe', 'listener'])
+    expect(r.steps).toEqual(['stop-buffers', 'mic-stop', 'renew', 'probe-live', 'mic-open', 'unlock', 'start-done', 'wait-running', 'probe', 'listener'])
     const L = logs()
     expect(L[0]).toMatch(/ДО — игровой ctx=нет, ctx интерфейса=interrupted, ctx микрофона=\[interrupted\], дорожки=live\/muted, audioSession=play-and-record\/active/)
     expect(L.find(l => l.includes('перезапуск: renew'))).toMatch(/закрыто 3 \(game, sounds, capture\) → тип play-and-record → новый ctx running за 12 мс/)
@@ -85,8 +85,8 @@ describe('restartGameAudio: проверка, что звук вернулся',
     expect(d.recreateCtx).toHaveBeenCalledTimes(1); expect(d.waitRunning).toHaveBeenCalledTimes(2)
     expect(r).toMatchObject({ ok: true, ctx: 'running' }); expect(r.steps).toContain('wait-running-2')
   })
-  it('interrupted насовсем → ok false, failed «контекст interrupted», в журнале «ЗВУК НЕ ВЕРНУЛСЯ»', async () => {
-    const { p, logs } = setup({ waitStates: ['interrupted', 'interrupted'] })
+  it('interrupted насовсем (и после повтора цепочки) → ok false, failed «контекст interrupted», в журнале «ЗВУК НЕ ВЕРНУЛСЯ»', async () => {
+    const { p, logs } = setup({ waitStates: ['interrupted', 'interrupted', 'interrupted', 'interrupted'] })
     const r = await p
     expect(r).toMatchObject({ ok: false, failed: 'контекст interrupted' })
     expect(logs().at(-1)).toMatch(/ЗВУК НЕ ВЕРНУЛСЯ \(контекст interrupted\)/)
@@ -95,9 +95,11 @@ describe('restartGameAudio: проверка, что звук вернулся',
     const { d, p } = setup({ voice: false, active: false, waitStates: ['suspended'] })
     expect((await p).ok).toBe(false); expect(d.recreateCtx).not.toHaveBeenCalled()
   })
-  it('running, но пробный звук не доиграл → ok false с причиной', async () => {
-    const r = await setup({ probeOk: false }).p
-    expect(r).toMatchObject({ ok: false, failed: 'пробный звук: время контекста стоит' })
+  it('running, но пробный звук не доиграл ни после renew, ни после повторов → ok false, dead, микрофон не открывается', async () => {
+    const { p, d } = setup({ probeOk: false })
+    const r = await p
+    expect(r).toMatchObject({ ok: false, dead: true, mic: 'skipped', failed: 'вывод мёртв после renew (3 попыток): время контекста стоит' })
+    expect(d.openMic).not.toHaveBeenCalled()
   })
   it('нет Web Audio (state null) — проверять нечего, ok по пробе', async () => {
     const r = await setup({ waitStates: [null] }).p

@@ -9,7 +9,7 @@ import { linesItems, lineKey } from './wordLaneCatLines.js'
 import { prefetchWords, reviveWarm } from './wordLaneFetch.js'
 import { waitWarmGate, GATE_MAX_MS } from './wordLaneGate.js'
 import { unlockGameCtx, gameCtxState, recreateGameCtx, ensureGameCtxRunning } from '../../../../shared/lib/gameAudioCtx.js'
-import { installGameAudioLife, consumeRewake } from '../../../../shared/lib/gameAudioLife.js'
+import { installGameAudioLife, consumeRewake, markGameTap } from '../../../../shared/lib/gameAudioLife.js'
 import { rewarmWordElements } from '../../word-audio/wordAudioPlayer.js'
 import { openGameMic } from '../../../../shared/lib/gameMic.js'
 import { gameAudioSession } from '../../../../shared/lib/gameMicSession.js'
@@ -25,6 +25,7 @@ import { SETTLE_MAX_MS } from '../../../../shared/lib/gameAudioWarm.js'
 import { readTapMode } from './wordLaneHudSettings.js'
 import { setGameMicWanted } from '../../../../shared/lib/gameMicWant.js'
 import { renewAudioSession, renewNeed } from '../../../../shared/lib/gameAudioRenew.js'
+import { renewUntilLive } from '../../../../shared/lib/gameAudioRenewLive.js'
 import { armOutputCheck } from '../../../../shared/lib/gameAudioOutputCheck.js'
 import { installReturnClean } from '../../../../shared/lib/gameAudioReturnClean.js'
 
@@ -112,14 +113,16 @@ export function rewakeGameAudio({ audioSrc }) {
  * Вызывать СИНХРОННО в обработчике тапа «Начать» (весь синхронный префикс — в жесте). Возвращает промис { mic, settled, needsTap }: mic — 'granted' | 'denied' | 'unavailable' | 'off' (микрофон не нужен), settled — итог ожидания
  * (прерываний, мс, состояние контекста), needsTap — жест истёк и прогрев ждёт касания (игру открывать после тапа). mic: false («Тапаю», по умолчанию wantsMic(cfg)) — ни типа сессии записи, ни getUserMedia. onMic(mic) — ответ
  * системы о микрофоне пришёл (попап гонки меняет «Разрешите микрофон…» на «Готовлю звук…»). deps — подмена зависимостей в тестах.
- * После фона (renewNeed) старт сначала ждёт полного обновления аудиосессии (renewAudioSession: единицы-десятки мс, жест ещё жив), потом идёт как обычно и проверяет вывод первой реплики (armOutputCheck).
+ * После фона (renewNeed) старт сначала ждёт полного обновления аудиосессии (renewAudioSession: единицы-десятки мс, жест ещё жив) с пробным звуком и до 2 повторов при мёртвом выводе (renewUntilLive, v3.3.147),
+ * потом идёт как обычно (микрофон — после живой пробы) и проверяет вывод первой реплики (armOutputCheck).
  */
 const installAudioLife = () => { installGameAudioLife(); installReturnClean() }
 
 export function startGameAudio({ cfg, audioSrc, lines, onLineReady = null, onMic = null, mic: useMic = wantsMic(cfg) }, deps = {}) {
   const { warm = gameAudioWarm, session = gameAudioSession, hold = gameMicHold, openMic = openGameMic, wake = wakeGameAudio, rewake = rewakeGameAudio, gateMaxMs = GATE_MAX_MS, trace = gameStartTrace, prefetch = prefetchWords, unlockCtx = unlockGameCtx, gate = waitWarmGate, install = installAudioLife, consume = consumeRewake, recreateCtx = recreateGameCtx, ensureCtx = ensureGameCtxRunning, raceGateMs = RACE_GATE_MS, ctxState = gameCtxState, chron = raceChron,
-    renew = renewAudioSession, needRenew = renewNeed, armCheck = armOutputCheck, renewed = false } = deps
+    renew = renewAudioSession, renewLive = renewUntilLive, needRenew = renewNeed, armCheck = armOutputCheck, markTap = markGameTap, renewed = false } = deps
   trace.begin() // хронология старта: отсчёт от тапа
+  markTap() // уборка после возврата (gameAudioReturnClean.js) не трогает контексты, пока идёт старт
   install() // слушатели фона/возврата (gameAudioLife.js) и закрытие контекстов при возврате без игры (gameAudioReturnClean.js): идемпотентно
   const suspect = consume() // звук возвращался из фона/блокировки с прошлого старта → полный путь: старый контекст не доверен
   // Полное обновление аудиосессии (gameAudioRenew.js): auto → закрыть ВСЕ контексты страницы → тип → новый игровой контекст → running. renewed — «Продолжить» уже обновил (gameAudioRestart.js)
@@ -127,9 +130,13 @@ export function startGameAudio({ cfg, audioSrc, lines, onLineReady = null, onMic
   if (!why && suspect && !renewed) recreateCtx(`повторный старт после фона (${suspect})`) // короткий фон, старых контекстов нет — достаточно свежего игрового
   if (!why) return startBody()
   const again = () => renew({ reason: `звук не пошёл: ${why}`, wantType: useMic ? null : 'auto', applyType: useMic ? () => session.begin() : null })
-  return renew({ reason: why, wantType: useMic ? null : 'auto', applyType: useMic ? () => session.begin() : null })
+  return renewLive({ reason: why, wantType: useMic ? null : 'auto', applyType: useMic ? () => session.begin() : null }, { renew })
     .catch(e => { pLog(`[audio] renew упал: ${e?.message ?? e}`); return null })
-    .then(() => { try { armCheck({ renew: again }) } catch { /* проверка — не условие старта */ } return startBody() })
+    .then(lv => {
+      if (lv && !lv.ok) pLog(`[audio] старт после фона: вывод не ожил и после повторов (${lv.probe?.why ?? '—'}) — играем, проверка первой реплики повторит renew`)
+      try { armCheck({ renew: again }) } catch { /* проверка — не условие старта */ }
+      return startBody()
+    })
 
   function startBody() {
     warm.begin() // следим за прерываниями с этой секунды
