@@ -118,7 +118,9 @@ describe('конвейер: три независимые дорожки', () =>
     const layers = /background:\s*([^;]*);/.exec(r)[1].split(/repeat-y,\s*linear-gradient\(/)
     expect(layers.length).toBe(2) // узелки (радиальный слой) и нить (линейный)
     expect(layers[0]).toContain('radial-gradient(circle 7px'); expect(layers[0]).toContain('calc(var(--run-p) / 2)') // два узелка на период (узор «реже»)
-    expect(layers[1]).toContain('0.7dvh'); expect(layers[1]).toContain('center 1.4dvh / 1px calc(var(--run-p) / 12)') // нить 1 px: штрихи 0,7 dvh (размер прежний), 12 на период — вдвое реже
+    expect(r).toContain('--run-d: 0.7dvh'); expect(r).toContain('--run-s: calc(var(--run-p) / 12)'); expect(layers[1]).toContain('center 0 / 1px calc(var(--run-p) / 2)') // нить 1 px: штрихи 0,7 dvh (размер прежний), шаг период/12 — вдвое реже; плитка — полпериода, как у узелков
+    const dashes = layers[1].match(/var\(--run-h\) 0 calc\(var\(--run-s\)(?: \* (\d))? \+ 7px \+ var\(--run-d\)\)/g); expect(dashes.length).toBe(5) // пять штрихов на места 2–6, первое место — узелок (штриха под ним нет)
+    expect(layers[0]).toContain('at 7px calc(7px + var(--run-d) / 2)') // центр узелка — середина места первого штриха
     expect(RACE_PERIOD).toBe(51.6)
     expect(c).not.toMatch(/animation|@keyframes|filter/)
     const base = /\.wlLanes i::before \{[^}]*\}/.exec(c)[0]; expect(base).toContain('top: calc(var(--run-p) * -1)'); expect(base).toContain('bottom: 0'); expect(base).toContain('opacity: var(--run-a, 0.14)'); expect(base).toContain('will-change: transform, opacity'); expect(base).not.toMatch(/transition/); expect(c).toContain('.wlLanes i { contain: paint; }'); expect(r).not.toMatch(/top:|bottom:|height:/) // слой выше дорожки на период (51,6 dvh) — узор покрывает её при любом сдвиге --run-y
