@@ -56,7 +56,7 @@ export function jumpTo(p, lane, headW = HEAD_W) {
   return { dir, x: Math.abs(x - px) >= clear ? x : clamp(px + dir * clear, DODGE_EDGE, 100 - DODGE_EDGE) }
 }
 
-export function createDodge({ lanes = [], headTop = HEAD_TOP, headW = HEAD_W, x0 = 50 } = {}) {
+export function createDodge({ lanes = [], headTop = HEAD_TOP, headW = HEAD_W, x0 = 50, from = 0 } = {}) { // from — «Продолжить» после паузы: первая пилюля ступени — повтор from
   let x = x0
   let at = Math.abs(x0 - 50) < 0.5 ? CENTER : null // где стоит: дорожка, центр, в стороне (null — неизвестно: прошлая ступень)
   let placedFor = -1   // под чью пилюлю Пит уже встал (номер повтора)
@@ -97,7 +97,7 @@ export function createDodge({ lanes = [], headTop = HEAD_TOP, headW = HEAD_W, x0
 
   return {
     /** Начало ступени: под дорожку первой пилюли */
-    start: () => dive(0, 'старт'),
+    start: () => dive(from, from ? 'продолжаем' : 'старт'),
     /** Слово повтора i засчитано (pills — пилюли на экране: пилюля i у головы — зачёт «в последний момент»). Пит уже под следующей (прыгнул до зачёта) — стоит; прыгнул в сторону — прыжок обратно на дорожку
      *  следующей (нет её — стоит); иначе к следующей — только если она на другой дорожке: нырок, а когда пилюля уже у головы — прыжок */
     claim(i, pills = []) {

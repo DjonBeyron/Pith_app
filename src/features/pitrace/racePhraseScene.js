@@ -51,7 +51,7 @@ export function runPhraseScene({ pool, root, scene, fxRef, listen = phraseListen
   const cap = caption(root)
   const missMark = tapMissMark(root) // подсветка «мимо»
   const view = createFillView() // заливка «Скажи» на экране
-  let ti = -1, phase = 'next', at = now(), pills = [], res = null, lit = new Set(), frame = 0, stopped = false, timers = []
+  let ti = (scene.from ?? 0) - 1, phase = 'next', at = now(), pills = [], res = null, lit = new Set(), frame = 0, stopped = false, timers = []
   let rolling = [], lastSpawn = -Infinity, heardW = new Map(), heardAt = -Infinity, shown = 0, lastT = now() // rolling — отыгранные пилюли прошлых ходов (едут вниз); heardW — слово → подтверждено ли
   const tail = pool.tail?.() // доезжающие пилюли прошлого круга (wordLaneCoast.js): наша первая — не ближе cfg.gap за последней из них
   if (tail != null) lastSpawn = now() - ((tail - ENTER_Y) / (SPEED * cfg.speed)) * 1000
@@ -197,6 +197,8 @@ export function runPhraseScene({ pool, root, scene, fxRef, listen = phraseListen
         const p = riding().filter(onScreen).sort((a, b) => Math.abs(a.y - CENTER_Y) - Math.abs(b.y - CENTER_Y))[0]
         if (p && !p.spent && pills.includes(p)) pick(p)
       },
+      /** Пауза: с какого хода «Продолжить» — текущий, пока итога нет (он сыграется заново: маска и заливка с нуля), иначе следующий (scene.from, useWordLaneControls) */
+      resumeAt: () => Math.min(turns.length, Math.max(0, phase === 'next' || res ? ti + 1 : ti)),
       /** Для тестов и стенда: что сейчас на ленте (spent — отыгранные, едут вниз), fill — заливка «Скажи» на экране, mask — слова под маской «Скажи», listening — есть ли слушатель фраз */
       state: () => ({ phase, turn: ti, mode: cfg.mode, listening: !!listener, pills: live().map(p => ({ key: p.cand.key, y: p.y, right: p.cand.right })), spent: riding().filter(p => p.spent).map(p => ({ key: p.cand.key, y: p.y })), res, fill: shown, mask: target()?.mask?.words() ?? null }),
     },

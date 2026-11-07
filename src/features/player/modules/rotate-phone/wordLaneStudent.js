@@ -69,6 +69,9 @@ export const isDeaf = rep => rep.state === 'fly' && rep.pills.some(p => p.state 
 /** Живой повтор, которого слушаем: последний из выкатанных (в очереди «Гонки» старый ещё может ехать вниз — недоступный) */
 export const liveRep = g => [...g.reps].reverse().find(r => r.state === 'fly') ?? null
 
+/** С какого повтора продолжать после паузы: первый ещё не разрешённый (todo / fly — он сыграется заново с начала); принятый (lock — слово уже засчитано, взлетает) и потерянный — сыграны */
+export const resumeIdx = g => g.reps.find(r => r.state === 'todo' || r.state === 'fly')?.idx ?? g.reps.length
+
 /** Защёлкнуть пилюлю: заливка идёт к 100 % с момента at (мс), щелчок и нота — когда она дойдёт */
 const lockPill = (p, at, delay = 0) => { p.state = 'lock'; p.from = p.p; p.lockAt = at + delay; p.snapped = false }
 
@@ -90,8 +93,9 @@ function stepLocks(g, rep, t, events) {
   })
 }
 
-/** step — ступень рецепта; chunks — тексты кусков; estMs(chunk) — длина куска, мс (по записи диктора или оценка); budget — лимит времени ступени, мс (по умолчанию budgetOf) */
-export function createStudentGame({ step, chunks, estMs = c => estChunkMs(chunks[c]), maxTries = MAX_TRIES, leadIn = LEAD_IN_MS, budget = null, overlap = !!step.overlap }) {
+/** step — ступень рецепта; chunks — тексты кусков; estMs(chunk) — длина куска, мс (по записи диктора или оценка); budget — лимит времени ступени, мс (по умолчанию budgetOf);
+ *  from — «Продолжить» после паузы в гонке: повторы с номером меньше from уже сыграны (состояние 'skip': не выкатываются, ступень без них), номера повторов прежние */
+export function createStudentGame({ step, chunks, estMs = c => estChunkMs(chunks[c]), maxTries = MAX_TRIES, leadIn = LEAD_IN_MS, budget = null, overlap = !!step.overlap, from = 0 }) {
   const n = chunks.length
   const { repTarget } = stepTargets(step, chunks)
   const reps = step.reps.map((rp, idx) => {
@@ -99,10 +103,10 @@ export function createStudentGame({ step, chunks, estMs = c => estChunkMs(chunks
     const offs = durs.map((_, k) => durs.slice(0, k).reduce((a, d) => a + d + PIECE_PAD_MS, 0))
     const cnt = rp.parts.map(c => (step.lang === 'ru' ? wordCountRu(chunks[c]) : Math.max(1, tokenize(chunks[c]).length))) // русский перевод: английский tokenize стирал кириллицу (у «добрый день» было 1 слово)
     const cum = cnt.reduce((a, k) => [...a, a.at(-1) + k], [0])      // сколько слов цели приходится на начало каждого куска и на конец всех
-    return { idx, parts: rp.parts, target: repTarget[idx], text: textOf(chunks, rp.parts), state: 'todo', tries: 0, pills: [], tk: 0, cnt, cum, durs, offs, lanes: rp.lane != null ? [rp.lane] : rp.parts.map(c => laneOf(n, c, idx)), speed: rp.speed ?? 1, y0: rp.y0 ?? null, cap: rp.cap ?? null, say: rp.say ?? null, trap: !!rp.trap, reveal: rp.reveal ?? null } // lane / speed / cap / reveal — «Гонка с Питом»: своя дорожка, скорость, подпись внутри пилюли и слово, которое проявится при промахе
+    return { idx, parts: rp.parts, target: repTarget[idx], text: textOf(chunks, rp.parts), state: idx < from ? 'skip' : 'todo', tries: 0, pills: [], tk: 0, cnt, cum, durs, offs, lanes: rp.lane != null ? [rp.lane] : rp.parts.map(c => laneOf(n, c, idx)), speed: rp.speed ?? 1, y0: rp.y0 ?? null, cap: rp.cap ?? null, say: rp.say ?? null, trap: !!rp.trap, reveal: rp.reveal ?? null } // lane / speed / cap / reveal — «Гонка с Питом»: своя дорожка, скорость, подпись внутри пилюли и слово, которое проявится при промахе
   })
   const life = Math.max(0, ...reps.map(r => repLifeMs(r.offs.at(-1))))
-  return { t: 0, overlap, holdAll: !!step.holdAll, preSay: !!step.preSay, claimGap: step.claimGap ?? 0, preGap: step.preGap ?? 0, gapAt: step.goodAt ?? [], maxTries, leadIn, budget: budget ?? budgetOf(reps.length, life), reps, pills: [], nextId: 1, nextSpawn: 0, claimed: 0, locked: 0, failed: [], seenSeq: 0, seenMisses: 0, spentTail: null, finished: false, spawned: 0, waited: 0 }
+  return { t: 0, overlap, holdAll: !!step.holdAll, preSay: !!step.preSay, claimGap: step.claimGap ?? 0, preGap: step.preGap ?? 0, gapAt: step.goodAt ?? [], maxTries, leadIn, budget: budget ?? budgetOf(reps.length - from, life), reps, pills: [], nextId: 1, nextSpawn: 0, claimed: 0, locked: 0, failed: [], seenSeq: 0, seenMisses: 0, spentTail: null, finished: false, spawned: 0, waited: 0 }
 }
 
 /**
@@ -198,7 +202,7 @@ export function stepStudent(g, t, { level = 0, seq = [], misses = 0, confirmed =
     }
   }
 
-  if (!g.finished && g.reps.every(r => r.state === 'won' || r.state === 'lost')) {
+  if (!g.finished && g.reps.every(r => r.state === 'won' || r.state === 'lost' || r.state === 'skip')) {
     g.finished = true
     events.push({ type: 'done', locked: g.locked })
   }

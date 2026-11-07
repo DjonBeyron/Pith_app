@@ -7,6 +7,7 @@ import { gameCtxState } from '../../../../shared/lib/gameAudioCtx.js'
 import { subscribeAudioLoss } from '../../../../shared/lib/gameAudioSignals.js'
 import { restartGameAudio, SOUND_DEAD_TEXT, TAP_AGAIN_TEXT } from '../../../../shared/lib/gameAudioRestart.js'
 import { pLog } from '../../../../shared/lib/debug.js'
+import { resumesHere } from './useWordLaneControls.js'
 
 // Пауза игры «Повтори за диктором» при сворачивании приложения (iPhone, iOS 18, Safari). Подписка на visibilitychange → hidden и pagehide: игра СРАЗУ встаёт на паузу (f.pause из useWordLaneControls:
 // таймеры, голос, слушатель, микрофон, кот, пилюли) и показывает оверлей «Игра на паузе» (WordLanePause). Микрофон после возврата сам НЕ открывается (иначе Safari снова спрашивает доступ вне жеста):
@@ -46,7 +47,7 @@ export function useWordLanePause({ f, cfg, audioSrc, lines, dbg = f.dbg, startAu
     return () => { goneRef.current = true; setGameMounted(false); off(); offLoss() }
   }, [])
 
-  /** Тап «Продолжить» (жест): микрофон и звук открываются синхронно в нём, потом ступень сначала */
+  /** Тап «Продолжить» (жест): микрофон и звук открываются синхронно в нём, потом ступень сначала (гонка — с хода паузы, useWordLaneControls.restartStage) */
   const resume = useCallback(() => {
     if (busy || !fRef.current.paused) return
     setBusy(true); setProblem(''); goneRef.current = false; episodeRef.current = false // свернули снова, пока микрофон открывался, — новая пауза
@@ -76,5 +77,5 @@ export function useWordLanePause({ f, cfg, audioSrc, lines, dbg = f.dbg, startAu
     })
   }, [busy, cfg, audioSrc, lines, dbg, startAudio, restart, isVoice])
 
-  return { paused: f.paused, pausedIntro: f.pausedIntro, busy, problem, resume }
+  return { paused: f.paused, pausedIntro: f.pausedIntro, pausedHere: resumesHere(f.stages, f), busy, problem, resume } // pausedHere — гонка продолжит с того же слова / фразы
 }

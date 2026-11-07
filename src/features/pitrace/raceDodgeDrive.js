@@ -46,13 +46,13 @@ const fastOf = cat => cat.classList.contains('scn--lite') || !!globalThis.matchM
 /** Голова в слежении по центру с начала гонки «Голосом» (WordLaneGame): общие фразы и плашки до первой ступени — тоже по центру, глубину ведёт raceHeadDepth.js */
 export const trackHead = cat => (cat?.querySelector?.('.wlCatSvg') ? headDepth(cat, { headW: measureHead(cat).headW, fast: fastOf(cat) }) : null)
 
-export function createDodgeDrive({ cat, lanes = [], peek = () => {}, log = pLog, now = () => performance.now(), setTimer = setTimeout, clearTimer = clearTimeout, quick }) {
+export function createDodgeDrive({ cat, lanes = [], from = 0, peek = () => {}, log = pLog, now = () => performance.now(), setTimer = setTimeout, clearTimer = clearTimeout, quick }) {
   const svg = cat?.querySelector('.wlCatSvg')
   if (!svg) return null
   const { headW, headTop } = measureHead(cat)
   const fast = quick ?? fastOf(cat)
   const depth = headDepth(cat, { x0: Number(cat.style.getPropertyValue('--cat-x')) || 50, headW, fast, now, setTimer, clearTimer }) // голова уже в слежении (прошлая ступень, trackHead) — её цель и есть прежнее место
-  const model = createDodge({ lanes, headTop, headW, x0: depth.x })
+  const model = createDodge({ lanes, headTop, headW, x0: depth.x, from }) // from — «Продолжить» после паузы: ступень идёт с этого повтора
   let pills = []
   let peekAt = -Infinity
 
