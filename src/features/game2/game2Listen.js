@@ -63,6 +63,8 @@ export function createGame2Listener({ words, expected = words.length, maxWords =
       try { cur?.dispose() } catch { /* уже свободен */ }
       build().start()
     },
+    /** Попросить у Vosk итог текущего захода сейчас (не дожидаясь авто-стопа): заход закончится итогом, следующий начнётся сам */
+    stop() { try { cur?.stop() } catch { /* заход уже закончился */ } },
     /** «Тап вместо речи»: слово words[index] считается сказанным сейчас */
     tap(index) { tapping = true; try { cur?.tap(index) } finally { tapping = false } },
     ready: () => ready,
