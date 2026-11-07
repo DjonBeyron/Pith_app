@@ -1,21 +1,44 @@
 /* «Встряхни память», этап 2 «Фразы» (CONCEPT_PHRASES.md «Лента и круги»): заливка ШИРОКОЙ пилюли (data-wide) — слева направо, а не снизу вверх (замечание владельца с iPhone).
-   Пул (wordLanePool.js, paintFill) пишет широкой пилюле transform: translateX(−(1 − v)·100 %) — слой въезжает из-за левого края клипа, его правый край (фронт заливки) ЕДЕТ вправо; кромка — вертикальная, на всю высоту пилюли.
-   Слой шире клипа на 8 px (мягкий край) справа: при 100 % край за клипом, пилюля залита до правого торца. Градиенты — те же, что у пилюль гонки (race-pill-fill.css), только по оси X (to left: от фронта внутрь):
-   светлая кромка 2 px у фронта и фаска за ней; при приросте (data-live) — мягкое свечение вправо от фронта. Искры на широкой не идут (они поднимаются вверх, к горизонтальному краю) — фронт отмечает вертикальная кромка.
-   У обычных пилюль слов всё как было (снизу вверх). Только фон и box-shadow слоя заливки, без filter и без анимаций; на слабом устройстве свечения нет (race-pill-fill.css). */
+   Пул (wordLanePool.js, paintFill) пишет широкой пилюле transform: translateX(−(1 − v)·100 %) — слой въезжает из-за левого края клипа, его правый край (фронт заливки) ЕДЕТ вправо. Слой шире клипа на 8 px (мягкий край) справа:
+   при 100 % край за клипом, пилюля залита до правого торца. Градиенты — те же, что у пилюль гонки (race-pill-fill.css), только по оси X (to left: от фронта внутрь) — мягкий край и фаска, без светлой черты.
+   КРОМКА (2026-11-07, замечание владельца 7: «линия выходит за границы пилюли и утончается сверху и снизу, свет мягче»): не в клипе заливки (там overflow hidden), а на слое искр .wlPillSparks — он лежит на самой
+   пилюле вне клипа; у широкой пилюли искр нет, слой — рамка на 12 px выше и ниже пилюли без обрезки, его <i> — кромка: пул пишет ей translateX(v·100 %) (ширина <i> = ширина слоя заливки, поэтому кромка идёт ровно
+   по фронту) и opacity: у скруглённых торцов кромка гаснет (8 % от левого, 12 % до правого: прямая линия за дугой торца не торчит), пустая и полная — 0. ::before — «веретено»: 2,5 px по центру, к концам 0 (clip-path ромбом),
+   белое ядро поверх цвета дорожки, концы прозрачнее (вертикальный градиент); ::after — ореол: radial-gradient эллипсом 36 px, слабая непрозрачность, при приросте (data-live) ярче. Анимируются только transform
+   и opacity; filter и box-shadow нет; на слабом устройстве ореола нет. У обычных пилюль слов всё как было (снизу вверх). Искры на широкой не идут. */
 .wlPill[data-wide] .wlPillFill { inset: 0 -8px 0 0; transform: translateX(-100%); }
 .wlPill[data-wide]:not([data-fail]) .wlPillFill { background: linear-gradient(to left, rgba(var(--rgb), 0), var(--c) 8px, rgba(var(--rgb), 0.78)); }
 .wl[data-phase='student'] .wlPill[data-wide]:not([data-lock]):not([data-fail]) .wlPillFill,
 .wl[data-phase='student'] .wlField.wl--safe .wlPill[data-wide]:not([data-lock]):not([data-fail]) .wlPillFill {
   background:
-    linear-gradient(to left, rgba(255, 255, 255, 0) 0, rgba(255, 255, 255, 0) 5px, color-mix(in srgb, var(--rim, var(--c)) 85%, transparent) 6px, var(--rim, var(--c)) 8px, rgba(255, 255, 255, 0.24) 8px, rgba(255, 255, 255, 0) 18px),
+    linear-gradient(to left, rgba(255, 255, 255, 0) 4px, rgba(255, 255, 255, 0.16) 8px, rgba(255, 255, 255, 0) 24px),
     linear-gradient(to left, rgba(var(--rgb), 0) 0, rgba(var(--rgb), 0.5) 6px, rgba(var(--rgb), 0.38) 8px);
 }
 .wl[data-phase='student'] .wlPill[data-wide][data-lock]:not([data-fail]) .wlPillFill,
 .wl[data-phase='student'] .wlField.wl--safe .wlPill[data-wide][data-lock]:not([data-fail]) .wlPillFill {
   background:
-    linear-gradient(to left, rgba(255, 255, 255, 0) 0, rgba(255, 255, 255, 0) 5px, rgba(255, 255, 255, 0.7) 6px, rgba(255, 255, 255, 0.95) 8px, rgba(255, 255, 255, 0.28) 8px, rgba(255, 255, 255, 0) 20px),
+    linear-gradient(to left, rgba(255, 255, 255, 0) 4px, rgba(255, 255, 255, 0.24) 8px, rgba(255, 255, 255, 0) 24px),
     linear-gradient(to left, rgba(var(--rgb), 0) 0, var(--c) 8px);
 }
-.wl[data-phase='student'] .wlPill[data-wide][data-cap][data-live]:not([data-fail]) .wlPillFill { box-shadow: 3px 0 10px 1px rgba(var(--rgb), 0.8); }
-.wlPill[data-wide] .wlPillSparks, .wlField.wl--safe:not(.wl--lite) .wlPill[data-wide][data-live]:not([data-fail]) .wlPillSparks { display: none; }
+.wlField .wlPill[data-wide] .wlPillSparks {
+  display: block; top: -12px; bottom: -12px; left: calc(var(--gap) - 4px); right: calc(var(--gap) - 4px);
+  overflow: visible; border-radius: 0; opacity: 1; visibility: visible; transition: none;
+}
+.wlField .wlPill[data-wide][data-fail] .wlPillSparks { display: none; }
+.wlField .wlPill[data-wide] .wlPillSparks i { inset: 0; transform: translateX(0); opacity: 0; -webkit-mask-image: none; mask-image: none; will-change: transform, opacity; }
+.wlField.wl--safe .wlPill[data-wide] .wlPillSparks i { will-change: auto; }
+.wlField .wlPill[data-wide] .wlPillSparks b { display: none; }
+.wlPill[data-wide] .wlPillSparks i::before {
+  content: ''; position: absolute; left: -1.25px; top: 0; bottom: 0; width: 2.5px;
+  background:
+    linear-gradient(to bottom, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.95) 38% 62%, rgba(255, 255, 255, 0)),
+    linear-gradient(to bottom, rgba(var(--rgb), 0), var(--rim, var(--c)) 18% 82%, rgba(var(--rgb), 0));
+  clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
+}
+.wlPill[data-wide] .wlPillSparks i::after {
+  content: ''; position: absolute; left: -18px; width: 36px; top: 6px; bottom: 6px;
+  background: radial-gradient(closest-side, rgba(var(--rgb), 0.4), rgba(var(--rgb), 0.16) 55%, rgba(var(--rgb), 0));
+  opacity: 0.6; transition: opacity 0.3s ease-out;
+}
+.wlPill[data-wide][data-live] .wlPillSparks i::after { opacity: 1; }
+.wl--lite .wlPill[data-wide] .wlPillSparks i::after, .weak-device .wlPill[data-wide] .wlPillSparks i::after { display: none; }

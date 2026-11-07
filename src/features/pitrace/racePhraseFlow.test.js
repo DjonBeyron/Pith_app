@@ -11,7 +11,7 @@ import { POOL } from '../player/modules/rotate-phone/wordLanePool.js'
 import { FILL_ADVANCE } from '../player/modules/rotate-phone/wordLaneFillView.js'
 
 // Круг 1 — единый конвейер: после итога хода остальные пилюли не гаснут, а доезжают вниз отыгранными (data-spent), следующий ход выезжает за ними тем же потоком.
-// Круг 2 «Скажи» — одна заливка на всю фразу: черновое слово — половина вклада, первый черновик — «аванс», экран догоняет цель каждый кадр без ступенек.
+// Круг 2 «Скажи» — одна заливка на всю фразу: каждое слово — полная доля (черновое — когда устоялось, racePhraseFill.js), первый звук — «аванс», экран догоняет цель каждый кадр без ступенек.
 const ph = phrasesOf({ phrases: PHRASE_FIXTURE })
 const turns = round1Turns(ph, 's1')
 const pick = () => phraseStep('phrases1', turns, { round: 1, mode: 'pick', voice: false, speed: PHRASE_SPEED })
@@ -94,7 +94,7 @@ describe('круг 1: единый конвейер после зачёта', ()
 describe('круг 2 «Скажи»: одна заливка на всю фразу', () => {
   const say = () => phraseStep('phrases2', round2SayTurns(ph), { round: 2, mode: 'say', voice: true, speed: SAY_SPEED })
   for (const frame of [16, 50]) {
-    it(`первый черновик — заливка движется не позже 100 мс; черновое слово — половина вклада, подтверждённое — целиком; шаг за кадр ≤ 15 % (кадр ${frame} мс)`, () => {
+    it(`первый черновик — заливка движется не позже 100 мс; черновое слово — половина доли, устоялось — целиком; шаг за кадр ≤ 15 % (кадр ${frame} мс)`, () => {
       const s = setupScene(say(), { listen: createPhraseListener, frame })
       s.go(600)
       const p = s.pool.taken[0], n = capOf(round2SayTurns(ph)[0].target.key).split(' ').length
@@ -104,7 +104,8 @@ describe('круг 2 «Скажи»: одна заливка на всю фра�
       while (p.fill === 0 && s.clock.t - t0 < 500) s.go(frame)
       expect(s.clock.t - t0).toBeLessThanOrEqual(100)
       s.go(ADVANCE_MS - 200); expect(p.fill).toBeCloseTo(FILL_ADVANCE / n, 2)
-      stubDraft('nice'); s.go(400); expect(p.fill).toBeCloseTo((0.5 > FILL_ADVANCE ? 0.5 : FILL_ADVANCE) / n, 2)
+      stubDraft('nice'); s.go(150); expect(p.fill).toBeCloseTo(0.5 / n, 2) // черновик только что — половина доли
+      s.go(400); expect(p.fill).toBeCloseTo(1 / n, 2) // устоялся (FILL_SETTLE_MS) — полная доля
       stubSay('nice to'); s.go(ADVANCE_MS + 1200); expect(p.fill).toBeCloseTo(2 / n, 2)
       const steps = p.fills.slice(1).map((v, i) => Math.abs(v - p.fills[i]))
       expect(Math.max(...steps)).toBeLessThanOrEqual(0.15)

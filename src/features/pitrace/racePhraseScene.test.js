@@ -99,11 +99,11 @@ describe('сцена широкой ленты: круг 2 «Скажи»', () =
     s.go(600)
     const p = s.pool.taken[0]
     expect(s.pool.taken).toHaveLength(1); expect(p.attrs.has('data-faded')).toBe(true); expect(p.segs).toBeUndefined(); expect(p.wide).toBe(true)
-    stubSay('nice to'); s.go(600); expect(p.fill).toBeCloseTo(2.35 / 4, 2) // два слова + «аванс» следующего
-    s.go(1400); expect(p.fill).toBeCloseTo(0.5, 2) // черновиков давно нет — только слова
+    stubSay('nice to'); s.go(600); expect(p.fill).toBeCloseTo(0.5, 2) // два слова — две полные доли, «аванс» после первого слова не перелетает
+    s.go(1400); expect(p.fill).toBeCloseTo(0.5, 2)
     expect(s.fx.win).not.toHaveBeenCalled()
-    stubSay('nice to you')
-    expect(s.fx.win).toHaveBeenCalledTimes(1)
+    stubSay('nice to you'); s.go(16); expect(s.fx.win).not.toHaveBeenCalled() // итог: заливка сначала доезжает до 100 %
+    s.go(500); expect(s.fx.win).toHaveBeenCalledTimes(1); expect(p.fill).toBe(1)
     expect(s.fx.win.mock.calls[0][2].res).toMatchObject({ ok: true, ratio: 0.75, clean: false })
     s.run.stop()
   })
@@ -115,15 +115,15 @@ describe('сцена широкой ленты: круг 2 «Скажи»', () =
     expect(m()).toBe('Nice:full ▭▭:hidden ▭▭▭▭:hidden ▭▭▭:hidden') // первое слово открыто, «to» второе — спрятано
     stubDraft('nice to'); expect(m()).toBe('Nice:full to:draft ▭▭▭▭:hidden ▭▭▭:hidden')
     stubDraft('nice to meet'); expect(m()).toBe('Nice:full to:full meet:draft ▭▭▭:hidden') // прошлое слово подтверждено следующим
-    stubSay('nice to meet you'); expect(s.fx.win).toHaveBeenCalledTimes(1)
-    expect(m()).toBe('Nice:full to:full meet:full you:full') // итог: вся фраза
+    stubSay('nice to meet you'); expect(m()).toBe('Nice:full to:full meet:full you:full') // итог: вся фраза сразу, взлёт — когда заливка доехала
+    s.go(700); expect(s.fx.win).toHaveBeenCalledTimes(1)
     expect(log.mock.calls.at(-1)[0]).toMatch(/^\[phrases\] круг 2 «Скажи» \(голос\), ход 1\/3: цель/)
     s.run.stop()
   })
   it('чисто — все слова; тап в «Скажи» не отвечает', () => {
     const s = setup(say(), { listen: createPhraseListener })
     s.go(600); s.run.api.tap(1); expect(s.fx.win).not.toHaveBeenCalled()
-    stubSay('nice to meet you'); expect(s.fx.win.mock.calls[0][2].res).toMatchObject({ ratio: 1, clean: true })
+    stubSay('nice to meet you'); s.go(700); expect(s.fx.win.mock.calls[0][2].res).toMatchObject({ ratio: 1, clean: true })
     s.run.stop()
   })
   it('пилюля едет с постоянной скоростью SAY_SPEED — тишина её не ускоряет (раньше ×2 после 3 с), слово не замедляет; ушла — fail с долей слов', () => {

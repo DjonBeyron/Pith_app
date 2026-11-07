@@ -55,7 +55,8 @@ export function createPool(root) {
     const { sparks } = parts[k]
     if (v > 0 && !tall[k] && measure(k)) { if (sparks) put(sparks, '--pill-h', `${tall[k]}px`) } // замер не удался при взятии (пилюля ещё не в вёрстке) — один раз повторяем
     const f = Math.min(1, Math.max(0, v)).toFixed(3)
-    if (sparks) put(sparks, '--fill', f)
+    if (sparks && flat[k]) { put(sparks, 'transform', `translateX(${(f * 100).toFixed(1)}%)`); put(sparks, 'opacity', Math.max(0, Math.min(1, f / 0.08, (1 - f) / 0.12)).toFixed(2)) } // широкая: <i> — кромка-«веретено» над пилюлей, вне клипа (word-lane-wide-fill.css); у торцов гаснет
+    else if (sparks) { put(sparks, '--fill', f); put(sparks, 'transform', ''); put(sparks, 'opacity', '') }
     const r = rise[k], now = performance.now(), el = parts[k].el
     if (v > r.v + LIVE_RISE_EPS) r.at = now
     r.v = v
