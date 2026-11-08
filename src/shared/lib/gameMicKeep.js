@@ -2,9 +2,11 @@
 //  • setTracksEnabled — пауза и конец игры не останавливают дорожку, а выключают (enabled = false): поток жив, следующая игра / «Продолжить» включает его без диалога;
 //  • trackState / waitUnmute — после фона дорожка бывает жива, заглушена (muted: iOS прервал захват) или оборвана: заглушённой даём MIC_REVIVE_MS ожить после enabled = true;
 //  • createIdleCloser — простой без игры дольше MIC_IDLE_CLOSE_MS закрывает поток по-настоящему (индикатор микрофона не висит вечно; следующий старт спросит снова — компромисс);
-//  • onPageUnload — pagehide с выгрузкой страницы (не в bfcache) закрывает поток.
+//  • onPageUnload — pagehide с выгрузкой страницы (не в bfcache) закрывает поток;
+//  • micMuted / onMicMuted / markMicMuted (v3.3.165) — «микрофон временно глух»: система заглушила дорожку посреди игры (iOS: mute на секунду-другую при перестройке аудиосессии). Это НЕ пауза
+//    (gameAudioSignals ждёт MUTE_WAIT_MS), а сцене — сигнал заморозить таймер хода «не успел»; по окончании журнал «[mic] глух N мс (система)».
 export const MIC_IDLE_CLOSE_MS = 10 * 60 * 1000 // столько поток живёт выключенным без игры, потом закрывается
-export const MIC_REVIVE_MS = 500                // столько ждём, пока заглушённая дорожка оживёт после enabled = true
+export const MIC_REVIVE_MS = 1500               // столько ждём, пока заглушённая дорожка оживёт после enabled = true (после фона; v3.3.165: было 500)
 
 const tracksOf = s => { try { return s?.getAudioTracks ? s.getAudioTracks() : (s?.getTracks?.() ?? []) } catch { return [] } }
 
@@ -64,4 +66,31 @@ export function onPageUnload(fn, win = typeof window !== 'undefined' ? window : 
   const h = e => { if (!e?.persisted) fn() }
   win.addEventListener('pagehide', h)
   return () => win.removeEventListener('pagehide', h)
+}
+
+/** После фона: заглушённую дорожку включить и ждать unmute до ms. say(текст) — журнал. → Promise<boolean> — ожила ли */
+export async function reviveMuted(s, { ms = MIC_REVIVE_MS, now = clock, say = () => {} } = {}) {
+  setTracksEnabled(s, true)
+  const t0 = now()
+  const ok = await waitUnmute(s, ms)
+  say(`live/muted → ждём unmute до ${ms} мс → ${ok ? `ожила за ${Math.round(now() - t0)} мс → используем` : 'не ожила → запрашиваем'}`)
+  return ok
+}
+
+const clock = () => globalThis.performance?.now?.() ?? Date.now()
+const muteSubs = new Set()
+let mutedAt = null // когда система заглушила дорожку игрового потока (null — не глух)
+
+/** Микрофон сейчас временно глух (дорожка live, но muted системой) */
+export const micMuted = () => mutedAt != null
+/** Подписка: cb(muted, { ms }) — ms на снятии: сколько длилась глухота. → отписка */
+export function onMicMuted(cb) { muteSubs.add(cb); return () => muteSubs.delete(cb) }
+
+/** gameMic: дорожка заглушена (on) / ожила или поток сменился (off). Повтор того же состояния — no-op */
+export function markMicMuted(on, { why = 'система', now = clock(), log = () => {} } = {}) {
+  if (!!on === micMuted()) return
+  let ms = 0
+  if (on) mutedAt = now
+  else { ms = Math.max(0, Math.round(now - mutedAt)); mutedAt = null; try { log(`[mic] глух ${ms} мс (${why})`) } catch { /* журнал не мешает */ } }
+  for (const cb of muteSubs) { try { cb(!!on, { ms }) } catch { /* подписчик не мешает остальным */ } }
 }

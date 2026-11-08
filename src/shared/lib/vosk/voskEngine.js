@@ -8,7 +8,7 @@ import { feedSilence, feedSamples } from './voskTail.js'
 import { createGate } from './voskGate.js'
 import { createRecorder } from './voskRecord.js'
 import { createAudioSession } from '../speech/speechAudioSession.js'
-import { createCaptureContext, releaseCapture } from './voskCapture.js'
+import { acquireCaptureContext, releaseCapture } from './voskCapture.js'
 import { wireInput } from './voskGain.js'
 import { loadVoskFallback } from './voskLibFallback.js'
 
@@ -129,7 +129,7 @@ export async function startListening(model, grammar, cb, opts = {}) {
   let ctx, rec
   let chain = [] // узлы усиления (opts.gain): отключаются вместе с остальными
   try {
-    ctx = createCaptureContext(Ctx)
+    ctx = acquireCaptureContext(Ctx, { keep: !own }) // готовый поток игры — контекст захвата один на игру (voskCapture.js), между ходами не закрывается
     rec = grammar ? new model.KaldiRecognizer(ctx.sampleRate, grammar) : new model.KaldiRecognizer(ctx.sampleRate) // без словаря — открытый (свободные фразы)
   } catch (e) { // модель могли выгрузить, AudioContext не создался: микрофон и аудиосессию отпускаем
     releaseCapture({ stream: own ? stream : null, ctx, done: release })

@@ -6,7 +6,7 @@ import { renewUntilLive, LIVE_PROBE_MS, RETRY_GAP_MS } from './gameAudioRenewLiv
 // вывод умер после микрофона — один повтор всей цепочки (журнал владельца: «probe — НЕ доиграл за 1500 мс (контекст running)» после «mic granted»).
 const ctx = (state = 'running') => ({ state, currentTime: 1, resume() { return Promise.resolve() } })
 
-function setup({ probes = [], active = true, micLine = 'нет потока', memo = {}, now = () => 0, ctxStart = null } = {}) {
+function setup({ probes = [], active = true, micLine = 'live/off (жив, выключен)', memo = {}, now = () => 0, ctxStart = null } = {}) {
   const order = []
   const seq = [...probes]
   let cur = ctxStart
@@ -32,18 +32,22 @@ describe('restartGameAudio: живой вывод до микрофона', () =
     const r = await p
     expect(r.ok).toBe(true)
     expect(order).toEqual(['renew', `probe:${LIVE_PROBE_MS}:dead`, `renew:${RETRY_GAP_MS}`, `probe:${LIVE_PROBE_MS}:ok`, 'start', 'openMic', 'unlock', 'probe:ok'])
-    expect(logs()).toContain('[audio] вывод мёртв после renew — повтор 1/2 через 1,2 с (время контекста стоит)')
+    expect(logs()).toContain('[audio] вывод мёртв после renew — повтор 1/2 через 1,2 с (время контекста стоит; audioSession=auto/active)')
   })
-  it('мёртв и после двух повторов → dead, микрофон не открывается, на плашке совет заблокировать экран', async () => {
-    const { p, d, order } = setup({ probes: [false, false, false] })
+  it('мёртв и после двух повторов → запасной путь: захват микрофона → renew → проба; потом проба в типе auto → dead + busy, старт не идёт', async () => {
+    const { p, d, order } = setup({ probes: [false, false, false, false, true] })
     const r = await p
-    expect(r).toMatchObject({ ok: false, dead: true, mic: 'skipped' })
-    expect(d.renew).toHaveBeenCalledTimes(3); expect(d.openMic).not.toHaveBeenCalled(); expect(order).not.toContain('start')
+    expect(r).toMatchObject({ ok: false, dead: true, mic: 'granted' })
+    expect(r.busy).toMatch(/в типе auto вывод живой.*микрофон занят другим приложением/)
+    expect(order).toEqual(['renew', `probe:${LIVE_PROBE_MS}:dead`, `renew:${RETRY_GAP_MS}`, `probe:${LIVE_PROBE_MS}:dead`, `renew:${RETRY_GAP_MS}`, `probe:${LIVE_PROBE_MS}:dead`,
+      'openMic', 'renew', `probe:${LIVE_PROBE_MS}:dead`, 'renew', `probe:${LIVE_PROBE_MS}:ok`])
+    expect(d.renew.mock.calls.at(-1)[0]).toMatchObject({ wantType: 'auto', applyType: null })
+    expect(order).not.toContain('start')
     expect(SOUND_DEAD_TEXT).toMatch(/заблокировать и разблокировать экран/)
   })
   it('жест истёк, пока проверялся вывод (userActivation.isActive = false), микрофона нет → tapAgain без getUserMedia; следующий тап с живым контекстом renew пропускает', async () => {
     const memo = {}
-    const a = setup({ active: false, memo })
+    const a = setup({ active: false, memo, micLine: 'нет потока' })
     const r = await a.p
     expect(r).toMatchObject({ ok: false, tapAgain: true, mic: 'skipped' })
     expect(a.d.openMic).not.toHaveBeenCalled(); expect(a.start).not.toHaveBeenCalled()

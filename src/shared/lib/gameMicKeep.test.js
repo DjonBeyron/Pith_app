@@ -97,7 +97,7 @@ describe('после фона: сначала проверить старую д
     await vi.advanceTimersByTimeAsync(200)
     s.t.muted = false; s.L.unmute?.forEach(h => h())
     expect(await p).toBe('granted'); expect(gum).toHaveBeenCalledTimes(1); expect(getGameMic()).toBe(s)
-    expect(logs.some(l => l.startsWith('[mic] дорожка после фона: заглушена, ожила'))).toBe(true)
+    expect(logs.some(l => /^\[mic\] дорожка после фона: live\/muted → ждём unmute до \d+ мс → ожила за \d+ мс → используем$/.test(l))).toBe(true)
   })
 
   it('заглушена и не ожила — остановить и запросить заново (единственный повторный диалог)', async () => {
@@ -108,7 +108,7 @@ describe('после фона: сначала проверить старую д
     const p = openGameMic()
     await vi.advanceTimersByTimeAsync(MIC_REVIVE_MS + 100)
     expect(await p).toBe('granted'); expect(gum).toHaveBeenCalledTimes(2); expect(a.t.readyState).toBe('ended'); expect(getGameMic()).toBe(b)
-    expect(logs).toContain(`[mic] дорожка после фона: заглушена, не ожила за ${MIC_REVIVE_MS} мс → запрашиваем`)
+    expect(logs).toContain(`[mic] дорожка после фона: live/muted → ждём unmute до ${MIC_REVIVE_MS} мс → не ожила → запрашиваем`)
   })
 
   it('trackState / waitUnmute: live, muted, ended, none; оборванная не ждётся', async () => {

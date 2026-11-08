@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { subscribeAudioLoss, reportAudioLoss, CONFIRM_MS, GRACE_MS } from './gameAudioSignals.js'
+import { subscribeAudioLoss, reportAudioLoss, CONFIRM_MS, GRACE_MS, MUTE_WAIT_MS } from './gameAudioSignals.js'
 
 // Сигналы потери звука без ухода страницы: контекст 'interrupted'/'suspended' не по нашей воле (после resume и CONFIRM_MS) и дорожка микрофона 'ended' / 'mute' → пауза.
 // Не сигнал: первые GRACE_MS после старта, «прерывание наше», контекст вернулся сам.
@@ -37,11 +37,11 @@ describe('subscribeAudioLoss', () => {
     const b = setup({ self: true }); b.ctx('interrupted'); vi.advanceTimersByTime(CONFIRM_MS * 2)
     expect(b.loss).not.toHaveBeenCalled(); expect(b.log.mock.calls.some(c => c[0].includes('вызвали мы'))).toBe(true)
   })
-  it('дорожка микрофона ended — пауза сразу; mute — только если через CONFIRM_MS всё ещё muted', () => {
+  it('дорожка микрофона ended — пауза сразу; mute — только если через MUTE_WAIT_MS всё ещё muted', () => {
     const t = setup(); t.mic('ended'); expect(t.loss).toHaveBeenCalledWith('mic-ended')
-    const m = setup(); m.st.mic = 'live/muted'; m.mic('mute'); vi.advanceTimersByTime(CONFIRM_MS); expect(m.loss).toHaveBeenCalledWith('mic-mute')
-    const u = setup(); u.st.mic = 'live/muted'; u.mic('mute'); u.st.mic = 'live'; vi.advanceTimersByTime(CONFIRM_MS); expect(u.loss).not.toHaveBeenCalled()
-    const n = setup(); n.st.mic = 'live/muted'; n.mic('mute'); n.st.mic = 'нет потока'; vi.advanceTimersByTime(CONFIRM_MS); expect(n.loss).toHaveBeenCalledWith('mic-mute') // поток пропал — не «ожила»
+    const m = setup(); m.st.mic = 'live/muted'; m.mic('mute'); vi.advanceTimersByTime(MUTE_WAIT_MS); expect(m.loss).toHaveBeenCalledWith('mic-mute')
+    const u = setup(); u.st.mic = 'live/muted'; u.mic('mute'); u.st.mic = 'live'; vi.advanceTimersByTime(MUTE_WAIT_MS); expect(u.loss).not.toHaveBeenCalled()
+    const n = setup(); n.st.mic = 'live/muted'; n.mic('mute'); n.st.mic = 'нет потока'; vi.advanceTimersByTime(MUTE_WAIT_MS); expect(n.loss).toHaveBeenCalledWith('mic-mute') // поток пропал — не «ожила»
   })
   it('reportAudioLoss из кода (сторож дорожки) — пауза у живой подписки, после отписки тишина', () => {
     const t = setup(); reportAudioLoss('mic-dead-ended'); expect(t.loss).toHaveBeenCalledWith('mic-dead-ended')

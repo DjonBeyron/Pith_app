@@ -14,6 +14,10 @@
 // Пробный звук после микрофона не доиграл — «вывод умер после открытия микрофона» и ОДИН повтор всей цепочки (renew → проба → старт; поток микрофона живой и не переоткрывается).
 // Итог { ok, mic, ctx, probe, steps, failed, ms, tapAgain, dead }: ok = false — вызывающий оставляет паузу с «Звук не вернулся, нажми ещё раз». Слушатель Vosk пересоздаёт перезапуск ступени (на том же потоке, если дорожка жива).
 // Каждый шаг — строка «[audio] перезапуск: …»; итог — «[audio] перезапуск: ПОСЛЕ — …». Все зависимости подставляются (тесты без DOM).
+// v3.3.165 (журнал владельца: после диктовки в другом приложении дорожка ended, проба мертва трижды, getUserMedia не вызывался, жёлтой точки нет):
+//  • голос и дорожка НЕ живая (ended / нет потока / заглушена) — в жесте СРАЗУ тип play-and-record и openGameMic (getUserMedia) — шаг mic-first, ДО renew и пробы: захват сам активирует сессию iOS;
+//  • вывод мёртв после всех повторов — gameAudioDeadOutput.js: (а) захват микрофона, если ещё не было, → renew → проба; (б) проба в типе auto → итог dead + busy (попап: SOUND_BUSY_TEXT, авто-повтор);
+//  • quick (авто-повтор из попапа паузы, без жеста): renew без повторов, без запасного пути, getUserMedia не зовётся (нужен — итог tapAgain).
 import { gameCtxState, peekGameCtx, recreateGameCtx, unlockGameCtx } from './gameAudioCtx.js'
 import { stopGameBuffers, startedCount } from './gameBufferPlay.js'
 import { soundCtxState } from './sounds.js'
@@ -25,10 +29,12 @@ import { renewAudioSession } from './gameAudioRenew.js'
 import { renewUntilLive, probeLive } from './gameAudioRenewLive.js'
 import { gameAudioSession } from './gameMicSession.js'
 import { gameAudioNote } from './gameAudioSink.js'
+import { deadOutputFallback, liveDeps } from './gameAudioDeadOutput.js'
 import { pLog } from './debug.js'
 
 export const SOUND_DEAD_TEXT = 'Звук не вернулся, нажми «Продолжить» ещё раз. Не помогло — попробуй заблокировать и разблокировать экран'
 export const TAP_AGAIN_TEXT = 'Нажми «Продолжить» ещё раз'
+export const SOUND_BUSY_TEXT = 'Звук занят другим приложением (диктовка, звонок, запись). Закрой его или подожди пару секунд и нажми «Продолжить»'
 export const REUSE_MS = 15000 // после tapAgain столько живой проверенный контекст не обновляем заново
 
 const sessionLine = (nav = globalThis.navigator) => { try { const s = nav?.audioSession; return s ? `${s.type ?? '—'}/${s.state ?? '—'}` : 'нет API' } catch { return 'недоступно' } }
@@ -47,7 +53,7 @@ const DEFAULTS = {
  * Вызывать СИНХРОННО в обработчике тапа. voice — голосовой режим (микрофон перезапускается), why — для журнала, start(deps) — прежний старт звука (startGameAudio с deps.renewed, deps.openMic, deps.consume).
  * → промис итога (не отклоняется). over — подмена зависимостей (тесты).
  */
-export function restartGameAudio({ voice = true, why = 'Продолжить', start }, over = {}) {
+export function restartGameAudio({ voice = true, why = 'Продолжить', start, quick = false }, over = {}) {
   const d = { ...DEFAULTS, ...over }
   const t0 = d.now()
   const steps = []
@@ -55,7 +61,7 @@ export function restartGameAudio({ voice = true, why = 'Продолжить', s
   const step = (name, extra = '') => { steps.push(name); d.log(`[audio] перезапуск: ${name}${extra ? ` — ${extra}` : ''}`); d.note('audio-restart', { step: name, extra, ms: Math.round(d.now() - t0) }) }
   const states = () => `игровой ctx=${d.ctxState() ?? 'нет'}, ctx интерфейса=${d.uiState() ?? 'нет'}, ctx микрофона=[${(d.captures() ?? []).join(',') || 'нет'}], дорожки=${d.micLine()}, audioSession=${d.session()}`
   const started0 = d.started()
-  const renewOpts = n => ({ reason: `«${why}»${n > 1 ? ', повтор цепочки' : ''}`, wantType: voice ? null : 'auto', applyType: voice ? d.voiceType : null })
+  const renewOpts = n => ({ reason: `«${why}»${n > 1 ? ', повтор цепочки' : ''}`, wantType: voice ? null : 'auto', applyType: voice ? d.voiceType : null, ...(quick ? { maxRetries: 0 } : {}) })
   const reuseAt = d.memo?.at
   if (d.memo) d.memo.at = null
 
@@ -63,7 +69,17 @@ export function restartGameAudio({ voice = true, why = 'Продолжить', s
   d.log(`[audio] перезапуск (${why}, режим ${voice ? 'голос' : 'тап'}): ДО — ${states()}`)
   safe(d.stopBuffers); step('stop-buffers', 'источники старого контекста оборваны')
   if (voice) { const before = d.micLine(); safe(d.closeMic); step('mic-off', `дорожка выключена, поток жив (была ${before}) — после проверки включится без нового запроса`) } else step('mic-keep', 'режим тапа: микрофон координатор не трогает')
+  const micEarly = voice && !liveLine(d.micLine()) && d.active() ? openEarly() : null // синхронно, в жесте
   return attempt(1).catch(e => { d.log(`[audio] перезапуск упал — ${e?.message ?? e}`); return done({ ok: false, mic: 'unavailable', failed: `ошибка: ${e?.message ?? e}` }) })
+
+  function openEarly() {
+    const before = d.micLine()
+    safe(d.voiceType) // тип play-and-record ДО getUserMedia (как в «Начать»)
+    step('mic-first', `дорожка ${before} — тип сессии и getUserMedia в жесте ДО проверки вывода (захват сам активирует сессию iOS)`)
+    let p
+    try { p = Promise.resolve(d.openMic()) } catch (e) { p = Promise.reject(e) }
+    return p.catch(() => 'unavailable')
+  }
 
   async function liveOutput(n) {
     if (n === 1 && reuseAt != null && d.now() - reuseAt < REUSE_MS && d.ctxState() === 'running') { // прошлый тап проверил вывод, но жест истёк: renew не повторяем
@@ -71,7 +87,7 @@ export function restartGameAudio({ voice = true, why = 'Продолжить', s
       step('probe-live', pr.ok ? `renew пропущен: контекст с прошлого тапа жив, пробный звук ${pr.ms} мс` : `контекст с прошлого тапа не играет (${pr.why}) — полный renew`)
       if (pr.ok) return { ok: true, probe: pr, tries: 0 }
     }
-    const lv = await d.renewLive(renewOpts(n), { renew: d.renew, probe: d.probe, peekCtx: d.peekCtx, log: d.log, active: d.active })
+    const lv = await d.renewLive(renewOpts(n), liveDeps(d))
     const rn = lv?.rn
     step('renew', `auto → закрыто ${rn?.closed ?? 0}${rn?.kinds?.length ? ` (${rn.kinds.join(', ')})` : ''} → тип ${rn?.type ?? '—'} → новый ctx ${rn?.state ?? 'нет'} за ${rn?.ms ?? '—'} мс`)
     step('probe-live', lv?.ok ? `вывод живой, пробный звук ${lv.probe?.ms ?? '—'} мс${lv.tries ? ` (после повторов: ${lv.tries})` : ''}` : `вывод мёртв: ${lv?.probe?.why ?? '—'} (повторов renew: ${lv?.tries ?? 0})`)
@@ -79,9 +95,17 @@ export function restartGameAudio({ voice = true, why = 'Продолжить', s
   }
 
   async function attempt(n) {
-    const lv = await liveOutput(n)
+    let micOpened = !!micEarly
+    if (micEarly && n === 1) {
+      const mr = await micEarly
+      step('mic-first-done', `ответ ${mr}, дорожки ${d.micLine()}`)
+      if (mr !== 'granted') return done({ ok: false, mic: mr, ctx: d.ctxState(), failed: `микрофон: ${mr}` })
+    }
+    let lv = await liveOutput(n)
     if (!lv.ok && lv.tapAgain) return tapAgain('новый контекст без касания не запускается')
-    if (!lv.ok) return done({ ok: false, dead: true, mic: 'skipped', ctx: d.ctxState(), probe: lv.probe, failed: `вывод мёртв после renew (${(lv.tries ?? 0) + 1} попыток): ${lv.probe?.why ?? '—'}` })
+    const tries = (lv.tries ?? 0) + 1
+    if (!lv.ok && !quick && n === 1) { lv = await deadOutputFallback(d, { micOpened: micOpened || !voice, renewOpts: renewOpts(n), step, liveLine }); micOpened ||= !!lv.micOpened }
+    if (!lv.ok) return done({ ok: false, dead: true, busy: lv.busy ?? null, mic: micOpened && voice ? 'granted' : 'skipped', ctx: d.ctxState(), probe: lv.probe, failed: `вывод мёртв после renew (${tries} попыток): ${lv.probe?.why ?? '—'}${lv.busy ? `; ${lv.busy}` : ''}` })
     if (voice && !liveLine(d.micLine()) && !d.active()) { if (d.memo) d.memo.at = d.now(); return tapAgain('жест истёк, пока проверялся вывод — getUserMedia вне жеста не зову') }
     const openMic = () => { step('mic-open', 'проверка старой дорожки / getUserMedia в жесте, после живого пробного звука'); return Promise.resolve(d.openMic()) }
     const deps = { consume: () => d.consume() ?? `жёсткий перезапуск (${why})`, renewed: true, ...(voice ? { openMic } : {}) }
