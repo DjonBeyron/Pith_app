@@ -13,7 +13,8 @@ import { readAudioSessionMode, readMicHoldMode } from './gameAudioSettings.js'
 import { gameMicGesture } from './gameMicGesture.js'
 import { micGainLogLine, readMicGain } from './gameMicGain.js'
 import { micRequestBegin, micRequestEnd } from './gameMicRequest.js'
-import { MIC_IDLE_CLOSE_MS, MIC_REVIVE_MS, trackState, setTracksEnabled, stopTracks, waitUnmute, createIdleCloser, onPageUnload } from './gameMicKeep.js'
+import { MIC_IDLE_CLOSE_MS, trackState, setTracksEnabled, stopTracks, reviveMuted, markMicMuted, createIdleCloser, onPageUnload } from './gameMicKeep.js'
+import { closeKeptCapture } from './vosk/voskCapture.js'
 import { markMicGranted } from './micGrantFlag.js'
 
 export { micRequestPending } from './gameMicRequest.js' // blur/focus от нашего диалога доступа — не уход (wordLanePauseEvents.js)
@@ -49,8 +50,9 @@ const lostSubs = new Set() // «дорожка микрофона заглуше
 export function onGameMicLost(cb) { lostSubs.add(cb); return () => lostSubs.delete(cb) }
 function watchTracks(s) {
   for (const t of s.getTracks?.() ?? []) {
-    const fire = kind => () => { if (stream !== s) return; for (const cb of lostSubs) { try { cb(kind, { readyState: t.readyState, muted: !!t.muted, idle }) } catch { /* подписчик не должен ломать остальных */ } } }
-    try { t.addEventListener?.('mute', fire('mute')); t.addEventListener?.('ended', fire('ended')) } catch { /* без событий дорожки */ }
+    const fire = kind => () => { if (stream !== s) return; markMicMuted(kind === 'mute', { why: 'дорожка оборвана', log: pLog }); for (const cb of lostSubs) { try { cb(kind, { readyState: t.readyState, muted: !!t.muted, idle }) } catch { /* подписчик не должен ломать остальных */ } } }
+    const unmute = () => { if (stream === s && trackState(s) === 'live') markMicMuted(false, { log: pLog }) } // «[mic] глух N мс (система)»
+    try { t.addEventListener?.('mute', fire('mute')); t.addEventListener?.('ended', fire('ended')); t.addEventListener?.('unmute', unmute) } catch { /* без событий дорожки */ }
   }
 }
 /** Дорожки игрового потока одной строкой для журнала: «live», «live/muted», «live/off (жив, выключен)» — вне игры, или «нет потока» */
@@ -71,18 +73,15 @@ const trackLine = s => { try { const t = s.getTracks()[0]?.getSettings?.() ?? {}
 /** Включить живой поток (enabled = true), снять таймер простоя */
 function takeStream() { setTracksEnabled(stream, true); idle = false; idleCloser.disarm() }
 
-/** Поток уже есть (прошлая игра, пауза, фон): жива — включаем; заглушена — включаем и ждём MIC_REVIVE_MS; оборвана / не ожила — останавливаем. → true, если можно брать */
+/** Поток уже есть (прошлая игра, пауза, фон): жива (live и НЕ muted) — берёт openGameMic; заглушена — включаем и ждём unmute до MIC_REVIVE_MS; оборвана / не ожила — останавливаем. → true, если можно брать */
 async function reuseStream() {
   const s = stream
   const was = idle
-  const st = trackState(s)
   const say = text => { if (was) pLog(`[mic] дорожка после фона: ${text}`) }
-  if (st === 'muted') {
-    setTracksEnabled(s, true)
-    const ok = await waitUnmute(s, MIC_REVIVE_MS)
+  if (trackState(s) === 'muted') {
+    const ok = await reviveMuted(s, { say })
     if (stream !== s) return false
-    if (ok) { takeStream(); say(`заглушена, ожила за ${MIC_REVIVE_MS} мс → используем`); return true }
-    say(`заглушена, не ожила за ${MIC_REVIVE_MS} мс → запрашиваем`)
+    if (ok) { takeStream(); return true }
   } else say('оборвана → запрашиваем')
   if (stream === s) shutGameMic('дорожка мертва')
   return false
@@ -109,7 +108,7 @@ async function requestStream() {
     try { s = await navigator.mediaDevices.getUserMedia({ audio: constraints }) } catch (e) { micRequestEnd(e?.name ?? 'ошибка'); throw e }
     micRequestEnd(mine !== epoch ? 'granted (поток уже закрыт)' : 'granted')
     if (mine !== epoch) { stopTracks(s); pLog('[mic] поток открылся уже после настоящего закрытия — закрыт'); return 'unavailable' }
-    if (stream && stream !== s) stopTracks(stream) // прежний (оборванный/заглушённый) поток не оставляем висеть
+    if (stream && stream !== s) { stopTracks(stream); markMicMuted(false, { why: 'новый поток', log: pLog }) } // прежний (оборванный/заглушённый) поток не оставляем висеть
     stream = s
     watchTracks(s)
     opened = constraints
@@ -160,6 +159,7 @@ export const gameMicAlive = () => { const st = trackState(stream); return st ===
  * Без игры дольше MIC_IDLE_CLOSE_MS — закрытие по-настоящему (shutGameMic). Открытие, идущее сейчас, оставит новый поток выключенным
  */
 export function closeGameMic() {
+  closeKeptCapture('пауза / конец игры') // контекст захвата живёт между ходами одной игры (voskCapture.js)
   releases += 1
   parked = false; taken = false; reopening = null
   if (!stream || idle) return
@@ -177,6 +177,7 @@ export function shutGameMic(why = 'закрыт') {
   epoch += 1
   idleCloser.disarm()
   stopTracks(s)
+  markMicMuted(false, { why: 'поток закрыт', log: pLog }); closeKeptCapture(why)
   if (s) pLog(`[mic] поток закрыт по-настоящему (${why}) — следующий старт спросит разрешение`)
 }
 

@@ -21,7 +21,7 @@ function setup({ voice = true, ctx = fakeCtx('running'), startResult = { mic: 'g
     unlockCtx: vi.fn(() => { order.push('unlockCtx'); return Promise.resolve(cur?.state ?? null) }),
     stopBuffers: vi.fn(() => order.push('stopBuffers')), started: () => 0,
     uiState: () => 'interrupted', captures: () => ['interrupted'],
-    micLine: () => 'live/muted', closeMic: vi.fn(() => order.push('closeMic')), openMic: vi.fn(() => { order.push('openMic'); return Promise.resolve('granted') }),
+    micLine: () => 'live/off (жив, выключен)', closeMic: vi.fn(() => order.push('closeMic')), openMic: vi.fn(() => { order.push('openMic'); return Promise.resolve('granted') }),
     consume: () => 'пауза: hidden', session: () => 'play-and-record/active', active: () => active, memo: {},
     waitRunning: vi.fn(async get => { order.push('waitRunning'); const s = waits ? waits.shift() : get()?.state ?? null; return { state: s, tries: 1, ms: 10 } }),
     probe: vi.fn(async () => { order.push('probe'); return probeOk ? { ok: true, ms: 50 } : { ok: false, ms: 1500, why: 'время контекста стоит' } }),
@@ -49,7 +49,7 @@ describe('restartGameAudio: «Продолжить» идёт через обн�
     expect(r).toMatchObject({ ok: true, mic: 'granted', ctx: 'running', failed: null })
     expect(r.steps).toEqual(['stop-buffers', 'mic-off', 'renew', 'probe-live', 'mic-open', 'unlock', 'start-done', 'wait-running', 'probe', 'listener'])
     const L = logs()
-    expect(L[0]).toMatch(/ДО — игровой ctx=нет, ctx интерфейса=interrupted, ctx микрофона=\[interrupted\], дорожки=live\/muted, audioSession=play-and-record\/active/)
+    expect(L[0]).toMatch(/ДО — игровой ctx=нет, ctx интерфейса=interrupted, ctx микрофона=\[interrupted\], дорожки=live\/off \(жив, выключен\), audioSession=play-and-record\/active/)
     expect(L.find(l => l.includes('перезапуск: renew'))).toMatch(/закрыто 3 \(game, sounds, capture\) → тип play-and-record → новый ctx running за 12 мс/)
     expect(L.at(-1)).toMatch(/ПОСЛЕ — игровой ctx=running.*итог звук жив/)
   })
@@ -95,11 +95,14 @@ describe('restartGameAudio: проверка, что звук вернулся',
     const { d, p } = setup({ voice: false, active: false, waitStates: ['suspended'] })
     expect((await p).ok).toBe(false); expect(d.recreateCtx).not.toHaveBeenCalled()
   })
-  it('running, но пробный звук не доиграл ни после renew, ни после повторов → ok false, dead, микрофон не открывается', async () => {
+  it('running, но пробный звук не доиграл ни после renew, ни после повторов, ни после захвата микрофона, ни в типе auto → ok false, dead, busy', async () => {
     const { p, d } = setup({ probeOk: false })
     const r = await p
-    expect(r).toMatchObject({ ok: false, dead: true, mic: 'skipped', failed: 'вывод мёртв после renew (3 попыток): время контекста стоит' })
-    expect(d.openMic).not.toHaveBeenCalled()
+    expect(r).toMatchObject({ ok: false, dead: true, mic: 'granted' })
+    expect(r.failed).toMatch(/^вывод мёртв после renew \(3 попыток\): время контекста стоит; вывод мёртв и в типе auto/)
+    expect(r.busy).toMatch(/другое приложение/)
+    expect(d.openMic).toHaveBeenCalledTimes(1) // запасной путь (а): захват микрофона до последней пробы
+    expect(r.steps).toEqual(expect.arrayContaining(['dead-mic-first', 'probe-after-mic', 'probe-auto']))
   })
   it('нет Web Audio (state null) — проверять нечего, ok по пробе', async () => {
     const r = await setup({ waitStates: [null] }).p
