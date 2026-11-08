@@ -26,7 +26,7 @@ describe('журнал [fill]', () => {
     f.frame(1240 + FILL_LOG_EVERY_MS, 0.5, 0.42); expect(lines.at(-1)).toBe('[fill] экран 0,42 → 0,50')
     f.frame(1600, 0.5, 0.5); expect(lines).toHaveLength(2) // догнал — тишина
     f.phrase(1); f.frame(1700, 1, 0.6); expect(lines.at(-1)).toBe('[fill] +700 мс: итог фразы, слов 100 % → цель 1,00, экран 0,60')
-    f.full(1900, 1500); f.rise(2020); expect(lines.at(-1)).toBe('[fill] 100 % через 400 мс после последнего слова, взлёт +1020 мс')
+    f.full(1900, 1500); f.rise(2020); expect(lines.at(-1)).toBe('[fill] 100 % через 400 мс после последнего слова, последнее слово пришло: черновиком, взлёт +1020 мс')
     f.end(); expect(lines.at(-1)).toBe('[fill] итог хода: слов 1, первое слово через 240 мс, 100 % через 660 мс после последнего, макс. пауза 0 мс') // слово 2 впервые на 1240 (+240), 100 % — на 1900
     f.end(); expect(lines.at(-1)).toMatch(/^\[fill\] итог хода/); expect(lines.filter(l => l.includes('итог хода'))).toHaveLength(1) // сводка — один раз
   })
@@ -36,7 +36,7 @@ describe('журнал [fill]', () => {
     const fill = logs.filter(l => l.startsWith('[fill]'))
     expect(fill[0]).toMatch(/^\[fill\] \+\d+ мс: слово 1 «nice» черновик → цель 0,25, экран 0,\d\d$/)
     expect(fill.some(l => /итог фразы, слов 100 % → цель 1,00/.test(l))).toBe(true)
-    expect(fill.at(-2)).toMatch(/^\[fill\] 100 % через \d+ мс после последнего слова, взлёт \+\d+ мс$/)
+    expect(fill.at(-2)).toMatch(/^\[fill\] 100 % через \d+ мс после последнего слова, последнее слово пришло: итогом, взлёт \+\d+ мс$/) // «to meet you» — только итогом
     expect(fill.at(-1)).toMatch(/^\[fill\] итог хода: слов 4, первое слово через \d+ мс, 100 % через \d+ мс после последнего, макс\. пауза \d+ мс$/)
     expect(compactText(fill.join('\n') + '\n[gate] открыт +5 мс (rms 0,040)')).toBe(fill.join('\n') + '\n[gate] открыт +5 мс (rms 0,040)')
     s.run.stop()
