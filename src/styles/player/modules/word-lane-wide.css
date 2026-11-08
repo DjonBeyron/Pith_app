@@ -14,6 +14,27 @@
 .wl[data-race][data-tape] .wlLaneEdge:nth-of-type(2) { transform: translateX(28.33vw); }
 .weak-device .wl[data-race] .wlLanes i, .weak-device .wl[data-race] .wlLaneEdge { transition: none; }
 @media (prefers-reduced-motion: reduce) { .wl[data-race] .wlLanes i, .wl[data-race] .wlLaneEdge { transition: none; } }
+/* Лента короче сверху (владелец, iPhone, 2026-11-08: «линии в 3-м и 4-м этапах наезжают сверху на кнопки»). На ленте разделители .wlLaneEdge разъезжаются к 5 % / 95 % — прямо под «назад» (слева, 36 px) и «паузу»
+   (справа), а строкой ниже — счётчик XP слева и кнопки администратора справа (safe + 54 … 82 px, race-panel.css): от --wl-top линия шла сквозь них. Теперь вся лента (.wlLanes: разделители, нити, вспышка) на время акта
+   сдвинута вниз на 80 px — верх на safe + 90 px, под обеими строками; низ уходит за край экрана (.wlField обрезает), то есть не меняется. transform на композиторе, 0,6 с вместе со съездом дорожек. */
+.wl[data-race] .wlLanes { transition: opacity 0.8s ease, transform 0.6s cubic-bezier(0.4, 0, 0.2, 1); }
+.wl[data-race][data-tape] .wlLanes { transform: translateY(80px); contain: paint; }
+.weak-device .wl[data-race] .wlLanes { transition: opacity 0.8s ease; }
+@media (prefers-reduced-motion: reduce) { .wl[data-race] .wlLanes { transition: opacity 0.8s ease; } }
+/* Две нити на ленте (владелец, 2026-11-08: «где одна дорожка — две линии конвейера»): нить по центру закрывала широкая пилюля (78 % ширины, 11 … 89 %). На ленте у средней колонки тот же ::before с узором «нить с узелками»
+   (word-lane-lane-run.css: --run-knot / --run-line, период, яркость, сдвиг --run-y со скоростью пилюли), но шириной от 8 % до 92 % экрана и с ЧЕТЫРЬМЯ слоями фона — узелки и штрихи у левого и у правого края слоя:
+   нити на 8 % и 92 %, по ≈ 11 px снаружи от пилюли и внутри разделителей (5 % / 95 %). Колонка — 1/3 экрана с левым краем на 33,3 %, поэтому в её процентах: left −76 %, ширина 252 % (+ 14 px под ореол узелков).
+   Обрезку держит не колонка (contain: paint снят — слой шире её), а сама лента (.wlLanes, contain: paint выше). Узлов не прибавляется, ::after колонки по-прежнему для вспышки. Три дорожки «Пинг-понга» — по одной нити. */
+.wl[data-race][data-tape] .wlLanes i:nth-child(2) { contain: none; }
+.wl[data-race][data-tape] .wlLanes i:nth-child(2)::before {
+  left: calc(-76% - 7px);
+  width: calc(252% + 14px);
+  background:
+    var(--run-knot) left 0 / 14px calc(var(--run-p) / 2) repeat-y,
+    var(--run-knot) right 0 / 14px calc(var(--run-p) / 2) repeat-y,
+    var(--run-line) 7px 0 / 1px calc(var(--run-p) / 2) repeat-y,
+    var(--run-line) calc(100% - 7px) 0 / 1px calc(var(--run-p) / 2) repeat-y;
+}
 
 /* Широкая пилюля — ТА ЖЕ КАПСУЛА, что обычная (word-lane-pill.css), только шире и ниже: скругление 999px (полукруглые торцы — в той же пропорции к высоте), та же обводка, тело, внутренний свет,
    та же заливка с кромкой, но слева направо (word-lane-wide-fill.css: translateX, кромка вертикальная, искр нет). Своё — лишь «выдох» кольца (по ширине почти не растёт, иначе вылез бы за экран) и подпись в две строки. */

@@ -12,7 +12,7 @@
   border: 1.5px solid rgba(var(--wk), 0.75);
   border-left-width: 5px;
   border-radius: 12px;
-  background: rgba(var(--wk), 0.12);
+  background: linear-gradient(rgba(var(--wk), 0.12), rgba(var(--wk), 0.12)), var(--wl-card, #14171c); /* непрозрачная, как .raceWeakChip (race-weak.css) */
   color: #f4f6fb;
   line-height: 1.2;
 }

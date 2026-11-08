@@ -6,7 +6,7 @@
      --run-a  яркость — opacity слоя (в том числе мигание): композитор, без перерисовки градиента (раньше она была в цвете фона — каждый кадр перерисовки).
    Один слой на дорожку — ::before колонки (узлов в разметке не прибавляется, пилюль и их слоёв не касается; ::after колонки занят вспышкой верного ответа — word-lane-lane-flash.css). Слой выше колонки на период
    (--run-p = PERIOD в wordLaneConveyor.js, 11 dvh) и сдвигается на --run-y — бесшовно. Штрихи: однотонный фон (яркость — opacity) сквозь маску из штрихов 2,2 dvh на период
-   11 dvh: линия 1 px, штрихи редкие. filter нет. Слабое устройство (.wl--lite) и reduced-motion: привод не двигает пунктир (--run-y не меняется), слой без will-change. Колонка — contain: paint: слой, сдвинутый вниз за край, не меняет переполнение предков (раньше поле перерисовывалось каждый кадр). Цвет — --rgb колонки (word-lane-lane-flash.css). */
+   11 dvh: линия 1 px, штрихи редкие. Яркость приглушена множителем --run-k 0,65 (2026-11-08): opacity = --run-a × 0,65, привод (REST_A / RUN_A / PULSE_A) прежний. filter нет. Слабое устройство (.wl--lite) и reduced-motion: привод не двигает пунктир (--run-y не меняется), слой без will-change. Колонка — contain: paint: слой, сдвинутый вниз за край, не меняет переполнение предков (раньше поле перерисовывалось каждый кадр). Цвет — --rgb колонки (word-lane-lane-flash.css). */
 .wlLanes i::before {
   --run-p: var(--run-px, 11dvh);
   content: '';
@@ -18,7 +18,8 @@
   pointer-events: none;
   transform: translate3d(0, var(--run-y, 0px), 0);
   will-change: transform, opacity;
-  opacity: var(--run-a, 0.14);
+  --run-k: 0.65; /* приглушение узора везде (владелец, 2026-11-08: «линии конвейера тусклее»): яркость привода × 0,65 — покой 0,14 → 0,09, ход 0,52 → 0,34, пик импульса 0,7 → 0,46 */
+  opacity: calc(var(--run-a, 0.14) * var(--run-k));
   background: rgb(var(--rgb));
   -webkit-mask-image: repeating-linear-gradient(to bottom, #000 0 var(--run-dash, 2.2dvh), transparent var(--run-dash, 2.2dvh) var(--run-p));
   mask-image: repeating-linear-gradient(to bottom, #000 0 var(--run-dash, 2.2dvh), transparent var(--run-dash, 2.2dvh) var(--run-p));
@@ -29,7 +30,7 @@
    Узор «нить с узелками» (v3.3.131): по центру дорожки тонкая нить 1 px из штрихов 0,7 dvh с шагом s = период/12 на половинной яркости (0,45 от --run-a) и два мягких узелка на период (вдвое реже — замечание владельца
    «расстояние больше между чёрточками и точками»; было период/24 и три узелка; ядро 2 px, ореол до 6 px, полная яркость). Узелок ЗАМЕНЯЕТ штрих, а не лежит поверх него (замечание владельца с iPhone): оба слоя
    фона — плитка в полпериода (шесть мест под штрих по s), на первом месте стоит узелок (его центр — середина штриха: 7 px + 0,35 dvh от начала плитки), нить рисует штрихи только на местах 2–6 — ритм «узелок, пять штрихов,
-   узелок…». 7 px сверху — запас под ореол узелка (иначе плитка срезала бы его верх). Два слоя фона на одном ::before шириной 14 px, маска не нужна. Двигается весь ::before (transform --run-y; слой выше колонки на период:
+   узелок…». 7 px сверху — запас под ореол узелка (иначе плитка срезала бы его верх). Два слоя фона на одном ::before шириной 14 px, маска не нужна; картинки слоёв — в переменных --run-knot / --run-line (их же берёт широкая лента «Фраз» для двух нитей, word-lane-wide.css). Двигается весь ::before (transform --run-y; слой выше колонки на период:
    top −51,6 dvh, bottom 0 — узор покрывает всю дорожку при любом сдвиге). Период — --run-px из привода (51,6 dvh, округлённый до 12 пикселей устройства: шаг штрихов s = период/12 и плитка период/2 — целые пиксели),
    яркость — opacity слоя (--run-a), цвета слоёв постоянные (v3.3.133: раньше --run-a стоял в цвете — каждый шаг яркости перерисовывал градиенты). Привод длину штрихов не меняет (на импульсе скорости — только яркость и волна). */
 .wl[data-race] .wlLanes i::before {
@@ -43,15 +44,15 @@
   width: 14px;
   -webkit-mask-image: none;
   mask-image: none;
-  background:
-    radial-gradient(circle 7px at 7px calc(7px + var(--run-d) / 2), var(--run-c) 0 2px, var(--run-g) 3px, transparent 7px) 0 0 / 14px calc(var(--run-p) / 2) repeat-y,
-    linear-gradient(to bottom,
+  --run-knot: radial-gradient(circle 7px at 7px calc(7px + var(--run-d) / 2), var(--run-c) 0 2px, var(--run-g) 3px, transparent 7px);
+  --run-line: linear-gradient(to bottom,
       transparent calc(var(--run-s) + 7px), var(--run-h) 0 calc(var(--run-s) + 7px + var(--run-d)),
       transparent 0 calc(var(--run-s) * 2 + 7px), var(--run-h) 0 calc(var(--run-s) * 2 + 7px + var(--run-d)),
       transparent 0 calc(var(--run-s) * 3 + 7px), var(--run-h) 0 calc(var(--run-s) * 3 + 7px + var(--run-d)),
       transparent 0 calc(var(--run-s) * 4 + 7px), var(--run-h) 0 calc(var(--run-s) * 4 + 7px + var(--run-d)),
       transparent 0 calc(var(--run-s) * 5 + 7px), var(--run-h) 0 calc(var(--run-s) * 5 + 7px + var(--run-d)),
-      transparent 0) center 0 / 1px calc(var(--run-p) / 2) repeat-y;
+      transparent 0);
+  background: var(--run-knot) 0 0 / 14px calc(var(--run-p) / 2) repeat-y, var(--run-line) center 0 / 1px calc(var(--run-p) / 2) repeat-y;
 }
 /* Пилюли гонки всегда ПОВЕРХ узора (замечание владельца с iPhone: «в пилюлях просвечивает пунктир с точкой»). Раньше порядок держался только на порядке узлов (дорожки — первыми в .wlField, пилюли — после, z-index нет у обоих),
    а слой узора — свой композитный слой (will-change) внутри колонки с contain: paint: на iOS WebKit такой слой мог оказаться над телом пилюли. Теперь дорожки в отрицательном слое контекста наложения .wl (он position: fixed) —
