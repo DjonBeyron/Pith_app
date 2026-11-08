@@ -26,14 +26,14 @@ export function createCountGate() {
 
 /**
  * Запланировать отсчёт стадии на countAt мс; когда придёт время — ждать, пока Пит не договорит (busyLeft() ≤ 0, опрос COUNT_POLL_MS, не дольше cap), и стартовать ноты. gate отмечается сразу (стадия не уйдёт, пока отсчёт не кончится).
- * → cancel(): таймеры сняты, ноты остановлены. start/setTimer подставляются в тестах
+ * what — перед каким этапом (журнал «[countdown] отсчёт начат перед …»). → cancel(): таймеры сняты, ноты остановлены. start/setTimer подставляются в тестах
  */
-export function scheduleStageCount({ countAt, busyLeft = () => 0, gate, soft = false, cap = COUNT_WAIT_CAP_MS, poll = COUNT_POLL_MS, start = startCountdown, setTimer = setTimeout, clearTimer = clearTimeout }) {
+export function scheduleStageCount({ countAt, busyLeft = () => 0, gate, soft = false, what = '', cap = COUNT_WAIT_CAP_MS, poll = COUNT_POLL_MS, start = startCountdown, setTimer = setTimeout, clearTimer = clearTimeout }) {
   let timer = 0
   let stop = null
   let cancelled = false
   gate?.plan()
-  const begin = () => { gate?.run(); stop = start({ onDone: () => gate?.done(), plan: countdownPlan({ soft }) }) }
+  const begin = () => { gate?.run(); stop = start({ onDone: () => gate?.done(), plan: countdownPlan({ soft }), what }) }
   const wait = waited => {
     if (cancelled) return
     if (busyLeft() <= 0 || waited >= cap) { begin(); return }

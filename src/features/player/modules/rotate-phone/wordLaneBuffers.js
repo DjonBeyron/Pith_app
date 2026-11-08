@@ -7,6 +7,7 @@ import { getLessonMuted, getVoiceRate } from '../../lessonVolume.js'
 import { playGameBuffer } from '../../../../shared/lib/gameBufferPlay.js'
 import { gameCtxState, webAudioOn } from '../../../../shared/lib/gameAudioCtx.js'
 import { bufferOfUrl, decodeBytes, MAX_BUFFER_S } from './wordLaneFetch.js'
+import { normalizeBuffer } from '../../../../shared/lib/audioLoudness.js'
 
 const keyUrls = new Map() // ключ слота → адрес файла
 
@@ -38,7 +39,7 @@ export function loadSoundBuffer(id, getBytes) {
   if (!webAudioOn()) return Promise.resolve(null)
   if (ready.has(id)) return Promise.resolve(ready.get(id))
   if (!loading.has(id)) {
-    const p = Promise.resolve().then(getBytes).then(bytes => decodeBytes(bytes)).then(a => (a && a.duration <= MAX_BUFFER_S ? a : null)).catch(() => null)
+    const p = Promise.resolve().then(getBytes).then(bytes => decodeBytes(bytes)).then(a => (a && a.duration <= MAX_BUFFER_S ? (normalizeBuffer(a, id), a) : null)).catch(() => null)
       .then(a => { loading.delete(id); if (a) ready.set(id, a); return a })
     loading.set(id, p)
   }

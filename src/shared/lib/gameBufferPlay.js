@@ -6,6 +6,7 @@
 //    'ctx-stuck' (контекст не стал 'running' за RESUME_WAIT_MS: прерван / нет жеста — звук НЕ играет, onStart не будет), 'rejected' (исключение Web Audio).
 //  • stopGameBuffers() — оборвать всё, что играет (пауза, выход из игры).
 import { getGameCtx } from './gameAudioCtx.js'
+import { outputOf } from './audioLoudness.js' // общий выход: лимитер → мастер-gain → destination (громкость, v3.3.165)
 
 export const RESUME_WAIT_MS = 300 // сколько ждём resume() контекста, который не 'running' (прервано iOS / ещё не открывали), прежде чем сдаться
 
@@ -20,7 +21,7 @@ function build(c, buffer, rate, gain) {
   const g = c.createGain()
   g.gain.value = gain
   src.connect(g)
-  g.connect(c.destination)
+  g.connect(outputOf(c) ?? c.destination)
   return { src, g }
 }
 

@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { countdownPlan, countdownMs, stageTiming, SOFT_STEP_MS, SOFT_NOTE_MS, COUNT_STEP_MS, COUNT_NOTE_MS } from '../rehearsal/rehearsalCountdown.js'
 import { synthNote, noteBuffer, dropNoteBuffers, COUNT_RMS, SOFT_ATTACK_S, SOFT_GAIN } from '../rehearsal/rehearsalCountdownSynth.js'
 import { plateCueMs } from '../rehearsal/rehearsalConveyorCue.js'
-import { buildRaceStages } from './raceStages.js'
+import { buildRaceStages, countBeforeRounds } from './raceStages.js'
 import { fixturePlan } from '../rehearsal/rehearsalFixtures.js'
 import { normalizePlan } from '../rehearsal/rehearsalPlan.js'
 
@@ -26,12 +26,30 @@ describe('нежный отсчёт: расписание', () => {
     expect(plateCueMs({ order: 'after', timing: t, soft: true }) - t.countAt).toBe(1200 + 1100)
     expect(plateCueMs({ order: 'after', timing: t }) - t.countAt).toBe(1000 + 750) // без soft — обычный сигнал
   })
-  it('в стадиях гонки отсчёт есть у ПЕРВОЙ плашки (count: after, soft) и ни у одной другой; один раунд — то же', () => {
+  it('отсчёт у первой плашки (count: after, soft) и у последней плашки перед КАЖДОЙ первой пилюлей / читкой этапа; внутри этапа нот нет; один раунд — то же', () => {
     for (const round of [undefined, 'stages', 'sprint', 'catch', 'climb', 'descent']) {
       const { stages } = buildRaceStages({ plan: { ...plan, round } })
       expect(stages[0].type).toBe('announce'); expect(stages[0].count).toBe('after'); expect(stages[0].soft).toBe(true)
-      expect(stages.slice(1).filter(s => s.count || s.soft)).toHaveLength(0)
+      for (const s of stages.filter(x => x.count)) { expect(s.type).toBe('announce'); expect(s.soft).toBe(true) }
+      stages.forEach((s, i) => { // перед каждой ступенью, которая идёт сразу после плашек, в цепочке плашек ровно один отсчёт
+        if (!['student', 'read'].includes(s.type) || stages[i - 1]?.type !== 'announce') return
+        let j = i - 1; while (j > 0 && stages[j - 1].type === 'announce') j--
+        expect(stages.slice(j, i).filter(x => x.count)).toHaveLength(1)
+      })
+      expect(stages.filter(s => s.count && !['student', 'read'].includes(stages[s.idx + 1]?.type) && s.idx !== 0)).toHaveLength(0)
     }
+  })
+  it('полная гонка: ноты перед A, вторым кругом A, B, вторым кругом B, «Пойми», «Скажи», «Вершиной» и «Спуском» — не на переключении слуха и не на «Фразах» (там ноты после «Пойми»)', () => {
+    const { stages } = buildRaceStages({ plan, ru: true, tap: false })
+    const counted = stages.filter(s => s.count).map(s => s.sid)
+    for (const sid of ['sprint-ann', 'sprint2-ann', 'catch-ann', 'catch2-ann', 'phrases1-ann', 'climb-ann', 'descent-ann']) if (stages.some(s => s.sid === sid)) expect(counted).toContain(sid)
+    if (stages.some(s => s.sid === 'phrases2-ann')) expect(counted).toContain('phrases2-ann')
+    expect(counted.filter(s => s.endsWith('-sw') || s === 'phrases-ann' || s.startsWith('climb-t'))).toEqual([])
+  })
+  it('count: false у плашки — без нот', () => {
+    const st = [{ idx: 0, type: 'announce', count: 'after' }, { idx: 1, type: 'student' }, { idx: 2, type: 'announce', count: false }, { idx: 3, type: 'student' }]
+    countBeforeRounds(st)
+    expect(st[2].count).toBe(false)
   })
 })
 

@@ -19,6 +19,24 @@ import { ruReady } from './raceRu.js'
 
 const ROUNDS = { sprint: sprintStages, catch: catchStages, phrases: phraseStages, climb: climbStages, descent: descentStages }
 
+/**
+ * Три нежные ноты перед КАЖДЫМ этапом и проходом (замечание владельца, v3.3.165: «как в самом начале игры»): у последней плашки перед первой пилюлей / читкой (announce прямо перед student или read) — count 'after', soft.
+ * Цепочка плашек подряд (переключение слуха → объявление; «Фразы» → «Пойми») получает ноты один раз — на последней. Уже есть ноты в цепочке (старт: первая плашка-заставка) или count: false у плашки — не трогаем.
+ * Ступени «Вершины» после первой, «Твоя очередь» «Спуска» и продолжение с середины ступени (useWordLaneControls.restartStage идёт на student) нот не дают — нот нет внутри этапа.
+ */
+export function countBeforeRounds(stages) {
+  stages.forEach((st, i) => {
+    if (!['student', 'read'].includes(st.type) || stages[i - 1]?.type !== 'announce') return
+    let j = i - 1
+    while (j > 0 && stages[j - 1].type === 'announce') j--
+    const chain = stages.slice(j, i)
+    const last = chain.at(-1)
+    if (chain.some(x => x.count) || last.count === false) return
+    Object.assign(last, { count: 'after', soft: true })
+  })
+  return stages
+}
+
 /** → { recipe, stages, chunkMs, chunkCurves, lanes, clipMode } — как buildStages (wordLaneStages.js) */
 export function buildRaceStages({ plan, rate = 1, lib = () => null, tap = readTapMode(), ru = ruReady() }) {
   const kit = createKit({ plan, rate, lib, tap })
@@ -35,6 +53,7 @@ export function buildRaceStages({ plan, rate = 1, lib = () => null, tap = readTa
   if (tap) kit.stages.forEach(x => { if (x.step) x.step.tapOnly = true }) // «Тапаю»: ни одна ступень не слушает голос — слушатель без Vosk и без getUserMedia (wordLaneListen noVosk), микрофон игре не нужен
   const first = kit.stages[0]
   if (first?.type === 'announce') Object.assign(first, { count: 'after', soft: true, charge: true, pause: PLATE_HOLD_MS }) // старт: бар заставки САМ становится плашкой этапа (charge: отдельной плашки нет, raceOpening.js), плашка держится PLATE_HOLD_MS после речи Пита; потом три нежные ноты (шаг 600 мс, нота 1,1 с), первая пилюля — после них
+  countBeforeRounds(kit.stages)
   const { chunks } = plan
   const r = kit.rate
   return { recipe: { chunks, rounds: [], acts, plan }, stages: kit.stages, chunkMs: chunks.map((c, i) => (lib(i)?.ms ?? estChunkMs(c)) / r), chunkCurves: chunks.map(() => null), lanes: orderLanes(chunks.length, rngFor(plan.seed, 'lanes')), clipMode: () => false }

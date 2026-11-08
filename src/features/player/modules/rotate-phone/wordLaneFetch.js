@@ -9,6 +9,7 @@
 import { speechBounds } from './wordLaneTrim.js'
 import { webAudioOn } from '../../../../shared/lib/gameAudioCtx.js'
 import { settle, clearSettled, forgetSettled, settledOf } from './wordLaneSettled.js'
+import { normalizeBuffer, idOfUrl } from '../../../../shared/lib/audioLoudness.js'
 
 export const MEASURE_PARALLEL = 3 // сколько файлов измеряется (декодируется) одновременно
 export const MEASURE_BREATH_MS = 0 // передышка основному потоку после каждого замера
@@ -73,10 +74,8 @@ const free = () => { const next = waiting.shift(); if (next) next(); else active
 async function measure(url, blob) {
   const audio = await decodeBytes(await blob.arrayBuffer())
   if (!audio) return
-  if (webAudioOn()) { if (audio.duration <= MAX_BUFFER_S) bufferCache.set(url, audio); else longFiles.add(url) }
-  if (speechCache.has(url)) return
-  const b = speechBounds(monoOf(audio), audio.sampleRate)
-  speechCache.set(url, { lead: Math.round(b.start * 1000), ms: Math.round((b.end - b.start) * 1000) })
+  if (!speechCache.has(url)) { const b = speechBounds(monoOf(audio), audio.sampleRate); speechCache.set(url, { lead: Math.round(b.start * 1000), ms: Math.round((b.end - b.start) * 1000) }) } // границы голоса — по исходной записи
+  if (webAudioOn()) { if (audio.duration <= MAX_BUFFER_S) { normalizeBuffer(audio, idOfUrl(url)); bufferCache.set(url, audio) } else longFiles.add(url) } // громкость: пик −1 dBFS (audioLoudness.js)
 }
 
 /** Измерить файл (blob уже скачан): повторный вызов с тем же адресом не декодирует заново. Ошибка → отклонённый промис (звук играет по длине из библиотеки) */
