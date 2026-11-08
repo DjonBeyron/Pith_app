@@ -22,7 +22,7 @@ describe('«Скажи»: два прохода фразы', () => {
     expect(s.fx.win).toHaveBeenCalledTimes(1)
     expect(s.fx.win.mock.calls[0][2]).toMatchObject({ pass: 1, res: { ok: true, ratio: 1, clean: true } }) // по словам в проходе 1 — можно
     expect(p1.rose).toBe(true)
-    expect(log.mock.calls.map(c => c[0]).find(l => l.includes('итог'))).toMatch(/ход 1\/6, проход 1\/2: цель «Nice to meet you» итог верно, слова 100 %, чисто$/)
+    expect(log.mock.calls.map(c => c[0]).find(l => l.startsWith('[phrases]') && l.includes('итог'))).toMatch(/ход 1\/6, проход 1\/2: цель «Nice to meet you» итог верно, слова 100 %, чисто$/)
     const p2 = untilPill(s, 1)
     expect(s.fx.pre.mock.calls.at(-1)[0].rep).toMatchObject({ pass: 2, phraseKey: 'nice to meet you' })
     expect(p2.cap).toBe('Nice to meet you'); expect(p2.vals['data-pass']).toBe('2'); expect(p2.attrs.has('data-faded')).toBe(false)

@@ -40,9 +40,10 @@ export const MISS_SETTLE_MS = 550 // «чужое слово» из чернов
  * words() — слова Vosk с таймингами за все заходы: [{ word, conf, start, end }], мс на ОДНОЙ шкале — от start() слушателя (заходы перезапускаются, у каждого свой ноль: время слов захода = старт захода + readyMs + секунды Vosk);
  * startedAt() — когда был start() (мс по now()), по нему слова приводят к чужой шкале (запись дубля). В onChange слова не идут: перерисовок они не плодят. gate: false — без «затвора тишины» (voskGate: он вырезает паузы
  * из звука и сжимает тайминги; нужно, когда по словам меряют паузы — дубль репетиции), restartMs — через сколько мс начинать следующий заход (0 — сразу, слова после паузы не теряются).
+ * trace: true (слушатель фраз «Скажи», racePhraseListen.js) — ещё и onDebug('gate', { open, rms }) — затвор тишины открылся / закрылся, и onDebug('partial-same', { raw }) — черновик Vosk с тем же текстом.
  * flush(ms) — дубль закончен: просит у Vosk итог текущего захода (stop), ждёт его (не дольше ms) и больше заходов не начинает; после него words() полные. Зависимости подставляются в тестах.
  */
-export function createWordListener({ word, targets: targetsIn, expected = SLOT_COUNT, maxWords = SLOT_COUNT, getStream = null, isHeld = () => false, onChange, onDebug = null, gate = true, restartMs = RESTART_MS, lang = 'en', noVosk = false, runtime = runtimeOf(lang), listen = startListening, micGain = readMicGain, level = createRmsLevel(), now = () => Date.now(), setTimer = setTimeout, clearTimer = clearTimeout }) {
+export function createWordListener({ word, targets: targetsIn, expected = SLOT_COUNT, maxWords = SLOT_COUNT, getStream = null, isHeld = () => false, onChange, onDebug = null, gate = true, trace = false, restartMs = RESTART_MS, lang = 'en', noVosk = false, runtime = runtimeOf(lang), listen = startListening, micGain = readMicGain, level = createRmsLevel(), now = () => Date.now(), setTimer = setTimeout, clearTimer = clearTimeout }) {
   const targets = targetsIn?.length ? targetsIn : [word]
   let seq = [], misses = 0            // накоплено за все заходы
   let base = { seq: [], misses: 0 }   // накоплено до текущего захода
@@ -158,7 +159,7 @@ export function createWordListener({ word, targets: targetsIn, expected = SLOT_C
       },
       onPartial: raw => {
         if (cur !== session) return
-        if (raw === lastPartial) { if (String(raw ?? '').trim()) heardAt = now(); return } // тот же текст: разбор, publish и setS в игре дали бы то же самое — пропускаем; «слышал» отмечаем (см. heardAt() ниже)
+        if (raw === lastPartial) { if (String(raw ?? '').trim()) heardAt = now(); if (trace) onDebug?.('partial-same', { raw }); return } // тот же текст: разбор, publish и setS в игре дали бы то же самое — пропускаем; «слышал» отмечаем (см. heardAt() ниже)
         lastPartial = raw
         part(raw, false)
       },
@@ -175,7 +176,7 @@ export function createWordListener({ word, targets: targetsIn, expected = SLOT_C
       .then(() => listen(model, grammar, callbacks, {
         autoStopMs: PAUSE_STOP_MS, completeMs: FULL_STOP_MS, maxMs: SESSION_MAX_MS, session: sayAudioSessionType(), chunk: 2048, stream: getStream?.() ?? undefined, gain: micGain(), // gain: «Чувствительность микрофона» HUD (gameMicGain.js) — усиление перед Vosk; уровень для колец считается уже по усиленному звуку
         // готовый поток игры (iPhone) — без нового диалога; куски по 2048 кадров (≈ 46 мс при 44,1 кГц, 43 мс при 48 кГц): громкость для пилюль приходит ≈ 22 раза в секунду, а главный поток получает вдвое меньше вызовов (1024 кадров — 23 мс — на слабом телефоне съедали заметную долю кадра);
-        gate, cleanPartial, isComplete: text => analyzeTargets(text, targets, true, lang).seq.length >= remaining(),
+        gate, ...(trace ? { onGate: (open, rms) => onDebug?.('gate', { open, rms }) } : {}), cleanPartial, isComplete: text => analyzeTargets(text, targets, true, lang).seq.length >= remaining(),
       }))
       .then(h => { if (disposed || cur !== session) { try { h?.cancel() } catch { /* уже свободен */ } return } session.handle = h; if (session.stopped) h.stop() },
         e => { if (cur === session) { pLog(`[word-lane] микрофон не открылся: ${e?.name ?? e}`); cur = null; publish({ status: 'error', error: e?.name || 'mic' }) } })

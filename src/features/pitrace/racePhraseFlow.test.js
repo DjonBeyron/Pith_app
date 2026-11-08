@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
-import { CENTER_Y, HOT_MS, ADVANCE_MS } from './racePhraseScene.js'
+import { CENTER_Y, HOT_MS } from './racePhraseScene.js'
 import { setupScene } from './racePhraseSceneRig.js'
 import { createPhraseListener, stubSay, stubDraft } from './racePhraseListenStub.js'
 import { phraseStep, PHRASE_SPEED, SAY_SPEED, PHRASE_GAP_MS } from './raceStagesPhrases.js'
@@ -8,10 +8,9 @@ import { phrasesOf } from './racePhraseData.js'
 import { PHRASE_FIXTURE } from './racePhraseFixture.js'
 import { EXIT_Y } from '../player/modules/rotate-phone/wordLaneTimeline.js'
 import { POOL } from '../player/modules/rotate-phone/wordLanePool.js'
-import { FILL_ADVANCE } from '../player/modules/rotate-phone/wordLaneFillView.js'
 
 // Круг 1 — единый конвейер: после итога хода остальные пилюли не гаснут, а доезжают вниз отыгранными (data-spent), следующий ход выезжает за ними тем же потоком.
-// Круг 2 «Скажи» — одна заливка на всю фразу: каждое слово — полная доля (черновое — когда устоялось, racePhraseFill.js), первый звук — «аванс», экран догоняет цель каждый кадр без ступенек.
+// Круг 2 «Скажи» — одна заливка на всю фразу: каждое слово — полная доля (черновое — когда устоялось, racePhraseFill.js), «аванса» по первому звуку нет (шум не заливает), экран догоняет цель каждый кадр без ступенек.
 const ph = phrasesOf({ phrases: PHRASE_FIXTURE })
 const turns = round1Turns(ph, 's1')
 const pick = () => phraseStep('phrases1', turns, { round: 1, mode: 'pick', voice: false, speed: PHRASE_SPEED })
@@ -94,21 +93,30 @@ describe('круг 1: единый конвейер после зачёта', ()
 describe('круг 2 «Скажи»: одна заливка на всю фразу', () => {
   const say = () => phraseStep('phrases2', round2SayTurns(ph), { round: 2, mode: 'say', voice: true, speed: SAY_SPEED })
   for (const frame of [16, 50]) {
-    it(`первый черновик — заливка движется не позже 100 мс; черновое слово — сразу целиком; шаг за кадр ≤ 15 % (кадр ${frame} мс)`, () => {
+    it(`шум (черновик без слов фразы) не заливает; черновое слово — сразу целиком, догон за ≤ 200 мс; шаг за кадр ≤ 30 % (кадр ${frame} мс)`, () => {
       const s = setupScene(say(), { listen: createPhraseListener, frame })
       s.go(600)
       const p = s.pool.taken[0], n = capOf(round2SayTurns(ph)[0].target.key).split(' ').length
       expect(p.fill).toBe(0)
-      stubDraft('…'); stubDraft('zzz') // непустой черновик без слов фразы
-      const t0 = s.clock.t
-      while (p.fill === 0 && s.clock.t - t0 < 500) s.go(frame)
-      expect(s.clock.t - t0).toBeLessThanOrEqual(100)
-      s.go(ADVANCE_MS - 200); expect(p.fill).toBeCloseTo(FILL_ADVANCE / n, 2)
-      stubDraft('nice'); s.go(150); expect(p.fill).toBeCloseTo(1 / n, 2) // черновое слово — сразу полная доля (без выдержки)
-      stubSay('nice to'); s.go(ADVANCE_MS + 1200); expect(p.fill).toBeCloseTo(2 / n, 2)
+      stubDraft('…'); stubDraft('zzz'); s.go(1500) // непустой черновик без слов фразы — раньше «аванс» 35 % слова
+      expect(p.fill).toBe(0)
+      stubDraft('nice'); s.go(200); expect(p.fill).toBeCloseTo(1 / n, 2) // черновое слово — сразу полная доля (без выдержки)
+      stubSay('nice to'); s.go(1200); expect(p.fill).toBeCloseTo(2 / n, 2)
       const steps = p.fills.slice(1).map((v, i) => Math.abs(v - p.fills[i]))
-      expect(Math.max(...steps)).toBeLessThanOrEqual(0.15)
+      expect(Math.max(...steps)).toBeLessThanOrEqual(0.3)
       s.run.stop()
     })
   }
+  it('слово словаря, которого нет в цели (onWord чужой фразы — шум), и черновики слуха (onEar) не заливают; слово цели — заливает', () => {
+    let cb = null
+    const listen = o => { cb = o; return { stop() {}, reset() {}, setPhrases() {} } }
+    const s = setupScene(say(), { listen })
+    s.go(600)
+    const p = s.pool.taken[0], key = round2SayTurns(ph)[0].target.key
+    cb.onEar({ kind: 'partial', text: 'see' }); cb.onEar({ kind: 'gate', open: true })
+    cb.onWord({ phraseKey: 'see you later', index: 0, text: 'see', draft: true }); cb.onWord({ phraseKey: 'see you later', index: 1, text: 'you', draft: false })
+    s.go(1500); expect(p.fill).toBe(0)
+    cb.onWord({ phraseKey: key, index: 0, text: 'nice', draft: true }); s.go(300); expect(p.fill).toBeGreaterThan(0.2)
+    s.run.stop()
+  })
 })

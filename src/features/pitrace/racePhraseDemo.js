@@ -5,7 +5,8 @@
 // Подпись реплики над лентой — ТОЛЬКО у неозвученной реплики (нет url в rotate_cat_lines, raceSilentLine.lineCaption; владелец: «сабы Пита я не просил»): озвученная звучит без подписи.
 // Слово — только из библиотеки слов: демо-фраза берётся с озвучкой КАЖДОГО слова (racePhraseWordVoice.js); слово всё же без озвучки — не звучит, журнал «[demo] слово … без озвучки», дальше по таймеру.
 // Перед словом скрипт ждёт, пока Пит освободится (busyLeft: хвост неозвученной реплики 0,65 с). Здесь — чистая часть: какая фраза (demoPhrase), скрипт (runDemoScript,
-// таймеры и голос подставляются), ворота на игру (createDemoGate: один раз за игру и не больше DEMO_MAX_SHOWS игр на устройстве — localStorage DEMO_KEY). Обрыв (пауза, сворачивание, смена стадии) — stop() сцены.
+// таймеры и голос подставляются), ворота на игру (createDemoGate: один раз за игру — В КАЖДОЙ игре, замечание владельца 6 «куда пропал пример от Пита»: прежний лимит
+// «первые 3 игры на устройстве», localStorage pithy_phrase_demo_seen_v1, убран 2026-11-08). Обрыв (пауза, сворачивание, смена стадии) — stop() сцены; после «Продолжить» демо не повторяется.
 import { phraseWords } from './racePhraseData.js'
 
 export const DEMO_LINES = ['race_demo_1', 'race_demo_2', 'race_demo_3'] // перед словами 1, 2, 3
@@ -19,8 +20,6 @@ export const DEMO_WORD_MS = 450      // длина слова, если дикт
 export const DEMO_POLL_MS = 60       // Пит ещё говорит — проверить снова через столько
 export const DEMO_LINE_CAP_MS = 4000 // дольше реплику не ждём
 export const DEMO_MAX_WORDS = 4      // длиннее — демо не уложится в ≈ 6–7 с: запасная фраза берётся покороче
-export const DEMO_MAX_SHOWS = 3
-export const DEMO_KEY = 'pithy_phrase_demo_seen_v1'
 
 const words = p => phraseWords(p?.text).length
 
@@ -36,19 +35,6 @@ export function demoPhrase(phrases = [], turns = [], voiced = () => true) {
   const first = turns[0]?.target
   if (first && (!best || words(first) < words(best))) return { text: first.text, key: first.key, spare: false }
   return best ? { text: best.text, key: best.key, spare: true } : null
-}
-
-const store = s => { try { return s === undefined ? globalThis.localStorage ?? null : s } catch { return null } }
-
-/** Сколько раз демо уже показано на этом устройстве (нет хранилища — 0) */
-export function demoSeen(storage) {
-  try { const n = Number(store(storage)?.getItem(DEMO_KEY)); return Number.isFinite(n) && n > 0 ? Math.floor(n) : 0 } catch { return 0 }
-}
-/** Показать ли ещё: меньше max показов */
-export const demoAllowed = (storage, max = DEMO_MAX_SHOWS) => demoSeen(storage) < max
-/** Отметить показ (+1) */
-export function markDemoShown(storage) {
-  try { store(storage)?.setItem(DEMO_KEY, String(demoSeen(storage) + 1)) } catch { /* приватный режим: демо просто покажется снова */ }
 }
 
 /** Слова 0..i подтверждены — для mask.set */
@@ -112,22 +98,21 @@ export function runDemoScript({ phrase, sayLine, sayText, busyLeft = () => 0, li
 }
 
 /**
- * Ворота демо на всю игру: claim(phrase) — сцена круга «Скажи» спрашивает перед первым ходом; true — играть (отмечено: «сыграно в этой игре» и +1 показ на устройстве), false — сразу первый ход.
- * end(why) — демо кончилось ('' — доиграло) или оборвано (журнал). storage — хранилище счётчика (по умолчанию localStorage).
+ * Ворота демо на всю игру: claim(phrase) — сцена круга «Скажи» спрашивает перед первым ходом; true — играть (отмечено: «сыграно в этой игре»), false — сразу первый ход.
+ * Журнал: «[demo] демо: фраза «…» (запасная фраза | первая фраза круга)» или «[demo] демо пропущено: <причина>»; end(why) — демо кончилось ('' — доиграло) или оборвано.
  */
-export function createDemoGate({ storage, max = DEMO_MAX_SHOWS, log = () => {} } = {}) {
+export function createDemoGate({ log = () => {} } = {}) {
   let played = false, active = false
-  const say = s => { try { log(`[phrase-demo] ${s}`) } catch { /* журнал не мешает демо */ } }
+  const say = s => { try { log(`[demo] ${s}`) } catch { /* журнал не мешает демо */ } }
   return {
     claim(phrase) {
-      if (!phrase || played) return false
-      played = true
-      if (!demoAllowed(storage, max)) { say(`пропуск: уже показано ${demoSeen(storage)} раз (лимит ${max})`); return false }
-      markDemoShown(storage); active = true
-      say(`показ ${demoSeen(storage)}/${max} на живой пилюле: «${phrase.text}»${phrase.spare ? ' (запасная фраза)' : ' (первая фраза круга)'}`)
+      if (!phrase) { say('демо пропущено: нет фразы для демо'); return false }
+      if (played) { say('демо пропущено: уже было в этой игре (после «Продолжить» не повторяется)'); return false }
+      played = true; active = true
+      say(`демо: фраза «${phrase.text}» (${phrase.spare ? 'запасная' : 'первая фраза круга'})`)
       return true
     },
-    end(why = '') { if (!active) return; active = false; say(why ? `прервано: ${why}` : 'конец — первый ход круга «Скажи»') },
+    end(why = '') { if (!active) return; active = false; say(why ? `демо прервано: ${why}` : 'демо: конец — первый ход круга «Скажи»') },
     active: () => active,
     played: () => played,
   }

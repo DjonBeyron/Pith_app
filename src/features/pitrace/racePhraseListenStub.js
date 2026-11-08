@@ -1,18 +1,18 @@
 // Подставной слушатель фраз этапа 2 (тот же интерфейс, что у createPhraseListener из racePhraseListen.js по контракту этапа 2): для тестов и стенда (_stand/race), вместо настоящего (racePhraseListen.js)
 // или когда речь подаёт драйвер. Ничего не слушает: речь «говорят» вызовом stubSay(text) — по каждой фразе-кандидату считаются её слова, услышанные по порядку (onWord на каждое новое), и доля ratio;
-// ratio ≥ PHRASE_OK — onPhrase; непустая речь — onHear (как черновик у настоящего), слова отдаются подтверждёнными (draft: false); stubDraft(text) — то же черновиком (draft: true, без onPhrase). Сопоставление простое (слова строчными без знаков по краям), этого хватает для проверки сцены. Чистый модуль без DOM.
+// ratio ≥ PHRASE_OK — onPhrase; непустая речь — onEar({ kind: 'partial' | 'final', text }) (как у настоящего: отладочная полоска сцены, на заливку не влияет), слова отдаются подтверждёнными (draft: false); stubDraft(text) — то же черновиком (draft: true, без onPhrase). Сопоставление простое (слова строчными без знаков по краям), этого хватает для проверки сцены. Чистый модуль без DOM.
 export const PHRASE_OK = 0.75
 
 const live = new Set()
 const words = text => String(text ?? '').toLowerCase().split(/\s+/).map(t => t.replace(/^[^\p{L}\p{N}']+|[^\p{L}\p{N}']+$/gu, '')).filter(Boolean)
 
-export function createPhraseListener({ phrases = [], onWord = () => {}, onHear = () => {}, onPhrase = () => {}, onError = () => {} } = {}) {
+export function createPhraseListener({ phrases = [], onWord = () => {}, onEar = () => {}, onPhrase = () => {}, onError = () => {} } = {}) {
   let list = phrases
   let heard = new Map() // phraseKey → множество услышанных номеров слов
   const me = {
     hear(text, draft = false) {
       const said = words(text)
-      if (said.length) onHear()
+      if (said.length) onEar({ kind: draft ? 'partial' : 'final', text: said.join(' ') })
       for (const p of list) {
         const got = heard.get(p.key) ?? new Set()
         let from = 0

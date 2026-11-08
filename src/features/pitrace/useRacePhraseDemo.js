@@ -9,7 +9,7 @@ const catalog = id => RACE_LINES.find(l => l.id === id)?.text ?? ''
 
 // Голос и ворота демо-хода «Скажи» (racePhraseDemo.js, racePhraseDemoTurn.js) внутри useRaceActs: сцена ленты перед первым ходом шлёт fx.pre с rep.demo, директор отвечает e.demo(kit()).
 // kit — свежие sayLine / sayText / cat директора (ref), подпись реплики — только у неозвученной (raceSilentLine.lineCaption: текст из настроек, нет — из каталога; озвученная — ''),
-// hasWord — есть ли слово в библиотеке word_audio (racePhraseWordVoice.wordVoiced), claim / end — ворота на всю игру (один раз за игру, лимит показов на устройстве).
+// hasWord — есть ли слово в библиотеке word_audio (racePhraseWordVoice.wordVoiced), claim / end — ворота на всю игру (один раз за игру, в каждой игре — без лимита на устройстве).
 // Обрыв (пауза, сворачивание, смена стадии) делает сама сцена в stop(): она снимается вместе со стадией; после «Продолжить» ворота уже «сыграно» — демо не повторяется.
 export function useRacePhraseDemo({ on, cat, sayLine, sayText, lines }) {
   const [gate] = useState(() => createDemoGate({ log: pLog }))

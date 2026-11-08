@@ -1,12 +1,12 @@
 import { describe, it, expect } from 'vitest'
-import { fillGoal, markWord, finishDue, wordEdges, edgeAt, fullLine, FILL_HOLD_MS, FILL_FINISH_MAX_MS, ADVANCE_MS } from './racePhraseFill.js'
+import { fillGoal, markWord, finishDue, wordEdges, edgeAt, FILL_HOLD_MS, FILL_FINISH_MAX_MS } from './racePhraseFill.js'
 import { setupScene } from './racePhraseSceneRig.js'
 import { createPhraseListener, stubSay, stubDraft } from './racePhraseListenStub.js'
 import { phraseStep, SAY_SPEED } from './raceStagesPhrases.js'
 import { round2SayTurns } from './racePhraseTurns.js'
 import { phrasesOf } from './racePhraseData.js'
 import { PHRASE_FIXTURE } from './racePhraseFixture.js'
-import { FILL_ADVANCE, FILL_UP_PER_S } from '../player/modules/rotate-phone/wordLaneFillView.js'
+import { FILL_UP_PER_S } from '../player/modules/rotate-phone/wordLaneFillView.js'
 
 // Заливка «Скажи» (racePhraseFill.js): каждое сказанное слово — своя полная доля, «аванс» — только до первого слова, после итога заливка доезжает до 100 % и только потом взлёт
 describe('цель заливки по словам', () => {
@@ -17,13 +17,12 @@ describe('цель заливки по словам', () => {
     markWord(w, 1, false, 1100)
     expect(fillGoal({ words: w, n: 4, t: 1100 })).toBeCloseTo(0.5, 6)
   })
-  it('«аванс» FILL_ADVANCE — только по первому звуку, пока слов нет; после первого слова не перелетает его долю; итог — 100 %', () => {
+  it('«аванса» нет: пока ни одного слова фразы — 0 (шум и черновик без слов цели не заливают, heardAt больше не принимается); после первого слова — его доля; итог — 100 %', () => {
     const w = new Map()
-    expect(fillGoal({ words: w, n: 4, t: 500, heardAt: 400 })).toBeCloseTo(FILL_ADVANCE / 4, 6)
-    expect(fillGoal({ words: w, n: 4, t: 400 + ADVANCE_MS, heardAt: 400 })).toBe(0)
+    expect(fillGoal({ words: w, n: 4, t: 500, heardAt: 499 })).toBe(0)
     markWord(w, 0, false, 600)
     expect(fillGoal({ words: w, n: 4, t: 700, heardAt: 690 })).toBeCloseTo(0.25, 6)
-    expect(fillGoal({ words: w, n: 4, t: 700, done: true })).toBe(1)
+    expect(fillGoal({ words: w, n: 4, done: true })).toBe(1)
   })
   it('черновик слова пришёл повторно — время не сбрасывается, подтверждение не откатывается', () => {
     const w = new Map()
@@ -40,7 +39,6 @@ describe('цель заливки по словам', () => {
     const full = []; const f2 = { at: 0 }
     finishDue(f2, 1, 50, t => full.push(t)); finishDue(f2, 1, 70, t => full.push(t))
     expect(full).toEqual([50]) // onFull — один раз, когда впервые 100 %
-    expect(fullLine(1000, 1320)).toBe('[phrases] последнее слово → 100 %: 320 мс')
   })
 })
 
@@ -99,7 +97,7 @@ describe('сцена «Скажи»: слова по одному и доезд 
     s.go(FILL_FINISH_MAX_MS + 50); expect(s.fx.win).toHaveBeenCalledTimes(1)
     s.run.stop()
   })
-  it('быстрая речь: 4 слова за 1,2 с черновиками — заливка идёт без откатов, от последнего слова до 100 % ≤ 0,5 с, журнал «последнее слово → 100 %»', () => {
+  it('быстрая речь: 4 слова за 1,2 с черновиками — заливка идёт без откатов, от последнего слова до 100 % ≤ 0,5 с, журнал «[fill] 100 % через N мс после последнего слова»', () => {
     const logs = []
     const s = setupScene(say(), { listen: createPhraseListener, log: x => logs.push(x) })
     s.go(600)
@@ -110,8 +108,10 @@ describe('сцена «Скажи»: слова по одному и доезд 
     const t0 = s.clock.t
     while (p.fill < 1 && s.clock.t - t0 < 1000) s.go(16)
     expect(s.clock.t - t0).toBeLessThanOrEqual(500)
-    const line = logs.find(x => x.includes('последнее слово → 100 %'))
-    expect(Number(line.match(/(\d+) мс/)[1])).toBeLessThanOrEqual(500)
+    s.go(300) // взлёт — через FILL_HOLD_MS после 100 %
+    const line = logs.find(x => x.startsWith('[fill] 100 % через'))
+    expect(line).toMatch(/^\[fill\] 100 % через \d+ мс после последнего слова, взлёт \+\d+ мс$/)
+    expect(Number(line.match(/через (\d+) мс/)[1])).toBeLessThanOrEqual(500)
     expect(p.fills.every((v, i) => i === 0 || v >= p.fills[i - 1] - 1e-9)).toBe(true)
     s.run.stop()
   })

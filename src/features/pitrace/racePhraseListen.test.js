@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { createPhraseListener, lastOnly, PHRASE_OK, SETTLE_MS, SETTLE_LAST_MS, QUIET_LAST_MS, LAST_HOLD_MS, JOIN_MS } from './racePhraseListen.js'
+import { createPhraseListener, lastOnly, PHRASE_OK, SETTLE_MS, SETTLE_LAST_MS, QUIET_LAST_MS, QUIET_PAUSE_K, QUIET_MAX_MS, LAST_HOLD_MS, JOIN_MS } from './racePhraseListen.js'
 import { scorePhrases } from './racePhraseScore.js'
 import { createWordListener } from '../player/modules/rotate-phone/wordLaneListen.js'
 
@@ -17,10 +17,10 @@ function rig(phrases, { held = () => false, noModel = false } = {}) {
   const now = () => t
   const setTimer = (fn, ms) => { timers.set(++id, { fn, at: t + ms }); return id }
   const clearTimer = k => timers.delete(k)
-  const listen = async (model, grammar, cb) => { const s = { cb, grammar, stopped: 0, cancelled: 0 }; sessions.push(s); cb.onReady?.(); return { stop() { s.stopped++ }, cancel() { s.cancelled++ } } }
+  const listen = async (model, grammar, cb, opts) => { const s = { cb, grammar, opts, stopped: 0, cancelled: 0 }; sessions.push(s); cb.onReady?.(); return { stop() { s.stopped++ }, cancel() { s.cancelled++ } } }
   const runtime = { getModel: () => (noModel ? null : 'M'), snapshot: () => ({}) }
   const l = createPhraseListener({
-    phrases, getStream: () => null, isHeld: held, onWord: w => words.push(w), onHear: () => hears.push(t), onPhrase: p => got.push(p), onError: e => errors.push(e), log: s => logs.push(s),
+    phrases, getStream: () => null, isHeld: held, onWord: w => words.push(w), onEar: e => hears.push(e), onPhrase: p => got.push(p), onError: e => errors.push(e), log: s => logs.push(s),
     create: o => createWordListener({ ...o, listen, runtime, now, setTimer, clearTimer }), now, setTimer, clearTimer,
   })
   const advance = ms => { t += ms; for (const [k, x] of [...timers].sort((a, b) => a[1].at - b[1].at)) if (x.at <= t && timers.has(k)) { timers.delete(k); x.fn() } }
@@ -53,11 +53,11 @@ describe('createPhraseListener', () => {
     expect(r.sessions).toHaveLength(2) // …и слушаем заново
     r.l.stop()
   })
-  it('слова черновика — draft: true, итог захода подтверждает их ещё раз (draft: false); непустой черновик — onHear', async () => {
+  it('слова черновика — draft: true, итог захода подтверждает их ещё раз (draft: false); непустой черновик — onEar (полоска отладки), не заливка', async () => {
     const r = rig([P.from, P.learn]); await flush()
     r.cur().cb.onPartial('[unk]'); expect(r.hears).toHaveLength(0) // «…» без слов — не речь
     r.cur().cb.onPartial('where are')
-    expect(r.hears).toHaveLength(1)
+    expect(r.hears).toEqual([{ kind: 'partial', text: 'where are' }])
     expect(r.words.filter(w => w.phraseKey === 'where are you from')).toEqual([{ phraseKey: 'where are you from', index: 0, text: 'where', draft: true }, { phraseKey: 'where are you from', index: 1, text: 'are', draft: true }])
     await end(r, 'where are')
     expect(r.words.filter(w => w.phraseKey === 'where are you from' && !w.draft).map(w => w.index)).toEqual([0, 1])
@@ -164,5 +164,40 @@ describe('createPhraseListener', () => {
     const r = rig([P.meet], { noModel: true }); await flush()
     expect(r.errors).toEqual(['unavailable'])
     r.l.stop()
+  })
+  it('reset() нового хода забывает и прошлые заходы в окне JOIN_MS: фраза Пита, прочитанная между ходами (окно речи не держало), в новый ход не попадает', async () => {
+    const r = rig([P.meet, P.from]); await flush()
+    await end(r, 'nice to meet') // «Пит читает фразу» после итога хода: заход закрылся, услышанное ушло в past (JOIN_MS)
+    r.l.reset(); await flush() // сцена: новый ход (startTurn → setPhrases + reset)
+    r.cur().cb.onPartial('you'); await end(r, 'you'); r.advance(SETTLE_MS + SETTLE_LAST_MS)
+    expect(r.got).toEqual([]) // без reset «nice to meet» + «you» собрались бы в зачёт
+    r.l.stop()
+  })
+  it('журнал слуха: каждый итог (и с тем же текстом), «partial без изменений» не чаще SAME_LOG_MS, затвор тишины [gate] открыт / закрыт → onEar', async () => {
+    const r = rig([P.meet, P.from]); await flush()
+    expect(r.cur().opts.onGate).toBeTypeOf('function') // слушатель фраз просит у движка события затвора
+    r.advance(100); r.cur().opts.onGate(true, 0.04)
+    expect(r.logs.at(-1)).toBe('[gate] открыт +100 мс (rms 0,040)'); expect(r.hears.at(-1)).toEqual({ kind: 'gate', open: true, rms: 0.04 })
+    r.cur().cb.onPartial('nice to')
+    for (let i = 0; i < 10; i++) { r.advance(100); r.cur().cb.onPartial('nice to') } // Vosk шлёт тот же черновик ≈ 20 раз в секунду
+    expect(r.logs.filter(x => x.startsWith('[phrase-ear] partial без изменений «nice to»')).length).toBe(2)
+    r.cur().opts.onGate(false, 0.001); expect(r.logs.at(-1)).toMatch(/^\[gate\] закрыт \+\d+ мс \(rms 0,001\)$/)
+    r.cur().cb.onResult('nice to', { words: [] })
+    expect(r.logs.some(x => /^\[phrase-ear\] итог «nice to» \+\d+ мс$/.test(x))).toBe(true)
+    r.l.stop()
+  })
+  it('пауза перед последним словом не обрывает заход: тишина ≥ 650 мс и ≥ 1,5 × самой длинной паузы между словами попытки (медленный ученик — дольше)', async () => {
+    expect(QUIET_LAST_MS).toBeGreaterThanOrEqual(650); expect(QUIET_PAUSE_K).toBe(1.5)
+    const r = rig([P.meet, P.from]); await flush()
+    r.cur().cb.onLevel(0.05); r.cur().cb.onPartial('nice') // «nice» … пауза 700 мс … «to» … «meet»
+    r.advance(700); r.cur().cb.onLevel(0.05); r.cur().cb.onPartial('nice to')
+    r.advance(100); r.cur().cb.onLevel(0.05); r.cur().cb.onPartial('nice to meet')
+    r.advance(QUIET_LAST_MS + 50); expect(r.cur().stopped).toBe(0) // 700 мс тишины перед «you» — как пауза между его словами, не конец
+    r.advance(700 * QUIET_PAUSE_K - QUIET_LAST_MS); expect(r.cur().stopped).toBe(1)
+    expect(r.logs.some(s => /без последнего слова, тишина \d+ мс \(порог 1050\) — прошу итог захода/.test(s))).toBe(true)
+    const q = rig([P.meet]); await flush() // очень медленно — не дольше QUIET_MAX_MS
+    q.cur().cb.onLevel(0.05); q.cur().cb.onPartial('nice'); q.advance(3000); q.cur().cb.onLevel(0.05); q.cur().cb.onPartial('nice to meet')
+    q.advance(QUIET_MAX_MS + 10); expect(q.cur().stopped).toBe(1)
+    r.l.stop(); q.l.stop()
   })
 })
