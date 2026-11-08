@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { createPhraseListener, lastOnly, PHRASE_OK, SETTLE_MS, SETTLE_LAST_MS, QUIET_LAST_MS, QUIET_PAUSE_K, QUIET_MAX_MS, LAST_HOLD_MS, JOIN_MS } from './racePhraseListen.js'
+import { createPhraseListener, lastOnly, PHRASE_OK, SETTLE_MS, SETTLE_LAST_MS, QUIET_LAST_MS, QUIET_PAUSE_K, QUIET_MAX_MS, LAST_HOLD_MS, JOIN_MS, GATE_CLOSE_FINAL_MS, TAIL_VOICE_MS } from './racePhraseListen.js'
 import { scorePhrases } from './racePhraseScore.js'
 import { createWordListener } from '../player/modules/rotate-phone/wordLaneListen.js'
 
@@ -186,18 +186,40 @@ describe('createPhraseListener', () => {
     expect(r.logs.some(x => /^\[phrase-ear\] итог «nice to» \+\d+ мс$/.test(x))).toBe(true)
     r.l.stop()
   })
-  it('пауза перед последним словом не обрывает заход: тишина ≥ 650 мс и ≥ 1,5 × самой длинной паузы между словами попытки (медленный ученик — дольше)', async () => {
-    expect(QUIET_LAST_MS).toBeGreaterThanOrEqual(650); expect(QUIET_PAUSE_K).toBe(1.5)
+  it('пауза перед последним словом не обрывает заход: тишина ≥ 1100 мс и ≥ 1,5 × самой длинной паузы между словами попытки (медленный ученик — дольше)', async () => {
+    expect(QUIET_LAST_MS).toBe(1100); expect(QUIET_PAUSE_K).toBe(1.5)
     const r = rig([P.meet, P.from]); await flush()
-    r.cur().cb.onLevel(0.05); r.cur().cb.onPartial('nice') // «nice» … пауза 700 мс … «to» … «meet»
-    r.advance(700); r.cur().cb.onLevel(0.05); r.cur().cb.onPartial('nice to')
+    r.cur().cb.onLevel(0.05); r.cur().cb.onPartial('nice') // «nice» … пауза 900 мс … «to» … «meet»
+    r.advance(900); r.cur().cb.onLevel(0.05); r.cur().cb.onPartial('nice to')
     r.advance(100); r.cur().cb.onLevel(0.05); r.cur().cb.onPartial('nice to meet')
-    r.advance(QUIET_LAST_MS + 50); expect(r.cur().stopped).toBe(0) // 700 мс тишины перед «you» — как пауза между его словами, не конец
-    r.advance(700 * QUIET_PAUSE_K - QUIET_LAST_MS); expect(r.cur().stopped).toBe(1)
-    expect(r.logs.some(s => /без последнего слова, тишина \d+ мс \(порог 1050\) — прошу итог захода/.test(s))).toBe(true)
+    r.advance(QUIET_LAST_MS + 50); expect(r.cur().stopped).toBe(0) // 1150 мс тишины перед «you» — пауза 900 мс × 1,5 ещё не вышла, не конец
+    r.advance(900 * QUIET_PAUSE_K - QUIET_LAST_MS); expect(r.cur().stopped).toBe(1)
+    expect(r.logs.some(s => /без последнего слова, тишина \d+ мс \(порог 1350\) — прошу итог захода/.test(s))).toBe(true)
     const q = rig([P.meet]); await flush() // очень медленно — не дольше QUIET_MAX_MS
     q.cur().cb.onLevel(0.05); q.cur().cb.onPartial('nice'); q.advance(3000); q.cur().cb.onLevel(0.05); q.cur().cb.onPartial('nice to meet')
     q.advance(QUIET_MAX_MS + 10); expect(q.cur().stopped).toBe(1)
     r.l.stop(); q.l.stop()
+  })
+  it('итог по затвору: голос шёл после последней смены черновика (последнее слово Vosk покажет только итогом) или последнее слово уже есть — затвор закрылся → итог через 150 мс; пауза (черновик после голоса) — нет; голос вернулся — отмена', async () => {
+    expect(GATE_CLOSE_FINAL_MS).toBe(150); expect(TAIL_VOICE_MS).toBe(80)
+    const voice = (r, ms) => { for (let i = 0; i < ms; i += 40) { r.cur().cb.onLevel(0.05); r.advance(40) } }
+    const r = rig([P.meet, P.from]); await flush()
+    voice(r, 400); r.cur().cb.onPartial('where are you') // «from» звучит, а в черновике его нет
+    voice(r, 300); r.advance(300); r.cur().opts.onGate(false, 0.001)
+    r.advance(GATE_CLOSE_FINAL_MS - 10); expect(r.cur().stopped).toBe(0)
+    r.advance(10); expect(r.cur().stopped).toBe(1)
+    expect(r.logs.find(x => x.includes('итог запрошен'))).toMatch(/^\[phrase-ear\] итог запрошен: затвор закрыт \+150 мс, черновик «where are you», голос после черновика \d+ мс \+\d+ мс$/)
+    r.cur().cb.onResult('where are you from', { words: [] })
+    expect(r.got).toEqual([{ phraseKey: 'where are you from', ratio: 1, heard: 'where are you from' }])
+    const q = rig([P.meet, P.from]); await flush() // пауза перед последним словом: черновик пришёл уже после голоса
+    voice(q, 600); q.advance(150); q.cur().cb.onPartial('where are you'); q.advance(150); q.cur().opts.onGate(false, 0.001)
+    q.advance(GATE_CLOSE_FINAL_MS + 100); expect(q.cur().stopped).toBe(0)
+    const g = rig([P.meet, P.from]); await flush() // затвор открылся раньше 150 мс — запрос отменён
+    voice(g, 400); g.cur().cb.onPartial('where are'); voice(g, 300); g.advance(300); g.cur().opts.onGate(false, 0.001)
+    g.advance(100); g.cur().opts.onGate(true, 0.04); g.advance(200); expect(g.cur().stopped).toBe(0)
+    const m = rig([P.meet, P.from]); await flush() // не хватает середины, последнее слово есть — итог по затвору без голоса после черновика
+    voice(m, 600); m.advance(150); m.cur().cb.onPartial('where you from'); m.advance(150); m.cur().opts.onGate(false, 0.001); m.advance(GATE_CLOSE_FINAL_MS)
+    expect(m.cur().stopped).toBe(1); expect(m.logs.find(x => x.includes('итог запрошен'))).toContain('последнее слово есть')
+    r.l.stop(); q.l.stop(); g.l.stop(); m.l.stop()
   })
 })

@@ -110,7 +110,7 @@ describe('сцена «Скажи»: слова по одному и доезд 
     expect(s.clock.t - t0).toBeLessThanOrEqual(500)
     s.go(300) // взлёт — через FILL_HOLD_MS после 100 %
     const line = logs.find(x => x.startsWith('[fill] 100 % через'))
-    expect(line).toMatch(/^\[fill\] 100 % через \d+ мс после последнего слова, взлёт \+\d+ мс$/)
+    expect(line).toMatch(/^\[fill\] 100 % через \d+ мс после последнего слова, последнее слово пришло: итогом, взлёт \+\d+ мс$/) // «you» — только итогом (как «from» у владельца)
     expect(Number(line.match(/через (\d+) мс/)[1])).toBeLessThanOrEqual(500)
     expect(p.fills.every((v, i) => i === 0 || v >= p.fills[i - 1] - 1e-9)).toBe(true)
     s.run.stop()

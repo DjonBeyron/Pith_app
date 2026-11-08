@@ -5,11 +5,12 @@ import { phraseStep, SAY_SPEED } from './raceStagesPhrases.js'
 import { round2SayTurns } from './racePhraseTurns.js'
 import { phrasesOf } from './racePhraseData.js'
 import { PHRASE_FIXTURE } from './racePhraseFixture.js'
-import { createVoiceFill, voiceFullMs, VOICE_HOLD_MS, VOICE_CAP } from './racePhraseVoiceFill.js'
+import { createGlide, GLIDE_GAP_MS, GLIDE_MIN_MS } from './racePhraseGlide.js'
 import { createPeek, PEEK_MS } from './racePhrasePeek.js'
 import { edgeVerdict, LAST_WORD_GRACE_MS } from './racePhraseFill.js'
 
-// Вид хода «Скажи» по проходам (racePhraseSayView.js): проход 2 — текст открыт, заливка «под звук» (racePhraseVoiceFill.js) с якорями; проход 1 — подсказка следующего слова (racePhrasePeek.js);
+// Вид хода «Скажи» по проходам (racePhraseSayView.js): заливка только по распознанным словам; проход 2 — текст открыт, заливка одним движением (racePhraseGlide.js); проход 1 — подсказка
+// следующего слова с первого кадра пилюли (racePhrasePeek.js);
 // продление хода у края (racePhraseFill.edgeVerdict, pool.hold)
 const ph = phrasesOf({ phrases: PHRASE_FIXTURE })
 const say = () => phraseStep('phrases2', round2SayTurns(ph), { round: 2, mode: 'say', voice: true, speed: SAY_SPEED })
@@ -17,72 +18,67 @@ const untilPill = (s, n) => { for (let i = 0; i < 2000 && s.pool.taken.length <=
 /** Голос ms мс: уровень 0,05 каждый кадр */
 const speak = (s, ms) => { for (let t = 0; t < ms; t += 16) { stubLevel(0.05); s.go(16) } }
 
-describe('заливка «под звук» (чистая)', () => {
-  it('растёт непрерывно, пока голос, со скоростью под длину фразы; пауза — стоит; якорь слова — не ниже его границы; без итога — не дальше 1,5 слова за якорем и не выше 0,97; итог — 100 %', () => {
-    const lines = [], f = createVoiceFill({ n: 4, log: x => lines.push(x) })
-    expect(voiceFullMs(4)).toBe(2100)
-    let t = 0, v = 0
-    for (; t < 500; t += 10) { f.level(0.05, false, t); v = f.goal({ t, dt: 10 }) }
-    expect(v).toBeCloseTo(500 / 2100, 2)
-    expect(lines[0]).toBe('[fill] режим под звук: голос да, цель 0,00, экран 0,00')
-    for (; t < 1500; t += 10) v = f.goal({ t, dt: 10 }) // тишина
-    expect(v).toBe(0.375); expect((500 + VOICE_HOLD_MS) / 2100).toBeGreaterThan(0.375) // голос держится VOICE_HOLD_MS после последнего куска (тут упёрся в 1,5 слова без якоря), потом линия стоит
-    expect(lines.at(-1)).toMatch(/^\[fill\] режим под звук: голос нет, цель 0,38/)
-    f.level(0.05, true, t); expect(f.voice(t)).toBe(false) // говорит Пит — не голос ученика
-    f.level(0.001, false, t); expect(f.voice(t)).toBe(false) // тише затвора — тишина
-    f.word(1); v = f.goal({ t, dt: 10, shown: 0.3 }); expect(v).toBe(0.5) // якорь: слово 2 сказано — граница 2/4
-    expect(lines.at(-1)).toBe('[fill] режим под звук: голос нет, цель 0,50, экран 0,30, якорь слова 2 → граница 0,50')
-    for (let i = 0; i < 400; i++, t += 10) { f.level(0.05, false, t); v = f.goal({ t, dt: 10 }) }
-    expect(v).toBeCloseTo(0.875, 3) // шум без слов: не дальше 1,5 слова за якорем
-    f.word(3); expect(f.goal({ t, dt: 10 })).toBe(1); expect(VOICE_CAP).toBe(0.97)
-    expect(createVoiceFill({ n: 2 }).goal({ t: 0, dt: 16, done: true })).toBe(1)
+describe('заливка прохода 2 по словам (чистая)', () => {
+  it('без слов — 0 (шума она не знает); первое слово — ровно граница; слова подряд — ведёт к следующей границе с постоянной скоростью и не дальше неё; слово не пришло — стоит; итог — 100 %', () => {
+    const lines = [], g = createGlide({ n: 4, log: x => lines.push(x) })
+    expect(g.goal({ t: 0 })).toBe(0); expect(g.goal({ t: 5000 })).toBe(0)
+    g.word(0, 1000); expect(g.goal({ t: 1000 })).toBe(0.25); expect(g.goal({ t: 1300 })).toBe(0.25) // одно слово — интервала нет, без ведения
+    expect(lines).toEqual(['[fill] режим по словам: слово 1 → граница 0,25'])
+    g.word(1, 1300); expect(g.goal({ t: 1300 })).toBe(0.5) // интервал 300 мс ≤ GLIDE_GAP_MS — ведём к границе 3
+    expect(lines.at(-1)).toBe('[fill] режим по словам: слово 2 → граница 0,50, веду к границе слова 3 за 300 мс')
+    expect(g.goal({ t: 1450 })).toBeCloseTo(0.625, 3); expect(g.goal({ t: 1600 })).toBe(0.75)
+    expect(lines.at(-1)).toBe('[fill] режим по словам: слово 3 не пришло — линия стоит на 0,75')
+    expect(g.goal({ t: 3000 })).toBe(0.75) // не дальше границы следующего слова, пока его нет
+    g.word(2, 3000); expect(g.goal({ t: 3000 })).toBe(0.75); expect(g.goal({ t: 3500 })).toBe(0.75) // средний интервал вырос (1000 мс) — без ведения
+    g.word(3, 3100); expect(g.goal({ t: 3100 })).toBe(1)
+    expect(g.goal({ t: 0, done: true })).toBe(1); expect(GLIDE_GAP_MS).toBe(400)
   })
-  it('по границам слов на пилюле (edges)', () => {
-    const f = createVoiceFill({ n: 3 })
-    f.word(0); expect(f.goal({ t: 0, dt: 16, edges: [0.37, 0.7, 1] })).toBe(0.37)
+  it('слова пачкой — ведение не быстрее GLIDE_MIN_MS; по границам слов на пилюле (edges)', () => {
+    const g = createGlide({ n: 4 }), edges = [0.2, 0.5, 0.8, 1]
+    g.word(0, 0); g.word(1, 0); expect(g.goal({ t: 0, edges })).toBe(0.5)
+    expect(g.goal({ t: GLIDE_MIN_MS / 2, edges })).toBeCloseTo(0.65, 3); expect(g.goal({ t: GLIDE_MIN_MS, edges })).toBe(0.8)
   })
 })
 
 describe('подсказка следующего слова (чистая)', () => {
-  it('начинается с голоса или слова: следующее спрятанное — peek, --peek 0 → 100 % за PEEK_MS; сказано — подсказка переходит дальше', () => {
+  it('с первого кадра: следующее спрятанное — peek, --peek 0 → 100 % за PEEK_MS; слово 1 ничего не меняет; сказано подсказанное — дальше; перепрыгнул — после самого дальнего', () => {
     const sets = [], pk = []
     const mask = { set: (h, all, p) => sets.push(p), peek: v => pk.push(Math.round(v)) }
-    const p = createPeek({ mask, text: 'Nice to meet you' })
-    expect(p.index()).toBe(-1); p.frame(100); expect(pk).toEqual([])
-    expect(p.start(new Map(), 1000)).toBe(1)
+    const p = createPeek({ mask, text: 'Nice to meet you', t: 1000 })
+    expect(p.index()).toBe(1); expect(sets).toEqual([1]) // пилюля появилась — «to» сразу подсказка
     p.frame(1000 + PEEK_MS / 2); p.frame(1000 + PEEK_MS * 2); expect(pk).toEqual([50, 200]) // maskView.peek обрезает до 100
-    expect(p.start(new Map([[0, true], [1, false]]), 2000)).toBe(2); p.frame(2000); expect(pk.at(-1)).toBe(0)
-    expect(p.start(new Map([[0, true], [1, true], [2, true], [3, false]]), 3000)).toBe(-1)
-    expect(sets).toEqual([1, 2, -1])
+    expect(p.show(new Map([[0, false]]), 1500)).toBe(1); p.frame(1500); expect(pk.at(-1)).toBe(42) // слово 1 — проявление продолжается
+    expect(p.show(new Map([[0, true], [1, false]]), 2000)).toBe(2); p.frame(2000); expect(pk.at(-1)).toBe(0)
+    expect(p.show(new Map([[0, true], [3, false]]), 2500)).toBe(-1) // перепрыгнул на последнее — подсказывать нечего
+    expect(createPeek({ mask, text: "I'm trying to learn" }).show(new Map([[1, true]]), 0)).toBe(3) // «to» открыт сразу — пропускается
+    expect(sets).toEqual([1, 1, 2, -1, 1, 3])
   })
 })
 
-describe('сцена: проход 2 под звук, проход 1 с подсказкой', () => {
-  it('проход 2: текст открыт всё время (черновые слова маску не закрывают), заливка растёт под голос непрерывно, в паузе стоит, якоря — границы слов', () => {
+describe('сцена: заливка только по словам, проход 1 с подсказкой', () => {
+  it('проход 2: текст открыт всё время; шум (высокий уровень без слов) линию не двигает; слова подряд — одним движением без ступенек; итог — 100 %', () => {
     const log = vi.fn(); const s = setupScene(say(), { listen: createPhraseListener, log })
     untilPill(s, 0); stubSay('nice to meet you')
     const p = untilPill(s, 1); s.go(300)
     const open = () => s.run.api.state().mask.map(w => w.state).join(' ')
     expect(s.run.api.state().pass).toBe(2); expect(open()).toBe('full full full full')
-    speak(s, 480); const a = p.fill
-    expect(a).toBeGreaterThan(0.15); expect(a).toBeLessThan(0.3)
-    const steps = p.fills.slice(-25).map((v, i, l) => (i ? v - l[i - 1] : 0)).slice(1)
-    expect(Math.max(...steps)).toBeLessThan(0.02) // без ступенек: ровный подъём кадр за кадром
-    s.go(1000); expect(p.fill).toBeLessThan(a + 0.16); const b = p.fill; s.go(500); expect(p.fill).toBe(b) // пауза — стоит, не откатывается
-    stubDraft('nice to'); expect(open()).toBe('full full full full') // раньше: неуслышанные снова прятались
-    s.go(400); expect(p.fill).toBeCloseTo(0.5, 2)
-    speak(s, 300); expect(p.fill).toBeGreaterThan(0.6)
-    expect(log.mock.calls.some(c => /^\[fill\] режим под звук: голос да/.test(c[0]))).toBe(true)
-    expect(log.mock.calls.some(c => /якорь слова 2 → граница 0,50/.test(c[0]))).toBe(true)
+    speak(s, 1500); expect(p.fill).toBe(0) // раньше «под звук» — линия росла от шума
+    stubDraft('nice'); s.go(250); stubDraft('nice to'); expect(open()).toBe('full full full full')
+    for (let i = 0; i < 12; i++) s.go(16)
+    const steps = p.fills.slice(-10).map((v, i, l) => (i ? v - l[i - 1] : 0)).slice(1)
+    expect(Math.min(...steps)).toBeGreaterThan(0) // идёт к границе слова 3, не стоит на границе слова 2
+    s.go(600); expect(p.fill).toBeCloseTo(0.75, 2); s.go(1000); expect(p.fill).toBeCloseTo(0.75, 2) // слово 3 не пришло — стоит на его границе
+    expect(log.mock.calls.some(c => /^\[fill\] режим по словам: слово 2 → граница 0,50, веду к границе слова 3 за 250 мс$/.test(c[0]))).toBe(true)
     stubSay('nice to meet you'); s.go(700)
     expect(s.fx.win).toHaveBeenCalledTimes(2); expect(p.fill).toBe(1)
     s.run.stop()
   })
-  it('проход 1: заливка по словам (голос её не двигает), подсказка — у следующего слова', () => {
+  it('проход 1: заливка по словам (голос её не двигает), подсказка — у слова 2 с первого кадра', () => {
     const s = setupScene(say(), { listen: createPhraseListener })
-    const p = untilPill(s, 0); s.go(300)
-    speak(s, 500); expect(p.fill).toBe(0)
+    const p = untilPill(s, 0)
     expect(s.run.api.state().mask.map(w => w.state)).toEqual(['full', 'peek', 'hidden', 'hidden'])
+    s.go(300); speak(s, 500); expect(p.fill).toBe(0)
+    stubDraft('nice meet'); expect(s.run.api.state().mask.map(w => w.state)).toEqual(['full', 'hidden', 'full', 'peek']) // перепрыгнул — подсказка после самого дальнего
     s.run.stop()
   })
 })

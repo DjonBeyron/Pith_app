@@ -51,7 +51,7 @@ const wav = ms => { // лидирующая тишина 80 мс + гудок ms
 const plan = { ...fixtureSource(fixture), game: 'race', ...(params.get('seed') ? { seed: params.get('seed') } : {}), ...(params.get('only') ? { round: params.get('only') } : {}) }
 plan.extraWords = extrasOf(fixturePlan(fixture))
 if (params.get('phrases') !== '0') plan.phrases = PHRASE_FIXTURE
-setPhraseListener(stubPhraseListener); window.__phraseSay = stubSay; window.__phraseDraft = stubDraft; window.__phraseLevel = stubLevel // фразы «говорит» драйвер (__phraseLevel(rms) — уровень микрофона: заливка прохода 2 «под звук», подсказка слова)
+setPhraseListener(stubPhraseListener); window.__phraseSay = stubSay; window.__phraseDraft = stubDraft; window.__phraseLevel = stubLevel // фразы «говорит» драйвер (__phraseLevel(rms) — уровень микрофона: заливку и подсказку не двигает — проверка «шум не заливает»)
 const mute = new Set((params.get('mute') || '').split(',').map(wordKey).filter(Boolean)) // ?mute=later,see — этих слов нет в библиотеке word_audio (как у владельца: слова запасной фразы не озвучены)
 const texts = raceTexts({ ...fixturePlan(fixture), extraWords: plan.extraWords })
 const rows = voice ? texts.map(text => ({ key: wordKey(text), ...wav(180 + 70 * text.replace(/\s/g, '').length) })).filter(r => r.key && !mute.has(r.key)) : []
