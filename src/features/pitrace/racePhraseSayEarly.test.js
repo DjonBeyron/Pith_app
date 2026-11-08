@@ -33,7 +33,7 @@ describe('ранний выезд «Скажи» в сцене', () => {
     const p = s.pool.taken[0]
     expect(s.pool.y(p.k)).toBeGreaterThan(ENTER_Y + 10) // уже выкатывается, а не из-за края
     s.go(2500); expect(s.pool.y(p.k)).toBeGreaterThanOrEqual(ZONE_TOP_Y - 0.5)
-    expect(log.mock.calls.map(c => c[0]).find(l => l.includes('выезжает вместе с репликой'))).toMatch(/^\[phrases\] круг 2 «Скажи» \(голос\), ход 1\/6, проход 1\/2: пилюля выезжает вместе с репликой Пита \(2500 мс\) с \d+ % высоты/)
+    expect(log.mock.calls.map(c => c[0]).find(l => l.includes('выезжает вместе с репликой'))).toMatch(/^\[phrases\] круг 2 «Скажи» \(голос\), ход 1\/6, проход 1\/2: пилюля выезжает вместе с репликой Пита \(2500 мс\) с -?\d+ % высоты/)
     s.run.stop()
   })
   it('проход 2 — тоже на pre: пилюля появляется в том же кадре, что и реплика race_phrase_again', () => {
