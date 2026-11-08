@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { readFileSync } from 'node:fs'
-import { demoPhrase, demoPlan, runDemoScript, createDemoGate, demoSeen, demoAllowed, markDemoShown, heardUpTo, DEMO_KEY, DEMO_MAX_SHOWS, LINE_SILENT_MS, DEMO_LINE_GAP_MS, DEMO_WORD_GAP_MS, DEMO_RUN_GAP_MS, DEMO_WORD_MS } from './racePhraseDemo.js'
+import { demoPhrase, demoPlan, runDemoScript, createDemoGate, heardUpTo, LINE_SILENT_MS, DEMO_LINE_GAP_MS, DEMO_WORD_GAP_MS, DEMO_RUN_GAP_MS, DEMO_WORD_MS } from './racePhraseDemo.js'
 import { createKit } from './raceStageKit.js'
 import { phraseStages } from './raceStagesPhrases.js'
 import { PHRASE_FIXTURE } from './racePhraseFixture.js'
@@ -8,7 +8,6 @@ import { round2SayTurns } from './racePhraseTurns.js'
 
 // Демо «Скажи»: какая фраза, скрипт, ворота игры. Демо-ход на живой пилюле в сцене — racePhraseDemoTurn.test.js
 const P = (text, own = true) => ({ text, key: text.toLowerCase(), own })
-const memStore = () => { const m = new Map(); return { getItem: k => (m.has(k) ? m.get(k) : null), setItem: (k, v) => m.set(k, String(v)) } }
 
 describe('демо «Скажи»: какая фраза', () => {
   it('запасная фраза (own: false), не цель круга; из нескольких — самая короткая', () => {
@@ -135,31 +134,31 @@ describe('демо «Скажи»: скрипт', () => {
   it('heardUpTo', () => { expect([...heardUpTo(1)]).toEqual([[0, true], [1, true]]) })
 })
 
-describe('демо «Скажи»: ворота игры и лимит показов', () => {
+describe('демо «Скажи»: ворота игры — в КАЖДОЙ игре, один раз за игру (лимита на устройстве нет)', () => {
   const ph = { text: 'See you later', spare: true }
-  it('claim: первый раз за игру — да (счётчик +1), второй — нет; без фразы — нет', () => {
-    const storage = memStore(), log = vi.fn(), g = createDemoGate({ storage, log })
+  it('claim: первый раз за игру — да, второй — нет; без фразы — нет; журнал [demo] с причиной', () => {
+    const log = vi.fn(), g = createDemoGate({ log })
     expect(g.claim(null)).toBe(false); expect(g.played()).toBe(false)
-    expect(g.claim(ph)).toBe(true); expect(g.active()).toBe(true); expect(demoSeen(storage)).toBe(1)
-    expect(log.mock.calls.at(-1)[0]).toBe('[phrase-demo] показ 1/3 на живой пилюле: «See you later» (запасная фраза)')
-    expect(g.claim(ph)).toBe(false); expect(demoSeen(storage)).toBe(1)
+    expect(log.mock.calls.at(-1)[0]).toBe('[demo] демо пропущено: нет фразы для демо')
+    expect(g.claim(ph)).toBe(true); expect(g.active()).toBe(true)
+    expect(log.mock.calls.at(-1)[0]).toBe('[demo] демо: фраза «See you later» (запасная)')
+    expect(g.claim(ph)).toBe(false)
+    expect(log.mock.calls.at(-1)[0]).toMatch(/^\[demo\] демо пропущено: уже было в этой игре/)
     g.end(''); expect(g.active()).toBe(false); expect(log.mock.calls.at(-1)[0]).toMatch(/конец/)
+    createDemoGate({ log }).claim({ text: 'Nice to meet you', spare: false }); expect(log.mock.calls.at(-1)[0]).toBe('[demo] демо: фраза «Nice to meet you» (первая фраза круга)')
   })
   it('обрыв (пауза) — «прервано»; после «Продолжить» демо не повторяется', () => {
-    const log = vi.fn(), g = createDemoGate({ storage: memStore(), log })
+    const log = vi.fn(), g = createDemoGate({ log })
     g.claim(ph); g.end('пауза')
-    expect(log.mock.calls.at(-1)[0]).toBe('[phrase-demo] прервано: пауза')
+    expect(log.mock.calls.at(-1)[0]).toBe('[demo] демо прервано: пауза')
     expect(g.claim(ph)).toBe(false)
   })
-  it(`первые ${DEMO_MAX_SHOWS} игры — демо, дальше пропуск (счётчик ${DEMO_KEY})`, () => {
-    const storage = memStore()
-    for (let k = 0; k < DEMO_MAX_SHOWS; k++) expect(createDemoGate({ storage }).claim(ph)).toBe(true)
-    expect(demoAllowed(storage)).toBe(false)
-    const g = createDemoGate({ storage }); expect(g.claim(ph)).toBe(false); expect(g.active()).toBe(false); expect(g.played()).toBe(true)
-  })
-  it('хранилище бросает или его нет — демо показывается, без ошибок', () => {
-    const bad = { getItem: () => { throw new Error('x') }, setItem: () => { throw new Error('x') } }
-    expect(demoSeen(bad)).toBe(0); expect(() => markDemoShown(bad)).not.toThrow(); expect(demoAllowed(null)).toBe(true)
+  it('десять игр подряд — демо в каждой (счётчик pithy_phrase_demo_seen_v1 больше не читается и не пишется)', () => {
+    const store = { getItem: vi.fn(() => '99'), setItem: vi.fn() }
+    vi.stubGlobal('localStorage', store)
+    try { for (let k = 0; k < 10; k++) expect(createDemoGate().claim(ph)).toBe(true) } finally { vi.unstubAllGlobals() }
+    expect(store.getItem).not.toHaveBeenCalled(); expect(store.setItem).not.toHaveBeenCalled()
+    for (const f of ['./racePhraseDemo.js', './useRacePhraseDemo.js']) expect(readFileSync(new URL(f, import.meta.url), 'utf8')).not.toMatch(/getItem|setItem/)
   })
 })
 

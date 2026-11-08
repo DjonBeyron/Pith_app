@@ -131,4 +131,12 @@ describe('медленная речь («i\'m … trying … to … please … b
     expect(h.sim.silenceFed).toBeGreaterThanOrEqual(1000) // всё отдано
     expect(h.last().status).toBe('listening')
   })
+
+  it('opts.onGate: затвор закрылся в паузе (тишина не идёт в декодер) и открылся на голосе — по событию на смену, с уровнем куска (журнал «Скажи» [gate])', async () => {
+    const h = rig(), gate = []
+    const cb = { onPartial: vi.fn(), onResult: vi.fn(), onError: vi.fn() }
+    await startListening({ KaldiRecognizer: function () { return h.rec } }, '[]', cb, { autoStopMs: 0, gate: true, onGate: (open, rms) => gate.push([open, +rms.toFixed(2)]) })
+    await h.tick(VOICE); await h.tick(VOICE); await h.pause(1000); await h.tick(VOICE); await h.tick(VOICE)
+    expect(gate).toEqual([[true, 0.4], [false, 0], [true, 0.4]])
+  })
 })

@@ -13,11 +13,10 @@ import { LISTEN_Y_MIN } from '../player/modules/rotate-phone/wordLaneTimeline.js
 const ph = phrasesOf({ phrases: PHRASE_FIXTURE })
 const turns = round2SayTurns(ph)
 const step = () => phraseStep('phrases2', turns, { round: 2, mode: 'say', voice: true, speed: SAY_SPEED, demo: demoPhrase(ph, turns) })
-const memStore = () => { const m = new Map(); return { getItem: k => (m.has(k) ? m.get(k) : null), setItem: (k, v) => m.set(k, String(v)) } }
 
 function setup(o = {}) {
   const s = setupScene(step(), { listen: createPhraseListener, log: o.log })
-  const gate = createDemoGate({ storage: o.storage ?? memStore() })
+  const gate = o.gate ?? createDemoGate()
   const said = []
   const kit = { claim: vi.fn(p => gate.claim(p)), end: vi.fn(why => gate.end(why)), sayLine: vi.fn(id => { said.push(id); return false }), sayText: vi.fn((w, op) => { said.push(`«${w}»`); op?.onSay?.(400) }), busyLeft: () => 0, text: id => `T:${id}`, ...(o.hasWord ? { hasWord: o.hasWord } : {}) }
   const pre = s.fx.pre
@@ -60,14 +59,16 @@ describe('демо-ход «Скажи» на живой пилюле', () => {
     s.go(800); expect(s.pool.taken).toHaveLength(2); expect(s.pool.taken[1].cap).toBe(turns[0].target.text)
     s.run.stop()
   })
-  it('ворота сказали «нет» (уже сыграно / лимит) или директора нет — сразу первый ход, демо-пилюли нет', () => {
-    const storage = memStore(); for (let i = 0; i < 3; i++) createDemoGate({ storage }).claim({ text: 'x' })
-    const s = setup({ storage })
+  it('ворота сказали «нет» (уже сыграно в этой игре) или директора нет — сразу первый ход, демо-пилюли нет; причина — в журнале [demo]', () => {
+    const logs = [], gate = createDemoGate({ log: x => logs.push(x) }); gate.claim({ text: 'x' })
+    const s = setup({ gate })
     s.go(400)
     expect(s.kit.claim).toHaveBeenCalledTimes(1); expect(s.run.api.state().phase).not.toBe('demo'); expect(s.said).toEqual([])
     expect(s.pool.taken.every(p => !p.attrs.has('data-demo'))).toBe(true)
     s.run.stop()
-    const n = setup({ noKit: true }); n.go(400); expect(n.run.api.state().phase).not.toBe('demo'); n.run.stop()
+    expect(logs.at(-1)).toMatch(/^\[demo\] демо пропущено: уже было в этой игре/)
+    const nl = [], n = setup({ noKit: true, log: x => nl.push(x) }); n.go(400); expect(n.run.api.state().phase).not.toBe('demo'); n.run.stop()
+    expect(nl).toContain('[demo] демо пропущено: директор не дал голос Пита (не гонка)')
   })
   it('слово демо без озвучки: не звучит, журнал «[demo] слово «…» без озвучки», кирпичик всё равно открывается и демо доходит до конца', () => {
     const log = vi.fn(); const s = setup({ log, hasWord: w => w !== 'later' })

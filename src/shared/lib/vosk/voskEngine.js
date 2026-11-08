@@ -105,7 +105,7 @@ export function unloadEngine(model) {
  * loadPct: доля реального времени, которую главный поток тратит на передачу звука воркеру (сам распознаватель работает в воркере — его нагрузку страница не видит).
  * Для «Сказать фразу» (медленная речь): gate (true — voskGate.js не отдаёт декодеру тишину дольше ≈0,4 с подряд, иначе его эндпойнтер сам обрывает запись на паузе 0,5–2 с), cleanPartial (как
  * считать текст для авто-стопа: без [unk] — «слово услышано» только настоящее), isComplete(текст) → true, когда в partial уже вся фраза: затвор открывается, а авто-стоп ждёт completeMs вместо autoStopMs
- * (stopBy 'full'). stats.gatedMs — сколько мс тишины не отдали движку.
+ * (stopBy 'full'). stats.gatedMs — сколько мс тишины не отдали движку; opts.onGate(open, rms) — затвор открылся (звук снова идёт в движок) / закрылся (тишина не идёт) — журнал «Скажи».
  * opts.gain (>1) — программное усиление микрофона перед Vosk: GainNode + мягкий ограничитель (voskGain.js, игра: gameMicGain.js); без него звук идёт напрямую.
  * opts.stream — готовый MediaStream: тогда getUserMedia не зовётся (второго диалога разрешения нет), а по концу сеанса треки остаются живыми — ими владеет вызывающий.
  * opts.record (true — только «Сказать фразу» с режимом «голосовое с текстом»): сырые куски звука ДО затвора копятся в памяти (voskRecord.js), а в stats.audio приходит клип
@@ -190,6 +190,7 @@ export async function startListening(model, grammar, cb, opts = {}) {
     if (cb.onLevel) { try { cb.onLevel(rms) } catch { /* уровень не должен мешать распознаванию */ } }
     if (recorder) { try { recorder.push(ev.inputBuffer.getChannelData(0)) } catch { /* запись не должна мешать распознаванию */ } }
     const g = gate ? gate.push(rms, dur, { open: st.complete }) : null
+    if (g && opts.onGate && g.feed !== st.gateOpen) { st.gateOpen = g.feed; try { opts.onGate(g.feed, rms) } catch { /* журнал не мешает распознаванию */ } }
     if (g?.preroll && st.prev) feedSamples(rec, st.prev, ctx.sampleRate) // голос вернулся после долгой тишины: предыдущий кусок мог начинать слово тише порога
     st.prev = null
     if (!g || g.feed) { try { rec.acceptWaveform(ev.inputBuffer) } catch (e) { cb.onError(`acceptWaveform: ${e?.message || e}`) } }
