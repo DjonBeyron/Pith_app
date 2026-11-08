@@ -167,7 +167,7 @@ describe('useRehearsalActs', () => {
   })
   it('отсчёт и «Начни с» подключены в директоре: ноты греются заранее, стартуют, когда Пит договорил, стадия ждёт их конца, таймеры гасятся со сменой стадии', () => {
     const src = read('./useRehearsalActs.js')
-    expect(src).toContain('warmCountdown(race); return releaseCountdown'); expect(src).toContain('stopCount = scheduleStageCount({ countAt: t.countAt, busyLeft: () => cat.busyLeft(), gate, soft: !!running.soft })')
+    expect(src).toContain('warmCountdown(race); return releaseCountdown'); expect(src).toContain('stopCount = scheduleStageCount({ countAt: t.countAt, busyLeft: () => cat.busyLeft(), gate, soft: !!running.soft, what: countWhat(stages, running) })')
     expect(src).toContain('return () => { ids.forEach(clearTimeout); stopCount?.() }'); expect(src).toContain('afterCount: fn => gate.after(fn)')
     expect(src).not.toContain('startCountdown')
   })

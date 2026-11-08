@@ -16,6 +16,8 @@
 // десктопе/Android оно доступно всегда, на iPhone — как и понижение, при
 // Audio Session API (canBoostPlay). Нет такого пути — звук играет как при 1.
 
+import { normalizeBuffer, outputOf } from './audioLoudness.js' // та же нормализация и выход с лимитером, что у игры (v3.3.165)
+
 export const VOLUME_MAX = 3
 const volumes = {}            // name → 0..VOLUME_MAX, кроме 1 (1 = нет ключа)
 const subs = new Set()
@@ -81,6 +83,7 @@ export function loadGainBuffer(ctx, name, url) {
     p = fetch(url, { cache: 'force-cache' })
       .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.arrayBuffer() })
       .then(ab => ctx.decodeAudioData(ab))
+      .then(b => { normalizeBuffer(b, name); return b })
       .catch(e => { buffers.delete(name); throw e })
     buffers.set(name, p)
   }
@@ -104,7 +107,7 @@ export async function playWithGain(ctx, name, url, volume) {
   const gain = ctx.createGain()
   gain.gain.value = volume
   source.connect(gain)
-  gain.connect(ctx.destination)
+  gain.connect(outputOf(ctx, { kind: 'интерфейс' }) ?? ctx.destination)
   source.start(0)
   return buffer.duration
 }

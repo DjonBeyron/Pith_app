@@ -65,7 +65,7 @@ describe('Пит читает фразу (racePhraseVoice)', () => {
     const a = make({ audio: { url: 'r2/nice.mp3', duration: 1.2 } })
     a.v.pre({ mode: 'hear', target: nice }, {}); a.flush()
     expect(a.said).toEqual(['whole:r2/nice.mp3']); expect(a.cat.holdBusy).toHaveBeenCalledWith(1200)
-    expect(a.logs).toEqual(['[phrase-voice] фраза «Nice to meet you»: целая запись'])
+    expect(a.logs[0]).toBe('[phrase-voice] фраза «Nice to meet you»: целая запись'); expect(a.logs[1]).toMatch(/^\[mouth\] фраза «Nice to meet you»: огибающая 0 точек/) // буфера нет — рот по буквам на всю длину
   })
   it('нет записи — по словам впритык: следующее слово через голос прежнего минус тишина в начале своего файла, без STEP_GAP_MS; журнал «по словам (N)»', () => {
     const a = make()

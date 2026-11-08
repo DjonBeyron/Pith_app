@@ -38,6 +38,8 @@ export const LINE_AT_MS = 250       // реплика на старте стад
 export const STUCK_MS = 3000        // слушатель молчит столько — «застрял»
 export const HINT_LABEL_MS = 2000   // подпись куска-подсказки
 export const MAX_STUCK_HINTS = 2    // подсказок на ступень
+/** Журнал отсчёта: перед каким этапом — стадия после плашки (sid) и название плашки */
+const countWhat = (stages, st) => `«${stages[st.idx + 1]?.sid ?? '—'}» (плашка ${st.round?.title || st.sid})`
 
 export function useRehearsalActs({ plan, stages, stage, at, stageObj, setS, sayLine, sayText, cat, lines, rate, lang, listenerRef, hold = false }) {
   const [journal] = useState(createJournal)
@@ -77,7 +79,7 @@ export function useRehearsalActs({ plan, stages, stage, at, stageObj, setS, sayL
     const t = timingOf(running), ids = []
     let stopCount = null
     if (lineOf(running)) ids.push(setTimeout(() => sayLine(lineOf(running)), t.lineAt))
-    if (t.countAt != null) stopCount = scheduleStageCount({ countAt: t.countAt, busyLeft: () => cat.busyLeft(), gate, soft: !!running.soft })
+    if (t.countAt != null) stopCount = scheduleStageCount({ countAt: t.countAt, busyLeft: () => cat.busyLeft(), gate, soft: !!running.soft, what: countWhat(stages, running) })
     return () => { ids.forEach(clearTimeout); stopCount?.() }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [running, at])

@@ -145,5 +145,8 @@ export function useCatLines({ lines, rate, catApi, listenerRef, waitMs = LINE_WA
   /** Пит занят ещё ms (+ короткая пауза): говорит слово не репликой (перевод «Разгона») — следующая пилюля ждёт, реплики не лезут вперёд */
   const holdBusy = ms => { busyRef.current = Math.max(busyRef.current, Date.now() + ms + 80) }
 
-  return { text, sayLine, sayLineLater, praiseTakeoff, stop, onStop, reset, busyLeft, holdBusy }
+  /** Рот Пита по дорожке (catApi.speak): целая запись фразы «Фраз» (racePhraseVoice.js) играет не репликой, а рот всё равно нужен */
+  const speakTrack = (track, ms, meta) => catApi?.current?.speak?.(track, ms, meta)
+
+  return { text, sayLine, sayLineLater, praiseTakeoff, stop, onStop, reset, busyLeft, holdBusy, speak: speakTrack }
 }

@@ -62,12 +62,12 @@ export function playCountdownNote(n, { log = pLog } = {}) {
  * Отсчёт целиком по таймерам: ноты по плану от момента вызова. → функция «отменить» (смена стадии, пауза, выход). onDone() — когда отсчёт доиграл вместе с хвостом (стадия ждёт этого, rehearsalCountdownRun.js).
  * play/setTimer/log подставляются в тестах
  */
-export function startCountdown({ plan = countdownPlan(), play = playCountdownNote, setTimer = setTimeout, clearTimer = clearTimeout, onDone = null, log = pLog } = {}) {
+export function startCountdown({ plan = countdownPlan(), play = playCountdownNote, setTimer = setTimeout, clearTimer = clearTimeout, onDone = null, log = pLog, what = '' } = {}) {
   warmCountdown(!!plan[0]?.soft)
   const played = []
   const ids = plan.map(n => setTimer(() => { played.push(!!play(n)) }, n.at))
-  ids.push(setTimer(() => { say(log, `отсчёт: сыграно ${played.filter(Boolean).length} из ${plan.length}`); onDone?.() }, countdownMs(plan)))
-  say(log, `отсчёт начат (контекст ${gameCtxState() ?? 'нет Web Audio'})`)
+  ids.push(setTimer(() => { say(log, `отсчёт${what ? ` перед ${what}` : ''}: сыграно ${played.filter(Boolean).length} из ${plan.length}`); onDone?.() }, countdownMs(plan)))
+  say(log, `отсчёт начат${what ? ` перед ${what}` : ''} (контекст ${gameCtxState() ?? 'нет Web Audio'})`)
   return () => ids.forEach(t => clearTimer(t))
 }
 
