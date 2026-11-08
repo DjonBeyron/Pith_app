@@ -15,7 +15,11 @@
   text-align: left;
   font-size: 15px;
   overflow: hidden;
+  background: var(--wl-plate-tex), var(--wl-plate-tex), #0b0d11; /* фон экрана непрозрачный (у плашек .wlTurn 0,94): узор сцены (race-stage-bg.css) сквозь итог не просвечивает, свой узор плашки остаётся */
 }
+/* Подложки текста итога непрозрачны (владелец, 2026-11-08: «паттерн не должен быть виден через них»): карточки слов и фраз — плотное тело var(--wl-card) под оттенком (race-weak.css, race-phrases-weak.css);
+   содержимое экрана — над блеском узора (::after .wlTurn — позиционированный слой поверх непозиционированных детей): у прямых детей position: relative и z-index 1, блеск идёт только по фону экрана. */
+.raceSum.raceFinal.wlTurn > * { position: relative; z-index: 1; }
 .raceFinalHead { flex: 0 0 auto; margin: 0 0 10px; text-align: center; }
 .raceFinalHead .wlRevealLabel { font-size: clamp(18px, 5.6vw, 24px); }
 .raceFinalPhrase { margin-top: 2px; font-size: 14px; font-weight: 600; opacity: 0.75; overflow-wrap: anywhere; }

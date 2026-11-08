@@ -58,7 +58,7 @@ describe('разметка и CSS конвейера', () => {
     expect(code).not.toMatch(/animation|@keyframes|transition|filter|::after|background-position/)
   })
   it('в покое видно всегда, но еле-еле (прозрачность по умолчанию = REST_A); яркость (в том числе мигание) ведёт --run-a, волны нет', () => {
-    expect(code).toContain(`opacity: var(--run-a, ${REST_A})`) // яркость — opacity слоя: композитор, без перерисовки
+    expect(code).toContain(`opacity: calc(var(--run-a, ${REST_A}) * var(--run-k))`) // яркость — opacity слоя (× приглушение --run-k): композитор, без перерисовки
     expect(code).not.toContain('--run-w')
     expect(code).not.toMatch(/opacity: 0;/)
     expect(RUN_A).toBeGreaterThan(REST_A)

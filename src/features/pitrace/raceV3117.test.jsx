@@ -115,15 +115,15 @@ describe('конвейер: три независимые дорожки', () =>
     const c = strip(css('word-lane-lane-run.css')), r = /\.wl\[data-race\] \.wlLanes i::before \{[^}]*\}/.exec(c)[0]
     expect(r).toContain(`--run-p: var(--run-px, ${RACE_PERIOD}dvh)`); expect(r).toContain('mask-image: none') // маски нет, узор — два слоя фона; период в px пишет привод (laneConveyorPx.js)
     expect(r).toContain('--run-c: rgb(var(--rgb))'); expect(r).toContain('--run-h: rgba(var(--rgb), 0.45)'); expect(r).toContain('--run-g: rgba(var(--rgb), 0.22)'); expect(r).not.toContain('--run-a') // яркость не в цвете (иначе перерисовка градиентов)
-    const layers = /background:\s*([^;]*);/.exec(r)[1].split(/repeat-y,\s*linear-gradient\(/)
-    expect(layers.length).toBe(2) // узелки (радиальный слой) и нить (линейный)
+    const layers = [/--run-knot:\s*([^;]*);/.exec(r)[1] + ' ' + /background:\s*([^;]*);/.exec(r)[1], /--run-line:\s*([^;]*);/.exec(r)[1] + ' ' + /background:\s*([^;]*);/.exec(r)[1]] // картинки слоёв — в переменных (их же берёт лента «Фраз», word-lane-wide.css)
+    expect(/background:\s*([^;]*);/.exec(r)[1]).toBe('var(--run-knot) 0 0 / 14px calc(var(--run-p) / 2) repeat-y, var(--run-line) center 0 / 1px calc(var(--run-p) / 2) repeat-y') // узелки (радиальный слой) и нить (линейный)
     expect(layers[0]).toContain('radial-gradient(circle 7px'); expect(layers[0]).toContain('calc(var(--run-p) / 2)') // два узелка на период (узор «реже»)
     expect(r).toContain('--run-d: 0.7dvh'); expect(r).toContain('--run-s: calc(var(--run-p) / 12)'); expect(layers[1]).toContain('center 0 / 1px calc(var(--run-p) / 2)') // нить 1 px: штрихи 0,7 dvh (размер прежний), шаг период/12 — вдвое реже; плитка — полпериода, как у узелков
     const dashes = layers[1].match(/var\(--run-h\) 0 calc\(var\(--run-s\)(?: \* (\d))? \+ 7px \+ var\(--run-d\)\)/g); expect(dashes.length).toBe(5) // пять штрихов на места 2–6, первое место — узелок (штриха под ним нет)
     expect(layers[0]).toContain('at 7px calc(7px + var(--run-d) / 2)') // центр узелка — середина места первого штриха
     expect(RACE_PERIOD).toBe(51.6)
     expect(c).not.toMatch(/animation|@keyframes|filter/)
-    const base = /\.wlLanes i::before \{[^}]*\}/.exec(c)[0]; expect(base).toContain('top: calc(var(--run-p) * -1)'); expect(base).toContain('bottom: 0'); expect(base).toContain('opacity: var(--run-a, 0.14)'); expect(base).toContain('will-change: transform, opacity'); expect(base).not.toMatch(/transition/); expect(c).toContain('.wlLanes i { contain: paint; }'); expect(r).not.toMatch(/top:|bottom:|height:/) // слой выше дорожки на период (51,6 dvh) — узор покрывает её при любом сдвиге --run-y
+    const base = /\.wlLanes i::before \{[^}]*\}/.exec(c)[0]; expect(base).toContain('top: calc(var(--run-p) * -1)'); expect(base).toContain('bottom: 0'); expect(base).toContain('opacity: calc(var(--run-a, 0.14) * var(--run-k))'); expect(base).toContain('--run-k: 0.65'); expect(base).toContain('will-change: transform, opacity'); expect(base).not.toMatch(/transition/); expect(c).toContain('.wlLanes i { contain: paint; }'); expect(r).not.toMatch(/top:|bottom:|height:/) // слой выше дорожки на период (51,6 dvh) — узор покрывает её при любом сдвиге --run-y
   })
 })
 
