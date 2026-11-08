@@ -3,7 +3,7 @@
    и гаснут, разделители .wlLaneEdge расходятся к краям ленты (5 % и 95 %); на выходе из этапа всё разъезжается обратно. Пауза и «Продолжить» (ступень сначала) атрибут не меняют — лента сразу в своём виде, без перехода.
    Новых узлов нет, только transform и opacity; конвейер (узор «нить») идёт по средней со скоростью пилюли (laneConveyorDrive.js), вспышка верного ответа — на всю ленту (word-lane-lane-flash.css).
    Широкая пилюля (pool.take wide → data-wide, left 50 %, WIDE_W × WIDE_H из wordLaneTimeline.js): та же капсула, что обычная, текст фразы в ::after (data-cap) в две строки, шрифт clamp(14px, 4vw, 18px);
-   data-faded — бледный текст (круг «Скажи»); заливка одна на всю фразу, слева направо (pool.paintFill: translateX слоя заливки, word-lane-wide-fill.css); data-spent — отыгранная пилюля круга 1 доезжает вниз бледной (тело непрозрачное);
+   data-faded — бледный текст (круг «Скажи»); заливка одна на всю фразу, слева направо (pool.paintFill: translateX слоя заливки, word-lane-wide-fill.css); data-spent — отыгранная пилюля доезжает вниз тише (тело непрозрачное), без текста;
    data-hot — верная пилюля после ошибки подсвечена (обводка ярче), перед тем как взлететь сама. Подпись смысла над лентой (.racePhraseRu, один узел сцены) — только opacity.
    filter нет; на слабом устройстве и при reduced-motion переходы мгновенные. */
 .wl[data-race] .wlLanes i, .wl[data-race] .wlLaneEdge { transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.25s ease; }
@@ -29,11 +29,15 @@
 .wlPill[data-wide][data-faded]:not([data-lock])::after { color: rgba(244, 246, 251, 0.42); }
 .wlPill[data-wide][data-hot] { border-color: #fff; }
 .wlPill[data-wide][data-hot]::after { color: #fff; }
-/* Отыгранная пилюля круга 1 (data-spent: ход решён, она доезжает вниз единым конвейером) — бледнее, тап по ней ничего не делает. Бледность — НЕ opacity всей пилюли (сквозь полупрозрачное тело просвечивал узор
-   дорожки — нить с узелком, замечание владельца с iPhone): тело остаётся непрозрачным, тускнеют обводка и свет (цвет), заливка, подпись и маска слов (opacity только у них — они лежат на непрозрачном теле) */
+/* Отыгранная пилюля (data-spent: ход решён, она доезжает вниз единым конвейером) — тише, тап по ней ничего не делает. Не opacity всей пилюли (сквозь полупрозрачное тело просвечивал узор дорожки — нить с узелком,
+   замечание владельца с iPhone): тело непрозрачное, тускнеют обводка и свет (цвет) и заливка. Текст (подпись ::after по data-cap — круг 1 «Пойми», «Узнай») ТАЕТ совсем за 0,4 с (2026-11-08, владелец: «текст в других
+   пилюлях исчезал вообще, плавно: верная улетает от тапа, остальные плывут дальше, но текста в них нет»; при промахе тает и у чужой, по которой тапнули; верная с data-hot не отыграна — текст до взлёта).
+   Маска слов «Скажи» (.racePhraseMask) у упущенной пилюли остаётся бледной: она нарочно показывает всю фразу. Только opacity; на слабом устройстве и при reduced-motion — сразу */
 .wlPill[data-wide][data-spent] { border-color: rgba(var(--rgb), 0.4); box-shadow: inset 0 0 18px -6px rgba(var(--rgb), 0.22); }
-.wlPill[data-wide][data-spent] > .wlPillClip, .wlPill[data-wide][data-spent] .racePhraseMask, .wlPill[data-wide][data-spent]:not([data-hint])::after { opacity: 0.45; transition: opacity 0.3s ease; }
-.weak-device .wlPill[data-wide][data-spent] > .wlPillClip, .weak-device .wlPill[data-wide][data-spent] .racePhraseMask, .weak-device .wlPill[data-wide][data-spent]::after { transition: none; }
+.wlPill[data-wide][data-spent] > .wlPillClip, .wlPill[data-wide][data-spent] .racePhraseMask { opacity: 0.45; transition: opacity 0.3s ease; }
+.wlPill[data-wide][data-spent]:not([data-hint])::after { opacity: 0; transition: opacity 0.4s ease; }
+.weak-device .wlPill[data-wide][data-spent] > .wlPillClip, .weak-device .wlPill[data-wide][data-spent] .racePhraseMask, .weak-device .wlPill[data-wide][data-spent]:not([data-hint])::after { transition: none; }
+@media (prefers-reduced-motion: reduce) { .wlPill[data-wide][data-spent] > .wlPillClip, .wlPill[data-wide][data-spent] .racePhraseMask, .wlPill[data-wide][data-spent]:not([data-hint])::after { transition: none; } }
 
 /* Пит на этапе — по центру. «Голосом» он и так в слежении по центру (wlCat--track, raceHeadDepth.js); «Пальцами» стоит слева (--cat-x 20) — на время акта его сдвигает свойство translate
    (не transform: им Пит прячется и выглядывает), переход 0,6 с туда и обратно; переходы transform прежние (word-lane.css) */

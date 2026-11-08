@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from 'vitest'
 import { CENTER_Y, HOT_MS } from './racePhraseScene.js'
 import { setupScene } from './racePhraseSceneRig.js'
 import { createPhraseListener, stubSay, stubDraft, stubCount } from './racePhraseListenStub.js'
-import { phraseStep, PHRASE_SPEED, SAY_SPEED, PHRASE_GAP_MS } from './raceStagesPhrases.js'
+import { phraseStep, PHRASE_SPEED, SAY_SPEED, PHRASE_GAP_MS, PHRASE_GAP_PCT, gapMs } from './raceStagesPhrases.js'
 import { round1Turns, round2SayTurns, round2HearTurns } from './racePhraseTurns.js'
 import { phrasesOf } from './racePhraseData.js'
 import { PHRASE_FIXTURE } from './racePhraseFixture.js'
@@ -27,13 +27,17 @@ describe('сцена широкой ленты: круг 1 «Пойми»', () =
     for (const p of s.pool.taken) { expect(p.wide).toBe(true); expect(p.lane).toBe(1); expect(p.speed).toBe(PHRASE_SPEED); expect(p.quiet).toBe(true) }
     expect(s.pool.taken.map(p => p.cap)).toEqual(round1Turns(ph, 's1')[0].cands.map(c => c.cap))
   })
-  it('пилюля в зоне чтения ≈ 4,5 с (круг 1, «Узнай») и ≈ 7 с («Скажи»); кандидаты через gap: шаг ≈ 27 % высоты, не наезжают', () => {
+  it('пилюля в зоне чтения ≈ 3,5 с (круг 1, «Узнай») и ≈ 5,3 с («Скажи»); шаг — PHRASE_GAP_PCT 20 % высоты при любой скорости, не наезжают', () => {
     const zone = v => 50 / (SPEED * v) // зона чтения ≈ 22…72 % высоты
-    expect(zone(PHRASE_SPEED)).toBeGreaterThanOrEqual(4.3); expect(zone(PHRASE_SPEED)).toBeLessThanOrEqual(4.7)
-    expect(zone(SAY_SPEED)).toBeGreaterThanOrEqual(6.7); expect(zone(SAY_SPEED)).toBeLessThanOrEqual(7.4)
-    const step = (SPEED * PHRASE_SPEED * PHRASE_GAP_MS) / 1000 // шаг между кандидатами, % высоты
-    expect(step).toBeGreaterThanOrEqual(26); expect(step).toBeLessThanOrEqual(28) // шаг ≈ 27 % высоты: пилюля 11 % + воздух ≈ 1,5 пилюли (владелец: при 45 % «расстояние огромное»)
-    expect(step).toBeGreaterThan(11 * 2) // не наезжают: между соседними — больше высоты пилюли
+    expect(zone(PHRASE_SPEED)).toBeGreaterThanOrEqual(3.3); expect(zone(PHRASE_SPEED)).toBeLessThanOrEqual(3.7)
+    expect(zone(SAY_SPEED)).toBeGreaterThanOrEqual(5.1); expect(zone(SAY_SPEED)).toBeLessThanOrEqual(5.5)
+    expect(PHRASE_GAP_PCT).toBe(20); expect(PHRASE_GAP_MS).toBe(gapMs(PHRASE_SPEED))
+    for (const v of [PHRASE_SPEED, SAY_SPEED, 0.43]) {
+      const step = (SPEED * v * gapMs(v)) / 1000 // шаг между пилюлями, % высоты
+      expect(step).toBeGreaterThanOrEqual(19.9); expect(step).toBeLessThanOrEqual(20.1) // пилюля 11 % + воздух ≈ 9 % (владелец 2026-11-08: «расстояние ещё меньше»; было ≈ 27 %)
+      expect(step).toBeGreaterThan(11) // не наезжают: между соседними — больше высоты пилюли
+    }
+    expect(phraseStep('phrases2', round2SayTurns(ph), { round: 2, mode: 'say', voice: true, speed: SAY_SPEED }).phrases.gap).toBe(gapMs(SAY_SPEED)) // «Скажи» — шаг из той же формулы
   })
   it('Пит ещё говорит — пилюли не выезжают', () => {
     const s = setup(pick(), { pit: 500 })

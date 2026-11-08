@@ -79,7 +79,7 @@ describe('стили широкой ленты', () => {
     expect(css).toMatch(/\.wlPill\[data-wide\]\[data-hot\]/)
     expect(css).not.toMatch(/border-radius/); expect(css).not.toMatch(/--segs/); expect(css).not.toMatch(/\.wlPillFill/); expect(css).not.toMatch(/\.wlPillSparks/); expect(css.replace(/[^{}]*data-spent[^{}]*\{[^}]*\}/g, '')).not.toMatch(/\.wlPillClip/) // клип заливки — только у отыгранной (тускнеет на непрозрачном теле)
     expect(css).toMatch(/\.wlPill\[data-wide\]\[data-ring\]::before \{ animation-name: wlExhaleWide; \}/)
-    expect(css).not.toMatch(/\.wlPill\[data-wide\]\[data-spent\] \{[^}]*opacity/); expect(css).toMatch(/\[data-spent\] > \.wlPillClip[^{]*\{ opacity: 0\.45;/) // отыгранная бледнее, но тело непрозрачное: сквозь него не просвечивает узор дорожки
+    expect(css).not.toMatch(/\.wlPill\[data-wide\]\[data-spent\] \{[^}]*opacity/); expect(css).toMatch(/\[data-spent\] > \.wlPillClip[^{]*\{ opacity: 0\.45;/); expect(css).toContain('.wlPill[data-wide][data-spent]:not([data-hint])::after { opacity: 0; transition: opacity 0.4s ease; }'); expect(css).toMatch(/\.weak-device \.wlPill\[data-wide\]\[data-spent\]:not\(\[data-hint\]\)::after \{ transition: none; \}/) // текст отыгранной тает совсем (0,4 с, на слабом сразу); отыгранная бледнее, но тело непрозрачное: сквозь него не просвечивает узор дорожки
     expect(css).toMatch(/\.racePhraseRu\[data-on\] \{ opacity: 1; \}/)
   })
 })
