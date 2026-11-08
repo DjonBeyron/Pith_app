@@ -46,6 +46,7 @@ describe('демо-ход «Скажи» на живой пилюле', () => {
     s.go(1300) // «затем второе» → you
     expect(s.said.slice(-2)).toEqual(['race_demo_2', '«you»']); expect(s.run.api.state().demo.mask.map(w => w.state)).toEqual(['full', 'full', 'hidden'])
     expect(p.fill).toBeCloseTo(2 / 3, 2)
+    expect(log.mock.calls.map(c => c[0])).toContain('[phrase-demo] слово 2 «you», заливка до границы 0,67') // как в игре: граница слова (без DOM — доли 1/N, racePhraseFill.edgeAt)
     s.go(1000) // «потом третье» → later
     expect(s.said.slice(-2)).toEqual(['race_demo_3', '«later»'])
     s.go(1100) // 100 % и взлёт

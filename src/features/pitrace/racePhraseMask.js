@@ -3,6 +3,8 @@
 // Слова проявляются по мере речи: черновик слушателя — слово бледно (draft), подтверждение — целиком (full). Чистые функции без DOM; на экран маску кладёт racePhraseMaskView.js.
 // Что открыто сразу (правила владельца): первое слово всегда; короткое слово (≤ SHORT_MAX букв, апостроф не считается: «to», «a», «I'm»), если оно не сразу за другим открытым
 // словом (значит, второе слово фразы — никогда) и открытых коротких в фразе ещё меньше трёх. Знаки по краям («you?», «"Hi») остаются на месте.
+// ПОДСКАЗКА СЛЕДУЮЩЕГО СЛОВА (2026-11-08, замечание владельца 2): пока ученик говорит слово k, слово k+1 из кирпичика становится текстом в состоянии 'peek' — бледно (30 %) и проявляется
+// по буквам слева направо (маска-градиент, --peek ведёт сцена: racePhrasePeek.js); сказано — 'full'. peek — только у спрятанного слова и только в проходе 1. nextPeek — какое слово подсказывать.
 // Номер слова — как у phraseWords (racePhraseData.js) и слушателя: токены без букв и цифр номера не получают и видны всегда.
 export const SHORT_MAX = 2
 export const SHORT_OPEN_MAX = 3
@@ -36,9 +38,9 @@ export function openWords(text) {
 
 /**
  * Фраза под маской: [{ text, state, index }] по токенам текста (через пробел). heard — Map номер слова → подтверждено ли (true — full, false — draft); all — показать всё (итог хода).
- * state: 'hidden' (плашка), 'draft' (слово бледно), 'full' (слово целиком; открытые сразу и токены без букв — всегда full).
+ * state: 'hidden' (плашка), 'peek' (подсказка: текст слова, проявляется по буквам — только спрятанное слово с номером peek), 'draft' (слово бледно), 'full' (слово целиком; открытые сразу и токены без букв — всегда full).
  */
-export function maskPhrase(text, heard = new Map(), all = false) {
+export function maskPhrase(text, heard = new Map(), all = false, peek = -1) {
   const open = openWords(text)
   let n = 0
   return String(text ?? '').trim().split(/\s+/).filter(Boolean).map(token => {
@@ -46,9 +48,18 @@ export function maskPhrase(text, heard = new Map(), all = false) {
     const index = core ? n++ : -1
     if (!core || all || open.has(index) || heard.get(index) === true) return { text: token, state: 'full', index }
     if (heard.has(index)) return { text: token, state: 'draft', index }
+    if (index === peek) return { text: token, state: 'peek', index }
     return { text: maskWord(token), state: 'hidden', index }
   })
 }
 
 /** Маска строкой (журнал, тесты, стенд): плашки показаны как «▭» на букву — «Nice ▭▭ ▭▭▭▭ ▭▭▭» */
 export const maskLine = (text, heard, all) => maskPhrase(text, heard, all).map(w => w.text.replaceAll(BRICK, '▭')).join(' ')
+
+/** Какое слово подсказывать (peek): первое спрятанное (не открыто сразу и не услышано) после самого дальнего услышанного; ничего не услышано — после первого слова. Нет такого — -1 */
+export function nextPeek(text, heard = new Map()) {
+  const open = openWords(text), n = maskPhrase(text).filter(w => w.index >= 0).length
+  const from = Math.max(0, ...heard.keys()) + 1
+  for (let i = from; i < n; i++) if (!open.has(i) && !heard.has(i)) return i
+  return -1
+}

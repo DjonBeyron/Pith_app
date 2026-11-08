@@ -1,11 +1,11 @@
 import { describe, it, expect } from 'vitest'
-import { maskWord, maskPhrase, maskLine, openWords, SHORT_MAX, SHORT_OPEN_MAX, BRICK } from './racePhraseMask.js'
+import { maskWord, maskPhrase, maskLine, openWords, nextPeek, SHORT_MAX, SHORT_OPEN_MAX, BRICK } from './racePhraseMask.js'
 import { mountMask } from './racePhraseMaskView.js'
 import { phraseWords } from './racePhraseData.js'
 
 // Маска слов круга «Скажи» («кирпичики»): спрятанное слово — плашка по длине, первое слово и короткие по правилам открыты, слова проявляются по мере речи (racePhraseMask.js), узел на пилюле (racePhraseMaskView.js)
 const fakeDoc = () => {
-  const node = tag => ({ tag, children: [], attrs: {}, textContent: '', className: '', setAttribute(n, v) { this.attrs[n] = String(v) }, appendChild(c) { this.children.push(c); c.parent = this; return c }, remove() { if (this.parent) this.parent.children = this.parent.children.filter(c => c !== this) } })
+  const node = tag => ({ tag, children: [], attrs: {}, style: { props: {}, setProperty(k, v) { this.props[k] = v } }, textContent: '', className: '', setAttribute(n, v) { this.attrs[n] = String(v) }, appendChild(c) { this.children.push(c); c.parent = this; return c }, remove() { if (this.parent) this.parent.children = this.parent.children.filter(c => c !== this) } })
   const doc = { createElement: node, createTextNode: t => ({ tag: '#text', textContent: t }) }
   const el = node('div'); el.ownerDocument = doc
   return el
@@ -37,6 +37,30 @@ describe('маска слов', () => {
     expect(w.filter(x => x.index >= 0).length).toBe(phraseWords(text).length)
     expect(w.map(x => x.index)).toEqual([0, -1, 1, 2, 3])
     expect(maskLine(text, new Map([[3, true]]))).toBe('Well — ▭▭▭ ▭▭▭ soon!')
+  })
+})
+
+describe('подсказка следующего слова (peek)', () => {
+  it('состояния слова: hidden → peek (текст слова, только у спрятанного) → full; nextPeek — первое спрятанное после самого дальнего услышанного', () => {
+    const st = (heard, peek) => maskPhrase('Nice to meet you', heard, false, peek).map(w => `${w.text.replaceAll(BRICK, '▭')}:${w.state}`).join(' ')
+    expect(st(new Map(), -1)).toBe('Nice:full ▭▭:hidden ▭▭▭▭:hidden ▭▭▭:hidden')
+    expect(nextPeek('Nice to meet you', new Map())).toBe(1); expect(st(new Map(), 1)).toBe('Nice:full to:peek ▭▭▭▭:hidden ▭▭▭:hidden')
+    const h = new Map([[0, true], [1, true]])
+    expect(nextPeek('Nice to meet you', h)).toBe(2); expect(st(h, 2)).toBe('Nice:full to:full meet:peek ▭▭▭:hidden')
+    expect(st(new Map([[0, true], [1, true], [2, true]]), 2)).toBe('Nice:full to:full meet:full ▭▭▭:hidden') // сказано — целиком, peek не перекрывает
+    expect(nextPeek("I'm trying to learn", new Map([[1, true]]))).toBe(3) // «to» открыт сразу — подсказка дальше
+    expect(nextPeek('Nice to meet you', new Map([[3, false]]))).toBe(-1)
+    expect(st(new Map(), 0)).toBe('Nice:full ▭▭:hidden ▭▭▭▭:hidden ▭▭▭:hidden') // открытое слово подсказкой не бывает
+  })
+  it('узел: peek — текст в ячейке data-w="peek", проявление по буквам — --peek (0…100 %) только у неё, пишется при смене; кирпичик → текст — перемер границ', () => {
+    const el = fakeDoc(), m = mountMask(el, 'Nice to meet you')
+    const cells = el.children[0].children.filter(c => c.tag === 'b')
+    m.set(new Map(), false, 1)
+    expect(cells[1].textContent).toBe('to'); expect(cells[1].attrs['data-w']).toBe('peek')
+    m.peek(42.4); expect(cells[1].style.props['--peek']).toBe('42%'); m.peek(150); expect(cells[1].style.props['--peek']).toBe('100%')
+    expect(cells[2].style.props['--peek']).toBeUndefined()
+    m.set(new Map([[1, true]]), false, 2); expect(cells[1].attrs['data-w']).toBe('full'); expect(cells[2].attrs['data-w']).toBe('peek')
+    m.peek(10); expect(cells[2].style.props['--peek']).toBe('10%')
   })
 })
 

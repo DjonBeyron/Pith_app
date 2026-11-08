@@ -10,7 +10,8 @@ export function fakePool(clock) {
     live, taken: [],
     take(lane, o) { const k = next++; const p = { k, lane, ...o, attrs: new Set(), vals: {}, born: clock.t - (o.atMs ?? 0), rate: 1, fill: 0, fills: [], el: el() }; live.set(k, p); pool.taken.push(p); return k },
     give: k => live.delete(k), fade: k => { pool.taken[k].faded = true; live.delete(k) }, rise: k => { live.get(k).rose = true; live.delete(k); return true },
-    y: k => { const p = live.get(k); return p ? ENTER_Y + (SPEED * p.speed * p.rate * (clock.t - p.born)) / 1000 : null },
+    y: k => { const p = live.get(k); return p ? p.frozen ?? ENTER_Y + (SPEED * p.speed * p.rate * (clock.t - p.born)) / 1000 : null },
+    hold(k, on = true) { const p = live.get(k); if (!p) return false; if (on) p.frozen = pool.y(k); else if (p.frozen != null) { p.born = clock.t - ((p.frozen - ENTER_Y) * 1000) / (SPEED * p.speed * p.rate); p.frozen = null } p.held = on; return true }, // продление хода «Скажи»: полёт замирает
     attr: (k, n, on = true) => { const p = pool.taken[k]; if (on) { p.attrs.add(n); p.vals[n] = on === true ? '1' : String(on) } else { p.attrs.delete(n); delete p.vals[n] } },
     paintFill: (k, v) => { pool.taken[k].fill = v; pool.taken[k].fills.push(v) }, el: k => pool.taken[k].el, flashLane: vi.fn(),
     coast(gone) { pool.coasted = [...live.keys()]; pool.onGone = gone; return pool.coasted }, tail: () => clock.tail ?? null, // доезд при смене ступени (wordLaneCoast.js): номера и «доехала»; tail — верх доезжающих прошлого круга

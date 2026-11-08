@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest'
 import { CENTER_Y, HOT_MS } from './racePhraseScene.js'
 import { setupScene } from './racePhraseSceneRig.js'
-import { createPhraseListener, stubSay, stubDraft, stubCount } from './racePhraseListenStub.js'
+import { createPhraseListener, stubSay, stubDraft, stubLevel, stubCount } from './racePhraseListenStub.js'
 import { phraseStep, PHRASE_SPEED, SAY_SPEED, PHRASE_GAP_MS, PHRASE_GAP_PCT, gapMs } from './raceStagesPhrases.js'
 import { round1Turns, round2SayTurns, round2HearTurns } from './racePhraseTurns.js'
 import { phrasesOf } from './racePhraseData.js'
@@ -118,8 +118,9 @@ describe('сцена широкой ленты: круг 2 «Скажи»', () =
     expect(s.run.api.state().listening).toBe(true); expect(s.pool.taken[0].vals['data-mode']).toBe('say')
     const m = () => s.run.api.state().mask.map(w => `${w.text.replaceAll('\u2007', '▭')}:${w.state}`).join(' ')
     expect(m()).toBe('Nice:full ▭▭:hidden ▭▭▭▭:hidden ▭▭▭:hidden') // первое слово открыто, «to» второе — спрятано
-    stubDraft('nice to'); expect(m()).toBe('Nice:full to:draft ▭▭▭▭:hidden ▭▭▭:hidden')
-    stubDraft('nice to meet'); expect(m()).toBe('Nice:full to:full meet:draft ▭▭▭:hidden') // прошлое слово подтверждено следующим
+    stubLevel(0.05); expect(m()).toBe('Nice:full to:peek ▭▭▭▭:hidden ▭▭▭:hidden') // голос пошёл — второе слово подсказывается (проявляется по буквам, 30 %)
+    stubDraft('nice to'); expect(m()).toBe('Nice:full to:draft meet:peek ▭▭▭:hidden')
+    stubDraft('nice to meet'); expect(m()).toBe('Nice:full to:full meet:draft you:peek') // прошлое слово подтверждено следующим, подсказка — следующее
     stubSay('nice to meet you'); expect(m()).toBe('Nice:full to:full meet:full you:full') // итог: вся фраза сразу, взлёт — когда заливка доехала
     s.go(700); expect(s.fx.win).toHaveBeenCalledTimes(1)
     expect(log.mock.calls.at(-1)[0]).toMatch(/^\[phrases\] круг 2 «Скажи» \(голос\), ход 1\/6, проход 1\/2: цель .+ итог верно, слова 100 %, чисто$/)

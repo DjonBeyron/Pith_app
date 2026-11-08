@@ -1,12 +1,12 @@
 // Подставной слушатель фраз этапа 2 (тот же интерфейс, что у createPhraseListener из racePhraseListen.js по контракту этапа 2): для тестов и стенда (_stand/race), вместо настоящего (racePhraseListen.js)
 // или когда речь подаёт драйвер. Ничего не слушает: речь «говорят» вызовом stubSay(text) — по каждой фразе-кандидату считаются её слова, услышанные по порядку (onWord на каждое новое), и доля ratio;
-// ratio ≥ PHRASE_OK — onPhrase; непустая речь — onEar({ kind: 'partial' | 'final', text }) (как у настоящего: отладочная полоска сцены, на заливку не влияет), слова отдаются подтверждёнными (draft: false); stubDraft(text) — то же черновиком (draft: true, без onPhrase). Сопоставление простое (слова строчными без знаков по краям), этого хватает для проверки сцены. Чистый модуль без DOM.
+// ratio ≥ PHRASE_OK — onPhrase; непустая речь — onEar({ kind: 'partial' | 'final', text }) (как у настоящего: отладочная полоска сцены, на заливку не влияет), слова отдаются подтверждёнными (draft: false); stubDraft(text) — то же черновиком (draft: true, без onPhrase); stubLevel(rms) — уровень микрофона (onLevel). Сопоставление простое (слова строчными без знаков по краям), этого хватает для проверки сцены. Чистый модуль без DOM.
 export const PHRASE_OK = 0.75
 
 const live = new Set()
 const words = text => String(text ?? '').toLowerCase().split(/\s+/).map(t => t.replace(/^[^\p{L}\p{N}']+|[^\p{L}\p{N}']+$/gu, '')).filter(Boolean)
 
-export function createPhraseListener({ phrases = [], onWord = () => {}, onEar = () => {}, onPhrase = () => {}, onError = () => {} } = {}) {
+export function createPhraseListener({ phrases = [], onWord = () => {}, onEar = () => {}, onLevel = () => {}, onPhrase = () => {}, onError = () => {} } = {}) {
   let list = phrases
   let heard = new Map() // phraseKey → множество услышанных номеров слов
   const me = {
@@ -22,6 +22,7 @@ export function createPhraseListener({ phrases = [], onWord = () => {}, onEar = 
         if (!draft && ratio >= PHRASE_OK) onPhrase({ phraseKey: p.key, ratio, heard: said.join(' ') })
       }
     },
+    level(rms, held = false) { onLevel(rms, held) },
     fail(err) { onError(err) },
     stop() { live.delete(me) },
     reset() { heard = new Map() },
@@ -36,6 +37,9 @@ export const stubSay = text => { for (const l of [...live]) l.hear(text) }
 
 /** Драйвер «говорит» text черновиком: слова приходят с draft: true, зачёта нет */
 export const stubDraft = text => { for (const l of [...live]) l.hear(text, true) }
+
+/** Драйвер подаёт уровень микрофона rms (0…1; held — говорит Пит): как onLevel настоящего слушателя — голос для заливки «под звук» прохода 2 и подсказки слова */
+export const stubLevel = (rms, held = false) => { for (const l of [...live]) l.level(rms, held) }
 
 /** Сколько подставных слушателей сейчас живы (тесты: сцена остановила своего) */
 export const stubCount = () => live.size

@@ -153,6 +153,8 @@ export function createPool(root) {
     },
     /** Где самая верхняя доезжающая пилюля прошлой ступени (центр, %); нет — null: первая пилюля новой сцены выезжает за ней не ближе своего gap */
     tail: () => coastTail(root),
+    /** «Фразы», «Скажи» (racePhraseScene.js, продление хода у края): on — полёт замирает на месте (pause), иначе едет дальше; часы полёта (y) стоят вместе с ним. Нет полёта — false */
+    hold(k, on = true) { const a = live.get(k)?.anim; if (!a) return false; try { if (on) a.pause(); else a.play() } catch { return false } return true },
     /** Где пилюля сейчас (центр, % высоты экрана) — по часам её полёта; не летит — null */
     y: k => (live.get(k)?.anim ? flightY(live.get(k).anim) : null),
     /** Тихо погасить пилюлю (opacity за ms) и вернуть в пул */

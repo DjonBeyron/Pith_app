@@ -1,6 +1,6 @@
 // Дебаг заливки круга 2 «Скажи» для сцены (racePhraseScene.js) в одном месте: журнал «[fill]» (racePhraseFillLog.js) и отладочная полоска под пилюлей (racePhraseDebugBar.js, только в режиме отладки).
 // Сцена зовёт: spawn — пилюля «Скажи» выехала; word / phrase — слово цели / итог фразы (onWord / onPhrase); ear — что слышит Vosk (onEar слушателя: черновик, итог, затвор тишины);
-// frame — каждый кадр (цель и экран); full / rise — заливка дошла до 100 % / взлёт; drop — пилюля решена, ушла или сцена снята (полоска убирается).
+// frame — каждый кадр (цель и экран); full / rise — заливка дошла до 100 % / взлёт; end — сводка хода; drop — пилюля решена, ушла или сцена снята (полоска убирается).
 import { createFillLog } from './racePhraseFillLog.js'
 import { debugBarOn, mountDebugBar, barText } from './racePhraseDebugBar.js'
 
@@ -19,6 +19,8 @@ export function createSayTrace({ log = () => {}, bar = debugBarOn, mount = mount
     frame(t, g, s) { fill.frame(t, g, s); strip?.set(barText({ partial, goal: g, shown: s, gate, ms: t - born })) },
     full: (t, last) => fill.full(t, last),
     rise: t => fill.rise(t),
+    /** Ход решён (зачёт или «не успел»): сводная строка «[fill] итог хода: …» */
+    end: () => fill.end(),
     drop,
     /** Есть ли полоска на экране (тесты, стенд) */
     shown: () => !!strip,
