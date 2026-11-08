@@ -119,12 +119,12 @@ describe('честность оценки', () => {
 })
 
 describe('XP за пилюлю, ноты, Пит', () => {
-  it('2 XP за принятую пилюлю; летит цифра из плеера (XpFloat), в профиль пока не начисляется', () => {
+  it('2 XP за принятую пилюлю; летит цифра в счётчик (WordLaneXpParticle), в профиль пока не начисляется', () => {
     expect(XP_PER_PILL).toBe(2)
     const flow = read('./useWordLaneFlow.js')
     expect(flow).toContain('xpApi.current?.add(XP_PER_PILL * rep.count, rect)') // одна цифра на повтор: XP за все его куски
-    expect(read('./WordLaneXp.jsx')).toContain("import XpFloat from '../../XpFloat.jsx'")
-    expect(read('./WordLaneXp.jsx')).toContain('<XpFloat events={events} onDismiss={dismiss} viewport />')
+    expect(read('./WordLaneXp.jsx')).toContain("import WordLaneXpParticle from './WordLaneXpParticle.jsx'") // цифра летит в счётчик, а не к верху экрана
+    expect(read('./WordLaneXp.jsx')).toContain('getTarget={getTarget}')
     expect(read('./WordLaneGame.jsx')).toContain('<WordLaneXp apiRef={f.xpApi} />')
     // XP — только у ученика: fx.win зовётся из события win конвейера ученика, а в фазе диктора щёлкает без награды
     const eng = read('./useWordLanePills.js')

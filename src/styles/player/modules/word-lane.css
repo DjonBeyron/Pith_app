@@ -145,7 +145,7 @@
 .wlCat [data-part='head'] { display: none; }
 .wlCat[data-face='base'] [data-part='head'][data-face='base'], .wlCat[data-face='love'] [data-part='head'][data-face='love'], .wlCat[data-face='shy'] [data-part='head'][data-face='shy'] { display: inline; }
 
-/* XP за принятую пилюлю: цифра летит вверх (общий XpFloat плеера), счётчик в углу растёт, когда цифра долетела */
+/* XP за принятую пилюлю: цифра летит из пилюли в этот счётчик (WordLaneXpParticle.jsx), долетела — число растёт, счётчик «дышит» по scale (el.animate в WordLaneXp.jsx) */
 .wlXp {
   top: calc(env(safe-area-inset-top) + 14px);
   right: calc(env(safe-area-inset-right) + 14px);
@@ -160,8 +160,6 @@
   z-index: 7;
 }
 .wlXp--on { opacity: 1; }
-.wlXp--pop { animation: wlXpPop 0.5s ease-out; }
-@keyframes wlXpPop { 0% { transform: scale(1); } 40% { transform: scale(1.18); } 100% { transform: scale(1); } }
 
 
 /* «Живой Пит v2» у кота (WordLaneCat.jsx, wordLaneCatLook.js): зрачки и широкие формы рта — общие правила scene-v2-pit.css (.scn--v2). Усы здесь качает не CSS, а whiskerDrive.js
