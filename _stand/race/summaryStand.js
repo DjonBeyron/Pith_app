@@ -19,10 +19,10 @@ const phrases = [
 const metrics = { accuracy: { sprint: { hit: 3, total: 4 }, catch: { hit: 1, total: 3 } }, avgMs: 1250, slowest: { text: 'learn', ms: 2100 }, traps: { dodged: 0, total: 1 } }
 const result = { sprint: { hit: 3, total: 4 }, catchOk: 1, catchTotal: 3, phrasesOk: 2, phrasesTotal: 4, phrases, medal: 'none', descent: null, xp: 12, capped: false, gold: false, metrics, weak: withAccuracy(race, weakWords(race, Infinity)) }
 
-/** Элемент стенда итога: обёртка игры с узором и экран итога поверх */
+/** Элемент стенда итога: обёртка игры с узором и экран итога поверх; ?dbg=1 — как у админа с отладкой: под кнопками «⬇ Скачать журнал игры · Скопировать» (RaceJournalLinks.jsx) */
 export function summaryStand() {
   const plan = normalizePlan({ ...fixturePlan('three'), game: 'race', round: 'stages' })
-  const summary = React.createElement(RaceSummary, { plan, result, onAgain: () => {}, onDone: () => { window.__done = 'summary' } })
+  const summary = React.createElement(RaceSummary, { plan, result, onAgain: () => {}, onDone: () => { window.__done = 'summary' }, journal: new URLSearchParams(location.search).get('dbg') === '1' })
   const stage = React.createElement('div', { className: 'wlStage', 'data-tex': '' }, summary)
   return React.createElement('div', { className: 'wl', 'data-race': '', 'data-testid': 'wl' }, stage)
 }

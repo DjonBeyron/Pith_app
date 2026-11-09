@@ -12,8 +12,7 @@ import { getVoiceRate, setVoiceRate, VOICE_RATES } from '../../lessonVolume.js'
 import { getRewardSound, setRewardSound, getRewardVolume, setRewardVolume, REWARD_SOUNDS } from './wordLaneMeow.js'
 import { unlockNotes } from './wordLaneNotes.js'
 import { prepareAudio, buildDebugFile, saveDebugFile, SAVE_HOW } from './wordLaneDebugExport.js'
-import { buildJournalFile, liveHeader, copyText, COPY_HOW, compactText } from './wordLaneJournal.js'
-import { ruReady } from '../../../pitrace/raceRu.js'
+import { saveJournalNow, copyJournalNow } from './wordLaneJournalNow.js'
 import RaceMicSettingsTip from '../../../pitrace/RaceMicSettingsTip.jsx'
 import { isIOS, isStandalone, MIC_TIP_LABELS } from '../../../pitrace/raceMicHelp.js'
 import {
@@ -76,9 +75,9 @@ export default function WordLaneHud({ dbg, rootRef, onRestartStage, onRestartGam
     } catch { setStatus(SAVE_HOW.failed) }
   }
 
-  const journalFile = () => buildJournalFile({ header: liveHeader({ version: APP_VERSION, tap, ru: ruReady(), en: info.vosk }) }) // журнал всего сеанса страницы (gameJournal): доступен и на паузе — шестерёнка поднята над её подложкой
-  const saveJournal = async () => { setStatus('Готовлю журнал…'); try { const how = await saveDebugFile(journalFile()); setStatus(`${SAVE_HOW[how] ?? SAVE_HOW.failed} (журнал)`) } catch { setStatus(SAVE_HOW.failed) } }
-  const copyJournal = async () => { const how = await copyText(compactText(journalFile().text)).catch(() => 'failed'); setStatus(COPY_HOW[how] ?? COPY_HOW.failed) }
+  // журнал всего сеанса страницы (gameJournal, wordLaneJournalNow.js — тот же путь, что у итога гонки): доступен и на паузе — шестерёнка поднята над её подложкой
+  const saveJournal = async () => { setStatus('Готовлю журнал…'); setStatus(await saveJournalNow()) }
+  const copyJournal = async () => { setStatus(await copyJournalNow()) }
 
   return (
     <div className="wlHud" role="dialog" aria-label="Настройки отладки" data-testid="wl-hud">

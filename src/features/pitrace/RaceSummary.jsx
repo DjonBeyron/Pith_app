@@ -6,15 +6,19 @@ import RaceMetrics from './RaceMetrics.jsx'
 import RaceAccuracyBar from './RaceAccuracyBar.jsx'
 import { isMode } from './raceOnly.js'
 import RacePhrasesWeak from './RacePhrasesWeak.jsx'
+import RaceJournalLinks from './RaceJournalLinks.jsx'
+import { useShowDebugUi } from '../player/useShowDebugUi.js'
 
 // Итог гонки (CONCEPT_RACE.md, «Финиш») — плашка в стиле итога репетиции (RehearsalSummary.jsx: узор .wlTurn, блеск от центра, полёт при выходе rehearsalExit.js): разгон N/M, слух N/3, вершина — медаль, спуск ✓ / ✗, XP,
 // над ними метрики (RaceMetrics.jsx, raceMetrics.js): точность по этапам, среднее время ответа, самое медленное слово, ловушки; под счётом «Самые слабые слова» — чипы слов обоих этапов от слабых к сильным (raceWeak.js, не больше 8), цвет по слабости, перевод мелко;
 // в режимах этапов (raceOnly.MODES: «Пинг-понг + фразы + финал», «Пинг-понг + финал») строк «Вершина» и «Спуск» нет; был этап «Фразы» — строка «Фразы N/M» и под словами блок «Слабые фразы» (RacePhrasesWeak.jsx); вопрос «Ещё заезд?» и кнопки «Ещё заезд» (следующий план, run + 1) и «Нет». result — итог raceSim.reportRace или null, пока не посчитан; onAgain — null, если следующего плана нет (один раунд, шлифовка).
 // onShown — итог показан (один раз): карточка игры прогревает озвучку следующего плана. (Не путать с features/race/RaceSummary.jsx — итогом супер-урока недельной гонки: это другая функция.)
 // Экран итога на всю сцену (v3.3.118): заголовок «Встряхни память: итог», счёт проходов, метрики двумя строками, список слов от слабых к сильным (строка: слово, перевод, пометка, цвет по слабости — стиль «Моей памяти»; у каждого слова — полоса точности RaceAccuracyBar.jsx, raceAccuracy.js), кнопки внизу.
+// Под кнопками — «⬇ Скачать журнал игры · Скопировать» (RaceJournalLinks.jsx), только при отладочном интерфейсе: journal — dbg.enabled игры (RaceActs), или админ / player_debug_ui (useShowDebugUi, как «⬇ лог» в шапке).
 const mark = d => (d === 'ok' ? '✓' : d === 'miss' ? '✗' : '—')
 
-export default function RaceSummary({ plan, result, onAgain = null, onShown = null, onDone }) {
+export default function RaceSummary({ plan, result, onAgain = null, onShown = null, onDone, journal = false }) {
+  const showJournal = useShowDebugUi() || journal
   const ref = useRef(null)
   const timer = useRef(0)
   const [lite] = useState(plateLite)
@@ -53,6 +57,7 @@ export default function RaceSummary({ plan, result, onAgain = null, onShown = nu
         {onAgain && <button type="button" className="wlNext" onClick={onAgain} disabled={leaving} data-testid="race-again">Ещё раз</button>}
         <button type="button" className={onAgain ? 'wlNext rhGhost' : 'wlNext'} onClick={leave} disabled={leaving} data-testid="race-done">{onAgain ? 'Нет' : 'Готово'}</button>
       </div>
+      {showJournal && <RaceJournalLinks />}
     </div>
   )
 }
