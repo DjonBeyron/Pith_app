@@ -1,0 +1,43 @@
+/* Стенд пилюль (отладка, features/pillstand/PillStand.jsx): поверх всего, как игра (.wl), фон спокойный — без узора и дорожек. Панель сверху с safe-area, пилюля стоит на месте (34 % / 33 % высоты),
+   под ней (.psBottom, от 44 %) строка цели и зачёта, ниже — панель «что слышит Vosk» (pill-stand-ear.css) или плеер записи (pill-stand-player.css). Ширина 320–375 px без горизонтальной прокрутки. */
+.psStand { --ps-top: calc(env(safe-area-inset-top, 0px) + 6px); --ps-ink: #e9ecf2; --ps-dim: #8b93a3; --ps-line: rgba(255, 255, 255, 0.12); --ps-acc: var(--lvl1, #b6fe3b); font-family: system-ui, -apple-system, sans-serif; }
+.psStand .psField[data-hide] { visibility: hidden; }
+.psBar {
+  position: absolute; z-index: 8; top: var(--ps-top); left: calc(env(safe-area-inset-left, 0px) + 6px); right: calc(env(safe-area-inset-right, 0px) + 6px);
+  display: flex; flex-direction: column; gap: 4px;
+}
+.psRow { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; min-width: 0; }
+.psRow--small { font-size: 11px; color: var(--ps-dim); gap: 6px; }
+.psBtn {
+  appearance: none; border: 1px solid var(--ps-line); background: #1b1f27; color: var(--ps-ink); border-radius: 8px; padding: 5px 8px; font-size: 12px; line-height: 1.2;
+  min-height: 30px; display: inline-flex; align-items: center; gap: 3px; white-space: nowrap; touch-action: manipulation;
+}
+.psBtn:disabled { opacity: 0.4; }
+.psBtn[data-on] { border-color: var(--ps-acc); color: var(--ps-acc); }
+.psBtn--tiny { min-height: 24px; padding: 2px 7px; font-size: 11px; }
+.psExit { padding-left: 5px; }
+.psRec[data-on] { border-color: #ff5d73; color: #ff8a99; }
+.psRec[data-warn] { background: #3a1820; }
+.psSeg { display: inline-flex; border: 1px solid var(--ps-line); border-radius: 8px; overflow: hidden; flex: 0 1 auto; min-width: 0; }
+.psSegBtn { appearance: none; border: 0; border-left: 1px solid var(--ps-line); background: #1b1f27; color: var(--ps-dim); font-size: 12px; padding: 5px 9px; min-height: 30px; white-space: nowrap; }
+.psSegBtn:first-child { border-left: 0; }
+.psSegBtn[data-on] { background: #2a3140; color: var(--ps-ink); box-shadow: inset 0 -2px 0 var(--ps-acc); }
+.psSegBtn:disabled { opacity: 0.45; }
+.psSeed input { width: 92px; background: #14171c; color: var(--ps-ink); border: 1px solid var(--ps-line); border-radius: 6px; font: 11px ui-monospace, Menlo, monospace; padding: 3px 5px; }
+.psAuto { display: inline-flex; align-items: center; gap: 3px; }
+.psSel { background: #14171c; color: var(--ps-ink); border: 1px solid var(--ps-line); border-radius: 6px; font-size: 11px; padding: 2px 3px; }
+.psModel { color: #ffcf6e; }
+.psModel[data-ready] { color: var(--ps-acc); }
+.psBottom { /* под пилюлей: строка цели и зачёта, ниже панель слуха или плеер — колонкой, панель занимает остаток и прокручивается внутри */
+  position: absolute; z-index: 6; top: 44dvh; bottom: calc(env(safe-area-inset-bottom, 0px) + 4px); left: calc(env(safe-area-inset-left, 0px) + 6px); right: calc(env(safe-area-inset-right, 0px) + 6px);
+  display: flex; flex-direction: column; gap: 4px; min-height: 0;
+}
+.psStatus { flex: none; display: flex; flex-direction: column; align-items: center; gap: 3px; text-align: center; font-size: 13px; }
+.psStart { appearance: none; border: 0; border-radius: 999px; background: var(--ps-acc); color: #0d1500; font-size: 17px; font-weight: 700; padding: 10px 34px; }
+.psHint { color: var(--ps-dim); font-size: 12px; }
+.psTarget { color: var(--ps-ink); overflow-wrap: anywhere; }
+.psResult { color: var(--ps-dim); font-size: 12px; min-height: 16px; }
+.psResult[data-ok='1'] { color: var(--ps-acc); }
+.psResult[data-ok='0'] { color: #ff8a99; }
+@media (max-width: 340px) { .psBtn, .psSegBtn { font-size: 11px; padding: 4px 6px; } }
+.psStatus .voskNotice { margin: 0 0 4px; background: #1b1f27; border-radius: 10px; }

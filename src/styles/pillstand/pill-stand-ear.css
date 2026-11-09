@@ -1,0 +1,21 @@
+/* Панель «что слышит Vosk» стенда пилюль (PillStandEar.jsx): моноширинный мелкий шрифт, прокрутка внутри блока (место — остаток колонки .psBottom, pill-stand.css). Полоска уровня: ширина — --rms (пишет кадр стенда, без React),
+   отметка — порог голоса стенда (STAND_VOICE_RMS = 0,015 → √0,015 · 2,2 ≈ 27 %). */
+.psEar, .psPlayer {
+  flex: 1 1 auto; min-height: 0;
+  overflow-y: auto; overflow-x: hidden; -webkit-overflow-scrolling: touch; background: #12151b; border: 1px solid var(--ps-line); border-radius: 10px; padding: 6px 8px;
+  font: 11px/1.35 ui-monospace, Menlo, Consolas, monospace; color: var(--ps-ink); box-sizing: border-box;
+}
+.psEarHead { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
+.psLevel { position: relative; flex: 1 1 auto; height: 10px; border-radius: 5px; background: #232833; overflow: hidden; --rms: 0; }
+.psLevel i { position: absolute; inset: 0; transform-origin: 0 50%; transform: scaleX(var(--rms)); background: #4fb3ee; }
+.psLevel[data-voice] i { background: var(--ps-acc); }
+.psLevel::after { content: ''; position: absolute; top: 0; bottom: 0; left: 27%; width: 1px; background: rgba(255, 255, 255, 0.6); }
+.psGate { white-space: nowrap; color: var(--ps-dim); }
+.psGate[data-open='1'] { color: var(--ps-acc); }
+.psGate[data-open='0'] { color: #ff8a99; }
+.psLine { margin: 2px 0; overflow-wrap: anywhere; }
+.psLine b { color: var(--ps-dim); font-weight: 600; margin-right: 4px; }
+.psLine--bad { color: #ff8a99; }
+.psNote { margin: 2px 0; color: #ffcf6e; overflow-wrap: anywhere; }
+.psHist, .psEvents { margin: 4px 0 0; padding: 4px 0 0; list-style: none; border-top: 1px dashed var(--ps-line); color: var(--ps-dim); }
+.psHist li, .psEvents li { overflow-wrap: anywhere; }

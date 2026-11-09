@@ -1,0 +1,10 @@
+/* Плеер записи стенда пилюль (PillStandPlayer.jsx): блок управления — на месте панели слуха; поле .psReplay — пилюля из снимков (pillStandSnap.applySnap). CSS-анимации и переходы в поле плеера
+   выключены целиком (и у псевдоэлементов): кадр — ровно снимок, шаг ◀ ▶ показывает то же, что было на экране, а не то, что доиграла бы анимация. */
+.psReplay .wlPill, .psReplay .wlPill *, .psReplay .wlPill::before, .psReplay .wlPill::after, .psReplay .wlPill *::before, .psReplay .wlPill *::after { animation: none !important; transition: none !important; }
+.psReplay .wlPill { visibility: hidden; }
+.psPlayer { display: flex; flex-direction: column; gap: 4px; }
+.psRow--player { gap: 5px; }
+.psBig { min-width: 52px; min-height: 42px; justify-content: center; font-size: 18px; }
+.psRange { width: 100%; margin: 4px 0; accent-color: var(--ps-acc); }
+.psSmall { color: var(--ps-dim); font-size: 11px; }
+.psEvents li[data-mine] { color: var(--ps-ink); background: #1d2430; }

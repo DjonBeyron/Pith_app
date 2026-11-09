@@ -1,0 +1,21 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>pill stand harness</title>
+<style>body{margin:0;background:#0e1013;color:#fff;font-family:system-ui}</style></head>
+<body><div id="root"></div>
+<script type="module">
+// Стенд пилюль без игры (dev, в сборку не входит): PillStand сразу на весь экран, в StrictMode, как в приложении. ?stub=1 — подставной слушатель фраз (racePhraseListenStub.js: речь — window.__phraseSay('…')).
+import React, { StrictMode } from 'react'
+import { createRoot } from 'react-dom/client'
+import '/src/index.css'
+import PillStand from '/src/features/pillstand/PillStand.jsx'
+import { setPhraseListener } from '/src/features/pitrace/racePhraseListener.js'
+import { createPhraseListener as stub, stubSay, stubDraft } from '/src/features/pitrace/racePhraseListenStub.js'
+import { getPlayerLines } from '/src/shared/lib/debug.js'
+const q = new URLSearchParams(location.search)
+if (q.get('stub') === '1') { setPhraseListener(stub); window.__phraseSay = stubSay; window.__phraseDraft = stubDraft }
+window.__journal = () => getPlayerLines()
+function App() {
+  const [open, setOpen] = React.useState(true)
+  return open ? React.createElement(PillStand, { onClose: () => setOpen(false) }) : React.createElement('button', { id: 'reopen', onClick: () => setOpen(true) }, 'открыть стенд')
+}
+createRoot(document.getElementById('root')).render(React.createElement(StrictMode, null, React.createElement(App)))
+</script></body></html>
