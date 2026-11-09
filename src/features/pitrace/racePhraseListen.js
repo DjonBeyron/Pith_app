@@ -32,8 +32,8 @@ const clean = raw => String(raw ?? '').toLowerCase().split(/\s+/).filter(w => w 
 const norm = list => (list ?? []).map(p => ({ key: p.key, words: (p.words ?? []).map(w => String(typeof w === 'string' ? w : w?.text ?? '')).filter(Boolean) })).filter(p => p.key && p.words.length)
 
 /**
- * phrases — [{ key, words: ['nice', 'to', 'meet', 'you'] }]; onWord({ phraseKey, index, text, draft }) — новое услышанное слово кандидата: draft — пока только в черновике (partial), потом то же слово
- * ещё раз с draft: false, когда его подтвердил итог захода (каждое — не больше двух раз до зачёта/сброса); onEar({ kind: 'partial' | 'final', text } | { kind: 'gate', open, rms }) — что слышит Vosk (отладочная полоска);
+ * phrases — [{ key, words: ['nice', 'to', 'meet', 'you'] }]; onWord({ phraseKey, index, text, draft, gone? }) — новое услышанное слово кандидата: draft — пока только в черновике (partial), потом то же слово
+ * ещё раз с draft: false, когда его подтвердил итог захода; проход 1 — слова по порядку (orderedHits), черновое слово, выпавшее из услышанного, — onWord с gone: true (откат); onEar({ kind: 'partial' | 'final', text } | { kind: 'gate', open, rms }) — что слышит Vosk (отладочная полоска);
  * onLevel(rms, held) — уровень каждого куска звука микрофона (held — говорит Пит): только журнал / отладка — сцена «Скажи» заливает пилюлю только по распознанным словам;
  * onPhrase({ phraseKey, ratio, heard }) — кандидат сказан (ratio — доля слов: 1 — чисто, 0.75 — одно пропущено); onError(status) — 'unavailable' (нет модели) или 'error' (микрофон / Vosk).
  * wordByWord — проход 1 «по слову» (паузы между словами — норма: ранние итоги только по lastOnly, racePhraseEarlyFinal.js; неполное совпадение — не раньше SETTLE_WBW_MS без голоса,
@@ -61,6 +61,7 @@ export function createPhraseListener({ phrases: phrasesIn, lang = 'en', getStrea
   let gen = 0
   let disposed = false
 
+  const score = heard => scorePhrases(phrases, heard, wordByWord) // проход 1 — слова только по порядку (racePhraseScore.orderedHits)
   const heardNow = () => { const t = now(); past = past.filter(p => t - p.at <= (wordByWord ? JOIN_WBW_MS : JOIN_MS)); return [...past.map(p => p.text), current].filter(Boolean).join(' ') }
   const clearState = () => { past = []; current = ''; sent = new Map(); clearTimer(settleTimer); settleTimer = 0; clearTimer(quietTimer); quietTimer = 0; clearTimer(gateTimer); gateTimer = 0; clearTimer(muteTimer); muteTimer = 0; throughBy = ''; throughAt = null; firstAt = null; zero = now(); sameAt = -Infinity; pauseMax = 0 }
   const quietMs = () => quietLimit(pauseMax, wordByWord)
@@ -68,7 +69,7 @@ export function createPhraseListener({ phrases: phrasesIn, lang = 'en', getStrea
   const settle = (ms, mine) => { if (wordByWord) { ms = Math.max(ms, SETTLE_WBW_MS); settleLast = true } clearTimer(settleTimer); settleTimer = setTimer(() => { settleTimer = 0; if (mine !== gen) return; if (throughBy) through(throughBy); decide(true) }, ms) }
   /** Строка журнала «договорена» (если по услышанному фраза всё ещё договорена) */
   function through(by) {
-    const heard = heardNow(), scores = heard ? scorePhrases(phrases, heard) : [], key = saidThrough(scores)
+    const heard = heardNow(), scores = heard ? score(heard) : [], key = saidThrough(scores)
     if (!key) return
     const r = scores.find(s => s.key === key).ratio.toFixed(2).replace('.', ',')
     log(`[phrase-ear] договорена: последнее слово есть, ratio ${r} — зачёт ${by} через ${Math.round(now() - (throughAt ?? now()))} мс`)
@@ -76,11 +77,11 @@ export function createPhraseListener({ phrases: phrasesIn, lang = 'en', getStrea
   /** Черновик без последнего слова: тишина quietMs() — итог захода сейчас (голос ещё идёт — ждём дальше) */
   const quiet = (mine, hold = LAST_HOLD_MS) => { clearTimer(quietTimer); quietTimer = setTimer(() => { quietTimer = 0; if (mine !== gen || disposed || !current) return; if (now() - voiceAt < quietMs()) return quiet(mine, 1); log(`[phrase-ear] черновик «${current}» без последнего слова, тишина ${Math.round(now() - voiceAt)} мс (порог ${Math.round(quietMs())}) — прошу итог захода ${rel()}`); ear?.stop?.() }, Math.max(hold, quietMs() - (now() - voiceAt))) }
 
-  const hasWord = text => !!text && scorePhrases(phrases, text).some(s => s.hits.some(Boolean))
+  const hasWord = text => !!text && score(text).some(s => s.hits.some(Boolean))
   /** Затвор закрылся: просить ли итог через GATE_CLOSE_FINAL_MS (racePhraseEarlyFinal.gateReason; открылся — отмена) */
   function gateFinal(open, mine) {
     clearTimer(gateTimer); gateTimer = 0
-    const tail = voiceAt - textAt, heard = heardNow(), scores = heard ? scorePhrases(phrases, heard) : []
+    const tail = voiceAt - textAt, heard = heardNow(), scores = heard ? score(heard) : []
     const why = open || isHeld() ? null : gateReason({ scores, current, curHit: hasWord(current), tail, wordByWord })
     if (!why) return
     const closedAt = now()
@@ -99,12 +100,18 @@ export function createPhraseListener({ phrases: phrasesIn, lang = 'en', getStrea
     }, VOSK_QUIET_MS)
   }
 
+  /** onWord по разбору: проход 2 — каждое слово, хоть раз услышанное (без отката); проход 1 — по выровненному порядку: черновое слово, которого в услышанном больше нет, откатывается
+   * (onWord с gone: true), подтверждённое итогом в непрерывном префиксе (слова 0…k подряд) — нет; итог со словом «вперёд» его не подтверждает (оно может оказаться не на своём месте) */
   function words(scores, draft) {
     for (const s of scores) {
       const got = sent.get(s.key) ?? new Map()
       sent.set(s.key, got)
-      const p = phrases.find(x => x.key === s.key)
-      s.hits.forEach((ok, index) => { if (ok && (!got.has(index) || (!draft && !got.get(index)))) { got.set(index, !draft); onWord?.({ phraseKey: s.key, index, text: p.words[index], draft }) } })
+      const p = phrases.find(x => x.key === s.key), say = (index, d, gone = false) => onWord?.({ phraseKey: s.key, index, text: p.words[index], draft: d, ...(gone ? { gone } : {}) })
+      if (!wordByWord) { s.hits.forEach((ok, index) => { if (ok && (!got.has(index) || (!draft && !got.get(index)))) { got.set(index, !draft); say(index, draft) } }); continue }
+      for (const [index, kept] of got) if (!kept && !s.hits[index]) { got.delete(index); log(`[phrase-ear] слово ${index + 1} «${p.words[index]}» откат (${s.key}): в услышанном по порядку его нет ${rel()}`); say(index, true, true) }
+      let k = 0
+      while (s.hits[k] || got.get(k) === true) k++
+      s.hits.forEach((ok, index) => { const keep = ok && !draft && index < k; if (ok && (!got.has(index) || (keep && !got.get(index)))) { got.set(index, keep); say(index, !keep) } })
     }
   }
 
@@ -112,7 +119,7 @@ export function createPhraseListener({ phrases: phrasesIn, lang = 'en', getStrea
     if (disposed || !phrases.length) return false
     const heard = heardNow()
     if (!heard) return false
-    const scores = scorePhrases(phrases, heard)
+    const scores = score(heard)
     words(scores, draft)
     const picked = pickPhrase(scores, settled)
     if (picked) {
@@ -153,7 +160,7 @@ export function createPhraseListener({ phrases: phrasesIn, lang = 'en', getStrea
       current = ''; textAt = now(); gateOpen = true; clearTimer(muteTimer); muteTimer = 0 // следующий заход Vosk (wordLaneListen перезапускает сам): голос в нём — ещё не в черновике
       const heard = heardNow()
       if (!heard) return
-      const scores = scorePhrases(phrases, heard)
+      const scores = score(heard)
       clearTimer(quietTimer); quietTimer = 0
       const done = !!saidThrough(scores)
       settleLast = done || !!lastOnly(scores); throughBy = done ? 'по концу захода' : ''

@@ -3,6 +3,9 @@
 // СОКРАЩЕНИЯ (2026-11-08, журнал владельца: «итог «am trying to» · лучший «i'm trying to learn» ratio 0.50» — Vosk слышит «am» вместо «I'm»): сравнение двустороннее — tokenize раскрывает
 // i'm / you're / it's / don't / let's / gonna / wanna в обе стороны (цель и услышанное); формы без апострофа (im, youre, dont, lets, wanna…) сводятся к ним (normForms); слово-сокращение цели
 // считается сказанным и по своей «опорной» части (PART_OK: «am» зажигает «I'm») — onWord отдаёт его номер, заливка и маска идут по нему.
+// ПО ПОРЯДКУ (2026-11-09, журнал владельца v3.3.176, «Nice to meet you», проход 1: первый черновик «meet» вместо «nice» засчитал «meet» навсегда, линия перепрыгнула его место): в проходе 1
+// (ordered) слово цели сказано, только если встаёт в услышанном по возрастанию позиций — наибольшая цепочка слов цели (LCS по словам), при равной длине — с более ранними словами
+// цели («meet nice» → только «nice», «to nice» → только «nice»). Сравнение слова с токенами — то же, что у wordHits (сокращения, опорная часть). Проход 2 — по-прежнему без порядка (matchPhrase).
 import { matchPhrase, tokenize } from '../../shared/lib/speech/speechMatch.js'
 import { normForms, partOk } from './racePhraseForms.js'
 
@@ -20,10 +23,30 @@ export function wordHits(words, heard) {
   return spans.map((n, i) => { const its = r.items.slice(at, at + n); at += n; return n > 0 && (its.every(it => it.ok) || partOk(ws[i], its)) })
 }
 
-/** Разбор по всем кандидатам: [{ key, hits: [bool], ratio }] в порядке кандидатов */
-export function scorePhrases(phrases, heard) {
+/** Слова кандидата → какие услышаны ПО ПОРЯДКУ: [bool] по словам (наибольшая цепочка по возрастанию позиций, при равной длине — с более ранними словами цели) */
+export function orderedHits(words, heard) {
+  const toks = tokenize(normForms(heard)), n = words.length, m = toks.length
+  const spans = words.map(w => tokenize(normForms(w)).length)
+  const fits = (i, j) => { // сколько токенов с позиции j может занять слово i: целиком (span) и / или одним токеном (опорная часть сокращения)
+    const out = [], s = spans[i]
+    if (s > 1 && j + s <= m && wordHits([words[i]], toks.slice(j, j + s).join(' '))[0]) out.push(s)
+    if (wordHits([words[i]], toks[j])[0]) out.push(1)
+    return out
+  }
+  const fit = words.map((_, i) => toks.map((_, j) => fits(i, j)))
+  const f = Array.from({ length: n + 1 }, () => new Array(m + 1).fill(0)) // f[i][j] — сколько слов i… встаёт по порядку в токенах j…
+  for (let i = n - 1; i >= 0; i--) for (let j = m - 1; j >= 0; j--) f[i][j] = Math.max(f[i + 1][j], f[i][j + 1], ...fit[i][j].map(s => 1 + f[i + 1][j + s]))
+  const hits = new Array(n).fill(false)
+  for (let i = 0, j = 0; i < n && j < m; i++) { // слово i берём, если с ним цепочка остаётся наибольшей (самое раннее место)
+    for (let jj = j; jj < m; jj++) { const s = fit[i][jj].find(x => 1 + f[i + 1][jj + x] === f[i][j]); if (s) { hits[i] = true; j = jj + s; break } }
+  }
+  return hits
+}
+
+/** Разбор по всем кандидатам: [{ key, hits: [bool], ratio }] в порядке кандидатов; ordered — слова только по порядку (проход 1, orderedHits) */
+export function scorePhrases(phrases, heard, ordered = false) {
   return phrases.map(p => {
-    const hits = p.words.length ? wordHits(p.words, heard) : []
+    const hits = p.words.length ? (ordered ? orderedHits : wordHits)(p.words, heard) : []
     const ok = hits.filter(Boolean).length
     return { key: p.key, hits, ok, ratio: hits.length ? ok / hits.length : 0 }
   })

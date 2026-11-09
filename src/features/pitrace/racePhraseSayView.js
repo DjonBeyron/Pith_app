@@ -1,6 +1,7 @@
 // Вид хода «Скажи» по проходам (racePhraseScene.js, одна пилюля на ход): что делают с маской и заливкой распознанные слова. Заливка — ТОЛЬКО по распознанным словам цели в обоих проходах
 // (решение владельца 2026-11-08: шум и посторонний голос пилюлю не заливают; уровень микрофона сюда больше не приходит).
-//  • Проход 1 — маска-кирпичики снимается по словам: услышанное слово (и черновиком) — целиком белое; заливка — по словам до границ, по непрерывному префиксу сказанных (racePhraseFill.fillGoal, saidPrefix: слово «вперёд» линию не двигает); подсказка — слово сразу за
+//  • Проход 1 — маска-кирпичики снимается по словам ПО ПОРЯДКУ: услышанное слово (и черновиком) — целиком белое, если все слова до него сказаны (слово «вперёд» остаётся кирпичиком, 2026-11-09:
+//    ложное «meet» первым черновиком не белеет); откат слова (gone) — снова кирпичик, подсказка возвращается на него; заливка — по словам до границ, по непрерывному префиксу сказанных (racePhraseFill.fillGoal, saidPrefix: слово «вперёд» линию не двигает); подсказка — слово сразу за
 //    сказанным проявляется целым словом до 20 % (racePhrasePeek.js; до первого слова подсказки нет); неверное слово (racePhraseWrongWord.js) — рывок кромки красным (racePhraseNudge.js),
 //    заливка не меняется, журнал «[fill] неверное слово «…», ждём «…»» (onWrong — racePhraseSayTrace.wrong).
 //  • Проход 2 — текст открыт ВСЕГДА (маску не трогаем), подсказки и рывка нет; заливка по словам одним движением, без ступенек (racePhraseGlide.js). Итог фразы (done) — 100 % в обоих проходах.
@@ -11,7 +12,7 @@ import { createWrongWord } from './racePhraseWrongWord.js'
 import { createNudge } from './racePhraseNudge.js'
 import { phraseWords } from './racePhraseData.js'
 
-const white = heard => new Map([...heard.keys()].map(i => [i, true])) // проход 1: сказанное слово — целиком (замечание владельца: «слово полностью белое»)
+const white = heard => { const m = new Map(); for (let i = 0; heard.has(i); i++) m.set(i, true); return m } // проход 1: сказанное слово — целиком (замечание владельца: «слово полностью белое»), только непрерывный префикс — как линия
 
 /**
  * → { word(index, heard, t), ear(e), goal({ t, words, done }), frame(t, done), peekIndex(), stop() }. pass — 1 | 2, text — фраза, n — слов, mask — маска пилюли (racePhraseMaskView) или null;
@@ -25,10 +26,10 @@ export function createSayView({ pass, text, n, mask, log = () => {}, nudge = nul
   const jerk = !two && nudge ? createNudge({ mark: nudge, el }) : null
   let said = new Map()
   return {
-    /** Слово цели услышано: heard — Map номер слова → подтверждено ли (сцена уже обновила) */
-    word(index, heard, t) {
+    /** Слово цели услышано (gone — откат, проход 1): heard — Map номер слова → подтверждено ли (сцена уже обновила) */
+    word(index, heard, t, gone = false) {
       said = heard
-      if (two) return glide.word(index, t)
+      if (two) return gone ? undefined : glide.word(index, t)
       if (peek) peek.show(white(heard), t); else mask?.set(white(heard))
     },
     /** Слух (onEar слушателя): сырые слова — для правила неверного слова */

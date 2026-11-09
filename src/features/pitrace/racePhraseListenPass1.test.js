@@ -77,11 +77,12 @@ describe('проход 1: неполное совпадение ждёт под�
     await end(q, 'nice to meet', 10); q.advance(SETTLE_WBW_MS); expect(q.got).toEqual([{ phraseKey: 'nice to meet you', ratio: 0.75, heard: 'nice to meet' }]) // так и не сказал — нечисто
     r.l.stop(); q.l.stop()
   })
-  it('договорена («where you from») итогом — в проходе 1 не сразу: пропущенное «are» ученик скажет по подсказке', async () => {
+  it('договорена («where you from») итогом — в проходе 1 не сразу: пропущенное «are» ученик скажет по подсказке и дальше по порядку', async () => {
     const r = rig([P.meet, P.from], { wordByWord: true }); await flush()
     r.cur().cb.onPartial('where you'); r.cur().cb.onResult('where you from', { words: [] }); r.advance(SETTLE_WBW_MS - 100); await flush()
     expect(r.got).toEqual([])
-    r.cur().cb.onPartial('are'); expect(r.got).toEqual([{ phraseKey: 'where are you from', ratio: 1, heard: 'where you from are' }])
+    r.cur().cb.onPartial('are'); expect(r.got).toEqual([]) // «where you from are» — по порядку только 3 из 4 (2026-11-09: слова не по порядку не засчитываются)
+    r.cur().cb.onPartial('are you from'); expect(r.got).toEqual([{ phraseKey: 'where are you from', ratio: 1, heard: 'where you from are you from' }])
     r.l.stop()
   })
   it('накопление между заходами — JOIN_WBW_MS (4 слова с паузами 2,5 с — 9 с), в проходе 2 — JOIN_MS', async () => {

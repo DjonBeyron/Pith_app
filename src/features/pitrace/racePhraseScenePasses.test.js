@@ -62,8 +62,8 @@ describe('«Скажи»: два прохода фразы', () => {
     const p = untilPill(s, 2); s.go(300)
     stubDraft('where'); s.go(600); const one = p.fill; expect(one).toBeGreaterThan(0.2); expect(one).toBeLessThan(0.3)
     stubDraft('where you'); s.go(300); stubDraft('where from'); s.go(600); expect(p.fill).toBeCloseTo(one, 6) // «you», «from» вперёд — линия не двигается
-    expect(s.run.api.state().mask.map(w => w.state)).toEqual(['full', 'peek', 'full', 'full']) // сказанные вперёд — белые (запомнены); подсказка — у пропущенного «are», там же линия
-    stubDraft('are'); s.go(600); expect(p.fill).toBeGreaterThan(0.9)
+    expect(s.run.api.state().mask.map(w => w.state)).toEqual(['full', 'peek', 'hidden', 'hidden']) // сказанные вперёд — запомнены, но белеют только по порядку (2026-11-09); подсказка — у пропущенного «are», там же линия
+    stubDraft('are'); s.go(600); expect(p.fill).toBeGreaterThan(0.9); expect(s.run.api.state().mask.map(w => w.state)).toEqual(['full', 'full', 'full', 'full'])
     s.run.stop()
   })
   it('проход 1 упущен — проход 2 всё равно идёт (это и есть тренировка)', () => {
