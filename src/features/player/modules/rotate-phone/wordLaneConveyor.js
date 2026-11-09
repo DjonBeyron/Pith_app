@@ -26,6 +26,13 @@ export const HOLD_MS = 400     // пилюль нет столько мс — д
 export const CONVEYOR_LEAD_MS = IGNITE_MS + ACCEL_MS // зажигание + разгон = 1300 мс (78 кадров): за столько до выезда первой пилюли акта дорожку включают
 export const RUN_SPEED = SPEED // dvh в секунду при множителе 1 (высота экрана — 100 dvh, SPEED — % высоты в секунду)
 export const SPEED_RAMP_MS = 800 // «Гонка с Питом»: множитель скорости (пилюли разгона быстрее, смена ступени) меняется плавно (smoothstep) за столько мс, не рывком
+// Замедление между этапами гонки (v3.3.173, 2026-11-09): множитель падает (×1,79 → ×0,55) не за 800 мс, а пока Пит рассказывает про следующий этап — длина от SLOW_RAMP_MIN_MS до SLOW_RAMP_MAX_MS,
+// кривая — кубический Эрмит (без начальной скорости это ровно smoothstep); реплика началась позже смены ступени — замедление продлевается (retimeSpeed) без излома: наклон кривой сохраняется
+export const SLOW_RAMP_MIN_MS = 2000
+export const SLOW_RAMP_MAX_MS = 5000
+export const SLOW_CUT_MS = 700   // посреди замедления выехала пилюля — дотягиваем до конечной скорости за столько мс (пока пилюля выходит из-за края)
+/** Длина замедления под реплику: сколько Пит ещё говорит (talkMs) или сколько попросила сцена (askMs), в пределах SLOW_RAMP_MIN_MS … SLOW_RAMP_MAX_MS */
+export const slowRampMs = (talkMs = 0, askMs = 0) => Math.round(Math.min(SLOW_RAMP_MAX_MS, Math.max(SLOW_RAMP_MIN_MS, talkMs || 0, askMs || 0)))
 export const PERIOD = 11       // период пунктира, dvh
 // «Гонка с Питом» (v3.3.117): три дорожки читаются независимо. У каждой свой визуальный ход (множитель к общему ±4 %: 0,96 / 1 / 1,04), своя фаза старта пунктира (сдвиг в долях периода) и узор «нить с узелками» с периодом RACE_PERIOD
 // (три коротких штриха, длинная черта, три штриха, двоеточие; CSS — word-lane-lane-run.css, маска на ::before колонки, новых узлов нет). Всё детерминированно, без случайных чисел; у обычной ноды createLane() без номера дорожки — как раньше.
@@ -47,15 +54,32 @@ export const easeInSoft = x => (x <= 0 ? 0 : x >= 1 ? 1 : x * x * x * (x * (x * 
 /** Яркость мигания (0…1) через t мс зажигания: 0 → 1 → 0 за BLINK_MS, косинусом — без изломов на стыках циклов */
 export const blink = t => (1 - Math.cos((2 * Math.PI * Math.min(t, IGNITE_MS)) / BLINK_MS)) / 2
 
-export const createLane = (race = -1) => ({ k: LANE_RATES[race] ?? 1, per: LANE_RATES[race] ? RACE_PERIOD : PERIOD, phase: 'idle', t: 0, s: 0, g: 0, s0: 0, g0: 0, y: LANE_RATES[race] ? LANE_PHASES[race] * RACE_PERIOD : 0, seen: false, gone: 0, v: 1, vw: 1, v0: 1, vt: SPEED_RAMP_MS, pt: PULSE_MS, pn: 0, warm: false }) // pt — сколько мс идёт импульс скорости (PULSE_MS — не идёт), pn — сколько импульсов было
+export const createLane = (race = -1) => ({ k: LANE_RATES[race] ?? 1, per: LANE_RATES[race] ? RACE_PERIOD : PERIOD, phase: 'idle', t: 0, s: 0, g: 0, s0: 0, g0: 0, y: LANE_RATES[race] ? LANE_PHASES[race] * RACE_PERIOD : 0, seen: false, gone: 0, v: 1, vw: 1, v0: 1, vt: SPEED_RAMP_MS, vT: SPEED_RAMP_MS, vm: 0, pt: PULSE_MS, pn: 0, warm: false }) // vT — длина текущего перехода скорости, vm — наклон кривой на его старте (×/мс); pt — сколько мс идёт импульс скорости (PULSE_MS — не идёт), pn — сколько импульсов было
 
-/** Множитель рабочей скорости: v плавно (smoothstep за SPEED_RAMP_MS) идёт к wanted; новая цель в середине перехода — переход заново от текущего значения; дорожка стоит — множитель сразу новый (нечему рвать) */
-function stepSpeed(L, dt, wanted) {
+/** Кубический Эрмит: от v0 к vw за T мс, наклон на старте m (×/мс), в конце 0; m = 0 — ровно smoothstep. u — доля 0…1 */
+const herm = (v0, vw, m, T, u) => { const u2 = u * u, u3 = u2 * u; return v0 * (2 * u3 - 3 * u2 + 1) + m * T * (u3 - 2 * u2 + u) + vw * (3 * u2 - 2 * u3) }
+const hermSlope = (L) => { const u = L.vt / L.vT, T = L.vT; return (L.v0 * (6 * u * u - 6 * u) + L.vm * T * (3 * u * u - 4 * u + 1) + L.vw * (6 * u - 6 * u * u)) / T }
+
+/** Множитель рабочей скорости: v плавно идёт к wanted за ramp мс (по умолчанию SPEED_RAMP_MS, smoothstep); новая цель в середине перехода — переход заново от текущего значения; дорожка стоит — множитель сразу новый (нечему рвать) */
+function stepSpeed(L, dt, wanted, ramp) {
   if (!(wanted > 0)) return
   if (wanted !== L.vw) { if (L.phase !== 'idle' && wanted >= L.vw * PULSE_MIN_RATIO - 1e-9) { L.pt = 0; L.pn += 1 } // дорожка едет, скорость выросла — импульс (яркость и длина штрихов, laneLook)
-    L.vw = wanted; L.v0 = L.v; L.vt = 0; if (L.phase === 'idle') { L.v = L.v0 = wanted; L.vt = SPEED_RAMP_MS } }
-  if (L.vt < SPEED_RAMP_MS) { L.vt = Math.min(SPEED_RAMP_MS, L.vt + dt); L.v = L.v0 + (L.vw - L.v0) * ease(L.vt / SPEED_RAMP_MS) }
+    L.vw = wanted; L.v0 = L.v; L.vt = 0; L.vT = ramp > 0 ? ramp : SPEED_RAMP_MS; L.vm = 0; if (L.phase === 'idle') { L.v = L.v0 = wanted; L.vt = L.vT } }
+  if (L.vt < L.vT) { L.vt = Math.min(L.vT, L.vt + dt); L.v = herm(L.v0, L.vw, L.vm, L.vT, L.vt / L.vT) }
 }
+
+/** Переход скорости идёт — досчитать его за ms мс от текущего мгновения (продлить замедление под реплику или дотянуть, когда выехала пилюля): значение и наклон кривой не прыгают
+ *  (наклон ограничен 3·остаток/ms — иначе кривая перелетела бы цель). Перехода нет — ничего. → true, если переход перепланирован */
+export function retimeSpeed(L, ms) {
+  if (!(ms > 0) || L.vt >= L.vT) return false
+  const left = L.vw - L.v, cap = (3 * Math.abs(left)) / ms
+  let m = hermSlope(L); if (m * left < 0) m = 0; if (Math.abs(m) > cap) m = Math.sign(m) * cap
+  L.v0 = L.v; L.vt = 0; L.vT = ms; L.vm = m
+  return true
+}
+
+/** Сколько мс ещё идёт переход скорости дорожки (0 — множитель на месте) */
+export const speedRampLeft = L => Math.max(0, (L.vT ?? SPEED_RAMP_MS) - L.vt)
 
 /** Дорожке сейчас ехать? (true — рабочий ход) Обновляет «видела пилюли» (seen) и «сколько мс их нет» (gone). keep — акт идёт (команда '2'): едет, пока команда стоит, пилюли не нужны */
 function wantRun(L, dt, armed, pills, keep) {
@@ -69,12 +93,12 @@ function go(L, phase, t = 0) { L.phase = phase; L.t = t; L.s0 = L.s; L.g0 = L.g 
 
 /**
  * Шаг дорожки на dt мс. armed — дорожке дана команда ехать, keep — и держать ход, пока идёт акт (даже без пилюль), pills — сколько пилюль сейчас на ней, still — без движения (слабое устройство, reduced-motion: только яркость, y не меняется),
- * hold — игра идёт (гонка между ступенями): без команды ехать дорожка не тормозит, а держит ход; скорость — множитель speed (плавно, stepSpeed).
+ * hold — игра идёт (гонка между ступенями): без команды ехать дорожка не тормозит, а держит ход; скорость — множитель speed (плавно, stepSpeed), ramp — за сколько мс перейти к новому множителю (0 — SPEED_RAMP_MS).
  * Меняет L и возвращает его: s (скорость, dvh/с), g (яркость 0…1), y (сдвиг пунктира 0…PERIOD; у дорожек гонки — 0…RACE_PERIOD, ход ×LANE_RATES). createLane(n): n = 0…2 — номер дорожки гонки, без номера — обычная дорожка.
  */
-export function stepLane(L, dt, { armed = false, pills = 0, still = false, keep = false, speed = 1, hold = false } = {}) {
+export function stepLane(L, dt, { armed = false, pills = 0, still = false, keep = false, speed = 1, hold = false, ramp = 0 } = {}) {
   const run = wantRun(L, dt, armed, pills, keep) || hold
-  stepSpeed(L, dt, speed)
+  stepSpeed(L, dt, speed, ramp)
   if (L.phase === 'idle') { if (run) { go(L, L.warm ? 'accel' : 'ignite', dt); L.warm = false } } // горячая после паузы — без мигания, сразу разгон
   else {
     L.t += dt
