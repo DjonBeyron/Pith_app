@@ -9,6 +9,9 @@ describe('racePhraseScore', () => {
   it('доля — по словам кандидата: «I\'m» (два токена) — одно слово', () => {
     expect(wordHits(C.words, 'i am trying')).toEqual([true, true, false, false])
     expect(wordHits(C.words, "i'm trying to learn")).toEqual([true, true, true, true])
+    expect(wordHits(C.words, 'i am')).toEqual([true, false, false, false]) // журнал владельца: черновик «i am» — это «I'm» (2026-11-09)
+    expect(scorePhrases([C, A], 'i am trying to learn')[0]).toMatchObject({ ratio: 1, ok: 4 })
+    expect(wordHits(C.words, 'i')).toEqual([false, false, false, false]) // одно «i» слово не засчитывает (но и неверным не считается — racePhraseWrongWord.formPart)
   })
   it('полное совпадение однозначно; общее начало — нет', () => {
     expect(pickPhrase(scorePhrases([A, B], 'nice to meet you'), false)?.key).toBe(A.key)

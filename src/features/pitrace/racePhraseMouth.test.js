@@ -33,10 +33,16 @@ describe('рот на целой записи фразы', () => {
     const m = phraseMouth({ text: 'Nice to meet you', durationS: 1.2 })
     expect(m.points).toBe(0); expect(m.ms).toBe(1200); expect(m.track.length).toBeGreaterThan(3)
   })
+  it('racePhraseVoice: целая запись — окно речи (mic-hold) на её длину и после «не успел» (журнал владельца v3.3.174: слушатель распознал фразу Пита из динамика)', () => {
+    const holdFor = vi.fn(), cat = { busyLeft: () => 0, holdBusy: vi.fn(), onStop: () => () => {}, speak: vi.fn() }
+    const v = createPhraseVoice({ ctx: () => ({ cat }), audioOf: () => ({ url: 'r2/learn.mp3', duration: 1.4 }), play: () => 'buffer', mouth: () => ({ track: [], ms: 1400, points: 0 }), hold: { holdFor }, log: () => {}, setTimer: () => 0, clearTimer: () => {} })
+    v.react('fail', { mode: 'say', pass: 1, target: { text: "I'm trying to learn" } })
+    expect(holdFor).toHaveBeenCalledWith(1400)
+  })
   it('racePhraseVoice: целая запись → cat.speak с формами, журнал «[mouth] фраза …: огибающая N точек»', () => {
     const speak = vi.fn(), logs = []
     const cat = { busyLeft: () => 0, holdBusy: vi.fn(), onStop: () => () => {}, speak }
-    const v = createPhraseVoice({ ctx: () => ({ cat }), audioOf: () => ({ url: 'r2/nice.mp3', duration: 1.5 }), play: () => 'buffer', mouth: p => phraseMouth({ text: p.text, buffer: fakeBuffer() }), log: l => logs.push(l), setTimer: () => 0, clearTimer: () => {} })
+    const v = createPhraseVoice({ ctx: () => ({ cat }), audioOf: () => ({ url: 'r2/nice.mp3', duration: 1.5 }), play: () => 'buffer', mouth: p => phraseMouth({ text: p.text, buffer: fakeBuffer() }), hold: null, log: l => logs.push(l), setTimer: () => 0, clearTimer: () => {} })
     v.pre({ mode: 'hear', target: { text: 'Nice to meet you' } }, {})
     expect(speak).toHaveBeenCalledTimes(1)
     const [track, ms, meta] = speak.mock.calls[0]

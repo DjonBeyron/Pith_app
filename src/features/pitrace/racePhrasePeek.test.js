@@ -26,10 +26,11 @@ describe('подсказка: порядок и проявление (чиста
     expect(p.show(new Map([[0, true], [1, true], [2, true], [3, true]]), 5000)).toBe(-1) // последнее — подсказывать нечего
     expect(m.sets).toEqual([1, 1, 2, 3, -1])
   })
-  it('«I want to»: после «I» — «want»; после «want» — «to» открыт сразу, подсказывать нечего; перепрыгнул — сразу за самым дальним', () => {
+  it('«I want to»: после «I» — «want»; после «want» — «to» открыт сразу, подсказывать нечего; перепрыгнул — подсказка у пропущенного (первого не сказанного по порядку, там же линия)', () => {
     const m = fakeMask(), p = createPeek({ mask: m, text: 'I want to' })
     expect(p.show(new Map([[0, true]]), 0)).toBe(1); expect(p.show(new Map([[0, true], [1, true]]), 100)).toBe(-1)
-    expect(createPeek({ mask: m, text: 'Nice to meet you' }).show(new Map([[0, true], [2, false]]), 0)).toBe(3)
+    expect(createPeek({ mask: m, text: 'Nice to meet you' }).show(new Map([[0, true], [2, false]]), 0)).toBe(1)
+    expect(createPeek({ mask: m, text: 'Nice to meet you' }).show(new Map([[0, true], [1, true], [2, false]]), 0)).toBe(3) // пропуск закрыт — дальше по порядку
   })
   it('peekLevel: 0 → PEEK_MAX, монотонно, дальше стоит', () => {
     expect(peekLevel(0)).toBe(0); expect(peekLevel(-50)).toBe(0); expect(peekLevel(PEEK_MS)).toBeCloseTo(PEEK_MAX, 9); expect(peekLevel(9e9)).toBeCloseTo(PEEK_MAX, 9)

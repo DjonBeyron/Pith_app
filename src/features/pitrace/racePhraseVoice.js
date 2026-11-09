@@ -10,7 +10,7 @@
 //    реплика не озвучена: raceSilentLine.lineCaption по ctx().lines; озвученная — без подписи, владелец: «сабы Пита я не просил»);
 //    итог прохода 2: чисто — race_phrase_yes, с паузами — race_phrase_pauses «хорошо, только без пауз», не успел — Пит читает фразу.
 // Чистая логика с подставляемыми зависимостями: ctx() → { sayLine, sayText, cat, lines } (или use(c) — директор кладёт свежие после рендера), hasRu(text) — есть ли озвучка смысла, audioOf(p) — целая запись фразы,
-// play(p, audio) — сыграть её, mouth(p, audio) → { track, ms, points } — рот Пита на ней (racePhraseMouth.js, в cat.speak), lead(word) — тишина в начале файла слова (мс), hasWord(word) — есть ли слово в библиотеке (нет — журнал «[phrase-voice] слово «…» без озвучки»: оно не прозвучит, цепочка идёт по оценке длины).
+// play(p, audio) — сыграть её (и открыть окно речи hold.holdFor на её длину — gameMicHold: слушатель фраз в это время не слушает), mouth(p, audio) → { track, ms, points } — рот Пита на ней (racePhraseMouth.js, в cat.speak), lead(word) — тишина в начале файла слова (мс), hasWord(word) — есть ли слово в библиотеке (нет — журнал «[phrase-voice] слово «…» без озвучки»: оно не прозвучит, цепочка идёт по оценке длины).
 import { transRow } from './raceTrans.js'
 import { phraseWords } from './racePhraseData.js'
 import { phraseAudioOf, playPhraseAudio, wordLeadMs } from './racePhraseAudio.js'
@@ -21,6 +21,7 @@ import { wordVoiced } from './racePhraseWordVoice.js'
 import { phraseMouth } from './racePhraseMouth.js'
 import { bufferOfUrl } from '../player/modules/rotate-phone/wordLaneFetch.js'
 import { getVoiceRate } from '../player/lessonVolume.js'
+import { gameMicHold } from '../../shared/lib/gameMicHold.js'
 
 export const AGAIN_LINE = 'race_phrase_again'
 export const PAUSES_LINE = 'race_phrase_pauses'
@@ -31,7 +32,7 @@ export const POLL_MS = 60      // Пит ещё занят — проверит�
 export const CHAIN_BUSY_MS = 300 // пока цепочка не договорена, Пит «занят» хотя бы на столько (сцена не начнёт ход в паузе между высказываниями)
 export const JOIN_OVERLAP_MS = 100 // по словам: следующее слово стартует раньше конца голоса прежнего не больше чем на столько (на тишину в начале своего файла)
 
-export function createPhraseVoice({ ctx = null, hasRu = text => !!transRow(text), audioOf = p => phraseAudioOf(p), play = (p, a) => playPhraseAudio(p, a), lead = word => wordLeadMs(word), hasWord = word => wordVoiced(word), mouth = (p, a) => phraseMouth({ text: p?.text, buffer: bufferOfUrl(a?.url), durationS: a?.duration, rate: getVoiceRate() }), log = pLog, setTimer = setTimeout, clearTimer = clearTimeout } = {}) {
+export function createPhraseVoice({ ctx = null, hasRu = text => !!transRow(text), audioOf = p => phraseAudioOf(p), play = (p, a) => playPhraseAudio(p, a), lead = word => wordLeadMs(word), hasWord = word => wordVoiced(word), mouth = (p, a) => phraseMouth({ text: p?.text, buffer: bufferOfUrl(a?.url), durationS: a?.duration, rate: getVoiceRate() }), log = pLog, hold = gameMicHold, setTimer = setTimeout, clearTimer = clearTimeout } = {}) {
   let queue = [], timer = 0, active = false, cur = null
   const get = () => (ctx ? ctx() : cur)
   const busy = () => get()?.cat?.busyLeft?.() ?? 0
@@ -45,6 +46,7 @@ export function createPhraseVoice({ ctx = null, hasRu = text => !!transRow(text)
       const m = mouth(it.p, it.audio)
       c.cat?.speak?.(m.track, m.ms, { id: it.p?.text ?? 'фраза', kind: 'фраза' })
       c.cat?.holdBusy?.(m.ms)
+      hold?.holdFor?.(m.ms) // окно речи (mic-hold), как у реплик и слов Пита: слушатель «Скажи» не берёт фразу из динамика (журнал владельца v3.3.174: после «не успел» распознал её с ratio 1)
       try { log(`[mouth] фраза «${it.p?.text ?? ''}»: огибающая ${m.points} точек, форм ${m.track.length}, ${m.ms} мс`) } catch { /* журнал не мешает голосу */ }
     }
   }

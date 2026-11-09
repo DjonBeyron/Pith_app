@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { fillGoal, markWord, finishDue, wordEdges, edgeAt, FILL_HOLD_MS, FILL_FINISH_MAX_MS, LAST_WORD_CAP } from './racePhraseFill.js'
+import { fillGoal, saidPrefix, markWord, finishDue, wordEdges, edgeAt, FILL_HOLD_MS, FILL_FINISH_MAX_MS, LAST_WORD_CAP } from './racePhraseFill.js'
 import { setupScene } from './racePhraseSceneRig.js'
 import { createPhraseListener, stubSay, stubDraft } from './racePhraseListenStub.js'
 import { phraseStep, SAY_SPEED } from './raceStagesPhrases.js'
@@ -29,6 +29,14 @@ describe('цель заливки по словам', () => {
     expect(LAST_WORD_CAP).toBe(0.97)
     expect(fillGoal({ words: w, n: 4 })).toBe(LAST_WORD_CAP); expect(fillGoal({ words: w, n: 4, edges: [0.3, 0.45, 0.8, 1] })).toBe(LAST_WORD_CAP)
     expect(fillGoal({ words: w, n: 4, done: true })).toBe(1)
+  })
+  it('по порядку (журнал владельца, «Where are you from»: «where», «where you», «where from», «are»): линия — по непрерывному префиксу, слова вперёд ждут пропуск', () => {
+    const w = new Map(), e = [0.38, 0.53, 0.65, 1]
+    markWord(w, 0, true, 0); expect(saidPrefix(w)).toBe(1); expect(fillGoal({ words: w, n: 4, edges: e })).toBe(0.38)
+    markWord(w, 2, true, 100); expect(fillGoal({ words: w, n: 4, edges: e })).toBe(0.38) // «you» вперёд — линия стоит после «where»
+    markWord(w, 3, true, 200); expect(fillGoal({ words: w, n: 4, edges: e })).toBe(0.38)
+    markWord(w, 1, true, 300); expect(saidPrefix(w)).toBe(4); expect(fillGoal({ words: w, n: 4, edges: e })).toBe(LAST_WORD_CAP) // пропуск закрыт — догоняет
+    expect(saidPrefix(new Map([[1, {}], [2, {}]]))).toBe(0); expect(saidPrefix(new Set([0, 1]))).toBe(2)
   })
   it('черновик слова пришёл повторно — время не сбрасывается, подтверждение не откатывается', () => {
     const w = new Map()

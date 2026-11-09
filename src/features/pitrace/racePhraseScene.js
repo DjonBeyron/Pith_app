@@ -106,7 +106,7 @@ export function runPhraseScene({ pool, root, scene, fxRef, listen = phraseListen
     rolling = riding(); pills = []; res = null; lit = new Set(); heardW = new Map(); shown = 0; trace.drop(); fillW = new Map(); fin = null; view.forget('say'); cap.show('')
     wordAt = new Map(); sv?.stop(); sv = null; grace = null
     const cur = turn()
-    listener?.setPhrases(cur.cands.map(c => ({ key: c.key, words: phraseTokens(c.text) })))
+    listener?.setPhrases(cur.cands.map(c => ({ key: c.key, words: phraseTokens(c.text) })), { wordByWord: cur.pass !== 2 }) // проход 1 «по слову»: паузы между словами — норма (racePhraseEarlyFinal.js)
     listener?.reset()
     fx().pre?.({ rep: rep(), show: text => cap.show(text) })
     phase = 'pre'; at = t

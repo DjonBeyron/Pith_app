@@ -41,7 +41,7 @@ describe('маска слов', () => {
 })
 
 describe('подсказка следующего слова (peek)', () => {
-  it('состояния слова: hidden → peek (текст слова, только у спрятанного) → full; nextPeek — строго следующее за самым дальним сказанным, ничего не сказано — нет', () => {
+  it('состояния слова: hidden → peek (текст слова, только у спрятанного) → full; nextPeek — первое не сказанное по порядку (там же линия), ничего не сказано — нет', () => {
     const st = (heard, peek) => maskPhrase('Nice to meet you', heard, false, peek).map(w => `${w.text.replaceAll(BRICK, '▭')}:${w.state}`).join(' ')
     expect(st(new Map(), -1)).toBe('Nice:full ▭▭:hidden ▭▭▭▭:hidden ▭▭▭:hidden')
     expect(nextPeek('Nice to meet you', new Map())).toBe(-1) // до первого слова подсказки нет (решение владельца 2026-11-09)
@@ -52,6 +52,7 @@ describe('подсказка следующего слова (peek)', () => {
     expect(nextPeek("I'm trying to learn", new Map([[0, true], [1, true]]))).toBe(-1) // следующее «to» открыто сразу — подсказывать нечего (дальше не забегаем)
     expect(nextPeek("I'm trying to learn", new Map([[0, true], [1, true], [2, true]]))).toBe(3)
     expect(nextPeek('Nice to meet you', new Map([[3, false]]))).toBe(-1)
+    expect(nextPeek('Where are you from', new Map([[0, true], [2, true], [3, true]]))).toBe(1) // слова не по порядку: подсказка у пропущенного «are», не убегает вперёд
     expect(st(new Map(), 0)).toBe('Nice:full ▭▭:hidden ▭▭▭▭:hidden ▭▭▭:hidden') // открытое слово подсказкой не бывает
   })
   it('узел: peek — текст в ячейке data-w="peek", проявление целым словом — --peek (opacity 0…1, до 0,01) только у неё, пишется при смене; кирпичик → текст — перемер границ', () => {

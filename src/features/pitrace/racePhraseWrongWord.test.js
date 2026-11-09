@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
-import { createWrongWord, fitsWord, sameWord, WRONG_GAP_MS } from './racePhraseWrongWord.js'
+import { createWrongWord, fitsWord, sameWord, formPart, WRONG_GAP_MS } from './racePhraseWrongWord.js'
 import { createNudge, NUDGE_MS } from './racePhraseNudge.js'
 import { setupScene } from './racePhraseSceneRig.js'
 import { createPhraseListener, stubDraft, stubSay, stubLevel } from './racePhraseListenStub.js'
@@ -30,6 +30,19 @@ describe('правило неверного слова (чистое)', () => {
     v.ear({ kind: 'final', text: '' }); v.ear({ kind: 'partial', text: '[unk]' }); v.ear({ kind: 'gate', open: true }); expect(v.check(said(0), 300)).toBe(null) // шум
     v.ear({ kind: 'final', text: 'cat' }); expect(v.check(said(0), 400)).toEqual({ word: 'cat', expect: 'want' })
     v.ear({ kind: 'final', text: 'to' }); expect(v.check(said(0, 1, 2), 2000)).toBe(null) // всё сказано — не проверяем
+  })
+  it("журнал владельца «I'm trying to learn»: «i'm», «i», «i am» — не неверное (части «I'm»); «you are» при «you're» — тоже; слово не по порядку — не ошибка; чужое — да", () => {
+    const L = ["I'm", 'trying', 'to', 'learn']
+    expect(formPart('i', L)).toBe(true); expect(formPart('am', L)).toBe(true); expect(formPart('i', ['I', 'want'])).toBe(false); expect(formPart('cat', L, 'i', 'am')).toBe(false)
+    expect(formPart('you', ["you're", 'welcome'], null, 'are')).toBe(true)
+    const w = createWrongWord({ words: L })
+    w.ear({ kind: 'partial', text: "i'm" }); w.ear({ kind: 'partial', text: 'i' }); w.ear({ kind: 'partial', text: 'i am' }); expect(w.check(said(0), 0)).toBe(null)
+    w.ear({ kind: 'final', text: 'i' }); expect(w.check(said(0), 1000)).toBe(null)
+    const y = createWrongWord({ words: ["You're", 'welcome'] })
+    y.ear({ kind: 'final', text: 'you are' }); expect(y.check(said(), 0)).toBe(null)
+    const f = createWrongWord({ words: ['Where', 'are', 'you', 'from'] })
+    f.ear({ kind: 'final', text: 'where you from' }); expect(f.check(said(0, 2, 3), 0)).toBe(null) // «are» пропущено — остальные слова цели не ошибка
+    f.ear({ kind: 'final', text: 'cat' }); expect(f.check(said(0, 2, 3), 5000)).toEqual({ word: 'cat', expect: 'are' }) // ждём первое не сказанное по порядку (там линия и подсказка)
   })
   it('каждое завершённое слово — один раз: черновик растёт, итог повторяет заход; новый заход — счёт заново', () => {
     const w = createWrongWord({ words: W })

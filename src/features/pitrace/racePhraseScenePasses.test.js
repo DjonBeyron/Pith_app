@@ -48,6 +48,24 @@ describe('«Скажи»: два прохода фразы', () => {
     expect(s.fx.win.mock.calls[3][2].res).toMatchObject({ smooth: true, clean: true })
     s.run.stop()
   })
+  it('слушатель знает проход: setPhrases(…, { wordByWord }) — проход 1 true, проход 2 false (ранние итоги, racePhraseEarlyFinal.js)', () => {
+    const seen = []
+    const listen = o => { const l = createPhraseListener(o), set = l.setPhrases; l.setPhrases = (n, opts) => { seen.push(opts?.wordByWord); set(n, opts) }; return l }
+    const s = setupScene(say(), { listen })
+    untilPill(s, 0); stubSay('nice to meet you'); untilPill(s, 1)
+    expect(seen).toEqual([true, false])
+    s.run.stop()
+  })
+  it('проход 1, слова не по порядку (журнал владельца, ход 3/6 «Where are you from»): линия стоит после «where», пока не сказано «are»', () => {
+    const s = setupScene(say(), { listen: createPhraseListener })
+    untilPill(s, 0); stubSay('nice to meet you'); untilPill(s, 1); s.go(500); stubSay('nice to meet you')
+    const p = untilPill(s, 2); s.go(300)
+    stubDraft('where'); s.go(600); const one = p.fill; expect(one).toBeGreaterThan(0.2); expect(one).toBeLessThan(0.3)
+    stubDraft('where you'); s.go(300); stubDraft('where from'); s.go(600); expect(p.fill).toBeCloseTo(one, 6) // «you», «from» вперёд — линия не двигается
+    expect(s.run.api.state().mask.map(w => w.state)).toEqual(['full', 'peek', 'full', 'full']) // сказанные вперёд — белые (запомнены); подсказка — у пропущенного «are», там же линия
+    stubDraft('are'); s.go(600); expect(p.fill).toBeGreaterThan(0.9)
+    s.run.stop()
+  })
   it('проход 1 упущен — проход 2 всё равно идёт (это и есть тренировка)', () => {
     const s = setupScene(say(), { listen: createPhraseListener })
     untilPill(s, 0)

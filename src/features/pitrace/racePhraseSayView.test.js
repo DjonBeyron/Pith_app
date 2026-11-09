@@ -64,7 +64,7 @@ describe('сцена: заливка только по словам, прохо�
     const p = untilPill(s, 0)
     expect(s.run.api.state().mask.map(w => w.state)).toEqual(['full', 'hidden', 'hidden', 'hidden'])
     s.go(300); speak(s, 500); expect(p.fill).toBe(0); expect(s.run.api.state().mask.map(w => w.state)).toEqual(['full', 'hidden', 'hidden', 'hidden'])
-    stubDraft('nice meet'); expect(s.run.api.state().mask.map(w => w.state)).toEqual(['full', 'hidden', 'full', 'peek']) // перепрыгнул — подсказка сразу за самым дальним сказанным
+    stubDraft('nice meet'); expect(s.run.api.state().mask.map(w => w.state)).toEqual(['full', 'peek', 'full', 'hidden']) // перепрыгнул — подсказка у пропущенного «to» (там же линия, 2026-11-09)
     s.run.stop()
   })
 })
