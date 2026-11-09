@@ -24,7 +24,7 @@ describe('до ответа на попап ничего не стартует (
     expect(start.match(/startGameAudio\(/g)).toHaveLength(1) // в start() он есть только после выхода гонки (обычная игра); гонка зовёт его из pick
     expect(mod).toContain("const game = phase === 'game' && <WordLaneGame"); expect(mod).toContain("{phase === 'ask' && <RaceAskPlate {...rl.plate} />}")
     const pick = hook.slice(hook.indexOf('const pick = useCallback'), hook.indexOf('const cancel = useCallback'))
-    expect(pick).toContain('startAudio: hooks => startGameAudio({ cfg, audioSrc, lines, ...hooks })'); expect(pick).toContain("if (phase !== 'ask' || wait) return")
+    expect(pick).toContain('startAudio: hooks => startGameAudio({ cfg: runCfg, audioSrc, lines, ...hooks })'); expect(pick).toContain("if (phase !== 'ask' || wait) return")
     expect(hook).toContain('openAsk({ fullscreen, setPhase, prewarm: () => raceWarm.start({ cfg, lines }) })')
   })
 })

@@ -16,7 +16,7 @@ import { failedIn } from './raceExtraRound.js'
 export const GAME_SOURCE = 'game'
 
 /** Писать ли игру в память: гонка не на стенде с фикстурой (source 'sim' — фикстуры и JSON админки) и план не запретил (memoryWrite: false) */
-export const memoryOn = plan => plan?.game === 'race' && plan.memoryWrite !== false && plan.source !== 'sim'
+export const memoryOn = plan => plan?.game === 'race' && plan.memoryWrite !== false && plan.source !== 'sim' && !plan.debugStart // старт с этапа (отладка) память не пишет
 
 const num = x => (Number.isFinite(x) && x > 0 ? x : 0)
 

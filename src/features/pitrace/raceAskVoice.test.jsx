@@ -78,9 +78,9 @@ describe('попап «Голосом / Пальцами» внутри игры
     expect(start).toContain('if (race) { openRace(fullscreen); return }'); expect(start.indexOf('openRace(')).toBeLessThan(start.indexOf('startGameAudio(')) // у гонки start() до ответа startGameAudio не зовёт
     const hook = read('./useRaceLaunch.js')
     const pick = hook.slice(hook.indexOf('const pick = useCallback'), hook.indexOf('const cancel = useCallback'))
-    expect(pick).toContain('answerAsk('); expect(pick).toContain('startGameAudio({ cfg, audioSrc, lines, ...hooks })'); expect(mod).toContain("{phase === 'ask' && <RaceAskPlate {...rl.plate} />}")
+    expect(pick).toContain('answerAsk('); expect(pick).toContain('startGameAudio({ cfg: runCfg, audioSrc, lines, ...hooks })'); expect(mod).toContain("{phase === 'ask' && <RaceAskPlate {...rl.plate} />}")
     expect(pick).toContain('release(); setHint(micHelp(mic, isStandalone()))') // микрофон не дали — звук и микрофон отпущены, плашка в попапе по режиму (Safari / «Домой»)
-    expect(hook).toContain('plate: { choice: ask.choice, wait, hint, note, tip, onTipClose: () => setTip(false), text: askText(lines), onPick: pick, onCancel: cancel }')
+    expect(hook).toContain('plate: { choice: ask.choice, start, wait, hint, note, tip, onTipClose: () => setTip(false), text: askText(lines), onPick: pick, onCancel: cancel }')
     expect(hook).toContain('needsMicNote({ alive: gameMicAlive(), grantedAt: readMicGrantedAt(), now: Date.now() }) ? MIC_NOTE_TEXT') // подсказка до тапа — при открытии попапа
     expect(mod).toContain("const game = phase === 'game' && <WordLaneGame") // игра (Пит, заставка, реплики, конвейер) монтируется только после ответа
     expect(mod).toContain('askAuto') // стенд отвечает сам

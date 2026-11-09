@@ -9,7 +9,7 @@ import { fillLine } from '../rehearsal/rehearsalLines.js'
 import { lineVoiced } from '../rehearsal/rehearsalQuiet.js'
 import { buildRaceActs } from './raceRecipe.js'
 import { readTapMode } from '../player/modules/rotate-phone/wordLaneHudSettings.js'
-import { raceFirstLines, raceHasStart } from './raceTexts.js'
+import { raceFirstLines, raceHasStart, raceSoleStart } from './raceTexts.js'
 import { RACE_START_LEAD_MS } from './raceStartTrace.js'
 import { silentPause } from './raceSilentLine.js'
 
@@ -20,7 +20,7 @@ export const LEAD_MS = 250         // реплика Пита — через с�
 
 /** Реплика, которая звучит сразу со стартом часов вместо стартовой фразы: у одиночного раунда без неё (Вершина, Спуск, Проход B) — реплика первой стадии (её объявление); иначе null (v3.3.131: у полной гонки, «Пинг-понг + финал» и «Прохода A» первой звучит race_start / race_start_tap).
  *  Раньше она ждала падения фразы и дорожек (DROP_MS + LANES_MS) и LEAD_MS — 2,1 с тишины после входа в игру. Директор (useRehearsalActs) говорит её на стадии drop, у самой стадии 0 реплики уже нет */
-export const earlyStageLine = (plan, stages) => (plan?.game === 'race' && plan.round && !raceHasStart(plan) && stages?.[0]?.line ? stages[0].line : null)
+export const earlyStageLine = (plan, stages) => (plan?.game === 'race' && raceSoleStart(plan) && stages?.[0]?.line ? stages[0].line : null)
 
 /**
  * → { startMs, firstMs, early (реплика этапа звучит сразу — нет вступления), stageAt (начало стадии 0), lineAt (мс от начала стадии), plateAt (плашка этапа — с началом речи о нём), speechEnd, morphAt (бар заполнен, начинается морф), plateEnd (плашка уходит), countAt (первая нота), pause (stage.pause) }
@@ -33,7 +33,7 @@ export function openingPlan(plan, lines = null, rate = 1, tap = readTapMode()) {
   const startMs = ms(startId), firstMs = ms(firstId)
   if (!startMs && !firstMs) return { startMs, firstMs, early: false, stageAt: DROP_MS + LANES_MS, lineAt: 0, plateAt: DROP_MS + LANES_MS, speechEnd: OPEN_FALLBACK_MS, morphAt: OPEN_FALLBACK_MS - MORPH_MS, plateEnd: OPEN_FALLBACK_MS + PLATE_HOLD_MS, countAt: OPEN_FALLBACK_MS + PLATE_HOLD_MS, pause: PLATE_HOLD_MS }
   const stageAt = DROP_MS + LANES_MS
-  if (!firstId || (plan.round && !hasStart)) { // одна реплика на старте (стартовая фраза режима или реплика одиночного раунда, earlyStageLine) звучит сразу, с паузой стадии после неё; стадия 0 только ждёт, пока Пит договорит, и ведёт ноты
+  if (!firstId || raceSoleStart(plan)) { // одна реплика на старте (стартовая фраза режима или реплика одиночного раунда, earlyStageLine) звучит сразу, с паузой стадии после неё; стадия 0 только ждёт, пока Пит договорит, и ведёт ноты
     const soleMs = hasStart ? startMs : firstMs, speechEnd = RACE_START_LEAD_MS + soleMs, busyMs = Math.max(0, speechEnd + silentPause(lines?.[hasStart ? startId : firstId], PLATE_HOLD_MS) - stageAt) // неозвученная — пауза CAPTION_READ_MS (как у useCatLines)
     const t = stageTiming({ order: 'after', lead: LEAD_MS, busyMs, lineMs: 0, pause: PLATE_HOLD_MS, minMs: 0, hasLine: false, quiet: false, plan: countdownPlan({ soft: true }) })
     const countAt = stageAt + (t.countAt ?? 0)

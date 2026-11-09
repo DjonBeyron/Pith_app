@@ -16,6 +16,7 @@ import { PLATE_HOLD_MS } from './raceOpening.js'
 import { SWITCH_MS } from './raceSwitch.js'
 import { readTapMode } from '../player/modules/rotate-phone/wordLaneHudSettings.js'
 import { ruReady } from './raceRu.js'
+import { sliceFrom } from './raceStartStage.js'
 
 const ROUNDS = { sprint: sprintStages, catch: catchStages, phrases: phraseStages, climb: climbStages, descent: descentStages }
 
@@ -50,6 +51,7 @@ export function buildRaceStages({ plan, rate = 1, lib = () => null, tap = readTa
     else if (ROUNDS[act.id]) ROUNDS[act.id](kit, act)
     else kit.push({ type: 'summary', act: 'summary', sid: 'summary', line: null }) // итог: реплику говорит директор (useRaceActs): золото или обычная
   }
+  if (plan.startAt && !sliceFrom(kit.stages, plan.startAt, plan.seed)) pLog(`[race] старт с этапа «${plan.startLabel ?? plan.startAt}»: такой плашки нет — с начала акта`) // «начать с этапа» (отладка): первой идёт его плашка
   if (tap) kit.stages.forEach(x => { if (x.step) x.step.tapOnly = true }) // «Тапаю»: ни одна ступень не слушает голос — слушатель без Vosk и без getUserMedia (wordLaneListen noVosk), микрофон игре не нужен
   const first = kit.stages[0]
   if (first?.type === 'announce') Object.assign(first, { count: 'after', soft: true, charge: true, pause: PLATE_HOLD_MS }) // старт: бар заставки САМ становится плашкой этапа (charge: отдельной плашки нет, raceOpening.js), плашка держится PLATE_HOLD_MS после речи Пита; потом три нежные ноты (шаг 600 мс, нота 1,1 с), первая пилюля — после них

@@ -34,3 +34,7 @@
 .raceMicTipSteps { margin: 0 0 6px; padding-left: 20px; opacity: 0.9; }
 .raceMicTipBtns { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
 .raceMicTipBtn { flex: 1 1 120px; min-height: 36px; padding: 6px 10px; border: 1px solid currentColor; border-radius: 10px; background: transparent; color: inherit; font: inherit; font-weight: 600; cursor: pointer; }
+/* «Начать с этапа» — только при отладке (useRaceStartStage.js): строка под кнопками, select не шире плашки; 16px — iPhone не зумит страницу при фокусе */
+.raceAskStart { display: flex; align-items: center; gap: 8px; margin: 12px 0 0; font-size: 13px; font-weight: 600; text-align: left; min-width: 0; }
+.raceAskStart > span { flex: none; opacity: 0.85; }
+.raceAskStart select { flex: 1 1 auto; min-width: 0; max-width: 100%; padding: 6px 8px; border: 1px solid rgba(255, 255, 255, 0.28); border-radius: 10px; background: rgba(0, 0, 0, 0.25); color: inherit; font: inherit; font-size: 16px; color-scheme: dark; text-overflow: ellipsis; }
