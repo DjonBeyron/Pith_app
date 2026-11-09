@@ -24,6 +24,9 @@
 // услышано ПОСЛЕДНЕЕ слово, но не все (saidThrough) — середину ученик уже не доскажет, ждать нечего. Итог захода с этим — зачёт сразу (раньше SETTLE_MS после конца захода); черновик —
 // через SETTLE_LAST_MS (голос в микрофоне отодвигает: вдруг черновик достроится до полного), итог по затвору при этом по-прежнему просим — пришёл раньше, решает сразу; конец захода — тоже SETTLE_LAST_MS.
 // Журнал: «[phrase-ear] договорена: последнее слово есть, ratio 0,75 — зачёт по итогу|по черновику|по концу захода через N мс» (N — от первого черновика/итога, где последнее слово появилось).
+// СЕРЕДИНЫ НЕТ (2026-11-09, замер реальным Vosk: «where … you from», «from» только итогом — в черновике «where you», зачёт через 3,6 с по авто-стопу): итог по затвору просим и тогда, когда у
+// однозначного лучшего услышано ≥ HALF_MIN слов (или ratio ≥ HALF_RATIO), последнего нет, а голос шёл ≥ TAIL_VOICE_MS после последней смены черновика (halfWay). Итог с последним словом — «договорена», зачёт сразу; ничего не добавил — ждём дальше (окно JOIN_MS).
+// Слитно («you» и «from» Vosk показал разом, «from» вырезано — голоса после черновика нет) затвор не поможет: такой черновик просит итог, как lastOnly, по тишине quietMs() (≥ QUIET_LAST_MS).
 // Журнал (таймлайн на телефоне, N — мс от первого звука попытки, до него — от сброса слушателя): «[phrase-ear] черновик «…» +N мс» — каждый новый черновик, «итог «…» +N мс» — КАЖДЫЙ итог захода
 // (и с тем же текстом), «partial без изменений «…» +N мс» — черновик Vosk пришёл, а текст тот же (не чаще SAME_LOG_MS: видно, что черновики идут, а не застряли), «прошу итог захода» (lastOnly),
 // «итог запрошен: затвор закрыт +N мс, черновик «…»» (итог по затвору), «[gate] открыт|закрыт +N мс (rms …)» — затвор тишины voskGate (закрыт — тишина не идёт в Vosk). Каждое такое событие уходит и в onEar (отладочная полоска сцены).
@@ -32,7 +35,7 @@
 import { createGame2Listener } from '../game2/game2Listen.js'
 import { createWordListener } from '../player/modules/rotate-phone/wordLaneListen.js'
 import { pLog } from '../../shared/lib/debug.js'
-import { scorePhrases, pickPhrase, unionWords, earLine, PHRASE_OK } from './racePhraseScore.js'
+import { scorePhrases, pickPhrase, unionWords, earLine, PHRASE_OK, PHRASE_GAP } from './racePhraseScore.js'
 import { GATE_RMS } from '../../shared/lib/vosk/voskGate.js'
 
 export { PHRASE_OK }
@@ -47,6 +50,8 @@ export const SAME_LOG_MS = 500   // «partial без изменений» в ж�
 export const GATE_CLOSE_FINAL_MS = 150 // затвор тишины закрылся, сказанное не всё в черновике — итог захода через столько мс (см. «ИТОГ ПО ЗАТВОРУ»)
 export const TAIL_VOICE_MS = 80 // …если голос шёл хотя бы столько после последней смены черновика (обычная пауза перед последним словом: от −150 до +30 мс)
 export const FINAL_WAIT_MS = 600 // пока ждём этот итог, решение по прошлым заходам откладывается не дольше чем на столько
+export const HALF_MIN = 2 // «середины нет»: столько слов цели уже услышано (итог по затвору при голосе после черновика)…
+export const HALF_RATIO = 0.5 // …или такая доля слов
 export const NEVER_COMPLETE = 1000 // «сколько слов ждём» для слушателя слов: заход никогда не «полный» — иначе его счёт по словам («where are are you» = 4, а после прошлых заходов — любое одно слово)
 // держал затвор тишины открытым, и эндпойнтер Vosk сам рвал заход в паузе перед последним словом (замер CPU 4×: «from» терялось); полную фразу решает decide() по черновику
 
@@ -60,6 +65,13 @@ export function lastOnly(scores) {
 export function saidThrough(scores) {
   const p = pickPhrase(scores, true)
   return p && p.hits.length > 1 && !!p.hits.at(-1) && p.ratio < 1 - 1e-9 ? p.key : null
+}
+
+/** Фраза на полпути: у однозначно лучшего кандидата (разрыв со вторым ≥ PHRASE_GAP) услышано ≥ HALF_MIN слов цели (или ratio ≥ HALF_RATIO), а последнего слова нет: ключ или null (итог по затвору, см. «СЕРЕДИНЫ НЕТ») */
+export function halfWay(scores) {
+  const [best, second] = [...scores].sort((a, b) => b.ratio - a.ratio || b.ok - a.ok)
+  if (!best || best.hits.length < 2 || best.hits.at(-1) || (best.ok < HALF_MIN && best.ratio < HALF_RATIO - 1e-9)) return null
+  return best.ratio - (second?.ratio ?? 0) >= PHRASE_GAP - 1e-9 ? best.key : null
 }
 
 const clean = raw => String(raw ?? '').toLowerCase().split(/\s+/).filter(w => w && w !== '[unk]').join(' ')
@@ -112,10 +124,11 @@ export function createPhraseListener({ phrases: phrasesIn, lang = 'en', getStrea
     const tail = voiceAt - textAt, heard = heardNow()
     const scores = heard ? scorePhrases(phrases, heard) : [], best = scores.reduce((a, b) => (b.ratio > a.ratio ? b : a), { ratio: -1, hits: [] })
     const ends = hasWord(current) && best.hits.length > 1 && !!best.hits.at(-1) // в этом заходе слова, у лучшего кандидата уже есть последнее слово (не хватает середины): ждать нечего
-    if (open || isHeld() || !((tail >= TAIL_VOICE_MS && lastOnly(scores)) || ends)) return
+    const half = !lastOnly(scores) && !!halfWay(scores) // середины нет, последнего слова тоже — а голос после черновика был: может, это последнее слово, которое Vosk покажет только итогом
+    if (open || isHeld() || !((tail >= TAIL_VOICE_MS && (lastOnly(scores) || half)) || ends)) return
     const closedAt = now()
     if (settleTimer && !throughBy) settle(GATE_CLOSE_FINAL_MS + FINAL_WAIT_MS, mine) // решение по прошлым заходам ждёт этот итог (иначе «нечисто» раньше последнего слова)
-    gateTimer = setTimer(() => { gateTimer = 0; if (mine !== gen || disposed) return; clearTimer(quietTimer); quietTimer = 0; log(`[phrase-ear] итог запрошен: затвор закрыт +${Math.round(now() - closedAt)} мс, черновик «${current}», ${ends ? 'последнее слово есть' : `голос после черновика ${Math.round(tail)} мс`} ${rel()}`); ear?.stop?.() }, GATE_CLOSE_FINAL_MS)
+    gateTimer = setTimer(() => { gateTimer = 0; if (mine !== gen || disposed) return; clearTimer(quietTimer); quietTimer = 0; log(`[phrase-ear] итог запрошен: затвор закрыт +${Math.round(now() - closedAt)} мс, черновик «${current}», ${ends ? 'последнее слово есть' : `голос после черновика ${Math.round(tail)} мс${half ? ' (середины нет)' : ''}`} ${rel()}`); ear?.stop?.() }, GATE_CLOSE_FINAL_MS)
   }
 
   function words(scores, draft) {
@@ -143,7 +156,7 @@ export function createPhraseListener({ phrases: phrasesIn, lang = 'en', getStrea
     }
     if (settled) log(earLine(phrases, heard, scores, null))
     if (saidThrough(scores)) { throughAt ??= now(); return 'through' }
-    return lastOnly(scores) ? 'last' : false
+    return lastOnly(scores) ? 'last' : halfWay(scores) ? 'half' : false
   }
 
   function onDebug(kind, data, mine) {
@@ -163,7 +176,7 @@ export function createPhraseListener({ phrases: phrasesIn, lang = 'en', getStrea
       clearTimer(settleTimer); settleTimer = 0; throughBy = ''; clearTimer(quietTimer); quietTimer = 0
       if (kind === 'final') { clearTimer(gateTimer); gateTimer = 0 }
       const got = decide(false, kind === 'partial')
-      if (got === 'last' && kind === 'partial') quiet(mine)
+      if ((got === 'last' || got === 'half') && kind === 'partial') quiet(mine) // середины нет — тоже: «from» только итогом, а «you» пришло вместе с ним (голоса после черновика нет)
       else if (got === 'through' && kind === 'final') { through('по итогу'); decide(true) } // ученик договорил до последнего слова, а середину уже не скажет — ждать нечего
       else if (got === 'through') { throughBy = 'по черновику'; settleLast = true; settle(SETTLE_LAST_MS, mine) } // черновик ещё может достроиться до полного
     } else if (kind === 'session-end') {

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { saidThrough, lastOnly, SETTLE_MS, SETTLE_LAST_MS, GATE_CLOSE_FINAL_MS } from './racePhraseListen.js'
+import { saidThrough, lastOnly, halfWay, SETTLE_MS, SETTLE_LAST_MS, GATE_CLOSE_FINAL_MS, TAIL_VOICE_MS, QUIET_LAST_MS } from './racePhraseListen.js'
 import { scorePhrases } from './racePhraseScore.js'
 import { rig, P, flush, end } from './racePhraseListenRig.js'
 
@@ -69,5 +69,59 @@ describe('фраза договорена', () => {
     await end(r, "i'm trying learn", 0)
     expect(r.got).toEqual(ok("i'm trying to learn", 0.75, "i'm trying learn"))
     r.l.stop()
+  })
+})
+
+// «Середины нет» (2026-11-09, реальный Vosk): «where … you from», «from» только итогом — в черновике «where you»; итог по затвору просим и здесь (голос после черновика ≥ TAIL_VOICE_MS).
+describe('середины нет: итог по затвору', () => {
+  const voice = (r, ms) => { for (let i = 0; i < ms; i += 40) { r.cur().cb.onLevel(0.05); r.advance(40) } }
+  it('halfWay: однозначный лучший, ≥ 2 слов цели, последнего нет; общее начало, одно слово, последнее есть — null', () => {
+    expect(halfWay(scorePhrases([P.meet, P.from], 'where you'))).toBe('where are you from')
+    expect(halfWay(scorePhrases([P.meet, P.from], 'nice to'))).toBe('nice to meet you')
+    expect(halfWay(scorePhrases([P.meet, P.see], 'nice to'))).toBe(null) // общее начало
+    expect(halfWay(scorePhrases([P.meet, P.from], 'where'))).toBe(null) // одно слово из четырёх
+    expect(halfWay(scorePhrases([P.meet, P.from], 'where you from'))).toBe(null) // это saidThrough
+  })
+  it('черновик «where you», голос после него, затвор закрылся — итог через 150 мс, журнал «(середины нет)»; итог «where you from» — зачёт сразу', async () => {
+    const r = rig([P.meet, P.from]); await flush()
+    voice(r, 300); r.cur().cb.onPartial('where'); voice(r, 300); r.cur().cb.onPartial('where you')
+    voice(r, 280); r.advance(200); r.cur().opts.onGate(false, 0.001) // «from» звучит, в черновике его нет
+    r.advance(GATE_CLOSE_FINAL_MS - 10); expect(r.cur().stopped).toBe(0)
+    r.advance(10); expect(r.cur().stopped).toBe(1)
+    expect(r.logs.find(x => x.includes('итог запрошен'))).toMatch(/^\[phrase-ear\] итог запрошен: затвор закрыт \+150 мс, черновик «where you», голос после черновика \d+ мс \(середины нет\) \+\d+ мс$/)
+    r.cur().cb.onResult('where you from', { words: [] })
+    expect(r.got).toEqual(ok('where are you from', 0.75, 'where you from'))
+    r.l.stop()
+  })
+  it('обычная пауза между словами (черновик пришёл после голоса) — итог не просим, заход не рвётся', async () => {
+    expect(TAIL_VOICE_MS).toBe(80)
+    const r = rig([P.meet, P.from]); await flush()
+    voice(r, 600); r.advance(150); r.cur().cb.onPartial('where you'); r.advance(150); r.cur().opts.onGate(false, 0.001)
+    r.advance(GATE_CLOSE_FINAL_MS + 100); expect(r.cur().stopped).toBe(0)
+    const q = rig([P.meet, P.see]); await flush() // общее начало «nice to» — тоже нет
+    voice(q, 300); q.cur().cb.onPartial('nice to'); voice(q, 300); q.advance(200); q.cur().opts.onGate(false, 0.001)
+    q.advance(GATE_CLOSE_FINAL_MS + 100); expect(q.cur().stopped).toBe(0)
+    r.l.stop(); q.l.stop()
+  })
+  it('итог ничего не добавил — ждём дальше: «from» следующим заходом в JOIN_MS — договорена через SETTLE_LAST_MS', async () => {
+    const r = rig([P.meet, P.from]); await flush()
+    voice(r, 300); r.cur().cb.onPartial('where you'); voice(r, 280); r.advance(200); r.cur().opts.onGate(false, 0.001)
+    r.advance(GATE_CLOSE_FINAL_MS); expect(r.cur().stopped).toBe(1)
+    await end(r, 'where you', SETTLE_MS + 100); expect(r.got).toEqual([]) // 0,5 — мало для зачёта
+    r.cur().cb.onPartial('from'); r.advance(SETTLE_LAST_MS)
+    expect(r.got).toEqual(ok('where are you from', 0.75, 'where you from'))
+    r.l.stop()
+  })
+  it('слитно: черновик «where you» после голоса, тишина QUIET_LAST_MS — итог захода (как без последнего слова); общее начало — нет', async () => {
+    const r = rig([P.meet, P.from]); await flush()
+    voice(r, 600); r.cur().cb.onPartial('where you'); r.advance(300); r.cur().opts.onGate(false, 0.001)
+    r.advance(QUIET_LAST_MS - 350); expect(r.cur().stopped).toBe(0)
+    r.advance(100); expect(r.cur().stopped).toBe(1)
+    expect(r.logs.some(s => /^\[phrase-ear\] черновик «where you» без последнего слова, тишина \d+ мс \(порог 1100\) — прошу итог захода/.test(s))).toBe(true)
+    r.cur().cb.onResult('where you from', { words: [] })
+    expect(r.got).toEqual(ok('where are you from', 0.75, 'where you from'))
+    const q = rig([P.meet, P.see]); await flush()
+    voice(q, 600); q.cur().cb.onPartial('nice to'); q.advance(3000); expect(q.cur().stopped).toBe(0)
+    r.l.stop(); q.l.stop()
   })
 })
