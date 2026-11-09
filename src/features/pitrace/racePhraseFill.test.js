@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { fillGoal, markWord, finishDue, wordEdges, edgeAt, FILL_HOLD_MS, FILL_FINISH_MAX_MS } from './racePhraseFill.js'
+import { fillGoal, markWord, finishDue, wordEdges, edgeAt, FILL_HOLD_MS, FILL_FINISH_MAX_MS, LAST_WORD_CAP } from './racePhraseFill.js'
 import { setupScene } from './racePhraseSceneRig.js'
 import { createPhraseListener, stubSay, stubDraft } from './racePhraseListenStub.js'
 import { phraseStep, SAY_SPEED } from './raceStagesPhrases.js'
@@ -22,6 +22,12 @@ describe('цель заливки по словам', () => {
     expect(fillGoal({ words: w, n: 4, t: 500, heardAt: 499 })).toBe(0)
     markWord(w, 0, false, 600)
     expect(fillGoal({ words: w, n: 4, t: 700, heardAt: 690 })).toBeCloseTo(0.25, 6)
+    expect(fillGoal({ words: w, n: 4, done: true })).toBe(1)
+  })
+  it('последнее слово без итога — LAST_WORD_CAP (кромка у края, не упёрлась), 100 % — только по итогу (done)', () => {
+    const w = new Map(); [0, 1, 2, 3].forEach(i => markWord(w, i, true, 0))
+    expect(LAST_WORD_CAP).toBe(0.97)
+    expect(fillGoal({ words: w, n: 4 })).toBe(LAST_WORD_CAP); expect(fillGoal({ words: w, n: 4, edges: [0.3, 0.45, 0.8, 1] })).toBe(LAST_WORD_CAP)
     expect(fillGoal({ words: w, n: 4, done: true })).toBe(1)
   })
   it('черновик слова пришёл повторно — время не сбрасывается, подтверждение не откатывается', () => {

@@ -6,7 +6,7 @@ import { round2SayTurns } from './racePhraseTurns.js'
 import { phrasesOf } from './racePhraseData.js'
 import { PHRASE_FIXTURE } from './racePhraseFixture.js'
 import { createGlide, GLIDE_GAP_MS, GLIDE_MIN_MS } from './racePhraseGlide.js'
-import { edgeVerdict, LAST_WORD_GRACE_MS } from './racePhraseFill.js'
+import { edgeVerdict, LAST_WORD_GRACE_MS, LAST_WORD_CAP } from './racePhraseFill.js'
 
 // Вид хода «Скажи» по проходам (racePhraseSayView.js): заливка только по распознанным словам; проход 2 — текст открыт, заливка одним движением (racePhraseGlide.js); проход 1 — подсказка
 // только после сказанного слова (racePhrasePeek.js, порядок — racePhrasePeek.test.js);
@@ -29,13 +29,15 @@ describe('заливка прохода 2 по словам (чистая)', () 
     expect(lines.at(-1)).toBe('[fill] режим по словам: слово 3 не пришло — линия стоит на 0,75')
     expect(g.goal({ t: 3000 })).toBe(0.75) // не дальше границы следующего слова, пока его нет
     g.word(2, 3000); expect(g.goal({ t: 3000 })).toBe(0.75); expect(g.goal({ t: 3500 })).toBe(0.75) // средний интервал вырос (1000 мс) — без ведения
-    g.word(3, 3100); expect(g.goal({ t: 3100 })).toBe(1)
+    g.word(3, 3100); expect(g.goal({ t: 3100 })).toBe(LAST_WORD_CAP); expect(lines.at(-1)).toBe('[fill] режим по словам: слово 4 → граница 0,97') // последнее слово без итога — у края, не 100 %
     expect(g.goal({ t: 0, done: true })).toBe(1); expect(GLIDE_GAP_MS).toBe(400)
   })
   it('слова пачкой — ведение не быстрее GLIDE_MIN_MS; по границам слов на пилюле (edges)', () => {
     const g = createGlide({ n: 4 }), edges = [0.2, 0.5, 0.8, 1]
     g.word(0, 0); g.word(1, 0); expect(g.goal({ t: 0, edges })).toBe(0.5)
     expect(g.goal({ t: GLIDE_MIN_MS / 2, edges })).toBeCloseTo(0.65, 3); expect(g.goal({ t: GLIDE_MIN_MS, edges })).toBe(0.8)
+    const h = createGlide({ n: 4 }) // ведение к границе последнего слова — тоже не дальше LAST_WORD_CAP
+    h.word(0, 0); h.word(1, 0); h.word(2, 0); expect(h.goal({ t: GLIDE_MIN_MS * 2, edges })).toBe(LAST_WORD_CAP); expect(h.goal({ t: 0, done: true })).toBe(1)
   })
 })
 

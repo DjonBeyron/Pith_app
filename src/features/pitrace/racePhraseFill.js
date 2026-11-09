@@ -20,6 +20,10 @@ export function edgeVerdict({ grace = null, t, lit, n, canHold }) {
   return t - grace < LAST_WORD_GRACE_MS ? 'wait' : 'draft'
 }
 
+// ПОСЛЕДНЕЕ СЛОВО БЕЗ ИТОГА (2026-11-09, журнал владельца: «пилюля заполнилась, но не улетала» — граница 1,00 по последнему слову, а зачёт через 1,2 с): услышанное последнее слово ведёт цель
+// не к 100 %, а к LAST_WORD_CAP — кромка у самого края, но не упёрлась; 100 % — только по итогу фразы (done). Слушатель засчитывает договорённую фразу за 0–400 мс (racePhraseListen.saidThrough).
+export const LAST_WORD_CAP = 0.97
+
 export const FILL_HOLD_MS = 120       // заливка дошла до 100 % — столько видна целиком, потом взлёт
 export const FILL_FINISH_MAX_MS = 400 // потолок ожидания доезда после итога
 
@@ -57,10 +61,10 @@ export function edgeAt(s, n, edges = null) {
   return a + (edges[k] - a) * (s - k)
 }
 
-/** Цель заливки 0…1: words — Map номер слова цели → { full, at } (только слова фразы: шум и чужие слова сюда не попадают), n — слов во фразе, done — итог пришёл (доезд до 100 %), edges — границы слов на пилюле */
+/** Цель заливки 0…1 (без итога — не выше LAST_WORD_CAP): words — Map номер слова цели → { full, at } (только слова фразы: шум и чужие слова сюда не попадают), n — слов во фразе, done — итог пришёл (доезд до 100 %), edges — границы слов на пилюле */
 export function fillGoal({ words, n, done = false, edges = null }) {
   if (done) return 1
-  return edgeAt(words.size, n || 1, edges)
+  return Math.min(LAST_WORD_CAP, edgeAt(words.size, n || 1, edges))
 }
 
 /** Слово услышано (onWord): черновик запоминает время первого появления, подтверждение — full; все слова до него — подтверждены (их перекрыло следующее) */

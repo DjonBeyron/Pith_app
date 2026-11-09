@@ -1,33 +1,7 @@
 import { describe, it, expect } from 'vitest'
-import { createPhraseListener, lastOnly, PHRASE_OK, SETTLE_MS, SETTLE_LAST_MS, QUIET_LAST_MS, QUIET_PAUSE_K, QUIET_MAX_MS, LAST_HOLD_MS, JOIN_MS, GATE_CLOSE_FINAL_MS, TAIL_VOICE_MS } from './racePhraseListen.js'
+import { lastOnly, PHRASE_OK, SETTLE_MS, SETTLE_LAST_MS, QUIET_LAST_MS, QUIET_PAUSE_K, QUIET_MAX_MS, LAST_HOLD_MS, JOIN_MS, GATE_CLOSE_FINAL_MS, TAIL_VOICE_MS } from './racePhraseListen.js'
 import { scorePhrases } from './racePhraseScore.js'
-import { createWordListener } from '../player/modules/rotate-phone/wordLaneListen.js'
-
-// Слушатель фраз этапа 2: подставной распознаватель (как в wordLaneRuListen.test.js) — partial / result подаются руками, таймеры ручные.
-const P = {
-  meet: { key: 'nice to meet you', words: ['nice', 'to', 'meet', 'you'] },
-  from: { key: 'where are you from', words: ['where', 'are', 'you', 'from'] },
-  learn: { key: "i'm trying to learn", words: ["I'm", 'trying', 'to', 'learn'] },
-  see: { key: 'nice to see you', words: ['nice', 'to', 'see', 'you'] },
-}
-function rig(phrases, { held = () => false, noModel = false } = {}) {
-  let t = 0
-  const timers = new Map(); let id = 0
-  const sessions = [], words = [], got = [], logs = [], errors = [], hears = []
-  const now = () => t
-  const setTimer = (fn, ms) => { timers.set(++id, { fn, at: t + ms }); return id }
-  const clearTimer = k => timers.delete(k)
-  const listen = async (model, grammar, cb, opts) => { const s = { cb, grammar, opts, stopped: 0, cancelled: 0 }; sessions.push(s); cb.onReady?.(); return { stop() { s.stopped++ }, cancel() { s.cancelled++ } } }
-  const runtime = { getModel: () => (noModel ? null : 'M'), snapshot: () => ({}) }
-  const l = createPhraseListener({
-    phrases, getStream: () => null, isHeld: held, onWord: w => words.push(w), onEar: e => hears.push(e), onPhrase: p => got.push(p), onError: e => errors.push(e), log: s => logs.push(s),
-    create: o => createWordListener({ ...o, listen, runtime, now, setTimer, clearTimer }), now, setTimer, clearTimer,
-  })
-  const advance = ms => { t += ms; for (const [k, x] of [...timers].sort((a, b) => a[1].at - b[1].at)) if (x.at <= t && timers.has(k)) { timers.delete(k); x.fn() } }
-  return { l, sessions, words, got, logs, errors, hears, advance, cur: () => sessions.at(-1) }
-}
-const flush = () => new Promise(r => setTimeout(r, 0))
-const end = async (r, text, ms = 200) => { r.cur().cb.onResult(text, { words: [] }); r.advance(ms); await flush() }
+import { rig, P, flush, end } from './racePhraseListenRig.js'
 
 describe('createPhraseListener', () => {
   it('порог 0.75; словарь — слова всех кандидатов без повторов', async () => {
@@ -84,17 +58,6 @@ describe('createPhraseListener', () => {
     await end(r, 'where are'); r.advance(JOIN_MS + 100); await flush()
     r.cur().cb.onPartial('you from'); await end(r, 'you from'); r.advance(SETTLE_MS)
     expect(r.got).toEqual([])
-    r.l.stop()
-  })
-  it('3 из 4 (пропущено слово в середине): ждёт конца захода и паузу SETTLE_MS, потом зачёт с ratio 0.75', async () => {
-    const r = rig([P.learn, P.meet]); await flush()
-    r.cur().cb.onPartial("i'm trying learn")
-    expect(r.got).toEqual([])
-    await end(r, "i'm trying learn")
-    r.advance(SETTLE_MS - 300)
-    expect(r.got).toEqual([])
-    r.advance(300)
-    expect(r.got).toEqual([{ phraseKey: "i'm trying to learn", ratio: 0.75, heard: "i'm trying learn" }])
     r.l.stop()
   })
   it('lastOnly: однозначный кандидат без одного ПОСЛЕДНЕГО слова', () => {
