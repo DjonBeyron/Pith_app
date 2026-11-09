@@ -20,6 +20,10 @@
 // По той же причине QUIET_LAST_MS поднят 650 → 1100 мс: при 650 пауза 0,7 с перед последним словом теряла слово (замер: «where are you … from», «nice to meet … you» — нечисто 0,75),
 // а быстрый случай (слово сказано, но не в черновике) теперь закрывает итог по затвору.
 // Выдержку затвора тишины (voskGate, 300 мс) НЕ удлиняем: при 600 мс эндпойнтер Vosk (0,5 с тишины) сам закрывал заход посреди фразы — слова терялись совсем (тот же замер).
+// ФРАЗА ДОГОВОРЕНА (2026-11-09, журнал владельца: «where you from» — «are» пропущено, пилюля полная, а взлёт через 1,2 с): у однозначно лучшего кандидата (≥ PHRASE_OK, разрыв по pickPhrase)
+// услышано ПОСЛЕДНЕЕ слово, но не все (saidThrough) — середину ученик уже не доскажет, ждать нечего. Итог захода с этим — зачёт сразу (раньше SETTLE_MS после конца захода); черновик —
+// через SETTLE_LAST_MS (голос в микрофоне отодвигает: вдруг черновик достроится до полного), итог по затвору при этом по-прежнему просим — пришёл раньше, решает сразу; конец захода — тоже SETTLE_LAST_MS.
+// Журнал: «[phrase-ear] договорена: последнее слово есть, ratio 0,75 — зачёт по итогу|по черновику|по концу захода через N мс» (N — от первого черновика/итога, где последнее слово появилось).
 // Журнал (таймлайн на телефоне, N — мс от первого звука попытки, до него — от сброса слушателя): «[phrase-ear] черновик «…» +N мс» — каждый новый черновик, «итог «…» +N мс» — КАЖДЫЙ итог захода
 // (и с тем же текстом), «partial без изменений «…» +N мс» — черновик Vosk пришёл, а текст тот же (не чаще SAME_LOG_MS: видно, что черновики идут, а не застряли), «прошу итог захода» (lastOnly),
 // «итог запрошен: затвор закрыт +N мс, черновик «…»» (итог по затвору), «[gate] открыт|закрыт +N мс (rms …)» — затвор тишины voskGate (закрыт — тишина не идёт в Vosk). Каждое такое событие уходит и в onEar (отладочная полоска сцены).
@@ -52,6 +56,12 @@ export function lastOnly(scores) {
   return p && p.hits.length > 1 && !p.hits.at(-1) && p.hits.slice(0, -1).every(Boolean) ? p.key : null
 }
 
+/** Фраза договорена: у однозначно лучшего кандидата (≥ PHRASE_OK, разрыв со вторым по pickPhrase) услышано ПОСЛЕДНЕЕ слово, а не хватает середины: ключ или null */
+export function saidThrough(scores) {
+  const p = pickPhrase(scores, true)
+  return p && p.hits.length > 1 && !!p.hits.at(-1) && p.ratio < 1 - 1e-9 ? p.key : null
+}
+
 const clean = raw => String(raw ?? '').toLowerCase().split(/\s+/).filter(w => w && w !== '[unk]').join(' ')
 const norm = list => (list ?? []).map(p => ({ key: p.key, words: (p.words ?? []).map(w => String(typeof w === 'string' ? w : w?.text ?? '')).filter(Boolean) })).filter(p => p.key && p.words.length)
 
@@ -68,7 +78,9 @@ export function createPhraseListener({ phrases: phrasesIn, lang = 'en', getStrea
   let current = '' // текущий заход (последний черновик / итог)
   let sent = new Map() // ключ кандидата → Map(индекс слова → true, если уже подтверждён итогом; false — пока черновик)
   let settleTimer = 0
-  let settleLast = false // ждём SETTLE_LAST_MS (не хватает только последнего слова): голос отодвигает решение
+  let settleLast = false // ждём SETTLE_LAST_MS (не хватает только последнего слова или фраза договорена): голос отодвигает решение
+  let throughBy = ''     // ожидание SETTLE_LAST_MS по договорённой фразе: 'по черновику' | 'по концу захода' ('' — нет)
+  let throughAt = null   // когда в этой попытке фраза впервые оказалась договорена (журнал «через N мс»)
   let quietTimer = 0     // черновик без последнего слова: ждём тишину QUIET_LAST_MS, потом просим итог
   let gateTimer = 0      // затвор закрылся при черновике со словом кандидата: через GATE_CLOSE_FINAL_MS просим итог
   let textAt = -Infinity // когда текст захода (черновик / итог) последний раз изменился или начался заход: голос позже — речь, которой в черновике ещё нет
@@ -79,10 +91,17 @@ export function createPhraseListener({ phrases: phrasesIn, lang = 'en', getStrea
   let disposed = false
 
   const heardNow = () => { const t = now(); past = past.filter(p => t - p.at <= JOIN_MS); return [...past.map(p => p.text), current].filter(Boolean).join(' ') }
-  const clearState = () => { past = []; current = ''; sent = new Map(); clearTimer(settleTimer); settleTimer = 0; clearTimer(quietTimer); quietTimer = 0; clearTimer(gateTimer); gateTimer = 0; firstAt = null; zero = now(); sameAt = -Infinity; pauseMax = 0 }
+  const clearState = () => { past = []; current = ''; sent = new Map(); clearTimer(settleTimer); settleTimer = 0; clearTimer(quietTimer); quietTimer = 0; clearTimer(gateTimer); gateTimer = 0; throughBy = ''; throughAt = null; firstAt = null; zero = now(); sameAt = -Infinity; pauseMax = 0 }
   const quietMs = () => Math.min(QUIET_MAX_MS, Math.max(QUIET_LAST_MS, pauseMax * QUIET_PAUSE_K))
   const rel = () => `+${Math.round(now() - (firstAt ?? zero))} мс`
-  const settle = (ms, mine) => { clearTimer(settleTimer); settleTimer = setTimer(() => { settleTimer = 0; if (mine === gen) decide(true) }, ms) }
+  const settle = (ms, mine) => { clearTimer(settleTimer); settleTimer = setTimer(() => { settleTimer = 0; if (mine !== gen) return; if (throughBy) through(throughBy); decide(true) }, ms) }
+  /** Строка журнала «договорена» (если по услышанному фраза всё ещё договорена) */
+  function through(by) {
+    const heard = heardNow(), scores = heard ? scorePhrases(phrases, heard) : [], key = saidThrough(scores)
+    if (!key) return
+    const r = scores.find(s => s.key === key).ratio.toFixed(2).replace('.', ',')
+    log(`[phrase-ear] договорена: последнее слово есть, ratio ${r} — зачёт ${by} через ${Math.round(now() - (throughAt ?? now()))} мс`)
+  }
   /** Черновик без последнего слова: тишина quietMs() — итог захода сейчас (голос ещё идёт — ждём дальше) */
   const quiet = (mine, hold = LAST_HOLD_MS) => { clearTimer(quietTimer); quietTimer = setTimer(() => { quietTimer = 0; if (mine !== gen || disposed) return; if (now() - voiceAt < quietMs()) return quiet(mine, 1); log(`[phrase-ear] черновик «${current}» без последнего слова, тишина ${Math.round(now() - voiceAt)} мс (порог ${Math.round(quietMs())}) — прошу итог захода ${rel()}`); ear?.stop?.() }, Math.max(hold, quietMs() - (now() - voiceAt))) }
 
@@ -95,7 +114,7 @@ export function createPhraseListener({ phrases: phrasesIn, lang = 'en', getStrea
     const ends = hasWord(current) && best.hits.length > 1 && !!best.hits.at(-1) // в этом заходе слова, у лучшего кандидата уже есть последнее слово (не хватает середины): ждать нечего
     if (open || isHeld() || !((tail >= TAIL_VOICE_MS && lastOnly(scores)) || ends)) return
     const closedAt = now()
-    if (settleTimer) settle(GATE_CLOSE_FINAL_MS + FINAL_WAIT_MS, mine) // решение по прошлым заходам ждёт этот итог (иначе «нечисто» раньше последнего слова)
+    if (settleTimer && !throughBy) settle(GATE_CLOSE_FINAL_MS + FINAL_WAIT_MS, mine) // решение по прошлым заходам ждёт этот итог (иначе «нечисто» раньше последнего слова)
     gateTimer = setTimer(() => { gateTimer = 0; if (mine !== gen || disposed) return; clearTimer(quietTimer); quietTimer = 0; log(`[phrase-ear] итог запрошен: затвор закрыт +${Math.round(now() - closedAt)} мс, черновик «${current}», ${ends ? 'последнее слово есть' : `голос после черновика ${Math.round(tail)} мс`} ${rel()}`); ear?.stop?.() }, GATE_CLOSE_FINAL_MS)
   }
 
@@ -123,6 +142,7 @@ export function createPhraseListener({ phrases: phrasesIn, lang = 'en', getStrea
       return true
     }
     if (settled) log(earLine(phrases, heard, scores, null))
+    if (saidThrough(scores)) { throughAt ??= now(); return 'through' }
     return lastOnly(scores) ? 'last' : false
   }
 
@@ -140,9 +160,12 @@ export function createPhraseListener({ phrases: phrasesIn, lang = 'en', getStrea
       if (kind === 'final' || current !== text) { sameAt = now(); log(`[phrase-ear] ${kind === 'partial' ? 'черновик' : 'итог'} «${text}» ${rel()}`) }
       if (current !== text) textAt = now()
       current = text
-      clearTimer(settleTimer); settleTimer = 0; clearTimer(quietTimer); quietTimer = 0
+      clearTimer(settleTimer); settleTimer = 0; throughBy = ''; clearTimer(quietTimer); quietTimer = 0
       if (kind === 'final') { clearTimer(gateTimer); gateTimer = 0 }
-      if (decide(false, kind === 'partial') === 'last' && kind === 'partial') quiet(mine)
+      const got = decide(false, kind === 'partial')
+      if (got === 'last' && kind === 'partial') quiet(mine)
+      else if (got === 'through' && kind === 'final') { through('по итогу'); decide(true) } // ученик договорил до последнего слова, а середину уже не скажет — ждать нечего
+      else if (got === 'through') { throughBy = 'по черновику'; settleLast = true; settle(SETTLE_LAST_MS, mine) } // черновик ещё может достроиться до полного
     } else if (kind === 'session-end') {
       if (current) past.push({ text: current, at: now() })
       current = ''; textAt = now() // следующий заход Vosk (wordLaneListen перезапускает сам): голос в нём — ещё не в черновике
@@ -150,7 +173,8 @@ export function createPhraseListener({ phrases: phrasesIn, lang = 'en', getStrea
       if (!heard) return
       const scores = scorePhrases(phrases, heard)
       clearTimer(quietTimer); quietTimer = 0
-      settleLast = !!lastOnly(scores)
+      const done = !!saidThrough(scores)
+      settleLast = done || !!lastOnly(scores); throughBy = done ? 'по концу захода' : ''
       if (scores.some(s => s.ratio >= PHRASE_OK - 1e-9)) settle(settleLast ? SETTLE_LAST_MS : SETTLE_MS, mine)
       else log(earLine(phrases, heard, scores, null)) // заход закрылся без совпадения (накопленное остаётся на JOIN_MS)
     }
