@@ -71,7 +71,7 @@ describe('подложки: разметка и стиль', () => {
   it('узлы лежат в поле дорожек ПЕРЕД пилюлями (под ними, без z-index); CSS подключён; подпись зелёная по центру, заливка — transform, а не width', () => {
     const pills = read('./WordLanePills.jsx')
     expect(pills.indexOf('className="wlBand"')).toBeGreaterThan(0)
-    expect(pills.indexOf('className="wlBand"')).toBeLessThan(pills.indexOf('data-pill'))
+    expect(pills.indexOf('className="wlBand"')).toBeLessThan(pills.indexOf('<WordLanePillEls')) // разметка пилюль вынесена в WordLanePillEls.jsx (одна на игру и стенд пилюль)
     expect(read('../../../../index.css')).toContain("@import './styles/player/modules/rehearsal-bands.css';")
     expect(css.replace(/\/\*[\s\S]*?\*\//g, '')).not.toMatch(/z-index/)
     expect(css).toMatch(/\.wlBand\[data-on\]::after \{[^}]*content: attr\(data-tag\)[^}]*left: 50%[^}]*color: var\(--wl-accent\)/s)

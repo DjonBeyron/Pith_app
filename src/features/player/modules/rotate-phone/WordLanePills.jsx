@@ -1,6 +1,6 @@
 import { memo, useRef, useState } from 'react'
-import { PILL_W, PILL_H, LANE_X, LANE_EDGES, SLOT_COUNT } from './wordLaneTimeline.js'
-import { POOL } from './wordLanePool.js'
+import { LANE_EDGES, SLOT_COUNT } from './wordLaneTimeline.js'
+import WordLanePillEls from './WordLanePillEls.jsx'
 import { useWordLanePills } from './useWordLanePills.js'
 import { isWeakDevice } from '../../../../shared/lib/deviceTier.js'
 import { isPillSafe } from './wordLanePillSafe.js'
@@ -34,16 +34,7 @@ function WordLanePills({ scene, levels, fx, live, sceneApi, visible, onLane, arm
         {LANE_EDGES.map(x => <b key={x} className="wlLaneEdge" style={{ left: `${x}%` }} />)}
       </div>
       {['pit', 'you'].map(side => <div key={side} className="wlBand" data-band={side} aria-hidden="true"><i className="wlBandFill" /></div>)}
-      {Array.from({ length: POOL }, (_, i) => (
-        <div key={i} data-pill className="wlPill" data-lane={i % SLOT_COUNT} style={{ left: `${LANE_X[i % SLOT_COUNT]}%`, width: `${PILL_W}%`, height: `${PILL_H}%` }} data-testid={`wl-pill-${i}`}>
-          <span className="wlPillClip">
-            <span className="wlGhost" />
-            <span className="wlPillFill" />
-            <span className="wlPace" />
-          </span>
-          <span className="wlPillSparks"><i><b /><b /></i></span>
-        </div>
-      ))}
+      <WordLanePillEls />
       <div className={`wlFade wlFade--top${visible ? ' wlFade--in' : ''}`} aria-hidden="true" data-testid="wl-fade-top" />
       <div className={`wlFade wlFade--bottom${visible ? ' wlFade--in' : ''}`} aria-hidden="true" data-testid="wl-fade-bottom" />
       <div className={`wlDots${visible ? ' wlDots--in' : ''}`} aria-hidden="true">
