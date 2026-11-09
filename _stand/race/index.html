@@ -29,6 +29,7 @@ import { createPhraseListener as stubPhraseListener, stubSay, stubDraft, stubLev
 //  • этап «Фразы»: plan.phrases — фикстура racePhraseFixture.js (3 свои + 1 дежурная, audio: null; ?phrases=0 — без фраз; ?whole=1 — целые записи фраз в word_audio, ключ phrase:<key>), ?only=phrases — один этап; слушатель фраз — подставной, речь драйвер подаёт window.__phraseSay('слова');  //  (+?only=phrases — один этап; слушатель фраз — подставной, речь драйвер подаёт window.__phraseSay('слова') (черновиком — window.__phraseDraft);)
 //  • ?meaning=1 — смысл (ru) и ситуация (scene) фраз этапа 2 озвучены гудком ≈ 2 с (реплика Пита перед ходом «Скажи» со звуком — ранний выезд пилюли, racePhraseEarly.js)
 //  • ?mute=later,see — этих слов нет в библиотеке word_audio: демо «Скажи» не берёт запасную фразу с неозвученным словом (racePhraseWordVoice.js), журнал «[phrase-voice] слово … без озвучки»
+//  • ?start=phrases2-ann — «начать с этапа» (как у админа, raceStartStage.js): сразу плашка круга 2 «Скажи» и демо на живой пилюле
 //  • ?fixture=three|two|one|none — план из фикстур; ?seed=… — семя случайностей; ?only=sprint|catch|climb|descent — один раунд, ?only=stages — «Пинг-понг + фразы + финал», ?only=pingpong — «Пинг-понг + финал»; ?only=summary — сразу экран итога с фикстурой (summaryStand.js); ?ru=0 — русская модель не скачана (проход B на тапе) (иначе полная гонка);
 //  • озвучка слов и кусков — синтетические гудки (wav ниже), реплики Пита без озвучки (подпись без звука); ?voice=0 — и слова без озвучки;
 //  • Vosk — заглушка: речь подаёт драйвер очередью window.__sayQueue (строки «слова через пробел»): следующий кусок звука микрофона закрывает заход с этим текстом — как итог Vosk; window.__partialQueue — только черновик (partial) без итога; тап вместо речи (localStorage pithy_wl_tap_v1=1) работает как обычно.
@@ -48,7 +49,7 @@ const wav = ms => { // лидирующая тишина 80 мс + гудок ms
   return { url: URL.createObjectURL(new Blob([buf], { type: 'audio/wav' })), duration: sec }
 }
 
-const plan = { ...fixtureSource(fixture), game: 'race', ...(params.get('seed') ? { seed: params.get('seed') } : {}), ...(params.get('only') ? { round: params.get('only') } : {}) }
+const plan = { ...fixtureSource(fixture), game: 'race', ...(params.get('seed') ? { seed: params.get('seed') } : {}), ...(params.get('only') ? { round: params.get('only') } : {}), ...(params.get('start') ? { startAt: params.get('start'), debugStart: true } : {}) }
 plan.extraWords = extrasOf(fixturePlan(fixture))
 if (params.get('phrases') !== '0') plan.phrases = PHRASE_FIXTURE
 setPhraseListener(stubPhraseListener); window.__phraseSay = stubSay; window.__phraseDraft = stubDraft; window.__phraseLevel = stubLevel // фразы «говорит» драйвер (__phraseLevel(rms) — уровень микрофона: заливку и подсказку не двигает — проверка «шум не заливает»)
