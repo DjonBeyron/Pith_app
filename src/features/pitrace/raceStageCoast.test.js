@@ -84,8 +84,11 @@ describe('сцена «Фраз»: круг кончился — пилюли д
     s.go(PHRASE_GAP_MS - 1000 - 400); expect(s.pool.taken).toHaveLength(0)
     s.go(200); expect(s.pool.taken).toHaveLength(1)
   })
-  it('журнал старта хода — скорость и gap', () => {
-    const log = vi.fn(); const s = setupScene(pick(), { log }); s.go(400)
-    expect(log.mock.calls.map(c => c[0])).toContain(`[phrases] круг 1 «Пойми» (тап фразы), ход 1/3: пилюли едут, speed ${String(PHRASE_SPEED).replace('.', ',')}, gap ${PHRASE_GAP_MS} мс`)
+  it('журнал старта хода — скорость и gap: Пит говорит — ранний выезд вместе с репликой; без реплики — «пилюли едут»', () => {
+    const sp = String(PHRASE_SPEED).replace('.', ','), lines = s => s.mock.calls.map(c => c[0])
+    const log = vi.fn(); setupScene(pick(), { log, pit: 2116 }).go(16)
+    expect(lines(log).find(l => l.includes('вместе с репликой'))).toMatch(new RegExp(`^\\[phrases\\] круг 1 «Пойми» \\(тап фразы\\), ход 1/3: пилюля выезжает вместе с репликой Пита \\(2116 мс\\) с -?\\d+ % высоты, speed ${sp}, gap ${PHRASE_GAP_MS} мс$`))
+    const quiet = vi.fn(); setupScene(pick(), { log: quiet }).go(400)
+    expect(lines(quiet)).toContain(`[phrases] круг 1 «Пойми» (тап фразы), ход 1/3: пилюли едут, speed ${sp}, gap ${PHRASE_GAP_MS} мс`)
   })
 })

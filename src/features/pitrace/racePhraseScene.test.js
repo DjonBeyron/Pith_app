@@ -39,9 +39,9 @@ describe('сцена широкой ленты: круг 1 «Пойми»', () =
     }
     expect(phraseStep('phrases2', round2SayTurns(ph), { round: 2, mode: 'say', voice: true, speed: SAY_SPEED }).phrases.gap).toBe(gapMs(SAY_SPEED)) // «Скажи» — шаг из той же формулы
   })
-  it('Пит ещё говорит — пилюли не выезжают', () => {
+  it('Пит ещё говорит — первая пилюля выезжает вместе с репликой, остальные ждут gap (ранний выезд — racePhraseTapEarly.test.js)', () => {
     const s = setup(pick(), { pit: 500 })
-    s.go(3000); expect(s.pool.taken).toHaveLength(0)
+    s.go(16); expect(s.pool.taken).toHaveLength(1); expect(s.run.api.state().phase).toBe('ride')
   })
   it('тап по ленте берёт пилюлю ближе всего к центру: верная — зачёт и взлёт (fx.win с итогом хода), журнал [phrases]', () => {
     const log = vi.fn(); const s = setup(pick(), { log }); const t = round1Turns(ph, 's1')[0]

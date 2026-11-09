@@ -1,6 +1,6 @@
 // Сцена этапа 2 «Фразы» игры «Встряхни память» для движка пилюль (useWordLanePills: ступень со step.phrases — raceStagesPhrases.js). DOM без React, как wordLaneOrderScene.js: пилюли из пула (wide — широкие,
-// по центру одной ленты), часы — из анимаций полёта (pool.y), речь Пита — у директора гонки (fx.pre → useRaceActs → racePhraseVoice.js), ход ждёт, пока Пит договорит (fx.pitLeft) —
-// кроме «Скажи»: там пилюля выезжает ВМЕСТЕ с репликой (racePhraseEarly.js — к концу реплики она у верха зоны чтения), слушатель включён сразу, речь Пита он не берёт (isHeld — окно речи).
+// по центру одной ленты), часы — из анимаций полёта (pool.y), речь Пита — у директора гонки (fx.pre → useRaceActs → racePhraseVoice.js), первая пилюля хода выезжает ВМЕСТЕ с репликой —
+// во всех режимах (racePhraseEarly.js — к концу реплики она целиком видна, у верха зоны чтения; тап засчитывается сразу); в «Скажи» слушатель включён сразу, речь Пита не берёт (isHeld). Тап-режим без реплики (pitLeft 0) — ход ждёт PRE_MIN_MS.
 // Ход: pre (Пит говорит смысл / фразу; без озвучки смысла — подпись над лентой, e.show) → ride (пилюли хода едут одна за другой через cfg.gap) → итог → after (Пит реагирует) → следующий ход.
 // ЕДИНЫЙ КОНВЕЙЕР: после итога хода остальные его пилюли не гаснут — они «отыграны» (data-spent, бледнее) и едут вниз, пока не уйдут за край (без взлёта, промаха и fail); следующий ход начинается, не дожидаясь их,
 // и его пилюли выезжают ЗА ними тем же потоком: новая пилюля — не раньше cfg.gap после предыдущей на ленте (скорость у всех одна — не наезжают, порядок сохраняется). Тап по отыгранной — ничего.
@@ -20,7 +20,7 @@ import { createFillView, approachFillFast } from '../player/modules/rotate-phone
 import { markWord, finishDue, edgeVerdict, LAST_WORD_GRACE_MS } from './racePhraseFill.js'
 import { createSayView } from './racePhraseSayView.js'
 import { createSayTrace } from './racePhraseSayTrace.js'
-import { earlyAtMs } from './racePhraseEarly.js'
+import { earlyAtMs, EARLY_SURE_MS } from './racePhraseEarly.js'
 import { RISE_DELAY_MS, RISE_MS } from '../player/modules/rotate-phone/wordLaneRise.js'
 import { mountMask } from './racePhraseMaskView.js'
 import { pLog } from '../../shared/lib/debug.js'
@@ -110,15 +110,15 @@ export function runPhraseScene({ pool, root, scene, fxRef, listen = phraseListen
     listener?.reset()
     fx().pre?.({ rep: rep(), show: text => cap.show(text) })
     phase = 'pre'; at = t
-    if (cfg.mode === 'say') sayEarly(t)
+    early(t)
   }
 
-  /** «Скажи»: пилюля выезжает вместе с репликой Пита, не дожидаясь pitLeft (racePhraseEarly.js); места за едущими нет — выедет обычным потоком через cfg.gap */
-  function sayEarly(t) {
-    const pit = fx().pitLeft?.() ?? 0, atMs = earlyAtMs({ pitMs: pit, speed: cfg.speed, gap: cfg.gap, ys: riding().map(yOf) })
-    phase = 'ride'; const p = atMs == null ? null : spawn(turn().cands[0], 0, atMs)
-    if (p) { lastSpawn = t - atMs; p.y = yOf(p) }
-    log(`[phrases] круг ${cfg.round} ${ROUND_LOG[cfg.mode]}, ход ${turn().idx + 1}/${turns.length}${passTag()}: ${p ? `пилюля выезжает вместе с репликой Пита (${Math.round(pit)} мс) с ${Math.round(p.y)} % высоты` : 'пилюля ждёт места за едущими'}, speed ${String(cfg.speed).replace('.', ',')}, gap ${cfg.gap} мс`)
+  /** Первая пилюля хода (кандидат 0; в тап-режимах порядок уже перемешан — racePhraseTurns.arrange) выезжает вместе с репликой Пита, не дожидаясь pitLeft (racePhraseEarly.js); следующие — за ней через cfg.gap (at, lastSpawn — как будто она выехала из-за края atMs назад); места за едущими нет — обычный поток. Тап-режим: ждём, пока реплика зазвучит (pitLeft > EARLY_SURE_MS — а не цепочка ждёт, пока Пит освободится); так и не зазвучала — обычный путь 'pre'. → выехал ли ход */
+  function early(t) {
+    const pit = fx().pitLeft?.() ?? 0; if (cfg.mode !== 'say' && !(pit > EARLY_SURE_MS)) return false
+    const atMs = earlyAtMs({ pitMs: pit, speed: cfg.speed, gap: cfg.gap, ys: [...riding().map(yOf), pool.tail?.()].filter(y => y != null) }); phase = 'ride'; const p = atMs == null ? null : spawn(turn().cands[0], 0, atMs)
+    if (p) { lastSpawn = t - atMs; at = t - atMs; p.y = yOf(p) }
+    log(`[phrases] круг ${cfg.round} ${ROUND_LOG[cfg.mode]}, ход ${turn().idx + 1}/${turns.length}${passTag()}: ${p ? `пилюля выезжает вместе с репликой Пита (${Math.round(pit)} мс) с ${Math.round(p.y)} % высоты` : cfg.mode === 'say' ? 'пилюля ждёт места за едущими' : 'пилюли едут (места за едущими нет — первая через gap)'}, speed ${String(cfg.speed).replace('.', ',')}, gap ${cfg.gap} мс`); return true
   }
 
   const lineOf = r => (cfg.mode === 'say' ? passNote(r, turn().pass) : r.ok ? 'верно' : r.confusedWith ? `спутал с ${q(turn().cands.find(c => c.key === r.confusedWith)?.text ?? r.confusedWith)}` : 'не успел') + (r.late ? ', в последний момент' : '')
@@ -195,7 +195,7 @@ export function runPhraseScene({ pool, root, scene, fxRef, listen = phraseListen
     for (const p of rolling) if (!p.gone) { p.y = yOf(p); if (p.y >= EXIT_Y) gone(p) } // отыгранные прошлых ходов едут до края
     if (phase === 'next') startTurn(t)
     else if (phase === 'demo') demo?.tick(t)
-    else if (phase === 'pre' && t - at >= PRE_MIN_MS && !(fx().pitLeft?.() > 0)) { phase = 'ride'; at = t; log(`[phrases] круг ${cfg.round} ${ROUND_LOG[cfg.mode] ?? cfg.mode}, ход ${turn().idx + 1}/${turns.length}${passTag()}: пилюли едут, speed ${String(cfg.speed).replace('.', ',')}, gap ${cfg.gap} мс`) }
+    else if (phase === 'pre' && !early(t) && t - at >= PRE_MIN_MS && !(fx().pitLeft?.() > 0)) { phase = 'ride'; at = t; log(`[phrases] круг ${cfg.round} ${ROUND_LOG[cfg.mode] ?? cfg.mode}, ход ${turn().idx + 1}/${turns.length}${passTag()}: пилюли едут, speed ${String(cfg.speed).replace('.', ',')}, gap ${cfg.gap} мс`) }
     else if (phase === 'ride' || phase === 'after') {
       if (phase === 'ride') { const c = turn().cands; for (let j = pills.length; j < c.length && t - at >= j * cfg.gap && t - lastSpawn >= cfg.gap; j++) spawn(c[j], j) } // за едущими — не ближе cfg.gap
       for (const p of pills) if (!p.gone) { p.y = yOf(p); if (p.y >= EXIT_Y) gone(p) }

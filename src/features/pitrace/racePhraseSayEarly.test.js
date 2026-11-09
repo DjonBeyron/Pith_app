@@ -1,14 +1,14 @@
 import { describe, it, expect, vi } from 'vitest'
 import { setupScene } from './racePhraseSceneRig.js'
 import { createPhraseListener, stubSay } from './racePhraseListenStub.js'
-import { phraseStep, SAY_SPEED, PHRASE_SPEED } from './raceStagesPhrases.js'
-import { round1Turns, round2SayTurns } from './racePhraseTurns.js'
+import { phraseStep, SAY_SPEED } from './raceStagesPhrases.js'
+import { round2SayTurns } from './racePhraseTurns.js'
 import { phrasesOf } from './racePhraseData.js'
 import { PHRASE_FIXTURE } from './racePhraseFixture.js'
 import { earlyAtMs, ZONE_TOP_Y, EARLY_MAX_Y } from './racePhraseEarly.js'
 import { ENTER_Y, SPEED } from '../player/modules/rotate-phone/wordLaneTimeline.js'
 
-// Замечание владельца 3: пилюля «Скажи» выезжает ВМЕСТЕ с репликой Пита (событие 'pre'), к концу реплики — у верха зоны чтения; круг 1 по-прежнему ждёт, пока Пит договорит
+// Замечание владельца 3: пилюля «Скажи» выезжает ВМЕСТЕ с репликой Пита (событие 'pre'), к концу реплики — у верха зоны чтения; тап-режимы (круг 1, «Узнай») — racePhraseTapEarly.test.js
 const ph = phrasesOf({ phrases: PHRASE_FIXTURE })
 const say = () => phraseStep('phrases2', round2SayTurns(ph), { round: 2, mode: 'say', voice: true, speed: SAY_SPEED })
 const v = SPEED * SAY_SPEED
@@ -56,9 +56,5 @@ describe('ранний выезд «Скажи» в сцене', () => {
     s.go(16)
     expect(order).toEqual(['setPhrases', 'reset', 'pre'])
     s.run.stop()
-  })
-  it('круг 1 «Пойми» не изменился: пока Пит говорит — пилюли не выезжают', () => {
-    const s = setupScene(phraseStep('phrases1', round1Turns(ph, 's1'), { round: 1, mode: 'pick', voice: true, speed: PHRASE_SPEED }), { pit: 500 })
-    s.go(3000); expect(s.pool.taken).toHaveLength(0)
   })
 })
