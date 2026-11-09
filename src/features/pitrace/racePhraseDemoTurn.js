@@ -1,6 +1,8 @@
 // Демо-ход круга «Скажи» на ЖИВОЙ пилюле (racePhraseScene.js зовёт перед первым ходом; скрипт и ворота — racePhraseDemo.js). Пилюля — из пула сцены, та же, что у настоящих ходов: широкая, data-mode='say',
-// бледная (data-faded), маска-кирпичики (mountMask) и data-demo; скорость — круга (SAY_SPEED). Выкатывается уже выезжающей из-под верхнего затемнения (DEMO_Y: полёт с atMs), чтобы скрипт ≈ 6–7 с
-// уложился в зону чтения (к взлёту центр ≈ 45–60 % высоты). Заливка — как в игре (замечание владельца 2026-11-08, 3: «демо заливает 25/50/75 %, а надо по границам слов»): цель после слова k — граница
+// бледная (data-faded), маска-кирпичики (mountMask) и data-demo; скорость — круга (SAY_SPEED, одна на ленте). Выкатывается КАК ОБЫЧНАЯ — из-за верхнего края (ENTER_Y, atMs 0; замечание владельца 2026-11-09:
+// «пилюля-пример не выкатывается, как обычные, а появляется просто» — раньше стартовала сразу с центром на 8 %), а первая реплика Пита — когда пилюля уже видна целиком (центр DEMO_LINE_Y = ZONE_TOP_Y, как ранние ходы).
+// Пример длиннее пути (реплики озвучены: ≈ 9 с у владельца, а от 22 до 60 % — ≈ 4 с) — пилюля замирает на DEMO_HOLD_Y (pool.hold, как продление хода у края) и ждёт взлёта: взлёт не ниже 60 %, не под кнопками.
+// Заливка — как в игре (замечание владельца 2026-11-08, 3: «демо заливает 25/50/75 %, а надо по границам слов»): цель после слова k — граница
 // слова k на пилюле (racePhraseFill.edgeAt по mask.edges(), перемер после смены кирпичика на слово), экран догоняет той же кривой (approachFillFast); перед взлётом доезжает до 100 % (не дольше RISE_WAIT_MS),
 // взлёт — pool.rise (как при зачёте: data-lock, вспышка ленты, щелчок). Слушатель фраз на демо-ходу не слушает: у сцены ещё нет кандидатов (setPhrases зовёт первый настоящий ход).
 import { ENTER_Y, SPEED } from '../player/modules/rotate-phone/wordLaneTimeline.js'
@@ -10,8 +12,10 @@ import { RISE_DELAY_MS, RISE_MS } from '../player/modules/rotate-phone/wordLaneR
 import { mountMask } from './racePhraseMaskView.js'
 import { runDemoScript, heardUpTo } from './racePhraseDemo.js'
 import { phraseWords } from './racePhraseData.js'
+import { ZONE_TOP_Y } from './racePhraseEarly.js'
 
-export const DEMO_Y = 8            // центр демо-пилюли при выезде, % высоты (верхний край под затемнением — «начинает опускаться»)
+export const DEMO_LINE_Y = ZONE_TOP_Y // первая реплика — когда центр пилюли здесь, % высоты (верх широкой пилюли на 16,5 % — ниже затемнения: видна целиком)
+export const DEMO_HOLD_Y = 60       // ниже центр не уезжает: пример ещё идёт — пилюля замирает здесь до взлёта (низ на 65,5 %, выше нижнего затемнения 72 %)
 export const RISE_WAIT_MS = 600    // заливка доезжает до 100 % перед взлётом не дольше этого
 export const AFTER_RISE_MS = 350   // после старта взлёта — до реплики «теперь ты»
 
@@ -21,9 +25,8 @@ export const AFTER_RISE_MS = 350   // после старта взлёта — �
  */
 export function createDemoTurn({ pool, lane, speed, phrase, kit, show, snap = () => {}, now, onDone, log = () => {}, setTimer = setTimeout, clearTimer = clearTimeout }) {
   const view = createFillView(approachFillFast), words = phraseWords(phrase.text).length || 1
-  const atMs = ((DEMO_Y - ENTER_Y) / (SPEED * speed)) * 1000
-  const k = pool.take(lane, { atMs, speed, cap: phrase.text, quiet: true, wide: true })
-  let mask = null, leaving = null, said = 0, shown = 0, lastT = now(), finished = false, risen = false, rising = null, riseAt = 0, t0 = now()
+  const k = pool.take(lane, { atMs: 0, speed, cap: phrase.text, quiet: true, wide: true }) // из-за верхнего края, как обычные
+  let mask = null, leaving = null, said = 0, shown = 0, lastT = now(), finished = false, risen = false, rising = null, riseAt = 0, t0 = now(), script = null, held = false, off = false
   const timers = []
   if (k != null) {
     pool.attr(k, 'data-mode', 'say'); pool.attr(k, 'data-faded'); pool.attr(k, 'data-demo')
@@ -31,6 +34,7 @@ export function createDemoTurn({ pool, lane, speed, phrase, kit, show, snap = ()
   }
   const say = s => { try { log(`[phrase-demo] ${s}`) } catch { /* журнал не мешает демо */ } }
   const y = () => (k == null ? null : pool.y(k))
+  if (k != null) say(`пилюля выезжает из-за края, первая реплика через ${Math.round(((DEMO_LINE_Y - ENTER_Y) / (SPEED * speed)) * 1000)} мс (y ${DEMO_LINE_Y} %)`)
   const dropMask = ms => { const m = mask; mask = null; leaving = m; if (m) timers.push(setTimer(() => { m.remove(); leaving = null }, ms)) }
   const takeOff = () => {
     const done = rising; rising = null
@@ -43,7 +47,7 @@ export function createDemoTurn({ pool, lane, speed, phrase, kit, show, snap = ()
     timers.push(setTimer(done, AFTER_RISE_MS))
   }
   const goal = () => edgeAt(said, words, mask?.edges() ?? null) // как в игре: граница последнего сказанного слова на пилюле
-  const script = runDemoScript({
+  const start = () => runDemoScript({
     phrase, sayLine: (...a) => kit?.sayLine?.(...a), sayText: (...a) => kit?.sayText?.(...a), busyLeft: () => kit?.busyLeft?.() ?? 0, lineText: id => kit?.text?.(id) ?? '', hasWord: w => kit?.hasWord?.(w) ?? true, show,
     open: i => { mask?.set(heardUpTo(i)); said = i + 1 },
     all: () => { mask?.set(new Map(), true); said = Infinity },
@@ -59,11 +63,13 @@ export function createDemoTurn({ pool, lane, speed, phrase, kit, show, snap = ()
   return {
     tick(t) {
       const dt = t - lastT; lastT = t
+      if (!script && !off && (k == null || (y() ?? Infinity) >= DEMO_LINE_Y)) script = start() // пилюля видна целиком — Пит начинает
+      if (k != null && !risen && !held && (y() ?? -Infinity) >= DEMO_HOLD_Y && pool.hold?.(k, true)) { held = true; say(`пилюля ждёт конца примера: y ${Math.round(y())} %, ${Math.round(now() - t0)} мс от начала`) }
       if (k != null && !risen) { shown = view.step('demo', goal(), dt); pool.paintFill(k, shown) }
       if (rising && (k == null || shown >= 0.999 || t - riseAt >= RISE_WAIT_MS)) takeOff()
     },
-    stop() { script.stop(); timers.forEach(clearTimer); mask?.remove(); leaving?.remove(); mask = leaving = null },
+    stop() { off = true; script?.stop(); timers.forEach(clearTimer); mask?.remove(); leaving?.remove(); mask = leaving = null },
     done: () => finished,
-    state: () => ({ y: y(), fill: shown, step: script.step(), mask: mask?.words() ?? null, risen }),
+    state: () => ({ y: y(), fill: shown, step: script?.step() ?? null, mask: mask?.words() ?? null, risen }),
   }
 }
