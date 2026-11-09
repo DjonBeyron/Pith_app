@@ -112,14 +112,15 @@ describe('сцена широкой ленты: круг 2 «Скажи»', () =
     expect(s.fx.win.mock.calls[0][2].res).toMatchObject({ ok: true, ratio: 0.75, clean: false })
     s.run.stop()
   })
-  it('data-mode="say", слушатель есть; маска слов «Nice ▭▭ ▭▭▭▭ ▭▭▭» снимается по onWord: услышанное (и черновиком) — целиком; подсказка с первого кадра; итог — вся фраза; журнал — круг 2 «Скажи» (голос)', () => {
+  it('data-mode="say", слушатель есть; маска слов «Nice ▭▭ ▭▭▭▭ ▭▭▭» снимается по onWord: услышанное (и черновиком) — целиком; подсказки нет до первого слова, дальше — строго следующее за сказанным; итог — вся фраза; журнал — круг 2 «Скажи» (голос)', () => {
     const log = vi.fn(); const s = setup(say(), { listen: createPhraseListener, log })
     s.go(16)
     const m = () => s.run.api.state().mask.map(w => `${w.text.replaceAll('\u2007', '▭')}:${w.state}`).join(' ')
-    expect(m()).toBe('Nice:full to:peek ▭▭▭▭:hidden ▭▭▭:hidden') // первый кадр пилюли: первое слово открыто, второе («to») уже проявляется по буквам — без голоса и без слова 1
+    expect(m()).toBe('Nice:full ▭▭:hidden ▭▭▭▭:hidden ▭▭▭:hidden') // первый кадр пилюли: первое слово открыто, остальные — кирпичики, подсказки нет (решение владельца 2026-11-09)
     s.go(584)
     expect(s.run.api.state().listening).toBe(true); expect(s.pool.taken[0].vals['data-mode']).toBe('say')
-    stubLevel(0.05); stubDraft('nice'); expect(m()).toBe('Nice:full to:peek ▭▭▭▭:hidden ▭▭▭:hidden') // голос и слово 1 — подсказка остаётся на слове 2
+    stubLevel(0.05); expect(m()).toBe('Nice:full ▭▭:hidden ▭▭▭▭:hidden ▭▭▭:hidden') // голос без слов — подсказки нет
+    stubDraft('nice'); expect(m()).toBe('Nice:full to:peek ▭▭▭▭:hidden ▭▭▭:hidden') // сказано слово 1 — только теперь проявляется слово 2
     stubDraft('nice to'); expect(m()).toBe('Nice:full to:full meet:peek ▭▭▭:hidden') // сказано подсказанное — целиком белое (и черновиком), подсказка — следующее
     stubDraft('nice to meet'); expect(m()).toBe('Nice:full to:full meet:full you:peek')
     stubSay('nice to meet you'); expect(m()).toBe('Nice:full to:full meet:full you:full') // итог: вся фраза сразу, взлёт — когда заливка доехала

@@ -41,26 +41,28 @@ describe('маска слов', () => {
 })
 
 describe('подсказка следующего слова (peek)', () => {
-  it('состояния слова: hidden → peek (текст слова, только у спрятанного) → full; nextPeek — первое спрятанное после самого дальнего услышанного', () => {
+  it('состояния слова: hidden → peek (текст слова, только у спрятанного) → full; nextPeek — строго следующее за самым дальним сказанным, ничего не сказано — нет', () => {
     const st = (heard, peek) => maskPhrase('Nice to meet you', heard, false, peek).map(w => `${w.text.replaceAll(BRICK, '▭')}:${w.state}`).join(' ')
     expect(st(new Map(), -1)).toBe('Nice:full ▭▭:hidden ▭▭▭▭:hidden ▭▭▭:hidden')
-    expect(nextPeek('Nice to meet you', new Map())).toBe(1); expect(st(new Map(), 1)).toBe('Nice:full to:peek ▭▭▭▭:hidden ▭▭▭:hidden')
+    expect(nextPeek('Nice to meet you', new Map())).toBe(-1) // до первого слова подсказки нет (решение владельца 2026-11-09)
+    expect(nextPeek('Nice to meet you', new Map([[0, false]]))).toBe(1); expect(st(new Map(), 1)).toBe('Nice:full to:peek ▭▭▭▭:hidden ▭▭▭:hidden')
     const h = new Map([[0, true], [1, true]])
     expect(nextPeek('Nice to meet you', h)).toBe(2); expect(st(h, 2)).toBe('Nice:full to:full meet:peek ▭▭▭:hidden')
     expect(st(new Map([[0, true], [1, true], [2, true]]), 2)).toBe('Nice:full to:full meet:full ▭▭▭:hidden') // сказано — целиком, peek не перекрывает
-    expect(nextPeek("I'm trying to learn", new Map([[1, true]]))).toBe(3) // «to» открыт сразу — подсказка дальше
+    expect(nextPeek("I'm trying to learn", new Map([[0, true], [1, true]]))).toBe(-1) // следующее «to» открыто сразу — подсказывать нечего (дальше не забегаем)
+    expect(nextPeek("I'm trying to learn", new Map([[0, true], [1, true], [2, true]]))).toBe(3)
     expect(nextPeek('Nice to meet you', new Map([[3, false]]))).toBe(-1)
     expect(st(new Map(), 0)).toBe('Nice:full ▭▭:hidden ▭▭▭▭:hidden ▭▭▭:hidden') // открытое слово подсказкой не бывает
   })
-  it('узел: peek — текст в ячейке data-w="peek", проявление по буквам — --peek (0…100 %) только у неё, пишется при смене; кирпичик → текст — перемер границ', () => {
+  it('узел: peek — текст в ячейке data-w="peek", проявление целым словом — --peek (opacity 0…1, до 0,01) только у неё, пишется при смене; кирпичик → текст — перемер границ', () => {
     const el = fakeDoc(), m = mountMask(el, 'Nice to meet you')
     const cells = el.children[0].children.filter(c => c.tag === 'b')
     m.set(new Map(), false, 1)
     expect(cells[1].textContent).toBe('to'); expect(cells[1].attrs['data-w']).toBe('peek')
-    m.peek(42.4); expect(cells[1].style.props['--peek']).toBe('42%'); m.peek(150); expect(cells[1].style.props['--peek']).toBe('100%')
+    m.peek(0.1234); expect(cells[1].style.props['--peek']).toBe('0.12'); m.peek(1.5); expect(cells[1].style.props['--peek']).toBe('1')
     expect(cells[2].style.props['--peek']).toBeUndefined()
     m.set(new Map([[1, true]]), false, 2); expect(cells[1].attrs['data-w']).toBe('full'); expect(cells[2].attrs['data-w']).toBe('peek')
-    m.peek(10); expect(cells[2].style.props['--peek']).toBe('10%')
+    m.peek(0.2); expect(cells[2].style.props['--peek']).toBe('0.2')
   })
 })
 

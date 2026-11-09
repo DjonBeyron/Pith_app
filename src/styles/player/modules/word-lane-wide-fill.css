@@ -42,3 +42,17 @@
 }
 .wlPill[data-wide][data-live] .wlPillSparks i::after { opacity: 1; }
 .wl--lite .wlPill[data-wide] .wlPillSparks i::after, .weak-device .wlPill[data-wide] .wlPillSparks i::after { display: none; }
+/* Рывок кромки на неверное слово (проход 1 «Скажи», data-nudge на пилюле — racePhraseNudge.js / racePhraseWrongWord.js): веретено и ореол коротко уходят вперёд на 8 px красными и плавно,
+   но быстро возвращаются (0,28 с); заливка не меняется. Кромка видна и при пустой заливке (opacity !important поверх инлайна пула) — рывок от начала. Только transform, без filter. */
+.wlField .wlPill[data-wide][data-nudge] .wlPillSparks i { opacity: 1 !important; }
+.wlPill[data-wide][data-nudge] .wlPillSparks i::before {
+  width: 3.5px; left: -1.75px; animation: wlNudge 0.28s both;
+  background: linear-gradient(to bottom, rgba(255, 80, 80, 0), rgba(255, 110, 110, 1) 30% 70%, rgba(255, 80, 80, 0));
+}
+.wlPill[data-wide][data-nudge] .wlPillSparks i::after { opacity: 1; animation: wlNudge 0.28s both; background: radial-gradient(closest-side, rgba(255, 60, 60, 0.6), rgba(255, 60, 60, 0.22) 55%, rgba(255, 60, 60, 0)); }
+@keyframes wlNudge {
+  0% { transform: translateX(0); animation-timing-function: cubic-bezier(0.2, 0.8, 0.3, 1); }
+  28% { transform: translateX(8px); animation-timing-function: cubic-bezier(0.4, 0, 0.3, 1); }
+  100% { transform: translateX(0); }
+}
+@media (prefers-reduced-motion: reduce) { .wlPill[data-wide][data-nudge] .wlPillSparks i::before, .wlPill[data-wide][data-nudge] .wlPillSparks i::after { animation: none; } }

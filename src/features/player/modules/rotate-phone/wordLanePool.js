@@ -75,7 +75,7 @@ export function createPool(root) {
   const clean = k => {
     Object.assign(rise[k], { v: 0, at: -1e9, on: false, ringed: false }); parts[k].el.removeAttribute('data-live'); flat[k] = false
     paintFill(k, 0); hint(k, '0', null)
-    for (const a of ['data-lock', 'data-fail', 'data-wrong', 'data-hint', 'data-voice', 'data-rise', 'data-ring', 'data-still', 'data-tag', 'data-cmp', 'data-cap', 'data-reveal', 'data-quiet', 'data-edge', 'data-wide', 'data-faded', 'data-hot', 'data-spent', 'data-mode', 'data-coast', 'data-pass', 'data-demo']) parts[k].el.removeAttribute(a)
+    for (const a of ['data-lock', 'data-fail', 'data-wrong', 'data-hint', 'data-voice', 'data-rise', 'data-ring', 'data-still', 'data-tag', 'data-cmp', 'data-cap', 'data-reveal', 'data-quiet', 'data-edge', 'data-wide', 'data-faded', 'data-hot', 'data-spent', 'data-mode', 'data-coast', 'data-pass', 'data-demo', 'data-nudge']) parts[k].el.removeAttribute(a)
   }
   /** Тень слова: ширина полосок по громкости куска слова диктора (без кривой — ровно) */
   const shape = (k, curve) => {

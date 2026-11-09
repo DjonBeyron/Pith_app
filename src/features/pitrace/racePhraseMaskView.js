@@ -1,7 +1,7 @@
 // Маска слов круга «Скажи» на широкой пилюле (racePhraseScene.js, mode 'say'): узел .racePhraseMask внутри пилюли пула — по <b> на слово, data-w = hidden / draft / full (racePhraseMask.js), стиль — race-phrase-rounds.css.
 // Пилюля «Скажи» держит data-cap (полный текст: стиль заливки гонки), но её ::after скрыт — текст пишет этот узел. Пул про узел не знает: сцена снимает его сама (remove) — когда пилюля взлетела, ушла или сцена кончилась.
 // В DOM пишет только изменившиеся слова (текст и data-w); без элемента (тесты на поддельном пуле) — тихо ничего, а слова для проверки отдаёт words().
-// peek(pct) — подсказка следующего слова (data-w='peek', racePhraseMask.js): проявление по буквам — переменная --peek (0…100 %) у ОДНОЙ ячейки, её каждый кадр задаёт сцена (racePhrasePeek.js); пишет только при смене.
+// peek(level) — подсказка следующего слова (data-w='peek', racePhraseMask.js): проявление целым словом — переменная --peek (opacity 0…1) у ОДНОЙ ячейки, её каждый кадр задаёт сцена (racePhrasePeek.js); пишет только при смене.
 // edges() — границы слов для заливки (racePhraseFill.wordEdges): прямоугольники <b> слов и слоя кромки (.wlPillSparks — по нему едет кромка, он на 4 px шире клипа заливки с каждой стороны,
 // как и слой заливки — на 8 px). Меряет лениво: при первом вызове, после смены слов (кирпичик → слово меняет ширину) и после загрузки шрифтов; пока пилюля не в DOM или не видна — null (доли 1/N), каждый кадр — из кэша.
 import { maskPhrase } from './racePhraseMask.js'
@@ -33,9 +33,9 @@ export function mountMask(el, text) {
       next.forEach((w, i) => { const b = cells[i]; if (!b || (w.text === words[i].text && w.state === words[i].state)) return; b.textContent = w.text; b.setAttribute('data-w', w.state); dirty = true })
       words = next
     },
-    /** Проявление подсказки: pct 0…100 — до какой доли ширины слова видны буквы (--peek ячейки с data-w='peek') */
-    peek(pct) {
-      const i = words.findIndex(w => w.state === 'peek'), b = cells[i], v = `${Math.round(Math.min(100, Math.max(0, pct)))}%`
+    /** Проявление подсказки: level 0…1 — opacity слова целиком (--peek ячейки с data-w='peek'), с точностью 0,01 */
+    peek(level) {
+      const i = words.findIndex(w => w.state === 'peek'), b = cells[i], v = String(Math.round(Math.min(1, Math.max(0, level)) * 100) / 100)
       if (!b?.style || b.peekV === v) return
       b.peekV = v; b.style.setProperty('--peek', v)
     },

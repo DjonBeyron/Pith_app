@@ -6,11 +6,10 @@ import { round2SayTurns } from './racePhraseTurns.js'
 import { phrasesOf } from './racePhraseData.js'
 import { PHRASE_FIXTURE } from './racePhraseFixture.js'
 import { createGlide, GLIDE_GAP_MS, GLIDE_MIN_MS } from './racePhraseGlide.js'
-import { createPeek, PEEK_MS } from './racePhrasePeek.js'
 import { edgeVerdict, LAST_WORD_GRACE_MS } from './racePhraseFill.js'
 
 // Вид хода «Скажи» по проходам (racePhraseSayView.js): заливка только по распознанным словам; проход 2 — текст открыт, заливка одним движением (racePhraseGlide.js); проход 1 — подсказка
-// следующего слова с первого кадра пилюли (racePhrasePeek.js);
+// только после сказанного слова (racePhrasePeek.js, порядок — racePhrasePeek.test.js);
 // продление хода у края (racePhraseFill.edgeVerdict, pool.hold)
 const ph = phrasesOf({ phrases: PHRASE_FIXTURE })
 const say = () => phraseStep('phrases2', round2SayTurns(ph), { round: 2, mode: 'say', voice: true, speed: SAY_SPEED })
@@ -40,21 +39,6 @@ describe('заливка прохода 2 по словам (чистая)', () 
   })
 })
 
-describe('подсказка следующего слова (чистая)', () => {
-  it('с первого кадра: следующее спрятанное — peek, --peek 0 → 100 % за PEEK_MS; слово 1 ничего не меняет; сказано подсказанное — дальше; перепрыгнул — после самого дальнего', () => {
-    const sets = [], pk = []
-    const mask = { set: (h, all, p) => sets.push(p), peek: v => pk.push(Math.round(v)) }
-    const p = createPeek({ mask, text: 'Nice to meet you', t: 1000 })
-    expect(p.index()).toBe(1); expect(sets).toEqual([1]) // пилюля появилась — «to» сразу подсказка
-    p.frame(1000 + PEEK_MS / 2); p.frame(1000 + PEEK_MS * 2); expect(pk).toEqual([50, 200]) // maskView.peek обрезает до 100
-    expect(p.show(new Map([[0, false]]), 1500)).toBe(1); p.frame(1500); expect(pk.at(-1)).toBe(42) // слово 1 — проявление продолжается
-    expect(p.show(new Map([[0, true], [1, false]]), 2000)).toBe(2); p.frame(2000); expect(pk.at(-1)).toBe(0)
-    expect(p.show(new Map([[0, true], [3, false]]), 2500)).toBe(-1) // перепрыгнул на последнее — подсказывать нечего
-    expect(createPeek({ mask, text: "I'm trying to learn" }).show(new Map([[1, true]]), 0)).toBe(3) // «to» открыт сразу — пропускается
-    expect(sets).toEqual([1, 1, 2, -1, 1, 3])
-  })
-})
-
 describe('сцена: заливка только по словам, проход 1 с подсказкой', () => {
   it('проход 2: текст открыт всё время; шум (высокий уровень без слов) линию не двигает; слова подряд — одним движением без ступенек; итог — 100 %', () => {
     const log = vi.fn(); const s = setupScene(say(), { listen: createPhraseListener, log })
@@ -73,12 +57,12 @@ describe('сцена: заливка только по словам, прохо�
     expect(s.fx.win).toHaveBeenCalledTimes(2); expect(p.fill).toBe(1)
     s.run.stop()
   })
-  it('проход 1: заливка по словам (голос её не двигает), подсказка — у слова 2 с первого кадра', () => {
+  it('проход 1: заливка по словам (голос её не двигает), до первого слова подсказки нет', () => {
     const s = setupScene(say(), { listen: createPhraseListener })
     const p = untilPill(s, 0)
-    expect(s.run.api.state().mask.map(w => w.state)).toEqual(['full', 'peek', 'hidden', 'hidden'])
-    s.go(300); speak(s, 500); expect(p.fill).toBe(0)
-    stubDraft('nice meet'); expect(s.run.api.state().mask.map(w => w.state)).toEqual(['full', 'hidden', 'full', 'peek']) // перепрыгнул — подсказка после самого дальнего
+    expect(s.run.api.state().mask.map(w => w.state)).toEqual(['full', 'hidden', 'hidden', 'hidden'])
+    s.go(300); speak(s, 500); expect(p.fill).toBe(0); expect(s.run.api.state().mask.map(w => w.state)).toEqual(['full', 'hidden', 'hidden', 'hidden'])
+    stubDraft('nice meet'); expect(s.run.api.state().mask.map(w => w.state)).toEqual(['full', 'hidden', 'full', 'peek']) // перепрыгнул — подсказка сразу за самым дальним сказанным
     s.run.stop()
   })
 })
