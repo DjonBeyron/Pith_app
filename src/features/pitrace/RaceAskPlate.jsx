@@ -10,9 +10,10 @@ import RaceMicSettingsTip from './RaceMicSettingsTip.jsx'
 // «Говорю» / «Тапаю» — свежий жест: из этого обработчика запускается startGameAudio (pick в useRaceLaunch.js). «Говорю» ждёт микрофон здесь же: wait — подпись на кнопке («Разрешите микрофон…» / «Готовлю звук…»), обе кнопки
 // неактивны (второго нажатия нет); note — до тапа: «iPhone спросит разрешение…» (первый диалог за запуск); hint — микрофон не дали (raceMicHelp.micHelp): заголовок, два абзаца (Safari / приложение с «Домой»),
 // кнопки «Попробовать снова» и «Пальцами»; tip — вместо note, когда микрофон уже разрешали в двух запусках (RaceMicSettingsTip.jsx, raceMicSettingsTip.js). Прошлый выбор подсвечен. Крестик — выйти, не отвечая.
+// start — только при отладке (useRaceStartStage.js): под кнопками «Начать с: …» ({ options, value, onChange }); null — ничего не рисуется.
 const label = (c, wait, hint) => (wait && c === 'voice' ? WAIT_LABELS[wait] : hint && c === 'voice' ? RETRY_LABEL : CHOICE_LABELS[c])
 
-export function RaceAskScene({ choice, onPick, onCancel, wait = null, hint = null, note = '', tip = false, onTipClose = null, text = '', lite = false }) {
+export function RaceAskScene({ choice, onPick, onCancel, start = null, wait = null, hint = null, note = '', tip = false, onTipClose = null, text = '', lite = false }) {
   return (
     <div className="wl" data-phase="ask" data-testid="race-ask-scene">
       <div className="wlStage" data-tex={lite ? undefined : ''}>
@@ -22,6 +23,7 @@ export function RaceAskScene({ choice, onPick, onCancel, wait = null, hint = nul
           <div className="raceAskBtns">
             {CHOICES.map(c => <button key={c} type="button" className="raceAskBtn" data-main={c === choice ? '1' : undefined} data-wait={wait && c === 'voice' ? wait : undefined} disabled={!!wait} onClick={() => onPick(c)} data-testid={`race-ask-${c}`}>{label(c, wait, hint)}</button>)}
           </div>
+          {start && <label className="raceAskStart" data-testid="race-ask-start"><span>Начать с:</span><select value={start.value} disabled={!!wait} onChange={e => start.onChange(e.target.value)} data-testid="race-ask-start-select"><option value="">с начала</option>{start.options.map(o => <option key={o.sid} value={o.sid}>{o.label}</option>)}</select></label>}
           {!hint && tip && <RaceMicSettingsTip standalone={isStandalone()} onClose={onTipClose} />}
           {!hint && !tip && note && <p className="raceAskNote" data-testid="race-ask-note">{note}</p>}
         </div>

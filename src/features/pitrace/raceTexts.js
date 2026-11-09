@@ -16,7 +16,10 @@ export function raceTexts(plan) {
 export const raceStartId = (tap = readTapMode()) => (tap ? 'race_start_tap' : 'race_start')
 
 /** Есть ли у плана стартовая фраза: полная гонка, режимы этапов (raceOnly.MODES) и один «Проход A» — да (она заменяет объявление этапа A); другой одиночный раунд — нет, там говорит его реплика */
-export const raceHasStart = plan => !plan.round || isMode(plan.round) || plan.round === 'sprint'
+export const raceHasStart = plan => !plan.startAt && (!plan.round || isMode(plan.round) || plan.round === 'sprint') // старт с этапа (отладка, plan.startAt) — как одиночный раунд: без стартовой фразы
+
+/** Старт одной репликой этапа вместо стартовой фразы: одиночный раунд без неё или старт с этапа (raceOpening.js) */
+export const raceSoleStart = plan => !!(plan.round || plan.startAt) && !raceHasStart(plan)
 
 /** Первые реплики гонки: стартовая фраза режима (если она есть у плана) и реплика первого акта (если есть) — к самому старту ждём только их */
 export function raceFirstLines(plan, acts, tap = readTapMode()) {

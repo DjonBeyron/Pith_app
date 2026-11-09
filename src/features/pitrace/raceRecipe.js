@@ -14,6 +14,7 @@ import { readTapMode } from '../player/modules/rotate-phone/wordLaneHudSettings.
 import { passBByVoice } from './raceStagesCatch.js'
 import { ruReady } from './raceRu.js'
 import { phrasesOf, hasPhrases } from './racePhraseData.js'
+import { fromStage } from './raceStartStage.js'
 
 export const DESCENT_RATE = 1.1 // скорость «Спуска»: Пит и человек говорят на 10 % быстрее
 
@@ -36,6 +37,6 @@ export function buildRaceActs(plan, tap = readTapMode(), ru = ruReady()) {
   if (climb.length) acts.push({ id: 'climb', title: 'Вершина', brief: 'собери фразу по словам', task: 'собираем фразу по слову, с каждым шагом длиннее', line: 'race_climb', words: climb, topLine: 'race_climb_top', timeLine: 'race_climb_time' })
   acts.push({ id: 'descent', title: 'Спуск', brief: 'повтори всю фразу за мной', task: 'повтори всю фразу за мной на скорости', line: 'race_descent', parts: all, rate: DESCENT_RATE })
   acts.push({ id: 'summary', title: 'Итог' })
-  return { plan, acts: pickRound(acts, plan.round) }
+  return { plan, acts: fromStage(pickRound(acts, plan.round), plan.startAt) } // plan.startAt — «начать с этапа» (отладка, raceStartStage.js)
 }
 

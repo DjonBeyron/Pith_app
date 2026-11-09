@@ -187,7 +187,7 @@ function RotateLive({ node, file, onDone, forceDebug, bare, startRef, onStatus, 
   }, [startRef, start])
   useEffect(() => { onStatus?.({ phase, busy: busy || phase === 'ask', ready, problem, vosk: vosk.status, warm: wp.open ? '' : wp.label }) }, [onStatus, phase, busy, ready, problem, vosk.status, wp.open, wp.label])
 
-  const game = phase === 'game' && <WordLaneGame key={gameKey} cfg={cfg} audioSrc={cfg.hasAudio ? audioSrc : null} lines={lines} forceDebug={forceDebug} startHold={rl.hold} onRestart={restart} onAgain={cfg.plan && !cfg.plan.only && !cfg.plan.round ? another : null} onSummary={cfg.plan && !cfg.plan.only && !cfg.plan.round ? prewarmNext : null} onFinished={finished} />
+  const game = phase === 'game' && <WordLaneGame key={gameKey} cfg={rl.cfg} audioSrc={cfg.hasAudio ? audioSrc : null} lines={lines} forceDebug={forceDebug} startHold={rl.hold} onRestart={restart} onAgain={cfg.plan && !cfg.plan.only && !cfg.plan.round ? another : null} onSummary={cfg.plan && !cfg.plan.only && !cfg.plan.round ? prewarmNext : null} onFinished={finished} />
   const extra = (
     <>
       {phase === 'ask' && <RaceAskPlate {...rl.plate} />}
