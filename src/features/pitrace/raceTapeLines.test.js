@@ -61,3 +61,16 @@ describe('итог: непрозрачные подложки', () => {
     for (const f of ['race-summary.css', 'race-final.css', 'race-weak.css', 'race-phrases-weak.css', 'race-accuracy.css', 'race-metrics.css']) expect(strip(read(f))).not.toMatch(/filter\s*:/)
   })
 })
+
+describe('мягкое начало линий сверху (2026-11-09)', () => {
+  it('маска растушёвки — на неподвижной ленте .wlLanes (не на едущем слое узора), от прозрачного до полной за --run-fade; filter нет', () => {
+    const c = strip(read('word-lane-lane-run.css'))
+    const lanes = [...c.matchAll(/(?:^|\n)\.wlLanes \{([^}]*)\}/g)].map(m => m[1]).join('')
+    expect(lanes).toContain('--run-fade: 48px')
+    expect(lanes).toContain('mask-image: linear-gradient(to bottom, transparent 0, #000 var(--run-fade))')
+    expect(lanes).toContain('-webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 var(--run-fade))')
+    expect(lanes).not.toContain('will-change')
+    expect(rule(c, '.wl[data-race] .wlLanes i::before')).not.toContain('var(--run-fade)')
+    expect(c).not.toMatch(/filter\s*:/)
+  })
+})
