@@ -26,7 +26,7 @@ function WordLanePills({ scene, levels, fx, live, sceneApi, visible, onLane, arm
   const [safe] = useState(isPillSafe) // «безопасный» режим слоёв для iOS (wl--safe, localStorage pithy_wl_pill_safe_v1 = 1): без will-change и слоёв частиц, контур дважды (word-lane-pill-safe.css)
   useWordLanePills(rootRef, { scene, levels, fx, live, sceneApi, trio, dodge })
   const [still] = useState(() => lite || reducedMotion()) // слабое устройство и reduced-motion: пунктир без движения, только яркость
-  useLaneConveyor(rootRef, { armed, paused, still, speed, speedKey })
+  useLaneConveyor(rootRef, { armed, paused, still, speed, speedKey, fx })
   return (
     <div ref={rootRef} className={`wlField${lite ? ' wl--lite' : ''}${safe ? ' wl--safe' : ''}`} data-testid="wl-field">
       <div className={`wlLanes${visible ? ' wlLanes--in' : ''}`} aria-hidden="true" data-testid="wl-lanes">
