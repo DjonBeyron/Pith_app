@@ -54,6 +54,16 @@ describe('широкая пилюля в пуле', () => {
     a.currentTime = FLIGHT_MS / 2; expect(pool.y(w)).toBeCloseTo(52)
     expect(a.playbackRate).toBe(0.5); expect(pool.rate).toBeUndefined() // скорость постоянна: ускорения «Скажи» больше нет
   })
+  it('retime (демо «Скажи»): летящая пилюля едет дальше с другой скоростью с того же места (updatePlaybackRate — часы полёта не трогаются, скачка нет), пунктир дорожки — за ней (data-speed); без полёта, на взлёте и с нулевой скоростью — false', () => {
+    const { pool, pills } = rig()
+    const k = pool.take(1, { wide: true, speed: 0.4 }), a = pills[k].anims.at(-1)
+    a.currentTime = FLIGHT_MS / 4; const y = pool.y(k)
+    expect(pool.retime(k, 0.3)).toBe(true)
+    expect(a.playbackRate).toBe(0.3); expect(a.currentTime).toBe(FLIGHT_MS / 4); expect(pool.y(k)).toBe(y); expect(pills[k].dataset.speed).toBe('0.3')
+    expect(pool.retime(k, 0)).toBe(false); expect(a.playbackRate).toBe(0.3)
+    const still = pool.take(0, { flight: false }); expect(pool.retime(still, 0.5)).toBe(false)
+    pool.rise(k); expect(pool.retime(k, 0.5)).toBe(false)
+  })
 })
 
 describe('стили широкой ленты', () => {

@@ -51,12 +51,13 @@ export function demoPlan(n) {
 }
 
 /**
- * Скрипт демо: шаги demoPlan по очереди. → { stop(), words, step() }.
+ * Скрипт демо: шаги demoPlan по очереди. → { stop(), words, plan, step() }.
  * sayLine(id, vars, opts) → принята ли / sayText(word, opts) — голос директора; busyLeft() — сколько Пит ещё занят (мс); lineText(id) — подпись реплики ('' — реплика озвучена, подписи нет);
  * hasWord(word) — есть ли озвучка слова (нет — слово не звучит, шаг 'mute', дальше по таймеру DEMO_WORD_MS); show(text) — подпись над лентой ('' — снять);
- * open(i, v) — кирпичик слова i открыт, цель заливки v; all() — вся фраза, 100 %; rise(done) — пилюля взлетает (done — когда можно дальше); onDone(); onStep(name, info) — журнал и тесты.
+ * open(i, v) — кирпичик слова i открыт, цель заливки v; all() — вся фраза, 100 %; rise(done) — пилюля взлетает (done — когда можно дальше); onDone(); onStep(name, info) — журнал, тесты и темп пилюли
+ * (info.at — номер шага в plan, у слова info.ms — длина голоса; racePhraseDemoPace.js); pad() — добавка к паузе после шага, мс (разбор короче пути пилюли до головы Пита — Пит говорит размереннее).
  */
-export function runDemoScript({ phrase, sayLine, sayText, busyLeft = () => 0, lineText = id => id, hasWord = () => true, show = () => {}, open = () => {}, all = () => {}, rise = done => done(), onDone, onStep = () => {}, setTimer = setTimeout, clearTimer = clearTimeout }) {
+export function runDemoScript({ phrase, sayLine, sayText, busyLeft = () => 0, lineText = id => id, hasWord = () => true, show = () => {}, open = () => {}, all = () => {}, rise = done => done(), onDone, onStep = () => {}, pad = () => 0, setTimer = setTimeout, clearTimer = clearTimeout }) {
   const list = phraseWords(phrase?.text)
   const plan = demoPlan(list.length)
   let timer = 0, stopped = false, pos = -1, waited = 0
@@ -73,26 +74,26 @@ export function runDemoScript({ phrase, sayLine, sayText, busyLeft = () => 0, li
       const cap = lineText(s.line) || ''
       show(cap) // подпись — только у неозвученной реплики; у озвученной '' (снять прежнюю)
       const said = !!sayLine?.(s.line, null, { pause: 0 }) // pause 0: «занят» снимается по реальному концу реплики
-      onStep('line', { id: s.line, said, cap: !!cap })
-      if (said) at(DEMO_POLL_MS, () => free(() => at(DEMO_LINE_GAP_MS, next)))
-      else at(LINE_SILENT_MS, () => free(next))
+      onStep('line', { id: s.line, said, cap: !!cap, at: pos })
+      if (said) at(DEMO_POLL_MS, () => free(() => at(DEMO_LINE_GAP_MS + pad(), next)))
+      else at(LINE_SILENT_MS + pad(), () => free(next))
     } else if (s.word != null) {
       let ms = 0
       const word = list[s.word], voiced = !!hasWord(word)
       if (voiced) sayText?.(word, { hold: true, tight: true, onSay: m => { ms = m } }) // onSay приходит синхронно: длина голоса слова
       const v = (s.word + 1) / list.length
-      open(s.word, v); onStep('word', { i: s.word, word, v, voiced })
-      if (!voiced) onStep('mute', { i: s.word, word })
       const voice = ms > 0 ? ms : DEMO_WORD_MS
+      open(s.word, v); onStep('word', { i: s.word, word, v, voiced, ms: voice, at: pos })
+      if (!voiced) onStep('mute', { i: s.word, word })
       const following = plan[pos + 1]
-      at(voice + (following?.word != null ? DEMO_RUN_GAP_MS : following?.all ? 0 : DEMO_WORD_GAP_MS), next) // подряд — короткий зазор, последнее — сразу к 100 %
+      at(voice + (following?.word != null ? DEMO_RUN_GAP_MS + pad() : following?.all ? 0 : DEMO_WORD_GAP_MS + pad()), next) // подряд — короткий зазор, последнее — сразу к 100 %
     } else if (s.all) { show(''); all(); onStep('all'); next() }
     else if (s.rise) { onStep('rise'); rise(() => { if (!stopped) next() }) }
   }
   at(0, () => free(next))
   return {
     words: list,
-    step: () => plan[pos] ?? null,
+    plan, step: () => plan[pos] ?? null,
     stop() { if (stopped) return; stopped = true; if (timer) clearTimer(timer); timer = 0; show('') },
   }
 }

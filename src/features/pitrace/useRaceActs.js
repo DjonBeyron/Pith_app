@@ -55,7 +55,7 @@ export function useRaceActs(args) {
   const rh = useRehearsalActs(on && args.cat ? { ...args, sayLine: sayTr, cat: { ...args.cat, busyLeft: () => Math.max(args.cat.busyLeft(), speech.pendingMs()) } } : args) // расписание реплик этапа знает, что похвала ещё впереди
   const praiseRef = useRef(null) // похвала, которую reduceRace назначил на этот зачёт (apply → claim)
   const running = on && stage === 'run' ? stageObj : null
-  const demo = useRacePhraseDemo({ on, cat: args.cat, sayLine, sayText, lines }) // демо-ход «Скажи» на живой пилюле (racePhraseDemoTurn.js): голос и ворота для сцены
+  const demo = useRacePhraseDemo({ on, cat: args.cat, sayLine, sayText, lines, rate }) // демо-ход «Скажи» на живой пилюле (racePhraseDemoTurn.js): голос и ворота для сцены
   const [box] = useState(makeBox) // s — актуальное состояние (читает nextIdx без перерисовки), hinted — подсказка голосом сказана на этом промахе (raceState.makeBox)
   const [view, setView] = useState(box.s)
   const [result, setResult] = useState(null)

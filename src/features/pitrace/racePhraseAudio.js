@@ -36,6 +36,13 @@ export function wordLeadMs(word, lib = cachedWordAudio(), speech = speechOfUrl) 
   return url ? Math.max(0, Number(speech(url)?.lead) || 0) : 0
 }
 
+/** Сколько звучит голос слова до проигрывания (мс; как sayText с tight — без хвоста тишины файла): замер прогрева (тишина в начале + речь), нет замера — длина файла из word_audio; нет озвучки — 0 */
+export function wordVoiceMs(word, rate = 1, lib = cachedWordAudio(), speech = speechOfUrl) {
+  const row = lib?.get?.(wordKey(word)), sp = row?.url ? speech(row.url) : null
+  const ms = sp?.ms > 0 ? (Number(sp.lead) || 0) + sp.ms : row?.url && Number(row.duration) > 0 ? Number(row.duration) * 1000 : 0
+  return Math.round(ms / (rate > 0 ? rate : 1))
+}
+
 /** Сыграть целую фразу: буфер слота (прогрет) или элемент <audio> по адресу */
 export function playPhraseAudio(p, audio, { has = hasWordSlot, slot = playWordSlot, track = playTrack } = {}) {
   const key = phraseSlotKey(p)

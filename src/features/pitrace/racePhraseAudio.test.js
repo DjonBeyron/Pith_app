@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
-import { phraseAudioOf, phraseAudioItems, phraseSlotKey, phraseWordKey, playPhraseAudio, wordLeadMs } from './racePhraseAudio.js'
+import { phraseAudioOf, phraseAudioItems, phraseSlotKey, phraseWordKey, playPhraseAudio, wordLeadMs, wordVoiceMs } from './racePhraseAudio.js'
 import { phraseAudioMap, phraseAudio } from './plan/racePhraseOf.js'
 import { planContext } from './plan/racePhrasePool.js'
 import { createPhraseVoice, JOIN_OVERLAP_MS, STEP_GAP_MS } from './racePhraseVoice.js'
@@ -49,6 +49,8 @@ describe('где Пит берёт целую запись фразы', () => {
     const lib = map
     expect(wordLeadMs('Nice', lib, () => ({ lead: 70, ms: 300 }))).toBe(70)
     expect(wordLeadMs('meet', lib, () => ({ lead: 70 }))).toBe(0); expect(wordLeadMs('Nice', lib, () => null)).toBe(0)
+    expect(wordVoiceMs('Nice', 1, lib, () => ({ lead: 70, ms: 300 }))).toBe(370); expect(wordVoiceMs('Nice', 2, lib, () => ({ lead: 70, ms: 300 }))).toBe(185) // длина голоса до проигрывания (демо «Скажи»): замер прогрева
+    expect(wordVoiceMs('Nice', 1, new Map([['nice', { url: 'w/nice.mp3', duration: 0.62 }]]), () => null)).toBe(620); expect(wordVoiceMs('xyz', 1, lib, () => null)).toBe(0) // нет замера — длина файла; нет озвучки — 0
   })
 })
 

@@ -155,6 +155,14 @@ export function createPool(root) {
     tail: () => coastTail(root),
     /** «Фразы», «Скажи» (racePhraseScene.js, продление хода у края): on — полёт замирает на месте (pause), иначе едет дальше; часы полёта (y) стоят вместе с ним. Нет полёта — false */
     hold(k, on = true) { const a = live.get(k)?.anim; if (!a) return false; try { if (on) a.pause(); else a.play() } catch { return false } return true },
+    /** «Фразы», демо «Скажи» (racePhraseDemoTurn.js): летящая пилюля едет дальше с другой скоростью speed (доля конвейера) — с того же места, без скачка (часы полёта currentTime не трогаются: updatePlaybackRate). Нет полёта — false */
+    retime(k, speed) {
+      const l = live.get(k)
+      if (!l?.anim || l.rise || !(speed > 0)) return false
+      try { if (l.anim.updatePlaybackRate) l.anim.updatePlaybackRate(speed); else l.anim.playbackRate = speed } catch { return false }
+      parts[k].el.dataset.speed = String(speed) // пунктир дорожки — за пилюлей (laneConveyorDrive)
+      return true
+    },
     /** Где пилюля сейчас (центр, % высоты экрана) — по часам её полёта; не летит — null */
     y: k => (live.get(k)?.anim ? flightY(live.get(k).anim) : null),
     /** Тихо погасить пилюлю (opacity за ms) и вернуть в пул */
