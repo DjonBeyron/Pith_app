@@ -112,17 +112,19 @@ export function analyzeSegment({ target, events }) {
 
 const med = list => { const s = list.filter(x => x != null).sort((a, b) => a - b); return s.length ? s[Math.floor((s.length - 1) / 2)] : null }
 
-/** Вся трасса → { segs, totals } */
-export function honesty(events) {
-  const segs = segments(events).map(analyzeSegment)
+/** Итоги по разобранным отрезкам (analyzeSegment) */
+export function totalsOf(segs) {
   const sum = f => segs.reduce((a, s) => a + f(s), 0)
   const heard = sum(s => s.heard), extra = sum(s => s.extra)
   return {
-    segs,
-    totals: {
-      targets: segs.length, wins: segs.filter(s => s.result?.ok).length, falses: sum(s => s.falses.length), rebuilds: sum(s => s.rebuilds), changes: sum(s => s.changes),
-      heard, extra, extraPct: heard ? Math.round((extra / heard) * 100) : 0, backs: sum(s => s.backs.length), wrongs: sum(s => s.wrongs.length),
-      voiceToPartial: med(segs.map(s => s.voiceToPartial)), toFill: med(segs.flatMap(s => s.toFill.map(x => x.ms))), afterVoice: med(segs.map(s => s.result?.afterVoice ?? null)),
-    },
+    targets: segs.length, wins: segs.filter(s => s.result?.ok).length, falses: sum(s => s.falses.length), rebuilds: sum(s => s.rebuilds), changes: sum(s => s.changes),
+    heard, extra, extraPct: heard ? Math.round((extra / heard) * 100) : 0, backs: sum(s => s.backs.length), wrongs: sum(s => s.wrongs.length),
+    voiceToPartial: med(segs.map(s => s.voiceToPartial)), toFill: med(segs.flatMap(s => s.toFill.map(x => x.ms))), afterVoice: med(segs.map(s => s.result?.afterVoice ?? null)),
   }
+}
+
+/** Вся трасса → { segs, totals } */
+export function honesty(events) {
+  const segs = segments(events).map(analyzeSegment)
+  return { segs, totals: totalsOf(segs) }
 }

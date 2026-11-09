@@ -1,0 +1,29 @@
+/* Окно «📤 Отправить» стенда пилюль (features/pillstand/PillStandSend.jsx): лист снизу поверх стенда, safe-area снизу и по бокам, прокрутка внутри (на 375×812 и 320 — без горизонтальной прокрутки).
+   Темы и отрезки — «чипы» с переносом строк, комментарий на всю ширину, кнопки отправки крупнее обычных кнопок стенда. */
+.psSend {
+  position: absolute; z-index: 20; left: 0; right: 0; bottom: 0; max-height: 78dvh; overflow-y: auto; overscroll-behavior: contain;
+  padding: 10px calc(env(safe-area-inset-right, 0px) + 10px) calc(env(safe-area-inset-bottom, 0px) + 12px) calc(env(safe-area-inset-left, 0px) + 10px);
+  background: #12151b; border-top: 1px solid var(--ps-line); border-radius: 16px 16px 0 0; box-shadow: 0 -8px 28px rgba(0, 0, 0, 0.55);
+  display: flex; flex-direction: column; gap: 6px; color: var(--ps-ink); font-size: 13px; box-sizing: border-box;
+}
+.psSendHead { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 15px; }
+.psSendLabel { margin: 4px 0 0; color: var(--ps-dim); font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; }
+.psChips { display: flex; flex-wrap: wrap; gap: 5px; min-width: 0; }
+.psChip {
+  appearance: none; border: 1px solid var(--ps-line); background: #1b1f27; color: var(--ps-ink); border-radius: 999px; padding: 6px 10px; font-size: 13px; line-height: 1.15;
+  min-height: 32px; max-width: 100%; text-align: left; touch-action: manipulation; overflow-wrap: anywhere;
+}
+.psChip[data-on] { border-color: var(--ps-acc); background: #23301a; color: var(--ps-acc); }
+.psChip:disabled { opacity: 0.4; }
+.psMark { font-size: 12px; min-height: 28px; padding: 3px 8px; }
+.psSendText {
+  width: 100%; box-sizing: border-box; resize: vertical; min-height: 64px; background: #0e1015; color: var(--ps-ink); border: 1px solid var(--ps-line); border-radius: 10px;
+  padding: 7px 9px; font: 16px/1.3 system-ui, -apple-system, sans-serif; /* 16 px — iOS не приближает поле при фокусе */
+}
+.psSendSound { display: flex; align-items: center; gap: 6px; font-size: 13px; }
+.psSendSound[data-off] { color: var(--ps-dim); }
+.psSendSound input { width: 18px; height: 18px; }
+.psSendGo { border-color: var(--ps-acc); color: var(--ps-acc); font-size: 14px; min-height: 38px; padding: 6px 14px; font-weight: 600; }
+.psSend .psRow .psBtn { min-height: 36px; }
+.psSendBtn { border-color: var(--ps-acc); color: var(--ps-acc); }
+@media (max-width: 340px) { .psChip { font-size: 12px; padding: 5px 8px; } }

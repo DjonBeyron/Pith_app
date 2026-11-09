@@ -1,0 +1,20 @@
+/* Раскраска слов Vosk на стенде пилюль (PillStandVoskWords.jsx / PillStandVoskLine.jsx, pillStandColor.js): итог — яркий голубой, черновик — бледнее и курсивом, засчитанное — зелёный (в черновике — светлее, курсивом), нет в цели —
+   оранжево-красный, откат — зачёркнуто. Цвета — переменные (контраст на тёмном фоне стенда), без filter. Крупная строка «Vosk: …» под пилюлей ≈ 19 px, легенда — мелкой строкой. */
+.psStand {
+  --vw-final: #7fd8ff; --vw-partial: #9aa7c2; --vw-ok: #5df08a; --vw-ok-partial: #a8f5c2; --vw-extra: #ff8a4c; --vw-back: #c58b8b;
+}
+.psVw b { font-weight: 600; }
+.psVw b + b { margin-left: 0.3em; }
+.psVw b[data-c='final'] { color: var(--vw-final); }
+.psVw b[data-c='partial'] { color: var(--vw-partial); font-style: italic; font-weight: 500; }
+.psVw b[data-c='ok'] { color: var(--vw-ok); }
+.psVw[data-kind='partial'] b[data-c='ok'] { color: var(--vw-ok-partial); font-style: italic; } /* засчитано, но пока только в черновике — светлее и курсивом */
+.psVw b[data-c='extra'] { color: var(--vw-extra); text-decoration: underline wavy; text-underline-offset: 3px; }
+.psVw b[data-c='back'] { color: var(--vw-back); text-decoration: line-through 2px; }
+.psVoskLine { display: flex; flex-direction: column; align-items: center; gap: 1px; max-width: 100%; }
+.psVoskBig { margin: 0; font-size: 19px; line-height: 1.25; text-align: center; overflow-wrap: anywhere; min-height: 24px; }
+.psVoskTag { color: var(--ps-dim); font-size: 13px; font-weight: 600; vertical-align: 2px; }
+.psLegend { margin: 0; font-size: 10px; color: var(--ps-dim); display: flex; flex-wrap: wrap; justify-content: center; gap: 2px 8px; }
+.psLegend b { font-weight: 500; }
+.psPlayer .psVoskLine { align-items: flex-start; }
+.psPlayer .psVoskBig, .psPlayer .psLegend { text-align: left; justify-content: flex-start; }

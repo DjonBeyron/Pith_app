@@ -3,16 +3,18 @@ import { frameAt, stepFrame, loopRange, advance } from './pillStandPlayer.js'
 import { applySnap } from './pillStandSnap.js'
 
 // Плеер записи стенда пилюль: номер кадра, ▶ / ⏸, скорость, луп отрезка [a, b] (по умолчанию вся запись), шаг ◀ ▶ (и стрелки клавиатуры, пробел — пауза), звук синхронно с кадрами
-// (audio — ref элемента <audio> плеера; пока звук играет, часы — его currentTime + startMs; иначе — реальное время × скорость). Кадр рисуется из снимка (applySnap) на пилюле плеера pillRef. → состояние и команды для PillStandPlayer.jsx.
+// (луп можно держать снаружи: ext = { range, setRange } — A–B плеера нужен окну «📤 Отправить» и после закрытия плеера; audio — ref элемента <audio> плеера; пока звук играет, часы — его currentTime + startMs; иначе — реальное время × скорость). Кадр рисуется из снимка (applySnap) на пилюле плеера pillRef. → состояние и команды для PillStandPlayer.jsx.
 const KICK_MS = 300 // звук ещё не заиграл (play() ждёт) — не дёргаем его чаще
 
-export default function useStandPlayer(rec, pillRef, audioRef) {
+export default function useStandPlayer(rec, pillRef, audioRef, ext = null) {
   const frames = useMemo(() => rec?.frames ?? [], [rec])
   const [idx, setIdx] = useState(0)
   const [playing, setPlaying] = useState(false)
   const [speed, setSpeed] = useState(1)
   const [loop, setLoop] = useState(true)
-  const [range, setRange] = useState(null)
+  const [ownRange, setOwnRange] = useState(null)
+  const range = ext ? ext.range : ownRange
+  const setRange = ext ? ext.setRange : setOwnRange
   const t = useRef(frames[0]?.t ?? 0)
   const span = loopRange(frames, range)
 
@@ -55,7 +57,7 @@ export default function useStandPlayer(rec, pillRef, audioRef) {
   const seek = useCallback(ms => go(frameAt(frames, ms)), [frames, go])
 
   useEffect(() => {
-    const onKey = e => { if (e.key === 'ArrowLeft') { e.preventDefault(); step(-1) } else if (e.key === 'ArrowRight') { e.preventDefault(); step(1) } else if (e.key === ' ') { e.preventDefault(); toggle() } }
+    const onKey = e => { if (/^(INPUT|TEXTAREA|SELECT)$/.test(e.target?.tagName ?? '')) return; if (e.key === 'ArrowLeft') { e.preventDefault(); step(-1) } else if (e.key === 'ArrowRight') { e.preventDefault(); step(1) } else if (e.key === ' ') { e.preventDefault(); toggle() } }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [step, toggle])

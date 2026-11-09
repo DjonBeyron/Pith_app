@@ -3,16 +3,19 @@ import useStandPlayer from './useStandPlayer.js'
 import { SPEEDS, frameEvents, eventsAround, eventLine, EVENT_WIN_MS } from './pillStandPlayer.js'
 import { summaryText } from './pillStandSummary.js'
 import { saveTrace, copyText } from './standExport.js'
+import PillStandVoskLine from './PillStandVoskLine.jsx'
+import { wordStateAt } from './pillStandColor.js'
+import { targetAt } from './pillStandSpan.js'
 import { SAVE_HOW } from '../player/modules/rotate-phone/wordLaneDebugExport.js'
 
 // Просмотр записи стенда пилюль («видео» из снимков, CONCEPT_PILLSTAND.md): пилюля плеера (pillRef — в поле .psReplay над этим блоком) принимает вид кадра, под ней — время, номер кадра, заливка
-// (цель / экран), панель Vosk кадра, таймлайн, ▶ / ⏸, луп (A / B — границы отрезка, «весь»), скорость 1× / 0,5× / 0,25×, шаг ◀ ▶ (крупные кнопки и стрелки клавиатуры), события кадра и окна ±200 мс, выгрузка.
+// (цель / экран), строка «Vosk: …» кадра в цвете (засчитанное — к моменту кадра), панель Vosk кадра, таймлайн, ▶ / ⏸, луп (A / B — границы отрезка, «весь»), скорость 1× / 0,5× / 0,25×, шаг ◀ ▶ (крупные кнопки и стрелки клавиатуры), события кадра и окна ±200 мс, выгрузка.
 const n2 = v => (v == null ? '—' : v.toFixed(2).replace('.', ','))
 const sec = ms => (ms / 1000).toFixed(3).replace('.', ',')
 
-export default function PillStandPlayer({ rec, meta, pillRef, onClose }) {
+export default function PillStandPlayer({ rec, meta, pillRef, onClose, onSend, range }) {
   const audioRef = useRef(null)
-  const p = useStandPlayer(rec, pillRef, audioRef)
+  const p = useStandPlayer(rec, pillRef, audioRef, range)
   const [note, setNote] = useState('')
   const f = p.frame
   const t0 = rec.frames[0]?.t ?? 0
@@ -25,6 +28,7 @@ export default function PillStandPlayer({ rec, meta, pillRef, onClose }) {
       {rec.audio && <audio ref={audioRef} src={rec.audio.url} preload="auto" data-testid="ps-audio" />}
       <p className="psLine" data-testid="ps-frame-info" data-idx={p.idx} data-t={f?.t ?? ''}><b>кадр</b> {p.idx + 1}/{p.frames.length} · {f ? sec(f.t - t0) : '—'} с · {p.speed}× · {rec.fps} к/с{rec.audio ? ` · звук ${rec.audio.type}` : ' · без звука'}</p>
       <p className="psLine" data-testid="ps-frame-fill"><b>заливка</b> цель {n2(f?.g)} · экран {n2(f?.v)} · уровень {n2(f?.e?.lv)} · rms {f?.e?.rms ?? '—'} · затвор {f?.e?.gate == null ? '—' : f.e.gate ? 'откр.' : 'закр.'}</p>
+      <PillStandVoskLine partial={f?.e?.p ?? ''} final={f?.e?.f ?? ''} say={f ? targetAt(rec.events, f.t)?.say ?? '' : ''} state={f ? wordStateAt(rec.events, f.t) : null} testid="ps-frame-vosk" />
       <p className="psLine" data-testid="ps-frame-ear"><b>Vosk</b> черн. «{f?.e?.p ?? ''}» · итог «{f?.e?.f ?? ''}»</p>
       <input type="range" className="psRange" min={0} max={Math.max(0, p.frames.length - 1)} value={p.idx} onChange={e => p.go(Number(e.target.value))} aria-label="Кадр" data-testid="ps-range" />
       <div className="psRow psRow--player">
@@ -41,6 +45,7 @@ export default function PillStandPlayer({ rec, meta, pillRef, onClose }) {
         <span className="psSmall" data-testid="ps-loop-span">{sec(p.span[0] - t0)}–{sec(p.span[1] - t0)} с</span>
       </div>
       <div className="psRow psRow--player">
+        <button type="button" className="psBtn psSendBtn" onClick={() => onSend?.({ from: 'player', at: f?.t ?? 0, frame: f ? p.idx : null })} data-testid="ps-player-send">📤 Отправить</button>
         <button type="button" className="psBtn" onClick={save} data-testid="ps-player-save">⬇ Трасса</button>
         <button type="button" className="psBtn" onClick={copy} data-testid="ps-player-copy">Сводка</button>
         <button type="button" className="psBtn" onClick={onClose} data-testid="ps-player-close">К стенду</button>
