@@ -1,12 +1,15 @@
 // Снимок пилюли для записи стенда (CONCEPT_PILLSTAND.md, «Запись и просмотр») и обратный рендер из снимка — без клонирования DOM: лёгкий объект на кадр.
 // snapPillEl(el) — атрибуты data-* (вид, lock, live, nudge, cap…), место и размер, заливка (transform слоя — ровно то, что на экране), кромка / искры (.wlPillSparks i), вычисленные scale / transform /
-// opacity / outline пилюли (хлопок, дрожь и обводка промаха идут WAAPI — в атрибутах их не видно), вспышки щелчка (узлы-накладки) и маска слов «Скажи» (текст, data-w, --peek).
+// opacity / outline пилюли (хлопок, дрожь и обводка промаха идут WAAPI — в атрибутах их не видно), вспышки щелчка (узлы-накладки), капли из жидкости (jt: узлы .wlJet — wordLaneJets.js: место, opacity и
+// transform кадра) и маска слов «Скажи» (текст, data-w, --peek).
 // applySnap(el, s) — то же на пилюлю плеера: атрибуты и стили пишутся как есть, CSS-анимации в плеере выключены (pill-stand-player.css), поэтому кадр — только снимок, а не логика.
 const OWN = new Set(['data-pill', 'data-testid'])
 const BASE_CLIP = new Set(['wlGhost', 'wlPillFill', 'wlPace'])
 const BASE_PILL = new Set(['wlPillClip', 'wlPillSparks', 'racePhraseMask'])
 
-const flashes = (host, base, where, cs) => [...(host?.children ?? [])].filter(c => !base.has(c.className) && !c.classList?.contains('psFlash')).map(c => { const st = cs(c); return { w: where, css: c.style.cssText, op: st.opacity, tf: st.transform } })
+const isJet = c => c.classList?.contains('wlJet')
+const shot = (c, cs, where) => { const st = cs(c); return { w: where, css: c.style.cssText, op: st.opacity, tf: st.transform } }
+const flashes = (host, base, where, cs) => [...(host?.children ?? [])].filter(c => !base.has(c.className) && !c.classList?.contains('psFlash') && !isJet(c)).map(c => shot(c, cs, where))
 
 /** Снимок пилюли el (null — пилюли нет); cs — getComputedStyle (подставляется в тестах) */
 export function snapPillEl(el, cs = e => globalThis.getComputedStyle(e)) {
@@ -21,6 +24,7 @@ export function snapPillEl(el, cs = e => globalThis.getComputedStyle(e)) {
     sp: sp ? { tf: sp.style.transform, op: sp.style.opacity, f: sp.style.getPropertyValue('--fill'), h: sp.style.getPropertyValue('--pill-h') } : null,
     fx: { scale: c.scale ?? '', tf: c.transform ?? '', op: c.opacity ?? '', ol: c.outline ?? '' },
     fl: [...flashes(clip, BASE_CLIP, 'clip', cs), ...flashes(el, BASE_PILL, 'pill', cs)],
+    jt: [...el.children].filter(c => isJet(c) && !c.classList.contains('psFlash')).map(c => shot(c, cs, 'pill')),
     mask: [...el.querySelectorAll('.racePhraseMask b')].map(b => ({ t: b.textContent, w: b.getAttribute('data-w') ?? '', p: b.style.getPropertyValue('--peek') })),
   }
 }
@@ -37,7 +41,9 @@ export function applySnap(el, s) {
   const fill = el.querySelector('.wlPillFill'), sp = el.querySelector('.wlPillSparks i'), clip = el.querySelector('.wlPillClip')
   if (fill) fill.style.transform = s.fill
   if (sp && s.sp) { sp.style.transform = s.sp.tf; sp.style.opacity = s.sp.op; sp.style.setProperty('--fill', s.sp.f); sp.style.setProperty('--pill-h', s.sp.h) }
-  for (const f of s.fl) { const n = el.ownerDocument.createElement('div'); n.className = 'psFlash'; n.style.cssText = f.css; n.style.opacity = f.op; if (f.tf && f.tf !== 'none') n.style.transform = f.tf; (f.w === 'clip' ? clip : el)?.appendChild(n) }
+  const put = (f, cls) => { const n = el.ownerDocument.createElement('div'); n.className = cls; n.style.cssText = f.css; n.style.opacity = f.op; if (f.tf && f.tf !== 'none') n.style.transform = f.tf; (f.w === 'clip' ? clip : el)?.appendChild(n) }
+  for (const f of s.fl) put(f, 'psFlash')
+  for (const f of s.jt ?? []) put(f, 'psFlash wlJet') // капля кадра: вид — класс игры, место и миг полёта — из снимка
   let box = el.querySelector('.racePhraseMask')
   if (!s.mask.length) { box?.remove(); return }
   if (!box || box.querySelectorAll('b').length !== s.mask.length) {

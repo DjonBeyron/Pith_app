@@ -10,6 +10,7 @@
 // Контур пилюли не зависит ни от одного признака пула (data-live / data-lock / data-rise): они меняют только заливку и частицы; видимость контура гасит лишь data-fail («не успел»), и только в обычном режиме.
 // Горизонтальной линии уровня на пилюле больше нет (v3.3.84, замечание владельца: «в пилюлях бывают горизонтальные линии»). paintFill пишет --fill (0…1), take — --pill-h (высота ёмкости в px, один замер при взятии, не каждый кадр)
 // только <i> внутри .wlPillSparks (искры вне клипа заливки едут за уровнем заливки).
+// Капли из жидкости (wordLaneJets.js): пока заливка растёт, paintFill рождает их на линии заливки (размер ёмкости — замер при взятии; форма сменилась, обычная ↔ широкая, — перемер при первой заливке: при взятии замер идёт до записи размеров); paintFill(k, v, rush) — rush: доезд принятой пилюли (капли летят до края); clean убирает.
 // data-ring — «выдох» кольца: ставится ОДИН раз за выдачу пилюли, когда data-live появился впервые (начало заливки), и снимается в clean (take / give); после этого CSS-анимация кольца (0,75 с) не повторяется.
 import { LANE_X, PILL_W, PILL_H, WIDE_W, WIDE_H } from './wordLaneTimeline.js'
 import { startFlight, flightPosition } from './wordLaneMotion.js'
@@ -18,6 +19,7 @@ import { flightY, startRise } from './wordLaneRise.js'
 import { createLaneFlash } from './wordLaneLaneFlash.js'
 import { isWeakDevice } from '../../../../shared/lib/deviceTier.js'
 import { msToExit, addRider, coastTail } from './wordLaneCoast.js'
+import { createJets } from './wordLaneJets.js'
 
 export const POOL = 12
 export const WILL_PILL = 'transform, translate, scale' // слои взятой пилюли: полёт (translate), хлопок (scale) и дрожка промаха (transform); transform в списке — гарантия слоя там, где will-change по translate/scale слой не создаёт
@@ -26,6 +28,7 @@ export const WILL_FILL = 'transform'        // и её заливки (движ�
 export const LIVE_RISE_EPS = 0.0008  // рост за кадр меньше этого — шум, не «наливание»
 export const LIVE_HOLD_MS = 320      // после последнего роста заливки пилюля «наливается» ещё столько мс (в кадрах роста бывают паузы)
 export const LIVE_HOLD_LOCK_MS = 1200 // после принятия (data-lock) частицы идут ещё 1,2 с и гаснут
+const shapes = new WeakMap()         // узел пилюли → была ли широкой при прошлом взятии (узлы переживают пул: стенд пилюль пересоздаёт его на каждую цель)
 
 /** Заливка v (0…1) → transform слоя заливки: сдвиг вверх из-под нижнего края (0 — слой целиком ниже пилюли, 1 — на месте). wide — широкая пилюля «Фраз»: слева направо, translateX из-за левого края */
 export const fillTransform = (v, wide = false) => { const e = (1 - Math.min(1, Math.max(0, v))) * 100; return wide ? `translateX(${(-e).toFixed(1)}%)` : `translateY(${e.toFixed(1)}%)` }
@@ -44,22 +47,25 @@ export function createPool(root) {
   const laneFlash = createLaneFlash(root) // вспышка дорожки на верный ответ (wordLaneLaneFlash.js)
   const free = els.map((_, i) => i).reverse()
   const live = new Map() // индекс → { anim, lane, rise }
-  const rise = els.map(() => ({ v: 0, at: -1e9, on: false, ringed: false })) // для data-live: прошлая заливка, когда последний раз росла, горит ли признак, давали ли уже «выдох» кольца
+  const rise = els.map(() => ({ v: 0, at: -1e9, pt: -1e9, on: false, ringed: false })) // для data-live: прошлая заливка, когда последний раз росла, горит ли признак, давали ли уже «выдох» кольца
   const flat = els.map(() => false)                           // ось заливки: true — широкая пилюля (слева направо, word-lane-wide-fill.css)
   const tall = els.map(() => 0)                               // высота ёмкости заливки, px (для линии уровня), замеряется при взятии
+  const span = els.map(() => 0)                               // и её ширина, px (капли: где поверхность жидкости)
+  const stale = els.map(() => false)                          // размер пилюли при взятии сменился (обычная ↔ широкая): замер при взятии был до записи размеров — ёмкость перемеряется при первой заливке
+  const jets = createJets({ off: () => isWeakDevice() || root.classList?.contains?.('wl--lite') === true })
 
-  const measure = k => { tall[k] = parts[k].clip?.offsetHeight || 0; return tall[k] }
+  const measure = k => { tall[k] = parts[k].clip?.offsetHeight || 0; span[k] = parts[k].clip?.offsetWidth || 0; return tall[k] }
   // Заливка — сдвиг слоя вверх: translateY((1 − v)·100 %). Край ЕДЕТ, а не растягивается (scaleY сжимал градиент заливки). Искрам — то же v в --fill
-  const paintFill = (k, v) => {
+  const paintFill = (k, v, rush = false) => { // rush — доезд после зачёта (движок знает): капли летят до края
     put(parts[k].fill, 'transform', fillTransform(v, flat[k]))
     const { sparks } = parts[k]
-    if (v > 0 && !tall[k] && measure(k)) { if (sparks) put(sparks, '--pill-h', `${tall[k]}px`) } // замер не удался при взятии (пилюля ещё не в вёрстке) — один раз повторяем
+    if (v > 0 && (stale[k] || !tall[k]) && measure(k)) { stale[k] = false; if (sparks) put(sparks, '--pill-h', `${tall[k]}px`) } // замер не удался при взятии (пилюля ещё не в вёрстке) или размер сменился — один раз повторяем
     const f = Math.min(1, Math.max(0, v)).toFixed(3)
     if (sparks && flat[k]) { put(sparks, 'transform', `translateX(${(f * 100).toFixed(1)}%)`); put(sparks, 'opacity', Math.max(0, Math.min(1, f / 0.08, (1 - f) / 0.12)).toFixed(2)) } // широкая: <i> — кромка-«веретено» над пилюлей, вне клипа (word-lane-wide-fill.css); у торцов гаснет
     else if (sparks) { put(sparks, '--fill', f); put(sparks, 'transform', ''); put(sparks, 'opacity', '') }
     const r = rise[k], now = performance.now(), el = parts[k].el
-    if (v > r.v + LIVE_RISE_EPS) r.at = now
-    r.v = v
+    if (v > r.v + LIVE_RISE_EPS) { r.at = now; jets.rise(el, v, { w: span[k], h: tall[k], wide: flat[k] }, { rush, speed: (v - r.v) / Math.max(8, now - r.pt) }) } // растёт — капли из поверхности жидкости
+    r.v = v; r.pt = now
     const on = v > 0 && now - r.at < (el.getAttribute('data-lock') != null ? LIVE_HOLD_LOCK_MS : LIVE_HOLD_MS)
     if (on !== r.on) {
       r.on = on
@@ -73,7 +79,7 @@ export function createPool(root) {
     if (pace != null) put(parts[k].pace, 'transform', `translateY(${(-pace * 100).toFixed(1)}%)`)
   }
   const clean = k => {
-    Object.assign(rise[k], { v: 0, at: -1e9, on: false, ringed: false }); parts[k].el.removeAttribute('data-live'); flat[k] = false
+    Object.assign(rise[k], { v: 0, at: -1e9, pt: -1e9, on: false, ringed: false }); parts[k].el.removeAttribute('data-live'); flat[k] = false; jets.clear(parts[k].el)
     paintFill(k, 0); hint(k, '0', null)
     for (const a of ['data-lock', 'data-fail', 'data-wrong', 'data-hint', 'data-voice', 'data-rise', 'data-ring', 'data-still', 'data-tag', 'data-cmp', 'data-cap', 'data-reveal', 'data-quiet', 'data-edge', 'data-wide', 'data-faded', 'data-hot', 'data-spent', 'data-mode', 'data-coast', 'data-pass', 'data-demo', 'data-nudge']) parts[k].el.removeAttribute(a)
   }
@@ -124,6 +130,7 @@ export function createPool(root) {
       if (speed !== 1) el.dataset.speed = String(speed); else delete el.dataset.speed // скорость пилюли «Гонки» — по ней пунктир дорожки едет быстрее (laneConveyorDrive)
       put(el, 'left', wide ? '50%' : `${LANE_X[lane]}%`); put(el, 'width', `${wide ? WIDE_W : PILL_W}%`); put(el, 'height', `${wide ? WIDE_H : PILL_H}%`)
       if (wide) { el.setAttribute('data-wide', '1'); flat[k] = true; paintFill(k, 0) } // широкая: заливка по X (пустая — слой левее клипа)
+      if ((shapes.get(el) ?? false) !== wide) { shapes.set(el, wide); stale[k] = true } // форма сменилась — перемерить ёмкость после записи размеров
       if (sparks) put(sparks, '--pill-h', `${tall[k]}px`)
       shape(k, curve)
       if (cap) el.setAttribute('data-cap', cap)

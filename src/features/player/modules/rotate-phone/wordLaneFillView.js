@@ -31,12 +31,22 @@ export function approachFillFast(cur, goal, dtMs) {
   return Math.min(g, cur + Math.min(FILL_MAX_STEP_FAST, step))
 }
 
-/** Заливки нескольких пилюль: step(id, goal, dtMs) → значение на экране; value(id) — что на экране; forget(id) — пилюля ушла (следующая с тем же id начнёт с нуля); approach — кривая догона */
+// ДОЕЗД ПОСЛЕ ЗАЧЁТА (2026-11-10, отчёт владельца со стенда: «вспышка и пилюля разбухает, хотя полоса не до конца» — хлопок шёл при заливке 0,51, до 1,00 экран доезжал ещё 250 мс). Слово / фраза приняты —
+// экран едет от того, что на нём было, до 100 % РОВНО за одно и то же время (LOCK_MS, wordLaneTimeline.js), где бы заливка ни стояла (0,4 или 0,9): fin — доля этого времени 0…1; хлопок, вспышка и искры
+// стартуют в кадре, где fin дошёл до 1 (wordLaneStudent.stepLocks, racePhraseScene). Кривая — с разгоном (жидкость «бьёт» в край, на удар — хлопок): finishFill(от, доля).
+export const finishFill = (from, u) => { const x = Math.min(1, Math.max(0, Number(u) || 0)); return from + (1 - from) * x * (0.4 + 0.6 * x) }
+
+/** Заливки нескольких пилюль: step(id, goal, dtMs, fin) → значение на экране (fin — доля доезда после зачёта 0…1, null — обычный догон цели); value(id) — что на экране; forget(id) — пилюля ушла (следующая с тем же id начнёт с нуля); approach — кривая догона */
 export function createFillView(approach = approachFill) {
-  const shown = new Map()
+  const shown = new Map(), from = new Map()
   return {
-    step(id, goal, dtMs) { const v = approach(shown.get(id) ?? 0, goal, dtMs); shown.set(id, v); return v },
+    step(id, goal, dtMs, fin = null) {
+      const cur = shown.get(id) ?? 0
+      if (fin == null) from.delete(id); else if (!from.has(id)) from.set(id, cur)
+      const v = fin == null ? approach(cur, goal, dtMs) : finishFill(from.get(id), fin)
+      shown.set(id, v); return v
+    },
     value: id => shown.get(id) ?? 0,
-    forget: id => { shown.delete(id) },
+    forget: id => { shown.delete(id); from.delete(id) },
   }
 }

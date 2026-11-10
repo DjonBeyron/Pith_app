@@ -92,7 +92,8 @@ describe('принятое слово', () => {
     expect(win.t - claim.t).toBeGreaterThanOrEqual(LOCK_MS)
     expect(win.pill.p).toBe(1)
     expect(win.order).toBe(0)
-    expect(of(log, 'snap')[0].t).toBeLessThanOrEqual(claim.t + DT)   // щелчок — в тот же кадр, что принятие
+    expect(of(log, 'snap')[0].t).toBe(win.t)                         // щелчок — в кадре, где заливка дошла до 100 % (вместе с win), а не в кадре принятия
+    expect(win.t - claim.t).toBeLessThanOrEqual(LOCK_MS + 2 * DT)
   })
   it('повтор из двух кусков: пилюли защёлкиваются по очереди с шагом LOCK_STAGGER_MS, ноты — 0 и 1', () => {
     const g = game(build[2])

@@ -46,7 +46,7 @@ describe('подсказка ученику: темп и «тень» слова
   it('метка темпа и ожидающая заливка подключены в движке и вёрстке', () => {
     const eng = read('./useWordLanePills.js')
     expect(eng).toContain('ghostUntil')                                  // «тень» слова — только после неверно сказанного
-    expect(read('./wordLaneStudent.js')).toContain('breathStep(p.p, dt, voice, cap)')     // заливка текущего куска — только голос («дыхание»)
+    expect(read('./wordLaneStudentFill.js')).toContain('breathStep(p.p, dt, voice, cap)')     // заливка текущего куска — только голос («дыхание»)
     const css = readLane()
     expect(css).toContain(".wlPill:not([data-lock]):not([data-fail]) .wlPillFill")   // заливка «в процессе» (до подтверждения слова) — ровный бледный тон, без штриховки
   })
