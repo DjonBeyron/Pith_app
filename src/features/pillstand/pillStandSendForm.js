@@ -8,7 +8,7 @@ import { frameAt } from './pillStandPlayer.js'
 export const SPAN_TITLE = { session: 'вся сессия', target: 'текущая цель', ab: 'A–B из плеера', last: 'последние' }
 export const MARK_NEAR_MS = 60 // живой экран: метка привязывается к кадру записи, если он не дальше
 
-export const emptyForm = () => ({ topics: [], span: 'target', sec: LAST_SECONDS[1], comment: '', sound: false, soundTouched: false })
+export const emptyForm = () => ({ topics: [], span: 'target', sec: LAST_SECONDS[1], comment: '', sound: false, soundTouched: false, pick: null }) // pick — цель отрезка «цель» (t её появления; null — авто)
 
 /** Звук по умолчанию для выбора тем */
 export const soundDefault = topics => topics.includes('ear') || topics.includes('all')
@@ -22,11 +22,18 @@ export function toggleTopic(form, t) {
 }
 
 export const setSpan = (form, span, sec = form.sec) => ({ ...form, span, sec: LAST_SECONDS.includes(sec) ? sec : form.sec })
+export const setPick = (form, pick) => ({ ...form, span: 'target', pick: pick ?? null })
 export const setComment = (form, comment) => ({ ...form, comment: String(comment ?? '') })
 export const setSound = (form, on) => ({ ...form, sound: !!on, soundTouched: true })
 
 /** Отрезок, который реально уйдёт: «A–B» без отмеченного A–B — текущая цель */
 export const spanKind = (form, ab) => (form.span === 'ab' && !(ab && ab[1] > ab[0]) ? 'target' : form.span)
+
+/** Замечание ушло (файлом или текстом): комментарий и выбор цели — с чистого листа (темы и отрезок остаются); метки кадров сбрасывает useStandSend. Закрыли без отправки — черновик остаётся */
+export const sentForm = form => ({ ...form, comment: '', pick: null })
+
+/** Отправка удалась: файл скачан / «Поделиться» / новая вкладка (отмена листа «Поделиться» — нет) */
+export const SENT_HOW = new Set(['download', 'share', 'tab'])
 
 /** Можно отправлять: выбрана хоть одна тема */
 export const canSend = form => form.topics.length > 0

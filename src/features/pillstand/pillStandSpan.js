@@ -1,10 +1,16 @@
 // Отрезок отчёта «📤 Отправить» стенда пилюль (CONCEPT_PILLSTAND.md, «Отправка по теме»): какую часть сессии отправить — вся сессия, текущая цель (та, на которой стоит «сейчас»: на живом
-// экране — последняя цель, в плеере — цель кадра), отрезок A–B из плеера, последние N секунд (до «сейчас»: в плеере — до текущего кадра). Всё в мс сессии (шкала трассы pillStandTrace.js).
+// экране — последняя цель, в плеере — цель кадра; v3.3.180: + прошлая цель, если в текущей ещё ничего не было, или выбранная из последних 5; всегда с 1 с до появления), отрезок A–B из плеера, последние N секунд (до «сейчас»: в плеере — до текущего кадра). Всё в мс сессии (шкала трассы pillStandTrace.js).
 // Здесь же: события / кадры отрезка, разбор строк журнала игры (метка строки — performance.now страницы → мс сессии вычитанием старта трассы), место отрезка в звуке записи. Чистые функции.
+import { STAND_VOICE_RMS } from './pillStandHonesty.js'
+
 export const SPANS = ['session', 'target', 'ab', 'last']
 export const LAST_SECONDS = [10, 30, 60]
 const sec = ms => (ms / 1000).toFixed(3).replace('.', ',')
 const q = t => `«${t ?? ''}»`
+
+
+export const TARGET_LEAD_MS = 1000 // отрезок цели начинается за столько до её появления (что было прямо перед ней)
+export const RECENT_N = 5
 
 /** Цель, на которой стоит момент at: последнее событие 'target' с t ≤ at (или первая цель) */
 export function targetAt(events, at) {
@@ -13,18 +19,47 @@ export function targetAt(events, at) {
   return got
 }
 
-/** → { kind, from, to, label } — kind: 'session' | 'target' | 'ab' | 'last'; at — «сейчас» (мс сессии); ab — [a, b] плеера; sec — для 'last' */
-export function resolveSpan({ kind, events, at, ab = null, sec: n = 30 }) {
+const sameTarget = (a, b) => a && b && a.n === b.n && a.say === b.say && a.gen === b.gen
+
+/** Последние n целей до at, новая первой: [{ e (событие 'target'), t, to, n, say, mark ✓ / ✗ / —, voiced (голос или Vosk что-то услышал) }]; двойное появление (StrictMode) — одна цель */
+export function recentTargets(events, at = Infinity, n = RECENT_N) {
+  const tgs = []
+  for (const e of events) {
+    if (e.t > at) break
+    if (e.k === 'target') { const last = tgs.at(-1); if (sameTarget(last?.e, e) && !last.voiced && last.mark === '—') tgs.pop(); tgs.push({ e, t: e.t, n: e.n ?? 0, say: e.say ?? '', mark: '—', voiced: false }); continue }
+    const cur = tgs.at(-1)
+    if (!cur) continue
+    if (e.k === 'result') cur.mark = e.ok ? '✓' : '✗'
+    else if ((e.k === 'level' && e.rms >= STAND_VOICE_RMS) || (e.k === 'vosk-partial' && e.raw?.partial) || (e.k === 'vosk-final' && e.raw?.text)) cur.voiced = true
+  }
+  tgs.forEach((g, i) => { g.to = tgs[i + 1]?.t ?? null })
+  return tgs.slice(-n).reverse()
+}
+
+const tLabel = g => `#${g.n + 1} ${q(g.say)}`
+
+/** Отрезок «цель»: pick — t выбранной цели (лист «Отправить»); без выбора — текущая, а если в ней ещё ни голоса, ни исхода — вместе с прошлой, где они были (её строки не теряются при «авто») */
+function targetSpan(events, at, end, pick) {
+  const list = recentTargets(events, at, Infinity)
+  const chosen = pick != null ? list.find(g => g.t === pick) : null
+  if (chosen) {
+    const to = chosen.to != null ? chosen.to - 0.1 : end
+    return { kind: 'target', pick, from: chosen.t - TARGET_LEAD_MS, to, label: `цель ${tLabel(chosen)} ${chosen.mark} (выбрана) ${sec(chosen.t - TARGET_LEAD_MS)}–${sec(to)} с` }
+  }
+  const [cur, prev] = list
+  if (!cur) return null
+  const both = prev && !cur.voiced && cur.mark === '—' && (prev.voiced || prev.mark !== '—')
+  const from = (both ? prev : cur).t - TARGET_LEAD_MS
+  const next = events.find(e => e.k === 'target' && e.t > cur.t && !sameTarget(e, cur.e)) // в плеере «сейчас» — кадр: цель до следующей
+  const to = next ? next.t - 0.1 : end
+  return { kind: 'target', from, to, label: both ? `цели ${tLabel(prev)} ${prev.mark} (последняя с голосом) + ${tLabel(cur)} (текущая) ${sec(from)}–${sec(to)} с` : `текущая цель ${tLabel(cur)} ${sec(from)}–${sec(to)} с` }
+}
+
+/** → { kind, from, to, label } — kind: 'session' | 'target' | 'ab' | 'last'; at — «сейчас» (мс сессии); ab — [a, b] плеера; sec — для 'last'; pick — t выбранной цели для 'target' */
+export function resolveSpan({ kind, events, at, ab = null, sec: n = 30, pick = null }) {
   const end = Math.max(at ?? 0, events.at(-1)?.t ?? 0)
   if (kind === 'ab' && ab && ab[1] > ab[0]) return { kind, from: ab[0], to: ab[1], label: `отрезок A–B из плеера ${sec(ab[0])}–${sec(ab[1])} с (${sec(ab[1] - ab[0])} с)` }
-  if (kind === 'target') {
-    const tg = targetAt(events, at ?? end)
-    if (tg) {
-      const next = events.find(e => e.k === 'target' && e.t > tg.t)
-      const to = next ? next.t - 0.1 : end
-      return { kind, from: tg.t, to, label: `текущая цель #${(tg.n ?? 0) + 1} ${q(tg.say)} ${sec(tg.t)}–${sec(to)} с` }
-    }
-  }
+  if (kind === 'target') { const got = targetSpan(events, at ?? end, end, pick); if (got) return got }
   if (kind === 'last') { const to = at ?? end, from = Math.max(0, to - n * 1000); return { kind, sec: n, from, to, label: `последние ${n} с ${sec(from)}–${sec(to)} с` } }
   const from = Math.min(0, events[0]?.t ?? 0)
   return { kind: 'session', from, to: end, label: `вся сессия ${sec(from)}–${sec(end)} с` }

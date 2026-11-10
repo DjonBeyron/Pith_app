@@ -9,7 +9,8 @@ import { createPhraseVoice } from './game2Voice.js'
 import { emptyScore } from './game2Score.js'
 import { log } from './game2Log.js'
 import { stopGameBuffers } from '../../shared/lib/gameBufferPlay.js'
-import { closeGameMic, hasGameMic, dropGameMic, openGameMic } from '../../shared/lib/gameMic.js'
+import { closeGameMic } from '../../shared/lib/gameMic.js'
+import { renewGameMic } from '../../shared/lib/gameMicRenew.js'
 import { gameMicGesture } from '../../shared/lib/gameMicGesture.js'
 import { createLevelSource } from '../../shared/lib/speech/sayLevelSource.js'
 import { createRmsLevel } from '../../shared/lib/vosk/sayVoskLevel.js'
@@ -101,7 +102,7 @@ export default function useGame2Flow({ plan, phrase, catApi, laneApi, cat, liste
                 setMicNote(st === 'unavailable' || st === 'error' ? 'Распознавание речи не запустилось' : '')
                 if (st === 'listening' || st === 'starting') setMicMode(st)
                 if (st === 'dead') { // ровный ноль дольше 2,5 с: поток заглушён системой — переоткрываем (только если не нужен жест после паузы)
-                  if (hasGameMic() && !gameMicGesture.needed()) { log('mic: игровой поток отдаёт тишину — переоткрываю'); dropGameMic(); openGameMic().then(r => { if (r === 'granted') l.restart() }) }
+                  renewGameMic({ why: 'mic: игровой поток отдаёт тишину', log }).then(r => { if (r === 'granted') l.restart() })
                 }
               },
             })

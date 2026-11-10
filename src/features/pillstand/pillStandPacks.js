@@ -29,10 +29,11 @@ export const LOG_RE = {
   honesty: null,
 }
 const EAR_KINDS = new Set(['vosk-start', 'vosk-ready', 'vosk-error', 'vosk-partial', 'vosk-final', 'gate', 'ear', 'mic', 'model', 'lang', 'listen-error'])
-const EAR_WL = new Set(['grammar', 'gate', 'session-end', 'stop', 'mute'])
+const EAR_WL = new Set(['grammar', 'gate', 'session-end', 'stop', 'mute', 'ear']) // 'ear' — правило честного зачёта слова (wordEarRule.js): и в «Распознавании», и в «Зачёте»
 const LOGIC_KINDS = new Set(['listen', 'word', 'phrase', 'pill', 'result', 'run', 'run-stop', 'target-run', 'run-error'])
 const ANIM_KINDS = new Set(['pill', 'pre', 'reach', 'run', 'run-stop'])
 const NOISE = new Set(['level', 'same', 'fill']) // не доказательства: видны в метриках и кадрах
+const MIC_KINDS = new Set(['mic-dead', 'mic-revive', 'mic-revive-fail'])
 export const TEXT_SKIP = new Set(['same', 'frame']) // «Всё» в тексте: повторы черновика только в JSON
 
 /** Выбор тем → нормальный список: «Всё» поглощает остальные; порядок — как в TOPICS */
@@ -98,7 +99,7 @@ const earPicker = () => {
 
 const logicPicker = () => e => {
   if (e.k === 'target' || LOGIC_KINDS.has(e.k)) return e
-  if (e.k === 'wl') return EAR_WL.has(e.kind) ? null : e
+  if (e.k === 'wl') return EAR_WL.has(e.kind) && e.kind !== 'ear' ? null : e
   if (e.k === 'vosk-final') return { t: e.t, k: 'heard', src: 'итог', text: heardWords(e.raw?.text).join(' ') }
   if (e.k === 'log') return LOG_RE.logic.test(e.text) ? e : null
   return null
@@ -123,7 +124,7 @@ export function packEvents(topics, events, { windows = [] } = {}) {
     let got = null
     for (const p of picks) { const r = p(e); if (got == null && r != null) got = r } // каждый отбор видит каждое событие (у прореживания и «heard» есть память)
     if (got == null && all && !TEXT_SKIP.has(e.k) && !NOISE.has(e.k)) got = e
-    if (got == null && e.k === 'prefs') got = e // смена языка / режима / длины на лету — в каждой теме (контекст)
+    if (got == null && (e.k === 'prefs' || MIC_KINDS.has(e.k))) got = e // смена языка / режима / длины на лету и здоровье микрофона — в каждой теме (контекст)
     if (got) out.push(got)
   }
   return out

@@ -113,6 +113,8 @@ export function unloadEngine(model) {
  * Остановка: по тапу (manual) сначала дожидаемся ещё одного куска звука (до DRAIN_MAX_MS) — иначе последние до 128 мс речи, что сидят в буфере ScriptProcessor, пропали бы (авто-стоп и потолок
  * этого не требуют: перед ними была пауза без голоса); потом выключаем микрофон, досылаем TAIL_SILENCE_MS тишины (иначе Vosk не отдаёт слабое конечное слово) и только тогда просим итог.
  */
+// stop('ear') — итог просит правило честного зачёта слова (wordEarRule.js) по концу голоса: тишина ≥ 150 мс уже отдана распознавателю, буфер пуст — без ожидания куска и с коротким хвостом тишины
+const EAR_TAIL_MS = 150
 export async function startListening(model, grammar, cb, opts = {}) {
   const tap = performance.now()
   const ses = opts.session && !opts.stream ? createAudioSession() : null // с готовым потоком сессию не трогаем: он открыт раньше, и смена типа сессии заглушила бы его
@@ -209,7 +211,7 @@ export async function startListening(model, grammar, cb, opts = {}) {
     clearTimeout(st.drain)
     st.drainMs = ms(st.stopAt)
     if (own) stream.getTracks().forEach(tr => tr.stop())
-    st.tailMs = feedSilence(rec, ctx.sampleRate, TAIL_SILENCE_MS)
+    st.tailMs = feedSilence(rec, ctx.sampleRate, st.stopBy === 'ear' ? EAR_TAIL_MS : TAIL_SILENCE_MS)
     try { rec.retrieveFinalResult() } catch { free(); cb.onResult('', {}) }
   }
   const stop = (why = 'manual') => { // «Стоп» (или авто-стоп): просим итог по накопленному звуку
@@ -225,5 +227,5 @@ export async function startListening(model, grammar, cb, opts = {}) {
       if (why) stop(why)
     }, 100)
   }
-  return { stop: () => stop('manual'), cancel() { if (!st.done) free() } }
+  return { stop: why => stop(why === 'ear' ? 'ear' : 'manual'), cancel() { if (!st.done) free() } }
 }

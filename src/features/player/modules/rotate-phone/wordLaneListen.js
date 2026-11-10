@@ -12,6 +12,7 @@ import { pLog } from '../../../../shared/lib/debug.js'
 import { readMicGain } from '../../../../shared/lib/gameMicGain.js'
 import { analyzeTargets, targetGrammar } from './wordLaneMatch.js'
 import { SLOT_COUNT } from './wordLaneTimeline.js'
+import { createWordEar, earGrammar } from './wordEarRule.js'
 
 export const OVERALL_MS = 120000     // сколько всего слушаем (конвейер выкатывает пилюли повторно, игра идёт долго), прежде чем перейти на ручной режим
 const PAUSE_STOP_MS = 3500           // слово услышано, а нового давно нет — заход закрываем (дальше новый заход)
@@ -43,7 +44,7 @@ export const MISS_SETTLE_MS = 550 // «чужое слово» из чернов
  * trace: true (слушатель фраз «Скажи», racePhraseListen.js) — ещё и onDebug('gate', { open, rms }) — затвор тишины открылся / закрылся, и onDebug('partial-same', { raw }) — черновик Vosk с тем же текстом.
  * flush(ms) — дубль закончен: просит у Vosk итог текущего захода (stop), ждёт его (не дольше ms) и больше заходов не начинает; после него words() полные. Зависимости подставляются в тестах.
  */
-export function createWordListener({ word, targets: targetsIn, expected = SLOT_COUNT, maxWords = SLOT_COUNT, getStream = null, isHeld = () => false, onChange, onDebug = null, gate = true, trace = false, restartMs = RESTART_MS, lang = 'en', noVosk = false, runtime = runtimeOf(lang), listen = startListening, micGain = readMicGain, level = createRmsLevel(), now = () => Date.now(), setTimer = setTimeout, clearTimer = clearTimeout }) {
+export function createWordListener({ word, targets: targetsIn, expected = SLOT_COUNT, maxWords = SLOT_COUNT, getStream = null, isHeld = () => false, onChange, onDebug = null, gate = true, trace = false, restartMs = RESTART_MS, lang = 'en', earRule = false, noVosk = false, runtime = runtimeOf(lang), listen = startListening, micGain = readMicGain, level = createRmsLevel(), now = () => Date.now(), setTimer = setTimeout, clearTimer = clearTimeout }) {
   const targets = targetsIn?.length ? targetsIn : [word]
   let seq = [], misses = 0            // накоплено за все заходы
   let base = { seq: [], misses: 0 }   // накоплено до текущего захода
@@ -69,6 +70,7 @@ export function createWordListener({ word, targets: targetsIn, expected = SLOT_C
   let pend = null     // русская модель: неподтверждённый счёт из черновика (seq), его возьмёт таймер или итог
   let said = { partial: '', final: '' } // что распознаватель услышал с последнего resetSaid(): журнал слова прохода B
   const settleRu = lang === 'ru'
+  const ear = earRule ? createWordEar({ targets, lang, now, hit: t => analyzeTargets(t, targets, true, lang).seq.length > 0, log: s => { pLog(`[word-ear] ${s}`); onDebug?.('ear', { text: s }) } }) : null // честный зачёт слова (wordEarRule.js)
   const tapOnly = () => (typeof noVosk === 'function' ? !!noVosk() : !!noVosk) // функция — тап включили по ходу (русская модель не включилась, stage.demote)
 
   const publish = patch => {
@@ -86,7 +88,7 @@ export function createWordListener({ word, targets: targetsIn, expected = SLOT_C
     if (disposed || cur !== session) return
     cur = null
     onDebug?.('session-end', { by: st })
-    clearTimer(timer); clearTimer(missTimer); clearTimer(hitTimer); pend = null
+    clearTimer(timer); clearTimer(missTimer); clearTimer(hitTimer); pend = null; ear?.reset()
     waiters.forEach(w => w())
     if (closing) return
     if (now() - startedAt >= OVERALL_MS) { publish({ status: 'timeout' }); return }
@@ -113,7 +115,7 @@ export function createWordListener({ word, targets: targetsIn, expected = SLOT_C
       waitedAt ??= now()
       if (now() - waitedAt < (snap.expecting ? SWITCH_WAIT_MS : MODEL_WAIT_MS)) { publish({ status: 'starting' }); timer = setTimer(() => { if (!disposed && !cur && !closing) run() }, WAIT_POLL_MS); return }
     }
-    const grammar = model ? targetGrammar(targets, maxWords, null, lang) : null
+    const grammar = model ? earGrammar(targetGrammar(targets, maxWords, null, lang), ear?.decoys) : null
     if (!model || !grammar) { if (waitedAt != null) pLog(`[word-lane] модель ${lang} не дождались за ${now() - waitedAt} мс`); publish({ status: 'unavailable' }); return }
     onDebug?.('grammar', { targets, grammar })
     const session = { handle: null, stopped: false }
@@ -126,7 +128,7 @@ export function createWordListener({ word, targets: targetsIn, expected = SLOT_C
       if (!session.stopped && !closing) stop()
     }
     const part = (raw, final, stats = null) => {
-      const r = analyzeTargets(raw, targets, final, lang)
+      const r = analyzeTargets(ear ? ear.neutral(raw) : raw, targets, final, lang)
       const heardText = String(raw ?? '').trim()
       if (heardText) said = { ...said, [final ? 'final' : 'partial']: heardText }
       const rawMisses = base.misses + r.misses
@@ -139,7 +141,8 @@ export function createWordListener({ word, targets: targetsIn, expected = SLOT_C
       const settled = final || count <= misses
       onDebug?.(final ? 'final' : 'partial', { raw, seq: r.seq, misses: r.misses, count, settled, tail: r.tail, muted: now() < mutedUntil, absorbed, ...(stats ? { stopBy: stats.stopBy, gatedMs: stats.gatedMs, maxGapMs: stats.maxGapMs, lateChunks: stats.lateChunks } : {}) })
       let next = base.seq.concat(r.seq), tl = r.tail
-      if (settleRu) { // попадание из черновика ждёт RU_SETTLE_MS (пилюля его цели тем временем наливается); итог берёт своё, а если выронил слово черновика — черновое
+      if (ear && !final && (next.length > seq.length ? !ear.draft(next, targets[next.at(-1)], raw) : ear.pending())) { next = null; tl = { target: ear.pending().seq.at(-1), tokens: RU_FULL_TOKENS } } // слово ещё не договорено — ждём голос или итог
+      if (settleRu && next) { // попадание из черновика ждёт RU_SETTLE_MS (пилюля его цели тем временем наливается); итог берёт своё, а если выронил слово черновика — черновое
         if (final) { clearTimer(hitTimer); if (pend && pend.length > next.length) next = pend }
         else if (next.length > seq.length) { clearTimer(hitTimer); pend = next; tl = { target: r.seq.at(-1), tokens: RU_FULL_TOKENS }; next = null; hitTimer = setTimer(() => commit(pend), RU_SETTLE_MS) }
         else if (pend) { next = null; tl = { target: pend.at(-1), tokens: RU_FULL_TOKENS } } // черновик опустел («приятно» → «»): модель колеблется, слово было — ждём выдержку или итог
@@ -153,6 +156,8 @@ export function createWordListener({ word, targets: targetsIn, expected = SLOT_C
         if (cur !== session) return
         onDebug?.('level', rms)
         level.push(rms)
+        const e = ear?.level(rms)
+        if (e?.ok) { if (settleRu) commit(e.ok); else publish({ seq: e.ok, tail: null, heardAt: now() }) } else if (e?.final && !session.stopped) stop('ear')
         if (rms > 0 || isHeld()) { zeroSince = 0; return } // дорожку глушит сама игра на время речи Пита/диктора (gameMicHold) — ровная тишина не значит «оглох»
         zeroSince ||= now()
         if (now() - zeroSince >= DEAD_MS && status !== 'dead') { zeroSince = 0; publish({ status: 'dead' }) } // оглох: игра переоткроет микрофон
@@ -166,7 +171,8 @@ export function createWordListener({ word, targets: targetsIn, expected = SLOT_C
       onResult: (text, stats) => {
         if (cur !== session) return
         addWords(stats, sessionAt)
-        part((stats?.words?.length ? stats.words.map(w => w.word).join(' ') : text) || '', true, stats)
+        const fin = (stats?.words?.length ? stats.words.map(w => w.word).join(' ') : text) || ''
+        part(ear ? ear.finalText(fin, stats?.words) : fin, true, stats)
         end(session, 'result')
       },
       onError: msg => { pLog(`[word-lane] Vosk: ${msg}`); end(session, 'error'); publish({ status: 'error', error: String(msg) }) },
@@ -182,7 +188,7 @@ export function createWordListener({ word, targets: targetsIn, expected = SLOT_C
         e => { if (cur === session) { pLog(`[word-lane] микрофон не открылся: ${e?.name ?? e}`); cur = null; publish({ status: 'error', error: e?.name || 'mic' }) } })
   }
 
-  function stop() { onDebug?.('stop', {}); if (cur) { cur.stopped = true; try { cur.handle?.stop() } catch { /* уже закончил */ } } }
+  function stop(why) { onDebug?.('stop', why ? { why } : {}); if (cur) { cur.stopped = true; try { cur.handle?.stop(why) } catch { /* уже закончил */ } } } // why 'ear' — итог просит правило слова (voskEngine: без ожидания куска)
 
   return {
     /** Из жеста, если можно: getUserMedia стартует тут же */

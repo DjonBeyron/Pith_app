@@ -17,9 +17,10 @@ import { DROP_MS, LANES_MS } from './wordLaneTimeline.js'
 import { XP_PER_PILL, sensitiveLevel } from './wordLaneConfig.js'
 import { getVoiceRate } from '../../lessonVolume.js'
 import { pLog } from '../../../../shared/lib/debug.js'
-import { getGameMic, closeGameMic, hasGameMic, dropGameMic, openGameMic } from '../../../../shared/lib/gameMic.js'
+import { getGameMic, closeGameMic } from '../../../../shared/lib/gameMic.js'
+import { renewGameMic } from '../../../../shared/lib/gameMicRenew.js'
 import { gameMicHold } from '../../../../shared/lib/gameMicHold.js'
-import { gameMicGesture, guardStream } from '../../../../shared/lib/gameMicGesture.js'
+import { guardStream } from '../../../../shared/lib/gameMicGesture.js'
 import { useWordLaneControls } from './useWordLaneControls.js'
 import { useGameAudioModes, endGameAudio } from './useGameAudioModes.js'
 import { scheduleDictor } from './wordLaneDictorRun.js'
@@ -194,17 +195,14 @@ export function useWordLaneFlow({ chunks, translation, lang, clips = null, audio
     const { texts } = stepTargets(listenStep, listenStep.chunks ?? chunks) // репетиция: цель — слово (step.chunks), словарь Vosk шире цели (step.extra)
     let wordsHeard = 0
     const l = createWordListener({
-      targets: [...texts, ...(listenStep.extra ?? [])], expected: listenStep.reps.length, maxWords: listenStep.maxWords, lang: listenStep.lang, noVosk: () => !!listenStep.tapOnly, gate: !listenStep.record, restartMs: listenStep.record ? 0 : undefined, level: rms, getStream: guardStream(getGameMic), isHeld: gameMicHold.active, onDebug: dbg.enabled ? dbg.listen : null,
+      targets: [...texts, ...(listenStep.extra ?? [])], expected: listenStep.reps.length, maxWords: listenStep.maxWords, lang: listenStep.lang, earRule: !listenStep.record, noVosk: () => !!listenStep.tapOnly, gate: !listenStep.record, restartMs: listenStep.record ? 0 : undefined, level: rms, getStream: guardStream(getGameMic), isHeld: gameMicHold.active, onDebug: dbg.enabled ? dbg.listen : null,
       onChange: ({ status, seq, misses, heard, tail, heardAt }) => {
         signalRef.current = { tail, heardAt }
         const words = seq.length * 8 + (tail?.tokens ?? 0) // растёт с каждым услышанным словом (недосказанная цель — по токенам, засчитанная — по номеру в seq)
         if (words > wordsHeard) catApi?.current?.look?.word() // граница слова ученика: кот чуть переводит взгляд
         wordsHeard = words
         if (status === 'timeout') { pLog('[word-lane] слушатель отработал своё время — запускаю заново'); setMicEpoch(e => e + 1); return } // долгая ступень: новый слушатель, счёт ступени начинается с нуля
-        if (status === 'dead') { // игровой поток оглох (iOS заглушил) — переоткрываем микрофон и слушаем заново; без игрового потока (свой у распознавателя) делать нечего
-          if (hasGameMic() && !gameMicGesture.needed()) { pLog('[mic] игровой поток отдаёт тишину — переоткрываю'); dropGameMic(); openGameMic().then(r => { if (r === 'granted') setMicEpoch(e => e + 1) }) }
-          return
-        }
+        if (status === 'dead') { renewGameMic().then(r => { if (r === 'granted') setMicEpoch(e => e + 1) }); return } // поток оглох (iOS заглушил) — переоткрываем и слушаем заново (gameMicRenew.js; не после паузы — нужен жест)
         setS(p => {
           const mic = status === 'listening' || status === 'starting' ? status : status === 'unavailable' || status === 'error' ? 'failed' : p.mic // нет модели / микрофон не открылся — игра говорит об этом честно (WordLaneGame)
           const fresh = p.lid !== listenStep.id

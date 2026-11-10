@@ -41,3 +41,6 @@
 .psResult[data-ok='0'] { color: #ff8a99; }
 @media (max-width: 340px) { .psBtn, .psSegBtn { font-size: 11px; padding: 4px 6px; } }
 .psStatus .voskNotice { margin: 0 0 4px; background: #1b1f27; border-radius: 10px; }
+/* Микрофон стенда оглох и без жеста не оживает (standMicHealth.js): крупная красная плашка — тап открывает микрофон (getUserMedia в жесте) */
+.psMicDead { appearance: none; border: 0; border-radius: 12px; background: #c8233b; color: #fff; font-size: 17px; font-weight: 700; padding: 14px 16px; width: 100%; max-width: 360px; line-height: 1.25; touch-action: manipulation; }
+.psMicNote { color: #ffcf6e; font-size: 12px; }

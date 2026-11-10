@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import PillStandEar from './PillStandEar.jsx'
 import PillStandVoskLine from './PillStandVoskLine.jsx'
+import PillStandHistory from './PillStandHistory.jsx'
 import { wordStateAt } from './pillStandColor.js'
 import VoskReadyNotice from '../../shared/ui/VoskReadyNotice.jsx'
 import { summaryText, resultLine } from './pillStandSummary.js'
@@ -8,7 +9,8 @@ import { saveTrace, copyText } from './standExport.js'
 import { SAVE_HOW } from '../player/modules/rotate-phone/wordLaneDebugExport.js'
 
 // Под пилюлей стенда: «Старт» (микрофон — только из тапа, iOS), цель и пометка зачёта («зачёт ✓ ratio, чисто / нечисто, мс от конца голоса»), крупная строка «Vosk: …» в цвете, панель «что слышит Vosk»
-// и выгрузка (окно «📤 Отправить» — onSend, сводка в буфер, трасса файлом).
+// и выгрузка (окно «📤 Отправить» — onSend, сводка в буфер, трасса файлом). Под строкой Vosk — прошлые цели (PillStandHistory). Микрофон оглох и без жеста не ожил (useStandMicHealth) —
+// крупная красная плашка: тап включает его (getUserMedia в жесте), слушатель и цель продолжают.
 const MIC_TEXT = { asking: 'Разрешите микрофон…', denied: 'Микрофон не разрешён — разрешите его для сайта и нажмите «Старт» ещё раз', unavailable: 'Микрофон недоступен' }
 
 export default function PillStandLive({ s, r, onSend }) {
@@ -26,7 +28,10 @@ export default function PillStandLive({ s, r, onSend }) {
             {s.model.notice?.status !== 'ready' && <VoskReadyNotice vosk={s.model.notice} />}
             <span className="psTarget" data-testid="ps-target" data-say={target.say}>#{target.n + 1} говорить {`«${target.say}»`}</span>
             <span className="psResult" data-ok={s.result ? (s.result.ok ? '1' : '0') : undefined} data-testid="ps-result">{s.result ? resultLine({ ...s.result, endMs: s.view.result?.endMs }) : s.model.ready ? 'слушаю…' : 'жду модель…'}</span>
+            {s.micHealth?.state === 'tap' && <button type="button" className="psMicDead" onClick={s.micTap} data-testid="ps-mic-dead">Микрофон отключился — нажми, чтобы включить</button>}
+            {s.micHealth?.state === 'reviving' && <span className="psMicNote" data-testid="ps-mic-reviving">микрофон оглох — включаю заново…</span>}
             <PillStandVoskLine partial={s.view.partial} final={s.view.final} say={target.say} state={state} />
+            <PillStandHistory hist={s.view.hist} onClear={s.clearHist} />
           </>}
       </div>
       <PillStandEar view={s.view} rmsRef={r.rmsRef} onCopy={copy} onSave={save} onSend={onSend} note={note} say={target.say} state={state} />

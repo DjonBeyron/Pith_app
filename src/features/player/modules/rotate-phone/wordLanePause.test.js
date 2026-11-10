@@ -183,7 +183,8 @@ describe('проводка и аудит исходников', () => {
     const bad = []
     for (const f of files) { const src = read(f).split('\n'); src.forEach((l, i) => { if (/\bopenGameMic\(/.test(l) && !/^\s*\/\//.test(l) && !src.slice(Math.max(0, i - 4), i + 1).some(x => /needed\(\)/.test(x))) bad.push(`${f}:${i + 1}`) }) } // условие — в той же строке или в четырёх строках выше
     expect(bad).toEqual([])
-    expect(read('./useWordLaneFlow.js')).toContain('hasGameMic() && !gameMicGesture.needed()')
+    expect(read('./useWordLaneFlow.js')).toContain('renewGameMic().then') // переоткрытие оглохшего потока — общий путь gameMicRenew.js (игра и стенд пилюль)
+    expect(read('../../../../shared/lib/gameMicRenew.js')).toContain('if (gesture && gameMicGesture.needed()) return Promise.resolve(\'gesture\')')
     expect(read('./useGameAudioModes.js')).toContain('!hasGameMic() || gameMicGesture.needed()')
     expect(read('../../../../shared/lib/gameMic.js')).toContain("if (gameMicGesture.needed()) return Promise.resolve('unavailable')")
   })

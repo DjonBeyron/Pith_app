@@ -1,0 +1,48 @@
+<!doctype html><html><head><meta charset="utf-8"><title>word ear harness</title></head><body><pre id="o">загрузка…</pre>
+<script type="module">
+// Замер «ложного зачёта на начале слова» (dev, в сборку не входит): НАСТОЯЩИЙ слушатель слов игры (wordLaneListen.js, как вертикальная пилюля «Пинг-понга» / стенда пилюль: цель — одно слово,
+// expected 1, maxWords 2) на настоящей модели Vosk; звук — wav в поток (MediaStreamDestination). Модели — /__en.tar.gz и /__ru.tar.gz (подставляет драйвер Playwright: route).
+// window.__run({ wav, target, lang, ear }) → { out (строки журнала), res: { voiceOn, voiceOff, hitAt, partials, finals } } — мс от начала звука. ear: false — без правила честного зачёта (как до v3.3.180).
+import { loadEngine } from '/src/shared/lib/vosk/voskEngine.js'
+import { createWordListener } from '/src/features/player/modules/rotate-phone/wordLaneListen.js'
+const models = {}
+const getModel = async lang => (models[lang] ??= (async () => (await loadEngine(await (await fetch(`/__${lang}.tar.gz`)).blob())).model)())
+window.__load = async lang => { await getModel(lang); return true }
+const VOICE = 0.015
+window.__run = async ({ wav, target, extra = [], lang = 'en', ear = true, tailMs = 3500 }) => {
+  const model = await getModel(lang)
+  const out = [], res = { voiceOn: null, voiceOff: null, hitAt: null, partials: [], finals: [], durMs: 0 }
+  let T0 = performance.now(), playing = false
+  const rel = () => Math.round(performance.now() - T0)
+  const log = s => out.push(`${String(rel()).padStart(5)} ${s}`)
+  const ctx = new AudioContext()
+  const buf = await ctx.decodeAudioData(await (await fetch(wav)).arrayBuffer())
+  res.durMs = Math.round(buf.duration * 1000)
+  const dest = ctx.createMediaStreamDestination()
+  const noise = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate), nd = noise.getChannelData(0) // живой микрофон не отдаёт точный ноль
+  let s = 777; for (let i = 0; i < nd.length; i++) { s = (s * 1103515245 + 12345) & 0x7fffffff; nd[i] = ((s / 0x7fffffff) * 2 - 1) * 0.0015 }
+  const ns = ctx.createBufferSource(); ns.buffer = noise; ns.loop = true; ns.connect(dest); ns.start()
+  const l = createWordListener({
+    targets: [target, ...extra], expected: 1, maxWords: 2, lang, getStream: () => dest.stream, runtime: { getModel: () => model, snapshot: () => ({}) }, earRule: ear,
+    onDebug: (k, d) => {
+      if (k === 'level') { if (!playing) return; if (d >= VOICE) { if (res.voiceOn == null) res.voiceOn = rel(); res.voiceOff = rel() } return }
+      if (k === 'partial') { res.partials.push([rel(), d.raw]); log(`partial «${d.raw}» seq ${JSON.stringify(d.seq)}`) }
+      else if (k === 'final') { log(`final «${d.raw}» by ${d.stopBy}`) }
+      else if (k === 'ear') log(`[ear] ${d.text}`)
+      else if (k === 'session-end') log(`session-end ${d.by}`)
+    },
+    listen: (m, g, cb, o) => import('/src/shared/lib/vosk/voskEngine.js').then(e => e.startListening(m, g, { ...cb, onResult: (t, st) => { res.finals.push({ t: rel(), text: t, words: (st?.words ?? []).map(w => ({ w: w.word, conf: Math.round(w.conf * 100) / 100, s: Math.round(w.start * 1000), e: Math.round(w.end * 1000) })), by: st?.stopBy }); cb.onResult(t, st) } }, o)),
+    onChange: st => { if (st.seq.includes(0) && res.hitAt == null && playing) { res.hitAt = rel(); log(`=== ЗАЧЁТ (seq ${st.seq})`) } },
+  })
+  l.start()
+  await new Promise(r => setTimeout(r, 1200))
+  T0 = performance.now(); playing = true
+  const src = ctx.createBufferSource(); src.buffer = buf; src.connect(dest); src.start()
+  log('звук пошёл')
+  await new Promise(r => setTimeout(r, res.durMs + tailMs))
+  l.dispose(); await ctx.close()
+  return { out, res }
+}
+window.__ok = true
+document.getElementById('o').textContent = 'готово'
+</script></body></html>

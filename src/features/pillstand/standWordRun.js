@@ -34,7 +34,7 @@ export function runStandWord({ pool, target, y, trace, probe = {}, onResult = ()
   let st = { status: 'idle', seq: [], misses: 0, tail: null, heardAt: 0, heard: '' }, sig = '', stopped = false, frame = 0, lastNow = now(), done = false, lastFill = ''
   const t0 = now()
   const listener = listen({
-    targets: texts, expected: 1, maxWords: step.maxWords, lang: target.lang, getStream, isHeld: () => false, level: rms, listen: tapListen(trace),
+    targets: texts, expected: 1, maxWords: step.maxWords, lang: target.lang, earRule: true, getStream, isHeld: () => false, level: rms, listen: tapListen(trace), // earRule — честный зачёт слова, как в «Пинг-понге» (wordEarRule.js)
     onDebug: (kind, data) => { if (kind !== 'level' && kind !== 'partial-same') trace.push('wl', { kind, ...(data && typeof data === 'object' ? data : { v: data }) }) },
     onChange: s => {
       st = s

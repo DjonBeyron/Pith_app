@@ -1,10 +1,10 @@
 import { useReducer, useEffect, useRef, useState, useCallback } from 'react'
 import { createLevelSource } from '../../../shared/lib/speech/sayLevelSource.js'
 import { createRmsLevel } from '../../../shared/lib/vosk/sayVoskLevel.js'
-import { getGameMic, hasGameMic, dropGameMic, openGameMic } from '../../../shared/lib/gameMic.js'
+import { getGameMic } from '../../../shared/lib/gameMic.js'
+import { renewGameMic } from '../../../shared/lib/gameMicRenew.js'
 import { createWordListener } from '../../player/modules/rotate-phone/wordLaneListen.js'
 import { sensitiveLevel } from '../../player/modules/rotate-phone/wordLaneConfig.js'
-import { pLog } from '../../../shared/lib/debug.js'
 import { flowReduce, initFlow, answersOf, holdMs, WORD_MS, ROUND_MS } from './sayAloudFlow.js'
 
 // Сценарий мини-игры «Скажи вслух»: слушатель Vosk (тот же, что в «Повтори за диктором») со словарём из ВСЕХ слов раунда, плюс таймеры слова и раунда.
@@ -33,7 +33,7 @@ export function useSayAloudGame({ words, onFinished }) {
       targets: words.map(w => w.word), expected: words.length, maxWords: 2, level: rms, getStream: getGameMic,
       onChange: ({ status: st, seq, misses, heard }) => {
         if (st === 'dead') { // игровой поток оглох (iOS заглушил) — переоткрываем микрофон и слушаем заново
-          if (hasGameMic()) { pLog('[say-aloud] поток отдаёт тишину — переоткрываю'); dropGameMic(); openGameMic().then(r => { if (r === 'granted') setEpoch(e => e + 1) }) }
+          renewGameMic({ why: '[say-aloud] поток отдаёт тишину', gesture: false }).then(r => { if (r === 'granted') setEpoch(e => e + 1) })
           return
         }
         if (st === 'unavailable' || st === 'error') { setFail(true); return }

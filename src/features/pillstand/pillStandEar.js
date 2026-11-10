@@ -4,7 +4,7 @@
 import { VOICE_GAP_MS, STAND_VOICE_RMS } from './pillStandHonesty.js'
 
 export const KEEP = 40
-export const STOP_TITLE = { endpoint: 'движок сам', manual: 'кнопка «Стоп»', auto: 'авто-стоп', full: 'все слова', max: 'потолок записи' }
+export const STOP_TITLE = { endpoint: 'движок сам', manual: 'кнопка «Стоп»', auto: 'авто-стоп', full: 'все слова', max: 'потолок записи', ear: 'правило слова' }
 
 export const emptyEar = () => ({ t0: 0, gate: null, rms: 0, voice: false, partial: '', final: '', partials: [], finals: [], ratio: null, best: '', words: [], backs: [], wrongs: [], reach: [], status: '', voiceStart: null, lastVoice: null, firstPartial: null, result: null, n: 0 })
 
