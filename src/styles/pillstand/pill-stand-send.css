@@ -27,3 +27,5 @@
 .psSend .psRow .psBtn { min-height: 36px; }
 .psSendBtn { border-color: var(--ps-acc); color: var(--ps-acc); }
 @media (max-width: 340px) { .psChip { font-size: 12px; padding: 5px 8px; } }
+.psPick { width: 100%; padding-left: 10px; border-left: 2px solid var(--ps-line); } /* выбор цели отрезка «цель»: авто или одна из последних 5 */
+.psPick .psChip { font-size: 12px; min-height: 28px; padding: 3px 9px; }

@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest'
 import { renderToStaticMarkup } from 'react-dom/server'
 import PillStandSend from './PillStandSend.jsx'
-import { emptyForm, toggleTopic, setSound, spanKind, markAt, canSend } from './pillStandSendForm.js'
+import { emptyForm, toggleTopic, setSound, spanKind, markAt, canSend, sentForm, setPick, SENT_HOW } from './pillStandSendForm.js'
 import { sendPack, textFile } from './standSend.js'
 import { buildPack } from './pillStandReport.js'
 import { colorWords, wordStateAt, wordState } from './pillStandColor.js'
@@ -107,5 +107,25 @@ describe('раскраска слов Vosk', () => {
     expect([...wordStateAt(ev, 1712).counted]).toEqual(['nice', 'to', 'meet'])
     expect([...wordStateAt(ev, 1305).counted]).toEqual([])
     expect([...wordStateAt(ev, 9000).counted]).toEqual(['cat'])
+  })
+})
+
+describe('окно «Отправить»: после отправки — с чистого листа; выбор цели', () => {
+  it('ушло (файлом / текстом) — комментарий и выбор цели пусты, темы и отрезок остаются; отмена «Поделиться» — не «ушло»', () => {
+    const f = { ...toggleTopic(emptyForm(), 'all'), comment: 'заливка дёрнулась', pick: 7000 }
+    expect(sentForm(f)).toMatchObject({ topics: ['all'], span: 'target', comment: '', pick: null })
+    expect([...SENT_HOW].sort()).toEqual(['download', 'share', 'tab'])
+    expect(SENT_HOW.has('cancelled')).toBe(false)
+    const html = renderToStaticMarkup(<PillStandSend ctx={{ at: 1500 }} form={sentForm(f)} onForm={() => {}} />)
+    expect(html).toContain('></textarea>') // поле пустое
+  })
+  it('отрезок «цель»: «авто» и последние цели с исходом; выбор — setPick', () => {
+    const recent = [{ t: 10000, n: 4, say: 'interesting', mark: '—' }, { t: 7000, n: 3, say: 'wonderful', mark: '✓' }]
+    const { el, onForm } = sheet({ recent })
+    expect(find(el, 'ps-send-pick-auto').props['aria-checked']).toBe(true)
+    expect(find(el, 'ps-send-pick-4').props.children.join('')).toBe('#4 wonderful ✓')
+    find(el, 'ps-send-pick-4').props.onClick()
+    expect(onForm.mock.calls[0][0]).toMatchObject({ span: 'target', pick: 7000 })
+    expect(setPick(emptyForm(), null).pick).toBe(null)
   })
 })

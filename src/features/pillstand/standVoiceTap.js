@@ -14,7 +14,7 @@ export function tapListen(trace, listen = startListening) {
     const wrapped = {
       ...cb,
       onReady: info => { trace.push('vosk-ready', { micMs: info?.micMs ?? null }); cb.onReady?.(info) },
-      onLevel: rms => { trace.push('level', { rms: Math.round(rms * 10000) / 10000 }); cb.onLevel?.(rms) },
+      onLevel: rms => { trace.push('level', { rms: Math.round(rms * 10000) / 10000, ...(rms === 0 ? { z: 1 } : {}) }); cb.onLevel?.(rms) }, // z — ровно 0 (оглохший поток; не путать с округлением тихого шума)
       onPartial: raw => { if (raw === last) trace.push('same', { raw: { partial: raw } }); else { last = raw; trace.push('vosk-partial', { raw: { partial: raw } }) } cb.onPartial(raw) },
       onResult: (text, stats) => {
         const st = {}

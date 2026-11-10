@@ -12,6 +12,7 @@ import { runStandWord } from './standWordRun.js'
 import { runStandPhrase } from './standPhraseRun.js'
 import useStandModel from './useStandModel.js'
 import useStandEar from './useStandEar.js'
+import useStandMicHealth from './useStandMicHealth.js'
 
 // Сессия стенда пилюль (CONCEPT_PILLSTAND.md): настройки (язык, режим, длина, сид, авто-следующая), микрофон (openGameMic — только из тапа «Старт», тот же поток, что у игры), модель (useStandModel),
 // текущая цель (pillStandPick.js по сиду и номеру), настоящая пилюля (standWordRun / standPhraseRun на пуле «на месте», standPool.js), трасса (pillStandTrace.js) и панель слуха (useStandEar).
@@ -27,11 +28,13 @@ export default function usePillStand(fieldRef, { paused = false } = {}) {
   const [n, setN] = useState(0)
   const [gen, setGen] = useState(0)
   const [mic, setMic] = useState('off')
+  const [micEpoch, setMicEpoch] = useState(0) // микрофон оживлён (useStandMicHealth) — слушатель и пилюля той же цели заново
   const [res, setRes] = useState(null) // { key, … } — зачёт цели key (у другой цели не показывается)
   const [probe] = useState(() => ({}))
   const timer = useRef(0)
   const model = useStandModel(prefs.lang, trace)
-  const { ear, view } = useStandEar(trace)
+  const { ear, view, clear: clearHist } = useStandEar(trace)
+  const { health: micHealth, tap: micTap } = useStandMicHealth({ trace, on: mic === 'on' && !paused, onRevived: useCallback(() => setMicEpoch(e => e + 1), []) })
   const { lang, mode, len } = prefs
   const target = useMemo(() => pickTarget({ seed, n, mode, lang, len }), [seed, n, mode, lang, len])
   const key = `${gen}|${seed}|${n}|${mode}|${lang}|${len}`
@@ -70,9 +73,9 @@ export default function usePillStand(fieldRef, { paused = false } = {}) {
     const opts = { pool: stillPool(createPool(root), y), root, target, y, trace, probe, onResult: r => onResult.current(r) }
     let run = null
     try { run = target.mode === 'word' ? runStandWord(opts) : runStandPhrase(opts) } catch (e) { trace.push('run-error', { msg: String(e?.message ?? e) }); return undefined }
-    trace.push('run', { mode: target.mode, n: target.n })
+    trace.push('run', { mode: target.mode, n: target.n, ...(micEpoch ? { micEpoch } : {}) })
     return () => { run.stop(); for (const k of Object.keys(probe)) delete probe[k]; trace.push('run-stop', { n: target.n }) }
-  }, [mic, paused, model.ready, target, gen, fieldRef, trace, probe])
+  }, [mic, paused, model.ready, target, gen, micEpoch, fieldRef, trace, probe])
 
   /** «Старт» — из тапа: микрофон игры (диалог iOS — здесь) */
   const start = useCallback(() => {
@@ -80,7 +83,7 @@ export default function usePillStand(fieldRef, { paused = false } = {}) {
     openGameMic().then(r => { trace.push('mic', { state: r }); setMic(r === 'granted' ? 'on' : r) })
   }, [trace])
 
-  return { trace, prefs, setPrefs, seed, setSeed, n, target, next, reset, mic, start, model, result, ear, view, probe, meta }
+  return { trace, prefs, setPrefs, seed, setSeed, n, target, next, reset, mic, start, model, result, ear, view, clearHist, probe, meta, micHealth, micTap }
 }
 
 function deviceLine() {

@@ -46,7 +46,7 @@ export default function PillStand({ onClose }) {
           ? <PillStandPlayer rec={r.rec} meta={s.meta()} pillRef={pillRef} onClose={() => view(false)} onSend={send.open} range={loop} />
           : <PillStandLive s={s} r={r} onSend={() => send.open({ from: 'live' })} />}
       </div>
-      {send.ctx && <PillStandSend ctx={send.ctx} form={send.form} onForm={send.setForm} ab={range} hasAudio={!!r.rec?.audio?.blob} marks={send.marks} onMark={send.addMark} onUnmark={send.unmark}
+      {send.ctx && <PillStandSend ctx={send.ctx} form={send.form} onForm={send.setForm} recent={send.recent} ab={range} hasAudio={!!r.rec?.audio?.blob} marks={send.marks} onMark={send.addMark} onUnmark={send.unmark}
         onSend={send.send} onCopy={send.copy} onSendAudio={send.sendAudio} later={send.later} note={send.note} busy={send.busy} onClose={send.close} />}
     </div>,
     document.body,

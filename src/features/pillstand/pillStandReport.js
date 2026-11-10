@@ -1,6 +1,7 @@
 // Отчёт «📤 Отправить» стенда пилюль одним .txt (CONCEPT_PILLSTAND.md, «Отправка по теме»): шапка (версия, устройство, дата, режим / язык / сид, темы, отрезок, цели с номерами, метки кадров, звук, состав) →
 // комментарий владельца → по каждой цели отрезка: хроника по выбранным темам («+мс от появления цели», события отбирает pillStandPacks.js), таблица кадров (Анимация / Всё, pillStandFrames.js), метрики тем
-// (pillStandPackMetrics.js) → журнал игры по теме → машиночитаемый блок «---JSON---» с теми же данными (для «Всё» — полная трасса отрезка и все кадры). Имя: pithy-stand-<темы>-<дата>.txt.
+// (pillStandPackMetrics.js) → журнал игры по теме → машиночитаемый блок «---JSON---» с теми же данными (для «Всё» — трасса отрезка, прореженная pillStandCompact.thinTrace, и все кадры). Имя: pithy-stand-<темы>-<дата>.txt.
+// v3.3.180: каждая грамматика Vosk целиком один раз (JSON grammars, в событиях — «грамматика #N»), «микрофон: …» (standMicHealth.js), как засчитана каждая цель (pillStandVerdict.js).
 // Текст для «Скопировать текстом» — тот же отчёт без JSON-блока (и без таблиц кадров, если длиннее COPY_MAX). Чистые функции (дата и данные — аргументами).
 import { analyzeSegment, totalsOf } from './pillStandHonesty.js'
 import { normTopics, packEvents, journalFor, wantsFrames, TOPIC_TITLE, TOPIC_SLUG } from './pillStandPacks.js'
@@ -9,6 +10,9 @@ import { pickFrames, frameRows } from './pillStandFrames.js'
 import { topicMetrics, evidenceWindows } from './pillStandPackMetrics.js'
 import { chronLine } from './pillStandChron.js'
 import { MODE_TITLE, LEN_TITLE } from './pillStandSummary.js'
+import { compactGrammar, thinTrace, journalAll } from './pillStandCompact.js'
+import { targetVerdict } from './pillStandVerdict.js'
+import { micHealthLine } from './standMicHealth.js'
 
 export const JSON_MARK = '---JSON---'
 export const WARN_BYTES = 2 * 1024 * 1024
@@ -49,8 +53,8 @@ const lean = f => ({ ...f, e: f.e ? { p: f.e.p, f: f.e.f } : undefined }) // к�
 export function buildPack({ topics, span: want = { kind: 'session' }, ab = null, at, comment = '', marks = [], meta = {}, events, frames = [], audio = null, journal = null, sound = false, now = new Date() }) {
   const ts = normTopics(topics), all = ts[0] === 'all'
   const metricTopics = all ? METRIC_TOPICS : ts.filter(t => METRIC_TOPICS.includes(t))
-  const span = resolveSpan({ kind: want.kind, sec: want.sec, events, at, ab })
-  const evs = sliceEvents(events, span), fr = sliceFrames(frames, span)
+  const span = resolveSpan({ kind: want.kind, sec: want.sec, pick: want.pick ?? null, events, at, ab })
+  const { events: evs, grammars } = compactGrammar(sliceEvents(events, span)), fr = sliceFrames(frames, span)
   const mk = marks.map((m, i) => ({ ...m, n: i + 1 })).filter(m => m.t >= span.from && m.t <= span.to)
   const groups = byTarget(evs)
   const tgs = groups.filter(g => g.target).map(g => g.target)
@@ -59,12 +63,13 @@ export function buildPack({ topics, span: want = { kind: 'session' }, ab = null,
     const seg = g.target ? analyzeSegment(g) : null
     const frames = fr.filter(f => f.t >= t0 && f.t < t1)
     const metrics = seg ? Object.fromEntries(metricTopics.map(t => [t, topicMetrics(t, { seg, events: g.events, frames, t0 })])) : {}
-    return { ...g, t0, t1, seg, frames, metrics, windows: seg ? evidenceWindows(seg, g.events, t0) : [] }
+    return { ...g, t0, t1, seg, frames, metrics, verdict: g.target ? targetVerdict(g.events) : null, windows: seg ? evidenceWindows(seg, g.events, t0) : [] }
   })
   const packed = merge(packEvents(ts, evs, { windows: per.flatMap(p => p.windows) }), markEvents(mk))
   const jAll = journal ? journalIn(parseJournal(journal.lines ?? [], journal.t0abs ?? 0), span) : []
   const traceLogs = new Set(evs.filter(e => e.k === 'log').map(e => e.text))
-  const jLines = journalFor(ts, jAll).filter(l => all || !traceLogs.has(l.text))
+  const jLines = all ? journalAll(jAll, traceLogs) : journalFor(ts, jAll).filter(l => !traceLogs.has(l.text)) // «Всё» — строки модулей игры без «[stand] …» и без повторов трассы
+  const thin = all ? thinTrace(evs) : null
   const fileName = packName(ts, now)
   const withSound = !!(sound && audio?.blob)
   const audioName = withSound ? fileName.replace(/\.txt$/, `.${audioExt(audio.type)}`) : null
@@ -77,7 +82,8 @@ export function buildPack({ topics, span: want = { kind: 'session' }, ab = null,
     `версия ${meta.version ?? '?'} · ${meta.device ?? '?'} · ${dayText(now)}`,
     `режим ${MODE_TITLE[meta.mode] ?? meta.mode ?? '?'} · язык ${String(meta.lang ?? '?').toUpperCase()} · длина ${LEN_TITLE[meta.len] ?? meta.len ?? '?'} · сид ${meta.seed ?? '?'}${meta.auto != null ? ` · авто ${meta.auto ? `${String((meta.autoMs ?? 0) / 1000).replace('.', ',')} с` : 'выкл.'}` : ''}`,
     `отрезок: ${span.label}`,
-    `цели: ${tgs.map(t => `#${(t.n ?? 0) + 1} ${q(t.say)}${t.shown && t.shown !== t.say ? ` (на пилюле ${q(t.shown)})` : ''} ${MODE_TITLE[t.mode] ?? t.mode} ${String(t.lang ?? '').toUpperCase()} с ${sec(t.t)} с`).join(' · ') || 'нет'}`,
+    `цели в файле: ${per.filter(p => p.target && !(p.events.length === 1 && p.t1 < Infinity)).map(p => { const t = p.target; return `#${(t.n ?? 0) + 1} ${q(t.say)}${t.shown && t.shown !== t.say ? ` (на пилюле ${q(t.shown)})` : ''} ${MODE_TITLE[t.mode] ?? t.mode} ${String(t.lang ?? '').toUpperCase()} с ${sec(t.t)} с ${p.verdict.mark}${t.t < span.from ? ' (только хвост до отрезка)' : ''}` }).join(' · ') || 'нет'}`,
+    `микрофон: ${micHealthLine(evs)}`,
     `метки кадров: ${mk.map(m => `◆${m.n} ${sec(m.t)} с${m.i != null ? ` (кадр ${m.i + 1})` : ''}`).join(' · ') || 'нет'}`,
     `звук: ${!audio ? 'записи со звуком не было' : withSound ? `файл ${audioName} (${audio.type}), вся запись; отрезок в звуке ${inSnd ? `${String(inSnd[0]).replace('.', ',')}–${String(inSnd[1]).replace('.', ',')} с` : 'не попадает'}` : 'не прикладывается'}`,
     `итог честности отрезка: целей ${tot.targets}, зачётов ${tot.wins}, ложных срабатываний ${tot.falses}, додумано ${tot.extra} из ${tot.heard} слов, перестроек ${tot.rebuilds}, откатов ${tot.backs}, неверных ${tot.wrongs}`,
@@ -85,6 +91,7 @@ export function buildPack({ topics, span: want = { kind: 'session' }, ab = null,
   const body = noFrames => per.filter(p => !(p.target && p.events.length === 1 && p.t1 < Infinity)).flatMap(p => { // пустая цель (сразу сменили, двойной монтаж StrictMode) — без блока
     const lines = ['', p.target ? `== Цель #${(p.target.n ?? 0) + 1} ${q(p.target.say)}${p.target.shown && p.target.shown !== p.target.say ? ` (на пилюле ${q(p.target.shown)})` : ''} — ${String(p.target.lang ?? '').toUpperCase()}, ${MODE_TITLE[p.target.mode] ?? p.target.mode}, появилась ${sec(p.t0)} с ==` : '== До первой цели ==']
     const chron = packed.filter(e => e.t >= p.t0 && e.t < p.t1 && !(e.k === 'target' && e === p.target))
+    if (p.verdict) lines.push(`-- зачёт: ${p.verdict.mark} ${p.verdict.how} --`)
     lines.push(`-- хроника (+мс от появления цели; ${chron.length} строк) --`, ...(chron.length ? chron.map(e => chronLine(e, p.t0)) : ['   (событий темы нет)']))
     if (wantsFrames(ts) && p.frames.length && !noFrames) {
       const idx = pickFrames(p.frames, mk)
@@ -100,9 +107,10 @@ export function buildPack({ topics, span: want = { kind: 'session' }, ab = null,
   const readable = make(full)
   const data = {
     kind: 'pithy-stand-pack', v: 1,
+    grammars: grammars.filter(g => (all ? thin.events : packed).some(e => e.gref === g.n)), thinned: thin?.dropped ?? null, mic: micHealthLine(evs), // грамматика целиком — только та, на которую ссылаются события файла
     header: { version: meta.version ?? null, device: meta.device ?? null, deviceInfo: meta.deviceInfo ?? null, date: now.toISOString(), mode: meta.mode ?? null, lang: meta.lang ?? null, len: meta.len ?? null, seed: meta.seed ?? null, topics: ts, span, audio: audio ? { file: audioName, type: audio.type, startMs: audio.startMs, inAudio: inSnd, attached: withSound } : null },
-    comment: comment.trim(), marks: mk, targets: tgs,
-    events: all ? evs : packed,
+    comment: comment.trim(), marks: mk, targets: tgs, verdicts: per.filter(p => p.target).map(p => ({ n: p.target.n, say: p.target.say, mark: p.verdict.mark, how: p.verdict.how, ear: p.verdict.ear })),
+    events: all ? thin.events : packed,
     frames: wantsFrames(ts) ? (all ? fr : fr.map(lean)) : [],
     metrics: per.filter(p => p.target).map(p => ({ n: p.target.n, say: p.target.say, t: p.t0, ...Object.fromEntries(Object.entries(p.metrics).map(([k, v]) => [k, v.data])) })),
     honesty: tot, journal: jLines,

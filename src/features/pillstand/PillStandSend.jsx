@@ -1,13 +1,13 @@
 import { TOPICS, TOPIC_TITLE } from './pillStandPacks.js'
 import { SPANS, LAST_SECONDS } from './pillStandSpan.js'
-import { SPAN_TITLE, toggleTopic, setSpan, setComment, setSound, canSend } from './pillStandSendForm.js'
+import { SPAN_TITLE, toggleTopic, setSpan, setPick, setComment, setSound, canSend } from './pillStandSendForm.js'
 
 // Окно «📤 Отправить» стенда пилюль (CONCEPT_PILLSTAND.md, «Отправка по теме») — лист снизу на 375 px: о чём замечание (темы галочками), отрезок, комментарий, «◆ Отметить кадр» (метки — в файл),
-// звук записи, «Отправить файлом» / «Скопировать текстом», «📎 Звук» вторым нажатием (iPhone). Без хуков: состояние и действия — у useStandSend (окно можно проверить вызовом функции в тесте).
+// цель отрезка «цель» (авто или одна из последних 5: номер, текст, исход ✓ / ✗ / —), звук записи, «Отправить файлом» / «Скопировать текстом», «📎 Звук» вторым нажатием (iPhone). Без хуков: состояние и действия — у useStandSend (окно можно проверить вызовом функции в тесте).
 const sec = ms => (ms / 1000).toFixed(3).replace('.', ',')
 const SHORT = { honesty: 'Честность', ear: 'Распознавание (Vosk)' }
 
-export default function PillStandSend({ ctx, form, onForm, ab = null, hasAudio = false, marks = [], onMark, onUnmark, onSend, onCopy, onSendAudio, later = null, note = '', busy = false, onClose }) {
+export default function PillStandSend({ ctx, form, onForm, recent = [], ab = null, hasAudio = false, marks = [], onMark, onUnmark, onSend, onCopy, onSendAudio, later = null, note = '', busy = false, onClose }) {
   const abOk = !!(ab && ab[1] > ab[0])
   const here = ctx?.frame != null ? `кадр ${ctx.frame + 1}` : `${sec(ctx?.at ?? 0)} с`
   return (
@@ -29,6 +29,10 @@ export default function PillStandSend({ ctx, form, onForm, ab = null, hasAudio =
           const on = form.span === s, off = s === 'ab' && !abOk
           return <button key={s} type="button" role="radio" aria-checked={on} className="psChip" data-on={on ? '1' : undefined} disabled={off} onClick={() => onForm(setSpan(form, s))} data-testid={`ps-send-span-${s}`}>{SPAN_TITLE[s]}{s === 'ab' && abOk ? ` ${sec(ab[0])}–${sec(ab[1])} с` : s === 'ab' ? ' (не отмечен)' : ''}</button>
         })}
+        {form.span === 'target' && !!recent.length && <span className="psChips psPick" role="radiogroup" data-testid="ps-send-picks">
+          <button type="button" role="radio" aria-checked={form.pick == null} className="psChip" data-on={form.pick == null ? '1' : undefined} onClick={() => onForm(setPick(form, null))} data-testid="ps-send-pick-auto">авто: последняя с голосом + текущая</button>
+          {recent.map(g => <button key={g.t} type="button" role="radio" aria-checked={form.pick === g.t} className="psChip" data-on={form.pick === g.t ? '1' : undefined} onClick={() => onForm(setPick(form, g.t))} data-testid={`ps-send-pick-${g.n + 1}`}>#{g.n + 1} {g.say} {g.mark}</button>)}
+        </span>}
         {form.span === 'last' && <span className="psSeg">{LAST_SECONDS.map(n => <button key={n} type="button" className="psSegBtn" data-on={form.sec === n ? '1' : undefined} onClick={() => onForm(setSpan(form, 'last', n))} data-testid={`ps-send-sec-${n}`}>{n} с</button>)}</span>}
       </div>
       <p className="psSendLabel">Комментарий — что не так, своими словами</p>

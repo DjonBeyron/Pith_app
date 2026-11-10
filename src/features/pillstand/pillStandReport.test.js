@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { buildPack, readPackJson, packName, utf8Len, JSON_MARK, WARN_BYTES } from './pillStandReport.js'
-import { resolveSpan, sliceEvents, parseJournal, inAudio, targetAt } from './pillStandSpan.js'
+import { resolveSpan, sliceEvents, parseJournal, inAudio, targetAt, recentTargets } from './pillStandSpan.js'
 import { fixtureEvents, fixtureFrames, fixtureJournal, JOURNAL_T0 } from './pillStandPackFixture.js'
 
 // Отчёт «📤 Отправить»: отрезки режут правильно, шапка, комментарий, метки кадров, звук, имя файла, JSON-блок, предупреждение о размере
@@ -10,15 +10,29 @@ const base = { topics: ['all'], at: 9500, comment: '', marks: [], meta, events: 
 const ts = p => readPackJson(p.text).events.map(e => e.t)
 
 describe('отправка по теме: отрезки', () => {
-  it('текущая цель — от её появления до следующей; в плеере — цель кадра', () => {
+  it('текущая цель — с 1 с до её появления до следующей; в плеере — цель кадра', () => {
     const ev = fixtureEvents()
-    expect(resolveSpan({ kind: 'target', events: ev, at: 9500 })).toMatchObject({ from: 7000, to: 9500 })
-    expect(resolveSpan({ kind: 'target', events: ev, at: 1500 })).toMatchObject({ from: 100, to: 6999.9 })
+    expect(resolveSpan({ kind: 'target', events: ev, at: 9500 })).toMatchObject({ from: 6000, to: 9500 })
+    expect(resolveSpan({ kind: 'target', events: ev, at: 1500 })).toMatchObject({ from: -900, to: 6999.9 })
     expect(targetAt(ev, 50).n).toBe(0) // до первой цели — первая
     const p = buildPack({ ...base, span: { kind: 'target' } })
-    expect(Math.min(...ts(p))).toBe(7000)
-    expect(p.text).toContain('отрезок: текущая цель #2 «cat» 7,000–9,500 с')
-    expect(readPackJson(p.text).targets.map(t => t.n)).toEqual([1])
+    expect(Math.min(...ts(p))).toBe(100) // цель #1 — хвост до отрезка (контекст), остальное — с 6,000 с
+    expect(ts(p).filter(t => t !== 100).every(t => t >= 6000)).toBe(true)
+    expect(p.text).toContain('отрезок: текущая цель #2 «cat» 6,000–9,500 с')
+    expect(p.text).toContain('(только хвост до отрезка)')
+    expect(readPackJson(p.text).targets.map(t => t.n)).toEqual([0, 1])
+  })
+  it('авто: в текущей цели ещё ничего — с прошлой, где был голос / исход (при «авто» отправили уже на следующей); выбор цели из последних 5', () => {
+    const ev = [...fixtureEvents(), { t: 10000, k: 'target', n: 2, mode: 'word', lang: 'en', say: 'interesting' }, { t: 10010, k: 'run', mode: 'word', n: 2 }, { t: 10500, k: 'level', rms: 0.001 }]
+    const s = resolveSpan({ kind: 'target', events: ev, at: 11000 })
+    expect(s).toMatchObject({ from: 6000, to: 11000 })
+    expect(s.label).toBe('цели #2 «cat» ✓ (последняя с голосом) + #3 «interesting» (текущая) 6,000–11,000 с')
+    expect(recentTargets(ev, 11000).map(g => `${g.n + 1}${g.mark}`)).toEqual(['3—', '2✓', '1✓'])
+    const pick = resolveSpan({ kind: 'target', events: ev, at: 11000, pick: 100 })
+    expect(pick).toMatchObject({ from: -900, to: 6999.9 })
+    expect(pick.label).toContain('цель #1 «Nice to meet you» ✓ (выбрана)')
+    const p = buildPack({ ...base, events: ev, at: 11000, span: { kind: 'target', pick: 7000 } })
+    expect(p.text).toContain('отрезок: цель #2 «cat» ✓ (выбрана) 6,000–10,000 с')
   })
   it('A–B: события и кадры внутри; цель, начатая раньше, — первой', () => {
     const p = buildPack({ ...base, span: { kind: 'ab' }, ab: [1200, 1800] })
@@ -52,7 +66,8 @@ describe('отправка по теме: шапка, комментарий, м
     expect(head).toContain('Pithy · стенд пилюль · замечание: Анимация + Распознавание (Vosk)')
     expect(head).toContain('версия 3.3.179 · iPhone iOS 18.1 375×812 @3 · 2026-11-09 14:03:27')
     expect(head).toContain('режим По словам (проход 1) · язык EN · длина любые · сид abc · авто 1,2 с')
-    expect(head).toContain('цели: #1 «Nice to meet you» По словам (проход 1) EN с 0,100 с · #2 «cat» (на пилюле «кот») Вертикальная (слово) EN с 7,000 с')
+    expect(head).toContain('цели в файле: #1 «Nice to meet you» По словам (проход 1) EN с 0,100 с ✓ · #2 «cat» (на пилюле «кот») Вертикальная (слово) EN с 7,000 с ✓')
+    expect(head).toContain('микрофон: без сбоев')
     expect(head).toContain('метки кадров: ◆1 1,500 с (кадр 31) · ◆2 2,300 с')
     expect(head).toContain('звук: записи со звуком не было')
     expect(head).toMatch(/состав: событий \d+ \(в хронике \d+\), кадров \d+ \(в таблице \d+\), строк журнала \d+/)

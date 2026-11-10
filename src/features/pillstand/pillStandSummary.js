@@ -8,7 +8,7 @@ export const MAX_PARTIALS = 24
 const num = v => (v == null ? '—' : String(v).replace('.', ','))
 const ms = v => (v == null ? '—' : `${Math.round(v)} мс`)
 const q = t => `«${t}»`
-const STOP = { endpoint: 'движок сам', manual: 'кнопка «Стоп»', auto: 'авто-стоп', full: 'все слова', max: 'потолок записи' }
+const STOP = { endpoint: 'движок сам', manual: 'кнопка «Стоп»', auto: 'авто-стоп', full: 'все слова', max: 'потолок записи', ear: 'правило слова' }
 
 const afterText = v => (v == null ? 'голоса не было' : v < 0 ? `за ${-v} мс до конца голоса` : `${v} мс от конца голоса`)
 

@@ -19,3 +19,10 @@
 .psNote { margin: 2px 0; color: #ffcf6e; overflow-wrap: anywhere; }
 .psHist, .psEvents { margin: 4px 0 0; padding: 4px 0 0; list-style: none; border-top: 1px dashed var(--ps-line); color: var(--ps-dim); }
 .psHist li, .psEvents li { overflow-wrap: anywhere; }
+/* История прошлых целей под крупной строкой «Vosk: …» (PillStandHistory.jsx): одна строка на цель, новая сверху; исход ✓ / ✗ / — цветом */
+.psPast { width: 100%; max-width: 100%; box-sizing: border-box; text-align: left; font: 11px/1.35 ui-monospace, Menlo, Consolas, monospace; color: var(--ps-dim); border-top: 1px dashed var(--ps-line); padding-top: 2px; }
+.psPastHead { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+.psPastRow { margin: 1px 0; overflow-wrap: anywhere; color: var(--ps-ink); }
+.psPastMark { font-weight: 700; color: var(--ps-dim); }
+.psPastRow[data-ok='1'] .psPastMark { color: var(--ps-acc); }
+.psPastRow[data-ok='0'] .psPastMark { color: #ff8a99; }

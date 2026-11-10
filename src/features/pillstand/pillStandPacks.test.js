@@ -59,7 +59,8 @@ describe('отправка по теме: Распознавание', () => {
     expect(txt).toContain('черновик {"partial":"nice"}')
     expect(txt).toContain('"conf":0.8')
     expect(txt).toContain('закрыл: движок сам')
-    expect(txt).toContain('словарь Vosk: ["nice","to","meet","you","[unk]"]')
+    expect(txt).toContain('словарь Vosk: грамматика #1 (5 вариантов) · затвор тишины') // целиком — один раз в JSON-блоке
+    expect(j.grammars).toEqual([{ n: 1, size: 5, t: 120, list: ['nice', 'to', 'meet', 'you', '[unk]'] }])
     expect(txt).toContain('затвор открыт (rms 0,2000)')
     expect(txt).toContain('rms 0,2000 ▲ голос')
     expect(txt).toContain('rms 0,0010 ▽ тишина')
@@ -122,13 +123,19 @@ describe('отправка по теме: Честность', () => {
 
 describe('отправка по теме: Всё', () => {
   const p = pack(['all']), txt = readable(p), j = readPackJson(p.text)
-  it('полная трасса, все кадры (с панелью Vosk) и весь журнал за сессию', () => {
-    expect(j.events).toHaveLength(fixtureEvents().length)
+  it('трасса отрезка прорежена (уровень — переходы порога + раз в 250 мс / 1 с, повторы черновика — счётом), все кадры (с панелью Vosk), журнал игры без «[stand]» и без повторов трассы', () => {
+    const full = fixtureEvents()
+    expect(j.events.length).toBeLessThan(full.length)
+    expect(j.events.length + j.thinned.level + j.thinned.same + j.thinned.fill).toBe(full.length)
+    expect(j.events.filter(e => e.k !== 'level' && e.k !== 'same' && e.k !== 'fill')).toHaveLength(full.filter(e => e.k !== 'level' && e.k !== 'same' && e.k !== 'fill').length)
+    expect(j.thinned.same).toBe(1)
     expect(j.frames).toHaveLength(fixtureFrames().length)
     expect(j.frames[0].e.rms).toBe(0.2)
-    expect(j.journal.map(l => l.text)).toContain('[stand] fill {"goal":0.25}')
+    expect(j.journal.map(l => l.text)).not.toContain('[stand] fill {"goal":0.25}')
     expect(j.journal.map(l => l.text)).toContain('[audio] unlock')
-    expect(j.journal.map(l => l.text)).not.toContain('[audio] до стенда') // до старта трассы — вне сессии
+    expect(j.journal.some(l => l.text.startsWith('[stand]'))).toBe(false)
+    const logs = new Set(full.filter(e => e.k === 'log').map(e => e.text))
+    expect(j.journal.some(l => logs.has(l.text))).toBe(false)
     for (const s of ['-- Анимация: метрики --', '-- Распознавание (Vosk): метрики --', '-- Зачёт и логика: метрики --', '-- Честность (ложные срабатывания): метрики --', '-- кадры (']) expect(txt).toContain(s)
   })
   it('журнал по теме для прочих тем — без «[stand]»', () => {

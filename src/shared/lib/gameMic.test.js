@@ -56,7 +56,8 @@ describe('iPhone: разрешение не запоминается — оди�
     const { readFileSync } = await import('node:fs')
     const l = readFileSync(new URL('../../features/player/modules/rotate-phone/wordLaneListen.js', import.meta.url), 'utf8')
     expect(l).toContain("publish({ status: 'dead' })")
-    expect(readFileSync(new URL('../../features/player/modules/rotate-phone/useWordLaneFlow.js', import.meta.url), 'utf8')).toContain('dropGameMic(); openGameMic()')
+    expect(readFileSync(new URL('../../features/player/modules/rotate-phone/useWordLaneFlow.js', import.meta.url), 'utf8')).toContain('renewGameMic()')
+    expect(readFileSync(new URL('./gameMicRenew.js', import.meta.url), 'utf8')).toContain('dropGameMic(); return openGameMic()')
   })
 
   it('закрытие игры НЕ останавливает треки, а выключает (поток один на сеанс); оборвавшийся поток не отдаётся; настоящее закрытие — shutGameMic', async () => {
