@@ -8,10 +8,10 @@ import { createWordListener } from '/src/features/player/modules/rotate-phone/wo
 const models = {}
 const getModel = async lang => (models[lang] ??= (async () => (await loadEngine(await (await fetch(`/__${lang}.tar.gz`)).blob())).model)())
 window.__load = async lang => { await getModel(lang); return true }
-const VOICE = 0.015
-window.__run = async ({ wav, target, extra = [], lang = 'en', ear = true, tailMs = 3500 }) => {
+// gain — множитель громкости wav (тихий микрофон iPhone: речь rms 0,012–0,026), noise — rms фона (iPhone ≈ 0,0002). res.levels — [мс, rms] кусков звука: по ним драйвер сам находит конец голоса.
+window.__run = async ({ wav, target, extra = [], lang = 'en', ear = true, tailMs = 3500, gain = 1, noise = 0.0009 }) => {
   const model = await getModel(lang)
-  const out = [], res = { voiceOn: null, voiceOff: null, hitAt: null, partials: [], finals: [], durMs: 0 }
+  const out = [], res = { hitAt: null, partials: [], finals: [], levels: [], durMs: 0 }
   let T0 = performance.now(), playing = false
   const rel = () => Math.round(performance.now() - T0)
   const log = s => out.push(`${String(rel()).padStart(5)} ${s}`)
@@ -19,13 +19,13 @@ window.__run = async ({ wav, target, extra = [], lang = 'en', ear = true, tailMs
   const buf = await ctx.decodeAudioData(await (await fetch(wav)).arrayBuffer())
   res.durMs = Math.round(buf.duration * 1000)
   const dest = ctx.createMediaStreamDestination()
-  const noise = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate), nd = noise.getChannelData(0) // живой микрофон не отдаёт точный ноль
-  let s = 777; for (let i = 0; i < nd.length; i++) { s = (s * 1103515245 + 12345) & 0x7fffffff; nd[i] = ((s / 0x7fffffff) * 2 - 1) * 0.0015 }
-  const ns = ctx.createBufferSource(); ns.buffer = noise; ns.loop = true; ns.connect(dest); ns.start()
+  const nb = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate), nd = nb.getChannelData(0) // живой микрофон не отдаёт точный ноль
+  let s = 777; for (let i = 0; i < nd.length; i++) { s = (s * 1103515245 + 12345) & 0x7fffffff; nd[i] = ((s / 0x7fffffff) * 2 - 1) * noise * Math.sqrt(3) }
+  const ns = ctx.createBufferSource(); ns.buffer = nb; ns.loop = true; ns.connect(dest); ns.start()
   const l = createWordListener({
-    targets: [target, ...extra], expected: 1, maxWords: 2, lang, getStream: () => dest.stream, runtime: { getModel: () => model, snapshot: () => ({}) }, earRule: ear,
+    targets: [target, ...extra], expected: 1, maxWords: 2, lang, getStream: () => dest.stream, runtime: { getModel: () => model, snapshot: () => ({}) }, earRule: ear, micGain: () => 1,
     onDebug: (k, d) => {
-      if (k === 'level') { if (!playing) return; if (d >= VOICE) { if (res.voiceOn == null) res.voiceOn = rel(); res.voiceOff = rel() } return }
+      if (k === 'level') { if (playing) res.levels.push([rel(), Math.round(d * 1e5) / 1e5]); return }
       if (k === 'partial') { res.partials.push([rel(), d.raw]); log(`partial «${d.raw}» seq ${JSON.stringify(d.seq)}`) }
       else if (k === 'final') { log(`final «${d.raw}» by ${d.stopBy}`) }
       else if (k === 'ear') log(`[ear] ${d.text}`)
@@ -35,13 +35,36 @@ window.__run = async ({ wav, target, extra = [], lang = 'en', ear = true, tailMs
     onChange: st => { if (st.seq.includes(0) && res.hitAt == null && playing) { res.hitAt = rel(); log(`=== ЗАЧЁТ (seq ${st.seq})`) } },
   })
   l.start()
-  await new Promise(r => setTimeout(r, 1200))
+  await new Promise(r => setTimeout(r, 1200)) // заход открылся, правило успело оценить шум микрофона
   T0 = performance.now(); playing = true
-  const src = ctx.createBufferSource(); src.buffer = buf; src.connect(dest); src.start()
+  const src = ctx.createBufferSource(), g = ctx.createGain(); g.gain.value = gain; src.buffer = buf; src.connect(g); g.connect(dest); src.start()
   log('звук пошёл')
-  await new Promise(r => setTimeout(r, res.durMs + tailMs))
+  const until = performance.now() + res.durMs + tailMs // зачёт или итог после конца звука — ждать больше нечего (+ 300 мс на хвост журнала)
+  while (performance.now() < until && !(rel() > res.durMs && (res.hitAt != null || res.finals.some(f => f.t > res.durMs - 150)))) await new Promise(r => setTimeout(r, 40))
+  await new Promise(r => setTimeout(r, 300))
   l.dispose(); await ctx.close()
   return { out, res }
+}
+// Быстрая проба БЕЗ слушателя и без реального времени: wav кусками по chunk кадров прямо в распознаватель с грамматикой grammar (массив фраз); stopAt (мс звука) — оборвать и попросить итог
+// (хвост тишины tail мс), как stop('ear'). → { partials: [[мс звука, текст]] (только смены текста), results: [{ at, text, words }] } — что Vosk отдаёт в черновике и итоге при таких ловушках.
+window.__raw = async ({ wav, grammar, lang = 'en', stopAt = null, tail = 150, chunk = 2048, gain = 1, noise = 0, lead = 300 }) => {
+  const model = await getModel(lang)
+  const ctx = new OfflineAudioContext(1, 48000, 48000), buf = await ctx.decodeAudioData(await (await fetch(wav)).arrayBuffer())
+  const rate = buf.sampleRate, d0 = buf.getChannelData(0), pad = Math.round(rate * lead / 1000), end = stopAt == null ? d0.length + Math.round(rate * 1.2) : Math.round(rate * stopAt / 1000)
+  const d = new Float32Array(pad + end); let s = 777
+  for (let i = 0; i < d.length; i++) { s = (s * 1103515245 + 12345) & 0x7fffffff; d[i] = ((s / 0x7fffffff) * 2 - 1) * noise * Math.sqrt(3) + (i >= pad && i - pad < d0.length ? d0[i - pad] * gain : 0) }
+  const rec = new model.KaldiRecognizer(rate, JSON.stringify(grammar)); try { rec.setWords(true) } catch { /* без меток */ }
+  const partials = [], results = []; let n = 0, last = null, done, idle = 0, closing = false
+  const fin = new Promise(r => { done = r }), tick = () => { if (closing) { clearTimeout(idle); idle = setTimeout(done, 400) } } // итог — последнее сообщение воркера
+  const at = () => Math.round(Math.min(n * chunk, d.length) / rate * 1000 - lead)
+  rec.on('partialresult', m => { n++; tick(); const t = m.result.partial; if (t !== last) { last = t; partials.push([at(), t]) } })
+  rec.on('result', m => { n++; results.push({ at: at(), text: m.result.text, words: (m.result.result ?? []).map(w => ({ w: w.word, conf: Math.round(w.conf * 100) / 100, s: Math.round(w.start * 1000 - lead), e: Math.round(w.end * 1000 - lead) })) }); last = null; tick() })
+  for (let i = 0; i < d.length; i += chunk) rec.acceptWaveformFloat(d.subarray(i, Math.min(d.length, i + chunk)), rate)
+  rec.acceptWaveformFloat(new Float32Array(Math.round(rate * tail / 1000)), rate)
+  closing = true; rec.retrieveFinalResult(); idle = setTimeout(done, 6000)
+  await fin
+  try { rec.remove() } catch { /* уже удалён */ }
+  return { partials, results }
 }
 window.__ok = true
 document.getElementById('o').textContent = 'готово'

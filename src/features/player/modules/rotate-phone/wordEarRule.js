@@ -1,108 +1,101 @@
-// «Честный зачёт слова» (v3.3.180, замечание владельца: «начал говорить начало слова, а он уже засчитал — „ванлер…“», цель wonderful). Слушатель слов (wordLaneListen.js) даёт Vosk грамматику только
-// из цели и [unk], и Vosk в ЧЕРНОВИКЕ выдаёт ближайшее слово грамматики уже по началу звука: замер реальным Vosk EN (espeak, 3 скорости) — черновик «wonderful» приходит через ≈ 270 мс после начала
-// голоса и при 40 % слова, и при целом слове; итог Vosk честнее (обрубок — «», [unk] или conf 0,57–0,83, целое — conf 1). Правило (одно слово цели; фразы из нескольких слов — как раньше):
-//  • ЛОВУШКИ: в грамматику добавляются начала слова (≥ 3 букв, до длины − 2: «won», «wonder», «inter», «interest»): слова, которых нет в словаре модели, Vosk молча выбрасывает, а настоящие дают
-//    ему выдать обрубок вместо цели. Слово-ловушка — не цель и не промах (neutral убирает его из разбора).
-//  • ЧЕРНОВИК засчитывается сразу у слова в 1 слог; в 2 слога — если голос уже длится ≥ needMs (слоги × PER_SYL_MS); от 3 слогов (и короче needMs) — ждём ИТОГ: голос кончился (тишина
-//    QUIET_MS) — просим итог захода (stop), он решает: слово цели с conf ≥ CONF_MIN и голосом ≥ needMs — зачёт, иначе нет
-//    (обрубок «toge» Vosk иногда «дотягивает» до together с conf 1 — его выдаёт короткий голос). Голос дорос до needMs раньше (2 слога) — зачёт черновиком. Есть цель
-//    от 3 слогов — итог просим по концу голоса и без черновика (с ловушками Vosk отдаёт черновик через ≈ 250 мс после голоса: так быстрее на ≈ 100 мс).
-//  • Журнал: «[word-ear] черновик «wonderful» на 270 мс голоса (3 слога, ожидаю ≥ 360) — жду итог» / «… — зачёт», «голос кончился … — прошу итог», «итог «…» conf … — зачёт | не засчитано».
+// «Честный зачёт слова» (v3.3.180; переделан в v3.3.183 по двум отчётам владельца со стенда, iPhone: «не считывает» — цель interesting, 18 попыток, 0 зачётов; «не ждёт окончания, ложно
+// срабатывает» — milk засчитан на «mil…», window — на «win…»). Слушатель слов (wordLaneListen.js) даёт Vosk закрытую грамматику, и Vosk выдаёт цель уже по началу звука. Правило (цели — одно слово;
+// цели-фразы из нескольких слов засчитываются черновиком, как раньше):
+//  • ЛОВУШКИ (wordEarDecoys.js): слова-соседи цели в грамматике — обрубку есть чем стать, кроме цели. Слово-ловушка — не цель и не промах (neutral убирает его из разбора).
+//  • ЗАЧЁТ — ТОЛЬКО ПО ИТОГУ, когда слово договорено: черновик с целью последним словом не засчитывается никогда (раньше 1 слог — сразу, 2 слога — по длине голоса: «mil», «win» проходили).
+//    Слово в черновике, после которого уже идёт другое («try try», «i'm trying»), договорено — засчитывается сразу: серия слов подряд не ждёт пауз.
+//  • КОНЕЦ СЛОВА — голос кончился и молчит QUIET_MS. Голос считает wordEarVoice.js: порог от шума микрофона и пика речи (тихий микрофон iPhone работает как громкий), тихие согласные
+//    внутри слова — голос. Тогда просим у Vosk итог захода (stop «ear»), и он решает: слово цели с conf ≥ CONF_MIN и голосом ≥ слоги × PER_SYL_MS — зачёт; ловушка, [unk], низкий conf — нет.
+//    На ступени, где есть и цели-фразы, пока черновик не показал цель-слово, ждём тишину QUIET_PHRASE_MS: пауза между словами фразы («to … learn») заход не обрывает.
+//  • Журнал объясняет каждое решение: «голос начался: rms … ≥ порог …», «пауза внутри речи 130 мс — жду дальше», «голос кончился: шёл 610 мс, тишина 232 мс … — прошу итог»,
+//    «итог «mill»: mill — ловушка (обрубок цели) conf 0.5 — не засчитано: слово не договорено», «итог «milk»: milk conf 1, по Vosk 540 мс, голос 480 мс (ожидаю ≥ 120) — зачёт».
 // Чистая логика над часами now(); слушатель зовёт level() на каждый кусок звука, draft() на черновик с новой целью, finalText() на итог.
-export const EAR_VOICE_RMS = 0.015 // голос — кусок звука громче (как порог голоса стенда: 2,5 × затвор тишины)
-export const EAR_GAP_MS = 350      // тишина короче — то же высказывание
+import { createEarVoice, voiceNote, EAR_GAP_MS } from './wordEarVoice.js'
+import { earDecoys, syllables, single, normWord } from './wordEarDecoys.js'
+export { earDecoys, earGrammar, syllables } from './wordEarDecoys.js'
+
 export const PER_SYL_MS = 120      // ожидаемый минимум голоса на слог (быстрая речь ≈ 150–180 мс на слог)
-export const LONG_SYL = 3          // от стольких слогов черновик не засчитывается без итога
-export const QUIET_MS = 150        // голос кончился: тишина столько мс — просим итог
-export const CONF_MIN = 0.7        // итог по просьбе правила: слово цели с conf ниже — не засчитано
+export const QUIET_MS = 220        // голос кончился: тишина столько мс — просим итог (смычка «t», «k» внутри слова — до ≈ 150–200 мс; замер — _stand/word_ear)
+export const QUIET_PHRASE_MS = 600 // на ступени есть и цели-фразы: пока черновик не показал цель-слово, итог просим только после такой тишины — пауза между словами фразы («to … learn») заход не обрывает
+export const CONF_MIN = 0.35       // итог: слово цели с conf ниже — не засчитано. С ловушками conf — доля цели против ВСЕХ её соседей вместе (соседи-омофоны «wat» и «watt» делят долю надвое):
+                                   // замер — целое «water» 0,4–0,7, «book» 0,45, а обрубок уходит в ловушку целиком; порог 0,7 терял целые короткие слова, не добавляя честности
+export const CONF_MIN_RU = 0.7     // русская модель: ловушек-соседей меньше (только начала длинных слов) — conf решает больше (замер v3.3.180: обрубок 0,57–0,83)
 export const WAIT_MAX_MS = 2500    // ждём итог не дольше (шум не даёт тишины) — просим его принудительно
-export const EARLY_MIN_MS = 150    // итог по концу голоса без черновика — если голос шёл хотя бы столько (щелчок — не слово)
-export const EAR_GRAMMAR_MAX = 60 // ловушек в грамматике не больше
+export const EARLY_MIN_MS = 90     // итог по концу голоса без черновика — если голос шёл хотя бы столько (щелчок — не слово)
+export const GAP_LOG_MS = 80       // пауза внутри речи короче — в журнал не идёт
 const UNK = '[unk]'
-const VOWELS = { en: /[aeiouy]+/g, ru: /[аеёиоуыэюя]+/g }
-
-/** Слоги слова (группы гласных; английское немое «e» на конце не считается) */
-export function syllables(word, lang = 'en') {
-  const w = String(word ?? '').toLowerCase().replace(lang === 'ru' ? /[^а-яё]/g : /[^a-z]/g, '')
-  if (!w) return 0
-  const n = (w.match(lang === 'ru' ? VOWELS.ru : VOWELS.en) ?? []).length
-  return Math.max(1, lang !== 'ru' && /[^aeiouy]e$/.test(w) && !/le$/.test(w) ? n - 1 : n)
-}
 export const needMs = (word, lang) => syllables(word, lang) * PER_SYL_MS
-const single = t => !/\s/.test(String(t ?? '').trim())
+const r2 = v => Math.round(Number(v ?? 1) * 100) / 100
+export const confMin = lang => (lang === 'ru' ? CONF_MIN_RU : CONF_MIN)
 
-/** Ловушки для целей: начала одиночных слов в ≥ 2 слога (≥ 6 букв), без совпадений с самими целями */
-export function earDecoys(targets, lang = 'en') {
-  const letters = lang === 'ru' ? /^[а-яё]+$/ : /^[a-z]+$/
-  const own = new Set(targets.map(t => String(t).toLowerCase().trim()))
-  const out = new Set()
-  for (const t of targets) {
-    const w = String(t ?? '').toLowerCase().trim()
-    if (!single(w) || !letters.test(w) || w.length < 6 || syllables(w, lang) < 2) continue
-    for (let n = 3; n <= w.length - 2; n++) for (const d of lang === 'ru' ? [w.slice(0, n)] : [w.slice(0, n), `${w.slice(0, n)}y`, `${w.slice(0, n)}e`]) if (!own.has(d) && d !== w) out.add(d) // «beaut» → «beauty»
-  }
-  return [...out]
-}
-
-export function createWordEar({ targets, lang = 'en', hit = () => false, now = () => Date.now(), log = () => {} }) {
-  const decoys = earDecoys(targets, lang), trap = new Set(decoys)
-  const early = targets.some(t => single(t) && syllables(t, lang) >= LONG_SYL) // есть длинное слово: итог просим по концу голоса, не дожидаясь черновика (Vosk с ловушками отдаёт его через ≈ 250 мс после голоса)
-  let on = null, last = null, pend = null, asked = false, fresh = false // fresh — в заходе был голос, ещё не разобранный ни зачётом, ни итогом
-  const voiceMs = () => (on == null ? 0 : last - on)
-  const words = raw => String(raw ?? '').toLowerCase().split(/\s+/).filter(w => w && w !== UNK && !trap.has(w))
+/** own — слова целей во всех записях грамматики («i'm» и «i am»): ловушки их не содержат; hit(текст) — есть ли в тексте цель */
+export function createWordEar({ targets, lang = 'en', own = [], hit = () => false, now = () => Date.now(), log = () => {} }) {
+  const decoys = earDecoys(targets, lang, own), trap = new Set(decoys.flatMap(d => d.split(' ')))
+  const bare = new Set(targets.filter(single).filter(t => !earDecoys([t], lang, own).length).map(normWord)) // слова без слов-соседей (cat, dog; русские короткие): итогу не с чем их сверить
+  const strict = targets.some(single) // есть цель-слово: итог просим по концу голоса, не дожидаясь черновика, и проверяем любой итог
+  const mixed = strict && !targets.every(single) // вперемешку с фразами: без черновика с целью-словом ждём тишину подольше (QUIET_PHRASE_MS)
+  const voice = createEarVoice({ now })
+  const neutral = raw => (trap.size ? String(raw ?? '').split(/\s+/).filter(w => w && !trap.has(w.toLowerCase())).join(' ') : raw)
+  let pend = null, asked = null, fresh = false // fresh — в заходе был голос, ещё не разобранный ни зачётом, ни итогом; asked — { ms } голоса на момент просьбы итога (null — правило голоса не слышало)
+  const deaf = () => { const q = voice.quietMs(); return q == null || q > EAR_GAP_MS } // Vosk слово слышит, а правило голоса — нет (речь тише порога начала): тишину считаем от последней смены черновика
   return {
     decoys,
     /** Сырой текст Vosk без слов-ловушек (ловушка — ни цель, ни промах) */
-    neutral: raw => (trap.size ? String(raw ?? '').split(/\s+/).filter(w => w && !trap.has(w.toLowerCase())).join(' ') : raw),
-    /** Кусок звука → { ok: seq } (ждали — голос дорос, засчитать) | { final: true } (голос кончился — просить итог) | null */
+    neutral,
+    /** Кусок звука → { final: true } (голос кончился — просить итог) | null */
     level(rms) {
-      const t = now()
-      if (rms >= EAR_VOICE_RMS) { if (on == null || t - last > EAR_GAP_MS) on = t; last = t; fresh = true }
+      const t = now(), v = voice.push(rms)
+      if (!strict) return null
+      if (v.started) log(`голос начался: rms ${Math.round(rms * 1e4) / 1e4} ≥ порог ${voice.state().on} (шум ${voice.state().noise})`)
+      else if (v.gap >= GAP_LOG_MS) log(`пауза внутри речи ${Math.round(v.gap)} мс (самый тихий кусок ${v.low ?? '—'}, короче ${QUIET_MS} мс) — жду дальше`)
+      if (v.voice) fresh = true
       if (asked) return null
-      if (!pend) {
-        if (!early || !fresh || voiceMs() < EARLY_MIN_MS || t - last < QUIET_MS) return null
-        asked = true; fresh = false
-        log(`голос кончился (${voiceMs()} мс, тишина ${Math.round(t - last)} мс) — прошу итог, не дожидаясь черновика`)
-        return { final: true }
-      }
-      if (pend.syl < LONG_SYL && voiceMs() >= pend.need) { log(`черновик «${pend.word}»: голос дорос до ${voiceMs()} мс (ожидаю ≥ ${pend.need}) — зачёт`); const { seq } = pend; pend = null; return { ok: seq } }
-      const quiet = last != null && t - last >= QUIET_MS
-      if (quiet || t - pend.at >= WAIT_MAX_MS) { asked = true; fresh = false; log(quiet ? `голос кончился (${voiceMs()} мс, тишина ${Math.round(t - last)} мс) — прошу итог` : `итога нет ${WAIT_MAX_MS} мс — прошу итог`); return { final: true } }
-      return null
+      const blind = pend?.from != null && deaf(), quiet = blind ? t - pend.from : voice.quietMs(), over = pend && t - pend.at >= WAIT_MAX_MS, need = pend || !mixed ? QUIET_MS : QUIET_PHRASE_MS
+      if (!over && !(quiet != null && quiet >= need && (pend || (fresh && voice.ms() >= EARLY_MIN_MS)))) return null
+      asked = { ms: fresh ? voice.ms() : null }; fresh = false
+      log(over && !(quiet >= QUIET_MS) ? `тишины нет ${WAIT_MAX_MS} мс (${voiceNote(voice.state())}) — прошу итог`
+        : blind ? `голос тише порога начала ${voice.state().on} (шум ${voice.state().noise}) — правило его не слышит; черновик не меняется ${Math.round(quiet)} мс ≥ ${need} — прошу итог`
+          : `голос кончился: шёл ${voice.ms()} мс, тишина ${Math.round(quiet)} мс ≥ ${need} (${voiceNote(voice.state())}, тихие куски от ${voice.state().low ?? '—'}) — прошу итог${pend ? '' : ', не дожидаясь черновика'}`)
+      return { final: true }
     },
-    /** Черновик с новой целью (seq — счёт с ней, target — текст цели, raw — черновик) → true: засчитать сейчас, false: ждём (pending) */
-    draft(seq, target, raw) {
-      const heard = words(raw).at(-1) ?? String(target)
-      if (!single(target)) return true
-      const syl = syllables(heard, lang), need = syl * PER_SYL_MS, v = voiceMs()
-      const ok = syl <= 1 || (syl < LONG_SYL && v >= need)
-      const was = pend
-      pend = ok ? null : { seq, word: heard, syl, need, at: was?.at ?? now() }
-      if (ok) fresh = false
-      if (!was || ok) log(`черновик «${heard}» на ${v} мс голоса (${syl} слог${syl === 1 ? '' : syl < 5 ? 'а' : 'ов'}, ожидаю ≥ ${need}) — ${ok ? 'зачёт' : syl >= LONG_SYL ? 'жду итог' : 'жду голос или итог'}`)
-      return ok
+    /** Черновик: next — счёт с новыми целями, have — сколько уже засчитано, raw — текст черновика → счёт, который можно засчитать сейчас, или null (ждём итог) */
+    draft(next, have, raw) {
+      if (next.length <= have) { if (pend?.from != null) pend.from = now(); return pend ? null : next } // черновик сменился — Vosk ещё слышит речь
+      const target = targets[next.at(-1)], toks = String(raw ?? '').toLowerCase().split(/\s+/).filter(Boolean)
+      if (!single(target)) { pend = null; return next } // фраза — как раньше
+      if (!hit(toks.at(-1) ?? '')) { // после цели в черновике уже идёт другое слово: цель договорена
+        log(`черновик «${raw}»: после «${target}» идёт другое слово, значит оно договорено — зачёт`)
+        pend = null; fresh = false
+        return next
+      }
+      if (!pend || pend.seq.length !== next.length) log(`черновик «${raw}»: «${toks.at(-1)}» — последнее слово, может быть не договорено (голос ${voice.ms()} мс, слогов ${syllables(toks.at(-1), lang)}) — жду конец голоса и итог`)
+      pend = { seq: next, word: toks.at(-1), at: pend?.at ?? now(), from: deaf() ? now() : null }
+      return next.length - 1 > have ? next.slice(0, -1) : null
     },
     pending: () => pend,
-    /** Итог захода: если ждали — слово цели не засчитано ([unk]), если conf < CONF_MIN или голос короче needMs слова (обрубок, который Vosk «дотянул» до целого: «toge» → together conf 1). → текст для разбора */
+    /** Итог захода → текст для разбора: слово цели с conf < CONF_MIN или с голосом короче needMs заменяется на [unk] (не засчитано); ловушки уберёт neutral */
     finalText(raw, list) {
       const p = pend, was = asked
-      pend = null; asked = false
-      if (!p && !was) return raw
+      pend = null; asked = null
+      if (!strict) return raw
       const ws = Array.isArray(list) && list.length ? list : String(raw ?? '').split(/\s+/).filter(Boolean).map(word => ({ word, conf: 1 }))
-      const v = voiceMs(), real = w => w.word !== UNK && !trap.has(String(w.word).toLowerCase())
-      const why = w => (Number(w.conf ?? 1) < CONF_MIN ? 'conf' : single(w.word) && v < needMs(w.word, lang) ? 'голос' : '')
-      const out = ws.map(w => (real(w) && why(w) ? UNK : w.word))
-      const info = ws.filter(real).map(w => `${w.word} conf ${Math.round(Number(w.conf ?? 1) * 100) / 100}${w.end != null && w.start != null ? `, по Vosk ${Math.round((w.end - w.start) * 1000)} мс` : ''}, голос ${v} мс (ожидаю ≥ ${needMs(w.word, lang)})${why(w) ? ` — ${why(w) === 'conf' ? `conf < ${CONF_MIN}` : 'голос короче'}` : ''}`).join('; ')
-      log(`итог «${ws.map(w => w.word).join(' ')}»${info ? `: ${info}` : ''} — ${hit(out.join(' ')) ? 'зачёт' : `не засчитано${p ? ` (черновик был «${p.word}»)` : ''}`}`)
-      return out.join(' ')
+      const v = was ? was.ms : fresh ? voice.ms() : null, low = w => String(w.word).toLowerCase() // голос, мс (null — правило его не слышало: длину не сверяем)
+      const span = need => (v == null ? 'голос тише порога — длину не сверяю' : `голос ${v} мс (ожидаю ≥ ${need})`)
+      const goal = w => low(w) !== UNK && !trap.has(low(w)) && hit(low(w)) // слово-цель: к нему и применяются проверки
+      const why = w => (!goal(w) ? '' : Number(w.conf ?? 1) < confMin(lang) ? 'conf' : v != null && v < needMs(w.word, lang) ? 'голос' : '')
+      const out = ws.map(w => (why(w) ? UNK : w.word)).join(' ')
+      if (!p && !was && !ws.some(goal)) return out // итог без цели и без ожидания — журналу нечего объяснять
+      if (p && bare.has(p.word) && ws.every(w => low(w) === UNK) && (v == null || v >= needMs(p.word, lang))) { // слово без соседей: итогу не с чем его сверить, честность здесь — только «дождались конца голоса»
+        log(`итог «${ws.map(w => w.word).join(' ')}»: слова в итоге нет, но в черновике было «${p.word}», а слов-соседей у него нет — сверить не с чем; ${span(needMs(p.word, lang))} — зачёт`)
+        return p.word
+      }
+      const info = ws.filter(w => low(w) !== UNK).map(w => (trap.has(low(w)) ? `${w.word} — ловушка (обрубок цели) conf ${r2(w.conf)}`
+        : `${w.word} conf ${r2(w.conf)}${w.end != null && w.start != null ? `, по Vosk ${Math.round((w.end - w.start) * 1000)} мс` : ''}${goal(w) ? `, ${span(needMs(w.word, lang))}${why(w) ? ` — ${why(w) === 'conf' ? `conf < ${confMin(lang)}` : 'голос короче'}` : ''}` : ''}`)).join('; ')
+      const no = ws.some(w => why(w) === 'conf') ? 'Vosk не уверен, что слово сказано целиком' : ws.some(w => why(w) === 'голос') ? 'голос короче слова' : ws.some(w => trap.has(low(w))) ? 'слово не договорено' : 'цель не услышана'
+      log(`итог «${ws.map(w => w.word).join(' ')}»${info ? `: ${info}` : ''} — ${hit(neutral(out)) ? 'зачёт' : `не засчитано: ${no}${p ? ` (черновик был «${p.word}»)` : ''}`}`)
+      return out
     },
-    /** Конец захода: голос и ожидание сначала */
-    reset() { pend = null; asked = false; fresh = false },
+    /** Конец захода: ожидание сначала (оценка шума и пик речи живут дальше — микрофон тот же) */
+    reset() { pend = null; asked = null; fresh = false },
   }
-}
-
-/** Грамматика с ловушками: base — грамматика целей (JSON-массив вариантов), ловушки — отдельными вариантами (по одной: обрубок говорят один раз). Не больше EAR_GRAMMAR_MAX ловушек */
-export function earGrammar(base, decoys) {
-  if (!base || !decoys?.length) return base
-  try { const list = JSON.parse(base); return JSON.stringify([...list, ...decoys.slice(0, EAR_GRAMMAR_MAX).filter(d => !list.includes(d))]) } catch { return base }
 }
