@@ -1,5 +1,5 @@
-// «Щелчок» пилюли игры «Повтори за диктором»: в момент, когда пилюля залита целиком, пилюля хлопает — scale 1 → 1.12 → 1, вспышка (белая заливка и кольцо,
-// расходящееся наружу), искры вверх (общий залп приложения burstParticles.fireBurst, но локальный — из верхней кромки пилюли) и короткая вибрация там, где она есть (Android).
+// «Щелчок» пилюли игры «Повтори за диктором»: в момент, когда пилюля залита целиком (движок зовёт его в кадре, где заливка на экране дошла до 100 %, — не раньше), пилюля хлопает — scale 1 → 1.12 → 1, вспышка (белая заливка и кольцо,
+// расходящееся наружу), искры из края, в который упёрлась жидкость (общий залп приложения burstParticles.fireBurst, но локальный: вертикальная пилюля — из верхней кромки вверх, широкая — из правого торца, burstOrigin) и короткая вибрация там, где она есть (Android).
 // Кольцо вспышки отсчитывается от края пилюли с учётом её border (absolute считается от padding-box): inset = −2 px − --ring.
 // Всё императивно (WAAPI на композиторе): React не перерисовывается, а анимация не мешает кадрам линии. Звать из движка пилюль (useWordLanePills) ровно один раз на пилюлю за фазу.
 import { fireBurst } from '../../../../shared/lib/burstParticles.js'
@@ -8,6 +8,9 @@ import { levelHex } from '../../../../shared/lib/memory/memoryLevels.js'
 const LIGHT = ['#e6ff9e', '#bfe4ff', '#d9ccff'] // светлый тон цвета пилюли: зелёная, синяя, фиолетовая
 // Длительности подобраны плавными (первая версия, 380 мс, читалась резко): хлопок дышит 0,62 с, вспышка тает 0,65 с, кольцо расходится 0,85 с, искры парят ≈ 1,1 с
 export const SNAP_LEAD_MS = 180 // щелчок диктора начинается на столько РАНЬШЕ конца слова: пик хлопка (38 % от POP_MS ≈ 235 мс) приходится на конец слова, а не после него
+export const DICTOR_FILL_MIN_MS = 120
+/** За сколько мс заливается пилюля диктора со словом длиной ms: к моменту щелчка (ms − SNAP_LEAD_MS) заливка уже 100 % — хлопок и вспышка не раньше доезда (2026-11-10: раньше заливка шла всё слово, а щелчок начинался при ≈ 0,7) */
+export const dictorFillMs = ms => Math.max(ms - SNAP_LEAD_MS, Math.min(ms, DICTOR_FILL_MIN_MS))
 export const POP_MS = 620
 export const FLASH_MS = 850
 export const SPARK_COUNT = 14
@@ -31,6 +34,12 @@ export const SOFT_MISS_MS = 200
 export const SOFT_MISS_SHAKE = [{ transform: 'translateX(0)' }, { transform: 'translateX(-5px)', offset: 0.25 }, { transform: 'translateX(5px)', offset: 0.55 }, { transform: 'translateX(-2px)', offset: 0.8 }, { transform: 'translateX(0)' }]
 export const SOFT_MISS_RING = [{ outline: '3px solid rgba(255,93,115,0)', outlineOffset: '0px' }, { outline: '3px solid rgba(255,93,115,0.95)', outlineOffset: '0px', offset: 0.3 }, { outline: '3px solid rgba(255,93,115,0)', outlineOffset: '0px' }]
 
+/** Откуда бьёт залп щелчка: из края, в который упёрлась жидкость (щелчок идёт в кадре, где заливка дошла до 100 %), по направлению заливки. Вертикальная пилюля — из верхней кромки вверх;
+ *  широкая «Фраз» (заливка слева направо) — из правого торца вправо-вверх (раньше — из всей верхней кромки, мимо линии заливки). r — рамка пилюли на экране */
+export const burstOrigin = (r, wide = false) => (wide
+  ? { x: r.left + r.width - r.height / 2, y: r.top + r.height / 2, spread: r.height * 0.5, life: 0.7, reach: 200, angle: -Math.PI / 3.4, fan: 1.2 }
+  : { x: r.left + r.width / 2, y: r.top + 6, spread: r.width * 0.7, life: 0.8, reach: 260 })
+
 function flash(host, css, frames, ms) {
   const el = document.createElement('i')
   el.style.cssText = `position:absolute;pointer-events:none;${css}`
@@ -52,7 +61,7 @@ export function snapPill(pill, k, { full = true } = {}) {
   if (clip) flash(clip, 'inset:0;border-radius:999px;background:#fff;', [{ opacity: 0.7 }, { opacity: 0 }], FLASH_MS * 0.75)
   flash(pill, `inset:calc(-2px - var(--ring));border-radius:999px;border:3px solid ${c};`, [{ opacity: 0.8, transform: 'scale(1)' }, { opacity: 0, transform: 'scale(1.45, 1.2)' }], FLASH_MS)
   const r = pill.getBoundingClientRect()
-  fireBurst({ count: SPARK_COUNT, size: 3.5, colors: sparkColors(k), origin: { x: r.left + r.width / 2, y: r.top + 6, spread: r.width * 0.7, life: 0.8, reach: 260 } })
+  fireBurst({ count: SPARK_COUNT, size: 3.5, colors: sparkColors(k), origin: burstOrigin(r, pill.hasAttribute?.('data-wide')) })
   try { navigator.vibrate?.(14) } catch { /* не везде есть */ }
 }
 

@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { FADE_TOP, FADE_BOTTOM, PILL_H, OPEN_Y, LOCK_MS, TRAVEL_MS } from './wordLaneTimeline.js'
-import { SNAP_LEAD_MS, POP_MS } from './wordLaneSnap.js'
+import { SNAP_LEAD_MS, POP_MS, dictorFillMs } from './wordLaneSnap.js'
 import { planDictor } from './wordLaneDictor.js'
 import { buildRecipe } from './wordLaneRecipe.js'
 import { clipsFromFills } from './wordLaneAudio.js'
@@ -55,11 +55,14 @@ describe('отклик пилюль без опоздания', () => {
   it('диктор: щелчок начинается раньше конца слова так, чтобы пик хлопка пришёлся на конец слова', () => {
     expect(SNAP_LEAD_MS).toBeGreaterThanOrEqual(120)
     expect(Math.abs(SNAP_LEAD_MS - POP_MS * 0.38)).toBeLessThan(80)
-    expect(read('./useWordLanePills.js')).toContain('t >= h.p.at + h.p.ms - SNAP_LEAD_MS')
+    const eng = read('./useWordLanePills.js')
+    expect(eng).toContain('t >= h.p.at + dictorFillMs(h.p.ms)')         // щелчок — в тот же момент, что и раньше (конец слова − SNAP_LEAD_MS)…
+    expect(eng).toContain('pillFill(t, h.p.at, dictorFillMs(h.p.ms), h.p.curve)') // …и заливка к нему уже 100 %: хлопок и вспышка не раньше доезда
+    expect(dictorFillMs(800)).toBe(800 - SNAP_LEAD_MS); expect(dictorFillMs(200)).toBe(120); expect(dictorFillMs(90)).toBe(90)
   })
 
-  it('ученик: щелчок — на событии snap (слово принято), а не после заливки; заливка до 100 % быстрая', () => {
-    expect(LOCK_MS).toBeLessThanOrEqual(200)
+  it('ученик: щелчок — на событии snap: слово принято, заливка доехала до 100 % за LOCK_MS (молниеносно, но видимо); принятие — в кадре слова', () => {
+    expect(LOCK_MS).toBeLessThanOrEqual(140); expect(LOCK_MS).toBeGreaterThanOrEqual(80)
     const eng = read('./useWordLanePills.js')
     expect(eng).toMatch(/e\.type === 'snap'\) \{[^}]*snapPill/)
     expect(eng).not.toMatch(/e\.type === 'win'\) \{[^}]*snapPill/)

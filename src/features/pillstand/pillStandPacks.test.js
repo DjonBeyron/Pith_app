@@ -35,6 +35,8 @@ describe('отправка по теме: Анимация', () => {
     expect(txt).toContain('пилюля: win')
     expect(txt).toContain('-- Анимация: метрики --')
     expect(txt).toContain('слово → заливка дошла (по трассе): «nice» 70 мс')
+    expect(txt).toMatch(/хлопок при заливке 1,00, через \d+ мс после зачёта \(кадр \d+\) · капли из жидкости: не было/) // заливка на экране в кадре старта хлопка и задержка от зачёта (onPhrase)
+    expect(j.metrics[0].anim.pops[0]).toMatchObject({ v: 1, src: 'кадр' })
     expect(txt).toMatch(/рывки экрана ≥ 0,08 за кадр: \d+/)
     expect(j.frames.length).toBeGreaterThan(200)
   })

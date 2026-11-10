@@ -2,9 +2,9 @@ import { useEffect, useRef } from 'react'
 import { TRAVEL_MS, SPEED, ENTER_Y, EXIT_Y, pillFill } from './wordLaneTimeline.js'
 import { createPool } from './wordLanePool.js'
 import { createFillView } from './wordLaneFillView.js'
-import { createStudentGame, stepStudent, isClaimable, liveRep, resumeIdx } from './wordLaneStudent.js'
+import { createStudentGame, stepStudent, isClaimable, liveRep, resumeIdx, finOf } from './wordLaneStudent.js'
 import { createVoiceGate } from './wordLaneVoiceGate.js'
-import { snapPill, missPill, SNAP_LEAD_MS } from './wordLaneSnap.js'
+import { snapPill, missPill, dictorFillMs } from './wordLaneSnap.js'
 import { runOrderScene } from './wordLaneOrderScene.js'
 import { riseRep } from './wordLaneDictorRise.js'
 import { runMirrorScene } from './wordLaneMirrorScene.js'
@@ -21,7 +21,7 @@ import { pLog } from '../../../../shared/lib/debug.js'
 //  dictor  — { plan (wordLaneDictor.planDictor) }: каждой пилюле плана — полёт, чтобы к началу её слова она была полностью открыта; заливка в такт речи (pillFill по кривой громкости клипа);
 //            слово кончилось — щелчок и «огонёк» повтора, потом пилюли повтора взлетают вверх с вспышкой дорожки (wordLaneDictorRise.js) — ровно как у ученика после верного ответа; рот кота — по plan.mouth. Звук включает сценарий (по тем же временам);
 //  student — { step, chunks, estMs, curves }: конвейер ученика (wordLaneStudent.js) — ОДИН живой повтор за раз: следующий выкатывается, когда предыдущий принят или не успели (и прошла пауза); события
-//            (spawn / piece-ok / claim / snap / win / fail / miss / done) → пилюли и реакции fx. Заливка p всех пилюль повтора — ЦЕЛЬ, её считает шаг stepStudent, а на экран (paintFill) идёт значение, которое каждый кадр плавно догоняет цель (wordLaneFillView.js) —
+//            (spawn / piece-ok / claim / snap / win / fail / miss / done; snap и win — в кадре, где заливка принятой пилюли доехала до 100 %) → пилюли и реакции fx. Заливка p всех пилюль повтора — ЦЕЛЬ, её считает шаг stepStudent, а на экран (paintFill) идёт значение, которое каждый кадр плавно догоняет цель (wordLaneFillView.js) —
 //            голос показывает только пилюля ТЕКУЩЕГО куска («в процессе» — бледная, дышит с голосом: до подтверждения речи распознаванием — слегка, после — до 85 %); кусок, чьи слова произнесены, защёлкивается сразу (piece-ok →
 //            data-lock, зелёная сплошная), не дожидаясь конца повтора; красная вспышка (miss) — на первом незащёлкнутом куске; «тень» слова внутри пилюли — лишь после неверно сказанного;
 //  order   — { prompts, lanes, count }: раунд «Порядок» на время (wordLaneOrderScene.js) — на подсказку диктора выкатываются пилюли во всех дорожках, sceneApi.current.tap(lane) — тап ученика (у сцены student — nextTarget() для ручного режима);
@@ -67,8 +67,8 @@ export function useWordLanePills(rootRef, { scene, levels, fx, live, sceneApi, t
         }
         for (const h of held) {
           if (h.k == null) continue
-          pool.paintFill(h.k, pillFill(t, h.p.at, h.p.ms, h.p.curve))
-          if (!h.snapped && t >= h.p.at + h.p.ms - SNAP_LEAD_MS) {
+          pool.paintFill(h.k, pillFill(t, h.p.at, dictorFillMs(h.p.ms), h.p.curve)) // заливка доходит до 100 % к моменту щелчка (чуть раньше конца слова), а не после него
+          if (!h.snapped && t >= h.p.at + dictorFillMs(h.p.ms)) {
             h.snapped = true
             const lastPiece = h.p.chunk === plan.reps[h.p.rep].parts.at(-1)
             snapPill(pool.el(h.k), h.p.lane, { full: lastPiece }) // вспышка и искры — один раз на повтор (когда он договорён), у остальных кусков только хлопок
@@ -145,7 +145,7 @@ export function useWordLanePills(rootRef, { scene, levels, fx, live, sceneApi, t
           e.rep.pills.forEach(lockPiece) // остальные куски (защёлкнутые раньше уже зелёные)
           light(claimedReps++)
           fxRef.current?.claim?.(e) // слово принято (раньше щелчка заливки): «Гонка» говорит мини-реплику успеха, пока следующая пилюля ждёт
-        } else if (e.type === 'snap') { const k = held.get(e.pill.id); if (k != null) snapPill(pool.el(k), e.pill.lane, { full: e.full }) } // отклик — в момент, когда кусок принят; вспышка и искры — один раз на повтор (у последнего защёлкнутого куска), остальные куски только хлопают
+        } else if (e.type === 'snap') { const k = held.get(e.pill.id); if (k != null) { pool.paintFill(k, 1); snapPill(pool.el(k), e.pill.lane, { full: e.full }) } } // отклик — в кадре, где заливка принятого куска дошла до 100 % (LOCK_MS после принятия); вспышка и искры — один раз на повтор (у последнего защёлкнутого куска), остальные куски только хлопают
         else if (e.type === 'win') { gate.mute(performance.now()); const k = held.get(e.pill.id); pool.flashLane(e.pill.lane); fxRef.current?.win?.(e.order, k != null ? pool.el(k).getBoundingClientRect() : null, { last: e.last, count: e.rep.pills.length, idx: e.rep.idx }); if (k != null && pool.rise(k)) held.delete(e.pill.id) } // нота-награда: микрофон слышит динамик — голосом это не считаем. last / count: XP одна цифра на повтор (когда принят последний кусок). Залитая пилюля улетает вверх (pool.rise, wordLaneRise.js) и возвращается в пул сама, по окончании взлёта: из рук движка её отпускаем (иначе уход «за нижний край» вернул бы её в пул посреди взлёта); конвейер о ней не знает — ни fly, ни lock, спавн следующего повтора она не держит
         else if (e.type === 'fail') { if (!step.quiet) e.pills.forEach(p => { const k = held.get(p.id); if (k != null) { pool.attr(k, 'data-fail'); pool.hint(k, '0', null); if (e.rep.reveal) { pool.cap(k, e.rep.reveal); pool.attr(k, 'data-reveal'); pool.linger(k); held.delete(p.id) } } }); fxRef.current?.fail?.(e) } // reveal: «Гонка с Питом» — на упущенной пилюле проявляется английское слово
         else if (e.type === 'miss') {
@@ -173,7 +173,7 @@ export function useWordLanePills(rootRef, { scene, levels, fx, live, sceneApi, t
         for (const [id, k] of held) {
           const p = byId.get(id)
           if (!p) { pool.give(k); held.delete(id); view.forget(id); continue }   // ушла за нижний край
-          pool.paintFill(k, view.step(id, p.p, dtMs))
+          pool.paintFill(k, view.step(id, p.p, dtMs, finOf(p)), p.state === 'lock') // принятая пилюля: доезд до 100 % за LOCK_MS, щелчок — в кадре доезда
           // «Тень» слова — только после неверно сказанного (и ненадолго): пока ученик говорит верно или молчит, внутри пилюли ничего лишнего
           pool.hint(k, now2 < (ghostUntil.get(p.rep) ?? 0) && p.state === 'fly' && g.reps[p.rep].state === 'fly' ? '0.6' : '0', null)
         }

@@ -6,7 +6,7 @@ import { phraseStep, SAY_SPEED } from './raceStagesPhrases.js'
 import { round2SayTurns } from './racePhraseTurns.js'
 import { phrasesOf } from './racePhraseData.js'
 import { PHRASE_FIXTURE } from './racePhraseFixture.js'
-import { FILL_UP_PER_S } from '../player/modules/rotate-phone/wordLaneFillView.js'
+import { LOCK_MS } from '../player/modules/rotate-phone/wordLaneTimeline.js'
 
 // Заливка «Скажи» (racePhraseFill.js): каждое сказанное слово — своя полная доля, «аванс» — только до первого слова, после итога заливка доезжает до 100 % и только потом взлёт
 describe('цель заливки по словам', () => {
@@ -43,11 +43,11 @@ describe('цель заливки по словам', () => {
     markWord(w, 2, false, 0); markWord(w, 2, true, 50)
     expect(w.get(2)).toEqual({ full: true, at: 0 })
   })
-  it('finishDue: взлёт, когда заливка дошла до 100 % и подержалась FILL_HOLD_MS; не позже FILL_FINISH_MAX_MS', () => {
+  it('finishDue: взлёт — в кадре, где заливка дошла до 100 % (FILL_HOLD_MS = 0: хлопок не отстаёт от доезда); не позже FILL_FINISH_MAX_MS', () => {
     const fin = { at: 0 }
+    expect(FILL_HOLD_MS).toBe(0)
     expect(finishDue(fin, 0.9, 100)).toBe(false)
-    expect(finishDue(fin, 1, 200)).toBe(false)
-    expect(finishDue(fin, 1, 200 + FILL_HOLD_MS)).toBe(true)
+    expect(finishDue(fin, 1, 200)).toBe(true)
     expect(finishDue({ at: 0 }, 0.3, FILL_FINISH_MAX_MS)).toBe(true)
     expect(FILL_FINISH_MAX_MS).toBe(400)
     const full = []; const f2 = { at: 0 }
@@ -90,7 +90,7 @@ describe('сцена «Скажи»: слова по одному и доезд 
     expect(got.map(v => Math.round(v * 100))).toEqual([25, 50, 75])
     s.run.stop()
   })
-  it('итог при заливке 50 %: кромка доезжает до 100 % быстрее, чем за 200 мс (адаптивный догон), взлёт и fx.win — после, не раньше FILL_HOLD_MS', () => {
+  it('итог при заливке 50 %: кромка доезжает до 100 % ровно за LOCK_MS (фиксированный доезд — как у пилюли слова), взлёт и fx.win — в кадре доезда, не раньше', () => {
     const s = setupScene(say(), { listen: createPhraseListener })
     s.go(600)
     const p = s.pool.taken[0]
@@ -99,11 +99,25 @@ describe('сцена «Скажи»: слова по одному и доезд 
     stubSay('nice to meet you')
     let full = null, win = null
     while (s.clock.t - t0 < 1000 && win == null) { s.go(16); if (full == null && p.fill >= 1) full = s.clock.t - t0; if (s.fx.win.mock.calls.length) win = s.clock.t - t0 }
-    expect(full).toBeGreaterThanOrEqual(64); expect(full).toBeLessThanOrEqual((0.5 / FILL_UP_PER_S) * 1000)
-    expect(win - full).toBeGreaterThanOrEqual(FILL_HOLD_MS); expect(win - full).toBeLessThanOrEqual(FILL_HOLD_MS + 32)
+    expect(full).toBeGreaterThanOrEqual(LOCK_MS); expect(full).toBeLessThanOrEqual(LOCK_MS + 16)
+    expect(win).toBe(full)                                                             // хлопок — в кадре, где заливка дошла до 100 %: не раньше и не позже
     expect(p.rose).toBe(true)
     expect(p.fills.every((v, i) => i === 0 || v >= p.fills[i - 1] - 1e-9)).toBe(true) // назад не ехала
     s.run.stop()
+  })
+  it('путь «зачёт → хлопок» одинаковый при любой заливке: с 25 %, 50 % и 75 % — LOCK_MS (± кадр)', () => {
+    const got = []
+    for (const text of ['nice', 'nice to', 'nice to meet']) {
+      const s = setupScene(say(), { listen: createPhraseListener })
+      s.go(600); stubDraft(text); s.go(1000)
+      const t0 = s.clock.t
+      stubSay('nice to meet you')
+      while (s.clock.t - t0 < 1000 && !s.fx.win.mock.calls.length) s.go(16)
+      got.push(s.clock.t - t0); expect(s.pool.taken[0].fill).toBe(1)
+      s.run.stop()
+    }
+    expect(new Set(got).size).toBe(1)
+    expect(got[0]).toBeGreaterThanOrEqual(LOCK_MS); expect(got[0]).toBeLessThanOrEqual(LOCK_MS + 16)
   })
   it('итог с нуля — ожидание не дольше FILL_FINISH_MAX_MS', () => {
     const s = setupScene(say(), { listen: createPhraseListener, frame: 50 })
@@ -122,7 +136,7 @@ describe('сцена «Скажи»: слова по одному и доезд 
     const t0 = s.clock.t
     while (p.fill < 1 && s.clock.t - t0 < 1000) s.go(16)
     expect(s.clock.t - t0).toBeLessThanOrEqual(500)
-    s.go(300) // взлёт — через FILL_HOLD_MS после 100 %
+    s.go(300) // взлёт — в кадре доезда
     const line = logs.find(x => x.startsWith('[fill] 100 % через'))
     expect(line).toMatch(/^\[fill\] 100 % через \d+ мс после последнего слова, последнее слово пришло: итогом, взлёт \+\d+ мс$/) // «you» — только итогом (как «from» у владельца)
     expect(Number(line.match(/через (\d+) мс/)[1])).toBeLessThanOrEqual(500)

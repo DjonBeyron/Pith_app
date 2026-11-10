@@ -2,7 +2,7 @@
 // зачёт по seq слушателя, промах по misses), ворота голоса (wordLaneVoiceGate.js), плавный экран (wordLaneFillView.js), щелчок и дрожь (wordLaneSnap.js), слушатель слов игры (wordLaneListen.js) с
 // английской или русской моделью — как проходы A / B «Пинг-понга». Отличие одно: повтор стоит на месте (rep.y0 и почти нулевая скорость — тот же приём, что у «Вершины», raceStagesClimb.js) и пилюля
 // не взлетает (standPool.js). Каждое событие движка, слушателя и кадр заливки — в трассу стенда. → { stop(), api: { state() } }.
-import { createStudentGame, stepStudent } from '../player/modules/rotate-phone/wordLaneStudent.js'
+import { createStudentGame, stepStudent, finOf } from '../player/modules/rotate-phone/wordLaneStudent.js'
 import { createVoiceGate } from '../player/modules/rotate-phone/wordLaneVoiceGate.js'
 import { createFillView } from '../player/modules/rotate-phone/wordLaneFillView.js'
 import { snapPill, missPill } from '../player/modules/rotate-phone/wordLaneSnap.js'
@@ -49,7 +49,7 @@ export function runStandWord({ pool, target, y, trace, probe = {}, onResult = ()
     trace.push('pill', { type: e.type, rep: e.rep?.idx ?? null, ...(e.type === 'claim' || e.type === 'win' ? { text: target.say } : {}), ...(e.type === 'claim' ? { ms: e.ms } : {}), ...(e.type === 'miss' ? { wrong: !!e.wrong } : {}) })
     if (e.type === 'spawn') for (const p of e.pills) { const k = pool.take(p.lane, { cap: e.rep.cap, quiet: true }); if (k != null) held.set(p.id, k) }
     else if (e.type === 'piece-ok' || e.type === 'claim') (e.type === 'claim' ? e.rep.pills : [e.pill]).forEach(p => { const k = held.get(p.id); if (k != null) pool.attr(k, 'data-lock') })
-    else if (e.type === 'snap') { const k = held.get(e.pill.id); if (k != null) snapPill(pool.el(k), e.pill.lane, { full: e.full }) }
+    else if (e.type === 'snap') { const k = held.get(e.pill.id); if (k != null) { pool.paintFill(k, 1); snapPill(pool.el(k), e.pill.lane, { full: e.full }) } }
     else if (e.type === 'win') { gate.mute(now()); if (!done) { done = true; onResult({ ok: true, ratio: 1, clean: (st.misses ?? 0) === 0, at: t, heard: st.heard }) } }
     else if (e.type === 'miss') { const k = e.rep ? held.get(e.rep.pills.find(p => p.state === 'fly')?.id) : null; if (k != null) missPill(pool.el(k)) }
     else if (e.type === 'fail' && !done) { done = true; onResult({ ok: false, ratio: 0, clean: false, at: t }) }
@@ -66,8 +66,8 @@ export function runStandWord({ pool, target, y, trace, probe = {}, onResult = ()
     for (const p of g.pills) {
       const k = held.get(p.id)
       if (k == null) continue
-      const shown = view.step(p.id, p.p, dt)
-      pool.paintFill(k, shown)
+      const shown = view.step(p.id, p.p, dt, finOf(p))
+      pool.paintFill(k, shown, p.state === 'lock')
       Object.assign(probe, { k, el: pool.el(k), goal: p.p, shown, level })
       const key = `${p.p.toFixed(4)}|${shown.toFixed(4)}`
       if (key !== lastFill) { lastFill = key; trace.push('fill', { goal: +p.p.toFixed(4), shown: +shown.toFixed(4), level: +level.toFixed(3), confirmed }) }

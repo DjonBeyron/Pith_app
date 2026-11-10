@@ -87,7 +87,7 @@ describe('вверху: пилюля ещё не въехала', () => {
     expect(ev.map(e => e.type)).toContain('claim'); expect(wins).toHaveLength(3); expect(rep.state).toBe('won')
     const enter = tOfY(last.spawnAt, LISTEN_Y_MIN)
     const ofLast = list => list.find(e => e.pill === last)
-    expect(ofLast(snaps).t).toBeGreaterThan(enter); expect(ofLast(wins).t).toBeGreaterThan(ofLast(snaps).t) // не за кадром
+    expect(ofLast(snaps).t).toBeGreaterThan(enter); expect(ofLast(wins).t).toBe(ofLast(snaps).t) // не за кадром; щелчок и награда — одним кадром (заливка дошла)
     expect(snaps.find(e => e.pill === rep.pills[0]).t).toBeLessThan(enter)                                    // видимый кусок принят сразу
   })
 })

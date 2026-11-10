@@ -89,7 +89,7 @@ describe('куски зеленеют по мере произнесения', (
     const snaps = types(log, 'snap').filter(e => e.rep.idx === 0)
     expect(snaps.map(e => e.order)).toEqual([0, 1, 2])
     const claim = types(log, 'claim')[0]
-    expect(snaps[1].t - claim.t).toBeLessThanOrEqual(2 * DT)               // первый оставшийся кусок защёлкивается сразу
+    expect(snaps[1].t - claim.t).toBeLessThanOrEqual(LOCK_MS + 2 * DT)     // первый оставшийся кусок защёлкивается сразу: заливка доезжает за LOCK_MS — и щелчок
     expect(snaps[2].t - snaps[1].t).toBeGreaterThanOrEqual(LOCK_STAGGER_MS - DT)
   })
 
