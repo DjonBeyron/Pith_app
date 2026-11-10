@@ -109,9 +109,9 @@ describe('искры: вне клипа заливки, едут за уровн
     expect(css).toMatch(/\.wlPill\[data-live\]:not\(\[data-fail\]\) \.wlPillSparks \{ opacity: 1; visibility: visible; transition: opacity 0\.25s ease-out, visibility 0s; \}/)
     expect(block('.wlPillFill')).not.toMatch(/overflow/)                        // заливка частиц не держит
   })
-  it('внутренний <i> едет за уровнем (тот же сдвиг, что у линии, из --fill / --pill-h) и гасит искры маской от поверхности вверх на --ov', () => {
+  it('внутренний <i> едет за уровнем (тот же сдвиг, что у слоя заливки, из --fill / --pill-h + --wl-soft) и гасит искры маской от поверхности вверх на --ov', () => {
     const i = block('.wlPillSparks i')
-    expect(i).toMatch(/transform: translateY\(calc\(\(1 - var\(--fill, 0\)\) \* var\(--pill-h, 0px\)\)\);/)
+    expect(i).toMatch(/transform: translateY\(calc\(\(1 - var\(--fill, 0\)\) \* \(var\(--pill-h, 0px\) \+ var\(--wl-soft, 8px\)\)\)\);/) // ход слоя заливки: клип + мягкий край (edge20)
     expect(i).toMatch(/mask-image: linear-gradient\(to bottom, transparent, #000 var\(--ov\)\);/)
     expect(i).toMatch(/-webkit-mask-image: linear-gradient\(to bottom, transparent, #000 var\(--ov\)\);/)
     expect(css).toContain('.wlPill[data-held] .wlPillSparks i { will-change: transform; }')

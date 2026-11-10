@@ -73,7 +73,8 @@ describe('мягкий край заливки — без горизонталь
   it('принятая пилюля залита на 100 % без прозрачной полосы сверху (v3.3.87): слой заливки на высоту мягкого края (8 px) выше клипа, при translateY(0) край — над клипом и обрезан', () => {
     const fill = block(css, '.wlPillFill')
     const grad = fill.match(/linear-gradient\(to bottom, rgba\(var\(--rgb\), 0\), var\(--c\) (\d+)px/)
-    const over = fill.match(/inset: -(\d+)px 0 0;/)
+    expect(fill).toMatch(/inset: calc\(var\(--wl-soft\) \* -1\) 0 0;/)          // отступ слоя — общая переменная мягкого края (edge20: тот же ход у искр)
+    const over = css.match(/\.wlPill \{[^}]*--wl-soft: (\d+)px;/)
     expect(grad).not.toBeNull(); expect(over).not.toBeNull()
     expect(Number(over[1])).toBeGreaterThanOrEqual(Number(grad[1]))             // перекрытие не меньше мягкого края
     expect(fillTransform(1)).toBe('translateY(0.0%)')                           // полная заливка: слой на месте, его верхние 8 px (прозрачный переход) выше клипа

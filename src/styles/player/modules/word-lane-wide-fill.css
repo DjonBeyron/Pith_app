@@ -5,14 +5,18 @@
    пилюле вне клипа; у широкой пилюли искр нет, слой — рамка на 12 px выше и ниже пилюли без обрезки, его <i> — кромка: пул пишет ей translateX(v·100 %) (ширина <i> = ширина слоя заливки, поэтому кромка идёт ровно
    по фронту) и opacity: у скруглённых торцов кромка гаснет (8 % от левого, 12 % до правого: прямая линия за дугой торца не торчит), пустая и полная — 0. ::before — «веретено»: 2,5 px по центру, к концам 0 (clip-path ромбом),
    белое ядро поверх цвета дорожки, концы прозрачнее (вертикальный градиент); ::after — ореол: radial-gradient эллипсом 36 px, слабая непрозрачность, при приросте (data-live) ярче. Анимируются только transform
-   и opacity; filter и box-shadow нет; на слабом устройстве ореола нет. У обычных пилюль слов всё как было (снизу вверх). Искры на широкой не идут. */
-.wlPill[data-wide] .wlPillFill { inset: 0 -8px 0 0; transform: translateX(-100%); }
+   и opacity; filter и box-shadow нет; на слабом устройстве ореола нет. У обычных пилюль слов всё как было (снизу вверх). Искры на широкой не идут.
+   ОДИН ОТСЧЁТ (edge20, владелец, покадрово: «в линии заполнения и света офсет»): слой заливки длиннее клипа на --wl-soft (word-lane-pill.css), слой кромки шире клипа на --wl-soft / 2 с каждой стороны — ширина у них
+   одна, сдвиг в % этой ширины, поэтому веретено всегда на середине мягкого края (правый край слоя заливки − --wl-soft / 2), и в покое, и в движении (переходов на transform нет ни у того, ни у другого). Мягкий край
+   «в процессе» — от прозрачного до цвета ровно за --wl-soft (середина, 50 %, — под веретеном; было 6 px — фронт на 1,4 px впереди веретена). Свет — только на слое кромки (веретено и ореол): свечение гонки
+   (race-pill-fill.css) широкой пилюле не ставится — раньше это был box-shadow слоя заливки, он светил правее его края, на 4–16 px впереди веретена. */
+.wlPill[data-wide] .wlPillFill { inset: 0 calc(var(--wl-soft) * -1) 0 0; transform: translateX(-100%); }
 .wlPill[data-wide]:not([data-fail]) .wlPillFill { background: linear-gradient(to left, rgba(var(--rgb), 0), var(--c) 8px, rgba(var(--rgb), 0.78)); }
 .wl[data-phase='student'] .wlPill[data-wide]:not([data-lock]):not([data-fail]) .wlPillFill,
 .wl[data-phase='student'] .wlField.wl--safe .wlPill[data-wide]:not([data-lock]):not([data-fail]) .wlPillFill {
   background:
     linear-gradient(to left, rgba(255, 255, 255, 0) 4px, rgba(255, 255, 255, 0.16) 8px, rgba(255, 255, 255, 0) 24px),
-    linear-gradient(to left, rgba(var(--rgb), 0) 0, rgba(var(--rgb), 0.5) 6px, rgba(var(--rgb), 0.38) 8px);
+    linear-gradient(to left, rgba(var(--rgb), 0) 0, rgba(var(--rgb), 0.5) 8px, rgba(var(--rgb), 0.38) 10px);
 }
 .wl[data-phase='student'] .wlPill[data-wide][data-lock]:not([data-fail]) .wlPillFill,
 .wl[data-phase='student'] .wlField.wl--safe .wlPill[data-wide][data-lock]:not([data-fail]) .wlPillFill {
@@ -21,7 +25,7 @@
     linear-gradient(to left, rgba(var(--rgb), 0) 0, var(--c) 8px);
 }
 .wlField .wlPill[data-wide] .wlPillSparks {
-  display: block; top: -12px; bottom: -12px; left: calc(var(--gap) - 4px); right: calc(var(--gap) - 4px);
+  display: block; top: -12px; bottom: -12px; left: calc(var(--gap) - var(--wl-soft) / 2); right: calc(var(--gap) - var(--wl-soft) / 2);
   overflow: visible; border-radius: 0; opacity: 1; visibility: visible; transition: none;
 }
 .wlField .wlPill[data-wide][data-fail] .wlPillSparks { display: none; }
