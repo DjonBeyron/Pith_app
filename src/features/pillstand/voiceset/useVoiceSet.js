@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
-import { openGameMic, closeGameMic } from '../../../shared/lib/gameMic.js'
+import { openGameMic, closeGameMic, peekGameMic } from '../../../shared/lib/gameMic.js'
 import { APP_VERSION } from '../../../shared/lib/version.js'
 import { collectDevice } from '../../player/modules/rotate-phone/wordLaneDebug.js'
 import { SAVE_HOW, saveDebugFile } from '../../player/modules/rotate-phone/wordLaneDebugExport.js'
@@ -9,6 +9,7 @@ import { buildPlan, parseWords, planSig, planStats } from './voiceSetPlan.js'
 import { readSetPrefs, writeSetPrefs } from './voiceSetPrefs.js'
 import { openVoiceSetStore, resumeInfo } from './voiceSetStore.js'
 import { createVoiceSetRun, createMiniTrace } from './voiceSetRun.js'
+import { primeCapture } from './voiceSetCapture.js'
 import { buildArchives, mb } from './voiceSetExport.js'
 import { createWake } from './voiceSetWake.js'
 
@@ -17,6 +18,8 @@ import { createWake } from './voiceSetWake.js'
 // плашка «нажми», оживление → клип переписывается), сторож «звук перестал приходить» (контекст захвата прерван), уход страницы в фон → пауза, сборка и отдача архива по частям.
 // view: 'setup' (настройки или начатый набор) | 'record' | 'done' (итог и архив). keepMic — стенд сам держит микрофон включённым: на выходе его не выключаем.
 const GRACE_MS = 2500 // после возврата страницы из фона сторож ждёт столько: контекст захвата успевает продолжить сам
+const SOFT_MS = 1300  // после каждой ступени «лесенки» сторож ждёт столько: куски звука успевают пойти
+const LAG_MS = 1200   // сторож опоздал на столько — основной поток стоял (запись клипа, система): куски звука ждут в очереди, это не обрыв
 const NO_ARCH = { busy: false, parts: null, note: '' }
 
 export default function useVoiceSet({ keepMic = false } = {}) {
@@ -67,6 +70,7 @@ export default function useVoiceSet({ keepMic = false } = {}) {
     if (!store || runRef.current || (!fresh && stale)) return
     setMic('asking'); setArch(NO_ARCH)
     const asked = openGameMic() // getUserMedia — прямо в нажатии
+    primeCapture() // и контекст захвата — тоже в нажатии: на iPhone созданный позже остаётся 'suspended' (звука нет)
     wake.on()
     try { globalThis.navigator?.storage?.persist?.()?.catch?.(() => {}) } catch { /* без постоянного хранилища */ }
     const p = fresh ? buildPlan({ words: parseWords(prefs.words), reps: prefs.reps, far: prefs.far }) : plan
@@ -98,16 +102,27 @@ export default function useVoiceSet({ keepMic = false } = {}) {
     if (!run) return
     if (run.open() && run.session.state().pauseWhy === 'mic') run.session.resume()
   }, [])
-  const { health, tap: micTap } = useStandMicHealth({ trace, on: view === 'record', onRevived })
+  const { health, tap: tapHealth } = useStandMicHealth({ trace, on: view === 'record', onRevived })
+  const micTap = useCallback(() => { const p = tapHealth(); primeCapture(); return p }, [tapHealth]) // поток открыт в нажатии (tapHealth) — контекст захвата тоже
   useEffect(() => { if (health.state !== 'ok') runRef.current?.session.pause('mic') }, [health.state])
 
   useEffect(() => {
     if (view !== 'record') return undefined
     const vis = () => { if (document.visibilityState === 'hidden') runRef.current?.session.pause('hidden'); else { grace.current = performance.now() + GRACE_MS; runRef.current?.kick() } }
     document.addEventListener('visibilitychange', vis)
-    const id = setInterval(() => { // звук перестал приходить (контекст захвата прерван системой) — тот же сигнал, что «слушатель оглох»
-      const run = runRef.current
-      if (run && document.visibilityState !== 'hidden' && performance.now() > grace.current && run.stalled()) { grace.current = performance.now() + GRACE_MS; trace.push('listen', { status: 'dead', why: 'нет кусков звука' }) }
+    let lastTick = performance.now(), step = 0
+    const id = setInterval(() => { // звук перестал приходить — лесенка: 1) продолжить контекст, 2) собрать захват заново на том же потоке, 3) только тогда «оглох» (как «слушатель оглох»)
+      const t = performance.now(), lag = t - lastTick, run = runRef.current
+      lastTick = t
+      if (!run) return
+      if (lag > LAG_MS) { grace.current = t + GRACE_MS; return }
+      if (document.visibilityState === 'hidden' || t < grace.current) return
+      if (!run.stalled()) { step = 0; return }
+      const tr = peekGameMic()?.getAudioTracks?.()[0], d = { ...run.diag(), readyState: tr?.readyState ?? null, muted: tr ? !!tr.muted : null }
+      step += 1
+      if (step === 1) { trace.push('soft', { ...d, how: 'resume' }); run.kick(); grace.current = t + SOFT_MS }
+      else if (step === 2) { trace.push('soft', { ...d, how: 'reopen' }); run.open(); grace.current = t + SOFT_MS }
+      else { step = 0; grace.current = t + GRACE_MS; trace.push('listen', { status: 'dead', why: 'нет кусков звука', ...d }) }
     }, 500)
     return () => { document.removeEventListener('visibilitychange', vis); clearInterval(id) }
   }, [view, trace])

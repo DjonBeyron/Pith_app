@@ -73,6 +73,8 @@ export function createVoiceSetRun({ store, plan, meta: metaIn, clips: clipsIn = 
     /** Звук перестал приходить (контекст прерван) — сторож зовёт раз в полсекунды, пока идёт запись */
     stalled: () => !!cap && now() - cap.lastAt() > STALL_MS,
     kick: () => cap?.resume(),
+    /** Что с захватом сейчас (в событие журнала сбоев): состояние контекста, сколько мс нет кусков звука */
+    diag: () => ({ ctx: cap?.state?.() ?? null, since: cap ? Math.round(now() - cap.lastAt()) : null }),
     rate: () => cap?.rate ?? null,
     /** Закрыть захват и ход → Promise: запись набора (пропущенные, сбои микрофона) дописана в хранилище */
     close() { cap?.stop(); cap = null; session.dispose(); return saveMeta({}) },

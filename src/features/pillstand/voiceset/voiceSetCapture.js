@@ -14,6 +14,17 @@ export const CHUNK = 2048
 const mono = (ctx) => { const g = ctx.createGain(); try { g.channelCount = 1; g.channelCountMode = 'explicit' } catch { /* старый WebKit: и так моно */ } return g }
 const asBuf = d => ({ getChannelData: () => d })
 
+/** «Заранее» — СИНХРОННО из нажатия («Начать», плашка «нажми»): контекст захвата игры создаётся и продолжается в жесте. На iPhone контекст, созданный позже (после await), остаётся
+ *  'suspended' — кусков звука нет, сторож считает микрофон оглохшим. startCapture потом берёт тот же оставленный контекст. → состояние контекста или null */
+export function primeCapture({ Ctx = globalThis.AudioContext || globalThis.webkitAudioContext } = {}) {
+  try {
+    const ctx = acquireCaptureContext(Ctx, { keep: true })
+    Promise.resolve(ctx.resume?.()).catch(() => {})
+    releaseCapture({ stream: null, nodes: [], ctx }) // счётчик пользователей назад, сам контекст остаётся (один на игру)
+    return ctx.state ?? null
+  } catch { return null }
+}
+
 /** stream — игровой поток (getGameMic). → { rate, gain, state(), lastAt(), stop() }; onState(state) — контекст захвата сменил состояние (iOS: 'interrupted' при звонке) */
 export function startCapture({ stream, onChunk, onState = () => {}, gain = readMicGain(), Ctx = globalThis.AudioContext || globalThis.webkitAudioContext, now = () => performance.now() }) {
   const ctx = acquireCaptureContext(Ctx, { keep: true })
