@@ -10,8 +10,8 @@ export const stamp = (d = new Date()) => `${d.getFullYear()}-${pad(d.getMonth() 
 /** pithy-voiceset-2026-11-11_14-05.zip либо …-part1of2.zip */
 export const archiveName = (date, part = 1, parts = 1) => `pithy-voiceset-${stamp(date)}${parts > 1 ? `-part${part}of${parts}` : ''}.zip`
 
-/** Запись клипа для манифеста из задания сценария и чисел клипа: слово — word, фраза — phrase, остальное — id */
-export function clipEntry(item, stats, { srcRate, sampleRate, preMs, bytes, clipped = 0, t = Date.now() }) {
+/** Запись клипа для манифеста из задания сценария и чисел клипа: слово — word, фраза — phrase, остальное — id; env — rms кусков исходного звука × 1e6, chunkMs — длина куска */
+export function clipEntry(item, stats, { srcRate, sampleRate, preMs, bytes, clipped = 0, env = null, chunkMs = null, t = Date.now() }) {
   return {
     i: item.i, file: item.file, kind: item.kind, ...(item.kind === 'word' ? { word: item.text } : item.kind === 'phrase' ? { phrase: item.text } : { id: item.id }),
     variant: item.variant, rep: item.rep, far: !!item.far, expect: item.expect, hint: item.hint || undefined,
@@ -19,6 +19,7 @@ export function clipEntry(item, stats, { srcRate, sampleRate, preMs, bytes, clip
     voiceMs: stats.voiceMs, voiceOnMs: stats.voiceOnMs, voiceOffMs: stats.voiceOffMs,
     ...(stats.noVoice && item.voiced ? { noVoice: true } : {}), ...(stats.late && item.voiced ? { late: true } : {}), ...(stats.early && item.voiced ? { early: true } : {}),
     ...(stats.zeros ? { zeros: stats.zeros } : {}), ...(clipped ? { clipped } : {}), t: new Date(t).toISOString(),
+    ...(env ? { chunkMs: Math.round(chunkMs * 1000) / 1000, env } : {}), // огибающая ИСХОДНОГО звука: rms × 1e6 каждого куска (2048 кадров на частоте контекста) — прогонщик возвращает по ней уровень, потерянный выше 8 кГц
   }
 }
 
@@ -41,7 +42,7 @@ export function buildManifest({ meta, clips, part = 1, parts = 1, total = clips.
   return {
     kind: 'pithy-voiceset', v: 1, version: meta.version, device: meta.device, ua: meta.ua, createdAt: meta.createdAt, exportedAt: now.toISOString(),
     part, parts, clipsInSet: total, planCount: meta.planCount, skipped: meta.skipped ?? [], settings: meta.settings,
-    audio: { format: 'WAV PCM 16 бит моно', sampleRate: clips[0]?.sampleRate ?? null, contextRate: last.ctxRate ?? null, preMs: clips[0]?.preMs ?? null, micGain: meta.micGain ?? null, note: 'rmsPeak / rmsNoise — сырой поток (лежит в WAV), gamePeak / gameNoise / voiceMs — после «Чувствительности микрофона» игры (это видит слушатель); автоусиление voskAgc к записи не применялось' },
+    audio: { format: 'WAV PCM 16 бит моно', sampleRate: clips[0]?.sampleRate ?? null, contextRate: last.ctxRate ?? null, preMs: clips[0]?.preMs ?? null, micGain: meta.micGain ?? null, note: 'rmsPeak / rmsNoise / env — сырой поток на частоте контекста (в WAV он же, но до 8 кГц), gamePeak / gameNoise / voiceMs — после «Чувствительности микрофона» игры (это видит слушатель); автоусиление voskAgc к записи не применялось' },
     constraints: meta.constraints ?? null, track: last.track ?? null, captures: meta.captures ?? [], deviceInfo: meta.deviceInfo ?? null, micEvents: meta.micEvents ?? [],
     clips,
   }

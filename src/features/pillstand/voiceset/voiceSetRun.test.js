@@ -50,6 +50,8 @@ describe('запись набора в сборе', () => {
     expect(Math.abs(wav.samples.length / 16 - c.ms)).toBeLessThan(2)
     expect(c.ms).toBeGreaterThanOrEqual(WORD_MS + PRE_MS)
     expect(c.bytes).toBe(44 + wav.samples.length * 2)
+    expect(c.chunkMs).toBeCloseTo(CH, 2); expect(c.env).toHaveLength(Math.round(c.ms / CH)) // огибающая исходного звука — по числу на кусок
+    expect(Math.max(...c.env)).toBe(4000); expect(Math.min(...c.env)).toBe(200)
     let peak = 0 // уровень в WAV — как в исходном звуке: самый громкий кусок (683 отсчёта при 16 кГц = 2048 при 48 кГц)
     for (let o = 0; o + 683 <= wav.samples.length; o += 171) { let q = 0; for (let k = o; k < o + 683; k++) q += wav.samples[k] ** 2; peak = Math.max(peak, Math.sqrt(q / 683)) }
     expect(peak / 0.004).toBeGreaterThan(0.97); expect(peak / 0.004).toBeLessThan(1.03)
