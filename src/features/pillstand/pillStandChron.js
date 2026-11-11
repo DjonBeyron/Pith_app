@@ -37,7 +37,7 @@ const LINES = {
   ear: e => `слух фраз: ${rest(e, 200)}`,
   pill: e => `пилюля: ${e.type}${e.text ? ` ${q(e.text)}` : ''}${e.ms != null ? ` ${e.ms} мс` : ''}${e.wrong ? ' (неверно)' : ''}${e.res ? ` ${rest({ res: e.res }, 200)}` : ''}`,
   pre: e => `перед ходом ${q(e.text)} (проход ${e.pass ?? '?'})`,
-  fill: e => `заливка: цель ${num(e.goal)} · экран ${num(e.shown)}${e.level != null ? ` · уровень ${num(e.level, 3)}` : ''}${e.confirmed != null ? ` · речь ${e.confirmed ? 'да' : 'нет'}` : ''}`,
+  fill: e => `заливка: цель ${num(e.goal)} · экран ${num(e.shown)}${e.level != null ? ` · уровень ${num(e.level)}` : ''}${e.confirmed != null ? ` · речь ${e.confirmed ? 'да' : 'нет'}` : ''}`,
   reach: e => `заливка дошла: ${q(e.word)} за ${e.ms} мс`,
   result: e => `${e.ok ? 'зачёт ✓' : 'нет зачёта ✗'}${e.ratio != null ? ` ratio ${num(e.ratio)}` : ''}${e.clean != null ? `, ${e.clean ? 'чисто' : 'нечисто'}` : ''}${e.afterVoiceMs != null ? `, ${e.afterVoiceMs} мс от конца голоса` : ''}`,
   log: e => e.text,

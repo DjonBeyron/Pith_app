@@ -73,7 +73,7 @@ describe('стенд пилюль: «голос» в отчёте = голос �
     expect(chronLine(up, t0)).toBe('   +910  rms 0,0022 ▲ голос · шум 0,0003 · уровень 0,42 (×10,0)')
     expect(ear.filter(e => e.voice === false && e.t > 1300)[0].t).toBe(1360) // «▽ тишина» — первый кусок после слова
     const fill = packEvents(['anim'], ev).find(e => e.k === 'fill')
-    expect(chronLine(fill, t0)).toContain('уровень 0,630')
+    expect(chronLine(fill, t0)).toBe('   +975  заливка: цель 0,21 · экран 0,08 · уровень 0,63')
     const seg = honesty(ev).segs[0]
     expect(topicMetrics('anim', { seg, events: ev, t0 }).lines[0]).toMatch(/^заливка голосом: шла — уровень до 0,69/)
     expect(topicMetrics('ear', { seg, events: ev, t0 }).lines[0]).toContain('голос: +910…+1211 мс (счётчик распознавания: шум 0,0003, пик речи 0,0045)')
