@@ -46,14 +46,13 @@ describe('безопасный режим: вёрстка без слоёв', ()
     expect(safeCss).toMatch(/\.wlField\.wl--safe \.wlPill\[data-held\] \{ transform: translateZ\(0\); \}/)
     expect(safeCss).toMatch(/\.wl\[data-phase='lanes'\] \.wlField\.wl--safe \.wlPill \{ will-change: auto; \}/) // прогрев слоёв обычного режима тоже снят
   })
-  it('никаких visibility и filter; display — только у блока искр (не слой, а вёрстка) и у кольца-«выдоха»; частиц в заливке нет, плиток-фонов и орбит тоже', () => {
+  it('никаких visibility и filter; display — только у кольца-«выдоха» (слой уровня по состоянию не переключается); частиц в заливке нет, плиток-фонов и орбит тоже', () => {
     expect(safeCss).not.toMatch(/visibility/)
     expect(all.filter(r => /filter:/.test(r.body)).every(r => /filter: none/.test(r.body))).toBe(true)
-    expect(all.filter(r => /\bdisplay:/.test(r.body)).every(r => /\.wlPillSparks$|\.wlPill::before$/.test(r.sel))).toBe(true)
+    expect(all.filter(r => /\bdisplay:/.test(r.body)).every(r => /\.wlPill::before$/.test(r.sel))).toBe(true)
     expect(safeCss).not.toMatch(/--tile|--dust|wlSafeDust|wlSafeSpark|--orbit/)    // плитки частиц в заливке, фонового сдвига и орбит больше нет
     expect(safeCss).not.toMatch(/\.wlPillFill::(before|after)/)
-    expect(safeCss).toContain('.wlField.wl--safe .wlPillSparks { display: none; }')
-    expect(safeCss).toMatch(/\.wlField\.wl--safe:not\(\.wl--lite\) \.wlPill\[data-live\]:not\(\[data-fail\]\) \.wlPillSparks \{ display: block; \}/)
+    expect(safeCss).not.toMatch(/\.wlPillSparks \{/)                              // блока уровня по data-live безопасный режим не прячет и не показывает (v3.3.186)
     expect(safeCss).toContain('.wlField.wl--safe .wlPill::before { display: none; }')   // «выдоха» кольца нет
   })
   it('контур дважды: border остаётся (обычное правило), поверх него outline на толщину обводки внутрь; inset-теней нет', () => {
@@ -68,15 +67,17 @@ describe('безопасный режим: вёрстка без слоёв', ()
     expect(safeCss).toMatch(/\.wlPill\[data-fail\] \{ opacity: 1; transition: none; --rgb: 123, 132, 148;/)
     expect(safeCss).toMatch(/\.wlPill\[data-voice\] \{ filter: none; transition: none; --glow:/)
   })
-  it('состояния заливки: «в процессе», «принято», «не успел» — без частиц, специфичность выше обычных правил; мягкий край --edge остаётся', () => {
-    expect(safeCss).toMatch(/:not\(\[data-lock\]\):not\(\[data-fail\]\) \.wlPillFill \{ background: linear-gradient\(to bottom, rgba\(var\(--rgb\), 0\), rgba\(var\(--rgb\), 0\.35\) 8px\); \}/)
-    expect(safeCss).toMatch(/\[data-lock\]:not\(\[data-fail\]\) \.wlPillFill \{ background: linear-gradient\(to bottom, rgba\(var\(--rgb\), 0\), var\(--c\) 8px\); \}/)
+  it('заливка: цвет жидкости — из обычных правил (чистый цвет дорожки), своих фонов «в процессе» / «принято» у безопасного режима нет; «не успел» — серый', () => {
+    expect(safeCss).not.toMatch(/data-lock[^{]*\.wlPillFill/)
+    expect(safeCss).not.toMatch(/\.wlPillFill \{[^}]*linear-gradient/)
+    expect(safeCss).toContain('.wlField.wl--safe .wlPillFill { will-change: auto; }')
     expect(safeCss).toContain('.wlField.wl--safe .wlPill[data-fail] .wlPillFill { background: #7b8494; }')
   })
-  it('искры в безопасном режиме: те же узлы и анимации (transform / translate / opacity на композиторе — сдвиг фона красил бы два слоя на пилюлю каждый кадр), но без will-change', () => {
-    expect(safeCss).toContain('.wlField.wl--safe .wlPill[data-held] .wlPillSparks i, .wlField.wl--safe .wlPill[data-held] .wlPillSparks b { will-change: auto; }')
-    expect(safeCss).not.toMatch(/wlPillSparks[^{]*\{[^}]*animation|@keyframes wlSafeSpark|background-position-[xy]/)   // анимации и ключевые кадры — обычные (word-lane-pill.css), у безопасного свои — только блик линии
-    expect(pillCss).toMatch(/\.wlPill\[data-held\] \.wlPillSparks b:first-child \{ will-change: transform, translate, opacity; animation: wlSparkA/) // обычные правила, которые безопасный режим переопределяет по will-change
+  it('линия уровня, тёмная подпись и пузыри в безопасном режиме: те же узлы и те же transform / opacity, но без will-change', () => {
+    expect(safeCss).toContain('.wlField.wl--safe .wlPill[data-held] .wlPillSparks i, .wlField.wl--safe .wlPill[data-held] .wlPillSparks b, .wlField.wl--safe .wlPill[data-held] .wlPillInkIn { will-change: auto; }')
+    expect(safeCss).not.toMatch(/wlPillSparks[^{]*\{[^}]*animation|@keyframes|background-position-[xy]/)
+    expect(pillCss).toContain('.wlPill[data-held] .wlPillSparks i, .wlPill[data-held] .wlPillSparks b { will-change: transform; }') // обычные правила, которые безопасный режим переопределяет по will-change
+    expect(read('../../../../styles/player/modules/word-lane-bubbles.css').replace(/\/\*[\s\S]*?\*\//g, '')).not.toMatch(/will-change/)       // пузырям слои заранее не ставятся ни в одном режиме
   })
   it('файл подключён после обычных правил пилюль', () => {
     const idx = read('../../../../index.css')
@@ -151,25 +152,26 @@ describe('пул: безопасный режим не ставит will-change;
   })
 })
 
-describe('пул пишет уровень заливки искрам (линии уровня нет)', () => {
-  it('--pill-h пишется один раз при взятии (один замер), --fill — при каждом изменении заливки, 0 при выдаче; в безопасном режиме линии уровня нет и в CSS', () => {
+describe('пул пишет уровень заливки слою уровня', () => {
+  it('замер ёмкости — один раз при взятии; слою уровня — тот же transform, что слою заливки, при каждом изменении заливки, пустой при выдаче; старых узлов линии в CSS нет', () => {
     expect(safeCss).not.toContain('wlPillLine')
     expect(safeCss).not.toContain('wlSafeGlint')
     const { pool, pills } = rig()
     const k = pool.take(0, { flight: false })
     const clip = pills[k].parts['.wlPillClip']
-    const sp = pills[k].parts['.wlPillSparks i']
-    expect(sp.style.props['--pill-h']).toBe('154px')
-    expect(sp.style.props['--fill']).toBe('0.000')
+    const sp = pills[k].parts['.wlPillSparks i'], fill = pills[k].parts['.wlPillFill']
+    expect(sp.style.transform).toBe('translateY(100.0%)')
     pool.paintFill(k, 0.3); pool.paintFill(k, 0.3); pool.paintFill(k, 0.64)
-    expect(sp.style.props['--fill']).toBe('0.640')
+    expect(sp.style.transform).toBe('translateY(36.0%)')
+    expect(sp.style.transform).toBe(fill.style.transform)
     pool.paintFill(k, 1.4)
-    expect(sp.style.props['--fill']).toBe('1.000')
-    expect(sp.style.props['--pill-h']).toBe('154px')
-    clip.offsetHeight = 999                                                          // пересчёт высоты в кадрах не происходит
-    pool.paintFill(k, 0.7)
-    expect(sp.style.props['--pill-h']).toBe('154px')
+    expect(sp.style.transform).toBe('translateY(0.0%)')
+    expect(sp.style.props['--fill']).toBeUndefined(); expect(sp.style.props['--pill-h']).toBeUndefined() // переменных уровня больше нет — только transform
+    let reads = 0
+    Object.defineProperty(clip, 'offsetHeight', { get: () => { reads++; return 999 } })  // пересчёт высоты в кадрах не происходит
+    pool.paintFill(k, 0.7); pool.paintFill(k, 0.8)
+    expect(reads).toBe(0)
     pool.give(k)
-    expect(sp.style.props['--fill']).toBe('0.000')
+    expect(sp.style.transform).toBe('translateY(100.0%)')
   })
 })

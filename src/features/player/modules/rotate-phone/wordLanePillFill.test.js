@@ -48,40 +48,44 @@ describe('контур пилюли: настоящий border, не inset-те�
   it('вспышка-кольцо щелчка тоже учитывает border пилюли', () => {
     expect(read('./wordLaneSnap.js')).toContain('inset:calc(-2px - var(--ring))')
   })
-  it('на фазе «в процессе» контур не тускнеет: opacity нет ни на пилюле, ни на заливке; бледность — альфа в цвете заливки', () => {
+  it('на фазе «в процессе» контур не тускнеет: opacity нет ни на пилюле, ни на заливке; жидкость «в процессе» — тот же чистый цвет, что у принятой (v3.3.186), отдельного бледного фона нет', () => {
     const opacityRules = [...css.matchAll(/([^{}]+)\{([^}]*\bopacity:[^}]*)\}/g)].map(m => m[1].trim())
     const onPill = opacityRules.filter(sel => /\.wlPill(?![A-Za-z])/.test(sel) && !/::before|::after|\.wlGhost|\.wlPace|\.wlPillFill/.test(sel))
     expect(onPill.every(sel => /data-fail|data-phase='lanes'/.test(sel))).toBe(true) // только «не успел» и невидимый прогрев слоёв
     expect(css).not.toMatch(/data-lock\]\):not\(\[data-fail\]\) \.wlPillFill \{[^}]*opacity/)
-    expect(css).toMatch(/\.wlPill:not\(\[data-lock\]\):not\(\[data-fail\]\) \.wlPillFill \{ background: linear-gradient\(to bottom, rgba\(var\(--rgb\), 0\), rgba\(var\(--rgb\), 0\.35\) 8px\); \}/)
+    expect(css).not.toMatch(/data-phase='student'[^{]*\.wlPillFill/)                // фона по состоянию «в процессе» / «принято» больше нет
     expect(css).not.toMatch(/\.wlPillFill \{[^}]*opacity/)
   })
 })
 
-describe('мягкий край заливки — без горизонтальной линии (v3.3.84)', () => {
+describe('жидкость: чистый цвет дорожки, полная пилюля — с запасом (v3.3.186)', () => {
   const css = pillCss()
-  it('край — начало единого градиента заливки: верхние 8 px от прозрачного к цвету (сквозь них виден фон пилюли), без светлой черты 2 px, без отдельного слоя и mask; без box-shadow', () => {
-    expect(block(css, '.wlPillFill')).toMatch(/background: linear-gradient\(to bottom, rgba\(var\(--rgb\), 0\), var\(--c\) 8px, rgba\(var\(--rgb\), 0\.78\)\);/)
-    expect(css).not.toMatch(/--edge|255, 255, 255, 0\.6|0 2px, rgba/)
+  it('цвет жидкости — сплошной var(--c) без альфы: ни бледного «в процессе» (rgba .35 поверх тёмной карточки — грязный оттенок), ни белёсой фаски, ни затемнения ко дну; без mask и box-shadow', () => {
+    const fill = block(css, '.wlPillFill')
+    expect(fill).toMatch(/background: linear-gradient\(to bottom, rgba\(var\(--rgb\), 0\) calc\(var\(--wl-surf\) - 0\.5px\), var\(--c\) calc\(var\(--wl-surf\) \+ 0\.5px\)\);/)
+    expect(fill.match(/rgba\(/g)).toHaveLength(1)                                 // единственная альфа — прозрачность над поверхностью
+    expect(css).not.toMatch(/--edge|255, 255, 255, 0\.6|0 2px, rgba|0\.78|0\.35\) 8px/)
     expect(css).not.toMatch(/\.wlPillFill[^{]*\{[^}]*mask/)
     expect([...css.matchAll(/\.wlPillFill[^{]*\{[^}]*box-shadow/g)]).toHaveLength(0)
+    for (const f of ['word-lane-wide-fill.css', 'race-pill-fill.css', 'word-lane-pill-safe.css']) expect(read(`../../../../styles/player/modules/${f}`).replace(/\/\*[\s\S]*?\*\//g, '')).not.toMatch(/\.wlPillFill[^{]*\{[^}]*rgba\(var\(--rgb\), 0\.\d/) // и в других файлах пилюль полупрозрачного цвета жидкости нет
   })
-  it('«принято» — сплошной цвет дорожки с тем же мягким краем, «не успел» — фон сплошной серый, края нет', () => {
-    expect(css).toMatch(/\.wlPill\[data-lock\]:not\(\[data-fail\]\) \.wlPillFill \{ background: linear-gradient\(to bottom, rgba\(var\(--rgb\), 0\), var\(--c\) 8px\); \}/)
+  it('«не успел» — фон сплошной серый, края нет', () => {
     expect(css).toContain('.wlPill[data-fail] .wlPillFill { background: #7b8494; }')
   })
-  it('принятая пилюля залита на 100 % без прозрачной полосы сверху (v3.3.87): слой заливки на высоту мягкого края (8 px) выше клипа, при translateY(0) край — над клипом и обрезан', () => {
+  it('принятая пилюля залита на 100 % С ЗАПАСОМ: слой заливки на --wl-soft (8 px) выше клипа, поверхность — на --wl-surf (4 px) от его верха: при translateY(0) край цвета на 4 px выше клипа и обрезан', () => {
     const fill = block(css, '.wlPillFill')
-    const grad = fill.match(/linear-gradient\(to bottom, rgba\(var\(--rgb\), 0\), var\(--c\) (\d+)px/)
-    expect(fill).toMatch(/inset: calc\(var\(--wl-soft\) \* -1\) 0 0;/)          // отступ слоя — общая переменная мягкого края (edge20: тот же ход у искр)
-    const over = css.match(/\.wlPill \{[^}]*--wl-soft: (\d+)px;/)
-    expect(grad).not.toBeNull(); expect(over).not.toBeNull()
-    expect(Number(over[1])).toBeGreaterThanOrEqual(Number(grad[1]))             // перекрытие не меньше мягкого края
-    expect(fillTransform(1)).toBe('translateY(0.0%)')                           // полная заливка: слой на месте, его верхние 8 px (прозрачный переход) выше клипа
+    expect(fill).toMatch(/inset: calc\(var\(--wl-soft\) \* -1\) 0 0;/)          // отступ слоя — общая переменная запаса (edge20: тот же блок у слоя уровня)
+    expect(css).toMatch(/\.wlPill \{[^}]*--wl-soft: 8px;[^}]*--wl-surf: calc\(var\(--wl-soft\) \/ 2\);/)
+    expect(fillTransform(1)).toBe('translateY(0.0%)')                           // полная заливка: слой на месте, его верхние 4 px (прозрачные) и ещё 4 px цвета — выше клипа
     expect(fillTransform(0)).toBe('translateY(100.0%)')                         // пустая: слой целиком ниже клипа (его высота = клип + 8 px, 100 % собственной высоты)
     expect(block(css, '.wlPillClip')).toMatch(/overflow: hidden/)               // верх слоя обрезан капсулой
   })
-  it('горизонтальных черт внутри пилюли нет: ни линии уровня (узла и стилей), ни «тени» слова и метки темпа на экране', () => {
+  it('полная пилюля (data-full): цвет жидкости — у клипа и у тела пилюли (зазора сверху нет при любом округлении слоёв); «не успел» — нет; специфичность выше фонов режимов и безопасного режима', () => {
+    expect(css).toContain('.wlField .wlPill[data-full]:not([data-fail]) { background-image: none; background-color: var(--c); }')
+    expect(css).toContain('.wlField .wlPill[data-full]:not([data-fail]) .wlPillClip { background-color: var(--c); }')
+    expect(css).not.toMatch(/data-full[^{]*\{[^}]*(transition|animation)/)       // смена фона в кадре доезда — без переходов
+  })
+  it('старой линии уровня в клипе (wlPillLine) нет — линия уровня теперь вне клипа, на слое .wlPillSparks (wordLaneSparks.test.js); «тени» слова и метки темпа на экране нет', () => {
     expect(css).not.toContain('wlPillLine')
     expect(block(css, '.wlGhost')).toMatch(/display: none;/)
     expect(block(css, '.wlPace')).toMatch(/display: none;/)

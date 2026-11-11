@@ -24,6 +24,8 @@
   box-shadow: inset 0 0 0 4px rgba(11, 13, 17, 0.85), inset 0 0 0 5.5px rgba(var(--rgb), 0.75);
 }
 .wlPill[data-wide][data-mode='hear'] { background: linear-gradient(to bottom, rgba(var(--rgb), 0.46), rgba(var(--rgb), 0.3)), var(--wl-card); background-origin: border-box; }
+/* Полная пилюля «Скажи» (data-full, word-lane-pill.css): внутренних тёмных колец нет — капсула сплошная до обводки, как у остальных (v3.3.186: иначе у засчитанной пилюли между обводкой и жидкостью оставался тёмный зазор) */
+.wlField .wlPill[data-wide][data-mode='say'][data-full]:not([data-fail]) { box-shadow: none; }
 
 /* «Скажи»: подпись ::after (data-cap держит полный текст для стиля заливки) скрыта — текст пишет маска слов */
 .wlPill[data-wide][data-mode='say'][data-cap]:not([data-hint])::after { content: none; }
@@ -57,8 +59,7 @@
 /* Подсказка следующего слова (data-w='peek', проход 1; racePhraseMask.js / racePhrasePeek.js): слово целиком, opacity = --peek (0 → 0,2 после сказанного предыдущего слова, задаёт JS у одной ячейки) */
 .racePhraseMask b[data-w='peek'] i { opacity: var(--peek, 0); transition: none; }
 .racePhraseMask b[data-w='full'] i { opacity: 1; }
-.wlPill[data-lock] .racePhraseMask { color: #0b0d11; text-shadow: none; }
-.wlPill[data-lock] .racePhraseMask b { color: inherit; }
+/* Принятая пилюля: видна вся фраза; тёмной её показывает копия маски в слое заливки (word-lane-pill-ink.css) — эта, светлая, остаётся под жидкостью (v3.3.186) */
 .wlPill[data-lock] .racePhraseMask b i { opacity: 1; }
 .wlPill[data-lock] .racePhraseMask b::before { opacity: 0; }
 .weak-device .racePhraseMask b i, .weak-device .racePhraseMask b::before { transition: none; }

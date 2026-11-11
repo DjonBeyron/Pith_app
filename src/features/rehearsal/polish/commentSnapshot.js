@@ -13,8 +13,8 @@ export function pillsOf(root, laneTexts = []) {
   const list = root?.querySelectorAll ? [...root.querySelectorAll('[data-pill][data-held]')] : []
   return list.map(el => {
     const lane = Number(el.getAttribute('data-lane')) || 0
-    const fill = Number.parseFloat(el.querySelector?.('.wlPillSparks i')?.style?.getPropertyValue?.('--fill'))
-    return { lane, text: laneTexts[lane] ?? '', fill: Number.isFinite(fill) ? round2(fill) : 0, state: PILL_STATES.find(([a]) => has(el, a))?.[1] ?? 'летит' }
+    const off = Number.parseFloat(/translate[XY]\((-?[\d.]+)%\)/.exec(el.querySelector?.('.wlPillFill')?.style?.transform ?? '')?.[1]) // слой заливки сдвинут на (1 − заливка)·100 % (wordLaneLevel.fillTransform)
+    return { lane, text: laneTexts[lane] ?? '', fill: Number.isFinite(off) ? round2(1 - Math.abs(off) / 100) : 0, state: PILL_STATES.find(([a]) => has(el, a))?.[1] ?? 'летит' }
   }).sort((a, b) => a.lane - b.lane)
 }
 

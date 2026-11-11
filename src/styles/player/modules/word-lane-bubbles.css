@@ -1,0 +1,26 @@
+/* Пузыри в жидкости пилюли (wordLaneBubbles.js; v3.3.186, владелец: «частицы как единый кластер плавают в заполненной части капсулы, и как только заполнится капсула, вырываются сверху наружу»).
+   Набор <span class="wlBubs"> с узлами <span class="wlBub"> пул кладёт в слой уровня пилюли (.wlPillSparks — вне клипа заливки: при хлопке пузыри вылетают за контур). Блок набора — тот же, что у слоя уровня <i>
+   (вертикальная пилюля — блок слоя заливки, широкая — рамка кромки), и transform ему пишется тот же: кластер едет с поверхностью жидкости. Место пузыря (left / top — глубина под поверхностью и смещение от оси)
+   модуль пишет один раз при выдаче набора; пузырь, которому жидкости ещё мало, выключен (data-off). Покачивание — три набора кадров (transform + opacity), у каждого пузыря свои длительность и фаза;
+   идёт только у наливающейся пилюли (data-live), иначе на паузе — в покое идущих анимаций нет. Вылет наружу при хлопке — WAAPI в модуле (поверх этих кадров). В жидкости пузырь прозрачный: светлый ободок и блик
+   (подпись под ним читается); вылетевший (data-out на наборе — ставит модуль в кадре хлопка) — капля цвета дорожки с бликом. Без filter, box-shadow и will-change. На слабом устройстве (.wl--lite / .weak-device)
+   пузырей нет — модуль их не создаёт, правило ниже — страховка. */
+.wlBubs { position: absolute; inset: calc(var(--wl-soft) * -1) 0 0; pointer-events: none; transform: translateY(100%); }
+.wlPill[data-wide] .wlBubs { inset: 0; transform: translateX(0); }
+.wlBub {
+  position: absolute;
+  translate: -50% -50%;
+  border-radius: 50%;
+  pointer-events: none;
+  background: radial-gradient(circle at 36% 32%, rgba(255, 255, 255, 0.9) 0 13%, rgba(255, 255, 255, 0.2) 28%, rgba(255, 255, 255, 0.07) 48%, rgba(255, 255, 255, 0.62) 61%, rgba(255, 255, 255, 0) 70%);
+  animation: wlBubA 2.2s ease-in-out infinite alternate paused;
+}
+.wlBub:nth-child(3n + 2) { animation-name: wlBubB; }
+.wlBub:nth-child(3n) { animation-name: wlBubC; }
+.wlBub[data-off] { display: none; }
+.wlBubs[data-out] .wlBub { background: radial-gradient(circle at 36% 32%, rgba(255, 255, 255, 0.95) 0 16%, rgba(255, 255, 255, 0) 40%), radial-gradient(circle, var(--c) 0 50%, rgba(var(--rgb), 0) 70%); }
+.wlPill[data-live] .wlBub { animation-play-state: running; }
+@keyframes wlBubA { from { transform: translate(-2px, 5px) scale(0.82); opacity: 0.6; } to { transform: translate(2px, -5px) scale(1); opacity: 1; } }
+@keyframes wlBubB { from { transform: translate(3px, 4px) scale(1); opacity: 1; } to { transform: translate(-2px, -4px) scale(0.85); opacity: 0.65; } }
+@keyframes wlBubC { from { transform: translate(-1px, -5px) scale(0.9); opacity: 0.7; } to { transform: translate(2px, 4px) scale(1.05); opacity: 1; } }
+.wl--lite .wlBubs, .weak-device .wlBubs, .wlPill[data-fail] .wlBubs { display: none; }

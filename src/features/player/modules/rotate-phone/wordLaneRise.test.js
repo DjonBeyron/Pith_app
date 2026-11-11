@@ -121,7 +121,8 @@ describe('взлёт заполненной пилюли', () => {
     expect(pills[k].has('data-rise')).toBe(true)
     expect(pills[k].has('data-held')).toBe(true)
     expect(pool.rise(k)).toBeNull()
-    expect(pills[k].parts['.wlPillSparks i'].style.props['--fill']).toBe('1.000')
+    expect(pills[k].parts['.wlPillSparks i'].style.transform).toBe('translateY(0.0%)') // заливка доведена до края: слою уровня — тот же сдвиг, что слою заливки
+    expect(pills[k].has('data-full')).toBe(true)
     await Promise.resolve()
     expect(pills[k].has('data-held')).toBe(true)                                      // ещё летит
     done()

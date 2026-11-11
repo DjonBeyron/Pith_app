@@ -13,7 +13,7 @@ describe('стенд пилюль: снимок пилюли', () => {
     for (const [k, v] of Object.entries({ 'data-held': '1', 'data-wide': '1', 'data-mode': 'say', 'data-cap': 'Nice to meet you', 'data-live': '1', 'data-nudge': '1', 'data-lock': '1' })) a.setAttribute(k, v)
     Object.assign(a.style, { left: '50%', width: '78%', height: '11%', translate: '-50% calc(33dvh - 50%)', scale: '1.08', transform: 'translateX(-5px)' })
     a.querySelector('.wlPillFill').style.transform = 'translateX(-42.0%)'
-    const sp = a.querySelector('.wlPillSparks i'); sp.style.transform = 'translateX(58.0%)'; sp.style.opacity = '1.00'; sp.style.setProperty('--fill', '0.580')
+    const sp = a.querySelector('.wlPillSparks i'); sp.style.transform = 'translateX(58.0%)'; sp.style.opacity = '1.00'; a.querySelector('.wlPillInkIn').style.transform = 'translateX(42.0%)'
     const box = document.createElement('span'); box.className = 'racePhraseMask'
     ;[['Nice', 'full'], ['to', 'full'], ['meet', 'peek'], ['   ', 'hidden']].forEach(([t, w], i) => { if (i) box.appendChild(document.createTextNode(' ')); const b = document.createElement('b'); b.textContent = t; b.setAttribute('data-w', w); if (w === 'peek') b.style.setProperty('--peek', '0.6'); box.appendChild(b) })
     a.appendChild(box)
@@ -29,6 +29,9 @@ describe('стенд пилюль: снимок пилюли', () => {
     expect(s2.fill).toBe(s.fill)
     expect(s2.sp).toEqual(s.sp)
     expect(s2.mask).toEqual(s.mask)
+    expect(s2.ink).toBe('translateX(42.0%)')
+    expect(b.querySelectorAll('.racePhraseMask')).toHaveLength(2)                // маска на пилюле и её тёмная копия в слое заливки (как в игре)
+    expect(b.querySelector('.wlPillInkIn .racePhraseMask').querySelectorAll('b').map(x => x.getAttribute('data-w'))).toEqual(['full', 'full', 'peek', 'hidden'])
     expect(s2.box).toEqual(s.box)
     expect(s2.fx.scale).toBe('1.08')
     expect(b.querySelectorAll('.psFlash')).toHaveLength(1)

@@ -48,7 +48,8 @@ describe('подсказка ученику: темп и «тень» слова
     expect(eng).toContain('ghostUntil')                                  // «тень» слова — только после неверно сказанного
     expect(read('./wordLaneStudentFill.js')).toContain('breathStep(p.p, dt, voice, cap)')     // заливка текущего куска — только голос («дыхание»)
     const css = readLane()
-    expect(css).toContain(".wlPill:not([data-lock]):not([data-fail]) .wlPillFill")   // заливка «в процессе» (до подтверждения слова) — ровный бледный тон, без штриховки
+    expect(css).not.toContain(".wlPill:not([data-lock]):not([data-fail]) .wlPillFill")   // заливка «в процессе» — тот же чистый цвет жидкости, что у принятой (v3.3.186): отдельного бледного фона нет
+    expect(css).toContain('.wlPill[data-fail] .wlPillFill { background: #7b8494; }')
   })
 })
 

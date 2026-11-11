@@ -4,6 +4,8 @@
 // а кирпичик — слой b::before поверх (race-phrase-rounds.css): спрятанное слово — текст (<i>) невидим, кирпичик виден; подсказка и сказанное слово — кирпичик гаснет, текст проявляется (у каждого слоя своя opacity). До v3.3.184 в ячейку
 // писались фигурные пробелы и при подсказке подменялись словом другой ширины — вся строка (она по центру) съезжала. Знаки по краям слова («you?») теперь прячутся под кирпичиком вместе со словом.
 // В DOM пишет только data-w изменившихся слов; без элемента (тесты на поддельном пуле) — тихо ничего, а слова для проверки (с плашками, как в журнале) отдаёт words().
+// ТЁМНАЯ КОПИЯ (v3.3.186): жидкость пилюли — чистый яркий цвет, светлые слова на ней не читаются, поэтому маска лежит под жидкостью, а в слое заливки (.wlPillInkIn, word-lane-pill-ink.css) — её копия
+// тёмным: видна только там, где жидкость. Копия получает те же data-w и --peek; ширину и границы слов меряет только основная маска.
 // peek(level) — подсказка следующего слова (data-w='peek', racePhraseMask.js): проявление целым словом — переменная --peek (opacity 0…1) у ОДНОЙ ячейки, её каждый кадр задаёт сцена (racePhrasePeek.js); пишет только при смене.
 // edges() — границы слов для заливки (racePhraseFill.wordEdges): прямоугольники <b> слов и слоя кромки (.wlPillSparks — по нему едет кромка, он на 4 px шире клипа заливки с каждой стороны,
 // как и слой заливки — на 8 px). Меряет лениво: при первом вызове и после загрузки шрифтов (смена состояния слова ширину не меняет); пока пилюля не в DOM или не видна — null (доли 1/N), каждый кадр — из кэша.
@@ -24,6 +26,8 @@ export function mountMask(el, text) {
     words.forEach((w, i) => { if (i) box.appendChild(doc.createTextNode(' ')); const b = maskCell(doc, open[i].text); b.setAttribute('data-w', w.state); box.appendChild(b); cells.push(b) })
     el.appendChild(box)
   }
+  const inkHost = box?.cloneNode ? el.querySelector?.('.wlPillInkIn') : null, ink = inkHost ? box.cloneNode(true) : null, inkCells = ink ? [...ink.querySelectorAll('b')] : []
+  if (ink) { ink.removeAttribute('data-testid'); inkHost.appendChild(ink) }
   let edges = null, dirty = true
   doc?.fonts?.ready?.then?.(() => { dirty = true }, () => {})
   const measure = () => {
@@ -37,16 +41,16 @@ export function mountMask(el, text) {
     /** heard — Map номер слова → подтверждено ли; all — показать всю фразу; peek — номер подсказываемого слова (-1 — нет). Меняется только data-w: текст и ширина ячеек постоянны */
     set(heard, all = false, peek = -1) {
       const next = maskPhrase(text, heard, all, peek)
-      next.forEach((w, i) => { const b = cells[i]; if (!b || w.state === words[i].state) return; b.setAttribute('data-w', w.state) })
+      next.forEach((w, i) => { const b = cells[i]; if (!b || w.state === words[i].state) return; b.setAttribute('data-w', w.state); inkCells[i]?.setAttribute('data-w', w.state) })
       words = next
     },
     /** Проявление подсказки: level 0…1 — opacity слова целиком (--peek ячейки с data-w='peek'), с точностью 0,01 */
     peek(level) {
       const i = words.findIndex(w => w.state === 'peek'), b = cells[i], v = String(Math.round(Math.min(1, Math.max(0, level)) * 100) / 100)
       if (!b?.style || b.peekV === v) return
-      b.peekV = v; b.style.setProperty('--peek', v)
+      b.peekV = v; b.style.setProperty('--peek', v); inkCells[i]?.style.setProperty('--peek', v)
     },
     words: () => words,
-    remove() { box?.remove() },
+    remove() { box?.remove(); ink?.remove() },
   }
 }

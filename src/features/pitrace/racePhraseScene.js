@@ -199,7 +199,7 @@ export function runPhraseScene({ pool, root, scene, fxRef, listen = phraseListen
       if (phase === 'ride') { const c = turn().cands; for (let j = pills.length; j < c.length && t - at >= j * cfg.gap && t - lastSpawn >= cfg.gap; j++) spawn(c[j], j) } // за едущими — не ближе cfg.gap
       for (const p of pills) if (!p.gone) { p.y = yOf(p); if (p.y >= EXIT_Y) gone(p) }
       const tg = target()
-      if (phase === 'ride' && cfg.mode === 'say' && tg && !tg.gone && !res) { const g = goal(t); shown = view.step('say', g, dt, fin ? (t - fin.at) / LOCK_MS : null); pool.paintFill(tg.k, shown, !!fin); sv?.frame(t, !!fin); trace.frame(t, g, shown); onFrame?.(t, g, shown); if (fin && finishDue(fin, shown, t, () => trace.full(t, fin.word))) resolve('win', fin.extra) }
+      if (phase === 'ride' && cfg.mode === 'say' && tg && !tg.gone && !res) { const g = goal(t); shown = view.step('say', g, dt, fin ? (t - fin.at) / LOCK_MS : null); pool.paintFill(tg.k, shown); sv?.frame(t, !!fin); trace.frame(t, g, shown); onFrame?.(t, g, shown); if (fin && finishDue(fin, shown, t, () => trace.full(t, fin.word))) resolve('win', fin.extra) }
       if (phase === 'ride' && tg && !res && !fin && tg.y >= LISTEN_Y_MAX) { if (cfg.mode === 'say') atEdge(tg, t); else resolve('fail') }
       if (phase === 'after' && t - at >= AFTER_MS && !live().length && !(fx().pitLeft?.() > 0)) phase = 'next'
     }

@@ -71,7 +71,7 @@ export function useWordLanePills(rootRef, { scene, levels, fx, live, sceneApi, t
           if (!h.snapped && t >= h.p.at + dictorFillMs(h.p.ms)) {
             h.snapped = true
             const lastPiece = h.p.chunk === plan.reps[h.p.rep].parts.at(-1)
-            snapPill(pool.el(h.k), h.p.lane, { full: lastPiece }) // вспышка и искры — один раз на повтор (когда он договорён), у остальных кусков только хлопок
+            snapPill(pool.el(h.k), h.p.lane, { full: lastPiece }) // вспышка — один раз на повтор (когда он договорён), у остальных кусков только хлопок и пузыри наружу
             if (lastPiece) { light(h.p.rep); riseRep(pool, held, h.p.rep) } // повтор договорён — «огонёк», пилюли Пита взлетают как у ученика после верного ответа (вспышка дорожки + взлёт)
           }
         }
@@ -173,7 +173,7 @@ export function useWordLanePills(rootRef, { scene, levels, fx, live, sceneApi, t
         for (const [id, k] of held) {
           const p = byId.get(id)
           if (!p) { pool.give(k); held.delete(id); view.forget(id); continue }   // ушла за нижний край
-          pool.paintFill(k, view.step(id, p.p, dtMs, finOf(p)), p.state === 'lock') // принятая пилюля: доезд до 100 % за LOCK_MS, щелчок — в кадре доезда
+          pool.paintFill(k, view.step(id, p.p, dtMs, finOf(p))) // принятая пилюля: доезд до 100 % за LOCK_MS, щелчок — в кадре доезда
           // «Тень» слова — только после неверно сказанного (и ненадолго): пока ученик говорит верно или молчит, внутри пилюли ничего лишнего
           pool.hint(k, now2 < (ghostUntil.get(p.rep) ?? 0) && p.state === 'fly' && g.reps[p.rep].state === 'fly' ? '0.6' : '0', null)
         }

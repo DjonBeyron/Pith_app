@@ -67,7 +67,7 @@ export function runStandWord({ pool, target, y, trace, probe = {}, onResult = ()
       const k = held.get(p.id)
       if (k == null) continue
       const shown = view.step(p.id, p.p, dt, finOf(p))
-      pool.paintFill(k, shown, p.state === 'lock')
+      pool.paintFill(k, shown)
       Object.assign(probe, { k, el: pool.el(k), goal: p.p, shown, level })
       const key = `${p.p.toFixed(4)}|${shown.toFixed(4)}`
       if (key !== lastFill) { lastFill = key; trace.push('fill', { goal: +p.p.toFixed(4), shown: +shown.toFixed(4), level: +level.toFixed(3), confirmed }) }

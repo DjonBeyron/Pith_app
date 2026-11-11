@@ -3,8 +3,7 @@
    (will-change у пилюли и заливки, слои частиц с visibility и translate-переходом, анимации на псевдоэлементах), и граница пилюли выпадала из растра. Здесь:
    • ни одного will-change (пул тоже не ставит его при wl--safe); у летящей пилюли постоянный слой — transform: translateZ(0), он стоит от take до give и не переключается;
    • контур рисуется ДВАЖДЫ: border (как в обычном режиме) и outline поверх него (отрицательный offset на толщину обводки — ровно по border): потеряется один — останется другой;
-   • никаких visibility и переключений слоёв: заливка — один слой без псевдоэлементов и без частиц; мягкий край уровня — начало градиента заливки. Искры (.wlPillSparks, как в обычном режиме: вне клипа, выше контура) — те же две
-     плитки градиентных точек (два <b> внутри <i>) и те же анимации, но без will-change: пилюля не наливается — блок искр display: none (не слой, а вёрстка), наливается — display: block и анимации идут;
+   • никаких visibility и переключений слоёв: заливка — один слой; линия уровня (.wlPillSparks), тёмная подпись поверх жидкости и пузыри — те же узлы, что в обычном режиме, но без will-change;
    • «выдоха» кольца нет (в обычном режиме — word-lane-pill.css): у пилюли одна обводка (border + outline поверх), и в безопасном режиме тоже;
    • мягкий внутренний свет — не inset-тень, а боковые полосы в фоне; «Различи» (data-voice) светится внешней тенью, а не filter; «не успел» (data-fail) серый, но не прозрачный — контур остаётся.
    Специфичность: .wlField.wl--safe + правило обычного режима (в том числе .wl[data-phase=…]), поэтому каждое правило здесь сильнее своего двойника; файл подключается после word-lane-pill.css. */
@@ -28,18 +27,9 @@
 .wlField.wl--safe .wlPill[data-voice] { filter: none; transition: none; --glow: 0 0 14px 3px rgba(var(--rgb), 0.9); }
 .wlField.wl--safe .wlPill[data-fail] { opacity: 1; transition: none; --rgb: 123, 132, 148; --c: #7b8494; }   /* «не успел»: серая, но целая — контур не гаснет */
 
-/* Заливка: один слой, без псевдоэлементов и без частиц (искры — над ней, ниже), поверх цвета — как в обычном режиме по состояниям */
-.wlField.wl--safe .wlPillFill {
-  will-change: auto;
-  background: linear-gradient(to bottom, rgba(var(--rgb), 0), var(--c) 8px, rgba(var(--rgb), 0.78));
-}
-.wl[data-phase='student'] .wlField.wl--safe .wlPill:not([data-lock]):not([data-fail]) .wlPillFill { background: linear-gradient(to bottom, rgba(var(--rgb), 0), rgba(var(--rgb), 0.35) 8px); }
-.wl[data-phase='student'] .wlField.wl--safe .wlPill[data-lock]:not([data-fail]) .wlPillFill { background: linear-gradient(to bottom, rgba(var(--rgb), 0), var(--c) 8px); }
+/* Заливка: без will-change; цвет жидкости и состояния — как в обычном режиме (word-lane-pill.css: сплошной цвет дорожки, «не успел» — серый) */
+.wlField.wl--safe .wlPillFill { will-change: auto; }
 .wlField.wl--safe .wlPill[data-fail] .wlPillFill { background: #7b8494; }
 
-/* Искры: тот же блок и те же анимации (transform / translate / opacity, 3,1 и 4,7 с, покачивание, фаза по дорожкам), что в обычном режиме, но без will-change. Не наливается — display: none (блок не в вёрстке и не в слоях);
-   наливается — display: block, анимации идут; открывает блок и правило data-live обычного режима (непрозрачность 1). Замер: переписанные под сдвиг фона (background-position) искры красили бы два слоя на пилюлю каждый кадр —
-   +26 мс на кадр при шести наливающихся (CPU 4×), поэтому анимации — на композиторе, как и в обычном режиме. На слабом устройстве (wl--lite) искр нет */
-.wlField.wl--safe .wlPillSparks { display: none; }
-.wlField.wl--safe:not(.wl--lite) .wlPill[data-live]:not([data-fail]) .wlPillSparks { display: block; }
-.wlField.wl--safe .wlPill[data-held] .wlPillSparks i, .wlField.wl--safe .wlPill[data-held] .wlPillSparks b { will-change: auto; }
+/* Линия уровня, тёмная подпись и пузыри — те же узлы и те же transform / opacity, что в обычном режиме, но без will-change; блоков с display / visibility по состоянию нет (переключений слоёв в полёте нет) */
+.wlField.wl--safe .wlPill[data-held] .wlPillSparks i, .wlField.wl--safe .wlPill[data-held] .wlPillSparks b, .wlField.wl--safe .wlPill[data-held] .wlPillInkIn { will-change: auto; }

@@ -95,12 +95,12 @@ describe('заливка пилюль: ровная, край едет', () => {
     expect(read('./wordLanePool.js')).not.toContain('scaleY(')
   })
 
-  it('«в процессе» — ровный бледный тон (мягкий край 10 px без светлой черты), «принято» — сплошной цвет дорожки; штриховки нет; серый data-fail остаётся', () => {
+  it('жидкость — сплошной цвет дорожки и «в процессе», и «принято» (v3.3.186: бледного тона нет); штриховки нет; серый data-fail остаётся', () => {
     const css = cssCode()
     expect(css).not.toContain('repeating-linear-gradient')
     expect(css).not.toContain('scaleY')
-    expect(css).toMatch(/\.wlPill:not\(\[data-lock\]\):not\(\[data-fail\]\) \.wlPillFill \{ background: linear-gradient\(to bottom, rgba\(var\(--rgb\), 0\), rgba\(var\(--rgb\), 0\.35\) 8px\); \}/) // бледный тон — альфа в самом цвете, не opacity слоя (кромка и частицы остаются яркими); кромка — первый слой фона
-    expect(css).toMatch(/\.wlPill\[data-lock\]:not\(\[data-fail\]\) \.wlPillFill \{ background: linear-gradient\(to bottom, rgba\(var\(--rgb\), 0\), var\(--c\) 8px\); \}/)
+    expect(css).toMatch(/\.wlPillFill \{[^}]*background: linear-gradient\(to bottom, rgba\(var\(--rgb\), 0\) calc\(var\(--wl-surf\) - 0\.5px\), var\(--c\) calc\(var\(--wl-surf\) \+ 0\.5px\)\);/) // выше поверхности прозрачно, ниже — цвет без альфы
+    expect(css).not.toMatch(/data-lock\]\)?[^{]*\.wlPillFill \{/)
     expect(css).toContain('.wlPill[data-fail] .wlPillFill { background: #7b8494; }')
     expect(css).not.toMatch(/\.wlPillFill[^{]*\{[^}]*rgba\(255, 93, 115/) // красного фона у заливки нет: красное — только вспышка промаха
   })

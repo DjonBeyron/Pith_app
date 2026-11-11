@@ -30,7 +30,7 @@
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.65);
   pointer-events: none;
 }
-.wlPill[data-cap][data-lock]:not([data-hint])::after { color: #0b0d11; text-shadow: none; } /* принятая пилюля светлая — подпись тёмная */
+/* Подпись поверх жидкости (в том числе у принятой пилюли) — тёмная копия в слое заливки (word-lane-pill-ink.css); эта, светлая, лежит под жидкостью и видна только на пустой части */
 .wlPill[data-cap][data-fail]:not([data-hint])::after { color: #c9cdd8; }
 .wlPill[data-reveal]:not([data-hint])::after { color: #fff; font-size: clamp(11px, 3.4vw, 14px); animation: raceReveal 0.35s ease 0.1s both; }
 @keyframes raceReveal { from { opacity: 0; } to { opacity: 1; } }

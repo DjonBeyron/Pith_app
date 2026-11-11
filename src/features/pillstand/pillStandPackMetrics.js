@@ -1,12 +1,12 @@
 // Метрики по темам для отчёта «📤 Отправить» стенда пилюль (CONCEPT_PILLSTAND.md, «Отправка по теме»): по одной цели — разбор честности (pillStandHonesty.analyzeSegment), сырые события цели и её кадры →
-// строки «-- метрики --» и те же данные объектом для JSON-блока. Анимация: «хлопок при заливке 1,00, через 96 мс после зачёта» (pillStandPop.js), «слово → заливка дошла», рывки экрана «на голос ли», первые кадры флагов (nudge, вспышка, хлопок, капли…). Распознавание: голос → первый
+// строки «-- метрики --» и те же данные объектом для JSON-блока. Анимация: «хлопок при заливке 1,00, через 96 мс после зачёта» (pillStandPop.js), «слово → заливка дошла», рывки экрана «на голос ли», пузыри в жидкости («сколько внутри, вырвались ли в кадре хлопка, зазор сверху»), первые кадры флагов (nudge, вспышка, хлопок, пузыри…). Распознавание: голос → первый
 // черновик, черновики / повторы / перестройки (было → стало), итоги с «кто закрыл» и conf, додуманные слова, словарь, кто закрывал заходы. Зачёт и логика: засчитанные слова, откаты, неверные, итог зачёта,
 // продления у края, «договорена». Честность: каждое ложное срабатывание с голосом рядом (макс. rms за VOICE_MS до, затвор) и окна доказательств ±EVIDENCE_MS. Чистые функции.
 import { STAND_VOICE_RMS } from './pillStandHonesty.js'
 import { heardWords } from './pillStandWords.js'
 import { jerks, flagStarts, VOICE_MS } from './pillStandFrames.js'
 import { EVIDENCE_MS } from './pillStandPacks.js'
-import { popMoments, popLine, jetStats } from './pillStandPop.js'
+import { popMoments, popLine, bubbleStats, topGaps, bubbleLine } from './pillStandPop.js'
 
 const q = t => `«${t ?? ''}»`
 const num = (v, d = 2) => (v == null ? '—' : Number(v).toFixed(d).replace('.', ','))
@@ -53,15 +53,16 @@ function anim(seg, events, frames, t0) {
   const fills = events.filter(e => e.k === 'fill').map((e, i) => ({ t: e.t, i, v: e.shown }))
   const js = jerks(frames.length ? frames : fills, events).map(j => ({ ...j, t: Math.round(j.t - t0) }))
   const flags = flagStarts(frames).map(f => ({ ...f, t: Math.round(f.t - t0) }))
-  const pops = popMoments(frames, events), jet = jetStats(frames)
+  const pops = popMoments(frames, events), bub = bubbleStats(frames, pops), gaps = topGaps(frames, pops)
   const lines = [
-    popLine(pops) + (frames.length ? ` · капли из жидкости: ${jet.max ? `до ${jet.max} за кадр, в ${jet.frames} кадрах, первые ${plus(jet.first - t0)}` : 'не было'}` : ''),
+    popLine(pops),
+    ...(frames.length ? [bubbleLine(bub, gaps)] : []),
     `слово → заливка дошла (по трассе): ${cap(seg.toFill, x => `${q(x.word)} ${x.ms} мс`)}`,
     `заливка дошла (кадр стенда): ${cap(reach, x => `${plus(x.t)} ${q(x.word)} ${x.ms} мс`)}`,
     `рывки экрана ≥ 0,08 за ${frames.length ? 'кадр' : 'шаг заливки'}: ${js.length}, без голоса ${js.filter(j => !j.voice).length}${js.length ? ` — ${cap(js, j => `${plus(j.t)} ${num(j.from)}→${num(j.to)} голос ${j.voice ? 'да' : 'НЕТ'}${j.word ? `, после ${q(j.word)} через ${j.wordMs} мс` : ''}`)}` : ''}`,
   ]
   if (frames.length) lines.push(`первые кадры флагов: ${cap(flags, f => `${plus(f.t)} ${f.flag}`)}`, `кадров цели: ${frames.length}`)
-  return { lines, data: { pops: pops.map(x => ({ ...x, t: Math.round(x.t - t0) })), jets: jet.first == null ? jet : { ...jet, first: Math.round(jet.first - t0) }, toFill: seg.toFill, reach, jerks: js, flags, frames: frames.length } }
+  return { lines, data: { pops: pops.map(x => ({ ...x, t: Math.round(x.t - t0) })), bubbles: { ...bub, first: bub.first == null ? null : Math.round(bub.first - t0), atPop: bub.atPop.map(x => ({ ...x, t: Math.round(x.t - t0) })) }, topGaps: gaps.map(g => ({ ...g, t: Math.round(g.t - t0) })), toFill: seg.toFill, reach, jerks: js, flags, frames: frames.length } }
 }
 
 function ear(seg, events, t0) {

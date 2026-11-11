@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { maskWord, maskPhrase, maskLine, openWords, nextPeek, SHORT_MAX, SHORT_OPEN_MAX, BRICK } from './racePhraseMask.js'
 import { mountMask } from './racePhraseMaskView.js'
+import { createDoc, fakePill } from '../pillstand/pillStandFakeDom.js'
 import { phraseWords } from './racePhraseData.js'
 
 // Маска слов круга «Скажи» («кирпичики»): спрятанное слово — плашка по длине, первое слово и короткие по правилам открыты, слова проявляются по мере речи (racePhraseMask.js), узел на пилюле (racePhraseMaskView.js)
@@ -85,5 +86,18 @@ describe('узел маски на пилюле', () => {
     m.set(new Map(), true); expect(texts()).toBe('Nice to meet you'); expect(cells.map(b => b.attrs['data-w']).join(' ')).toBe('full full full full')
     m.remove(); expect(el.children).toHaveLength(0)
     const bare = mountMask({}, 'Nice to meet you'); bare.set(new Map([[2, true]])); expect(bare.words()[2].state).toBe('full'); bare.remove()
+  })
+  it('тёмная копия маски в слое заливки (v3.3.186: светлые слова на чистом цвете жидкости не читаются): те же слова, data-w и --peek зеркалятся, границы слов меряет основная, remove снимает обе', () => {
+    const doc = createDoc(), pill = fakePill(doc)
+    const m = mountMask(pill, 'Nice to meet you')
+    const main = pill.children.find(c => c.className === 'racePhraseMask'), ink = pill.querySelector('.wlPillInkIn').children[0]
+    expect(ink.className).toBe('racePhraseMask'); expect(ink).not.toBe(main)
+    expect(main.getAttribute('data-testid')).toBe('race-phrase-mask'); expect(ink.getAttribute('data-testid')).toBeNull() // тестовый признак — только у основной
+    const st = box => box.querySelectorAll('b').map(b => `${b.textContent}:${b.getAttribute('data-w')}`).join(' ')
+    expect(st(ink)).toBe('Nice:full to:hidden meet:hidden you:hidden'); expect(st(ink)).toBe(st(main))
+    m.set(new Map([[1, true]]), false, 2); expect(st(ink)).toBe('Nice:full to:full meet:peek you:hidden'); expect(st(ink)).toBe(st(main))
+    m.peek(0.2); expect(ink.querySelectorAll('b')[2].style.getPropertyValue('--peek')).toBe('0.2'); expect(main.querySelectorAll('b')[2].style.getPropertyValue('--peek')).toBe('0.2')
+    m.set(new Map(), true); expect(st(ink)).toBe('Nice:full to:full meet:full you:full')
+    m.remove(); expect(pill.querySelectorAll('.racePhraseMask')).toHaveLength(0)
   })
 })

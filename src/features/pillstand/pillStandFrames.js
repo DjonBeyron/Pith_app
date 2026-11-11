@@ -21,7 +21,7 @@ export function maskText(mask = [], peek = true) {
 const identity = v => !v || v === 'none' || v === '1' || v === 'matrix(1, 0, 0, 1, 0, 0)'
 const noOutline = v => !v || /none|0px/.test(v)
 
-/** Флаги кадра: атрибуты пилюли (lock, nudge, live …), хлопок (scale), дрожь (transform), обводка, вспышки, капли из жидкости, «нет пилюли» */
+/** Флаги кадра: атрибуты пилюли (lock, nudge, live, full …), хлопок (scale), дрожь (transform), обводка, вспышки, пузыри (в жидкости — «пузыри×N», вылетевшие при хлопке — «вылет×N»), «нет пилюли» */
 export function flagsOf(f) {
   const s = f?.s
   if (!s) return ['нет пилюли']
@@ -30,12 +30,12 @@ export function flagsOf(f) {
   if (!identity(s.fx?.tf)) out.push('дрожь')
   if (!noOutline(s.fx?.ol)) out.push('обводка')
   if (s.fl?.length) out.push(`вспышка×${s.fl.length}`)
-  if (s.jt?.length) out.push(`капли×${s.jt.length}`)
+  if (s.bb?.n?.length) out.push(`${s.bb.out ? 'вылет' : 'пузыри'}×${s.bb.n.length}`)
   return out
 }
 
 /** Подпись состояния кадра (без экрана и проявления подсказки — они идут плавно, их ловят шаг V_STEP и HEARTBEAT_MS) */
-export const stateSig = f => `${f.g == null ? '' : f.g.toFixed(3)}|${flagsOf(f).map(x => x.replace(/^хлопок (.*)$/, (_, v) => `хлопок ${Math.round(Number(v.replace(',', '.')) * 20)}`)).filter(x => !x.startsWith('капли')).join(',')}${f.s?.jt?.length ? ',капли' : ''}|${maskText(f.s?.mask, false)}` // хлопок — с шагом 0,05; капли — есть / нет (их число меняется каждый кадр)
+export const stateSig = f => `${f.g == null ? '' : f.g.toFixed(3)}|${flagsOf(f).map(x => x.replace(/^хлопок (.*)$/, (_, v) => `хлопок ${Math.round(Number(v.replace(',', '.')) * 20)}`)).filter(x => !/^(пузыри|вылет)×/.test(x)).join(',')}${f.s?.bb?.n?.length ? (f.s.bb.out ? ',вылет' : ',пузыри') : ''}|${maskText(f.s?.mask, false)}` // хлопок — с шагом 0,05; пузыри — есть / вылетели / нет (их число меняется с уровнем)
 
 /** Индексы кадров для таблицы (в порядке): marks — [{ t }] */
 export function pickFrames(frames, marks = []) {
