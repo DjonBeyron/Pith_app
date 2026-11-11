@@ -55,7 +55,7 @@ console.log(`Набор: ${title}\nклипов к прогону ${list.length}
 let server = null, base = opt.url
 if (!base) {
   const { createServer } = await import('vite')
-  server = await createServer({ root: ROOT, logLevel: 'error', server: { port: Number(opt.port ?? 5731), host: '127.0.0.1' } })
+  server = await createServer({ root: ROOT, logLevel: 'error', server: { port: Number(opt.port ?? 5731), host: '127.0.0.1', hmr: false, watch: null } }) // без слежения за файлами: правка кода посреди прогона не перезагрузит страницу
   await server.listen()
   base = `http://127.0.0.1:${server.httpServer.address().port}`
 }
