@@ -48,7 +48,7 @@ describe('контур пилюли: настоящий border, не inset-те�
   it('вспышка-кольцо щелчка тоже учитывает border пилюли', () => {
     expect(read('./wordLaneSnap.js')).toContain('inset:calc(-2px - var(--ring))')
   })
-  it('на фазе «в процессе» контур не тускнеет: opacity нет ни на пилюле, ни на заливке; жидкость «в процессе» — тот же чистый цвет, что у принятой (v3.3.186), отдельного бледного фона нет', () => {
+  it('на фазе «в процессе» контур не тускнеет: opacity нет ни на пилюле, ни на заливке; жидкость «в процессе» — тот же чистый цвет, что у принятой (v3.3.185), отдельного бледного фона нет', () => {
     const opacityRules = [...css.matchAll(/([^{}]+)\{([^}]*\bopacity:[^}]*)\}/g)].map(m => m[1].trim())
     const onPill = opacityRules.filter(sel => /\.wlPill(?![A-Za-z])/.test(sel) && !/::before|::after|\.wlGhost|\.wlPace|\.wlPillFill/.test(sel))
     expect(onPill.every(sel => /data-fail|data-phase='lanes'/.test(sel))).toBe(true) // только «не успел» и невидимый прогрев слоёв
@@ -58,7 +58,7 @@ describe('контур пилюли: настоящий border, не inset-те�
   })
 })
 
-describe('жидкость: чистый цвет дорожки, полная пилюля — с запасом (v3.3.186)', () => {
+describe('жидкость: чистый цвет дорожки, полная пилюля — с запасом (v3.3.185)', () => {
   const css = pillCss()
   it('цвет жидкости — сплошной var(--c) без альфы: ни бледного «в процессе» (rgba .35 поверх тёмной карточки — грязный оттенок), ни белёсой фаски, ни затемнения ко дну; без mask и box-shadow', () => {
     const fill = block(css, '.wlPillFill')

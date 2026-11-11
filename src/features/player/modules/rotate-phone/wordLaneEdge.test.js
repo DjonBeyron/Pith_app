@@ -66,7 +66,7 @@ describe('тихий промах (data-quiet)', () => {
     expect(css).toContain('.wlPill[data-quiet] .wlPillClip::after { display: none; }')
     expect(css).not.toMatch(/\bfilter:/)
   })
-  it('граней заливки больше нет (v3.3.186: жидкость — чистый цвет дорожки, свет — у линии уровня, word-lane-pill.css): в файле гонки — только тихий промах; без filter и box-shadow', () => {
+  it('граней заливки больше нет (v3.3.185: жидкость — чистый цвет дорожки, свет — у линии уровня, word-lane-pill.css): в файле гонки — только тихий промах; без filter и box-shadow', () => {
     const css = read('../../../../styles/player/modules/race-pill-fill.css')
     expect(css.replace(/\/\*[\s\S]*?\*\//g, '')).not.toMatch(/--wl-glow|--rim|wlPillFill|data-live/)
     expect(css.replace(/\/\*[\s\S]*?\*\//g, '')).not.toMatch(/box-shadow\s*:/) // свечение — слой фона по кромке, не тень снаружи слоя (edge20, wordLanePillEdgeAlign.test.js)

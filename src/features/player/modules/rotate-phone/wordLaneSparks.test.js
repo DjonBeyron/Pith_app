@@ -9,7 +9,7 @@ import { lineAt, TIP_PX, SOFT_PX } from './wordLaneLevel.js'
 
 vi.mock('../../../../shared/lib/deviceTier.js', () => ({ isWeakDevice: vi.fn(() => false) }))
 
-// Линия уровня на поверхности жидкости (слой .wlPillSparks вне клипа: кончики выходят за стенки пилюли, v3.3.186 — раньше здесь были искры-плитки), одноразовый «выдох» кольца при старте заливки, ровно одна обводка
+// Линия уровня на поверхности жидкости (слой .wlPillSparks вне клипа: кончики выходят за стенки пилюли, v3.3.185 — раньше здесь были искры-плитки), одноразовый «выдох» кольца при старте заливки, ровно одна обводка
 // (word-lane-pill.css, word-lane-pill-safe.css, wordLanePool.js, WordLanePills.jsx). Безопасный режим — wordLanePillSafe.test.js.
 const read = rel => readFileSync(fileURLToPath(new URL(rel, import.meta.url)), 'utf8')
 const strip = css => css.replace(/\/\*[\s\S]*?\*\//g, '')

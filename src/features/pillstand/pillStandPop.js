@@ -53,7 +53,7 @@ export function bubbleStats(frames = [], pops = []) {
   return { max, frames: n, first, out, outMax, early, atPop }
 }
 
-/** «Зазор сверху»: кадры после старта хлопка, где у засчитанной пилюли (data-lock) заливка ниже 100 % или нет data-full (признак проверяется у снимков v3.3.186+ — у них есть поле ink) → [{ t, frame, v }] (норма — пусто) */
+/** «Зазор сверху»: кадры после старта хлопка, где у засчитанной пилюли (data-lock) заливка ниже 100 % или нет data-full (признак проверяется у снимков v3.3.185+ — у них есть поле ink) → [{ t, frame, v }] (норма — пусто) */
 export function topGaps(frames = [], pops = []) {
   const out = []
   for (const p of pops) {

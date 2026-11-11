@@ -7,7 +7,7 @@ import { surfaceAt, inkTransform, levelTransform, SOFT_PX, SURF_PX } from './wor
 vi.mock('../../../../shared/lib/deviceTier.js', () => ({ isWeakDevice: vi.fn(() => false) }))
 
 // Край жидкости, линия уровня и свет совпадают (edge20, владелец, «Стенд пилюль», покадрово: «в линии заполнения пилюли и света есть офсет»). Было: искры вертикальной пилюли ехали на --pill-h (клип), а слой
-// заливки — на клип + 8 px; свечение гонки было box-shadow слоя заливки — снаружи блока. v3.3.186: линия уровня вернулась (с кончиками за стенками), и офсета нет ПО ПОСТРОЕНИЮ — слой уровня <i> вертикальной
+// заливки — на клип + 8 px; свечение гонки было box-shadow слоя заливки — снаружи блока. v3.3.185: линия уровня вернулась (с кончиками за стенками), и офсета нет ПО ПОСТРОЕНИЮ — слой уровня <i> вертикальной
 // пилюли занимает тот же блок, что слой заливки, и получает тот же transform в том же вызове paintFill; поверхность жидкости, центр линии и граница тёмной подписи — на одном отступе --wl-surf (wordLaneLevel.js).
 const dir = '../../../../styles/player/modules/'
 const read = rel => readFileSync(fileURLToPath(new URL(rel, import.meta.url)), 'utf8')
@@ -35,7 +35,7 @@ describe('вертикальная пилюля: жидкость, линия и
     }
     expect(H - surfaceAt(1, geo)).toBe(-SURF_PX)
   })
-  it('граней и свечения в фоне заливки больше нет (v3.3.186: жидкость — чистый цвет, свет — у линии уровня); box-shadow и переходов на заливке нет', () => {
+  it('граней и свечения в фоне заливки больше нет (v3.3.185: жидкость — чистый цвет, свет — у линии уровня); box-shadow и переходов на заливке нет', () => {
     expect(race).not.toMatch(/box-shadow\s*:/)
     expect(race).not.toMatch(/--wl-glow|--rim|wlPillFill/)
     expect(race).toContain('.wlPill[data-quiet] .wlPillClip::after { display: none; }')

@@ -52,7 +52,7 @@ describe('безопасный режим: вёрстка без слоёв', ()
     expect(all.filter(r => /\bdisplay:/.test(r.body)).every(r => /\.wlPill::before$/.test(r.sel))).toBe(true)
     expect(safeCss).not.toMatch(/--tile|--dust|wlSafeDust|wlSafeSpark|--orbit/)    // плитки частиц в заливке, фонового сдвига и орбит больше нет
     expect(safeCss).not.toMatch(/\.wlPillFill::(before|after)/)
-    expect(safeCss).not.toMatch(/\.wlPillSparks \{/)                              // блока уровня по data-live безопасный режим не прячет и не показывает (v3.3.186)
+    expect(safeCss).not.toMatch(/\.wlPillSparks \{/)                              // блока уровня по data-live безопасный режим не прячет и не показывает (v3.3.185)
     expect(safeCss).toContain('.wlField.wl--safe .wlPill::before { display: none; }')   // «выдоха» кольца нет
   })
   it('контур дважды: border остаётся (обычное правило), поверх него outline на толщину обводки внутрь; inset-теней нет', () => {

@@ -95,7 +95,7 @@ describe('заливка пилюль: ровная, край едет', () => {
     expect(read('./wordLanePool.js')).not.toContain('scaleY(')
   })
 
-  it('жидкость — сплошной цвет дорожки и «в процессе», и «принято» (v3.3.186: бледного тона нет); штриховки нет; серый data-fail остаётся', () => {
+  it('жидкость — сплошной цвет дорожки и «в процессе», и «принято» (v3.3.185: бледного тона нет); штриховки нет; серый data-fail остаётся', () => {
     const css = cssCode()
     expect(css).not.toContain('repeating-linear-gradient')
     expect(css).not.toContain('scaleY')

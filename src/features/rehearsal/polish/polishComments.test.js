@@ -80,7 +80,7 @@ describe('строки журнала', () => {
 })
 
 describe('снимок экрана', () => {
-  const el = (attrs, fill) => ({ getAttribute: k => (k in attrs ? attrs[k] : null), querySelector: () => ({ style: { transform: fill } }) }) // заливка — сдвиг слоя .wlPillFill (v3.3.186: --fill у искр больше нет)
+  const el = (attrs, fill) => ({ getAttribute: k => (k in attrs ? attrs[k] : null), querySelector: () => ({ style: { transform: fill } }) }) // заливка — сдвиг слоя .wlPillFill (v3.3.185: --fill у искр больше нет)
   const root = { querySelectorAll: sel => (sel === '[data-pill][data-held]' ? [el({ 'data-lane': '2', 'data-lock': '1' }, 'translateY(0.0%)'), el({ 'data-lane': '1', 'data-live': '1' }, 'translateY(54.6%)'), el({ 'data-lane': '0', 'data-fail': '1' }, ''), el({ 'data-lane': '1' }, 'translateX(-100.0%)')] : []) }
   const f = {
     stage: 'run', idx: 9, phase: 'student', mic: 'listening', seq: [0], misses: 2, note: 'Услышал: «tree»', catLine: 'Давай', plate: 'Теперь твоя очередь', rh: { tag: 'Обычно' },

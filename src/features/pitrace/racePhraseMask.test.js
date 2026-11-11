@@ -87,7 +87,7 @@ describe('узел маски на пилюле', () => {
     m.remove(); expect(el.children).toHaveLength(0)
     const bare = mountMask({}, 'Nice to meet you'); bare.set(new Map([[2, true]])); expect(bare.words()[2].state).toBe('full'); bare.remove()
   })
-  it('тёмная копия маски в слое заливки (v3.3.186: светлые слова на чистом цвете жидкости не читаются): те же слова, data-w и --peek зеркалятся, границы слов меряет основная, remove снимает обе', () => {
+  it('тёмная копия маски в слое заливки (v3.3.185: светлые слова на чистом цвете жидкости не читаются): те же слова, data-w и --peek зеркалятся, границы слов меряет основная, remove снимает обе', () => {
     const doc = createDoc(), pill = fakePill(doc)
     const m = mountMask(pill, 'Nice to meet you')
     const main = pill.children.find(c => c.className === 'racePhraseMask'), ink = pill.querySelector('.wlPillInkIn').children[0]
