@@ -15,7 +15,7 @@ export function rest(e, cut = JSON_CUT) {
   return s.length > cut ? `${s.slice(0, cut)}…` : s
 }
 
-const stats = e => ['firstPartialMs', 'resultMs', 'afterStopMs', 'tailMs', 'gatedMs', 'maxGapMs'].filter(k => e[k] != null).map(k => `${k} ${e[k]}`).join(', ')
+const stats = e => ['firstPartialMs', 'resultMs', 'afterStopMs', 'tailMs', 'gatedMs', 'voiceMs', 'gatedVoiceMs', 'agcMax', 'maxGapMs'].filter(k => e[k] != null).map(k => `${k} ${e[k]}`).join(', ')
 
 const LINES = {
   target: e => `── цель #${(e.n ?? 0) + 1} ${q(e.say)}${e.shown && e.shown !== e.say ? ` (на пилюле ${q(e.shown)})` : ''} · ${e.mode ?? '?'} · ${String(e.lang ?? '?').toUpperCase()}`,

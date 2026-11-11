@@ -13,6 +13,7 @@ import { readModelUrl } from './voskConfig.js'
 import { peekCached, readCached } from './voskStorage.js'
 import { loadEngine, unloadEngine } from './voskEngine.js'
 import { onBgCached } from './voskBgStatus.js'
+import { loadPhones } from './phones/phoneTable.js'
 import { readSayEngine } from '../speech/sayEngineMode.js'
 import { STAGE_TEXT, STAGE_FAIL_TEXT, TRIGGER_TEXT, createStageGuard, StageTimeout, WarmAbandoned, addTrace } from './voskWarmStages.js'
 
@@ -225,4 +226,5 @@ export function createVoskRuntime(deps = {}) {
   }
 }
 
-export const voskRuntime = createVoskRuntime()
+// Английская модель: вместе с ней (пока она секунды встаёт в память) догружается таблица произношений для фонетических ловушек правила слова — ленивый чанк phones/enPhones.js
+export const voskRuntime = createVoskRuntime({ load: (...args) => { loadPhones('en'); return loadEngine(...args) } })

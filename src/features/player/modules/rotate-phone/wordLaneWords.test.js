@@ -93,7 +93,7 @@ describe('слушатель: параметры дубля', () => {
     const b = rig([{ text: 'trying', words: [] }])
     b.l.start()
     for (let i = 0; i < 3; i++) await tick()
-    expect(b.calls[0].gate).toBe(true)
+    expect(b.calls[0].gate.heard).toBeTypeOf('function') // затвор включён и спрашивает голос у счётчика слушателя (voskVoice.js)
     expect(b.timers.at(-1).ms).toBe(150)
     b.l.dispose()
   })

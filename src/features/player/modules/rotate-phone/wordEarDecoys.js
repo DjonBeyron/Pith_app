@@ -9,6 +9,15 @@
 //  • Слов, которых нет в словаре модели (152 тыс. слов у small EN), Vosk молча не берёт — поэтому варианты генерируются с запасом, без своего словаря в приложении.
 //  • Ловушка не должна совпасть ни с целью, ни со словом внутри фразы-цели (иначе «to» из «to learn» вырезалось бы из разбора).
 // Русская модель — как раньше: только начала (от 3 букв до длины − 2) у слов от 6 букв и 2 слогов (двойные и короткие слова на русской модели не замерялись).
+//
+// v3.3.185 — ФОНЕТИЧЕСКИЕ ловушки (отчёт владельца: «house» без конца засчитан — буквенные «hous, housy, houss, housh» не слова, модель их выбросила, в грамматике осталась цель + [unk]).
+// Когда загружена таблица произношений (shared/lib/vosk/phones: CMUdict, ленивый чанк, только английский), соседи слова из таблицы строятся ПО ЗВУКУ (phoneNeighbors.js: house → how, howl;
+// nice → nigh, nine, knight; milk → mill; water → wat; breakfast → breck, break, «breck fuss»): все они есть в словаре модели. Слова нет в таблице — буквенные варианты, но только те, что сами
+// слова таблицы (остальные модель выбросила бы, а выброшенная ловушка — ПУСТАЯ фраза в грамматике: она тянет итог к «»). Таблицы нет — всё по буквам, как раньше.
+// earPlan — то же с разбором для журнала [word-ear]: какие ловушки точно приняты моделью, какие отброшены как не слова.
+import { phonesOf } from '../../../../shared/lib/vosk/phones/phoneTable.js'
+import { phoneNeighbors } from '../../../../shared/lib/vosk/phones/phoneNeighbors.js'
+
 export const EAR_GRAMMAR_MAX = 240 // ловушек в грамматике не больше (поровну на каждую цель-слово)
 export const PAIR_SHARE = 0.75     // двойная ловушка покрывает не больше этой доли букв слова
 export const PREFIX_MIN = 3        // начало-ловушка — не короче стольких букв
@@ -27,7 +36,7 @@ export const single = t => !/\s/.test(String(t ?? '').trim())
 export const normWord = t => String(t ?? '').toLowerCase().trim().replace(/[.,!?;:"«»]+/g, '')
 const variants = p => [...TAILS.map(t => p + t), p + p.at(-1)]
 
-/** Ловушки одного слова: [одиночные (от длинных начал к коротким), двойные] */
+/** Ловушки одного слова по буквам: [одиночные (от длинных начал к коротким), двойные] */
 function wordDecoys(w, lang) {
   if (lang === 'ru') {
     const one = []
@@ -41,22 +50,32 @@ function wordDecoys(w, lang) {
 }
 
 /**
- * Ловушки для целей: фразы грамматики (одно или два слова). ownWords — слова целей во всех записях («i'm» и «i am»): ни одна ловушка их не содержит.
- * Цели-фразы ловушек не получают. Не больше EAR_GRAMMAR_MAX на грамматику — поровну на цель, сначала одиночные.
+ * План ловушек для целей: { list — фразы грамматики (одно или два слова), words: [{ word, kind: 'звук' | 'буквы', took: [взято], dropped: [отброшено: не слова таблицы] }] }.
+ * ownWords — слова целей во всех записях («i'm» и «i am»): ни одна ловушка их не содержит. Цели-фразы ловушек не получают. Не больше EAR_GRAMMAR_MAX на грамматику — поровну на цель.
+ * table — таблица произношений (phoneTable.phonesOf; null — её нет: ловушки по буквам без проверки, как до v3.3.185).
  */
-export function earDecoys(targets, lang = 'en', ownWords = []) {
+export function earPlan(targets, lang = 'en', ownWords = [], phones = phonesOf(lang)) {
+  const table = lang === 'en' ? phones : null // таблица — только английская
   const letters = lang === 'ru' ? /^[а-яё]+$/ : /^[a-z]+$/
   const own = new Set([...targets.flatMap(t => normWord(t).split(/\s+/)), ...ownWords.map(normWord)])
-  const words = [...new Set(targets.map(normWord).filter(w => single(w) && letters.test(w) && w.length > PREFIX_MIN))]
+  const words = [...new Set(targets.map(normWord).filter(w => single(w) && letters.test(w) && (w.length > PREFIX_MIN || table?.prons.has(w))))]
   const per = Math.floor(EAR_GRAMMAR_MAX / Math.max(1, words.length))
-  const out = new Set()
+  const out = new Set(), plan = []
   for (const w of words) {
-    const [one, two] = wordDecoys(w, lang)
-    let n = 0
-    for (const d of [...one, ...two]) { if (n >= per) break; if (out.has(d) || d.split(' ').some(x => own.has(x))) continue; out.add(d); n++ }
+    const near = table ? phoneNeighbors(w, table, own) : null
+    const [one, two] = near ? [[...near.prefixes, ...near.subs, ...near.spelled], near.pairs] : wordDecoys(w, lang)
+    const took = [], dropped = []
+    for (const d of [...one, ...two]) {
+      if (took.length >= per) break
+      if (out.has(d) || d.split(' ').some(x => own.has(x))) continue
+      if (table && !near && !d.split(' ').every(x => table.prons.has(x))) { dropped.push(d); continue } // по буквам вышло не слово: модель выбросила бы его, оставив в грамматике пустую фразу
+      out.add(d); took.push(d)
+    }
+    plan.push({ word: w, kind: near ? 'звук' : 'буквы', sure: !!table, took, dropped })
   }
-  return [...out]
+  return { list: [...out], words: plan }
 }
+export const earDecoys = (targets, lang = 'en', ownWords = [], table = phonesOf(lang)) => earPlan(targets, lang, ownWords, table).list
 
 /** Грамматика с ловушками: base — грамматика целей (JSON-массив вариантов), ловушки — отдельными вариантами (обрубок говорят один раз) */
 export function earGrammar(base, decoys) {

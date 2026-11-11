@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { createEarVoice, voiceNote, ON_MIN, OFF_MIN, OFF_PEAK, ON_NOISE, EAR_GAP_MS } from './wordEarVoice.js'
+import { createEarVoice, voiceNote, ON_MIN, OFF_MIN, OFF_PEAK, ON_NOISE, EAR_GAP_MS } from './voskVoice.js'
 
 // Порог голоса от шума микрофона и пика речи (v3.3.183): тихий микрофон iPhone (речь 0,012–0,026, фон 0,0002) должен работать как громкий.
 const CHUNK = 46
@@ -50,6 +50,17 @@ describe('голос по уровню: порог от шума и пика', (
     r.push(0.0002, EAR_GAP_MS + CHUNK)
     expect(r.push(0.02)).toMatchObject({ started: true, gap: 0 })
     expect(r.v.ms()).toBe(0)
+  })
+  it('начало высказывания — задним числом: тихое нарастание перед «голос начался» (куски подряд громче порога продолжения) входит в длину голоса', () => {
+    const r = rig()
+    r.push(0.0003, 400)
+    r.push(0.001); r.push(0.0015); r.push(0.0018) // «b…»: тише порога начала 0,002, громче порога продолжения 0,0008
+    expect(r.push(0.004)).toMatchObject({ voice: true, started: true })
+    r.push(0.004); r.push(0.002)
+    expect(r.v.ms()).toBe(5 * CHUNK) // раньше — 2 куска (92 мс): правило слова отвергало «book» как слишком короткое
+    r.push(0.0003, EAR_GAP_MS + CHUNK)
+    r.push(0.0003); expect(r.push(0.004).started).toBe(true)
+    expect(r.v.ms()).toBe(0) // перед этим словом нарастания не было — отсчёт от него самого
   })
   it('ровный ноль (игра выключила дорожку) — не голос и не шум', () => {
     const r = rig()

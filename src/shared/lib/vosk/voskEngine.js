@@ -6,6 +6,7 @@ import { deleteLibraryStore } from './voskStorage.js'
 import { autoStopDue, TAIL_SILENCE_MS, DRAIN_MAX_MS, VOICE_RMS } from './voskTiming.js'
 import { feedSilence, feedSamples } from './voskTail.js'
 import { createGate } from './voskGate.js'
+import { createAgc, applyGain } from './voskAgc.js'
 import { createRecorder } from './voskRecord.js'
 import { createAudioSession } from '../speech/speechAudioSession.js'
 import { acquireCaptureContext, releaseCapture } from './voskCapture.js'
@@ -106,6 +107,9 @@ export function unloadEngine(model) {
  * Для «Сказать фразу» (медленная речь): gate (true — voskGate.js не отдаёт декодеру тишину дольше ≈0,4 с подряд, иначе его эндпойнтер сам обрывает запись на паузе 0,5–2 с), cleanPartial (как
  * считать текст для авто-стопа: без [unk] — «слово услышано» только настоящее), isComplete(текст) → true, когда в partial уже вся фраза: затвор открывается, а авто-стоп ждёт completeMs вместо autoStopMs
  * (stopBy 'full'). stats.gatedMs — сколько мс тишины не отдали движку; opts.onGate(open, rms) — затвор открылся (звук снова идёт в движок) / закрылся (тишина не идёт) — журнал «Скажи».
+ * gate может быть счётчиком голоса вызывающего (voskVoice.js: у слушателя слов — тот же, что у правила слова; onLevel приходит раньше затвора) — затвор спрашивает голос у него;
+ * stats.voiceMs / gatedVoiceMs — сколько мс звука счётчик назвал голосом и сколько из них НЕ ушло в Vosk (сторож: должно быть 0; журнал «⚠ звук не дошёл до Vosk»).
+ * С затвором звук перед Vosk усиливается сам (voskAgc.js: тихий микрофон iPhone; stats.agcMax — наибольшее усиление за заход); уровень onLevel — без этого усиления.
  * opts.gain (>1) — программное усиление микрофона перед Vosk: GainNode + мягкий ограничитель (voskGain.js, игра: gameMicGain.js); без него звук идёт напрямую.
  * opts.stream — готовый MediaStream: тогда getUserMedia не зовётся (второго диалога разрешения нет), а по концу сеанса треки остаются живыми — ими владеет вызывающий.
  * opts.record (true — только «Сказать фразу» с режимом «голосовое с текстом»): сырые куски звука ДО затвора копятся в памяти (voskRecord.js), а в stats.audio приходит клип
@@ -140,7 +144,7 @@ export async function startListening(model, grammar, cb, opts = {}) {
   try { rec.setWords(true) } catch { /* без пословных меток */ }
   const t0 = performance.now()
   const st = { firstPartialMs: null, chunks: 0, workMs: 0, audioMs: 0, stopAt: null, done: false, text: '', changeAt: null, stopBy: null, audioStartMs: null, readyMs: null,
-    finalizing: false, drain: null, complete: false, prev: null, voiceAt: null, lastChunkAt: null, maxGapMs: 0, lateChunks: 0, chunkMs: null, tailMs: 0, drainMs: null }
+    finalizing: false, drain: null, complete: false, held: [], voiceMs: 0, lostMs: 0, voiceAt: null, lastChunkAt: null, maxGapMs: 0, lateChunks: 0, chunkMs: null, tailMs: 0, drainMs: null }
   let timer = null
   const recorder = opts.record ? createRecorder({ rate: ctx.sampleRate, maxMs: opts.maxMs }) : null // запись для голосового ответа: тот же поток, второго микрофона нет
   const free = () => {
@@ -165,13 +169,14 @@ export async function startListening(model, grammar, cb, opts = {}) {
       firstPartialMs: st.firstPartialMs, resultMs: ms(t0), afterStopMs: st.stopAt == null ? null : ms(st.stopAt), chunks: st.chunks,
       words: m.result.result || [], micMs, readyMs: st.readyMs, audioStartMs: st.audioStartMs, stopBy: st.stopBy ?? 'endpoint', session: held ? opts.session : null,
       loadPct: st.audioMs ? Math.round((st.workMs / st.audioMs) * 1000) / 10 : null,
-      tailMs: st.tailMs, drainMs: st.drainMs, chunkMs: st.chunkMs, maxGapMs: Math.round(st.maxGapMs), lateChunks: st.lateChunks, gatedMs: gate?.droppedMs ?? 0,
+      tailMs: st.tailMs, drainMs: st.drainMs, chunkMs: st.chunkMs, maxGapMs: Math.round(st.maxGapMs), lateChunks: st.lateChunks, gatedMs: gate?.droppedMs ?? 0, voiceMs: Math.round(st.voiceMs), gatedVoiceMs: Math.round(st.lostMs), agcMax: agc?.max ?? 1,
       audio: recorder ? recorder.finish() : null,
     })
     free()
   })
   rec.on('error', m => { if (!st.done) { cb.onError(m.error || 'ошибка Vosk'); free() } })
-  const gate = opts.gate ? createGate() : null
+  const gate = opts.gate ? createGate(typeof opts.gate === 'object' ? { voice: opts.gate } : {}) : null
+  const agc = gate ? createAgc({ noise: gate.noise }) : null
   const node = ctx.createScriptProcessor(CHUNKS.includes(opts.chunk) ? opts.chunk : CHUNK, 1, 1)
   const src = ctx.createMediaStreamSource(stream)
   node.onaudioprocess = ev => {
@@ -193,10 +198,13 @@ export async function startListening(model, grammar, cb, opts = {}) {
     if (recorder) { try { recorder.push(ev.inputBuffer.getChannelData(0)) } catch { /* запись не должна мешать распознаванию */ } }
     const g = gate ? gate.push(rms, dur, { open: st.complete }) : null
     if (g && opts.onGate && g.feed !== st.gateOpen) { st.gateOpen = g.feed; try { opts.onGate(g.feed, rms) } catch { /* журнал не мешает распознаванию */ } }
-    if (g?.preroll && st.prev) feedSamples(rec, st.prev, ctx.sampleRate) // голос вернулся после долгой тишины: предыдущий кусок мог начинать слово тише порога
-    st.prev = null
-    if (!g || g.feed) { try { rec.acceptWaveform(ev.inputBuffer) } catch (e) { cb.onError(`acceptWaveform: ${e?.message || e}`) } }
-    else { try { st.prev = new Float32Array(ev.inputBuffer.getChannelData(0)) } catch { /* без предзвука */ } }
+    if (g?.voice) { st.voiceMs += dur; if (!g.feed) st.lostMs += dur }
+    const k = agc?.next(rms, dur, !g.feed) // автоусиление перед Vosk (тихий микрофон): считается на каждом куске, применяется только к звуку для распознавателя; затвор закрыт — возвращается к потолку
+    let data = null
+    if (k && (k.from > 1 || k.to > 1 || !g.feed)) { try { data = applyGain(ev.inputBuffer.getChannelData(0), k.from, k.to) } catch { /* без усиления и предзвука */ } }
+    if (g?.preroll) for (const d of st.held.slice(-g.preroll)) feedSamples(rec, d, ctx.sampleRate) // голос вернулся после долгой тишины: предзвук — последние не отданные куски (тихое начало слова)
+    if (!g || g.feed) { st.held.length = 0; try { if (data) feedSamples(rec, data, ctx.sampleRate); else rec.acceptWaveform(ev.inputBuffer) } catch (e) { cb.onError(`acceptWaveform: ${e?.message || e}`) } }
+    else if (data) { st.held.push(data); if (st.held.length > gate.keep(dur)) st.held.shift() }
     st.workMs += performance.now() - t
     st.audioMs += dur
     st.chunks++

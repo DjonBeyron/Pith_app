@@ -76,6 +76,15 @@ describe('createPhraseListener', () => {
     expect(r.got).toEqual([{ phraseKey: 'nice to meet you', ratio: 1, heard: 'nice to meet you' }])
     r.l.stop()
   })
+  it('тихий микрофон (v3.3.185): речь 0,004 при фоне 0,0003 — тише прежнего порога 0,006 — для слушателя фраз голос, тишину до итога считаем от неё', async () => {
+    const r = rig([P.meet, P.from]); await flush()
+    const level = (rms, ms) => { for (let i = 0; i < ms; i += 40) { r.cur().cb.onLevel(rms); r.advance(40) } }
+    level(0.0003, 400) // фон: счётчик голоса (voskVoice.js) узнал шум микрофона
+    level(0.004, 400); r.cur().cb.onPartial('nice to meet')
+    level(0.004, QUIET_LAST_MS); expect(r.cur().stopped).toBe(0) // «…you» тянется тихо: раньше это была «тишина», и итог захода просили посреди слова
+    level(0.0003, QUIET_LAST_MS + 80); expect(r.cur().stopped).toBe(1) // настоящая тишина (фон) — итог, как раньше
+    r.l.stop()
+  })
   it('без последнего слова и в итоге: зачёт 0.75 через SETTLE_LAST_MS; голос в паузе отодвигает решение', async () => {
     const r = rig([P.meet, P.from]); await flush()
     r.cur().cb.onPartial('nice to meet'); r.advance(QUIET_LAST_MS); await end(r, 'nice to meet', 0)

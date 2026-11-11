@@ -4,7 +4,7 @@
 // передаётся как есть: стенд ничего не меняет в распознавании, только смотрит. Чистая функция над подставляемым listen.
 import { startListening } from '../../shared/lib/vosk/voskEngine.js'
 
-const STAT_KEYS = ['firstPartialMs', 'resultMs', 'afterStopMs', 'chunks', 'micMs', 'readyMs', 'audioStartMs', 'stopBy', 'loadPct', 'tailMs', 'drainMs', 'chunkMs', 'maxGapMs', 'lateChunks', 'gatedMs']
+const STAT_KEYS = ['firstPartialMs', 'resultMs', 'afterStopMs', 'chunks', 'micMs', 'readyMs', 'audioStartMs', 'stopBy', 'loadPct', 'tailMs', 'drainMs', 'chunkMs', 'maxGapMs', 'lateChunks', 'gatedMs', 'voiceMs', 'gatedVoiceMs', 'agcMax']
 
 /** → listen(model, grammar, cb, opts) для createWordListener({ listen }); trace — createStandTrace */
 export function tapListen(trace, listen = startListening) {

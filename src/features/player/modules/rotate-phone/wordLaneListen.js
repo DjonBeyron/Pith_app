@@ -13,6 +13,7 @@ import { readMicGain } from '../../../../shared/lib/gameMicGain.js'
 import { analyzeTargets, targetGrammar } from './wordLaneMatch.js'
 import { SLOT_COUNT } from './wordLaneTimeline.js'
 import { createWordEar, earGrammar } from './wordEarRule.js'
+import { createEarVoice } from '../../../../shared/lib/vosk/voskVoice.js'
 
 export const OVERALL_MS = 120000     // сколько всего слушаем (конвейер выкатывает пилюли повторно, игра идёт долго), прежде чем перейти на ручной режим
 const PAUSE_STOP_MS = 3500           // слово услышано, а нового давно нет — заход закрываем (дальше новый заход)
@@ -70,7 +71,8 @@ export function createWordListener({ word, targets: targetsIn, expected = SLOT_C
   let pend = null     // русская модель: неподтверждённый счёт из черновика (seq), его возьмёт таймер или итог
   let said = { partial: '', final: '' } // что распознаватель услышал с последнего resetSaid(): журнал слова прохода B
   const settleRu = lang === 'ru'
-  const ear = earRule ? createWordEar({ targets, lang, now, own: JSON.parse(targetGrammar(targets, 1, null, lang) ?? '[]').flatMap(f => f.split(' ')), hit: t => analyzeTargets(t, targets, true, lang).seq.length > 0, log: s => { pLog(`[word-ear] ${s}`); onDebug?.('ear', { text: s }) } }) : null // честный зачёт слова (wordEarRule.js)
+  const voice = createEarVoice({ now }) // «голос или тишина»: один счётчик на правило слова и на затвор тишины движка (voskVoice.js) — что правило назвало голосом, то ушло в Vosk
+  const ear = earRule ? createWordEar({ targets, lang, now, voice, own: JSON.parse(targetGrammar(targets, 1, null, lang) ?? '[]').flatMap(f => f.split(' ')), hit: t => analyzeTargets(t, targets, true, lang).seq.length > 0, log: s => { pLog(`[word-ear] ${s}`); onDebug?.('ear', { text: s }) } }) : null // честный зачёт слова (wordEarRule.js)
   const tapOnly = () => (typeof noVosk === 'function' ? !!noVosk() : !!noVosk) // функция — тап включили по ходу (русская модель не включилась, stage.demote)
 
   const publish = patch => {
@@ -139,7 +141,7 @@ export function createWordListener({ word, targets: targetsIn, expected = SLOT_C
       clearTimer(missTimer)
       // Итог (final) — промах настоящий сразу; в черновике он должен устояться: следующий partial может переслушать слово, и тогда промаха не было
       const settled = final || count <= misses
-      onDebug?.(final ? 'final' : 'partial', { raw, seq: r.seq, misses: r.misses, count, settled, tail: r.tail, muted: now() < mutedUntil, absorbed, ...(stats ? { stopBy: stats.stopBy, gatedMs: stats.gatedMs, maxGapMs: stats.maxGapMs, lateChunks: stats.lateChunks } : {}) })
+      onDebug?.(final ? 'final' : 'partial', { raw, seq: r.seq, misses: r.misses, count, settled, tail: r.tail, muted: now() < mutedUntil, absorbed, ...(stats ? { stopBy: stats.stopBy, gatedMs: stats.gatedMs, maxGapMs: stats.maxGapMs, lateChunks: stats.lateChunks, ...(stats.voiceMs != null ? { voiceMs: stats.voiceMs, gatedVoiceMs: stats.gatedVoiceMs, agcMax: stats.agcMax } : {}) } : {}) })
       let next = base.seq.concat(r.seq), tl = r.tail
       if (ear && !final) { next = ear.draft(next, seq.length, raw); if (ear.pending()) tl = { target: ear.pending().seq.at(-1), tokens: RU_FULL_TOKENS } } // цель — последнее слово черновика: может быть не договорена, ждём конец голоса и итог (wordEarRule.js)
       if (settleRu && next) { // попадание из черновика ждёт RU_SETTLE_MS (пилюля его цели тем временем наливается); итог берёт своё, а если выронил слово черновика — черновое
@@ -156,7 +158,7 @@ export function createWordListener({ word, targets: targetsIn, expected = SLOT_C
         if (cur !== session) return
         onDebug?.('level', rms)
         level.push(rms)
-        const e = ear?.level(rms)
+        const e = ear ? ear.level(rms) : void voice.push(rms)
         if (e?.final && !session.stopped) stop('ear') // голос кончился — итог решает, договорено ли слово
         if (rms > 0 || isHeld()) { zeroSince = 0; return } // дорожку глушит сама игра на время речи Пита/диктора (gameMicHold) — ровная тишина не значит «оглох»
         zeroSince ||= now()
@@ -172,7 +174,7 @@ export function createWordListener({ word, targets: targetsIn, expected = SLOT_C
         if (cur !== session) return
         addWords(stats, sessionAt)
         const fin = (stats?.words?.length ? stats.words.map(w => w.word).join(' ') : text) || ''
-        part(ear ? ear.finalText(fin, stats?.words) : fin, true, stats)
+        part(ear ? ear.finalText(fin, stats?.words, stats) : fin, true, stats)
         end(session, 'result')
       },
       onError: msg => { pLog(`[word-lane] Vosk: ${msg}`); end(session, 'error'); publish({ status: 'error', error: String(msg) }) },
@@ -182,7 +184,7 @@ export function createWordListener({ word, targets: targetsIn, expected = SLOT_C
       .then(() => listen(model, grammar, callbacks, {
         autoStopMs: PAUSE_STOP_MS, completeMs: FULL_STOP_MS, maxMs: SESSION_MAX_MS, session: sayAudioSessionType(), chunk: 2048, stream: getStream?.() ?? undefined, gain: micGain(), // gain: «Чувствительность микрофона» HUD (gameMicGain.js) — усиление перед Vosk; уровень для колец считается уже по усиленному звуку
         // готовый поток игры (iPhone) — без нового диалога; куски по 2048 кадров (≈ 46 мс при 44,1 кГц, 43 мс при 48 кГц): громкость для пилюль приходит ≈ 22 раза в секунду, а главный поток получает вдвое меньше вызовов (1024 кадров — 23 мс — на слабом телефоне съедали заметную долю кадра);
-        gate, ...(trace ? { onGate: (open, rms) => onDebug?.('gate', { open, rms }) } : {}), cleanPartial, isComplete: text => analyzeTargets(text, targets, true, lang).seq.length >= remaining(),
+        gate: gate && voice, ...(trace ? { onGate: (open, rms) => onDebug?.('gate', { open, rms }) } : {}), cleanPartial, isComplete: text => analyzeTargets(text, targets, true, lang).seq.length >= remaining(),
       }))
       .then(h => { if (disposed || cur !== session) { try { h?.cancel() } catch { /* уже свободен */ } return } session.handle = h; if (session.stopped) h.stop() },
         e => { if (cur === session) { pLog(`[word-lane] микрофон не открылся: ${e?.name ?? e}`); cur = null; publish({ status: 'error', error: e?.name || 'mic' }) } })

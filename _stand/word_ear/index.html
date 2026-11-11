@@ -5,13 +5,16 @@
 // window.__run({ wav, target, lang, ear }) → { out (строки журнала), res: { voiceOn, voiceOff, hitAt, partials, finals } } — мс от начала звука. ear: false — без правила честного зачёта (как до v3.3.180).
 import { loadEngine } from '/src/shared/lib/vosk/voskEngine.js'
 import { createWordListener } from '/src/features/player/modules/rotate-phone/wordLaneListen.js'
+import { loadPhones, setPhonesForTest } from '/src/shared/lib/vosk/phones/phoneTable.js'
 const models = {}
 const getModel = async lang => (models[lang] ??= (async () => (await loadEngine(await (await fetch(`/__${lang}.tar.gz`)).blob())).model)())
 window.__load = async lang => { await getModel(lang); return true }
+// таблица произношений для фонетических ловушек (в приложении её грузит voskRuntime вместе с английской моделью); __phones(false) — без неё: ловушки по буквам, как до v3.3.185
+window.__phones = async on => { if (on) await loadPhones('en'); else setPhonesForTest(null); return true }
 // gain — множитель громкости wav (тихий микрофон iPhone: речь rms 0,012–0,026), noise — rms фона (iPhone ≈ 0,0002). res.levels — [мс, rms] кусков звука: по ним драйвер сам находит конец голоса.
 window.__run = async ({ wav, target, extra = [], lang = 'en', ear = true, tailMs = 3500, gain = 1, noise = 0.0009 }) => {
   const model = await getModel(lang)
-  const out = [], res = { hitAt: null, partials: [], finals: [], levels: [], durMs: 0 }
+  const out = [], res = { hitAt: null, partials: [], finals: [], levels: [], gates: [], durMs: 0 }
   let T0 = performance.now(), playing = false
   const rel = () => Math.round(performance.now() - T0)
   const log = s => out.push(`${String(rel()).padStart(5)} ${s}`)
@@ -31,7 +34,7 @@ window.__run = async ({ wav, target, extra = [], lang = 'en', ear = true, tailMs
       else if (k === 'ear') log(`[ear] ${d.text}`)
       else if (k === 'session-end') log(`session-end ${d.by}`)
     },
-    listen: (m, g, cb, o) => import('/src/shared/lib/vosk/voskEngine.js').then(e => e.startListening(m, g, { ...cb, onResult: (t, st) => { res.finals.push({ t: rel(), text: t, words: (st?.words ?? []).map(w => ({ w: w.word, conf: Math.round(w.conf * 100) / 100, s: Math.round(w.start * 1000), e: Math.round(w.end * 1000) })), by: st?.stopBy }); cb.onResult(t, st) } }, o)),
+    listen: (m, g, cb, o) => import('/src/shared/lib/vosk/voskEngine.js').then(e => e.startListening(m, g, { ...cb, onResult: (t, st) => { res.finals.push({ t: rel(), text: t, words: (st?.words ?? []).map(w => ({ w: w.word, conf: Math.round(w.conf * 100) / 100, s: Math.round(w.start * 1000), e: Math.round(w.end * 1000) })), by: st?.stopBy, gatedMs: st?.gatedMs, resultMs: st?.resultMs }); cb.onResult(t, st) } }, { ...o, onGate: (open, rms) => { res.gates.push([performance.now(), open ? 1 : 0]); o.onGate?.(open, rms) } })),
     onChange: st => { if (st.seq.includes(0) && res.hitAt == null && playing) { res.hitAt = rel(); log(`=== ЗАЧЁТ (seq ${st.seq})`) } },
   })
   l.start()
@@ -43,7 +46,34 @@ window.__run = async ({ wav, target, extra = [], lang = 'en', ear = true, tailMs
   while (performance.now() < until && !(rel() > res.durMs && (res.hitAt != null || res.finals.some(f => f.t > res.durMs - 150)))) await new Promise(r => setTimeout(r, 40))
   await new Promise(r => setTimeout(r, 300))
   l.dispose(); await ctx.close()
+  res.gates = res.gates.map(([t, o]) => [Math.round(t - T0), o])
   return { out, res }
+}
+// Слушатель ФРАЗ гонки (racePhraseListen.js) на настоящем Vosk: wav → поток; → { log: [[мс, строка журнала]], phraseAt, firstDraftAt, levels } — мс от начала звука
+window.__phrase = async ({ wav, words, lang = 'en', gain = 1, noise = 0.0003, tailMs = 5000 }) => {
+  const model = await getModel(lang), { createPhraseListener } = await import('/src/features/pitrace/racePhraseListen.js')
+  const res = { log: [], levels: [], phraseAt: null, firstDraftAt: null, drafts: [] }
+  let T0 = performance.now(), playing = false
+  const rel = () => Math.round(performance.now() - T0)
+  const ctx = new AudioContext(), buf = await ctx.decodeAudioData(await (await fetch(wav)).arrayBuffer()), dest = ctx.createMediaStreamDestination()
+  const nb = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate), nd = nb.getChannelData(0)
+  let s = 777; for (let i = 0; i < nd.length; i++) { s = (s * 1103515245 + 12345) & 0x7fffffff; nd[i] = ((s / 0x7fffffff) * 2 - 1) * noise * Math.sqrt(3) }
+  const ns = ctx.createBufferSource(); ns.buffer = nb; ns.loop = true; ns.connect(dest); ns.start()
+  const l = createPhraseListener({
+    phrases: [{ key: 'p', words }], lang, getStream: () => dest.stream, isHeld: () => false, log: t => { if (playing) res.log.push([rel(), t]) },
+    create: o => createWordListener({ ...o, runtime: { getModel: () => model, snapshot: () => ({}) }, micGain: () => 1 }),
+    onEar: e => { if (playing && e.kind === 'partial' && e.text) { res.firstDraftAt ??= rel(); res.drafts.push([rel(), e.text]) } },
+    onLevel: rms => { if (playing) res.levels.push([rel(), Math.round(rms * 1e5) / 1e5]) },
+    onPhrase: p => { if (playing && res.phraseAt == null) { res.phraseAt = rel(); res.ratio = p.ratio; res.heard = p.heard } },
+  })
+  await new Promise(r => setTimeout(r, 1500))
+  T0 = performance.now(); playing = true
+  const src = ctx.createBufferSource(), g = ctx.createGain(); g.gain.value = gain; src.buffer = buf; src.connect(g); g.connect(dest); src.start()
+  const until = performance.now() + buf.duration * 1000 + tailMs
+  while (performance.now() < until && res.phraseAt == null) await new Promise(r => setTimeout(r, 40))
+  await new Promise(r => setTimeout(r, 200))
+  l.stop(); await ctx.close()
+  return res
 }
 // Быстрая проба БЕЗ слушателя и без реального времени: wav кусками по chunk кадров прямо в распознаватель с грамматикой grammar (массив фраз); stopAt (мс звука) — оборвать и попросить итог
 // (хвост тишины tail мс), как stop('ear'). → { partials: [[мс звука, текст]] (только смены текста), results: [{ at, text, words }] } — что Vosk отдаёт в черновике и итоге при таких ловушках.
