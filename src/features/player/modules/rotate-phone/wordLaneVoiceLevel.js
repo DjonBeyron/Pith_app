@@ -8,13 +8,20 @@
 //  • усиление не поднимает пик высказывания выше LEVEL_PEAK (0,05 — «обычная речь», уровень 0,75): речь 0,02 на тихом микрофоне — ×2,5, а не ×10 (иначе кольца упирались бы в 1,0 и
 //    не дышали); кусок 0,05 и громче не усиливается никогда — обычная и громкая речь идут как раньше;
 //  • кусок, который счётчик голосом НЕ назвал (фон, шорох, дыхание), не усиливается: тишина и шум комнаты дают 0, как раньше (а громче пола 0,006 — как раньше, по прежней кривой; дальше
-//    их отсекают ворота wordLaneVoiceGate.js — пол шума по уровню, запас ON_MARGIN, выдержка ON_MS).
+//    их отсекают ворота wordLaneVoiceGate.js — пол шума по уровню, запас ON_MARGIN, выдержка ON_MS);
+//  • ШУМ для усиления — больший из двух: оценка счётчика и СВОЯ — нижние 10 % громкости кусков за последние ≈ 3 с (QUIET_WINDOW кусков; ровный ноль — дорожку глушит игра — не в счёт).
+//    Зачем своя (замер стенда, фон 0,003): первый кусок каждого захода неполный (0,0006) — оценка счётчика падает к нему, следующий кусок фона «в 4 раза громче шума», и счётчик до 7 с
+//    считает ровный фон голосом. Распознаванию это не вредит (Vosk в шуме слов не слышит), а анимация по одной его оценке налила бы пилюлю на тишине. Своя оценка на ровном фоне равна фону —
+//    усиления нет. Пока кусков меньше QUIET_MIN (≈ 0,5 с после создания), усиления тоже нет.
 // Без счётчика (createRmsLevel.push без voice: «Игра 2», «Скажи вслух» — у них своя sensitiveLevel) — прежняя кривая. Чистая логика; проверка — wordLaneVoiceLevel.test.js и замер стенда пилюль.
 import { sensitiveLevel, SENSITIVE_FLOOR, GAME_LEVEL_DECAY_MS } from './wordLaneConfig.js'
 
 export const LEVEL_NOISE = SENSITIVE_FLOOR / 2 // куда усиление приводит шум микрофона (rms): вдвое ниже пола кривой
 export const LEVEL_PEAK = 0.05                 // выше этого пик высказывания усиление не поднимает («обычная речь», уровень 0,75)
 export const LEVEL_GAIN_MAX = 20               // усиление не больше (шум 0,00015 и тише)
+export const QUIET_WINDOW = 64                 // своя оценка шума: столько последних кусков звука (≈ 3 с)…
+export const QUIET_PART = 0.1                  // …их нижняя доля (речь занимает в окне меньше 90 % — паузы между словами остаются шумом)
+export const QUIET_MIN = 12                    // меньше кусков — шума ещё не знаем: без усиления
 
 /** Усиление уровня: noise — шум микрофона (0 — ещё не знаем: без усиления), peak — пик высказывания вместе с этим куском */
 export const levelGain = (noise, peak) => (noise > 0 ? Math.max(1, Math.min(LEVEL_GAIN_MAX, LEVEL_NOISE / noise, peak > 0 ? LEVEL_PEAK / peak : Infinity)) : 1)
@@ -22,9 +29,12 @@ export const levelGain = (noise, peak) => (noise > 0 ? Math.max(1, Math.min(LEVE
 /** → fromRms(rms, voice) для createRmsLevel({ fromRms }); fromRms.info() — последний кусок: { rms, level, gain, noise, peak, voice } (стенд пилюль пишет это в трассу) */
 export function createVoiceLevel() {
   let info = { rms: 0, level: 0, gain: 1, noise: 0, peak: 0, voice: false }
+  const last = []
+  const quiet = () => (last.length < QUIET_MIN ? 0 : [...last].sort((a, b) => a - b)[Math.floor(last.length * QUIET_PART)])
   const fromRms = (rms, voice = null) => {
-    const heard = !!voice?.heard?.(), noise = voice?.noise?.() ?? 0
-    const peak = heard ? Math.max(rms, voice.state().peak) : 0, gain = heard ? levelGain(noise, peak) : 1
+    if (rms > 0 && voice) { last.push(rms); if (last.length > QUIET_WINDOW) last.shift() }
+    const own = quiet(), heard = !!voice?.heard?.(), noise = Math.max(voice?.noise?.() ?? 0, own)
+    const peak = heard ? Math.max(rms, voice.state().peak) : 0, gain = heard && own > 0 ? levelGain(noise, peak) : 1
     const level = sensitiveLevel(rms * gain)
     info = { rms, level, gain, noise, peak, voice: heard }
     return level

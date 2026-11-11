@@ -75,6 +75,23 @@ describe('уровень голоса для анимации — от шума 
       expect(Math.max(...m.fill)).toBe(0)
     }
   })
+  it('счётчик «залип» на ровном фоне (неполный первый кусок захода 0,0006, дальше фон 0,003 — «в 4 раза громче шума»): своя оценка шума равна фону — усиления нет, заливка 0', () => {
+    const m = mic().feed([0.0006, 0.0025, ...rep(0.003, 100)])
+    expect(m.voice.heard()).toBe(true)                 // счётчик распознавания всё ещё считает фон голосом
+    expect(m.fromRms.info()).toMatchObject({ voice: true, gain: 1, level: 0 })
+    expect(Math.max(...m.raw)).toBe(0)
+    expect(Math.max(...m.fill)).toBe(0)
+    const again = m.feed([0.0005, 0.002, ...rep(0.003, 40)]) // новый заход того же слушателя: снова неполные куски
+    expect(Math.max(...again.raw)).toBe(0)
+  })
+  it('первые ≈ 0,5 с (кусков меньше QUIET_MIN) шума ещё не знаем — усиления нет; быстрая речь подряд: паузы между словами остаются шумом, усиление держится', () => {
+    const start = mic().feed([...quiet(3), ...WORD])
+    expect(Math.max(...start.raw)).toBe(0)
+    const fast = mic().feed(quiet(30))
+    for (let k = 0; k < 6; k++) fast.feed(WORD).feed(quiet(3)) // шесть слов подряд, паузы по 130 мс
+    expect(fast.raw.slice(-11, -3).filter(v => v > 0.5).length).toBeGreaterThanOrEqual(5)
+    expect(fast.fromRms.info().noise).toBeLessThan(0.0005)
+  })
   it('обычный микрофон — как раньше: шум ≥ 0,003 — уровень любого куска равен прежнему; на любом шуме кусок 0,05 и громче равен прежнему', () => {
     const speech = [0.012, 0.02, 0.03, 0.05, 0.08, 0.12, 0.06, 0.03, 0.02, 0.009]
     for (const bg of [0.003, 0.004, 0.006]) {
