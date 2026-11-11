@@ -48,7 +48,7 @@ export function createVoiceSetSession({ plan, done: doneIn = [], skipped: skippe
     Promise.resolve().then(() => save(it, { chunks: c.chunks, stats, preMs: Math.round(c.pre) })).then(() => {
       busy = false
       done.add(it.i)
-      warn = it.voiced && stats.noVoice ? { kind: 'novoice', i: it.i } : it.voiced && stats.late ? { kind: 'late', i: it.i } : null
+      warn = it.voiced && stats.noVoice ? { kind: 'novoice', i: it.i } : (it.kind === 'word' || it.kind === 'phrase') && stats.late ? { kind: 'late', i: it.i } : null // кашель и стук в окно умещаться не обязаны
       if (phase === 'saving') goto(pending(it.i + 1) ?? pending(0))
       else onState(state())
     }, e => { busy = false; if (phase === 'saving') set('paused', { pauseWhy: e?.mic ? 'mic' : 'save', error: String(e?.message ?? e) }); else onState(state()) }) // e.mic — в клипе ровный ноль: микрофон оглох, клип не сохранён

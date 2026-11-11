@@ -171,6 +171,8 @@ describe('числа клипа', () => {
     const late = []; for (let t = 0; t < 2000; t += CH) late.push(m.push(t > 1500 ? 0.004 : 0.0003, t > 1500 ? 0.0132 : 0.001, CH))
     expect(clipStats(late).late).toBe(true)
     const dead = [m.push(0, 0, CH), m.push(0, 0, CH)]
-    expect(clipStats(dead)).toMatchObject({ zeros: 2, noVoice: true, rmsPeak: 0, rmsNoise: 0 })
+    expect(clipStats(dead)).toMatchObject({ zeros: 2, zeroRunMs: Math.round(2 * CH), noVoice: true, rmsPeak: 0, rmsNoise: 0 })
+    const gaps = [m.push(0, 0, CH), m.push(0.001, 0.003, CH), m.push(0, 0, CH), m.push(0, 0, CH), m.push(0, 0, CH), m.push(0.001, 0.003, CH)] // нули не подряд — считается самая длинная полоса
+    expect(clipStats(gaps)).toMatchObject({ zeros: 4, zeroRunMs: Math.round(3 * CH) })
   })
 })

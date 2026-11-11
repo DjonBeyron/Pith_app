@@ -78,6 +78,8 @@ describe('части архива и манифест', () => {
     const w = clipEntry(plan[1], { ...stats, noVoice: true, late: true }, { srcRate: 48000, sampleRate: 16000, preMs: 500, bytes: 86444, clipped: 3, t: 1e12 })
     expect(w).toMatchObject({ i: 1, file: 'clips/002_house_whole_1.wav', kind: 'word', word: 'house', variant: 'whole', rep: 1, far: false, expect: 'hit', ms: 2700, preMs: 500, sampleRate: 16000, srcRate: 48000, rmsPeak: 0.0041, rmsNoise: 0.0003, gamePeak: 0.0135, voiceMs: 520, noVoice: true, late: true, clipped: 3, t: '2001-09-09T01:46:40.000Z' })
     expect(clipEntry(plan[0], { ...stats, noVoice: true }, { srcRate: 48000, sampleRate: 16000, preMs: 500, bytes: 1 })).not.toHaveProperty('noVoice')
+    expect(clipEntry(plan.find(x => x.kind === 'noise'), { ...stats, late: true, noVoice: true }, { srcRate: 48000, sampleRate: 16000, preMs: 500, bytes: 1 })).toMatchObject({ id: 'cough', noVoice: true }) // кашель: «без голоса» — да,
+    expect(clipEntry(plan.find(x => x.kind === 'noise'), { ...stats, late: true }, { srcRate: 48000, sampleRate: 16000, preMs: 500, bytes: 1 })).not.toHaveProperty('late') // «не уместилось» — только про слова и фразы
     expect(clipEntry(plan[0], stats, { srcRate: 48000, sampleRate: 16000, preMs: 500, bytes: 1 }).id).toBe('silence')
     expect(clipEntry(plan.find(x => x.kind === 'phrase'), stats, { srcRate: 44100, sampleRate: 16000, preMs: 500, bytes: 1 })).toMatchObject({ phrase: 'See you later', srcRate: 44100 })
     expect(clips.at(-1).far).toBe(true)

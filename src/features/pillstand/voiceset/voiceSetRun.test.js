@@ -71,6 +71,18 @@ describe('запись набора в сборе', () => {
     expect(seen.some(e => e.k === 'level' && e.z)).toBe(true)
     expect(seen.some(e => e.k === 'listen' && e.status === 'dead')).toBe(true)
   })
+  it('короткий ровный ноль (поток только открылся) клип не бракует; сбои микрофона прошлого захода записи остаются в наборе', async () => {
+    vi.useFakeTimers()
+    const r = rig({ meta: { skipped: [], captures: [], micEvents: [{ t: 5, k: 'mic-dead', why: 'mute', at: '2026-11-11T10:00:00.000Z' }] } })
+    r.run.open(); r.run.session.start(); r.feed(800); vi.advanceTimersByTime(2100); r.feed(400); r.feed(200, 0); r.feed(500, 0.004); r.feed(WORD_MS)
+    vi.useRealTimers(); await tick(); await tick()
+    const got = await r.store.load()
+    expect(got.clips).toHaveLength(1)
+    expect(got.clips[0].zeros).toBeGreaterThan(2)
+    r.run.trace.push('mic-revive', { how: 'тап' })
+    await r.run.close()
+    expect((await r.store.load()).meta.micEvents.map(e => e.k)).toEqual(['mic-dead', 'mic-revive'])
+  })
   it('сторож: кусков звука нет дольше 1,5 с — захват встал; нет потока — захват не открывается', () => {
     const r = rig()
     r.run.open(); r.feed(100)

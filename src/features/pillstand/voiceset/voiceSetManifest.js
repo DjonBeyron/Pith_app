@@ -12,12 +12,13 @@ export const archiveName = (date, part = 1, parts = 1) => `pithy-voiceset-${stam
 
 /** Запись клипа для манифеста из задания сценария и чисел клипа: слово — word, фраза — phrase, остальное — id; env — rms кусков исходного звука × 1e6, chunkMs — длина куска */
 export function clipEntry(item, stats, { srcRate, sampleRate, preMs, bytes, clipped = 0, env = null, chunkMs = null, t = Date.now() }) {
+  const said = item.kind === 'word' || item.kind === 'phrase' // «не уместилось» / «началось с голоса» — только про слова и фразы
   return {
     i: item.i, file: item.file, kind: item.kind, ...(item.kind === 'word' ? { word: item.text } : item.kind === 'phrase' ? { phrase: item.text } : { id: item.id }),
     variant: item.variant, rep: item.rep, far: !!item.far, expect: item.expect, hint: item.hint || undefined,
     ms: stats.ms, preMs, sampleRate, srcRate, bytes, rmsPeak: stats.rmsPeak, rmsNoise: stats.rmsNoise, gamePeak: stats.gamePeak, gameNoise: stats.gameNoise,
     voiceMs: stats.voiceMs, voiceOnMs: stats.voiceOnMs, voiceOffMs: stats.voiceOffMs,
-    ...(stats.noVoice && item.voiced ? { noVoice: true } : {}), ...(stats.late && item.voiced ? { late: true } : {}), ...(stats.early && item.voiced ? { early: true } : {}),
+    ...(stats.noVoice && item.voiced ? { noVoice: true } : {}), ...(stats.late && said ? { late: true } : {}), ...(stats.early && said ? { early: true } : {}),
     ...(stats.zeros ? { zeros: stats.zeros } : {}), ...(clipped ? { clipped } : {}), t: new Date(t).toISOString(),
     ...(env ? { chunkMs: Math.round(chunkMs * 1000) / 1000, env } : {}), // огибающая ИСХОДНОГО звука: rms × 1e6 каждого куска (2048 кадров на частоте контекста) — прогонщик возвращает по ней уровень, потерянный выше 8 кГц
   }

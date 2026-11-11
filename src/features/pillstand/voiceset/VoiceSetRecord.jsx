@@ -4,6 +4,7 @@ import { SECTION_TITLE } from './voiceSetPlan.js'
 // React); индикатор уровня (пишется в DOM из захвата: --lv и data-voice — «голос слышно»); предупреждение о прошлом клипе; следующее задание; кнопки «Пауза / Продолжить», «Переписать прошлый»,
 // «Пропустить», «Закончить». Микрофон отключился — красная плашка «нажми» (getUserMedia в жесте). Звуков нет. Состояние — useVoiceSet (v.st — состояние хода, voiceSetSession.js).
 const PHASE = { gap: 'приготовься…', rec: '● говори', saving: 'сохраняю…', paused: 'пауза', hold: 'пауза', idle: '', done: '' }
+const REC = { long: '● идёт запись — молчи', noise: '● идёт запись' } // тишина / фон и «не слова»: «говори» тут не к месту
 const WARN = { novoice: 'В прошлом клипе голоса не было слышно', late: 'В прошлом клипе слово не уместилось в окно' }
 const PAUSE = { user: 'Пауза. Нажми «Продолжить» — запись пойдёт с этого задания', hidden: 'Страница уходила в фон — запись на паузе', mic: 'Микрофон отключился — клип будет переписан', save: 'Клип не сохранился' }
 const brief = it => (it ? `${it.text}${it.task ? ` — ${it.task}` : ''}` : 'конец набора')
@@ -22,7 +23,7 @@ export default function VoiceSetRecord({ v, levelRef }) {
       </div>
       <div className="vsProgBar"><i style={{ width: `${Math.round((st.done + st.skipped) / st.total * 1000) / 10}%` }} /></div>
       <div className="vsStage">
-        <span className="vsPhase" data-testid="vs-phase">{PHASE[st.phase]}</span>
+        <span className="vsPhase" data-testid="vs-phase">{st.phase === 'rec' ? REC[it.kind] ?? PHASE.rec : PHASE[st.phase]}</span>
         <div className="vsWord" data-size={size(it.text)} data-testid="vs-word">{it.text}</div>
         <p className="vsTask" data-testid="vs-task">{it.task}</p>
         {cut && <p className="vsHint" data-testid="vs-hint">скажи: <b>{it.hint}</b></p>}

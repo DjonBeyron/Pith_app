@@ -9,7 +9,7 @@ import { resample, encodeWav, joinChunks, SET_RATE } from './voiceSetWav.js'
 import { clipEntry } from './voiceSetManifest.js'
 
 export const STALL_MS = 1500   // столько нет кусков звука при открытом захвате — контекст встал (звонок, Siri)
-export const ZERO_CHUNKS = 3   // столько кусков ровного нуля в клипе — микрофон оглох, клип не сохраняем
+export const ZERO_RUN_MS = 1000 // ровный ноль столько мс подряд внутри клипа — микрофон оглох, клип не сохраняем (живой микрофон шумит; короткие нули бывают при открытии потока)
 const MIC_EVENTS_MAX = 60
 
 export function createMiniTrace({ now = () => performance.now() } = {}) {
@@ -35,10 +35,12 @@ export function createVoiceSetRun({ store, plan, meta: metaIn, clips: clipsIn = 
   let meta = { ...metaIn, skipped: [...(metaIn.skipped ?? [])], captures: [...(metaIn.captures ?? [])] }, cap = null
   const clips = new Map(clipsIn.map(c => [c.i, c]))
   const list = () => [...clips.values()].sort((a, b) => a.i - b.i)
-  const saveMeta = patch => { meta = { ...meta, ...patch, micEvents: trace.log() }; return store.saveMeta(meta).catch(() => {}) }
+  const before = metaIn.micEvents ?? [] // сбои микрофона прошлых заходов записи (до перезагрузки страницы) — не теряем
+  const events = () => { const seen = new Set(); return [...before, ...trace.log()].filter(e => { const k = `${e.at}|${e.k}|${e.t}`; if (seen.has(k)) return false; seen.add(k); return true }).slice(-MIC_EVENTS_MAX) }
+  const saveMeta = patch => { meta = { ...meta, ...patch, micEvents: events() }; return store.saveMeta(meta).catch(() => {}) }
 
   async function save(item, { chunks, stats, preMs }) {
-    if (stats.zeros >= ZERO_CHUNKS) { trace.push('listen', { status: 'dead', why: 'ровный ноль в клипе' }); throw Object.assign(new Error('микрофон отдал тишину — клип не сохранён'), { mic: true }) }
+    if (stats.zeroRunMs >= ZERO_RUN_MS) { trace.push('listen', { status: 'dead', why: 'ровный ноль в клипе' }); throw Object.assign(new Error('микрофон отдал тишину — клип не сохранён'), { mic: true }) }
     const rate = cap?.rate ?? SET_RATE, { bytes, clipped } = encodeWav(resample(joinChunks(chunks.map(c => c.data)), rate, SET_RATE), SET_RATE)
     const entry = clipEntry(item, stats, { srcRate: rate, sampleRate: SET_RATE, preMs, bytes: bytes.length, clipped, env: chunks.map(c => Math.round(c.rms * 1e6)), chunkMs: chunks[0]?.ms ?? 0 })
     await store.putClip(entry, bytes.buffer)
