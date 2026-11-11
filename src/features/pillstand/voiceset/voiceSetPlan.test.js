@@ -1,0 +1,75 @@
+import { describe, it, expect } from 'vitest'
+import { buildPlan, parseWords, planSig, planStats, hintNoLast, hintHalf, hintCutLast, clipFile, DEFAULT_WORDS, VARIANTS, PHRASES, WORD_MS, PHRASE_MS, LONG_MS, PRE_MS } from './voiceSetPlan.js'
+
+// Сценарий «Записи набора»: порядок, количество, блок far, редактируемый список слов, подсказки обрубков
+describe('сценарий записи набора', () => {
+  it('по умолчанию: 16 слов × 5 видов × 3 повтора + тишина, фон, 3 «не слова», 3 фразы × 2 = 251 клип', () => {
+    const p = buildPlan()
+    expect(p).toHaveLength(1 + 16 * 5 * 3 + 3 + 6 + 1)
+    expect(p.map(x => x.i)).toEqual(p.map((_, i) => i))
+    expect(p[0]).toMatchObject({ kind: 'long', id: 'silence', ms: LONG_MS, voiced: false, expect: 'none', file: 'clips/001_silence_long_1.wav' })
+    expect(p.at(-1)).toMatchObject({ kind: 'long', id: 'background', ms: LONG_MS })
+    expect(p.filter(x => x.kind === 'noise').map(x => x.id)).toEqual(['cough', 'uh', 'knock'])
+    expect(p.filter(x => x.kind === 'phrase').map(x => `${x.text}|${x.variant}`)).toEqual(PHRASES.flatMap(f => [`${f}|whole`, `${f}|cutlast`]))
+  })
+  it('слова сгруппированы: слово → вид → повторы подряд; порядок слов — как в списке; порядок детерминированный', () => {
+    const p = buildPlan({ words: ['house', 'milk'], reps: 2 })
+    const w = p.filter(x => x.kind === 'word')
+    expect(w.map(x => `${x.text}:${x.variant}:${x.rep}`)).toEqual(['house', 'milk'].flatMap(t => VARIANTS.flatMap(v => [1, 2].map(r => `${t}:${v}:${r}`))))
+    expect(w.every(x => x.ms === WORD_MS && x.section === 'words')).toBe(true)
+    expect(JSON.stringify(buildPlan({ words: ['house', 'milk'], reps: 2 }))).toBe(JSON.stringify(p))
+  })
+  it('что должно быть при прогоне: целиком / тихо / быстро — зачёт; обрубки, шумы, тишина — нет', () => {
+    const p = buildPlan({ words: ['house'], reps: 1 })
+    expect(Object.fromEntries(p.filter(x => x.kind === 'word').map(x => [x.variant, x.expect]))).toEqual({ whole: 'hit', quiet: 'hit', fast: 'hit', nolast: 'none', half: 'none' })
+    expect(p.filter(x => x.kind !== 'word' && x.kind !== 'phrase').every(x => x.expect === 'none')).toBe(true)
+    expect(p.filter(x => x.kind === 'phrase').map(x => x.expect)).toEqual(['hit', 'none', 'hit', 'none', 'hit', 'none'])
+    expect(p.find(x => x.kind === 'phrase').ms).toBe(PHRASE_MS)
+  })
+  it('повторов 1 / 2 / 3; мусор — 3', () => {
+    for (const r of [1, 2, 3]) expect(buildPlan({ reps: r }).filter(x => x.kind === 'word')).toHaveLength(16 * 5 * r)
+    expect(buildPlan({ reps: 7 }).filter(x => x.kind === 'word')).toHaveLength(240)
+  })
+  it('«на вытянутой руке»: блок в конце — whole и nolast по разу на слово, пометка far, перед блоком пауза', () => {
+    const p = buildPlan({ words: ['house', 'milk'], reps: 1, far: true }), far = p.filter(x => x.far)
+    expect(far.map(x => `${x.text}:${x.variant}`)).toEqual(['house:whole', 'house:nolast', 'milk:whole', 'milk:nolast'])
+    expect(p.slice(-4)).toEqual(far)
+    expect(far[0].hold).toMatch(/вытянутой руке/)
+    expect(far.slice(1).every(x => !x.hold)).toBe(true)
+    expect(far[0].file).toMatch(/^clips\/\d{3}_house_whole-far_1\.wav$/)
+    expect(far[1].expect).toBe('none')
+    expect(buildPlan({ words: ['house', 'milk'], reps: 1 }).some(x => x.far)).toBe(false)
+  })
+  it('имена файлов: NNN_слово_вид_повтор.wav, без повторов', () => {
+    const p = buildPlan({ far: true }), names = p.map(x => x.file)
+    expect(new Set(names).size).toBe(names.length)
+    expect(names.every(n => /^clips\/\d{3}_[a-z0-9-]+_[a-z-]+_\d\.wav$/.test(n))).toBe(true)
+    expect(p.find(x => x.kind === 'phrase').file).toMatch(/_see-you-later_whole_1\.wav$/)
+    expect(clipFile({ i: 6, text: "don't", variant: 'half', rep: 2 })).toBe('clips/007_don-t_half_2.wav')
+  })
+  it('список слов редактируется: запятые и строки, регистр, мусор, повторы; пусто — по умолчанию', () => {
+    expect(parseWords(' House, milk;\nTREE , house,  ')).toEqual(['house', 'milk', 'tree'])
+    expect(parseWords('ice cream, re-do, кот, 123')).toEqual(['ice cream', 're-do'])
+    expect(parseWords('')).toEqual(DEFAULT_WORDS)
+    expect(parseWords(null)).toEqual(DEFAULT_WORDS)
+    expect(buildPlan({ words: parseWords('sun, moon'), reps: 1 }).filter(x => x.kind === 'word').map(x => x.text)).toEqual([...Array(5).fill('sun'), ...Array(5).fill('moon')])
+  })
+  it('подсказки обрубков строятся по буквам', () => {
+    expect([hintNoLast('house'), hintNoLast('milk'), hintNoLast('tree'), hintNoLast('book'), hintNoLast('water'), hintNoLast('apple'), hintNoLast('interesting'), hintNoLast('window')])
+      .toEqual(['hou…', 'mil…', 'tr…', 'boo…', 'wat…', 'app…', 'interesti…', 'wind…'])
+    expect([hintHalf('interesting'), hintHalf('wonderful'), hintHalf('from'), hintHalf('cat'), hintHalf('together')]).toEqual(['inter…', 'wond…', 'fro…', 'ca…', 'tog…'])
+    expect(hintCutLast('See you later')).toBe('See you la…')
+    const p = buildPlan({ words: ['house'], reps: 1 })
+    expect(p.filter(x => x.kind === 'word').map(x => x.hint)).toEqual(['house', 'house', 'house', 'hou…', 'ho…'])
+  })
+  it('подпись сценария меняется с настройками; оценка размера: полный набор с far ≈ 26 МБ', () => {
+    expect(planSig({ words: ['a'], reps: 3, far: false })).not.toBe(planSig({ words: ['a'], reps: 2, far: false }))
+    expect(planSig({ words: ['a'], reps: 3, far: false })).toBe(planSig({ words: ['a'], reps: 3 }))
+    const s = planStats(buildPlan()), f = planStats(buildPlan({ far: true }))
+    expect(s.count).toBe(251)
+    expect(s.recMs).toBe(240 * (WORD_MS + PRE_MS) + 2 * (LONG_MS + PRE_MS) + 3 * 3500 + 6 * (PHRASE_MS + PRE_MS))
+    expect(s.bytes / 1048576).toBeGreaterThan(21); expect(s.bytes / 1048576).toBeLessThan(24)
+    expect(f.count).toBe(283); expect(f.bytes / 1048576).toBeLessThan(27)
+    expect(s.totalMs / 60000).toBeLessThan(15)
+  })
+})
