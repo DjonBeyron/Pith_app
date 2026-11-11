@@ -1,13 +1,12 @@
 // Метрики честности стенда пилюль (CONCEPT_PILLSTAND.md, «Честность») — чистые функции над трассой (pillStandTrace.js). Трасса режется на отрезки по событию 'target' (одна цель — один отрезок).
-//  • голос — куски звука с rms ≥ STAND_VOICE_RMS (2,5 × порог затвора тишины voskGate; ниже порога движка 0,03 — тихие согласные в начале слова тоже голос); начало и конец голоса отрезка;
+//  • голос — куски звука, которые назвал голосом счётчик распознавания (метка v кусков, pillStandVoice.js; v3.3.187 — до этого своя константа 0,015: тихая речь iPhone шла «тишиной»); начало и конец голоса отрезка;
 //  • ложные срабатывания: слово / счёт слушателя / заливка без голоса (ни одного громкого куска за FALSE_WINDOW_MS и затвор закрыт), черновик Vosk без голоса, засчитанное слово, которого нет в итогах Vosk после него
 //    (итогов после слова не было — зачёт по черновику, заход закрыт — это noFinal, не ложное);
 //  • «додумывание»: слова черновиков и итогов, которых нет в цели (pillStandWords.js), и перестройки черновика (новый текст — не продолжение прошлого);
 //  • задержки: начало голоса → первый черновик, слово → заливка на экране дошла до новой цели (FILL_EPS), конец голоса → зачёт.
-import { GATE_RMS } from '../../shared/lib/vosk/voskGate.js'
+import { isVoice, voiceFill } from './pillStandVoice.js'
 import { heardWords, targetSet, inTarget } from './pillStandWords.js'
 
-export const STAND_VOICE_RMS = GATE_RMS * 2.5 // 0,015
 export const FALSE_WINDOW_MS = 1500 // слово / заливка «с голосом», если громкий кусок был не раньше столько мс назад (черновик Vosk приходит с опозданием)
 export const FILL_JUMP = 0.02       // рост цели заливки меньше этого — не «срабатывание»
 export const FILL_EPS = 0.012       // экран «дошёл» до цели
@@ -41,7 +40,7 @@ const reachAfter = (evs, t, goal) => evs.find(e => e.k === 'fill' && e.t >= t &&
 export function analyzeSegment({ target, events }) {
   const t0 = target.t
   const rel = t => (t == null ? null : Math.round(t - t0))
-  const voiced = events.filter(e => e.k === 'level' && e.rms >= STAND_VOICE_RMS).map(e => e.t)
+  const voiced = events.filter(e => e.k === 'level' && isVoice(e)).map(e => e.t)
   const result = events.find(e => e.k === 'result') ?? null
   const voiceStart = voiced[0] ?? null
   const voiceEnd = result ? voiceEndFor(voicePeriods(voiced), result.t) : voiced.at(-1) ?? null
@@ -103,7 +102,7 @@ export function analyzeSegment({ target, events }) {
   const firstPartial = partials.find(p => p.t >= rel(voiceStart ?? -Infinity)) ?? null
   return {
     n: target.n, say: target.say, shown: target.shown, mode: target.mode, lang: target.lang,
-    voiceStart: rel(voiceStart), voiceEnd: rel(voiceEnd), noFinal, partials, finals, words, backs, wrongs, changes, rebuilds,
+    voiceStart: rel(voiceStart), voiceEnd: rel(voiceEnd), voice: voiceFill(events, events.find(e => e.k === 'pill' && e.type === 'claim')?.t ?? result?.t), noFinal, partials, finals, words, backs, wrongs, changes, rebuilds,
     invented: [...invented].map(([w, v]) => ({ w, ...v })), heard, extra, falses: falses.sort((a, b) => a.t - b.t),
     voiceToPartial: voiceStart != null && firstPartial ? firstPartial.t - rel(voiceStart) : null,
     toFill, result: result ? { ok: !!result.ok, ratio: result.ratio ?? null, clean: !!result.clean, t: rel(result.t), afterVoice: voiceEnd != null ? Math.round(result.t - voiceEnd) : null } : null,

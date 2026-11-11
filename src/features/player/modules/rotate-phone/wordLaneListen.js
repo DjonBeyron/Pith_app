@@ -157,8 +157,8 @@ export function createWordListener({ word, targets: targetsIn, expected = SLOT_C
       onLevel: rms => {
         if (cur !== session) return
         onDebug?.('level', rms)
-        level.push(rms)
         const e = ear ? ear.level(rms) : void voice.push(rms)
+        level.push(rms, undefined, voice) // после счётчика голоса: уровень колец и заливки нормируется по его шуму и пику (wordLaneVoiceLevel.js)
         if (e?.final && !session.stopped) stop('ear') // голос кончился — итог решает, договорено ли слово
         if (rms > 0 || isHeld()) { zeroSince = 0; return } // дорожку глушит сама игра на время речи Пита/диктора (gameMicHold) — ровная тишина не значит «оглох»
         zeroSince ||= now()
@@ -230,6 +230,7 @@ export function createWordListener({ word, targets: targetsIn, expected = SLOT_C
       publish({ seq, heard: targets[target], tail: null, heardAt: now() })
     },
     level,
+    voice, // счётчик «голос / тишина» этого слушателя — стенд пилюль метит им куски звука в трассе (standVoiceTap.js)
     dispose() {
       disposed = true
       clearTimer(timer); clearTimer(missTimer); clearTimer(hitTimer)

@@ -9,11 +9,11 @@ import { snapPill, missPill } from '../player/modules/rotate-phone/wordLaneSnap.
 import { stepTargets } from '../player/modules/rotate-phone/wordLaneRecipe.js'
 import { estChunkMs } from '../player/modules/rotate-phone/wordLaneAudio.js'
 import { createWordListener } from '../player/modules/rotate-phone/wordLaneListen.js'
-import { sensitiveLevel } from '../player/modules/rotate-phone/wordLaneConfig.js'
+import { createVoiceLevel } from '../player/modules/rotate-phone/wordLaneVoiceLevel.js'
 import { createRmsLevel } from '../../shared/lib/vosk/sayVoskLevel.js'
 import { getGameMic } from '../../shared/lib/gameMic.js'
 import { guardStream } from '../../shared/lib/gameMicGesture.js'
-import { tapListen } from './standVoiceTap.js'
+import { tapListen, voiceMark } from './standVoiceTap.js'
 
 export const STILL_SPEED = 1e-6 // пилюля «стоит»: за 10 минут сдвиг ≈ 0,016 % экрана
 export const LANE = 1
@@ -29,12 +29,13 @@ export function runStandWord({ pool, target, y, trace, probe = {}, onResult = ()
   const step = standStep(target, y)
   const { texts } = stepTargets(step, step.chunks)
   const g = createStudentGame({ step, chunks: step.chunks, estMs: () => step.chunkMs[0], maxTries: 1 })
-  const gate = createVoiceGate(), view = createFillView(), rms = createRmsLevel({ fromRms: sensitiveLevel })
+  const gate = createVoiceGate(), view = createFillView(), fromRms = createVoiceLevel(), rms = createRmsLevel({ fromRms }) // уровень — от шума микрофона, как в игре (wordLaneVoiceLevel.js)
   const held = new Map()
   let st = { status: 'idle', seq: [], misses: 0, tail: null, heardAt: 0, heard: '' }, sig = '', stopped = false, frame = 0, lastNow = now(), done = false, lastFill = ''
   const t0 = now()
-  const listener = listen({
-    targets: texts, expected: 1, maxWords: step.maxWords, lang: target.lang, earRule: true, getStream, isHeld: () => false, level: rms, listen: tapListen(trace), // earRule — честный зачёт слова, как в «Пинг-понге» (wordEarRule.js)
+  let listener = null
+  listener = listen({
+    targets: texts, expected: 1, maxWords: step.maxWords, lang: target.lang, earRule: true, getStream, isHeld: () => false, level: rms, listen: tapListen(trace, undefined, voiceMark(() => listener?.voice, fromRms.info)), // earRule — честный зачёт слова, как в «Пинг-понге» (wordEarRule.js)
     onDebug: (kind, data) => { if (kind !== 'level' && kind !== 'partial-same') trace.push('wl', { kind, ...(data && typeof data === 'object' ? data : { v: data }) }) },
     onChange: s => {
       st = s

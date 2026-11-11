@@ -14,7 +14,7 @@ import { useCatLines } from './useCatLines.js'
 import { missFace } from './wordLaneCatPeek.js'
 import { useWordLaneDebug } from './useWordLaneDebug.js'
 import { DROP_MS, LANES_MS } from './wordLaneTimeline.js'
-import { XP_PER_PILL, sensitiveLevel } from './wordLaneConfig.js'
+import { XP_PER_PILL } from './wordLaneConfig.js'; import { createVoiceLevel } from './wordLaneVoiceLevel.js'
 import { getVoiceRate } from '../../lessonVolume.js'
 import { pLog } from '../../../../shared/lib/debug.js'
 import { getGameMic, closeGameMic } from '../../../../shared/lib/gameMic.js'
@@ -62,7 +62,7 @@ export function useWordLaneFlow({ chunks, translation, lang, clips = null, audio
   const signalRef = useRef({ tail: null, heardAt: 0 }) // что слышит распознаватель прямо сейчас (недосказанная цель, когда последний раз что-то услышал) — без перерисовок React
   const timersRef = useRef(new Set())
   const noteTimerRef = useRef(0), hintTimerRef = useRef(0)
-  const [rms] = useState(() => createRmsLevel({ fromRms: sensitiveLevel })) // громкость голоса ученика (кольца микрофона, ворота)
+  const [rms] = useState(() => createRmsLevel({ fromRms: createVoiceLevel() })) // громкость голоса ученика (кольца микрофона, ворота) — от шума микрофона (wordLaneVoiceLevel.js)
   const [levels] = useState(() => createLevelSource(t => rms.read(t)))
   useEffect(() => { sRef.current = s })
   const stageObj = s.stage === 'run' ? stages[s.idx] : null

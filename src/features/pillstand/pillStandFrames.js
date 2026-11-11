@@ -1,8 +1,8 @@
 // Таблица кадров для отчёта «📤 Отправить» стенда пилюль (тема «Анимация» и «Всё», CONCEPT_PILLSTAND.md): кадр записи (pillStandRecorder.js: t, i, s — снимок пилюли pillStandSnap.js, g — цель заливки,
 // v — экран) → строка «t, кадр, цель, экран, слова, флаги». Прореживание: ВСЕ кадры ±MARK_WIN_MS вокруг меток, каждая смена состояния (цель, флаги, маска слов, вспышка, хлопок / дрожь, появление /
-// исчезновение пилюли) вместе с кадром до неё; между ними — шаг экрана ≥ V_STEP или раз в HEARTBEAT_MS. Здесь же «рывки»: скачок экрана за кадр ≥ JERK_V — был ли голос (rms ≥ порога или затвор открыт
+// исчезновение пилюли) вместе с кадром до неё; между ними — шаг экрана ≥ V_STEP или раз в HEARTBEAT_MS. Здесь же «рывки»: скачок экрана за кадр ≥ JERK_V — был ли голос (кусок с меткой голоса счётчика распознавания — pillStandVoice.js — или затвор открыт
 // за VOICE_MS до рывка) и какое слово было перед ним. Чистые функции.
-import { STAND_VOICE_RMS } from './pillStandHonesty.js'
+import { isVoice } from './pillStandVoice.js'
 
 export const MARK_WIN_MS = 300
 export const HEARTBEAT_MS = 500
@@ -70,7 +70,7 @@ export function frameRows(frames, idxs, t0, marks = [], max = MAX_ROWS) {
 /** Рывки экрана за кадр: [{ t, i, from, to, voice, word, wordMs }]; events — сырая трасса (rms, затвор, слова) */
 export function jerks(frames, events) {
   const out = []
-  const levels = events.filter(e => e.k === 'level' && e.rms >= STAND_VOICE_RMS).map(e => e.t)
+  const levels = events.filter(e => e.k === 'level' && isVoice(e)).map(e => e.t)
   const gates = events.filter(e => e.k === 'gate')
   const words = events.filter(e => (e.k === 'word' && !e.gone) || (e.k === 'pill' && e.type === 'claim'))
   for (let i = 1; i < frames.length; i++) {

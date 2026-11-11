@@ -1,7 +1,8 @@
 // Состояние панели «что слышит Vosk» стенда пилюль (CONCEPT_PILLSTAND.md) из событий трассы: затвор, уровень, текущий черновик и история черновиков (мс от появления цели), итоги с «кто закрыл»,
 // совпадение по кандидату (строки журнала слушателя фраз «… лучший «…» ratio …» / счёт слушателя слов), засчитанные слова по порядку, откаты, неверные слова и моменты: начало голоса → первый черновик,
 // конец голоса → зачёт, слово → заливка дошла (событие 'reach' от standFillWatch.js). earStep(ear, ev) меняет ear на месте (панель рисует копию не чаще раза в 100 мс). Чистые функции.
-import { VOICE_GAP_MS, STAND_VOICE_RMS } from './pillStandHonesty.js'
+import { VOICE_GAP_MS } from './pillStandHonesty.js'
+import { isVoice } from './pillStandVoice.js'
 
 export const KEEP = 40
 export const STOP_TITLE = { endpoint: 'движок сам', manual: 'кнопка «Стоп»', auto: 'авто-стоп', full: 'все слова', max: 'потолок записи', ear: 'правило слова' }
@@ -18,7 +19,7 @@ export function earStep(ear, e) {
     case 'target': Object.assign(ear, emptyEar(), { t0: e.t, n: e.n, gate: ear.gate, status: ear.status }); return true
     case 'level': {
       ear.rms = e.rms
-      const v = e.rms >= STAND_VOICE_RMS
+      const v = isVoice(e) // голос — по счётчику распознавания (метка куска)
       if (v) { ear.lastVoice = rel; if (ear.voiceStart == null) ear.voiceStart = rel }
       const r = ear.result
       if (r && r.endMs == null && ear.lastVoice != null && !v && rel - ear.lastVoice > VOICE_GAP_MS) { r.endMs = r.t - ear.lastVoice; ear.voice = v; return true } // голос после зачёта кончился: «от конца голоса» окончательно (отрицательное — зачёт раньше конца речи)

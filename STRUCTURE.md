@@ -1430,6 +1430,7 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | `pillStandRecorder.js` | Чистое: кадры записи ≤ 60/с, ≤ 3 минуты |
 | `pillStandPlayer.js` | Чистое: кадр в момент t, шаг, луп, скорость, события кадра и окна, строка события |
 | `pillStandHonesty.js` | Чистое: метрики честности по целям — ложные срабатывания, «додумывание», перестройки, задержки |
+| `pillStandVoice.js` (+ `.test.js`) | Чистое (v3.3.187): «голос» в отчёте стенда = голос распознавания — метка `v` куска звука от счётчика слушателя (запасной порог 0,015 — только для старых трасс); по цели — шум, пик речи, усиление и уровень анимации, уровень после ворот, цель заливки, «начало голоса → заливка на экране» → строка «заливка голосом: шла / НЕ шла — почему»; тесты отчёта и метки голоса `standVoiceTap` |
 | `pillStandWords.js` | Чистое: нормализация услышанного и цели для метрик |
 | `pillStandSummary.js` | Чистое: сводка текстом для чата и пометка зачёта |
 | `standAudio.js` | Звук записи MediaRecorder на игровом потоке (iPhone — audio/mp4, Chromium — webm/opus) |
@@ -2025,6 +2026,7 @@ CurriculaList, useCurricula, useLessons, LessonMapCanvas), старый проф
 | `modules/rotate-phone/wordLaneAudioModes.test.js`, `useGameAudioModes.test.js`, `dictorRmsReport.test.js` | Тесты режимов iPhone: события `audio-session`/`mic-hold`/`audio-tick` в пробнике, слушатель не считает выключенную нами дорожку «оглохшей», реплика Пита открывает окно речи, `scheduleDictor`, хук, RMS по окнам речи и отчёт. |
 | `modules/rotate-phone/wordLaneVoiceGate.js` | Чистое: ворота голоса ученика — пол шума, запас, выдержка ≥ 90 мс, заглушение после ноты; без них шум и эхо динамика запускали анимацию пилюль |
 | `modules/rotate-phone/wordLaneVoiceGate.test.js` | Тесты ворот: шум и щелчки не голос, голос ≈ 100 мс, паузы не рвут, шумная комната, эхо ноты |
+| `modules/rotate-phone/wordLaneVoiceLevel.js` (+ `.test.js`) | Чистое (v3.3.187): громкость голоса ученика → 0..1 для колец микрофона и заливки пилюль ОТ ШУМА МИКРОФОНА — кусок, который счётчик распознавания (`voskVoice.js`) назвал голосом, усиливается (шум → 0,003, пик высказывания не выше 0,05) и идёт в прежнюю кривую `sensitiveLevel`; тихая речь iPhone 0,003–0,005 наливает как обычная, шум и обычный микрофон — как раньше; тесты: тихий микрофон, шум, обычный микрофон |
 | `modules/rotate-phone/wordLaneMotion.js` | Ход пилюль на композиторе: `startFlight` (одна WAAPI-анимация `translate` ENTER_Y → EXIT_Y, линейно, ПРЯМАЯ — без волны и наклона; дольше полёта на 120 с), `cancelFlights`, `setFlightRate`; `flightPosition` |
 | `modules/rotate-phone/wordLaneMotion.test.js` | Тесты: полёт (длительность, кадры, translate вместо transform), щелчок не сдвигает пилюлю, прогрев слоёв, статичный кот, худ только по голосу |
 | `modules/rotate-phone/wordLaneEdge.test.js` | Тесты масштаба пилюль у краёв (`edge`: 0,85 у краёв, 1 на 50 %, по умолчанию выкл) и тихого промаха (`data-quiet`: дрожь и обводка 200 мс, без полос). |

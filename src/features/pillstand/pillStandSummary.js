@@ -1,6 +1,7 @@
 // Сводка стенда пилюль текстом (CONCEPT_PILLSTAND.md): владелец копирует её кнопкой «Скопировать сводку» и вставляет в чат. Шапка (версия, устройство, режим, язык, сид), итог по честности
 // (pillStandHonesty.js) и по каждой цели: голос, черновики и итоги Vosk с мс от появления цели, засчитанные слова, откаты, неверные слова, «додуманные» слова, ложные срабатывания, зачёт и задержки. Чистые функции.
 import { honesty } from './pillStandHonesty.js'
+import { voiceNote, voiceFillLine } from './pillStandVoice.js'
 
 export const MODE_TITLE = { word: 'Вертикальная (слово)', words: 'По словам (проход 1)', fast: 'Быстро (проход 2)' }
 export const LEN_TITLE = { short: 'короткие', long: 'длинные', any: 'любые' }
@@ -21,7 +22,8 @@ export function resultLine(r) {
 /** Строки одной цели */
 export function segmentLines(s) {
   const out = [`#${s.n + 1} ${q(s.say)}${s.shown && s.shown !== s.say ? ` (на пилюле ${q(s.shown)})` : ''} — ${s.lang.toUpperCase()}, ${MODE_TITLE[s.mode] ?? s.mode}`]
-  out.push(`  голос: ${s.voiceStart == null ? 'не было' : `+${s.voiceStart}…+${s.voiceEnd} мс`}`)
+  out.push(`  голос: ${s.voiceStart == null ? 'не было' : `+${s.voiceStart}…+${s.voiceEnd} мс`}${voiceNote(s.voice)}`)
+  if (voiceFillLine(s.voice)) out.push(`  ${voiceFillLine(s.voice)}`)
   const ps = s.partials.slice(0, MAX_PARTIALS).map(p => `+${p.t} ${q(p.text)}`)
   out.push(`  черновики (${s.partials.length}, перестроек ${s.rebuilds}): ${ps.join(' · ') || '—'}${s.partials.length > MAX_PARTIALS ? ` · …ещё ${s.partials.length - MAX_PARTIALS}` : ''}`)
   out.push(`  итоги: ${s.finals.map(f => `+${f.t} ${q(f.text)} (${STOP[f.stopBy] ?? f.stopBy ?? '?'})${f.conf.length ? ` [${f.conf.map(([w, c]) => `${w} ${num(c)}`).join(', ')}]` : ''}`).join(' · ') || '—'}`)

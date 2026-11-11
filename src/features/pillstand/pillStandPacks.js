@@ -9,7 +9,7 @@
 //  • honesty «Честность» — только события-доказательства: всё (кроме rms / повторов / кадров заливки) в окнах ±EVIDENCE_MS вокруг каждого ложного срабатывания и «додуманного» слова (окна считает отчёт);
 //  • all «Всё» — в текст: объединение тем (rms и заливка прорежены) + все прочие события; в JSON-блок отчёт кладёт полную трассу отрезка как есть.
 // Несколько тем — объединение: событие берётся, если его берёт хоть одна тема, а вид — у самой «полной» (сырой JSON «Распознавания» важнее сокращённого «heard» «Анимации»). Чистые функции.
-import { STAND_VOICE_RMS } from './pillStandHonesty.js'
+import { isVoice } from './pillStandVoice.js'
 import { heardWords } from './pillStandWords.js'
 
 export const TOPICS = ['anim', 'ear', 'logic', 'honesty', 'all']
@@ -46,10 +46,10 @@ export const logFor = (t, text) => t === 'all' || !!LOG_RE[t]?.test(String(text 
 function levelThin() {
   let at = -Infinity, voice = null
   return e => {
-    const v = e.rms >= STAND_VOICE_RMS
+    const v = isVoice(e) // голос — по счётчику распознавания (pillStandVoice.js)
     if (v === voice && e.t - at < (v ? LEVEL_EVERY_MS : LEVEL_QUIET_MS)) return null
     at = e.t; voice = v
-    return { t: e.t, k: 'level', rms: e.rms, voice: v }
+    return { t: e.t, k: 'level', rms: e.rms, voice: v, ...(e.n != null ? { n: e.n } : {}), ...(e.lv != null ? { lv: e.lv } : {}), ...(e.g != null ? { g: e.g } : {}) }
   }
 }
 
@@ -78,7 +78,7 @@ const animPicker = () => {
       const before = new Set(heardWords(prev)); prev = cur
       return { t: e.t, k: 'heard', src: 'черновик', text: cur, fresh: ws.filter(w => !before.has(w)) }
     }
-    if (e.k === 'fill') { const f = fill(e); return f ? { t: f.t, k: 'fill', goal: f.goal, shown: f.shown } : null }
+    if (e.k === 'fill') { const f = fill(e); return f ? { t: f.t, k: 'fill', goal: f.goal, shown: f.shown, ...(f.level != null ? { level: f.level } : {}) } : null } // level — уровень голоса после ворот (вертикальная пилюля): на чём шла заливка
     if (e.k === 'word') return { t: e.t, k: 'word', index: e.index, text: e.text, draft: !!e.draft, ...(e.gone ? { gone: true } : {}) }
     if (e.k === 'result') return { t: e.t, k: 'result', ok: !!e.ok, ...(e.clean != null ? { clean: !!e.clean } : {}) }
     if (e.k === 'log') return LOG_RE.anim.test(e.text) ? e : null

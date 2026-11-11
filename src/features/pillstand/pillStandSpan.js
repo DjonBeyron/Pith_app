@@ -1,7 +1,7 @@
 // Отрезок отчёта «📤 Отправить» стенда пилюль (CONCEPT_PILLSTAND.md, «Отправка по теме»): какую часть сессии отправить — вся сессия, текущая цель (та, на которой стоит «сейчас»: на живом
 // экране — последняя цель, в плеере — цель кадра; v3.3.180: + прошлая цель, если в текущей ещё ничего не было, или выбранная из последних 5; всегда с 1 с до появления), отрезок A–B из плеера, последние N секунд (до «сейчас»: в плеере — до текущего кадра). Всё в мс сессии (шкала трассы pillStandTrace.js).
 // Здесь же: события / кадры отрезка, разбор строк журнала игры (метка строки — performance.now страницы → мс сессии вычитанием старта трассы), место отрезка в звуке записи. Чистые функции.
-import { STAND_VOICE_RMS } from './pillStandHonesty.js'
+import { isVoice } from './pillStandVoice.js'
 
 export const SPANS = ['session', 'target', 'ab', 'last']
 export const LAST_SECONDS = [10, 30, 60]
@@ -30,7 +30,7 @@ export function recentTargets(events, at = Infinity, n = RECENT_N) {
     const cur = tgs.at(-1)
     if (!cur) continue
     if (e.k === 'result') cur.mark = e.ok ? '✓' : '✗'
-    else if ((e.k === 'level' && e.rms >= STAND_VOICE_RMS) || (e.k === 'vosk-partial' && e.raw?.partial) || (e.k === 'vosk-final' && e.raw?.text)) cur.voiced = true
+    else if ((e.k === 'level' && isVoice(e)) || (e.k === 'vosk-partial' && e.raw?.partial) || (e.k === 'vosk-final' && e.raw?.text)) cur.voiced = true
   }
   tgs.forEach((g, i) => { g.to = tgs[i + 1]?.t ?? null })
   return tgs.slice(-n).reverse()

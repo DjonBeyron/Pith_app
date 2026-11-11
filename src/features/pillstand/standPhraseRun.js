@@ -7,7 +7,7 @@ import { phraseListen } from '../pitrace/racePhraseListener.js'
 import { SAY_SPEED, gapMs } from '../pitrace/raceStagesPhrases.js'
 import { createWordListener } from '../player/modules/rotate-phone/wordLaneListen.js'
 import { pLog } from '../../shared/lib/debug.js'
-import { tapListen } from './standVoiceTap.js'
+import { tapListen, voiceMark } from './standVoiceTap.js'
 
 const dbgData = data => (data && typeof data === 'object' ? data : { v: data })
 
@@ -24,7 +24,11 @@ export const standListen = ({ trace, lang, log, factory = phraseListen }) => o =
   onPhrase: e => { trace.push('phrase', e); o.onPhrase?.(e) },
   onEar: e => { trace.push('ear', e); o.onEar?.(e) },
   onError: e => { trace.push('listen-error', { error: String(e?.message ?? e) }); o.onError?.(e) },
-  create: o2 => createWordListener({ ...o2, listen: tapListen(trace), onDebug: (kind, data) => { if (kind !== 'level' && kind !== 'partial-same') trace.push('wl', { kind, ...dbgData(data) }); o2.onDebug?.(kind, data) } }),
+  create: o2 => { // метка голоса кусков — от счётчика этого слушателя слов (voiceMark)
+    let l = null
+    l = createWordListener({ ...o2, listen: tapListen(trace, undefined, voiceMark(() => l?.voice)), onDebug: (kind, data) => { if (kind !== 'level' && kind !== 'partial-same') trace.push('wl', { kind, ...dbgData(data) }); o2.onDebug?.(kind, data) } })
+    return l
+  },
 })
 
 export function runStandPhrase({ pool, root, target, trace, probe = {}, onResult = () => {}, factory, run = runPhraseScene }) {

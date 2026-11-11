@@ -4,7 +4,7 @@
 //  • thinTrace — для JSON «Всё»: уровень — все переходы порога голоса + раз в LEVEL_EVERY_MS в голосе / LEVEL_QUIET_MS в тишине (как в «Распознавании»), повторы черновика ('same') — только счётом,
 //    заливка — смены цели, шаг экрана ≥ FILL_STEP, экран догнал цель; что выброшено — счётчики { level, same, fill };
 //  • journalAll — журнал игры в «Всё»: без «[stand] …» (это трасса) и без строк, которые уже есть в трассе ('log'), «[perf]» — не чаще PERF_EVERY_MS. Чистые функции.
-import { STAND_VOICE_RMS } from './pillStandHonesty.js'
+import { isVoice } from './pillStandVoice.js'
 import { LEVEL_EVERY_MS, LEVEL_QUIET_MS, FILL_STEP } from './pillStandPacks.js'
 
 export const PERF_EVERY_MS = 5000
@@ -38,7 +38,7 @@ export function thinTrace(events) {
   const out = []
   for (const e of events) {
     if (e.k === 'level') {
-      const v = e.z ? 'z' : e.rms >= STAND_VOICE_RMS // ровно 0 (оглох) — отдельное состояние: его начало и конец видны
+      const v = e.z ? 'z' : isVoice(e) // ровно 0 (оглох) — отдельное состояние: его начало и конец видны
       if (v === voice && e.t - at < (v === true ? LEVEL_EVERY_MS : LEVEL_QUIET_MS)) { dropped.level++; continue }
       at = e.t; voice = v
     } else if (e.k === 'same') { dropped.same++; continue }

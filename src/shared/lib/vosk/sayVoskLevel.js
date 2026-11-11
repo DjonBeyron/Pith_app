@@ -15,9 +15,9 @@ export function createRmsLevel({ now = () => (typeof performance !== 'undefined'
   const span = Math.max(1, Number(decayMs ?? LEVEL_DECAY_MS) || LEVEL_DECAY_MS)
   const decayed = t => (level <= 0 ? 0 : Math.max(0, level * (1 - Math.max(0, t - at) / span)))
   return {
-    /** Пришёл кусок звука с громкостью rms (0..1) */
-    push(rms, t = now()) {
-      const v = fromRms(rms)
+    /** Пришёл кусок звука с громкостью rms (0..1); voice — счётчик «голос / тишина» слушателя (voskVoice.js), уже получивший этот кусок: формула игры нормирует по нему уровень (wordLaneVoiceLevel.js), остальные его не читают */
+    push(rms, t = now(), voice = null) {
+      const v = fromRms(rms, voice)
       const cur = decayed(t)
       if (fromPeak && !(v > cur)) return // тише оседающего пика — пик и его время не трогаем
       level = Math.max(v, cur); at = t

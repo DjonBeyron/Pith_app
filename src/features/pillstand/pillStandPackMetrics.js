@@ -2,7 +2,7 @@
 // строки «-- метрики --» и те же данные объектом для JSON-блока. Анимация: «хлопок при заливке 1,00, через 96 мс после зачёта» (pillStandPop.js), «слово → заливка дошла», рывки экрана «на голос ли», пузыри в жидкости («сколько внутри, вырвались ли в кадре хлопка, зазор сверху»), первые кадры флагов (nudge, вспышка, хлопок, пузыри…). Распознавание: голос → первый
 // черновик, черновики / повторы / перестройки (было → стало), итоги с «кто закрыл» и conf, додуманные слова, словарь, кто закрывал заходы. Зачёт и логика: засчитанные слова, откаты, неверные, итог зачёта,
 // продления у края, «договорена». Честность: каждое ложное срабатывание с голосом рядом (макс. rms за VOICE_MS до, затвор) и окна доказательств ±EVIDENCE_MS. Чистые функции.
-import { STAND_VOICE_RMS } from './pillStandHonesty.js'
+import { isVoice, voiceNote, voiceFillLine } from './pillStandVoice.js'
 import { heardWords } from './pillStandWords.js'
 import { jerks, flagStarts, VOICE_MS } from './pillStandFrames.js'
 import { EVIDENCE_MS } from './pillStandPacks.js'
@@ -31,11 +31,11 @@ export function rebuildList(events, t0) {
   return out
 }
 
-/** Голос рядом с моментом t (мс сессии): { rms — макс. за VOICE_MS до, gate — затвор в момент t } */
+/** Голос рядом с моментом t (мс сессии): { rms — макс. за VOICE_MS до, voice — был ли в это время кусок-голос (счётчик распознавания), gate — затвор в момент t } */
 export function voiceNear(events, t) {
-  let rms = 0, gate = null
-  for (const e of events) { if (e.t > t) break; if (e.k === 'level' && t - e.t <= VOICE_MS) rms = Math.max(rms, e.rms); if (e.k === 'gate') gate = e.open }
-  return { rms: Math.round(rms * 10000) / 10000, gate }
+  let rms = 0, gate = null, voice = false
+  for (const e of events) { if (e.t > t) break; if (e.k === 'level' && t - e.t <= VOICE_MS) { rms = Math.max(rms, e.rms); voice ||= isVoice(e) } if (e.k === 'gate') gate = e.open }
+  return { rms: Math.round(rms * 10000) / 10000, voice, gate }
 }
 
 /** Окна доказательств «Честности» (мс сессии): ±EVIDENCE_MS вокруг ложных срабатываний и первых появлений «додуманных» слов */
@@ -55,6 +55,7 @@ function anim(seg, events, frames, t0) {
   const flags = flagStarts(frames).map(f => ({ ...f, t: Math.round(f.t - t0) }))
   const pops = popMoments(frames, events), bub = bubbleStats(frames, pops), gaps = topGaps(frames, pops)
   const lines = [
+    ...[voiceFillLine(seg.voice)].filter(Boolean),
     popLine(pops),
     ...(frames.length ? [bubbleLine(bub, gaps)] : []),
     `слово → заливка дошла (по трассе): ${cap(seg.toFill, x => `${q(x.word)} ${x.ms} мс`)}`,
@@ -82,7 +83,7 @@ function ear(seg, events, t0) {
   const grammar = events.filter(e => e.k === 'vosk-start').map(e => e.grammar)
   const fed = feedLine(events)
   const lines = [
-    `голос: ${seg.voiceStart == null ? 'не было' : `+${seg.voiceStart}…+${seg.voiceEnd} мс`} · голос → первый черновик ${ms(seg.voiceToPartial)}`,
+    `голос: ${seg.voiceStart == null ? 'не было' : `+${seg.voiceStart}…+${seg.voiceEnd} мс`}${voiceNote(seg.voice)} · голос → первый черновик ${ms(seg.voiceToPartial)}`,
     `черновики: ${seg.partials.length} смен, повторов того же текста ${same}, перестроек ${rebuilds.length}${rebuilds.length ? ` — ${cap(rebuilds, r => `${plus(r.t)} ${q(r.from)} → ${q(r.to)}`)}` : ''}`,
     `итоги: ${cap(seg.finals, f => `${plus(f.t)} ${q(f.text)} (${STOP[f.stopBy] ?? f.stopBy ?? '?'})${f.conf.length ? ` [${f.conf.map(([w, c]) => `${w} ${num(c)}`).join(', ')}]` : ''}`)}`,
     `кто закрыл заходы: ${Object.entries(closed).map(([k, v]) => `${k} ×${v}`).join(', ') || '—'}`,
@@ -109,7 +110,7 @@ function logic(seg, events) {
 function honest(seg, events, t0) {
   const falses = seg.falses.map(f => ({ ...f, ...voiceNear(events, t0 + f.t) }))
   const lines = [
-    `ложные срабатывания: ${falses.length}${falses.length ? ` — ${cap(falses, f => `+${f.t} ${f.kind}${f.text ? ` ${q(f.text)}` : ''} (rms макс. за 1,5 с до ${num(f.rms, 4)}${f.rms >= STAND_VOICE_RMS ? ' ≥ порога' : ''}, затвор ${f.gate == null ? '—' : f.gate ? 'открыт' : 'закрыт'})`)}` : ''}`,
+    `ложные срабатывания: ${falses.length}${falses.length ? ` — ${cap(falses, f => `+${f.t} ${f.kind}${f.text ? ` ${q(f.text)}` : ''} (rms макс. за 1,5 с до ${num(f.rms, 4)}${f.voice ? ' — голос' : ''}, затвор ${f.gate == null ? '—' : f.gate ? 'открыт' : 'закрыт'})`)}` : ''}`,
     `додумано Vosk: ${cap(seg.invented, i => `${q(i.w)}${i.partial ? ` черн.×${i.partial}` : ''}${i.final ? ` итог×${i.final}` : ''}`)} · перестроек черновика ${seg.rebuilds} из ${seg.changes} смен`,
     `засчитано без итога Vosk после слова: ${seg.noFinal} · голос → черновик ${ms(seg.voiceToPartial)} · слово → заливка ${seg.toFill.map(x => x.ms).join(', ') || '—'} мс`,
   ]

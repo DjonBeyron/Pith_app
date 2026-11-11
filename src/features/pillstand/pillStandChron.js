@@ -29,7 +29,7 @@ const LINES = {
   'vosk-final': e => `итог ${JSON.stringify(e.raw ?? {}).slice(0, JSON_CUT * 2)} · закрыл: ${STOP[e.stopBy] ?? e.stopBy ?? '?'}${stats(e) ? ` · ${stats(e)}` : ''}`,
   heard: e => `Vosk ${e.src}: ${q(e.text)}${e.fresh?.length ? ` (новые слова: ${e.fresh.join(' ')})` : ''}`,
   gate: e => `затвор ${e.open ? 'открыт' : 'закрыт'} (rms ${num(e.rms, 4)})`,
-  level: e => `rms ${num(e.rms, 4)}${e.voice != null ? (e.voice ? ' ▲ голос' : ' ▽ тишина') : ''}`,
+  level: e => `rms ${num(e.rms, 4)}${e.voice != null ? (e.voice ? ' ▲ голос' : ' ▽ тишина') : ''}${e.n != null ? ` · шум ${num(e.n, 4)}` : ''}${e.lv != null ? ` · уровень ${num(e.lv)}${e.g != null ? ` (×${num(e.g, 1)})` : ''}` : ''}`,
   wl: e => (e.kind === 'ear' ? `[word-ear] ${e.text}` : e.kind === 'grammar' && e.gref ? `слушатель слов: ${grammarText(e)}, цели ${JSON.stringify(e.targets ?? []).slice(0, 160)}` : `слушатель слов: ${e.kind} ${rest({ ...e, kind: undefined }, 240)}`),
   listen: e => `слушатель: ${e.status}, seq [${(e.seq ?? []).join(',')}], промахов ${e.misses ?? 0}${e.heard ? `, услышал ${q(e.heard)}` : ''}`,
   word: e => (e.gone ? `откат слова ${(e.index ?? 0) + 1} ${q(e.text)}` : `слово ${(e.index ?? 0) + 1} ${q(e.text)} засчитано ${e.draft ? 'черновиком' : 'итогом'}`),
