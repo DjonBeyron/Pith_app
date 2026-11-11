@@ -41,7 +41,7 @@ describe('нет скачивания и загрузки без нажатия 
 describe('кеш оболочки и service worker не трогают модель', () => {
   it('чанк vosk исключён из предзагрузки', () => {
     expect(NEVER_PRECACHE.test('assets/vosk-Cza5_fLh.js')).toBe(true)
-    expect(NEVER_PRECACHE.test('assets/enPhones-DUYn7pJI.js')).toBe(true) // таблица произношений для ловушек правила слова — тоже только по надобности (v3.3.185)
+    expect(NEVER_PRECACHE.test('assets/enPhones-DUYn7pJI.js')).toBe(true) // таблица произношений для ловушек правила слова — тоже только по надобности (v3.3.186)
     const { urls } = collectPrecache([{ path: 'index.html', size: 1 }, { path: 'assets/index-a.js', size: 1 }, { path: 'assets/vosk-Cza5_fLh.js', size: 5800000 }])
     expect(urls.some(u => u.includes('vosk'))).toBe(false)
   })

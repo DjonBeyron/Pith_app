@@ -3,7 +3,7 @@ import { phoneNeighbors, encodePhones, decodePhones, PHONES, SUBS_MAX, PAIRS_MAX
 import { parsePhones } from './phoneTable.js'
 import { EN_PHONES, NOTICE } from './enPhones.js'
 
-// Фонетические соседи (v3.3.185): отчёт владельца — «house» без конца засчитан: буквенные ловушки «hous, housy» не слова, модель их выбросила. Сосед — настоящее слово, которое звучит как обрубок.
+// Фонетические соседи (v3.3.186): отчёт владельца — «house» без конца засчитан: буквенные ловушки «hous, housy» не слова, модель их выбросила. Сосед — настоящее слово, которое звучит как обрубок.
 const table = parsePhones(EN_PHONES)
 const near = (w, skip) => phoneNeighbors(w, table, skip)
 const all = w => { const n = near(w); return [...n.prefixes, ...n.subs, ...n.spelled, ...n.pairs] }

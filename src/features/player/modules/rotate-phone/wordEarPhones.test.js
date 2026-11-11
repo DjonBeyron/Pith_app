@@ -4,8 +4,8 @@ import { rig, W } from './wordEarTestKit.js'
 import { parsePhones, setPhonesForTest } from '../../../../shared/lib/vosk/phones/phoneTable.js'
 import { EN_PHONES } from '../../../../shared/lib/vosk/phones/enPhones.js'
 
-// v3.3.185: отчёт владельца, iPhone — «house» без конца засчитан с conf 1 («я уверен, что не говорю окончания, система казуалит это»); «nice» — 20 попыток, 0 зачётов: затвор не пускал тихий звук в Vosk
-describe('фонетические ловушки и сторож затвора (v3.3.185)', () => {
+// v3.3.186: отчёт владельца, iPhone — «house» без конца засчитан с conf 1 («я уверен, что не говорю окончания, система казуалит это»); «nice» — 20 попыток, 0 зачётов: затвор не пускал тихий звук в Vosk
+describe('фонетические ловушки и сторож затвора (v3.3.186)', () => {
   afterEach(() => setPhonesForTest(null))
   const flush = () => new Promise(r => setTimeout(r, 0))
   it('таблица произношений загружена: в грамматике «house» — how и howl (а не «hous, housy»), обрубок «hau…» Vosk отдаёт как how — не засчитано; целое слово — зачёт', async () => {

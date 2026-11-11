@@ -56,7 +56,7 @@ describe('отправка по теме: Анимация', () => {
   })
 })
 
-describe('сводка цели, тема «Распознавание»: дошёл ли голос до Vosk (v3.3.185)', () => {
+describe('сводка цели, тема «Распознавание»: дошёл ли голос до Vosk (v3.3.186)', () => {
   const fin = (voiceMs, gatedVoiceMs, gatedMs, agcMax = 1) => ({ k: 'vosk-final', raw: { text: '' }, voiceMs, gatedVoiceMs, gatedMs, agcMax })
   it('затвор не пускал голос — предупреждение с цифрами (отчёт владельца: «nice», 20 попыток, 0 зачётов — речь шла, а в Vosk не попадала)', () => {
     expect(feedLine([fin(430, 430, 2400), fin(520, 300, 2300)])).toEqual({ line: '⚠ звук не дошёл до Vosk: затвор закрыт 730 мс из 950 мс голоса', data: { voiceMs: 950, gatedVoiceMs: 730, gatedMs: 4700, agcMax: 1 } })

@@ -9,7 +9,7 @@ import { loadPhones, setPhonesForTest } from '/src/shared/lib/vosk/phones/phoneT
 const models = {}
 const getModel = async lang => (models[lang] ??= (async () => (await loadEngine(await (await fetch(`/__${lang}.tar.gz`)).blob())).model)())
 window.__load = async lang => { await getModel(lang); return true }
-// таблица произношений для фонетических ловушек (в приложении её грузит voskRuntime вместе с английской моделью); __phones(false) — без неё: ловушки по буквам, как до v3.3.185
+// таблица произношений для фонетических ловушек (в приложении её грузит voskRuntime вместе с английской моделью); __phones(false) — без неё: ловушки по буквам, как до v3.3.186
 window.__phones = async on => { if (on) await loadPhones('en'); else setPhonesForTest(null); return true }
 // gain — множитель громкости wav (тихий микрофон iPhone: речь rms 0,012–0,026), noise — rms фона (iPhone ≈ 0,0002). res.levels — [мс, rms] кусков звука: по ним драйвер сам находит конец голоса.
 window.__run = async ({ wav, target, extra = [], lang = 'en', ear = true, tailMs = 3500, gain = 1, noise = 0.0009 }) => {

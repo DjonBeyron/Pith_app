@@ -126,7 +126,7 @@ describe('слушатель слов с правилом (earRule): серии,
     const r = rig({ targets: ['try'], expected: 3 }); await r.open()
     r.voice(300); r.cur().cb.onPartial('try'); expect(r.hits()).toBe(0)
     r.voice(300); r.cur().cb.onPartial('try try'); expect(r.hits()).toBe(1)
-    r.voice(300); r.cur().cb.onPartial('try try [unk]'); expect(r.hits()).toBe(1) // [unk] после слова — звук, а не слово: обрубок + шум («from [unk]») раньше засчитывался сразу (v3.3.185)
+    r.voice(300); r.cur().cb.onPartial('try try [unk]'); expect(r.hits()).toBe(1) // [unk] после слова — звук, а не слово: обрубок + шум («from [unk]») раньше засчитывался сразу (v3.3.186)
     expect(r.logs.some(s => s.includes('идёт другое слово'))).toBe(false)
     r.still(); r.cur().cb.onResult('try try [unk]', { words: [W('try'), W('try', 1, 1, 1.4), W('[unk]', 0.6, 1.5, 1.7)] })
     expect(r.hits()).toBe(2)

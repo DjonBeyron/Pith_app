@@ -3,7 +3,7 @@ import { startListening } from './voskEngine.js'
 import { createEarVoice } from './voskVoice.js'
 import { GATE_RMS, GATE_PREROLL_MS } from './voskGate.js'
 
-// Тихий микрофон iPhone через настоящий startListening + затвор + автоусиление (v3.3.185; отчёт владельца: «nice» — 20 попыток, 0 зачётов, речь rms 0,003–0,005 при фоне 0,0003, затвор с порогом 0,006
+// Тихий микрофон iPhone через настоящий startListening + затвор + автоусиление (v3.3.186; отчёт владельца: «nice» — 20 попыток, 0 зачётов, речь rms 0,003–0,005 при фоне 0,0003, затвор с порогом 0,006
 // не пускал её в Vosk). Подставной распознаватель записывает, какой звук до него дошёл.
 const CH = 43 // кусок слушателя слов, мс
 const amp = v => new Float32Array(8).fill(v)

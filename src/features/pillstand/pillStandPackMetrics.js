@@ -64,7 +64,7 @@ function anim(seg, events, frames, t0) {
   return { lines, data: { pops: pops.map(x => ({ ...x, t: Math.round(x.t - t0) })), jets: jet.first == null ? jet : { ...jet, first: Math.round(jet.first - t0) }, toFill: seg.toFill, reach, jerks: js, flags, frames: frames.length } }
 }
 
-/** Дошёл ли голос до Vosk (v3.3.185): по итогам заходов — сколько мс звука счётчик голоса назвал голосом и сколько из них затвор тишины не отдал распознавателю (voskEngine: voiceMs / gatedVoiceMs) */
+/** Дошёл ли голос до Vosk (v3.3.186): по итогам заходов — сколько мс звука счётчик голоса назвал голосом и сколько из них затвор тишины не отдал распознавателю (voskEngine: voiceMs / gatedVoiceMs) */
 export function feedLine(events) {
   const fin = events.filter(e => e.k === 'vosk-final' && e.voiceMs != null)
   if (!fin.length) return { line: '', data: null }
