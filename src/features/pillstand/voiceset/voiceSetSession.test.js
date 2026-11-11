@@ -68,7 +68,7 @@ describe('ход записи набора', () => {
     expect(r.saved).toHaveLength(0)
     r.s.resume()
     expect(r.last()).toMatchObject({ phase: 'gap', i: 0 })
-    await r.clipOnce()
+    expect(await r.clipOnce()).toBe(SECTION_GAP_MS) // после «Продолжить» пауза-показ длиннее
     expect(r.saved.map(x => x.i)).toEqual([0])
   })
   it('«Переписать прошлый»: клип удаляется, задание пишется заново, потом ход возвращается', async () => {

@@ -2,7 +2,7 @@ import { X } from 'lucide-react'
 import { MODES, LANGS, LENS } from './pillStandPick.js'
 import { AUTO_MS } from './pillStandPrefs.js'
 
-// Панель стенда пилюль сверху (safe-area): выход, язык Vosk «EN | RU», запись / стоп, просмотр записи; режим пилюли; длина, «Следующая», «Сброс»; сид, авто-следующая и её пауза, состояние модели.
+// Панель стенда пилюль сверху (safe-area): выход, язык Vosk «EN | RU», запись / стоп, просмотр записи; режим пилюли и «🎙 Запись набора» (экран voiceset/); длина, «Следующая», «Сброс»; сид, авто-следующая и её пауза, состояние модели.
 const MODE_SHORT = { word: 'Слово', words: 'По словам', fast: 'Быстро' }
 const mmss = ms => `${Math.floor(ms / 60000)}:${String(Math.floor(ms / 1000) % 60).padStart(2, '0')}`
 
@@ -14,7 +14,7 @@ function Seg({ value, list, title, onPick, testid, disabled = false }) {
   )
 }
 
-export default function PillStandBar({ s, r, viewing, onClose, onView }) {
+export default function PillStandBar({ s, r, viewing, onClose, onView, onVoiceSet }) {
   const { prefs, setPrefs, model } = s
   const rec = r.state
   return (
@@ -27,7 +27,10 @@ export default function PillStandBar({ s, r, viewing, onClose, onView }) {
           : <button type="button" className="psBtn psRec" onClick={r.start} disabled={viewing || s.mic !== 'on'} data-testid="ps-rec">● Запись</button>}
         <button type="button" className="psBtn" onClick={onView} disabled={!r.rec || rec.on || viewing} data-testid="ps-view">▶ Просмотр</button>
       </div>
-      <div className="psRow"><Seg value={prefs.mode} list={MODES} title={MODE_SHORT} onPick={v => setPrefs({ mode: v })} testid="ps-mode" disabled={viewing} /></div>
+      <div className="psRow">
+        <Seg value={prefs.mode} list={MODES} title={MODE_SHORT} onPick={v => setPrefs({ mode: v })} testid="ps-mode" disabled={viewing} />
+        {onVoiceSet && <button type="button" className="psBtn" onClick={onVoiceSet} disabled={viewing || rec.on} data-testid="ps-voiceset">🎙 Запись набора</button>}
+      </div>
       <div className="psRow">
         <Seg value={prefs.len} list={LENS} title={{ short: 'короткие', long: 'длинные', any: 'любые' }} onPick={v => setPrefs({ len: v })} testid="ps-len" disabled={viewing} />
         <button type="button" className="psBtn" onClick={s.next} disabled={viewing} data-testid="ps-next">Следующая</button>

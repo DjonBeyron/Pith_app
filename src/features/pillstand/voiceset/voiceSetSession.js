@@ -8,7 +8,7 @@ import { GAP_MS, PRE_MS } from './voiceSetPlan.js'
 import { clipStats } from './voiceSetMeter.js'
 
 export const WARN_GAP_MS = 2600    // пауза-показ после клипа с предупреждением
-export const SECTION_GAP_MS = 2000 // пауза-показ перед первым заданием нового раздела
+export const SECTION_GAP_MS = 2000 // пауза-показ перед первым заданием нового раздела и после «Начать» / «Продолжить»
 
 export function createVoiceSetSession({ plan, done: doneIn = [], skipped: skippedIn = [], save, drop = async () => {}, onSkip = () => {}, onState = () => {}, setTimer = setTimeout, clearTimer = clearTimeout, gapMs = GAP_MS, preMs = PRE_MS }) {
   const done = new Set(doneIn), skipped = new Set(skippedIn), held = new Set()
@@ -24,13 +24,13 @@ export function createVoiceSetSession({ plan, done: doneIn = [], skipped: skippe
   const set = (p, extra = {}) => { phase = p; pauseWhy = extra.pauseWhy ?? ''; error = extra.error ?? ''; onState(state()) }
   const stopClip = () => { clearTimer(timer); timer = 0; clip = null }
 
-  function goto(i) {
+  function goto(i, fresh = false) { // fresh — после «Начать» / «Продолжить»: пауза-показ длиннее (человек готовится, счётчик голоса успевает оценить шум заново открытого микрофона)
     stopClip()
     pos = i
     if (i == null) { set('done'); return }
     const it = plan[i]
     if (it.hold && !held.has(i)) { held.add(i); set('hold'); return }
-    const first = i === 0 || plan[i - 1].section !== it.section
+    const first = fresh || i === 0 || plan[i - 1].section !== it.section
     set('gap')
     timer = setTimer(beginRec, warn ? WARN_GAP_MS : first ? Math.max(gapMs, SECTION_GAP_MS) : gapMs)
   }
@@ -51,13 +51,13 @@ export function createVoiceSetSession({ plan, done: doneIn = [], skipped: skippe
       warn = it.voiced && stats.noVoice ? { kind: 'novoice', i: it.i } : it.voiced && stats.late ? { kind: 'late', i: it.i } : null
       if (phase === 'saving') goto(pending(it.i + 1) ?? pending(0))
       else onState(state())
-    }, e => { busy = false; if (phase === 'saving') set('paused', { pauseWhy: 'save', error: String(e?.message ?? e) }); else onState(state()) })
+    }, e => { busy = false; if (phase === 'saving') set('paused', { pauseWhy: e?.mic ? 'mic' : 'save', error: String(e?.message ?? e) }); else onState(state()) }) // e.mic — в клипе ровный ноль: микрофон оглох, клип не сохранён
   }
 
   return {
     state,
     /** Начать (или продолжить набор) с первого незаписанного задания */
-    start() { if (phase === 'idle' || phase === 'done') goto(pending(0)) },
+    start() { if (phase === 'idle' || phase === 'done') goto(pending(0), true) },
     /** Кусок звука { data: Float32Array, rms, game, ms, voice, noise } — приходит всегда, пока открыт захват */
     chunk(c) {
       ring.push(c); ringMs += c.ms
@@ -76,7 +76,7 @@ export function createVoiceSetSession({ plan, done: doneIn = [], skipped: skippe
       stopClip()
       set('paused', { pauseWhy: why })
     },
-    resume() { if (phase === 'paused' || phase === 'hold') goto(pos ?? pending(0)) },
+    resume() { if (phase === 'paused' || phase === 'hold') goto(pos ?? pending(0), true) },
     /** «Переписать прошлый» → Promise (клип удалён из хранилища) */
     async redoPrev() {
       const i = prevHandled(pos ?? plan.length)

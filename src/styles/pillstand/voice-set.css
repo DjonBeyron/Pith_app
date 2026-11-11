@@ -1,0 +1,33 @@
+/* «🎙 Запись набора» стенда пилюль (features/pillstand/voiceset/VoiceSetScreen.jsx): экран поверх стенда на всю высоту, верх и низ — через safe-area, прокрутка внутри, ширина 320–402 px без
+   горизонтальной прокрутки. Здесь — каркас, настройки (VoiceSetSetup.jsx), итог и архив (VoiceSetDone.jsx), общие кнопки под палец; вид записи — voice-set-record.css. Цвета — переменные стенда (--ps-*). */
+.vsScreen {
+  position: absolute; z-index: 30; inset: 0; display: flex; flex-direction: column; gap: 8px; box-sizing: border-box; background: #0e1013; color: var(--ps-ink); font-size: 14px; line-height: 1.3;
+  padding: calc(env(safe-area-inset-top, 0px) + 8px) calc(env(safe-area-inset-right, 0px) + 12px) calc(env(safe-area-inset-bottom, 0px) + 10px) calc(env(safe-area-inset-left, 0px) + 12px);
+  overflow: hidden;
+}
+.vsHead { flex: none; display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 16px; }
+.vsBody { flex: 1 1 auto; min-height: 0; overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; display: flex; flex-direction: column; gap: 8px; }
+.vsBody p { margin: 0; overflow-wrap: anywhere; }
+.vsDim { color: var(--ps-dim); font-size: 12px; }
+.vsWarn { color: #ffcf6e; font-size: 13px; }
+.vsNote { color: var(--ps-acc); font-size: 13px; }
+.vsLabel { color: var(--ps-dim); font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; }
+.vsCard { display: flex; flex-direction: column; gap: 8px; padding: 10px; border: 1px solid var(--ps-line); border-radius: 12px; background: #151920; }
+.vsWords {
+  width: 100%; box-sizing: border-box; resize: vertical; min-height: 84px; background: #14171c; color: var(--ps-ink); border: 1px solid var(--ps-line); border-radius: 10px; padding: 8px 10px;
+  font: 16px/1.35 system-ui, -apple-system, sans-serif; /* 16 px — iOS не приближает поле при фокусе */
+}
+.vsRow { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
+.vsSegBtn { min-width: 48px; min-height: 40px; font-size: 16px; }
+.vsCheck { display: flex; align-items: center; gap: 8px; font-size: 14px; min-height: 36px; }
+.vsCheck input { width: 22px; height: 22px; flex: none; }
+.vsSize { color: var(--ps-ink); font-size: 14px; font-weight: 600; }
+.vsBtn, .vsBig {
+  appearance: none; border: 1px solid var(--ps-line); background: #1b1f27; color: var(--ps-ink); border-radius: 12px; min-height: 48px; padding: 8px 12px; font-size: 15px; line-height: 1.2;
+  touch-action: manipulation; width: 100%; box-sizing: border-box; overflow-wrap: anywhere;
+}
+.vsBig { min-height: 58px; border: 0; background: var(--ps-acc); color: #0d1500; font-size: 17px; font-weight: 700; }
+.vsBtn:disabled, .vsBig:disabled { opacity: 0.4; }
+.vsBtn--go { border-color: var(--ps-acc); color: var(--ps-acc); font-weight: 600; }
+.vsBtn--danger { border-color: rgba(255, 93, 115, 0.5); color: #ff8a99; }
+.vsBtn[data-given='share'], .vsBtn[data-given='download'], .vsBtn[data-given='tab'] { background: #23301a; }

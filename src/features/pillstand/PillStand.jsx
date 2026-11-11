@@ -1,4 +1,4 @@
-import { useRef, useState, useMemo } from 'react'
+import { useRef, useState, useMemo, lazy, Suspense } from 'react'
 import { createPortal } from 'react-dom'
 import WordLanePillEls from '../player/modules/rotate-phone/WordLanePillEls.jsx'
 import { isWeakDevice } from '../../shared/lib/deviceTier.js'
@@ -10,6 +10,7 @@ import PillStandLive from './PillStandLive.jsx'
 import PillStandPlayer from './PillStandPlayer.jsx'
 import PillStandSend from './PillStandSend.jsx'
 import useStandSend from './useStandSend.js'
+const VoiceSetScreen = lazy(() => import('./voiceset/VoiceSetScreen.jsx')) // «🎙 Запись набора» — отдельный кусок сборки: нужен раз в неделю
 import '../../styles/pillstand/pill-stand.css'
 import '../../styles/pillstand/pill-stand-ear.css'
 import '../../styles/pillstand/pill-stand-player.css'
@@ -23,9 +24,10 @@ import '../../styles/pillstand/pill-stand-colors.css'
 export default function PillStand({ onClose }) {
   const fieldRef = useRef(null), replayRef = useRef(null)
   const [viewing, setViewing] = useState(false)
+  const [voiceSet, setVoiceSet] = useState(false) // открыт экран «Запись набора» (voiceset/, CONCEPT_VOICESET.md): пилюля и слушатель стенда на это время стоят
   const [lite] = useState(isWeakDevice)
   const [safe] = useState(isPillSafe)
-  const s = usePillStand(fieldRef, { paused: viewing })
+  const s = usePillStand(fieldRef, { paused: viewing || voiceSet })
   const r = usePillStandRecord({ trace: s.trace, probe: s.probe, ear: s.ear, viewing })
   const cls = `wlField psField${lite ? ' wl--lite' : ''}${safe ? ' wl--safe' : ''}`
   const pillRef = useMemo(() => ({ get current() { return replayRef.current?.querySelector('[data-pill]') ?? null } }), [])
@@ -40,7 +42,7 @@ export default function PillStand({ onClose }) {
         <div ref={fieldRef} className={cls} data-hide={viewing ? '1' : undefined} data-testid="ps-field"><WordLanePillEls count={3} testid="ps-pill" /></div>
         {viewing && <div ref={replayRef} className={`${cls} psReplay`} data-testid="ps-replay"><WordLanePillEls count={1} testid="ps-replay-pill" /></div>}
       </div>
-      <PillStandBar s={s} r={r} viewing={viewing} onClose={onClose} onView={() => view(true)} />
+      <PillStandBar s={s} r={r} viewing={viewing} onClose={onClose} onView={() => view(true)} onVoiceSet={() => { s.trace.push('voiceset', { on: true }); setVoiceSet(true) }} />
       <div className="psBottom">
         {viewing && r.rec
           ? <PillStandPlayer rec={r.rec} meta={s.meta()} pillRef={pillRef} onClose={() => view(false)} onSend={send.open} range={loop} />
@@ -48,6 +50,7 @@ export default function PillStand({ onClose }) {
       </div>
       {send.ctx && <PillStandSend ctx={send.ctx} form={send.form} onForm={send.setForm} recent={send.recent} ab={range} hasAudio={!!r.rec?.audio?.blob} marks={send.marks} onMark={send.addMark} onUnmark={send.unmark}
         onSend={send.send} onCopy={send.copy} onSendAudio={send.sendAudio} later={send.later} note={send.note} busy={send.busy} onClose={send.close} />}
+      {voiceSet && <Suspense fallback={null}><VoiceSetScreen keepMic={s.mic === 'on'} onClose={() => { s.trace.push('voiceset', { on: false }); setVoiceSet(false) }} /></Suspense>}
     </div>,
     document.body,
   )

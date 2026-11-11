@@ -86,7 +86,7 @@ export default function usePillStand(fieldRef, { paused = false } = {}) {
   return { trace, prefs, setPrefs, seed, setSeed, n, target, next, reset, mic, start, model, result, ear, view, clearHist, probe, meta, micHealth, micTap }
 }
 
-function deviceLine() {
+export function deviceLine() {
   const ua = String(globalThis.navigator?.userAgent ?? '')
   const os = /iPhone OS ([\d_]+)/.exec(ua)?.[1]?.replace(/_/g, '.')
   const w = globalThis.screen?.width, h = globalThis.screen?.height, dpr = globalThis.devicePixelRatio

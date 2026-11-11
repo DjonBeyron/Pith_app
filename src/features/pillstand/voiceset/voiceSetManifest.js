@@ -35,14 +35,14 @@ export function splitParts(clips, max = PART_MAX) {
   return parts
 }
 
-/** manifest.json части: meta — { version, ua, device, createdAt, settings, micGain, constraints, captures: [{ t, ctxRate, track }], skipped, planCount } */
+/** manifest.json части: meta — { version, ua, device, deviceInfo, createdAt, settings, micGain, constraints, captures: [{ t, version, ctxRate, track }], skipped, planCount, micEvents (сбои микрофона за запись) } */
 export function buildManifest({ meta, clips, part = 1, parts = 1, total = clips.length, now = new Date() }) {
   const last = meta.captures?.at(-1) ?? {}
   return {
     kind: 'pithy-voiceset', v: 1, version: meta.version, device: meta.device, ua: meta.ua, createdAt: meta.createdAt, exportedAt: now.toISOString(),
     part, parts, clipsInSet: total, planCount: meta.planCount, skipped: meta.skipped ?? [], settings: meta.settings,
     audio: { format: 'WAV PCM 16 бит моно', sampleRate: clips[0]?.sampleRate ?? null, contextRate: last.ctxRate ?? null, preMs: clips[0]?.preMs ?? null, micGain: meta.micGain ?? null, note: 'rmsPeak / rmsNoise — сырой поток (лежит в WAV), gamePeak / gameNoise / voiceMs — после «Чувствительности микрофона» игры (это видит слушатель); автоусиление voskAgc к записи не применялось' },
-    constraints: meta.constraints ?? null, track: last.track ?? null, captures: meta.captures ?? [],
+    constraints: meta.constraints ?? null, track: last.track ?? null, captures: meta.captures ?? [], deviceInfo: meta.deviceInfo ?? null, micEvents: meta.micEvents ?? [],
     clips,
   }
 }
