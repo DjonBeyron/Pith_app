@@ -3,7 +3,8 @@
 //   node scripts/voice-set-run.mjs <набор.zip | папка набора> [вторая часть.zip …] --model путь/vosk-model-small-en-us-0.15.tar.gz [--out папка]
 // Что делает: распаковывает архив(ы), поднимает dev-сервер Vite этого репозитория, открывает в Chromium страницу _stand/voice_set/ и подаёт клипы подряд в одну сессию (модель грузится один раз):
 // слово → слушатель слов с правилом честного зачёта, фраза → слушатель фраз, тишина / фон / «не слова» → слушатель слов с целями-пробами (зачёта быть не должно). Итог — results.json и table.txt.
-// Параметры: --mic-gain 1|2|4 («Чувствительность микрофона» игры; по умолчанию — как при записи, из манифеста), --only РЕГВЫР (по имени файла клипа), --limit N, --jobs N (вкладок сразу: быстрее,
+// Параметры: --repeat N (каждый клип N раз: подача идёт в реальном времени, пограничные клипы срабатывают по-разному — таблица покажет устойчивость),
+// --mic-gain 1|2|4 («Чувствительность микрофона» игры; по умолчанию — как при записи, из манифеста), --only РЕГВЫР (по имени файла клипа), --limit N, --jobs N (вкладок сразу: быстрее,
 // но процессор должен успевать в реальном времени), --probes house,nice (цели для клипов без слова), --phrase-pass 1|2 (проход «по словам» / «быстро», по умолчанию 2), --tail МС (ждать после
 // клипа), --no-bed (без подложки-тишины между клипами), --no-hf (без поправки тракта: шум выше 9,5 кГц по огибающей исходного звука из манифеста — возвращает кускам громкость, срезанную
 // хранением в 16 кГц; см. _stand/voice_set/index.html), --no-ear (без правила честного зачёта), --url АДРЕС (готовый dev-сервер), --chrome ПУТЬ. Модель — --model или переменная VOSK_EN_MODEL.
@@ -42,12 +43,13 @@ inputs.forEach((src, n) => {
 const only = opt.only ? new RegExp(opt.only) : null
 let list = [...clips.values()].sort((a, b) => a.i - b.i).filter(c => !only || only.test(c.file))
 if (opt.limit) list = list.slice(0, Number(opt.limit))
+const repeat = Math.max(1, Number(opt.repeat ?? 1)), queue = Array.from({ length: repeat }, (_, run) => list.map(c => ({ c, run }))).flat()
 const micGain = Number(opt['mic-gain'] ?? head.audio?.micGain ?? 2), tailMs = Number(opt.tail ?? 1000), jobs = Math.max(1, Number(opt.jobs ?? 1)), ear = !opt['no-ear']
 const probes = String(opt.probes ?? 'house,nice').split(',').map(s => s.trim()).filter(Boolean), wordByWord = String(opt['phrase-pass'] ?? '2') === '1'
 const silence = opt['no-bed'] ? null : [...clips.values()].find(c => c.id === 'silence')
 const hfOf = c => (opt['no-hf'] || !c.env?.length ? null : { env: c.env, chunkMs: c.chunkMs, seed: c.i })
 const title = `${head.device ?? '?'}, v${head.version ?? '?'}, записан ${String(head.createdAt ?? '').slice(0, 16).replace('T', ' ')}; частей ${inputs.length}${head.parts > inputs.length ? ` из ${head.parts}` : ''}`
-console.log(`Набор: ${title}\nклипов к прогону ${list.length} из ${clips.size}; micGain ×${micGain}; подложка: ${silence ? silence.file : 'нет'}; вкладок ${jobs}; вывод — ${OUT}`)
+console.log(`Набор: ${title}\nклипов к прогону ${list.length} из ${clips.size}${repeat > 1 ? ` × ${repeat} повторов` : ''}; micGain ×${micGain}; подложка: ${silence ? silence.file : 'нет'}; вкладок ${jobs}; вывод — ${OUT}`)
 
 // 2. Dev-сервер Vite (свой или готовый) и Chromium
 let server = null, base = opt.url
@@ -92,20 +94,21 @@ const line = r => `${String(r.i + 1).padStart(3, '0')} ${r.file.replace('clips/'
   `${r.kind === 'phrase' ? `слова ${JSON.stringify(r.words)}, черновики: ${[...new Set(r.drafts.map(d => d[1]))].slice(-3).join(' | ')}` : `итоги: ${r.finals.map(f => `«${f.text}»${f.by ? ` ${f.by}` : ''}${f.agcMax > 1 ? ` ×${f.agcMax}` : ''}${f.gatedVoiceMs ? ` ⚠ мимо Vosk ${f.gatedVoiceMs} мс` : ''}`).join(' → ') || '—'}`}`
 
 // 4. Прогон: вкладки берут клипы из общей очереди; результаты пишутся по ходу
-const t0 = Date.now(), rows = [], info = { title, micGain, bed: silence ? `тишина набора (${silence.file})` : 'нет (ровный ноль)', hf: !opt['no-hf'] && list.some(c => c.env?.length), ear, probes, phrasePass: wordByWord ? 1 : 2, tailMs, jobs, inputs, manifest: { version: head.version, device: head.device, ua: head.ua, createdAt: head.createdAt, audio: head.audio, track: head.track, settings: head.settings } }
-const save = () => fs.writeFileSync(path.join(OUT, 'results.json'), JSON.stringify({ info, rows: [...rows].sort((a, b) => a.i - b.i) }))
+const t0 = Date.now(), rows = [], info = { title, micGain, bed: silence ? `тишина набора (${silence.file})` : 'нет (ровный ноль)', hf: !opt['no-hf'] && list.some(c => c.env?.length), ear, probes, phrasePass: wordByWord ? 1 : 2, tailMs, jobs, repeat, inputs, manifest: { version: head.version, device: head.device, ua: head.ua, createdAt: head.createdAt, audio: head.audio, track: head.track, settings: head.settings } }
+const order = (a, b) => a.i - b.i || a.run - b.run
+const save = () => fs.writeFileSync(path.join(OUT, 'results.json'), JSON.stringify({ info, rows: [...rows].sort(order) }))
 let next = 0, failed = 0
 try {
-  await Promise.all(Array.from({ length: Math.min(jobs, list.length) || 1 }, async () => {
+  await Promise.all(Array.from({ length: Math.min(jobs, queue.length) || 1 }, async () => {
     const page = await openPage()
-    while (next < list.length) {
-      const c = list[next++]
-      try { const row = await runClip(page, c); rows.push(row); console.log(line(row)) } catch (e) { failed++; console.log(`${String(c.i + 1).padStart(3, '0')} ${c.file} — ОШИБКА ПРОГОНА: ${String(e?.message ?? e).split('\n')[0]}`) }
+    while (next < queue.length) {
+      const { c, run } = queue[next++]
+      try { const row = { ...(await runClip(page, c)), run }; rows.push(row); console.log(line(row)) } catch (e) { failed++; console.log(`${String(c.i + 1).padStart(3, '0')} ${c.file} — ОШИБКА ПРОГОНА: ${String(e?.message ?? e).split('\n')[0]}`) }
       save()
     }
   }))
 } finally { await browser.close(); await server?.close() }
-rows.sort((a, b) => a.i - b.i)
+rows.sort(order)
 save()
 const table = renderTable(rows, info) + `\nвремя прогона ${Math.round((Date.now() - t0) / 1000)} с${failed ? `; клипов с ошибкой прогона: ${failed}` : ''}`
 fs.writeFileSync(path.join(OUT, 'table.txt'), table + '\n')

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest'
 import { createVoiceSetRun, createMiniTrace } from './voiceSetRun.js'
-import { buildArchives } from './voiceSetExport.js'
+import { buildArchives, manifestText } from './voiceSetExport.js'
 import { createMemoryStore } from './voiceSetStore.js'
 import { createWake } from './voiceSetWake.js'
 import { readSetPrefs, writeSetPrefs, PREFS_KEY, DEFAULTS } from './voiceSetPrefs.js'
@@ -104,6 +104,9 @@ describe('архив набора', () => {
     const m = JSON.parse(new TextDecoder().decode(buf.slice(43, 43 + v.getUint32(18, true))))
     expect(m).toMatchObject({ kind: 'pithy-voiceset', part: 1, parts: 2, clipsInSet: 4, planCount: 10 })
     expect(m.clips.map(c => c.file)).toEqual(['clips/001_w_whole_1.wav', 'clips/002_w_whole_1.wav'])
+    const txt = manifestText({ clips: [{ file: 'a', env: [100, 98, 4000], far: false }], skipped: [3, 7], empty: [] }) // огибающая — одной строкой, остальное с отступами
+    expect(txt).toContain('"env": [100,98,4000]'); expect(txt).toContain('"skipped": [3,7]'); expect(txt.split('\n').length).toBeGreaterThan(6)
+    expect(JSON.parse(txt)).toEqual({ clips: [{ file: 'a', env: [100, 98, 4000], far: false }], skipped: [3, 7], empty: [] })
     const at = 43 + v.getUint32(18, true)
     expect(new TextDecoder().decode(buf.slice(at + 30, at + 30 + 23))).toBe('clips/001_w_whole_1.wav')
     expect([...buf.slice(at + 53, at + 57)]).toEqual([0, 1, 2, 3])

@@ -1,6 +1,6 @@
 // Таблица прогона «Записи набора» (scripts/voice-set-run.mjs, CONCEPT_VOICESET.md): из строк результатов — текст: по видам (whole / quiet / fast должны засчитываться; nolast / half / «не слова» /
 // тишина / фон — нет; фраза целиком — чистый зачёт, с недоговорённым последним словом — чистого зачёта быть не должно), по словам, список провалов (что услышал Vosk, причина из журнала
-// [word-ear]), сверка уровней с манифестом. Строка результата: { i, file, kind, text, variant, far, expect, hit, ok, hitAt, fromEndMs, ratio, partials, finals, ear, tapPeak, tapNoise, tapRms, engPeak, engRms,
+// [word-ear]), сверка уровней с манифестом. Строка результата (одна на прогон клипа; --repeat — несколько на клип): { i, run, file, kind, text, variant, far, expect, hit, ok, hitAt, fromEndMs, ratio, partials, finals, ear, tapPeak, tapNoise, tapRms, engPeak, engRms,
 // rmsPeak, rmsNoise, clipRms, gamePeak }. Чистые функции — без файлов и браузера.
 const med = a => { const s = a.filter(v => v != null && Number.isFinite(v)).sort((x, y) => x - y); return s.length ? s[Math.floor((s.length - 1) / 2)] : null }
 const pct = (a, q) => { const s = [...a].sort((x, y) => x - y); return s.length ? s[Math.min(s.length - 1, Math.floor(s.length * q))] : null }
@@ -40,7 +40,7 @@ export function levelCheck(rows, micGain = null) {
 export function renderTable(rows, info = {}) {
   const out = [], cnt = a => `${a.filter(r => r.hit).length}/${a.length}`
   out.push(`== Прогон набора: ${info.title ?? ''}`.trimEnd())
-  out.push(`клипов ${rows.length}; «Чувствительность микрофона» ×${info.micGain ?? '?'}; подложка между клипами: ${info.bed ?? 'нет'}; поправка тракта (шум выше 9,5 кГц по огибающей исходного звука): ${info.hf ? 'да' : 'нет'}`)
+  out.push(`прогонов клипов ${rows.length}; «Чувствительность микрофона» ×${info.micGain ?? '?'}; подложка между клипами: ${info.bed ?? 'нет'}; поправка тракта (шум выше 9,5 кГц по огибающей исходного звука): ${info.hf ? 'да' : 'нет'}`)
   out.push('', '== По видам (зачтено / всего)')
   const groups = [...new Set(rows.map(groupOf))].sort((a, b) => (VARIANT_ORDER.indexOf(a) + 1 || 99) - (VARIANT_ORDER.indexOf(b) + 1 || 99))
   for (const g of groups) {
@@ -52,16 +52,25 @@ export function renderTable(rows, info = {}) {
     out.push('', `== По словам (зачтено / всего): ${cols.join(' · ')}`)
     for (const w of words) out.push(`  ${pad(w, 13)} ${cols.map(g => pad(cnt(rows.filter(r => r.kind === 'word' && r.text === w && groupOf(r) === g)), 5)).join(' · ')}${rows.some(r => r.kind === 'word' && r.text === w && !rowOk(r)) ? '  ✗' : ''}`)
   }
-  const fails = rows.filter(r => !rowOk(r))
-  out.push('', `== Провалы (${fails.length} из ${rows.length})`)
+  const byClip = new Map()
+  for (const r of rows) byClip.set(r.i, [...(byClip.get(r.i) ?? []), r])
+  const reps = Math.max(1, ...[...byClip.values()].map(a => a.length))
+  if (reps > 1) { // каждый клип прогнан несколько раз (--repeat): подача идёт в реальном времени, пограничные клипы от прогона к прогону срабатывают по-разному
+    const mixed = [...byClip.values()].filter(a => a.some(rowOk) && !a.every(rowOk))
+    out.push('', `== Устойчивость (каждый клип × ${reps})`, `верно во всех повторах: ${[...byClip.values()].filter(a => a.every(rowOk)).length} клипов, неверно во всех: ${[...byClip.values()].filter(a => !a.some(rowOk)).length}, по-разному: ${mixed.length}`)
+    for (const a of mixed) out.push(`  ${a[0].file} «${a[0].text}» — верно ${a.filter(rowOk).length} из ${a.length} (${a.map(r => (r.hit ? 'зачёт' : 'нет')).join(', ')})`)
+  }
+  const bad = rows.filter(r => !rowOk(r)), fails = bad.filter((r, k) => bad.findIndex(x => x.i === r.i) === k)
+  out.push('', `== Провалы (${reps > 1 ? `${fails.length} клипов; прогонов ${bad.length}` : fails.length} из ${rows.length})`)
   for (const r of fails) {
-    out.push(`#${String(r.i + 1).padStart(3, '0')} ${r.file} «${r.text}»${r.target && r.target !== r.text ? ` (цель «${r.target}»)` : ''} — ждали: ${WANT[r.expect]}, вышло: ${r.hit ? `зачёт${r.ratio != null ? ` ratio ${f2(r.ratio)}` : ''} на ${r.hitAt} мс` : 'нет зачёта'}`)
+    const all = byClip.get(r.i)
+    out.push(`#${String(r.i + 1).padStart(3, '0')} ${r.file} «${r.text}»${r.target && r.target !== r.text ? ` (цель «${r.target}»)` : ''} — ждали: ${WANT[r.expect]}, вышло: ${r.hit ? `зачёт${r.ratio != null ? ` ratio ${f2(r.ratio)}` : ''} на ${r.hitAt} мс` : 'нет зачёта'}${all.length > 1 ? ` (неверно ${all.filter(x => !rowOk(x)).length} из ${all.length} повторов)` : ''}`)
     out.push(`      Vosk — ${heard(r)}`)
     if (why(r)) out.push(`      причина: ${why(r)}`)
     out.push(`      уровень движка до ${r.engPeak ?? '—'} (манифест ${r.gamePeak ?? '—'}), голос по манифесту ${r.manifestVoiceMs ?? '—'} мс${r.note ? `; ${r.note}` : ''}`)
   }
   out.push('', '== Сверка уровней', ...levelCheck(rows, info.micGain))
-  const ok = rows.length - fails.length
+  const ok = rows.length - bad.length
   out.push('', `ИТОГО: верно ${ok} из ${rows.length} (${rows.length ? Math.round(ok / rows.length * 100) : 0} %)`)
   return out.join('\n')
 }

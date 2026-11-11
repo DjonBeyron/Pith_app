@@ -6,6 +6,9 @@ import { splitParts, buildManifest, archiveName, PART_MAX } from './voiceSetMani
 
 const asFile = (parts, name) => (typeof File === 'function' ? new File(parts, name, { type: 'application/zip' }) : new Blob(parts, { type: 'application/zip' }))
 
+/** manifest.json: читаемый (с отступами), но массивы чисел (огибающая env) — одной строкой */
+export const manifestText = m => JSON.stringify(m, null, 1).replace(/\[\s+(-?[\d.]+(?:,\s+-?[\d.]+)*)\s+\]/g, (_, body) => `[${body.replace(/\s+/g, '')}]`)
+
 /** → [{ name, blob, size, count, part, parts, missing }] — готовые ZIP по частям; клип без звука в хранилище в архив не идёт (missing — их файлы) */
 export async function buildArchives({ store, meta, clips, now = new Date(), max = PART_MAX }) {
   const parts = splitParts(clips, max), out = []
@@ -17,7 +20,7 @@ export async function buildArchives({ store, meta, clips, now = new Date(), max 
       have.push(c); files.push({ name: c.file, data: new Uint8Array(a) })
     }
     const manifest = { ...buildManifest({ meta, clips: have, part: p + 1, parts: parts.length, total: clips.length, now }), ...(missing.length ? { missing } : {}) }
-    files.unshift({ name: 'manifest.json', data: new TextEncoder().encode(JSON.stringify(manifest, null, 1)) })
+    files.unshift({ name: 'manifest.json', data: new TextEncoder().encode(manifestText(manifest)) })
     const name = archiveName(now, p + 1, parts.length), blob = asFile(zipStore(files, { date: now }), name)
     out.push({ name, blob, size: blob.size, count: have.length, part: p + 1, parts: parts.length, missing })
   }
