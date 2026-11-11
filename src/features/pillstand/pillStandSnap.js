@@ -3,6 +3,7 @@
 // opacity / outline пилюли (хлопок, дрожь и обводка промаха идут WAAPI — в атрибутах их не видно), вспышки щелчка (узлы-накладки), капли из жидкости (jt: узлы .wlJet — wordLaneJets.js: место, opacity и
 // transform кадра) и маска слов «Скажи» (текст, data-w, --peek).
 // applySnap(el, s) — то же на пилюлю плеера: атрибуты и стили пишутся как есть, CSS-анимации в плеере выключены (pill-stand-player.css), поэтому кадр — только снимок, а не логика.
+import { maskCell } from '../pitrace/racePhraseMaskView.js'
 const OWN = new Set(['data-pill', 'data-testid'])
 const BASE_CLIP = new Set(['wlGhost', 'wlPillFill', 'wlPace'])
 const BASE_PILL = new Set(['wlPillClip', 'wlPillSparks', 'racePhraseMask'])
@@ -48,8 +49,8 @@ export function applySnap(el, s) {
   if (!s.mask.length) { box?.remove(); return }
   if (!box || box.querySelectorAll('b').length !== s.mask.length) {
     box?.remove(); box = el.ownerDocument.createElement('span'); box.className = 'racePhraseMask'
-    s.mask.forEach((_, i) => { if (i) box.appendChild(el.ownerDocument.createTextNode(' ')); box.appendChild(el.ownerDocument.createElement('b')) })
+    s.mask.forEach((_, i) => { if (i) box.appendChild(el.ownerDocument.createTextNode(' ')); box.appendChild(maskCell(el.ownerDocument, '')) })
     el.appendChild(box)
   }
-  box.querySelectorAll('b').forEach((b, i) => { const m = s.mask[i]; if (b.textContent !== m.t) b.textContent = m.t; b.setAttribute('data-w', m.w); if (m.p) b.style.setProperty('--peek', m.p); else b.style.removeProperty('--peek') })
+  box.querySelectorAll('b').forEach((b, i) => { const m = s.mask[i], w = b.children[0] ?? b; if (w.textContent !== m.t) w.textContent = m.t; b.setAttribute('data-w', m.w); if (m.p) b.style.setProperty('--peek', m.p); else b.style.removeProperty('--peek') })
 }

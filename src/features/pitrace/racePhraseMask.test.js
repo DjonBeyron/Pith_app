@@ -55,11 +55,13 @@ describe('подсказка следующего слова (peek)', () => {
     expect(nextPeek('Where are you from', new Map([[0, true], [2, true], [3, true]]))).toBe(1) // слова не по порядку: подсказка у пропущенного «are», не убегает вперёд
     expect(st(new Map(), 0)).toBe('Nice:full ▭▭:hidden ▭▭▭▭:hidden ▭▭▭:hidden') // открытое слово подсказкой не бывает
   })
-  it('узел: peek — текст в ячейке data-w="peek", проявление целым словом — --peek (opacity 0…1, до 0,01) только у неё, пишется при смене; кирпичик → текст — перемер границ', () => {
+  it('узел: peek — текст в ячейке data-w="peek", проявление целым словом — --peek (opacity 0…1, до 0,01) только у неё, пишется при смене; текст ячейки — само слово с самого начала (ширина не меняется)', () => {
     const el = fakeDoc(), m = mountMask(el, 'Nice to meet you')
     const cells = el.children[0].children.filter(c => c.tag === 'b')
+    const word = b => b.children[0].textContent // ячейка — <b><i>слово</i></b>
+    expect(word(cells[1])).toBe('to'); expect(cells[1].children[0].tag).toBe('i'); expect(cells[1].attrs['data-w']).toBe('hidden')
     m.set(new Map(), false, 1)
-    expect(cells[1].textContent).toBe('to'); expect(cells[1].attrs['data-w']).toBe('peek')
+    expect(word(cells[1])).toBe('to'); expect(cells[1].attrs['data-w']).toBe('peek')
     m.peek(0.1234); expect(cells[1].style.props['--peek']).toBe('0.12'); m.peek(1.5); expect(cells[1].style.props['--peek']).toBe('1')
     expect(cells[2].style.props['--peek']).toBeUndefined()
     m.set(new Map([[1, true]]), false, 2); expect(cells[1].attrs['data-w']).toBe('full'); expect(cells[2].attrs['data-w']).toBe('peek')
@@ -74,10 +76,13 @@ describe('узел маски на пилюле', () => {
     const box = el.children[0]
     expect(box.className).toBe('racePhraseMask'); expect(box.attrs['aria-hidden']).toBe('true')
     const cells = box.children.filter(c => c.tag === 'b')
-    expect(cells.map(b => `${b.textContent}:${b.attrs['data-w']}`)).toEqual(['Nice:full', `${BRICK.repeat(2)}:hidden`, `${BRICK.repeat(4)}:hidden`, `${BRICK.repeat(3)}:hidden`])
-    m.set(new Map([[2, false]]))
-    expect(cells[2].textContent).toBe('meet'); expect(cells[2].attrs['data-w']).toBe('draft'); expect(cells[0].attrs['data-w']).toBe('full')
-    m.set(new Map(), true); expect(cells.map(b => b.textContent).join(' ')).toBe('Nice to meet you')
+    const word = b => b.children[0].textContent
+    expect(cells.map(b => `${word(b)}:${b.attrs['data-w']}`)).toEqual(['Nice:full', 'to:hidden', 'meet:hidden', 'you:hidden']) // в ячейке — само слово: кирпичик рисует ::before, ширина постоянна
+    expect(m.words().map(w => w.text)).toEqual(['Nice', BRICK.repeat(2), BRICK.repeat(4), BRICK.repeat(3)]) // для журнала и проверок — плашки
+    const texts = () => cells.map(word).join(' ')
+    m.set(new Map([[2, false]])); expect(texts()).toBe('Nice to meet you')
+    expect(cells[2].attrs['data-w']).toBe('draft'); expect(cells[0].attrs['data-w']).toBe('full')
+    m.set(new Map(), true); expect(texts()).toBe('Nice to meet you'); expect(cells.map(b => b.attrs['data-w']).join(' ')).toBe('full full full full')
     m.remove(); expect(el.children).toHaveLength(0)
     const bare = mountMask({}, 'Nice to meet you'); bare.set(new Map([[2, true]])); expect(bare.words()[2].state).toBe('full'); bare.remove()
   })
