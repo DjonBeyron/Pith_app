@@ -72,6 +72,7 @@ export function createVoiceSetRun({ store, plan, meta: metaIn, clips: clipsIn = 
     stalled: () => !!cap && now() - cap.lastAt() > STALL_MS,
     kick: () => cap?.resume(),
     rate: () => cap?.rate ?? null,
-    close() { cap?.stop(); cap = null; session.dispose(); saveMeta({}) },
+    /** Закрыть захват и ход → Promise: запись набора (пропущенные, сбои микрофона) дописана в хранилище */
+    close() { cap?.stop(); cap = null; session.dispose(); return saveMeta({}) },
   }
 }

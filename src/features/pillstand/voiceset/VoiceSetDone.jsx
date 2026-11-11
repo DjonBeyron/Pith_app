@@ -12,7 +12,7 @@ export default function VoiceSetDone({ v }) {
       <div className="vsCard">
         <b data-testid="vs-done-count">Записано {info.done} из {info.total}</b>
         <p>{mb(info.bytes)} на устройстве{info.skipped ? ` · пропущено ${info.skipped}` : ''}{flags.length ? ` · помечено: ${flags.map(([t, n]) => `${t} — ${n}`).join(', ')}` : ''}</p>
-        {info.next != null && <button type="button" className="vsBtn" disabled={v.mic === 'asking'} onClick={() => v.begin(false)} data-testid="vs-more">▶ Дозаписать (осталось {info.total - info.done - info.skipped})</button>}
+        {info.next != null && !v.stale && <button type="button" className="vsBtn" disabled={v.mic === 'asking'} onClick={() => v.begin(false)} data-testid="vs-more">▶ Дозаписать (осталось {info.total - info.done - info.skipped})</button>}
       </div>
       <button type="button" className="vsBig" disabled={arch.busy || !info.done} onClick={v.build} data-testid="vs-build">{arch.busy ? 'Собираю архив…' : '📦 Собрать архив'}</button>
       {arch.parts?.map(p => (

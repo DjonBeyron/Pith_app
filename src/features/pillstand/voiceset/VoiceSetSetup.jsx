@@ -24,7 +24,8 @@ export default function VoiceSetSetup({ v }) {
           <b>Начатый набор от {when(saved.meta.createdAt)}</b>
           <p>Записано <b>{info.done}</b> из {info.total}{info.skipped ? `, пропущено ${info.skipped}` : ''} · {mb(info.bytes)}</p>
           <p className="vsDim">Слова: {settings.words.join(', ')} · повторов {settings.reps}{settings.far ? ' · + на вытянутой руке' : ''}</p>
-          {info.next != null && <button type="button" className="vsBig" disabled={busy} onClick={() => v.begin(false)} data-testid="vs-resume">▶ Продолжить набор (сделано {info.done} из {info.total})</button>}
+          {v.stale && <p className="vsWarn">Набор записан другой версией сценария — дозаписать нельзя: собери архив или начни заново.</p>}
+          {info.next != null && !v.stale && <button type="button" className="vsBig" disabled={busy} onClick={() => v.begin(false)} data-testid="vs-resume">▶ Продолжить набор (сделано {info.done} из {info.total})</button>}
           <button type="button" className="vsBtn" disabled={!info.done} onClick={v.toDone} data-testid="vs-to-done">📦 Собрать архив</button>
           <button type="button" className="vsBtn vsBtn--danger" onClick={() => (sure ? (setSure(false), v.remove()) : setSure(true))} data-testid="vs-restart">{sure ? 'Точно стереть записанное? Нажми ещё раз' : 'Начать заново (стереть набор)'}</button>
         </div>

@@ -42,15 +42,17 @@ export default function useVoiceSet({ keepMic = false } = {}) {
   const settings = useMemo(() => saved?.meta?.settings ?? { words: parseWords(prefs.words), reps: prefs.reps, far: prefs.far }, [saved, prefs])
   const plan = useMemo(() => buildPlan(settings), [settings])
   const info = useMemo(() => resumeInfo(plan, saved?.clips ?? [], saved?.meta?.skipped ?? []), [plan, saved])
+  const stale = !!saved && saved.meta.sig !== planSig(saved.meta.settings) // набор записан другим сценарием (старая версия): номера заданий не совпадут — дозаписывать нельзя
   const stats = useMemo(() => planStats(plan), [plan])
 
   const stopRun = useCallback(() => {
     const run = runRef.current
     runRef.current = null
     if (!run) return
-    run.close(); wake.off()
+    run.close().then(() => store?.load()).then(got => { if (alive.current && got) setSaved(got) }, () => {}) // набор — как в хранилище (пропущенные и сбои микрофона дописаны)
+    wake.off()
     if (!keep.current) closeGameMic()
-  }, [wake])
+  }, [wake, store])
   useEffect(() => () => stopRun(), [stopRun])
 
   const paint = useCallback((game, voice) => {
@@ -62,7 +64,7 @@ export default function useVoiceSet({ keepMic = false } = {}) {
 
   /** Из тапа: fresh — новый набор (старый стирается), иначе продолжить начатый */
   const begin = useCallback(fresh => {
-    if (!store || runRef.current) return
+    if (!store || runRef.current || (!fresh && stale)) return
     setMic('asking'); setArch(NO_ARCH)
     const asked = openGameMic() // getUserMedia — прямо в нажатии
     wake.on()
@@ -89,7 +91,7 @@ export default function useVoiceSet({ keepMic = false } = {}) {
       setSaved({ meta: run.meta(), clips }); setMic(''); setView('record')
       run.session.start()
     })().catch(e => { if (alive.current) setMic(`ошибка: ${e?.message ?? e}`) })
-  }, [store, saved, prefs, plan, trace, wake, paint, stopRun])
+  }, [store, saved, stale, prefs, plan, trace, wake, paint, stopRun])
 
   const onRevived = useCallback(() => {
     const run = runRef.current
@@ -127,7 +129,8 @@ export default function useVoiceSet({ keepMic = false } = {}) {
     if (!store || !saved?.clips?.length) return
     setArch({ busy: true, parts: null, note: 'Собираю архив…' })
     try {
-      const parts = await buildArchives({ store, meta: saved.meta, clips: saved.clips })
+      const got = (await store.load()) ?? saved // набор — как в хранилище
+      const parts = await buildArchives({ store, meta: got.meta, clips: got.clips })
       const lost = parts.reduce((n, p) => n + p.missing.length, 0)
       if (alive.current) setArch({ busy: false, parts, note: `Готово: ${parts.length > 1 ? `${parts.length} части` : 'один архив'}, ${mb(parts.reduce((n, p) => n + p.size, 0))}${lost ? ` · ⚠ без звука ${lost}` : ''}. Теперь нажми «Сохранить…»` })
       globalThis.__voiceSet = { parts } // автопроверка выгрузки
@@ -147,5 +150,5 @@ export default function useVoiceSet({ keepMic = false } = {}) {
     if (alive.current) { setSaved(null); setSt(null); setArch(NO_ARCH); setView('setup') }
   }, [store, stopRun])
 
-  return { ready: !!store, persistent: store?.persistent ?? true, saved, prefs, setPrefs, settings, plan, info, stats, view, st, mic, health, micTap, levelRef, begin, cmd, leave, toDone, toSetup, arch, build, give, remove, wakeOk: wake.supported() }
+  return { ready: !!store, persistent: store?.persistent ?? true, saved, stale, prefs, setPrefs, settings, plan, info, stats, view, st, mic, health, micTap, levelRef, begin, cmd, leave, toDone, toSetup, arch, build, give, remove, wakeOk: wake.supported() }
 }
