@@ -1,5 +1,7 @@
 import { describe, it, expect } from 'vitest'
-import { syllables, earDecoys, earGrammar, EAR_GRAMMAR_MAX } from './wordEarDecoys.js'
+import { syllables, earDecoys, earPlan, earGrammar, EAR_GRAMMAR_MAX } from './wordEarDecoys.js'
+import { parsePhones } from '../../../../shared/lib/vosk/phones/phoneTable.js'
+import { EN_PHONES } from '../../../../shared/lib/vosk/phones/enPhones.js'
 import { targetGrammar } from './wordLaneMatch.js'
 
 // Ловушки честного зачёта слова (v3.3.183): слова-соседи цели в грамматике Vosk — у обрубка появляется своё слово («mil» → mill, «win» → win, «yester» → «yes ter»).
@@ -51,5 +53,41 @@ describe('ловушки', () => {
     expect(g.slice(0, JSON.parse(base).length)).toEqual(JSON.parse(base))
     expect(g.slice(-3)).toEqual(['won', 'wonder', 'won der'])
     expect(earGrammar(base, [])).toBe(base)
+  })
+})
+
+// v3.3.186: отчёт владельца — «house» без конца засчитан («hous, housy, houss, housh» не слова: модель их выбросила, в грамматике осталась цель + [unk])
+describe('фонетические ловушки (таблица произношений загружена)', () => {
+  const table = parsePhones(EN_PHONES)
+  it('слово из таблицы — соседи по ЗВУКУ, настоящие слова: house → how, howl; nice → nigh, nine; короткие слова (cat, dog, book) тоже получают соседей', () => {
+    expect(earDecoys(['house'], 'en', [], table)).toEqual(expect.arrayContaining(['how', 'howl']))
+    expect(earDecoys(['house'], 'en', [], table).some(d => /^hous/.test(d))).toBe(false)
+    expect(earDecoys(['nice'], 'en', [], table)).toEqual(expect.arrayContaining(['nigh', 'nine', 'knight']))
+    for (const w of ['cat', 'dog', 'book']) expect(earDecoys([w], 'en', [], table).length).toBeGreaterThan(2)
+    const p = earPlan(['House!'], 'en', [], table).words[0]
+    expect(p).toMatchObject({ word: 'house', kind: 'звук', sure: true, dropped: [] })
+    expect(p.took[0]).toBe('how') // сначала слова-начала
+  })
+  it('слова нет в таблице — по буквам, но только настоящие слова: не слова отброшены (модель выбросила бы их, а выброшенная ловушка — пустая фраза в грамматике)', () => {
+    const p = earPlan(['housemilk'], 'en', [], table).words[0]
+    expect(p.kind).toBe('буквы')
+    expect(p.took).toEqual(expect.arrayContaining(['house', 'ho use']))
+    expect(p.dropped).toEqual(expect.arrayContaining(['housemil', 'housemile']))
+    for (const d of p.took) for (const w of d.split(' ')) expect(table.prons.has(w)).toBe(true)
+  })
+  it('таблицы нет (ещё грузится, русский язык) — поведение как раньше: буквенные варианты без проверки', () => {
+    expect(earDecoys(['milk'], 'en', [], null)).toEqual(['mil', 'mile', 'mily', 'mils', 'milh', 'mill'])
+    expect(earPlan(['milk'], 'en', [], null).words[0]).toMatchObject({ kind: 'буквы', sure: false, dropped: [] })
+    expect(earDecoys(['cat', 'dog'], 'en', [], null)).toEqual([])
+    expect(earDecoys(['интересный'], 'ru', [], table)).toEqual(earDecoys(['интересный'], 'ru', [], null)) // русская модель — свой механизм, таблица ни при чём
+  })
+  it('слова целей и слова фраз-целей в ловушки не идут; фраза-цель ловушек не получает; предел на грамматику держится', () => {
+    const d = earDecoys(['yesterday', 'yes please'], 'en', ['yes', 'please'], table)
+    expect(d.flatMap(x => x.split(' '))).not.toContain('yes')
+    expect(d).toContain('yest')
+    expect(earDecoys(['see you later'], 'en', [], table)).toEqual([])
+    const many = earDecoys(['interesting', 'wonderful', 'beautiful', 'yesterday', 'remember', 'together', 'house', 'nice', 'window'], 'en', [], table)
+    expect(many.length).toBeLessThanOrEqual(EAR_GRAMMAR_MAX)
+    expect(new Set(many).size).toBe(many.length)
   })
 })

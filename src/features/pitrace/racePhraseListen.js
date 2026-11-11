@@ -14,6 +14,7 @@ import { createWordListener } from '../player/modules/rotate-phone/wordLaneListe
 import { pLog } from '../../shared/lib/debug.js'
 import { scorePhrases, pickPhrase, unionWords, earLine, PHRASE_OK, PHRASE_GAP } from './racePhraseScore.js'
 import { GATE_RMS } from '../../shared/lib/vosk/voskGate.js'
+import { createEarVoice } from '../../shared/lib/vosk/voskVoice.js'
 import { STOP_BY } from '../../shared/lib/vosk/voskTiming.js'
 import { lastOnly, saidThrough, halfWay, quietLimit, quietWanted, gateReason, voskQuietStop, LAST_HOLD_MS, GATE_CLOSE_FINAL_MS, FINAL_WAIT_MS, VOSK_QUIET_MS } from './racePhraseEarlyFinal.js'
 
@@ -59,6 +60,7 @@ export function createPhraseListener({ phrases: phrasesIn, lang = 'en', getStrea
   let voiceAt = -Infinity, firstAt = null, zero = now(), sameAt = -Infinity // последний громкий кусок звука; первый звук попытки (журнал +N мс); сброс слушателя; последняя строка «без изменений»
   let ear = null
   let gen = 0
+  const voice = createEarVoice({ now })
   let disposed = false
 
   const score = heard => scorePhrases(phrases, heard, wordByWord) // проход 1 — слова только по порядку (racePhraseScore.orderedHits)
@@ -136,7 +138,8 @@ export function createPhraseListener({ phrases: phrasesIn, lang = 'en', getStrea
 
   function onDebug(kind, data, mine) {
     if (disposed || mine !== gen) return
-    if (kind === 'level') { onLevel?.(data, !!isHeld()); if (data >= GATE_RMS && !isHeld()) { if (firstAt != null && voiceAt > -Infinity) pauseMax = Math.max(pauseMax, now() - voiceAt); voiceAt = now(); if (settleTimer && settleLast) settle(SETTLE_LAST_MS, mine) } return } // голос: недосказанное последнее слово ещё может прийти
+    if (kind === 'level') { onLevel?.(data, !!isHeld()); if ((voice.push(data).voice || data >= GATE_RMS) && !isHeld()) { // голос — как у затвора тишины (voskVoice.js: порог от шума микрофона; тихая речь iPhone 0,003–0,005 — тоже голос)
+      if (firstAt != null && voiceAt > -Infinity) pauseMax = Math.max(pauseMax, now() - voiceAt); voiceAt = now(); if (settleTimer && settleLast) settle(SETTLE_LAST_MS, mine) } return } // голос: недосказанное последнее слово ещё может прийти
     if (kind === 'gate') { log(`[gate] ${data?.open ? 'открыт' : 'закрыт'} ${rel()} (rms ${(Number(data?.rms) || 0).toFixed(3).replace('.', ',')})`); onEar?.({ kind, open: !!data?.open, rms: data?.rms }); gateOpen = !!data?.open; gateFinal(gateOpen, mine); mute(mine, !gateOpen); return }
     if (kind === 'partial-same') { const text = clean(data?.raw); if (text && !isHeld() && now() - sameAt >= SAME_LOG_MS) { sameAt = now(); log(`[phrase-ear] partial без изменений «${text}» ${rel()}`) } if (muteTimer) mute(mine, !gateOpen); return }
     if (kind === 'partial' || kind === 'final') {

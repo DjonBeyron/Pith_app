@@ -65,12 +65,22 @@ function anim(seg, events, frames, t0) {
   return { lines, data: { pops: pops.map(x => ({ ...x, t: Math.round(x.t - t0) })), bubbles: { ...bub, first: bub.first == null ? null : Math.round(bub.first - t0), atPop: bub.atPop.map(x => ({ ...x, t: Math.round(x.t - t0) })) }, topGaps: gaps.map(g => ({ ...g, t: Math.round(g.t - t0) })), toFill: seg.toFill, reach, jerks: js, flags, frames: frames.length } }
 }
 
+/** Дошёл ли голос до Vosk (v3.3.186): по итогам заходов — сколько мс звука счётчик голоса назвал голосом и сколько из них затвор тишины не отдал распознавателю (voskEngine: voiceMs / gatedVoiceMs) */
+export function feedLine(events) {
+  const fin = events.filter(e => e.k === 'vosk-final' && e.voiceMs != null)
+  if (!fin.length) return { line: '', data: null }
+  const sum = k => fin.reduce((n, e) => n + (Number(e[k]) || 0), 0), voice = sum('voiceMs'), lost = sum('gatedVoiceMs'), gated = sum('gatedMs'), agc = Math.max(...fin.map(e => Number(e.agcMax) || 1))
+  const line = lost > 0 ? `⚠ звук не дошёл до Vosk: затвор закрыт ${lost} мс из ${voice} мс голоса` : `звук в Vosk: голос ${voice} мс — дошёл весь; тишины не отдано ${gated} мс${agc > 1 ? `; усиление перед Vosk до ×${agc}` : ''}`
+  return { line, data: { voiceMs: voice, gatedVoiceMs: lost, gatedMs: gated, agcMax: agc } }
+}
+
 function ear(seg, events, t0) {
   const rebuilds = rebuildList(events, t0)
   const same = events.filter(e => e.k === 'same').length
   const closed = {}
   for (const f of seg.finals) { const k = STOP[f.stopBy] ?? f.stopBy ?? '?'; closed[k] = (closed[k] ?? 0) + 1 }
   const grammar = events.filter(e => e.k === 'vosk-start').map(e => e.grammar)
+  const fed = feedLine(events)
   const lines = [
     `голос: ${seg.voiceStart == null ? 'не было' : `+${seg.voiceStart}…+${seg.voiceEnd} мс`} · голос → первый черновик ${ms(seg.voiceToPartial)}`,
     `черновики: ${seg.partials.length} смен, повторов того же текста ${same}, перестроек ${rebuilds.length}${rebuilds.length ? ` — ${cap(rebuilds, r => `${plus(r.t)} ${q(r.from)} → ${q(r.to)}`)}` : ''}`,
@@ -78,8 +88,9 @@ function ear(seg, events, t0) {
     `кто закрыл заходы: ${Object.entries(closed).map(([k, v]) => `${k} ×${v}`).join(', ') || '—'}`,
     `додумано Vosk (нет в цели): ${cap(seg.invented, i => `${q(i.w)}${i.partial ? ` черн.×${i.partial}` : ''}${i.final ? ` итог×${i.final}` : ''}`)} · из ${seg.heard} услышанных слов лишних ${seg.extra}`,
     `словарь: ${grammar.length ? grammar.map(g => (Array.isArray(g) ? `${g.length} слов` : 'свободный')).join(', ') : '—'}`,
+    ...(fed.line ? [fed.line] : []),
   ]
-  return { lines, data: { voiceStart: seg.voiceStart, voiceEnd: seg.voiceEnd, voiceToPartial: seg.voiceToPartial, partials: seg.partials, same, rebuilds, finals: seg.finals, closed, invented: seg.invented, grammar } }
+  return { lines, data: { fed: fed.data, voiceStart: seg.voiceStart, voiceEnd: seg.voiceEnd, voiceToPartial: seg.voiceToPartial, partials: seg.partials, same, rebuilds, finals: seg.finals, closed, invented: seg.invented, grammar } }
 }
 
 function logic(seg, events) {

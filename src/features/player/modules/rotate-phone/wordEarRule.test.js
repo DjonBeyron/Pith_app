@@ -1,29 +1,9 @@
 import { describe, it, expect } from 'vitest'
 import { needMs, createWordEar, QUIET_MS, QUIET_PHRASE_MS, CONF_MIN, CONF_MIN_RU, PER_SYL_MS, WAIT_MAX_MS } from './wordEarRule.js'
-import { createWordListener } from './wordLaneListen.js'
+import { rig, W, CHUNK } from './wordEarTestKit.js'
 
 // Честный зачёт слова (v3.3.183, отчёты владельца с iPhone: «interesting» — 18 попыток, 0 зачётов: тихую часть слова правило считало тишиной и обрывало заход; «milk» засчитан на «mil…»,
 // «window» — на «win…»). Правило: зачёт слова — только по итогу после конца голоса; порог голоса — от шума микрофона и пика речи. Сеанс Vosk ведёт тест, часы и уровень — ручные.
-const CHUNK = 46
-const NOISE = 0.0002 // фон микрофона iPhone
-function rig({ targets = ['wonderful'], lang = 'en', earRule = true, expected = 1, noise = NOISE, stream = false } = {}) {
-  let t = 0
-  const timers = new Map(); let id = 0
-  const sessions = [], seen = [], logs = []
-  const listen = async (model, grammar, cb) => { const s = { cb, stops: [], grammar: JSON.parse(grammar) }; sessions.push(s); cb.onReady?.(); return { stop(why) { s.stops.push(why ?? null) }, cancel() {} } }
-  const l = createWordListener({
-    targets, expected, maxWords: 2, lang, earRule, listen, ...(stream ? { getStream: () => ({}) } : {}), runtime: { getModel: () => 'M', snapshot: () => ({}) }, onChange: s => seen.push(s), onDebug: (k, d) => { if (k === 'ear') logs.push(d.text) }, now: () => t,
-    setTimer: (fn, ms) => { timers.set(++id, { fn, at: t + ms }); return id }, clearTimer: k => timers.delete(k),
-  })
-  const advance = ms => { t += ms; for (const [k, x] of [...timers]) if (x.at <= t) { timers.delete(k); x.fn() } }
-  const cur = () => sessions.at(-1)
-  const voice = (ms, rms = 0.2) => { for (let k = 0; k < ms; k += CHUNK) { cur().cb.onLevel(rms); advance(CHUNK) } }
-  const still = (ms = QUIET_MS + CHUNK) => voice(ms, noise)
-  const open = async () => { l.start(); await new Promise(r => setTimeout(r, 0)); still(300) } // заход открыт, правило услышало фон
-  return { l, sessions, seen, logs, advance, voice, still, open, cur, hits: () => seen.at(-1)?.seq.length ?? 0 }
-}
-const W = (word, conf = 1, start = 0.3, end = 0.9) => ({ word, conf, start, end })
-
 describe('слушатель слов с правилом (earRule): целое слово', () => {
   it('тихий микрофон iPhone (речь 0,012–0,026, фон 0,0002): «interesting» со смычкой внутри — заход не обрывается посреди слова, итог просим после конца, зачёт', async () => {
     const r = rig({ targets: ['interesting'] }); await r.open()
@@ -56,7 +36,7 @@ describe('слушатель слов с правилом (earRule): целое 
     r.voice(700); r.still(); expect(r.cur().stops).toEqual(['ear'])
     expect(r.logs.at(-1)).toMatch(/— прошу итог, не дожидаясь черновика$/)
     r.cur().cb.onResult('wonderful', { words: [W('wonderful', CONF_MIN - 0.1)] })
-    expect(r.hits()).toBe(0); expect(r.logs.at(-1)).toMatch(/conf < 0\.35 — не засчитано: Vosk не уверен, что слово сказано целиком$/)
+    expect(r.hits()).toBe(0); expect(r.logs.at(-1)).toMatch(/conf < 0\.6 — не засчитано: Vosk не уверен, что слово сказано целиком$/)
     const u = rig({ targets: ['together'] }); await u.open() // «toge» + тишина: Vosk отдал together с conf 1, но голоса 280 мс < 3 слога × 120
     u.voice(280); u.cur().cb.onPartial('together'); u.still()
     u.cur().cb.onResult('together', { words: [W('together')] })
@@ -107,11 +87,11 @@ describe('слушатель слов с правилом (earRule): недог�
   })
   it('речь тише порога начала (правило голоса не слышит, а Vosk слышит): итог не просим сразу — ждём, пока черновик не меняется QUIET_MS; длину голоса не сверяем', async () => {
     const r = rig({ targets: ['milk'] }); await r.open()
-    r.voice(300, 0.002); r.cur().cb.onPartial('mil'); r.cur().cb.onPartial('milk')
-    r.voice(140, 0.002); expect(r.cur().stops).toEqual([]) // раньше: «тишина» считалась от давнего голоса — заход обрывался сразу
-    r.voice(140, 0.002)
+    r.voice(300, 0.0015); r.cur().cb.onPartial('mil'); r.cur().cb.onPartial('milk')
+    r.voice(140, 0.0015); expect(r.cur().stops).toEqual([]) // раньше: «тишина» считалась от давнего голоса — заход обрывался сразу
+    r.voice(140, 0.0015)
     expect(r.cur().stops).toEqual(['ear'])
-    expect(r.logs.at(-1)).toMatch(/^голос тише порога начала 0\.003 \(шум 0\.000\d\) — правило его не слышит; черновик не меняется \d+ мс ≥ 220 — прошу итог$/)
+    expect(r.logs.at(-1)).toMatch(/^голос тише порога начала 0\.002 \(шум 0\.000\d\) — правило его не слышит; черновик не меняется \d+ мс ≥ 220 — прошу итог$/)
     r.cur().cb.onResult('milk', { words: [W('milk')] })
     expect(r.hits()).toBe(1)
     expect(r.logs.at(-1)).toMatch(/^итог «milk»: milk conf 1, по Vosk 600 мс, голос тише порога — длину не сверяю — зачёт$/)
@@ -146,9 +126,21 @@ describe('слушатель слов с правилом (earRule): серии,
     const r = rig({ targets: ['try'], expected: 3 }); await r.open()
     r.voice(300); r.cur().cb.onPartial('try'); expect(r.hits()).toBe(0)
     r.voice(300); r.cur().cb.onPartial('try try'); expect(r.hits()).toBe(1)
-    r.voice(300); r.cur().cb.onPartial('try try [unk]'); expect(r.hits()).toBe(2)
-    expect(r.logs.at(-1)).toBe('черновик «try try [unk]»: после «try» идёт другое слово, значит оно договорено — зачёт')
+    r.voice(300); r.cur().cb.onPartial('try try [unk]'); expect(r.hits()).toBe(1) // [unk] после слова — звук, а не слово: обрубок + шум («from [unk]») раньше засчитывался сразу (v3.3.186)
+    expect(r.logs.some(s => s.includes('идёт другое слово'))).toBe(false)
+    r.still(); r.cur().cb.onResult('try try [unk]', { words: [W('try'), W('try', 1, 1, 1.4), W('[unk]', 0.6, 1.5, 1.7)] })
+    expect(r.hits()).toBe(2)
     r.l.dispose()
+  })
+  it('после слова в черновике идёт [unk] (обрубок «fro…» и шум): это не «следующее слово» — ждём конец голоса и итог; слово другой цели после него — зачёт сразу', async () => {
+    const r = rig({ targets: ['from'] }); await r.open()
+    r.voice(300); r.cur().cb.onPartial('from [unk]'); expect(r.hits()).toBe(0)
+    expect(r.logs.at(-1)).toBe('черновик «from [unk]»: «from» — последнее слово (после него «[unk]» — не слово цели), может быть не договорено (голос 276 мс, слогов 1) — жду конец голоса и итог')
+    r.still(); r.cur().cb.onResult('from [unk]', { words: [W('from', 0.3), W('[unk]', 0.6, 0.95, 1.2)] })
+    expect(r.hits()).toBe(0) // итог: conf цели ниже порога — не засчитано
+    const q = rig({ targets: ['try', 'again'], expected: 2 }); await q.open()
+    q.voice(500); q.cur().cb.onPartial('try again'); expect(q.hits()).toBe(1)
+    r.l.dispose(); q.l.dispose()
   })
   it('цели вперемешку (слова и фраза): фраза засчитывается черновиком, как раньше; слова фразы — не ловушки', async () => {
     const r = rig({ targets: ["i'm", 'trying', 'to learn'], expected: 3 }); await r.open()

@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { buildPack, readPackJson, JSON_MARK } from './pillStandReport.js'
 import { packEvents, normTopics, journalFor } from './pillStandPacks.js'
+import { feedLine } from './pillStandPackMetrics.js'
 import { fixtureEvents, fixtureFrames, fixtureJournal, JOURNAL_T0 } from './pillStandPackFixture.js'
 
 // Пакеты тем «📤 Отправить»: каждый содержит нужное и НЕ содержит лишнего (CONCEPT_PILLSTAND.md, «Отправка по теме»)
@@ -53,6 +54,17 @@ describe('отправка по теме: Анимация', () => {
   })
   it('журнал: только строки «[fill]» игры (не «[stand]», не чужие теги)', () => {
     expect(j.journal.map(l => l.text)).toEqual(['[fill] +1300 мс: слово 1 «nice» черновик → цель 0,25, экран 0,05'])
+  })
+})
+
+describe('сводка цели, тема «Распознавание»: дошёл ли голос до Vosk (v3.3.186)', () => {
+  const fin = (voiceMs, gatedVoiceMs, gatedMs, agcMax = 1) => ({ k: 'vosk-final', raw: { text: '' }, voiceMs, gatedVoiceMs, gatedMs, agcMax })
+  it('затвор не пускал голос — предупреждение с цифрами (отчёт владельца: «nice», 20 попыток, 0 зачётов — речь шла, а в Vosk не попадала)', () => {
+    expect(feedLine([fin(430, 430, 2400), fin(520, 300, 2300)])).toEqual({ line: '⚠ звук не дошёл до Vosk: затвор закрыт 730 мс из 950 мс голоса', data: { voiceMs: 950, gatedVoiceMs: 730, gatedMs: 4700, agcMax: 1 } })
+  })
+  it('голос дошёл весь — строка с цифрами и наибольшим усилением; итогов без этих чисел (старая трасса) — строки нет', () => {
+    expect(feedLine([fin(516, 0, 1290, 26.7), fin(480, 0, 900, 12)]).line).toBe('звук в Vosk: голос 996 мс — дошёл весь; тишины не отдано 2190 мс; усиление перед Vosk до ×26.7')
+    expect(feedLine([{ k: 'vosk-final', raw: { text: 'nice' }, gatedMs: 300 }, { k: 'level', rms: 0.2 }])).toEqual({ line: '', data: null })
   })
 })
 
