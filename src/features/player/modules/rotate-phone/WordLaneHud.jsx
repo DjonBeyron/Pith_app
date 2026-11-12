@@ -13,6 +13,7 @@ import { getRewardSound, setRewardSound, getRewardVolume, setRewardVolume, REWAR
 import { unlockNotes } from './wordLaneNotes.js'
 import { prepareAudio, buildDebugFile, saveDebugFile, SAVE_HOW } from './wordLaneDebugExport.js'
 import { saveJournalNow, copyJournalNow } from './wordLaneJournalNow.js'
+import { nudgeVolume } from '../../../../shared/lib/gameVolumeNudge.js' // «Встряхнуть громкость» (v3.3.194): playback на миг — как нажать кнопку громкости, микрофон не закрывается
 import RaceMicSettingsTip from '../../../pitrace/RaceMicSettingsTip.jsx'
 import { isIOS, isStandalone, MIC_TIP_LABELS } from '../../../pitrace/raceMicHelp.js'
 import {
@@ -111,6 +112,9 @@ export default function WordLaneHud({ dbg, rootRef, onRestartStage, onRestartGam
       </Row>
       <Row label={`Громкость награды: ${Math.round(volume * 100)} %`} when="now" testid="wl-hud-volume">
         <input type="range" min="0" max="1" step="0.05" value={volume} aria-label="Громкость награды" onChange={e => { setRewardVolume(e.target.value); refresh() }} data-testid="wl-hud-volume-range" />
+      </Row>
+      <Row label="Звук тише, чем может телефон (iPhone)" when="now" testid="wl-hud-nudge">
+        <Chip on={false} onClick={() => { nudgeVolume('playback') }} testid="wl-hud-nudge-btn">Встряхнуть громкость</Chip>
       </Row>
       <Row label="Безопасные слои пилюль (iOS)" when="now" testid="wl-hud-safe">
         <Chip on={safe} onClick={toggleSafe} testid="wl-hud-safe-toggle">{safe ? 'Вкл' : 'Выкл'}</Chip>
