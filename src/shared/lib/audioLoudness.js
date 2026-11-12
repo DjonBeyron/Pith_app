@@ -17,10 +17,15 @@ export const LIMITER = { threshold: -10, ratio: 4, knee: 10, attack: 0.003, rele
 // 0,6 % отсчётов обрезано (это и есть хруст); пресет 'loud' — норма до RMS −14, сжатие −28 дБ 4:1 (колено 18), мастер ×1,4 и жёсткий лимитер −3 дБ 20:1 → RMS ≈ −12,6, пик ≈ −0,5, обрезано < 0,01 %.
 // 'normal' — как до 3.3.197 (по умолчанию). Режим читается при создании цепочки контекста и при декодировании буфера → менять и перезагружать страницу (Админ → «Голос» → «Громкость на iPhone»).
 export const LOUDNESS_KEY = 'pithy_game_loudness_v1'
-export const LOUDNESS_MODES = ['normal', 'loud']
+export const LOUDNESS_MODES = ['normal', 'loud', 'louder', 'max']
+export const LOUDNESS_LABELS = { normal: 'Обычная', loud: 'Громче (+5 дБ)', louder: 'Ещё громче (+8 дБ)', max: 'Максимум (+9 дБ, сильное сжатие)' }
 export const PRESETS = {
   normal: { maxGain: 4, peakDb: -1, rmsCeilDb: -18, comp: { threshold: -10, ratio: 4, knee: 10, attack: 0.003, release: 0.25 }, master: 1, limiter: null },
   loud: { maxGain: 8, peakDb: -1, rmsCeilDb: -14, comp: { threshold: -28, ratio: 4, knee: 18, attack: 0.008, release: 0.15 }, master: 1.4, limiter: { threshold: -3, ratio: 20, knee: 0, attack: 0.001, release: 0.08 } },
+  // v3.3.198 («всё тихо одинаково, даже с закрытым микрофоном» — значит, сами звуки тихие): измерено на тех же 35 словах — louder RMS −9,7 (+8,1 дБ), max RMS −8,5 (+9,3 дБ), обрезано < 0,02 %.
+  // shape — мягкий потолок на выходе (WaveShaper tanh(k·x)/tanh(k), oversample 2×), ceil — множитель после него (пики с запасом ниже 0 dBFS); чем сильнее сжатие, тем «радийнее» голос.
+  louder: { maxGain: 10, peakDb: -1, rmsCeilDb: -12, comp: { threshold: -30, ratio: 5, knee: 18, attack: 0.006, release: 0.15 }, master: 1.5, limiter: { threshold: -4, ratio: 20, knee: 0, attack: 0.001, release: 0.08 }, shape: 1.15, ceil: 0.94 },
+  max: { maxGain: 10, peakDb: -1, rmsCeilDb: -10, comp: { threshold: -32, ratio: 6, knee: 18, attack: 0.005, release: 0.12 }, master: 1.6, limiter: { threshold: -5, ratio: 20, knee: 0, attack: 0.001, release: 0.08 }, shape: 1.4, ceil: 0.94 },
 }
 export const readLoudness = (store = globalThis.localStorage) => { try { const v = store?.getItem(LOUDNESS_KEY); return LOUDNESS_MODES.includes(v) ? v : 'normal' } catch { return 'normal' } }
 export const writeLoudness = (value, store = globalThis.localStorage) => { try { if (LOUDNESS_MODES.includes(value) && value !== 'normal') store?.setItem(LOUDNESS_KEY, value); else store?.removeItem(LOUDNESS_KEY) } catch { /* приватный режим */ } }
@@ -97,6 +102,16 @@ export function outputOf(ctx, { kind = 'игра', log = pLog } = {}) {
         for (const [k, v] of Object.entries(p.limiter)) { if (lim[k] && 'value' in lim[k]) lim[k].value = v }
         master.connect(lim)
         tail = lim
+      }
+      if (p.shape && typeof ctx.createWaveShaper === 'function') { // мягкий потолок: срезает редкие пики после сжатия, не давая цифрового обрезания
+        const ws = ctx.createWaveShaper(), cur = new Float32Array(2048)
+        for (let i = 0; i < cur.length; i++) { const v = i / (cur.length - 1) * 2 - 1; cur[i] = Math.tanh(v * p.shape) / Math.tanh(p.shape) }
+        ws.curve = cur
+        try { ws.oversample = '2x' } catch { /* без oversample */ }
+        const ceil = ctx.createGain()
+        ceil.gain.value = p.ceil ?? 1
+        tail.connect(ws); ws.connect(ceil)
+        tail = ceil
       }
       tail.connect(ctx.destination)
       node = comp

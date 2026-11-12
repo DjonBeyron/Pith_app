@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
-import { levelsOf, gainFor, normalizeBuffer, outputOf, idOfUrl, MAX_GAIN, LIMITER, PRESETS, readLoudness, writeLoudness, LOUDNESS_KEY } from './audioLoudness.js'
+import { levelsOf, gainFor, normalizeBuffer, outputOf, idOfUrl, MAX_GAIN, LIMITER, PRESETS, readLoudness, writeLoudness, LOUDNESS_KEY, LOUDNESS_MODES } from './audioLoudness.js'
 
 // Громкость (audioLoudness.js): пик → −1 dBFS, не больше ×4, RMS звучащих окон не выше −18 dBFS; лимитер на выходе контекста.
 const RATE = 8000
@@ -74,6 +74,27 @@ describe('выход контекста: лимитер → мастер-gain �
       expect(ctx.nodes.filter(n => n.threshold.value === -28)).toHaveLength(1)
       expect(ctx.nodes.filter(n => n.threshold.value === -3)).toHaveLength(1)
       expect(ctx.nodes.some(n => n.gain.value === 1.4)).toBe(true)
+    } finally { globalThis.localStorage = prev }
+  })
+
+  it('режимы louder / max: растут по громкости, в конце цепочки мягкий потолок (WaveShaper) и ceil < 1', () => {
+    expect(LOUDNESS_MODES).toEqual(['normal', 'loud', 'louder', 'max'])
+    const quiet = levelsOf([tone(0.02)], RATE)
+    const gains = LOUDNESS_MODES.map(m => gainFor(quiet, PRESETS[m]))
+    expect(gains[1]).toBeGreaterThan(gains[0]); expect(gains[2]).toBeGreaterThanOrEqual(gains[1]); expect(gains[3]).toBeGreaterThanOrEqual(gains[2])
+    expect(PRESETS.loud.shape).toBeUndefined(); expect(PRESETS.louder.shape).toBeGreaterThan(1); expect(PRESETS.max.ceil).toBeLessThan(1)
+    const st = (() => { const m = new Map(); return { getItem: k => m.get(k) ?? null, setItem: (k, v) => m.set(k, v), removeItem: k => m.delete(k) } })()
+    const prev = globalThis.localStorage
+    globalThis.localStorage = st
+    try {
+      writeLoudness('max', st)
+      const mk = () => ({ connect: vi.fn(), threshold: { value: 0 }, ratio: { value: 0 }, knee: { value: 0 }, attack: { value: 0 }, release: { value: 0 }, gain: { value: 1 } })
+      const shapers = []
+      const ctx = { destination: { id: 'd' }, createDynamicsCompressor: mk, createGain: mk, createWaveShaper: () => { const w = { connect: vi.fn(), curve: null, oversample: 'none' }; shapers.push(w); return w } }
+      outputOf(ctx, { log: () => {} })
+      expect(shapers).toHaveLength(1)
+      expect(shapers[0].curve).toBeInstanceOf(Float32Array)
+      expect(Math.max(...shapers[0].curve)).toBeCloseTo(1, 5)
     } finally { globalThis.localStorage = prev }
   })
 })

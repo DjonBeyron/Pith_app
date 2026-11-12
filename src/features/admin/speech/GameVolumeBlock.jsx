@@ -3,7 +3,7 @@ import { openGameMic, closeGameMic, describeGameMic } from '../../../shared/lib/
 import { getGameCtx, unlockGameCtx, peekGameCtx } from '../../../shared/lib/gameAudioCtx.js'
 import { playGameBuffer } from '../../../shared/lib/gameBufferPlay.js'
 import { nudgeVolume, testToneBuffer, readNudgeMode, writeNudgeMode } from '../../../shared/lib/gameVolumeNudge.js'
-import { readLoudness, writeLoudness } from '../../../shared/lib/audioLoudness.js'
+import { readLoudness, writeLoudness, LOUDNESS_MODES, LOUDNESS_LABELS } from '../../../shared/lib/audioLoudness.js'
 import GameVolumeLab from './GameVolumeLab.jsx'
 
 // Админ → «Голос»: «Громкость на iPhone» (замечание владельца, v3.3.192: «игра тише, чем может телефон; помогает кнопка громкости: тише, потом громче на миг»). Хруст голоса Пита чинили
@@ -27,11 +27,16 @@ export default function GameVolumeBlock() {
   }
   const nudge = async how => { setNote(`Встряхиваю: ${how}…`); const r = await nudgeVolume(how); setNote(`${how}: ${r.ok ? 'сделано' : 'не вышло'} (${r.ms} мс) — ${r.steps.join('; ')}`) }
   const pick = v => { writeNudgeMode(v); setAuto(readNudgeMode()) }
-  const pickLoud = v => { writeLoudness(v); setLoud(readLoudness()); setNote('Режим громкости сохранён — перезагрузи страницу, чтобы он заработал') }
+  const pickLoud = v => { writeLoudness(v); setLoud(readLoudness()); setNote('Режим громкости сохранён — перезагружаю страницу…'); setTimeout(() => globalThis.location?.reload?.(), 500) }
   return (
     <section className="aspBlock" data-testid="game-volume-block">
       <h3 className="aspH">🔊 Стенд громкости и громкость на iPhone</h3>
       <p className="aspHint">Когда игра тише, чем может телефон, а кнопка громкости (тише → громче) это лечит: сначала проверь на слух, какая встряска помогает, потом включи её «само». Программно усиливать звук нельзя — вернётся хруст.</p>
+      <h4 className="aspH">Громкость звуков игры</h4>
+      <div className="aspChips" role="radiogroup" aria-label="Громкость звуков игры" data-testid="vol-loudness">
+        {LOUDNESS_MODES.map(v => <button key={v} type="button" role="radio" aria-checked={loud === v} className={`aspChip${loud === v ? ' aspChipOn' : ''}`} onClick={() => pickLoud(v)} data-value={v}>{LOUDNESS_LABELS[v]}</button>)}
+      </div>
+      {note && <div className="aspCapVal" data-testid="vol-note">{note}</div>}
       <div className="aspRow">
         <button type="button" className="aspChip" onClick={mic ? close : open} data-testid="vol-mic">{mic ? 'Закрыть микрофон игры' : 'Открыть микрофон игры'}</button>
         <button type="button" className="aspChip" onClick={tone} data-testid="vol-tone">▶ Тест-звук</button>
@@ -39,16 +44,11 @@ export default function GameVolumeBlock() {
       <div className="aspChips" data-testid="vol-nudges">
         {NUDGES.map(([v, t]) => <button key={v} type="button" className="aspChip" onClick={() => nudge(v)} data-value={v}>Встряхнуть: {t}</button>)}
       </div>
-      <h4 className="aspH">Громкость звуков игры (после перезагрузки страницы)</h4>
-      <div className="aspChips" role="radiogroup" aria-label="Громкость звуков игры" data-testid="vol-loudness">
-        {[['normal', 'Обычная'], ['loud', 'Громче (сжатие + лимитер, ≈ +5 дБ)']].map(([v, t]) => <button key={v} type="button" role="radio" aria-checked={loud === v} className={`aspChip${loud === v ? ' aspChipOn' : ''}`} onClick={() => pickLoud(v)} data-value={v}>{t}</button>)}
-      </div>
       <GameVolumeLab />
       <h4 className="aspH">Само после открытия микрофона (по умолчанию: выкл)</h4>
       <div className="aspChips" role="radiogroup" aria-label="Встряска громкости" data-testid="vol-auto">
         {AUTO.map(([v, t]) => <button key={v} type="button" role="radio" aria-checked={auto === v} className={`aspChip${auto === v ? ' aspChipOn' : ''}`} onClick={() => pick(v)} data-value={v}>{t}</button>)}
       </div>
-      {note && <div className="aspCapVal" data-testid="vol-note">{note}</div>}
     </section>
   )
 }
