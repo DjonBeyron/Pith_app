@@ -133,13 +133,19 @@ export function testToneBuffer(ctx) {
   return buf
 }
 
-/** WAV 16 бит моно из отсчётов → data-URL (для элемента <audio>) */
-export function wavUrlOf(samples, rate = 22050) {
+/** WAV 16 бит моно из отсчётов → байты файла (Uint8Array) */
+export function wavBytesOf(samples, rate = 22050) {
   const n = samples.length, b = new Uint8Array(44 + n * 2), dv = new DataView(b.buffer)
   const w = (o, t) => { for (let i = 0; i < t.length; i++) b[o + i] = t.charCodeAt(i) }
   w(0, 'RIFF'); dv.setUint32(4, 36 + n * 2, true); w(8, 'WAVEfmt '); dv.setUint32(16, 16, true); dv.setUint16(20, 1, true); dv.setUint16(22, 1, true)
   dv.setUint32(24, rate, true); dv.setUint32(28, rate * 2, true); dv.setUint16(32, 2, true); dv.setUint16(34, 16, true); w(36, 'data'); dv.setUint32(40, n * 2, true)
   for (let i = 0; i < n; i++) dv.setInt16(44 + i * 2, Math.max(-1, Math.min(1, samples[i])) * 32767, true)
+  return b
+}
+
+/** WAV 16 бит моно из отсчётов → data-URL (для элемента <audio>) */
+export function wavUrlOf(samples, rate = 22050) {
+  const b = wavBytesOf(samples, rate)
   let s = ''
   for (let i = 0; i < b.length; i++) s += String.fromCharCode(b[i])
   return `data:audio/wav;base64,${globalThis.btoa(s)}`

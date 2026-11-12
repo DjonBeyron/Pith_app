@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest'
 import { LAB_ROWS, playLabRow, ratingsLine } from './gameVolumeLab.js'
-import { toneSamples, wavUrlOf } from './gameVolumeNudge.js'
+import { toneSamples, wavUrlOf, wavBytesOf } from './gameVolumeNudge.js'
 
 // Стенд громкости: каждая строка готовит своё состояние (микрофон, сессия, дорожка) и играет один и тот же тест-звук.
 function rig({ micLive = false } = {}) {
@@ -73,5 +73,8 @@ describe('стенд громкости', () => {
     expect(s.length).toBe(33075)
     expect(Math.max(...s)).toBeGreaterThan(0.15)
     expect(wavUrlOf(s, 22050).startsWith('data:audio/wav;base64,UklGR')).toBe(true)
+    const bytes = wavBytesOf(s, 22050)
+    expect(String.fromCharCode(...bytes.slice(0, 4))).toBe('RIFF'); expect(bytes.length).toBe(44 + s.length * 2)
+    expect(new DataView(bytes.buffer).getUint32(24, true)).toBe(22050)
   })
 })
