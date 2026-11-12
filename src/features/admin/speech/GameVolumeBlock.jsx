@@ -30,7 +30,7 @@ export default function GameVolumeBlock() {
   const pickLoud = v => { writeLoudness(v); setLoud(readLoudness()); setNote('Режим громкости сохранён — перезагрузи страницу, чтобы он заработал') }
   return (
     <section className="aspBlock" data-testid="game-volume-block">
-      <h3 className="aspH">Громкость на iPhone</h3>
+      <h3 className="aspH">🔊 Стенд громкости и громкость на iPhone</h3>
       <p className="aspHint">Когда игра тише, чем может телефон, а кнопка громкости (тише → громче) это лечит: сначала проверь на слух, какая встряска помогает, потом включи её «само». Программно усиливать звук нельзя — вернётся хруст.</p>
       <div className="aspRow">
         <button type="button" className="aspChip" onClick={mic ? close : open} data-testid="vol-mic">{mic ? 'Закрыть микрофон игры' : 'Открыть микрофон игры'}</button>
