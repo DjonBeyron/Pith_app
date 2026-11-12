@@ -44,12 +44,13 @@ describe('встряска громкости', () => {
     expect((await nudgeVolume('ctx', bad.deps)).steps.join()).toContain('boom')
     expect(r.deps.log).toHaveBeenCalled()
   })
-  it('настройка: по умолчанию off, незнакомое значение = off, off стирает ключ; автозапуск — только не off', () => {
+  it('настройка: по умолчанию playback (проверено владельцем), незнакомое значение = по умолчанию, off хранится явно; автозапуск — только не off', () => {
     const st = mem()
-    expect(readNudgeMode(st)).toBe('off')
+    expect(readNudgeMode(st)).toBe('playback')
     writeNudgeMode('ctx', st); expect(readNudgeMode(st)).toBe('ctx')
-    st.setItem(VOLUME_NUDGE_KEY, 'мусор'); expect(readNudgeMode(st)).toBe('off')
-    writeNudgeMode('off', st); expect(st.m.has(VOLUME_NUDGE_KEY)).toBe(false)
+    st.setItem(VOLUME_NUDGE_KEY, 'мусор'); expect(readNudgeMode(st)).toBe('playback')
+    writeNudgeMode('off', st); expect(readNudgeMode(st)).toBe('off'); expect(st.m.get(VOLUME_NUDGE_KEY)).toBe('off')
+    writeNudgeMode('playback', st); expect(st.m.has(VOLUME_NUDGE_KEY)).toBe(false); expect(readNudgeMode(st)).toBe('playback')
     expect(NUDGE_MODES[0]).toBe('off')
     const timers = []
     expect(autoNudgeAfterMic({ mode: () => 'off', setTimer: f => timers.push(f) })).toBe(false); expect(timers).toHaveLength(0)

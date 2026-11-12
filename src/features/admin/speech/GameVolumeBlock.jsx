@@ -7,7 +7,7 @@ import { nudgeVolume, testToneBuffer, readNudgeMode, writeNudgeMode } from '../.
 // Админ → «Голос»: «Громкость на iPhone» (замечание владельца, v3.3.192: «игра тише, чем может телефон; помогает кнопка громкости: тише, потом громче на миг»). Хруст голоса Пита чинили
 // отключением голосовой обработки микрофона — после этого стало тише, а программное усиление хруст возвращает. Значит, нужен системный уровень: «встряска» вывода, не трогая микрофон.
 // Проверка на слух: 1) «Открыть микрофон игры» 2) «Тест-звук» (три тона, как звуки игры) — тихо ли 3) любая «Встряхнуть: …» и снова «Тест-звук» — стало ли громче. Что сработало — выбери
-// в «Само после открытия микрофона»: встряска пойдёт сама при каждом старте игры. Результат каждой встряски — строка в журнале игры «[audio] встряска громкости: …».
+// в «Само после открытия микрофона»: встряска пойдёт сама при каждом старте игры. С v3.3.193 по умолчанию «Playback на миг» (помогло на iPhone владельца). Результат каждой встряски — строка в журнале игры «[audio] встряска громкости: …».
 const NUDGES = [['ctx', 'контекст'], ['session', 'сессия'], ['playback', 'playback на миг'], ['media', '<audio>'], ['all', 'всё сразу']]
 const AUTO = [['off', 'Выкл'], ...NUDGES.map(([v, t]) => [v, t[0].toUpperCase() + t.slice(1)])]
 
@@ -35,7 +35,7 @@ export default function GameVolumeBlock() {
       <div className="aspChips" data-testid="vol-nudges">
         {NUDGES.map(([v, t]) => <button key={v} type="button" className="aspChip" onClick={() => nudge(v)} data-value={v}>Встряхнуть: {t}</button>)}
       </div>
-      <h4 className="aspH">Само после открытия микрофона</h4>
+      <h4 className="aspH">Само после открытия микрофона (по умолчанию: Playback на миг)</h4>
       <div className="aspChips" role="radiogroup" aria-label="Встряска громкости" data-testid="vol-auto">
         {AUTO.map(([v, t]) => <button key={v} type="button" role="radio" aria-checked={auto === v} className={`aspChip${auto === v ? ' aspChipOn' : ''}`} onClick={() => pick(v)} data-value={v}>{t}</button>)}
       </div>
