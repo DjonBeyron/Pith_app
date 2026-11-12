@@ -19,4 +19,11 @@ describe('базовая линия набора', () => {
     expect(compareBaseline({ nolast: { ok: 0, total: 2 } }, aggregate(rows)).better).toHaveLength(1)
     expect(compareBaseline({ whole: { ok: 1, total: 5 } }, aggregate(rows)).missing[0]).toContain('клипов 3, в линии 5')
   })
+  it('допуск в 1 клип у пограничных видов; целые слова, шум и тишина — строго', () => {
+    const base = { fast: { ok: 5, total: 5 }, whole: { ok: 5, total: 5 } }
+    const mk = (variant, ok) => Array.from({ length: 5 }, (_, i) => word(variant, 'hit', i < ok))
+    expect(compareBaseline(base, aggregate([...mk('fast', 4), ...mk('whole', 5)])).regress).toEqual([])
+    expect(compareBaseline(base, aggregate([...mk('fast', 3), ...mk('whole', 5)])).regress).toEqual(['fast: верно 3 из 5, в линии 5'])
+    expect(compareBaseline(base, aggregate([...mk('fast', 5), ...mk('whole', 4)])).regress).toEqual(['whole: верно 4 из 5, в линии 5'])
+  })
 })
