@@ -41,6 +41,8 @@ function defaults() {
   return {
     ctx: () => peekGameCtx(),
     session: createAudioSession(),
+    nav: globalThis.navigator,
+    tracks: null,
     audio: () => { try { return new globalThis.Audio(silentWavUrl()) } catch { return null } },
     sleep: ms => new Promise(r => setTimeout(r, ms)),
     setTimer: (f, ms) => setTimeout(f, ms), // не голый setTimeout в свойстве: вызов как метод объекта — Illegal invocation (nativeTimerGuard.test.js)
@@ -51,7 +53,14 @@ function defaults() {
 /** Одна встряска. → { how, ok, ms, steps: [строки] }; ничего не бросает */
 export async function nudgeVolume(how, deps = {}) {
   const d = { ...defaults(), ...deps }, steps = [], t0 = performance.now()
-  const sessionLine = () => `audioSession=${d.session.supported() ? d.session.current() ?? '—' : 'нет API'}`
+  const snap = () => { // что видно из страницы: контекст, задержки вывода, сессия, дорожки микрофона
+    try {
+      const c = d.ctx(), as = d.nav?.audioSession, tr = d.tracks?.() ?? []
+      const lat = c ? `${Math.round((c.baseLatency ?? 0) * 1000)}/${Math.round((c.outputLatency ?? 0) * 1000)} мс` : '—'
+      return `ctx=${c?.state ?? 'нет'} задержка(база/вывод)=${lat}; audioSession=${as ? `${as.type ?? '—'}/${as.state ?? '—'}` : 'нет API'}; микрофон=${tr.length ? tr.map(t => `${t.readyState}${t.muted ? '/muted' : ''}${t.enabled === false ? '/off' : ''}`).join(',') : 'нет'}`
+    } catch { return 'снимок недоступен' }
+  }
+  const before = snap()
   const ctxStep = async () => {
     const c = d.ctx()
     if (!c || c.state !== 'running') { steps.push(`контекст: ${c ? c.state : 'нет'} — пропуск`); return false }
@@ -89,8 +98,8 @@ export async function nudgeVolume(how, deps = {}) {
     else if (how === 'all') { const a = await ctxStep(); const b = await sessionStep('auto'); const c = await mediaStep(); ok = a || b || c }
     else steps.push(`неизвестный способ «${how}»`)
   } catch (e) { steps.push(`ошибка: ${e?.message ?? e}`) }
-  const res = { how, ok, ms: Math.round(performance.now() - t0), steps }
-  try { d.log(`[audio] встряска громкости: ${how} — ${ok ? 'сделано' : 'не вышло'}, ${res.ms} мс; ${steps.join('; ')}; ${sessionLine()}`) } catch { /* журнал не мешает */ }
+  const res = { how, ok, ms: Math.round(performance.now() - t0), steps, before, after: snap() }
+  try { d.log(`[audio] встряска громкости: ${how} — ${ok ? 'сделано' : 'не вышло'}, ${res.ms} мс; ${steps.join('; ')}; ДО: ${before}; ПОСЛЕ: ${res.after}`) } catch { /* журнал не мешает */ }
   return res
 }
 
