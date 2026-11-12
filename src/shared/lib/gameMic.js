@@ -17,6 +17,7 @@ import { MIC_IDLE_CLOSE_MS, trackState, setTracksEnabled, stopTracks, reviveMute
 import { closeKeptCapture } from './vosk/voskCapture.js'
 import { markMicGranted } from './micGrantFlag.js'
 import { autoNudgeAfterMic } from './gameVolumeNudge.js'
+import { gameMediaKeep } from './gameMediaKeep.js'
 
 export { micRequestPending } from './gameMicRequest.js' // blur/focus от нашего диалога доступа — не уход (wordLanePauseEvents.js)
 
@@ -90,6 +91,7 @@ async function reuseStream() {
 
 /** В тапе: включить поток сеанса или открыть его (диалог ОС — только если потока нет или он мёртв). Возвращает 'granted' | 'denied' | 'unavailable' */
 export async function openGameMic() {
+  gameMediaKeep.start() // СИНХРОННО в нажатии: беззвучный <audio> на время игры — иначе звук игры вдвое тише (gameMediaKeep.js)
   gameMicGesture.grant() // сюда приходит жест (автоматические пути проверяют gameMicGesture.needed() до вызова): «нужен жест» снят
   if (asking) { const r = await asking; return r === 'granted' ? openGameMic() : r } // запрос уже идёт — второй диалог не открываем
   if (trackState(stream) === 'live') { if (idle) pLog('[mic] дорожка после фона: жива → используем'); takeStream(); return 'granted' } // синхронно, без await
@@ -121,6 +123,7 @@ async function requestStream() {
     pLog(trackLine(s))
     if (rel !== releases) { idle = false; closeGameMic(); pLog('[mic] поток открылся уже после закрытия игры — оставлен живым и выключенным (следующий старт без диалога)'); return 'granted' }
     idle = false; idleCloser.disarm()
+    gameMediaKeep.refresh() // сессия сменилась на запись → беззвучный <audio> перезапускаем (как делала кнопка «Встряхнуть: <audio>»)
     autoNudgeAfterMic() // настройка «Встряска громкости» (Админ → «Голос»): после открытия микрофона вывод iPhone дёргаем, не трогая поток
     return 'granted'
   } catch (e) {
@@ -161,6 +164,7 @@ export const gameMicAlive = () => { const st = trackState(stream); return st ===
  * Без игры дольше MIC_IDLE_CLOSE_MS — закрытие по-настоящему (shutGameMic). Открытие, идущее сейчас, оставит новый поток выключенным
  */
 export function closeGameMic() {
+  gameMediaKeep.stop()
   closeKeptCapture('пауза / конец игры') // контекст захвата живёт между ходами одной игры (voskCapture.js)
   releases += 1
   parked = false; taken = false; reopening = null
@@ -173,6 +177,7 @@ export function closeGameMic() {
 
 /** Закрыть поток по-настоящему: треки останавливаются, индикатор гаснет, следующий openGameMic — снова getUserMedia (диалог на iPhone) */
 export function shutGameMic(why = 'закрыт') {
+  gameMediaKeep.stop()
   const s = stream
   stream = null; opened = null
   parked = false; taken = false; reopening = null; idle = false

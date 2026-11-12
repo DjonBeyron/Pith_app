@@ -4,6 +4,7 @@ import { getGameCtx, unlockGameCtx, peekGameCtx } from '../../../shared/lib/game
 import { playGameBuffer } from '../../../shared/lib/gameBufferPlay.js'
 import { nudgeVolume, testToneBuffer, readNudgeMode, writeNudgeMode } from '../../../shared/lib/gameVolumeNudge.js'
 import { readLoudness, writeLoudness, LOUDNESS_MODES, LOUDNESS_LABELS } from '../../../shared/lib/audioLoudness.js'
+import { readMediaKeep, writeMediaKeep } from '../../../shared/lib/gameMediaKeep.js'
 import GameVolumeLab from './GameVolumeLab.jsx'
 
 // Админ → «Голос»: «Громкость на iPhone» (замечание владельца, v3.3.192: «игра тише, чем может телефон; помогает кнопка громкости: тише, потом громче на миг»). Хруст голоса Пита чинили
@@ -16,6 +17,7 @@ const AUTO = [['off', 'Выкл'], ...NUDGES.map(([v, t]) => [v, t[0].toUpperCas
 export default function GameVolumeBlock() {
   const [auto, setAuto] = useState(readNudgeMode)
   const [loud, setLoud] = useState(readLoudness)
+  const [keep, setKeep] = useState(readMediaKeep)
   const [note, setNote] = useState('')
   const [mic, setMic] = useState(() => !!describeGameMic().open)
   const open = () => { unlockGameCtx(); openGameMic().then(r => { setMic(r === 'granted'); setNote(`Микрофон: ${r}`) }) } // getUserMedia и контекст — прямо в нажатии
@@ -27,11 +29,17 @@ export default function GameVolumeBlock() {
   }
   const nudge = async how => { setNote(`Встряхиваю: ${how}…`); const r = await nudgeVolume(how); setNote(`${how}: ${r.ok ? 'сделано' : 'не вышло'} (${r.ms} мс) — ${r.steps.join('; ')}`) }
   const pick = v => { writeNudgeMode(v); setAuto(readNudgeMode()) }
+  const pickKeep = v => { writeMediaKeep(v); setKeep(readMediaKeep()); setNote(v === 'on' ? 'Включено: со следующего старта игры (тап «Начать») в фоне играет беззвучный <audio>' : 'Выключено: со следующего старта игры') }
   const pickLoud = v => { writeLoudness(v); setLoud(readLoudness()); setNote('Режим громкости сохранён — перезагружаю страницу…'); setTimeout(() => globalThis.location?.reload?.(), 500) }
   return (
     <section className="aspBlock" data-testid="game-volume-block">
       <h3 className="aspH">🔊 Стенд громкости и громкость на iPhone</h3>
       <p className="aspHint">Когда игра тише, чем может телефон, а кнопка громкости (тише → громче) это лечит: сначала проверь на слух, какая встряска помогает, потом включи её «само». Программно усиливать звук нельзя — вернётся хруст.</p>
+      <h4 className="aspH">Громкость как у медиа (беззвучный &lt;audio&gt; на время игры)</h4>
+      <p className="aspHint">На iPhone звук игры вдвое тише того же файла в Telegram, а беззвучный &lt;audio&gt; это выравнивает. Включено по умолчанию на iPhone; действует со следующего старта игры. С ним громкость звуков ставь «Обычная».</p>
+      <div className="aspChips" role="radiogroup" aria-label="Громкость как у медиа" data-testid="vol-keep">
+        {[['on', 'Вкл'], ['off', 'Выкл']].map(([v, t]) => <button key={v} type="button" role="radio" aria-checked={keep === v} className={`aspChip${keep === v ? ' aspChipOn' : ''}`} onClick={() => pickKeep(v)} data-value={v}>{t}</button>)}
+      </div>
       <h4 className="aspH">Громкость звуков игры</h4>
       <div className="aspChips" role="radiogroup" aria-label="Громкость звуков игры" data-testid="vol-loudness">
         {LOUDNESS_MODES.map(v => <button key={v} type="button" role="radio" aria-checked={loud === v} className={`aspChip${loud === v ? ' aspChipOn' : ''}`} onClick={() => pickLoud(v)} data-value={v}>{LOUDNESS_LABELS[v]}</button>)}
