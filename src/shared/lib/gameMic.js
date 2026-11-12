@@ -16,6 +16,7 @@ import { micRequestBegin, micRequestEnd } from './gameMicRequest.js'
 import { MIC_IDLE_CLOSE_MS, trackState, setTracksEnabled, stopTracks, reviveMuted, markMicMuted, createIdleCloser, onPageUnload } from './gameMicKeep.js'
 import { closeKeptCapture } from './vosk/voskCapture.js'
 import { markMicGranted } from './micGrantFlag.js'
+import { autoNudgeAfterMic } from './gameVolumeNudge.js'
 
 export { micRequestPending } from './gameMicRequest.js' // blur/focus от нашего диалога доступа — не уход (wordLanePauseEvents.js)
 
@@ -120,6 +121,7 @@ async function requestStream() {
     pLog(trackLine(s))
     if (rel !== releases) { idle = false; closeGameMic(); pLog('[mic] поток открылся уже после закрытия игры — оставлен живым и выключенным (следующий старт без диалога)'); return 'granted' }
     idle = false; idleCloser.disarm()
+    autoNudgeAfterMic() // настройка «Встряска громкости» (Админ → «Голос»): после открытия микрофона вывод iPhone дёргаем, не трогая поток
     return 'granted'
   } catch (e) {
     pLog(`[mic] доступ не получен: ${e?.name ?? e}`)

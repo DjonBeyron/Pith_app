@@ -18,6 +18,7 @@ import SpeechLogBlock from './SpeechLogBlock.jsx'
 import SpeechSayBlock from './SpeechSayBlock.jsx'
 import SoundDiagBlock from './SoundDiagBlock.jsx'
 import GameMicBlock from './GameMicBlock.jsx'
+import GameVolumeBlock from './GameVolumeBlock.jsx'
 import GameSoundsBlock from './GameSoundsBlock.jsx'
 import GameTestBlock from './GameTestBlock.jsx'
 import SpeechMemo from './SpeechMemo.jsx'
@@ -78,6 +79,7 @@ export default function AdminSpeechTab() {
       <SpeechCapsBlock caps={caps} perm={perm} />
       <SoundDiagBlock />
       <GameMicBlock />
+      <GameVolumeBlock />
       <GameSoundsBlock />
       <GameTestBlock />
       <SpeechSayBlock />
