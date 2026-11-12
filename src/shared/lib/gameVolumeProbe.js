@@ -62,3 +62,19 @@ export async function measureNudge(how = 'playback', deps = {}) {
   try { log(`[audio] замер громкости (по микрофону): ${text}`) } catch { /* журнал не мешает */ }
   return { before, after, diffDb, text }
 }
+
+/** Два замера подряд без всякой встряски → { a, b, diffDb, noiseDb, text }. Честная проверка: «Замер» → нажать кнопки громкости на корпусе (тише, потом громче) → «Замер» → сравнить строки в журнале.
+ *  noiseDb — на сколько дБ расходятся два замера в одних условиях: больше 3 дБ — замеру верить нельзя (автоусиление микрофона, голос Пита, шум комнаты) */
+export async function measureTwice(deps = {}) {
+  const log = deps.log ?? pLog, sleep = deps.sleep ?? (ms => new Promise(r => setTimeout(r, ms)))
+  const a = await measureLoudness(deps)
+  if (!a.ok) { const text = `замер не вышел: ${a.why}`; try { log(`[audio] замер громкости: ${text}`) } catch { /* журнал не мешает */ } return { a, b: null, noiseDb: null, text } }
+  await sleep(300)
+  const b = await measureLoudness(deps)
+  const noiseDb = b.ok ? r1(Math.abs(b.toneDb - a.toneDb)) : null
+  const text = b.ok
+    ? `тон ${a.toneDb} дБ и ${b.toneDb} дБ (над фоном ${a.overDb} / ${b.overDb}); расхождение ${noiseDb} дБ — ${noiseDb > 3 ? 'замеру НЕ верить (шумный)' : 'замер устойчив'}; среднее ${r1((a.toneDb + b.toneDb) / 2)} дБ`
+    : `тон ${a.toneDb} дБ; второй замер не вышел: ${b.why}`
+  try { log(`[audio] замер громкости (без встряски): ${text}`) } catch { /* журнал не мешает */ }
+  return { a, b, noiseDb, text }
+}

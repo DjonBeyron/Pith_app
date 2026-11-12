@@ -14,7 +14,7 @@ import { unlockNotes } from './wordLaneNotes.js'
 import { prepareAudio, buildDebugFile, saveDebugFile, SAVE_HOW } from './wordLaneDebugExport.js'
 import { saveJournalNow, copyJournalNow } from './wordLaneJournalNow.js'
 import { nudgeVolume } from '../../../../shared/lib/gameVolumeNudge.js' // «Встряхнуть громкость» (v3.3.194): playback на миг — как нажать кнопку громкости, микрофон не закрывается
-import { measureNudge } from '../../../../shared/lib/gameVolumeProbe.js' // «Замер»: тест-звук слышит микрофон игры — уровень в дБ до и после встряски (v3.3.195)
+import { measureNudge, measureTwice } from '../../../../shared/lib/gameVolumeProbe.js' // «Замер»: тест-звук слышит микрофон игры — уровень в дБ до и после встряски (v3.3.195)
 import RaceMicSettingsTip from '../../../pitrace/RaceMicSettingsTip.jsx'
 import { isIOS, isStandalone, MIC_TIP_LABELS } from '../../../pitrace/raceMicHelp.js'
 import {
@@ -118,6 +118,7 @@ export default function WordLaneHud({ dbg, rootRef, onRestartStage, onRestartGam
       <Row label="Звук тише, чем может телефон (iPhone)" when="now" testid="wl-hud-nudge">
         <Chip on={false} onClick={() => { nudgeVolume('playback', { tracks: () => describeGameMic().tracks ?? [] }) }} testid="wl-hud-nudge-btn">Встряхнуть громкость</Chip>
         <Chip on={false} onClick={() => { setVol('Замеряю: тест-звук и микрофон…'); measureNudge('playback').then(r => setVol(r.text)) }} testid="wl-hud-probe-btn">Замер громкости</Chip>
+        <Chip on={false} onClick={() => { setVol('Замеряю дважды: тест-звук и микрофон…'); measureTwice().then(r => setVol(r.text)) }} testid="wl-hud-probe2-btn">Замер ×2 (без встряски)</Chip>
         {vol && <span className="wlHudNote" data-testid="wl-hud-probe-note">{vol}</span>}
       </Row>
       <Row label="Безопасные слои пилюль (iOS)" when="now" testid="wl-hud-safe">

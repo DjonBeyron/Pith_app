@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
-import { measureLoudness, measureNudge, ROOM_MS, TONE_MS, STEP_MS } from './gameVolumeProbe.js'
+import { measureLoudness, measureNudge, measureTwice, ROOM_MS, TONE_MS, STEP_MS } from './gameVolumeProbe.js'
 
 // Замер громкости микрофоном игры: фон комнаты → тест-звук → уровень в дБ; сверка ДО / ПОСЛЕ встряски.
 function rig({ toneRms = [0.02], room = 0.002, state = 'running', live = true } = {}) {
@@ -46,5 +46,20 @@ describe('замер громкости микрофоном', () => {
     const res = await measureNudge('playback', { ...rig({ live: false }).deps, log })
     expect(res.after).toBe(null); expect(res.text).toContain('замер не вышел')
     expect(log.mock.calls[0][0]).toContain('[audio] замер громкости')
+  })
+  it('два замера подряд: расхождение больше 3 дБ — замеру не верить; устойчивый — верить', async () => {
+    const log = vi.fn()
+    const stable = await measureTwice({ ...rig({ toneRms: [0.02] }).deps, log })
+    expect(stable.noiseDb).toBeLessThan(0.5)
+    expect(stable.text).toContain('устойчив')
+    // второй замер вдвое громче → расхождение 6 дБ
+    let amp = 0.01, playing = false
+    const r = rig()
+    const ctx = { ...r.deps.ctx(), createAnalyser: () => ({ fftSize: 2048, getFloatTimeDomainData: arr => arr.fill(playing ? amp : 0.002) }) }
+    const noisy = await measureTwice({ ...r.deps, ctx: () => ctx, log, play: () => { playing = true; amp *= 2; return true } })
+    expect(noisy.noiseDb).toBeCloseTo(6, 0)
+    expect(noisy.text).toContain('НЕ верить')
+    expect(log.mock.calls.at(-1)[0]).toContain('[audio] замер громкости (без встряски)')
+    expect((await measureTwice({ ...rig({ live: false }).deps, log })).b).toBe(null)
   })
 })
