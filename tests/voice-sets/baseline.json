@@ -1,0 +1,78 @@
+{
+  "novice-1": {
+    "long": {
+      "ok": 2,
+      "total": 2
+    },
+    "whole": {
+      "ok": 16,
+      "total": 16
+    },
+    "quiet": {
+      "ok": 15,
+      "total": 16
+    },
+    "fast": {
+      "ok": 16,
+      "total": 16
+    },
+    "nolast": {
+      "ok": 12,
+      "total": 16
+    },
+    "half": {
+      "ok": 14,
+      "total": 16
+    },
+    "noise": {
+      "ok": 3,
+      "total": 3
+    },
+    "phrase whole": {
+      "ok": 3,
+      "total": 3
+    },
+    "phrase cutlast": {
+      "ok": 0,
+      "total": 3
+    }
+  },
+  "novice-2": {
+    "long": {
+      "ok": 2,
+      "total": 2
+    },
+    "whole": {
+      "ok": 16,
+      "total": 16
+    },
+    "quiet": {
+      "ok": 15,
+      "total": 16
+    },
+    "fast": {
+      "ok": 16,
+      "total": 16
+    },
+    "nolast": {
+      "ok": 10,
+      "total": 16
+    },
+    "half": {
+      "ok": 15,
+      "total": 16
+    },
+    "noise": {
+      "ok": 3,
+      "total": 3
+    },
+    "phrase whole": {
+      "ok": 3,
+      "total": 3
+    },
+    "phrase cutlast": {
+      "ok": 0,
+      "total": 3
+    }
+  }
+}
