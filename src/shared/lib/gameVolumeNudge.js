@@ -112,16 +112,35 @@ export function autoNudgeAfterMic(deps = {}) {
   return true
 }
 
-/** Тест-звук для проверки на слух: три коротких тона (уровень как у звуков игры, RMS −18 dBFS) через игровой контекст. → AudioBuffer или null */
-export function testToneBuffer(ctx) {
-  if (!ctx?.createBuffer) return null
-  const rate = ctx.sampleRate || 44100, len = Math.round(rate * 1.5), buf = ctx.createBuffer(1, len, rate), ch = buf.getChannelData(0)
+/** Отсчёты тест-звука: три коротких тона (уровень как у звуков игры, RMS ≈ −18 dBFS), 1,5 с */
+export function toneSamples(rate = 44100) {
+  const out = new Float32Array(Math.round(rate * 1.5))
   ;[392, 523.25, 659.25].forEach((f, k) => {
     const from = Math.round(rate * 0.5 * k), n = Math.round(rate * 0.3)
     for (let i = 0; i < n; i++) {
       const env = Math.min(1, i / (rate * 0.01)) * Math.min(1, (n - i) / (rate * 0.03))
-      ch[from + i] = 0.18 * env * Math.sin(2 * Math.PI * f * i / rate)
+      out[from + i] = 0.18 * env * Math.sin(2 * Math.PI * f * i / rate)
     }
   })
+  return out
+}
+
+/** Тест-звук для проверки на слух через игровой контекст. → AudioBuffer или null */
+export function testToneBuffer(ctx) {
+  if (!ctx?.createBuffer) return null
+  const rate = ctx.sampleRate || 44100, buf = ctx.createBuffer(1, Math.round(rate * 1.5), rate)
+  buf.getChannelData(0).set(toneSamples(rate))
   return buf
+}
+
+/** WAV 16 бит моно из отсчётов → data-URL (для элемента <audio>) */
+export function wavUrlOf(samples, rate = 22050) {
+  const n = samples.length, b = new Uint8Array(44 + n * 2), dv = new DataView(b.buffer)
+  const w = (o, t) => { for (let i = 0; i < t.length; i++) b[o + i] = t.charCodeAt(i) }
+  w(0, 'RIFF'); dv.setUint32(4, 36 + n * 2, true); w(8, 'WAVEfmt '); dv.setUint32(16, 16, true); dv.setUint16(20, 1, true); dv.setUint16(22, 1, true)
+  dv.setUint32(24, rate, true); dv.setUint32(28, rate * 2, true); dv.setUint16(32, 2, true); dv.setUint16(34, 16, true); w(36, 'data'); dv.setUint32(40, n * 2, true)
+  for (let i = 0; i < n; i++) dv.setInt16(44 + i * 2, Math.max(-1, Math.min(1, samples[i])) * 32767, true)
+  let s = ''
+  for (let i = 0; i < b.length; i++) s += String.fromCharCode(b[i])
+  return `data:audio/wav;base64,${globalThis.btoa(s)}`
 }

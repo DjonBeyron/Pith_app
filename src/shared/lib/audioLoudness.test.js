@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
-import { levelsOf, gainFor, normalizeBuffer, outputOf, idOfUrl, MAX_GAIN, LIMITER } from './audioLoudness.js'
+import { levelsOf, gainFor, normalizeBuffer, outputOf, idOfUrl, MAX_GAIN, LIMITER, PRESETS, readLoudness, writeLoudness, LOUDNESS_KEY } from './audioLoudness.js'
 
 // Громкость (audioLoudness.js): пик → −1 dBFS, не больше ×4, RMS звучащих окон не выше −18 dBFS; лимитер на выходе контекста.
 const RATE = 8000
@@ -52,5 +52,28 @@ describe('выход контекста: лимитер → мастер-gain �
   it('без DynamicsCompressor — прямо в destination', () => {
     const ctx = { destination: {}, createGain: () => ({}) }
     expect(outputOf(ctx, { log: () => {} })).toBe(ctx.destination)
+  })
+
+  it('режим «Громче»: по умолчанию normal; пресет loud — норма до RMS −14 и до ×8, второй компрессор-лимитер в конце цепочки', () => {
+    const st = (() => { const m = new Map(); return { getItem: k => m.get(k) ?? null, setItem: (k, v) => m.set(k, v), removeItem: k => m.delete(k), m } })()
+    expect(readLoudness(st)).toBe('normal')
+    writeLoudness('loud', st); expect(readLoudness(st)).toBe('loud')
+    st.setItem(LOUDNESS_KEY, 'мусор'); expect(readLoudness(st)).toBe('normal')
+    writeLoudness('normal', st); expect(st.m.has(LOUDNESS_KEY)).toBe(false)
+    const quiet = levelsOf([tone(0.02)], RATE)
+    expect(gainFor(quiet, PRESETS.loud)).toBeGreaterThan(gainFor(quiet, PRESETS.normal))
+    expect(gainFor(quiet, PRESETS.loud)).toBeLessThanOrEqual(PRESETS.loud.maxGain)
+    expect(PRESETS.normal.limiter).toBe(null); expect(PRESETS.loud.limiter.threshold).toBe(-3)
+    const make = () => { const nodes = []; const mk = () => { const n = { connect: vi.fn(), threshold: { value: 0 }, ratio: { value: 0 }, knee: { value: 0 }, attack: { value: 0 }, release: { value: 0 }, gain: { value: 1 } }; nodes.push(n); return n }; return { nodes, destination: { id: 'dest' }, createDynamicsCompressor: mk, createGain: mk } }
+    const prev = globalThis.localStorage
+    globalThis.localStorage = st
+    try {
+      writeLoudness('loud', st)
+      const ctx = make()
+      outputOf(ctx, { log: () => {} })
+      expect(ctx.nodes.filter(n => n.threshold.value === -28)).toHaveLength(1)
+      expect(ctx.nodes.filter(n => n.threshold.value === -3)).toHaveLength(1)
+      expect(ctx.nodes.some(n => n.gain.value === 1.4)).toBe(true)
+    } finally { globalThis.localStorage = prev }
   })
 })

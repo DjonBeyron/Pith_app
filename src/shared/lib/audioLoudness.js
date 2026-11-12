@@ -12,6 +12,20 @@ export const MAX_GAIN = 4
 export const RMS_CEIL_DB = -18
 export const MASTER_GAIN = 1
 export const LIMITER = { threshold: -10, ratio: 4, knee: 10, attack: 0.003, release: 0.25 }
+// Режим «Громче» (v3.3.197, замечание владельца: игра тише, чем может телефон; «просто добавить громкость» возвращает хруст). Измерено на реальной речи (Chromium, OfflineAudioContext, тот же
+// DynamicsCompressorNode, что в Safari; пик реплик Пита ≈ −6, RMS ≈ −21 dBFS): текущая цепочка даёт RMS речи −17,8 dBFS при пике −1,1; «просто усилить вдвое» — RMS −11,9, но пики +4,9 dBFS и
+// 0,6 % отсчётов обрезано (это и есть хруст); пресет 'loud' — норма до RMS −14, сжатие −28 дБ 4:1 (колено 18), мастер ×1,4 и жёсткий лимитер −3 дБ 20:1 → RMS ≈ −12,6, пик ≈ −0,5, обрезано < 0,01 %.
+// 'normal' — как до 3.3.197 (по умолчанию). Режим читается при создании цепочки контекста и при декодировании буфера → менять и перезагружать страницу (Админ → «Голос» → «Громкость на iPhone»).
+export const LOUDNESS_KEY = 'pithy_game_loudness_v1'
+export const LOUDNESS_MODES = ['normal', 'loud']
+export const PRESETS = {
+  normal: { maxGain: 4, peakDb: -1, rmsCeilDb: -18, comp: { threshold: -10, ratio: 4, knee: 10, attack: 0.003, release: 0.25 }, master: 1, limiter: null },
+  loud: { maxGain: 8, peakDb: -1, rmsCeilDb: -14, comp: { threshold: -28, ratio: 4, knee: 18, attack: 0.008, release: 0.15 }, master: 1.4, limiter: { threshold: -3, ratio: 20, knee: 0, attack: 0.001, release: 0.08 } },
+}
+export const readLoudness = (store = globalThis.localStorage) => { try { const v = store?.getItem(LOUDNESS_KEY); return LOUDNESS_MODES.includes(v) ? v : 'normal' } catch { return 'normal' } }
+export const writeLoudness = (value, store = globalThis.localStorage) => { try { if (LOUDNESS_MODES.includes(value) && value !== 'normal') store?.setItem(LOUDNESS_KEY, value); else store?.removeItem(LOUDNESS_KEY) } catch { /* приватный режим */ } }
+const preset = () => PRESETS[readLoudness()]
+
 const VOICED_WIN_S = 0.02
 const VOICED_MIN = 0.003 // окно тише −50 dBFS — тишина, в RMS не идёт
 
@@ -35,10 +49,10 @@ export function levelsOf(channels, rate = 44100) {
 }
 
 /** Множитель нормализации: пик → −1 dBFS, не больше ×4, RMS не выше −18 dBFS; тихо (пик ≈ 0) или уже громко — 1 */
-export function gainFor({ peak, rms }) {
+export function gainFor({ peak, rms }, p = preset()) {
   if (!(peak > 1e-4)) return 1
-  let g = Math.min(MAX_GAIN, fromDb(PEAK_TARGET_DB) / peak)
-  if (rms > 0) g = Math.min(g, fromDb(RMS_CEIL_DB) / rms)
+  let g = Math.min(p.maxGain, fromDb(p.peakDb) / peak)
+  if (rms > 0) g = Math.min(g, fromDb(p.rmsCeilDb) / rms)
   return g > 1.01 ? g : 1
 }
 
@@ -71,16 +85,24 @@ export function outputOf(ctx, { kind = 'игра', log = pLog } = {}) {
   let node = ctx.destination
   try {
     if (typeof ctx.createDynamicsCompressor === 'function' && typeof ctx.createGain === 'function') {
+      const p = preset()
       const comp = ctx.createDynamicsCompressor()
-      for (const [k, v] of Object.entries(LIMITER)) { if (comp[k] && 'value' in comp[k]) comp[k].value = v }
+      for (const [k, v] of Object.entries(p.comp)) { if (comp[k] && 'value' in comp[k]) comp[k].value = v }
       const master = ctx.createGain()
-      master.gain.value = MASTER_GAIN
+      master.gain.value = p.master
       comp.connect(master)
-      master.connect(ctx.destination)
+      let tail = master
+      if (p.limiter) { // жёсткий лимитер в конце: пики не вылезают за 0 dBFS, усиление не даёт хруста
+        const lim = ctx.createDynamicsCompressor()
+        for (const [k, v] of Object.entries(p.limiter)) { if (lim[k] && 'value' in lim[k]) lim[k].value = v }
+        master.connect(lim)
+        tail = lim
+      }
+      tail.connect(ctx.destination)
       node = comp
     }
   } catch { node = ctx.destination }
   outs.set(ctx, node)
-  try { log(`[audio] громкость: сессия ${sessionType()}, мастер-gain ${MASTER_GAIN}, ${node === ctx.destination ? 'без лимитера' : `лимитер ${LIMITER.threshold} дБ ${LIMITER.ratio}:1 колено ${LIMITER.knee}`}, нормализация до ${PEAK_TARGET_DB} dBFS (≤ ×${MAX_GAIN}, RMS ≤ ${RMS_CEIL_DB}) — ${kind}`) } catch { /* журнал */ }
+  try { log(`[audio] громкость: сессия ${sessionType()}, мастер-gain ${MASTER_GAIN}, ${node === ctx.destination ? 'без лимитера' : `режим «${readLoudness()}»: сжатие ${preset().comp.threshold} дБ ${preset().comp.ratio}:1 колено ${preset().comp.knee}${preset().limiter ? `, лимитер ${preset().limiter.threshold} дБ` : ''}`}, нормализация до ${PEAK_TARGET_DB} dBFS (≤ ×${MAX_GAIN}, RMS ≤ ${RMS_CEIL_DB}) — ${kind}`) } catch { /* журнал */ }
   return node
 }
