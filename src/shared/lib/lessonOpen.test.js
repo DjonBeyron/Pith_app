@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { shutGameMic } from './gameMic.js'
+import { shutAllMics as shutGameMic } from './gameMicLeave.js'
 import { _resetLessonOpen, isLessonOpen, lessonClosed, lessonOpened, onLessonOpenChange } from './lessonOpen.js'
 
-vi.mock('./gameMic.js', () => ({ shutGameMic: vi.fn() }))
+vi.mock('./gameMicLeave.js', () => ({ shutAllMics: vi.fn() }))
 
 beforeEach(() => {
   shutGameMic.mockClear()

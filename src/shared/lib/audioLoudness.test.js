@@ -60,11 +60,11 @@ describe('выход контекста: лимитер → мастер-gain �
     expect(outputOf(ctx, { log: () => {} })).toBe(ctx.destination)
   })
 
-  it('режим «Громче»: по умолчанию max (+9 дБ); normal хранится явно; пресет loud — норма до RMS −14 и до ×8, второй компрессор-лимитер в конце цепочки', () => {
+  it('режим «Громче»: по умолчанию cap3 (потолок −3 дБ); normal хранится явно; пресет loud — норма до RMS −14 и до ×8, второй компрессор-лимитер в конце цепочки', () => {
     const st = (() => { const m = new Map(); return { getItem: k => m.get(k) ?? null, setItem: (k, v) => m.set(k, v), removeItem: k => m.delete(k), m } })()
-    expect(DEFAULT_LOUDNESS).toBe('max'); expect(readLoudness(st)).toBe('max')
+    expect(DEFAULT_LOUDNESS).toBe('cap3'); expect(readLoudness(st)).toBe('cap3')
     writeLoudness('loud', st); expect(readLoudness(st)).toBe('loud')
-    st.setItem(LOUDNESS_KEY, 'мусор'); expect(readLoudness(st)).toBe('max')
+    st.setItem(LOUDNESS_KEY, 'мусор'); expect(readLoudness(st)).toBe('cap3')
     writeLoudness('normal', st); expect(readLoudness(st)).toBe('normal')
     const quiet = levelsOf([tone(0.02)], RATE)
     expect(gainFor(quiet, PRESETS.loud)).toBeGreaterThan(gainFor(quiet, PRESETS.normal))
@@ -83,6 +83,12 @@ describe('выход контекста: лимитер → мастер-gain �
     } finally { globalThis.localStorage = prev }
   })
 
+  it('cap3 / cap6: лимитер ниже потолка и ceil после WaveShaper — пики не выше −3 / −6 dBFS; cap6 тише cap3 по сжатию', () => {
+    const dbOf = x => 20 * Math.log10(x)
+    expect(dbOf(PRESETS.cap3.ceil)).toBeLessThanOrEqual(-3 + 0.1); expect(dbOf(PRESETS.cap6.ceil)).toBeLessThanOrEqual(-6 + 0.1)
+    expect(PRESETS.cap3.limiter.threshold).toBeLessThan(0); expect(PRESETS.cap6.limiter.threshold).toBeLessThan(PRESETS.cap3.limiter.threshold)
+    expect(PRESETS.cap3.shape).toBeGreaterThan(1); expect(PRESETS.cap6.comp.ratio).toBeGreaterThan(PRESETS.cap3.comp.ratio)
+  })
   it('запись режима проверяется чтением: хранилище не принимает — false; освобождает место (прогон) и повторяет', () => {
     const m = new Map([['pithy_volume_run_v5', 'x'.repeat(10)]]); let full = true
     const st = { getItem: k => m.get(k) ?? null, setItem: (k, v) => { if (full && k === LOUDNESS_KEY) throw new Error('quota'); m.set(k, v) }, removeItem: k => { m.delete(k); if (k === 'pithy_volume_run_v5') full = false } }
@@ -92,9 +98,9 @@ describe('выход контекста: лимитер → мастер-gain �
   })
 
   it('режимы louder / max: растут по громкости, в конце цепочки мягкий потолок (WaveShaper) и ceil < 1', () => {
-    expect(LOUDNESS_MODES).toEqual(['normal', 'mid', 'loud', 'louder', 'max'])
+    expect(LOUDNESS_MODES).toEqual(['normal', 'mid', 'loud', 'louder', 'max', 'cap3', 'cap6'])
     const quiet = levelsOf([tone(0.02)], RATE)
-    const gains = LOUDNESS_MODES.map(m => gainFor(quiet, PRESETS[m]))
+    const gains = LOUDNESS_MODES.slice(0, 5).map(m => gainFor(quiet, PRESETS[m]))
     expect(gains[1]).toBeGreaterThan(gains[0]); expect(gains[2]).toBeGreaterThanOrEqual(gains[1]); expect(gains[3]).toBeGreaterThanOrEqual(gains[2]); expect(gains[4]).toBeGreaterThanOrEqual(gains[3])
     expect(PRESETS.loud.shape).toBeUndefined(); expect(PRESETS.louder.shape).toBeGreaterThan(1); expect(PRESETS.max.ceil).toBeLessThan(1)
     const st = (() => { const m = new Map(); return { getItem: k => m.get(k) ?? null, setItem: (k, v) => m.set(k, v), removeItem: k => m.delete(k) } })()

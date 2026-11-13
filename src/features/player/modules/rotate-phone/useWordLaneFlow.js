@@ -18,6 +18,7 @@ import { XP_PER_PILL } from './wordLaneConfig.js'; import { createVoiceLevel } f
 import { getVoiceRate } from '../../lessonVolume.js'
 import { pLog } from '../../../../shared/lib/debug.js'
 import { getGameMic, closeGameMic } from '../../../../shared/lib/gameMic.js'
+import { leaveGameMic } from '../../../../shared/lib/gameMicLeave.js'
 import { renewGameMic } from '../../../../shared/lib/gameMicRenew.js'
 import { gameMicHold } from '../../../../shared/lib/gameMicHold.js'
 import { guardStream } from '../../../../shared/lib/gameMicGesture.js'
@@ -153,7 +154,7 @@ export function useWordLaneFlow({ chunks, translation, lang, clips = null, audio
   }, [onFinished, clearTimers, dbg])
 
   useGameAudioModes(() => setMicEpoch(e => e + 1)) // режимы проверки на iPhone: тип аудиосессии и глушение дорожки на время речи (useGameAudioModes)
-  useEffect(() => () => { closeGameMic(); stopVoice(); releaseNotes(); releaseClips({ keepWarm: true }); clearTimeout(noteTimerRef.current); clearTimeout(hintTimerRef.current); timersRef.current.forEach(clearTimeout); listenerRef.current?.dispose() }, [])
+  useEffect(() => () => { leaveGameMic(); stopVoice(); releaseNotes(); releaseClips({ keepWarm: true }); clearTimeout(noteTimerRef.current); clearTimeout(hintTimerRef.current); timersRef.current.forEach(clearTimeout); listenerRef.current?.dispose() }, [])
 
   // Вступление
   useEffect(() => {
