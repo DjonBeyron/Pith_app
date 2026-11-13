@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { saveJournalNow, copyJournalNow } from '../player/modules/rotate-phone/wordLaneJournalNow.js'
+import { saveJournalNow, copyJournalNow, sendJournalNow } from '../player/modules/rotate-phone/wordLaneJournalNow.js'
 
 // Неброская строка «⬇ Скачать журнал игры · Скопировать» под кнопками итога «Встряхни память» (RaceSummary.jsx; стили — race-final.css). Только для отладочного интерфейса (админ / player_debug_ui / шестерёнка):
 // шестерёнка HUD на итоге закрыта самим экраном итога (z-index 30), поэтому журнал всего сеанса доступен прямо здесь. Журнал формирует и отдаёт wordLaneJournalNow.js — тот же путь, что в шестерёнке:
@@ -18,6 +18,8 @@ export default function RaceJournalLinks() {
         <button type="button" className="raceJournalLink" onClick={run(saveJournalNow, 'Готовлю журнал…')} data-no-unlock="" data-testid="race-journal-save">⬇ Скачать журнал игры</button>
         <span className="raceJournalDot" aria-hidden="true">·</span>
         <button type="button" className="raceJournalLink" onClick={run(copyJournalNow)} data-no-unlock="" data-testid="race-journal-copy">Скопировать</button>
+        <span className="raceJournalDot" aria-hidden="true">·</span>
+        <button type="button" className="raceJournalLink" onClick={run(sendJournalNow, 'Отправляю логи…')} data-no-unlock="" data-testid="race-journal-send">В GitHub</button>
       </div>
       {status && <div className="raceJournalStatus" role="status" data-testid="race-journal-status">{status}</div>}
     </div>

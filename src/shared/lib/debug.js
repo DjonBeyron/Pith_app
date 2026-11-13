@@ -124,6 +124,10 @@ export function getPlayerLines() {
   return [...playerLines]
 }
 
+export function getDebugLines() {
+  return [...logLines]
+}
+
 export function downloadPlayerLog() {
   const text = playerLines.length
     ? playerLines.join('\n')

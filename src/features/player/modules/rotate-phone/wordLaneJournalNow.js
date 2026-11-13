@@ -5,6 +5,7 @@ import { APP_VERSION } from '../../../../shared/lib/version.js'
 import { voskRuntime } from '../../../../shared/lib/vosk/voskRuntime.js'
 import { ruReady } from '../../../pitrace/raceRu.js'
 import { buildJournalFile, liveHeader, copyText, COPY_HOW, compactText } from './wordLaneJournal.js'
+import { sendLogs } from '../../../../shared/lib/logUpload.js'
 import { saveDebugFile, SAVE_HOW } from './wordLaneDebugExport.js'
 import { readTapMode, voskLine } from './wordLaneHudSettings.js'
 
@@ -21,4 +22,9 @@ export async function saveJournalNow() {
 /** «Скопировать журнал» → что сказать человеку */
 export async function copyJournalNow() {
   try { const how = await copyText(compactText(journalNow().text)); return COPY_HOW[how] ?? COPY_HOW.failed } catch { return COPY_HOW.failed }
+}
+
+/** «Отправить в GitHub» → что сказать человеку (журнал с шапкой + дебаг + последний выгруженный файл) */
+export async function sendJournalNow() {
+  try { return await sendLogs({ journal: journalNow() }) } catch { return 'Не отправилось' }
 }

@@ -5,6 +5,7 @@
 // 'tab' — blob открыт в новой вкладке (сохранить оттуда); 'cancelled' — «Поделиться» закрыто; 'failed' — ничего не вышло.
 import { diagnoseFirstLine, silentDiagLines } from './wordLaneSilentDiag.js'
 import { audioModeInfo } from '../../../rehearsal/polish/audioPresets.js'
+import { rememberLogFile } from '../../../../shared/lib/logUpload.js'
 
 export const FILE_PREFIX = 'pithy-dictor-debug-'
 export const REVOKE_AFTER_MS = 60000
@@ -73,6 +74,7 @@ const isIos = nav => /iPhone|iPad|iPod/.test(String(nav?.userAgent ?? '')) || (n
 
 /** Отдать файл: iOS — «Поделиться» (иначе новая вкладка), остальные — скачивание. Возвращает 'download' | 'share' | 'tab' | 'cancelled' | 'failed' */
 export async function saveDebugFile(file, { doc = globalThis.document, nav = globalThis.navigator, win = globalThis.window, urlApi = globalThis.URL, setTimer = setTimeout } = {}) {
+  rememberLogFile(file) // «Отправить логи в GitHub» берёт последний выгруженный файл (shared/lib/logUpload.js)
   const url = () => urlApi.createObjectURL(file.blob)
   const later = u => { setTimer(() => { try { urlApi.revokeObjectURL(u) } catch { /* уже освобождён */ } }, REVOKE_AFTER_MS) }
   const openTab = () => {

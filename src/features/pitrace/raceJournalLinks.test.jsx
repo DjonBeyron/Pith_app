@@ -62,7 +62,7 @@ describe('журнал игры на итоге', () => {
   })
   it('кнопки помечены data-no-unlock, флаг доходит из игры (RaceActs → dbg.enabled), шестерёнка и итог зовут один помощник', () => {
     const src = readFileSync(new URL('./RaceJournalLinks.jsx', import.meta.url), 'utf8')
-    expect(src.match(/data-no-unlock=""/g)).toHaveLength(2)
+    expect(src.match(/data-no-unlock=""/g)).toHaveLength(3) // скачать, скопировать, в GitHub
     expect(readFileSync(new URL('./RaceActs.jsx', import.meta.url), 'utf8')).toContain('journal={!!f.dbg?.enabled}')
     expect(readFileSync(new URL('../player/modules/rotate-phone/WordLaneHud.jsx', import.meta.url), 'utf8')).toContain("from './wordLaneJournalNow.js'")
     expect(readFileSync(new URL('../../styles/player/modules/race-final.css', import.meta.url), 'utf8')).not.toMatch(/filter\s*:/)

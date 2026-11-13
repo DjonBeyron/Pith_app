@@ -12,7 +12,7 @@ import { getVoiceRate, setVoiceRate, VOICE_RATES } from '../../lessonVolume.js'
 import { getRewardSound, setRewardSound, getRewardVolume, setRewardVolume, REWARD_SOUNDS } from './wordLaneMeow.js'
 import { unlockNotes } from './wordLaneNotes.js'
 import { prepareAudio, buildDebugFile, saveDebugFile, SAVE_HOW } from './wordLaneDebugExport.js'
-import { saveJournalNow, copyJournalNow } from './wordLaneJournalNow.js'
+import { saveJournalNow, copyJournalNow, sendJournalNow } from './wordLaneJournalNow.js'
 import { nudgeVolume } from '../../../../shared/lib/gameVolumeNudge.js' // «Встряхнуть громкость» (v3.3.194): playback на миг — как нажать кнопку громкости, микрофон не закрывается
 import { measureNudge, measureTwice } from '../../../../shared/lib/gameVolumeProbe.js' // «Замер»: тест-звук слышит микрофон игры — уровень в дБ до и после встряски (v3.3.195)
 import RaceMicSettingsTip from '../../../pitrace/RaceMicSettingsTip.jsx'
@@ -81,6 +81,7 @@ export default function WordLaneHud({ dbg, rootRef, onRestartStage, onRestartGam
   // журнал всего сеанса страницы (gameJournal, wordLaneJournalNow.js — тот же путь, что у итога гонки): доступен и на паузе — шестерёнка поднята над её подложкой
   const saveJournal = async () => { setStatus('Готовлю журнал…'); setStatus(await saveJournalNow()) }
   const copyJournal = async () => { setStatus(await copyJournalNow()) }
+  const sendJournal = async () => { setStatus('Отправляю логи…'); setStatus(await sendJournalNow()) }
 
   return (
     <div className="wlHud" role="dialog" aria-label="Настройки отладки" data-testid="wl-hud">
@@ -95,6 +96,7 @@ export default function WordLaneHud({ dbg, rootRef, onRestartStage, onRestartGam
       <div className="wlHudActions wlHudActions--top" data-testid="wl-hud-journal-row">{/* журнал — первым: после сворачивания его открывают поверх паузы и сразу присылают */}
         <button type="button" className="wlHudAct" onClick={saveJournal} data-no-unlock="" data-testid="wl-hud-journal">Скачать журнал</button>
         <button type="button" className="wlHudAct" onClick={copyJournal} data-no-unlock="" data-testid="wl-hud-journal-copy">Скопировать журнал</button>
+        <button type="button" className="wlHudAct" onClick={sendJournal} data-no-unlock="" data-testid="wl-hud-journal-send">Отправить в GitHub</button>
       </div>
 
       <Row label="Обработка микрофона (эхо/шум)" when="restart" testid="wl-hud-proc">

@@ -466,3 +466,9 @@ enabled = true
 verify_jwt = true
 import_map = "./functions/generate-image/deno.json"
 entrypoint = "./functions/generate-image/index.ts"
+
+[functions.send-log]
+enabled = true
+verify_jwt = true
+import_map = "./functions/send-log/deno.json"
+entrypoint = "./functions/send-log/index.ts"
