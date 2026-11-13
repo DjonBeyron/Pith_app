@@ -1,11 +1,13 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-const m = vi.hoisted(() => ({ closeGameMic: vi.fn(), shutGameMic: vi.fn(), hasGameMic: vi.fn(() => true), isGameMicIdle: vi.fn(() => true), stopAllMics: vi.fn(() => 1) }))
+const m = vi.hoisted(() => ({ closeAll: vi.fn(() => Promise.resolve({ closed: 2, kinds: ['sounds', 'game'], timedOut: 0 })), active: false, settle: vi.fn(() => true), closeGameMic: vi.fn(), shutGameMic: vi.fn(), hasGameMic: vi.fn(() => true), isGameMicIdle: vi.fn(() => true), stopAllMics: vi.fn(() => 1) }))
 vi.mock('./gameMic.js', () => ({ closeGameMic: m.closeGameMic, shutGameMic: m.shutGameMic, hasGameMic: m.hasGameMic, isGameMicIdle: m.isGameMicIdle }))
+vi.mock('./audioContextRegistry.js', () => ({ closeAll: m.closeAll }))
+vi.mock('./gameMicSession.js', () => ({ gameAudioSession: { get active() { return m.active }, settle: m.settle } }))
 vi.mock('./micRegistry.js', () => ({ stopAllMics: m.stopAllMics }))
-const { leaveGameMic, shutAllMics, LEAVE_SHUT_MS } = await import('./gameMicLeave.js')
+const { leaveGameMic, shutAllMics, resetAudioAfterGame, LEAVE_SHUT_MS } = await import('./gameMicLeave.js')
 
 describe('выход из игры (gameMicLeave)', () => {
-  beforeEach(() => { vi.useFakeTimers(); Object.values(m).forEach(f => f.mockClear()); m.hasGameMic.mockReturnValue(true); m.isGameMicIdle.mockReturnValue(true) })
+  beforeEach(() => { vi.useFakeTimers(); Object.values(m).forEach(f => typeof f === 'function' && f.mockClear?.()); m.active = false; m.hasGameMic.mockReturnValue(true); m.isGameMicIdle.mockReturnValue(true) })
   afterEach(() => vi.useRealTimers())
 
   it('выход: дорожка выключается сразу, через LEAVE_SHUT_MS — игровой поток и все остальные дорожки закрываются', () => {
@@ -23,5 +25,15 @@ describe('выход из игры (gameMicLeave)', () => {
     leaveGameMic(); expect(shutAllMics('урок закрыт')).toBe(1)
     expect(m.shutGameMic).toHaveBeenCalledTimes(1)
     vi.advanceTimersByTime(LEAVE_SHUT_MS * 2); expect(m.shutGameMic).toHaveBeenCalledTimes(1)
+  })
+
+  it('resetAudioAfterGame: тип auto → закрыть ВСЕ контексты → playback; начавшуюся заново игру не трогает', async () => {
+    const nav = { audioSession: { type: 'playback' } }
+    const types = []
+    Object.defineProperty(nav, 'audioSession', { value: { get type() { return types.at(-1) ?? 'playback' }, set type(v) { types.push(v) } } })
+    const r = await resetAudioAfterGame('выход', { nav })
+    expect(types).toEqual(['auto']); expect(m.closeAll).toHaveBeenCalledTimes(1); expect(r.closed).toBe(2); expect(m.settle).toHaveBeenCalledWith('выход')
+    m.closeAll.mockClear(); m.settle.mockClear(); m.active = true
+    expect(await resetAudioAfterGame('выход', { nav })).toBeNull(); expect(m.closeAll).not.toHaveBeenCalled(); expect(m.settle).not.toHaveBeenCalled()
   })
 })

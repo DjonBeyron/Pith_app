@@ -21,7 +21,15 @@ export const LOUDNESS_MODES = ['normal', 'mid', 'loud', 'louder', 'max', 'cap3',
 export const LOUDNESS_LABELS = { normal: 'Обычная (старая)', mid: 'Чуть громче (+3,5 дБ)', loud: 'Громче (+5 дБ)', louder: 'Ещё громче (+8 дБ)', max: 'Максимум (+9 дБ, сильное сжатие)', cap3: 'Громко, потолок −3 дБ (≈ +6 дБ на динамике) — умолчание', cap6: 'Потолок −6 дБ (≈ +5 дБ на динамике)' }
 // v3.3.217 (замечание владельца: «не громче нормы, но много низов, пик за −6»): у cap3 61 % энергии ниже 200 Гц (у обычной 42 %) — динамик телефона их не воспроизводит (выше 350 Гц cap3 был лишь +4,4 дБ к обычной, а «+8» — +6,4),
 // а низы съедают запас у компрессора и лимитера. eq: срез ниже 300 Гц ПЕРЕД компрессором + подъём «разборчивости» 3 кГц (+6 дБ) после него: низов 22 %, на динамике cap3 ≈ +6,3 дБ при пике ≈ −2,9 dBFS.
-const EQ_PHONE = { hp: 300, pres: { f: 3000, q: 0.7, g: 6 } }
+// v3.3.218: срез низов стал отдельной настройкой (владелец играл на «Ещё громче» — у неё EQ не было, а низов «всё ещё много»): работает со всеми режимами кроме «Обычной». Значения — частота среза, Гц.
+export const LOWCUT_KEY = 'pithy_game_lowcut_v1'
+export const LOWCUT_MODES = ['off', '200', '300', '400', '500']
+export const DEFAULT_LOWCUT = '400'
+export const LOWCUT_LABELS = { off: 'Низы: как есть', 200: 'Срез 200 Гц', 300: 'Срез 300 Гц', 400: 'Срез 400 Гц (умолчание)', 500: 'Срез 500 Гц (тонкий голос)' }
+export const readLowCut = (store = globalThis.localStorage) => { try { const v = store?.getItem(LOWCUT_KEY); return LOWCUT_MODES.includes(v) ? v : DEFAULT_LOWCUT } catch { return DEFAULT_LOWCUT } }
+export const writeLowCut = (value, store = globalThis.localStorage) => { try { if (LOWCUT_MODES.includes(value)) store?.setItem(LOWCUT_KEY, value) } catch { /* ниже проверим чтением */ } return readLowCut(store) === value }
+/** EQ для пресета: срез низов перед компрессором + подъём разборчивости 3 кГц (+6 дБ) после мастера; null — без EQ («Обычная» или срез выключен) */
+export const eqFor = (p, store = globalThis.localStorage) => { const cut = readLowCut(store); return p === PRESETS.normal || cut === 'off' ? null : { hp: Number(cut), pres: { f: 3000, q: 0.7, g: 6 } } }
 export const PRESETS = {
   normal: { maxGain: 4, peakDb: -1, rmsCeilDb: -18, comp: { threshold: -10, ratio: 4, knee: 10, attack: 0.003, release: 0.25 }, master: 1, limiter: null },
   // v3.3.212 («Пит ≈ на 30 % тише Telegram» при уже исправленной сессии playback): замер на тех же 35 словах — RMS речи −14,1 dBFS (+3,7 дБ к обычной −17,8), пик −0,4, обрезанных отсчётов 0
@@ -33,8 +41,8 @@ export const PRESETS = {
   max: { maxGain: 10, peakDb: -1, rmsCeilDb: -10, comp: { threshold: -32, ratio: 6, knee: 18, attack: 0.005, release: 0.12 }, master: 1.6, limiter: { threshold: -5, ratio: 20, knee: 0, attack: 0.001, release: 0.08 }, shape: 1.4, ceil: 0.94 },
   // v3.3.215 (замер на тех же 35 словах, Chromium OfflineAudioContext): «потолок» — пики не выше заданного уровня. v3.3.217 с EQ_PHONE (выше 350 Гц, как слышит динамик телефона): cap3 −11,2 (обычная −17,5), пик −2,9, низов 22 % вместо 61 %; cap6 −12,8, пик ≈ −5,5…−6 (ceil 0,42: передискретизация WaveShaper даёт ≈ +1,5 дБ над расчётным).
   // Громкость и потолок пиков связаны: у louder (+8) пик −0,3 dBFS; чтобы пик был ≤ −6, речь не может быть громче ≈ +5 дБ. Сильное сжатие (12–16:1) + лимитер ниже потолка + WaveShaper + ceil (множитель после него) держат потолок.
-  cap3: { maxGain: 10, peakDb: -1, rmsCeilDb: -9, comp: { threshold: -42, ratio: 12, knee: 8, attack: 0.003, release: 0.1 }, master: 4.0, limiter: { threshold: -6, ratio: 20, knee: 0, attack: 0.001, release: 0.08 }, shape: 1.4, ceil: 0.63, eq: EQ_PHONE },
-  cap6: { maxGain: 10, peakDb: -1, rmsCeilDb: -8, comp: { threshold: -46, ratio: 16, knee: 6, attack: 0.002, release: 0.1 }, master: 5.5, limiter: { threshold: -8, ratio: 20, knee: 0, attack: 0.001, release: 0.08 }, shape: 1.6, ceil: 0.42, eq: EQ_PHONE },
+  cap3: { maxGain: 10, peakDb: -1, rmsCeilDb: -9, comp: { threshold: -42, ratio: 12, knee: 8, attack: 0.003, release: 0.1 }, master: 4.0, limiter: { threshold: -6, ratio: 20, knee: 0, attack: 0.001, release: 0.08 }, shape: 1.4, ceil: 0.63 },
+  cap6: { maxGain: 10, peakDb: -1, rmsCeilDb: -8, comp: { threshold: -46, ratio: 16, knee: 6, attack: 0.002, release: 0.1 }, master: 5.5, limiter: { threshold: -8, ratio: 20, knee: 0, attack: 0.001, release: 0.08 }, shape: 1.6, ceil: 0.42 },
 }
 export const DEFAULT_LOUDNESS = 'cap3' // v3.3.215: «+8 дБ нравится, но пики вылезают за границы, а +5 маловато» → громко, но с настоящим потолком пиков −3 дБFS (3.3.213 был 'max'); 'normal' — прежняя цепочка (до 3.3.197)
 export const readLoudness = (store = globalThis.localStorage) => { try { const v = store?.getItem(LOUDNESS_KEY); return LOUDNESS_MODES.includes(v) ? v : DEFAULT_LOUDNESS } catch { return DEFAULT_LOUDNESS } }
@@ -113,10 +121,11 @@ export function outputOf(ctx, { kind = 'игра', log = pLog } = {}) {
       master.gain.value = p.master
       comp.connect(master)
       let tail = master, input = comp
-      if (p.eq && typeof ctx.createBiquadFilter === 'function') { // срез низов перед компрессором, подъём разборчивости после него (EQ_PHONE)
-        const hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = p.eq.hp; hp.Q.value = 0.707
+      const eq = eqFor(p)
+      if (eq && typeof ctx.createBiquadFilter === 'function') { // срез низов перед компрессором, подъём разборчивости после него (eqFor)
+        const hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = eq.hp; hp.Q.value = 0.707
         hp.connect(comp); input = hp
-        const pk = ctx.createBiquadFilter(); pk.type = 'peaking'; pk.frequency.value = p.eq.pres.f; pk.Q.value = p.eq.pres.q; pk.gain.value = p.eq.pres.g
+        const pk = ctx.createBiquadFilter(); pk.type = 'peaking'; pk.frequency.value = eq.pres.f; pk.Q.value = eq.pres.q; pk.gain.value = eq.pres.g
         master.connect(pk); tail = pk
       }
       if (p.limiter) { // жёсткий лимитер в конце: пики не вылезают за 0 dBFS, усиление не даёт хруста
@@ -140,6 +149,6 @@ export function outputOf(ctx, { kind = 'игра', log = pLog } = {}) {
     }
   } catch { node = ctx.destination }
   outs.set(ctx, node)
-  try { log(`[audio] громкость: сессия ${sessionType()}, мастер-gain ${MASTER_GAIN}, ${node === ctx.destination ? 'без лимитера' : `режим «${readLoudness()}»: сжатие ${preset().comp.threshold} дБ ${preset().comp.ratio}:1 колено ${preset().comp.knee}${preset().limiter ? `, лимитер ${preset().limiter.threshold} дБ` : ''}`}, нормализация до ${PEAK_TARGET_DB} dBFS (≤ ×${MAX_GAIN}, RMS ≤ ${RMS_CEIL_DB}) — ${kind}`) } catch { /* журнал */ }
+  try { log(`[audio] громкость: сессия ${sessionType()}, мастер-gain ${MASTER_GAIN}, ${node === ctx.destination ? 'без лимитера' : `режим «${readLoudness()}»: сжатие ${preset().comp.threshold} дБ ${preset().comp.ratio}:1 колено ${preset().comp.knee}${preset().limiter ? `, лимитер ${preset().limiter.threshold} дБ` : ''}, срез низов ${eqFor(preset())?.hp ?? 'нет'}${eqFor(preset()) ? ' Гц' : ''}`}, нормализация до ${PEAK_TARGET_DB} dBFS (≤ ×${MAX_GAIN}, RMS ≤ ${RMS_CEIL_DB}) — ${kind}`) } catch { /* журнал */ }
   return node
 }

@@ -3,7 +3,7 @@ import { openGameMic, shutGameMic, describeGameMic } from '../../../shared/lib/g
 import { getGameCtx, unlockGameCtx, peekGameCtx } from '../../../shared/lib/gameAudioCtx.js'
 import { playGameBuffer } from '../../../shared/lib/gameBufferPlay.js'
 import { nudgeVolume, testToneBuffer, readNudgeMode, writeNudgeMode } from '../../../shared/lib/gameVolumeNudge.js'
-import { readLoudness, writeLoudness, LOUDNESS_MODES, LOUDNESS_LABELS } from '../../../shared/lib/audioLoudness.js'
+import { readLoudness, writeLoudness, LOUDNESS_MODES, LOUDNESS_LABELS, readLowCut, writeLowCut, LOWCUT_MODES, LOWCUT_LABELS } from '../../../shared/lib/audioLoudness.js'
 import { readMediaKeep, writeMediaKeep } from '../../../shared/lib/gameMediaKeep.js'
 import { readMicHoldMode, writeMicHoldMode, readAudioSessionMode, writeAudioSessionMode } from '../../../shared/lib/gameAudioSettings.js'
 import GameVolumeLab from './GameVolumeLab.jsx'
@@ -19,6 +19,7 @@ const AUTO = [['off', 'Выкл'], ...NUDGES.map(([v, t]) => [v, t[0].toUpperCas
 export default function GameVolumeBlock() {
   const [auto, setAuto] = useState(readNudgeMode)
   const [loud, setLoud] = useState(readLoudness)
+  const [cut, setCut] = useState(readLowCut)
   const [keep, setKeep] = useState(readMediaKeep)
   const [hold, setHold] = useState(readMicHoldMode)
   const [sess, setSess] = useState(readAudioSessionMode)
@@ -39,6 +40,10 @@ export default function GameVolumeBlock() {
   const pickLoud = v => {
     if (!writeLoudness(v)) { setLoud(readLoudness()); setNote('Не удалось сохранить режим громкости: хранилище телефона не принимает запись (переполнено или закрыто). Режим не изменён.'); return }
     setLoud(readLoudness()); setNote(`Режим «${LOUDNESS_LABELS[v]}» сохранён — перезагружаю страницу…`); setTimeout(() => globalThis.location?.reload?.(), 500)
+  }
+  const pickCut = v => {
+    if (!writeLowCut(v)) { setCut(readLowCut()); setNote('Не удалось сохранить срез низов: хранилище телефона не принимает запись.'); return }
+    setCut(readLowCut()); setNote(`«${LOWCUT_LABELS[v]}» сохранён — перезагружаю страницу…`); setTimeout(() => globalThis.location?.reload?.(), 500)
   }
   return (
     <section className="aspBlock" data-testid="game-volume-block">
@@ -61,6 +66,11 @@ export default function GameVolumeBlock() {
       <h4 className="aspH">Громкость звуков игры (сейчас: {LOUDNESS_LABELS[loud]})</h4>
       <div className="aspChips" role="radiogroup" aria-label="Громкость звуков игры" data-testid="vol-loudness">
         {LOUDNESS_MODES.map(v => <button key={v} type="button" role="radio" aria-checked={loud === v} className={`aspChip${loud === v ? ' aspChipOn' : ''}`} onClick={() => pickLoud(v)} data-value={v}>{LOUDNESS_LABELS[v]}</button>)}
+      </div>
+      <h4 className="aspH">Низкие частоты (срез; сейчас: {LOWCUT_LABELS[cut]})</h4>
+      <p className="aspHint">Динамик телефона низы не воспроизводит, а компрессор и лимитер тратят на них запас — звук «гудит» и не громче. Срез убирает их до компрессора и чуть поднимает разборчивость (3 кГц); не действует на «Обычную». Больше Гц — суше и громче на динамике; в наушниках голос тоньше.</p>
+      <div className="aspChips" role="radiogroup" aria-label="Срез низких частот" data-testid="vol-lowcut">
+        {LOWCUT_MODES.map(v => <button key={v} type="button" role="radio" aria-checked={cut === v} className={`aspChip${cut === v ? ' aspChipOn' : ''}`} onClick={() => pickCut(v)} data-value={v}>{LOWCUT_LABELS[v]}</button>)}
       </div>
       {note && <div className="aspCapVal" data-testid="vol-note">{note}</div>}
       <div className="aspRow">

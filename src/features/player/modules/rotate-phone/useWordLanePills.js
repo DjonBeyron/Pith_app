@@ -107,6 +107,7 @@ export function useWordLanePills(rootRef, { scene, levels, fx, live, sceneApi, t
       let claimedReps = 0
       const ghostUntil = new Map() // номер повтора → до какого момента показывать «тень» слова (только после неверно сказанного)
       const gate = createVoiceGate()
+      let lastVoiceAt = -Infinity // когда ворота последний раз пропускали голос: заливка в течение 2 с после голоса объяснима (пауза внутри слова)
       const unexplained = new Set() // пилюли, по которым «налита без голоса» уже записано
       const view = createFillView() // экран догоняет цель заливки плавно, без ступенек
       const t0 = performance.now()
@@ -170,7 +171,8 @@ export function useWordLanePills(rootRef, { scene, levels, fx, live, sceneApi, t
         const heardT = sig.heardAt ? t - (Date.now() - sig.heardAt) : -Infinity // когда распознаватель что-то услышал — на шкале ступени («аванс» заливки по первому черновику)
         const evs = stepStudent(g, t, { level, seq, misses: liveRef.current.misses, confirmed, tail: sig.tail ?? null, hold, pitMs, heardT })
         for (const e of evs) handle(e)
-        for (const q of g.pills) if (q.state === 'fly' && q.p >= 0.15 && level === 0 && !confirmed && !unexplained.has(q.id)) { unexplained.add(q.id); pLog(`[fill] ⚠ пилюля ${q.id} налита на ${Math.round(q.p * 100)} % без голоса и без подтверждения распознавателя: raw ${raw.toFixed(3)}, ворота пол ${gate.floor().toFixed(3)}, y ${Math.round(q.y)} %, Пит ${Math.round(pitMs)} мс`) } // журнал для разбора «заливается сама в тишине»: что именно сдвинуло заливку
+        if (level > 0) lastVoiceAt = now
+        for (const q of g.pills) if (q.state === 'fly' && q.p >= 0.15 && level === 0 && !confirmed && now - lastVoiceAt > 2000 && !unexplained.has(q.id)) { unexplained.add(q.id); pLog(`[fill] ⚠ пилюля ${q.id} налита на ${Math.round(q.p * 100)} % без голоса и без подтверждения распознавателя: raw ${raw.toFixed(3)}, ворота пол ${gate.floor().toFixed(3)}, y ${Math.round(q.y)} %, Пит ${Math.round(pitMs)} мс`) } // журнал для разбора «заливается сама в тишине»: что именно сдвинуло заливку
         dodger?.step(g.pills, t, evs)
         const now2 = performance.now()
         const byId = held.size ? new Map(g.pills.map(x => [x.id, x])) : null // одна карта на кадр вместо поиска по массиву на каждую пилюлю
