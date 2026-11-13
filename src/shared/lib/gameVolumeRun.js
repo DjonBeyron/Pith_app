@@ -9,21 +9,23 @@ import { playGameBuffer } from './gameBufferPlay.js'
 import { gameAudioSession } from './gameMicSession.js'
 import { gameMicHold } from './gameMicHold.js'
 import { readAudioSessionMode, writeAudioSessionMode, readMicHoldMode, writeMicHoldMode } from './gameAudioSettings.js'
-import { readNudgeMode, writeNudgeMode, testToneBuffer } from './gameVolumeNudge.js'
+import { readNudgeMode, writeNudgeMode, testToneBuffer, wavUrlOf } from './gameVolumeNudge.js'
 import { pLog } from './debug.js'
 
 export const SETTLE_MS = 150     // как в игре: аудиосессия «укладывается» после открытия микрофона
 export const PROMPT_AT_MS = 1000 // 'icon': столько мс после начала речи Пита просим нажать кнопку громкости
 export const REOPEN_WAIT_MS = 900 // после конца речи ждём повторного открытия микрофона (режим 'close')
 
-/** Конфигурации: mic:false — эталон (микрофон не открываем вовсе); hold — режим микрофона на речь Пита, sess — тип аудиосессии */
+/** Конфигурации (круг 2, v3.3.206): mic:false — микрофон не открываем; hold — режим микрофона на речь Пита, sess — тип аудиосессии; media — на время захода играет настоящий (не цифровая тишина) тихий шум в <audio>:
+ *  имитация «звук включён в ленте» (владелец: после включения звука в ленте первый тест громкий, как в Telegram) */
 export const RUN_CONFIGS = [
   { id: 'N', title: 'эталон: микрофон не открывался', mic: false },
+  { id: 'NM', title: 'эталон + играет медиа-звук (как «звук включён в ленте»)', mic: false, media: true },
+  { id: 'D', title: 'выключать дорожку + запись/воспр. (как сейчас в игре)', hold: 'enabled-false', sess: 'play-and-record' },
+  { id: 'DM', title: 'как D + играет медиа-звук', hold: 'enabled-false', sess: 'play-and-record', media: true },
   { id: 'K', title: 'закрывать микрофон + запись/воспр.', hold: 'close', sess: 'play-and-record' },
-  { id: 'D', title: 'выключать дорожку + запись/воспр. (как было)', hold: 'enabled-false', sess: 'play-and-record' },
-  { id: 'KA', title: 'закрывать микрофон + сессия авто', hold: 'close', sess: 'auto' },
-  { id: 'DA', title: 'выключать дорожку + сессия авто', hold: 'enabled-false', sess: 'auto' },
-  { id: 'NA', title: 'не трогать + сессия авто', hold: 'none', sess: 'auto' },
+  { id: 'KM', title: 'как K + играет медиа-звук', hold: 'close', sess: 'play-and-record', media: true },
+  { id: 'KP', title: 'закрывать микрофон + «по фазам» (playback на речь Пита)', hold: 'close', sess: 'phases' },
 ]
 
 /** Вопросы по видам итерации: [ключ, подпись, варианты] — ответ обязателен на каждый */
@@ -43,6 +45,20 @@ export function buildPlan(configs = RUN_CONFIGS, rounds = 2) {
 }
 
 const nap = ms => new Promise(r => setTimeout(r, ms))
+/** Настоящий медиа-элемент: зацикленный очень тихий шум (не цифровая тишина — беззвучный WAV в 3.3.201 не помог). start() вызывать из нажатия, без await перед getUserMedia → Promise<true|false> */
+export function noiseMedia({ make = url => new globalThis.Audio(url) } = {}) {
+  let el = null
+  return {
+    start() {
+      try {
+        el = make(wavUrlOf(Float32Array.from({ length: 44100 }, () => (Math.random() * 2 - 1) * 0.003), 22050))
+        el.loop = true; el.setAttribute?.('playsinline', '')
+        return Promise.resolve(el.play()).then(() => true, () => false)
+      } catch { return Promise.resolve(false) }
+    },
+    stop() { try { el?.pause?.() } catch { /* уже остановлен */ } el = null },
+  }
+}
 const typeNow = () => { try { return globalThis.navigator?.audioSession?.type ?? 'нет API' } catch { return 'нет API' } }
 
 /** Снимок состояния звука и микрофона: тип сессии, контекст, поток (открыт / закрыт нами / нет), дорожки */
@@ -56,7 +72,7 @@ export const snapText = s => `«${s.label}»: сессия=${s.sess} ctx=${s.ctx
 
 /** Одна итерация. buffer — AudioBuffer голоса Пита (нет — тон). → { ok, steps, snaps, ms }; ничего не бросает. Первым делом в нажатии: getUserMedia требует жест */
 export async function runIteration(item, deps = {}) {
-  const d = { unlock: unlockGameCtx, openMic: openGameMic, closeMic: closeGameMic, shutMic: shutGameMic, ses: gameAudioSession, hold: gameMicHold, play: b => playGameBuffer(b), ctx: getGameCtx, sleep: nap, snap: snapAudio, log: pLog, onPrompt: null, buffer: null, writeHold: writeMicHoldMode, writeSess: writeAudioSessionMode, writeNudge: writeNudgeMode, ...deps }
+  const d = { unlock: unlockGameCtx, openMic: openGameMic, closeMic: closeGameMic, shutMic: shutGameMic, ses: gameAudioSession, hold: gameMicHold, play: b => playGameBuffer(b), ctx: getGameCtx, sleep: nap, snap: snapAudio, log: pLog, onPrompt: null, buffer: null, writeHold: writeMicHoldMode, writeSess: writeAudioSessionMode, writeNudge: writeNudgeMode, media: noiseMedia(), ...deps }
   const { cfg, mode, n, of } = item
   const tag = `#${n}/${of} (${cfg.id}, ${mode === 'icon' ? 'иконка' : 'слушаю'})`
   const steps = [], snaps = [], t0 = performance.now(), say = s => { steps.push(s); try { d.log(`[прогон] ${tag}: ${s}`) } catch { /* журнал не мешает */ } }
@@ -66,6 +82,7 @@ export async function runIteration(item, deps = {}) {
     d.unlock?.()
     d.writeNudge('off') // автовстряска громкости не должна подменять результат
     if (cfg.mic === false) { d.shutMic?.('прогон: эталон'); say('эталон: микрофон остановлен') } else { d.writeHold(cfg.hold); d.writeSess(cfg.sess); say(`режим микрофона=${cfg.hold}, сессия=${cfg.sess}`) }
+    const mediaP = cfg.media ? d.media.start() : null // в нажатии, без await: дальше getUserMedia
     snap('до')
     if (cfg.mic !== false) {
       d.ses.begin() // тап «Голосом»: тип сессии → микрофон
@@ -76,6 +93,7 @@ export async function runIteration(item, deps = {}) {
       await d.sleep(SETTLE_MS)
       d.ses.begin() // сцена игры смонтирована (в игре это второй begin — см. v3.3.203)
     }
+    if (mediaP) say(`медиа-звук (<audio> с шумом −50 дБ): ${(await mediaP) ? 'играет' : 'не запустился'}`)
     const buf = d.buffer ?? testToneBuffer(d.ctx())
     const ms = Math.round((buf?.duration ?? 1.7) * 1000)
     const closeWin = cfg.mic === false ? () => {} : d.hold.holdFor(ms + 100)
@@ -91,6 +109,7 @@ export async function runIteration(item, deps = {}) {
   } catch (e) { say(`ошибка: ${e?.message ?? e}`) }
   try { d.hold.reset() } catch { /* уже сброшено */ }
   try { d.ses.end() } catch { /* уже закончена */ }
+  try { if (cfg.media) d.media.stop() } catch { /* уже остановлен */ }
   try { d.closeMic() } catch { /* уже закрыт */ } // как пауза/конец игры: поток «жив, выключен»
   return { ok, steps, snaps, ms: Math.round(performance.now() - t0) }
 }
