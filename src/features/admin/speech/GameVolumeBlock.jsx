@@ -5,6 +5,7 @@ import { playGameBuffer } from '../../../shared/lib/gameBufferPlay.js'
 import { nudgeVolume, testToneBuffer, readNudgeMode, writeNudgeMode } from '../../../shared/lib/gameVolumeNudge.js'
 import { readLoudness, writeLoudness, LOUDNESS_MODES, LOUDNESS_LABELS } from '../../../shared/lib/audioLoudness.js'
 import { readMediaKeep, writeMediaKeep } from '../../../shared/lib/gameMediaKeep.js'
+import { readMicHoldMode, writeMicHoldMode, readAudioSessionMode, writeAudioSessionMode } from '../../../shared/lib/gameAudioSettings.js'
 import GameVolumeLab from './GameVolumeLab.jsx'
 
 // Админ → «Голос»: «Громкость на iPhone» (замечание владельца, v3.3.192: «игра тише, чем может телефон; помогает кнопка громкости: тише, потом громче на миг»). Хруст голоса Пита чинили
@@ -18,6 +19,8 @@ export default function GameVolumeBlock() {
   const [auto, setAuto] = useState(readNudgeMode)
   const [loud, setLoud] = useState(readLoudness)
   const [keep, setKeep] = useState(readMediaKeep)
+  const [hold, setHold] = useState(readMicHoldMode)
+  const [sess, setSess] = useState(readAudioSessionMode)
   const [note, setNote] = useState('')
   const [mic, setMic] = useState(() => !!describeGameMic().open)
   const open = () => { unlockGameCtx(); openGameMic().then(r => { setMic(r === 'granted'); setNote(`Микрофон: ${r}`) }) } // getUserMedia и контекст — прямо в нажатии
@@ -29,14 +32,24 @@ export default function GameVolumeBlock() {
   }
   const nudge = async how => { setNote(`Встряхиваю: ${how}…`); const r = await nudgeVolume(how); setNote(`${how}: ${r.ok ? 'сделано' : 'не вышло'} (${r.ms} мс) — ${r.steps.join('; ')}`) }
   const pick = v => { writeNudgeMode(v); setAuto(readNudgeMode()) }
+  const pickHold = v => { writeMicHoldMode(v); setHold(readMicHoldMode()); setNote('Режим микрофона сохранён — действует со следующего старта игры (выйди из игры и нажми «Начать»)') }
+  const pickSess = v => { writeAudioSessionMode(v); setSess(readAudioSessionMode()); setNote('Тип сессии сохранён — действует со следующего старта игры') }
   const pickKeep = v => { writeMediaKeep(v); setKeep(readMediaKeep()); setNote(v === 'on' ? 'Включено: со следующего старта игры (тап «Начать») в фоне играет беззвучный <audio>' : 'Выключено: со следующего старта игры') }
   const pickLoud = v => { writeLoudness(v); setLoud(readLoudness()); setNote('Режим громкости сохранён — перезагружаю страницу…'); setTimeout(() => globalThis.location?.reload?.(), 500) }
   return (
     <section className="aspBlock" data-testid="game-volume-block">
       <h3 className="aspH">🔊 Стенд громкости и громкость на iPhone</h3>
       <p className="aspHint">Когда игра тише, чем может телефон, а кнопка громкости (тише → громче) это лечит: сначала проверь на слух, какая встряска помогает, потом включи её «само». Программно усиливать звук нельзя — вернётся хруст.</p>
-      <h4 className="aspH">Громкость как у медиа (беззвучный &lt;audio&gt; на время игры)</h4>
-      <p className="aspHint">На iPhone звук игры вдвое тише того же файла в Telegram, а беззвучный &lt;audio&gt; это выравнивает. Включено по умолчанию на iPhone; действует со следующего старта игры. С ним громкость звуков ставь «Обычная».</p>
+      <h4 className="aspH">Режим звонка: микрофон во время речи Пита</h4>
+      <p className="aspHint">Пока микрофон открыт, iPhone ведёт звук игры как звонок: в полоске громкости иконка трубки, и звук тише, чем вне игры (иконка динамика). Режим «Закрывать микрофон» на время речи Пита останавливает поток по-настоящему, и iPhone выходит из режима звонка, а когда Пит договорил, микрофон открывается заново. Включи его, выйди из игры, нажми «Начать» и смотри на иконку в полоске громкости, пока говорит Пит: динамик = режим звонка выключен.</p>
+      <div className="aspChips" role="radiogroup" aria-label="Микрофон во время речи Пита" data-testid="vol-hold">
+        {[['enabled-false', 'Выключать дорожку (как сейчас)'], ['close', 'Закрывать микрофон (громче)'], ['none', 'Не трогать']].map(([v, t]) => <button key={v} type="button" role="radio" aria-checked={hold === v} className={`aspChip${hold === v ? ' aspChipOn' : ''}`} onClick={() => pickHold(v)} data-value={v}>{t}</button>)}
+      </div>
+      <div className="aspChips" role="radiogroup" aria-label="Аудиосессия iOS" data-testid="vol-session">
+        {[['play-and-record', 'Сессия: запись+воспр. (как сейчас)'], ['auto', 'Сессия: авто'], ['phases', 'Сессия: по фазам']].map(([v, t]) => <button key={v} type="button" role="radio" aria-checked={sess === v} className={`aspChip${sess === v ? ' aspChipOn' : ''}`} onClick={() => pickSess(v)} data-value={v}>{t}</button>)}
+      </div>
+      <h4 className="aspH">Беззвучный &lt;audio&gt; на время игры (не помог в 3.3.201)</h4>
+      <p className="aspHint">На iPhone звук игры вдвое тише того же файла в Telegram. По умолчанию выключено (3.3.202): в журнале 3.3.201 элемент играл, а игра осталась тихой. Действует со следующего старта игры.</p>
       <div className="aspChips" role="radiogroup" aria-label="Громкость как у медиа" data-testid="vol-keep">
         {[['on', 'Вкл'], ['off', 'Выкл']].map(([v, t]) => <button key={v} type="button" role="radio" aria-checked={keep === v} className={`aspChip${keep === v ? ' aspChipOn' : ''}`} onClick={() => pickKeep(v)} data-value={v}>{t}</button>)}
       </div>

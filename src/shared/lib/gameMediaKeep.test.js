@@ -40,12 +40,12 @@ describe('громкость как у медиа', () => {
     await Promise.resolve(); await Promise.resolve()
     expect(r.keep.isPlaying()).toBe(false); expect(r.log.mock.calls.at(-1)[0]).toContain('NotAllowedError')
   })
-  it('настройка: по умолчанию on только на iOS; сохранённое значение главнее; сброс стирает ключ', () => {
+  it('настройка: по умолчанию выкл. (v3.3.202); включается только явным on; мусор = выкл.; сброс стирает ключ', () => {
     const st = mem()
-    expect(readMediaKeep(st, true)).toBe('on'); expect(readMediaKeep(st, false)).toBe('off')
-    writeMediaKeep('off', st); expect(readMediaKeep(st, true)).toBe('off')
-    writeMediaKeep('on', st); expect(readMediaKeep(st, false)).toBe('on')
-    st.setItem(MEDIA_KEEP_KEY, 'мусор'); expect(readMediaKeep(st, true)).toBe('on')
+    expect(readMediaKeep(st)).toBe('off')
+    writeMediaKeep('on', st); expect(readMediaKeep(st)).toBe('on')
+    st.setItem(MEDIA_KEEP_KEY, 'мусор'); expect(readMediaKeep(st)).toBe('off')
+    writeMediaKeep('off', st); expect(readMediaKeep(st)).toBe('off')
     writeMediaKeep('auto', st); expect(st.m.has(MEDIA_KEEP_KEY)).toBe(false)
   })
 })

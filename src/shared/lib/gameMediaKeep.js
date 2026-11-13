@@ -3,15 +3,14 @@
 // Вывод: пока на странице не играет медиа-элемент, звук Web Audio идёт по приглушённому пути аудиосессии; любой играющий <audio> переключает страницу на обычную «медиа»-громкость.
 // Что делаем: на время игры (микрофон игры открыт) в фоне крутится беззвучный зацикленный <audio>. start() — из нажатия (openGameMic зовётся в тапе «Начать» / «Продолжить»: элемент «разблокируется»
 // жестом, потом play() работает и без жеста), refresh() — когда микрофон открылся (аудиосессия сменилась на запись → элемент перезапускаем, так же как делала кнопка «Встряхнуть: <audio>»), stop() — пауза / конец игры.
-// Настройка pithy_game_media_keep_v1 ('on' / 'off'); по умолчанию — включено только на iPhone / iPad (на Android проигрывающий <audio> показывает системную карточку «Сейчас играет»).
+// Настройка pithy_game_media_keep_v1 ('on' / 'off'); с v3.3.202 по умолчанию ВЫКЛЮЧЕНО: журнал владельца по 3.3.201 — элемент «играл» («старт — играет»), а игра осталась такой же тихой (причина — открытый поток микрофона, режим звонка, а не отсутствие медиа-элемента); на Android и iOS играющий <audio> ещё и показывает карточку «Сейчас играет».
 // Побочный эффект на iOS: пока игра идёт, у приложения может быть карточка «Сейчас играет» — после паузы / конца игры пропадает. Зависимости подставляются (тесты без браузера).
 import { silentWavUrl } from './gameVolumeNudge.js'
-import { isIos } from './soundVolume.js'
 import { pLog } from './debug.js'
 
 export const MEDIA_KEEP_KEY = 'pithy_game_media_keep_v1'
 
-export const readMediaKeep = (store = globalThis.localStorage, ios = isIos()) => { try { const v = store?.getItem(MEDIA_KEEP_KEY); return v === 'on' || v === 'off' ? v : (ios ? 'on' : 'off') } catch { return ios ? 'on' : 'off' } }
+export const readMediaKeep = (store = globalThis.localStorage) => { try { const v = store?.getItem(MEDIA_KEEP_KEY); return v === 'on' ? 'on' : 'off' } catch { return 'off' } }
 export const writeMediaKeep = (value, store = globalThis.localStorage) => { try { if (value === 'on' || value === 'off') store?.setItem(MEDIA_KEEP_KEY, value); else store?.removeItem(MEDIA_KEEP_KEY) } catch { /* приватный режим */ } }
 
 export function createMediaKeep({ make = url => new globalThis.Audio(url), read = readMediaKeep, log = pLog } = {}) {
