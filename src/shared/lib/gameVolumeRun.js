@@ -3,7 +3,7 @@
 // играет через тот же вывод игры, окно речи gameMicHold на время реплики, потом повторное открытие микрофона. Конфигурация (режим микрофона × тип сессии) на экране НЕ показывается — оценка вслепую;
 // она пишется в журнал. Итерации двух видов: 'listen' (громкость и хруст на слух, кнопки громкости НЕ трогаем — они сами «встряхивают» вывод) и 'icon' (в середине речи нажать ▲, посмотреть иконку, нажать ▼).
 // Чистая логика: игровые модули и часы подставляются (тесты без браузера). Журнал: строки «[прогон] …» (pLog) + события audio-session / mic-hold, которые игровые модули пишут сами.
-import { openGameMic, closeGameMic, shutGameMic, describeGameMic } from './gameMic.js'
+import { openGameMic, closeGameMic, shutGameMic, describeGameMic, peekGameMic } from './gameMic.js'
 import { unlockGameCtx, getGameCtx, peekGameCtx } from './gameAudioCtx.js'
 import { playGameBuffer } from './gameBufferPlay.js'
 import { gameAudioSession } from './gameMicSession.js'
@@ -16,14 +16,16 @@ export const SETTLE_MS = 150     // как в игре: аудиосессия �
 export const PROMPT_AT_MS = 1000 // 'icon': столько мс после начала речи Пита просим нажать кнопку громкости
 export const REOPEN_WAIT_MS = 900 // после конца речи ждём повторного открытия микрофона (режим 'close')
 
-/** Конфигурации (круг 3, v3.3.207): mic:false — микрофон не открываем; hold — режим микрофона на речь Пита, sess — тип аудиосессии; media — на время захода играет настоящий тихий шум в <audio> (круг 2: имитация «звук включён в ленте»,
- *  шипел и поток с открытым микрофоном не лечил — в круге 3 не нужен, но поддержан). Круг 2 показал: «закрывать микрофон + по фазам» (KP) — громко как в Telegram и без шипения; круг 3 проверяет, что будет при ЖИВОМ потоке (так играет перевод слов: слушатель держит микрофон). */
+/** Конфигурации (круг 4, v3.3.209): mic:false — микрофон не открываем; hold — режим микрофона на речь Пита, sess — тип аудиосессии; media — настоящий тихий шум в <audio> (круг 2); capture — как слушатель игры: контекст захвата
+ *  с MediaStreamSource на живом потоке ('before' — запущен до речи Пита, 'during' — стартует через ≈ 1 с после начала речи, как слушатель на первой реплике гонки). Круг 3 показал: «по фазам» без захвата громко и как Telegram, а в настоящей
+ *  игре (там слушатель держит захват) — по-прежнему тихо; круг 4 проверяет, не возвращает ли режим звонка сам захват микрофона на Web Audio. Кусков захвата и нулевых кусков по этапам видно в снимках (идут ли отсчёты, пока playback). */
 export const RUN_CONFIGS = [
   { id: 'N', title: 'эталон: микрофон не открывался', mic: false },
-  { id: 'D', title: 'выключать дорожку + запись/воспр. (как сейчас в игре)', hold: 'enabled-false', sess: 'play-and-record' },
-  { id: 'KP', title: 'закрывать микрофон + «по фазам» (победитель круга 2)', hold: 'close', sess: 'phases' },
-  { id: 'DP', title: 'дорожка выключена (поток ЖИВ) + «по фазам»', hold: 'enabled-false', sess: 'phases' },
-  { id: 'NP', title: 'поток ЖИВ и дорожка включена (как у слушателя во время перевода) + «по фазам»', hold: 'none', sess: 'phases' },
+  { id: 'DP', title: 'по фазам, поток жив, дорожка выключена, БЕЗ захвата (контроль круга 3)', hold: 'enabled-false', sess: 'phases' },
+  { id: 'DC', title: 'как сейчас в игре (play-and-record, дорожка выключена) + захват слушателя до речи', hold: 'enabled-false', sess: 'play-and-record', capture: 'before' },
+  { id: 'DPC', title: 'по фазам, дорожка выключена + захват слушателя ДО речи', hold: 'enabled-false', sess: 'phases', capture: 'before' },
+  { id: 'NPC', title: 'по фазам, дорожка включена (как перевод) + захват слушателя ДО речи', hold: 'none', sess: 'phases', capture: 'before' },
+  { id: 'DPD', title: 'по фазам, дорожка выключена + захват СТАРТУЕТ во время речи (как на первой реплике гонки)', hold: 'enabled-false', sess: 'phases', capture: 'during' },
 ]
 
 /** Вопросы по видам итерации: [ключ, подпись, варианты] — ответ обязателен на каждый */
@@ -70,12 +72,18 @@ export const snapText = s => `«${s.label}»: сессия=${s.sess} ctx=${s.ctx
 
 /** Одна итерация. buffer — AudioBuffer голоса Пита (нет — тон). → { ok, steps, snaps, ms }; ничего не бросает. Первым делом в нажатии: getUserMedia требует жест */
 export async function runIteration(item, deps = {}) {
-  const d = { unlock: unlockGameCtx, openMic: openGameMic, closeMic: closeGameMic, shutMic: shutGameMic, ses: gameAudioSession, hold: gameMicHold, play: b => playGameBuffer(b), ctx: getGameCtx, sleep: nap, snap: snapAudio, log: pLog, onPrompt: null, buffer: null, writeHold: writeMicHoldMode, writeSess: writeAudioSessionMode, writeNudge: writeNudgeMode, media: noiseMedia(), ...deps }
+  const d = { unlock: unlockGameCtx, openMic: openGameMic, closeMic: closeGameMic, shutMic: shutGameMic, ses: gameAudioSession, hold: gameMicHold, play: b => playGameBuffer(b), ctx: getGameCtx, sleep: nap, snap: snapAudio, log: pLog, onPrompt: null, buffer: null, writeHold: writeMicHoldMode, writeSess: writeAudioSessionMode, writeNudge: writeNudgeMode, media: noiseMedia(), capture: null, stream: peekGameMic, ...deps }
   const { cfg, mode, n, of } = item
   const tag = `#${n}/${of} (${cfg.id}, ${mode === 'icon' ? 'иконка' : 'слушаю'})`
   const steps = [], snaps = [], t0 = performance.now(), say = s => { steps.push(s); try { d.log(`[прогон] ${tag}: ${s}`) } catch { /* журнал не мешает */ } }
-  let ok = false
-  const snap = label => { const s = d.snap(label); snaps.push(s); say(`снимок ${snapText(s)}`) }
+  let ok = false, cap = null, seg = { n: 0, z: 0, max: 0 }
+  const segText = () => { const t = `захват микрофона: кусков ${seg.n}, нулевых ${seg.z}, макс rms ${seg.max.toFixed(4)}`; seg = { n: 0, z: 0, max: 0 }; return t }
+  const startCap = () => { // как слушатель игры: контекст захвата игры (один на игру) + MediaStreamSource на живом потоке
+    if (!cfg.capture) return
+    if (!d.capture) { say('захват слушателя не подключён (нет startCapture)'); return }
+    try { cap = d.capture({ stream: d.stream(), onChunk: c => { seg.n += 1; if (!(c.rms > 0)) seg.z += 1; seg.max = Math.max(seg.max, c.rms || 0) } }); say(`захват слушателя запущен (${cfg.capture})`) } catch (e) { say(`захват не запустился: ${e?.message ?? e}`) }
+  }
+  const snap = label => { const s = d.snap(label); snaps.push(s); say(`снимок ${snapText(s)}${cap ? ` | ${segText()}` : ''}`) }
   try {
     d.unlock?.()
     d.writeNudge('off') // автовстряска громкости не должна подменять результат
@@ -90,6 +98,7 @@ export async function runIteration(item, deps = {}) {
       if (cfg.hold === 'close') d.hold.parkNow()
       await d.sleep(SETTLE_MS)
       d.ses.begin() // сцена игры смонтирована (в игре это второй begin — см. v3.3.203)
+      if (cfg.capture === 'before') startCap()
     }
     if (mediaP) say(`медиа-звук (<audio> с шумом −50 дБ): ${(await mediaP) ? 'играет' : 'не запустился'}`)
     const buf = d.buffer ?? testToneBuffer(d.ctx())
@@ -99,6 +108,7 @@ export async function runIteration(item, deps = {}) {
     say(ok ? `играет ${d.buffer ? 'голос Пита' : 'тон'} ${ms} мс` : 'звук не запустился')
     await d.sleep(mode === 'icon' ? PROMPT_AT_MS : 600)
     if (mode === 'icon') d.onPrompt?.()
+    if (cfg.capture === 'during') startCap()
     snap(mode === 'icon' ? 'в речи, момент нажатия' : 'в речи')
     await d.sleep(Math.max(0, ms - (mode === 'icon' ? PROMPT_AT_MS : 600)) + 200)
     closeWin()
@@ -107,6 +117,7 @@ export async function runIteration(item, deps = {}) {
   } catch (e) { say(`ошибка: ${e?.message ?? e}`) }
   try { d.hold.reset() } catch { /* уже сброшено */ }
   try { d.ses.end() } catch { /* уже закончена */ }
+  try { cap?.stop() } catch { /* уже остановлен */ }
   try { if (cfg.media) d.media.stop() } catch { /* уже остановлен */ }
   try { d.closeMic() } catch { /* уже закрыт */ } // как пауза/конец игры: поток «жив, выключен»
   return { ok, steps, snaps, ms: Math.round(performance.now() - t0) }

@@ -17,16 +17,17 @@ const mkDeps = (over = {}) => {
 }
 
 describe('план прогона', () => {
-  it('10 заходов (5 конфигураций × 2): круг 1 «слушаю» по списку, круг 2 «иконка» в обратном порядке; номера сквозные', () => {
+  it('12 заходов (6 конфигураций × 2): круг 1 «слушаю» по списку, круг 2 «иконка» в обратном порядке; номера сквозные', () => {
     const p = buildPlan()
-    expect(RUN_CONFIGS.map(c => c.id)).toEqual(['N', 'D', 'KP', 'DP', 'NP'])
-    expect(p).toHaveLength(10)
-    expect(p.slice(0, 5).map(x => x.cfg.id)).toEqual(RUN_CONFIGS.map(c => c.id))
-    expect(p.slice(5).map(x => x.cfg.id)).toEqual(RUN_CONFIGS.map(c => c.id).reverse())
-    expect(p.slice(0, 5).every(x => x.mode === 'listen') && p.slice(5).every(x => x.mode === 'icon')).toBe(true)
-    expect(p.map(x => x.n)).toEqual([...Array(10).keys()].map(i => i + 1))
-    expect(p.every(x => x.of === 10)).toBe(true)
-    expect(RUN_CONFIGS.find(c => c.id === 'NP')).toMatchObject({ hold: 'none', sess: 'phases' })
+    expect(RUN_CONFIGS.map(c => c.id)).toEqual(['N', 'DP', 'DC', 'DPC', 'NPC', 'DPD'])
+    expect(p).toHaveLength(12)
+    expect(p.slice(0, 6).map(x => x.cfg.id)).toEqual(RUN_CONFIGS.map(c => c.id))
+    expect(p.slice(6).map(x => x.cfg.id)).toEqual(RUN_CONFIGS.map(c => c.id).reverse())
+    expect(p.slice(0, 6).every(x => x.mode === 'listen') && p.slice(6).every(x => x.mode === 'icon')).toBe(true)
+    expect(p.map(x => x.n)).toEqual([...Array(12).keys()].map(i => i + 1))
+    expect(p.every(x => x.of === 12)).toBe(true)
+    expect(RUN_CONFIGS.find(c => c.id === 'NPC')).toMatchObject({ hold: 'none', sess: 'phases', capture: 'before' })
+    expect(RUN_CONFIGS.find(c => c.id === 'DPD').capture).toBe('during')
   })
 })
 
@@ -64,6 +65,28 @@ describe('одна итерация', () => {
     const { deps: d2 } = mkDeps(); await runIteration({ cfg: KP, mode: 'listen', n: 7, of: 14 }, d2)
     expect(d2.writeSess).toHaveBeenCalledWith('phases'); expect(d2.writeHold).toHaveBeenCalledWith('close')
   })
+  it("захват слушателя: 'before' стартует до звука, 'during' — после его начала; счётчик кусков и нулевых по этапам; останавливается при уборке", async () => {
+    const mk = cfg => {
+      const order = [], stop = vi.fn()
+      const capture = vi.fn(({ onChunk }) => { order.push('capture'); onChunk({ rms: 0 }); onChunk({ rms: 0.05 }); return { stop } })
+      const { deps } = mkDeps({ deps: { capture, stream: () => ({ s: 1 }), play: b => { order.push('play'); return !!b } } })
+      return { order, stop, capture, deps, cfg }
+    }
+    const b = mk({ id: 'X', hold: 'enabled-false', sess: 'phases', capture: 'before' })
+    const rb = await runIteration({ cfg: b.cfg, mode: 'listen', n: 1, of: 1 }, b.deps)
+    expect(b.order).toEqual(['capture', 'play']); expect(b.stop).toHaveBeenCalledTimes(1)
+    expect(b.capture).toHaveBeenCalledWith(expect.objectContaining({ stream: { s: 1 } }))
+    expect(rb.steps.join('|')).toContain('захват микрофона: кусков 2, нулевых 1, макс rms 0.0500')
+    const dd = mk({ id: 'Y', hold: 'enabled-false', sess: 'phases', capture: 'during' })
+    await runIteration({ cfg: dd.cfg, mode: 'listen', n: 1, of: 1 }, dd.deps)
+    expect(dd.order).toEqual(['play', 'capture'])
+    const none = mk({ id: 'Z', hold: 'enabled-false', sess: 'phases' })
+    await runIteration({ cfg: none.cfg, mode: 'listen', n: 1, of: 1 }, none.deps)
+    expect(none.capture).not.toHaveBeenCalled()
+    const bad = mk({ id: 'W', hold: 'enabled-false', sess: 'phases', capture: 'before' }); bad.deps.capture = () => { throw new Error('ctx') }
+    const rr = await runIteration({ cfg: bad.cfg, mode: 'listen', n: 1, of: 1 }, bad.deps)
+    expect(rr.steps.join('|')).toContain('захват не запустился: ctx'); expect(rr.ok).toBe(true)
+  })
   it('noiseMedia: элемент с зацикленным шумом (не тишина); не вышло — false, stop не падает', async () => {
     const el = { play: vi.fn(() => Promise.resolve()), pause: vi.fn(), setAttribute: vi.fn() }
     const m = noiseMedia({ make: url => { el.url = url; return el } })
@@ -92,7 +115,7 @@ describe('вспомогательное', () => {
     expect(answerLine(item, { icon: 'динамик', jump: 'нет' })).toBe('[прогон] #7/12 (K, иконка) ответ: Иконка в полоске громкости=динамик; После нажатия стало громче?=нет')
     const t = summaryText({ results: [{ item, answers: { icon: 'трубка', jump: 'да' }, ok: true }, { item: { ...item, n: 8 }, answers: {}, ok: false }], header: ['h'], journal: ['строка'] })
     expect(t).toContain('#7 K  иконка | Иконка в полоске громкости: трубка | После нажатия стало громче?: да')
-    expect(t).toContain('ЗВУК НЕ ИГРАЛ'); expect(t).toContain('KP = закрывать микрофон'); expect(t.endsWith('строка')).toBe(true)
+    expect(t).toContain('ЗВУК НЕ ИГРАЛ'); expect(t).toContain('DC = как сейчас в игре'); expect(t.endsWith('строка')).toBe(true)
     expect(Object.keys(QUESTIONS)).toEqual(['listen', 'icon'])
     expect(QUESTIONS.listen.map(q => q[0])).toEqual(['loud', 'crack', 'tg'])
   })

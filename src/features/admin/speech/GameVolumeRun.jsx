@@ -6,6 +6,7 @@ import { APP_VERSION } from '../../../shared/lib/version.js'
 import { pLog } from '../../../shared/lib/debug.js'
 import { saveDebugFile, SAVE_HOW } from '../../player/modules/rotate-phone/wordLaneDebugExport.js'
 import { loadPit } from './gameVolumePit.js'
+import { startCapture } from '../../pillstand/voiceset/voiceSetCapture.js'
 
 // Админ → «Голос» → «Стенд громкости» → «Прогон громкости» (v3.3.204): тест сам повторяет старт игры по кругу в разных режимах, подсказывает, что нажать, и спрашивает, что видел и слышал.
 // Режимы скрыты (оценка вслепую), в журнале и в итоговом файле они подписаны. Настройки владельца на время прогона меняются и в конце возвращаются. Логика — gameVolumeRun.js.
@@ -50,7 +51,7 @@ export default function GameVolumeRun() {
   const play = () => { // жест: runIteration первым делом открывает микрофон
     hidden.current = false
     setPhase('play'); setPrompt(false); setAns({}); setNote('')
-    runIteration(item, { buffer: pit?.buffer ?? null, onPrompt: () => setPrompt(true) }).then(r => {
+    runIteration(item, { buffer: pit?.buffer ?? null, onPrompt: () => setPrompt(true), capture: startCapture }).then(r => {
       setPrompt(false)
       if (hidden.current) { pLog(`[прогон] #${item.n}/${item.of}: приложение свернули во время захода — заход не засчитан, повтор`); setNote('Приложение свернули во время захода — он не засчитан. Нажми «Старт» ещё раз.'); setPhase('ready'); return }
       setLast(r); setPhase('ask')
