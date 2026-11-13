@@ -71,6 +71,13 @@ describe('вспомогательное', () => {
     expect(t).toContain('#7 K  иконка | Иконка в полоске громкости: трубка | После нажатия стало громче?: да')
     expect(t).toContain('ЗВУК НЕ ИГРАЛ'); expect(t).toContain('K  = закрывать микрофон'); expect(t.endsWith('строка')).toBe(true)
     expect(Object.keys(QUESTIONS)).toEqual(['listen', 'icon'])
+    expect(QUESTIONS.listen.map(q => q[0])).toEqual(['loud', 'crack', 'tg'])
+  })
+  it('комментарий: уходит в строку журнала и в таблицу итога; пустой/пробельный — молчит', () => {
+    const item = { cfg: K, mode: 'listen', n: 2, of: 12 }
+    expect(answerLine(item, { loud: 'тихо', crack: 'нет', tg: 'тише', note: '  после  Telegram громче ' })).toBe('[прогон] #2/12 (K, слушаю) ответ: Громкость Пита=тихо; Хруст в голосе=нет; Сравнение с Telegram (то же начало Пита)=тише; комментарий: после Telegram громче')
+    expect(answerLine(item, { loud: 'тихо', note: '   ' })).not.toContain('комментарий')
+    expect(summaryText({ results: [{ item, answers: { loud: 'норм', note: 'свернул' }, ok: true }] })).toContain('КОММЕНТАРИЙ: свернул')
   })
   it('настройки владельца запоминаются и возвращаются', () => {
     const w = { writeHold: vi.fn(), writeSess: vi.fn(), writeNudge: vi.fn() }

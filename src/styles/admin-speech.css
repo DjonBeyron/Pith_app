@@ -109,3 +109,7 @@
 .aspMeterNum { flex: none; font-size: 12px; color: #ccc; font-variant-numeric: tabular-nums; }
 /* «Тест игры» → «Репетиция (симуляция)»: поле JSON плана (GameTestRehearsal.jsx) */
 .aspJson { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 12px; line-height: 1.4; resize: vertical; white-space: pre; overflow: auto; }
+/* Главная кнопка шага (Старт / Дальше): яркая, когда доступна; серая, пока не выбраны ответы (v3.3.205) */
+.aspChipGo { padding: 10px 18px; border-color: #b6fe3b; background: #b6fe3b; color: #101215; font-size: 14px; font-weight: 700; }
+.aspChipGo:disabled { border-color: #2a2d35; background: transparent; color: #666; font-weight: 400; opacity: 1; }
+.aspNote { flex: 1; min-width: 0; }

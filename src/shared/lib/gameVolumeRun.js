@@ -28,7 +28,7 @@ export const RUN_CONFIGS = [
 
 /** Вопросы по видам итерации: [ключ, подпись, варианты] — ответ обязателен на каждый */
 export const QUESTIONS = {
-  listen: [['loud', 'Громкость Пита', ['тихо', 'норм', 'громко']], ['crack', 'Хруст в голосе', ['нет', 'есть']]],
+  listen: [['loud', 'Громкость Пита', ['тихо', 'норм', 'громко']], ['crack', 'Хруст в голосе', ['нет', 'есть']], ['tg', 'Сравнение с Telegram (то же начало Пита)', ['тише', 'так же', 'громче', 'не сравнивал']]],
   icon: [['icon', 'Иконка в полоске громкости', ['трубка', 'динамик', 'не успел']], ['jump', 'После нажатия стало громче?', ['да', 'нет', 'не заметил']]],
 }
 
@@ -102,12 +102,13 @@ export function restoreSettings(s, deps = {}) {
   d.writeHold(s.hold); d.writeSess(s.sess); d.writeNudge(s.nudge)
 }
 
-/** Ответы человека → строка журнала */
-export const answerLine = (item, answers) => `[прогон] #${item.n}/${item.of} (${item.cfg.id}, ${item.mode === 'icon' ? 'иконка' : 'слушаю'}) ответ: ${QUESTIONS[item.mode].map(([k, t]) => `${t}=${answers[k] ?? '—'}`).join('; ')}`
+const noteOf = answers => (String(answers?.note ?? '').trim().replace(/\s+/g, ' '))
+/** Ответы человека → строка журнала (комментарий — по желанию) */
+export const answerLine = (item, answers) => `[прогон] #${item.n}/${item.of} (${item.cfg.id}, ${item.mode === 'icon' ? 'иконка' : 'слушаю'}) ответ: ${QUESTIONS[item.mode].map(([k, t]) => `${t}=${answers[k] ?? '—'}`).join('; ')}${noteOf(answers) ? `; комментарий: ${noteOf(answers)}` : ''}`
 
 /** Итог текстом: таблица «конфигурация → что слышал / видел» + журнал прогона (строки журнала игры с начала прогона) */
 export function summaryText({ results, header = [], journal = [] }) {
-  const rows = results.map(r => `#${r.item.n} ${r.item.cfg.id.padEnd(2)} ${r.item.mode === 'icon' ? 'иконка ' : 'слушаю '}| ${QUESTIONS[r.item.mode].map(([k, t]) => `${t}: ${r.answers[k] ?? '—'}`).join(' | ')} | ${r.item.cfg.title}${r.ok ? '' : ' | ЗВУК НЕ ИГРАЛ'}`)
+  const rows = results.map(r => `#${r.item.n} ${r.item.cfg.id.padEnd(2)} ${r.item.mode === 'icon' ? 'иконка ' : 'слушаю '}| ${QUESTIONS[r.item.mode].map(([k, t]) => `${t}: ${r.answers[k] ?? '—'}`).join(' | ')} ${noteOf(r.answers) ? ` | КОММЕНТАРИЙ: ${noteOf(r.answers)}` : ''} | ${r.item.cfg.title}${r.ok ? '' : ' | ЗВУК НЕ ИГРАЛ'}`)
   const keyRows = RUN_CONFIGS.map(c => `${c.id.padEnd(2)} = ${c.title}`)
   return [...header, '', 'Конфигурации:', ...keyRows, '', 'Ответы:', ...(rows.length ? rows : ['(нет ответов)']), '', 'Журнал прогона:', ...(journal.length ? journal : ['(пусто)'])].join('\n')
 }
