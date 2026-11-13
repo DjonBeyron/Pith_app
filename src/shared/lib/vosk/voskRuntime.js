@@ -15,6 +15,7 @@ import { loadEngine, unloadEngine } from './voskEngine.js'
 import { onBgCached } from './voskBgStatus.js'
 import { loadPhones } from './phones/phoneTable.js'
 import { readSayEngine } from '../speech/sayEngineMode.js'
+import { warmRecognizer } from './voskWarmRec.js'
 import { STAGE_TEXT, STAGE_FAIL_TEXT, TRIGGER_TEXT, createStageGuard, StageTimeout, WarmAbandoned, addTrace } from './voskWarmStages.js'
 
 export const FREE_AFTER_MS = 30000          // после ухода всех владельцев модель живёт в памяти ещё столько (вернулись — уже готова)
@@ -24,7 +25,7 @@ export const MAX_AUTO_RETRIES = 5           // сколько сбоев под�
 export function createVoskRuntime(deps = {}) {
   const d = {
     url: () => readModelUrl(), peek: peekCached, read: readCached, load: loadEngine, unload: unloadEngine, mode: () => readSayEngine(),
-    busy: beginNetBusy, watchCached: onBgCached, now: () => Date.now(), setTimer: (fn, ms) => setTimeout(fn, ms), clearTimer: id => clearTimeout(id), log: msg => pLog(`[say-vosk] ${msg}`),
+    busy: beginNetBusy, watchCached: onBgCached, warmDecode: model => warmRecognizer(model), now: () => Date.now(), setTimer: (fn, ms) => setTimeout(fn, ms), clearTimer: id => clearTimeout(id), log: msg => pLog(`[say-vosk] ${msg}`),
     ...deps,
   }
   const st = {
@@ -75,6 +76,7 @@ export function createVoskRuntime(deps = {}) {
     if (run.abandoned) { try { d.unload(r.model) } catch { /* воркер уже остановлен */ } throw new WarmAbandoned() }
     st.model = r.model; st.loadedAt = d.now(); st.lastLoad = { libMs: r.libMs, modelMs: r.modelMs }; st.failure = null; st.failures = 0
     enter('ready', `модель в памяти за ${d.now() - t} мс (библиотека ${r.libMs} мс, модель ${r.modelMs} мс)`)
+    try { d.warmDecode?.(st.model) } catch { /* прогрев декодера (voskWarmRec.js) не влияет на готовность модели */ }
   }
 
   function abandon(run) {
