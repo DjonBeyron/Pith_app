@@ -18,6 +18,7 @@ export function createGameAudioSession({ nav = globalThis.navigator, store = glo
   let changed = false // мы действительно меняли тип — в конце игры вернём прежний
   let prev = null
   let mode = 'auto'
+  let micOff = false // режим 'close': поток микрофона закрыт нами (между micClosed и micOpening) — тип 'play-and-record' в это время не ставим
 
   const report = (why, requested, ok) => note('audio-session', { mode, why, requested, ok, as: api.current(), prev, supported: api.supported() })
   function apply(type, why) {
@@ -33,8 +34,8 @@ export function createGameAudioSession({ nav = globalThis.navigator, store = glo
     get active() { return active },
     /** Старт игры (тап «Начать», до openGameMic): запомнить прежний тип и поставить нужный по настройке. Повторный вызов — no-op */
     begin() {
-      if (active) { if (mode !== 'auto') apply(SESSION_LISTEN, 'begin-again'); return } // повторный старт без конца прошлой игры (после фона тип мог сброситься): ставим тип заново
-      active = true; changed = false
+      if (active) { if (mode !== 'auto' && !micOff) apply(SESSION_LISTEN, 'begin-again'); return } // повторный старт без конца прошлой игры (после фона тип мог сброситься): ставим тип заново — кроме закрытого микрофона ('close': иначе вернём «режим звонка» на речь Пита, v3.3.203)
+      active = true; changed = false; micOff = false
       mode = readAudioSessionMode(store)
       prev = api.current()
       if (mode === 'auto') { report('begin', null, true); return }
@@ -48,17 +49,19 @@ export function createGameAudioSession({ nav = globalThis.navigator, store = glo
     /** Режим микрофона 'close': поток закрыт (треки остановлены) — тип сессии 'auto', запись сессию не держит. В режимах 'auto' (не трогаем) и 'phases' (тип ведёт phase) — no-op */
     micClosed() {
       if (!active || mode === 'auto' || mode === 'phases') return
+      micOff = true
       apply('auto', 'mic-closed')
     },
     /** Режим микрофона 'close': СЕЙЧАС откроем поток заново — тип 'play-and-record' ставим ДО getUserMedia (как «Сказать фразу»: тип → микрофон) */
     micOpening() {
       if (!active || mode === 'auto' || mode === 'phases') return
+      micOff = false
       apply(SESSION_LISTEN, 'mic-open')
     },
     /** Конец игры: вернуть прежний тип (если мы его меняли). Повторный вызов безопасен */
     end() {
       if (!active) return
-      active = false
+      active = false; micOff = false
       if (changed && api.supported()) {
         const back = prev ?? 'auto'
         const ok = api.set(back)

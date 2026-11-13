@@ -62,6 +62,16 @@ describe('тип аудиосессии: ставится в начале игр
     expect(note).toHaveBeenLastCalledWith('audio-session', expect.objectContaining({ why: 'end', requested: 'ambient', ok: true, as: 'ambient' }))
     expect(note).toHaveBeenCalledTimes(2)
   })
+  it("'close': пока микрофон закрыт, повторный begin (вход в сцену игры) НЕ возвращает play-and-record; после micOpening — возвращает (v3.3.203)", () => {
+    const { n, note, ses } = mk(null, 'ambient')
+    ses.begin()
+    ses.micClosed(); expect(n.audioSession.type).toBe('auto')
+    ses.begin(); expect(n.audioSession.type).toBe('auto')                       // сцена смонтирована — тип остался 'auto' (не режим звонка)
+    expect(note.mock.calls.map(c => c[1].why)).toEqual(['begin', 'mic-closed'])
+    ses.micOpening(); expect(n.audioSession.type).toBe('play-and-record')
+    ses.begin(); ses.micClosed(); ses.end(); ses.begin(); ses.begin()           // конец игры сбрасывает «микрофон закрыт»
+    expect(n.audioSession.type).toBe('play-and-record')
+  })
   it("'auto': тип не трогаем ни в начале, ни по фазам, ни в конце; в журнал уходит только факт", () => {
     const { n, note, ses } = mk('auto', 'ambient')
     ses.begin(); ses.phase('speak'); ses.end()
