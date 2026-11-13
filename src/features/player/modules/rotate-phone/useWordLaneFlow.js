@@ -120,11 +120,12 @@ export function useWordLaneFlow({ chunks, translation, lang, clips = null, audio
     peek(ms) { catApi?.current?.peek?.(ms) }, pitLeft: () => rh.pitLeft(), // pitLeft: Пит ещё говорит — новая пилюля ждёт (репетиция)
     sayText(text, opts) { // «Различи»: звучит слово пилюли (верное или запутыватель) — из библиотеки слов, нет её — без звука; рот кота по буквам слова
       const r = opts?.ru ? transRow(text) : libRow(text); if (opts?.ru && !r) return; dbg.note('word') // opts.ru — перевод «Разгона» (useRaceActs.pre): только озвучка из библиотеки (ключ ru:…), нет её — молча, без голоса системы
-      if (!(r && playWordSlot(r.key, null, null, opts?.onEnd))) { if (opts?.ru) return; speakWord(text) }
       const sp = speechOfUrl(r?.row.url), k = rate > 0 ? rate : 1, file = wordBufferMs(r?.key) || (Number(r?.row.duration) > 0 ? Number(r.row.duration) * 1000 : 0)
       const ms = Math.round((sp?.ms ?? (file || estChunkMs(text))) / k), lead = Math.round((sp?.lead ?? 0) / k) // звук идёт с начала файла, слово — после тишины lead: рот стартует вместе со словом, а длится до конца файла
       const total = Math.round(opts?.tight ? lead + ms : Math.max(lead + ms, file / k)) // opts.tight — фраза по словам (racePhraseVoice.js): Пит занят до конца ГОЛОСА слова, а не хвоста тишины файла — следующее слово встаёт впритык
-      gameMicHold.holdFor(total); if (opts?.ru || opts?.hold) { cat.holdBusy?.(total); opts.onSay?.(total) } // opts.onSay / onEnd — секвенсор речи гонки (raceSpeech.js): звук пошёл (длина) / доиграл; перевод «Разгона» / слово «Слушай и лови» (opts.hold): Пит занят, следующая пилюля ждёт конца слова
+      const closeWin = gameMicHold.holdFor(total) // окно речи — ДО старта звука (v3.3.208): режим «по фазам» должен успеть переключить аудиосессию в playback; звук не сыграл (ru без озвучки) — окно закрываем
+      if (!(r && playWordSlot(r.key, null, null, opts?.onEnd))) { if (opts?.ru) { closeWin?.(); return } speakWord(text) }
+      if (opts?.ru || opts?.hold) { cat.holdBusy?.(total); opts.onSay?.(total) } // opts.onSay / onEnd — секвенсор речи гонки (raceSpeech.js): звук пошёл (длина) / доиграл; перевод «Разгона» / слово «Слушай и лови» (opts.hold): Пит занят, следующая пилюля ждёт конца слова
       catApi?.current?.speak?.(mouthTrack(text, ms).map(x => ({ ...x, at: x.at + lead, end: x.end + lead })), total, { id: text, kind: opts?.ru ? 'перевод' : 'слово' }) // meta: элемент одной очереди речи Пита (wordLaneCatQueue.js)
     },
     say(parts) { // подсказка раунда «Порядок»: кот выскакивает, диктор называет куски

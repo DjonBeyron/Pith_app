@@ -42,11 +42,12 @@ export function createPhraseVoice({ ctx = null, hasRu = text => !!transRow(text)
     else if (it.ru) c.sayText?.(it.ru, { ru: true })
     else if (it.word) c.sayText?.(it.word, { hold: true, tight: true, onSay: ms => { it.ms = ms } }) // onSay — сколько звучит голос слова (tight: без хвоста тишины файла)
     else if (it.audio) { // целая запись: рот по огибающей буфера и буквам фразы (racePhraseMouth.js) — сама запись не реплика и не слово библиотеки, рта у неё иначе нет
-      play(it.p, it.audio)
       const m = mouth(it.p, it.audio)
+      hold?.holdFor?.(m.ms) // окно речи — ДО старта звука (v3.3.208: режиму «по фазам» нужно успеть переключить аудиосессию)
+      play(it.p, it.audio)
       c.cat?.speak?.(m.track, m.ms, { id: it.p?.text ?? 'фраза', kind: 'фраза' })
       c.cat?.holdBusy?.(m.ms)
-      hold?.holdFor?.(m.ms) // окно речи (mic-hold), как у реплик и слов Пита: слушатель «Скажи» не берёт фразу из динамика (журнал владельца v3.3.174: после «не успел» распознал её с ratio 1)
+      // окно речи (см. выше) (mic-hold), как у реплик и слов Пита: слушатель «Скажи» не берёт фразу из динамика (журнал владельца v3.3.174: после «не успел» распознал её с ratio 1)
       try { log(`[mouth] фраза «${it.p?.text ?? ''}»: огибающая ${m.points} точек, форм ${m.track.length}, ${m.ms} мс`) } catch { /* журнал не мешает голосу */ }
     }
   }

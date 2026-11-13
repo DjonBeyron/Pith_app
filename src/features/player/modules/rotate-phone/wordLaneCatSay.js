@@ -15,7 +15,7 @@ import { gameMicHold } from '../../../../shared/lib/gameMicHold.js'
 //    onStart слота), а не по таймеру до него: контекст 'running' — в тот же миг; контекст прерван — после resume() (≤ 300 мс), не стартовал вовсе — реплика остаётся подписью (cat-line-silent, причина в «[cat-voice]»).
 //    У запасного <audio>-слота «старт» — вызов play() (настоящего старта не узнать), как и раньше.
 //  • Голова спрятана — сначала выскакивает (пружина идёт 0,55 с), звук и рот стартуют через CAT_RISE_MS, иначе первые слова кот говорит «из-под экрана».
-//  • Пока реплика звучит, открыто «окно речи» (gameMicHold.holdFor): по настройке игры дорожка микрофона на это время глушится и аудиосессия переключается — режимы проверки на iPhone (ducking).
+//  • Пока реплика звучит, открыто «окно речи» (gameMicHold.holdFor; открывается ДО старта звука, с v3.3.208): по настройке игры дорожка микрофона на это время глушится и аудиосессия переключается — режимы проверки на iPhone (ducking).
 //  • Дорожка рта — по таймингам слов озвучки, нет их — по тексту на всю длительность реплики (mouthTrack); длина озвучки (line.duration) ставит тайминги по долям файла, тишина в начале файла остаётся тишиной.
 export const CAT_RISE_MS = 260
 
@@ -49,15 +49,16 @@ export function startCatLine({
   const headDown = api()?.isUp?.() === false
   const rise = headDown && !noRise ? CAT_RISE_MS : 0 // голова спрятана — сначала выскочить (noRise: параллельно со звуком)
   listenerRef?.current?.mute?.(rise + ms + LINE_PAUSE_MS)
-  const speak = () => { api()?.speak?.(mouthTrack(line.text, ms, line.words, eff.duration), ms, { id }); hold?.holdFor?.(ms) }
+  const speak = () => api()?.speak?.(mouthTrack(line.text, ms, line.words, eff.duration), ms, { id })
   const silent = reason => { log('cat-line-silent', { id, reason }); api()?.peek?.(ms + 400) }
   const go = () => {
     const slot = slotOf(key)
     const done = open({ id, source: slot.buffer ? 'buffer' : 'slot', slot, waitedMs, why })
     let started = false
+    const closeWin = hold?.holdFor?.(ms) // окно речи открываем ДО старта звука (v3.3.208): режим «по фазам» ставит аудиосессию playback, и она должна успеть смениться до первого звука — в журнале 3.3.207 звук стартовал при типе play-and-record, реплика была тихой
     const onStart = () => { started = true; speak(); try { onSound?.() } catch { /* журнал старта не мешает звуку */ } } // рот — по факту старта звука
-    const onResult = res => { done(res); if (!started && res?.play !== 'ok' && res?.play !== 'started') silent(res?.play ?? 'no-start') } // звук не стартовал (контекст не запустился): подпись без рта
-    if (!play(key, onResult, onStart, onEnd)) { done({ play: 'rejected', error: 'слот не сыграл' }); silent('no-slot') }
+    const onResult = res => { done(res); if (!started && res?.play !== 'ok' && res?.play !== 'started') { try { closeWin?.() } catch { /* окно уже закрыто */ } silent(res?.play ?? 'no-start') } } // звук не стартовал (контекст не запустился): подпись без рта, окно речи закрываем
+    if (!play(key, onResult, onStart, onEnd)) { try { closeWin?.() } catch { /* окно уже закрыто */ } done({ play: 'rejected', error: 'слот не сыграл' }); silent('no-slot') }
   }
   if (!rise) { if (headDown) api().peek?.(ms + 400); go(); return { ms, rise, voiced: true, timer: 0 } } // noRise и голова спрятана: поднимаем её, звук идёт сразу
   api().peek(rise + ms + 400)

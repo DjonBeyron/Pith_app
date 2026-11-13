@@ -99,13 +99,21 @@ describe('слушатель и выключенная нами дорожка',
 describe('реплика Пита открывает окно речи', () => {
   const lines = normalizeLines({ lines: { your_turn: { text: 'Теперь твоя очередь', url: 'https://x/a.mp3', duration: 2, words: [] } } })
   const mk = (over = {}) => ({ id: 'your_turn', line: lines.your_turn, catApi: { current: { isUp: () => true, peek() {}, speak() {} } }, listenerRef: { current: { mute() {} } }, has: () => true, play: (k, r, onStart) => { onStart?.(); return true }, log: () => {}, ...over })
-  it('звук пошёл — holdFor(длина реплики); нет озвучки или play() отказал — окно не открывается', () => {
-    const hold = { holdFor: vi.fn() }
-    startCatLine(mk({ hold }))
-    expect(hold.holdFor).toHaveBeenCalledWith(2000)
+  it('окно речи открывается ДО старта звука (v3.3.208: режим «по фазам» должен успеть поставить playback); play() отказал — окно закрывается; нет озвучки — окно не открывается', () => {
+    const order = []
+    const hold = { holdFor: vi.fn(ms => { order.push(`hold:${ms}`); return () => order.push('close') }) }
+    startCatLine(mk({ hold, play: (k, r, onStart) => { order.push('play'); onStart?.(); return true } }))
+    expect(order).toEqual(['hold:2000', 'play'])
+    const refused = []
+    const h2 = { holdFor: vi.fn(() => () => refused.push('close')) }
+    startCatLine(mk({ hold: h2, play: () => false }))
+    expect(h2.holdFor).toHaveBeenCalledWith(2000); expect(refused).toEqual(['close'])
+    const stuck = []
+    const h3 = { holdFor: vi.fn(() => () => stuck.push('close')) }
+    startCatLine(mk({ hold: h3, play: (k, onResult) => { onResult({ play: 'ctx-stuck' }); return true } }))
+    expect(stuck).toEqual(['close'])
     const silent = { holdFor: vi.fn() }
     startCatLine(mk({ hold: silent, has: () => false }))
-    startCatLine(mk({ hold: silent, play: () => false }))
     expect(silent.holdFor).not.toHaveBeenCalled()
   })
   it('голова спрятана: окно открывается, когда звук реально стартует (через CAT_RISE_MS), а не сразу', () => {
