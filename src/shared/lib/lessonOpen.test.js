@@ -1,9 +1,23 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { shutGameMic } from './gameMic.js'
 import { _resetLessonOpen, isLessonOpen, lessonClosed, lessonOpened, onLessonOpenChange } from './lessonOpen.js'
 
+vi.mock('./gameMic.js', () => ({ shutGameMic: vi.fn() }))
+
 beforeEach(() => {
+  shutGameMic.mockClear()
   vi.useFakeTimers()
   _resetLessonOpen()
+})
+
+describe('lessonOpen: микрофон при выходе из урока (v3.3.212)', () => {
+  it('урок закрыт совсем — микрофон игры останавливается по-настоящему (жёлтая точка в ленте гаснет); между карточками повторения — не трогаем', () => {
+    lessonOpened(); lessonClosed(); vi.advanceTimersByTime(100); lessonOpened() // следующая карточка внутри задержки
+    vi.advanceTimersByTime(400)
+    expect(shutGameMic).not.toHaveBeenCalled()
+    lessonClosed(); vi.advanceTimersByTime(400)
+    expect(shutGameMic).toHaveBeenCalledTimes(1); expect(shutGameMic).toHaveBeenCalledWith('урок закрыт')
+  })
 })
 
 describe('lessonOpen', () => {

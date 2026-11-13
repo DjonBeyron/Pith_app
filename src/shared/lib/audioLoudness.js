@@ -17,10 +17,12 @@ export const LIMITER = { threshold: -10, ratio: 4, knee: 10, attack: 0.003, rele
 // 0,6 % отсчётов обрезано (это и есть хруст); пресет 'loud' — норма до RMS −14, сжатие −28 дБ 4:1 (колено 18), мастер ×1,4 и жёсткий лимитер −3 дБ 20:1 → RMS ≈ −12,6, пик ≈ −0,5, обрезано < 0,01 %.
 // 'normal' — как до 3.3.197 (по умолчанию). Режим читается при создании цепочки контекста и при декодировании буфера → менять и перезагружать страницу (Админ → «Голос» → «Громкость на iPhone»).
 export const LOUDNESS_KEY = 'pithy_game_loudness_v1'
-export const LOUDNESS_MODES = ['normal', 'loud', 'louder', 'max']
-export const LOUDNESS_LABELS = { normal: 'Обычная', loud: 'Громче (+5 дБ)', louder: 'Ещё громче (+8 дБ)', max: 'Максимум (+9 дБ, сильное сжатие)' }
+export const LOUDNESS_MODES = ['normal', 'mid', 'loud', 'louder', 'max']
+export const LOUDNESS_LABELS = { normal: 'Обычная', mid: 'Чуть громче (+3,5 дБ)', loud: 'Громче (+5 дБ)', louder: 'Ещё громче (+8 дБ)', max: 'Максимум (+9 дБ, сильное сжатие)' }
 export const PRESETS = {
   normal: { maxGain: 4, peakDb: -1, rmsCeilDb: -18, comp: { threshold: -10, ratio: 4, knee: 10, attack: 0.003, release: 0.25 }, master: 1, limiter: null },
+  // v3.3.212 («Пит ≈ на 30 % тише Telegram» при уже исправленной сессии playback): замер на тех же 35 словах — RMS речи −14,1 dBFS (+3,7 дБ к обычной −17,8), пик −0,4, обрезанных отсчётов 0
+  mid: { maxGain: 8, peakDb: -1, rmsCeilDb: -15.5, comp: { threshold: -20, ratio: 3, knee: 14, attack: 0.005, release: 0.2 }, master: 1.15, limiter: { threshold: -2, ratio: 20, knee: 0, attack: 0.001, release: 0.08 } },
   loud: { maxGain: 8, peakDb: -1, rmsCeilDb: -14, comp: { threshold: -28, ratio: 4, knee: 18, attack: 0.008, release: 0.15 }, master: 1.4, limiter: { threshold: -3, ratio: 20, knee: 0, attack: 0.001, release: 0.08 } },
   // v3.3.198 («всё тихо одинаково, даже с закрытым микрофоном» — значит, сами звуки тихие): измерено на тех же 35 словах — louder RMS −9,7 (+8,1 дБ), max RMS −8,5 (+9,3 дБ), обрезано < 0,02 %.
   // shape — мягкий потолок на выходе (WaveShaper tanh(k·x)/tanh(k), oversample 2×), ceil — множитель после него (пики с запасом ниже 0 dBFS); чем сильнее сжатие, тем «радийнее» голос.

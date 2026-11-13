@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { openGameMic, closeGameMic, describeGameMic } from '../../../shared/lib/gameMic.js'
+import { openGameMic, shutGameMic, describeGameMic } from '../../../shared/lib/gameMic.js'
 import { getGameCtx, unlockGameCtx, peekGameCtx } from '../../../shared/lib/gameAudioCtx.js'
 import { playGameBuffer } from '../../../shared/lib/gameBufferPlay.js'
 import { nudgeVolume, testToneBuffer, readNudgeMode, writeNudgeMode } from '../../../shared/lib/gameVolumeNudge.js'
@@ -25,7 +25,7 @@ export default function GameVolumeBlock() {
   const [note, setNote] = useState('')
   const [mic, setMic] = useState(() => !!describeGameMic().open)
   const open = () => { unlockGameCtx(); openGameMic().then(r => { setMic(r === 'granted'); setNote(`Микрофон: ${r}`) }) } // getUserMedia и контекст — прямо в нажатии
-  const close = () => { closeGameMic(); setMic(false); setNote('Микрофон закрыт') }
+  const close = () => { shutGameMic('кнопка стенда'); setMic(false); setNote('Микрофон закрыт') }
   const tone = () => {
     unlockGameCtx()
     const buf = testToneBuffer(getGameCtx())

@@ -6,6 +6,7 @@ import { APP_VERSION } from '../../../shared/lib/version.js'
 import { pLog } from '../../../shared/lib/debug.js'
 import { saveDebugFile, SAVE_HOW } from '../../player/modules/rotate-phone/wordLaneDebugExport.js'
 import { loadPit } from './gameVolumePit.js'
+import { shutGameMic } from '../../../shared/lib/gameMic.js'
 import { startCapture } from '../../pillstand/voiceset/voiceSetCapture.js'
 
 // Админ → «Голос» → «Стенд громкости» → «Прогон громкости» (v3.3.204): тест сам повторяет старт игры по кругу в разных режимах, подсказывает, что нажать, и спрашивает, что видел и слышал.
@@ -62,11 +63,11 @@ export default function GameVolumeRun() {
     pLog(answerLine(item, ans))
     const results = [...res, { item, answers: ans, ok: last?.ok !== false }]
     setRes(results)
-    if (run.idx + 1 >= run.plan.length) { restoreSettings(run.orig); pLog('[прогон] конец, настройки возвращены'); keep(run, results, true); setPhase('done'); return }
+    if (run.idx + 1 >= run.plan.length) { restoreSettings(run.orig); shutGameMic('конец прогона'); pLog('[прогон] конец, настройки возвращены'); keep(run, results, true); setPhase('done'); return }
     const r = { ...run, idx: run.idx + 1 }
     setRun(r); setPhase('ready'); keep(r, results)
   }
-  const cancel = () => { if (run) restoreSettings(run.orig); pLog('[прогон] прерван, настройки возвращены'); clearRun(); setRun(null); setPhase('idle'); setNote('Прогон прерван, настройки возвращены') }
+  const cancel = () => { if (run) restoreSettings(run.orig); shutGameMic('прогон прерван'); pLog('[прогон] прерван, настройки возвращены'); clearRun(); setRun(null); setPhase('idle'); setNote('Прогон прерван, настройки возвращены') }
   const again = () => { clearRun(); setRun(null); setRes([]); setPhase('idle'); setNote('') }
   const send = async () => {
     const header = ['Pithy — прогон громкости', `версия ${APP_VERSION}`, `устройство: ${globalThis.navigator?.userAgent ?? '—'}`, `настройки до прогона: ${JSON.stringify(run.orig)}`, `голос: ${pit?.buffer ? 'Пита (race_start)' : 'тест-тон'}`, `время: ${new Date().toISOString()}`]

@@ -29,7 +29,7 @@ describe('iPhone: разрешение не запоминается — оди�
 
   it('урок закрыт — игровой поток закрывается (индикатор микрофона гаснет)', async () => {
     const { readFileSync } = await import('node:fs')
-    expect(readFileSync(new URL('./lessonOpen.js', import.meta.url), 'utf8')).toContain('if (!open) closeGameMic()')
+    expect(readFileSync(new URL('./lessonOpen.js', import.meta.url), 'utf8')).toContain("if (!open) shutGameMic('урок закрыт')")
   })
 
   it('поток открывается один раз (повторный вызов — тот же, без второго getUserMedia)', async () => {

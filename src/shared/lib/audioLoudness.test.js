@@ -78,10 +78,10 @@ describe('выход контекста: лимитер → мастер-gain �
   })
 
   it('режимы louder / max: растут по громкости, в конце цепочки мягкий потолок (WaveShaper) и ceil < 1', () => {
-    expect(LOUDNESS_MODES).toEqual(['normal', 'loud', 'louder', 'max'])
+    expect(LOUDNESS_MODES).toEqual(['normal', 'mid', 'loud', 'louder', 'max'])
     const quiet = levelsOf([tone(0.02)], RATE)
     const gains = LOUDNESS_MODES.map(m => gainFor(quiet, PRESETS[m]))
-    expect(gains[1]).toBeGreaterThan(gains[0]); expect(gains[2]).toBeGreaterThanOrEqual(gains[1]); expect(gains[3]).toBeGreaterThanOrEqual(gains[2])
+    expect(gains[1]).toBeGreaterThan(gains[0]); expect(gains[2]).toBeGreaterThanOrEqual(gains[1]); expect(gains[3]).toBeGreaterThanOrEqual(gains[2]); expect(gains[4]).toBeGreaterThanOrEqual(gains[3])
     expect(PRESETS.loud.shape).toBeUndefined(); expect(PRESETS.louder.shape).toBeGreaterThan(1); expect(PRESETS.max.ceil).toBeLessThan(1)
     const st = (() => { const m = new Map(); return { getItem: k => m.get(k) ?? null, setItem: (k, v) => m.set(k, v), removeItem: k => m.delete(k) } })()
     const prev = globalThis.localStorage
