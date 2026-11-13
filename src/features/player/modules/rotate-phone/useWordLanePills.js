@@ -32,6 +32,7 @@ const setApi = (ref, value) => { if (ref) ref.current = value } // ref прих�
 export const GHOST_MS = 3000    // сколько «тень» слова держится после неверно сказанного
 export const CONFIRM_MS = 1500  // речь считается подтверждённой, пока распознаватель что-то слышал не дольше столько мс назад
 export const CAT_LEAD_MS = 700  // кот выскакивает за столько до начала голоса диктора (пружина 0,55 с)
+export const PIT_ECHO_MS = 500   // после реплики Пита эхо комнаты ещё слышно: ворота голоса закрыты и столько мс после конца реплики
 export const CAT_TAIL_MS = 500  // и торчит ещё столько после его конца
 
 export function useWordLanePills(rootRef, { scene, levels, fx, live, sceneApi, trio = null, dodge = false }) { // dodge — «Гонка», режим «Говорю»: Пит стоит под дорожкой пилюли и уворачивается (pitrace/raceDodgeDrive.js); trio — «Гонка», режим «Тапаю» (raceTapTrio.js): { seed, words, pool } — слово едет тремя пилюлями; решается на старте ступени
@@ -106,6 +107,7 @@ export function useWordLanePills(rootRef, { scene, levels, fx, live, sceneApi, t
       let claimedReps = 0
       const ghostUntil = new Map() // номер повтора → до какого момента показывать «тень» слова (только после неверно сказанного)
       const gate = createVoiceGate()
+      const unexplained = new Set() // пилюли, по которым «налита без голоса» уже записано
       const view = createFillView() // экран догоняет цель заливки плавно, без ступенек
       const t0 = performance.now()
       const off = levels?.subscribe(l => { raw = l })
@@ -159,14 +161,16 @@ export function useWordLanePills(rootRef, { scene, levels, fx, live, sceneApi, t
       }
       const tick = now => {
         const t = now - t0, dtMs = now - lastNow
-        level = gate.step(raw, now, now - lastNow).level; lastNow = now
         const seq = liveRef.current.seq
         const sig = liveRef.current.signal?.() ?? {}
         const confirmed = Date.now() - (sig.heardAt ?? 0) < CONFIRM_MS // распознаватель недавно что-то услышал: речь настоящая, а не шум или эхо
         const pitMs = fxRef.current?.pitLeft?.() ?? 0, hold = pitMs > 0 // репетиция: Пит ещё говорит (реплика + пауза ≈ 40 кадров) — новая пилюля не выезжает; «Гонка»: перевод уже говорят — выезд за время пути до конца речи (pitMs)
+        if (pitMs > 0) gate.mute(now, PIT_ECHO_MS) // v3.3.216: Пит говорит — его голос из динамика микрофон слышит (на громкой игре громче): ворота закрыты, пока он говорит и ещё PIT_ECHO_MS после, иначе эхо наливало пилюлю на 20 % в тишине
+        level = gate.step(raw, now, now - lastNow).level; lastNow = now
         const heardT = sig.heardAt ? t - (Date.now() - sig.heardAt) : -Infinity // когда распознаватель что-то услышал — на шкале ступени («аванс» заливки по первому черновику)
         const evs = stepStudent(g, t, { level, seq, misses: liveRef.current.misses, confirmed, tail: sig.tail ?? null, hold, pitMs, heardT })
         for (const e of evs) handle(e)
+        for (const q of g.pills) if (q.state === 'fly' && q.p >= 0.15 && level === 0 && !confirmed && !unexplained.has(q.id)) { unexplained.add(q.id); pLog(`[fill] ⚠ пилюля ${q.id} налита на ${Math.round(q.p * 100)} % без голоса и без подтверждения распознавателя: raw ${raw.toFixed(3)}, ворота пол ${gate.floor().toFixed(3)}, y ${Math.round(q.y)} %, Пит ${Math.round(pitMs)} мс`) } // журнал для разбора «заливается сама в тишине»: что именно сдвинуло заливку
         dodger?.step(g.pills, t, evs)
         const now2 = performance.now()
         const byId = held.size ? new Map(g.pills.map(x => [x.id, x])) : null // одна карта на кадр вместо поиска по массиву на каждую пилюлю

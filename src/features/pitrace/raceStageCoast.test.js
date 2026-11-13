@@ -78,10 +78,10 @@ describe('сцена «Фраз»: круг кончился — пилюли д
     expect(s.pool.coasted).toBeUndefined()
   })
   it('первая пилюля нового круга выезжает не ближе gap за последней доезжающей (pool.tail), а Пит говорит сразу', () => {
-    const tail = ENTER_Y + (SPEED * PHRASE_SPEED * 1000) / 1000 // доезжающая выехала секунду назад
+    const tail = ENTER_Y + (SPEED * PHRASE_SPEED * 500) / 1000 // доезжающая выехала полсекунды назад (шаг тап-круга уменьшен в 3.3.216: gap ≈ 1147 мс)
     const s = setupScene(pick(), { tail })
     s.go(300); expect(s.fx.pre).toHaveBeenCalledTimes(1) // Пит не ждёт
-    s.go(PHRASE_GAP_MS - 1000 - 400); expect(s.pool.taken).toHaveLength(0)
+    s.go(PHRASE_GAP_MS - 500 - 300 - 100); expect(s.pool.taken).toHaveLength(0)
     s.go(200); expect(s.pool.taken).toHaveLength(1)
   })
   it('журнал старта хода — скорость и gap: Пит говорит — ранний выезд вместе с репликой; без реплики — «пилюли едут»', () => {

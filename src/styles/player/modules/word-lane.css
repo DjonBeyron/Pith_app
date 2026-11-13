@@ -90,8 +90,8 @@
 /* Затемнение сверху (откуда выезжают пилюли) и снизу (куда уходят): над пилюлями, под словом, огоньками, микрофоном и котом. Высоты — wordLaneTimeline.FADE_TOP / FADE_BOTTOM */
 .wlFade { left: 0; right: 0; opacity: 0; transition: opacity 0.8s ease; pointer-events: none; }
 .wlFade--in { opacity: 1; }
-.wlFade--top { top: 0; height: 14%; background: linear-gradient(to bottom, var(--wl-bg) 0%, var(--wl-bg) 45%, rgba(14, 17, 22, 0) 100%); }
-.wlFade--bottom { bottom: 0; height: 28%; background: linear-gradient(to top, var(--wl-bg) 0%, var(--wl-bg) 40%, rgba(14, 17, 22, 0) 100%); }
+.wlFade--top { top: 0; height: 14%; background: linear-gradient(to bottom, rgba(14, 17, 22, 1.000) 0%, rgba(14, 17, 22, 1.000) 10%, rgba(14, 17, 22, 1.000) 20%, rgba(14, 17, 22, 1.000) 30%, rgba(14, 17, 22, 0.945) 40%, rgba(14, 17, 22, 0.802) 50%, rgba(14, 17, 22, 0.606) 60%, rgba(14, 17, 22, 0.394) 70%, rgba(14, 17, 22, 0.198) 80%, rgba(14, 17, 22, 0.055) 90%, rgba(14, 17, 22, 0.000) 100%); } /* v3.3.216: растушёвка по smoothstep вместо линейного спада (резкий излом на 45 %) */
+.wlFade--bottom { bottom: 0; height: 28%; background: linear-gradient(to top, rgba(14, 17, 22, 1.000) 0%, rgba(14, 17, 22, 1.000) 10%, rgba(14, 17, 22, 1.000) 20%, rgba(14, 17, 22, 1.000) 30%, rgba(14, 17, 22, 0.945) 40%, rgba(14, 17, 22, 0.802) 50%, rgba(14, 17, 22, 0.606) 60%, rgba(14, 17, 22, 0.394) 70%, rgba(14, 17, 22, 0.198) 80%, rgba(14, 17, 22, 0.055) 90%, rgba(14, 17, 22, 0.000) 100%); }
 
 /* «Огоньки» прогресса под словом (три цветных кольца над дорожками; зажигаются, когда пилюля защёлкнулась, цвета ступеней памяти). С v3.3.85 СКРЫТЫ по замечанию владельца («сверху три кольца разноцветных, как точки — вырежем»):
    display: none. Разметка живёт в WordLanePills.jsx (<div class="wlDots"> с тремя span[data-dot]), её правит другой участок работы, а useWordLanePills.js пишет им классы — поэтому прячем стилем. Когда файлы освободятся, разметку и правила .wlDot* можно удалить. */

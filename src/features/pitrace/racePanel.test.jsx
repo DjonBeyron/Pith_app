@@ -38,10 +38,16 @@ describe('панель: назад, пауза', () => {
 })
 
 describe('затемнение сверху и снизу сцены гонки', () => {
-  it('площадь вдвое меньше (7 % и 14 % плюс safe-area), градиент от края устройства: у края 0,9, к сцене 0,1; только у гонки', () => {
+  it('площадь вдвое меньше (7 % и 14 % плюс safe-area), градиент от края устройства: у края 0,9, к сцене плавно (smoothstep) до 0 без ступеньки; только у гонки', () => {
     const top = rule(bg, '.wl[data-race] .wlFade--top'), bottom = rule(bg, '.wl[data-race] .wlFade--bottom')
     expect(top).toMatch(/height: calc\(7% \+ env\(safe-area-inset-top, 0px\)\)/); expect(bottom).toMatch(/height: calc\(14% \+ env\(safe-area-inset-bottom, 0px\)\)/)
-    expect(top).toContain('linear-gradient(to bottom, rgba(14, 17, 22, 0.9) 0%, rgba(14, 17, 22, 0.1) 100%)'); expect(bottom).toContain('linear-gradient(to top, rgba(14, 17, 22, 0.9) 0%, rgba(14, 17, 22, 0.1) 100%)')
+    const alphas = r => [...r.matchAll(/rgba\(14, 17, 22, ([0-9.]+)\) (\d+)%/g)].map(m => [+m[1], +m[2]])
+    for (const [r, dir] of [[top, 'to bottom'], [bottom, 'to top']]) { // v3.3.216: растушёвка — 11 остановок, кривая smoothstep от 0,9 у края до 0 (раньше линейно до 0,1 — видимая кромка)
+      const a = alphas(r); expect(r).toContain(`linear-gradient(${dir}, `); expect(a).toHaveLength(11)
+      expect(a[0]).toEqual([0.9, 0]); expect(a.at(-1)).toEqual([0, 100]); expect(a.some(([v]) => v === 0.1)).toBe(false)
+      expect(a.every(([v], i) => i === 0 || v <= a[i - 1][0])).toBe(true) // монотонно спадает
+      expect(a[1][0] - a[0][0]).toBeGreaterThan(-0.05); expect(a.at(-2)[0]).toBeLessThan(0.05) // плавный вход и выход: у границ почти нет излома
+    }
     expect(bg).not.toMatch(/\bfilter:/)
     const base = read('../../styles/player/modules/word-lane.css')
     expect(base).toContain('.wlFade--top { top: 0; height: 14%;'); expect(base).toContain('.wlFade--bottom { bottom: 0; height: 28%;') // обычные игры не затронуты

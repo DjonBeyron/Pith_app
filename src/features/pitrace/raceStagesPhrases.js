@@ -20,8 +20,10 @@ export const PHRASE_SPEED = 0.55 // круг 1 и «Узнай»: 50 / (26 · 0,
 export const SAY_SPEED = 0.36    // круг 2 голосом: ≈ 5,3 с в зоне чтения, до «не успел» у края (92 % пути) ≈ 10 с; пилюля выезжает во время реплики Пита — времени хватает
 /** Шаг между пилюлями — в ДОЛЯХ ВЫСОТЫ (2026-11-08, владелец: «расстояние ещё меньше»; v3.3.159 было ≈ 27 %, до того 45 %): пилюля 11 % + воздух ≈ 9 %. Миллисекунды — из скорости, чтобы шаг не разъезжался */
 export const PHRASE_GAP_PCT = 20
-export const gapMs = speed => Math.round((PHRASE_GAP_PCT / (SPEED * speed)) * 1000)
-export const PHRASE_GAP_MS = gapMs(PHRASE_SPEED) // круг 1 / «Узнай»: ≈ 1399 мс при 0,55 — шаг 20 % высоты
+/** Тап-круги («Пойми», «Узнай»; v3.3.216, владелец: «расстояние между фразами ещё на 40 % меньше»): воздух между пилюлями 9 % → 5,4 % (×0,6), шаг 11 + 5,4 = 16,4 % высоты. «Скажи» (голосом) остаётся на шаге 20 % */
+export const PHRASE_TAP_GAP_PCT = 16.4
+export const gapMs = (speed, pct = PHRASE_GAP_PCT) => Math.round((pct / (SPEED * speed)) * 1000)
+export const PHRASE_GAP_MS = gapMs(PHRASE_SPEED, PHRASE_TAP_GAP_PCT) // круг 1 / «Узнай»: ≈ 1147 мс при 0,55 — шаг 16,4 % высоты
 export const PHRASE_EXIT_MS = 300 // круг фраз кончился (fx.finished) — до плашки следующего круга столько (не EXIT_PAUSE_MS 1,3 с: Пит уже договорил итог хода, пилюли доезжают сами)
 export const LANE = 1             // широкая лента — средняя дорожка (три дорожки съехались к центру)
 
@@ -33,7 +35,7 @@ export const ROUND_PLATES = {
 }
 
 /** Ступень круга: одна на все ходы; reps — по ходу (для счёта, дорожек конвейера и скорости пунктира), phrases — что ведёт сцена */
-export function phraseStep(id, turns, { round, mode, voice, speed, gap = gapMs(speed), demo = null }) {
+export function phraseStep(id, turns, { round, mode, voice, speed, gap = gapMs(speed, mode === 'say' ? PHRASE_GAP_PCT : PHRASE_TAP_GAP_PCT), demo = null }) {
   const texts = turns.map(t => t.target.text)
   return stepOf(id, {
     parts: turns.map((_, i) => i), text: texts.join(' '), chunks: texts, chunkMs: texts.map(() => 1000), active: [LANE],

@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { phrasesOf, hasPhrases, normalizePhrase, phraseTokens, phraseWordKeys, withPhrases, PHRASES_MIN } from './racePhraseData.js'
 import { round1Turns, round2SayTurns, round2HearTurns, reorderWeak, decoysFor } from './racePhraseTurns.js'
-import { phraseStages, PHRASE_SPEED, SAY_SPEED, LANE, ROUND_PLATES, gapMs } from './raceStagesPhrases.js'
+import { phraseStages, PHRASE_SPEED, SAY_SPEED, LANE, ROUND_PLATES, gapMs, PHRASE_TAP_GAP_PCT } from './raceStagesPhrases.js'
 import { buildRaceStages } from './raceStages.js'
 import { buildRaceActs } from './raceRecipe.js'
 import { PHRASE_FIXTURE } from './racePhraseFixture.js'
@@ -96,7 +96,7 @@ describe('стадии этапа', () => {
     expect(s1.step.phrases).toMatchObject({ round: 1, mode: 'pick', voice: false, speed: PHRASE_SPEED }); expect(s2.step.phrases).toMatchObject({ round: 2, mode: 'say', voice: true, speed: SAY_SPEED }) // круг 1 — только тап и голосом
     for (const s of [s1, s2]) { expect(s.step.tapOnly).toBe(true); expect(s.step.quiet).toBe(true); expect(s.step.active).toEqual([LANE]); expect(s.step.reps.every(r => r.lane === LANE)).toBe(true) }
     expect(PHRASE_SPEED).toBe(0.55); expect(SAY_SPEED).toBe(0.36) // 2026-11-08, владелец: «скорость слишком мала» (было 0,43 / 0,27)
-    expect(s1.step.phrases.gap).toBe(gapMs(PHRASE_SPEED)); expect(s2.step.phrases.gap).toBe(gapMs(SAY_SPEED)) // шаг 20 % высоты в обоих кругах
+    expect(s1.step.phrases.gap).toBe(gapMs(PHRASE_SPEED, PHRASE_TAP_GAP_PCT)); expect(s2.step.phrases.gap).toBe(gapMs(SAY_SPEED)) // тап-круг: шаг 16,4 % высоты (воздух −40 %); «Скажи» голосом — 20 %
   })
   it('пальцами: круг 2 «Узнай» — смыслы на ленте; fill ставит слабые фразы последними', () => {
     const k = kitOf(plan(), true); const act = buildRaceActs(plan(), true).acts.find(a => a.id === 'phrases')
