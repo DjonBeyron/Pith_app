@@ -18,7 +18,7 @@ export const LIMITER = { threshold: -10, ratio: 4, knee: 10, attack: 0.003, rele
 // 'normal' — как до 3.3.197 (по умолчанию). Режим читается при создании цепочки контекста и при декодировании буфера → менять и перезагружать страницу (Админ → «Голос» → «Громкость на iPhone»).
 export const LOUDNESS_KEY = 'pithy_game_loudness_v1'
 export const LOUDNESS_MODES = ['normal', 'mid', 'loud', 'louder', 'max']
-export const LOUDNESS_LABELS = { normal: 'Обычная', mid: 'Чуть громче (+3,5 дБ)', loud: 'Громче (+5 дБ)', louder: 'Ещё громче (+8 дБ)', max: 'Максимум (+9 дБ, сильное сжатие)' }
+export const LOUDNESS_LABELS = { normal: 'Обычная (старая)', mid: 'Чуть громче (+3,5 дБ)', loud: 'Громче (+5 дБ)', louder: 'Ещё громче (+8 дБ)', max: 'Максимум (+9 дБ, сильное сжатие) — умолчание' }
 export const PRESETS = {
   normal: { maxGain: 4, peakDb: -1, rmsCeilDb: -18, comp: { threshold: -10, ratio: 4, knee: 10, attack: 0.003, release: 0.25 }, master: 1, limiter: null },
   // v3.3.212 («Пит ≈ на 30 % тише Telegram» при уже исправленной сессии playback): замер на тех же 35 словах — RMS речи −14,1 dBFS (+3,7 дБ к обычной −17,8), пик −0,4, обрезанных отсчётов 0
@@ -29,8 +29,9 @@ export const PRESETS = {
   louder: { maxGain: 10, peakDb: -1, rmsCeilDb: -12, comp: { threshold: -30, ratio: 5, knee: 18, attack: 0.006, release: 0.15 }, master: 1.5, limiter: { threshold: -4, ratio: 20, knee: 0, attack: 0.001, release: 0.08 }, shape: 1.15, ceil: 0.94 },
   max: { maxGain: 10, peakDb: -1, rmsCeilDb: -10, comp: { threshold: -32, ratio: 6, knee: 18, attack: 0.005, release: 0.12 }, master: 1.6, limiter: { threshold: -5, ratio: 20, knee: 0, attack: 0.001, release: 0.08 }, shape: 1.4, ceil: 0.94 },
 }
-export const readLoudness = (store = globalThis.localStorage) => { try { const v = store?.getItem(LOUDNESS_KEY); return LOUDNESS_MODES.includes(v) ? v : 'normal' } catch { return 'normal' } }
-export const writeLoudness = (value, store = globalThis.localStorage) => { try { if (LOUDNESS_MODES.includes(value) && value !== 'normal') store?.setItem(LOUDNESS_KEY, value); else store?.removeItem(LOUDNESS_KEY) } catch { /* приватный режим */ } }
+export const DEFAULT_LOUDNESS = 'max' // v3.3.213: по просьбе владельца (+9 дБ) — после исправления аудиосессии (playback весь сеанс) хруст не возвращается; 'normal' — прежняя цепочка (до 3.3.197)
+export const readLoudness = (store = globalThis.localStorage) => { try { const v = store?.getItem(LOUDNESS_KEY); return LOUDNESS_MODES.includes(v) ? v : DEFAULT_LOUDNESS } catch { return DEFAULT_LOUDNESS } }
+export const writeLoudness = (value, store = globalThis.localStorage) => { try { if (LOUDNESS_MODES.includes(value)) store?.setItem(LOUDNESS_KEY, value); else store?.removeItem(LOUDNESS_KEY) } catch { /* приватный режим */ } }
 const preset = () => PRESETS[readLoudness()]
 
 const VOICED_WIN_S = 0.02

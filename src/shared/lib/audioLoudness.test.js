@@ -1,5 +1,5 @@
-import { describe, it, expect, vi } from 'vitest'
-import { levelsOf, gainFor, normalizeBuffer, outputOf, idOfUrl, MAX_GAIN, LIMITER, PRESETS, readLoudness, writeLoudness, LOUDNESS_KEY, LOUDNESS_MODES } from './audioLoudness.js'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { levelsOf, gainFor, normalizeBuffer, outputOf, idOfUrl, MAX_GAIN, LIMITER, PRESETS, readLoudness, writeLoudness, LOUDNESS_KEY, LOUDNESS_MODES, DEFAULT_LOUDNESS } from './audioLoudness.js'
 
 // Громкость (audioLoudness.js): пик → −1 dBFS, не больше ×4, RMS звучащих окон не выше −18 dBFS; лимитер на выходе контекста.
 const RATE = 8000
@@ -8,6 +8,12 @@ const tone = (amp, sec = 0.5) => Float32Array.from({ length: Math.round(RATE * s
 const buf = ch => ({ numberOfChannels: 1, sampleRate: RATE, getChannelData: () => ch })
 // «речь»: короткие пики поверх тихого фона (пик выше RMS на ~18 дБ)
 const speech = () => { const a = tone(0.05, 1); for (let i = 0; i < a.length; i += 400) a[i] = 0.64; return a }
+
+// умолчание громкости с v3.3.213 — 'max'; базовые проверки идут по старой цепочке 'normal' (записана явно)
+const normalStore = () => { const m = new Map([[LOUDNESS_KEY, 'normal']]); return { getItem: k => m.get(k) ?? null, setItem: (k, v) => m.set(k, v), removeItem: k => m.delete(k), m } }
+let prevStore
+beforeEach(() => { prevStore = globalThis.localStorage; globalThis.localStorage = normalStore() })
+afterEach(() => { globalThis.localStorage = prevStore })
 
 describe('нормализация при декодировании', () => {
   it('речь с пиком −3,9 dBFS: пик → −1 dBFS', () => {
@@ -54,12 +60,12 @@ describe('выход контекста: лимитер → мастер-gain �
     expect(outputOf(ctx, { log: () => {} })).toBe(ctx.destination)
   })
 
-  it('режим «Громче»: по умолчанию normal; пресет loud — норма до RMS −14 и до ×8, второй компрессор-лимитер в конце цепочки', () => {
+  it('режим «Громче»: по умолчанию max (+9 дБ); normal хранится явно; пресет loud — норма до RMS −14 и до ×8, второй компрессор-лимитер в конце цепочки', () => {
     const st = (() => { const m = new Map(); return { getItem: k => m.get(k) ?? null, setItem: (k, v) => m.set(k, v), removeItem: k => m.delete(k), m } })()
-    expect(readLoudness(st)).toBe('normal')
+    expect(DEFAULT_LOUDNESS).toBe('max'); expect(readLoudness(st)).toBe('max')
     writeLoudness('loud', st); expect(readLoudness(st)).toBe('loud')
-    st.setItem(LOUDNESS_KEY, 'мусор'); expect(readLoudness(st)).toBe('normal')
-    writeLoudness('normal', st); expect(st.m.has(LOUDNESS_KEY)).toBe(false)
+    st.setItem(LOUDNESS_KEY, 'мусор'); expect(readLoudness(st)).toBe('max')
+    writeLoudness('normal', st); expect(readLoudness(st)).toBe('normal')
     const quiet = levelsOf([tone(0.02)], RATE)
     expect(gainFor(quiet, PRESETS.loud)).toBeGreaterThan(gainFor(quiet, PRESETS.normal))
     expect(gainFor(quiet, PRESETS.loud)).toBeLessThanOrEqual(PRESETS.loud.maxGain)
