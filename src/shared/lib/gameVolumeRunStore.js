@@ -1,6 +1,6 @@
 // Сохранение «Прогона громкости» (v3.3.205): iPhone выгружает страницу, когда приложение свёрнуто (человек ушёл сравнивать звук в Telegram) — без сохранения прогон терялся.
 // Храним только то, что нельзя восстановить: номер захода, ответы, настройки «до прогона» и строки журнала. План строится заново (buildPlan детерминирован). Хранилище подставляется (тесты).
-export const RUN_KEY = 'pithy_volume_run_v2'
+export const RUN_KEY = 'pithy_volume_run_v3'
 export const LINES_MAX = 1500
 
 export function loadRun(store = globalThis.localStorage) {
