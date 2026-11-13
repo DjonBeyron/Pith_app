@@ -84,7 +84,7 @@ describe('подключение: движок, слушатель, микроф
     vi.stubGlobal('navigator', { mediaDevices: { getUserMedia: async () => ({ getTracks: () => [t] }) }, userAgent: 'x' })
     expect(await gm.openGameMic()).toBe('granted')
     expect(lines.some(l => l.startsWith('[mic] усиление ×'))).toBe(true)
-    expect(lines).toContain('[mic] дорожка применила: эхо false, шумодав false, автоусиление false')
+    expect(lines.some(l => l.startsWith('[mic] дорожка применила: эхо false, шумодав false, автоусиление false, устройство «'))).toBe(true) // v3.3.221: плюс имя микрофона и частота
     expect(gm.describeGameMic().gain).toBe(2)
     gm.closeGameMic(); vi.doUnmock('./debug.js'); vi.resetModules()
   })

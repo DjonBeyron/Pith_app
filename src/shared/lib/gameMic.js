@@ -71,7 +71,7 @@ export const micTracksLine = () => {
 const live = s => !!s && s.getTracks().some(t => t.readyState === 'live' && !t.muted)
 
 /** Что реально применил браузер к дорожке (getSettings): iOS Safari не всегда выполняет autoGainControl — по этой строке видно, помогает ли системное автоусиление */
-const trackLine = s => { try { const t = s.getTracks()[0]?.getSettings?.() ?? {}; return `[mic] дорожка применила: эхо ${t.echoCancellation ?? '—'}, шумодав ${t.noiseSuppression ?? '—'}, автоусиление ${t.autoGainControl ?? '—'}` } catch { return '[mic] настройки дорожки недоступны' } }
+const trackLine = s => { try { const tr = s.getTracks()[0], t = tr?.getSettings?.() ?? {}; return `[mic] дорожка применила: эхо ${t.echoCancellation ?? '—'}, шумодав ${t.noiseSuppression ?? '—'}, автоусиление ${t.autoGainControl ?? '—'}, устройство «${tr?.label || '—'}», частота ${t.sampleRate ?? '—'}` } catch { return '[mic] настройки дорожки недоступны' } }
 
 /** Включить живой поток (enabled = true), снять таймер простоя */
 function takeStream() { setTracksEnabled(stream, true); idle = false; idleCloser.disarm() }
