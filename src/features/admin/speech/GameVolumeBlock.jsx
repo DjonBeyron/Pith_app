@@ -36,7 +36,10 @@ export default function GameVolumeBlock() {
   const pickHold = v => { writeMicHoldMode(v); setHold(readMicHoldMode()); setNote('Режим микрофона сохранён — действует со следующего старта игры (выйди из игры и нажми «Начать»)') }
   const pickSess = v => { writeAudioSessionMode(v); setSess(readAudioSessionMode()); setNote('Тип сессии сохранён — действует со следующего старта игры') }
   const pickKeep = v => { writeMediaKeep(v); setKeep(readMediaKeep()); setNote(v === 'on' ? 'Включено: со следующего старта игры (тап «Начать») в фоне играет беззвучный <audio>' : 'Выключено: со следующего старта игры') }
-  const pickLoud = v => { writeLoudness(v); setLoud(readLoudness()); setNote('Режим громкости сохранён — перезагружаю страницу…'); setTimeout(() => globalThis.location?.reload?.(), 500) }
+  const pickLoud = v => {
+    if (!writeLoudness(v)) { setLoud(readLoudness()); setNote('Не удалось сохранить режим громкости: хранилище телефона не принимает запись (переполнено или закрыто). Режим не изменён.'); return }
+    setLoud(readLoudness()); setNote(`Режим «${LOUDNESS_LABELS[v]}» сохранён — перезагружаю страницу…`); setTimeout(() => globalThis.location?.reload?.(), 500)
+  }
   return (
     <section className="aspBlock" data-testid="game-volume-block">
       <h3 className="aspH">🔊 Стенд громкости и громкость на iPhone</h3>
@@ -55,7 +58,7 @@ export default function GameVolumeBlock() {
       <div className="aspChips" role="radiogroup" aria-label="Громкость как у медиа" data-testid="vol-keep">
         {[['on', 'Вкл'], ['off', 'Выкл']].map(([v, t]) => <button key={v} type="button" role="radio" aria-checked={keep === v} className={`aspChip${keep === v ? ' aspChipOn' : ''}`} onClick={() => pickKeep(v)} data-value={v}>{t}</button>)}
       </div>
-      <h4 className="aspH">Громкость звуков игры</h4>
+      <h4 className="aspH">Громкость звуков игры (сейчас: {LOUDNESS_LABELS[loud]})</h4>
       <div className="aspChips" role="radiogroup" aria-label="Громкость звуков игры" data-testid="vol-loudness">
         {LOUDNESS_MODES.map(v => <button key={v} type="button" role="radio" aria-checked={loud === v} className={`aspChip${loud === v ? ' aspChipOn' : ''}`} onClick={() => pickLoud(v)} data-value={v}>{LOUDNESS_LABELS[v]}</button>)}
       </div>

@@ -31,7 +31,13 @@ export const PRESETS = {
 }
 export const DEFAULT_LOUDNESS = 'max' // v3.3.213: по просьбе владельца (+9 дБ) — после исправления аудиосессии (playback весь сеанс) хруст не возвращается; 'normal' — прежняя цепочка (до 3.3.197)
 export const readLoudness = (store = globalThis.localStorage) => { try { const v = store?.getItem(LOUDNESS_KEY); return LOUDNESS_MODES.includes(v) ? v : DEFAULT_LOUDNESS } catch { return DEFAULT_LOUDNESS } }
-export const writeLoudness = (value, store = globalThis.localStorage) => { try { if (LOUDNESS_MODES.includes(value)) store?.setItem(LOUDNESS_KEY, value); else store?.removeItem(LOUDNESS_KEY) } catch { /* приватный режим */ } }
+/** Сохранить режим. → true, только если он ПРОЧИТАЛСЯ обратно (v3.3.214: на iPhone при переполненном хранилище setItem молча падал, и выбор «не держался»). Не влезло — освобождаем место (сохранённый прогон громкости) и пробуем ещё раз */
+export const writeLoudness = (value, store = globalThis.localStorage) => {
+  const put = () => { try { if (LOUDNESS_MODES.includes(value)) store?.setItem(LOUDNESS_KEY, value); else store?.removeItem(LOUDNESS_KEY) } catch { /* ниже проверим чтением */ } return readLoudness(store) === (LOUDNESS_MODES.includes(value) ? value : DEFAULT_LOUDNESS) }
+  if (put()) return true
+  try { store?.removeItem('pithy_volume_run_v5') } catch { /* нечего освобождать */ }
+  return put()
+}
 const preset = () => PRESETS[readLoudness()]
 
 const VOICED_WIN_S = 0.02

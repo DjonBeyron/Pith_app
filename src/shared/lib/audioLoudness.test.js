@@ -83,6 +83,14 @@ describe('выход контекста: лимитер → мастер-gain �
     } finally { globalThis.localStorage = prev }
   })
 
+  it('запись режима проверяется чтением: хранилище не принимает — false; освобождает место (прогон) и повторяет', () => {
+    const m = new Map([['pithy_volume_run_v5', 'x'.repeat(10)]]); let full = true
+    const st = { getItem: k => m.get(k) ?? null, setItem: (k, v) => { if (full && k === LOUDNESS_KEY) throw new Error('quota'); m.set(k, v) }, removeItem: k => { m.delete(k); if (k === 'pithy_volume_run_v5') full = false } }
+    expect(writeLoudness('mid', st)).toBe(true); expect(readLoudness(st)).toBe('mid'); expect(m.has('pithy_volume_run_v5')).toBe(false)
+    const dead = { getItem: () => null, setItem: () => { throw new Error('quota') }, removeItem: () => {} }
+    expect(writeLoudness('mid', dead)).toBe(false)
+  })
+
   it('режимы louder / max: растут по громкости, в конце цепочки мягкий потолок (WaveShaper) и ceil < 1', () => {
     expect(LOUDNESS_MODES).toEqual(['normal', 'mid', 'loud', 'louder', 'max'])
     const quiet = levelsOf([tone(0.02)], RATE)
