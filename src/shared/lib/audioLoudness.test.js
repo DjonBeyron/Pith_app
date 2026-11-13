@@ -89,6 +89,20 @@ describe('выход контекста: лимитер → мастер-gain �
     expect(PRESETS.cap3.limiter.threshold).toBeLessThan(0); expect(PRESETS.cap6.limiter.threshold).toBeLessThan(PRESETS.cap3.limiter.threshold)
     expect(PRESETS.cap3.shape).toBeGreaterThan(1); expect(PRESETS.cap6.comp.ratio).toBeGreaterThan(PRESETS.cap3.comp.ratio)
   })
+  it('cap3 / cap6: срез низов 300 Гц перед компрессором и подъём 3 кГц после мастера; без BiquadFilter цепочка всё равно строится', () => {
+    expect(PRESETS.cap3.eq).toMatchObject({ hp: 300, pres: { f: 3000 } }); expect(PRESETS.cap6.eq).toBe(PRESETS.cap3.eq); expect(PRESETS.louder.eq).toBeUndefined()
+    const st = { getItem: () => 'cap3', setItem() {}, removeItem() {} }, prev = globalThis.localStorage
+    globalThis.localStorage = st
+    try {
+      const mk = () => ({ connect: vi.fn(), threshold: { value: 0 }, ratio: { value: 0 }, knee: { value: 0 }, attack: { value: 0 }, release: { value: 0 }, gain: { value: 1 }, frequency: { value: 0 }, Q: { value: 0 } })
+      const filters = []
+      const ctx = { destination: {}, createDynamicsCompressor: mk, createGain: mk, createWaveShaper: () => ({ connect: vi.fn() }), createBiquadFilter: () => { const f = { ...mk(), type: '' }; filters.push(f); return f } }
+      const input = outputOf(ctx, { log: () => {} })
+      expect(filters.map(f => f.type)).toEqual(['highpass', 'peaking']); expect(input).toBe(filters[0]); expect(filters[0].frequency.value).toBe(300)
+      const bare = { destination: {}, createDynamicsCompressor: mk, createGain: mk, createWaveShaper: () => ({ connect: vi.fn() }) }
+      expect(outputOf(bare, { log: () => {} })).not.toBe(bare.destination)
+    } finally { globalThis.localStorage = prev }
+  })
   it('запись режима проверяется чтением: хранилище не принимает — false; освобождает место (прогон) и повторяет', () => {
     const m = new Map([['pithy_volume_run_v5', 'x'.repeat(10)]]); let full = true
     const st = { getItem: k => m.get(k) ?? null, setItem: (k, v) => { if (full && k === LOUDNESS_KEY) throw new Error('quota'); m.set(k, v) }, removeItem: k => { m.delete(k); if (k === 'pithy_volume_run_v5') full = false } }

@@ -17,7 +17,7 @@ describe("режим сессии 'playback'", () => {
     ses.afterMic(); ses.begin(); ses.phase('speak'); ses.phase('listen'); ses.micClosed(); ses.micOpening()
     expect(n.audioSession.type).toBe('playback')
     expect(note.mock.calls.map(c => c[1].why)).toEqual(['begin', 'mic-ready'])
-    ses.end(); expect(n.audioSession.type).toBe('ambient')
+    ses.end(); expect(n.audioSession.type).toBe('playback') // v3.3.217: конец игры в режиме playback возвращает 'playback', а не прежний тип (иначе iOS остаётся в режиме звонка)
     ses.begin(); expect(n.audioSession.type).toBe('play-and-record') // новая игра — снова с play-and-record
   })
   it('afterMic в остальных режимах — no-op (play-and-record, auto, phases)', () => {
@@ -36,7 +36,7 @@ describe("режим сессии 'playback'", () => {
   it('пауза → «Продолжить»: end возвращает тип; renew ставит auto и зовёт begin (play-and-record), затем openGameMic зовёт afterMic — снова playback', () => {
     const { n, ses } = mk(null, 'ambient')
     ses.begin(); ses.afterMic(); expect(n.audioSession.type).toBe('playback')
-    ses.end(); expect(n.audioSession.type).toBe('ambient')               // пауза (endGameAudio)
+    ses.end(); expect(n.audioSession.type).toBe('playback')               // пауза (endGameAudio)
     n.audioSession.type = 'auto'; ses.begin()                            // restartGameAudio → renewAudioSession → applyType = begin
     expect(n.audioSession.type).toBe('play-and-record')
     ses.begin(); ses.afterMic(); expect(n.audioSession.type).toBe('playback') // startBody: begin, затем микрофон открыт
@@ -44,5 +44,11 @@ describe("режим сессии 'playback'", () => {
   it('afterMic до begin (игра не начата) — ничего не делает', () => {
     const { n, ses } = mk('playback', 'ambient'); ses.afterMic()
     expect(n.audioSession.type).toBe('ambient')
+  })
+  it('settle: микрофон закрыт вне игры — тип playback; игру, которая идёт, и другие режимы не трогает', () => {
+    const { n, ses } = mk(null, 'auto')
+    expect(ses.settle('выход')).toBe(true); expect(n.audioSession.type).toBe('playback')
+    n.audioSession.type = 'auto'; ses.begin(); expect(ses.settle('x')).toBe(false) // игра идёт
+    const o = mk('auto', 'auto'); expect(o.ses.settle('x')).toBe(false); expect(o.n.audioSession.type).toBe('auto')
   })
 })

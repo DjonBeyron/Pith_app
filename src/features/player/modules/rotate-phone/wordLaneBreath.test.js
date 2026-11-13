@@ -111,7 +111,7 @@ describe('до подтверждения речи', () => {
       if (!confirmed) peakBefore = Math.max(peakBefore, p)
       prev = p
     }
-    expect(peakBefore).toBeGreaterThan(0.2)
+    expect(peakBefore).toBeGreaterThan(0.1)
     expect(peakBefore).toBeLessThanOrEqual(PRE_CONFIRM_CAP + 1e-9)
     expect(g.reps[0].pills[0].p).toBeGreaterThan(PRE_CONFIRM_CAP + 0.2)
     expect(g.reps[0].pills[0].p).toBeLessThanOrEqual(FILL_CAP + 1e-9)

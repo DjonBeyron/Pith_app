@@ -18,7 +18,10 @@ export const LIMITER = { threshold: -10, ratio: 4, knee: 10, attack: 0.003, rele
 // 'normal' — как до 3.3.197 (по умолчанию). Режим читается при создании цепочки контекста и при декодировании буфера → менять и перезагружать страницу (Админ → «Голос» → «Громкость на iPhone»).
 export const LOUDNESS_KEY = 'pithy_game_loudness_v1'
 export const LOUDNESS_MODES = ['normal', 'mid', 'loud', 'louder', 'max', 'cap3', 'cap6']
-export const LOUDNESS_LABELS = { normal: 'Обычная (старая)', mid: 'Чуть громче (+3,5 дБ)', loud: 'Громче (+5 дБ)', louder: 'Ещё громче (+8 дБ)', max: 'Максимум (+9 дБ, сильное сжатие)', cap3: 'Громко, потолок −3 дБ (≈ +6,5 дБ) — умолчание', cap6: 'Потолок −6 дБ (≈ +5 дБ)' }
+export const LOUDNESS_LABELS = { normal: 'Обычная (старая)', mid: 'Чуть громче (+3,5 дБ)', loud: 'Громче (+5 дБ)', louder: 'Ещё громче (+8 дБ)', max: 'Максимум (+9 дБ, сильное сжатие)', cap3: 'Громко, потолок −3 дБ (≈ +6 дБ на динамике) — умолчание', cap6: 'Потолок −6 дБ (≈ +5 дБ на динамике)' }
+// v3.3.217 (замечание владельца: «не громче нормы, но много низов, пик за −6»): у cap3 61 % энергии ниже 200 Гц (у обычной 42 %) — динамик телефона их не воспроизводит (выше 350 Гц cap3 был лишь +4,4 дБ к обычной, а «+8» — +6,4),
+// а низы съедают запас у компрессора и лимитера. eq: срез ниже 300 Гц ПЕРЕД компрессором + подъём «разборчивости» 3 кГц (+6 дБ) после него: низов 22 %, на динамике cap3 ≈ +6,3 дБ при пике ≈ −2,9 dBFS.
+const EQ_PHONE = { hp: 300, pres: { f: 3000, q: 0.7, g: 6 } }
 export const PRESETS = {
   normal: { maxGain: 4, peakDb: -1, rmsCeilDb: -18, comp: { threshold: -10, ratio: 4, knee: 10, attack: 0.003, release: 0.25 }, master: 1, limiter: null },
   // v3.3.212 («Пит ≈ на 30 % тише Telegram» при уже исправленной сессии playback): замер на тех же 35 словах — RMS речи −14,1 dBFS (+3,7 дБ к обычной −17,8), пик −0,4, обрезанных отсчётов 0
@@ -28,10 +31,10 @@ export const PRESETS = {
   // shape — мягкий потолок на выходе (WaveShaper tanh(k·x)/tanh(k), oversample 2×), ceil — множитель после него (пики с запасом ниже 0 dBFS); чем сильнее сжатие, тем «радийнее» голос.
   louder: { maxGain: 10, peakDb: -1, rmsCeilDb: -12, comp: { threshold: -30, ratio: 5, knee: 18, attack: 0.006, release: 0.15 }, master: 1.5, limiter: { threshold: -4, ratio: 20, knee: 0, attack: 0.001, release: 0.08 }, shape: 1.15, ceil: 0.94 },
   max: { maxGain: 10, peakDb: -1, rmsCeilDb: -10, comp: { threshold: -32, ratio: 6, knee: 18, attack: 0.005, release: 0.12 }, master: 1.6, limiter: { threshold: -5, ratio: 20, knee: 0, attack: 0.001, release: 0.08 }, shape: 1.4, ceil: 0.94 },
-  // v3.3.215 (замер на тех же 35 словах, Chromium OfflineAudioContext): «потолок» — пики не выше заданного уровня. cap3: RMS речи −11,4 dBFS (+6,4 дБ к обычной), пик −3,2; cap6: RMS −13,1 (+4,7), пик −5,1.
+  // v3.3.215 (замер на тех же 35 словах, Chromium OfflineAudioContext): «потолок» — пики не выше заданного уровня. v3.3.217 с EQ_PHONE (выше 350 Гц, как слышит динамик телефона): cap3 −11,2 (обычная −17,5), пик −2,9, низов 22 % вместо 61 %; cap6 −12,8, пик ≈ −5,5…−6 (ceil 0,42: передискретизация WaveShaper даёт ≈ +1,5 дБ над расчётным).
   // Громкость и потолок пиков связаны: у louder (+8) пик −0,3 dBFS; чтобы пик был ≤ −6, речь не может быть громче ≈ +5 дБ. Сильное сжатие (12–16:1) + лимитер ниже потолка + WaveShaper + ceil (множитель после него) держат потолок.
-  cap3: { maxGain: 10, peakDb: -1, rmsCeilDb: -9, comp: { threshold: -42, ratio: 12, knee: 8, attack: 0.003, release: 0.1 }, master: 3.6, limiter: { threshold: -6, ratio: 20, knee: 0, attack: 0.001, release: 0.08 }, shape: 1.4, ceil: 0.63 },
-  cap6: { maxGain: 10, peakDb: -1, rmsCeilDb: -8, comp: { threshold: -46, ratio: 16, knee: 6, attack: 0.002, release: 0.1 }, master: 4.5, limiter: { threshold: -8, ratio: 20, knee: 0, attack: 0.001, release: 0.08 }, shape: 1.6, ceil: 0.5 },
+  cap3: { maxGain: 10, peakDb: -1, rmsCeilDb: -9, comp: { threshold: -42, ratio: 12, knee: 8, attack: 0.003, release: 0.1 }, master: 4.0, limiter: { threshold: -6, ratio: 20, knee: 0, attack: 0.001, release: 0.08 }, shape: 1.4, ceil: 0.63, eq: EQ_PHONE },
+  cap6: { maxGain: 10, peakDb: -1, rmsCeilDb: -8, comp: { threshold: -46, ratio: 16, knee: 6, attack: 0.002, release: 0.1 }, master: 5.5, limiter: { threshold: -8, ratio: 20, knee: 0, attack: 0.001, release: 0.08 }, shape: 1.6, ceil: 0.42, eq: EQ_PHONE },
 }
 export const DEFAULT_LOUDNESS = 'cap3' // v3.3.215: «+8 дБ нравится, но пики вылезают за границы, а +5 маловато» → громко, но с настоящим потолком пиков −3 дБFS (3.3.213 был 'max'); 'normal' — прежняя цепочка (до 3.3.197)
 export const readLoudness = (store = globalThis.localStorage) => { try { const v = store?.getItem(LOUDNESS_KEY); return LOUDNESS_MODES.includes(v) ? v : DEFAULT_LOUDNESS } catch { return DEFAULT_LOUDNESS } }
@@ -109,11 +112,17 @@ export function outputOf(ctx, { kind = 'игра', log = pLog } = {}) {
       const master = ctx.createGain()
       master.gain.value = p.master
       comp.connect(master)
-      let tail = master
+      let tail = master, input = comp
+      if (p.eq && typeof ctx.createBiquadFilter === 'function') { // срез низов перед компрессором, подъём разборчивости после него (EQ_PHONE)
+        const hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = p.eq.hp; hp.Q.value = 0.707
+        hp.connect(comp); input = hp
+        const pk = ctx.createBiquadFilter(); pk.type = 'peaking'; pk.frequency.value = p.eq.pres.f; pk.Q.value = p.eq.pres.q; pk.gain.value = p.eq.pres.g
+        master.connect(pk); tail = pk
+      }
       if (p.limiter) { // жёсткий лимитер в конце: пики не вылезают за 0 dBFS, усиление не даёт хруста
         const lim = ctx.createDynamicsCompressor()
         for (const [k, v] of Object.entries(p.limiter)) { if (lim[k] && 'value' in lim[k]) lim[k].value = v }
-        master.connect(lim)
+        tail.connect(lim)
         tail = lim
       }
       if (p.shape && typeof ctx.createWaveShaper === 'function') { // мягкий потолок: срезает редкие пики после сжатия, не давая цифрового обрезания
@@ -127,7 +136,7 @@ export function outputOf(ctx, { kind = 'игра', log = pLog } = {}) {
         tail = ceil
       }
       tail.connect(ctx.destination)
-      node = comp
+      node = input
     }
   } catch { node = ctx.destination }
   outs.set(ctx, node)

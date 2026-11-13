@@ -136,7 +136,7 @@ describe('голос и заливка: только на подтверждён
     const g = game(build[0])
     frames(g, 3500, { level: 0.9, seq: [], misses: 0, confirmed: false, tail: null })
     const p = g.reps[0].pills[0].p
-    expect(p).toBeGreaterThan(0.2)
+    expect(p).toBeGreaterThan(0.1) // v3.3.217: потолок до подтверждения 0,15 (было 0,4)
     expect(p).toBeLessThanOrEqual(PRE_CONFIRM_CAP + 1e-9)
     expect(g.reps[0].pills[0].state).toBe('fly')
   })

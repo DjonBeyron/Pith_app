@@ -76,12 +76,21 @@ export function createGameAudioSession({ nav = globalThis.navigator, store = glo
     end() {
       if (!active) return
       active = false; micOff = false; held = false
-      if (changed && api.supported()) {
+      if (mode === 'playback' && api.supported()) { // v3.3.217: в режиме playback возвращаем 'playback', а не прежний 'auto': с живым или только что закрытым захватом 'auto' оставляет iOS в режиме звонка — повторный запуск игры в той же сессии шёл тихо (голос и интерфейс)
+        const ok = api.current() === SESSION_SPEAK ? true : api.set(SESSION_SPEAK)
+        report('end', SESSION_SPEAK, ok)
+      } else if (changed && api.supported()) {
         const back = prev ?? 'auto'
         const ok = api.set(back)
         report('end', back, ok)
       }
       changed = false
+    },
+    /** Микрофон закрыт по-настоящему вне игры (выход, закрытие урока): режим playback — тип сессии 'playback' (media-громкость), а не 'auto'. Не трогает игру, которая идёт (active) */
+    settle(why = 'после закрытия микрофона') {
+      if (active || readAudioSessionMode(store) !== 'playback' || !api.supported()) return false
+      if (api.current() === SESSION_SPEAK) return true
+      const ok = api.set(SESSION_SPEAK); report(`settle:${why}`, SESSION_SPEAK, ok); return ok
     },
     /** Для панели админки и отладки: режим из настройки, есть ли API, текущий тип */
     describe: () => ({ mode: readAudioSessionMode(store), supported: api.supported(), type: api.current(), active }),

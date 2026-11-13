@@ -103,7 +103,7 @@ describe('тип аудиосессии: ставится в начале игр
     const note = vi.fn()
     const ses = createGameAudioSession({ nav: n, store: memStore(), note })
     ses.begin(); ses.end()
-    expect(note).toHaveBeenCalledTimes(1)
+    expect(note).toHaveBeenCalledTimes(2) // begin и end (в режиме playback конец ставит playback — тоже отказ)
     expect(note.mock.calls[0][1]).toMatchObject({ requested: 'play-and-record', ok: false })
   })
 })

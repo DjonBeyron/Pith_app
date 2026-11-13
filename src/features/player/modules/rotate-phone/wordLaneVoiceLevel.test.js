@@ -50,7 +50,7 @@ describe('уровень голоса для анимации — от шума 
     expect(Math.max(...lv)).toBeGreaterThan(0.6)       // пик 0,0045 — как обычная речь 0,03–0,05 раньше (0,61–0,75)
     expect(Math.max(...lv)).toBeLessThanOrEqual(sensitiveLevel(LEVEL_PEAK) + 1e-9) // и не выше «обычной»: кольца не упираются в 1,0
     expect(m.fromRms.info()).toMatchObject({ voice: true }) // последний кусок — хвост слова, ещё голос
-    expect(m.fill[40 + 4]).toBeGreaterThan(0.3)        // 200 мс голоса: заливка у потолка «до подтверждения речи» (0,4)
+    expect(m.fill[40 + 4]).toBeGreaterThan(0.07)       // 200 мс голоса: заливка идёт к потолку «до подтверждения речи» (0,15; в 3.3.217 было 0,4)
     expect(m.fill[40 + 4]).toBeLessThanOrEqual(PRE_CONFIRM_CAP)
     const old = mic({ fromRms: sensitiveLevel }).feed(quiet(40)).feed(WORD)
     expect(Math.max(...old.raw)).toBe(0)               // до v3.3.187
