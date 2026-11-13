@@ -36,7 +36,11 @@ export function createGameAudioSession({ nav = globalThis.navigator, store = glo
     get active() { return active },
     /** Старт игры (тап «Начать», до openGameMic): запомнить прежний тип и поставить нужный по настройке. Повторный вызов — no-op */
     begin() {
-      if (active) { if (mode !== 'auto' && !micOff && !held) apply(SESSION_LISTEN, 'begin-again'); return } // повторный старт без конца прошлой игры (после фона тип мог сброситься): ставим тип заново — кроме закрытого микрофона ('close': иначе вернём «режим звонка» на речь Пита, v3.3.203)
+      if (active) { // повторный вызов (сцена игры, renew после фона: тип сброшен в 'auto')
+        if (mode === 'playback' && held) apply(SESSION_SPEAK, 'begin-again') // v3.3.211: микрофон уже открыт — возвращаем playback, а не play-and-record (renewAudioSession на «Продолжить» ставил 'auto', и звук после паузы оставался тихим)
+        else if (mode !== 'auto' && !micOff) apply(SESSION_LISTEN, 'begin-again')
+        return
+      } // повторный старт без конца прошлой игры (после фона тип мог сброситься): ставим тип заново — кроме закрытого микрофона ('close': иначе вернём «режим звонка» на речь Пита, v3.3.203)
       active = true; changed = false; micOff = false; held = false
       mode = readAudioSessionMode(store)
       prev = api.current()
@@ -54,6 +58,8 @@ export function createGameAudioSession({ nav = globalThis.navigator, store = glo
       held = true
       apply(SESSION_SPEAK, 'mic-ready')
     },
+    /** Поток микрофона закрыт по-настоящему (shutGameMic) — playback больше не держим: следующий begin() снова поставит play-and-record, afterMic — playback */
+    micGone() { held = false },
     /** Режим микрофона 'close': поток закрыт (треки остановлены) — тип сессии 'auto', запись сессию не держит. В режимах 'auto' (не трогаем) и 'phases' (тип ведёт phase) — no-op */
     micClosed() {
       if (!active || mode === 'auto' || mode === 'phases' || mode === 'playback') return

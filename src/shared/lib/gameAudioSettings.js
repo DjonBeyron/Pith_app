@@ -13,7 +13,7 @@ export const AUDIO_SESSION_MODES = ['play-and-record', 'auto', 'phases', 'playba
 export const MIC_HOLD_MODES = ['enabled-false', 'none', 'close']
 export const WEB_AUDIO_MODES = ['on', 'off']
 export const DEFAULT_WEB_AUDIO_MODE = 'on'
-export const DEFAULT_AUDIO_SESSION_MODE = 'play-and-record'
+export const DEFAULT_AUDIO_SESSION_MODE = 'playback' // v3.3.211: проверено владельцем на iPhone — звук громкий, без хруста, слова слышны (было 'play-and-record')
 export const DEFAULT_MIC_HOLD_MODE = 'enabled-false'
 
 const read = (key, modes, fallback, store) => { try { const v = store?.getItem(key); return modes.includes(v) ? v : fallback } catch { return fallback } }

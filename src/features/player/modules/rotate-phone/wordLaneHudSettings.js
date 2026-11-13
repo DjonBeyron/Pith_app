@@ -27,7 +27,7 @@ export const writeWeakStored = (on, store = globalThis.localStorage) => write(WE
 /** Тип аудиосессии: записать настройку и сразу применить к идущей игре (вернуть прежний тип и поставить новый по настройке) */
 export function applyAudioSessionMode(mode, session = gameAudioSession, store = globalThis.localStorage) {
   writeAudioSessionMode(mode, store)
-  if (session.active) { session.end(); session.begin() }
+  if (session.active) { session.end(); session.begin(); session.afterMic?.() } // afterMic — режим 'playback': микрофон игры уже открыт, тип playback возвращаем сразу
 }
 
 const yn = v => (v ? 'да' : 'нет')

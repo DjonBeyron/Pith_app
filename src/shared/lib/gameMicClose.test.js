@@ -222,8 +222,8 @@ describe('gameMicSession: micClosed / micOpening (только режим close)
     const ses = createGameAudioSession({ nav: n, store: memStore(mode ? { pithy_game_audio_session_v1: mode } : {}), note })
     return { n, ses, note }
   }
-  it("по умолчанию: открытие микрофона → play-and-record, закрытие → auto; журнал mic-open / mic-closed", () => {
-    const { n, ses, note } = mkSes()
+  it("режим 'play-and-record': открытие микрофона → play-and-record, закрытие → auto; журнал mic-open / mic-closed", () => {
+    const { n, ses, note } = mkSes('play-and-record')
     ses.begin()
     ses.micClosed(); expect(n.audioSession.type).toBe('auto')
     ses.micOpening(); expect(n.audioSession.type).toBe('play-and-record')

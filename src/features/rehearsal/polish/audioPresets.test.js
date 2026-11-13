@@ -13,14 +13,14 @@ describe('список пресетов', () => {
   it('восемь режимов A…H с короткими подписями владельца', () => {
     expect(PRESET_IDS).toEqual(['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'])
     expect(AUDIO_PRESETS.map(p => p.title)).toEqual([
-      'Запись+воспр., не глушить, обработка выкл', 'Запись+воспр., выключать дорожку на речь Пита', 'Запись+воспр., закрывать микрофон на речь Пита', 'Авто-сессия, не глушить',
+      'Запись+воспр., не глушить, обработка выкл', 'Playback весь сеанс, выключать дорожку на речь Пита (умолчание)', 'Запись+воспр., закрывать микрофон на речь Пита', 'Авто-сессия, не глушить',
       'По фазам, не глушить', 'По фазам, закрывать микрофон', 'Обработка микрофона системой ВКЛ, не глушить', 'Обработка ВКЛ, закрывать микрофон',
     ])
   })
   it('три настройки каждого: сессия, дорожка на речь Пита, обработка микрофона', () => {
     const t = Object.fromEntries(AUDIO_PRESETS.map(p => [p.id, [p.session, p.hold, p.processing]]))
     expect(t).toEqual({
-      A: ['play-and-record', 'none', false], B: ['play-and-record', 'enabled-false', false], C: ['play-and-record', 'close', false], D: ['auto', 'none', false],
+      A: ['play-and-record', 'none', false], B: ['playback', 'enabled-false', false], C: ['play-and-record', 'close', false], D: ['auto', 'none', false],
       E: ['phases', 'none', false], F: ['phases', 'close', false], G: ['play-and-record', 'none', true], H: ['play-and-record', 'close', true],
     })
     expect(new Set(AUDIO_PRESETS.map(p => `${p.session}|${p.hold}|${p.processing}`)).size).toBe(8) // ни один не совпадает с другим — обратное определение однозначно
@@ -37,12 +37,12 @@ describe('применить и определить', () => {
       expect(currentPresetId(s)).toBe(p.id)
     }
   })
-  it('C: в хранилище лежат play-and-record (по умолчанию — ключа нет), close, обработка выключена', () => {
+  it('C: в хранилище лежат play-and-record (теперь не умолчание), close, обработка выключена', () => {
     const s = memStore({ [MIC_PROCESSING_KEY]: '1' })
     applyPreset('C', s)
-    expect(s.m).toEqual({ [MIC_HOLD_KEY]: 'close' })
+    expect(s.m).toEqual({ [AUDIO_SESSION_KEY]: 'play-and-record', [MIC_HOLD_KEY]: 'close' }) // play-and-record — больше не умолчание (v3.3.211): ключ лежит
     applyPreset('H', s)
-    expect(s.m).toEqual({ [MIC_HOLD_KEY]: 'close', [MIC_PROCESSING_KEY]: '1' })
+    expect(s.m).toEqual({ [AUDIO_SESSION_KEY]: 'play-and-record', [MIC_HOLD_KEY]: 'close', [MIC_PROCESSING_KEY]: '1' })
     applyPreset('E', s)
     expect(s.m).toEqual({ [AUDIO_SESSION_KEY]: 'phases', [MIC_HOLD_KEY]: 'none' }) // «не глушить» — теперь не значение по умолчанию, ключ лежит
     applyPreset('B', s)
@@ -51,7 +51,7 @@ describe('применить и определить', () => {
   it('пресет полностью заменяет прежние настройки (остатков от прошлого режима нет)', () => {
     const s = memStore({ [AUDIO_SESSION_KEY]: 'phases', [MIC_HOLD_KEY]: 'enabled-false', [MIC_PROCESSING_KEY]: '1' })
     applyPreset('A', s)
-    expect(s.m).toEqual({ [MIC_HOLD_KEY]: 'none' }); expect(currentPresetId(s)).toBe('A')
+    expect(s.m).toEqual({ [AUDIO_SESSION_KEY]: 'play-and-record', [MIC_HOLD_KEY]: 'none' }); expect(currentPresetId(s)).toBe('A')
     applyPreset('B', s)
     expect(s.m).toEqual({}); expect(currentPresetId(s)).toBe('B')
   })
@@ -112,7 +112,7 @@ describe('режим звука в экспорте', () => {
     expect(info.line).toContain('свой набор'); expect(info.line).toContain('запускали в режиме C — Запись+воспр., закрывать микрофон на речь Пита')
   })
   it('без описания микрофона берётся из настроек браузера сейчас', () => {
-    const s = memStore({ [MIC_PROCESSING_KEY]: '1', [MIC_HOLD_KEY]: 'none' })
+    const s = memStore({ [AUDIO_SESSION_KEY]: 'play-and-record', [MIC_PROCESSING_KEY]: '1', [MIC_HOLD_KEY]: 'none' })
     expect(audioModeInfo({ store: s }).id).toBe('G')
     expect(audioModeInfo({ store: memStore() }).id).toBe('B') // чистый телефон — режим B
   })

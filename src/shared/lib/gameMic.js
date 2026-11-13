@@ -185,6 +185,7 @@ export function closeGameMic() {
 
 /** Закрыть поток по-настоящему: треки останавливаются, индикатор гаснет, следующий openGameMic — снова getUserMedia (диалог на iPhone) */
 export function shutGameMic(why = 'закрыт') {
+  try { gameAudioSession.micGone?.() } catch { /* сессия не мешает закрытию */ } // режим 'playback': поток закрыт по-настоящему — playback не держим
   gameMediaKeep.stop()
   const s = stream
   stream = null; opened = null

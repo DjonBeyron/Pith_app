@@ -23,9 +23,9 @@ describe('настройки режимов читаются из localStorage',
   it('по умолчанию (режим B): аудиосессия play-and-record, дорожка микрофона выключается на речь Пита; незнакомое значение = по умолчанию', () => {
     const s = memStore()
     expect(DEFAULT_MIC_HOLD_MODE).toBe('enabled-false')
-    expect(readAudioSessionMode(s)).toBe('play-and-record')
+    expect(readAudioSessionMode(s)).toBe('playback') // v3.3.211: умолчание — «playback весь сеанс» (проверено владельцем на iPhone)
     expect(readMicHoldMode(s)).toBe('enabled-false')
-    expect(readAudioSessionMode(memStore({ [AUDIO_SESSION_KEY]: 'мусор' }))).toBe('play-and-record')
+    expect(readAudioSessionMode(memStore({ [AUDIO_SESSION_KEY]: 'мусор' }))).toBe('playback')
     expect(readMicHoldMode(memStore({ [MIC_HOLD_KEY]: 'мусор' }))).toBe('enabled-false')
     expect(readMicHoldMode(memStore({ [MIC_HOLD_KEY]: 'none' }))).toBe('none') // «не глушить» — по явному выбору (пресет A)
   })
@@ -35,10 +35,10 @@ describe('настройки режимов читаются из localStorage',
     expect(s.m).toEqual({ [AUDIO_SESSION_KEY]: 'phases', [MIC_HOLD_KEY]: 'none' })
     expect(readAudioSessionMode(s)).toBe('phases')
     expect(readMicHoldMode(s)).toBe('none')
-    writeAudioSessionMode('play-and-record', s); writeMicHoldMode('enabled-false', s); writeAudioSessionMode('auto', s)
+    writeAudioSessionMode('playback', s); writeMicHoldMode('enabled-false', s); writeAudioSessionMode('auto', s)
     expect(s.m).toEqual({ [AUDIO_SESSION_KEY]: 'auto' })
     const broken = { getItem() { throw new Error('private') }, setItem() { throw new Error('private') }, removeItem() { throw new Error('private') } }
-    expect(readAudioSessionMode(broken)).toBe('play-and-record')
+    expect(readAudioSessionMode(broken)).toBe('playback')
     expect(() => writeMicHoldMode('enabled-false', broken)).not.toThrow()
   })
 })
@@ -49,8 +49,8 @@ describe('тип аудиосессии: ставится в начале игр
     const store = memStore(mode ? { [AUDIO_SESSION_KEY]: mode } : {})
     return { n, note, ses: createGameAudioSession({ nav: n, store, note }) }
   }
-  it('по умолчанию (play-and-record): begin ставит тип, повторный begin ничего не делает, end возвращает прежний; события audio-session', () => {
-    const { n, note, ses } = mk(null, 'ambient')
+  it("режим 'play-and-record': begin ставит тип, повторный begin ничего не делает, end возвращает прежний; события audio-session", () => {
+    const { n, note, ses } = mk('play-and-record', 'ambient')
     ses.begin(); ses.begin()
     expect(n.audioSession.type).toBe('play-and-record')
     expect(note).toHaveBeenCalledTimes(1)
@@ -63,7 +63,7 @@ describe('тип аудиосессии: ставится в начале игр
     expect(note).toHaveBeenCalledTimes(2)
   })
   it("'close': пока микрофон закрыт, повторный begin (вход в сцену игры) НЕ возвращает play-and-record; после micOpening — возвращает (v3.3.203)", () => {
-    const { n, note, ses } = mk(null, 'ambient')
+    const { n, note, ses } = mk('play-and-record', 'ambient')
     ses.begin()
     ses.micClosed(); expect(n.audioSession.type).toBe('auto')
     ses.begin(); expect(n.audioSession.type).toBe('auto')                       // сцена смонтирована — тип остался 'auto' (не режим звонка)
@@ -241,7 +241,7 @@ describe('админка «Голос» → «Микрофон игры»: дв�
   })
   it('describeGameMic отдаёт режимы и состояние дорожек для отладочной выгрузки; блок подключён во вкладку', () => {
     vi.stubGlobal('localStorage', memStore({ [MIC_HOLD_KEY]: 'enabled-false' }))
-    expect(describeGameMic()).toMatchObject({ audioSessionMode: 'play-and-record', micHoldMode: 'enabled-false', tracks: null })
+    expect(describeGameMic()).toMatchObject({ audioSessionMode: 'playback', micHoldMode: 'enabled-false', tracks: null })
     expect(readFileSync(new URL('../../features/admin/speech/AdminSpeechTab.jsx', import.meta.url), 'utf8')).toContain('<GameMicBlock />')
   })
 })

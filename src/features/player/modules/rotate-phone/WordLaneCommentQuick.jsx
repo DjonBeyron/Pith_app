@@ -8,7 +8,7 @@ import { readPillSafe, writePillSafe, applyPillSafe, readTapMode, writeTapMode, 
 // Быстрые переключатели режимов в окне комментария (WordLaneComment): те же настройки и те же функции, что в HUD (WordLaneHud.jsx, wordLaneHudSettings.js) — «почему хрипит звук»: тип аудиосессии, дорожка микрофона на речь Пита,
 // обработка микрофона, звук и громкость награды, безопасные слои пилюль, тап вместо речи. Игра на паузе: тип сессии и дорожка читаются заново при «Продолжить» (startGameAudio открывает микрофон и сессию снова),
 // поэтому все пункты вступают в силу после «Продолжить». Каждое переключение уходит в onChange({ key, label, from, to }) — комментарий хранит, что менялось. Стили — как у HUD (word-lane-hud.css).
-const SESSION_OPTS = [['play-and-record', 'Запись+воспр.'], ['auto', 'Авто'], ['phases', 'По фазам']]
+const SESSION_OPTS = [['play-and-record', 'Запись+воспр.'], ['auto', 'Авто'], ['phases', 'По фазам'], ['playback', 'Playback']]
 const HOLD_OPTS = [['none', 'Не глушить'], ['enabled-false', 'Глушить дорожку'], ['close', 'Закрывать микрофон']]
 const rewardLabel = v => ({ meow: 'Мяу', custom: 'Свой звук', off: 'Без звука' })[v] ?? 'Ноты' // остальное из REWARD_SOUNDS — прежние ноты
 const yn = v => (v ? 'вкл' : 'выкл')

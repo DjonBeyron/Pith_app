@@ -14,7 +14,7 @@ const P = (id, title, session, hold, processing) => ({ id, title, session, hold,
 /** id, подпись, тип аудиосессии, дорожка микрофона на речь Пита, обработка микрофона системой (эхо/шум) */
 export const AUDIO_PRESETS = [
   P('A', 'Запись+воспр., не глушить, обработка выкл', 'play-and-record', 'none', false),
-  P('B', 'Запись+воспр., выключать дорожку на речь Пита', 'play-and-record', 'enabled-false', false),
+  P('B', 'Playback весь сеанс, выключать дорожку на речь Пита (умолчание)', 'playback', 'enabled-false', false), // v3.3.211: B = умолчание игры (раньше — play-and-record + выключать дорожку); проверено владельцем на iPhone: громко, без хрипа
   P('C', 'Запись+воспр., закрывать микрофон на речь Пита', 'play-and-record', 'close', false),
   P('D', 'Авто-сессия, не глушить', 'auto', 'none', false),
   P('E', 'По фазам, не глушить', 'phases', 'none', false),
