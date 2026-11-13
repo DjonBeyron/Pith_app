@@ -23,13 +23,14 @@ export const LOUDNESS_LABELS = { normal: 'Обычная (старая)', mid: '
 // а низы съедают запас у компрессора и лимитера. eq: срез ниже 300 Гц ПЕРЕД компрессором + подъём «разборчивости» 3 кГц (+6 дБ) после него: низов 22 %, на динамике cap3 ≈ +6,3 дБ при пике ≈ −2,9 dBFS.
 // v3.3.218: срез низов стал отдельной настройкой (владелец играл на «Ещё громче» — у неё EQ не было, а низов «всё ещё много»): работает со всеми режимами кроме «Обычной». Значения — частота среза, Гц.
 export const LOWCUT_KEY = 'pithy_game_lowcut_v1'
-export const LOWCUT_MODES = ['off', '200', '300', '400', '500']
-export const DEFAULT_LOWCUT = '400'
-export const LOWCUT_LABELS = { off: 'Низы: как есть', 200: 'Срез 200 Гц', 300: 'Срез 300 Гц', 400: 'Срез 400 Гц (умолчание)', 500: 'Срез 500 Гц (тонкий голос)' }
+// v3.3.219: срез 400 Гц (12 дБ/окт) оставлял 44 % энергии ниже 350 Гц — владелец: «низа всё ещё есть». Теперь срез в два каскада (24 дБ/окт): 500 Гц оставляет ≈ 20 %, 600 Гц — 10 %, 800 Гц — 3 % (но тише на динамике).
+export const LOWCUT_MODES = ['off', '300', '400', '500', '600', '800']
+export const DEFAULT_LOWCUT = '500'
+export const LOWCUT_LABELS = { off: 'Низы: как есть', 300: 'Срез 300 Гц', 400: 'Срез 400 Гц', 500: 'Срез 500 Гц (умолчание)', 600: 'Срез 600 Гц (сухо)', 800: 'Срез 800 Гц (очень тонко)' }
 export const readLowCut = (store = globalThis.localStorage) => { try { const v = store?.getItem(LOWCUT_KEY); return LOWCUT_MODES.includes(v) ? v : DEFAULT_LOWCUT } catch { return DEFAULT_LOWCUT } }
 export const writeLowCut = (value, store = globalThis.localStorage) => { try { if (LOWCUT_MODES.includes(value)) store?.setItem(LOWCUT_KEY, value) } catch { /* ниже проверим чтением */ } return readLowCut(store) === value }
-/** EQ для пресета: срез низов перед компрессором + подъём разборчивости 3 кГц (+6 дБ) после мастера; null — без EQ («Обычная» или срез выключен) */
-export const eqFor = (p, store = globalThis.localStorage) => { const cut = readLowCut(store); return p === PRESETS.normal || cut === 'off' ? null : { hp: Number(cut), pres: { f: 3000, q: 0.7, g: 6 } } }
+/** EQ для пресета: срез низов перед компрессором + подъём разборчивости 3 кГц (+4 дБ) после мастера; null — без EQ («Обычная» или срез выключен) */
+export const eqFor = (p, store = globalThis.localStorage) => { const cut = readLowCut(store); return p === PRESETS.normal || cut === 'off' ? null : { hp: Number(cut), pres: { f: 3000, q: 0.7, g: 4 } } }
 export const PRESETS = {
   normal: { maxGain: 4, peakDb: -1, rmsCeilDb: -18, comp: { threshold: -10, ratio: 4, knee: 10, attack: 0.003, release: 0.25 }, master: 1, limiter: null },
   // v3.3.212 («Пит ≈ на 30 % тише Telegram» при уже исправленной сессии playback): замер на тех же 35 словах — RMS речи −14,1 dBFS (+3,7 дБ к обычной −17,8), пик −0,4, обрезанных отсчётов 0
@@ -124,7 +125,8 @@ export function outputOf(ctx, { kind = 'игра', log = pLog } = {}) {
       const eq = eqFor(p)
       if (eq && typeof ctx.createBiquadFilter === 'function') { // срез низов перед компрессором, подъём разборчивости после него (eqFor)
         const hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = eq.hp; hp.Q.value = 0.707
-        hp.connect(comp); input = hp
+        const hp2 = ctx.createBiquadFilter(); hp2.type = 'highpass'; hp2.frequency.value = eq.hp; hp2.Q.value = 0.707 // второй каскад: 24 дБ/окт
+        hp.connect(hp2); hp2.connect(comp); input = hp
         const pk = ctx.createBiquadFilter(); pk.type = 'peaking'; pk.frequency.value = eq.pres.f; pk.Q.value = eq.pres.q; pk.gain.value = eq.pres.g
         master.connect(pk); tail = pk
       }

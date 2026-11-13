@@ -90,7 +90,7 @@ describe('выход контекста: лимитер → мастер-gain �
     expect(PRESETS.cap3.shape).toBeGreaterThan(1); expect(PRESETS.cap6.comp.ratio).toBeGreaterThan(PRESETS.cap3.comp.ratio)
   })
   it('cap3 / cap6: срез низов 300 Гц перед компрессором и подъём 3 кГц после мастера; без BiquadFilter цепочка всё равно строится', () => {
-    expect(PRESETS.cap3.eq).toBeUndefined(); expect(eqFor(PRESETS.louder)).toMatchObject({ hp: 400, pres: { f: 3000, g: 6 } }) // срез низов — отдельная настройка для всех режимов
+    expect(PRESETS.cap3.eq).toBeUndefined(); expect(eqFor(PRESETS.louder)).toMatchObject({ hp: 500, pres: { f: 3000, g: 4 } }) // срез низов — отдельная настройка для всех режимов
     const st = { getItem: () => 'cap3', setItem() {}, removeItem() {} }, prev = globalThis.localStorage
     globalThis.localStorage = st
     try {
@@ -98,7 +98,7 @@ describe('выход контекста: лимитер → мастер-gain �
       const filters = []
       const ctx = { destination: {}, createDynamicsCompressor: mk, createGain: mk, createWaveShaper: () => ({ connect: vi.fn() }), createBiquadFilter: () => { const f = { ...mk(), type: '' }; filters.push(f); return f } }
       const input = outputOf(ctx, { log: () => {} })
-      expect(filters.map(f => f.type)).toEqual(['highpass', 'peaking']); expect(input).toBe(filters[0]); expect(filters[0].frequency.value).toBe(400)
+      expect(filters.map(f => f.type)).toEqual(['highpass', 'highpass', 'peaking']); expect(input).toBe(filters[0]); expect(filters[1].frequency.value).toBe(500)
       const bare = { destination: {}, createDynamicsCompressor: mk, createGain: mk, createWaveShaper: () => ({ connect: vi.fn() }) }
       expect(outputOf(bare, { log: () => {} })).not.toBe(bare.destination)
     } finally { globalThis.localStorage = prev }
@@ -106,11 +106,11 @@ describe('выход контекста: лимитер → мастер-gain �
   it('срез низов: умолчание 400 Гц, «Обычная» и «выкл» без EQ, мусор → умолчание, запись проверяется чтением', () => {
     const mem = () => { const m = new Map(); return { getItem: k => m.get(k) ?? null, setItem: (k, v) => m.set(k, v), removeItem: k => m.delete(k) } }
     const st = mem()
-    expect(DEFAULT_LOWCUT).toBe('400'); expect(readLowCut(st)).toBe('400'); expect(LOWCUT_MODES).toEqual(['off', '200', '300', '400', '500'])
-    expect(eqFor(PRESETS.max, st).hp).toBe(400); expect(eqFor(PRESETS.normal, st)).toBeNull()
-    expect(writeLowCut('200', st)).toBe(true); expect(eqFor(PRESETS.louder, st).hp).toBe(200)
+    expect(DEFAULT_LOWCUT).toBe('500'); expect(readLowCut(st)).toBe('500'); expect(LOWCUT_MODES).toEqual(['off', '300', '400', '500', '600', '800'])
+    expect(eqFor(PRESETS.max, st).hp).toBe(500); expect(eqFor(PRESETS.normal, st)).toBeNull()
+    expect(writeLowCut('300', st)).toBe(true); expect(eqFor(PRESETS.louder, st).hp).toBe(300)
     expect(writeLowCut('off', st)).toBe(true); expect(eqFor(PRESETS.louder, st)).toBeNull()
-    st.setItem(LOWCUT_KEY, 'мусор'); expect(readLowCut(st)).toBe('400'); expect(writeLowCut('333', st)).toBe(false)
+    st.setItem(LOWCUT_KEY, 'мусор'); expect(readLowCut(st)).toBe('500'); expect(writeLowCut('333', st)).toBe(false)
     expect(writeLowCut('300', { getItem: () => null, setItem() { throw new Error('quota') } })).toBe(false)
   })
   it('запись режима проверяется чтением: хранилище не принимает — false; освобождает место (прогон) и повторяет', () => {

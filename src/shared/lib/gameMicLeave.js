@@ -9,7 +9,7 @@ import { pLog } from './debug.js'
 // игровой поток (shutGameMic) и любые другие живые дорожки (micRegistry). shutAllMics() — то же без ожидания (закрытие урока).
 // v3.3.218: журнал 3.3.217 — в повторной игре эхо Пита в микрофоне в ~4 раза тише (rms 0,0032 против 0,0144 в первой), шум микрофона вдвое ниже: вывод идёт тише, хотя тип сессии 'playback'. gameAudioRenew.js
 // описывает причину: WebKit считает аудиосессию активной, пока жив хоть один контекст страницы (в первой игре остаётся контекст звуков интерфейса, созданный при записи). После выхода повторяем рецепт
-// обновления: тип 'auto' → закрыть ВСЕ контексты (closeAll) → тип 'playback'. Контексты создаются заново при следующем жесте / старте игры.
+// обновления: тип 'auto' → закрыть ВСЕ контексты (closeAll). v3.3.219: тип остаётся 'auto' (журнал 3.3.218: с 'playback' после выхода повторная игра всё равно тихая; 'auto' + без дорожек + без контекстов = состояние страницы перед ПЕРВОЙ игрой, где звук нормальный). Контексты создаются заново при следующем жесте / старте игры.
 export const LEAVE_SHUT_MS = 2000
 let timer = null
 
@@ -20,8 +20,7 @@ export async function resetAudioAfterGame(why = 'выход из игры', { na
   let res = null
   try { res = await closeAll() } catch { /* закрытие не должно ломать выход */ }
   if (gameAudioSession.active) return res // за время ожидания началась новая игра: тип выставит её begin()
-  const ok = gameAudioSession.settle?.(why)
-  try { pLog(`[audio] после игры (${why}): тип auto, закрыто контекстов ${res?.closed ?? 0}${res?.kinds?.length ? ` (${res.kinds.join(', ')})` : ''}${res?.timedOut ? `, не успели закрыться ${res.timedOut}` : ''}; затем тип playback: ${ok ? 'да' : 'нет'}`) } catch { /* журнал не мешает */ }
+  try { pLog(`[audio] после игры (${why}): тип auto, закрыто контекстов ${res?.closed ?? 0}${res?.kinds?.length ? ` (${res.kinds.join(', ')})` : ''}${res?.timedOut ? `, не успели закрыться ${res.timedOut}` : ''}; тип оставлен auto — как у только что загруженной страницы`) } catch { /* журнал не мешает */ }
   return res
 }
 
@@ -38,5 +37,10 @@ export function shutAllMics(why = 'выход') {
 export function leaveGameMic(why = 'выход из игры', { ms = LEAVE_SHUT_MS } = {}) {
   closeGameMic()
   if (timer) clearTimeout(timer)
-  timer = setTimeout(() => { timer = null; if (hasGameMic() && !isGameMicIdle()) return; shutAllMics(why) }, ms) // поток снова в игре — не трогаем
+  timer = setTimeout(() => { // v3.3.219: раньше пропускали, если поток «не выключен» (idle=false) — после второго выхода что-то успевало снова взять поток (getGameMic / открытие, начатое до выхода), и точка микрофона висела до конца сессии. Теперь пропускаем только начавшуюся заново игру (gameAudioSession.active ставит begin() в тапе «Начать»)
+    timer = null
+    if (gameAudioSession.active) { try { pLog('[mic] выход: идёт новая игра — поток не закрываем') } catch { /* журнал не мешает */ } return }
+    try { pLog(`[mic] выход из игры: закрываем микрофон (поток ${hasGameMic() ? (isGameMicIdle() ? 'выключен' : 'ВКЛЮЧЁН — кто-то взял его после выхода') : 'уже закрыт'})`) } catch { /* журнал не мешает */ }
+    shutAllMics(why)
+  }, ms)
 }
