@@ -3,22 +3,9 @@ import { LAB_ROWS, playLabRow, ratingsLine } from '../../../shared/lib/gameVolum
 import { toneSamples, wavBytesOf } from '../../../shared/lib/gameVolumeNudge.js'
 import { saveDebugFile, SAVE_HOW } from '../../player/modules/rotate-phone/wordLaneDebugExport.js'
 import { pLog } from '../../../shared/lib/debug.js'
-import { getCatLines } from '../../../shared/api/catLinesApi.js'
-import { normalizeLines } from '../../player/modules/rotate-phone/wordLaneCatLines.js'
-import { loadSoundBuffer } from '../../player/modules/rotate-phone/wordLaneBuffers.js'
+import { PIT_ID, MIME, extOf, loadPit } from './gameVolumePit.js'
 
 // Админ → «Голос» → «Громкость на iPhone» → «Стенд громкости» (v3.3.197): один тест-звук в разных состояниях звука и микрофона, оценка на слух. Подробности — gameVolumeLab.js.
-const PIT_ID = 'race_start' // озвучка Пита для стенда: стартовая реплика гонки (≈ 3,5 с), уже озвучена в игре
-/** Голос Пита как в игре (те же байты, тот же декодер и нормализация) → { url, buffer } или null (реплика не озвучена) */
-async function loadPit() {
-  const url = normalizeLines(await getCatLines())?.[PIT_ID]?.url
-  if (!url) return null
-  const bytes = await fetch(url).then(r => r.arrayBuffer()) // исходный файл озвучки: его же отдаёт кнопка «Отправить» (для сравнения в Telegram)
-  const buffer = await loadSoundBuffer(`lab:${PIT_ID}`, () => bytes.slice(0))
-  return { url, buffer, bytes }
-}
-const MIME = { mp3: 'audio/mpeg', m4a: 'audio/mp4', wav: 'audio/wav', ogg: 'audio/ogg' }
-const extOf = url => (/\.(mp3|m4a|wav|ogg)(\?|$)/i.exec(String(url)) ?? [])[1]?.toLowerCase() ?? 'mp3'
 const RATES = [['тихо', 'тихо'], ['норм', 'нормально'], ['громко', 'громко']]
 
 export default function GameVolumeLab() {

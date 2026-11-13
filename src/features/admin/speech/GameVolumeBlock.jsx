@@ -7,6 +7,7 @@ import { readLoudness, writeLoudness, LOUDNESS_MODES, LOUDNESS_LABELS } from '..
 import { readMediaKeep, writeMediaKeep } from '../../../shared/lib/gameMediaKeep.js'
 import { readMicHoldMode, writeMicHoldMode, readAudioSessionMode, writeAudioSessionMode } from '../../../shared/lib/gameAudioSettings.js'
 import GameVolumeLab from './GameVolumeLab.jsx'
+import GameVolumeRun from './GameVolumeRun.jsx'
 
 // Админ → «Голос»: «Громкость на iPhone» (замечание владельца, v3.3.192: «игра тише, чем может телефон; помогает кнопка громкости: тише, потом громче на миг»). Хруст голоса Пита чинили
 // отключением голосовой обработки микрофона — после этого стало тише, а программное усиление хруст возвращает. Значит, нужен системный уровень: «встряска» вывода, не трогая микрофон.
@@ -40,6 +41,7 @@ export default function GameVolumeBlock() {
     <section className="aspBlock" data-testid="game-volume-block">
       <h3 className="aspH">🔊 Стенд громкости и громкость на iPhone</h3>
       <p className="aspHint">Когда игра тише, чем может телефон, а кнопка громкости (тише → громче) это лечит: сначала проверь на слух, какая встряска помогает, потом включи её «само». Программно усиливать звук нельзя — вернётся хруст.</p>
+      <GameVolumeRun />
       <h4 className="aspH">Режим звонка: микрофон во время речи Пита</h4>
       <p className="aspHint">Пока микрофон открыт, iPhone ведёт звук игры как звонок: в полоске громкости иконка трубки, и звук тише, чем вне игры (иконка динамика). Режим «Закрывать микрофон» на время речи Пита останавливает поток по-настоящему, и iPhone выходит из режима звонка, а когда Пит договорил, микрофон открывается заново. Включи его, выйди из игры, нажми «Начать» и смотри на иконку в полоске громкости, пока говорит Пит: динамик = режим звонка выключен.</p>
       <div className="aspChips" role="radiogroup" aria-label="Микрофон во время речи Пита" data-testid="vol-hold">
