@@ -8,7 +8,7 @@
 // голос есть сейчас или был не дольше SPEECH_HOLD_MS назад (за это время приходит итог Vosk: 150 мс тишины + разбор), — заливка текущего куска только растёт (держит пик); стекает она, когда слово
 // не подтвердилось: чужое слово (drain — сразу) или тишина дольше SPEECH_HOLD_MS без зачёта (мягкий спад, как раньше). Цель, «договорённая» только черновиком (хвост слушателя: русская выдержка, правило слова
 // wordEarRule), а зачёта так и нет SPEECH_HOLD_MS после того, как хвост пропал, — слова снимаются, пилюля стекает (раньше оставалась на PENDING_TOP до конца повтора).
-import { FILL_CAP, PRE_CONFIRM_CAP, VOICE_THRESHOLD, isListening, breathStep, fillTo, drainStep } from './wordLaneTimeline.js'
+import { FILL_CAP, PRE_CONFIRM_CAP, PRE_CONFIRM_LONG_CAP, PRE_CONFIRM_LONG_MS, VOICE_THRESHOLD, isListening, breathStep, fillTo, drainStep } from './wordLaneTimeline.js'
 import { FILL_ADVANCE } from './wordLaneFillView.js'
 
 export const PENDING_TOP = 0.96         // слова последнего куска сказаны, ждём принятия (русская выдержка RU_SETTLE_MS + перерисовка): заливка не стоит на FILL_CAP, а дальше ползёт до этого уровня…
@@ -37,7 +37,9 @@ export function stepFill(rep, dt, { level, confirmed, spoken, t, events, heardT 
   const voice = settled && (active === 0 || rep.tk > rep.cum[active]) ? level : 0   // голос наливает текущий кусок; следующий — когда его первое слово услышано
   if (voice > VOICE_THRESHOLD) rep.voiceAt = t
   const hold = t - (rep.voiceAt ?? -Infinity) < SPEECH_HOLD_MS                      // высказывание идёт: заливка только растёт
-  const cap = confirmed ? FILL_CAP : PRE_CONFIRM_CAP                                // речь подтверждена распознаванием — до FILL_CAP; ещё нет (шум, эхо, лаг partial) — лишь слегка
+  if (!hold) rep.voiceFrom = null; else rep.voiceFrom ??= t                         // сколько уже идёт звук (кашель — доли секунды, слово — дольше)
+  const long = rep.voiceFrom != null && t - rep.voiceFrom >= PRE_CONFIRM_LONG_MS
+  const cap = confirmed ? FILL_CAP : long ? PRE_CONFIRM_LONG_CAP : PRE_CONFIRM_CAP                                // речь подтверждена распознаванием — до FILL_CAP; ещё нет (шум, эхо, лаг partial) — лишь слегка
   const ahead = settled && active >= 0 && confirmed && heardT >= rep.openAt && (voice > 0 || tok > rep.cum[active]) ? Math.min(FILL_CAP, (rep.tk - rep.cum[active] + FILL_ADVANCE) / (rep.cnt[active] || 1)) : 0 // «аванс» по черновику
   rep.pills.forEach((p, i) => {
     if (p.state !== 'fly') return

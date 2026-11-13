@@ -34,7 +34,9 @@ describe('нежный отсчёт: расписание', () => {
       stages.forEach((s, i) => { // перед каждой ступенью, которая идёт сразу после плашек, в цепочке плашек ровно один отсчёт
         if (!['student', 'read'].includes(s.type) || stages[i - 1]?.type !== 'announce') return
         let j = i - 1; while (j > 0 && stages[j - 1].type === 'announce') j--
-        expect(stages.slice(j, i).filter(x => x.count)).toHaveLength(1)
+        const afterDemo = s.step?.phrases?.countAfter // круг «Скажи» с демо: ноты играет сцена после демо, плашка без нот (count: false)
+        expect(stages.slice(j, i).filter(x => x.count)).toHaveLength(afterDemo ? 0 : 1)
+        if (afterDemo) expect(stages[i - 1].count).toBe(false)
       })
       expect(stages.filter(s => s.count && !['student', 'read'].includes(stages[s.idx + 1]?.type) && s.idx !== 0)).toHaveLength(0)
     }
@@ -43,7 +45,8 @@ describe('нежный отсчёт: расписание', () => {
     const { stages } = buildRaceStages({ plan, ru: true, tap: false })
     const counted = stages.filter(s => s.count).map(s => s.sid)
     for (const sid of ['sprint-ann', 'sprint2-ann', 'catch-ann', 'catch2-ann', 'phrases1-ann', 'climb-ann', 'descent-ann']) if (stages.some(s => s.sid === sid)) expect(counted).toContain(sid)
-    if (stages.some(s => s.sid === 'phrases2-ann')) expect(counted).toContain('phrases2-ann')
+    const p2 = stages.find(s => s.sid === 'phrases2')
+    if (p2) { if (p2.step.phrases.countAfter) expect(counted).not.toContain('phrases2-ann'); else expect(counted).toContain('phrases2-ann') } // с демо — ноты после демо (сцена), без демо — на плашке
     expect(counted.filter(s => s.endsWith('-sw') || s === 'phrases-ann' || s.startsWith('climb-t'))).toEqual([])
   })
   it('count: false у плашки — без нот', () => {

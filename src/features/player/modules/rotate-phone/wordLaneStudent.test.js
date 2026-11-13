@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { ENTER_Y, EXIT_Y, SPEED, LOCK_MS, OPEN_Y, FILL_CAP, PRE_CONFIRM_CAP, LISTEN_Y_MIN } from './wordLaneTimeline.js'
+import { ENTER_Y, EXIT_Y, SPEED, LOCK_MS, OPEN_Y, FILL_CAP, PRE_CONFIRM_CAP, PRE_CONFIRM_LONG_CAP, PRE_CONFIRM_LONG_MS, LISTEN_Y_MIN } from './wordLaneTimeline.js'
 import { createStudentGame, stepStudent, REP_GAP_MS, MAX_TRIES, CLAIM_FROM_Y, CLAIM_TO_Y, FAIL_Y, LEAD_IN_MS, LOCK_STAGGER_MS, isClaimable } from './wordLaneStudent.js'
 import { buildRecipe, stepTargets } from './wordLaneRecipe.js'
 
@@ -136,9 +136,16 @@ describe('голос и заливка: только на подтверждён
     const g = game(build[0])
     frames(g, 3500, { level: 0.9, seq: [], misses: 0, confirmed: false, tail: null })
     const p = g.reps[0].pills[0].p
-    expect(p).toBeGreaterThan(0.1) // v3.3.217: потолок до подтверждения 0,15 (было 0,4)
-    expect(p).toBeLessThanOrEqual(PRE_CONFIRM_CAP + 1e-9)
+    expect(p).toBeGreaterThan(PRE_CONFIRM_CAP + 0.1) // v3.3.220: звук дольше PRE_CONFIRM_LONG_MS (слово) наливает до PRE_CONFIRM_LONG_CAP (0,4) и без подтверждения
+    expect(p).toBeLessThanOrEqual(PRE_CONFIRM_LONG_CAP + 1e-9)
     expect(g.reps[0].pills[0].state).toBe('fly')
+  })
+  it('короткий звук без подтверждения (кашель, хлопок короче PRE_CONFIRM_LONG_MS): заливка не выше PRE_CONFIRM_CAP', () => {
+    const g = game(build[0])
+    frames(g, 1500, { level: 0, seq: [], misses: 0, confirmed: false, tail: null })
+    let peak = 0
+    for (let t = 1500; t < 1500 + PRE_CONFIRM_LONG_MS - 60; t += 16) { stepStudent(g, t, { level: 0.9, seq: [], misses: 0, confirmed: false, tail: null }); peak = Math.max(peak, g.reps[0].pills[0].p) }
+    expect(peak).toBeGreaterThan(0); expect(peak).toBeLessThanOrEqual(PRE_CONFIRM_CAP + 1e-9)
   })
   it('речь подтверждена — голос наливает текущий кусок, не выше FILL_CAP', () => {
     const g = game(build[0])

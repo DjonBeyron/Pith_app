@@ -25,7 +25,7 @@ export function setupScene(step, o = {}) {
   const clock = { t: 0, tail: o.tail ?? null }
   const pool = fakePool(clock)
   const fx = { pre: vi.fn(), win: vi.fn(), miss: vi.fn(), fail: vi.fn(), finished: vi.fn(), pitLeft: () => o.pit ?? 0 }
-  const run = runPhraseScene({ pool, root: null, scene: { step, from: o.from }, fxRef: { current: fx }, now: () => clock.t, raf: () => 0, caf: () => {}, log: o.log ?? (() => {}), listen: o.listen ?? null, held: () => false, snap: () => {}, shake: () => {} })
+  const run = runPhraseScene({ pool, root: null, scene: { step, from: o.from }, fxRef: { current: fx }, now: () => clock.t, raf: () => 0, caf: () => {}, log: o.log ?? (() => {}), listen: o.listen ?? null, count: o.count ?? (({ onDone }) => { onDone?.(); return () => {} }), held: () => false, snap: () => {}, shake: () => {} })
   const go = ms => { const end = clock.t + ms; while (clock.t < end) { clock.t = Math.min(end, clock.t + (o.frame ?? 16)); run.tick(clock.t) } }
   return { clock, pool, fx, run, go }
 }

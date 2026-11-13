@@ -40,7 +40,7 @@ export function phraseStep(id, turns, { round, mode, voice, speed, gap = gapMs(s
   return stepOf(id, {
     parts: turns.map((_, i) => i), text: texts.join(' '), chunks: texts, chunkMs: texts.map(() => 1000), active: [LANE],
     reps: turns.map((t, i) => ({ parts: [i], lane: LANE, speed, cap: t.cands[0]?.cap })), maxWords: 4, maxTries: 1, quiet: true, tapOnly: true,
-    phrases: { round, mode, voice: !!voice, speed, gap, turns, ...(demo ? { demo } : {}) },
+    phrases: { round, mode, voice: !!voice, speed, gap, turns, ...(demo ? { demo, countAfter: true } : {}) }, // countAfter: отсчёт — после демо (racePhraseScene.startCount), а не на плашке круга
   })
 }
 
@@ -56,7 +56,8 @@ export function phraseStages(kit, act) {
   const base = voice ? round2SayTurns(act.phrases) : round2HearTurns(act.phrases, plan.seed)
   if (!base.length) return
   announce(act, { sid: 'phrases2', ...ROUND_PLATES[mode] })
-  const demo = voice ? demoPhrase(act.phrases, base, voicedPhraseTest()) : null // демо на живой пилюле первым ходом «Скажи» (racePhraseDemoTurn.js; ворота — useRacePhraseDemo.js): запасная — только с озвучкой каждого слова
+  const demo = voice ? demoPhrase(act.phrases, base, voicedPhraseTest()) : null
+  if (demo) kit.stages.at(-1).count = false // v3.3.220: ноты отсчёта играют после демо (сцена), не на плашке: countBeforeRounds такую плашку пропускает // демо на живой пилюле первым ходом «Скажи» (racePhraseDemoTurn.js; ворота — useRacePhraseDemo.js): запасная — только с озвучкой каждого слова
   const make = turns => ({ turns, step: phraseStep('phrases2', turns, { round: 2, mode, voice, speed: voice ? SAY_SPEED : PHRASE_SPEED, demo }) })
   push({ type: 'student', act: act.id, sid: 'phrases2', round: 2, base, ...make(base), fill: weak => Object.assign(kit.stages.find(x => x.sid === 'phrases2'), make(reorderWeak(base, weak))) })
 }
