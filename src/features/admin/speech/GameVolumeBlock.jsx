@@ -48,7 +48,7 @@ export default function GameVolumeBlock() {
         {[['enabled-false', 'Выключать дорожку (как сейчас)'], ['close', 'Закрывать микрофон (громче)'], ['none', 'Не трогать']].map(([v, t]) => <button key={v} type="button" role="radio" aria-checked={hold === v} className={`aspChip${hold === v ? ' aspChipOn' : ''}`} onClick={() => pickHold(v)} data-value={v}>{t}</button>)}
       </div>
       <div className="aspChips" role="radiogroup" aria-label="Аудиосессия iOS" data-testid="vol-session">
-        {[['play-and-record', 'Сессия: запись+воспр. (как сейчас)'], ['auto', 'Сессия: авто'], ['phases', 'Сессия: по фазам']].map(([v, t]) => <button key={v} type="button" role="radio" aria-checked={sess === v} className={`aspChip${sess === v ? ' aspChipOn' : ''}`} onClick={() => pickSess(v)} data-value={v}>{t}</button>)}
+        {[['play-and-record', 'Сессия: запись+воспр. (как сейчас)'], ['auto', 'Сессия: авто'], ['phases', 'Сессия: по фазам'], ['playback', 'Сессия: playback весь сеанс (новое)']].map(([v, t]) => <button key={v} type="button" role="radio" aria-checked={sess === v} className={`aspChip${sess === v ? ' aspChipOn' : ''}`} onClick={() => pickSess(v)} data-value={v}>{t}</button>)}
       </div>
       <h4 className="aspH">Беззвучный &lt;audio&gt; на время игры (не помог в 3.3.201)</h4>
       <p className="aspHint">На iPhone звук игры вдвое тише того же файла в Telegram. По умолчанию выключено (3.3.202): в журнале 3.3.201 элемент играл, а игра осталась тихой. Действует со следующего старта игры.</p>

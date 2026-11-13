@@ -17,17 +17,17 @@ const mkDeps = (over = {}) => {
 }
 
 describe('план прогона', () => {
-  it('12 заходов (6 конфигураций × 2): круг 1 «слушаю» по списку, круг 2 «иконка» в обратном порядке; номера сквозные', () => {
+  it('10 заходов (5 конфигураций × 2): круг 1 «слушаю» по списку, круг 2 «иконка» в обратном порядке; номера сквозные', () => {
     const p = buildPlan()
-    expect(RUN_CONFIGS.map(c => c.id)).toEqual(['N', 'DP', 'DC', 'DPC', 'NPC', 'DPD'])
-    expect(p).toHaveLength(12)
-    expect(p.slice(0, 6).map(x => x.cfg.id)).toEqual(RUN_CONFIGS.map(c => c.id))
-    expect(p.slice(6).map(x => x.cfg.id)).toEqual(RUN_CONFIGS.map(c => c.id).reverse())
-    expect(p.slice(0, 6).every(x => x.mode === 'listen') && p.slice(6).every(x => x.mode === 'icon')).toBe(true)
-    expect(p.map(x => x.n)).toEqual([...Array(12).keys()].map(i => i + 1))
-    expect(p.every(x => x.of === 12)).toBe(true)
-    expect(RUN_CONFIGS.find(c => c.id === 'NPC')).toMatchObject({ hold: 'none', sess: 'phases', capture: 'before' })
-    expect(RUN_CONFIGS.find(c => c.id === 'DPD').capture).toBe('during')
+    expect(RUN_CONFIGS.map(c => c.id)).toEqual(['N', 'DP', 'PB', 'PBN', 'PBD'])
+    expect(p).toHaveLength(10)
+    expect(p.slice(0, 5).map(x => x.cfg.id)).toEqual(RUN_CONFIGS.map(c => c.id))
+    expect(p.slice(5).map(x => x.cfg.id)).toEqual(RUN_CONFIGS.map(c => c.id).reverse())
+    expect(p.slice(0, 5).every(x => x.mode === 'listen') && p.slice(5).every(x => x.mode === 'icon')).toBe(true)
+    expect(p.map(x => x.n)).toEqual([...Array(10).keys()].map(i => i + 1))
+    expect(p.every(x => x.of === 10)).toBe(true)
+    expect(RUN_CONFIGS.find(c => c.id === 'PBN')).toMatchObject({ hold: 'none', sess: 'playback', capture: 'before' })
+    expect(RUN_CONFIGS.find(c => c.id === 'PBD').capture).toBe('during')
   })
 })
 
@@ -87,6 +87,12 @@ describe('одна итерация', () => {
     const rr = await runIteration({ cfg: bad.cfg, mode: 'listen', n: 1, of: 1 }, bad.deps)
     expect(rr.steps.join('|')).toContain('захват не запустился: ctx'); expect(rr.ok).toBe(true)
   })
+  it("режим 'playback': после открытия микрофона зовётся ses.afterMic (в игре это делает openGameMic) — до звука, до окна речи", async () => {
+    const order = []
+    const { deps } = mkDeps({ deps: { ses: { begin: () => order.push('begin'), end: () => order.push('end'), afterMic: () => order.push('afterMic') }, hold: { parkNow() {}, holdFor: () => { order.push('hold'); return () => {} }, reset() {} }, play: () => { order.push('play'); return true } } })
+    await runIteration({ cfg: { id: 'PB', hold: 'enabled-false', sess: 'playback' }, mode: 'listen', n: 1, of: 1 }, deps)
+    expect(order).toEqual(['begin', 'afterMic', 'begin', 'hold', 'play', 'end'])
+  })
   it('noiseMedia: элемент с зацикленным шумом (не тишина); не вышло — false, stop не падает', async () => {
     const el = { play: vi.fn(() => Promise.resolve()), pause: vi.fn(), setAttribute: vi.fn() }
     const m = noiseMedia({ make: url => { el.url = url; return el } })
@@ -115,7 +121,7 @@ describe('вспомогательное', () => {
     expect(answerLine(item, { icon: 'динамик', jump: 'нет' })).toBe('[прогон] #7/12 (K, иконка) ответ: Иконка в полоске громкости=динамик; После нажатия стало громче?=нет')
     const t = summaryText({ results: [{ item, answers: { icon: 'трубка', jump: 'да' }, ok: true }, { item: { ...item, n: 8 }, answers: {}, ok: false }], header: ['h'], journal: ['строка'] })
     expect(t).toContain('#7 K  иконка | Иконка в полоске громкости: трубка | После нажатия стало громче?: да')
-    expect(t).toContain('ЗВУК НЕ ИГРАЛ'); expect(t).toContain('DC = как сейчас в игре'); expect(t.endsWith('строка')).toBe(true)
+    expect(t).toContain('ЗВУК НЕ ИГРАЛ'); expect(t).toContain('PB = playback весь сеанс'); expect(t.endsWith('строка')).toBe(true)
     expect(Object.keys(QUESTIONS)).toEqual(['listen', 'icon'])
     expect(QUESTIONS.listen.map(q => q[0])).toEqual(['loud', 'crack', 'tg'])
   })

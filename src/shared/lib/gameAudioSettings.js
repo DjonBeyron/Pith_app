@@ -1,6 +1,6 @@
 // Настройки проверки на телефоне (Админ → «Голос» → «Микрофон игры»): как поведёт себя звук Пита и диктора, пока открыт микрофон игры. Хранятся в localStorage (по телефону), читаются при каждом
 // обращении — менять можно между играми, перезагрузка не нужна. Незнакомое значение = по умолчанию.
-//  • pithy_game_audio_session_v1 — тип аудиосессии iOS (navigator.audioSession.type) на время игры: 'play-and-record' (по умолчанию) | 'auto' (не трогаем) | 'phases' (playback на время речи, play-and-record на очередь ученика).
+//  • pithy_game_audio_session_v1 — тип аудиосессии iOS (navigator.audioSession.type) на время игры: 'play-and-record' (по умолчанию) | 'auto' (не трогаем) | 'playback' (v3.3.210: после открытия микрофона тип playback ставится ОДИН раз и держится весь сеанс игры — без переключений на каждой реплике) | 'phases' (playback на время речи, play-and-record на очередь ученика).
 //  • pithy_game_mic_hold_v1 — что делать с микрофоном на время речи Пита и диктора: 'enabled-false' (по умолчанию с 3.3.76: track.enabled = false — по журналам iPhone голос Пита с 'none' попадал в распознавание, пилюли защёлкивались во время речи кота) | 'none' (не трогать) | 'close' (поток закрывается совсем и открывается заново
 //    к очереди ученика — «микрофон только в фазе ученика», приём «Сказать фразу»: запись не держит аудиосессию, пока говорит диктор; iOS может спросить доступ заново, всё пишется в отладку mic-hold).
 //  • pithy_game_web_audio_v1 — чем играют короткие звуки игры (реплики Пита, куски диктора, мяу/ноты, плашка): 'on' (по умолчанию) — Web Audio, буферы декодируются заранее и стартуют мгновенно (gameAudioCtx.js); 'off' — прежние <audio>-слоты
@@ -9,7 +9,7 @@ export const AUDIO_SESSION_KEY = 'pithy_game_audio_session_v1'
 export const MIC_HOLD_KEY = 'pithy_game_mic_hold_v1'
 export const WEB_AUDIO_KEY = 'pithy_game_web_audio_v1'
 
-export const AUDIO_SESSION_MODES = ['play-and-record', 'auto', 'phases']
+export const AUDIO_SESSION_MODES = ['play-and-record', 'auto', 'phases', 'playback']
 export const MIC_HOLD_MODES = ['enabled-false', 'none', 'close']
 export const WEB_AUDIO_MODES = ['on', 'off']
 export const DEFAULT_WEB_AUDIO_MODE = 'on'

@@ -18,6 +18,7 @@ import { closeKeptCapture } from './vosk/voskCapture.js'
 import { markMicGranted } from './micGrantFlag.js'
 import { autoNudgeAfterMic } from './gameVolumeNudge.js'
 import { gameMediaKeep } from './gameMediaKeep.js'
+import { gameAudioSession } from './gameMicSession.js'
 
 export { micRequestPending } from './gameMicRequest.js' // blur/focus от нашего диалога доступа — не уход (wordLanePauseEvents.js)
 
@@ -90,10 +91,17 @@ async function reuseStream() {
 }
 
 /** В тапе: включить поток сеанса или открыть его (диалог ОС — только если потока нет или он мёртв). Возвращает 'granted' | 'denied' | 'unavailable' */
+/** Открыть игровой поток (из нажатия). После успеха режим сессии 'playback' ставит тип playback на весь сеанс (gameMicSession.afterMic); остальные режимы — no-op */
 export async function openGameMic() {
+  const r = await openGameMicInner()
+  if (r === 'granted') { try { gameAudioSession.afterMic?.() } catch { /* сессия не мешает микрофону */ } }
+  return r
+}
+
+async function openGameMicInner() {
   gameMediaKeep.start() // СИНХРОННО в нажатии: беззвучный <audio> на время игры — иначе звук игры вдвое тише (gameMediaKeep.js)
   gameMicGesture.grant() // сюда приходит жест (автоматические пути проверяют gameMicGesture.needed() до вызова): «нужен жест» снят
-  if (asking) { const r = await asking; return r === 'granted' ? openGameMic() : r } // запрос уже идёт — второй диалог не открываем
+  if (asking) { const r = await asking; return r === 'granted' ? openGameMicInner() : r } // запрос уже идёт — второй диалог не открываем
   if (trackState(stream) === 'live') { if (idle) pLog('[mic] дорожка после фона: жива → используем'); takeStream(); return 'granted' } // синхронно, без await
   if (stream && await reuseStream()) return 'granted'
   if (typeof navigator === 'undefined' || !navigator.mediaDevices?.getUserMedia) return 'unavailable'
