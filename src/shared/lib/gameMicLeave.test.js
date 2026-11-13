@@ -41,4 +41,11 @@ describe('выход из игры (gameMicLeave)', () => {
     vi.advanceTimersByTime(LEAVE_SHUT_MS)
     expect(m.shutGameMic).toHaveBeenCalledTimes(1); expect(m.stopAllMics).toHaveBeenCalledTimes(1)
   })
+  it('сброс после выхода не закрывает контексты, созданные ПОСЛЕ выхода (тап «Начать» в окне ожидания)', async () => {
+    const nav = { audioSession: { type: 'playback' } }
+    await resetAudioAfterGame('выход', { nav, since: 1000 })
+    const arg = m.closeAll.mock.calls.at(-1)[0]
+    expect(arg.except({ kind: 'game', createdAt: 1500 })).toBe(true); expect(arg.except({ kind: 'sounds', createdAt: 400 })).toBe(false)
+    m.closeAll.mockClear(); await resetAudioAfterGame('урок закрыт', { nav }); expect(m.closeAll).toHaveBeenCalledWith({}) // без since — закрываем всё
+  })
 })
