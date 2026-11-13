@@ -9384,3 +9384,6 @@ Contents API, ветка `logs` (создаётся от основной при
 `supabase secrets set GITHUB_LOG_TOKEN=…` (при желании `GITHUB_LOG_REPO`, `GITHUB_LOG_BRANCH`), `supabase functions deploy send-log`.
 Отправлять могут только админы (остальным кнопка ответит «Forbidden: admin only»).
 
+
+Дополнение (v3.3.225): «читай» / «читай лог» в сообщении владельца = логи из GitHub (ветка `logs`) — зафиксировано в CLAUDE.md для всех
+сессий. Каждая новая отправка удаляет прежние файлы `logs/` (в ответе функции поле `removed`); после правки функцию надо выложить заново.

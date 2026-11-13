@@ -108,5 +108,21 @@ Deno.serve(async (req) => {
     if (!put.ok) return json(502, { error: `GitHub: запись ${put.status}`, paths });
     paths.push(path);
   }
-  return json(200, { ok: true, branch: BRANCH, paths });
+
+  // Новая отправка заменяет старую: прежние файлы logs/ (не прочитанные и не удалённые) убираем.
+  // Сбой уборки отправку не ломает — просто останется лишнее.
+  let removed = 0;
+  try {
+    const list = await gh(`/contents/logs?ref=${BRANCH}`);
+    const old = list.ok ? await list.json() : [];
+    for (const f of Array.isArray(old) ? old : []) {
+      if (f.type !== "file" || paths.includes(f.path)) continue;
+      const del = await gh(`/contents/${f.path}`, {
+        method: "DELETE",
+        body: JSON.stringify({ message: `log: заменено новой отправкой (${f.name})`, sha: f.sha, branch: BRANCH }),
+      });
+      if (del.ok) removed++;
+    }
+  } catch { /* уборка необязательна */ }
+  return json(200, { ok: true, branch: BRANCH, paths, removed });
 });
