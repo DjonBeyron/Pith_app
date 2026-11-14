@@ -106,7 +106,7 @@ export function createStudentGame({ step, chunks, estMs = c => estChunkMs(chunks
     return { idx, parts: rp.parts, target: repTarget[idx], text: textOf(chunks, rp.parts), state: idx < from ? 'skip' : 'todo', tries: 0, pills: [], tk: 0, cnt, cum, durs, offs, lanes: rp.lane != null ? [rp.lane] : rp.parts.map(c => laneOf(n, c, idx)), speed: rp.speed ?? 1, y0: rp.y0 ?? null, cap: rp.cap ?? null, say: rp.say ?? null, trap: !!rp.trap, reveal: rp.reveal ?? null } // lane / speed / cap / reveal — «Гонка с Питом»: своя дорожка, скорость, подпись внутри пилюли и слово, которое проявится при промахе
   })
   const life = Math.max(0, ...reps.map(r => repLifeMs(r.offs.at(-1))))
-  return { t: 0, overlap, holdAll: !!step.holdAll, preSay: !!step.preSay, claimGap: step.claimGap ?? 0, preGap: step.preGap ?? 0, gapAt: step.goodAt ?? [], maxTries, leadIn, budget: budget ?? budgetOf(reps.length - from, life), reps, pills: [], nextId: 1, nextSpawn: 0, claimed: 0, locked: 0, failed: [], seenSeq: 0, seenMisses: 0, spentTail: null, finished: false, spawned: 0, waited: 0 }
+  return { t: 0, boost: step.boost ?? null, overlap, holdAll: !!step.holdAll, preSay: !!step.preSay, claimGap: step.claimGap ?? 0, preGap: step.preGap ?? 0, gapAt: step.goodAt ?? [], maxTries, leadIn, budget: budget ?? budgetOf(reps.length - from, life), reps, pills: [], nextId: 1, nextSpawn: 0, claimed: 0, locked: 0, failed: [], seenSeq: 0, seenMisses: 0, spentTail: null, finished: false, spawned: 0, waited: 0 }
 }
 
 /**
@@ -119,6 +119,7 @@ export function stepStudent(g, t, { level = 0, seq = [], misses = 0, confirmed =
   const events = []
   const dt = Math.max(0, t - g.t) / 1000
   g.t = t
+  if (g.boost) for (const r of g.reps) if (r.state === 'todo') { r.baseSpeed ??= r.speed; r.speed = +(r.baseSpeed * g.boost.k).toFixed(4) } // step.boost.k (Мия ускоряет дорожку, pitrace/mia/raceMia.js): ещё не выехавшие повторы быстрее, k = 1 — как было
   const spoken = tail && tail !== g.spentTail ? tail : null   // хвост, на котором повтор принят или не успели, следующему повтору не достаётся: тот же объект слушатель отдаёт, пока не пришёл новый черновик
 
   for (const rep of g.reps) {

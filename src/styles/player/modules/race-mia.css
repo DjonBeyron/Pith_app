@@ -1,0 +1,27 @@
+/* Эпизод «Мия» (features/pitrace/RaceMia.jsx, mia/*; прототип 2026-11-14): слой над сценой, подпись реплик и смена цвета дорожек на время Мии.
+   Цвета дорожек и пилюль — переменные --lvl1…3 (memory-levels.css); их на время Мии подменяет .wl[data-mia='in'], а @property делает смену плавной
+   (переменные зарегистрированы: браузер анимирует их сам, всё, что от них зависит — линии дорожек, пилюли, вспышки — меняется вместе). */
+@property --lvl1 { syntax: '<color>'; inherits: true; initial-value: #b6fe3b; }
+@property --lvl2 { syntax: '<color>'; inherits: true; initial-value: #4fb3ee; }
+@property --lvl3 { syntax: '<color>'; inherits: true; initial-value: #9a76f8; }
+@property --lvl1-rgb { syntax: '<number>#'; inherits: true; initial-value: 182, 254, 59; }
+@property --lvl2-rgb { syntax: '<number>#'; inherits: true; initial-value: 79, 179, 238; }
+@property --lvl3-rgb { syntax: '<number>#'; inherits: true; initial-value: 154, 118, 248; }
+.wl[data-race] { transition: --lvl1 0.9s ease, --lvl2 0.9s ease, --lvl3 0.9s ease, --lvl1-rgb 0.9s ease, --lvl2-rgb 0.9s ease, --lvl3-rgb 0.9s ease; }
+/* при Мии дорожки в её красках: янтарь (глаза), медь (коробка) и серый (шерсть) — три дорожки остаются различимыми */
+.wl[data-mia='in'] {
+  --lvl1: #e0a44e; --lvl1-rgb: 224, 164, 78;
+  --lvl2: #d6783e; --lvl2-rgb: 214, 120, 62;
+  --lvl3: #9ca3b2; --lvl3-rgb: 156, 163, 178;
+}
+.wlStage > .wlMia { inset: 0; overflow: hidden; pointer-events: none; z-index: 8; }
+.wlMiaSvg { position: absolute; left: 0; top: 0; width: 100%; height: 100%; overflow: visible; }
+.wlMiaCat { position: absolute; left: 0; top: 0; background: transparent; border: none; box-shadow: none; pointer-events: none; will-change: transform; }
+.wlMiaCap {
+  position: absolute; left: 50%; top: 30%; transform: translateX(-50%); max-width: 84%; padding: 8px 14px; border-radius: 14px; text-align: center;
+  font-size: 15px; line-height: 1.25; color: #f6ead6; background: rgba(24, 22, 26, 0.86); border: 1px solid rgba(224, 164, 78, 0.55);
+  animation: wlMiaCapIn 0.22s ease-out both;
+}
+.wlMiaCap[data-who='pit'] { color: #e6dcff; border-color: rgba(188, 130, 250, 0.6); }
+@keyframes wlMiaCapIn { from { opacity: 0; transform: translateX(-50%) translateY(6px); } to { opacity: 1; transform: translateX(-50%); } }
+@media (prefers-reduced-motion: reduce) { .wl[data-race] { transition: none; } .wlMiaCap { animation: none; } }

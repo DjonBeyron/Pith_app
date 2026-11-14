@@ -48,7 +48,7 @@ export function queueStep(kit, id, words, good, rep, o = {}) {
     parts: words.map((_, i) => i), text: targets.join(' '), chunks: targets, chunkMs: targets.map(t => kit.msOf(t)),
     reps: words.map((w, i) => ({ parts: [i], lane: w.lane, speed: w.speed, ...rep(w) })),
     extra: o.lang === 'ru' ? [] : vocabOf(targets, words.flatMap(w => [...w.confusers, ...kit.doubles(w.text)])), maxWords: 2, maxTries: 1, overlap: true,
-    quiet: true, edge: true, holdAll: true, preSay: true, preGap: PRE_SAY_GAP_MS, claimGap: CLAIM_GAP_MS, goodAt: good.map(g => g.at),
+    boost: { k: 1 }, quiet: true, edge: true, holdAll: true, preSay: true, preGap: PRE_SAY_GAP_MS, claimGap: CLAIM_GAP_MS, goodAt: good.map(g => g.at),
     ...(o.lang ? { lang: o.lang } : {}), ...(o.tapOnly || kit.tap ? { tapOnly: true } : {}),
   })
 }

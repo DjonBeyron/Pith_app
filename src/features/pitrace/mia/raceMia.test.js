@@ -1,0 +1,87 @@
+import { describe, it, expect } from 'vitest'
+import { reduceMia, miaInit, isSecondCircle, miaShown, makeMiaBox, applyMia, MIA } from './raceMia.js'
+
+const circle2 = (act = 'sprint', words = [{ text: 'a' }, { text: 'b' }, { text: 'c' }, { text: 'd' }]) => ({ type: 'student', act, sid: `${act}2`, words, step: { boost: { k: 1 } } })
+const circle1 = (act = 'sprint') => ({ type: 'student', act, sid: act, words: [{ text: 'a' }], step: { boost: { k: 1 } } })
+const ev = (t, stage, extra = {}) => ({ t, stage, now: 1000, ...extra })
+const ids = r => r.say.map(l => l.id)
+
+describe('эпизод «Мия»: когда приходит', () => {
+  it('второй круг = стадия sprint2 / catch2', () => {
+    expect(isSecondCircle(circle2())).toBe(true); expect(isSecondCircle(circle2('catch'))).toBe(true)
+    expect(isSecondCircle(circle1())).toBe(false); expect(isSecondCircle({ type: 'announce', act: 'sprint', sid: 'sprint2' })).toBe(false); expect(isSecondCircle(null)).toBe(false)
+  })
+  it('первая ошибка второго круга: Мия приходит, три реплики, ускорение дорожки', () => {
+    const r = reduceMia(miaInit(), ev('miss', circle2(), { idx: 1 }))
+    expect(r.mia.phase).toBe('in'); expect(r.mia.act).toBe('sprint'); expect(r.mia.used).toEqual({ sprint: true }); expect(r.boost).toBe(MIA.BOOST)
+    expect(ids(r)).toEqual(['mia_push_1', 'mia_announce_1', 'mia_announce_2']); expect(r.say.map(l => l.delay)).toEqual([MIA.PUSH_AT, MIA.ANNOUNCE_AT, MIA.ANNOUNCE2_AT])
+    expect(miaShown(r.mia)).toBe(true)
+  })
+  it('«не успел» (fail) — тоже ошибка; верные ответы и первый круг Мию не зовут', () => {
+    expect(reduceMia(miaInit(), ev('fail', circle2(), { idx: 0 })).mia.phase).toBe('in')
+    expect(reduceMia(miaInit(), ev('win', circle2(), { idx: 0 })).mia.phase).toBe('off')
+    expect(reduceMia(miaInit(), ev('miss', circle1(), { idx: 0 })).mia.phase).toBe('off')
+    expect(reduceMia(miaInit(), ev('miss', { type: 'student', act: 'climb', sid: 'climb' }, { idx: 0 })).mia.phase).toBe('off')
+  })
+  it('ловушка: «fail» на ловушке — верно промолчать, Мию не зовёт', () => {
+    const st = circle2('sprint', [{ text: 'a', trap: true }])
+    expect(reduceMia(miaInit(), ev('fail', st, { idx: 0 })).mia.phase).toBe('off')
+  })
+  it('один раз на проход: после ухода во втором круге того же прохода Мия не возвращается, у другого прохода — своя', () => {
+    let m = reduceMia(miaInit(), ev('miss', circle2(), { idx: 0 })).mia
+    m = reduceMia(m, ev('enter', circle1('catch'))).mia
+    expect(m.phase).toBe('out')
+    expect(reduceMia(m, ev('miss', circle2(), { idx: 0 })).mia.phase).toBe('out')
+    const c = reduceMia({ ...m, phase: 'off' }, ev('miss', circle2('catch'), { idx: 0 }))
+    expect(c.mia.phase).toBe('in'); expect(c.mia.act).toBe('catch'); expect(c.mia.used).toEqual({ sprint: true, catch: true }); expect(ids(c)[0]).toBe('mia_push_2')
+  })
+})
+
+describe('эпизод «Мия»: пока она на коробке', () => {
+  const arrive = () => reduceMia(miaInit(), ev('miss', circle2(), { idx: 0 })).mia
+  it('верный: первая реплика сразу, дальше раз в три верных; два подряд — «подозрительно хорошо»', () => {
+    let m = arrive()
+    let r = reduceMia(m, ev('win', circle2(), { idx: 1 })); expect(ids(r)).toEqual(['mia_ok_1']); expect(r.mia.streak).toBe(1); m = r.mia
+    r = reduceMia(m, ev('win', circle2(), { idx: 2 })); expect(ids(r)).toEqual(['mia_streak2']); expect(r.mia.streak).toBe(2)
+  })
+  it('ошибка сбрасывает серию и даёт колкость по кругу трёх вариантов', () => {
+    let m = arrive(); const seen = []
+    for (let i = 0; i < 4; i++) { const r = reduceMia(m, ev(i % 2 ? 'fail' : 'miss', circle2(), { idx: 1 })); m = r.mia; seen.push(ids(r)[0]); expect(m.streak).toBe(0) }
+    expect(seen).toEqual(['mia_miss_1', 'mia_miss_2', 'mia_miss_3', 'mia_miss_1'])
+  })
+  it('три верных подряд: Мия уходит (пит возвращается), ускорение снимается', () => {
+    let m = arrive(); let r
+    for (const k of [1, 2, 3]) { r = reduceMia(m, ev('win', circle2(), { idx: k })); m = r.mia }
+    expect(m.phase).toBe('out'); expect(m.why).toBe('win'); expect(r.boost).toBe(1)
+    expect(ids(r)).toEqual(['pit_back_1', 'mia_leave', 'pit_back_2']); expect(miaShown(m)).toBe(true)
+  })
+  it('ошибка между верными обнуляет серию: три подряд считаются заново', () => {
+    let m = arrive()
+    for (const t of ['win', 'win', 'miss', 'win', 'win']) m = reduceMia(m, ev(t, circle2(), { idx: 1 })).mia
+    expect(m.phase).toBe('in'); expect(m.streak).toBe(2)
+    expect(reduceMia(m, ev('win', circle2(), { idx: 1 })).mia.phase).toBe('out')
+  })
+  it('круг кончился без победы: следующая стадия — Мия отпускает Пита сама', () => {
+    const r = reduceMia(arrive(), ev('enter', circle1('catch')))
+    expect(r.mia.phase).toBe('out'); expect(r.mia.why).toBe('end'); expect(r.boost).toBe(1); expect(ids(r)).toEqual(['mia_end', 'pit_end'])
+  })
+  it('повторный вход в ту же стадию (пауза и «Продолжить») Мию не трогает; после ухода фаза не сбрасывается (анимация ухода не обрывается)', () => {
+    const m = arrive()
+    expect(reduceMia(m, ev('enter', circle2())).mia).toBe(m)
+    const out = reduceMia(m, ev('enter', circle1('catch'))).mia
+    const next = reduceMia(out, ev('enter', { type: 'student', act: 'phrases', sid: 'phrases' }))
+    expect(next.mia).toBe(out); expect(next.mia.phase).toBe('out')
+  })
+})
+
+describe('applyMia: ускорение ступени и номер пачки реплик', () => {
+  it('приход ставит step.boost.k, уход возвращает 1; key растёт только с репликами', () => {
+    const mb = makeMiaBox(), st = circle2()
+    let v = applyMia(mb, reduceMia(mb.m, ev('miss', st, { idx: 0 })), st)
+    expect(st.step.boost.k).toBe(MIA.BOOST); expect(v.key).toBe(1); expect(v.mia.phase).toBe('in'); expect(mb.step).toBe(st.step)
+    v = applyMia(mb, reduceMia(mb.m, ev('enter', circle1('catch'))), circle1('catch'))
+    expect(st.step.boost.k).toBe(1); expect(mb.step).toBeNull(); expect(v.key).toBe(2)
+    v = applyMia(mb, reduceMia(mb.m, ev('enter', { type: 'student', act: 'phrases', sid: 'phrases' })), null)
+    expect(v.key).toBe(2); expect(v.mia.phase).toBe('out')
+  })
+})

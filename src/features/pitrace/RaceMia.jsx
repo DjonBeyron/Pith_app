@@ -1,0 +1,102 @@
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { renderTree } from '../scene/v2/renderTree.js'
+import { buildMascot } from '../scene/v2/sprites/mascot/mascotSprite.js'
+import { createBox, ART } from './mia/boxArt.js'
+import { arrivalAt, leaveAt, flightPath, thrownPath, talkLevel } from './mia/miaMotion.js'
+import { layoutOf, artMatrix, toScene, poseApply, poseSvg, poseOfMotion, miaCss, MIA_W, MIA_H } from './mia/miaLayout.js'
+import { miaLine } from './mia/miaLines.js'
+
+// Эпизод «Мия» поверх сцены игры (.wlStage, прототип 2026-11-14): картонная коробка падает на голову Пита (его голова скрыта, в прорези коробки — глаза Пита, совмещённые
+// с настоящими), Мия запрыгивает на крышку из-за экрана, коробка прогибается; пока Пит говорит (рот его головы живёт по озвучке), из краёв прорези идут звуковые линии —
+// замена рта. Три верных подряд — коробка трясётся и улетает вверх, Мию сбрасывает вправо, голова Пита возвращается. Состояние ведёт чистая машина (mia/raceMia.js):
+// компонент рисует его в своём ритме (rAF, часы стоят на паузе игры). Реплики (mia/miaLines.js) — подписью над Мией (озвучка отдельным голосом — следующий шаг).
+// Ничего не монтируется и не считает, пока Мии нет (phase 'off'): коробка и спрайт появляются с её приходом и убираются после ухода.
+const CAP_MS = 2500
+export default function RaceMia({ mia, cues = [], cueKey = 0, paused = false }) {
+  const [gone, setGone] = useState(-1)                          // at прихода, чей уход (анимация) уже доигран: после него коробку и спрайт убираем
+  const live = mia.phase === 'in' || (mia.phase === 'out' && gone !== mia.at)
+  const [cap, setCap] = useState(null)
+  const host = useRef(null), poseG = useRef(null), artG = useRef(null), catEl = useRef(null), miaEl = useRef(null)
+  const clock = useRef({ arr: 0, lv: 0, mode: 'off', paused })
+  const atRef = useRef(mia.at)
+  useEffect(() => { atRef.current = mia.at }, [mia.at])
+  const miaTree = useMemo(() => (live ? renderTree(buildMascot('mia2', { face: 'smirk' })) : null), [live])
+  useEffect(() => { clock.current.paused = paused }, [paused])
+
+  // фаза машины → часы эпизода
+  useEffect(() => {
+    const c = clock.current
+    if (mia.phase === 'in') { c.arr = Math.max(0, (performance.now() - mia.at) / 1000); c.lv = 0; c.mode = 'arr' }
+    else if (mia.phase === 'out' && c.mode === 'arr') { c.lv = 0; c.mode = 'lv' }
+    else if (mia.phase === 'off') c.mode = 'off'
+  }, [mia.phase, mia.at])
+
+  // подписи: реплики приходят пачкой с задержками от события
+  useEffect(() => {
+    if (!cueKey || !cues.length) return undefined
+    const ts = cues.map(({ id, who, delay }) => setTimeout(() => { const l = miaLine(id); if (l) setCap({ key: `${cueKey}:${id}`, who, text: l.text }) }, delay))
+    const off = setTimeout(() => setCap(null), Math.max(...cues.map(x => x.delay)) + CAP_MS + 300)
+    return () => { ts.forEach(clearTimeout); clearTimeout(off) }
+  }, [cueKey, cues])
+  useEffect(() => { if (!cap) return undefined; const t = setTimeout(() => setCap(c => (c?.key === cap.key ? null : c)), CAP_MS); return () => clearTimeout(t) }, [cap])
+
+  // кадры, пока Мия на экране
+  useEffect(() => {
+    if (!live) return undefined
+    const stage = host.current?.parentElement, cat = stage?.querySelector('.wlCat')
+    if (!stage || !cat) return undefined
+    catEl.current = cat
+    const box = createBox(); artG.current.appendChild(box.el)
+    let raf = 0, last = performance.now(), L = null, M = null, talk = 0, n = 0, tt = 0
+    const measure = () => {
+      const s = stage.getBoundingClientRect(), c = cat.getBoundingClientRect()
+      L = layoutOf({ stageW: s.width, stageH: s.height, catX: c.x - s.x, catY: c.y - s.y, catW: c.width, catH: c.height }, ART.PER_EYE)
+      M = artMatrix(L, ART.EYE_MID)
+      artG.current.setAttribute('transform', `matrix(${M.join(' ')})`)
+    }
+    const frame = now => {
+      raf = requestAnimationFrame(frame)
+      const dt = Math.min(0.05, (now - last) / 1000); last = now
+      const c = clock.current
+      if (!c.paused) { if (c.mode === 'arr') c.arr += dt; else if (c.mode === 'lv') c.lv += dt; tt += dt }
+      if (n++ % 20 === 0 || !L) measure()
+      if (!L || L.f <= 0) return
+      const leaving = c.mode === 'lv', m = leaving ? leaveAt(c.lv) : arrivalAt(c.arr)
+      const head = cat.querySelector(`[data-part="head"][data-face="${cat.getAttribute('data-face') || 'base'}"]`)
+      talk = Math.max(talkLevel(head?.getAttribute('data-vis'), head?.getAttribute('data-mouth')), talk * 0.8)
+      const tk = m.hideCat && m.shown ? talk : 0
+      box.update({ ...m.eyes, thNear: m.box.thNear, thFar: m.box.thFar, talk: tk, t: tt, live: true })
+      const pose = poseOfMotion(m.box, L)
+      pose.dx += 1.6 * Math.sin(2 * Math.PI * 34 * tt) * tk * L.f; pose.rot += 0.45 * Math.sin(2 * Math.PI * 27 * tt + 1) * tk
+      const piv = toScene(M, ART.BOTTOM)
+      poseG.current.setAttribute('transform', poseSvg(pose, piv))
+      cat.style.visibility = m.hideCat ? 'hidden' : ''
+      const mi = miaEl.current
+      if (mi) {                                                  // Мия: прыжок из-за экрана → сидит на крышке (едет с коробкой) → брошена вправо
+        const top = toScene(M, ART.TOP), seat = poseApply(pose, piv)(top), rest = [top[0], top[1] - 4 * L.f]
+        let a = [seat[0], seat[1] - 4 * L.f], mr = m.mia
+        if (mr.mode === 'flight') a = Object.values(flightPath(mr.u, [L.W + 150 * L.f, 0.3 * L.H], rest))
+        else if (mr.mode === 'thrown') { const p = thrownPath(mr.u); a = [a[0] + p.x * L.W, a[1] + p.y * L.H] }
+        mi.style.display = mr.mode === 'off' ? 'none' : 'block'
+        if (mr.mode !== 'off') mi.style.transform = miaCss(a[0], a[1], L.f, mr.rot, mr.sx, mr.sy)
+      }
+      if (leaving && !m.shown) { c.mode = 'off'; setGone(g => (g === atRef.current ? g : atRef.current)) } // уход доигран: убираем (setState — в кадре rAF, не в эффекте)
+    }
+    raf = requestAnimationFrame(frame)
+    return () => { cancelAnimationFrame(raf); box.el.remove(); cat.style.visibility = '' }
+  }, [live])
+
+  return (
+    <div ref={host} className="wlMia" data-live={live || undefined} aria-hidden="true" data-testid="race-mia">
+      {live && (
+        <>
+          <svg className="wlMiaSvg"><g ref={poseG}><g ref={artG} /></g></svg>
+          <div ref={miaEl} className="scn scn--v2 wlMiaCat" style={{ width: MIA_W, height: MIA_H, transformOrigin: '50% 93%', background: 'transparent', border: 'none', boxShadow: 'none' }}>
+            <svg viewBox="0 0 200 240" width="100%" height="100%" style={{ overflow: 'visible', display: 'block' }}><g className="scn-cat">{miaTree}</g></svg>
+          </div>
+        </>
+      )}
+      {cap && <div key={cap.key} className="wlMiaCap" data-who={cap.who} data-testid="race-mia-cap">{cap.text}</div>}
+    </div>
+  )
+}

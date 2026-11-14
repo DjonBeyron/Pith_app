@@ -25,6 +25,8 @@ import { plateCaption } from './raceSilentLine.js'
 import { createTransChron } from './raceTransChron.js'
 import { PHRASE_EXIT_MS } from './raceStagesPhrases.js'
 import { plateText } from '../player/modules/rotate-phone/wordLanePlateText.js'
+import { reduceMia, makeMiaBox, applyMia } from './mia/raceMia.js'
+import { miaOn } from './mia/miaConfig.js'
 
 /** Журнал голоса перевода: какое слово и какой перевод Пит говорит перед выездом этой пилюли (одна запись повтора: слово, перевод, дорожка, скорость). Расхождение с записью слова круга — строка «РАССИНХРОН» (не должно быть никогда) */
 function logPre(stage, rep) {
@@ -58,6 +60,8 @@ export function useRaceActs(args) {
   const demo = useRacePhraseDemo({ on, cat: args.cat, sayLine, sayText, lines, rate }) // демо-ход «Скажи» на живой пилюле (racePhraseDemoTurn.js): голос и ворота для сцены
   const [box] = useState(makeBox) // s — актуальное состояние (читает nextIdx без перерисовки), hinted — подсказка голосом сказана на этом промахе (raceState.makeBox)
   const [view, setView] = useState(box.s)
+  const [mb] = useState(makeMiaBox) // эпизод «Мия» (mia/raceMia.js): m — состояние машины, step — ступень, которой Мия ускорила дорожку, key — номер пачки реплик
+  const [miaView, setMiaView] = useState({ mia: mb.m, cues: [], key: 0 })
   const [result, setResult] = useState(null)
   const memSent = useRef(false) // игра уже записана в память слов (повтор экрана итога и перерисовки не пишут второй раз)
   const sayRef = useRef({ sayLine, sayLineLater, sayText, lines, rate }) // свежие реплики берёт эффект ниже; первый рендер — из аргументов
@@ -81,6 +85,15 @@ export function useRaceActs(args) {
     if (r.hint) sayRef.current.sayText?.(ev.stage.word) // подсказка «Вершины»: новое слово голосом из библиотеки
     if (r.trap) { trapRef.current(); trapRef.current = sayTrap({ ...r.trap, ...sayRef.current }) } // ловушка: «это двойник, а нужно слово»
   }, [box])
+
+  // Эпизод «Мия»: события раунда (вход в стадию, win / miss / fail) идут в машину; она сама решает, когда Мия приходит (первая ошибка второго круга прохода), ускоряет дорожку и уходит
+  const miaEvent = useCallback(ev => {
+    if (!miaOn()) return
+    const r = reduceMia(mb.m, { ...ev, now: performance.now() })
+    if (r.mia === mb.m && !r.say.length && r.boost == null) return
+    if (r.mia.phase !== mb.m.phase) pLog(`[mia] ${r.mia.phase === 'in' ? `Мия пришла (${r.mia.act}, второй круг), дорожка быстрее на ${Math.round((r.boost - 1) * 100)} %` : r.mia.phase === 'out' ? `Мия уходит: ${r.mia.why === 'win' ? 'три верных подряд' : 'круг кончился'}` : 'Мии нет'}`)
+    setMiaView(applyMia(mb, r, ev.stage))
+  }, [mb])
 
   // Прыжок директора на стадию i (промах ступени, время вышло): стадия перезапускается с новой отметкой времени
   const jump = useCallback(i => { if (i >= 0) setS(p => ({ ...p, stage: 'run', idx: i, at: performance.now(), hint: [], leaving: -1 })) }, [setS])
@@ -106,9 +119,9 @@ export function useRaceActs(args) {
     if (box.entered === key) return undefined
     markEntered(box, key)
     tr.stage(running); if (running.type === 'student' && !['sprint', 'catch', 'phrases'].includes(running.act)) tr.pill() // ступени «Вершины» без пилюль: переход кончается её началом
-    const t = setTimeout(() => apply({ t: 'enter', stage: running, from: resume?.at === at ? resume.n : 0 }), 0) // from — «Продолжить» с хода паузы: сыгранные ходы ступени остаются в результатах (raceState.enter)
+    const t = setTimeout(() => { apply({ t: 'enter', stage: running, from: resume?.at === at ? resume.n : 0 }); miaEvent({ t: 'enter', stage: running }) }, 0) // from — «Продолжить» с хода паузы: сыгранные ходы ступени остаются в результатах (raceState.enter)
     return () => clearTimeout(t)
-  }, [running, at, resume, apply, box, tr])
+  }, [running, at, resume, apply, box, tr, miaEvent])
 
   useEffect(() => { if (on && stage === 'drop') { tr.begin('старт'); if (stages[0]?.charge) tr.plate(stages[0].round?.title) } }, [on, stage, tr, stages]) // вход в игру: переход «старт → первая ступень»; плашка заставки (charge) — сразу со стартом
   const plateNow = on && !!running && running.type === 'announce' && rh.plateOk && !running.charge && !!plateText(running, plateCaption(lines, running.line))
@@ -137,7 +150,7 @@ export function useRaceActs(args) {
   const nextIdx = useCallback(i => (on ? climbTarget(stages, stages[i - 1], box.s) ?? extraTarget(stages, stages[i - 1], box.s[stages[i - 1]?.act], seed) ?? fillPhrases2(stages, stages[i - 1], box.s) ?? baseNext(i) : baseNext(i)), [on, stages, box, baseNext, seed]) // fillPhrases2: после круга 1 фраз — порядок круга 2 (слабые последними)
   if (!on) return rh
   return {
-    ...rh, result, race: view, nextIdx,
+    ...rh, result, race: view, mia: miaView, nextIdx,
     exitMs: st => (st?.act === 'phrases' ? PHRASE_EXIT_MS : undefined), // круг фраз кончился: до следующей стадии PHRASE_EXIT_MS, а не 1,3 с (Пит уже договорил итог хода)
     plate: st => plateText(st, plateCaption(lines, st?.line)), // неозвученная реплика стадии — подписью на плашке (raceSilentLine.js)
     /** Слово прохода A / B принято (раньше, чем щёлкнет заливка): время ответа ms (от выезда пилюли) и y (положение пилюли, % высоты: ниже LATE_Y — ответ «в последний момент») — в результаты, и для точности слова (raceAccuracy.js) — окно жизни пилюли по её скорости, заливка голосом в миг зачёта, тап ли это; Пит говорит мини-реплику успеха, следующая пилюля ждёт его */
@@ -170,6 +183,7 @@ export function useRaceActs(args) {
       if (kind === 'fail' && ['sprint', 'catch'].includes(running.act)) speech.pillGone('missed') // «не успел»: отступ до перевода следующего слова
       if (takeoffOn(running, kind, info)) playTakeoffAfter(rewardMs(info?.order ?? 0)) // взлёт принятой пилюли: глиссандо ми → ля ПОСЛЕ ноты награды, а не вместе с ней (только ступени-очереди гонки)
       apply({ t: kind, stage: running, info: kind === 'miss' ? { ...info, heard: listenerRef?.current?.heard?.() ?? '' } : info }) // на промахе — что услышал Vosk: двойник слова ступени ломает ловушку
+      if (['win', 'miss', 'fail'].includes(kind) && !(kind === 'win' && info?.last === false)) miaEvent({ t: kind, stage: running, idx: info?.idx }) // эпизод «Мия»: ответ ученика во втором круге
       if (kind === 'miss' && running.act === 'climb' && running.type === 'student') jump(climbStageIdx(stages, box.s.climb)) // сказал не то — соскальзывание: ступень-стадия перезапускается (слово ступени звучит подсказкой при 2-м промахе)
     },
     // Реплик на «не успел» из директора игры нет: «ой, соскользнул» «Вершины» говорит редюсер (raceState.js)
