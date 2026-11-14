@@ -4,18 +4,15 @@ import { buildMascot } from '../scene/v2/sprites/mascot/mascotSprite.js'
 import { createBox, ART } from './mia/boxArt.js'
 import { arrivalAt, leaveAt, flightPath, talkLevel } from './mia/miaMotion.js'
 import { layoutOf, artMatrix, toScene, poseApply, poseSvg, poseOfMotion, miaCss, MIA_W, MIA_H } from './mia/miaLayout.js'
-import { miaLine } from './mia/miaLines.js'
 
 // Эпизод «Мия» поверх сцены игры (.wlStage, прототип 2026-11-14): картонная коробка падает на голову Пита (его голова скрыта, в прорези коробки — глаза Пита, совмещённые
 // с настоящими), Мия запрыгивает на крышку из-за экрана, коробка прогибается; пока Пит говорит (рот его головы живёт по озвучке), из краёв прорези идут звуковые линии —
 // замена рта. Три верных подряд — Мия присаживается и отпрыгивает с коробкой в лапах за правый край, голова Пита возвращается. Состояние ведёт чистая машина (mia/raceMia.js):
-// компонент рисует его в своём ритме (rAF, часы стоят на паузе игры). Реплики (mia/miaLines.js) — подписью над Мией (озвучка отдельным голосом — следующий шаг).
+// компонент рисует его в своём ритме (rAF, часы стоят на паузе игры). Реплики идут очередью mia/miaSpeech.js (звук голосом Мии из слота или, если не озвучена, подпись caption над Мией).
 // Ничего не монтируется и не считает, пока Мии нет (phase 'off'): коробка и спрайт появляются с её приходом и убираются после ухода.
-const CAP_MS = 2500
-export default function RaceMia({ mia, cues = [], cueKey = 0, paused = false }) {
+export default function RaceMia({ mia, caption = null, paused = false }) {
   const [gone, setGone] = useState(-1)                          // at прихода, чей уход (анимация) уже доигран: после него коробку и спрайт убираем
   const live = mia.phase === 'in' || (mia.phase === 'out' && gone !== mia.at)
-  const [cap, setCap] = useState(null)
   const host = useRef(null), poseG = useRef(null), artG = useRef(null), catEl = useRef(null), miaEl = useRef(null)
   const clock = useRef({ arr: 0, lv: 0, mode: 'off', paused })
   const atRef = useRef(mia.at)
@@ -30,15 +27,6 @@ export default function RaceMia({ mia, cues = [], cueKey = 0, paused = false }) 
     else if (mia.phase === 'out' && c.mode === 'arr') { c.lv = 0; c.mode = 'lv' }
     else if (mia.phase === 'off') c.mode = 'off'
   }, [mia.phase, mia.at])
-
-  // подписи: реплики приходят пачкой с задержками от события
-  useEffect(() => {
-    if (!cueKey || !cues.length) return undefined
-    const ts = cues.map(({ id, who, delay }) => setTimeout(() => { const l = miaLine(id); if (l) setCap({ key: `${cueKey}:${id}`, who, text: l.text }) }, delay))
-    const off = setTimeout(() => setCap(null), Math.max(...cues.map(x => x.delay)) + CAP_MS + 300)
-    return () => { ts.forEach(clearTimeout); clearTimeout(off) }
-  }, [cueKey, cues])
-  useEffect(() => { if (!cap) return undefined; const t = setTimeout(() => setCap(c => (c?.key === cap.key ? null : c)), CAP_MS); return () => clearTimeout(t) }, [cap])
 
   // кадры, пока Мия на экране
   useEffect(() => {
@@ -95,7 +83,7 @@ export default function RaceMia({ mia, cues = [], cueKey = 0, paused = false }) 
           </div>
         </>
       )}
-      {cap && <div key={cap.key} className="wlMiaCap" data-who={cap.who} data-testid="race-mia-cap">{cap.text}</div>}
+      {caption && <div key={caption.key} className="wlMiaCap" data-who={caption.who} data-testid="race-mia-cap">{caption.text}</div>}
     </div>
   )
 }

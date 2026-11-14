@@ -4,6 +4,7 @@ import { probeAudioDuration } from '../../shared/lib/audioUtils.js'
 import { getCatLines, saveCatLines } from '../../shared/api/catLinesApi.js'
 import { normalizeLines, linesToSave } from '../player/modules/rotate-phone/wordLaneCatLines.js'
 import { REHEARSAL_LINES, lineVoiced } from './rehearsalLines.js'
+import { voiceOf } from '../pitrace/mia/miaVoice.js'
 
 // Озвучка реплик Пита-тренера из «Теста игры» и «Шлифовки репетиции» (Админ → «Голос»): те же настройки, что у CatLinesPanel в редакторе ноды (app_settings → rotate_cat_lines): ElevenLabs → R2 → запись в реплики.
 // Озвучиваются только реплики репетиции без озвучки (или с устаревшей: текст в коде поменялся, rehearsalLines.js isStaleLine) и без {word} в тексте (такую озвучить нельзя: Пит произносит само слово из библиотеки слов). Слова и куски — отдельно (voiceMissingTexts → generateWordAudio).
@@ -28,7 +29,7 @@ export async function voiceMissingPitLines({ list = REHEARSAL_LINES, onStep = ()
   try {
     for (const { id, text } of todo) {
       onStep(id)
-      lines[id] = await voiceOne(lines[id], text, { speak, upload, probe })
+      lines[id] = await voiceOne(lines[id], text, { speak, upload, probe }, id)
       done++
     }
   } finally {
@@ -38,8 +39,9 @@ export async function voiceMissingPitLines({ list = REHEARSAL_LINES, onStep = ()
 }
 
 /** Одна реплика: ElevenLabs → R2 → длительность; said — какой текст говорит файл */
-async function voiceOne(line, text, { speak, upload, probe }) {
-  const { file, wordTimings } = await speak(text)
+async function voiceOne(line, text, { speak, upload, probe }, id) { // голос Мии (mia_*) — второй аккаунт ElevenLabs (pitrace/mia/miaVoice.js); у остальных — голос по умолчанию
+  const voice = voiceOf(id)
+  const { file, wordTimings } = await (voice ? speak(text, voice) : speak(text))
   const blob = URL.createObjectURL(file)
   const [url, duration] = await Promise.all([upload(file), probe(blob)]).finally(() => URL.revokeObjectURL(blob))
   return { ...line, url, duration, words: wordTimings?.length ? wordTimings : null, said: text }
@@ -57,7 +59,7 @@ export async function voicePitLines({ ids = [], onStep = () => {}, speak = gener
     const text = lines[id]?.text
     if (!text || text.includes('{')) continue
     onStep(id)
-    try { lines[id] = await voiceOne(lines[id], text, { speak, upload, probe }); done++ } catch (e) { failed[id] = e?.message || String(e) }
+    try { lines[id] = await voiceOne(lines[id], text, { speak, upload, probe }, id); done++ } catch (e) { failed[id] = e?.message || String(e) }
   }
   if (done) await save(linesToSave(lines))
   return { done, failed }

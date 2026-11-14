@@ -11,6 +11,7 @@ import { editedLine, saveLineText } from './raceLineText.js'
 import { mainRaceMode, mainRaceTitle } from './raceMainMode.js'
 import { askText } from '../../pitrace/raceAskVoice.js'
 import { RACE_TITLES, STAGES_ROUND } from '../../pitrace/raceOnly.js'
+import { MIA_LINES } from '../../pitrace/mia/miaLines.js'
 import RaceVoiceTable from './RaceVoiceTable.jsx'
 import { RaceAskScene } from '../../pitrace/RaceAskPlate.jsx'
 import RaceBlockLazy from './RaceBlock.jsx'
@@ -91,7 +92,7 @@ describe('таблица и блок', () => {
     expect(h).toContain(`Озвучено 1 из ${RACE_LINES.length}`); expect(h).toContain('data-testid="rv-voice-missing"'); expect(h).toContain(`Озвучить недостающие (${RACE_LINES.length - 1})`)
     expect(h).toContain('data-testid="rv-voice-all"'); expect(h).toContain('>Переозвучить все<')
     for (const s of ['>озвучено<', '>нет озвучки<', '>текст изменён после озвучки<']) expect(h).toContain(s)
-    expect(h.match(/data-testid="rv-row-/g)).toHaveLength(RACE_LINES.length); expect(h.match(/data-testid="rv-voice"/g)).toHaveLength(RACE_LINES.length)
+    expect(h.match(/data-testid="rv-row-/g)).toHaveLength(RACE_LINES.length + MIA_LINES.length); expect(h.match(/data-testid="rv-voice"/g)).toHaveLength(RACE_LINES.length + MIA_LINES.length) // + группа «Эпизод Мия» (v3.3.230)
     expect(h).toContain('value="новый текст"'); expect(h).toContain('>Переозвучить<'); expect(h).toContain('>Озвучить<')
   })
   it('свёрнута по умолчанию: только заголовок «Озвучка Пита» и сводка', () => {

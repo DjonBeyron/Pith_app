@@ -23,6 +23,11 @@ describe('RaceMia: слой эпизода «Мия»', () => {
     expect(html({ mia: { ...inState, phase: 'out' } })).toContain('wlMiaSvg')
     expect(html({ mia: { ...inState, phase: 'off' } })).not.toContain('wlMiaSvg')
   })
+  it('подпись реплики — из пропса caption (неозвученные реплики)', () => {
+    const h = html({ mia: inState, caption: { key: 'k', who: 'mia', text: 'Допустим' } })
+    expect(h).toContain('data-testid="race-mia-cap"'); expect(h).toContain('data-who="mia"'); expect(h).toContain('>Допустим<')
+    expect(html({ mia: inState })).not.toContain('race-mia-cap')
+  })
   it('слой: aria-hidden, без перехвата касаний (стили), спрайт без фона', () => {
     const h = html({ mia: inState })
     expect(h).toContain('aria-hidden="true"'); expect(h).toMatch(/background:transparent/)
@@ -39,7 +44,7 @@ describe('смена цвета дорожек при Мии', () => {
     expect(css).toMatch(/\.wl\[data-mia='in'\] \{[^}]*--lvl1: #e0a44e[^}]*--lvl2: #d6783e[^}]*--lvl3: #9ca3b2/s)
     expect(read('../../styles/player/modules/race-sprint.css')).toContain("@import './race-mia.css'")
     const game = read('../player/modules/rotate-phone/WordLaneGame.jsx')
-    expect(game).toContain("data-mia={f.rh.mia?.mia?.phase === 'in' ? 'in' : undefined}"); expect(game).toContain('<RaceMia mia={f.rh.mia.mia}')
+    expect(game).toContain("data-mia={f.rh.mia?.mia?.phase === 'in' ? 'in' : undefined}"); expect(game).toContain('<RaceMia mia={f.rh.mia.mia} caption={f.rh.miaCap}')
   })
   it('есть уважение к reduced-motion (переход цвета выключается)', () => {
     expect(css).toMatch(/prefers-reduced-motion: reduce\)[^}]*\.wl\[data-race\] \{ transition: none/s)
@@ -57,7 +62,7 @@ describe('miaOn: включатель эпизода', () => {
 describe('игра: события раунда идут в машину Мии', () => {
   it('useRaceActs подключает машину: вход в стадию, win / miss / fail, вид mia в результате хука', () => {
     const src = read('./useRaceActs.js')
-    expect(src).toContain("miaEvent({ t: 'enter', stage: running })"); expect(src).toContain('miaEvent({ t: kind, stage: running, idx: info?.idx })'); expect(src).toContain('mia: miaView')
+    expect(src).toContain("miaEvent({ t: 'enter', stage: running })"); expect(src).toContain('miaEvent({ t: kind, stage: running, idx: info?.idx })'); expect(src).toContain('mia: miaView, miaCap'); expect(src).toContain('mspeech.enqueue(r.say)')
     expect(src).toContain("!(kind === 'win' && info?.last === false)")
   })
   it('ступени очереди несут step.boost = { k: 1 }; движок читает его', () => {

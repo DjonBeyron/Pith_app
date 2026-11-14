@@ -102,7 +102,7 @@ describe('игра, модуль, настройки, звук', () => {
   it('readWordLane принимает rotate_phone.plan; тап «Начать» готовит слова репетиции; реплики Пита — в каталоге реплик кота', () => {
     expect(read(`${RP}wordLaneConfig.js`)).toContain('const rehearsal = td.plan ? readRehearsalCfg(td.plan) : null')
     expect(read(`${RP}wordLaneStart.js`)).toContain('...(cfg.extraWords ?? [])')
-    expect(read(`${RP}wordLaneCatLines.js`)).toContain('export const CAT_LINES = [...GAME_LINES, ...REHEARSAL_LINES, ...RACE_LINES]')
+    expect(read(`${RP}wordLaneCatLines.js`)).toContain('export const CAT_LINES = [...GAME_LINES, ...REHEARSAL_LINES, ...RACE_LINES, ...MIA_LINES]')
     expect(read(`${RP}wordLaneStages.js`)).toContain("if (plan) return plan.game === 'race' ? buildRaceStages({ plan, rate, lib }) : buildRehearsalStages({ plan, rate, lib })")
     expect(read(`${RP}wordLaneStages.js`)).toContain('if (stage?.act) return labelsForRehearsal(stage, chunks, hint)')
   })

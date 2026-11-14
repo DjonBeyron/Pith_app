@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { RACE_LINES, RACE_LINE_IDS } from './raceLines.js'
+import { MIA_LINES } from './mia/miaLines.js'
 import { CAT_LINES, LINE_IDS, normalizeLines, linesItems, lineKey, MAX_LINE_CHARS } from '../player/modules/rotate-phone/wordLaneCatLines.js'
 import { isStaleLine, lineVoiced } from '../rehearsal/rehearsalLines.js'
 import { missingPitLines, pitVoiceCount } from '../rehearsal/rehearsalVoice.js'
@@ -39,7 +40,8 @@ describe('реплики Пита в гонке: каталог', () => {
   it('входят в общий каталог кота рядом с rh_*, ключи уникальны; редактор ноды и настройки видят их сами', () => {
     expect(LINE_IDS).toEqual(expect.arrayContaining(RACE_LINE_IDS))
     expect(new Set(LINE_IDS).size).toBe(LINE_IDS.length)
-    expect(CAT_LINES.slice(-RACE_LINES.length).map(l => l.id)).toEqual(RACE_LINE_IDS)
+    expect(CAT_LINES.slice(-RACE_LINES.length - MIA_LINES.length, -MIA_LINES.length).map(l => l.id)).toEqual(RACE_LINE_IDS) // за репликами гонки идут реплики эпизода «Мия» (mia/miaLines.js)
+    expect(CAT_LINES.slice(-MIA_LINES.length).map(l => l.id)).toEqual(MIA_LINES.map(l => l.id))
     expect(Object.keys(normalizeLines(null))).toEqual(LINE_IDS)
     expect(normalizeLines(null).race_catch_miss).toBeUndefined()
   })

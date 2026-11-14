@@ -9,7 +9,8 @@ import { RACE_LINES } from '../../pitrace/raceLines.js'
 import { transKey } from '../../pitrace/raceTrans.js'
 import { RACE_PHRASE_RU_KEY, RACE_PHRASE_SCENE_KEY, meaningMap, mergeMeanings } from './racePhraseMeaning.js'
 import { saveLineText } from './raceLineText.js'
-import { lineRows, meaningVoiceRows, sceneVoiceRows, transVoiceRows, wholeRows } from './raceVoiceTable.js'
+import { lineRows, meaningVoiceRows, sceneVoiceRows, transVoiceRows, wholeRows, miaRows } from './raceVoiceTable.js'
+import { MIA_LINES } from '../../pitrace/mia/miaLines.js'
 
 // Данные и действия таблицы «Озвучка Пита» (RaceVoiceTable.jsx). Реплики — app_settings.rotate_cat_lines (озвучка voicePitLines: ElevenLabs → R2 → настройки, тот же путь, что «Озвучить реплики»),
 // смыслы, переводы и фразы целиком — библиотека слов word_audio (generateWordAudio, ключ ru:текст как у useTransVoice; фраза — phrase:<normText>, тот же английский голос диктора, что у слов). Каталог реплик берётся из raceLines.js как есть: новые реплики появляются в таблице сами.
@@ -53,7 +54,7 @@ export default function useRaceVoiceTable({ plan, list = RACE_LINES, onChange = 
 
   const groups = useMemo(() => {
     const meanings = meaningVoiceRows(plan, saved, lib), scenes = sceneVoiceRows(plan, savedScene, lib)
-    return { whole: wholeRows(plan, lib), lines: lineRows(list, lines), meanings, scenes, trans: transVoiceRows(plan, [...meanings, ...scenes], lib) }
+    return { whole: wholeRows(plan, lib), lines: lineRows(list, lines), mia: miaRows(MIA_LINES, lines), meanings, scenes, trans: transVoiceRows(plan, [...meanings, ...scenes], lib) }
   }, [plan, saved, savedScene, lib, list, lines])
 
   /** Озвучить строки (любых групп) заново; ошибки — по строкам */

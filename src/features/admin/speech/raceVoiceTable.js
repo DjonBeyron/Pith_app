@@ -18,7 +18,7 @@ export function lineStatus(line) {
 /** Строки реплик: [{ id, group: 'line', text, when, status, duration, editable }]; lines ещё не загрузились (null) — тексты каталога, статус none */
 export const lineRows = (list, lines) => (list ?? []).map(d => {
   const l = lines?.[d.id]
-  return { id: d.id, group: 'line', text: l?.text ?? d.text, when: d.when, status: lineStatus(l), duration: l?.duration ?? null, editable: true }
+  return { id: d.id, group: 'line', text: l?.text ?? d.text, when: d.when, status: lineStatus(l), duration: l?.duration ?? null, editable: true, ...(l?.url ? { url: l.url } : {}) } // url — для кнопки ▶ «Прослушать»
 })
 
 const libStatus = (text, lib) => {
@@ -60,3 +60,6 @@ export const missingRows = rows => rows.filter(r => voiceable(r) && r.status !==
 
 /** Длительность для колонки: 1.234 → «1,2 с»; нет — пусто */
 export const durLabel = s => (s > 0 ? `${(Math.round(s * 10) / 10).toString().replace('.', ',')} с` : '')
+
+/** Строки эпизода «Мия» (mia/miaLines.js): те же строки реплик, с пометкой, чьим голосом озвучиваются (Мия — второй аккаунт ElevenLabs, Пит — обычный голос) */
+export const miaRows = (list, lines) => lineRows(list, lines).map((r, i) => ({ ...r, label: list[i].who === 'mia' ? 'Мия · второй аккаунт ElevenLabs (Elli)' : 'Пит · обычный голос' }))

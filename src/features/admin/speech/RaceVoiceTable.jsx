@@ -1,4 +1,6 @@
+import { useState } from 'react'
 import PolishSettings from './PolishSettings.jsx'
+import { getElevenLabsQuota } from '../../../shared/lib/ttsApi.js'
 import RaceVoiceRow from './RaceVoiceRow.jsx'
 import useRaceVoiceTable from './useRaceVoiceTable.js'
 import { voiceCount, missingRows, voiceable } from './raceVoiceTable.js'
@@ -8,8 +10,11 @@ import { voiceCount, missingRows, voiceable } from './raceVoiceTable.js'
 // Сохранённый здесь текст реплики главнее каталога кода: игра говорит и показывает его (raceLineText.js), до переозвучки статус «текст изменён после озвучки».
 export default function RaceVoiceTable({ plan, locked = false, open, onToggle, onChange, confirm = q => globalThis.confirm?.(q) ?? false, deps }) {
   const t = useRaceVoiceTable({ plan, onChange, deps })
-  const { whole, lines, meanings, scenes, trans } = t.groups
-  const all = [...whole, ...lines, ...meanings, ...scenes, ...trans]
+  const { whole, lines, mia, meanings, scenes, trans } = t.groups
+  const all = [...whole, ...lines, ...meanings, ...scenes, ...trans] // эпизод «Мия» — отдельная группа со своим счётом и кнопкой (другой аккаунт ElevenLabs)
+  const miaMissing = missingRows(mia), miaCount = voiceCount(mia)
+  const [quota, setQuota] = useState('') // остаток символов второго аккаунта ElevenLabs (голос Мии)
+  const checkQuota = () => { setQuota('смотрю…'); (deps?.quota ?? getElevenLabsQuota)('mia').then(q => setQuota(`осталось ${(q.limit - q.used).toLocaleString('ru-RU')} из ${q.limit.toLocaleString('ru-RU')} символов`), e => setQuota(`не получилось: ${e?.message ?? e}`)) }
   const count = voiceCount(all)
   const missing = missingRows(all)
   const off = locked || t.busy || !t.loaded
@@ -29,6 +34,15 @@ export default function RaceVoiceTable({ plan, locked = false, open, onToggle, o
       {whole.length > 0 && <><h4 className="rvGroup">Фразы целиком</h4><ul className="rvList" data-testid="rv-whole">{whole.map(row)}</ul></>}
       <h4 className="rvGroup">Реплики игры</h4>
       <ul className="rvList" data-testid="rv-lines">{lines.map(row)}</ul>
+      <h4 className="rvGroup">Эпизод «Мия» (коробка, ускорение дорожки)</h4>
+      <div className="rvTop" data-testid="rv-mia-top">
+        <span data-testid="rv-mia-count">Озвучено {miaCount.done} из {miaCount.total}</span>
+        <button type="button" className="aspChip" disabled={off || !miaMissing.length} onClick={() => t.voice(miaMissing)} data-testid="rv-voice-mia">Озвучить Мию{miaMissing.length ? ` (${miaMissing.length})` : ''}</button>
+        <button type="button" className="aspChip" onClick={checkQuota} data-testid="rv-mia-quota-btn">Остаток аккаунта Мии</button>
+        {quota && <span className="rhpHint" data-testid="rv-mia-quota">{quota}</span>}
+      </div>
+      <p className="rhpHint">Реплики Мии идут голосом второго аккаунта ElevenLabs, реплики Пита — обычным голосом. Прослушать — кнопка ▶.</p>
+      <ul className="rvList" data-testid="rv-mia">{mia.map(row)}</ul>
       {meanings.length > 0 && <><h4 className="rvGroup">Смыслы фраз плана</h4><ul className="rvList" data-testid="rv-meanings">{meanings.map(row)}</ul></>}
       {scenes.length > 0 && <><h4 className="rvGroup">Ситуации (круг 1)</h4><ul className="rvList" data-testid="rv-scenes">{scenes.map(row)}</ul></>}
       {trans.length > 0 && (

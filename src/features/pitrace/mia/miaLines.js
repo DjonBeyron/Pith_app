@@ -25,6 +25,10 @@ export const MIA_LINES = [
 ]
 
 export const MIA_LINE_IDS = MIA_LINES.map(l => l.id)
+/** Реплика Мии (её голос — второй аккаунт ElevenLabs); реплики Пита в эпизоде (pit_*) — обычный голос Пита */
+export const isMiaLine = id => typeof id === 'string' && id.startsWith('mia_')
+/** Мелкие колкости при верном / неверном ответе: не копятся в очереди, пока Мия говорит другое */
+export const isChatter = id => /^mia_(ok|miss|streak)/.test(id)
 const BY_ID = Object.fromEntries(MIA_LINES.map(l => [l.id, l]))
 export const miaLine = id => BY_ID[id] ?? null
 

@@ -18,6 +18,7 @@ export default function RaceVoiceRow({ row, locked, error, onSave, onVoice }) {
       <div className="rvEdit">
         <input className="aspInput rvText" type="text" value={draft} readOnly={!row.editable} disabled={locked} aria-label={`Текст ${row.id}`}
           placeholder={row.group === 'meaning' ? 'Смысл по-русски (намерение, не перевод)' : row.group === 'scene' ? 'Ситуация: ты знакомишься с новым человеком' : ''} onChange={e => setDraft(e.target.value)} data-testid="rv-text" />
+        {row.url && <button type="button" className="aspChip" onClick={() => { try { new Audio(row.url).play() } catch { /* нет звука — не страшно */ } }} aria-label={`Прослушать ${row.id}`} data-testid="rv-play">▶</button>}
         {dirty && <button type="button" className="aspChip" disabled={locked || !draft.trim()} onClick={() => onSave(row, draft)} data-testid="rv-save">Сохранить</button>}
         <button type="button" className="aspChip" disabled={locked || !can} onClick={() => onVoice(row)} data-testid="rv-voice">{row.status === 'none' ? 'Озвучить' : 'Переозвучить'}</button>
       </div>

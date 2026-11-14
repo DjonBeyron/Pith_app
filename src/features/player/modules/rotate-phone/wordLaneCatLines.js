@@ -3,6 +3,7 @@
 // Реплика = { text, url (озвучка в R2 или null), duration (с), words (тайминги слов или null) }. Чистые функции — проверяются тестами.
 import { REHEARSAL_LINES, isStaleLine } from '../../../rehearsal/rehearsalLines.js'
 import { RACE_LINES } from '../../../pitrace/raceLines.js'
+import { MIA_LINES } from '../../../pitrace/mia/miaLines.js'
 import { SILENT_LINE_MS } from '../../../pitrace/raceSilentLine.js'
 
 const GAME_LINES = [
@@ -15,7 +16,7 @@ const GAME_LINES = [
   { id: 'round_blind', text: 'Теперь вслепую, по памяти', when: 'начало раунда «Вслепую»' },
   { id: 'well_done', text: 'Отлично!', when: 'конец игры, когда показан перевод' },
 ]
-export const CAT_LINES = [...GAME_LINES, ...REHEARSAL_LINES, ...RACE_LINES] // реплики «Гонки с Питом» (race/raceLines.js, ключи race_*) — там же; реплики Пита-тренера «Репетиции» (rehearsalLines.js) — тем же механизмом: каталог, редактор, озвучка, слоты
+export const CAT_LINES = [...GAME_LINES, ...REHEARSAL_LINES, ...RACE_LINES, ...MIA_LINES] // реплики «Гонки с Питом» (race/raceLines.js, ключи race_*) — там же; реплики Пита-тренера «Репетиции» (rehearsalLines.js) — тем же механизмом: каталог, редактор, озвучка, слоты
 export const LINE_IDS = CAT_LINES.map(l => l.id)
 export const MAX_LINE_CHARS = 120
 export const lineKey = id => `line:${id}`
