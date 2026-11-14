@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest'
 import { createMiaSpeech, GAP_MS } from './miaSpeech.js'
-import { voiceOf, MIA_VOICE, ELLI_VOICE_ID } from './miaVoice.js'
+import { voiceOf, MIA_VOICE } from './miaVoice.js'
 import { isMiaLine, isChatter } from './miaLines.js'
 
 // Очередь речи эпизода «Мия»: фейковые часы и таймеры, кот, слушатель и слоты звука
@@ -25,8 +25,7 @@ const cue = (id, who, delay = 0) => ({ id, who, delay })
 describe('голос Мии', () => {
   it('реплики mia_* — второй аккаунт и голос Elli; остальные — голос по умолчанию', () => {
     expect(isMiaLine('mia_push')).toBe(true); expect(isMiaLine('pit_reply')).toBe(false); expect(isMiaLine('race_start')).toBe(false)
-    expect(voiceOf('mia_leave')).toBe(MIA_VOICE); expect(MIA_VOICE).toMatchObject({ account: 'mia', voiceId: ELLI_VOICE_ID }); expect(voiceOf('pit_back_1')).toBeNull(); expect(voiceOf('rh_x')).toBeNull()
-    expect(ELLI_VOICE_ID).toBe('MF3mGyEYCl7XYWbV9V6O')
+    expect(voiceOf('mia_leave')).toBe(MIA_VOICE); expect(MIA_VOICE).toMatchObject({ account: 'mia' }); expect(MIA_VOICE.voiceId).toBeUndefined(); expect(voiceOf('pit_back_1')).toBeNull(); expect(voiceOf('rh_x')).toBeNull()
   })
 })
 

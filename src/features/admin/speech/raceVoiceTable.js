@@ -62,4 +62,4 @@ export const missingRows = rows => rows.filter(r => voiceable(r) && r.status !==
 export const durLabel = s => (s > 0 ? `${(Math.round(s * 10) / 10).toString().replace('.', ',')} с` : '')
 
 /** Строки эпизода «Мия» (mia/miaLines.js): те же строки реплик, с пометкой, чьим голосом озвучиваются (Мия — второй аккаунт ElevenLabs, Пит — обычный голос) */
-export const miaRows = (list, lines) => lineRows(list, lines).map((r, i) => ({ ...r, label: list[i].who === 'mia' ? 'Мия · второй аккаунт ElevenLabs (Elli)' : 'Пит · обычный голос' }))
+export const miaRows = (list, lines) => lineRows(list, lines).map((r, i) => ({ ...r, label: list[i].who === 'mia' ? 'Мия · второй аккаунт ElevenLabs (голос — секрет ELEVENLABS_VOICE_ID_MIA)' : 'Пит · обычный голос' }))

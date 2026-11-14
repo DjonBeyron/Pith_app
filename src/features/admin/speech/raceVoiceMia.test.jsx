@@ -34,7 +34,7 @@ describe('группа «Эпизод Мия» в таблице озвучки'
     const load = async () => ({ lines: {} }), save = async v => { saved.push(v) }
     const r = await voicePitLines({ ids: ['mia_push', 'pit_back_1'], speak, upload: async () => 'https://r2.dev/x.mp3', probe: async () => 1.5, load, save })
     expect(r.done).toBe(2)
-    expect(speak.mock.calls[0]).toEqual(['Иди сюда, пушистик, дальше командую я', expect.objectContaining({ account: 'mia', voiceId: 'MF3mGyEYCl7XYWbV9V6O' })])
+    expect(speak.mock.calls[0]).toEqual(['Иди сюда, пушистик, дальше командую я', expect.objectContaining({ account: 'mia' })])
     expect(speak.mock.calls[1]).toEqual(['Спасибо за помощь, вот это у неё характер']) // Пит — голос по умолчанию, второго аргумента нет
     expect(Object.keys(saved[0].lines ?? saved[0])).toEqual(expect.arrayContaining(['mia_push', 'pit_back_1']))
   })
