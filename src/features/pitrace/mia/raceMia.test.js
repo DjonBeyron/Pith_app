@@ -11,10 +11,11 @@ describe('эпизод «Мия»: когда приходит', () => {
     expect(isSecondCircle(circle2())).toBe(true); expect(isSecondCircle(circle2('catch'))).toBe(true)
     expect(isSecondCircle(circle1())).toBe(false); expect(isSecondCircle({ type: 'announce', act: 'sprint', sid: 'sprint2' })).toBe(false); expect(isSecondCircle(null)).toBe(false)
   })
-  it('первая ошибка второго круга: Мия приходит, три реплики, ускорение дорожки', () => {
+  it('первая ошибка второго круга: Мия приходит, пять реплик (Мия, Пит, Мия), ускорение дорожки', () => {
     const r = reduceMia(miaInit(), ev('miss', circle2(), { idx: 1 }))
     expect(r.mia.phase).toBe('in'); expect(r.mia.act).toBe('sprint'); expect(r.mia.used).toEqual({ sprint: true }); expect(r.boost).toBe(MIA.BOOST)
-    expect(ids(r)).toEqual(['mia_push_1', 'mia_announce_1', 'mia_announce_2']); expect(r.say.map(l => l.delay)).toEqual([MIA.PUSH_AT, MIA.ANNOUNCE_AT, MIA.ANNOUNCE2_AT])
+    expect(ids(r)).toEqual(['mia_push', 'mia_announce_1', 'pit_reply', 'mia_announce_2', 'mia_announce_3'])
+    expect(r.say.map(l => l.delay)).toEqual([MIA.PUSH_AT, MIA.ANNOUNCE_AT, MIA.REPLY_AT, MIA.ANNOUNCE2_AT, MIA.ANNOUNCE3_AT]); expect(r.say.map(l => l.who)).toEqual(['mia', 'mia', 'pit', 'mia', 'mia'])
     expect(miaShown(r.mia)).toBe(true)
   })
   it('«не успел» (fail) — тоже ошибка; верные ответы и первый круг Мию не зовут', () => {
@@ -33,7 +34,7 @@ describe('эпизод «Мия»: когда приходит', () => {
     expect(m.phase).toBe('out')
     expect(reduceMia(m, ev('miss', circle2(), { idx: 0 })).mia.phase).toBe('out')
     const c = reduceMia({ ...m, phase: 'off' }, ev('miss', circle2('catch'), { idx: 0 }))
-    expect(c.mia.phase).toBe('in'); expect(c.mia.act).toBe('catch'); expect(c.mia.used).toEqual({ sprint: true, catch: true }); expect(ids(c)[0]).toBe('mia_push_2')
+    expect(c.mia.phase).toBe('in'); expect(c.mia.act).toBe('catch'); expect(c.mia.used).toEqual({ sprint: true, catch: true }); expect(ids(c)[0]).toBe('mia_push')
   })
 })
 
@@ -53,7 +54,7 @@ describe('эпизод «Мия»: пока она на коробке', () => {
     let m = arrive(); let r
     for (const k of [1, 2, 3]) { r = reduceMia(m, ev('win', circle2(), { idx: k })); m = r.mia }
     expect(m.phase).toBe('out'); expect(m.why).toBe('win'); expect(r.boost).toBe(1)
-    expect(ids(r)).toEqual(['pit_back_1', 'mia_leave', 'pit_back_2']); expect(miaShown(m)).toBe(true)
+    expect(ids(r)).toEqual(['mia_leave', 'pit_back_1', 'pit_back_2']); expect(r.say.map(l => l.delay)).toEqual([0, MIA.BACK_AT, MIA.BACK2_AT]); expect(miaShown(m)).toBe(true)
   })
   it('ошибка между верными обнуляет серию: три подряд считаются заново', () => {
     let m = arrive()

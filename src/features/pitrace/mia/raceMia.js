@@ -1,12 +1,12 @@
 // Эпизод «Мия» (прототип): чистая машина состояния без React и DOM. Мия приходит, когда ученик ошибается (чужое слово или «не успел») во ВТОРОМ круге
 // прохода A (sprint2) или B (catch2) — один раз на проход. Сталкивает Пита (коробка падает на него), ускоряет дорожку (step.boost.k × MIA.BOOST для ещё не
-// выехавших пилюль) и колет репликами (miaLines.js). Три верных подряд — Пит выбирается из коробки, Мия уходит обиженная; круг кончился раньше — Мия
+// выехавших пилюль) и колет репликами (miaLines.js). Три верных подряд — Мия отпрыгивает за экран, прихватив лапами коробку, Пит свободен; круг кончился раньше — Мия
 // отпускает Пита сама (фаза 'out' потом остаётся: анимация ухода доигрывает без обрыва, повторного прихода в тот же проход нет — used). Дорожка меняет цвет на время Мии (CSS .wl[data-mia], race-mia.css). Пит без голосовой реплики: слова говорит его обычная озвучка.
 // reduceMia(m, ev) → { mia, say, boost }: say — реплики (id, who, delay от события, мс), boost — новое k для step.boost (null — без изменений).
 // ev: { t: 'enter' | 'win' | 'miss' | 'fail', stage, now }.
 import { variantOf } from './miaLines.js'
 
-export const MIA = { BOOST: 1.15, STREAK_LEAVE: 3, OK_EVERY: 3, ANNOUNCE_AT: 3300, ANNOUNCE2_AT: 5600, PUSH_AT: 200 }
+export const MIA = { BOOST: 1.15, STREAK_LEAVE: 3, OK_EVERY: 3, PUSH_AT: 200, ANNOUNCE_AT: 3000, REPLY_AT: 5200, ANNOUNCE2_AT: 7400, ANNOUNCE3_AT: 9800, BACK_AT: 2600, BACK2_AT: 5200 }
 
 export const miaInit = () => ({ phase: 'off', act: '', used: {}, streak: 0, wins: 0, hits: 0, seq: 0, at: 0, why: '' })
 
@@ -29,7 +29,7 @@ export function reduceMia(m, ev) {
   if (m.phase === 'in') {
     if (ok) {
       const streak = m.streak + 1, wins = m.wins + 1
-      if (streak >= MIA.STREAK_LEAVE) return leave({ ...m, streak, wins }, now, 'win', [line('pit_back_1', 'pit'), line('mia_leave', 'mia', 2600), line('pit_back_2', 'pit', 5200)])
+      if (streak >= MIA.STREAK_LEAVE) return leave({ ...m, streak, wins }, now, 'win', [line('mia_leave', 'mia'), line('pit_back_1', 'pit', MIA.BACK_AT), line('pit_back_2', 'pit', MIA.BACK2_AT)])
       const say = streak === 2 ? [line('mia_streak2', 'mia')] : wins % MIA.OK_EVERY === 1 ? [line(variantOf('mia_ok', m.hits + 1), 'mia')] : []
       return { mia: { ...m, streak, wins, hits: say.length && streak !== 2 ? m.hits + 1 : m.hits }, say, boost: null }
     }
@@ -37,10 +37,9 @@ export function reduceMia(m, ev) {
     return { mia: m, say: [], boost: null }
   }
   if (bad && !m.used[stage.act]) { // первая ошибка второго круга этого прохода — Мия приходит
-    const n = Object.keys(m.used).length + 1
     return {
       mia: { ...m, phase: 'in', act: stage.act, used: { ...m.used, [stage.act]: true }, streak: 0, wins: 0, seq: m.seq + 1, at: now, why: '' },
-      say: [line(variantOf('mia_push', n), 'mia', MIA.PUSH_AT), line('mia_announce_1', 'mia', MIA.ANNOUNCE_AT), line('mia_announce_2', 'mia', MIA.ANNOUNCE2_AT)], boost: MIA.BOOST,
+      say: [line('mia_push', 'mia', MIA.PUSH_AT), line('mia_announce_1', 'mia', MIA.ANNOUNCE_AT), line('pit_reply', 'pit', MIA.REPLY_AT), line('mia_announce_2', 'mia', MIA.ANNOUNCE2_AT), line('mia_announce_3', 'mia', MIA.ANNOUNCE3_AT)], boost: MIA.BOOST,
     }
   }
   return { mia: m, say: [], boost: null }

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { arrivalAt, leaveAt, ARR, IMPACT, LAND, LEAVE, ARRIVAL_END, flightPath, thrownPath, talkLevel, MOUTH_LEVEL } from './miaMotion.js'
+import { arrivalAt, leaveAt, ARR, IMPACT, LAND, LEAVE, ARRIVAL_END, flightPath, talkLevel, MOUTH_LEVEL } from './miaMotion.js'
 
 describe('приход Мии: поза по времени', () => {
   it('до начала падения коробки нет; в падении она выше экрана, потом на земле', () => {
@@ -30,10 +30,18 @@ describe('приход Мии: поза по времени', () => {
 })
 
 describe('уход Мии', () => {
-  it('коробка трясётся, поднимается вверх и исчезает; Мия летит вправо; голова Пита возвращается раньше конца', () => {
-    expect(leaveAt(0.1).mia.mode).toBe('seat'); expect(leaveAt(LEAVE.SHAKE + 0.2).mia.mode).toBe('thrown')
-    expect(leaveAt(LEAVE.END - 0.25).box.dy).toBeLessThan(-0.5); expect(leaveAt(LEAVE.END).shown).toBe(false)
-    expect(leaveAt(0.1).hideCat).toBe(true); expect(leaveAt(LEAVE.CAT_BACK + 0.01).hideCat).toBe(false)
+  it('присела (коробка дрожит), потом отпрыгнула вправо за экран с коробкой в лапах; Мия едет на коробке', () => {
+    const crouch = leaveAt(0.2), jump = leaveAt(LEAVE.CROUCH + 0.4), late = leaveAt(LEAVE.END - 0.05)
+    expect(crouch.mia.mode).toBe('seat'); expect(crouch.mia.sy).toBeLessThan(1); expect(crouch.box.dxw).toBe(0)
+    expect(jump.box.dxw).toBeGreaterThan(0.1); expect(jump.box.dy).toBeLessThan(-0.2); expect(jump.mia.mode).toBe('seat')
+    expect(late.box.dxw).toBeGreaterThan(1.0); expect(leaveAt(LEAVE.END).shown).toBe(false); expect(leaveAt(LEAVE.END).mia.mode).toBe('off')
+  })
+  it('глаза на коробке закрываются, когда Мия берёт её, и закрыты всё время полёта', () => {
+    expect(leaveAt(0.05).eyes.open).toBe(1)
+    for (const t of [LEAVE.CROUCH + 0.05, LEAVE.CROUCH + 0.5, LEAVE.END - 0.05]) expect(leaveAt(t).eyes.open, `t=${t}`).toBeLessThan(0.05)
+  })
+  it('голова Пита возвращается, когда коробка уже поднялась (до конца ухода)', () => {
+    expect(leaveAt(0.1).hideCat).toBe(true); expect(leaveAt(LEAVE.CAT_BACK + 0.01).hideCat).toBe(false); expect(LEAVE.CAT_BACK).toBeLessThan(LEAVE.END)
   })
 })
 
@@ -45,8 +53,5 @@ describe('вспомогательное', () => {
     const a = [400, 100], b = [200, 600]
     expect(flightPath(0, a, b)).toEqual({ x: 400, y: 100 }); expect(flightPath(1, a, b)).toEqual({ x: 200, y: 600 })
     expect(flightPath(0.5, a, b, 0.34).y).toBeLessThan(350)
-  })
-  it('бросок вправо за экран: u = 1 — больше 0,8 ширины вправо', () => {
-    expect(thrownPath(0)).toEqual({ x: 0, y: 0 }); expect(thrownPath(1).x).toBeGreaterThan(0.8)
   })
 })

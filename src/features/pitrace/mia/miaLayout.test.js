@@ -24,9 +24,9 @@ describe('раскладка коробки на сцене', () => {
     expect(q[0]).toBeCloseTo(110, 6); expect(q[1]).toBeCloseTo(205, 6) // (10,0) → поворот 90° = (0,10) → +опора (100,210) → сдвиг (10,-5) = (110, 205)
     expect(poseSvg(id, piv)).toContain('rotate(0.000)')
   })
-  it('поза из движения: dx — в масштабе головы, dy — в высотах сцены × 1,3', () => {
-    const L = layoutOf(cat, ART.PER_EYE), p = poseOfMotion({ dx: 10, dy: -1, rot: 2, sx: 1.1, sy: 0.9 }, L)
-    expect(p).toEqual({ dx: 10, dy: -1 * 812 * 1.3, rot: 2, sx: 1.1, sy: 0.9 })
+  it('поза из движения: dx — в масштабе головы, dxw — доля ширины сцены, dy — в высотах сцены × 1,3', () => {
+    const L = layoutOf(cat, ART.PER_EYE), p = poseOfMotion({ dx: 10, dxw: 0.5, dy: -1, rot: 2, sx: 1.1, sy: 0.9 }, L)
+    expect(p).toEqual({ dx: 10 + 0.5 * 375, dy: -1 * 812 * 1.3, rot: 2, sx: 1.1, sy: 0.9 })
   })
   it('transform спрайта Мии: лапы в заданной точке', () => {
     const css = miaCss(200, 600, 1, 0, 1, 1)

@@ -25,8 +25,8 @@ export const poseApply = (pose, piv) => p => {
 }
 export const poseSvg = (pose, piv) => `translate(${pose.dx.toFixed(2)} ${pose.dy.toFixed(2)}) translate(${piv[0].toFixed(2)} ${piv[1].toFixed(2)}) rotate(${pose.rot.toFixed(3)}) scale(${pose.sx.toFixed(4)} ${pose.sy.toFixed(4)}) translate(${(-piv[0]).toFixed(2)} ${(-piv[1]).toFixed(2)})`
 
-/** Из позы motion (dy в высотах сцены×1,3, dx при масштабе 1) в пиксели сцены */
-export const poseOfMotion = (box, L) => ({ dx: box.dx * L.f, dy: box.dy * L.H * 1.3, rot: box.rot, sx: box.sx, sy: box.sy })
+/** Из позы motion (dy в высотах сцены×1,3, dx при масштабе 1, dxw — доля ширины сцены) в пиксели сцены */
+export const poseOfMotion = (box, L) => ({ dx: box.dx * L.f + (box.dxw || 0) * L.W, dy: box.dy * L.H * 1.3, rot: box.rot, sx: box.sx, sy: box.sy })
 
 /** Transform спрайта Мии: низ лап (FEET) — в точке (ax, ay) сцены, масштаб головы f, наклон rot и сжатие sx / sy вокруг лап */
 export const miaCss = (ax, ay, f, rot, sx, sy) => `translate(${(ax - (MIA_W * f) / 2).toFixed(1)}px,${(ay - FEET * MIA_H * f).toFixed(1)}px) rotate(${rot.toFixed(2)}deg) scale(${sx.toFixed(3)},${sy.toFixed(3)})`

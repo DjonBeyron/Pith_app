@@ -20,7 +20,7 @@ const panicX = t => { let t0 = ARR.PANIC0, x0 = 0; for (const [x1, d] of PANIC) 
 
 /** Поза прихода в момент t: { box: { dy (в высотах экрана ×1, <0 — выше), dx (px при масштабе 1), rot (°), sx, sy, thNear, thFar }, eyes: { open, scale, look }, mia: { mode, u, rot, sx, sy }, hideCat } */
 export function arrivalAt(t) {
-  const box = { dy: 0, dx: 0, rot: 0, sx: 1, sy: 1, thNear: 0, thFar: 0 }, eyes = { open: 0, scale: 1, look: 0 }, mia = { mode: 'off', u: 0, rot: 0, sx: 1, sy: 1 }
+  const box = { dy: 0, dx: 0, dxw: 0, rot: 0, sx: 1, sy: 1, thNear: 0, thFar: 0 }, eyes = { open: 0, scale: 1, look: 0 }, mia = { mode: 'off', u: 0, rot: 0, sx: 1, sy: 1 }
   if (t < ARR.FALL0) return { box, eyes, mia, hideCat: false, shown: false }
   const fall = clamp((t - ARR.FALL0) / ARR.FALL), q = t - IMPACT
   if (q < 0) {                                                  // падение: ускоряется, клапаны задираются воздухом
@@ -51,20 +51,22 @@ export function arrivalAt(t) {
   return { box, eyes, mia, hideCat: true, shown: true }
 }
 
-// Уход (с): коробка трясётся изнутри, подпрыгивает и улетает вверх, Мию сбрасывает вправо за экран, голова Пита снова на виду
-export const LEAVE = { SHAKE: 0.45, LIFT: 0.7, END: 1.25, CAT_BACK: 0.75 }
+// Уход (с): Мия присаживается, коробка трясётся изнутри; Мия подхватывает коробку лапами и отпрыгивает с ней за правый край экрана; голова Пита снова на виду
+export const LEAVE = { CROUCH: 0.3, JUMP: 0.95, END: 1.3, CAT_BACK: 0.5 }
 
-/** Поза ухода в момент t: { box, eyes, mia: { mode: 'seat' | 'thrown' | 'off', u }, hideCat, shown } */
+/** Поза ухода в момент t: { box (dxw — смещение вправо в долях ширины сцены), eyes, mia: { mode: 'seat' | 'off' } — Мия едет на коробке, держа её лапами }, hideCat, shown } */
 export function leaveAt(t) {
-  const box = { dy: 0, dx: 0, rot: 0, sx: 1, sy: 1, thNear: 0, thFar: 0 }, eyes = { open: 1, scale: 1.08, look: 0 }, mia = { mode: 'seat', u: 1, rot: 0, sx: 1, sy: 1 }
+  const box = { dy: 0, dx: 0, dxw: 0, rot: 0, sx: 1, sy: 1, thNear: 0, thFar: 0 }, eyes = { open: 1, scale: 1, look: 0 }, mia = { mode: 'seat', u: 1, rot: 0, sx: 1, sy: 1 }
   if (t >= LEAVE.END) return { box, eyes, mia: { ...mia, mode: 'off' }, hideCat: false, shown: false }
-  const sh = clamp(t / LEAVE.SHAKE)
-  box.dx = 5 * Math.sin(2 * Math.PI * 16 * t) * sh; box.rot = 3.2 * Math.sin(2 * Math.PI * 13 * t + 1) * sh; box.sy = 1 - 0.03 * Math.abs(Math.sin(2 * Math.PI * 8 * t)) * sh
-  mia.rot = box.rot * 0.8
-  if (t >= LEAVE.SHAKE) {
-    const p = clamp((t - LEAVE.SHAKE) / (LEAVE.END - LEAVE.SHAKE - 0.2))
-    box.dy = -1.35 * eIn3(p); box.rot += -10 * p; box.thNear = 40 + 22 * Math.sin(2 * Math.PI * 7 * t); box.thFar = 35 + 20 * Math.sin(2 * Math.PI * 6 * t + 1); box.sy = 1 + 0.06 * p
-    Object.assign(mia, { mode: 'thrown', u: clamp((t - LEAVE.SHAKE) / 0.75), rot: 40 * clamp((t - LEAVE.SHAKE) / 0.75) })
+  const cr = clamp(t / LEAVE.CROUCH)                            // присела: коробка дрожит (Пит рвётся наружу), Мия сжимается пружиной
+  box.dx = 4 * Math.sin(2 * Math.PI * 16 * t) * cr; box.rot = 2.6 * Math.sin(2 * Math.PI * 13 * t + 1) * cr; box.sy = 1 - 0.02 * Math.abs(Math.sin(2 * Math.PI * 8 * t)) * cr
+  Object.assign(mia, { sy: 1 - 0.14 * cr, sx: 1 + 0.06 * cr, rot: box.rot * 0.8 })
+  eyes.open = 1 - 0.98 * eOut3(clamp((t - 0.12) / 0.18))        // Мия берёт коробку: глаза в щели закрываются и остаются закрытыми, пока коробка летит
+  if (t >= LEAVE.CROUCH) {                                       // прыжок: вверх и вправо за экран, коробка в лапах — клапаны трепыхаются
+    const u = clamp((t - LEAVE.CROUCH) / LEAVE.JUMP)
+    box.dxw = 1.35 * u * u; box.dy = -0.5 * u * (2 - u); box.rot += 18 * u; box.sy = 1 + 0.05 * u
+    box.thNear = 35 + 25 * Math.sin(2 * Math.PI * 7 * t); box.thFar = 30 + 20 * Math.sin(2 * Math.PI * 6 * t + 1)
+    Object.assign(mia, { sy: 0.86 + 0.2 * eOut3(clamp(u * 3)), sx: 1.06 - 0.1 * eOut3(clamp(u * 3)), rot: box.rot * 0.7 })
   }
   return { box, eyes, mia, hideCat: t < LEAVE.CAT_BACK, shown: true }
 }
@@ -72,9 +74,6 @@ export function leaveAt(t) {
 /** Громкость речи Пита 0…1 по форме рта головы (Rhubarb A…H, X или closed / half / open) — звуковые линии идут в такт его реальной озвучке */
 export const MOUTH_LEVEL = { X: 0, A: 0.08, B: 0.4, C: 0.6, D: 0.95, E: 0.55, F: 0.45, G: 0.35, H: 0.65, closed: 0, half: 0.5, open: 1 }
 export const talkLevel = (vis, mouth) => MOUTH_LEVEL[vis] ?? MOUTH_LEVEL[mouth] ?? 0
-
-/** Путь Мии при броске (уходе): дуга вправо за экран; u 0…1 → смещение от места посадки в долях ширины экрана (x) и высоты экрана (y) */
-export const thrownPath = u => ({ x: 0.9 * u, y: -0.28 * 4 * u * (1 - u) + 0.35 * u * u })
 
 /** Путь Мии при прыжке: из-за правого края (x0) по дуге в точку посадки; u 0…1 → линейный x и дуга по y (подъём apex над хордой, доли высоты экрана) */
 export const flightPath = (u, from, to, apex = 0.34) => ({ x: from[0] + (to[0] - from[0]) * u, y: from[1] + (to[1] - from[1]) * u - apex * 4 * u * (1 - u) })

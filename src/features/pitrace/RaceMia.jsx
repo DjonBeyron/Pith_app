@@ -2,13 +2,13 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { renderTree } from '../scene/v2/renderTree.js'
 import { buildMascot } from '../scene/v2/sprites/mascot/mascotSprite.js'
 import { createBox, ART } from './mia/boxArt.js'
-import { arrivalAt, leaveAt, flightPath, thrownPath, talkLevel } from './mia/miaMotion.js'
+import { arrivalAt, leaveAt, flightPath, talkLevel } from './mia/miaMotion.js'
 import { layoutOf, artMatrix, toScene, poseApply, poseSvg, poseOfMotion, miaCss, MIA_W, MIA_H } from './mia/miaLayout.js'
 import { miaLine } from './mia/miaLines.js'
 
 // Эпизод «Мия» поверх сцены игры (.wlStage, прототип 2026-11-14): картонная коробка падает на голову Пита (его голова скрыта, в прорези коробки — глаза Пита, совмещённые
 // с настоящими), Мия запрыгивает на крышку из-за экрана, коробка прогибается; пока Пит говорит (рот его головы живёт по озвучке), из краёв прорези идут звуковые линии —
-// замена рта. Три верных подряд — коробка трясётся и улетает вверх, Мию сбрасывает вправо, голова Пита возвращается. Состояние ведёт чистая машина (mia/raceMia.js):
+// замена рта. Три верных подряд — Мия присаживается и отпрыгивает с коробкой в лапах за правый край, голова Пита возвращается. Состояние ведёт чистая машина (mia/raceMia.js):
 // компонент рисует его в своём ритме (rAF, часы стоят на паузе игры). Реплики (mia/miaLines.js) — подписью над Мией (озвучка отдельным голосом — следующий шаг).
 // Ничего не монтируется и не считает, пока Мии нет (phase 'off'): коробка и спрайт появляются с её приходом и убираются после ухода.
 const CAP_MS = 2500
@@ -72,11 +72,10 @@ export default function RaceMia({ mia, cues = [], cueKey = 0, paused = false }) 
       poseG.current.setAttribute('transform', poseSvg(pose, piv))
       cat.style.visibility = m.hideCat ? 'hidden' : ''
       const mi = miaEl.current
-      if (mi) {                                                  // Мия: прыжок из-за экрана → сидит на крышке (едет с коробкой) → брошена вправо
+      if (mi) {                                                  // Мия: прыжок из-за экрана → сидит на крышке (едет с коробкой) → уезжает с ней в лапах за экран
         const top = toScene(M, ART.TOP), seat = poseApply(pose, piv)(top), rest = [top[0], top[1] - 4 * L.f]
         let a = [seat[0], seat[1] - 4 * L.f], mr = m.mia
         if (mr.mode === 'flight') a = Object.values(flightPath(mr.u, [L.W + 150 * L.f, 0.3 * L.H], rest))
-        else if (mr.mode === 'thrown') { const p = thrownPath(mr.u); a = [a[0] + p.x * L.W, a[1] + p.y * L.H] }
         mi.style.display = mr.mode === 'off' ? 'none' : 'block'
         if (mr.mode !== 'off') mi.style.transform = miaCss(a[0], a[1], L.f, mr.rot, mr.sx, mr.sy)
       }
