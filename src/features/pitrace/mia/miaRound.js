@@ -36,7 +36,7 @@ export function miaSkip(stages, i, m, nextOf = j => j) {
   let j = i
   for (let n = 0; n < stages.length && stages[j]?.mia; n++) {
     const st = stages[j], afterCeremony = st.mia === 'round' && stages[j - 1]?.mia === 'ann' && stages[j - 1].act === st.act
-    if (miaAllowed(st, m) || afterCeremony) break
+    if ((st.always && !st.empty) || miaAllowed(st, m) || afterCeremony) break // always — финал «Шкала памяти»: идёт всегда, если нашлись слова (empty — нет)
     j = nextOf(st.mia === 'ann' ? j + 2 : j + 1)
   }
   return j

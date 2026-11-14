@@ -30,8 +30,8 @@ describe('стадии гонки в формате движка', () => {
     expect(seq.slice(0, 6)).toEqual(['sprint:announce', 'sprint:student', 'sprint:announce', 'sprint:student', 'sprint:announce', 'sprint:student']) // первый и второй круг разгона (второй идёт, только если были ошибки) и скрытые церемония + круг с Мией (идут только после ошибки во втором круге)
     expect(seq.slice(6, 12)).toEqual(['catch:announce', 'catch:student', 'catch:announce', 'catch:student', 'catch:announce', 'catch:student']) // «Слушай и лови» — инверсия разгона: тоже два круга и Мия
     expect(of(st, 'climb').filter(s => s.type === 'student')).toHaveLength(4)
-    expect(seq.slice(-5)).toEqual(['descent:announce', 'descent:read', 'descent:turn', 'descent:student', 'summary:summary'])
-    expect(st.filter(s => s.type === 'announce').map(s => s.line)).toEqual([null, 'race_sprint_round2', 'pit_forgot', 'race_catch_tap', 'race_sprint_round2', 'pit_forgot', 'race_phrases', 'race_phrases_pick', 'race_phrases_say', 'race_climb', 'race_climb_top', 'race_climb_time', 'race_descent'])
+    expect(seq.slice(-7)).toEqual(['descent:announce', 'descent:read', 'descent:turn', 'descent:student', 'boss:announce', 'boss:student', 'summary:summary']) // финал «Шкала памяти»: церемония Мии и круг
+    expect(st.filter(s => s.type === 'announce').map(s => s.line)).toEqual([null, 'race_sprint_round2', 'pit_forgot', 'race_catch_tap', 'race_sprint_round2', 'pit_forgot', 'race_phrases', 'race_phrases_pick', 'race_phrases_say', 'race_climb', 'race_climb_top', 'race_climb_time', 'race_descent', 'pit_forgot'])
   })
   it('разгон: одна ступень ученика, по повтору на пилюлю; у повтора своя дорожка, скорость (+5 %), перевод внутри, без слова, которое проявлялось при промахе (тихий промах)', () => {
     const [s] = of(build().stages, 'sprint').filter(x => x.type === 'student')

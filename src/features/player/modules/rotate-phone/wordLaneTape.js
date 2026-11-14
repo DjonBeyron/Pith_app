@@ -3,10 +3,11 @@
 // перезапуск ступени (restartStage) остаётся в том же акте — атрибут не меняется, и лента сразу в своём виде. По data-tape привод конвейера ведёт узор со скоростью пилюль (laneConveyorDrive.js), а вспышка верного ответа
 // покрывает всю ленту (wordLaneLaneFlash.js).
 export const TAPE_ACT = 'phrases'
+export const TAPE_ACTS = [TAPE_ACT, 'boss'] // и финал «Шкала памяти» (boss/): слова по одному на той же широкой ленте
 
 /** Лента ли сейчас: акт текущей стадии (на паузе — стадии, на которой встали) — этап «Фразы» */
 export function laneTape(f) {
   if (!f?.rh?.on) return false
   const st = f.stage === 'run' ? f.stageObj : f.stage === 'paused' && f.from === 'run' ? f.stages?.[f.idx] : null
-  return st?.act === TAPE_ACT
+  return TAPE_ACTS.includes(st?.act)
 }

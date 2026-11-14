@@ -14,7 +14,7 @@ export function conveyorSpeedHint(stages, idx) {
     const st = stages[j]
     if (!st || st.act !== cur.act) return null
     const reps = st.step?.reps
-    if (st.type === 'student' && reps?.length) return reps[0].speed > 0 ? reps[0].speed * (st.mia === 'round' && j === idx ? MIA.BOOST : 1) : null // круг с Мией: дорожки ускоряет она (×MIA.BOOST) — на входе в круг, плавно
+    if (st.type === 'student' && reps?.length) return reps[0].speed > 0 ? reps[0].speed * (st.mia === 'round' && !st.noBoost && j === idx ? MIA.BOOST : 1) : null // круг с Мией: дорожки ускоряет она (×MIA.BOOST) — на входе в круг, плавно
   }
   return null
 }

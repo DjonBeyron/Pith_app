@@ -17,8 +17,9 @@ import { SWITCH_MS } from './raceSwitch.js'
 import { readTapMode } from '../player/modules/rotate-phone/wordLaneHudSettings.js'
 import { ruReady } from './raceRu.js'
 import { sliceFrom } from './raceStartStage.js'
+import { bossStages } from './boss/raceStagesBoss.js'
 
-const ROUNDS = { sprint: sprintStages, catch: catchStages, phrases: phraseStages, climb: climbStages, descent: descentStages }
+const ROUNDS = { sprint: sprintStages, catch: catchStages, phrases: phraseStages, climb: climbStages, descent: descentStages, boss: bossStages }
 
 /**
  * Три нежные ноты перед КАЖДЫМ этапом и проходом (замечание владельца, v3.3.165: «как в самом начале игры»): у последней плашки перед первой пилюлей / читкой (announce прямо перед student или read) — count 'after', soft.

@@ -13,7 +13,7 @@ describe('рецепт гонки: акты из плана репетиции',
     for (const id of FIXTURE_IDS) {
       const plan = race(id)
       expect(plan.game).toBe('race')
-      expect(ids(buildRaceActs(plan).acts)).toEqual(['sprint', 'catch', 'phrases', 'climb', 'descent', 'summary']) // фразы плана-симуляции — фикстура (racePhraseData.phrasesOf)
+      expect(ids(buildRaceActs(plan).acts)).toEqual(['sprint', 'catch', 'phrases', 'climb', 'descent', 'boss', 'summary']) // финал «Шкала памяти» (boss) перед итогом; фразы плана-симуляции — фикстура (racePhraseData.phrasesOf)
     }
   })
   it('разгон: 6–10 пилюль; слов с переводом у плана меньше шести — добираются чужими (других фикстур / plan.extraWords)', () => {
@@ -70,17 +70,17 @@ describe('рецепт гонки: акты из плана репетиции',
   it('один раунд (plan.round): только он и без итога; незнакомый раунд — все акты', () => {
     for (const r of ONE_ROUNDS) expect(ids(buildRaceActs(race('three', { round: r })).acts)).toEqual([r])
     expect(RACE_ROUNDS).toEqual([...ONE_ROUNDS, PINGPONG_ROUND]) // кнопки блока: одиночные раунды и прежний режим
-    expect(ids(buildRaceActs(normalizePlan({ ...fixturePlan('three'), game: 'race', round: 'нет такого' })).acts)).toHaveLength(6)
+    expect(ids(buildRaceActs(normalizePlan({ ...fixturePlan('three'), game: 'race', round: 'нет такого' })).acts)).toHaveLength(7)
     expect(pickRound([{ id: 'sprint' }, { id: 'summary' }], 'sprint')).toEqual([{ id: 'sprint' }])
   })
   it('режимы: «Пинг-понг + фразы + финал» (stages, по умолчанию) и прежний «Пинг-понг + финал» (pingpong) — без вершины и спуска; план их принимает', () => {
     expect(STAGES_ROUND).toBe('stages'); expect(isRound('stages')).toBe(true); expect(isRound('нет')).toBe(false)
     const plan = race('three', { round: STAGES_ROUND })
     expect(plan.round).toBe('stages')
-    expect(ids(buildRaceActs(plan).acts)).toEqual(['sprint', 'catch', 'phrases', 'summary'])
-    expect(ids(buildRaceActs(race('three', { round: PINGPONG_ROUND })).acts)).toEqual(['sprint', 'catch', 'summary']); expect(isRound('pingpong')).toBe(true); expect(isRound('phrases')).toBe(true)
+    expect(ids(buildRaceActs(plan).acts)).toEqual(['sprint', 'catch', 'phrases', 'boss', 'summary'])
+    expect(ids(buildRaceActs(race('three', { round: PINGPONG_ROUND })).acts)).toEqual(['sprint', 'catch', 'boss', 'summary']); expect(isRound('pingpong')).toBe(true); expect(isRound('phrases')).toBe(true)
     expect(RACE_TITLES[STAGES_ROUND]).toBe('Пинг-понг + фразы + финал'); expect(RACE_TITLES[PINGPONG_ROUND]).toBe('Пинг-понг + финал'); expect(RACE_TITLES.phrases).toBe('Фразы')
-    expect(pickRound([{ id: 'sprint' }, { id: 'catch' }, { id: 'climb' }, { id: 'descent' }, { id: 'summary' }], PINGPONG_ROUND).map(a => a.id)).toEqual(['sprint', 'catch', 'summary'])
+    expect(pickRound([{ id: 'sprint' }, { id: 'catch' }, { id: 'climb' }, { id: 'descent' }, { id: 'boss' }, { id: 'summary' }], PINGPONG_ROUND).map(a => a.id)).toEqual(['sprint', 'catch', 'boss', 'summary'])
   })
   it('случайности — только от семени: Math.random в рецепте нет, одно семя — один и тот же рецепт', () => {
     const a = JSON.stringify(buildRaceActs(race('three')).acts), b = JSON.stringify(buildRaceActs(race('three')).acts)

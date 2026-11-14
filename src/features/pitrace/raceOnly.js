@@ -3,11 +3,11 @@
 // В режимах нет «Вершины» и «Спуска»; стартовая фраза race_start звучит (raceTexts.raceHasStart). Кнопки раундов блока — RACE_ROUNDS (одиночные раунды и прежний режим) с подписями RACE_TITLES. Чистые функции без React.
 export const STAGES_ROUND = 'stages'
 export const PINGPONG_ROUND = 'pingpong'
-export const MODES = { [STAGES_ROUND]: ['sprint', 'catch', 'phrases'], [PINGPONG_ROUND]: ['sprint', 'catch'] }
+export const MODES = { [STAGES_ROUND]: ['sprint', 'catch', 'phrases', 'boss'], [PINGPONG_ROUND]: ['sprint', 'catch', 'boss'] } // финал «Шкала памяти» (boss) — в обоих режимах перед итогом (если слов хватает и не «Тапаю»)
 export const STAGES_ACTS = MODES[STAGES_ROUND]
 export const ONE_ROUNDS = ['sprint', 'catch', 'phrases', 'climb', 'descent']
 export const RACE_ROUNDS = [...ONE_ROUNDS, PINGPONG_ROUND]
-export const RACE_TITLES = { sprint: 'Проход A', catch: 'Проход B', phrases: 'Фразы', climb: 'Вершина', descent: 'Спуск', [STAGES_ROUND]: 'Пинг-понг + фразы + финал', [PINGPONG_ROUND]: 'Пинг-понг + финал' }
+export const RACE_TITLES = { sprint: 'Проход A', catch: 'Проход B', phrases: 'Фразы', climb: 'Вершина', descent: 'Спуск', boss: 'Шкала памяти', [STAGES_ROUND]: 'Пинг-понг + фразы + финал', [PINGPONG_ROUND]: 'Пинг-понг + финал' }
 
 /** round — режим этапов с итогом (а не одиночный раунд) */
 export const isMode = round => !!MODES[round]

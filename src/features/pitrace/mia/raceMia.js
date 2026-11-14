@@ -27,7 +27,7 @@ export function reduceMia(m, ev) {
       if (m.phase === 'in' && m.act === stage.act) return none(m)
       return { mia: { ...m, phase: 'in', act: stage.act, used: { ...m.used, [stage.act]: true }, streak: 0, wins: 0, seq: m.seq + 1, at: now + MIA.DROP_AT, why: '', fast: false }, say: ceremony(), boost: null }
     }
-    if (stage?.mia === 'round') return m.phase === 'in' && m.act === stage.act ? { mia: m.fast ? m : { ...m, fast: true }, say: [], boost: MIA.BOOST } : none(m) // круг с Мией: дорожка быстрее и меняет цвет (fast) — с этого круга, а не с церемонии
+    if (stage?.mia === 'round') return m.phase === 'in' && m.act === stage.act ? { mia: m.fast ? m : { ...m, fast: true }, say: [], boost: stage.noBoost ? null : MIA.BOOST } : none(m) // круг с Мией: дорожка быстрее и меняет цвет (fast) — с этого круга, а не с церемонии
     if (m.phase === 'in') return leave(m, now, 'end', [line('mia_end', 'mia'), line('pit_end', 'pit', 2400)]) // круг кончился: Мия отпускает Пита
     return none(m)
   }
@@ -37,7 +37,7 @@ export function reduceMia(m, ev) {
   const bad = t === 'miss' || (t === 'fail' && !word?.trap)
   if (ok) {
     const streak = m.streak + 1, wins = m.wins + 1
-    if (streak >= MIA.STREAK_LEAVE) return leave({ ...m, streak, wins }, now, 'win', [line('mia_leave', 'mia'), line('pit_back_1', 'pit', MIA.BACK_AT), line('pit_back_2', 'pit', MIA.BACK2_AT)])
+    if (streak >= MIA.STREAK_LEAVE && !stage.noLeave) return leave({ ...m, streak, wins }, now, 'win', [line('mia_leave', 'mia'), line('pit_back_1', 'pit', MIA.BACK_AT), line('pit_back_2', 'pit', MIA.BACK2_AT)])
     const say = streak === 2 ? [line('mia_streak2', 'mia')] : wins % MIA.OK_EVERY === 1 ? [line(variantOf('mia_ok', m.hits + 1), 'mia')] : []
     return { mia: { ...m, streak, wins, hits: say.length && streak !== 2 ? m.hits + 1 : m.hits }, say, boost: null }
   }

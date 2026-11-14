@@ -30,12 +30,13 @@ import { miaOn } from './mia/miaConfig.js'
 import { createMiaSpeech } from './mia/miaSpeech.js'
 import { useMiaEnter } from './mia/useMiaEnter.js'
 import { miaRoute, miaSkip } from './mia/miaRound.js'
+import { bossFill } from './boss/bossWords.js'
 import { playWordSlot, hasWordSlot, wordBufferMs } from '../player/modules/rotate-phone/wordLaneClips.js'
 import { gameMicHold } from '../../shared/lib/gameMicHold.js'
 
 /** Журнал голоса перевода: какое слово и какой перевод Пит говорит перед выездом этой пилюли (одна запись повтора: слово, перевод, дорожка, скорость). Расхождение с записью слова круга — строка «РАССИНХРОН» (не должно быть никогда) */
 function logPre(stage, rep) {
-  if (!rep || !['sprint', 'catch'].includes(stage?.act)) return
+  if (!rep || !['sprint', 'catch', 'boss'].includes(stage?.act)) return
   const w = stage.words?.[rep.idx], want = stage.act === 'catch' ? w?.text : w?.translation
   pLog(`[race] голос: повтор ${rep.idx + 1}/${stage.words?.length ?? '?'}${stage.sid.endsWith('2') ? ' (второй круг)' : ''} слово «${w?.text ?? rep.text}», ${stage.act === 'catch' ? 'говорит слово' : 'перевод'} «${rep.say ?? rep.cap}», на пилюле «${rep.cap}», дорожка ${rep.lanes?.[0]}, скорость ${rep.speed}${w && want !== (rep.say ?? rep.cap) ? `; РАССИНХРОН: в записи слова «${want}»` : ''}`)
 }
@@ -162,6 +163,7 @@ export function useRaceActs(args) {
   const nextIdx = useCallback(i => { // после круга 1 со слабыми словами вместо круга 2 — церемония Мии (miaRoute), стадии Мии вне эпизода обходит miaSkip
     if (!on) return baseNext(i)
     const r = climbTarget(stages, stages[i - 1], box.s) ?? extraTarget(stages, stages[i - 1], box.s[stages[i - 1]?.act], seed) ?? fillPhrases2(stages, stages[i - 1], box.s) ?? baseNext(i) // fillPhrases2: после круга 1 фраз — порядок круга 2 (слабые слова первыми)
+    if (stages[r]?.sid === 'boss-ann') bossFill(stages, box.s, seed) // финал: слабые слова этой игры вписаны перед входом (мало слов — финал пропускается, stage.empty)
     const to = miaOn() ? miaRoute(stages, r, mb.m, seed) : -1
     return to >= 0 ? to : miaSkip(stages, r, mb.m, baseNext)
   }, [on, stages, box, baseNext, seed, mb])
@@ -181,7 +183,7 @@ export function useRaceActs(args) {
       const said = rep?.say ?? rep?.cap // проход A: Пит говорит перевод (rep.say); надпись пилюли (rep.cap) в тапе английская — её не озвучиваем (v3.3.127)
       const act = running?.act
       surface.run(e?.wait, () => { // e.wait — «Говорю»: Пит ещё ныряет / прыгает к дорожке этой пилюли; слово — когда он на месте (одна точка ожидания, журнал «[dodge] речь ждала…»)
-        if (act === 'sprint' && said) speakTranslation(speech, o => sayRef.current.sayText?.(said, { ru: true, ...o }))
+        if ((act === 'sprint' || act === 'boss') && said) speakTranslation(speech, o => sayRef.current.sayText?.(said, { ru: true, ...o }))
         else if (act === 'catch' && rep?.say) speakTranslation(speech, o => sayRef.current.sayText?.(rep.say, { hold: true, ...o }))
         else speech.translation(0) // говорить нечего: пилюля выезжает сразу
       })
@@ -197,7 +199,7 @@ export function useRaceActs(args) {
       if (kind === 'win' && info?.last !== false) speech.riseStart() // пилюля взлетает: с этого мгновения идёт задержка похвалы
       if (ruOn && kind === 'miss') ru.miss(listenerRef?.current?.heard?.())
       if (ruOn && kind === 'fail') ruLog(info, 'fail', info?.peak)
-      if (kind === 'fail' && ['sprint', 'catch'].includes(running.act)) speech.pillGone('missed') // «не успел»: отступ до перевода следующего слова
+      if (kind === 'fail' && ['sprint', 'catch', 'boss'].includes(running.act)) speech.pillGone('missed') // «не успел»: отступ до перевода следующего слова
       if (takeoffOn(running, kind, info)) playTakeoffAfter(rewardMs(info?.order ?? 0)) // взлёт принятой пилюли: глиссандо ми → ля ПОСЛЕ ноты награды, а не вместе с ней (только ступени-очереди гонки)
       apply({ t: kind, stage: running, info: kind === 'miss' ? { ...info, heard: listenerRef?.current?.heard?.() ?? '' } : info }) // на промахе — что услышал Vosk: двойник слова ступени ломает ловушку
       if (['win', 'miss', 'fail'].includes(kind) && !(kind === 'win' && info?.last === false)) miaEvent({ t: kind, stage: running, idx: info?.idx }) // эпизод «Мия»: ответы ученика в круге с Мией

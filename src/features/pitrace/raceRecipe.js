@@ -6,6 +6,7 @@
 //                 нужно ≥ 3 фраз в plan.phrases и хотя бы одна своя (racePhraseData.hasPhrases), иначе этапа нет;
 //  3 climb      — «Вершина»: N островков зигзагом по трём дорожкам (слова фразы), ступень k — сказать первые k слов; промах — соскальзывание; общий таймер 12 с + 5 с за ступень;
 //  4 descent    — «Спуск»: Пит говорит всю фразу на скорости 1,1, потом человек — один раз;
+//  4½ boss      — финал «Шкала памяти» (boss/): слабые слова этой игры по одному на широкой ленте, справа шкала времени реакции; проводит Мия; только голосом, нужно ≥ BOSS_MIN слов;
 //  5 summary    — итог: разгон N/M, слух N/M, вершина — медаль, спуск, XP, метрики и слабые слова.
 // Правила пропуска: нет слов с переводом (и у других планов) — нет обоих проходов; у плана без слов фразы (пустые куски невозможны) «Вершина» есть всегда. plan.round — один раунд (raceOnly.js, итога нет).
 import { pickRound } from './raceOnly.js'
@@ -15,6 +16,7 @@ import { passBByVoice } from './raceStagesCatch.js'
 import { ruReady } from './raceRu.js'
 import { phrasesOf, hasPhrases } from './racePhraseData.js'
 import { fromStage } from './raceStartStage.js'
+import { BOSS_MIN } from './boss/bossWords.js'
 
 export const DESCENT_RATE = 1.1 // скорость «Спуска»: Пит и человек говорят на 10 % быстрее
 
@@ -36,6 +38,7 @@ export function buildRaceActs(plan, tap = readTapMode(), ru = ruReady()) {
   if (hasPhrases(phrases)) acts.push({ id: 'phrases', title: 'Фразы', brief: 'выбери фразу, потом скажи', task: 'теперь фразы, сначала выбирай, потом говори', line: 'race_phrases', ...(tapA ? { brief: 'выбери фразу, потом смысл', task: 'теперь фразы, сначала выбирай фразу, потом её смысл', line: 'race_phrases_tap' } : {}), phrases }) // круги и их плашки — raceStagesPhrases.js
   if (climb.length) acts.push({ id: 'climb', title: 'Вершина', brief: 'собери фразу по словам', task: 'собираем фразу по слову, с каждым шагом длиннее', line: 'race_climb', words: climb, topLine: 'race_climb_top', timeLine: 'race_climb_time' })
   acts.push({ id: 'descent', title: 'Спуск', brief: 'повтори всю фразу за мной', task: 'повтори всю фразу за мной на скорости', line: 'race_descent', parts: all, rate: DESCENT_RATE })
+  if (!tapA && words.length >= BOSS_MIN) acts.push({ id: 'boss', title: 'Шкала памяти', brief: 'слово, пока линия едет', task: 'финал, скажи слово по-английски, пока линия не ушла вниз', line: 'pit_forgot', words }) // финал проводит Мия (boss/raceStagesBoss.js); только голосом
   acts.push({ id: 'summary', title: 'Итог' })
   return { plan, acts: fromStage(pickRound(acts, plan.round), plan.startAt) } // plan.startAt — «начать с этапа» (отладка, raceStartStage.js)
 }

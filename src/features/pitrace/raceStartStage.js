@@ -4,6 +4,8 @@
 import { extraTarget } from './raceExtraRound.js'
 import { RACE_TITLES } from './raceOnly.js'
 import { miaTarget } from './mia/miaRound.js'
+import { bossFill } from './boss/bossWords.js'
+import { initRace } from './raceState.js'
 
 export const START_STAGE_KEY = 'pithy_race_start_stage_v1'
 
@@ -46,7 +48,7 @@ export function startEntries(stages, acts, alt = {}) {
     const subs = []
     while (stages[j]?.type === 'announce' && stages[j].act === st.act && !isSwitch(stages[j])) { const t = stages[j].round?.title; if (t && t !== act.title) subs.push(t); j++ }
     if (alt[stages[j - 1].sid]) subs.push(`/ ${alt[stages[j - 1].sid]}`)
-    const two = st.mia === 'ann' ? ': круг с Мией' : /\d-ann$/.exec(st.sid) && !st.round?.title ? `, круг ${st.sid.match(/(\d+)-ann$/)[1]}` : ''
+    const two = st.mia === 'ann' && st.act !== 'boss' ? ': круг с Мией' : /\d-ann$/.exec(st.sid) && !st.round?.title ? `, круг ${st.sid.match(/(\d+)-ann$/)[1]}` : ''
     out.push({ sid: st.sid, label: `${act.title}${passOf(act.id) ? ` ${passOf(act.id)}` : ''}${two}${subs.length ? `: ${subs.join(' ')}` : ''}` })
   })
   return out
@@ -58,6 +60,7 @@ export function startEntries(stages, acts, alt = {}) {
  */
 export function sliceFrom(stages, sid, seed) {
   const at = stages.findIndex(x => x.sid === sid)
+  if (sid === 'boss-ann' && at >= 0) bossFill(stages, initRace(), seed) // начать с финала: результатов нет — слова по семени (финал обычно уже первая стадия: акты до него выброшены)
   if (at <= 0) return at === 0 // уже первая (акты до неё выбросил рецепт) — резать нечего
   const act = stages[at].act
   const r1 = stages.find(x => x.type === 'student' && x.sid === act && ['sprint', 'catch'].includes(act))
