@@ -142,6 +142,26 @@ async function handleSfx(body: Record<string, unknown>) {
   }
 }
 
+// Список голосов аккаунта (kind:"voices", админка → «Выбрать голос Мии»): имя, пол, акцент, категория (premade — стандартные, доступны на Free через API) и ссылка на пример.
+// Нужен ключ с правом Voices: Read. account:"mia" — второй аккаунт.
+async function handleVoices(body: Record<string, unknown>) {
+  const apiKey = body.account === "mia" ? MIA_API_KEY : ELEVENLABS_API_KEY;
+  if (!apiKey) return json({ error: body.account === "mia" ? "ELEVENLABS_API_KEY_MIA secret не настроен" : "ELEVENLABS_API_KEY secret не настроен" }, 500);
+  try {
+    const res = await fetch("https://api.elevenlabs.io/v1/voices?show_legacy=true", { headers: { "xi-api-key": apiKey } });
+    if (!res.ok) return json({ error: `ElevenLabs error ${res.status}: ${await res.text()}` }, 502);
+    const data = await res.json();
+    const voices = (data.voices ?? []).map((v: Record<string, any>) => ({
+      id: v.voice_id, name: v.name, category: v.category ?? "", gender: v.labels?.gender ?? "", accent: v.labels?.accent ?? "", age: v.labels?.age ?? "",
+      description: v.labels?.description ?? v.description ?? "", useCase: v.labels?.use_case ?? "", preview: v.preview_url ?? "", legacy: !!v.is_legacy,
+    }));
+    return json({ voices });
+  } catch (e) {
+    console.error("[tts-elevenlabs] voices unexpected error:", (e as Error).message);
+    return json({ error: (e as Error).message }, 500);
+  }
+}
+
 Deno.serve(async (req) => {
   console.log("[tts-elevenlabs] incoming", { method: req.method });
 
@@ -154,6 +174,8 @@ Deno.serve(async (req) => {
   // kind:"sfx" — звуковой эффект (нужен только ключ, голос не нужен); остальное — озвучка как раньше
   const raw = await req.clone().json().catch(() => null);
   if (raw && typeof raw === "object" && (raw as Record<string, unknown>).kind === "sfx") return handleSfx(raw as Record<string, unknown>);
+
+  if (raw && typeof raw === "object" && (raw as Record<string, unknown>).kind === "voices") return handleVoices(raw as Record<string, unknown>);
 
   const mia = !!raw && typeof raw === "object" && (raw as Record<string, unknown>).account === "mia"; // второй аккаунт — голос Мии
   const apiKey = mia ? MIA_API_KEY : ELEVENLABS_API_KEY;

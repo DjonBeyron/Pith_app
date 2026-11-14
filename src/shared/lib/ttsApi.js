@@ -61,3 +61,15 @@ export async function getElevenLabsQuota(account = null) {
   if (error) throw new Error(`[getElevenLabsQuota] ${error}`)
   return { used, limit }
 }
+
+/**
+ * Голоса аккаунта ElevenLabs (edge function tts-elevenlabs, kind 'voices'; нужен ключ с правом Voices: Read; account 'mia' — второй аккаунт).
+ * → [{ id, name, category ('premade' — стандартные, на Free работают через API), gender, accent, age, description, useCase, preview (ссылка на пример), legacy }]
+ */
+export async function listVoices(account = null) {
+  const res = await fetch(TTS_URL, { method: 'POST', headers: await authHeaders(), body: JSON.stringify({ kind: 'voices', ...(account === 'mia' ? { account: 'mia' } : {}) }) })
+  if (!res.ok) throw new Error(`[listVoices] ${res.status}: ${await res.text()}`)
+  const { voices, error } = await res.json()
+  if (error) throw new Error(`[listVoices] ${error}`)
+  return voices ?? []
+}

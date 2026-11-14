@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { renderTree } from '../scene/v2/renderTree.js'
-import { buildMascot } from '../scene/v2/sprites/mascot/mascotSprite.js'
+import { buildMiaCat, MIA_FACES } from './mia/miaCat.js'
+import { useMiaLife } from '../player/modules/rotate-phone/useMiaLife.js'
+import { isWeakDevice } from '../../shared/lib/deviceTier.js'
 import { createBox, ART } from './mia/boxArt.js'
 import { arrivalAt, leaveAt, flightPath, talkLevel } from './mia/miaMotion.js'
 import { layoutOf, artMatrix, toScene, poseApply, poseSvg, poseOfMotion, miaCss, MIA_W, MIA_H } from './mia/miaLayout.js'
@@ -14,10 +16,11 @@ export default function RaceMia({ mia, caption = null, paused = false }) {
   const [gone, setGone] = useState(-1)                          // at прихода, чей уход (анимация) уже доигран: после него коробку и спрайт убираем
   const live = mia.phase === 'in' || (mia.phase === 'out' && gone !== mia.at)
   const host = useRef(null), poseG = useRef(null), artG = useRef(null), catEl = useRef(null), miaEl = useRef(null)
+  useMiaLife(miaEl, live)                                    // Мия в тишине: взгляд, усы, смена лица
   const clock = useRef({ arr: 0, lv: 0, mode: 'off', paused })
   const atRef = useRef(mia.at)
   useEffect(() => { atRef.current = mia.at }, [mia.at])
-  const miaTree = useMemo(() => (live ? renderTree(buildMascot('mia2', { face: 'smirk' })) : null), [live])
+  const miaTree = useMemo(() => (live ? renderTree(buildMiaCat(isWeakDevice() ? MIA_FACES.slice(0, 1) : MIA_FACES)) : null), [live])
   useEffect(() => { clock.current.paused = paused }, [paused])
 
   // фаза машины → часы эпизода
@@ -58,6 +61,7 @@ export default function RaceMia({ mia, caption = null, paused = false }) {
       pose.dx += 1.6 * Math.sin(2 * Math.PI * 34 * tt) * tk * L.f; pose.rot += 0.45 * Math.sin(2 * Math.PI * 27 * tt + 1) * tk
       const piv = toScene(M, ART.BOTTOM)
       poseG.current.setAttribute('transform', poseSvg(pose, piv))
+      poseG.current.setAttribute('visibility', m.shown ? 'visible' : 'hidden') // до падения коробки (и после ухода) её не видно: без этого она мигала на месте за кадр до падения
       cat.style.visibility = m.hideCat ? 'hidden' : ''
       const mi = miaEl.current
       if (mi) {                                                  // Мия: прыжок из-за экрана → сидит на крышке (едет с коробкой) → уезжает с ней в лапах за экран
@@ -77,8 +81,8 @@ export default function RaceMia({ mia, caption = null, paused = false }) {
     <div ref={host} className="wlMia" data-live={live || undefined} aria-hidden="true" data-testid="race-mia">
       {live && (
         <>
-          <svg className="wlMiaSvg"><g ref={poseG}><g ref={artG} /></g></svg>
-          <div ref={miaEl} className="scn scn--v2 wlMiaCat" style={{ width: MIA_W, height: MIA_H, transformOrigin: '50% 93%', background: 'transparent', border: 'none', boxShadow: 'none' }}>
+          <svg className="wlMiaSvg"><g ref={poseG} visibility="hidden"><g ref={artG} /></g></svg>
+          <div ref={miaEl} className="scn scn--v2 wlMiaCat" style={{ width: MIA_W, height: MIA_H, transformOrigin: '50% 93%', display: 'none', background: 'transparent', border: 'none', boxShadow: 'none' }}>
             <svg viewBox="0 0 200 240" width="100%" height="100%" style={{ overflow: 'visible', display: 'block' }}><g className="scn-cat">{miaTree}</g></svg>
           </div>
         </>

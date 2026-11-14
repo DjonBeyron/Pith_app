@@ -4,16 +4,23 @@
 @property --lvl1 { syntax: '<color>'; inherits: true; initial-value: #b6fe3b; }
 @property --lvl2 { syntax: '<color>'; inherits: true; initial-value: #4fb3ee; }
 @property --lvl3 { syntax: '<color>'; inherits: true; initial-value: #9a76f8; }
+@property --wl-bg { syntax: '<color>'; inherits: true; initial-value: #0e1116; }
+@property --mia-a { syntax: '<number>'; inherits: true; initial-value: 0; }
 @property --lvl1-rgb { syntax: '<number>#'; inherits: true; initial-value: 182, 254, 59; }
 @property --lvl2-rgb { syntax: '<number>#'; inherits: true; initial-value: 79, 179, 238; }
 @property --lvl3-rgb { syntax: '<number>#'; inherits: true; initial-value: 154, 118, 248; }
-.wl[data-race] { transition: --lvl1 0.9s ease, --lvl2 0.9s ease, --lvl3 0.9s ease, --lvl1-rgb 0.9s ease, --lvl2-rgb 0.9s ease, --lvl3-rgb 0.9s ease; }
-/* при Мии дорожки в её красках: янтарь (глаза), медь (коробка) и серый (шерсть) — три дорожки остаются различимыми */
+.wl[data-race] { transition: --wl-bg 0.9s ease, --mia-a 0.9s ease, --lvl1 0.9s ease, --lvl2 0.9s ease, --lvl3 0.9s ease, --lvl1-rgb 0.9s ease, --lvl2-rgb 0.9s ease, --lvl3-rgb 0.9s ease; }
+/* при Мии (v3.3.232: «цвет дорожки не достаточно изменился») меняется ВСЁ поле: фон тёплый, колонки подсвечены своим цветом (янтарь / медь / серо-стальной), нить конвейера ярче, разделители светятся;
+   --mia-a (0 → 1 за 0,9 с) — общий «рычаг»: при 0 колонки и свечение прозрачны, обычная игра выглядит как раньше */
 .wl[data-mia='in'] {
-  --lvl1: #e0a44e; --lvl1-rgb: 224, 164, 78;
-  --lvl2: #d6783e; --lvl2-rgb: 214, 120, 62;
-  --lvl3: #9ca3b2; --lvl3-rgb: 156, 163, 178;
+  --wl-bg: #1d130a; --mia-a: 1;
+  --lvl1: #ffb23e; --lvl1-rgb: 255, 178, 62;
+  --lvl2: #f0662c; --lvl2-rgb: 240, 102, 44;
+  --lvl3: #b9c2d8; --lvl3-rgb: 185, 194, 216;
 }
+.wl[data-race] .wlLanes i { background: linear-gradient(to bottom, rgba(var(--rgb), 0) 0, rgba(var(--rgb), calc(var(--mia-a) * 0.2)) 38%, rgba(var(--rgb), calc(var(--mia-a) * 0.2)) 72%, rgba(var(--rgb), 0) 100%); }
+.wl[data-mia='in'] .wlLanes i::before { --run-k: 1.6; }
+.wl[data-race] .wlLaneEdge { box-shadow: 0 0 8px rgba(var(--lvl1-rgb), calc(var(--mia-a) * 0.9)); }
 .wlStage > .wlMia { inset: 0; overflow: hidden; pointer-events: none; z-index: 8; }
 .wlMiaSvg { position: absolute; left: 0; top: 0; width: 100%; height: 100%; overflow: visible; }
 .wlMiaCat { position: absolute; left: 0; top: 0; background: transparent; border: none; box-shadow: none; pointer-events: none; will-change: transform; }

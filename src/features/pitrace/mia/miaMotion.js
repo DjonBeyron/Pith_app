@@ -18,6 +18,15 @@ const PANIC = [[-1, 0.2], [1, 0.2], [-0.6, 0.18], [0, 0.22]]  // рывки вл
 const PANIC_PX = 46                                                          // размах паники при масштабе 1, пикселей
 const panicX = t => { let t0 = ARR.PANIC0, x0 = 0; for (const [x1, d] of PANIC) { if (t <= t0 + d) return PANIC_PX * (x0 + (x1 - x0) * eIO3(clamp((t - t0) / d))); t0 += d + 0.04; x0 = x1 } return 0 }
 
+const hsh = n => { const x = Math.sin(n * 127.1) * 43758.5453; return x - Math.floor(x) }
+/** Живые глаза Пита в щели (в покое, прототип 2026-11-14): взгляд быстро перескакивает на новую точку раз в ≈1,9 с и чуть дрейфует, раз в ≈3,4 с — быстрое моргание. → { look (ед. грани), blink (множитель раскрытия 0…1) } */
+export function eyeLife(t) {
+  const SEG = 1.9, i = Math.floor(t / SEG), ph = t - i * SEG, tg = k => (hsh(k * 3.17 + 1) - 0.5) * 9
+  const look = tg(i - 1) + (tg(i) - tg(i - 1)) * eOut3(clamp(ph / 0.09)) + 0.5 * Math.sin(t * 1.9)
+  const BL = 3.4, j = Math.floor(t / BL), at = j * BL + hsh(j * 7.7) * (BL - 0.4), dt = t - at
+  return { look, blink: dt >= 0 && dt < 0.16 ? 1 - 0.96 * Math.sin(Math.PI * dt / 0.16) : 1 }
+}
+
 /** Поза прихода в момент t: { box: { dy (в высотах экрана ×1, <0 — выше), dx (px при масштабе 1), rot (°), sx, sy, thNear, thFar }, eyes: { open, scale, look }, mia: { mode, u, rot, sx, sy }, hideCat } */
 export function arrivalAt(t) {
   const box = { dy: 0, dx: 0, dxw: 0, rot: 0, sx: 1, sy: 1, thNear: 0, thFar: 0 }, eyes = { open: 0, scale: 1, look: 0 }, mia = { mode: 'off', u: 0, rot: 0, sx: 1, sy: 1 }
@@ -48,6 +57,7 @@ export function arrivalAt(t) {
       eyes.open = reopen > 0 ? 0.05 + 0.95 * eBack(reopen) : 1 - 0.95 * close
     }
   }
+  if (t >= LAND + 0.9) { const L = eyeLife(t); eyes.look += L.look; eyes.open *= L.blink }   // глаза живые: взгляд бегает, моргают
   return { box, eyes, mia, hideCat: true, shown: true }
 }
 

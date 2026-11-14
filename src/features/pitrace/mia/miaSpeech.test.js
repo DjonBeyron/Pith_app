@@ -25,7 +25,7 @@ const cue = (id, who, delay = 0) => ({ id, who, delay })
 describe('голос Мии', () => {
   it('реплики mia_* — второй аккаунт и голос Elli; остальные — голос по умолчанию', () => {
     expect(isMiaLine('mia_push')).toBe(true); expect(isMiaLine('pit_reply')).toBe(false); expect(isMiaLine('race_start')).toBe(false)
-    expect(voiceOf('mia_leave')).toBe(MIA_VOICE); expect(MIA_VOICE).toMatchObject({ account: 'mia' }); expect(MIA_VOICE.voiceId).toBeUndefined(); expect(voiceOf('pit_back_1')).toBeNull(); expect(voiceOf('rh_x')).toBeNull()
+    expect(voiceOf('mia_leave')).toEqual(MIA_VOICE); expect(MIA_VOICE).toMatchObject({ account: 'mia' }); expect(MIA_VOICE.voiceId).toBeUndefined(); expect(voiceOf('pit_back_1')).toBeNull(); expect(voiceOf('rh_x')).toBeNull()
   })
 })
 

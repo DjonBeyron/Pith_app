@@ -38,13 +38,16 @@ describe('RaceMia: слой эпизода «Мия»', () => {
 describe('смена цвета дорожек при Мии', () => {
   const css = read('../../styles/player/modules/race-mia.css')
   it('цвета уровней зарегистрированы (@property) и переходят плавно на .wl[data-race]', () => {
-    for (const v of ['--lvl1', '--lvl2', '--lvl3', '--lvl1-rgb', '--lvl2-rgb', '--lvl3-rgb']) { expect(css).toContain(`@property ${v}`); expect(css).toMatch(new RegExp(`transition:[^;]*${v} 0\\.9s`)) }
+    for (const v of ['--lvl1', '--lvl2', '--lvl3', '--lvl1-rgb', '--lvl2-rgb', '--lvl3-rgb', '--wl-bg', '--mia-a']) { expect(css).toContain(`@property ${v}`); expect(css).toMatch(new RegExp(`transition:[^;]*${v} 0\\.9s`)) }
   })
   it("при .wl[data-mia='in'] все три цвета заменены; стиль подключён к гонке; игра ставит атрибут по фазе", () => {
-    expect(css).toMatch(/\.wl\[data-mia='in'\] \{[^}]*--lvl1: #e0a44e[^}]*--lvl2: #d6783e[^}]*--lvl3: #9ca3b2/s)
+    expect(css).toMatch(/\.wl\[data-mia='in'\] \{[^}]*--wl-bg: #1d130a[^}]*--lvl1: #ffb23e[^}]*--lvl2: #f0662c[^}]*--lvl3: #b9c2d8/s)
     expect(read('../../styles/player/modules/race-sprint.css')).toContain("@import './race-mia.css'")
     const game = read('../player/modules/rotate-phone/WordLaneGame.jsx')
     expect(game).toContain("data-mia={f.rh.mia?.mia?.phase === 'in' ? 'in' : undefined}"); expect(game).toContain('<RaceMia mia={f.rh.mia.mia} caption={f.rh.miaCap}')
+  })
+  it('колонки и разделители подсвечены через --mia-a (при 0 прозрачны — обычная игра не меняется); нить конвейера ярче', () => {
+    expect(css).toMatch(/\.wl\[data-race\] \.wlLanes i \{ background: linear-gradient[^}]*--mia-a/); expect(css).toMatch(/\.wlLaneEdge \{ box-shadow[^}]*--mia-a/); expect(css).toMatch(/\.wlLanes i::before \{ --run-k: 1\.6/)
   })
   it('есть уважение к reduced-motion (переход цвета выключается)', () => {
     expect(css).toMatch(/prefers-reduced-motion: reduce\)[^}]*\.wl\[data-race\] \{ transition: none/s)
