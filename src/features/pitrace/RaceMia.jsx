@@ -58,7 +58,7 @@ export default function RaceMia({ mia, caption = null, talk = null, paused = fal
       const tk = m.hideCat && m.shown && !leaving ? talk : 0
       box.update({ ...m.eyes, thNear: m.box.thNear, thFar: m.box.thFar, talk: tk, t: tt, live: true })
       const pose = poseOfMotion(m.box, L)
-      pose.dx += 1.6 * Math.sin(2 * Math.PI * 34 * tt) * tk * L.f; pose.rot += 0.45 * Math.sin(2 * Math.PI * 27 * tt + 1) * tk
+      pose.dx += 0.35 * Math.sin(2 * Math.PI * 22 * tt) * tk * L.f; pose.rot += 0.08 * Math.sin(2 * Math.PI * 17 * tt + 1) * tk // Пит говорит из коробки: дрожь минимальная (владелец 2026-11-14)
       const piv = toScene(M, ART.BOTTOM)
       poseG.current.setAttribute('transform', poseSvg(pose, piv))
       poseG.current.setAttribute('visibility', m.shown ? 'visible' : 'hidden') // до падения коробки (и после ухода) её не видно: без этого она мигала на месте за кадр до падения
@@ -67,7 +67,7 @@ export default function RaceMia({ mia, caption = null, talk = null, paused = fal
       if (mi) {                                                  // Мия: прыжок из-за экрана → сидит на крышке (едет с коробкой) → уезжает с ней в лапах за экран
         const top = toScene(M, ART.TOP), seat = poseApply(pose, piv)(top), rest = [top[0], top[1] - 4 * L.f]
         let a = [seat[0], seat[1] - 4 * L.f], mr = m.mia
-        if (mr.mode === 'flight') a = Object.values(flightPath(mr.u, [L.W + 150 * L.f, 0.3 * L.H], rest))
+        if (mr.mode === 'flight') a = Object.values(flightPath(mr.u, [L.W + 150 * L.f, 0.55 * L.H], rest))
         mi.style.display = mr.mode === 'off' ? 'none' : 'block'
         if (mr.mode !== 'off') mi.style.transform = miaCss(a[0], a[1], L.f, mr.rot, mr.sx, mr.sy)
       }

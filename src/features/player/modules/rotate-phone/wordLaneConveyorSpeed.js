@@ -2,6 +2,7 @@
 // первой пилюли круга (иначе второй круг начинался бы со скачка). Чистая функция: по списку стадий и номеру текущей говорит, какой множитель скорости у ближайшей стадии с пилюлями; сам плавный набор — модель
 // wordLaneConveyor.js (SPEED_RAMP_MS), привод — laneConveyorDrive.setSpeedHint.
 import { ENTER_Y, SPEED } from './wordLaneTimeline.js'
+import { MIA } from '../../../pitrace/mia/raceMia.js'
 
 const HORIZON = 3 // плашки и реплика второго круга стоят перед стадией пилюль: заглядываем вперёд не дальше стольких стадий
 
@@ -13,7 +14,7 @@ export function conveyorSpeedHint(stages, idx) {
     const st = stages[j]
     if (!st || st.act !== cur.act) return null
     const reps = st.step?.reps
-    if (st.type === 'student' && reps?.length) return reps[0].speed > 0 ? reps[0].speed : null
+    if (st.type === 'student' && reps?.length) return reps[0].speed > 0 ? reps[0].speed * (st.mia === 'round' && j === idx ? MIA.BOOST : 1) : null // круг с Мией: дорожки ускоряет она (×MIA.BOOST) — на входе в круг, плавно
   }
   return null
 }

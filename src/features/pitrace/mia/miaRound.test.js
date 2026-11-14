@@ -43,6 +43,7 @@ describe('стадии Мии в списке гонки', () => {
     const ann = stages.findIndex(s => s.sid === 'sprint3-ann'), after = ann + 2
     expect(miaSkip(stages, ann, { phase: 'off', act: '' })).toBe(after)
     expect(miaSkip(stages, ann, { phase: 'in', act: 'sprint' })).toBe(ann); expect(miaSkip(stages, ann + 1, { phase: 'in', act: 'sprint' })).toBe(ann + 1)
+    expect(miaSkip(stages, ann + 1, { phase: 'off', act: '' })).toBe(ann + 1) // круг сразу за церемонией открыт: конвейер заглядывает от церемонии вперёд, дорожки не гаснут
     expect(miaSkip(stages, ann, { phase: 'in', act: 'catch' })).toBe(after); expect(miaAllowed(stages[ann], { phase: 'in', act: 'sprint' })).toBe(true); expect(miaAllowed(stages[0], { phase: 'in', act: 'sprint' })).toBe(false)
   })
 })

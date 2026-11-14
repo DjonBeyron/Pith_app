@@ -28,6 +28,7 @@ import { plateText } from '../player/modules/rotate-phone/wordLanePlateText.js'
 import { reduceMia, makeMiaBox, applyMia } from './mia/raceMia.js'
 import { miaOn } from './mia/miaConfig.js'
 import { createMiaSpeech } from './mia/miaSpeech.js'
+import { useMiaEnter } from './mia/useMiaEnter.js'
 import { miaRoute, miaSkip } from './mia/miaRound.js'
 import { playWordSlot, hasWordSlot, wordBufferMs } from '../player/modules/rotate-phone/wordLaneClips.js'
 import { gameMicHold } from '../../shared/lib/gameMicHold.js'
@@ -61,14 +62,15 @@ export function useRaceActs(args) {
   const [miaTalk, setMiaTalk] = useState(null) // какую реплику говорит Мия сейчас (рот анимируется по ней)
   const [miaCap, setMiaCap] = useState(null) // подпись реплики Мии / Пита над Мией (только неозвученные)
   const [mspeech] = useState(() => createMiaSpeech({ play: playWordSlot, has: hasWordSlot, bufferMs: wordBufferMs, hold: gameMicHold, onCaption: setMiaCap, onSpeak: setMiaTalk, log: pLog })) // речь эпизода «Мия»: очередь реплик (mia/miaSpeech.js)
-  const rh = useRehearsalActs(on && args.cat ? { ...args, sayLine: sayTr, cat: { ...args.cat, busyLeft: () => Math.max(args.cat.busyLeft(), speech.pendingMs()) }, countWait: () => (mspeech.pending() > 0 ? 1 : 0) } : args) // расписание реплик этапа знает, что похвала ещё впереди
-  const praiseRef = useRef(null) // похвала, которую reduceRace назначил на этот зачёт (apply → claim)
   const running = on && stage === 'run' ? stageObj : null
+  const [mb] = useState(makeMiaBox) // эпизод «Мия» (mia/raceMia.js): m — состояние машины, step — ступень, которой Мия ускорила дорожку, key — номер пачки реплик
+  const [miaView, setMiaView] = useState({ mia: mb.m, cues: [], key: 0 })
+  useMiaEnter({ running, at, mb, mspeech, setMiaView, log: pLog }) // эпизод «Мия»: вход на стадию (очередь речи — раньше расчёта времени стадии, mia/useMiaEnter.js)
+  const rh = useRehearsalActs(on && args.cat ? { ...args, sayLine: sayTr, cat: { ...args.cat, busyLeft: () => Math.max(args.cat.busyLeft(), speech.pendingMs(), running?.mia === 'ann' ? 0 : mspeech.leftMs()) }, countWait: () => (mspeech.pending() > 0 ? 1 : 0) } : args) // расписание реплик этапа знает, что похвала ещё впереди
+  const praiseRef = useRef(null) // похвала, которую reduceRace назначил на этот зачёт (apply → claim)
   const demo = useRacePhraseDemo({ on, cat: args.cat, sayLine, sayText, lines, rate }) // демо-ход «Скажи» на живой пилюле (racePhraseDemoTurn.js): голос и ворота для сцены
   const [box] = useState(makeBox) // s — актуальное состояние (читает nextIdx без перерисовки), hinted — подсказка голосом сказана на этом промахе (raceState.makeBox)
   const [view, setView] = useState(box.s)
-  const [mb] = useState(makeMiaBox) // эпизод «Мия» (mia/raceMia.js): m — состояние машины, step — ступень, которой Мия ускорила дорожку, key — номер пачки реплик
-  const [miaView, setMiaView] = useState({ mia: mb.m, cues: [], key: 0 })
   useEffect(() => { mspeech.use({ lines, cat: args.cat, listener: listenerRef }) }) // свежие реплики, кот и слушатель — на каждом рендере
   useEffect(() => { const off = args.cat?.onStop?.(() => mspeech.stop()); return () => { off?.(); mspeech.stop() } }, [mspeech]) // eslint-disable-line react-hooks/exhaustive-deps -- подписка на остановку один раз (onStop кладёт в реф кота): пауза и выход обрывают реплики Мии
   const [result, setResult] = useState(null)
@@ -129,9 +131,9 @@ export function useRaceActs(args) {
     if (box.entered === key) return undefined
     markEntered(box, key)
     tr.stage(running); if (running.type === 'student' && !['sprint', 'catch', 'phrases'].includes(running.act)) tr.pill() // ступени «Вершины» без пилюль: переход кончается её началом
-    const t = setTimeout(() => { apply({ t: 'enter', stage: running, from: resume?.at === at ? resume.n : 0 }); miaEvent({ t: 'enter', stage: running }) }, 0) // from — «Продолжить» с хода паузы: сыгранные ходы ступени остаются в результатах (raceState.enter)
+    const t = setTimeout(() => { apply({ t: 'enter', stage: running, from: resume?.at === at ? resume.n : 0 }) }, 0) // from — «Продолжить» с хода паузы: сыгранные ходы ступени остаются в результатах (raceState.enter)
     return () => clearTimeout(t)
-  }, [running, at, resume, apply, box, tr, miaEvent])
+  }, [running, at, resume, apply, box, tr])
 
   useEffect(() => { if (on && stage === 'drop') { tr.begin('старт'); if (stages[0]?.charge) tr.plate(stages[0].round?.title) } }, [on, stage, tr, stages]) // вход в игру: переход «старт → первая ступень»; плашка заставки (charge) — сразу со стартом
   const plateNow = on && !!running && running.type === 'announce' && rh.plateOk && !running.charge && !!plateText(running, plateCaption(lines, running.line))

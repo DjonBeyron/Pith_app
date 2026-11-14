@@ -117,3 +117,11 @@ describe('подсказка скорости по стадиям', () => {
     expect(conveyorSpeedHint(stages, -1)).toBeNull()
   })
 })
+
+describe('круг с Мией: дорожки ускоряет она', () => {
+  it('на самом круге с Мией подсказка скорости ×MIA.BOOST, на церемонии перед ним — обычная скорость первой пилюли (ускорение плавное, на входе в круг)', async () => {
+    const { MIA } = await import('../../../pitrace/mia/raceMia.js')
+    const stages = [{ race: true, act: 'sprint', type: 'announce', mia: 'ann' }, { race: true, act: 'sprint', type: 'student', mia: 'round', step: { reps: [{ speed: 1.2 }] } }]
+    expect(conveyorSpeedHint(stages, 0)).toBe(1.2); expect(conveyorSpeedHint(stages, 1)).toBeCloseTo(1.2 * MIA.BOOST, 6)
+  })
+})

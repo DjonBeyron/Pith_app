@@ -81,8 +81,8 @@ describe('реплика Пита в очереди Мии (v3.3.233)', () => {
   it('Пит не смог сказать (занят) — повтор раз в 300 мс, после лимита реплика пропущена и очередь идёт дальше', () => {
     const r = rig({ sayOk: false })
     r.sp.enqueue([cue('pit_reply', 'pit'), cue('mia_announce_1', 'mia')])
-    r.advance(10000)
-    expect(r.cat.sayLine.mock.calls.length).toBeGreaterThan(5); expect(r.cat.sayLine.mock.calls.length).toBeLessThanOrEqual(13)
+    r.advance(14000)
+    expect(r.cat.sayLine.mock.calls.length).toBeGreaterThan(5); expect(r.cat.sayLine.mock.calls.length).toBeLessThanOrEqual(41)
     expect(r.caps.some(c => c?.text === 'Посиди в коробке, понял?')).toBe(true) // следующая реплика Мии дошла
   })
   it('onSpeak: рот Мии получает реплику (текст, длительность); stop() — сброс null', () => {

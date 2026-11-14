@@ -44,7 +44,7 @@ describe('смена цвета дорожек при Мии', () => {
     expect(css).toMatch(/\.wl\[data-mia='in'\] \{[^}]*--wl-bg: #1d130a[^}]*--lvl1: #ffb23e[^}]*--lvl2: #f0662c[^}]*--lvl3: #b9c2d8/s)
     expect(read('../../styles/player/modules/race-sprint.css')).toContain("@import './race-mia.css'")
     const game = read('../player/modules/rotate-phone/WordLaneGame.jsx')
-    expect(game).toContain("data-mia={f.rh.mia?.mia?.phase === 'in' ? 'in' : undefined}"); expect(game).toContain('<RaceMia mia={f.rh.mia.mia} caption={f.rh.miaCap} talk={f.rh.miaTalk}')
+    expect(game).toContain("data-mia={f.rh.mia?.mia?.phase === 'in' && f.rh.mia.mia.fast ? 'in' : undefined}"); expect(game).toContain('<RaceMia mia={f.rh.mia.mia} caption={f.rh.miaCap} talk={f.rh.miaTalk}')
   })
   it('колонки и разделители подсвечены через --mia-a (при 0 прозрачны — обычная игра не меняется); нить конвейера ярче', () => {
     expect(css).toMatch(/\.wl\[data-race\] \.wlLanes i \{ background: linear-gradient[^}]*--mia-a/); expect(css).toMatch(/\.wlLaneEdge \{ box-shadow[^}]*--mia-a/); expect(css).toMatch(/\.wlLanes i::before \{ --run-k: 1\.6/)
@@ -65,7 +65,7 @@ describe('miaOn: включатель эпизода', () => {
 describe('игра: события раунда идут в машину Мии', () => {
   it('useRaceActs подключает машину: вход в стадию, win / miss / fail, вид mia в результате хука', () => {
     const src = read('./useRaceActs.js')
-    expect(src).toContain("miaEvent({ t: 'enter', stage: running })"); expect(src).toContain('miaEvent({ t: kind, stage: running, idx: info?.idx })'); expect(src).toContain('mia: miaView, miaCap, miaTalk'); expect(src).toContain('mspeech.enqueue(r.say)')
+    expect(src).toContain('useMiaEnter({ running, at, mb, mspeech, setMiaView, log: pLog })'); expect(src).toContain('miaEvent({ t: kind, stage: running, idx: info?.idx })'); expect(src).toContain('mia: miaView, miaCap, miaTalk'); expect(src).toContain('mspeech.enqueue(r.say)')
     expect(src).toContain("!(kind === 'win' && info?.last === false)")
   })
   it('ступени очереди несут step.boost = { k: 1 }; движок читает его', () => {

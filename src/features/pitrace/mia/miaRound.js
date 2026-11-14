@@ -2,7 +2,7 @@ import { rngFor, rngShuffle } from '../../rehearsal/rehearsalSeed.js'
 import { ROUND2_STEP } from '../raceExtraRound.js'
 
 // Маршрут эпизода «Мия» по стадиям (чистые функции без React): круг с Мией берёт слова дополнительного круга (слабые + добор, raceExtraRound) в новом порядке и ЗАМЕНЯЕТ его: когда директор
-// шёл бы на плашку круга 2 (`${act}2-ann`), miaRoute ведёт его на церемонию `${act}3-ann` (один раз на проход); сами стадии Мии, когда Мия не «в игре», обходит nextIdx (miaSkip). Случайность — от семени плана.
+// шёл бы на плашку круга 2 (`${act}2-ann`), miaRoute ведёт его на церемонию `${act}3-ann` (один раз за игру); сами стадии Мии, когда Мия не «в игре», обходит nextIdx (miaSkip). Случайность — от семени плана.
 
 /** Слова круга с Мией: слова круга 2 в другом порядке; скорость — от самой медленной пилюли круга 2, дальше +5 % на пилюлю (сверху ляжет MIA.BOOST через step.boost) */
 export function miaWords(words, seed, act) {
@@ -20,18 +20,24 @@ export function miaTarget(stages, act, seed) {
   return ann
 }
 
-/** Директор шёл на r: если это плашка дополнительного круга (…2-ann) и Мия в этом проходе ещё не была — вместо неё церемония Мии (слова круга вписаны); иначе -1 (идём как шли) */
+/** Директор шёл на r: если это плашка дополнительного круга (…2-ann) и Мия в этой игре ещё не была — вместо неё церемония Мии (слова круга вписаны); иначе -1 (идём как шли) */
 export function miaRoute(stages, r, m, seed) {
   const act = /^(sprint|catch)2-ann$/.exec(stages[r]?.sid ?? '')?.[1]
-  return act && !m?.used?.[act] ? miaTarget(stages, act, seed) : -1
+  const was = Object.values(m?.used ?? {}).some(Boolean) // Мия попадается один раз за игру (владелец 2026-11-14): во втором проходе — обычный круг 2
+  return act && !was ? miaTarget(stages, act, seed) : -1
 }
 
 /** Можно ли сейчас идти на стадию Мии st: церемония / круг разрешены, пока машина Мии этого прохода в игре (фаза 'in') */
 export const miaAllowed = (st, m) => !!st?.mia && m?.phase === 'in' && m.act === st.act
 
-/** Обойти стадии Мии, на которые идти нельзя (ошибки во втором круге не было): i — кандидат в следующие, nextOf(j) — обычный порядок (nextRunnable) от j → номер стадии */
+/** Обойти стадии Мии, на которые идти нельзя (Мия не «в игре»): i — кандидат в следующие, nextOf(j) — обычный порядок (nextRunnable) от j → номер стадии. Церемония пропускается вместе
+ *  со своим кругом (j + 2). Круг, стоящий сразу за церемонией, открыт: так заглядывает вперёд конвейер (upcomingLanes идёт от церемонии дальше) — дорожки не гаснут между этапами */
 export function miaSkip(stages, i, m, nextOf = j => j) {
   let j = i
-  for (let n = 0; n < stages.length && stages[j]?.mia && !miaAllowed(stages[j], m); n++) j = nextOf(j + 1)
+  for (let n = 0; n < stages.length && stages[j]?.mia; n++) {
+    const st = stages[j], afterCeremony = st.mia === 'round' && stages[j - 1]?.mia === 'ann' && stages[j - 1].act === st.act
+    if (miaAllowed(st, m) || afterCeremony) break
+    j = nextOf(st.mia === 'ann' ? j + 2 : j + 1)
+  }
   return j
 }

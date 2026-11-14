@@ -12,7 +12,7 @@ export const CAPTION_TAIL_MS = 400
 export const POLL_MS = 120       // как часто смотрим, не освободился ли Пит
 export const MIN_CAPTION_MS = 1600
 export const MIC_MUTE_PAD_MS = 600
-export const MAX_PIT_TRIES = 12      // сколько раз пробуем реплику Пита (шаг 300 мс), пока он занят: дальше пропускаем, очередь не стоит
+export const MAX_PIT_TRIES = 40      // сколько раз пробуем реплику Пита (шаг 300 мс ≈ 12 с), пока он занят переводами и репликами игры: дальше пропускаем, очередь не стоит
 
 export function createMiaSpeech({ now = () => Date.now(), setTimer = setTimeout, clearTimer = clearTimeout, play = () => false, has = () => false, bufferMs = () => 0, hold = null, onCaption = () => {}, onSpeak = () => {}, log = () => {} } = {}) {
   const src = { lines: null, cat: null, listener: null } // свежие реплики, кот и слушатель кладёт use() (из эффекта хука: рефы в рендере читать нельзя)
@@ -78,6 +78,8 @@ export function createMiaSpeech({ now = () => Date.now(), setTimer = setTimeout,
     },
     /** Пауза, выход, конец игры: очередь и подпись сброшены */
     stop() { clearTimer(timer); clearTimer(capTimer); timer = 0; capTimer = 0; queue = []; playing = null; onCaption(null); onSpeak(null) },
+    /** Оценка, сколько мс речи ещё впереди (очередь целиком, по длине звука или подписи): директор репетиции откладывает реплику следующей стадии на это время */
+    leftMs: () => queue.reduce((a, c) => { const l = src.lines?.[c.id], text = l?.text || miaLine(c.id)?.text || ''; return a + (l?.url ? lineMs(l) : Math.max(MIN_CAPTION_MS, text.length * 65)) + GAP_MS }, 0),
     pending: () => queue.length, // играющая реплика тоже стоит в голове очереди
   }
 }

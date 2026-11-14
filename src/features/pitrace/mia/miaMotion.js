@@ -10,7 +10,7 @@ const eBack = p => { const c = 1.70158; return 1 + (c + 1) * (p - 1) ** 3 + c * 
 export const easing = { eOut3, eIn3, eIO3, eBack }
 
 // Приход (с): коробка падает → удар → глаза открываются → короткая паника → Мия прыгает на крышку → прогиб, Пит зажмуривается ненадолго
-export const ARR = { FALL0: 0.15, FALL: 0.8, EYES: 1.35, PANIC0: 1.75, JUMP: 3.9, JUMP_LEN: 0.42 }
+export const ARR = { FALL0: 0.15, FALL: 0.8, EYES: 1.35, PANIC0: 1.75, JUMP: 3.9, JUMP_LEN: 0.34 }
 export const IMPACT = ARR.FALL0 + ARR.FALL
 export const LAND = ARR.JUMP + ARR.JUMP_LEN
 export const ARRIVAL_END = LAND + 1.2
@@ -86,4 +86,4 @@ export const MOUTH_LEVEL = { X: 0, A: 0.08, B: 0.4, C: 0.6, D: 0.95, E: 0.55, F:
 export const talkLevel = (vis, mouth) => MOUTH_LEVEL[vis] ?? MOUTH_LEVEL[mouth] ?? 0
 
 /** Путь Мии при прыжке: из-за правого края (x0) по дуге в точку посадки; u 0…1 → линейный x и дуга по y (подъём apex над хордой, доли высоты экрана) */
-export const flightPath = (u, from, to, apex = 0.22) => { const p = u ** 1.5; return { x: from[0] + (to[0] - from[0]) * p, y: from[1] + (to[1] - from[1]) * p - apex * 4 * p * (1 - p) } } // «агрессивный» прыжок: летит всё быстрее к крышке (p = u^1,5), дуга ниже и резче, посадка с ударом
+export const flightPath = (u, from, to, apex = 0.08) => { const p = u ** 1.5; return { x: from[0] + (to[0] - from[0]) * p, y: from[1] + (to[1] - from[1]) * p - apex * 4 * p * (1 - p) } } // «агрессивный» прыжок: летит всё быстрее к крышке (p = u^1,5), дуга ниже и резче, посадка с ударом

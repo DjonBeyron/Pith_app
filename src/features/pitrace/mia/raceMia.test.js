@@ -19,7 +19,7 @@ describe('эпизод «Мия»: когда приходит', () => {
     expect(ids(r)).toEqual(['mia_push', 'pit_panic', 'mia_announce_1', 'pit_reply', 'mia_announce_2', 'mia_announce_3'])
     expect(r.say.map(l => l.delay)).toEqual([MIA.PUSH_AT, MIA.PANIC_AT, MIA.ANNOUNCE_AT, MIA.REPLY_AT, MIA.ANNOUNCE2_AT, MIA.ANNOUNCE3_AT]); expect(r.say.map(l => l.who)).toEqual(['mia', 'pit', 'mia', 'pit', 'mia', 'mia'])
     expect(miaShown(r.mia)).toBe(true)
-    const b = reduceMia(r.mia, ev('enter', round3())); expect(b.boost).toBe(MIA.BOOST); expect(b.mia).toBe(r.mia); expect(b.say).toEqual([])
+    const b = reduceMia(r.mia, ev('enter', round3())); expect(b.boost).toBe(MIA.BOOST); expect(b.mia).toMatchObject({ phase: 'in', act: 'sprint', fast: true }); expect(r.mia.fast).toBe(false); expect(b.say).toEqual([])
   })
   it('начало с круга Мии (отладка) — тот же вход: церемония запускается из фазы off', () => {
     const r = reduceMia(miaInit(), ev('enter', ann('catch'))); expect(r.mia.phase).toBe('in'); expect(r.mia.act).toBe('catch'); expect(ids(r)[0]).toBe('mia_push')
@@ -72,7 +72,7 @@ describe('эпизод «Мия»: пока она на коробке', () => {
   })
   it('повторный вход в ту же стадию (пауза и «Продолжить») Мию не трогает; после ухода фаза не сбрасывается (анимация ухода не обрывается)', () => {
     const m = arrive()
-    expect(reduceMia(m, ev('enter', ann())).mia).toBe(m); expect(reduceMia(m, ev('enter', round3())).mia).toBe(m)
+    expect(reduceMia(m, ev('enter', ann())).mia).toBe(m); expect(reduceMia(m, ev('enter', round3())).mia).toMatchObject({ phase: 'in', streak: 0 })
     const out = reduceMia(m, ev('enter', circle1('catch'))).mia
     const next = reduceMia(out, ev('enter', { type: 'student', act: 'phrases', sid: 'phrases' }))
     expect(next.mia).toBe(out); expect(next.mia.phase).toBe('out')
