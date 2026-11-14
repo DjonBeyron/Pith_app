@@ -92,7 +92,7 @@ describe('таблица и блок', () => {
     expect(h).toContain(`Озвучено 1 из ${RACE_LINES.length}`); expect(h).toContain('data-testid="rv-voice-missing"'); expect(h).toContain(`Озвучить недостающие (${RACE_LINES.length - 1})`)
     expect(h).toContain('data-testid="rv-voice-all"'); expect(h).toContain('>Переозвучить все<')
     for (const s of ['>озвучено<', '>нет озвучки<', '>текст изменён после озвучки<']) expect(h).toContain(s)
-    expect(h.match(/data-testid="rv-row-/g)).toHaveLength(RACE_LINES.length + MIA_LINES.length); expect(h.match(/data-testid="rv-voice"/g)).toHaveLength(RACE_LINES.length + MIA_LINES.length) // + группа «Эпизод Мия» (v3.3.230)
+    expect(h.match(/data-testid="rv-row-/g)).toHaveLength(RACE_LINES.length); expect(h.match(/data-testid="rv-voice"/g)).toHaveLength(RACE_LINES.length) // реплики Мии — отдельный блок «Озвучка Мии» (v3.3.233), в таблице Пита их нет
     expect(h).toContain('value="новый текст"'); expect(h).toContain('>Переозвучить<'); expect(h).toContain('>Озвучить<')
   })
   it('свёрнута по умолчанию: только заголовок «Озвучка Пита» и сводка', () => {

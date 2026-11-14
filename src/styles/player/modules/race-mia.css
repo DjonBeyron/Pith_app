@@ -31,4 +31,11 @@
 }
 .wlMiaCap[data-who='pit'] { color: #e6dcff; border-color: rgba(188, 130, 250, 0.6); }
 @keyframes wlMiaCapIn { from { opacity: 0; transform: translateX(-50%) translateY(6px); } to { opacity: 1; transform: translateX(-50%); } }
-@media (prefers-reduced-motion: reduce) { .wl[data-race] { transition: none; } .wlMiaCap { animation: none; } }
+/* Источник звука первой реплики («Иди сюда, пушистик»): Мия ещё за правым краем — там, откуда она потом прыгнет (0,3 высоты), расходятся дуги звука и мигает «хвост» края */
+.wlMiaSrc { position: absolute; right: 0; top: 30%; width: 0; height: 0; animation: wlMiaSrcLife var(--src-ms, 3000ms) linear both; }
+.wlMiaSrc i { position: absolute; right: -8px; top: -44px; width: 88px; height: 88px; border-radius: 50%; border: 5px solid rgba(255, 236, 190, 0.95); filter: drop-shadow(0 0 6px rgba(255, 190, 90, 0.7)); border-left-color: transparent; border-top-color: transparent; border-bottom-color: transparent; opacity: 0; transform-origin: 100% 50%; animation: wlMiaSrcWave 0.9s ease-out infinite; }
+.wlMiaSrc i:nth-child(2) { animation-delay: 0.3s; }
+.wlMiaSrc i:nth-child(3) { animation-delay: 0.6s; }
+@keyframes wlMiaSrcWave { from { opacity: 0.95; transform: scale(0.35); } to { opacity: 0; transform: scale(1.7) translateX(-14px); } }
+@keyframes wlMiaSrcLife { 0%, 90% { opacity: 1; } 100% { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .wl[data-race] { transition: none; } .wlMiaCap { animation: none; } .wlMiaSrc i { animation-duration: 2.4s; } }

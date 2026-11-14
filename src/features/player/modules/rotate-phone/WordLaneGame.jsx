@@ -82,7 +82,7 @@ export default function WordLaneGame({ cfg, audioSrc, lines: rawLines = null, fo
         <WordLaneCat apiRef={catApi} />
         <WordLanePills scene={f.scene} levels={f.levels} fx={f.fx} live={f.live} sceneApi={f.sceneApi} visible={showSlots} armed={armed} speed={speed} paused={f.paused} speedKey={f.stage === 'run' ? f.idx : -1} trio={trio} dodge={dodge} onLane={phase === 'order' || (phase === 'discern' && !f.stageObj?.speak) || ((tapMode || f.stageObj?.step?.tapOnly) && (phase === 'student' || f.stageObj?.speak)) ? laneTap : null} />
         <WordLaneXp apiRef={f.xpApi} />
-        {race && f.rh.mia && <RaceMia mia={f.rh.mia.mia} caption={f.rh.miaCap} paused={f.paused} />}
+        {race && f.rh.mia && <RaceMia mia={f.rh.mia.mia} caption={f.rh.miaCap} talk={f.rh.miaTalk} paused={f.paused} />}
         {single
           ? <div className="wlWord" style={{ top: `${WORD_Y}%` }} data-testid="wl-word">{cfg.chunks[0]}</div>
           : (

@@ -35,6 +35,7 @@ import '../../../styles/admin-race-ask.css'
 // План с game: 'race' и round (raceOnly.js); один модуль игры на блок (RotatePhoneModule bare forceDebug startRef). Память и XP пишутся в симуляцию (sessionStorage), на сервер ничего не уходит.
 const SETTINGS_ID = 'race-settings'
 const VOICE_ID = 'race-voice'
+const MIA_VOICE_ID = 'mia-voice'
 const OLD_ID = 'race-old'
 
 export default function RaceBlock({ save = saveDebugFile }) {
@@ -76,7 +77,7 @@ export default function RaceBlock({ save = saveDebugFile }) {
       {status.warm && <p className="rhpHint" role="status" data-testid="race-warm">{status.warm}</p>}
       {status.problem && <p className="aspErr" role="alert" data-testid="race-problem">{status.problem}</p>}
       {error && <p className="aspErr" role="alert" data-testid="race-error">{error}</p>}
-      <RaceVoiceTable plan={racePlan} locked={playing} open={isOpen(VOICE_ID)} onToggle={() => toggle(VOICE_ID)} onChange={voice.reload} />
+      <RaceVoiceTable plan={racePlan} locked={playing} open={isOpen(VOICE_ID)} onToggle={() => toggle(VOICE_ID)} miaOpen={isOpen(MIA_VOICE_ID)} onMiaToggle={() => toggle(MIA_VOICE_ID)} onChange={voice.reload} />
       <PolishSettings title="Старое (old), не в прод" open={isOpen(OLD_ID)} onToggle={() => toggle(OLD_ID)} summary={`режим кнопки: ${mainRaceTitle()}`} testid="race-old">
         <button type="button" className="aspSay rhpBig" onClick={() => launch(STAGES_ROUND)} disabled={!idle || !racePlan} data-testid="race-run-stages">{RACE_TITLES[STAGES_ROUND]}</button>
         <div className="rhpVoiceRow">

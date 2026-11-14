@@ -3,6 +3,7 @@
 // Пункты списка (startEntries) — из самих стадий: плашки этапов и кругов (sid …-ann) и итог, подписи — названия актов и плашек кругов. plan.startAt — sid плашки, plan.debugStart — итог не пишет память и XP (raceSim.js, raceMemory.memoryOn).
 import { extraTarget } from './raceExtraRound.js'
 import { RACE_TITLES } from './raceOnly.js'
+import { miaTarget } from './mia/miaRound.js'
 
 export const START_STAGE_KEY = 'pithy_race_start_stage_v1'
 
@@ -45,7 +46,7 @@ export function startEntries(stages, acts, alt = {}) {
     const subs = []
     while (stages[j]?.type === 'announce' && stages[j].act === st.act && !isSwitch(stages[j])) { const t = stages[j].round?.title; if (t && t !== act.title) subs.push(t); j++ }
     if (alt[stages[j - 1].sid]) subs.push(`/ ${alt[stages[j - 1].sid]}`)
-    const two = /\d-ann$/.exec(st.sid) && !st.round?.title ? `, круг ${st.sid.match(/(\d+)-ann$/)[1]}` : ''
+    const two = st.mia === 'ann' ? ': круг с Мией' : /\d-ann$/.exec(st.sid) && !st.round?.title ? `, круг ${st.sid.match(/(\d+)-ann$/)[1]}` : ''
     out.push({ sid: st.sid, label: `${act.title}${passOf(act.id) ? ` ${passOf(act.id)}` : ''}${two}${subs.length ? `: ${subs.join(' ')}` : ''}` })
   })
   return out
@@ -60,7 +61,8 @@ export function sliceFrom(stages, sid, seed) {
   if (at <= 0) return at === 0 // уже первая (акты до неё выбросил рецепт) — резать нечего
   const act = stages[at].act
   const r1 = stages.find(x => x.type === 'student' && x.sid === act && ['sprint', 'catch'].includes(act))
-  if (r1 && sid === `${act}2-ann`) extraTarget(stages, r1, { results: {} }, seed)
+  if (r1 && (sid === `${act}2-ann` || sid === `${act}3-ann`)) extraTarget(stages, r1, { results: {} }, seed)
+  if (stages[at].mia === 'ann') miaTarget(stages, act, seed) // начать с круга Мии: слова вписаны, как будто ученик ошибся во втором круге (обычный круг 2 заполнен выше)
   const sw = stages.slice(0, at).findLast(x => x.act === act && x.switchTo === 'ru')
   const out = [...(sw ? [sw] : []), ...stages.slice(at)]
   out.forEach((x, idx) => { x.idx = idx })

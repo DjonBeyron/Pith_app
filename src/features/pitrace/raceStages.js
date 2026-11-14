@@ -54,7 +54,7 @@ export function buildRaceStages({ plan, rate = 1, lib = () => null, tap = readTa
   if (plan.startAt && !sliceFrom(kit.stages, plan.startAt, plan.seed)) pLog(`[race] старт с этапа «${plan.startLabel ?? plan.startAt}»: такой плашки нет — с начала акта`) // «начать с этапа» (отладка): первой идёт его плашка
   if (tap) kit.stages.forEach(x => { if (x.step) x.step.tapOnly = true }) // «Тапаю»: ни одна ступень не слушает голос — слушатель без Vosk и без getUserMedia (wordLaneListen noVosk), микрофон игре не нужен
   const first = kit.stages[0]
-  if (first?.type === 'announce') Object.assign(first, { count: 'after', soft: true, charge: true, pause: PLATE_HOLD_MS }) // старт: бар заставки САМ становится плашкой этапа (charge: отдельной плашки нет, raceOpening.js), плашка держится PLATE_HOLD_MS после речи Пита; потом три нежные ноты (шаг 600 мс, нота 1,1 с), первая пилюля — после них
+  if (first?.type === 'announce' && !first.mia) Object.assign(first, { count: 'after', soft: true, charge: true, pause: PLATE_HOLD_MS }) // старт: бар заставки САМ становится плашкой этапа (charge: отдельной плашки нет, raceOpening.js), плашка держится PLATE_HOLD_MS после речи Пита; потом три нежные ноты (шаг 600 мс, нота 1,1 с), первая пилюля — после них
   countBeforeRounds(kit.stages)
   const { chunks } = plan
   const r = kit.rate

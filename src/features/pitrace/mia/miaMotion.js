@@ -10,12 +10,12 @@ const eBack = p => { const c = 1.70158; return 1 + (c + 1) * (p - 1) ** 3 + c * 
 export const easing = { eOut3, eIn3, eIO3, eBack }
 
 // Приход (с): коробка падает → удар → глаза открываются → короткая паника → Мия прыгает на крышку → прогиб, Пит зажмуривается ненадолго
-export const ARR = { FALL0: 0.15, FALL: 0.55, EYES: 1.05, PANIC0: 1.45, JUMP: 2.5, JUMP_LEN: 0.6 }
+export const ARR = { FALL0: 0.15, FALL: 0.8, EYES: 1.35, PANIC0: 1.75, JUMP: 3.9, JUMP_LEN: 0.42 }
 export const IMPACT = ARR.FALL0 + ARR.FALL
 export const LAND = ARR.JUMP + ARR.JUMP_LEN
 export const ARRIVAL_END = LAND + 1.2
-const PANIC = [[-1, 0.2], [1, 0.2], [-0.6, 0.18], [0, 0.22]]  // рывки влево-вправо: [куда (доля 1 = ширина размаха), сколько секунд]
-const PANIC_PX = 46                                                          // размах паники при масштабе 1, пикселей
+const PANIC = [[-1, 0.2], [1, 0.34], [-1, 0.32], [0.9, 0.3], [-0.7, 0.26], [0.4, 0.22], [0, 0.2]]  // Пит в коробке мечется влево-вправо (до прыжка Мии ≈ 1,9 с): [куда (доля 1 = ширина размаха), сколько секунд]
+const PANIC_PX = 74                                                                            // размах паники при масштабе 1, пикселей
 const panicX = t => { let t0 = ARR.PANIC0, x0 = 0; for (const [x1, d] of PANIC) { if (t <= t0 + d) return PANIC_PX * (x0 + (x1 - x0) * eIO3(clamp((t - t0) / d))); t0 += d + 0.04; x0 = x1 } return 0 }
 
 const hsh = n => { const x = Math.sin(n * 127.1) * 43758.5453; return x - Math.floor(x) }
@@ -47,12 +47,12 @@ export function arrivalAt(t) {
   }
   if (t >= ARR.JUMP) {                                          // Мия: прыжок из-за правого края и посадка на крышку
     const u = clamp((t - ARR.JUMP) / ARR.JUMP_LEN)
-    if (t < LAND) Object.assign(mia, { mode: 'flight', u, rot: -32 * (1 - u) ** 2, sy: 1 + 0.1 * Math.sin(Math.PI * u), sx: 1 - 0.05 * Math.sin(Math.PI * u) })
+    if (t < LAND) Object.assign(mia, { mode: 'flight', u, rot: -48 * (1 - u) ** 2, sy: 1 + 0.16 * Math.sin(Math.PI * u), sx: 1 - 0.08 * Math.sin(Math.PI * u) })
     else {
       const l = t - LAND, sag = (1 - Math.exp(-l * 50)) * Math.exp(-9 * l) * Math.cos(20 * l), k = (1 - Math.exp(-l * 50)) * Math.exp(-10 * l) * Math.cos(24 * l)
-      box.sy *= 1 - 0.075 * sag; box.sx *= 1 + 0.03 * sag
-      box.thNear = Math.max(box.thNear, 16 * Math.exp(-11 * l) * Math.abs(Math.sin(14 * l))); box.thFar = Math.max(box.thFar, 12 * Math.exp(-11 * l) * Math.abs(Math.sin(14 * l + 0.5)))
-      Object.assign(mia, { mode: 'seat', u: 1, sy: 1 - 0.16 * k, sx: 1 + 0.08 * k, rot: box.rot * 0.6 })
+      box.sy *= 1 - 0.12 * sag; box.sx *= 1 + 0.05 * sag
+      box.thNear = Math.max(box.thNear, 26 * Math.exp(-11 * l) * Math.abs(Math.sin(14 * l))); box.thFar = Math.max(box.thFar, 12 * Math.exp(-11 * l) * Math.abs(Math.sin(14 * l + 0.5)))
+      Object.assign(mia, { mode: 'seat', u: 1, sy: 1 - 0.24 * k, sx: 1 + 0.12 * k, rot: box.rot * 0.6 })
       const close = eOut3(clamp(l / 0.08)), reopen = clamp((l - 0.5) / 0.3)   // Пит зажмуривается ненадолго (вес Мии), потом открывает глаза
       eyes.open = reopen > 0 ? 0.05 + 0.95 * eBack(reopen) : 1 - 0.95 * close
     }
@@ -69,14 +69,14 @@ export function leaveAt(t) {
   const box = { dy: 0, dx: 0, dxw: 0, rot: 0, sx: 1, sy: 1, thNear: 0, thFar: 0 }, eyes = { open: 1, scale: 1, look: 0 }, mia = { mode: 'seat', u: 1, rot: 0, sx: 1, sy: 1 }
   if (t >= LEAVE.END) return { box, eyes, mia: { ...mia, mode: 'off' }, hideCat: false, shown: false }
   const cr = clamp(t / LEAVE.CROUCH)                            // присела: коробка дрожит (Пит рвётся наружу), Мия сжимается пружиной
-  box.dx = 4 * Math.sin(2 * Math.PI * 16 * t) * cr; box.rot = 2.6 * Math.sin(2 * Math.PI * 13 * t + 1) * cr; box.sy = 1 - 0.02 * Math.abs(Math.sin(2 * Math.PI * 8 * t)) * cr
-  Object.assign(mia, { sy: 1 - 0.14 * cr, sx: 1 + 0.06 * cr, rot: box.rot * 0.8 })
+  box.dx = 1.5 * Math.sin(2 * Math.PI * 9 * t) * cr; box.rot = 0.9 * Math.sin(2 * Math.PI * 7 * t + 1) * cr; box.sy = 1 - 0.015 * Math.abs(Math.sin(2 * Math.PI * 6 * t)) * cr  // дрожь коробки мелкая и медленная: Мия на ней не трясётся
+  Object.assign(mia, { sy: 1 - 0.14 * cr, sx: 1 + 0.06 * cr, rot: 0 })
   eyes.open = 1 - 0.98 * eOut3(clamp((t - 0.12) / 0.18))        // Мия берёт коробку: глаза в щели закрываются и остаются закрытыми, пока коробка летит
   if (t >= LEAVE.CROUCH) {                                       // прыжок: вверх и вправо за экран, коробка в лапах — клапаны трепыхаются
     const u = clamp((t - LEAVE.CROUCH) / LEAVE.JUMP)
-    box.dxw = 1.35 * u * u; box.dy = -0.5 * u * (2 - u); box.rot += 18 * u; box.sy = 1 + 0.05 * u
-    box.thNear = 35 + 25 * Math.sin(2 * Math.PI * 7 * t); box.thFar = 30 + 20 * Math.sin(2 * Math.PI * 6 * t + 1)
-    Object.assign(mia, { sy: 0.86 + 0.2 * eOut3(clamp(u * 3)), sx: 1.06 - 0.1 * eOut3(clamp(u * 3)), rot: box.rot * 0.7 })
+    box.dxw = 1.35 * u * u; box.dy = -0.5 * u * (2 - u); box.dx = 0; box.rot = 14 * eOut3(u); box.sy = 1 + 0.05 * u
+    box.thNear = 35 + 8 * Math.sin(2 * Math.PI * 4 * t); box.thFar = 30 + 7 * Math.sin(2 * Math.PI * 3 * t + 1)
+    Object.assign(mia, { sy: 0.86 + 0.2 * eOut3(clamp(u * 3)), sx: 1.06 - 0.1 * eOut3(clamp(u * 3)), rot: box.rot * 0.5 })   // полёт плавный: без дрожи, Мия держит коробку ровно
   }
   return { box, eyes, mia, hideCat: t < LEAVE.CAT_BACK, shown: true }
 }
@@ -86,4 +86,4 @@ export const MOUTH_LEVEL = { X: 0, A: 0.08, B: 0.4, C: 0.6, D: 0.95, E: 0.55, F:
 export const talkLevel = (vis, mouth) => MOUTH_LEVEL[vis] ?? MOUTH_LEVEL[mouth] ?? 0
 
 /** Путь Мии при прыжке: из-за правого края (x0) по дуге в точку посадки; u 0…1 → линейный x и дуга по y (подъём apex над хордой, доли высоты экрана) */
-export const flightPath = (u, from, to, apex = 0.34) => ({ x: from[0] + (to[0] - from[0]) * u, y: from[1] + (to[1] - from[1]) * u - apex * 4 * u * (1 - u) })
+export const flightPath = (u, from, to, apex = 0.22) => { const p = u ** 1.5; return { x: from[0] + (to[0] - from[0]) * p, y: from[1] + (to[1] - from[1]) * p - apex * 4 * p * (1 - p) } } // «агрессивный» прыжок: летит всё быстрее к крышке (p = u^1,5), дуга ниже и резче, посадка с ударом

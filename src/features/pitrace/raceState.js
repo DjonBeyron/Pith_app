@@ -96,7 +96,7 @@ function enter(s, stage, now, from = 0) {
 /** Итог шага: { state, say, hint, log } (say / hint / log — null, если нечего) */
 export function reduceRace(s, ev) {
   const { t, stage, info, now } = ev
-  if (!stage?.race || (t === 'win' && info?.last === false) || (t === 'claim' && !['sprint', 'catch'].includes(stage.act))) return { state: s, say: null, hint: null, trap: null, log: null } // win приходит на каждую пилюлю повтора (спуск — три куска): считаем только последнюю
+  if (!stage?.race || stage.mia || (t === 'win' && info?.last === false) || (t === 'claim' && !['sprint', 'catch'].includes(stage.act))) return { state: s, say: null, hint: null, trap: null, log: null } // win приходит на каждую пилюлю повтора (спуск — три куска): считаем только последнюю
   let r
   if (t === 'enter') r = enter(s, stage, now, ev.from)
   else if (t === 'phrase') r = info?.phraseKey ? phraseStep(s, info) : { state: s }

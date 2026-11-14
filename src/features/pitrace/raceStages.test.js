@@ -27,11 +27,11 @@ describe('стадии гонки в формате движка', () => {
   it('порядок: плашка и разгон, плашка и «Слушай и лови» (по два круга), плашка и ступени с плашками вершины и «время вышло», спуск (плашка, читка, «твоя очередь», ответ), итог', () => {
     const st = build().stages
     const seq = st.map(s => `${s.act}:${s.type}`)
-    expect(seq.slice(0, 4)).toEqual(['sprint:announce', 'sprint:student', 'sprint:announce', 'sprint:student']) // первый и второй круг разгона (второй идёт, только если были ошибки)
-    expect(seq.slice(4, 8)).toEqual(['catch:announce', 'catch:student', 'catch:announce', 'catch:student']) // «Слушай и лови» — инверсия разгона: тоже два круга
+    expect(seq.slice(0, 6)).toEqual(['sprint:announce', 'sprint:student', 'sprint:announce', 'sprint:student', 'sprint:announce', 'sprint:student']) // первый и второй круг разгона (второй идёт, только если были ошибки) и скрытые церемония + круг с Мией (идут только после ошибки во втором круге)
+    expect(seq.slice(6, 12)).toEqual(['catch:announce', 'catch:student', 'catch:announce', 'catch:student', 'catch:announce', 'catch:student']) // «Слушай и лови» — инверсия разгона: тоже два круга и Мия
     expect(of(st, 'climb').filter(s => s.type === 'student')).toHaveLength(4)
     expect(seq.slice(-5)).toEqual(['descent:announce', 'descent:read', 'descent:turn', 'descent:student', 'summary:summary'])
-    expect(st.filter(s => s.type === 'announce').map(s => s.line)).toEqual([null, 'race_sprint_round2', 'race_catch_tap', 'race_sprint_round2', 'race_phrases', 'race_phrases_pick', 'race_phrases_say', 'race_climb', 'race_climb_top', 'race_climb_time', 'race_descent'])
+    expect(st.filter(s => s.type === 'announce').map(s => s.line)).toEqual([null, 'race_sprint_round2', null, 'race_catch_tap', 'race_sprint_round2', null, 'race_phrases', 'race_phrases_pick', 'race_phrases_say', 'race_climb', 'race_climb_top', 'race_climb_time', 'race_descent'])
   })
   it('разгон: одна ступень ученика, по повтору на пилюлю; у повтора своя дорожка, скорость (+5 %), перевод внутри, без слова, которое проявлялось при промахе (тихий промах)', () => {
     const [s] = of(build().stages, 'sprint').filter(x => x.type === 'student')
@@ -60,7 +60,7 @@ describe('стадии гонки в формате движка', () => {
   it('проход B (инверсия прохода A): та же ступень одной пилюли, на пилюле то же английское слово (cap = text), английское слово для голоса Пита (say), цель — русский перевод, ловушки (trap); дополнительный круг catch2; сцены discern / speak больше нет', () => {
     const stages = build().stages
     const st = of(stages, 'catch').filter(s => s.type === 'student')
-    expect(st.map(s => s.sid)).toEqual(['catch', 'catch2'])
+    expect(st.map(s => s.sid)).toEqual(['catch', 'catch2', 'catch3'])
     expect(of(stages, 'catch').some(s => s.type === 'discern' || s.speak)).toBe(false)
     const [s] = st, { reps, chunks } = s.step
     expect(isStudentStage(s)).toBe(true); expect(engineKind(s)).toBe('student')
@@ -77,7 +77,7 @@ describe('стадии гонки в формате движка', () => {
     expect(g.reps.map(r => [r.trap, r.say])).toEqual(reps.map(r => [!!r.trap, r.say]))
     const i = stages.indexOf(s)
     expect(listenStepOf(stages, i)).toBe(s.step) // слушатель — на ступени
-    expect(stages.filter(x => x.act === 'catch' && x.type === 'announce').map(x => x.line)).toEqual(['race_catch_tap', 'race_sprint_round2'])
+    expect(stages.filter(x => x.act === 'catch' && x.type === 'announce').map(x => x.line)).toEqual(['race_catch_tap', 'race_sprint_round2', null])
     expect(s.step.tapOnly).toBe(true); expect(s.step.lang).toBeUndefined() // русской модели в этом тесте нет — проход B на тапе, переключения слуха нет
     expect(stages.some(x => x.switchTo)).toBe(false)
   })

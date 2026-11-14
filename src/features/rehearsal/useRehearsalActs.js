@@ -16,7 +16,7 @@ import { stuckHint, hintEntry, sayWordHint } from './rehearsalHints.js'
 import { demoSummary } from './polish/polishDemo.js'
 import { stageTiming, countdownPlan } from './rehearsalCountdown.js'
 import { warmCountdown, releaseCountdown } from './rehearsalCountdownSound.js'
-import { createCountGate, scheduleStageCount } from './rehearsalCountdownRun.js'
+import { createCountGate, scheduleStageCount, COUNT_POLL_MS } from './rehearsalCountdownRun.js'
 import { lineVoiced } from './rehearsalQuiet.js'
 import { plateText } from '../player/modules/rotate-phone/wordLanePlateText.js'
 import { silentPause, silentMin } from '../pitrace/raceSilentLine.js' // гонка: неозвученная реплика — короткая пауза (CAPTION_READ_MS)
@@ -41,7 +41,7 @@ export const MAX_STUCK_HINTS = 2    // подсказок на ступень
 /** Журнал отсчёта: перед каким этапом — стадия после плашки (sid) и название плашки */
 const countWhat = (stages, st) => `«${stages[st.idx + 1]?.sid ?? '—'}» (плашка ${st.round?.title || st.sid})`
 
-export function useRehearsalActs({ plan, stages, stage, at, stageObj, setS, sayLine, sayText, cat, lines, rate, lang, listenerRef, hold = false }) {
+export function useRehearsalActs({ plan, stages, stage, at, stageObj, setS, sayLine, sayText, cat, lines, rate, lang, listenerRef, hold = false, countWait = null }) {
   const [journal] = useState(createJournal)
   const [result, setResult] = useState(null)
   const on = !!plan
@@ -79,7 +79,7 @@ export function useRehearsalActs({ plan, stages, stage, at, stageObj, setS, sayL
     const t = timingOf(running), ids = []
     let stopCount = null
     if (lineOf(running)) ids.push(setTimeout(() => sayLine(lineOf(running)), t.lineAt))
-    if (t.countAt != null) stopCount = scheduleStageCount({ countAt: t.countAt, busyLeft: () => cat.busyLeft(), gate, soft: !!running.soft, what: countWhat(stages, running) })
+    if (t.countAt != null) stopCount = scheduleStageCount({ countAt: t.countAt, busyLeft: () => Math.max(cat.busyLeft(), running.waitCap && countWait?.() ? COUNT_POLL_MS : 0), cap: running.waitCap, gate, soft: !!running.soft, what: countWhat(stages, running) })
     return () => { ids.forEach(clearTimeout); stopCount?.() }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [running, at])

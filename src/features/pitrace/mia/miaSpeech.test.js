@@ -69,3 +69,29 @@ describe('очередь речи Мии', () => {
     expect(r.sp.pending()).toBe(0); expect(r.caps.at(-1)).toBeNull(); r.advance(10000); expect(r.said).toEqual([])
   })
 })
+
+describe('реплика Пита в очереди Мии (v3.3.233)', () => {
+  it('Пита не держим «занятым» заранее: его sayLine сам ставит занятость (раньше холд до sayLine делал отказ и очередь вставала)', () => {
+    const r = rig()
+    r.sp.enqueue([cue('pit_reply', 'pit')])
+    expect(r.said).toEqual(['pit_reply']); expect(r.holds).toEqual([])
+    r.advance(1100); r.sp.enqueue([cue('mia_announce_1', 'mia')]); r.advance(1000)
+    expect(r.holds.length).toBe(1) // реплика Мии держит Пита занятым
+  })
+  it('Пит не смог сказать (занят) — повтор раз в 300 мс, после лимита реплика пропущена и очередь идёт дальше', () => {
+    const r = rig({ sayOk: false })
+    r.sp.enqueue([cue('pit_reply', 'pit'), cue('mia_announce_1', 'mia')])
+    r.advance(10000)
+    expect(r.cat.sayLine.mock.calls.length).toBeGreaterThan(5); expect(r.cat.sayLine.mock.calls.length).toBeLessThanOrEqual(13)
+    expect(r.caps.some(c => c?.text === 'Посиди в коробке, понял?')).toBe(true) // следующая реплика Мии дошла
+  })
+  it('onSpeak: рот Мии получает реплику (текст, длительность); stop() — сброс null', () => {
+    const calls = []
+    let t = 0
+    const sp = createMiaSpeech({ now: () => t, setTimer: () => 1, clearTimer: () => {}, onSpeak: c => calls.push(c) })
+    sp.use({ lines: { mia_announce_1: { text: 'Посиди в коробке, понял?', url: null } }, cat: { busyLeft: () => 0, holdBusy() {}, sayLine: () => true }, listener: null })
+    sp.enqueue([cue('mia_announce_1', 'mia')])
+    expect(calls[0]).toMatchObject({ id: 'mia_announce_1', text: 'Посиди в коробке, понял?', ms: expect.any(Number) }); expect(calls[0].ms).toBeGreaterThan(400)
+    sp.stop(); expect(calls.at(-1)).toBeNull()
+  })
+})

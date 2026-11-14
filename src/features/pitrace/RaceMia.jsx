@@ -12,11 +12,11 @@ import { layoutOf, artMatrix, toScene, poseApply, poseSvg, poseOfMotion, miaCss,
 // замена рта. Три верных подряд — Мия присаживается и отпрыгивает с коробкой в лапах за правый край, голова Пита возвращается. Состояние ведёт чистая машина (mia/raceMia.js):
 // компонент рисует его в своём ритме (rAF, часы стоят на паузе игры). Реплики идут очередью mia/miaSpeech.js (звук голосом Мии из слота или, если не озвучена, подпись caption над Мией).
 // Ничего не монтируется и не считает, пока Мии нет (phase 'off'): коробка и спрайт появляются с её приходом и убираются после ухода.
-export default function RaceMia({ mia, caption = null, paused = false }) {
+export default function RaceMia({ mia, caption = null, talk = null, paused = false }) {
   const [gone, setGone] = useState(-1)                          // at прихода, чей уход (анимация) уже доигран: после него коробку и спрайт убираем
   const live = mia.phase === 'in' || (mia.phase === 'out' && gone !== mia.at)
   const host = useRef(null), poseG = useRef(null), artG = useRef(null), catEl = useRef(null), miaEl = useRef(null)
-  useMiaLife(miaEl, live)                                    // Мия в тишине: взгляд, усы, смена лица
+  useMiaLife(miaEl, live, talk)                                    // Мия в тишине: взгляд, усы, смена лица
   const clock = useRef({ arr: 0, lv: 0, mode: 'off', paused })
   const atRef = useRef(mia.at)
   useEffect(() => { atRef.current = mia.at }, [mia.at])
@@ -55,7 +55,7 @@ export default function RaceMia({ mia, caption = null, paused = false }) {
       const leaving = c.mode === 'lv', m = leaving ? leaveAt(c.lv) : arrivalAt(c.arr)
       const head = cat.querySelector(`[data-part="head"][data-face="${cat.getAttribute('data-face') || 'base'}"]`)
       talk = Math.max(talkLevel(head?.getAttribute('data-vis'), head?.getAttribute('data-mouth')), talk * 0.8)
-      const tk = m.hideCat && m.shown ? talk : 0
+      const tk = m.hideCat && m.shown && !leaving ? talk : 0
       box.update({ ...m.eyes, thNear: m.box.thNear, thFar: m.box.thFar, talk: tk, t: tt, live: true })
       const pose = poseOfMotion(m.box, L)
       pose.dx += 1.6 * Math.sin(2 * Math.PI * 34 * tt) * tk * L.f; pose.rot += 0.45 * Math.sin(2 * Math.PI * 27 * tt + 1) * tk
@@ -86,6 +86,9 @@ export default function RaceMia({ mia, caption = null, paused = false }) {
             <svg viewBox="0 0 200 240" width="100%" height="100%" style={{ overflow: 'visible', display: 'block' }}><g className="scn-cat">{miaTree}</g></svg>
           </div>
         </>
+      )}
+      {live && talk?.id === 'mia_push' && (
+        <div key={talk.key} className="wlMiaSrc" style={{ '--src-ms': `${talk.ms}ms` }} data-testid="race-mia-src"><i /><i /><i /></div>
       )}
       {caption && <div key={caption.key} className="wlMiaCap" data-who={caption.who} data-testid="race-mia-cap">{caption.text}</div>}
     </div>

@@ -8,7 +8,7 @@ import { MIA_LINES } from '../../pitrace/mia/miaLines.js'
 
 // «Озвучка Пита»: группа «Эпизод Мия» (v3.3.230): строки реплик Мии и Пита-в-эпизоде, свой счёт, кнопка «Озвучить Мию», остаток аккаунта Мии, ▶ у озвученных
 const deps = { cachedLines: () => ({ lines: { mia_push: { text: 'Иди сюда, пушистик, дальше командую я', url: 'https://r2.dev/mia_push.mp3', duration: 2.1 } } }), loadLines: () => new Promise(() => {}), loadMeanings: () => new Promise(() => {}), loadScenes: () => new Promise(() => {}) }
-const html = props => renderToStaticMarkup(createElement(RaceVoiceTable, { plan: null, open: true, onToggle() {}, deps, ...props }))
+const html = props => renderToStaticMarkup(createElement(RaceVoiceTable, { plan: null, open: true, onToggle() {}, miaOpen: true, deps, ...props }))
 
 describe('группа «Эпизод Мия» в таблице озвучки', () => {
   it('строки реплик с пометкой голоса: Мия — второй аккаунт, Пит — обычный; у озвученной есть url для ▶', () => {
@@ -19,7 +19,7 @@ describe('группа «Эпизод Мия» в таблице озвучки'
   })
   it('развёрнутая таблица: группа Мии, свой счёт, кнопка «Озвучить Мию (N)», «Остаток аккаунта Мии», ▶ у озвученной; основной счёт не считает Мию', () => {
     const h = html()
-    expect(h).toContain('Эпизод «Мия»'); expect(h).toContain('data-testid="rv-mia"'); expect(h).toMatch(new RegExp(`data-testid="rv-mia-count">Озвучено (<!-- -->)?1(<!-- -->)? из (<!-- -->)?${MIA_LINES.length}<`))
+    expect(h).toContain('Озвучка Мии'); expect(h).toContain('data-testid="mia-voice"'); expect(h).toContain('data-testid="rv-mia"'); expect(h).toMatch(new RegExp(`data-testid="rv-mia-count">Озвучено (<!-- -->)?1(<!-- -->)? из (<!-- -->)?${MIA_LINES.length}<`))
     expect(h).toContain('data-testid="rv-voice-mia"'); expect(h).toContain(`Озвучить Мию (${MIA_LINES.length - 1})`); expect(h).toContain('data-testid="rv-mia-quota-btn"')
     expect(h).toContain('data-testid="rv-row-mia_leave"'); expect(h).toContain('data-testid="rv-play"'); expect(h).toContain('второй аккаунт ElevenLabs')
     expect(h).toMatch(/data-testid="rv-count">Озвучено (<!-- -->)?0(<!-- -->)? из (<!-- -->)?\d+</) // основной счёт Пита Мию не считает (в нём 0: озвучена только mia_push)
@@ -38,7 +38,11 @@ describe('группа «Эпизод Мия» в таблице озвучки'
     expect(speak.mock.calls[1]).toEqual(['Спасибо за помощь, вот это у неё характер']) // Пит — голос по умолчанию, второго аргумента нет
     expect(Object.keys(saved[0].lines ?? saved[0])).toEqual(expect.arrayContaining(['mia_push', 'pit_back_1']))
   })
+  it('блок свёрнут по умолчанию и отдельный от блока Пита: строк Мии нет, строки Пита не содержат реплик эпизода', () => {
+    const closed = html({ miaOpen: false }); expect(closed).toContain('Озвучка Мии'); expect(closed).not.toContain('data-testid="rv-mia"')
+    expect(html({ miaOpen: false }).match(/data-testid="rv-row-mia_/g)).toBeNull(); expect(html().match(/data-testid="rv-lines"[\s\S]*?<\/ul>/)[0]).not.toContain('rv-row-mia_leave')
+  })
   it('«Остаток аккаунта Мии» берёт данные второго аккаунта', () => {
-    expect(readFileSync(new URL('./RaceVoiceTable.jsx', import.meta.url), 'utf8')).toContain("(deps?.quota ?? getElevenLabsQuota)('mia')")
+    expect(readFileSync(new URL('./RaceMiaVoice.jsx', import.meta.url), 'utf8')).toContain("(deps?.quota ?? getElevenLabsQuota)('mia')")
   })
 })

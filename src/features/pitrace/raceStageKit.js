@@ -14,6 +14,8 @@ export const PRE_SAY_GAP_MS = 450    // «Разгон» и «Слушай и л
                                      // налетает на только что принятое слово и счёт «зачёл → следующее» не ощущается; после реплики успеха паузы нет (её длину держит сама реплика, claimGap)
 export const CLAIM_GAP_MS = 60       // пауза после принятия слова с репликой успеха до выезда следующей пилюли
 export const ROUND2_ANN_MS = 400     // «плашки» второго круга нет: стадия держится, пока Пит говорит
+export const MIA_ANN_MS = 1200       // церемония Мии (стадия `${act}3-ann`): минимум; на деле её держит речь Мии (очередь miaSpeech), три ноты ждут её конца…
+export const MIA_WAIT_CAP_MS = 90000 // …но не дольше этого (страховка: речь не должна встать насовсем)
 
 export function createKit({ plan, rate = 1, lib = () => null, tap = false }) { // tap — «Тапаю»: все ступени без микрофона и Vosk (step.tapOnly), в том числе добранный второй круг
   const r = rate > 0 ? rate : 1
@@ -54,7 +56,7 @@ export function queueStep(kit, id, words, good, rep, o = {}) {
 }
 
 /**
- * Стадии прохода act (sprint или catch): [переключение слуха, если o.before] + плашка (или объявление без плашки, o.plain) + круг 1 (sid = act.id) + реплика дополнительного круга + круг 2 (sid = act.id + '2'). Стадии круга 2 стоят в списке всегда;
+ * Стадии прохода act (sprint или catch): [переключение слуха, если o.before] + плашка (или объявление без плашки, o.plain) + круг 1 (sid = act.id) + реплика дополнительного круга + круг 2 (sid = act.id + '2'). Стадии круга 2 (и скрытые стадии эпизода «Мия» — церемония `…3-ann` и круг с Мией `…3`) стоят в списке всегда;
  * директор идёт на них, только если слабых слов две и больше, и перед этим вписывает слова в круг 2 (stage.fill, raceExtraRound.js). rep(w) — как у queueStep. o.mapStandby(w) — как дежурное слово выглядит в этом проходе
  * (поля shown / trap); дежурные слова лежат в stage.standby круга 1. o.goodIds — из каких реплик успеха выбирать (проход B: только race_good_ok); o.lang / o.tapOnly / o.target — см. queueStep; у круга 1 есть demote(): русская модель не включилась — проход переводится на тап (и реплика объявления меняется на o.tapLine).
  */
@@ -70,4 +72,9 @@ export function queueStages(kit, act, rep, o = {}) {
   push({ ...round(act.id, act.words, true), standby, demote })
   announce(act, { sid: sid2, title: '', task: '', line: 'race_sprint_round2', ms: ROUND2_ANN_MS })
   push({ ...round(sid2, act.words, false), fill: list => Object.assign(kit.stages.find(x => x.sid === sid2), round(sid2, list, false)) })
+  // Эпизод «Мия» (mia/raceMia.js): церемония прихода и круг с Мией стоят в списке всегда, но директор идёт на них, только если ученик ошибся во втором круге (miaRound.js); иначе их обходит nextIdx
+  const sid3 = `${act.id}3`
+  announce(act, { sid: sid3, kind: 'mia', title: '', task: '', line: null, ms: MIA_ANN_MS })
+  Object.assign(kit.stages.at(-1), { mia: 'ann', waitCap: MIA_WAIT_CAP_MS })
+  push({ ...round(sid3, act.words, false), mia: 'round', fill: list => Object.assign(kit.stages.find(x => x.sid === sid3), round(sid3, list, false), { mia: 'round' }) })
 }

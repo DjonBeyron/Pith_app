@@ -25,7 +25,7 @@ describe('выбор голоса Мии', () => {
     setMiaVoice(null)
   })
   it('таблица озвучки показывает выбор голоса; сервер отдаёт список голосов (kind voices) без лишнего', () => {
-    expect(read('./RaceVoiceTable.jsx')).toContain('<MiaVoicePicker')
+    expect(read('./RaceMiaVoice.jsx')).toContain('<MiaVoicePicker')
     const srv = read('../../../../supabase/functions/tts-elevenlabs/index.ts')
     expect(srv).toContain('kind === "voices"'); expect(srv).toContain('api.elevenlabs.io/v1/voices'); expect(srv).toContain('preview_url'); expect(srv).toContain('category')
     expect(read('../../../shared/lib/ttsApi.js')).toContain("kind: 'voices'")

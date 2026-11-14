@@ -11,14 +11,14 @@ describe('Мия с лицами', () => {
   it('наклон головы снят у всех лиц (перекрёстная смена без скачка); одно лицо — одна голова', () => {
     const hasTilt = n => ((n.attrs?.class ?? '').includes('mx-tilt') ? n.attrs.style === NO_TILT : true) && (n.children ?? []).every(hasTilt)
     expect(buildMiaCat().children.filter(c => c.attrs['data-part'] === 'head').every(hasTilt)).toBe(true)
-    expect(buildMiaCat(['smirk']).children.filter(c => c.attrs['data-part'] === 'head')).toHaveLength(1)
+    expect(buildMiaCat(['pathos']).children.filter(c => c.attrs['data-part'] === 'head')).toHaveLength(1)
   })
   it('nextFace: всегда другое лицо; одно лицо — то же', () => {
     for (const r of [0, 0.3, 0.99]) expect(nextFace(MIA_FACES, 'pathos', r)).not.toBe('pathos')
-    expect(nextFace(['smirk'], 'smirk', 0.5)).toBe('smirk')
+    expect(nextFace(['pathos'], 'pathos', 0.5)).toBe('pathos')
   })
   it('бюджет узлов: Мия с тремя лицами укладывается (сцена ≤ 250 вместе с коробкой)', () => {
     const count = n => 1 + (n.children ?? []).reduce((a, c) => a + count(c), 0)
-    expect(count(buildMiaCat())).toBeLessThan(215); expect(count(buildMiaCat(['smirk']))).toBeLessThan(120)
+    expect(count(buildMiaCat())).toBeLessThan(215); expect(count(buildMiaCat(['pathos']))).toBeLessThan(120)
   })
 })
