@@ -26,7 +26,7 @@ export default function RaceMia({ mia, caption = null, talk = null, paused = fal
   // фаза машины → часы эпизода
   useEffect(() => {
     const c = clock.current
-    if (mia.phase === 'in') { c.arr = Math.max(0, (performance.now() - mia.at) / 1000); c.lv = 0; c.mode = 'arr' }
+    if (mia.phase === 'in') { c.arr = (performance.now() - mia.at) / 1000 /* at — момент падения коробки (после реплики Пита): до него время отрицательное, коробки нет */; c.lv = 0; c.mode = 'arr' }
     else if (mia.phase === 'out' && c.mode === 'arr') { c.lv = 0; c.mode = 'lv' }
     else if (mia.phase === 'off') c.mode = 'off'
   }, [mia.phase, mia.at])

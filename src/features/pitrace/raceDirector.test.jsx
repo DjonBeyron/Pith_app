@@ -58,9 +58,18 @@ describe('useRaceActs: директор гонки поверх директор
     const bad = probe('sprint')
     bad.rh.rec('fail', { idx: 0 })
     const go = bad.rh.nextIdx(i1 + 1)
-    expect(bad.stages[go].sid).toBe('sprint2-ann')
-    expect(bad.stages[go + 1].words.length).toBeGreaterThanOrEqual(2)
-    expect(bad.stages[go + 1].words.some(w => w.idx === 0)).toBe(true)
+    expect(bad.stages[go].sid).toBe('sprint3-ann') // эпизод «Мия» (v3.3.234): вместо плашки обычного круга 2 — церемония Мии, слова круга те же
+    expect(bad.stages[go + 1].sid).toBe('sprint3'); expect(bad.stages[go + 1].words.length).toBeGreaterThanOrEqual(2)
+    expect(bad.stages[go + 1].words.some(w => w.text === bad.stages[i1].words[0].text)).toBe(true)
+    expect(bad.stages.find(s => s.sid === 'sprint2').words.length).toBeGreaterThanOrEqual(2) // слова круга 2 вписаны (из них собран круг Мии)
+  })
+  it('разгон: эпизод «Мия» выключен (pithy_race_mia_v1 = 0) — после ошибки идёт обычный круг 2 с «повысим скорость»', () => {
+    vi.stubGlobal('localStorage', { getItem: k => (k === 'pithy_race_mia_v1' ? '0' : null) })
+    try {
+      const { rh, stages } = probe('sprint'), i1 = stages.findIndex(s => s.sid === 'sprint')
+      rh.rec('fail', { idx: 0 })
+      expect(stages[rh.nextIdx(i1 + 1)].sid).toBe('sprint2-ann')
+    } finally { vi.unstubAllGlobals() }
   })
   it('на «не успел» директор игры реплик не говорит (failLine пуст): «ой, соскользнул» «Вершины» и «мимо» слуха говорит редюсер', () => {
     const { rh, stages } = probe('sprint')
@@ -88,7 +97,7 @@ describe('useRaceActs: директор гонки поверх директор
     expect(stages[rh.nextIdx(i1 + 1)].act).toBe('phrases') // ошибок не было — второго круга нет, дальше этап «Фразы»
     const bad = probe('catch'); bad.rh.rec('miss', { idx: st.words.findIndex(w => w.trap), believed: true })
     const go = bad.rh.nextIdx(i1 + 1)
-    expect(bad.stages[go].sid).toBe('catch2-ann'); expect(bad.stages[go + 1].sid).toBe('catch2'); expect(bad.stages[go + 1].words.length).toBeGreaterThanOrEqual(2)
+    expect(bad.stages[go].sid).toBe('catch3-ann'); expect(bad.stages[go + 1].sid).toBe('catch3'); expect(bad.stages[go + 1].words.length).toBeGreaterThanOrEqual(2)
   })
   it('вершина: nextIdx идёт на ступень k + 1 после попадания, остаётся после промаха на первой ступени; «ой, соскользнул» на промахе, а на 2-м промахе ступени Пит говорит слово голосом вместо него', () => {
     const win = probe('climb-1'); win.rh.rec('win')

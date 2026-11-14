@@ -28,7 +28,7 @@ import { plateText } from '../player/modules/rotate-phone/wordLanePlateText.js'
 import { reduceMia, makeMiaBox, applyMia } from './mia/raceMia.js'
 import { miaOn } from './mia/miaConfig.js'
 import { createMiaSpeech } from './mia/miaSpeech.js'
-import { miaTarget, miaSkip } from './mia/miaRound.js'
+import { miaRoute, miaSkip } from './mia/miaRound.js'
 import { playWordSlot, hasWordSlot, wordBufferMs } from '../player/modules/rotate-phone/wordLaneClips.js'
 import { gameMicHold } from '../../shared/lib/gameMicHold.js'
 
@@ -103,7 +103,6 @@ export function useRaceActs(args) {
     if (r.mia.phase !== mb.m.phase) pLog(`[mia] ${r.mia.phase === 'in' ? `Мия пришла (${r.mia.act}, второй круг), дорожка быстрее на ${Math.round((r.boost - 1) * 100)} %` : r.mia.phase === 'out' ? `Мия уходит: ${r.mia.why === 'win' ? 'три верных подряд' : 'круг кончился'}` : 'Мии нет'}`)
     setMiaView(applyMia(mb, r, ev.stage))
     if (r.say.length) mspeech.enqueue(r.say)
-    return r.go ?? null // act, на чью церемонию директору прыгнуть: ошибка во втором круге прерывает его (прыжок — rec)
   }, [mb, mspeech])
 
   // Прыжок директора на стадию i (промах ступени, время вышло): стадия перезапускается с новой отметкой времени
@@ -158,7 +157,12 @@ export function useRaceActs(args) {
 
   const baseNext = rh.nextIdx // стабильна (useCallback в useRehearsalActs): на ней держится next директора
   const seed = plan?.seed
-  const nextIdx = useCallback(i => (on ? miaSkip(stages, climbTarget(stages, stages[i - 1], box.s) ?? extraTarget(stages, stages[i - 1], box.s[stages[i - 1]?.act], seed) ?? fillPhrases2(stages, stages[i - 1], box.s) ?? baseNext(i), mb.m, baseNext) : baseNext(i)), [on, stages, box, baseNext, seed, mb]) // fillPhrases2: после круга 1 фраз — порядок круга 2 (слабые последними)
+  const nextIdx = useCallback(i => { // после круга 1 со слабыми словами вместо круга 2 — церемония Мии (miaRoute), стадии Мии вне эпизода обходит miaSkip
+    if (!on) return baseNext(i)
+    const r = climbTarget(stages, stages[i - 1], box.s) ?? extraTarget(stages, stages[i - 1], box.s[stages[i - 1]?.act], seed) ?? fillPhrases2(stages, stages[i - 1], box.s) ?? baseNext(i) // fillPhrases2: после круга 1 фраз — порядок круга 2 (слабые слова первыми)
+    const to = miaOn() ? miaRoute(stages, r, mb.m, seed) : -1
+    return to >= 0 ? to : miaSkip(stages, r, mb.m, baseNext)
+  }, [on, stages, box, baseNext, seed, mb])
   if (!on) return rh
   return {
     ...rh, result, race: view, mia: miaView, miaCap, miaTalk, nextIdx,
@@ -194,11 +198,7 @@ export function useRaceActs(args) {
       if (kind === 'fail' && ['sprint', 'catch'].includes(running.act)) speech.pillGone('missed') // «не успел»: отступ до перевода следующего слова
       if (takeoffOn(running, kind, info)) playTakeoffAfter(rewardMs(info?.order ?? 0)) // взлёт принятой пилюли: глиссандо ми → ля ПОСЛЕ ноты награды, а не вместе с ней (только ступени-очереди гонки)
       apply({ t: kind, stage: running, info: kind === 'miss' ? { ...info, heard: listenerRef?.current?.heard?.() ?? '' } : info }) // на промахе — что услышал Vosk: двойник слова ступени ломает ловушку
-      if (['win', 'miss', 'fail'].includes(kind) && !(kind === 'win' && info?.last === false)) { // эпизод «Мия»: ответ ученика во втором круге; первая ошибка прерывает круг — на церемонию прихода
-        const go = miaEvent({ t: kind, stage: running, idx: info?.idx })
-        const i = go ? miaTarget(stages, go, seed) : -1
-        if (i >= 0) { pLog(`[mia] ошибка во втором круге — круг прерван, церемония Мии (стадия ${i})`); jump(i) }
-      }
+      if (['win', 'miss', 'fail'].includes(kind) && !(kind === 'win' && info?.last === false)) miaEvent({ t: kind, stage: running, idx: info?.idx }) // эпизод «Мия»: ответы ученика в круге с Мией
       if (kind === 'miss' && running.act === 'climb' && running.type === 'student') jump(climbStageIdx(stages, box.s.climb)) // сказал не то — соскальзывание: ступень-стадия перезапускается (слово ступени звучит подсказкой при 2-м промахе)
     },
     // Реплик на «не успел» из директора игры нет: «ой, соскользнул» «Вершины» говорит редюсер (raceState.js)

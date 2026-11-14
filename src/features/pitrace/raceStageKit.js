@@ -72,9 +72,9 @@ export function queueStages(kit, act, rep, o = {}) {
   push({ ...round(act.id, act.words, true), standby, demote })
   announce(act, { sid: sid2, title: '', task: '', line: 'race_sprint_round2', ms: ROUND2_ANN_MS })
   push({ ...round(sid2, act.words, false), fill: list => Object.assign(kit.stages.find(x => x.sid === sid2), round(sid2, list, false)) })
-  // Эпизод «Мия» (mia/raceMia.js): церемония прихода и круг с Мией стоят в списке всегда, но директор идёт на них, только если ученик ошибся во втором круге (miaRound.js); иначе их обходит nextIdx
+  // Эпизод «Мия» (mia/raceMia.js): церемония прихода и круг с Мией стоят в списке всегда, но директор идёт на них вместо круга 2, когда слабых слов две и больше (miaRoute, miaRound.js); иначе их обходит nextIdx
   const sid3 = `${act.id}3`
-  announce(act, { sid: sid3, kind: 'mia', title: '', task: '', line: null, ms: MIA_ANN_MS })
+  announce(act, { sid: sid3, kind: 'mia', title: '', task: '', line: 'pit_forgot', ms: MIA_ANN_MS })
   Object.assign(kit.stages.at(-1), { mia: 'ann', waitCap: MIA_WAIT_CAP_MS })
   push({ ...round(sid3, act.words, false), mia: 'round', fill: list => Object.assign(kit.stages.find(x => x.sid === sid3), round(sid3, list, false), { mia: 'round' }) })
 }
