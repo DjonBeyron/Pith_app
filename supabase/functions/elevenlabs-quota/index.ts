@@ -1,6 +1,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const ELEVENLABS_API_KEY = Deno.env.get("ELEVENLABS_API_KEY")!;
+const MIA_API_KEY = Deno.env.get("ELEVENLABS_API_KEY_MIA") ?? ""; // второй аккаунт (голос Мии): запрос ?account=mia
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
 
@@ -44,13 +45,15 @@ Deno.serve(async (req) => {
   const denied = await requireAdmin(req);
   if (denied) return denied;
 
-  if (!ELEVENLABS_API_KEY) {
-    return json({ error: "ELEVENLABS_API_KEY secret не настроен" }, 500);
+  const mia = new URL(req.url).searchParams.get("account") === "mia";
+  const apiKey = mia ? MIA_API_KEY : ELEVENLABS_API_KEY;
+  if (!apiKey) {
+    return json({ error: mia ? "ELEVENLABS_API_KEY_MIA secret не настроен" : "ELEVENLABS_API_KEY secret не настроен" }, 500);
   }
 
   try {
     const res = await fetch("https://api.elevenlabs.io/v1/user/subscription", {
-      headers: { "xi-api-key": ELEVENLABS_API_KEY },
+      headers: { "xi-api-key": apiKey },
     });
     if (!res.ok) {
       const text = await res.text();

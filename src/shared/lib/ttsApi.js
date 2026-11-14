@@ -16,7 +16,9 @@ const QUOTA_URL = `${SUPABASE_URL}/functions/v1/elevenlabs-quota`
  * Без него — голос из серверного секрета ELEVENLABS_VOICE_ID, как у аудио-нод.
  *
  * @param {string} text
- * @param {{ voiceId?: string, modelId?: string, voiceSettings?: object }} [voice]
+ * voice.account: 'mia' — второй аккаунт ElevenLabs (голос Мии, секреты ELEVENLABS_API_KEY_MIA / ELEVENLABS_VOICE_ID_MIA).
+ *
+ * @param {{ voiceId?: string, modelId?: string, voiceSettings?: object, account?: 'mia' }} [voice]
  * @returns {Promise<{ file: File, wordTimings: Array<{ w: string, t: number, e?: number }>, voiceId?: string }>}
  */
 export async function generateSpeech(text, voice = null) {
@@ -24,6 +26,7 @@ export async function generateSpeech(text, voice = null) {
   if (voice?.voiceId) body.voiceId = voice.voiceId
   if (voice?.modelId) body.modelId = voice.modelId
   if (voice?.voiceSettings) body.voiceSettings = voice.voiceSettings
+  if (voice?.account === 'mia') body.account = 'mia'
 
   const res = await fetch(TTS_URL, {
     method:  'POST',
@@ -46,9 +49,9 @@ export async function generateSpeech(text, voice = null) {
   return { file, wordTimings: wordTimings ?? [], voiceId }
 }
 
-/** Остаток бесплатного лимита символов ElevenLabs за текущий период. */
-export async function getElevenLabsQuota() {
-  const res = await fetch(QUOTA_URL, {
+/** Остаток бесплатного лимита символов ElevenLabs за текущий период; account 'mia' — второй аккаунт (голос Мии). */
+export async function getElevenLabsQuota(account = null) {
+  const res = await fetch(account === 'mia' ? `${QUOTA_URL}?account=mia` : QUOTA_URL, {
     method:  'GET',
     headers: await authHeaders(),
   })

@@ -2,6 +2,9 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const ELEVENLABS_API_KEY = Deno.env.get("ELEVENLABS_API_KEY")!;
 const ELEVENLABS_VOICE_ID = Deno.env.get("ELEVENLABS_VOICE_ID")!;
+// Второй аккаунт ElevenLabs — голос Мии (запрос с account:"mia"): свой ключ и, по желанию, свой голос по умолчанию (иначе voiceId — из запроса).
+const MIA_API_KEY = Deno.env.get("ELEVENLABS_API_KEY_MIA") ?? "";
+const MIA_VOICE_ID = Deno.env.get("ELEVENLABS_VOICE_ID_MIA") ?? "";
 const ELEVENLABS_MODEL_ID = Deno.env.get("ELEVENLABS_MODEL_ID") || "eleven_multilingual_v2";
 const ELEVENLABS_URL = (voiceId: string) =>
   `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}/with-timestamps`;
@@ -85,9 +88,9 @@ const MODELS = ["eleven_multilingual_v2", "eleven_turbo_v2_5", "eleven_flash_v2_
 const clamp = (v: unknown, lo: number, hi: number) =>
   typeof v === "number" && Number.isFinite(v) ? Math.min(hi, Math.max(lo, v)) : undefined;
 
-function voiceParams(body: Record<string, unknown>) {
+function voiceParams(body: Record<string, unknown>, defaultVoice = ELEVENLABS_VOICE_ID) {
   const voiceId = typeof body.voiceId === "string" && /^[A-Za-z0-9_-]{8,64}$/.test(body.voiceId)
-    ? body.voiceId : ELEVENLABS_VOICE_ID;
+    ? body.voiceId : defaultVoice;
   const modelId = typeof body.modelId === "string" && MODELS.includes(body.modelId) ? body.modelId : ELEVENLABS_MODEL_ID;
   const vs = (body.voiceSettings ?? {}) as Record<string, unknown>;
   const settings: Record<string, number> = {};
@@ -152,9 +155,12 @@ Deno.serve(async (req) => {
   const raw = await req.clone().json().catch(() => null);
   if (raw && typeof raw === "object" && (raw as Record<string, unknown>).kind === "sfx") return handleSfx(raw as Record<string, unknown>);
 
-  if (!ELEVENLABS_API_KEY || !ELEVENLABS_VOICE_ID) {
-    console.error("[tts-elevenlabs] secrets not set");
-    return json({ error: "ELEVENLABS_API_KEY / ELEVENLABS_VOICE_ID secret не настроен" }, 500);
+  const mia = !!raw && typeof raw === "object" && (raw as Record<string, unknown>).account === "mia"; // второй аккаунт — голос Мии
+  const apiKey = mia ? MIA_API_KEY : ELEVENLABS_API_KEY;
+  const defaultVoice = mia ? MIA_VOICE_ID : ELEVENLABS_VOICE_ID;
+  if (!apiKey || (!defaultVoice && !(mia && typeof (raw as Record<string, unknown>).voiceId === "string"))) {
+    console.error("[tts-elevenlabs] secrets not set", { mia });
+    return json({ error: mia ? "ELEVENLABS_API_KEY_MIA secret не настроен (и нет voiceId в запросе / ELEVENLABS_VOICE_ID_MIA)" : "ELEVENLABS_API_KEY / ELEVENLABS_VOICE_ID secret не настроен" }, 500);
   }
 
   let text: string;
@@ -162,7 +168,7 @@ Deno.serve(async (req) => {
   try {
     const body = await req.json();
     text = (body.text ?? "").trim();
-    voice = voiceParams(body);
+    voice = voiceParams(body, defaultVoice);
   } catch (e) {
     return json({ error: (e as Error).message }, 400);
   }
@@ -173,7 +179,7 @@ Deno.serve(async (req) => {
     console.log("[tts-elevenlabs] calling ElevenLabs...", { chars: text.length, voiceId: voice.voiceId, modelId: voice.modelId });
     const elRes = await fetch(ELEVENLABS_URL(voice.voiceId), {
       method:  "POST",
-      headers: { "xi-api-key": ELEVENLABS_API_KEY, "Content-Type": "application/json" },
+      headers: { "xi-api-key": apiKey, "Content-Type": "application/json" },
       body:    JSON.stringify({
         text,
         model_id: voice.modelId,
