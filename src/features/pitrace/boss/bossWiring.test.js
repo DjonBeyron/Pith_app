@@ -19,8 +19,8 @@ describe('финал «Шкала памяти»: подключение', () =>
   })
   it('Пит произносит верный ответ только когда слово не названо / ошибка (fail), верно названное не повторяет; «занят» держится до конца — следующая пилюля после него; красное слово пугает Пита (зрачки)', () => {
     const src = read('../useRaceActs.js')
-    expect(src).toContain("running?.act === 'boss' && running.type === 'student' ? running.words?.[idx]?.text : null"); expect(src).toContain("sayRef.current.sayText?.(w, { hold: true })")
-    expect(src).toContain('speech.claim(praiseRef.current); praiseRef.current = null }'); expect(src).not.toContain('sayCorrect(rep?.idx)'); expect(src).toContain("if (kind === 'fail' && running.act === 'boss') { sayCorrect(info?.idx); redAlarm() }"); expect(src).toContain("if (z === 'slow') redAlarm()")
+    expect(src).toContain("running?.act === 'boss' && running.type === 'student' && toldRef.current !== idx ? running.words?.[idx]?.text : null"); expect(src).toContain("sayRef.current.sayText?.(w, { hold: true })")
+    expect(src).toContain('speech.claim(praiseRef.current); praiseRef.current = null }'); expect(src).not.toContain('sayCorrect(rep?.idx)'); expect(src).toContain("if ((kind === 'fail' || kind === 'miss') && running.act === 'boss') { sayCorrect(info?.idx); redAlarm() }"); expect(src).toContain("if (z === 'slow') redAlarm()")
     expect(read('../../player/modules/rotate-phone/WordLaneGame.jsx')).toContain('alarm={f.rh.miaAlarm}'); expect(read('../RaceMia.jsx')).toContain('pupil: (m.eyes.pupil ?? 1) * (1 - 0.58 * fear)'); expect(read('../mia/boxArt.js')).toContain("class=\"bxPupil\"")
   })
 })

@@ -92,3 +92,27 @@ describe('эпилог финала кончается, когда догово�
     expect(src).toContain("if (st?.mia !== 'end') return rh.holdMs(st)"); expect(src).toContain('Math.min(st.ms, Math.max(2500,')
   })
 })
+
+describe('финал: колкость после ошибки, порог «больше половины», линия у конвейера', () => {
+  it('ошибка / «не успел»: Мия коротко подкалывает один раз на слово, с задержкой (Пит успевает сказать верное слово)', async () => {
+    const { reduceMia, miaInit, BOSS } = await import('../mia/raceMia.js')
+    const stage = { mia: 'round', silent: true, act: 'boss', words: [1, 2, 3, 4, 5, 6].map(i => ({ text: 'w' + i })) }
+    let m = reduceMia({ ...miaInit(), phase: 'in', act: 'boss' }, { t: 'enter', stage }).mia
+    const a = reduceMia(m, { t: 'miss', stage, idx: 0 })
+    expect(a.say).toHaveLength(1); expect(a.say[0]).toMatchObject({ who: 'mia', delay: BOSS.MISS_AT }); expect(a.say[0].id).toMatch(/^mia_miss/)
+    expect(reduceMia(a.mia, { t: 'fail', stage, idx: 0 }).say).toEqual([]) // то же слово: вторая колкость не нужна
+    expect(reduceMia(a.mia, { t: 'fail', stage, idx: 1 }).say).toHaveLength(1)
+  })
+  it('Пит остаётся, когда красных БОЛЬШЕ ПОЛОВИНЫ слов (3–6 слов): 2 из 3, 3 из 4–5, 4 из 6; порог «пять» отменён', async () => {
+    const { keepNeed, bossEnd } = await import('../mia/raceMia.js')
+    expect([3, 4, 5, 6].map(keepNeed)).toEqual([2, 3, 3, 4]); expect(keepNeed(0)).toBe(5)
+    expect(bossEnd({ total: 6, won: { 0: 1, 1: 1 }, redWins: 0, reds: 0 })).toEqual({ won: 2, reds: 4, keep: true }) // назвал 2 из 6 — раньше (нужно было 5) Мия отпускала
+    expect(bossEnd({ total: 6, won: { 0: 1, 1: 1, 2: 1 }, redWins: 0, reds: 0 })).toMatchObject({ reds: 3, keep: false })
+  })
+  it('Пит говорит верное слово и после ошибки (miss), один раз на слово; линия шкалы упирается в левую полосу конвейера; колонки без жёлтой заливки', () => {
+    const src = readFileSync(new URL('../useRaceActs.js', import.meta.url), 'utf8')
+    expect(src).toContain("(kind === 'fail' || kind === 'miss') && running.act === 'boss'"); expect(src).toContain('toldRef.current !== idx')
+    expect(readFileSync(new URL('./RaceBossScale.jsx', import.meta.url), 'utf8')).toContain("setProperty('--bl'")
+    expect(readFileSync(new URL('../../../styles/player/modules/race-boss.css', import.meta.url), 'utf8')).toMatch(/\.wlBossLine \{[^}]*left: var\(--bl, 0px\)/)
+  })
+})

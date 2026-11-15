@@ -89,7 +89,7 @@ describe('финал: сценарий Мии, красные слова, «ос
     let m = reduceMia(start().mia, { t: 'enter', stage: round }).mia
     expect(m).toMatchObject({ total: 6, won: {}, redWins: 0 })
     expect(reduceMia(m, { t: 'win', stage: round, idx: 0 }).say.map(c => c.id)[0]).toMatch(/^mia_ok/) // верный ответ: Мия подкалывает (первый и каждый третий)
-    expect(reduceMia(m, { t: 'miss', stage: round, idx: 0 }).say).toEqual([])
+    expect(reduceMia(m, { t: 'miss', stage: round, idx: 0 }).say.map(c => c.id)[0]).toMatch(/^mia_miss/) // ошибка: короткая колкость Мии
     const w1 = reduceMia(m, { t: 'win', stage: round, idx: 0 }).mia; expect(reduceMia(w1, { t: 'win', stage: round, idx: 1 }).say.map(c => c.id)).toEqual(['mia_streak2']); expect(reduceMia(w1, { t: 'fail', stage: round, idx: 1 }).mia.streak).toBe(0)
     m = reduceMia(m, { t: 'fail', stage: round, idx: 0 }).mia; m = reduceMia(m, { t: 'miss', stage: round, idx: 0 }).mia
     expect(m.reds).toBe(1)
@@ -98,11 +98,12 @@ describe('финал: сценарий Мии, красные слова, «ос
   })
   const finish = events => { let m = reduceMia(start().mia, { t: 'enter', stage: round }).mia; for (const e of events) m = reduceMia(m, { stage: round, ...e }).mia; return reduceMia(m, { t: 'enter', stage: end, now: 9000 }) }
   it('ничего не ответил на все слова — Пит остаётся внутри (красные считаются от слов, которых не назвали верно: события «не успел» не нужны)', () => {
-    const r = finish([]); expect(r.mia).toMatchObject({ phase: 'in', reds: 6, keep: true }); expect(ids(r)).toEqual(['boss_mia_keep', 'boss_pit_keep']); expect(r.log).toContain('красных 6 из 5'); expect(r.log).toContain('Пит остаётся в коробке')
+    const r = finish([]); expect(r.mia).toMatchObject({ phase: 'in', reds: 6, keep: true }); expect(ids(r)).toEqual(['boss_mia_keep', 'boss_pit_keep']); expect(r.log).toContain('красных 6 (нужно 4)'); expect(r.log).toContain('Пит остаётся в коробке')
   })
-  it('красных ровно пять: назван один верно в зелёной — остаётся; два верно — Мия отпускает; верные ответы в красной зоне красные', () => {
+  it('красных больше половины (из 6 — четыре): назван один или два верно — остаётся; три верно — Мия отпускает; верные ответы в красной зоне красные', () => {
     expect(finish([{ t: 'win', idx: 0 }, { t: 'zone', zone: 'fast' }]).mia).toMatchObject({ reds: 5, keep: true, phase: 'in' })
-    const free = finish([{ t: 'win', idx: 0 }, { t: 'zone', zone: 'fast' }, { t: 'win', idx: 1 }, { t: 'zone', zone: 'mid' }]); expect(free.mia).toMatchObject({ reds: 4, keep: false, phase: 'out' }); expect(ids(free)).toEqual(['boss_mia_free', 'boss_pit_free']); expect(free.log).toContain('Мия отпускает Пита')
+    expect(finish([{ t: 'win', idx: 0 }, { t: 'zone', zone: 'fast' }, { t: 'win', idx: 1 }, { t: 'zone', zone: 'mid' }]).mia).toMatchObject({ reds: 4, keep: true, phase: 'in' }) // два верных из шести: красных четыре — больше половины
+    const free = finish([{ t: 'win', idx: 0 }, { t: 'zone', zone: 'fast' }, { t: 'win', idx: 1 }, { t: 'zone', zone: 'mid' }, { t: 'win', idx: 2 }, { t: 'zone', zone: 'fast' }]); expect(free.mia).toMatchObject({ reds: 3, keep: false, phase: 'out' }); expect(ids(free)).toEqual(['boss_mia_free', 'boss_pit_free']); expect(free.log).toContain('Мия отпускает Пита')
     expect(finish([{ t: 'win', idx: 0 }, { t: 'zone', zone: 'slow' }, { t: 'win', idx: 1 }, { t: 'zone', zone: 'slow' }]).mia).toMatchObject({ reds: 6, keep: true })
   })
   it('эпилог boss-end: Пит остался в коробке — коробка стоит под итогом (без мигания Пита без коробки)', () => {

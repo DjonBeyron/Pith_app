@@ -18,7 +18,6 @@
   --lvl2: #f0662c; --lvl2-rgb: 240, 102, 44;
   --lvl3: #b9c2d8; --lvl3-rgb: 185, 194, 216;
 }
-.wl[data-race] .wlLanes i { background: linear-gradient(to bottom, rgba(var(--rgb), 0) 0, rgba(var(--rgb), calc(var(--mia-a) * 0.2)) 38%, rgba(var(--rgb), calc(var(--mia-a) * 0.2)) 72%, rgba(var(--rgb), 0) 100%); }
 .wl[data-mia='in'] .wlLanes i::before { --run-k: 1.6; }
 .wlStage > .wlMia { inset: 0; overflow: hidden; pointer-events: none; z-index: 8; }
 .wlMiaSvg { position: absolute; left: 0; top: 0; width: 100%; height: 100%; overflow: visible; }

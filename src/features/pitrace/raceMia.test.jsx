@@ -47,7 +47,8 @@ describe('смена цвета дорожек при Мии', () => {
     expect(game).toContain("data-mia={miaColorOn(f.rh.mia?.mia, f.stageObj, miaDropped) ? 'in' : undefined}"); expect(game).toContain('<RaceMia mia={f.rh.mia.mia} caption={f.rh.miaCap} talk={f.rh.miaTalk}')
   })
   it('колонки и разделители подсвечены через --mia-a (при 0 прозрачны — обычная игра не меняется); нить конвейера ярче', () => {
-    expect(css).toMatch(/\.wl\[data-race\] \.wlLanes i \{ background: linear-gradient[^}]*--mia-a/); expect(css).not.toMatch(/\.wlLaneEdge \{ box-shadow/); expect(css).toMatch(/\.wlLanes i::before \{ --run-k: 1\.6/)
+    expect(css).not.toMatch(/\.wlLanes i \{ background: linear-gradient/); // жёлтая растушёванная заливка колонок убрана (владелец 2026-11-15)
+     expect(css).not.toMatch(/\.wlLaneEdge \{ box-shadow/); expect(css).toMatch(/\.wlLanes i::before \{ --run-k: 1\.6/)
   })
   it('есть уважение к reduced-motion (переход цвета выключается)', () => {
     expect(css).toMatch(/prefers-reduced-motion: reduce\)[^}]*\.wl\[data-race\] \{ transition: none/s)

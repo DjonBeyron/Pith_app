@@ -10,7 +10,7 @@ import { variantOf } from './miaLines.js'
 
 export const MIA = { BOOST: 1.15, STREAK_LEAVE: 3, OK_EVERY: 3, DROP_AT: 1600, PUSH_AT: 1800, PANIC_AT: 4600, ANNOUNCE_AT: 6500, REPLY_AT: 8800, ANNOUNCE2_AT: 10800, ANNOUNCE3_AT: 13000, BACK_AT: 2600, BACK2_AT: 5200 }
 
-export const BOSS = { DROP_AT: 500, JUMP: 6.4, KEEP_REDS: 5, PIT1_AT: 1900, HUSH_AT: 5200, LOOK_AT: 8000 } // объяснение шкалы идёт подряд, без пауз: с LOOK_AT реплики look → think → green → yellow → red → five → Пит стоят в очереди одна за другой (очередь речи сама держит паузу GAP_MS), путь пилюли примера считается по их длительности (bossScale.demoPlan) // финал «Шкала памяти»: падение коробки, прыжок Мии (с от падения), порог красных слов, сроки реплик (мс от входа)
+export const BOSS = { DROP_AT: 500, JUMP: 6.4, KEEP_REDS: 5, MISS_AT: 700, PIT1_AT: 1900, HUSH_AT: 5200, LOOK_AT: 8000 } // объяснение шкалы идёт подряд, без пауз: с LOOK_AT реплики look → think → green → yellow → red → five → Пит стоят в очереди одна за другой (очередь речи сама держит паузу GAP_MS), путь пилюли примера считается по их длительности (bossScale.demoPlan) // финал «Шкала памяти»: падение коробки, прыжок Мии (с от падения), порог красных слов, сроки реплик (мс от входа)
 
 export const miaInit = () => ({ phase: 'off', act: '', fast: false, jump: null, total: 0, won: {}, reds: 0, redWins: 0, failed: {}, keep: false, used: {}, streak: 0, wins: 0, hits: 0, seq: 0, at: 0, why: '' })
 
@@ -34,7 +34,7 @@ export function reduceMia(m, ev) {
     if (stage?.mia === 'end') { // конец финала (стадия boss-end перед итогом): красных меньше пяти — Мия уходит с коробкой, пять и больше — Пит остаётся внутри до следующей встречи (коробка и Мия на сцене, пока Мия и Пит говорят)
       if (m.phase !== 'in' || m.act !== 'boss') return none(m)
       const { won, reds, keep } = bossEnd(m) // красные — все слова, кроме верно названных не в красной зоне (молчание и ошибки тоже красные, даже если события «не успел» не дошли)
-      const log = `финал кончился: слов ${m.total}, названо верно ${won} (из них в красной зоне ${m.redWins}), красных ${reds} из ${BOSS.KEEP_REDS} — ${keep ? 'Пит остаётся в коробке' : 'Мия отпускает Пита'}`
+      const log = `финал кончился: слов ${m.total}, названо верно ${won} (из них в красной зоне ${m.redWins}), красных ${reds} (нужно ${keepNeed(m.total)}) — ${keep ? 'Пит остаётся в коробке' : 'Мия отпускает Пита'}`
       if (keep) return { mia: { ...m, reds, keep, fast: false, seq: m.seq + 1 }, say: [line('boss_mia_keep', 'mia'), line('boss_pit_keep', 'pit', 3200)], boost: 1, log }
       return { ...leave({ ...m, reds, keep }, now, 'end', [line('boss_mia_free', 'mia'), line('boss_pit_free', 'pit', 2800)]), log }
     }
@@ -50,7 +50,10 @@ export function reduceMia(m, ev) {
       return { mia: { ...m, won: { ...m.won, [ev.idx]: true }, streak, wins, hits: say.length && streak !== 2 ? m.hits + 1 : m.hits }, say, boost: null }
     }
     if (t === 'zone') return { mia: { ...m, redWins: m.redWins + (ev.zone === 'slow' ? 1 : 0) }, say: [], boost: null }
-    if (t === 'miss' || t === 'fail') { const failed = { ...m.failed, [ev.idx]: true }; return { mia: { ...m, streak: 0, failed, reds: Object.keys(failed).length + m.redWins }, say: [], boost: null } }
+    if (t === 'miss' || t === 'fail') { // ошибка / «не успел»: Пит говорит верное слово (директор), следом Мия коротко подкалывает (через MISS_AT, Пит успевает начать; она ждёт, пока он договорит), и только потом новое слово; на одно слово — одна колкость
+      const first = !m.failed[ev.idx], failed = { ...m.failed, [ev.idx]: true }, say = first ? [{ ...line(variantOf('mia_miss', m.hits + 1), 'mia'), delay: BOSS.MISS_AT }] : []
+      return { mia: { ...m, streak: 0, hits: first ? m.hits + 1 : m.hits, failed, reds: Object.keys(failed).length + m.redWins }, say, boost: null }
+    }
     return none(m)
   }
   const word = stage.words?.[ev.idx]
@@ -69,10 +72,12 @@ export function reduceMia(m, ev) {
 /** Мия на экране (коробка, подсветка дорожки): пока она «в игре» или уходит */
 export const miaShown = m => m.phase === 'in' || m.phase === 'out'
 
+/** Сколько красных слов оставляют Пита в коробке: БОЛЬШЕ ПОЛОВИНЫ слов финала (их 3–6: порог «пять» почти недостижим, и Мия отпускала Пита при большинстве молчаливых слов — владелец 2026-11-15); неизвестно число слов — прежние пять */
+export const keepNeed = total => (total > 0 ? Math.floor(total / 2) + 1 : BOSS.KEEP_REDS)
 /** Итог финала по накопленному: названо верно, красных слов (все, кроме верно названных не в красной зоне; молчание и ошибки красные), остаётся ли Пит в коробке */
 export function bossEnd(m) {
   const won = Object.keys(m.won).length, reds = m.total ? m.total - Math.max(0, won - m.redWins) : m.reds
-  return { won, reds, keep: reds >= BOSS.KEEP_REDS }
+  return { won, reds, keep: reds >= keepNeed(m.total) }
 }
 
 /** Рабочая коробка директора (useRaceActs): m — состояние машины, step — ступень, которой Мия ускорила дорожку, key — номер пачки реплик. Мутации — функциями (как raceState.putState) */

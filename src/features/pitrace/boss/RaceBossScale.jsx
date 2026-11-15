@@ -18,7 +18,7 @@ export default function RaceBossScale({ live, show = true, flash = null, demo = 
     if (!live) return undefined
     const stage = host.current?.parentElement, field = stage?.querySelector('.wlField')
     if (!stage || !field) return undefined
-    let raf = 0, tr = null, topShown = -1, last = 0, fadedId = -1, exitId = -1 // exitId — пилюля, чья линия уже уходит слева направо;
+    let raf = 0, tr = null, topShown = -1, blShown = -1, last = 0, fadedId = -1, exitId = -1 // exitId — пилюля, чья линия уже уходит слева направо;
     let fd = { id: null, from: null, p: 1 } // выцветание маркера последнего законченного слова (фиолетовый → серый, пока следующая пилюля не станет видна целиком)
     let slots = [] // маркеры слов (bossScale.marksStep): у каждого слова свой, живых не больше двух
     const frame = now => {
@@ -30,6 +30,8 @@ export default function RaceBossScale({ live, show = true, flash = null, demo = 
       const top = Math.round((lanes ? lanes.getBoundingClientRect().top : f.top + 80) - s0.top) // верх ленты: под кнопками (на ленте дорожки сдвинуты на 80 px)
       if (box.current && top !== topShown) { topShown = top; box.current.style.top = `${top}px` }
       const b = box.current?.getBoundingClientRect(), H = b?.height ?? 0
+      const edge = lanes?.querySelector('.wlLaneEdge'), bl = edge && b ? Math.max(0, Math.round(edge.getBoundingClientRect().right - b.left)) : 0 // левая граница конвейера: линия упирается в его вертикальную полосу и за неё не заходит
+      if (box.current && bl !== blShown) { blShown = bl; box.current.style.setProperty('--bl', `${bl}px`) }
       if (!(H > 0)) return
       const dm = clock.current.demo // пример на церемонии: путь пилюли по плану
       if (dm && pillEl.current && dLine.current) {

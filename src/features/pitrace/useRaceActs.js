@@ -25,7 +25,7 @@ import { plateCaption } from './raceSilentLine.js'
 import { createTransChron } from './raceTransChron.js'
 import { PHRASE_EXIT_MS } from './raceStagesPhrases.js'
 import { plateText } from '../player/modules/rotate-phone/wordLanePlateText.js'
-import { reduceMia, makeMiaBox, applyMia, miaStays, bossEnd, BOSS } from './mia/raceMia.js'
+import { reduceMia, makeMiaBox, applyMia, miaStays, bossEnd, keepNeed, BOSS } from './mia/raceMia.js'
 import { miaOn } from './mia/miaConfig.js'
 import { createMiaSpeech, GAP_MS } from './mia/miaSpeech.js'
 import { audioPulse } from '../../shared/lib/gameAudioPulse.js'
@@ -115,13 +115,14 @@ export function useRaceActs(args) {
     const r = reduceMia(mb.m, { ...ev, now: performance.now() })
     if (r.mia === mb.m && !r.say.length && r.boost == null) return
     if (r.mia.phase !== mb.m.phase) pLog(`[mia] ${r.mia.phase === 'in' ? `Мия пришла (${r.mia.act}, второй круг), дорожка быстрее на ${Math.round((r.boost - 1) * 100)} %` : r.mia.phase === 'out' ? `Мия уходит: ${r.mia.why === 'win' ? 'три верных подряд' : 'круг кончился'}` : 'Мии нет'}`)
-    if (r.mia.reds !== mb.m.reds) pLog(`[mia] финал: красных слов ${r.mia.reds} из ${BOSS.KEEP_REDS} (${ev.t === 'zone' ? `ответ в зоне ${ev.zone}` : `слово ${ev.idx + 1}: ${ev.t === 'fail' ? 'не успел' : 'ошибка'}`})${r.mia.keep ? ', Пит останется внутри' : ''}`)
+    if (r.mia.reds !== mb.m.reds) pLog(`[mia] финал: красных слов ${r.mia.reds} (нужно ${keepNeed(r.mia.total)}) (${ev.t === 'zone' ? `ответ в зоне ${ev.zone}` : `слово ${ev.idx + 1}: ${ev.t === 'fail' ? 'не успел' : 'ошибка'}`})${r.mia.keep ? ', Пит останется внутри' : ''}`)
     setMiaView(applyMia(mb, r, ev.stage))
     if (r.say.length) mspeech.enqueue(r.say)
   }, [mb, mspeech])
 
   const redAlarm = useCallback(() => setMiaAlarm(a => ({ key: (a?.key ?? 0) + 1 })), [])
-  const sayCorrect = idx => { const w = running?.act === 'boss' && running.type === 'student' ? running.words?.[idx]?.text : null; if (w) sayRef.current.sayText?.(w, { hold: true }) } // верно названное слово Пит не повторяет; не названное / ошибочное — произносит верное (текста на экране нет). Финал: Пит произносит верный ответ (подписи нет) и держится «занятым» до конца — следующая пилюля выезжает после него
+  const toldRef = useRef(-1) // слово, верный ответ которого Пит уже сказал (ошибка и «не успел» на одном слове — один раз)
+  const sayCorrect = idx => { const w = running?.act === 'boss' && running.type === 'student' && toldRef.current !== idx ? running.words?.[idx]?.text : null; if (w) { toldRef.current = idx; sayRef.current.sayText?.(w, { hold: true }) } } // верно названное слово Пит не повторяет; не названное / ошибочное — произносит верное (текста на экране нет). Финал: Пит произносит верный ответ (подписи нет) и держится «занятым» до конца — следующая пилюля выезжает после него
 
   // Прыжок директора на стадию i (промах ступени, время вышло): стадия перезапускается с новой отметкой времени
   const jump = useCallback(i => { if (i >= 0) setS(p => ({ ...p, stage: 'run', idx: i, at: performance.now(), hint: [], leaving: -1 })) }, [setS])
@@ -222,7 +223,7 @@ export function useRaceActs(args) {
       if (kind === 'win' && info?.last !== false) speech.riseStart() // пилюля взлетает: с этого мгновения идёт задержка похвалы
       if (ruOn && kind === 'miss') ru.miss(listenerRef?.current?.heard?.())
       if (ruOn && kind === 'fail') ruLog(info, 'fail', info?.peak)
-      if (kind === 'fail' && running.act === 'boss') { sayCorrect(info?.idx); redAlarm() } // финал: слово не названо — Пит произносит верное, зрачки сжимаются
+      if ((kind === 'fail' || kind === 'miss') && running.act === 'boss') { sayCorrect(info?.idx); redAlarm() } // финал: слово не названо — Пит произносит верное, зрачки сжимаются
       if (kind === 'fail' && ['sprint', 'catch', 'boss'].includes(running.act)) speech.pillGone('missed') // «не успел»: отступ до перевода следующего слова
       if (takeoffOn(running, kind, info)) playTakeoffAfter(rewardMs(info?.order ?? 0)) // взлёт принятой пилюли: глиссандо ми → ля ПОСЛЕ ноты награды, а не вместе с ней (только ступени-очереди гонки)
       apply({ t: kind, stage: running, info: kind === 'miss' ? { ...info, heard: listenerRef?.current?.heard?.() ?? '' } : info }) // на промахе — что услышал Vosk: двойник слова ступени ломает ловушку
