@@ -18,3 +18,27 @@ export function ticks(speed, maxPct = 100) {
   for (let t = 1; yAt(t, speed) <= maxPct; t++) out.push({ t, y: yAt(t, speed) })
   return out
 }
+
+export const HOLD_MS = 1800 // сколько линия остаётся на высоте ответа после принятия / «не успел»
+
+/**
+ * Какую пилюлю толкает линия (чистая логика кадра, без DOM). pills — [{ el, top, bottom, locked, failed }] (px от верха поля; el — любой маркер, нужен только для «та же пилюля»), H — высота поля,
+ * tr — прежнее состояние { el, y, done, at } или null, now — часы. → новое состояние. Новая пилюля берётся, когда прежней нет или она закончена (принята / «не успел» / ушла вниз): ближайшая к верху из
+ * видимых, не принятых и не ушедших. Тот же элемент берётся заново (пул пилюль переиспользует элементы: следующее слово едет на том же узле — раньше линия его не видела).
+ */
+export function trackStep(tr, pills, H, now) {
+  let cur = tr
+  if (cur && !cur.done) {
+    const p = pills.find(x => x.el === cur.el)
+    if (!p || p.locked || p.failed || p.top > H * 0.9) cur = { ...cur, done: true, at: now }
+    else cur = { ...cur, y: p.bottom }
+  }
+  if (!cur || cur.done) {
+    const next = pills.filter(p => !p.locked && !p.failed && p.bottom > 0 && p.top < H * 0.9).sort((a, b) => a.top - b.top)[0]
+    if (next) return { el: next.el, y: next.bottom, done: false, at: 0 }
+  }
+  return cur
+}
+
+/** Показана ли линия: идёт пилюля или после ответа не прошло HOLD_MS */
+export const lineOn = (tr, now) => !!tr && (!tr.done || now - tr.at < HOLD_MS)
