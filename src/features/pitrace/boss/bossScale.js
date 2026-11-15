@@ -12,6 +12,8 @@ export const spanOf = id => { const i = ZONES.findIndex(z => z.id === id); retur
 /** Риски линейки: каждые 5 % длины, длинные — на границах зон и краях; цвет риски — цвет её зоны → [{ p, major, zone }] */
 export const TICKS = Array.from({ length: 21 }, (_, i) => { const p = i / 20; return { p, major: [0, 0.45, 0.8, 1].some(e => Math.abs(e - p) < 1e-9), zone: zoneAt(Math.min(p, 0.9999)) } })
 
+export const MARKS_MAX = 2 // маркеров слов (фиолетовые треугольники) на шкале одновременно: у каждого слова свой, старый гаснет, когда выходит третье слово
+export const MARK_FADE_MS = 700 // сколько гаснущий маркер ещё держит свой узел (прозрачность уходит плавно, CSS transition 0,6 с)
 export const HOLD_MS = 1800 // сколько линия остаётся на высоте ответа после принятия / «не успел»
 
 /**
@@ -70,3 +72,20 @@ export const FLASH_LINES = { boss_mia_green: 'fast', boss_mia_yellow: 'mid', bos
 export const REVEAL_LINES = ['boss_mia_look', 'boss_mia_think', 'boss_mia_green', 'boss_mia_yellow', 'boss_mia_red', 'boss_mia_five']
 /** talk — реплика Мии { id, key, ms } (miaSpeech.onSpeak) → { zone, key, ms } или null */
 export const flashOf = talk => (talk && FLASH_LINES[talk.id] ? { zone: FLASH_LINES[talk.id], key: talk.key, ms: talk.ms } : null)
+
+/**
+ * Маркеры слов (фиолетовые треугольники): по одному на слово, живых не больше MARKS_MAX. slots — [{ id, k (номер узла 0…2), y (доля длины шкалы), dying (мс смерти или 0) }], id — пилюля, которую толкает линия
+ * (null — никакой), y — положение её линии (доля длины), now — часы. Новое слово создаёт маркер сверху; если живых уже MARKS_MAX, самый старый плавно гаснет; маркер идёт за линией своего слова вниз (не вверх)
+ * и замирает на месте ответа; погасшие освобождают узел через MARK_FADE_MS. Возвращает новый список.
+ */
+export function marksStep(slots, { id, y, now }) {
+  const out = slots.filter(s => !s.dying || now - s.dying <= MARK_FADE_MS).map(s => ({ ...s }))
+  if (id != null && !out.some(s => s.id === id)) {
+    const k = [0, 1, 2].find(i => !out.some(s => s.k === i))
+    const alive = out.filter(s => !s.dying)
+    if (alive.length >= MARKS_MAX) alive[0].dying = now
+    if (k != null) out.push({ id, k, y: 0, dying: 0 })
+  }
+  if (id != null) { const m = out.find(s => s.id === id && !s.dying); if (m) m.y = Math.min(1, Math.max(m.y, y)) }
+  return out
+}

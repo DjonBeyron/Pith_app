@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
-import { ZONES, EDGES, TICKS, zoneAt, spanOf, trackStep, lineOn, HOLD_MS, DEMO_START, DEMO_IDS, DEMO_FROM, DEMO_OUT, DEMO_GAP_MS, DEMO_MOVE_MS, DEMO_CENTERS, demoPlan, zoneRgb, flashOf } from './bossScale.js'
+import { ZONES, EDGES, TICKS, zoneAt, spanOf, trackStep, lineOn, HOLD_MS, DEMO_START, DEMO_IDS, DEMO_FROM, DEMO_OUT, DEMO_GAP_MS, DEMO_MOVE_MS, DEMO_CENTERS, demoPlan, zoneRgb, flashOf, marksStep, MARKS_MAX, MARK_FADE_MS } from './bossScale.js'
 import { RISE_DELAY_MS, RISE_MS, RISE_EASING } from '../../player/modules/rotate-phone/wordLaneRise.js'
 import { conveyorSpeedHint } from '../../player/modules/rotate-phone/wordLaneConveyorSpeed.js'
 import { actArmedLanes } from '../../player/modules/rotate-phone/wordLaneConveyorStart.js'
@@ -73,10 +73,10 @@ describe('пример при объяснении: пилюля встаёт в
     expect(zoneRgb(0.2)).toEqual([120, 230, 150]); expect(zoneRgb(0.45)).not.toEqual([120, 230, 150]); expect(zoneRgb(0.45)).not.toEqual([255, 200, 70]); expect(zoneRgb(0.6)).toEqual([255, 200, 70]); expect(zoneRgb(1)).toEqual([255, 96, 80])
     expect(flashOf({ id: 'boss_mia_red', key: 2, ms: 900 })).toEqual({ zone: 'slow', key: 2, ms: 900 })
   })
-  it('верный ответ: линия уходит слева направо за время взлёта пилюли (RISE_DELAY_MS + RISE_MS) с тем же easing; фиолетовый маркер худшего результата — треугольник острием вправо, толще рисок', () => {
+  it('верный ответ: линия уходит слева направо за время взлёта пилюли (RISE_DELAY_MS + RISE_MS) с тем же easing; фиолетовые маркеры слов — треугольники острием вправо, остриё на стволе линейки', () => {
     expect(RISE_DELAY_MS + RISE_MS).toBe(930); expect(css).toContain(`wlBossLineOut ${RISE_DELAY_MS + RISE_MS}ms ${RISE_EASING}`); expect(css).toContain('.wlBossLine[data-exit] { transform-origin: 100% 50%;'); expect(css).toContain('from { scale: 1 1; } to { scale: 0 1; }')
-    expect(css).toMatch(/\.wlBossMark \{[^}]*#a78bfa[^}]*clip-path: polygon\(0 0, 100% 50%, 0 100%\)/); expect(css).toMatch(/\.wlBossMark \{[^}]*width: 13px/)
-    const src = readFileSync(new URL('./RaceBossScale.jsx', import.meta.url), 'utf8'); expect(src).toContain('worst = Math.max(worst, y / H)'); expect(src).toContain('el.dataset.exit')
+    expect(css).toMatch(/\.wlBossMark \{[^}]*right: 6px[^}]*width: 10px[^}]*#a78bfa[^}]*clip-path: polygon\(0 0, 100% 50%, 0 100%\)/); expect(css).toMatch(/\.wlBossZone \{[^}]*right: 4px; width: 10px/) // остриё на «стволе» линейки (правая кромка зон), фон зон не шире рисок
+    const src = readFileSync(new URL('./RaceBossScale.jsx', import.meta.url), 'utf8'); expect(src).toContain('marksStep(slots'); expect(src).toContain('el.dataset.exit')
   })
   it('линия: без растушёвки и свечения, утончается от левого края пилюли (clip-path 11 %); пилюля финала меняет цвет плавно (--bz, переход 0,5 с); мигание появления шкалы 2,4 с', () => {
     expect(css).toContain('clip-path: polygon(0 50%, 11% 0, 100% 0, 100% 100%, 11% 100%)'); expect(css).not.toMatch(/\.wlBossLine \{[^}]*box-shadow/); expect(css).toContain('@property --bz'); expect(css).toContain('transition: --bz 0.5s ease'); expect(css).toContain('wlBossIn 2.4s ease-in-out')
@@ -86,5 +86,27 @@ describe('пример при объяснении: пилюля встаёт в
     expect(conveyorSpeedHint([ann, round], 0)).toBe(0.5); expect(conveyorSpeedHint([ann, round], 1)).toBe(0.5)
     expect(actArmedLanes({ stages: [ann, round], idx: 0, ignited: false }).includes('2')).toBe(true)
     expect(actArmedLanes({ stages: [{ ...ann, demoRun: false }, round], idx: 0, ignited: false })).not.toContain('2')
+  })
+})
+
+describe('маркеры слов (фиолетовые треугольники)', () => {
+  it('у каждого слова свой маркер, живых не больше двух; верно названное слово оставляет маркер на месте ответа', () => {
+    expect(MARKS_MAX).toBe(2)
+    let s = marksStep([], { id: 1, y: 0.1, now: 0 }); expect(s).toEqual([{ id: 1, k: 0, y: 0.1, dying: 0 }])
+    s = marksStep(s, { id: 1, y: 0.3, now: 100 }); s = marksStep(s, { id: 1, y: 0.2, now: 200 }); expect(s[0].y).toBe(0.3) // идёт вниз, не вверх
+    s = marksStep(s, { id: null, y: 0, now: 5000 }); expect(s).toHaveLength(1); expect(s[0].y).toBe(0.3) // слово названо — маркер остался на месте
+  })
+  it('второе слово не названо: на сцене два маркера (первый на месте ответа, второй упёрся в низ)', () => {
+    let s = marksStep([], { id: 1, y: 0.3, now: 0 })
+    for (const y of [0.1, 0.5, 0.9, 1]) s = marksStep(s, { id: 2, y, now: 1000 })
+    expect(s.map(x => [x.id, x.k, x.y, x.dying])).toEqual([[1, 0, 0.3, 0], [2, 1, 1, 0]])
+  })
+  it('третье слово: самый старый маркер плавно гаснет (dying), через MARK_FADE_MS освобождает узел; новый берёт свободный узел', () => {
+    let s = marksStep([], { id: 1, y: 0.3, now: 0 }); s = marksStep(s, { id: 2, y: 1, now: 100 })
+    s = marksStep(s, { id: 3, y: 0.05, now: 2000 })
+    expect(s.find(x => x.id === 1).dying).toBe(2000); expect(s.find(x => x.id === 2).dying).toBe(0); expect(s.find(x => x.id === 3)).toMatchObject({ k: 2, y: 0.05, dying: 0 }) // три узла: два живых и гаснущий
+    expect(s.filter(x => !x.dying)).toHaveLength(2)
+    s = marksStep(s, { id: 3, y: 0.2, now: 2000 + MARK_FADE_MS + 1 }); expect(s.map(x => x.id)).toEqual([2, 3]); // первый ушёл
+    s = marksStep(s, { id: 4, y: 0, now: 4000 }); expect(s.find(x => x.id === 4).k).toBe(0) // освободившийся узел переиспользуется
   })
 })
