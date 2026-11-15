@@ -12,14 +12,14 @@ describe('финал «Шкала памяти»: подключение', () =>
   })
   it('директор: Пит говорит перевод и на финале, «не успел» даёт отступ, слова вписываются перед входом', () => {
     const src = read('../useRaceActs.js')
-    expect(src).toContain("(act === 'sprint' || act === 'boss') && said"); expect(src).toContain("['sprint', 'catch', 'boss'].includes(running.act)) speech.pillGone"); expect(src).toContain("if (stages[r]?.sid === 'boss-ann') bossFill(stages, box.s, seed)")
+    expect(src).toContain("(act === 'sprint' || (act === 'boss' && running?.step?.lang !== 'ru')) && said"); expect(src).toContain("['sprint', 'catch', 'boss'].includes(running.act)) speech.pillGone"); expect(src).toContain("if (stages[r]?.sid === 'boss-ann') bossFill(stages, box.s, seed)")
   })
   it('игра рисует шкалу только на финале (RaceBossScale live по act boss), стили подключены', () => {
-    expect(read('../../player/modules/rotate-phone/WordLaneGame.jsx')).toContain("['boss-ann', 'boss'].includes(f.stageObj?.sid)"); expect(read('../../../styles/player/modules/race-sprint.css')).toContain("@import './race-boss.css'")
+    expect(read('../../player/modules/rotate-phone/WordLaneGame.jsx')).toContain("['boss-ann', 'boss', 'boss-sw', 'boss2'].includes(f.stageObj?.sid)"); expect(read('../../../styles/player/modules/race-sprint.css')).toContain("@import './race-boss.css'")
   })
   it('Пит произносит верный ответ только когда слово не названо / ошибка (fail), верно названное не повторяет; «занят» держится до конца — следующая пилюля после него; красное слово пугает Пита (зрачки)', () => {
     const src = read('../useRaceActs.js')
-    expect(src).toContain("running?.act === 'boss' && running.type === 'student' && toldRef.current !== idx ? running.words?.[idx]?.text : null"); expect(src).toContain("sayRef.current.sayText?.(w, { hold: true })")
+    expect(src).toContain("running?.act === 'boss' && running.type === 'student' && toldRef.current !== `${running.sid}:${idx}` ? running.words?.[idx] : null"); expect(src).toContain("sayRef.current.sayText?.(w.text, { hold: true })"); expect(src).toContain("sayRef.current.sayText?.(w.translation, { ru: true, hold: true })")
     expect(src).toContain('speech.claim(praiseRef.current); praiseRef.current = null }'); expect(src).not.toContain('sayCorrect(rep?.idx)'); expect(src).toContain("if (kind === 'fail' && running.act === 'boss') { sayCorrect(info?.idx); redAlarm() }"); expect(src).toContain("if (z === 'slow') redAlarm()")
     expect(read('../../player/modules/rotate-phone/WordLaneGame.jsx')).toContain('alarm={f.rh.miaAlarm}'); expect(read('../RaceMia.jsx')).toContain('pupil: (m.eyes.pupil ?? 1) * (1 - 0.58 * fear)'); expect(read('../mia/boxArt.js')).toContain("class=\"bxPupil\"")
   })

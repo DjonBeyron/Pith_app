@@ -84,7 +84,7 @@ describe('стадии гонки в формате движка', () => {
   it('проход B голосом (русская модель скачана, «Говорю»): перед ним плашка переключения слуха, step.lang = ru, цели — переводы; в полной гонке перед вершиной слух возвращается; demote переводит проход на тап', () => {
     const stages = buildRaceStages({ plan: plan(), tap: false, ru: true }).stages
     const sw = stages.filter(x => x.switchTo), ids = stages.map(x => x.sid)
-    expect(sw.map(x => [x.sid, x.switchTo, x.line])).toEqual([['catch-sw', 'ru', 'race_switch_ru'], ['phrases-sw', 'en', null]]) // фразы слушает английская модель: слух возвращается перед ними, перед вершиной уже не нужно
+    expect(sw.map(x => [x.sid, x.switchTo, x.line])).toEqual([['catch-sw', 'ru', 'race_switch_ru'], ['phrases-sw', 'en', null], ['boss-sw', 'ru', null]]) // фразы слушает английская модель: слух возвращается перед ними, перед вершиной уже не нужно
     expect(sw[0].round.title).toBe('Секунду'); expect(sw[0].round.brief).toBe('переключаю слух')
     expect(ids.indexOf('catch2')).toBeLessThan(ids.indexOf('phrases-sw')); expect(ids.indexOf('phrases-sw')).toBeLessThan(ids.indexOf('phrases-ann')); expect(ids.indexOf('sprint2')).toBeLessThan(ids.indexOf('catch-sw')); expect(ids.indexOf('catch-sw')).toBeLessThan(ids.indexOf('catch-ann'))
     const [b, b2] = of(stages, 'catch').filter(x => x.type === 'student')

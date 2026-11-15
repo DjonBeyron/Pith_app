@@ -15,13 +15,19 @@ export const BOSS = { DROP_AT: 500, JUMP: 6.4, KEEP_REDS: 5, MISS_AT: 700, PIT1_
 export const miaInit = () => ({ phase: 'off', act: '', fast: false, jump: null, total: 0, won: {}, reds: 0, redWins: 0, failed: {}, dug: {}, keep: false, used: {}, streak: 0, wins: 0, hits: 0, seq: 0, at: 0, why: '' })
 
 /** Стадия эпизода: 'ann' — церемония прихода, 'round' — круг с Мией */
-export const isMiaStage = st => st?.mia === 'ann' || st?.mia === 'round' || st?.mia === 'end'
+export const isMiaStage = st => st?.mia === 'ann' || st?.mia === 'round' || st?.mia === 'end' || st?.mia === 'hold'
 
 const line = (id, who, delay = 0) => ({ id, who, delay })
 const none = m => ({ mia: m, say: [], boost: null })
 const leave = (m, now, why, say) => ({ mia: { ...m, phase: 'out', fast: false, at: now, why, seq: m.seq + 1 }, say, boost: 1 })
 const bossCeremony = () => [line('boss_pit_1', 'pit', BOSS.PIT1_AT), line('boss_mia_hush', 'mia', BOSS.HUSH_AT), line('boss_mia_exam', 'mia', BOSS.HUSH_AT), ...['look', 'think', 'green', 'yellow', 'red', 'five'].map(k => line(`boss_mia_${k}`, 'mia', BOSS.LOOK_AT)), line('boss_pit_no', 'pit', BOSS.LOOK_AT)]
 const ceremony = () => [line('mia_push', 'mia', MIA.PUSH_AT), line('pit_panic', 'pit', MIA.PANIC_AT), line('mia_announce_1', 'mia', MIA.ANNOUNCE_AT), line('pit_reply', 'pit', MIA.REPLY_AT), line('mia_announce_2', 'mia', MIA.ANNOUNCE2_AT), line('mia_announce_3', 'mia', MIA.ANNOUNCE3_AT)]
+
+/** Счёт финала по блокам (английские слова, потом русские): блок со смещением offset (номер его первого слова в общем счёте) считается заново, прежние блоки остаются; total — всего слов к концу блока */
+const silentBlock = (m, stage) => {
+  const off = stage.offset ?? 0, len = stage.words?.length ?? 0, keepOld = o => Object.fromEntries(Object.entries(o ?? {}).filter(([k]) => Number(k) < off))
+  return off ? { total: off + len, won: keepOld(m.won), failed: keepOld(m.failed), dug: keepOld(m.dug), keep: false } : { total: len, won: {}, failed: {}, dug: {}, redWins: 0, reds: 0, keep: false }
+}
 
 export function reduceMia(m, ev) {
   const { t, stage, now = 0 } = ev
@@ -30,7 +36,8 @@ export function reduceMia(m, ev) {
       // повторный вход в ту же стадию (пауза и «Продолжить», перезапуск ступени): церемония начинается заново — реплики снова в очереди, коробка падает снова (раньше такой вход ничего не делал: оба молчали, пример не шёл)
       return { mia: { ...m, phase: 'in', act: stage.act, used: { ...m.used, [stage.act]: true }, streak: 0, wins: 0, seq: m.seq + 1, at: now + (stage.dropAt ?? MIA.DROP_AT), why: '', fast: false, jump: stage.jumpAt ?? null, total: 0, won: {}, reds: 0, redWins: 0, failed: {}, dug: {}, keep: false }, say: stage.script === 'boss' ? bossCeremony() : ceremony(), boost: null }
     }
-    if (stage?.mia === 'round') return m.phase === 'in' && m.act === stage.act ? { mia: m.fast && (!stage.silent || m.total === stage.words?.length) ? m : { ...m, fast: true, ...(stage.silent ? { total: stage.words?.length ?? 0, won: {}, failed: {}, dug: {}, redWins: 0, reds: 0, keep: false } : {}) }, say: [], boost: stage.noBoost ? null : MIA.BOOST } : none(m) // круг с Мией: дорожка быстрее и меняет цвет (fast) — с этого круга, а не с церемонии
+    if (stage?.mia === 'round') return m.phase === 'in' && m.act === stage.act ? { mia: m.fast && (!stage.silent || m.total === (stage.offset ?? 0) + (stage.words?.length ?? 0)) ? m : { ...m, fast: true, ...(stage.silent ? silentBlock(m, stage) : {}) }, say: [], boost: stage.noBoost ? null : MIA.BOOST } : none(m) // круг с Мией: дорожка быстрее и меняет цвет (fast) — с этого круга, а не с церемонии
+    if (stage?.mia === 'hold') return m.phase === 'in' && m.act === stage.act ? { mia: m, say: stage.say ? [line(stage.say, 'mia')] : [], boost: null } : none(m) // служебная стадия внутри эпизода (финал: переключение слуха между блоками): Мия остаётся, говорит свою реплику
     if (stage?.mia === 'end') { // конец финала (стадия boss-end перед итогом): красных меньше пяти — Мия уходит с коробкой, пять и больше — Пит остаётся внутри до следующей встречи (коробка и Мия на сцене, пока Мия и Пит говорят)
       if (m.phase !== 'in' || m.act !== 'boss') return none(m)
       const { won, reds, keep } = bossEnd(m) // красные — все слова, кроме верно названных не в красной зоне (молчание и ошибки тоже красные, даже если события «не успел» не дошли)
@@ -43,17 +50,18 @@ export function reduceMia(m, ev) {
     return none(m)
   }
   if (stage?.mia !== 'round' || m.phase !== 'in') return none(m)
-  if (stage.silent) { // финал: Мия молчит, говорит шкала. Копим: верно названные слова (win по номеру), красные ответы (zone), ошибки / «не успел» (miss / fail) — итог красных считается на эпилоге
+  if (stage.silent) {
+    const gi = (ev.idx ?? 0) + (stage.offset ?? 0) // номер слова в общем счёте финала (у второго блока — со смещением) // финал: Мия молчит, говорит шкала. Копим: верно названные слова (win по номеру), красные ответы (zone), ошибки / «не успел» (miss / fail) — итог красных считается на эпилоге
     if (t === 'win') { // верный ответ: Мия иногда подкалывает (как в обычном круге: на второй верный подряд и на каждый третий ответ), даже когда слово названо в красной зоне
       const streak = m.streak + 1, wins = m.wins + 1
       const say = streak === 2 ? [line('mia_streak2', 'mia')] : wins % MIA.OK_EVERY === 1 ? [line(variantOf('mia_ok', m.hits + 1), 'mia')] : []
-      return { mia: { ...m, won: { ...m.won, [ev.idx]: true }, streak, wins, hits: say.length && streak !== 2 ? m.hits + 1 : m.hits }, say, boost: null }
+      return { mia: { ...m, won: { ...m.won, [gi]: true }, streak, wins, hits: say.length && streak !== 2 ? m.hits + 1 : m.hits }, say, boost: null }
     }
     if (t === 'zone') return { mia: { ...m, redWins: m.redWins + (ev.zone === 'slow' ? 1 : 0) }, say: [], boost: null }
     if (t === 'miss' || t === 'fail') { // miss — слово сказано неверно (пилюля ещё едет, ученик может поправиться: только красный счёт); fail — пилюля ушла: Пит говорит верное слово (директор), следом Мия коротко подкалывает (через MISS_AT, Пит успевает начать; она ждёт, пока он договорит), и только потом новое слово; на слово — одна колкость
-      const dig = t === 'fail' && !m.dug?.[ev.idx], failed = { ...m.failed, [ev.idx]: true }
+      const dig = t === 'fail' && !m.dug?.[gi], failed = { ...m.failed, [gi]: true }
       const say = dig ? [{ ...line(variantOf('mia_miss', m.hits + 1), 'mia'), delay: BOSS.MISS_AT }] : []
-      return { mia: { ...m, streak: 0, hits: dig ? m.hits + 1 : m.hits, dug: dig ? { ...m.dug, [ev.idx]: true } : m.dug, failed, reds: Object.keys(failed).length + m.redWins }, say, boost: null }
+      return { mia: { ...m, streak: 0, hits: dig ? m.hits + 1 : m.hits, dug: dig ? { ...m.dug, [gi]: true } : m.dug, failed, reds: Object.keys(failed).length + m.redWins }, say, boost: null }
     }
     return none(m)
   }

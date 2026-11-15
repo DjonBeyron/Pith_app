@@ -46,15 +46,18 @@ describe('финал в стадиях гонки', () => {
     const st = stages(), i = st.findIndex(x => x.sid === 'boss-ann')
     expect(st[i]).toMatchObject({ type: 'announce', mia: 'ann', always: true, line: null, act: 'boss', script: 'boss' }); expect(st[i].waitCap).toBeGreaterThan(30000); expect(st[i]).toMatchObject({ count: 'after', soft: true })
     expect(st[i + 1]).toMatchObject({ type: 'student', sid: 'boss', mia: 'round', noBoost: true, noLeave: true }); expect(st[i + 1].step).toMatchObject({ wide: true, overlap: false }); expect(st[i + 1].step.reps.every(r => r.lane === 1)).toBe(true)
-    expect(st[i + 2]).toMatchObject({ type: 'announce', sid: 'boss-end', mia: 'end', always: true, line: null }); expect(st[i + 3].type).toBe('summary') // эпилог на сцене с коробкой, потом итог
+    expect(st[i + 2]).toMatchObject({ type: 'announce', sid: 'boss-sw', switchTo: 'ru', mia: 'hold', say: 'boss_mia_ru', count: false }) // между блоками: слух → русский, Мия говорит, что теперь по-русски
+    expect(st[i + 3]).toMatchObject({ type: 'student', sid: 'boss2', mia: 'round', silent: true }); expect(st[i + 3].step.lang).toBe('ru')
+    expect(st[i + 4]).toMatchObject({ type: 'announce', sid: 'boss-end', mia: 'end', always: true, line: null }); expect(st[i + 5].type).toBe('summary') // эпилог на сцене с коробкой, потом итог
   })
   it('в «Тапаю» финала нет', () => { expect(buildRaceStages({ plan, tap: true, ru: true }).stages.some(x => x.act === 'boss')).toBe(false) })
   it('bossFill вписывает слабые слова этой игры; мало слов — empty, и nextIdx обходит финал (miaSkip: always)', () => {
     const st = stages(), i = st.findIndex(x => x.sid === 'boss-ann'), r = st[i + 1]
     const sp = st.find(x => x.sid === 'sprint'); const s = initRace(); s.sprint = { ...s.sprint, words: sp.words.map(w => w.text), results: { 0: { hit: false } } }
-    expect(bossFill(st, s, 3)).toBe(i); expect(r.words.map(w => w.text)).toContain(sp.words[0].text); expect(r.step.reps).toHaveLength(r.words.length); expect(st[i].empty).toBe(false)
+    expect(bossFill(st, s, 3)).toBe(i); const all = [...r.words, ...st[i + 3].words]; expect(all.map(w => w.text)).toContain(sp.words[0].text); expect(r.step.reps).toHaveLength(r.words.length); expect(st[i].empty).toBe(false)
+    expect(r.words.length).toBe(Math.ceil(all.length / 2)); expect(st[i + 3].offset).toBe(r.words.length); expect(st[i + 3].step.lang).toBe('ru'); expect(st[i + 3].step.chunks).toEqual(st[i + 3].words.map(w => w.translation)) // половина английских слов, вторая половина — русские: цель — перевод
     expect(miaSkip(st, i, { phase: 'off' })).toBe(i)
-    st[i].empty = r.empty = st[i + 2].empty = true; expect(miaSkip(st, i, { phase: 'off' }, j => j)).toBe(i + 3) // мало слов — обходятся церемония, круг и эпилог
+    st[i].empty = r.empty = st[i + 2].empty = st[i + 3].empty = st[i + 4].empty = true; expect(miaSkip(st, i, { phase: 'off' }, j => j)).toBe(i + 5) // мало слов — обходятся церемония, оба круга, переключение и эпилог
   })
 })
 

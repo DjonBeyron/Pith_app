@@ -10,13 +10,14 @@ import { createSwitcher } from './raceSwitch.js'
 export function useRaceSwitch({ on, running, stages }) {
   const [sw] = useState(() => createSwitcher({ en: voskRuntime, ru: voskRuntimeRu, log: m => pLog(`[race] ${m}`) }))
   const target = on ? running?.switchTo : undefined
-  const sid = running?.sid
+  const sid = running?.sid, actNow = running?.act
+  const ruStage = running?.step?.lang === 'ru' || running?.switchTo === 'ru' // русский блок финала («экзамен») идёт не в проходе B: английскую не возвращаем, пока он идёт
   useEffect(() => {
-    if (target === 'ru') sw.toRu().then(r => { if (!r.ok) stages.find(x => x.demote)?.demote() })
+    if (target === 'ru') sw.toRu().then(r => { if (!r.ok) (stages.find(x => x.demote && x.act === actNow) ?? stages.find(x => x.demote))?.demote() })
     else if (target === 'en') sw.toEn('перед вершиной')
-  }, [target, sid, sw, stages])
+  }, [target, sid, sw, stages, actNow])
   const act = on ? running?.act : undefined
-  useEffect(() => { if (act && act !== 'catch' && sw.state() === 'ru') sw.toEn('русский проход закончен') }, [act, sid, sw])
+  useEffect(() => { if (act && act !== 'catch' && !ruStage && sw.state() === 'ru') sw.toEn('русский проход закончен') }, [act, sid, sw, ruStage])
   useEffect(() => () => { if (sw.state() !== 'en') sw.toEn('выход из игры') }, [sw])
   return sw
 }

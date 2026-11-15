@@ -80,7 +80,7 @@ export default function WordLaneGame({ cfg, audioSrc, lines: rawLines = null, fo
   const debug = isWordLaneDebug()
   const bossReveal = useBossReveal(f.rh.miaTalk) // шкала на церемонии появляется на словах «видите шкалу», а не с начала реплики
   const miaDropped = useMiaDrop(f.rh.mia?.mia) // финал: дорожки желтеют с момента, когда коробка падает на Пита
-  const bossLive = f.rh.on && f.stage === 'run' && ['boss-ann', 'boss'].includes(f.stageObj?.sid) // финал «Шкала памяти»: шкала живёт на церемонии Мии и в круге
+  const bossLive = f.rh.on && f.stage === 'run' && ['boss-ann', 'boss', 'boss-sw', 'boss2'].includes(f.stageObj?.sid) // финал «Шкала памяти»: шкала живёт на церемонии Мии и в круге
   const race = cfg.plan?.game === 'race' // гонка: подсказки «Тап вместо речи» над дорожкой нет (тап выбирается плашкой «Говорю / Тапаю» до старта), фон с узором, верхняя панель вместо крестика
   const trio = useMemo(() => (race && trioFor({ tap: tapMode, stage: f.stageObj }) ? trioCtx(cfg.plan, f.stageObj) : null), [race, tapMode, f.stageObj, cfg.plan]) // «Тапаю»: «Разгон» и «Слушай и лови» — три пилюли на слово (raceTapTrio.js); решается на старте ступени
   const dodge = race && !tapMode && !f.stageObj?.step?.tapOnly && !['climb', 'descent'].includes(f.stageObj?.act) // «Говорю»: Пит под пилюлей и уворачивается (pitrace/raceDodge.js); тап, вершина и спуск — без уворота
@@ -92,7 +92,7 @@ export default function WordLaneGame({ cfg, audioSrc, lines: rawLines = null, fo
         <WordLaneCat apiRef={catApi} />
         <WordLanePills scene={f.scene} levels={f.levels} fx={f.fx} live={f.live} sceneApi={f.sceneApi} visible={showSlots} armed={armed} speed={speed} paused={f.paused} speedKey={f.stage === 'run' ? f.idx : -1} trio={trio} dodge={dodge} onLane={phase === 'order' || (phase === 'discern' && !f.stageObj?.speak) || ((tapMode || f.stageObj?.step?.tapOnly) && (phase === 'student' || f.stageObj?.speak)) ? laneTap : null} />
         <WordLaneXp apiRef={f.xpApi} />
-        {race && <RaceBossScale live={bossLive} show={f.stageObj?.type === 'student' || bossReveal} flash={flashOf(f.rh.miaTalk)} demo={f.stageObj?.sid === 'boss-ann' ? f.rh.miaDemo : null} word={f.stages?.find(x => x.sid === 'boss')?.words?.[0]?.translation ?? ''} paused={f.paused} onZone={f.rh.boss?.zone} />}
+        {race && <RaceBossScale live={bossLive} show={f.stageObj?.type === 'student' || bossReveal || f.stageObj?.sid === 'boss-sw'} flash={flashOf(f.rh.miaTalk)} demo={f.stageObj?.sid === 'boss-ann' ? f.rh.miaDemo : null} word={f.stages?.find(x => x.sid === 'boss')?.words?.[0]?.translation ?? ''} paused={f.paused} onZone={f.rh.boss?.zone} />}
         {race && f.rh.mia && <RaceMia mia={f.rh.mia.mia} caption={f.rh.miaCap} talk={f.rh.miaTalk} alarm={f.rh.miaAlarm} paused={f.paused} />}
         {single
           ? <div className="wlWord" style={{ top: `${WORD_Y}%` }} data-testid="wl-word">{cfg.chunks[0]}</div>

@@ -113,7 +113,7 @@ describe('финал: колкость после ошибки, порог «б�
   })
   it('Пит говорит верное слово, когда пилюля ушла (после ошибки тоже: ученик успевает поправиться), один раз на слово; линия шкалы упирается в левую полосу конвейера; колонки без жёлтой заливки', () => {
     const src = readFileSync(new URL('../useRaceActs.js', import.meta.url), 'utf8')
-    expect(src).toContain("if (kind === 'fail' && running.act === 'boss') { sayCorrect(info?.idx); redAlarm() }"); expect(src).toContain("if (kind === 'miss' && running.act === 'boss') redAlarm()"); expect(src).toContain('toldRef.current !== idx')
+    expect(src).toContain("if (kind === 'fail' && running.act === 'boss') { sayCorrect(info?.idx); redAlarm() }"); expect(src).toContain("if (kind === 'miss' && running.act === 'boss') redAlarm()"); expect(src).toContain('toldRef.current !== `${running.sid}:${idx}`')
     expect(readFileSync(new URL('./RaceBossScale.jsx', import.meta.url), 'utf8')).toContain("setProperty('--bl'")
     expect(readFileSync(new URL('../../../styles/player/modules/race-boss.css', import.meta.url), 'utf8')).toMatch(/\.wlBossLine \{[^}]*left: var\(--bl, 0px\)/)
   })
@@ -135,5 +135,42 @@ describe('комментарии 2026-11-15 (v3.3.256): уход Мии, пау�
     expect(gateReason({ scores: sc([false, false, false, true]), current: 'from', curHit: true, tail: 0 })).toBeNull()
     expect(gateReason({ scores: sc([false, true, true, true]), current: 'are you from', curHit: true, tail: 0 })).toBe('ends')
     expect(gateReason({ scores: sc([false, true]), current: 'you', curHit: true, tail: 0 })).toBe('ends') // фраза из двух слов
+  })
+})
+
+describe('экзамен: слова блоками (английские, потом русские), счёт по блокам', () => {
+  const round1 = { mia: 'round', silent: true, act: 'boss', sid: 'boss', offset: 0, words: [1, 2, 3].map(i => ({ text: 'w' + i })) }
+  const round2 = { mia: 'round', silent: true, act: 'boss', sid: 'boss2', offset: 3, words: [4, 5, 6].map(i => ({ text: 'w' + i })) }
+  it('второй блок не сбрасывает первый: итог по общему счёту (6 слов), номера слов блока 2 — со смещением', async () => {
+    const { reduceMia, miaInit, bossEnd } = await import('../mia/raceMia.js')
+    let m = reduceMia({ ...miaInit(), phase: 'in', act: 'boss' }, { t: 'enter', stage: round1 }).mia
+    m = reduceMia(m, { t: 'win', stage: round1, idx: 0 }).mia; m = reduceMia(m, { t: 'fail', stage: round1, idx: 1 }).mia
+    expect(m.total).toBe(3)
+    const hold = reduceMia(m, { t: 'enter', stage: { mia: 'hold', act: 'boss', say: 'boss_mia_ru' } })
+    expect(hold.mia).toBe(m); expect(hold.say.map(c => c.id)).toEqual(['boss_mia_ru']) // Мия остаётся и говорит про русские слова
+    m = reduceMia(m, { t: 'enter', stage: round2 }).mia
+    expect(m.total).toBe(6); expect(Object.keys(m.won)).toEqual(['0']) // первый блок на месте
+    m = reduceMia(m, { t: 'win', stage: round2, idx: 0 }).mia
+    expect(Object.keys(m.won).sort()).toEqual(['0', '3']) // слово 0 второго блока — номер 3 в общем счёте, с первым не путается
+    expect(bossEnd(m)).toMatchObject({ won: 2, reds: 4, keep: true }) // из 6 слов красных 4 — больше половины
+  })
+  it('Мия не уходит на служебной стадии между блоками (обычная неМиина стадия отпустила бы её)', async () => {
+    const { reduceMia, miaInit, isMiaStage } = await import('../mia/raceMia.js')
+    expect(isMiaStage({ mia: 'hold' })).toBe(true)
+    const m = { ...miaInit(), phase: 'in', act: 'boss' }
+    expect(reduceMia(m, { t: 'enter', stage: { type: 'announce', act: 'boss', sid: 'boss-sw', mia: 'hold' } }).mia.phase).toBe('in')
+    expect(reduceMia(m, { t: 'enter', stage: { type: 'announce', act: 'boss', sid: 'x' } }).mia.phase).toBe('out')
+  })
+  it('слух: русский блок финала не возвращает английскую модель, пока идёт; русская не загрузилась — блок идёт по-английски', () => {
+    const sw = readFileSync(new URL('../useRaceSwitch.js', import.meta.url), 'utf8'), st = readFileSync(new URL('./raceStagesBoss.js', import.meta.url), 'utf8')
+    expect(sw).toContain("act !== 'catch' && !ruStage && sw.state() === 'ru'"); expect(sw).toContain('x.demote && x.act === actNow')
+    expect(st).toContain('demote()'); expect(st).toContain("lang: 'ru'")
+  })
+})
+
+describe('пауза смены языка длится, пока Мия объявляет', () => {
+  it('holdMs служебной стадии = реплика Мии + отступ (не меньше SWITCH_MS); переключение слуха идёт в это время', () => {
+    const src = readFileSync(new URL('../useRaceActs.js', import.meta.url), 'utf8')
+    expect(src).toContain("if (st?.mia === 'hold') return Math.max(st.ms ?? 0, st.say ? mspeech.msOf(st.say) + GAP_MS + 300 : 0)")
   })
 })

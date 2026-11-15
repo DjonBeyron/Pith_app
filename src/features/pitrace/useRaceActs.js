@@ -121,8 +121,8 @@ export function useRaceActs(args) {
   }, [mb, mspeech])
 
   const redAlarm = useCallback(() => setMiaAlarm(a => ({ key: (a?.key ?? 0) + 1 })), [])
-  const toldRef = useRef(-1) // слово, верный ответ которого Пит уже сказал (ошибка и «не успел» на одном слове — один раз)
-  const sayCorrect = idx => { const w = running?.act === 'boss' && running.type === 'student' && toldRef.current !== idx ? running.words?.[idx]?.text : null; if (w) { toldRef.current = idx; sayRef.current.sayText?.(w, { hold: true }) } } // верно названное слово Пит не повторяет; не названное / ошибочное — произносит верное (текста на экране нет). Финал: Пит произносит верный ответ (подписи нет) и держится «занятым» до конца — следующая пилюля выезжает после него
+  const toldRef = useRef('') // слово (стадия:номер), верный ответ которого Пит уже сказал (ошибка и «не успел» на одном слове — один раз)
+  const sayCorrect = idx => { const w = running?.act === 'boss' && running.type === 'student' && toldRef.current !== `${running.sid}:${idx}` ? running.words?.[idx] : null; if (w) { toldRef.current = `${running.sid}:${idx}`; if (running.step?.lang === 'ru') sayRef.current.sayText?.(w.translation, { ru: true, hold: true }); else sayRef.current.sayText?.(w.text, { hold: true }) } } // русский блок: верный ответ — перевод // верно названное слово Пит не повторяет; не названное / ошибочное — произносит верное (текста на экране нет). Финал: Пит произносит верный ответ (подписи нет) и держится «занятым» до конца — следующая пилюля выезжает после него
 
   // Прыжок директора на стадию i (промах ступени, время вышло): стадия перезапускается с новой отметкой времени
   const jump = useCallback(i => { if (i >= 0) setS(p => ({ ...p, stage: 'run', idx: i, at: performance.now(), hint: [], leaving: -1 })) }, [setS])
@@ -198,6 +198,7 @@ export function useRaceActs(args) {
     ...rh, result, race: view, mia: miaView, miaCap, miaTalk, miaDemo, miaAlarm, nextIdx,
     boss: { zone: z => { miaEvent({ t: 'zone', zone: z, stage: running }); if (z === 'slow') redAlarm() } }, // zone — слово отыграно в зоне // финал «Шкала памяти»: слово отыграно в зоне (шкала → машина Мии: пять красных — Пит остаётся внутри)
     holdMs: st => { // эпилог финала кончается, когда договорили Мия и Пит (а не через фиксированные 11 с: после «Тут темно и тесно…» все молчало): реплика Мии + Пит (его реплика стоит с задержкой) + хвост, не дольше st.ms
+      if (st?.mia === 'hold') return Math.max(st.ms ?? 0, st.say ? mspeech.msOf(st.say) + GAP_MS + 300 : 0) // между блоками экзамена стадия длится, пока Мия объявляет смену языка: за это время слух успевает переключиться на русскую модель (≈2 с)
       if (st?.mia !== 'end') return rh.holdMs(st)
       const keep = bossEnd(mb.m).keep, [a, p, d] = keep ? ['boss_mia_keep', 'boss_pit_keep', 3200] : ['boss_mia_free', 'boss_pit_free', 2800]
       return Math.min(st.ms, Math.max(2500, Math.max(d, mspeech.msOf(a) + GAP_MS) + mspeech.msOf(p, 'pit') + 800))
@@ -215,8 +216,8 @@ export function useRaceActs(args) {
       const said = rep?.say ?? rep?.cap // проход A: Пит говорит перевод (rep.say); надпись пилюли (rep.cap) в тапе английская — её не озвучиваем (v3.3.127)
       const act = running?.act
       surface.run(e?.wait, () => { // e.wait — «Говорю»: Пит ещё ныряет / прыгает к дорожке этой пилюли; слово — когда он на месте (одна точка ожидания, журнал «[dodge] речь ждала…»)
-        if ((act === 'sprint' || act === 'boss') && said) speakTranslation(speech, o => sayRef.current.sayText?.(said, { ru: true, ...o }))
-        else if (act === 'catch' && rep?.say) speakTranslation(speech, o => sayRef.current.sayText?.(rep.say, { hold: true, ...o }))
+        if ((act === 'sprint' || (act === 'boss' && running?.step?.lang !== 'ru')) && said) speakTranslation(speech, o => sayRef.current.sayText?.(said, { ru: true, ...o }))
+        else if ((act === 'catch' || act === 'boss') && rep?.say) speakTranslation(speech, o => sayRef.current.sayText?.(rep.say, { hold: true, ...o }))
         else speech.translation(0) // говорить нечего: пилюля выезжает сразу
       })
     },
