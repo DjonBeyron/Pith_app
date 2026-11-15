@@ -29,6 +29,6 @@ describe('кнопка «Отправить в GitHub» с откликом на
   it('везде, где отправляются логи в GitHub, стоит эта кнопка: шестерёнка игры, итог «Встряхни память», админка', () => {
     expect(read('../../features/player/modules/rotate-phone/WordLaneHud.jsx')).toContain('<SendLogButton className="wlHudAct" send={sendJournalNow} onResult={setStatus}')
     expect(read('../../features/pitrace/RaceJournalLinks.jsx')).toContain('<SendLogButton className="raceJournalLink" label="В GitHub" stop send={sendJournalNow}')
-    expect(read('../../features/admin/AdminTab.jsx')).toContain('<SendLogButton label="📤 Отправить логи в GitHub" send={comment => sendLogs({ comment })} onResult={setSyncMsg} />')
+    expect(read('../../features/admin/AdminTab.jsx')).toContain('<SendLogButton label="📤 Отправить логи в GitHub" send={(comment, opts) => sendLogs({ comment, ...opts })} onResult={setSyncMsg} />')
   })
 })

@@ -11,15 +11,18 @@ export default function SendLogButton({ send, label = 'Отправить в Git
   const [st, setSt] = useState('idle') // idle | busy | ok | fail
   const [open, setOpen] = useState(false)
   const [draft, setDraft] = useState('')
+  const [withLogs, setWithLogs] = useState(true) // галочка «Отправить логи» — при открытии попапа всегда включена
+  const [append, setAppend] = useState(false)   // галочка «Дополнить» (копить в GitHub, не заменять)
   const timer = useRef(0)
   useEffect(() => () => clearTimeout(timer.current), [])
   const click = e => {
     if (stop) e.stopPropagation()
-    if (st !== 'busy') setOpen(true)
+    if (st === 'busy') return
+    setWithLogs(true); setAppend(false); setOpen(true)
   }
   const go = async () => {
     setOpen(false); clearTimeout(timer.current); setSt('busy')
-    const { msg, ok } = await runSend(send, draft.trim())
+    const { msg, ok } = await runSend(send, draft.trim(), { withLogs, append })
     if (ok) setDraft('')
     onResult?.(msg); setSt(ok ? 'ok' : 'fail')
     timer.current = setTimeout(() => setSt('idle'), ok ? SHOW_OK_MS : SHOW_FAIL_MS)
@@ -28,7 +31,7 @@ export default function SendLogButton({ send, label = 'Отправить в Git
   return (
     <>
       <button type="button" className={`sendLogBtn ${className}`.trim()} data-state={st} aria-busy={st === 'busy' || undefined} onClick={click} {...rest}>{text}</button>
-      {open && <SendLogPopup value={draft} onChange={setDraft} onSend={go} onCancel={() => setOpen(false)} />}
+      {open && <SendLogPopup value={draft} onChange={setDraft} withLogs={withLogs} onWithLogs={setWithLogs} append={append} onAppend={setAppend} onSend={go} onCancel={() => setOpen(false)} />}
     </>
   )
 }

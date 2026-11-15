@@ -84,7 +84,7 @@ Deno.serve(async (req) => {
   const denied = await requireAdmin(req);
   if (denied) return denied;
 
-  let body: { files?: { name?: string; text?: string }[]; version?: string };
+  let body: { files?: { name?: string; text?: string }[]; version?: string; append?: boolean };
   try { body = await req.json(); } catch { return json(400, { error: "Bad JSON" }); }
   const files = (body.files ?? []).filter((f) => typeof f?.text === "string" && f.text.length).slice(0, MAX_FILES);
   if (!files.length) return json(400, { error: "Нет файлов" });
@@ -110,9 +110,10 @@ Deno.serve(async (req) => {
   }
 
   // Новая отправка заменяет старую: прежние файлы logs/ (не прочитанные и не удалённые) убираем.
+  // append: true («Дополнить» в попапе) — ничего не убираем, комментарии копятся до «читай».
   // Сбой уборки отправку не ломает — просто останется лишнее.
   let removed = 0;
-  try {
+  if (body.append !== true) try {
     const list = await gh(`/contents/logs?ref=${BRANCH}`);
     const old = list.ok ? await list.json() : [];
     for (const f of Array.isArray(old) ? old : []) {

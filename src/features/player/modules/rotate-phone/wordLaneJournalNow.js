@@ -25,6 +25,6 @@ export async function copyJournalNow() {
 }
 
 /** «Отправить в GitHub» → что сказать человеку (комментарий из попапа + журнал с шапкой + дебаг + последний выгруженный файл) */
-export async function sendJournalNow(comment = '') {
-  try { return await sendLogs({ journal: journalNow(), comment }) } catch { return 'Не отправилось' }
+export async function sendJournalNow(comment = '', { withLogs = true, append = false } = {}) {
+  try { return await sendLogs({ journal: withLogs ? journalNow() : null, comment, withLogs, append }) } catch { return 'Не отправилось' }
 }

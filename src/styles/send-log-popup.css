@@ -8,3 +8,5 @@
 .sendLogPopRow { display: flex; gap: 10px; justify-content: flex-end; }
 .sendLogPopBtn { min-height: 40px; padding: 0 18px; border-radius: 10px; border: 1px solid rgba(255, 255, 255, 0.2); background: transparent; color: #fff; font: inherit; font-size: 15px; cursor: pointer; }
 .sendLogPopGo { background: #8b5cf6; border-color: #8b5cf6; font-weight: 700; }
+.sendLogPopCheck { display: flex; align-items: flex-start; gap: 8px; font-size: 14px; line-height: 1.3; cursor: pointer; }
+.sendLogPopCheck input { width: 20px; height: 20px; margin: 0; flex: none; accent-color: #8b5cf6; }

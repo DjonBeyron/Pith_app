@@ -43,10 +43,11 @@ export function commentFile(comment, at = new Date(), version = APP_VERSION) {
 }
 
 /** Что отправляем: комментарий (если есть) + journal (файл с шапкой, если есть) + строки дебага + последний выгруженный файл → [{ name, text }] */
-export async function collectLogs({ journal = null, journalSrc = gameJournal, debugLines = getDebugLines(), last = lastFile, at = new Date(), comment = '' } = {}) {
+export async function collectLogs({ journal = null, journalSrc = gameJournal, debugLines = getDebugLines(), last = lastFile, at = new Date(), comment = '', withLogs = true } = {}) {
   const out = []
   const note = commentFile(comment, at)
   if (note) out.push(note)
+  if (!withLogs) return out.map(f => ({ name: f.name, text: fitText(f.name, f.text) })) // галочка «Отправить логи» снята — уходит только комментарий
   const jText = journal?.text ?? journalSrc.text([`Pithy — журнал игры, v${APP_VERSION}`])
   if (jText && jText.trim()) out.push({ name: journal?.name ?? journalFileName(at), text: jText })
   if (debugLines.length) out.push({ name: `pithy-debug-${at.toISOString().slice(0, 19).replace(/[:T]/g, '-')}.txt`, text: debugLines.join('\n') })
@@ -56,10 +57,10 @@ export async function collectLogs({ journal = null, journalSrc = gameJournal, de
 }
 
 /** Отправить файлы → строка для человека (не бросает) */
-export async function uploadLogs(files, { client = supabase, version = APP_VERSION } = {}) {
-  if (!files.length) return 'Нечего отправлять — журнал пуст'
+export async function uploadLogs(files, { client = supabase, version = APP_VERSION, append = false } = {}) {
+  if (!files.length) return 'Нечего отправлять — журнал пуст (или напиши комментарий)'
   try {
-    const { data, error } = await client.functions.invoke('send-log', { body: { files, version } })
+    const { data, error } = await client.functions.invoke('send-log', { body: { files, version, ...(append ? { append: true } : {}) } })
     if (error) {
       let msg = error.message || 'ошибка'
       try { const j = await error.context?.json?.(); if (j?.error) msg = j.error } catch { /* тело ответа не прочиталось */ }
@@ -69,7 +70,7 @@ export async function uploadLogs(files, { client = supabase, version = APP_VERSI
   } catch (e) { return `Не отправилось: ${e?.message ?? 'сеть'}` }
 }
 
-/** Собрать и отправить одним действием; journal — файл журнала с шапкой (необязательно), comment — комментарий из попапа (необязательно) */
+/** Собрать и отправить одним действием; journal — файл журнала с шапкой (необязательно), comment — комментарий из попапа (необязательно), withLogs: false — только комментарий, append: true — не заменять прежние файлы в GitHub (копить) */
 export async function sendLogs(opts = {}) {
   try { return await uploadLogs(await collectLogs(opts), opts) } catch (e) { return `Не отправилось: ${e?.message ?? 'ошибка'}` }
 }

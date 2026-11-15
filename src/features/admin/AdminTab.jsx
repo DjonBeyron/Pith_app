@@ -207,7 +207,7 @@ function AdminPanel() {
           {debugOn ? '🐞 Дебаг включён' : 'Активировать дебаг'}
         </button>
         <button onClick={downloadLog}>⬇ Скачать лог</button>
-        <SendLogButton label="📤 Отправить логи в GitHub" send={comment => sendLogs({ comment })} onResult={setSyncMsg} />
+        <SendLogButton label="📤 Отправить логи в GitHub" send={(comment, opts) => sendLogs({ comment, ...opts })} onResult={setSyncMsg} />
         <button onClick={load} disabled={loading || syncing}>Обновить список</button>
       </div>
 
