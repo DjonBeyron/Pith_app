@@ -89,7 +89,7 @@ describe('финал: сценарий Мии, красные слова, «ос
     let m = reduceMia(start().mia, { t: 'enter', stage: round }).mia
     expect(m).toMatchObject({ total: 6, won: {}, redWins: 0 })
     expect(reduceMia(m, { t: 'win', stage: round, idx: 0 }).say.map(c => c.id)[0]).toMatch(/^mia_ok/) // верный ответ: Мия подкалывает (первый и каждый третий)
-    expect(reduceMia(m, { t: 'miss', stage: round, idx: 0 }).say.map(c => c.id)[0]).toMatch(/^mia_miss/) // ошибка: короткая колкость Мии
+    expect(reduceMia(m, { t: 'miss', stage: round, idx: 0 }).say).toEqual([]); expect(reduceMia(m, { t: 'fail', stage: round, idx: 0 }).say.map(c => c.id)[0]).toMatch(/^mia_miss/) // колкость — когда пилюля ушла
     const w1 = reduceMia(m, { t: 'win', stage: round, idx: 0 }).mia; expect(reduceMia(w1, { t: 'win', stage: round, idx: 1 }).say.map(c => c.id)).toEqual(['mia_streak2']); expect(reduceMia(w1, { t: 'fail', stage: round, idx: 1 }).mia.streak).toBe(0)
     m = reduceMia(m, { t: 'fail', stage: round, idx: 0 }).mia; m = reduceMia(m, { t: 'miss', stage: round, idx: 0 }).mia
     expect(m.reds).toBe(1)

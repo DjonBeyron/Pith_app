@@ -25,7 +25,7 @@ import { plateCaption } from './raceSilentLine.js'
 import { createTransChron } from './raceTransChron.js'
 import { PHRASE_EXIT_MS } from './raceStagesPhrases.js'
 import { plateText } from '../player/modules/rotate-phone/wordLanePlateText.js'
-import { reduceMia, makeMiaBox, applyMia, miaStays, bossEnd, keepNeed, BOSS } from './mia/raceMia.js'
+import { reduceMia, makeMiaBox, applyMia, miaStays, bossEnd, keepNeed, BOSS, MIA } from './mia/raceMia.js'
 import { miaOn } from './mia/miaConfig.js'
 import { createMiaSpeech, GAP_MS } from './mia/miaSpeech.js'
 import { audioPulse } from '../../shared/lib/gameAudioPulse.js'
@@ -176,6 +176,7 @@ export function useRaceActs(args) {
     return () => clearTimeout(t)
   }, [on, running, plan, box, mb])
 
+  const miaComesNext = st => miaOn() && /^(sprint|catch)$/.test(st?.act ?? '') && st?.type === 'student' && /^(sprint|catch)2-ann$/.test(stages[(st.idx ?? -9) + 1]?.sid ?? '') && !Object.values(mb.m.used).some(Boolean) // за кругом 1 прохода идёт плашка круга 2, и Мия в этой игре ещё не была — вместо неё придёт она
   const baseNext = rh.nextIdx // стабильна (useCallback в useRehearsalActs): на ней держится next директора
   const seed = plan?.seed
   const nextIdx = useCallback(i => { // после круга 1 со слабыми словами вместо круга 2 — церемония Мии (miaRoute), стадии Мии вне эпизода обходит miaSkip
@@ -185,6 +186,13 @@ export function useRaceActs(args) {
     const to = miaOn() ? miaRoute(stages, r, mb.m, seed) : -1
     return to >= 0 ? to : miaSkip(stages, r, mb.m, baseNext)
   }, [on, stages, box, baseNext, seed, mb])
+  // Мия ушла после трёх верных подряд: круг с Мией кончен — Пит идёт к следующему этапу, а не доигрывает слова круга (владелец 2026-11-15: «не продолжать эту итерацию, а начинать следующую»)
+  const leftByWin = on && miaView.mia.phase === 'out' && miaView.mia.why === 'win' && running?.mia === 'round' && !running.silent
+  useEffect(() => {
+    if (!leftByWin) return undefined
+    const t = setTimeout(() => { pLog('[mia] Мия ушла после трёх верных — круг кончен, идём к следующему этапу'); jump(nextIdx(running.idx + 1)) }, MIA.LEAVE_JUMP_MS)
+    return () => clearTimeout(t)
+  }, [leftByWin, running, at, nextIdx, jump])
   if (!on) return rh
   return {
     ...rh, result, race: view, mia: miaView, miaCap, miaTalk, miaDemo, miaAlarm, nextIdx,
@@ -194,7 +202,7 @@ export function useRaceActs(args) {
       const keep = bossEnd(mb.m).keep, [a, p, d] = keep ? ['boss_mia_keep', 'boss_pit_keep', 3200] : ['boss_mia_free', 'boss_pit_free', 2800]
       return Math.min(st.ms, Math.max(2500, Math.max(d, mspeech.msOf(a) + GAP_MS) + mspeech.msOf(p, 'pit') + 800))
     },
-    exitMs: st => (st?.act === 'phrases' ? PHRASE_EXIT_MS : undefined), // круг фраз кончился: до следующей стадии PHRASE_EXIT_MS, а не 1,3 с (Пит уже договорил итог хода)
+    exitMs: st => (st?.act === 'phrases' ? PHRASE_EXIT_MS : miaComesNext(st) ? MIA.EXIT_MS : undefined), // перед церемонией Мии пауза короче: тишина между кругами и падение коробки тянулись слишком долго (владелец 2026-11-15); // круг фраз кончился: до следующей стадии PHRASE_EXIT_MS, а не 1,3 с (Пит уже договорил итог хода)
     plate: st => plateText(st, plateCaption(lines, st?.line)), // неозвученная реплика стадии — подписью на плашке (raceSilentLine.js)
     /** Слово прохода A / B принято (раньше, чем щёлкнет заливка): время ответа ms (от выезда пилюли) и y (положение пилюли, % высоты: ниже LATE_Y — ответ «в последний момент») — в результаты, и для точности слова (raceAccuracy.js) — окно жизни пилюли по её скорости, заливка голосом в миг зачёта, тап ли это; Пит говорит мини-реплику успеха, следующая пилюля ждёт его */
     claim(rep, ms, y) { if (!running) return; tr.last(); if (ruOn) ruLog(rep, 'claim', rep?.pills?.[0]?.p); praiseRef.current = null; apply({ t: 'claim', stage: running, info: { idx: rep?.idx, ms, late: isLate(y), life: pillLifeMs(rep?.speed), fill: rep?.pills?.[0]?.p, tap: !!running.step?.tapOnly } }); speech.claim(praiseRef.current); praiseRef.current = null },
@@ -223,7 +231,8 @@ export function useRaceActs(args) {
       if (kind === 'win' && info?.last !== false) speech.riseStart() // пилюля взлетает: с этого мгновения идёт задержка похвалы
       if (ruOn && kind === 'miss') ru.miss(listenerRef?.current?.heard?.())
       if (ruOn && kind === 'fail') ruLog(info, 'fail', info?.peak)
-      if ((kind === 'fail' || kind === 'miss') && running.act === 'boss') { sayCorrect(info?.idx); redAlarm() } // финал: слово не названо — Пит произносит верное, зрачки сжимаются
+      if (kind === 'miss' && running.act === 'boss') redAlarm() // финал: сказано неверно — зрачки сжимаются сразу, а верное слово Пит скажет, когда пилюля уйдёт (ученик успеет поправиться, Пит его не перебьёт)
+      if (kind === 'fail' && running.act === 'boss') { sayCorrect(info?.idx); redAlarm() } // финал: слово не названо (пилюля ушла) — Пит произносит верное, зрачки сжимаются // финал: слово не названо — Пит произносит верное, зрачки сжимаются
       if (kind === 'fail' && ['sprint', 'catch', 'boss'].includes(running.act)) speech.pillGone('missed') // «не успел»: отступ до перевода следующего слова
       if (takeoffOn(running, kind, info)) playTakeoffAfter(rewardMs(info?.order ?? 0)) // взлёт принятой пилюли: глиссандо ми → ля ПОСЛЕ ноты награды, а не вместе с ней (только ступени-очереди гонки)
       apply({ t: kind, stage: running, info: kind === 'miss' ? { ...info, heard: listenerRef?.current?.heard?.() ?? '' } : info }) // на промахе — что услышал Vosk: двойник слова ступени ломает ловушку

@@ -82,7 +82,7 @@ export const quietWanted = (got, wordByWord = false) => got === 'last' || (got =
 export function gateReason({ scores, current, curHit, tail, wordByWord = false }) {
   if (!current) return null
   const best = scores.reduce((a, b) => (b.ratio > a.ratio ? b : a), { ratio: -1, hits: [] })
-  if (curHit && best.hits.length > 1 && !!best.hits.at(-1)) return 'ends'
+  if (curHit && best.hits.length > 1 && !!best.hits.at(-1) && (best.hits.length < 3 || best.hits.filter(Boolean).length > 1)) return 'ends' // одно последнее слово длинной фразы («from» от «where are you from», начало потеряно) — не конец: итог по затвору не рвёт заход, заливка не прыгает на конец и не откатывается (журнал 2026-11-15: итог «from» за 150 мс после затвора)
   if (tail < TAIL_VOICE_MS) return null
   if (lastOnly(scores)) return 'last'
   return !wordByWord && halfWay(scores) ? 'half' : null

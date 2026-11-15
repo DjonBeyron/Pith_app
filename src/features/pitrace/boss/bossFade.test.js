@@ -94,14 +94,16 @@ describe('эпилог финала кончается, когда догово�
 })
 
 describe('финал: колкость после ошибки, порог «больше половины», линия у конвейера', () => {
-  it('ошибка / «не успел»: Мия коротко подкалывает один раз на слово, с задержкой (Пит успевает сказать верное слово)', async () => {
+  it('ошибка (miss): только красный счёт, без речи (ученик успеет поправиться); «пилюля ушла» (fail): Мия коротко подкалывает один раз на слово, с задержкой', async () => {
     const { reduceMia, miaInit, BOSS } = await import('../mia/raceMia.js')
     const stage = { mia: 'round', silent: true, act: 'boss', words: [1, 2, 3, 4, 5, 6].map(i => ({ text: 'w' + i })) }
-    let m = reduceMia({ ...miaInit(), phase: 'in', act: 'boss' }, { t: 'enter', stage }).mia
+    const m = reduceMia({ ...miaInit(), phase: 'in', act: 'boss' }, { t: 'enter', stage }).mia
     const a = reduceMia(m, { t: 'miss', stage, idx: 0 })
-    expect(a.say).toHaveLength(1); expect(a.say[0]).toMatchObject({ who: 'mia', delay: BOSS.MISS_AT }); expect(a.say[0].id).toMatch(/^mia_miss/)
-    expect(reduceMia(a.mia, { t: 'fail', stage, idx: 0 }).say).toEqual([]) // то же слово: вторая колкость не нужна
-    expect(reduceMia(a.mia, { t: 'fail', stage, idx: 1 }).say).toHaveLength(1)
+    expect(a.say).toEqual([]); expect(a.mia.reds).toBe(1)
+    const b = reduceMia(a.mia, { t: 'fail', stage, idx: 0 })
+    expect(b.say).toHaveLength(1); expect(b.say[0]).toMatchObject({ who: 'mia', delay: BOSS.MISS_AT }); expect(b.say[0].id).toMatch(/^mia_miss/); expect(b.mia.reds).toBe(1) // красных по-прежнему одно слово
+    expect(reduceMia(b.mia, { t: 'fail', stage, idx: 0 }).say).toEqual([]) // та же пилюля — вторая колкость не нужна
+    expect(reduceMia(b.mia, { t: 'fail', stage, idx: 1 }).say).toHaveLength(1)
   })
   it('Пит остаётся, когда красных БОЛЬШЕ ПОЛОВИНЫ слов (3–6 слов): 2 из 3, 3 из 4–5, 4 из 6; порог «пять» отменён', async () => {
     const { keepNeed, bossEnd } = await import('../mia/raceMia.js')
@@ -109,10 +111,29 @@ describe('финал: колкость после ошибки, порог «б�
     expect(bossEnd({ total: 6, won: { 0: 1, 1: 1 }, redWins: 0, reds: 0 })).toEqual({ won: 2, reds: 4, keep: true }) // назвал 2 из 6 — раньше (нужно было 5) Мия отпускала
     expect(bossEnd({ total: 6, won: { 0: 1, 1: 1, 2: 1 }, redWins: 0, reds: 0 })).toMatchObject({ reds: 3, keep: false })
   })
-  it('Пит говорит верное слово и после ошибки (miss), один раз на слово; линия шкалы упирается в левую полосу конвейера; колонки без жёлтой заливки', () => {
+  it('Пит говорит верное слово, когда пилюля ушла (после ошибки тоже: ученик успевает поправиться), один раз на слово; линия шкалы упирается в левую полосу конвейера; колонки без жёлтой заливки', () => {
     const src = readFileSync(new URL('../useRaceActs.js', import.meta.url), 'utf8')
-    expect(src).toContain("(kind === 'fail' || kind === 'miss') && running.act === 'boss'"); expect(src).toContain('toldRef.current !== idx')
+    expect(src).toContain("if (kind === 'fail' && running.act === 'boss') { sayCorrect(info?.idx); redAlarm() }"); expect(src).toContain("if (kind === 'miss' && running.act === 'boss') redAlarm()"); expect(src).toContain('toldRef.current !== idx')
     expect(readFileSync(new URL('./RaceBossScale.jsx', import.meta.url), 'utf8')).toContain("setProperty('--bl'")
     expect(readFileSync(new URL('../../../styles/player/modules/race-boss.css', import.meta.url), 'utf8')).toMatch(/\.wlBossLine \{[^}]*left: var\(--bl, 0px\)/)
+  })
+})
+
+describe('комментарии 2026-11-15 (v3.3.256): уход Мии, пауза перед коробкой, одно последнее слово фразы', () => {
+  it('Мия ушла после трёх верных — круг кончается, директор идёт к следующему этапу; перед церемонией пауза короче', () => {
+    const src = readFileSync(new URL('../useRaceActs.js', import.meta.url), 'utf8')
+    expect(src).toContain("miaView.mia.phase === 'out' && miaView.mia.why === 'win' && running?.mia === 'round' && !running.silent"); expect(src).toContain('jump(nextIdx(running.idx + 1))')
+    expect(src).toContain('miaComesNext(st) ? MIA.EXIT_MS : undefined')
+  })
+  it('константы: пауза перед Мией короче обычной (1,3 с), коробка падает быстрее (≤ 1,2 с)', async () => {
+    const { MIA } = await import('../mia/raceMia.js')
+    expect(MIA.EXIT_MS).toBeLessThan(1300); expect(MIA.DROP_AT).toBeLessThanOrEqual(1200); expect(MIA.LEAVE_JUMP_MS).toBeGreaterThan(800)
+  })
+  it('фраза: одно последнее слово длинной фразы не считается её концом (итог по затвору не рвёт заход); с двумя словами и в короткой фразе — как раньше', async () => {
+    const { gateReason } = await import('../racePhraseEarlyFinal.js')
+    const sc = hits => [{ ratio: 0.25, hits }]
+    expect(gateReason({ scores: sc([false, false, false, true]), current: 'from', curHit: true, tail: 0 })).toBeNull()
+    expect(gateReason({ scores: sc([false, true, true, true]), current: 'are you from', curHit: true, tail: 0 })).toBe('ends')
+    expect(gateReason({ scores: sc([false, true]), current: 'you', curHit: true, tail: 0 })).toBe('ends') // фраза из двух слов
   })
 })
