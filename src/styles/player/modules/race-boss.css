@@ -1,22 +1,34 @@
-/* Шкала финала «Шкала памяти» (features/pitrace/boss/RaceBossScale.jsx, прототип 2026-11-15): справа линейка — полупрозрачный фон зон (зелёная 45 %, жёлтая 35 %, красная 20 %) и риски цвета зоны, без цифр. Рамка .wlBossBox идёт
-   от верха ленты (под кнопками: верх пишет компонент) до низа с отступом под скругление экрана (safe-area + 40 px). Через всю ширину мягкая горизонтальная линия с растушёванными краями: мгновенно меняет цвет в зоне другого цвета.
-   На слова Мии о зонах зона мигает полупрозрачной заливкой (.wlBossFlash); пример-пилюля .wlBossDemo едет по линейке под её реплики (анимация top от --from до --to за --ms). Только transform / opacity / top пример-пилюли. */
+/* Шкала финала «Шкала памяти» (features/pitrace/boss/RaceBossScale.jsx, прототип 2026-11-15): справа линейка — тусклый полупрозрачный фон зон (зелёная 45 %, жёлтая 35 %, красная 20 %), тонкие риски цвета зоны, без цифр;
+   у верха зелёной и у низа красной зоны фон растушёван и чуть заходит за крайние риски. Рамка .wlBossBox идёт от верха ленты (под кнопками: верх пишет компонент) до низа с отступом под скругление экрана (safe-area + 40 px).
+   Через всю ширину тонкая линия — от «ствола» линейки (правая кромка зон) поверх рисок, слева растушёвана; цвет — зона, смена мгновенная. Пилюля, которую толкает линия (data-bz), красится в цвет зоны вместе с ней.
+   На объяснении Мии зона, о которой она говорит, мигает (.wlBossFlash на всю ширину и яркий фон полосы зоны); пример-пилюля .wlBossDemo едет ОДНОЙ скоростью (top −25 % → 100 % за --ms), цвет по зоне ступенями. */
 .wlStage > .wlBoss { inset: 0; pointer-events: none; z-index: 7; opacity: 0; transition: opacity 0.6s ease; }
 .wlStage > .wlBoss[data-show] { opacity: 1; }
 .wlBossBox { position: absolute; left: 0; right: 0; top: 0; bottom: calc(env(safe-area-inset-bottom, 0px) + 40px); }
-.wlBossZone[data-zone='fast'], .wlBossFlash[data-zone='fast'], .wlBossTick[data-zone='fast'], .wlBossLine[data-zone='fast'], .wlBossDemo[data-zone='fast'] { --zc: 120, 230, 150; }
-.wlBossZone[data-zone='mid'], .wlBossFlash[data-zone='mid'], .wlBossTick[data-zone='mid'], .wlBossLine[data-zone='mid'], .wlBossDemo[data-zone='mid'] { --zc: 255, 200, 70; }
-.wlBossZone[data-zone='slow'], .wlBossFlash[data-zone='slow'], .wlBossTick[data-zone='slow'], .wlBossLine[data-zone='slow'], .wlBossDemo[data-zone='slow'] { --zc: 255, 96, 80; }
-.wlBossZone { position: absolute; right: 4px; width: 30px; background: rgba(var(--zc), 0.18); border-right: 2px solid rgba(var(--zc), 0.55); }
-.wlBossTick { position: absolute; right: 6px; width: 9px; height: 0; border-top: 2px solid rgba(var(--zc), 0.85); }
-.wlBossTick[data-major] { right: 6px; width: 16px; border-top-width: 3px; border-top-color: rgb(var(--zc)); }
+.wlBossZone[data-zone='fast'], .wlBossFlash[data-zone='fast'], .wlBossTick[data-zone='fast'], .wlBossLine[data-zone='fast'] { --zc: 120, 230, 150; }
+.wlBossZone[data-zone='mid'], .wlBossFlash[data-zone='mid'], .wlBossTick[data-zone='mid'], .wlBossLine[data-zone='mid'] { --zc: 255, 200, 70; }
+.wlBossZone[data-zone='slow'], .wlBossFlash[data-zone='slow'], .wlBossTick[data-zone='slow'], .wlBossLine[data-zone='slow'] { --zc: 255, 96, 80; }
+.wlBossZone { position: absolute; right: 4px; width: 30px; background: rgba(var(--zc), 0.07); border-right: 2px solid rgba(var(--zc), 0.4); }
+.wlBossZone[data-zone='fast']::before, .wlBossZone[data-zone='slow']::after { content: ''; position: absolute; left: 0; right: 0; height: 22px; }
+.wlBossZone[data-zone='fast']::before { top: -22px; background: linear-gradient(to top, rgba(var(--zc), 0.07), rgba(var(--zc), 0)); }
+.wlBossZone[data-zone='slow']::after { bottom: -22px; background: linear-gradient(to bottom, rgba(var(--zc), 0.07), rgba(var(--zc), 0)); }
+.wlBossZone[data-flash] { animation: wlBossZoneBlink var(--flash-ms, 2000ms) ease-in-out 1 both; }
+@keyframes wlBossZoneBlink { 0%, 100% { filter: none; background-color: rgba(var(--zc), 0.07); } 15%, 40%, 65% { background-color: rgba(var(--zc), 0.5); } 28%, 52%, 80% { background-color: rgba(var(--zc), 0.18); } }
+.wlBossTick { position: absolute; right: 6px; width: 8px; height: 0; border-top: 1px solid rgba(var(--zc), 0.7); }
+.wlBossTick[data-major] { width: 15px; border-top-color: rgba(var(--zc), 0.95); }
 .wlBossFlash { position: absolute; left: 0; right: 0; background: rgba(var(--zc), 0.4); opacity: 0; animation: wlBossBlink var(--flash-ms, 2000ms) ease-in-out 1 both; }
 @keyframes wlBossBlink { 0%, 100% { opacity: 0; } 15%, 40%, 65% { opacity: 1; } 28%, 52%, 80% { opacity: 0.25; } }
-/* мягкая линия: тонкое ядро и растушёванные края (по ширине и свечение); цвет — зона, смена мгновенная (без transition) */
-.wlBossLine { position: absolute; left: 3%; right: 38px; top: 0; height: 3px; margin-top: -1.5px; border-radius: 2px; --lc: var(--zc, 120, 230, 150); background: linear-gradient(to right, rgba(var(--zc), 0), rgba(var(--zc), 1) 14%, rgba(var(--zc), 1) 86%, rgba(var(--zc), 0)); box-shadow: 0 0 5px 1px rgba(var(--zc), 0.6), 0 0 16px 4px rgba(var(--zc), 0.22); will-change: transform; }
-.wlBossLine[data-demo] { transform: none; animation: wlBossMove var(--ms, 2000ms) linear 1 both; }
+/* тонкая линия: идёт от ствола линейки (правая кромка зон, right: 4px) поверх рисок; слева растушёвана, справа — сплошная; свечение узкое */
+.wlBossLine { position: absolute; left: 3%; right: 4px; top: 0; height: 1.5px; margin-top: -0.75px; z-index: 2; background: linear-gradient(to right, rgba(var(--zc), 0), rgba(var(--zc), 1) 30%, rgba(var(--zc), 1)); box-shadow: 0 0 3px 0 rgba(var(--zc), 0.7), 0 0 9px 1px rgba(var(--zc), 0.25); will-change: transform; }
 .wlBossLine:not([data-demo]) { transition: opacity 0.35s ease; }
-.wlBossDemo { position: absolute; left: 11%; width: 78%; height: 56px; margin-top: -56px; box-sizing: border-box; display: flex; align-items: center; padding: 0 24px; border-radius: 999px; font-style: normal; font-size: clamp(14px, 4vw, 18px); font-weight: 600; color: #fff; background: rgba(40, 52, 36, 0.9); border: 2px solid rgba(var(--zc), 0.9); box-shadow: 0 0 12px rgba(var(--zc), 0.4); animation: wlBossMove var(--ms, 2000ms) linear 1 both; transition: opacity 0.5s ease; }
-.wlBossDemo[data-out] { opacity: 0; animation: none; top: 100%; }
-@keyframes wlBossMove { from { top: calc(var(--from, 0) * 100%); } to { top: calc(var(--to, 0) * 100%); } }
-@media (prefers-reduced-motion: reduce) { .wlBossFlash { animation-duration: 1ms; opacity: 0.25; } .wlStage > .wlBoss { transition: none; } }
+/* пример: одна анимация на всё объяснение (линейно), цвет — ступенями по зонам; линия появляется в миг касания (20 % пути) */
+.wlBossLine[data-demo] { --zc: 120, 230, 150; transform: none; animation: wlBossFall var(--ms, 13000ms) linear 1 both, wlBossHue var(--ms, 13000ms) linear 1 both, wlBossShow var(--ms, 13000ms) linear 1 both; }
+.wlBossDemo { position: absolute; left: 11%; width: 78%; height: 56px; margin-top: -56px; box-sizing: border-box; display: flex; align-items: center; padding: 0 24px; border-radius: 999px; font-style: normal; font-size: clamp(14px, 4vw, 18px); font-weight: 600; color: #fff; --zc: 120, 230, 150; background: linear-gradient(to bottom, rgba(var(--zc), 0.14), rgba(var(--zc), 0.04)), rgba(24, 30, 28, 0.92); border: 2px solid rgba(var(--zc), 0.9); box-shadow: inset 0 0 18px -6px rgba(var(--zc), 0.5); animation: wlBossFall var(--ms, 13000ms) linear 1 both, wlBossHue var(--ms, 13000ms) linear 1 both; }
+@keyframes wlBossFall { from { top: -25%; } to { top: 100%; } }
+@keyframes wlBossShow { 0%, 19.9% { opacity: 0; } 20%, 100% { opacity: 1; } }
+@keyframes wlBossHue { 0%, 55.9% { --zc: 120, 230, 150; } 56%, 83.9% { --zc: 255, 200, 70; } 84%, 100% { --zc: 255, 96, 80; } }
+/* пилюля финала под линией: цвет зоны (контур, внутренний свет, подпись-заливка) */
+.wlPill[data-wide][data-bz='fast'] { --c: rgb(120, 230, 150); --rgb: 120, 230, 150; }
+.wlPill[data-wide][data-bz='mid'] { --c: rgb(255, 200, 70); --rgb: 255, 200, 70; }
+.wlPill[data-wide][data-bz='slow'] { --c: rgb(255, 96, 80); --rgb: 255, 96, 80; }
+@media (prefers-reduced-motion: reduce) { .wlBossFlash { animation-duration: 1ms; opacity: 0.25; } .wlBossZone[data-flash] { animation: none; } .wlStage > .wlBoss { transition: none; } }

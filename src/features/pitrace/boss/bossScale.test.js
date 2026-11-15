@@ -1,5 +1,7 @@
 import { describe, it, expect } from 'vitest'
-import { ZONES, EDGES, TICKS, zoneAt, spanOf, trackStep, lineOn, HOLD_MS, DEMO_PATH, DEMO_CONVEYOR_SPEED, demoOf, flashOf } from './bossScale.js'
+import { readFileSync } from 'node:fs'
+import { ZONES, EDGES, TICKS, zoneAt, spanOf, trackStep, lineOn, HOLD_MS, DEMO_START, DEMO_FROM, DEMO_CONVEYOR_SPEED, flashOf } from './bossScale.js'
+import { BOSS } from '../mia/raceMia.js'
 import { conveyorSpeedHint } from '../../player/modules/rotate-phone/wordLaneConveyorSpeed.js'
 import { actArmedLanes } from '../../player/modules/rotate-phone/wordLaneConveyorStart.js'
 
@@ -42,16 +44,19 @@ describe('какую пилюлю толкает линия', () => {
   })
 })
 
-describe('пример при объяснении: пилюля едет под реплики Мии', () => {
-  it('отрезки пути по репликам: к верху шкалы, касание, зелёная, жёлтая, красная — границы совпадают с зонами, отрезки стыкуются', () => {
-    const ids = ['boss_mia_look', 'boss_mia_think', 'boss_mia_green', 'boss_mia_yellow', 'boss_mia_red']
-    ids.slice(1).forEach((id, i) => expect(DEMO_PATH[id][0]).toBe(DEMO_PATH[ids[i]][1])) // конец одного отрезка = начало следующего
-    expect(DEMO_PATH.boss_mia_look[1]).toBe(0) // к концу «видите шкалу справа» пилюля касается верха шкалы
-    expect(DEMO_PATH.boss_mia_green[1]).toBe(0.45); expect(DEMO_PATH.boss_mia_yellow[1]).toBe(0.8); expect(DEMO_PATH.boss_mia_red[1]).toBe(1)
+describe('пример при объяснении: пилюля едет ровно', () => {
+  it('одна ровная анимация на всё объяснение (13 с), старт с «видите шкалу справа?»; зоны отмечены ступенями на 20 / 56 / 84 % пути', () => {
+    expect(DEMO_START).toBe('boss_mia_look'); expect(BOSS.DEMO_MS).toBe(13000); expect(DEMO_FROM).toBe(-0.25)
+    const path = 1 - DEMO_FROM // длина пути в долях шкалы: от −0,25 до 1
+    expect((0 - DEMO_FROM) / path).toBeCloseTo(0.2, 9); expect((0.45 - DEMO_FROM) / path).toBeCloseTo(0.56, 9); expect((0.8 - DEMO_FROM) / path).toBeCloseTo(0.84, 9) // совпадает с keyframes race-boss.css
+    const css = readFileSync(new URL('../../../styles/player/modules/race-boss.css', import.meta.url), 'utf8')
+    expect(css).toContain('from { top: -25%; } to { top: 100%; }'); expect(css).toContain('linear 1 both'); expect(css).toContain('0%, 55.9% { --zc: 120, 230, 150; }'); expect(css).toContain('56%, 83.9% { --zc: 255, 200, 70; }'); expect(css).toContain('84%, 100% { --zc: 255, 96, 80; }')
   })
-  it('demoOf: отрезок с зоной и длительностью реплики; реплика про условие — пример уходит; другие реплики — null', () => {
-    expect(demoOf({ id: 'boss_mia_yellow', key: 4, ms: 1600 })).toMatchObject({ key: 4, from: 0.45, to: 0.8, ms: 1600, zone: 'mid' }); expect(demoOf({ id: 'boss_mia_green', key: 1, ms: 1 }).zone).toBe('fast'); expect(demoOf({ id: 'boss_mia_red', key: 1, ms: 1 }).zone).toBe('slow')
-    expect(demoOf({ id: 'boss_mia_five', key: 9, ms: 1 })).toMatchObject({ out: true }); expect(demoOf({ id: 'mia_push', key: 1, ms: 1 })).toBeNull(); expect(demoOf(null)).toBeNull()
+  it('реплики Мии о зонах стоят по времени в своих зонах: зелёная — до выхода пилюли в жёлтую, жёлтая — до красной, красная — до конца пути', () => {
+    const k = BOSS.DEMO_MS / (1 - DEMO_FROM), at = p => BOSS.LOOK_AT + (p - DEMO_FROM) * k // когда пилюля на отметке p (мс от входа)
+    expect(BOSS.GREEN_AT).toBeGreaterThan(at(0)); expect(BOSS.GREEN_AT + 1300).toBeLessThanOrEqual(at(0.45) + 100)
+    expect(BOSS.YELLOW_AT).toBeGreaterThanOrEqual(at(0.45) - 100); expect(BOSS.YELLOW_AT + 1600).toBeLessThanOrEqual(at(0.8) + 100)
+    expect(BOSS.RED_AT).toBeGreaterThanOrEqual(at(0.8) - 100); expect(BOSS.RED_AT + 1700).toBeLessThanOrEqual(at(1) + 100)
     expect(flashOf({ id: 'boss_mia_red', key: 2, ms: 900 })).toEqual({ zone: 'slow', key: 2, ms: 900 })
   })
   it('конвейер на церемонии финала едет под пример: скорость DEMO_CONVEYOR_SPEED, дорожки взведены с самого начала (до зажигания)', () => {

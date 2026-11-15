@@ -10,12 +10,12 @@ import { variantOf } from './miaLines.js'
 
 export const MIA = { BOOST: 1.15, STREAK_LEAVE: 3, OK_EVERY: 3, DROP_AT: 1600, PUSH_AT: 1800, PANIC_AT: 4600, ANNOUNCE_AT: 6500, REPLY_AT: 8800, ANNOUNCE2_AT: 10800, ANNOUNCE3_AT: 13000, BACK_AT: 2600, BACK2_AT: 5200 }
 
-export const BOSS = { DROP_AT: 500, JUMP: 6.4, KEEP_REDS: 5, PIT1_AT: 1900, HUSH_AT: 5200, LOOK_AT: 8000, THINK_AT: 10200, GREEN_AT: 13000, YELLOW_AT: 15000, RED_AT: 17200, FIVE_AT: 19400, NO_AT: 23000 } // финал «Шкала памяти»: падение коробки, прыжок Мии (с от падения), порог красных слов, сроки реплик (мс от входа)
+export const BOSS = { DROP_AT: 500, JUMP: 6.4, KEEP_REDS: 5, PIT1_AT: 1900, HUSH_AT: 5200, LOOK_AT: 8000, THINK_AT: 10600, GREEN_AT: 13900, YELLOW_AT: 15300, RED_AT: 18950, FIVE_AT: 21100, NO_AT: 24500, DEMO_MS: 13000 } // финал «Шкала памяти»: падение коробки, прыжок Мии (с от падения), порог красных слов, сроки реплик (мс от входа)
 
-export const miaInit = () => ({ phase: 'off', act: '', fast: false, jump: null, reds: 0, keep: false, used: {}, streak: 0, wins: 0, hits: 0, seq: 0, at: 0, why: '' })
+export const miaInit = () => ({ phase: 'off', act: '', fast: false, jump: null, reds: 0, redWins: 0, failed: {}, keep: false, used: {}, streak: 0, wins: 0, hits: 0, seq: 0, at: 0, why: '' })
 
 /** Стадия эпизода: 'ann' — церемония прихода, 'round' — круг с Мией */
-export const isMiaStage = st => st?.mia === 'ann' || st?.mia === 'round'
+export const isMiaStage = st => st?.mia === 'ann' || st?.mia === 'round' || st?.mia === 'end'
 
 const line = (id, who, delay = 0) => ({ id, who, delay })
 const none = m => ({ mia: m, say: [], boost: null })
@@ -28,20 +28,23 @@ export function reduceMia(m, ev) {
   if (t === 'enter') {
     if (stage?.mia === 'ann') { // церемония: Пит начинает репликой стадии, через DROP_AT падает коробка (at — момент падения), Мия запрыгивает, вступительные реплики (три ноты ждут их конца)
       if (m.phase === 'in' && m.act === stage.act) return none(m)
-      return { mia: { ...m, phase: 'in', act: stage.act, used: { ...m.used, [stage.act]: true }, streak: 0, wins: 0, seq: m.seq + 1, at: now + (stage.dropAt ?? MIA.DROP_AT), why: '', fast: false, jump: stage.jumpAt ?? null, reds: 0, keep: false }, say: stage.script === 'boss' ? bossCeremony() : ceremony(), boost: null }
+      return { mia: { ...m, phase: 'in', act: stage.act, used: { ...m.used, [stage.act]: true }, streak: 0, wins: 0, seq: m.seq + 1, at: now + (stage.dropAt ?? MIA.DROP_AT), why: '', fast: false, jump: stage.jumpAt ?? null, reds: 0, redWins: 0, failed: {}, keep: false }, say: stage.script === 'boss' ? bossCeremony() : ceremony(), boost: null }
     }
     if (stage?.mia === 'round') return m.phase === 'in' && m.act === stage.act ? { mia: m.fast ? m : { ...m, fast: true }, say: [], boost: stage.noBoost ? null : MIA.BOOST } : none(m) // круг с Мией: дорожка быстрее и меняет цвет (fast) — с этого круга, а не с церемонии
-    if (m.phase === 'in' && m.act === 'boss') { // конец финала: красных слов мало — Мия уходит с коробкой, пять и больше — Пит остаётся внутри до следующей встречи (коробка и Мия остаются на экране итога)
+    if (stage?.mia === 'end') { // конец финала (стадия boss-end перед итогом): красных меньше пяти — Мия уходит с коробкой, пять и больше — Пит остаётся внутри до следующей встречи (коробка и Мия на сцене, пока Мия и Пит говорят)
+      if (m.phase !== 'in' || m.act !== 'boss') return none(m)
       if (m.keep) return { mia: { ...m, fast: false, seq: m.seq + 1 }, say: [line('boss_mia_keep', 'mia'), line('boss_pit_keep', 'pit', 3200)], boost: 1 }
       return leave(m, now, 'end', [line('boss_mia_free', 'mia'), line('boss_pit_free', 'pit', 2800)])
     }
+    if (m.phase === 'in' && m.keep && m.act === 'boss') return none({ ...m, phase: 'off' }) // итог закрывает сцену: коробка Пита убирается без ухода
     if (m.phase === 'in') return leave(m, now, 'end', [line('mia_end', 'mia'), line('pit_end', 'pit', 2400)]) // круг кончился: Мия отпускает Пита
     return none(m)
   }
   if (stage?.mia !== 'round' || m.phase !== 'in') return none(m)
-  if (t === 'zone') { // финал: слово отыграно в зоне ev.zone ('fast' | 'mid' | 'slow'); красные считаются, на пяти Пит остаётся внутри
-    const reds = m.reds + (ev.zone === 'slow' ? 1 : 0)
-    return { mia: { ...m, reds, keep: reds >= BOSS.KEEP_REDS }, say: [], boost: null }
+  if (t === 'zone' || (stage.silent && (t === 'miss' || t === 'fail'))) { // финал: красное слово — отвеченное в красной зоне (шкала: zone) или не отвеченное / ошибка (движок: miss / fail по номеру слова); пять красных — Пит остаётся внутри
+    const failed = t === 'zone' ? m.failed : { ...m.failed, [ev.idx]: true }
+    const redWins = m.redWins + (t === 'zone' && ev.zone === 'slow' ? 1 : 0), reds = Object.keys(failed).length + redWins
+    return { mia: { ...m, failed, redWins, reds, keep: reds >= BOSS.KEEP_REDS }, say: [], boost: null }
   }
   if (stage.silent) return none(m) // финал: Мия молчит, говорит шкала
   const word = stage.words?.[ev.idx]

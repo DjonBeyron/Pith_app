@@ -36,19 +36,14 @@ export function trackStep(tr, pills, H, now) {
 /** Показана ли линия: идёт пилюля или после ответа не прошло HOLD_MS */
 export const lineOn = (tr, now) => !!tr && (!tr.done || now - tr.at < HOLD_MS)
 
-/** Пример-демо при объяснении: пилюля со словом едет по шкале ПОД реплики Мии — на каждой реплике свой отрезок пути (доли длины шкалы, от и до; пока Мия говорит, пилюля проходит отрезок за длину её реплики) */
-export const DEMO_PATH = { boss_mia_look: [-0.25, 0], boss_mia_think: [0, 0.05], boss_mia_green: [0.05, 0.45], boss_mia_yellow: [0.45, 0.8], boss_mia_red: [0.8, 1] }
-/** Скорость конвейера на объяснении (доли обычной): дорожки едут под пример-пилюлю, примерно с её средней скоростью */
-export const DEMO_CONVEYOR_SPEED = 0.6
+/** Пример при объяснении: пилюля со словом едет по шкале ОДНОЙ скоростью (линейно) от −25 % (над верхом) до низа за DEMO_MS (13 с) — начиная с реплики «видите шкалу справа?». Реплики Мии о зонах
+ *  стоят по времени так, чтобы приходиться на нужную зону (raceMia.BOSS): «чем дольше думаете» — в зелёной, «зелёная» — до 45 %, «жёлтая» — до 80 %, «красная» — до низа. Пилюля остаётся внизу до конца объяснения. */
+export const DEMO_START = 'boss_mia_look'
+export const DEMO_FROM = -0.25
+/** Скорость конвейера на объяснении (доли обычной): дорожки едут со скоростью пример-пилюли (1,25 длины шкалы за 13 с ≈ 7 % высоты экрана в секунду при длине шкалы 0,72 высоты) */
+export const DEMO_CONVEYOR_SPEED = 0.27
 /** Реплики Мии, на которых загорается зона (мигает полупрозрачной заливкой), и реплики, с которых шкалу видно на церемонии («видите шкалу справа?» и дальше) */
 export const FLASH_LINES = { boss_mia_green: 'fast', boss_mia_yellow: 'mid', boss_mia_red: 'slow' }
 export const REVEAL_LINES = ['boss_mia_look', 'boss_mia_think', 'boss_mia_green', 'boss_mia_yellow', 'boss_mia_red', 'boss_mia_five']
 /** talk — реплика Мии { id, key, ms } (miaSpeech.onSpeak) → { zone, key, ms } или null */
 export const flashOf = talk => (talk && FLASH_LINES[talk.id] ? { zone: FLASH_LINES[talk.id], key: talk.key, ms: talk.ms } : null)
-/** talk → отрезок демо { key, from, to, ms, zone } | { out: true } (реплика про условие — пример уходит) | null */
-export function demoOf(talk) {
-  if (!talk) return null
-  const seg = DEMO_PATH[talk.id]
-  if (seg) return { key: talk.key, from: seg[0], to: seg[1], ms: talk.ms, zone: zoneAt(Math.max(0, (seg[0] + seg[1]) / 2)) }
-  return talk.id === 'boss_mia_five' ? { out: true, key: talk.key } : null
-}

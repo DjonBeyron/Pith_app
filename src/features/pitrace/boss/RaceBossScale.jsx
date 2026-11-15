@@ -6,7 +6,7 @@ import { zoneAt, ZONES, EDGES, TICKS, spanOf, trackStep, lineOn } from './bossSc
 // нижний край пилюли касается верха линейки, дальше идёт за этим краем и мгновенно меняет цвет, когда доезжает до зоны другого цвета. Ответ принят или «не успел» — линия замирает, через HOLD_MS гаснет, а зона слова
 // уходит в onZone('fast' | 'mid' | 'slow'): красные слова считает машина Мии. На церемонии Мия объясняет шкалу: flash — зона мигает полупрозрачной заливкой на её слова о зонах; demo — пример-пилюля со словом едет
 // по линейке под её реплики (на каждой реплике свой отрезок пути), линия идёт за ней. show — шкалу видно. Рисует по кадрам (rAF), положение читает у пилюли (.wlPill[data-wide]). live = false — ничего не рисует.
-export default function RaceBossScale({ live, show = true, flash = null, demo = null, word = '', paused = false, onZone = null }) {
+export default function RaceBossScale({ live, show = true, flash = null, demo = null, word = '', paused = false, onZone = null }) { // demo — { key, ms }: пример на церемонии (одна ровная анимация)
   const host = useRef(null), box = useRef(null), line = useRef(null), clock = useRef({ paused, onZone })
   useEffect(() => { clock.current.paused = paused; clock.current.onZone = onZone }, [paused, onZone])
   useEffect(() => {
@@ -27,9 +27,10 @@ export default function RaceBossScale({ live, show = true, flash = null, demo = 
       tr = trackStep(tr, pills, H, now)
       const el = line.current
       if (!el) return
-      if (tr && tr.done && was !== tr) { // пилюля только что закончилась: зона отыграна (принята — зона линии, «не успел» — красная)
-        const ok = pills.find(p => p.el === tr.el)?.locked
-        clock.current.onZone?.(ok ? zoneAt(Math.min(1, Math.max(0, tr.y / H))) : 'slow')
+      if (tr && tr.done && was !== tr && pills.find(p => p.el === tr.el)?.locked) clock.current.onZone?.(zoneAt(Math.min(1, Math.max(0, tr.y / H)))) // слово принято: его зона уходит в машину Мии (не принятые — красные по событиям движка)
+      for (const p of pills) { // пилюля красится в цвет зоны вместе с линией (data-bz → race-boss.css); чужие и ещё не коснувшиеся шкалы — без окраски
+        const want = tr && p.el === tr.el ? zoneAt(Math.min(1, Math.max(0, tr.y / H))) : null
+        if (want) { if (p.el.dataset.bz !== want) p.el.dataset.bz = want } else if (p.el.dataset.bz) delete p.el.dataset.bz
       }
       el.style.opacity = lineOn(tr, now) ? '1' : '0'
       if (!tr) return
@@ -46,16 +47,15 @@ export default function RaceBossScale({ live, show = true, flash = null, demo = 
     <div ref={host} className="wlBoss" data-live={live || undefined} data-show={(live && show) || undefined} aria-hidden="true" data-testid="race-boss-scale">
       {live && (
         <div ref={box} className="wlBossBox">
-          {ZONES.map((z, i) => <i key={z.id} className="wlBossZone" data-zone={z.id} style={{ top: `${EDGES[i] * 100}%`, height: `${spanOf(z.id) * 100}%` }} />)}
+          {ZONES.map((z, i) => <i key={`${z.id}${flash?.zone === z.id ? flash.key : ''}`} className="wlBossZone" data-zone={z.id} data-flash={flash?.zone === z.id || undefined} style={{ top: `${EDGES[i] * 100}%`, height: `${spanOf(z.id) * 100}%`, '--flash-ms': `${flash?.ms ?? 2000}ms` }} />)}
           {TICKS.map(t => <b key={t.p} className="wlBossTick" data-zone={t.zone} data-major={t.major || undefined} style={{ top: `${t.p * 100}%` }} />)}
           {fl && <i key={flash.key} className="wlBossFlash" data-zone={flash.zone} style={{ top: `${fl.top}%`, height: `${fl.h}%`, '--flash-ms': `${flash.ms}ms` }} data-testid="race-boss-flash" />}
-          {demo && !demo.out && (
+          {demo && (
             <>
-              <i key={`p${demo.key}`} className="wlBossDemo" data-zone={demo.zone} style={{ '--from': demo.from, '--to': demo.to, '--ms': `${demo.ms}ms` }} data-testid="race-boss-demo">{word}</i>
-              {demo.to > 0 && <i key={`l${demo.key}`} className="wlBossLine" data-zone={demo.zone} data-demo="" style={{ '--from': Math.max(0, demo.from), '--to': demo.to, '--ms': `${demo.ms}ms` }} />}
+              <i key={`p${demo.key}`} className="wlBossDemo" style={{ '--ms': `${demo.ms}ms` }} data-testid="race-boss-demo">{word}</i>
+              <i key={`l${demo.key}`} className="wlBossLine" data-demo="" style={{ '--ms': `${demo.ms}ms` }} />
             </>
           )}
-          {demo?.out && <i key={`o${demo.key}`} className="wlBossDemo" data-out="" data-zone="slow" style={{ '--from': 1, '--to': 1 }}>{word}</i>}
           <div ref={line} className="wlBossLine" data-zone="fast" style={{ opacity: 0 }} />
         </div>
       )}

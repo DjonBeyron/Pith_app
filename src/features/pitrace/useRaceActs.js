@@ -25,12 +25,13 @@ import { plateCaption } from './raceSilentLine.js'
 import { createTransChron } from './raceTransChron.js'
 import { PHRASE_EXIT_MS } from './raceStagesPhrases.js'
 import { plateText } from '../player/modules/rotate-phone/wordLanePlateText.js'
-import { reduceMia, makeMiaBox, applyMia } from './mia/raceMia.js'
+import { reduceMia, makeMiaBox, applyMia, BOSS } from './mia/raceMia.js'
 import { miaOn } from './mia/miaConfig.js'
 import { createMiaSpeech } from './mia/miaSpeech.js'
 import { useMiaEnter } from './mia/useMiaEnter.js'
 import { miaRoute, miaSkip } from './mia/miaRound.js'
 import { bossFill } from './boss/bossWords.js'
+import { DEMO_START } from './boss/bossScale.js'
 import { playWordSlot, hasWordSlot, wordBufferMs } from '../player/modules/rotate-phone/wordLaneClips.js'
 import { gameMicHold } from '../../shared/lib/gameMicHold.js'
 
@@ -61,8 +62,9 @@ export function useRaceActs(args) {
   useEffect(() => { lineRef.current = sayLine })
   const sayTr = useCallback((id, ...r) => { const ok = lineRef.current?.(id, ...r); if (ok) tr.line(id); return ok }, [tr]) // реплики стадий и стартовая — с отметкой в журнале переходов; функция стабильна (эффекты директора на ней не перезапускаются)
   const [miaTalk, setMiaTalk] = useState(null) // какую реплику говорит Мия сейчас (рот анимируется по ней)
+  const [miaDemo, setMiaDemo] = useState(null) // финал: пример-пилюля на объяснении шкалы стартует с реплики «видите шкалу справа?» и идёт ровно, пока не кончится объяснение (одна отметка, а не по реплике)
   const [miaCap, setMiaCap] = useState(null) // подпись реплики Мии / Пита над Мией (только неозвученные)
-  const [mspeech] = useState(() => createMiaSpeech({ play: playWordSlot, has: hasWordSlot, bufferMs: wordBufferMs, hold: gameMicHold, onCaption: setMiaCap, onSpeak: setMiaTalk, log: pLog })) // речь эпизода «Мия»: очередь реплик (mia/miaSpeech.js)
+  const [mspeech] = useState(() => createMiaSpeech({ play: playWordSlot, has: hasWordSlot, bufferMs: wordBufferMs, hold: gameMicHold, onCaption: setMiaCap, onSpeak: c => { setMiaTalk(c); if (!c) setMiaDemo(null); else if (c.id === DEMO_START) setMiaDemo({ key: c.key, ms: BOSS.DEMO_MS }) }, log: pLog })) // речь эпизода «Мия»: очередь реплик (mia/miaSpeech.js)
   const running = on && stage === 'run' ? stageObj : null
   const [mb] = useState(makeMiaBox) // эпизод «Мия» (mia/raceMia.js): m — состояние машины, step — ступень, которой Мия ускорила дорожку, key — номер пачки реплик
   const [miaView, setMiaView] = useState({ mia: mb.m, cues: [], key: 0 })
@@ -104,6 +106,7 @@ export function useRaceActs(args) {
     const r = reduceMia(mb.m, { ...ev, now: performance.now() })
     if (r.mia === mb.m && !r.say.length && r.boost == null) return
     if (r.mia.phase !== mb.m.phase) pLog(`[mia] ${r.mia.phase === 'in' ? `Мия пришла (${r.mia.act}, второй круг), дорожка быстрее на ${Math.round((r.boost - 1) * 100)} %` : r.mia.phase === 'out' ? `Мия уходит: ${r.mia.why === 'win' ? 'три верных подряд' : 'круг кончился'}` : 'Мии нет'}`)
+    if (r.mia.reds !== mb.m.reds) pLog(`[mia] финал: красных слов ${r.mia.reds} из ${BOSS.KEEP_REDS} (${ev.t === 'zone' ? `ответ в зоне ${ev.zone}` : `слово ${ev.idx + 1}: ${ev.t === 'fail' ? 'не успел' : 'ошибка'}`})${r.mia.keep ? ', Пит останется внутри' : ''}`)
     setMiaView(applyMia(mb, r, ev.stage))
     if (r.say.length) mspeech.enqueue(r.say)
   }, [mb, mspeech])
@@ -169,7 +172,7 @@ export function useRaceActs(args) {
   }, [on, stages, box, baseNext, seed, mb])
   if (!on) return rh
   return {
-    ...rh, result, race: view, mia: miaView, miaCap, miaTalk, nextIdx,
+    ...rh, result, race: view, mia: miaView, miaCap, miaTalk, miaDemo, nextIdx,
     boss: { zone: z => miaEvent({ t: 'zone', zone: z, stage: running }) }, // финал «Шкала памяти»: слово отыграно в зоне (шкала → машина Мии: пять красных — Пит остаётся внутри)
     exitMs: st => (st?.act === 'phrases' ? PHRASE_EXIT_MS : undefined), // круг фраз кончился: до следующей стадии PHRASE_EXIT_MS, а не 1,3 с (Пит уже договорил итог хода)
     plate: st => plateText(st, plateCaption(lines, st?.line)), // неозвученная реплика стадии — подписью на плашке (raceSilentLine.js)

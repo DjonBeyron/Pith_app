@@ -38,7 +38,9 @@ export function bossFill(stages, s, seed) {
   const ann = stages.findIndex(x => x.sid === 'boss-ann'), round = stages.find(x => x.sid === 'boss')
   if (ann < 0 || !round) return -1
   const list = bossWords(round.base ?? round.words, s, seed)
-  stages[ann].empty = round.empty = list.length < BOSS_MIN
+  const end = stages.find(x => x.sid === 'boss-end'), empty = list.length < BOSS_MIN
+  stages[ann].empty = round.empty = empty
+  if (end) end.empty = empty
   if (!round.empty) round.fill(list)
   return ann
 }
