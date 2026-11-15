@@ -80,8 +80,8 @@ describe('финал: сценарий Мии, красные слова, «ос
   it('своя церемония: коробка падает через BOSS.DROP_AT, Мия прыгает через BOSS.JUMP, реплики по сценарию владельца', () => {
     const r = start()
     expect(r.mia).toMatchObject({ phase: 'in', act: 'boss', at: 1000 + BOSS.DROP_AT, jump: BOSS.JUMP })
-    expect(ids(r)).toEqual(['boss_pit_1', 'boss_mia_hush', 'boss_mia_look', 'boss_mia_think', 'boss_mia_green', 'boss_mia_yellow', 'boss_mia_red', 'boss_mia_five', 'boss_pit_no']) // объяснение шкалы подряд, без пауз (очередь держит GAP_MS)
-    expect(r.say.map(l => l.who)).toEqual(['pit', 'mia', 'mia', 'mia', 'mia', 'mia', 'mia', 'mia', 'pit']); expect(r.say.map(l => l.delay)).toEqual([BOSS.PIT1_AT, BOSS.HUSH_AT, ...Array(7).fill(BOSS.LOOK_AT)]) // с look все в очередь с одним сроком: идут одна за другой
+    expect(ids(r)).toEqual(['boss_pit_1', 'boss_mia_hush', 'boss_mia_exam', 'boss_mia_look', 'boss_mia_think', 'boss_mia_green', 'boss_mia_yellow', 'boss_mia_red', 'boss_mia_five', 'boss_pit_no']) // объяснение шкалы подряд, без пауз (очередь держит GAP_MS)
+    expect(r.say.map(l => l.who)).toEqual(['pit', 'mia', 'mia', 'mia', 'mia', 'mia', 'mia', 'mia', 'mia', 'pit']); expect(r.say.map(l => l.delay)).toEqual([BOSS.PIT1_AT, BOSS.HUSH_AT, BOSS.HUSH_AT, ...Array(7).fill(BOSS.LOOK_AT)]) // с look все в очередь с одним сроком: идут одна за другой
     for (const l of r.say) expect(miaLine(l.id)).toBeTruthy() // каждая реплика есть в каталоге (озвучка, подпись)
     expect(ids(r)).not.toContain('mia_push'); expect(ids(r)).not.toContain('pit_panic') // реплики прохода в финале не повторяются
   })

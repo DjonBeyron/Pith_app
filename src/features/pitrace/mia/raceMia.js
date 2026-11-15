@@ -20,7 +20,7 @@ export const isMiaStage = st => st?.mia === 'ann' || st?.mia === 'round' || st?.
 const line = (id, who, delay = 0) => ({ id, who, delay })
 const none = m => ({ mia: m, say: [], boost: null })
 const leave = (m, now, why, say) => ({ mia: { ...m, phase: 'out', fast: false, at: now, why, seq: m.seq + 1 }, say, boost: 1 })
-const bossCeremony = () => [line('boss_pit_1', 'pit', BOSS.PIT1_AT), line('boss_mia_hush', 'mia', BOSS.HUSH_AT), ...['look', 'think', 'green', 'yellow', 'red', 'five'].map(k => line(`boss_mia_${k}`, 'mia', BOSS.LOOK_AT)), line('boss_pit_no', 'pit', BOSS.LOOK_AT)]
+const bossCeremony = () => [line('boss_pit_1', 'pit', BOSS.PIT1_AT), line('boss_mia_hush', 'mia', BOSS.HUSH_AT), line('boss_mia_exam', 'mia', BOSS.HUSH_AT), ...['look', 'think', 'green', 'yellow', 'red', 'five'].map(k => line(`boss_mia_${k}`, 'mia', BOSS.LOOK_AT)), line('boss_pit_no', 'pit', BOSS.LOOK_AT)]
 const ceremony = () => [line('mia_push', 'mia', MIA.PUSH_AT), line('pit_panic', 'pit', MIA.PANIC_AT), line('mia_announce_1', 'mia', MIA.ANNOUNCE_AT), line('pit_reply', 'pit', MIA.REPLY_AT), line('mia_announce_2', 'mia', MIA.ANNOUNCE2_AT), line('mia_announce_3', 'mia', MIA.ANNOUNCE3_AT)]
 
 export function reduceMia(m, ev) {
