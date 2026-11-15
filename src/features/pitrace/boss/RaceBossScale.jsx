@@ -1,14 +1,20 @@
 import { useEffect, useRef } from 'react'
-import { zoneAt, ZONES, EDGES, TICKS, spanOf, trackStep, lineOn } from './bossScale.js'
+import { zoneAt, ZONES, EDGES, TICKS, spanOf, trackStep, lineOn, DEMO_TRIGGERS } from './bossScale.js'
 
 // Шкала финала «Шкала памяти» поверх сцены игры (.wlStage; владелец 2026-11-15): справа вертикальная линейка с рисками цвета зоны и полупрозрачным фоном зон (зелёная 45 %, жёлтая 35 %, красная 20 % длины), без цифр.
 // Линейка идёт от верха ленты (под кнопками паузы и админа) до низа с отступом под скругление экрана. Через все дорожки идёт горизонтальная линия — мягкая, с растушёванными краями: она появляется ровно в миг, когда
 // нижний край пилюли касается верха линейки, дальше идёт за этим краем и мгновенно меняет цвет, когда доезжает до зоны другого цвета. Ответ принят или «не успел» — линия замирает, через HOLD_MS гаснет, а зона слова
 // уходит в onZone('fast' | 'mid' | 'slow'): красные слова считает машина Мии. На церемонии Мия объясняет шкалу: flash — зона мигает полупрозрачной заливкой на её слова о зонах; demo — пример-пилюля со словом едет
 // по линейке под её реплики (на каждой реплике свой отрезок пути), линия идёт за ней. show — шкалу видно. Рисует по кадрам (rAF), положение читает у пилюли (.wlPill[data-wide]). live = false — ничего не рисует.
-export default function RaceBossScale({ live, show = true, flash = null, demo = null, word = '', paused = false, onZone = null }) { // demo — { key, ms }: пример на церемонии (одна ровная анимация)
+export default function RaceBossScale({ live, show = true, flash = null, demo = null, word = '', paused = false, onZone = null, onDemo = null }) { // demo — { key, ms }: пример на церемонии (одна ровная анимация); onDemo(kind) — пример вошёл в зону / дошёл до низа
   const host = useRef(null), box = useRef(null), line = useRef(null), clock = useRef({ paused, onZone })
   useEffect(() => { clock.current.paused = paused; clock.current.onZone = onZone }, [paused, onZone])
+  const demoKey = demo?.key ?? null
+  useEffect(() => { // пример идёт: пилюля сама запускает реплики Мии на входе в каждую зону (DEMO_TRIGGERS, мс от старта анимации) — слова совпадают с зоной, где пилюля
+    if (demoKey == null || !onDemo) return undefined
+    const ids = DEMO_TRIGGERS.map(([ms, kind]) => setTimeout(() => onDemo(kind), ms))
+    return () => ids.forEach(clearTimeout)
+  }, [demoKey]) // eslint-disable-line react-hooks/exhaustive-deps -- onDemo берётся замыканием на старте примера
   useEffect(() => {
     if (!live) return undefined
     const stage = host.current?.parentElement, field = stage?.querySelector('.wlField')
@@ -28,11 +34,12 @@ export default function RaceBossScale({ live, show = true, flash = null, demo = 
       const el = line.current
       if (!el) return
       if (tr && tr.done && was !== tr && pills.find(p => p.el === tr.el)?.locked) clock.current.onZone?.(zoneAt(Math.min(1, Math.max(0, tr.y / H)))) // слово принято: его зона уходит в машину Мии (не принятые — красные по событиям движка)
-      for (const p of pills) { // пилюля красится в цвет зоны вместе с линией (data-bz → race-boss.css); чужие и ещё не коснувшиеся шкалы — без окраски
-        const want = tr && p.el === tr.el ? zoneAt(Math.min(1, Math.max(0, tr.y / H))) : null
-        if (want) { if (p.el.dataset.bz !== want) p.el.dataset.bz = want } else if (p.el.dataset.bz) delete p.el.dataset.bz
+      for (const p of pills) { // пилюля красится в цвет зоны вместе с линией (data-bz → race-boss.css): зелёная с самого выезда из-за верхнего края, дальше по зоне линии; принятая / не успевшая остаётся в цвете своей зоны
+        const mine = tr && !tr.done && p.el === tr.el
+        const want = mine ? zoneAt(Math.min(1, Math.max(0, tr.y / H))) : p.locked || p.failed ? null : 'fast'
+        if (want && p.el.dataset.bz !== want) p.el.dataset.bz = want
       }
-      el.style.opacity = lineOn(tr, now) ? '1' : '0'
+      el.style.opacity = lineOn(tr, now) && !(tr && !tr.done && tr.y >= H) ? '1' : '0' // дошла до нижней отметки — быстро растворяется (transition .2 с); принятая держится HOLD_MS
       if (!tr) return
       const y = Math.min(H, Math.max(0, tr.y))
       el.style.transform = `translate3d(0, ${y.toFixed(1)}px, 0)`

@@ -10,7 +10,7 @@ import { variantOf } from './miaLines.js'
 
 export const MIA = { BOOST: 1.15, STREAK_LEAVE: 3, OK_EVERY: 3, DROP_AT: 1600, PUSH_AT: 1800, PANIC_AT: 4600, ANNOUNCE_AT: 6500, REPLY_AT: 8800, ANNOUNCE2_AT: 10800, ANNOUNCE3_AT: 13000, BACK_AT: 2600, BACK2_AT: 5200 }
 
-export const BOSS = { DROP_AT: 500, JUMP: 6.4, KEEP_REDS: 5, PIT1_AT: 1900, HUSH_AT: 5200, LOOK_AT: 8000, THINK_AT: 10600, GREEN_AT: 13900, YELLOW_AT: 15300, RED_AT: 18950, FIVE_AT: 21100, NO_AT: 24500, DEMO_MS: 13000 } // финал «Шкала памяти»: падение коробки, прыжок Мии (с от падения), порог красных слов, сроки реплик (мс от входа)
+export const BOSS = { DROP_AT: 500, JUMP: 6.4, KEEP_REDS: 5, PIT1_AT: 1900, HUSH_AT: 5200, LOOK_AT: 8000, THINK_AT: 10600 } // реплики о зонах, «пять красных» и ответ Пита запускает пример-пилюля на шкале (bossScale.DEMO_TRIGGERS), по часам стоят только Пит, «помолчи», «видите шкалу» и «чем дольше думаете» // финал «Шкала памяти»: падение коробки, прыжок Мии (с от падения), порог красных слов, сроки реплик (мс от входа)
 
 export const miaInit = () => ({ phase: 'off', act: '', fast: false, jump: null, reds: 0, redWins: 0, failed: {}, keep: false, used: {}, streak: 0, wins: 0, hits: 0, seq: 0, at: 0, why: '' })
 
@@ -20,7 +20,7 @@ export const isMiaStage = st => st?.mia === 'ann' || st?.mia === 'round' || st?.
 const line = (id, who, delay = 0) => ({ id, who, delay })
 const none = m => ({ mia: m, say: [], boost: null })
 const leave = (m, now, why, say) => ({ mia: { ...m, phase: 'out', fast: false, at: now, why, seq: m.seq + 1 }, say, boost: 1 })
-const bossCeremony = () => [line('boss_pit_1', 'pit', BOSS.PIT1_AT), line('boss_mia_hush', 'mia', BOSS.HUSH_AT), line('boss_mia_look', 'mia', BOSS.LOOK_AT), line('boss_mia_think', 'mia', BOSS.THINK_AT), line('boss_mia_green', 'mia', BOSS.GREEN_AT), line('boss_mia_yellow', 'mia', BOSS.YELLOW_AT), line('boss_mia_red', 'mia', BOSS.RED_AT), line('boss_mia_five', 'mia', BOSS.FIVE_AT), line('boss_pit_no', 'pit', BOSS.NO_AT)]
+const bossCeremony = () => [line('boss_pit_1', 'pit', BOSS.PIT1_AT), line('boss_mia_hush', 'mia', BOSS.HUSH_AT), line('boss_mia_look', 'mia', BOSS.LOOK_AT), line('boss_mia_think', 'mia', BOSS.THINK_AT)]
 const ceremony = () => [line('mia_push', 'mia', MIA.PUSH_AT), line('pit_panic', 'pit', MIA.PANIC_AT), line('mia_announce_1', 'mia', MIA.ANNOUNCE_AT), line('pit_reply', 'pit', MIA.REPLY_AT), line('mia_announce_2', 'mia', MIA.ANNOUNCE2_AT), line('mia_announce_3', 'mia', MIA.ANNOUNCE3_AT)]
 
 export function reduceMia(m, ev) {

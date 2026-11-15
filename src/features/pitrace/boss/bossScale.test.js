@@ -1,7 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
-import { ZONES, EDGES, TICKS, zoneAt, spanOf, trackStep, lineOn, HOLD_MS, DEMO_START, DEMO_FROM, DEMO_CONVEYOR_SPEED, flashOf } from './bossScale.js'
-import { BOSS } from '../mia/raceMia.js'
+import { ZONES, EDGES, TICKS, zoneAt, spanOf, trackStep, lineOn, HOLD_MS, DEMO_START, DEMO_FROM, DEMO_MS, DEMO_TRIGGERS, DEMO_CUES, DEMO_CONVEYOR_SPEED, crossAt, flashOf } from './bossScale.js'
 import { conveyorSpeedHint } from '../../player/modules/rotate-phone/wordLaneConveyorSpeed.js'
 import { actArmedLanes } from '../../player/modules/rotate-phone/wordLaneConveyorStart.js'
 
@@ -44,19 +43,21 @@ describe('какую пилюлю толкает линия', () => {
   })
 })
 
-describe('пример при объяснении: пилюля едет ровно', () => {
-  it('одна ровная анимация на всё объяснение (13 с), старт с «видите шкалу справа?»; зоны отмечены ступенями на 20 / 56 / 84 % пути', () => {
-    expect(DEMO_START).toBe('boss_mia_look'); expect(BOSS.DEMO_MS).toBe(13000); expect(DEMO_FROM).toBe(-0.25)
-    const path = 1 - DEMO_FROM // длина пути в долях шкалы: от −0,25 до 1
-    expect((0 - DEMO_FROM) / path).toBeCloseTo(0.2, 9); expect((0.45 - DEMO_FROM) / path).toBeCloseTo(0.56, 9); expect((0.8 - DEMO_FROM) / path).toBeCloseTo(0.84, 9) // совпадает с keyframes race-boss.css
-    const css = readFileSync(new URL('../../../styles/player/modules/race-boss.css', import.meta.url), 'utf8')
-    expect(css).toContain('from { top: -25%; } to { top: 100%; }'); expect(css).toContain('linear 1 both'); expect(css).toContain('0%, 55.9% { --zc: 120, 230, 150; }'); expect(css).toContain('56%, 83.9% { --zc: 255, 200, 70; }'); expect(css).toContain('84%, 100% { --zc: 255, 96, 80; }')
+describe('пример при объяснении: пилюля едет ровно и сама запускает реплики о зонах', () => {
+  const css = readFileSync(new URL('../../../styles/player/modules/race-boss.css', import.meta.url), 'utf8')
+  it('одна ровная анимация на всё объяснение (15,75 с), старт с «видите шкалу справа?»; границы зон и касание — ступени keyframes в тех же долях пути', () => {
+    expect(DEMO_START).toBe('boss_mia_look'); expect(DEMO_MS).toBe(15750); expect(DEMO_FROM).toBe(-0.75)
+    const frac = p => ((p - DEMO_FROM) / (1 - DEMO_FROM)) * 100
+    expect(frac(0)).toBeCloseTo(42.857, 2); expect(frac(0.45)).toBeCloseTo(68.571, 2); expect(frac(0.8)).toBeCloseTo(88.571, 2)
+    expect(css).toContain('from { top: -75%; } to { top: 100%; }'); expect(css).toContain('linear 1 both')
+    expect(css).toContain('0%, 68.5% { --zc: 120, 230, 150; }'); expect(css).toContain('68.57%, 88.5% { --zc: 255, 200, 70; }'); expect(css).toContain('88.57%, 100% { --zc: 255, 96, 80; }') // зелёная с самого выезда
+    expect(css).toContain('0%, 42.8% { opacity: 0; } 42.86%, 98% { opacity: 1; } 100% { opacity: 0; }') // линия появляется в миг касания и у низа быстро растворяется
   })
-  it('реплики Мии о зонах стоят по времени в своих зонах: зелёная — до выхода пилюли в жёлтую, жёлтая — до красной, красная — до конца пути', () => {
-    const k = BOSS.DEMO_MS / (1 - DEMO_FROM), at = p => BOSS.LOOK_AT + (p - DEMO_FROM) * k // когда пилюля на отметке p (мс от входа)
-    expect(BOSS.GREEN_AT).toBeGreaterThan(at(0)); expect(BOSS.GREEN_AT + 1300).toBeLessThanOrEqual(at(0.45) + 100)
-    expect(BOSS.YELLOW_AT).toBeGreaterThanOrEqual(at(0.45) - 100); expect(BOSS.YELLOW_AT + 1600).toBeLessThanOrEqual(at(0.8) + 100)
-    expect(BOSS.RED_AT).toBeGreaterThanOrEqual(at(0.8) - 100); expect(BOSS.RED_AT + 1700).toBeLessThanOrEqual(at(1) + 100)
+  it('реплики о зонах запускает сама пилюля на входе в зону (мс от старта примера): зелёная — на касании, жёлтая — на 45 %, красная — на 80 %, «пять красных» — у низа; в порядке пути', () => {
+    expect(DEMO_TRIGGERS.map(t => t[1])).toEqual(['fast', 'mid', 'slow', 'end']); expect(DEMO_TRIGGERS.map(t => Math.round(t[0]))).toEqual([Math.round(crossAt(0)), Math.round(crossAt(0.45)), Math.round(crossAt(0.8)), DEMO_MS])
+    expect(DEMO_TRIGGERS.map(t => t[0])).toEqual([...DEMO_TRIGGERS.map(t => t[0])].sort((a, b) => a - b))
+    expect(DEMO_CUES.fast[0].id).toBe('boss_mia_green'); expect(DEMO_CUES.mid[0].id).toBe('boss_mia_yellow'); expect(DEMO_CUES.slow[0].id).toBe('boss_mia_red'); expect(DEMO_CUES.end.map(c => c.id)).toEqual(['boss_mia_five', 'boss_pit_no'])
+    expect(crossAt(0)).toBeGreaterThan(6000) // до входа в зелёную успевают «видите шкалу» и «чем дольше думаете»
     expect(flashOf({ id: 'boss_mia_red', key: 2, ms: 900 })).toEqual({ zone: 'slow', key: 2, ms: 900 })
   })
   it('конвейер на церемонии финала едет под пример: скорость DEMO_CONVEYOR_SPEED, дорожки взведены с самого начала (до зажигания)', () => {

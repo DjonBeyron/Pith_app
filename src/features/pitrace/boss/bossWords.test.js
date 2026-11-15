@@ -79,8 +79,8 @@ describe('финал: сценарий Мии, красные слова, «ос
   it('своя церемония: коробка падает через BOSS.DROP_AT, Мия прыгает через BOSS.JUMP, реплики по сценарию владельца', () => {
     const r = start()
     expect(r.mia).toMatchObject({ phase: 'in', act: 'boss', at: 1000 + BOSS.DROP_AT, jump: BOSS.JUMP })
-    expect(ids(r)).toEqual(['boss_pit_1', 'boss_mia_hush', 'boss_mia_look', 'boss_mia_think', 'boss_mia_green', 'boss_mia_yellow', 'boss_mia_red', 'boss_mia_five', 'boss_pit_no'])
-    expect(r.say.map(l => l.who)).toEqual(['pit', 'mia', 'mia', 'mia', 'mia', 'mia', 'mia', 'mia', 'pit']); expect(r.say.map(l => l.delay)).toEqual([...r.say.map(l => l.delay)].sort((a, b) => a - b))
+    expect(ids(r)).toEqual(['boss_pit_1', 'boss_mia_hush', 'boss_mia_look', 'boss_mia_think']) // реплики о зонах, «пять красных» и «нет, только не это» запускает пример-пилюля на шкале (DEMO_CUES)
+    expect(r.say.map(l => l.who)).toEqual(['pit', 'mia', 'mia', 'mia']); expect(r.say.map(l => l.delay)).toEqual([...r.say.map(l => l.delay)].sort((a, b) => a - b))
     for (const l of r.say) expect(miaLine(l.id)).toBeTruthy() // каждая реплика есть в каталоге (озвучка, подпись)
     expect(ids(r)).not.toContain('mia_push'); expect(ids(r)).not.toContain('pit_panic') // реплики прохода в финале не повторяются
   })
