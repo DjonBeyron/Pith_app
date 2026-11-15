@@ -64,9 +64,13 @@ export function reduceMia(m, ev) {
 export const miaShown = m => m.phase === 'in' || m.phase === 'out'
 
 /** Рабочая коробка директора (useRaceActs): m — состояние машины, step — ступень, которой Мия ускорила дорожку, key — номер пачки реплик. Мутации — функциями (как raceState.putState) */
-export const makeMiaBox = () => ({ m: miaInit(), step: null, key: 0, entered: '' })
-/** Стадия с этой отметкой уже обработана эпизодом (true — первый раз) */
-export function markMiaEntered(mb, key) { if (mb.entered === key) return false; mb.entered = key; return true }
+export const makeMiaBox = () => ({ m: miaInit(), step: null, key: 0, entered: '', demoDone: false })
+/** Стадия с этой отметкой уже обработана эпизодом (true — первый раз); на новой стадии объяснение финала считается не законченным */
+export function markMiaEntered(mb, key) { if (mb.entered === key) return false; mb.entered = key; mb.demoDone = false; return true }
+/** Пример на шкале дошёл до низа и поставил последние реплики: три ноты и круг финала могут идти, когда они договорят */
+export function markDemoDone(mb) { mb.demoDone = true }
+/** Идёт ли объяснение шкалы (церемония финала, пример ещё не кончился): три ноты и круг ждут его (между репликами очередь речи пуста — реплики о зонах ставит пилюля) */
+export const bossExplaining = (mb, stage) => stage?.mia === 'ann' && stage.script === 'boss' && !mb.demoDone
 /** Применить результат reduceMia к рабочей коробке: состояние, ускорение дорожки (boost.k ступени; 1 — вернуть) и номер пачки реплик → вид для экрана */
 export function applyMia(mb, r, stage) {
   mb.m = r.mia

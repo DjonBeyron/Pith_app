@@ -25,7 +25,7 @@ import { plateCaption } from './raceSilentLine.js'
 import { createTransChron } from './raceTransChron.js'
 import { PHRASE_EXIT_MS } from './raceStagesPhrases.js'
 import { plateText } from '../player/modules/rotate-phone/wordLanePlateText.js'
-import { reduceMia, makeMiaBox, applyMia, BOSS } from './mia/raceMia.js'
+import { reduceMia, makeMiaBox, applyMia, BOSS, bossExplaining, markDemoDone } from './mia/raceMia.js'
 import { miaOn } from './mia/miaConfig.js'
 import { createMiaSpeech } from './mia/miaSpeech.js'
 import { useMiaEnter } from './mia/useMiaEnter.js'
@@ -69,7 +69,7 @@ export function useRaceActs(args) {
   const [mb] = useState(makeMiaBox) // эпизод «Мия» (mia/raceMia.js): m — состояние машины, step — ступень, которой Мия ускорила дорожку, key — номер пачки реплик
   const [miaView, setMiaView] = useState({ mia: mb.m, cues: [], key: 0 })
   useMiaEnter({ running, at, mb, mspeech, setMiaView, log: pLog }) // эпизод «Мия»: вход на стадию (очередь речи — раньше расчёта времени стадии, mia/useMiaEnter.js)
-  const rh = useRehearsalActs(on && args.cat ? { ...args, sayLine: sayTr, cat: { ...args.cat, busyLeft: () => Math.max(args.cat.busyLeft(), speech.pendingMs(), running?.mia === 'ann' ? 0 : mspeech.leftMs()) }, countWait: () => (mspeech.pending() > 0 ? 1 : 0) } : args) // расписание реплик этапа знает, что похвала ещё впереди
+  const rh = useRehearsalActs(on && args.cat ? { ...args, sayLine: sayTr, cat: { ...args.cat, busyLeft: () => Math.max(args.cat.busyLeft(), speech.pendingMs(), running?.mia === 'ann' ? 0 : mspeech.leftMs()) }, countWait: () => (mspeech.pending() > 0 || bossExplaining(mb, running) ? 1 : 0) } : args) // расписание реплик этапа знает, что похвала ещё впереди
   const praiseRef = useRef(null) // похвала, которую reduceRace назначил на этот зачёт (apply → claim)
   const demo = useRacePhraseDemo({ on, cat: args.cat, sayLine, sayText, lines, rate }) // демо-ход «Скажи» на живой пилюле (racePhraseDemoTurn.js): голос и ворота для сцены
   const [box] = useState(makeBox) // s — актуальное состояние (читает nextIdx без перерисовки), hinted — подсказка голосом сказана на этом промахе (raceState.makeBox)
@@ -173,7 +173,7 @@ export function useRaceActs(args) {
   if (!on) return rh
   return {
     ...rh, result, race: view, mia: miaView, miaCap, miaTalk, miaDemo, nextIdx,
-    boss: { zone: z => miaEvent({ t: 'zone', zone: z, stage: running }), demo: kind => mspeech.enqueue(DEMO_CUES[kind] ?? []) }, // zone — слово отыграно в зоне; demo — пример-пилюля вошла в зону / дошла до низа: Мия говорит о ней // финал «Шкала памяти»: слово отыграно в зоне (шкала → машина Мии: пять красных — Пит остаётся внутри)
+    boss: { zone: z => miaEvent({ t: 'zone', zone: z, stage: running }), demo: kind => { mspeech.enqueue(DEMO_CUES[kind] ?? []); if (kind === 'end') markDemoDone(mb) } }, // zone — слово отыграно в зоне; demo — пример-пилюля вошла в зону / дошла до низа: Мия говорит о ней // финал «Шкала памяти»: слово отыграно в зоне (шкала → машина Мии: пять красных — Пит остаётся внутри)
     exitMs: st => (st?.act === 'phrases' ? PHRASE_EXIT_MS : undefined), // круг фраз кончился: до следующей стадии PHRASE_EXIT_MS, а не 1,3 с (Пит уже договорил итог хода)
     plate: st => plateText(st, plateCaption(lines, st?.line)), // неозвученная реплика стадии — подписью на плашке (raceSilentLine.js)
     /** Слово прохода A / B принято (раньше, чем щёлкнет заливка): время ответа ms (от выезда пилюли) и y (положение пилюли, % высоты: ниже LATE_Y — ответ «в последний момент») — в результаты, и для точности слова (raceAccuracy.js) — окно жизни пилюли по её скорости, заливка голосом в миг зачёта, тап ли это; Пит говорит мини-реплику успеха, следующая пилюля ждёт его */

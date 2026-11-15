@@ -3,6 +3,7 @@ import { goodPlan } from '../raceGood.js'
 import { BOSS_SPEED } from './bossWords.js'
 import { BOSS } from '../mia/raceMia.js'
 
+export const BOSS_WAIT_CAP_MS = 70000 // страховка: три ноты ждут конца объяснения не дольше (Пит и «помолчи» ≈ 8 с, пример 15,75 с, последние реплики ≈ 8 с)
 export const BOSS_END_MS = 11000 // эпилог финала держится столько (реплики Мии и Пита, уход Мии с коробкой)
 
 // Финал «Шкала памяти» (CONCEPT_RACE.md, «Финал»; владелец 2026-11-14) → стадии акта boss. Проводит Мия (эпизод mia/raceMia.js): церемония `boss-ann` (коробка падает на Пита, Мия запрыгивает,
@@ -13,7 +14,7 @@ export function bossStages(kit, act) {
   const { push, announce, plan } = kit
   const words = act.words.map((w, idx) => ({ ...w, idx, lane: 1, speed: BOSS_SPEED }))
   announce(act, { sid: 'boss', title: '', task: '', line: null, ms: MIA_ANN_MS })
-  Object.assign(kit.stages.at(-1), { mia: 'ann', always: true, waitCap: MIA_WAIT_CAP_MS, script: 'boss', demoRun: true, dropAt: BOSS.DROP_AT, jumpAt: BOSS.JUMP }) // свой сценарий (boss_*): коробка падает почти сразу, Мия прыгает после реплик Пита и её из-за края
+  Object.assign(kit.stages.at(-1), { mia: 'ann', always: true, waitCap: BOSS_WAIT_CAP_MS, script: 'boss', demoRun: true, dropAt: BOSS.DROP_AT, jumpAt: BOSS.JUMP }) // свой сценарий (boss_*): коробка падает почти сразу, Мия прыгает после реплик Пита и её из-за края
   const round = list => { const good = goodPlan(plan.seed, 'boss', list.length, { first: true }); return { type: 'student', act: act.id, sid: 'boss', mia: 'round', noBoost: true, noLeave: true, silent: true, words: list, good, step: { ...queueStep(kit, 'boss', list, good, w => ({ cap: w.translation, say: w.translation })), wide: true, overlap: false } } }
   push({ ...round(words), base: words, fill: list => Object.assign(kit.stages.find(x => x.sid === 'boss'), round(list)) })
   push({ type: 'announce', act: act.id, sid: 'boss-end', mia: 'end', always: true, round: { kind: 'mia', title: '', task: '' }, line: null, ms: BOSS_END_MS }) // эпилог: Мия и Пит договаривают на сцене с коробкой, потом итог

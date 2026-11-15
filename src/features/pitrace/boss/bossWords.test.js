@@ -1,9 +1,10 @@
 import { describe, it, expect } from 'vitest'
+import { readFileSync } from 'node:fs'
 import { resultScore, wordWeakness, bossWords, bossFill, BOSS_MAX, BOSS_MIN, BOSS_SPEED } from './bossWords.js'
 import { buildRaceStages } from '../raceStages.js'
 import { initRace } from '../raceState.js'
 import { miaSkip } from '../mia/miaRound.js'
-import { reduceMia, miaInit, MIA, BOSS } from '../mia/raceMia.js'
+import { reduceMia, miaInit, MIA, BOSS, makeMiaBox, markMiaEntered, markDemoDone, bossExplaining } from '../mia/raceMia.js'
 import { miaLine, MIA_LINES, isMiaLine } from '../mia/miaLines.js'
 import { flashOf, REVEAL_LINES } from './bossScale.js'
 import { arrivalAt, ARR } from '../mia/miaMotion.js'
@@ -119,5 +120,24 @@ describe('финал: сценарий Мии, красные слова, «ос
   })
   it('Мия прыгает позже у финала: arrivalAt(t, jump) — до jump коробка неподвижна, прыжок с jump', () => {
     expect(arrivalAt(BOSS.JUMP - 0.1, BOSS.JUMP).mia.mode).toBe('off'); expect(arrivalAt(BOSS.JUMP + 0.1, BOSS.JUMP).mia.mode).toBe('flight'); expect(arrivalAt(ARR.JUMP + 0.1).mia.mode).toBe('flight')
+  })
+})
+
+describe('объяснение шкалы не обрывается уроком', () => {
+  const ann = { type: 'announce', act: 'boss', sid: 'boss-ann', mia: 'ann', always: true, script: 'boss' }
+  it('пока пример не дошёл до низа, три ноты и круг ждут (между репликами очередь речи пуста — реплики о зонах ставит пилюля); последние реплики поставлены — ждут только очередь', () => {
+    const mb = makeMiaBox(); markMiaEntered(mb, '5:1000')
+    expect(bossExplaining(mb, ann)).toBe(true); expect(bossExplaining(mb, { ...ann, script: undefined })).toBe(false); expect(bossExplaining(mb, { type: 'student', act: 'boss', mia: 'round' })).toBe(false); expect(bossExplaining(mb, null)).toBe(false)
+    markDemoDone(mb); expect(bossExplaining(mb, ann)).toBe(false)
+  })
+  it('новая стадия сбрасывает отметку «объяснение кончилось»; повторный вход в ту же стадию — нет', () => {
+    const mb = makeMiaBox(); markMiaEntered(mb, '5:1000'); markDemoDone(mb)
+    expect(markMiaEntered(mb, '5:1000')).toBe(false); expect(mb.demoDone).toBe(true)
+    expect(markMiaEntered(mb, '5:2000')).toBe(true); expect(mb.demoDone).toBe(false)
+  })
+  it('директор: три ноты ждут и объяснение (countWait), запуск «end» помечает его законченным; страховка стадии 70 с', () => {
+    const src = readFileSync(new URL('../useRaceActs.js', import.meta.url), 'utf8')
+    expect(src).toContain('countWait: () => (mspeech.pending() > 0 || bossExplaining(mb, running) ? 1 : 0)'); expect(src).toContain("if (kind === 'end') markDemoDone(mb)")
+    expect(readFileSync(new URL('./raceStagesBoss.js', import.meta.url), 'utf8')).toContain('BOSS_WAIT_CAP_MS = 70000')
   })
 })
