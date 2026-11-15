@@ -14,13 +14,15 @@ import { layoutOf, artMatrix, toScene, poseApply, poseSvg, poseOfMotion, miaCss,
 // Ничего не монтируется и не считает, пока Мии нет (phase 'off'): коробка и спрайт появляются с её приходом и убираются после ухода.
 const OFFSCREEN_IDS = ['mia_push', 'boss_mia_hush'] // реплики Мии из-за правого края (она ещё не прыгнула): справа дуги звука
 
-export default function RaceMia({ mia, caption = null, talk = null, paused = false }) {
+export default function RaceMia({ mia, caption = null, talk = null, alarm = null, paused = false }) { // alarm — { key }: слово финала в красной зоне, зрачки Пита в коробке сжимаются (испуг)
   const [gone, setGone] = useState(-1)                          // at прихода, чей уход (анимация) уже доигран: после него коробку и спрайт убираем
   const live = mia.phase === 'in' || (mia.phase === 'out' && gone !== mia.at)
   const host = useRef(null), poseG = useRef(null), artG = useRef(null), catEl = useRef(null), miaEl = useRef(null)
   useMiaLife(miaEl, live, talk)                                    // Мия в тишине: взгляд, усы, смена лица
   const clock = useRef({ arr: 0, lv: 0, mode: 'off', paused })
-  const atRef = useRef(mia.at), jumpRef = useRef(null)
+  const atRef = useRef(mia.at), jumpRef = useRef(null), alarmAt = useRef(-1e9)
+  const alarmKey = alarm?.key ?? null
+  useEffect(() => { if (alarmKey != null) alarmAt.current = performance.now() }, [alarmKey]) // красное слово: отметка времени испуга Пита
   useEffect(() => { atRef.current = mia.at; jumpRef.current = mia.jump }, [mia.at, mia.jump])
   const miaTree = useMemo(() => (live ? renderTree(buildMiaCat(isWeakDevice() ? MIA_FACES.slice(0, 1) : MIA_FACES)) : null), [live])
   useEffect(() => { clock.current.paused = paused }, [paused])
@@ -58,7 +60,8 @@ export default function RaceMia({ mia, caption = null, talk = null, paused = fal
       const head = cat.querySelector(`[data-part="head"][data-face="${cat.getAttribute('data-face') || 'base'}"]`)
       talk = Math.max(talkLevel(head?.getAttribute('data-vis'), head?.getAttribute('data-mouth')), talk * 0.8)
       const tk = m.hideCat && m.shown && !leaving ? talk : 0
-      box.update({ ...m.eyes, thNear: m.box.thNear, thFar: m.box.thFar, talk: tk, t: tt, live: true })
+      const sc = (now - alarmAt.current) / 1000, fear = sc < 0 || sc > 1.6 ? 0 : sc < 0.12 ? sc / 0.12 : sc < 0.9 ? 1 : 1 - (sc - 0.9) / 0.7 // испуг: зрачки быстро сжимаются, держатся, медленно отпускают
+      box.update({ ...m.eyes, look: (m.eyes.look ?? 0) + (fear ? Math.sin(sc * 38) * 1.6 * fear : 0), pupil: 1 - 0.58 * fear, thNear: m.box.thNear, thFar: m.box.thFar, talk: tk, t: tt, live: true })
       const pose = poseOfMotion(m.box, L)
       pose.dx += 0.35 * Math.sin(2 * Math.PI * 22 * tt) * tk * L.f; pose.rot += 0.08 * Math.sin(2 * Math.PI * 17 * tt + 1) * tk // Пит говорит из коробки: дрожь минимальная (владелец 2026-11-14)
       const piv = toScene(M, ART.BOTTOM)

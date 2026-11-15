@@ -9,7 +9,7 @@ const kit = MASCOT_PACKS.kit
 
 const D = Math.PI / 180
 const e = 8 * D, beta = 26.57 * D, alpha = Math.PI / 2 - beta          // камера 8°; правая грань повёрнута к камере на 26,57° (грани 2:1)
-const a = 138, b = 138, h = 133                                         // размеры коробки в условных единицах
+const a = 68, b = 68, h = 133                                           // размеры коробки в условных единицах (ширина и глубина вдвое меньше прежних 138: коробка чуть шире головы Пита без усов, владелец 2026-11-15)
 const A = [-a * Math.cos(alpha), a * Math.sin(alpha)], B = [b * Math.cos(beta), b * Math.sin(beta)]
 const W = (s, t) => [s * A[0] + t * B[0], s * A[1] + t * B[1]]
 const proj = (x, y, z) => [x, -(y * Math.sin(e)) - z * Math.cos(e)]
@@ -42,12 +42,12 @@ const Nb = P(0, 0), Rb = P(0, 1), Lb = P(1, 0), Nt = P(0, 0, h), Lt = P(1, 0, h)
 // плоскость правой грани: реальные единицы (x вдоль ребра, y вниз) → рисунок
 const ux = (Rt[0] - Nt[0]) / b, uy = (Rt[1] - Nt[1]) / b, vx = (Nb[0] - Nt[0]) / h, vy = (Nb[1] - Nt[1]) / h
 const SX = 0.20, SY = 0.18, COVER = 0.22                                  // глаза Пита: масштаб по x / y; низ глаз прикрывает кромка (вариант владельца)
-const X0 = 0.19 * b, X1 = X0 + 0.563 * b, Y0 = 0.127 * h, Y1o = Y0 + 0.167 * h, CY0 = (Y0 + Y1o) / 2, EYE_H = 103.6 * SY
+const SLOT_W = 58, X0 = b / 2 - SLOT_W / 2, X1 = b / 2 + SLOT_W / 2, Y0 = 0.127 * h, Y1o = Y0 + 0.167 * h, CY0 = (Y0 + Y1o) / 2, EYE_H = 103.6 * SY
 const Y1 = CY0 + EYE_H / 2 - COVER * EYE_H, CX = (X0 + X1) / 2, HALF = 182.3 * SX / 2, R = (Y1 - Y0) / 2
 const tex = (x, y) => [Nt[0] + x * ux + y * vx, Nt[1] + x * uy + y * vy]
 
 /** Опорные точки рисунка: глаза Пита (середина), расстояние между ними, центр крышки и центр основания */
-export const ART = { EYE_MID: tex(CX, CY0), PER_EYE: 2 * HALF * ux, TOP: P(0.5, 0.5, h), BOTTOM: P(0.5, 0.5, 0), H: h }
+export const ART = { EYE_MID: tex(CX, CY0), PER_EYE: 2 * HALF * ux, TOP: P(0.5, 0.5, h), BOTTOM: P(0.5, 0.5, 0), H: h, WIDTH: a * Math.cos(alpha) + b * Math.cos(beta) }
 
 const NS = 'http://www.w3.org/2000/svg'
 const mk = (tag, at = {}, par = null) => { const el = document.createElementNS(NS, tag); for (const k in at) el.setAttribute(k, at[k]); par?.appendChild(el); return el }
@@ -55,9 +55,9 @@ const hsh = n => { const x = Math.sin(n * 127.1) * 43758.5453; return x - Math.f
 const eyesRaw = kit.states.base.eyes.replace(/\sdata-[xy]="[^"]*"/g, '')
 const cut = eyesRaw.indexOf('<path d="M432.7 305.5')
 const four = m => m.match(/<path[^>]*\/>/g) ?? []
-const eyeMarkup = (p, dx) => p[0] + p[1] + `<g transform="translate(${dx} 0)">` + p[2] + p[3] + '</g>' // зрачок и блик — по центру радужки: взгляд вдоль нормали грани
+const eyeMarkup = (p, dx) => p[0] + p[1] + `<g transform="translate(${dx} 0)"><g class="bxPupil" style="transform-box:fill-box;transform-origin:50% 50%">` + p[2] + '</g>' + p[3] + '</g>' // зрачок и блик — по центру радужки: взгляд вдоль нормали грани; зрачок в своей группе — сжимается, когда слово в красной зоне
 
-/** Коробка: { el, update } — el — <g> в координатах рисунка; update({ thNear, thFar, open, look, scale, talk, t }) — угол клапанов (°), раскрытость глаз 0…1, взгляд (ед. грани), рост глаз, громкость речи 0…1, время (с) */
+/** Коробка: { el, update } — el — <g> в координатах рисунка; update({ thNear, thFar, open, look, scale, pupil, talk, t }) — угол клапанов (°), раскрытость глаз 0…1, взгляд (ед. грани), рост глаз, громкость речи 0…1, время (с) */
 export function createBox(uid = 'wlMia') {
   const g = mk('g')
   const defs = mk('defs', {}, g)
@@ -79,7 +79,8 @@ export function createBox(uid = 'wlMia') {
   const eyeL = mk('g', {}, eyes), eyeR = mk('g', {}, eyes)
   eyeL.innerHTML = eyeMarkup(four(eyesRaw.slice(0, cut)), -8.2); eyeR.innerHTML = eyeMarkup(four(eyesRaw.slice(cut)), 10)
   fl.nearL = mk('path', {}, g); fl.nearR = mk('path', {}, g)                 // ближние клапаны поверх граней: задранные закрывают низ
-  let lastStep = -1
+  const pupils = [...eyeL.querySelectorAll('.bxPupil'), ...eyeR.querySelectorAll('.bxPupil')]
+  let lastStep = -1, lastPupil = 1
   const eye = (el, cx, csrc, s) => el.setAttribute('transform', `translate(${f2(cx + (s.look || 0))} ${f2(CY0)}) scale(${(SX * (s.scale || 1)).toFixed(4)} ${(SY * Math.max(0.02, s.open) * (s.scale || 1)).toFixed(4)}) translate(-${csrc} -305.6)`)
   function update(s) {
     const f = flaps(s.thNear, s.thFar), tn = s.thNear * D, tf = s.thFar * D
@@ -90,6 +91,8 @@ export function createBox(uid = 'wlMia') {
     const on = s.open > 0.01
     eyes.setAttribute('display', on ? 'inline' : 'none')
     if (on) { eye(eyeL, CX - HALF, 200.9, s); eye(eyeR, CX + HALF, 383.2, s) }
+    const pu = s.pupil ?? 1
+    if (pu !== lastPupil) { lastPupil = pu; pupils.forEach(x => { x.style.transform = pu === 1 ? '' : `scale(${pu.toFixed(3)})` }) } // зрачки: 1 — обычные, меньше — сжаты (слово в красной зоне, Пит испугался)
     const talk = s.talk || 0, step = Math.floor((s.t || 0) * 12)               // звуковые линии (замена рта Пита): комикс-штрихи в плоскости грани, 12 кадров/с
     if (talk <= 0.04) { if (lastStep !== -2) { lines.forEach(l => l.forEach(x => x.setAttribute('opacity', 0))); lastStep = -2 }; return }
     if (step === lastStep && !s.live) return

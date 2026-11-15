@@ -11,6 +11,7 @@ export function useMiaEnter({ running, at, mb, mspeech, setMiaView, log }) {
     const r = reduceMia(mb.m, { t: 'enter', stage: running, now: performance.now() })
     if (r.mia === mb.m && !r.say.length && r.boost == null) return undefined
     if (r.mia.phase !== mb.m.phase) log(`[mia] ${r.mia.phase === 'in' ? `Мия пришла (${r.mia.act}), коробка падает через ${Math.round(r.mia.at - performance.now())} мс` : r.mia.phase === 'out' ? `Мия уходит: ${r.mia.why === 'win' ? 'три верных подряд' : 'круг кончился'}` : `Мия: ${r.mia.phase}`}`)
+    if (r.log) log(`[mia] ${r.log}`)
     const view = applyMia(mb, r, running)
     if (r.say.length) mspeech.enqueue(r.say)
     const t = setTimeout(() => setMiaView(view), 0)

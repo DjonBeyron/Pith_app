@@ -17,4 +17,10 @@ describe('финал «Шкала памяти»: подключение', () =>
   it('игра рисует шкалу только на финале (RaceBossScale live по act boss), стили подключены', () => {
     expect(read('../../player/modules/rotate-phone/WordLaneGame.jsx')).toContain("['boss-ann', 'boss'].includes(f.stageObj?.sid)"); expect(read('../../../styles/player/modules/race-sprint.css')).toContain("@import './race-boss.css'")
   })
+  it('Пит произносит верный ответ после каждого слова финала (claim и fail), «занят» держится до конца — следующая пилюля после него; красное слово пугает Пита (зрачки)', () => {
+    const src = read('../useRaceActs.js')
+    expect(src).toContain("running?.act === 'boss' && running.type === 'student' ? running.words?.[idx]?.text : null"); expect(src).toContain("sayRef.current.sayText?.(w, { hold: true })")
+    expect(src).toContain('speech.claim(praiseRef.current); praiseRef.current = null; sayCorrect(rep?.idx)'); expect(src).toContain("if (kind === 'fail' && running.act === 'boss') { sayCorrect(info?.idx); redAlarm() }"); expect(src).toContain("if (z === 'slow') redAlarm()")
+    expect(read('../../player/modules/rotate-phone/WordLaneGame.jsx')).toContain('alarm={f.rh.miaAlarm}'); expect(read('../RaceMia.jsx')).toContain('pupil: 1 - 0.58 * fear'); expect(read('../mia/boxArt.js')).toContain("class=\"bxPupil\"")
+  })
 })

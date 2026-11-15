@@ -40,12 +40,16 @@ describe('рисунок коробки', () => {
     expect(Math.min(...up.nearL.map(p => p[1]))).toBeLessThan(Math.min(...flat.nearL.map(p => p[1])) - 20)
     expect(flat.nearL).toHaveLength(4)
   })
+  it('ширина коробки чуть больше головы Пита без усов (≈ 0,77 ширины .wlCat): 0,88…1,0 ширины .wlCat (владелец 2026-11-15)', () => {
+    const k = (ART.WIDTH * EYE_SPACING) / ART.PER_EYE // ширина коробки / ширина .wlCat
+    expect(k).toBeGreaterThan(0.88); expect(k).toBeLessThan(1.0)
+  })
   it('цвет — вариант 2 «оранжевый приглушённый»; shade затемняет', () => {
     expect(PAL).toMatchObject({ top: '#E3B67E', left: '#CD9A5E', right: '#B98649' }); expect(shade('#808080', 0.5)).toBe('#404040')
   })
   it('createBox строит группу один раз и update только меняет атрибуты (глаза, линии речи)', () => {
     const els = []
-    const mk = tag => { const el = { tag, attrs: {}, kids: [], setAttribute(k, v) { this.attrs[k] = v }, appendChild(c) { this.kids.push(c) }, append(...c) { this.kids.push(...c) }, remove() {}, set innerHTML(v) { this.html = v } }; els.push(el); return el }
+    const mk = tag => { const el = { tag, attrs: {}, kids: [], setAttribute(k, v) { this.attrs[k] = v }, appendChild(c) { this.kids.push(c) }, append(...c) { this.kids.push(...c) }, remove() {}, querySelectorAll() { return [] }, set innerHTML(v) { this.html = v } }; els.push(el); return el }
     globalThis.document = { createElementNS: (_, tag) => mk(tag) }
     try {
       const box = createBox('t')

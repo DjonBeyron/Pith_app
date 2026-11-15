@@ -62,6 +62,7 @@ export function useRaceActs(args) {
   useEffect(() => { lineRef.current = sayLine })
   const sayTr = useCallback((id, ...r) => { const ok = lineRef.current?.(id, ...r); if (ok) tr.line(id); return ok }, [tr]) // реплики стадий и стартовая — с отметкой в журнале переходов; функция стабильна (эффекты директора на ней не перезапускаются)
   const [miaTalk, setMiaTalk] = useState(null) // какую реплику говорит Мия сейчас (рот анимируется по ней)
+  const [miaAlarm, setMiaAlarm] = useState(null) // финал: слово в красной зоне — зрачки Пита в коробке сжимаются (RaceMia alarm)
   const [miaDemo, setMiaDemo] = useState(null) // финал: пример-пилюля на объяснении шкалы стартует с реплики «видите шкалу справа?» и идёт ровно, пока не кончится объяснение (одна отметка, а не по реплике)
   const [miaCap, setMiaCap] = useState(null) // подпись реплики Мии / Пита над Мией (только неозвученные)
   const [mspeech] = useState(() => createMiaSpeech({ play: playWordSlot, has: hasWordSlot, bufferMs: wordBufferMs, hold: gameMicHold, onCaption: setMiaCap, onSpeak: c => { setMiaTalk(c); if (!c) setMiaDemo(null); else if (c.id === DEMO_START) setMiaDemo({ key: c.key, ms: DEMO_MS }) }, log: pLog })) // речь эпизода «Мия»: очередь реплик (mia/miaSpeech.js)
@@ -110,6 +111,9 @@ export function useRaceActs(args) {
     setMiaView(applyMia(mb, r, ev.stage))
     if (r.say.length) mspeech.enqueue(r.say)
   }, [mb, mspeech])
+
+  const redAlarm = useCallback(() => setMiaAlarm(a => ({ key: (a?.key ?? 0) + 1 })), [])
+  const sayCorrect = idx => { const w = running?.act === 'boss' && running.type === 'student' ? running.words?.[idx]?.text : null; if (w) sayRef.current.sayText?.(w, { hold: true }) } // финал: Пит произносит верный ответ (подписи нет) и держится «занятым» до конца — следующая пилюля выезжает после него
 
   // Прыжок директора на стадию i (промах ступени, время вышло): стадия перезапускается с новой отметкой времени
   const jump = useCallback(i => { if (i >= 0) setS(p => ({ ...p, stage: 'run', idx: i, at: performance.now(), hint: [], leaving: -1 })) }, [setS])
@@ -172,12 +176,12 @@ export function useRaceActs(args) {
   }, [on, stages, box, baseNext, seed, mb])
   if (!on) return rh
   return {
-    ...rh, result, race: view, mia: miaView, miaCap, miaTalk, miaDemo, nextIdx,
-    boss: { zone: z => miaEvent({ t: 'zone', zone: z, stage: running }), demo: kind => { mspeech.enqueue(DEMO_CUES[kind] ?? []); if (kind === 'end') markDemoDone(mb) } }, // zone — слово отыграно в зоне; demo — пример-пилюля вошла в зону / дошла до низа: Мия говорит о ней // финал «Шкала памяти»: слово отыграно в зоне (шкала → машина Мии: пять красных — Пит остаётся внутри)
+    ...rh, result, race: view, mia: miaView, miaCap, miaTalk, miaDemo, miaAlarm, nextIdx,
+    boss: { zone: z => { miaEvent({ t: 'zone', zone: z, stage: running }); if (z === 'slow') redAlarm() }, demo: kind => { mspeech.enqueue(DEMO_CUES[kind] ?? []); if (kind === 'end') markDemoDone(mb) } }, // zone — слово отыграно в зоне; demo — пример-пилюля вошла в зону / дошла до низа: Мия говорит о ней // финал «Шкала памяти»: слово отыграно в зоне (шкала → машина Мии: пять красных — Пит остаётся внутри)
     exitMs: st => (st?.act === 'phrases' ? PHRASE_EXIT_MS : undefined), // круг фраз кончился: до следующей стадии PHRASE_EXIT_MS, а не 1,3 с (Пит уже договорил итог хода)
     plate: st => plateText(st, plateCaption(lines, st?.line)), // неозвученная реплика стадии — подписью на плашке (raceSilentLine.js)
     /** Слово прохода A / B принято (раньше, чем щёлкнет заливка): время ответа ms (от выезда пилюли) и y (положение пилюли, % высоты: ниже LATE_Y — ответ «в последний момент») — в результаты, и для точности слова (raceAccuracy.js) — окно жизни пилюли по её скорости, заливка голосом в миг зачёта, тап ли это; Пит говорит мини-реплику успеха, следующая пилюля ждёт его */
-    claim(rep, ms, y) { if (!running) return; tr.last(); if (ruOn) ruLog(rep, 'claim', rep?.pills?.[0]?.p); praiseRef.current = null; apply({ t: 'claim', stage: running, info: { idx: rep?.idx, ms, late: isLate(y), life: pillLifeMs(rep?.speed), fill: rep?.pills?.[0]?.p, tap: !!running.step?.tapOnly } }); speech.claim(praiseRef.current); praiseRef.current = null },
+    claim(rep, ms, y) { if (!running) return; tr.last(); if (ruOn) ruLog(rep, 'claim', rep?.pills?.[0]?.p); praiseRef.current = null; apply({ t: 'claim', stage: running, info: { idx: rep?.idx, ms, late: isLate(y), life: pillLifeMs(rep?.speed), fill: rep?.pills?.[0]?.p, tap: !!running.step?.tapOnly } }); speech.claim(praiseRef.current); praiseRef.current = null; sayCorrect(rep?.idx) },
     /** Перед выездом пилюли (движок: событие 'pre'): в «Разгоне» Пит говорит русский перевод слова из библиотеки (raceTrans.js), в «Слушай и лови» — английское слово (rep.say, библиотека слов); озвучки нет — молча, пилюля выезжает сразу.
      *  Пилюля ждёт, пока он договорит (pitLeft) */
     pre(rep, e) {
@@ -203,6 +207,7 @@ export function useRaceActs(args) {
       if (kind === 'win' && info?.last !== false) speech.riseStart() // пилюля взлетает: с этого мгновения идёт задержка похвалы
       if (ruOn && kind === 'miss') ru.miss(listenerRef?.current?.heard?.())
       if (ruOn && kind === 'fail') ruLog(info, 'fail', info?.peak)
+      if (kind === 'fail' && running.act === 'boss') { sayCorrect(info?.idx); redAlarm() } // финал: слово не названо — Пит произносит верное, зрачки сжимаются
       if (kind === 'fail' && ['sprint', 'catch', 'boss'].includes(running.act)) speech.pillGone('missed') // «не успел»: отступ до перевода следующего слова
       if (takeoffOn(running, kind, info)) playTakeoffAfter(rewardMs(info?.order ?? 0)) // взлёт принятой пилюли: глиссандо ми → ля ПОСЛЕ ноты награды, а не вместе с ней (только ступени-очереди гонки)
       apply({ t: kind, stage: running, info: kind === 'miss' ? { ...info, heard: listenerRef?.current?.heard?.() ?? '' } : info }) // на промахе — что услышал Vosk: двойник слова ступени ломает ловушку

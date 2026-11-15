@@ -39,7 +39,7 @@ export default function RaceBossScale({ live, show = true, flash = null, demo = 
         const want = mine ? zoneAt(Math.min(1, Math.max(0, tr.y / H))) : p.locked || p.failed ? null : 'fast'
         if (want && p.el.dataset.bz !== want) p.el.dataset.bz = want
       }
-      el.style.opacity = lineOn(tr, now) && !(tr && !tr.done && tr.y >= H) ? '1' : '0' // дошла до нижней отметки — быстро растворяется (transition .2 с); принятая держится HOLD_MS
+      el.style.opacity = lineOn(tr, now) && !(tr && !tr.done && tr.y >= H) ? (tr.done ? '1' : Math.min(1, 0.15 + tr.y / (H * 0.2)).toFixed(2)) : '0' // появляется плавно, чуть проявляясь в зелёной (прозрачность растёт на первых 20 % шкалы); у нижней отметки быстро растворяется (transition .2 с); принятая держится HOLD_MS
       if (!tr) return
       const y = Math.min(H, Math.max(0, tr.y))
       el.style.transform = `translate3d(0, ${y.toFixed(1)}px, 0)`

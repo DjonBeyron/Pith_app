@@ -72,7 +72,7 @@ describe('Мия в финале', () => {
 
 describe('финал: сценарий Мии, красные слова, «останется внутри»', () => {
   const ann = { type: 'announce', act: 'boss', sid: 'boss-ann', mia: 'ann', always: true, script: 'boss', dropAt: BOSS.DROP_AT, jumpAt: BOSS.JUMP }
-  const round = { type: 'student', act: 'boss', sid: 'boss', mia: 'round', noBoost: true, noLeave: true, silent: true, words: [{ text: 'a' }] }
+  const round = { type: 'student', act: 'boss', sid: 'boss', mia: 'round', noBoost: true, noLeave: true, silent: true, words: ['a', 'b', 'c', 'd', 'e', 'f'].map(text => ({ text })) }
   const summary = { type: 'summary', act: 'summary' }, end = { type: 'announce', act: 'boss', sid: 'boss-end', mia: 'end', always: true }
   const ids = r => r.say.map(l => l.id)
   const start = () => reduceMia(miaInit(), { t: 'enter', stage: ann, now: 1000 })
@@ -85,29 +85,26 @@ describe('финал: сценарий Мии, красные слова, «ос
     for (const l of r.say) expect(miaLine(l.id)).toBeTruthy() // каждая реплика есть в каталоге (озвучка, подпись)
     expect(ids(r)).not.toContain('mia_push'); expect(ids(r)).not.toContain('pit_panic') // реплики прохода в финале не повторяются
   })
-  it('в круге Мия молчит (silent); красные: не отвеченные (fail / miss по номеру слова, без двойного счёта) и ответы в красной зоне; пять — keep', () => {
+  it('в круге Мия молчит (silent); копятся верно названные (win), красные ответы (zone slow), ошибки / «не успел» (miss / fail без двойного счёта)', () => {
     let m = reduceMia(start().mia, { t: 'enter', stage: round }).mia
+    expect(m).toMatchObject({ total: 6, won: {}, redWins: 0 })
     expect(reduceMia(m, { t: 'win', stage: round, idx: 0 }).say).toEqual([]); expect(reduceMia(m, { t: 'miss', stage: round, idx: 0 }).say).toEqual([])
-    m = reduceMia(m, { t: 'fail', stage: round, idx: 0 }).mia; m = reduceMia(m, { t: 'miss', stage: round, idx: 0 }).mia // miss и fail по одному слову — одно красное
+    m = reduceMia(m, { t: 'fail', stage: round, idx: 0 }).mia; m = reduceMia(m, { t: 'miss', stage: round, idx: 0 }).mia
     expect(m.reds).toBe(1)
-    for (const z of ['fast', 'mid', 'slow']) m = reduceMia(m, { t: 'zone', zone: z, stage: round }).mia
-    expect(m).toMatchObject({ reds: 2, redWins: 1, keep: false })
-    for (const i of [1, 2]) m = reduceMia(m, { t: 'fail', stage: round, idx: i }).mia
-    expect(m).toMatchObject({ reds: 4, keep: false })
-    m = reduceMia(m, { t: 'fail', stage: round, idx: 3 }).mia; expect(m).toMatchObject({ reds: 5, keep: true })
+    m = reduceMia(m, { t: 'win', stage: round, idx: 1 }).mia; m = reduceMia(m, { t: 'zone', zone: 'slow', stage: round }).mia
+    expect(m).toMatchObject({ won: { 1: true }, redWins: 1 })
   })
-  it('ничего не ответил на все слова — Пит остаётся внутри (все слова красные по событиям движка, шкала не нужна)', () => {
-    let m = reduceMia(start().mia, { t: 'enter', stage: round }).mia
-    for (let i = 0; i < 6; i++) m = reduceMia(m, { t: 'fail', stage: round, idx: i }).mia
-    expect(m).toMatchObject({ reds: 6, keep: true })
+  const finish = events => { let m = reduceMia(start().mia, { t: 'enter', stage: round }).mia; for (const e of events) m = reduceMia(m, { stage: round, ...e }).mia; return reduceMia(m, { t: 'enter', stage: end, now: 9000 }) }
+  it('ничего не ответил на все слова — Пит остаётся внутри (красные считаются от слов, которых не назвали верно: события «не успел» не нужны)', () => {
+    const r = finish([]); expect(r.mia).toMatchObject({ phase: 'in', reds: 6, keep: true }); expect(ids(r)).toEqual(['boss_mia_keep', 'boss_pit_keep']); expect(r.log).toContain('красных 6 из 5'); expect(r.log).toContain('Пит остаётся в коробке')
   })
-  it('эпилог boss-end: меньше пяти красных — Мия уходит (boss_mia_free, boss_pit_free); пять — остаётся, Пит внутри (boss_mia_keep, boss_pit_keep); на итоге коробка в обоих случаях убирается', () => {
-    const base = reduceMia(start().mia, { t: 'enter', stage: round }).mia
-    const free = reduceMia({ ...base, reds: 2, keep: false }, { t: 'enter', stage: end, now: 5000 })
-    expect(free.mia.phase).toBe('out'); expect(ids(free)).toEqual(['boss_mia_free', 'boss_pit_free'])
-    const kept = reduceMia({ ...base, reds: 5, keep: true }, { t: 'enter', stage: end, now: 5000 })
-    expect(kept.mia).toMatchObject({ phase: 'in', fast: false }); expect(ids(kept)).toEqual(['boss_mia_keep', 'boss_pit_keep']); expect(kept.boost).toBe(1)
-    expect(reduceMia(kept.mia, { t: 'enter', stage: summary, now: 9000 })).toMatchObject({ mia: { phase: 'off' }, say: [] })
+  it('красных ровно пять: назван один верно в зелёной — остаётся; два верно — Мия отпускает; верные ответы в красной зоне красные', () => {
+    expect(finish([{ t: 'win', idx: 0 }, { t: 'zone', zone: 'fast' }]).mia).toMatchObject({ reds: 5, keep: true, phase: 'in' })
+    const free = finish([{ t: 'win', idx: 0 }, { t: 'zone', zone: 'fast' }, { t: 'win', idx: 1 }, { t: 'zone', zone: 'mid' }]); expect(free.mia).toMatchObject({ reds: 4, keep: false, phase: 'out' }); expect(ids(free)).toEqual(['boss_mia_free', 'boss_pit_free']); expect(free.log).toContain('Мия отпускает Пита')
+    expect(finish([{ t: 'win', idx: 0 }, { t: 'zone', zone: 'slow' }, { t: 'win', idx: 1 }, { t: 'zone', zone: 'slow' }]).mia).toMatchObject({ reds: 6, keep: true })
+  })
+  it('эпилог boss-end: на итоге коробка в обоих случаях убирается без ухода', () => {
+    const kept = finish([]); expect(reduceMia(kept.mia, { t: 'enter', stage: summary, now: 20000 })).toMatchObject({ mia: { phase: 'off' }, say: [] })
   })
   it('Мия обращается к ученику на «вы»', () => {
     const t = Object.fromEntries(MIA_LINES.filter(l => l.who === 'mia').map(l => [l.id, l.text]))
