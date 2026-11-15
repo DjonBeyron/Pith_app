@@ -43,7 +43,7 @@ describe('группа «Эпизод Мия» в таблице озвучки'
     expect(html({ miaOpen: false }).match(/data-testid="rv-row-mia_/g)).toBeNull(); expect(html().match(/data-testid="rv-lines"[\s\S]*?<\/ul>/)[0]).not.toContain('rv-row-mia_leave')
   })
   it('кнопка «Переозвучить Мию (N)»: все реплики Мии (mia_*) заново, без реплик Пита; с подтверждением', () => {
-    const h = html(); const n = MIA_LINES.filter(l => l.id.startsWith('mia_')).length
+    const h = html(); const n = MIA_LINES.filter(l => /^(mia_|boss_mia_)/.test(l.id)).length
     expect(h).toContain('data-testid="rv-revoice-mia"'); expect(h).toMatch(new RegExp(`Переозвучить Мию \\((<!-- -->)?${n}(<!-- -->)?\\)`))
     const src = readFileSync(new URL('./RaceMiaVoice.jsx', import.meta.url), 'utf8')
     expect(src).toContain('rows.filter(r => isMiaLine(r.id) && voiceable(r))'); expect(src).toContain('if (confirm(') ; expect(src).toContain('t.voice(hers)')

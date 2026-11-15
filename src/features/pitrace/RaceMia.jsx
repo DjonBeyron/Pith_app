@@ -4,7 +4,7 @@ import { buildMiaCat, MIA_FACES } from './mia/miaCat.js'
 import { useMiaLife } from '../player/modules/rotate-phone/useMiaLife.js'
 import { isWeakDevice } from '../../shared/lib/deviceTier.js'
 import { createBox, ART } from './mia/boxArt.js'
-import { arrivalAt, leaveAt, flightPath, talkLevel } from './mia/miaMotion.js'
+import { arrivalAt, leaveAt, flightPath, talkLevel, ARR } from './mia/miaMotion.js'
 import { layoutOf, artMatrix, toScene, poseApply, poseSvg, poseOfMotion, miaCss, MIA_W, MIA_H } from './mia/miaLayout.js'
 
 // Эпизод «Мия» поверх сцены игры (.wlStage, прототип 2026-11-14): картонная коробка падает на голову Пита (его голова скрыта, в прорези коробки — глаза Пита, совмещённые
@@ -12,14 +12,16 @@ import { layoutOf, artMatrix, toScene, poseApply, poseSvg, poseOfMotion, miaCss,
 // замена рта. Три верных подряд — Мия присаживается и отпрыгивает с коробкой в лапах за правый край, голова Пита возвращается. Состояние ведёт чистая машина (mia/raceMia.js):
 // компонент рисует его в своём ритме (rAF, часы стоят на паузе игры). Реплики идут очередью mia/miaSpeech.js (звук голосом Мии из слота или, если не озвучена, подпись caption над Мией).
 // Ничего не монтируется и не считает, пока Мии нет (phase 'off'): коробка и спрайт появляются с её приходом и убираются после ухода.
+const OFFSCREEN_IDS = ['mia_push', 'boss_mia_hush'] // реплики Мии из-за правого края (она ещё не прыгнула): справа дуги звука
+
 export default function RaceMia({ mia, caption = null, talk = null, paused = false }) {
   const [gone, setGone] = useState(-1)                          // at прихода, чей уход (анимация) уже доигран: после него коробку и спрайт убираем
   const live = mia.phase === 'in' || (mia.phase === 'out' && gone !== mia.at)
   const host = useRef(null), poseG = useRef(null), artG = useRef(null), catEl = useRef(null), miaEl = useRef(null)
   useMiaLife(miaEl, live, talk)                                    // Мия в тишине: взгляд, усы, смена лица
   const clock = useRef({ arr: 0, lv: 0, mode: 'off', paused })
-  const atRef = useRef(mia.at)
-  useEffect(() => { atRef.current = mia.at }, [mia.at])
+  const atRef = useRef(mia.at), jumpRef = useRef(null)
+  useEffect(() => { atRef.current = mia.at; jumpRef.current = mia.jump }, [mia.at, mia.jump])
   const miaTree = useMemo(() => (live ? renderTree(buildMiaCat(isWeakDevice() ? MIA_FACES.slice(0, 1) : MIA_FACES)) : null), [live])
   useEffect(() => { clock.current.paused = paused }, [paused])
 
@@ -52,7 +54,7 @@ export default function RaceMia({ mia, caption = null, talk = null, paused = fal
       if (!c.paused) { if (c.mode === 'arr') c.arr += dt; else if (c.mode === 'lv') c.lv += dt; tt += dt }
       if (n++ % 20 === 0 || !L) measure()
       if (!L || L.f <= 0) return
-      const leaving = c.mode === 'lv', m = leaving ? leaveAt(c.lv) : arrivalAt(c.arr)
+      const leaving = c.mode === 'lv', m = leaving ? leaveAt(c.lv) : arrivalAt(c.arr, jumpRef.current ?? ARR.JUMP)
       const head = cat.querySelector(`[data-part="head"][data-face="${cat.getAttribute('data-face') || 'base'}"]`)
       talk = Math.max(talkLevel(head?.getAttribute('data-vis'), head?.getAttribute('data-mouth')), talk * 0.8)
       const tk = m.hideCat && m.shown && !leaving ? talk : 0
@@ -87,7 +89,7 @@ export default function RaceMia({ mia, caption = null, talk = null, paused = fal
           </div>
         </>
       )}
-      {live && talk?.id === 'mia_push' && (
+      {live && OFFSCREEN_IDS.includes(talk?.id) && (
         <div key={talk.key} className="wlMiaSrc" style={{ '--src-ms': `${talk.ms}ms` }} data-testid="race-mia-src"><i /><i /><i /></div>
       )}
       {caption && <div key={caption.key} className="wlMiaCap" data-who={caption.who} data-testid="race-mia-cap">{caption.text}</div>}

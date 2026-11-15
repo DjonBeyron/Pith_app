@@ -170,6 +170,7 @@ export function useRaceActs(args) {
   if (!on) return rh
   return {
     ...rh, result, race: view, mia: miaView, miaCap, miaTalk, nextIdx,
+    boss: { zone: z => miaEvent({ t: 'zone', zone: z, stage: running }) }, // финал «Шкала памяти»: слово отыграно в зоне (шкала → машина Мии: пять красных — Пит остаётся внутри)
     exitMs: st => (st?.act === 'phrases' ? PHRASE_EXIT_MS : undefined), // круг фраз кончился: до следующей стадии PHRASE_EXIT_MS, а не 1,3 с (Пит уже договорил итог хода)
     plate: st => plateText(st, plateCaption(lines, st?.line)), // неозвученная реплика стадии — подписью на плашке (raceSilentLine.js)
     /** Слово прохода A / B принято (раньше, чем щёлкнет заливка): время ответа ms (от выезда пилюли) и y (положение пилюли, % высоты: ниже LATE_Y — ответ «в последний момент») — в результаты, и для точности слова (raceAccuracy.js) — окно жизни пилюли по её скорости, заливка голосом в миг зачёта, тап ли это; Пит говорит мини-реплику успеха, следующая пилюля ждёт его */

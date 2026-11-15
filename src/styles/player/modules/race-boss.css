@@ -1,16 +1,17 @@
-/* Шкала финала «Шкала памяти» (features/pitrace/boss/RaceBossScale.jsx, прототип 2026-11-14): справа вертикальная шкала времени реакции с делениями-секундами, через всю ширину горизонтальная линия,
-   которую толкает пилюля, на её правом конце счётчик цифрами. Цвет по зоне (крепко / средне / слабо): зелёный → янтарь → красный. Только transform / opacity, новых узлов — деления шкалы (по одному на секунду). */
-.wlStage > .wlBoss { inset: 0; pointer-events: none; z-index: 7; }
-.wlBossScale { position: absolute; right: 6px; top: 0; bottom: 0; width: 20px; border-right: 2px solid rgba(255, 255, 255, 0.22); }
-.wlBossScale i { position: absolute; right: 0; width: 9px; height: 0; border-top: 2px solid rgba(255, 255, 255, 0.4); }
-.wlBossScale i[data-zone='fast'] { border-top-color: rgba(120, 230, 150, 0.7); }
-.wlBossScale i[data-zone='mid'] { border-top-color: rgba(255, 190, 80, 0.75); }
-.wlBossScale i[data-zone='slow'] { border-top-color: rgba(255, 110, 90, 0.8); }
-.wlBossScale b { position: absolute; right: 12px; top: -8px; font-size: 11px; font-weight: 600; line-height: 16px; color: rgba(255, 255, 255, 0.55); }
-.wlBossLine { position: absolute; left: 3%; right: 30px; top: 0; height: 0; border-top: 3px solid #78e696; box-shadow: 0 0 10px rgba(120, 230, 150, 0.55); transition: opacity 0.35s ease, border-color 0.25s ease, box-shadow 0.25s ease; will-change: transform; }
-.wlBossLine[data-zone='mid'] { border-top-color: #ffbe50; box-shadow: 0 0 10px rgba(255, 190, 80, 0.55); }
-.wlBossLine[data-zone='slow'] { border-top-color: #ff6e5a; box-shadow: 0 0 12px rgba(255, 110, 90, 0.6); }
-.wlBossNum { position: absolute; right: -2px; top: -26px; padding: 2px 8px; border-radius: 10px; font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums; color: #101418; background: #78e696; }
-.wlBossLine[data-zone='mid'] .wlBossNum { background: #ffbe50; }
-.wlBossLine[data-zone='slow'] .wlBossNum { background: #ff6e5a; }
-@media (prefers-reduced-motion: reduce) { .wlBossLine { transition: none; } }
+/* Шкала финала «Шкала памяти» (features/pitrace/boss/RaceBossScale.jsx, прототип 2026-11-14): справа трёхцветная шкала (зелёная / жёлтая / красная зоны, без цифр), через всю ширину горизонтальная линия,
+   которую толкает пилюля; линия мгновенно меняет цвет, когда доезжает до зоны другого цвета. На слова Мии о зонах зона мигает полупрозрачной заливкой через всю ширину (.wlBossFlash).
+   Положение и размер рамки .wlBossBox (поле игры) пишет компонент; внутри всё в процентах высоты поля. Только transform / opacity. */
+.wlStage > .wlBoss { inset: 0; pointer-events: none; z-index: 7; opacity: 0; transition: opacity 0.6s ease; }
+.wlStage > .wlBoss[data-show] { opacity: 1; }
+.wlBossBox { position: absolute; left: 0; right: 0; top: 0; height: 100%; overflow: hidden; }
+.wlBossZone { position: absolute; right: 6px; width: 8px; border-radius: 4px; }
+.wlBossZone[data-zone='fast'], .wlBossFlash[data-zone='fast'] { --zc: 120, 230, 150; }
+.wlBossZone[data-zone='mid'], .wlBossFlash[data-zone='mid'] { --zc: 255, 200, 70; }
+.wlBossZone[data-zone='slow'], .wlBossFlash[data-zone='slow'] { --zc: 255, 96, 80; }
+.wlBossZone { background: rgba(var(--zc), 0.9); box-shadow: 0 0 8px rgba(var(--zc), 0.45); }
+.wlBossFlash { position: absolute; left: 0; right: 0; background: rgba(var(--zc), 0.4); opacity: 0; animation: wlBossBlink var(--flash-ms, 2000ms) ease-in-out 1 both; }
+@keyframes wlBossBlink { 0%, 100% { opacity: 0; } 15%, 40%, 65% { opacity: 1; } 28%, 52%, 80% { opacity: 0.25; } }
+.wlBossLine { position: absolute; left: 3%; right: 20px; top: 0; height: 0; border-top: 3px solid rgb(120, 230, 150); box-shadow: 0 0 10px rgba(120, 230, 150, 0.55); transition: opacity 0.35s ease; will-change: transform; }
+.wlBossLine[data-zone='mid'] { border-top-color: rgb(255, 200, 70); box-shadow: 0 0 10px rgba(255, 200, 70, 0.55); }
+.wlBossLine[data-zone='slow'] { border-top-color: rgb(255, 96, 80); box-shadow: 0 0 12px rgba(255, 96, 80, 0.6); }
+@media (prefers-reduced-motion: reduce) { .wlBossFlash { animation-duration: 1ms; opacity: 0.25; } .wlStage > .wlBoss { transition: none; } }

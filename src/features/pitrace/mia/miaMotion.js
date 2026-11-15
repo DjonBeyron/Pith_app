@@ -28,7 +28,8 @@ export function eyeLife(t) {
 }
 
 /** Поза прихода в момент t: { box: { dy (в высотах экрана ×1, <0 — выше), dx (px при масштабе 1), rot (°), sx, sy, thNear, thFar }, eyes: { open, scale, look }, mia: { mode, u, rot, sx, sy }, hideCat } */
-export function arrivalAt(t) {
+export function arrivalAt(t, jump = ARR.JUMP) { // jump — когда (с от падения коробки) Мия прыгает: у финала позже (до прыжка успевают Пит и её реплика из-за края)
+  const LAND_AT = jump + ARR.JUMP_LEN
   const box = { dy: 0, dx: 0, dxw: 0, rot: 0, sx: 1, sy: 1, thNear: 0, thFar: 0 }, eyes = { open: 0, scale: 1, look: 0 }, mia = { mode: 'off', u: 0, rot: 0, sx: 1, sy: 1 }
   if (t < ARR.FALL0) return { box, eyes, mia, hideCat: false, shown: false }
   const fall = clamp((t - ARR.FALL0) / ARR.FALL), q = t - IMPACT
@@ -45,11 +46,11 @@ export function arrivalAt(t) {
     const x = panicX(t), v = (panicX(t + 0.01) - panicX(t - 0.01)) / 0.02, vn = clamp(v / (PANIC_PX * 18), -1, 1)
     box.dx += x; box.rot += vn * 7; box.sx *= 1 + 0.04 * Math.abs(vn); eyes.look = 5 * vn; eyes.scale = 1 + 0.1 * Math.abs(vn)
   }
-  if (t >= ARR.JUMP) {                                          // Мия: прыжок из-за правого края и посадка на крышку
-    const u = clamp((t - ARR.JUMP) / ARR.JUMP_LEN)
-    if (t < LAND) Object.assign(mia, { mode: 'flight', u, rot: -48 * (1 - u) ** 2, sy: 1 + 0.16 * Math.sin(Math.PI * u), sx: 1 - 0.08 * Math.sin(Math.PI * u) })
+  if (t >= jump) {                                              // Мия: прыжок из-за правого края и посадка на крышку
+    const u = clamp((t - jump) / ARR.JUMP_LEN)
+    if (t < LAND_AT) Object.assign(mia, { mode: 'flight', u, rot: -48 * (1 - u) ** 2, sy: 1 + 0.16 * Math.sin(Math.PI * u), sx: 1 - 0.08 * Math.sin(Math.PI * u) })
     else {
-      const l = t - LAND, sag = (1 - Math.exp(-l * 50)) * Math.exp(-9 * l) * Math.cos(20 * l), k = (1 - Math.exp(-l * 50)) * Math.exp(-10 * l) * Math.cos(24 * l)
+      const l = t - LAND_AT, sag = (1 - Math.exp(-l * 50)) * Math.exp(-9 * l) * Math.cos(20 * l), k = (1 - Math.exp(-l * 50)) * Math.exp(-10 * l) * Math.cos(24 * l)
       box.sy *= 1 - 0.12 * sag; box.sx *= 1 + 0.05 * sag
       box.thNear = Math.max(box.thNear, 26 * Math.exp(-11 * l) * Math.abs(Math.sin(14 * l))); box.thFar = Math.max(box.thFar, 12 * Math.exp(-11 * l) * Math.abs(Math.sin(14 * l + 0.5)))
       Object.assign(mia, { mode: 'seat', u: 1, sy: 1 - 0.24 * k, sx: 1 + 0.12 * k, rot: box.rot * 0.6 })
@@ -57,7 +58,7 @@ export function arrivalAt(t) {
       eyes.open = reopen > 0 ? 0.05 + 0.95 * eBack(reopen) : 1 - 0.95 * close
     }
   }
-  if (t >= LAND + 0.9) { const L = eyeLife(t); eyes.look += L.look; eyes.open *= L.blink }   // глаза живые: взгляд бегает, моргают
+  if (t >= LAND_AT + 0.9) { const L = eyeLife(t); eyes.look += L.look; eyes.open *= L.blink }   // глаза живые: взгляд бегает, моргают
   return { box, eyes, mia, hideCat: true, shown: true }
 }
 
