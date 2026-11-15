@@ -44,10 +44,10 @@ describe('смена цвета дорожек при Мии', () => {
     expect(css).toMatch(/\.wl\[data-mia='in'\] \{[^}]*--wl-bg: #1d130a[^}]*--lvl1: #ffb23e[^}]*--lvl2: #f0662c[^}]*--lvl3: #b9c2d8/s)
     expect(read('../../styles/player/modules/race-sprint.css')).toContain("@import './race-mia.css'")
     const game = read('../player/modules/rotate-phone/WordLaneGame.jsx')
-    expect(game).toContain("data-mia={miaColorOn(f.rh.mia?.mia, f.stageObj, f.rh.miaTalk) ? 'in' : undefined}"); expect(game).toContain('<RaceMia mia={f.rh.mia.mia} caption={f.rh.miaCap} talk={f.rh.miaTalk}')
+    expect(game).toContain("data-mia={miaColorOn(f.rh.mia?.mia, f.stageObj, miaDropped) ? 'in' : undefined}"); expect(game).toContain('<RaceMia mia={f.rh.mia.mia} caption={f.rh.miaCap} talk={f.rh.miaTalk}')
   })
   it('колонки и разделители подсвечены через --mia-a (при 0 прозрачны — обычная игра не меняется); нить конвейера ярче', () => {
-    expect(css).toMatch(/\.wl\[data-race\] \.wlLanes i \{ background: linear-gradient[^}]*--mia-a/); expect(css).toMatch(/\.wlLaneEdge \{ box-shadow[^}]*--mia-a/); expect(css).toMatch(/\.wlLanes i::before \{ --run-k: 1\.6/)
+    expect(css).toMatch(/\.wl\[data-race\] \.wlLanes i \{ background: linear-gradient[^}]*--mia-a/); expect(css).not.toMatch(/\.wlLaneEdge \{ box-shadow/); expect(css).toMatch(/\.wlLanes i::before \{ --run-k: 1\.6/)
   })
   it('есть уважение к reduced-motion (переход цвета выключается)', () => {
     expect(css).toMatch(/prefers-reduced-motion: reduce\)[^}]*\.wl\[data-race\] \{ transition: none/s)

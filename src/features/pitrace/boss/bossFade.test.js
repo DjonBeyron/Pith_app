@@ -18,13 +18,13 @@ describe('выцветание маркера слова (фиолетовый �
 })
 
 describe('церемония: цвет дорожек и шкала', () => {
-  it('цвет Мии: круг с Мией (fast) или церемония финала с первых слов Мии; без Мии и до её слов — обычный', () => {
+  it('цвет Мии: круг с Мией (fast) или церемония финала с момента падения коробки; без Мии и до падения — обычный', () => {
     const m = { phase: 'in', fast: false }
-    expect(miaColorOn(m, { sid: 'boss-ann' }, { id: 'boss_mia_hush' })).toBe(true)
-    expect(miaColorOn(m, { sid: 'boss-ann' }, null)).toBe(false) // коробка падает, Пит мечется — цвета ещё обычные
-    expect(miaColorOn(m, { sid: 'a3-ann' }, { id: 'mia_push' })).toBe(false) // обычная церемония Мии: цвет — с круга
-    expect(miaColorOn({ phase: 'in', fast: true }, { sid: 'boss' }, null)).toBe(true)
-    expect(miaColorOn({ phase: 'off', fast: true }, { sid: 'boss' }, null)).toBe(false)
+    expect(miaColorOn(m, { sid: 'boss-ann' }, true)).toBe(true)
+    expect(miaColorOn(m, { sid: 'boss-ann' }, false)).toBe(false) // коробка ещё летит — цвета обычные
+    expect(miaColorOn(m, { sid: 'a3-ann' }, true)).toBe(false) // обычная церемония Мии: цвет — с круга
+    expect(miaColorOn({ phase: 'in', fast: true }, { sid: 'boss' }, false)).toBe(true)
+    expect(miaColorOn({ phase: 'off', fast: true }, { sid: 'boss' }, true)).toBe(false)
   })
   it('шкала мигает не с начала «видите шкалу справа», а на этих словах', () => {
     expect(REVEAL_AT).toBeGreaterThan(0.3); expect(REVEAL_AT).toBeLessThan(0.6); expect(REVEAL_LINES[0]).toBe(DEMO_START)
@@ -50,6 +50,30 @@ describe('проводка: панель настроек ставит игру 
   })
   it('линия шкалы под линейкой: зоны и риски выше линии по слою', () => {
     const css = read('../../../styles/player/modules/race-boss.css')
-    expect(css).toMatch(/\.wlBossZone \{[^}]*z-index: 1/); expect(css).toMatch(/\.wlBossTick \{[^}]*z-index: 1/); expect(css).toMatch(/\.wlBossLine \{[^}]*z-index: 0/)
+    expect(css).toMatch(/\.wlBossZone \{[^}]*z-index: 1/); expect(css).toMatch(/\.wlBossTick \{[^}]*z-index: 1/); expect(css).toMatch(/\.wlBossLine \{[^}]*right: 6px[^}]*z-index: 2/) // ровно от ствола (его кромка 4–6 px), без зазора и без наложения на него
+  })
+})
+
+describe('финал: XP не за красную зону, «не успел» молча, взгляд Пита', () => {
+  const read2 = p => readFileSync(new URL(p, import.meta.url), 'utf8')
+  it('XP: красная зона не награждается, остальные — да; шкала пишет зону, игра читает при принятом слове', async () => {
+    const { xpAllowed, setBossZoneNow, getBossZoneNow } = await import('./bossZoneNow.js')
+    expect(xpAllowed('slow')).toBe(false); expect(xpAllowed('mid')).toBe(true); expect(xpAllowed('fast')).toBe(true); expect(xpAllowed(null)).toBe(true)
+    setBossZoneNow('slow'); expect(getBossZoneNow()).toBe('slow'); setBossZoneNow(null)
+    const flow = read2('../../player/modules/rotate-phone/useWordLaneFlow.js')
+    expect(flow).toContain('if (rep.last && !(stages[sRef.current.idx]?.silent && !xpAllowed(getBossZoneNow()))) xpApi.current?.add(')
+    expect(read2('./RaceBossScale.jsx')).toContain('setBossZoneNow(zoneAt(')
+  })
+  it('«не успел» в финале (silent): ни реплики, ни текста сверху, ни подсказки слова над дорожками', () => {
+    const flow = read2('../../player/modules/rotate-phone/useWordLaneFlow.js')
+    expect(flow).toContain('failMute(st) ? false : sayLine('); expect(flow).toContain('if (!said && !failMute(st)) flash('); expect(flow).toContain('!st.step.labels.length && !st.silent')
+  })
+  it('взгляд Пита в коробке: ходит из стороны в сторону и осматривается; в пределах щели; почти не стоит', async () => {
+    const { eyeLife } = await import('../mia/miaMotion.js')
+    const looks = []; for (let t = 0; t < 60; t += 0.05) looks.push(eyeLife(t).look)
+    expect(Math.max(...looks)).toBeLessThan(6); expect(Math.min(...looks)).toBeGreaterThan(-6)
+    expect(Math.max(...looks)).toBeGreaterThan(3.5); expect(Math.min(...looks)).toBeLessThan(-3.5) // в обе стороны
+    const jumps = looks.slice(1).filter((x, k) => Math.abs(x - looks[k]) > 0.4).length // быстрые перескоки взгляда
+    expect(jumps).toBeGreaterThan(30) // за минуту — десятки перескоков: на месте не стоит
   })
 })

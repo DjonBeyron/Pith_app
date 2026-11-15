@@ -81,7 +81,7 @@ describe('Пит: голова выскакивает на голос и пря�
     expect(flow.match(/react\('shy', 1300, !!/g)).toHaveLength(1) // fail тихой стадии — still
     expect(flow).toContain('react(face, 1300, !!stages[sRef.current.idx]?.step?.quiet)') // miss — тоже still (лицо — missFace)
     expect(cat).toContain('react(next, ms = 1500, still = false)'); expect(cat).toContain('holdForReact(peek, ms, still)')
-    expect(flow).toContain("st?.step?.quiet ? false"); expect(flow).toContain('!said && !st?.step?.quiet')
+    expect(flow).toContain('failMute(st) ? false'); expect(flow).toContain('!said && !failMute(st)'); expect(readFileSync(new URL('../../../pitrace/boss/bossZoneNow.js', import.meta.url), 'utf8')).toContain('st?.step?.quiet')
   })
 
   it('гонка: на промах (не то слово, недоговорил) Пит лицо не меняет — голова shy сдвигала зрачки и рот (подёргивание); вне гонки — shy', () => {

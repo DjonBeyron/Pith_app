@@ -4,7 +4,7 @@ import { createRmsLevel } from '../../../../shared/lib/vosk/sayVoskLevel.js'
 import { createWordListener } from './wordLaneListen.js'
 import { speakWord, playTrack, stopVoice } from './wordLaneVoice.js'
 import { playNote, releaseNotes } from './wordLaneNotes.js'
-import { buildStages, listenStepOf } from './wordLaneStages.js'; import { useBuiltLabels } from './useLaneLabels.js'
+import { buildStages, listenStepOf } from './wordLaneStages.js'; import { useBuiltLabels } from './useLaneLabels.js'; import { getBossZoneNow, xpAllowed, failMute } from '../../../pitrace/boss/bossZoneNow.js'
 import { stepTargets, textOf } from './wordLaneRecipe.js'
 import { clipsFor, playSpan, estChunkMs } from './wordLaneAudio.js'
 import { playClip, playWordSlot, releaseClips, speechOfUrl, wordBufferMs } from './wordLaneClips.js'
@@ -103,15 +103,15 @@ export function useWordLaneFlow({ chunks, translation, lang, clips = null, audio
       rh.rec('win', { ...rep, order }); if (playNote(order)) { listenerRef.current?.mute(900); dbg.note('note') }
       catApi?.current?.react('love', 1600)
       catApi?.current?.peek?.()
-      if (rep.last) xpApi.current?.add(XP_PER_PILL * rep.count, rect) // у повтора из нескольких кусков одна цифра («+6»), когда принят последний кусок
+      if (rep.last && !(stages[sRef.current.idx]?.silent && !xpAllowed(getBossZoneNow()))) xpApi.current?.add(XP_PER_PILL * rep.count, rect) // у повтора из нескольких кусков одна цифра («+6»), когда принят последний кусок
     },
     miss(e) { rh.rec('miss', e?.rep); const face = missFace(plan?.game === 'race'); if (face) catApi?.current?.react(face, 1300, !!stages[sRef.current.idx]?.step?.quiet) }, claim(e) { rh.claim?.(e.rep, e.ms, e.y) }, pre(e) { rh.pre?.(e.rep, e) }, spawn(e) { rh.spawn?.(e) }, // гонка (spawn — выезд пилюли: журнал переходов raceTransChron.js): на промах Пит не меняет лицо (missFace, wordLaneCatPeek.js)
     fail(e) {
       const st = stages[sRef.current.idx]
       catApi?.current?.react('shy', 1300, !!st?.step?.quiet); rh.rec('fail', e.rep) // quiet («Разгон»): упущенная пилюля уезжает молча — голова Пита не двигается (react с still)
-      const said = e.order || st?.type === 'take' || st?.step?.quiet ? false : sayLine(rh.failLine(st) ?? (st?.step?.reps?.[0]?.parts?.length > 1 ? 'split_words' : 'try_again')) // не получилось сказать несколько кусков — кот советует говорить раздельно
-      if (!said && !st?.step?.quiet) flash(e.order ? 'Не успел — тапай дорожки, пока пилюли на экране' : 'Не успел — говори, пока пилюли на экране')
-      if (!e.order && st?.step && !st.step.labels.length) { // вслепую: после «не успел» показываем, что это за кусок
+      const said = e.order || st?.type === 'take' || failMute(st) ? false : sayLine(rh.failLine(st) ?? (st?.step?.reps?.[0]?.parts?.length > 1 ? 'split_words' : 'try_again')) // не получилось сказать несколько кусков — кот советует говорить раздельно
+      if (!said && !failMute(st)) flash(e.order ? 'Не успел — тапай дорожки, пока пилюли на экране' : 'Не успел — говори, пока пилюли на экране')
+      if (!e.order && st?.step && !st.step.labels.length && !st.silent) { // вслепую: после «не успел» показываем, что это за кусок
         setS(p => ({ ...p, hint: e.rep.parts }))
         clearTimeout(hintTimerRef.current)
         hintTimerRef.current = setTimeout(() => setS(p => ({ ...p, hint: [] })), HINT_MS)
