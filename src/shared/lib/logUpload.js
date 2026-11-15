@@ -35,9 +35,18 @@ async function textOf(file) {
   try { return await file.blob.text() } catch { return '' }
 }
 
-/** Что отправляем: journal (файл с шапкой, если есть) + строки дебага + последний выгруженный файл → [{ name, text }] */
-export async function collectLogs({ journal = null, journalSrc = gameJournal, debugLines = getDebugLines(), last = lastFile, at = new Date() } = {}) {
+/** Файл с комментарием владельца (попап перед отправкой): первым в списке — «читай» читает файлы по порядку имён, и комментарий идёт раньше журнала */
+export function commentFile(comment, at = new Date(), version = APP_VERSION) {
+  const text = String(comment ?? '').trim()
+  if (!text) return null
+  return { name: `pithy-comment-${at.toISOString().slice(0, 19).replace(/[:T]/g, '-')}.txt`, text: `Комментарий владельца к логам (v${version}):\n\n${text}` }
+}
+
+/** Что отправляем: комментарий (если есть) + journal (файл с шапкой, если есть) + строки дебага + последний выгруженный файл → [{ name, text }] */
+export async function collectLogs({ journal = null, journalSrc = gameJournal, debugLines = getDebugLines(), last = lastFile, at = new Date(), comment = '' } = {}) {
   const out = []
+  const note = commentFile(comment, at)
+  if (note) out.push(note)
   const jText = journal?.text ?? journalSrc.text([`Pithy — журнал игры, v${APP_VERSION}`])
   if (jText && jText.trim()) out.push({ name: journal?.name ?? journalFileName(at), text: jText })
   if (debugLines.length) out.push({ name: `pithy-debug-${at.toISOString().slice(0, 19).replace(/[:T]/g, '-')}.txt`, text: debugLines.join('\n') })
@@ -60,7 +69,7 @@ export async function uploadLogs(files, { client = supabase, version = APP_VERSI
   } catch (e) { return `Не отправилось: ${e?.message ?? 'сеть'}` }
 }
 
-/** Собрать и отправить одним действием; journal — файл журнала с шапкой (необязательно) */
+/** Собрать и отправить одним действием; journal — файл журнала с шапкой (необязательно), comment — комментарий из попапа (необязательно) */
 export async function sendLogs(opts = {}) {
   try { return await uploadLogs(await collectLogs(opts), opts) } catch (e) { return `Не отправилось: ${e?.message ?? 'ошибка'}` }
 }

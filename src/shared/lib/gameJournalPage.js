@@ -6,6 +6,7 @@
 import { gameJournal } from './gameJournal.js'
 import { gameCtxState } from './gameAudioCtx.js'
 import { onGameMicLost, micTracksLine } from './gameMic.js'
+import { reportMicLoss } from './gameJournalMute.js'
 
 const sessionOf = nav => { try { const s = nav?.audioSession; return s ? `${s.type ?? '—'}/${s.state ?? '—'}` : 'нет API' } catch { return '—' } }
 
@@ -18,7 +19,7 @@ export function pageSnapshot({ nav = globalThis.navigator, ctx = gameCtxState, m
 let installed = null
 
 /** Подписаться на события страницы (один раз). → отписка (нужна только тестам) */
-export function installPageJournal({ win = globalThis.window, doc = globalThis.document, nav = globalThis.navigator, journal = gameJournal, micLost = onGameMicLost, snap = () => pageSnapshot({ nav }) } = {}) {
+export function installPageJournal({ win = globalThis.window, doc = globalThis.document, nav = globalThis.navigator, journal = gameJournal, micLost = onGameMicLost, lossReport = reportMicLoss, snap = () => pageSnapshot({ nav }) } = {}) {
   if (installed) return installed
   const offs = []
   const write = text => { try { journal.add(`[page] ${text}; ${snap()}`) } catch { /* журнал не мешает игре */ } }
@@ -36,7 +37,11 @@ export function installPageJournal({ win = globalThis.window, doc = globalThis.d
   on(win, 'focus', e => { if (e?.target === win) write('focus: окно снова в фокусе') })
   const session = (() => { try { return nav?.audioSession ?? null } catch { return null } })()
   on(session, 'statechange', () => write('audioSession: смена состояния'))
-  try { offs.push(micLost((kind, t) => write(`дорожка микрофона: ${kind === 'ended' ? 'ОБОРВАНА (ended)' : 'заглушена системой (mute)'}, readyState=${t?.readyState ?? '—'}`))) } catch { /* без подписки */ }
+  const devices = (() => { try { return nav?.mediaDevices ?? null } catch { return null } })()
+  on(devices, 'devicechange', () => { // смена маршрута звука (наушники, Bluetooth, CarPlay) — частая причина «система заглушила микрофон»
+    Promise.resolve(devices.enumerateDevices?.()).then(list => write(`devicechange: устройств ввода ${(list ?? []).filter(d => d.kind === 'audioinput').length}, вывода ${(list ?? []).filter(d => d.kind === 'audiooutput').length} (${(list ?? []).filter(d => d.kind.startsWith('audio')).map(d => d.label || d.kind).join(', ').slice(0, 160)})`), () => write('devicechange: список устройств не прочитался'))
+  })
+  try { offs.push(micLost((kind, t) => { write(`дорожка микрофона: ${kind === 'ended' ? 'ОБОРВАНА (ended)' : 'заглушена системой (mute)'}, readyState=${t?.readyState ?? '—'}`); lossReport(journal, kind) })) } catch { /* без подписки */ }
   write(`журнал страницы включён, visibilityState=${doc?.visibilityState ?? '—'}`)
   installed = () => { offs.forEach(off => { try { off() } catch { /* уже снято */ } }); installed = null }
   return installed

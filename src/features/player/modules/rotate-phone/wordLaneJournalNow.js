@@ -24,7 +24,7 @@ export async function copyJournalNow() {
   try { const how = await copyText(compactText(journalNow().text)); return COPY_HOW[how] ?? COPY_HOW.failed } catch { return COPY_HOW.failed }
 }
 
-/** «Отправить в GitHub» → что сказать человеку (журнал с шапкой + дебаг + последний выгруженный файл) */
-export async function sendJournalNow() {
-  try { return await sendLogs({ journal: journalNow() }) } catch { return 'Не отправилось' }
+/** «Отправить в GitHub» → что сказать человеку (комментарий из попапа + журнал с шапкой + дебаг + последний выгруженный файл) */
+export async function sendJournalNow(comment = '') {
+  try { return await sendLogs({ journal: journalNow(), comment }) } catch { return 'Не отправилось' }
 }

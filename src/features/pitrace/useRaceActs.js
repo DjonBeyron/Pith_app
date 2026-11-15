@@ -28,6 +28,7 @@ import { plateText } from '../player/modules/rotate-phone/wordLanePlateText.js'
 import { reduceMia, makeMiaBox, applyMia, BOSS } from './mia/raceMia.js'
 import { miaOn } from './mia/miaConfig.js'
 import { createMiaSpeech } from './mia/miaSpeech.js'
+import { audioPulse } from '../../shared/lib/gameAudioPulse.js'
 import { useMiaEnter } from './mia/useMiaEnter.js'
 import { miaRoute, miaSkip } from './mia/miaRound.js'
 import { bossFill } from './boss/bossWords.js'
@@ -66,7 +67,7 @@ export function useRaceActs(args) {
   const [miaDemo, setMiaDemo] = useState(null) // финал: пример-пилюля на объяснении шкалы стартует с реплики «видите шкалу справа?» и идёт ровно, пока не кончится объяснение (одна отметка, а не по реплике)
   const [miaCap, setMiaCap] = useState(null) // подпись реплики Мии / Пита над Мией (только неозвученные)
   const [mspeech] = useState(() => {
-    const sp = createMiaSpeech({ play: playWordSlot, has: hasWordSlot, bufferMs: wordBufferMs, hold: gameMicHold, onCaption: setMiaCap, log: pLog, // речь эпизода «Мия»: очередь реплик (mia/miaSpeech.js)
+    const sp = createMiaSpeech({ play: playWordSlot, has: hasWordSlot, bufferMs: wordBufferMs, hold: gameMicHold, snap: audioPulse, onCaption: setMiaCap, log: pLog, // речь эпизода «Мия»: очередь реплик (mia/miaSpeech.js)
       onSpeak: c => {
         setMiaTalk(c)
         if (!c) setMiaDemo(null); else if (c.id === DEMO_START) setMiaDemo({ key: c.key, plan: demoPlan(Object.fromEntries(DEMO_IDS.map(id => [id.replace('boss_mia_', ''), sp.msOf(id)]))) }) // пример на шкале: путь пилюли по длительности реплик объяснения (без пауз у Мии)

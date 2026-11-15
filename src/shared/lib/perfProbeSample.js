@@ -7,6 +7,8 @@
 // размер DOM. Формат строки нарочно компактный — она пишется в pLog раз в
 // секунду и читается по столбикам.
 
+import { audioPulse } from './gameAudioPulse.js'
+
 // Сколько анимаций из списка бесконечные и как они распределены по именам —
 // именно бесконечные не дают GPU уснуть, даже если пузырь давно уехал вверх
 function infiniteBreakdown(anims) {
@@ -54,7 +56,7 @@ export function samplePerf({ fps, worstMs, drops, raf }) {
     (who ? ` vplay=${who}` : '') + (skel ? ` skel=${skel}` : '') +
     // rAF-колбэков за секунду (60 = один цикл на 60fps) и кто они (rafProbe.js)
     (raf ? ` raf=${raf.total}${raf.top ? '(' + raf.top + ')' : ''}` : '') +
-    ` canvas=${canvases}` +
+    ` canvas=${canvases}` + ` ${audioPulse()}` + // пульс звука: контексты, ход их часов, сессия, микрофон (gameAudioPulse.js)
     (document.hidden ? ' HIDDEN' : '')
   )
 }

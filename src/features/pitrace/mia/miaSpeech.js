@@ -14,7 +14,7 @@ export const MIN_CAPTION_MS = 1600
 export const MIC_MUTE_PAD_MS = 600
 export const MAX_PIT_TRIES = 40      // сколько раз пробуем реплику Пита (шаг 300 мс ≈ 12 с), пока он занят переводами и репликами игры: дальше пропускаем, очередь не стоит
 
-export function createMiaSpeech({ now = () => Date.now(), setTimer = setTimeout, clearTimer = clearTimeout, play = () => false, has = () => false, bufferMs = () => 0, hold = null, onCaption = () => {}, onSpeak = () => {}, log = () => {} } = {}) {
+export function createMiaSpeech({ now = () => Date.now(), setTimer = setTimeout, clearTimer = clearTimeout, play = () => false, has = () => false, bufferMs = () => 0, hold = null, snap = () => '', onCaption = () => {}, onSpeak = () => {}, log = () => {} } = {}) {
   const src = { lines: null, cat: null, listener: null } // свежие реплики, кот и слушатель кладёт use() (из эффекта хука: рефы в рендере читать нельзя)
   let queue = [], timer = 0, playing = null, endAt = 0, capTimer = 0, seq = 0
   const caption = (c, ms) => { clearTimer(capTimer); onCaption(c); capTimer = c ? setTimer(() => onCaption(null), ms + CAPTION_TAIL_MS) : 0 }
@@ -62,7 +62,7 @@ export function createMiaSpeech({ now = () => Date.now(), setTimer = setTimeout,
     log(`[mia] реплика ${c.id}: ${voiced ? `звук ${Math.round(ms)} мс` : 'без озвучки, подпись'}`)
     if (voiced) {
       let started = false
-      const ok = play(key, res => { if (!started && res?.play !== 'ok' && res?.play !== 'started') { caption({ key: `${++seq}:${c.id}`, who, text }, ms) } }, () => { started = true }, end)
+      const ok = play(key, res => { if (!started && res?.play !== 'ok' && res?.play !== 'started') { caption({ key: `${++seq}:${c.id}`, who, text }, ms) } }, () => { started = true; log(`[mia] звук ${c.id} стартовал: ${snap()}`) }, end)
       if (!ok) caption({ key: `${++seq}:${c.id}`, who, text }, ms)
     } else timer = setTimer(done, ms)
   }
