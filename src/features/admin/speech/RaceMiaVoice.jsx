@@ -6,8 +6,7 @@ import { getElevenLabsQuota } from '../../../shared/lib/ttsApi.js'
 import { voiceCount, missingRows, voiceable } from './raceVoiceTable.js'
 import { isMiaLine } from '../../pitrace/mia/miaLines.js'
 
-// Админ → «Голос» → «Встряхни память» → «Озвучка Мии» (рядом с «Озвучкой Пита», сворачивается так же): реплики эпизода «Мия» (коробка, ускорение дорожки; mia/miaLines.js) — строки Мии (голос второго
-// аккаунта ElevenLabs) и Пита внутри эпизода (обычный голос), свой счёт «озвучено N из M», «Озвучить Мию» (только недостающие) и «Переозвучить Мию» (все её реплики заново — после смены голоса; с подтверждением), остаток символов аккаунта Мии и выбор её голоса. Данные и действия — общие с таблицей Пита
+// Админ → «Голос» → «Встряхни память» → «Озвучка Мии» (рядом с «Озвучкой Пита», сворачивается так же): реплики Мии эпизода и финала (mia_*, boss_mia_*; mia/miaLines.js) — голос второго аккаунта ElevenLabs (реплики Пита в эпизоде — в «Озвучке Пита», его голосом), свой счёт «озвучено N из M», «Озвучить Мию» (только недостающие) и «Переозвучить Мию» (все её реплики заново — после смены голоса; с подтверждением), остаток символов аккаунта Мии и выбор её голоса. Данные и действия — общие с таблицей Пита
 // (useRaceVoiceTable): t — результат хука, off — кнопки заблокированы (идёт озвучка / игра), onSave / onVoice — как у строк Пита.
 export default function RaceMiaVoice({ rows, t, off, open, onToggle, deps, confirm = q => globalThis.confirm?.(q) ?? false }) {
   const missing = missingRows(rows), count = voiceCount(rows)
@@ -26,7 +25,7 @@ export default function RaceMiaVoice({ rows, t, off, open, onToggle, deps, confi
         {quota && <span className="rhpHint" data-testid="rv-mia-quota">{quota}</span>}
       </div>
       <MiaVoicePicker deps={deps?.voicePicker} />
-      <p className="rhpHint">Реплики Мии идут голосом второго аккаунта ElevenLabs, реплики Пита в эпизоде — обычным голосом. Прослушать — кнопка ▶.</p>
+      <p className="rhpHint">Реплики Мии идут голосом второго аккаунта ElevenLabs. Реплики Пита в эпизоде и финале — в блоке «Озвучка Пита». Прослушать — кнопка ▶.</p>
       <ul className="rvList" data-testid="rv-mia">{rows.map(row)}</ul>
     </PolishSettings>
   )

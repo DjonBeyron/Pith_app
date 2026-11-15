@@ -66,10 +66,10 @@ export function actArmedLanes({ stages, idx, ignited = false, leaving = false, n
     const next = leaving ? upcomingLanes(stages, idx, nextIdx) : []
     return join([...own, ...next], [...own.filter(k => !leaving || next.includes(k)), ...next])
   }
-  if (!isPlate(stage) || (isActStart(stages, idx) && !ignited)) return RUN_NONE
+  if (!isPlate(stage) || (isActStart(stages, idx) && !ignited && !stage.demoRun)) return RUN_NONE // demoRun — церемония финала: конвейер едет под пример-пилюлю с самого начала
   const prev = previousLanes(stages, idx)
   const next = upcomingLanes(stages, idx, nextIdx)
-  return join(next.filter(k => ignited || prev.includes(k)))
+  return join(next.filter(k => ignited || stage.demoRun || prev.includes(k)))
 }
 
 /** «Встряхни память» (v3.3.142; до неё — «медленный ход» 's', 30 %): четвёртый знак команды — игра идёт, дорожки между ступенями не тормозят, а держат ход (laneConveyorDrive → модель hold) */

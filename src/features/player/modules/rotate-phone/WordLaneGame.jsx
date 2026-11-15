@@ -17,7 +17,7 @@ import WordLaneTurnPlate from './WordLaneTurnPlate.jsx'
 import RacePanel from '../../../pitrace/RacePanel.jsx'
 import RaceMia from '../../../pitrace/RaceMia.jsx'
 import RaceBossScale from '../../../pitrace/boss/RaceBossScale.jsx'
-import { REVEAL_LINES, flashOf } from '../../../pitrace/boss/bossScale.js'
+import { REVEAL_LINES, flashOf, demoOf } from '../../../pitrace/boss/bossScale.js'
 import { trioFor, trioCtx } from '../../../pitrace/raceTapTrio.js'
 import { useWordLaneLeavingPlates } from './useWordLaneLeavingPlates.js'
 import { chargeOn } from '../../../pitrace/raceCharge.js'
@@ -85,7 +85,7 @@ export default function WordLaneGame({ cfg, audioSrc, lines: rawLines = null, fo
         <WordLaneCat apiRef={catApi} />
         <WordLanePills scene={f.scene} levels={f.levels} fx={f.fx} live={f.live} sceneApi={f.sceneApi} visible={showSlots} armed={armed} speed={speed} paused={f.paused} speedKey={f.stage === 'run' ? f.idx : -1} trio={trio} dodge={dodge} onLane={phase === 'order' || (phase === 'discern' && !f.stageObj?.speak) || ((tapMode || f.stageObj?.step?.tapOnly) && (phase === 'student' || f.stageObj?.speak)) ? laneTap : null} />
         <WordLaneXp apiRef={f.xpApi} />
-        {race && <RaceBossScale live={bossLive} show={f.stageObj?.type === 'student' || REVEAL_LINES.includes(f.rh.miaTalk?.id)} speed={f.stageObj?.step?.reps?.[0]?.speed ?? 0.5} flash={flashOf(f.rh.miaTalk)} paused={f.paused} onZone={f.rh.boss?.zone} />}
+        {race && <RaceBossScale live={bossLive} show={f.stageObj?.type === 'student' || REVEAL_LINES.includes(f.rh.miaTalk?.id)} flash={flashOf(f.rh.miaTalk)} demo={f.stageObj?.type === 'announce' ? demoOf(f.rh.miaTalk) : null} word={f.stages?.find(x => x.sid === 'boss')?.words?.[0]?.translation ?? ''} paused={f.paused} onZone={f.rh.boss?.zone} />}
         {race && f.rh.mia && <RaceMia mia={f.rh.mia.mia} caption={f.rh.miaCap} talk={f.rh.miaTalk} paused={f.paused} />}
         {single
           ? <div className="wlWord" style={{ top: `${WORD_Y}%` }} data-testid="wl-word">{cfg.chunks[0]}</div>

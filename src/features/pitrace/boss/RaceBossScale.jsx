@@ -1,51 +1,61 @@
 import { useEffect, useRef } from 'react'
-import { timeAt, zoneOf, yAt, ZONES, trackStep, lineOn } from './bossScale.js'
+import { zoneAt, ZONES, EDGES, TICKS, spanOf, trackStep, lineOn } from './bossScale.js'
 
-// Шкала финала «Шкала памяти» поверх сцены игры (.wlStage; владелец 2026-11-14): справа вертикальная трёхцветная шкала (зелёная, жёлтая, красная зоны, без цифр), через все дорожки идёт горизонтальная
-// линия, её толкает широкая пилюля (линия на нижнем краю пилюли). Линия мгновенно меняет цвет, когда пилюля доезжает до зоны другого цвета. Ответ принят или «не успел» — линия замирает, через HOLD_MS гаснет, а
-// зона, в которой слово отыграно, уходит в onZone('fast' | 'mid' | 'slow'): красные слова считает машина Мии (пять — Пит остаётся внутри). Мия объясняет шкалу репликами: flash — { zone, key, ms }: на её слова
-// «зелёная / жёлтая / красная зона» зона мигает полупрозрачной заливкой через всю ширину. show — шкалу видно (на церемонии — с реплики «видите шкалу справа?», в круге — всегда). Рисует по кадрам (rAF),
-// положение читает у самой пилюли (.wlPill[data-wide] в .wlField). speed — скорость пилюли финала (доли конвейера); paused — кадры стоят. live = false — ничего не считает и не рисует.
-export default function RaceBossScale({ live, show = true, speed, flash = null, paused = false, onZone = null }) {
+// Шкала финала «Шкала памяти» поверх сцены игры (.wlStage; владелец 2026-11-15): справа вертикальная линейка с рисками цвета зоны и полупрозрачным фоном зон (зелёная 45 %, жёлтая 35 %, красная 20 % длины), без цифр.
+// Линейка идёт от верха ленты (под кнопками паузы и админа) до низа с отступом под скругление экрана. Через все дорожки идёт горизонтальная линия — мягкая, с растушёванными краями: она появляется ровно в миг, когда
+// нижний край пилюли касается верха линейки, дальше идёт за этим краем и мгновенно меняет цвет, когда доезжает до зоны другого цвета. Ответ принят или «не успел» — линия замирает, через HOLD_MS гаснет, а зона слова
+// уходит в onZone('fast' | 'mid' | 'slow'): красные слова считает машина Мии. На церемонии Мия объясняет шкалу: flash — зона мигает полупрозрачной заливкой на её слова о зонах; demo — пример-пилюля со словом едет
+// по линейке под её реплики (на каждой реплике свой отрезок пути), линия идёт за ней. show — шкалу видно. Рисует по кадрам (rAF), положение читает у пилюли (.wlPill[data-wide]). live = false — ничего не рисует.
+export default function RaceBossScale({ live, show = true, flash = null, demo = null, word = '', paused = false, onZone = null }) {
   const host = useRef(null), box = useRef(null), line = useRef(null), clock = useRef({ paused, onZone })
   useEffect(() => { clock.current.paused = paused; clock.current.onZone = onZone }, [paused, onZone])
   useEffect(() => {
     if (!live) return undefined
     const stage = host.current?.parentElement, field = stage?.querySelector('.wlField')
     if (!stage || !field) return undefined
-    let raf = 0, tr = null, shown = '' // tr — отслеживаемая пилюля (bossScale.trackStep), shown — последняя записанная рамка поля
+    let raf = 0, tr = null, topShown = -1 // tr — отслеживаемая пилюля (bossScale.trackStep), topShown — записанный верх рамки
     const frame = now => {
       raf = requestAnimationFrame(frame)
       if (clock.current.paused) return
-      const f = field.getBoundingClientRect(), s0 = stage.getBoundingClientRect(), H = f.height
+      const lanes = stage.querySelector('.wlLanes'), s0 = stage.getBoundingClientRect()
+      const top = Math.round((lanes ? lanes.getBoundingClientRect().top : field.getBoundingClientRect().top + 80) - s0.top) // верх ленты: под кнопками (на ленте дорожки сдвинуты на 80 px)
+      if (box.current && top !== topShown) { topShown = top; box.current.style.top = `${top}px` }
+      const b = box.current?.getBoundingClientRect(), H = b?.height ?? 0
       if (!(H > 0)) return
-      const key = `${Math.round(f.top - s0.top)}:${Math.round(H)}`
-      if (box.current && shown !== key) { shown = key; box.current.style.top = `${Math.round(f.top - s0.top)}px`; box.current.style.height = `${Math.round(H)}px` }
-      const pills = [...field.querySelectorAll('.wlPill[data-wide]')].map(el => { const r = el.getBoundingClientRect(); return { el, h: r.height, top: r.top - f.top, bottom: r.bottom - f.top, locked: el.hasAttribute('data-lock'), failed: el.hasAttribute('data-fail') } }).filter(p => p.h > 0)
+      const pills = [...field.querySelectorAll('.wlPill[data-wide]')].map(el => { const r = el.getBoundingClientRect(); return { el, h: r.height, top: r.top - b.top, bottom: r.bottom - b.top, locked: el.hasAttribute('data-lock'), failed: el.hasAttribute('data-fail') } }).filter(p => p.h > 0)
       const was = tr
       tr = trackStep(tr, pills, H, now)
       const el = line.current
       if (!el) return
       if (tr && tr.done && was !== tr) { // пилюля только что закончилась: зона отыграна (принята — зона линии, «не успел» — красная)
-        const failed = !pills.find(p => p.el === tr.el)?.locked
-        clock.current.onZone?.(failed ? 'slow' : zoneOf(timeAt((tr.y / H) * 100, speed)))
+        const ok = pills.find(p => p.el === tr.el)?.locked
+        clock.current.onZone?.(ok ? zoneAt(Math.min(1, Math.max(0, tr.y / H))) : 'slow')
       }
       el.style.opacity = lineOn(tr, now) ? '1' : '0'
       if (!tr) return
-      el.style.transform = `translate3d(0, ${Math.round(tr.y)}px, 0)`
-      el.dataset.zone = zoneOf(timeAt((tr.y / H) * 100, speed))
+      const y = Math.min(H, Math.max(0, tr.y))
+      el.style.transform = `translate3d(0, ${y.toFixed(1)}px, 0)`
+      el.dataset.zone = zoneAt(y / H)
     }
     raf = requestAnimationFrame(frame)
     return () => cancelAnimationFrame(raf)
-  }, [live, speed])
+  }, [live])
 
-  const edges = ZONES.map((z, i) => (i === 0 ? 0 : yAt(ZONES[i - 1].to, speed))) // верх каждой зоны, % высоты поля
+  const fl = flash ? { top: EDGES[ZONES.findIndex(z => z.id === flash.zone)] * 100, h: spanOf(flash.zone) * 100 } : null
   return (
     <div ref={host} className="wlBoss" data-live={live || undefined} data-show={(live && show) || undefined} aria-hidden="true" data-testid="race-boss-scale">
       {live && (
         <div ref={box} className="wlBossBox">
-          {ZONES.map((z, i) => <i key={z.id} className="wlBossZone" data-zone={z.id} style={{ top: `${edges[i]}%`, height: i === ZONES.length - 1 ? `${100 - edges[i]}%` : `${edges[i + 1] - edges[i]}%` }} />)}
-          {flash && <i key={flash.key} className="wlBossFlash" data-zone={flash.zone} style={{ top: `${edges[ZONES.findIndex(z => z.id === flash.zone)]}%`, height: flash.zone === 'slow' ? `${100 - edges[2]}%` : `${edges[ZONES.findIndex(z => z.id === flash.zone) + 1] - edges[ZONES.findIndex(z => z.id === flash.zone)]}%`, '--flash-ms': `${flash.ms}ms` }} data-testid="race-boss-flash" />}
+          {ZONES.map((z, i) => <i key={z.id} className="wlBossZone" data-zone={z.id} style={{ top: `${EDGES[i] * 100}%`, height: `${spanOf(z.id) * 100}%` }} />)}
+          {TICKS.map(t => <b key={t.p} className="wlBossTick" data-zone={t.zone} data-major={t.major || undefined} style={{ top: `${t.p * 100}%` }} />)}
+          {fl && <i key={flash.key} className="wlBossFlash" data-zone={flash.zone} style={{ top: `${fl.top}%`, height: `${fl.h}%`, '--flash-ms': `${flash.ms}ms` }} data-testid="race-boss-flash" />}
+          {demo && !demo.out && (
+            <>
+              <i key={`p${demo.key}`} className="wlBossDemo" data-zone={demo.zone} style={{ '--from': demo.from, '--to': demo.to, '--ms': `${demo.ms}ms` }} data-testid="race-boss-demo">{word}</i>
+              {demo.to > 0 && <i key={`l${demo.key}`} className="wlBossLine" data-zone={demo.zone} data-demo="" style={{ '--from': Math.max(0, demo.from), '--to': demo.to, '--ms': `${demo.ms}ms` }} />}
+            </>
+          )}
+          {demo?.out && <i key={`o${demo.key}`} className="wlBossDemo" data-out="" data-zone="slow" style={{ '--from': 1, '--to': 1 }}>{word}</i>}
           <div ref={line} className="wlBossLine" data-zone="fast" style={{ opacity: 0 }} />
         </div>
       )}

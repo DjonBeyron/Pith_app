@@ -11,7 +11,7 @@ export function bossStages(kit, act) {
   const { push, announce, plan } = kit
   const words = act.words.map((w, idx) => ({ ...w, idx, lane: 1, speed: BOSS_SPEED }))
   announce(act, { sid: 'boss', title: '', task: '', line: null, ms: MIA_ANN_MS })
-  Object.assign(kit.stages.at(-1), { mia: 'ann', always: true, waitCap: MIA_WAIT_CAP_MS, script: 'boss', dropAt: BOSS.DROP_AT, jumpAt: BOSS.JUMP }) // свой сценарий (boss_*): коробка падает почти сразу, Мия прыгает после реплик Пита и её из-за края
+  Object.assign(kit.stages.at(-1), { mia: 'ann', always: true, waitCap: MIA_WAIT_CAP_MS, script: 'boss', demoRun: true, dropAt: BOSS.DROP_AT, jumpAt: BOSS.JUMP }) // свой сценарий (boss_*): коробка падает почти сразу, Мия прыгает после реплик Пита и её из-за края
   const round = list => { const good = goodPlan(plan.seed, 'boss', list.length, { first: true }); return { type: 'student', act: act.id, sid: 'boss', mia: 'round', noBoost: true, noLeave: true, silent: true, words: list, good, step: { ...queueStep(kit, 'boss', list, good, w => ({ cap: w.translation, say: w.translation })), wide: true, overlap: false } } }
   push({ ...round(words), base: words, fill: list => Object.assign(kit.stages.find(x => x.sid === 'boss'), round(list)) })
 }

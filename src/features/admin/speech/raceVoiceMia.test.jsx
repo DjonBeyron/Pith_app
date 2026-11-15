@@ -4,7 +4,7 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { readFileSync } from 'node:fs'
 import RaceVoiceTable from './RaceVoiceTable.jsx'
 import { miaRows, lineRows } from './raceVoiceTable.js'
-import { MIA_LINES } from '../../pitrace/mia/miaLines.js'
+import { MIA_LINES, isMiaLine } from '../../pitrace/mia/miaLines.js'
 
 // «Озвучка Пита»: группа «Эпизод Мия» (v3.3.230): строки реплик Мии и Пита-в-эпизоде, свой счёт, кнопка «Озвучить Мию», остаток аккаунта Мии, ▶ у озвученных
 const deps = { cachedLines: () => ({ lines: { mia_push: { text: 'Иди сюда, пушистик, дальше командую я', url: 'https://r2.dev/mia_push.mp3', duration: 2.1 } } }), loadLines: () => new Promise(() => {}), loadMeanings: () => new Promise(() => {}), loadScenes: () => new Promise(() => {}) }
@@ -19,8 +19,8 @@ describe('группа «Эпизод Мия» в таблице озвучки'
   })
   it('развёрнутая таблица: группа Мии, свой счёт, кнопка «Озвучить Мию (N)», «Остаток аккаунта Мии», ▶ у озвученной; основной счёт не считает Мию', () => {
     const h = html()
-    expect(h).toContain('Озвучка Мии'); expect(h).toContain('data-testid="mia-voice"'); expect(h).toContain('data-testid="rv-mia"'); expect(h).toMatch(new RegExp(`data-testid="rv-mia-count">Озвучено (<!-- -->)?1(<!-- -->)? из (<!-- -->)?${MIA_LINES.length}<`))
-    expect(h).toContain('data-testid="rv-voice-mia"'); expect(h).toContain(`Озвучить Мию (${MIA_LINES.length - 1})`); expect(h).toContain('data-testid="rv-mia-quota-btn"')
+    expect(h).toContain('Озвучка Мии'); expect(h).toContain('data-testid="mia-voice"'); expect(h).toContain('data-testid="rv-mia"'); expect(h).toMatch(new RegExp(`data-testid="rv-mia-count">Озвучено (<!-- -->)?1(<!-- -->)? из (<!-- -->)?${MIA_LINES.filter(l => isMiaLine(l.id)).length}<`))
+    expect(h).toContain('data-testid="rv-voice-mia"'); expect(h).toContain(`Озвучить Мию (${MIA_LINES.filter(l => isMiaLine(l.id)).length - 1})`); expect(h).toContain('data-testid="rv-mia-quota-btn"')
     expect(h).toContain('data-testid="rv-row-mia_leave"'); expect(h).toContain('data-testid="rv-play"'); expect(h).toContain('второй аккаунт ElevenLabs')
     expect(h).toMatch(/data-testid="rv-count">Озвучено (<!-- -->)?0(<!-- -->)? из (<!-- -->)?\d+</) // основной счёт Пита Мию не считает (в нём 0: озвучена только mia_push)
   })

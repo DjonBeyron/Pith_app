@@ -11,7 +11,7 @@ import { editedLine, saveLineText } from './raceLineText.js'
 import { mainRaceMode, mainRaceTitle } from './raceMainMode.js'
 import { askText } from '../../pitrace/raceAskVoice.js'
 import { RACE_TITLES, STAGES_ROUND } from '../../pitrace/raceOnly.js'
-import { MIA_LINES } from '../../pitrace/mia/miaLines.js'
+import { MIA_LINES, isMiaLine } from '../../pitrace/mia/miaLines.js'
 import RaceVoiceTable from './RaceVoiceTable.jsx'
 import { RaceAskScene } from '../../pitrace/RaceAskPlate.jsx'
 import RaceBlockLazy from './RaceBlock.jsx'
@@ -26,6 +26,8 @@ const raw = { lines: {
 } } // C — нет озвучки
 const deps = { cachedLines: () => raw, loadLines: async () => raw, loadMeanings: async () => ({}) }
 const html = props => renderToStaticMarkup(createElement(RaceVoiceTable, { plan: null, open: true, onToggle() {}, deps, ...props }))
+
+const ALL = RACE_LINES.length + MIA_LINES.filter(l => !isMiaLine(l.id)).length // реплики Пита в эпизоде «Мия» и финале (pit_*, boss_pit_*) — в таблице Пита (v3.3.240)
 
 describe('статусы и правка текста', () => {
   it('три статуса: озвучено / нет озвучки / текст изменён после озвучки', () => {
@@ -89,15 +91,15 @@ describe('статусы и правка текста', () => {
 describe('таблица и блок', () => {
   it('развёрнута: счётчик, кнопки «Озвучить недостающие» и «Переозвучить все», статусы трёх видов, кнопка в строке', () => {
     const h = html()
-    expect(h).toContain(`Озвучено 1 из ${RACE_LINES.length}`); expect(h).toContain('data-testid="rv-voice-missing"'); expect(h).toContain(`Озвучить недостающие (${RACE_LINES.length - 1})`)
+    expect(h).toContain(`Озвучено 1 из ${ALL}`); expect(h).toContain('data-testid="rv-voice-missing"'); expect(h).toContain(`Озвучить недостающие (${ALL - 1})`)
     expect(h).toContain('data-testid="rv-voice-all"'); expect(h).toContain('>Переозвучить все<')
     for (const s of ['>озвучено<', '>нет озвучки<', '>текст изменён после озвучки<']) expect(h).toContain(s)
-    expect(h.match(/data-testid="rv-row-/g)).toHaveLength(RACE_LINES.length); expect(h.match(/data-testid="rv-voice"/g)).toHaveLength(RACE_LINES.length) // реплики Мии — отдельный блок «Озвучка Мии» (v3.3.233), в таблице Пита их нет
+    expect(h.match(/data-testid="rv-row-/g)).toHaveLength(ALL); expect(h.match(/data-testid="rv-voice"/g)).toHaveLength(ALL) // реплики Мии — отдельный блок «Озвучка Мии» (v3.3.233), в таблице Пита их нет
     expect(h).toContain('value="новый текст"'); expect(h).toContain('>Переозвучить<'); expect(h).toContain('>Озвучить<')
   })
   it('свёрнута по умолчанию: только заголовок «Озвучка Пита» и сводка', () => {
     const h = html({ open: false })
-    expect(h).toContain('Озвучка Пита'); expect(h).toContain('aria-expanded="false"'); expect(h).toContain(`озвучено 1 из ${RACE_LINES.length}`); expect(h).not.toContain('rv-row-')
+    expect(h).toContain('Озвучка Пита'); expect(h).toContain('aria-expanded="false"'); expect(h).toContain(`озвучено 1 из ${ALL}`); expect(h).not.toContain('rv-row-')
   })
   it('блок: сверху одна «Встряхни память» (режим по умолчанию), ниже «Озвучка Пита», всё прежнее — в свёрнутом «Старое (old), не в прод»', () => {
     vi.stubGlobal('localStorage', { getItem: () => null, setItem() {} })

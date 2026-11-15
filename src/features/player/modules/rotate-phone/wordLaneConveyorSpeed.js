@@ -3,6 +3,7 @@
 // wordLaneConveyor.js (SPEED_RAMP_MS), привод — laneConveyorDrive.setSpeedHint.
 import { ENTER_Y, SPEED } from './wordLaneTimeline.js'
 import { MIA } from '../../../pitrace/mia/raceMia.js'
+import { DEMO_CONVEYOR_SPEED } from '../../../pitrace/boss/bossScale.js'
 
 const HORIZON = 3 // плашки и реплика второго круга стоят перед стадией пилюль: заглядываем вперёд не дальше стольких стадий
 
@@ -10,6 +11,7 @@ const HORIZON = 3 // плашки и реплика второго круга с
 export function conveyorSpeedHint(stages, idx) {
   const cur = stages?.[idx]
   if (!cur?.race || !cur.act) return null
+  if (cur.demoRun) return DEMO_CONVEYOR_SPEED // церемония финала: конвейер едет под пример-пилюлю, пока Мия объясняет шкалу
   for (let j = idx; j < Math.min(stages.length, idx + HORIZON + 1); j++) {
     const st = stages[j]
     if (!st || st.act !== cur.act) return null
