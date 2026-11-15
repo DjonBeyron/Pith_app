@@ -3,8 +3,8 @@
    Через всю ширину тонкая линия — от «ствола» линейки (правая кромка зон) поверх рисок, к левому краю утончается от края пилюли; цвет — зона, смена мгновенная. Пилюля, которую толкает линия (data-bz), красится в цвет зоны вместе с ней.
    На объяснении Мии зона, о которой она говорит, мигает (.wlBossFlash на всю ширину и яркий фон полосы зоны); пример-пилюля .wlBossDemo едет ОДНОЙ скоростью (top −75 % → 100 % за --ms; зелёная с выезда), цвет по зоне ступенями. */
 .wlStage > .wlBoss { inset: 0; pointer-events: none; z-index: 7; opacity: 0; transition: opacity 0.4s ease; }
-.wlStage > .wlBoss[data-show] { opacity: 1; animation: wlBossIn 1.1s ease-in-out 1 both; } /* шкала появляется на «Эй, вы за экраном»: быстрые, но плавные мигания */
-@keyframes wlBossIn { 0% { opacity: 0; } 16% { opacity: 1; } 30% { opacity: 0.25; } 46% { opacity: 1; } 62% { opacity: 0.4; } 80%, 100% { opacity: 1; } }
+.wlStage > .wlBoss[data-show] { opacity: 1; animation: wlBossIn 2.4s ease-in-out 1 both; } /* шкала появляется на «Эй, вы за экраном»: плавные мигания, 2,4 с */
+@keyframes wlBossIn { 0% { opacity: 0; } 12% { opacity: 0.85; } 24% { opacity: 0.2; } 38% { opacity: 1; } 52% { opacity: 0.35; } 68% { opacity: 1; } 82% { opacity: 0.6; } 100% { opacity: 1; } }
 .wlBossBox { position: absolute; left: 0; right: 0; top: 0; bottom: calc(env(safe-area-inset-bottom, 0px) + 40px); }
 .wlBossZone[data-zone='fast'], .wlBossFlash[data-zone='fast'], .wlBossTick[data-zone='fast'], .wlBossLine[data-zone='fast'] { --zc: 120, 230, 150; }
 .wlBossZone[data-zone='mid'], .wlBossFlash[data-zone='mid'], .wlBossTick[data-zone='mid'], .wlBossLine[data-zone='mid'] { --zc: 255, 200, 70; }
@@ -23,15 +23,10 @@
    На зелёной зоне появляется плавно, чуть проявляясь (прозрачность растёт по пути, пишет компонент); цвет — зона, смена мгновенная. Пример: линия появляется на касании так же плавно (wlBossShow). */
 .wlBossLine { position: absolute; left: 0; right: 4px; top: 0; height: 1.5px; margin-top: -0.75px; z-index: 2; background: rgb(var(--zc)); clip-path: polygon(0 50%, 11% 0, 100% 0, 100% 100%, 11% 100%); will-change: transform; }
 .wlBossLine:not([data-demo]) { transition: opacity 0.2s ease; }
-.wlBossLine[data-demo] { --zc: 120, 230, 150; transform: none; animation: wlBossFall var(--ms, 18000ms) linear 1 both, wlBossHue var(--ms, 18000ms) linear 1 both, wlBossShow var(--ms, 18000ms) linear 1 both; }
-/* пример-пилюля: одна анимация на всё объяснение (линейно), едет дальше за нижний край; цвет пилюли меняется плавно (--pc зарегистрирована, ключи с рампой), линии — ступенями */
-@property --pc { syntax: '<number>#'; inherits: true; initial-value: 120, 230, 150; }
+/* пример-пилюля: положение и цвет пишет компонент по плану (path по длительности реплик Мии, скорость плавная); цвет пилюли — --pc, линии — зона (ступенями) */
+.wlBossDemo { position: absolute; left: 11%; width: 78%; top: 0; height: 56px; margin-top: -56px; box-sizing: border-box; display: flex; align-items: center; padding: 0 24px; border-radius: 999px; font-style: normal; font-size: clamp(14px, 4vw, 18px); font-weight: 600; color: #fff; --pc: 120, 230, 150; background: linear-gradient(to bottom, rgba(var(--pc), 0.14), rgba(var(--pc), 0.04)), rgba(24, 30, 28, 0.92); border: 2px solid rgba(var(--pc), 0.9); box-shadow: inset 0 0 18px -6px rgba(var(--pc), 0.5); will-change: transform; transform: translate3d(0, -300px, 0); }
+.wlBossLine[data-demo] { transition: none; }
 @property --bz { syntax: '<number>#'; inherits: true; initial-value: 120, 230, 150; }
-.wlBossDemo { position: absolute; left: 11%; width: 78%; height: 56px; margin-top: -56px; box-sizing: border-box; display: flex; align-items: center; padding: 0 24px; border-radius: 999px; font-style: normal; font-size: clamp(14px, 4vw, 18px); font-weight: 600; color: #fff; --pc: 120, 230, 150; background: linear-gradient(to bottom, rgba(var(--pc), 0.14), rgba(var(--pc), 0.04)), rgba(24, 30, 28, 0.92); border: 2px solid rgba(var(--pc), 0.9); box-shadow: inset 0 0 18px -6px rgba(var(--pc), 0.5); animation: wlBossFall var(--ms, 18000ms) linear 1 both, wlBossPill var(--ms, 18000ms) linear 1 both; }
-@keyframes wlBossFall { from { top: -75%; } to { top: 125%; } }
-@keyframes wlBossShow { 0%, 37.5% { opacity: 0; } 43% { opacity: 1; } 86.5% { opacity: 1; } 87.5%, 100% { opacity: 0; } }
-@keyframes wlBossHue { 0%, 59.9% { --zc: 120, 230, 150; } 60%, 77.4% { --zc: 255, 200, 70; } 77.5%, 100% { --zc: 255, 96, 80; } }
-@keyframes wlBossPill { 0%, 60% { --pc: 120, 230, 150; } 65%, 77.5% { --pc: 255, 200, 70; } 82.5%, 100% { --pc: 255, 96, 80; } }
 /* пилюля финала под линией: цвет зоны (контур, внутренний свет, подпись-заливка) меняется плавно (--bz зарегистрирована, переход 0,5 с); --c / --rgb общие для всей игры, поэтому не регистрируются */
 .wlPill[data-wide][data-bz] { --rgb: var(--bz); --c: rgb(var(--bz)); transition: --bz 0.5s ease; }
 .wlPill[data-wide][data-bz='fast'] { --bz: 120, 230, 150; }

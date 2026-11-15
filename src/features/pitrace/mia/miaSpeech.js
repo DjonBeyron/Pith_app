@@ -24,13 +24,20 @@ export function createMiaSpeech({ now = () => Date.now(), setTimer = setTimeout,
     playing = null; endAt = now() + GAP_MS; queue.shift(); kick()
   }
 
+  /** Длительность реплики id (мс): озвученная Мия — по настоящей длине звука, иначе по подписи; для плана примера на шкале (bossScale.demoPlan) */
+  function msOf(id, who = 'mia') {
+    const line = src.lines?.[id], text = line?.text || miaLine(id)?.text || '', key = lineKey(id)
+    const voiced = who === 'mia' && !!line?.url && has(key)
+    const real = voiced ? bufferMs(key) : 0
+    return Math.max(voiced ? lineMs(real ? { ...line, duration: real / 1000 } : line) : (line?.url && who === 'pit' ? lineMs(line) : Math.max(MIN_CAPTION_MS, text.length * 65)), 400)
+  }
+
   function speak(c) {
     playing = c
     const lines = src.lines, line = lines?.[c.id], text = line?.text || miaLine(c.id)?.text || '', key = lineKey(c.id)
     const cat = src.cat, who = c.who
     const voiced = who === 'mia' && !!line?.url && has(key)
-    const real = voiced ? bufferMs(key) : 0
-    const ms = Math.max(voiced ? lineMs(real ? { ...line, duration: real / 1000 } : line) : Math.max(MIN_CAPTION_MS, text.length * 65), 400)
+    const ms = msOf(c.id, who)
     const done = () => finish(c)
     const safety = setTimer(done, ms + 700)   // страховка: звук не сообщил о конце
     const end = () => { clearTimer(safety); done() }
@@ -71,6 +78,8 @@ export function createMiaSpeech({ now = () => Date.now(), setTimer = setTimeout,
   return {
     /** Свежие данные: { lines, cat, listener (ref слушателя) } — зовёт хук на каждом рендере (эффектом) */
     use(o) { Object.assign(src, o) },
+    /** Длительность реплики (мс) — для плана примера */
+    msOf,
     /** Поставить реплики пачкой: cues — [{ id, who, delay }], delay — от этого момента */
     enqueue(cues, at = now()) {
       for (const c of cues ?? []) { if (isChatter(c.id) && (playing || queue.length)) continue; queue.push({ ...c, at: at + (c.delay ?? 0) }) }

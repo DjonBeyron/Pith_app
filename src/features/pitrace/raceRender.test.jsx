@@ -61,7 +61,7 @@ describe('админка: блок «Встряхни память (стенд)�
     expect(h).toContain('Встряхни память (стенд)'); expect(h).toContain('race-ru-address'); expect(h).toContain('race-ru-need') // адрес русской модели и подсказка про тап без неё
     for (const id of ['race-fixture', 'race-lines-status', 'race-voice-lines', 'race-chunks-status', 'race-voice-chunks', 'race-trans-status', 'race-voice-trans', 'race-tap-mode', 'race-run-full', 'race-run-sprint', 'race-run-catch', 'race-run-climb', 'race-run-descent', 'race-run-stages', 'race-export']) expect(h).toContain(`data-testid="${id}"`)
     for (const t of ['Полная гонка', 'Проход A', 'Проход B', 'Вершина', 'Спуск', 'Скачать отладку', 'Тап вместо речи']) expect(h).toContain(t)
-    expect(h).toContain('Реплики Пита race_*'); expect(h).not.toContain('race-howto'); expect(h).not.toContain('Как тестировать'); expect(h).not.toContain('race-ask') // плашка-вопрос открывается только по тапу
+    expect(h).toContain('Реплики Пита (race_*, эпизод «Мия», финал)'); expect(h).not.toContain('race-howto'); expect(h).not.toContain('Как тестировать'); expect(h).not.toContain('race-ask') // плашка-вопрос открывается только по тапу
   })
   it('раскладка на 375 px: первой идёт крупная кнопка «Пинг-понг + финал», потом «Полная гонка» и раунды, «Настройки» свёрнуты (фикстура, озвучки, тап внутри)', () => {
     const h = withOpen(false, () => html(RaceBlock, {}))
@@ -74,7 +74,7 @@ describe('админка: блок «Встряхни память (стенд)�
     const tab = read('../admin/speech/AdminSpeechTab.jsx')
     expect(tab.indexOf('<RaceBlock />')).toBeGreaterThan(0); expect(tab.indexOf('<RaceBlock />')).toBeLessThan(tab.indexOf('<RehearsalPolishBlock />')); expect(tab.indexOf('<RehearsalPolishBlock />')).toBeLessThan(tab.indexOf('<Game2Block />'))
     const src = read('../admin/speech/RaceBlock.jsx')
-    expect(src).toContain("game: 'race', round: round ?? undefined"); expect(src).toContain('bare forceDebug startRef={startRef}'); expect(src).toContain('list: RACE_LINES')
+    expect(src).toContain("game: 'race', round: round ?? undefined"); expect(src).toContain('bare forceDebug startRef={startRef}'); expect(src).toContain('list: PIT_LINES')
   })
   it('«Скачать отладку»: файл с журналом плеера и отдельным полем строк [race]', () => {
     const f = raceDebugFile({ now: new Date('2026-11-03T10:00:00Z'), lines: ['[warm] x', '[race] разгон: «learn» верно, серия 1'] })

@@ -4,7 +4,7 @@ import { resultScore, wordWeakness, bossWords, bossFill, BOSS_MAX, BOSS_MIN, BOS
 import { buildRaceStages } from '../raceStages.js'
 import { initRace } from '../raceState.js'
 import { miaSkip } from '../mia/miaRound.js'
-import { reduceMia, miaInit, MIA, BOSS, makeMiaBox, markMiaEntered, markDemoDone, bossExplaining } from '../mia/raceMia.js'
+import { reduceMia, miaInit, MIA, BOSS } from '../mia/raceMia.js'
 import { miaLine, MIA_LINES, isMiaLine } from '../mia/miaLines.js'
 import { flashOf, REVEAL_LINES } from './bossScale.js'
 import { arrivalAt, ARR } from '../mia/miaMotion.js'
@@ -80,8 +80,8 @@ describe('финал: сценарий Мии, красные слова, «ос
   it('своя церемония: коробка падает через BOSS.DROP_AT, Мия прыгает через BOSS.JUMP, реплики по сценарию владельца', () => {
     const r = start()
     expect(r.mia).toMatchObject({ phase: 'in', act: 'boss', at: 1000 + BOSS.DROP_AT, jump: BOSS.JUMP })
-    expect(ids(r)).toEqual(['boss_pit_1', 'boss_mia_hush', 'boss_mia_look', 'boss_mia_think']) // реплики о зонах, «пять красных» и «нет, только не это» запускает пример-пилюля на шкале (DEMO_CUES)
-    expect(r.say.map(l => l.who)).toEqual(['pit', 'mia', 'mia', 'mia']); expect(r.say.map(l => l.delay)).toEqual([...r.say.map(l => l.delay)].sort((a, b) => a - b))
+    expect(ids(r)).toEqual(['boss_pit_1', 'boss_mia_hush', 'boss_mia_look', 'boss_mia_think', 'boss_mia_green', 'boss_mia_yellow', 'boss_mia_red', 'boss_mia_five', 'boss_pit_no']) // объяснение шкалы подряд, без пауз (очередь держит GAP_MS)
+    expect(r.say.map(l => l.who)).toEqual(['pit', 'mia', 'mia', 'mia', 'mia', 'mia', 'mia', 'mia', 'pit']); expect(r.say.map(l => l.delay)).toEqual([BOSS.PIT1_AT, BOSS.HUSH_AT, ...Array(7).fill(BOSS.LOOK_AT)]) // с look все в очередь с одним сроком: идут одна за другой
     for (const l of r.say) expect(miaLine(l.id)).toBeTruthy() // каждая реплика есть в каталоге (озвучка, подпись)
     expect(ids(r)).not.toContain('mia_push'); expect(ids(r)).not.toContain('pit_panic') // реплики прохода в финале не повторяются
   })
@@ -120,21 +120,24 @@ describe('финал: сценарий Мии, красные слова, «ос
   })
 })
 
-describe('объяснение шкалы не обрывается уроком', () => {
-  const ann = { type: 'announce', act: 'boss', sid: 'boss-ann', mia: 'ann', always: true, script: 'boss' }
-  it('пока пример не дошёл до низа, три ноты и круг ждут (между репликами очередь речи пуста — реплики о зонах ставит пилюля); последние реплики поставлены — ждут только очередь', () => {
-    const mb = makeMiaBox(); markMiaEntered(mb, '5:1000')
-    expect(bossExplaining(mb, ann)).toBe(true); expect(bossExplaining(mb, { ...ann, script: undefined })).toBe(false); expect(bossExplaining(mb, { type: 'student', act: 'boss', mia: 'round' })).toBe(false); expect(bossExplaining(mb, null)).toBe(false)
-    markDemoDone(mb); expect(bossExplaining(mb, ann)).toBe(false)
+describe('повторный вход в церемонию (пауза и «Продолжить», перезапуск ступени)', () => {
+  const ann = { type: 'announce', act: 'boss', sid: 'boss-ann', mia: 'ann', always: true, script: 'boss', dropAt: BOSS.DROP_AT, jumpAt: BOSS.JUMP }
+  it('церемония начинается заново: реплики снова в очереди, коробка падает снова (раньше вход ничего не делал — после паузы оба молчали)', () => {
+    const first = reduceMia(miaInit(), { t: 'enter', stage: ann, now: 1000 })
+    const again = reduceMia(first.mia, { t: 'enter', stage: ann, now: 9000 })
+    expect(again.mia).toMatchObject({ phase: 'in', act: 'boss', at: 9000 + BOSS.DROP_AT }); expect(again.say.map(l => l.id)).toEqual(first.say.map(l => l.id))
   })
-  it('новая стадия сбрасывает отметку «объяснение кончилось»; повторный вход в ту же стадию — нет', () => {
-    const mb = makeMiaBox(); markMiaEntered(mb, '5:1000'); markDemoDone(mb)
-    expect(markMiaEntered(mb, '5:1000')).toBe(false); expect(mb.demoDone).toBe(true)
-    expect(markMiaEntered(mb, '5:2000')).toBe(true); expect(mb.demoDone).toBe(false)
+  it('повторный вход в круг финала не обнуляет счёт (продолжение с пилюли)', () => {
+    const round = { type: 'student', act: 'boss', sid: 'boss', mia: 'round', noBoost: true, noLeave: true, silent: true, words: ['a', 'b', 'c'].map(text => ({ text })) }
+    let m = reduceMia(reduceMia(miaInit(), { t: 'enter', stage: ann, now: 1 }).mia, { t: 'enter', stage: round }).mia
+    m = reduceMia(m, { t: 'win', stage: round, idx: 0 }).mia; m = reduceMia(m, { t: 'enter', stage: round }).mia
+    expect(m).toMatchObject({ total: 3, won: { 0: true } })
   })
-  it('директор: три ноты ждут и объяснение (countWait), запуск «end» помечает его законченным; страховка стадии 70 с', () => {
-    const src = readFileSync(new URL('../useRaceActs.js', import.meta.url), 'utf8')
-    expect(src).toContain('countWait: () => (mspeech.pending() > 0 || bossExplaining(mb, running) ? 1 : 0)'); expect(src).toContain("if (kind === 'end') markDemoDone(mb)")
-    expect(readFileSync(new URL('./raceStagesBoss.js', import.meta.url), 'utf8')).toContain('BOSS_WAIT_CAP_MS = 70000')
+  it('директор: повторный вход сбрасывает очередь речи и пример (stop), три ноты ждут только очередь речи; пример по длительностям реплик; конвейер на объяснении под скорость пилюли', () => {
+    const src = readFileSync(new URL('../useRaceActs.js', import.meta.url), 'utf8'), me = readFileSync(new URL('../mia/useMiaEnter.js', import.meta.url), 'utf8')
+    expect(me).toContain("if (running.mia === 'ann' && mb.m.phase === 'in' && mb.m.act === running.act) mspeech.stop()")
+    expect(src).toContain('countWait: () => (mspeech.pending() > 0 ? 1 : 0)'); expect(src).toContain("sp.msOf(id)"); expect(src).toContain('demoPlan('); expect(src).toContain('demoSpeed: setDemoSpeed')
+    expect(readFileSync(new URL('../../player/modules/rotate-phone/WordLaneGame.jsx', import.meta.url), 'utf8')).toContain("f.stageObj?.sid === 'boss-ann' ? f.rh.miaDemoSpeed : null")
+    expect(readFileSync(new URL('../../../styles/player/modules/race-bar.css', import.meta.url), 'utf8')).toContain('z-index: 50')
   })
 })

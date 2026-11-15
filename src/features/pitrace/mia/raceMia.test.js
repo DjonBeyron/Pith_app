@@ -72,7 +72,7 @@ describe('эпизод «Мия»: пока она на коробке', () => {
   })
   it('повторный вход в ту же стадию (пауза и «Продолжить») Мию не трогает; после ухода фаза не сбрасывается (анимация ухода не обрывается)', () => {
     const m = arrive()
-    expect(reduceMia(m, ev('enter', ann())).mia).toBe(m); expect(reduceMia(m, ev('enter', round3())).mia).toMatchObject({ phase: 'in', streak: 0 })
+    expect(reduceMia(m, ev('enter', ann())).mia).toMatchObject({ phase: 'in', act: 'sprint' }); expect(reduceMia(m, ev('enter', round3())).mia).toMatchObject({ phase: 'in', streak: 0 })
     const out = reduceMia(m, ev('enter', circle1('catch'))).mia
     const next = reduceMia(out, ev('enter', { type: 'student', act: 'phrases', sid: 'phrases' }))
     expect(next.mia).toBe(out); expect(next.mia.phase).toBe('out')

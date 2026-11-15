@@ -40,9 +40,9 @@ describe('рисунок коробки', () => {
     expect(Math.min(...up.nearL.map(p => p[1]))).toBeLessThan(Math.min(...flat.nearL.map(p => p[1])) - 20)
     expect(flat.nearL).toHaveLength(4)
   })
-  it('ширина коробки чуть больше головы Пита без усов (≈ 0,77 ширины .wlCat): 0,88…1,0 ширины .wlCat (владелец 2026-11-15)', () => {
+  it('ширина коробки — среднее между прежней (1,93 ширины .wlCat) и узкой (0,94): ≈ 1,4 (владелец 2026-11-15: «слишком узкая, нужно среднее»)', () => {
     const k = (ART.WIDTH * EYE_SPACING) / ART.PER_EYE // ширина коробки / ширина .wlCat
-    expect(k).toBeGreaterThan(0.88); expect(k).toBeLessThan(1.0)
+    expect(k).toBeGreaterThan(1.3); expect(k).toBeLessThan(1.6)
   })
   it('цвет — вариант 2 «оранжевый приглушённый»; shade затемняет', () => {
     expect(PAL).toMatchObject({ top: '#E3B67E', left: '#CD9A5E', right: '#B98649' }); expect(shade('#808080', 0.5)).toBe('#404040')

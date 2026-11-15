@@ -64,7 +64,7 @@ export default function WordLaneGame({ cfg, audioSrc, lines: rawLines = null, fo
   const pause = useWordLanePause({ f, cfg, audioSrc, lines }) // свернули приложение — пауза сразу, «Продолжить» открывает микрофон из тапа (useWordLanePause.js)
   const { phase } = f
   const plates = useWordLaneLeavingPlates(f.plate, f.idx, f.stageObj?.round?.look) // плашка остаётся в DOM на время ухода (улетает вверх, как пилюля): useWordLaneLeavingPlates.js
-  const speed = conveyorSpeedHint(f.stages, f.stage === 'run' ? f.idx : -1) // «Гонка с Питом»: скорость первой пилюли ближайшей стадии — пунктир набирает её заранее (wordLaneConveyorSpeed.js)
+  const speed = (f.stageObj?.sid === 'boss-ann' ? f.rh.miaDemoSpeed : null) ?? conveyorSpeedHint(f.stages, f.stage === 'run' ? f.idx : -1) // на объяснении шкалы конвейер идёт под скорость пример-пилюли (rh.miaDemoSpeed), иначе как в круге финала // «Гонка с Питом»: скорость первой пилюли ближайшей стадии — пунктир набирает её заранее (wordLaneConveyorSpeed.js)
   const armed = useConveyorArm(f) // какие дорожки взведены: конвейер зажигается за 0,66 с до конца реплики Пита / плашки (wordLaneConveyorStart.js), остановку решает привод по пилюлям на дорожке
   const single = cfg.chunks.length === 1 && phase !== 'discern' && !cfg.plan // у одного слова текст стоит крупно — кроме «Различи»: там слова на пилюлях, а верное над дорожками не выдаём
   const showSlots = phase !== 'drop'
@@ -85,7 +85,7 @@ export default function WordLaneGame({ cfg, audioSrc, lines: rawLines = null, fo
         <WordLaneCat apiRef={catApi} />
         <WordLanePills scene={f.scene} levels={f.levels} fx={f.fx} live={f.live} sceneApi={f.sceneApi} visible={showSlots} armed={armed} speed={speed} paused={f.paused} speedKey={f.stage === 'run' ? f.idx : -1} trio={trio} dodge={dodge} onLane={phase === 'order' || (phase === 'discern' && !f.stageObj?.speak) || ((tapMode || f.stageObj?.step?.tapOnly) && (phase === 'student' || f.stageObj?.speak)) ? laneTap : null} />
         <WordLaneXp apiRef={f.xpApi} />
-        {race && <RaceBossScale live={bossLive} show={f.stageObj?.type === 'student' || REVEAL_LINES.includes(f.rh.miaTalk?.id)} flash={flashOf(f.rh.miaTalk)} demo={f.stageObj?.sid === 'boss-ann' ? f.rh.miaDemo : null} word={f.stages?.find(x => x.sid === 'boss')?.words?.[0]?.translation ?? ''} paused={f.paused} onZone={f.rh.boss?.zone} onDemo={f.rh.boss?.demo} />}
+        {race && <RaceBossScale live={bossLive} show={f.stageObj?.type === 'student' || REVEAL_LINES.includes(f.rh.miaTalk?.id)} flash={flashOf(f.rh.miaTalk)} demo={f.stageObj?.sid === 'boss-ann' ? f.rh.miaDemo : null} word={f.stages?.find(x => x.sid === 'boss')?.words?.[0]?.translation ?? ''} paused={f.paused} onZone={f.rh.boss?.zone} onDemoSpeed={f.rh.boss?.demoSpeed} />}
         {race && f.rh.mia && <RaceMia mia={f.rh.mia.mia} caption={f.rh.miaCap} talk={f.rh.miaTalk} alarm={f.rh.miaAlarm} paused={f.paused} />}
         {single
           ? <div className="wlWord" style={{ top: `${WORD_Y}%` }} data-testid="wl-word">{cfg.chunks[0]}</div>

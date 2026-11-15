@@ -9,7 +9,7 @@ const kit = MASCOT_PACKS.kit
 
 const D = Math.PI / 180
 const e = 8 * D, beta = 26.57 * D, alpha = Math.PI / 2 - beta          // камера 8°; правая грань повёрнута к камере на 26,57° (грани 2:1)
-const a = 68, b = 68, h = 133                                           // размеры коробки в условных единицах (ширина и глубина вдвое меньше прежних 138: коробка чуть шире головы Пита без усов, владелец 2026-11-15)
+const a = 103, b = 103, h = 133                                         // размеры коробки в условных единицах (ширина и глубина — среднее между прежними 138 и 68: владелец 2026-11-15 «слишком узкая, нужно среднее»)
 const A = [-a * Math.cos(alpha), a * Math.sin(alpha)], B = [b * Math.cos(beta), b * Math.sin(beta)]
 const W = (s, t) => [s * A[0] + t * B[0], s * A[1] + t * B[1]]
 const proj = (x, y, z) => [x, -(y * Math.sin(e)) - z * Math.cos(e)]
@@ -42,7 +42,7 @@ const Nb = P(0, 0), Rb = P(0, 1), Lb = P(1, 0), Nt = P(0, 0, h), Lt = P(1, 0, h)
 // плоскость правой грани: реальные единицы (x вдоль ребра, y вниз) → рисунок
 const ux = (Rt[0] - Nt[0]) / b, uy = (Rt[1] - Nt[1]) / b, vx = (Nb[0] - Nt[0]) / h, vy = (Nb[1] - Nt[1]) / h
 const SX = 0.20, SY = 0.18, COVER = 0.22                                  // глаза Пита: масштаб по x / y; низ глаз прикрывает кромка (вариант владельца)
-const SLOT_W = 58, X0 = b / 2 - SLOT_W / 2, X1 = b / 2 + SLOT_W / 2, Y0 = 0.127 * h, Y1o = Y0 + 0.167 * h, CY0 = (Y0 + Y1o) / 2, EYE_H = 103.6 * SY
+const SLOT_W = 68, X0 = b / 2 - SLOT_W / 2, X1 = b / 2 + SLOT_W / 2, Y0 = 0.127 * h, Y1o = Y0 + 0.167 * h, CY0 = (Y0 + Y1o) / 2, EYE_H = 103.6 * SY
 const Y1 = CY0 + EYE_H / 2 - COVER * EYE_H, CX = (X0 + X1) / 2, HALF = 182.3 * SX / 2, R = (Y1 - Y0) / 2
 const tex = (x, y) => [Nt[0] + x * ux + y * vx, Nt[1] + x * uy + y * vy]
 

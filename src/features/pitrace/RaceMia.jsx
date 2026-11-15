@@ -12,6 +12,7 @@ import { layoutOf, artMatrix, toScene, poseApply, poseSvg, poseOfMotion, miaCss,
 // замена рта. Три верных подряд — Мия присаживается и отпрыгивает с коробкой в лапах за правый край, голова Пита возвращается. Состояние ведёт чистая машина (mia/raceMia.js):
 // компонент рисует его в своём ритме (rAF, часы стоят на паузе игры). Реплики идут очередью mia/miaSpeech.js (звук голосом Мии из слота или, если не озвучена, подпись caption над Мией).
 // Ничего не монтируется и не считает, пока Мии нет (phase 'off'): коробка и спрайт появляются с её приходом и убираются после ухода.
+const SEAT_DROP = 12 // Мия сидит ГЛУБЖЕ на крышке (лапы ниже центра верхней грани), а не на уголке (владелец 2026-11-15)
 const OFFSCREEN_IDS = ['mia_push', 'boss_mia_hush'] // реплики Мии из-за правого края (она ещё не прыгнула): справа дуги звука
 
 export default function RaceMia({ mia, caption = null, talk = null, alarm = null, paused = false }) { // alarm — { key }: слово финала в красной зоне, зрачки Пита в коробке сжимаются (испуг)
@@ -70,8 +71,8 @@ export default function RaceMia({ mia, caption = null, talk = null, alarm = null
       cat.style.visibility = m.hideCat ? 'hidden' : ''
       const mi = miaEl.current
       if (mi) {                                                  // Мия: прыжок из-за экрана → сидит на крышке (едет с коробкой) → уезжает с ней в лапах за экран
-        const top = toScene(M, ART.TOP), seat = poseApply(pose, piv)(top), rest = [top[0], top[1] - 4 * L.f]
-        let a = [seat[0], seat[1] - 4 * L.f], mr = m.mia
+        const top = toScene(M, ART.TOP), seat = poseApply(pose, piv)(top), rest = [top[0], top[1] + SEAT_DROP * L.f]
+        let a = [seat[0], seat[1] + SEAT_DROP * L.f], mr = m.mia
         if (mr.mode === 'flight') a = Object.values(flightPath(mr.u, [L.W + 150 * L.f, 0.55 * L.H], rest))
         mi.style.display = mr.mode === 'off' ? 'none' : 'block'
         if (mr.mode !== 'off') mi.style.transform = miaCss(a[0], a[1], L.f, mr.rot, mr.sx, mr.sy)

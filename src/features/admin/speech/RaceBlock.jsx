@@ -6,6 +6,7 @@ import { readTapMode, writeTapMode } from '../../player/modules/rotate-phone/wor
 import { FIXTURES, FIXTURE_IDS } from '../../rehearsal/rehearsalFixtures.js'
 import { loadRehearsalForm, saveRehearsalForm, subscribeRehearsalForm, parsePlanJson, fixtureJson } from '../../rehearsal/rehearsalTestForm.js'
 import { RACE_LINES } from '../../pitrace/raceLines.js'
+import { MIA_LINES, isMiaLine } from '../../pitrace/mia/miaLines.js'
 import { RACE_ROUNDS, RACE_TITLES, STAGES_ROUND } from '../../pitrace/raceOnly.js'
 import { raceTexts } from '../../pitrace/raceTexts.js'
 import { extrasOf } from '../../pitrace/raceWords.js'
@@ -34,6 +35,7 @@ import '../../../styles/admin-race-ask.css'
 // Любая кнопка запуска только ОТКРЫВАЕТ сцену игры на весь экран с попапом «Говорю / Тапаю» (pitrace/RaceAskPlate.jsx, внутри RotatePhoneModule): ответ — свежий жест, в нём же startGameAudio.
 // План с game: 'race' и round (raceOnly.js); один модуль игры на блок (RotatePhoneModule bare forceDebug startRef). Память и XP пишутся в симуляцию (sessionStorage), на сервер ничего не уходит.
 const SETTINGS_ID = 'race-settings'
+const PIT_LINES = [...RACE_LINES, ...MIA_LINES.filter(l => !isMiaLine(l.id))] // реплики Пита гонки и эпизода «Мия» / финала: общий статус «озвучено N из M» и «Озвучить недостающие» считают и их (реплики Мии — свой блок и аккаунт)
 const VOICE_ID = 'race-voice'
 const MIA_VOICE_ID = 'mia-voice'
 const OLD_ID = 'race-old'
@@ -52,7 +54,7 @@ export default function RaceBlock({ save = saveDebugFile }) {
   const [planDeps, setPlanDeps] = useState(null)         // «План: из памяти» (RacePlanSource): данные памяти — план идёт через buildMemoryPlan; null — фикстура как есть
   const racePlan = useMemo(() => { const p = plan ? { ...plan, game: 'race', round: round ?? undefined, extraWords: extrasOf(plan) } : null; return p && planDeps ? buildMemoryPlan({ base: p, deps: planDeps }) : p }, [plan, round, planDeps])
   const node = useMemo(() => ({ id: 'race-stand', type: 'rotate_phone', isHistory: false, typeData: { rotate_phone: { plan: racePlan } } }), [racePlan])
-  const voice = usePolishVoice({ plan: racePlan, list: RACE_LINES, texts: raceTexts })
+  const voice = usePolishVoice({ plan: racePlan, list: PIT_LINES, texts: raceTexts })
   const trans = useTransVoice({ plan: racePlan }) // переводы слов разгона: Пит говорит их голосом перед пилюлей
   const { isOpen, toggle } = usePolishOpen()
   const playing = status.phase === 'game'
@@ -97,7 +99,7 @@ export default function RaceBlock({ save = saveDebugFile }) {
           <RacePlanSource plan={racePlan} locked={playing} onDeps={setPlanDeps} />
           <div className="rhpVoice">
             <div className="rhpVoiceRow">
-              <span data-testid="race-lines-status">Реплики Пита race_*: {voice.lines ? `озвучено ${voice.pit.done} из ${voice.pit.total}` : 'загружаю…'}</span>
+              <span data-testid="race-lines-status">Реплики Пита (race_*, эпизод «Мия», финал): {voice.lines ? `озвучено ${voice.pit.done} из ${voice.pit.total}` : 'загружаю…'}</span>
               <button type="button" className="aspChip" onClick={voice.voicePit} disabled={playing || working || !voice.lines || linesAll} data-testid="race-voice-lines">{voice.busy === 'lines' ? 'Озвучиваю…' : linesAll ? 'Реплики озвучены' : 'Озвучить реплики (ElevenLabs)'}</button>
             </div>
             <div className="rhpVoiceRow">
