@@ -38,9 +38,11 @@ export function installPageJournal({ win = globalThis.window, doc = globalThis.d
   const session = (() => { try { return nav?.audioSession ?? null } catch { return null } })()
   on(session, 'statechange', () => write('audioSession: смена состояния'))
   const devices = (() => { try { return nav?.mediaDevices ?? null } catch { return null } })()
-  on(devices, 'devicechange', () => { // смена маршрута звука (наушники, Bluetooth, CarPlay) — частая причина «система заглушила микрофон»
-    Promise.resolve(devices.enumerateDevices?.()).then(list => write(`devicechange: устройств ввода ${(list ?? []).filter(d => d.kind === 'audioinput').length}, вывода ${(list ?? []).filter(d => d.kind === 'audiooutput').length} (${(list ?? []).filter(d => d.kind.startsWith('audio')).map(d => d.label || d.kind).join(', ').slice(0, 160)})`), () => write('devicechange: список устройств не прочитался'))
-  })
+  const listDevices = why => { // маршрут звука (наушники, AirPods, Bluetooth, CarPlay): мёртвый выход на iPhone чаще всего — из-за него; метки появляются после доступа к микрофону
+    Promise.resolve(devices?.enumerateDevices?.()).then(list => { const a = (list ?? []).filter(d => d.kind.startsWith('audio')); write(`${why}: ввод ${a.filter(d => d.kind === 'audioinput').length}, вывод ${a.filter(d => d.kind === 'audiooutput').length} (${a.map(d => `${d.kind === 'audioinput' ? 'вх' : 'вых'}:${d.label || '?'}`).join(', ').slice(0, 200)})`) }, () => write(`${why}: список устройств не прочитался`))
+  }
+  on(devices, 'devicechange', () => listDevices('devicechange'))
+  if (devices) listDevices('устройства звука при запуске')
   try { offs.push(micLost((kind, t) => { write(`дорожка микрофона: ${kind === 'ended' ? 'ОБОРВАНА (ended)' : 'заглушена системой (mute)'}, readyState=${t?.readyState ?? '—'}`); lossReport(journal, kind) })) } catch { /* без подписки */ }
   write(`журнал страницы включён, visibilityState=${doc?.visibilityState ?? '—'}`)
   installed = () => { offs.forEach(off => { try { off() } catch { /* уже снято */ } }); installed = null }

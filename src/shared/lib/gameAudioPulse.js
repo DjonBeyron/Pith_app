@@ -14,10 +14,10 @@ const wallNow = () => globalThis.performance?.now?.() ?? Date.now()
 /** Часы контекста относительно часов страницы: '×1.00' (идут) | ' ЧАСЫ СТОЯТ' | '' (нет прошлого замера или контекст не running) */
 function clockOf(ctx, w) {
   const prev = last.get(ctx)
+  if (prev && (w - prev.w) / 1000 < 0.5) return '' // слишком близко к прошлому замеру (реплика Мии между секундными [perf]) — не сравниваем и точку отсчёта не двигаем
   last.set(ctx, { t: ctx.currentTime, w })
   if (!prev || ctx.state !== 'running') return ''
   const dw = (w - prev.w) / 1000
-  if (dw < 0.2) return ''
   const rate = (ctx.currentTime - prev.t) / dw
   return rate < 0.5 ? ` ЧАСЫ СТОЯТ(×${rate.toFixed(2)})` : `×${rate.toFixed(2)}`
 }
