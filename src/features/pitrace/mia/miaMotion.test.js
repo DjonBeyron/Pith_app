@@ -61,10 +61,10 @@ describe('живые глаза в щели', () => {
     const { eyeLife } = await import('./miaMotion.js')
     const looks = [], blinks = []
     for (let t = 0; t < 30; t += 0.02) { const l = eyeLife(t); looks.push(l.look); blinks.push(l.blink) }
-    expect(Math.max(...looks)).toBeLessThan(6); expect(Math.min(...looks)).toBeGreaterThan(-6); expect(new Set(looks.map(x => Math.round(x))).size).toBeGreaterThan(4)
+    expect(Math.max(...looks)).toBeLessThan(6); expect(Math.min(...looks)).toBeGreaterThan(-6); expect(new Set(looks.map(x => Math.round(x))).size).toBeGreaterThan(2)
     expect(Math.min(...blinks)).toBeLessThan(0.1); expect(blinks.filter(b => b < 0.99).length).toBeLessThan(blinks.length * 0.15) // моргает редко и коротко
     const idle = []; for (let t = LAND + 1; t < LAND + 11; t += 0.05) idle.push(arrivalAt(t).eyes.look)
-    expect(new Set(idle.map(x => x.toFixed(1))).size).toBeGreaterThan(10)
+    expect(new Set(idle.map(x => x.toFixed(1))).size).toBeGreaterThan(5)
   })
   it('до падения коробки и после ухода её не показывают (мерцание за кадр до падения)', () => {
     expect(arrivalAt(0.01).shown).toBe(false); expect(arrivalAt(ARR.FALL0 + 0.01).shown).toBe(true); expect(leaveAt(LEAVE.END + 0.1).shown).toBe(false)

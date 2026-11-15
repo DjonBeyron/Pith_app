@@ -62,7 +62,7 @@ export default function RaceMia({ mia, caption = null, talk = null, alarm = null
       talk = Math.max(talkLevel(head?.getAttribute('data-vis'), head?.getAttribute('data-mouth')), talk * 0.8)
       const tk = m.hideCat && m.shown && !leaving ? talk : 0
       const sc = (now - alarmAt.current) / 1000, fear = sc < 0 || sc > 1.6 ? 0 : sc < 0.12 ? sc / 0.12 : sc < 0.9 ? 1 : 1 - (sc - 0.9) / 0.7 // испуг: зрачки быстро сжимаются, держатся, медленно отпускают
-      box.update({ ...m.eyes, look: (m.eyes.look ?? 0) + (fear ? Math.sin(sc * 38) * 1.6 * fear : 0), pupil: 1 - 0.58 * fear, thNear: m.box.thNear, thFar: m.box.thFar, talk: tk, t: tt, live: true })
+      box.update({ ...m.eyes, look: (m.eyes.look ?? 0) + (fear ? Math.sin(sc * 38) * 1.6 * fear : 0), pupil: (m.eyes.pupil ?? 1) * (1 - 0.58 * fear), thNear: m.box.thNear, thFar: m.box.thFar, talk: tk, t: tt, live: true })
       const pose = poseOfMotion(m.box, L)
       pose.dx += 0.35 * Math.sin(2 * Math.PI * 22 * tt) * tk * L.f; pose.rot += 0.08 * Math.sin(2 * Math.PI * 17 * tt + 1) * tk // Пит говорит из коробки: дрожь минимальная (владелец 2026-11-14)
       const piv = toScene(M, ART.BOTTOM)

@@ -68,12 +68,27 @@ describe('финал: XP не за красную зону, «не успел» 
     const flow = read2('../../player/modules/rotate-phone/useWordLaneFlow.js')
     expect(flow).toContain('failMute(st) ? false : sayLine('); expect(flow).toContain('if (!said && !failMute(st)) flash('); expect(flow).toContain('!st.step.labels.length && !st.silent')
   })
-  it('взгляд Пита в коробке: ходит из стороны в сторону и осматривается; в пределах щели; почти не стоит', async () => {
+  it('взгляд Пита в коробке: почти неподвижен, редко и плавно чуть сдвигается; зрачки дышат (расширяются / сужаются)', async () => {
     const { eyeLife } = await import('../mia/miaMotion.js')
-    const looks = []; for (let t = 0; t < 60; t += 0.05) looks.push(eyeLife(t).look)
-    expect(Math.max(...looks)).toBeLessThan(6); expect(Math.min(...looks)).toBeGreaterThan(-6)
-    expect(Math.max(...looks)).toBeGreaterThan(3.5); expect(Math.min(...looks)).toBeLessThan(-3.5) // в обе стороны
-    const jumps = looks.slice(1).filter((x, k) => Math.abs(x - looks[k]) > 0.4).length // быстрые перескоки взгляда
-    expect(jumps).toBeGreaterThan(30) // за минуту — десятки перескоков: на месте не стоит
+    const looks = [], pupils = []; for (let t = 0; t < 60; t += 0.05) { const l = eyeLife(t); looks.push(l.look); pupils.push(l.pupil) }
+    expect(Math.max(...looks)).toBeLessThan(3.5); expect(Math.min(...looks)).toBeGreaterThan(-3.5) // сдвиги небольшие
+    const step = Math.max(...looks.slice(1).map((x, k) => Math.abs(x - looks[k])))
+    expect(step).toBeLessThan(0.45) // плавно: никаких скачков (за 0,05 с взгляд сдвигается меньше половины единицы)
+    const calm = looks.slice(1).filter((x, k) => Math.abs(x - looks[k]) < 0.03).length
+    expect(calm).toBeGreaterThan(looks.length * 0.6) // большую часть времени взгляд стоит (лишь лёгкое дыхание)
+    expect(Math.min(...pupils)).toBeLessThan(0.88); expect(Math.max(...pupils)).toBeGreaterThan(1.12); expect(Math.min(...pupils)).toBeGreaterThan(0.7)
+  })
+})
+
+describe('эпилог финала кончается, когда договорили', () => {
+  it('bossEnd: красные = слова без верно названных не в красной зоне; пять и больше — Пит остаётся', async () => {
+    const { bossEnd } = await import('../mia/raceMia.js')
+    expect(bossEnd({ total: 8, won: { 0: 1, 1: 1, 2: 1 }, redWins: 0, reds: 0 })).toEqual({ won: 3, reds: 5, keep: true })
+    expect(bossEnd({ total: 8, won: { 0: 1, 1: 1, 2: 1, 3: 1 }, redWins: 0, reds: 0 })).toMatchObject({ reds: 4, keep: false })
+    expect(bossEnd({ total: 8, won: { 0: 1, 1: 1, 2: 1, 3: 1 }, redWins: 2, reds: 0 })).toMatchObject({ reds: 6, keep: true }) // два верных были в красной зоне
+  })
+  it('директор: эпилог держится по длине реплик Мии и Пита (не фиксированные 11 с), с потолком st.ms', () => {
+    const src = readFileSync(new URL('../useRaceActs.js', import.meta.url), 'utf8')
+    expect(src).toContain("if (st?.mia !== 'end') return rh.holdMs(st)"); expect(src).toContain('Math.min(st.ms, Math.max(2500,')
   })
 })

@@ -19,22 +19,20 @@ const PANIC_PX = 74                                                             
 const panicX = t => { let t0 = ARR.PANIC0, x0 = 0; for (const [x1, d] of PANIC) { if (t <= t0 + d) return PANIC_PX * (x0 + (x1 - x0) * eIO3(clamp((t - t0) / d))); t0 += d + 0.04; x0 = x1 } return 0 }
 
 const hsh = n => { const x = Math.sin(n * 127.1) * 43758.5453; return x - Math.floor(x) }
-/** Живые глаза Пита в щели (владелец 2026-11-15: «редко стоят на месте, ходят из стороны в сторону, будто раз в какое-то время осматривается»): взгляд скачком уходит то влево, то вправо (≈ каждые 0,9 с, цель 2,2–5 в сторону,
- *  иногда почти по центру) и всё время чуть дрейфует; раз в 5,5 с «осматривается» — плавно ведёт взгляд из края в край за 1,6 с; моргание раз в ≈3,4 с — быстро (0,16 с). Размах в пределах щели (|look| < 6). → { look, blink } */
+/** Живые глаза Пита в щели (владелец 2026-11-15: «зрачки расширялись и сужались, редко он чуть-чуть ходил из стороны в сторону, плавнее, естественнее»): взгляд почти неподвижен и лишь изредка (раз в ≈4 с) плавно сдвигается
+ *  на пару единиц в сторону (0,8 с, мягкое начало и конец) и чуть дышит; зрачки медленно расширяются и сужаются (pupil 0,8–1,2); моргание раз в ≈3,4 с — быстро (0,16 с). Размах в пределах щели (|look| < 6). → { look, pupil, blink } */
 export function eyeLife(t) {
-  const SEG = 0.9, i = Math.floor(t / SEG), ph = t - i * SEG
-  const tg = k => (k % 2 ? 1 : -1) * (2.2 + hsh(k * 3.17 + 1) * 2.8) * (hsh(k * 5.3 + 2) < 0.2 ? 0.15 : 1)
-  let look = tg(i - 1) + (tg(i) - tg(i - 1)) * eOut3(clamp(ph / 0.09)) + 0.4 * Math.sin(t * 2.3)
-  const u = (t % 5.5) / 1.6
-  if (u < 1) look += ((-5 + 10 * (u * u * (3 - 2 * u))) - look) * clamp(Math.sin(Math.PI * u) * 2.2) // осматривается
+  const P = 4.3, i = Math.floor(t / P), glide = k => k * P + 0.4 + hsh(k * 4.9 + 3) * (P - 1.6), tg = k => (hsh(k * 3.17 + 1) < 0.3 ? 0 : (hsh(k * 6.1 + 2) - 0.5) * 5)
+  const g = clamp((t - glide(i)) / 0.8), from = i === 0 ? 0 : tg(i - 1), look = from + (tg(i) - from) * eIO3(g) + 0.15 * Math.sin(t * 0.9)
+  const pupil = 1 + 0.12 * Math.sin(t * 1.3) + 0.08 * Math.sin(t * 0.53 + 1)
   const BL = 3.4, j = Math.floor(t / BL), at = j * BL + hsh(j * 7.7) * (BL - 0.4), dt = t - at
-  return { look, blink: dt >= 0 && dt < 0.16 ? 1 - 0.96 * Math.sin(Math.PI * dt / 0.16) : 1 }
+  return { look, pupil, blink: dt >= 0 && dt < 0.16 ? 1 - 0.96 * Math.sin(Math.PI * dt / 0.16) : 1 }
 }
 
 /** Поза прихода в момент t: { box: { dy (в высотах экрана ×1, <0 — выше), dx (px при масштабе 1), rot (°), sx, sy, thNear, thFar }, eyes: { open, scale, look }, mia: { mode, u, rot, sx, sy }, hideCat } */
 export function arrivalAt(t, jump = ARR.JUMP) { // jump — когда (с от падения коробки) Мия прыгает: у финала позже (до прыжка успевают Пит и её реплика из-за края)
   const LAND_AT = jump + ARR.JUMP_LEN
-  const box = { dy: 0, dx: 0, dxw: 0, rot: 0, sx: 1, sy: 1, thNear: 0, thFar: 0 }, eyes = { open: 0, scale: 1, look: 0 }, mia = { mode: 'off', u: 0, rot: 0, sx: 1, sy: 1 }
+  const box = { dy: 0, dx: 0, dxw: 0, rot: 0, sx: 1, sy: 1, thNear: 0, thFar: 0 }, eyes = { open: 0, scale: 1, look: 0, pupil: 1 }, mia = { mode: 'off', u: 0, rot: 0, sx: 1, sy: 1 }
   if (t < ARR.FALL0) return { box, eyes, mia, hideCat: false, shown: false }
   const fall = clamp((t - ARR.FALL0) / ARR.FALL), q = t - IMPACT
   if (q < 0) {                                                  // падение: ускоряется, клапаны задираются воздухом
@@ -62,7 +60,7 @@ export function arrivalAt(t, jump = ARR.JUMP) { // jump — когда (с от 
       eyes.open = reopen > 0 ? 0.05 + 0.95 * eBack(reopen) : 1 - 0.95 * close
     }
   }
-  if (t >= LAND_AT + 0.9) { const L = eyeLife(t); eyes.look += L.look; eyes.open *= L.blink }   // глаза живые: взгляд бегает, моргают
+  if (t >= LAND_AT + 0.9) { const L = eyeLife(t); eyes.look += L.look; eyes.open *= L.blink; eyes.pupil = L.pupil }   // глаза живые: взгляд бегает, моргают
   return { box, eyes, mia, hideCat: true, shown: true }
 }
 
