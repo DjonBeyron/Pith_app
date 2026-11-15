@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
-import { ZONES, EDGES, TICKS, zoneAt, spanOf, trackStep, lineOn, HOLD_MS, DEMO_START, DEMO_IDS, DEMO_FROM, DEMO_TO, DEMO_GAP_MS, demoPlan, monotone, segSpeed, zoneRgb, flashOf } from './bossScale.js'
+import { ZONES, EDGES, TICKS, zoneAt, spanOf, trackStep, lineOn, HOLD_MS, DEMO_START, DEMO_IDS, DEMO_FROM, DEMO_OUT, DEMO_GAP_MS, DEMO_MOVE_MS, DEMO_CENTERS, demoPlan, zoneRgb, flashOf } from './bossScale.js'
+import { RISE_DELAY_MS, RISE_MS, RISE_EASING } from '../../player/modules/rotate-phone/wordLaneRise.js'
 import { conveyorSpeedHint } from '../../player/modules/rotate-phone/wordLaneConveyorSpeed.js'
 import { actArmedLanes } from '../../player/modules/rotate-phone/wordLaneConveyorStart.js'
 
@@ -45,31 +46,37 @@ describe('какую пилюлю толкает линия', () => {
   })
 })
 
-describe('пример при объяснении: путь пилюли по длительности реплик Мии, без пауз', () => {
+describe('пример при объяснении: пилюля встаёт в центр каждой зоны', () => {
   const ms = { look: 2500, think: 3200, green: 1500, yellow: 1600, red: 1700, five: 3000 }
-  const plan = demoPlan(ms)
-  it('узлы плана: из-за верхнего края (−75 %), к концу think — касание верха шкалы (0), к концу green 45 %, yellow 80 %, red 100 %, five — за нижним краем (125 %); границы по длительности реплик + пауза очереди', () => {
-    expect(DEMO_START).toBe('boss_mia_look'); expect(DEMO_IDS).toEqual(['boss_mia_look', 'boss_mia_think', 'boss_mia_green', 'boss_mia_yellow', 'boss_mia_red', 'boss_mia_five']); expect(DEMO_FROM).toBe(-0.75); expect(DEMO_TO).toBe(1.25)
-    const g = DEMO_GAP_MS, t1 = ms.look + g + ms.think + g, t2 = t1 + ms.green + g, t3 = t2 + ms.yellow + g, t4 = t3 + ms.red + g, t5 = t4 + ms.five + g
-    expect(plan.total).toBe(t5); expect(plan.segs.map(s => [s.t0, s.t1])).toEqual([[0, t1], [t1, t2], [t2, t3], [t3, t4], [t4, t5]]); expect(plan.segs.map(s => s.to)).toEqual([0, 0.45, 0.8, 1, 1.25])
-    expect(plan.pos(0)).toBe(-0.75); expect(plan.pos(t1)).toBeCloseTo(0, 9); expect(plan.pos(t2)).toBeCloseTo(0.45, 9); expect(plan.pos(t3)).toBeCloseTo(0.8, 9); expect(plan.pos(t4)).toBeCloseTo(1, 9); expect(plan.pos(t5)).toBeCloseTo(1.25, 9); expect(plan.pos(t5 + 5000)).toBe(1.25)
+  const plan = demoPlan(ms), g = DEMO_GAP_MS, M = DEMO_MOVE_MS
+  const st = plan.starts
+  it('реплики подряд: старты = сумма длительностей + пауза очереди; ждёт за верхним краем до перехода к центру зелёной зоны', () => {
+    expect(DEMO_START).toBe('boss_mia_look'); expect(DEMO_IDS).toEqual(['boss_mia_look', 'boss_mia_think', 'boss_mia_green', 'boss_mia_yellow', 'boss_mia_red', 'boss_mia_five']); expect(DEMO_FROM).toBe(-0.75); expect(DEMO_OUT).toBe(1.25)
+    expect(st.look).toBe(0); expect(st.think).toBe(ms.look + g); expect(st.green).toBe(ms.look + g + ms.think + g); expect(st.yellow).toBe(st.green + ms.green + g); expect(st.red).toBe(st.yellow + ms.yellow + g); expect(st.five).toBe(st.red + ms.red + g)
+    expect(plan.pos(0)).toBe(DEMO_FROM); expect(plan.pos(st.green - M - 1)).toBe(DEMO_FROM)
   })
-  it('зону пилюля проходит ровно за реплику о ней (с паузой очереди): к началу «зелёная» она на 0, к началу «жёлтая» на 45 % — у Мии нет пауз', () => {
-    const t1 = ms.look + 350 + ms.think + 350
-    expect(plan.pos(t1)).toBeCloseTo(0, 6) // «зелёная» начинается, когда пилюля касается шкалы
-    expect(plan.pos(t1 + ms.green + 350)).toBeCloseTo(0.45, 6) // «жёлтая» начинается на границе зон
+  it('к началу реплики о зоне пилюля уже в центре этой зоны (0,225 / 0,625 / 0,9) и стоит, пока Мия о ней говорит; к началу следующей — в центре следующей', () => {
+    expect(DEMO_CENTERS.map(c => +c.toFixed(3))).toEqual([0.225, 0.625, 0.9])
+    for (const [k, c, len] of [['green', 0, ms.green], ['yellow', 1, ms.yellow], ['red', 2, ms.red]]) {
+      expect(plan.pos(st[k])).toBeCloseTo(DEMO_CENTERS[c], 9)
+      for (const f of [0.1, 0.5, 0.75]) expect(plan.pos(st[k] + len * f)).toBeCloseTo(DEMO_CENTERS[c], 9) // стоит
+    }
+    expect(zoneAt(plan.pos(st.green))).toBe('fast'); expect(zoneAt(plan.pos(st.yellow))).toBe('mid'); expect(zoneAt(plan.pos(st.red))).toBe('slow')
   })
-  it('пилюля никогда не стоит и не возвращается (скорость > 0), скорость меняется плавно (нет скачков больше 40 % между кадрами)', () => {
-    let prev = plan.pos(0), vPrev = null
-    for (let t = 20; t <= plan.total; t += 20) { const p = plan.pos(t), v = (p - prev) / 20; expect(v).toBeGreaterThan(0); if (vPrev != null) expect(Math.abs(v - vPrev) / vPrev).toBeLessThan(0.4); prev = p; vPrev = v }
+  it('переход плавный, но быстрый (DEMO_MOVE_MS 650 мс): не рывок и не вечность; никогда не возвращается назад; после «красной» улетает за нижний край экрана', () => {
+    expect(M).toBeLessThanOrEqual(800); expect(M).toBeGreaterThanOrEqual(400)
+    let prev = plan.pos(0); for (let t = 20; t <= plan.total; t += 20) { const p = plan.pos(t); expect(p).toBeGreaterThanOrEqual(prev - 1e-9); prev = p }
+    const mid = plan.pos(st.yellow - M / 2); expect(mid).toBeGreaterThan(DEMO_CENTERS[0]); expect(mid).toBeLessThan(DEMO_CENTERS[1]) // посреди перехода — между центрами
+    expect(plan.pos(st.five + 400)).toBe(DEMO_OUT); expect(plan.pos(st.five - M)).toBeCloseTo(DEMO_CENTERS[2], 9)
   })
-  it('монотонная интерполяция проходит через узлы и не выходит за них', () => {
-    const f = monotone([[0, 0], [1000, 1], [2000, 1.2], [3000, 5]]); expect([0, 1000, 2000, 3000].map(f)).toEqual([0, 1, 1.2, 5]); for (let t = 0; t <= 3000; t += 50) { expect(f(t)).toBeGreaterThanOrEqual(0); expect(f(t)).toBeLessThanOrEqual(5) }
-  })
-  it('скорость конвейера на отрезке: путь × длина шкалы (% экрана) / секунды / SPEED; цвет примера: зелёный до границы, плавный переход около неё, красный в конце', () => {
-    const k = segSpeed({ from: 0, to: 0.45, t0: 0, t1: 2000 }, 72); expect(k).toBeCloseTo((0.45 * 72) / 2 / 26, 6)
+  it('цвет примера: зелёный в центре зелёной, плавный переход между зонами, красный в красной; flashOf даёт зону мигания', () => {
     expect(zoneRgb(0.2)).toEqual([120, 230, 150]); expect(zoneRgb(0.45)).not.toEqual([120, 230, 150]); expect(zoneRgb(0.45)).not.toEqual([255, 200, 70]); expect(zoneRgb(0.6)).toEqual([255, 200, 70]); expect(zoneRgb(1)).toEqual([255, 96, 80])
     expect(flashOf({ id: 'boss_mia_red', key: 2, ms: 900 })).toEqual({ zone: 'slow', key: 2, ms: 900 })
+  })
+  it('верный ответ: линия уходит слева направо за время взлёта пилюли (RISE_DELAY_MS + RISE_MS) с тем же easing; фиолетовый маркер худшего результата — треугольник острием вправо, толще рисок', () => {
+    expect(RISE_DELAY_MS + RISE_MS).toBe(930); expect(css).toContain(`wlBossLineOut ${RISE_DELAY_MS + RISE_MS}ms ${RISE_EASING}`); expect(css).toContain('.wlBossLine[data-exit] { transform-origin: 100% 50%;'); expect(css).toContain('from { scale: 1 1; } to { scale: 0 1; }')
+    expect(css).toMatch(/\.wlBossMark \{[^}]*#a78bfa[^}]*clip-path: polygon\(0 0, 100% 50%, 0 100%\)/); expect(css).toMatch(/\.wlBossMark \{[^}]*width: 13px/)
+    const src = readFileSync(new URL('./RaceBossScale.jsx', import.meta.url), 'utf8'); expect(src).toContain('worst = Math.max(worst, y / H)'); expect(src).toContain('el.dataset.exit')
   })
   it('линия: без растушёвки и свечения, утончается от левого края пилюли (clip-path 11 %); пилюля финала меняет цвет плавно (--bz, переход 0,5 с); мигание появления шкалы 2,4 с', () => {
     expect(css).toContain('clip-path: polygon(0 50%, 11% 0, 100% 0, 100% 100%, 11% 100%)'); expect(css).not.toMatch(/\.wlBossLine \{[^}]*box-shadow/); expect(css).toContain('@property --bz'); expect(css).toContain('transition: --bz 0.5s ease'); expect(css).toContain('wlBossIn 2.4s ease-in-out')
