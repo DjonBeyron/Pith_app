@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import '../../styles/send-log-button.css'
-import { runSend, SHOW_OK_MS, SHOW_FAIL_MS } from '../lib/sendLogFlow.js'
+import { runSend, SHOW_OK_MS, SHOW_FAIL_MS, readLogOpts, writeLogOpts } from '../lib/sendLogFlow.js'
 import SendLogPopup from './SendLogPopup.jsx'
 
 // Кнопка «Отправить в GitHub» с откликом прямо на кнопке (владелец 2026-11-15: «чтобы было понятно, что лог отправился»): отправляю… (кнопка занята, пульсирует) → «✓ Отправлено» (зелёная, 5 с) или
@@ -11,14 +11,15 @@ export default function SendLogButton({ send, label = 'Отправить в Git
   const [st, setSt] = useState('idle') // idle | busy | ok | fail
   const [open, setOpen] = useState(false)
   const [draft, setDraft] = useState('')
-  const [withLogs, setWithLogs] = useState(true) // галочка «Отправить логи» — при открытии попапа всегда включена
-  const [append, setAppend] = useState(false)   // галочка «Дополнить» (копить в GitHub, не заменять)
+  const [opts, setOpts] = useState(readLogOpts) // галочки «Отправить логи» и «Дополнить» (копить в GitHub, не заменять): запоминаются между открытиями
+  const { withLogs, append } = opts
+  const setOpt = patch => setOpts(o => { const n = { ...o, ...patch }; writeLogOpts(n); return n })
   const timer = useRef(0)
   useEffect(() => () => clearTimeout(timer.current), [])
   const click = e => {
     if (stop) e.stopPropagation()
     if (st === 'busy') return
-    setWithLogs(true); setAppend(false); setOpen(true)
+    setOpen(true)
   }
   const go = async () => {
     setOpen(false); clearTimeout(timer.current); setSt('busy')
@@ -31,7 +32,7 @@ export default function SendLogButton({ send, label = 'Отправить в Git
   return (
     <>
       <button type="button" className={`sendLogBtn ${className}`.trim()} data-state={st} aria-busy={st === 'busy' || undefined} onClick={click} {...rest}>{text}</button>
-      {open && <SendLogPopup value={draft} onChange={setDraft} withLogs={withLogs} onWithLogs={setWithLogs} append={append} onAppend={setAppend} onSend={go} onCancel={() => setOpen(false)} />}
+      {open && <SendLogPopup value={draft} onChange={setDraft} withLogs={withLogs} onWithLogs={v => setOpt({ withLogs: v })} append={append} onAppend={v => setOpt({ append: v })} onSend={go} onCancel={() => setOpen(false)} />}
     </>
   )
 }

@@ -10,3 +10,12 @@ export async function runSend(send, comment = '', opts = {}) {
 export const SHOW_OK_MS = 5000
 export const SHOW_FAIL_MS = 6000
 
+
+// Галочки попапа «Комментарий к логам» запоминаются между открытиями (владелец 2026-11-15): «Отправить логи» (по умолчанию включена) и «Дополнить» (по умолчанию выключена)
+export const LOG_OPTS_KEY = 'pithy_send_log_opts_v1'
+export function readLogOpts(store = globalThis.localStorage) {
+  try { const o = JSON.parse(store?.getItem(LOG_OPTS_KEY) ?? 'null'); return { withLogs: o?.withLogs !== false, append: o?.append === true } } catch { return { withLogs: true, append: false } }
+}
+export function writeLogOpts(opts, store = globalThis.localStorage) {
+  try { store?.setItem(LOG_OPTS_KEY, JSON.stringify({ withLogs: opts.withLogs !== false, append: opts.append === true })) } catch { /* без хранилища галочки просто не запомнятся */ }
+}

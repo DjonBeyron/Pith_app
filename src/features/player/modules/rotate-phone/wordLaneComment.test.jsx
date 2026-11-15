@@ -58,7 +58,7 @@ describe('кнопка 💬', () => {
 describe('пауза без HUD', () => {
   const game = read('./WordLaneGame.jsx')
   it('пока открыт комментарий, попап «Игра на паузе» не показывается (оверлей комментария вместо него), кнопка 💬 прячется; HUD открывает только сам человек', () => {
-    expect(game).toContain('{f.paused && !comment && <WordLanePause pause={pause} onExit={f.finish} />}')
+    expect(game).toContain('{f.paused && !comment && !hudOpen && <WordLanePause pause={pause} onExit={f.finish} />}')
     expect(game).toContain('{comment && <WordLaneComment f={f} pause={pause} comment={comment} rootRef={rootRef} setTapMode={setTapMode} onClose={() => setComment(null)} />}')
     expect(read('./WordLaneCommentButton.jsx')).not.toMatch(/Hud|setOpen/)
   })

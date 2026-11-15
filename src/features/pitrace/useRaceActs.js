@@ -25,7 +25,7 @@ import { plateCaption } from './raceSilentLine.js'
 import { createTransChron } from './raceTransChron.js'
 import { PHRASE_EXIT_MS } from './raceStagesPhrases.js'
 import { plateText } from '../player/modules/rotate-phone/wordLanePlateText.js'
-import { reduceMia, makeMiaBox, applyMia, BOSS } from './mia/raceMia.js'
+import { reduceMia, makeMiaBox, applyMia, miaStays, BOSS } from './mia/raceMia.js'
 import { miaOn } from './mia/miaConfig.js'
 import { createMiaSpeech } from './mia/miaSpeech.js'
 import { audioPulse } from '../../shared/lib/gameAudioPulse.js'
@@ -167,11 +167,13 @@ export function useRaceActs(args) {
   useEffect(() => {
     if (!on || running?.type !== 'summary') return undefined
     const t = setTimeout(() => {
-      const res = reportRace({ plan, race: box.s }); setResult(res); sayRef.current.sayLine?.(res.gold ? 'race_done_gold' : 'race_done')
+      const res = reportRace({ plan, race: box.s }); setResult(res)
+      if (miaStays(mb)) pLog('[race] итог: Пит остался в коробке — обычную реплику итога не играю (она оборвала бы «Тут темно и тесно…»)')
+      else sayRef.current.sayLine?.(res.gold ? 'race_done_gold' : 'race_done')
       if (memoryOn(plan) && !memSent.current) { memSent.current = true; pushRaceMemory({ outcomes: outcomesOf(res), lessonId: plan.lessonId ?? null }).catch(e => pLog(`[memory] игра: сбой записи (${e?.message ?? e})`)) } // память слов: одно событие на слово, source 'game' (raceMemory.js), один раз за игру; результат — только в журнал
     }, 0)
     return () => clearTimeout(t)
-  }, [on, running, plan, box])
+  }, [on, running, plan, box, mb])
 
   const baseNext = rh.nextIdx // стабильна (useCallback в useRehearsalActs): на ней держится next директора
   const seed = plan?.seed

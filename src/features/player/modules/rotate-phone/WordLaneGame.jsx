@@ -17,7 +17,9 @@ import WordLaneTurnPlate from './WordLaneTurnPlate.jsx'
 import RacePanel from '../../../pitrace/RacePanel.jsx'
 import RaceMia from '../../../pitrace/RaceMia.jsx'
 import RaceBossScale from '../../../pitrace/boss/RaceBossScale.jsx'
-import { REVEAL_LINES, flashOf } from '../../../pitrace/boss/bossScale.js'
+import { flashOf } from '../../../pitrace/boss/bossScale.js'
+import { miaColorOn } from '../../../pitrace/mia/miaTint.js'
+import { useBossReveal } from '../../../pitrace/boss/useBossReveal.js'
 import { trioFor, trioCtx } from '../../../pitrace/raceTapTrio.js'
 import { useWordLaneLeavingPlates } from './useWordLaneLeavingPlates.js'
 import { chargeOn } from '../../../pitrace/raceCharge.js'
@@ -62,6 +64,8 @@ export default function WordLaneGame({ cfg, audioSrc, lines: rawLines = null, fo
   useEffect(() => { if (cfg.plan?.game === 'race' && !tapMode) trackHead(rootRef.current?.querySelector('.wlCat')) }, [cfg.plan, tapMode]) // «Голосом»: Пит по центру с первой фразы, вертикаль ведёт один владелец (pitrace/raceHeadDepth.js); раньше выскакивания ниже
   useEffect(() => { if (startHold) { catApi.current?.peek?.(PIT_PEEK_MS); raceStart.pit() } }, []) // eslint-disable-line react-hooks/exhaustive-deps -- «Гонка»: Пит выскакивает при открытии сцены (≤ 300 мс, пружина головы) и ждёт первую реплику; раз за монтирование
   const pause = useWordLanePause({ f, cfg, audioSrc, lines }) // свернули приложение — пауза сразу, «Продолжить» открывает микрофон из тапа (useWordLanePause.js)
+  const [hudOpen, setHudOpen] = useState(false) // открыта панель настроек (⚙, там же «Отправить в GitHub»): игра на паузе, окно паузы скрыто; закрыли — «Продолжить» из тапа (владелец 2026-11-15)
+  const hudChange = useCallback((open, why) => { setHudOpen(open); if (open) { if (!f.paused) f.pause('hud') } else if (why !== 'game' && f.paused) pause.resume() }, [f, pause])
   const { phase } = f
   const plates = useWordLaneLeavingPlates(f.plate, f.idx, f.stageObj?.round?.look) // плашка остаётся в DOM на время ухода (улетает вверх, как пилюля): useWordLaneLeavingPlates.js
   const speed = conveyorSpeedHint(f.stages, f.stage === 'run' ? f.idx : -1) // «Гонка с Питом»: скорость первой пилюли ближайшей стадии — пунктир набирает её заранее (wordLaneConveyorSpeed.js)
@@ -73,6 +77,7 @@ export default function WordLaneGame({ cfg, audioSrc, lines: rawLines = null, fo
   const fresh = useLabelFrames(heads, lite) // рамка вокруг новой подписи (WordLaneHeads)
   const karaoke = f.rh.on && f.stage === 'run' && ['read', 'descent'].includes(f.stageObj?.act) && !intro // акт «Читка»: слова заливаются зелёным под голос Пита / игрока (rehearsal/read/)
   const debug = isWordLaneDebug()
+  const bossReveal = useBossReveal(f.rh.miaTalk) // шкала на церемонии появляется на словах «видите шкалу», а не с начала реплики
   const bossLive = f.rh.on && f.stage === 'run' && ['boss-ann', 'boss'].includes(f.stageObj?.sid) // финал «Шкала памяти»: шкала живёт на церемонии Мии и в круге
   const race = cfg.plan?.game === 'race' // гонка: подсказки «Тап вместо речи» над дорожкой нет (тап выбирается плашкой «Говорю / Тапаю» до старта), фон с узором, верхняя панель вместо крестика
   const trio = useMemo(() => (race && trioFor({ tap: tapMode, stage: f.stageObj }) ? trioCtx(cfg.plan, f.stageObj) : null), [race, tapMode, f.stageObj, cfg.plan]) // «Тапаю»: «Разгон» и «Слушай и лови» — три пилюли на слово (raceTapTrio.js); решается на старте ступени
@@ -80,12 +85,12 @@ export default function WordLaneGame({ cfg, audioSrc, lines: rawLines = null, fo
   const laneTap = useCallback((lane, pt) => { const api = f.sceneApi.current; if (api?.trio && !api.trio(lane, pt)) return; f.onLane(lane, pt) }, [f.sceneApi, f.onLane]) // eslint-disable-line react-hooks/exhaustive-deps -- тройка: тап по чужой пилюле — ошибка (дрожь), по верной дорожке — слово засчитывается как обычно
 
   return createPortal(
-    <div ref={rootRef} className={safe0 ? 'wl wl--safe' : 'wl'} data-phase={phase} data-act={f.rh.on ? f.stageObj?.act : undefined} data-sid={f.rh.on ? f.stageObj?.sid : undefined} data-streak={f.rh.race?.streakMode} data-charge={cfg.plan?.game === 'race' && chargeOn(f) ? '' : undefined} data-race={race ? '' : undefined} data-mia={f.rh.mia?.mia?.phase === 'in' && f.rh.mia.mia.fast ? 'in' : undefined} data-tape={laneTape(f) ? '' : undefined} data-testid="wl">
+    <div ref={rootRef} className={safe0 ? 'wl wl--safe' : 'wl'} data-phase={phase} data-act={f.rh.on ? f.stageObj?.act : undefined} data-sid={f.rh.on ? f.stageObj?.sid : undefined} data-streak={f.rh.race?.streakMode} data-charge={cfg.plan?.game === 'race' && chargeOn(f) ? '' : undefined} data-race={race ? '' : undefined} data-mia={miaColorOn(f.rh.mia?.mia, f.stageObj, f.rh.miaTalk) ? 'in' : undefined} data-tape={laneTape(f) ? '' : undefined} data-testid="wl">
       <div className="wlStage" data-tex={race && !lite ? '' : undefined}>
         <WordLaneCat apiRef={catApi} />
         <WordLanePills scene={f.scene} levels={f.levels} fx={f.fx} live={f.live} sceneApi={f.sceneApi} visible={showSlots} armed={armed} speed={speed} paused={f.paused} speedKey={f.stage === 'run' ? f.idx : -1} trio={trio} dodge={dodge} onLane={phase === 'order' || (phase === 'discern' && !f.stageObj?.speak) || ((tapMode || f.stageObj?.step?.tapOnly) && (phase === 'student' || f.stageObj?.speak)) ? laneTap : null} />
         <WordLaneXp apiRef={f.xpApi} />
-        {race && <RaceBossScale live={bossLive} show={f.stageObj?.type === 'student' || REVEAL_LINES.includes(f.rh.miaTalk?.id)} flash={flashOf(f.rh.miaTalk)} demo={f.stageObj?.sid === 'boss-ann' ? f.rh.miaDemo : null} word={f.stages?.find(x => x.sid === 'boss')?.words?.[0]?.translation ?? ''} paused={f.paused} onZone={f.rh.boss?.zone} />}
+        {race && <RaceBossScale live={bossLive} show={f.stageObj?.type === 'student' || bossReveal} flash={flashOf(f.rh.miaTalk)} demo={f.stageObj?.sid === 'boss-ann' ? f.rh.miaDemo : null} word={f.stages?.find(x => x.sid === 'boss')?.words?.[0]?.translation ?? ''} paused={f.paused} onZone={f.rh.boss?.zone} />}
         {race && f.rh.mia && <RaceMia mia={f.rh.mia.mia} caption={f.rh.miaCap} talk={f.rh.miaTalk} alarm={f.rh.miaAlarm} paused={f.paused} />}
         {single
           ? <div className="wlWord" style={{ top: `${WORD_Y}%` }} data-testid="wl-word">{cfg.chunks[0]}</div>
@@ -126,8 +131,8 @@ export default function WordLaneGame({ cfg, audioSrc, lines: rawLines = null, fo
       {race
         ? <RacePanel onBack={f.finish} onPause={() => f.pause('button')} onResume={pause.resume} paused={f.paused} />
         : <button type="button" className="wlClose" onClick={f.finish} aria-label="Закрыть" data-testid="wl-close"><X size={20} /></button>}
-      {f.paused && !comment && <WordLanePause pause={pause} onExit={f.finish} />}
-      {f.dbg.enabled && <Hud dbg={f.dbg} rootRef={rootRef} onRestartStage={f.restartStage} onRestartGame={onRestart} onExit={f.finish} setTapMode={setTapMode} />}
+      {f.paused && !comment && !hudOpen && <WordLanePause pause={pause} onExit={f.finish} />}
+      {f.dbg.enabled && <Hud dbg={f.dbg} rootRef={rootRef} onRestartStage={f.restartStage} onRestartGame={onRestart} onExit={f.finish} setTapMode={setTapMode} onOpenChange={hudChange} />}
       {f.dbg.enabled && f.rh.on && !comment && <WordLaneCommentButton f={f} cfg={cfg} rootRef={rootRef} onOpen={setComment} />}
       {comment && <WordLaneComment f={f} pause={pause} comment={comment} rootRef={rootRef} setTapMode={setTapMode} onClose={() => setComment(null)} />}
     </div>,

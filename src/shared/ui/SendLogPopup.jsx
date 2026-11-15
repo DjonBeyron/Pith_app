@@ -7,6 +7,8 @@ import { COMMENT_MAX } from '../lib/sendLogFlow.js'
 // Рисуется в document.body (position: fixed не зависит от поворотов и transform родителей — игра лежит в повёрнутой сцене). События попапа не пускаем выше: React-события порталов
 // идут по дереву компонентов, а наверху — шестерёнка игры / итог гонки, где клик по фону снимает паузу или закрывает окно.
 const halt = e => e.stopPropagation()
+// тап по галочке не уводит фокус с поля: клавиатура остаётся (на iPhone фокус уходит на mousedown, который эмулируется перед click)
+const keepFocus = e => { e.stopPropagation(); e.preventDefault() }
 const STOP = { onPointerDown: halt, onPointerUp: halt, onTouchStart: halt, onTouchEnd: halt, onMouseDown: halt }
 
 export default function SendLogPopup({ value, onChange, withLogs, onWithLogs, append, onAppend, onSend, onCancel }) {
@@ -19,11 +21,11 @@ export default function SendLogPopup({ value, onChange, withLogs, onWithLogs, ap
         <div className="sendLogPopTitle">Комментарий к логам</div>
         <div className="sendLogPopHint">Что произошло, что слышал и чего не слышал — прочитаю вместе с журналом. Можно оставить пустым.</div>
         <textarea ref={ref} className="sendLogPopText" rows={5} maxLength={COMMENT_MAX} value={value} placeholder="Например: после слов Мии пропал звук" data-testid="send-log-comment" onChange={e => onChange(e.target.value)} />
-        <label className="sendLogPopCheck"><input type="checkbox" checked={withLogs} onChange={e => onWithLogs(e.target.checked)} data-testid="send-log-with-logs" /> Отправить логи (журнал и отладку){!withLogs && <b> — уйдёт только комментарий</b>}</label>
-        <label className="sendLogPopCheck"><input type="checkbox" checked={append} onChange={e => onAppend(e.target.checked)} data-testid="send-log-append" /> Дополнить, а не заменить прежнее в GitHub (копить, потом «читай»)</label>
+        <label className="sendLogPopCheck" onMouseDown={keepFocus}><input type="checkbox" tabIndex={-1} checked={withLogs} onChange={e => onWithLogs(e.target.checked)} data-testid="send-log-with-logs" /> Отправить логи (журнал и отладку){!withLogs && <b> — уйдёт только комментарий</b>}</label>
+        <label className="sendLogPopCheck" onMouseDown={keepFocus}><input type="checkbox" tabIndex={-1} checked={append} onChange={e => onAppend(e.target.checked)} data-testid="send-log-append" /> Дополнить, а не заменить прежнее в GitHub (копить, потом «читай»)</label>
         <div className="sendLogPopRow">
-          <button type="button" className="sendLogPopBtn" onClick={onCancel}>Отмена</button>
-          <button type="button" className="sendLogPopBtn sendLogPopGo" onClick={onSend} data-testid="send-log-go">Отправить</button>
+          <button type="button" className="sendLogPopBtn" onMouseDown={keepFocus} onClick={onCancel}>Отмена</button>
+          <button type="button" className="sendLogPopBtn sendLogPopGo" onMouseDown={keepFocus} onClick={onSend} data-testid="send-log-go">Отправить</button>
         </div>
       </div>
     </div>,

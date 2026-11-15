@@ -69,6 +69,8 @@ export const miaShown = m => m.phase === 'in' || m.phase === 'out'
 export const makeMiaBox = () => ({ m: miaInit(), step: null, key: 0, entered: '' })
 /** Стадия с этой отметкой уже обработана эпизодом (true — первый раз) */
 export function markMiaEntered(mb, key) { if (mb.entered === key) return false; mb.entered = key; return true }
+/** Финал кончился красными словами: Пит остаётся в коробке (итог не играет обычную реплику «Финиш…», чтобы не оборвать «Тут темно и тесно…») */
+export const miaStays = mb => !!mb.m.keep && mb.m.act === 'boss'
 /** Применить результат reduceMia к рабочей коробке: состояние, ускорение дорожки (boost.k ступени; 1 — вернуть) и номер пачки реплик → вид для экрана */
 export function applyMia(mb, r, stage) {
   mb.m = r.mia

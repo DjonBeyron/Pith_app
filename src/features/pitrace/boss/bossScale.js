@@ -12,6 +12,11 @@ export const spanOf = id => { const i = ZONES.findIndex(z => z.id === id); retur
 /** Риски линейки: каждые 5 % длины, длинные — на границах зон и краях; цвет риски — цвет её зоны → [{ p, major, zone }] */
 export const TICKS = Array.from({ length: 21 }, (_, i) => { const p = i / 20; return { p, major: [0, 0.45, 0.8, 1].some(e => Math.abs(e - p) < 1e-9), zone: zoneAt(Math.min(p, 0.9999)) } })
 
+/** Следующая пилюля, когда прежняя закончена: не принята, не «не успел», ещё не ушла вниз; из таких — ближайшая к шкале (больший top). → элемент из pills или null */
+export const nextPill = (pills, H) => pills.filter(p => !p.locked && !p.failed && p.top < H).sort((a, b) => b.top - a.top)[0] ?? null
+/** Выцветание маркера (0 — фиолетовый, 1 — серый): от момента, когда слово закончено (from — top следующей пилюли тогда, px от верха шкалы), до момента, когда следующая пилюля видна ЦЕЛИКОМ (top ≥ 0) */
+export const fadeProgress = (from, top) => (from >= 0 || top >= 0 ? 1 : Math.min(1, Math.max(0, (top - from) / -from)))
+
 export const MARKS_MAX = 2 // маркеров слов (фиолетовые треугольники) на шкале одновременно: у каждого слова свой, старый гаснет, когда выходит третье слово
 export const MARK_FADE_MS = 700 // сколько гаснущий маркер ещё держит свой узел (прозрачность уходит плавно, CSS transition 0,6 с)
 export const HOLD_MS = 1800 // сколько линия остаётся на высоте ответа после принятия / «не успел»
@@ -69,6 +74,7 @@ export function zoneRgb(p) {
 }
 /** Реплики Мии, на которых загорается зона (мигает полупрозрачной заливкой), и реплики, с которых шкалу видно на церемонии («видите шкалу справа?» и дальше) */
 export const FLASH_LINES = { boss_mia_green: 'fast', boss_mia_yellow: 'mid', boss_mia_red: 'slow' }
+export const REVEAL_AT = 0.45 // доля длины реплики «Эй, вы за экраном, видите шкалу справа?», на которой шкала начинает мигать (слова «видите шкалу»)
 export const REVEAL_LINES = ['boss_mia_look', 'boss_mia_think', 'boss_mia_green', 'boss_mia_yellow', 'boss_mia_red', 'boss_mia_five']
 /** talk — реплика Мии { id, key, ms } (miaSpeech.onSpeak) → { zone, key, ms } или null */
 export const flashOf = talk => (talk && FLASH_LINES[talk.id] ? { zone: FLASH_LINES[talk.id], key: talk.key, ms: talk.ms } : null)

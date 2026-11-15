@@ -46,8 +46,9 @@ function Chip({ on, onClick, children, testid }) {
   return <button type="button" className={`wlHudChip${on ? ' wlHudChip--on' : ''}`} aria-pressed={!!on} onClick={onClick} data-no-unlock="" data-testid={testid}>{children}</button>
 }
 
-export default function WordLaneHud({ dbg, rootRef, onRestartStage, onRestartGame, onExit, setTapMode = null, defaultOpen = false }) {
-  const [open, setOpen] = useState(defaultOpen)
+export default function WordLaneHud({ dbg, rootRef, onRestartStage, onRestartGame, onExit, setTapMode = null, defaultOpen = false, onOpenChange = null }) {
+  const [open, setOpenState] = useState(defaultOpen)
+  const setOpen = (v, why) => { setOpenState(v); onOpenChange?.(v, why) } // игра следит за панелью: открыли — пауза, закрыли — «Продолжить» (владелец 2026-11-15)
   const [, setTick] = useState(0)
   const [status, setStatus] = useState('')
   const [vol, setVol] = useState('')
@@ -149,8 +150,8 @@ export default function WordLaneHud({ dbg, rootRef, onRestartStage, onRestartGam
 
       <div className="wlHudActions">
         <button type="button" className="wlHudAct" onClick={download} data-no-unlock="" data-testid="wl-hud-download">Скачать отладку</button>
-        <button type="button" className="wlHudAct" onClick={() => { close(); onRestartStage?.() }} data-no-unlock="" data-testid="wl-hud-stage">Перезапустить ступень</button>
-        {onRestartGame && <button type="button" className="wlHudAct" onClick={() => { close(); onRestartGame() }} data-no-unlock="" data-testid="wl-hud-game">Игра заново</button>}
+        <button type="button" className="wlHudAct" onClick={() => { if (onOpenChange) close(); else { close(); onRestartStage?.() } }} data-no-unlock="" data-testid="wl-hud-stage">Перезапустить ступень</button>
+        {onRestartGame && <button type="button" className="wlHudAct" onClick={() => { setOpen(false, 'game'); onRestartGame() }} data-no-unlock="" data-testid="wl-hud-game">Игра заново</button>}
         <button type="button" className="wlHudAct wlHudAct--exit" onClick={onExit} data-no-unlock="" data-testid="wl-hud-exit">Выйти</button>
       </div>
       {status && <div className="wlHudStatus" role="status" data-testid="wl-hud-status">{status}</div>}

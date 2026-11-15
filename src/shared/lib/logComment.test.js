@@ -39,3 +39,16 @@ describe('комментарий к логам (попап перед отпра
     expect(invoke).toHaveBeenLastCalledWith('send-log', { body: { files: [{ name: 'a', text: 'b' }], version: '1' } })
   })
 })
+
+describe('галочки попапа запоминаются', () => {
+  const mem = () => { const m = new Map(); return { getItem: k => m.get(k) ?? null, setItem: (k, v) => m.set(k, v) } }
+  it('по умолчанию: логи — да, «Дополнить» — нет; записанное читается обратно; битое хранилище не падает', async () => {
+    const { readLogOpts, writeLogOpts } = await import('./sendLogFlow.js')
+    const st = mem()
+    expect(readLogOpts(st)).toEqual({ withLogs: true, append: false })
+    writeLogOpts({ withLogs: false, append: true }, st)
+    expect(readLogOpts(st)).toEqual({ withLogs: false, append: true })
+    expect(readLogOpts({ getItem: () => '{не json' })).toEqual({ withLogs: true, append: false })
+    expect(() => writeLogOpts({}, { setItem: () => { throw new Error('x') } })).not.toThrow()
+  })
+})

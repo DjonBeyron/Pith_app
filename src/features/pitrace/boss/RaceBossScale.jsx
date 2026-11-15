@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import { zoneAt, ZONES, EDGES, TICKS, spanOf, trackStep, lineOn, zoneRgb, marksStep } from './bossScale.js'
+import { zoneAt, ZONES, EDGES, TICKS, spanOf, trackStep, lineOn, zoneRgb, marksStep, nextPill, fadeProgress } from './bossScale.js'
 
 // Шкала финала «Шкала памяти» поверх сцены игры (.wlStage; владелец 2026-11-15): справа вертикальная линейка с рисками цвета зоны и тусклым полупрозрачным фоном зон (зелёная 45 %, жёлтая 35 %, красная 20 % длины), без цифр.
 // Линейка идёт от верха ленты (под кнопками паузы и админа) до низа с отступом под скругление экрана. Через все дорожки идёт тонкая горизонтальная линия — от «ствола» линейки поверх рисок, к левому краю утончается от края
@@ -18,6 +18,7 @@ export default function RaceBossScale({ live, show = true, flash = null, demo = 
     const stage = host.current?.parentElement, field = stage?.querySelector('.wlField')
     if (!stage || !field) return undefined
     let raf = 0, tr = null, topShown = -1, last = 0, fadedId = -1, exitId = -1 // exitId — пилюля, чья линия уже уходит слева направо;
+    let fd = { id: null, from: null, p: 1 } // выцветание маркера последнего законченного слова (фиолетовый → серый, пока следующая пилюля не станет видна целиком)
     let slots = [] // маркеры слов (bossScale.marksStep): у каждого слова свой, живых не больше двух
     const frame = now => {
       raf = requestAnimationFrame(frame)
@@ -59,7 +60,12 @@ export default function RaceBossScale({ live, show = true, flash = null, demo = 
         el.dataset.zone = zoneAt(y / H)
       }
       slots = marksStep(slots, { id: tr ? tr.id : null, y: tr ? Math.min(1, Math.max(0, tr.y / H)) : 0, now }) // слово взято в работу (линия коснулась шкалы) — у него маркер; он идёт за линией и замирает на ответе
-      marks.current.forEach((e, k) => { if (!e) return; const m = slots.find(x => x.k === k); e.style.opacity = m && !m.dying ? '1' : '0'; if (m) e.style.transform = `translate3d(0, ${(m.y * H).toFixed(1)}px, 0)` })
+      if (tr?.done && fd.id !== tr.id) fd = { id: tr.id, from: null, p: 0 } // слово закончено (принято / «не успел» / ушло вниз): маркер начинает выцветать
+      if (fd.id != null && fd.p < 1) {
+        const cur = tr && !tr.done && tr.id !== fd.id ? pills.find(x => x.el === tr.el) : nextPill(pills, H) // следующая пилюля: уже взятая линией или ближайшая к шкале
+        if (cur) { if (fd.from == null) fd.from = cur.top; fd.p = Math.max(fd.p, fadeProgress(fd.from, cur.top)) }
+      }
+      marks.current.forEach((e, k) => { if (!e) return; const m = slots.find(x => x.k === k); e.style.opacity = m && !m.dying ? '1' : '0'; if (m) e.style.setProperty('--g', (m.id === fd.id ? fd.p : m.id < fd.id ? 1 : 0).toFixed(3)); if (m) e.style.transform = `translate3d(0, ${(m.y * H).toFixed(1)}px, 0)` })
     }
     raf = requestAnimationFrame(frame)
     return () => cancelAnimationFrame(raf)
