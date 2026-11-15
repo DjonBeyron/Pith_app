@@ -1,0 +1,6 @@
+/* Кнопка «Отправить в GitHub» (shared/ui/SendLogButton.jsx): отклик прямо на кнопке. Цвет и пульс — только по data-state, всё остальное (размер, рамка, фон) остаётся у класса места (wlHudAct, raceJournalLink, кнопка админки). */
+.sendLogBtn[data-state='busy'] { opacity: 0.7; cursor: progress; animation: sendLogPulse 0.9s ease-in-out infinite; }
+.sendLogBtn[data-state='ok'] { color: #4ade80; border-color: rgba(74, 222, 128, 0.7); font-weight: 700; }
+.sendLogBtn[data-state='fail'] { color: #f87171; border-color: rgba(248, 113, 113, 0.7); font-weight: 700; }
+@keyframes sendLogPulse { 0%, 100% { opacity: 0.45; } 50% { opacity: 0.9; } }
+@media (prefers-reduced-motion: reduce) { .sendLogBtn[data-state='busy'] { animation: none; } }

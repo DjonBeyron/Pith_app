@@ -4,6 +4,7 @@ import { listFiles, insertFile, deleteFileRow, otherRowsShareR2Url, findFileByHa
 import { hashFile } from '../../shared/lib/fileHash.js'
 import { isDebugOn, setDebug, dbg, downloadLog } from '../../shared/lib/debug.js'
 import { sendLogs } from '../../shared/lib/logUpload.js'
+import SendLogButton from '../../shared/ui/SendLogButton.jsx'
 import { useAdmin } from '../../app/AdminContext.jsx'
 import AuthTab from '../auth/AuthTab.jsx'
 
@@ -206,7 +207,7 @@ function AdminPanel() {
           {debugOn ? '🐞 Дебаг включён' : 'Активировать дебаг'}
         </button>
         <button onClick={downloadLog}>⬇ Скачать лог</button>
-        <button onClick={async () => { setSyncMsg('Отправляю логи…'); setSyncMsg(await sendLogs()) }}>📤 Отправить логи в GitHub</button>
+        <SendLogButton label="📤 Отправить логи в GitHub" send={sendLogs} onResult={setSyncMsg} />
         <button onClick={load} disabled={loading || syncing}>Обновить список</button>
       </div>
 
