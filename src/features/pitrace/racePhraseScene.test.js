@@ -108,8 +108,9 @@ describe('сцена широкой ленты: круг 2 «Скажи»', () =
     s.go(1400); expect(p.fill).toBeCloseTo(0.5, 2)
     expect(s.fx.win).not.toHaveBeenCalled()
     stubSay('nice to you'); s.go(16); expect(s.fx.win).not.toHaveBeenCalled() // итог: заливка сначала доезжает до 100 %
-    s.go(500); expect(s.fx.win).toHaveBeenCalledTimes(1); expect(p.fill).toBe(1)
+    s.go(500); expect(s.fx.win).toHaveBeenCalledTimes(1); expect(p.fill).toBeCloseTo(0.75, 2) // фраза принята по 3 словам из 4 — заливка доезжает до реальной доли, не до 100 % (решение владельца 2026-11-16, B)
     expect(s.fx.win.mock.calls[0][2].res).toMatchObject({ ok: true, ratio: 0.75, clean: false })
+    expect(p.attrs.has('data-partial')).toBe(true) // D: взлёт янтарным, не по всем словам
     s.run.stop()
   })
   it('data-mode="say", слушатель есть; маска слов «Nice ▭▭ ▭▭▭▭ ▭▭▭» снимается по onWord: услышанное (и черновиком) — целиком; подсказки нет до первого слова, дальше — строго следующее за сказанным; итог — вся фраза; журнал — круг 2 «Скажи» (голос)', () => {

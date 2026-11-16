@@ -39,8 +39,8 @@ export function mountMask(el, text) {
     /** Границы слов в долях слоя кромки [v1…vN] или null (не измерить: тесты без DOM, пилюля ещё не видна) */
     edges() { if (dirty && box) { edges = measure(); dirty = !edges } return edges },
     /** heard — Map номер слова → подтверждено ли; all — показать всю фразу; peek — номер подсказываемого слова (-1 — нет). Меняется только data-w: текст и ширина ячеек постоянны */
-    set(heard, all = false, peek = -1) {
-      const next = maskPhrase(text, heard, all, peek)
+    set(heard, all = false, peek = -1, miss = false) {
+      const next = maskPhrase(text, heard, all, peek, miss)
       next.forEach((w, i) => { const b = cells[i]; if (!b || w.state === words[i].state) return; b.setAttribute('data-w', w.state); inkCells[i]?.setAttribute('data-w', w.state) })
       words = next
     },

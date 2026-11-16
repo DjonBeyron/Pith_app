@@ -45,6 +45,7 @@ export function createSayView({ pass, text, n, mask, log = () => {}, nudge = nul
       const miss = wrong?.check(said, t)
       if (miss && !done) { jerk?.fire(); onWrong(miss.word, miss.expect) }
     },
+    edges: () => mask?.edges() ?? null,
     peekIndex: () => peek?.index() ?? -1,
     stop() { jerk?.stop() },
   }

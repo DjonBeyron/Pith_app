@@ -59,6 +59,11 @@
 /* Подсказка следующего слова (data-w='peek', проход 1; racePhraseMask.js / racePhrasePeek.js): слово целиком, opacity = --peek (0 → 0,2 после сказанного предыдущего слова, задаёт JS у одной ячейки) */
 .racePhraseMask b[data-w='peek'] i { opacity: var(--peek, 0); transition: none; }
 .racePhraseMask b[data-w='full'] i { opacity: 1; }
+/* Слово, которого не было в принятой фразе (data-w='miss', racePhraseShare.js): показано, красным; у копии в жидкости (word-lane-pill-ink.css) цвет тот же */
+.racePhraseMask b[data-w='miss'] i, .wlPillInkIn .racePhraseMask b[data-w='miss'] i { opacity: 1; color: #ff6050; }
+.racePhraseMask b[data-w='miss']::before { opacity: 0; }
+/* Взлёт не по всем словам (data-partial): янтарный вместо цвета круга */
+.wlPill[data-wide][data-mode='say'][data-partial] { --c: rgb(255, 200, 70); --rgb: 255, 200, 70; }
 /* Принятая пилюля: видна вся фраза; тёмной её показывает копия маски в слое заливки (word-lane-pill-ink.css) — эта, светлая, остаётся под жидкостью (v3.3.185) */
 .wlPill[data-lock] .racePhraseMask b i { opacity: 1; }
 .wlPill[data-lock] .racePhraseMask b::before { opacity: 0; }

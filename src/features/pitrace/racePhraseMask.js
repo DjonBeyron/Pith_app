@@ -40,12 +40,13 @@ export function openWords(text) {
  * Фраза под маской: [{ text, state, index }] по токенам текста (через пробел). heard — Map номер слова → подтверждено ли (true — full, false — draft); all — показать всё (итог хода).
  * state: 'hidden' (плашка), 'peek' (подсказка: текст слова, проявляется целым словом до 20 % — только спрятанное слово с номером peek), 'draft' (слово бледно), 'full' (слово целиком; открытые сразу и токены без букв — всегда full).
  */
-export function maskPhrase(text, heard = new Map(), all = false, peek = -1) {
+export function maskPhrase(text, heard = new Map(), all = false, peek = -1, miss = false) {
   const open = openWords(text)
   let n = 0
   return String(text ?? '').trim().split(/\s+/).filter(Boolean).map(token => {
     const core = token.match(EDGE)?.[2] ?? ''
     const index = core ? n++ : -1
+    if (core && all && miss && !heard.has(index)) return { text: token, state: 'miss', index } // итог принят, а слова не было — показано, красным
     if (!core || all || open.has(index) || heard.get(index) === true) return { text: token, state: 'full', index }
     if (heard.has(index)) return { text: token, state: 'draft', index }
     if (index === peek) return { text: token, state: 'peek', index }

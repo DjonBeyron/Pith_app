@@ -97,7 +97,7 @@ export function markWord(words, index, draft, t) {
 
 /** Доезд после итога: fin = { at } — когда пришёл итог; shown — заливка на экране; onFull(t) — заливка впервые дошла до 100 %. Возвращает true, когда пора взлетать (дошла и подержалась, или кончился потолок) */
 export function finishDue(fin, shown, t, onFull = null) {
-  if (shown >= 1 - 1e-6 && fin.full == null) { fin.full = t; onFull?.(t) }
+  if (shown >= (fin.to ?? 1) - 1e-6 && fin.full == null) { fin.full = t; onFull?.(t) }
   return (fin.full != null && t - fin.full >= FILL_HOLD_MS) || t - fin.at >= FILL_FINISH_MAX_MS
 }
 
