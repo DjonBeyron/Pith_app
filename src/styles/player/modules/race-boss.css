@@ -33,8 +33,7 @@
 .wlBossLine[data-demo] { transition: none; }
 @property --bz { syntax: '<number>#'; inherits: true; initial-value: 120, 230, 150; }
 /* пилюля финала под линией: цвет зоны (контур, внутренний свет, подпись-заливка) меняется плавно (--bz зарегистрирована, переход 0,5 с); --c / --rgb общие для всей игры, поэтому не регистрируются */
-.wlPill[data-wide][data-bz] { --rgb: var(--bz); --c: rgb(var(--bz)); transition: --bz 0.5s ease; }
-.wlPill[data-wide][data-bzf][data-bz] { transition: none; } /* принятая пилюля: цвет зоны — сразу, и таким летит вверх */
+.wlPill[data-wide][data-bz] { --rgb: var(--bz); --c: rgb(var(--bz)); } /* цвет пилюли меняется МГНОВЕННО, когда линия входит в новую зону (владелец 2026-11-16; раньше плавно 0,5 с) */
 .wlPill[data-wide][data-bz='fast'] { --bz: 120, 230, 150; }
 .wlPill[data-wide][data-bz='mid'] { --bz: 255, 200, 70; }
 .wlPill[data-wide][data-bz='slow'] { --bz: 255, 96, 80; }

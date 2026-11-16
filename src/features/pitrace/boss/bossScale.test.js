@@ -79,7 +79,8 @@ describe('пример при объяснении: пилюля встаёт в
     const src = readFileSync(new URL('./RaceBossScale.jsx', import.meta.url), 'utf8'); expect(src).toContain('marksStep(slots'); expect(src).toContain('el.dataset.exit')
   })
   it('линия: без растушёвки и свечения, утончается от левого края пилюли (clip-path 11 %); пилюля финала меняет цвет плавно (--bz, переход 0,5 с); мигание появления шкалы 2,4 с', () => {
-    expect(css).toContain('clip-path: polygon(0 50%, 11% 0, 100% 0, 100% 100%, 11% 100%)'); expect(css).not.toMatch(/\.wlBossLine \{[^}]*box-shadow/); expect(css).toContain('@property --bz'); expect(css).toContain('transition: --bz 0.5s ease'); expect(css).toContain('wlBossIn 2.4s ease-in-out')
+    expect(css).toContain('clip-path: polygon(0 50%, 11% 0, 100% 0, 100% 100%, 11% 100%)'); expect(css).not.toMatch(/\.wlBossLine \{[^}]*box-shadow/); expect(css).toContain('@property --bz'); expect(css).not.toContain('transition: --bz'); // цвет пилюли — мгновенно
+     expect(css).toContain('wlBossIn 2.4s ease-in-out')
   })
   it('конвейер на церемонии финала: подсказка скорости — как в круге финала (одна скорость), дорожки взведены с самого начала (до зажигания); без demoRun на первой плашке акта до зажигания дорожки стоят', () => {
     const ann = { race: true, act: 'boss', type: 'announce', sid: 'boss-ann', idx: 0, demoRun: true }, round = { race: true, act: 'boss', type: 'student', idx: 1, step: { kind: 'student', active: [1], reps: [{ lane: 1, speed: 0.5 }], lanes: [1] } }
