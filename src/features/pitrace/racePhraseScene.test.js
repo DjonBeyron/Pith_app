@@ -56,7 +56,7 @@ describe('сцена широкой ленты: круг 1 «Пойми»', () =
     expect(s.pool.taken.find(p => p.cap === t.target.text).rose).toBe(true)
     expect(log.mock.calls.at(-1)[0]).toMatch(/^\[phrases\] круг 1 «Пойми» \(тап фразы\), ход 1\/3: цель «.+» кандидаты «.+» \| «.+» \| «.+» итог верно; остальные едут: \d$/)
   })
-  it('тап по чужой — дрожь, fx.miss с «с чем спутал», верная подсвечена и взлетает сама; чужая не гаснет, а едет дальше отыгранной', () => {
+  it('тап по чужой — fx.miss с «с чем спутал», красная рамка на выбранной, все пилюли хода разлетаются в стороны (верная не взлетает и не подсвечивается)', () => {
     const s = setup(pick())
     s.go(500)
     const t0 = round1Turns(ph, 's1')[0], wrong = t0.cands.find(c => !c.right)
@@ -64,11 +64,9 @@ describe('сцена широкой ленты: круг 1 «Пойми»', () =
     s.run.api.tap(2)
     expect(s.fx.miss).toHaveBeenCalledTimes(1)
     expect(s.fx.miss.mock.calls[0][0].rep.res).toMatchObject({ ok: false, confusedWith: wrong.key })
-    const right = s.pool.taken.find(p => p.cap === t0.target.text)
-    expect(right.attrs.has('data-hot')).toBe(true)
-    const shaken = s.pool.taken.find(p => p.cap === wrong.cap)
-    expect(s.pool.live.has(shaken.k)).toBe(true); expect(shaken.attrs.has('data-spent')).toBe(true); expect(shaken.faded).toBeUndefined()
-    return new Promise(r => setTimeout(r, HOT_MS + 50)).then(() => { expect(right.rose).toBe(true); expect(s.pool.live.has(shaken.k)).toBe(true) })
+    const right = s.pool.taken.find(p => p.cap === t0.target.text), chosen = s.pool.taken.find(p => p.cap === wrong.cap)
+    expect(chosen.attrs.has('data-wrong')).toBe(true); expect(right.attrs.has('data-hot')).toBe(false)
+    expect(chosen.scattered).toBeDefined(); expect(right.scattered).toBeDefined(); expect(right.rose).toBeUndefined()
   })
   it('верная ушла — «не успел» (fx.fail); все ходы — fx.finished', () => {
     const s = setup(pick())

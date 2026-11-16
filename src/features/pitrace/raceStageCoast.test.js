@@ -62,12 +62,13 @@ const untilCenter = (s, key) => { for (let i = 0; i < 3000; i++) { const p = s.r
 describe('сцена «Фраз»: круг кончился — пилюли доезжают, Пита не держат', () => {
   it('fx.finished приходит, пока отыгранные ещё едут; stop() после него отдаёт их на доезд (pool.coast) с журналом; «доехала» — по одной', () => {
     const log = vi.fn(); const s = setupScene(pick(), { log })
-    for (const t of round1Turns(ph, 's1')) { s.go(300); expect(untilCenter(s, t.target.key)).toBeTruthy(); s.run.api.tap() }
-    for (let i = 0; i < 200 && !s.fx.finished.mock.calls.length; i++) s.go(16)
+    const ts = round1Turns(ph, 's1')
+    for (const t of ts.slice(0, -1)) { s.go(300); expect(untilCenter(s, t.target.key)).toBeTruthy(); s.run.api.tap() } // зачёты разлетаются в стороны; на последнем ходе верную не берём — пилюли доезжают отыгранными («не успел»)
+    for (let i = 0; i < 4000 && !s.fx.finished.mock.calls.length; i++) s.go(16)
     expect(s.fx.finished).toHaveBeenCalledTimes(1)
     const riding = s.run.api.state().spent
     expect(riding.length).toBeGreaterThan(0) // директор идёт дальше, не дожидаясь пустой ленты
-    expect(riding.every(p => p.y < 100)).toBe(true)
+    expect(riding.some(p => p.y < 100)).toBe(true) // часть едущих ещё на экране
     s.run.stop()
     expect(s.pool.coasted.length).toBeGreaterThanOrEqual(riding.length)
     expect(log.mock.calls.map(c => c[0])).toContain(`[phrases] круг 1 кончился: доезжают ${riding.length} пилюль`)

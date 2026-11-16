@@ -62,3 +62,15 @@ export function riseFrames(y0, h = viewHeightPx(), pos = wavePosition) {
 export function startRise(el, y0, delay = RISE_DELAY_MS) {
   return el.animate(riseFrames(y0), { duration: RISE_MS, delay, easing: RISE_EASING, fill: 'both' })
 }
+
+export const SCATTER_MS = 520       // разлёт «лишних» пилюль круга выбора («Пойми» / «Узнай») в стороны
+export const SCATTER_DELAY_MS = 140 // пауза: ошибочная пилюля успевает показать красную рамку
+/** Разлёт пилюли el с высоты y0 в сторону dir (−1 влево, +1 вправо): сдвиг по x за пределы экрана, наклон, угасание под конец */
+export function startScatter(el, y0, dir, w = typeof window !== 'undefined' ? window.innerWidth : 400) {
+  const dx = dir * w * 1.05
+  return el.animate([
+    { offset: 0, translate: wavePosition(y0, 0), rotate: '0deg', opacity: 1 },
+    { offset: 0.75, opacity: 1 },
+    { offset: 1, translate: wavePosition(y0 + 4, dx), rotate: `${dir * 16}deg`, opacity: 0 },
+  ], { duration: SCATTER_MS, delay: SCATTER_DELAY_MS, easing: 'cubic-bezier(0.5, 0, 0.9, 0.6)', fill: 'both' })
+}

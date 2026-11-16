@@ -15,7 +15,7 @@
 // ДЕМО и ДВА ПРОХОДА «Скажи»: у step.phrases.demo перед первым ходом — демо-ход на живой пилюле (racePhraseDemoTurn.js; голос и ворота директора — fx.pre с rep.demo → e.demo(kit)); ход с pass 2 — та же фраза открытым текстом (data-pass='2', маска целиком и не закрывается; заливка по словам одним движением — racePhraseGlide.js через racePhraseSayView.js; уровень микрофона заливку не двигает ни в одном проходе), зачёт «без остановок» по моментам первых услышанных слов (said.times, racePhrasePasses.passTwoRes).
 // Итог хода уходит директору в rep.res: { ok, late, confusedWith, ratio, clean, smooth?, maxPause? }; журнал «[phrases] круг 1 «Пойми» (тап фразы), ход N/M: цель … кандидаты … итог …; остальные едут: N». Все ходы — fx.finished.
 import { ENTER_Y, EXIT_Y, SPEED, LISTEN_Y_MIN, LISTEN_Y_MAX, LOCK_MS } from '../player/modules/rotate-phone/wordLaneTimeline.js'
-import { missPill, snapPill } from '../player/modules/rotate-phone/wordLaneSnap.js'
+import { snapPill } from '../player/modules/rotate-phone/wordLaneSnap.js'
 import { createFillView, approachFillFast } from '../player/modules/rotate-phone/wordLaneFillView.js'
 import { finishDue, edgeVerdict, graceMs } from './racePhraseFill.js'
 import { createSaid } from './racePhraseSaid.js'
@@ -44,7 +44,7 @@ export const HOT_MS = 650       // после ошибки верная пилю
 const q = t => `«${t}»`
 export const ROUND_LOG = { pick: '«Пойми» (тап фразы)', say: '«Скажи» (голос)', hear: '«Узнай» (тап смысла)' } // круг и режим в журнале хода
 
-export function runPhraseScene({ pool, root, scene, fxRef, listen = phraseListen, count, now = () => performance.now(), raf = f => requestAnimationFrame(f), caf = id => cancelAnimationFrame(id), log = pLog, snap = snapPill, shake = missPill, debugBar, onFrame = null }) { // snap / shake — щелчок и дрожь пилюли (wordLaneSnap.js; тесты подставляют свои); debugBar — полоска отладки «Скажи» (racePhraseDebugBar.js); onFrame(t, цель, экран) — кадр заливки «Скажи» (стенд пилюль)
+export function runPhraseScene({ pool, root, scene, fxRef, listen = phraseListen, count, now = () => performance.now(), raf = f => requestAnimationFrame(f), caf = id => cancelAnimationFrame(id), log = pLog, snap = snapPill, debugBar, onFrame = null }) { // snap / shake — щелчок и дрожь пилюли (wordLaneSnap.js; тесты подставляют свои); debugBar — полоска отладки «Скажи» (racePhraseDebugBar.js); onFrame(t, цель, экран) — кадр заливки «Скажи» (стенд пилюль)
   const cfg = scene.step.phrases
   const turns = cfg.turns ?? []
   const fx = () => fxRef?.current ?? {}
@@ -129,12 +129,16 @@ export function runPhraseScene({ pool, root, scene, fxRef, listen = phraseListen
   /** Пилюля отыграна: едет вниз до края, на тап и голос больше не отвечает */
   const spend = p => { p.spent = true; pool.attr(p.k, 'data-spent') }
 
+  /** Разлёт пилюль в стороны по очереди (влево, вправо, …): поровну на обе стороны */
+  function scatterAll(list) { list.forEach((p, i) => { if (!p.gone && pool.scatter(p.k, i % 2 ? 1 : -1)) p.gone = true }) }
+
   function resolve(kind, extra = {}) {
     const tg = target()
     res = { ok: kind === 'win', late: kind === 'win' && isLate(tg?.y), confusedWith: null, ratio: cfg.mode === 'say' ? 0 : kind === 'win' ? 1 : 0, clean: kind === 'win', ...extra }
     const t = turn()
     const rest = live().filter(p => p !== tg)
-    rest.forEach(spend)
+    if (cfg.mode !== 'say' && kind !== 'fail') scatterAll(kind === 'miss' ? live() : rest) // круг выбора: верно — верная взлетает, остальные разлетаются влево / вправо поровну; неверно — разлетаются ВСЕ, неверная с красной рамкой
+    else rest.forEach(spend)
     if (kind === 'fail' && tg && !tg.gone) spend(tg) // упущенная верная тоже доезжает сама
     tg?.mask?.set(said.heard(), true) // итог «Скажи»: видна вся фраза (взлетает или доезжает вниз с ней)
     if (cfg.mode === 'say') { if (kind === 'win') trace.rise(now()); trace.end(); trace.drop() }
@@ -152,12 +156,8 @@ export function runPhraseScene({ pool, root, scene, fxRef, listen = phraseListen
 
   /** Ошибка: чужая пилюля дрожит и едет дальше отыгранной, верная подсвечивается и сама взлетает */
   function wrong(p) {
-    shake(pool.el(p.k))
-    let tg = target()
-    if (!tg) { tg = spawn(turn().cands.find(c => c.right), -1, ((CENTER_Y - 15 - ENTER_Y) / (SPEED * cfg.speed)) * 1000); if (tg) tg.y = yOf(tg) } // верная ещё не выехала — появляется в зоне чтения
-    if (tg) pool.attr(tg.k, 'data-hot')
+    pool.attr(p.k, 'data-wrong') // красная рамка на выбранной неверной; разлетаются все пилюли хода, верная не взлетает и не подсвечивается (владелец 2026-11-16)
     resolve('miss', { confusedWith: p.cand.key })
-    if (tg && !tg.gone) timers.push(setTimeout(() => { if (!stopped && pool.rise(tg.k)) tg.gone = true }, HOT_MS))
   }
 
   const pick = p => { if (p.cand.right) resolve('win'); else wrong(p) }

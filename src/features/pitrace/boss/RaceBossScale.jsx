@@ -51,6 +51,10 @@ export default function RaceBossScale({ live, show = true, flash = null, demo = 
         const mine = tr && !tr.done && p.el === tr.el
         const want = mine ? zoneAt(Math.min(1, Math.max(0, tr.y / H))) : p.locked || p.failed ? null : 'fast'
         if (want && p.el.dataset.bz !== want) p.el.dataset.bz = want
+        if (p.locked && !p.el.hasAttribute('data-bzf')) { // слово принято: пилюля улетает цветом зоны, в которой её приняли, — цвет закрепляется сразу (без плавного перехода от прежней зоны)
+          const z = tr && tr.el === p.el ? zoneAt(Math.min(1, Math.max(0, tr.y / H))) : p.el.dataset.bz
+          if (z) p.el.dataset.bz = z; p.el.setAttribute('data-bzf', '')
+        }
       }
       if (tr && !tr.done && tr.y >= H) fadedId = tr.id // у нижней отметки линия растворяется и для этой пилюли больше не появляется (после «не успел» она не моргает снова)
       const accepted = !!tr && tr.done && pills.find(p => p.el === tr.el)?.locked

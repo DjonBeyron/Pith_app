@@ -21,6 +21,7 @@ import { flightY, startRise } from './wordLaneRise.js'
 import { createLaneFlash } from './wordLaneLaneFlash.js'
 import { isWeakDevice } from '../../../../shared/lib/deviceTier.js'
 import { msToExit, addRider, coastTail } from './wordLaneCoast.js'
+import { startScatter } from './wordLaneRise.js'
 import { createBubbles } from './wordLaneBubbles.js'
 import { fillTransform, inkTransform, levelTransform, lineAt, FULL_V } from './wordLaneLevel.js'
 
@@ -88,7 +89,7 @@ export function createPool(root) {
   const clean = k => {
     Object.assign(rise[k], { v: 0, at: -1e9, on: false, ringed: false, full: false }); parts[k].el.removeAttribute('data-live'); parts[k].el.removeAttribute('data-full'); flat[k] = false; bubs.clear(parts[k].el)
     paintFill(k, 0); hint(k, '0', null); setCap(k, null)
-    for (const a of ['data-lock', 'data-fail', 'data-wrong', 'data-hint', 'data-voice', 'data-rise', 'data-ring', 'data-still', 'data-tag', 'data-cmp', 'data-reveal', 'data-quiet', 'data-edge', 'data-wide', 'data-faded', 'data-hot', 'data-spent', 'data-mode', 'data-coast', 'data-pass', 'data-demo', 'data-nudge']) parts[k].el.removeAttribute(a)
+    for (const a of ['data-lock', 'data-bzf', 'data-scatter', 'data-fail', 'data-wrong', 'data-hint', 'data-voice', 'data-rise', 'data-ring', 'data-still', 'data-tag', 'data-cmp', 'data-reveal', 'data-quiet', 'data-edge', 'data-wide', 'data-faded', 'data-hot', 'data-spent', 'data-mode', 'data-coast', 'data-pass', 'data-demo', 'data-nudge']) parts[k].el.removeAttribute(a)
   }
   /** Тень слова: ширина полосок по громкости куска слова диктора (без кривой — ровно) */
   const shape = (k, curve) => {
@@ -199,6 +200,17 @@ export function createPool(root) {
       parts[k].el.setAttribute('data-rise', '1')
       paintFill(k, 1)
       a.finished?.then(() => { if (live.get(k)?.rise === a) give(k) }).catch(() => { /* снята раньше (give / смена сцены) */ })
+      return a
+    },
+    /** Разлёт пилюли в сторону dir (−1 / +1) с того места, где она сейчас (круг выбора «Фразы»): после него пилюля возвращается в пул. Возвращает анимацию или null */
+    scatter(k, dir) {
+      const l = live.get(k)
+      if (!l?.anim || l.rise) return null
+      const a = startScatter(parts[k].el, flightY(l.anim), dir)
+      try { l.anim.cancel() } catch { /* уже снята */ }
+      l.anim = null; l.rise = a
+      parts[k].el.setAttribute('data-scatter', dir < 0 ? 'l' : 'r')
+      a.finished?.then(() => { if (live.get(k)?.rise === a) give(k) }).catch(() => { /* снята раньше */ })
       return a
     },
     /** Поставить пилюлю в центр дорожки без полёта (раунд «Порядок») */

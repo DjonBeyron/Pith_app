@@ -24,6 +24,22 @@ describe('замечания 2026-11-16 (v3.3.259)', () => {
     expect(src).toContain("next.style.display = ''; prev.style.display = 'none'"); expect(src).not.toContain('next.animate')
   })
   it('«скажи её сам» после примера: плашка круга с примером — race_phrases_show, DEMO_GO — race_phrases_say', () => {
-    expect(rd('../racePhraseDemo.js')).toContain("DEMO_GO = 'race_phrases_say'"); expect(rd('../raceStagesPhrases.js')).toContain("line = 'race_phrases_show'")
+    expect(rd('../racePhraseDemo.js')).toContain("DEMO_GO = 'race_phrases_say'"); expect(rd('../raceStagesPhrases.js')).toContain("line: 'race_phrases_show', ms: 400")
+  })
+})
+
+describe('замечания 2026-11-16 вечер (v3.3.260)', () => {
+  it('бар «Разгона» / «Слушай и лови» остаётся между этапами пустым и не гаснет; плашка переключения слуха у Мии без текста', () => {
+    expect(rd('../RaceBar.jsx')).toContain("stage?.type === 'announce' && BAR_ACTS.includes(stage.act)")
+    expect(rd('../boss/raceStagesBoss.js')).toContain("round: { kind: 'switch', title: '', task: '', brief: '' }")
+  })
+  it('цвет принятой пилюли финала закрепляется на зоне принятия сразу (data-bzf без плавного перехода); пул сбрасывает признаки', () => {
+    expect(rd('../boss/RaceBossScale.jsx')).toContain("setAttribute('data-bzf', '')")
+    expect(rd('../../../styles/player/modules/race-boss.css')).toMatch(/\[data-bzf\]\[data-bz\] \{ transition: none; \}/)
+    expect(rd('../../player/modules/rotate-phone/wordLanePool.js')).toContain("'data-bzf', 'data-scatter'")
+  })
+  it('круг выбора «Пойми» / «Узнай»: разлёт пилюль в стороны (верно — остальные, неверно — все, красная рамка)', () => {
+    const sc = rd('../racePhraseScene.js'); expect(sc).toContain("scatterAll(kind === 'miss' ? live() : rest)"); expect(sc).toContain("pool.attr(p.k, 'data-wrong')")
+    const rise = rd('../../player/modules/rotate-phone/wordLaneRise.js'); expect(rise).toContain('export function startScatter'); expect(rise).toContain('SCATTER_MS')
   })
 })

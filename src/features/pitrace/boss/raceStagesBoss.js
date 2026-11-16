@@ -30,7 +30,7 @@ export function bossStages(kit, act, o = {}) {
     if (b) { const rest = list.slice(n); Object.assign(b, round(rest, { sid: 'boss2', ru: true, offset: n })); b.empty = !rest.length }
   } })
   if (split) {
-    push({ type: 'announce', act: act.id, sid: 'boss-sw', switchTo: 'ru', mia: 'hold', always: true, count: false, say: 'boss_mia_ru', round: { kind: 'switch', title: 'Секунду', task: 'переключаю слух', brief: 'переключаю слух' }, ms: SWITCH_MS, line: null }) // между блоками: слух → русская модель; Мия объясняет, что теперь наоборот
+    push({ type: 'announce', act: act.id, sid: 'boss-sw', switchTo: 'ru', mia: 'hold', always: true, count: false, say: 'boss_mia_ru', round: { kind: 'switch', title: '', task: '', brief: '' }, ms: SWITCH_MS, line: null }) // без плашки: за Мией, когда она объявляет смену языка, ничего не показываем // между блоками: слух → русская модель; Мия объясняет, что теперь наоборот
     const rest = words.slice(k)
     push({ ...round(rest, { sid: 'boss2', ru: true, offset: k }), demote() { const st = kit.stages.find(x => x.sid === 'boss2'); Object.assign(st, round(st.words, { sid: 'boss2', offset: st.offset })) } }) // русская модель не загрузилась: блок идёт по-английски
   }

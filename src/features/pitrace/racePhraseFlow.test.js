@@ -1,5 +1,5 @@
-import { describe, it, expect, vi } from 'vitest'
-import { CENTER_Y, HOT_MS } from './racePhraseScene.js'
+import { describe, it, expect } from 'vitest'
+import { CENTER_Y } from './racePhraseScene.js'
 import { setupScene } from './racePhraseSceneRig.js'
 import { createPhraseListener, stubSay, stubDraft } from './racePhraseListenStub.js'
 import { phraseStep, PHRASE_SPEED, SAY_SPEED, PHRASE_GAP_MS } from './raceStagesPhrases.js'
@@ -18,65 +18,53 @@ const untilCenter = (s, key) => { for (let i = 0; i < 2000; i++) { const p = s.r
 const capOf = key => ph.find(p => p.key === key)?.text
 
 describe('круг 1: единый конвейер после зачёта', () => {
-  it('верная взлетает, остальные уже выехавшие едут дальше отыгранными (без fade, взлёта и fail), уходят за край сами; журнал «остальные едут: N»', () => {
-    const log = vi.fn(); const s = setupScene(pick(), { log })
-    s.go(500); untilCenter(s, turns[0].target.key)
+  it('верная взлетает, остальные выехавшие пилюли разлетаются влево и вправо поровну (без fade и взлёта, по очереди −1, +1); fail — только у следующих ходов', () => {
+    const s = setupScene(pick()); s.go(500); untilCenter(s, turns[0].target.key)
     const before = s.pool.taken.length
     s.run.api.tap()
     expect(s.fx.win).toHaveBeenCalledTimes(1)
     const rest = s.pool.taken.filter(p => p.cap !== turns[0].target.text)
     expect(rest.length).toBe(before - 1); expect(rest.length).toBeGreaterThan(0)
-    for (const p of rest) { expect(p.attrs.has('data-spent')).toBe(true); expect(p.faded).toBeUndefined(); expect(p.rose).toBeUndefined(); expect(s.pool.live.has(p.k)).toBe(true) }
-    expect(log.mock.calls.at(-1)[0]).toMatch(new RegExp(`итог верно; остальные едут: ${rest.length}$`))
-    expect(s.run.api.state().spent.map(p => p.key).sort()).toEqual(rest.map(p => turns[0].cands.find(c => c.cap === p.cap).key).sort())
+    rest.forEach((p, i) => { expect(p.scattered).toBe(i % 2 ? 1 : -1); expect(p.faded).toBeUndefined(); expect(p.rose).toBeUndefined(); expect(s.pool.live.has(p.k)).toBe(false) })
+    expect(s.run.api.state().spent).toEqual([])
     s.go(20000)
-    for (const p of rest) expect(s.pool.live.has(p.k)).toBe(false) // ушли за нижний край (give)
-    expect(s.fx.fail.mock.calls.every(c => c[0].rep.idx > 0)).toBe(true) // fail — только у следующих ходов (там никто не тапал), не у отыгранных
+    expect(s.fx.fail.mock.calls.every(c => c[0].rep.idx > 0)).toBe(true)
   })
-  it('Пит говорит следующий смысл, пока отыгранные ещё едут; новые пилюли выезжают за ними: не раньше PHRASE_GAP_MS после предыдущей, выше по ленте; пул не переполняется', () => {
+  it('после зачёта Пит говорит следующий смысл, новые пилюли выезжают в порядке кандидатов, не ближе PHRASE_GAP_MS друг за другом; пул не переполнен', () => {
     const s = setupScene(pick())
     s.go(500); untilCenter(s, turns[0].target.key); s.run.api.tap()
-    const spentAt = s.pool.taken.filter(p => p.attrs.has('data-spent'))
-    let spawnTimes = [], seen = s.pool.taken.length, maxLive = 0, preWhileRiding = false
+    const first = s.pool.taken.length
+    let spawnTimes = [], seen = first, maxLive = 0
     for (let i = 0; i < 600; i++) {
       s.go(16)
       maxLive = Math.max(maxLive, s.pool.live.size)
-      if (s.fx.pre.mock.calls.length === 2 && spentAt.some(p => s.pool.live.has(p.k))) preWhileRiding = true
       if (s.pool.taken.length > seen) { spawnTimes.push(s.clock.t); seen = s.pool.taken.length }
     }
-    expect(preWhileRiding).toBe(true)
-    const fresh = s.pool.taken.slice(spentAt.length + 1)
+    expect(s.fx.pre.mock.calls.length).toBeGreaterThanOrEqual(2)
+    const fresh = s.pool.taken.slice(first)
     expect(fresh.length).toBeGreaterThan(0)
     expect(fresh[0].cap).toBe(turns[1].cands[0].cap) // порядок кандидатов хода сохранён
-    const last = Math.max(...spentAt.map(p => p.born))
-    expect(fresh[0].born - last).toBeGreaterThanOrEqual(PHRASE_GAP_MS - 16)
     for (let j = 1; j < spawnTimes.length; j++) expect(spawnTimes[j] - spawnTimes[j - 1]).toBeGreaterThanOrEqual(PHRASE_GAP_MS - 16)
     expect(maxLive).toBeLessThanOrEqual(POOL)
   })
-  it('тап по отыгранной у центра — ничего: ни зачёта, ни промаха', () => {
+  it('после зачёта разлетевшиеся пилюли не отвечают на тап: ни второго зачёта, ни промаха', () => {
     const s = setupScene(pick())
     s.go(500); untilCenter(s, turns[0].target.key)
     s.run.api.tap() // зачёт
-    const spent = s.pool.taken.find(p => p.attrs.has('data-spent'))
-    for (let i = 0; i < 2000 && Math.abs(s.pool.y(spent.k) - CENTER_Y) > 3; i++) s.go(16)
-    for (let i = 0; i < 200 && s.run.api.state().phase !== 'ride'; i++) s.go(16) // следующий ход уже едет, его пилюли наверху
-    const st = s.run.api.state()
-    expect(st.phase).toBe('ride'); expect(Math.abs(s.pool.y(spent.k) - CENTER_Y)).toBeLessThan(8)
-    expect(st.pills.every(p => Math.abs(p.y - CENTER_Y) > Math.abs(s.pool.y(spent.k) - CENTER_Y))).toBe(true)
-    s.run.api.tap()
+    s.run.api.tap() // повторный тап по тому же месту: пилюль хода уже нет
     expect(s.fx.win).toHaveBeenCalledTimes(1); expect(s.fx.miss).not.toHaveBeenCalled()
   })
-  it('промах: верная подсвечена и взлетает, тапнутая чужая и остальные доезжают отыгранными', async () => {
+  it('промах: разлетаются ВСЕ пилюли хода (и верная — она не подсвечивается и не взлетает), выбранная неверная — с красной рамкой (data-wrong)', () => {
     const s = setupScene(pick())
     s.go(500)
     const wrong = turns[0].cands.find(c => !c.right)
     untilCenter(s, wrong.key); s.run.api.tap()
     expect(s.fx.miss).toHaveBeenCalledTimes(1)
-    const others = s.pool.taken.filter(p => p.cap !== turns[0].target.text)
-    for (const p of others) { expect(p.attrs.has('data-spent')).toBe(true); expect(s.pool.live.has(p.k)).toBe(true) }
-    await new Promise(r => setTimeout(r, HOT_MS + 50))
-    expect(s.pool.taken.find(p => p.cap === turns[0].target.text).rose).toBe(true)
-    for (const p of others) expect(s.pool.live.has(p.k)).toBe(true)
+    const all = s.pool.taken.filter(p => turns[0].cands.some(c => c.cap === p.cap))
+    expect(all.length).toBeGreaterThan(1)
+    all.forEach(p => { expect(p.scattered === -1 || p.scattered === 1).toBe(true); expect(p.rose).toBeUndefined(); expect(p.attrs.has('data-hot')).toBe(false) })
+    expect(new Set(all.map(p => p.scattered)).size).toBe(2) // и влево, и вправо
+    expect(s.pool.taken.find(p => p.cap === wrong.cap).attrs.has('data-wrong')).toBe(true)
     s.go(20000); expect(s.fx.fail.mock.calls.every(c => c[0].rep.idx > 0)).toBe(true)
   })
   it('голосом круг 1 тоже только тап: фраза, сказанная вслух, не засчитывается ни у верной, ни у отыгранной', () => {
