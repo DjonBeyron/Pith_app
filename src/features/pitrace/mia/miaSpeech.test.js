@@ -95,3 +95,12 @@ describe('реплика Пита в очереди Мии (v3.3.233)', () => {
     sp.stop(); expect(calls.at(-1)).toBeNull()
   })
 })
+
+describe('оценка остатка речи (v3.3.259)', () => {
+  it('играющая реплика считается остатком, а не целиком (прерванная реплика не держит следующую лишние секунды)', () => {
+    const r = rig({ voiced: { mia_push: true } })
+    r.sp.enqueue([cue('mia_push', 'mia')]); r.advance(1)
+    const full = r.sp.leftMs(); r.advance(1200)
+    expect(full).toBeGreaterThan(2000); expect(r.sp.leftMs()).toBeLessThan(full - 1000)
+  })
+})

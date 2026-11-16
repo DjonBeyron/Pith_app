@@ -24,6 +24,7 @@
 .raceChargeHalo { position: absolute; inset: 0; border-radius: 999px; background: rgba(255, 255, 255, 0.16); transform-origin: center; transform: scaleY(1); }
 .raceChargeTrack { position: absolute; inset: 0; border-radius: 999px; overflow: hidden; background: rgba(255, 255, 255, 0.1); }
 .raceChargeSeg { position: absolute; top: 0; bottom: 0; transform-origin: left center; transform: scaleX(0); }
+.raceChargeSeg:not(:last-of-type) { background-image: linear-gradient(to left, rgba(8, 10, 16, 0.75) 1px, transparent 1px); } /* та же тонкая риска, что у бара в игре */
 .raceChargeSeg::after { /* вспышка касания: цвет слова, светлее */
   content: '';
   position: absolute;

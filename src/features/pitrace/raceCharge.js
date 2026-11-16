@@ -2,7 +2,7 @@
 // человека (слова плана и extraWords, как у «Разгона»), цвет пилюли — ступень памяти слова (--lvl0…--lvl4, memory-levels.css), а сверху бар заполняется кусками цветов долетевших пилюль. Бар заполнен ровно
 // к моменту, когда долетела последняя пилюля (T = длина речи Пита). Этот файл — чистый ПЛАН без DOM и часов: список пилюль (x, старт, время полёта, прилёт), искры и сегменты бара — всё от семени
 // плана (только rngFor), поэтому одна сессия воспроизводима. Рисует план RaceCharge.jsx (Web Animations), стили — race-charge.css.
-import { rngFor, rngInt, rngShuffle } from '../rehearsal/rehearsalSeed.js'
+import { rngFor, rngInt } from '../rehearsal/rehearsalSeed.js'
 import { normText } from '../player/modules/rotate-phone/wordLaneRecipe.js'
 import { extrasOf } from './raceWords.js'
 
@@ -78,7 +78,7 @@ export function chargePlan(plan, totalMs = 4000, wordList = null, tag = 'race-ch
   if (!n) return { totalMs: total, pills: [], sparks: [], segments: [] }
   const rng = rngFor(plan.seed, tag)
   const wrng = rngFor(plan.seed, `${tag}-wave`) // волна — свой поток: порядок и разброс пилюль от неё не зависят
-  const order = rngShuffle(rng, words)
+  const order = words // порядок прилёта = порядок слов круга (как сегменты бара в игре): раньше пилюли тасовались, и цвета бара при сборке шли в одном порядке, а в игре в другом (владелец 2026-11-16)
   const fly = Math.min(CHARGE_FLY_MS, total * 0.4)
   const gap = (total - fly) / n
   const pills = order.map((w, i) => {

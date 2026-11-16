@@ -52,9 +52,9 @@ describe('демо «Скажи»: скрипт', () => {
   afterEach(() => vi.useRealTimers())
   it('порядок: «главное начать» → слово 1 → «затем второе» → слово 2 → «потом третье» → слово 3 → (больше трёх: «и так до конца» → подряд) → 100 % → взлёт → «теперь ты»', () => {
     const tags = s => s.map(x => (x.line ?? (x.word != null ? `w${x.word}${x.run ? '+' : ''}` : x.all ? 'all' : 'rise')))
-    expect(tags(demoPlan(3))).toEqual(['race_demo_1', 'w0', 'race_demo_2', 'w1', 'race_demo_3', 'w2', 'all', 'rise', 'race_demo_go'])
-    expect(tags(demoPlan(5))).toEqual(['race_demo_1', 'w0', 'race_demo_2', 'w1', 'race_demo_3', 'w2', 'race_demo_more', 'w3+', 'w4+', 'all', 'rise', 'race_demo_go'])
-    expect(tags(demoPlan(2))).toEqual(['race_demo_1', 'w0', 'race_demo_2', 'w1', 'all', 'rise', 'race_demo_go'])
+    expect(tags(demoPlan(3))).toEqual(['race_demo_1', 'w0', 'race_demo_2', 'w1', 'race_demo_3', 'w2', 'all', 'rise', 'race_phrases_say'])
+    expect(tags(demoPlan(5))).toEqual(['race_demo_1', 'w0', 'race_demo_2', 'w1', 'race_demo_3', 'w2', 'race_demo_more', 'w3+', 'w4+', 'all', 'rise', 'race_phrases_say'])
+    expect(tags(demoPlan(2))).toEqual(['race_demo_1', 'w0', 'race_demo_2', 'w1', 'all', 'rise', 'race_phrases_say'])
   })
   const setup = (o = {}) => {
     const log = [], shown = [], steps = []
@@ -81,7 +81,7 @@ describe('демо «Скажи»: скрипт', () => {
     vi.advanceTimersByTime(400)
     expect(log.slice(-2)).toEqual(['all', 'rise'])
     vi.advanceTimersByTime(300)
-    expect(log.at(-1)).toBe('line:race_demo_go'); expect(onDone).not.toHaveBeenCalled()
+    expect(log.at(-1)).toBe('line:race_phrases_say'); expect(onDone).not.toHaveBeenCalled()
     vi.advanceTimersByTime(LINE_SILENT_MS)
     expect(onDone).toHaveBeenCalledTimes(1); expect(shown.at(-1)).toBe('')
   })

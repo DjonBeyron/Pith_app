@@ -70,7 +70,7 @@ describe('демо-ход «Скажи» на живой пилюле', () => {
     s.go(200); expect(p.fill).toBeCloseTo(2 / 3, 2)
     expect(lines(log)).toContain(`[phrase-demo] слово 2 «you» (400), заливка до границы 0,67, y ${Math.round(num(lines(log).find(l => l.startsWith('[phrase-demo] слово 2')), /y (\d+) %/))} %`) // граница слова (без DOM — доли 1/N)
     s.go(5000)
-    expect(s.said).toEqual(['race_demo_1', '«See»', 'race_demo_2', '«you»', 'race_demo_3', '«later»', 'race_demo_go'])
+    expect(s.said).toEqual(['race_demo_1', '«See»', 'race_demo_2', '«you»', 'race_demo_3', '«later»', 'race_phrases_say'])
     expect(p.rose).toBe(true); expect(p.attrs.has('data-lock')).toBe(true); expect(p.fills.at(-1)).toBeGreaterThan(0.99)
     expect(p.held).toBeUndefined() // пилюля не останавливалась
     expect(Math.abs(riseY(log) - DEMO_RISE_Y)).toBeLessThanOrEqual(3) // взлетела у головы Пита
@@ -97,7 +97,7 @@ describe('демо-ход «Скажи» на живой пилюле', () => {
       expect(p.rose).toBe(true); expect(p.held).toBeUndefined(); expect(lines(log).some(l => l.includes('у головы Пита:'))).toBe(false)
       expect(Math.abs(riseY(log) - DEMO_RISE_Y)).toBeLessThanOrEqual(3)
       for (const v of [p.speed, ...(p.speeds ?? [])]) { expect(v).toBeGreaterThanOrEqual(DEMO_SPEED_MIN); expect(v).toBeLessThanOrEqual(DEMO_SPEED_MAX) }
-      expect(s.said.at(-1)).toBe('race_demo_go'); expect(s.kit.end).toHaveBeenCalledWith('')
+      expect(s.said.at(-1)).toBe('race_phrases_say'); expect(s.kit.end).toHaveBeenCalledWith('')
       if (!o.known) expect(lines(log).some(l => /скорость ×0,\d\d → ×0,\d\d \((отстаём|опережаем) на \d+ мс\), y \d+ %/.test(l))).toBe(true) // оценка разошлась с разбором — поправка по ходу
       s.run.stop()
     })
@@ -125,7 +125,7 @@ describe('демо-ход «Скажи» на живой пилюле', () => {
   it('слово демо без озвучки: не звучит, журнал «[demo] слово «…» без озвучки», кирпичик всё равно открывается и демо доходит до конца', () => {
     const log = vi.fn(); const s = setup({ log, hasWord: w => w !== 'later' })
     s.go(12000)
-    expect(s.said).toEqual(['race_demo_1', '«See»', 'race_demo_2', '«you»', 'race_demo_3', 'race_demo_go'])
+    expect(s.said).toEqual(['race_demo_1', '«See»', 'race_demo_2', '«you»', 'race_demo_3', 'race_phrases_say'])
     expect(log.mock.calls.map(c => c[0])).toContain('[demo] слово «later» без озвучки — дальше по таймеру')
     expect(s.run.api.state().phase).not.toBe('demo'); expect(s.kit.end).toHaveBeenCalledWith(''); s.run.stop()
   })

@@ -91,7 +91,7 @@ describe('стадии этапа', () => {
     const k = kitOf(plan()); const act = buildRaceActs(plan(), false).acts.find(a => a.id === 'phrases')
     phraseStages(k, act)
     expect(k.stages.map(s => s.sid)).toEqual(['phrases-ann', 'phrases1-ann', 'phrases1', 'phrases2-ann', 'phrases2'])
-    expect(k.stages.filter(s => s.type === 'announce').map(s => s.line)).toEqual(['race_phrases', 'race_phrases_pick', 'race_phrases_say'])
+    expect(k.stages.filter(s => s.type === 'announce').map(s => s.line)).toEqual(['race_phrases', 'race_phrases_pick', 'race_phrases_show']) // с примером плашка зовёт смотреть, «скажи её сам» — после примера
     const [s1, s2] = [k.stages[2], k.stages[4]]
     expect(s1.step.phrases).toMatchObject({ round: 1, mode: 'pick', voice: false, speed: PHRASE_SPEED }); expect(s2.step.phrases).toMatchObject({ round: 2, mode: 'say', voice: true, speed: SAY_SPEED }) // круг 1 — только тап и голосом
     for (const s of [s1, s2]) { expect(s.step.tapOnly).toBe(true); expect(s.step.quiet).toBe(true); expect(s.step.active).toEqual([LANE]); expect(s.step.reps.every(r => r.lane === LANE)).toBe(true) }
@@ -123,7 +123,7 @@ describe('стадии этапа', () => {
       const r1 = st.find(s => s.sid === 'phrases1-ann'), r2 = st.find(s => s.sid === 'phrases2-ann')
       expect(r1.round).toMatchObject({ title: 'Пойми', task: 'Тапни фразу', look: { tone: 'lane', icon: 'tap' } }); expect(r1.line).toBe('race_phrases_pick')
       expect(r2.round).toMatchObject(tap ? { title: 'Узнай', task: 'Тапни смысл', look: { tone: 'accent' } } : { title: 'Скажи', task: 'Скажи сам', look: { tone: 'accent', icon: 'mic' } })
-      expect(r2.line).toBe(tap ? 'race_phrases_hear' : 'race_phrases_say')
+      expect(r2.line).toBe(tap ? 'race_phrases_hear' : 'race_phrases_show')
       expect(st.find(s => s.sid === 'phrases-ann').line).toBe(tap ? 'race_phrases_tap' : 'race_phrases')
     }
   })

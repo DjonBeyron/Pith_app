@@ -5,12 +5,11 @@ import { isWeakDevice } from '../../../../shared/lib/deviceTier.js'
 import { MIA_FACES, nextFace } from '../../../pitrace/mia/miaCat.js'
 
 // Мия «живая» в тишине (прототип, владелец 2026-11-14): взгляд изредка уходит в сторону (как у Пита, createCatLook), усы время от времени покачиваются (тот же привод усов, что у
-// говорящего Пита), лицо плавно меняется (пафос ↔ интерес, перекрёстное проявление ~160 мс). На слабом устройстве — одно лицо и без взгляда / усов (как у Пита, lite).
+// говорящего Пита), лицо меняется (пафос ↔ интерес) мгновенно, без перекрёстного проявления. На слабом устройстве — одно лицо и без взгляда / усов (как у Пита, lite).
 // Лежит рядом с котом Пита (rotate-phone): случайность здесь косметическая (в pitrace она запрещена, от семени плана). Хук работает только пока Мия на экране (enabled), все таймеры и привод снимает при уходе. root — контейнер спрайта Мии (.scn с <g class="scn-cat">).
 export const FACE_EVERY_MS = [2600, 4200]   // лицо меняется раз в столько мс (случайно между)
 export const WHISK_EVERY_MS = [2200, 4600]  // усы покачиваются раз в столько мс
 export const WHISK_MS = 1000                // длительность покачивания
-export const FADE_MS = 160
 
 /** talk — { key, id, text, ms } текущей реплики Мии (miaSpeech.onSpeak): рот и усы идут по ней */
 export function useMiaLife(root, enabled, talk = null) {
@@ -36,10 +35,7 @@ export function useMiaLife(root, enabled, talk = null) {
       const to = faces.length > 1 ? nextFace(faces, cur, Math.random()) : cur
       if (to && to !== cur) {
         const prev = byFace[cur], next = byFace[to]
-        next.style.display = ''; next.parentNode.appendChild(next) // новая голова — поверх прежней
-        const a = !lite && typeof next.animate === 'function' ? next.animate([{ opacity: 0 }, { opacity: 1 }], { duration: FADE_MS, easing: 'ease-in-out' }) : null
-        const done = () => { prev.style.display = 'none' }
-        if (a) a.onfinish = done; else done()
+        next.style.display = ''; prev.style.display = 'none' // жёсткая смена: контуры глаз двух лиц не совпадают до пикселя, и перекрёстное проявление давало двойной контур (владелец 2026-11-16) — теперь в каждый кадр видна ровно одна голова
         cur = to; mouth.redraw()
       }
       later(swap, between(FACE_EVERY_MS))

@@ -16,7 +16,7 @@ export const MAX_PIT_TRIES = 40      // сколько раз пробуем р�
 
 export function createMiaSpeech({ now = () => Date.now(), setTimer = setTimeout, clearTimer = clearTimeout, play = () => false, has = () => false, bufferMs = () => 0, hold = null, snap = () => '', onCaption = () => {}, onSpeak = () => {}, log = () => {} } = {}) {
   const src = { lines: null, cat: null, listener: null } // свежие реплики, кот и слушатель кладёт use() (из эффекта хука: рефы в рендере читать нельзя)
-  let queue = [], timer = 0, playing = null, endAt = 0, capTimer = 0, seq = 0
+  let queue = [], timer = 0, playing = null, endAt = 0, capTimer = 0, seq = 0, playAt = 0
   const caption = (c, ms) => { clearTimer(capTimer); onCaption(c); capTimer = c ? setTimer(() => onCaption(null), ms + CAPTION_TAIL_MS) : 0 }
 
   function finish(c) {
@@ -33,7 +33,7 @@ export function createMiaSpeech({ now = () => Date.now(), setTimer = setTimeout,
   }
 
   function speak(c) {
-    playing = c
+    playing = c; playAt = now()
     const lines = src.lines, line = lines?.[c.id], text = line?.text || miaLine(c.id)?.text || '', key = lineKey(c.id)
     const cat = src.cat, who = c.who
     const voiced = who === 'mia' && !!line?.url && has(key)
@@ -88,7 +88,7 @@ export function createMiaSpeech({ now = () => Date.now(), setTimer = setTimeout,
     /** Пауза, выход, конец игры: очередь и подпись сброшены */
     stop() { clearTimer(timer); clearTimer(capTimer); timer = 0; capTimer = 0; queue = []; playing = null; onCaption(null); onSpeak(null) },
     /** Оценка, сколько мс речи ещё впереди (очередь целиком, по длине звука или подписи): директор репетиции откладывает реплику следующей стадии на это время */
-    leftMs: () => queue.reduce((a, c) => { const l = src.lines?.[c.id], text = l?.text || miaLine(c.id)?.text || ''; return a + (l?.url ? lineMs(l) : Math.max(MIN_CAPTION_MS, text.length * 65)) + GAP_MS }, 0),
+    leftMs: () => queue.reduce((a, c) => { const l = src.lines?.[c.id], text = l?.text || miaLine(c.id)?.text || '', full = (l?.url ? lineMs(l) : Math.max(MIN_CAPTION_MS, text.length * 65)) + GAP_MS; return a + (playing === c ? Math.max(GAP_MS, full - (now() - playAt)) : full) }, 0), // играющая реплика — только остаток (раньше считалась целиком: прерванная «mia_leave» держала следующую реплику Пита лишние секунды)
     pending: () => queue.length, // играющая реплика тоже стоит в голове очереди
   }
 }

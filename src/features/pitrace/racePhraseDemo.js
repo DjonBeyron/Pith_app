@@ -11,7 +11,7 @@ import { phraseWords } from './racePhraseData.js'
 
 export const DEMO_LINES = ['race_demo_1', 'race_demo_2', 'race_demo_3'] // перед словами 1, 2, 3
 export const DEMO_MORE = 'race_demo_more' // слов больше трёх — перед остальными
-export const DEMO_GO = 'race_demo_go'     // после взлёта
+export const DEMO_GO = 'race_phrases_say'     // после взлёта
 export const LINE_SILENT_MS = 650    // реплики нет в настройках (sayLine вернул false): подпись держится столько, потом слово (≤ 700 мс — замечание владельца)
 export const DEMO_LINE_GAP_MS = 150  // озвученная реплика договорена — до слова
 export const DEMO_WORD_GAP_MS = 250  // после голоса слова — до следующей реплики
