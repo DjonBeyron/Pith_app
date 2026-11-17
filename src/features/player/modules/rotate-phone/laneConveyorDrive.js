@@ -72,10 +72,11 @@ export function createConveyorDrive({
     waves = n; waveEl ??= root.querySelector('.wlLanes')
     if (waveEl) waveEl.dataset.wave = n % 2 ? 'a' : 'b'
   }
+  let halt = false // разворот в реверс (pitrace/raceReverseTurn.js): detail 'halt' — дорожки тормозят до покоя и стоят (даже если игра «держит ход»), 'warm' — стартуют из покоя сразу разгоном, без «зажигания», 'resume' — просто снять стоп
   const frame = ts => {
     id = null
     const dt = Math.min(MAX_DT, Math.max(0, ts - last)); last = ts
-    const stop = paused && race // пауза гонки: тормозим до покоя (пилюли на паузе стоят — их не считаем)
+    const stop = (paused && race) || halt // пауза гонки: тормозим до покоя (пилюли на паузе стоят — их не считаем)
     const v = wanted()
     let ramp = SPEED_RAMP_MS
     if (v !== aim) {
@@ -100,6 +101,8 @@ export function createConveyorDrive({
     wake()
   }
   const stopObserving = observe(root, recount)
+  const onTurn = e => { const d = e?.detail; halt = d === 'halt'; if (d === 'warm') lanes.forEach(L => { if (L.phase === 'idle') L.warm = true }); wake() }
+  root.addEventListener?.('wl-conveyor-turn', onTurn)
   const redraw = () => { measure(); lanes.forEach((L, i) => draw(i, laneLook(L))) }
   const stopResize = onResize(redraw)
   redraw() // период и покой в px сразу, до первого кадра
@@ -116,7 +119,7 @@ export function createConveyorDrive({
       if (paused && !was && race) lanes.forEach(L => { if (L.phase !== 'idle') L.warm = true }) // ехали до паузы — после неё без «зажигания»
       if (paused && !race) { if (id !== null) { caf(id); id = null } } else wake()
     },
-    dispose() { if (id !== null) caf(id); id = null; stopObserving(); stopResize() },
+    dispose() { if (id !== null) caf(id); id = null; stopObserving(); stopResize(); root.removeEventListener?.('wl-conveyor-turn', onTurn) },
     /** Для тестов и отладки */
     state: () => ({ phases: lanes.map(L => L.phase), running: id !== null, speed: wanted(), slow: slow ? { ...slow } : null, v: lanes.map(L => L.v), pills: [...pills], armed: [...armed], keep: [...keep], hold, warm: lanes.map(L => L.warm), tape: tape() }),
     frame,

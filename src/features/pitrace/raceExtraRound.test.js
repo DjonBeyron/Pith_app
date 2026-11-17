@@ -74,7 +74,7 @@ describe('после прохода: Мия вместо дополнитель�
   for (const act of ['sprint', 'catch']) {
     it(`${act}: меньше двух слабых слов — мимо (-1); два и больше — церемония Мии, слова вписаны в её круг; второй круг от Пита убран`, () => {
       const { stages } = buildRaceStages({ plan })
-      const first = stages.find(s => s.sid === act), mia = stages.find(s => s.sid === `${act}3`), ann = stages.find(s => s.sid === `${act}3-ann`)
+      const first = stages.find(s => s.sid === act), mia = stages.find(s => s.sid === `${act}3`), ann = stages.find(s => s.sid === `${act}3-intro-ann`)
       expect(stages.some(s => s.sid === `${act}2` || s.sid === `${act}2-ann`)).toBe(false)
       const clean = { results: Object.fromEntries(first.words.map((_, i) => [i, ok])) }
       expect(miaAfterPass(stages, first, clean, plan.seed, miaInit())).toBe(-1)

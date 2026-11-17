@@ -23,26 +23,29 @@ describe('стадии Мии в списке гонки', () => {
     for (const act of ['sprint', 'catch']) {
       const i1 = stages.findIndex(s => s.sid === act)
       expect(stages.some(s => s.sid === `${act}2`)).toBe(false)
-      expect(stages[i1 + 1]).toMatchObject({ sid: `${act}3-ann`, type: 'announce', mia: 'ann', line: 'pit_forgot' }); expect(stages[i1 + 1].waitCap).toBeGreaterThan(30000)
-      expect(stages[i1 + 2]).toMatchObject({ sid: `${act}3`, type: 'student', mia: 'round' }); expect(stages[i1 + 2].step.boost).toEqual({ k: 1 })
-      expect(stages[i1 + 1]).toMatchObject({ count: 'after', soft: true }) // три ноты после церемонии, перед кругом
+      expect(stages[i1 + 1]).toMatchObject({ sid: `${act}3-intro-ann`, type: 'announce', mia: 'intro' }); expect(stages[i1 + 1].round).toMatchObject({ title: 'Допрос у Мии', brief: 'Мия проверяет забытые слова', look: { cat: 'mia' } }) // плашка Мии перед церемонией
+      expect(stages[i1 + 2]).toMatchObject({ sid: `${act}3-ann`, type: 'announce', mia: 'ann', line: 'pit_forgot' }); expect(stages[i1 + 2].waitCap).toBeGreaterThan(30000)
+      expect(!!stages[i1 + 2].revBack).toBe(act === 'catch') // после B: пилюли разворачиваются снизу вниз на церемонии
+      expect(stages[i1 + 3]).toMatchObject({ sid: `${act}3`, type: 'student', mia: 'round' }); expect(stages[i1 + 3].step.boost).toEqual({ k: 1 })
+      expect(stages[i1 + 2]).toMatchObject({ count: 'after', soft: true }) // три ноты после церемонии, перед кругом
     }
   })
   it('miaAfterPass: два слабых слова — церемония Мии, слова вписаны в её круг; меньше двух, Мия уже была, не проход — −1', () => {
     const r1 = stages.find(s => s.sid === 'sprint')
     const weak = { results: { 0: { hit: false, miss: true }, 1: { hit: false, miss: true } } }
     const i = miaAfterPass(stages, r1, weak, 5, { used: {} })
-    expect(stages[i].sid).toBe('sprint3-ann'); const r3 = stages.find(s => s.sid === 'sprint3'); expect(r3.words.length).toBeGreaterThanOrEqual(2); expect(r3.step.reps).toHaveLength(r3.words.length)
+    expect(stages[i].sid).toBe('sprint3-intro-ann'); const r3 = stages.find(s => s.sid === 'sprint3'); expect(r3.words.length).toBeGreaterThanOrEqual(2); expect(r3.step.reps).toHaveLength(r3.words.length)
     expect(miaAfterPass(stages, r1, weak, 5, { used: { catch: true } })).toBe(-1)
     const okAll = Object.fromEntries(r1.words.map((_, i) => [i, { hit: true, miss: false }]))
     expect(miaAfterPass(stages, r1, { results: { ...okAll, 0: { hit: false, miss: true } } }, 5, { used: {} })).toBe(-1) // одно слабое слово — Мии нет
     expect(miaAfterPass(stages, stages.find(s => s.sid === 'climb' || s.act === 'phrases'), weak, 5, { used: {} })).toBe(-1); expect(miaAfterPass([], r1, weak, 5, { used: {} })).toBe(-1)
   })
   it('обход: пока Мия не вызвана (фаза не in), nextIdx пропускает церемонию и круг; когда вызвана — идёт на них', () => {
-    const ann = stages.findIndex(s => s.sid === 'sprint3-ann'), after = ann + 2
-    expect(miaSkip(stages, ann, { phase: 'off', act: '' })).toBe(after)
+    const intro = stages.findIndex(s => s.sid === 'sprint3-intro-ann'), ann = intro + 1, after = intro + 3
+    expect(miaSkip(stages, intro, { phase: 'off', act: '' })).toBe(after) // плашка, церемония и круг обходятся целиком
+    expect(miaSkip(stages, ann, { phase: 'off', act: '' })).toBe(ann) // церемония сразу за плашкой Мии открыта: внутри эпизода стадии идут подряд
     expect(miaSkip(stages, ann, { phase: 'in', act: 'sprint' })).toBe(ann); expect(miaSkip(stages, ann + 1, { phase: 'in', act: 'sprint' })).toBe(ann + 1)
     expect(miaSkip(stages, ann + 1, { phase: 'off', act: '' })).toBe(ann + 1) // круг сразу за церемонией открыт: конвейер заглядывает от церемонии вперёд, дорожки не гаснут
-    expect(miaSkip(stages, ann, { phase: 'in', act: 'catch' })).toBe(after); expect(miaAllowed(stages[ann], { phase: 'in', act: 'sprint' })).toBe(true); expect(miaAllowed(stages[0], { phase: 'in', act: 'sprint' })).toBe(false)
+    expect(miaSkip(stages, intro, { phase: 'in', act: 'catch' })).toBe(after); expect(miaAllowed(stages[ann], { phase: 'in', act: 'sprint' })).toBe(true); expect(miaAllowed(stages[0], { phase: 'in', act: 'sprint' })).toBe(false)
   })
 })

@@ -46,10 +46,10 @@ export function startEntries(stages, acts, alt = {}) {
     if (prev?.type === 'announce' && !isSwitch(prev) && prev.act === st.act) return // плашка внутри цепочки («Пойми» после «Фразы»)
     let j = i
     const subs = []
-    while (stages[j]?.type === 'announce' && stages[j].act === st.act && !isSwitch(stages[j])) { const t = stages[j].round?.title; if (t && t !== act.title) subs.push(t); j++ }
+    while (stages[j]?.type === 'announce' && stages[j].act === st.act && !isSwitch(stages[j])) { const t = stages[j].mia === 'intro' ? '' : stages[j].round?.title; if (t && t !== act.title) subs.push(t); j++ } // плашка Мии «Допрос у Мии» в подпись не входит
     if (alt[stages[j - 1].sid]) subs.push(alt[stages[j - 1].sid])
     if (PART[st.sid]) subs.push(PART[st.sid]) // «Вершина» и «Спуск» — две половины этапа «Конвейер фраз»
-    const two = st.mia === 'ann' && st.act !== 'boss' ? ': круг с Мией' : /\d-ann$/.exec(st.sid) && !st.round?.title ? `, круг ${st.sid.match(/(\d+)-ann$/)[1]}` : ''
+    const two = (st.mia === 'ann' || st.mia === 'intro') && st.act !== 'boss' ? ': круг с Мией' : /\d-ann$/.exec(st.sid) && !st.round?.title ? `, круг ${st.sid.match(/(\d+)-ann$/)[1]}` : ''
     out.push({ sid: st.sid, label: `${act.title}${passOf(act.id) ? ` ${passOf(act.id)}` : ''}${two}${subs.length ? `: ${subs.join(' ')}` : ''}` })
   })
   return out
@@ -65,7 +65,7 @@ export function sliceFrom(stages, sid, seed) {
   if (at <= 0) return at === 0 // уже первая (акты до неё выбросил рецепт) — резать нечего
   const act = stages[at].act
   const r1 = stages.find(x => x.type === 'student' && x.sid === act && ['sprint', 'catch'].includes(act))
-  if (r1 && stages[at].mia === 'ann') miaAfterPass(stages, r1, { results: {} }, seed, null) // начать с круга Мии: слова вписаны, как будто в проходе все слова слабые (нейтральные результаты)
+  if (r1 && (stages[at].mia === 'ann' || stages[at].mia === 'intro')) miaAfterPass(stages, r1, { results: {} }, seed, null) // начать с круга Мии: слова вписаны, как будто в проходе все слова слабые (нейтральные результаты)
   const sw = stages.slice(0, at).findLast(x => x.act === act && x.switchTo === 'ru')
   const out = [...(sw ? [sw] : []), ...stages.slice(at)]
   out.forEach((x, idx) => { x.idx = idx })

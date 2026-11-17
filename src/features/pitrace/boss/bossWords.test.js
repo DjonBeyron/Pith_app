@@ -147,7 +147,7 @@ describe('повторный вход в церемонию (пауза и «П�
   it('директор: повторный вход сбрасывает очередь речи и пример (stop), три ноты ждут только очередь речи; пример по длительностям реплик; конвейер на объяснении как в круге финала', () => {
     const src = readFileSync(new URL('../useRaceActs.js', import.meta.url), 'utf8'), me = readFileSync(new URL('../mia/useMiaEnter.js', import.meta.url), 'utf8')
     expect(me).toContain("if (running.mia === 'ann' && mb.m.phase === 'in' && mb.m.act === running.act) mspeech.stop()")
-    expect(src).toContain('countWait: () => (mspeech.pending() > 0 ? 1 : 0)'); expect(src).toContain("sp.msOf(id)"); expect(src).toContain('demoPlan(')
+    expect(src).toContain('countWait: () => (mspeech.pending() > 0 || revBack.busy ? 1 : 0)'); expect(src).toContain("sp.msOf(id)"); expect(src).toContain('demoPlan(')
     expect(readFileSync(new URL('../../player/modules/rotate-phone/WordLaneGame.jsx', import.meta.url), 'utf8')).not.toContain('miaDemoSpeed') // конвейер на объяснении — как в круге финала
     expect(readFileSync(new URL('../../../styles/player/modules/race-bar.css', import.meta.url), 'utf8')).toContain('z-index: 50')
   })

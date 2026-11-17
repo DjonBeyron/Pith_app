@@ -65,7 +65,7 @@ export function queueStages(kit, act, rep, o = {}) {
   const { push, announce, plan } = kit
   const ctl = { lang: o.lang, tapOnly: !!o.tapOnly }
   const standby = standbyWords(act.words, plan).map(w => o.mapStandby?.(w) ?? w)
-  const round = (sid, list, first) => { const good = goodPlan(plan.seed, sid, list.length, { first, ids: o.goodIds }); return { type: 'student', act: act.id, sid, step: queueStep(kit, sid, list, good, rep, { target: o.target, lang: ctl.lang, tapOnly: ctl.tapOnly, reverse: o.reverse }), words: list, good } }
+  const round = (sid, list, first) => { const good = goodPlan(plan.seed, sid, list.length, { first, ids: o.goodIds }); return { type: 'student', act: act.id, sid, step: queueStep(kit, sid, list, good, rep, { target: o.target, lang: ctl.lang, tapOnly: ctl.tapOnly, reverse: o.reverse && sid === act.id }), words: list, good } } // обратный конвейер — только круг 1 прохода B; круг Мии идёт вниз (разворот — на церемонии, stage.revBack)
   const demote = () => { if (o.tapLine) { const a = kit.stages.find(x => x.sid === (o.tapLineSid ?? `${act.id}-ann`)); if (a) a.line = o.tapLine } ctl.lang = undefined; ctl.tapOnly = true; kit.stages.filter(x => x.act === act.id && x.type === 'student').forEach(x => { delete x.step.lang; x.step.tapOnly = true }) }
   o.before?.()
   announce(act, o.plain ? { title: '', task: '', ms: ROUND2_ANN_MS } : o.plate ? { line: o.plateLine ?? null } : undefined)
@@ -73,7 +73,9 @@ export function queueStages(kit, act, rep, o = {}) {
   push({ ...round(act.id, act.words, true), standby, demote })
   // Эпизод «Мия» (mia/raceMia.js): церемония прихода и круг с Мией стоят в списке всегда, но директор идёт на них вместо круга 2, когда слабых слов две и больше (miaRoute, miaRound.js); иначе их обходит nextIdx
   const sid3 = `${act.id}3`
+  announce(act, { sid: `${sid3}-intro`, kind: 'mia', title: 'Допрос у Мии', task: '', brief: 'Мия проверяет забытые слова', look: { cat: 'mia' }, line: null }) // плашка Мии (серая, кот Мия) перед церемонией (владелец 2026-11-17)
+  Object.assign(kit.stages.at(-1), { mia: 'intro' })
   announce(act, { sid: sid3, kind: 'mia', title: '', task: '', line: 'pit_forgot', ms: MIA_ANN_MS })
-  Object.assign(kit.stages.at(-1), { mia: 'ann', waitCap: MIA_WAIT_CAP_MS })
+  Object.assign(kit.stages.at(-1), { mia: 'ann', waitCap: MIA_WAIT_CAP_MS, ...(o.revBack ? { revBack: o.revBack } : {}) }) // revBack — после B: на церемонии пилюли разворачиваются снизу вниз, пока идут диалоги (raceReverseTurn, back)
   push({ ...round(sid3, act.words, false), mia: 'round', fill: list => Object.assign(kit.stages.find(x => x.sid === sid3), round(sid3, list, false), { mia: 'round' }) })
 }

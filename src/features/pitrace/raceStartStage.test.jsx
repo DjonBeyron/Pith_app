@@ -25,7 +25,7 @@ describe('пункты «Начать с»', () => {
   it('из стадий полной гонки: круг Мии, проход B, круги фраз, вершина, спуск, финал, итог; первая стадия — это «с начала»', () => {
     const opts = startOptions(plan())
     expect(opts.map(o => o.label)).toEqual(LABELS)
-    expect(opts.map(o => o.sid)).toEqual(['sprint3-ann', 'catch-ann', 'catch3-ann', 'phrases-ann', 'phrases2-ann', 'climb-ann', 'descent-ann', 'boss-intro-ann', 'summary'])
+    expect(opts.map(o => o.sid)).toEqual(['sprint3-intro-ann', 'catch-ann', 'catch3-intro-ann', 'phrases-ann', 'phrases2-ann', 'climb-ann', 'descent-ann', 'boss-intro-ann', 'summary'])
     expect(opts.map(o => actOfSid(o.sid))).toEqual(['sprint', 'catch', 'catch', 'phrases', 'phrases', 'climb', 'descent', 'boss', 'summary'])
   })
   it('пункты — только этапы, которые есть у плана (нет этапа в рецепте — нет пункта); не гонка — пусто', () => {
@@ -57,7 +57,7 @@ describe('очередь стадий со старта с этапа', () => {
         const full = buildRaceStages({ plan: plan(), tap, ru: true }).stages
         const before = full.slice(0, full.findIndex(s => s.sid === o.sid)).filter(s => !s.switchTo).map(s => s.sid)
         for (const sid of before) expect(stages.some(s => s.sid === sid)).toBe(false)
-        if (stages[0].type === 'announce') expect(stages[0]).toMatchObject(stages[0].mia ? { count: 'after', mia: 'ann' } : { charge: true, count: 'after' }) // первая плашка — как у начала игры (бар заставки, три ноты); церемония Мии — без бара, три ноты после речи Мии
+        if (stages[0].type === 'announce') expect(stages[0]).toMatchObject(stages[0].mia ? { mia: 'intro' } : { charge: true, count: 'after' }) // первая плашка — как у начала игры (бар заставки, три ноты); церемония Мии — без бара, три ноты после речи Мии
       })
     }
   }
@@ -66,7 +66,7 @@ describe('очередь стадий со старта с этапа', () => {
     expect(stages.slice(0, 2).map(s => s.sid)).toEqual(['catch-sw', 'catch-ann']) // старт с прохода B: разворота (перед ним нет A) нет, только переключение слуха
   })
   it('круг Мии после прохода A: слова вписаны (как будто все слабые), рецепт без актов до этапа', () => {
-    const p = withStart(plan(), { sid: 'sprint3-ann', label: 'x' })
+    const p = withStart(plan(), { sid: 'sprint3-intro-ann', label: 'x' })
     const { stages } = buildRaceStages({ plan: p, tap: false, ru: true })
     const r2 = stages.find(s => s.sid === 'sprint3')
     expect(r2.words.length).toBeGreaterThanOrEqual(2); expect(r2.step.reps).toHaveLength(r2.words.length)

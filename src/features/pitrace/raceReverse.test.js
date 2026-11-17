@@ -27,7 +27,7 @@ describe('обратный конвейер', () => {
     for (const tap of [false, true]) {
       const st = buildRaceStages({ plan, tap, ru: true }).stages.filter(s => s.type === 'student')
       expect(st.filter(s => s.act === 'catch').length).toBeGreaterThan(0)
-      for (const s of st) expect(!!s.step?.reverse).toBe(s.act === 'catch')
+      for (const s of st) expect(!!s.step?.reverse).toBe(s.sid === 'catch') // обратный — только круг 1 прохода B; круг Мии (catch3) идёт вниз
     }
   })
   it('Пит: чисто — стоит; слово выезжает на его дорожке — отпрыгивает туда, где слов нет, не задевая соседние', () => {

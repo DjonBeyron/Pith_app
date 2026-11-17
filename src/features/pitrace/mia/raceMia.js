@@ -15,7 +15,7 @@ export const BOSS = { DROP_AT: 500, JUMP: 6.4, KEEP_REDS: 5, MISS_AT: 700, PIT1_
 export const miaInit = () => ({ phase: 'off', act: '', fast: false, jump: null, total: 0, won: {}, reds: 0, redWins: 0, failed: {}, dug: {}, keep: false, used: {}, streak: 0, wins: 0, hits: 0, seq: 0, at: 0, why: '' })
 
 /** Стадия эпизода: 'ann' — церемония прихода, 'round' — круг с Мией */
-export const isMiaStage = st => st?.mia === 'ann' || st?.mia === 'round' || st?.mia === 'end' || st?.mia === 'hold'
+export const isMiaStage = st => st?.mia === 'intro' || st?.mia === 'ann' || st?.mia === 'round' || st?.mia === 'end' || st?.mia === 'hold'
 
 const line = (id, who, delay = 0) => ({ id, who, delay })
 const none = m => ({ mia: m, say: [], boost: null })

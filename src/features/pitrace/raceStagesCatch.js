@@ -18,7 +18,7 @@ export function catchStages(kit, act, ru = {}) {
   const revLine = voice ? 'race_reverse' : 'race_reverse_tap'
   const before = () => (alone ? voice && kit.push({ type: 'announce', act: act.id, sid: 'catch-sw', switchTo: 'ru', round: { kind: 'switch', title: '', task: '', brief: '' }, ms: SWITCH_MS, line: null }) : kit.push({ type: 'announce', act: act.id, sid: 'catch-rev', rev: REV_MS, round: { kind: 'switch', title: '', task: '', brief: '' }, ms: Math.max(REV_MS, voice ? SWITCH_MS : 0), line: revLine, ...(voice ? { switchTo: 'ru' } : {}) }))
   queueStages(kit, act, w => ({ cap: w.text, say: w.text }), {
-    target: w => w.translation, lang: voice ? 'ru' : undefined, tapOnly: !voice, plate: true, plateLine: alone ? (voice ? null : revLine) : null, reverse: true, tapLine: 'race_reverse_tap', tapLineSid: alone ? 'catch-ann' : 'catch-rev', before, goodIds: OK_IDS, // похвала — просто «Отлично», без слов о произношении
+    target: w => w.translation, lang: voice ? 'ru' : undefined, tapOnly: !voice, revBack: alone ? 0 : REV_MS, plate: true, plateLine: alone ? (voice ? null : revLine) : null, reverse: true, tapLine: 'race_reverse_tap', tapLineSid: alone ? 'catch-ann' : 'catch-rev', before, goodIds: OK_IDS, // похвала — просто «Отлично», без слов о произношении
     mapStandby: w => ({ ...w, trap: false }),
   })
 }
