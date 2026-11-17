@@ -65,8 +65,8 @@ export default function WordLaneGame({ cfg, audioSrc, lines: rawLines = null, fo
   useEffect(() => { if (cfg.plan?.game === 'race' && !tapMode) trackHead(rootRef.current?.querySelector('.wlCat')) }, [cfg.plan, tapMode]) // «Голосом»: Пит по центру с первой фразы, вертикаль ведёт один владелец (pitrace/raceHeadDepth.js); раньше выскакивания ниже
   useEffect(() => { if (startHold) { catApi.current?.peek?.(PIT_PEEK_MS); raceStart.pit() } }, []) // eslint-disable-line react-hooks/exhaustive-deps -- «Гонка»: Пит выскакивает при открытии сцены (≤ 300 мс, пружина головы) и ждёт первую реплику; раз за монтирование
   const pause = useWordLanePause({ f, cfg, audioSrc, lines }) // свернули приложение — пауза сразу, «Продолжить» открывает микрофон из тапа (useWordLanePause.js)
-  const [hudOpen, setHudOpen] = useState(false) // открыта панель настроек (⚙, там же «Отправить в GitHub»): игра на паузе, окно паузы скрыто; закрыли — «Продолжить» из тапа (владелец 2026-11-15)
-  const hudChange = useCallback((open, why) => { setHudOpen(open); if (open) { if (!f.paused) f.pause('hud') } else if (why !== 'game' && f.paused) pause.resume() }, [f, pause])
+  const [hudOpen, setHudOpen] = useState(false) // открыта панель настроек (⚙, там же «Отправить в GitHub»): игра на паузе, окно паузы скрыто; закрыли — окно паузы возвращается, «Продолжить» — только тапом (2026-11-17)
+  const hudChange = useCallback((open, why) => { setHudOpen(open); if (open) { if (!f.paused) f.pause('hud') } else if (why === 'stage' && f.paused) pause.resume() }, [f, pause]) // «Перезапустить ступень» — перезапуск из тапа; просто закрыли панель — пауза остаётся, окно «Продолжить» возвращается: игра идёт только по тапу (владелец 2026-11-17: сама снималась после диктовки в комментарии)
   const { phase } = f
   const plates = useWordLaneLeavingPlates(f.plate, f.idx, f.stageObj?.round?.look) // плашка остаётся в DOM на время ухода (улетает вверх, как пилюля): useWordLaneLeavingPlates.js
   const speed = conveyorSpeedHint(f.stages, f.stage === 'run' ? f.idx : -1) // «Гонка с Питом»: скорость первой пилюли ближайшей стадии — пунктир набирает её заранее (wordLaneConveyorSpeed.js)

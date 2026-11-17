@@ -48,7 +48,7 @@ function Chip({ on, onClick, children, testid }) {
 
 export default function WordLaneHud({ dbg, rootRef, onRestartStage, onRestartGame, onExit, setTapMode = null, defaultOpen = false, onOpenChange = null }) {
   const [open, setOpenState] = useState(defaultOpen)
-  const setOpen = (v, why) => { setOpenState(v); onOpenChange?.(v, why) } // игра следит за панелью: открыли — пауза, закрыли — «Продолжить» (владелец 2026-11-15)
+  const setOpen = (v, why) => { setOpenState(v); onOpenChange?.(v, why) } // игра следит за панелью: открыли — пауза, закрыли — пауза остаётся, «Продолжить» тапом на окне паузы (2026-11-17)
   const [, setTick] = useState(0)
   const [status, setStatus] = useState('')
   const [vol, setVol] = useState('')
@@ -150,7 +150,7 @@ export default function WordLaneHud({ dbg, rootRef, onRestartStage, onRestartGam
 
       <div className="wlHudActions">
         <button type="button" className="wlHudAct" onClick={download} data-no-unlock="" data-testid="wl-hud-download">Скачать отладку</button>
-        <button type="button" className="wlHudAct" onClick={() => { if (onOpenChange) close(); else { close(); onRestartStage?.() } }} data-no-unlock="" data-testid="wl-hud-stage">Перезапустить ступень</button>
+        <button type="button" className="wlHudAct" onClick={() => { if (onOpenChange) setOpen(false, 'stage'); else { close(); onRestartStage?.() } }} data-no-unlock="" data-testid="wl-hud-stage">Перезапустить ступень</button>
         {onRestartGame && <button type="button" className="wlHudAct" onClick={() => { setOpen(false, 'game'); onRestartGame() }} data-no-unlock="" data-testid="wl-hud-game">Игра заново</button>}
         <button type="button" className="wlHudAct wlHudAct--exit" onClick={onExit} data-no-unlock="" data-testid="wl-hud-exit">Выйти</button>
       </div>
