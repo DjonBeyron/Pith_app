@@ -10,6 +10,7 @@ import { riseRep } from './wordLaneDictorRise.js'
 import { runMirrorScene } from './wordLaneMirrorScene.js'
 import { trioStep, shiftMs } from '../../../pitrace/raceTapTrio.js'
 import { createDodgeDrive } from '../../../pitrace/raceDodgeDrive.js'
+import { createDodgeUp } from '../../../pitrace/raceDodgeUp.js'
 import { runPhraseScene } from '../../../pitrace/racePhraseScene.js'
 import { logTrioTap } from '../../../pitrace/raceTapTrioLog.js'
 import { pLog } from '../../../../shared/lib/debug.js'
@@ -113,7 +114,7 @@ export function useWordLanePills(rootRef, { scene, levels, fx, live, sceneApi, t
       const t0 = performance.now()
       const off = levels?.subscribe(l => { raw = l })
       const blind = !step.labels.length
-      const dodger = dodgeRef.current && !tr ? createDodgeDrive({ cat: root.parentElement?.querySelector('.wlCat'), lanes: step.reps.map(r => r.lane), from: scene.from ?? 0, peek: ms => fxRef.current?.peek?.(ms) }) : null // «Говорю» гонки: Пит ныряет / прыгает к дорожке следующей пилюли (pitrace/raceDodgeDrive.js)
+      const dodger = dodgeRef.current && !tr ? (step.reverse ? createDodgeUp({ cat: root.parentElement?.querySelector('.wlCat'), peek: ms => fxRef.current?.peek?.(ms) }) : createDodgeDrive({ cat: root.parentElement?.querySelector('.wlCat'), lanes: step.reps.map(r => r.lane), from: scene.from ?? 0, peek: ms => fxRef.current?.peek?.(ms) })) : null // «Говорю» гонки: Пит ныряет / прыгает к дорожке следующей пилюли (pitrace/raceDodgeDrive.js)
       const decoys = [] // чужие пилюли тройки: { k (номер в пуле), lane, speed, born, end, hit }
       const shake = d => { const now = performance.now(), y = ENTER_Y + (SPEED * d.speed * (now - d.born)) / 1000; return y > 0 && y < EXIT_Y - 6 && now < d.end } // чужая пилюля ещё на экране?
       setApi(sceneApi, {
@@ -133,14 +134,14 @@ export function useWordLanePills(rootRef, { scene, levels, fx, live, sceneApi, t
       const handle = e => {
         if (e.type === 'spawn') {
           fxRef.current?.spawn?.(e) // гонка: выезд пилюли — в журнал переходов «[start] переход …» (raceTransChron.js)
-          fxRef.current?.peek?.(2600) // повтор выкатился — сейчас будет говорить ученик: кот уже на месте
+          if (!(step.reverse && tr)) fxRef.current?.peek?.(2600) // обратный конвейер на тапе: голова не торчит на выезде слов (трое слов по всем дорожкам — отпрыгивать некуда) // повтор выкатился — сейчас будет говорить ученик: кот уже на месте
           for (const p of e.pills) {
-            const k = pool.take(p.lane, { atMs: performance.now() - t0 - p.spawnAt, curve: blind ? null : curves?.[p.chunk] ?? null, speed: p.speed, cap: e.rep.cap, edge: step.edge, quiet: step.quiet, wide: !!step.wide })
+            const k = pool.take(p.lane, { atMs: performance.now() - t0 - p.spawnAt, curve: blind ? null : curves?.[p.chunk] ?? null, speed: p.speed, cap: e.rep.cap, edge: step.edge, quiet: step.quiet, wide: !!step.wide, up: !!step.reverse })
             if (k != null) held.set(p.id, k)
           }
           if (tr) for (const d of tr.decoys(e.rep.idx)) { // чужие пилюли рядом с верной: те же скорость и подпись-перевод, сдвиг по высоте d.dy % (по семени)
             const atMs = performance.now() - t0 - e.pills[0].spawnAt + shiftMs(d.dy, e.rep.speed, SPEED)
-            const k = pool.take(d.lane, { atMs, speed: e.rep.speed, cap: d.cap, edge: step.edge, quiet: step.quiet })
+            const k = pool.take(d.lane, { atMs, speed: e.rep.speed, cap: d.cap, edge: step.edge, quiet: step.quiet, up: !!step.reverse })
             if (k != null) decoys.push({ k, lane: d.lane, speed: e.rep.speed, born: performance.now() - atMs, end: performance.now() + ((EXIT_Y - ENTER_Y) / (SPEED * e.rep.speed)) * 1000 - atMs, hit: false })
           }
         } else if (e.type === 'piece-ok') lockPiece(e.pill) // слова куска произнесены — он зеленеет сразу (его заливку доведёт движок, щелчок и нота придут событиями snap / win)

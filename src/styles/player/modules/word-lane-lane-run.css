@@ -66,3 +66,5 @@
   -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 var(--run-fade));
   mask-image: linear-gradient(to bottom, transparent 0, #000 var(--run-fade));
 }
+/* Обратный конвейер (data-up на корне игры, wordLaneTape.laneUp; проход B «Конвейера слов»): узор дорожек бежит вверх — слой отражён по вертикали вокруг своего центра, сдвиг --run-y идёт в обратную сторону (отражённый слой покрывает ту же высоту: top −P … bottom 0 → тот же отрезок) */
+.wl[data-up] .wlLanes i::before { transform: scaleY(-1) translate3d(0, var(--run-y, 0px), 0); }

@@ -14,7 +14,7 @@ export function catchStages(kit, act, ru = {}) {
   const voice = passBByVoice(ru)
   const before = () => voice && kit.push({ type: 'announce', act: act.id, sid: 'catch-sw', switchTo: 'ru', round: { kind: 'switch', title: '', task: '', brief: '' }, ms: SWITCH_MS, line: 'race_switch_ru' })
   queueStages(kit, act, w => ({ cap: w.text, say: w.text }), {
-    target: w => w.translation, lang: voice ? 'ru' : undefined, tapOnly: !voice, plain: true, tapLine: 'race_catch_tap', before, goodIds: OK_IDS, // похвала — просто «Отлично», без слов о произношении
+    target: w => w.translation, lang: voice ? 'ru' : undefined, tapOnly: !voice, plain: true, reverse: true, tapLine: 'race_catch_tap', before, goodIds: OK_IDS, // похвала — просто «Отлично», без слов о произношении
     mapStandby: w => ({ ...w, trap: false }),
   })
 }

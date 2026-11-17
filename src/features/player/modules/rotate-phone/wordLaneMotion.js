@@ -12,6 +12,8 @@ export const ANIM_MS = FLIGHT_MS + 120000
 // в цепочке «translate → rotate → scale → transform» стоит ПОСЛЕ translate — масштаб растягивает только саму пилюлю вокруг её центра. Если положение лежало бы в transform, хлопок умножал
 // бы и сдвиг (пилюля на 50 % высоты подпрыгивала на 6 % экрана при каждом щелчке — это и было заметным «втыканием»). Дрожь промаха — transform (translateX), она тоже не мешает.
 export const flightPosition = y => `-50% calc(${y.toFixed(3)}dvh - 50%)`
+/** Обратный конвейер (владелец 2026-11-17, проход B «Конвейера слов»): слова едут снизу вверх — экранная высота зеркальна логической (логика движка прежняя: 0 — вход, 100 — выход) */
+export const mirrorY = y => 100 - y
 
 /**
  * Запустить полёт пилюли el. atMs — сколько мс полёта уже прошло (отрицательное — ещё не выкатилась: пилюля ждёт за верхним краем). Возвращает Animation; fill 'both' держит пилюлю
@@ -31,15 +33,17 @@ export function edgeScaleAt(u) {
 export const edgeScale = y => edgeScaleAt((y - ENTER_Y) / (EXIT_Y - ENTER_Y))
 
 /** Кадры полёта с масштабом: положение — как у прямого полёта, scale — по edgeScale от положения (одна анимация на композиторе: translate + scale) */
-export function edgeFrames() {
+export function edgeFrames(up = false) {
+  const at = y => (up ? mirrorY(y) : y)
   const marks = [...new Set([...Array.from({ length: EDGE_STEPS + 1 }, (_, i) => i / EDGE_STEPS), EDGE_ZONE, 1 - EDGE_ZONE])].sort((a, b) => a - b) // и точные границы зон: до них масштаб растёт, между ними — 1
-  const frames = marks.map(u => { const y = ENTER_Y + (EXIT_Y - ENTER_Y) * u; return { translate: flightPosition(y), scale: edgeScaleAt(u), offset: u * (FLIGHT_MS / ANIM_MS) } })
-  return [...frames, { translate: flightPosition(EXIT_Y), scale: edgeScaleAt(1) }]
+  const frames = marks.map(u => { const y = ENTER_Y + (EXIT_Y - ENTER_Y) * u; return { translate: flightPosition(at(y)), scale: edgeScaleAt(u), offset: u * (FLIGHT_MS / ANIM_MS) } })
+  return [...frames, { translate: flightPosition(at(EXIT_Y)), scale: edgeScaleAt(1) }]
 }
 
-export function startFlight(el, atMs = 0, speed = 1, edge = false) { // edge — «Гонка с Питом»: пилюля у краёв меньше (edgeFrames); по умолчанию выключено // speed — «Гонка с Питом»: пилюля едет быстрее конвейера (playbackRate); положение — по-прежнему функция currentTime
+export function startFlight(el, atMs = 0, speed = 1, edge = false, up = false) { // edge — «Гонка с Питом»: пилюля у краёв меньше (edgeFrames); по умолчанию выключено // speed — «Гонка с Питом»: пилюля едет быстрее конвейера (playbackRate); положение — по-прежнему функция currentTime
   // Анимация длится дольше самого полёта (после EXIT_Y пилюля стоит за краем): она не «finished» посреди игры, и её currentTime — надёжные часы фазы (их читает движок)
-  const a = el.animate(edge ? edgeFrames() : [{ translate: flightPosition(ENTER_Y) }, { translate: flightPosition(EXIT_Y), offset: FLIGHT_MS / ANIM_MS }, { translate: flightPosition(EXIT_Y) }], { duration: ANIM_MS, easing: 'linear', fill: 'both' })
+  const at = y => (up ? mirrorY(y) : y)
+  const a = el.animate(edge ? edgeFrames(up) : [{ translate: flightPosition(at(ENTER_Y)) }, { translate: flightPosition(at(EXIT_Y)), offset: FLIGHT_MS / ANIM_MS }, { translate: flightPosition(at(EXIT_Y)) }], { duration: ANIM_MS, easing: 'linear', fill: 'both' })
   if (speed !== 1) a.playbackRate = speed
   a.currentTime = atMs * speed
   return a

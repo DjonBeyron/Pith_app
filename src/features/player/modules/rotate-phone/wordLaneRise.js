@@ -43,14 +43,14 @@ const smooth = t => { const x = Math.min(1, Math.max(0, t)); return x * x * (3 -
  * разница между касательной в старте и нулевым наклоном спуска гаснет за RISE_TILT_BLEND пути (стык без скачка). Масштаб 1 → RISE_SCALE по своей кривой (riseScale, кадр на каждой точке), гашение на последних 25 %.
  * pos(y, dx) — формат translate кадра: по умолчанию положение пилюли на экране (wavePosition); плашки (wordLanePlateExit.js, v3.3.85) берут ТУ ЖЕ кривую, но со сдвигом от своего места.
  */
-export function riseFrames(y0, h = viewHeightPx(), pos = wavePosition) {
-  const dydo = ((RISE_END_Y - y0) / 100) * h                                         // ход по y, px за весь взлёт (вверх — отрицательный)
+export function riseFrames(y0, h = viewHeightPx(), pos = wavePosition, endY = RISE_END_Y) { // endY — куда улетает: вверх (по умолчанию) или, у обратного конвейера, вниз (100 − RISE_END_Y)
+  const dydo = ((endY - y0) / 100) * h                                         // ход по y, px за весь взлёт (вверх — отрицательный)
   const tiltAt = o => tiltDeg(sine(RISE_WAVE_PX, RISE_WAVES, 0, o).dx, dydo)
   const gap = -tiltAt(0)
   const marks = new Set([RISE_FADE_FROM])
   for (let i = 0; i <= RISE_STEPS; i++) marks.add(i / RISE_STEPS)
   return [...marks].sort((a, b) => a - b).map(o => {
-    const f = { offset: o, translate: pos(y0 + (RISE_END_Y - y0) * o, sine(RISE_WAVE_PX, RISE_WAVES, 0, o).x), rotate: waveRotate(tiltAt(o) + gap * (1 - smooth(o / RISE_TILT_BLEND))) }
+    const f = { offset: o, translate: pos(y0 + (endY - y0) * o, sine(RISE_WAVE_PX, RISE_WAVES, 0, o).x), rotate: waveRotate(tiltAt(o) + gap * (1 - smooth(o / RISE_TILT_BLEND))) }
     if (o > 0) f.scale = Number(riseScale(o).toFixed(4))                            // у первого кадра scale нет: старт «из-под анимации» (хлопок щелчка может ещё идти)
     if (o === RISE_FADE_FROM) f.opacity = 1
     if (o === 1) f.opacity = 0
@@ -59,8 +59,8 @@ export function riseFrames(y0, h = viewHeightPx(), pos = wavePosition) {
 }
 
 /** Запустить взлёт пилюли el с высоты y (flightY): после delay (пилюля стоит на месте) — RISE_MS полёта вверх. Возвращает Animation (finished — пилюлю можно вернуть в пул) */
-export function startRise(el, y0, delay = RISE_DELAY_MS) {
-  return el.animate(riseFrames(y0), { duration: RISE_MS, delay, easing: RISE_EASING, fill: 'both' })
+export function startRise(el, y0, delay = RISE_DELAY_MS, endY = RISE_END_Y) {
+  return el.animate(riseFrames(y0, viewHeightPx(), wavePosition, endY), { duration: RISE_MS, delay, easing: RISE_EASING, fill: 'both' })
 }
 
 export const SCATTER_MS = 520       // разлёт «лишних» пилюль круга выбора («Пойми» / «Узнай») в стороны

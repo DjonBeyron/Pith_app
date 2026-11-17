@@ -41,13 +41,13 @@ describe('ход пилюль — на композиторе (WAAPI), а не �
   it('движок пишет в DOM только заливку, худ и класс-атрибуты: положение пилюли JS не трогает (никаких --y в кадре)', () => {
     const eng = read('./useWordLanePills.js')
     expect(eng).not.toContain("setProperty('--y'")
-    expect(read('./wordLanePool.js')).toContain('startFlight(el, atMs, speed, scaled)')            // полёт запускает пул, движок только выдаёт пилюли
+    expect(read('./wordLanePool.js')).toContain('startFlight(el, atMs, speed, scaled, up)')            // полёт запускает пул, движок только выдаёт пилюли
   })
 })
 
 describe('щелчок не сдвигает пилюлю', () => {
   it('положение — свойство translate, хлопок — scale, дрожь — transform: они в разных слотах цепочки и друг другу не мешают', () => {
-    expect(read('./wordLaneMotion.js')).toContain('{ translate: flightPosition(EXIT_Y), offset: FLIGHT_MS / ANIM_MS }')
+    expect(read('./wordLaneMotion.js')).toContain('{ translate: flightPosition(at(EXIT_Y)), offset: FLIGHT_MS / ANIM_MS }')
     const snap = read('./wordLaneSnap.js')
     expect(snap).toContain('{ scale: 1.12, offset: 0.38 }')
     expect(snap).not.toMatch(/animate\(\[[^\]]*translate:/)                // у промаха теперь transform

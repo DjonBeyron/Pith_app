@@ -11,3 +11,10 @@ export function laneTape(f) {
   const st = f.stage === 'run' ? f.stageObj : f.stage === 'paused' && f.from === 'run' ? f.stages?.[f.idx] : null
   return TAPE_ACTS.includes(st?.act)
 }
+
+/** Обратный конвейер ли сейчас (проход B «Конвейера слов»: слова едут снизу вверх, step.reverse): стадия ступени ученика, на паузе — та, на которой встали. По нему (data-up на корне игры) узор дорожек бежит вверх */
+export function laneUp(f) {
+  if (!f?.rh?.on) return false
+  const st = f.stage === 'run' ? f.stageObj : f.stage === 'paused' && f.from === 'run' ? f.stages?.[f.idx] : null
+  return !!st?.step?.reverse
+}

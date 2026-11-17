@@ -15,9 +15,9 @@
 // Размер ёмкости — замер при взятии; форма сменилась (обычная ↔ широкая) — перемер при первой заливке (при взятии замер идёт до записи размеров).
 // data-ring — «выдох» кольца: ставится ОДИН раз за выдачу пилюли, когда data-live появился впервые (начало заливки), и снимается в clean (take / give); после этого CSS-анимация кольца (0,75 с) не повторяется.
 import { LANE_X, PILL_W, PILL_H, WIDE_W, WIDE_H } from './wordLaneTimeline.js'
-import { startFlight, flightPosition } from './wordLaneMotion.js'
+import { startFlight, flightPosition, mirrorY } from './wordLaneMotion.js'
 import { fillProfile } from './wordLaneTimeline.js'
-import { flightY, startRise } from './wordLaneRise.js'
+import { flightY, startRise, RISE_END_Y, RISE_DELAY_MS } from './wordLaneRise.js'
 import { createLaneFlash } from './wordLaneLaneFlash.js'
 import { isWeakDevice } from '../../../../shared/lib/deviceTier.js'
 import { msToExit, addRider, coastTail } from './wordLaneCoast.js'
@@ -89,7 +89,7 @@ export function createPool(root) {
   const clean = k => {
     Object.assign(rise[k], { v: 0, at: -1e9, on: false, ringed: false, full: false }); parts[k].el.removeAttribute('data-live'); parts[k].el.removeAttribute('data-full'); flat[k] = false; bubs.clear(parts[k].el)
     paintFill(k, 0); hint(k, '0', null); setCap(k, null)
-    for (const a of ['data-lock', 'data-bzf', 'data-scatter', 'data-partial', 'data-fail', 'data-wrong', 'data-hint', 'data-voice', 'data-rise', 'data-ring', 'data-still', 'data-tag', 'data-cmp', 'data-reveal', 'data-quiet', 'data-edge', 'data-wide', 'data-faded', 'data-hot', 'data-spent', 'data-mode', 'data-coast', 'data-pass', 'data-demo', 'data-nudge']) parts[k].el.removeAttribute(a)
+    for (const a of ['data-lock', 'data-bzf', 'data-scatter', 'data-partial', 'data-up', 'data-fail', 'data-wrong', 'data-hint', 'data-voice', 'data-rise', 'data-ring', 'data-still', 'data-tag', 'data-cmp', 'data-reveal', 'data-quiet', 'data-edge', 'data-wide', 'data-faded', 'data-hot', 'data-spent', 'data-mode', 'data-coast', 'data-pass', 'data-demo', 'data-nudge']) parts[k].el.removeAttribute(a)
   }
   /** Тень слова: ширина полосок по громкости куска слова диктора (без кривой — ровно) */
   const shape = (k, curve) => {
@@ -104,6 +104,7 @@ export function createPool(root) {
     parts[k].el.style.willChange = ''; parts[k].fill.style.willChange = ''; parts[k].el.removeAttribute('data-held') // вернулась в пул — слои не держим
   }
 
+  const scr = l => (l.up ? mirrorY(flightY(l.anim)) : flightY(l.anim)) // экранная высота пилюли (у обратного конвейера зеркальна логической)
   return {
     size: els.length,
     el: k => parts[k]?.el,
@@ -114,7 +115,7 @@ export function createPool(root) {
     linger(k, { to = 60, ms = 1700 } = {}) {
       const l = live.get(k)
       if (!l) return
-      const from = l.anim ? flightY(l.anim) : to
+      const from = l.anim ? scr(l) : to
       try { l.anim?.cancel() } catch { /* уже снята */ }
       const pos = y => ({ translate: flightPosition(y) })
       const a = parts[k].el.animate([{ ...pos(from), opacity: 1 }, { ...pos(to), opacity: 1, offset: 0.2 }, { ...pos(to), opacity: 1, offset: 0.82 }, { ...pos(to), opacity: 0 }], { duration: ms, easing: 'ease-out', fill: 'both' })
@@ -125,7 +126,7 @@ export function createPool(root) {
     cap: setCap,
     attr: (k, name, on = true) => { if (on) parts[k].el.setAttribute(name, on === true ? '1' : String(on)); else parts[k].el.removeAttribute(name); if (on && name === 'data-fail') bubs.clear(parts[k].el) }, // on — строка: значение атрибута (data-mode = 'say' у «Фраз»); «не успел» — набор пузырей сразу в запас
     /** Выдать пилюлю под дорожку lane; atMs — сколько мс полёта уже прошло (отрицательное — ждёт за краем). Без полёта (static) — стоит на месте. Возвращает номер или null, если пул пуст */
-    take(lane, { atMs = 0, curve = null, flight = true, speed = 1, cap = null, edge = false, quiet = false, wide = false } = {}) { // wide — «Встряхни память», этап «Фразы»: широкая пилюля по центру (WIDE_W × WIDE_H, data-wide, word-lane-wide.css) — та же капсула; заливка (paintFill) — слева направо (translateX), что у обычной // speed — во сколько раз пилюля быстрее конвейера, cap — подпись внутри (data-cap), edge — у краёв экрана меньше (scale 0,85; на слабом устройстве без масштаба), quiet — промах без полос (data-quiet): «Гонка с Питом»
+    take(lane, { atMs = 0, curve = null, flight = true, speed = 1, cap = null, edge = false, quiet = false, wide = false, up = false } = {}) { // wide — «Встряхни память», этап «Фразы»: широкая пилюля по центру (WIDE_W × WIDE_H, data-wide, word-lane-wide.css) — та же капсула; заливка (paintFill) — слева направо (translateX), что у обычной // speed — во сколько раз пилюля быстрее конвейера, cap — подпись внутри (data-cap), edge — у краёв экрана меньше (scale 0,85; на слабом устройстве без масштаба), quiet — промах без полос (data-quiet): «Гонка с Питом»
       const at = free.findLastIndex(j => !parts[j].el.hasAttribute?.('data-coast')) // доезжающая пилюля прошлой ступени (wordLaneCoast.js) — не наша
       if (at < 0) return null
       const [k] = free.splice(at, 1)
@@ -137,6 +138,7 @@ export function createPool(root) {
       el.dataset.lane = String(lane)
       if (speed !== 1) el.dataset.speed = String(speed); else delete el.dataset.speed // скорость пилюли «Гонки» — по ней пунктир дорожки едет быстрее (laneConveyorDrive)
       put(el, 'left', wide ? '50%' : `${LANE_X[lane]}%`); put(el, 'width', `${wide ? WIDE_W : PILL_W}%`); put(el, 'height', `${wide ? WIDE_H : PILL_H}%`)
+      if (up) el.setAttribute('data-up', '1') // обратный конвейер: едет снизу вверх (wordLaneMotion.mirrorY), верная улетает вниз
       if (wide) { el.setAttribute('data-wide', '1'); flat[k] = true; paintFill(k, 0) } // широкая: заливка по X (пустая — слой левее клипа)
       if ((shapes.get(el) ?? false) !== wide) { shapes.set(el, wide); stale[k] = true } // форма сменилась — перемерить ёмкость после записи размеров
       shape(k, curve)
@@ -144,7 +146,7 @@ export function createPool(root) {
       if (quiet) el.setAttribute('data-quiet', '1')
       const scaled = edge && !isWeakDevice()
       if (scaled) el.setAttribute('data-edge', '1')
-      live.set(k, { anim: flight ? startFlight(el, atMs, speed, scaled) : null, lane, rise: null })
+      live.set(k, { anim: flight ? startFlight(el, atMs, speed, scaled, up) : null, lane, rise: null, up })
       return k
     },
     giveAll() { for (const [k, l] of [...live]) if (!l.coast) give(k) }, // доезжающие (coast) уйдут сами
@@ -194,7 +196,7 @@ export function createPool(root) {
     rise(k) {
       const l = live.get(k)
       if (!l?.anim || l.rise) return null
-      const a = startRise(parts[k].el, flightY(l.anim))
+      const a = startRise(parts[k].el, scr(l), RISE_DELAY_MS, l.up ? mirrorY(RISE_END_Y) : RISE_END_Y)
       try { l.anim.cancel() } catch { /* уже снята */ }
       l.anim = null; l.rise = a
       parts[k].el.setAttribute('data-rise', '1')
@@ -206,7 +208,7 @@ export function createPool(root) {
     scatter(k, dir) {
       const l = live.get(k)
       if (!l?.anim || l.rise) return null
-      const a = startScatter(parts[k].el, flightY(l.anim), dir)
+      const a = startScatter(parts[k].el, scr(l), dir)
       try { l.anim.cancel() } catch { /* уже снята */ }
       l.anim = null; l.rise = a
       parts[k].el.setAttribute('data-scatter', dir < 0 ? 'l' : 'r')
