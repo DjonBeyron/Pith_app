@@ -147,7 +147,7 @@ export function runPhraseScene({ pool, root, scene, fxRef, listen = phraseListen
     if (kind === 'win') {
       pool.attr(tg.k, 'data-lock'); markPartial(pool, tg.k, cfg.mode === 'say' ? res.ratio : 1); pool.flashLane(LANE); snap(pool.el(tg.k), LANE, { full: true })
       const rect = pool.el(tg.k)?.getBoundingClientRect?.() ?? null
-      if (pool.rise(tg.k)) { tg.gone = true; dropMask(tg.mask, RISE_DELAY_MS + RISE_MS + 100) }
+      if (pool.rise(tg.k, { xp: true })) { tg.gone = true; dropMask(tg.mask, RISE_DELAY_MS + RISE_MS + 100) }
       fx().win?.(0, rect, { last: true, count: 1, ...r })
     } else if (kind === 'miss') fx().miss?.({ rep: r })
     else fx().fail?.({ rep: r })

@@ -12,6 +12,7 @@ import { wordHits } from './racePhraseScore.js'
 import { normForms } from './racePhraseForms.js'
 
 export const WRONG_GAP_MS = 700
+export const SHOWN_GAP_MS = 350 // подпись неверного слова — не чаще
 
 const low = w => normForms(String(w ?? '')).toLowerCase().replace(/^[^\p{L}\p{N}']+|[^\p{L}\p{N}']+$/gu, '')
 /** Одно услышанное слово heard — это слово цели word? (то же сравнение, что у зачёта слова) */
@@ -27,7 +28,7 @@ export const formPart = (heard, words, prev = null, next = null) => {
 
 /** → { ear(e), check(said, t) }. words — слова фразы-цели (phraseWords). ear — событие слуха { kind: 'partial' | 'final', text }; check — на кадре: said — Map сказанных номеров слов, → { word, expect } или null */
 export function createWrongWord({ words, gap = WRONG_GAP_MS }) {
-  let seen = 0, first = null, queue = [], lastAt = -Infinity
+  let seen = 0, first = null, queue = [], lastAt = -Infinity, lastShownAt = -Infinity, shownWord = null
   return {
     ear(e) {
       if (e?.kind !== 'partial' && e?.kind !== 'final') return
@@ -38,7 +39,10 @@ export function createWrongWord({ words, gap = WRONG_GAP_MS }) {
       seen = Math.max(0, done)
       if (e.kind === 'final') { seen = 0; first = null }
     },
+    /** Слово для подписи над ожидаемым (мягкое правило, раз на кадр после check): строка или null */
+    shown() { const w = shownWord; shownWord = null; return w },
     check(said, t) {
+      shownWord = null
       if (!queue.length) return null
       const q = queue; queue = []
       let k = 0
@@ -46,6 +50,8 @@ export function createWrongWord({ words, gap = WRONG_GAP_MS }) {
       const expect = words[k], far = said.size ? words[Math.max(...said.keys()) + 1] : null
       if (expect == null) return null
       const bad = q.find(({ w, prev, next }) => !fitsWord(w, expect) && !(far != null && fitsWord(w, far)) && !words.some(x => sameWord(w, x)) && !formPart(w, words, prev, next))
+      const shown = q.find(({ w, prev, next }) => !fitsWord(w, expect) && ![...said.keys()].some(i => words[i] != null && sameWord(w, words[i])) && !formPart(w, words, prev, next)) // для подписи над словом правило мягче (v3.3.272): любое слово, не подходящее ожидаемому, — и слово цели не на своём месте («where you from» — «you» вместо «are»)
+      if (shown && t - lastShownAt >= SHOWN_GAP_MS) { lastShownAt = t; shownWord = shown.w }
       if (bad == null || t - lastAt < gap) return null
       lastAt = t
       return { word: bad.w, expect }

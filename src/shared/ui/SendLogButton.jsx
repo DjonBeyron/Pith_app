@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { shutGameMic } from '../lib/gameMic.js'
 import '../../styles/send-log-button.css'
 import { runSend, SHOW_OK_MS, SHOW_FAIL_MS, readLogOpts, writeLogOpts } from '../lib/sendLogFlow.js'
 import SendLogPopup from './SendLogPopup.jsx'
@@ -19,6 +20,7 @@ export default function SendLogButton({ send, label = 'Отправить в Git
   const click = e => {
     if (stop) e.stopPropagation()
     if (st === 'busy') return
+    shutGameMic('комментарий к логам: диктовка') // микрофон игры отпущен по-настоящему (треки остановлены): иначе iOS не даёт клавиатуре диктовать голосом; «Продолжить» откроет его заново
     setOpen(true)
   }
   const go = async () => {

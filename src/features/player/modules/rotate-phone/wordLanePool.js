@@ -14,12 +14,12 @@
 // Офсета между краем заливки, линией, светом и пузырями нет по построению. data-full — заливка дошла до 100 %: тело и клип пилюли цвета жидкости (зазора у засчитанной пилюли нет при любом округлении слоёв).
 // Размер ёмкости — замер при взятии; форма сменилась (обычная ↔ широкая) — перемер при первой заливке (при взятии замер идёт до записи размеров).
 // data-ring — «выдох» кольца: ставится ОДИН раз за выдачу пилюли, когда data-live появился впервые (начало заливки), и снимается в clean (take / give); после этого CSS-анимация кольца (0,75 с) не повторяется.
-import { startRiseXp, centerOf } from './wordLaneRiseXp.js'
+import { startRiseXp, centerOf, flyToCounter, XP_RISE_MS, XP_PULSE_EVENT } from './wordLaneRiseXp.js'
 import { viewHeightPx } from './wordLaneWave.js'
 import { LANE_X, PILL_W, PILL_H, WIDE_W, WIDE_H } from './wordLaneTimeline.js'
 import { startFlight, flightPosition, mirrorY } from './wordLaneMotion.js'
 import { fillProfile } from './wordLaneTimeline.js'
-import { flightY, startRise, RISE_END_Y, RISE_DELAY_MS } from './wordLaneRise.js'
+import { flightY, startRise, RISE_END_Y, RISE_DELAY_MS, RISE_MS } from './wordLaneRise.js'
 import { createLaneFlash } from './wordLaneLaneFlash.js'
 import { isWeakDevice } from '../../../../shared/lib/deviceTier.js'
 import { msToExit, addRider, coastTail } from './wordLaneCoast.js'
@@ -198,8 +198,10 @@ export function createPool(root) {
     rise(k, { xp = false } = {}) { // xp — верная пилюля летит в счётчик XP по синусоиде (wordLaneRiseXp.js), иначе — прямо вверх
       const l = live.get(k)
       if (!l?.anim || l.rise) return null
-      const to = xp ? centerOf(root.closest?.('.wl')?.querySelector?.('.wlXp')) : null, r = to ? parts[k].el.getBoundingClientRect() : null
-      const a = to && r ? startRiseXp(parts[k].el, scr(l), (to.y / viewHeightPx()) * 100, to.x - (r.left + r.width / 2), RISE_DELAY_MS) : startRise(parts[k].el, scr(l), RISE_DELAY_MS, RISE_END_Y) // иначе верная улетает ВВЕРХ и в реверсе (замечание владельца v3.3.270)
+      const game = root.closest?.('.wl'), to = xp ? centerOf(game?.querySelector?.('.wlXp')) : null, r = to ? parts[k].el.getBoundingClientRect() : null, y0 = scr(l), endY = to ? (to.y / viewHeightPx()) * 100 : 0
+      const fly = !!to && !!r && flyToCounter(y0, endY) // осталось меньше XP_MIN_PATH — просто вверх (как до v3.3.272), счётчик «распухнет», когда пилюля покинет экран
+      const a = fly ? startRiseXp(parts[k].el, y0, endY, to.x - (r.left + r.width / 2), RISE_DELAY_MS) : startRise(parts[k].el, y0, RISE_DELAY_MS, RISE_END_Y) // верная улетает ВВЕРХ и в реверсе (замечание владельца v3.3.270)
+      if (xp && game) setTimeout(() => game.dispatchEvent(new globalThis.CustomEvent(XP_PULSE_EVENT)), RISE_DELAY_MS + (fly ? XP_RISE_MS : RISE_MS)) // пилюля долетела / покинула экран — пульс счётчика
       try { l.anim.cancel() } catch { /* уже снята */ }
       l.anim = null; l.rise = a
       parts[k].el.setAttribute('data-rise', '1')

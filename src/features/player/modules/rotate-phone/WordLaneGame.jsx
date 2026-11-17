@@ -69,7 +69,7 @@ export default function WordLaneGame({ cfg, audioSrc, lines: rawLines = null, fo
   const hudChange = useCallback((open, why) => { setHudOpen(open); if (open) { if (!f.paused) f.pause('hud') } else if (why === 'stage' && f.paused) pause.resume() }, [f, pause]) // «Перезапустить ступень» — перезапуск из тапа; просто закрыли панель — пауза остаётся, окно «Продолжить» возвращается: игра идёт только по тапу (владелец 2026-11-17: сама снималась после диктовки в комментарии)
   const { phase } = f
   const plates = useWordLaneLeavingPlates(f.plate, f.idx, f.stageObj?.round?.look) // плашка остаётся в DOM на время ухода (улетает вверх, как пилюля): useWordLaneLeavingPlates.js
-  const speed = conveyorSpeedHint(f.stages, f.stage === 'run' ? f.idx : -1, !!f.rh.miaPlate?.started) // «Гонка с Питом»: скорость первой пилюли ближайшей стадии — пунктир набирает её заранее (wordLaneConveyorSpeed.js)
+  const speed = conveyorSpeedHint(f.stages, f.stage === 'run' ? f.idx : -1, !!f.rh.miaPlate?.speedUp) // «Гонка с Питом»: скорость первой пилюли ближайшей стадии — пунктир набирает её заранее (wordLaneConveyorSpeed.js)
   const armed = useConveyorArm(f) // какие дорожки взведены: конвейер зажигается за 0,66 с до конца реплики Пита / плашки (wordLaneConveyorStart.js), остановку решает привод по пилюлям на дорожке
   const single = cfg.chunks.length === 1 && phase !== 'discern' && !cfg.plan // у одного слова текст стоит крупно — кроме «Различи»: там слова на пилюлях, а верное над дорожками не выдаём
   const showSlots = phase !== 'drop'

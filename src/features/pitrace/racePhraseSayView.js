@@ -42,8 +42,9 @@ export function createSayView({ pass, text, n, mask, log = () => {}, nudge = nul
     /** Кадр: проявление подсказки; неверное слово (пока нет итога) — рывок кромки */
     frame(t, done = false) {
       peek?.frame(t)
-      const miss = wrong?.check(said, t)
-      if (miss && !done) { let k = 0; while (said.has(k)) k++; jerk?.fire(); mask?.wrong?.(miss.word, k); onWrong(miss.word, miss.expect) } // неверное слово — ещё и зачёркнуто красным над ожидаемым (racePhraseMaskView.wrong)
+      const miss = wrong?.check(said, t), shown = wrong?.shown()
+      if (shown && !done) { let k = 0; while (said.has(k)) k++; mask?.wrong?.(shown, k) } // над ожидаемым словом — красным зачёркнуто (racePhraseMaskView.wrong; мягкое правило shown)
+      if (miss && !done) { jerk?.fire(); onWrong(miss.word, miss.expect) } // неверное слово — ещё и зачёркнуто красным над ожидаемым (racePhraseMaskView.wrong)
     },
     edges: () => mask?.edges() ?? null,
     peekIndex: () => peek?.index() ?? -1,

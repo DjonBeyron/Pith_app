@@ -50,7 +50,7 @@ export function phraseStep(id, turns, { round, mode, voice, speed, gap = gapMs(s
 export function phraseStages(kit, act) {
   const { push, announce, plan, tap } = kit
   const voice = !tap
-  announce(act)
+  announce(act); kit.stages.at(-1).plateWithLine = true // плашка «Конвейер ситуаций» выходит на слова Пита, а не после них (владелец v3.3.272)
   const r1 = round1Turns(act.phrases, plan.seed)
   announce(act, { sid: 'phrases1', title: '', task: '', line: ROUND_PLATES.pick.line, ms: ROUND2_ANN_MS }) // у дополнительных кругов плашек нет: только звук старта и реплика Пита (владелец 2026-11-17)
   push({ type: 'student', act: act.id, sid: 'phrases1', round: 1, turns: r1, step: phraseStep('phrases1', r1, { round: 1, mode: 'pick', voice: false, speed: PICK_SPEED }) }) // круг 1 — только тап

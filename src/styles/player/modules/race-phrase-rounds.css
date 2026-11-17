@@ -74,3 +74,6 @@
 .raceTapMiss { position: absolute; left: -18px; top: -18px; width: 36px; height: 36px; border-radius: 50%; border: 2px solid rgba(244, 246, 251, 0.7); opacity: 0; pointer-events: none; z-index: 6; }
 /* Неверно сказанное слово (проход 1, racePhraseMaskView.wrong): над ожидаемым словом, красным, меньше основного текста, зачёркнуто тонкой линией; без анимаций (файл — только opacity/transform), снимается из JS */
 .racePhraseMask b .racePhraseWrong, .wlPillInkIn .racePhraseMask b .racePhraseWrong { position: absolute; left: 50%; bottom: 100%; transform: translateX(-50%); white-space: nowrap; font-size: 0.62em; line-height: 1.1; font-weight: 500; color: #ff5a4a; text-shadow: none; text-decoration: line-through; text-decoration-thickness: 1px; pointer-events: none; }
+/* Неверный тап в круге выбора фразы («Пойми» / «Узнай»): выбранная пилюля целиком красная — красные полоски и красная подложка (владелец v3.3.272), а не цвета круга */
+.wlPill[data-wide][data-mode]:not([data-mode='say'])[data-wrong]:not([data-lock]) { --st1-rgb: 255, 93, 115; --st1-a: 0.9; border-color: #ff5d73; box-shadow: inset 0 0 0 3px rgba(255, 93, 115, 0.9), 0 0 14px -2px rgba(255, 93, 115, 0.7); }
+.wlPill[data-wide][data-mode]:not([data-mode='say'])[data-wrong]:not([data-lock]) .wlPillClip { background: rgba(255, 93, 115, 0.5); }

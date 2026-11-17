@@ -1,6 +1,9 @@
 import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
-import { OFFSCREEN_IDS, plateEndAt } from './useMiaPlate.js'
+import { OFFSCREEN_IDS, SPEED_ID, plateEndAt } from './useMiaPlate.js'
+import { BOSS } from './raceMia.js'
+import { IMPACT } from './miaMotion.js'
+import { REV_WAIT_CAP_MS } from '../raceReverseTurn.js'
 import { ARR } from './miaMotion.js'
 import { miaColorOn } from './miaTint.js'
 import { conveyorSpeedHint } from '../../player/modules/rotate-phone/wordLaneConveyorSpeed.js'
@@ -31,5 +34,20 @@ describe('плашка Мии по реплике за кадром', () => {
   it('комментарий: кнопка 💬 отпускает микрофон по-настоящему (iOS-диктовка), «Продолжить» откроет его заново', () => {
     const b = rd('../../player/modules/rotate-phone/WordLaneCommentButton.jsx')
     expect(b).toContain("shutGameMic('комментарий: диктовка')"); expect(b.indexOf("f.pause('comment')")).toBeLessThan(b.indexOf('shutGameMic('))
+  })
+  it('ускорение дорожек — только на реплике «я ускоряю игру» (mia_announce_2), плашка и цвет — раньше, с реплики за кадром', () => {
+    expect(SPEED_ID).toBe('mia_announce_2'); expect(rd('../../player/modules/rotate-phone/WordLaneGame.jsx')).toContain('!!f.rh.miaPlate?.speedUp')
+  })
+  it('финал: Пит начинает сразу (PIT1_AT мал), коробка достигает его ушей к концу реплики (dropAt = PIT1_AT + длина − IMPACT), прыжок Мии — к JUMP_ABS', () => {
+    expect(BOSS.PIT1_AT).toBeLessThanOrEqual(500)
+    const src = rd('./useMiaEnter.js'); expect(src).toContain('BOSS.PIT1_AT + mspeech.msOf('); expect(src).toContain('- IMPACT * 1000'); expect(src).toContain('BOSS.JUMP_ABS - bossDrop')
+    expect(IMPACT).toBeGreaterThan(0.5)
+  })
+  it('разворот в реверс: стадия не ждёт реплику Пита про реверс целиком (REV_WAIT_CAP_MS), плашка фраз выходит вместе с репликой', () => {
+    expect(REV_WAIT_CAP_MS).toBeLessThanOrEqual(1000)
+    expect(rd('../raceStagesPhrases.js')).toContain('plateWithLine = true'); expect(rd('../../rehearsal/useRehearsalActs.js')).toContain('running.plateWithLine ? null')
+  })
+  it('комментарий к логам (SendLogButton): микрофон игры отпускается при открытии попапа', () => {
+    expect(rd('../../../shared/ui/SendLogButton.jsx')).toContain("shutGameMic('комментарий к логам: диктовка')")
   })
 })

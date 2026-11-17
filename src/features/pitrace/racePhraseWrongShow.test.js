@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { createGlide } from './racePhraseGlide.js'
 import { mountMask, WRONG_SHOW_MS } from './racePhraseMaskView.js'
+import { createWrongWord } from './racePhraseWrongWord.js'
 
 // v3.3.272 (владелец, логи v3.3.271): проход 2 — заливка не по самому дальнему слову («where from» → 97 %), а по непрерывному префиксу; проход 1 — неверное слово пишется над подсказкой красным зачёркнутым
 const rd = p => readFileSync(new URL(p, import.meta.url), 'utf8')
@@ -34,7 +35,19 @@ describe('неверное слово над подсказкой (racePhraseMas
     vi.useRealTimers()
   })
   it('проводка: SayView зовёт mask.wrong на неверном слове; стиль — красный, line-through, 1 px', () => {
-    expect(rd('./racePhraseSayView.js')).toContain('mask?.wrong?.(miss.word, k)')
+    expect(rd('./racePhraseSayView.js')).toContain('mask?.wrong?.(shown, k)')
     const css = rd('../../styles/player/modules/race-phrase-rounds.css'); expect(css).toContain('.racePhraseWrong'); expect(css).toContain('text-decoration: line-through'); expect(css).toContain('text-decoration-thickness: 1px')
+  })
+})
+
+describe('мягкое правило подписи (shown)', () => {
+  it('«where you from» при цели «where are you from»: «you» вместо «are» — не рывок (слово цели), но подпись над «are»', () => {
+    const w = createWrongWord({ words: ['where', 'are', 'you', 'from'] })
+    w.ear({ kind: 'partial', text: 'where you from' }); const said = new Map([[0, true]])
+    expect(w.check(said, 1000)).toBeNull(); expect(w.shown()).toBe('you'); expect(w.shown()).toBeNull() // один раз
+  })
+  it('верное следующее слово подписи не даёт', () => {
+    const w = createWrongWord({ words: ['where', 'are', 'you', 'from'] })
+    w.ear({ kind: 'partial', text: 'where are you' }); w.check(new Map([[0, true]]), 1000); expect(w.shown()).toBeNull()
   })
 })

@@ -6,12 +6,16 @@ import { wavePosition, waveRotate, tiltDeg, viewHeightPx } from './wordLaneWave.
 import { RISE_DELAY_MS, RISE_EASING } from './wordLaneRise.js'
 
 export const XP_RISE_MS = 900        // сам полёт в счётчик
-export const XP_WAVE_PX = 30         // размах синусоиды поперёк пути
-export const XP_WAVES = 1.5          // периодов синусоиды за полёт (на старте и в конце сдвиг 0)
+export const XP_MIN_PATH = 30        // % высоты экрана: осталось до счётчика меньше — пилюля просто летит вверх, как раньше (v3.3.272, владелец: «если пути меньше 30 % — вверх, синусоида на коротком пути ломается»)
+export const XP_WAVE_MAX_PX = 16     // потолок размаха синусоиды поперёк пути
+export const XP_WAVE_K = 0.05        // размах = XP_WAVE_K × длина пути (px), но не больше потолка: на длинном пути волна неглубокая, на коротком — почти прямая
+export const XP_WAVES = 1            // периодов синусоиды за полёт (одна плавная «S»; на старте и в конце сдвиг 0)
+export const XP_TILT_MAX = 22        // потолок наклона по касательной, градусы (пилюля поворачивается вместе с путём)
 export const XP_SCALE_END = 0.28     // масштаб у счётчика
 export const XP_FADE_FROM = 0.82     // с какой доли пути пилюля гаснет
 export const XP_ARRIVE_MS = RISE_DELAY_MS + XP_RISE_MS // от принятия до прилёта в счётчик: к этому моменту счётчик распухает и из него идёт «+N XP»
-const STEPS = 28
+export const XP_PULSE_EVENT = 'wl-xp-pulse' // событие на корне игры .wl: пилюля долетела / покинула экран — счётчик «распухает» (WordLaneXp)
+const STEPS = 48
 const smooth = t => { const x = Math.min(1, Math.max(0, t)); return x * x * (3 - 2 * x) }
 
 /** Центр элемента {x, y} в px окна или null (нет элемента / не измерить) */
@@ -20,19 +24,26 @@ export function centerOf(el) {
   return r && (r.width || r.height) ? { x: r.left + r.width / 2, y: r.top + r.height / 2 } : null
 }
 
-/** Сдвиг по x (px) на доле пути o: линия к счётчику + синусоида, затухающая к концу (на конце ровно dxEnd) */
-export function xpRiseX(o, dxEnd) {
-  return dxEnd * o + XP_WAVE_PX * Math.sin(2 * Math.PI * XP_WAVES * o) * (1 - 0.6 * o)
+/** Лететь ли в счётчик: до него от y0 (% высоты) осталось не меньше XP_MIN_PATH; иначе — прямо вверх (wordLaneRise.startRise) */
+export const flyToCounter = (y0, endY) => y0 - endY >= XP_MIN_PATH
+
+/** Размах синусоиды (px) на пути длиной len px */
+export const waveAmp = len => Math.min(XP_WAVE_MAX_PX, XP_WAVE_K * len)
+
+/** Сдвиг по x (px) на доле пути o: линия к счётчику + синусоида (на концах 0, к концу чуть затухает); amp — размах */
+export function xpRiseX(o, dxEnd, amp = XP_WAVE_MAX_PX) {
+  return dxEnd * o + amp * Math.sin(2 * Math.PI * XP_WAVES * o) * (1 - 0.4 * o)
 }
 
 /** Кадры полёта: y0 — откуда (% высоты), endY — куда (% высоты), dxEnd — px по x до центра счётчика */
 export function riseXpFrames(y0, endY, dxEnd, h = viewHeightPx()) {
+  const amp = waveAmp(Math.hypot(dxEnd, ((y0 - endY) / 100) * h))
   const marks = new Set([XP_FADE_FROM])
   for (let i = 0; i <= STEPS; i++) marks.add(i / STEPS)
-  const at = o => ({ x: xpRiseX(o, dxEnd), y: y0 + (endY - y0) * o })
+  const at = o => ({ x: xpRiseX(o, dxEnd, amp), y: y0 + (endY - y0) * o })
   return [...marks].sort((a, b) => a - b).map(o => {
-    const p = at(o), q = at(Math.min(1, o + 0.02)), r = at(Math.max(0, o - 0.02))
-    const f = { offset: o, translate: wavePosition(p.y, p.x), rotate: waveRotate(tiltDeg(q.x - r.x, ((q.y - r.y) / 100) * h)) } // наклон по касательной (потолок TILT_MAX_DEG)
+    const p = at(o), q = at(Math.min(1, o + 0.01)), r = at(Math.max(0, o - 0.01))
+    const f = { offset: o, translate: wavePosition(p.y, p.x), rotate: waveRotate(tiltDeg(q.x - r.x, ((q.y - r.y) / 100) * h, XP_TILT_MAX)) } // наклон по касательной
     if (o > 0) f.scale = Number((1 - (1 - XP_SCALE_END) * smooth(o)).toFixed(4))
     if (o === XP_FADE_FROM) f.opacity = 1
     if (o === 1) f.opacity = 0

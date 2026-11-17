@@ -1,6 +1,7 @@
 import { memo, useCallback, useEffect, useRef, useState } from 'react'
 import WordLaneXpFloat from './WordLaneXpFloat.jsx'
 import { XP_PULSE_MS, xpPulseFrames } from './WordLaneXpFlight.js'
+import { XP_PULSE_EVENT } from './wordLaneRiseXp.js'
 
 // Счётчик XP в углу и «+N XP» от него. Своё состояние (xp, events) живёт здесь, а не в сценарии игры. Снаружи — apiRef.current.add(amount, rect, arriveMs): награда придёт через arriveMs
 // (пилюля летит в счётчик, wordLaneRiseXp.js); пилюля прилетела — число растёт, счётчик «распухает» (scale, XP_PULSE_MS; новый прилёт перезапускает) и от него вверх идёт «+N XP» (WordLaneXpFloat).
@@ -25,7 +26,11 @@ function WordLaneXp({ apiRef }) {
     apiRef.current = { add: (amount, _rect, arriveMs = 0) => { if (!(arriveMs > 0)) { arrive(amount); return } const t = setTimeout(() => { all.delete(t); arrive(amount) }, arriveMs); all.add(t) } }
     return () => { apiRef.current = null; all.forEach(clearTimeout); all.clear() }
   }, [apiRef, arrive])
-  useEffect(() => () => pulseRef.current?.cancel(), [])
+  useEffect(() => {
+    const game = boxRef.current?.closest?.('.wl')
+    game?.addEventListener(XP_PULSE_EVENT, pulse) // пилюля долетела / вышла за экран (wordLanePool.rise): счётчик «распухает», даже когда XP не начисляется (фразы)
+    return () => { game?.removeEventListener(XP_PULSE_EVENT, pulse); pulseRef.current?.cancel() }
+  }, [pulse])
   const getTarget = useCallback(() => boxRef.current, [])
   const done = useCallback(id => setState(p => ({ ...p, events: p.events.filter(e => e.id !== id) })), [])
   const { xp, events } = state

@@ -85,7 +85,7 @@ export function useRehearsalActs({ plan, stages, stage, at, stageObj, setS, sayL
   }, [running, at])
 
   // Тишина экрана: пока Пит говорит озвученную реплику на старте стадии (или итога), на экране только дорожки и кот
-  const quietLine = !running ? null : running.type === 'summary' ? doneLine : lineOf(running)
+  const quietLine = !running || running.plateWithLine ? null : running.type === 'summary' ? doneLine : lineOf(running) // plateWithLine — плашка выходит вместе с репликой Пита, тишины экрана нет
   const quiet = usePitQuiet({
     on, key: quietLine ? `${running.idx}:${at}` : null, voiced: lineVoiced(lines, quietLine), order: running?.count ?? null, busyLeft: () => cat.busyLeft(),
     timing: () => ({ lineAt: running.type === 'summary' ? 0 : timingOf(running).lineAt, lineMs: lineMs(fillLine(lines?.[quietLine]), rate) }),
