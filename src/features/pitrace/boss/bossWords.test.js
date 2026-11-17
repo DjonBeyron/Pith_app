@@ -83,10 +83,15 @@ describe('финал: сценарий Мии, красные слова, «ос
   it('своя церемония: коробка падает через BOSS.DROP_AT, Мия прыгает через BOSS.JUMP, реплики по сценарию владельца', () => {
     const r = start()
     expect(r.mia).toMatchObject({ phase: 'in', act: 'boss', at: 1000 + BOSS.DROP_AT, jump: BOSS.JUMP })
-    expect(ids(r)).toEqual(['boss_pit_1', 'boss_mia_hush', 'boss_mia_exam', 'boss_mia_look', 'boss_mia_think', 'boss_mia_green', 'boss_mia_yellow', 'boss_mia_red', 'boss_mia_five', 'boss_pit_no']) // объяснение шкалы подряд, без пауз (очередь держит GAP_MS)
+    expect(ids(r)).toEqual(['boss_pit_new', 'boss_mia_hush', 'boss_mia_exam', 'boss_mia_look', 'boss_mia_think', 'boss_mia_green', 'boss_mia_yellow', 'boss_mia_red', 'boss_mia_five', 'boss_pit_no']) // объяснение шкалы подряд, без пауз (очередь держит GAP_MS)
     expect(r.say.map(l => l.who)).toEqual(['pit', 'mia', 'mia', 'mia', 'mia', 'mia', 'mia', 'mia', 'mia', 'pit']); expect(r.say.map(l => l.delay)).toEqual([BOSS.PIT1_AT, BOSS.HUSH_AT, BOSS.HUSH_AT, ...Array(7).fill(BOSS.LOOK_AT)]) // с look все в очередь с одним сроком: идут одна за другой
     for (const l of r.say) expect(miaLine(l.id)).toBeTruthy() // каждая реплика есть в каталоге (озвучка, подпись)
     expect(ids(r)).not.toContain('mia_push'); expect(ids(r)).not.toContain('pit_panic') // реплики прохода в финале не повторяются
+  })
+  it('Пит: «Опять я тут» — только если Мия уже приходила в этой игре; иначе удивляется впервые (boss_pit_new, владелец 2026-11-17)', () => {
+    const seen = reduceMia({ ...miaInit(), used: { sprint: true } }, { t: 'enter', stage: ann, now: 1000 })
+    expect(ids(seen)[0]).toBe('boss_pit_1'); expect(ids(start())[0]).toBe('boss_pit_new')
+    expect(miaLine('boss_pit_new').text).not.toMatch(/опять/i)
   })
   it('в круге Мия молчит (silent); копятся верно названные (win), красные ответы (zone slow), ошибки / «не успел» (miss / fail без двойного счёта)', () => {
     let m = reduceMia(start().mia, { t: 'enter', stage: round }).mia

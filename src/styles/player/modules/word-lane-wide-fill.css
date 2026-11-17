@@ -48,3 +48,5 @@
   100% { transform: translateX(0); }
 }
 @media (prefers-reduced-motion: reduce) { .wlPill[data-wide][data-nudge] .wlPillSparks i::before, .wlPill[data-wide][data-nudge] .wlPillSparks i::after { animation: none; } }
+/* Неверное слово заметнее (владелец 2026-11-17: «сказал неверно намеренно и ничего не увидел»): кроме рывка кромки — вся пилюля на миг в красной обводке-ореоле (outline, без перерисовки заливки); держится, пока стоит data-nudge (≈ 0,36 с) */
+.wlPill[data-wide][data-nudge]:not([data-lock]) { outline: 3px solid rgba(255, 70, 60, 0.9); outline-offset: 1px; }

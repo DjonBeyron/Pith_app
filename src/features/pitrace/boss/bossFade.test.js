@@ -38,9 +38,9 @@ describe('церемония: цвет дорожек и шкала', () => {
 
 describe('проводка: панель настроек ставит игру на паузу, попап не прячет клавиатуру', () => {
   const read = p => readFileSync(new URL(p, import.meta.url), 'utf8')
-  it('⚙ открыта — f.pause, закрыта — pause.resume (кроме «Игра заново»); окно паузы скрыто; Hud сообщает об открытии', () => {
+  it('⚙ открыта — f.pause, закрыта — пауза остаётся (resume только у «Перезапустить ступень»); окно паузы скрыто; Hud сообщает об открытии', () => {
     const game = read('../../player/modules/rotate-phone/WordLaneGame.jsx'), hud = read('../../player/modules/rotate-phone/WordLaneHud.jsx')
-    expect(game).toContain("if (open) { if (!f.paused) f.pause('hud') } else if (why !== 'game' && f.paused) pause.resume()")
+    expect(game).toContain("if (open) { if (!f.paused) f.pause('hud') } else if (why === 'stage' && f.paused) pause.resume()")
     expect(game).toContain('!comment && !hudOpen && <WordLanePause')
     expect(hud).toContain('onOpenChange?.(v, why)'); expect(hud).toContain("setOpen(false, 'game')")
   })

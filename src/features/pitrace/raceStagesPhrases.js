@@ -17,6 +17,7 @@ import { voicedPhraseTest } from './racePhraseWordVoice.js'
 // Скорости постоянные, без ускорений (2026-11-07, владелец: «нужно примерно как в первом этапе, но идут фразы, а не слова»). Конвейер — SPEED 26 % высоты в секунду,
 // зона чтения ≈ 22…72 % высоты (50 %): время в ней = 50 / (26 · speed) с. История: 0,55 / 0,4 → v3.3.155 0,43 / 0,27 («времени на ответ нужно больше») → 2026-11-08 снова быстрее (владелец: «скорость слишком мала»).
 export const PHRASE_SPEED = 0.55 // круг 1 и «Узнай»: 50 / (26 · 0,55) ≈ 3,5 с в зоне чтения
+export const PICK_SPEED = 0.64   // круг 1 «Пойми» (выбор фразы тапом): быстрее на ≈ 16 % (владелец 2026-11-17: «чуть-чуть ускорим падение»), в зоне чтения ≈ 3 с; «Узнай» остаётся на PHRASE_SPEED
 export const SAY_SPEED = 0.36    // круг 2 голосом: ≈ 5,3 с в зоне чтения, до «не успел» у края (92 % пути) ≈ 10 с; пилюля выезжает во время реплики Пита — времени хватает
 /** Шаг между пилюлями — в ДОЛЯХ ВЫСОТЫ (2026-11-08, владелец: «расстояние ещё меньше»; v3.3.159 было ≈ 27 %, до того 45 %): пилюля 11 % + воздух ≈ 9 %. Миллисекунды — из скорости, чтобы шаг не разъезжался */
 export const PHRASE_GAP_PCT = 20
@@ -25,6 +26,7 @@ export const PHRASE_TAP_GAP_PCT = 16.4
 export const gapMs = (speed, pct = PHRASE_GAP_PCT) => Math.round((pct / (SPEED * speed)) * 1000)
 export const PHRASE_GAP_MS = gapMs(PHRASE_SPEED, PHRASE_TAP_GAP_PCT) // круг 1 / «Узнай»: ≈ 1147 мс при 0,55 — шаг 16,4 % высоты
 export const PHRASE_EXIT_MS = 300 // круг фраз кончился (fx.finished) — до плашки следующего круга столько (не EXIT_PAUSE_MS 1,3 с: Пит уже договорил итог хода, пилюли доезжают сами)
+export const PHRASE_ENTER_MS = 500 // последняя ступень перед фразами кончилась — столько до плашки «Фразы» (не 1,3 с: перестройка дорожек в ленту и реплика Пита «теперь фразы» идут сразу, он не ждёт; владелец 2026-11-17)
 export const LANE = 1             // широкая лента — средняя дорожка (три дорожки съехались к центру)
 
 /** Плашки кругов: название, подзадача, реплика Пита и вид (tone — цвет рамки, icon — значок в подзадаче) */
@@ -51,7 +53,7 @@ export function phraseStages(kit, act) {
   announce(act)
   const r1 = round1Turns(act.phrases, plan.seed)
   announce(act, { sid: 'phrases1', ...ROUND_PLATES.pick })
-  push({ type: 'student', act: act.id, sid: 'phrases1', round: 1, turns: r1, step: phraseStep('phrases1', r1, { round: 1, mode: 'pick', voice: false, speed: PHRASE_SPEED }) }) // круг 1 — только тап
+  push({ type: 'student', act: act.id, sid: 'phrases1', round: 1, turns: r1, step: phraseStep('phrases1', r1, { round: 1, mode: 'pick', voice: false, speed: PICK_SPEED }) }) // круг 1 — только тап
   const mode = voice ? 'say' : 'hear'
   const base = voice ? round2SayTurns(act.phrases) : round2HearTurns(act.phrases, plan.seed)
   if (!base.length) return

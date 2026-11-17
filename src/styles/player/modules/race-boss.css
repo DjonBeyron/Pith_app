@@ -34,6 +34,7 @@
 @property --bz { syntax: '<number>#'; inherits: true; initial-value: 120, 230, 150; }
 /* пилюля финала под линией: цвет зоны (контур, внутренний свет, подпись-заливка) меняется плавно (--bz зарегистрирована, переход 0,5 с); --c / --rgb общие для всей игры, поэтому не регистрируются */
 .wlPill[data-wide][data-bz] { --rgb: var(--bz); --c: rgb(var(--bz)); } /* цвет пилюли меняется МГНОВЕННО, когда линия входит в новую зону (владелец 2026-11-16; раньше плавно 0,5 с) */
+.wlPill[data-wide][data-bz]:not([data-fail]):not([data-full]) { background: linear-gradient(to bottom, rgba(var(--bz), 0.5), rgba(var(--bz), 0.34)), var(--wl-card); box-shadow: inset 0 0 22px -4px rgba(var(--bz), 0.7), 0 0 14px -2px rgba(var(--bz), 0.45); } /* вся пилюля в цвете зоны, не только тонкий контур (владелец 2026-11-17: «цвет пилюль так не меняется»): насыщенная подложка и свечение */
 .wlPill[data-wide][data-bz='fast'] { --bz: 120, 230, 150; }
 .wlPill[data-wide][data-bz='mid'] { --bz: 255, 200, 70; }
 .wlPill[data-wide][data-bz='slow'] { --bz: 255, 96, 80; }

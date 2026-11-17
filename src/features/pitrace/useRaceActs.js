@@ -23,7 +23,7 @@ import { phraseEvent, fillPhrases2 } from './raceStatePhrases.js'
 import { useRacePhraseDemo } from './useRacePhraseDemo.js'
 import { plateCaption } from './raceSilentLine.js'
 import { createTransChron } from './raceTransChron.js'
-import { PHRASE_EXIT_MS } from './raceStagesPhrases.js'
+import { PHRASE_EXIT_MS, PHRASE_ENTER_MS } from './raceStagesPhrases.js'
 import { plateText } from '../player/modules/rotate-phone/wordLanePlateText.js'
 import { reduceMia, makeMiaBox, applyMia, miaStays, bossEnd, keepNeed, BOSS, MIA } from './mia/raceMia.js'
 import { miaOn } from './mia/miaConfig.js'
@@ -203,7 +203,7 @@ export function useRaceActs(args) {
       const keep = bossEnd(mb.m).keep, [a, p, d] = keep ? ['boss_mia_keep', 'boss_pit_keep', 3200] : ['boss_mia_free', 'boss_pit_free', 2800]
       return Math.min(st.ms, Math.max(2500, Math.max(d, mspeech.msOf(a) + GAP_MS) + mspeech.msOf(p, 'pit') + 800))
     },
-    exitMs: st => (st?.act === 'phrases' ? PHRASE_EXIT_MS : miaComesNext(st) ? MIA.EXIT_MS : undefined), // перед церемонией Мии пауза короче: тишина между кругами и падение коробки тянулись слишком долго (владелец 2026-11-15); // круг фраз кончился: до следующей стадии PHRASE_EXIT_MS, а не 1,3 с (Пит уже договорил итог хода)
+    exitMs: st => (st?.act === 'phrases' ? PHRASE_EXIT_MS : st?.type === 'student' && stages[(st.idx ?? -9) + 1]?.act === 'phrases' ? PHRASE_ENTER_MS : miaComesNext(st) ? MIA.EXIT_MS : undefined), // перед церемонией Мии пауза короче: тишина между кругами и падение коробки тянулись слишком долго (владелец 2026-11-15); // круг фраз кончился: до следующей стадии PHRASE_EXIT_MS, а не 1,3 с (Пит уже договорил итог хода)
     plate: st => plateText(st, plateCaption(lines, st?.line)), // неозвученная реплика стадии — подписью на плашке (raceSilentLine.js)
     /** Слово прохода A / B принято (раньше, чем щёлкнет заливка): время ответа ms (от выезда пилюли) и y (положение пилюли, % высоты: ниже LATE_Y — ответ «в последний момент») — в результаты, и для точности слова (raceAccuracy.js) — окно жизни пилюли по её скорости, заливка голосом в миг зачёта, тап ли это; Пит говорит мини-реплику успеха, следующая пилюля ждёт его */
     claim(rep, ms, y) { if (!running) return; tr.last(); if (ruOn) ruLog(rep, 'claim', rep?.pills?.[0]?.p); praiseRef.current = null; apply({ t: 'claim', stage: running, info: { idx: rep?.idx, ms, late: isLate(y), life: pillLifeMs(rep?.speed), fill: rep?.pills?.[0]?.p, tap: !!running.step?.tapOnly } }); speech.claim(praiseRef.current); praiseRef.current = null },

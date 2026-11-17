@@ -20,7 +20,7 @@ export const isMiaStage = st => st?.mia === 'ann' || st?.mia === 'round' || st?.
 const line = (id, who, delay = 0) => ({ id, who, delay })
 const none = m => ({ mia: m, say: [], boost: null })
 const leave = (m, now, why, say) => ({ mia: { ...m, phase: 'out', fast: false, at: now, why, seq: m.seq + 1 }, say, boost: 1 })
-const bossCeremony = () => [line('boss_pit_1', 'pit', BOSS.PIT1_AT), line('boss_mia_hush', 'mia', BOSS.HUSH_AT), line('boss_mia_exam', 'mia', BOSS.HUSH_AT), ...['look', 'think', 'green', 'yellow', 'red', 'five'].map(k => line(`boss_mia_${k}`, 'mia', BOSS.LOOK_AT)), line('boss_pit_no', 'pit', BOSS.LOOK_AT)]
+const bossCeremony = first => [line(first ? 'boss_pit_new' : 'boss_pit_1', 'pit', BOSS.PIT1_AT), line('boss_mia_hush', 'mia', BOSS.HUSH_AT), line('boss_mia_exam', 'mia', BOSS.HUSH_AT), ...['look', 'think', 'green', 'yellow', 'red', 'five'].map(k => line(`boss_mia_${k}`, 'mia', BOSS.LOOK_AT)), line('boss_pit_no', 'pit', BOSS.LOOK_AT)]
 const ceremony = () => [line('mia_push', 'mia', MIA.PUSH_AT), line('pit_panic', 'pit', MIA.PANIC_AT), line('mia_announce_1', 'mia', MIA.ANNOUNCE_AT), line('pit_reply', 'pit', MIA.REPLY_AT), line('mia_announce_2', 'mia', MIA.ANNOUNCE2_AT), line('mia_announce_3', 'mia', MIA.ANNOUNCE3_AT)]
 
 /** Счёт финала по блокам (английские слова, потом русские): блок со смещением offset (номер его первого слова в общем счёте) считается заново, прежние блоки остаются; total — всего слов к концу блока */
@@ -34,7 +34,7 @@ export function reduceMia(m, ev) {
   if (t === 'enter') {
     if (stage?.mia === 'ann') { // церемония: Пит начинает репликой стадии, через DROP_AT падает коробка (at — момент падения), Мия запрыгивает, вступительные реплики (три ноты ждут их конца)
       // повторный вход в ту же стадию (пауза и «Продолжить», перезапуск ступени): церемония начинается заново — реплики снова в очереди, коробка падает снова (раньше такой вход ничего не делал: оба молчали, пример не шёл)
-      return { mia: { ...m, phase: 'in', act: stage.act, used: { ...m.used, [stage.act]: true }, streak: 0, wins: 0, seq: m.seq + 1, at: now + (ev.dropAt ?? stage.dropAt ?? MIA.DROP_AT), why: '', fast: false, jump: stage.jumpAt ?? null, total: 0, won: {}, reds: 0, redWins: 0, failed: {}, dug: {}, keep: false }, say: stage.script === 'boss' ? bossCeremony() : ceremony(), boost: null }
+      return { mia: { ...m, phase: 'in', act: stage.act, used: { ...m.used, [stage.act]: true }, streak: 0, wins: 0, seq: m.seq + 1, at: now + (ev.dropAt ?? stage.dropAt ?? MIA.DROP_AT), why: '', fast: false, jump: stage.jumpAt ?? null, total: 0, won: {}, reds: 0, redWins: 0, failed: {}, dug: {}, keep: false }, say: stage.script === 'boss' ? bossCeremony(!Object.keys(m.used ?? {}).some(k => k !== 'boss')) : ceremony(), boost: null }
     }
     if (stage?.mia === 'round') return m.phase === 'in' && m.act === stage.act ? { mia: m.fast && (!stage.silent || m.total === (stage.offset ?? 0) + (stage.words?.length ?? 0)) ? m : { ...m, fast: true, ...(stage.silent ? silentBlock(m, stage) : {}) }, say: [], boost: stage.noBoost ? null : MIA.BOOST } : none(m) // круг с Мией: дорожка быстрее и меняет цвет (fast) — с этого круга, а не с церемонии
     if (stage?.mia === 'hold') return m.phase === 'in' && m.act === stage.act ? { mia: m, say: stage.say ? [line(stage.say, 'mia')] : [], boost: null } : none(m) // служебная стадия внутри эпизода (финал: переключение слуха между блоками): Мия остаётся, говорит свою реплику
