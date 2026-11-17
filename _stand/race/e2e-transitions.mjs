@@ -47,6 +47,7 @@ if (process.env.DBG) console.log(log.filter(l => /reverse|dodge/i.test(l.s)).sli
 if (process.env.DUMP) { const { writeFileSync } = await import('node:fs'); writeFileSync(process.env.DUMP, log.map(l => `${l.t - t0} ${l.s}`).join('\n')) }
 const S = await page.evaluate(() => window.__s)
 if (process.env.TRACE) console.log('data-up изменения:', JSON.stringify(await page.evaluate(() => window.__m)))
+if (process.env.LOGRE) { const re = new RegExp(process.env.LOGRE), t1 = log[0]?.t ?? 0; for (const l of log) if (re.test(l.s)) console.log(`LOG +${l.t - t1} ${l.s.slice(0, 160)}`) } // LOGRE=регулярка — строки журнала игры с временем (диагностика задержек)
 await ctx.close(); await browser.close()
 
 const bad = []

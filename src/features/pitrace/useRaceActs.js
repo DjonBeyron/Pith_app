@@ -177,7 +177,7 @@ export function useRaceActs(args) {
     return () => clearTimeout(t)
   }, [on, running, plan, box, mb])
 
-  const miaComesNext = st => miaOn() && /^(sprint|catch)$/.test(st?.act ?? '') && st?.type === 'student' && /^(sprint|catch)3-ann$/.test(stages[(st.idx ?? -9) + 1]?.sid ?? '') && !Object.values(mb.m.used).some(Boolean) // за кругом 1 прохода идёт плашка круга 2, и Мия в этой игре ещё не была — вместо неё придёт она
+  const miaComesNext = st => miaOn() && /^(sprint|catch)$/.test(st?.act ?? '') && st?.type === 'student' && /^(sprint|catch)3-(intro-)?ann$/.test(stages[(st.idx ?? -9) + 1]?.sid ?? '') && !Object.values(mb.m.used).some(Boolean) // за кругом 1 прохода идёт плашка круга 2, и Мия в этой игре ещё не была — вместо неё придёт она
   const baseNext = rh.nextIdx // стабильна (useCallback в useRehearsalActs): на ней держится next директора
   const seed = plan?.seed
   const nextIdx = useCallback(i => { // после круга 1 со слабыми словами вместо круга 2 — церемония Мии (miaRoute), стадии Мии вне эпизода обходит miaSkip

@@ -10,6 +10,8 @@ export const XP_MIN_PATH = 30        // % высоты экрана: остал�
 export const XP_WAVE_MAX_PX = 16     // потолок размаха синусоиды поперёк пути
 export const XP_WAVE_K = 0.05        // размах = XP_WAVE_K × длина пути (px), но не больше потолка: на длинном пути волна неглубокая, на коротком — почти прямая
 export const XP_WAVES = 1            // периодов синусоиды за полёт (одна плавная «S»; на старте и в конце сдвиг 0)
+export const XP_WAVE_IN = 0.3      // доля пути, на которой размах волны набирается с нуля (иначе в самом начале пилюля дёргалась вбок)
+export const XP_TILT_IN = 0.22     // доля пути, на которой наклон по касательной набирается с нуля (пилюля летела до того с наклоном 0)
 export const XP_TILT_MAX = 22        // потолок наклона по касательной, градусы (пилюля поворачивается вместе с путём)
 export const XP_SCALE_END = 0.28     // масштаб у счётчика
 export const XP_FADE_FROM = 0.82     // с какой доли пути пилюля гаснет
@@ -32,7 +34,7 @@ export const waveAmp = len => Math.min(XP_WAVE_MAX_PX, XP_WAVE_K * len)
 
 /** Сдвиг по x (px) на доле пути o: линия к счётчику + синусоида (на концах 0, к концу чуть затухает); amp — размах */
 export function xpRiseX(o, dxEnd, amp = XP_WAVE_MAX_PX) {
-  return dxEnd * o + amp * Math.sin(2 * Math.PI * XP_WAVES * o) * (1 - 0.4 * o)
+  return dxEnd * o + amp * smooth(o / XP_WAVE_IN) * Math.sin(2 * Math.PI * XP_WAVES * o) * (1 - 0.4 * o) // амплитуда набирается за XP_WAVE_IN пути: старт без бокового рывка (v3.3.274)
 }
 
 /** Кадры полёта: y0 — откуда (% высоты), endY — куда (% высоты), dxEnd — px по x до центра счётчика */
@@ -43,7 +45,7 @@ export function riseXpFrames(y0, endY, dxEnd, h = viewHeightPx()) {
   const at = o => ({ x: xpRiseX(o, dxEnd, amp), y: y0 + (endY - y0) * o })
   return [...marks].sort((a, b) => a - b).map(o => {
     const p = at(o), q = at(Math.min(1, o + 0.01)), r = at(Math.max(0, o - 0.01))
-    const f = { offset: o, translate: wavePosition(p.y, p.x), rotate: waveRotate(tiltDeg(q.x - r.x, ((q.y - r.y) / 100) * h, XP_TILT_MAX)) } // наклон по касательной
+    const f = { offset: o, translate: wavePosition(p.y, p.x), rotate: waveRotate(tiltDeg(q.x - r.x, ((q.y - r.y) / 100) * h, XP_TILT_MAX) * smooth(o / XP_TILT_IN)) } // наклон по касательной
     if (o > 0) f.scale = Number((1 - (1 - XP_SCALE_END) * smooth(o)).toFixed(4))
     if (o === XP_FADE_FROM) f.opacity = 1
     if (o === 1) f.opacity = 0

@@ -4,6 +4,8 @@ import { OFFSCREEN_IDS, SPEED_ID, plateEndAt } from './useMiaPlate.js'
 import { BOSS } from './raceMia.js'
 import { IMPACT } from './miaMotion.js'
 import { REV_WAIT_CAP_MS } from '../raceReverseTurn.js'
+import { PLEASED_MS } from './useMiaTail.js'
+import { xpRiseX, riseXpFrames } from '../../player/modules/rotate-phone/wordLaneRiseXp.js'
 import { ARR } from './miaMotion.js'
 import { miaColorOn } from './miaTint.js'
 import { conveyorSpeedHint } from '../../player/modules/rotate-phone/wordLaneConveyorSpeed.js'
@@ -49,5 +51,14 @@ describe('плашка Мии по реплике за кадром', () => {
   })
   it('комментарий к логам (SendLogButton): микрофон игры отпускается при открытии попапа', () => {
     expect(rd('../../../shared/ui/SendLogButton.jsx')).toContain("shutGameMic('комментарий к логам: диктовка')")
+  })
+  it('v3.3.274: выход перед Мией коротким (miaComesNext видит стадию-плашку intro), хвост Мии — игривый, на верный ответ прямее и пушистее', () => {
+    expect(rd('../useRaceActs.js')).toContain('/^(sprint|catch)3-(intro-)?ann$/'); expect(MIA.EXIT_MS).toBeLessThanOrEqual(300)
+    const css = rd('../../../styles/player/modules/race-mia.css'); expect(css).toContain('@keyframes miaTail'); expect(css).toContain("[data-tail='pleased']"); expect(css).toContain('--tail-up')
+    expect(rd('../RaceMia.jsx')).toContain("data-tail={pleased ? 'pleased' : undefined}"); expect(PLEASED_MS).toBeGreaterThan(1500)
+  })
+  it('полёт в счётчик: старт без бокового рывка (амплитуда и наклон набираются с нуля)', () => {
+    expect(Math.abs(xpRiseX(0.02, -120) - -120 * 0.02)).toBeLessThan(0.5)
+    const fr = riseXpFrames(80, 12, -200, 800); expect(Math.abs(parseFloat(fr[1].rotate))).toBeLessThan(2); expect(parseFloat(fr[0].rotate)).toBe(0)
   })
 })

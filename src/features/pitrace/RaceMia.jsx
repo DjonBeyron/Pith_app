@@ -1,3 +1,4 @@
+import { useMiaTail } from './mia/useMiaTail.js'
 import { OFFSCREEN_IDS } from './mia/useMiaPlate.js' // реплики Мии из-за правого края (она ещё не прыгнула): справа дуги звука
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { renderTree } from '../scene/v2/renderTree.js'
@@ -19,6 +20,7 @@ export default function RaceMia({ mia, caption = null, talk = null, alarm = null
   const [gone, setGone] = useState(-1)                          // at прихода, чей уход (анимация) уже доигран: после него коробку и спрайт убираем
   const live = mia.phase === 'in' || (mia.phase === 'out' && gone !== mia.at)
   const host = useRef(null), poseG = useRef(null), artG = useRef(null), catEl = useRef(null), miaEl = useRef(null)
+  const pleased = useMiaTail({ wins: mia.wins, streak: mia.streak, live }) // хвост: нервный, на верный ответ — прямой и пушистый (mia/useMiaTail.js, race-mia.css)
   useMiaLife(miaEl, live, talk)                                    // Мия в тишине: взгляд, усы, смена лица
   const clock = useRef({ arr: 0, lv: 0, mode: 'off', paused })
   const atRef = useRef(mia.at), jumpRef = useRef(null), alarmAt = useRef(-1e9)
@@ -88,7 +90,7 @@ export default function RaceMia({ mia, caption = null, talk = null, alarm = null
       {live && (
         <>
           <svg className="wlMiaSvg"><g ref={poseG} visibility="hidden"><g ref={artG} /></g></svg>
-          <div ref={miaEl} className="scn scn--v2 wlMiaCat" style={{ width: MIA_W, height: MIA_H, transformOrigin: '50% 93%', display: 'none', background: 'transparent', border: 'none', boxShadow: 'none' }}>
+          <div ref={miaEl} className="scn scn--v2 wlMiaCat" data-tail={pleased ? 'pleased' : undefined} data-paused={paused || undefined} style={{ width: MIA_W, height: MIA_H, transformOrigin: '50% 93%', display: 'none', background: 'transparent', border: 'none', boxShadow: 'none' }}>
             <svg viewBox="0 0 200 240" width="100%" height="100%" style={{ overflow: 'visible', display: 'block' }}><g className="scn-cat">{miaTree}</g></svg>
           </div>
         </>
