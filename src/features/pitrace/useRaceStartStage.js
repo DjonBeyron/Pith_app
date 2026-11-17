@@ -3,7 +3,6 @@ import { usePlayerDebugUi } from '../../shared/lib/usePlayerDebugUi.js'
 import { debugEnabled } from '../player/modules/rotate-phone/wordLaneDebug.js'
 import { pLog } from '../../shared/lib/debug.js'
 import { buildRaceStages } from './raceStages.js'
-import { ROUND_PLATES } from './raceStagesPhrases.js'
 import { startEntries, readStartStage, writeStartStage, withStart } from './raceStartStage.js'
 
 // «Начать с этапа» на плашке «Голосом / Пальцами» (RaceAskPlate.jsx) — только при отладке: тумблер «Отладочный интерфейс» (usePlayerDebugUi) или pithy_wl_debug_v1 = '1' (wordLaneDebug.debugEnabled); иначе start — null и плашка ничего не рисует.
@@ -14,7 +13,7 @@ import { startEntries, readStartStage, writeStartStage, withStart } from './race
 export function startOptions(plan) {
   if (plan?.game !== 'race') return []
   const { stages, recipe } = buildRaceStages({ plan: { ...plan, startAt: undefined }, tap: false, ru: true }) // голосом и с русской моделью — самый полный список (пальцами те же плашки, кроме переключения слуха)
-  return startEntries(stages, recipe.acts, { 'phrases2-ann': ROUND_PLATES.hear.title })
+  return startEntries(stages, recipe.acts, { 'phrases2-ann': 'Скажи / Узнай' }) // подпись круга 2 фраз (плашки у него нет)
 }
 
 /** Конфиг игры со стартом с этапа entry (или тот же cfg) */

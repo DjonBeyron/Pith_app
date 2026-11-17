@@ -6,7 +6,7 @@ import { estChunkMs } from '../player/modules/rotate-phone/wordLaneAudio.js'
 import { TRAVEL_MS } from '../player/modules/rotate-phone/wordLaneTimeline.js'
 import { PIECE_PAD_MS } from '../player/modules/rotate-phone/wordLaneStudent.js'
 import { RH_TURN_MS } from '../rehearsal/rehearsalStages.js'
-import { stepOf } from './raceStageKit.js'
+import { stepOf, ROUND2_ANN_MS } from './raceStageKit.js'
 
 const metroOf = (parts, durs) => parts.map((chunk, k) => ({ chunk, at: Math.round(TRAVEL_MS + durs.slice(0, k).reduce((a, d) => a + d + PIECE_PAD_MS, 0)), ms: Math.round(durs[k]) }))
 
@@ -16,7 +16,7 @@ export function descentStages(kit, act) {
   const all = chunks.map((_, i) => i)
   const chunkMs = chunks.map((c, i) => (lib(i)?.ms ?? estChunkMs(c)) / rate)
   const mk = (id, o = {}) => stepOf(id, { parts: act.parts, text: textOf(chunks, act.parts), labels: all, active: act.parts, reps: [{ parts: act.parts }], chunkMs, edge: true, ...o })
-  announce(act)
+  announce(act, { title: '', task: '', ms: ROUND2_ANN_MS }) // «Спуск» — вторая половина этапа «Конвейер фраз» (вместе с «Вершиной»): отдельной плашки нет, только звук старта и реплика Пита
   const dstep = mk('descent-d')
   const dplan = planDictor({ step: dstep, chunks, clips: null, audio: null, rate, clipMode: () => false, lib })
   const voiced = chunks.some((_, i) => lib(i))

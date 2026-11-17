@@ -8,7 +8,7 @@
 //  • круг 2 пальцами (mode 'hear'): Пит говорит фразу по-английски, по ленте три смысла по-русски на пилюлях с акцентной подложкой.
 // Слух слов (wordLaneListen) на этих ступенях не нужен: tapOnly — у слушателя слов нет модели и микрофона; фразы слушает свой слушатель сцены (racePhraseListener.js), только в круге «Скажи».
 // quiet — промах без полос, «не успел» без реплики директора игры (её говорит директор гонки, racePhraseVoice.js). Порядок круга 2 директор правит перед входом (fill: слабые фразы круга 1 — последними).
-import { stepOf } from './raceStageKit.js'
+import { stepOf, ROUND2_ANN_MS } from './raceStageKit.js'
 import { SPEED } from '../player/modules/rotate-phone/wordLaneTimeline.js' // 26 % высоты в секунду — базовая скорость конвейера
 import { round1Turns, round2SayTurns, round2HearTurns, reorderWeak } from './racePhraseTurns.js'
 import { demoPhrase } from './racePhraseDemo.js'
@@ -52,12 +52,12 @@ export function phraseStages(kit, act) {
   const voice = !tap
   announce(act)
   const r1 = round1Turns(act.phrases, plan.seed)
-  announce(act, { sid: 'phrases1', ...ROUND_PLATES.pick })
+  announce(act, { sid: 'phrases1', title: '', task: '', line: ROUND_PLATES.pick.line, ms: ROUND2_ANN_MS }) // у дополнительных кругов плашек нет: только звук старта и реплика Пита (владелец 2026-11-17)
   push({ type: 'student', act: act.id, sid: 'phrases1', round: 1, turns: r1, step: phraseStep('phrases1', r1, { round: 1, mode: 'pick', voice: false, speed: PICK_SPEED }) }) // круг 1 — только тап
   const mode = voice ? 'say' : 'hear'
   const base = voice ? round2SayTurns(act.phrases) : round2HearTurns(act.phrases, plan.seed)
   if (!base.length) return
-  announce(act, { sid: 'phrases2', ...ROUND_PLATES[mode] })
+  announce(act, { sid: 'phrases2', title: '', task: '', line: ROUND_PLATES[mode].line, ms: ROUND2_ANN_MS })
   const demo = voice ? demoPhrase(act.phrases, base, voicedPhraseTest()) : null
   if (demo) Object.assign(kit.stages.at(-1), { line: 'race_phrases_show', ms: 400 }) // плашка после реплики держится недолго: между «смотри, как это делается» и «главное начать» не должно быть долгой тишины (было ≈ 2,6 с) // с демо: плашка объявляет круг и зовёт смотреть пример, а «а теперь скажи её сам» Пит говорит ПОСЛЕ примера (DEMO_GO)
   if (demo) kit.stages.at(-1).count = false // v3.3.220: ноты отсчёта играют после демо (сцена), не на плашке: countBeforeRounds такую плашку пропускает // демо на живой пилюле первым ходом «Скажи» (racePhraseDemoTurn.js; ворота — useRacePhraseDemo.js): запасная — только с озвучкой каждого слова

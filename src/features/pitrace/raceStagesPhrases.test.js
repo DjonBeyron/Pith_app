@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { phrasesOf, hasPhrases, normalizePhrase, phraseTokens, phraseWordKeys, withPhrases, PHRASES_MIN } from './racePhraseData.js'
 import { round1Turns, round2SayTurns, round2HearTurns, reorderWeak, decoysFor } from './racePhraseTurns.js'
+import { ROUND2_ANN_MS } from './raceStageKit.js'
 import { phraseStages, PICK_SPEED, PHRASE_SPEED, SAY_SPEED, LANE, ROUND_PLATES, gapMs, PHRASE_TAP_GAP_PCT } from './raceStagesPhrases.js'
 import { buildRaceStages } from './raceStages.js'
 import { buildRaceActs } from './raceRecipe.js'
@@ -121,8 +122,8 @@ describe('стадии этапа', () => {
     for (const tap of [false, true]) {
       const st = buildRaceStages({ plan: plan(), tap, ru: true }).stages
       const r1 = st.find(s => s.sid === 'phrases1-ann'), r2 = st.find(s => s.sid === 'phrases2-ann')
-      expect(r1.round).toMatchObject({ title: 'Пойми', task: 'Тапни фразу', look: { tone: 'lane', icon: 'tap' } }); expect(r1.line).toBe('race_phrases_pick')
-      expect(r2.round).toMatchObject(tap ? { title: 'Узнай', task: 'Тапни смысл', look: { tone: 'accent' } } : { title: 'Скажи', task: 'Скажи сам', look: { tone: 'accent', icon: 'mic' } })
+      expect(r1.round).toMatchObject({ title: '', task: '' }); expect(r1.ms).toBe(ROUND2_ANN_MS); expect(r1.line).toBe('race_phrases_pick')
+      expect(r2.round).toMatchObject({ title: '', task: '' }) // у дополнительных кругов плашек нет (владелец 2026-11-17)
       expect(r2.line).toBe(tap ? 'race_phrases_hear' : 'race_phrases_show')
       expect(st.find(s => s.sid === 'phrases-ann').line).toBe(tap ? 'race_phrases_tap' : 'race_phrases')
     }

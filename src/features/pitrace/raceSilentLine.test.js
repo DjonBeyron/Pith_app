@@ -6,7 +6,7 @@ import { stageTiming } from '../rehearsal/rehearsalCountdown.js'
 // Замечание владельца (iPhone, 2026-11-07): «перед этапами какое-то время Пит молчит» — неозвученная реплика держала плашку по длине текста (65 мс на букву) + 600 мс
 const lines = {
   race_catch: { text: 'теперь наоборот, я говорю по-английски, а ты называешь перевод', url: null, duration: null, words: null },
-  race_phrases: { text: 'теперь фразы, сначала выбирай, потом говори', url: 'https://r2/x.mp3', duration: 2.4, words: null },
+  race_phrases: { text: 'Конвейер ситуаций, подбери фразу к ситуации, потом скажи её', url: 'https://r2/x.mp3', duration: 2.4, words: null },
 }
 
 describe('неозвученные реплики гонки (raceSilentLine.js)', () => {

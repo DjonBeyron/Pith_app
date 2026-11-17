@@ -46,8 +46,8 @@ export function buildRaceStages({ plan, rate = 1, lib = () => null, tap = readTa
   const byVoice = passBByVoice({ tap, ready: ru }) // проход B слушает русская модель (иначе тап по трём пилюлям, без переключения слуха)
   let russian = false // слух сейчас русский: перед «Вершиной» (английские слова) его надо вернуть
   for (const act of acts) {
-    if (act.id === 'phrases' && russian) { kit.push({ type: 'announce', act: 'phrases', sid: 'phrases-sw', switchTo: 'en', round: { kind: 'switch', title: 'Секунду', task: 'переключаю слух', brief: 'переключаю слух' }, ms: SWITCH_MS, line: null }); russian = false } // фразы слушает английская модель
-    if (act.id === 'climb' && russian) kit.push({ type: 'announce', act: 'climb', sid: 'climb-sw', switchTo: 'en', round: { kind: 'switch', title: 'Секунду', task: 'переключаю слух', brief: 'переключаю слух' }, ms: SWITCH_MS, line: null })
+    if (act.id === 'phrases' && russian) { kit.push({ type: 'announce', act: 'phrases', sid: 'phrases-sw', switchTo: 'en', round: { kind: 'switch', title: '', task: '', brief: '' }, ms: SWITCH_MS, line: null }); russian = false } // фразы слушает английская модель
+    if (act.id === 'climb' && russian) kit.push({ type: 'announce', act: 'climb', sid: 'climb-sw', switchTo: 'en', round: { kind: 'switch', title: '', task: '', brief: '' }, ms: SWITCH_MS, line: null })
     if (act.id === 'catch') { catchStages(kit, act, { tap, ready: ru }); russian = byVoice; if (!byVoice) pLog(`[race] проход B на тапе (три пилюли): ${tap ? 'выбрано «Тапаю», русская модель не нужна' : 'русской модели Vosk нет в кэше телефона (скачать: Админ, Голос, «Встряхни память»)'}`) }
     else if (ROUNDS[act.id]) ROUNDS[act.id](kit, act, { voice: byVoice }) // voice — русская модель Vosk есть (финал: второй блок слов по-русски)
     else kit.push({ type: 'summary', act: 'summary', sid: 'summary', line: null }) // итог: реплику говорит директор (useRaceActs): золото или обычная

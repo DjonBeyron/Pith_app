@@ -90,7 +90,7 @@ export default function RaceBlock({ save = saveDebugFile }) {
         {ru.status === 'ready' ? <p className="rhpHint" data-testid="race-ru-ready">Русская модель слуха скачана: проход B идёт голосом</p> : <><VoskReadyNotice vosk={ru} /><p className="rhpHint" data-testid="race-ru-need">Без русской модели проход B идёт тапом по трём пилюлям</p></>}
         {note && <p className="rhpHint" role="status" data-testid="race-note">{note}</p>}
         <PolishSettings open={isOpen(SETTINGS_ID)} onToggle={() => toggle(SETTINGS_ID)} summary={summary} testid="race-settings">
-          <p className="rhpHint">Один этап «Пинг-понг» из двух проходов (скажи слово по переводу, назови перевод) и финал; в «Полной гонке» после него вершина и спуск. Память и XP — в симуляции.</p>
+          <p className="rhpHint">Один этап «Конвейер слов» из двух проходов (A и обратный B, между ними плашки нет) (скажи слово по переводу, назови перевод) и финал; в «Полной гонке» после него вершина и спуск. Память и XP — в симуляции.</p>
           <label className="aspLabel">Фраза (фикстура плана)
             <select className="aspInput" value={rform.fixture} disabled={playing} onChange={e => pickFixture(e.target.value)} data-testid="race-fixture">
               {FIXTURE_IDS.map(id => <option key={id} value={id}>{FIXTURES[id].title}</option>)}

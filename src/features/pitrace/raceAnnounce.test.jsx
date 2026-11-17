@@ -11,7 +11,7 @@ import { normalizePlan } from '../rehearsal/rehearsalPlan.js'
 // Плашка этапа: название + задание; реплика Пита — то же «название, задание». Индикатора микрофона в гонке нет.
 const plan = normalizePlan({ ...fixturePlan('three'), game: 'race' })
 const read = rel => readFileSync(new URL(rel, import.meta.url), 'utf8')
-const TASKS = { race_sprint: ['Пинг-понг', 'перевод едет вниз, скажи слово по-английски, пока не убежало'], race_climb: ['Вершина', 'собираем фразу по слову, с каждым шагом длиннее'], race_descent: ['Спуск', 'повтори всю фразу за мной на скорости'] }
+const TASKS = { race_sprint: ['Конвейер слов', 'перевод едет вниз, скажи слово по-английски, пока не убежало'], race_climb: ['Конвейер фраз', 'собираем фразу по слову, с каждым шагом длиннее'], race_descent: ['', 'повтори всю фразу за мной на скорости'] }
 const CATCH_LINE = 'теперь наоборот, я говорю по-английски, а ты называешь перевод' // проход B: объявление БЕЗ плашки
 
 describe('объявление этапов: название + задание', () => {
@@ -22,8 +22,8 @@ describe('объявление этапов: название + задание',
     const sp = stages.find(s => s.sid === 'sprint-ann'); expect(sp.line).toBeNull(); expect([sp.round.title, sp.round.task]).toEqual(TASKS.race_sprint) // плашка этапа A есть, отдельной реплики нет: её заменяет стартовая фраза
     for (const s of ann) {
       const [title, task] = TASKS[s.line]
-      expect(s.round.title).toBe(title); expect(s.round.task).toBe(task)
-      expect(RACE_LINES.find(l => l.id === s.line).text).toBe(`${title}, ${task}`)
+      expect(s.round.title).toBe(title); expect(s.round.task).toBe(title ? task : '')
+      expect(RACE_LINES.find(l => l.id === s.line).text).toBe(title ? `${title}, ${task}` : `теперь ${task}`) // «Спуск» — вторая половина «Конвейера фраз», плашки нет, реплика без названия
     }
     expect(stages.find(s => s.sid === 'climb-top').round.task).toBeUndefined() // плашка вершины без задания
     const b = stages.find(s => s.sid === 'catch-ann'); expect(b.line).toBe('race_catch_tap'); expect(b.round.title).toBe(''); expect(b.round.task).toBe('') // проход B: Пит говорит, плашки нет

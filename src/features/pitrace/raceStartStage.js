@@ -29,6 +29,7 @@ export function fromStage(acts, startAt) {
 }
 
 const isSwitch = st => st?.round?.kind === 'switch'
+const PART = { 'climb-ann': 'по слову', 'descent-ann': 'целиком' }
 const passOf = id => /^Проход (\S+)$/.exec(RACE_TITLES[id] ?? '')?.[1] // 'sprint' → 'A', 'catch' → 'B'
 
 /**
@@ -47,7 +48,8 @@ export function startEntries(stages, acts, alt = {}) {
     let j = i
     const subs = []
     while (stages[j]?.type === 'announce' && stages[j].act === st.act && !isSwitch(stages[j])) { const t = stages[j].round?.title; if (t && t !== act.title) subs.push(t); j++ }
-    if (alt[stages[j - 1].sid]) subs.push(`/ ${alt[stages[j - 1].sid]}`)
+    if (alt[stages[j - 1].sid]) subs.push(alt[stages[j - 1].sid])
+    if (PART[st.sid]) subs.push(PART[st.sid]) // «Вершина» и «Спуск» — две половины этапа «Конвейер фраз»
     const two = st.mia === 'ann' && st.act !== 'boss' ? ': круг с Мией' : /\d-ann$/.exec(st.sid) && !st.round?.title ? `, круг ${st.sid.match(/(\d+)-ann$/)[1]}` : ''
     out.push({ sid: st.sid, label: `${act.title}${passOf(act.id) ? ` ${passOf(act.id)}` : ''}${two}${subs.length ? `: ${subs.join(' ')}` : ''}` })
   })

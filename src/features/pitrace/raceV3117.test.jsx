@@ -27,7 +27,7 @@ describe('плашки гонки', () => {
   it('brief: 3–5 слов у каждого акта и у объявления; реплика Пита (task) длинная и не тронута', () => {
     const acts = buildRaceActs(plan, false, true).acts.filter(a => a.id !== 'summary')
     for (const a of acts) { expect(a.brief.split(/\s+/).length).toBeGreaterThanOrEqual(3); expect(a.brief.split(/\s+/).length).toBeLessThanOrEqual(5); expect(a.task.split(/\s+/).length).toBeGreaterThan(5) }
-    expect(acts.find(a => a.id === 'sprint').brief).toBe('перевод туда, слово обратно'); expect(acts.find(a => a.id === 'catch').brief).toBe('перевод туда, слово обратно'); expect(acts.find(a => a.id === 'sprint').title).toBe('Пинг-понг')
+    expect(acts.find(a => a.id === 'sprint').brief).toBe('переводи всё, что услышишь'); expect(acts.find(a => a.id === 'catch').brief).toBe('теперь переводи на русский'); expect(acts.find(a => a.id === 'sprint').title).toBe('Конвейер слов'); expect(acts.find(a => a.id === 'catch').title).toBe('Конвейер слов') // проходы A и B — один этап
     const ann = stages.filter(s => s.type === 'announce' && s.round.brief)
     expect(ann.length).toBeGreaterThanOrEqual(3); expect(stages.find(s => s.sid === 'catch-ann').round.title).toBe(''); expect(stages.find(s => s.sid === 'climb-top').round.brief).toBeUndefined(); expect(stages.find(s => s.sid === 'sprint2-ann').round.brief).toBeUndefined()
   })
