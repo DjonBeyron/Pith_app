@@ -1,10 +1,10 @@
 import { memo, useCallback, useEffect, useRef, useState } from 'react'
-import WordLaneXpParticle from './WordLaneXpParticle.jsx'
+import WordLaneXpFloat from './WordLaneXpFloat.jsx'
 import { XP_PULSE_MS, xpPulseFrames } from './WordLaneXpFlight.js'
 
-// Счётчик XP в углу и летящие цифры наград игры «Повтори за диктором». Своё состояние (xp, events) живёт здесь, а не в сценарии игры: каждая награда перерисовывает только этот
-// маленький компонент, а не весь оверлей (пилюли, кот, микрофон). Снаружи — apiRef.current.add(amount, rect): цифра «+N XP» летит из rect (пилюля) в сам счётчик (WordLaneXpParticle.jsx),
-// долетела — число растёт и счётчик плавно «дышит» по scale (пульс; новый прилёт перезапускает его). У повтора из нескольких кусков награда одна на повтор (amount = XP за все куски).
+// Счётчик XP в углу и «+N XP» от него. Своё состояние (xp, events) живёт здесь, а не в сценарии игры. Снаружи — apiRef.current.add(amount, rect, arriveMs): награда придёт через arriveMs
+// (пилюля летит в счётчик, wordLaneRiseXp.js); пилюля прилетела — число растёт, счётчик «распухает» (scale, XP_PULSE_MS; новый прилёт перезапускает) и от него вверх идёт «+N XP» (WordLaneXpFloat).
+// Цифра из пилюли больше не летит (v3.3.271). У повтора из нескольких кусков награда одна — когда принят последний кусок. rect (пилюля) нужен только старому вызову без arriveMs.
 const PULSE = xpPulseFrames()
 
 function WordLaneXp({ apiRef }) {
@@ -12,30 +12,27 @@ function WordLaneXp({ apiRef }) {
   const idRef = useRef(0)
   const boxRef = useRef(null)
   const pulseRef = useRef(null)
-  useEffect(() => {
-    apiRef.current = { add: (amount, rect) => { const id = ++idRef.current; setState(p => ({ ...p, events: [...p.events, { id, amount, rect }] })) } }
-    return () => { apiRef.current = null }
-  }, [apiRef])
-  const getTarget = useCallback(() => boxRef.current, [])
+  const timers = useRef(new Set())
   const pulse = useCallback(() => {
     const el = boxRef.current
     if (!el?.animate) return
     pulseRef.current?.cancel()
     pulseRef.current = el.animate(PULSE, { duration: XP_PULSE_MS, easing: 'linear' })
   }, [])
+  const arrive = useCallback(amount => { const id = ++idRef.current; setState(p => ({ xp: p.xp + amount, events: [...p.events, { id, amount }] })); pulse() }, [pulse])
+  useEffect(() => {
+    const all = timers.current
+    apiRef.current = { add: (amount, _rect, arriveMs = 0) => { if (!(arriveMs > 0)) { arrive(amount); return } const t = setTimeout(() => { all.delete(t); arrive(amount) }, arriveMs); all.add(t) } }
+    return () => { apiRef.current = null; all.forEach(clearTimeout); all.clear() }
+  }, [apiRef, arrive])
   useEffect(() => () => pulseRef.current?.cancel(), [])
-  const dismiss = useCallback(id => {
-    setState(p => {
-      const ev = p.events.find(e => e.id === id)
-      return ev ? { xp: p.xp + ev.amount, events: p.events.filter(e => e.id !== id) } : p
-    })
-    pulse()
-  }, [pulse])
+  const getTarget = useCallback(() => boxRef.current, [])
+  const done = useCallback(id => setState(p => ({ ...p, events: p.events.filter(e => e.id !== id) })), [])
   const { xp, events } = state
   return (
     <>
       <div ref={boxRef} className={`wlXp${xp > 0 || events.length ? ' wlXp--on' : ''}`} data-testid="wl-xp">{xp} XP</div>
-      {events.map(ev => <WordLaneXpParticle key={ev.id} amount={ev.amount} rect={ev.rect} getTarget={getTarget} onDone={() => dismiss(ev.id)} />)}
+      {events.map(ev => <WordLaneXpFloat key={ev.id} amount={ev.amount} getTarget={getTarget} onDone={() => done(ev.id)} />)}
     </>
   )
 }

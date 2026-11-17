@@ -140,7 +140,7 @@ describe('взлёт заполненной пилюли', () => {
   })
   it('движок: после win пилюля отпускается из рук (held.delete) и не мешает конвейеру; у диктора взлёта нет', () => {
     const eng = read('./useWordLanePills.js')
-    expect(eng).toContain('if (k != null && pool.rise(k)) held.delete(e.pill.id)')
+    expect(eng).toContain('if (k != null && pool.rise(k, { xp: xpOk === true })) held.delete(e.pill.id)')
     const dictor = eng.slice(eng.indexOf("kind === 'dictor'"), eng.indexOf("kind === 'student'"))
     expect(dictor).not.toContain('rise(')
     const student = read('./wordLaneStudent.js')

@@ -17,7 +17,7 @@ export const MAX_PIT_TRIES = 40      // сколько раз пробуем р�
 export function createMiaSpeech({ now = () => Date.now(), setTimer = setTimeout, clearTimer = clearTimeout, play = () => false, has = () => false, bufferMs = () => 0, hold = null, snap = () => '', onCaption = () => {}, onSpeak = () => {}, log = () => {} } = {}) {
   const src = { lines: null, cat: null, listener: null } // свежие реплики, кот и слушатель кладёт use() (из эффекта хука: рефы в рендере читать нельзя)
   let queue = [], timer = 0, playing = null, endAt = 0, capTimer = 0, seq = 0, playAt = 0
-  const caption = (c, ms) => { clearTimer(capTimer); onCaption(c); capTimer = c ? setTimer(() => onCaption(null), ms + CAPTION_TAIL_MS) : 0 }
+  const caption = (c, ms, why = '') => { clearTimer(capTimer); onCaption(c); if (c) { try { log(`[mia] подпись реплики ${c.key.split(':')[1]}${why ? ` — ${why}` : ''}: ${Math.round(ms)} мс`) } catch { /* журнал не мешает */ } } capTimer = c ? setTimer(() => onCaption(null), ms + CAPTION_TAIL_MS) : 0 } // подпись реплики над Мией; журнал — почему она появилась (владелец: «плашка с текстом за Мией, озвучивать нечего»)
 
   function finish(c) {
     if (playing !== c) return
@@ -50,20 +50,20 @@ export function createMiaSpeech({ now = () => Date.now(), setTimer = setTimeout,
         c.at = now() + 300; kick(); return     // Пит занят или кулдаун: чуть позже
       }
       src.listener?.current?.mute?.(ms + MIC_MUTE_PAD_MS)
-      if (!lines?.[c.id]?.url) caption({ key: `${++seq}:${c.id}`, who, text }, ms)
+      if (!lines?.[c.id]?.url) caption({ key: `${++seq}:${c.id}`, who, text }, ms, 'реплика Пита без озвучки (нет url в настройках)')
       log(`[mia] реплика ${c.id} (Пит)`)
       return
     }
     onSpeak({ key: ++seq, id: c.id, text, ms })   // рот и усы Мии — по этой реплике (useMiaLife → miaMouth.js)
     cat?.holdBusy?.(ms + GAP_MS)               // Мия говорит: Пит «занят» (следующая пилюля ждёт, как за обычной репликой)
     src.listener?.current?.mute?.(ms + MIC_MUTE_PAD_MS)
-    if (!voiced) caption({ key: `${++seq}:${c.id}`, who, text }, ms)
+    if (!voiced) caption({ key: `${++seq}:${c.id}`, who, text }, ms, line?.url ? 'озвучка есть, но звук не загружен (нет слота)' : 'реплики нет в настройках озвучки (нет url)')
     else try { hold?.holdFor?.(ms) } catch { /* окно речи не обязательно */ }
     log(`[mia] реплика ${c.id}: ${voiced ? `звук ${Math.round(ms)} мс` : 'без озвучки, подпись'}`)
     if (voiced) {
       let started = false
-      const ok = play(key, res => { if (!started && res?.play !== 'ok' && res?.play !== 'started') { caption({ key: `${++seq}:${c.id}`, who, text }, ms) } }, () => { started = true; log(`[mia] звук ${c.id} стартовал: ${snap()}`) }, end)
-      if (!ok) caption({ key: `${++seq}:${c.id}`, who, text }, ms)
+      const ok = play(key, res => { if (!started && res?.play !== 'ok' && res?.play !== 'started') { caption({ key: `${++seq}:${c.id}`, who, text }, ms, `звук не стартовал (${res?.play ?? 'нет ответа'})`) } }, () => { started = true; log(`[mia] звук ${c.id} стартовал: ${snap()}`) }, end)
+      if (!ok) caption({ key: `${++seq}:${c.id}`, who, text }, ms, 'слот не принял звук')
     } else timer = setTimer(done, ms)
   }
 

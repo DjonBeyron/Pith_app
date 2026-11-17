@@ -30,7 +30,7 @@ describe('взлёт пилюль диктора (riseRep)', () => {
     const pills = read('./useWordLanePills.js')
     expect(pills).toContain('if (lastPiece) { light(h.p.rep); riseRep(pool, held, h.p.rep) }')
     expect(pills.indexOf('snapPill(pool.el(h.k), h.p.lane, { full: lastPiece })')).toBeLessThan(pills.indexOf('riseRep(pool, held, h.p.rep)'))
-    expect(pills).toContain('pool.flashLane(e.pill.lane)'); expect(pills).toContain('pool.rise(k)') // ученик: те же вызовы пула
+    expect(pills).toContain('pool.flashLane(e.pill.lane)'); expect(pills).toContain('pool.rise(k,') // ученик: те же вызовы пула
     const rise = read('./wordLaneDictorRise.js')
     expect(rise).toContain('pool.flashLane(h.p.lane)'); expect(rise).toContain('pool.rise(h.k)')
     expect(rise.split('\n').filter(l => !l.startsWith('//')).join('\n')).not.toMatch(/playNote|fx\.|\.win\(|xpApi|react\(/) // награды (нота, XP, кот) диктору не положены

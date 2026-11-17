@@ -54,7 +54,7 @@ const at = (a, b) => S.filter(s => s.t >= a && s.t < b)
 let deadFrom = null
 for (const s of S) {
   const live = s.words || s.plates || s.arrows || s.coast
-  if (s.sid == null || (s.sid === 'sprint-ann' && !s.plates) || /3(-ann)?$/.test(s.sid)) continue // загрузка и отсчёт тремя нотами после заставки (звук, не тишина)
+  if (s.sid == null || (s.sid === 'sprint-ann' && !s.plates) || /3(-intro)?(-ann)?$/.test(s.sid)) { deadFrom = null; continue } // церемония и круг Мии, загрузка: загрузка и отсчёт тремя нотами после заставки (звук, не тишина)
   if (!live && deadFrom == null) deadFrom = s
   if (live && deadFrom != null) { if (s.t - deadFrom.t > DEAD_MS) bad.push(`ТИШИНА ${s.t - deadFrom.t} мс (sid ${deadFrom.sid} → ${s.sid}) с t=${deadFrom.t}`); deadFrom = null }
   if (s.plates > 1) bad.push(`НАЛОЖЕНИЕ плашек (${s.plates}) на t=${s.t}, sid ${s.sid}`)
@@ -69,7 +69,7 @@ if (process.env.FAIL === '2') { // Мия после B: стрелки втор�
   const back = S.filter(s => s.arrows > 0 && /^catch3/.test(s.sid ?? '')), m3 = S.filter(s => s.sid === 'catch3' && s.words > 0)
   console.log(`Мия после B: проб со стрелками на церемонии ${back.length}, проб со словами круга Мии ${m3.length}, data-up в круге Мии: ${m3.some(s => s.up)}`)
   if (!back.length) bad.push('Мия после B: стрелок на церемонии нет'); if (m3.some(s => s.up)) bad.push('Мия после B: круг Мии идёт вверх (data-up)')
-  const pl = S.find(s => s.sid === 'catch3-intro-ann' && s.plates); if (!pl) bad.push('Мия после B: плашки «Допрос у Мии» нет')
+  const pl = S.find(s => s.sid === 'catch3-ann' && s.plates); if (!pl) bad.push('Мия после B: плашки «Допрос у Мии» нет (она идёт на церемонии, пока Мия говорит за кадром)')
 }
 if (process.env.TRACE) { const g = S.findIndex(x => x.arrows > 0); console.log('t(мс от выезда) | пилюля top | сдвиг узора --run-y'); for (let i = Math.max(0, g - 6); i < Math.min(S.length, g + 60); i += 2) console.log(`${S[i].t - S[g].t} | ${S[i].ay} | ${S[i].ry} ${S[i].up ? 'up' : ''} ${S[i].tr}`) }
 const sids = []; for (const s of S) if (s.sid !== sids.at(-1)?.sid) sids.push({ sid: s.sid, t: s.t })

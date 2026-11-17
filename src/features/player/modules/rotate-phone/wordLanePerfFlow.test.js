@@ -60,7 +60,7 @@ describe('один залп искр и одна цифра XP на повтор
     expect(wins).toHaveLength(3)
     expect(wins.map(w => w.last)).toEqual([false, false, true])
     const flow = read('./useWordLaneFlow.js')
-    expect(flow).toContain('if (rep.last && !(stages[sRef.current.idx]?.silent && !xpAllowed(getBossZoneNow()))) xpApi.current?.add(XP_PER_PILL * rep.count, rect)')
+    expect(flow).toContain('if (rep.last && !(stages[sRef.current.idx]?.silent && !xpAllowed(getBossZoneNow()))) { xpApi.current?.add(XP_PER_PILL * rep.count, rect, XP_ARRIVE_MS); return true }')
   })
 
   it('XP: счётчик и цифры живут в своём компоненте — награда не перерисовывает оверлей', () => {

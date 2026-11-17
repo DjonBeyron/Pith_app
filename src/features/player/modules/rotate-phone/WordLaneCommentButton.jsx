@@ -1,4 +1,5 @@
 import { MessageSquare } from 'lucide-react'
+import { shutGameMic } from '../../../../shared/lib/gameMic.js'
 import { APP_VERSION } from '../../../../shared/lib/version.js'
 import { snapshotScreen } from '../../../rehearsal/polish/commentSnapshot.js'
 import { snapshotSettings } from '../../../rehearsal/polish/commentSettings.js'
@@ -12,6 +13,7 @@ export default function WordLaneCommentButton({ f, cfg, rootRef, onOpen }) {
     const snap = snapshotScreen({ f, root: rootRef?.current, chunks: cfg.chunks, phrase: cfg.plan?.phrase ?? cfg.word, version: APP_VERSION, fallbackAct: cfg.plan?.only ?? 'intro' })
     const settings = snapshotSettings() // настройки и живое состояние (тип аудиосессии, дорожка микрофона, Vosk) — тоже до паузы: пауза всё закрывает
     f.pause('comment')
+    shutGameMic('комментарий: диктовка') // микрофон отпущен по-настоящему (треки остановлены): иначе iOS не даёт клавиатуре диктовать голосом; «Продолжить» откроет его заново в жесте (gameAudioRestart)
     f.dbg.event('comment-open', { act: snap.stage.act, stage: snap.stage.sid || snap.stage.name })
     onOpen({ snap, at, settings })
   }

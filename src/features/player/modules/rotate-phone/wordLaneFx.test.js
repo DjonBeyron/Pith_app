@@ -120,11 +120,11 @@ describe('честность оценки', () => {
 })
 
 describe('XP за пилюлю, ноты, Пит', () => {
-  it('2 XP за принятую пилюлю; летит цифра в счётчик (WordLaneXpParticle), в профиль пока не начисляется', () => {
+  it('2 XP за принятую пилюлю; пилюля летит в счётчик (wordLaneRiseXp), от счётчика идёт «+N XP» (WordLaneXpFloat), в профиль пока не начисляется', () => {
     expect(XP_PER_PILL).toBe(2)
     const flow = read('./useWordLaneFlow.js')
-    expect(flow).toContain('xpApi.current?.add(XP_PER_PILL * rep.count, rect)') // одна цифра на повтор: XP за все его куски
-    expect(read('./WordLaneXp.jsx')).toContain("import WordLaneXpParticle from './WordLaneXpParticle.jsx'") // цифра летит в счётчик, а не к верху экрана
+    expect(flow).toContain('xpApi.current?.add(XP_PER_PILL * rep.count, rect, XP_ARRIVE_MS)') // одна цифра на повтор: XP за все его куски
+    expect(read('./WordLaneXp.jsx')).toContain("import WordLaneXpFloat from './WordLaneXpFloat.jsx'") // «+N XP» идёт вверх ОТ счётчика, из пилюли цифра больше не летит
     expect(read('./WordLaneXp.jsx')).toContain('getTarget={getTarget}')
     expect(read('./WordLaneGame.jsx')).toContain('<WordLaneXp apiRef={f.xpApi} />')
     // XP — только у ученика: fx.win зовётся из события win конвейера ученика, а в фазе диктора щёлкает без награды

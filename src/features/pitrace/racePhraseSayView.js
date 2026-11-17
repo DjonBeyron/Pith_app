@@ -43,7 +43,7 @@ export function createSayView({ pass, text, n, mask, log = () => {}, nudge = nul
     frame(t, done = false) {
       peek?.frame(t)
       const miss = wrong?.check(said, t)
-      if (miss && !done) { jerk?.fire(); onWrong(miss.word, miss.expect) }
+      if (miss && !done) { let k = 0; while (said.has(k)) k++; jerk?.fire(); mask?.wrong?.(miss.word, k); onWrong(miss.word, miss.expect) } // неверное слово — ещё и зачёркнуто красным над ожидаемым (racePhraseMaskView.wrong)
     },
     edges: () => mask?.edges() ?? null,
     peekIndex: () => peek?.index() ?? -1,

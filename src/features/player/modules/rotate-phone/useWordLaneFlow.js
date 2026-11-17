@@ -14,7 +14,7 @@ import { useCatLines } from './useCatLines.js'
 import { missFace } from './wordLaneCatPeek.js'
 import { useWordLaneDebug } from './useWordLaneDebug.js'
 import { DROP_MS, LANES_MS } from './wordLaneTimeline.js'
-import { XP_PER_PILL } from './wordLaneConfig.js'; import { createVoiceLevel } from './wordLaneVoiceLevel.js'
+import { XP_PER_PILL } from './wordLaneConfig.js'; import { XP_ARRIVE_MS } from './wordLaneRiseXp.js'; import { createVoiceLevel } from './wordLaneVoiceLevel.js'
 import { getVoiceRate } from '../../lessonVolume.js'
 import { pLog } from '../../../../shared/lib/debug.js'
 import { getGameMic, closeGameMic } from '../../../../shared/lib/gameMic.js'
@@ -103,7 +103,7 @@ export function useWordLaneFlow({ chunks, translation, lang, clips = null, audio
       rh.rec('win', { ...rep, order }); if (playNote(order)) { listenerRef.current?.mute(900); dbg.note('note') }
       catApi?.current?.react('love', 1600)
       catApi?.current?.peek?.()
-      if (rep.last && !(stages[sRef.current.idx]?.silent && !xpAllowed(getBossZoneNow()))) xpApi.current?.add(XP_PER_PILL * rep.count, rect) // у повтора из нескольких кусков одна цифра («+6»), когда принят последний кусок
+      if (rep.last && !(stages[sRef.current.idx]?.silent && !xpAllowed(getBossZoneNow()))) { xpApi.current?.add(XP_PER_PILL * rep.count, rect, XP_ARRIVE_MS); return true } // у повтора из нескольких кусков одна цифра («+6»), когда принят последний кусок; true — пилюля летит в счётчик (wordLaneRiseXp), число прибавляется и идёт вверх от счётчика, когда она долетела (XP_ARRIVE_MS)
     },
     miss(e) { rh.rec('miss', e?.rep); const face = missFace(plan?.game === 'race'); if (face) catApi?.current?.react(face, 1300, !!stages[sRef.current.idx]?.step?.quiet) }, claim(e) { rh.claim?.(e.rep, e.ms, e.y) }, pre(e) { rh.pre?.(e.rep, e) }, spawn(e) { rh.spawn?.(e) }, // гонка (spawn — выезд пилюли: журнал переходов raceTransChron.js): на промах Пит не меняет лицо (missFace, wordLaneCatPeek.js)
     fail(e) {

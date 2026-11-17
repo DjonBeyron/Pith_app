@@ -14,13 +14,14 @@ const num = v => (Number(v) || 0).toFixed(2).replace('.', ',')
 
 /** → { word(index, t), goal({ t, edges, done }), value() }. n — слов во фразе; log — журнал «[fill] …» */
 export function createGlide({ n, log = () => {} }) {
-  let v = 0, anchor = 0, firstAt = null, firstAnchor = 0, lastAt = 0, from = 0, ms = 0, gliding = false, pending = null
+  const heard = new Set(); let v = 0, anchor = 0, firstAt = null, firstAnchor = 0, lastAt = 0, from = 0, ms = 0, gliding = false, pending = null
   const say = line => { try { log(line) } catch { /* журнал не мешает */ } }
   return {
     /** Слушатель отдал слово index (черновик или итог), t — сейчас */
     word(index, t) {
-      if (index + 1 <= anchor) return
-      anchor = Math.min(n, index + 1)
+      heard.add(index); let k = 0; while (heard.has(k)) k++ // как в проходе 1 (racePhraseFill.saidPrefix): линия идёт по НЕПРЕРЫВНОМУ префиксу услышанных слов — «where from» не заливает пилюлю до 97 % (владелец v3.3.271: «пилюля заполнена на 99 %, а сказано не так»)
+      if (k <= anchor) return
+      anchor = Math.min(n, k)
       if (firstAt == null) { firstAt = t; firstAnchor = anchor }
       const avg = anchor > firstAnchor ? (t - firstAt) / (anchor - firstAnchor) : Infinity
       lastAt = t; ms = anchor < n && avg <= GLIDE_GAP_MS ? Math.max(GLIDE_MIN_MS, avg) : 0

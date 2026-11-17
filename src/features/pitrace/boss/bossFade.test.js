@@ -61,7 +61,7 @@ describe('финал: XP не за красную зону, «не успел» 
     expect(xpAllowed('slow')).toBe(false); expect(xpAllowed('mid')).toBe(true); expect(xpAllowed('fast')).toBe(true); expect(xpAllowed(null)).toBe(true)
     setBossZoneNow('slow'); expect(getBossZoneNow()).toBe('slow'); setBossZoneNow(null)
     const flow = read2('../../player/modules/rotate-phone/useWordLaneFlow.js')
-    expect(flow).toContain('if (rep.last && !(stages[sRef.current.idx]?.silent && !xpAllowed(getBossZoneNow()))) xpApi.current?.add(')
+    expect(flow).toContain('if (rep.last && !(stages[sRef.current.idx]?.silent && !xpAllowed(getBossZoneNow()))) { xpApi.current?.add(')
     expect(read2('./RaceBossScale.jsx')).toContain('setBossZoneNow(zoneAt(')
   })
   it('«не успел» в финале (silent): ни реплики, ни текста сверху, ни подсказки слова над дорожками', () => {

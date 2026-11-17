@@ -1,0 +1,40 @@
+import { describe, it, expect, vi } from 'vitest'
+import { readFileSync } from 'node:fs'
+import { createGlide } from './racePhraseGlide.js'
+import { mountMask, WRONG_SHOW_MS } from './racePhraseMaskView.js'
+
+// v3.3.272 (владелец, логи v3.3.271): проход 2 — заливка не по самому дальнему слову («where from» → 97 %), а по непрерывному префиксу; проход 1 — неверное слово пишется над подсказкой красным зачёркнутым
+const rd = p => readFileSync(new URL(p, import.meta.url), 'utf8')
+
+describe('заливка «Скажи», проход 2: по непрерывному префиксу слов', () => {
+  it('«where from» (слова 1 и 4 из «where are you from»): линия стоит у границы слова 1, а не у последнего', () => {
+    const g = createGlide({ n: 4 }); g.word(0, 0); g.word(3, 400)
+    expect(g.goal({ t: 400 })).toBeCloseTo(0.25, 2)   // доли 1/N без измеренных границ
+    g.word(1, 800); g.word(2, 1200)                   // пропуск закрылся — линия догоняет до конца префикса
+    expect(g.goal({ t: 1200 })).toBeGreaterThan(0.9)
+  })
+  it('слово не по порядку само линию не двигает', () => { const g = createGlide({ n: 4 }); g.word(2, 0); expect(g.goal({ t: 0 })).toBe(0) })
+})
+
+function fakeDoc() {
+  const mk = () => { const el = { children: [], attrs: {}, style: { setProperty() {} }, appendChild(c) { this.children.push(c); c.parent = this; return c }, setAttribute(k, v) { this.attrs[k] = v }, removeAttribute() {}, remove() { if (this.parent) this.parent.children = this.parent.children.filter(x => x !== this) }, querySelector: () => null, cloneNode: () => null, getBoundingClientRect: () => ({}) }; return el }
+  return { createElement: () => mk(), createTextNode: () => mk(), fonts: null, mk }
+}
+
+describe('неверное слово над подсказкой (racePhraseMaskView.wrong)', () => {
+  it('<s class="racePhraseWrong"> появляется в ячейке ожидаемого слова, снимается по таймеру и когда слово сказано', () => {
+    vi.useFakeTimers()
+    const doc = fakeDoc(), el = doc.mk(); el.ownerDocument = doc
+    const m = mountMask(el, 'Where are you from')
+    m.wrong('you', 1)
+    const cell = () => el.children[0].children.filter(c => c.children?.length !== undefined).find(c => c.children.some(x => x.className === 'racePhraseWrong'))
+    expect(cell()).toBeTruthy()
+    vi.advanceTimersByTime(WRONG_SHOW_MS + 10); expect(cell()).toBeFalsy()
+    m.wrong('you', 1); m.set(new Map([[0, true], [1, true]])); expect(cell()).toBeFalsy() // слово 1 сказано — зачёркнутое пропало
+    vi.useRealTimers()
+  })
+  it('проводка: SayView зовёт mask.wrong на неверном слове; стиль — красный, line-through, 1 px', () => {
+    expect(rd('./racePhraseSayView.js')).toContain('mask?.wrong?.(miss.word, k)')
+    const css = rd('../../styles/player/modules/race-phrase-rounds.css'); expect(css).toContain('.racePhraseWrong'); expect(css).toContain('text-decoration: line-through'); expect(css).toContain('text-decoration-thickness: 1px')
+  })
+})

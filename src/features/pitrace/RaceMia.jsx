@@ -1,3 +1,4 @@
+import { OFFSCREEN_IDS } from './mia/useMiaPlate.js' // реплики Мии из-за правого края (она ещё не прыгнула): справа дуги звука
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { renderTree } from '../scene/v2/renderTree.js'
 import { buildMiaCat, MIA_FACES } from './mia/miaCat.js'
@@ -13,7 +14,6 @@ import { layoutOf, artMatrix, toScene, poseApply, poseSvg, poseOfMotion, miaCss,
 // компонент рисует его в своём ритме (rAF, часы стоят на паузе игры). Реплики идут очередью mia/miaSpeech.js (звук голосом Мии из слота или, если не озвучена, подпись caption над Мией).
 // Ничего не монтируется и не считает, пока Мии нет (phase 'off'): коробка и спрайт появляются с её приходом и убираются после ухода.
 const SEAT_DROP = 12 // Мия сидит ГЛУБЖЕ на крышке (лапы ниже центра верхней грани), а не на уголке (владелец 2026-11-15)
-const OFFSCREEN_IDS = ['mia_push', 'boss_mia_hush'] // реплики Мии из-за правого края (она ещё не прыгнула): справа дуги звука
 
 export default function RaceMia({ mia, caption = null, talk = null, alarm = null, paused = false }) { // alarm — { key }: слово финала в красной зоне, зрачки Пита в коробке сжимаются (испуг)
   const [gone, setGone] = useState(-1)                          // at прихода, чей уход (анимация) уже доигран: после него коробку и спрайт убираем

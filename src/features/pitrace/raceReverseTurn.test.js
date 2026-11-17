@@ -70,7 +70,7 @@ describe('разворот назад (церемония Мии после B)',
   it('цвета Мии на церемонии после B — с момента падения коробки (revBack), на обычной церемонии — с круга', () => {
     const m = { phase: 'in', fast: false }
     expect(miaColorOn(m, { sid: 'catch3-ann', revBack: 3000 }, true)).toBe(true); expect(miaColorOn(m, { sid: 'catch3-ann', revBack: 3000 }, false)).toBe(false)
-    expect(miaColorOn(m, { sid: 'sprint3-ann' }, true)).toBe(false)
+    expect(miaColorOn(m, { sid: 'sprint3-ann', mia: 'ann' }, true)).toBe(false); expect(miaColorOn(m, { sid: 'sprint3-ann', mia: 'ann' }, true, true)).toBe(true)
   })
   it('проводка: плашка «Допрос у Мии» перед церемонией, три ноты ждут конца разворота (revBack.busy), круг Мии не обратный; привод конвейера слушает TURN_EVENT; тройная стрелка — маска ::after', () => {
     expect(rd('./raceStageKit.js')).toContain("title: 'Допрос у Мии'"); expect(rd('./raceStageKit.js')).toContain("sid === act.id }), words: list")
@@ -85,7 +85,7 @@ describe('стадия разворота и уход Мии', () => {
     const c = rd('./raceStagesCatch.js'), a = rd('./useRaceActs.js'), p = rd('../player/modules/rotate-phone/useWordLanePills.js')
     expect(c).toContain("sid: 'catch-rev', rev: REV_MS"); expect(c).toContain("voice ? 'race_reverse' : 'race_reverse_tap'")
     expect(rd('../player/modules/rotate-phone/useWordLaneFlow.js')).toContain("if (stageObj.rev || stageObj.revBack) return { kind: 'reverse', at: s.at, back: !!stageObj.revBack }")
-    expect(a).toContain('pitBusy() + st.rev + 150'); expect(a).toContain("plate: st => (st?.rev ? ''"); expect(a).toContain('mspeech.leftMs()')
+    expect(a).toContain('pitBusy() + st.rev + 150'); expect(a).toContain("plate: st => (st?.rev || st?.mia === 'intro'"); expect(a).toContain('mspeech.leftMs()')
     expect(p).toContain("fxRef.current?.pitBusy?.() ?? 0"); expect(p).toContain('tail < 30')
     expect(rd('../player/modules/rotate-phone/wordLanePool.js')).toContain("'data-up', 'data-arrow'") // у пилюли из пула стрелка не остаётся
   })

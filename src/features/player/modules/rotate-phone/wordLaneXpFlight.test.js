@@ -1,65 +1,55 @@
 import { describe, it, expect } from 'vitest'
-import { xpFlightFrames, xpFlightLook, xpPulseFrames, rectCenter } from './WordLaneXpFlight.js'
+import { xpFloatFrames, xpFloatOpacity, xpPulseFrames, rectCenter, XP_FLOAT_RISE_PX, XP_FLOAT_WAVE_PX, XP_FLOAT_SCALE_FROM, XP_FLOAT_SCALE_TO } from './WordLaneXpFlight.js'
+import { riseXpFrames, xpRiseX, XP_SCALE_END, XP_ARRIVE_MS, XP_RISE_MS, centerOf } from './wordLaneRiseXp.js'
+import { RISE_DELAY_MS } from './wordLaneRise.js'
 
 const pos = f => { const m = f.transform.match(/translate\(([-\d.]+)px, ([-\d.]+)px\)/); return { x: +m[1], y: +m[2] } }
 const scale = f => +f.transform.match(/scale\(([-\d.]+)\)$/)[1]
 
-describe('полёт XP в счётчик (WordLaneXpFlight)', () => {
-  const from = { x: 200, y: 600 }, to = { x: 40, y: 70 }
-  const fr = xpFlightFrames(from, to)
-
-  it('первый кадр — в центре пилюли, невидим; последний — ровно в центре счётчика, растаял и сжат к 0,5', () => {
-    expect(pos(fr[0])).toEqual(from)
-    expect(fr[0].opacity).toBe(0)
-    expect(pos(fr.at(-1))).toEqual(to)
-    expect(fr.at(-1).opacity).toBe(0)
-    expect(scale(fr.at(-1))).toBeCloseTo(0.5, 2)
+describe('«+N XP» от счётчика (WordLaneXpFlight)', () => {
+  const from = { x: 40, y: 90 }, fr = xpFloatFrames(from)
+  it('старт — в центре счётчика, невидим; уходит вверх на XP_FLOAT_RISE_PX и к концу растворяется', () => {
+    expect(pos(fr[0])).toEqual(from); expect(fr[0].opacity).toBe(0)
+    expect(pos(fr.at(-1)).y).toBeCloseTo(from.y - XP_FLOAT_RISE_PX, 0); expect(fr.at(-1).opacity).toBe(0)
   })
-
-  it('в середине полёта видна целиком и масштаб ~1', () => {
-    const mid = fr[Math.floor(fr.length / 2)]
-    expect(mid.opacity).toBe(1)
-    expect(scale(mid)).toBeCloseTo(1, 2)
+  it('идёт по синусоиде (сдвиг по x не больше размаха) и только вверх', () => {
+    const xs = fr.map(f => Math.abs(pos(f).x - from.x)); expect(Math.max(...xs)).toBeGreaterThan(6); expect(Math.max(...xs)).toBeLessThanOrEqual(XP_FLOAT_WAVE_PX + 0.1)
+    const ys = fr.map(f => pos(f).y); for (let i = 1; i < ys.length; i++) expect(ys[i]).toBeLessThanOrEqual(ys[i - 1])
   })
-
-  it('прозрачность растёт к пику и к концу только убывает (без вспышек)', () => {
-    const op = fr.map(f => f.opacity)
-    const peak = op.indexOf(Math.max(...op))
-    for (let i = 1; i <= peak; i++) expect(op[i]).toBeGreaterThanOrEqual(op[i - 1])
-    for (let i = peak + 1; i < op.length; i++) expect(op[i]).toBeLessThanOrEqual(op[i - 1])
+  it('число растёт: масштаб от XP_FLOAT_SCALE_FROM до XP_FLOAT_SCALE_TO, не убывая', () => {
+    expect(scale(fr[0])).toBeCloseTo(XP_FLOAT_SCALE_FROM, 2); expect(scale(fr.at(-1))).toBeCloseTo(XP_FLOAT_SCALE_TO, 2)
+    const sc = fr.map(scale); for (let i = 1; i < sc.length; i++) expect(sc[i]).toBeGreaterThanOrEqual(sc[i - 1])
   })
-
-  it('изгиб поперёк направления есть (синус), но не больше 36 px от прямой', () => {
-    const dx = to.x - from.x, dy = to.y - from.y, len = Math.hypot(dx, dy)
-    const dev = fr.map(f => { const p = pos(f); return Math.abs((p.x - from.x) * dy - (p.y - from.y) * dx) / len })
-    expect(Math.max(...dev)).toBeGreaterThan(8)
-    expect(Math.max(...dev)).toBeLessThanOrEqual(36)
+  it('прозрачность: проявляется, держится, растворяется (после пика только убывает)', () => {
+    const op = fr.map(f => f.opacity), peak = op.indexOf(Math.max(...op))
+    expect(Math.max(...op)).toBe(1); for (let i = 1; i <= peak; i++) expect(op[i]).toBeGreaterThanOrEqual(op[i - 1]); for (let i = peak + 1; i < op.length; i++) expect(op[i]).toBeLessThanOrEqual(op[i - 1])
+    expect(xpFloatOpacity(0)).toBe(0); expect(xpFloatOpacity(1)).toBe(0)
   })
-
-  it('без счётчика — летит вверх до края экрана, как прежде', () => {
-    const up = xpFlightFrames(from, null)
-    expect(pos(up.at(-1))).toEqual({ x: 200, y: 0 })
-  })
-
-  it('xpFlightLook: в начале и в конце 0, у цели масштаб 0,5', () => {
-    expect(xpFlightLook(0).opacity).toBe(0)
-    expect(xpFlightLook(1).opacity).toBe(0)
-    expect(xpFlightLook(1).scale).toBeCloseTo(0.5)
-  })
-
   it('rectCenter: центр прямоугольника, пустой — null', () => {
     expect(rectCenter({ left: 10, top: 20, width: 40, height: 10 })).toEqual({ x: 30, y: 25 })
-    expect(rectCenter({ left: 0, top: 0, width: 0, height: 0 })).toBeNull()
-    expect(rectCenter(null)).toBeNull()
+    expect(rectCenter({ left: 0, top: 0, width: 0, height: 0 })).toBeNull(); expect(rectCenter(null)).toBeNull()
+  })
+})
+
+describe('пилюля летит в счётчик XP (wordLaneRiseXp)', () => {
+  const fr = riseXpFrames(60, 12, -120, 800)
+  it('первый кадр — на месте пилюли (только translate), последний — ровно у счётчика, сжата и растворена', () => {
+    expect(Object.keys(fr[0]).sort()).toEqual(['offset', 'rotate', 'translate']); expect(fr[0].translate).toContain('calc(-50% + 0.00px)')
+    const last = fr.at(-1); expect(last.translate).toContain('calc(-50% + -120.00px)'); expect(last.translate).toContain('12.000dvh'); expect(last.scale).toBeCloseTo(XP_SCALE_END, 2); expect(last.opacity).toBe(0)
+  })
+  it('по пути — синусоида поперёк линии (отклонение от прямой есть), на концах сдвиг 0', () => {
+    expect(xpRiseX(0, -120)).toBeCloseTo(0, 6); expect(xpRiseX(1, -120)).toBeCloseTo(-120, 6)
+    const dev = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8].map(o => Math.abs(xpRiseX(o, -120) - -120 * o)); expect(Math.max(...dev)).toBeGreaterThan(10)
+  })
+  it('прилёт: от принятия до счётчика RISE_DELAY_MS + XP_RISE_MS; centerOf — центр элемента или null', () => {
+    expect(XP_ARRIVE_MS).toBe(RISE_DELAY_MS + XP_RISE_MS)
+    expect(centerOf({ getBoundingClientRect: () => ({ left: 10, top: 20, width: 40, height: 10 }) })).toEqual({ x: 30, y: 25 }); expect(centerOf(null)).toBeNull(); expect(centerOf({ getBoundingClientRect: () => ({ left: 0, top: 0, width: 0, height: 0 }) })).toBeNull()
   })
 })
 
 describe('пульс счётчика', () => {
-  it('scale = 1 + A·sin(πt): начинается и кончается на 1, пик ~1,2 посередине', () => {
+  it('scale = 1 + A·sin(πt): начинается и кончается на 1, пик посередине (счётчик «распухает» заметно)', () => {
     const p = xpPulseFrames().map(f => +f.transform.match(/scale\(([\d.]+)\)/)[1])
-    expect(p[0]).toBe(1)
-    expect(p.at(-1)).toBeCloseTo(1, 6)
-    expect(Math.max(...p)).toBeCloseTo(1.2, 3)
-    expect(p.indexOf(Math.max(...p))).toBe(Math.floor(p.length / 2))
+    expect(p[0]).toBe(1); expect(p.at(-1)).toBeCloseTo(1, 6); expect(Math.max(...p)).toBeCloseTo(1.38, 3); expect(p.indexOf(Math.max(...p))).toBe(Math.floor(p.length / 2))
   })
 })

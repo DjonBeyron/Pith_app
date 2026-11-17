@@ -69,7 +69,7 @@ export default function WordLaneGame({ cfg, audioSrc, lines: rawLines = null, fo
   const hudChange = useCallback((open, why) => { setHudOpen(open); if (open) { if (!f.paused) f.pause('hud') } else if (why === 'stage' && f.paused) pause.resume() }, [f, pause]) // «Перезапустить ступень» — перезапуск из тапа; просто закрыли панель — пауза остаётся, окно «Продолжить» возвращается: игра идёт только по тапу (владелец 2026-11-17: сама снималась после диктовки в комментарии)
   const { phase } = f
   const plates = useWordLaneLeavingPlates(f.plate, f.idx, f.stageObj?.round?.look) // плашка остаётся в DOM на время ухода (улетает вверх, как пилюля): useWordLaneLeavingPlates.js
-  const speed = conveyorSpeedHint(f.stages, f.stage === 'run' ? f.idx : -1) // «Гонка с Питом»: скорость первой пилюли ближайшей стадии — пунктир набирает её заранее (wordLaneConveyorSpeed.js)
+  const speed = conveyorSpeedHint(f.stages, f.stage === 'run' ? f.idx : -1, !!f.rh.miaPlate?.started) // «Гонка с Питом»: скорость первой пилюли ближайшей стадии — пунктир набирает её заранее (wordLaneConveyorSpeed.js)
   const armed = useConveyorArm(f) // какие дорожки взведены: конвейер зажигается за 0,66 с до конца реплики Пита / плашки (wordLaneConveyorStart.js), остановку решает привод по пилюлям на дорожке
   const single = cfg.chunks.length === 1 && phase !== 'discern' && !cfg.plan // у одного слова текст стоит крупно — кроме «Различи»: там слова на пилюлях, а верное над дорожками не выдаём
   const showSlots = phase !== 'drop'
@@ -87,7 +87,7 @@ export default function WordLaneGame({ cfg, audioSrc, lines: rawLines = null, fo
   const laneTap = useCallback((lane, pt) => { const api = f.sceneApi.current; if (api?.trio && !api.trio(lane, pt)) return; f.onLane(lane, pt) }, [f.sceneApi, f.onLane]) // eslint-disable-line react-hooks/exhaustive-deps -- тройка: тап по чужой пилюле — ошибка (дрожь), по верной дорожке — слово засчитывается как обычно
 
   return createPortal(
-    <div ref={rootRef} className={safe0 ? 'wl wl--safe' : 'wl'} data-phase={phase} data-act={f.rh.on ? f.stageObj?.act : undefined} data-sid={f.rh.on ? f.stageObj?.sid : undefined} data-streak={f.rh.race?.streakMode} data-charge={cfg.plan?.game === 'race' && chargeOn(f) ? '' : undefined} data-race={race ? '' : undefined} data-mia={miaColorOn(f.rh.mia?.mia, f.stageObj, miaDropped) ? 'in' : undefined} data-tape={laneTape(f) ? '' : undefined} data-up={laneUp(f) ? '' : undefined} data-testid="wl">
+    <div ref={rootRef} className={safe0 ? 'wl wl--safe' : 'wl'} data-phase={phase} data-act={f.rh.on ? f.stageObj?.act : undefined} data-sid={f.rh.on ? f.stageObj?.sid : undefined} data-streak={f.rh.race?.streakMode} data-charge={cfg.plan?.game === 'race' && chargeOn(f) ? '' : undefined} data-race={race ? '' : undefined} data-mia={miaColorOn(f.rh.mia?.mia, f.stageObj, miaDropped, f.rh.miaPlate?.started) ? 'in' : undefined} data-tape={laneTape(f) ? '' : undefined} data-up={laneUp(f) ? '' : undefined} data-testid="wl">
       <div className="wlStage" data-tex={race && !lite ? '' : undefined}>
         <WordLaneCat apiRef={catApi} />
         <WordLanePills scene={f.scene} levels={f.levels} fx={f.fx} live={f.live} sceneApi={f.sceneApi} visible={showSlots} armed={armed} speed={speed} paused={f.paused} speedKey={f.stage === 'run' ? f.idx : -1} trio={trio} dodge={dodge} onLane={phase === 'order' || (phase === 'discern' && !f.stageObj?.speak) || ((tapMode || f.stageObj?.step?.tapOnly) && (phase === 'student' || f.stageObj?.speak)) ? laneTap : null} />

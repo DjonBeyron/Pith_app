@@ -14,6 +14,8 @@
 // Офсета между краем заливки, линией, светом и пузырями нет по построению. data-full — заливка дошла до 100 %: тело и клип пилюли цвета жидкости (зазора у засчитанной пилюли нет при любом округлении слоёв).
 // Размер ёмкости — замер при взятии; форма сменилась (обычная ↔ широкая) — перемер при первой заливке (при взятии замер идёт до записи размеров).
 // data-ring — «выдох» кольца: ставится ОДИН раз за выдачу пилюли, когда data-live появился впервые (начало заливки), и снимается в clean (take / give); после этого CSS-анимация кольца (0,75 с) не повторяется.
+import { startRiseXp, centerOf } from './wordLaneRiseXp.js'
+import { viewHeightPx } from './wordLaneWave.js'
 import { LANE_X, PILL_W, PILL_H, WIDE_W, WIDE_H } from './wordLaneTimeline.js'
 import { startFlight, flightPosition, mirrorY } from './wordLaneMotion.js'
 import { fillProfile } from './wordLaneTimeline.js'
@@ -193,10 +195,11 @@ export function createPool(root) {
      * Взлёт принятой пилюли: полёт вниз снимается (положение — по его часам), заливка доводится до края, через RISE_DELAY_MS пилюля улетает вверх (wordLaneRise.js); когда взлёт кончился — give.
      * Пилюля после этого вне логики конвейера (в игре ученика движок отпускает её из своих рук). Возвращает анимацию или null, если взлетать нечему (нет полёта, уже взлетела, не выдана).
      */
-    rise(k) {
+    rise(k, { xp = false } = {}) { // xp — верная пилюля летит в счётчик XP по синусоиде (wordLaneRiseXp.js), иначе — прямо вверх
       const l = live.get(k)
       if (!l?.anim || l.rise) return null
-      const a = startRise(parts[k].el, scr(l), RISE_DELAY_MS, RISE_END_Y) // верная улетает ВВЕРХ и в реверсе (замечание владельца v3.3.270)
+      const to = xp ? centerOf(root.closest?.('.wl')?.querySelector?.('.wlXp')) : null, r = to ? parts[k].el.getBoundingClientRect() : null
+      const a = to && r ? startRiseXp(parts[k].el, scr(l), (to.y / viewHeightPx()) * 100, to.x - (r.left + r.width / 2), RISE_DELAY_MS) : startRise(parts[k].el, scr(l), RISE_DELAY_MS, RISE_END_Y) // иначе верная улетает ВВЕРХ и в реверсе (замечание владельца v3.3.270)
       try { l.anim.cancel() } catch { /* уже снята */ }
       l.anim = null; l.rise = a
       parts[k].el.setAttribute('data-rise', '1')

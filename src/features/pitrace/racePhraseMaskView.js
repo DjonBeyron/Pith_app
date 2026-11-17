@@ -15,6 +15,8 @@ import { wordEdges } from './racePhraseFill.js'
 /** Ячейка слова: <b><i>слово</i></b> — текст в своём слое, чтобы его opacity не гасила кирпичик b::before. Её же строит просмотр записи стенда (pillStandSnap.js) */
 export function maskCell(doc, text) { const b = doc.createElement('b'), i = doc.createElement('i'); i.textContent = text; b.appendChild(i); return b }
 
+export const WRONG_SHOW_MS = 2400 // сколько держится зачёркнутое неверное слово
+
 export function mountMask(el, text) {
   const doc = el?.ownerDocument
   const box = doc?.createElement?.('span') ?? null
@@ -29,6 +31,8 @@ export function mountMask(el, text) {
   const inkHost = box?.cloneNode ? el.querySelector?.('.wlPillInkIn') : null, ink = inkHost ? box.cloneNode(true) : null, inkCells = ink ? [...ink.querySelectorAll('b')] : []
   if (ink) { ink.removeAttribute('data-testid'); inkHost.appendChild(ink) }
   let edges = null, dirty = true
+  let wrongEls = [], wrongTimer = 0, wrongAt = -1 // неверно сказанное слово над подсказкой: красное, зачёркнуто тонкой линией (v3.3.272)
+  const clearWrong = () => { clearTimeout(wrongTimer); wrongTimer = 0; wrongAt = -1; wrongEls.forEach(e => e.remove()); wrongEls = [] }
   doc?.fonts?.ready?.then?.(() => { dirty = true }, () => {})
   const measure = () => {
     const sp = el.querySelector?.('.wlPillSparks')?.getBoundingClientRect?.(), cl = el.querySelector?.('.wlPillClip')?.getBoundingClientRect?.()
@@ -40,6 +44,7 @@ export function mountMask(el, text) {
     edges() { if (dirty && box) { edges = measure(); dirty = !edges } return edges },
     /** heard — Map номер слова → подтверждено ли; all — показать всю фразу; peek — номер подсказываемого слова (-1 — нет). Меняется только data-w: текст и ширина ячеек постоянны */
     set(heard, all = false, peek = -1, miss = false) {
+      if (wrongAt >= 0 && heard?.has?.(wrongAt)) clearWrong() // ожидаемое слово сказано — зачёркнутое пропадает
       const next = maskPhrase(text, heard, all, peek, miss)
       next.forEach((w, i) => { const b = cells[i]; if (!b || w.state === words[i].state) return; b.setAttribute('data-w', w.state); inkCells[i]?.setAttribute('data-w', w.state) })
       words = next
@@ -50,7 +55,14 @@ export function mountMask(el, text) {
       if (!b?.style || b.peekV === v) return
       b.peekV = v; b.style.setProperty('--peek', v); inkCells[i]?.style.setProperty('--peek', v)
     },
+    /** Неверно сказанное слово word над словом index (ожидаемым): красным, зачёркнуто тонкой линией; снимается через WRONG_SHOW_MS, при новом неверном — заменяется, при сказанном index — сразу */
+    wrong(word, index) {
+      clearWrong(); const i = words.findIndex(w => w.index === index)
+      if (!doc || i < 0 || !word) return
+      for (const c of [cells[i], inkCells[i]]) { if (!c) continue; const e = doc.createElement('s'); e.className = 'racePhraseWrong'; e.textContent = word; c.appendChild(e); wrongEls.push(e) }
+      wrongAt = index; wrongTimer = setTimeout(clearWrong, WRONG_SHOW_MS)
+    },
     words: () => words,
-    remove() { box?.remove(); ink?.remove() },
+    remove() { clearWrong(); box?.remove(); ink?.remove() },
   }
 }

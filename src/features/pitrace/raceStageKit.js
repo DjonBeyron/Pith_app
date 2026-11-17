@@ -75,7 +75,7 @@ export function queueStages(kit, act, rep, o = {}) {
   const sid3 = `${act.id}3`
   announce(act, { sid: `${sid3}-intro`, kind: 'mia', title: 'Допрос у Мии', task: '', brief: 'Мия проверяет забытые слова', look: { cat: 'mia' }, line: null }) // плашка Мии (серая, кот Мия) перед церемонией (владелец 2026-11-17)
   Object.assign(kit.stages.at(-1), { mia: 'intro' })
-  announce(act, { sid: sid3, kind: 'mia', title: '', task: '', line: 'pit_forgot', ms: MIA_ANN_MS })
-  Object.assign(kit.stages.at(-1), { mia: 'ann', waitCap: MIA_WAIT_CAP_MS, ...(o.revBack ? { revBack: o.revBack } : {}) }) // revBack — после B: на церемонии пилюли разворачиваются снизу вниз, пока идут диалоги (raceReverseTurn, back)
+  announce(act, { sid: sid3, kind: 'mia', title: '', task: '', line: 'pit_forgot', ms: MIA_ANN_MS, look: { cat: 'mia' } })
+  Object.assign(kit.stages.at(-1), { mia: 'ann', miaPlate: { title: 'Допрос у Мии', brief: 'Мия проверяет забытые слова' }, waitCap: MIA_WAIT_CAP_MS, ...(o.revBack ? { revBack: o.revBack } : {}) }) // revBack — после B: на церемонии пилюли разворачиваются снизу вниз, пока идут диалоги (raceReverseTurn, back)
   push({ ...round(sid3, act.words, false), mia: 'round', fill: list => Object.assign(kit.stages.find(x => x.sid === sid3), round(sid3, list, false), { mia: 'round' }) })
 }
