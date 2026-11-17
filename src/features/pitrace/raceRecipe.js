@@ -38,7 +38,7 @@ export function buildRaceActs(plan, tap = readTapMode(), ru = ruReady()) {
   if (hasPhrases(phrases)) acts.push({ id: 'phrases', title: 'Конвейер ситуаций', brief: 'подбери фразу к ситуации', task: 'теперь фразы, сначала выбирай, потом говори', line: 'race_phrases', ...(tapA ? { brief: 'фраза к ситуации, потом смысл', task: 'теперь фразы, сначала выбирай фразу, потом её смысл', line: 'race_phrases_tap' } : {}), phrases }) // круги и их плашки — raceStagesPhrases.js
   if (climb.length) acts.push({ id: 'climb', title: 'Конвейер фраз', brief: 'фраза по слову, потом целиком', task: 'собираем фразу по слову, с каждым шагом длиннее', line: 'race_climb', words: climb, topLine: 'race_climb_top', timeLine: 'race_climb_time' })
   acts.push({ id: 'descent', title: 'Конвейер фраз', brief: 'теперь целиком и быстро', task: 'повтори всю фразу за мной на скорости', line: 'race_descent', parts: all, rate: DESCENT_RATE })
-  if (!tapA && words.length >= BOSS_MIN) acts.push({ id: 'boss', title: 'Шкала памяти', brief: 'слово, пока линия едет', task: 'финал, скажи слово по-английски, пока линия не ушла вниз', line: 'pit_forgot', words }) // финал проводит Мия (boss/raceStagesBoss.js); только голосом
+  if (!tapA && words.length >= BOSS_MIN) acts.push({ id: 'boss', title: 'Шкала памяти', brief: 'скажи слово, пока линия едет', task: 'финал, скажи слово по-английски, пока линия не ушла вниз', line: 'pit_forgot', words }) // финал проводит Мия (boss/raceStagesBoss.js); только голосом
   acts.push({ id: 'summary', title: 'Итог' })
   return { plan, acts: fromStage(pickRound(acts, plan.round), plan.startAt) } // plan.startAt — «начать с этапа» (отладка, raceStartStage.js)
 }

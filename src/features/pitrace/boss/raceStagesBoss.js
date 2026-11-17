@@ -14,6 +14,7 @@ export const BOSS_END_MS = 11000 // эпилог финала держится �
 export function bossStages(kit, act, o = {}) {
   const { push, announce, plan } = kit
   const words = act.words.map((w, idx) => ({ ...w, idx, lane: 1, speed: BOSS_SPEED }))
+  announce(act, { sid: 'boss-intro', brief: act.brief, look: { cat: 'mia' }, line: null }) // плашка финала «Шкала памяти» с мини-описанием, серая (кот Мия); дальше — церемония Мии без плашки (владелец 2026-11-17)
   announce(act, { sid: 'boss', title: '', task: '', line: null, ms: MIA_ANN_MS })
   Object.assign(kit.stages.at(-1), { mia: 'ann', always: true, waitCap: BOSS_WAIT_CAP_MS, script: 'boss', demoRun: true, dropAt: BOSS.DROP_AT, jumpAt: BOSS.JUMP }) // свой сценарий (boss_*): коробка падает почти сразу, Мия прыгает после реплик Пита и её из-за края
   // Блок слов: ru — пилюля с английским словом, ученик называет русское (русская модель Vosk), иначе пилюля с переводом, ученик называет английское слово; offset — номер первого слова блока в общем счёте (машина Мии)

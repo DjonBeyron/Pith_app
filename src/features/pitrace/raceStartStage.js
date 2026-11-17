@@ -62,7 +62,7 @@ export function startEntries(stages, acts, alt = {}) {
  */
 export function sliceFrom(stages, sid, seed) {
   const at = stages.findIndex(x => x.sid === sid)
-  if (sid === 'boss-ann' && at >= 0) bossFill(stages, initRace(), seed) // начать с финала: результатов нет — слова по семени (финал обычно уже первая стадия: акты до него выброшены)
+  if (['boss-intro-ann', 'boss-ann'].includes(sid) && at >= 0) bossFill(stages, initRace(), seed) // начать с финала: результатов нет — слова по семени (финал обычно уже первая стадия: акты до него выброшены)
   if (at <= 0) return at === 0 // уже первая (акты до неё выбросил рецепт) — резать нечего
   const act = stages[at].act
   const r1 = stages.find(x => x.type === 'student' && x.sid === act && ['sprint', 'catch'].includes(act))

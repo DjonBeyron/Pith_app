@@ -8,7 +8,7 @@ export default function RaceChargePlate({ title, task, brief = '', cap = '', out
   useEffect(() => { playPlate() }, [])
   const line = brief || task
   return (
-    <div className="wlTurn raceChargePlate" data-out={out || undefined} data-testid="race-charge-plate">
+    <div className="wlTurn raceChargePlate" data-cat="pit" data-out={out || undefined} data-testid="race-charge-plate">
       <span data-testid="race-charge-title">{title}</span>
       {line && <div className="wlTurnTask raceChargeBrief" data-testid="race-charge-task">{line}</div>}
       {cap && <div className="wlTurnCap" data-testid="race-charge-cap">{cap}</div>}

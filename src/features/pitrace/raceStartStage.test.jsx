@@ -25,7 +25,7 @@ describe('пункты «Начать с»', () => {
   it('из стадий полной гонки: второй круг, проход B, круги фраз, вершина, спуск, итог; первая стадия — это «с начала»', () => {
     const opts = startOptions(plan())
     expect(opts.map(o => o.label)).toEqual(LABELS)
-    expect(opts.map(o => o.sid)).toEqual(['sprint2-ann', 'sprint3-ann', 'catch-ann', 'catch2-ann', 'catch3-ann', 'phrases-ann', 'phrases2-ann', 'climb-ann', 'descent-ann', 'boss-ann', 'summary'])
+    expect(opts.map(o => o.sid)).toEqual(['sprint2-ann', 'sprint3-ann', 'catch-ann', 'catch2-ann', 'catch3-ann', 'phrases-ann', 'phrases2-ann', 'climb-ann', 'descent-ann', 'boss-intro-ann', 'summary'])
     expect(opts.map(o => actOfSid(o.sid))).toEqual(['sprint', 'sprint', 'catch', 'catch', 'catch', 'phrases', 'phrases', 'climb', 'descent', 'boss', 'summary'])
   })
   it('пункты — только этапы, которые есть у плана (нет этапа в рецепте — нет пункта); не гонка — пусто', () => {
@@ -47,7 +47,7 @@ describe('пункты «Начать с»', () => {
 describe('очередь стадий со старта с этапа', () => {
   const opts = startOptions(plan())
   for (const tap of [false, true]) {
-    for (const o of opts.filter(x => !(tap && x.sid === 'boss-ann'))) { // в «Тапаю» финала «Шкала памяти» нет
+    for (const o of opts.filter(x => !(tap && x.sid === 'boss-intro-ann'))) { // в «Тапаю» финала «Шкала памяти» нет
       it(`${tap ? 'пальцами' : 'голосом'}: «${o.label}» — первой идёт её плашка, предыдущих этапов нет`, () => {
         const p = withStart(plan(), o)
         const { stages } = buildRaceStages({ plan: p, tap, ru: true })

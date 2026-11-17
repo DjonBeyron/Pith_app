@@ -182,7 +182,7 @@ export function useRaceActs(args) {
   const nextIdx = useCallback(i => { // после круга 1 со слабыми словами вместо круга 2 — церемония Мии (miaRoute), стадии Мии вне эпизода обходит miaSkip
     if (!on) return baseNext(i)
     const r = climbTarget(stages, stages[i - 1], box.s) ?? extraTarget(stages, stages[i - 1], box.s[stages[i - 1]?.act], seed) ?? fillPhrases2(stages, stages[i - 1], box.s) ?? baseNext(i) // fillPhrases2: после круга 1 фраз — порядок круга 2 (слабые слова первыми)
-    if (stages[r]?.sid === 'boss-ann') bossFill(stages, box.s, seed) // финал: слабые слова этой игры вписаны перед входом (мало слов — финал пропускается, stage.empty)
+    if (['boss-intro-ann', 'boss-ann'].includes(stages[r]?.sid)) bossFill(stages, box.s, seed) // финал: слабые слова этой игры вписаны перед входом (мало слов — финал пропускается, stage.empty)
     const to = miaOn() ? miaRoute(stages, r, mb.m, seed) : -1
     return to >= 0 ? to : miaSkip(stages, r, mb.m, baseNext)
   }, [on, stages, box, baseNext, seed, mb])
