@@ -24,6 +24,7 @@ const EASE_IN = 'cubic-bezier(0.55, 0.085, 0.68, 0.53)'  // ускорение �
 /** Запуск разворота на пуле: pool — createPool, root — корень игры (.wl), fast — без вращения (слабое устройство / reduced-motion), back — назад (после B). → отмена (снимает таймеры, возвращает пилюли в пул). */
 export function runReverseTurn({ pool, root, fast = false, back = false, log = pLog, setTimer = setTimeout, clearTimer = clearTimeout }) {
   const startY = back ? mirrorY(ENTER_Y) : ENTER_Y, endY = startY // экранные высоты, % экрана: приезд и отъезд — через один и тот же край
+  const game = root?.closest?.('.wl') ?? root // data-up стоит на корне игры .wl (CSS узора: .wl[data-up]); root пула — его потомок (поле сцены)
   const ks = [0, 1, 2].map(lane => pool.take(lane, { flight: false, quiet: true })).filter(k => k != null)
   const els = ks.map(k => pool.el(k))
   const anims = [] // все WAAPI-анимации разворота: перед возвратом пилюли в пул снимаются (иначе fill: both держит её скрытой и повёрнутой)
@@ -41,7 +42,7 @@ export function runReverseTurn({ pool, root, fast = false, back = false, log = p
     els.forEach(el => put(el.animate([{ rotate: '0deg' }, { rotate: '180deg' }], { duration: fast ? 1 : REV_TURN_MS, easing: 'cubic-bezier(0.6, 0, 0.2, 1)', fill: 'both' })))
     log('[reverse] разворот на 180°')
   })
-  at(REV_ARRIVE_MS + REV_PAUSE_MS + Math.round(REV_TURN_MS / 2), () => { if (back) root?.removeAttribute('data-up'); else root?.setAttribute('data-up', ''); log(`[reverse] узор дорожек — ${back ? 'вниз' : 'вверх'}`) }) // середина поворота: направление узора меняется, пока конвейер стоит
+  at(REV_ARRIVE_MS + REV_PAUSE_MS + Math.round(REV_TURN_MS / 2), () => { if (back) game?.removeAttribute('data-up'); else game?.setAttribute('data-up', ''); log(`[reverse] узор дорожек — ${back ? 'вниз' : 'вверх'}`) }) // середина поворота: направление узора меняется, пока конвейер стоит
   at(REV_ARRIVE_MS + REV_PAUSE_MS + REV_TURN_MS, () => { // отъезд с ускорением; конвейер стартует так же (WARM_EVENT → разгон без зажигания)
     ks.forEach((k, i) => { put(els[i].animate([{ translate: flightPosition(MID_Y), opacity: 1 }, { translate: flightPosition(endY), opacity: 1, offset: 0.85 }, { translate: flightPosition(endY), opacity: 0 }], { duration: REV_LEAVE_MS, easing: EASE_IN, fill: 'both' })) })
     turn(root, 'warm')

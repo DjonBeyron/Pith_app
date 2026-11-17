@@ -16,5 +16,5 @@ export function laneTape(f) {
 export function laneUp(f) {
   if (!f?.rh?.on) return false
   const st = f.stage === 'run' ? f.stageObj : f.stage === 'paused' && f.from === 'run' ? f.stages?.[f.idx] : null
-  return !!st?.step?.reverse
+  return !!(st?.step?.reverse || st?.revBack || (st?.mia === 'intro' && st.act === 'catch')) // и плашка «Допрос у Мии» / церемония после B: конвейер ещё идёт вверх, пока разворот не поменяет его (raceReverseTurn, back)
 }

@@ -12,11 +12,12 @@ const browser = await chromium.launch({ executablePath: process.env.PW_CHROMIUM_
 const ctx = await browser.newContext({ viewport: { width: 375, height: 812 }, hasTouch: true, isMobile: true, permissions: ['microphone'] })
 await ctx.addInitScript(() => {
   localStorage.setItem('pithy_weak_device_v6', '0'); localStorage.setItem('pithy_debug', '1'); localStorage.setItem('pithy_debug_console', '1')
-  window.__s = []
+  window.__s = []; window.__m = []
+  new MutationObserver(ms => { for (const m of ms) if (m.attributeName === 'data-up') window.__m.push({ t: Math.round(performance.now()), v: m.target.getAttribute('data-up'), sid: m.target.dataset.sid }) }).observe(document, { attributes: true, subtree: true, attributeFilter: ['data-up'] })
   setInterval(() => {
     const wl = document.querySelector('[data-testid="wl"]')
     const pills = [...document.querySelectorAll('.wlPill[data-held]:not([data-rise]):not([data-fail]):not([data-coast])')], coast = document.querySelectorAll('.wlPill[data-coast]').length
-    window.__s.push({ t: Math.round(performance.now()), sid: wl?.dataset.sid ?? null, up: wl?.hasAttribute('data-up') ?? false, words: pills.filter(p => !p.hasAttribute('data-arrow')).length, arrows: pills.filter(p => p.hasAttribute('data-arrow')).length, coast, ry: parseFloat(document.querySelector('.wlLanes i')?.style.getPropertyValue('--run-y')) || 0, ay: (() => { const a = document.querySelector('.wlPill[data-arrow]'); return a ? Math.round(a.getBoundingClientRect().top) : null })(), plates: document.querySelectorAll('.wlTurn:not(.wlTurn--leave):not([data-out])').length })
+    window.__s.push({ t: Math.round(performance.now()), sid: wl?.dataset.sid ?? null, up: wl?.hasAttribute('data-up') ?? false, words: pills.filter(p => !p.hasAttribute('data-arrow')).length, arrows: pills.filter(p => p.hasAttribute('data-arrow')).length, coast, tr: getComputedStyle(document.querySelector('.wlLanes i'), '::before').transform.replace('matrix(', '').slice(0, 24), ry: parseFloat(document.querySelector('.wlLanes i')?.style.getPropertyValue('--run-y')) || 0, ay: (() => { const a = document.querySelector('.wlPill[data-arrow]'); return a ? Math.round(a.getBoundingClientRect().top) : null })(), plates: document.querySelectorAll('.wlTurn:not(.wlTurn--leave):not([data-out])').length })
   }, 80)
 })
 const page = await ctx.newPage()
@@ -45,6 +46,7 @@ while (Date.now() - t0 < SECS * 1000) {
 if (process.env.DBG) console.log(log.filter(l => /reverse|dodge/i.test(l.s)).slice(0, 40).map(l => l.s.slice(0, 200)).join('\n'))
 if (process.env.DUMP) { const { writeFileSync } = await import('node:fs'); writeFileSync(process.env.DUMP, log.map(l => `${l.t - t0} ${l.s}`).join('\n')) }
 const S = await page.evaluate(() => window.__s)
+if (process.env.TRACE) console.log('data-up изменения:', JSON.stringify(await page.evaluate(() => window.__m)))
 await ctx.close(); await browser.close()
 
 const bad = []
@@ -69,7 +71,7 @@ if (process.env.FAIL === '2') { // Мия после B: стрелки втор�
   if (!back.length) bad.push('Мия после B: стрелок на церемонии нет'); if (m3.some(s => s.up)) bad.push('Мия после B: круг Мии идёт вверх (data-up)')
   const pl = S.find(s => s.sid === 'catch3-intro-ann' && s.plates); if (!pl) bad.push('Мия после B: плашки «Допрос у Мии» нет')
 }
-if (process.env.TRACE) { const g = S.findIndex(x => x.arrows > 0); console.log('t(мс от выезда) | пилюля top | сдвиг узора --run-y'); for (let i = Math.max(0, g - 6); i < Math.min(S.length, g + 60); i += 2) console.log(`${S[i].t - S[g].t} | ${S[i].ay} | ${S[i].ry} ${S[i].up ? 'up' : ''}`) }
+if (process.env.TRACE) { const g = S.findIndex(x => x.arrows > 0); console.log('t(мс от выезда) | пилюля top | сдвиг узора --run-y'); for (let i = Math.max(0, g - 6); i < Math.min(S.length, g + 60); i += 2) console.log(`${S[i].t - S[g].t} | ${S[i].ay} | ${S[i].ry} ${S[i].up ? 'up' : ''} ${S[i].tr}`) }
 const sids = []; for (const s of S) if (s.sid !== sids.at(-1)?.sid) sids.push({ sid: s.sid, t: s.t })
 console.log('стадии:', sids.map(x => `${x.sid}@${x.t}`).join(' '))
 const real = bad.filter(x => !x.startsWith('ИНФО'))

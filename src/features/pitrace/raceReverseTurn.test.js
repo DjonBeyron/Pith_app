@@ -43,6 +43,11 @@ describe('разворот в реверс', () => {
     expect(r.els[0].animations[2].o.duration).toBe(REV_LEAVE_MS); expect(r.els[0].animations[2].frames.at(-1).translate).toContain('-14.000dvh') // уезжают вверх, за тот же край, откуда приехали
     r.timers[T.end].fn(); expect(r.events.at(-1)).toBe('resume'); expect(r.calls.filter(c => c[0] === 'give').map(c => c[1])).toEqual([0, 1, 2]); expect(r.els.every(e => e.animations.every(a => a.cancel.mock.calls.length === 1))).toBe(true) // анимации сняты до возврата в пул
   })
+  it('data-up ставится на корень игры .wl (root.closest), а не на поле сцены — иначе CSS .wl[data-up] не сработает и узор идёт в прежнюю сторону', () => {
+    const r = rig(); const host = { attrs: {}, setAttribute(n, v) { this.attrs[n] = v }, removeAttribute(n) { delete this.attrs[n] } }
+    r.root.closest = sel => (sel === '.wl' ? host : null); r.run(); r.timers[T.flip].fn()
+    expect(host.attrs['data-up']).toBe(''); expect(r.root.attrs['data-up']).toBeUndefined()
+  })
   it('быстрый режим (слабое устройство / reduced-motion): поворот без вращения (1 мс)', () => {
     const r = rig(); r.run({ fast: true }); r.timers[T.rotate].fn()
     expect(r.els[0].animations[1].o.duration).toBe(1)
