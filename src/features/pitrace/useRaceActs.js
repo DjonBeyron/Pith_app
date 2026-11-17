@@ -31,7 +31,7 @@ import { createMiaSpeech, GAP_MS } from './mia/miaSpeech.js'
 import { audioPulse } from '../../shared/lib/gameAudioPulse.js'
 import { useMiaEnter } from './mia/useMiaEnter.js'
 import { miaAfterPass, miaSkip } from './mia/miaRound.js'
-import { afterLeaveSpeech } from './mia/miaLeave.js'; import { revBack } from './raceReverseTurn.js'
+import { afterLeaveSpeech } from './mia/miaLeave.js'; import { revBack } from './raceReverseTurn.js'; import { createLeadTimer, bossLeadMs } from './boss/bossLead.js'
 import { bossFill } from './boss/bossWords.js'
 import { DEMO_START, DEMO_IDS, demoPlan } from './boss/bossScale.js'
 import { playWordSlot, hasWordSlot, wordBufferMs } from '../player/modules/rotate-phone/wordLaneClips.js'
@@ -95,8 +95,8 @@ export function useRaceActs(args) {
   const [ru] = useState(createRuJournal) // проход B на русской модели: одна строка журнала «[ru] …» на слово (raceRuLog.js)
   const ruLog = (rep, result, level) => { const w = running?.words?.[rep?.idx], line = ru.finish({ idx: rep?.idx, word: w?.text, expected: w?.translation, said: listenerRef?.current?.said?.(), level, result }); if (line) pLog(line) }
   const ruOn = running?.act === 'catch' && running?.step?.lang === 'ru'
-  const [surface] = useState(() => createSurfaceWait({ log: pLog })) // «Говорю»: слово следующей пилюли ждёт, пока Пит вынырнет / допрыгнет на её дорожку (raceDiveWait.js)
-  useEffect(() => () => surface.cancel(), [running, surface])
+  const [lead] = useState(() => createLeadTimer()); const [surface] = useState(() => createSurfaceWait({ log: pLog })) // «Говорю»: слово следующей пилюли ждёт, пока Пит вынырнет / допрыгнет на её дорожку (raceDiveWait.js)
+  useEffect(() => () => { surface.cancel(); lead.cancel() }, [running, surface, lead])
   const trapRef = useRef(() => {}) // отмена недосказанной подсказки про двойника (стадия сменилась, выход)
   useEffect(() => () => trapRef.current(), [])
 
@@ -209,7 +209,7 @@ export function useRaceActs(args) {
     exitMs: st => (st?.act === 'phrases' ? PHRASE_EXIT_MS : st?.type === 'student' && stages[(st.idx ?? -9) + 1]?.act === 'phrases' ? PHRASE_ENTER_MS : miaComesNext(st) ? MIA.EXIT_MS : undefined), // перед церемонией Мии пауза короче: тишина между кругами и падение коробки тянулись слишком долго (владелец 2026-11-15); // круг фраз кончился: до следующей стадии PHRASE_EXIT_MS, а не 1,3 с (Пит уже договорил итог хода)
     plate: st => (st?.rev ? '' : plateText(st, plateCaption(lines, st?.line))), // неозвученная реплика стадии — подписью на плашке (raceSilentLine.js)
     /** Слово прохода A / B принято (раньше, чем щёлкнет заливка): время ответа ms (от выезда пилюли) и y (положение пилюли, % высоты: ниже LATE_Y — ответ «в последний момент») — в результаты, и для точности слова (raceAccuracy.js) — окно жизни пилюли по её скорости, заливка голосом в миг зачёта, тап ли это; Пит говорит мини-реплику успеха, следующая пилюля ждёт его */
-    claim(rep, ms, y) { if (!running) return; tr.last(); if (ruOn) ruLog(rep, 'claim', rep?.pills?.[0]?.p); praiseRef.current = null; apply({ t: 'claim', stage: running, info: { idx: rep?.idx, ms, late: isLate(y), life: pillLifeMs(rep?.speed), fill: rep?.pills?.[0]?.p, tap: !!running.step?.tapOnly } }); speech.claim(praiseRef.current); praiseRef.current = null },
+    claim(rep, ms, y) { if (!running) return; lead.cancel(); tr.last(); if (ruOn) ruLog(rep, 'claim', rep?.pills?.[0]?.p); praiseRef.current = null; apply({ t: 'claim', stage: running, info: { idx: rep?.idx, ms, late: isLate(y), life: pillLifeMs(rep?.speed), fill: rep?.pills?.[0]?.p, tap: !!running.step?.tapOnly } }); speech.claim(praiseRef.current); praiseRef.current = null },
     /** Перед выездом пилюли (движок: событие 'pre'): в «Разгоне» Пит говорит русский перевод слова из библиотеки (raceTrans.js), в «Слушай и лови» — английское слово (rep.say, библиотека слов); озвучки нет — молча, пилюля выезжает сразу.
      *  Пилюля ждёт, пока он договорит (pitLeft) */
     pre(rep, e) {
@@ -218,16 +218,16 @@ export function useRaceActs(args) {
       if (ruOn) { listenerRef?.current?.resetSaid?.(); ru.start(rep?.idx) } // новое слово прохода B: журнал слушает его с чистого листа
       const said = rep?.say ?? rep?.cap // проход A: Пит говорит перевод (rep.say); надпись пилюли (rep.cap) в тапе английская — её не озвучиваем (v3.3.127)
       const act = running?.act
-      surface.run(e?.wait, () => { // e.wait — «Говорю»: Пит ещё ныряет / прыгает к дорожке этой пилюли; слово — когда он на месте (одна точка ожидания, журнал «[dodge] речь ждала…»)
+      surface.run(e?.wait, () => lead.run(bossLeadMs(act, rep?.speed), () => { // финал: слово после выезда пилюли (bossLead.js) // e.wait — «Говорю»: Пит ещё ныряет / прыгает к дорожке этой пилюли; слово — когда он на месте (одна точка ожидания, журнал «[dodge] речь ждала…»)
         if ((act === 'sprint' || (act === 'boss' && running?.step?.lang !== 'ru')) && said) speakTranslation(speech, o => sayRef.current.sayText?.(said, { ru: true, ...o }))
         else if ((act === 'catch' || act === 'boss') && rep?.say) speakTranslation(speech, o => sayRef.current.sayText?.(rep.say, { hold: true, ...o }))
         else speech.translation(0) // говорить нечего: пилюля выезжает сразу
-      })
+      }))
     },
     /** Пилюля выехала (движок: 'spawn'): первая после перехода закрывает строку журнала «[start] переход …» */
     spawn: () => tr.pill(),
     /** Пит ещё занят (мс): секвенсор запрещает перевод до отступа после похвалы (LOCK_MS), иначе — реплики и перевод (cat.busyLeft) */
-    pitLeft: () => Math.max(speech.holdMs(), pitBusy(), surface.pending() ? LOCK_MS : 0, phr.left()), // идёт переключение слуха или Пит ещё выныривает к слову — пилюли тоже ждут
+    pitLeft: () => (leftByWin ? LOCK_MS : Math.max(speech.holdMs(), pitBusy(), surface.pending() ? LOCK_MS : 0, phr.left())), // Мия ушла по трём верным — следующее слово круга не выезжает и не озвучивается (Пит говорил «meet» между репликами ухода, v3.3.270): директор идёт к следующему этапу; // идёт переключение слуха или Пит ещё выныривает к слову — пилюли тоже ждут
     rec(kind, info) {
       rh.rec(kind, info); if (on) tr.last()
       if (!running) return

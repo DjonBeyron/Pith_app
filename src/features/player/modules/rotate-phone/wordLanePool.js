@@ -196,7 +196,7 @@ export function createPool(root) {
     rise(k) {
       const l = live.get(k)
       if (!l?.anim || l.rise) return null
-      const a = startRise(parts[k].el, scr(l), RISE_DELAY_MS, l.up ? mirrorY(RISE_END_Y) : RISE_END_Y)
+      const a = startRise(parts[k].el, scr(l), RISE_DELAY_MS, RISE_END_Y) // верная улетает ВВЕРХ и в реверсе (замечание владельца v3.3.270)
       try { l.anim.cancel() } catch { /* уже снята */ }
       l.anim = null; l.rise = a
       parts[k].el.setAttribute('data-rise', '1')

@@ -2,7 +2,7 @@
 import { describe, it, expect, vi } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { miaColorOn } from './mia/miaTint.js'
-import { runReverseTurn, revBack, TURN_EVENT, REV_MS, REV_ARRIVE_MS, REV_PAUSE_MS, REV_TURN_MS, REV_LEAVE_MS } from './raceReverseTurn.js'
+import { runReverseTurn, revBack, TURN_EVENT, REV_MS, REV_ARRIVE_MS, REV_PAUSE_MS, REV_TURN_MS, REV_LEAVE_MS, REV_BACK_LEAD_MS } from './raceReverseTurn.js'
 import { DECEL_MS } from '../player/modules/rotate-phone/wordLaneConveyor.js'
 import { afterLeaveSpeech, LEAVE_MAX_POLLS } from './mia/miaLeave.js'
 
@@ -61,7 +61,11 @@ describe('разворот назад (церемония Мии после B)',
     const f0 = r.els[0].animations[0].frames; expect(f0[0].translate).toContain('114.000dvh'); expect(f0[1].translate).toContain('50.000dvh') // снизу (100 − (−14)) в центр
     r.timers[T.rotate].fn(); r.timers[T.flip].fn(); expect(r.root.attrs['data-up']).toBeUndefined() // конвейер вниз
     r.timers[T.leave].fn(); expect(r.els[0].animations[2].frames.at(-1).translate).toContain('114.000dvh') // отъезд вниз
-    expect(revBack.busy).toBe(true); r.timers[T.end].fn(); expect(revBack.busy).toBe(false)
+    expect(revBack.busy).toBe(false) // три ноты церемонии идут на отъезде пилюль, а не после него (после диалогов Мии не должно быть тишины)
+    r.timers[T.end].fn(); expect(revBack.busy).toBe(false)
+  })
+  it('разворот назад стартует за REV_BACK_LEAD_MS до конца диалогов: к последним словам Мии пилюли уже развернулись', () => {
+    expect(REV_BACK_LEAD_MS).toBe(REV_ARRIVE_MS + REV_PAUSE_MS + REV_TURN_MS)
   })
   it('цвета Мии на церемонии после B — с момента падения коробки (revBack), на обычной церемонии — с круга', () => {
     const m = { phase: 'in', fast: false }

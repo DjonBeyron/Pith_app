@@ -157,12 +157,14 @@ export function stepStudent(g, t, { level = 0, seq = [], misses = 0, confirmed =
   const newHits = Math.max(0, seq.length - g.seenSeq)
   const fresh = seq.slice(g.seenSeq)
   g.seenSeq = Math.max(g.seenSeq, seq.length)
+  let claimedNow = false // в этом кадре слово принято: остаток той же реплики («[unk] помнить» — шум и слово вместе) не считается промахом (Мия говорила «мимо» на верный ответ, v3.3.270)
   for (const heard of fresh.slice(0, newHits)) {
     const rep = target?.state === 'fly' && target.target === heard && !target.trap ? target : null // пилюля-ловушка («Слушай и лови»: чужой перевод) слова не принимает
     if (!rep) {
       if (target?.state === 'fly') { if (target.trap) target.believed = true; events.push({ type: 'miss', rep: target, wrong: true }); target.drain = true } else events.push({ type: 'late' })
       continue
     }
+    claimedNow = true
     rep.state = 'lock'; rep.lockAt = t; rep.drain = false; rep.note = g.claimed % 3; g.claimed += 1
     if (tail) g.spentTail = tail                          // хвост принятого повтора следующему не достаётся
     let j = 0
@@ -173,7 +175,7 @@ export function stepStudent(g, t, { level = 0, seq = [], misses = 0, confirmed =
   }
   const newMisses = Math.max(0, misses - g.seenMisses)
   g.seenMisses = Math.max(g.seenMisses, misses)
-  if (newMisses > 0) {
+  if (newMisses > 0 && !claimedNow) {
     const c = target?.state === 'fly' ? target : null
     if (c) c.drain = true
     events.push({ type: 'miss', rep: c })

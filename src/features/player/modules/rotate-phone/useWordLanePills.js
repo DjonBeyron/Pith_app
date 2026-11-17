@@ -11,7 +11,7 @@ import { runMirrorScene } from './wordLaneMirrorScene.js'
 import { trioStep, shiftMs } from '../../../pitrace/raceTapTrio.js'
 import { createDodgeDrive } from '../../../pitrace/raceDodgeDrive.js'
 import { createDodgeUp } from '../../../pitrace/raceDodgeUp.js'
-import { runReverseTurn, revBack } from '../../../pitrace/raceReverseTurn.js'
+import { runReverseTurn, revBack, REV_BACK_LEAD_MS } from '../../../pitrace/raceReverseTurn.js'
 import { isWeakDevice } from '../../../../shared/lib/deviceTier.js'
 import { runPhraseScene } from '../../../pitrace/racePhraseScene.js'
 import { logTrioTap } from '../../../pitrace/raceTapTrioLog.js'
@@ -63,7 +63,7 @@ export function useWordLanePills(rootRef, { scene, levels, fx, live, sceneApi, t
       if (back) revBack.busy = true // три ноты церемонии ждут конца разворота (useRaceActs.countWait)
       const go = () => {
         const tail = pool.tail?.()
-        if (back ? performance.now() - t0 < 1500 || (fxRef.current?.pitBusy?.() ?? 0) > 0 : tail != null && tail < 30 && performance.now() - t0 < wait + 800) { timer = setTimeout(go, back ? 100 : 60); return } // назад — почти в самом конце диалогов Мии и Пита; вперёд — доезжающая пилюля прошлой ступени не мешает (не дольше 0,8 с)
+        if (back ? performance.now() - t0 < 300 || (fxRef.current?.pitBusy?.() ?? 0) > REV_BACK_LEAD_MS : tail != null && tail < 30 && performance.now() - t0 < wait + 800) { timer = setTimeout(go, back ? 100 : 60); return } // назад — за REV_BACK_LEAD_MS до конца диалогов Мии и Пита (пилюли приезжают и разворачиваются под её последнюю реплику, после неё нет тишины, владелец v3.3.270); вперёд — доезжающая пилюля прошлой ступени не мешает (не дольше 0,8 с)
         stop = runReverseTurn({ pool, root, fast, back })
       }
       timer = setTimeout(go, wait)

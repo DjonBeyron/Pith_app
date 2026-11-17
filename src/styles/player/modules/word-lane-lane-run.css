@@ -66,5 +66,6 @@
   -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 var(--run-fade));
   mask-image: linear-gradient(to bottom, transparent 0, #000 var(--run-fade));
 }
-/* Обратный конвейер (data-up на корне игры, wordLaneTape.laneUp; проход B «Конвейера слов»): узор дорожек бежит вверх — слой отражён по вертикали вокруг своего центра, сдвиг --run-y идёт в обратную сторону (отражённый слой покрывает ту же высоту: top −P … bottom 0 → тот же отрезок) */
-.wl[data-up] .wlLanes i::before { transform: scaleY(-1) translate3d(0, var(--run-y, 0px), 0); }
+/* Обратный конвейер (data-up на .wl, wordLaneTape.laneUp; проход B «Конвейера слов» и разворот перед ним): узор дорожек бежит вверх — сдвиг идёт в обратную сторону: P − y (узор периодичен, слой лежит на отрезке top −P … bottom 0, сдвиг P − y ∈ (0, P] всегда оставляет его покрытым).
+   Раньше слой отражали scaleY(−1) и сдвигали на y — при y > 0 внизу открывалась полоса без узора, и узор «пропадал» (замечание владельца v3.3.270). */
+.wl[data-up] .wlLanes i::before { transform: translate3d(0, calc(var(--run-p, 0px) - var(--run-y, 0px)), 0); }
