@@ -1,5 +1,5 @@
 import { rngFor, rngShuffle } from '../../rehearsal/rehearsalSeed.js'
-import { ROUND2_STEP } from '../raceExtraRound.js'
+import { ROUND2_STEP, round2Words } from '../raceExtraRound.js'
 
 // Маршрут эпизода «Мия» по стадиям (чистые функции без React): круг с Мией берёт слова дополнительного круга (слабые + добор, raceExtraRound) в новом порядке и ЗАМЕНЯЕТ его: когда директор
 // шёл бы на плашку круга 2 (`${act}2-ann`), miaRoute ведёт его на церемонию `${act}3-ann` (один раз за игру); сами стадии Мии, когда Мия не «в игре», обходит nextIdx (miaSkip). Случайность — от семени плана.
@@ -12,19 +12,20 @@ export function miaWords(words, seed, act) {
   return rngShuffle(rngFor(seed, `race-mia-${act}`), list).map((w, idx) => ({ ...w, idx, lane: idx % 3, speed: +(base * ROUND2_STEP ** idx).toFixed(4) }))
 }
 
-/** Вписать слова в круг с Мией прохода act (stage.fill) → номер стадии-церемонии или -1, если эпизода в списке нет (старый план, акт без проходов) */
-export function miaTarget(stages, act, seed) {
-  const ann = stages.findIndex(x => x.sid === `${act}3-ann`), r2 = stages.find(x => x.sid === `${act}2`), r3 = stages.find(x => x.sid === `${act}3`)
-  if (ann < 0 || !r2 || !r3) return -1
-  r3.fill?.(miaWords(r2.words, seed, act))
+/**
+ * После круга прохода (sprint / catch, ступень ученика sid === act): слабых слов две и больше и Мия в этой игре ещё не была — номер стадии-церемонии `${act}3-ann` (слова круга вписаны: слабые + добор, перемешаны, miaWords); иначе -1
+ * (идёт обычный порядок: после A — разворот в реверс, после B — следующий этап; стадии Мии обходит miaSkip). Мия — один раз за игру, после A или после B (владелец 2026-11-17); дополнительного круга от Пита нет.
+ * stages — список стадий, cur — только что законченная стадия, pass — состояние прохода (s.sprint / s.catch: { results }), m — машина Мии (m.used).
+ */
+export function miaAfterPass(stages, cur, pass, seed, m) {
+  if (!['sprint', 'catch'].includes(cur?.act) || cur.type !== 'student' || cur.sid !== cur.act || !pass) return -1
+  if (Object.values(m?.used ?? {}).some(Boolean)) return -1
+  const ann = stages.findIndex(x => x.sid === `${cur.act}3-ann`), round = stages.find(x => x.sid === `${cur.act}3`)
+  if (ann < 0 || !round) return -1
+  const words = round2Words(cur.words, pass.results, seed, cur.act === 'sprint' ? 'race-sprint-2' : 'race-catch-2', cur.standby)
+  if (!words.length) return -1
+  round.fill?.(miaWords(words, seed, cur.act))
   return ann
-}
-
-/** Директор шёл на r: если это плашка дополнительного круга (…2-ann) и Мия в этой игре ещё не была — вместо неё церемония Мии (слова круга вписаны); иначе -1 (идём как шли) */
-export function miaRoute(stages, r, m, seed) {
-  const act = /^(sprint|catch)2-ann$/.exec(stages[r]?.sid ?? '')?.[1]
-  const was = Object.values(m?.used ?? {}).some(Boolean) // Мия попадается один раз за игру (владелец 2026-11-14): во втором проходе — обычный круг 2
-  return act && !was ? miaTarget(stages, act, seed) : -1
 }
 
 /** Можно ли сейчас идти на стадию Мии st: церемония / круг разрешены, пока машина Мии этого прохода в игре (фаза 'in') */

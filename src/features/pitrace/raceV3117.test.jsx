@@ -29,7 +29,7 @@ describe('плашки гонки', () => {
     for (const a of acts) { expect(a.brief.split(/\s+/).length).toBeGreaterThanOrEqual(3); expect(a.brief.split(/\s+/).length).toBeLessThanOrEqual(5); expect(a.task.split(/\s+/).length).toBeGreaterThan(5) }
     expect(acts.find(a => a.id === 'sprint').brief).toBe('переводи всё, что услышишь'); expect(acts.find(a => a.id === 'catch').brief).toBe('теперь переводи на русский'); expect(acts.find(a => a.id === 'sprint').title).toBe('Конвейер слов'); expect(acts.find(a => a.id === 'catch').title).toBe('Конвейер слов') // проходы A и B — один этап
     const ann = stages.filter(s => s.type === 'announce' && s.round.brief)
-    expect(ann.length).toBeGreaterThanOrEqual(3); expect(stages.find(s => s.sid === 'catch-ann').round.title).toBe(''); expect(stages.find(s => s.sid === 'climb-top').round.brief).toBeUndefined(); expect(stages.find(s => s.sid === 'sprint2-ann').round.brief).toBeUndefined()
+    expect(ann.length).toBeGreaterThanOrEqual(3); expect(stages.find(s => s.sid === 'catch-ann').round.title).toBe('Конвейер слов'); expect(stages.find(s => s.sid === 'climb-top').round.brief).toBeUndefined(); expect(stages.find(s => s.sid === 'sprint3-ann').round.brief).toBeUndefined()
   })
   it('плашка заставки: название и brief, без барРеф-морфа; уход — data-out', () => {
     const h = renderToStaticMarkup(createElement(RaceChargePlate, { title: 'Разгон', task: 'длинное задание из многих слов подряд для Пита', brief: 'скажи слово по переводу' }))
@@ -38,12 +38,12 @@ describe('плашки гонки', () => {
     const src = read('./RaceChargePlate.jsx'); expect(src).not.toContain('animate('); expect(src).not.toContain('clip-path'); expect(src).not.toContain('MORPH')
   })
   it('плашка появляется РАНЬШЕ: сразу с началом речи Пита (plateAt), до бара и морфа; стоит до plateEnd', () => {
-    const withPlate = stages.map(s => (s.sid === 'catch-ann' ? { ...s, charge: true, round: { ...s.round, title: 'Пинг-понг', task: 'задание', brief: 'скажи слово' } } : s)) // морф в плашку — ветка 'stage' (в игре с v3.3.118 проход B объявляется без плашки)
+    const withPlate = stages // проход B после разворота: плашка этапа с флагом charge — морф в плашку (ветка 'stage')
     const i = stages.findIndex(s => s.sid === 'catch-ann'), p = roundPlan({ plan, stages: withPlate, i, lines: null, rate: 1 })
     expect(p.o.plateAt).toBeLessThan(p.o.morphAt); expect(p.o.plateAt).toBeLessThan(500); expect(p.o.plateEnd).toBeGreaterThan(p.o.morphAt); expect(p.round.brief).toBeTruthy()
     const o = openingPlan(plan, null, 1); expect(o.stageAt + o.lineAt).toBeLessThan(o.morphAt)
     expect(o.plateAt).toBe(o.stageAt + o.lineAt); expect(read('./RaceCharge.jsx')).toContain('return { o,') // plateAt считает openingPlan (у игры без вступления — сразу)
-    expect(roundPlan({ plan, stages, i: stages.findIndex(s => s.sid === 'sprint2-ann'), lines: null, rate: 1 }).o.plateAt).toBe(Infinity)
+    expect(roundPlan({ plan, stages, i: stages.findIndex(s => s.sid === 'sprint3-ann'), lines: null, rate: 1 }).o.plateAt).toBe(Infinity)
   })
   it('CSS: плашка выше пилюль и бара, рамка 1 px, wobble при появлении, уход scale 0,9 + opacity за 200 мс, без полёта', () => {
     const ch = strip(css('race-charge.css')), pl = strip(css('race-plate.css'))

@@ -49,26 +49,25 @@ describe('useRaceActs: директор гонки поверх директор
     expect(sayLine.mock.calls.length).toBeGreaterThanOrEqual(2)
     expect(sayLine.mock.calls.map(c => c[0]).some(x => /streak|fire/.test(x))).toBe(false) // победа слов серию голосом не объявляет
   })
-  it('разгон: второй круг — после первого с ошибкой директор идёт на объявление второго (слова вписаны), без ошибок — мимо него', () => {
+  it('разгон: после прохода с двумя слабыми словами директор идёт на церемонию Мии (слова вписаны), без ошибок — на разворот в реверс; дополнительного круга от Пита нет', () => {
     const { rh, stages } = probe('sprint')
     const i1 = stages.findIndex(s => s.sid === 'sprint')
     for (let i = 0; i < stages[i1].words.length; i++) rh.rec('win', { idx: i })
     const clean = rh.nextIdx(i1 + 1)
-    expect(stages[clean].act).toBe('catch') // ошибок не было — второго круга нет
+    expect(stages[clean].act).toBe('catch'); expect(stages[clean].sid).toBe('catch-rev') // ошибок не было — разворот в реверс (проход B)
     const bad = probe('sprint')
-    bad.rh.rec('fail', { idx: 0 })
+    bad.rh.rec('fail', { idx: 0 }); bad.rh.rec('fail', { idx: 1 })
     const go = bad.rh.nextIdx(i1 + 1)
     expect(bad.stages[go].sid).toBe('sprint3-ann') // эпизод «Мия» (v3.3.234): вместо плашки обычного круга 2 — церемония Мии, слова круга те же
     expect(bad.stages[go + 1].sid).toBe('sprint3'); expect(bad.stages[go + 1].words.length).toBeGreaterThanOrEqual(2)
     expect(bad.stages[go + 1].words.some(w => w.text === bad.stages[i1].words[0].text)).toBe(true)
-    expect(bad.stages.find(s => s.sid === 'sprint2').words.length).toBeGreaterThanOrEqual(2) // слова круга 2 вписаны (из них собран круг Мии)
   })
-  it('разгон: эпизод «Мия» выключен (pithy_race_mia_v1 = 0) — после ошибки идёт обычный круг 2 с «повысим скорость»', () => {
+  it('разгон: эпизод «Мия» выключен (pithy_race_mia_v1 = 0) — после ошибок идёт разворот в реверс, как без ошибок (дополнительного круга нет)', () => {
     vi.stubGlobal('localStorage', { getItem: k => (k === 'pithy_race_mia_v1' ? '0' : null) })
     try {
       const { rh, stages } = probe('sprint'), i1 = stages.findIndex(s => s.sid === 'sprint')
-      rh.rec('fail', { idx: 0 })
-      expect(stages[rh.nextIdx(i1 + 1)].sid).toBe('sprint2-ann')
+      rh.rec('fail', { idx: 0 }); rh.rec('fail', { idx: 1 })
+      expect(stages[rh.nextIdx(i1 + 1)].sid).toBe('catch-rev')
     } finally { vi.unstubAllGlobals() }
   })
   it('на «не успел» директор игры реплик не говорит (failLine пуст): «ой, соскользнул» «Вершины» и «мимо» слуха говорит редюсер', () => {
@@ -90,7 +89,7 @@ describe('useRaceActs: директор гонки поверх директор
     expect(ct.sayText).toHaveBeenCalledWith('learn', expect.objectContaining({ hold: true }))
     const none = probe('catch'); none.rh.pre({ cap: 'x' }); expect(none.sayText).not.toHaveBeenCalled()
   })
-  it('слушай и лови: после первого круга с ошибкой директор идёт на объявление второго (catch2-ann, слова вписаны), без ошибок — мимо него; ловушка, на которую не поддался, ошибкой не считается', () => {
+  it('слушай и лови: после прохода с ошибками директор идёт на церемонию Мии (catch3-ann, слова вписаны), без ошибок — мимо него; ловушка, на которую не поддался, ошибкой не считается', () => {
     const { rh, stages } = probe('catch')
     const i1 = stages.findIndex(s => s.sid === 'catch'), st = stages[i1]
     st.words.forEach((w, i) => rh.rec(w.trap ? 'fail' : 'win', { idx: i })) // верные пилюли — слово сказано, ловушки уехали («не успел» = пропущена) — всё верно

@@ -1,9 +1,8 @@
 // «Начать с этапа» для админа (CONCEPT_RACE.md, «Отладка»): на плашке «Голосом / Пальцами» при включённой отладке (тумблер «Отладочный интерфейс» app_settings.player_debug_ui или pithy_wl_debug_v1 = '1') — выбор, с какого этапа начать.
 // Тот же механизм, что у стенда ?only=… (raceOnly.pickRound): акты до этапа выбрасываются (fromStage, raceRecipe.js), стадии внутри первого акта — до плашки этапа (sliceFrom, raceStages.js); состояние раундов — нейтральное (raceState.initRace).
 // Пункты списка (startEntries) — из самих стадий: плашки этапов и кругов (sid …-ann) и итог, подписи — названия актов и плашек кругов. plan.startAt — sid плашки, plan.debugStart — итог не пишет память и XP (raceSim.js, raceMemory.memoryOn).
-import { extraTarget } from './raceExtraRound.js'
 import { RACE_TITLES } from './raceOnly.js'
-import { miaTarget } from './mia/miaRound.js'
+import { miaAfterPass } from './mia/miaRound.js'
 import { bossFill } from './boss/bossWords.js'
 import { initRace } from './raceState.js'
 
@@ -58,7 +57,7 @@ export function startEntries(stages, acts, alt = {}) {
 
 /**
  * Обрезать стадии (на месте — методы fill ищут свою стадию в этом же массиве) так, чтобы первой шла плашка sid; перед ней остаётся переключение слуха на русскую модель того же акта (проход B голосом).
- * Второй круг прохода: слова вписываются, как будто в первом круге все слова слабые (нейтральные результаты — raceExtraRound.extraTarget). → true — плашка первая (обрезано или уже была первой), false — такой нет.
+ * Круг Мии: слова вписываются, как будто в проходе все слова слабые (нейтральные результаты — mia/miaRound.miaAfterPass). → true — плашка первая (обрезано или уже была первой), false — такой нет.
  */
 export function sliceFrom(stages, sid, seed) {
   const at = stages.findIndex(x => x.sid === sid)
@@ -66,8 +65,7 @@ export function sliceFrom(stages, sid, seed) {
   if (at <= 0) return at === 0 // уже первая (акты до неё выбросил рецепт) — резать нечего
   const act = stages[at].act
   const r1 = stages.find(x => x.type === 'student' && x.sid === act && ['sprint', 'catch'].includes(act))
-  if (r1 && (sid === `${act}2-ann` || sid === `${act}3-ann`)) extraTarget(stages, r1, { results: {} }, seed)
-  if (stages[at].mia === 'ann') miaTarget(stages, act, seed) // начать с круга Мии: слова вписаны, как будто ученик ошибся во втором круге (обычный круг 2 заполнен выше)
+  if (r1 && stages[at].mia === 'ann') miaAfterPass(stages, r1, { results: {} }, seed, null) // начать с круга Мии: слова вписаны, как будто в проходе все слова слабые (нейтральные результаты)
   const sw = stages.slice(0, at).findLast(x => x.act === act && x.switchTo === 'ru')
   const out = [...(sw ? [sw] : []), ...stages.slice(at)]
   out.forEach((x, idx) => { x.idx = idx })

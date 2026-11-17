@@ -19,14 +19,14 @@ import { SIM_KEY } from '../rehearsal/rehearsalSim.js'
 // «Начать с этапа» (отладка, admin): пункты из стадий, очередь стадий с выбранного этапа, нейтральное состояние, итог без памяти и XP, селектор только при отладке
 const memory = (init = {}) => { const m = new Map(Object.entries(init)); return { getItem: k => m.get(k) ?? null, setItem: (k, v) => m.set(k, String(v)), removeItem: k => m.delete(k), m } }
 const plan = (extra = {}) => normalizePlan({ ...fixturePlan('three'), game: 'race', phrases: PHRASE_FIXTURE, ...extra })
-const LABELS = ['Конвейер слов A, круг 2', 'Конвейер слов A: круг с Мией', 'Конвейер слов B', 'Конвейер слов B, круг 2', 'Конвейер слов B: круг с Мией', 'Конвейер ситуаций', 'Конвейер ситуаций, круг 2: Скажи / Узнай', 'Конвейер фраз: по слову', 'Конвейер фраз: целиком', 'Шкала памяти', 'Итог']
+const LABELS = ['Конвейер слов A: круг с Мией', 'Конвейер слов B', 'Конвейер слов B: круг с Мией', 'Конвейер ситуаций', 'Конвейер ситуаций, круг 2: Скажи / Узнай', 'Конвейер фраз: по слову', 'Конвейер фраз: целиком', 'Шкала памяти', 'Итог']
 
 describe('пункты «Начать с»', () => {
-  it('из стадий полной гонки: второй круг, проход B, круги фраз, вершина, спуск, итог; первая стадия — это «с начала»', () => {
+  it('из стадий полной гонки: круг Мии, проход B, круги фраз, вершина, спуск, финал, итог; первая стадия — это «с начала»', () => {
     const opts = startOptions(plan())
     expect(opts.map(o => o.label)).toEqual(LABELS)
-    expect(opts.map(o => o.sid)).toEqual(['sprint2-ann', 'sprint3-ann', 'catch-ann', 'catch2-ann', 'catch3-ann', 'phrases-ann', 'phrases2-ann', 'climb-ann', 'descent-ann', 'boss-intro-ann', 'summary'])
-    expect(opts.map(o => actOfSid(o.sid))).toEqual(['sprint', 'sprint', 'catch', 'catch', 'catch', 'phrases', 'phrases', 'climb', 'descent', 'boss', 'summary'])
+    expect(opts.map(o => o.sid)).toEqual(['sprint3-ann', 'catch-ann', 'catch3-ann', 'phrases-ann', 'phrases2-ann', 'climb-ann', 'descent-ann', 'boss-intro-ann', 'summary'])
+    expect(opts.map(o => actOfSid(o.sid))).toEqual(['sprint', 'catch', 'catch', 'phrases', 'phrases', 'climb', 'descent', 'boss', 'summary'])
   })
   it('пункты — только этапы, которые есть у плана (нет этапа в рецепте — нет пункта); не гонка — пусто', () => {
     for (const id of ['one', 'two', 'none']) {
@@ -62,13 +62,13 @@ describe('очередь стадий со старта с этапа', () => {
     }
   }
   it('голосом с прохода B — переключение слуха на русскую модель остаётся первым', () => {
-    const { stages } = buildRaceStages({ plan: withStart(plan(), { sid: 'catch2-ann', label: 'x' }), tap: false, ru: true })
-    expect(stages.slice(0, 2).map(s => s.sid)).toEqual(['catch-sw', 'catch2-ann'])
+    const { stages } = buildRaceStages({ plan: withStart(plan(), { sid: 'catch-ann', label: 'x' }), tap: false, ru: true })
+    expect(stages.slice(0, 2).map(s => s.sid)).toEqual(['catch-sw', 'catch-ann']) // старт с прохода B: разворота (перед ним нет A) нет, только переключение слуха
   })
-  it('второй круг прохода A: слова вписаны (как будто все слабые), рецепт без актов до этапа', () => {
-    const p = withStart(plan(), { sid: 'sprint2-ann', label: 'x' })
+  it('круг Мии после прохода A: слова вписаны (как будто все слабые), рецепт без актов до этапа', () => {
+    const p = withStart(plan(), { sid: 'sprint3-ann', label: 'x' })
     const { stages } = buildRaceStages({ plan: p, tap: false, ru: true })
-    const r2 = stages.find(s => s.sid === 'sprint2')
+    const r2 = stages.find(s => s.sid === 'sprint3')
     expect(r2.words.length).toBeGreaterThanOrEqual(2); expect(r2.step.reps).toHaveLength(r2.words.length)
     expect(buildRaceActs(withStart(plan(), { sid: 'climb-ann', label: 'x' }), false, true).acts.map(a => a.id)).toEqual(['climb', 'descent', 'boss', 'summary'])
     expect(fromStage([{ id: 'sprint' }, { id: 'catch' }], undefined).map(a => a.id)).toEqual(['sprint', 'catch'])

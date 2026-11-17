@@ -64,7 +64,7 @@ describe('бар из стадии и результатов гонки', () => 
     const stages = stagesOf(), i = n => stages.findIndex(s => s.sid === n)
     expect(chargeWordsOf(stages, i('sprint-ann')).length).toBe(st('sprint').words.length)
     expect(chargeWordsOf(stages, i('catch-ann')).map(w => w.text).sort()).toEqual(st('catch').words.map(w => w.text).sort()) // слова этапа 2
-    expect(chargeWordsOf(stages, i('sprint2-ann')).length).toBe(st('sprint', 'sprint2').words.length)
+    expect(chargeWordsOf(stages, i('sprint3-ann')).length).toBe(st('sprint', 'sprint3').words.length) // круг Мии
     expect(chargeWordsOf(stages, i('sprint'))).toEqual([]) // ступень ученика — не объявление
     expect(chargeWordsOf(stages, 99)).toEqual([])
   })

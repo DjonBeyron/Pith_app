@@ -12,7 +12,7 @@ import { normalizePlan } from '../rehearsal/rehearsalPlan.js'
 const plan = normalizePlan({ ...fixturePlan('three'), game: 'race' })
 const read = rel => readFileSync(new URL(rel, import.meta.url), 'utf8')
 const TASKS = { race_sprint: ['Конвейер слов', 'перевод едет вниз, скажи слово по-английски, пока не убежало'], race_climb: ['Конвейер фраз', 'собираем фразу по слову, с каждым шагом длиннее'], race_descent: ['', 'повтори всю фразу за мной на скорости'] }
-const CATCH_LINE = 'теперь наоборот, я говорю по-английски, а ты называешь перевод' // проход B: объявление БЕЗ плашки
+const REVERSE_LINE = 'теперь наоборот, секунду, переключаюсь на русский' // разворот в реверс (голосом): Пит говорит, пока едут пилюли со стрелками
 
 describe('объявление этапов: название + задание', () => {
   it('плашки раундов: title — название, task — задание; реплика Пита = «название, задание»', () => {
@@ -26,11 +26,12 @@ describe('объявление этапов: название + задание',
       expect(RACE_LINES.find(l => l.id === s.line).text).toBe(title ? `${title}, ${task}` : `теперь ${task}`) // «Спуск» — вторая половина «Конвейера фраз», плашки нет, реплика без названия
     }
     expect(stages.find(s => s.sid === 'climb-top').round.task).toBeUndefined() // плашка вершины без задания
-    const b = stages.find(s => s.sid === 'catch-ann'); expect(b.line).toBe('race_catch_tap'); expect(b.round.title).toBe(''); expect(b.round.task).toBe('') // проход B: Пит говорит, плашки нет
-    expect(RACE_LINES.find(l => l.id === 'race_catch').text).toBe(CATCH_LINE)
+    const rev = stages.find(s => s.sid === 'catch-rev'); expect(rev.line).toBe('race_reverse_tap'); expect(rev.round.title).toBe(''); expect(rev.rev).toBeGreaterThan(2000) // разворот: Пит говорит, плашки нет
+    const b = stages.find(s => s.sid === 'catch-ann'); expect(b.line).toBeNull(); expect(b.round.title).toBe('Конвейер слов'); expect(b.round.brief).toBe('теперь тапай перевод'); expect(b.charge).toBe(true) // после разворота — плашка этапа с зарядкой бара
+    expect(RACE_LINES.find(l => l.id === 'race_reverse').text).toBe(REVERSE_LINE)
   })
   it('реплики без точек, тире и восклицаний', () => {
-    for (const id of [...Object.keys(TASKS), 'race_catch', 'race_sprint_tap', 'race_catch_tap', 'race_switch_ru', 'race_start', 'race_start_tap']) expect(RACE_LINES.find(l => l.id === id).text).not.toMatch(/[.!—–]/)
+    for (const id of [...Object.keys(TASKS), 'race_reverse', 'race_sprint_tap', 'race_reverse_tap', 'race_start', 'race_start_tap']) expect(RACE_LINES.find(l => l.id === id).text).not.toMatch(/[.!—–]/)
   })
   it('WordLaneTurnPlate: «название и задание через перевод строки» — задание строкой под заголовком; без задания как раньше', () => {
     const h = renderToStaticMarkup(createElement(WordLaneTurnPlate, { text: 'Разгон\nпроверим, как ты помнишь слова из своей памяти' }))

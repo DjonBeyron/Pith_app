@@ -8,7 +8,7 @@ import { reportRace } from './raceSim.js'
 import { memoryOn, outcomesOf, pushRaceMemory } from './raceMemory.js'
 import { DESCENT_RATE } from './raceRecipe.js'
 import { sayTrap } from './raceTrapVoice.js'
-import { extraTarget, isLate } from './raceExtraRound.js'
+import { isLate } from './raceExtraRound.js'
 import { pillLifeMs } from './raceAccuracy.js'
 import { useRaceSwitch } from './useRaceSwitch.js'
 import { takeoffOn, playTakeoffAfter } from './raceTakeoffSound.js'
@@ -30,7 +30,8 @@ import { miaOn } from './mia/miaConfig.js'
 import { createMiaSpeech, GAP_MS } from './mia/miaSpeech.js'
 import { audioPulse } from '../../shared/lib/gameAudioPulse.js'
 import { useMiaEnter } from './mia/useMiaEnter.js'
-import { miaRoute, miaSkip } from './mia/miaRound.js'
+import { miaAfterPass, miaSkip } from './mia/miaRound.js'
+import { afterLeaveSpeech } from './mia/miaLeave.js'
 import { bossFill } from './boss/bossWords.js'
 import { DEMO_START, DEMO_IDS, demoPlan } from './boss/bossScale.js'
 import { playWordSlot, hasWordSlot, wordBufferMs } from '../player/modules/rotate-phone/wordLaneClips.js'
@@ -176,35 +177,37 @@ export function useRaceActs(args) {
     return () => clearTimeout(t)
   }, [on, running, plan, box, mb])
 
-  const miaComesNext = st => miaOn() && /^(sprint|catch)$/.test(st?.act ?? '') && st?.type === 'student' && /^(sprint|catch)2-ann$/.test(stages[(st.idx ?? -9) + 1]?.sid ?? '') && !Object.values(mb.m.used).some(Boolean) // за кругом 1 прохода идёт плашка круга 2, и Мия в этой игре ещё не была — вместо неё придёт она
+  const miaComesNext = st => miaOn() && /^(sprint|catch)$/.test(st?.act ?? '') && st?.type === 'student' && /^(sprint|catch)3-ann$/.test(stages[(st.idx ?? -9) + 1]?.sid ?? '') && !Object.values(mb.m.used).some(Boolean) // за кругом 1 прохода идёт плашка круга 2, и Мия в этой игре ещё не была — вместо неё придёт она
   const baseNext = rh.nextIdx // стабильна (useCallback в useRehearsalActs): на ней держится next директора
   const seed = plan?.seed
   const nextIdx = useCallback(i => { // после круга 1 со слабыми словами вместо круга 2 — церемония Мии (miaRoute), стадии Мии вне эпизода обходит miaSkip
     if (!on) return baseNext(i)
-    const r = climbTarget(stages, stages[i - 1], box.s) ?? extraTarget(stages, stages[i - 1], box.s[stages[i - 1]?.act], seed) ?? fillPhrases2(stages, stages[i - 1], box.s) ?? baseNext(i) // fillPhrases2: после круга 1 фраз — порядок круга 2 (слабые слова первыми)
+    const mt = miaOn() ? miaAfterPass(stages, stages[i - 1], box.s[stages[i - 1]?.act], seed, mb.m) : -1 // после прохода со слабыми словами — Мия (один раз за игру), иначе разворот в реверс / следующий этап
+    if (mt >= 0) return mt
+    const r = climbTarget(stages, stages[i - 1], box.s) ?? fillPhrases2(stages, stages[i - 1], box.s) ?? baseNext(i) // fillPhrases2: после круга 1 фраз — порядок круга 2 (слабые слова первыми)
     if (['boss-intro-ann', 'boss-ann'].includes(stages[r]?.sid)) bossFill(stages, box.s, seed) // финал: слабые слова этой игры вписаны перед входом (мало слов — финал пропускается, stage.empty)
-    const to = miaOn() ? miaRoute(stages, r, mb.m, seed) : -1
-    return to >= 0 ? to : miaSkip(stages, r, mb.m, baseNext)
+    return miaSkip(stages, r, mb.m, baseNext)
   }, [on, stages, box, baseNext, seed, mb])
   // Мия ушла после трёх верных подряд: круг с Мией кончен — Пит идёт к следующему этапу, а не доигрывает слова круга (владелец 2026-11-15: «не продолжать эту итерацию, а начинать следующую»)
   const leftByWin = on && miaView.mia.phase === 'out' && miaView.mia.why === 'win' && running?.mia === 'round' && !running.silent
   useEffect(() => {
     if (!leftByWin) return undefined
-    const t = setTimeout(() => { pLog('[mia] Мия ушла после трёх верных — круг кончен, идём к следующему этапу'); jump(nextIdx(running.idx + 1)) }, MIA.LEAVE_JUMP_MS)
-    return () => clearTimeout(t)
-  }, [leftByWin, running, at, nextIdx, jump])
+    return afterLeaveSpeech({ pending: () => mspeech.pending(), delay: MIA.LEAVE_JUMP_MS, go: () => { pLog('[mia] Мия ушла после трёх верных, реплики ухода договорили — идём к следующему этапу'); jump(nextIdx(running.idx + 1)) } })
+  }, [leftByWin, running, at, nextIdx, jump, mspeech])
   if (!on) return rh
+  const pitBusy = () => Math.max(args.cat?.busyLeft?.() ?? 0, sw.pendingMs(), mspeech.leftMs()) // сколько мс Пит (и Мия) ещё РЕАЛЬНО говорят (без «занят надолго» секвенсора речи: тот держит LOCK_MS)
   return {
     ...rh, result, race: view, mia: miaView, miaCap, miaTalk, miaDemo, miaAlarm, nextIdx,
     boss: { zone: z => { miaEvent({ t: 'zone', zone: z, stage: running }); if (z === 'slow') redAlarm() } }, // zone — слово отыграно в зоне // финал «Шкала памяти»: слово отыграно в зоне (шкала → машина Мии: пять красных — Пит остаётся внутри)
-    holdMs: st => { // эпилог финала кончается, когда договорили Мия и Пит (а не через фиксированные 11 с: после «Тут темно и тесно…» все молчало): реплика Мии + Пит (его реплика стоит с задержкой) + хвост, не дольше st.ms
+    pitBusy, holdMs: st => { // эпилог финала кончается, когда договорили Мия и Пит (а не через фиксированные 11 с: после «Тут темно и тесно…» все молчало): реплика Мии + Пит (его реплика стоит с задержкой) + хвост, не дольше st.ms
+      if (st?.rev) return Math.max(rh.holdMs(st), pitBusy() + st.rev + 150) // разворот в реверс: анимация стартует, когда Пит договорил прошлое (Мия уходит), и идёт st.rev мс — стадия не кончается раньше неё
       if (st?.mia === 'hold') return Math.max(st.ms ?? 0, st.say ? mspeech.msOf(st.say) + GAP_MS + 300 : 0) // между блоками экзамена стадия длится, пока Мия объявляет смену языка: за это время слух успевает переключиться на русскую модель (≈2 с)
       if (st?.mia !== 'end') return rh.holdMs(st)
       const keep = bossEnd(mb.m).keep, [a, p, d] = keep ? ['boss_mia_keep', 'boss_pit_keep', 3200] : ['boss_mia_free', 'boss_pit_free', 2800]
       return Math.min(st.ms, Math.max(2500, Math.max(d, mspeech.msOf(a) + GAP_MS) + mspeech.msOf(p, 'pit') + 800))
     },
     exitMs: st => (st?.act === 'phrases' ? PHRASE_EXIT_MS : st?.type === 'student' && stages[(st.idx ?? -9) + 1]?.act === 'phrases' ? PHRASE_ENTER_MS : miaComesNext(st) ? MIA.EXIT_MS : undefined), // перед церемонией Мии пауза короче: тишина между кругами и падение коробки тянулись слишком долго (владелец 2026-11-15); // круг фраз кончился: до следующей стадии PHRASE_EXIT_MS, а не 1,3 с (Пит уже договорил итог хода)
-    plate: st => plateText(st, plateCaption(lines, st?.line)), // неозвученная реплика стадии — подписью на плашке (raceSilentLine.js)
+    plate: st => (st?.rev ? '' : plateText(st, plateCaption(lines, st?.line))), // неозвученная реплика стадии — подписью на плашке (raceSilentLine.js)
     /** Слово прохода A / B принято (раньше, чем щёлкнет заливка): время ответа ms (от выезда пилюли) и y (положение пилюли, % высоты: ниже LATE_Y — ответ «в последний момент») — в результаты, и для точности слова (raceAccuracy.js) — окно жизни пилюли по её скорости, заливка голосом в миг зачёта, тап ли это; Пит говорит мини-реплику успеха, следующая пилюля ждёт его */
     claim(rep, ms, y) { if (!running) return; tr.last(); if (ruOn) ruLog(rep, 'claim', rep?.pills?.[0]?.p); praiseRef.current = null; apply({ t: 'claim', stage: running, info: { idx: rep?.idx, ms, late: isLate(y), life: pillLifeMs(rep?.speed), fill: rep?.pills?.[0]?.p, tap: !!running.step?.tapOnly } }); speech.claim(praiseRef.current); praiseRef.current = null },
     /** Перед выездом пилюли (движок: событие 'pre'): в «Разгоне» Пит говорит русский перевод слова из библиотеки (raceTrans.js), в «Слушай и лови» — английское слово (rep.say, библиотека слов); озвучки нет — молча, пилюля выезжает сразу.
@@ -224,7 +227,7 @@ export function useRaceActs(args) {
     /** Пилюля выехала (движок: 'spawn'): первая после перехода закрывает строку журнала «[start] переход …» */
     spawn: () => tr.pill(),
     /** Пит ещё занят (мс): секвенсор запрещает перевод до отступа после похвалы (LOCK_MS), иначе — реплики и перевод (cat.busyLeft) */
-    pitLeft: () => Math.max(speech.holdMs(), args.cat?.busyLeft?.() ?? 0, sw.pendingMs(), surface.pending() ? LOCK_MS : 0, phr.left()), // идёт переключение слуха или Пит ещё выныривает к слову — пилюли тоже ждут
+    pitLeft: () => Math.max(speech.holdMs(), pitBusy(), surface.pending() ? LOCK_MS : 0, phr.left()), // идёт переключение слуха или Пит ещё выныривает к слову — пилюли тоже ждут
     rec(kind, info) {
       rh.rec(kind, info); if (on) tr.last()
       if (!running) return

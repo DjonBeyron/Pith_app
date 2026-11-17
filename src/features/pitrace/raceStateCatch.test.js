@@ -9,7 +9,6 @@ const plan = normalizePlan({ ...fixturePlan('three'), game: 'race' })
 const { stages } = buildRaceStages({ plan })
 const base = stages.find(s => s.sid === 'catch')
 const stage = { ...base, words: base.words.map((w, i) => (i === 2 ? { ...w, trap: true } : w)) } // в игре с v3.3.118 ловушек в проходе B нет, механика редюсера жива: ловушка подставляется на 3-е слово
-const second = stages.find(s => s.sid === 'catch2')
 const ev = (s, t, st, info) => reduceRace(s, { t, stage: st, info })
 const entered = () => ev(initRace(), 'enter', stage).state
 const iTrap = stage.words.findIndex(w => w.trap), iOk = stage.words.findIndex(w => !w.trap)
@@ -48,15 +47,5 @@ describe('состояние гонки: «Слушай и лови»', () => {
     expect(gone.catch.results[iTrap]).toMatchObject({ miss: true, believed: true }); expect(gone.streak).toBe(0)
     const other = ev(base, 'miss', stage, { idx: iTrap }) // шум / другое слово на ловушке: промолчание не нарушено
     expect(other.state).toBe(base); expect(other.log).toBeNull()
-  })
-  it('второй круг (catch2): результаты в catch.r2, первый круг не тронут', () => {
-    const list = stage.words.slice(0, 3).map((w, idx) => ({ ...w, idx }))
-    second.fill(list)
-    let s = ev(entered(), 'fail', stage, { idx: iOk }).state
-    s = ev(s, 'enter', second).state
-    expect(s.catch.r2.words).toEqual(list.map(w => w.text)); expect(s.catch.r2.traps).toEqual(list.map(w => w.trap))
-    s = ev(s, 'win', second, { idx: 0 }).state
-    expect(s.catch.r2.results[0].hit).toBe(true)
-    expect(s.catch.results[iOk].miss).toBe(true)
   })
 })

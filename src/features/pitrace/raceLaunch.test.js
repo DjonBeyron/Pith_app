@@ -132,9 +132,9 @@ describe('ворота старта гонки ждут только первы�
     expect(wordsPlan({ cfg: { ...cfg, plan: { ...plan, game: undefined } }, lines: ls }).gateMin).toBeUndefined()
   })
   it('«Пальцами»: ворота ждут стартовую фразу race_start_tap — она первая в списке и единственная в firstCount', () => {
-    const tl = { ...ls, race_start_tap: lines('race_start_tap'), race_catch_tap: lines('race_catch_tap') }
-    const p = wordsPlan({ cfg: { ...cfg, firstLines: ['race_start_tap', 'race_catch_tap'] }, lines: tl })
-    expect(p.firstCount).toBe(1); expect(p.now.slice(0, 2).map(x => x.key)).toEqual(['line:race_start_tap', 'line:race_catch_tap'])
+    const tl = { ...ls, race_start_tap: lines('race_start_tap'), race_reverse_tap: lines('race_reverse_tap') }
+    const p = wordsPlan({ cfg: { ...cfg, firstLines: ['race_start_tap', 'race_reverse_tap'] }, lines: tl })
+    expect(p.firstCount).toBe(1); expect(p.now.slice(0, 2).map(x => x.key)).toEqual(['line:race_start_tap', 'line:race_reverse_tap'])
   })
   it('ворота открываются по «первые N», как только готовы две реплики, хотя слова и остальные реплики ещё качаются', async () => {
     const { settle, clearSettled } = await import('../player/modules/rotate-phone/wordLaneSettled.js')

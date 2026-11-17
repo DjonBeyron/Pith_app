@@ -11,6 +11,8 @@ import { runMirrorScene } from './wordLaneMirrorScene.js'
 import { trioStep, shiftMs } from '../../../pitrace/raceTapTrio.js'
 import { createDodgeDrive } from '../../../pitrace/raceDodgeDrive.js'
 import { createDodgeUp } from '../../../pitrace/raceDodgeUp.js'
+import { runReverseTurn } from '../../../pitrace/raceReverseTurn.js'
+import { isWeakDevice } from '../../../../shared/lib/deviceTier.js'
 import { runPhraseScene } from '../../../pitrace/racePhraseScene.js'
 import { logTrioTap } from '../../../pitrace/raceTapTrioLog.js'
 import { pLog } from '../../../../shared/lib/debug.js'
@@ -52,6 +54,15 @@ export function useWordLanePills(rootRef, { scene, levels, fx, live, sceneApi, t
     const light = i => dots[i]?.classList.add('wlDot--on')
     const kind = scene?.kind ?? 'idle'
     if (kind === 'idle') { setDots(3); return () => pool.giveAll() }
+    if (kind === 'reverse') { // разворот в реверс: три пилюли со стрелками (pitrace/raceReverseTurn.js)
+      setDots(0)
+      let stop = () => {}
+      const wait = Math.max(0, fxRef.current?.pitBusy?.() ?? 0) // Пит (или Мия, уходящая с коробкой) ещё говорит — разворот начинается, когда он начнёт реплику про реверс: анимация и реплика идут вместе, не наползая на прошлое
+      let timer = 0
+      const t0 = performance.now(), go = () => { const tail = pool.tail?.(); if (tail != null && tail < 30 && performance.now() - t0 < wait + 800) { timer = setTimeout(go, 60); return } stop = runReverseTurn({ pool, root, fast: isWeakDevice() || !!globalThis.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches }) } // доезжающая пилюля прошлой ступени ещё у самого верха — стрелки выезжают за ней, не наезжая (не дольше 0,8 с)
+      timer = setTimeout(go, wait)
+      return () => { clearTimeout(timer); stop(); pool.giveAll() }
+    }
 
     // ---------- диктор ----------
     if (kind === 'dictor') {

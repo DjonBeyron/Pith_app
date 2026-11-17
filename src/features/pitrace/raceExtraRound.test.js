@@ -1,7 +1,9 @@
 import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
-import { round2Words, extraTarget, failedIn, weakIn, isLate, LATE_Y, EXTRA_FILL, ROUND2_BOOST, ROUND2_STEP } from './raceExtraRound.js'
+import { round2Words, failedIn, weakIn, isLate, LATE_Y, EXTRA_FILL, ROUND2_BOOST, ROUND2_STEP } from './raceExtraRound.js'
 import { buildRaceStages } from './raceStages.js'
+import { miaAfterPass } from './mia/miaRound.js'
+import { miaInit } from './mia/raceMia.js'
 import { sprintWords } from './raceWords.js'
 import { standbyWords, STANDBY_WORDS } from './raceStandby.js'
 import { fixturePlan } from '../rehearsal/rehearsalFixtures.js'
@@ -68,30 +70,30 @@ describe('дополнительный круг: слабые слова', () =>
   })
 })
 
-describe('дополнительный круг: переход директора', () => {
+describe('после прохода: Мия вместо дополнительного круга (miaAfterPass)', () => {
   for (const act of ['sprint', 'catch']) {
-    it(`${act}: после прохода без круга — мимо; со слабыми словами — на объявление, слова вписаны в стадию`, () => {
+    it(`${act}: меньше двух слабых слов — мимо (-1); два и больше — церемония Мии, слова вписаны в её круг; второй круг от Пита убран`, () => {
       const { stages } = buildRaceStages({ plan })
-      const first = stages.find(s => s.sid === act), second = stages.find(s => s.sid === `${act}2`), ann = stages.find(s => s.sid === `${act}2-ann`)
-      expect(ann.round.title).toBe(''); expect(ann.line).toBe('race_sprint_round2') // без плашки
+      const first = stages.find(s => s.sid === act), mia = stages.find(s => s.sid === `${act}3`), ann = stages.find(s => s.sid === `${act}3-ann`)
+      expect(stages.some(s => s.sid === `${act}2` || s.sid === `${act}2-ann`)).toBe(false)
       const clean = { results: Object.fromEntries(first.words.map((_, i) => [i, ok])) }
-      expect(stages[extraTarget(stages, first, clean, plan.seed)]).toBe(stages[stages.indexOf(second) + 1])
+      expect(miaAfterPass(stages, first, clean, plan.seed, miaInit())).toBe(-1)
       const one = { results: { ...clean.results, 0: { hit: false, miss: true } } } // одно слабое слово — круга нет
-      expect(stages[extraTarget(stages, first, one, plan.seed)]).toBe(stages[stages.indexOf(second) + 1])
+      expect(miaAfterPass(stages, first, one, plan.seed, miaInit())).toBe(-1)
       const two = { results: { ...clean.results, 0: { hit: false, miss: true }, 1: { hit: true, late: true } } }
-      expect(extraTarget(stages, first, two, plan.seed)).toBe(stages.indexOf(ann))
-      expect(second.words).toHaveLength(2 + EXTRA_FILL); expect(second.step.reps).toHaveLength(second.words.length); expect(second.step.id).toBe(`${act}2`)
-      expect(second.step.reps[0].speed).toBeGreaterThan(Math.max(...first.words.map(w => w.speed)))
-      expect(extraTarget(stages, stages[0], two, plan.seed)).toBeNull() // не проход — обычный порядок
+      expect(miaAfterPass(stages, first, two, plan.seed, miaInit())).toBe(stages.indexOf(ann))
+      expect(mia.words).toHaveLength(2 + EXTRA_FILL); expect(mia.step.reps).toHaveLength(mia.words.length); expect(mia.step.id).toBe(`${act}3`)
+      expect(miaAfterPass(stages, first, two, plan.seed, { ...miaInit(), used: { [act === 'sprint' ? 'catch' : 'sprint']: true } })).toBe(-1) // Мия уже была в этой игре — второй раз не приходит
+      expect(miaAfterPass(stages, stages[0], two, plan.seed, miaInit())).toBe(-1) // не проход — обычный порядок
     })
   }
   it('проход B: добор из дежурных слов получает поля прохода (не ловушка)', () => {
     const { stages } = buildRaceStages({ plan })
-    const first = stages.find(s => s.sid === 'catch'), second = stages.find(s => s.sid === 'catch2')
+    const first = stages.find(s => s.sid === 'catch'), mia = stages.find(s => s.sid === 'catch3')
     first.standby.forEach(w => { expect(w.trap).toBe(false) })
     const all = { results: Object.fromEntries(first.words.map((_, i) => [i, { hit: false, miss: true }])) }
-    extraTarget(stages, first, all, plan.seed)
-    expect(second.words.length).toBeGreaterThanOrEqual(first.words.length)
+    miaAfterPass(stages, first, all, plan.seed, miaInit())
+    expect(mia.words.length).toBeGreaterThanOrEqual(first.words.length)
   })
   it('без Math.random', () => { expect(readFileSync(new URL('./raceExtraRound.js', import.meta.url), 'utf8')).not.toMatch(/Math\.random\(/) })
 })

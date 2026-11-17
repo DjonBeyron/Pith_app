@@ -17,7 +17,6 @@ import { PHRASE_FIXTURE } from './racePhraseFixture.js'
 const plan = normalizePlan({ ...fixturePlan('three'), game: 'race' })
 const { stages } = buildRaceStages({ plan })
 const sprint = stages.find(s => s.act === 'sprint' && s.type === 'student')
-const sprint2 = stages.find(s => s.sid === 'sprint2')
 const ev = (s, t, stage, info, from) => reduceRace(s, { t, stage, info, from }).state
 
 describe('ступень очереди с повтора from (wordLaneStudent)', () => {
@@ -64,15 +63,11 @@ describe('состояние гонки: enter с from — круг не обн�
     expect(s.sprint.claims).toBe(2)
     expect(s.sprint.words).toHaveLength(sprint.words.length)
   })
-  it('принятый, но не долетевший до паузы (claim без win) — верно; второй круг не обнуляется', () => {
+  it('принятый, но не долетевший до паузы (claim без win) — верно', () => {
     let s = ev(initRace(), 'enter', sprint)
     s = ev(s, 'claim', sprint, { idx: 0, ms: 700 })
     s = ev(s, 'enter', sprint, null, 1)
     expect(s.sprint.results[0].hit).toBe(true)
-    s = ev(s, 'enter', sprint2); s = ev(s, 'win', sprint2, { idx: 0 }); s = ev(s, 'fail', sprint2, { idx: 1 })
-    s = ev(s, 'enter', sprint2, null, 1)
-    expect(s.sprint.r2.results).toEqual({ 0: { hit: true, miss: false } })
-    expect(s.sprint.r2.words).toHaveLength(sprint2.words.length)
   })
 })
 

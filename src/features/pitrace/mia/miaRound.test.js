@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { miaWords, miaTarget, miaAllowed, miaSkip, miaRoute } from './miaRound.js'
+import { miaWords, miaAfterPass, miaAllowed, miaSkip } from './miaRound.js'
 import { buildRaceStages } from '../raceStages.js'
 import { fixturePlan } from '../../rehearsal/rehearsalFixtures.js'
 import { normalizePlan } from '../../rehearsal/rehearsalPlan.js'
@@ -19,25 +19,24 @@ describe('слова круга с Мией', () => {
 describe('стадии Мии в списке гонки', () => {
   const plan = normalizePlan({ ...fixturePlan('three'), game: 'race' })
   const stages = buildRaceStages({ plan, tap: true, ru: true }).stages
-  it('после каждого второго круга стоят церемония (…3-ann, mia: ann) и круг с Мией (…3, mia: round) — церемония держит три ноты за речью Мии (waitCap)', () => {
+  it('после круга каждого прохода стоят церемония (…3-ann, mia: ann) и круг с Мией (…3, mia: round) — церемония держит три ноты за речью Мии (waitCap); дополнительного круга (…2) нет', () => {
     for (const act of ['sprint', 'catch']) {
-      const i2 = stages.findIndex(s => s.sid === `${act}2`)
-      expect(stages[i2 + 1]).toMatchObject({ sid: `${act}3-ann`, type: 'announce', mia: 'ann', line: 'pit_forgot' }); expect(stages[i2 + 1].waitCap).toBeGreaterThan(30000)
-      expect(stages[i2 + 2]).toMatchObject({ sid: `${act}3`, type: 'student', mia: 'round' }); expect(stages[i2 + 2].step.boost).toEqual({ k: 1 })
-      expect(stages[i2 + 1]).toMatchObject({ count: 'after', soft: true }) // три ноты после церемонии, перед кругом
+      const i1 = stages.findIndex(s => s.sid === act)
+      expect(stages.some(s => s.sid === `${act}2`)).toBe(false)
+      expect(stages[i1 + 1]).toMatchObject({ sid: `${act}3-ann`, type: 'announce', mia: 'ann', line: 'pit_forgot' }); expect(stages[i1 + 1].waitCap).toBeGreaterThan(30000)
+      expect(stages[i1 + 2]).toMatchObject({ sid: `${act}3`, type: 'student', mia: 'round' }); expect(stages[i1 + 2].step.boost).toEqual({ k: 1 })
+      expect(stages[i1 + 1]).toMatchObject({ count: 'after', soft: true }) // три ноты после церемонии, перед кругом
     }
   })
-  it('miaTarget вписывает слова в круг с Мией (из слов круга 2) и возвращает номер церемонии; нет стадий — −1', () => {
-    const r1 = stages.find(s => s.sid === 'sprint'), r2 = stages.find(s => s.sid === 'sprint2'), real = r1.words.slice(0, 4).map((w, i) => ({ ...w, idx: i, speed: 1.2 + i * 0.06 })); r2.fill(real)
-    const i = miaTarget(stages, 'sprint', 5)
-    expect(stages[i].sid).toBe('sprint3-ann'); const r3 = stages.find(s => s.sid === 'sprint3'); expect(r3.words.map(w => w.text).sort()).toEqual(real.map(w => w.text).sort()); expect(r3.step.reps).toHaveLength(real.length)
-    expect(miaTarget(stages, 'climb', 5)).toBe(-1); expect(miaTarget([], 'sprint', 5)).toBe(-1)
-  })
-  it('miaRoute: шёл на плашку круга 2 — ведёт на церемонию Мии (один раз на проход); на другие стадии и после прихода Мии — −1', () => {
-    const r1 = stages.find(s => s.sid === 'catch'), r2 = stages.find(s => s.sid === 'catch2'); r2.fill(r1.words.slice(0, 3).map((w, i) => ({ ...w, idx: i, speed: 1.2 })))
-    const a2 = stages.findIndex(s => s.sid === 'catch2-ann'), a3 = stages.findIndex(s => s.sid === 'catch3-ann')
-    expect(miaRoute(stages, a2, { used: {} }, 9)).toBe(a3); expect(miaRoute(stages, a2, { used: { catch: true } }, 9)).toBe(-1)
-    expect(miaRoute(stages, a3, { used: {} }, 9)).toBe(-1); expect(miaRoute(stages, 0, { used: {} }, 9)).toBe(-1)
+  it('miaAfterPass: два слабых слова — церемония Мии, слова вписаны в её круг; меньше двух, Мия уже была, не проход — −1', () => {
+    const r1 = stages.find(s => s.sid === 'sprint')
+    const weak = { results: { 0: { hit: false, miss: true }, 1: { hit: false, miss: true } } }
+    const i = miaAfterPass(stages, r1, weak, 5, { used: {} })
+    expect(stages[i].sid).toBe('sprint3-ann'); const r3 = stages.find(s => s.sid === 'sprint3'); expect(r3.words.length).toBeGreaterThanOrEqual(2); expect(r3.step.reps).toHaveLength(r3.words.length)
+    expect(miaAfterPass(stages, r1, weak, 5, { used: { catch: true } })).toBe(-1)
+    const okAll = Object.fromEntries(r1.words.map((_, i) => [i, { hit: true, miss: false }]))
+    expect(miaAfterPass(stages, r1, { results: { ...okAll, 0: { hit: false, miss: true } } }, 5, { used: {} })).toBe(-1) // одно слабое слово — Мии нет
+    expect(miaAfterPass(stages, stages.find(s => s.sid === 'climb' || s.act === 'phrases'), weak, 5, { used: {} })).toBe(-1); expect(miaAfterPass([], r1, weak, 5, { used: {} })).toBe(-1)
   })
   it('обход: пока Мия не вызвана (фаза не in), nextIdx пропускает церемонию и круг; когда вызвана — идёт на них', () => {
     const ann = stages.findIndex(s => s.sid === 'sprint3-ann'), after = ann + 2

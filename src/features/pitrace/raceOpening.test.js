@@ -51,7 +51,7 @@ describe('расписание открытия: слова → бар → пл�
     const st = openingPlan(mk({ round: 'stages' }), lines)
     expect(st.startMs).toBe(5000); expect(st.early).toBe(true); expect(st.speechEnd).toBe(RACE_START_LEAD_MS + 5000)
     for (const round of ['stages', 'sprint']) { const p = mk({ round }), { stages } = buildRaceStages({ plan: p, rate: 1 }); expect(earlyStageLine(p, stages)).toBeNull() }
-    const o = openingPlan(mk({ round: 'catch' }), { race_catch_tap: { text: 'Лови', url: 'u3', duration: 4 }, race_start: lines.race_start })
+    const o = openingPlan(mk({ round: 'catch' }), { race_reverse_tap: { text: 'Лови', url: 'u3', duration: 4 }, race_start: lines.race_start })
     expect(o.startMs).toBe(0); expect(o.firstMs).toBe(4000); expect(o.early).toBe(true)
     expect(o.speechEnd).toBe(RACE_START_LEAD_MS + 4000); expect(o.plateAt).toBe(RACE_START_LEAD_MS); expect(o.speechEnd).toBeLessThan(o.stageAt + LEAD_MS + 4000)
     const busy = Math.max(0, o.speechEnd + PLATE_HOLD_MS - o.stageAt) // директор: busyLeft на входе в стадию 0 — реплика сказана на старте с паузой стадии

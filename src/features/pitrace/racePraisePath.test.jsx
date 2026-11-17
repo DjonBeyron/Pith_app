@@ -3,7 +3,6 @@ import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { useRaceActs } from './useRaceActs.js'
 import { buildRaceStages } from './raceStages.js'
-import { extraTarget } from './raceExtraRound.js'
 import { GOOD_IDS, ALL_GOOD_IDS, OK_ID, GOOD_DELAY_MS, GOOD_ARM_MS } from './raceGood.js'
 import { fixturePlan } from '../rehearsal/rehearsalFixtures.js'
 import { normalizePlan } from '../rehearsal/rehearsalPlan.js'
@@ -68,18 +67,6 @@ describe('похвала: один путь для всех зачётов', () 
     h.rh.rec('miss', { idx: tr, believed: true })
     vi.advanceTimersByTime(5000)
     expect(goodCalls(h)).toHaveLength(1) // второй похвалы нет: claims не растут
-  })
-  it('второй круг: похвала по плану второго круга (первая не раньше 3-го принятия), тоже через секвенсор', () => {
-    vi.useFakeTimers()
-    const { stages } = buildRaceStages({ plan, rate: 1, lib: () => null })
-    const first = stages.find(s => s.sid === 'sprint')
-    extraTarget(stages, first, { results: Object.fromEntries(first.words.map((_, i) => [i, { hit: i > 1, miss: false }])) }, plan.seed)
-    const h = probe('sprint2', stages)
-    const n = h.stageObj.words.length
-    for (let i = 0; i < n; i++) claimAndRise(h, { idx: i }, 800)
-    expect(goodCalls(h).map(c => c[0])).toEqual(h.stageObj.good.map(g => g.id))
-    expect(h.stageObj.good[0].at).toBeGreaterThanOrEqual(3)
-    expect(h.sayLine.mock.calls.every(c => GOOD_IDS.includes(c[0]))).toBe(true)
   })
   it('взлёт: win последнего куска запускает отсчёт похвалы; win не последнего куска и промахи — нет', () => {
     vi.useFakeTimers()

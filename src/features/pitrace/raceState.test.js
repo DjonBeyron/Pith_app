@@ -49,18 +49,6 @@ describe('состояние гонки: события движка → сер�
     const said = ev(ev(s, 'miss', catchStage, { idx: i, believed: true }).state, 'fail', catchStage, { idx: i }).state
     expect(said.catch.results[i]).toMatchObject({ trap: true, hit: true, miss: true, believed: true }); expect(said.streak).toBe(0)
   })
-  it('разгон, второй круг: результаты пишутся отдельно (r2), слова круга и счёт принятий — свои', () => {
-    const second = stages.find(x => x.sid === 'sprint2')
-    second.fill(sprintStage.words.slice(0, 3).map((w, idx) => ({ ...w, idx })))
-    let s = ev(initRace(), 'enter', sprintStage).state
-    s = ev(s, 'fail', sprintStage, { idx: 0 }).state
-    s = ev(s, 'enter', second).state
-    expect(s.sprint.r2.words).toEqual(sprintStage.words.slice(0, 3).map(w => w.text))
-    s = ev(s, 'win', second, { idx: 1 }).state; s = ev(s, 'miss', second, { idx: 2 }).state
-    expect(s.sprint.r2.results).toEqual({ 1: { hit: true, miss: false }, 2: { hit: false, miss: true, wrong: 1 } })
-    expect(s.sprint.results).toEqual({ 0: { hit: false, miss: true } }) // первый круг не тронут
-    expect(s.sprint.claims).toBe(0)
-  })
   it('вершина: заходы и ступень по событиям; nextIdx лестницы ведёт на ступень k + 1 после попадания, ниже после промаха, на плашку вершины после верха', () => {
     const k = n => stages.find(s => s.sid === `climb-${n}`)
     const at = s => climbTarget(stages, stages[stages.indexOf(k(1))], s)

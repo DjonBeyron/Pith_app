@@ -6,15 +6,19 @@
 import { queueStages } from './raceStageKit.js'
 import { OK_IDS } from './raceGood.js'
 import { SWITCH_MS } from './raceSwitch.js'
+import { REV_MS } from './raceReverseTurn.js'
 
 /** Слушать ли проход B русской моделью: голосовой режим и русская модель скачана; иначе — тап по трём пилюлям. ru: { tap, ready } */
 export const passBByVoice = ru => !ru?.tap && !!ru?.ready
 
 export function catchStages(kit, act, ru = {}) {
   const voice = passBByVoice(ru)
-  const before = () => voice && kit.push({ type: 'announce', act: act.id, sid: 'catch-sw', switchTo: 'ru', round: { kind: 'switch', title: '', task: '', brief: '' }, ms: SWITCH_MS, line: 'race_switch_ru' })
+  // разворот в реверс (владелец 2026-11-17): три пилюли со стрелками приезжают, разворачиваются и уезжают вверх, Пит говорит реплику, слух (голосом) переключается на русский; потом плашка «Конвейер слов» и три ноты
+  const alone = kit.stages.length === 0 // проход B — первый акт игры (отладочный раунд «Слушай и лови»): разворота не будет, реплику про «наоборот» говорит плашка этапа
+  const revLine = voice ? 'race_reverse' : 'race_reverse_tap'
+  const before = () => (alone ? voice && kit.push({ type: 'announce', act: act.id, sid: 'catch-sw', switchTo: 'ru', round: { kind: 'switch', title: '', task: '', brief: '' }, ms: SWITCH_MS, line: null }) : kit.push({ type: 'announce', act: act.id, sid: 'catch-rev', rev: REV_MS, round: { kind: 'switch', title: '', task: '', brief: '' }, ms: Math.max(REV_MS, voice ? SWITCH_MS : 0), line: revLine, ...(voice ? { switchTo: 'ru' } : {}) }))
   queueStages(kit, act, w => ({ cap: w.text, say: w.text }), {
-    target: w => w.translation, lang: voice ? 'ru' : undefined, tapOnly: !voice, plain: true, reverse: true, tapLine: 'race_catch_tap', before, goodIds: OK_IDS, // похвала — просто «Отлично», без слов о произношении
+    target: w => w.translation, lang: voice ? 'ru' : undefined, tapOnly: !voice, plate: true, plateLine: alone ? (voice ? null : revLine) : null, reverse: true, tapLine: 'race_reverse_tap', tapLineSid: alone ? 'catch-ann' : 'catch-rev', before, goodIds: OK_IDS, // похвала — просто «Отлично», без слов о произношении
     mapStandby: w => ({ ...w, trap: false }),
   })
 }

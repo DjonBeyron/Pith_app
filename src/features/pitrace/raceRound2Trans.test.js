@@ -1,12 +1,13 @@
 import { describe, it, expect } from 'vitest'
 import { buildRaceStages } from './raceStages.js'
-import { extraTarget } from './raceExtraRound.js'
+import { miaAfterPass } from './mia/miaRound.js'
+import { miaInit } from './mia/raceMia.js'
 import { transKey } from './raceTrans.js'
 import { createStudentGame, stepStudent } from '../player/modules/rotate-phone/wordLaneStudent.js'
 import { fixturePlan } from '../rehearsal/rehearsalFixtures.js'
 import { normalizePlan } from '../rehearsal/rehearsalPlan.js'
 
-// Дополнительный круг проходов A и B: перевод, который Пит говорит перед выездом (событие 'pre', useRaceActs.pre берёт rep.cap), и перевод на самой пилюле — ОДНА запись повтора { word, translation, lane, speed }.
+// Круг Мии (бывший дополнительный круг) после проходов A и B: перевод, который Пит говорит перед выездом (событие 'pre', useRaceActs.pre берёт rep.cap), и перевод на самой пилюле — ОДНА запись повтора { word, translation, lane, speed }.
 const plan = normalizePlan({ ...fixturePlan('three'), game: 'race' })
 
 /** Гоняет движок ступени: каждая пилюля либо принимается (claim), либо уезжает; возвращает события 'pre' и 'spawn' по порядку */
@@ -26,15 +27,15 @@ function drive(stage, { ownOf }) {
 }
 
 for (const act of ['sprint', 'catch']) {
-  describe(`второй круг «${act}»: перевод повтора из той же записи, что и пилюля`, () => {
+  describe(`круг Мии после «${act}»: перевод повтора из той же записи, что и пилюля`, () => {
     const mk = () => {
       const { stages } = buildRaceStages({ plan })
-      const first = stages.find(s => s.sid === act), second = stages.find(s => s.sid === `${act}2`)
+      const first = stages.find(s => s.sid === act), second = stages.find(s => s.sid === `${act}3`)
       const results = Object.fromEntries(first.words.map((_, i) => [i, { hit: i % 2 === 0, miss: false }])) // нечётные не дались
-      extraTarget(stages, first, { results }, plan.seed)
+      miaAfterPass(stages, first, { results }, plan.seed, miaInit())
       return { first, second }
     }
-    it('rep.cap каждого повтора = то, что говорит Пит (проход A — перевод, проход B — английское слово); pre и spawn идут по порядку второго круга', () => {
+    it('rep.cap каждого повтора = то, что говорит Пит (проход A — перевод, проход B — английское слово); pre и spawn идут по порядку круга Мии', () => {
       const { first, second } = mk()
       expect(second.words.length).toBeGreaterThan(0)
       const want = w => (act === 'catch' ? w.text : w.translation) // текст пилюли = язык голоса Пита: проход B — английское слово
@@ -48,12 +49,12 @@ for (const act of ['sprint', 'catch']) {
     })
     it('круг пересобирается при повторном вызове (директор зовёт nextIdx много раз): последняя сборка — единая, без хвостов прежних слов', () => {
       const { stages } = buildRaceStages({ plan })
-      const first = stages.find(s => s.sid === act), second = stages.find(s => s.sid === `${act}2`)
+      const first = stages.find(s => s.sid === act), second = stages.find(s => s.sid === `${act}3`)
       const all = Object.fromEntries(first.words.map((_, i) => [i, { hit: false, miss: false }]))
-      extraTarget(stages, first, { results: all }, plan.seed)
+      miaAfterPass(stages, first, { results: all }, plan.seed, miaInit())
       const n = second.words.length
       const one = { ...Object.fromEntries(first.words.map((_, i) => [i, { hit: true }])), 2: { hit: false, miss: true }, 3: { hit: false, miss: true } } // два слабых слова — круг есть
-      extraTarget(stages, first, { results: one }, plan.seed)
+      miaAfterPass(stages, first, { results: one }, plan.seed, miaInit())
       expect(second.words.length).toBeLessThan(n)
       expect(second.step.reps).toHaveLength(second.words.length); expect(second.step.chunks).toEqual(second.words.map(w => (act === 'catch' ? w.translation : w.text))); expect(second.step.chunkMs).toHaveLength(second.words.length)
       second.step.reps.forEach((r, i) => { expect(r.parts).toEqual([i]); expect(r.speed).toBe(second.words[i].speed); expect(r.lane).toBe(second.words[i].lane) })

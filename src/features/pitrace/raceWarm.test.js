@@ -9,13 +9,13 @@ import { buildRaceActs } from './raceRecipe.js'
 // Прогрев «Встряхни память» в жесте «Начать» (без звука и микрофона): AudioContext открыт, первые реплики, похвалы и первые слова декодируются ПЕРВЫМИ, журнал «[warm] гонка: …»; при входе в игру — что уже в памяти.
 const plan = normalizePlan({ ...fixturePlan('three'), game: 'race' })
 const ln = id => ({ url: `https://x/${id}.mp3`, text: id, duration: 2 })
-const lines = { race_start: ln('race_start'), race_catch: ln('race_catch'), race_good_1: ln('race_good_1'), race_good_3: ln('race_good_3'), race_climb: ln('race_climb') }
-const cfg = { chunks: plan.chunks, confusers: [], extraWords: [], translations: [], firstLines: ['race_start', 'race_catch'], plan }
+const lines = { race_start: ln('race_start'), race_reverse: ln('race_reverse'), race_good_1: ln('race_good_1'), race_good_3: ln('race_good_3'), race_climb: ln('race_climb') }
+const cfg = { chunks: plan.chunks, confusers: [], extraWords: [], translations: [], firstLines: ['race_start', 'race_reverse'], plan }
 
 describe('что греть первым', () => {
   it('race_start, реплика первого акта, похвалы с озвучкой; реплики позже (Вершина) — нет', () => {
     const keys = raceWarmItems({ cfg, lines }).map(i => i.key)
-    expect(keys.slice(0, 2)).toEqual(['line:race_start', 'line:race_catch']); expect(keys).toContain('line:race_good_1'); expect(keys).toContain('line:race_good_3')
+    expect(keys.slice(0, 2)).toEqual(['line:race_start', 'line:race_reverse']); expect(keys).toContain('line:race_good_1'); expect(keys).toContain('line:race_good_3')
     expect(keys).not.toContain('line:race_climb'); expect(keys).not.toContain('line:race_good_2') // без озвучки — нечего декодировать
     expect(WARM_FIRST_WORDS).toBe(3)
   })
@@ -36,10 +36,10 @@ describe('прогрев в «Начать»', () => {
     const w = createRaceWarm({ unlock, prefetch, log, decoded: u => done.has(u), ctxState: () => 'running', now: () => t })
     const p = w.start({ cfg, lines })
     expect(unlock).toHaveBeenCalledTimes(1); expect(prefetch).toHaveBeenCalledWith(w.items()) // синхронно в жесте
-    expect(log.mock.calls[0][0]).toMatch(/^\[warm\] гонка: прогрев начат в «Начать» \(без звука и микрофона\), ctx=running; первыми декодирую 4: race_start, race_catch, race_good_1, race_good_3/)
+    expect(log.mock.calls[0][0]).toMatch(/^\[warm\] гонка: прогрев начат в «Начать» \(без звука и микрофона\), ctx=running; первыми декодирую 4: race_start, race_reverse, race_good_1, race_good_3/)
     t = 180; await p
-    expect(log.mock.calls.map(c => c[0])).toContain('[warm] гонка: декодировано 1/4 за 180 мс; нет в памяти: race_catch, race_good_1, race_good_3')
-    done.add('https://x/race_catch.mp3'); t = 900
+    expect(log.mock.calls.map(c => c[0])).toContain('[warm] гонка: декодировано 1/4 за 180 мс; нет в памяти: race_reverse, race_good_1, race_good_3')
+    done.add('https://x/race_reverse.mp3'); t = 900
     expect(w.entryReport()).toEqual({ ok: 2, total: 4, start: true })
     expect(log.mock.calls.at(-1)[0]).toBe('[warm] гонка: вход в игру — в памяти 2/4, race_start декодирован, ctx=running, прогрев начат 900 мс назад')
   })

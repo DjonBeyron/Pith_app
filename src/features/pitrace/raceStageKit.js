@@ -7,6 +7,7 @@ import { raceTexts } from './raceTexts.js'
 import { vocabOf } from './raceWords.js'
 import { goodPlan } from './raceGood.js'
 import { standbyWords } from './raceStandby.js'
+import { PLATE_HOLD_MS } from './raceOpening.js'
 
 export const RACE_ANNOUNCE_MS = 1700 // плашка раунда
 export const RACE_TOP_MS = 2600      // вершина: золотая плашка и реплика Пита
@@ -62,16 +63,14 @@ export function queueStep(kit, id, words, good, rep, o = {}) {
  */
 export function queueStages(kit, act, rep, o = {}) {
   const { push, announce, plan } = kit
-  const sid2 = `${act.id}2`
   const ctl = { lang: o.lang, tapOnly: !!o.tapOnly }
   const standby = standbyWords(act.words, plan).map(w => o.mapStandby?.(w) ?? w)
   const round = (sid, list, first) => { const good = goodPlan(plan.seed, sid, list.length, { first, ids: o.goodIds }); return { type: 'student', act: act.id, sid, step: queueStep(kit, sid, list, good, rep, { target: o.target, lang: ctl.lang, tapOnly: ctl.tapOnly, reverse: o.reverse }), words: list, good } }
-  const demote = () => { if (o.tapLine) { const a = kit.stages.find(x => x.sid === `${act.id}-ann`); if (a) a.line = o.tapLine } ctl.lang = undefined; ctl.tapOnly = true; kit.stages.filter(x => x.act === act.id && x.type === 'student').forEach(x => { delete x.step.lang; x.step.tapOnly = true }) }
+  const demote = () => { if (o.tapLine) { const a = kit.stages.find(x => x.sid === (o.tapLineSid ?? `${act.id}-ann`)); if (a) a.line = o.tapLine } ctl.lang = undefined; ctl.tapOnly = true; kit.stages.filter(x => x.act === act.id && x.type === 'student').forEach(x => { delete x.step.lang; x.step.tapOnly = true }) }
   o.before?.()
-  announce(act, o.plain ? { title: '', task: '', ms: ROUND2_ANN_MS } : undefined)
+  announce(act, o.plain ? { title: '', task: '', ms: ROUND2_ANN_MS } : o.plate ? { line: o.plateLine ?? null } : undefined)
+  if (o.plate) Object.assign(kit.stages.at(-1), { charge: true, pause: PLATE_HOLD_MS }) // плашка этапа с зарядкой бара (как у первой стадии игры: raceStages.js) — после разворота в реверс (catch-rev), без реплики: её уже сказал Пит
   push({ ...round(act.id, act.words, true), standby, demote })
-  announce(act, { sid: sid2, title: '', task: '', line: 'race_sprint_round2', ms: ROUND2_ANN_MS })
-  push({ ...round(sid2, act.words, false), fill: list => Object.assign(kit.stages.find(x => x.sid === sid2), round(sid2, list, false)) })
   // Эпизод «Мия» (mia/raceMia.js): церемония прихода и круг с Мией стоят в списке всегда, но директор идёт на них вместо круга 2, когда слабых слов две и больше (miaRoute, miaRound.js); иначе их обходит nextIdx
   const sid3 = `${act.id}3`
   announce(act, { sid: sid3, kind: 'mia', title: '', task: '', line: 'pit_forgot', ms: MIA_ANN_MS })
