@@ -77,14 +77,15 @@ describe('продление хода у края', () => {
     expect(edgeVerdict({ grace: 100, t: 100 + LAST_WORD_GRACE_MS - 1, lit: 3, n: 4, canHold: true })).toBe('wait')
     expect(edgeVerdict({ grace: 100, t: 100 + LAST_WORD_GRACE_MS, lit: 3, n: 4, canHold: true })).toBe('draft')
   })
-  const toEdge = s => { const p = s.pool.taken[0]; for (let i = 0; i < 3000 && !p.held && !s.fx.fail.mock.calls.length; i++) s.go(16); return p }
+  const extended = log => log.mock.calls.some(c => c[0].includes('продлён'))
+  const toEdge = (s, log) => { const p = s.pool.taken[0]; for (let i = 0; i < 3000 && !extended(log) && !s.fx.fail.mock.calls.length; i++) s.go(16); return p } // v3.3.277: пилюля при продлении не замирает — признак продления в журнале
   it('черновик 3 из 4, пилюля у края — замирает на 1,5 с; последнее слово пришло — зачёт «чисто»', () => {
     const log = vi.fn(); const s = setupScene(say(), { listen: createPhraseListener, log })
     untilPill(s, 0); s.go(500); stubDraft('nice to meet')
-    const p = toEdge(s)
-    expect(p.held).toBe(true); expect(s.fx.fail).not.toHaveBeenCalled()
+    const p = toEdge(s, log)
+    expect(extended(log)).toBe(true); expect(s.fx.fail).not.toHaveBeenCalled(); expect(p.held).toBeFalsy() // не замирает (владелец v3.3.277)
     expect(log.mock.calls.map(c => c[0]).find(l => l.includes('продлён'))).toMatch(/^\[phrases\] круг 2 «Скажи» \(голос\), ход 1\/6, проход 1\/2: пилюля у края без итога — ход продлён на 1500 мс \(черновик 75 %\)$/)
-    const y = s.pool.y(p.k); s.go(1000); expect(s.pool.y(p.k)).toBe(y) // держится у нижней границы
+    const y = s.pool.y(p.k); s.go(1000); expect(s.pool.y(p.k)).toBeGreaterThan(y); expect(p.gone).toBeFalsy() // уезжает вниз, но жива: слово ещё может прийти
     stubSay('nice to meet you'); s.go(600)
     expect(s.fx.win).toHaveBeenCalledTimes(1); expect(s.fx.win.mock.calls[0][2].res).toMatchObject({ ok: true, ratio: 1, clean: true })
     s.run.stop()
@@ -92,7 +93,7 @@ describe('продление хода у края', () => {
   it('за 1,5 с итога нет — зачёт «нечисто» по черновику, а не «не успел»', () => {
     const log = vi.fn(); const s = setupScene(say(), { listen: createPhraseListener, log })
     untilPill(s, 0); s.go(500); stubDraft('nice to meet')
-    toEdge(s); s.go(LAST_WORD_GRACE_MS + 600)
+    toEdge(s, log); s.go(LAST_WORD_GRACE_MS + 600)
     expect(s.fx.fail).not.toHaveBeenCalled(); expect(s.fx.win).toHaveBeenCalledTimes(1)
     expect(s.fx.win.mock.calls[0][2].res).toMatchObject({ ok: true, ratio: 0.75, clean: false })
     expect(log.mock.calls.some(c => /пилюля у края без итога — итог по черновику 75 %, нечисто$/.test(c[0]))).toBe(true)

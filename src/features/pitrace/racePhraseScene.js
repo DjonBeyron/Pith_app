@@ -175,7 +175,7 @@ export function runPhraseScene({ pool, root, scene, fxRef, listen = phraseListen
   function atEdge(tg, t) {
     const n = phraseWords(turn().target.text).length || 1, ratio = Math.min(1, said.count() / n), wbw = turn().pass !== 2, v = edgeVerdict({ grace, t, lit: said.count(), n, canHold: !!pool.hold, wbw, last: said.last() })
     const head = `[phrases] круг ${cfg.round} ${ROUND_LOG[cfg.mode]}, ход ${turn().idx + 1}/${turns.length}${passTag()}: пилюля у края без итога —`
-    if (v === 'hold') { grace = t; pool.hold(tg.k, true); log(`${head} ход продлён на ${graceMs({ grace: t, wbw, last: said.last() })} мс (черновик ${Math.round(ratio * 100)} %)`) }
+    if (v === 'hold') { grace = t; log(`${head} ход продлён на ${graceMs({ grace: t, wbw, last: said.last() })} мс (черновик ${Math.round(ratio * 100)} %)`) }
     else if (v === 'draft') { log(`${head} итог по черновику ${Math.round(ratio * 100)} %, нечисто`); fin = { at: t, extra: { ...(turn().pass === 2 ? passTwoRes(ratio, said.times()) : { ratio }), clean: false, late: true }, word: said.last(), to: fillTo({ ratio, n, edges: sv?.edges() }) } }
     else if (v === 'fail') resolve('fail', { ratio })
   }
@@ -198,7 +198,7 @@ export function runPhraseScene({ pool, root, scene, fxRef, listen = phraseListen
     else if (phase === 'pre' && !early(t) && t - at >= PRE_MIN_MS && !(fx().pitLeft?.() > 0)) { phase = 'ride'; at = t; log(`[phrases] круг ${cfg.round} ${ROUND_LOG[cfg.mode] ?? cfg.mode}, ход ${turn().idx + 1}/${turns.length}${passTag()}: пилюли едут, speed ${String(cfg.speed).replace('.', ',')}, gap ${cfg.gap} мс`) }
     else if (phase === 'ride' || phase === 'after') {
       if (phase === 'ride') { const c = turn().cands; for (let j = pills.length; j < c.length && t - at >= j * cfg.gap && t - lastSpawn >= cfg.gap; j++) spawn(c[j], j) } // за едущими — не ближе cfg.gap
-      for (const p of pills) if (!p.gone) { p.y = yOf(p); if (p.y >= EXIT_Y) gone(p) }
+      for (const p of pills) if (!p.gone) { p.y = yOf(p); if (p.y >= EXIT_Y && !(grace != null && p.cand.right)) gone(p) } // у продления хода пилюля уезжает за экран, но остаётся жива: слово ещё может прийти — тогда она взлетит снизу
       const tg = target()
       if (phase === 'ride' && cfg.mode === 'say' && tg && !tg.gone && !res) { const g = goal(t); shown = view.step('say', g, dt, fin ? (t - fin.at) / LOCK_MS : null, fin?.to); pool.paintFill(tg.k, shown); sv?.frame(t, !!fin, shown); trace.frame(t, g, shown); onFrame?.(t, g, shown); if (fin && finishDue(fin, shown, t, () => trace.full(t, fin.word))) resolve('win', fin.extra) }
       if (phase === 'ride' && tg && !res && !fin && tg.y >= LISTEN_Y_MAX) { if (cfg.mode === 'say') atEdge(tg, t); else resolve('fail') }

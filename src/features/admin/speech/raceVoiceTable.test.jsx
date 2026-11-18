@@ -115,3 +115,15 @@ describe('таблица и блок', () => {
     expect(readFileSync(new URL('../../../styles/admin-race-ask.css', import.meta.url), 'utf8')).toContain("@import './admin-race-voice.css'")
   })
 })
+
+import { unvoicedFirst, missingNote } from './raceVoiceTable.js'
+describe('неозвученные — наверх списка (v3.3.277)', () => {
+  const rows = [{ id: 'a', text: 'x', status: 'ok' }, { id: 'b', text: 'y', status: 'none' }, { id: 'c', text: '{n}', status: 'none' }, { id: 'd', text: 'z', status: 'changed' }]
+  it('сначала то, что нужно озвучить (нет файла / текст изменён), потом озвученное и неозвучиваемое; порядок внутри прежний', () => {
+    expect(unvoicedFirst(rows).map(r => r.id)).toEqual(['b', 'd', 'a', 'c'])
+  })
+  it('плашка: число и id; всё озвучено — null', () => {
+    expect(missingNote(rows)).toBe('Не озвучено: 2 — b, d'); expect(missingNote([rows[0]])).toBeNull()
+    expect(missingNote(Array.from({ length: 8 }, (_, i) => ({ id: `r${i}`, text: 't', status: 'none' })))).toContain('…')
+  })
+})

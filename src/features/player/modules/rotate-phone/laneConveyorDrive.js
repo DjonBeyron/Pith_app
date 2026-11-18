@@ -1,3 +1,4 @@
+import { convSpeed } from '../../../pitrace/raceReverseTimes.js'
 import { createLane, stepLane, laneLook, settled, retimeSpeed, slowRampMs, RUN_SPEED, SPEED_RAMP_MS, SLOW_RAMP_MIN_MS, SLOW_RAMP_MAX_MS, SLOW_CUT_MS } from './wordLaneConveyor.js'
 import { pLog } from '../../../../shared/lib/debug.js'
 import { periodPx, shiftPx, pxText, viewOf, RACE_SPLIT } from './laneConveyorPx.js'
@@ -84,7 +85,7 @@ export function createConveyorDrive({
       slow = null
       if (moving && race && v < aim && hintKey !== aimKey) { ramp = slowRampMs(pit, ask); slow = { t0: ts, ms: ramp } } // этап сменился, скорость падает — замедление под реплику
       if (moving) log(`${stage()}: скорость ${(RUN_SPEED * aim).toFixed(1)} → ${(RUN_SPEED * v).toFixed(1)} dvh/с (×${aim.toFixed(2)} → ×${v.toFixed(2)}) за ${ramp} мс${tape() ? ', лента' : ''}${slow ? ` (замедление под реплику, Пит говорит ещё ${Math.round(pit)} мс)` : ''}`)
-      aim = v
+      aim = v; convSpeed.v = v // множитель скорости конвейера для разворота в реверс (pitrace/raceReverseTimes.js)
     } else if (slow) follow(ts)
     aimKey = hintKey
     lanes.forEach((L, i) => { draw(i, laneLook(stepLane(L, dt, stop ? { still, speed: v, ramp } : { armed: armed[i], keep: keep[i], pills: pills[i], still, speed: v, hold, ramp }))) })

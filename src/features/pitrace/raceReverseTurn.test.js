@@ -58,7 +58,7 @@ describe('разворот назад (церемония Мии после B)',
   it('пилюли приезжают снизу (data-arrow = up) и уезжают вниз; узор дорожек возвращается вниз (data-up снят); busy снимается при возврате в пул', () => {
     const r = rig(); r.root.attrs['data-up'] = ''; revBack.busy = true; r.run({ back: true })
     expect(r.calls.filter(c => c[0] === 'attr' && c[2] === 'data-arrow').every(c => c[3] === 'up')).toBe(true)
-    const f0 = r.els[0].animations[0].frames; expect(f0[0].translate).toContain('114.000dvh'); expect(f0[1].translate).toContain('50.000dvh') // снизу (100 − (−14)) в центр
+    const f0 = r.els[0].animations[0].frames; expect(f0[0].translate).toContain('114.000dvh'); expect(f0[1].translate).toContain('68.000dvh'); expect(f0[2].translate).toContain('50.000dvh') // снизу (100 − (−14)) в центр: равномерно до точки торможения, потом замедление
     r.timers[T.rotate].fn(); r.timers[T.flip].fn(); expect(r.root.attrs['data-up']).toBeUndefined() // конвейер вниз
     r.timers[T.leave].fn(); expect(r.els[0].animations[2].frames.at(-1).translate).toContain('114.000dvh') // отъезд вниз
     expect(revBack.busy).toBe(false) // три ноты церемонии идут на отъезде пилюль, а не после него (после диалогов Мии не должно быть тишины)
@@ -85,7 +85,7 @@ describe('стадия разворота и уход Мии', () => {
     const c = rd('./raceStagesCatch.js'), a = rd('./useRaceActs.js'), p = rd('../player/modules/rotate-phone/useWordLanePills.js')
     expect(c).toContain("sid: 'catch-rev', rev: REV_MS"); expect(c).toContain("voice ? 'race_reverse' : 'race_reverse_tap'")
     expect(rd('../player/modules/rotate-phone/useWordLaneFlow.js')).toContain("if (stageObj.rev || stageObj.revBack) return { kind: 'reverse', at: s.at, back: !!stageObj.revBack }")
-    expect(a).toContain('Math.min(pitBusy(), REV_WAIT_CAP_MS) + st.rev + 150'); expect(a).toContain("plate: st => (st?.rev || st?.mia === 'intro'"); expect(a).toContain('mspeech.leftMs()')
+    expect(a).toContain('revTimes(convSpeed.v).total + REV_START_SLACK_MS'); expect(a).toContain("plate: st => (st?.rev || st?.mia === 'intro'"); expect(a).toContain('mspeech.leftMs()')
     expect(p).toContain("fxRef.current?.pitBusy?.() ?? 0"); expect(p).toContain('tail < 30')
     expect(rd('../player/modules/rotate-phone/wordLanePool.js')).toContain("'data-up', 'data-arrow'") // у пилюли из пула стрелка не остаётся
   })
@@ -97,5 +97,23 @@ describe('стадия разворота и уход Мии', () => {
     const t2 = []; const go2 = vi.fn(); afterLeaveSpeech({ pending: () => 5, delay: 0, go: go2, setTimer: fn => { t2.push(fn); return t2.length } })
     for (let i = 0; i < LEAVE_MAX_POLLS + 2 && t2.length; i++) t2.shift()()
     expect(go2).toHaveBeenCalledTimes(1) // страховка
+  })
+})
+
+import { revTimes, clampSpeed, REV_SPEED_MIN, REV_SPEED_MAX, REV_RAMP_PCT } from './raceReverseTimes.js'
+import { SPEED, ENTER_Y } from '../player/modules/rotate-phone/wordLaneTimeline.js'
+describe('разворот идёт со скоростью конвейера (v3.3.277)', () => {
+  it('равномерная часть приезда — ровно на скорости конвейера SPEED·k; у Мии (быстрее) разворот короче, у медленного — длиннее; множитель зажат', () => {
+    const t = revTimes(1), path = Math.abs(50 - ENTER_Y)
+    expect(((path - REV_RAMP_PCT) / (t.linear / 1000))).toBeCloseTo(SPEED, 0); expect(t.arrive).toBe(Math.round(((path + REV_RAMP_PCT) / SPEED) * 1000))
+    expect(revTimes(1.5).arrive).toBeLessThan(t.arrive); expect(revTimes(0.8).arrive).toBeGreaterThan(t.arrive)
+    expect(clampSpeed(0.2)).toBe(REV_SPEED_MIN); expect(clampSpeed(9)).toBe(REV_SPEED_MAX); expect(clampSpeed(undefined)).toBe(1)
+    expect(revTimes(9)).toEqual(revTimes(REV_SPEED_MAX)); expect(t.total).toBe(t.lead + t.leave + 120); expect(t.ramp).toBe(t.arrive - t.linear)
+  })
+  it('прогон со скоростью Мии: длительности приезда и отъезда — по revTimes(speed); пилюли стартуют сразу (без ожидания Пита)', () => {
+    const r = rig(); r.run({ speed: 1.5 }); const T = revTimes(1.5)
+    for (const el of r.els) expect(el.animations[0].o.duration).toBe(T.arrive)
+    expect(r.timers.map(x => x.ms).at(-1)).toBe(T.lead + T.leave + 40)
+    expect(rd('../player/modules/rotate-phone/useWordLanePills.js')).toContain('const wait = 0')
   })
 })

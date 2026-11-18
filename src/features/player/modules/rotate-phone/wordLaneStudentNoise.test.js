@@ -38,3 +38,22 @@ describe('принятое слово и шум в одной реплике', (
     expect(all).toContain('claim'); expect(all).not.toContain('miss')
   })
 })
+
+// v3.3.277 (журнал владельца, Мия ×1,96): верный черновик «пытаюсь» есть, пилюля у нижней границы, итог ещё не пришёл — засчитать по черновику, а не «не успел»
+describe('верный черновик у нижней границы', () => {
+  const run = (tail, fresh = true) => {
+    const g = createStudentGame({ step, chunks: ["I'm", 'trying', 'to learn'] })
+    const evs = []
+    for (let t = 0; t <= 14000; t += DT) { const e = stepStudent(g, t, { level: 0, seq: [], misses: 0, tail, heardT: fresh ? t - 100 : -Infinity }); evs.push(...e); if (e.some(x => x.type === 'fail' || x.type === 'claim')) break }
+    return evs
+  }
+  it('без черновика — «не успел» (как раньше)', () => { const t = types(run(null)); expect(t).toContain('fail'); expect(t).not.toContain('claim') })
+  it('с черновиком на слове пилюли — claim по черновику, fail нет', () => {
+    const g0 = createStudentGame({ step, chunks: ["I'm", 'trying', 'to learn'] })
+    stepStudent(g0, 3000, { level: 0, seq: [], misses: 0 })
+    const target = g0.reps.find(r => r.state === 'fly')?.target
+    const t = run({ target, tokens: [] }); expect(types(t)).toContain('claim'); expect(types(t)).not.toContain('fail'); expect(t.find(x => x.type === 'claim').draft).toBe(true)
+  })
+  it('давний хвост (речи давно нет) не засчитывает', () => { expect(types(run({ target: 0, tokens: [] }, false))).toContain('fail') })
+  it('черновик на ДРУГОЕ слово пилюлю не засчитывает', () => { expect(types(run({ target: 99, tokens: [] }))).toContain('fail') })
+})

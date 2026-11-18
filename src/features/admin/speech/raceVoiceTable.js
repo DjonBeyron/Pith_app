@@ -58,6 +58,15 @@ export function voiceCount(rows) {
 /** Кому не хватает озвучки (нет файла или текст изменён после озвучки) */
 export const missingRows = rows => rows.filter(r => voiceable(r) && r.status !== 'ok')
 
+/** Неозвученные — наверх списка (владелец, v3.3.277: «искать в списке, что не озвучено, сложно»); порядок внутри каждой половины прежний */
+export const unvoicedFirst = rows => [...rows.filter(r => voiceable(r) && r.status !== 'ok'), ...rows.filter(r => !(voiceable(r) && r.status !== 'ok'))]
+
+/** Плашка «не озвучено»: строка с числом и первыми id (null — всё озвучено) */
+export function missingNote(rows, max = 6) {
+  const m = missingRows(rows)
+  return m.length ? `Не озвучено: ${m.length} — ${m.slice(0, max).map(r => r.id).join(', ')}${m.length > max ? '…' : ''}` : null
+}
+
 /** Длительность для колонки: 1.234 → «1,2 с»; нет — пусто */
 export const durLabel = s => (s > 0 ? `${(Math.round(s * 10) / 10).toString().replace('.', ',')} с` : '')
 

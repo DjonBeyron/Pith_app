@@ -114,10 +114,9 @@ describe('продление у края в проходе 1, пока учен�
   it('сцена, журнал владельца: по слову с паузами ≈ 2,3 с, у края на 4-м слове — продление 3 с, «you» через 2 с после края — зачёт «чисто»', () => {
     const log = vi.fn(), s = setupScene(phraseStep('phrases2', round2SayTurns(phrasesOf({ phrases: PHRASE_FIXTURE })), { round: 2, mode: 'say', voice: true, speed: SAY_SPEED }), { listen: createPhraseListener, log })
     for (let i = 0; i < 2000 && !s.pool.taken.length; i++) s.go(16)
-    const p = s.pool.taken[0]
     s.go(5200); stubDraft('nice'); s.go(2300); stubDraft('nice to'); s.go(2300); stubDraft('nice to meet')
-    for (let i = 0; i < 1000 && !p.held && !s.fx.fail.mock.calls.length; i++) s.go(16)
-    expect(p.held).toBe(true)
+    for (let i = 0; i < 1000 && !log.mock.calls.some(c => c[0].includes('продлён')) && !s.fx.fail.mock.calls.length; i++) s.go(16)
+    expect(log.mock.calls.some(c => c[0].includes('продлён'))).toBe(true)
     expect(log.mock.calls.map(c => c[0]).find(l => l.includes('продлён'))).toMatch(/ход продлён на 3000 мс \(черновик 75 %\)$/)
     s.go(2000); expect(s.fx.win).not.toHaveBeenCalled() // 1,5 с прошло — раньше здесь был зачёт «нечисто» по черновику
     stubSay('nice to meet you'); s.go(600)

@@ -3,7 +3,7 @@ import PolishSettings from './PolishSettings.jsx'
 import MiaVoicePicker from './MiaVoicePicker.jsx'
 import RaceVoiceRow from './RaceVoiceRow.jsx'
 import { getElevenLabsQuota } from '../../../shared/lib/ttsApi.js'
-import { voiceCount, missingRows, voiceable } from './raceVoiceTable.js'
+import { voiceCount, missingRows, voiceable, unvoicedFirst, missingNote } from './raceVoiceTable.js'
 import { isMiaLine } from '../../pitrace/mia/miaLines.js'
 
 // Админ → «Голос» → «Встряхни память» → «Озвучка Мии» (рядом с «Озвучкой Пита», сворачивается так же): реплики Мии эпизода и финала (mia_*, boss_mia_*; mia/miaLines.js) — голос второго аккаунта ElevenLabs (реплики Пита в эпизоде — в «Озвучке Пита», его голосом), свой счёт «озвучено N из M», «Озвучить Мию» (только недостающие) и «Переозвучить Мию» (все её реплики заново — после смены голоса; с подтверждением), остаток символов аккаунта Мии и выбор её голоса. Данные и действия — общие с таблицей Пита
@@ -16,9 +16,10 @@ export default function RaceMiaVoice({ rows, t, off, open, onToggle, deps, confi
   const checkQuota = () => { setQuota('смотрю…'); (deps?.quota ?? getElevenLabsQuota)('mia').then(q => setQuota(`осталось ${(q.limit - q.used).toLocaleString('ru-RU')} из ${q.limit.toLocaleString('ru-RU')} символов`), e => setQuota(`не получилось: ${e?.message ?? e}`)) }
   const row = r => <RaceVoiceRow key={`${r.id}|${r.text}`} row={r} locked={off} error={t.errors[r.id]} onSave={t.save} onVoice={x => t.voice([x])} />
   return (
-    <PolishSettings title="Озвучка Мии" open={open} onToggle={onToggle} summary={t.loaded ? `озвучено ${count.done} из ${count.total}` : 'загружаю…'} testid="mia-voice">
+    <PolishSettings title="Озвучка Мии" open={open} onToggle={onToggle} summary={t.loaded ? `озвучено ${count.done} из ${count.total}${missing.length ? ` · НЕ озвучено ${missing.length}` : ''}` : 'загружаю…'} testid="mia-voice">
       <div className="rvTop" data-testid="rv-mia-top">
         <span data-testid="rv-mia-count">Озвучено {count.done} из {count.total}</span>
+        {missing.length > 0 && <span className="aspErr" role="status" data-testid="rv-mia-missing">{missingNote(rows)}</span>}
         <button type="button" className="aspChip" disabled={off || !missing.length} onClick={() => t.voice(missing)} data-testid="rv-voice-mia">Озвучить Мию{missing.length ? ` (${missing.length})` : ''}</button>
         <button type="button" className="aspChip" disabled={off || !hers.length} onClick={revoice} data-testid="rv-revoice-mia">Переозвучить Мию ({hers.length})</button>
         <button type="button" className="aspChip" onClick={checkQuota} data-testid="rv-mia-quota-btn">Остаток аккаунта Мии</button>
@@ -26,7 +27,7 @@ export default function RaceMiaVoice({ rows, t, off, open, onToggle, deps, confi
       </div>
       <MiaVoicePicker deps={deps?.voicePicker} />
       <p className="rhpHint">Реплики Мии идут голосом второго аккаунта ElevenLabs. Реплики Пита в эпизоде и финале — в блоке «Озвучка Пита». Прослушать — кнопка ▶.</p>
-      <ul className="rvList" data-testid="rv-mia">{rows.map(row)}</ul>
+      <ul className="rvList" data-testid="rv-mia">{unvoicedFirst(rows).map(row)}</ul>
     </PolishSettings>
   )
 }

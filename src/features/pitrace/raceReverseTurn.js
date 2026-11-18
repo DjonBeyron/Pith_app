@@ -3,28 +3,31 @@
 // разворачиваются на 180° (в середине поворота узор дорожек меняет направление — data-up на корне игры), и уезжают в противоположную сторону с ускорением (ease-in), а конвейер запускается так же — как запуск после остановки (событие
 // WARM_EVENT: привод разгоняет дорожки сразу, без «зажигания»; ускорение ACCEL_MS, пунктир уже бежит в обратную сторону). Вперёд (A → B): приезд сверху, отъезд вверх; назад (после B): приезд снизу, отъезд вниз. Пилюли — из общего пула; только WAAPI
 // (translate / rotate / opacity); слабое устройство и reduced-motion — то же без вращения. Тайминг (REV_MS ≈ 3,6 с): приезд 1,6 с, стоянка 0,2 с, поворот 0,4 с, отъезд 1,3 с.
+import { revTimes, convSpeed, REV_PAUSE_MS, REV_TURN_MS, REV_RAMP_PCT, REV_MID_Y } from './raceReverseTimes.js'
 import { flightPosition, mirrorY } from './../player/modules/rotate-phone/wordLaneMotion.js'
 import { ENTER_Y } from '../player/modules/rotate-phone/wordLaneTimeline.js'
 import { DECEL_MS } from '../player/modules/rotate-phone/wordLaneConveyor.js'
 import { pLog } from '../../shared/lib/debug.js'
 
-export const REV_ARRIVE_MS = 1600
-export const REV_PAUSE_MS = 200
-export const REV_TURN_MS = 400
-export const REV_LEAVE_MS = 1300
-export const REV_MS = REV_ARRIVE_MS + REV_PAUSE_MS + REV_TURN_MS + REV_LEAVE_MS + 120 // стадия ≥ анимации (+ запас)
-export const REV_BACK_LEAD_MS = REV_ARRIVE_MS + REV_PAUSE_MS + REV_TURN_MS // разворот назад стартует за столько мс до конца диалогов Мии: к последнему слову она пилюли развернулись, дальше — только отъезд (v3.3.271: после диалогов была тишина ≈ 7 с)
+export { REV_PAUSE_MS, REV_TURN_MS }
+export const REV_ARRIVE_MS = revTimes(1).arrive // при скорости конвейера ×1 (реальное время — revTimes(convSpeed.v), raceReverseTimes.js)
+export const REV_LEAVE_MS = revTimes(1).leave
+export const REV_MS = revTimes(1).total // стадия ≥ анимации (+ запас); директор берёт время по текущей скорости
+export const REV_BACK_LEAD_MS = revTimes(1).lead // разворот назад стартует за столько мс до конца диалогов Мии: к последнему слову она пилюли развернулись, дальше — только отъезд
+export const REV_START_SLACK_MS = 450 // запас стадии разворота: пилюли могут чуть подождать доезжающие пилюли прошлой ступени
 export const REV_WAIT_CAP_MS = 600 // стадия разворота ждёт занятость Пита не дольше: его же реплика про реверс идёт ВМЕСТЕ с анимацией (раньше hold = реплика + анимация, после неё была тишина ≈ 4 с, владелец v3.3.272)
 export const TURN_EVENT = 'wl-conveyor-turn' // событие на корне игры с detail 'halt' | 'warm' | 'resume' (laneConveyorDrive): конвейер тормозит и стоит / стартует разгоном без «зажигания» / снять стоп
 const turn = (root, detail) => root?.dispatchEvent?.(new globalThis.CustomEvent(TURN_EVENT, { detail }))
 export const REV_ARROW = '›'  // заглушка подписи пилюли (data-cap): сама стрелка — маска ::after (race-reverse.css)
 export const revBack = { busy: false } // разворот назад идёт / ждёт конца диалогов: три ноты церемонии Мии ждут его конца (useRaceActs.countWait)
-const MID_Y = 50              // центр пилюль при остановке, % высоты экрана
-const EASE_OUT = 'cubic-bezier(0.25, 0.46, 0.45, 0.94)' // замедление до нуля (постоянное, как торможение конвейера)
-const EASE_IN = 'cubic-bezier(0.55, 0.085, 0.68, 0.53)'  // ускорение с нуля
+const MID_Y = REV_MID_Y
+const EASE_OUT = 'cubic-bezier(0.333, 0.667, 0.667, 1)' // постоянное замедление до нуля (y = 1 − (1 − t)²: начальная скорость = скорость конвейера)
+const EASE_IN = 'cubic-bezier(0.333, 0, 0.667, 0.333)'  // постоянное ускорение с нуля (y = t²)
 
 /** Запуск разворота на пуле: pool — createPool, root — корень игры (.wl), fast — без вращения (слабое устройство / reduced-motion), back — назад (после B). → отмена (снимает таймеры, возвращает пилюли в пул). */
-export function runReverseTurn({ pool, root, fast = false, back = false, log = pLog, setTimer = setTimeout, clearTimer = clearTimeout }) {
+export function runReverseTurn({ pool, root, fast = false, back = false, speed = convSpeed.v, log = pLog, setTimer = setTimeout, clearTimer = clearTimeout }) {
+  const T = revTimes(speed), REV_ARRIVE_MS = T.arrive, REV_LEAVE_MS = T.leave // приезд и отъезд — по скорости конвейера
+  const dir = Math.sign(MID_Y - (back ? mirrorY(ENTER_Y) : ENTER_Y)), brake = MID_Y - dir * REV_RAMP_PCT // brake — где начинается торможение приезда и где кончается разгон отъезда (зеркально)
   const startY = back ? mirrorY(ENTER_Y) : ENTER_Y, endY = startY // экранные высоты, % экрана: приезд и отъезд — через один и тот же край
   const game = root?.closest?.('.wl') ?? root // data-up стоит на корне игры .wl (CSS узора: .wl[data-up]); root пула — его потомок (поле сцены)
   const ks = [0, 1, 2].map(lane => pool.take(lane, { flight: false, quiet: true })).filter(k => k != null)
@@ -34,7 +37,7 @@ export function runReverseTurn({ pool, root, fast = false, back = false, log = p
   const release = () => { revBack.busy = false; turn(root, 'resume'); for (const a of anims) { try { a.cancel() } catch { /* уже снята */ } } anims.length = 0; ks.forEach(k => { try { pool.give(k) } catch { /* уже в пуле */ } }) }
   ks.forEach((k, i) => {
     pool.cap(k, REV_ARROW); pool.attr(k, 'data-arrow', back ? 'up' : 'down'); pool.attr(k, 'data-quiet')
-    put(els[i].animate([{ translate: flightPosition(startY), opacity: 1 }, { translate: flightPosition(MID_Y), opacity: 1 }], { duration: REV_ARRIVE_MS, easing: EASE_OUT, fill: 'both' })) // приезд с замедлением до нуля
+    put(els[i].animate([{ translate: flightPosition(startY), opacity: 1, easing: 'linear', offset: 0 }, { translate: flightPosition(brake), opacity: 1, easing: EASE_OUT, offset: T.linear / REV_ARRIVE_MS }, { translate: flightPosition(MID_Y), opacity: 1, offset: 1 }], { duration: REV_ARRIVE_MS, fill: 'both' })) // приезд на скорости конвейера, у центра — постоянное замедление до нуля
   })
   log(`[reverse] разворот${back ? ' назад' : ''}: ${ks.length} пилюли со стрелками приезжают за ${REV_ARRIVE_MS} мс`)
   const timers = []
@@ -47,7 +50,7 @@ export function runReverseTurn({ pool, root, fast = false, back = false, log = p
   at(REV_ARRIVE_MS + REV_PAUSE_MS + Math.round(REV_TURN_MS / 2), () => { if (back) game?.removeAttribute('data-up'); else game?.setAttribute('data-up', ''); log(`[reverse] узор дорожек — ${back ? 'вниз' : 'вверх'}`) }) // середина поворота: направление узора меняется, пока конвейер стоит
   at(REV_ARRIVE_MS + REV_PAUSE_MS + REV_TURN_MS, () => { // отъезд с ускорением; конвейер стартует так же (WARM_EVENT → разгон без зажигания)
     revBack.busy = false // три ноты церемонии идут уже на отъезде пилюль (раньше ждали его конца: после диалогов Мии было молчание)
-    ks.forEach((k, i) => { put(els[i].animate([{ translate: flightPosition(MID_Y), opacity: 1 }, { translate: flightPosition(endY), opacity: 1, offset: 0.85 }, { translate: flightPosition(endY), opacity: 0 }], { duration: REV_LEAVE_MS, easing: EASE_IN, fill: 'both' })) })
+    ks.forEach((k, i) => { put(els[i].animate([{ translate: flightPosition(MID_Y), opacity: 1, easing: EASE_IN, offset: 0 }, { translate: flightPosition(brake), opacity: 1, easing: 'linear', offset: T.ramp / REV_LEAVE_MS }, { translate: flightPosition(endY), opacity: 0, offset: 1 }], { duration: REV_LEAVE_MS, fill: 'both' })) }) // отъезд: постоянное ускорение с нуля до скорости конвейера, дальше равномерно за край
     turn(root, 'warm')
     log(`[reverse] пилюли уезжают ${back ? 'вниз' : 'вверх'} с ускорением, конвейер стартует в обратную сторону`)
   })
