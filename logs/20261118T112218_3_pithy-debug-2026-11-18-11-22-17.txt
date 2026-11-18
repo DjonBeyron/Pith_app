@@ -1,0 +1,63 @@
+[21:18:11.301] [DB READ] curricula list
+[21:18:11.303] [DB READ] app_settings prompt_control
+[21:18:11.304] [DB READ] app_settings ui_sound_volume eq_sensitivity
+[21:18:11.304] [DB READ] app_settings feed_signals
+[21:18:11.305] [AUTH] event: INITIAL_SESSION accuratekemper@gmail.com
+[21:18:11.305] [AUTH] event: INITIAL_SESSION accuratekemper@gmail.com
+[21:18:11.305] [AUTH] event: INITIAL_SESSION accuratekemper@gmail.com
+[21:18:11.305] [AUTH] event: INITIAL_SESSION accuratekemper@gmail.com
+[21:18:11.305] [AUTH] event: INITIAL_SESSION accuratekemper@gmail.com
+[21:18:11.305] [AUTH] event: INITIAL_SESSION accuratekemper@gmail.com
+[21:18:11.305] [AUTH] event: INITIAL_SESSION accuratekemper@gmail.com
+[21:18:11.305] [AUTH] event: INITIAL_SESSION accuratekemper@gmail.com
+[21:18:11.305] [AUTH] event: INITIAL_SESSION accuratekemper@gmail.com
+[21:18:11.305] [AUTH] event: INITIAL_SESSION accuratekemper@gmail.com
+[21:18:11.305] [AUTH] event: INITIAL_SESSION accuratekemper@gmail.com
+[21:18:11.305] [AUTH] restore: user accuratekemper@gmail.com
+[21:18:11.305] [AUTH] restore: user accuratekemper@gmail.com
+[21:18:11.305] [AUTH] restore: user accuratekemper@gmail.com
+[21:18:11.305] [AUTH] restore: user accuratekemper@gmail.com
+[21:18:11.305] [AUTH] restore: user accuratekemper@gmail.com
+[21:18:11.305] [AUTH] restore: user accuratekemper@gmail.com
+[21:18:11.305] [AUTH] restore: user accuratekemper@gmail.com
+[21:18:11.305] [AUTH] restore: user accuratekemper@gmail.com
+[21:18:11.305] [AUTH] restore: user accuratekemper@gmail.com
+[21:18:11.305] [AUTH] restore: user accuratekemper@gmail.com
+[21:18:11.305] [AUTH] restore: user accuratekemper@gmail.com
+[21:18:11.313] [DB RPC] set_prompt_group
+[21:18:11.313] [AUTH] event: INITIAL_SESSION accuratekemper@gmail.com
+[21:18:11.313] [AUTH] restore: user accuratekemper@gmail.com
+[21:18:11.511] [RACE] гонок с датами: 1 → выбрана: «Новая гонка» 2026-10-09T14:00:00+00:00 — 2026-10-11T13:59:00+00:00
+[21:18:11.511] [RACE-POPUP] проверка: фаза ended | юзер: есть | итоги видел: false
+[21:18:11.546] [RATING] топ: 15 строк лидер: Eеуууу (8960 XP)
+[21:18:11.831] [STREAK] touch_daily_login → {"ok":true,"today":"2026-11-18","is_pro":true,"streak":0,"longest":190,"saved_by":null,"first_today":false,"pro_weekday_used":false,"has_freeze_charge":false,"auto_freeze_charges_left":0}
+[21:18:11.833] [DB OK] curricula loaded 8 rows
+[21:18:11.833] [RACE] моя запись в гонке: нет
+[21:18:11.833] [RACE] моя запись в гонке: нет
+[21:18:11.833] [RATING] мои достижения: journey_start, level10, clean_final
+[21:18:11.833] [RACE-POPUP] итоги не показываем: не финишировал
+[21:18:11.833] [RACE-POPUP] анонс: неделя 2026-11-16 | модуль пройден: — | анонс показан: — → нет
+[21:18:11.833] [RACE] состояние: фаза ended, модули: нет
+[21:18:11.838] [RATING] моё место: 3 из 15
+[21:18:11.975] [DB READ] app_settings rotate_cat_lines
+[21:18:11.975] [DB READ] app_settings race_phrase_ru
+[21:18:11.975] [DB READ] app_settings race_phrase_scene
+[21:18:11.976] [DB READ] app_settings game2_phrases
+[21:18:22.927] [R2] uploadToR2 called {"fileName":"tts-1795000702926.mp3","contentType":"audio/mpeg","sizeKb":14}
+[21:18:23.425] [R2] Edge Function response status: 200
+[21:18:23.426] [R2] Got publicUrl: https://pub-045dc128a8954174a6d82f218e0836b9.r2.dev/chat/83a4ec10-3ea6-49a5-8297-558709f98880.mp3
+[21:18:24.383] [R2] upload progress: 100% 14253/14253
+[21:18:24.840] [R2] R2 upload status: 200
+[21:18:25.672] [R2] uploadToR2 called {"fileName":"tts-1795000705671.mp3","contentType":"audio/mpeg","sizeKb":45}
+[21:18:25.934] [R2] Edge Function response status: 200
+[21:18:25.934] [R2] Got publicUrl: https://pub-045dc128a8954174a6d82f218e0836b9.r2.dev/chat/bfac563b-fb68-4c96-936e-f057e609b4cd.mp3
+[21:18:25.936] [R2] upload progress: 100% 46436/46436
+[21:18:26.299] [R2] R2 upload status: 200
+[21:18:27.089] [R2] uploadToR2 called {"fileName":"tts-1795000707089.mp3","contentType":"audio/mpeg","sizeKb":57}
+[21:18:27.395] [R2] Edge Function response status: 200
+[21:18:27.395] [R2] Got publicUrl: https://pub-045dc128a8954174a6d82f218e0836b9.r2.dev/chat/5a7c64f6-822b-45b4-8ae0-f6767eb90c74.mp3
+[21:18:27.401] [R2] upload progress: 100% 58139/58139
+[21:18:27.830] [R2] R2 upload status: 200
+[21:18:27.831] [DB WRITE] app_settings rotate_cat_lines
+[21:18:30.202] [DB READ] app_settings race_mia_voice
+[21:18:34.066] [DB READ] app_settings race_mia_voice
