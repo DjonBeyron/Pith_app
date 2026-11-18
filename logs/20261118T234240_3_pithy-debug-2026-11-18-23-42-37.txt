@@ -1,0 +1,73 @@
+[09:36:07.278] [DB READ] curricula list
+[09:36:07.279] [DB READ] app_settings prompt_control
+[09:36:07.280] [DB READ] app_settings ui_sound_volume eq_sensitivity
+[09:36:07.280] [DB READ] app_settings feed_signals
+[09:36:07.947] [AUTH] event: TOKEN_REFRESHED accuratekemper@gmail.com
+[09:36:07.948] [AUTH] event: TOKEN_REFRESHED accuratekemper@gmail.com
+[09:36:07.948] [AUTH] event: TOKEN_REFRESHED accuratekemper@gmail.com
+[09:36:07.948] [AUTH] event: TOKEN_REFRESHED accuratekemper@gmail.com
+[09:36:07.948] [AUTH] event: TOKEN_REFRESHED accuratekemper@gmail.com
+[09:36:07.948] [AUTH] event: TOKEN_REFRESHED accuratekemper@gmail.com
+[09:36:07.948] [AUTH] event: TOKEN_REFRESHED accuratekemper@gmail.com
+[09:36:07.948] [AUTH] event: TOKEN_REFRESHED accuratekemper@gmail.com
+[09:36:07.948] [AUTH] event: TOKEN_REFRESHED accuratekemper@gmail.com
+[09:36:07.948] [AUTH] event: TOKEN_REFRESHED accuratekemper@gmail.com
+[09:36:07.948] [AUTH] event: TOKEN_REFRESHED accuratekemper@gmail.com
+[09:36:07.950] [AUTH] event: INITIAL_SESSION accuratekemper@gmail.com
+[09:36:07.950] [AUTH] event: INITIAL_SESSION accuratekemper@gmail.com
+[09:36:07.950] [AUTH] event: INITIAL_SESSION accuratekemper@gmail.com
+[09:36:07.950] [AUTH] event: INITIAL_SESSION accuratekemper@gmail.com
+[09:36:07.950] [AUTH] event: INITIAL_SESSION accuratekemper@gmail.com
+[09:36:07.950] [AUTH] event: INITIAL_SESSION accuratekemper@gmail.com
+[09:36:07.950] [AUTH] event: INITIAL_SESSION accuratekemper@gmail.com
+[09:36:07.950] [AUTH] event: INITIAL_SESSION accuratekemper@gmail.com
+[09:36:07.950] [AUTH] event: INITIAL_SESSION accuratekemper@gmail.com
+[09:36:07.950] [AUTH] event: INITIAL_SESSION accuratekemper@gmail.com
+[09:36:07.950] [AUTH] event: INITIAL_SESSION accuratekemper@gmail.com
+[09:36:07.950] [AUTH] restore: user accuratekemper@gmail.com
+[09:36:07.950] [AUTH] restore: user accuratekemper@gmail.com
+[09:36:07.950] [AUTH] restore: user accuratekemper@gmail.com
+[09:36:07.950] [AUTH] restore: user accuratekemper@gmail.com
+[09:36:07.950] [AUTH] restore: user accuratekemper@gmail.com
+[09:36:07.950] [AUTH] restore: user accuratekemper@gmail.com
+[09:36:07.951] [AUTH] restore: user accuratekemper@gmail.com
+[09:36:07.951] [AUTH] restore: user accuratekemper@gmail.com
+[09:36:07.951] [AUTH] restore: user accuratekemper@gmail.com
+[09:36:07.951] [AUTH] restore: user accuratekemper@gmail.com
+[09:36:07.951] [AUTH] restore: user accuratekemper@gmail.com
+[09:36:07.990] [DB RPC] set_prompt_group
+[09:36:07.994] [AUTH] event: INITIAL_SESSION accuratekemper@gmail.com
+[09:36:07.994] [AUTH] restore: user accuratekemper@gmail.com
+[09:36:08.753] [RATING] моё место: 3 из 15
+[09:36:08.814] [RATING] топ: 15 строк лидер: Eеуууу (8960 XP)
+[09:36:08.815] [RATING] мои достижения: journey_start, level10, clean_final
+[09:36:08.833] [RACE] гонок с датами: 1 → выбрана: «Новая гонка» 2026-10-09T14:00:00+00:00 — 2026-10-11T13:59:00+00:00
+[09:36:08.833] [RACE-POPUP] проверка: фаза ended | юзер: есть | итоги видел: false
+[09:36:08.858] [DB OK] curricula loaded 8 rows
+[09:36:09.109] [STREAK] touch_daily_login → {"ok":true,"today":"2026-11-19","is_pro":true,"streak":0,"longest":190,"saved_by":null,"first_today":false,"pro_weekday_used":false,"has_freeze_charge":false,"auto_freeze_charges_left":0}
+[09:36:09.234] [DB READ] app_settings race_mia_voice
+[09:36:09.234] [DB READ] app_settings rotate_cat_lines
+[09:36:09.235] [DB READ] app_settings race_phrase_ru
+[09:36:09.235] [DB READ] app_settings race_phrase_scene
+[09:36:09.236] [DB READ] app_settings game2_phrases
+[09:36:09.316] [RACE] моя запись в гонке: нет
+[09:36:09.316] [RACE] состояние: фаза ended, модули: нет
+[09:36:09.320] [RACE] моя запись в гонке: нет
+[09:36:09.320] [RACE-POPUP] итоги не показываем: не финишировал
+[09:36:09.320] [RACE-POPUP] анонс: неделя 2026-11-16 | модуль пройден: — | анонс показан: — → нет
+[09:36:24.709] [R2] uploadToR2 called {"fileName":"tts-1795044984708.mp3","contentType":"audio/mpeg","sizeKb":18}
+[09:36:25.176] [R2] Edge Function response status: 200
+[09:36:25.176] [R2] Got publicUrl: https://pub-045dc128a8954174a6d82f218e0836b9.r2.dev/chat/e7fb1c57-edf3-483d-a061-43eb1c8d6783.mp3
+[09:36:26.341] [R2] upload progress: 100% 18015/18015
+[09:36:26.784] [R2] R2 upload status: 200
+[09:36:27.432] [R2] uploadToR2 called {"fileName":"tts-1795044987432.mp3","contentType":"audio/mpeg","sizeKb":17}
+[09:36:27.770] [R2] Edge Function response status: 200
+[09:36:27.770] [R2] Got publicUrl: https://pub-045dc128a8954174a6d82f218e0836b9.r2.dev/chat/b55fd9fb-1e4b-415a-90df-5d8a53dae2de.mp3
+[09:36:27.778] [R2] upload progress: 100% 17597/17597
+[09:36:28.120] [R2] R2 upload status: 200
+[09:36:28.713] [R2] uploadToR2 called {"fileName":"tts-1795044988712.mp3","contentType":"audio/mpeg","sizeKb":21}
+[09:36:29.009] [R2] Edge Function response status: 200
+[09:36:29.009] [R2] Got publicUrl: https://pub-045dc128a8954174a6d82f218e0836b9.r2.dev/chat/00e6c894-e927-47cf-ad9e-c1d69fa66d06.mp3
+[09:36:29.014] [R2] upload progress: 100% 21776/21776
+[09:36:29.387] [R2] R2 upload status: 200
+[09:36:29.389] [DB WRITE] app_settings rotate_cat_lines
