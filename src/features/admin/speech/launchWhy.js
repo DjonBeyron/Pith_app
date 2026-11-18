@@ -2,7 +2,7 @@
 // (раньше кнопка молча ждала готовности Vosk до 25 с). st — статус модуля игры из onStatus RotatePhoneModule: { busy, ready, vosk }.
 export function whyNotIdle(st) {
   if (st.busy) return 'запускаю…'
-  if (!st.ready) return st.vosk === 'need' ? 'распознавание: нужно скачать модель Vosk (уведомление выше)' : st.vosk === 'error' || st.vosk === 'failed' ? 'распознавание: сбой, нажми «Ещё раз» в уведомлении' : 'распознавание: готовлю модель Vosk, подожди…'
+  if (!st.ready) return st.vosk === 'need' ? 'распознавание: нужно скачать модель Vosk (уведомление выше)' : st.vosk === 'error' || st.vosk === 'failed' ? `распознавание: сбой${st.voskText ? ` — ${String(st.voskText).slice(0, 160)}` : ''}; нажми «Ещё раз» в уведомлении (после сбоя Vosk отдыхает минуту)` : 'распознавание: готовлю модель Vosk, подожди…'
   return ''
 }
 

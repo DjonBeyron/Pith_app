@@ -9,6 +9,7 @@ describe('RaceBlock: причина серой кнопки и перечиты�
     expect(whyNotIdle({ ready: false, vosk: 'preparing' })).toContain('готовлю')
     expect(whyNotIdle({ ready: false, vosk: 'need' })).toContain('скачать')
     expect(whyNotIdle({ ready: false, vosk: 'failed' })).toContain('сбой')
+    expect(whyNotIdle({ ready: false, vosk: 'failed', voskText: 'ошибка загрузки модели в память: таймаут 30 с' })).toContain('таймаут 30 с') // причина сбоя видна под кнопкой (v3.3.280)
     expect(whyNotIdle({ ready: true })).toBe('')
   })
   it('модуль получает linesRev, а не key: озвучка реплик не пересоздаёт игру', () => {
