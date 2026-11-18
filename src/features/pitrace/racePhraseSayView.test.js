@@ -36,8 +36,8 @@ describe('заливка прохода 2 по словам (чистая)', () 
     const g = createGlide({ n: 4 }), edges = [0.2, 0.5, 0.8, 1]
     g.word(0, 0); g.word(1, 0); expect(g.goal({ t: 0, edges })).toBe(0.5)
     expect(g.goal({ t: GLIDE_MIN_MS / 2, edges })).toBeCloseTo(0.65, 3); expect(g.goal({ t: GLIDE_MIN_MS, edges })).toBe(0.8)
-    const h = createGlide({ n: 4 }) // ведение к границе последнего слова — тоже не дальше LAST_WORD_CAP
-    h.word(0, 0); h.word(1, 0); h.word(2, 0); expect(h.goal({ t: GLIDE_MIN_MS * 2, edges })).toBe(LAST_WORD_CAP); expect(h.goal({ t: 0, done: true })).toBe(1)
+    const h = createGlide({ n: 4 }) // v3.3.277: в ПОСЛЕДНЕЕ слово линия не ведётся — пока оно не услышано, стоит на границе перед ним (было: шла к 0,97, «пилюля заполнена на 99 %»)
+    h.word(0, 0); h.word(1, 0); h.word(2, 0); expect(h.goal({ t: GLIDE_MIN_MS * 2, edges })).toBe(0.8); h.word(3, GLIDE_MIN_MS * 2); expect(h.goal({ t: GLIDE_MIN_MS * 2, edges })).toBe(LAST_WORD_CAP); expect(h.goal({ t: 0, done: true })).toBe(1)
   })
 })
 

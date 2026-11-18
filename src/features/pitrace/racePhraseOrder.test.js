@@ -115,7 +115,7 @@ describe('продление у края в проходе 1, пока учен�
     const log = vi.fn(), s = setupScene(phraseStep('phrases2', round2SayTurns(phrasesOf({ phrases: PHRASE_FIXTURE })), { round: 2, mode: 'say', voice: true, speed: SAY_SPEED }), { listen: createPhraseListener, log })
     for (let i = 0; i < 2000 && !s.pool.taken.length; i++) s.go(16)
     const p = s.pool.taken[0]
-    s.go(3700); stubDraft('nice'); s.go(2300); stubDraft('nice to'); s.go(2300); stubDraft('nice to meet')
+    s.go(5200); stubDraft('nice'); s.go(2300); stubDraft('nice to'); s.go(2300); stubDraft('nice to meet')
     for (let i = 0; i < 1000 && !p.held && !s.fx.fail.mock.calls.length; i++) s.go(16)
     expect(p.held).toBe(true)
     expect(log.mock.calls.map(c => c[0]).find(l => l.includes('продлён'))).toMatch(/ход продлён на 3000 мс \(черновик 75 %\)$/)

@@ -7,6 +7,7 @@
 // Заливка — как в игре (замечание владельца 2026-11-08, 3: «демо заливает 25/50/75 %, а надо по границам слов»): цель после слова k — граница
 // слова k на пилюле (racePhraseFill.edgeAt по mask.edges(), перемер после смены кирпичика на слово), экран догоняет той же кривой (approachFillFast); перед взлётом доезжает до 100 % (не дольше RISE_WAIT_MS),
 // взлёт — pool.rise (как при зачёте: data-lock, вспышка ленты, щелчок). Слушатель фраз на демо-ходу не слушает: у сцены ещё нет кандидатов (setPhrases зовёт первый настоящий ход).
+import { createPeek, lineReached } from './racePhrasePeek.js'
 import { ENTER_Y } from '../player/modules/rotate-phone/wordLaneTimeline.js'
 import { createFillView, approachFillFast } from '../player/modules/rotate-phone/wordLaneFillView.js'
 import { edgeAt } from './racePhraseFill.js'
@@ -36,7 +37,7 @@ export function createDemoTurn({ pool, lane, phrase, kit, show, snap = () => {},
   const speedTo = rise => paceSpeed(rise - DEMO_ENTER_Y, lead(paceSpeed(rise - DEMO_ENTER_Y, DEMO_LINE_MAX_MS + total)) + total)
   let head = HEAD_Y, riseY = riseYFor(head), rate = speedTo(riseY), pad = 0 // pad — добавка к паузам Пита (разбор короче пути)
   const k = pool.take(lane, { atMs: travelMs(DEMO_ENTER_Y - ENTER_Y, rate), speed: rate, cap: phrase.text, quiet: true, wide: true }) // из-за верхнего края, как обычные (вплотную к нему)
-  let mask = null, leaving = null, said = 0, shown = 0, lastT = now(), finished = false, risen = false, rising = null, riseAt = 0, t0 = now(), script = null, held = false, off = false
+  let mask = null, peek = null, leaving = null, said = 0, shown = 0, lastT = now(), finished = false, risen = false, rising = null, riseAt = 0, t0 = now(), script = null, held = false, off = false
   const timers = []
   if (k != null) {
     pool.attr(k, 'data-mode', 'say'); pool.attr(k, 'data-faded'); pool.attr(k, 'data-demo')
@@ -81,8 +82,8 @@ export function createDemoTurn({ pool, lane, phrase, kit, show, snap = () => {},
   }
   const start = () => runDemoScript({
     phrase, sayLine: (...a) => kit?.sayLine?.(...a), sayText: (...a) => kit?.sayText?.(...a), busyLeft: () => kit?.busyLeft?.() ?? 0, lineText: id => kit?.text?.(id) ?? '', hasWord: w => kit?.hasWord?.(w) ?? true, show,
-    open: i => { mask?.set(heardUpTo(i)); said = i + 1 },
-    all: () => { mask?.set(new Map(), true); said = Infinity },
+    open: i => { if (mask) { peek ??= createPeek({ mask, text: phrase.text }); peek.show(heardUpTo(i), now()) } said = i + 1 }, // как в игре: сказанное слово открыто, следующее лежит под кирпичиком и открывается, когда линия дошла (racePhrasePeek.js)
+    all: () => { mask?.set(new Map(), true); said = Infinity; peek = null },
     rise: done => { rising = done; riseAt = now() },
     onStep: (name, info) => {
       if (name === 'line') onLine(info)
@@ -98,7 +99,7 @@ export function createDemoTurn({ pool, lane, phrase, kit, show, snap = () => {},
       const dt = t - lastT; lastT = t
       if (!script && !off && (k == null || (y() ?? Infinity) >= DEMO_SHOW_Y || t - t0 >= DEMO_LINE_MAX_MS)) script = start() // пилюля показалась — Пит сразу начинает
       if (k != null && !risen && !held && !rising && (y() ?? -Infinity) >= riseY + HEAD_OVER && pool.hold?.(k, true)) { held = true; say(`пилюля у головы Пита: y ${Math.round(y())} % — ждёт конца примера (разбор затянулся), ${since()} мс от начала`) }
-      if (k != null && !risen) { shown = view.step('demo', goal(), dt); pool.paintFill(k, shown) }
+      if (k != null && !risen) { shown = view.step('demo', goal(), dt); pool.paintFill(k, shown); if (peek) peek.frame(t, lineReached(shown, peek.index(), mask?.edges() ?? null, words)) }
       if (rising && (k == null || shown >= 0.999 || t - riseAt >= RISE_WAIT_MS)) takeOff()
     },
     stop() { off = true; script?.stop(); timers.forEach(clearTimer); mask?.remove(); leaving?.remove(); mask = leaving = null },

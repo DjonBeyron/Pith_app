@@ -70,3 +70,14 @@ describe('мягкое правило подписи (shown)', () => {
     w.ear({ kind: 'partial', text: 'where are you' }); w.check(new Map([[0, true]]), 1000); expect(w.shown()).toBeNull()
   })
 })
+
+import { createSayView } from './racePhraseSayView.js'
+describe('подпись неверного слова — и в проходе 2 (v3.3.277)', () => {
+  it('проход 2: «where you from» вместо «where are you from» → mask.wrong(«you», 1), рывка кромки нет', () => {
+    const calls = [], mask = { set() {}, peek() {}, edges: () => null, wrong: (w, k) => calls.push([w, k]) }, nudges = []
+    const v = createSayView({ pass: 2, text: 'Where are you from', n: 4, mask, nudge: on => nudges.push(on), el: null })
+    v.word(0, new Map([[0, true]]), 0)
+    v.ear({ kind: 'partial', text: 'where you from' }); v.frame(1000, false, 0.3)
+    expect(calls).toEqual([['you', 1]]); expect(nudges).toEqual([])
+  })
+})

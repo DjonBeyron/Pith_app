@@ -64,9 +64,9 @@ describe('демо-ход «Скажи» на живой пилюле', () => {
     expect(lineAfter(log, 'race_demo_1')).toBeLessThanOrEqual(700)
     expect(lines(log).find(l => l.includes('реплика race_demo_1'))).toMatch(/реплика race_demo_1 \(1200 мс\) через \d+ мс после выезда, y -?\d %/)
     s.until(2) // реплика 1,2 с → See
-    expect(s.said).toEqual(['race_demo_1', '«See»']); expect(s.run.api.state().demo.mask.map(w => w.state)).toEqual(['full', 'hidden', 'hidden'])
+    expect(s.said).toEqual(['race_demo_1', '«See»']); expect(s.run.api.state().demo.mask.map(w => w.state)).toEqual(['full', 'peek', 'hidden']) // как в игре (v3.3.277): после слова 1 следующее лежит под кирпичиком (peek)
     s.until(4) // «затем второе» → you
-    expect(s.said.slice(-2)).toEqual(['race_demo_2', '«you»']); expect(s.run.api.state().demo.mask.map(w => w.state)).toEqual(['full', 'full', 'hidden'])
+    expect(s.said.slice(-2)).toEqual(['race_demo_2', '«you»']); expect(s.run.api.state().demo.mask.map(w => w.state)).toEqual(['full', 'full', 'peek'])
     s.go(200); expect(p.fill).toBeCloseTo(2 / 3, 2)
     expect(lines(log)).toContain(`[phrase-demo] слово 2 «you» (400), заливка до границы 0,67, y ${Math.round(num(lines(log).find(l => l.startsWith('[phrase-demo] слово 2')), /y (\d+) %/))} %`) // граница слова (без DOM — доли 1/N)
     s.go(5000)

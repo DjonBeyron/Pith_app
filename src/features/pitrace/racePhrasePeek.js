@@ -8,8 +8,12 @@
 // (race-phrase-rounds.css: opacity: var(--peek)), значение пишет maskView.peek только при смене. Отменяет подсказку «с первого кадра пилюли» по буквам до 30 % (v3.3.170). В проходе 2 подсказки нет.
 import { nextPeek } from './racePhraseMask.js'
 
+export const REACH_TOL = 0.02 // линия «дошла» до слова: до границы перед ним осталось не больше 2 % пилюли (экран догоняет цель асимптотой)
 export const PEEK_MS = 800
 export const PEEK_MAX = 0.75 // доля исчезновения кирпичика (было: слово проявлялось текстом до 20 %)
+
+/** Дошла ли линия заливки fill до подсказанного слова k (граница перед ним edges[k−1] или k/n; k < 1 — слово первое, подсказки нет) — с этого начинает гаснуть кирпичик (игра и демо Пита одинаково) */
+export const lineReached = (fill, k, edges, n) => k < 1 || fill >= (edges?.[k - 1] ?? k / n) - REACH_TOL
 
 /** Проявление подсказки через ms мс после старта: 0 → PEEK_MAX, ease-out (кубическая), дальше стоит */
 export const peekLevel = ms => PEEK_MAX * (1 - (1 - Math.min(1, Math.max(0, ms) / PEEK_MS)) ** 3)

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { createPeek, peekLevel, PEEK_MS, PEEK_MAX } from './racePhrasePeek.js'
+import { createPeek, peekLevel, lineReached, PEEK_MS, PEEK_MAX } from './racePhrasePeek.js'
 import { setupScene } from './racePhraseSceneRig.js'
 import { createPhraseListener, stubDraft, stubSay, stubLevel } from './racePhraseListenStub.js'
 import { phraseStep, SAY_SPEED } from './raceStagesPhrases.js'
@@ -67,5 +67,13 @@ describe('подсказка в сцене (проход 1)', () => {
     stubSay('nice to meet you'); expect(st()).toBe('full full full full')
     s.go(700); expect(s.fx.win).toHaveBeenCalledTimes(1); expect(s.pool.taken[0].fill).toBe(1)
     s.run.stop()
+  })
+})
+
+describe('lineReached (v3.3.277): линия дошла до слова — игра и демо Пита одинаково', () => {
+  it('первое слово — всегда; иначе fill ≥ граница перед словом − допуск; нет границ — доли k/n', () => {
+    expect(lineReached(0, 0, null, 4)).toBe(true)
+    expect(lineReached(0.3, 2, [0.25, 0.5, 0.75, 1], 4)).toBe(false); expect(lineReached(0.49, 2, [0.25, 0.5, 0.75, 1], 4)).toBe(true)
+    expect(lineReached(0.2, 1, null, 4)).toBe(false); expect(lineReached(0.24, 1, null, 4)).toBe(true)
   })
 })

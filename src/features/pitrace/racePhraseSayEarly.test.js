@@ -16,10 +16,11 @@ const v = SPEED * SAY_SPEED
 describe('ранний выезд «Скажи»: earlyAtMs', () => {
   it('к концу реплики — верх зоны чтения; короткая реплика — не ниже EARLY_MAX_Y, длинная — с верхнего края; за едущей — не ближе gap', () => {
     const y = o => ENTER_Y + (v * earlyAtMs({ speed: SAY_SPEED, gap: 2400, ...o })) / 1000
-    expect(y({ pitMs: 2500 }) + (v * 2500) / 1000).toBeCloseTo(ZONE_TOP_Y, 6)
+    expect(y({ pitMs: 3200 }) + (v * 3200) / 1000).toBeCloseTo(ZONE_TOP_Y, 6) // длинная реплика: к её концу центр у верха зоны чтения
+    expect(y({ pitMs: 2500 })).toBeCloseTo(EARLY_MAX_Y, 6); expect(EARLY_MAX_Y).toBeLessThanOrEqual(-6) // пилюля всегда выезжает из-за верхнего края, а не возникает на экране (v3.3.277)
     expect(y({ pitMs: 0 })).toBeCloseTo(EARLY_MAX_Y, 6)
     expect(y({ pitMs: 20000 })).toBeCloseTo(ENTER_Y, 6)
-    expect(y({ pitMs: 0, ys: [20] })).toBeCloseTo(20 - (v * 2400) / 1000, 6) // впереди едет отыгранная — держим шаг gap
+    expect(y({ pitMs: 0, ys: [10] })).toBeCloseTo(10 - (v * 2400) / 1000, 6) // впереди едет отыгранная — держим шаг gap
     expect(earlyAtMs({ pitMs: 0, speed: SAY_SPEED, gap: 2400, ys: [ENTER_Y + 5] })).toBeNull() // места нет — обычным потоком
   })
 })
@@ -31,8 +32,8 @@ describe('ранний выезд «Скажи» в сцене', () => {
     expect(s.fx.pre).toHaveBeenCalledTimes(1); expect(s.pool.taken).toHaveLength(1)
     const st = s.run.api.state(); expect(st.phase).toBe('ride'); expect(st.listening).toBe(true)
     const p = s.pool.taken[0]
-    expect(s.pool.y(p.k)).toBeGreaterThan(ENTER_Y + 10) // уже выкатывается, а не из-за края
-    s.go(2500); expect(s.pool.y(p.k)).toBeGreaterThanOrEqual(ZONE_TOP_Y - 0.5)
+    expect(s.pool.y(p.k)).toBeLessThanOrEqual(EARLY_MAX_Y + 1) // за верхним краем: выезжает, а не возникает на экране (v3.3.277)
+    s.go(2500); expect(s.pool.y(p.k)).toBeGreaterThanOrEqual(ZONE_TOP_Y - 6) // к концу реплики почти у верха зоны чтения
     expect(log.mock.calls.map(c => c[0]).find(l => l.includes('выезжает вместе с репликой'))).toMatch(/^\[phrases\] круг 2 «Скажи» \(голос\), ход 1\/6, проход 1\/2: пилюля выезжает вместе с репликой Пита \(2500 мс\) с -?\d+ % высоты/)
     s.run.stop()
   })

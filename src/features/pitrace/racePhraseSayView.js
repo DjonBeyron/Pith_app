@@ -6,13 +6,12 @@
 //    заливка не меняется, журнал «[fill] неверное слово «…», ждём «…»» (onWrong — racePhraseSayTrace.wrong).
 //  • Проход 2 — текст открыт ВСЕГДА (маску не трогаем), подсказки и рывка нет; заливка по словам одним движением, без ступенек (racePhraseGlide.js). Итог фразы (done) — 100 % в обоих проходах.
 import { fillGoal } from './racePhraseFill.js'
-import { createPeek } from './racePhrasePeek.js'
+import { createPeek, lineReached } from './racePhrasePeek.js'
 import { createGlide } from './racePhraseGlide.js'
 import { createWrongWord } from './racePhraseWrongWord.js'
 import { createNudge } from './racePhraseNudge.js'
 import { phraseWords } from './racePhraseData.js'
 
-const REACH_TOL = 0.02 // линия «дошла»: до границы перед словом осталось не больше 2 % пилюли (экран догоняет цель асимптотой)
 const white = heard => { const m = new Map(); for (let i = 0; heard.has(i); i++) m.set(i, true); return m } // проход 1: сказанное слово — целиком (замечание владельца: «слово полностью белое»), только непрерывный префикс — как линия
 
 /**
@@ -23,7 +22,7 @@ export function createSayView({ pass, text, n, mask, log = () => {}, nudge = nul
   const two = pass === 2
   const peek = !two && mask ? createPeek({ mask, text }) : null
   const glide = two ? createGlide({ n, log }) : null
-  const wrong = !two ? createWrongWord({ words: phraseWords(text) }) : null
+  const wrong = createWrongWord({ words: phraseWords(text) }) // подпись неверного слова — в обоих проходах (v3.3.277: в проходе 2 её не было), рывок кромки — только в проходе 1
   const jerk = !two && nudge ? createNudge({ mark: nudge, el }) : null
   let said = new Map()
   return {
@@ -43,7 +42,7 @@ export function createSayView({ pass, text, n, mask, log = () => {}, nudge = nul
     /** Кадр: проявление подсказки; неверное слово (пока нет итога) — рывок кромки */
     frame(t, done = false, fill = 1) {
       const k = peek?.index() ?? -1, e = mask?.edges?.() ?? null
-      peek?.frame(t, k < 1 || fill >= (e?.[k - 1] ?? k / n) - REACH_TOL) // кирпичик слова k гаснет, когда линия заливки дошла до него (владелец, v3.3.275)
+      peek?.frame(t, lineReached(fill, k, e, n)) // кирпичик слова k гаснет, когда линия заливки дошла до него (владелец, v3.3.275)
       const miss = wrong?.check(said, t), shown = wrong?.shown()
       if (shown && !done) { let k = 0; while (said.has(k)) k++; mask?.wrong?.(shown, k) } // над ожидаемым словом — красным зачёркнуто (racePhraseMaskView.wrong; мягкое правило shown)
       if (miss && !done) { jerk?.fire(); onWrong(miss.word, miss.expect) } // неверное слово — ещё и зачёркнуто красным над ожидаемым (racePhraseMaskView.wrong)

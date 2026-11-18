@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest'
 import { xpFloatFrames, xpFloatOpacity, xpPulseFrames, rectCenter, XP_FLOAT_RISE_PX, XP_FLOAT_WAVE_PX, XP_FLOAT_SCALE_FROM, XP_FLOAT_SCALE_TO } from './WordLaneXpFlight.js'
-import { riseXpFrames, xpRiseX, XP_SCALE_END, XP_ARRIVE_MS, XP_MIN_PATH, XP_RISE_MS, XP_WAVE_MAX_PX, XP_TILT_MAX, xpLag, xpScale, flyToCounter, waveAmp, centerOf } from './wordLaneRiseXp.js'
-import { RISE_DELAY_MS } from './wordLaneRise.js'
+import { readFileSync } from 'node:fs'
+import { XP_ARRIVE_MS, XP_OFFSCREEN_SHARE } from './wordLaneRiseXp.js'
+import { RISE_DELAY_MS, RISE_MS } from './wordLaneRise.js'
 
 const pos = f => { const m = f.transform.match(/translate\(([-\d.]+)px, ([-\d.]+)px\)/); return { x: +m[1], y: +m[2] } }
 const scale = f => +f.transform.match(/scale\(([-\d.]+)\)$/)[1]
@@ -31,42 +32,13 @@ describe('«+N XP» от счётчика (WordLaneXpFlight)', () => {
   })
 })
 
-describe('пилюля летит в счётчик XP (wordLaneRiseXp)', () => {
-  const fr = riseXpFrames(60, 12, -120, 800)
-  it('первый кадр — на месте пилюли (только translate), последний — ровно у счётчика, сжата и растворена', () => {
-    expect(Object.keys(fr[0]).sort()).toEqual(['offset', 'rotate', 'translate']); expect(fr[0].translate).toContain('calc(-50% + 0.00px)')
-    const last = fr.at(-1); expect(last.translate).toContain('calc(-50% + -120.00px)'); expect(last.translate).toContain('12.000dvh'); expect(last.scale).toBeCloseTo(XP_SCALE_END, 2); expect(last.opacity).toBe(0)
+describe('награда без полёта в счётчик (wordLaneRiseXp, v3.3.277)', () => {
+  it('пульс счётчика и «+N XP» — когда пилюля на 90 % ушла за экран: RISE_DELAY_MS + 0,9 · RISE_MS', () => {
+    expect(XP_OFFSCREEN_SHARE).toBe(0.9); expect(XP_ARRIVE_MS).toBe(RISE_DELAY_MS + Math.round(RISE_MS * 0.9)); expect(XP_ARRIVE_MS).toBeLessThan(RISE_DELAY_MS + RISE_MS)
   })
-  it('по пути — синусоида поперёк линии (отклонение от прямой есть), на концах сдвиг 0', () => {
-    expect(xpRiseX(0, -120)).toBeCloseTo(0, 6); expect(xpRiseX(1, -120)).toBeCloseTo(-120, 6)
-    const dev = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8].map(o => Math.abs(xpRiseX(o, -120) - -120 * xpLag(o))); expect(Math.max(...dev)).toBeGreaterThan(1.5); expect(Math.max(...dev)).toBeLessThanOrEqual(XP_WAVE_MAX_PX)
-  })
-  it('прилёт: от принятия до счётчика RISE_DELAY_MS + XP_RISE_MS; centerOf — центр элемента или null', () => {
-    expect(XP_ARRIVE_MS).toBe(RISE_DELAY_MS + XP_RISE_MS)
-    expect(centerOf({ getBoundingClientRect: () => ({ left: 10, top: 20, width: 40, height: 10 }) })).toEqual({ x: 30, y: 25 }); expect(centerOf(null)).toBeNull(); expect(centerOf({ getBoundingClientRect: () => ({ left: 0, top: 0, width: 0, height: 0 }) })).toBeNull()
-  })
-})
-
-describe('правила полёта в счётчик (v3.3.272)', () => {
-  it('осталось меньше XP_MIN_PATH % высоты — просто вверх; иначе в счётчик', () => {
-    expect(flyToCounter(60, 12)).toBe(true); expect(flyToCounter(12 + XP_MIN_PATH - 1, 12)).toBe(false); expect(flyToCounter(20, 12)).toBe(false)
-  })
-  it('волна неглубокая: размах пропорционален пути и не больше потолка (на коротком пути почти прямая)', () => {
-    expect(waveAmp(40)).toBeLessThan(waveAmp(300)); expect(waveAmp(2000)).toBe(XP_WAVE_MAX_PX)
-  })
-  it('наклон следует за путём: на диагонали есть, но не больше XP_TILT_MAX (небольшой)', () => {
-    const fr = riseXpFrames(80, 12, -260, 800), rot = fr.map(f => Math.abs(parseFloat(f.rotate)))
-    expect(Math.max(...rot)).toBeGreaterThan(2); expect(Math.max(...rot)).toBeLessThanOrEqual(XP_TILT_MAX + 0.01)
-  })
-})
-
-describe('«ракета» и сжатие (v3.3.276)', () => {
-  it('сперва почти вверх: к 30 % пути в сторону уходит меньше 12 % сдвига; к концу — весь', () => {
-    expect(Math.abs(xpRiseX(0.3, -200)) / 200).toBeLessThan(0.12); expect(xpRiseX(1, -200)).toBeCloseTo(-200, 6); expect(xpLag(0)).toBe(0); expect(xpLag(1)).toBeCloseTo(1, 9)
-  })
-  it('сжимается активно: на половине пути уже меньше середины между 1 и концом; монотонно', () => {
-    expect(xpScale(0.5)).toBeLessThan((1 + XP_SCALE_END) / 2); expect(xpScale(0)).toBe(1); expect(xpScale(1)).toBeCloseTo(XP_SCALE_END, 9)
-    const v = [0, 0.2, 0.4, 0.6, 0.8, 1].map(xpScale); expect(v.every((x, i) => !i || x < v[i - 1])).toBe(true)
+  it('пилюля взлетает старым взлётом вверх (startRise), а не в счётчик', () => {
+    const pool = readFileSync(new URL('./wordLanePool.js', import.meta.url), 'utf8')
+    expect(pool).toContain('startRise(parts[k].el, scr(l), RISE_DELAY_MS, RISE_END_Y)'); expect(pool).not.toContain('startRiseXp'); expect(pool).toContain('XP_ARRIVE_MS)')
   })
 })
 
