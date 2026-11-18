@@ -92,6 +92,22 @@ describe('разметка и стили RaceBar', () => {
   })
   it('RaceActs держит бар и зарядку второго круга / этапа 2 (RaceRoundCharge), бар не знает Math.random', () => {
     const src = read('./RaceActs.jsx')
-    expect(src).toContain('<RaceBar stage={live} race={rh.race} />'); expect(src).toContain('<RaceRoundCharge '); expect(src).toContain("f.stage === 'paused' && f.from === 'run'") // на паузе бар на месте
+    expect(src).toContain('<RaceBar stage={live} race={rh.race} mia={rh.mia?.mia} />'); expect(src).toContain('<RaceRoundCharge '); expect(src).toContain("f.stage === 'paused' && f.from === 'run'") // на паузе бар на месте
+  })
+})
+
+// v3.3.276 (владелец, допрос Мии: «бар слов сверху опустошается в самом начале»): в круге с Мией бар считает её слова, а не результаты первого круга
+describe('бар в круге с Мией', () => {
+  const words = [{ text: 'a' }, { text: 'b' }, { text: 'c' }, { text: 'd' }]
+  const stage = { type: 'student', act: 'sprint', sid: 'sprint3', mia: 'round', words }
+  const race = { sprint: { results: { 0: { hit: true }, 1: { hit: true }, 2: { hit: true } } } } // результаты ПЕРВОГО круга
+  it('в начале круга бар полный (результаты первого круга не в счёт), каждое слово Мии (верно / промах) гасит сегмент', () => {
+    expect(barLeft(barOf({ stage, race, mia: { won: {}, failed: {} } }))).toBe(4)
+    expect(barLeft(barOf({ stage, race, mia: { won: { 0: true }, failed: { 1: true } } }))).toBe(2)
+    expect(barLeft(barOf({ stage, race, mia: { won: { 0: true }, failed: { 0: true } } }))).toBe(3) // слово и выиграно, и упущено — один раз
+    expect(barLeft(barOf({ stage, race, mia: null }))).toBe(4)
+  })
+  it('обычный круг без Мии считается по результатам, как раньше', () => {
+    expect(barLeft(barOf({ stage: { ...stage, mia: undefined, sid: 'sprint' }, race }))).toBe(1)
   })
 })

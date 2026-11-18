@@ -49,7 +49,7 @@ export default function PillStand({ onClose }) {
           : <PillStandLive s={s} r={r} onSend={() => send.open({ from: 'live' })} />}
       </div>
       {send.ctx && <PillStandSend ctx={send.ctx} form={send.form} onForm={send.setForm} recent={send.recent} ab={range} hasAudio={!!r.rec?.audio?.blob} marks={send.marks} onMark={send.addMark} onUnmark={send.unmark}
-        onSend={send.send} onCopy={send.copy} onSendAudio={send.sendAudio} later={send.later} note={send.note} busy={send.busy} onClose={send.close} />}
+        onSend={send.send} onCopy={send.copy} onGit={send.git} onGitResult={send.setNote} onSendAudio={send.sendAudio} later={send.later} note={send.note} busy={send.busy} onClose={send.close} />}
       {voiceSet && <Suspense fallback={null}><VoiceSetScreen keepMic={s.mic === 'on'} onClose={() => { s.trace.push('voiceset', { on: false }); setVoiceSet(false) }} /></Suspense>}
     </div>,
     document.body,

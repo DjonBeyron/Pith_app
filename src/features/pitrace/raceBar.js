@@ -37,8 +37,12 @@ export const barEmpty = bar => !!bar && barLeft(bar) === 0
  * Бар на экране из стадии и состояния гонки (rh.race): только на ступени ученика «Разгона» / «Слушай и лови» (круг 1 — stage.sid = act, круг 2 — act + '2'); в остальных стадиях — null (бар спрятан). Расход берётся из results этого круга
  * (raceState.js: s[act].results и s[act].r2.results) — сколько пилюль уже разрешилось. → { key, segs, spent, done } или null
  */
-export function barOf({ stage, race }) {
+export function barOf({ stage, race, mia = null }) {
   if (stage?.type !== 'student' || !BAR_ACTS.includes(stage.act) || !stage.words?.length) return null
+  if (stage.mia === 'round') { // круг с Мией (sprint3 / catch3): её результатов в race нет (raceState их не ведёт) — бар считает слова Мии по её счёту (won + failed), а не результаты первого круга (v3.3.276: бар «опустошался в самом начале»)
+    const done = new Set([...Object.keys(mia?.won ?? {}), ...Object.keys(mia?.failed ?? {})].map(Number)).size
+    return Array.from({ length: Math.min(done, stage.words.length) }, (_, idx) => idx).reduce((bar, idx) => barReduce(bar, { t: 'spend', idx }), barNew(stage.words, stage.sid))
+  }
   const q = race?.[stage.act], second = stage.sid === `${stage.act}2`
   const results = (second ? q?.r2?.results : q?.results) ?? {}
   return Object.keys(results).map(Number).sort((a, b) => a - b).reduce((bar, idx) => barReduce(bar, { t: 'spend', idx }), barNew(stage.words, stage.sid))

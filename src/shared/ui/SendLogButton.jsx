@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
-import { shutGameMic } from '../lib/gameMic.js'
+import { shutGameMic, peekGameMic } from '../lib/gameMic.js'
+import { pLog } from '../lib/debug.js'
 import '../../styles/send-log-button.css'
 import { runSend, SHOW_OK_MS, SHOW_FAIL_MS, readLogOpts, writeLogOpts } from '../lib/sendLogFlow.js'
 import SendLogPopup from './SendLogPopup.jsx'
@@ -20,6 +21,8 @@ export default function SendLogButton({ send, label = 'Отправить в Git
   const click = e => {
     if (stop) e.stopPropagation()
     if (st === 'busy') return
+    const had = !!peekGameMic() // журнал (владелец, v3.3.275: «почему при входе в комментарий игра отпускает микрофон»): зачем и был ли поток
+    pLog(`[mic] комментарий к логам: попап открыт — игра отпускает микрофон по-настоящему, чтобы iPhone дал диктовку голосом в поле (поток был ${had ? 'открыт' : 'уже закрыт'}); следующая игра спросит разрешение заново`)
     shutGameMic('комментарий к логам: диктовка') // микрофон игры отпущен по-настоящему (треки остановлены): иначе iOS не даёт клавиатуре диктовать голосом; «Продолжить» откроет его заново
     setOpen(true)
   }

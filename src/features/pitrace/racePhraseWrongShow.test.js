@@ -40,6 +40,25 @@ describe('неверное слово над подсказкой (racePhraseMas
   })
 })
 
+describe('итог хода: красная подпись остаётся у несказанного слова (keepWrong, v3.3.276)', () => {
+  it('сказано вместо слова — подпись у него без таймера; ничего не сказано — над словом пусто; сказанные слова подписи не имеют', () => {
+    vi.useFakeTimers()
+    const doc = fakeDoc(), el = doc.mk(); el.ownerDocument = doc
+    const m = mountMask(el, 'Where are you from')
+    m.wrong('you', 1) // вместо «are» услышано «you»
+    const labeled = () => el.children[0].children.filter(c => c.children?.some?.(x => x.className === 'racePhraseWrong')).length
+    vi.advanceTimersByTime(WRONG_SHOW_MS + 10); expect(labeled()).toBe(0) // на ходу подпись гаснет
+    m.keepWrong(new Map([[0, true], [2, true], [3, true]])); expect(labeled()).toBe(1)
+    vi.advanceTimersByTime(60000); expect(labeled()).toBe(1) // в итоге — стоит, пока пилюля на экране
+    m.keepWrong(new Map([[0, true], [1, true], [2, true], [3, true]])); expect(labeled()).toBe(0) // слово сказано — подписи нет
+    const m2 = mountMask(el, 'Nice to meet you'); m2.keepWrong(new Map([[0, true], [1, true], [3, true]])); expect(labeled()).toBe(0) // ничего не сказали вместо «meet» — пусто
+    vi.useRealTimers()
+  })
+  it('итог принятой неполной фразы: слова белые (не data-w=miss), подпись — keepWrong; проводка в сцене', () => {
+    const sc = rd('./racePhraseScene.js'); expect(sc).toContain('keepWrong?.(said.heard())'); expect(sc).not.toContain('isPartial(res.ratio)) // итог «Скажи»: видна вся фраза (взлетает или доезжает вниз с ней), несказанные слова — красным')
+  })
+})
+
 describe('мягкое правило подписи (shown)', () => {
   it('«where you from» при цели «where are you from»: «you» вместо «are» — не рывок (слово цели), но подпись над «are»', () => {
     const w = createWrongWord({ words: ['where', 'are', 'you', 'from'] })

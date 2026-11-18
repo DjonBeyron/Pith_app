@@ -32,7 +32,7 @@ import { LANE } from './raceStagesPhrases.js'
 import { hitPill, tapLine } from './raceTapHit.js'
 import { tapMissMark } from './raceTapMiss.js'
 import { createDemoTurn } from './racePhraseDemoTurn.js'
-import { passTwoRes, passNote } from './racePhrasePasses.js'; import { fillTo, isPartial, markPartial } from './racePhraseShare.js'
+import { createSlips, applySlip } from './racePhraseSlip.js'; import { passTwoRes, passNote } from './racePhrasePasses.js'; import { fillTo, isPartial, markPartial } from './racePhraseShare.js'
 import { caption } from './racePhraseCaption.js'
 import { startPhraseCount } from './racePhraseCount.js'
 
@@ -53,7 +53,7 @@ export function runPhraseScene({ pool, root, scene, fxRef, listen = phraseListen
   const trace = createSayTrace({ log, ...(debugBar !== undefined ? { bar: debugBar } : {}) }) // журнал «[fill]» и полоска отладки «Скажи»
   let ti = (scene.from ?? 0) - 1, phase = 'next', at = now(), pills = [], res = null, said = createSaid(), frame = 0, stopped = false, timers = []
   let rolling = [], lastSpawn = -Infinity, shown = 0, lastT = now(), fin = null // rolling — отыгранные пилюли прошлых ходов (едут вниз); said — услышанные слова хода (racePhraseSaid.js); fin — итог, заливка доезжает
-  let demo = null, demoKit = null, demoTried = false, counted = false, stopCount = null, sv = null, grace = null // демо-ход и его голос; sv — вид хода «Скажи» (racePhraseSayView.js); grace — продление хода у края
+  let demo = null, demoKit = null, demoTried = false, counted = false, stopCount = null, sv = null, grace = null, slips = createSlips() // демо-ход и его голос; sv — вид хода «Скажи» (racePhraseSayView.js); grace — продление хода у края
   const tail = pool.tail?.() // доезжающие пилюли прошлого круга (wordLaneCoast.js): наша первая — не ближе cfg.gap за последней из них
   if (tail != null) lastSpawn = now() - ((tail - ENTER_Y) / (SPEED * cfg.speed)) * 1000
   const masks = new Set() // маски слов пилюль «Скажи» (racePhraseMaskView.js): снимаются, когда пилюля ушла или взлетела, и на стопе сцены
@@ -134,20 +134,20 @@ export function runPhraseScene({ pool, root, scene, fxRef, listen = phraseListen
 
   function resolve(kind, extra = {}) {
     const tg = target()
-    res = { ok: kind === 'win', late: kind === 'win' && isLate(tg?.y), confusedWith: null, ratio: cfg.mode === 'say' ? 0 : kind === 'win' ? 1 : 0, clean: kind === 'win', ...extra }
+    res = { ok: kind === 'win', late: kind === 'win' && isLate(tg?.y), confusedWith: null, ratio: cfg.mode === 'say' ? 0 : kind === 'win' ? 1 : 0, clean: kind === 'win', ...extra }; if (kind === 'win' && cfg.mode === 'say') applySlip({ res, turns, ti, slips, heard: said.heard() }) // принято, но слово сказано не точно: res.slip / noXp, при необходимости — ещё одна пилюля (racePhraseSlip.js)
     const t = turn()
     const rest = live().filter(p => p !== tg)
     if (cfg.mode !== 'say' && kind !== 'fail') scatterAll(kind === 'miss' ? live() : rest) // круг выбора: верно — верная взлетает, остальные разлетаются влево / вправо поровну; неверно — разлетаются ВСЕ, неверная с красной рамкой
     else rest.forEach(spend)
     if (kind === 'fail' && tg && !tg.gone) spend(tg) // упущенная верная тоже доезжает сама
-    tg?.mask?.set(said.heard(), true, -1, kind === 'win' && isPartial(res.ratio)) // итог «Скажи»: видна вся фраза (взлетает или доезжает вниз с ней), несказанные слова — красным
+    tg?.mask?.set(said.heard(), true); if (kind === 'win' && isPartial(res.ratio)) tg?.mask?.keepWrong?.(said.heard()) // итог «Скажи»: видна вся фраза (взлетает или доезжает вниз с ней), слова белые, над несказанным — красным зачёркнуто то, что сказано вместо
     if (cfg.mode === 'say') { if (kind === 'win') trace.rise(now()); trace.end(); trace.drop() }
     log(`[phrases] круг ${cfg.round} ${ROUND_LOG[cfg.mode] ?? cfg.mode}, ход ${t.idx + 1}/${turns.length}${passTag()}: цель ${q(t.target.text)}${cfg.mode === 'say' ? '' : ` кандидаты ${t.cands.map(c => q(c.cap)).join(' | ')}`} итог ${lineOf(res)}${cfg.mode === 'say' ? '' : `; остальные едут: ${rest.length}`}`)
     const r = rep()
     if (kind === 'win') {
       pool.attr(tg.k, 'data-lock'); markPartial(pool, tg.k, cfg.mode === 'say' ? res.ratio : 1); pool.flashLane(LANE); snap(pool.el(tg.k), LANE, { full: true })
       const rect = pool.el(tg.k)?.getBoundingClientRect?.() ?? null
-      if (pool.rise(tg.k, { xp: true })) { tg.gone = true; dropMask(tg.mask, RISE_DELAY_MS + RISE_MS + 100) }
+      if (pool.rise(tg.k, { xp: !res.noXp })) { tg.gone = true; dropMask(tg.mask, RISE_DELAY_MS + RISE_MS + 100) }
       fx().win?.(0, rect, { last: true, count: 1, ...r })
     } else if (kind === 'miss') fx().miss?.({ rep: r })
     else fx().fail?.({ rep: r })
@@ -187,7 +187,7 @@ export function runPhraseScene({ pool, root, scene, fxRef, listen = phraseListen
     const n = phraseWords(turn().target.text).length || 1
     const ratio = Math.min(1, Math.max(e.ratio, said.count() / n))
     fin = { at: now(), extra: { ...(turn().pass === 2 ? passTwoRes(ratio, said.times()) : { ratio, clean: ratio >= 1 }), late: isLate(target()?.y) }, word: said.last(), to: fillTo({ ratio, n, edges: sv?.edges() }) } // word — последнее услышанное слово (журнал «→ 100 %»); проход 2: ещё и без остановок; взлёт — когда заливка доехала (tick)
-    target()?.mask?.set(said.heard(), true, -1, isPartial(ratio)); trace.phrase(ratio)
+    target()?.mask?.set(said.heard(), true); if (isPartial(ratio)) target()?.mask?.keepWrong?.(said.heard()); trace.phrase(ratio)
   }
 
   function tick(t) {
@@ -200,7 +200,7 @@ export function runPhraseScene({ pool, root, scene, fxRef, listen = phraseListen
       if (phase === 'ride') { const c = turn().cands; for (let j = pills.length; j < c.length && t - at >= j * cfg.gap && t - lastSpawn >= cfg.gap; j++) spawn(c[j], j) } // за едущими — не ближе cfg.gap
       for (const p of pills) if (!p.gone) { p.y = yOf(p); if (p.y >= EXIT_Y) gone(p) }
       const tg = target()
-      if (phase === 'ride' && cfg.mode === 'say' && tg && !tg.gone && !res) { const g = goal(t); shown = view.step('say', g, dt, fin ? (t - fin.at) / LOCK_MS : null, fin?.to); pool.paintFill(tg.k, shown); sv?.frame(t, !!fin); trace.frame(t, g, shown); onFrame?.(t, g, shown); if (fin && finishDue(fin, shown, t, () => trace.full(t, fin.word))) resolve('win', fin.extra) }
+      if (phase === 'ride' && cfg.mode === 'say' && tg && !tg.gone && !res) { const g = goal(t); shown = view.step('say', g, dt, fin ? (t - fin.at) / LOCK_MS : null, fin?.to); pool.paintFill(tg.k, shown); sv?.frame(t, !!fin, shown); trace.frame(t, g, shown); onFrame?.(t, g, shown); if (fin && finishDue(fin, shown, t, () => trace.full(t, fin.word))) resolve('win', fin.extra) }
       if (phase === 'ride' && tg && !res && !fin && tg.y >= LISTEN_Y_MAX) { if (cfg.mode === 'say') atEdge(tg, t); else resolve('fail') }
       if (phase === 'after' && t - at >= AFTER_MS && !live().length && !(fx().pitLeft?.() > 0)) phase = 'next'
     }

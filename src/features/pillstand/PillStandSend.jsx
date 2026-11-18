@@ -1,3 +1,4 @@
+import SendLogButton from '../../shared/ui/SendLogButton.jsx'
 import { TOPICS, TOPIC_TITLE } from './pillStandPacks.js'
 import { SPANS, LAST_SECONDS } from './pillStandSpan.js'
 import { SPAN_TITLE, toggleTopic, setSpan, setPick, setComment, setSound, canSend } from './pillStandSendForm.js'
@@ -7,7 +8,7 @@ import { SPAN_TITLE, toggleTopic, setSpan, setPick, setComment, setSound, canSen
 const sec = ms => (ms / 1000).toFixed(3).replace('.', ',')
 const SHORT = { honesty: 'Честность', ear: 'Распознавание (Vosk)' }
 
-export default function PillStandSend({ ctx, form, onForm, recent = [], ab = null, hasAudio = false, marks = [], onMark, onUnmark, onSend, onCopy, onSendAudio, later = null, note = '', busy = false, onClose }) {
+export default function PillStandSend({ ctx, form, onForm, recent = [], ab = null, hasAudio = false, marks = [], onMark, onUnmark, onSend, onCopy, onGit = null, onGitResult = null, onSendAudio, later = null, note = '', busy = false, onClose }) {
   const abOk = !!(ab && ab[1] > ab[0])
   const here = ctx?.frame != null ? `кадр ${ctx.frame + 1}` : `${sec(ctx?.at ?? 0)} с`
   return (
@@ -47,6 +48,7 @@ export default function PillStandSend({ ctx, form, onForm, recent = [], ab = nul
       <div className="psRow">
         <button type="button" className="psBtn psSendGo" onClick={onSend} disabled={!canSend(form) || busy} data-testid="ps-send-go">{canSend(form) ? 'Отправить файлом' : 'Выберите тему'}</button>
         <button type="button" className="psBtn" onClick={onCopy} disabled={!canSend(form) || busy} data-testid="ps-send-copy">Скопировать текстом</button>
+        {onGit && <SendLogButton className="psBtn" label="В GitHub" send={onGit} onResult={onGitResult} data-testid="ps-send-git" />}
         {later && <button type="button" className="psBtn" onClick={onSendAudio} data-testid="ps-send-audio">📎 Звук ({later.name.split('.').pop()})</button>}
       </div>
       {note && <p className="psNote" data-testid="ps-send-note">{note}</p>}

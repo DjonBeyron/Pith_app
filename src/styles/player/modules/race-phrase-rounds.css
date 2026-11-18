@@ -56,8 +56,9 @@
 .racePhraseMask b[data-w='hidden'] i { opacity: 0; transition: none; }
 .racePhraseMask b[data-w='hidden']::before { opacity: 0.9; }
 .racePhraseMask b[data-w='draft'] i { opacity: 0.45; }
-/* Подсказка следующего слова (data-w='peek', проход 1; racePhraseMask.js / racePhrasePeek.js): слово целиком, opacity = --peek (0 → 0,2 после сказанного предыдущего слова, задаёт JS у одной ячейки) */
-.racePhraseMask b[data-w='peek'] i { opacity: var(--peek, 0); transition: none; }
+/* Подсказка следующего слова (data-w='peek', проход 1; racePhrasePeek.js, v3.3.276): слово под кирпичиком полной яркости, кирпичик гаснет по --peek (0…1), когда линия заливки дошла до слова */
+.racePhraseMask b[data-w='peek'] i { opacity: 1; transition: none; }
+.racePhraseMask b[data-w='peek']::before { opacity: calc(0.9 * (1 - var(--peek, 0))); transition: none; }
 .racePhraseMask b[data-w='full'] i { opacity: 1; }
 /* Слово, которого не было в принятой фразе (data-w='miss', racePhraseShare.js): показано, красным; у копии в жидкости (word-lane-pill-ink.css) цвет тот же */
 .racePhraseMask b[data-w='miss'] i, .wlPillInkIn .racePhraseMask b[data-w='miss'] i { opacity: 1; color: #ff6050; }

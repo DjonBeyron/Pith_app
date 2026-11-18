@@ -12,6 +12,7 @@ import { createWrongWord } from './racePhraseWrongWord.js'
 import { createNudge } from './racePhraseNudge.js'
 import { phraseWords } from './racePhraseData.js'
 
+const REACH_TOL = 0.02 // линия «дошла»: до границы перед словом осталось не больше 2 % пилюли (экран догоняет цель асимптотой)
 const white = heard => { const m = new Map(); for (let i = 0; heard.has(i); i++) m.set(i, true); return m } // проход 1: сказанное слово — целиком (замечание владельца: «слово полностью белое»), только непрерывный префикс — как линия
 
 /**
@@ -40,8 +41,9 @@ export function createSayView({ pass, text, n, mask, log = () => {}, nudge = nul
       return two ? glide.goal({ t, edges, done }) : fillGoal({ words, n, done, edges })
     },
     /** Кадр: проявление подсказки; неверное слово (пока нет итога) — рывок кромки */
-    frame(t, done = false) {
-      peek?.frame(t)
+    frame(t, done = false, fill = 1) {
+      const k = peek?.index() ?? -1, e = mask?.edges?.() ?? null
+      peek?.frame(t, k < 1 || fill >= (e?.[k - 1] ?? k / n) - REACH_TOL) // кирпичик слова k гаснет, когда линия заливки дошла до него (владелец, v3.3.275)
       const miss = wrong?.check(said, t), shown = wrong?.shown()
       if (shown && !done) { let k = 0; while (said.has(k)) k++; mask?.wrong?.(shown, k) } // над ожидаемым словом — красным зачёркнуто (racePhraseMaskView.wrong; мягкое правило shown)
       if (miss && !done) { jerk?.fire(); onWrong(miss.word, miss.expect) } // неверное слово — ещё и зачёркнуто красным над ожидаемым (racePhraseMaskView.wrong)

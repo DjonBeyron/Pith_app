@@ -18,7 +18,7 @@ describe('подсказка: порядок и проявление (чиста
     expect(p.show(new Map([[0, true]]), 1000)).toBe(1)
     p.frame(1000); p.frame(1000 + PEEK_MS / 2); p.frame(1000 + PEEK_MS); p.frame(1000 + PEEK_MS * 3)
     expect(m.lv[0]).toBe(0); expect(m.lv[1]).toBeGreaterThan(PEEK_MAX / 2); expect(m.lv[1]).toBeLessThan(PEEK_MAX) // ease-out: к половине времени — больше половины
-    expect(m.lv[2]).toBeCloseTo(0.2, 6); expect(m.lv[3]).toBeCloseTo(0.2, 6) // не ярче 20 %, остаётся
+    expect(m.lv[2]).toBeCloseTo(PEEK_MAX, 6); expect(m.lv[3]).toBeCloseTo(PEEK_MAX, 6) // кирпичик гаснет не до конца, остаётся
     expect(p.show(new Map([[0, true]]), 1800)).toBe(1) // повтор слова 1 — проявление не начинается заново
     p.frame(1800); expect(m.lv.at(-1)).toBeCloseTo(peekLevel(800), 6)
     expect(p.show(new Map([[0, true], [1, false]]), 3000)).toBe(2); p.frame(3000); expect(m.lv.at(-1)).toBe(0) // слово 2 сказано (черновиком) — проявляется слово 3 с нуля
@@ -34,7 +34,22 @@ describe('подсказка: порядок и проявление (чиста
   })
   it('peekLevel: 0 → PEEK_MAX, монотонно, дальше стоит', () => {
     expect(peekLevel(0)).toBe(0); expect(peekLevel(-50)).toBe(0); expect(peekLevel(PEEK_MS)).toBeCloseTo(PEEK_MAX, 9); expect(peekLevel(9e9)).toBeCloseTo(PEEK_MAX, 9)
-    const vs = [0, 200, 400, 600, 800, 1000, 1200].map(peekLevel); expect(vs.every((v, i) => !i || v > vs[i - 1])).toBe(true)
+    const vs = [0, 100, 200, 300, 400, 500, 600, 700].map(peekLevel); expect(vs.every((v, i) => !i || v > vs[i - 1])).toBe(true)
+  })
+})
+
+describe('кирпичик следующего слова гаснет, только когда линия дошла до слова (v3.3.276)', () => {
+  it('reached=false — стоит на 0 и время не идёт; как дошла — гаснет от этого момента, а не от сказанного слова', () => {
+    const m = fakeMask(), p = createPeek({ mask: m, text: 'Nice to meet you' })
+    p.show(new Map([[0, true]]), 1000)
+    p.frame(1100, false); p.frame(1500, false); expect(m.lv).toEqual([0, 0])
+    p.frame(2000, true); p.frame(2000 + PEEK_MS / 2, true); p.frame(2000 + PEEK_MS * 3, true)
+    expect(m.lv[2]).toBe(0); expect(m.lv[3]).toBeCloseTo(peekLevel(PEEK_MS / 2), 6); expect(m.lv[4]).toBeCloseTo(PEEK_MAX, 6)
+  })
+  it('слово не сказано, линия ушла назад — проявление не сбрасывается (идёт дальше)', () => {
+    const m = fakeMask(), p = createPeek({ mask: m, text: 'Nice to meet you' })
+    p.show(new Map([[0, true]]), 0); p.frame(100, true); p.frame(400, false)
+    expect(m.lv.at(-1)).toBeCloseTo(peekLevel(300), 6)
   })
 })
 

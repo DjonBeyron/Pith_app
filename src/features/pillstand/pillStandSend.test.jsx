@@ -129,3 +129,23 @@ describe('окно «Отправить»: после отправки — с ч
     expect(setPick(emptyForm(), null).pick).toBe(null)
   })
 })
+
+// «В GitHub» из окна стенда (v3.3.276): логи игры + пакет стенда одной отправкой
+import { sendStandGit } from './standGit.js'
+describe('отправка стенда в GitHub (standGit)', () => {
+  it('логи есть: к файлам логов добавлен пакет стенда; галочка «Отправить логи» снята — только комментарий; «Дополнить» доходит до отправки', async () => {
+    const calls = [], collect = vi.fn(async ({ comment, withLogs }) => (withLogs ? [{ name: 'j.txt', text: 'журнал' }] : [{ name: 'c.txt', text: comment }]))
+    const upload = vi.fn(async (files, o) => { calls.push([files.map(f => f.name), o]); return 'Отправлено в GitHub' })
+    const build = () => ({ name: 'pithy-stand-pack.json', text: '{"kind":"pithy-stand-pack"}' })
+    expect(await sendStandGit({ comment: 'x', build, collect, upload, append: true })).toBe('Отправлено в GitHub')
+    expect(calls[0]).toEqual([['j.txt', 'pithy-stand-pack.json'], { append: true }])
+    await sendStandGit({ comment: 'x', withLogs: false, build, collect, upload })
+    expect(calls[1][0]).toEqual(['c.txt'])
+  })
+  it('пакет не собрался — уходят просто логи; сбой отправки — строка «Не отправилось», не исключение', async () => {
+    const out = []; const upload = vi.fn(async f => { out.push(f.map(x => x.name)); return 'ok' })
+    await sendStandGit({ build: () => { throw new Error('нет записи') }, collect: async () => [{ name: 'j.txt', text: 'a' }], upload })
+    expect(out[0]).toEqual(['j.txt'])
+    expect(await sendStandGit({ collect: async () => { throw new Error('сеть') }, upload })).toContain('Не отправилось: сеть')
+  })
+})

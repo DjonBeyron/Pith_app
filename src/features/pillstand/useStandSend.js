@@ -6,6 +6,7 @@ import { emptyForm, spanKind, markAt, sentForm, SENT_HOW } from './pillStandSend
 import { sendPack } from './standSend.js'
 import { recentTargets } from './pillStandSpan.js'
 import { copyText } from './standExport.js'
+import { sendStandGit } from './standGit.js'
 
 // Окно «📤 Отправить» стенда пилюль (CONCEPT_PILLSTAND.md, «Отправка по теме»): открыто ли и откуда (живой экран — «сейчас» = trace.now(); плеер — кадр), форма (держится между открытиями — черновик
 // комментария не теряется, пока замечание не ушло: после отправки файлом или текстом комментарий и метки сбрасываются — sentForm), метки кадров (по шкале текущей трассы: после «Сброс» старые не показываются), итог отправки, файл звука для второго нажатия. Данные для отчёта: трасса (в плеере после «Сброс» —
@@ -66,6 +67,8 @@ export default function useStandSend({ trace, meta, rec = null, ab = null }) {
     } catch (e) { setNote(`Не получилось собрать отчёт: ${e?.message ?? e}`) }
   }, [build, trace, form.topics, cleanSlate])
 
+  const git = useCallback((comment, opts = {}) => sendStandGit({ comment, ...opts, build }), [build]) // «В GitHub»: логи игры + пакет стенда (standGit.js); строка результата — на кнопку
+
   const sendAudio = useCallback(async () => {
     if (!later) return
     const how = await saveDebugFile(later)
@@ -73,5 +76,5 @@ export default function useStandSend({ trace, meta, rec = null, ab = null }) {
     if (how !== 'cancelled') setLater(null)
   }, [later])
 
-  return { ctx, open, close, form, setForm, recent, marks: list, addMark, unmark, note, busy, later, send, copy, sendAudio }
+  return { ctx, open, close, form, setForm, recent, marks: list, addMark, unmark, note, busy, later, send, copy, git, setNote, sendAudio }
 }

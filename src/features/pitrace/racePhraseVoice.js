@@ -22,6 +22,7 @@ import { phraseMouth } from './racePhraseMouth.js'
 import { bufferOfUrl } from '../player/modules/rotate-phone/wordLaneFetch.js'
 import { getVoiceRate } from '../player/lessonVolume.js'
 import { gameMicHold } from '../../shared/lib/gameMicHold.js'
+import { slipItems } from './racePhraseSlip.js'
 
 export const AGAIN_LINE = 'race_phrase_again'
 export const PAUSES_LINE = 'race_phrase_pauses'
@@ -95,6 +96,7 @@ export function createPhraseVoice({ ctx = null, hasRu = text => !!transRow(text)
     react(kind, rep) {
       const t = rep?.target
       if (!t) return
+      if (kind === 'win' && rep.res?.slip) { chain(slipItems(rep.res.slip)); return } // принято, но слово сказано не точно: «слово X сказано не точно, …» вместо «да» (racePhraseSlip.js)
       if (kind === 'win' && rep.pass === 1) return // проход 1 «Скажи»: дальше сразу проход 2 со своей репликой
       if (kind === 'win') chain([...(rep.mode === 'pick' ? phrase(t) : rep.mode === 'hear' ? [meaning(t)] : []), { line: rep.pass === 2 && rep.res?.smooth === false ? PAUSES_LINE : 'race_phrase_yes' }])
       else if (kind === 'miss') chain([{ line: 'race_phrase_no' }, ...phrase(t), meaning(t)])

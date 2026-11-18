@@ -31,6 +31,7 @@ export function mountMask(el, text) {
   const inkHost = box?.cloneNode ? el.querySelector?.('.wlPillInkIn') : null, ink = inkHost ? box.cloneNode(true) : null, inkCells = ink ? [...ink.querySelectorAll('b')] : []
   if (ink) { ink.removeAttribute('data-testid'); inkHost.appendChild(ink) }
   let edges = null, dirty = true
+  const said2 = new Map() // номер слова → последнее услышанное вместо него (для итога хода: keepWrong)
   let wrongEls = [], wrongTimer = 0, wrongAt = -1 // неверно сказанное слово над подсказкой: красное, зачёркнуто тонкой линией (v3.3.272)
   const clearWrong = () => { clearTimeout(wrongTimer); wrongTimer = 0; wrongAt = -1; wrongEls.forEach(e => e.remove()); wrongEls = [] }
   doc?.fonts?.ready?.then?.(() => { dirty = true }, () => {})
@@ -59,8 +60,19 @@ export function mountMask(el, text) {
     wrong(word, index) {
       clearWrong(); const i = words.findIndex(w => w.index === index)
       if (!doc || i < 0 || !word) return
+      said2.set(index, word)
       for (const c of [cells[i], inkCells[i]]) { if (!c) continue; const e = doc.createElement('s'); e.className = 'racePhraseWrong'; e.textContent = word; c.appendChild(e); wrongEls.push(e) }
       wrongAt = index; wrongTimer = setTimeout(clearWrong, WRONG_SHOW_MS)
+    },
+    /** Итог хода принят не по всем словам: у каждого несказанного слова, вместо которого что-то сказано, — красная зачёркнутая подпись, пока пилюля на экране (без таймера); ничего не сказано — над словом пусто */
+    keepWrong(heard) {
+      clearWrong()
+      if (!doc) return
+      words.forEach((w, i) => {
+        const word = said2.get(w.index)
+        if (w.index < 0 || !word || heard?.has?.(w.index)) return
+        for (const c of [cells[i], inkCells[i]]) { if (!c) continue; const e = doc.createElement('s'); e.className = 'racePhraseWrong'; e.textContent = word; c.appendChild(e); wrongEls.push(e) }
+      })
     },
     words: () => words,
     remove() { clearWrong(); box?.remove(); ink?.remove() },
