@@ -1,0 +1,58 @@
+[08:11:34.791] [DB READ] curricula list
+[08:11:34.791] [DB READ] app_settings prompt_control
+[08:11:34.792] [DB READ] app_settings ui_sound_volume eq_sensitivity
+[08:11:34.792] [DB READ] app_settings feed_signals
+[08:11:34.792] [AUTH] event: INITIAL_SESSION accuratekemper@gmail.com
+[08:11:34.792] [AUTH] event: INITIAL_SESSION accuratekemper@gmail.com
+[08:11:34.792] [AUTH] event: INITIAL_SESSION accuratekemper@gmail.com
+[08:11:34.792] [AUTH] event: INITIAL_SESSION accuratekemper@gmail.com
+[08:11:34.792] [AUTH] event: INITIAL_SESSION accuratekemper@gmail.com
+[08:11:34.792] [AUTH] event: INITIAL_SESSION accuratekemper@gmail.com
+[08:11:34.792] [AUTH] event: INITIAL_SESSION accuratekemper@gmail.com
+[08:11:34.792] [AUTH] event: INITIAL_SESSION accuratekemper@gmail.com
+[08:11:34.792] [AUTH] event: INITIAL_SESSION accuratekemper@gmail.com
+[08:11:34.792] [AUTH] event: INITIAL_SESSION accuratekemper@gmail.com
+[08:11:34.792] [AUTH] event: INITIAL_SESSION accuratekemper@gmail.com
+[08:11:34.792] [AUTH] restore: user accuratekemper@gmail.com
+[08:11:34.792] [AUTH] restore: user accuratekemper@gmail.com
+[08:11:34.792] [AUTH] restore: user accuratekemper@gmail.com
+[08:11:34.792] [AUTH] restore: user accuratekemper@gmail.com
+[08:11:34.792] [AUTH] restore: user accuratekemper@gmail.com
+[08:11:34.792] [AUTH] restore: user accuratekemper@gmail.com
+[08:11:34.792] [AUTH] restore: user accuratekemper@gmail.com
+[08:11:34.792] [AUTH] restore: user accuratekemper@gmail.com
+[08:11:34.792] [AUTH] restore: user accuratekemper@gmail.com
+[08:11:34.792] [AUTH] restore: user accuratekemper@gmail.com
+[08:11:34.792] [AUTH] restore: user accuratekemper@gmail.com
+[08:11:34.801] [DB RPC] set_prompt_group
+[08:11:34.801] [AUTH] event: INITIAL_SESSION accuratekemper@gmail.com
+[08:11:34.801] [AUTH] restore: user accuratekemper@gmail.com
+[08:11:35.041] [RATING] моё место: 3 из 15
+[08:11:35.050] [RATING] топ: 15 строк лидер: Eеуууу (8960 XP)
+[08:11:35.078] [STREAK] touch_daily_login → {"ok":true,"today":"2026-11-19","is_pro":true,"streak":0,"longest":190,"saved_by":null,"first_today":false,"pro_weekday_used":false,"has_freeze_charge":false,"auto_freeze_charges_left":0}
+[08:11:35.106] [RACE] гонок с датами: 1 → выбрана: «Новая гонка» 2026-10-09T14:00:00+00:00 — 2026-10-11T13:59:00+00:00
+[08:11:35.106] [RACE-POPUP] проверка: фаза ended | юзер: есть | итоги видел: false
+[08:11:35.114] [DB OK] curricula loaded 8 rows
+[08:11:35.132] [RATING] мои достижения: journey_start, level10, clean_final
+[08:11:35.372] [DB READ] app_settings race_mia_voice
+[08:11:35.372] [DB READ] app_settings rotate_cat_lines
+[08:11:35.372] [DB READ] app_settings race_phrase_ru
+[08:11:35.372] [DB READ] app_settings race_phrase_scene
+[08:11:35.372] [DB READ] app_settings game2_phrases
+[08:11:35.387] [RACE] моя запись в гонке: нет
+[08:11:35.387] [RACE-POPUP] итоги не показываем: не финишировал
+[08:11:35.387] [RACE-POPUP] анонс: неделя 2026-11-16 | модуль пройден: — | анонс показан: — → нет
+[08:11:35.387] [RACE] моя запись в гонке: нет
+[08:11:35.387] [RACE] состояние: фаза ended, модули: нет
+[08:12:19.917] [DB READ] curricula list
+[08:12:19.920] [AUTH] event: SIGNED_IN accuratekemper@gmail.com
+[08:12:19.920] [AUTH] event: SIGNED_IN accuratekemper@gmail.com
+[08:12:19.920] [AUTH] event: SIGNED_IN accuratekemper@gmail.com
+[08:12:19.920] [AUTH] event: SIGNED_IN accuratekemper@gmail.com
+[08:12:19.920] [AUTH] event: SIGNED_IN accuratekemper@gmail.com
+[08:12:19.920] [AUTH] event: SIGNED_IN accuratekemper@gmail.com
+[08:12:19.920] [AUTH] event: SIGNED_IN accuratekemper@gmail.com
+[08:12:19.920] [AUTH] event: SIGNED_IN accuratekemper@gmail.com
+[08:12:19.920] [AUTH] event: SIGNED_IN accuratekemper@gmail.com
+[08:12:20.181] [RACE] гонок с датами: 1 → выбрана: «Новая гонка» 2026-10-09T14:00:00+00:00 — 2026-10-11T13:59:00+00:00
+[08:12:20.318] [DB OK] curricula loaded 8 rows
