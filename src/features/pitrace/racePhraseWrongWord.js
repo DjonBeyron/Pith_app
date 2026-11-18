@@ -50,7 +50,8 @@ export function createWrongWord({ words, gap = WRONG_GAP_MS }) {
       const expect = words[k], far = said.size ? words[Math.max(...said.keys()) + 1] : null
       if (expect == null) return null
       const bad = q.find(({ w, prev, next }) => !fitsWord(w, expect) && !(far != null && fitsWord(w, far)) && !words.some(x => sameWord(w, x)) && !formPart(w, words, prev, next))
-      const shown = q.find(({ w, prev, next }) => !fitsWord(w, expect) && ![...said.keys()].some(i => words[i] != null && sameWord(w, words[i])) && !formPart(w, words, prev, next)) // для подписи над словом правило мягче (v3.3.272): любое слово, не подходящее ожидаемому, — и слово цели не на своём месте («where you from» — «you» вместо «are»)
+      // v3.3.282 (владелец, «where you from» вместо «where are you from»): исключаем только слова, УЖЕ стоящие в порядке (до ожидаемого k); слово «вперёд» («you», услышанное вместо «are») само в said, но подпись над «are» ему нужна
+      const shown = q.find(({ w, prev, next }) => !fitsWord(w, expect) && !words.slice(0, k).some(x => sameWord(w, x)) && !formPart(w, words, prev, next)) // для подписи над словом правило мягче (v3.3.272): любое слово, не подходящее ожидаемому, — и слово цели не на своём месте («where you from» — «you» вместо «are»)
       if (shown && t - lastShownAt >= SHOWN_GAP_MS) { lastShownAt = t; shownWord = shown.w }
       if (bad == null || t - lastAt < gap) return null
       lastAt = t

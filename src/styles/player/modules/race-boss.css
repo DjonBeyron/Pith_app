@@ -17,6 +17,8 @@
 @keyframes wlBossZoneBlink { 0%, 100% { filter: none; background-color: rgba(var(--zc), 0.07); } 15%, 40%, 65% { background-color: rgba(var(--zc), 0.5); } 28%, 52%, 80% { background-color: rgba(var(--zc), 0.18); } }
 .wlBossTick { position: absolute; z-index: 1; right: 6px; width: 8px; height: 0; border-top: 1px solid rgba(var(--zc), 0.7); }
 .wlBossTick[data-major] { width: 12px; border-top-color: rgba(var(--zc), 0.95); }
+/* риски на границах зон (зелёное → жёлтое → красное): длиннее на 40 % (12 → 16,8 px) и толще на 20 % (1 → 1,2 px) — владелец, v3.3.282 */
+.wlBossTick[data-border] { width: 16.8px; border-top-width: 1.2px; }
 .wlBossFlash { position: absolute; left: 0; right: 0; background: rgba(var(--zc), 0.4); opacity: 0; animation: wlBossBlink var(--flash-ms, 2000ms) ease-in-out 1 both; }
 @keyframes wlBossBlink { 0%, 100% { opacity: 0; } 15%, 40%, 65% { opacity: 1; } 28%, 52%, 80% { opacity: 0.25; } }
 /* тонкая линия без растушёвки и свечения: идёт от «ствола» линейки (правая кромка зон, right: 4px) поверх рисок и утончается к левому краю, начиная от левого края пилюли (11 % ширины: clip-path); толщина 1,5 px.

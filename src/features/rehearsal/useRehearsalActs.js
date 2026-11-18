@@ -17,6 +17,7 @@ import { demoSummary } from './polish/polishDemo.js'
 import { stageTiming, countdownPlan } from './rehearsalCountdown.js'
 import { warmCountdown, releaseCountdown } from './rehearsalCountdownSound.js'
 import { createCountGate, scheduleStageCount, COUNT_POLL_MS } from './rehearsalCountdownRun.js'
+import { startNoteDance } from '../pitrace/raceNoteDance.js'; import { isWeakDevice } from '../../shared/lib/deviceTier.js'; import { reducedMotion } from '../player/modules/rotate-phone/laneConveyorDrive.js'
 import { lineVoiced } from './rehearsalQuiet.js'
 import { plateText } from '../player/modules/rotate-phone/wordLanePlateText.js'
 import { silentPause, silentMin } from '../pitrace/raceSilentLine.js' // гонка: неозвученная реплика — короткая пауза (CAPTION_READ_MS)
@@ -79,7 +80,7 @@ export function useRehearsalActs({ plan, stages, stage, at, stageObj, setS, sayL
     const t = timingOf(running), ids = []
     let stopCount = null
     if (lineOf(running)) ids.push(setTimeout(() => sayLine(lineOf(running)), t.lineAt))
-    if (t.countAt != null) stopCount = scheduleStageCount({ countAt: t.countAt, busyLeft: () => Math.max(cat.busyLeft(), running.waitCap && countWait?.() ? COUNT_POLL_MS : 0), cap: running.waitCap, gate, soft: !!running.soft, what: countWhat(stages, running) })
+    if (t.countAt != null) stopCount = scheduleStageCount({ countAt: t.countAt, busyLeft: () => Math.max(cat.busyLeft(), running.waitCap && countWait?.() ? COUNT_POLL_MS : 0), cap: running.waitCap, gate, soft: !!running.soft, what: countWhat(stages, running), onBegin: running.soft ? () => startNoteDance({ game: document.querySelector('.wl'), lite: isWeakDevice(), still: reducedMotion(), log: pLog }) : null })
     return () => { ids.forEach(clearTimeout); stopCount?.() }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [running, at])

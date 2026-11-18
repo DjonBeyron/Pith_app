@@ -10,7 +10,7 @@ export const EDGES = ZONES.map((_, i) => (i === 0 ? 0 : ZONES[i - 1].to))
 /** Высота зоны, доли длины */
 export const spanOf = id => { const i = ZONES.findIndex(z => z.id === id); return ZONES[i].to - EDGES[i] }
 /** Риски линейки: каждые 5 % длины, длинные — на границах зон и краях; цвет риски — цвет её зоны → [{ p, major, zone }] */
-export const TICKS = Array.from({ length: 21 }, (_, i) => { const p = i / 20; return { p, major: [0, 0.45, 0.8, 1].some(e => Math.abs(e - p) < 1e-9), zone: zoneAt(Math.min(p, 0.9999)) } })
+export const TICKS = Array.from({ length: 21 }, (_, i) => { const p = i / 20; return { p, major: [0, 0.45, 0.8, 1].some(e => Math.abs(e - p) < 1e-9), border: [0.45, 0.8].some(e => Math.abs(e - p) < 1e-9), zone: zoneAt(Math.min(p, 0.9999)) } }) // border — граница зон (зелёная/жёлтая, жёлтая/красная): риска длиннее на 40 % и толще на 20 % (владелец, v3.3.282)
 
 /** Следующая пилюля, когда прежняя закончена: не принята, не «не успел», ещё не ушла вниз; из таких — ближайшая к шкале (больший top). → элемент из pills или null */
 export const nextPill = (pills, H) => pills.filter(p => !p.locked && !p.failed && p.top < H).sort((a, b) => b.top - a.top)[0] ?? null

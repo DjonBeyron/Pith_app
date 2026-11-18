@@ -28,17 +28,18 @@ export function createCountGate() {
  * Запланировать отсчёт стадии на countAt мс; когда придёт время — ждать, пока Пит не договорит (busyLeft() ≤ 0, опрос COUNT_POLL_MS, не дольше cap), и стартовать ноты. gate отмечается сразу (стадия не уйдёт, пока отсчёт не кончится).
  * what — перед каким этапом (журнал «[countdown] отсчёт начат перед …»). → cancel(): таймеры сняты, ноты остановлены. start/setTimer подставляются в тестах
  */
-export function scheduleStageCount({ countAt, busyLeft = () => 0, gate, soft = false, what = '', cap = COUNT_WAIT_CAP_MS, poll = COUNT_POLL_MS, start = startCountdown, setTimer = setTimeout, clearTimer = clearTimeout }) {
+export function scheduleStageCount({ countAt, busyLeft = () => 0, gate, soft = false, what = '', onBegin = null, cap = COUNT_WAIT_CAP_MS, poll = COUNT_POLL_MS, start = startCountdown, setTimer = setTimeout, clearTimer = clearTimeout }) {
   let timer = 0
   let stop = null
+  let stopExtra = null // то, что запускает onBegin (танец Пита на нотах гонки): снимается вместе с отсчётом
   let cancelled = false
   gate?.plan()
-  const begin = () => { gate?.run(); stop = start({ onDone: () => gate?.done(), plan: countdownPlan({ soft }), what }) }
+  const begin = () => { gate?.run(); stop = start({ onDone: () => { stopExtra = null; gate?.done() }, plan: countdownPlan({ soft }), what }); try { stopExtra = onBegin?.({ soft }) ?? null } catch { /* украшение не мешает отсчёту */ } }
   const wait = waited => {
     if (cancelled) return
     if (busyLeft() <= 0 || waited >= cap) { begin(); return }
     timer = setTimer(() => wait(waited + poll), poll)
   }
   timer = setTimer(() => wait(0), countAt)
-  return () => { cancelled = true; clearTimer(timer); stop?.(); gate?.reset() }
+  return () => { cancelled = true; clearTimer(timer); stop?.(); stopExtra?.(); gate?.reset() }
 }

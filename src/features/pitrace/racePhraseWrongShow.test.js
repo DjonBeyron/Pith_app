@@ -72,6 +72,18 @@ describe('мягкое правило подписи (shown)', () => {
 })
 
 import { createSayView } from './racePhraseSayView.js'
+describe('подпись слова «вперёд» (v3.3.282)', () => {
+  it('«where you from»: «you» уже отмечено как услышанное (слово вперёд), но стоит вместо «are» — подпись над «are» всё равно есть', () => {
+    const w = createWrongWord({ words: ['where', 'are', 'you', 'from'] })
+    w.ear({ kind: 'partial', text: 'where you from' }); const said = new Map([[0, true], [2, true]])
+    w.check(said, 1000); expect(w.shown()).toBe('you')
+  })
+  it('слово, уже стоящее в порядке («where» при ожидаемом «are»), подписью не становится', () => {
+    const w = createWrongWord({ words: ['where', 'are', 'you', 'from'] })
+    w.ear({ kind: 'partial', text: 'where are' }); w.check(new Map([[0, true]]), 1000); expect(w.shown()).toBeNull()
+  })
+})
+
 describe('подпись неверного слова — и в проходе 2 (v3.3.277)', () => {
   it('проход 2: «where you from» вместо «where are you from» → mask.wrong(«you», 1), рывка кромки нет', () => {
     const calls = [], mask = { set() {}, peek() {}, edges: () => null, wrong: (w, k) => calls.push([w, k]) }, nudges = []

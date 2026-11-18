@@ -11,6 +11,7 @@ import RaceChargePlate from './RaceChargePlate.jsx'
 // view = { o: { plateAt, morphAt, plateEnd }, round: { title, task, brief }, pills, sparks, segments, totalMs } — расписание и план (RaceCharge.jsx, RaceRoundCharge.jsx). Полёт — Web Animations (transform / opacity / scale), хвост — отдельный узел под пилюлей
 // (.raceChargeTail, rotate по касательной к синусоиде, raceChargePath.tailFrames), на слабом устройстве и при reduced-motion частиц и хвоста нет (при reduced-motion пилюли не летят — бар заполняется ступеньками). Касание бара — тихий «тык» (raceChargeTap.js).
 const FILL_MS = 260 // заливка сегмента бара перед прилётом пилюли
+export const LATE_TAP_MS = 180 // «тык» и кольцо, опоздавшие больше чем на столько, пропускаются
 
 export default function ChargeRun({ view, leaving = false, plate = true }) {
   const root = useRef(null)
@@ -27,7 +28,9 @@ export default function ChargeRun({ view, leaving = false, plate = true }) {
     at(totalMs + 40, () => { setFull(true); const halo = el?.querySelector('[data-halo]'); if (halo?.animate) { const rs = haloReset(); halo.animate(rs.frames, { duration: rs.duration, fill: 'both', easing: 'ease-out' }) } }) // слова долетели: бар полный, ореол-«толщина» оседает до тонкого 6 px
     if (plate) { at(o.plateAt ?? o.morphAt, () => setShown(true)); at(o.plateEnd, () => setDone(true)) }
     const bar = el?.querySelector('[data-bar]'), ring = el?.querySelector('[data-ring]'), ringF = ringFrames()
+    const t0 = performance.now()
     segments.forEach(s => at(s.at, () => {
+      if (performance.now() - t0 - s.at > LATE_TAP_MS) return // главный поток встал (смена модели Vosk и т. п.): полёт и заливка идут по часам анимаций и уже кончились — звук и рябь, пришедшие пачкой с опозданием, выглядят рассинхроном (владелец, v3.3.282)
       playChargeTap() // тихий «тык» о бар: звук, не графика — играет и на lite
       if (still || !ring?.animate) return
       ring.style.setProperty('--rc', s.color)
