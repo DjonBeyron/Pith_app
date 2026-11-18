@@ -31,7 +31,7 @@ import { createMiaSpeech, GAP_MS } from './mia/miaSpeech.js'
 import { audioPulse } from '../../shared/lib/gameAudioPulse.js'
 import { useMiaEnter } from './mia/useMiaEnter.js'
 import { miaAfterPass, miaSkip } from './mia/miaRound.js'
-import { afterLeaveSpeech } from './mia/miaLeave.js'; import { revBack } from './raceReverseTurn.js'; import { createLeadTimer, bossLeadMs } from './boss/bossLead.js'; import { revTimes, convSpeed } from './raceReverseTimes.js'; import { REV_START_SLACK_MS } from './raceReverseTurn.js'; import { useMiaPlate } from './mia/useMiaPlate.js'
+import { afterLeaveSpeech } from './mia/miaLeave.js'; import { revBack } from './raceReverseTurn.js'; import { createLeadTimer, bossLeadMs } from './boss/bossLead.js'; import { revTimes, convSpeed } from './raceReverseTimes.js'; import { HELP_LINES } from './boss/bossHelp.js'; import { REV_START_SLACK_MS } from './raceReverseTurn.js'; import { useMiaPlate } from './mia/useMiaPlate.js'
 import { bossFill } from './boss/bossWords.js'
 import { DEMO_START, DEMO_IDS, demoPlan } from './boss/bossScale.js'
 import { playWordSlot, hasWordSlot, wordBufferMs } from '../player/modules/rotate-phone/wordLaneClips.js'
@@ -123,7 +123,7 @@ export function useRaceActs(args) {
 
   const redAlarm = useCallback(() => setMiaAlarm(a => ({ key: (a?.key ?? 0) + 1 })), [])
   const toldRef = useRef('') // слово (стадия:номер), верный ответ которого Пит уже сказал (ошибка и «не успел» на одном слове — один раз)
-  const sayCorrect = idx => { const w = running?.act === 'boss' && running.type === 'student' && toldRef.current !== `${running.sid}:${idx}` ? running.words?.[idx] : null; if (w) { toldRef.current = `${running.sid}:${idx}`; if (running.step?.lang === 'ru') sayRef.current.sayText?.(w.translation, { ru: true, hold: true }); else sayRef.current.sayText?.(w.text, { hold: true }) } } // русский блок: верный ответ — перевод // верно названное слово Пит не повторяет; не названное / ошибочное — произносит верное (текста на экране нет). Финал: Пит произносит верный ответ (подписи нет) и держится «занятым» до конца — следующая пилюля выезжает после него
+  const helpN = useRef(0); const sayCorrect = idx => { const w = running?.act === 'boss' && running.type === 'student' && toldRef.current !== `${running.sid}:${idx}` ? running.words?.[idx] : null; if (w) { toldRef.current = `${running.sid}:${idx}`; { const ru = running.step?.lang === 'ru', word = ru ? w.translation : w.text, o = ru ? { ru: true, hold: true } : { hold: true }, hid = HELP_LINES[helpN.current++ % HELP_LINES.length]; const said = sayRef.current.sayLine?.(hid, null, { pause: 60, onEnd: () => sayRef.current.sayText?.(word, o) }); if (!said) sayRef.current.sayText?.(word, o) } } } // финал: «это значит / переводится / правильно будет» + верное слово без пауз, потом подкалывает Мия (v3.3.280) // русский блок: верный ответ — перевод // верно названное слово Пит не повторяет; не названное / ошибочное — произносит верное (текста на экране нет). Финал: Пит произносит верный ответ (подписи нет) и держится «занятым» до конца — следующая пилюля выезжает после него
 
   // Прыжок директора на стадию i (промах ступени, время вышло): стадия перезапускается с новой отметкой времени
   const jump = useCallback(i => { if (i >= 0) setS(p => ({ ...p, stage: 'run', idx: i, at: performance.now(), hint: [], leaving: -1 })) }, [setS])

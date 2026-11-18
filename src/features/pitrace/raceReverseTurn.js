@@ -45,6 +45,7 @@ export function runReverseTurn({ pool, root, fast = false, back = false, speed =
   at(REV_ARRIVE_MS - DECEL_MS, () => { turn(root, 'halt'); log('[reverse] конвейер тормозит вместе с пилюлями') }) // пунктир гаснет ровно к остановке пилюль и стоит, пока пилюли в центре
   at(REV_ARRIVE_MS + REV_PAUSE_MS, () => { // пилюли стоят, конвейер стоит: разворот на 180°
     els.forEach(el => put(el.animate([{ rotate: '0deg' }, { rotate: '180deg' }], { duration: fast ? 1 : REV_TURN_MS, easing: 'cubic-bezier(0.6, 0, 0.2, 1)', fill: 'both' })))
+    ks.forEach(k => pool.attr(k, 'data-turn')) // стрелки вспыхивают на остановке и повороте (race-reverse.css)
     log('[reverse] разворот на 180°')
   })
   at(REV_ARRIVE_MS + REV_PAUSE_MS + Math.round(REV_TURN_MS / 2), () => { if (back) game?.removeAttribute('data-up'); else game?.setAttribute('data-up', ''); log(`[reverse] узор дорожек — ${back ? 'вниз' : 'вверх'}`) }) // середина поворота: направление узора меняется, пока конвейер стоит

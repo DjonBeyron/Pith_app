@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { missedWord, createSlips, slipRule, applySlip, slipItems, slipNote, SLIP_RETRY_LINE, SLIP_NEXT_LINE } from './racePhraseSlip.js'
+import { missedWord, createSlips, slipRule, applySlip, slipItems, slipNote, SLIP_PAUSE_MS, SLIP_RETRY_LINE, SLIP_NEXT_LINE } from './racePhraseSlip.js'
 import { PARTIAL_FILL, fillTo } from './racePhraseShare.js'
 import { createPhraseVoice } from './racePhraseVoice.js'
 import { readFileSync } from 'node:fs'
@@ -51,8 +51,8 @@ describe('правила неточностей по фразе', () => {
 
 describe('реплики Пита и журнал', () => {
   it('цепочка: «слово» → слово → «попробуй ещё раз» / «в следующий раз»; журнал называет слово, номер, XP', () => {
-    expect(slipItems({ word: 'meet', nth: 1 })).toEqual([{ line: 'race_slip_word' }, { word: 'meet' }, { line: SLIP_RETRY_LINE }])
-    expect(slipItems({ word: 'meet', nth: 2 }).at(-1)).toEqual({ line: SLIP_NEXT_LINE }); expect(slipItems(null)).toEqual([])
+    expect(slipItems({ word: 'meet', nth: 1 })).toEqual([{ line: 'race_slip_word', pause: SLIP_PAUSE_MS }, { word: 'meet' }, { line: SLIP_RETRY_LINE, pause: SLIP_PAUSE_MS }])
+    expect(slipItems({ word: 'meet', nth: 2 }).at(-1)).toEqual({ line: SLIP_NEXT_LINE, pause: SLIP_PAUSE_MS }); expect(slipItems(null)).toEqual([])
     expect(slipNote({ word: 'meet', nth: 2, noXp: true, extra: false })).toContain('XP нет'); expect(slipNote({ word: 'you', nth: 1, extra: true })).toContain('ещё одна пилюля')
   })
   it('голос: итог win с res.slip говорит слова, а не «да» и не молчит после прохода 1', () => {

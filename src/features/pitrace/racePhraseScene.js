@@ -53,7 +53,7 @@ export function runPhraseScene({ pool, root, scene, fxRef, listen = phraseListen
   const trace = createSayTrace({ log, ...(debugBar !== undefined ? { bar: debugBar } : {}) }) // журнал «[fill]» и полоска отладки «Скажи»
   let ti = (scene.from ?? 0) - 1, phase = 'next', at = now(), pills = [], res = null, said = createSaid(), frame = 0, stopped = false, timers = []
   let rolling = [], lastSpawn = -Infinity, shown = 0, lastT = now(), fin = null // rolling — отыгранные пилюли прошлых ходов (едут вниз); said — услышанные слова хода (racePhraseSaid.js); fin — итог, заливка доезжает
-  let demo = null, demoKit = null, demoTried = false, counted = false, stopCount = null, sv = null, grace = null, slips = createSlips() // демо-ход и его голос; sv — вид хода «Скажи» (racePhraseSayView.js); grace — продление хода у края
+  let demo = null, demoKit = null, demoTried = false, counted = false, stopCount = null, sv = null, grace = null, slips = (cfg.slips ??= createSlips()) // демо-ход и его голос; sv — вид хода «Скажи» (racePhraseSayView.js); grace — продление хода у края
   const tail = pool.tail?.() // доезжающие пилюли прошлого круга (wordLaneCoast.js): наша первая — не ближе cfg.gap за последней из них
   if (tail != null) lastSpawn = now() - ((tail - ENTER_Y) / (SPEED * cfg.speed)) * 1000
   const masks = new Set() // маски слов пилюль «Скажи» (racePhraseMaskView.js): снимаются, когда пилюля ушла или взлетела, и на стопе сцены

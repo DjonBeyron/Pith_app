@@ -39,10 +39,10 @@ describe('плашка Мии по реплике за кадром', () => {
   it('ускорение дорожек — только на реплике «я ускоряю игру» (mia_announce_2), плашка и цвет — раньше, с реплики за кадром', () => {
     expect(SPEED_ID).toBe('mia_announce_2'); expect(rd('../../player/modules/rotate-phone/WordLaneGame.jsx')).toContain('!!f.rh.miaPlate?.speedUp')
   })
-  it('финал: Пит начинает сразу (PIT1_AT мал), коробка достигает его ушей к концу реплики (dropAt = PIT1_AT + длина − IMPACT), прыжок Мии — к JUMP_ABS', () => {
-    expect(BOSS.PIT1_AT).toBeLessThanOrEqual(500)
-    const src = rd('./useMiaEnter.js'); expect(src).toContain('BOSS.PIT1_AT + mspeech.msOf('); expect(src).toContain('- IMPACT * 1000'); expect(src).toContain('BOSS.JUMP_ABS - bossDrop')
-    expect(IMPACT).toBeGreaterThan(0.5)
+  it('финал (v3.3.280): коробка падает сразу (DROP_AT), реплика Пита — уже после удара коробки (PIT1_AT ≥ DROP_AT + IMPACT), прыжок Мии — к JUMP_ABS', () => {
+    expect(BOSS.PIT1_AT).toBeGreaterThanOrEqual(BOSS.DROP_AT + IMPACT * 1000)
+    const src = rd('./useMiaEnter.js'); expect(src).toContain('const bossDrop = boss ? BOSS.DROP_AT'); expect(src).toContain('BOSS.JUMP_ABS - bossDrop')
+    expect(BOSS.HUSH_AT).toBeGreaterThan(BOSS.PIT1_AT + 3000) // Мия не перебивает первую реплику Пита
   })
   it('разворот в реверс: стадия не ждёт реплику Пита про реверс целиком (REV_WAIT_CAP_MS), плашка фраз выходит вместе с репликой', () => {
     expect(REV_WAIT_CAP_MS).toBeLessThanOrEqual(1000)

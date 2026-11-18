@@ -19,7 +19,7 @@ describe('финал «Шкала памяти»: подключение', () =>
   })
   it('Пит произносит верный ответ только когда слово не названо / ошибка (fail), верно названное не повторяет; «занят» держится до конца — следующая пилюля после него; красное слово пугает Пита (зрачки)', () => {
     const src = read('../useRaceActs.js')
-    expect(src).toContain("running?.act === 'boss' && running.type === 'student' && toldRef.current !== `${running.sid}:${idx}` ? running.words?.[idx] : null"); expect(src).toContain("sayRef.current.sayText?.(w.text, { hold: true })"); expect(src).toContain("sayRef.current.sayText?.(w.translation, { ru: true, hold: true })")
+    expect(src).toContain("running?.act === 'boss' && running.type === 'student' && toldRef.current !== `${running.sid}:${idx}` ? running.words?.[idx] : null"); expect(src).toContain("word = ru ? w.translation : w.text"); expect(src).toContain("{ ru: true, hold: true } : { hold: true }"); expect(src).toContain("HELP_LINES[helpN.current++ % HELP_LINES.length]"); expect(src).toContain("sayRef.current.sayLine?.(hid, null, { pause: 60, onEnd: () => sayRef.current.sayText?.(word, o) })") // v3.3.280: «это значит» + верное слово
     expect(src).toContain('speech.claim(praiseRef.current); praiseRef.current = null }'); expect(src).not.toContain('sayCorrect(rep?.idx)'); expect(src).toContain("if (kind === 'fail' && running.act === 'boss') { sayCorrect(info?.idx); redAlarm() }"); expect(src).toContain("if (z === 'slow') redAlarm()")
     expect(read('../../player/modules/rotate-phone/WordLaneGame.jsx')).toContain('alarm={f.rh.miaAlarm}'); expect(read('../RaceMia.jsx')).toContain('pupil: (m.eyes.pupil ?? 1) * (1 - 0.58 * fear)'); expect(read('../mia/boxArt.js')).toContain("class=\"bxPupil\"")
   })

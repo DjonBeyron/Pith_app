@@ -12,6 +12,9 @@ import WordLaneCat from './WordLaneCat.jsx'
 import WordLaneXp from './WordLaneXp.jsx'
 import WordLanePause from './WordLanePause.jsx'
 import WordLaneCommentButton from './WordLaneCommentButton.jsx'
+import SendLogButton from '../../../../shared/ui/SendLogButton.jsx'
+import { sendJournalNow } from './wordLaneJournalNow.js'
+import { MessageSquare } from 'lucide-react'
 import WordLaneComment from './WordLaneComment.jsx'
 import WordLaneTurnPlate from './WordLaneTurnPlate.jsx'
 import RacePanel from '../../../pitrace/RacePanel.jsx'
@@ -135,7 +138,9 @@ export default function WordLaneGame({ cfg, audioSrc, lines: rawLines = null, fo
         : <button type="button" className="wlClose" onClick={f.finish} aria-label="Закрыть" data-testid="wl-close"><X size={20} /></button>}
       {f.paused && !comment && !hudOpen && <WordLanePause pause={pause} onExit={f.finish} />}
       {f.dbg.enabled && <Hud dbg={f.dbg} rootRef={rootRef} onRestartStage={f.restartStage} onRestartGame={onRestart} onExit={f.finish} setTapMode={setTapMode} onOpenChange={hudChange} />}
-      {f.dbg.enabled && f.rh.on && !comment && <WordLaneCommentButton f={f} cfg={cfg} rootRef={rootRef} onOpen={setComment} />}
+      {f.dbg.enabled && f.rh.on && !comment && (race
+        ? <SendLogButton className="wlCmtBtn" icon={<MessageSquare size={18} />} send={sendJournalNow} onOpen={() => f.pause('comment')} aria-label="Комментарий к логам" data-no-unlock="" data-testid="wl-cmt-log" /> // гонка: 💬 открывает сразу «Комментарий к логам» (владелец v3.3.280), настройки — ⚙
+        : <WordLaneCommentButton f={f} cfg={cfg} rootRef={rootRef} onOpen={setComment} />)}
       {comment && <WordLaneComment f={f} pause={pause} comment={comment} rootRef={rootRef} setTapMode={setTapMode} onClose={() => setComment(null)} />}
     </div>,
     document.body,

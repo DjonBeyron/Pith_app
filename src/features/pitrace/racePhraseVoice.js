@@ -39,7 +39,7 @@ export function createPhraseVoice({ ctx = null, hasRu = text => !!transRow(text)
   const busy = () => get()?.cat?.busyLeft?.() ?? 0
   const run = it => {
     const c = get() ?? {}
-    if (it.line) c.sayLine?.(it.line)
+    if (it.line) c.sayLine?.(it.line, null, it.pause != null ? { pause: it.pause } : null)
     else if (it.ru) c.sayText?.(it.ru, { ru: true })
     else if (it.word) c.sayText?.(it.word, { hold: true, tight: true, onSay: ms => { it.ms = ms } }) // onSay — сколько звучит голос слова (tight: без хвоста тишины файла)
     else if (it.audio) { // целая запись: рот по огибающей буфера и буквам фразы (racePhraseMouth.js) — сама запись не реплика и не слово библиотеки, рта у неё иначе нет

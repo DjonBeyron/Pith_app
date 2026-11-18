@@ -50,7 +50,7 @@ describe('кнопка 💬', () => {
   })
   it('кнопка видна только при отладке в репетиции: условие в игре — dbg.enabled и f.rh.on; у выключенной отладки dbg.enabled = false', () => {
     const game = read('./WordLaneGame.jsx')
-    expect(game).toContain('{f.dbg.enabled && f.rh.on && !comment && <WordLaneCommentButton f={f} cfg={cfg} rootRef={rootRef} onOpen={setComment} />}')
+    expect(game).toContain('{f.dbg.enabled && f.rh.on && !comment && (race'); expect(game).toContain('<WordLaneCommentButton f={f} cfg={cfg} rootRef={rootRef} onOpen={setComment} />)}'); expect(game).toContain('data-testid="wl-cmt-log"') // гонка (v3.3.280): 💬 открывает «Комментарий к логам»
     expect(NO_DEBUG.enabled).toBe(false)
   })
 })

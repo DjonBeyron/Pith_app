@@ -97,7 +97,7 @@ export default function WordLaneHud({ dbg, rootRef, onRestartStage, onRestartGam
       <div className="wlHudActions wlHudActions--top" data-testid="wl-hud-journal-row">{/* журнал — первым: после сворачивания его открывают поверх паузы и сразу присылают */}
         <button type="button" className="wlHudAct" onClick={saveJournal} data-no-unlock="" data-testid="wl-hud-journal">Скачать журнал</button>
         <button type="button" className="wlHudAct" onClick={copyJournal} data-no-unlock="" data-testid="wl-hud-journal-copy">Скопировать журнал</button>
-        <SendLogButton className="wlHudAct" send={sendJournalNow} onResult={setStatus} data-no-unlock="" data-testid="wl-hud-journal-send" />
+        <SendLogButton className="wlHudAct" send={sendJournalNow} onResult={setStatus} onSend={close} data-no-unlock="" data-testid="wl-hud-journal-send" />
       </div>
 
       <Row label="Обработка микрофона (эхо/шум)" when="restart" testid="wl-hud-proc">
