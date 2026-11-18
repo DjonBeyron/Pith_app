@@ -31,6 +31,7 @@ const AGAIN_TEXT = RACE_LINES.find(l => l.id === AGAIN_LINE)?.text ?? ''
 export const STEP_GAP_MS = 140 // между высказываниями цепочки
 export const POLL_MS = 60      // Пит ещё занят — проверить снова через столько
 export const CHAIN_BUSY_MS = 300 // пока цепочка не договорена, Пит «занят» хотя бы на столько (сцена не начнёт ход в паузе между высказываниями)
+export const LINE_WORD_OVERLAP_MS = 250 // реплика → слово в цепочке «слово X сказано не точно»: слово стартует за столько до конца реплики
 export const JOIN_OVERLAP_MS = 100 // по словам: следующее слово стартует раньше конца голоса прежнего не больше чем на столько (на тишину в начале своего файла)
 
 export function createPhraseVoice({ ctx = null, hasRu = text => !!transRow(text), audioOf = p => phraseAudioOf(p), play = (p, a) => playPhraseAudio(p, a), lead = word => wordLeadMs(word), hasWord = word => wordVoiced(word), mouth = (p, a) => phraseMouth({ text: p?.text, buffer: bufferOfUrl(a?.url), durationS: a?.duration, rate: getVoiceRate() }), log = pLog, hold = gameMicHold, setTimer = setTimeout, clearTimer = clearTimeout } = {}) {
@@ -39,7 +40,7 @@ export function createPhraseVoice({ ctx = null, hasRu = text => !!transRow(text)
   const busy = () => get()?.cat?.busyLeft?.() ?? 0
   const run = it => {
     const c = get() ?? {}
-    if (it.line) c.sayLine?.(it.line, null, it.pause != null ? { pause: it.pause } : null)
+    if (it.line) c.sayLine?.(it.line, null, it.pause != null || it.join ? { ...(it.pause != null ? { pause: it.pause } : {}), ...(it.join ? { onSpeak: i => { it.ms = i?.ms } } : {}) } : null)
     else if (it.ru) c.sayText?.(it.ru, { ru: true })
     else if (it.word) c.sayText?.(it.word, { hold: true, tight: true, onSay: ms => { it.ms = ms } }) // onSay — сколько звучит голос слова (tight: без хвоста тишины файла)
     else if (it.audio) { // целая запись: рот по огибающей буфера и буквам фразы (racePhraseMouth.js) — сама запись не реплика и не слово библиотеки, рта у неё иначе нет
@@ -60,7 +61,8 @@ export function createPhraseVoice({ ctx = null, hasRu = text => !!transRow(text)
     run(it)
     const nx = queue[0]
     if (it.word && nx?.word && it.ms > 0) { timer = setTimer(() => pump(true), Math.max(0, it.ms - Math.min(JOIN_OVERLAP_MS, lead(nx.word)))); return } // следующее слово фразы — впритык
-    timer = setTimer(() => pump(), STEP_GAP_MS)
+    if (it.line && it.join && nx?.word && it.ms > 0) { timer = setTimer(() => pump(true), Math.max(0, it.ms - LINE_WORD_OVERLAP_MS)); return } // «слово» → слово по-английски: запись реплики кончается тишиной — слово входит в неё (v3.3.283: «меньше тишины, естественно»)
+    timer = setTimer(() => pump(), it.word && nx?.join ? 0 : STEP_GAP_MS)
   }
   const chain = items => { queue.push(...items.filter(Boolean)); if (!active && queue.length) { active = true; pump() } }
   /** Фраза по-английски: целая запись или по словам (впритык) */

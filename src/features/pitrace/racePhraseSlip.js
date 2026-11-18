@@ -41,7 +41,7 @@ export function applySlip({ res, turns, ti, slips, heard }) {
 
 /** Реплики Пита: «слово» → слово по-английски → «сказано не точно, …» (цепочка racePhraseVoice) */
 export const SLIP_PAUSE_MS = 80 // пауза после реплики цепочки (было LINE_PAUSE_MS 600 — «Пит говорит с тормозами»): микрофон между ходами не слушает, эхо не страшно
-export const slipItems = s => (s?.word ? [{ line: SLIP_WORD_LINE, pause: SLIP_PAUSE_MS }, { word: s.word }, { line: s.nth > 1 ? SLIP_NEXT_LINE : SLIP_RETRY_LINE, pause: SLIP_PAUSE_MS }] : [])
+export const slipItems = s => (s?.word ? [{ line: SLIP_WORD_LINE, pause: SLIP_PAUSE_MS, join: true }, { word: s.word }, { line: s.nth > 1 ? SLIP_NEXT_LINE : SLIP_RETRY_LINE, pause: SLIP_PAUSE_MS, join: true }] : [])
 
 /** Хвост строки журнала: слово, номер неточности, XP и доп. пилюля */
 export const slipNote = s => (s ? `; неточно слово «${s.word}» (${s.nth}-й раз${s.noXp ? ', XP нет' : ''}${s.extra ? ', ещё одна пилюля' : ''})` : '')

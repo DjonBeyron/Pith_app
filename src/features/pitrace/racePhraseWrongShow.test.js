@@ -30,7 +30,7 @@ describe('неверное слово над подсказкой (racePhraseMas
     m.wrong('you', 1)
     const cell = () => el.children[0].children.filter(c => c.children?.length !== undefined).find(c => c.children.some(x => x.className === 'racePhraseWrong'))
     expect(cell()).toBeTruthy()
-    vi.advanceTimersByTime(WRONG_SHOW_MS + 10); expect(cell()).toBeFalsy()
+    vi.advanceTimersByTime(60000); expect(cell()).toBeTruthy() // v3.3.283: подпись держится без таймера
     m.wrong('you', 1); m.set(new Map([[0, true], [1, true]])); expect(cell()).toBeFalsy() // слово 1 сказано — зачёркнутое пропало
     vi.useRealTimers()
   })
@@ -47,7 +47,7 @@ describe('итог хода: красная подпись остаётся у �
     const m = mountMask(el, 'Where are you from')
     m.wrong('you', 1) // вместо «are» услышано «you»
     const labeled = () => el.children[0].children.filter(c => c.children?.some?.(x => x.className === 'racePhraseWrong')).length
-    vi.advanceTimersByTime(WRONG_SHOW_MS + 10); expect(labeled()).toBe(0) // на ходу подпись гаснет
+    vi.advanceTimersByTime(60000); expect(labeled()).toBe(1) // на ходу подпись держится, пока верное слово не сказано (v3.3.283)
     m.keepWrong(new Map([[0, true], [2, true], [3, true]])); expect(labeled()).toBe(1)
     vi.advanceTimersByTime(60000); expect(labeled()).toBe(1) // в итоге — стоит, пока пилюля на экране
     m.keepWrong(new Map([[0, true], [1, true], [2, true], [3, true]])); expect(labeled()).toBe(0) // слово сказано — подписи нет

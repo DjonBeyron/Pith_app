@@ -134,3 +134,13 @@ describe('стадии гонки в формате движка', () => {
     expect(of(buildRaceStages({ plan: plan(), tap: false, ru: true }).stages, 'sprint').some(s => s.step?.tapOnly)).toBe(false)
   })
 })
+
+// v3.3.283 (журнал владельца, финал: «не работает, когда нужно говорить по-русски»): на плашке смены языка слушатель следующей ступени не создаётся — русская модель ещё не загружена
+describe('слушатель и смена языка', () => {
+  it('announce со switchTo не отдаёт ступень следующего блока (boss-sw → boss2); обычная плашка перед ступенью — отдаёт, как раньше', () => {
+    const step = { id: 'x' }
+    const st = [{ type: 'announce', sid: 'boss-sw', switchTo: 'ru' }, { type: 'student', act: 'boss', sid: 'boss2', step }]
+    expect(listenStepOf(st, 0)).toBeNull(); expect(listenStepOf(st, 1)).toBe(step)
+    expect(listenStepOf([{ type: 'announce', sid: 'a' }, st[1]], 0)).toBe(step)
+  })
+})

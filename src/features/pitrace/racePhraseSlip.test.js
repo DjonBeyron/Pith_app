@@ -51,8 +51,8 @@ describe('правила неточностей по фразе', () => {
 
 describe('реплики Пита и журнал', () => {
   it('цепочка: «слово» → слово → «попробуй ещё раз» / «в следующий раз»; журнал называет слово, номер, XP', () => {
-    expect(slipItems({ word: 'meet', nth: 1 })).toEqual([{ line: 'race_slip_word', pause: SLIP_PAUSE_MS }, { word: 'meet' }, { line: SLIP_RETRY_LINE, pause: SLIP_PAUSE_MS }])
-    expect(slipItems({ word: 'meet', nth: 2 }).at(-1)).toEqual({ line: SLIP_NEXT_LINE, pause: SLIP_PAUSE_MS }); expect(slipItems(null)).toEqual([])
+    expect(slipItems({ word: 'meet', nth: 1 })).toEqual([{ line: 'race_slip_word', pause: SLIP_PAUSE_MS, join: true }, { word: 'meet' }, { line: SLIP_RETRY_LINE, pause: SLIP_PAUSE_MS, join: true }])
+    expect(slipItems({ word: 'meet', nth: 2 }).at(-1)).toEqual({ line: SLIP_NEXT_LINE, pause: SLIP_PAUSE_MS, join: true }); expect(slipItems(null)).toEqual([])
     expect(slipNote({ word: 'meet', nth: 2, noXp: true, extra: false })).toContain('XP нет'); expect(slipNote({ word: 'you', nth: 1, extra: true })).toContain('ещё одна пилюля')
   })
   it('голос: итог win с res.slip говорит слова, а не «да» и не молчит после прохода 1', () => {

@@ -15,7 +15,7 @@ import { wordEdges } from './racePhraseFill.js'
 /** Ячейка слова: <b><i>слово</i></b> — текст в своём слое, чтобы его opacity не гасила кирпичик b::before. Её же строит просмотр записи стенда (pillStandSnap.js) */
 export function maskCell(doc, text) { const b = doc.createElement('b'), i = doc.createElement('i'); i.textContent = text; b.appendChild(i); return b }
 
-export const WRONG_SHOW_MS = 2400 // сколько держится зачёркнутое неверное слово
+export const WRONG_SHOW_MS = Infinity // зачёркнутое неверное слово держится, пока верное не сказано (v3.3.283; было 2,4 с)
 
 export function mountMask(el, text) {
   const doc = el?.ownerDocument
@@ -32,8 +32,15 @@ export function mountMask(el, text) {
   if (ink) { ink.removeAttribute('data-testid'); inkHost.appendChild(ink) }
   let edges = null, dirty = true
   const said2 = new Map() // номер слова → последнее услышанное вместо него (для итога хода: keepWrong)
-  let wrongEls = [], wrongTimer = 0, wrongAt = -1 // неверно сказанное слово над подсказкой: красное, зачёркнуто тонкой линией (v3.3.272)
+  let wrongEls = [], wrongTimer = 0, wrongAt = -1, wrongWord = '' // неверно сказанное слово над подсказкой: красное, зачёркнуто тонкой линией (v3.3.272)
   const clearWrong = () => { clearTimeout(wrongTimer); wrongTimer = 0; wrongAt = -1; wrongEls.forEach(e => e.remove()); wrongEls = [] }
+  /** Подпись «сказано вместо» (v3.3.283): красное слово по центру над верным, под ним — фигурная горизонтальная скобка-уголок, указывающая на верное слово */
+  const label = (c, word) => {
+    const e = doc.createElement('s'); e.className = 'racePhraseWrong'
+    const t = doc.createElement('span'); t.textContent = word; e.appendChild(t)
+    if (doc.createElementNS) { const svg = doc.createElementNS('http://www.w3.org/2000/svg', 'svg'), path = doc.createElementNS('http://www.w3.org/2000/svg', 'path'); svg.setAttribute('viewBox', '0 0 40 8'); svg.setAttribute('preserveAspectRatio', 'none'); svg.setAttribute('class', 'racePhraseBrace'); path.setAttribute('d', 'M0 1 C8 1 12 2 16 4 C18 5 19 6.5 20 8 C21 6.5 22 5 24 4 C28 2 32 1 40 1'); svg.appendChild(path); e.appendChild(svg) }
+    c.appendChild(e); wrongEls.push(e)
+  }
   doc?.fonts?.ready?.then?.(() => { dirty = true }, () => {})
   const measure = () => {
     const sp = el.querySelector?.('.wlPillSparks')?.getBoundingClientRect?.(), cl = el.querySelector?.('.wlPillClip')?.getBoundingClientRect?.()
@@ -58,11 +65,12 @@ export function mountMask(el, text) {
     },
     /** Неверно сказанное слово word над словом index (ожидаемым): красным, зачёркнуто тонкой линией; снимается через WRONG_SHOW_MS, при новом неверном — заменяется, при сказанном index — сразу */
     wrong(word, index) {
+      if (wrongAt === index && wrongWord === word && wrongEls.length) return // то же неверное слово — подпись не пересоздаётся (не мигает), держится до верного слова
       clearWrong(); const i = words.findIndex(w => w.index === index)
       if (!doc || i < 0 || !word) return
       said2.set(index, word)
-      for (const c of [cells[i], inkCells[i]]) { if (!c) continue; const e = doc.createElement('s'); e.className = 'racePhraseWrong'; e.textContent = word; c.appendChild(e); wrongEls.push(e) }
-      wrongAt = index; wrongTimer = setTimeout(clearWrong, WRONG_SHOW_MS)
+      for (const c of [cells[i], inkCells[i]]) if (c) label(c, word)
+      wrongAt = index; wrongWord = word // подпись держится, пока верное слово не сказано (v3.3.283); новое неверное слово заменяет прежнее
     },
     /** Итог хода принят не по всем словам: у каждого несказанного слова, вместо которого что-то сказано, — красная зачёркнутая подпись, пока пилюля на экране (без таймера); ничего не сказано — над словом пусто */
     keepWrong(heard) {
@@ -71,7 +79,7 @@ export function mountMask(el, text) {
       words.forEach((w, i) => {
         const word = said2.get(w.index)
         if (w.index < 0 || !word || heard?.has?.(w.index)) return
-        for (const c of [cells[i], inkCells[i]]) { if (!c) continue; const e = doc.createElement('s'); e.className = 'racePhraseWrong'; e.textContent = word; c.appendChild(e); wrongEls.push(e) }
+        for (const c of [cells[i], inkCells[i]]) if (c) label(c, word)
       })
     },
     words: () => words,

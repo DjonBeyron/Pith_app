@@ -41,7 +41,7 @@ describe('плашка Мии по реплике за кадром', () => {
   })
   it('финал (v3.3.280): коробка падает сразу (DROP_AT), реплика Пита — уже после удара коробки (PIT1_AT ≥ DROP_AT + IMPACT), прыжок Мии — к JUMP_ABS', () => {
     expect(BOSS.PIT1_AT).toBeGreaterThanOrEqual(BOSS.DROP_AT + IMPACT * 1000)
-    const src = rd('./useMiaEnter.js'); expect(src).toContain('const bossDrop = boss ? BOSS.DROP_AT'); expect(src).toContain('BOSS.JUMP_ABS - bossDrop')
+    const src = rd('./useMiaEnter.js'); expect(src).toContain('const bossDrop = boss ? BOSS.DROP_AT'); expect(src).toContain('BOSS.JUMP_ABS + shift - bossDrop')
     expect(BOSS.HUSH_AT).toBeGreaterThan(BOSS.PIT1_AT + 3000) // Мия не перебивает первую реплику Пита
   })
   it('разворот в реверс: стадия не ждёт реплику Пита про реверс целиком (REV_WAIT_CAP_MS), плашка фраз выходит вместе с репликой', () => {

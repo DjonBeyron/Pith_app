@@ -10,3 +10,11 @@ describe('финал: помощь Пита перед колкостью Мии
   })
   it('Мия подкалывает только после помощи Пита: MISS_AT с запасом на фразу и слово', () => { expect(BOSS.MISS_AT).toBeGreaterThanOrEqual(2500) })
 })
+
+import { bossShift } from '../mia/raceMia.js'
+describe('финал: Мия начинает вскоре после реплики Пита (v3.3.283)', () => {
+  it('короткая реплика Пита сдвигает речь Мии раньше (но не позже прежней метки); длинная / неизвестная — как было', () => {
+    expect(bossShift(3000)).toBe(BOSS.PIT1_AT + 3000 + BOSS.AFTER_PIT_MS - BOSS.HUSH_AT); expect(bossShift(3000)).toBeLessThan(0)
+    expect(bossShift(0)).toBe(0); expect(bossShift(99999)).toBe(0)
+  })
+})

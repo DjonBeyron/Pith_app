@@ -57,6 +57,7 @@ export function listenStepOf(stages, idx) {
   const s = stages[idx]
   if (!s) return null
   if (s.type === 'turn' || isStudentStage(s) || (s.type === 'discern' && s.step)) return s.step // discern со step — «Слушай и лови»: слово отвечают голосом
+  if (s.type === 'announce' && s.switchTo) return null // смена языка (boss-sw → boss2): слушатель следующей ступени создаётся, когда модель уже загружена; раньше он создавался на самой плашке смены, русской модели ещё не было → «Не получается слушать», блок глухой (журнал владельца v3.3.282)
   if (s.type === 'announce' && (isStudentStage(stages[idx + 1]) || (stages[idx + 1]?.type === 'discern' && stages[idx + 1].step))) return stages[idx + 1].step
   return null
 }
