@@ -85,7 +85,7 @@ describe('стадия разворота и уход Мии', () => {
     const c = rd('./raceStagesCatch.js'), a = rd('./useRaceActs.js'), p = rd('../player/modules/rotate-phone/useWordLanePills.js')
     expect(c).toContain("sid: 'catch-rev', rev: REV_MS"); expect(c).toContain("voice ? 'race_reverse' : 'race_reverse_tap'")
     expect(rd('../player/modules/rotate-phone/useWordLaneFlow.js')).toContain("if (stageObj.rev || stageObj.revBack) return { kind: 'reverse', at: s.at, back: !!stageObj.revBack }")
-    expect(a).toContain('revTimes(convSpeed.v).total + REV_START_SLACK_MS'); expect(a).toContain("plate: st => (st?.rev || st?.mia === 'intro'"); expect(a).toContain('mspeech.leftMs()')
+    expect(a).toContain('revTimes(st.revSpeed ??= convSpeed.v).total + REV_START_SLACK_MS'); expect(a).toContain("plate: st => (st?.rev || st?.mia === 'intro'"); expect(a).toContain('mspeech.leftMs()')
     expect(p).toContain("fxRef.current?.pitBusy?.() ?? 0"); expect(p).toContain('tail < 30')
     expect(rd('../player/modules/rotate-phone/wordLanePool.js')).toContain("'data-up', 'data-arrow'") // у пилюли из пула стрелка не остаётся
   })

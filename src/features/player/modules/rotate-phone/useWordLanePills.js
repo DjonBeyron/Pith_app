@@ -57,6 +57,7 @@ export function useWordLanePills(rootRef, { scene, levels, fx, live, sceneApi, t
     if (kind === 'idle') { setDots(3); return () => pool.giveAll() }
     if (kind === 'reverse') { // разворот в реверс (проход A → B) или назад (церемония Мии после B): три пилюли со стрелками (pitrace/raceReverseTurn.js)
       setDots(0)
+      const sp = scene.speed ?? convSpeed.v // скорость разворота зафиксирована на стадии (директор считает по ней длину стадии)
       const back = !!scene.back, fast = isWeakDevice() || !!globalThis.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches
       let stop = () => {}, timer = 0
       const wait = 0 // v3.3.277: пилюли разворота стартуют СРАЗУ (раньше ждали, пока Пит договорит), чтобы на скорости конвейера успеть за диалоги; было:  Пит (или Мия, уходящая с коробкой) ещё говорит — разворот начинается, когда он начнёт реплику про реверс: анимация и реплика идут вместе, не наползая на прошлое
@@ -64,8 +65,8 @@ export function useWordLanePills(rootRef, { scene, levels, fx, live, sceneApi, t
       if (back) revBack.busy = true // три ноты церемонии ждут конца разворота (useRaceActs.countWait)
       const go = () => {
         const tail = pool.tail?.()
-        if (back ? performance.now() - t0 < 300 || (fxRef.current?.pitBusy?.() ?? 0) > revTimes(convSpeed.v).lead : tail != null && tail < 30 && performance.now() - t0 < wait + 800) { timer = setTimeout(go, back ? 100 : 60); return } // назад — за REV_BACK_LEAD_MS до конца диалогов Мии и Пита (пилюли приезжают и разворачиваются под её последнюю реплику, после неё нет тишины, владелец v3.3.270); вперёд — доезжающая пилюля прошлой ступени не мешает (не дольше 0,8 с)
-        stop = runReverseTurn({ pool, root, fast, back })
+        if (back ? performance.now() - t0 < 300 || (fxRef.current?.pitBusy?.() ?? 0) > revTimes(sp).lead : tail != null && tail < 30 && performance.now() - t0 < wait + 800) { timer = setTimeout(go, back ? 100 : 60); return } // назад — за REV_BACK_LEAD_MS до конца диалогов Мии и Пита (пилюли приезжают и разворачиваются под её последнюю реплику, после неё нет тишины, владелец v3.3.270); вперёд — доезжающая пилюля прошлой ступени не мешает (не дольше 0,8 с)
+        stop = runReverseTurn({ pool, root, fast, back, speed: sp })
       }
       timer = setTimeout(go, wait)
       return () => { clearTimeout(timer); stop(); revBack.busy = false; pool.giveAll() }

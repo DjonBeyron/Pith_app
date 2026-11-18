@@ -37,6 +37,7 @@ export const MAX_TRIES = 3              // сколько раз повтор в
 export const CLAIM_FROM_Y = -4          // слово засчитывается повтору, как только пилюля ВИДНА (её центр у верхнего края) — ждать полного открытия не нужно…
 export const CLAIM_TO_Y = 96            // …а последняя ещё не ушла в нижнее
 export const DRAFT_FRESH_MS = 1200 // черновик у нижней границы засчитывается, только если распознаватель слышал речь не раньше этого (хвост давней речи — не в счёт)
+export const SPEAK_GRACE_MS = 450 // голос ещё звучит (или итог не пришёл), а пилюля прошла границу: «не успел» откладывается не дольше (владелец, журнал v3.3.278: «Мия сказала «не прошло», хотя я уже говорил»; не дольше, чем пилюля уходит под экран)
 export const FAIL_Y = CLAIM_TO_Y        // центр последней пилюли ниже — не успел
 export const LEAD_IN_MS = 0             // первая пилюля выезжает из-за верхнего края на глазах (появиться посреди экрана рывком нельзя)
 export const LOCK_STAGGER_MS = 140      // куски принятого повтора защёлкиваются по очереди
@@ -59,6 +60,7 @@ export const budgetOf = (count, lifeMs) => count * (lifeMs + BUDGET_PAD_MS) + BU
 /** Повтор на экране: можно ли взять — первая пилюля открылась, последняя ещё не ушла вниз, и ни один не принятый кусок не ушёл под экран на 80 % и больше (LISTEN_Y_MAX: глухой кусок не принять, повтор дожидается «не успел») */
 export function isClaimable(rep) {
   if (rep.state !== 'fly') return false
+  if (rep.graceAt != null) return true // «не успел» отложен, пока ученик договаривает (SPEAK_GRACE_MS): слово ещё можно принять ниже границы
   const first = rep.pills[0]
   const last = rep.pills.at(-1)
   return first.y >= Math.max(CLAIM_FROM_Y, LISTEN_Y_MIN) && last.y <= CLAIM_TO_Y && rep.pills.every(p => p.state !== 'fly' || p.y < LISTEN_Y_MAX) // первая пилюля начинает слушать, когда сверху видно 51 % её высоты (LISTEN_Y_MIN)
@@ -142,6 +144,8 @@ export function stepStudent(g, t, { level = 0, seq = [], misses = 0, confirmed =
       if (isClaimable(rep)) stepFill(rep, dt, { level, confirmed, spoken, t, events, heardT })
       if (rep.pills.at(-1).y > FAIL_Y && tail && tail !== g.spentTail && tail.target === rep.target && !rep.trap && confirmed && t - heardT < DRAFT_FRESH_MS) { // время вышло, а в черновике уже ВЕРНОЕ слово пилюли (итог ещё не пришёл): засчитываем по черновику — «в последний момент», хвост закрыт (spentTail), новые слова эту пилюлю уже не касаются (владелец, журнал v3.3.276: «пытаюсь» было верным, итог опоздал)
         claimRep(g, rep, t, tail, events); events.at(-1).draft = true; lateClaim = true
+      } else if (rep.pills.at(-1).y > FAIL_Y && rep.state === 'fly' && (rep.graceAt != null || level > 0 || (tail && tail !== g.spentTail && confirmed && t - heardT < DRAFT_FRESH_MS)) && (rep.graceAt ??= t) + SPEAK_GRACE_MS > t && rep.pills.at(-1).y < EXIT_Y - 2) {
+        // пилюля прошла границу, но ученик говорит (голос звучит / черновик есть): ждём итог — он может засчитать слово (rep.graceAt открывает приём ниже границы, isClaimable)
       } else if (rep.pills.at(-1).y > FAIL_Y) {
         rep.state = rep.tries + 1 >= g.maxTries || t >= g.budget ? 'lost' : 'todo'
         rep.tries += 1

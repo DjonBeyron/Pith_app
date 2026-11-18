@@ -1,4 +1,5 @@
 import { pLog } from './debug.js'
+import { gameJournal } from './gameJournal.js'
 import { samplePerf } from './perfProbeSample.js'
 import { installRafProbe, uninstallRafProbe, takeRafStats } from './rafProbe.js'
 import { scanPerfSuspects } from './perfSuspects.js'
@@ -38,6 +39,16 @@ export function subscribePerfSummary(cb) {
 export function getPerfSummary() { return summary }
 export function isPerfProbeRunning() { return running }
 
+export const JANK_LOG_MS = 300 // кадр дольше — в журнал со строками, что шли перед ним (владелец, v3.3.278: «игра виснет, фризов не было»: по журналу видно, что происходило в момент фриза)
+const SKIP = /\[perf\]|\[jank\]|\[suspects\]|mic-hold/
+/** Фриз ≥ JANK_LOG_MS: «[jank] кадр N мс; перед ним: …» — три последние строки журнала игры (без шума проб) */
+export function logJank(gap, lines = () => gameJournal.lines(), log = pLog) {
+  try {
+    const prev = lines().filter(l => !SKIP.test(l)).slice(-3).map(l => l.replace(/^\s*[\d.]+ [\d:.]+ /, '').slice(0, 110))
+    log(`[jank] кадр ${Math.round(gap)} мс; перед ним: ${prev.join(' ‖ ') || '—'}`)
+  } catch { /* диагностика не мешает игре */ }
+}
+
 export function startPerfProbe() {
   if (running || typeof document === 'undefined') return
   running = true
@@ -56,6 +67,7 @@ export function startPerfProbe() {
     if (gap > worst) worst = gap
     // >50мс между кадрами = не меньше трёх пропущенных при 60fps — «фриз»
     if (gap > 50) drops++
+    if (gap >= JANK_LOG_MS) logJank(gap)
     raf = requestAnimationFrame(onFrame)
   }
   raf = requestAnimationFrame(onFrame)

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { createStudentGame, stepStudent } from './wordLaneStudent.js'
+import { createStudentGame, stepStudent, SPEAK_GRACE_MS } from './wordLaneStudent.js'
 import { buildRecipe } from './wordLaneRecipe.js'
 
 // Остаток принятой реплики — не промах (владелец, v3.3.270: Мия говорила «мимо» на верный ответ): слушатель выдал «[unk] помнить» — «[unk]» счёт промахов увеличил, «помнить» принято в том же кадре.
@@ -56,4 +56,26 @@ describe('верный черновик у нижней границы', () => {
   })
   it('давний хвост (речи давно нет) не засчитывает', () => { expect(types(run({ target: 0, tokens: [] }, false))).toContain('fail') })
   it('черновик на ДРУГОЕ слово пилюлю не засчитывает', () => { expect(types(run({ target: 99, tokens: [] }))).toContain('fail') })
+})
+
+// v3.3.278 (журнал владельца, Мия ×1,6: «слово не прошло», хотя я уже говорил): пилюля прошла границу, голос звучит — «не успел» откладывается, итог в окне ещё засчитывается
+describe('голос звучит у нижней границы', () => {
+  const find = () => { // момент, когда пилюля первого повтора проходит границу без речи
+    const g = createStudentGame({ step, chunks: ["I'm", 'trying', 'to learn'] })
+    for (let t = 0; t <= 14000; t += DT) if (stepStudent(g, t, { level: 0, seq: [], misses: 0 }).some(x => x.type === 'fail')) return t
+    return null
+  }
+  const run = (levelOn, claimAfterMs) => {
+    const tFail = find(); const g = createStudentGame({ step, chunks: ["I'm", 'trying', 'to learn'] }); const evs = []; let target
+    for (let t = 0; t <= tFail + 900; t += DT) {
+      target ??= g.reps.find(r => r.state === 'fly')?.target
+      const seq = claimAfterMs != null && t >= tFail + claimAfterMs ? [target] : []
+      const level = levelOn && t >= tFail - 300 && t < tFail + claimAfterMs + 1 ? 0.5 : 0
+      evs.push(...stepStudent(g, t, { level, seq, misses: 0, confirmed: true }).map(e => ({ t, type: e.type })))
+    }
+    return { evs, tFail }
+  }
+  it('без голоса — «не успел» сразу, как раньше', () => { const r = run(false, null); expect(r.evs.find(e => e.type === 'fail')?.t).toBeLessThanOrEqual(r.tFail + DT) })
+  it('голос звучит, итог пришёл через 200 мс после границы — слово принято, «не успел» нет', () => { const r = run(true, 200); expect(r.evs.some(e => e.type === 'claim')).toBe(true); expect(r.evs.some(e => e.type === 'fail')).toBe(false) })
+  it('голос звучит, но итога нет — «не успел» не позже SPEAK_GRACE_MS', () => { const r = run(true, null); const f = r.evs.find(e => e.type === 'fail'); expect(f).toBeTruthy(); expect(f.t - r.tFail).toBeLessThanOrEqual(SPEAK_GRACE_MS + 2 * DT) })
 })

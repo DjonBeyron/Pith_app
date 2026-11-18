@@ -228,7 +228,7 @@ export function useWordLaneFlow({ chunks, translation, lang, clips = null, audio
   const { retryMic, restartStage, pause } = useWordLaneControls({ stages, sRef, setS, setMicEpoch, clearTimers, listenerRef, noteTimerRef, hintTimerRef, finishedRef, catApi, cat, dbg, sceneApi }) // «Ещё раз», перезапуск ступени, пауза (сворачивание)
 
   const scene = useMemo(() => {
-    if (s.stage !== 'run' || !stageObj) return IDLE; if (stageObj.rev || stageObj.revBack) return { kind: 'reverse', at: s.at, back: !!stageObj.revBack } // разворот в реверс между проходами A и B (raceReverseTurn.js)
+    if (s.stage !== 'run' || !stageObj) return IDLE; if (stageObj.rev || stageObj.revBack) return { kind: 'reverse', at: s.at, back: !!stageObj.revBack, speed: stageObj.revSpeed } // разворот в реверс между проходами A и B (raceReverseTurn.js)
     const kind = engineKind(stageObj)
     if (kind === 'dictor') return { kind: 'dictor', plan: stageObj.plan, at: s.at }
     if (kind === 'student') return { kind: 'student', step: stageObj.step, chunks: stageObj.step.chunks ?? chunks, estMs: c => (stageObj.step.chunkMs ?? chunkMs)[c], curves: chunkCurves, at: s.at, from: s.resume?.at === s.at ? s.resume.n : 0 }
