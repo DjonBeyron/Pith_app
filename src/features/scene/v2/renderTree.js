@@ -9,7 +9,7 @@ function styleObject(text) {
   const out = {}
   for (const decl of text.split(';')) {
     const i = decl.indexOf(':')
-    if (i > 0) out[decl.slice(0, i).trim().replace(/-([a-z])/g, (_, c) => c.toUpperCase())] = decl.slice(i + 1).trim()
+    if (i > 0) { const name = decl.slice(0, i).trim(); out[name.startsWith('--') ? name : name.replace(/-([a-z])/g, (_, c) => c.toUpperCase())] = decl.slice(i + 1).trim() } // пользовательские свойства (--s у кадров хвоста Мии) — как есть, без camelCase
   }
   return out
 }

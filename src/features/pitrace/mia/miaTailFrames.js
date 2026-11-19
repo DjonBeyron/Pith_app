@@ -1,23 +1,24 @@
-import { tailPose, tailPath, MARK_SLOTS, OUT_W } from './miaTailDrive.js'
+import { MIA_TAIL_FRAMES, MIA_TAIL_MARKS } from './miaTailData.js'
 
-// Хвост Мии в игре — не картинки, а одна форма, которую каждый кадр экрана пересчитывает miaTailDrive.js по девяти ключевым позам рисунка владельца (miaTailData.js).
-// Здесь только дерево узлов: контур хвоста (.mt-tail: заливка + обводка) и MARK_SLOTS путей белых штрихов движения (.mk). Цвета те же, что у тела пака mia2 (заливка #646774, обводка #262432).
-// Только для эпизода Мии: общий пак mia2 (уроки, сборщик сцен) не меняется.
+// Хвост Мии в игре (владелец, v3.3.292: «мне нравилась анимация до ускорения, просто у неё было будто мало fps»): девять утверждённых кадров «психованного» хвоста (miaTailData.js) + промежуточные между ними — 25 кадров/с.
+// Здесь только дерево узлов: 27 контуров `.mt` (заливка + обводка) и пути белых штрихов `.mk`; какой кадр виден, решает CSS (race-mia.css: opacity по слотам цикла, --s — стартовый слот, data-n — сколько слотов держится).
+// Цвета те же, что у тела пака mia2 (заливка #646774, обводка #262432). Только для эпизода Мии: общий пак mia2 (уроки, сборщик сцен) не меняется.
 export const TAIL_FILL = '#646774'
 export const TAIL_LINE = '#262432'
 export const TAIL_MARK = '#e6e8ee'
+export const TAIL_LINE_W = '4.9' // толщина обводки в единицах пака (≈ 2,7 px гифки)
 
 const node = (tag, attrs) => ({ tag, attrs, children: [] })
 
-/** Дерево хвоста: контур в позе 0 (до первого кадра драйвера) и пустые пути штрихов */
+/** Дерево хвоста: контуры кадров и штрихи поз */
 export function miaTailTree() {
   return [
-    node('path', { class: 'mt-tail', d: tailPath(tailPose(0)), fill: TAIL_FILL, stroke: TAIL_LINE, strokeWidth: String(OUT_W), strokeLinejoin: 'round' }),
-    ...Array.from({ length: MARK_SLOTS }, () => node('path', { class: 'mk', d: '', fill: TAIL_MARK, fillOpacity: '0.92', opacity: '0' })),
+    ...MIA_TAIL_FRAMES.map(f => node('path', { class: 'mt', 'data-n': String(f.n), style: `--s:${f.s}`, d: f.d, fill: TAIL_FILL, stroke: TAIL_LINE, strokeWidth: TAIL_LINE_W, strokeLinejoin: 'round' })),
+    ...MIA_TAIL_MARKS.map(m => node('path', { class: 'mk', 'data-n': String(m.n), style: `--s:${m.s}`, d: m.d, fill: TAIL_MARK, fillOpacity: '0.92' })),
   ]
 }
 
-/** Подменяет хвост у дерева Мии (buildMascot) на форму с драйвером: внутри part tail остаётся обёртка g.cat-tail */
+/** Подменяет хвост у дерева Мии (buildMascot) на кадры: внутри part tail остаётся обёртка g.cat-tail (на неё действует состояние «довольна») */
 export function withTailFrames(cat) {
   const part = cat.children.find(c => c.attrs['data-part'] === 'tail')
   const wrap = part?.children?.find(c => (c.attrs?.class ?? '').split(' ').includes('cat-tail'))

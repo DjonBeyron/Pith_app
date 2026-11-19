@@ -1,6 +1,5 @@
 import { useMiaTail } from './mia/useMiaTail.js'
 import { slitOn, SLIT_TAIL_MS, peakTarget, smoothPeak } from './mia/miaSlit.js'
-import { createTailDriver } from './mia/miaTailDrive.js'
 import { OFFSCREEN_IDS } from './mia/useMiaPlate.js' // реплики Мии из-за правого края (она ещё не прыгнула): справа дуги звука
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { renderTree } from '../scene/v2/renderTree.js'
@@ -25,8 +24,7 @@ export default function RaceMia({ mia, caption = null, talk = null, alarm = null
   const pleased = useMiaTail({ wins: mia.wins, streak: mia.streak, live }) // хвост: нервный, на верный ответ — прямой и пушистый (mia/useMiaTail.js, race-mia.css)
   useMiaLife(miaEl, live, talk)                                    // Мия в тишине: взгляд, усы, смена лица
   const clock = useRef({ arr: 0, lv: 0, mode: 'off', paused })
-  const atRef = useRef(mia.at), jumpRef = useRef(null), alarmAt = useRef(-1e9), talkRef = useRef(null), pleasedRef = useRef(false), slit = useRef(false), peak = useRef({ v: 0, q: 0 })
-  useEffect(() => { pleasedRef.current = pleased }, [pleased])
+  const atRef = useRef(mia.at), jumpRef = useRef(null), alarmAt = useRef(-1e9), talkRef = useRef(null), slit = useRef(false), peak = useRef({ v: 0, q: 0 })
   useEffect(() => { soloRef.current = { mode: mia.solo, at: mia.soloAt, alone: !!mia.alone }; cbRef.current = { onStuck } }, [mia.solo, mia.soloAt, mia.alone, onStuck])
   useEffect(() => { talkRef.current = talk ? { id: talk.id, until: performance.now() + (talk.ms ?? 2500) + SLIT_TAIL_MS } : null }, [talk]) // щель держится, пока реплика звучит (не дольше её длины)
   const alarmKey = alarm?.key ?? null
@@ -50,7 +48,6 @@ export default function RaceMia({ mia, caption = null, talk = null, alarm = null
     if (!stage || !cat) return undefined
     catEl.current = cat
     const box = createBox(); artG.current.appendChild(box.el)
-    const drive = createTailDriver(miaEl.current, { reduced: typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches }) // хвост Мии: поза на каждый кадр экрана (mia/miaTailDrive.js)
     let raf = 0, last = performance.now(), L = null, M = null, talk = 0, n = 0, tt = 0
     const measure = () => {
       const s = stage.getBoundingClientRect(), c = cat.getBoundingClientRect()
@@ -62,7 +59,6 @@ export default function RaceMia({ mia, caption = null, talk = null, alarm = null
       raf = requestAnimationFrame(frame)
       const dt = Math.min(0.05, (now - last) / 1000); last = now
       const c = clock.current
-      drive.update(c.paused ? 0 : dt, pleasedRef.current)
       const sp = soloRef.current
       if (sp.mode === 'keep' && c.mode === 'arr' && !c.paused && performance.now() >= sp.at) { c.mode = 'solo'; c.sl = 0 } // финал пройден плохо: Мия договорила и выпрыгивает ОДНА, коробка остаётся на Пите
       if (!c.paused) { if (c.mode === 'lv') c.lv += dt; else { c.arr += dt; if (c.mode === 'solo') c.sl += dt }; tt += dt }

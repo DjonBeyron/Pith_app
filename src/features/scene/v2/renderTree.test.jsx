@@ -9,4 +9,8 @@ describe('renderTree: style строкой', () => {
     const html = renderToStaticMarkup(<svg>{renderTree(tree)}</svg>)
     expect(html).toContain('style="transform:rotate(2deg);transform-origin:1px 2px"')
   })
+  it('пользовательское свойство --s остаётся как есть (кадры хвоста Мии: слот цикла)', () => {
+    const html = renderToStaticMarkup(<svg>{renderTree(el('path', { style: '--s:12', d: 'M0 0' }))}</svg>)
+    expect(html).toContain('style="--s:12"')
+  })
 })
