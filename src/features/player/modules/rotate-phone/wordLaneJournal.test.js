@@ -34,7 +34,7 @@ describe('журнал из шестерёнки', () => {
     const hud = read('./WordLaneHud.jsx'), css = read('../../../../styles/player/modules/word-lane-hud.css'), pause = read('../../../../styles/player/modules/word-lane-pause.css')
     expect(hud).toContain('data-testid="wl-hud-journal"'); expect(hud).toContain('data-testid="wl-hud-journal-copy"')
     expect(hud.indexOf('wl-hud-journal-row')).toBeLessThan(hud.indexOf('wl-hud-proc'))
-    const z = Number(css.match(/\.wl\[data-phase='paused'\] \.wlHudBtn, \.wl\[data-phase='paused'\] \.wlHud \{ z-index: (\d+); \}/)?.[1])
+    const z = Number(css.match(/\.wl\[data-phase='paused'\] \.wlHudBtn, \.wl\[data-phase='paused'\] \.wlHud, \.wl\[data-phase='paused'\] \.wlCmtBtn \{ z-index: (\d+); \}/)?.[1])
     expect(z).toBeGreaterThan(Number(pause.match(/\.wlPauseBack \{[^}]*z-index: (\d+)/)[1]))
   })
 })

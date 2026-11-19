@@ -48,3 +48,8 @@
 .wlMiaCat[data-slit] { --slit-x: 0.42; --slit-y: 0.96; }
 .wlMiaCat.scn--v2:not(.scn--lite) .pu { scale: calc(var(--pupil, 1) * var(--slit-x) * (1 + 0.18 * var(--peak))) calc(var(--pupil, 1) * var(--slit-y) * (1 + 0.03 * var(--peak))); transition: translate 180ms ease-in-out, scale 220ms ease-out; }
 @media (prefers-reduced-motion: reduce) { .wlMiaCat.scn--v2:not(.scn--lite) .pu { transition: none; } }
+
+/* Коробка на Пите без Мии (v3.3.290, финал пройден плохо): зона касаний по коробке — тап или короткий свайп; два подряд снимают коробку (mia/miaBoxFree.js). Положение и размер ставит RaceMia по прямоугольнику коробки */
+.wlMiaHit { position: absolute; z-index: 9; pointer-events: auto; touch-action: none; cursor: pointer; border-radius: 12px; -webkit-tap-highlight-color: transparent; animation: wlMiaHitHint 1.8s ease-in-out infinite; }
+@keyframes wlMiaHitHint { 0%, 100% { box-shadow: 0 0 0 0 rgba(255, 214, 102, 0); } 50% { box-shadow: 0 0 0 3px rgba(255, 214, 102, 0.35); } }
+@media (prefers-reduced-motion: reduce) { .wlMiaHit { animation: none; } }

@@ -106,7 +106,8 @@ describe('финал: сценарий Мии, красные слова, «ос
   })
   const finish = events => { let m = reduceMia(start().mia, { t: 'enter', stage: round }).mia; for (const e of events) m = reduceMia(m, { stage: round, ...e }).mia; return reduceMia(m, { t: 'enter', stage: end, now: 9000 }) }
   it('ничего не ответил на все слова — Пит остаётся внутри (красные считаются от слов, которых не назвали верно: события «не успел» не нужны)', () => {
-    const r = finish([]); expect(r.mia).toMatchObject({ phase: 'in', reds: 6, keep: true }); expect(ids(r)).toEqual(['boss_mia_keep', 'boss_pit_keep']); expect(r.log).toContain('красных 6 (нужно 4)'); expect(r.log).toContain('Пит остаётся в коробке')
+    const r = finish([]); expect(r.mia).toMatchObject({ phase: 'in', reds: 6, keep: true }); expect(ids(r)).toEqual(['boss_mia_keep']); expect(r.mia).toMatchObject({ solo: 'keep' }); // v3.3.290: Мия выпрыгивает одна, Пит просит помочь позже (stuck)
+    expect(r.log).toContain('красных 6 (нужно 4)'); expect(r.log).toContain('Пит остаётся в коробке')
   })
   it('красных больше половины (из 6 — четыре): назван один или два верно — остаётся; три верно — Мия отпускает; верные ответы в красной зоне красные', () => {
     expect(finish([{ t: 'win', idx: 0 }, { t: 'zone', zone: 'fast' }]).mia).toMatchObject({ reds: 5, keep: true, phase: 'in' })

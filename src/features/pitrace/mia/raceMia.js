@@ -13,7 +13,11 @@ export const MIA = { BOOST: 1.15, STREAK_LEAVE: 3, OK_EVERY: 3, DROP_AT: 1200, E
 const PIT_IN_BOX_MS = 1350 // v3.3.280 (владелец: «Пит говорит в коробке — она должна упасть ДО его слов»): коробка падает сразу (DROP_AT), реплика Пита начинается после удара (DROP_AT + IMPACT ≈ 1,45 с), остальное сдвинуто на столько же
 export const BOSS = { DROP_AT: 500, JUMP: 6.4, KEEP_REDS: 5, MISS_AT: 2900, AFTER_PIT_MS: 450, PIT1_AT: 300 + PIT_IN_BOX_MS, JUMP_ABS: 6900 + PIT_IN_BOX_MS, HUSH_AT: 5200 + PIT_IN_BOX_MS, LOOK_AT: 8000 + PIT_IN_BOX_MS } // объяснение шкалы идёт подряд, без пауз: с LOOK_AT реплики look → think → green → yellow → red → five → Пит стоят в очереди одна за другой (очередь речи сама держит паузу GAP_MS), путь пилюли примера считается по их длительности (bossScale.demoPlan) // финал «Шкала памяти»: падение коробки, прыжок Мии (с от падения), порог красных слов, сроки реплик (мс от входа)
 
-export const miaInit = () => ({ done: {}, phase: 'off', act: '', fast: false, jump: null, total: 0, won: {}, reds: 0, redWins: 0, failed: {}, dug: {}, keep: false, used: {}, streak: 0, wins: 0, hits: 0, seq: 0, at: 0, why: '' })
+export const miaInit = () => ({ done: {}, phase: 'off', act: '', fast: false, jump: null, total: 0, won: {}, reds: 0, redWins: 0, failed: {}, dug: {}, keep: false, solo: null, soloAt: 0, alone: false, used: {}, streak: 0, wins: 0, hits: 0, seq: 0, at: 0, why: '' })
+
+/** Конец финала откладывается на ms (Мия договаривает последнюю колкость): отметка на стадии (её читает директор: holdMs) и таймер go в коробке (снимается при уходе из игры) */
+export function holdEnd(mb, stage, ms, go) { stage.preWait = ms; clearTimeout(mb.endTimer); mb.endTimer = setTimeout(go, ms) }
+export const clearEndTimer = mb => { clearTimeout(mb.endTimer); mb.endTimer = 0 }
 
 /** Стадия эпизода: 'ann' — церемония прихода, 'round' — круг с Мией */
 export const isMiaStage = st => st?.mia === 'intro' || st?.mia === 'ann' || st?.mia === 'round' || st?.mia === 'end' || st?.mia === 'hold'
@@ -34,6 +38,10 @@ const silentBlock = (m, stage) => {
 
 export function reduceMia(m, ev) {
   const { t, stage, now = 0 } = ev
+  // Пит в коробке без Мии (финал пройден плохо, v3.3.290): stuck — Мия выпрыгнула, Пит просит помочь; faster — одно касание без второго; free — коробка снята: отлетает без Мии (alone), Пит благодарит
+  if (t === 'stuck') return m.solo === 'keep' ? { mia: { ...m, solo: 'stuck' }, say: [line('boss_pit_stuck', 'pit')], boost: null } : none(m)
+  if (t === 'faster') return m.solo === 'stuck' ? { mia: m, say: [line('boss_pit_faster', 'pit')], boost: null } : none(m)
+  if (t === 'free') return m.solo === 'stuck' ? leave({ ...m, keep: false, solo: null, alone: true }, now, 'freed', [line('boss_pit_free', 'pit', 1300)]) : none(m)
   if (t === 'enter') {
     if (stage?.mia === 'ann') { // церемония: Пит начинает репликой стадии, через DROP_AT падает коробка (at — момент падения), Мия запрыгивает, вступительные реплики (три ноты ждут их конца)
       // повторный вход в ту же стадию (пауза и «Продолжить», перезапуск ступени): церемония начинается заново — реплики снова в очереди, коробка падает снова (раньше такой вход ничего не делал: оба молчали, пример не шёл)
@@ -45,7 +53,7 @@ export function reduceMia(m, ev) {
       if (m.phase !== 'in' || m.act !== 'boss') return none(m)
       const { won, reds, keep } = bossEnd(m) // красные — все слова, кроме верно названных не в красной зоне (молчание и ошибки тоже красные, даже если события «не успел» не дошли)
       const log = `финал кончился: слов ${m.total}, названо верно ${won} (из них в красной зоне ${m.redWins}), красных ${reds} (нужно ${keepNeed(m.total)}) — ${keep ? 'Пит остаётся в коробке' : 'Мия отпускает Пита'}`
-      if (keep) return { mia: { ...m, reds, keep, fast: false, seq: m.seq + 1 }, say: [line('boss_mia_keep', 'mia'), line('boss_pit_keep', 'pit', 3200)], boost: 1, log }
+      if (keep) return { mia: { ...m, reds, keep, fast: false, solo: 'keep', soloAt: now + (ev.keepMs ?? 3500), seq: m.seq + 1 }, say: [line('boss_mia_keep', 'mia')], boost: 1, log } // v3.3.290: Мия договаривает и выпрыгивает ОДНА (soloAt), коробка остаётся на Пите: он просит помочь (stuck), ученик снимает её касаниями (free)
       return { ...leave({ ...m, reds, keep }, now, 'end', [line('boss_mia_free', 'mia'), line('boss_pit_free', 'pit', 2800)]), log }
     }
     if (m.phase === 'in' && m.keep && m.act === 'boss') return none(m) // Пит остался в коробке: она стоит под итогом до конца игры (раньше убиралась на экране итога — Пит на миг мигал без коробки)

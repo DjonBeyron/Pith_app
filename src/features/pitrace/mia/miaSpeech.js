@@ -90,5 +90,11 @@ export function createMiaSpeech({ now = () => Date.now(), setTimer = setTimeout,
     /** Оценка, сколько мс речи ещё впереди (очередь целиком, по длине звука или подписи): директор репетиции откладывает реплику следующей стадии на это время */
     leftMs: () => queue.reduce((a, c) => { const l = src.lines?.[c.id], text = l?.text || miaLine(c.id)?.text || '', full = (l?.url ? lineMs(l) : Math.max(MIN_CAPTION_MS, text.length * 65)) + GAP_MS; return a + (playing === c ? Math.max(GAP_MS, full - (now() - playAt)) : full) }, 0), // играющая реплика — только остаток (раньше считалась целиком: прерванная «mia_leave» держала следующую реплику Пита лишние секунды)
     pending: () => queue.length, // играющая реплика тоже стоит в голове очереди
+    /** Через сколько мс очередь речи опустеет (v3.3.290): играющая реплика доигрывает, отложенные ждут своего времени (у колкости на ошибку в финале — MISS_AT), каждая идёт после предыдущей + пауза GAP_MS. 0 — речи нет */
+    idleIn() {
+      let t = now()
+      for (const c of queue) { if (playing === c) t = Math.max(t, playAt + msOf(c.id, c.who)); else t = Math.max(t, c.at) + msOf(c.id, c.who) + GAP_MS }
+      return Math.max(0, t - now())
+    },
   }
 }

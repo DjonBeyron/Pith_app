@@ -89,7 +89,7 @@ describe('эпилог финала кончается, когда догово�
   })
   it('директор: эпилог держится по длине реплик Мии и Пита (не фиксированные 11 с), с потолком st.ms', () => {
     const src = readFileSync(new URL('../useRaceActs.js', import.meta.url), 'utf8')
-    expect(src).toContain("if (st?.mia !== 'end') return rh.holdMs(st)"); expect(src).toContain('Math.min(st.ms, Math.max(2500,')
+    expect(src).toContain("st?.mia !== 'end' ? rh.holdMs(st) : endHoldMs(st, mb, mspeech)"); expect(readFileSync(new URL('./raceEndHold.js', import.meta.url), 'utf8')).toContain('Math.min(st.ms, pre + Math.max(2500,')
   })
 })
 

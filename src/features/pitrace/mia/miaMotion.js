@@ -84,6 +84,14 @@ export function leaveAt(t) {
   return { box, eyes, mia, hideCat: t < LEAVE.CAT_BACK, shown: true }
 }
 
+/** Мия выпрыгивает ОДНА, коробка остаётся на Пите (v3.3.290, финал пройден плохо): присела (CROUCH), прыжок вправо за экран (JUMP), дальше её нет. t — с от начала прыжка → { u 0…1 (доля пути прыжка, для flightPath), sx, sy, rot, done } */
+export const SOLO = { CROUCH: 0.3, JUMP: 0.8, END: 1.1 }
+export function soloLeave(t) {
+  const cr = clamp(t / SOLO.CROUCH), u = clamp((t - SOLO.CROUCH) / SOLO.JUMP)
+  if (t < SOLO.CROUCH) return { u: 0, sy: 1 - 0.14 * cr, sx: 1 + 0.06 * cr, rot: 0, done: false }
+  return { u, sy: 0.86 + 0.2 * eOut3(clamp(u * 3)), sx: 1.06 - 0.1 * eOut3(clamp(u * 3)), rot: 8 * u, done: t >= SOLO.END }
+}
+
 /** Громкость речи Пита 0…1 по форме рта головы (Rhubarb A…H, X или closed / half / open) — звуковые линии идут в такт его реальной озвучке */
 export const MOUTH_LEVEL = { X: 0, A: 0.08, B: 0.4, C: 0.6, D: 0.95, E: 0.55, F: 0.45, G: 0.35, H: 0.65, closed: 0, half: 0.5, open: 1 }
 export const talkLevel = (vis, mouth) => MOUTH_LEVEL[vis] ?? MOUTH_LEVEL[mouth] ?? 0
