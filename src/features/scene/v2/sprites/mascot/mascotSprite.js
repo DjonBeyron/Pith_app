@@ -48,6 +48,14 @@ function setPupils(eyes, st, pupilReaction, isLove) {
   })
 }
 
+// Глаза ближе друг к другу (пак: eyeShift, единицы пака; Мия — 6, владелец 2026-11-19 «чуточку ближе»): узлы глаз идут подряд, первая половина — один глаз, вторая — другой;
+// каждый глаз — в свою группу со сдвигом по x навстречу. Зрачки и их взгляд (CSS внутри группы) не страдают. Без eyeShift (у Пита) дерево глаз не меняется
+function shiftEyes(eyes, d) {
+  if (!d || eyes.length < 2 || eyes.length % 2) return eyes
+  const h = eyes.length / 2
+  return [el('g', { transform: `translate(${d} 0)` }, eyes.slice(0, h)), el('g', { transform: `translate(${-d} 0)` }, eyes.slice(h))]
+}
+
 // Начальная форма рта в дереве: закрытый рот состояния лица (или форма Rhubarb для превью с mouth half / open)
 function setMouth(head, skin, face, shape) {
   const e = mouthShapeFor(skin, face, shape)
@@ -91,7 +99,7 @@ export function buildMascot(skin, { face = BASE_FACE, flip = false, pupilReactio
   setPupils(eyes, st, pupilReaction, name === 'love')
 
   const [bx, by] = pack.tailBase
-  const faceKids = [...head, part('eyes', { class: 'cat-eyes' }, eyes)]
+  const faceKids = [...head, part('eyes', { class: 'cat-eyes' }, shiftEyes(eyes, pack.eyeShift))]
   // Слой наклона головы есть ВСЕГДА (а не только у лиц с наклоном): иначе при смене лица у головы меняется состав детей, она перемонтируется,
   // а наклон прыгает сразу на несколько градусов. Постоянный слой + CSS-переход (.mx-tilt) — наклон плавно доезжает за 0,3 с
   const headKids = [el('g', { class: 'mx-tilt', style: `transform:rotate(${st.tilt}deg)` }, faceKids)]

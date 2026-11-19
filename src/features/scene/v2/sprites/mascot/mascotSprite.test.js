@@ -55,6 +55,15 @@ describe('маскоты: спрайт', () => {
     expect(s).toContain(`data-skin="${skin}"`)
   })
 
+  it('Мия: глаза ближе друг к другу (eyeShift) — две группы со сдвигом навстречу; у Пита и Кетти глаза плоским списком', () => {
+    const eyes = skin => buildMascot(skin).children.find(c => c.attrs['data-part'] === 'head').children[0].children.find(c => c.attrs['data-part'] === 'eyes')
+    const mia = eyes('mia2').children
+    expect(mia.map(g => g.tag)).toEqual(['g', 'g'])
+    expect(mia[0].attrs.transform).toBe('translate(6 0)'); expect(mia[1].attrs.transform).toBe('translate(-6 0)')
+    expect(treeToString(buildMascot('mia2')).match(/class="pu/g)).toHaveLength(2)
+    expect(eyes('kit').children.every(c => c.tag !== 'g')).toBe(true)
+  })
+
   it('взгляд: родной — влево, поэтому левый персонаж зеркалится, правый нет', () => {
     expect(treeToString(buildMascot('kit', { flip: false }))).toContain('transform="translate(200 0) scale(-1 1) translate(')
     expect(treeToString(buildMascot('kit', { flip: true }))).not.toContain('scale(-1 1)')
