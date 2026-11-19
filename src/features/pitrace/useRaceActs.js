@@ -118,7 +118,7 @@ export function useRaceActs(args) {
     const r = reduceMia(mb.m, { ...ev, now: performance.now() })
     if (r.mia === mb.m && !r.say.length && r.boost == null) return
     if (r.mia.phase !== mb.m.phase) pLog(`[mia] ${r.mia.phase === 'in' ? `Мия пришла (${r.mia.act}, второй круг), дорожка быстрее на ${Math.round((r.boost - 1) * 100)} %` : r.mia.phase === 'out' ? `Мия уходит: ${r.mia.why === 'win' ? 'три верных подряд' : 'круг кончился'}` : 'Мии нет'}`)
-    if (r.mia.reds !== mb.m.reds) pLog(`[mia] финал: красных слов ${r.mia.reds} (нужно ${keepNeed(r.mia.total)}) (${ev.t === 'zone' ? `ответ в зоне ${ev.zone}` : `слово ${ev.idx + 1}: ${ev.t === 'fail' ? 'не успел' : 'ошибка'}`})${r.mia.keep ? ', Пит останется внутри' : ''}`)
+    if (r.mia.reds !== mb.m.reds) pLog(`[mia] финал: красных слов ${r.mia.reds} (Пит остаётся при ${keepNeed()}+ неверных) (${ev.t === 'zone' ? `ответ в зоне ${ev.zone}` : `слово ${ev.idx + 1}: ${ev.t === 'fail' ? 'не успел' : 'ошибка'}`})${r.mia.keep ? ', Пит останется внутри' : ''}`)
     setMiaView(applyMia(mb, r, ev.stage))
     if (r.say.length) mspeech.enqueue(r.say)
   }, [mb, mspeech])

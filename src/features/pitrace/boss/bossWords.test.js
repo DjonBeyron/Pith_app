@@ -107,13 +107,13 @@ describe('финал: сценарий Мии, красные слова, «ос
   const finish = events => { let m = reduceMia(start().mia, { t: 'enter', stage: round }).mia; for (const e of events) m = reduceMia(m, { stage: round, ...e }).mia; return reduceMia(m, { t: 'enter', stage: end, now: 9000 }) }
   it('ничего не ответил на все слова — Пит остаётся внутри (красные считаются от слов, которых не назвали верно: события «не успел» не нужны)', () => {
     const r = finish([]); expect(r.mia).toMatchObject({ phase: 'in', reds: 6, keep: true }); expect(ids(r)).toEqual(['boss_mia_keep']); expect(r.mia).toMatchObject({ solo: 'keep' }); // v3.3.290: Мия выпрыгивает одна, Пит просит помочь позже (stuck)
-    expect(r.log).toContain('красных 6 (нужно 4)'); expect(r.log).toContain('Пит остаётся в коробке')
+    expect(r.log).toContain('неверно или не названо 6 (нужно 1)'); expect(r.log).toContain('красных 6'); expect(r.log).toContain('Пит остаётся в коробке')
   })
-  it('красных больше половины (из 6 — четыре): назван один или два верно — остаётся; три верно — Мия отпускает; верные ответы в красной зоне красные', () => {
-    expect(finish([{ t: 'win', idx: 0 }, { t: 'zone', zone: 'fast' }]).mia).toMatchObject({ reds: 5, keep: true, phase: 'in' })
-    expect(finish([{ t: 'win', idx: 0 }, { t: 'zone', zone: 'fast' }, { t: 'win', idx: 1 }, { t: 'zone', zone: 'mid' }]).mia).toMatchObject({ reds: 4, keep: true, phase: 'in' }) // два верных из шести: красных четыре — больше половины
-    const free = finish([{ t: 'win', idx: 0 }, { t: 'zone', zone: 'fast' }, { t: 'win', idx: 1 }, { t: 'zone', zone: 'mid' }, { t: 'win', idx: 2 }, { t: 'zone', zone: 'fast' }]); expect(free.mia).toMatchObject({ reds: 3, keep: false, phase: 'out' }); expect(ids(free)).toEqual(['boss_mia_free', 'boss_pit_free']); expect(free.log).toContain('Мия отпускает Пита')
-    expect(finish([{ t: 'win', idx: 0 }, { t: 'zone', zone: 'slow' }, { t: 'win', idx: 1 }, { t: 'zone', zone: 'slow' }]).mia).toMatchObject({ reds: 6, keep: true })
+  it('хоть одно слово неверно или не названо (v3.3.295) — Пит остаётся (Мия выпрыгивает одна); все названы верно — Мия отпускает; верный ответ в красной зоне — верный', () => {
+    expect(finish([{ t: 'win', idx: 0 }, { t: 'zone', zone: 'fast' }]).mia).toMatchObject({ keep: true, phase: 'in', solo: 'keep' })
+    const five = finish([0, 1, 2, 3, 4].flatMap(i => [{ t: 'win', idx: i }, { t: 'zone', zone: 'fast' }])); expect(five.mia).toMatchObject({ keep: true, phase: 'in' }) // пять из шести: одно слово не названо — остаётся
+    const all = finish([0, 1, 2, 3, 4, 5].flatMap(i => [{ t: 'win', idx: i }, { t: 'zone', zone: i % 2 ? 'mid' : 'fast' }])); expect(all.mia).toMatchObject({ keep: false, phase: 'out' }); expect(ids(all)).toEqual(['boss_mia_free', 'boss_pit_free']); expect(all.log).toContain('Мия отпускает Пита')
+    const red = finish([0, 1, 2, 3, 4, 5].flatMap(i => [{ t: 'win', idx: i }, { t: 'zone', zone: 'slow' }])); expect(red.mia).toMatchObject({ keep: false, reds: 6 }) // все названы, пусть и в красной зоне: коробка уходит с Мией
   })
   it('эпилог boss-end: Пит остался в коробке — коробка стоит под итогом (без мигания Пита без коробки)', () => {
     const kept = finish([]); expect(reduceMia(kept.mia, { t: 'enter', stage: summary, now: 20000 })).toMatchObject({ mia: { phase: 'in', keep: true }, say: [] })

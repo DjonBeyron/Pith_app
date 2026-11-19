@@ -81,11 +81,11 @@ describe('финал: XP не за красную зону, «не успел» 
 })
 
 describe('эпилог финала кончается, когда договорили', () => {
-  it('bossEnd: красные = слова без верно названных не в красной зоне; пять и больше — Пит остаётся', async () => {
+  it('bossEnd: красные = слова без верно названных не в красной зоне; Пит остаётся, если хоть одно слово не названо верно (v3.3.295)', async () => {
     const { bossEnd } = await import('../mia/raceMia.js')
-    expect(bossEnd({ total: 8, won: { 0: 1, 1: 1, 2: 1 }, redWins: 0, reds: 0 })).toEqual({ won: 3, reds: 5, keep: true })
-    expect(bossEnd({ total: 8, won: { 0: 1, 1: 1, 2: 1, 3: 1 }, redWins: 0, reds: 0 })).toMatchObject({ reds: 4, keep: false })
-    expect(bossEnd({ total: 8, won: { 0: 1, 1: 1, 2: 1, 3: 1 }, redWins: 2, reds: 0 })).toMatchObject({ reds: 6, keep: true }) // два верных были в красной зоне
+    expect(bossEnd({ total: 8, won: { 0: 1, 1: 1, 2: 1 }, redWins: 0, reds: 0 })).toEqual({ won: 3, reds: 5, missed: 5, keep: true })
+    expect(bossEnd({ total: 8, won: { 0: 1, 1: 1, 2: 1, 3: 1 }, redWins: 0, reds: 0 })).toMatchObject({ reds: 4, missed: 4, keep: true })
+    expect(bossEnd({ total: 4, won: { 0: 1, 1: 1, 2: 1, 3: 1 }, redWins: 2, reds: 0 })).toMatchObject({ reds: 2, missed: 0, keep: false }) // все названы: два были в красной зоне, но верные
   })
   it('директор: эпилог держится по длине реплик Мии и Пита (не фиксированные 11 с), с потолком st.ms', () => {
     const src = readFileSync(new URL('../useRaceActs.js', import.meta.url), 'utf8')
@@ -93,7 +93,7 @@ describe('эпилог финала кончается, когда догово�
   })
 })
 
-describe('финал: колкость после ошибки, порог «больше половины», линия у конвейера', () => {
+describe('финал: колкость после ошибки, порог «хоть одно неверное», линия у конвейера', () => {
   it('ошибка (miss): только красный счёт, без речи (ученик успеет поправиться); «пилюля ушла» (fail): Мия коротко подкалывает один раз на слово, с задержкой', async () => {
     const { reduceMia, miaInit, BOSS } = await import('../mia/raceMia.js')
     const stage = { mia: 'round', silent: true, act: 'boss', words: [1, 2, 3, 4, 5, 6].map(i => ({ text: 'w' + i })) }
@@ -105,11 +105,13 @@ describe('финал: колкость после ошибки, порог «б�
     expect(reduceMia(b.mia, { t: 'fail', stage, idx: 0 }).say).toEqual([]) // та же пилюля — вторая колкость не нужна
     expect(reduceMia(b.mia, { t: 'fail', stage, idx: 1 }).say).toHaveLength(1)
   })
-  it('Пит остаётся, когда красных БОЛЬШЕ ПОЛОВИНЫ слов (3–6 слов): 2 из 3, 3 из 4–5, 4 из 6; порог «пять» отменён', async () => {
+  it('Пит остаётся, когда хоть одно слово финала неверно или не названо (v3.3.295, было — красных больше половины)', async () => {
     const { keepNeed, bossEnd } = await import('../mia/raceMia.js')
-    expect([3, 4, 5, 6].map(keepNeed)).toEqual([2, 3, 3, 4]); expect(keepNeed(0)).toBe(5)
-    expect(bossEnd({ total: 6, won: { 0: 1, 1: 1 }, redWins: 0, reds: 0 })).toEqual({ won: 2, reds: 4, keep: true }) // назвал 2 из 6 — раньше (нужно было 5) Мия отпускала
-    expect(bossEnd({ total: 6, won: { 0: 1, 1: 1, 2: 1 }, redWins: 0, reds: 0 })).toMatchObject({ reds: 3, keep: false })
+    expect([0, 3, 6].map(keepNeed)).toEqual([1, 1, 1])
+    expect(bossEnd({ total: 6, won: { 0: 1, 1: 1 }, redWins: 0, reds: 0 })).toEqual({ won: 2, reds: 4, missed: 4, keep: true })
+    expect(bossEnd({ total: 6, won: { 0: 1, 1: 1, 2: 1, 3: 1, 4: 1 }, redWins: 0, reds: 0 })).toMatchObject({ missed: 1, keep: true }) // одно слово — достаточно
+    expect(bossEnd({ total: 6, won: { 0: 1, 1: 1, 2: 1, 3: 1, 4: 1, 5: 1 }, redWins: 6, reds: 0 })).toMatchObject({ reds: 6, missed: 0, keep: false }) // все названы, даже в красной зоне
+    expect(bossEnd({ total: 0, won: {}, redWins: 0, reds: 0 })).toMatchObject({ keep: false })
   })
   it('Пит говорит верное слово, когда пилюля ушла (после ошибки тоже: ученик успевает поправиться), один раз на слово; линия шкалы упирается в левую полосу конвейера; колонки без жёлтой заливки', () => {
     const src = readFileSync(new URL('../useRaceActs.js', import.meta.url), 'utf8')
@@ -152,7 +154,7 @@ describe('экзамен: слова блоками (английские, по�
     expect(m.total).toBe(6); expect(Object.keys(m.won)).toEqual(['0']) // первый блок на месте
     m = reduceMia(m, { t: 'win', stage: round2, idx: 0 }).mia
     expect(Object.keys(m.won).sort()).toEqual(['0', '3']) // слово 0 второго блока — номер 3 в общем счёте, с первым не путается
-    expect(bossEnd(m)).toMatchObject({ won: 2, reds: 4, keep: true }) // из 6 слов красных 4 — больше половины
+    expect(bossEnd(m)).toMatchObject({ won: 2, reds: 4, missed: 4, keep: true })
   })
   it('Мия не уходит на служебной стадии между блоками (обычная неМиина стадия отпустила бы её)', async () => {
     const { reduceMia, miaInit, isMiaStage } = await import('../mia/raceMia.js')
