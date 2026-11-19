@@ -37,28 +37,10 @@
 @keyframes wlMiaSrcWave { from { opacity: 0.95; transform: scale(0.35); } to { opacity: 0; transform: scale(1.7) translateX(-14px); } }
 @keyframes wlMiaSrcLife { 0%, 90% { opacity: 1; } 100% { opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { .wl[data-race] { transition: none; } .wlMiaCap { animation: none; } .wlMiaSrc i { animation-duration: 2.4s; } }
-/* Хвост Мии (mia/miaTailFrames.js, владелец v3.3.285): 9 кадров рисунка «психованного» хвоста по 160 мс (цикл 1,44 с) — по очереди показываются группы `.mt` (opacity по кадрам, без плавности).
-   .wlMiaCat[data-tail='pleased'] (верный ответ, mia/useMiaTail.js) — хвост замирает на кадре 4 (поднят), штрихи движения скрыты, хвост пушистее (толще по x, --tail-up доезжает за 0,6 с). */
-@property --tail-up { syntax: '<number>'; inherits: true; initial-value: 0; }
-.wlMiaCat { --tail-up: 0; transition: --tail-up 0.6s ease; }
-.wlMiaCat[data-tail='pleased'] { --tail-up: 1; }
-.wlMiaCat .cat-tail { transform-origin: 0 0; transform-box: view-box; animation: none; transform: scale(calc(1 + 0.4 * var(--tail-up)), 1); }
-.wlMiaCat .cat-tail .mt { opacity: 0; animation: miaTailFrame 1.44s steps(1, end) infinite; }
-.wlMiaCat .cat-tail .mt:nth-child(1) { animation-delay: -1.44s; }
-.wlMiaCat .cat-tail .mt:nth-child(2) { animation-delay: -1.28s; }
-.wlMiaCat .cat-tail .mt:nth-child(3) { animation-delay: -1.12s; }
-.wlMiaCat .cat-tail .mt:nth-child(4) { animation-delay: -0.96s; }
-.wlMiaCat .cat-tail .mt:nth-child(5) { animation-delay: -0.8s; }
-.wlMiaCat .cat-tail .mt:nth-child(6) { animation-delay: -0.64s; }
-.wlMiaCat .cat-tail .mt:nth-child(7) { animation-delay: -0.48s; }
-.wlMiaCat .cat-tail .mt:nth-child(8) { animation-delay: -0.32s; }
-.wlMiaCat .cat-tail .mt:nth-child(9) { animation-delay: -0.16s; }
-@keyframes miaTailFrame { 0% { opacity: 1; } 11.111% { opacity: 0; } 100% { opacity: 0; } }
-.wlMiaCat[data-paused] .cat-tail .mt { animation-play-state: paused; }
-.wlMiaCat[data-tail='pleased'] .cat-tail .mt { animation: none; }
-.wlMiaCat[data-tail='pleased'] .cat-tail .mt:nth-child(4) { opacity: 1; }
-.wlMiaCat[data-tail='pleased'] .cat-tail .mk { display: none; }
-@media (prefers-reduced-motion: reduce) { .wlMiaCat .cat-tail .mt { animation: none; } .wlMiaCat .cat-tail .mt:nth-child(1) { opacity: 1; } .wlMiaCat[data-tail='pleased'] .cat-tail .mt:nth-child(1) { opacity: 0; } }
+/* Хвост Мии (владелец v3.3.289): форму и штрихи хвоста пересчитывает miaTailDrive.js на каждом кадре экрана (RaceMia, rAF), CSS-анимации у хвоста нет — состояние «довольна» (data-tail) читает сам драйвер.
+   Карточка .scn режет всё за своей коробкой (overflow: hidden и contain: paint) — хвост в крайних позах выходил за коробку и «обрезался»; у Мии срез снят. */
+.wlMiaCat.scn { overflow: visible; contain: layout style; }
+.wlMiaCat .cat-tail { animation: none; transform: none; }
 
 /* Зрачок-щель (mia/miaSlit.js, владелец v3.3.287): в прыжке и на колких репликах зрачок сужается до тонкой вертикальной щели (v3.3.288: ширина ×0,42 — не слишком тонкая, высота ×0,96 — зрачок не касается век; на пиках речи --peak плавно расширяет зрачок, ширина до ×1,18). scale складывается с атрибутом transform
    зрачка (реакция лица) и с --pupil (расширение на реплике); переход 220 мс — щель «схлопывается», а не щёлкает. Слабое устройство (.scn--lite) зрачки не анимирует — там без щели */

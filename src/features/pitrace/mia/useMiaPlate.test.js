@@ -53,7 +53,7 @@ describe('плашка Мии по реплике за кадром', () => {
   })
   it('v3.3.274: выход перед Мией коротким (miaComesNext видит стадию-плашку intro), хвост Мии — игривый, на верный ответ прямее и пушистее', () => {
     expect(rd('../useRaceActs.js')).toContain('/^(sprint|catch)3-(intro-)?ann$/'); expect(MIA.EXIT_MS).toBeLessThanOrEqual(300)
-    const css = rd('../../../styles/player/modules/race-mia.css'); expect(css).toContain('@keyframes miaTail'); expect(css).toContain("[data-tail='pleased']"); expect(css).toContain('--tail-up')
-    expect(rd('../RaceMia.jsx')).toContain("data-tail={pleased ? 'pleased' : undefined}"); expect(PLEASED_MS).toBeGreaterThan(1500)
+    const drive = rd('./miaTailDrive.js'); expect(drive).toContain('CALM_MIX'); expect(drive).toContain('FLUFF') // v3.3.289: хвост считает miaTailDrive (не CSS): «довольна» — поза CALM + пушистее, не замирает; RaceMia передаёт pleased драйверу
+    expect(rd('../RaceMia.jsx')).toContain("data-tail={pleased ? 'pleased' : undefined}"); expect(rd('../RaceMia.jsx')).toContain('drive.update(c.paused ? 0 : dt, pleasedRef.current)'); expect(PLEASED_MS).toBeGreaterThan(1500)
   })
 })
