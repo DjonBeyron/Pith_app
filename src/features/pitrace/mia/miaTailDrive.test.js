@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { tailPose, tailPath, tailMarks, createTailDriver, KEYS, CALM } from './miaTailDrive.js'
+import { tailPose, tailPath, tailMarks, createTailDriver, KEYS, CALM, CUT_AFTER } from './miaTailDrive.js'
 import { MIA_TAIL } from './miaTailData.js'
 
 const tipOf = p => [p.x.at(-1), p.y.at(-1)]
@@ -18,13 +18,19 @@ describe('движение хвоста Мии', () => {
   })
   it('плавность: шаг u в 1/60 позы сдвигает кончик не больше чем на несколько единиц, скачков (в т. ч. на стыках поз и цикла) нет', () => {
     let prev = tipOf(tailPose(0)), worst = 0
-    for (let u = 1 / 120; u <= KEYS + 0.5; u += 1 / 120) { const t = tipOf(tailPose(u)); worst = Math.max(worst, dist(prev, t)); prev = t }
+    for (let u = 1 / 120; u <= KEYS + 0.5; u += 1 / 120) { const t = tipOf(tailPose(u)); const crossesCut = CUT_AFTER.some(k => Math.floor(u * 2) === 2 * k + 1 && Math.floor((u - 1 / 120) * 2) !== Math.floor(u * 2)); if (!crossesCut) worst = Math.max(worst, dist(prev, t)); prev = t }
     expect(worst).toBeLessThan(14) // единицы пака: ≈ 5 px экрана за 1/120 позы — быстрый взмах, но не прыжок
   })
   it('длина хвоста между позами не проваливается (поворот, а не сжатие)', () => {
-    const len = p => p.th.length && p.x.reduce((s, _, i) => (i ? s + Math.hypot(p.x[i] - p.x[i - 1], p.y[i] - p.y[i - 1]) : 0), 0)
-    const a = len(tailPose(3)), b = len(tailPose(4)), m = len(tailPose(3.5))
+    const len = p => p.x.reduce((s, _, i) => (i ? s + Math.hypot(p.x[i] - p.x[i - 1], p.y[i] - p.y[i - 1]) : 0), 0)
+    const a = len(tailPose(1)), b = len(tailPose(2)), m = len(tailPose(1.5))
     expect(m).toBeGreaterThan(Math.min(a, b) * 0.9)
+  })
+  it('рывковые переходы (CUT_AFTER): до середины держится поза k, после — сразу поза k + 1; соседние плавные переходы не вылетают', () => {
+    for (const k of CUT_AFTER) {
+      const a = tipOf(tailPose(k + 0.49)), b = tipOf(tailPose(k + 0.51))
+      expect(dist(a, tipOf(tailPose(k)))).toBeLessThan(0.05); expect(dist(b, tipOf(tailPose(k + 1)))).toBeLessThan(0.05)
+    }
   })
   it('«довольна»: хвост идёт к поднятой позе, толще, но поза не одна и та же на любых u (не замирает)', () => {
     const calm = tailPose(CALM), a = tailPose(7, 1), b = tailPose(7, 0)

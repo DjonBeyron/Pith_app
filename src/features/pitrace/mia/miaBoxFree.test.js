@@ -23,7 +23,7 @@ describe("Мия выпрыгивает одна, коробка остаётс�
     expect(a.mia.solo).toBe('stuck'); expect(a.say.map(l => l.id)).toEqual(['boss_pit_stuck'])
     expect(reduceMia(a.mia, { t: 'faster' }).say.map(l => l.id)).toEqual(['boss_pit_faster'])
     const f = reduceMia(a.mia, { t: 'free', now: 9000 })
-    expect(f.mia).toMatchObject({ phase: 'out', alone: true, keep: false, solo: null, why: 'freed' }); expect(f.say.map(l => l.id)).toEqual(['boss_pit_free'])
+    expect(f.mia).toMatchObject({ phase: 'out', alone: true, keep: false, solo: null, why: 'freed' }); expect(f.say.map(l => l.id)).toEqual(['pit_back_1'])
   })
   it('вне состояния stuck события ничего не делают (двойной free, free до выпрыгивания)', () => {
     const k = keepState(); expect(reduceMia(k, { t: 'free', now: 1 }).say).toHaveLength(0); expect(reduceMia(k, { t: 'faster' }).say).toHaveLength(0)

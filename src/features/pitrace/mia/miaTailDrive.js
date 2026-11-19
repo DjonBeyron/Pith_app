@@ -14,6 +14,10 @@ export const CALM_SPEED = 0.55        // во сколько раз медлен
 export const MARK_SLOTS = 4           // штрихов в позе не больше (два треугольника + две дуги)
 const FADE_FROM = 0.25, FADE_TO = 0.45 // штрихи позы видны на |u − поза| < FADE_FROM и гаснут к FADE_TO (дальше их заменяют штрихи соседней позы)
 
+// Переходы поза k → k + 1, где плавное смешивание ломается (владелец v3.3.291: «вся анимация ломаная»): в гифке у позы 5 хвост растёт из тела на уровне груди, у соседних — снизу, середина смеси даёт кашу.
+// Здесь хвост «дёргается»: держит позу k до середины перехода и на середине мгновенно встаёт в позу k + 1 (для «психованного» хвоста это и есть рывок); у соседних плавных переходов касательная у такой позы нулевая (без выбросов)
+export const CUT_AFTER = Object.freeze([3, 4])
+const cut = k => CUT_AFTER.includes(((k % 9) + 9) % 9)
 const N = MIA_TAIL[0].q.length / 2
 const KF = MIA_TAIL.map(f => {
   const th = [], len = []
@@ -27,8 +31,8 @@ const smooth = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a
 
 /** Поза хвоста в момент u (в позах, любое число: цикл KEYS), pl — «довольна» 0…1 → { x[N], y[N], th[N − 1], w } */
 export function tailPose(u, pl = 0) {
-  const k = ((Math.floor(u) % KEYS) + KEYS) % KEYS, a = u - Math.floor(u)
-  const f0 = KF[(k + KEYS - 1) % KEYS], f1 = KF[k], f2 = KF[(k + 1) % KEYS], f3 = KF[(k + 2) % KEYS], calm = KF[CALM]
+  const k = ((Math.floor(u) % KEYS) + KEYS) % KEYS, fa = u - Math.floor(u), a = cut(k) ? (fa < 0.5 ? 0 : 1) : fa
+  const f1 = KF[k], f2 = KF[(k + 1) % KEYS], f0 = cut(k - 1) ? f1 : KF[(k + KEYS - 1) % KEYS], f3 = cut(k + 1) ? f2 : KF[(k + 2) % KEYS], calm = KF[CALM]
   let bx = cr(f0.bx, f1.bx, f2.bx, f3.bx, a), by = cr(f0.by, f1.by, f2.by, f3.by, a)
   let w = cr(f0.w, f1.w, f2.w, f3.w, a)
   const th = [], len = []

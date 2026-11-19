@@ -41,7 +41,7 @@ export function reduceMia(m, ev) {
   // Пит в коробке без Мии (финал пройден плохо, v3.3.290): stuck — Мия выпрыгнула, Пит просит помочь; faster — одно касание без второго; free — коробка снята: отлетает без Мии (alone), Пит благодарит
   if (t === 'stuck') return m.solo === 'keep' ? { mia: { ...m, solo: 'stuck' }, say: [line('boss_pit_stuck', 'pit')], boost: null } : none(m)
   if (t === 'faster') return m.solo === 'stuck' ? { mia: m, say: [line('boss_pit_faster', 'pit')], boost: null } : none(m)
-  if (t === 'free') return m.solo === 'stuck' ? leave({ ...m, keep: false, solo: null, alone: true }, now, 'freed', [line('boss_pit_free', 'pit', 1300)]) : none(m)
+  if (t === 'free') return m.solo === 'stuck' ? leave({ ...m, keep: false, solo: null, alone: true }, now, 'freed', [line('pit_back_1', 'pit', 1300)]) : none(m) // Пит про её характер: «Спасибо за помощь, вот это у неё характер» (озвучена)
   if (t === 'enter') {
     if (stage?.mia === 'ann') { // церемония: Пит начинает репликой стадии, через DROP_AT падает коробка (at — момент падения), Мия запрыгивает, вступительные реплики (три ноты ждут их конца)
       // повторный вход в ту же стадию (пауза и «Продолжить», перезапуск ступени): церемония начинается заново — реплики снова в очереди, коробка падает снова (раньше такой вход ничего не делал: оба молчали, пример не шёл)
