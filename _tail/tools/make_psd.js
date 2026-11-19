@@ -24,15 +24,16 @@ function parse(d) {
 }
 // сегменты → узлы PSD [вх.ручка, якорь, исх.ручка]; замкнутый контур: последний якорь = первому
 function knots(segs) {
-  const a = [segs[0].p], out = [segs[0].p], inn = [segs[0].p]
-  for (let i = 1; i < segs.length; i++) { const s = segs[i]; out.push(s.type === 'C' ? s.c1 : segs[i - 1].p); inn.push(s.type === 'C' ? s.c2 : s.p); a.push(s.p) }
-  const n = a.length
-  const last = n - 1, same = Math.hypot(a[last][0] - a[0][0], a[last][1] - a[0][1]) < 0.01
+  // якорь i = segs[i].p; сегмент i (i ≥ 1) идёт от якоря i-1 к якорю i: c1 — выходная ручка якоря i-1, c2 — входная ручка якоря i
+  const n = segs.length, a = segs.map(s => s.p)
+  const same = Math.hypot(a[n - 1][0] - a[0][0], a[n - 1][1] - a[0][1]) < 0.01
   const count = same ? n - 1 : n
+  const outH = j => { const nx = j + 1 < n ? segs[j + 1] : null; return nx && nx.type === 'C' ? nx.c1 : a[j] }
+  const inH = j => { const sg = j === 0 ? (same ? segs[n - 1] : null) : segs[j]; return sg && sg.type === 'C' ? sg.c2 : a[j] }
   const res = []
-  for (let i = 0; i < count; i++) {
-    const inH = i === 0 ? (same ? inn[last] : a[0]) : inn[i]
-    res.push({ linked: i !== 0 || false, points: [inH[0], inH[1], a[i][0], a[i][1], out[i][0], out[i][1]] })
+  for (let j = 0; j < count; j++) {
+    const i = inH(j), o = outH(j)
+    res.push({ linked: false, points: [i[0], i[1], a[j][0], a[j][1], o[0], o[1]] })
   }
   return res
 }
