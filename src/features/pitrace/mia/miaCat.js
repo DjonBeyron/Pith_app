@@ -2,6 +2,7 @@
 // Чистая сборка без React и DOM (проверяется тестами). Лица: пафос (по умолчанию), интерес — «ухмылка с взглядом в сторону» не используется (владелец 2026-11-14) — Мия в тишине изредка меняет их (useMiaLife.js). Три лица, а не все семь: бюджет
 // узлов сцены (≤ 250): Мия ≈ 85 узлов + ≈ 45 на лишнюю голову; слабое устройство — одно лицо.
 import { buildMascot } from '../../scene/v2/sprites/mascot/mascotSprite.js'
+import { withTailFrames } from './miaTailFrames.js'
 
 export const MIA_FACES = ['pathos', 'interest']
 export const NO_TILT = 'transform:rotate(0deg)' // у лиц есть наклон головы, но головы лежат рядом и сменяются перекрёстно — наклон убираем, как у Пита
@@ -22,7 +23,7 @@ export function buildMiaCat(faces = MIA_FACES) {
   })
   const cat = trees[0]
   cat.children = [...cat.children.filter(c => c.attrs['data-part'] !== 'head'), ...heads]
-  return cat
+  return withTailFrames(cat) // хвост — 9 кадров рисунка владельца (miaTailFrames.js), а не кривая пака
 }
 
 /** Следующее лицо ≠ текущему по случайному r ∈ [0, 1): чистая функция выбора (тесты) */
