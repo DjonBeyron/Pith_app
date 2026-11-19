@@ -8,8 +8,9 @@ export const TAPE_ACTS = [TAPE_ACT, 'boss'] // и финал «Шкала пам
 /** Лента ли сейчас: акт текущей стадии (на паузе — стадии, на которой встали) — этап «Фразы» */
 export function laneTape(f) {
   if (!f?.rh?.on) return false
-  const st = f.stage === 'run' ? f.stageObj : f.stage === 'paused' && f.from === 'run' ? f.stages?.[f.idx] : null
+  let st = f.stage === 'run' ? f.stageObj : f.stage === 'paused' && f.from === 'run' ? f.stages?.[f.idx] : null
   if (!st && f.stage === 'reveal') return TAPE_ACTS.includes(f.stages?.at(-1)?.act) // после финала (Пит говорит «финиш, завтра ещё заезд») дорожки остаются широкой лентой, а не перестраиваются в три (владелец v3.3.284)
+  if (st?.act === 'summary') st = f.stages?.[(st.idx ?? f.idx) - 1] // итог игры (последняя стадия, raceStages): лента остаётся такой, какой была на последнем круге — финал не запускает перестройку в три дорожки (владелец v3.3.284 → 285; в v3.3.284 правило было только у 'reveal', а итог — стадия 'run')
   return TAPE_ACTS.includes(st?.act)
 }
 

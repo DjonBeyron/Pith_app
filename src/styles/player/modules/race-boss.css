@@ -9,12 +9,14 @@
 .wlBossZone[data-zone='fast'], .wlBossFlash[data-zone='fast'], .wlBossTick[data-zone='fast'], .wlBossLine[data-zone='fast'] { --zc: 120, 230, 150; }
 .wlBossZone[data-zone='mid'], .wlBossFlash[data-zone='mid'], .wlBossTick[data-zone='mid'], .wlBossLine[data-zone='mid'] { --zc: 255, 200, 70; }
 .wlBossZone[data-zone='slow'], .wlBossFlash[data-zone='slow'], .wlBossTick[data-zone='slow'], .wlBossLine[data-zone='slow'] { --zc: 255, 96, 80; }
-.wlBossZone { position: absolute; z-index: 1; right: 4px; width: 10px; background: rgba(var(--zc), 0.07); border-right: 2px solid rgba(var(--zc), 0.4); }
-.wlBossZone[data-zone='fast']::before, .wlBossZone[data-zone='slow']::after { content: ''; position: absolute; left: 0; right: 0; height: 22px; }
+/* левая граница зон шире (v3.3.285: 10 → 28 px) и растушёвана — как верх и низ зон: прозрачность растёт слева направо; --za (зарегистрирована) — прозрачность фона, её же мигает .wlBossZone[data-flash] */
+@property --za { syntax: '<number>'; inherits: true; initial-value: 0.07; }
+.wlBossZone { --za: 0.07; position: absolute; z-index: 1; right: 4px; width: 28px; background: linear-gradient(to right, rgba(var(--zc), 0), rgba(var(--zc), var(--za)) 18px); border-right: 2px solid rgba(var(--zc), 0.4); }
+.wlBossZone[data-zone='fast']::before, .wlBossZone[data-zone='slow']::after { content: ''; position: absolute; left: 0; right: 0; height: 22px; -webkit-mask-image: linear-gradient(to right, transparent, #000 18px); mask-image: linear-gradient(to right, transparent, #000 18px); }
 .wlBossZone[data-zone='fast']::before { top: -22px; background: linear-gradient(to top, rgba(var(--zc), 0.07), rgba(var(--zc), 0)); }
 .wlBossZone[data-zone='slow']::after { bottom: -22px; background: linear-gradient(to bottom, rgba(var(--zc), 0.07), rgba(var(--zc), 0)); }
 .wlBossZone[data-flash] { animation: wlBossZoneBlink var(--flash-ms, 2000ms) ease-in-out 1 both; }
-@keyframes wlBossZoneBlink { 0%, 100% { filter: none; background-color: rgba(var(--zc), 0.07); } 15%, 40%, 65% { background-color: rgba(var(--zc), 0.5); } 28%, 52%, 80% { background-color: rgba(var(--zc), 0.18); } }
+@keyframes wlBossZoneBlink { 0%, 100% { filter: none; --za: 0.07; } 15%, 40%, 65% { --za: 0.5; } 28%, 52%, 80% { --za: 0.18; } }
 .wlBossTick { position: absolute; z-index: 1; right: 6px; width: 8px; height: 0; border-top: 1px solid rgba(var(--zc), 0.7); }
 .wlBossTick[data-major] { width: 12px; border-top-color: rgba(var(--zc), 0.95); }
 /* риски на границах зон (зелёное → жёлтое → красное): длиннее на 40 % (12 → 16,8 px) и толще на 20 % (1 → 1,2 px) — владелец, v3.3.282 */
@@ -31,7 +33,8 @@
 .wlBossLine[data-exit] { transform-origin: 100% 50%; animation: wlBossLineOut 930ms cubic-bezier(0.3, 0.1, 0.75, 0.6) 1 both; }
 @keyframes wlBossLineOut { from { scale: 1 1; } to { scale: 0 1; } }
 /* фиолетовые маркеры слов: треугольник острием вправо, остриё на «стволе» линейки (правая кромка зон), глубоко в линейке поверх рисок; у каждого слова свой (живых не больше двух), идёт за линией слова вниз и замирает на месте ответа; положение пишет компонент, угасает плавно */
-.wlBossMark { position: absolute; right: 6px; top: 0; width: 10px; height: 13px; margin-top: -6.5px; z-index: 3; background: color-mix(in srgb, #a78bfa calc((1 - var(--g, 0)) * 100%), #8b8b95); clip-path: polygon(0 0, 100% 50%, 0 100%); will-change: transform; transition: opacity 0.6s ease; }
+.wlBossMark { position: absolute; right: 6px; top: 0; width: 10px; height: 13px; margin-top: -6.5px; z-index: 3; background: color-mix(in srgb, #a78bfa calc((1 - var(--g, 0)) * 100%), #8b8b95); clip-path: polygon(0 0, 100% 50%, 0 100%); will-change: transform; transform-origin: 100% 50%; transition: opacity 0.6s ease, scale 0.45s ease; }
+.wlBossMark[data-set] { scale: 1.2; } /* ответ дан (верно / неверно): маркер зафиксировался на линейке — плавно крупнее на 20 % (владелец, v3.3.284 → 285), остриё остаётся на «стволе» */
 /* пример-пилюля: положение и цвет пишет компонент по плану (path по длительности реплик Мии, скорость плавная); цвет пилюли — --pc, линии — зона (ступенями) */
 .wlBossDemo { position: absolute; left: 11%; width: 78%; top: 0; height: 56px; margin-top: -56px; box-sizing: border-box; display: flex; align-items: center; padding: 0 24px; border-radius: 999px; font-style: normal; font-size: clamp(14px, 4vw, 18px); font-weight: 600; color: #fff; --pc: 120, 230, 150; background: linear-gradient(to bottom, rgba(var(--pc), 0.14), rgba(var(--pc), 0.04)), rgba(24, 30, 28, 0.92); border: 2px solid rgba(var(--pc), 0.9); box-shadow: inset 0 0 18px -6px rgba(var(--pc), 0.5); will-change: transform; transform: translate3d(0, -300px, 0); }
 .wlBossLine[data-demo] { transition: none; }

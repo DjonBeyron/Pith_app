@@ -73,7 +73,7 @@ export default function RaceBossScale({ live, show = true, flash = null, demo = 
         const cur = tr && !tr.done && tr.id !== fd.id ? pills.find(x => x.el === tr.el) : nextPill(pills, H) // следующая пилюля: уже взятая линией или ближайшая к шкале
         if (cur) { if (fd.from == null) fd.from = cur.top; fd.p = Math.max(fd.p, fadeProgress(fd.from, cur.top)) }
       }
-      marks.current.forEach((e, k) => { if (!e) return; const m = slots.find(x => x.k === k); e.style.opacity = m && !m.dying ? '1' : '0'; if (m) e.style.setProperty('--g', (m.id === fd.id ? fd.p : m.id < fd.id ? 1 : 0).toFixed(3)); if (m) e.style.transform = `translate3d(0, ${(m.y * H).toFixed(1)}px, 0)` })
+      marks.current.forEach((e, k) => { if (!e) return; const m = slots.find(x => x.k === k); e.style.opacity = m && !m.dying ? '1' : '0'; if (m) e.style.setProperty('--g', (m.id === fd.id ? fd.p : m.id < fd.id ? 1 : 0).toFixed(3)); if (m) e.style.transform = `translate3d(0, ${(m.y * H).toFixed(1)}px, 0)`; e.toggleAttribute('data-set', !!m && fd.id != null && m.id <= fd.id) }) // слово закончено (ответ верный / неверный / «не успел») — маркер на месте, плавно крупнее на 20 % (CSS)
     }
     raf = requestAnimationFrame(frame)
     return () => cancelAnimationFrame(raf)

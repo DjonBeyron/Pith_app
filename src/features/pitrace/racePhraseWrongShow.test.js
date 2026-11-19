@@ -93,3 +93,25 @@ describe('подпись неверного слова — и в проходе 
     expect(calls).toEqual([['you', 1]]); expect(nudges).toEqual([])
   })
 })
+
+describe('красное неверное слово — сразу и по первому (v3.3.285)', () => {
+  it('последнее слово черновика («nice to learn» при ожидаемом «meet») годится для подписи, когда не меняется 200 мс — без следующего слова', () => {
+    const w = createWrongWord({ words: ['nice', 'to', 'meet', 'you'] }), said = new Map([[0, true], [1, true]])
+    w.ear({ kind: 'partial', text: 'nice to learn' })
+    w.check(said, 1000); expect(w.shown()).toBeNull()            // только появилось — ждём устойчивости
+    w.check(said, 1250); expect(w.shown()).toBe('learn')
+    w.check(said, 1700); expect(w.shown()).toBeNull()            // одно слово — одна подпись
+  })
+  it('слово меняется («lea» → «learn»), префикс ожидаемого («mee» при «meet») и верное слово подписи не дают', () => {
+    const w = createWrongWord({ words: ['nice', 'to', 'meet', 'you'] }), said = new Map([[0, true], [1, true]])
+    w.ear({ kind: 'partial', text: 'nice to mee' }); w.check(said, 1000); w.check(said, 1300); expect(w.shown()).toBeNull()
+    w.ear({ kind: 'partial', text: 'nice to meet' }); w.check(said, 1400); w.check(said, 1700); expect(w.shown()).toBeNull()
+  })
+  it('маска: первое неверное слово держится над ожидаемым, следующие его не заменяют; верное слово снимает', () => {
+    const doc = fakeDoc(), el = doc.mk(); el.ownerDocument = doc
+    const m = mountMask(el, 'Nice to meet you')
+    const text = () => el.children[0].children.flatMap(c => c.children ?? []).filter(x => x.className === 'racePhraseWrong').map(x => x.children[0].textContent)
+    m.wrong('learn', 2); m.wrong('you', 2); expect(text()).toEqual(['learn'])
+    m.set(new Map([[0, true], [1, true], [2, true]])); expect(text()).toEqual([])
+  })
+})

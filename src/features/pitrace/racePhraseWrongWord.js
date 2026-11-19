@@ -13,6 +13,7 @@ import { normForms } from './racePhraseForms.js'
 
 export const WRONG_GAP_MS = 700
 export const SHOWN_GAP_MS = 350 // подпись неверного слова — не чаще
+export const TAIL_STABLE_MS = 200 // последнее (ещё говорящееся) слово черновика, не меняясь столько, годится для подписи — не ждём следующего слова (v3.3.285)
 
 const low = w => normForms(String(w ?? '')).toLowerCase().replace(/^[^\p{L}\p{N}']+|[^\p{L}\p{N}']+$/gu, '')
 /** Одно услышанное слово heard — это слово цели word? (то же сравнение, что у зачёта слова) */
@@ -28,7 +29,7 @@ export const formPart = (heard, words, prev = null, next = null) => {
 
 /** → { ear(e), check(said, t) }. words — слова фразы-цели (phraseWords). ear — событие слуха { kind: 'partial' | 'final', text }; check — на кадре: said — Map сказанных номеров слов, → { word, expect } или null */
 export function createWrongWord({ words, gap = WRONG_GAP_MS }) {
-  let seen = 0, first = null, queue = [], lastAt = -Infinity, lastShownAt = -Infinity, shownWord = null
+  let seen = 0, first = null, tail = null, queue = [], lastAt = -Infinity, lastShownAt = -Infinity, shownWord = null
   return {
     ear(e) {
       if (e?.kind !== 'partial' && e?.kind !== 'final') return
@@ -37,13 +38,18 @@ export function createWrongWord({ words, gap = WRONG_GAP_MS }) {
       const done = e.kind === 'final' ? ws.length : ws.length - 1
       for (let i = seen; i < done; i++) queue.push({ w: ws[i], prev: ws[i - 1] ?? null, next: ws[i + 1] ?? null })
       seen = Math.max(0, done)
-      if (e.kind === 'final') { seen = 0; first = null }
+      // последнее слово черновика ещё может меняться — для подписи (не рывка) берём его, когда оно не меняется TAIL_STABLE_MS (v3.3.285: красное сразу по первому неверному слову)
+      const last = e.kind === 'partial' && ws.length ? ws[ws.length - 1] : null
+      if (!last) tail = null; else if (!tail || tail.w !== last || tail.i !== ws.length - 1) tail = { w: last, prev: ws[ws.length - 2] ?? null, next: null, i: ws.length - 1, at: null, used: false }
+      if (e.kind === 'final') { seen = 0; first = null; tail = null }
     },
     /** Слово для подписи над ожидаемым (мягкое правило, раз на кадр после check): строка или null */
     shown() { const w = shownWord; shownWord = null; return w },
     check(said, t) {
       shownWord = null
-      if (!queue.length) return null
+      if (tail && tail.at == null) tail.at = t
+      const stable = tail && !tail.used && t - tail.at >= TAIL_STABLE_MS ? tail : null
+      if (!queue.length && !stable) return null
       const q = queue; queue = []
       let k = 0
       while (said.has(k)) k++
@@ -51,8 +57,8 @@ export function createWrongWord({ words, gap = WRONG_GAP_MS }) {
       if (expect == null) return null
       const bad = q.find(({ w, prev, next }) => !fitsWord(w, expect) && !(far != null && fitsWord(w, far)) && !words.some(x => sameWord(w, x)) && !formPart(w, words, prev, next))
       // v3.3.282 (владелец, «where you from» вместо «where are you from»): исключаем только слова, УЖЕ стоящие в порядке (до ожидаемого k); слово «вперёд» («you», услышанное вместо «are») само в said, но подпись над «are» ему нужна
-      const shown = q.find(({ w, prev, next }) => !fitsWord(w, expect) && !words.slice(0, k).some(x => sameWord(w, x)) && !formPart(w, words, prev, next)) // для подписи над словом правило мягче (v3.3.272): любое слово, не подходящее ожидаемому, — и слово цели не на своём месте («where you from» — «you» вместо «are»)
-      if (shown && t - lastShownAt >= SHOWN_GAP_MS) { lastShownAt = t; shownWord = shown.w }
+      const shown = (stable ? [...q, stable] : q).find(({ w, prev, next }) => !fitsWord(w, expect) && !words.slice(0, k).some(x => sameWord(w, x)) && !formPart(w, words, prev, next)) // для подписи над словом правило мягче (v3.3.272): любое слово, не подходящее ожидаемому, — и слово цели не на своём месте («where you from» — «you» вместо «are»)
+      if (shown && t - lastShownAt >= SHOWN_GAP_MS) { lastShownAt = t; shownWord = shown.w; if (shown === stable) stable.used = true }
       if (bad == null || t - lastAt < gap) return null
       lastAt = t
       return { word: bad.w, expect }

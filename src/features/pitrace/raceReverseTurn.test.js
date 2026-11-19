@@ -117,3 +117,10 @@ describe('разворот идёт со скоростью конвейера (
     expect(rd('../player/modules/rotate-phone/useWordLanePills.js')).toContain('const wait = 0')
   })
 })
+
+describe('вид пилюль разворота одинаков везде (v3.3.285)', () => {
+  it('свечения нет ни при какой серии (огонь) и на слабом устройстве — не только в режиме Мии', () => {
+    const css = rd('../../styles/player/modules/race-reverse.css')
+    expect(css).toContain(".wl[data-race] .wlPill[data-arrow][data-cap], .weak-device .wl[data-race] .wlPill[data-arrow][data-cap] { box-shadow: none; filter: none; }")
+  })
+})

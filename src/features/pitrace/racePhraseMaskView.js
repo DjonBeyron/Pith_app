@@ -32,7 +32,7 @@ export function mountMask(el, text) {
   if (ink) { ink.removeAttribute('data-testid'); inkHost.appendChild(ink) }
   let edges = null, dirty = true
   const said2 = new Map() // номер слова → последнее услышанное вместо него (для итога хода: keepWrong)
-  let wrongEls = [], wrongTimer = 0, wrongAt = -1, wrongWord = '' // неверно сказанное слово над подсказкой: красное, зачёркнуто тонкой линией (v3.3.272)
+  let wrongEls = [], wrongTimer = 0, wrongAt = -1 // неверно сказанное слово над подсказкой: красное, зачёркнуто тонкой линией (v3.3.272)
   const clearWrong = () => { clearTimeout(wrongTimer); wrongTimer = 0; wrongAt = -1; wrongEls.forEach(e => e.remove()); wrongEls = [] }
   /** Подпись «сказано вместо» (v3.3.283): красное слово по центру над верным, под ним — фигурная горизонтальная скобка-уголок, указывающая на верное слово */
   const label = (c, word) => {
@@ -63,14 +63,14 @@ export function mountMask(el, text) {
       if (!b?.style || b.peekV === v) return
       b.peekV = v; b.style.setProperty('--peek', v); inkCells[i]?.style.setProperty('--peek', v)
     },
-    /** Неверно сказанное слово word над словом index (ожидаемым): красным, зачёркнуто тонкой линией; снимается через WRONG_SHOW_MS, при новом неверном — заменяется, при сказанном index — сразу */
+    /** Неверно сказанное слово word над словом index (ожидаемым): красным; первое неверное держится, пока index не сказан (тогда пропадает сразу) */
     wrong(word, index) {
-      if (wrongAt === index && wrongWord === word && wrongEls.length) return // то же неверное слово — подпись не пересоздаётся (не мигает), держится до верного слова
+      if (wrongAt === index && wrongEls.length) return // первое неверное слово держится над ожидаемым, пока не сказано верное (v3.3.285: следующие неверные слова его не меняют)
       clearWrong(); const i = words.findIndex(w => w.index === index)
       if (!doc || i < 0 || !word) return
       said2.set(index, word)
       for (const c of [cells[i], inkCells[i]]) if (c) label(c, word)
-      wrongAt = index; wrongWord = word // подпись держится, пока верное слово не сказано (v3.3.283); новое неверное слово заменяет прежнее
+      wrongAt = index // подпись держится, пока верное слово не сказано (v3.3.283); новые неверные её не заменяют (v3.3.285)
     },
     /** Итог хода принят не по всем словам: у каждого несказанного слова, вместо которого что-то сказано, — красная зачёркнутая подпись, пока пилюля на экране (без таймера); ничего не сказано — над словом пусто */
     keepWrong(heard) {

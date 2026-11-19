@@ -8,3 +8,5 @@
 .wlPill[data-arrow]::after { transition: opacity 0.25s ease; }
 .wlPill[data-arrow]:not([data-turn])::after { opacity: 0.55; }
 .wlPill[data-arrow], .wl[data-mia] .wlPill[data-arrow] { filter: none; text-shadow: none; }
+/* v3.3.285 (владелец: «такой же вид пилюль разворота везде в игре, как в режиме Мии»): серия «огонь» (.wl[data-streak='fire'] .wlPill, race-sprint.css) красила их оранжевым свечением и вне Мии — перебиваем её (и слабое устройство) специфичностью: у пилюль разворота свечения нет никогда */
+.wl[data-race] .wlPill[data-arrow][data-cap], .weak-device .wl[data-race] .wlPill[data-arrow][data-cap] { box-shadow: none; filter: none; }
