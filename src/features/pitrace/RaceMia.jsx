@@ -1,5 +1,5 @@
 import { useMiaTail } from './mia/useMiaTail.js'
-import { slitOn, SLIT_TAIL_MS } from './mia/miaSlit.js'
+import { slitOn, SLIT_TAIL_MS, peakTarget, smoothPeak } from './mia/miaSlit.js'
 import { OFFSCREEN_IDS } from './mia/useMiaPlate.js' // реплики Мии из-за правого края (она ещё не прыгнула): справа дуги звука
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { renderTree } from '../scene/v2/renderTree.js'
@@ -24,7 +24,7 @@ export default function RaceMia({ mia, caption = null, talk = null, alarm = null
   const pleased = useMiaTail({ wins: mia.wins, streak: mia.streak, live }) // хвост: нервный, на верный ответ — прямой и пушистый (mia/useMiaTail.js, race-mia.css)
   useMiaLife(miaEl, live, talk)                                    // Мия в тишине: взгляд, усы, смена лица
   const clock = useRef({ arr: 0, lv: 0, mode: 'off', paused })
-  const atRef = useRef(mia.at), jumpRef = useRef(null), alarmAt = useRef(-1e9), talkRef = useRef(null), slit = useRef(false)
+  const atRef = useRef(mia.at), jumpRef = useRef(null), alarmAt = useRef(-1e9), talkRef = useRef(null), slit = useRef(false), peak = useRef({ v: 0, q: 0 })
   useEffect(() => { talkRef.current = talk ? { id: talk.id, until: performance.now() + (talk.ms ?? 2500) + SLIT_TAIL_MS } : null }, [talk]) // щель держится, пока реплика звучит (не дольше её длины)
   const alarmKey = alarm?.key ?? null
   useEffect(() => { if (alarmKey != null) alarmAt.current = performance.now() }, [alarmKey]) // красное слово: отметка времени испуга Пита
@@ -80,6 +80,10 @@ export default function RaceMia({ mia, caption = null, talk = null, alarm = null
         if (mr.mode === 'flight') a = Object.values(flightPath(mr.u, [L.W + 150 * L.f, 0.55 * L.H], rest))
         mi.style.display = mr.mode === 'off' ? 'none' : 'block'
         const tk0 = talkRef.current, sl = slitOn(tk0 && now < tk0.until ? tk0.id : null, mr.mode); if (sl !== slit.current) { slit.current = sl; mi.toggleAttribute('data-slit', sl) } // зрачок-щель: в прыжке и на колких репликах (mia/miaSlit.js)
+        let pk = 0 // пик речи: широкий рот → зрачок плавно шире (mia/miaSlit.js)
+        if (tk0 && now < tk0.until) { const h = [...mi.querySelectorAll('[data-part="head"]')].find(x => x.style.display !== 'none'); pk = peakTarget(talkLevel(h?.getAttribute('data-vis'), h?.getAttribute('data-mouth'))) }
+        peak.current.v = smoothPeak(peak.current.v, pk); const pq = Math.round(peak.current.v * 10) / 10
+        if (pq !== peak.current.q) { peak.current.q = pq; mi.style.setProperty('--peak', String(pq)) }
         if (mr.mode !== 'off') mi.style.transform = miaCss(a[0], a[1], L.f, mr.rot, mr.sx, mr.sy)
       }
       if (leaving && !m.shown) { c.mode = 'off'; setGone(g => (g === atRef.current ? g : atRef.current)) } // уход доигран: убираем (setState — в кадре rAF, не в эффекте)

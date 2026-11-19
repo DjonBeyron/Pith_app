@@ -3,6 +3,7 @@ import { createMiaMouth } from './miaMouth.js'
 import { createCatLook, NO_LOOK } from './wordLaneCatLook.js'
 import { isWeakDevice } from '../../../../shared/lib/deviceTier.js'
 import { MIA_FACES, nextFace } from '../../../pitrace/mia/miaCat.js'
+import { swapFace } from '../../../pitrace/mia/miaFaceSwap.js'
 
 // Мия «живая» в тишине (прототип, владелец 2026-11-14): взгляд изредка уходит в сторону (как у Пита, createCatLook), усы время от времени покачиваются (тот же привод усов, что у
 // говорящего Пита), лицо меняется (пафос ↔ интерес) мгновенно, без перекрёстного проявления. На слабом устройстве — одно лицо и без взгляда / усов (как у Пита, lite).
@@ -34,9 +35,8 @@ export function useMiaLife(root, enabled, talk = null) {
       const faces = MIA_FACES.filter(f => byFace[f])
       const to = faces.length > 1 ? nextFace(faces, cur, Math.random()) : cur
       if (to && to !== cur) {
-        const prev = byFace[cur], next = byFace[to]
-        next.style.display = ''; prev.style.display = 'none' // жёсткая смена: контуры глаз двух лиц не совпадают до пикселя, и перекрёстное проявление давало двойной контур (владелец 2026-11-16) — теперь в каждый кадр видна ровно одна голова
-        cur = to; mouth.redraw()
+        const prev = byFace[cur], next = byFace[to] // смена через моргание (mia/miaFaceSwap.js): глаза двух лиц не совпадают до пикселя, наложение давало двойной контур, а прямая подмена — скачок глаз
+        swapFace(prev, next, { later, done: () => { cur = to; mouth.redraw() } })
       }
       later(swap, between(FACE_EVERY_MS))
     }

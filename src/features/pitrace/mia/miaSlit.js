@@ -6,3 +6,10 @@ export const SLIT_LINES = Object.freeze(['mia_push', 'mia_announce_1', 'mia_anno
 
 /** talkId — id реплики Мии сейчас (или null), mode — режим движения Мии ('flight' — в прыжке, 'off' — не на экране, иначе сидит) → true, если зрачок сужен */
 export const slitOn = (talkId, mode) => mode === 'flight' || (!!talkId && SLIT_LINES.includes(talkId))
+
+// Расширение зрачка на «пиках» речи (владелец, v3.3.288: «в моменте пиков слов, на каких-то буквах зрачки плавно расширяются»): на широких формах рта (Rhubarb D, H, C… — громкие гласные) зрачок чуть шире.
+// level — раскрытие рта 0…1 (miaMotion.talkLevel), ниже PEAK_FROM расширения нет; результат 0…1 пишется в --peak у Мии (race-mia.css: ширина зрачка × (1 + 0,18 · peak), высота почти не растёт — веки не задеваются)
+export const PEAK_FROM = 0.55
+export const peakTarget = level => (level <= PEAK_FROM ? 0 : Math.min(1, (level - PEAK_FROM) / (1 - PEAK_FROM)))
+/** Сглаживание по кадрам: вверх быстро, вниз медленнее (глаз «выдыхает» после слога) */
+export const smoothPeak = (prev, target) => (target > prev ? prev + (target - prev) * 0.45 : prev * 0.9)

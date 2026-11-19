@@ -19,9 +19,9 @@ describe('замечания 2026-11-16 (v3.3.259)', () => {
     expect(rd('../../../styles/player/modules/race-bar.css')).toMatch(/\.raceBarSeg:not\(:last-child\) \{ background-image: linear-gradient\(to left, rgba\(8, 10, 16, 0\.75\) 1px/)
     expect(rd('../../../styles/player/modules/race-charge.css')).toMatch(/\.raceChargeSeg:not\(:last-of-type\) \{ background-image: linear-gradient\(to left/)
   })
-  it('лица Мии меняются жёстко (без перекрёстного проявления: двойной контур глаз)', () => {
-    const src = rd('../../player/modules/rotate-phone/useMiaLife.js')
-    expect(src).toContain("next.style.display = ''; prev.style.display = 'none'"); expect(src).not.toContain('next.animate')
+  it('лица Мии меняются без перекрёстного проявления (двойной контур глаз): головы подменяются жёстко, но на сомкнутых глазах (моргание, v3.3.288)', () => {
+    const src = rd('../../player/modules/rotate-phone/useMiaLife.js'), sw = rd('./miaFaceSwap.js')
+    expect(src).toContain('swapFace(prev, next'); expect(src).not.toContain('next.animate'); expect(sw).toContain("next.style.display = ''; prev.style.display = 'none'"); expect(sw).not.toContain('.animate(')
   })
   it('«скажи её сам» после примера: плашка круга с примером — race_phrases_show, DEMO_GO — race_phrases_say', () => {
     expect(rd('../racePhraseDemo.js')).toContain("DEMO_GO = 'race_phrases_say'"); expect(rd('../raceStagesPhrases.js')).toContain("line: 'race_phrases_show', ms: 400")

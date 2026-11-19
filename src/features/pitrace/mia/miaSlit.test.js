@@ -13,3 +13,16 @@ describe('зрачок-щель Мии', () => {
     for (const id of SLIT_LINES.filter(i => !i.startsWith('boss_'))) expect(known.has(id), id).toBe(true)
   })
 })
+
+describe('расширение зрачка на пиках речи', () => {
+  it('ниже порога — нет; широкий рот — расширение до 1', async () => {
+    const { peakTarget } = await import('./miaSlit.js')
+    expect(peakTarget(0)).toBe(0); expect(peakTarget(0.55)).toBe(0); expect(peakTarget(1)).toBe(1); expect(peakTarget(0.95)).toBeGreaterThan(0.85)
+  })
+  it('сглаживание: быстрый подъём, медленный спад, без выбросов за 0…1', async () => {
+    const { smoothPeak } = await import('./miaSlit.js')
+    let v = 0; for (let i = 0; i < 12; i++) v = smoothPeak(v, 1)
+    expect(v).toBeGreaterThan(0.99); expect(v).toBeLessThanOrEqual(1)
+    const d = smoothPeak(1, 0); expect(d).toBeGreaterThan(0.8); expect(d).toBeLessThan(1)
+  })
+})
