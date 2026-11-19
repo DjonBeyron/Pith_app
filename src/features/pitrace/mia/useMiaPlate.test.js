@@ -53,7 +53,7 @@ describe('плашка Мии по реплике за кадром', () => {
   })
   it('v3.3.274: выход перед Мией коротким (miaComesNext видит стадию-плашку intro), хвост Мии — игривый, на верный ответ прямее и пушистее', () => {
     expect(rd('../useRaceActs.js')).toContain('/^(sprint|catch)3-(intro-)?ann$/'); expect(MIA.EXIT_MS).toBeLessThanOrEqual(300)
-    const css = rd('../../../styles/player/modules/race-mia.css'); expect(css).toContain('miaTailSlot4'); expect(css).toContain("[data-tail='pleased']"); expect(css).toContain('--tail-up') // v3.3.292: хвост — 27 кадров по слотам CSS; «довольна» — пушистее, движение не замирает
+    const css = rd('../../../styles/player/modules/race-mia.css'); expect(css).toContain('miaTailSlot'); expect(css).toContain("[data-tail='pleased']"); expect(css).toContain('--tail-up') // v3.3.292: хвост — 27 кадров по слотам CSS; «довольна» — пушистее, движение не замирает
     expect(rd('../RaceMia.jsx')).toContain("data-tail={pleased ? 'pleased' : undefined}");  expect(PLEASED_MS).toBeGreaterThan(1500)
   })
 })

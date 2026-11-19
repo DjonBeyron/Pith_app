@@ -5,16 +5,14 @@ import { buildMiaCat } from './miaCat.js'
 import { readFileSync } from 'node:fs'
 
 describe('хвост Мии: кадры', () => {
-  it('цикл 36 слотов по 40 мс: кадры идут подряд без дыр и наложений, каждый — замкнутый контур', () => {
-    let slot = 0
-    for (const f of MIA_TAIL_FRAMES) { expect(f.s).toBe(slot); expect(f.n === 1 || f.n === 4).toBe(true); expect(f.d).toMatch(/^M[-\d. CZ]+Z$/); slot += f.n }
-    expect(slot).toBe(TAIL_SLOTS)
-    expect(MIA_TAIL_FRAMES.length).toBeGreaterThanOrEqual(9 * 2) // девять утверждённых кадров + промежуточные
+  it('ровно девять утверждённых кадров (без промежуточных): подряд, без дыр, каждый — замкнутый контур', () => {
+    expect(MIA_TAIL_FRAMES).toHaveLength(9); expect(TAIL_SLOTS).toBe(9)
+    MIA_TAIL_FRAMES.forEach((f, i) => { expect(f.s).toBe(i); expect(f.n).toBe(1); expect(f.d).toMatch(/^M[-\d. CZ]+Z$/) })
   })
   it('штрихи: окна внутри цикла, у поз 1 и 9 штрихов нет', () => {
     expect(MIA_TAIL_MARKS.length).toBe(7)
-    for (const m of MIA_TAIL_MARKS) { expect(m.s + m.n).toBeLessThanOrEqual(TAIL_SLOTS); expect(m.n).toBeGreaterThanOrEqual(1); expect(m.n).toBeLessThanOrEqual(4); expect(m.d).toMatch(/^M[-\d. LZ]+/) }
-    expect(MIA_TAIL_MARKS.every(m => m.s >= 4 && m.s < 32)).toBe(true)
+    for (const m of MIA_TAIL_MARKS) { expect(m.s + m.n).toBeLessThanOrEqual(TAIL_SLOTS); expect(m.n).toBe(1); expect(m.d).toMatch(/^M[-\d. LZ]+/) }
+    expect(MIA_TAIL_MARKS.map(m => m.s)).toEqual([1, 2, 3, 4, 5, 6, 7])
   })
   it('дерево: контуры .mt и штрихи .mk с --s и data-n; узлов не больше бюджета', () => {
     const t = miaTailTree()
@@ -28,9 +26,9 @@ describe('хвост Мии: кадры', () => {
     expect(wrap.attrs.class).toBe('cat-tail'); expect(wrap.children.length).toBe(miaTailTree().length)
     expect(cat.children.filter(c => c.attrs['data-part'] === 'body')).toHaveLength(1)
   })
-  it('CSS: слоты по 40 мс, четыре длительности, пауза, «довольна» без замирания', () => {
+  it('CSS: слот --tail-ms (90 мс, было 160), цикл 9 слотов, пауза, «довольна» без замирания', () => {
     const css = readFileSync(new URL('../../../styles/player/modules/race-mia.css', import.meta.url), 'utf8')
-    expect(css).toContain('animation-delay: calc((var(--s) - 36) * 40ms)'); for (const n of [1, 2, 3, 4]) expect(css).toContain(`@keyframes miaTailSlot${n}`)
+    expect(css).toContain('--tail-ms: 90ms'); expect(css).toContain('animation-delay: calc((var(--s) - 9) * var(--tail-ms))'); expect(css).toContain('@keyframes miaTailSlot')
     expect(css).toContain('animation-play-state: paused'); expect(css).toContain("[data-tail='pleased'] .cat-tail .mk { display: none; }"); expect(css).toContain('overflow: visible')
   })
   it('withTailFrames без хвоста не падает', () => { expect(withTailFrames({ children: [] })).toEqual({ children: [] }) })
