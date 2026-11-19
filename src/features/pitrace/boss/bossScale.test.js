@@ -15,7 +15,7 @@ describe('зоны шкалы: 45 % зелёная, 35 % жёлтая, 20 % кр
   })
   it('риски: каждые 5 %, длинные на границах зон и краях, цвет — зона риски', () => {
     expect(TICKS).toHaveLength(21); expect(TICKS.filter(t => t.border).map(t => t.p)).toEqual([0.45, 0.8]); // риски границ зон длиннее и толще (v3.3.282)
-     expect(TICKS.filter(t => t.major).map(t => t.p)).toEqual([0, 0.45, 0.8, 1])
+     expect(TICKS.filter(t => t.major).map(t => t.p)).toEqual([0.45, 0.8]) // верхняя и нижняя риски — маленькие (v3.3.284)
     expect(TICKS.find(t => t.p === 0.45).zone).toBe('mid'); expect(TICKS.find(t => t.p === 0.8).zone).toBe('slow'); expect(TICKS.at(-1).zone).toBe('slow'); expect(TICKS[0].zone).toBe('fast')
   })
 })

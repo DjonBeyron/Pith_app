@@ -31,7 +31,7 @@ const AGAIN_TEXT = RACE_LINES.find(l => l.id === AGAIN_LINE)?.text ?? ''
 export const STEP_GAP_MS = 140 // между высказываниями цепочки
 export const POLL_MS = 60      // Пит ещё занят — проверить снова через столько
 export const CHAIN_BUSY_MS = 300 // пока цепочка не договорена, Пит «занят» хотя бы на столько (сцена не начнёт ход в паузе между высказываниями)
-export const LINE_WORD_OVERLAP_MS = 250 // реплика → слово в цепочке «слово X сказано не точно»: слово стартует за столько до конца реплики
+export const LINE_WORD_OVERLAP_MS = 100 // реплика → слово в цепочке «слово X сказано не точно»: слово стартует за столько до конца реплики
 export const JOIN_OVERLAP_MS = 100 // по словам: следующее слово стартует раньше конца голоса прежнего не больше чем на столько (на тишину в начале своего файла)
 
 export function createPhraseVoice({ ctx = null, hasRu = text => !!transRow(text), audioOf = p => phraseAudioOf(p), play = (p, a) => playPhraseAudio(p, a), lead = word => wordLeadMs(word), hasWord = word => wordVoiced(word), mouth = (p, a) => phraseMouth({ text: p?.text, buffer: bufferOfUrl(a?.url), durationS: a?.duration, rate: getVoiceRate() }), log = pLog, hold = gameMicHold, setTimer = setTimeout, clearTimer = clearTimeout } = {}) {

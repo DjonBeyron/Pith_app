@@ -111,3 +111,15 @@ describe('бар в круге с Мией', () => {
     expect(barLeft(barOf({ stage: { ...stage, mia: undefined, sid: 'sprint' }, race }))).toBe(1)
   })
 })
+
+// v3.3.284 (владелец: «в допросе слова летят, а в баре не уменьшаются»): обычный круг Мии не вёл won/failed — бар считает разрешённые пилюли по mia.done
+import { reduceMia, miaInit } from './mia/raceMia.js'
+describe('бар в допросе Мии: убывает по разрешённым пилюлям', () => {
+  it('win и fail круга Мии пишут mia.done[idx]; barOf гасит сегмент за каждую; повтор того же idx — один раз', () => {
+    const stage = { type: 'student', act: 'sprint', sid: 'sprint3', mia: 'round', words: [{ text: 'a' }, { text: 'b' }, { text: 'c' }] }
+    let m = { ...miaInit(), phase: 'in', act: 'sprint', fast: true }
+    m = reduceMia(m, { t: 'win', stage, idx: 0 }).mia; m = reduceMia(m, { t: 'fail', stage, idx: 1 }).mia; m = reduceMia(m, { t: 'fail', stage, idx: 1 }).mia
+    expect(Object.keys(m.done)).toEqual(['0', '1']); expect(barLeft(barOf({ stage, race: {}, mia: m }))).toBe(1)
+    m = reduceMia(m, { t: 'miss', stage, idx: 2 }).mia; expect(barLeft(barOf({ stage, race: {}, mia: m }))).toBe(1) // неверное слово пилюлю не разрешает
+  })
+})

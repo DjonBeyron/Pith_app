@@ -14,7 +14,7 @@ export const REV_ARRIVE_MS = revTimes(1).arrive // при скорости ко�
 export const REV_LEAVE_MS = revTimes(1).leave
 export const REV_MS = revTimes(1).total // стадия ≥ анимации (+ запас); директор берёт время по текущей скорости
 export const REV_BACK_LEAD_MS = revTimes(1).lead // разворот назад стартует за столько мс до конца диалогов Мии: к последнему слову она пилюли развернулись, дальше — только отъезд
-export const REV_START_SLACK_MS = 450 // запас стадии разворота: пилюли могут чуть подождать доезжающие пилюли прошлой ступени
+export const REV_START_SLACK_MS = 150 // запас стадии разворота: пилюли могут чуть подождать доезжающие пилюли прошлой ступени
 export const REV_WAIT_CAP_MS = 600 // стадия разворота ждёт занятость Пита не дольше: его же реплика про реверс идёт ВМЕСТЕ с анимацией (раньше hold = реплика + анимация, после неё была тишина ≈ 4 с, владелец v3.3.272)
 export const TURN_EVENT = 'wl-conveyor-turn' // событие на корне игры с detail 'halt' | 'warm' | 'resume' (laneConveyorDrive): конвейер тормозит и стоит / стартует разгоном без «зажигания» / снять стоп
 const turn = (root, detail) => root?.dispatchEvent?.(new globalThis.CustomEvent(TURN_EVENT, { detail }))

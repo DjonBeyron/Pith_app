@@ -9,6 +9,7 @@ export const TAPE_ACTS = [TAPE_ACT, 'boss'] // и финал «Шкала пам
 export function laneTape(f) {
   if (!f?.rh?.on) return false
   const st = f.stage === 'run' ? f.stageObj : f.stage === 'paused' && f.from === 'run' ? f.stages?.[f.idx] : null
+  if (!st && f.stage === 'reveal') return TAPE_ACTS.includes(f.stages?.at(-1)?.act) // после финала (Пит говорит «финиш, завтра ещё заезд») дорожки остаются широкой лентой, а не перестраиваются в три (владелец v3.3.284)
   return TAPE_ACTS.includes(st?.act)
 }
 

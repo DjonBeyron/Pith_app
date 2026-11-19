@@ -125,3 +125,18 @@ describe('середины нет: итог по затвору', () => {
     r.l.stop(); q.l.stop()
   })
 })
+
+// v3.3.284 (владелец: «если говорю быстро, он сразу засчитывает, даже если между было неверное слово; так можно, только когда осталось 30 % пути»)
+describe('неполная фраза засчитывается только в конце пути пилюли', () => {
+  it('пилюля далеко (allowPartial = false): «where you from» (75 %) не засчитывается, журнал «жду исправления»; у края — засчитывается; полная фраза — сразу, при любой высоте', async () => {
+    let near = false
+    const r = rig([P.meet, P.from], { allowPartial: () => near }); await flush()
+    r.cur().cb.onResult('where you from', { words: [] }); r.advance(2000)
+    expect(r.got).toEqual([]); expect(r.logs.some(s => /неполная \(75 %\).*жду исправления/.test(s))).toBe(true)
+    r.l.stop()
+    near = true; const r3 = rig([P.meet, P.from], { allowPartial: () => near }); await flush() // у края — как раньше
+    r3.cur().cb.onResult('where you from', { words: [] }); r3.advance(2000); expect(r3.got).toEqual(ok('where are you from', 0.75, 'where you from')); r3.l.stop()
+    const r2 = rig([P.meet, P.from], { allowPartial: () => false }); await flush()
+    r2.cur().cb.onResult('where are you from', { words: [] }); r2.advance(300); expect(r2.got).toEqual(ok('where are you from', 1, 'where are you from')); r2.l.stop()
+  })
+})

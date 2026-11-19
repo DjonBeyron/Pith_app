@@ -4,6 +4,7 @@
 // X — первое слово фразы, которого не услышали. Счёт неточностей — по фразе (ключ цели), на круг «Скажи». Чистые функции, без DOM.
 import { phraseWords } from './racePhraseData.js'
 
+export const PARTIAL_PATH = 0.7 // неполная фраза засчитывается, когда пилюля прошла ≥ 70 % пути (осталось ≤ 30 %); раньше — ждём, ученик может поправиться
 export const SLIP_WORD_LINE = 'race_slip_word'   // «слово»
 export const SLIP_RETRY_LINE = 'race_slip_retry' // «сказано не точно, попробуй ещё раз»
 export const SLIP_NEXT_LINE = 'race_slip_next'   // «сказано не точно, в следующий раз у тебя получится»

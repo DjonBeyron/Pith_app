@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
-import { danceFrames, eyeFrames, edgeXs, canDance, startNoteDance, DANCE_STEP_MS, DANCE_HOME_MS, EYES_OPEN_MS, EYES_SHUT, MOVE_SHARE } from './raceNoteDance.js'
+import { danceFrames, eyeFrames, edgeXs, canDance, startNoteDance, DANCE_STEP_MS, DANCE_HOME_MS, HOME_HOLD_MS, EASE_IN, EASE_SOFT, EYES_OPEN_MS, EYES_SHUT, MOVE_SHARE } from './raceNoteDance.js'
 
 // v3.3.283: «танец» Пита на трёх нотах — вправо, влево, вправо в углы экрана, плавно и с остановками, назад на место; мимика — только закрытые глаза; в коробке — не нужно
 describe('кадры танца', () => {
@@ -7,10 +7,12 @@ describe('кадры танца', () => {
   it('из центра: размахи вправо / влево / вправо до углов (голова упирается в край), с остановками в углах; в конце — на месте; смещения симметричны', () => {
     const { frames, duration } = danceFrames({ x0: 50, headW: 50, stageW: 400 })
     expect(duration).toBe(DANCE_STEP_MS * 3 + DANCE_HOME_MS)
-    const move = DANCE_STEP_MS * MOVE_SHARE
-    expect(frames.map(f => Math.round(f.offset * duration))).toEqual([0, move, DANCE_STEP_MS, DANCE_STEP_MS + move, DANCE_STEP_MS * 2, DANCE_STEP_MS * 2 + move, DANCE_STEP_MS * 3, duration].map(Math.round))
+    const m = MOVE_SHARE.map(x => DANCE_STEP_MS * x)
+    expect(frames.map(f => Math.round(f.offset * duration))).toEqual([0, m[0], DANCE_STEP_MS, DANCE_STEP_MS + m[1], DANCE_STEP_MS * 2, DANCE_STEP_MS * 2 + m[2], DANCE_STEP_MS * 3 + HOME_HOLD_MS, duration].map(Math.round))
+    expect(MOVE_SHARE[0]).toBe(MOVE_SHARE[1]); expect(MOVE_SHARE[2]).toBeGreaterThan(MOVE_SHARE[1] * 2) // 1-й и 2-й быстрые, 3-й — дольше (v3.3.284)
+    expect(frames[0].easing).toBe(EASE_IN); expect(frames[2].easing).toBe(EASE_IN); expect(frames[4].easing).toBe(EASE_SOFT) // быстрый удар в угол дважды, третий — мягкая остановка
     expect(px(frames[0])).toBe(0); expect(px(frames[1])).toBeCloseTo(100, 1); expect(px(frames[2])).toBeCloseTo(px(frames[1]), 5) // постоял в правом углу
-    expect(px(frames[3])).toBeCloseTo(-100, 1); expect(px(frames[4])).toBeCloseTo(-100, 1); expect(px(frames[5])).toBeCloseTo(100, 1); expect(px(frames.at(-1))).toBe(0)
+    expect(px(frames[3])).toBeCloseTo(-100, 1); expect(px(frames[4])).toBeCloseTo(-100, 1); expect(px(frames[5])).toBeCloseTo(100, 1); expect(px(frames[6])).toBeCloseTo(100, 1); expect(px(frames.at(-1))).toBe(0)
     expect(edgeXs(50)).toEqual([75, 25, 75])
   })
   it('от своего места (не центра): первый размах всё равно вправо, возврат — на то место', () => {

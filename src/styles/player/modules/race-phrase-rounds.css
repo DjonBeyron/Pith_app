@@ -74,10 +74,10 @@
 /* Тап мимо пилюль ленты (raceTapMiss.js, круг 1 и «Узнай»): мягкое кольцо в точке касания, вспышку (opacity) ведёт WAAPI; в покое невидимо */
 .raceTapMiss { position: absolute; left: -18px; top: -18px; width: 36px; height: 36px; border-radius: 50%; border: 2px solid rgba(244, 246, 251, 0.7); opacity: 0; pointer-events: none; z-index: 6; }
 /* Неверно сказанное слово (проход 1, racePhraseMaskView.wrong): над ожидаемым словом, красным, меньше основного текста, зачёркнуто тонкой линией; без анимаций (файл — только opacity/transform), снимается из JS */
-.racePhraseMask b .racePhraseWrong, .wlPillInkIn .racePhraseMask b .racePhraseWrong { position: absolute; left: 50%; bottom: 100%; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; white-space: nowrap; font-size: 1.24em; line-height: 1.05; font-weight: 600; color: #ff5a4a; text-shadow: none; text-decoration: line-through; text-decoration-thickness: 1px; pointer-events: none; }
-/* v3.3.283 (владелец): красное слово вдвое крупнее, всегда по центру над верным; под ним фигурная горизонтальная скобка с уголком вниз — указывает на верное слово */
+.racePhraseMask b .racePhraseWrong, .wlPillInkIn .racePhraseMask b .racePhraseWrong { position: absolute; left: 50%; bottom: calc(100% + 1.9em); transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; white-space: nowrap; font-size: 1.24em; line-height: 1.05; font-weight: 600; color: #ff5a4a; text-shadow: none; text-decoration: line-through; text-decoration-thickness: 1px; pointer-events: none; }
+/* v3.3.283 (владелец): красное слово вдвое крупнее, по центру над верным и ВЫШЕ пилюли (bottom: 100 % + 1,9 em); под ним фигурная горизонтальная скобка с уголком вниз (белая, v3.3.284) — указывает на верное слово */
 .racePhraseMask b .racePhraseBrace { display: block; width: 100%; min-width: 1.6em; height: 0.42em; margin-top: 1px; overflow: visible; }
-.racePhraseMask b .racePhraseBrace path { fill: none; stroke: #ff5a4a; stroke-width: 1.2; vector-effect: non-scaling-stroke; }
+.racePhraseMask b .racePhraseBrace path { fill: none; stroke: #fff; stroke-width: 1.2; vector-effect: non-scaling-stroke; }
 /* Неверный тап в круге выбора фразы («Пойми» / «Узнай»): выбранная пилюля целиком красная — красные полоски и красная подложка (владелец v3.3.272), а не цвета круга */
 .wlPill[data-wide][data-mode]:not([data-mode='say'])[data-wrong]:not([data-lock]) { --st1-rgb: 255, 93, 115; --st1-a: 0.9; border-color: #ff5d73; box-shadow: inset 0 0 0 3px rgba(255, 93, 115, 0.9), 0 0 14px -2px rgba(255, 93, 115, 0.7); }
 .wlPill[data-wide][data-mode]:not([data-mode='say'])[data-wrong]:not([data-lock]) .wlPillClip { background: rgba(255, 93, 115, 0.5); }

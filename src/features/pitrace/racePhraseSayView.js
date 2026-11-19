@@ -44,7 +44,7 @@ export function createSayView({ pass, text, n, mask, log = () => {}, nudge = nul
       const k = peek?.index() ?? -1, e = mask?.edges?.() ?? null
       peek?.frame(t, lineReached(fill, k, e, n)) // кирпичик слова k гаснет, когда линия заливки дошла до него (владелец, v3.3.275)
       const miss = wrong?.check(said, t), shown = wrong?.shown()
-      if (shown && !done) { let k = 0; while (said.has(k)) k++; mask?.wrong?.(shown, k) } // над ожидаемым словом — красным зачёркнуто (racePhraseMaskView.wrong; мягкое правило shown)
+      if (shown) { let k = 0; while (said.has(k)) k++; mask?.wrong?.(shown, k) } // над ожидаемым словом — красным зачёркнуто (racePhraseMaskView.wrong; мягкое правило shown)
       if (miss && !done) { jerk?.fire(); onWrong(miss.word, miss.expect) } // неверное слово — ещё и зачёркнуто красным над ожидаемым (racePhraseMaskView.wrong)
     },
     edges: () => mask?.edges() ?? null,

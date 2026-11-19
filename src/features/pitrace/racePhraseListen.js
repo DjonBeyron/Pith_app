@@ -41,7 +41,7 @@ const norm = list => (list ?? []).map(p => ({ key: p.key, words: (p.words ?? [])
  * и договорённая фраза тоже: пропущенное слово ученик ещё скажет по подсказке); меняется setPhrases(next, { wordByWord }).
  * Слушать начинает сразу. Зависимости (create, log, now, setTimer, clearTimer, listen, runtime) подставляются в тестах.
  */
-export function createPhraseListener({ phrases: phrasesIn, lang = 'en', getStream, isHeld = () => false, wordByWord: wbwIn = false, onWord, onEar, onLevel, onPhrase, onError, create = createWordListener, game2 = createGame2Listener, log = pLog, now = () => Date.now(), setTimer = setTimeout, clearTimer = clearTimeout }) {
+export function createPhraseListener({ phrases: phrasesIn, lang = 'en', getStream, isHeld = () => false, wordByWord: wbwIn = false, onWord, onEar, onLevel, onPhrase, onError, allowPartial = () => true, create = createWordListener, game2 = createGame2Listener, log = pLog, now = () => Date.now(), setTimer = setTimeout, clearTimer = clearTimeout }) {
   let phrases = norm(phrasesIn)
   let wordByWord = !!wbwIn
   let past = []   // услышанное закрытых заходов: [{ text, at }]
@@ -110,21 +110,25 @@ export function createPhraseListener({ phrases: phrasesIn, lang = 'en', getStrea
       sent.set(s.key, got)
       const p = phrases.find(x => x.key === s.key), say = (index, d, gone = false) => onWord?.({ phraseKey: s.key, index, text: p.words[index], draft: d, ...(gone ? { gone } : {}) })
       if (!wordByWord) { s.hits.forEach((ok, index) => { if (ok && (!got.has(index) || (!draft && !got.get(index)))) { got.set(index, !draft); say(index, draft) } }); continue }
-      for (const [index, kept] of got) if (!kept && !s.hits[index]) { got.delete(index); log(`[phrase-ear] слово ${index + 1} «${p.words[index]}» откат (${s.key}): в услышанном по порядку его нет ${rel()}`); say(index, true, true) }
+      const emptyFinal = !draft && !s.hits.some(Boolean) // итог без единого слова цели («итог «»»: короткое «to» Vosk не подтвердил) — ничего не говорит о черновых словах: не откатываем (владелец v3.3.283: «откинуло прогресс пилюли назад»)
+      if (!emptyFinal) for (const [index, kept] of got) if (!kept && !s.hits[index]) { got.delete(index); log(`[phrase-ear] слово ${index + 1} «${p.words[index]}» откат (${s.key}): в услышанном по порядку его нет ${rel()}`); say(index, true, true) }
       let k = 0
       while (s.hits[k] || got.get(k) === true) k++
       s.hits.forEach((ok, index) => { const keep = ok && !draft && index < k; if (ok && (!got.has(index) || (keep && !got.get(index)))) { got.set(index, keep); say(index, !keep) } })
     }
   }
 
+  let partialHeld = false // журнал «жду исправления» — один раз на заход
   function decide(settled, draft = false) {
     if (disposed || !phrases.length) return false
     const heard = heardNow()
     if (!heard) return false
     const scores = score(heard)
     words(scores, draft)
-    const picked = pickPhrase(scores, settled)
+    let picked = pickPhrase(scores, settled)
+    if (picked && picked.ratio < 1 - 1e-9 && !allowPartial()) { if (!partialHeld) { partialHeld = true; log(`[phrase-ear] фраза неполная (${Math.round(picked.ratio * 100)} %), пилюля ещё далеко от края — не засчитываю, жду исправления ${rel()}`) } picked = null } // v3.3.284: неполную фразу (слово пропущено / неверное) засчитывают, только когда у пилюли осталось ≤ 30 % пути
     if (picked) {
+      partialHeld = false
       log(earLine(phrases, heard, scores, picked))
       clearState()
       onPhrase?.({ phraseKey: picked.key, ratio: picked.ratio, heard })

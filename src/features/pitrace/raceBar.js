@@ -40,7 +40,7 @@ export const barEmpty = bar => !!bar && barLeft(bar) === 0
 export function barOf({ stage, race, mia = null }) {
   if (stage?.type !== 'student' || !BAR_ACTS.includes(stage.act) || !stage.words?.length) return null
   if (stage.mia === 'round') { // круг с Мией (sprint3 / catch3): её результатов в race нет (raceState их не ведёт) — бар считает слова Мии по её счёту (won + failed), а не результаты первого круга (v3.3.276: бар «опустошался в самом начале»)
-    const done = new Set([...Object.keys(mia?.won ?? {}), ...Object.keys(mia?.failed ?? {})].map(Number)).size
+    const done = new Set([...Object.keys(mia?.won ?? {}), ...Object.keys(mia?.failed ?? {}), ...Object.keys(mia?.done ?? {})].map(Number)).size
     return Array.from({ length: Math.min(done, stage.words.length) }, (_, idx) => idx).reduce((bar, idx) => barReduce(bar, { t: 'spend', idx }), barNew(stage.words, stage.sid))
   }
   const q = race?.[stage.act], second = stage.sid === `${stage.act}2`

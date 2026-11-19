@@ -13,7 +13,7 @@ export const MIA = { BOOST: 1.15, STREAK_LEAVE: 3, OK_EVERY: 3, DROP_AT: 1200, E
 const PIT_IN_BOX_MS = 1350 // v3.3.280 (владелец: «Пит говорит в коробке — она должна упасть ДО его слов»): коробка падает сразу (DROP_AT), реплика Пита начинается после удара (DROP_AT + IMPACT ≈ 1,45 с), остальное сдвинуто на столько же
 export const BOSS = { DROP_AT: 500, JUMP: 6.4, KEEP_REDS: 5, MISS_AT: 2900, AFTER_PIT_MS: 450, PIT1_AT: 300 + PIT_IN_BOX_MS, JUMP_ABS: 6900 + PIT_IN_BOX_MS, HUSH_AT: 5200 + PIT_IN_BOX_MS, LOOK_AT: 8000 + PIT_IN_BOX_MS } // объяснение шкалы идёт подряд, без пауз: с LOOK_AT реплики look → think → green → yellow → red → five → Пит стоят в очереди одна за другой (очередь речи сама держит паузу GAP_MS), путь пилюли примера считается по их длительности (bossScale.demoPlan) // финал «Шкала памяти»: падение коробки, прыжок Мии (с от падения), порог красных слов, сроки реплик (мс от входа)
 
-export const miaInit = () => ({ phase: 'off', act: '', fast: false, jump: null, total: 0, won: {}, reds: 0, redWins: 0, failed: {}, dug: {}, keep: false, used: {}, streak: 0, wins: 0, hits: 0, seq: 0, at: 0, why: '' })
+export const miaInit = () => ({ done: {}, phase: 'off', act: '', fast: false, jump: null, total: 0, won: {}, reds: 0, redWins: 0, failed: {}, dug: {}, keep: false, used: {}, streak: 0, wins: 0, hits: 0, seq: 0, at: 0, why: '' })
 
 /** Стадия эпизода: 'ann' — церемония прихода, 'round' — круг с Мией */
 export const isMiaStage = st => st?.mia === 'intro' || st?.mia === 'ann' || st?.mia === 'round' || st?.mia === 'end' || st?.mia === 'hold'
@@ -37,7 +37,7 @@ export function reduceMia(m, ev) {
   if (t === 'enter') {
     if (stage?.mia === 'ann') { // церемония: Пит начинает репликой стадии, через DROP_AT падает коробка (at — момент падения), Мия запрыгивает, вступительные реплики (три ноты ждут их конца)
       // повторный вход в ту же стадию (пауза и «Продолжить», перезапуск ступени): церемония начинается заново — реплики снова в очереди, коробка падает снова (раньше такой вход ничего не делал: оба молчали, пример не шёл)
-      return { mia: { ...m, phase: 'in', act: stage.act, used: { ...m.used, [stage.act]: true }, streak: 0, wins: 0, seq: m.seq + 1, at: now + (ev.dropAt ?? stage.dropAt ?? MIA.DROP_AT), why: '', fast: false, jump: ev.jumpAt ?? stage.jumpAt ?? null, total: 0, won: {}, reds: 0, redWins: 0, failed: {}, dug: {}, keep: false }, say: stage.script === 'boss' ? bossCeremony(!Object.keys(m.used ?? {}).some(k => k !== 'boss'), ev.bossShift ?? 0) : ceremony(), boost: null }
+      return { mia: { ...m, phase: 'in', act: stage.act, used: { ...m.used, [stage.act]: true }, streak: 0, wins: 0, seq: m.seq + 1, at: now + (ev.dropAt ?? stage.dropAt ?? MIA.DROP_AT), why: '', fast: false, jump: ev.jumpAt ?? stage.jumpAt ?? null, total: 0, won: {}, done: {}, reds: 0, redWins: 0, failed: {}, dug: {}, keep: false }, say: stage.script === 'boss' ? bossCeremony(!Object.keys(m.used ?? {}).some(k => k !== 'boss'), ev.bossShift ?? 0) : ceremony(), boost: null }
     }
     if (stage?.mia === 'round') return m.phase === 'in' && m.act === stage.act ? { mia: m.fast && (!stage.silent || m.total === (stage.offset ?? 0) + (stage.words?.length ?? 0)) ? m : { ...m, fast: true, ...(stage.silent ? silentBlock(m, stage) : {}) }, say: [], boost: stage.noBoost ? null : MIA.BOOST } : none(m) // круг с Мией: дорожка быстрее и меняет цвет (fast) — с этого круга, а не с церемонии
     if (stage?.mia === 'hold') return m.phase === 'in' && m.act === stage.act ? { mia: m, say: stage.say ? [line(stage.say, 'mia')] : [], boost: null } : none(m) // служебная стадия внутри эпизода (финал: переключение слуха между блоками): Мия остаётся, говорит свою реплику
@@ -68,6 +68,13 @@ export function reduceMia(m, ev) {
     }
     return none(m)
   }
+  const r = ordinaryRound(m, ev, now)
+  return t === 'win' || t === 'fail' ? { ...r, mia: { ...r.mia, done: { ...(m.done ?? {}), [ev.idx ?? 0]: true } } } : r // пилюля круга разрешилась (принята / ушла): бар сверху убывает по ним (raceBar.barOf, v3.3.284: «в допросе слова летят, а в баре не уменьшаются»)
+}
+
+/** Обычный круг с Мией (не финал): серия верных, колкости, уход при трёх подряд */
+function ordinaryRound(m, ev, now) {
+  const { t, stage } = ev
   const word = stage.words?.[ev.idx]
   const ok = t === 'win' || (t === 'fail' && !!word?.trap)          // ловушка: верно промолчать
   const bad = t === 'miss' || (t === 'fail' && !word?.trap)

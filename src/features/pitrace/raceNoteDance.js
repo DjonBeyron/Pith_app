@@ -4,8 +4,11 @@
 // Пит на сцене всегда «в слежении» (raceHeadDepth.js ведёт --wl-dx / --wl-dy), поэтому танец идёт отдельным свойством translate на корне .wlCat (WAAPI) — нырок и глубину не трогает; глаза — свойством scale (по Y) группы
 // глаз (data-part="eyes") с центром в её середине. Нота k начинает размах: MOVE_SHARE шага — движение (ease-in-out), остальное — остановка в углу. Чистые функции + запуск на DOM; в тестах DOM подставляется.
 export const DANCE_STEP_MS = 600      // размах = шаг между нотами (rehearsalCountdown.SOFT_STEP_MS)
-export const MOVE_SHARE = 0.7         // доля шага — движение, остальное — остановка в углу
-export const DANCE_HOME_MS = 700      // возврат на место после третьей ноты
+export const MOVE_SHARE = [0.4, 0.4, 0.9] // доля шага — движение (v3.3.284, владелец): 1-й и 2-й размахи БЫСТРО, с ускорением к углу и остановкой; 3-й — дольше и полнее, с мягкой остановкой
+export const DANCE_HOME_MS = 700      // после третьей ноты: HOME_HOLD_MS стоит в углу, остальное — возврат на место
+export const HOME_HOLD_MS = 250
+export const EASE_IN = 'cubic-bezier(0.6, 0, 0.9, 0.5)'    // ускорение к углу (быстрый удар в угол)
+export const EASE_SOFT = 'cubic-bezier(0.5, 0, 0.2, 1)'  // третий размах: разгон и мягкая остановка
 export const EYES_OPEN_MS = 350       // глаза плавно открываются за столько до конца танца
 export const EYES_CLOSE_MS = 120      // и так же быстро прикрываются в начале
 export const EYES_SHUT = 0.06         // scaleY закрытых глаз (щёлочка)
@@ -17,9 +20,12 @@ export const edgeXs = (headW = 50) => [100 - headW / 2, headW / 2, 100 - headW /
 export function danceFrames({ x0 = 50, headW = 50, stageW = 375, step = DANCE_STEP_MS, home = DANCE_HOME_MS } = {}) {
   const px = x => `${(((x - x0) / 100) * stageW).toFixed(1)}px 0`
   const xs = edgeXs(headW), duration = step * 3 + home
-  const key = (t, x, easing = 'ease-in-out') => ({ translate: px(x), offset: t / duration, easing })
-  const frames = [key(0, x0)]
-  xs.forEach((x, k) => { frames.push(key(step * k + step * MOVE_SHARE, x, 'linear'), key(step * (k + 1), x)) }) // дошёл (ease-in-out) → постоял в углу до следующей ноты
+  const key = (t, x, easing = 'linear') => ({ translate: px(x), offset: t / duration, easing })
+  const frames = [key(0, x0, EASE_IN)]
+  xs.forEach((x, k) => { // нота k начинает размах: ускорение к углу (EASE_IN; третий — с мягкой остановкой), потом стоит в углу до следующей ноты
+    const move = step * MOVE_SHARE[k]
+    frames.push(key(step * k + move, x, 'linear'), key(step * (k + 1) + (k === 2 ? HOME_HOLD_MS : 0), x, k === 0 ? EASE_IN : k === 1 ? EASE_SOFT : 'ease-in-out')) // easing кадра — на отрезок ДО следующего: после 1-й стоянки 2-й размах быстрый (EASE_IN), после 2-й — 3-й дольше и мягче (EASE_SOFT), после 3-й — возврат
+  })
   frames.push({ translate: px(x0), offset: 1 })
   return { frames, duration }
 }

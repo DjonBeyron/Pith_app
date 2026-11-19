@@ -32,7 +32,7 @@ import { LANE } from './raceStagesPhrases.js'
 import { hitPill, tapLine } from './raceTapHit.js'
 import { tapMissMark } from './raceTapMiss.js'
 import { createDemoTurn } from './racePhraseDemoTurn.js'
-import { createSlips, applySlip } from './racePhraseSlip.js'; import { passTwoRes, passNote } from './racePhrasePasses.js'; import { fillTo, isPartial, markPartial } from './racePhraseShare.js'
+import { createSlips, applySlip, PARTIAL_PATH } from './racePhraseSlip.js'; import { passTwoRes, passNote } from './racePhrasePasses.js'; import { fillTo, isPartial, markPartial } from './racePhraseShare.js'
 import { caption } from './racePhraseCaption.js'
 import { startPhraseCount } from './racePhraseCount.js'
 
@@ -69,7 +69,7 @@ export function runPhraseScene({ pool, root, scene, fxRef, listen = phraseListen
 
   let listener = null
   if (cfg.voice && cfg.mode === 'say' && listen) { // слушатель фраз — только у «Скажи»: круг 1 и «Узнай» отвечают тапом в любом режиме
-    try { listener = listen({ phrases: [], onWord: e => heardWord(e), onEar: e => { trace.ear(e); sv?.ear(e) }, onPhrase: e => heardPhrase(e), onError: e => log(`[phrases] слушатель фраз: ошибка ${e?.message ?? e}; дальше тапом`) }) } catch (e) { log(`[phrases] слушатель фраз не запустился: ${e?.message ?? e}`) }
+    try { listener = listen({ phrases: [], onWord: e => heardWord(e), onEar: e => { trace.ear(e); sv?.ear(e) }, onPhrase: e => heardPhrase(e), allowPartial: () => (target()?.y ?? 0) >= ENTER_Y + (LISTEN_Y_MAX - ENTER_Y) * PARTIAL_PATH, onError: e => log(`[phrases] слушатель фраз: ошибка ${e?.message ?? e}; дальше тапом`) }) } catch (e) { log(`[phrases] слушатель фраз не запустился: ${e?.message ?? e}`) }
   }
 
   const spawn = (cand, j, atMs = 0) => {

@@ -4,6 +4,7 @@
 .wlPill[data-cap][data-arrow='up']:not([data-hint])::after { transform: scaleY(-1); }
 /* v3.3.280 (владелец): пилюли разворота тусклые — серая тонкая обводка без яркого свечения; цвет дорожки им не нужен. Стрелки вспыхивают белым в момент остановки и поворота (data-turn, raceReverseTurn.js) */
 .wlPill[data-arrow] { --c: rgba(150, 158, 172, 0.55); --rgb: 150, 158, 172; border-color: rgba(150, 158, 172, 0.4); box-shadow: none; }
-.wlPill[data-arrow][data-turn] { --c: #fff; --rgb: 255, 255, 255; }
+.wlPill[data-arrow][data-turn] { --c: rgba(150, 158, 172, 0.8); } /* v3.3.284 (владелец: «никакого неонового свечения»): на остановке стрелка лишь чуть ярче того же серого, без белой вспышки */
 .wlPill[data-arrow]::after { transition: opacity 0.25s ease; }
 .wlPill[data-arrow]:not([data-turn])::after { opacity: 0.55; }
+.wlPill[data-arrow], .wl[data-mia] .wlPill[data-arrow] { filter: none; text-shadow: none; }
