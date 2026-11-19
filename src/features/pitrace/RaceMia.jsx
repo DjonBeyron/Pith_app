@@ -1,4 +1,5 @@
 import { useMiaTail } from './mia/useMiaTail.js'
+import { slitOn, SLIT_TAIL_MS } from './mia/miaSlit.js'
 import { OFFSCREEN_IDS } from './mia/useMiaPlate.js' // реплики Мии из-за правого края (она ещё не прыгнула): справа дуги звука
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { renderTree } from '../scene/v2/renderTree.js'
@@ -23,7 +24,8 @@ export default function RaceMia({ mia, caption = null, talk = null, alarm = null
   const pleased = useMiaTail({ wins: mia.wins, streak: mia.streak, live }) // хвост: нервный, на верный ответ — прямой и пушистый (mia/useMiaTail.js, race-mia.css)
   useMiaLife(miaEl, live, talk)                                    // Мия в тишине: взгляд, усы, смена лица
   const clock = useRef({ arr: 0, lv: 0, mode: 'off', paused })
-  const atRef = useRef(mia.at), jumpRef = useRef(null), alarmAt = useRef(-1e9)
+  const atRef = useRef(mia.at), jumpRef = useRef(null), alarmAt = useRef(-1e9), talkRef = useRef(null), slit = useRef(false)
+  useEffect(() => { talkRef.current = talk ? { id: talk.id, until: performance.now() + (talk.ms ?? 2500) + SLIT_TAIL_MS } : null }, [talk]) // щель держится, пока реплика звучит (не дольше её длины)
   const alarmKey = alarm?.key ?? null
   useEffect(() => { if (alarmKey != null) alarmAt.current = performance.now() }, [alarmKey]) // красное слово: отметка времени испуга Пита
   useEffect(() => { atRef.current = mia.at; jumpRef.current = mia.jump }, [mia.at, mia.jump])
@@ -77,12 +79,13 @@ export default function RaceMia({ mia, caption = null, talk = null, alarm = null
         let a = [seat[0], seat[1] + SEAT_DROP * L.f], mr = m.mia
         if (mr.mode === 'flight') a = Object.values(flightPath(mr.u, [L.W + 150 * L.f, 0.55 * L.H], rest))
         mi.style.display = mr.mode === 'off' ? 'none' : 'block'
+        const tk0 = talkRef.current, sl = slitOn(tk0 && now < tk0.until ? tk0.id : null, mr.mode); if (sl !== slit.current) { slit.current = sl; mi.toggleAttribute('data-slit', sl) } // зрачок-щель: в прыжке и на колких репликах (mia/miaSlit.js)
         if (mr.mode !== 'off') mi.style.transform = miaCss(a[0], a[1], L.f, mr.rot, mr.sx, mr.sy)
       }
       if (leaving && !m.shown) { c.mode = 'off'; setGone(g => (g === atRef.current ? g : atRef.current)) } // уход доигран: убираем (setState — в кадре rAF, не в эффекте)
     }
     raf = requestAnimationFrame(frame)
-    return () => { cancelAnimationFrame(raf); box.el.remove(); cat.style.visibility = '' }
+    return () => { cancelAnimationFrame(raf); box.el.remove(); cat.style.visibility = ''; slit.current = false }
   }, [live])
 
   return (

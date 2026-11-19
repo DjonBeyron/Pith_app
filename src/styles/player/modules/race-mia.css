@@ -59,3 +59,10 @@
 .wlMiaCat[data-tail='pleased'] .cat-tail .mt:nth-child(4) { opacity: 1; }
 .wlMiaCat[data-tail='pleased'] .cat-tail .mk { display: none; }
 @media (prefers-reduced-motion: reduce) { .wlMiaCat .cat-tail .mt { animation: none; } .wlMiaCat .cat-tail .mt:nth-child(1) { opacity: 1; } .wlMiaCat[data-tail='pleased'] .cat-tail .mt:nth-child(1) { opacity: 0; } }
+
+/* Зрачок-щель (mia/miaSlit.js, владелец v3.3.287): в прыжке и на колких репликах зрачок сужается до тонкой вертикальной щели (ширина ×0,2, чуть выше). scale складывается с атрибутом transform
+   зрачка (реакция лица) и с --pupil (расширение на реплике); переход 220 мс — щель «схлопывается», а не щёлкает. Слабое устройство (.scn--lite) зрачки не анимирует — там без щели */
+.wlMiaCat { --slit-x: 1; --slit-y: 1; }
+.wlMiaCat[data-slit] { --slit-x: 0.2; --slit-y: 1.28; }
+.wlMiaCat.scn--v2:not(.scn--lite) .pu { scale: calc(var(--pupil, 1) * var(--slit-x)) calc(var(--pupil, 1) * var(--slit-y)); transition: translate 180ms ease-in-out, scale 220ms ease-out; }
+@media (prefers-reduced-motion: reduce) { .wlMiaCat.scn--v2:not(.scn--lite) .pu { transition: none; } }
