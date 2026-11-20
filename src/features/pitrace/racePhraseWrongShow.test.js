@@ -22,41 +22,26 @@ function fakeDoc() {
   return { createElement: () => mk(), createTextNode: () => mk(), fonts: null, mk }
 }
 
-describe('неверное слово над подсказкой (racePhraseMaskView.wrong)', () => {
-  it('<s class="racePhraseWrong"> появляется в ячейке ожидаемого слова, снимается по таймеру и когда слово сказано', () => {
-    vi.useFakeTimers()
-    const doc = fakeDoc(), el = doc.mk(); el.ownerDocument = doc
-    const m = mountMask(el, 'Where are you from')
-    m.wrong('you', 1)
-    const cell = () => el.children[0].children.filter(c => c.children?.length !== undefined).find(c => c.children.some(x => x.className === 'racePhraseWrong'))
-    expect(cell()).toBeTruthy()
-    vi.advanceTimersByTime(60000); expect(cell()).toBeTruthy() // v3.3.283: подпись держится без таймера
-    m.wrong('you', 1); m.set(new Map([[0, true], [1, true]])); expect(cell()).toBeFalsy() // слово 1 сказано — зачёркнутое пропало
-    vi.useRealTimers()
+describe('неверное слово: красным на самой пилюле, подписи над ней нет (v3.3.305)', () => {
+  it('missing(k) красит ожидаемое слово, пока его не скажут; подписей <s class="racePhraseWrong"> в маске больше нет', () => {
+    const m = mountMask({}, 'Where are you from')
+    m.set(new Map([[0, true]])); expect(m.missing(1)).toBe(true); expect(m.words()[1].state).toBe('miss')
+    m.set(new Map([[0, true], [1, true]])); expect(m.words()[1].state).not.toBe('miss')
+    expect(m.wrong).toBeUndefined()
   })
-  it('проводка: SayView зовёт mask.wrong на неверном слове; стиль — красный, line-through, 1 px', () => {
-    expect(rd('./racePhraseSayView.js')).toContain('mask?.wrong?.(shown, k)')
-    const css = rd('../../styles/player/modules/race-phrase-rounds.css'); expect(css).toContain('.racePhraseWrong'); expect(css).toContain('text-decoration: line-through'); expect(css).toContain('text-decoration-thickness: 1px')
+  it('проводка: SayView красит ожидаемое слово (mask.missing), подписи нет; стилей подписи в CSS нет', () => {
+    const v = rd('./racePhraseSayView.js'); expect(v).toContain('mask?.missing?.(kw)'); expect(v).not.toContain('mask?.wrong')
+    expect(rd('../../styles/player/modules/race-phrase-rounds.css')).not.toContain('.racePhraseWrong')
   })
 })
 
-describe('итог хода: красная подпись остаётся у несказанного слова (keepWrong, v3.3.276)', () => {
-  it('сказано вместо слова — подпись у него без таймера; ничего не сказано — над словом пусто; сказанные слова подписи не имеют', () => {
-    vi.useFakeTimers()
-    const doc = fakeDoc(), el = doc.mk(); el.ownerDocument = doc
-    const m = mountMask(el, 'Where are you from')
-    m.wrong('you', 1) // вместо «are» услышано «you»
-    const labeled = () => el.children[0].children.filter(c => c.children?.some?.(x => x.className === 'racePhraseWrong')).length
-    vi.advanceTimersByTime(60000); expect(labeled()).toBe(1) // на ходу подпись держится, пока верное слово не сказано (v3.3.283)
-    m.keepWrong(new Map([[0, true], [2, true], [3, true]])); expect(labeled()).toBe(1)
-    vi.advanceTimersByTime(60000); expect(labeled()).toBe(1) // в итоге — стоит, пока пилюля на экране
-    m.keepWrong(new Map([[0, true], [1, true], [2, true], [3, true]])); expect(labeled()).toBe(0) // слово сказано — подписи нет
-    const m2 = mountMask(el, 'Nice to meet you'); m2.keepWrong(new Map([[0, true], [1, true], [3, true]])); expect(labeled()).toBe(0) // ничего не сказали вместо «meet» — пусто
-    vi.useRealTimers()
+describe('итог принятой неполной фразы: несказанные слова красным на месте (keepWrong, v3.3.305)', () => {
+  it('видна вся фраза, несказанное слово — state miss; сказанные — full; без несказанных красного нет', () => {
+    const m = mountMask({}, 'Where are you from')
+    m.keepWrong(new Map([[0, true], [2, true], [3, true]])); expect(m.words().map(w => w.state)).toEqual(['full', 'miss', 'full', 'full'])
+    m.keepWrong(new Map([[0, true], [1, true], [2, true], [3, true]])); expect(m.words().map(w => w.state)).toEqual(['full', 'full', 'full', 'full'])
   })
-  it('итог принятой неполной фразы: слова белые (не data-w=miss), подпись — keepWrong; проводка в сцене', () => {
-    const sc = rd('./racePhraseScene.js'); expect(sc).toContain('keepWrong?.(said.heard())'); expect(sc).not.toContain('isPartial(res.ratio)) // итог «Скажи»: видна вся фраза (взлетает или доезжает вниз с ней), несказанные слова — красным')
-  })
+  it('проводка в сцене: итог зовёт keepWrong', () => { expect(rd('./racePhraseScene.js')).toContain('keepWrong?.(said.heard())') })
 })
 
 describe('мягкое правило подписи (shown)', () => {
@@ -85,18 +70,18 @@ describe('подпись слова «вперёд» (v3.3.282)', () => {
 })
 
 describe('подпись неверного слова — и в проходе 2 (v3.3.277)', () => {
-  it('проход 2: «where you from» вместо «where are you from» → красным пропущенное «are» (mask.missing(1)), «you» не зачёркивается, рывка кромки нет', () => {
+  it('проход 2: «where you from» вместо «where are you from» → красным пропущенное «are» (mask.missing(1)), рывка кромки нет', () => {
     const calls = [], miss = [], mask = { set() {}, peek() {}, edges: () => null, wrong: (w, k) => calls.push([w, k]), missing: k => { miss.push(k); return true } }, nudges = []
     const v = createSayView({ pass: 2, text: 'Where are you from', n: 4, mask, nudge: on => nudges.push(on), el: null })
     v.word(0, new Map([[0, true]]), 0)
     v.ear({ kind: 'partial', text: 'where you from' }); v.frame(1000, false, 0.3)
     expect(calls).toEqual([]); expect(miss).toEqual([1]); expect(nudges).toEqual([])
   })
-  it('слово не из цели («where is you from» → «is») — по-прежнему зачёркнутая подпись, а не «пропущено»', () => {
+  it('слово не из цели («where is you from» → «is») — тоже красным ожидаемое «are», подписи «is» нет', () => {
     const calls = [], miss = [], mask = { set() {}, peek() {}, edges: () => null, wrong: (w, k) => calls.push([w, k]), missing: k => { miss.push(k); return true } }
     const v = createSayView({ pass: 2, text: 'Where are you from', n: 4, mask, nudge: () => {}, el: null })
     v.word(0, new Map([[0, true]]), 0); v.ear({ kind: 'partial', text: 'where is' }); v.frame(1000, false, 0.3); v.frame(1300, false, 0.3)
-    expect(calls).toEqual([['is', 1]]); expect(miss).toEqual([])
+    expect(calls).toEqual([]); expect(miss).toEqual([1])
   })
 })
 
@@ -112,13 +97,6 @@ describe('красное неверное слово — сразу и по пе
     const w = createWrongWord({ words: ['nice', 'to', 'meet', 'you'] }), said = new Map([[0, true], [1, true]])
     w.ear({ kind: 'partial', text: 'nice to mee' }); w.check(said, 1000); w.check(said, 1300); expect(w.shown()).toBeNull()
     w.ear({ kind: 'partial', text: 'nice to meet' }); w.check(said, 1400); w.check(said, 1700); expect(w.shown()).toBeNull()
-  })
-  it('маска: первое неверное слово держится над ожидаемым, следующие его не заменяют; верное слово снимает', () => {
-    const doc = fakeDoc(), el = doc.mk(); el.ownerDocument = doc
-    const m = mountMask(el, 'Nice to meet you')
-    const text = () => el.children[0].children.flatMap(c => c.children ?? []).filter(x => x.className === 'racePhraseWrong').map(x => x.children[0].textContent)
-    m.wrong('learn', 2); m.wrong('you', 2); expect(text()).toEqual(['learn'])
-    m.set(new Map([[0, true], [1, true], [2, true]])); expect(text()).toEqual([])
   })
 })
 

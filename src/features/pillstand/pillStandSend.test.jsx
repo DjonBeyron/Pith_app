@@ -131,7 +131,7 @@ describe('окно «Отправить»: после отправки — с ч
 })
 
 // «В GitHub» из окна стенда (v3.3.276): логи игры + пакет стенда одной отправкой
-import { sendStandGit } from './standGit.js'
+import { sendStandGit, PACK_BUDGET } from './standGit.js'
 describe('отправка стенда в GitHub (standGit)', () => {
   it('логи есть: к файлам логов добавлен пакет стенда; галочка «Отправить логи» снята — только комментарий; «Дополнить» доходит до отправки', async () => {
     const calls = [], collect = vi.fn(async ({ comment, withLogs }) => (withLogs ? [{ name: 'j.txt', text: 'журнал' }] : [{ name: 'c.txt', text: comment }]))
@@ -141,6 +141,13 @@ describe('отправка стенда в GitHub (standGit)', () => {
     expect(calls[0]).toEqual([['j.txt', 'pithy-stand-pack.json'], { append: true }])
     await sendStandGit({ comment: 'x', withLogs: false, build, collect, upload })
     expect(calls[1][0]).toEqual(['c.txt'])
+  })
+  it('пакет длиннее бюджета — пересобирается без кадров в JSON (leanJson), чтобы fitText не обрезал комментарий и хронику (журнал v3.3.304)', async () => {
+    const big = 'x'.repeat(PACK_BUDGET + 10), up = []
+    const build = vi.fn(o => ({ name: 'p.txt', text: o?.leanJson ? 'комментарий и хроника' : big }))
+    await sendStandGit({ comment: 'c', build, collect: async () => [], upload: async f => { up.push(f); return 'ok' } })
+    expect(build).toHaveBeenCalledTimes(2); expect(build.mock.calls[1][0]).toEqual({ leanJson: true }); expect(up[0][0].text).toBe('комментарий и хроника')
+    const small = vi.fn(() => ({ name: 's.txt', text: 'мало' })); await sendStandGit({ build: small, collect: async () => [], upload: async () => 'ok' }); expect(small).toHaveBeenCalledTimes(1)
   })
   it('пакет не собрался — уходят просто логи; сбой отправки — строка «Не отправилось», не исключение', async () => {
     const out = []; const upload = vi.fn(async f => { out.push(f.map(x => x.name)); return 'ok' })

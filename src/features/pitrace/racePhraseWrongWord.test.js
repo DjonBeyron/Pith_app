@@ -85,7 +85,7 @@ describe('неверное слово в сцене', () => {
     stubLevel(0.1); stubSay('hello'); s.go(16)
     expect(p.attrs.has('data-nudge')).toBe(true)
     expect(log.mock.calls.map(c => c[0])).toContain('[fill] неверное слово «hello», ждём «to»')
-    s.go(400); expect(p.fill).toBe(before); expect(s.run.api.state().mask.map(w => w.state)).toEqual(['full', 'peek', 'hidden', 'hidden'])
+    s.go(400); expect(p.fill).toBe(before); expect(s.run.api.state().mask.map(w => w.state)).toEqual(['full', 'miss', 'hidden', 'hidden']) // v3.3.305: неверное слово — ожидаемое «to» красным на пилюле (вместо подсказки), заливка не меняется
     vi.advanceTimersByTime(NUDGE_MS + 100); expect(p.attrs.has('data-nudge')).toBe(false)
     stubSay('hello'); s.go(16); expect(p.attrs.has('data-nudge')).toBe(false) // чаще 700 мс — без рывка
     stubDraft('nice to'); s.go(16); expect(s.run.api.state().mask.map(w => w.state)).toEqual(['full', 'full', 'peek', 'hidden'])

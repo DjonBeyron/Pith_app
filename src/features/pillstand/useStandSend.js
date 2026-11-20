@@ -35,12 +35,12 @@ export default function useStandSend({ trace, meta, rec = null, ab = null }) {
   const unmark = useCallback(i => setMarks(old => ({ ...old, list: old.list.filter((_, k) => k !== i) })), [])
   const cleanSlate = useCallback(() => { setForm(sentForm); setMarks({ t0: null, list: [] }) }, [])
 
-  const build = useCallback(() => {
+  const build = useCallback((over = {}) => {
     const evs = trace.events()
     const events = rec?.events?.length && !evs.includes(rec.events.at(-1)) ? rec.events : evs // «Сброс» после записи: в трассе её уже нет — берём события записи
     return buildPack({
       topics: form.topics, span: { kind: spanKind(form, ab), sec: form.sec, pick: form.pick }, ab, at: ctx?.at ?? trace.now(), comment: form.comment, marks: list, meta: meta(),
-      events, frames: rec?.frames ?? [], audio: rec?.audio ?? null, sound: form.sound, journal: { lines: gameJournal.lines(), t0abs: trace.started(), dropped: gameJournal.dropped() },
+      events, frames: rec?.frames ?? [], audio: rec?.audio ?? null, sound: form.sound, journal: { lines: gameJournal.lines(), t0abs: trace.started(), dropped: gameJournal.dropped() }, ...over,
     })
   }, [trace, rec, form, ab, ctx, list, meta])
 

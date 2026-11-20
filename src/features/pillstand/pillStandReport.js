@@ -50,7 +50,7 @@ const lean = f => ({ ...f, e: f.e ? { p: f.e.p, f: f.e.f } : undefined }) // к�
  * audio — { type, startMs, blob } записи; journal — { lines (gameJournal.lines), t0abs (старт трассы, performance.now), dropped }; sound — приложить звук; now — дата
  * → { name, text, copy, json, bytes, warn, audioName, span, counts }
  */
-export function buildPack({ topics, span: want = { kind: 'session' }, ab = null, at, comment = '', marks = [], meta = {}, events, frames = [], audio = null, journal = null, sound = false, now = new Date() }) {
+export function buildPack({ topics, span: want = { kind: 'session' }, ab = null, at, comment = '', marks = [], meta = {}, events, frames = [], audio = null, journal = null, sound = false, now = new Date(), leanJson = false }) { // leanJson — JSON-блок без кадров (кадры остаются в читаемой таблице): для отправки в GitHub, где файл длиннее лимита обрезался с НАЧАЛА и терял комментарий и хронику (v3.3.305)
   const ts = normTopics(topics), all = ts[0] === 'all'
   const metricTopics = all ? METRIC_TOPICS : ts.filter(t => METRIC_TOPICS.includes(t))
   const span = resolveSpan({ kind: want.kind, sec: want.sec, pick: want.pick ?? null, events, at, ab })
@@ -111,7 +111,7 @@ export function buildPack({ topics, span: want = { kind: 'session' }, ab = null,
     header: { version: meta.version ?? null, device: meta.device ?? null, deviceInfo: meta.deviceInfo ?? null, date: now.toISOString(), mode: meta.mode ?? null, lang: meta.lang ?? null, len: meta.len ?? null, seed: meta.seed ?? null, topics: ts, span, audio: audio ? { file: audioName, type: audio.type, startMs: audio.startMs, inAudio: inSnd, attached: withSound } : null },
     comment: comment.trim(), marks: mk, targets: tgs, verdicts: per.filter(p => p.target).map(p => ({ n: p.target.n, say: p.target.say, mark: p.verdict.mark, how: p.verdict.how, ear: p.verdict.ear })),
     events: all ? thin.events : packed,
-    frames: wantsFrames(ts) ? (all ? fr : fr.map(lean)) : [],
+    frames: wantsFrames(ts) && !leanJson ? (all ? fr : fr.map(lean)) : [], framesOmitted: wantsFrames(ts) && leanJson ? fr.length : 0,
     metrics: per.filter(p => p.target).map(p => ({ n: p.target.n, say: p.target.say, t: p.t0, ...Object.fromEntries(Object.entries(p.metrics).map(([k, v]) => [k, v.data])) })),
     honesty: tot, journal: jLines,
   }

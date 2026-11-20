@@ -29,7 +29,7 @@ export const formPart = (heard, words, prev = null, next = null) => {
 
 /** → { ear(e), check(said, t) }. words — слова фразы-цели (phraseWords). ear — событие слуха { kind: 'partial' | 'final', text }; check — на кадре: said — Map сказанных номеров слов, → { word, expect } или null */
 export function createWrongWord({ words, gap = WRONG_GAP_MS }) {
-  let seen = 0, first = null, tail = null, queue = [], lastAt = -Infinity, lastShownAt = -Infinity, shownWord = null, shownSkip = false, lastShown = null, retract = false
+  let seen = 0, first = null, tail = null, queue = [], lastAt = -Infinity, lastShownAt = -Infinity, shownWord = null, lastShown = null, retract = false
   return {
     ear(e) {
       if (e?.kind !== 'partial' && e?.kind !== 'final') return
@@ -45,12 +45,10 @@ export function createWrongWord({ words, gap = WRONG_GAP_MS }) {
     },
     /** Слово для подписи над ожидаемым (мягкое правило, раз на кадр после check): строка или null */
     shown() { const w = shownWord; shownWord = null; return w },
-    /** Показанное слово — слово цели «вперёд» (сказано следующее, ожидаемое пропущено: «where you from» без «are»): подпись не «зачёркнуть сказанное», а «пропущено ожидаемое» (v3.3.303). Читать после shown() в том же кадре */
-    shownSkip() { const s = shownSkip; shownSkip = false; return s },
     /** Итог захода не содержит слово, показанное по черновику: подпись надо снять (один раз) */
     retracted() { const r = retract; retract = false; return r },
     check(said, t) {
-      shownWord = null; shownSkip = false
+      shownWord = null
       if (tail && tail.at == null) tail.at = t
       const stable = tail && !tail.used && t - tail.at >= TAIL_STABLE_MS ? tail : null
       if (!queue.length && !stable) return null
@@ -62,7 +60,7 @@ export function createWrongWord({ words, gap = WRONG_GAP_MS }) {
       const bad = q.find(({ w, prev, next }) => !fitsWord(w, expect) && !(far != null && fitsWord(w, far)) && !words.some(x => sameWord(w, x)) && !formPart(w, words, prev, next))
       // v3.3.282 (владелец, «where you from» вместо «where are you from»): исключаем только слова, УЖЕ стоящие в порядке (до ожидаемого k); слово «вперёд» («you», услышанное вместо «are») само в said, но подпись над «are» ему нужна
       const shown = (stable ? [...q, stable] : q).find(({ w, prev, next }) => !fitsWord(w, expect) && !words.slice(0, k).some(x => sameWord(w, x)) && !formPart(w, words, prev, next)) // для подписи над словом правило мягче (v3.3.272): любое слово, не подходящее ожидаемому, — и слово цели не на своём месте («where you from» — «you» вместо «are»)
-      if (shown && t - lastShownAt >= SHOWN_GAP_MS) { lastShownAt = t; shownWord = shown.w; lastShown = shown.w; shownSkip = words.slice(k + 1).some(x => sameWord(shown.w, x)); if (shown === stable) stable.used = true }
+      if (shown && t - lastShownAt >= SHOWN_GAP_MS) { lastShownAt = t; shownWord = shown.w; lastShown = shown.w; if (shown === stable) stable.used = true }
       if (bad == null || t - lastAt < gap) return null
       lastAt = t
       return { word: bad.w, expect }
