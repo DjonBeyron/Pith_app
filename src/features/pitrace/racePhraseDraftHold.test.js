@@ -19,7 +19,6 @@ describe('createDraftHold', () => {
 })
 
 describe('слушатель прохода 1', () => {
-  const level = (r, v) => r.cur().cb.onLevel?.(v)
   it('шум 0,003 не принимается за слово: черновик «where» при тишине в уровнях — слов нет', async () => {
     const r = rig([P.from], { wordByWord: true }); await flush()
     for (const v of [0.0006, 0.003, 0.002, 0.0025]) { r.cur().opts.onLevel?.(v); r.cur().cb.onLevel?.(v) }
