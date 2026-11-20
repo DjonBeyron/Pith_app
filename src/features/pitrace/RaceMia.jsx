@@ -18,7 +18,7 @@ import { layoutOf, artMatrix, toScene, poseApply, poseSvg, poseOfMotion, miaCss,
 // Ничего не монтируется и не считает, пока Мии нет (phase 'off'): коробка и спрайт появляются с её приходом и убираются после ухода.
 const SEAT_DROP = 12 // Мия сидит ГЛУБЖЕ на крышке (лапы ниже центра верхней грани), а не на уголке (владелец 2026-11-15)
 
-export default function RaceMia({ mia, caption = null, talk = null, alarm = null, paused = false, onStuck = null, onBoxHit = null }) { // onStuck — Мия выпрыгнула одна (финал пройден плохо), onBoxHit — касание коробки на Пите (два подряд снимают её, mia/useMiaBoxFree.js); // alarm — { key }: слово финала в красной зоне, зрачки Пита в коробке сжимаются (испуг)
+export default function RaceMia({ mia, caption = null, talk = null, alarm = null, paused = false, onStuck = null, onTry = null, onBoxHit = null }) { // onStuck — Мия выпрыгнула одна (финал пройден плохо), onBoxHit — касание коробки на Пите (два подряд снимают её, mia/useMiaBoxFree.js); // alarm — { key }: слово финала в красной зоне, зрачки Пита в коробке сжимаются (испуг)
   const [gone, setGone] = useState(-1)                          // at прихода, чей уход (анимация) уже доигран: после него коробку и спрайт убираем
   const live = mia.phase === 'in' || (mia.phase === 'out' && gone !== mia.at)
   const host = useRef(null), poseG = useRef(null), artG = useRef(null), catEl = useRef(null), miaEl = useRef(null), hitEl = useRef(null), soloRef = useRef({ mode: null, at: 0, alone: false }), cbRef = useRef({}), hitAt = useRef(-1e9)
@@ -26,7 +26,7 @@ export default function RaceMia({ mia, caption = null, talk = null, alarm = null
   useMiaLife(miaEl, live, talk)                                    // Мия в тишине: взгляд, усы, смена лица
   const clock = useRef({ arr: 0, lv: 0, mode: 'off', paused })
   const atRef = useRef(mia.at), jumpRef = useRef(null), alarmAt = useRef(-1e9), talkRef = useRef(null), slit = useRef(false), peak = useRef({ v: 0, q: 0 })
-  useEffect(() => { soloRef.current = { mode: mia.solo, at: mia.soloAt, alone: !!mia.alone }; cbRef.current = { onStuck } }, [mia.solo, mia.soloAt, mia.alone, onStuck])
+  useEffect(() => { soloRef.current = { mode: mia.solo, at: mia.soloAt, alone: !!mia.alone }; cbRef.current = { onStuck, onTry } }, [mia.solo, mia.soloAt, mia.alone, onStuck, onTry])
   useEffect(() => { talkRef.current = talk ? { id: talk.id, until: performance.now() + (talk.ms ?? 2500) + SLIT_TAIL_MS } : null }, [talk]) // щель держится, пока реплика звучит (не дольше её длины)
   const alarmKey = alarm?.key ?? null
   useEffect(() => { if (alarmKey != null) alarmAt.current = performance.now() }, [alarmKey]) // красное слово: отметка времени испуга Пита
@@ -38,7 +38,7 @@ export default function RaceMia({ mia, caption = null, talk = null, alarm = null
   useEffect(() => {
     const c = clock.current
     if (mia.phase === 'in') { c.arr = (performance.now() - mia.at) / 1000 /* at — момент падения коробки (после реплики Пита): до него время отрицательное, коробки нет */; c.lv = 0; c.mode = 'arr' }
-    else if (mia.phase === 'out' && ['arr', 'solo', 'rave', 'stuck'].includes(c.mode)) { c.lv = 0; c.mode = 'lv' } // коробка со снятия (alone) отлетает без Мии
+    else if (mia.phase === 'out' && ['arr', 'solo', 'try', 'rave', 'stuck'].includes(c.mode)) { c.lv = 0; c.mode = 'lv' } // коробка со снятия (alone) отлетает без Мии
     else if (mia.phase === 'off') c.mode = 'off'
   }, [mia.phase, mia.at])
 
@@ -62,7 +62,7 @@ export default function RaceMia({ mia, caption = null, talk = null, alarm = null
       const c = clock.current
       const sp = soloRef.current
       if (sp.mode === 'keep' && c.mode === 'arr' && !c.paused && performance.now() >= sp.at) { c.mode = 'solo'; c.sl = 0 } // финал пройден плохо: Мия договорила и выпрыгивает ОДНА, коробка остаётся на Пите
-      if (!c.paused) { if (c.mode === 'lv') c.lv += dt; else { c.arr += dt; if (c.mode === 'solo') c.sl += dt; else if (c.mode === 'rave') c.rv += dt }; tt += dt }
+      if (!c.paused) { if (c.mode === 'lv') c.lv += dt; else { c.arr += dt; if (c.mode === 'solo') c.sl += dt; else if (c.mode === 'try') c.tr += dt; else if (c.mode === 'rave') c.rv += dt }; tt += dt }
       if (n++ % 20 === 0 || !L) measure()
       if (!L || L.f <= 0) return
       const leaving = c.mode === 'lv', m = leaving ? leaveAt(c.lv) : arrivalAt(c.arr, jumpRef.current ?? ARR.JUMP)
@@ -88,8 +88,8 @@ export default function RaceMia({ mia, caption = null, talk = null, alarm = null
         const top = toScene(M, ART.TOP), seat = poseApply(pose, piv)(top), rest = [top[0], top[1] + SEAT_DROP * L.f]
         let a = [seat[0], seat[1] + SEAT_DROP * L.f], mr = m.mia
         if (mr.mode === 'flight') a = Object.values(flightPath(mr.u, [L.W + 150 * L.f, 0.55 * L.H], rest))
-        if (c.mode === 'solo') { const so = soloLeave(c.sl); mr = { mode: 'seat', rot: so.rot, sx: so.sx, sy: so.sy }; a = Object.values(flightPath(so.u, rest, [L.W + 170 * L.f, 0.28 * L.H], 0.14)); if (so.done) { c.mode = 'rave'; c.rv = 0 } }
-        else if (c.mode === 'rave' || c.mode === 'stuck' || (leaving && soloRef.current.alone)) mr = { mode: 'off' } // Мии нет: коробка одна (ждёт касаний / отлетает)
+        if (c.mode === 'solo') { const so = soloLeave(c.sl); mr = { mode: 'seat', rot: so.rot, sx: so.sx, sy: so.sy }; a = Object.values(flightPath(so.u, rest, [L.W + 170 * L.f, 0.28 * L.H], 0.14)); if (so.done) { c.mode = 'try'; c.tr = 0; c.tried = false } }
+        else if (c.mode === 'try' || c.mode === 'rave' || c.mode === 'stuck' || (leaving && soloRef.current.alone)) mr = { mode: 'off' } // Мии нет: коробка одна (ждёт касаний / отлетает)
         mi.style.display = mr.mode === 'off' ? 'none' : 'block'
         const tk0 = talkRef.current, sl = slitOn(tk0 && now < tk0.until ? tk0.id : null, mr.mode); if (sl !== slit.current) { slit.current = sl; mi.toggleAttribute('data-slit', sl) } // зрачок-щель: в прыжке и на колких репликах (mia/miaSlit.js)
         let pk = 0 // пик речи: широкий рот → зрачок плавно шире (mia/miaSlit.js)
@@ -97,6 +97,10 @@ export default function RaceMia({ mia, caption = null, talk = null, alarm = null
         peak.current.v = smoothPeak(peak.current.v, pk); const pq = Math.round(peak.current.v * 10) / 10
         if (pq !== peak.current.q) { peak.current.q = pq; mi.style.setProperty('--peak', String(pq)) }
         if (mr.mode !== 'off') mi.style.transform = miaCss(a[0], a[1], L.f, mr.rot, mr.sx, mr.sy)
+      }
+      if (c.mode === 'try') { // Мия ушла: пауза → Пит «Она ушла? Попробую выбраться» → после реплики тряска
+        if (!c.tried && c.tr >= SOLO.TRY_AT) { c.tried = true; c.trEnd = c.tr + (cbRef.current.onTry?.() ?? 0) / 1000 + SOLO.AFTER_TRY }
+        if (c.tried && c.tr >= c.trEnd) { c.mode = 'rave'; c.rv = 0 }
       }
       if (c.mode === 'rave' && c.rv >= PANIC_LEN + SOLO.SETTLE) { c.mode = 'stuck'; cbRef.current.onStuck?.() } // Пит остановился по центру — только теперь просит снять коробку
       const he = hitEl.current // зона касаний по коробке (пока Пит просит помочь): по её настоящему прямоугольнику на экране

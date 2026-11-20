@@ -199,7 +199,7 @@ export function useRaceActs(args) {
   if (!on) return rh
   const pitBusy = () => Math.max(args.cat?.busyLeft?.() ?? 0, sw.pendingMs(), mspeech.leftMs()) // сколько мс Пит (и Мия) ещё РЕАЛЬНО говорят (без «занят надолго» секвенсора речи: тот держит LOCK_MS)
   return {
-    ...rh, result, race: view, mia: miaView, miaCap, miaTalk, miaDemo, miaAlarm, miaPlate, nextIdx, afterCount: boxFree.afterCount, miaStuck: boxFree.onStuck, miaBoxHit: boxFree.onHit, // конец финала ждёт снятия коробки с Пита; Мия выпрыгнула одна / касание коробки (RaceMia)
+    ...rh, result, race: view, mia: miaView, miaCap, miaTalk, miaDemo, miaAlarm, miaPlate, nextIdx, afterCount: boxFree.afterCount, miaStuck: boxFree.onStuck, miaTry: boxFree.onTry, miaBoxHit: boxFree.onHit, // конец финала ждёт снятия коробки с Пита; Мия выпрыгнула одна / касание коробки (RaceMia)
     boss: { zone: z => { miaEvent({ t: 'zone', zone: z, stage: running }); if (z === 'slow') redAlarm() } }, // zone — слово отыграно в зоне // финал «Шкала памяти»: слово отыграно в зоне (шкала → машина Мии: пять красных — Пит остаётся внутри)
     pitBusy, holdMs: st => { // эпилог финала кончается, когда договорили Мия и Пит (а не через фиксированные 11 с: после «Тут темно и тесно…» все молчало): реплика Мии + Пит (его реплика стоит с задержкой) + хвост, не дольше st.ms
       if (st?.rev) return Math.max(rh.holdMs(st), revTimes(st.revSpeed ??= convSpeed.v).total + REV_START_SLACK_MS) // разворот в реверс: анимация стартует, когда Пит договорил прошлое (Мия уходит), и идёт st.rev мс — стадия не кончается раньше неё

@@ -96,7 +96,7 @@ export default function WordLaneGame({ cfg, audioSrc, lines: rawLines = null, fo
         <WordLanePills scene={f.scene} levels={f.levels} fx={f.fx} live={f.live} sceneApi={f.sceneApi} visible={showSlots} armed={armed} speed={speed} paused={f.paused} speedKey={f.stage === 'run' ? f.idx : -1} trio={trio} dodge={dodge} onLane={phase === 'order' || (phase === 'discern' && !f.stageObj?.speak) || ((tapMode || f.stageObj?.step?.tapOnly) && (phase === 'student' || f.stageObj?.speak)) ? laneTap : null} />
         <WordLaneXp apiRef={f.xpApi} />
         {race && <RaceBossScale live={bossLive} show={f.stageObj?.type === 'student' || bossReveal || f.stageObj?.sid === 'boss-sw'} flash={flashOf(f.rh.miaTalk)} demo={f.stageObj?.sid === 'boss-ann' ? f.rh.miaDemo : null} word={f.stages?.find(x => x.sid === 'boss')?.words?.[0]?.translation ?? ''} paused={f.paused} onZone={f.rh.boss?.zone} />}
-        {race && f.rh.mia && <RaceMia mia={f.rh.mia.mia} caption={f.rh.miaCap} talk={f.rh.miaTalk} alarm={f.rh.miaAlarm} paused={f.paused} onStuck={f.rh.miaStuck} onBoxHit={f.rh.miaBoxHit} />}
+        {race && f.rh.mia && <RaceMia mia={f.rh.mia.mia} caption={f.rh.miaCap} talk={f.rh.miaTalk} alarm={f.rh.miaAlarm} paused={f.paused} onStuck={f.rh.miaStuck} onTry={f.rh.miaTry} onBoxHit={f.rh.miaBoxHit} />}
         {single
           ? <div className="wlWord" style={{ top: `${WORD_Y}%` }} data-testid="wl-word">{cfg.chunks[0]}</div>
           : (

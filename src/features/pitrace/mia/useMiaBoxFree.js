@@ -16,6 +16,12 @@ export function useMiaBoxFree({ mb, miaEvent, mspeech, running, rhAfter, log }) 
     miaEvent({ t: 'free', stage: running })
     later(() => { done.current = true }, FREE_LEAVE_MS + mspeech.msOf('pit_back_1', 'pit') + 900)
   }, [mb, miaEvent, mspeech, running, later, log])
+  const onTry = useCallback(() => { // Мия ушла, Пит говорит «Она ушла? Попробую выбраться»; вернуть длину реплики (мс): RaceMia начнёт трясти коробку, когда он договорит
+    if (mb.m.solo !== 'keep') return 0
+    log('[mia] Пит: «она ушла? попробую выбраться», дальше трясёт коробку')
+    miaEvent({ t: 'try', stage: running })
+    return mspeech.msOf('boss_pit_try', 'pit')
+  }, [mb, miaEvent, mspeech, running, log])
   const onStuck = useCallback(() => {
     if (mb.m.solo !== 'keep') return
     bf.current = createBoxFree(); done.current = false
@@ -36,5 +42,5 @@ export function useMiaBoxFree({ mb, miaEvent, mspeech, running, rhAfter, log }) 
     const poll = () => { if (done.current || performance.now() - t0 > FREE_WATCHDOG_MS + 15000) rhAfter(fn); else later(poll, 300) }
     poll()
   }, [mb, rhAfter, later])
-  return { onStuck, onHit, afterCount }
+  return { onTry, onStuck, onHit, afterCount }
 }

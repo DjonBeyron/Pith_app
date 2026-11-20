@@ -88,7 +88,7 @@ export function leaveAt(t) {
 }
 
 /** Мия выпрыгивает ОДНА, коробка остаётся на Пите (v3.3.290, финал пройден плохо): присела (CROUCH), прыжок вправо за экран (JUMP), дальше её нет. t — с от начала прыжка → { u 0…1 (доля пути прыжка, для flightPath), sx, sy, rot, done } */
-export const SOLO = { CROUCH: 0.3, JUMP: 0.8, END: 1.1, SETTLE: 0.4 } // SETTLE — пауза после метания Пита: он остановился по центру, и только тогда просит снять коробку
+export const SOLO = { CROUCH: 0.3, JUMP: 0.8, END: 1.1, SETTLE: 0.4, TRY_AT: 0.9, AFTER_TRY: 0.35 } // TRY_AT — пауза после ухода Мии до «Она ушла? Попробую выбраться», AFTER_TRY — после реплики до тряски; порядок: Мия ушла → пауза → реплика → тряска → стоит (SETTLE) → «Не получается, коробка тяжёлая…» и зона касаний. // SETTLE — пауза после метания Пита: он остановился по центру, и только тогда просит снять коробку
 export function soloLeave(t) {
   const cr = clamp(t / SOLO.CROUCH), u = clamp((t - SOLO.CROUCH) / SOLO.JUMP)
   if (t < SOLO.CROUCH) return { u: 0, sy: 1 - 0.14 * cr, sx: 1 + 0.06 * cr, rot: 0, done: false }

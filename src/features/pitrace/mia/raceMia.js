@@ -39,6 +39,7 @@ const silentBlock = (m, stage) => {
 export function reduceMia(m, ev) {
   const { t, stage, now = 0 } = ev
   // Пит в коробке без Мии (финал пройден плохо, v3.3.290): stuck — Мия выпрыгнула, Пит просит помочь; faster — одно касание без второго; free — коробка снята: отлетает без Мии (alone), Пит благодарит
+  if (t === 'try') return m.solo === 'keep' ? { mia: m, say: [line('boss_pit_try', 'pit')], boost: null } : none(m) // Мия ушла, Пит: «Она ушла? Попробую выбраться», потом трясёт коробку (RaceMia: try → rave)
   if (t === 'stuck') return m.solo === 'keep' ? { mia: { ...m, solo: 'stuck' }, say: [line('boss_pit_stuck', 'pit')], boost: null } : none(m)
   if (t === 'faster') return m.solo === 'stuck' ? { mia: m, say: [line('boss_pit_faster', 'pit')], boost: null } : none(m)
   if (t === 'free') return m.solo === 'stuck' ? leave({ ...m, keep: false, solo: null, alone: true }, now, 'freed', [line('pit_back_1', 'pit', 1300)]) : none(m) // Пит про её характер: «Спасибо за помощь, вот это у неё характер» (озвучена)

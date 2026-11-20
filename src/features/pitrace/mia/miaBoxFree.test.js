@@ -25,6 +25,11 @@ describe("Мия выпрыгивает одна, коробка остаётс�
     const f = reduceMia(a.mia, { t: 'free', now: 9000 })
     expect(f.mia).toMatchObject({ phase: 'out', alone: true, keep: false, solo: null, why: 'freed' }); expect(f.say.map(l => l.id)).toEqual(['pit_back_1'])
   })
+  it('try: Мия ушла — Пит говорит «Она ушла? Попробую выбраться» (состояние keep не меняется), вне keep — ничего', () => {
+    const k = reduceMia(keepState(), { t: 'try', now: 1 })
+    expect(k.say.map(l => l.id)).toEqual(['boss_pit_try']); expect(k.mia.solo).toBe('keep')
+    expect(reduceMia({ ...keepState(), solo: null }, { t: 'try', now: 1 }).say).toHaveLength(0)
+  })
   it('вне состояния stuck события ничего не делают (двойной free, free до выпрыгивания)', () => {
     const k = keepState(); expect(reduceMia(k, { t: 'free', now: 1 }).say).toHaveLength(0); expect(reduceMia(k, { t: 'faster' }).say).toHaveLength(0)
     const f = reduceMia(reduceMia(k, { t: 'stuck', now: 1 }).mia, { t: 'free', now: 2 }); expect(reduceMia(f.mia, { t: 'free', now: 3 }).say).toHaveLength(0)
