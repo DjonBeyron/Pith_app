@@ -7,7 +7,7 @@ import { phraseWordKey } from '../../pitrace/racePhraseAudio.js'
 // Пять групп: фразы целиком (английская фраза плана одной записью: word_audio, ключ phrase:<normText>, generateWordAudio — голос диктора слов), реплики игры (каталог raceLines.js, текст и озвучка — из настроек rotate_cat_lines), смыслы фраз плана (plan.phrases[].ru, app_settings.race_phrase_ru, озвучка в word_audio ключом ru:смысл),
 // ситуации фраз для круга 1 (plan.phrases[].scene, app_settings.race_phrase_scene, озвучка так же — ru:ситуация)
 // и переводы слов (transTexts, только чтение: текст и есть ключ озвучки). Статус: ok — озвучено, none — нет озвучки, changed — текст изменён после озвучки (said ≠ text).
-export const STATUS_LABEL = { ok: 'озвучено', none: 'нет озвучки', changed: 'текст изменён после озвучки' }
+export const STATUS_LABEL = { ok: 'озвучено', none: 'нет озвучки', changed: 'текст изменён после озвучки', stale: 'текст изменён, озвучка старая', new: 'новая реплика', nodur: 'нет длительности' } // stale / new / nodur — из аудита voiceAudit.js (сырые настройки против кода)
 
 /** Статус реплики из настроек (normalizeLines): нет файла — none; файл говорит другой текст — changed; иначе ok */
 export function lineStatus(line) {
@@ -15,10 +15,11 @@ export function lineStatus(line) {
   return line.said != null && line.said !== line.text ? 'changed' : 'ok'
 }
 
-/** Строки реплик: [{ id, group: 'line', text, when, status, duration, editable }]; lines ещё не загрузились (null) — тексты каталога, статус none */
-export const lineRows = (list, lines) => (list ?? []).map(d => {
-  const l = lines?.[d.id]
-  return { id: d.id, group: 'line', text: l?.text ?? d.text, when: d.when, status: lineStatus(l), duration: l?.duration ?? null, editable: true, ...(l?.url ? { url: l.url } : {}) } // url — для кнопки ▶ «Прослушать»
+/** Строки реплик: [{ id, group: 'line', text, when, status, duration, editable, note }]; lines ещё не загрузились (null) — тексты каталога, статус none. audit — byId из voiceAudit.auditVoice: он знает то, что normalizeLines уже спрятал (новая реплика, текст в коде изменён: было → стало) и подменяет статус на new / stale / nodur, note — причина */
+export const lineRows = (list, lines, audit = null) => (list ?? []).map(d => {
+  const l = lines?.[d.id], a = audit?.[d.id]
+  const status = a && ['new', 'stale', 'nodur'].includes(a.status) ? a.status : lineStatus(l)
+  return { id: d.id, group: 'line', text: l?.text ?? d.text, when: d.when, status, duration: l?.duration ?? null, editable: true, ...(l?.url ? { url: l.url } : {}), ...(status !== 'ok' && a?.reason ? { note: a.reason } : {}) } // url — для кнопки ▶ «Прослушать»
 })
 
 const libStatus = (text, lib) => {
@@ -71,4 +72,4 @@ export function missingNote(rows, max = 6) {
 export const durLabel = s => (s > 0 ? `${(Math.round(s * 10) / 10).toString().replace('.', ',')} с` : '')
 
 /** Строки эпизода «Мия» (mia/miaLines.js): те же строки реплик, с пометкой, чьим голосом озвучиваются (Мия — второй аккаунт ElevenLabs, Пит — обычный голос) */
-export const miaRows = (list, lines) => lineRows(list, lines).map((r, i) => ({ ...r, label: list[i].who === 'mia' ? 'Мия · второй аккаунт ElevenLabs (голос — секрет ELEVENLABS_VOICE_ID_MIA)' : 'Пит · обычный голос' }))
+export const miaRows = (list, lines, audit = null) => lineRows(list, lines, audit).map((r, i) => ({ ...r, label: list[i].who === 'mia' ? 'Мия · второй аккаунт ElevenLabs (голос — секрет ELEVENLABS_VOICE_ID_MIA)' : 'Пит · обычный голос' }))

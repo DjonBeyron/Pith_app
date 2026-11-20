@@ -10,9 +10,9 @@ let inflight = null
 
 export function getCachedCatLines() { return cache }
 
-/** Сырые настройки или null (нет строки / ошибка чтения — плеер тогда играет с текстами по умолчанию) */
-export async function getCatLines() {
-  if (cache) return cache
+/** Сырые настройки или null (нет строки / ошибка чтения — плеер тогда играет с текстами по умолчанию). fresh: true — админка: читать с сервера, а не из кэша сессии (иначе таблица озвучки не видит то, что озвучили или поменяли в другом окне, и новое сохранение затёрло бы это) */
+export async function getCatLines({ fresh = false } = {}) {
+  if (cache && !fresh) return cache
   if (inflight) return inflight
   dbg('[DB READ] app_settings', KEY)
   inflight = supabase.from('app_settings').select('value').eq('key', KEY).maybeSingle()

@@ -23,7 +23,7 @@ export function pitVoiceCount(lines, list = REHEARSAL_LINES) {
  * Озвучить недостающие реплики и записать в настройки приложения; onStep(id) — какая озвучивается. → число озвученных. Зависимости подставляются в тестах.
  * Реплика не получилась (ElevenLabs, R2, нет прав админа) — то, что успело озвучиться до неё, всё равно записывается, а ошибка уходит наверх.
  */
-export async function voiceMissingPitLines({ list = REHEARSAL_LINES, onStep = () => {}, speak = generateSpeech, upload = uploadToR2, probe = probeAudioDuration, load = getCatLines, save = saveCatLines, loadVoice = loadMiaVoice } = {}) {
+export async function voiceMissingPitLines({ list = REHEARSAL_LINES, onStep = () => {}, speak = generateSpeech, upload = uploadToR2, probe = probeAudioDuration, load = () => getCatLines({ fresh: true }), save = saveCatLines, loadVoice = loadMiaVoice } = {}) {
   const lines = normalizeLines(await load())
   const todo = missingPitLines(lines, list)
   if (todo.some(d => isMiaLine(d.id))) await loadVoice() // голос Мии, выбранный в админке
@@ -53,7 +53,7 @@ async function voiceOne(line, text, { speak, upload, probe }, id) { // голо�
  * Переозвучить выбранные реплики (ids) их текущим текстом, даже если они уже озвучены (таблица «Озвучка Пита», admin/speech/useRaceVoiceTable.js). Реплики с {word} и неизвестные id пропускаются.
  * Ошибка одной реплики не останавливает остальные: → { done, failed: { id: текст ошибки } }; удавшиеся записываются в настройки одним сохранением.
  */
-export async function voicePitLines({ ids = [], onStep = () => {}, speak = generateSpeech, upload = uploadToR2, probe = probeAudioDuration, load = getCatLines, save = saveCatLines, loadVoice = loadMiaVoice } = {}) {
+export async function voicePitLines({ ids = [], onStep = () => {}, speak = generateSpeech, upload = uploadToR2, probe = probeAudioDuration, load = () => getCatLines({ fresh: true }), save = saveCatLines, loadVoice = loadMiaVoice } = {}) { // fresh: перед озвучкой читаем настройки с сервера (кэш сессии мог устареть)
   const lines = normalizeLines(await load())
   if (ids.some(isMiaLine)) await loadVoice() // голос Мии, выбранный в админке
   const failed = {}

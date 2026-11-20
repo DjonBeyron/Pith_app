@@ -93,7 +93,7 @@ describe('таблица и блок', () => {
     const h = html()
     expect(h).toContain(`Озвучено 1 из ${ALL}`); expect(h).toContain('data-testid="rv-voice-missing"'); expect(h).toContain(`Озвучить недостающие (${ALL - 1})`)
     expect(h).toContain('data-testid="rv-voice-all"'); expect(h).toContain('>Переозвучить все<')
-    for (const s of ['>озвучено<', '>нет озвучки<', '>текст изменён после озвучки<']) expect(h).toContain(s)
+    for (const s of ['>озвучено<', '>новая реплика<', '>текст изменён, озвучка старая<']) expect(h).toContain(s) // реплики без записи в настройках — «новая реплика» (аудит, v3.3.300), с записью без файла — «нет озвучки»
     expect(h.match(/data-testid="rv-row-/g)).toHaveLength(ALL); expect(h.match(/data-testid="rv-voice"/g)).toHaveLength(ALL) // реплики Мии — отдельный блок «Озвучка Мии» (v3.3.233), в таблице Пита их нет
     expect(h).toContain('value="новый текст"'); expect(h).toContain('>Переозвучить<'); expect(h).toContain('>Озвучить<')
   })

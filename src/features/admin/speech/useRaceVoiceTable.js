@@ -9,6 +9,7 @@ import { RACE_LINES } from '../../pitrace/raceLines.js'
 import { transKey } from '../../pitrace/raceTrans.js'
 import { RACE_PHRASE_RU_KEY, RACE_PHRASE_SCENE_KEY, meaningMap, mergeMeanings } from './racePhraseMeaning.js'
 import { saveLineText } from './raceLineText.js'
+import { auditVoice } from './voiceAudit.js'
 import { lineRows, meaningVoiceRows, sceneVoiceRows, transVoiceRows, wholeRows, miaRows } from './raceVoiceTable.js'
 import { MIA_LINES, isMiaLine } from '../../pitrace/mia/miaLines.js'
 
@@ -16,7 +17,7 @@ import { MIA_LINES, isMiaLine } from '../../pitrace/mia/miaLines.js'
 // смыслы, переводы и фразы целиком — библиотека слов word_audio (generateWordAudio, ключ ru:текст как у useTransVoice; фраза — phrase:<normText>, тот же английский голос диктора, что у слов). Каталог реплик берётся из raceLines.js как есть: новые реплики появляются в таблице сами.
 // После озвучки или правки текста зовётся onChange — блок поднимает linesRev модуля игры, и игра перечитывает реплики. Зависимости подставляются в тестах.
 const defaults = {
-  loadLines: getCatLines, cachedLines: getCachedCatLines, loadMeanings: () => getAppSetting(RACE_PHRASE_RU_KEY), saveMeanings: v => saveAppSetting(RACE_PHRASE_RU_KEY, v),
+  loadLines: () => getCatLines({ fresh: true }), cachedLines: getCachedCatLines, loadMeanings: () => getAppSetting(RACE_PHRASE_RU_KEY), saveMeanings: v => saveAppSetting(RACE_PHRASE_RU_KEY, v),
   loadScenes: () => getAppSetting(RACE_PHRASE_SCENE_KEY), saveScenes: v => saveAppSetting(RACE_PHRASE_SCENE_KEY, v),
   voiceLines: voicePitLines, voiceTexts: voiceMissingTexts, generate: generateWordAudio, saveText: saveLineText,
 }
@@ -25,6 +26,7 @@ export default function useRaceVoiceTable({ plan, list = RACE_LINES, onChange = 
   const d = { ...defaults, ...deps }
   const { loadLines, loadMeanings, loadScenes } = d
   const [lines, setLines] = useState(() => { const c = d.cachedLines(); return c ? normalizeLines(c) : null }) // прочитанные в сессии реплики — сразу, без «загружаю…»
+  const [raw, setRaw] = useState(() => d.cachedLines()) // сырые настройки реплик: аудит сверяет их с кодом (voiceAudit.js)
   const [lib, setLib] = useState(() => cachedWordAudio())
   const [saved, setSaved] = useState({})
   const [savedScene, setSavedScene] = useState({})
@@ -34,7 +36,7 @@ export default function useRaceVoiceTable({ plan, list = RACE_LINES, onChange = 
   const [errors, setErrors] = useState({})
   useEffect(() => {
     let live = true
-    Promise.resolve(loadLines()).then(raw => { if (live) setLines(normalizeLines(raw)) }).catch(() => { if (live) setLines(normalizeLines(null)) })
+    Promise.resolve(loadLines()).then(r => { if (live) { setRaw(r ?? null); setLines(normalizeLines(r)) } }).catch(() => { if (live) { setRaw(null); setLines(normalizeLines(null)) } })
     return () => { live = false }
   }, [loadLines, rev])
   useEffect(() => {
@@ -52,10 +54,11 @@ export default function useRaceVoiceTable({ plan, list = RACE_LINES, onChange = 
     return subscribeWordAudio(setLib)
   }, [])
 
+  const audit = useMemo(() => auditVoice(raw), [raw])
   const groups = useMemo(() => {
     const meanings = meaningVoiceRows(plan, saved, lib), scenes = sceneVoiceRows(plan, savedScene, lib)
-    return { whole: wholeRows(plan, lib), lines: lineRows(list, lines), mia: miaRows(MIA_LINES.filter(l => isMiaLine(l.id)), lines), pitMia: miaRows(MIA_LINES.filter(l => !isMiaLine(l.id)), lines), meanings, scenes, trans: transVoiceRows(plan, [...meanings, ...scenes], lib) }
-  }, [plan, saved, savedScene, lib, list, lines])
+    return { whole: wholeRows(plan, lib), lines: lineRows(list, lines, audit.byId), mia: miaRows(MIA_LINES.filter(l => isMiaLine(l.id)), lines, audit.byId), pitMia: miaRows(MIA_LINES.filter(l => !isMiaLine(l.id)), lines, audit.byId), meanings, scenes, trans: transVoiceRows(plan, [...meanings, ...scenes], lib) }
+  }, [plan, saved, savedScene, lib, list, lines, audit])
 
   /** Озвучить строки (любых групп) заново; ошибки — по строкам */
   const voice = useCallback(async rows => {
@@ -79,7 +82,7 @@ export default function useRaceVoiceTable({ plan, list = RACE_LINES, onChange = 
   const save = useCallback(async (row, text) => {
     setBusy(true); setErrors({})
     try {
-      if (row.group === 'line') setLines(await d.saveText(row.id, text))
+      if (row.group === 'line') { setLines(await d.saveText(row.id, text)); setRev(n => n + 1) } // перечитать сырые настройки: аудит увидит правку
       else if (row.group === 'scene') { const next = mergeMeanings(savedScene, { [row.phrase]: text }); await d.saveScenes(next); setSavedScene(next) }
       else { const next = mergeMeanings(saved, { [row.id]: text }); await d.saveMeanings(next); setSaved(next) }
       onChange()
@@ -87,5 +90,5 @@ export default function useRaceVoiceTable({ plan, list = RACE_LINES, onChange = 
     setBusy(false)
   }, [d.saveText, d.saveMeanings, d.saveScenes, saved, savedScene, onChange]) // eslint-disable-line react-hooks/exhaustive-deps -- см. выше
 
-  return { loaded: !!lines, groups, busy, step, errors, voice, save }
+  return { loaded: !!lines, audit, groups, busy, step, errors, voice, save }
 }

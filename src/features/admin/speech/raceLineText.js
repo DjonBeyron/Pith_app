@@ -12,7 +12,7 @@ export function editedLine(line, text) {
 }
 
 /** Сохранить текст реплики id; пустой текст — ошибка. → свежие реплики (normalizeLines) */
-export async function saveLineText(id, text, { load = getCatLines, save = saveCatLines } = {}) {
+export async function saveLineText(id, text, { load = () => getCatLines({ fresh: true }), save = saveCatLines } = {}) {
   if (!String(text ?? '').trim()) throw new Error('пустой текст')
   const lines = normalizeLines(await load())
   if (!lines[id]) throw new Error(`нет реплики ${id}`)

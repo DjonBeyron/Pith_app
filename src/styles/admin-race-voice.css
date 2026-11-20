@@ -11,7 +11,10 @@
 .rvStatus { flex: none; padding: 1px 6px; border-radius: 6px; font-size: 11px; }
 .rvStatus-ok { background: #1f3a28; color: #8fd6a2; }
 .rvStatus-none { background: #3d2620; color: #f0a58c; }
-.rvStatus-changed { background: #3b3520; color: #e8d27a; }
+.rvStatus-changed, .rvStatus-stale, .rvStatus-nodur { background: #3b3520; color: #e8d27a; }
+.rvStatus-new { background: #3d2620; color: #f0a58c; outline: 1px solid #f0a58c; }
+.rvNote { font-size: 11px; color: #e8d27a; margin: 2px 0 4px; word-break: break-word; }
+.rvAudit { margin: 6px 0; font-size: 12px; } .rvAudit summary { cursor: pointer; } .rvAudit ul { margin: 4px 0 0; padding-left: 16px; } .rvAudit code { font-size: 11px; }
 .rvDur { flex: none; color: #889; }
 .rvLabel { font-size: 12px; color: #aab; overflow-wrap: anywhere; }
 .rvEdit { display: flex; align-items: center; gap: 6px; min-width: 0; }
