@@ -7,8 +7,8 @@ export const DEFAULTS = { lang: 'en', mode: 'word', len: 'any', auto: true, auto
 
 /** Пресеты стенда (v3.3.303): одним тапом выставляют режим, язык, закреплённую фразу и «авто» — чтобы повторить конкретный случай из журнала */
 export const PRESETS = [
-  { id: 'skip-are-words', label: '«are» пропущено · по словам', set: { lang: 'en', mode: 'words', len: 'any', pin: 'Where are you from', auto: false } },
-  { id: 'skip-are-fast', label: '«are» пропущено · быстро', set: { lang: 'en', mode: 'fast', len: 'any', pin: 'Where are you from', auto: false } },
+  { id: 'skip-are-words', label: 'Where are you from · по словам (строго)', set: { lang: 'en', mode: 'words', len: 'any', pin: 'Where are you from', auto: false } },
+  { id: 'skip-are-fast', label: 'Where are you from · быстро', set: { lang: 'en', mode: 'fast', len: 'any', pin: 'Where are you from', auto: false } },
 ]
 
 const fit = (v, list, def) => (list.includes(v) ? v : def)

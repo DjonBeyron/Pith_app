@@ -8,7 +8,7 @@
 import { fillGoal } from './racePhraseFill.js'
 import { createPeek, lineReached } from './racePhrasePeek.js'
 import { createGlide } from './racePhraseGlide.js'
-import { createWrongWord } from './racePhraseWrongWord.js'
+import { createWrongWord, WRONG_GAP_MS } from './racePhraseWrongWord.js'
 import { createNudge } from './racePhraseNudge.js'
 import { phraseWords } from './racePhraseData.js'
 
@@ -24,7 +24,7 @@ export function createSayView({ pass, text, n, mask, log = () => {}, nudge = nul
   const glide = two ? createGlide({ n, log }) : null
   const wrong = createWrongWord({ words: phraseWords(text) }) // подпись неверного слова — в обоих проходах (v3.3.277: в проходе 2 её не было), рывок кромки — только в проходе 1
   const jerk = !two && nudge ? createNudge({ mark: nudge, el }) : null
-  let said = new Map()
+  let said = new Map(), jerkAt = -Infinity
   return {
     /** Слово цели услышано (gone — откат, проход 1): heard — Map номер слова → подтверждено ли (сцена уже обновила) */
     word(index, heard, t, gone = false) {
@@ -48,7 +48,8 @@ export function createSayView({ pass, text, n, mask, log = () => {}, nudge = nul
       let kw = 0; while (said.has(kw)) kw++ // первое несказанное слово — его и красим
       const mark = why => { if (mask?.missing?.(kw)) log(`[fill] ${why}: «${phraseWords(text)[kw] ?? ''}» красным`) } // v3.3.305 (владелец): над пилюлей ничего не пишем, ожидаемое слово — красным на своём месте
       if (shown) mark(`сказано «${shown}»`)
-      if (miss && !done) { jerk?.fire(); onWrong(miss.word, miss.expect); mark(`неверное слово «${miss.word}»`) } // неверное слово — рывок кромки и красное ожидаемое слово
+      if (miss && !done) { onWrong(miss.word, miss.expect); mark(`неверное слово «${miss.word}»`) } // неверное слово — красное ожидаемое слово
+      if ((shown || miss) && !done && t - jerkAt >= WRONG_GAP_MS) { jerkAt = t; jerk?.fire() } // и рывок кромки (проход 1) на КАЖДОЕ неверное слово, в том числе слово цели не на своём месте («you» вместо «are»): линия дёргается и возвращается (владелец v3.3.306)
     },
     edges: () => mask?.edges() ?? null,
     peekIndex: () => peek?.index() ?? -1,

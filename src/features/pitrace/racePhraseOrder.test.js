@@ -49,8 +49,7 @@ describe('слушатель прохода 1: по порядку и откат
     const c = chain(); await flush()
     c.r.cur().cb.onPartial('meet'); expect(c.line()).toBe(0); expect(c.states()).toBe('full hidden hidden hidden') // ложное «meet»: не белое, подсказки нет
     c.r.cur().cb.onPartial('nice'); expect(c.line()).toBe(0.38); expect(c.states()).toBe('full peek hidden hidden')
-    expect(c.r.words.slice(0, 3)).toEqual([{ phraseKey: P.meet.key, index: 2, text: 'meet', draft: true }, { phraseKey: P.meet.key, index: 2, text: 'meet', draft: true, gone: true }, { phraseKey: P.meet.key, index: 0, text: 'nice', draft: true }])
-    expect(c.r.logs.some(s => /^\[phrase-ear\] слово 3 «meet» откат \(nice to meet you\): в услышанном по порядку его нет \+\d+ мс$/.test(s))).toBe(true)
+    expect(c.r.words.slice(0, 1)).toEqual([{ phraseKey: P.meet.key, index: 0, text: 'nice', draft: true }]) // v3.3.306: «meet» вперёд не запоминается вовсе (строгая цепочка), поэтому и отката нет — первым событием сразу «nice»
     c.r.cur().cb.onPartial('nice to'); expect(c.line()).toBe(0.46); expect(c.states()).toBe('full full peek hidden') // раньше здесь 0,63: ложное «meet» засчитано
     c.r.cur().cb.onPartial('nice to meet'); expect(c.line()).toBe(0.63); expect(c.states()).toBe('full full full peek') // «meet» сказано — белеет и линия идёт
     c.r.cur().cb.onPartial('nice to meet you'); expect(c.r.got).toEqual([{ phraseKey: P.meet.key, ratio: 1, heard: 'nice to meet you' }]); expect(c.line()).toBe(1)
@@ -71,8 +70,8 @@ describe('слушатель прохода 1: по порядку и откат
     c.r.cur().cb.onPartial('meet'); expect(c.r.words.some(e => e.gone)).toBe(false); expect(c.line()).toBe(0.63) // «meet» после подтверждённых «nice to» — на своём месте
     c.r.l.stop()
     const q = chain(); await flush()
-    await end(q.r, 'meet', 10); expect(q.r.words).toEqual([{ phraseKey: P.meet.key, index: 2, text: 'meet', draft: true }]) // шум итогом «meet» — не подтверждён (не на своём месте)
-    q.r.cur().cb.onPartial('nice to'); expect(q.r.words.some(e => e.index === 2 && e.gone)).toBe(true); expect(q.line()).toBe(0.46)
+    await end(q.r, 'meet', 10); expect(q.r.words).toEqual([]) // шум итогом «meet» — слово не на своём месте, не запоминается (v3.3.306)
+    q.r.cur().cb.onPartial('nice to'); expect(q.r.words.some(e => e.index === 2)).toBe(false); expect(q.line()).toBe(0.46)
     q.r.l.stop()
   })
   it('порядок: «to nice» — только «nice»; проход 2 — как раньше, без отката и без порядка', async () => {
