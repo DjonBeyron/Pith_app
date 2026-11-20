@@ -1,0 +1,46 @@
+[21:33:36.092] [DB READ] curricula list
+[21:33:36.093] [DB READ] app_settings prompt_control
+[21:33:36.094] [DB READ] app_settings ui_sound_volume eq_sensitivity
+[21:33:36.094] [DB READ] app_settings feed_signals
+[21:33:36.095] [AUTH] event: INITIAL_SESSION accuratekemper@gmail.com
+[21:33:36.095] [AUTH] event: INITIAL_SESSION accuratekemper@gmail.com
+[21:33:36.095] [AUTH] event: INITIAL_SESSION accuratekemper@gmail.com
+[21:33:36.095] [AUTH] event: INITIAL_SESSION accuratekemper@gmail.com
+[21:33:36.095] [AUTH] event: INITIAL_SESSION accuratekemper@gmail.com
+[21:33:36.095] [AUTH] event: INITIAL_SESSION accuratekemper@gmail.com
+[21:33:36.095] [AUTH] event: INITIAL_SESSION accuratekemper@gmail.com
+[21:33:36.095] [AUTH] event: INITIAL_SESSION accuratekemper@gmail.com
+[21:33:36.095] [AUTH] event: INITIAL_SESSION accuratekemper@gmail.com
+[21:33:36.095] [AUTH] event: INITIAL_SESSION accuratekemper@gmail.com
+[21:33:36.095] [AUTH] event: INITIAL_SESSION accuratekemper@gmail.com
+[21:33:36.095] [AUTH] restore: user accuratekemper@gmail.com
+[21:33:36.095] [AUTH] restore: user accuratekemper@gmail.com
+[21:33:36.095] [AUTH] restore: user accuratekemper@gmail.com
+[21:33:36.095] [AUTH] restore: user accuratekemper@gmail.com
+[21:33:36.095] [AUTH] restore: user accuratekemper@gmail.com
+[21:33:36.095] [AUTH] restore: user accuratekemper@gmail.com
+[21:33:36.095] [AUTH] restore: user accuratekemper@gmail.com
+[21:33:36.095] [AUTH] restore: user accuratekemper@gmail.com
+[21:33:36.095] [AUTH] restore: user accuratekemper@gmail.com
+[21:33:36.095] [AUTH] restore: user accuratekemper@gmail.com
+[21:33:36.095] [AUTH] restore: user accuratekemper@gmail.com
+[21:33:36.102] [DB RPC] set_prompt_group
+[21:33:36.102] [AUTH] event: INITIAL_SESSION accuratekemper@gmail.com
+[21:33:36.102] [AUTH] restore: user accuratekemper@gmail.com
+[21:33:36.450] [RATING] топ: 15 строк лидер: Eеуууу (8960 XP)
+[21:33:36.466] [DB OK] curricula loaded 8 rows
+[21:33:36.467] [RATING] мои достижения: journey_start, level10, clean_final
+[21:33:36.485] [RATING] моё место: 3 из 15
+[21:33:36.519] [STREAK] touch_daily_login → {"ok":true,"today":"2026-11-20","is_pro":true,"streak":0,"longest":190,"saved_by":null,"first_today":false,"pro_weekday_used":false,"has_freeze_charge":false,"auto_freeze_charges_left":0}
+[21:33:36.537] [RACE] гонок с датами: 1 → выбрана: «Новая гонка» 2026-10-09T14:00:00+00:00 — 2026-10-11T13:59:00+00:00
+[21:33:36.538] [RACE-POPUP] проверка: фаза ended | юзер: есть | итоги видел: false
+[21:33:36.738] [RACE] моя запись в гонке: нет
+[21:33:36.738] [RACE] состояние: фаза ended, модули: нет
+[21:33:36.750] [RACE] моя запись в гонке: нет
+[21:33:36.750] [RACE-POPUP] итоги не показываем: не финишировал
+[21:33:36.750] [RACE-POPUP] анонс: неделя 2026-11-16 | модуль пройден: — | анонс показан: — → нет
+[21:33:37.112] [DB READ] app_settings race_mia_voice
+[21:33:37.112] [DB READ] app_settings rotate_cat_lines
+[21:33:37.113] [DB READ] app_settings race_phrase_ru
+[21:33:37.113] [DB READ] app_settings race_phrase_scene
+[21:33:37.114] [DB READ] app_settings game2_phrases
