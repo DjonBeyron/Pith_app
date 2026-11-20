@@ -3,6 +3,7 @@ import { strictHits } from './racePhraseScore.js'
 import { rig, flush, end } from './racePhraseListenRig.js'
 import { createWrongWord, TAIL_STABLE_MS } from './racePhraseWrongWord.js'
 import { TAIL_HOLD_MS } from './racePhraseTailHold.js'
+import { UNK_FINAL_MS } from './racePhraseListen.js'
 
 // Журнал владельца 2026-11-20 (v3.3.313, iPhone, «Подборка 24 фразы · по словам»), пункты 7, 11, 12 его списка.
 const PARK = { key: 'park', words: ["Let's", 'go', 'to', 'the', 'park', 'tomorrow'] }
@@ -65,5 +66,20 @@ describe('п. 11 и ложное красное: неверное слово п�
     const w = createWrongWord({ words: ['Where', 'are', 'you', 'from'] }), said = new Map()
     w.ear({ kind: 'partial', text: 'where' }); said.set(0, false); w.check(said, 0); w.check(said, 400); expect(w.shown()).toBeNull()
     w.ear({ kind: 'partial', text: 'where are' }); said.set(1, false); w.check(said, 500); w.check(said, 900); expect(w.shown()).toBeNull()
+  })
+})
+
+describe('журнал 22:48 (v3.3.314): «первое слово не засчитывалось вообще, потом засчитало сразу два слова»', () => {
+  it('чужое слово («[unk]»), потом «where» в том же заходе: черновиком не принимаем, но через UNK_FINAL_MS просим итог — «where» засчитано одно, без «are»', async () => {
+    const FROM = { key: 'from', words: ['Where', 'are', 'you', 'from'] }
+    const r = rig([FROM], { wordByWord: true }); await flush()
+    r.cur().cb.onPartial('[unk]'); r.cur().cb.onPartial('[unk] where')
+    expect(r.words).toEqual([]); expect(r.cur().stopped).toBe(0)
+    r.advance(UNK_FINAL_MS - 10); expect(r.cur().stopped).toBe(0)
+    r.advance(10); expect(r.cur().stopped).toBe(1) // раньше заход висел, пока Vosk сам не закроет: 13 с повторов «where»
+    expect(r.logs.some(l => l.includes('прошу итог захода'))).toBe(true)
+    await end(r, '[unk] where', 10)
+    expect(r.words.filter(w => !w.gone).map(w => w.index)).toEqual([0])
+    r.l.stop()
   })
 })
