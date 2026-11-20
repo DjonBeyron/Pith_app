@@ -94,7 +94,7 @@ describe('журнал владельца 15:12: слова «вперёд» и�
   })
 })
 
-describe('громкое «is» вместо «are»: Vosk отдаёт его как «[unk]» — это неверное слово', () => {
+describe('громкое «is» вместо «are»: Vosk отдаёт его как «[unk]» — это неверное слово (только после настоящего слова захода)', () => {
   it('«where [unk]» → красное «are» и рывок (раньше [unk] отбрасывался, и «where is» молча оставалось без реакции)', () => {
     const mask = mountMask(null, 'Where are you from'), jerks = []
     const sv = createSayView({ pass: 1, text: 'Where are you from', n: 4, mask, nudge: on => on && jerks.push(1), el: null })
@@ -113,6 +113,14 @@ describe('рывок: красная заливка от линии до 90 % и
     n.fire(0.95); expect(vars['--nw']).toBe('6'); n.fire(); expect(vars).toEqual({ '--nf': '0', '--nw': '90' })
     expect(NUDGE_TO).toBe(90); expect(NUDGE_MS).toBe(520)
     const css = (await import('node:fs')).readFileSync(new URL('../../styles/player/modules/word-lane-wide-fill.css', import.meta.url), 'utf8')
-    expect(css).toContain('@keyframes wlNudgeFill'); expect(css).toContain('.wlPillSparks::before'); expect(css).toContain('animation: wlNudgeFill 0.52s both')
+    expect(css).toContain('@keyframes wlNudgeFill'); expect(css).toContain('@keyframes wlNudgeInk'); expect(css).toContain('animation: wlNudgeFill 0.52s both'); expect(css).not.toContain('.wlPillSparks::before') // v3.3.308: красная жидкость самой пилюли, отдельного слоя-«свечения» нет
+  })
+})
+
+describe('одинокий «[unk]» — шум, не неверное слово (журнал 15:27: красное и рывок из тишины)', () => {
+  it('«[unk]» без слова перед ним и «[unk] [unk]» — ничего; «where [unk]» — красное «are»', () => {
+    const run = raw => { const mask = mountMask(null, 'Where are you from'), jerks = [], sv = createSayView({ pass: 1, text: 'Where are you from', n: 4, mask, nudge: on => on && jerks.push(1), el: null }); sv.ear({ kind: 'partial', text: '', raw }); sv.frame(1000, false, 0); sv.frame(1300, false, 0); return [mask.words()[0].state, jerks.length] }
+    expect(run('[unk]')).toEqual(['full', 0]); expect(run('[unk] [unk]')).toEqual(['full', 0])
+    expect(run('where [unk]')[1]).toBe(1)
   })
 })

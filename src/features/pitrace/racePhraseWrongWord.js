@@ -33,7 +33,8 @@ export function createWrongWord({ words, gap = WRONG_GAP_MS }) {
   return {
     ear(e) {
       if (e?.kind !== 'partial' && e?.kind !== 'final') return
-      const ws = String(e.raw ?? e.text ?? '').toLowerCase().split(/\s+/).filter(Boolean) // «[unk]» остаётся: слово вне словаря (громкое «is» вместо «are») — неверное слово (v3.3.307)
+      let real = false
+      const ws = String(e.raw ?? e.text ?? '').toLowerCase().split(/\s+/).filter(w => { if (!w) return false; if (w !== '[unk]') { real = true; return true } return real }) // «[unk]» — слово вне словаря (громкое «is» вместо «are» → «where [unk]») — неверное слово, но только ПОСЛЕ настоящего слова захода: одинокий «[unk]» — шум (журнал v3.3.307: «[unk]» из тишины дал красное и рывок без единого слова)
       if (ws[0] !== first) { seen = 0; first = ws[0] ?? null } // новый заход (или Vosk переписал начало)
       const done = e.kind === 'final' ? ws.length : ws.length - 1
       for (let i = seen; i < done; i++) queue.push({ w: ws[i], prev: ws[i - 1] ?? null, next: ws[i + 1] ?? null })
