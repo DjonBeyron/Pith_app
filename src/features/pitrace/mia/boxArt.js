@@ -55,9 +55,10 @@ const hsh = n => { const x = Math.sin(n * 127.1) * 43758.5453; return x - Math.f
 const eyesRaw = kit.states.base.eyes.replace(/\sdata-[xy]="[^"]*"/g, '')
 const cut = eyesRaw.indexOf('<path d="M432.7 305.5')
 const four = m => m.match(/<path[^>]*\/>/g) ?? []
-const eyeMarkup = (p, dx) => p[0] + p[1] + `<g transform="translate(${dx} 0)"><g class="bxPupil" style="transform-box:fill-box;transform-origin:50% 50%">` + p[2] + '</g>' + p[3] + '</g>' // зрачок и блик — по центру радужки: взгляд вдоль нормали грани; зрачок в своей группе — сжимается, когда слово в красной зоне
+const PUPIL_RANGE = 15 // насколько зрачок с бликом уходит в радужке при взгляде вбок (gaze ±1), ед. исходного глаза: радужка радиусом ≈49, зрачок ≈25, у края остаётся тёмная кайма
+const eyeMarkup = (p, dx) => p[0] + p[1] + `<g class="bxGaze" data-dx="${dx}" transform="translate(${dx} 0)"><g class="bxPupil" style="transform-box:fill-box;transform-origin:50% 50%">` + p[2] + '</g>' + p[3] + '</g>' // зрачок и блик — по центру радужки: взгляд вдоль нормали грани; зрачок в своей группе — сжимается, когда слово в красной зоне
 
-/** Коробка: { el, update } — el — <g> в координатах рисунка; update({ thNear, thFar, open, look, scale, pupil, talk, t }) — угол клапанов (°), раскрытость глаз 0…1, взгляд (ед. грани), рост глаз, громкость речи 0…1, время (с) */
+/** Коробка: { el, update } — el — <g> в координатах рисунка; update({ thNear, thFar, open, look, gaze, scale, pupil, talk, t }) — угол клапанов (°), раскрытость глаз 0…1, взгляд (ед. грани), рост глаз, громкость речи 0…1, время (с) */
 export function createBox(uid = 'wlMia') {
   const g = mk('g')
   const defs = mk('defs', {}, g)
@@ -79,8 +80,8 @@ export function createBox(uid = 'wlMia') {
   const eyeL = mk('g', {}, eyes), eyeR = mk('g', {}, eyes)
   eyeL.innerHTML = eyeMarkup(four(eyesRaw.slice(0, cut)), -8.2); eyeR.innerHTML = eyeMarkup(four(eyesRaw.slice(cut)), 10)
   fl.nearL = mk('path', {}, g); fl.nearR = mk('path', {}, g)                 // ближние клапаны поверх граней: задранные закрывают низ
-  const pupils = [...eyeL.querySelectorAll('.bxPupil'), ...eyeR.querySelectorAll('.bxPupil')]
-  let lastStep = -1, lastPupil = 1
+  const pupils = [...eyeL.querySelectorAll('.bxPupil'), ...eyeR.querySelectorAll('.bxPupil')], gazeGs = [...eyeL.querySelectorAll('.bxGaze'), ...eyeR.querySelectorAll('.bxGaze')]
+  let lastStep = -1, lastPupil = 1, lastGaze = 0
   const eye = (el, cx, csrc, s) => el.setAttribute('transform', `translate(${f2(cx + (s.look || 0))} ${f2(CY0)}) scale(${(SX * (s.scale || 1)).toFixed(4)} ${(SY * Math.max(0.02, s.open) * (s.scale || 1)).toFixed(4)}) translate(-${csrc} -305.6)`)
   function update(s) {
     const f = flaps(s.thNear, s.thFar), tn = s.thNear * D, tf = s.thFar * D
@@ -91,6 +92,8 @@ export function createBox(uid = 'wlMia') {
     const on = s.open > 0.01
     eyes.setAttribute('display', on ? 'inline' : 'none')
     if (on) { eye(eyeL, CX - HALF, 200.9, s); eye(eyeR, CX + HALF, 383.2, s) }
+    const gz = Math.round((s.gaze ?? 0) * 100) / 100
+    if (gz !== lastGaze) { lastGaze = gz; gazeGs.forEach(x => x.setAttribute('transform', `translate(${(+x.dataset.dx + gz * PUPIL_RANGE).toFixed(2)} 0)`)) } // взгляд: зрачок и блик едут внутри радужки (gaze −1…1, минус — влево)
     const pu = s.pupil ?? 1
     if (pu !== lastPupil) { lastPupil = pu; pupils.forEach(x => { x.style.transform = pu === 1 ? '' : `scale(${pu.toFixed(3)})` }) } // зрачки: 1 — обычные, меньше — сжаты (слово в красной зоне, Пит испугался)
     const talk = s.talk || 0, step = Math.floor((s.t || 0) * 12)               // звуковые линии (замена рта Пита): комикс-штрихи в плоскости грани, 12 кадров/с

@@ -8,7 +8,7 @@ import { useMiaLife } from '../player/modules/rotate-phone/useMiaLife.js'
 import { isWeakDevice } from '../../shared/lib/deviceTier.js'
 import { createBox, ART } from './mia/boxArt.js'
 import { arrivalAt, leaveAt, flightPath, talkLevel, soloLeave, panicAt, PANIC_LEN, SOLO, ARR } from './mia/miaMotion.js'
-import { readPills, pickPill, stepGaze } from './mia/miaGaze.js'
+import { GAZE, readPills, pickPill, stepGaze } from './mia/miaGaze.js'
 import { layoutOf, artMatrix, toScene, poseApply, poseSvg, poseOfMotion, miaCss, MIA_W, MIA_H } from './mia/miaLayout.js'
 
 // Эпизод «Мия» поверх сцены игры (.wlStage, прототип 2026-11-14): картонная коробка падает на голову Пита (его голова скрыта, в прорези коробки — глаза Пита, совмещённые
@@ -74,7 +74,7 @@ export default function RaceMia({ mia, caption = null, talk = null, alarm = null
       if (tk > 0.04) talkUntil = now + 350 // Пит говорит — смотрит прямо (по перспективе чуть влево); паузы между слогами не считаются концом речи
       gz = stepGaze(gz, { pill: gzPill, talking: now < talkUntil && !leaving, dt: c.paused || leaving ? 0 : dt })
       const rave = c.mode === 'rave' ? panicAt(c.rv) : null // метание после ухода Мии
-      box.update({ ...m.eyes, look: (m.eyes.look ?? 0) * (1 - gz.w) + gz.look * (leaving ? 0 : 1) + (rave ? 5 * rave.vn : 0) + (fear ? Math.sin(sc * 38) * 1.6 * fear : 0), scale: (m.eyes.scale ?? 1) * (rave ? 1 + 0.1 * Math.abs(rave.vn) : 1), pupil: (m.eyes.pupil ?? 1) * (1 - 0.58 * fear), thNear: m.box.thNear, thFar: m.box.thFar, talk: tk, t: tt, live: true })
+      box.update({ ...m.eyes, look: (m.eyes.look ?? 0) * (1 - gz.w) + gz.look * GAZE.EYE_PART * (leaving ? 0 : 1) + (rave ? 5 * rave.vn : 0) + (fear ? Math.sin(sc * 38) * 1.6 * fear : 0), gaze: leaving ? 0 : gz.look / GAZE.MAX, scale: (m.eyes.scale ?? 1) * (rave ? 1 + 0.1 * Math.abs(rave.vn) : 1), pupil: (m.eyes.pupil ?? 1) * (1 - 0.58 * fear), thNear: m.box.thNear, thFar: m.box.thFar, talk: tk, t: tt, live: true })
       const pose = poseOfMotion(m.box, L)
       if (rave) { pose.dx += rave.x * L.f; pose.rot += rave.vn * 7; pose.sx *= 1 + 0.04 * Math.abs(rave.vn) } // Пит мечется из стороны в сторону, как при падении коробки (miaMotion.panicAt)
       if (c.mode === 'stuck') { const k = Math.max(0, 1 - (now - hitAt.current) / 280); pose.dx += 3.4 * k * Math.sin(2 * Math.PI * 21 * tt) * L.f; pose.rot += 0.9 * k * Math.sin(2 * Math.PI * 17 * tt + 1) } // стоит ровно по центру; на касание коробка вздрагивает
