@@ -176,7 +176,7 @@ export function createPhraseListener({ phrases: phrasesIn, lang = 'en', getStrea
 
   function onDebug(kind, data, mine) {
     if (disposed || mine !== gen) return
-    if (kind === 'level') { onLevel?.(data, !!isHeld()); if (!isHeld()) hold.level(data); if ((voice.push(data).voice || data >= GATE_RMS) && !isHeld()) { // голос — как у затвора тишины (voskVoice.js: порог от шума микрофона; тихая речь iPhone 0,003–0,005 — тоже голос)
+    if (kind === 'level') { onLevel?.(data, !!isHeld()); const spoke = voice.push(data).voice; if (!isHeld()) hold.level(data, spoke); if ((spoke || data >= GATE_RMS) && !isHeld()) { // голос — как у затвора тишины (voskVoice.js: порог от шума микрофона; тихая речь iPhone 0,003–0,005 — тоже голос)
       if (firstAt != null && voiceAt > -Infinity) pauseMax = Math.max(pauseMax, now() - voiceAt); voiceAt = now(); if (settleTimer && settleLast) settle(SETTLE_LAST_MS, mine) } return } // голос: недосказанное последнее слово ещё может прийти
     if (kind === 'gate') { log(`[gate] ${data?.open ? 'открыт' : 'закрыт'} ${rel()} (rms ${(Number(data?.rms) || 0).toFixed(3).replace('.', ',')})`); onEar?.({ kind, open: !!data?.open, rms: data?.rms }); gateOpen = !!data?.open; gateFinal(gateOpen, mine); mute(mine, !gateOpen); return }
     if (kind === 'partial-same') { const text = clean(data?.raw); if (text && !isHeld() && now() - sameAt >= SAME_LOG_MS) { sameAt = now(); log(`[phrase-ear] partial без изменений «${text}» ${rel()}`) } if (muteTimer) mute(mine, !gateOpen); return }
@@ -184,7 +184,7 @@ export function createPhraseListener({ phrases: phrasesIn, lang = 'en', getStrea
       if (isHeld()) return // говорит Пит: его голос из динамика — не ученик
       const text = clean(data?.raw)
       if (kind === 'partial' && !text) return
-      if (wordByWord && text && hold.noise()) { if (!noiseLogged) { noiseLogged = true; log(`[phrase-ear] «${text}» проигнорировано: громкость захода ${hold.peak().toFixed(4).replace('.', ',')} ниже ${String(PEAK_MIN).replace('.', ',')} — это шум, не речь ${rel()}`) } return } // v3.3.310: шум громкостью 0,003 Vosk читал как «where» и линия прыгала
+      if (wordByWord && text && hold.noise()) { if (!noiseLogged) { noiseLogged = true; log(`[phrase-ear] «${text}» проигнорировано: громкость захода ${hold.peak().toFixed(4).replace('.', ',')} ${hold.peak() < PEAK_MIN ? `ниже ${String(PEAK_MIN).replace('.', ',')}` : 'не громче фона микрофона (голоса в заходе не было)'} — это шум, не речь ${rel()}`) } return } // v3.3.310: шум громкостью 0,003 Vosk читал как «where» и линия прыгала
       onEar?.({ kind, text, raw: String(data?.raw ?? '').toLowerCase().trim() }) // raw — с «[unk]»: Vosk отдаёт сказанное вне словаря (громкое «is» вместо «are») как «[unk]» — это неверное слово (racePhraseWrongWord)
       if (text) firstAt ??= now()
       if (kind === 'final' || current !== text) { sameAt = now(); log(`[phrase-ear] ${kind === 'partial' ? 'черновик' : 'итог'} «${text}» ${kind === 'final' && data?.stopBy ? `(${STOP_BY[data.stopBy] ?? data.stopBy}) ` : ''}${rel()}`) } // кто закрыл заход: «движок сам» — эндпойнтер Vosk, «кнопка «Стоп»» — наш ear.stop, «авто-стоп» — 3,5 с без новых слов

@@ -6,7 +6,7 @@ import { SETTLE_WBW_MS, JOIN_MS, JOIN_WBW_MS } from './racePhraseListen.js'
 
 // Ранние итоги захода в проходе 1 «по слову», пустой черновик и «Vosk молчит» (racePhraseEarlyFinal.js, журнал владельца v3.3.174, iPhone).
 const asked = r => r.logs.filter(s => /прошу итог захода|итог запрошен/.test(s))
-const voice = r => r.cur().cb.onLevel(0.05)
+const voice = r => { r.cur().cb.onLevel(0.001); r.cur().cb.onLevel(0.05) } // фон, потом речь: голос считает детектор voskVoice относительно фона (v3.3.316)
 
 /** Ход 1/6 владельца: «nice» … «to» (пауза 2,4 с) … «meet» … «you», затвор закрывается после каждого слова */
 async function slow(r) {

@@ -83,3 +83,21 @@ describe('журнал 22:48 (v3.3.314): «первое слово не засч
     r.l.stop()
   })
 })
+
+describe('журнал 23:18 (v3.3.315): «первое слово само засчитала» — Vosk прочитал фон комнаты 0,007–0,011 как «where»', () => {
+  const FROM = { key: 'from', words: ['Where', 'are', 'you', 'from'] }
+  it('фон выше старого порога 0,008, голоса в заходе нет — «where» не принято ни черновиком, ни итогом, красного «голос без слова» тоже нет', async () => {
+    const r = rig([FROM], { wordByWord: true }); await flush()
+    for (const v of [0.0069, 0.007, 0.0089, 0.0066, 0.0091, 0.0076, 0.0107, 0.0112]) r.cur().cb.onLevel(v) // уровни из журнала 36996–37892
+    r.cur().cb.onPartial('where'); expect(r.words).toEqual([])
+    expect(r.logs.some(l => l.includes('это шум, не речь'))).toBe(true)
+    await end(r, '', 10); expect(r.hears.some(h => h.kind === 'wrong')).toBe(false)
+    r.l.stop()
+  })
+  it('тот же фон, потом речь 0,11–0,15 — «where» принято', async () => {
+    const r = rig([FROM], { wordByWord: true }); await flush()
+    for (const v of [0.0069, 0.007, 0.0089, 0.0094, 0.1136, 0.1482, 0.0697]) r.cur().cb.onLevel(v)
+    r.cur().cb.onPartial('where'); expect(r.words.map(w => w.index)).toEqual([0])
+    r.l.stop()
+  })
+})

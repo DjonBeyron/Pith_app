@@ -53,7 +53,7 @@ describe('журнал 19:12: последнее слово, говорят др
   }
   it('осталось «from», сказано другое (итог «[unk]» при голосе 0,03): слушатель шлёт ear {kind: wrong}; тишина (пик 0,001) — нет', async () => {
     const r = await toLast()
-    for (const v of [0.03, 0.04, 0.03, 0.02]) voice(r, v)
+    for (const v of [0.001, 0.03, 0.04, 0.03, 0.02]) voice(r, v) // фон, потом речь (v3.3.316: голос — относительно фона)
     r.cur().cb.onPartial('where'); await end(r, '[unk]', 300)
     expect(r.hears.some(h => h.kind === 'wrong')).toBe(true); expect(r.logs.some(l => l.includes('без нового слова цели'))).toBe(true)
     const q = await toLast(); for (const v of [0.001, 0.001, 0.001, 0.001]) voice(q, v)
