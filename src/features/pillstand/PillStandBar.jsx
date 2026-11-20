@@ -1,5 +1,5 @@
 import { X } from 'lucide-react'
-import { MODES, LANGS, LENS } from './pillStandPick.js'
+import { MODES, LANGS, LENS, mixList } from './pillStandPick.js'
 import { AUTO_MS, PRESETS } from './pillStandPrefs.js'
 import { STAND_PHRASES } from './pillStandData.js'
 
@@ -43,6 +43,7 @@ export default function PillStandBar({ s, r, viewing, onClose, onView, onVoiceSe
       </div>
       <div className="psRow psRow--small">
         <label className="psSeed">сид <input value={s.seed} onChange={e => s.setSeed(e.target.value)} spellCheck={false} autoCapitalize="off" data-testid="ps-seed" /></label>
+        <label className="psAuto"><input type="checkbox" checked={prefs.mix} onChange={e => setPrefs({ mix: e.target.checked, pin: '' })} data-testid="ps-mix" /> подборка{prefs.mix ? ` ${(s.target.n % Math.max(1, mixList(prefs.mode, prefs.lang).length)) + 1}/${mixList(prefs.mode, prefs.lang).length}` : ''}</label>
         <label className="psAuto"><input type="checkbox" checked={prefs.auto} onChange={e => setPrefs({ auto: e.target.checked })} data-testid="ps-auto" /> авто</label>
         <select className="psSel" value={prefs.autoMs} onChange={e => setPrefs({ autoMs: Number(e.target.value) })} aria-label="Пауза до следующей" data-testid="ps-auto-ms">{AUTO_MS.map(v => <option key={v} value={v}>{String(v / 1000).replace('.', ',')} с</option>)}</select>
         <span className="psModel" data-ready={model.ready ? '1' : undefined} data-testid="ps-model">{model.switching ? 'переключаю слух…' : model.ready ? `${prefs.lang.toUpperCase()} готов` : `${prefs.lang.toUpperCase()}: ${model.failed || model.stage}`}</span>

@@ -2,7 +2,7 @@
 // Режим 'word' — вертикальная пилюля слова (проход A / B «Пинг-понга»), 'words' — фраза по словам (проход 1 «Скажи»), 'fast' — фраза быстро (проход 2). Язык 'en' — говорят по-английски, на пилюле
 // перевод (у вертикальной) или сама фраза; 'ru' — говорят по-русски. Длина: 'short' — слово до 6 букв / фраза до 3 слов, 'long' — длиннее, 'any' — все. Чистые функции.
 import { rngFor, rngInt } from '../rehearsal/rehearsalSeed.js'
-import { STAND_WORDS, STAND_PHRASES } from './pillStandData.js'
+import { STAND_WORDS, STAND_PHRASES, STAND_MIX } from './pillStandData.js'
 
 export const MODES = ['word', 'words', 'fast']
 export const LANGS = ['en', 'ru']
@@ -38,6 +38,14 @@ export function targetIndex({ seed, n, mode, lang, len, size }) {
   return i
 }
 
+/** Подборка (v3.3.312): слова — все по порядку списка, фразы — STAND_MIX по порядку; [{ say, shown, other? }] */
+export function mixList(mode, lang) {
+  const all = candidates(mode, lang)
+  if (mode === 'word') return all
+  const keyOf = c => String(lang === 'ru' ? c.other : c.say).toLowerCase()
+  return STAND_MIX.map(en => all.find(c => keyOf(c) === en.toLowerCase())).filter(Boolean)
+}
+
 /** Закреплённая фраза (v3.3.303, пресеты стенда): pin — английский текст фразы; только для режимов-фраз; нет такой — null (цель по сиду) */
 export function pinned(mode, lang, pin) {
   if (!pin || mode === 'word') return null
@@ -45,9 +53,10 @@ export function pinned(mode, lang, pin) {
   return candidates(mode, lang).find(c => String(lang === 'ru' ? c.other : c.say).toLowerCase() === key) ?? null
 }
 
-/** Цель номер n сессии: { n, mode, lang, len, seed, say, shown, words } — words — сколько слов говорить. pin — закреплённая фраза: тогда каждая цель — она (чтобы повторять один случай) */
-export function pickTarget({ seed, n = 0, mode = 'word', lang = 'en', len = 'any', pin = '' }) {
+/** Цель номер n сессии: { n, mode, lang, len, seed, say, shown, words } — words — сколько слов говорить. pin — закреплённая фраза: тогда каждая цель — она (чтобы повторять один случай); mix — подборка по порядку (mixList) */
+export function pickTarget({ seed, n = 0, mode = 'word', lang = 'en', len = 'any', pin = '', mix = false }) {
   const list = pool(mode, lang, len)
-  const c = pinned(mode, lang, pin) ?? list[targetIndex({ seed, n, mode, lang, len, size: list.length })]
+  const mixed = mix && !pin ? mixList(mode, lang) : null // подборка по порядку: цель n — n-я из списка (по кругу)
+  const c = pinned(mode, lang, pin) ?? (mixed?.length ? mixed[n % mixed.length] : null) ?? list[targetIndex({ seed, n, mode, lang, len, size: list.length })]
   return { n, mode, lang, len, seed: String(seed), say: c.say, shown: c.shown, ...(c.other ? { other: c.other } : {}), words: count(c.say) }
 }
