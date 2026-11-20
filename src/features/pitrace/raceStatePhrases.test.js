@@ -91,7 +91,9 @@ describe('голос Пита на ходах (racePhraseVoice)', () => {
   })
   it('верно — фраза и «да, это оно»; ошибка — «нет, это про другое», верная фраза и её смысл; «не успел» — верная фраза; целая озвучка — один файл', () => {
     const a = make(); a.v.react('win', { mode: 'pick', target: learn }); a.flush(); expect(a.said).toEqual(["en:I'm", 'en:trying', 'en:to', 'en:learn', 'line:race_phrase_yes'])
-    const b = make(); b.v.react('miss', { mode: 'pick', target: { ...nice, audio: { url: 'u', duration: 1 } } }); b.flush(); expect(b.said).toEqual(['line:race_phrase_no', 'audio:u', `ru:${nice.ru}`])
+    const b = make(); b.v.react('miss', { mode: 'pick', target: { ...nice, audio: { url: 'u', duration: 1 } } }); b.flush(); expect(b.said).toEqual(['line:race_phrase_no', 'audio:u', `ru:${nice.scene}`]) // круг 1: после верной фразы — её ситуация; смысл «скажи, что…» не говорим (v3.3.302)
+    const b2 = make(); b2.v.react('miss', { mode: 'pick', target: { ...nice, scene: '', audio: { url: 'u', duration: 1 } } }); b2.flush(); expect(b2.said).toEqual(['line:race_phrase_no', 'audio:u']) // ситуации нет — тишина
+    const b3 = make(); b3.v.react('miss', { mode: 'hear', target: { ...nice, audio: { url: 'u', duration: 1 } } }); b3.flush(); expect(b3.said).toEqual(['line:race_phrase_no', 'audio:u', `ru:${nice.ru}`]) // «Узнай» (hear): выбирают смысл, его читаем как раньше
     const c = make(); c.v.react('fail', { mode: 'say', target: from }); c.flush(); expect(c.said).toEqual(['en:Where', 'en:are', 'en:you', 'en:from'])
   })
   it('цепочка ждёт, пока Пит освободится, и держит его занятым (left); stop обрывает', () => {

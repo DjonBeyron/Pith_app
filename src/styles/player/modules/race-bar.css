@@ -13,7 +13,7 @@
   transition: opacity 0.35s ease;
 }
 .raceBar[data-on] { opacity: 1; transition: none; } /* включается сразу: бар заставки под ним уже полный на том же месте, подхват без мигания; гаснет плавно (transition выше) */
-.raceBarTrack { position: absolute; inset: 0; border-radius: 999px; overflow: hidden; background: rgba(255, 255, 255, 0.1); }
+.raceBarTrack { position: absolute; inset: 0; border-radius: 999px; overflow: hidden; background: rgba(255, 255, 255, 0.244); } /* v3.3.302 (владелец: «пустой бар сверху то тусклее, то ярче»): подложка бара заставки — ореол .16 + дорожка .1 друг на друге = 0,244; у бара в игре была одна дорожка .1, и при смене бара заставки на игровой пустой бар скачком темнел / светлел. Теперь одинаково */
 .raceBarSeg { position: absolute; top: 0; bottom: 0; transform-origin: left center; transition: transform 0.3s ease, opacity 0.3s ease; }
 .raceBarSeg:not(:last-child) { background-image: linear-gradient(to left, rgba(8, 10, 16, 0.75) 1px, transparent 1px); } /* тонкая риска между цветами: два зелёных слова подряд видны как два сегмента */
 .raceBarSeg[data-spent] { transform: scaleX(0); opacity: 0; }

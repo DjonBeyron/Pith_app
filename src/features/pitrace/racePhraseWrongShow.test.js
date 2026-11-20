@@ -115,3 +115,18 @@ describe('красное неверное слово — сразу и по пе
     m.set(new Map([[0, true], [1, true], [2, true]])); expect(text()).toEqual([])
   })
 })
+
+describe('подпись из черновика снимается, если итог захода её не подтвердил (v3.3.302)', () => {
+  it('черновик «where you» → подпись «you»; итог «where» без «you» — retracted() один раз; итог с «you» — не снимает', () => {
+    const w = createWrongWord({ words: ['where', 'are', 'you', 'from'] })
+    w.ear({ kind: 'partial', text: 'where you' }); w.check(new Map([[0, true]]), 0); w.check(new Map([[0, true]]), 400)
+    expect(w.shown()).toBe('you'); expect(w.retracted()).toBe(false)
+    w.ear({ kind: 'final', text: 'where' }); expect(w.retracted()).toBe(true); expect(w.retracted()).toBe(false)
+    const k = createWrongWord({ words: ['where', 'are', 'you', 'from'] })
+    k.ear({ kind: 'partial', text: 'where you from' }); k.check(new Map([[0, true]]), 0)
+    expect(k.shown()).toBe('you'); k.ear({ kind: 'final', text: 'where you from' }); expect(k.retracted()).toBe(false)
+  })
+  it('проводка: SayView зовёт mask.unwrong, маска снимает и показанную, и запомненную подпись', () => {
+    expect(rd('./racePhraseSayView.js')).toContain('mask?.unwrong?.()'); expect(rd('./racePhraseMaskView.js')).toContain('unwrong()')
+  })
+})

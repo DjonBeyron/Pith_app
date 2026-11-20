@@ -74,6 +74,8 @@ export function createPhraseVoice({ ctx = null, hasRu = text => !!transRow(text)
   }
   /** Смысл по-русски — только если он озвучен (без озвучки голоса системы нет) */
   const meaning = p => (p?.ru && hasRu(p.ru) ? { ru: p.ru } : null)
+  /** Ситуация фразы (круг 1 «Пойми») — только если озвучена */
+  const sceneOf = p => (p?.scene && hasRu(p.scene) ? { ru: p.scene } : null)
 
   return {
     /** Свежие sayLine / sayText / cat директора (эффект после каждого рендера) */
@@ -88,8 +90,8 @@ export function createPhraseVoice({ ctx = null, hasRu = text => !!transRow(text)
       if (!t) return
       if (rep.mode === 'hear') { chain(phrase(t)); return }
       if (rep.pass === 2) { try { log(`[phrase-voice] перед ходом «${t.text ?? ''}» (say, проход 2): ${AGAIN_LINE}`) } catch { /* журнал */ } chain([{ line: AGAIN_LINE }]); const cap = lineCaption(get()?.lines, AGAIN_LINE, AGAIN_TEXT); if (cap) e?.show?.(cap); return }
-      const scene = rep.mode === 'pick' && t.scene ? t.scene : '' // круг 1 — ситуация (scene), пусто — смысл; круг 2 «Скажи» — всегда смысл
-      const text = scene || t.ru
+      const scene = rep.mode === 'pick' && t.scene ? t.scene : '' // круг 1 — ситуация (scene); круг 2 «Скажи» — смысл
+      const text = rep.mode === 'pick' ? scene : t.ru // v3.3.302: в круге 1 только выбор — смысл «скажи, что…» (он для круга «Скажи») там не говорим и не показываем
       const voiced = !!text && hasRu(text)
       try { log(`[phrase-voice] перед ходом «${t.text ?? ''}» (${rep.mode}): ${scene ? 'ситуация' : 'смысл'} «${text ?? ''}»${voiced ? '' : ' (подпись, без голоса)'}`) } catch { /* журнал не мешает голосу */ }
       if (voiced) chain([{ ru: text }]); else if (text) e?.show?.(text)
@@ -101,7 +103,7 @@ export function createPhraseVoice({ ctx = null, hasRu = text => !!transRow(text)
       if (kind === 'win' && rep.res?.slip) { chain(slipItems(rep.res.slip)); return } // принято, но слово сказано не точно: «слово X сказано не точно, …» вместо «да» (racePhraseSlip.js)
       if (kind === 'win' && rep.pass === 1) return // проход 1 «Скажи»: дальше сразу проход 2 со своей репликой
       if (kind === 'win') chain([...(rep.mode === 'pick' ? phrase(t) : rep.mode === 'hear' ? [meaning(t)] : []), { line: rep.pass === 2 && rep.res?.smooth === false ? PAUSES_LINE : 'race_phrase_yes' }])
-      else if (kind === 'miss') chain([{ line: 'race_phrase_no' }, ...phrase(t), meaning(t)])
+      else if (kind === 'miss') chain([{ line: 'race_phrase_no' }, ...phrase(t), rep.mode === 'pick' ? sceneOf(t) : meaning(t)]) // круг 1: после верной фразы — её ситуация, а не смысл «скажи, что…» (владелец v3.3.302)
       else if (kind === 'fail') chain(phrase(t))
     },
     stop() { queue = []; if (timer) clearTimer(timer); timer = 0; active = false },

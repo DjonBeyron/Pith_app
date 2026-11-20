@@ -63,7 +63,7 @@ export function createPhraseListener({ phrases: phrasesIn, lang = 'en', getStrea
   const voice = createEarVoice({ now })
   let disposed = false
 
-  const score = heard => scorePhrases(phrases, heard, wordByWord) // проход 1 — слова только по порядку (racePhraseScore.orderedHits)
+  const score = heard => scorePhrases(phrases, heard, true) // слова только по порядку (racePhraseScore.orderedHits) в ОБОИХ проходах (v3.3.302, журнал владельца: «nice you meet to» засчитало фразу на 100 %, заливка дошла до конца); раньше проход 2 считал набором слов, порядок не важен
   const heardNow = () => { const t = now(); past = past.filter(p => t - p.at <= (wordByWord ? JOIN_WBW_MS : JOIN_MS)); return [...past.map(p => p.text), current].filter(Boolean).join(' ') }
   const clearState = () => { past = []; current = ''; sent = new Map(); clearTimer(settleTimer); settleTimer = 0; clearTimer(quietTimer); quietTimer = 0; clearTimer(gateTimer); gateTimer = 0; clearTimer(muteTimer); muteTimer = 0; throughBy = ''; throughAt = null; firstAt = null; zero = now(); sameAt = -Infinity; pauseMax = 0 }
   const quietMs = () => quietLimit(pauseMax, wordByWord)

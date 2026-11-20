@@ -23,7 +23,7 @@ describe('реплики Пита в гонке: каталог', () => {
     expect(t.race_descent).toBe('теперь повтори всю фразу за мной на скорости')
     expect(t.race_done_gold).toBe('Золото, идеально'); expect(t.race_done).toBe('Финиш, завтра ещё заезд?')
     expect(t.race_ask_voice).toBe('Как будешь ловить слова, голосом или руками?')
-    expect(t.race_phrases).toBe('Конвейер ситуаций, подбери фразу к ситуации, потом скажи её'); expect(t.race_phrases_tap).toBe('Конвейер ситуаций, подбери фразу к ситуации, потом её смысл')
+    expect(t.race_phrases).toBe('Конвейер ситуаций, подбери фразу к ситуации') // v3.3.302: в конвейере ситуаций только выбор — «потом скажи её» убрано; expect(t.race_phrases_tap).toBe('Конвейер ситуаций, подбери фразу к ситуации, потом её смысл')
     expect(t.race_phrases_pick).toBe('я описываю ситуацию, а ты тапни фразу, которая подходит'); expect(t.race_phrases_say).toBe('а теперь скажи её сам, я подскажу смысл, а слова спрятаны'); expect(t.race_phrases_demo).toBeUndefined(); expect(t.race_phrases_hear).toBe('теперь я говорю фразу, а ты тапни, что она значит')
     expect(t.race_phrase_yes).toBe('да, это оно'); expect(t.race_phrase_no).toBe('нет, это про другое') // этап 2 «Фразы»
     expect(['race_demo_1', 'race_demo_2', 'race_demo_3', 'race_demo_more'].map(k => t[k])).toEqual(['главное начать, смотри', 'затем второе', 'потом третье', 'и так до конца']); expect(t.race_phrases_show).toBe('теперь второй круг, смотри, как это делается') // «а теперь скажи её сам» (race_phrases_say) — после примера // демо на живой пилюле

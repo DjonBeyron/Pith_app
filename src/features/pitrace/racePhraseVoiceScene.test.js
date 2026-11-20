@@ -30,13 +30,13 @@ describe('голос перед ходом: ситуация и смысл', () 
     a.v.pre({ mode: 'pick', target: nice }, a.e)
     expect(a.said).toEqual([]); expect(a.shown).toEqual(['ты знакомишься с новым человеком'])
   })
-  it('без ситуации круг 1 говорит смысл (fallback); не озвучен — подпись смысла', () => {
+  it('без ситуации круг 1 молчит: смысл «скажи, что…» — для круга «Скажи», в выборе он вводит в заблуждение (v3.3.302)', () => {
     const a = make()
     a.v.pre({ mode: 'pick', target: bare }, a.e)
-    expect(a.said).toEqual(['ru:попрощайся до скорого'])
+    expect(a.said).toEqual([])
     const b = make(() => false)
     b.v.pre({ mode: 'pick', target: bare }, b.e)
-    expect(b.shown).toEqual(['попрощайся до скорого'])
+    expect(b.shown).toEqual([])
   })
   it('ситуации попадают в фразы плана-симуляции и в набор озвучки / прогрева', () => {
     const plan = { source: 'sim', words: [], chunks: [] }

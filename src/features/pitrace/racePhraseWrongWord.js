@@ -29,7 +29,7 @@ export const formPart = (heard, words, prev = null, next = null) => {
 
 /** → { ear(e), check(said, t) }. words — слова фразы-цели (phraseWords). ear — событие слуха { kind: 'partial' | 'final', text }; check — на кадре: said — Map сказанных номеров слов, → { word, expect } или null */
 export function createWrongWord({ words, gap = WRONG_GAP_MS }) {
-  let seen = 0, first = null, tail = null, queue = [], lastAt = -Infinity, lastShownAt = -Infinity, shownWord = null
+  let seen = 0, first = null, tail = null, queue = [], lastAt = -Infinity, lastShownAt = -Infinity, shownWord = null, lastShown = null, retract = false
   return {
     ear(e) {
       if (e?.kind !== 'partial' && e?.kind !== 'final') return
@@ -41,10 +41,12 @@ export function createWrongWord({ words, gap = WRONG_GAP_MS }) {
       // последнее слово черновика ещё может меняться — для подписи (не рывка) берём его, когда оно не меняется TAIL_STABLE_MS (v3.3.285: красное сразу по первому неверному слову)
       const last = e.kind === 'partial' && ws.length ? ws[ws.length - 1] : null
       if (!last) tail = null; else if (!tail || tail.w !== last || tail.i !== ws.length - 1) tail = { w: last, prev: ws[ws.length - 2] ?? null, next: null, i: ws.length - 1, at: null, used: false }
-      if (e.kind === 'final') { seen = 0; first = null; tail = null }
+      if (e.kind === 'final') { if (lastShown && !ws.includes(lastShown)) retract = true; lastShown = null; seen = 0; first = null; tail = null } // v3.3.302 (журнал владельца: «я сказал where is, сверху зачёркнуто you»): подпись взята из черновика, а итог захода этого слова не содержит — это был шум черновика, подпись снимается
     },
     /** Слово для подписи над ожидаемым (мягкое правило, раз на кадр после check): строка или null */
     shown() { const w = shownWord; shownWord = null; return w },
+    /** Итог захода не содержит слово, показанное по черновику: подпись надо снять (один раз) */
+    retracted() { const r = retract; retract = false; return r },
     check(said, t) {
       shownWord = null
       if (tail && tail.at == null) tail.at = t
@@ -58,7 +60,7 @@ export function createWrongWord({ words, gap = WRONG_GAP_MS }) {
       const bad = q.find(({ w, prev, next }) => !fitsWord(w, expect) && !(far != null && fitsWord(w, far)) && !words.some(x => sameWord(w, x)) && !formPart(w, words, prev, next))
       // v3.3.282 (владелец, «where you from» вместо «where are you from»): исключаем только слова, УЖЕ стоящие в порядке (до ожидаемого k); слово «вперёд» («you», услышанное вместо «are») само в said, но подпись над «are» ему нужна
       const shown = (stable ? [...q, stable] : q).find(({ w, prev, next }) => !fitsWord(w, expect) && !words.slice(0, k).some(x => sameWord(w, x)) && !formPart(w, words, prev, next)) // для подписи над словом правило мягче (v3.3.272): любое слово, не подходящее ожидаемому, — и слово цели не на своём месте («where you from» — «you» вместо «are»)
-      if (shown && t - lastShownAt >= SHOWN_GAP_MS) { lastShownAt = t; shownWord = shown.w; if (shown === stable) stable.used = true }
+      if (shown && t - lastShownAt >= SHOWN_GAP_MS) { lastShownAt = t; shownWord = shown.w; lastShown = shown.w; if (shown === stable) stable.used = true }
       if (bad == null || t - lastAt < gap) return null
       lastAt = t
       return { word: bad.w, expect }
