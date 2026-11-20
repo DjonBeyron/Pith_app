@@ -32,6 +32,7 @@ export function mountMask(el, text) {
   if (ink) { ink.removeAttribute('data-testid'); inkHost.appendChild(ink) }
   let edges = null, dirty = true
   const said2 = new Map() // номер слова → последнее услышанное вместо него (для итога хода: keepWrong)
+  let missAt = -1, lastHeard = null // пропущенное слово (сказано следующее вместо него): красным само слово, пока его не скажут (missing / set)
   let wrongEls = [], wrongTimer = 0, wrongAt = -1 // неверно сказанное слово над подсказкой: красное, зачёркнуто тонкой линией (v3.3.272)
   const clearWrong = () => { clearTimeout(wrongTimer); wrongTimer = 0; wrongAt = -1; wrongEls.forEach(e => e.remove()); wrongEls = [] }
   /** Подпись «сказано вместо» (v3.3.283): красное слово по центру над верным, под ним — фигурная горизонтальная скобка-уголок, указывающая на верное слово */
@@ -53,7 +54,10 @@ export function mountMask(el, text) {
     /** heard — Map номер слова → подтверждено ли; all — показать всю фразу; peek — номер подсказываемого слова (-1 — нет). Меняется только data-w: текст и ширина ячеек постоянны */
     set(heard, all = false, peek = -1, miss = false) {
       if (wrongAt >= 0 && heard?.has?.(wrongAt)) clearWrong() // ожидаемое слово сказано — зачёркнутое пропадает
+      if (missAt >= 0 && heard?.has?.(missAt)) missAt = -1 // пропущенное слово сказано — красное снимается
+      lastHeard = [heard, all, peek, miss]
       const next = maskPhrase(text, heard, all, peek, miss)
+      if (missAt >= 0) { const i = next.findIndex(w => w.index === missAt); if (i >= 0 && next[i].state !== 'full') next[i] = { ...next[i], state: 'miss' } }
       next.forEach((w, i) => { const b = cells[i]; if (!b || w.state === words[i].state) return; b.setAttribute('data-w', w.state); inkCells[i]?.setAttribute('data-w', w.state) })
       words = next
     },
@@ -72,8 +76,14 @@ export function mountMask(el, text) {
       for (const c of [cells[i], inkCells[i]]) if (c) label(c, word)
       wrongAt = index // подпись держится, пока верное слово не сказано (v3.3.283); новые неверные её не заменяют (v3.3.285)
     },
-    /** Снять подпись «сказано вместо» целиком (итог захода не подтвердил слово из черновика): и показанную, и запомненную для итога хода */
-    unwrong() { if (wrongAt >= 0) said2.delete(wrongAt); clearWrong() },
+    /** Слово index пропущено (услышано следующее вместо него): оно красным, пока не сказано; → true, если только что поставили (для журнала) */
+    missing(index) {
+      if (missAt === index) return false
+      missAt = index; if (lastHeard) this.set(...lastHeard); else { const i = words.findIndex(w => w.index === index); if (i >= 0) { words = words.map((w, j) => (j === i ? { ...w, state: 'miss' } : w)); for (const c of [cells[i], inkCells[i]]) c?.setAttribute('data-w', 'miss') } }
+      return true
+    },
+    /** Снять подпись «сказано вместо» целиком (итог захода не подтвердил слово из черновика): и показанную, и запомненную для итога хода, и красное «пропущено» */
+    unwrong() { if (wrongAt >= 0) said2.delete(wrongAt); clearWrong(); if (missAt >= 0) { missAt = -1; if (lastHeard) this.set(...lastHeard) } },
     /** Итог хода принят не по всем словам: у каждого несказанного слова, вместо которого что-то сказано, — красная зачёркнутая подпись, пока пилюля на экране (без таймера); ничего не сказано — над словом пусто */
     keepWrong(heard) {
       clearWrong()

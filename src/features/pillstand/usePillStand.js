@@ -35,8 +35,8 @@ export default function usePillStand(fieldRef, { paused = false } = {}) {
   const model = useStandModel(prefs.lang, trace)
   const { ear, view, clear: clearHist } = useStandEar(trace)
   const { health: micHealth, tap: micTap } = useStandMicHealth({ trace, on: mic === 'on' && !paused, onRevived: useCallback(() => setMicEpoch(e => e + 1), []) })
-  const { lang, mode, len } = prefs
-  const target = useMemo(() => pickTarget({ seed, n, mode, lang, len }), [seed, n, mode, lang, len])
+  const { lang, mode, len, pin } = prefs
+  const target = useMemo(() => pickTarget({ seed, n, mode, lang, len, pin }), [seed, n, mode, lang, len, pin])
   const key = `${gen}|${seed}|${n}|${mode}|${lang}|${len}`
   const result = res?.key === key ? res : null
 
@@ -45,7 +45,7 @@ export default function usePillStand(fieldRef, { paused = false } = {}) {
   const setSeed = useCallback(v => { setSeedState(String(v || newSeed())); setN(0) }, [])
   const next = useCallback(() => setN(x => x + 1), [])
   const reset = useCallback(() => { clearTimeout(timer.current); trace.reset(); trace.push('session', { why: 'сброс' }); setN(0); setGen(g => g + 1) }, [trace])
-  const meta = useCallback(() => ({ version: APP_VERSION, device: deviceLine(), deviceInfo: collectDevice(), seed, mode, lang, len, auto: prefs.auto, autoMs: prefs.autoMs }), [seed, mode, lang, len, prefs.auto, prefs.autoMs])
+  const meta = useCallback(() => ({ version: APP_VERSION, device: deviceLine(), deviceInfo: collectDevice(), seed, mode, lang, len, pin, auto: prefs.auto, autoMs: prefs.autoMs }), [seed, mode, lang, len, pin, prefs.auto, prefs.autoMs])
 
   useEffect(() => { // window.__pillStand — трасса для автопроверки стенда (Playwright) и консоли
     trace.push('session', { version: APP_VERSION, device: deviceLine(), ua: globalThis.navigator?.userAgent ?? '' })

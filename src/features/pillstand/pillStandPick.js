@@ -38,9 +38,16 @@ export function targetIndex({ seed, n, mode, lang, len, size }) {
   return i
 }
 
-/** Цель номер n сессии: { n, mode, lang, len, seed, say, shown, words } — words — сколько слов говорить */
-export function pickTarget({ seed, n = 0, mode = 'word', lang = 'en', len = 'any' }) {
+/** Закреплённая фраза (v3.3.303, пресеты стенда): pin — английский текст фразы; только для режимов-фраз; нет такой — null (цель по сиду) */
+export function pinned(mode, lang, pin) {
+  if (!pin || mode === 'word') return null
+  const key = String(pin).trim().toLowerCase()
+  return candidates(mode, lang).find(c => String(lang === 'ru' ? c.other : c.say).toLowerCase() === key) ?? null
+}
+
+/** Цель номер n сессии: { n, mode, lang, len, seed, say, shown, words } — words — сколько слов говорить. pin — закреплённая фраза: тогда каждая цель — она (чтобы повторять один случай) */
+export function pickTarget({ seed, n = 0, mode = 'word', lang = 'en', len = 'any', pin = '' }) {
   const list = pool(mode, lang, len)
-  const c = list[targetIndex({ seed, n, mode, lang, len, size: list.length })]
+  const c = pinned(mode, lang, pin) ?? list[targetIndex({ seed, n, mode, lang, len, size: list.length })]
   return { n, mode, lang, len, seed: String(seed), say: c.say, shown: c.shown, ...(c.other ? { other: c.other } : {}), words: count(c.say) }
 }

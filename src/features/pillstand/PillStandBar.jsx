@@ -1,6 +1,7 @@
 import { X } from 'lucide-react'
 import { MODES, LANGS, LENS } from './pillStandPick.js'
-import { AUTO_MS } from './pillStandPrefs.js'
+import { AUTO_MS, PRESETS } from './pillStandPrefs.js'
+import { STAND_PHRASES } from './pillStandData.js'
 
 // Панель стенда пилюль сверху (safe-area): выход, язык Vosk «EN | RU», запись / стоп, просмотр записи; режим пилюли и «🎙 Запись набора» (экран voiceset/); длина, «Следующая», «Сброс»; сид, авто-следующая и её пауза, состояние модели.
 const MODE_SHORT = { word: 'Слово', words: 'По словам', fast: 'Быстро' }
@@ -35,6 +36,10 @@ export default function PillStandBar({ s, r, viewing, onClose, onView, onVoiceSe
         <Seg value={prefs.len} list={LENS} title={{ short: 'короткие', long: 'длинные', any: 'любые' }} onPick={v => setPrefs({ len: v })} testid="ps-len" disabled={viewing} />
         <button type="button" className="psBtn" onClick={s.next} disabled={viewing} data-testid="ps-next">Следующая</button>
         <button type="button" className="psBtn" onClick={s.reset} disabled={viewing} data-testid="ps-reset">Сброс</button>
+      </div>
+      <div className="psRow" data-testid="ps-presets">
+        {PRESETS.map(p => <button key={p.id} type="button" className="psBtn psBtn--tiny" onClick={() => setPrefs(p.set)} disabled={viewing || rec.on} data-testid={`ps-preset-${p.id}`}>{p.label}</button>)}
+        {prefs.mode !== 'word' && <select className="psSel" value={prefs.pin} onChange={e => setPrefs({ pin: e.target.value })} aria-label="Закрепить фразу" disabled={viewing} data-testid="ps-pin"><option value="">фраза: по сиду</option>{STAND_PHRASES.map(p => <option key={p.en} value={p.en}>{p.en}</option>)}</select>}
       </div>
       <div className="psRow psRow--small">
         <label className="psSeed">сид <input value={s.seed} onChange={e => s.setSeed(e.target.value)} spellCheck={false} autoCapitalize="off" data-testid="ps-seed" /></label>

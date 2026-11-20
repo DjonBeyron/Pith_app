@@ -43,9 +43,9 @@ describe('стенд пилюль: настройки', () => {
   const mem = () => { const m = new Map(); return { getItem: k => m.get(k) ?? null, setItem: (k, v) => m.set(k, String(v)), m } }
   it('по умолчанию EN, слово, любые, авто 1,2 с; сохранённое читается, мусор — по умолчанию', () => {
     const s = mem()
-    expect(readStandPrefs(s)).toEqual({ lang: 'en', mode: 'word', len: 'any', auto: true, autoMs: 1200 })
-    writeStandPrefs({ lang: 'ru', mode: 'fast', len: 'long', auto: false, autoMs: 2000 }, s)
-    expect(readStandPrefs(s)).toEqual({ lang: 'ru', mode: 'fast', len: 'long', auto: false, autoMs: 2000 })
+    expect(readStandPrefs(s)).toEqual({ lang: 'en', mode: 'word', len: 'any', auto: true, autoMs: 1200, pin: '' })
+    writeStandPrefs({ lang: 'ru', mode: 'fast', len: 'long', auto: false, autoMs: 2000, pin: 'Where are you from' }, s)
+    expect(readStandPrefs(s)).toEqual({ lang: 'ru', mode: 'fast', len: 'long', auto: false, autoMs: 2000, pin: 'Where are you from' })
     s.setItem(PREFS_KEY, '{"lang":"de","mode":1')
     expect(readStandPrefs(s).lang).toBe('en')
   })

@@ -85,12 +85,18 @@ describe('подпись слова «вперёд» (v3.3.282)', () => {
 })
 
 describe('подпись неверного слова — и в проходе 2 (v3.3.277)', () => {
-  it('проход 2: «where you from» вместо «where are you from» → mask.wrong(«you», 1), рывка кромки нет', () => {
-    const calls = [], mask = { set() {}, peek() {}, edges: () => null, wrong: (w, k) => calls.push([w, k]) }, nudges = []
+  it('проход 2: «where you from» вместо «where are you from» → красным пропущенное «are» (mask.missing(1)), «you» не зачёркивается, рывка кромки нет', () => {
+    const calls = [], miss = [], mask = { set() {}, peek() {}, edges: () => null, wrong: (w, k) => calls.push([w, k]), missing: k => { miss.push(k); return true } }, nudges = []
     const v = createSayView({ pass: 2, text: 'Where are you from', n: 4, mask, nudge: on => nudges.push(on), el: null })
     v.word(0, new Map([[0, true]]), 0)
     v.ear({ kind: 'partial', text: 'where you from' }); v.frame(1000, false, 0.3)
-    expect(calls).toEqual([['you', 1]]); expect(nudges).toEqual([])
+    expect(calls).toEqual([]); expect(miss).toEqual([1]); expect(nudges).toEqual([])
+  })
+  it('слово не из цели («where is you from» → «is») — по-прежнему зачёркнутая подпись, а не «пропущено»', () => {
+    const calls = [], miss = [], mask = { set() {}, peek() {}, edges: () => null, wrong: (w, k) => calls.push([w, k]), missing: k => { miss.push(k); return true } }
+    const v = createSayView({ pass: 2, text: 'Where are you from', n: 4, mask, nudge: () => {}, el: null })
+    v.word(0, new Map([[0, true]]), 0); v.ear({ kind: 'partial', text: 'where is' }); v.frame(1000, false, 0.3); v.frame(1300, false, 0.3)
+    expect(calls).toEqual([['is', 1]]); expect(miss).toEqual([])
   })
 })
 

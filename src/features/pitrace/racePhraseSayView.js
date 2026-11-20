@@ -45,7 +45,8 @@ export function createSayView({ pass, text, n, mask, log = () => {}, nudge = nul
       peek?.frame(t, lineReached(fill, k, e, n)) // кирпичик слова k гаснет, когда линия заливки дошла до него (владелец, v3.3.275)
       const miss = wrong?.check(said, t), shown = wrong?.shown()
       if (wrong?.retracted()) mask?.unwrong?.() // итог захода не подтвердил слово из черновика — подпись «сказано вместо» снимаем
-      if (shown) { let k = 0; while (said.has(k)) k++; mask?.wrong?.(shown, k) } // над ожидаемым словом — красным зачёркнуто (racePhraseMaskView.wrong; мягкое правило shown)
+      const skip = shown ? wrong.shownSkip() : false
+      if (shown) { let k = 0; while (said.has(k)) k++; if (skip) { if (mask?.missing?.(k)) log(`[fill] пропущено слово «${phraseWords(text)[k] ?? ''}»: сразу сказано «${shown}» (слово цели дальше по порядку)`) } else mask?.wrong?.(shown, k) } // «вперёд» (you вместо are) — красным само ПРОПУЩЕННОЕ слово (racePhraseMaskView.missing), верное «you» не зачёркиваем; иное неверное — над ожидаемым зачёркнуто (wrong; мягкое правило shown)
       if (miss && !done) { jerk?.fire(); onWrong(miss.word, miss.expect) } // неверное слово — ещё и зачёркнуто красным над ожидаемым (racePhraseMaskView.wrong)
     },
     edges: () => mask?.edges() ?? null,

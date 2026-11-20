@@ -13,9 +13,9 @@ export const MAX_ROWS = 1500
 const n2 = v => (v == null ? ' —  ' : v.toFixed(2).replace('.', ','))
 const SKIP_ATTR = new Set(['data-cap', 'data-mode', 'data-pass', 'data-tag', 'data-held', 'data-lane', 'data-speed'])
 
-/** Маска слов «Скажи»: сказанное — слово, черновик — слово*, подсказка — (слово 0,40 — проявление), скрытое — ░; peek: false — без числа проявления (для подписи состояния) */
+/** Маска слов «Скажи»: сказанное — слово, черновик — слово*, подсказка — (слово 0,40 — проявление), пропущенное красным (data-w miss) — !слово!, скрытое — ░; peek: false — без числа проявления (для подписи состояния) */
 export function maskText(mask = [], peek = true) {
-  return mask.map(m => (m.w === 'full' ? m.t : m.w === 'draft' ? `${m.t}*` : m.w === 'peek' ? `(${m.t}${peek && m.p ? ` ${Number(m.p).toFixed(2).replace('.', ',')}` : ''})` : '░')).join(' ')
+  return mask.map(m => (m.w === 'full' ? m.t : m.w === 'draft' ? `${m.t}*` : m.w === 'peek' ? `(${m.t}${peek && m.p ? ` ${Number(m.p).toFixed(2).replace('.', ',')}` : ''})` : m.w === 'miss' ? `!${m.t}!` : '░')).join(' ')
 }
 
 const identity = v => !v || v === 'none' || v === '1' || v === 'matrix(1, 0, 0, 1, 0, 0)'

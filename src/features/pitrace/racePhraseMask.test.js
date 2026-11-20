@@ -101,3 +101,14 @@ describe('узел маски на пилюле', () => {
     m.remove(); expect(pill.querySelectorAll('.racePhraseMask')).toHaveLength(0)
   })
 })
+
+describe('пропущенное слово красным (v3.3.303)', () => {
+  it('missing(k): слово k красным (state miss) без DOM, пока его не скажут; set с этим словом — снимает; unwrong — снимает', () => {
+    const m = mountMask({}, 'Where are you from')
+    m.set(new Map([[0, true], [2, false]]))
+    expect(m.missing(1)).toBe(true); expect(m.missing(1)).toBe(false) // второй раз — без изменений
+    expect(m.words().map(w => w.state)).toEqual(['full', 'miss', 'draft', 'hidden'])
+    m.set(new Map([[0, true], [1, true], [2, true]])); expect(m.words()[1].state).toBe('full')
+    const n = mountMask({}, 'Where are you from'); n.set(new Map([[0, true]])); n.missing(1); n.unwrong(); expect(n.words()[1].state).not.toBe('miss')
+  })
+})
