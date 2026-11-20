@@ -11,6 +11,7 @@
 // накопленное, в том числе прошлые заходы в окне JOIN_MS: фраза, которую Пит прочитал между ходами, в новый ход не попадает.
 import { createGame2Listener } from '../game2/game2Listen.js'
 import { createWordListener } from '../player/modules/rotate-phone/wordLaneListen.js'
+import { createDraftHold, PEAK_MIN, DRAFT_KEEP_MS } from './racePhraseDraftHold.js'
 import { pLog } from '../../shared/lib/debug.js'
 import { scorePhrases, pickPhrase, unionWords, earLine, PHRASE_OK, PHRASE_GAP } from './racePhraseScore.js'
 import { GATE_RMS } from '../../shared/lib/vosk/voskGate.js'
@@ -62,12 +63,14 @@ export function createPhraseListener({ phrases: phrasesIn, lang = 'en', getStrea
   let ear = null
   let gen = 0
   const voice = createEarVoice({ now })
+  const hold = createDraftHold({ now }) // громкость захода и возраст чернового слова (racePhraseDraftHold.js)
+  let noiseLogged = false
   let disposed = false
 
   const baseOf = key => { const g = sent.get(key); let k = 0; while (g?.get(k) === true) k++; return k } // сколько слов с начала подтверждено итогом (непрерывно)
   const score = heard => scorePhrases(phrases, heard, wordByWord ? { strict: true, base: baseOf } : true) // проход 1 — строгая цепочка (strictHits, v3.3.306): неверное слово линию не двигает, слова за ним не запоминаются; проход 2 — по порядку (orderedHits). Прежний комментарий: слова только по порядку (racePhraseScore.orderedHits) в ОБОИХ проходах (v3.3.302, журнал владельца: «nice you meet to» засчитало фразу на 100 %, заливка дошла до конца); раньше проход 2 считал набором слов, порядок не важен
   const heardNow = () => { const t = now(); past = past.filter(p => t - p.at <= (wordByWord ? JOIN_WBW_MS : JOIN_MS)); return [...past.filter(p => !wordByWord || p.at >= cutAt).map(p => p.text), current].filter(Boolean).join(' ') }
-  const clearState = () => { past = []; cutAt = -Infinity; current = ''; sent = new Map(); clearTimer(settleTimer); settleTimer = 0; clearTimer(quietTimer); quietTimer = 0; clearTimer(gateTimer); gateTimer = 0; clearTimer(muteTimer); muteTimer = 0; throughBy = ''; throughAt = null; firstAt = null; zero = now(); sameAt = -Infinity; pauseMax = 0 }
+  const clearState = () => { hold.clear(); noiseLogged = false; past = []; cutAt = -Infinity; current = ''; sent = new Map(); clearTimer(settleTimer); settleTimer = 0; clearTimer(quietTimer); quietTimer = 0; clearTimer(gateTimer); gateTimer = 0; clearTimer(muteTimer); muteTimer = 0; throughBy = ''; throughAt = null; firstAt = null; zero = now(); sameAt = -Infinity; pauseMax = 0 }
   const quietMs = () => quietLimit(pauseMax, wordByWord)
   const rel = () => `+${Math.round(now() - (firstAt ?? zero))} мс`
   const settle = (ms, mine) => { if (wordByWord) { ms = Math.max(ms, SETTLE_WBW_MS); settleLast = true } clearTimer(settleTimer); settleTimer = setTimer(() => { settleTimer = 0; if (mine !== gen) return; if (throughBy) through(throughBy); decide(true) }, ms) }
@@ -114,16 +117,25 @@ export function createPhraseListener({ phrases: phrasesIn, lang = 'en', getStrea
       if (!wordByWord) { s.hits.forEach((ok, index) => { if (ok && (!got.has(index) || (!draft && !got.get(index)))) { got.set(index, !draft); say(index, draft) } }); continue }
       const base = baseOf(s.key)
       const emptyFinal = !draft && !s.hits.some((h, i) => h && i >= base) // итог без единого слова цели («итог «»»: короткое «to» Vosk не подтвердил) — ничего не говорит о черновых словах: не откатываем (владелец v3.3.283: «откинуло прогресс пилюли назад»)
-      if (!emptyFinal) for (const [index, kept] of got) if (!kept && !s.hits[index]) { got.delete(index); log(`[phrase-ear] слово ${index + 1} «${p.words[index]}» откат (${s.key}): в услышанном по порядку его нет ${rel()}`); say(index, true, true) }
+      if (!emptyFinal) for (const [index, kept] of got) if (!kept && !s.hits[index]) { got.delete(index); hold.forget(s.key, index); log(`[phrase-ear] слово ${index + 1} «${p.words[index]}» откат (${s.key}): в услышанном по порядку его нет ${rel()}`); say(index, true, true) }
       let k = 0
       while (s.hits[k] || got.get(k) === true) k++
-      s.hits.forEach((ok, index) => { const keep = ok && !draft && index < k; if (ok && (!got.has(index) || (keep && !got.get(index)))) { if (keep) cutAt = now(); got.set(index, keep); say(index, !keep) } })
+      s.hits.forEach((ok, index) => { const keep = ok && !draft && index < k; if (ok && (!got.has(index) || (keep && !got.get(index)))) { if (keep) { cutAt = now(); hold.forget(s.key, index) } else hold.drafted(s.key, index); got.set(index, keep); say(index, !keep) } })
     }
   }
 
   let partialHeld = false // журнал «жду исправления» — один раз на заход
+  /** Проход 1: черновые слова, продержавшиеся DRAFT_KEEP_MS без отката, подтверждаются (сказали, помолчали): переписанный заход их уже не откатит (racePhraseDraftHold.js) */
+  function promoteHeld() {
+    for (const [key, got] of sent) for (const index of hold.due(key, got)) {
+      const p = phrases.find(x => x.key === key); got.set(index, true); hold.forget(key, index); cutAt = now()
+      log(`[phrase-ear] слово ${index + 1} «${p?.words[index] ?? ''}» продержалось ${DRAFT_KEEP_MS} мс — подтверждено (откат переписанным черновиком не нужен) ${rel()}`)
+      onWord?.({ phraseKey: key, index, text: p?.words[index], draft: false })
+    }
+  }
   function decide(settled, draft = false) {
     if (disposed || !phrases.length) return false
+    if (wordByWord) promoteHeld()
     const heard = heardNow()
     if (!heard) return false
     const scores = score(heard)
@@ -145,7 +157,7 @@ export function createPhraseListener({ phrases: phrasesIn, lang = 'en', getStrea
 
   function onDebug(kind, data, mine) {
     if (disposed || mine !== gen) return
-    if (kind === 'level') { onLevel?.(data, !!isHeld()); if ((voice.push(data).voice || data >= GATE_RMS) && !isHeld()) { // голос — как у затвора тишины (voskVoice.js: порог от шума микрофона; тихая речь iPhone 0,003–0,005 — тоже голос)
+    if (kind === 'level') { onLevel?.(data, !!isHeld()); if (!isHeld()) hold.level(data); if ((voice.push(data).voice || data >= GATE_RMS) && !isHeld()) { // голос — как у затвора тишины (voskVoice.js: порог от шума микрофона; тихая речь iPhone 0,003–0,005 — тоже голос)
       if (firstAt != null && voiceAt > -Infinity) pauseMax = Math.max(pauseMax, now() - voiceAt); voiceAt = now(); if (settleTimer && settleLast) settle(SETTLE_LAST_MS, mine) } return } // голос: недосказанное последнее слово ещё может прийти
     if (kind === 'gate') { log(`[gate] ${data?.open ? 'открыт' : 'закрыт'} ${rel()} (rms ${(Number(data?.rms) || 0).toFixed(3).replace('.', ',')})`); onEar?.({ kind, open: !!data?.open, rms: data?.rms }); gateOpen = !!data?.open; gateFinal(gateOpen, mine); mute(mine, !gateOpen); return }
     if (kind === 'partial-same') { const text = clean(data?.raw); if (text && !isHeld() && now() - sameAt >= SAME_LOG_MS) { sameAt = now(); log(`[phrase-ear] partial без изменений «${text}» ${rel()}`) } if (muteTimer) mute(mine, !gateOpen); return }
@@ -153,6 +165,7 @@ export function createPhraseListener({ phrases: phrasesIn, lang = 'en', getStrea
       if (isHeld()) return // говорит Пит: его голос из динамика — не ученик
       const text = clean(data?.raw)
       if (kind === 'partial' && !text) return
+      if (wordByWord && text && hold.noise()) { if (!noiseLogged) { noiseLogged = true; log(`[phrase-ear] «${text}» проигнорировано: громкость захода ${hold.peak().toFixed(4).replace('.', ',')} ниже ${String(PEAK_MIN).replace('.', ',')} — это шум, не речь ${rel()}`) } return } // v3.3.310: шум громкостью 0,003 Vosk читал как «where» и линия прыгала
       onEar?.({ kind, text, raw: String(data?.raw ?? '').toLowerCase().trim() }) // raw — с «[unk]»: Vosk отдаёт сказанное вне словаря (громкое «is» вместо «are») как «[unk]» — это неверное слово (racePhraseWrongWord)
       if (text) firstAt ??= now()
       if (kind === 'final' || current !== text) { sameAt = now(); log(`[phrase-ear] ${kind === 'partial' ? 'черновик' : 'итог'} «${text}» ${kind === 'final' && data?.stopBy ? `(${STOP_BY[data.stopBy] ?? data.stopBy}) ` : ''}${rel()}`) } // кто закрыл заход: «движок сам» — эндпойнтер Vosk, «кнопка «Стоп»» — наш ear.stop, «авто-стоп» — 3,5 с без новых слов
@@ -168,7 +181,7 @@ export function createPhraseListener({ phrases: phrasesIn, lang = 'en', getStrea
       if (kind === 'final' && !wordByWord && !settleTimer && score(heardNow()).some(s => s.ratio >= PHRASE_OK - 1e-9)) settle(SETTLE_MS, mine) // итог захода с неполным совпадением (3 из 4: «nice to meet to» вместо «you») решается через SETTLE_MS и без события конца захода — заливка не застревает на 97 % (журнал 2026-11-15)
     } else if (kind === 'session-end') {
       if (current) past.push({ text: current, at: now() })
-      current = ''; textAt = now(); gateOpen = true; clearTimer(muteTimer); muteTimer = 0 // следующий заход Vosk (wordLaneListen перезапускает сам): голос в нём — ещё не в черновике
+      current = ''; textAt = now(); gateOpen = true; hold.capture(); noiseLogged = false; clearTimer(muteTimer); muteTimer = 0 // следующий заход Vosk (wordLaneListen перезапускает сам): голос в нём — ещё не в черновике
       const heard = heardNow()
       if (!heard) return
       const scores = score(heard)
