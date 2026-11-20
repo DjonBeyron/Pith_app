@@ -74,3 +74,45 @@ describe('вид хода: красное ожидаемое слово и ры�
     sv.word(1, new Map([[0, true], [1, true]]), 3000); expect(mask.words()[1].state).not.toBe('miss')
   })
 })
+
+describe('журнал владельца 15:12: слова «вперёд» из прошлых заходов не засчитываются задним числом', () => {
+  it('«where», потом «you», «you from» (до «are»), потом «are» и «where» новым заходом — фраза НЕ засчитана, слова 3 и 4 не пришли', async () => {
+    const r = rig([P.from], { wordByWord: true }); await flush()
+    r.cur().cb.onPartial('where'); await end(r, 'where', 300)
+    r.cur().cb.onPartial('you'); await end(r, 'you', 300)
+    r.cur().cb.onPartial('you from'); await end(r, 'you from', 300)
+    r.cur().cb.onPartial('are'); await end(r, 'are', 300)
+    r.cur().cb.onPartial('where') // новый заход: ничего нового сказано не было
+    expect(r.got).toEqual([])
+    const idx = r.words.filter(w => !w.gone).map(w => w.index)
+    expect(idx).not.toContain(2); expect(idx).not.toContain(3)
+    // а теперь «you from» говорят по-настоящему, после «are» — засчитано
+    await end(r, 'where', 300)
+    r.cur().cb.onPartial('you from'); await end(r, 'you from', 300)
+    expect(r.got.map(g => g.ratio)).toEqual([1])
+    r.l.stop()
+  })
+})
+
+describe('громкое «is» вместо «are»: Vosk отдаёт его как «[unk]» — это неверное слово', () => {
+  it('«where [unk]» → красное «are» и рывок (раньше [unk] отбрасывался, и «where is» молча оставалось без реакции)', () => {
+    const mask = mountMask(null, 'Where are you from'), jerks = []
+    const sv = createSayView({ pass: 1, text: 'Where are you from', n: 4, mask, nudge: on => on && jerks.push(1), el: null })
+    sv.word(0, new Map([[0, true]]), 0); mask.set(new Map([[0, true]]))
+    sv.ear({ kind: 'partial', text: 'where', raw: 'where [unk]' }); sv.frame(1000, false, 0.3); sv.frame(1300, false, 0.3)
+    expect(mask.words()[1].state).toBe('miss'); expect(jerks.length).toBe(1)
+  })
+})
+
+describe('рывок: красная заливка от линии до 90 % и обратно (v3.3.307)', () => {
+  it('fire(from) пишет --nf / --nw на пилюлю; у линии за 90 % длина не меньше 6 %; CSS — анимация wlNudgeFill 0,52 с', async () => {
+    const { createNudge, NUDGE_MS, NUDGE_TO } = await import('./racePhraseNudge.js')
+    const vars = {}, el = { style: { setProperty: (k, v) => { vars[k] = v } }, addEventListener() {}, removeEventListener() {} }
+    const n = createNudge({ mark() {}, el, setTimer: () => 1, clearTimer() {} })
+    n.fire(0.36); expect(vars).toEqual({ '--nf': '36', '--nw': String(NUDGE_TO - 36) })
+    n.fire(0.95); expect(vars['--nw']).toBe('6'); n.fire(); expect(vars).toEqual({ '--nf': '0', '--nw': '90' })
+    expect(NUDGE_TO).toBe(90); expect(NUDGE_MS).toBe(520)
+    const css = (await import('node:fs')).readFileSync(new URL('../../styles/player/modules/word-lane-wide-fill.css', import.meta.url), 'utf8')
+    expect(css).toContain('@keyframes wlNudgeFill'); expect(css).toContain('.wlPillSparks::before'); expect(css).toContain('animation: wlNudgeFill 0.52s both')
+  })
+})

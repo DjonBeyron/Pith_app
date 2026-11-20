@@ -38,15 +38,23 @@
    но быстро возвращаются (0,28 с); заливка не меняется. Кромка видна и при пустой заливке (opacity !important поверх инлайна пула) — рывок от начала. Только transform, без filter. */
 .wlField .wlPill[data-wide][data-nudge] .wlPillSparks i { opacity: 1 !important; }
 .wlPill[data-wide][data-nudge] .wlPillSparks i::before {
-  width: 3.5px; left: -1.75px; animation: wlNudge 0.28s both;
+  width: 3.5px; left: -1.75px; animation: wlNudge 0.52s both;
   background: linear-gradient(to bottom, rgba(255, 80, 80, 0), rgba(255, 110, 110, 1) 30% 70%, rgba(255, 80, 80, 0));
 }
-.wlPill[data-wide][data-nudge] .wlPillSparks i::after { opacity: 1; animation: wlNudge 0.28s both; background: radial-gradient(closest-side, rgba(255, 60, 60, 0.6), rgba(255, 60, 60, 0.22) 55%, rgba(255, 60, 60, 0)); }
+.wlPill[data-wide][data-nudge] .wlPillSparks i::after { opacity: 1; animation: wlNudge 0.52s both; background: radial-gradient(closest-side, rgba(255, 60, 60, 0.6), rgba(255, 60, 60, 0.22) 55%, rgba(255, 60, 60, 0)); }
 @keyframes wlNudge {
   0% { transform: translateX(0); animation-timing-function: cubic-bezier(0.2, 0.8, 0.3, 1); }
   28% { transform: translateX(8px); animation-timing-function: cubic-bezier(0.4, 0, 0.3, 1); }
   100% { transform: translateX(0); }
 }
+/* v3.3.307 (владелец: «заполнение красной линией больше на 90 % а потом обратно»): на неверное слово от линии заливки (--nf, %) красная заливка быстро уходит до 90 % пилюли (--nw — длина, %) и плавно возвращается (0,52 с). Слой — ::before самого .wlPillSparks (те же границы, что у заливки), только transform / opacity */
+.wlPill[data-wide][data-nudge] .wlPillSparks::before { content: ''; position: absolute; top: 0; bottom: 0; left: calc(var(--nf, 0) * 1%); width: calc(var(--nw, 90) * 1%); border-radius: 999px; transform-origin: left center; background: linear-gradient(to right, rgba(255, 70, 60, 0.9), rgba(255, 70, 60, 0.55) 65%, rgba(255, 70, 60, 0.2)); animation: wlNudgeFill 0.52s both; }
+@keyframes wlNudgeFill {
+  0% { transform: scaleX(0); animation-timing-function: cubic-bezier(0.1, 0.8, 0.2, 1); }
+  30% { transform: scaleX(1); animation-timing-function: cubic-bezier(0.4, 0, 0.3, 1); }
+  100% { transform: scaleX(0); }
+}
+@media (prefers-reduced-motion: reduce) { .wlPill[data-wide][data-nudge] .wlPillSparks::before { animation: none; } }
 @media (prefers-reduced-motion: reduce) { .wlPill[data-wide][data-nudge] .wlPillSparks i::before, .wlPill[data-wide][data-nudge] .wlPillSparks i::after { animation: none; } }
 /* Неверное слово заметнее (владелец 2026-11-17: «сказал неверно намеренно и ничего не увидел»): кроме рывка кромки — вся пилюля на миг в красной обводке-ореоле (outline, без перерисовки заливки); держится, пока стоит data-nudge (≈ 0,36 с) */
 .wlPill[data-wide][data-nudge]:not([data-lock]) { outline: 3px solid rgba(255, 70, 60, 0.9); outline-offset: 1px; }

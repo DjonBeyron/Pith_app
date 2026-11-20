@@ -31,7 +31,7 @@ describe('createPhraseListener', () => {
     const r = rig([P.from, P.learn]); await flush()
     r.cur().cb.onPartial('[unk]'); expect(r.hears).toHaveLength(0) // «…» без слов — не речь
     r.cur().cb.onPartial('where are')
-    expect(r.hears).toEqual([{ kind: 'partial', text: 'where are' }])
+    expect(r.hears).toEqual([{ kind: 'partial', text: 'where are', raw: 'where are' }])
     expect(r.words.filter(w => w.phraseKey === 'where are you from')).toEqual([{ phraseKey: 'where are you from', index: 0, text: 'where', draft: true }, { phraseKey: 'where are you from', index: 1, text: 'are', draft: true }])
     await end(r, 'where are')
     expect(r.words.filter(w => w.phraseKey === 'where are you from' && !w.draft).map(w => w.index)).toEqual([0, 1])

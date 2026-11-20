@@ -49,7 +49,7 @@ export function createSayView({ pass, text, n, mask, log = () => {}, nudge = nul
       const mark = why => { if (mask?.missing?.(kw)) log(`[fill] ${why}: «${phraseWords(text)[kw] ?? ''}» красным`) } // v3.3.305 (владелец): над пилюлей ничего не пишем, ожидаемое слово — красным на своём месте
       if (shown) mark(`сказано «${shown}»`)
       if (miss && !done) { onWrong(miss.word, miss.expect); mark(`неверное слово «${miss.word}»`) } // неверное слово — красное ожидаемое слово
-      if ((shown || miss) && !done && t - jerkAt >= WRONG_GAP_MS) { jerkAt = t; jerk?.fire() } // и рывок кромки (проход 1) на КАЖДОЕ неверное слово, в том числе слово цели не на своём месте («you» вместо «are»): линия дёргается и возвращается (владелец v3.3.306)
+      if ((shown || miss) && !done && t - jerkAt >= WRONG_GAP_MS) { jerkAt = t; jerk?.fire(fill) } // и рывок кромки (проход 1) на КАЖДОЕ неверное слово, в том числе слово цели не на своём месте («you» вместо «are»): линия дёргается и возвращается (владелец v3.3.306)
     },
     edges: () => mask?.edges() ?? null,
     peekIndex: () => peek?.index() ?? -1,

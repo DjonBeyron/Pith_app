@@ -45,6 +45,7 @@ export function createPhraseListener({ phrases: phrasesIn, lang = 'en', getStrea
   let phrases = norm(phrasesIn)
   let wordByWord = !!wbwIn
   let past = []   // услышанное закрытых заходов: [{ text, at }]
+  let cutAt = -Infinity // проход 1: когда последний раз подтверждено итогом новое слово — заходы ДО этого момента больше не читаются (v3.3.307: слова «вперёд» из старых заходов не должны засчитываться задним числом, когда ожидаемое слово наконец сказано)
   let current = '' // текущий заход (последний черновик / итог)
   let sent = new Map() // ключ кандидата → Map(индекс слова → true, если уже подтверждён итогом; false — пока черновик)
   let settleTimer = 0
@@ -65,8 +66,8 @@ export function createPhraseListener({ phrases: phrasesIn, lang = 'en', getStrea
 
   const baseOf = key => { const g = sent.get(key); let k = 0; while (g?.get(k) === true) k++; return k } // сколько слов с начала подтверждено итогом (непрерывно)
   const score = heard => scorePhrases(phrases, heard, wordByWord ? { strict: true, base: baseOf } : true) // проход 1 — строгая цепочка (strictHits, v3.3.306): неверное слово линию не двигает, слова за ним не запоминаются; проход 2 — по порядку (orderedHits). Прежний комментарий: слова только по порядку (racePhraseScore.orderedHits) в ОБОИХ проходах (v3.3.302, журнал владельца: «nice you meet to» засчитало фразу на 100 %, заливка дошла до конца); раньше проход 2 считал набором слов, порядок не важен
-  const heardNow = () => { const t = now(); past = past.filter(p => t - p.at <= (wordByWord ? JOIN_WBW_MS : JOIN_MS)); return [...past.map(p => p.text), current].filter(Boolean).join(' ') }
-  const clearState = () => { past = []; current = ''; sent = new Map(); clearTimer(settleTimer); settleTimer = 0; clearTimer(quietTimer); quietTimer = 0; clearTimer(gateTimer); gateTimer = 0; clearTimer(muteTimer); muteTimer = 0; throughBy = ''; throughAt = null; firstAt = null; zero = now(); sameAt = -Infinity; pauseMax = 0 }
+  const heardNow = () => { const t = now(); past = past.filter(p => t - p.at <= (wordByWord ? JOIN_WBW_MS : JOIN_MS)); return [...past.filter(p => !wordByWord || p.at >= cutAt).map(p => p.text), current].filter(Boolean).join(' ') }
+  const clearState = () => { past = []; cutAt = -Infinity; current = ''; sent = new Map(); clearTimer(settleTimer); settleTimer = 0; clearTimer(quietTimer); quietTimer = 0; clearTimer(gateTimer); gateTimer = 0; clearTimer(muteTimer); muteTimer = 0; throughBy = ''; throughAt = null; firstAt = null; zero = now(); sameAt = -Infinity; pauseMax = 0 }
   const quietMs = () => quietLimit(pauseMax, wordByWord)
   const rel = () => `+${Math.round(now() - (firstAt ?? zero))} мс`
   const settle = (ms, mine) => { if (wordByWord) { ms = Math.max(ms, SETTLE_WBW_MS); settleLast = true } clearTimer(settleTimer); settleTimer = setTimer(() => { settleTimer = 0; if (mine !== gen) return; if (throughBy) through(throughBy); decide(true) }, ms) }
@@ -116,7 +117,7 @@ export function createPhraseListener({ phrases: phrasesIn, lang = 'en', getStrea
       if (!emptyFinal) for (const [index, kept] of got) if (!kept && !s.hits[index]) { got.delete(index); log(`[phrase-ear] слово ${index + 1} «${p.words[index]}» откат (${s.key}): в услышанном по порядку его нет ${rel()}`); say(index, true, true) }
       let k = 0
       while (s.hits[k] || got.get(k) === true) k++
-      s.hits.forEach((ok, index) => { const keep = ok && !draft && index < k; if (ok && (!got.has(index) || (keep && !got.get(index)))) { got.set(index, keep); say(index, !keep) } })
+      s.hits.forEach((ok, index) => { const keep = ok && !draft && index < k; if (ok && (!got.has(index) || (keep && !got.get(index)))) { if (keep) cutAt = now(); got.set(index, keep); say(index, !keep) } })
     }
   }
 
@@ -152,7 +153,7 @@ export function createPhraseListener({ phrases: phrasesIn, lang = 'en', getStrea
       if (isHeld()) return // говорит Пит: его голос из динамика — не ученик
       const text = clean(data?.raw)
       if (kind === 'partial' && !text) return
-      onEar?.({ kind, text })
+      onEar?.({ kind, text, raw: String(data?.raw ?? '').toLowerCase().trim() }) // raw — с «[unk]»: Vosk отдаёт сказанное вне словаря (громкое «is» вместо «are») как «[unk]» — это неверное слово (racePhraseWrongWord)
       if (text) firstAt ??= now()
       if (kind === 'final' || current !== text) { sameAt = now(); log(`[phrase-ear] ${kind === 'partial' ? 'черновик' : 'итог'} «${text}» ${kind === 'final' && data?.stopBy ? `(${STOP_BY[data.stopBy] ?? data.stopBy}) ` : ''}${rel()}`) } // кто закрыл заход: «движок сам» — эндпойнтер Vosk, «кнопка «Стоп»» — наш ear.stop, «авто-стоп» — 3,5 с без новых слов
       if (current !== text) textAt = now()
