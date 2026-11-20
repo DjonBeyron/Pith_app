@@ -1,0 +1,358 @@
+Pithy · стенд пилюль · замечание: Анимация + Распознавание (Vosk)
+версия 3.3.314 · iPhone iOS 18.7 402×874 @3 · 2026-11-20 22:48:29 (UTC+10:00)
+режим По словам (проход 1) · язык EN · длина любые · сид mwoz55kw-2 · авто выкл.
+отрезок: текущая цель #1 «Where are you from» -0,991–49,067 с
+цели в файле: #1 «Where are you from» По словам (проход 1) EN с 0,009 с ✓
+микрофон: без сбоев
+метки кадров: нет
+звук: записи со звуком не было
+итог честности отрезка: целей 1, зачётов 1, ложных срабатываний 4, додумано 0 из 12 слов, перестроек 0, откатов 0, неверных 0
+состав: событий 1264 (в хронике 318), кадров 0 (в таблице 0), строк журнала 0
+
+== Комментарий ==
+(без комментария)
+
+== До первой цели ==
+-- хроника (+мс от появления цели; 0 строк) --
+   (событий темы нет)
+
+== Цель #1 «Where are you from» — EN, По словам (проход 1), появилась 0,009 с ==
+-- зачёт: ✓ по черновику (правило слова не ждало) --
+-- хроника (+мс от появления цели; 317 строк) --
+     +0  lang {"lang":"en"}
+     +2  model {"lang":"en","switched":true,"text":""}
+    +97  lang {"lang":"en"}
+    +97  model {"lang":"en","switched":true,"text":""}
+  +2517  mic {"state":"asking"}
+  +3772  mic {"state":"granted","waitedMs":251,"interrupts":0,"ctx":"running"}
+  +3806  пилюля и слушатель запущены (words)
+  +3817  слушатель слов: грамматика #1 (781 вариант, та же), цели ["where","are","you","from"]
+  +3818  слушатель слов: грамматика #1 (781 вариант, та же), цели ["where","are","you","from"]
+  +3818  перед ходом «Where are you from» (проход 1)
+  +3819  словарь Vosk: грамматика #1 (781 вариант, та же) · затвор тишины
+  +3823  Vosk готов (микрофон 0 мс)
+  +3823  словарь Vosk: грамматика #1 (781 вариант, та же) · затвор тишины
+  +3824  Vosk готов (микрофон 0 мс)
+  +3841  заливка: цель 0,00 · экран 0,00
+  +3867  rms 0,0000 ▽ тишина
+  +3867  затвор открыт (rms 0,0000)
+  +3867  слушатель слов: gate {"open":true,"rms":0}
+  +3867  [gate] открыт +49 мс (rms 0,000)
+  +3867  слух фраз: {"kind":"gate","open":true,"rms":0}
+  +4208  затвор закрыт (rms 0,0030)
+  +4208  слушатель слов: gate {"open":false,"rms":0.003002383800987432}
+  +4208  [gate] закрыт +390 мс (rms 0,003)
+  +4208  слух фраз: {"kind":"gate","open":false,"rms":0.003002383800987432}
+  +4763  rms 0,0051 ▲ голос · шум 0,0012
+  +4763  затвор открыт (rms 0,0051)
+  +4763  слушатель слов: gate {"open":true,"rms":0.005086061186404294}
+  +4763  [gate] открыт +945 мс (rms 0,005)
+  +4763  слух фраз: {"kind":"gate","open":true,"rms":0.005086061186404294}
+  +5019  rms 0,0101 ▲ голос
+  +5190  rms 0,0027 ▽ тишина
+  +5232  rms 0,0048 ▲ голос · шум 0,0013
+  +5275  rms 0,0024 ▽ тишина
+  +5616  затвор закрыт (rms 0,0011)
+  +5616  слушатель слов: gate {"open":false,"rms":0.0010862179718847313}
+  +5616  [gate] закрыт +1798 мс (rms 0,001)
+  +5616  слух фраз: {"kind":"gate","open":false,"rms":0.0010862179718847313}
+  +6299  rms 0,0015 ▽ тишина
+  +6427  rms 0,0389 ▲ голос · шум 0,0015
+  +6427  затвор открыт (rms 0,0389)
+  +6427  слушатель слов: gate {"open":true,"rms":0.03893279193871054}
+  +6427  [gate] открыт +2609 мс (rms 0,039)
+  +6427  слух фраз: {"kind":"gate","open":true,"rms":0.03893279193871054}
+  +6683  rms 0,0206 ▲ голос
+  +6749  черновик {"partial":"you"}
+  +6749  слух фраз: {"kind":"partial","text":"you","raw":"you"}
+  +6749  [phrase-ear] черновик «you» +0 мс
+  +6811  rms 0,0027 ▽ тишина
+  +6969  черновик {"partial":"[unk]"}
+  +7113  [fill] сказано «you»: «Where» красным
+  +7113  [fill] рывок кромки: сказано «you», заливка 0,00
+  +7153  затвор закрыт (rms 0,0037)
+  +7153  слушатель слов: gate {"open":false,"rms":0.0036794622304036806}
+  +7153  [gate] закрыт +403 мс (rms 0,004)
+  +7153  слух фраз: {"kind":"gate","open":false,"rms":0.0036794622304036806}
+  +7194  [fill] рывок: запущено анимаций 2
+  +7835  rms 0,0011 ▽ тишина
+  +8390  rms 0,0343 ▲ голос · шум 0,0016
+  +8390  затвор открыт (rms 0,0343)
+  +8390  слушатель слов: gate {"open":true,"rms":0.03429464046285752}
+  +8390  [gate] открыт +1641 мс (rms 0,034)
+  +8390  слух фраз: {"kind":"gate","open":true,"rms":0.03429464046285752}
+  +8646  rms 0,0351 ▲ голос
+  +8767  черновик {"partial":"[unk] where"}
+  +8767  слух фраз: {"kind":"partial","text":"where","raw":"[unk] where"}
+  +8767  [phrase-ear] черновик «where» +2018 мс
+  +8768  [phrase-ear] новые слова в заходе с «[unk]» перед ними — черновиком не принимаю, жду итог +2018 мс
+  +8816  rms 0,0014 ▽ тишина
+  +9158  затвор закрыт (rms 0,0018)
+  +9158  слушатель слов: gate {"open":false,"rms":0.001752025346385802}
+  +9158  [gate] закрыт +2409 мс (rms 0,002)
+  +9158  слух фраз: {"kind":"gate","open":false,"rms":0.001752025346385802}
+  +9840  rms 0,0010 ▽ тишина
+ +10659  [phrase-ear] Vosk молчит 1886 мс после голоса (черновик «where») +3910 мс
+ +10779  rms 0,0303 ▲ голос · шум 0,0018
+ +10779  затвор открыт (rms 0,0303)
+ +10779  слушатель слов: gate {"open":true,"rms":0.030321535051079096}
+ +10779  [gate] открыт +4030 мс (rms 0,030)
+ +10779  слух фраз: {"kind":"gate","open":true,"rms":0.030321535051079096}
+ +10787  [phrase-ear] partial без изменений «where» +4038 мс
+ +11035  rms 0,0342 ▲ голос
+ +11164  rms 0,0021 ▽ тишина
+ +11216  черновик {"partial":"[unk] where where"}
+ +11216  слух фраз: {"kind":"partial","text":"where where","raw":"[unk] where where"}
+ +11216  [phrase-ear] черновик «where where» +4467 мс
+ +11504  затвор закрыт (rms 0,0036)
+ +11504  слушатель слов: gate {"open":false,"rms":0.003605053231359961}
+ +11504  [gate] закрыт +4755 мс (rms 0,004)
+ +11504  слух фраз: {"kind":"gate","open":false,"rms":0.003605053231359961}
+ +12187  rms 0,0011 ▽ тишина
+ +12699  rms 0,0296 ▲ голос · шум 0,0016
+ +12699  затвор открыт (rms 0,0296)
+ +12699  слушатель слов: gate {"open":true,"rms":0.029602152998172076}
+ +12699  [gate] открыт +5950 мс (rms 0,030)
+ +12699  слух фраз: {"kind":"gate","open":true,"rms":0.029602152998172076}
+ +12703  [phrase-ear] partial без изменений «where where» +5954 мс
+ +12909  черновик {"partial":"[unk] where where where"}
+ +12909  слух фраз: {"kind":"partial","text":"where where where","raw":"[unk] where where where"}
+ +12909  [phrase-ear] черновик «where where where» +6160 мс
+ +12955  rms 0,0708 ▲ голос
+ +13125  rms 0,0020 ▽ тишина
+ +13435  [phrase-ear] partial без изменений «where where where» +6686 мс
+ +13467  затвор закрыт (rms 0,0034)
+ +13467  слушатель слов: gate {"open":false,"rms":0.0033677898063475065}
+ +13467  [gate] закрыт +6718 мс (rms 0,003)
+ +13467  слух фраз: {"kind":"gate","open":false,"rms":0.0033677898063475065}
+ +14150  rms 0,0011 ▽ тишина
+ +14968  [phrase-ear] Vosk молчит 1884 мс после голоса (черновик «where where where») +8218 мс
+ +15174  rms 0,0010 ▽ тишина
+ +16027  rms 0,0294 ▲ голос · шум 0,0011
+ +16027  затвор открыт (rms 0,0294)
+ +16027  слушатель слов: gate {"open":true,"rms":0.029376050318461865}
+ +16027  [gate] открыт +9278 мс (rms 0,029)
+ +16027  слух фраз: {"kind":"gate","open":true,"rms":0.029376050318461865}
+ +16037  [phrase-ear] partial без изменений «where where where» +9287 мс
+ +16283  rms 0,0968 ▲ голос
+ +16295  черновик {"partial":"[unk] where where where where"}
+ +16295  слух фраз: {"kind":"partial","text":"where where where where","raw":"[unk] where where where where"}
+ +16295  [phrase-ear] черновик «where where where where» +9545 мс
+ +16539  rms 0,0026 ▽ тишина
+ +16796  [phrase-ear] partial без изменений «where where where where» +10047 мс
+ +16880  затвор закрыт (rms 0,0011)
+ +16880  слушатель слов: gate {"open":false,"rms":0.0010657916095156406}
+ +16880  [gate] закрыт +10131 мс (rms 0,001)
+ +16880  слух фраз: {"kind":"gate","open":false,"rms":0.0010657916095156406}
+ +17563  rms 0,0021 ▽ тишина
+ +18388  [phrase-ear] Vosk молчит 1892 мс после голоса (черновик «where where where where») +11639 мс
+ +18587  rms 0,0020 ▽ тишина
+ +18716  rms 0,0416 ▲ голос · шум 0,0019
+ +18716  затвор открыт (rms 0,0416)
+ +18716  слушатель слов: gate {"open":true,"rms":0.04159301006427211}
+ +18716  [gate] открыт +11967 мс (rms 0,042)
+ +18716  слух фраз: {"kind":"gate","open":true,"rms":0.04159301006427211}
+ +18720  [phrase-ear] partial без изменений «where where where where» +11971 мс
+ +18971  rms 0,0788 ▲ голос
+ +19150  черновик {"partial":"[unk] where where where where where"}
+ +19150  слух фраз: {"kind":"partial","text":"where where where where where","raw":"[unk] where where where where where"}
+ +19150  [phrase-ear] черновик «where where where where where» +12401 мс
+ +19227  rms 0,0798 ▲ голос
+ +19483  rms 0,0402 ▲ голос
+ +19611  rms 0,0037 ▽ тишина
+ +19654  [phrase-ear] partial без изменений «where where where where where» +12905 мс
+ +19952  затвор закрыт (rms 0,0010)
+ +19952  слушатель слов: gate {"open":false,"rms":0.0010125950595558477}
+ +19952  [gate] закрыт +13203 мс (rms 0,001)
+ +19952  слух фраз: {"kind":"gate","open":false,"rms":0.0010125950595558477}
+ +20379  rms 0,0087 ▲ голос · шум 0,0012
+ +20379  затвор открыт (rms 0,0087)
+ +20379  слушатель слов: gate {"open":true,"rms":0.008667706546896093}
+ +20379  [gate] открыт +13630 мс (rms 0,009)
+ +20379  слух фраз: {"kind":"gate","open":true,"rms":0.008667706546896093}
+ +20388  [phrase-ear] partial без изменений «where where where where where» +13639 мс
+ +20599  черновик {"partial":"[unk] where where where where where are"}
+ +20599  слух фраз: {"kind":"partial","text":"where where where where where are","raw":"[unk] where where where where where are"}
+ +20599  [phrase-ear] черновик «where where where where where are» +13850 мс
+ +20635  rms 0,0555 ▲ голос
+ +20848  rms 0,0014 ▽ тишина
+ +20965  [fill] рывок кромки: сказано «are», заливка 0,00
+ +21047  [fill] рывок: запущено анимаций 2
+ +21105  [phrase-ear] partial без изменений «where where where where where are» +14355 мс
+ +21189  затвор закрыт (rms 0,0011)
+ +21190  слушатель слов: gate {"open":false,"rms":0.0010509045846012215}
+ +21190  [gate] закрыт +14440 мс (rms 0,001)
+ +21190  слух фраз: {"kind":"gate","open":false,"rms":0.0010509045846012215}
+ +21872  rms 0,0256 ▲ голос · шум 0,0017
+ +21872  затвор открыт (rms 0,0256)
+ +21872  слушатель слов: gate {"open":true,"rms":0.025595947834496365}
+ +21872  [gate] открыт +15123 мс (rms 0,026)
+ +21872  слух фраз: {"kind":"gate","open":true,"rms":0.025595947834496365}
+ +21875  [phrase-ear] partial без изменений «where where where where where are» +15126 мс
+ +22090  итог {"text":"[unk] where where where where where are","result":[{"conf":1,"end":1.92,"start":1.5,"word":"[unk]"},{"conf":1,"end":2.91,"start":2.4,"word":"where"},{"conf":1,"end":3.78,"start":3.33,"word":"where"},{"conf":1,"end":4.74,"start":4.23,"word":"where"},{"conf":1,"end":5.76,"start":5.19,"word":"where"},{"conf":1,"end":7.17,"start":6.18,"word":"where"},{"conf":1,"end":8.1,"start":7.62,"word":"are"}]} · закрыл: движок сам · firstPartialMs 2925, resultMs 18266, tailMs 0, gatedMs 9387, voiceMs 4224, gatedVoiceMs 0, agcMax 8.4, maxGapMs 48
+ +22090  слух фраз: {"kind":"final","text":"where where where where where are","raw":"[unk] where where where where where are"}
+ +22090  [phrase-ear] итог «where where where where where are» (движок сам) +15341 мс
+ +22091  слово 1 «where» засчитано итогом
+ +22091  [fill] красное «Where» снято: слово сказано
+ +22091  слово 2 «are» засчитано итогом
+ +22092  слушатель слов: session-end {"by":"result"}
+ +22092  [phrase-ear] заход закрыт: raw «[unk] where where where where where are», пик 0,1370, новых слов принято, подтверждено слов 2 +15342 мс
+ +22092  [phrase-ear] кандидаты where are you from · услышал «where where where where where are» · лучший «Where are you from» ratio 0.50 · без совпадения
+ +22093  слушатель слов: грамматика #1 (781 вариант, та же), цели ["where","are","you","from"]
+ +22093  словарь Vosk: грамматика #1 (781 вариант, та же) · затвор тишины
+ +22093  Vosk готов (микрофон 0 мс)
+ +22100  [fill] +18280 мс: слово 2 «are» итог → цель 0,52, экран 0,12
+ +22100  заливка: цель 0,52 · экран 0,12
+ +22115  заливка: цель 0,52 · экран 0,20
+ +22131  заливка: цель 0,52 · экран 0,26
+ +22134  rms 0,0000 ▽ тишина
+ +22134  затвор открыт (rms 0,0000)
+ +22134  слушатель слов: gate {"open":true,"rms":0}
+ +22134  [gate] открыт +15384 мс (rms 0,000)
+ +22134  слух фраз: {"kind":"gate","open":true,"rms":0}
+ +22148  заливка: цель 0,52 · экран 0,32
+ +22176  rms 0,0467 ▲ голос · шум 0,0018
+ +22183  заливка: цель 0,52 · экран 0,41
+ +22215  заливка: цель 0,52 · экран 0,49
+ +22231  заливка: цель 0,52 · экран 0,52
+ +22247  заливка дошла: «where» за 156 мс
+ +22247  заливка дошла: «are» за 156 мс
+ +22389  rms 0,0035 ▽ тишина
+ +22731  затвор закрыт (rms 0,0019)
+ +22731  слушатель слов: gate {"open":false,"rms":0.0019035714754113088}
+ +22731  [gate] закрыт +15981 мс (rms 0,002)
+ +22731  слух фраз: {"kind":"gate","open":false,"rms":0.0019035714754113088}
+ +23413  rms 0,0011 ▽ тишина
+ +24438  rms 0,0128 ▲ голос · шум 0,0012
+ +24438  затвор открыт (rms 0,0128)
+ +24438  слушатель слов: gate {"open":true,"rms":0.012765201834386104}
+ +24438  [gate] открыт +17688 мс (rms 0,013)
+ +24438  слух фраз: {"kind":"gate","open":true,"rms":0.012765201834386104}
+ +24490  черновик {"partial":"where"}
+ +24490  слух фраз: {"kind":"partial","text":"where","raw":"where"}
+ +24490  [phrase-ear] черновик «where» +17741 мс
+ +24693  rms 0,0575 ▲ голос
+ +24828  черновик {"partial":"where you"}
+ +24829  слух фраз: {"kind":"partial","text":"where you","raw":"where you"}
+ +24829  [phrase-ear] черновик «where you» +18079 мс
+ +24829  слово 3 «you» засчитано черновиком
+ +24832  [fill] сказано «where»: «from» красным
+ +24832  [fill] рывок кромки: сказано «where», заливка 0,56
+ +24832  [fill] +21012 мс: слово 3 «you» черновик → цель 0,64, экран 0,56
+ +24832  заливка: цель 0,64 · экран 0,56
+ +24865  заливка: цель 0,64 · экран 0,64
+ +24881  заливка дошла: «you» за 52 мс
+ +24912  [fill] рывок: запущено анимаций 2
+ +24949  rms 0,0020 ▽ тишина
+ +25291  затвор закрыт (rms 0,0012)
+ +25291  слушатель слов: gate {"open":false,"rms":0.001161791423160389}
+ +25291  [gate] закрыт +18541 мс (rms 0,001)
+ +25291  слух фраз: {"kind":"gate","open":false,"rms":0.001161791423160389}
+ +25547  rms 0,0070 ▲ голос · шум 0,0015
+ +25547  затвор открыт (rms 0,0070)
+ +25547  слушатель слов: gate {"open":true,"rms":0.006957956744704668}
+ +25547  [gate] открыт +18797 мс (rms 0,007)
+ +25547  слух фраз: {"kind":"gate","open":true,"rms":0.006957956744704668}
+ +25556  [phrase-ear] partial без изменений «where you» +18806 мс
+ +25806  rms 0,0151 ▲ голос
+ +25853  черновик {"partial":"where you from"}
+ +25853  слух фраз: {"kind":"partial","text":"where you from","raw":"where you from"}
+ +25853  [phrase-ear] черновик «where you from» +19104 мс
+ +25853  [phrase-ear] слово 3 «you» продержалось 1000 мс — подтверждено (откат переписанным черновиком не нужен) +19104 мс
+ +25853  слово 3 «you» засчитано итогом
+ +25854  [phrase-ear] последнее слово фразы в черновике «where you from» — жду 300 мс устойчивости +19104 мс
+ +25888  rms 0,0019 ▽ тишина
+ +26155  слово 4 «from» засчитано черновиком
+ +26155  [fill] красное «from» снято: слово сказано
+ +26155  [phrase-ear] кандидаты where are you from · услышал «where you from» · лучший «Where are you from» ratio 1.00
+ +26156  слушатель слов: грамматика #1 (781 вариант, та же), цели ["where","are","you","from"]
+ +26156  словарь Vosk: грамматика #1 (781 вариант, та же) · затвор тишины
+ +26156  Vosk готов (микрофон 0 мс)
+ +26165  [fill] +22346 мс: итог фразы, слов 100 % → цель 1,00, экран 0,66
+ +26165  заливка: цель 1,00 · экран 0,66
+ +26197  затвор открыт (rms 0,0000)
+ +26197  слушатель слов: gate {"open":true,"rms":0}
+ +26197  [gate] открыт +43 мс (rms 0,000)
+ +26197  слух фраз: {"kind":"gate","open":true,"rms":0}
+ +26198  заливка: цель 1,00 · экран 0,75
+ +26215  заливка: цель 1,00 · экран 0,81
+ +26231  заливка: цель 1,00 · экран 0,89
+ +26248  заливка: цель 1,00 · экран 0,98
+ +26265  заливка: цель 1,00 · экран 1,00
+ +26265  [fill] 100 % через 110 мс после последнего слова, последнее слово пришло: черновиком, взлёт +22446 мс
+ +26265  [fill] итог хода: слов 4, первое слово через 18272 мс, 100 % через 110 мс после последнего, макс. пауза 2738 мс
+ +26267  пилюля: win {"res":{"ok":true,"late":false,"confusedWith":null,"ratio":1,"clean":true}}
+ +26267  зачёт ✓, чисто
+ +26281  заливка дошла: «from» за 126 мс
+ +26539  затвор закрыт (rms 0,0016)
+ +26539  слушатель слов: gate {"open":false,"rms":0.001579591699197797}
+ +26539  [gate] закрыт +385 мс (rms 0,002)
+ +26539  слух фраз: {"kind":"gate","open":false,"rms":0.001579591699197797}
+ +26923  rms 0,0015 ▽ тишина
+ +27947  rms 0,0019 ▽ тишина
+ +28971  rms 0,0030 ▽ тишина
+ +29995  rms 0,0024 ▽ тишина
+ +31019  rms 0,0024 ▽ тишина
+ +31744  rms 0,0084 ▲ голос · шум 0,0011
+ +31744  затвор открыт (rms 0,0084)
+ +31744  слушатель слов: gate {"open":true,"rms":0.008394111635709096}
+ +31744  [gate] открыт +5590 мс (rms 0,008)
+ +31744  слух фраз: {"kind":"gate","open":true,"rms":0.008394111635709096}
+ +32000  rms 0,0049 ▲ голос
+ +32256  rms 0,0032 ▲ голос
+ +32299  rms 0,0028 ▽ тишина
+ +32427  rms 0,0040 ▲ голос · шум 0,0013
+ +32469  rms 0,0027 ▽ тишина
+ +32811  затвор закрыт (rms 0,0012)
+ +32811  слушатель слов: gate {"open":false,"rms":0.0012434935457095032}
+ +32811  [gate] закрыт +6656 мс (rms 0,001)
+ +32811  слух фраз: {"kind":"gate","open":false,"rms":0.0012434935457095032}
+ +33493  rms 0,0009 ▽ тишина
+ +34518  rms 0,0011 ▽ тишина
+ +46361  итог {"text":"","result":[]} · закрыл: потолок записи · resultMs 20205, afterStopMs 111, tailMs 400, gatedMs 7595, voiceMs 597, gatedVoiceMs 0, agcMax 8.5, maxGapMs 53
+ +46361  слух фраз: {"kind":"final","text":"","raw":""}
+ +46361  [phrase-ear] итог «» (потолок записи) +20206 мс
+ +46361  [phrase-ear] голос (пик 0,012) без нового слова цели — неверное слово +20206 мс
+ +46361  слух фраз: {"kind":"wrong","why":"voice","peak":0.011584214300207273}
+ +46361  слушатель слов: session-end {"by":"result"}
+ +46361  [phrase-ear] заход закрыт: raw «», пик 0,0116, новых слов нет, подтверждено слов 0 +20206 мс
+ +46361  слушатель слов: грамматика #1 (781 вариант, та же), цели ["where","are","you","from"]
+ +46362  словарь Vosk: грамматика #1 (781 вариант, та же) · затвор тишины
+ +47094  Vosk готов (микрофон 729 мс)
+ +47135  rms 0,0000 ▽ тишина
+ +47135  затвор открыт (rms 0,0000)
+ +47135  слушатель слов: gate {"open":true,"rms":0}
+ +47135  [gate] открыт +20980 мс (rms 0,000)
+ +47135  слух фраз: {"kind":"gate","open":true,"rms":0}
+ +47476  затвор закрыт (rms 0,0010)
+ +47476  слушатель слов: gate {"open":false,"rms":0.0009884470326830882}
+ +47477  [gate] закрыт +21322 мс (rms 0,001)
+ +47477  слух фраз: {"kind":"gate","open":false,"rms":0.0009884470326830882}
+ +48159  rms 0,0011 ▽ тишина
+ +48418  rms 0,0286 ▲ голос · шум 0,0011
+ +48418  затвор открыт (rms 0,0286)
+ +48418  слушатель слов: gate {"open":true,"rms":0.028648726963928187}
+ +48418  [gate] открыт +22264 мс (rms 0,029)
+ +48419  слух фраз: {"kind":"gate","open":true,"rms":0.028648726963928187}
+ +48674  rms 0,0251 ▲ голос
+ +48930  rms 0,0374 ▲ голос
+-- кадры: записи на этом отрезке нет («● Запись» на стенде) --
+-- Анимация: метрики --
+  хлопок при заливке 1,00, через 112 мс после зачёта (по трассе)
+  слово → заливка дошла (по трассе): «where» 140 мс · «are» 140 мс · «you» 36 мс · «from» 110 мс
+  заливка дошла (кадр стенда): +22247 «where» 156 мс · +22247 «are» 156 мс · +24881 «you» 52 мс · +26281 «from» 126 мс
+  рывки экрана ≥ 0,08 за шаг заливки: 3, без голоса 0 — +22100 0,00→0,12 голос да, после «are» через 9 мс · +22115 0,12→0,20 голос да, после «are» через 24 мс · +26248 0,89→0,98 голос да, после «from» через 93 мс
+-- Распознавание (Vosk): метрики --
+  голос: +4763…+25845 мс (счётчик распознавания: шум 0,0012, пик речи 0,1370) · голос → первый черновик 1986 мс
+  черновики: 10 смен, повторов того же текста 195, перестроек 1 — +8767 «you» → «where»
+  итоги: +22090 «where where where where where are» (движок сам) [[unk] 1,00, where 1,00, where 1,00, where 1,00, where 1,00, where 1,00, are 1,00] · +46361 «» (потолок записи)
+  кто закрыл заходы: движок сам ×1, потолок записи ×1
+  додумано Vosk (нет в цели): — · из 12 услышанных слов лишних 0
+  словарь: свободный, свободный, свободный, свободный, свободный
+  звук в Vosk: голос 4821 мс — дошёл весь; тишины не отдано 16982 мс; усиление перед Vosk до ×8.5
+
+== Журнал игры (строки по теме за отрезок: 0) ==
+   (строк нет)
+
+---JSON---
+{"kind":"pithy-stand-pack","v":1,"grammars":[{"n":1,"size":781,"t":3826,"list":["where","are","you","from","[unk]","where where","where are","where you","where from","where [unk]","are where","are are","are you","are from","are [unk]","you where","you are","you you","you from","you [unk]","from where","from are","from you","from from","from [unk]","[unk] where","[unk] are","[unk] you","[unk] from","[unk] [unk]","where where where","where where are","where where you","where where from","where where [unk]","where are where","where are are","where are you","where are from","where are [unk]","where you where","where you are","where you you","where you from","where you [unk]","where from where","where from are","where from you","where from from","where from [unk]","where [unk] where","where [unk] are","where [unk] you","where [unk] from","where [unk] [unk]","are where where","are where are","are where you","are where from","are where [unk]","are are where","are are are","are are you","are are from","are are [unk]","are you where","are you are","are you you","are you from","are you [unk]","are from where","are from are","are from you","are from from","are from [unk]","are [unk] where","are [unk] are","are [unk] you","are [unk] from","are [unk] [unk]","you where where","you where are","you where you","you where from","you where [unk]","you are where","you are are","you are you","you are from","you are [unk]","you you where","you you are","you you you","you you from","you you [unk]","you from where","you from are","you from you","you from from","you from [unk]","you [unk] where","you [unk] are","you [unk] you","you [unk] from","you [unk] [unk]","from where where","from where are","from where you","from where from","from where [unk]","from are where","from are are","from are you","from are from","from are [unk]","from you where","from you are","from you you","from you from","from you [unk]","from from where","from from are","from from you","from from from","from from [unk]","from [unk] where","from [unk] are","from [unk] you","from [unk] from","from [unk] [unk]","[unk] where where","[unk] where are","[unk] where you","[unk] where from","[unk] where [unk]","[unk] are where","[unk] are are","[unk] are you","[unk] are from","[unk] are [unk]","[unk] you where","[unk] you are","[unk] you you","[unk] you from","[unk] you [unk]","[unk] from where","[unk] from are","[unk] from you","[unk] from from","[unk] from [unk]","[unk] [unk] where","[unk] [unk] are","[unk] [unk] you","[unk] [unk] from","[unk] [unk] [unk]","where where where where","where where where are","where where where you","where where where from","where where where [unk]","where where are where","where where are are","where where are you","where where are from","where where are [unk]","where where you where","where where you are","where where you you","where where you from","where where you [unk]","where where from where","where where from are","where where from you","where where from from","where where from [unk]","where where [unk] where","where where [unk] are","where where [unk] you","where where [unk] from","where where [unk] [unk]","where are where where","where are where are","where are where you","where are where from","where are where [unk]","where are are where","where are are are","where are are you","where are are from","where are are [unk]","where are you where","where are you are","where are you you","where are you from","where are you [unk]","where are from where","where are from are","where are from you","where are from from","where are from [unk]","where are [unk] where","where are [unk] are","where are [unk] you","where are [unk] from","where are [unk] [unk]","where you where where","where you where are","where you where you","where you where from","where you where [unk]","where you are where","where you are are","where you are you","where you are from","where you are [unk]","where you you where","where you you are","where you you you","where you you from","where you you [unk]","where you from where","where you from are","where you from you","where you from from","where you from [unk]","where you [unk] where","where you [unk] are","where you [unk] you","where you [unk] from","where you [unk] [unk]","where from where where","where from where are","where from where you","where from where from","where from where [unk]","where from are where","where from are are","where from are you","where from are from","where from are [unk]","where from you where","where from you are","where from you you","where from you from","where from you [unk]","where from from where","where from from are","where from from you","where from from from","where from from [unk]","where from [unk] where","where from [unk] are","where from [unk] you","where from [unk] from","where from [unk] [unk]","where [unk] where where","where [unk] where are","where [unk] where you","where [unk] where from","where [unk] where [unk]","where [unk] are where","where [unk] are are","where [unk] are you","where [unk] are from","where [unk] are [unk]","where [unk] you where","where [unk] you are","where [unk] you you","where [unk] you from","where [unk] you [unk]","where [unk] from where","where [unk] from are","where [unk] from you","where [unk] from from","where [unk] from [unk]","where [unk] [unk] where","where [unk] [unk] are","where [unk] [unk] you","where [unk] [unk] from","where [unk] [unk] [unk]","are where where where","are where where are","are where where you","are where where from","are where where [unk]","are where are where","are where are are","are where are you","are where are from","are where are [unk]","are where you where","are where you are","are where you you","are where you from","are where you [unk]","are where from where","are where from are","are where from you","are where from from","are where from [unk]","are where [unk] where","are where [unk] are","are where [unk] you","are where [unk] from","are where [unk] [unk]","are are where where","are are where are","are are where you","are are where from","are are where [unk]","are are are where","are are are are","are are are you","are are are from","are are are [unk]","are are you where","are are you are","are are you you","are are you from","are are you [unk]","are are from where","are are from are","are are from you","are are from from","are are from [unk]","are are [unk] where","are are [unk] are","are are [unk] you","are are [unk] from","are are [unk] [unk]","are you where where","are you where are","are you where you","are you where from","are you where [unk]","are you are where","are you are are","are you are you","are you are from","are you are [unk]","are you you where","are you you are","are you you you","are you you from","are you you [unk]","are you from where","are you from are","are you from you","are you from from","are you from [unk]","are you [unk] where","are you [unk] are","are you [unk] you","are you [unk] from","are you [unk] [unk]","are from where where","are from where are","are from where you","are from where from","are from where [unk]","are from are where","are from are are","are from are you","are from are from","are from are [unk]","are from you where","are from you are","are from you you","are from you from","are from you [unk]","are from from where","are from from are","are from from you","are from from from","are from from [unk]","are from [unk] where","are from [unk] are","are from [unk] you","are from [unk] from","are from [unk] [unk]","are [unk] where where","are [unk] where are","are [unk] where you","are [unk] where from","are [unk] where [unk]","are [unk] are where","are [unk] are are","are [unk] are you","are [unk] are from","are [unk] are [unk]","are [unk] you where","are [unk] you are","are [unk] you you","are [unk] you from","are [unk] you [unk]","are [unk] from where","are [unk] from are","are [unk] from you","are [unk] from from","are [unk] from [unk]","are [unk] [unk] where","are [unk] [unk] are","are [unk] [unk] you","are [unk] [unk] from","are [unk] [unk] [unk]","you where where where","you where where are","you where where you","you where where from","you where where [unk]","you where are where","you where are are","you where are you","you where are from","you where are [unk]","you where you where","you where you are","you where you you","you where you from","you where you [unk]","you where from where","you where from are","you where from you","you where from from","you where from [unk]","you where [unk] where","you where [unk] are","you where [unk] you","you where [unk] from","you where [unk] [unk]","you are where where","you are where are","you are where you","you are where from","you are where [unk]","you are are where","you are are are","you are are you","you are are from","you are are [unk]","you are you where","you are you are","you are you you","you are you from","you are you [unk]","you are from where","you are from are","you are from you","you are from from","you are from [unk]","you are [unk] where","you are [unk] are","you are [unk] you","you are [unk] from","you are [unk] [unk]","you you where where","you you where are","you you where you","you you where from","you you where [unk]","you you are where","you you are are","you you are you","you you are from","you you are [unk]","you you you where","you you you are","you you you you","you you you from","you you you [unk]","you you from where","you you from are","you you from you","you you from from","you you from [unk]","you you [unk] where","you you [unk] are","you you [unk] you","you you [unk] from","you you [unk] [unk]","you from where where","you from where are","you from where you","you from where from","you from where [unk]","you from are where","you from are are","you from are you","you from are from","you from are [unk]","you from you where","you from you are","you from you you","you from you from","you from you [unk]","you from from where","you from from are","you from from you","you from from from","you from from [unk]","you from [unk] where","you from [unk] are","you from [unk] you","you from [unk] from","you from [unk] [unk]","you [unk] where where","you [unk] where are","you [unk] where you","you [unk] where from","you [unk] where [unk]","you [unk] are where","you [unk] are are","you [unk] are you","you [unk] are from","you [unk] are [unk]","you [unk] you where","you [unk] you are","you [unk] you you","you [unk] you from","you [unk] you [unk]","you [unk] from where","you [unk] from are","you [unk] from you","you [unk] from from","you [unk] from [unk]","you [unk] [unk] where","you [unk] [unk] are","you [unk] [unk] you","you [unk] [unk] from","you [unk] [unk] [unk]","from where where where","from where where are","from where where you","from where where from","from where where [unk]","from where are where","from where are are","from where are you","from where are from","from where are [unk]","from where you where","from where you are","from where you you","from where you from","from where you [unk]","from where from where","from where from are","from where from you","from where from from","from where from [unk]","from where [unk] where","from where [unk] are","from where [unk] you","from where [unk] from","from where [unk] [unk]","from are where where","from are where are","from are where you","from are where from","from are where [unk]","from are are where","from are are are","from are are you","from are are from","from are are [unk]","from are you where","from are you are","from are you you","from are you from","from are you [unk]","from are from where","from are from are","from are from you","from are from from","from are from [unk]","from are [unk] where","from are [unk] are","from are [unk] you","from are [unk] from","from are [unk] [unk]","from you where where","from you where are","from you where you","from you where from","from you where [unk]","from you are where","from you are are","from you are you","from you are from","from you are [unk]","from you you where","from you you are","from you you you","from you you from","from you you [unk]","from you from where","from you from are","from you from you","from you from from","from you from [unk]","from you [unk] where","from you [unk] are","from you [unk] you","from you [unk] from","from you [unk] [unk]","from from where where","from from where are","from from where you","from from where from","from from where [unk]","from from are where","from from are are","from from are you","from from are from","from from are [unk]","from from you where","from from you are","from from you you","from from you from","from from you [unk]","from from from where","from from from are","from from from you","from from from from","from from from [unk]","from from [unk] where","from from [unk] are","from from [unk] you","from from [unk] from","from from [unk] [unk]","from [unk] where where","from [unk] where are","from [unk] where you","from [unk] where from","from [unk] where [unk]","from [unk] are where","from [unk] are are","from [unk] are you","from [unk] are from","from [unk] are [unk]","from [unk] you where","from [unk] you are","from [unk] you you","from [unk] you from","from [unk] you [unk]","from [unk] from where","from [unk] from are","from [unk] from you","from [unk] from from","from [unk] from [unk]","from [unk] [unk] where","from [unk] [unk] are","from [unk] [unk] you","from [unk] [unk] from","from [unk] [unk] [unk]","[unk] where where where","[unk] where where are","[unk] where where you","[unk] where where from","[unk] where where [unk]","[unk] where are where","[unk] where are are","[unk] where are you","[unk] where are from","[unk] where are [unk]","[unk] where you where","[unk] where you are","[unk] where you you","[unk] where you from","[unk] where you [unk]","[unk] where from where","[unk] where from are","[unk] where from you","[unk] where from from","[unk] where from [unk]","[unk] where [unk] where","[unk] where [unk] are","[unk] where [unk] you","[unk] where [unk] from","[unk] where [unk] [unk]","[unk] are where where","[unk] are where are","[unk] are where you","[unk] are where from","[unk] are where [unk]","[unk] are are where","[unk] are are are","[unk] are are you","[unk] are are from","[unk] are are [unk]","[unk] are you where","[unk] are you are","[unk] are you you","[unk] are you from","[unk] are you [unk]","[unk] are from where","[unk] are from are","[unk] are from you","[unk] are from from","[unk] are from [unk]","[unk] are [unk] where","[unk] are [unk] are","[unk] are [unk] you","[unk] are [unk] from","[unk] are [unk] [unk]","[unk] you where where","[unk] you where are","[unk] you where you","[unk] you where from","[unk] you where [unk]","[unk] you are where","[unk] you are are","[unk] you are you","[unk] you are from","[unk] you are [unk]","[unk] you you where","[unk] you you are","[unk] you you you","[unk] you you from","[unk] you you [unk]","[unk] you from where","[unk] you from are","[unk] you from you","[unk] you from from","[unk] you from [unk]","[unk] you [unk] where","[unk] you [unk] are","[unk] you [unk] you","[unk] you [unk] from","[unk] you [unk] [unk]","[unk] from where where","[unk] from where are","[unk] from where you","[unk] from where from","[unk] from where [unk]","[unk] from are where","[unk] from are are","[unk] from are you","[unk] from are from","[unk] from are [unk]","[unk] from you where","[unk] from you are","[unk] from you you","[unk] from you from","[unk] from you [unk]","[unk] from from where","[unk] from from are","[unk] from from you","[unk] from from from","[unk] from from [unk]","[unk] from [unk] where","[unk] from [unk] are","[unk] from [unk] you","[unk] from [unk] from","[unk] from [unk] [unk]","[unk] [unk] where where","[unk] [unk] where are","[unk] [unk] where you","[unk] [unk] where from","[unk] [unk] where [unk]","[unk] [unk] are where","[unk] [unk] are are","[unk] [unk] are you","[unk] [unk] are from","[unk] [unk] are [unk]","[unk] [unk] you where","[unk] [unk] you are","[unk] [unk] you you","[unk] [unk] you from","[unk] [unk] you [unk]","[unk] [unk] from where","[unk] [unk] from are","[unk] [unk] from you","[unk] [unk] from from","[unk] [unk] from [unk]","[unk] [unk] [unk] where","[unk] [unk] [unk] are","[unk] [unk] [unk] you","[unk] [unk] [unk] from","[unk] [unk] [unk] [unk]","[unk]"]}],"thinned":null,"mic":"без сбоев","header":{"version":"3.3.314","device":"iPhone iOS 18.7 402×874 @3","deviceInfo":{"ua":"Mozilla/5.0 (iPhone; CPU iPhone OS 18_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/27.0.1 Mobile/15E148 Safari/604.1","platform":"iPhone","weak":null,"screen":{"w":402,"h":874,"innerW":402,"innerH":638,"dpr":3}},"date":"2026-11-20T12:48:29.255Z","mode":"words","lang":"en","len":"any","seed":"mwoz55kw-2","topics":["anim","ear"],"span":{"kind":"target","from":-991,"to":49067,"label":"текущая цель #1 «Where are you from» -0,991–49,067 с"},"audio":null},"comment":"","marks":[],"targets":[{"t":9,"k":"target","n":0,"mode":"words","lang":"en","len":"any","seed":"mwoz55kw-2","say":"Where are you from","shown":"Where are you from","other":"Откуда ты","words":4,"gen":0}],"verdicts":[{"n":0,"say":"Where are you from","mark":"✓","how":"по черновику (правило слова не ждало)","ear":[]}],"events":[{"t":9,"k":"lang","lang":"en"},{"t":9,"k":"target","n":0,"mode":"words","lang":"en","len":"any","seed":"mwoz55kw-2","say":"Where are you from","shown":"Where are you from","other":"Откуда ты","words":4,"gen":0},{"t":11,"k":"model","lang":"en","switched":true,"text":""},{"t":106,"k":"lang","lang":"en"},{"t":106,"k":"model","lang":"en","switched":true,"text":""},{"t":2526,"k":"mic","state":"asking"},{"t":3781,"k":"mic","state":"granted","waitedMs":251,"interrupts":0,"ctx":"running"},{"t":3815,"k":"run","mode":"words","n":0},{"t":3826,"k":"wl","kind":"grammar","targets":["where","are","you","from"],"gref":1,"gsize":781,"gsame":true},{"t":3827,"k":"wl","kind":"grammar","targets":["where","are","you","from"],"gref":1,"gsize":781,"gsame":true},{"t":3827,"k":"pre","text":"Where are you from","pass":1},{"t":3828,"k":"vosk-start","gate":true,"gref":1,"gsize":781,"gsame":true},{"t":3832,"k":"vosk-ready","micMs":0},{"t":3832,"k":"vosk-start","gate":true,"gref":1,"gsize":781,"gsame":true},{"t":3833,"k":"vosk-ready","micMs":0},{"t":3850,"k":"fill","goal":0,"shown":0},{"t":3876,"k":"level","rms":0,"voice":false},{"t":3876,"k":"gate","open":true,"rms":0},{"t":3876,"k":"wl","kind":"gate","open":true,"rms":0},{"t":3876,"k":"log","text":"[gate] открыт +49 мс (rms 0,000)"},{"t":3876,"k":"ear","kind":"gate","open":true,"rms":0},{"t":4217,"k":"gate","open":false,"rms":0.003},{"t":4217,"k":"wl","kind":"gate","open":false,"rms":0.003002383800987432},{"t":4217,"k":"log","text":"[gate] закрыт +390 мс (rms 0,003)"},{"t":4217,"k":"ear","kind":"gate","open":false,"rms":0.003002383800987432},{"t":4772,"k":"level","rms":0.0051,"voice":true,"n":0.00117},{"t":4772,"k":"gate","open":true,"rms":0.0051},{"t":4772,"k":"wl","kind":"gate","open":true,"rms":0.005086061186404294},{"t":4772,"k":"log","text":"[gate] открыт +945 мс (rms 0,005)"},{"t":4772,"k":"ear","kind":"gate","open":true,"rms":0.005086061186404294},{"t":5028,"k":"level","rms":0.0101,"voice":true},{"t":5199,"k":"level","rms":0.0027,"voice":false},{"t":5241,"k":"level","rms":0.0048,"voice":true,"n":0.00127},{"t":5284,"k":"level","rms":0.0024,"voice":false},{"t":5625,"k":"gate","open":false,"rms":0.0011},{"t":5625,"k":"wl","kind":"gate","open":false,"rms":0.0010862179718847313},{"t":5625,"k":"log","text":"[gate] закрыт +1798 мс (rms 0,001)"},{"t":5625,"k":"ear","kind":"gate","open":false,"rms":0.0010862179718847313},{"t":6308,"k":"level","rms":0.0015,"voice":false},{"t":6436,"k":"level","rms":0.0389,"voice":true,"n":0.00151},{"t":6436,"k":"gate","open":true,"rms":0.0389},{"t":6436,"k":"wl","kind":"gate","open":true,"rms":0.03893279193871054},{"t":6436,"k":"log","text":"[gate] открыт +2609 мс (rms 0,039)"},{"t":6436,"k":"ear","kind":"gate","open":true,"rms":0.03893279193871054},{"t":6692,"k":"level","rms":0.0206,"voice":true},{"t":6758,"k":"vosk-partial","raw":{"partial":"you"}},{"t":6758,"k":"ear","kind":"partial","text":"you","raw":"you"},{"t":6758,"k":"log","text":"[phrase-ear] черновик «you» +0 мс"},{"t":6820,"k":"level","rms":0.0027,"voice":false},{"t":6978,"k":"vosk-partial","raw":{"partial":"[unk]"}},{"t":7122,"k":"log","text":"[fill] сказано «you»: «Where» красным"},{"t":7122,"k":"log","text":"[fill] рывок кромки: сказано «you», заливка 0,00"},{"t":7162,"k":"gate","open":false,"rms":0.0037},{"t":7162,"k":"wl","kind":"gate","open":false,"rms":0.0036794622304036806},{"t":7162,"k":"log","text":"[gate] закрыт +403 мс (rms 0,004)"},{"t":7162,"k":"ear","kind":"gate","open":false,"rms":0.0036794622304036806},{"t":7203,"k":"log","text":"[fill] рывок: запущено анимаций 2"},{"t":7844,"k":"level","rms":0.0011,"voice":false},{"t":8399,"k":"level","rms":0.0343,"voice":true,"n":0.00165},{"t":8399,"k":"gate","open":true,"rms":0.0343},{"t":8399,"k":"wl","kind":"gate","open":true,"rms":0.03429464046285752},{"t":8399,"k":"log","text":"[gate] открыт +1641 мс (rms 0,034)"},{"t":8399,"k":"ear","kind":"gate","open":true,"rms":0.03429464046285752},{"t":8655,"k":"level","rms":0.0351,"voice":true},{"t":8776,"k":"vosk-partial","raw":{"partial":"[unk] where"}},{"t":8776,"k":"ear","kind":"partial","text":"where","raw":"[unk] where"},{"t":8776,"k":"log","text":"[phrase-ear] черновик «where» +2018 мс"},{"t":8777,"k":"log","text":"[phrase-ear] новые слова в заходе с «[unk]» перед ними — черновиком не принимаю, жду итог +2018 мс"},{"t":8825,"k":"level","rms":0.0014,"voice":false},{"t":9167,"k":"gate","open":false,"rms":0.0018},{"t":9167,"k":"wl","kind":"gate","open":false,"rms":0.001752025346385802},{"t":9167,"k":"log","text":"[gate] закрыт +2409 мс (rms 0,002)"},{"t":9167,"k":"ear","kind":"gate","open":false,"rms":0.001752025346385802},{"t":9849,"k":"level","rms":0.001,"voice":false},{"t":10668,"k":"log","text":"[phrase-ear] Vosk молчит 1886 мс после голоса (черновик «where») +3910 мс"},{"t":10788,"k":"level","rms":0.0303,"voice":true,"n":0.0018},{"t":10788,"k":"gate","open":true,"rms":0.0303},{"t":10788,"k":"wl","kind":"gate","open":true,"rms":0.030321535051079096},{"t":10788,"k":"log","text":"[gate] открыт +4030 мс (rms 0,030)"},{"t":10788,"k":"ear","kind":"gate","open":true,"rms":0.030321535051079096},{"t":10796,"k":"log","text":"[phrase-ear] partial без изменений «where» +4038 мс"},{"t":11044,"k":"level","rms":0.0342,"voice":true},{"t":11173,"k":"level","rms":0.0021,"voice":false},{"t":11225,"k":"vosk-partial","raw":{"partial":"[unk] where where"}},{"t":11225,"k":"ear","kind":"partial","text":"where where","raw":"[unk] where where"},{"t":11225,"k":"log","text":"[phrase-ear] черновик «where where» +4467 мс"},{"t":11513,"k":"gate","open":false,"rms":0.0036},{"t":11513,"k":"wl","kind":"gate","open":false,"rms":0.003605053231359961},{"t":11513,"k":"log","text":"[gate] закрыт +4755 мс (rms 0,004)"},{"t":11513,"k":"ear","kind":"gate","open":false,"rms":0.003605053231359961},{"t":12196,"k":"level","rms":0.0011,"voice":false},{"t":12708,"k":"level","rms":0.0296,"voice":true,"n":0.00163},{"t":12708,"k":"gate","open":true,"rms":0.0296},{"t":12708,"k":"wl","kind":"gate","open":true,"rms":0.029602152998172076},{"t":12708,"k":"log","text":"[gate] открыт +5950 мс (rms 0,030)"},{"t":12708,"k":"ear","kind":"gate","open":true,"rms":0.029602152998172076},{"t":12712,"k":"log","text":"[phrase-ear] partial без изменений «where where» +5954 мс"},{"t":12918,"k":"vosk-partial","raw":{"partial":"[unk] where where where"}},{"t":12918,"k":"ear","kind":"partial","text":"where where where","raw":"[unk] where where where"},{"t":12918,"k":"log","text":"[phrase-ear] черновик «where where where» +6160 мс"},{"t":12964,"k":"level","rms":0.0708,"voice":true},{"t":13134,"k":"level","rms":0.002,"voice":false},{"t":13444,"k":"log","text":"[phrase-ear] partial без изменений «where where where» +6686 мс"},{"t":13476,"k":"gate","open":false,"rms":0.0034},{"t":13476,"k":"wl","kind":"gate","open":false,"rms":0.0033677898063475065},{"t":13476,"k":"log","text":"[gate] закрыт +6718 мс (rms 0,003)"},{"t":13476,"k":"ear","kind":"gate","open":false,"rms":0.0033677898063475065},{"t":14159,"k":"level","rms":0.0011,"voice":false},{"t":14977,"k":"log","text":"[phrase-ear] Vosk молчит 1884 мс после голоса (черновик «where where where») +8218 мс"},{"t":15183,"k":"level","rms":0.001,"voice":false},{"t":16036,"k":"level","rms":0.0294,"voice":true,"n":0.00111},{"t":16036,"k":"gate","open":true,"rms":0.0294},{"t":16036,"k":"wl","kind":"gate","open":true,"rms":0.029376050318461865},{"t":16036,"k":"log","text":"[gate] открыт +9278 мс (rms 0,029)"},{"t":16036,"k":"ear","kind":"gate","open":true,"rms":0.029376050318461865},{"t":16046,"k":"log","text":"[phrase-ear] partial без изменений «where where where» +9287 мс"},{"t":16292,"k":"level","rms":0.0968,"voice":true},{"t":16304,"k":"vosk-partial","raw":{"partial":"[unk] where where where where"}},{"t":16304,"k":"ear","kind":"partial","text":"where where where where","raw":"[unk] where where where where"},{"t":16304,"k":"log","text":"[phrase-ear] черновик «where where where where» +9545 мс"},{"t":16548,"k":"level","rms":0.0026,"voice":false},{"t":16805,"k":"log","text":"[phrase-ear] partial без изменений «where where where where» +10047 мс"},{"t":16889,"k":"gate","open":false,"rms":0.0011},{"t":16889,"k":"wl","kind":"gate","open":false,"rms":0.0010657916095156406},{"t":16889,"k":"log","text":"[gate] закрыт +10131 мс (rms 0,001)"},{"t":16889,"k":"ear","kind":"gate","open":false,"rms":0.0010657916095156406},{"t":17572,"k":"level","rms":0.0021,"voice":false},{"t":18397,"k":"log","text":"[phrase-ear] Vosk молчит 1892 мс после голоса (черновик «where where where where») +11639 мс"},{"t":18596,"k":"level","rms":0.002,"voice":false},{"t":18725,"k":"level","rms":0.0416,"voice":true,"n":0.00195},{"t":18725,"k":"gate","open":true,"rms":0.0416},{"t":18725,"k":"wl","kind":"gate","open":true,"rms":0.04159301006427211},{"t":18725,"k":"log","text":"[gate] открыт +11967 мс (rms 0,042)"},{"t":18725,"k":"ear","kind":"gate","open":true,"rms":0.04159301006427211},{"t":18729,"k":"log","text":"[phrase-ear] partial без изменений «where where where where» +11971 мс"},{"t":18980,"k":"level","rms":0.0788,"voice":true},{"t":19159,"k":"vosk-partial","raw":{"partial":"[unk] where where where where where"}},{"t":19159,"k":"ear","kind":"partial","text":"where where where where where","raw":"[unk] where where where where where"},{"t":19159,"k":"log","text":"[phrase-ear] черновик «where where where where where» +12401 мс"},{"t":19236,"k":"level","rms":0.0798,"voice":true},{"t":19492,"k":"level","rms":0.0402,"voice":true},{"t":19620,"k":"level","rms":0.0037,"voice":false},{"t":19663,"k":"log","text":"[phrase-ear] partial без изменений «where where where where where» +12905 мс"},{"t":19961,"k":"gate","open":false,"rms":0.001},{"t":19961,"k":"wl","kind":"gate","open":false,"rms":0.0010125950595558477},{"t":19961,"k":"log","text":"[gate] закрыт +13203 мс (rms 0,001)"},{"t":19961,"k":"ear","kind":"gate","open":false,"rms":0.0010125950595558477},{"t":20388,"k":"level","rms":0.0087,"voice":true,"n":0.00121},{"t":20388,"k":"gate","open":true,"rms":0.0087},{"t":20388,"k":"wl","kind":"gate","open":true,"rms":0.008667706546896093},{"t":20388,"k":"log","text":"[gate] открыт +13630 мс (rms 0,009)"},{"t":20388,"k":"ear","kind":"gate","open":true,"rms":0.008667706546896093},{"t":20397,"k":"log","text":"[phrase-ear] partial без изменений «where where where where where» +13639 мс"},{"t":20608,"k":"vosk-partial","raw":{"partial":"[unk] where where where where where are"}},{"t":20608,"k":"ear","kind":"partial","text":"where where where where where are","raw":"[unk] where where where where where are"},{"t":20608,"k":"log","text":"[phrase-ear] черновик «where where where where where are» +13850 мс"},{"t":20644,"k":"level","rms":0.0555,"voice":true},{"t":20857,"k":"level","rms":0.0014,"voice":false},{"t":20974,"k":"log","text":"[fill] рывок кромки: сказано «are», заливка 0,00"},{"t":21056,"k":"log","text":"[fill] рывок: запущено анимаций 2"},{"t":21114,"k":"log","text":"[phrase-ear] partial без изменений «where where where where where are» +14355 мс"},{"t":21198,"k":"gate","open":false,"rms":0.0011},{"t":21199,"k":"wl","kind":"gate","open":false,"rms":0.0010509045846012215},{"t":21199,"k":"log","text":"[gate] закрыт +14440 мс (rms 0,001)"},{"t":21199,"k":"ear","kind":"gate","open":false,"rms":0.0010509045846012215},{"t":21881,"k":"level","rms":0.0256,"voice":true,"n":0.00173},{"t":21881,"k":"gate","open":true,"rms":0.0256},{"t":21881,"k":"wl","kind":"gate","open":true,"rms":0.025595947834496365},{"t":21881,"k":"log","text":"[gate] открыт +15123 мс (rms 0,026)"},{"t":21881,"k":"ear","kind":"gate","open":true,"rms":0.025595947834496365},{"t":21884,"k":"log","text":"[phrase-ear] partial без изменений «where where where where where are» +15126 мс"},{"t":22099,"k":"vosk-final","raw":{"text":"[unk] where where where where where are","result":[{"conf":1,"end":1.92,"start":1.5,"word":"[unk]"},{"conf":1,"end":2.91,"start":2.4,"word":"where"},{"conf":1,"end":3.78,"start":3.33,"word":"where"},{"conf":1,"end":4.74,"start":4.23,"word":"where"},{"conf":1,"end":5.76,"start":5.19,"word":"where"},{"conf":1,"end":7.17,"start":6.18,"word":"where"},{"conf":1,"end":8.1,"start":7.62,"word":"are"}]},"firstPartialMs":2925,"resultMs":18266,"chunks":428,"micMs":0,"readyMs":1,"audioStartMs":0,"stopBy":"endpoint","loadPct":0.4,"tailMs":0,"chunkMs":43,"maxGapMs":48,"lateChunks":0,"gatedMs":9387,"voiceMs":4224,"gatedVoiceMs":0,"agcMax":8.4},{"t":22099,"k":"ear","kind":"final","text":"where where where where where are","raw":"[unk] where where where where where are"},{"t":22099,"k":"log","text":"[phrase-ear] итог «where where where where where are» (движок сам) +15341 мс"},{"t":22100,"k":"word","index":0,"text":"where","draft":false},{"t":22100,"k":"log","text":"[fill] красное «Where» снято: слово сказано"},{"t":22100,"k":"word","index":1,"text":"are","draft":false},{"t":22101,"k":"wl","kind":"session-end","by":"result"},{"t":22101,"k":"log","text":"[phrase-ear] заход закрыт: raw «[unk] where where where where where are», пик 0,1370, новых слов принято, подтверждено слов 2 +15342 мс"},{"t":22101,"k":"log","text":"[phrase-ear] кандидаты where are you from · услышал «where where where where where are» · лучший «Where are you from» ratio 0.50 · без совпадения"},{"t":22102,"k":"wl","kind":"grammar","targets":["where","are","you","from"],"gref":1,"gsize":781,"gsame":true},{"t":22102,"k":"vosk-start","gate":true,"gref":1,"gsize":781,"gsame":true},{"t":22102,"k":"vosk-ready","micMs":0},{"t":22109,"k":"log","text":"[fill] +18280 мс: слово 2 «are» итог → цель 0,52, экран 0,12"},{"t":22109,"k":"fill","goal":0.518,"shown":0.1175},{"t":22124,"k":"fill","goal":0.518,"shown":0.1993},{"t":22140,"k":"fill","goal":0.518,"shown":0.2644},{"t":22143,"k":"level","rms":0,"voice":false},{"t":22143,"k":"gate","open":true,"rms":0},{"t":22143,"k":"wl","kind":"gate","open":true,"rms":0},{"t":22143,"k":"log","text":"[gate] открыт +15384 мс (rms 0,000)"},{"t":22143,"k":"ear","kind":"gate","open":true,"rms":0},{"t":22157,"k":"fill","goal":0.518,"shown":0.3191},{"t":22185,"k":"level","rms":0.0467,"voice":true,"n":0.00177},{"t":22192,"k":"fill","goal":0.518,"shown":0.407},{"t":22224,"k":"fill","goal":0.518,"shown":0.487},{"t":22240,"k":"fill","goal":0.518,"shown":0.518},{"t":22256,"k":"reach","word":"where","ms":156},{"t":22256,"k":"reach","word":"are","ms":156},{"t":22398,"k":"level","rms":0.0035,"voice":false},{"t":22740,"k":"gate","open":false,"rms":0.0019},{"t":22740,"k":"wl","kind":"gate","open":false,"rms":0.0019035714754113088},{"t":22740,"k":"log","text":"[gate] закрыт +15981 мс (rms 0,002)"},{"t":22740,"k":"ear","kind":"gate","open":false,"rms":0.0019035714754113088},{"t":23422,"k":"level","rms":0.0011,"voice":false},{"t":24447,"k":"level","rms":0.0128,"voice":true,"n":0.0012},{"t":24447,"k":"gate","open":true,"rms":0.0128},{"t":24447,"k":"wl","kind":"gate","open":true,"rms":0.012765201834386104},{"t":24447,"k":"log","text":"[gate] открыт +17688 мс (rms 0,013)"},{"t":24447,"k":"ear","kind":"gate","open":true,"rms":0.012765201834386104},{"t":24499,"k":"vosk-partial","raw":{"partial":"where"}},{"t":24499,"k":"ear","kind":"partial","text":"where","raw":"where"},{"t":24499,"k":"log","text":"[phrase-ear] черновик «where» +17741 мс"},{"t":24702,"k":"level","rms":0.0575,"voice":true},{"t":24837,"k":"vosk-partial","raw":{"partial":"where you"}},{"t":24838,"k":"ear","kind":"partial","text":"where you","raw":"where you"},{"t":24838,"k":"log","text":"[phrase-ear] черновик «where you» +18079 мс"},{"t":24838,"k":"word","index":2,"text":"you","draft":true},{"t":24841,"k":"log","text":"[fill] сказано «where»: «from» красным"},{"t":24841,"k":"log","text":"[fill] рывок кромки: сказано «where», заливка 0,56"},{"t":24841,"k":"log","text":"[fill] +21012 мс: слово 3 «you» черновик → цель 0,64, экран 0,56"},{"t":24841,"k":"fill","goal":0.6388,"shown":0.5605},{"t":24874,"k":"fill","goal":0.6388,"shown":0.6388},{"t":24890,"k":"reach","word":"you","ms":52},{"t":24921,"k":"log","text":"[fill] рывок: запущено анимаций 2"},{"t":24958,"k":"level","rms":0.002,"voice":false},{"t":25300,"k":"gate","open":false,"rms":0.0012},{"t":25300,"k":"wl","kind":"gate","open":false,"rms":0.001161791423160389},{"t":25300,"k":"log","text":"[gate] закрыт +18541 мс (rms 0,001)"},{"t":25300,"k":"ear","kind":"gate","open":false,"rms":0.001161791423160389},{"t":25556,"k":"level","rms":0.007,"voice":true,"n":0.00146},{"t":25556,"k":"gate","open":true,"rms":0.007},{"t":25556,"k":"wl","kind":"gate","open":true,"rms":0.006957956744704668},{"t":25556,"k":"log","text":"[gate] открыт +18797 мс (rms 0,007)"},{"t":25556,"k":"ear","kind":"gate","open":true,"rms":0.006957956744704668},{"t":25565,"k":"log","text":"[phrase-ear] partial без изменений «where you» +18806 мс"},{"t":25815,"k":"level","rms":0.0151,"voice":true},{"t":25862,"k":"vosk-partial","raw":{"partial":"where you from"}},{"t":25862,"k":"ear","kind":"partial","text":"where you from","raw":"where you from"},{"t":25862,"k":"log","text":"[phrase-ear] черновик «where you from» +19104 мс"},{"t":25862,"k":"log","text":"[phrase-ear] слово 3 «you» продержалось 1000 мс — подтверждено (откат переписанным черновиком не нужен) +19104 мс"},{"t":25862,"k":"word","index":2,"text":"you","draft":false},{"t":25863,"k":"log","text":"[phrase-ear] последнее слово фразы в черновике «where you from» — жду 300 мс устойчивости +19104 мс"},{"t":25897,"k":"level","rms":0.0019,"voice":false},{"t":26164,"k":"word","index":3,"text":"from","draft":true},{"t":26164,"k":"log","text":"[fill] красное «from» снято: слово сказано"},{"t":26164,"k":"log","text":"[phrase-ear] кандидаты where are you from · услышал «where you from» · лучший «Where are you from» ratio 1.00"},{"t":26165,"k":"wl","kind":"grammar","targets":["where","are","you","from"],"gref":1,"gsize":781,"gsame":true},{"t":26165,"k":"vosk-start","gate":true,"gref":1,"gsize":781,"gsame":true},{"t":26165,"k":"vosk-ready","micMs":0},{"t":26174,"k":"log","text":"[fill] +22346 мс: итог фразы, слов 100 % → цель 1,00, экран 0,66"},{"t":26174,"k":"fill","goal":1,"shown":0.6562},{"t":26206,"k":"gate","open":true,"rms":0},{"t":26206,"k":"wl","kind":"gate","open":true,"rms":0},{"t":26206,"k":"log","text":"[gate] открыт +43 мс (rms 0,000)"},{"t":26206,"k":"ear","kind":"gate","open":true,"rms":0},{"t":26207,"k":"fill","goal":1,"shown":0.747},{"t":26224,"k":"fill","goal":1,"shown":0.8138},{"t":26240,"k":"fill","goal":1,"shown":0.889},{"t":26257,"k":"fill","goal":1,"shown":0.9822},{"t":26274,"k":"fill","goal":1,"shown":1},{"t":26274,"k":"log","text":"[fill] 100 % через 110 мс после последнего слова, последнее слово пришло: черновиком, взлёт +22446 мс"},{"t":26274,"k":"log","text":"[fill] итог хода: слов 4, первое слово через 18272 мс, 100 % через 110 мс после последнего, макс. пауза 2738 мс"},{"t":26276,"k":"pill","type":"win","res":{"ok":true,"late":false,"confusedWith":null,"ratio":1,"clean":true}},{"t":26276,"k":"result","ok":true,"clean":true},{"t":26290,"k":"reach","word":"from","ms":126},{"t":26548,"k":"gate","open":false,"rms":0.0016},{"t":26548,"k":"wl","kind":"gate","open":false,"rms":0.001579591699197797},{"t":26548,"k":"log","text":"[gate] закрыт +385 мс (rms 0,002)"},{"t":26548,"k":"ear","kind":"gate","open":false,"rms":0.001579591699197797},{"t":26932,"k":"level","rms":0.0015,"voice":false},{"t":27956,"k":"level","rms":0.0019,"voice":false},{"t":28980,"k":"level","rms":0.003,"voice":false},{"t":30004,"k":"level","rms":0.0024,"voice":false},{"t":31028,"k":"level","rms":0.0024,"voice":false},{"t":31753,"k":"level","rms":0.0084,"voice":true,"n":0.00111},{"t":31753,"k":"gate","open":true,"rms":0.0084},{"t":31753,"k":"wl","kind":"gate","open":true,"rms":0.008394111635709096},{"t":31753,"k":"log","text":"[gate] открыт +5590 мс (rms 0,008)"},{"t":31753,"k":"ear","kind":"gate","open":true,"rms":0.008394111635709096},{"t":32009,"k":"level","rms":0.0049,"voice":true},{"t":32265,"k":"level","rms":0.0032,"voice":true},{"t":32308,"k":"level","rms":0.0028,"voice":false},{"t":32436,"k":"level","rms":0.004,"voice":true,"n":0.00133},{"t":32478,"k":"level","rms":0.0027,"voice":false},{"t":32820,"k":"gate","open":false,"rms":0.0012},{"t":32820,"k":"wl","kind":"gate","open":false,"rms":0.0012434935457095032},{"t":32820,"k":"log","text":"[gate] закрыт +6656 мс (rms 0,001)"},{"t":32820,"k":"ear","kind":"gate","open":false,"rms":0.0012434935457095032},{"t":33502,"k":"level","rms":0.0009,"voice":false},{"t":34527,"k":"level","rms":0.0011,"voice":false},{"t":46370,"k":"vosk-final","raw":{"text":"","result":[]},"resultMs":20205,"afterStopMs":111,"chunks":215,"micMs":0,"readyMs":0,"audioStartMs":0,"stopBy":"max","loadPct":0.3,"tailMs":400,"drainMs":0,"chunkMs":43,"maxGapMs":53,"lateChunks":0,"gatedMs":7595,"voiceMs":597,"gatedVoiceMs":0,"agcMax":8.5},{"t":46370,"k":"ear","kind":"final","text":"","raw":""},{"t":46370,"k":"log","text":"[phrase-ear] итог «» (потолок записи) +20206 мс"},{"t":46370,"k":"log","text":"[phrase-ear] голос (пик 0,012) без нового слова цели — неверное слово +20206 мс"},{"t":46370,"k":"ear","kind":"wrong","why":"voice","peak":0.011584214300207273},{"t":46370,"k":"wl","kind":"session-end","by":"result"},{"t":46370,"k":"log","text":"[phrase-ear] заход закрыт: raw «», пик 0,0116, новых слов нет, подтверждено слов 0 +20206 мс"},{"t":46370,"k":"wl","kind":"grammar","targets":["where","are","you","from"],"gref":1,"gsize":781,"gsame":true},{"t":46371,"k":"vosk-start","gate":true,"gref":1,"gsize":781,"gsame":true},{"t":47103,"k":"vosk-ready","micMs":729},{"t":47144,"k":"level","rms":0,"voice":false},{"t":47144,"k":"gate","open":true,"rms":0},{"t":47144,"k":"wl","kind":"gate","open":true,"rms":0},{"t":47144,"k":"log","text":"[gate] открыт +20980 мс (rms 0,000)"},{"t":47144,"k":"ear","kind":"gate","open":true,"rms":0},{"t":47485,"k":"gate","open":false,"rms":0.001},{"t":47485,"k":"wl","kind":"gate","open":false,"rms":0.0009884470326830882},{"t":47486,"k":"log","text":"[gate] закрыт +21322 мс (rms 0,001)"},{"t":47486,"k":"ear","kind":"gate","open":false,"rms":0.0009884470326830882},{"t":48168,"k":"level","rms":0.0011,"voice":false},{"t":48427,"k":"level","rms":0.0286,"voice":true,"n":0.00115},{"t":48427,"k":"gate","open":true,"rms":0.0286},{"t":48427,"k":"wl","kind":"gate","open":true,"rms":0.028648726963928187},{"t":48427,"k":"log","text":"[gate] открыт +22264 мс (rms 0,029)"},{"t":48428,"k":"ear","kind":"gate","open":true,"rms":0.028648726963928187},{"t":48683,"k":"level","rms":0.0251,"voice":true},{"t":48939,"k":"level","rms":0.0374,"voice":true}],"frames":[],"framesOmitted":0,"metrics":[{"n":0,"say":"Where are you from","t":9,"anim":{"pops":[{"t":26267,"v":1,"ms":112,"frame":null,"src":"трасса"}],"bubbles":{"max":0,"frames":0,"first":null,"out":0,"outMax":0,"early":0,"atPop":[]},"topGaps":[],"toFill":[{"word":"where","ms":140},{"word":"are","ms":140},{"word":"you","ms":36},{"word":"from","ms":110}],"reach":[{"t":22247,"word":"where","ms":156},{"t":22247,"word":"are","ms":156},{"t":24881,"word":"you","ms":52},{"t":26281,"word":"from","ms":126}],"jerks":[{"t":22100,"i":1,"from":0,"to":0.1175,"voice":true,"word":"are","wordMs":9},{"t":22115,"i":2,"from":0.1175,"to":0.1993,"voice":true,"word":"are","wordMs":24},{"t":26248,"i":18,"from":0.889,"to":0.9822,"voice":true,"word":"from","wordMs":93}],"flags":[],"frames":0},"ear":{"fed":{"voiceMs":4821,"gatedVoiceMs":0,"gatedMs":16982,"agcMax":8.5},"voiceStart":4763,"voiceEnd":25845,"voiceToPartial":1986,"partials":[{"t":6749,"text":"you"},{"t":8767,"text":"where"},{"t":11216,"text":"where where"},{"t":12909,"text":"where where where"},{"t":16295,"text":"where where where where"},{"t":19150,"text":"where where where where where"},{"t":20599,"text":"where where where where where are"},{"t":24490,"text":"where"},{"t":24828,"text":"where you"},{"t":25853,"text":"where you from"}],"same":195,"rebuilds":[{"t":8767,"from":"you","to":"where"}],"finals":[{"t":22090,"text":"where where where where where are","stopBy":"endpoint","conf":[["[unk]",1],["where",1],["where",1],["where",1],["where",1],["where",1],["are",1]]},{"t":46361,"text":"","stopBy":"max","conf":[]}],"closed":{"движок сам":1,"потолок записи":1},"invented":[],"grammar":[null,null,null,null,null]}}],"honesty":{"targets":1,"wins":1,"falses":4,"rebuilds":0,"changes":10,"heard":12,"extra":0,"extraPct":0,"backs":0,"wrongs":0,"voiceToPartial":1986,"toFill":110,"afterVoice":422},"journal":[]}
