@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { createGlide } from './racePhraseGlide.js'
 import { mountMask, WRONG_SHOW_MS } from './racePhraseMaskView.js'
@@ -16,11 +16,6 @@ describe('заливка «Скажи», проход 2: по непрерывн
   })
   it('слово не по порядку само линию не двигает', () => { const g = createGlide({ n: 4 }); g.word(2, 0); expect(g.goal({ t: 0 })).toBe(0) })
 })
-
-function fakeDoc() {
-  const mk = () => { const el = { children: [], attrs: {}, style: { setProperty() {} }, appendChild(c) { this.children.push(c); c.parent = this; return c }, setAttribute(k, v) { this.attrs[k] = v }, removeAttribute() {}, remove() { if (this.parent) this.parent.children = this.parent.children.filter(x => x !== this) }, querySelector: () => null, cloneNode: () => null, getBoundingClientRect: () => ({}) }; return el }
-  return { createElement: () => mk(), createTextNode: () => mk(), fonts: null, mk }
-}
 
 describe('неверное слово: красным на самой пилюле, подписи над ней нет (v3.3.305)', () => {
   it('missing(k) красит ожидаемое слово, пока его не скажут; подписей <s class="racePhraseWrong"> в маске больше нет', () => {

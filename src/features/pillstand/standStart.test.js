@@ -16,7 +16,7 @@ describe('микрофон стенда идёт путём игры', () => {
   })
   it('оживление: restartGameAudio в режиме голоса, start — тот же startGameAudio; итог — строка для standMicHealth', async () => {
     const start = vi.fn(() => Promise.resolve({ mic: 'granted' }))
-    const restart = vi.fn(async ({ voice, why, start: s }) => { await s({ renewed: true }); return { ok: true, mic: 'granted' } })
+    const restart = vi.fn(async ({ start: s }) => { await s({ renewed: true }); return { ok: true, mic: 'granted' } })
     expect(await restartStandMic({ why: 'тест', restart, start })).toBe('granted')
     expect(restart).toHaveBeenCalledWith(expect.objectContaining({ voice: true, why: 'тест' })); expect(start).toHaveBeenCalledWith({ cfg: STAND_CFG, audioSrc: null, lines: null }, { renewed: true })
     expect(await restartStandMic({ restart: async () => ({ ok: false, mic: 'denied' }), start })).toBe('denied')
