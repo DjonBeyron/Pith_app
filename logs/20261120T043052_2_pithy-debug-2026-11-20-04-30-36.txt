@@ -1,0 +1,54 @@
+[14:28:33.335] [DB READ] curricula list
+[14:28:33.336] [DB READ] app_settings prompt_control
+[14:28:33.337] [DB READ] app_settings ui_sound_volume eq_sensitivity
+[14:28:33.337] [DB READ] app_settings feed_signals
+[14:28:33.338] [AUTH] event: INITIAL_SESSION accuratekemper@gmail.com
+[14:28:33.338] [AUTH] event: INITIAL_SESSION accuratekemper@gmail.com
+[14:28:33.338] [AUTH] event: INITIAL_SESSION accuratekemper@gmail.com
+[14:28:33.338] [AUTH] event: INITIAL_SESSION accuratekemper@gmail.com
+[14:28:33.338] [AUTH] event: INITIAL_SESSION accuratekemper@gmail.com
+[14:28:33.338] [AUTH] event: INITIAL_SESSION accuratekemper@gmail.com
+[14:28:33.338] [AUTH] event: INITIAL_SESSION accuratekemper@gmail.com
+[14:28:33.338] [AUTH] event: INITIAL_SESSION accuratekemper@gmail.com
+[14:28:33.338] [AUTH] event: INITIAL_SESSION accuratekemper@gmail.com
+[14:28:33.338] [AUTH] event: INITIAL_SESSION accuratekemper@gmail.com
+[14:28:33.338] [AUTH] event: INITIAL_SESSION accuratekemper@gmail.com
+[14:28:33.338] [AUTH] restore: user accuratekemper@gmail.com
+[14:28:33.338] [AUTH] restore: user accuratekemper@gmail.com
+[14:28:33.338] [AUTH] restore: user accuratekemper@gmail.com
+[14:28:33.338] [AUTH] restore: user accuratekemper@gmail.com
+[14:28:33.338] [AUTH] restore: user accuratekemper@gmail.com
+[14:28:33.338] [AUTH] restore: user accuratekemper@gmail.com
+[14:28:33.338] [AUTH] restore: user accuratekemper@gmail.com
+[14:28:33.338] [AUTH] restore: user accuratekemper@gmail.com
+[14:28:33.338] [AUTH] restore: user accuratekemper@gmail.com
+[14:28:33.338] [AUTH] restore: user accuratekemper@gmail.com
+[14:28:33.338] [AUTH] restore: user accuratekemper@gmail.com
+[14:28:33.350] [DB RPC] set_prompt_group
+[14:28:33.351] [AUTH] event: INITIAL_SESSION accuratekemper@gmail.com
+[14:28:33.351] [AUTH] restore: user accuratekemper@gmail.com
+[14:28:33.584] [RACE] гонок с датами: 1 → выбрана: «Новая гонка» 2026-10-09T14:00:00+00:00 — 2026-10-11T13:59:00+00:00
+[14:28:33.584] [RACE-POPUP] проверка: фаза ended | юзер: есть | итоги видел: false
+[14:28:33.585] [DB OK] curricula loaded 8 rows
+[14:28:33.783] [RATING] мои достижения: journey_start, level10, clean_final
+[14:28:33.805] [RATING] топ: 15 строк лидер: Eеуууу (8960 XP)
+[14:28:33.805] [RATING] моё место: 3 из 15
+[14:28:33.927] [RACE] моя запись в гонке: нет
+[14:28:33.927] [RACE-POPUP] итоги не показываем: не финишировал
+[14:28:33.927] [RACE-POPUP] анонс: неделя 2026-11-16 | модуль пройден: — | анонс показан: — → нет
+[14:28:33.927] [RACE] моя запись в гонке: нет
+[14:28:33.927] [RACE] состояние: фаза ended, модули: нет
+[14:28:33.927] [STREAK] touch_daily_login → {"ok":true,"today":"2026-11-20","is_pro":true,"streak":0,"longest":190,"saved_by":null,"first_today":false,"pro_weekday_used":false,"has_freeze_charge":false,"auto_freeze_charges_left":0}
+[14:28:34.170] [DB READ] app_settings race_mia_voice
+[14:28:34.170] [DB READ] app_settings rotate_cat_lines
+[14:28:34.170] [DB READ] app_settings race_phrase_ru
+[14:28:34.170] [DB READ] app_settings race_phrase_scene
+[14:28:34.172] [DB READ] app_settings game2_phrases
+[14:28:41.424] [DB READ] app_settings rotate_cat_lines
+[14:28:42.716] [R2] uploadToR2 called {"fileName":"tts-1795148922716.mp3","contentType":"audio/mpeg","sizeKb":50}
+[14:28:43.139] [R2] Edge Function response status: 200
+[14:28:43.140] [R2] Got publicUrl: https://pub-045dc128a8954174a6d82f218e0836b9.r2.dev/chat/9fe10408-3066-4831-9b6d-24346c0610eb.mp3
+[14:28:44.152] [R2] upload progress: 100% 51452/51452
+[14:28:44.837] [R2] R2 upload status: 200
+[14:28:44.839] [DB WRITE] app_settings rotate_cat_lines
+[14:28:45.729] [DB READ] app_settings rotate_cat_lines
