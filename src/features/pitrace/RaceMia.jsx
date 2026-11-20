@@ -7,7 +7,8 @@ import { buildMiaCat, MIA_FACES } from './mia/miaCat.js'
 import { useMiaLife } from '../player/modules/rotate-phone/useMiaLife.js'
 import { isWeakDevice } from '../../shared/lib/deviceTier.js'
 import { createBox, ART } from './mia/boxArt.js'
-import { arrivalAt, leaveAt, flightPath, talkLevel, soloLeave, ARR } from './mia/miaMotion.js'
+import { arrivalAt, leaveAt, flightPath, talkLevel, soloLeave, panicAt, PANIC_LEN, SOLO, ARR } from './mia/miaMotion.js'
+import { readPills, pickPill, stepGaze } from './mia/miaGaze.js'
 import { layoutOf, artMatrix, toScene, poseApply, poseSvg, poseOfMotion, miaCss, MIA_W, MIA_H } from './mia/miaLayout.js'
 
 // Эпизод «Мия» поверх сцены игры (.wlStage, прототип 2026-11-14): картонная коробка падает на голову Пита (его голова скрыта, в прорези коробки — глаза Пита, совмещённые
@@ -37,7 +38,7 @@ export default function RaceMia({ mia, caption = null, talk = null, alarm = null
   useEffect(() => {
     const c = clock.current
     if (mia.phase === 'in') { c.arr = (performance.now() - mia.at) / 1000 /* at — момент падения коробки (после реплики Пита): до него время отрицательное, коробки нет */; c.lv = 0; c.mode = 'arr' }
-    else if (mia.phase === 'out' && ['arr', 'solo', 'stuck'].includes(c.mode)) { c.lv = 0; c.mode = 'lv' } // коробка со снятия (alone) отлетает без Мии
+    else if (mia.phase === 'out' && ['arr', 'solo', 'rave', 'stuck'].includes(c.mode)) { c.lv = 0; c.mode = 'lv' } // коробка со снятия (alone) отлетает без Мии
     else if (mia.phase === 'off') c.mode = 'off'
   }, [mia.phase, mia.at])
 
@@ -48,7 +49,7 @@ export default function RaceMia({ mia, caption = null, talk = null, alarm = null
     if (!stage || !cat) return undefined
     catEl.current = cat
     const box = createBox(); artG.current.appendChild(box.el)
-    let raf = 0, last = performance.now(), L = null, M = null, talk = 0, n = 0, tt = 0
+    let raf = 0, last = performance.now(), L = null, M = null, talk = 0, n = 0, tt = 0, gz = { look: 0, w: 0 }, gzPill = null, talkUntil = 0 // gz — взгляд на пилюлю (mia/miaGaze.js)
     const measure = () => {
       const s = stage.getBoundingClientRect(), c = cat.getBoundingClientRect()
       L = layoutOf({ stageW: s.width, stageH: s.height, catX: c.x - s.x, catY: c.y - s.y, catW: c.width, catH: c.height }, ART.PER_EYE)
@@ -61,7 +62,7 @@ export default function RaceMia({ mia, caption = null, talk = null, alarm = null
       const c = clock.current
       const sp = soloRef.current
       if (sp.mode === 'keep' && c.mode === 'arr' && !c.paused && performance.now() >= sp.at) { c.mode = 'solo'; c.sl = 0 } // финал пройден плохо: Мия договорила и выпрыгивает ОДНА, коробка остаётся на Пите
-      if (!c.paused) { if (c.mode === 'lv') c.lv += dt; else { c.arr += dt; if (c.mode === 'solo') c.sl += dt }; tt += dt }
+      if (!c.paused) { if (c.mode === 'lv') c.lv += dt; else { c.arr += dt; if (c.mode === 'solo') c.sl += dt; else if (c.mode === 'rave') c.rv += dt }; tt += dt }
       if (n++ % 20 === 0 || !L) measure()
       if (!L || L.f <= 0) return
       const leaving = c.mode === 'lv', m = leaving ? leaveAt(c.lv) : arrivalAt(c.arr, jumpRef.current ?? ARR.JUMP)
@@ -69,9 +70,14 @@ export default function RaceMia({ mia, caption = null, talk = null, alarm = null
       talk = Math.max(talkLevel(head?.getAttribute('data-vis'), head?.getAttribute('data-mouth')), talk * 0.8)
       const tk = m.hideCat && m.shown && !leaving ? talk : 0
       const sc = (now - alarmAt.current) / 1000, fear = sc < 0 || sc > 1.6 ? 0 : sc < 0.12 ? sc / 0.12 : sc < 0.9 ? 1 : 1 - (sc - 0.9) / 0.7 // испуг: зрачки быстро сжимаются, держатся, медленно отпускают
-      box.update({ ...m.eyes, look: (m.eyes.look ?? 0) + (fear ? Math.sin(sc * 38) * 1.6 * fear : 0), pupil: (m.eyes.pupil ?? 1) * (1 - 0.58 * fear), thNear: m.box.thNear, thFar: m.box.thFar, talk: tk, t: tt, live: true })
+      if (n % 4 === 0) gzPill = c.mode === 'lv' ? null : pickPill(readPills(stage)) // следим за пилюлей в середине её падения (30…70 % ленты), в остальное время глаза живут сами
+      if (tk > 0.04) talkUntil = now + 350 // Пит говорит — смотрит прямо (по перспективе чуть влево); паузы между слогами не считаются концом речи
+      gz = stepGaze(gz, { pill: gzPill, talking: now < talkUntil && !leaving, dt: c.paused || leaving ? 0 : dt })
+      const rave = c.mode === 'rave' ? panicAt(c.rv) : null // метание после ухода Мии
+      box.update({ ...m.eyes, look: (m.eyes.look ?? 0) * (1 - gz.w) + gz.look * (leaving ? 0 : 1) + (rave ? 5 * rave.vn : 0) + (fear ? Math.sin(sc * 38) * 1.6 * fear : 0), scale: (m.eyes.scale ?? 1) * (rave ? 1 + 0.1 * Math.abs(rave.vn) : 1), pupil: (m.eyes.pupil ?? 1) * (1 - 0.58 * fear), thNear: m.box.thNear, thFar: m.box.thFar, talk: tk, t: tt, live: true })
       const pose = poseOfMotion(m.box, L)
-      if (c.mode === 'stuck') { const k = Math.max(0, 1 - (now - hitAt.current) / 280); pose.dx += (0.5 + 3.4 * k) * Math.sin(2 * Math.PI * 21 * tt) * L.f; pose.rot += (0.1 + 0.9 * k) * Math.sin(2 * Math.PI * 17 * tt + 1) } // Пит рвётся наружу, на касание коробка вздрагивает сильнее
+      if (rave) { pose.dx += rave.x * L.f; pose.rot += rave.vn * 7; pose.sx *= 1 + 0.04 * Math.abs(rave.vn) } // Пит мечется из стороны в сторону, как при падении коробки (miaMotion.panicAt)
+      if (c.mode === 'stuck') { const k = Math.max(0, 1 - (now - hitAt.current) / 280); pose.dx += 3.4 * k * Math.sin(2 * Math.PI * 21 * tt) * L.f; pose.rot += 0.9 * k * Math.sin(2 * Math.PI * 17 * tt + 1) } // стоит ровно по центру; на касание коробка вздрагивает
       pose.dx += 0.35 * Math.sin(2 * Math.PI * 22 * tt) * tk * L.f; pose.rot += 0.08 * Math.sin(2 * Math.PI * 17 * tt + 1) * tk // Пит говорит из коробки: дрожь минимальная (владелец 2026-11-14)
       const piv = toScene(M, ART.BOTTOM)
       poseG.current.setAttribute('transform', poseSvg(pose, piv))
@@ -82,8 +88,8 @@ export default function RaceMia({ mia, caption = null, talk = null, alarm = null
         const top = toScene(M, ART.TOP), seat = poseApply(pose, piv)(top), rest = [top[0], top[1] + SEAT_DROP * L.f]
         let a = [seat[0], seat[1] + SEAT_DROP * L.f], mr = m.mia
         if (mr.mode === 'flight') a = Object.values(flightPath(mr.u, [L.W + 150 * L.f, 0.55 * L.H], rest))
-        if (c.mode === 'solo') { const so = soloLeave(c.sl); mr = { mode: 'seat', rot: so.rot, sx: so.sx, sy: so.sy }; a = Object.values(flightPath(so.u, rest, [L.W + 170 * L.f, 0.28 * L.H], 0.14)); if (so.done) { c.mode = 'stuck'; cbRef.current.onStuck?.() } }
-        else if (c.mode === 'stuck' || (leaving && soloRef.current.alone)) mr = { mode: 'off' } // Мии нет: коробка одна (ждёт касаний / отлетает)
+        if (c.mode === 'solo') { const so = soloLeave(c.sl); mr = { mode: 'seat', rot: so.rot, sx: so.sx, sy: so.sy }; a = Object.values(flightPath(so.u, rest, [L.W + 170 * L.f, 0.28 * L.H], 0.14)); if (so.done) { c.mode = 'rave'; c.rv = 0 } }
+        else if (c.mode === 'rave' || c.mode === 'stuck' || (leaving && soloRef.current.alone)) mr = { mode: 'off' } // Мии нет: коробка одна (ждёт касаний / отлетает)
         mi.style.display = mr.mode === 'off' ? 'none' : 'block'
         const tk0 = talkRef.current, sl = slitOn(tk0 && now < tk0.until ? tk0.id : null, mr.mode); if (sl !== slit.current) { slit.current = sl; mi.toggleAttribute('data-slit', sl) } // зрачок-щель: в прыжке и на колких репликах (mia/miaSlit.js)
         let pk = 0 // пик речи: широкий рот → зрачок плавно шире (mia/miaSlit.js)
@@ -92,6 +98,7 @@ export default function RaceMia({ mia, caption = null, talk = null, alarm = null
         if (pq !== peak.current.q) { peak.current.q = pq; mi.style.setProperty('--peak', String(pq)) }
         if (mr.mode !== 'off') mi.style.transform = miaCss(a[0], a[1], L.f, mr.rot, mr.sx, mr.sy)
       }
+      if (c.mode === 'rave' && c.rv >= PANIC_LEN + SOLO.SETTLE) { c.mode = 'stuck'; cbRef.current.onStuck?.() } // Пит остановился по центру — только теперь просит снять коробку
       const he = hitEl.current // зона касаний по коробке (пока Пит просит помочь): по её настоящему прямоугольнику на экране
       if (he && poseG.current && host.current && n % 3 === 0) { const r = box.el.getBoundingClientRect(), h = host.current.getBoundingClientRect(), x0 = Math.max(r.left, h.left), y0 = Math.max(r.top, h.top), x1 = Math.min(r.right, h.right), y1 = Math.min(r.bottom, h.bottom); Object.assign(he.style, { left: `${x0 - h.left}px`, top: `${y0 - h.top}px`, width: `${Math.max(0, x1 - x0)}px`, height: `${Math.max(0, y1 - y0)}px` }) } // только видимая часть коробки (низ коробки может уходить за экран)
       if (leaving && !m.shown) { c.mode = 'off'; setGone(g => (g === atRef.current ? g : atRef.current)) } // уход доигран: убираем (setState — в кадре rAF, не в эффекте)

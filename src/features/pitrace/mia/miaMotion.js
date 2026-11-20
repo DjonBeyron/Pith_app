@@ -16,7 +16,10 @@ export const LAND = ARR.JUMP + ARR.JUMP_LEN
 export const ARRIVAL_END = LAND + 1.2
 const PANIC = [[-1, 0.2], [1, 0.34], [-1, 0.32], [0.9, 0.3], [-0.7, 0.26], [0.4, 0.22], [0, 0.2]]  // Пит в коробке мечется влево-вправо (до прыжка Мии ≈ 1,9 с): [куда (доля 1 = ширина размаха), сколько секунд]
 const PANIC_PX = 74                                                                            // размах паники при масштабе 1, пикселей
-const panicX = t => { let t0 = ARR.PANIC0, x0 = 0; for (const [x1, d] of PANIC) { if (t <= t0 + d) return PANIC_PX * (x0 + (x1 - x0) * eIO3(clamp((t - t0) / d))); t0 += d + 0.04; x0 = x1 } return 0 }
+const panicRel = s => { let t0 = 0, x0 = 0; for (const [x1, d] of PANIC) { if (s <= t0 + d) return PANIC_PX * (x0 + (x1 - x0) * eIO3(clamp((s - t0) / d))); t0 += d + 0.04; x0 = x1 } return 0 } // s — секунды от начала метания
+export const PANIC_LEN = PANIC.reduce((a, [, d]) => a + d + 0.04, 0) // сколько длится метание, с
+/** Метание Пита в коробке (так же, как сразу после падения коробки; v3.3.298 — и после того, как Мия выпрыгнула одна): s — секунды от начала → { x (px при масштабе 1), vn (скорость −1…1, наклон и растяжка) } */
+export function panicAt(s) { const x = panicRel(s), v = (panicRel(s + 0.01) - panicRel(s - 0.01)) / 0.02; return { x, vn: clamp(v / (PANIC_PX * 18), -1, 1) } }
 
 const hsh = n => { const x = Math.sin(n * 127.1) * 43758.5453; return x - Math.floor(x) }
 /** Живые глаза Пита в щели (владелец 2026-11-15: «зрачки расширялись и сужались, редко он чуть-чуть ходил из стороны в сторону, плавнее, естественнее»): взгляд почти неподвижен и лишь изредка (раз в ≈4 с) плавно сдвигается
@@ -45,7 +48,7 @@ export function arrivalAt(t, jump = ARR.JUMP) { // jump — когда (с от 
   Object.assign(box, { sy: 1 - 0.13 * sq, sx: 1 + 0.07 * sq, rot: 3.5 * Math.exp(-8 * q) * Math.sin(26 * q), thNear: Math.max(0, 62 * Math.exp(-9 * q) * Math.cos(15 * q)), thFar: Math.max(0, 55 * Math.exp(-9 * q) * Math.cos(15 * q + 0.4)) })
   if (t >= ARR.EYES) eyes.open = eBack(clamp((t - ARR.EYES) / 0.25))
   if (t >= ARR.PANIC0) {
-    const x = panicX(t), v = (panicX(t + 0.01) - panicX(t - 0.01)) / 0.02, vn = clamp(v / (PANIC_PX * 18), -1, 1)
+    const { x, vn } = panicAt(t - ARR.PANIC0)
     box.dx += x; box.rot += vn * 7; box.sx *= 1 + 0.04 * Math.abs(vn); eyes.look = 5 * vn; eyes.scale = 1 + 0.1 * Math.abs(vn)
   }
   if (t >= jump) {                                              // Мия: прыжок из-за правого края и посадка на крышку
@@ -85,7 +88,7 @@ export function leaveAt(t) {
 }
 
 /** Мия выпрыгивает ОДНА, коробка остаётся на Пите (v3.3.290, финал пройден плохо): присела (CROUCH), прыжок вправо за экран (JUMP), дальше её нет. t — с от начала прыжка → { u 0…1 (доля пути прыжка, для flightPath), sx, sy, rot, done } */
-export const SOLO = { CROUCH: 0.3, JUMP: 0.8, END: 1.1 }
+export const SOLO = { CROUCH: 0.3, JUMP: 0.8, END: 1.1, SETTLE: 0.4 } // SETTLE — пауза после метания Пита: он остановился по центру, и только тогда просит снять коробку
 export function soloLeave(t) {
   const cr = clamp(t / SOLO.CROUCH), u = clamp((t - SOLO.CROUCH) / SOLO.JUMP)
   if (t < SOLO.CROUCH) return { u: 0, sy: 1 - 0.14 * cr, sx: 1 + 0.06 * cr, rot: 0, done: false }

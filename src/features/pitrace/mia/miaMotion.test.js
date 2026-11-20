@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { arrivalAt, leaveAt, ARR, IMPACT, LAND, LEAVE, ARRIVAL_END, flightPath, talkLevel, MOUTH_LEVEL } from './miaMotion.js'
+import { panicAt, PANIC_LEN, SOLO, arrivalAt, leaveAt, ARR, IMPACT, LAND, LEAVE, ARRIVAL_END, flightPath, talkLevel, MOUTH_LEVEL } from './miaMotion.js'
 
 describe('приход Мии: поза по времени', () => {
   it('до начала падения коробки нет; в падении она выше экрана, потом на земле', () => {
@@ -69,4 +69,14 @@ describe('живые глаза в щели', () => {
   it('до падения коробки и после ухода её не показывают (мерцание за кадр до падения)', () => {
     expect(arrivalAt(0.01).shown).toBe(false); expect(arrivalAt(ARR.FALL0 + 0.01).shown).toBe(true); expect(leaveAt(LEAVE.END + 0.1).shown).toBe(false)
   })
+})
+
+describe('метание Пита после ухода Мии (v3.3.298)', () => {
+  it('panicAt: начало и конец — на месте, в середине — размах; тот же закон, что у метания после падения коробки', () => {
+    expect(panicAt(0).x).toBe(0); expect(panicAt(PANIC_LEN + 0.1).x).toBe(0)
+    expect(Math.max(...Array.from({ length: 100 }, (_, i) => Math.abs(panicAt(i * PANIC_LEN / 100).x)))).toBeGreaterThan(40)
+    expect(arrivalAt(ARR.PANIC0 + 0.5).box.dx).toBeCloseTo(panicAt(0.5).x, 5)
+    expect(PANIC_LEN).toBeGreaterThan(1.5); expect(PANIC_LEN).toBeLessThan(3)
+  })
+  it('после метания есть пауза SETTLE: Пит стоит и только потом просит помочь', () => { expect(SOLO.SETTLE).toBeGreaterThan(0.2) })
 })
