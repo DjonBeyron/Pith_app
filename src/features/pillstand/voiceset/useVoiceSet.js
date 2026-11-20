@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
-import { openGameMic, closeGameMic, peekGameMic } from '../../../shared/lib/gameMic.js'
+import { peekGameMic } from '../../../shared/lib/gameMic.js'
+import { startStandMic, leaveStandMic } from '../standStart.js'
 import { APP_VERSION } from '../../../shared/lib/version.js'
 import { collectDevice } from '../../player/modules/rotate-phone/wordLaneDebug.js'
 import { SAVE_HOW, saveDebugFile } from '../../player/modules/rotate-phone/wordLaneDebugExport.js'
@@ -54,7 +55,7 @@ export default function useVoiceSet({ keepMic = false } = {}) {
     if (!run) return
     run.close().then(() => store?.load()).then(got => { if (alive.current && got) setSaved(got) }, () => {}) // набор — как в хранилище (пропущенные и сбои микрофона дописаны)
     wake.off()
-    if (!keep.current) closeGameMic()
+    if (!keep.current) leaveStandMic()
   }, [wake, store])
   useEffect(() => () => stopRun(), [stopRun])
 
@@ -69,7 +70,7 @@ export default function useVoiceSet({ keepMic = false } = {}) {
   const begin = useCallback(fresh => {
     if (!store || runRef.current || (!fresh && stale)) return
     setMic('asking'); setArch(NO_ARCH)
-    const asked = openGameMic() // getUserMedia — прямо в нажатии
+    const asked = startStandMic().then(r => r.mic) // как «Начать» игры (standStart.js, v3.3.304): тип аудиосессии, getUserMedia и игровой контекст — в нажатии
     primeCapture() // и контекст захвата — тоже в нажатии: на iPhone созданный позже остаётся 'suspended' (звука нет)
     wake.on()
     try { globalThis.navigator?.storage?.persist?.()?.catch?.(() => {}) } catch { /* без постоянного хранилища */ }

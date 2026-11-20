@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import { createPool } from '../player/modules/rotate-phone/wordLanePool.js'
 import { collectDevice } from '../player/modules/rotate-phone/wordLaneDebug.js'
-import { openGameMic, closeGameMic } from '../../shared/lib/gameMic.js'
+import { startStandMic, leaveStandMic } from './standStart.js'
 import { APP_VERSION } from '../../shared/lib/version.js'
 import { newSeed } from '../rehearsal/rehearsalSeed.js'
 import { createStandTrace } from './pillStandTrace.js'
@@ -50,7 +50,7 @@ export default function usePillStand(fieldRef, { paused = false } = {}) {
   useEffect(() => { // window.__pillStand — трасса для автопроверки стенда (Playwright) и консоли
     trace.push('session', { version: APP_VERSION, device: deviceLine(), ua: globalThis.navigator?.userAgent ?? '' })
     globalThis.__pillStand = { trace }
-    return () => { clearTimeout(timer.current); closeGameMic(); trace.push('session', { why: 'выход' }); if (globalThis.__pillStand?.trace === trace) delete globalThis.__pillStand }
+    return () => { clearTimeout(timer.current); leaveStandMic(); trace.push('session', { why: 'выход' }); if (globalThis.__pillStand?.trace === trace) delete globalThis.__pillStand }
   }, [trace])
   useEffect(() => { clearTimeout(timer.current); trace.push('target', { ...target, gen }) }, [target, gen, trace])
 
@@ -80,7 +80,7 @@ export default function usePillStand(fieldRef, { paused = false } = {}) {
   /** «Старт» — из тапа: микрофон игры (диалог iOS — здесь) */
   const start = useCallback(() => {
     setMic('asking'); trace.push('mic', { state: 'asking' })
-    openGameMic().then(r => { trace.push('mic', { state: r }); setMic(r === 'granted' ? 'on' : r) })
+    startStandMic().then(r => { trace.push('mic', { state: r.mic, ...(r.settled ? { waitedMs: r.settled.waitedMs, interrupts: r.settled.interrupts, ctx: r.settled.ctx ?? null } : {}) }); setMic(r.mic === 'granted' ? 'on' : r.mic) }) // тот же путь, что «Начать» игры (standStart.js)
   }, [trace])
 
   return { trace, prefs, setPrefs, seed, setSeed, n, target, next, reset, mic, start, model, result, ear, view, clearHist, probe, meta, micHealth, micTap }

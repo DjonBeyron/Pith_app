@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
-import { onGameMicLost, peekGameMic, dropGameMic, openGameMic } from '../../shared/lib/gameMic.js'
+import { onGameMicLost, peekGameMic } from '../../shared/lib/gameMic.js'
+import { restartStandMic } from './standStart.js'
 import { renewGameMic } from '../../shared/lib/gameMicRenew.js'
 import { waitUnmute } from '../../shared/lib/gameMicKeep.js'
 import { createMicHealth } from './standMicHealth.js'
@@ -16,7 +17,7 @@ export default function useStandMicHealth({ trace, on, onRevived }) {
   const [h] = useState(() => createMicHealth({
     trace, tracks: trackInfo, onState: setHealth, onRevived, // стабильный (useCallback у стенда): здоровье создаётся один раз
     renew: why => renewGameMic({ why: `[mic] стенд: ${why}` }),
-    reopen: () => { dropGameMic(); return openGameMic() }, // в тапе плашки: getUserMedia в жесте
+    reopen: () => restartStandMic({ why: 'стенд: тап плашки «микрофон отключился»' }), // в тапе плашки: как «Продолжить» игры (обновление аудиосессии, проверка вывода, getUserMedia в жесте)
     waitUnmute: () => waitUnmute(peekGameMic()),
   }))
   useEffect(() => {
