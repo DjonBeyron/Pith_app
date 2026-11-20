@@ -54,17 +54,29 @@ describe('эпизод «Мия»: пока она на коробке', () => {
     for (let i = 0; i < 4; i++) { const r = reduceMia(m, ev(i % 2 ? 'fail' : 'miss', round3(), { idx: 1 })); m = r.mia; seen.push(ids(r)[0]); expect(m.streak).toBe(0) }
     expect(seen).toEqual(['mia_miss_1', 'mia_miss_2', 'mia_miss_3', 'mia_miss_1'])
   })
-  it('три верных подряд: Мия уходит (пит возвращается), ускорение снимается', () => {
+  const end3 = (act = 'sprint') => ({ type: 'announce', act, sid: `${act}3-end`, mia: 'end', round: { kind: 'mia', title: '', task: '' } })
+  const play = (m, results, stage = round3('sprint', [{ text: 'a' }, { text: 'b' }, { text: 'c' }, { text: 'd' }])) => { let st = reduceMia(m, ev('enter', stage)).mia; results.forEach((t, idx) => { st = reduceMia(st, ev(t, stage, { idx })).mia }); return st }
+  it('три верных подряд Мию больше не отпускают (v3.3.297): круг идёт дальше, коробка остаётся на Пите, ускорение не снимается', () => {
     let m = arrive(); let r
     for (const k of [1, 2, 3]) { r = reduceMia(m, ev('win', round3(), { idx: k })); m = r.mia }
-    expect(m.phase).toBe('out'); expect(m.why).toBe('win'); expect(r.boost).toBe(1)
-    expect(ids(r)).toEqual(['mia_leave', 'pit_back_1', 'pit_back_2']); expect(r.say.map(l => l.delay)).toEqual([0, MIA.BACK_AT, MIA.BACK2_AT]); expect(miaShown(m)).toBe(true)
+    expect(m.phase).toBe('in'); expect(m.streak).toBe(3); expect(r.boost).toBeNull(); expect(ids(r)).not.toContain('mia_leave')
   })
-  it('ошибка между верными обнуляет серию: три подряд считаются заново', () => {
+  it('ошибка между верными обнуляет серию (счёт серии для колкостей)', () => {
     let m = arrive()
     for (const t of ['win', 'win', 'miss', 'win', 'win']) m = reduceMia(m, ev(t, round3(), { idx: 1 })).mia
     expect(m.phase).toBe('in'); expect(m.streak).toBe(2)
-    expect(reduceMia(m, ev('win', round3(), { idx: 1 })).mia.phase).toBe('out')
+  })
+  it('конец круга с Мией (стадия …3-end): все слова верны — Мия уходит с коробкой («вы победили», две реплики Пита); ловушка — верно промолчать', () => {
+    const r = reduceMia(play(arrive(), ['win', 'win', 'win', 'win']), ev('enter', end3()))
+    expect(r.mia).toMatchObject({ phase: 'out', why: 'win' }); expect(r.mia.solo).toBeNull(); expect(ids(r)).toEqual(['mia_leave', 'pit_back_1', 'pit_back_2']); expect(r.log).toContain('все верно')
+    const trap = round3('sprint', [{ text: 'a' }, { text: 'b', trap: true }]); const t = reduceMia(reduceMia(reduceMia(arrive(), ev('enter', trap)).mia, ev('win', trap, { idx: 0 })).mia, ev('fail', trap, { idx: 1 })).mia
+    expect(reduceMia(t, ev('enter', end3())).mia).toMatchObject({ phase: 'out', why: 'win' })
+  })
+  it('конец круга: хоть одно слово не названо верно — коробка остаётся на Пите, Мия выпрыгивает одна (solo keep), Пит просит помочь; снятие коробки — как в финале', () => {
+    const r = reduceMia(play(arrive(), ['win', 'miss', 'win', 'fail']), ev('enter', end3()))
+    expect(r.mia).toMatchObject({ phase: 'in', solo: 'keep' }); expect(ids(r)).toEqual(['boss_mia_keep']); expect(r.log).toContain('Пит остаётся в коробке')
+    const s = reduceMia(r.mia, ev('stuck')).mia; expect(s.solo).toBe('stuck')
+    expect(reduceMia(s, ev('free')).mia).toMatchObject({ phase: 'out', alone: true, solo: null })
   })
   it('круг кончился без победы: следующая стадия — Мия отпускает Пита сама', () => {
     const r = reduceMia(arrive(), ev('enter', circle1('catch')))

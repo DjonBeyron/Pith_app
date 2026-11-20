@@ -15,6 +15,7 @@ export const PRE_SAY_GAP_MS = 450    // «Разгон» и «Слушай и л
                                      // налетает на только что принятое слово и счёт «зачёл → следующее» не ощущается; после реплики успеха паузы нет (её длину держит сама реплика, claimGap)
 export const CLAIM_GAP_MS = 60       // пауза после принятия слова с репликой успеха до выезда следующей пилюли
 export const ROUND2_ANN_MS = 400     // «плашки» второго круга нет: стадия держится, пока Пит говорит
+export const MIA_END_MS = 18000     // конец круга с Мией: потолок (реальную длину держит речь Мии и снятие коробки, boss/raceEndHold.js)
 export const MIA_ANN_MS = 1200       // церемония Мии (стадия `${act}3-ann`): минимум; на деле её держит речь Мии (очередь miaSpeech), три ноты ждут её конца…
 export const MIA_WAIT_CAP_MS = 90000 // …но не дольше этого (страховка: речь не должна встать насовсем)
 
@@ -78,4 +79,5 @@ export function queueStages(kit, act, rep, o = {}) {
   announce(act, { sid: sid3, kind: 'mia', title: '', task: '', line: 'pit_forgot', ms: MIA_ANN_MS, look: { cat: 'mia' } })
   Object.assign(kit.stages.at(-1), { mia: 'ann', miaPlate: { title: 'Допрос у Мии', brief: 'Мия проверяет забытые слова' }, waitCap: MIA_WAIT_CAP_MS, ...(o.revBack ? { revBack: o.revBack } : {}) }) // revBack — после B: на церемонии пилюли разворачиваются снизу вниз, пока идут диалоги (raceReverseTurn, back)
   push({ ...round(sid3, act.words, false), mia: 'round', fill: list => Object.assign(kit.stages.find(x => x.sid === sid3), round(sid3, list, false), { mia: 'round' }) })
+  push({ type: 'announce', act: act.id, sid: `${sid3}-end`, mia: 'end', round: { kind: 'mia', title: '', task: '' }, line: null, ms: MIA_END_MS }) // конец круга с Мией (v3.3.297): все слова верны — Мия уходит с коробкой, иначе коробка остаётся на Пите, и её снимает ученик (mia/useMiaBoxFree.js)
 }

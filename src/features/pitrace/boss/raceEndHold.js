@@ -1,11 +1,12 @@
-import { bossEnd } from '../mia/raceMia.js'
+import { endKeep, MIA } from '../mia/raceMia.js'
 import { GAP_MS } from '../mia/miaSpeech.js'
 
 // Сколько держится стадия-эпилог финала boss-end (директор гонки, useRaceActs.holdMs): Мия договаривает последнюю колкость (st.preWait, useMiaEnter) → потом реплики Мии и Пита и хвост, не дольше st.ms.
 // Финал пройден плохо (Пит в коробке): стадию отпускает не таймер, а снятие коробки учеником (useMiaBoxFree.afterCount опрашивает), поэтому здесь — только ожидание Мии + опрос.
 export function endHoldMs(st, mb, mspeech) {
   const pre = st.preWait ?? 0
-  if (bossEnd(mb.m).keep) return pre + 600
+  if (endKeep(mb.m, st)) return pre + 600
+  if (st.act !== 'boss') return Math.min(st.ms, pre + Math.max(2500, mspeech.msOf('mia_leave') + GAP_MS + Math.max(MIA.BACK2_AT, MIA.BACK_AT) + mspeech.msOf('pit_back_2', 'pit') + 800)) // круг с Мией, все слова верны: «вы победили» + две реплики Пита
   const [a, p, d] = ['boss_mia_free', 'boss_pit_free', 2800]
   return Math.min(st.ms, pre + Math.max(2500, Math.max(d, mspeech.msOf(a) + GAP_MS) + mspeech.msOf(p, 'pit') + 800))
 }

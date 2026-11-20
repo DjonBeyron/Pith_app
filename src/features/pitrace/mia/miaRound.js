@@ -32,13 +32,13 @@ export function miaAfterPass(stages, cur, pass, seed, m) {
 export const miaAllowed = (st, m) => !!st?.mia && m?.phase === 'in' && m.act === st.act
 
 /** Обойти стадии Мии, на которые идти нельзя (Мия не «в игре»): i — кандидат в следующие, nextOf(j) — обычный порядок (nextRunnable) от j → номер стадии. Церемония пропускается вместе
- *  со своим кругом (j + 2). Круг, стоящий сразу за церемонией, открыт: так заглядывает вперёд конвейер (upcomingLanes идёт от церемонии дальше) — дорожки не гаснут между этапами */
+ *  со своим кругом (j + 3). Круг, стоящий сразу за церемонией, открыт: так заглядывает вперёд конвейер (upcomingLanes идёт от церемонии дальше) — дорожки не гаснут между этапами */
 export function miaSkip(stages, i, m, nextOf = j => j) {
   let j = i
   for (let n = 0; n < stages.length && stages[j]?.mia; n++) {
     const st = stages[j], afterCeremony = (st.mia === 'round' && stages[j - 1]?.mia === 'ann' && stages[j - 1].act === st.act) || (st.mia === 'ann' && stages[j - 1]?.mia === 'intro' && stages[j - 1].act === st.act) // плашка «Допрос у Мии» → церемония → круг: внутри эпизода идут подряд
     if ((st.always && !st.empty) || miaAllowed(st, m) || afterCeremony) break // always — финал «Шкала памяти»: идёт всегда, если нашлись слова (empty — нет)
-    j = nextOf(st.mia === 'intro' ? j + 3 : st.mia === 'ann' ? j + 2 : j + 1)
+    j = nextOf(st.mia === 'intro' ? j + 4 : st.mia === 'ann' ? j + 3 : j + 1) // плашка + церемония + круг + конец круга (v3.3.297)
   }
   return j
 }

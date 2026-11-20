@@ -41,7 +41,7 @@ describe('стадии Мии в списке гонки', () => {
     expect(miaAfterPass(stages, stages.find(s => s.sid === 'climb' || s.act === 'phrases'), weak, 5, { used: {} })).toBe(-1); expect(miaAfterPass([], r1, weak, 5, { used: {} })).toBe(-1)
   })
   it('обход: пока Мия не вызвана (фаза не in), nextIdx пропускает церемонию и круг; когда вызвана — идёт на них', () => {
-    const intro = stages.findIndex(s => s.sid === 'sprint3-intro-ann'), ann = intro + 1, after = intro + 3
+    const intro = stages.findIndex(s => s.sid === 'sprint3-intro-ann'), ann = intro + 1, after = intro + 4
     expect(miaSkip(stages, intro, { phase: 'off', act: '' })).toBe(after) // плашка, церемония и круг обходятся целиком
     expect(miaSkip(stages, ann, { phase: 'off', act: '' })).toBe(ann) // церемония сразу за плашкой Мии открыта: внутри эпизода стадии идут подряд
     expect(miaSkip(stages, ann, { phase: 'in', act: 'sprint' })).toBe(ann); expect(miaSkip(stages, ann + 1, { phase: 'in', act: 'sprint' })).toBe(ann + 1)
