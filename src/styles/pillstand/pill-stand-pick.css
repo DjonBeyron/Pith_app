@@ -1,0 +1,17 @@
+/* Стенд пилюль: «что выбрано» и отклик нажатия у всех кнопок (v3.3.313, владелец: «дай у всех кнопок импакт что выбрано»), пресеты — свой цвет по виду (kind): подборка новой системы — фиолетовый, закреплённый случай — янтарный.
+   Выбранная кнопка — залита цветом, с галочкой и коротким «выскоком» при включении (animation стартует, когда data-on появляется); нажатие — вдавливание и вспышка. Только transform / filter / цвета. */
+.psStand .psBtn, .psStand .psSegBtn, .psStand .psStart { transition: transform 0.08s ease, filter 0.12s ease, background-color 0.15s ease, border-color 0.15s ease; }
+.psStand .psBtn:active:not(:disabled), .psStand .psSegBtn:active:not(:disabled), .psStand .psStart:active { transform: scale(0.93); filter: brightness(1.45); }
+.psStand .psBtn[data-on]:not(.psRec) { background: color-mix(in srgb, var(--ps-acc) 22%, #1b1f27); border-color: var(--ps-acc); color: #fff; font-weight: 700; animation: psPop 0.28s ease-out; }
+.psStand .psBtn[data-on]:not(.psRec)::before { content: '✓'; font-weight: 800; color: var(--ps-acc); }
+.psStand .psSegBtn[data-on] { background: color-mix(in srgb, var(--ps-acc) 28%, #2a3140); color: #fff; font-weight: 700; box-shadow: inset 0 -3px 0 var(--ps-acc); animation: psPop 0.28s ease-out; }
+.psStand .psPreset[data-kind='mix'] { --pk: #b794ff; border-color: color-mix(in srgb, #b794ff 60%, transparent); color: #d9c8ff; }
+.psStand .psPreset[data-kind='pin'] { --pk: #ffb454; border-color: color-mix(in srgb, #ffb454 60%, transparent); color: #ffd9a3; }
+.psStand .psPreset[data-kind][data-on] { background: color-mix(in srgb, var(--pk) 30%, #1b1f27); border-color: var(--pk); color: #fff; }
+.psStand .psPreset[data-kind][data-on]::before { color: var(--pk); }
+.psStand .psRec[data-armed] { background: #3a1820; border-color: #ff5d73; color: #ffc2cb; animation: psBlink 1s ease-in-out infinite; }
+.psStand .psAuto:has(input:checked) { color: #fff; font-weight: 700; text-shadow: 0 0 6px color-mix(in srgb, var(--ps-acc) 70%, transparent); }
+.psStand .psAuto input { accent-color: var(--ps-acc); }
+@keyframes psPop { 0% { transform: scale(0.88); } 60% { transform: scale(1.07); } 100% { transform: scale(1); } }
+@keyframes psBlink { 50% { opacity: 0.55; } }
+@media (prefers-reduced-motion: reduce) { .psStand .psBtn[data-on], .psStand .psSegBtn[data-on], .psStand .psRec[data-armed] { animation: none; } }

@@ -1,6 +1,6 @@
 import { X } from 'lucide-react'
 import { MODES, LANGS, LENS, mixList } from './pillStandPick.js'
-import { AUTO_MS, PRESETS } from './pillStandPrefs.js'
+import { AUTO_MS, PRESETS, presetOn } from './pillStandPrefs.js'
 import { STAND_PHRASES } from './pillStandData.js'
 
 // Панель стенда пилюль сверху (safe-area): выход, язык Vosk «EN | RU», запись / стоп, просмотр записи; режим пилюли и «🎙 Запись набора» (экран voiceset/); длина, «Следующая», «Сброс»; сид, авто-следующая и её пауза, состояние модели.
@@ -15,7 +15,7 @@ function Seg({ value, list, title, onPick, testid, disabled = false }) {
   )
 }
 
-export default function PillStandBar({ s, r, viewing, onClose, onView, onVoiceSet }) {
+export default function PillStandBar({ s, r, viewing, onClose, onView, onVoiceSet, armed = false, onArm = () => {} }) {
   const { prefs, setPrefs, model } = s
   const rec = r.state
   return (
@@ -25,7 +25,9 @@ export default function PillStandBar({ s, r, viewing, onClose, onView, onVoiceSe
         <Seg value={prefs.lang} list={LANGS} title={{ en: 'EN', ru: 'RU' }} onPick={v => setPrefs({ lang: v })} testid="ps-lang" disabled={viewing || model.switching} />
         {rec.on
           ? <button type="button" className="psBtn psRec" data-on="1" data-warn={rec.warn ? '1' : undefined} onClick={() => r.stop()} data-testid="ps-rec">■ {mmss(rec.ms)} · {rec.fps} к/с</button>
-          : <button type="button" className="psBtn psRec" onClick={r.start} disabled={viewing || s.mic !== 'on'} data-testid="ps-rec">● Запись</button>}
+          : s.mic === 'on'
+            ? <button type="button" className="psBtn psRec" onClick={r.start} disabled={viewing} data-testid="ps-rec">● Запись</button>
+            : <button type="button" className="psBtn psRec" data-armed={armed ? '1' : undefined} data-on={armed ? '1' : undefined} aria-pressed={armed} onClick={onArm} disabled={viewing} data-testid="ps-rec">{armed ? '● ждёт «Старт» (тап — отмена)' : '● Запись до «Старт»'}</button>}
         <button type="button" className="psBtn" onClick={onView} disabled={!r.rec || rec.on || viewing} data-testid="ps-view">▶ Просмотр</button>
       </div>
       <div className="psRow">
@@ -38,7 +40,7 @@ export default function PillStandBar({ s, r, viewing, onClose, onView, onVoiceSe
         <button type="button" className="psBtn" onClick={s.reset} disabled={viewing} data-testid="ps-reset">Сброс</button>
       </div>
       <div className="psRow" data-testid="ps-presets">
-        {PRESETS.map(p => <button key={p.id} type="button" className="psBtn psBtn--tiny" onClick={() => setPrefs(p.set)} disabled={viewing || rec.on} data-testid={`ps-preset-${p.id}`}>{p.label}</button>)}
+        {PRESETS.map(p => <button key={p.id} type="button" className="psBtn psBtn--tiny psPreset" data-kind={p.kind} data-on={presetOn(p, prefs) ? '1' : undefined} aria-pressed={presetOn(p, prefs)} onClick={() => setPrefs(p.set)} disabled={viewing || rec.on} data-testid={`ps-preset-${p.id}`}>{p.label}</button>)}
         {prefs.mode !== 'word' && <select className="psSel" value={prefs.pin} onChange={e => setPrefs({ pin: e.target.value })} aria-label="Закрепить фразу" disabled={viewing} data-testid="ps-pin"><option value="">фраза: по сиду</option>{STAND_PHRASES.map(p => <option key={p.en} value={p.en}>{p.en}</option>)}</select>}
       </div>
       <div className="psRow psRow--small">

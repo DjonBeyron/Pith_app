@@ -187,6 +187,7 @@ export function createPhraseListener({ phrases: phrasesIn, lang = 'en', getStrea
       else if (got === 'through') { throughBy = kind === 'final' ? 'по итогу' : 'по черновику'; settleLast = true; settle(SETTLE_LAST_MS, mine) } // черновик ещё может достроиться до полного
       if (kind === 'final' && !wordByWord && !settleTimer && score(heardNow()).some(s => s.ratio >= PHRASE_OK - 1e-9)) settle(SETTLE_MS, mine) // итог захода с неполным совпадением (3 из 4: «nice to meet to» вместо «you») решается через SETTLE_MS и без события конца захода — заливка не застревает на 97 % (журнал 2026-11-15)
     } else if (kind === 'session-end') {
+      if (wordByWord) log(`[phrase-ear] заход закрыт: raw «${curRaw}», пик ${hold.peak().toFixed(4).replace('.', ',')}, новых слов ${progressed ? 'принято' : 'нет'}${hold.noise() ? ', шум' : ''}, подтверждено слов ${[...sent.values()].reduce((m, g) => Math.max(m, [...g.values()].filter(Boolean).length), 0)} ${rel()}`) // сводка захода для разбора «что пошло не так»
       if (current) past.push({ text: current, at: now() })
       current = ''; textAt = now(); gateOpen = true; hold.capture(); noiseLogged = false; blockedLogged = false; progressed = false; curRaw = ''; clearTimer(muteTimer); muteTimer = 0 // следующий заход Vosk (wordLaneListen перезапускает сам): голос в нём — ещё не в черновике
       const heard = heardNow()

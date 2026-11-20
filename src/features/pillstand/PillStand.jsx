@@ -1,4 +1,4 @@
-import { useRef, useState, useMemo, lazy, Suspense } from 'react'
+import { useRef, useState, useMemo, useEffect, lazy, Suspense } from 'react'
 import { createPortal } from 'react-dom'
 import WordLanePillEls from '../player/modules/rotate-phone/WordLanePillEls.jsx'
 import { isWeakDevice } from '../../shared/lib/deviceTier.js'
@@ -16,6 +16,7 @@ import '../../styles/pillstand/pill-stand-ear.css'
 import '../../styles/pillstand/pill-stand-player.css'
 import '../../styles/pillstand/pill-stand-send.css'
 import '../../styles/pillstand/pill-stand-colors.css'
+import '../../styles/pillstand/pill-stand-pick.css'
 
 // «Стенд пилюль» (отладка, CONCEPT_PILLSTAND.md): полноэкранный портал как у игры (.wl), но без Пита, реплик, конвейера и узора — только НАСТОЯЩАЯ пилюля (пул, сцены и слушатели игры) и Vosk.
 // Поле пилюли (.wlField: те же классы lite / safe, что у WordLanePills) — пилюля стоит на месте; во время просмотра записи поле скрыто, а над плеером — поле .psReplay с пилюлей из снимков.
@@ -29,6 +30,9 @@ export default function PillStand({ onClose }) {
   const [safe] = useState(isPillSafe)
   const s = usePillStand(fieldRef, { paused: viewing || voiceSet })
   const r = usePillStandRecord({ trace: s.trace, probe: s.probe, ear: s.ear, viewing })
+  const [armed, setArmed] = useState(false) // запись включена до «Старт»: начнётся сама, когда микрофон включится (v3.3.313)
+  const arm = () => { s.trace.push('rec-arm', { on: !armed }); setArmed(a => !a) }
+  useEffect(() => { if (!(armed && s.mic === 'on' && !r.state.on)) return; r.start(); setTimeout(() => setArmed(false), 0) }, [armed, s.mic, r]) // запись стартует, когда микрофон включился; флаг снимается следом (не синхронно в эффекте)
   const cls = `wlField psField${lite ? ' wl--lite' : ''}${safe ? ' wl--safe' : ''}`
   const pillRef = useMemo(() => ({ get current() { return replayRef.current?.querySelector('[data-pill]') ?? null } }), [])
   const view = on => { s.trace.push('view', { on }); setViewing(on) }
@@ -42,7 +46,7 @@ export default function PillStand({ onClose }) {
         <div ref={fieldRef} className={cls} data-hide={viewing ? '1' : undefined} data-testid="ps-field"><WordLanePillEls count={3} testid="ps-pill" /></div>
         {viewing && <div ref={replayRef} className={`${cls} psReplay`} data-testid="ps-replay"><WordLanePillEls count={1} testid="ps-replay-pill" /></div>}
       </div>
-      <PillStandBar s={s} r={r} viewing={viewing} onClose={onClose} onView={() => view(true)} onVoiceSet={() => { s.trace.push('voiceset', { on: true }); setVoiceSet(true) }} />
+      <PillStandBar s={s} r={r} viewing={viewing} armed={armed} onArm={arm} onClose={onClose} onView={() => view(true)} onVoiceSet={() => { s.trace.push('voiceset', { on: true }); setVoiceSet(true) }} />
       <div className="psBottom">
         {viewing && r.rec
           ? <PillStandPlayer rec={r.rec} meta={s.meta()} pillRef={pillRef} onClose={() => view(false)} onSend={send.open} range={loop} />

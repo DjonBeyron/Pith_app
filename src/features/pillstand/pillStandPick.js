@@ -58,5 +58,5 @@ export function pickTarget({ seed, n = 0, mode = 'word', lang = 'en', len = 'any
   const list = pool(mode, lang, len)
   const mixed = mix && !pin ? mixList(mode, lang) : null // подборка по порядку: цель n — n-я из списка (по кругу)
   const c = pinned(mode, lang, pin) ?? (mixed?.length ? mixed[n % mixed.length] : null) ?? list[targetIndex({ seed, n, mode, lang, len, size: list.length })]
-  return { n, mode, lang, len, seed: String(seed), say: c.say, shown: c.shown, ...(c.other ? { other: c.other } : {}), words: count(c.say) }
+  return { n, mode, lang, len, seed: String(seed), say: c.say, shown: c.shown, ...(c.other ? { other: c.other } : {}), words: count(c.say), ...(mixed?.length && !pin ? { mix: n % mixed.length, mixOf: mixed.length } : {}) }
 }

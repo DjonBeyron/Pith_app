@@ -123,3 +123,26 @@ describe('одинокий «[unk]» — шум, не неверное слов�
     expect(run('where [unk]')[1]).toBe(1)
   })
 })
+
+describe('журнал для разбора «что пошло не так» (v3.3.313)', () => {
+  it('рывок: журнал «рывок кромки» с причиной и заливкой; повтор раньше WRONG_GAP_MS — «рывок пропущен»; проход 2 — «рывка нет»', () => {
+    const mk = pass => { const logs = [], mask = mountMask(null, 'Where are you from'), sv = createSayView({ pass, text: 'Where are you from', n: 4, mask, nudge: () => {}, el: null, log: l => logs.push(l) }); sv.word(0, new Map([[0, true]]), 0); return { logs, sv } }
+    const a = mk(1); a.sv.ear({ kind: 'partial', text: 'where', raw: 'where [unk]' }); a.sv.frame(1000, false, 0.41); a.sv.frame(1300, false, 0.41)
+    expect(a.logs.some(l => /рывок кромки: .*«\[unk\]», заливка 0,41/.test(l))).toBe(true)
+    a.sv.ear({ kind: 'partial', text: 'where', raw: 'where [unk] [unk]' }); a.sv.frame(1700, false, 0.41); a.sv.frame(1900, false, 0.41)
+    expect(a.logs.some(l => l.includes('рывок пропущен'))).toBe(true)
+    const b = mk(2); b.sv.ear({ kind: 'partial', text: 'where', raw: 'where [unk]' }); b.sv.frame(1000, false, 0.41); b.sv.frame(1300, false, 0.41)
+    expect(b.logs.some(l => l.includes('рывка нет (проход 2)'))).toBe(true)
+  })
+  it('красное снимается — в журнале «красное «are» снято: слово сказано»', () => {
+    const logs = [], mask = mountMask(null, 'Where are you from'), sv = createSayView({ pass: 1, text: 'Where are you from', n: 4, mask, log: l => logs.push(l) })
+    sv.word(0, new Map([[0, true]]), 0); sv.ear({ kind: 'wrong', why: 'voice' }); sv.frame(1000, false, 0.4); sv.word(1, new Map([[0, true], [1, true]]), 2000)
+    expect(logs.some(l => l.includes('красное «are» снято'))).toBe(true)
+  })
+  it('рывок проверяет, что анимация запущена (getAnimations): 0 — «НЕ ЗАПУСТИЛАСЬ»', async () => {
+    const { createNudge } = await import('./racePhraseNudge.js'), logs = [], timers = []
+    const el = { style: { setProperty() {} }, getAnimations: () => [], addEventListener() {}, removeEventListener() {} }
+    createNudge({ mark() {}, el, log: l => logs.push(l), setTimer: fn => { timers.push(fn); return 1 }, clearTimer() {} }).fire(0.4)
+    timers.forEach(f => f()); expect(logs.some(l => l.includes('НЕ ЗАПУСТИЛАСЬ'))).toBe(true)
+  })
+})
