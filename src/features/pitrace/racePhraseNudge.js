@@ -2,8 +2,8 @@
 // racePhraseWrongWord.js. Здесь только вид: атрибут data-nudge на пилюле (mark — сцена пишет его через pool.attr) включает CSS-анимацию веретена и ореола кромки .wlPillSparks i
 // (word-lane-wide-fill.css: keyframes wlNudge — translateX вперёд на 8 px с красной подсветкой и плавный возврат, всего NUDGE_MS; кромка видна и при пустой заливке — рывок от начала).
 // Заливку (pool.paintFill) не трогает. Атрибут снимается по animationend (событие псевдоэлемента всплывает до пилюли) или, если анимации нет (reduced motion, тесты), по таймеру.
-export const NUDGE_MS = 520 // v3.3.307: красная заливка уходит до 90 % и возвращается (0,52 с); раньше только кромка на 8 px за 0,28 с
-export const NUDGE_TO = 90   // до какой доли пилюли (%) заходит красная заливка
+export const NUDGE_MS = 400 // v3.3.309: рывок красной жидкости — короткий (0,4 с); в 3.3.307–308 «до 90 %» (0,52 с) владелец назвал огромным
+export const NUDGE_EXTRA = 7 // насколько дальше линии (в % ширины пилюли) заходит красная жидкость
 
 /** → { fire(), stop(), on() }. mark(on) — поставить / снять data-nudge; el — узел пилюли (для animationend; без него — только таймер) */
 export function createNudge({ mark, el = null, setTimer = setTimeout, clearTimer = clearTimeout }) {
@@ -13,8 +13,8 @@ export function createNudge({ mark, el = null, setTimer = setTimeout, clearTimer
   el?.addEventListener?.('animationend', onEnd)
   return {
     /** Рывок: атрибут ставится заново (повтор — анимация с начала), снимается по animationend или через NUDGE_MS + 80 */
-    fire(from = 0) { // from — доля заливки на экране 0…1: красная заливка идёт от линии (--nf, %) до NUDGE_TO (--nw — длина, %), потом обратно
-      try { const f = Math.min(1, Math.max(0, Number(from) || 0)) * 100; el?.style?.setProperty?.('--nf', String(Math.round(f * 10) / 10)); el?.style?.setProperty?.('--nw', String(Math.max(6, Math.round((NUDGE_TO - f) * 10) / 10))) } catch { /* без стиля — рывок кромки остаётся */ }
+    fire(from = 0) { // from — доля заливки на экране 0…1: красная жидкость уходит от линии на NUDGE_EXTRA % ширины пилюли (--nw) и возвращается; --nf — доля заливки на экране, %
+      try { const f = Math.min(1, Math.max(0, Number(from) || 0)) * 100; el?.style?.setProperty?.('--nf', String(Math.round(f * 10) / 10)); el?.style?.setProperty?.('--nw', String(NUDGE_EXTRA)) } catch { /* без стиля — рывок кромки остаётся */ }
       if (on) mark(false); on = true; mark(true); clearTimer(timer); timer = setTimer(off, NUDGE_MS + 80) },
     stop() { off(); el?.removeEventListener?.('animationend', onEnd) },
     on: () => on,

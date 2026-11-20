@@ -104,16 +104,15 @@ describe('громкое «is» вместо «are»: Vosk отдаёт его �
   })
 })
 
-describe('рывок: красная заливка от линии до 90 % и обратно (v3.3.307)', () => {
-  it('fire(from) пишет --nf / --nw на пилюлю; у линии за 90 % длина не меньше 6 %; CSS — анимация wlNudgeFill 0,52 с', async () => {
-    const { createNudge, NUDGE_MS, NUDGE_TO } = await import('./racePhraseNudge.js')
+describe('рывок: короткая красная жидкость (v3.3.309: «амплитуда огромная — гораздо меньше»)', () => {
+  it('fire(from) пишет --nf и постоянную короткую длину --nw (NUDGE_EXTRA % ширины, не до 90 %); CSS — анимация wlNudgeFill 0,4 с', async () => {
+    const { createNudge, NUDGE_MS, NUDGE_EXTRA } = await import('./racePhraseNudge.js')
     const vars = {}, el = { style: { setProperty: (k, v) => { vars[k] = v } }, addEventListener() {}, removeEventListener() {} }
     const n = createNudge({ mark() {}, el, setTimer: () => 1, clearTimer() {} })
-    n.fire(0.36); expect(vars).toEqual({ '--nf': '36', '--nw': String(NUDGE_TO - 36) })
-    n.fire(0.95); expect(vars['--nw']).toBe('6'); n.fire(); expect(vars).toEqual({ '--nf': '0', '--nw': '90' })
-    expect(NUDGE_TO).toBe(90); expect(NUDGE_MS).toBe(520)
+    n.fire(0.36); expect(vars).toEqual({ '--nf': '36', '--nw': String(NUDGE_EXTRA) }); n.fire(0.95); expect(vars['--nw']).toBe(String(NUDGE_EXTRA))
+    expect(NUDGE_EXTRA).toBeLessThanOrEqual(10); expect(NUDGE_MS).toBe(400)
     const css = (await import('node:fs')).readFileSync(new URL('../../styles/player/modules/word-lane-wide-fill.css', import.meta.url), 'utf8')
-    expect(css).toContain('@keyframes wlNudgeFill'); expect(css).toContain('@keyframes wlNudgeInk'); expect(css).toContain('animation: wlNudgeFill 0.52s both'); expect(css).not.toContain('.wlPillSparks::before') // v3.3.308: красная жидкость самой пилюли, отдельного слоя-«свечения» нет
+    expect(css).toContain('@keyframes wlNudgeFill'); expect(css).toContain('@keyframes wlNudgeInk'); expect(css).toContain('animation: wlNudgeFill 0.4s both'); expect(css).toContain('var(--nw, 7)'); expect(css).not.toContain('.wlPillSparks::before')
   })
 })
 
