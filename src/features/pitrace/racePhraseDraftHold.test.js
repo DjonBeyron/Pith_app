@@ -43,3 +43,35 @@ describe('слушатель прохода 1', () => {
     r.l.stop()
   })
 })
+
+describe('журнал 19:12: последнее слово, говорят другое — красное; «[unk]» перед словом — черновиком не принимаем', () => {
+  const voice = (r, v) => { r.cur().opts.onLevel?.(v); r.cur().cb.onLevel?.(v) }
+  async function toLast() {
+    const r = rig([P.from], { wordByWord: true }); await flush()
+    r.cur().cb.onPartial('where are you'); await end(r, 'where are you', 300) // слова 1–3 подтверждены итогом
+    return r
+  }
+  it('осталось «from», сказано другое (итог «[unk]» при голосе 0,03): слушатель шлёт ear {kind: wrong}; тишина (пик 0,001) — нет', async () => {
+    const r = await toLast()
+    for (const v of [0.03, 0.04, 0.03, 0.02]) voice(r, v)
+    r.cur().cb.onPartial('where'); await end(r, '[unk]', 300)
+    expect(r.hears.some(h => h.kind === 'wrong')).toBe(true); expect(r.logs.some(l => l.includes('без нового слова цели'))).toBe(true)
+    const q = await toLast(); for (const v of [0.001, 0.001, 0.001, 0.001]) voice(q, v)
+    await end(q, '', 300); expect(q.hears.some(h => h.kind === 'wrong')).toBe(false)
+    r.l.stop(); q.l.stop()
+  })
+  it('вид хода: ear {kind: wrong} — красное ожидаемое слово и рывок', async () => {
+    const { createSayView } = await import('./racePhraseSayView.js'), { mountMask } = await import('./racePhraseMaskView.js')
+    const mask = mountMask(null, 'Where are you from'), jerks = []
+    const sv = createSayView({ pass: 1, text: 'Where are you from', n: 4, mask, nudge: on => on && jerks.push(1), el: null })
+    const said = new Map([[0, true], [1, true], [2, true]]); sv.word(2, said, 0); mask.set(said)
+    sv.ear({ kind: 'wrong', why: 'voice' }); sv.frame(1000, false, 0.64)
+    expect(mask.words()[3].state).toBe('miss'); expect(jerks.length).toBe(1)
+  })
+  it('«[unk] from» после «where are you»: «from» черновиком не принимается, итогом — принимается', async () => {
+    const r = await toLast()
+    r.cur().cb.onPartial('[unk] from'); expect(r.words.some(w => w.index === 3)).toBe(false); expect(r.got).toEqual([])
+    await end(r, '[unk] from', 300); expect(r.words.some(w => w.index === 3 && !w.draft)).toBe(true)
+    r.l.stop()
+  })
+})
