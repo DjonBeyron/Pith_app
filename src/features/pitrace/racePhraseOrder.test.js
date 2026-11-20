@@ -52,7 +52,7 @@ describe('слушатель прохода 1: по порядку и откат
     expect(c.r.words.slice(0, 1)).toEqual([{ phraseKey: P.meet.key, index: 0, text: 'nice', draft: true }]) // v3.3.306: «meet» вперёд не запоминается вовсе (строгая цепочка), поэтому и отката нет — первым событием сразу «nice»
     c.r.cur().cb.onPartial('nice to'); expect(c.line()).toBe(0.46); expect(c.states()).toBe('full full peek hidden') // раньше здесь 0,63: ложное «meet» засчитано
     c.r.cur().cb.onPartial('nice to meet'); expect(c.line()).toBe(0.63); expect(c.states()).toBe('full full full peek') // «meet» сказано — белеет и линия идёт
-    c.r.cur().cb.onPartial('nice to meet you'); expect(c.r.got).toEqual([{ phraseKey: P.meet.key, ratio: 1, heard: 'nice to meet you' }]); expect(c.line()).toBe(1)
+    c.r.cur().cb.onPartial('nice to meet you'); c.r.advance(300); expect(c.r.got).toEqual([{ phraseKey: P.meet.key, ratio: 1, heard: 'nice to meet you' }]); expect(c.line()).toBe(1)
     c.r.l.stop()
   })
   it('черновик перестроился без слова — откат: кирпичик снова закрыт, подсказка и линия возвращаются на него', async () => {

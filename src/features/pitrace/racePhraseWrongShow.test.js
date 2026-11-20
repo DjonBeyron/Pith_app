@@ -75,17 +75,17 @@ describe('подпись неверного слова — и в проходе 
   it('слово не из цели («where is you from» → «is») — тоже красным ожидаемое «are», подписи «is» нет', () => {
     const calls = [], miss = [], mask = { set() {}, peek() {}, edges: () => null, wrong: (w, k) => calls.push([w, k]), missing: k => { miss.push(k); return true } }
     const v = createSayView({ pass: 2, text: 'Where are you from', n: 4, mask, nudge: () => {}, el: null })
-    v.word(0, new Map([[0, true]]), 0); v.ear({ kind: 'partial', text: 'where is' }); v.frame(1000, false, 0.3); v.frame(1300, false, 0.3)
+    v.word(0, new Map([[0, true]]), 0); v.ear({ kind: 'partial', text: 'where is' }); v.frame(1000, false, 0.3); v.frame(1400, false, 0.3)
     expect(calls).toEqual([]); expect(miss).toEqual([1])
   })
 })
 
 describe('красное неверное слово — сразу и по первому (v3.3.285)', () => {
-  it('последнее слово черновика («nice to learn» при ожидаемом «meet») годится для подписи, когда не меняется 200 мс — без следующего слова', () => {
+  it('последнее слово черновика («nice to learn» при ожидаемом «meet») годится для подписи, когда не меняется 350 мс — без следующего слова', () => {
     const w = createWrongWord({ words: ['nice', 'to', 'meet', 'you'] }), said = new Map([[0, true], [1, true]])
     w.ear({ kind: 'partial', text: 'nice to learn' })
     w.check(said, 1000); expect(w.shown()).toBeNull()            // только появилось — ждём устойчивости
-    w.check(said, 1250); expect(w.shown()).toBe('learn')
+    w.check(said, 1250); expect(w.shown()).toBeNull(); w.check(said, 1350); expect(w.shown()).toBe('learn') // v3.3.314: 350 мс (было 200)
     w.check(said, 1700); expect(w.shown()).toBeNull()            // одно слово — одна подпись
   })
   it('слово меняется («lea» → «learn»), префикс ожидаемого («mee» при «meet») и верное слово подписи не дают', () => {

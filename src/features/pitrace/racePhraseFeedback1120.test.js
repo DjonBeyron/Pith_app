@@ -1,0 +1,69 @@
+import { describe, it, expect } from 'vitest'
+import { strictHits } from './racePhraseScore.js'
+import { rig, flush, end } from './racePhraseListenRig.js'
+import { createWrongWord, TAIL_STABLE_MS } from './racePhraseWrongWord.js'
+import { TAIL_HOLD_MS } from './racePhraseTailHold.js'
+
+// Журнал владельца 2026-11-20 (v3.3.313, iPhone, «Подборка 24 фразы · по словам»), пункты 7, 11, 12 его списка.
+const PARK = { key: 'park', words: ["Let's", 'go', 'to', 'the', 'park', 'tomorrow'] }
+const LOVE = { key: 'love', words: ['I', 'love', 'you'] }
+const bits = (words, heard, base = 0) => strictHits(words, heard, base).map(Number).join('')
+
+describe('п. 12: быстрое «to to to to» Vosk отдал как «to the to to» — линия перескочила два слова', () => {
+  it('strictHits: слово, за которым сразу идёт повтор уже сказанного слова, не засчитывается; честные «to the» и «to the park» — как раньше', () => {
+    expect(bits(PARK.words, 'to the to to', 2)).toBe('111000')
+    expect(bits(PARK.words, 'to the to', 2)).toBe('111000')
+    expect(bits(PARK.words, 'to the', 2)).toBe('111100'); expect(bits(PARK.words, 'to the park', 2)).toBe('111110')
+    expect(bits(['Where', 'are', 'you', 'from'], 'where are from')).toBe('1100'); expect(bits(['Where', 'are', 'you', 'from'], 'where are is')).toBe('1100')
+    expect(bits(['I', 'want', 'to', 'go', 'to', 'school'], 'i want to go to school')).toBe('111111') // слово фразы, повторённое в ней самой, — не «повтор»
+  })
+  it('слушатель: после «let\'s go» черновик «to the to» и итог «to the to to» дают только «to»', async () => {
+    const r = rig([PARK], { wordByWord: true }); await flush()
+    r.cur().cb.onPartial("let's go"); await end(r, "let's go", 10)
+    r.cur().cb.onPartial('to the to'); await end(r, 'to the to to', 10)
+    expect([...new Set(r.words.filter(w => !w.gone).map(w => w.index))]).toEqual([0, 1, 2])
+    r.l.stop()
+  })
+})
+
+describe('п. 7: «слишком предсказывает, особенно в последнем слове» — последнее слово фразы черновиком ждёт устойчивости', () => {
+  it('«i love» подтверждено; черновик «you» — фраза не закрыта сразу, только через TAIL_HOLD_MS; середина фразы — без задержки', async () => {
+    const r = rig([LOVE], { wordByWord: true }); await flush()
+    r.cur().cb.onPartial('i'); expect(r.words.map(w => w.index)).toEqual([0]) // первое слово — сразу
+    await end(r, 'i', 10); r.cur().cb.onPartial('love'); expect(r.words.some(w => w.index === 1)).toBe(true); await end(r, 'love', 10)
+    r.cur().cb.onPartial('you'); expect(r.got).toEqual([]); expect(r.words.some(w => w.index === 2)).toBe(false)
+    r.advance(TAIL_HOLD_MS - 50); expect(r.got).toEqual([])
+    r.advance(50); expect(r.got.map(g => g.ratio)).toEqual([1])
+    r.l.stop()
+  })
+  it('черновик «you» переписан за 200 мс на «love» — последнее слово не засчитано вовсе; итог захода «you» засчитывает сразу', async () => {
+    const r = rig([LOVE], { wordByWord: true }); await flush()
+    r.cur().cb.onPartial('i'); await end(r, 'i', 10); r.cur().cb.onPartial('love'); await end(r, 'love', 10)
+    r.cur().cb.onPartial('you'); r.advance(200); r.cur().cb.onPartial('love'); r.advance(1000)
+    expect(r.got).toEqual([]); expect(r.words.some(w => w.index === 2)).toBe(false)
+    await end(r, 'love', 10); r.cur().cb.onPartial('you'); r.cur().cb.onResult('you', { words: [] })
+    expect(r.got.map(g => g.ratio)).toEqual([1])
+    r.l.stop()
+  })
+})
+
+describe('п. 11 и ложное красное: неверное слово по черновику', () => {
+  it('первый черновик «is» переписан на «the» через 260 мс (журнал 291337 → 291596) — красного нет', () => {
+    const w = createWrongWord({ words: ['The', 'weather', 'is', 'very'] }), said = new Map()
+    w.ear({ kind: 'partial', text: 'is' }); w.check(said, 0); expect(w.shown()).toBeNull()
+    w.check(said, 250); expect(w.shown()).toBeNull() // раньше (200 мс) здесь уже было красное
+    w.ear({ kind: 'partial', text: 'the' }); said.set(0, false); w.check(said, 260); w.check(said, 260 + TAIL_STABLE_MS); expect(w.shown()).toBeNull()
+  })
+  it('повтор уже сказанного «to» вместо «tomorrow» (журнал 1140970: молчало 3,3 с до итога) — красное по устойчивому черновику', () => {
+    const w = createWrongWord({ words: PARK.words }), said = new Map([[0, true], [1, true], [2, true], [3, true]])
+    w.ear({ kind: 'partial', text: 'park' }); said.set(4, false); w.check(said, 0)
+    w.ear({ kind: 'final', text: 'park' }); w.check(said, 100); expect(w.shown()).toBeNull() // «park» сказано в этом заходе — не повтор
+    w.ear({ kind: 'partial', text: 'to' }); w.check(said, 1000); expect(w.shown()).toBeNull()
+    w.check(said, 1000 + TAIL_STABLE_MS); expect(w.shown()).toBe('to')
+  })
+  it('слово, сказанное в ЭТОМ же заходе, красным не становится: «where» → «where are»', () => {
+    const w = createWrongWord({ words: ['Where', 'are', 'you', 'from'] }), said = new Map()
+    w.ear({ kind: 'partial', text: 'where' }); said.set(0, false); w.check(said, 0); w.check(said, 400); expect(w.shown()).toBeNull()
+    w.ear({ kind: 'partial', text: 'where are' }); said.set(1, false); w.check(said, 500); w.check(said, 900); expect(w.shown()).toBeNull()
+  })
+})

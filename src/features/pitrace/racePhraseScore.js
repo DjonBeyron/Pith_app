@@ -46,6 +46,7 @@ export function orderedHits(words, heard) {
 /**
  * Строгая цепочка «слово за словом» (v3.3.306, правило владельца для прохода 1: слово засчитывается, только если оно ОЖИДАЕМОЕ — первое не сказанное; неверное слово линию не двигает «ни при каких условиях»,
  * и слова, сказанные после него, не запоминаются: «where is you from» → только «where»; потом «are» → линия между «are» и «you», «you from» заново). Слова 0…base-1 уже подтверждены (hits true); дальше по услышанному
+ * (v3.3.314: слово, за которым сразу идёт повтор уже сказанного слова, не засчитывается — см. ниже)
  * жадно: токен подходит ожидаемому слову (целиком или опорной частью сокращения, как orderedHits) — слово сказано, ожидаемое следующее; иначе токен — неверное слово или повтор, пропускаем и ищем ожидаемое дальше.
  */
 export function strictHits(words, heard, base = 0) {
@@ -56,9 +57,13 @@ export function strictHits(words, heard, base = 0) {
   let e = Math.min(base, n), j = 0
   while (e < n && j < m) {
     const s = spans[e]
-    if (s > 1 && j + s <= m && wordHits([words[e]], toks.slice(j, j + s).join(' '))[0]) { hits[e] = true; e++; j += s }
-    else if (wordHits([words[e]], toks[j])[0]) { hits[e] = true; e++; j++ }
-    else j++
+    const len = s > 1 && j + s <= m && wordHits([words[e]], toks.slice(j, j + s).join(' '))[0] ? s : wordHits([words[e]], toks[j])[0] ? 1 : 0
+    if (!len) { j++; continue }
+    // v3.3.314 (журнал владельца: быстрое «to to to to» Vosk отдал как «to the to to» — линия перескочила сразу два слова): слово, сразу за которым в услышанном идёт ПОВТОР уже сказанного слова фразы
+    // («the», а за ним снова «to»), не засчитывается, и дальше в этом услышанном ничего не ищем — ученик топчется на прошлом слове, а это слово Vosk додумал. Слово «вперёд» или чужое после него («where are from», «where are is») — как раньше.
+    const next = j + len, fitsAt = (i, at) => i < n && at < m && ((spans[i] > 1 && at + spans[i] <= m && wordHits([words[i]], toks.slice(at, at + spans[i]).join(' '))[0]) || wordHits([words[i]], toks[at])[0])
+    if (next < m && !fitsAt(e + 1, next) && !fitsAt(e, next) && words.slice(0, e).some((_, i) => fitsAt(i, next))) break
+    hits[e] = true; e++; j = next
   }
   return hits
 }
