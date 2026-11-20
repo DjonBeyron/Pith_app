@@ -28,13 +28,14 @@ describe('п. 12: быстрое «to to to to» Vosk отдал как «to the
 })
 
 describe('п. 7: «слишком предсказывает, особенно в последнем слове» — последнее слово фразы черновиком ждёт устойчивости', () => {
-  it('«i love» подтверждено; черновик «you» — фраза не закрыта сразу, только через TAIL_HOLD_MS; середина фразы — без задержки', async () => {
+  it('«i love» подтверждено; черновик «you» — фраза не закрыта; через TAIL_HOLD_MS слушатель просит итог, и только итог «you» её закрывает; середина фразы — без задержки', async () => {
     const r = rig([LOVE], { wordByWord: true }); await flush()
     r.cur().cb.onPartial('i'); expect(r.words.map(w => w.index)).toEqual([0]) // первое слово — сразу
     await end(r, 'i', 10); r.cur().cb.onPartial('love'); expect(r.words.some(w => w.index === 1)).toBe(true); await end(r, 'love', 10)
     r.cur().cb.onPartial('you'); expect(r.got).toEqual([]); expect(r.words.some(w => w.index === 2)).toBe(false)
     r.advance(TAIL_HOLD_MS - 50); expect(r.got).toEqual([])
-    r.advance(50); expect(r.got.map(g => g.ratio)).toEqual([1])
+    r.advance(50); expect(r.got).toEqual([]); expect(r.cur().stopped).toBe(1) // v3.3.317: устоялось — просим итог, сами не засчитываем
+    r.cur().cb.onResult('you', { words: [] }); expect(r.got.map(g => g.ratio)).toEqual([1])
     r.l.stop()
   })
   it('черновик «you» переписан за 200 мс на «love» — последнее слово не засчитано вовсе; итог захода «you» засчитывает сразу', async () => {
@@ -98,6 +99,19 @@ describe('журнал 23:18 (v3.3.315): «первое слово само за
     const r = rig([FROM], { wordByWord: true }); await flush()
     for (const v of [0.0069, 0.007, 0.0089, 0.0094, 0.1136, 0.1482, 0.0697]) r.cur().cb.onLevel(v)
     r.cur().cb.onPartial('where'); expect(r.words.map(w => w.index)).toEqual([0])
+    r.l.stop()
+  })
+})
+
+describe('журнал 23:26 (v3.3.316): сказал «фриз» вместо «from» — черновик «you from», фраза засчитана', () => {
+  it('черновик «you from» устоялся — фраза НЕ засчитана, просим итог; итог «you [unk]» — «from» не сказано, фраза открыта, слух шлёт неверное слово', async () => {
+    const FROM = { key: 'from', words: ['Where', 'are', 'you', 'from'] }
+    const r = rig([FROM], { wordByWord: true }); await flush()
+    r.cur().cb.onPartial('where are you'); await end(r, 'where are you', 10)
+    r.cur().cb.onPartial('you'); r.cur().cb.onPartial('you from'); r.advance(TAIL_HOLD_MS + 500)
+    expect(r.got).toEqual([]); expect(r.words.some(w => w.index === 3)).toBe(false); expect(r.cur().stopped).toBeGreaterThan(0)
+    r.cur().cb.onResult('you [unk]', { words: [] })
+    expect(r.got).toEqual([]); expect(r.words.some(w => w.index === 3)).toBe(false)
     r.l.stop()
   })
 })

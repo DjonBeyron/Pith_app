@@ -150,12 +150,12 @@ export function createPhraseListener({ phrases: phrasesIn, lang = 'en', getStrea
     if (wordByWord && draft && /\[unk\]\s+[^\s[]/.test(curRaw)) { // v3.3.311: перед словом в заходе «[unk]» («[unk] from») — чужое слово, сопоставленное со словом цели: новые слова черновиком не принимаем (и фразу не засчитываем), ждём итог захода
       scores = scores.map(s => { const b = baseOf(s.key), hits = s.hits.map((h, i) => h && i < b), ok = hits.filter(Boolean).length; if (ok < s.ok && !blockedLogged) { blockedLogged = true; log(`[phrase-ear] новые слова в заходе с «[unk]» перед ними — черновиком не принимаю, жду итог ${rel()}`) } if (ok < s.ok && !unkTimer) { const mine = gen; unkTimer = setTimer(() => { unkTimer = 0; if (mine !== gen || disposed || !curDraft || !current) return; log(`[phrase-ear] слово за «[unk]» ждёт итог ${UNK_FINAL_MS} мс (черновик «${current}») — прошу итог захода ${rel()}`); ear?.stop?.() }, UNK_FINAL_MS) } return { ...s, hits, ok, ratio: hits.length ? ok / hits.length : 0 } })
     }
-    if (wordByWord && draft && tail.left() > 0) { // v3.3.314: последнее слово фразы хвостом черновика — ждём, пока хвост устоится (Vosk угадывает его по первому звуку); итог захода принимает сразу
+    if (wordByWord && draft) { // v3.3.314: последнее слово фразы хвостом черновика Vosk угадывает по первому звуку. v3.3.317 (журнал владельца 23:26: сказал «фриз» — черновик «you from», фраза засчитана): черновиком его не принимаем ВОВСЕ — хвост устоялся TAIL_HOLD_MS, просим итог захода (≈ 100 мс), решает он (чужое слово итог отдаёт как «[unk]»)
       const r = holdLast(scores, score(heardNow(cutTail(current)))), mine = gen
       if (r.held.length) {
         scores = r.scores
-        if (!tailLogged) { tailLogged = true; log(`[phrase-ear] последнее слово фразы в черновике «${current}» — жду ${TAIL_HOLD_MS} мс устойчивости ${rel()}`) }
-        clearTimer(tailTimer); tailTimer = setTimer(() => { tailTimer = 0; if (mine === gen && !disposed && curDraft && current) decide(false, true) }, tail.left())
+        if (!tailLogged) { tailLogged = true; log(`[phrase-ear] последнее слово фразы в черновике «${current}» — черновиком не принимаю, через ${TAIL_HOLD_MS} мс устойчивости прошу итог ${rel()}`) }
+        if (!tailTimer) tailTimer = setTimer(() => { tailTimer = 0; if (mine !== gen || disposed || !curDraft || !current) return; log(`[phrase-ear] последнее слово устоялось (черновик «${current}») — прошу итог захода ${rel()}`); ear?.stop?.() }, Math.max(1, tail.left()))
       }
     }
     words(scores, draft)
