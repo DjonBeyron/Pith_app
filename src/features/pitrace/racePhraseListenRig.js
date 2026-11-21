@@ -9,7 +9,7 @@ export const P = {
   learn: { key: "i'm trying to learn", words: ["I'm", 'trying', 'to', 'learn'] },
   see: { key: 'nice to see you', words: ['nice', 'to', 'see', 'you'] },
 }
-// holdFirst — «первое слово фразы только итогом захода» (v3.3.321, в игре включено). В старых тестах выключено: они проверяют остальную механику слуха на первом же слове черновика; само правило — racePhraseFeedback1120.test.js.
+// holdFirst — «слово на хвосте черновика — только итогом захода» (v3.3.321 — первое слово, v3.3.322 — каждое; в игре включено; выключено — только последнее слово фразы). В старых тестах выключено: они проверяют остальную механику слуха на первом же слове черновика; само правило — racePhraseFeedback1120.test.js.
 export function rig(phrases, { held = () => false, noModel = false, wordByWord = false, allowPartial = () => true, holdFirst = false } = {}) {
   let t = 0
   const timers = new Map(); let id = 0

@@ -202,7 +202,7 @@ describe('журнал 12:41 (v3.3.320): «первое слово срабат�
     expect(r.words.map(w => [w.index, !!w.draft])).toEqual([[0, false]])
     const q = rig([FROM], { wordByWord: true, holdFirst: true }); await flush()
     speak(q); q.cur().cb.onPartial('where'); q.advance(100); q.cur().cb.onPartial('where are')
-    expect(q.words.map(w => w.index)).toEqual([0, 1]); expect(q.cur().stopped).toBe(0)
+    expect(q.words.map(w => w.index)).toEqual([0]); expect(q.cur().stopped).toBe(0) // v3.3.322: «are» теперь само на хвосте — ждёт итог или следующее слово
     q.l.stop(); r.l.stop()
   })
   it('пока голос идёт, итог не просим (слитную речь не рвём); порядок 3.3.320: слово держалось 1 с, потом заход стал «[unk]» — не подтверждается, а откатывается', async () => {
@@ -211,6 +211,31 @@ describe('журнал 12:41 (v3.3.320): «первое слово срабат�
     const q = rig([FROM], { wordByWord: true }); await flush() // без правила первого слова — тот самый журнал
     speak(q); q.cur().cb.onPartial('where'); q.advance(2900); q.cur().cb.onPartial('[unk]')
     expect(q.words.at(-1)).toMatchObject({ index: 0, gone: true }); expect(q.words.some(w => !w.draft && !w.gone)).toBe(false)
+    r.l.stop(); q.l.stop()
+  })
+})
+
+describe('журнал 13:03 (v3.3.321): «явно сказал is на третьем слове, а он засчитал you» — черновик «are you», итог «are [unk]», «you» осталось', () => {
+  const FROM = { key: 'from', words: ['Where', 'are', 'you', 'from'] }
+  it('старое поведение (слово принято черновиком): итог «are [unk]» откатывает «you», а не подтверждает его как «продержавшееся 1 с»', async () => {
+    const r = rig([FROM], { wordByWord: true }); await flush()
+    r.cur().cb.onPartial('where'); await end(r, 'where', 10)
+    r.cur().cb.onPartial('are'); r.advance(2000); r.cur().cb.onPartial('are you'); r.advance(3600)
+    r.cur().cb.onResult('are [unk]', { words: [] })
+    expect(r.words.at(-1)).toMatchObject({ index: 2, gone: true }); expect(r.words.some(w => w.index === 2 && !w.draft && !w.gone)).toBe(false)
+    r.l.stop()
+  })
+  it('в игре: слово на хвосте черновика («you» в «are you») не принимается вовсе — после паузы голоса просим итог; итог «are [unk]» — «you» нет, итог «are you» — есть', async () => {
+    const r = rig([FROM], { wordByWord: true, holdFirst: true }); await flush()
+    r.cur().cb.onPartial('where'); await end(r, 'where', 10)
+    r.cur().cb.onPartial('are'); r.cur().cb.onPartial('are you')
+    expect(r.words.filter(w => !w.gone).map(w => w.index)).toEqual([0, 1]) // «are» принято: за ним уже есть слово; «you» — хвост
+    r.advance(400); expect(r.cur().stopped).toBe(1)
+    r.cur().cb.onResult('are [unk]', { words: [] }); expect(r.words.some(w => w.index === 2)).toBe(false)
+    const q = rig([FROM], { wordByWord: true, holdFirst: true }); await flush()
+    q.cur().cb.onPartial('where'); await end(q, 'where', 10)
+    q.cur().cb.onPartial('are you'); q.advance(400); q.cur().cb.onResult('are you', { words: [] })
+    expect(q.words.filter(w => !w.draft).map(w => w.index)).toEqual([0, 1, 2])
     r.l.stop(); q.l.stop()
   })
 })

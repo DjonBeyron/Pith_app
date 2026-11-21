@@ -21,15 +21,17 @@ export function createTailHold({ now = () => Date.now(), holdMs = TAIL_HOLD_MS }
 /** Текст без последнего слова */
 export const cutTail = text => String(text ?? '').split(/\s+/).filter(Boolean).slice(0, -1).join(' ')
 
-/** Разбор full (с хвостом) → тот же, но ПЕРВОЕ и ПОСЛЕДНЕЕ слово фразы сняты, если без хвоста (разбор cut) их нет. → { scores, held: [ключи кандидатов, где слово придержано], first: придержано только первое слово }.
- * v3.3.321 — и первое слово (владелец четыре журнала подряд: «первое слово само» — шум, дыхание, щелчок 0,13 с: Vosk отдаёт черновик «where» через 100 мс звука, а итог захода его не подтверждает). */
-export function holdLast(full, cut, holdFirst = true) {
+/** Разбор full (с хвостом) → тот же, но слово, которое держится ТОЛЬКО на хвосте черновика (без хвоста — разбор cut — его нет), снято. → { scores, held: [ключи кандидатов, где слово придержано], first: придержано не последнее слово фразы }.
+ * all = true (игра, v3.3.322) — любое такое слово; false — только последнее слово фразы (v3.3.314). История: v3.3.321 — первое слово (шум, дыхание, щелчок давали черновик «where», итог его не подтверждал);
+ * v3.3.322 (журнал владельца 13:03: «явно сказал is на третьем слове, а он засчитал you» — черновик «are you», итог «are [unk]») — каждое: хвост черновика — догадка закрытого словаря, чужое слово честно называет только итог. */
+export function holdLast(full, cut, all = true) {
   const held = []
-  let first = true // придержано только первое слово (последнее — нет): итог просим после паузы голоса, чтобы не рвать слитную речь
+  let first = true // придержано не последнее слово фразы: итог просим после паузы голоса, чтобы не рвать слитную речь
   const scores = full.map((s, n) => {
-    const drop = (holdFirst ? [0, s.hits.length - 1] : [s.hits.length - 1]).filter(i => i >= 0 && s.hits[i] && !cut[n]?.hits[i])
+    const last = s.hits.length - 1
+    const drop = s.hits.map((h, i) => (h && !cut[n]?.hits[i] && (all || i === last) ? i : -1)).filter(i => i >= 0)
     if (!drop.length) return s
-    held.push(s.key); if (drop.includes(s.hits.length - 1)) first = false
+    held.push(s.key); if (drop.includes(last)) first = false
     const hits = s.hits.map((h, k) => h && !drop.includes(k)), ok = hits.filter(Boolean).length
     return { ...s, hits, ok, ratio: hits.length ? ok / hits.length : 0 }
   })
