@@ -3,8 +3,11 @@ from psd_tools import PSDImage
 PSD = sys.argv[1]; OUT = sys.argv[2]
 SC = 8; W, H = 1600, 1920
 K = 0.33014; TX = -13.998; TY = -6.451; BX, BY = 484, 678
+# Совмещение по лапкам (v3.3.325): векторная Мия игры в пространстве PSD — масштаб 1,000, сдвиг (0; +0,5) ед. вьюбокса (IOU нижней части тела 0,997; низ лап PSD 235,8 против 236,3 в игре):
+# хвост сдвигается так же, чтобы относительно лапок стоял как в PSD
+SHIFT = (0.0, 0.5)
 def loc(px, py):
-    vx = px / SC; vy = py / SC
+    vx = px / SC + SHIFT[0]; vy = py / SC + SHIFT[1]
     nx = (200 - vx - TX) / K; ny = (vy - TY) / K
     return nx - BX, ny - BY
 def f1(v): s = ('%.1f' % v).rstrip('0').rstrip('.'); return '0' if s in ('-0', '') else s
