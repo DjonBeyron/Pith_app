@@ -11,7 +11,7 @@ describe('хвост Мии: кадры', () => {
   })
   it('штрихи: окна внутри цикла, у поз 1 и 9 штрихов нет', () => {
     expect(MIA_TAIL_MARKS.length).toBe(7)
-    for (const m of MIA_TAIL_MARKS) { expect(m.s + m.n).toBeLessThanOrEqual(TAIL_SLOTS); expect(m.n).toBe(1); expect(m.d).toMatch(/^M[-\d. LZ]+/) }
+    for (const m of MIA_TAIL_MARKS) { expect(m.s + m.n).toBeLessThanOrEqual(TAIL_SLOTS); expect(m.n).toBe(1); expect(m.d).toMatch(/^M[-\d. LCZ]+/) }
     expect(MIA_TAIL_MARKS.map(m => m.s)).toEqual([1, 2, 3, 4, 5, 6, 7])
   })
   it('дерево: контуры .mt и штрихи .mk с --s и data-n; узлов не больше бюджета', () => {
