@@ -22,7 +22,8 @@ describe('п. 12: быстрое «to to to to» Vosk отдал как «to the
     const r = rig([PARK], { wordByWord: true }); await flush()
     r.cur().cb.onPartial("let's go"); await end(r, "let's go", 10)
     r.cur().cb.onPartial('to the to'); await end(r, 'to the to to', 10)
-    expect([...new Set(r.words.filter(w => !w.gone).map(w => w.index))]).toEqual([0, 1, 2])
+    const alive = new Set(); for (const w of r.words) { if (w.gone) alive.delete(w.index); else alive.add(w.index) } // v3.3.319: черновик «to the to» «the» ещё держит (повтор последним словом), итог «to the to to» его снимает
+    expect([...alive]).toEqual([0, 1, 2])
     r.l.stop()
   })
 })
@@ -139,5 +140,35 @@ describe('журнал 10:23 (v3.3.317): «я точно сказал некот
     b.cur().cb.onPartial('where'); b.cur().cb.onResult('', { words: [] })
     expect(b.words.some(w => w.gone)).toBe(false)
     a.l.stop(); b.l.stop()
+  })
+})
+
+describe('журнал 10:49 (v3.3.318): дыхание засчитано, ложный откат, неверное слово молчит', () => {
+  const FROM = { key: 'from', words: ['Where', 'are', 'you', 'from'] }
+  it('«первое слово засчиталось просто моим дыханием»: черновик «where», пустой итог после 2,6 с сплошного звука — слово откатывается и не подтверждается, красного нет', async () => {
+    const r = rig([FROM], { wordByWord: true }); await flush()
+    for (const v of [0.004, 0.166, 0.177, 0.19]) r.cur().cb.onLevel(v)
+    r.cur().cb.onPartial('where'); r.advance(3500); r.cur().cb.onResult('', { words: [], voiceMs: 2603 }); r.advance(10); await flush()
+    expect(r.words.at(-1)).toMatchObject({ index: 0, gone: true }); expect(r.words.some(w => !w.draft && !w.gone)).toBe(false)
+    expect(r.hears.some(h => h.kind === 'wrong')).toBe(false)
+    const q = rig([FROM], { wordByWord: true }); await flush() // короткое слово, которое итог не подтвердил (v3.3.283), — остаётся
+    q.cur().cb.onPartial('where'); q.cur().cb.onResult('', { words: [], voiceMs: 400 }); expect(q.words.some(w => w.gone)).toBe(false)
+    r.l.stop(); q.l.stop()
+  })
+  it('«увидел откат»: черновик «are where» (повтор последним словом — догадка Vosk) слово «are» не снимает; итог «are where» — снимает', () => {
+    expect(strictHits(FROM.words, 'are where', 1, true).map(Number).join('')).toBe('1100')
+    expect(strictHits(FROM.words, 'are where', 1).map(Number).join('')).toBe('1000')
+    expect(strictHits(FROM.words, 'are where where', 1, true).map(Number).join('')).toBe('1000')
+  })
+  it('«громко говорю неправильное слово — красным не светится»: черновик из одного «[unk]» при голосе — через UNK_FINAL_MS просим итог; итог «[unk]» — неверное слово', async () => {
+    const r = rig([FROM], { wordByWord: true }); await flush()
+    for (const v of [0.002, 0.15, 0.17, 0.16]) r.cur().cb.onLevel(v)
+    r.cur().cb.onPartial('[unk]'); r.advance(UNK_FINAL_MS - 10); expect(r.cur().stopped).toBe(0)
+    r.advance(10); expect(r.cur().stopped).toBe(1)
+    r.cur().cb.onResult('[unk]', { words: [] }); expect(r.hears.some(h => h.kind === 'wrong')).toBe(true)
+    const q = rig([FROM], { wordByWord: true }); await flush() // «[unk]» из шума — итог не просим
+    for (const v of [0.004, 0.005, 0.004, 0.005]) q.cur().cb.onLevel(v)
+    q.cur().cb.onPartial('[unk]'); q.advance(UNK_FINAL_MS + 100); expect(q.cur().stopped).toBe(0)
+    r.l.stop(); q.l.stop()
   })
 })
