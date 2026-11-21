@@ -57,6 +57,19 @@ describe('быстрый старт гонки: реплика не ждёт м�
     expect(d.wake).toHaveBeenCalledTimes(2) // после смены сессии звук будится ещё раз (слоты <audio>, прерывание)
     expect(calls.indexOf('warm.settle')).toBeGreaterThan(calls.indexOf('mark:ready(early)'))
   })
+  it("режим запуска 'wait' (v3.3.334): первая реплика ждёт ответ микрофона; по умолчанию и в 'direct' — не ждёт", async () => {
+    const d = deps({ startMode: () => 'wait' }), onLineReady = vi.fn()
+    const p = startGameAudio({ cfg: race, audioSrc: null, lines: null, onLineReady }, d)
+    await tick(); expect(calls).toContain('mark:ready(early)'); expect(onLineReady).not.toHaveBeenCalled() // звук готов, но микрофон ещё открывается
+    d.micDone(); await p
+    expect(onLineReady).toHaveBeenCalledTimes(1)
+    for (const mode of ['default', 'direct', 'late']) {
+      const d2 = deps({ startMode: () => mode }), ready = vi.fn()
+      const p2 = startGameAudio({ cfg: race, audioSrc: null, lines: null, onLineReady: ready }, d2)
+      await tick(); expect(ready, mode).toHaveBeenCalledTimes(1)
+      d2.micDone(); await p2
+    }
+  })
   it('микрофон отказан — быстрый путь уже отработал, итог mic: denied; onLineReady вызван один раз', async () => {
     const d = deps({ openMic: vi.fn(() => Promise.resolve('denied')) }), onLineReady = vi.fn()
     await expect(startGameAudio({ cfg: race, audioSrc: null, lines: null, onLineReady }, d)).resolves.toMatchObject({ mic: 'denied' })

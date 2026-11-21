@@ -5,6 +5,14 @@
 //    к очереди ученика — «микрофон только в фазе ученика», приём «Сказать фразу»: запись не держит аудиосессию, пока говорит диктор; iOS может спросить доступ заново, всё пишется в отладку mic-hold).
 //  • pithy_game_web_audio_v1 — чем играют короткие звуки игры (реплики Пита, куски диктора, мяу/ноты, плашка): 'on' (по умолчанию) — Web Audio, буферы декодируются заранее и стартуют мгновенно (gameAudioCtx.js); 'off' — прежние <audio>-слоты
 //    (аварийный выключатель: если на каком-то телефоне Web Audio в сессии «запись + воспроизведение» молчит).
+//  • pithy_game_start_mode_v1 — РЕЖИМ ЗАПУСКА ЗВУКА (v3.3.334, владелец, iPhone: «при старте игры всплывает системный ползунок громкости и сам идёт вверх — игра не должна трогать громкость»). Ползунок двигает не усиление игры,
+//    а смена категории аудиосессии iOS: на старте тип меняется дважды (play-and-record в тапе → getUserMedia → playback). Режимы для проверки на телефоне, действуют при типе сессии 'playback' (умолчание):
+//    'default' — как было (ничего не меняется); 'direct' — сразу playback в тапе, play-and-record не ставим вовсе; 'late' — до микрофона тип не трогаем, playback — после его ответа;
+//    'wait' — как 'default', но первая реплика гонки ждёт ответ микрофона (звук не начинается в «режиме звонка»); 'direct-wait' — 'direct' + ожидание. Читается на каждом старте, перезагрузка не нужна.
+export const START_MODE_KEY = 'pithy_game_start_mode_v1'
+export const START_MODES = ['default', 'direct', 'late', 'wait', 'direct-wait']
+export const DEFAULT_START_MODE = 'default'
+export const START_WAIT_MAX_MS = 2500 // 'wait': дольше микрофон не ждём (диалог доступа) — реплика пойдёт как раньше
 export const AUDIO_SESSION_KEY = 'pithy_game_audio_session_v1'
 export const MIC_HOLD_KEY = 'pithy_game_mic_hold_v1'
 export const WEB_AUDIO_KEY = 'pithy_game_web_audio_v1'
@@ -25,5 +33,11 @@ export const readAudioSessionMode = (store = globalThis.localStorage) => read(AU
 export const writeAudioSessionMode = (value, store = globalThis.localStorage) => write(AUDIO_SESSION_KEY, AUDIO_SESSION_MODES, DEFAULT_AUDIO_SESSION_MODE, value, store)
 export const readMicHoldMode = (store = globalThis.localStorage) => read(MIC_HOLD_KEY, MIC_HOLD_MODES, DEFAULT_MIC_HOLD_MODE, store)
 export const writeMicHoldMode = (value, store = globalThis.localStorage) => write(MIC_HOLD_KEY, MIC_HOLD_MODES, DEFAULT_MIC_HOLD_MODE, value, store)
+export const readStartMode = (store = globalThis.localStorage) => read(START_MODE_KEY, START_MODES, DEFAULT_START_MODE, store)
+export const writeStartMode = (value, store = globalThis.localStorage) => write(START_MODE_KEY, START_MODES, DEFAULT_START_MODE, value, store)
+/** Режим запуска: тип 'playback' ставится сразу в тапе */
+export const startDirect = mode => mode === 'direct' || mode === 'direct-wait'
+/** Режим запуска: первая реплика гонки ждёт ответ микрофона */
+export const startWaits = mode => mode === 'wait' || mode === 'direct-wait'
 export const readWebAudioMode = (store = globalThis.localStorage) => read(WEB_AUDIO_KEY, WEB_AUDIO_MODES, DEFAULT_WEB_AUDIO_MODE, store)
 export const writeWebAudioMode = (value, store = globalThis.localStorage) => write(WEB_AUDIO_KEY, WEB_AUDIO_MODES, DEFAULT_WEB_AUDIO_MODE, value, store)

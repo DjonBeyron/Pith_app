@@ -24,6 +24,7 @@ import { raceChron } from '../../../pitrace/raceStartChron.js'
 import { SETTLE_MAX_MS } from '../../../../shared/lib/gameAudioWarm.js'
 import { readTapMode } from './wordLaneHudSettings.js'
 import { setGameMicWanted } from '../../../../shared/lib/gameMicWant.js'
+import { readStartMode, startWaits, START_WAIT_MAX_MS } from '../../../../shared/lib/gameAudioSettings.js'
 import { renewAudioSession, renewNeed } from '../../../../shared/lib/gameAudioRenew.js'
 import { renewUntilLive } from '../../../../shared/lib/gameAudioRenewLive.js'
 import { armOutputCheck } from '../../../../shared/lib/gameAudioOutputCheck.js'
@@ -120,7 +121,7 @@ const installAudioLife = () => { installGameAudioLife(); installReturnClean() }
 
 export function startGameAudio({ cfg, audioSrc, lines, onLineReady = null, onMic = null, mic: useMic = wantsMic(cfg) }, deps = {}) {
   const { warm = gameAudioWarm, session = gameAudioSession, hold = gameMicHold, openMic = openGameMic, wake = wakeGameAudio, rewake = rewakeGameAudio, gateMaxMs = GATE_MAX_MS, trace = gameStartTrace, prefetch = prefetchWords, unlockCtx = unlockGameCtx, gate = waitWarmGate, install = installAudioLife, consume = consumeRewake, recreateCtx = recreateGameCtx, ensureCtx = ensureGameCtxRunning, raceGateMs = RACE_GATE_MS, ctxState = gameCtxState, chron = raceChron,
-    renew = renewAudioSession, renewLive = renewUntilLive, needRenew = renewNeed, armCheck = armOutputCheck, markTap = markGameTap, renewed = false } = deps
+    startMode = readStartMode, renew = renewAudioSession, renewLive = renewUntilLive, needRenew = renewNeed, armCheck = armOutputCheck, markTap = markGameTap, renewed = false } = deps
   trace.begin() // хронология старта: отсчёт от тапа
   markTap() // уборка после возврата (gameAudioReturnClean.js) не трогает контексты, пока идёт старт
   install() // слушатели фона/возврата (gameAudioLife.js) и закрытие контекстов при возврате без игры (gameAudioReturnClean.js): идемпотентно
@@ -140,6 +141,7 @@ export function startGameAudio({ cfg, audioSrc, lines, onLineReady = null, onMic
 
   function startBody() {
     warm.begin() // следим за прерываниями с этой секунды
+    if (useMic && startMode() !== 'default') pLog(`[audio] режим запуска звука: «${startMode()}» (Админ → «Голос» → «Микрофон игры»)`)
     setGameMicWanted(useMic)
     if (useMic) session.begin() // 1. тип аудиосессии (настройка в Админ → «Голос»): до открытия микрофона, в том же тапе. «Тапаю» — сессию записи не ставим вовсе
     const fast = cfg?.plan?.game === 'race' // «Гонка»: реплика race_start НЕ ждёт микрофон (iOS открывает его 0,5–1,5 с) — звук поднимается сразу после resume контекста, микрофон открывается параллельно (нужен только к первой пилюле)
@@ -160,6 +162,10 @@ export function startGameAudio({ cfg, audioSrc, lines, onLineReady = null, onMic
       trace.mark('ready', { words: g.by === 'timeout' ? 'timeout' : 'ready', gate: g.by, done: g.ok, total: g.total, firstN: g.firstN, ms: g.ms, ctx: gameCtxState(), early: true })
       pLog(`[race] старт: звук реплик готов через ${trace.sinceTap?.() ?? '—'} мс с тапа, микрофон ещё открывается, ctx=${gameCtxState() ?? 'нет'}`)
       step('gate', `звук реплик готов (ворота: ${g.by}, ${g.ok}/${g.total}), ctx=${gameCtxState() ?? 'нет'}`)
+      if (useMic && startWaits(startMode())) { // режим запуска 'wait' (gameAudioSettings.js, v3.3.334): первая реплика ждёт ответ микрофона — к этому моменту тип сессии уже окончательный, звук не начинается в «режиме звонка»
+        const t0 = Date.now(); await Promise.race([micPromise.catch(() => null), new Promise(r => setTimeout(r, START_WAIT_MAX_MS))])
+        pLog(`[race] старт: режим запуска «${startMode()}» — первая реплика ждала микрофон ${Date.now() - t0} мс`)
+      }
       try { onLineReady?.() } catch { /* игра не зависит от колбэка */ }
     }
     return (async () => {
