@@ -1,4 +1,6 @@
 import { useMiaTail } from './mia/useMiaTail.js'
+import { wantStep } from './mia/miaTailWant.js'
+import { restTail, driveTail, redLevelOf, pillsOf } from './mia/miaTailCalmDom.js'
 import { slitOn, SLIT_TAIL_MS, peakTarget, smoothPeak } from './mia/miaSlit.js'
 import { OFFSCREEN_IDS } from './mia/useMiaPlate.js' // реплики Мии из-за правого края (она ещё не прыгнула): справа дуги звука
 import { useEffect, useMemo, useRef, useState } from 'react'
@@ -18,10 +20,12 @@ import { layoutOf, artMatrix, toScene, poseApply, poseSvg, poseOfMotion, miaCss,
 // Ничего не монтируется и не считает, пока Мии нет (phase 'off'): коробка и спрайт появляются с её приходом и убираются после ухода.
 const SEAT_DROP = 12 // Мия сидит ГЛУБЖЕ на крышке (лапы ниже центра верхней грани), а не на уголке (владелец 2026-11-15)
 
-export default function RaceMia({ mia, caption = null, talk = null, alarm = null, paused = false, onStuck = null, onTry = null, onBoxHit = null }) { // onStuck — Мия выпрыгнула одна (финал пройден плохо), onBoxHit — касание коробки на Пите (два подряд снимают её, mia/useMiaBoxFree.js); // alarm — { key }: слово финала в красной зоне, зрачки Пита в коробке сжимаются (испуг)
+export default function RaceMia({ mia, caption = null, talk = null, alarm = null, stageKind = null, paused = false, onStuck = null, onTry = null, onBoxHit = null }) { // onStuck — Мия выпрыгнула одна (финал пройден плохо), onBoxHit — касание коробки на Пите (два подряд снимают её, mia/useMiaBoxFree.js); // alarm — { key }: слово финала в красной зоне, зрачки Пита в коробке сжимаются (испуг)
   const [gone, setGone] = useState(-1)                          // at прихода, чей уход (анимация) уже доигран: после него коробку и спрайт убираем
   const live = mia.phase === 'in' || (mia.phase === 'out' && gone !== mia.at)
   const host = useRef(null), poseG = useRef(null), artG = useRef(null), catEl = useRef(null), miaEl = useRef(null), hitEl = useRef(null), soloRef = useRef({ mode: null, at: 0, alone: false }), cbRef = useRef({}), hitAt = useRef(-1e9)
+  const tailCtl = useRef({ want: false, cancel: null }), tailW = useRef({ want: false, seen: new Map() }), kindRef = useRef(stageKind) // хвост (mia/miaTailWant.js): лежит, дёргается на церемонии и когда пилюля дошла до красного уровня
+  useEffect(() => { kindRef.current = stageKind }, [stageKind])
   const pleased = useMiaTail({ wins: mia.wins, streak: mia.streak, live }) // хвост: нервный, на верный ответ — прямой и пушистый (mia/useMiaTail.js, race-mia.css)
   useMiaLife(miaEl, live, talk)                                    // Мия в тишине: взгляд, усы, смена лица
   const clock = useRef({ arr: 0, lv: 0, mode: 'off', paused })
@@ -49,6 +53,8 @@ export default function RaceMia({ mia, caption = null, talk = null, alarm = null
     if (!stage || !cat) return undefined
     catEl.current = cat
     const box = createBox(); artG.current.appendChild(box.el)
+    let tailInit = false
+    const later = (fn, ms) => { const id = setTimeout(fn, ms); return () => clearTimeout(id) }
     let raf = 0, last = performance.now(), L = null, M = null, talk = 0, n = 0, tt = 0, gz = { look: 0, w: 0 }, gzPill = null, talkUntil = 0 // gz — взгляд на пилюлю (mia/miaGaze.js)
     const measure = () => {
       const s = stage.getBoundingClientRect(), c = cat.getBoundingClientRect()
@@ -91,6 +97,8 @@ export default function RaceMia({ mia, caption = null, talk = null, alarm = null
         if (c.mode === 'solo') { const so = soloLeave(c.sl); mr = { mode: 'seat', rot: so.rot, sx: so.sx, sy: so.sy }; a = Object.values(flightPath(so.u, rest, [L.W + 170 * L.f, 0.28 * L.H], 0.14)); if (so.done) { c.mode = 'try'; c.tr = 0; c.tried = false } }
         else if (c.mode === 'try' || c.mode === 'rave' || c.mode === 'stuck' || (leaving && soloRef.current.alone)) mr = { mode: 'off' } // Мии нет: коробка одна (ждёт касаний / отлетает)
         mi.style.display = mr.mode === 'off' ? 'none' : 'block'
+        if (!tailInit) { restTail(mi); tailInit = true } // хвост лежит на кадре 1, пока не позовут
+        if (n % 3 === 0) { const kind = kindRef.current, s0 = stage.getBoundingClientRect(), round = kind === 'round'; tailW.current = wantStep(tailW.current, { kind, shown: mr.mode !== 'off' && !leaving, pills: round ? pillsOf(stage, s0) : [], redY: round ? redLevelOf(stage, s0) : 0 }); driveTail(mi, tailCtl.current, tailW.current.want, later) }
         const tk0 = talkRef.current, sl = slitOn(tk0 && now < tk0.until ? tk0.id : null, mr.mode); if (sl !== slit.current) { slit.current = sl; mi.toggleAttribute('data-slit', sl) } // зрачок-щель: в прыжке и на колких репликах (mia/miaSlit.js)
         let pk = 0 // пик речи: широкий рот → зрачок плавно шире (mia/miaSlit.js)
         if (tk0 && now < tk0.until) { const h = [...mi.querySelectorAll('[data-part="head"]')].find(x => x.style.display !== 'none'); pk = peakTarget(talkLevel(h?.getAttribute('data-vis'), h?.getAttribute('data-mouth'))) }
@@ -108,7 +116,7 @@ export default function RaceMia({ mia, caption = null, talk = null, alarm = null
       if (leaving && !m.shown) { c.mode = 'off'; setGone(g => (g === atRef.current ? g : atRef.current)) } // уход доигран: убираем (setState — в кадре rAF, не в эффекте)
     }
     raf = requestAnimationFrame(frame)
-    return () => { cancelAnimationFrame(raf); box.el.remove(); cat.style.visibility = ''; slit.current = false }
+    return () => { cancelAnimationFrame(raf); tailCtl.current.cancel?.(); tailCtl.current = { want: false, cancel: null }; tailW.current = { want: false, seen: new Map() }; box.el.remove(); cat.style.visibility = ''; slit.current = false }
   }, [live])
 
   return (

@@ -21,11 +21,11 @@ export function calmSteps(cur) {
   return out
 }
 
-/** Расписание разгона из покоя: кадры 2, 3, … по порядку, выдержка падает от SLOW_TO_MS до TAIL_MS; next — кадр, с которого дальше крутит CSS */
-export function wakeSteps() {
+/** Расписание разгона от кадра from (по умолчанию из покоя): кадры по порядку, выдержка падает от SLOW_TO_MS до TAIL_MS; next — кадр, с которого дальше крутит CSS */
+export function wakeSteps(from = REST_FRAME) {
   const steps = []
-  for (let i = 1; i <= WAKE_STEPS; i++) steps.push({ f: (REST_FRAME + i) % TAIL_FRAMES, ms: geo(SLOW_TO_MS, TAIL_MS, i - 1, WAKE_STEPS) })
-  return { steps, next: (REST_FRAME + WAKE_STEPS + 1) % TAIL_FRAMES }
+  for (let i = 1; i <= WAKE_STEPS; i++) steps.push({ f: (from + i) % TAIL_FRAMES, ms: geo(SLOW_TO_MS, TAIL_MS, i - 1, WAKE_STEPS) })
+  return { steps, next: (from + WAKE_STEPS + 1) % TAIL_FRAMES }
 }
 
 /** Вариант «мгновенно»: обычная скорость, без замедления; кадр 1 проходится INSTANT_CYCLES раз, на последнем — стоп (ms = 0). Запуск обратно — сразу с кадра 2 (wakeSteps не нужен) */
