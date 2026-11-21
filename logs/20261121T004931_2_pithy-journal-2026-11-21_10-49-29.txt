@@ -1,0 +1,997 @@
+Pithy — журнал игры, v3.3.318
+строк в журнале: 994
+
+   1484.0 10:48:02.869 [perf] probe start (всё приложение)
+   2488.0 10:48:03.873 [perf] fps=61 worst=20ms drops=0 anim=7 inf=7(ratingSkeletonPulse:6,feedSkelShine:1) waves=0 audio=0/0 video=0/0 bubbles=-1 frozen=0 dom=-1 skel=feedSlide raf=124(c:62,frame:61,anon:1) canvas=0 snd=нет ses=auto/— mic=нет потока
+   2989.0 10:48:04.374 [suspects] (start) elements=198 willChange=2(lrEdgeBottom:1,shellV2Nav:1) backdropFilter=0 filter=8(svg:4,shellV2NavBtn:4) transform3d=0 blend=0 canvas=0 video=0
+   3487.0 10:48:04.872 [perf] fps=60 worst=17ms drops=0 anim=7 inf=7(ratingSkeletonPulse:6,feedSkelShine:1) waves=0 audio=0/0 video=0/0 bubbles=-1 frozen=0 dom=-1 skel=feedSlide raf=120(frame:60,c:60) canvas=0 snd=нет ses=auto/— mic=нет потока
+   4487.0 10:48:05.872 [perf] fps=60 worst=17ms drops=0 anim=7 inf=7(ratingSkeletonPulse:6,feedSkelShine:1) waves=0 audio=0/0 video=0/0 bubbles=-1 frozen=0 dom=-1 skel=feedSlide raf=120(frame:60,c:60) canvas=0 snd=нет ses=auto/— mic=нет потока
+   5487.0 10:48:06.872 [perf] fps=60 worst=17ms drops=0 anim=7 inf=7(ratingSkeletonPulse:6,feedSkelShine:1) waves=0 audio=0/0 video=0/0 bubbles=-1 frozen=0 dom=-1 skel=feedSlide raf=120(frame:60,c:60) canvas=0 snd=нет ses=auto/— mic=нет потока
+   6487.0 10:48:07.873 [perf] fps=60 worst=17ms drops=0 anim=8 inf=7(ratingSkeletonPulse:6,feedSkelShine:1) waves=0 audio=0/0 video=0/0 bubbles=-1 frozen=0 dom=-1 skel=feedSlide raf=121(frame:60,c:60,anon:1) canvas=0 snd=нет ses=auto/— mic=нет потока
+   7460.0 10:48:08.846 [page] журнал страницы включён, visibilityState=visible; ctx=нет, audioSession=auto/—, микрофон=нет потока
+   7461.0 10:48:08.846 [say-vosk] прогрев: проверяем кэш модели — прогрев запущен при входе в урок
+   7473.0 10:48:08.859 [page] устройства звука при запуске: ввод 1, вывод 0 (вх:?); ctx=нет, audioSession=auto/—, микрофон=нет потока
+   7487.0 10:48:08.872 [perf] fps=52 worst=89ms drops=3 anim=15 inf=3(feedShine:1,navDueGlow:1,navDuePulse:1) waves=0 audio=0/0 video=3/1 bubbles=-1 frozen=0 dom=-1 vplay=slideVideoRoot:muted:loop raf=119(frame:52,c:52,y:9,anon:6) canvas=1 snd=нет ses=auto/— mic=нет потока
+   7498.0 10:48:08.883 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×4.83 для «plate» (peak −18.2 dBFS, RMS −27.7 dBFS)
+   7498.0 10:48:08.884 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×2.02 для «reward:notes:2» (peak −7.3 dBFS, RMS −20.1 dBFS)
+   7499.0 10:48:08.884 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×2.45 для «reward:notes:0» (peak −12.3 dBFS, RMS −21.8 dBFS)
+   7499.0 10:48:08.884 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×2.45 для «reward:notes:1» (peak −12.3 dBFS, RMS −21.8 dBFS)
+   7653.0 10:48:09.038 [say-vosk] прогрев: загружаем библиотеку
+   7865.0 10:48:09.250 [say-vosk] прогрев: загружаем модель в память
+   7881.0 10:48:09.266 [motion] разрешение не получено: NotAllowedError
+   7881.0 10:48:09.266 [motion] датчик движения: denied
+   7986.0 10:48:09.371 [sound] вкладка «Голос» на экране — полная тишина приложения
+   8489.0 10:48:09.874 [perf] fps=59 worst=35ms drops=0 anim=3 inf=2(navDueGlow:1,navDuePulse:1) waves=0 audio=0/0 video=3/0 bubbles=-1 frozen=0 dom=-1 raf=132(c:59,frame:44,y:29) canvas=0 snd=нет ses=auto/— mic=нет потока
+   8754.0 10:48:10.140 [say-vosk] прогрев: готово — модель в памяти за 1102 мс (библиотека 212 мс, модель 883 мс)
+   8756.0 10:48:10.141 [say-vosk] прогрев распознавателя отправлен за 1 мс (yes, no)
+   9499.0 10:48:10.885 [perf] fps=60 worst=17ms drops=0 anim=3 inf=2(navDueGlow:1,navDuePulse:1) waves=0 audio=0/0 video=3/0 bubbles=-1 frozen=0 dom=-1 raf=60(c:60) canvas=0 snd=нет ses=auto/— mic=нет потока
+  10501.0 10:48:11.886 [perf] fps=56 worst=97ms drops=1 anim=3 inf=2(navDueGlow:1,navDuePulse:1) waves=0 audio=0/0 video=3/0 bubbles=-1 frozen=0 dom=-1 raf=56(c:56) canvas=0 snd=нет ses=auto/— mic=нет потока
+  11506.0 10:48:12.891 [perf] fps=60 worst=17ms drops=0 anim=3 inf=2(navDueGlow:1,navDuePulse:1) waves=0 audio=0/0 video=3/0 bubbles=-1 frozen=0 dom=-1 raf=60(c:60) canvas=0 snd=нет ses=auto/— mic=нет потока
+  11535.0 10:48:12.920 [suspects] (tick) elements=2312 willChange=13(memOrbitX:3,memOrbitY:3,memRing:3) backdropFilter=0 filter=20(svg:6,shellV2NavBtn:5,rect:3) transform3d=0 blend=0 canvas=0 video=3(div:3)
+  12296.0 10:48:13.681 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.36 для «16b9b760-21bb-4e36-ac04-60313f2a9edb.mp3» (peak −3.7 dBFS, RMS −20.0 dBFS)
+  12508.0 10:48:13.893 [perf] fps=60 worst=41ms drops=0 anim=4 inf=2(navDueGlow:1,navDuePulse:1) waves=0 audio=0/0 video=3/0 bubbles=-1 frozen=0 dom=-1 raf=60(c:60) canvas=0 snd=нет ses=auto/— mic=нет потока
+  12626.0 10:48:14.011 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.96 для «72a82d3b-2c86-455d-82d6-7460cfb98210.mp3» (peak −9.1 dBFS, RMS −19.8 dBFS)
+  12838.0 10:48:14.224 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.44 для «ace59ee2-48c7-4f27-b58a-c76903a4f2e7.mp3» (peak −4.2 dBFS, RMS −19.4 dBFS)
+  13048.0 10:48:14.434 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.72 для «bdeb9336-cab5-4400-9007-8156c3b5907e.mp3» (peak −5.7 dBFS, RMS −21.8 dBFS)
+  13350.0 10:48:14.735 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.31 для «6b8388b8-fafe-4c92-b4af-7f2e830dd1f8.mp3» (peak −3.4 dBFS, RMS −17.4 dBFS)
+  13512.0 10:48:14.898 [perf] fps=61 worst=20ms drops=0 anim=3 inf=2(navDueGlow:1,navDuePulse:1) waves=0 audio=0/0 video=3/0 bubbles=-1 frozen=0 dom=-1 raf=61(c:61) canvas=0 snd=нет ses=auto/— mic=нет потока
+  13670.0 10:48:15.055 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.26 для «274fe187-7bad-4c93-ab1b-e0038f94010f.mp3» (peak −3.0 dBFS, RMS −21.3 dBFS)
+  13882.0 10:48:15.267 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.34 для «a7091fa0-f983-4375-a512-5dad24d97a34.mp3» (peak −3.6 dBFS, RMS −21.0 dBFS)
+  14211.0 10:48:15.596 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.30 для «4359e152-bdfc-4332-a0af-173556d4351b.mp3» (peak −3.3 dBFS, RMS −21.8 dBFS)
+  14516.0 10:48:15.901 [perf] fps=60 worst=18ms drops=0 anim=3 inf=2(navDueGlow:1,navDuePulse:1) waves=0 audio=0/0 video=3/0 bubbles=-1 frozen=0 dom=-1 raf=60(c:60) canvas=0 snd=нет ses=auto/— mic=нет потока
+  14529.0 10:48:15.915 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.91 для «8e258c51-9ef0-4283-b528-0305fe9924b2.mp3» (peak −6.6 dBFS, RMS −22.1 dBFS)
+  14848.0 10:48:16.233 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.28 для «02f7d795-e34c-4db3-a881-a482dd0c0600.mp3» (peak −3.1 dBFS, RMS −20.6 dBFS)
+  15178.0 10:48:16.564 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.40 для «78f2c68b-9c6b-4aa3-a1e2-ec846fb419be.mp3» (peak −3.9 dBFS, RMS −21.6 dBFS)
+  15381.0 10:48:16.766 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.61 для «10afdf8d-7e72-40f6-99ac-01a3b102bf31.mp3» (peak −5.2 dBFS, RMS −21.2 dBFS)
+  15520.0 10:48:16.905 [perf] fps=60 worst=18ms drops=0 anim=4 inf=2(navDueGlow:1,navDuePulse:1) waves=0 audio=0/0 video=3/0 bubbles=-1 frozen=0 dom=-1 raf=60(c:60) canvas=0 snd=нет ses=auto/— mic=нет потока
+  15672.0 10:48:17.057 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×2.45 для «275e9e56-cfef-42a4-8777-cc767466dd2b.mp3» (peak −8.8 dBFS, RMS −26.3 dBFS)
+  15878.0 10:48:17.263 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×2.87 для «81027aef-1eeb-45c0-9531-266ba1021a8f.mp3» (peak −10.2 dBFS, RMS −23.7 dBFS)
+  16070.0 10:48:17.455 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×2.59 для «a4c07079-9107-4bb8-a762-719039c937b1.mp3» (peak −12.0 dBFS, RMS −22.3 dBFS)
+  16278.0 10:48:17.663 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.93 для «a0af1f99-d779-4868-9ce8-dc8795bb028c.mp3» (peak −6.7 dBFS, RMS −20.8 dBFS)
+  16524.0 10:48:17.910 [perf] fps=60 worst=22ms drops=0 anim=3 inf=2(navDueGlow:1,navDuePulse:1) waves=0 audio=0/0 video=3/0 bubbles=-1 frozen=0 dom=-1 raf=60(c:60) canvas=0 snd=нет ses=auto/— mic=нет потока
+  16564.0 10:48:17.949 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×2.56 для «6740584e-0593-4e52-8f3c-24c6b9975b9a.mp3» (peak −9.6 dBFS, RMS −22.1 dBFS)
+  16864.0 10:48:18.249 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×2.08 для «f4dee731-0781-45c0-9ebf-ed1af1c2ae5d.mp3» (peak −7.4 dBFS, RMS −20.5 dBFS)
+  16972.0 10:48:18.358 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×2.04 для «080ae505-fc9e-4b0a-8d0a-06bcebf381bf.mp3» (peak −7.2 dBFS, RMS −20.7 dBFS)
+  17093.0 10:48:18.478 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.76 для «3d7fcf9d-7b30-4bfa-bc29-da4f8aa249d6.mp3» (peak −7.3 dBFS, RMS −18.9 dBFS)
+  17181.0 10:48:18.566 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.66 для «f4c2693d-0864-4e59-bcc9-7a9e13edacd0.mp3» (peak −7.2 dBFS, RMS −18.4 dBFS)
+  17280.0 10:48:18.665 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.99 для «a0f74cf3-d926-432b-98da-7bf5c416cd50.mp3» (peak −7.0 dBFS, RMS −20.9 dBFS)
+  17311.0 10:48:18.696 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×2.30 для «f398dcee-94f5-401c-90f0-538318a59394.mp3» (peak −8.2 dBFS, RMS −26.8 dBFS)
+  17376.0 10:48:18.761 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.58 для «66956466-6f45-4ec0-9bd9-b7e97962edbe.mp3» (peak −4.9 dBFS, RMS −19.8 dBFS)
+  17390.0 10:48:18.776 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.96 для «307d9102-2df8-489c-8176-baffcfe52e07.mp3» (peak −6.8 dBFS, RMS −20.2 dBFS)
+  17398.0 10:48:18.783 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×2.91 для «40f4c00b-75de-4e7b-ba78-5d2c1615efe0.mp3» (peak −11.8 dBFS, RMS −23.3 dBFS)
+  17499.0 10:48:18.884 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×2.43 для «f80a5cde-8a5c-43c4-aed8-fc3cb3a849a0.mp3» (peak −9.9 dBFS, RMS −21.7 dBFS)
+  17528.0 10:48:18.913 [perf] fps=60 worst=18ms drops=0 anim=4 inf=2(navDueGlow:1,navDuePulse:1) waves=0 audio=0/0 video=3/0 bubbles=-1 frozen=0 dom=-1 raf=60(c:60) canvas=0 snd=нет ses=auto/— mic=нет потока
+  17576.0 10:48:18.961 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×2.00 для «829c8f59-eb56-4e7a-b45b-94a3ac2899b4.mp3» (peak −7.0 dBFS, RMS −22.0 dBFS)
+  17617.0 10:48:19.002 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.46 для «8eff72bd-3ce6-416c-883f-9d80b5886687.mp3» (peak −4.3 dBFS, RMS −21.1 dBFS)
+  17698.0 10:48:19.083 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.88 для «9ab2ba8a-cf1c-42cd-9513-73af7ebfcfca.mp3» (peak −6.5 dBFS, RMS −19.8 dBFS)
+  17706.0 10:48:19.091 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×2.17 для «39fe0186-6940-4110-b1cc-89714662b1ed.mp3» (peak −7.7 dBFS, RMS −21.5 dBFS)
+  17715.0 10:48:19.100 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.81 для «8c28f49a-eb25-4266-9c21-60e8d31a4e42.mp3» (peak −6.1 dBFS, RMS −22.4 dBFS)
+  18004.0 10:48:19.389 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.88 для «lab:race_start» (peak −6.5 dBFS, RMS −21.8 dBFS)
+  18020.0 10:48:19.405 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.88 для «aea1b03e-14b0-4ab0-82b6-5e599dcf709c.mp3» (peak −6.5 dBFS, RMS −21.8 dBFS)
+  18026.0 10:48:19.412 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.89 для «d8b0c90d-741d-49fb-b3d0-e6e39a212772.mp3» (peak −6.5 dBFS, RMS −23.3 dBFS)
+  18043.0 10:48:19.428 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.78 для «6c8e2a3d-7397-4451-b2c7-be90cc5bd4e0.mp3» (peak −6.0 dBFS, RMS −20.8 dBFS)
+  18059.0 10:48:19.444 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.61 для «89274351-6772-4bb8-a185-eff045794a14.mp3» (peak −5.1 dBFS, RMS −20.1 dBFS)
+  18146.0 10:48:19.531 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×2.05 для «bbf0decb-6234-4ce7-a094-5032bd51e5cb.mp3» (peak −7.2 dBFS, RMS −22.2 dBFS)
+  18266.0 10:48:19.651 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×2.74 для «d9a657f9-0b41-49f1-8ffa-24bc3a20022c.mp3» (peak −9.8 dBFS, RMS −22.8 dBFS)
+  18284.0 10:48:19.669 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×2.27 для «44fe546a-ad43-4eb9-9fff-eb3a10f4db61.mp3» (peak −8.1 dBFS, RMS −22.1 dBFS)
+  18304.0 10:48:19.689 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.29 для «adc032a5-a852-47e0-9e17-d73c41816342.mp3» (peak −3.2 dBFS, RMS −20.3 dBFS)
+  18458.0 10:48:19.843 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.39 для «7d5ea052-473a-499a-b299-855c17f52f2c.mp3» (peak −3.9 dBFS, RMS −21.5 dBFS)
+  18463.0 10:48:19.848 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.60 для «dbd1c143-ae89-4ab1-8dfc-55b6a3c4e278.mp3» (peak −5.1 dBFS, RMS −21.7 dBFS)
+  18477.0 10:48:19.862 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.24 для «65962297-d940-4845-867f-18a76a2d7e27.mp3» (peak −2.8 dBFS, RMS −21.6 dBFS)
+  18532.0 10:48:19.917 [perf] fps=61 worst=25ms drops=0 anim=7 inf=2(navDueGlow:1,navDuePulse:1) waves=0 audio=0/0 video=3/0 bubbles=-1 frozen=0 dom=-1 raf=61(c:61) canvas=0 snd=нет ses=auto/— mic=нет потока
+  18567.0 10:48:19.953 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.09 для «8045a706-9a56-4b24-9c0d-985914ae3137.mp3» (peak −1.8 dBFS, RMS −21.7 dBFS)
+  18577.0 10:48:19.962 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.55 для «03d55bc2-0513-4851-ba1e-4c294b4bd9c4.mp3» (peak −4.8 dBFS, RMS −20.9 dBFS)
+  18604.0 10:48:19.989 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.91 для «d43cf175-357d-4b1a-8b62-72ddaa5da6c7.mp3» (peak −6.6 dBFS, RMS −21.8 dBFS)
+  18697.0 10:48:20.082 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.63 для «9e89f8e5-cfe3-4f7f-8373-84b6e17e5cc0.mp3» (peak −5.2 dBFS, RMS −21.6 dBFS)
+  18698.0 10:48:20.084 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.39 для «9a8a4b17-952e-4e0a-bba4-7229caa8f354.mp3» (peak −3.9 dBFS, RMS −20.8 dBFS)
+  18733.0 10:48:20.118 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.90 для «bd1561cf-bfd4-4473-b2d0-bd56a0872b43.mp3» (peak −6.6 dBFS, RMS −21.6 dBFS)
+  18844.0 10:48:20.229 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.75 для «8f58bac7-9f3e-4178-8f2a-c738db56eeea.mp3» (peak −5.9 dBFS, RMS −21.6 dBFS)
+  18909.0 10:48:20.294 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.32 для «925ca894-66c9-4493-833e-7b384e69f405.mp3» (peak −3.4 dBFS, RMS −20.6 dBFS)
+  18937.0 10:48:20.322 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.57 для «fc062cdd-e741-4085-84c1-a3f450f301b6.mp3» (peak −4.9 dBFS, RMS −19.4 dBFS)
+  18957.0 10:48:20.343 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.33 для «39473896-a634-4e40-aaa4-2b392f8356e7.mp3» (peak −3.5 dBFS, RMS −21.9 dBFS)
+  19014.0 10:48:20.399 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.91 для «e8c97a2a-d190-4bcc-8fd9-f16fd1879be0.mp3» (peak −6.6 dBFS, RMS −22.0 dBFS)
+  19069.0 10:48:20.454 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.15 для «c0765283-41bd-48eb-a67f-8109985384b6.mp3» (peak −2.2 dBFS, RMS −18.1 dBFS)
+  19086.0 10:48:20.471 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.77 для «19600290-00cb-4cb4-a66b-0e790bc73548.mp3» (peak −5.9 dBFS, RMS −21.5 dBFS)
+  19142.0 10:48:20.527 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.47 для «ef49cdf3-260a-4007-b558-452b97be0f7c.mp3» (peak −4.4 dBFS, RMS −22.4 dBFS)
+  19173.0 10:48:20.558 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.99 для «231d00de-b327-4eee-b220-149ae6328570.mp3» (peak −7.0 dBFS, RMS −22.2 dBFS)
+  19316.0 10:48:20.701 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×2.08 для «876bda2e-71f8-416e-97f3-6021bf2e09d8.mp3» (peak −7.4 dBFS, RMS −22.0 dBFS)
+  19348.0 10:48:20.733 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.76 для «3bb53b17-f77d-4635-aa90-78a86789ed1f.mp3» (peak −5.9 dBFS, RMS −21.8 dBFS)
+  19358.0 10:48:20.743 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.77 для «7b6a3bb5-f1e3-486e-aebe-c3b29d58af73.mp3» (peak −6.0 dBFS, RMS −21.1 dBFS)
+  19388.0 10:48:20.773 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.80 для «a090656e-98e7-4333-a434-4d244dd372af.mp3» (peak −6.1 dBFS, RMS −22.6 dBFS)
+  19408.0 10:48:20.793 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×2.34 для «a7ef6490-fd2f-41e8-a0fd-330414817925.mp3» (peak −8.4 dBFS, RMS −22.9 dBFS)
+  19418.0 10:48:20.803 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.11 для «400209f5-abd1-4ab8-ac1b-a6d80237fa65.mp3» (peak −1.9 dBFS, RMS −22.0 dBFS)
+  19536.0 10:48:20.921 [perf] fps=60 worst=18ms drops=0 anim=7 inf=2(navDueGlow:1,navDuePulse:1) waves=0 audio=0/0 video=3/0 bubbles=-1 frozen=0 dom=-1 raf=60(c:60) canvas=0 snd=нет ses=auto/— mic=нет потока
+  19537.0 10:48:20.922 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.56 для «12506306-ecc5-4f37-a853-51fa76c3b8fd.mp3» (peak −4.9 dBFS, RMS −21.3 dBFS)
+  19706.0 10:48:21.091 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.93 для «627836c4-b568-4127-b44b-db55125001f7.mp3» (peak −6.7 dBFS, RMS −21.6 dBFS)
+  20541.0 10:48:21.926 [perf] fps=60 worst=18ms drops=0 anim=3 inf=2(navDueGlow:1,navDuePulse:1) waves=0 audio=0/0 video=3/0 bubbles=-1 frozen=0 dom=-1 raf=60(c:60) canvas=0 snd=нет ses=auto/— mic=нет потока
+  21546.0 10:48:22.931 [perf] fps=60 worst=33ms drops=0 anim=2 inf=2(navDueGlow:1,navDuePulse:1) waves=0 audio=0/0 video=3/0 bubbles=-1 frozen=0 dom=-1 raf=60(c:60) canvas=0 snd=нет ses=auto/— mic=нет потока
+  21563.0 10:48:22.948 [suspects] (tick) elements=2289 willChange=13(memOrbitX:3,memOrbitY:3,memRing:3) backdropFilter=0 filter=20(svg:6,shellV2NavBtn:5,rect:3) transform3d=0 blend=0 canvas=0 video=3(div:3)
+  21871.0 10:48:23.256 [start] +0 мс тап «Начать» (жест): сцена с попапом, тихий прогрев
+  21872.0 10:48:23.257 [game-audio] AudioContext игры создан, state=suspended, rate=48000
+  21978.0 10:48:23.363 [warm] гонка: прогрев начат в «Начать» (без звука и микрофона), ctx=suspended; первыми декодирую 8: race_start, race_good_1, race_good_2, race_good_3, race_good_4, ru:учиться, ru:пытаюсь, ru:я
+  21978.0 10:48:23.363 [start] +107 мс AudioContext игры создан в жесте, state=suspended; декодирую 8 файлов
+  21986.0 10:48:23.371 [page] audioSession: смена состояния; ctx=suspended, audioSession=auto/—, микрофон=нет потока
+  21997.0 10:48:23.382 [warm] гонка: AudioContext открыт в жесте «Начать»: running через 126 мс
+  21997.0 10:48:23.382 [start] +126 мс AudioContext running
+  21997.0 10:48:23.382 [game-audio] AudioContext игры → running
+  22549.0 10:48:23.934 [perf] fps=50 worst=162ms drops=1 anim=3 inf=2(navDueGlow:1,navDuePulse:1) waves=0 audio=0/0 video=3/0 bubbles=-1 frozen=0 dom=-1 raf=50(c:50) canvas=0 snd=game:running ses=auto/— mic=нет потока
+  23553.0 10:48:24.938 [perf] fps=60 worst=18ms drops=0 anim=3 inf=2(navDueGlow:1,navDuePulse:1) waves=0 audio=0/0 video=3/0 bubbles=-1 frozen=0 dom=-1 raf=60(c:60) canvas=0 snd=game:running×1.00 ses=auto/— mic=нет потока
+  24008.0 10:48:25.393 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×2.20 для «a85bee54-be7f-4753-b2d0-4b46ff430914.mp3» (peak −7.9 dBFS, RMS −22.3 dBFS)
+  24058.0 10:48:25.443 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×2.27 для «a91a4c7e-6c0e-435c-b6f7-8a720111f1ce.mp3» (peak −8.1 dBFS, RMS −21.2 dBFS)
+  24072.0 10:48:25.457 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×2.15 для «4dcdf50f-216e-42c5-9314-0a8147a45fa9.mp3» (peak −7.7 dBFS, RMS −20.8 dBFS)
+  24224.0 10:48:25.609 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.41 для «5d138097-90b2-4ef9-95a9-3eacddcf1873.mp3» (peak −4.0 dBFS, RMS −21.9 dBFS)
+  24224.0 10:48:25.609 [warm] гонка: декодировано 8/8 за 2353 мс
+  24225.0 10:48:25.610 [start] +2354 мс декодировано 8/8 файлов
+  24231.0 10:48:25.616 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×2.09 для «e6d3104d-69d9-44ae-ad5d-f0ef218952cb.mp3» (peak −7.4 dBFS, RMS −21.9 dBFS)
+  24271.0 10:48:25.656 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.45 для «d2c82af1-f471-45d3-a3ab-17d5e00eb939.mp3» (peak −4.2 dBFS, RMS −20.9 dBFS)
+  24305.0 10:48:25.690 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×2.16 для «7fae620a-b660-48d8-9340-3bf1dd266b07.mp3» (peak −7.7 dBFS, RMS −22.7 dBFS)
+  24355.0 10:48:25.740 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.89 для «97c2253d-1895-4450-9318-1b110a3b1b21.mp3» (peak −6.5 dBFS, RMS −22.8 dBFS)
+  24468.0 10:48:25.853 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.67 для «b57eb8a1-8732-49e8-865a-834182542ced.mp3» (peak −5.4 dBFS, RMS −21.5 dBFS)
+  24483.0 10:48:25.868 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.77 для «1a9ce155-4a4c-4cdc-bd7f-e022c14ae1a3.mp3» (peak −6.0 dBFS, RMS −21.2 dBFS)
+  24487.0 10:48:25.872 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.84 для «327062ec-4c7e-42db-92bf-14febde5edfa.mp3» (peak −6.3 dBFS, RMS −21.1 dBFS)
+  24518.0 10:48:25.903 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.79 для «86085c00-e918-4a41-8da8-7ea618812497.mp3» (peak −6.0 dBFS, RMS −21.5 dBFS)
+  24556.0 10:48:25.941 [perf] fps=61 worst=17ms drops=0 anim=3 inf=2(navDueGlow:1,navDuePulse:1) waves=0 audio=0/0 video=3/0 bubbles=-1 frozen=0 dom=-1 raf=61(c:61) canvas=0 snd=game:running×1.00 ses=auto/— mic=нет потока
+  24651.0 10:48:26.036 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.68 для «6a9f9838-412d-433c-9863-a4c5c92e6e69.mp3» (peak −5.5 dBFS, RMS −21.7 dBFS)
+  24673.0 10:48:26.058 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.19 для «79e5049a-7db4-42fb-846c-d68a3ed67743.mp3» (peak −2.5 dBFS, RMS −20.9 dBFS)
+  24740.0 10:48:26.125 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×2.20 для «cd12be6d-f7bd-43c7-9afe-b9208cc270a3.mp3» (peak −7.8 dBFS, RMS −22.8 dBFS)
+  24899.0 10:48:26.284 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.55 для «2ae940df-a55b-4a5d-bde6-a4315bce2c2e.mp3» (peak −4.8 dBFS, RMS −20.6 dBFS)
+  24907.0 10:48:26.292 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.06 для «b93e397a-aa75-4010-acea-fa56c4cd431b.mp3» (peak −1.5 dBFS, RMS −20.2 dBFS)
+  24916.0 10:48:26.301 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.81 для «ab55a263-7287-4db9-84ca-b17833657533.mp3» (peak −6.2 dBFS, RMS −21.1 dBFS)
+  24920.0 10:48:26.305 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.18 для «5538660f-6445-4dcb-b9e5-06c77eb868ff.mp3» (peak −2.4 dBFS, RMS −21.5 dBFS)
+  24948.0 10:48:26.333 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.25 для «a8668f1c-2410-4511-a210-364d15d59b7d.mp3» (peak −2.9 dBFS, RMS −20.4 dBFS)
+  24969.0 10:48:26.354 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.58 для «bfd7ef84-c0e0-4f6a-8edd-703c070cad0d.mp3» (peak −5.0 dBFS, RMS −21.7 dBFS)
+  25151.0 10:48:26.536 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.14 для «4346c607-8d38-41fd-9809-9530207d0612.mp3» (peak −2.2 dBFS, RMS −18.4 dBFS)
+  25202.0 10:48:26.587 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×2.10 для «5e03fe54-b195-4171-b113-69919382e95b.mp3» (peak −7.4 dBFS, RMS −22.6 dBFS)
+  25212.0 10:48:26.597 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.40 для «884de27a-3e38-4ae6-8b0a-9461f63138fe.mp3» (peak −3.9 dBFS, RMS −21.5 dBFS)
+  25228.0 10:48:26.613 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.56 для «430c160f-aaca-4449-8cf0-7dcb741a9d89.mp3» (peak −4.8 dBFS, RMS −18.9 dBFS)
+  25238.0 10:48:26.623 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×2.04 для «71e4623a-ef62-4469-8bb7-d544a5b679f0.mp3» (peak −8.1 dBFS, RMS −20.2 dBFS)
+  25306.0 10:48:26.691 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.64 для «96e86ca4-60b3-4c39-8fb9-8aee9028f859.mp3» (peak −5.3 dBFS, RMS −21.4 dBFS)
+  25312.0 10:48:26.697 [stand] lang {"lang":"en"}
+  25312.0 10:48:26.697 [stand] session {"version":"3.3.318","device":"iPhone iOS 18.7 402×874 @3","ua":"Mozilla/5.0 (iPhone; CPU iPhone OS 18_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/27.0.1 Mobile/15E148 Safari/604.1"}
+  25312.0 10:48:26.697 [stand] target {"n":0,"mode":"words","lang":"en","len":"any","seed":"mwpow2tg-2","say":"Where are you from","shown":"Where are you from","other":"Откуда ты","words":4,"gen":0}
+  25312.0 10:48:26.697 [stand] model {"lang":"en","switched":true,"text":""}
+  25394.0 10:48:26.779 [stand] lang {"lang":"en"}
+  25394.0 10:48:26.779 [stand] model {"lang":"en","switched":true,"text":""}
+  25429.0 10:48:26.814 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.94 для «e4258493-6eaa-4914-985a-093daeaa5e1a.mp3» (peak −6.8 dBFS, RMS −21.7 dBFS)
+  25481.0 10:48:26.866 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.87 для «092b9f40-8536-4a32-adb9-997f3cf74297.mp3» (peak −6.4 dBFS, RMS −22.6 dBFS)
+  25500.0 10:48:26.885 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×2.11 для «7d0a61a2-0ce2-4fb3-a392-8ca4c8263dca.mp3» (peak −7.9 dBFS, RMS −20.5 dBFS)
+  25501.0 10:48:26.886 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.38 для «9fe10408-3066-4831-9b6d-24346c0610eb.mp3» (peak −3.8 dBFS, RMS −22.3 dBFS)
+  25560.0 10:48:26.945 [perf] fps=57 worst=58ms drops=1 anim=6 inf=2(navDueGlow:1,navDuePulse:1) waves=0 audio=0/0 video=3/0 bubbles=-1 frozen=0 dom=-1 raf=73(c:73) canvas=0 snd=game:running×1.00 ses=auto/— mic=нет потока
+  25584.0 10:48:26.969 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.48 для «53c53f7d-0cc4-42fd-befc-1c1ba2a8b81c.mp3» (peak −4.4 dBFS, RMS −21.7 dBFS)
+  25657.0 10:48:27.042 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.69 для «2e659983-bca8-40c4-b0e0-fdda10a2e007.mp3» (peak −5.5 dBFS, RMS −22.0 dBFS)
+  25659.0 10:48:27.044 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.80 для «b88e6c85-9312-475f-b138-f02e57e077a3.mp3» (peak −6.1 dBFS, RMS −22.3 dBFS)
+  25774.0 10:48:27.159 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.68 для «0764e9bb-60f4-4a87-86df-7f4c65bc0c7c.mp3» (peak −5.5 dBFS, RMS −22.7 dBFS)
+  25810.0 10:48:27.195 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.07 для «1432e3c8-35bb-4d78-afa3-c3b97a2b5c81.mp3» (peak −1.6 dBFS, RMS −21.6 dBFS)
+  25813.0 10:48:27.198 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.53 для «8fe9a671-a5db-4673-9beb-e645d1f7c980.mp3» (peak −4.7 dBFS, RMS −20.9 dBFS)
+  25823.0 10:48:27.208 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×2.04 для «ff0db11e-aabe-4110-9e1d-e84cc7090c89.mp3» (peak −7.2 dBFS, RMS −22.4 dBFS)
+  25859.0 10:48:27.244 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×2.09 для «ab1790ff-0cdd-4082-882f-3c50f4530d53.mp3» (peak −7.4 dBFS, RMS −20.9 dBFS)
+  25982.0 10:48:27.367 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×2.10 для «8fb567fc-2809-4a77-8818-054a501c5fed.mp3» (peak −7.4 dBFS, RMS −21.5 dBFS)
+  26024.0 10:48:27.409 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.73 для «4bef8bb1-8606-449f-b9ed-a5deee972a87.mp3» (peak −5.8 dBFS, RMS −22.5 dBFS)
+  26031.0 10:48:27.416 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×2.05 для «16ab47cc-3e31-48ec-a678-44c74f6a6c66.mp3» (peak −7.2 dBFS, RMS −22.6 dBFS)
+  26070.0 10:48:27.455 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×2.23 для «9067f7bd-e95a-4646-bcc0-b4d12ff6e335.mp3» (peak −8.0 dBFS, RMS −21.8 dBFS)
+  26081.0 10:48:27.466 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.57 для «414ffc77-e6d6-4d86-ac4b-337d8f2fc79f.mp3» (peak −4.9 dBFS, RMS −21.0 dBFS)
+  26155.0 10:48:27.540 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.87 для «08742afd-902a-4703-9619-4354b3890ab7.mp3» (peak −6.4 dBFS, RMS −23.1 dBFS)
+  26171.0 10:48:27.556 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.95 для «83a4ec10-3ea6-49a5-8297-558709f98880.mp3» (peak −8.1 dBFS, RMS −19.8 dBFS)
+  26255.0 10:48:27.640 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.90 для «bfac563b-fb68-4c96-936e-f057e609b4cd.mp3» (peak −6.6 dBFS, RMS −22.0 dBFS)
+  26311.0 10:48:27.696 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.72 для «e7fb1c57-edf3-483d-a061-43eb1c8d6783.mp3» (peak −5.7 dBFS, RMS −20.4 dBFS)
+  26326.0 10:48:27.711 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.84 для «b55fd9fb-1e4b-415a-90df-5d8a53dae2de.mp3» (peak −6.3 dBFS, RMS −21.4 dBFS)
+  26328.0 10:48:27.713 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×2.01 для «5a7c64f6-822b-45b4-8ae0-f6767eb90c74.mp3» (peak −7.1 dBFS, RMS −22.1 dBFS)
+  26397.0 10:48:27.782 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.74 для «38afaf4d-1728-4787-95ac-a60c7eea28be.mp3» (peak −5.8 dBFS, RMS −21.1 dBFS)
+  26468.0 10:48:27.853 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.54 для «00e6c894-e927-47cf-ad9e-c1d69fa66d06.mp3» (peak −4.8 dBFS, RMS −20.3 dBFS)
+  26524.0 10:48:27.909 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×2.32 для «77624883-35be-4083-99cb-c0c68bcbbaa7.mp3» (peak −8.3 dBFS, RMS −21.7 dBFS)
+  26526.0 10:48:27.911 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.20 для «67f67a05-16bd-414f-bd6b-f530ef087b87.mp3» (peak −2.6 dBFS, RMS −19.5 dBFS)
+  26564.0 10:48:27.949 [perf] fps=60 worst=18ms drops=0 anim=2 inf=2(navDueGlow:1,navDuePulse:1) waves=0 audio=0/0 video=3/0 bubbles=-1 frozen=0 dom=-1 raf=120(c:120) canvas=0 snd=game:running×1.00 ses=auto/— mic=нет потока
+  26573.0 10:48:27.958 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.84 для «f1a4fca8-d380-4923-8902-6b5fdc90c2ac.mp3» (peak −6.3 dBFS, RMS −20.4 dBFS)
+  26649.0 10:48:28.034 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.24 для «b1194abb-ca21-48a1-a14a-76c71e0b9632.mp3» (peak −2.9 dBFS, RMS −20.4 dBFS)
+  26699.0 10:48:28.084 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.65 для «93f28533-fae5-4e6c-bdc1-45ee9f1fa048.mp3» (peak −5.3 dBFS, RMS −20.7 dBFS)
+  26773.0 10:48:28.158 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.58 для «103f3ff2-d57b-459d-9f04-5d196bc850ed.mp3» (peak −5.0 dBFS, RMS −20.8 dBFS)
+  26873.0 10:48:28.258 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.73 для «25f9a352-bcd1-4914-a94b-af59fcb642ba.mp3» (peak −5.7 dBFS, RMS −21.2 dBFS)
+  26877.0 10:48:28.262 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.57 для «a2af258c-1ebe-412c-8cb6-9dffa2203510.mp3» (peak −4.9 dBFS, RMS −21.6 dBFS)
+  26883.0 10:48:28.268 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×2.24 для «dcf153b2-7828-4470-bc4f-d7978ad1c050.mp3» (peak −8.3 dBFS, RMS −21.0 dBFS)
+  26893.0 10:48:28.278 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.47 для «b24dff62-4077-4b82-839b-09f680ba704a.mp3» (peak −4.3 dBFS, RMS −22.1 dBFS)
+  26918.0 10:48:28.303 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.83 для «956e6f9c-1c80-4405-9c44-92dd3ca1b631.mp3» (peak −6.2 dBFS, RMS −21.3 dBFS)
+  26979.0 10:48:28.364 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.61 для «748eba2f-3e04-4d2a-8c16-57459c420d27.mp3» (peak −5.1 dBFS, RMS −19.3 dBFS)
+  27163.0 10:48:28.548 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.26 для «406d38e1-59f2-4cfa-a64a-5add890c8182.mp3» (peak −3.0 dBFS, RMS −20.3 dBFS)
+  27168.0 10:48:28.553 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.45 для «e0ebb82b-cd6b-4ec8-a35a-8af3879fbdbf.mp3» (peak −4.3 dBFS, RMS −22.6 dBFS)
+  27235.0 10:48:28.620 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.71 для «a5710d77-9803-4e18-a327-c0f09b4a0271.mp3» (peak −5.7 dBFS, RMS −22.4 dBFS)
+  27250.0 10:48:28.635 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.19 для «c91e5b47-8e8d-47f8-b712-634f9f7758a5.mp3» (peak −2.5 dBFS, RMS −20.1 dBFS)
+  27251.0 10:48:28.636 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.09 для «5709b899-ad62-4757-8749-994bd531b6d2.mp3» (peak −1.8 dBFS, RMS −20.3 dBFS)
+  27283.0 10:48:28.668 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×2.25 для «f50317ee-506d-43f5-b48a-00692694fca4.mp3» (peak −8.0 dBFS, RMS −21.6 dBFS)
+  27442.0 10:48:28.827 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.51 для «adc65449-dfda-4247-844e-414cc7fb4f75.mp3» (peak −4.6 dBFS, RMS −22.0 dBFS)
+  27498.0 10:48:28.883 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.09 для «8a09dff3-e218-4c47-8dcb-99daf3b7b1e8.mp3» (peak −1.8 dBFS, RMS −19.9 dBFS)
+  27498.0 10:48:28.883 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.59 для «eb59fb46-fc69-48b8-8251-e6a447d90351.mp3» (peak −5.0 dBFS, RMS −20.5 dBFS)
+  27566.0 10:48:28.951 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.23 для «96622343-6fb5-4c9d-b901-c78bd3581dc0.mp3» (peak −2.8 dBFS, RMS −20.3 dBFS)
+  27568.0 10:48:28.953 [perf] fps=60 worst=18ms drops=0 anim=2 inf=2(navDueGlow:1,navDuePulse:1) waves=0 audio=0/0 video=3/0 bubbles=-1 frozen=0 dom=-1 raf=120(c:120) canvas=0 snd=game:running×1.00 ses=auto/— mic=нет потока
+  27580.0 10:48:28.965 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.55 для «0c0df0d1-38d8-4804-8201-133dc4b03b8e.mp3» (peak −4.8 dBFS, RMS −20.3 dBFS)
+  27643.0 10:48:29.028 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.06 для «30989fa0-5c59-47fe-82fc-ce159b964988.mp3» (peak −1.5 dBFS, RMS −20.8 dBFS)
+  27656.0 10:48:29.041 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.20 для «283077f8-04e2-4996-8ab0-ef17771c706d.mp3» (peak −2.6 dBFS, RMS −20.6 dBFS)
+  27695.0 10:48:29.080 [stand] rec-arm {"on":true}
+  27762.0 10:48:29.147 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.45 для «562972d4-9d39-4367-87a6-59b2abefc0ce.mp3» (peak −4.2 dBFS, RMS −20.0 dBFS)
+  27803.0 10:48:29.188 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.18 для «179bc448-a905-4f07-b8b8-af658822bf74.mp3» (peak −2.5 dBFS, RMS −19.7 dBFS)
+  27816.0 10:48:29.201 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.43 для «f83e3663-cb14-4aab-9a62-a75c5a20bc54.mp3» (peak −4.1 dBFS, RMS −21.6 dBFS)
+  27862.0 10:48:29.247 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.40 для «1658d3c5-9ed8-477a-8266-509b008c273e.mp3» (peak −3.9 dBFS, RMS −21.0 dBFS)
+  27868.0 10:48:29.253 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.96 для «e2370860-b471-419c-be90-a73a5ebf1153.mp3» (peak −6.8 dBFS, RMS −20.7 dBFS)
+  27914.0 10:48:29.299 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.39 для «c68e4d30-1863-4439-a476-fc24bd8cffbd.mp3» (peak −3.9 dBFS, RMS −20.3 dBFS)
+  27966.0 10:48:29.351 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.60 для «d7f72beb-3703-450f-9097-f4dd259dfd57.mp3» (peak −5.1 dBFS, RMS −20.4 dBFS)
+  28079.0 10:48:29.464 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.03 для «dbc3e31a-a4b6-40e6-8009-4f93ce1609a6.mp3» (peak −1.3 dBFS, RMS −20.3 dBFS)
+  28131.0 10:48:29.516 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.70 для «b2febfa4-9f2f-40d0-99fd-1023352e7c7a.mp3» (peak −5.6 dBFS, RMS −21.8 dBFS)
+  28172.0 10:48:29.557 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×2.07 для «b07a3712-e584-4532-bfda-7da489cb51b1.mp3» (peak −7.3 dBFS, RMS −21.4 dBFS)
+  28306.0 10:48:29.691 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×2.00 для «4585b11c-3f69-4f3c-bb7b-efcd56a15acc.mp3» (peak −7.0 dBFS, RMS −21.9 dBFS)
+  28366.0 10:48:29.751 [audio] громкость: сессия auto, мастер-gain 1, нормализация ×1.69 для «104a80cc-0253-498e-8c30-ea14d8f28329.mp3» (peak −5.6 dBFS, RMS −20.4 dBFS)
+  28573.0 10:48:29.958 [perf] fps=60 worst=25ms drops=0 anim=3 inf=3(navDueGlow:1,navDuePulse:1,psBlink:1) waves=0 audio=0/0 video=3/0 bubbles=-1 frozen=0 dom=-1 raf=120(c:120) canvas=0 snd=game:running×1.00 ses=auto/— mic=нет потока
+  29102.0 10:48:30.487 [stand] mic {"state":"asking"}
+  29103.0 10:48:30.488 [note] start-mark {"name":"tap","sinceTap":0}
+  29104.0 10:48:30.489 [note] audio-warm {"step":"begin","ctx":"running","session":null,"activation":true}
+  29104.0 10:48:30.489 [note] audio-session {"mode":"playback","why":"begin","requested":"play-and-record","ok":true,"as":"play-and-record","prev":"auto","supported":true}
+  29105.0 10:48:30.490 [audio] микрофон: запрос getUserMedia (blur/focus за это время не пауза)
+  29577.0 10:48:30.962 [perf] fps=60 worst=35ms drops=0 anim=3 inf=3(navDueGlow:1,navDuePulse:1,psBlink:1) waves=0 audio=0/0 video=3/0 bubbles=-1 frozen=0 dom=-1 raf=120(c:120) canvas=0 snd=game:running×0.53 ses=play-and-record/— mic=нет потока
+  30209.0 10:48:31.594 [page] devicechange: ввод 1, вывод 3 (вх:iPhone Microphone, вых:Default - Speaker, вых:Speaker, вых:Receiver); ctx=running, audioSession=play-and-record/—, микрофон=нет потока
+  30209.0 10:48:31.594 [audio] микрофон: ответ granted через 1104 мс (blur/focus ещё 1,5 с не пауза)
+  30209.0 10:48:31.594 [mic] игровой поток открыт (один на сеанс страницы): эхо выкл, шумодав выкл
+  30209.0 10:48:31.594 [mic] усиление ×2 (высокая ×2; перед Vosk: GainNode + мягкий ограничитель)
+  30209.0 10:48:31.594 [mic] дорожка применила: эхо false, шумодав —, автоусиление —, устройство «iPhone Microphone», частота 48000
+  30209.0 10:48:31.594 [note] audio-session {"mode":"playback","why":"mic-ready","requested":"playback","ok":true,"as":"playback","prev":"auto","supported":true}
+  30210.0 10:48:31.594 [note] start-mark {"name":"mic","sinceTap":1106,"mic":"granted"}
+  30464.0 10:48:31.849 [note] audio-warm {"step":"settled","interrupts":0,"waitedMs":254,"ctx":"running","session":null,"timedOut":false,"activation":true}
+  30464.0 10:48:31.849 [audio-warm] аудиосессия улеглась через 254 мс: прерываний 0, контекст running, жест жив
+  30464.0 10:48:31.849 [note] start-mark {"name":"settle","sinceTap":1361,"waitedMs":254,"interrupts":0,"ctx":"running","activation":true}
+  30466.0 10:48:31.851 [audio] состояние ctx=running (старт игры)
+  30466.0 10:48:31.851 [note] start-mark {"name":"ctx","sinceTap":1363,"state":"running","recreated":false,"afterBg":null,"ms":1}
+  30468.0 10:48:31.853 [word-audio] слова прогреты заново: 0
+  30468.0 10:48:31.853 [sound] AudioContext created state=suspended
+  30469.0 10:48:31.854 [sound] preload message-in
+  30469.0 10:48:31.854 [sound] preload answer-correct
+  30469.0 10:48:31.854 [sound] preload answer-wrong
+  30469.0 10:48:31.854 [sound] preload pin-message
+  30470.0 10:48:31.854 [sound] preload typing-1
+  30470.0 10:48:31.854 [sound] preload typing-2
+  30470.0 10:48:31.855 [sound] preload xp-gain
+  30470.0 10:48:31.855 [sound] preload level-up
+  30470.0 10:48:31.855 [sound] preload lesson-locked
+  30473.0 10:48:31.858 [note] start-mark {"name":"wake","sinceTap":1370,"ok":true,"ctx":"running"}
+  30473.0 10:48:31.858 [warm] готово 0/0 за 0 мс, ворота открыты по: все
+  30474.0 10:48:31.859 [note] start-mark {"name":"ready","sinceTap":1371,"words":"ready","gate":"all","done":0,"total":0,"firstN":0,"ms":0,"ctx":"running"}
+  30474.0 10:48:31.859 [audio] состояние ctx=running перед первой репликой
+  30474.0 10:48:31.859 [stand] mic {"state":"granted","waitedMs":254,"interrupts":0,"ctx":"running"}
+  31081.0 10:48:32.466 [perf] fps=53 worst=51ms drops=1 anim=3 inf=3(navDueGlow:1,navDuePulse:1,psBlink:1) waves=0 audio=0/0 video=3/0 bubbles=-1 frozen=0 dom=-1 raf=106(c:106) canvas=0 snd=game:running×0.57,sounds:running ses=playback/— mic=live
+  31107.0 10:48:32.492 [jank] кадр 647 мс; перед ним: [note] start-mark {"name":"ready","sinceTap":1371,"words":"ready","gate":"all","done":0,"total":0,"firstN":0," ‖ [audio] состояние ctx=running перед первой репликой ‖ [stand] mic {"state":"granted","waitedMs":254,"interrupts":0,"ctx":"running"}
+  31109.0 10:48:32.493 [sound] AudioContext state → running
+  31113.0 10:48:32.498 [stand] target-run {"mode":"words","pass":1,"key":"Where are you from","lang":"en"}
+  31114.0 10:48:32.499 [stand] run {"mode":"words","n":0}
+  31115.0 10:48:32.500 [stand] rec-start {"audio":"audio/mp4"}
+  31117.0 10:48:32.502 [demo] демо пропущено: нет фразы для демо
+  31119.0 10:48:32.504 [stand] wl {"kind":"grammar","targets":["where","are","you","from"],"grammar":"[\"where\",\"are\",\"you\",\"from\",\"[unk]\",\"where where\",\"where are\",\"where you\",\"where from\",\"where [unk]\",\"are where\",\"are are\",\"are you\",\"are from\",\"are [unk]\",\"you where\",\"you are\",\"you you\",\"you from\",\"you [unk]\",\"from where\",\"from are\",\"from you\",\"from from\",\"from [unk]\",\"[unk] where\",\"[unk] are\",\"[unk] you\",\"[unk] from\",\"[unk] [unk]\",\"where where where\",\"where where are\",\"where where you\",\"where where from\",\"where where [unk]\",\"where are where\",\"where are…
+  31119.0 10:48:32.504 [stand] wl {"kind":"status","status":"starting"}
+  31120.0 10:48:32.505 [stand] wl {"kind":"grammar","targets":["where","are","you","from"],"grammar":"[\"where\",\"are\",\"you\",\"from\",\"[unk]\",\"where where\",\"where are\",\"where you\",\"where from\",\"where [unk]\",\"are where\",\"are are\",\"are you\",\"are from\",\"are [unk]\",\"you where\",\"you are\",\"you you\",\"you from\",\"you [unk]\",\"from where\",\"from are\",\"from you\",\"from from\",\"from [unk]\",\"[unk] where\",\"[unk] are\",\"[unk] you\",\"[unk] from\",\"[unk] [unk]\",\"where where where\",\"where where are\",\"where where you\",\"where where from\",\"where where [unk]\",\"where are where\",\"where are…
+  31120.0 10:48:32.505 [stand] wl {"kind":"status","status":"starting"}
+  31120.0 10:48:32.505 [stand] pre {"text":"Where are you from","pass":1}
+  31122.0 10:48:32.507 [phrases] круг 2 «Скажи» (голос), ход 1/1, проход 1/2: пилюля выезжает вместе с репликой Пита (0 мс) с 33 % высоты, speed 0,36, gap 2137 мс
+  31122.0 10:48:32.507 [stand] vosk-start {"grammar":["where","are","you","from","[unk]","where where","where are","where you","where from","where [unk]","are where","are are","are you","are from","are [unk]","you where","you are","you you","you from","you [unk]","from where","from are","from you","from from","from [unk]","[unk] where","[unk] are","[unk] you","[unk] from","[unk] [unk]","where where where","where where are","where where you","where where from","where where [unk]","where are where","where are are","where are you","where are from","where are [unk]","where you where","where you are","where you you","where you from","where…
+  31143.0 10:48:32.528 [stand] vosk-ready {"micMs":0}
+  31143.0 10:48:32.528 [stand] vosk-start {"grammar":["where","are","you","from","[unk]","where where","where are","where you","where from","where [unk]","are where","are are","are you","are from","are [unk]","you where","you are","you you","you from","you [unk]","from where","from are","from you","from from","from [unk]","[unk] where","[unk] are","[unk] you","[unk] from","[unk] [unk]","where where where","where where are","where where you","where where from","where where [unk]","where are where","where are are","where are you","where are from","where are [unk]","where you where","where you are","where you you","where you from","where…
+  31159.0 10:48:32.544 [stand] vosk-ready {"micMs":0}
+  31159.0 10:48:32.544 [stand] wl {"kind":"status","status":"listening"}
+  31159.0 10:48:32.544 [mic] слушатель отпущен: треков 0, узлы отключены, контекст захвата оставлен suspended (один на игру), rate 48000
+  31164.0 10:48:32.549 [audio] громкость: сессия playback, мастер-gain 1, нормализация ×1.95 для «xp-gain» (peak −6.8 dBFS, RMS −22.6 dBFS)
+  31164.0 10:48:32.549 [audio] громкость: сессия playback, мастер-gain 1, нормализация ×5.76 для «typing-1» (peak −16.2 dBFS, RMS −32.6 dBFS)
+  31200.0 10:48:32.585 [audio] громкость: сессия playback, мастер-gain 1, нормализация ×1.00 для «lesson-locked» (peak −0.0 dBFS, RMS −16.5 dBFS)
+  31201.0 10:48:32.586 [stand] level {"rms":0,"z":1,"v":0}
+  31201.0 10:48:32.586 [stand] gate {"open":true,"rms":0}
+  31201.0 10:48:32.586 [stand] wl {"kind":"gate","open":true,"rms":0}
+  31201.0 10:48:32.586 [gate] открыт +82 мс (rms 0,000)
+  31201.0 10:48:32.586 [stand] ear {"kind":"gate","open":true,"rms":0}
+  31214.0 10:48:32.598 [audio] громкость: сессия playback, мастер-gain 1, нормализация ×8.00 для «typing-2» (peak −25.2 dBFS, RMS −38.4 dBFS)
+  31329.0 10:48:32.714 [stand] level {"rms":0.0016,"v":0}
+  31457.0 10:48:32.842 [stand] level {"rms":0.0018,"v":0}
+  31542.0 10:48:32.927 [stand] gate {"open":false,"rms":0.0018}
+  31542.0 10:48:32.927 [stand] wl {"kind":"gate","open":false,"rms":0.0018265576901772258}
+  31542.0 10:48:32.927 [gate] закрыт +423 мс (rms 0,002)
+  31542.0 10:48:32.927 [stand] ear {"kind":"gate","open":false,"rms":0.0018265576901772258}
+  31585.0 10:48:32.970 [stand] level {"rms":0.0017,"v":0}
+  31713.0 10:48:33.098 [stand] level {"rms":0.0022,"v":0}
+  31841.0 10:48:33.226 [stand] level {"rms":0.0018,"v":0}
+  31969.0 10:48:33.354 [stand] level {"rms":0.0015,"v":0}
+  32085.0 10:48:33.470 [perf] fps=56 worst=647ms drops=2 anim=2 inf=2(navDueGlow:1,navDuePulse:1) waves=0 audio=0/0 video=3/0 bubbles=-1 frozen=0 dom=-1 raf=168(c:112,Te:56) canvas=0 snd=game:running×0.99,sounds:running×0.99,capture:running ses=playback/— mic=live
+  32095.0 10:48:33.480 [suspects] (tick) elements=2450 willChange=18(memOrbitX:3,memOrbitY:3,memRing:3) backdropFilter=0 filter=20(svg:6,shellV2NavBtn:5,rect:3) transform3d=0 blend=0 canvas=0 video=3(div:3)
+  32097.0 10:48:33.482 [stand] level {"rms":0.0018,"v":0}
+  32225.0 10:48:33.610 [stand] level {"rms":0.0017,"v":0}
+  32353.0 10:48:33.738 [stand] level {"rms":0.002,"v":0}
+  32481.0 10:48:33.866 [stand] level {"rms":0.0024,"v":0}
+  32609.0 10:48:33.994 [stand] level {"rms":0.0018,"v":0}
+  32737.0 10:48:34.122 [stand] level {"rms":0.0018,"v":0}
+  32865.0 10:48:34.250 [stand] level {"rms":0.0024,"v":0}
+  32993.0 10:48:34.378 [stand] level {"rms":0.0016,"v":0}
+  33089.0 10:48:34.474 [perf] fps=60 worst=19ms drops=0 anim=2 inf=2(navDueGlow:1,navDuePulse:1) waves=0 audio=0/0 video=3/0 bubbles=-1 frozen=0 dom=-1 raf=180(c:120,Te:60) canvas=0 snd=game:running×1.00,sounds:running×1.00,capture:running×1.00 ses=playback/— mic=live
+  33121.0 10:48:34.506 [stand] level {"rms":0.0019,"v":0}
+  33249.0 10:48:34.634 [stand] level {"rms":0.0019,"v":0}
+  33378.0 10:48:34.763 [stand] level {"rms":0.0019,"v":0}
+  33505.0 10:48:34.890 [stand] level {"rms":0.0016,"v":0}
+  33633.0 10:48:35.018 [stand] level {"rms":0.0018,"v":0}
+  33767.0 10:48:35.152 [stand] level {"rms":0.0024,"v":0}
+  33890.0 10:48:35.275 [stand] level {"rms":0.0022,"v":0}
+  34017.0 10:48:35.402 [stand] level {"rms":0.0018,"v":0}
+  34092.0 10:48:35.477 [perf] fps=59 worst=33ms drops=0 anim=2 inf=2(navDueGlow:1,navDuePulse:1) waves=0 audio=0/0 video=3/0 bubbles=-1 frozen=0 dom=-1 raf=177(c:118,Te:59) canvas=0 snd=game:running×1.00,sounds:running×1.00,capture:running×1.00 ses=playback/— mic=live
+  34145.0 10:48:35.530 [stand] level {"rms":0.0117,"v":1,"n":0.00202}
+  34146.0 10:48:35.530 [stand] gate {"open":true,"rms":0.0117}
+  34146.0 10:48:35.530 [stand] wl {"kind":"gate","open":true,"rms":0.011749207030456383}
+  34146.0 10:48:35.530 [gate] открыт +3026 мс (rms 0,012)
+  34146.0 10:48:35.530 [stand] ear {"kind":"gate","open":true,"rms":0.011749207030456383}
+  34273.0 10:48:35.658 [stand] level {"rms":0.0061,"v":1,"n":0.00212}
+  34401.0 10:48:35.786 [stand] level {"rms":0.0042,"v":0}
+  34529.0 10:48:35.914 [stand] level {"rms":0.0049,"v":0}
+  34657.0 10:48:36.042 [stand] level {"rms":0.0038,"v":0}
+  34785.0 10:48:36.170 [stand] level {"rms":0.0044,"v":0}
+  34870.0 10:48:36.255 [stand] gate {"open":false,"rms":0.004}
+  34870.0 10:48:36.255 [stand] wl {"kind":"gate","open":false,"rms":0.0040460192652984235}
+  34871.0 10:48:36.255 [gate] закрыт +3751 мс (rms 0,004)
+  34871.0 10:48:36.255 [stand] ear {"kind":"gate","open":false,"rms":0.0040460192652984235}
+  34913.0 10:48:36.298 [stand] level {"rms":0.0043,"v":0}
+  35042.0 10:48:36.426 [stand] level {"rms":0.0058,"v":0}
+  35099.0 10:48:36.484 [perf] fps=60 worst=18ms drops=0 anim=2 inf=2(navDueGlow:1,navDuePulse:1) waves=0 audio=0/0 video=3/0 bubbles=-1 frozen=0 dom=-1 raf=180(c:120,Te:60) canvas=0 snd=game:running×1.00,sounds:running×1.00,capture:running×1.00 ses=playback/— mic=live
+  35169.0 10:48:36.554 [stand] level {"rms":0.0051,"v":0}
+  35297.0 10:48:36.682 [stand] level {"rms":0.0019,"v":0}
+  35426.0 10:48:36.810 [stand] level {"rms":0.0017,"v":0}
+  35511.0 10:48:36.896 [stand] gate {"open":true,"rms":0.1335}
+  35511.0 10:48:36.896 [stand] wl {"kind":"gate","open":true,"rms":0.13352989416165473}
+  35511.0 10:48:36.896 [gate] открыт +4392 мс (rms 0,134)
+  35511.0 10:48:36.896 [stand] ear {"kind":"gate","open":true,"rms":0.13352989416165473}
+  35553.0 10:48:36.938 [stand] level {"rms":0.1659,"v":1}
+  35681.0 10:48:37.066 [stand] level {"rms":0.1769,"v":1}
+  35722.0 10:48:37.107 [stand] vosk-partial {"raw":{"partial":"where"}}
+  35723.0 10:48:37.107 [stand] wl {"kind":"partial","raw":"where","seq":[0],"misses":0,"count":0,"settled":true,"tail":null,"muted":false,"absorbed":0}
+  35723.0 10:48:37.107 [stand] ear {"kind":"partial","text":"where","raw":"where"}
+  35723.0 10:48:37.107 [phrase-ear] черновик «where» +0 мс
+  35723.0 10:48:37.108 [stand] word {"phraseKey":"Where are you from","index":0,"text":"where","draft":true}
+  35726.0 10:48:37.111 [fill] +4603 мс: слово 1 «where» черновик → цель 0,41, экран 0,10
+  35809.0 10:48:37.194 [stand] level {"rms":0.1905,"v":1}
+  35856.0 10:48:37.241 [stand] reach {"word":"where","ms":133}
+  35937.0 10:48:37.322 [stand] level {"rms":0.1867,"v":1}
+  36065.0 10:48:37.450 [stand] level {"rms":0.1779,"v":1}
+  36101.0 10:48:37.485 [perf] fps=60 worst=19ms drops=0 anim=10 inf=9(wlBubA:3,wlBubB:2,wlBubC:2,navDueGlow:1) waves=0 audio=0/0 video=3/0 bubbles=-1 frozen=0 dom=-1 raf=180(c:120,Te:60) canvas=0 snd=game:running×1.00,sounds:running×1.00,capture:running×1.00 ses=playback/— mic=live
+  36193.0 10:48:37.578 [stand] level {"rms":0.1744,"v":1}
+  36321.0 10:48:37.706 [stand] level {"rms":0.1476,"v":1}
+  36449.0 10:48:37.834 [stand] level {"rms":0.1399,"v":1}
+  36577.0 10:48:37.962 [stand] level {"rms":0.1663,"v":1}
+  36705.0 10:48:38.090 [stand] level {"rms":0.1664,"v":1}
+  36833.0 10:48:38.218 [stand] level {"rms":0.119,"v":1}
+  36961.0 10:48:38.346 [stand] level {"rms":0.1287,"v":1}
+  37089.0 10:48:38.474 [stand] level {"rms":0.1336,"v":1}
+  37105.0 10:48:38.490 [perf] fps=60 worst=25ms drops=0 anim=9 inf=2(navDueGlow:1,navDuePulse:1) waves=0 audio=0/0 video=3/0 bubbles=-1 frozen=0 dom=-1 raf=180(c:120,Te:60) canvas=0 snd=game:running×1.00,sounds:running×1.00,capture:running×1.00 ses=playback/— mic=live
+  37217.0 10:48:38.602 [stand] level {"rms":0.1538,"v":1}
+  37347.0 10:48:38.732 [stand] level {"rms":0.0793,"v":1}
+  37473.0 10:48:38.858 [stand] level {"rms":0.1481,"v":1}
+  37601.0 10:48:38.986 [stand] level {"rms":0.0681,"v":1}
+  37729.0 10:48:39.114 [stand] level {"rms":0.0353,"v":1}
+  37857.0 10:48:39.242 [stand] level {"rms":0.0175,"v":1}
+  37985.0 10:48:39.369 [stand] level {"rms":0.0065,"v":0}
+  38108.0 10:48:39.493 [perf] fps=60 worst=18ms drops=0 anim=9 inf=2(navDueGlow:1,navDuePulse:1) waves=0 audio=0/0 video=3/0 bubbles=-1 frozen=0 dom=-1 raf=180(c:120,Te:60) canvas=0 snd=game:running×1.00,sounds:running×1.00,capture:running×1.00 ses=playback/— mic=live
+  38113.0 10:48:39.498 [stand] level {"rms":0.0018,"v":0}
+  38241.0 10:48:39.626 [stand] level {"rms":0.0058,"v":0}
+  38369.0 10:48:39.753 [stand] level {"rms":0.0028,"v":0}
+  38369.0 10:48:39.754 [stand] gate {"open":false,"rms":0.0028}
+  38369.0 10:48:39.754 [stand] wl {"kind":"gate","open":false,"rms":0.0028257952011756394}
+  38369.0 10:48:39.754 [gate] закрыт +2647 мс (rms 0,003)
+  38369.0 10:48:39.754 [stand] ear {"kind":"gate","open":false,"rms":0.0028257952011756394}
+  38500.0 10:48:39.885 [stand] level {"rms":0.0034,"v":0}
+  38625.0 10:48:40.010 [stand] level {"rms":0.0031,"v":0}
+  38668.0 10:48:40.052 [stand] gate {"open":true,"rms":0.0068}
+  38668.0 10:48:40.053 [stand] wl {"kind":"gate","open":true,"rms":0.006796753851866162}
+  38668.0 10:48:40.053 [gate] открыт +2946 мс (rms 0,007)
+  38668.0 10:48:40.053 [stand] ear {"kind":"gate","open":true,"rms":0.006796753851866162}
+  38753.0 10:48:40.137 [stand] level {"rms":0.0018,"v":0}
+  38881.0 10:48:40.266 [stand] level {"rms":0.0019,"v":0}
+  39009.0 10:48:40.393 [stand] level {"rms":0.0022,"v":0}
+  39052.0 10:48:40.437 [stand] gate {"open":false,"rms":0.004}
+  39052.0 10:48:40.437 [stand] wl {"kind":"gate","open":false,"rms":0.003999538277471209}
+  39052.0 10:48:40.437 [gate] закрыт +3330 мс (rms 0,004)
+  39052.0 10:48:40.437 [stand] ear {"kind":"gate","open":false,"rms":0.003999538277471209}
+  39094.0 10:48:40.479 [stand] gate {"open":true,"rms":0.0086}
+  39094.0 10:48:40.479 [stand] wl {"kind":"gate","open":true,"rms":0.008615514791524179}
+  39094.0 10:48:40.479 [gate] открыт +3372 мс (rms 0,009)
+  39094.0 10:48:40.479 [stand] ear {"kind":"gate","open":true,"rms":0.008615514791524179}
+  39113.0 10:48:40.498 [perf] fps=61 worst=17ms drops=0 anim=9 inf=2(navDueGlow:1,navDuePulse:1) waves=0 audio=0/0 video=3/0 bubbles=-1 frozen=0 dom=-1 raf=183(c:122,Te:61) canvas=0 snd=game:running×1.00,sounds:running×1.00,capture:running×1.00 ses=playback/— mic=live
+  39138.0 10:48:40.522 [stand] level {"rms":0.0106,"v":1,"n":0.00226}
+  39298.0 10:48:40.682 [stand] vosk-final {"raw":{"text":"","result":[]},"firstPartialMs":4563,"resultMs":8139,"afterStopMs":34,"chunks":189,"micMs":0,"readyMs":15,"audioStartMs":0,"stopBy":"auto","loadPct":0.6,"tailMs":400,"drainMs":0,"chunkMs":43,"maxGapMs":49,"lateChunks":0,"gatedMs":3029,"voiceMs":2603,"gatedVoiceMs":0,"agcMax":5.7}
+  39298.0 10:48:40.683 [stand] wl {"kind":"final","raw":"","seq":[],"misses":0,"count":0,"settled":true,"tail":null,"muted":false,"absorbed":0,"stopBy":"auto","gatedMs":3029,"maxGapMs":49,"lateChunks":0,"voiceMs":2603,"gatedVoiceMs":0,"agcMax":5.7}
+  39298.0 10:48:40.683 [stand] ear {"kind":"final","text":"","raw":""}
+  39298.0 10:48:40.683 [phrase-ear] итог «» (авто-стоп) +3576 мс
+  39298.0 10:48:40.683 [phrase-ear] слово 1 «where» продержалось 1000 мс — подтверждено (откат переписанным черновиком не нужен) +3576 мс
+  39298.0 10:48:40.683 [stand] word {"phraseKey":"Where are you from","index":0,"text":"where","draft":false}
+  39298.0 10:48:40.683 [stand] wl {"kind":"session-end","by":"result"}
+  39298.0 10:48:40.683 [phrase-ear] заход закрыт: raw «», пик 0,1905, новых слов принято, подтверждено слов 1 +3576 мс
+  39298.0 10:48:40.683 [mic] слушатель отпущен: треков 0, узлы отключены, контекст захвата оставлен running (один на игру), rate 48000
+  39298.0 10:48:40.683 [stand] wl {"kind":"grammar","targets":["where","are","you","from"],"grammar":"[\"where\",\"are\",\"you\",\"from\",\"[unk]\",\"where where\",\"where are\",\"where you\",\"where from\",\"where [unk]\",\"are where\",\"are are\",\"are you\",\"are from\",\"are [unk]\",\"you where\",\"you are\",\"you you\",\"you from\",\"you [unk]\",\"from where\",\"from are\",\"from you\",\"from from\",\"from [unk]\",\"[unk] where\",\"[unk] are\",\"[unk] you\",\"[unk] from\",\"[unk] [unk]\",\"where where where\",\"where where are\",\"where where you\",\"where where from\",\"where where [unk]\",\"where are where\",\"where are…
+  39298.0 10:48:40.683 [stand] wl {"kind":"status","status":"starting"}
+  39298.0 10:48:40.683 [stand] vosk-start {"grammar":["where","are","you","from","[unk]","where where","where are","where you","where from","where [unk]","are where","are are","are you","are from","are [unk]","you where","you are","you you","you from","you [unk]","from where","from are","from you","from from","from [unk]","[unk] where","[unk] are","[unk] you","[unk] from","[unk] [unk]","where where where","where where are","where where you","where where from","where where [unk]","where are where","where are are","where are you","where are from","where are [unk]","where you where","where you are","where you you","where you from","where…
+  39299.0 10:48:40.683 [stand] vosk-ready {"micMs":0}
+  39299.0 10:48:40.683 [stand] wl {"kind":"status","status":"listening"}
+  39340.0 10:48:40.725 [stand] level {"rms":0,"z":1,"v":0}
+  39340.0 10:48:40.725 [stand] gate {"open":true,"rms":0}
+  39340.0 10:48:40.725 [stand] wl {"kind":"gate","open":true,"rms":0}
+  39340.0 10:48:40.725 [gate] открыт +3618 мс (rms 0,000)
+  39340.0 10:48:40.725 [stand] ear {"kind":"gate","open":true,"rms":0}
+  39468.0 10:48:40.852 [stand] level {"rms":0.002,"v":0}
+  39597.0 10:48:40.981 [stand] level {"rms":0.009,"v":1,"n":0.0018}
+  39724.0 10:48:41.108 [stand] level {"rms":0.0027,"v":0}
+  39852.0 10:48:41.237 [stand] level {"rms":0.002,"v":0}
+  39980.0 10:48:41.364 [stand] level {"rms":0.003,"v":0}
+  40022.0 10:48:41.407 [stand] gate {"open":false,"rms":0.0025}
+  40022.0 10:48:41.407 [stand] wl {"kind":"gate","open":false,"rms":0.0025287548272030455}
+  40022.0 10:48:41.407 [gate] закрыт +4300 мс (rms 0,003)
+  40022.0 10:48:41.407 [stand] ear {"kind":"gate","open":false,"rms":0.0025287548272030455}
+  40108.0 10:48:41.492 [stand] level {"rms":0.0018,"v":0}
+  40117.0 10:48:41.502 [perf] fps=60 worst=18ms drops=0 anim=9 inf=2(navDueGlow:1,navDuePulse:1) waves=0 audio=0/0 video=3/0 bubbles=-1 frozen=0 dom=-1 raf=180(c:120,Te:60) canvas=0 snd=game:running×1.00,sounds:running×1.00,capture:running×1.00 ses=playback/— mic=live
+  40236.0 10:48:41.620 [stand] level {"rms":0.0051,"v":0}
+  40280.0 10:48:41.665 [stand] gate {"open":true,"rms":0.0173}
+  40280.0 10:48:41.665 [stand] wl {"kind":"gate","open":true,"rms":0.01734101417788496}
+  40280.0 10:48:41.665 [gate] открыт +4558 мс (rms 0,017)
+  40280.0 10:48:41.665 [stand] ear {"kind":"gate","open":true,"rms":0.01734101417788496}
+  40364.0 10:48:41.748 [stand] level {"rms":0.1459,"v":1}
+  40492.0 10:48:41.876 [stand] level {"rms":0.1742,"v":1}
+  40587.0 10:48:41.971 [stand] vosk-partial {"raw":{"partial":"where"}}
+  40587.0 10:48:41.971 [stand] wl {"kind":"partial","raw":"where","seq":[0],"misses":0,"count":0,"settled":true,"tail":null,"muted":false,"absorbed":0}
+  40587.0 10:48:41.971 [stand] ear {"kind":"partial","text":"where","raw":"where"}
+  40587.0 10:48:41.971 [phrase-ear] черновик «where» +4864 мс
+  40620.0 10:48:42.004 [stand] level {"rms":0.1852,"v":1}
+  40748.0 10:48:42.133 [stand] level {"rms":0.0168,"v":1}
+  40875.0 10:48:42.260 [stand] level {"rms":0.0347,"v":1}
+  40946.0 10:48:42.331 [fill] сказано «where»: «are» красным
+  40946.0 10:48:42.331 [fill] рывок кромки: сказано «where», заливка 0,41
+  41004.0 10:48:42.388 [stand] level {"rms":0.0068,"v":0}
+  41028.0 10:48:42.412 [fill] рывок: запущено анимаций 2
+  41090.0 10:48:42.475 [phrase-ear] partial без изменений «where» +5368 мс
+  41120.0 10:48:42.505 [perf] fps=60 worst=20ms drops=0 anim=11 inf=2(navDueGlow:1,navDuePulse:1) waves=0 audio=0/0 video=3/0 bubbles=-1 frozen=0 dom=-1 raf=180(c:120,Te:60) canvas=0 snd=game:running×1.00,sounds:running×1.00,capture:running×1.00 ses=playback/— mic=live
+  41132.0 10:48:42.516 [stand] level {"rms":0.0016,"v":0}
+  41260.0 10:48:42.645 [stand] level {"rms":0.0018,"v":0}
+  41387.0 10:48:42.772 [stand] level {"rms":0.0019,"v":0}
+  41430.0 10:48:42.815 [stand] gate {"open":false,"rms":0.0021}
+  41430.0 10:48:42.815 [stand] wl {"kind":"gate","open":false,"rms":0.0020977852872848418}
+  41430.0 10:48:42.815 [gate] закрыт +5708 мс (rms 0,002)
+  41430.0 10:48:42.815 [stand] ear {"kind":"gate","open":false,"rms":0.0020977852872848418}
+  41516.0 10:48:42.901 [stand] level {"rms":0.0021,"v":0}
+  41644.0 10:48:43.028 [stand] level {"rms":0.0019,"v":0}
+  41772.0 10:48:43.156 [stand] level {"rms":0.0016,"v":0}
+  41900.0 10:48:43.285 [stand] level {"rms":0.0017,"v":0}
+  41985.0 10:48:43.370 [stand] gate {"open":true,"rms":0.0885}
+  41985.0 10:48:43.370 [stand] wl {"kind":"gate","open":true,"rms":0.08847701360657281}
+  41985.0 10:48:43.370 [gate] открыт +6263 мс (rms 0,088)
+  41985.0 10:48:43.370 [stand] ear {"kind":"gate","open":true,"rms":0.08847701360657281}
+  41987.0 10:48:43.372 [phrase-ear] partial без изменений «where» +6265 мс
+  42027.0 10:48:43.412 [stand] level {"rms":0.1425,"v":1}
+  42039.0 10:48:43.424 [stand] vosk-final {"raw":{"text":"where","result":[{"conf":1,"end":1.38,"start":0.81,"word":"where"}]},"firstPartialMs":1288,"resultMs":2741,"chunks":64,"micMs":0,"readyMs":0,"audioStartMs":0,"stopBy":"endpoint","loadPct":0.5,"tailMs":0,"chunkMs":43,"maxGapMs":45,"lateChunks":0,"gatedMs":469,"voiceMs":896,"gatedVoiceMs":0,"agcMax":4.8}
+  42040.0 10:48:43.424 [stand] wl {"kind":"final","raw":"where","seq":[0],"misses":0,"count":0,"settled":true,"tail":null,"muted":false,"absorbed":0,"stopBy":"endpoint","gatedMs":469,"maxGapMs":45,"lateChunks":0,"voiceMs":896,"gatedVoiceMs":0,"agcMax":4.8}
+  42040.0 10:48:43.425 [stand] ear {"kind":"final","text":"where","raw":"where"}
+  42040.0 10:48:43.425 [phrase-ear] итог «where» (движок сам) +6318 мс
+  42040.0 10:48:43.425 [phrase-ear] голос (пик 0,196) без нового слова цели — неверное слово +6318 мс
+  42040.0 10:48:43.425 [stand] ear {"kind":"wrong","why":"voice","peak":0.19570738568263896}
+  42040.0 10:48:43.425 [stand] wl {"kind":"session-end","by":"result"}
+  42040.0 10:48:43.425 [phrase-ear] заход закрыт: raw «where», пик 0,1957, новых слов нет, подтверждено слов 1 +6318 мс
+  42040.0 10:48:43.425 [phrase-ear] кандидаты where are you from · услышал «where» · лучший «Where are you from» ratio 0.25 · без совпадения
+  42040.0 10:48:43.425 [mic] слушатель отпущен: треков 0, узлы отключены, контекст захвата оставлен running (один на игру), rate 48000
+  42041.0 10:48:43.425 [stand] wl {"kind":"grammar","targets":["where","are","you","from"],"grammar":"[\"where\",\"are\",\"you\",\"from\",\"[unk]\",\"where where\",\"where are\",\"where you\",\"where from\",\"where [unk]\",\"are where\",\"are are\",\"are you\",\"are from\",\"are [unk]\",\"you where\",\"you are\",\"you you\",\"you from\",\"you [unk]\",\"from where\",\"from are\",\"from you\",\"from from\",\"from [unk]\",\"[unk] where\",\"[unk] are\",\"[unk] you\",\"[unk] from\",\"[unk] [unk]\",\"where where where\",\"where where are\",\"where where you\",\"where where from\",\"where where [unk]\",\"where are where\",\"where are…
+  42041.0 10:48:43.425 [stand] wl {"kind":"status","status":"starting"}
+  42041.0 10:48:43.425 [stand] vosk-start {"grammar":["where","are","you","from","[unk]","where where","where are","where you","where from","where [unk]","are where","are are","are you","are from","are [unk]","you where","you are","you you","you from","you [unk]","from where","from are","from you","from from","from [unk]","[unk] where","[unk] are","[unk] you","[unk] from","[unk] [unk]","where where where","where where are","where where you","where where from","where where [unk]","where are where","where are are","where are you","where are from","where are [unk]","where you where","where you are","where you you","where you from","where…
+  42041.0 10:48:43.426 [stand] vosk-ready {"micMs":0}
+  42041.0 10:48:43.426 [stand] wl {"kind":"status","status":"listening"}
+  42045.0 10:48:43.429 [fill] неверное слово «[voice]», ждём «are»
+  42045.0 10:48:43.429 [fill] рывок кромки: неверное слово «[voice]», заливка 0,41
+  42085.0 10:48:43.470 [stand] gate {"open":true,"rms":0}
+  42085.0 10:48:43.470 [stand] wl {"kind":"gate","open":true,"rms":0}
+  42085.0 10:48:43.470 [gate] открыт +6363 мс (rms 0,000)
+  42085.0 10:48:43.470 [stand] ear {"kind":"gate","open":true,"rms":0}
+  42125.0 10:48:43.509 [perf] fps=60 worst=20ms drops=0 anim=11 inf=2(navDueGlow:1,navDuePulse:1) waves=0 audio=0/0 video=3/0 bubbles=-1 frozen=0 dom=-1 raf=180(c:120,Te:60) canvas=0 snd=game:running×1.00,sounds:running×1.00,capture:running×1.00 ses=playback/— mic=live
+  42128.0 10:48:43.512 [suspects] (tick) elements=2473 willChange=18(memOrbitX:3,memOrbitY:3,memRing:3) backdropFilter=0 filter=20(svg:6,shellV2NavBtn:5,rect:3) transform3d=0 blend=0 canvas=0 video=3(div:3)
+  42128.0 10:48:43.512 [stand] level {"rms":0.1469,"v":1,"n":0.00185}
+  42128.0 10:48:43.512 [fill] рывок: запущено анимаций 2
+  42254.0 10:48:43.639 [stand] level {"rms":0.1714,"v":1}
+  42382.0 10:48:43.767 [stand] level {"rms":0.005,"v":0}
+  42510.0 10:48:43.895 [stand] level {"rms":0.0088,"v":0}
+  42532.0 10:48:43.917 [stand] vosk-partial {"raw":{"partial":"are"}}
+  42532.0 10:48:43.917 [stand] wl {"kind":"partial","raw":"are","seq":[1],"misses":0,"count":0,"settled":true,"tail":null,"muted":false,"absorbed":0}
+  42532.0 10:48:43.917 [stand] ear {"kind":"partial","text":"are","raw":"are"}
+  42532.0 10:48:43.917 [phrase-ear] черновик «are» +6810 мс
+  42532.0 10:48:43.917 [stand] word {"phraseKey":"Where are you from","index":1,"text":"are","draft":true}
+  42532.0 10:48:43.917 [fill] красное «are» снято: слово сказано
+  42545.0 10:48:43.929 [fill] +11423 мс: слово 2 «are» черновик → цель 0,52, экран 0,45
+  42595.0 10:48:43.979 [stand] reach {"word":"are","ms":63}
+  42638.0 10:48:44.023 [stand] level {"rms":0.0022,"v":0}
+  42766.0 10:48:44.151 [stand] level {"rms":0.0018,"v":0}
+  42894.0 10:48:44.279 [stand] level {"rms":0.0021,"v":0}
+  42895.0 10:48:44.279 [stand] gate {"open":false,"rms":0.0021}
+  42895.0 10:48:44.279 [stand] wl {"kind":"gate","open":false,"rms":0.0020656775902895778}
+  42895.0 10:48:44.279 [gate] закрыт +7172 мс (rms 0,002)
+  42895.0 10:48:44.279 [stand] ear {"kind":"gate","open":false,"rms":0.0020656775902895778}
+  43023.0 10:48:44.407 [stand] level {"rms":0.0017,"v":0}
+  43129.0 10:48:44.514 [perf] fps=60 worst=17ms drops=0 anim=11 inf=2(navDueGlow:1,navDuePulse:1) waves=0 audio=0/0 video=3/0 bubbles=-1 frozen=0 dom=-1 raf=180(c:120,Te:60) canvas=0 snd=game:running×1.00,sounds:running×1.00,capture:running×1.00 ses=playback/— mic=live
+  43151.0 10:48:44.535 [stand] level {"rms":0.002,"v":0}
+  43281.0 10:48:44.666 [stand] level {"rms":0.0024,"v":0}
+  43364.0 10:48:44.749 [stand] gate {"open":true,"rms":0.1212}
+  43364.0 10:48:44.749 [stand] wl {"kind":"gate","open":true,"rms":0.12124647232828872}
+  43364.0 10:48:44.749 [gate] открыт +7642 мс (rms 0,121)
+  43364.0 10:48:44.749 [stand] ear {"kind":"gate","open":true,"rms":0.12124647232828872}
+  43367.0 10:48:44.752 [phrase-ear] partial без изменений «are» +7645 мс
+  43406.0 10:48:44.791 [stand] level {"rms":0.1893,"v":1}
+  43527.0 10:48:44.912 [stand] vosk-partial {"raw":{"partial":"are where"}}
+  43527.0 10:48:44.912 [stand] wl {"kind":"partial","raw":"are where","seq":[1,0],"misses":0,"count":0,"settled":true,"tail":null,"muted":false,"absorbed":0}
+  43527.0 10:48:44.912 [stand] ear {"kind":"partial","text":"are where","raw":"are where"}
+  43527.0 10:48:44.912 [phrase-ear] черновик «are where» +7805 мс
+  43528.0 10:48:44.912 [phrase-ear] слово 2 «are» откат (Where are you from): в услышанном по порядку его нет +7805 мс
+  43528.0 10:48:44.912 [stand] word {"phraseKey":"Where are you from","index":1,"text":"are","draft":true,"gone":true}
+  43528.0 10:48:44.912 [fill] +12406 мс: слово 2 «are» откат — черновик перестроился без него
+  43529.0 10:48:44.914 [fill] +12407 мс: откат слова 2 «are» → цель 0,41, экран 0,50
+  43534.0 10:48:44.919 [stand] level {"rms":0.2097,"v":1}
+  43662.0 10:48:45.047 [stand] level {"rms":0.1789,"v":1}
+  43740.0 10:48:45.125 [stand] vosk-partial {"raw":{"partial":"are you"}}
+  43740.0 10:48:45.125 [stand] wl {"kind":"partial","raw":"are you","seq":[1,2],"misses":0,"count":0,"settled":true,"tail":null,"muted":false,"absorbed":0}
+  43740.0 10:48:45.125 [stand] ear {"kind":"partial","text":"are you","raw":"are you"}
+  43740.0 10:48:45.125 [phrase-ear] черновик «are you» +8018 мс
+  43740.0 10:48:45.125 [stand] word {"phraseKey":"Where are you from","index":1,"text":"are","draft":true}
+  43740.0 10:48:45.125 [stand] word {"phraseKey":"Where are you from","index":2,"text":"you","draft":true}
+  43746.0 10:48:45.130 [fill] +12623 мс: слово 3 «you» черновик → цель 0,64, экран 0,46
+  43790.0 10:48:45.175 [stand] level {"rms":0.0054,"v":0}
+  43845.0 10:48:45.229 [stand] reach {"word":"are","ms":105}
+  43845.0 10:48:45.229 [stand] reach {"word":"you","ms":105}
+  43918.0 10:48:45.303 [stand] level {"rms":0.0018,"v":0}
+  44046.0 10:48:45.431 [stand] level {"rms":0.0021,"v":0}
+  44132.0 10:48:45.517 [perf] fps=61 worst=19ms drops=0 anim=10 inf=10(wlBubA:3,wlBubB:3,wlBubC:2,navDueGlow:1) waves=0 audio=0/0 video=3/0 bubbles=-1 frozen=0 dom=-1 raf=183(c:122,Te:61) canvas=0 snd=game:running×1.00,sounds:running×1.00,capture:running×1.00 ses=playback/— mic=live
+  44132.0 10:48:45.517 [stand] gate {"open":false,"rms":0.0019}
+  44133.0 10:48:45.517 [stand] wl {"kind":"gate","open":false,"rms":0.0018753824056685266}
+  44133.0 10:48:45.517 [gate] закрыт +8410 мс (rms 0,002)
+  44133.0 10:48:45.517 [stand] ear {"kind":"gate","open":false,"rms":0.0018753824056685266}
+  44175.0 10:48:45.559 [stand] level {"rms":0.0021,"v":0}
+  44302.0 10:48:45.687 [stand] level {"rms":0.0021,"v":0}
+  44433.0 10:48:45.817 [stand] level {"rms":0.0019,"v":0}
+  44558.0 10:48:45.943 [stand] level {"rms":0.0016,"v":0}
+  44686.0 10:48:46.071 [stand] level {"rms":0.0041,"v":0}
+  44731.0 10:48:46.115 [stand] gate {"open":true,"rms":0.0364}
+  44731.0 10:48:46.115 [stand] wl {"kind":"gate","open":true,"rms":0.036433572858817986}
+  44731.0 10:48:46.115 [gate] открыт +9008 мс (rms 0,036)
+  44731.0 10:48:46.115 [stand] ear {"kind":"gate","open":true,"rms":0.036433572858817986}
+  44734.0 10:48:46.119 [phrase-ear] partial без изменений «are you» +9012 мс
+  44814.0 10:48:46.199 [stand] level {"rms":0.1891,"v":1}
+  44890.0 10:48:46.275 [stand] vosk-final {"raw":{"text":"are you","result":[{"conf":1,"end":0.36,"start":0.06,"word":"are"},{"conf":0.706835,"end":1.41,"start":0.93,"word":"you"}]},"firstPartialMs":491,"resultMs":2849,"chunks":66,"micMs":0,"readyMs":1,"audioStartMs":1,"stopBy":"endpoint","loadPct":0.4,"tailMs":0,"chunkMs":43,"maxGapMs":46,"lateChunks":0,"gatedMs":725,"voiceMs":853,"gatedVoiceMs":0,"agcMax":4.8}
+  44890.0 10:48:46.275 [stand] wl {"kind":"final","raw":"are you","seq":[1,2],"misses":0,"count":0,"settled":true,"tail":null,"muted":false,"absorbed":0,"stopBy":"endpoint","gatedMs":725,"maxGapMs":46,"lateChunks":0,"voiceMs":853,"gatedVoiceMs":0,"agcMax":4.8}
+  44890.0 10:48:46.275 [stand] ear {"kind":"final","text":"are you","raw":"are you"}
+  44890.0 10:48:46.275 [phrase-ear] итог «are you» (движок сам) +9168 мс
+  44890.0 10:48:46.275 [phrase-ear] слово 2 «are» продержалось 1000 мс — подтверждено (откат переписанным черновиком не нужен) +9168 мс
+  44890.0 10:48:46.275 [stand] word {"phraseKey":"Where are you from","index":1,"text":"are","draft":false}
+  44890.0 10:48:46.275 [phrase-ear] слово 3 «you» продержалось 1000 мс — подтверждено (откат переписанным черновиком не нужен) +9168 мс
+  44890.0 10:48:46.275 [stand] word {"phraseKey":"Where are you from","index":2,"text":"you","draft":false}
+  44890.0 10:48:46.275 [stand] wl {"kind":"session-end","by":"result"}
+  44890.0 10:48:46.275 [phrase-ear] заход закрыт: raw «are you», пик 0,2140, новых слов принято, подтверждено слов 3 +9168 мс
+  44890.0 10:48:46.275 [mic] слушатель отпущен: треков 0, узлы отключены, контекст захвата оставлен running (один на игру), rate 48000
+  44891.0 10:48:46.275 [stand] wl {"kind":"grammar","targets":["where","are","you","from"],"grammar":"[\"where\",\"are\",\"you\",\"from\",\"[unk]\",\"where where\",\"where are\",\"where you\",\"where from\",\"where [unk]\",\"are where\",\"are are\",\"are you\",\"are from\",\"are [unk]\",\"you where\",\"you are\",\"you you\",\"you from\",\"you [unk]\",\"from where\",\"from are\",\"from you\",\"from from\",\"from [unk]\",\"[unk] where\",\"[unk] are\",\"[unk] you\",\"[unk] from\",\"[unk] [unk]\",\"where where where\",\"where where are\",\"where where you\",\"where where from\",\"where where [unk]\",\"where are where\",\"where are…
+  44891.0 10:48:46.275 [stand] wl {"kind":"status","status":"starting"}
+  44891.0 10:48:46.275 [stand] vosk-start {"grammar":["where","are","you","from","[unk]","where where","where are","where you","where from","where [unk]","are where","are are","are you","are from","are [unk]","you where","you are","you you","you from","you [unk]","from where","from are","from you","from from","from [unk]","[unk] where","[unk] are","[unk] you","[unk] from","[unk] [unk]","where where where","where where are","where where you","where where from","where where [unk]","where are where","where are are","where are you","where are from","where are [unk]","where you where","where you are","where you you","where you from","where…
+  44891.0 10:48:46.276 [stand] vosk-ready {"micMs":0}
+  44891.0 10:48:46.276 [stand] wl {"kind":"status","status":"listening"}
+  44932.0 10:48:46.316 [stand] level {"rms":0,"z":1,"v":0}
+  44932.0 10:48:46.316 [stand] gate {"open":true,"rms":0}
+  44932.0 10:48:46.316 [stand] wl {"kind":"gate","open":true,"rms":0}
+  44932.0 10:48:46.316 [gate] открыт +9209 мс (rms 0,000)
+  44932.0 10:48:46.316 [stand] ear {"kind":"gate","open":true,"rms":0}
+  45059.0 10:48:46.444 [stand] level {"rms":0.0689,"v":1}
+  45138.0 10:48:46.522 [perf] fps=60 worst=36ms drops=0 anim=10 inf=2(navDueGlow:1,navDuePulse:1) waves=0 audio=0/0 video=3/0 bubbles=-1 frozen=0 dom=-1 raf=180(c:120,Te:60) canvas=0 snd=game:running×1.00,sounds:running×1.00,capture:running×1.00 ses=playback/— mic=live
+  45188.0 10:48:46.572 [stand] level {"rms":0.008,"v":0}
+  45316.0 10:48:46.700 [stand] level {"rms":0.0022,"v":0}
+  45443.0 10:48:46.828 [stand] level {"rms":0.0032,"v":0}
+  45571.0 10:48:46.956 [stand] level {"rms":0.0015,"v":0}
+  45571.0 10:48:46.956 [stand] gate {"open":false,"rms":0.0015}
+  45571.0 10:48:46.956 [stand] wl {"kind":"gate","open":false,"rms":0.0015335082413156199}
+  45571.0 10:48:46.956 [gate] закрыт +9849 мс (rms 0,002)
+  45571.0 10:48:46.956 [stand] ear {"kind":"gate","open":false,"rms":0.0015335082413156199}
+  45700.0 10:48:47.085 [stand] level {"rms":0.0016,"v":0}
+  45827.0 10:48:47.212 [stand] level {"rms":0.0018,"v":0}
+  45956.0 10:48:47.340 [stand] level {"rms":0.0022,"v":0}
+  46084.0 10:48:47.468 [stand] level {"rms":0.002,"v":0}
+  46141.0 10:48:47.525 [perf] fps=60 worst=20ms drops=0 anim=10 inf=2(navDueGlow:1,navDuePulse:1) waves=0 audio=0/0 video=3/0 bubbles=-1 frozen=0 dom=-1 raf=180(c:120,Te:60) canvas=0 snd=game:running×1.00,sounds:running×1.00,capture:running×1.00 ses=playback/— mic=live
+  46211.0 10:48:47.596 [stand] level {"rms":0.0019,"v":0}
+  46339.0 10:48:47.724 [stand] level {"rms":0.0019,"v":0}
+  46468.0 10:48:47.852 [stand] level {"rms":0.0021,"v":0}
+  46596.0 10:48:47.980 [stand] level {"rms":0.0023,"v":0}
+  46724.0 10:48:48.108 [stand] level {"rms":0.0727,"v":1,"n":0.00254}
+  46724.0 10:48:48.108 [stand] gate {"open":true,"rms":0.0727}
+  46724.0 10:48:48.108 [stand] wl {"kind":"gate","open":true,"rms":0.07268652792335746}
+  46724.0 10:48:48.108 [gate] открыт +11001 мс (rms 0,073)
+  46724.0 10:48:48.108 [stand] ear {"kind":"gate","open":true,"rms":0.07268652792335746}
+  46852.0 10:48:48.236 [stand] level {"rms":0.1783,"v":1}
+  46981.0 10:48:48.366 [stand] level {"rms":0.1923,"v":1}
+  47107.0 10:48:48.492 [stand] level {"rms":0.0163,"v":1}
+  47145.0 10:48:48.529 [perf] fps=60 worst=18ms drops=0 anim=10 inf=2(navDueGlow:1,navDuePulse:1) waves=0 audio=0/0 video=3/0 bubbles=-1 frozen=0 dom=-1 raf=180(c:120,Te:60) canvas=0 snd=game:running×1.00,sounds:running×1.00,capture:running×1.00 ses=playback/— mic=live
+  47236.0 10:48:48.620 [stand] level {"rms":0.1075,"v":1}
+  47363.0 10:48:48.748 [stand] level {"rms":0.0117,"v":1}
+  47492.0 10:48:48.876 [stand] level {"rms":0.0035,"v":0}
+  47543.0 10:48:48.928 [stand] vosk-partial {"raw":{"partial":"[unk]"}}
+  47543.0 10:48:48.928 [stand] wl {"kind":"partial","raw":"[unk]","seq":[],"misses":0,"count":0,"settled":true,"tail":null,"muted":false,"absorbed":0}
+  47619.0 10:48:49.004 [stand] level {"rms":0.0034,"v":0}
+  47748.0 10:48:49.132 [stand] level {"rms":0.0026,"v":0}
+  47790.0 10:48:49.175 [stand] gate {"open":false,"rms":0.0026}
+  47790.0 10:48:49.175 [stand] wl {"kind":"gate","open":false,"rms":0.0026181043913680022}
+  47790.0 10:48:49.175 [gate] закрыт +12068 мс (rms 0,003)
+  47790.0 10:48:49.175 [stand] ear {"kind":"gate","open":false,"rms":0.0026181043913680022}
+  47875.0 10:48:49.260 [stand] level {"rms":0.0028,"v":0}
+  48004.0 10:48:49.388 [stand] level {"rms":0.0035,"v":0}
+  48132.0 10:48:49.516 [stand] level {"rms":0.0072,"v":0}
+  48132.0 10:48:49.517 [stand] gate {"open":true,"rms":0.0072}
+  48132.0 10:48:49.517 [stand] wl {"kind":"gate","open":true,"rms":0.007199740737522081}
+  48132.0 10:48:49.517 [gate] открыт +12410 мс (rms 0,007)
+  48132.0 10:48:49.517 [stand] ear {"kind":"gate","open":true,"rms":0.007199740737522081}
+  48149.0 10:48:49.533 [perf] fps=61 worst=17ms drops=0 anim=10 inf=2(navDueGlow:1,navDuePulse:1) waves=0 audio=0/0 video=3/0 bubbles=-1 frozen=0 dom=-1 raf=183(c:122,Te:61) canvas=0 snd=game:running×1.00,sounds:running×1.00,capture:running×1.00 ses=playback/— mic=live
+  48259.0 10:48:49.644 [stand] level {"rms":0.0068,"v":0}
+  48387.0 10:48:49.772 [stand] level {"rms":0.0063,"v":0}
+  48516.0 10:48:49.900 [stand] level {"rms":0.0067,"v":0}
+  48643.0 10:48:50.028 [stand] level {"rms":0.0077,"v":0}
+  48772.0 10:48:50.156 [stand] level {"rms":0.0156,"v":0}
+  48900.0 10:48:50.284 [stand] level {"rms":0.1914,"v":1}
+  49028.0 10:48:50.412 [stand] level {"rms":0.1887,"v":1}
+  49152.0 10:48:50.537 [perf] fps=60 worst=17ms drops=0 anim=10 inf=2(navDueGlow:1,navDuePulse:1) waves=0 audio=0/0 video=3/0 bubbles=-1 frozen=0 dom=-1 raf=180(c:120,Te:60) canvas=0 snd=game:running×1.00,sounds:running×1.00,capture:running×1.00 ses=playback/— mic=live
+  49155.0 10:48:50.540 [stand] level {"rms":0.1935,"v":1}
+  49284.0 10:48:50.668 [stand] level {"rms":0.1923,"v":1}
+  49411.0 10:48:50.796 [stand] level {"rms":0.1919,"v":1}
+  49540.0 10:48:50.924 [stand] level {"rms":0.1946,"v":1}
+  49668.0 10:48:51.052 [stand] level {"rms":0.1902,"v":1}
+  49795.0 10:48:51.180 [stand] level {"rms":0.1791,"v":1}
+  49923.0 10:48:51.308 [stand] level {"rms":0.188,"v":1}
+  50052.0 10:48:51.436 [stand] level {"rms":0.1904,"v":1}
+  50157.0 10:48:51.541 [perf] fps=60 worst=17ms drops=0 anim=10 inf=2(navDueGlow:1,navDuePulse:1) waves=0 audio=0/0 video=3/0 bubbles=-1 frozen=0 dom=-1 raf=180(c:120,Te:60) canvas=0 snd=game:running×1.00,sounds:running×1.00,capture:running×1.00 ses=playback/— mic=live
+  50179.0 10:48:51.564 [stand] level {"rms":0.1833,"v":1}
+  50307.0 10:48:51.692 [stand] level {"rms":0.1909,"v":1}
+  50435.0 10:48:51.820 [stand] level {"rms":0.1925,"v":1}
+  50563.0 10:48:51.948 [stand] level {"rms":0.1954,"v":1}
+  50691.0 10:48:52.076 [stand] level {"rms":0.1667,"v":1}
+  50819.0 10:48:52.204 [stand] level {"rms":0.1719,"v":1}
+  50949.0 10:48:52.333 [stand] level {"rms":0.1842,"v":1}
+  51075.0 10:48:52.460 [stand] level {"rms":0.1901,"v":1}
+  51160.0 10:48:52.544 [perf] fps=60 worst=18ms drops=0 anim=10 inf=2(navDueGlow:1,navDuePulse:1) waves=0 audio=0/0 video=3/0 bubbles=-1 frozen=0 dom=-1 raf=180(c:120,Te:60) canvas=0 snd=game:running×1.00,sounds:running×1.00,capture:running×1.00 ses=playback/— mic=live
+  51204.0 10:48:52.588 [stand] level {"rms":0.1973,"v":1}
+  51301.0 10:48:52.685 [stand] vosk-final {"raw":{"text":"[unk] [unk]","result":[{"conf":0.519402,"end":0.36,"start":0.33,"word":"[unk]"},{"conf":0.915746,"end":1.35,"start":0.81,"word":"[unk]"}]},"firstPartialMs":2652,"resultMs":6410,"chunks":150,"micMs":0,"readyMs":0,"audioStartMs":0,"stopBy":"endpoint","loadPct":0.6,"tailMs":0,"chunkMs":43,"maxGapMs":47,"lateChunks":0,"gatedMs":1152,"voiceMs":3413,"gatedVoiceMs":0,"agcMax":4.9}
+  51301.0 10:48:52.686 [stand] wl {"kind":"final","raw":"[unk] [unk]","seq":[],"misses":2,"count":2,"settled":true,"tail":null,"muted":false,"absorbed":0,"stopBy":"endpoint","gatedMs":1152,"maxGapMs":47,"lateChunks":0,"voiceMs":3413,"gatedVoiceMs":0,"agcMax":4.9}
+  51301.0 10:48:52.686 [stand] ear {"kind":"final","text":"","raw":"[unk] [unk]"}
+  51301.0 10:48:52.686 [phrase-ear] итог «» (движок сам) +15579 мс
+  51302.0 10:48:52.686 [phrase-ear] голос (пик 0,199) без нового слова цели — неверное слово +15579 мс
+  51302.0 10:48:52.686 [stand] ear {"kind":"wrong","why":"voice","peak":0.19887768457753263}
+  51302.0 10:48:52.686 [stand] wl {"kind":"session-end","by":"result"}
+  51302.0 10:48:52.686 [phrase-ear] заход закрыт: raw «[unk] [unk]», пик 0,1989, новых слов нет, подтверждено слов 3 +15579 мс
+  51302.0 10:48:52.686 [mic] слушатель отпущен: треков 0, узлы отключены, контекст захвата оставлен running (один на игру), rate 48000
+  51302.0 10:48:52.687 [stand] wl {"kind":"grammar","targets":["where","are","you","from"],"grammar":"[\"where\",\"are\",\"you\",\"from\",\"[unk]\",\"where where\",\"where are\",\"where you\",\"where from\",\"where [unk]\",\"are where\",\"are are\",\"are you\",\"are from\",\"are [unk]\",\"you where\",\"you are\",\"you you\",\"you from\",\"you [unk]\",\"from where\",\"from are\",\"from you\",\"from from\",\"from [unk]\",\"[unk] where\",\"[unk] are\",\"[unk] you\",\"[unk] from\",\"[unk] [unk]\",\"where where where\",\"where where are\",\"where where you\",\"where where from\",\"where where [unk]\",\"where are where\",\"where are…
+  51302.0 10:48:52.687 [stand] wl {"kind":"status","status":"starting"}
+  51302.0 10:48:52.687 [stand] vosk-start {"grammar":["where","are","you","from","[unk]","where where","where are","where you","where from","where [unk]","are where","are are","are you","are from","are [unk]","you where","you are","you you","you from","you [unk]","from where","from are","from you","from from","from [unk]","[unk] where","[unk] are","[unk] you","[unk] from","[unk] [unk]","where where where","where where are","where where you","where where from","where where [unk]","where are where","where are are","where are you","where are from","where are [unk]","where you where","where you are","where you you","where you from","where…
+  51303.0 10:48:52.687 [stand] vosk-ready {"micMs":0}
+  51303.0 10:48:52.687 [stand] wl {"kind":"status","status":"listening"}
+  51313.0 10:48:52.698 [fill] сказано «[voice]»: «from» красным
+  51313.0 10:48:52.698 [fill] неверное слово «[voice]», ждём «from»
+  51313.0 10:48:52.698 [fill] рывок кромки: неверное слово «[voice]», заливка 0,64
+  51345.0 10:48:52.729 [stand] level {"rms":0,"z":1,"v":0}
+  51345.0 10:48:52.729 [stand] gate {"open":true,"rms":0}
+  51345.0 10:48:52.729 [stand] wl {"kind":"gate","open":true,"rms":0}
+  51345.0 10:48:52.729 [gate] открыт +15622 мс (rms 0,000)
+  51345.0 10:48:52.729 [stand] ear {"kind":"gate","open":true,"rms":0}
+  51393.0 10:48:52.778 [fill] рывок: запущено анимаций 2
+  51473.0 10:48:52.857 [stand] level {"rms":0.1975,"v":1}
+  51601.0 10:48:52.986 [stand] level {"rms":0.1947,"v":1}
+  51729.0 10:48:53.113 [stand] level {"rms":0.2021,"v":1}
+  51857.0 10:48:53.241 [stand] level {"rms":0.2009,"v":1}
+  51985.0 10:48:53.369 [stand] level {"rms":0.1953,"v":1}
+  52113.0 10:48:53.497 [stand] level {"rms":0.0932,"v":1}
+  52170.0 10:48:53.555 [perf] fps=61 worst=17ms drops=0 anim=10 inf=2(navDueGlow:1,navDuePulse:1) waves=0 audio=0/0 video=3/0 bubbles=-1 frozen=0 dom=-1 raf=183(c:122,Te:61) canvas=0 snd=game:running×1.00,sounds:running×1.00,capture:running×1.00 ses=playback/— mic=live
+  52181.0 10:48:53.565 [suspects] (tick) elements=2491 willChange=18(memOrbitX:3,memOrbitY:3,memRing:3) backdropFilter=0 filter=20(svg:6,shellV2NavBtn:5,rect:3) transform3d=0 blend=0 canvas=0 video=3(div:3)
+  52241.0 10:48:53.625 [stand] level {"rms":0.014,"v":0}
+  52369.0 10:48:53.754 [stand] level {"rms":0.013,"v":0}
+  52497.0 10:48:53.881 [stand] level {"rms":0.0258,"v":0}
+  52625.0 10:48:54.009 [stand] level {"rms":0.0134,"v":0}
+  52753.0 10:48:54.137 [stand] level {"rms":0.0153,"v":0}
+  52882.0 10:48:54.266 [stand] level {"rms":0.0138,"v":0}
+  53009.0 10:48:54.393 [stand] level {"rms":0.0183,"v":0}
+  53137.0 10:48:54.521 [stand] level {"rms":0.0173,"v":0}
+  53172.0 10:48:54.557 [perf] fps=60 worst=18ms drops=0 anim=10 inf=2(navDueGlow:1,navDuePulse:1) waves=0 audio=0/0 video=3/0 bubbles=-1 frozen=0 dom=-1 raf=180(c:120,Te:60) canvas=0 snd=game:running×1.00,sounds:running×1.00,capture:running×1.00 ses=playback/— mic=live
+  53265.0 10:48:54.649 [stand] level {"rms":0.1828,"v":1}
+  53393.0 10:48:54.777 [stand] level {"rms":0.1345,"v":1}
+  53446.0 10:48:54.830 [stand] vosk-partial {"raw":{"partial":"where"}}
+  53446.0 10:48:54.831 [stand] wl {"kind":"partial","raw":"where","seq":[0],"misses":0,"count":2,"settled":true,"tail":null,"muted":false,"absorbed":0}
+  53446.0 10:48:54.831 [stand] ear {"kind":"partial","text":"where","raw":"where"}
+  53446.0 10:48:54.831 [phrase-ear] черновик «where» +17724 мс
+  53521.0 10:48:54.905 [stand] level {"rms":0.0297,"v":0}
+  53649.0 10:48:55.034 [stand] level {"rms":0.0222,"v":0}
+  53701.0 10:48:55.085 [stand] vosk-partial {"raw":{"partial":"[unk]"}}
+  53701.0 10:48:55.086 [stand] wl {"kind":"partial","raw":"[unk]","seq":[],"misses":0,"count":2,"settled":true,"tail":null,"muted":false,"absorbed":0}
+  53777.0 10:48:55.161 [stand] level {"rms":0.0195,"v":0}
+  53797.0 10:48:55.181 [fill] рывок кромки: сказано «where», заливка 0,64
+  53878.0 10:48:55.262 [fill] рывок: запущено анимаций 2
+  53905.0 10:48:55.289 [stand] level {"rms":0.0243,"v":0}
+  54033.0 10:48:55.417 [stand] level {"rms":0.0144,"v":0}
+  54161.0 10:48:55.545 [stand] level {"rms":0.0112,"v":0}
+  54176.0 10:48:55.561 [perf] fps=60 worst=18ms drops=0 anim=12 inf=2(navDueGlow:1,navDuePulse:1) waves=0 audio=0/0 video=3/0 bubbles=-1 frozen=0 dom=-1 raf=180(c:120,Te:60) canvas=0 snd=game:running×1.00,sounds:running×1.00,capture:running×1.00 ses=playback/— mic=live
+  54289.0 10:48:55.673 [stand] level {"rms":0.009,"v":0}
+  54417.0 10:48:55.801 [stand] level {"rms":0.0104,"v":0}
+  54545.0 10:48:55.929 [stand] level {"rms":0.0137,"v":0}
+  54673.0 10:48:56.057 [stand] level {"rms":0.0139,"v":0}
+  54801.0 10:48:56.185 [stand] level {"rms":0.0138,"v":0}
+  54929.0 10:48:56.313 [stand] level {"rms":0.0137,"v":0}
+  55057.0 10:48:56.441 [stand] level {"rms":0.0153,"v":0}
+  55180.0 10:48:56.564 [perf] fps=60 worst=17ms drops=0 anim=10 inf=2(navDueGlow:1,navDuePulse:1) waves=0 audio=0/0 video=3/0 bubbles=-1 frozen=0 dom=-1 raf=180(c:120,Te:60) canvas=0 snd=game:running×1.00,sounds:running×1.00,capture:running×1.00 ses=playback/— mic=live
+  55185.0 10:48:56.570 [stand] level {"rms":0.0157,"v":0}
+  55313.0 10:48:56.697 [stand] level {"rms":0.0284,"v":0}
+  55441.0 10:48:56.825 [stand] level {"rms":0.0361,"v":0}
+  55569.0 10:48:56.954 [stand] level {"rms":0.1426,"v":1}
+  55697.0 10:48:57.081 [stand] level {"rms":0.0564,"v":1}
+  55825.0 10:48:57.209 [stand] level {"rms":0.0146,"v":0}
+  55836.0 10:48:57.220 [stand] vosk-partial {"raw":{"partial":"[unk] from"}}
+  55836.0 10:48:57.220 [stand] wl {"kind":"partial","raw":"[unk] from","seq":[3],"misses":1,"count":3,"settled":false,"tail":null,"muted":false,"absorbed":0}
+  55836.0 10:48:57.220 [stand] ear {"kind":"partial","text":"from","raw":"[unk] from"}
+  55836.0 10:48:57.220 [phrase-ear] черновик «from» +20113 мс
+  55836.0 10:48:57.221 [phrase-ear] новые слова в заходе с «[unk]» перед ними — черновиком не принимаю, жду итог +20114 мс
+  55953.0 10:48:57.337 [stand] level {"rms":0.0181,"v":0}
+  56081.0 10:48:57.465 [stand] level {"rms":0.0124,"v":0}
+  56184.0 10:48:57.569 [perf] fps=61 worst=19ms drops=0 anim=10 inf=2(navDueGlow:1,navDuePulse:1) waves=0 audio=0/0 video=3/0 bubbles=-1 frozen=0 dom=-1 raf=183(c:122,Te:61) canvas=0 snd=game:running×1.00,sounds:running×1.00,capture:running×1.00 ses=playback/— mic=live
+  56209.0 10:48:57.593 [stand] level {"rms":0.0156,"v":0}
+  56337.0 10:48:57.721 [stand] level {"rms":0.0129,"v":0}
+  56349.0 10:48:57.733 [phrase-ear] partial без изменений «from» +20626 мс
+  56466.0 10:48:57.851 [stand] level {"rms":0.0108,"v":0}
+  56537.0 10:48:57.922 [phrase-ear] слово за «[unk]» ждёт итог 700 мс (черновик «from») — прошу итог захода +20815 мс
+  56537.0 10:48:57.922 [stand] wl {"kind":"stop"}
+  56559.0 10:48:57.943 [stand] vosk-final {"raw":{"text":"[unk] from","result":[{"conf":1,"end":2.25,"start":1.86,"word":"[unk]"},{"conf":1,"end":4.44,"start":4.05,"word":"from"}]},"firstPartialMs":2144,"resultMs":5257,"afterStopMs":21,"chunks":123,"micMs":0,"readyMs":0,"audioStartMs":0,"stopBy":"manual","loadPct":0.5,"tailMs":400,"drainMs":12,"chunkMs":43,"maxGapMs":45,"lateChunks":0,"gatedMs":0,"voiceMs":1237,"gatedVoiceMs":0,"agcMax":1}
+  56559.0 10:48:57.944 [stand] wl {"kind":"final","raw":"[unk] from","seq":[3],"misses":1,"count":3,"settled":true,"tail":null,"muted":false,"absorbed":0,"stopBy":"manual","gatedMs":0,"maxGapMs":45,"lateChunks":0,"voiceMs":1237,"gatedVoiceMs":0,"agcMax":1}
+  56559.0 10:48:57.944 [stand] ear {"kind":"final","text":"from","raw":"[unk] from"}
+  56559.0 10:48:57.944 [phrase-ear] итог «from» (кнопка «Стоп») +20837 мс
+  56559.0 10:48:57.944 [stand] word {"phraseKey":"Where are you from","index":3,"text":"from","draft":false}
+  56559.0 10:48:57.944 [fill] красное «from» снято: слово сказано
+  56559.0 10:48:57.944 [phrase-ear] кандидаты where are you from · услышал «are you from» · лучший «Where are you from» ratio 1.00
+  56560.0 10:48:57.944 [stand] phrase {"phraseKey":"Where are you from","ratio":1,"heard":"are you from"}
+  56560.0 10:48:57.945 [mic] слушатель отпущен: треков 0, узлы отключены, контекст захвата оставлен running (один на игру), rate 48000
+  56561.0 10:48:57.946 [stand] wl {"kind":"grammar","targets":["where","are","you","from"],"grammar":"[\"where\",\"are\",\"you\",\"from\",\"[unk]\",\"where where\",\"where are\",\"where you\",\"where from\",\"where [unk]\",\"are where\",\"are are\",\"are you\",\"are from\",\"are [unk]\",\"you where\",\"you are\",\"you you\",\"you from\",\"you [unk]\",\"from where\",\"from are\",\"from you\",\"from from\",\"from [unk]\",\"[unk] where\",\"[unk] are\",\"[unk] you\",\"[unk] from\",\"[unk] [unk]\",\"where where where\",\"where where are\",\"where where you\",\"where where from\",\"where where [unk]\",\"where are where\",\"where are…
+  56561.0 10:48:57.946 [stand] wl {"kind":"status","status":"starting"}
+  56561.0 10:48:57.946 [mic] слушатель отпущен: треков 0, узлы отключены, контекст захвата оставлен running (один на игру), rate 48000
+  56561.0 10:48:57.946 [stand] vosk-start {"grammar":["where","are","you","from","[unk]","where where","where are","where you","where from","where [unk]","are where","are are","are you","are from","are [unk]","you where","you are","you you","you from","you [unk]","from where","from are","from you","from from","from [unk]","[unk] where","[unk] are","[unk] you","[unk] from","[unk] [unk]","where where where","where where are","where where you","where where from","where where [unk]","where are where","where are are","where are you","where are from","where are [unk]","where you where","where you are","where you you","where you from","where…
+  56562.0 10:48:57.946 [stand] vosk-ready {"micMs":0}
+  56562.0 10:48:57.946 [stand] wl {"kind":"status","status":"listening"}
+  56565.0 10:48:57.949 [fill] +25442 мс: итог фразы, слов 100 % → цель 1,00, экран 0,65
+  56603.0 10:48:57.988 [stand] level {"rms":0,"z":1,"v":0}
+  56603.0 10:48:57.988 [stand] gate {"open":true,"rms":0}
+  56603.0 10:48:57.988 [stand] wl {"kind":"gate","open":true,"rms":0}
+  56603.0 10:48:57.988 [gate] открыт +44 мс (rms 0,000)
+  56603.0 10:48:57.988 [stand] ear {"kind":"gate","open":true,"rms":0}
+  56664.0 10:48:58.049 [fill] 100 % через 105 мс после последнего слова, последнее слово пришло: итогом, взлёт +25542 мс
+  56664.0 10:48:58.049 [fill] итог хода: слов 4, первое слово через 4602 мс, 100 % через 105 мс после последнего, макс. пауза 12819 мс
+  56664.0 10:48:58.049 [phrases] круг 2 «Скажи» (голос), ход 1/1, проход 1/2: цель «Where are you from» итог верно, слова 100 %, чисто
+  56666.0 10:48:58.050 [stand] pill {"type":"win","res":{"ok":true,"late":false,"confusedWith":null,"ratio":1,"clean":true}}
+  56666.0 10:48:58.050 [stand] result {"ok":true,"ratio":1,"clean":true,"late":false,"smooth":null,"afterVoiceMs":969,"say":"Where are you from"}
+  56680.0 10:48:58.065 [stand] reach {"word":"from","ms":121}
+  56731.0 10:48:58.116 [stand] level {"rms":0.0187,"v":0}
+  56859.0 10:48:58.244 [stand] level {"rms":0.0195,"v":0}
+  56987.0 10:48:58.372 [stand] level {"rms":0.0155,"v":0}
+  57115.0 10:48:58.500 [stand] level {"rms":0.0142,"v":0}
+  57189.0 10:48:58.573 [perf] fps=54 worst=34ms drops=0 anim=21 inf=10(wlBubA:3,wlBubB:3,wlBubC:2,navDueGlow:1) waves=0 audio=0/0 video=3/0 bubbles=-1 frozen=0 dom=-1 raf=162(c:108,Te:54) canvas=0 snd=game:running×1.00,sounds:running×1.00,capture:running×1.00 ses=playback/— mic=live
+  57243.0 10:48:58.628 [stand] level {"rms":0.0149,"v":0}
+  57371.0 10:48:58.756 [stand] level {"rms":0.0122,"v":0}
+  57500.0 10:48:58.884 [stand] level {"rms":0.0181,"v":0}
+  57628.0 10:48:59.013 [stand] level {"rms":0.0201,"v":0}
+  57755.0 10:48:59.140 [stand] level {"rms":0.0237,"v":0}
+  57883.0 10:48:59.268 [stand] level {"rms":0.023,"v":0}
+  57945.0 10:48:59.329 [stand] rec-stop {"why":"стоп","frames":1558,"ms":26822,"fps":58.1,"audio":"audio/mp4; codecs=mp4a.40.2, 546064 байт"}
+  58011.0 10:48:59.396 [stand] level {"rms":0.0217,"v":0}
+  58139.0 10:48:59.524 [stand] level {"rms":0.0179,"v":0}
+  58193.0 10:48:59.577 [perf] fps=60 worst=29ms drops=0 anim=2 inf=2(navDueGlow:1,navDuePulse:1) waves=0 audio=0/0 video=3/0 bubbles=-1 frozen=0 dom=-1 raf=180(c:120,Te:60) canvas=0 snd=game:running×1.00,sounds:running×1.00,capture:running×1.00 ses=playback/— mic=live
+  58267.0 10:48:59.652 [stand] level {"rms":0.0153,"v":0}
+  58396.0 10:48:59.781 [stand] level {"rms":0.0141,"v":0}
+  58523.0 10:48:59.908 [stand] level {"rms":0.0153,"v":0}
+  58651.0 10:49:00.036 [stand] level {"rms":0.0182,"v":0}
+  58780.0 10:49:00.164 [stand] level {"rms":0.0121,"v":0}
+  58907.0 10:49:00.292 [stand] level {"rms":0.0131,"v":0}
+  59035.0 10:49:00.420 [stand] level {"rms":0.0119,"v":0}
+  59165.0 10:49:00.549 [stand] level {"rms":0.0162,"v":0}
+  59196.0 10:49:00.580 [perf] fps=61 worst=28ms drops=0 anim=4 inf=2(navDueGlow:1,navDuePulse:1) waves=0 audio=0/0 video=3/0 bubbles=-1 frozen=0 dom=-1 raf=183(c:122,Te:61) canvas=0 snd=game:running×1.00,sounds:running×1.00,capture:running×1.00 ses=playback/— mic=live
+  59291.0 10:49:00.676 [stand] level {"rms":0.0146,"v":0}
+  59419.0 10:49:00.804 [stand] level {"rms":0.02,"v":0}
+  59548.0 10:49:00.932 [stand] level {"rms":0.0199,"v":0}
+  59675.0 10:49:01.060 [stand] level {"rms":0.0187,"v":0}
+  59804.0 10:49:01.188 [stand] level {"rms":0.0196,"v":0}
+  59932.0 10:49:01.316 [stand] level {"rms":0.0184,"v":0}
+  60059.0 10:49:01.444 [stand] level {"rms":0.0188,"v":0}
+  60187.0 10:49:01.572 [stand] level {"rms":0.0186,"v":0}
+  60200.0 10:49:01.585 [perf] fps=59 worst=40ms drops=0 anim=2 inf=2(navDueGlow:1,navDuePulse:1) waves=0 audio=0/0 video=3/0 bubbles=-1 frozen=0 dom=-1 raf=177(c:118,Te:59) canvas=0 snd=game:running×1.00,sounds:running×1.00,capture:running×1.00 ses=playback/— mic=live
+  60316.0 10:49:01.700 [stand] level {"rms":0.0169,"v":0}
+  60443.0 10:49:01.828 [stand] level {"rms":0.0121,"v":0}
+  60571.0 10:49:01.956 [stand] level {"rms":0.0146,"v":0}
+  60699.0 10:49:02.084 [stand] level {"rms":0.0197,"v":0}
+  60828.0 10:49:02.213 [stand] level {"rms":0.019,"v":0}
+  60955.0 10:49:02.340 [stand] level {"rms":0.0184,"v":0}
+  61083.0 10:49:02.468 [stand] level {"rms":0.0173,"v":0}
+  61205.0 10:49:02.589 [perf] fps=60 worst=17ms drops=0 anim=2 inf=2(navDueGlow:1,navDuePulse:1) waves=0 audio=0/0 video=3/0 bubbles=-1 frozen=0 dom=-1 raf=180(c:120,Te:60) canvas=0 snd=game:running×1.00,sounds:running×1.00,capture:running×1.00 ses=playback/— mic=live
+  61212.0 10:49:02.596 [stand] level {"rms":0.0159,"v":0}
+  61339.0 10:49:02.724 [stand] level {"rms":0.0177,"v":0}
+  61467.0 10:49:02.852 [stand] level {"rms":0.0156,"v":0}
+  61595.0 10:49:02.980 [stand] level {"rms":0.018,"v":0}
+  61723.0 10:49:03.108 [stand] level {"rms":0.0161,"v":0}
+  61851.0 10:49:03.236 [stand] level {"rms":0.0296,"v":0}
+  61980.0 10:49:03.365 [stand] level {"rms":0.0322,"v":0}
+  62107.0 10:49:03.492 [stand] level {"rms":0.0218,"v":0}
+  62208.0 10:49:03.593 [perf] fps=60 worst=17ms drops=0 anim=2 inf=2(navDueGlow:1,navDuePulse:1) waves=0 audio=0/0 video=3/0 bubbles=-1 frozen=0 dom=-1 raf=180(c:120,Te:60) canvas=0 snd=game:running×1.00,sounds:running×1.00,capture:running×1.00 ses=playback/— mic=live
+  62221.0 10:49:03.606 [suspects] (tick) elements=2521 willChange=18(memOrbitX:3,memOrbitY:3,memRing:3) backdropFilter=0 filter=20(svg:6,shellV2NavBtn:5,rect:3) transform3d=0 blend=0 canvas=0 video=3(div:3)
+  62240.0 10:49:03.625 [stand] level {"rms":0.0156,"v":0}
+  62364.0 10:49:03.748 [stand] level {"rms":0.0194,"v":0}
+  62491.0 10:49:03.876 [stand] level {"rms":0.0227,"v":0}
+  62619.0 10:49:04.004 [stand] level {"rms":0.0212,"v":0}
+  62748.0 10:49:04.132 [stand] level {"rms":0.029,"v":0}
+  62875.0 10:49:04.260 [stand] level {"rms":0.0296,"v":0}
+  63003.0 10:49:04.388 [stand] level {"rms":0.0217,"v":0}
+  63132.0 10:49:04.516 [stand] level {"rms":0.0177,"v":0}
+  63213.0 10:49:04.598 [perf] fps=61 worst=34ms drops=0 anim=2 inf=2(navDueGlow:1,navDuePulse:1) waves=0 audio=0/0 video=3/0 bubbles=-1 frozen=0 dom=-1 raf=183(c:122,Te:61) canvas=0 snd=game:running×1.00,sounds:running×1.00,capture:running×1.00 ses=playback/— mic=live
+  63259.0 10:49:04.644 [stand] level {"rms":0.0132,"v":0}
+  63387.0 10:49:04.772 [stand] level {"rms":0.0134,"v":0}
+  63515.0 10:49:04.900 [stand] level {"rms":0.0143,"v":0}
+  63643.0 10:49:05.028 [stand] level {"rms":0.0188,"v":0}
+  63771.0 10:49:05.156 [stand] level {"rms":0.0224,"v":0}
+  63900.0 10:49:05.284 [stand] level {"rms":0.0162,"v":0}
+  64027.0 10:49:05.412 [stand] level {"rms":0.0139,"v":0}
+  64155.0 10:49:05.540 [stand] level {"rms":0.0129,"v":0}
+  64218.0 10:49:05.602 [perf] fps=60 worst=24ms drops=0 anim=2 inf=2(navDueGlow:1,navDuePulse:1) waves=0 audio=0/0 video=3/0 bubbles=-1 frozen=0 dom=-1 raf=180(c:120,Te:60) canvas=0 snd=game:running×1.00,sounds:running×1.00,capture:running×1.00 ses=playback/— mic=live
+  64283.0 10:49:05.668 [stand] level {"rms":0.0151,"v":0}
+  64412.0 10:49:05.797 [stand] level {"rms":0.0247,"v":0}
+  64539.0 10:49:05.924 [stand] level {"rms":0.0192,"v":0}
+  64668.0 10:49:06.052 [stand] level {"rms":0.0257,"v":0}
+  64795.0 10:49:06.180 [stand] level {"rms":0.0161,"v":0}
+  64923.0 10:49:06.308 [stand] level {"rms":0.0142,"v":0}
+  65032.0 10:49:06.416 [mic] комментарий к логам: попап открыт — игра отпускает микрофон по-настоящему, чтобы iPhone дал диктовку голосом в поле (поток был открыт); следующая игра спросит разрешение заново
+  65033.0 10:49:06.417 [mic] поток закрыт по-настоящему (комментарий к логам: диктовка) — следующий старт спросит разрешение
+  65033.0 10:49:06.417 [mic] audioSession playback → auto: для диктовки iPhone игровая категория звука не нужна
+  65041.0 10:49:06.425 [mic] контекст захвата игры закрыт (комментарий к логам: диктовка): running→closed
+  65221.0 10:49:06.605 [perf] fps=55 worst=86ms drops=1 anim=2 inf=2(navDueGlow:1,navDuePulse:1) waves=0 audio=0/0 video=3/0 bubbles=-1 frozen=0 dom=-1 raf=165(c:110,Te:55) canvas=0 snd=game:running×1.00,sounds:running×1.00 ses=auto/— mic=нет потока
+  65534.0 10:49:06.918 [mic] через 500 мс после отпускания: поток закрыт, audioSession=auto
+  66225.0 10:49:07.610 [perf] fps=60 worst=31ms drops=0 anim=2 inf=2(navDueGlow:1,navDuePulse:1) waves=0 audio=0/0 video=3/0 bubbles=-1 frozen=0 dom=-1 raf=180(c:120,Te:60) canvas=0 snd=game:running×1.00,sounds:running×1.00 ses=auto/— mic=нет потока
+  66533.0 10:49:07.917 [mic] через 1500 мс после отпускания: поток закрыт, audioSession=auto
+  67228.0 10:49:08.613 [perf] fps=59 worst=29ms drops=0 anim=2 inf=2(navDueGlow:1,navDuePulse:1) waves=0 audio=0/0 video=3/0 bubbles=-1 frozen=0 dom=-1 raf=177(c:118,Te:59) canvas=0 snd=game:running×1.00,sounds:running×1.00 ses=auto/— mic=нет потока
+  68033.0 10:49:09.417 [mic] через 3000 мс после отпускания: поток закрыт, audioSession=auto
+  68232.0 10:49:09.617 [perf] fps=61 worst=26ms drops=0 anim=2 inf=2(navDueGlow:1,navDuePulse:1) waves=0 audio=0/0 video=3/0 bubbles=-1 frozen=0 dom=-1 raf=183(c:122,Te:61) canvas=0 snd=game:running×1.00,sounds:running×1.00 ses=auto/— mic=нет потока
+  69237.0 10:49:10.621 [perf] fps=60 worst=26ms drops=0 anim=2 inf=2(navDueGlow:1,navDuePulse:1) waves=0 audio=0/0 video=3/0 bubbles=-1 frozen=0 dom=-1 raf=180(c:120,Te:60) canvas=0 snd=game:running×1.00,sounds:running×1.00 ses=auto/— mic=нет потока
+  70241.0 10:49:11.625 [perf] fps=61 worst=26ms drops=0 anim=2 inf=2(navDueGlow:1,navDuePulse:1) waves=0 audio=0/0 video=3/0 bubbles=-1 frozen=0 dom=-1 raf=183(c:122,Te:61) canvas=0 snd=game:running×1.00,sounds:running×1.00 ses=auto/— mic=нет потока
+  71245.0 10:49:12.629 [perf] fps=60 worst=25ms drops=0 anim=2 inf=2(navDueGlow:1,navDuePulse:1) waves=0 audio=0/0 video=3/0 bubbles=-1 frozen=0 dom=-1 raf=180(c:120,Te:60) canvas=0 snd=game:running×1.00,sounds:running×1.00 ses=auto/— mic=нет потока
+  72248.0 10:49:13.633 [perf] fps=60 worst=25ms drops=0 anim=2 inf=2(navDueGlow:1,navDuePulse:1) waves=0 audio=0/0 video=3/0 bubbles=-1 frozen=0 dom=-1 raf=180(c:120,Te:60) canvas=0 snd=game:running×1.00,sounds:running×1.00 ses=auto/— mic=нет потока
+  72255.0 10:49:13.639 [suspects] (tick) elements=2533 willChange=18(memOrbitX:3,memOrbitY:3,memRing:3) backdropFilter=0 filter=20(svg:6,shellV2NavBtn:5,rect:3) transform3d=0 blend=0 canvas=0 video=3(div:3)
+  73253.0 10:49:14.637 [perf] fps=60 worst=25ms drops=0 anim=2 inf=2(navDueGlow:1,navDuePulse:1) waves=0 audio=0/0 video=3/0 bubbles=-1 frozen=0 dom=-1 raf=180(c:120,Te:60) canvas=0 snd=game:running×1.00,sounds:running×1.00 ses=auto/— mic=нет потока
+  74256.0 10:49:15.641 [perf] fps=60 worst=23ms drops=0 anim=2 inf=2(navDueGlow:1,navDuePulse:1) waves=0 audio=0/0 video=3/0 bubbles=-1 frozen=0 dom=-1 raf=180(c:120,Te:60) canvas=0 snd=game:running×1.00,sounds:running×1.00 ses=auto/— mic=нет потока
+  75260.0 10:49:16.644 [perf] fps=61 worst=25ms drops=0 anim=2 inf=2(navDueGlow:1,navDuePulse:1) waves=0 audio=0/0 video=3/0 bubbles=-1 frozen=0 dom=-1 raf=183(c:122,Te:61) canvas=0 snd=game:running×1.00,sounds:running×1.00 ses=auto/— mic=нет потока
+  76265.0 10:49:17.649 [perf] fps=60 worst=25ms drops=0 anim=2 inf=2(navDueGlow:1,navDuePulse:1) waves=0 audio=0/0 video=3/0 bubbles=-1 frozen=0 dom=-1 raf=180(c:120,Te:60) canvas=0 snd=game:running×1.00,sounds:running×1.00 ses=auto/— mic=нет потока
+  76732.0 10:49:18.116 [stand] vosk-final {"raw":{"text":"","result":[]},"resultMs":20171,"afterStopMs":109,"chunks":198,"micMs":0,"readyMs":0,"audioStartMs":0,"stopBy":"max","loadPct":0.5,"tailMs":400,"drainMs":0,"chunkMs":43,"maxGapMs":47,"lateChunks":0,"gatedMs":0,"voiceMs":0,"gatedVoiceMs":0,"agcMax":1}
+  76732.0 10:49:18.116 [stand] wl {"kind":"final","raw":"","seq":[],"misses":0,"count":0,"settled":true,"tail":null,"muted":false,"absorbed":0,"stopBy":"max","gatedMs":0,"maxGapMs":47,"lateChunks":0,"voiceMs":0,"gatedVoiceMs":0,"agcMax":1}
+  76732.0 10:49:18.116 [stand] ear {"kind":"final","text":"","raw":""}
+  76732.0 10:49:18.116 [phrase-ear] итог «» (потолок записи) +20172 мс
+  76732.0 10:49:18.116 [stand] wl {"kind":"session-end","by":"result"}
+  76732.0 10:49:18.116 [phrase-ear] заход закрыт: raw «», пик 0,0379, новых слов нет, шум, подтверждено слов 0 +20172 мс
+  76732.0 10:49:18.116 [mic] освобождено: треков 0, контекст closed→closed, rate 48000
+  76733.0 10:49:18.117 [stand] wl {"kind":"grammar","targets":["where","are","you","from"],"grammar":"[\"where\",\"are\",\"you\",\"from\",\"[unk]\",\"where where\",\"where are\",\"where you\",\"where from\",\"where [unk]\",\"are where\",\"are are\",\"are you\",\"are from\",\"are [unk]\",\"you where\",\"you are\",\"you you\",\"you from\",\"you [unk]\",\"from where\",\"from are\",\"from you\",\"from from\",\"from [unk]\",\"[unk] where\",\"[unk] are\",\"[unk] you\",\"[unk] from\",\"[unk] [unk]\",\"where where where\",\"where where are\",\"where where you\",\"where where from\",\"where where [unk]\",\"where are where\",\"where are…
+  76733.0 10:49:18.117 [stand] wl {"kind":"status","status":"starting"}
+  76733.0 10:49:18.117 [stand] vosk-start {"grammar":["where","are","you","from","[unk]","where where","where are","where you","where from","where [unk]","are where","are are","are you","are from","are [unk]","you where","you are","you you","you from","you [unk]","from where","from are","from you","from from","from [unk]","[unk] where","[unk] are","[unk] you","[unk] from","[unk] [unk]","where where where","where where are","where where you","where where from","where where [unk]","where are where","where are are","where are you","where are from","where are [unk]","where you where","where you are","where you you","where you from","where…
+  77270.0 10:49:18.654 [perf] fps=60 worst=25ms drops=0 anim=2 inf=2(navDueGlow:1,navDuePulse:1) waves=0 audio=0/0 video=3/0 bubbles=-1 frozen=0 dom=-1 raf=180(c:120,Te:60) canvas=0 snd=game:running×0.77,sounds:running×0.77 ses=play-and-record/— mic=нет потока
+  77794.0 10:49:19.178 [stand] vosk-ready {"micMs":1045}
+  77794.0 10:49:19.178 [stand] wl {"kind":"status","status":"listening"}
+  77795.0 10:49:19.179 [jank] кадр 416 мс; перед ним: [stand] vosk-start {"grammar":["where","are","you","from","[unk]","where where","where are","where you","where ‖ [stand] vosk-ready {"micMs":1045} ‖ [stand] wl {"kind":"status","status":"listening"}
+  77836.0 10:49:19.220 [stand] level {"rms":0,"z":1,"v":0}
+  77836.0 10:49:19.220 [stand] gate {"open":true,"rms":0}
+  77836.0 10:49:19.220 [stand] wl {"kind":"gate","open":true,"rms":0}
+  77836.0 10:49:19.220 [gate] открыт +21276 мс (rms 0,000)
+  77836.0 10:49:19.220 [stand] ear {"kind":"gate","open":true,"rms":0}
+  77964.0 10:49:19.348 [stand] level {"rms":0.0011,"v":0}
+  78094.0 10:49:19.478 [stand] level {"rms":0.0027,"v":0}
+  78177.0 10:49:19.561 [stand] gate {"open":false,"rms":0.0035}
+  78177.0 10:49:19.561 [stand] wl {"kind":"gate","open":false,"rms":0.0035036619081268484}
+  78177.0 10:49:19.562 [gate] закрыт +21617 мс (rms 0,004)
+  78177.0 10:49:19.562 [stand] ear {"kind":"gate","open":false,"rms":0.0035036619081268484}
+  78220.0 10:49:19.604 [stand] level {"rms":0.0033,"v":0}
+  78274.0 10:49:19.658 [perf] fps=37 worst=416ms drops=1 anim=2 inf=2(navDueGlow:1,navDuePulse:1) waves=0 audio=0/0 video=3/0 bubbles=-1 frozen=0 dom=-1 raf=111(c:74,Te:37) canvas=0 snd=game:running×0.66,sounds:running×0.66,capture:running ses=play-and-record/— mic=нет потока
+  78348.0 10:49:19.732 [stand] level {"rms":0.0019,"v":0}
+  78476.0 10:49:19.860 [stand] level {"rms":0.0023,"v":0}
+  78604.0 10:49:19.988 [stand] level {"rms":0.0018,"v":0}
+  78733.0 10:49:20.117 [stand] level {"rms":0.0024,"v":0}
+  78863.0 10:49:20.247 [stand] level {"rms":0.0012,"v":0}
+  78995.0 10:49:20.379 [stand] level {"rms":0.0013,"v":0}
+  79124.0 10:49:20.508 [stand] level {"rms":0.0017,"v":0}
+  79251.0 10:49:20.635 [stand] level {"rms":0.0018,"v":0}
+  79276.0 10:49:20.660 [perf] fps=61 worst=21ms drops=0 anim=2 inf=2(navDueGlow:1,navDuePulse:1) waves=0 audio=0/0 video=3/0 bubbles=-1 frozen=0 dom=-1 raf=183(c:122,Te:61) canvas=0 snd=game:running×1.00,sounds:running×1.00,capture:running×1.00 ses=play-and-record/— mic=нет потока
+  79380.0 10:49:20.764 [stand] level {"rms":0.0012,"v":0}
+  79507.0 10:49:20.891 [stand] level {"rms":0.0013,"v":0}
+  79635.0 10:49:21.019 [stand] level {"rms":0.0013,"v":0}
+  79763.0 10:49:21.147 [stand] level {"rms":0.0009,"v":0}
+  79892.0 10:49:21.276 [stand] level {"rms":0.0016,"v":0}
+  80020.0 10:49:21.404 [stand] level {"rms":0.0019,"v":0}
+  80147.0 10:49:21.531 [stand] level {"rms":0.0051,"v":1,"n":0.00107}
+  80147.0 10:49:21.531 [stand] gate {"open":true,"rms":0.0051}
+  80147.0 10:49:21.531 [stand] wl {"kind":"gate","open":true,"rms":0.005111030560682921}
+  80147.0 10:49:21.531 [gate] открыт +23587 мс (rms 0,005)
+  80147.0 10:49:21.531 [stand] ear {"kind":"gate","open":true,"rms":0.005111030560682921}
+  80275.0 10:49:21.659 [stand] level {"rms":0.0021,"v":0}
+  80279.0 10:49:21.664 [perf] fps=57 worst=34ms drops=0 anim=2 inf=2(navDueGlow:1,navDuePulse:1) waves=0 audio=0/0 video=3/0 bubbles=-1 frozen=0 dom=-1 raf=171(c:114,Te:57) canvas=0 snd=game:running×1.00,sounds:running×1.00,capture:running×1.00 ses=play-and-record/— mic=нет потока
+  80403.0 10:49:21.787 [stand] level {"rms":0.0005,"v":0}
+  80531.0 10:49:21.915 [stand] level {"rms":0.0009,"v":0}
+  80531.0 10:49:21.915 [stand] gate {"open":false,"rms":0.0009}
+  80531.0 10:49:21.916 [stand] wl {"kind":"gate","open":false,"rms":0.000936564484854105}
+  80531.0 10:49:21.916 [gate] закрыт +23972 мс (rms 0,001)
+  80532.0 10:49:21.916 [stand] ear {"kind":"gate","open":false,"rms":0.000936564484854105}
+  80660.0 10:49:22.044 [stand] level {"rms":0.0004,"v":0}
+  80787.0 10:49:22.171 [stand] level {"rms":0.0003,"v":0}
+  80915.0 10:49:22.299 [stand] level {"rms":0.0002,"v":0}
+  81043.0 10:49:22.427 [stand] level {"rms":0.0008,"v":0}
+  81171.0 10:49:22.555 [stand] level {"rms":0.0004,"v":0}
+  81284.0 10:49:22.668 [perf] fps=60 worst=18ms drops=0 anim=2 inf=2(navDueGlow:1,navDuePulse:1) waves=0 audio=0/0 video=3/0 bubbles=-1 frozen=0 dom=-1 raf=180(c:120,Te:60) canvas=0 snd=game:running×1.00,sounds:running×1.00,capture:running×1.00 ses=play-and-record/— mic=нет потока
+  81300.0 10:49:22.684 [stand] level {"rms":0.005,"v":1,"n":0.00033}
+  81300.0 10:49:22.684 [stand] gate {"open":true,"rms":0.005}
+  81300.0 10:49:22.684 [stand] wl {"kind":"gate","open":true,"rms":0.004960059402305407}
+  81300.0 10:49:22.684 [gate] открыт +24740 мс (rms 0,005)
+  81300.0 10:49:22.685 [stand] ear {"kind":"gate","open":true,"rms":0.004960059402305407}
+  81427.0 10:49:22.811 [stand] level {"rms":0.0004,"v":0}
+  81555.0 10:49:22.939 [stand] level {"rms":0.0006,"v":0}
+  81579.0 10:49:22.963 [stand] vosk-partial {"raw":{"partial":"are"}}
+  81579.0 10:49:22.963 [stand] wl {"kind":"partial","raw":"are","seq":[1],"misses":0,"count":0,"settled":true,"tail":null,"muted":false,"absorbed":0}
+  81579.0 10:49:22.963 [phrase-ear] «are» проигнорировано: громкость захода 0,0068 ниже 0,008 — это шум, не речь +25019 мс
+  81598.0 10:49:22.982 [phrase-ear] partial без изменений «are» +25038 мс
+  81683.0 10:49:23.067 [stand] level {"rms":0.0005,"v":0}
+  81811.0 10:49:23.195 [stand] level {"rms":0.0008,"v":0}
+  81940.0 10:49:23.324 [stand] level {"rms":0.0006,"v":0}
+  82067.0 10:49:23.451 [stand] level {"rms":0.0004,"v":0}
+  82195.0 10:49:23.579 [stand] level {"rms":0.0005,"v":0}
+  82238.0 10:49:23.622 [stand] gate {"open":false,"rms":0.0005}
+  82238.0 10:49:23.622 [stand] wl {"kind":"gate","open":false,"rms":0.0004881569006852118}
+  82238.0 10:49:23.622 [gate] закрыт +25678 мс (rms 0,000)
+  82238.0 10:49:23.622 [stand] ear {"kind":"gate","open":false,"rms":0.0004881569006852118}
+  82293.0 10:49:23.677 [perf] fps=61 worst=30ms drops=0 anim=2 inf=2(navDueGlow:1,navDuePulse:1) waves=0 audio=0/0 video=3/0 bubbles=-1 frozen=0 dom=-1 raf=183(c:122,Te:61) canvas=0 snd=game:running×1.00,sounds:running×1.00,capture:running×1.00 ses=play-and-record/— mic=нет потока
+  82305.0 10:49:23.689 [suspects] (tick) elements=2535 willChange=18(memOrbitX:3,memOrbitY:3,memRing:3) backdropFilter=0 filter=20(svg:6,shellV2NavBtn:5,rect:3) transform3d=0 blend=0 canvas=0 video=3(div:3)
+  82323.0 10:49:23.707 [stand] level {"rms":0.0007,"v":0}
+  82455.0 10:49:23.839 [stand] level {"rms":0.0008,"v":0}
+  82540.0 10:49:23.924 [stand] gate {"open":true,"rms":0.007}
+  82540.0 10:49:23.924 [stand] wl {"kind":"gate","open":true,"rms":0.0070435709102933414}
+  82540.0 10:49:23.924 [gate] открыт +25980 мс (rms 0,007)
+  82540.0 10:49:23.924 [stand] ear {"kind":"gate","open":true,"rms":0.0070435709102933414}
+  82583.0 10:49:23.967 [stand] level {"rms":0.0107,"v":1}
+  82710.0 10:49:24.094 [stand] level {"rms":0.0161,"v":1}
+  82838.0 10:49:24.222 [stand] level {"rms":0.0214,"v":1}
+  82966.0 10:49:24.350 [stand] level {"rms":0.0233,"v":1}
+  83095.0 10:49:24.479 [stand] level {"rms":0.0242,"v":1}
+  83223.0 10:49:24.607 [stand] level {"rms":0.0152,"v":1}
+  83296.0 10:49:24.680 [perf] fps=60 worst=20ms drops=0 anim=2 inf=2(navDueGlow:1,navDuePulse:1) waves=0 audio=0/0 video=3/0 bubbles=-1 frozen=0 dom=-1 raf=180(c:120,Te:60) canvas=0 snd=game:running×0.99,sounds:running×0.99,capture:running×0.99 ses=play-and-record/— mic=нет потока
+  83350.0 10:49:24.734 [stand] level {"rms":0.0069,"v":1}
+  83478.0 10:49:24.862 [stand] level {"rms":0.0138,"v":1}
+  84162.0 10:49:25.546 [page] audioSession: смена состояния; ctx=interrupted, audioSession=play-and-record/—, микрофон=нет потока
+  84162.0 10:49:25.546 [game-audio] AudioContext игры → interrupted
+  84162.0 10:49:25.546 [note] audio-interrupt {"n":1,"self":false,"ctx":"interrupted","session":null,"activation":true,"settling":false}
+  84162.0 10:49:25.546 [audio-warm] прерывание аудиосессии №1
+  84180.0 10:49:25.564 [sound] AudioContext state → interrupted
+  84180.0 10:49:25.564 [sound] кэш звуков сброшен (прерывание аудиосессии): message-in, answer-correct, answer-wrong, pin-message, typing-1, typing-2, xp-gain, level-up, lesson-locked
+  84180.0 10:49:25.564 [word-audio] элементы слов сброшены (прерывание аудиосессии) — пересоздаются из blob при тапе
+  84180.0 10:49:25.564 [note] audio-interrupt {"n":2,"self":false,"ctx":"interrupted","session":null,"activation":true,"settling":false}
+  84180.0 10:49:25.564 [audio-warm] прерывание аудиосессии №2
+  84300.0 10:49:25.684 [perf] fps=59 worst=31ms drops=0 anim=2 inf=2(navDueGlow:1,navDuePulse:1) waves=0 audio=0/0 video=3/0 bubbles=-1 frozen=0 dom=-1 raf=177(c:118,Te:59) canvas=0 snd=game:interrupted,sounds:interrupted,capture:interrupted ses=play-and-record/— mic=нет потока
+  84482.0 10:49:25.866 [note] audio-warm {"step":"armed","why":"прерывание в игре","activation":true}
+  85218.0 10:49:26.602 [stand] vosk-final {"raw":{"text":"","result":[]},"firstPartialMs":3785,"resultMs":7424,"afterStopMs":126,"chunks":135,"micMs":1045,"readyMs":1060,"audioStartMs":0,"stopBy":"auto","loadPct":0.6,"tailMs":400,"drainMs":0,"chunkMs":43,"maxGapMs":47,"lateChunks":0,"gatedMs":2517,"voiceMs":1365,"gatedVoiceMs":0,"agcMax":32}
+  85218.0 10:49:26.602 [stand] wl {"kind":"final","raw":"","seq":[],"misses":0,"count":0,"settled":true,"tail":null,"muted":false,"absorbed":0,"stopBy":"auto","gatedMs":2517,"maxGapMs":47,"lateChunks":0,"voiceMs":1365,"gatedVoiceMs":0,"agcMax":32}
+  85218.0 10:49:26.602 [stand] ear {"kind":"final","text":"","raw":""}
+  85218.0 10:49:26.602 [phrase-ear] итог «» (авто-стоп) +28658 мс
+  85218.0 10:49:26.602 [phrase-ear] голос (пик 0,030) без нового слова цели — неверное слово +28658 мс
+  85218.0 10:49:26.602 [stand] ear {"kind":"wrong","why":"voice","peak":0.030178444423821022}
+  85218.0 10:49:26.602 [stand] wl {"kind":"session-end","by":"result"}
+  85218.0 10:49:26.602 [phrase-ear] заход закрыт: raw «», пик 0,0302, новых слов нет, подтверждено слов 0 +28658 мс
+  85218.0 10:49:26.602 [stand] wl {"kind":"grammar","targets":["where","are","you","from"],"grammar":"[\"where\",\"are\",\"you\",\"from\",\"[unk]\",\"where where\",\"where are\",\"where you\",\"where from\",\"where [unk]\",\"are where\",\"are are\",\"are you\",\"are from\",\"are [unk]\",\"you where\",\"you are\",\"you you\",\"you from\",\"you [unk]\",\"from where\",\"from are\",\"from you\",\"from from\",\"from [unk]\",\"[unk] where\",\"[unk] are\",\"[unk] you\",\"[unk] from\",\"[unk] [unk]\",\"where where where\",\"where where are\",\"where where you\",\"where where from\",\"where where [unk]\",\"where are where\",\"where are…
+  85218.0 10:49:26.602 [stand] wl {"kind":"status","status":"starting"}
+  85218.0 10:49:26.602 [stand] vosk-start {"grammar":["where","are","you","from","[unk]","where where","where are","where you","where from","where [unk]","are where","are are","are you","are from","are [unk]","you where","you are","you you","you from","you [unk]","from where","from are","from you","from from","from [unk]","[unk] where","[unk] are","[unk] you","[unk] from","[unk] [unk]","where where where","where where are","where where you","where where from","where where [unk]","where are where","where are are","where are you","where are from","where are [unk]","where you where","where you are","where you you","where you from","where…
+  85219.0 10:49:26.602 [mic] освобождено: треков 0, контекст interrupted→closed, rate 48000
+  85232.0 10:49:26.616 [stand] vosk-ready {"micMs":13}
+  85232.0 10:49:26.616 [stand] wl {"kind":"status","status":"listening"}
+  85232.0 10:49:26.616 [game-audio] AudioContext игры → suspended
+  85232.0 10:49:26.616 [sound] AudioContext state → suspended
+  85304.0 10:49:26.688 [perf] fps=61 worst=25ms drops=0 anim=2 inf=2(navDueGlow:1,navDuePulse:1) waves=0 audio=0/0 video=3/0 bubbles=-1 frozen=0 dom=-1 raf=183(c:122,Te:61) canvas=0 snd=game:suspended,sounds:suspended,capture:suspended ses=auto/— mic=нет потока
+  86310.0 10:49:27.694 [perf] fps=59 worst=25ms drops=0 anim=2 inf=2(navDueGlow:1,navDuePulse:1) waves=0 audio=0/0 video=3/0 bubbles=-1 frozen=0 dom=-1 raf=177(c:118,Te:59) canvas=0 snd=game:suspended,sounds:suspended,capture:suspended ses=auto/— mic=нет потока
+  87313.0 10:49:28.697 [perf] fps=61 worst=25ms drops=0 anim=2 inf=2(navDueGlow:1,navDuePulse:1) waves=0 audio=0/0 video=3/0 bubbles=-1 frozen=0 dom=-1 raf=183(c:122,Te:61) canvas=0 snd=game:suspended,sounds:suspended,capture:suspended ses=auto/— mic=нет потока
+  88260.0 10:49:29.644 [note] audio-warm {"step":"rewarm","why":"касание (прерывание в игре)","via":"pointerup","n":1,"activation":true,"ctx":"suspended"}
+  88260.0 10:49:29.644 [audio-warm] повторный прогрев звука игры (касание (прерывание в игре))
+  88522.0 10:49:29.906 [word-audio] слова прогреты заново: 0
+  88522.0 10:49:29.906 [sound] preload message-in
+  88522.0 10:49:29.906 [sound] preload answer-correct
+  88522.0 10:49:29.906 [sound] preload answer-wrong
+  88522.0 10:49:29.906 [sound] preload pin-message
+  88522.0 10:49:29.906 [sound] preload typing-1
+  88522.0 10:49:29.906 [sound] preload typing-2
+  88522.0 10:49:29.906 [sound] preload xp-gain
+  88522.0 10:49:29.906 [sound] preload level-up
+  88522.0 10:49:29.906 [sound] preload lesson-locked
+  88523.0 10:49:29.907 [perf] fps=53 worst=41ms drops=0 anim=2 inf=2(navDueGlow:1,navDuePulse:1) waves=0 audio=0/0 video=3/0 bubbles=-1 frozen=0 dom=-1 raf=159(c:106,Te:53) canvas=0 snd=game:suspended,sounds:suspended,capture:suspended ses=auto/— mic=нет потока
+  88568.0 10:49:29.952 [page] audioSession: смена состояния; ctx=running, audioSession=auto/—, микрофон=нет потока
+  88568.0 10:49:29.952 [game-audio] AudioContext игры → running
+  88574.0 10:49:29.958 [jank] кадр 387 мс; перед ним: [sound] preload lesson-locked ‖ [page] audioSession: смена состояния; ctx=running, audioSession=auto/—, микрофон=нет потока ‖ [game-audio] AudioContext игры → running
