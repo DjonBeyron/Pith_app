@@ -123,8 +123,8 @@ export function createPhraseListener({ phrases: phrasesIn, lang = 'en', getStrea
       const p = phrases.find(x => x.key === s.key), say = (index, d, gone = false) => onWord?.({ phraseKey: s.key, index, text: p.words[index], draft: d, ...(gone ? { gone } : {}) })
       if (!wordByWord) { s.hits.forEach((ok, index) => { if (ok && (!got.has(index) || (!draft && !got.get(index)))) { got.set(index, !draft); say(index, draft) } }); continue }
       const base = baseOf(s.key)
-      const emptyFinal = !draft && !s.hits.some((h, i) => h && i >= base) // итог без единого слова цели («итог «»»: короткое «to» Vosk не подтвердил) — ничего не говорит о черновых словах: не откатываем (владелец v3.3.283: «откинуло прогресс пилюли назад»)
-      if (!emptyFinal) for (const [index, kept] of got) if (!kept && !s.hits[index]) { got.delete(index); hold.forget(s.key, index); log(`[phrase-ear] слово ${index + 1} «${p.words[index]}» откат (${s.key}): в услышанном по порядку его нет ${rel()}`); say(index, true, true) }
+      const emptyFinal = !draft && !s.hits.some((h, i) => h && i >= base) && !curRaw.includes('[unk]') // v3.3.318: итог «[unk]» — не пустой: Vosk услышал ЧУЖОЕ слово, черновое слово этого захода было догадкой — откатываем // итог без единого слова цели («итог «»»: короткое «to» Vosk не подтвердил) — ничего не говорит о черновых словах: не откатываем (владелец v3.3.283: «откинуло прогресс пилюли назад»)
+      if (!emptyFinal) for (const [index, kept] of got) if (!kept && !s.hits[index]) { got.delete(index); hold.forget(s.key, index); progressed = false; log(`[phrase-ear] слово ${index + 1} «${p.words[index]}» откат (${s.key}): в услышанном по порядку его нет ${rel()}`); say(index, true, true) }
       let k = 0
       while (s.hits[k] || got.get(k) === true) k++
       const blocked = draft && /\[unk\]\s+[^\s[]/.test(curRaw) // v3.3.311: перед словом в заходе «[unk]» («[unk] from») — это, скорее всего, чужое слово, которое Vosk сопоставил со словом цели: черновиком не принимаем, ждём итог захода
@@ -145,7 +145,7 @@ export function createPhraseListener({ phrases: phrasesIn, lang = 'en', getStrea
     if (disposed || !phrases.length) return false
     if (wordByWord) promoteHeld()
     const heard = heardNow()
-    if (!heard) return false
+    if (!heard) { if (wordByWord && curRaw.includes('[unk]')) words(score(''), draft); return false } // v3.3.318 (журнал владельца 10:23: черновик «you» через 200 мс переписан на «[unk]», итог «[unk]» — а «you» осталось засчитанным): заход, где осталось одно «[unk]», откатывает черновые слова
     let scores = score(heard)
     if (wordByWord && draft && /\[unk\]\s+[^\s[]/.test(curRaw)) { // v3.3.311: перед словом в заходе «[unk]» («[unk] from») — чужое слово, сопоставленное со словом цели: новые слова черновиком не принимаем (и фразу не засчитываем), ждём итог захода
       scores = scores.map(s => { const b = baseOf(s.key), hits = s.hits.map((h, i) => h && i < b), ok = hits.filter(Boolean).length; if (ok < s.ok && !blockedLogged) { blockedLogged = true; log(`[phrase-ear] новые слова в заходе с «[unk]» перед ними — черновиком не принимаю, жду итог ${rel()}`) } if (ok < s.ok && !unkTimer) { const mine = gen; unkTimer = setTimer(() => { unkTimer = 0; if (mine !== gen || disposed || !curDraft || !current) return; log(`[phrase-ear] слово за «[unk]» ждёт итог ${UNK_FINAL_MS} мс (черновик «${current}») — прошу итог захода ${rel()}`); ear?.stop?.() }, UNK_FINAL_MS) } return { ...s, hits, ok, ratio: hits.length ? ok / hits.length : 0 } })
@@ -183,7 +183,7 @@ export function createPhraseListener({ phrases: phrasesIn, lang = 'en', getStrea
     if (kind === 'partial' || kind === 'final') {
       if (isHeld()) return // говорит Пит: его голос из динамика — не ученик
       const text = clean(data?.raw)
-      if (kind === 'partial' && !text) return
+      if (kind === 'partial' && !text && !(wordByWord && String(data?.raw ?? '').includes('[unk]') && [...sent.values()].some(g => [...g.values()].includes(false)))) return // пустой черновик не интересен — кроме «[unk]» поверх чернового слова (проход 1): это Vosk исправил свою догадку
       if (wordByWord && text && hold.noise()) { if (!noiseLogged) { noiseLogged = true; log(`[phrase-ear] «${text}» проигнорировано: громкость захода ${hold.peak().toFixed(4).replace('.', ',')} ${hold.peak() < PEAK_MIN ? `ниже ${String(PEAK_MIN).replace('.', ',')}` : 'не громче фона микрофона (голоса в заходе не было)'} — это шум, не речь ${rel()}`) } return } // v3.3.310: шум громкостью 0,003 Vosk читал как «where» и линия прыгала
       onEar?.({ kind, text, raw: String(data?.raw ?? '').toLowerCase().trim() }) // raw — с «[unk]»: Vosk отдаёт сказанное вне словаря (громкое «is» вместо «are») как «[unk]» — это неверное слово (racePhraseWrongWord)
       if (text) firstAt ??= now()

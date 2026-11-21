@@ -115,3 +115,29 @@ describe('журнал 23:26 (v3.3.316): сказал «фриз» вместо 
     r.l.stop()
   })
 })
+
+describe('журнал 10:23 (v3.3.317): «я точно сказал некоторые слова иначе, а он засчитал» — черновик «you» через 200 мс стал «[unk]», итог «[unk]», а «you» осталось', () => {
+  it('черновое слово, которое Vosk переписал на «[unk]», откатывается и через 1 с не подтверждается; итог «[unk]» — неверное слово', async () => {
+    const FROM = { key: 'from', words: ['Where', 'are', 'you', 'from'] }
+    const r = rig([FROM], { wordByWord: true }); await flush()
+    r.cur().cb.onPartial('where are'); await end(r, 'where are', 10)
+    for (const v of [0.001, 0.15, 0.16]) r.cur().cb.onLevel(v)
+    r.cur().cb.onPartial('you'); expect(r.words.at(-1)).toMatchObject({ index: 2, draft: true })
+    r.advance(200); r.cur().cb.onPartial('[unk]')
+    expect(r.words.at(-1)).toMatchObject({ index: 2, gone: true })
+    r.advance(3000); r.cur().cb.onResult('[unk]', { words: [] }); r.advance(10); await flush()
+    expect(r.words.some(w => w.index === 2 && !w.draft && !w.gone)).toBe(false) // «продержалось 1000 мс — подтверждено» не случилось
+    expect(r.hears.some(h => h.kind === 'wrong')).toBe(true)
+    r.l.stop()
+  })
+  it('итог «[unk]» без переписанного черновика тоже откатывает черновое слово захода; честно пустой итог «» — не откатывает (v3.3.283)', async () => {
+    const FROM = { key: 'from', words: ['Where', 'are', 'you', 'from'] }
+    const a = rig([FROM], { wordByWord: true }); await flush()
+    a.cur().cb.onPartial('where'); a.cur().cb.onResult('[unk]', { words: [] })
+    expect(a.words.at(-1)).toMatchObject({ index: 0, gone: true })
+    const b = rig([FROM], { wordByWord: true }); await flush()
+    b.cur().cb.onPartial('where'); b.cur().cb.onResult('', { words: [] })
+    expect(b.words.some(w => w.gone)).toBe(false)
+    a.l.stop(); b.l.stop()
+  })
+})
