@@ -18,6 +18,7 @@ import SpeechLogBlock from './SpeechLogBlock.jsx'
 import SpeechSayBlock from './SpeechSayBlock.jsx'
 import SoundDiagBlock from './SoundDiagBlock.jsx'
 import GameMicBlock from './GameMicBlock.jsx'
+import StartModeBlock from './StartModeBlock.jsx'
 import GameVolumeBlock from './GameVolumeBlock.jsx'
 import GameSoundsBlock from './GameSoundsBlock.jsx'
 import GameTestBlock from './GameTestBlock.jsx'
@@ -73,7 +74,11 @@ export default function AdminSpeechTab() {
     <div className="aeWrap" ref={rootRef}>
       <div className="aeHead"><span className="aeTitle">Голос (проба распознавания речи)</span></div>
       <p className="aeHint">Тест Web Speech API перед модулем «Сказать фразу». Ничего не отправляется на наш сервер и не сохраняется, кроме журнала в этом браузере.</p>
+      <StartModeBlock />
       <RaceBlock />
+      {/* v3.3.335 (владелец: «всё старое, кроме режима запуска и «Встряхни память» с настройками, — в олд»): остальные блоки вкладки свёрнуты в один раздел */}
+      <details className="aspOld" data-testid="speech-old">
+      <summary className="aspOldSum">🗄 Старое — прежние проверки и настройки (нажми, чтобы открыть)</summary>
       <GameVolumeBlock />
       <RehearsalPolishBlock />
       <Game2Block />
@@ -88,6 +93,7 @@ export default function AdminSpeechTab() {
       <SpeechLogBlock log={log} setLog={setLog} caps={caps} perm={perm} since={SESSION_START} series={series.state} />
       <SpeechCaptureMemo />
       <SpeechMemo />
+      </details>
     </div>
   )
 }

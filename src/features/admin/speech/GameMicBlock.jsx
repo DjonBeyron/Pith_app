@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { isMicProcessingOn, setMicProcessingOn, describeGameMic } from '../../../shared/lib/gameMic.js'
-import { readAudioSessionMode, writeAudioSessionMode, readMicHoldMode, writeMicHoldMode, readStartMode, writeStartMode } from '../../../shared/lib/gameAudioSettings.js'
+import { readAudioSessionMode, writeAudioSessionMode, readMicHoldMode, writeMicHoldMode } from '../../../shared/lib/gameAudioSettings.js'
 import { describeAudioSession } from '../../../shared/lib/gameMicSession.js'
 
 // Админ → «Голос»: «Микрофон игры» (для «Повтори за диктором» и «Скажи вслух»). Тумблер «Обработка микрофона системой (эхо/шум)» — localStorage `pithy_mic_processing_v1`, по умолчанию ВЫКЛ.
@@ -8,8 +8,6 @@ import { describeAudioSession } from '../../../shared/lib/gameMicSession.js'
 // на своём телефоне. Действует на следующее открытие потока (тап «Начать» в игре). Ниже — с какими ограничениями открыт/откроется поток и что реально дал браузер (track.getSettings).
 // Два режима для проверки «хруста» и «то громче, то тише» на iPhone (Safari, iOS 16.4+): тип аудиосессии и глушение дорожки микрофона на время речи Пита и диктора. Читаются при каждой игре; пробуй 4 сочетания 2×2.
 const SESSION_OPTS = [['play-and-record', 'Запись и воспроизведение'], ['auto', 'Авто (не трогать)'], ['phases', 'Переключать по фазам'], ['playback', 'Playback весь сеанс (умолчание)']]
-// Режим запуска звука (v3.3.334): на iPhone при старте всплывает системный ползунок громкости и сам идёт вверх — проверяем, какой порядок шагов старта его не трогает
-const START_OPTS = [['default', 'А · как сейчас (умолчание)'], ['direct', 'Б · сразу playback'], ['late', 'В · playback после микрофона'], ['wait', 'Г · как сейчас + реплика ждёт микрофон'], ['direct-wait', 'Д · Б + реплика ждёт микрофон']]
 const HOLD_OPTS = [['enabled-false', 'Выключать дорожку (по умолчанию)'], ['none', 'Не трогать'], ['close', 'Закрывать микрофон']]
 const yn = v => (v === true ? 'да' : v === false ? 'нет' : '—')
 
@@ -28,8 +26,6 @@ export default function GameMicBlock() {
   const [info, setInfo] = useState(describeGameMic)
   const [sessionMode, setSessionMode] = useState(readAudioSessionMode)
   const [holdMode, setHoldMode] = useState(readMicHoldMode)
-  const [startMode, setStartMode] = useState(readStartMode)
-  const pickStart = v => { writeStartMode(v); setStartMode(readStartMode()) }
   const pickSession = v => { writeAudioSessionMode(v); setSessionMode(readAudioSessionMode()); setInfo(describeGameMic()) }
   const pickHold = v => { writeMicHoldMode(v); setHoldMode(readMicHoldMode()); setInfo(describeGameMic()) }
   const sess = describeAudioSession()
@@ -48,9 +44,6 @@ export default function GameMicBlock() {
       <Chips label="Аудиосессия iOS" value={sessionMode} options={SESSION_OPTS} onPick={pickSession} testid="audio-session-mode" />
       <p className="aspHint">«Запись и воспроизведение» (по умолчанию): тип ставится в тапе «Начать» и держится до конца игры — iOS не пересчитывает режим на каждом звуке. «Авто»: ничего не трогаем, как раньше. «По фазам»: на время речи Пита и диктора — playback, на очередь ученика — запись и воспроизведение (экспериментально: может заглушить микрофон). Что проверить: хруст в голосе Пита и скачки громкости; в «Скачать отладку» события audio-session.</p>
       <div className="aspCapVal" data-testid="audio-session-info">{sess.supported ? `navigator.audioSession.type сейчас: ${sess.type ?? '—'}` : 'navigator.audioSession: нет API (нужен Safari 16.4+) — режим ничего не меняет'}</div>
-      <h4 className="aspH">Режим запуска звука (iPhone: ползунок громкости при старте)</h4>
-      <Chips label="Режим запуска звука" value={startMode} options={START_OPTS} onPick={pickStart} testid="audio-start-mode" />
-      <p className="aspHint" data-testid="audio-start-hint">Зачем: при старте игры на iPhone всплывает системный ползунок громкости и сам идёт вверх. Его двигает не усиление игры, а смена режима звука iOS: сейчас на старте тип меняется дважды (запись → микрофон → playback). Действует, когда выше выбрано «Playback весь сеанс»; читается на каждом старте, перезагрузка не нужна. «А» — как было. «Б» — тип playback ставится сразу в тапе, «запись и воспроизведение» не ставим вовсе (риск: iOS может не дать микрофон — тогда слова не слышны). «В» — до микрофона тип не трогаем, playback — после его ответа. «Г» и «Д» — то же, что «А» и «Б», но первая реплика «Гонки» ждёт микрофон (до 2,5 с), чтобы звук не начинался в «режиме звонка». Пробуй по одному: закрой игру, выбери режим, запусти, смотри на ползунок; в журнале игры — строка «[audio] режим запуска звука».</p>
       <h4 className="aspH">Микрофон во время речи Пита</h4>
       <Chips label="Микрофон во время речи Пита" value={holdMode} options={HOLD_OPTS} onPick={pickHold} testid="mic-hold-mode" />
       <p className="aspHint">«Выключать дорожку» (по умолчанию с 3.3.76; на журналах iPhone с «Не трогать» голос Пита попадал в распознавание, и пилюли защёлкивались во время его речи): пока говорит Пит или диктор, track.enabled = false — динамик не попадает в микрофон и iOS не приглушает звук под захват; потом дорожка возвращается и проверяется (muted / readyState — в отладке mic-hold). Если после возврата дорожка не ожила, игра переоткрывает микрофон. Что проверить: пропал ли хруст и «то громче, то тише»; слышит ли игра ученика после реплик Пита. В этом режиме запись отладки во время речи тихая — это ожидаемо.</p>

@@ -113,3 +113,8 @@
 .aspChipGo { padding: 10px 18px; border-color: #b6fe3b; background: #b6fe3b; color: #101215; font-size: 14px; font-weight: 700; }
 .aspChipGo:disabled { border-color: #2a2d35; background: transparent; color: #666; font-weight: 400; opacity: 1; }
 .aspNote { flex: 1; min-width: 0; }
+
+/* v3.3.335: раздел «Старое» вкладки «Голос» — прежние блоки свёрнуты (details), наверху остаются режим запуска звука и «Встряхни память» */
+.aspOld { margin-top: 12px; border: 1px solid #2c313a; border-radius: 12px; padding: 0 10px; }
+.aspOld[open] { padding-bottom: 10px; }
+.aspOldSum { cursor: pointer; padding: 12px 2px; font-size: 14px; font-weight: 600; color: #b9c0cc; list-style-position: inside; }
