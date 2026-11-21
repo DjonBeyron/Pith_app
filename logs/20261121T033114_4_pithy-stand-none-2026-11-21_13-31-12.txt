@@ -1,0 +1,29 @@
+Pithy · стенд пилюль · замечание: —
+версия 3.3.323 · iPhone iOS 18.7 402×874 @3 · 2026-11-21 13:31:12 (UTC+10:00)
+режим По словам (проход 1) · язык EN · длина любые · сид mwpundo7-2 · авто 1,2 с
+отрезок: текущая цель #5 «I'm trying to learn» 29,452–93,978 с
+цели в файле: #4 «Where are you from» По словам (проход 1) EN с 22,871 с — (только хвост до отрезка) · #5 «I'm trying to learn» По словам (проход 1) EN с 30,452 с —
+микрофон: без сбоев
+метки кадров: нет
+звук: записи со звуком не было
+итог честности отрезка: целей 2, зачётов 0, ложных срабатываний 0, додумано 0 из 35 слов, перестроек 4, откатов 0, неверных 8
+состав: событий 2060 (в хронике 0), кадров 0 (не нужны теме), строк журнала 0
+
+== Комментарий ==
+(без комментария)
+
+== Цель #4 «Where are you from» — EN, По словам (проход 1), появилась 22,871 с ==
+-- зачёт: — без исхода --
+-- хроника (+мс от появления цели; 0 строк) --
+   (событий темы нет)
+
+== Цель #5 «I'm trying to learn» — EN, По словам (проход 1), появилась 30,452 с ==
+-- зачёт: — без исхода --
+-- хроника (+мс от появления цели; 0 строк) --
+   (событий темы нет)
+
+== Журнал игры (строки по теме за отрезок: 0; из журнала вытеснено старых строк: 602) ==
+   (строк нет)
+
+---JSON---
+{"kind":"pithy-stand-pack","v":1,"grammars":[],"thinned":null,"mic":"без сбоев","header":{"version":"3.3.323","device":"iPhone iOS 18.7 402×874 @3","deviceInfo":{"ua":"Mozilla/5.0 (iPhone; CPU iPhone OS 18_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/27.0.1 Mobile/15E148 Safari/604.1","platform":"iPhone","weak":null,"screen":{"w":402,"h":874,"innerW":402,"innerH":638,"dpr":3}},"date":"2026-11-21T03:31:12.564Z","mode":"words","lang":"en","len":"any","seed":"mwpundo7-2","topics":[],"span":{"kind":"target","from":29452,"to":93978,"label":"текущая цель #5 «I'm trying to learn» 29,452–93,978 с"},"audio":null},"comment":"","marks":[],"targets":[{"t":22871,"k":"target","n":3,"mode":"words","lang":"en","len":"any","seed":"mwpundo7-2","say":"Where are you from","shown":"Where are you from","other":"Откуда ты","words":4,"mix":3,"mixOf":24,"gen":0},{"t":30452,"k":"target","n":4,"mode":"words","lang":"en","len":"any","seed":"mwpundo7-2","say":"I'm trying to learn","shown":"I'm trying to learn","other":"Я пытаюсь учиться","words":4,"mix":4,"mixOf":24,"gen":0}],"verdicts":[{"n":3,"say":"Where are you from","mark":"—","how":"без исхода","ear":[]},{"n":4,"say":"I'm trying to learn","mark":"—","how":"без исхода","ear":[]}],"events":[],"frames":[],"framesOmitted":0,"metrics":[{"n":3,"say":"Where are you from","t":22871},{"n":4,"say":"I'm trying to learn","t":30452}],"honesty":{"targets":2,"wins":0,"falses":0,"rebuilds":4,"changes":22,"heard":35,"extra":0,"extraPct":0,"backs":0,"wrongs":8,"voiceToPartial":655,"toFill":81,"afterVoice":null},"journal":[]}
