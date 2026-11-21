@@ -1,5 +1,7 @@
-import sys, json
+import sys, json, os
 from psd_tools import PSDImage
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from psd_offsets import all_disp   # сдвиги слоёв по кадрам (владелец двигал хвост и штрихи в своём кадре)
 PSD = sys.argv[1]; OUT = sys.argv[2]
 SC = 8; W, H = 1600, 1920
 K = 0.33014; TX = -13.998; TY = -6.451; BX, BY = 484, 678
@@ -12,7 +14,8 @@ def loc(px, py):
     return nx - BX, ny - BY
 def f1(v): s = ('%.1f' % v).rstrip('0').rstrip('.'); return '0' if s in ('-0', '') else s
 def pt(p): return f1(p[0]) + ' ' + f1(p[1])
-def px(pnt): return (pnt[1] * W, pnt[0] * H)   # psd-tools: (y, x) нормированные
+DX = DY = 0   # сдвиг текущего слоя в его кадре, px холста (ставится ниже)
+def px(pnt): return (pnt[1] * W + DX, pnt[0] * H + DY)   # psd-tools: (y, x) нормированные
 def path_of(sub, rep=None):
     ks = list(sub); n = len(ks)
     A = [px(k.anchor) for k in ks]; OUTH = [px(k.leaving) for k in ks]; INH = [px(k.preceding) for k in ks]
@@ -24,14 +27,15 @@ def path_of(sub, rep=None):
         straight = (abs(c1[0]-A[i][0]) + abs(c1[1]-A[i][1]) < 0.05) and (abs(c2[0]-p[0]) + abs(c2[1]-p[1]) < 0.05)
         out += ('L' + pt(loc(*p))) if straight else ('C' + pt(loc(*c1)) + ' ' + pt(loc(*c2)) + ' ' + pt(loc(*p)))
     return out + ('Z' if sub.is_closed() else '')
-psd = PSDImage.open(PSD)
+psd = PSDImage.open(PSD); DISP = all_disp(psd)
 frames = []; info = []
 for grp in [x for x in psd if x.kind == 'group']:
-    tail = marks = None
+    n = int(grp.name.split()[-1]); tail = marks = None
     for l in grp:
         if l.name.startswith('Хвост'): tail = l
         elif l.name.startswith('Штрихи'): marks = l
-    tp = [p for p in tail.vector_mask.paths if p.is_closed() and len(list(p)) > 2]; assert len(tp) == 1, (grp.name, len(tp)); tpath = path_of(tp[0])
+    tp = [p for p in tail.vector_mask.paths if p.is_closed() and len(list(p)) > 2]; assert len(tp) == 1, (grp.name, len(tp)); DX, DY = DISP[('tail', n)].get(n) or (0, 0); tpath = path_of(tp[0])
+    DX, DY = (DISP.get(('marks', n), {}).get(n) or (0, 0)) if marks else (0, 0)
     mpath = ''.join(path_of(s) for s in marks.vector_mask.paths if s.is_closed() and len(list(s)) > 2) if marks else ''
     frames.append({'tail': tpath, 'marks': mpath})
     info.append((grp.name, len(list(tail.vector_mask.paths[0])), len(marks.vector_mask.paths) if marks else 0, bool(marks and marks.visible), str(tail.stroke)[:60] if getattr(tail, 'stroke', None) else None))
