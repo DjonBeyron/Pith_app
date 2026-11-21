@@ -13,8 +13,9 @@ import { createGame2Listener } from '../game2/game2Listen.js'
 import { createWordListener } from '../player/modules/rotate-phone/wordLaneListen.js'
 import { createDraftHold, PEAK_MIN, DRAFT_KEEP_MS } from './racePhraseDraftHold.js'
 import { createTailHold, cutTail, holdLast, TAIL_HOLD_MS } from './racePhraseTailHold.js'
+import { unglue } from './racePhraseGlue.js'
 import { pLog } from '../../shared/lib/debug.js'
-import { scorePhrases, pickPhrase, unionWords, earLine, PHRASE_OK, PHRASE_GAP } from './racePhraseScore.js'
+import { scorePhrases, pickPhrase, unionWords, earLine, PHRASE_OK, PHRASE_GAP, cleanHeard as clean, normPhrases as norm } from './racePhraseScore.js'
 import { GATE_RMS } from '../../shared/lib/vosk/voskGate.js'
 import { createEarVoice } from '../../shared/lib/vosk/voskVoice.js'
 import { STOP_BY } from '../../shared/lib/vosk/voskTiming.js'
@@ -31,8 +32,6 @@ export const SAME_LOG_MS = 500   // «partial без изменений» в ж�
 export const NEVER_COMPLETE = 1000 // «сколько слов ждём» для слушателя слов: заход никогда не «полный» — иначе его счёт по словам («where are are you» = 4, а после прошлых заходов — любое одно слово)
 // держал затвор тишины открытым, и эндпойнтер Vosk сам рвал заход в паузе перед последним словом (замер CPU 4×: «from» терялось); полную фразу решает decide() по черновику
 
-const clean = raw => String(raw ?? '').toLowerCase().split(/\s+/).filter(w => w && w !== '[unk]').join(' ')
-const norm = list => (list ?? []).map(p => ({ key: p.key, words: (p.words ?? []).map(w => String(typeof w === 'string' ? w : w?.text ?? '')).filter(Boolean) })).filter(p => p.key && p.words.length)
 
 /**
  * phrases — [{ key, words: ['nice', 'to', 'meet', 'you'] }]; onWord({ phraseKey, index, text, draft, gone? }) — новое услышанное слово кандидата: draft — пока только в черновике (partial), потом то же слово
@@ -185,6 +184,7 @@ export function createPhraseListener({ phrases: phrasesIn, lang = 'en', getStrea
     if (kind === 'partial-same') { const text = clean(data?.raw); if (text && !isHeld() && now() - sameAt >= SAME_LOG_MS) { sameAt = now(); log(`[phrase-ear] partial без изменений «${text}» ${rel()}`) } if (muteTimer) mute(mine, !gateOpen); return }
     if (kind === 'partial' || kind === 'final') {
       if (isHeld()) return // говорит Пит: его голос из динамика — не ученик
+      if (kind === 'final' && wordByWord && data?.words?.length) data = { ...data, raw: unglue(data.raw, data.words, log) } // короткий кусок вплотную к «[unk]» — часть чужого слова (racePhraseGlue.js)
       const text = clean(data?.raw)
       if (kind === 'partial' && !text && wordByWord && !loneTimer && String(data?.raw ?? '').includes('[unk]') && !hold.noise()) loneTimer = setTimer(() => { loneTimer = 0; if (mine !== gen || disposed || current) return; log(`[phrase-ear] в черновике только «[unk]» при голосе ${UNK_FINAL_MS} мс — прошу итог захода ${rel()}`); ear?.stop?.() }, UNK_FINAL_MS) // v3.3.319 (владелец: «громко и чётко говорю неправильные слова — красным не светится»; журнал: «[unk]» в 47543, красное только по итогу через 3,8 с)
       if (kind === 'partial' && !text && !(wordByWord && String(data?.raw ?? '').includes('[unk]') && [...sent.values()].some(g => [...g.values()].includes(false)))) return // пустой черновик не интересен — кроме «[unk]» поверх чернового слова (проход 1): это Vosk исправил свою догадку

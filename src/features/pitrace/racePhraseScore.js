@@ -109,3 +109,8 @@ export function earLine(phrases, heard, scores, picked) {
   const r = picked ?? best
   return `[phrase-ear] кандидаты ${cands} · услышал «${heard}» · лучший ${r ? `«${r.key}»` : '—'} ratio ${r ? r.ratio.toFixed(2) : '0'}${picked ? '' : ' · без совпадения'}`
 }
+
+/** Сырой текст Vosk → слова строчными без «[unk]» (слушатель racePhraseListen.js) */
+export const cleanHeard = raw => String(raw ?? '').toLowerCase().split(/\s+/).filter(w => w && w !== '[unk]').join(' ')
+/** Кандидаты слушателя: [{ key, words: [строки] }] без пустых */
+export const normPhrases = list => (list ?? []).map(p => ({ key: p.key, words: (p.words ?? []).map(w => String(typeof w === 'string' ? w : w?.text ?? '')).filter(Boolean) })).filter(p => p.key && p.words.length)

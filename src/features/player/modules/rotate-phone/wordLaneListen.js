@@ -141,7 +141,7 @@ export function createWordListener({ word, targets: targetsIn, expected = SLOT_C
       clearTimer(missTimer)
       // Итог (final) — промах настоящий сразу; в черновике он должен устояться: следующий partial может переслушать слово, и тогда промаха не было
       const settled = final || count <= misses
-      onDebug?.(final ? 'final' : 'partial', { raw, seq: r.seq, misses: r.misses, count, settled, tail: r.tail, muted: now() < mutedUntil, absorbed, ...(stats ? { stopBy: stats.stopBy, gatedMs: stats.gatedMs, maxGapMs: stats.maxGapMs, lateChunks: stats.lateChunks, ...(stats.voiceMs != null ? { voiceMs: stats.voiceMs, gatedVoiceMs: stats.gatedVoiceMs, agcMax: stats.agcMax } : {}) } : {}) })
+      onDebug?.(final ? 'final' : 'partial', { raw, seq: r.seq, misses: r.misses, count, settled, tail: r.tail, muted: now() < mutedUntil, absorbed, ...(stats ? { words: stats.words, stopBy: stats.stopBy, gatedMs: stats.gatedMs, maxGapMs: stats.maxGapMs, lateChunks: stats.lateChunks, ...(stats.voiceMs != null ? { voiceMs: stats.voiceMs, gatedVoiceMs: stats.gatedVoiceMs, agcMax: stats.agcMax } : {}) } : {}) })
       let next = base.seq.concat(r.seq), tl = r.tail
       if (ear && !final) { next = ear.draft(next, seq.length, raw); if (ear.pending()) tl = { target: ear.pending().seq.at(-1), tokens: RU_FULL_TOKENS } } // цель — последнее слово черновика: может быть не договорена, ждём конец голоса и итог (wordEarRule.js)
       if (settleRu && next) { // попадание из черновика ждёт RU_SETTLE_MS (пилюля его цели тем временем наливается); итог берёт своё, а если выронил слово черновика — черновое
