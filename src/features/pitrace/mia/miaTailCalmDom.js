@@ -1,6 +1,8 @@
 import { calmSteps, wakeSteps, instantSteps, pulseSteps, REST_FRAME } from './miaTailCalm.js'
 import { redLevel } from './miaTailWant.js'
 
+export const STOP_CYCLES = 1 // сколько раз хвост проходит кадр 1 после команды «стоп»: 1 — встаёт на первом же (≤ 0,8 с); 3 — как первый показанный вариант
+
 // Показ хвоста Мии по расписанию (mia/miaTailCalm.js): на время остановки/разгона анимацию CSS заменяет класс tail-js — кадр держит класс `on`
 // (race-mia.css). После разгона класс снимается, CSS продолжает цикл с кадра --tail-from. root — .wlMiaCat; later(fn, ms) — таймер владельца (возвращает отмену).
 const nodes = root => root.querySelectorAll('.cat-tail .mt, .cat-tail .mk')
@@ -28,10 +30,10 @@ function play(root, steps, later, done) {
 }
 
 /** Хвост затихает. mode 'slow' (по умолчанию) — по порядку кадров с замедлением до кадра 1; 'instant' — обычная скорость, три прохода и мгновенный стоп на кадре 1. → отмена */
-export function calmTail(root, later, mode = 'slow') {
+export function calmTail(root, later, mode = 'slow', cycles) {
   const cur = currentFrame(root) // читаем ДО класса tail-js: он гасит CSS-анимацию, и видимого кадра уже нет
   root.classList.add('tail-js'); showFrame(root, cur)
-  return play(root, mode === 'instant' ? instantSteps(cur) : calmSteps(cur), later)
+  return play(root, mode === 'instant' ? instantSteps(cur, cycles) : calmSteps(cur), later)
 }
 
 /** Хвост снова дёргает: 'slow' — из покоя разгоняется по порядку, затем цикл CSS с нужного кадра; 'instant' — сразу обычный цикл. → отмена */
@@ -58,7 +60,7 @@ export function driveTail(root, ctl, want, later) {
   if (ctl.want === want) return
   if (typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches) return
   ctl.want = want; ctl.cancel?.()
-  ctl.cancel = want ? wakeTail(root, later) : calmTail(root, later)
+  ctl.cancel = want ? wakeTail(root, later, 'instant') : calmTail(root, later, 'instant', STOP_CYCLES) // как вариант A владельца: ни замедления, ни плавного старта — обычная скорость и мгновенный стоп на кадре 1
 }
 
 /** Уровень красной зоны на сцене (px от её верха): у финала — по настоящей шкале (.wlBossBox), в допросе шкалы нет — тот же уровень по её размерам (от верха ленты до низа с отступом 40 px) */

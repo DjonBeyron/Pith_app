@@ -44,6 +44,9 @@ describe('вариант «мгновенно» и вариант «дышит»
       expect(s.slice(0, -1).every(x => x.ms === TAIL_MS)).toBe(true); expect(s.at(-1).ms).toBe(0)
     }
   })
+  it('«мгновенно» с одним проходом: встаёт на первом же кадре 1', () => {
+    for (let cur = 0; cur < TAIL_FRAMES; cur++) { const s = instantSteps(cur, 1); expect(s.filter(x => x.f === REST_FRAME).length).toBe(1); expect(s.at(-1).f).toBe(REST_FRAME); expect(s.length).toBe((REST_FRAME - cur + TAIL_FRAMES) % TAIL_FRAMES || TAIL_FRAMES) }
+  })
   it('«дышит»: кадры по порядку, выдержка и больше, и меньше обычной, без «медленно-медленно» (≤ 220 мс), дальше цикл CSS с next', () => {
     const { steps, next } = pulseSteps(2)
     steps.forEach((x, i) => expect(x.f).toBe((3 + i) % TAIL_FRAMES))

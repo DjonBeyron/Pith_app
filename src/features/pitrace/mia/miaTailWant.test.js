@@ -10,6 +10,7 @@ describe('когда дёргается хвост Мии', () => {
     expect(wantStep({ want: false, seen: new Map() }, { kind: 'ann', shown: true }).want).toBe(true)
     expect(wantStep({ want: true, seen: new Map() }, { kind: 'ann', shown: false }).want).toBe(false)
   })
+  it('конечный диалог: дёргается, пока Мия на экране', () => { expect(wantStep({ want: false, seen: new Map() }, { kind: 'end', shown: true }).want).toBe(true); expect(wantStep({ want: true, seen: new Map() }, { kind: 'end', shown: false }).want).toBe(false) })
   it('другие стадии: лежит', () => { expect(wantStep({ want: true, seen: new Map() }, { kind: null, shown: true }).want).toBe(false) })
   it('круг: пилюля дошла до красного уровня — дёргается; следующая показалась на 50 % — остановка', () => {
     const w = run('round', [[P('a', -40, -10)], [P('a', 300, 340)], [P('a', 700, 760)], [P('a', 780, 840)], [P('a', 900, 960)], [P('a', 1000, 1060), P('b', -60, -20)], [P('a', 1100, 1160), P('b', 20, 60)]])
