@@ -6,7 +6,7 @@ import { createAudioRec } from './standAudio.js'
 import { snapPillEl } from './pillStandSnap.js'
 
 // Кадр стенда пилюль и запись (CONCEPT_PILLSTAND.md): ОДИН rAF на стенд — «слово → заливка дошла» (standFillWatch.js → событие 'reach'), полоска уровня (пишется в DOM, без React) и, во время записи,
-// снимок кадра (pillStandSnap.js: только чтение DOM пилюли, без клонирования) в рекордер (pillStandRecorder.js: ≤ 60 к/с, ≤ 3 мин) + звук микрофона MediaRecorder (standAudio.js, тот же поток).
+// снимок кадра (pillStandSnap.js: только чтение DOM пилюли, без клонирования) в рекордер (pillStandRecorder.js: ≤ 60 к/с, ≤ 10 мин) + звук микрофона MediaRecorder (standAudio.js, тот же поток).
 // Стоп — запись { frames, events (трасса за время записи ± 0,5 с), audio { blob, url, type, startMs }, fps, ms } для плеера и выгрузки. → { rec, state, start, stop, rmsRef }.
 const r4 = v => (v == null ? null : Math.round(v * 10000) / 10000)
 const PAD_MS = 500
@@ -41,7 +41,7 @@ export default function usePillStandRecord({ trace, probe, ear, viewing = false 
         const el = probe.el?.isConnected ? probe.el : null
         const r = recorder.add(t, { s: snapPillEl(el), g: r4(probe.goal), v: r4(probe.shown), e: { p: ear.partial, f: ear.final, gate: ear.gate, rms: ear.rms, lv: r4(probe.level) } })
         if (r === true) count.current++
-        if (r === 'full') stopRef.current?.('потолок 3 минуты')
+        if (r === 'full') stopRef.current?.('потолок 10 минут')
         else if (t - uiAt > UI_MS) { uiAt = t; const ms = recorder.elapsed(t); setState(s => ({ ...s, ms, fps: ms > 0 ? Math.round((count.current / ms) * 1000) : 0, warn: ms > WARN_MS })) }
       }
       id = requestAnimationFrame(loop)

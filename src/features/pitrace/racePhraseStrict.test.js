@@ -67,7 +67,7 @@ describe('вид хода: красное ожидаемое слово и ры�
     const jerks = [], mask = mountMask(null, 'Where are you from')
     const sv = createSayView({ pass: 1, text: 'Where are you from', n: 4, mask, nudge: on => on && jerks.push(1), el: null })
     sv.word(0, new Map([[0, true]]), 0); mask.set(new Map([[0, true]]))
-    sv.ear({ kind: 'partial', text: 'where is' }); sv.frame(1000, false, 0.3); sv.frame(1300, false, 0.3)
+    sv.ear({ kind: 'partial', text: 'where is' }); sv.frame(1000, false, 0.3); sv.frame(1400, false, 0.3)
     expect(mask.words()[1].state).toBe('miss'); expect(jerks.length).toBe(1)
     sv.ear({ kind: 'partial', text: 'where is you' }); sv.frame(2300, false, 0.3); sv.frame(2600, false, 0.3)
     expect(mask.words()[1].state).toBe('miss'); expect(jerks.length).toBe(2)
@@ -99,7 +99,7 @@ describe('громкое «is» вместо «are»: Vosk отдаёт его �
     const mask = mountMask(null, 'Where are you from'), jerks = []
     const sv = createSayView({ pass: 1, text: 'Where are you from', n: 4, mask, nudge: on => on && jerks.push(1), el: null })
     sv.word(0, new Map([[0, true]]), 0); mask.set(new Map([[0, true]]))
-    sv.ear({ kind: 'partial', text: 'where', raw: 'where [unk]' }); sv.frame(1000, false, 0.3); sv.frame(1300, false, 0.3)
+    sv.ear({ kind: 'partial', text: 'where', raw: 'where [unk]' }); sv.frame(1000, false, 0.3); sv.frame(1400, false, 0.3)
     expect(mask.words()[1].state).toBe('miss'); expect(jerks.length).toBe(1)
   })
 })
@@ -112,13 +112,13 @@ describe('рывок: короткая красная жидкость (v3.3.309
     n.fire(0.36); expect(vars).toEqual({ '--nf': '36', '--nw': String(NUDGE_EXTRA) }); n.fire(0.95); expect(vars['--nw']).toBe(String(NUDGE_EXTRA))
     expect(NUDGE_EXTRA).toBeLessThanOrEqual(10); expect(NUDGE_MS).toBe(400)
     const css = (await import('node:fs')).readFileSync(new URL('../../styles/player/modules/word-lane-wide-fill.css', import.meta.url), 'utf8')
-    expect(css).toContain('@keyframes wlNudgeFill'); expect(css).toContain('@keyframes wlNudgeInk'); expect(css).toContain('animation: wlNudgeFill 0.4s both'); expect(css).toContain('var(--nw, 7)'); expect(css).not.toContain('.wlPillSparks::before')
+    expect(css).toContain('@keyframes wlNudgeFill'); expect(css).toContain('@keyframes wlNudgeBar'); expect(css).not.toContain('[data-nudge]:not([data-lock]) { --c:'); expect(css).toContain('animation: wlNudgeFill 0.4s both'); expect(css).toContain('var(--nw, 7)'); expect(css).not.toContain('.wlPillSparks::before')
   })
 })
 
 describe('одинокий «[unk]» — шум, не неверное слово (журнал 15:27: красное и рывок из тишины)', () => {
   it('«[unk]» без слова перед ним и «[unk] [unk]» — ничего; «where [unk]» — красное «are»', () => {
-    const run = raw => { const mask = mountMask(null, 'Where are you from'), jerks = [], sv = createSayView({ pass: 1, text: 'Where are you from', n: 4, mask, nudge: on => on && jerks.push(1), el: null }); sv.ear({ kind: 'partial', text: '', raw }); sv.frame(1000, false, 0); sv.frame(1300, false, 0); return [mask.words()[0].state, jerks.length] }
+    const run = raw => { const mask = mountMask(null, 'Where are you from'), jerks = [], sv = createSayView({ pass: 1, text: 'Where are you from', n: 4, mask, nudge: on => on && jerks.push(1), el: null }); sv.ear({ kind: 'partial', text: '', raw }); sv.frame(1000, false, 0); sv.frame(1400, false, 0); return [mask.words()[0].state, jerks.length] }
     expect(run('[unk]')).toEqual(['full', 0]); expect(run('[unk] [unk]')).toEqual(['full', 0])
     expect(run('where [unk]')[1]).toBe(1)
   })
@@ -127,11 +127,11 @@ describe('одинокий «[unk]» — шум, не неверное слов�
 describe('журнал для разбора «что пошло не так» (v3.3.313)', () => {
   it('рывок: журнал «рывок кромки» с причиной и заливкой; повтор раньше WRONG_GAP_MS — «рывок пропущен»; проход 2 — «рывка нет»', () => {
     const mk = pass => { const logs = [], mask = mountMask(null, 'Where are you from'), sv = createSayView({ pass, text: 'Where are you from', n: 4, mask, nudge: () => {}, el: null, log: l => logs.push(l) }); sv.word(0, new Map([[0, true]]), 0); return { logs, sv } }
-    const a = mk(1); a.sv.ear({ kind: 'partial', text: 'where', raw: 'where [unk]' }); a.sv.frame(1000, false, 0.41); a.sv.frame(1300, false, 0.41)
+    const a = mk(1); a.sv.ear({ kind: 'partial', text: 'where', raw: 'where [unk]' }); a.sv.frame(1000, false, 0.41); a.sv.frame(1400, false, 0.41)
     expect(a.logs.some(l => /рывок кромки: .*«\[unk\]», заливка 0,41/.test(l))).toBe(true)
     a.sv.ear({ kind: 'partial', text: 'where', raw: 'where [unk] [unk]' }); a.sv.frame(1700, false, 0.41); a.sv.frame(1900, false, 0.41)
     expect(a.logs.some(l => l.includes('рывок пропущен'))).toBe(true)
-    const b = mk(2); b.sv.ear({ kind: 'partial', text: 'where', raw: 'where [unk]' }); b.sv.frame(1000, false, 0.41); b.sv.frame(1300, false, 0.41)
+    const b = mk(2); b.sv.ear({ kind: 'partial', text: 'where', raw: 'where [unk]' }); b.sv.frame(1000, false, 0.41); b.sv.frame(1400, false, 0.41)
     expect(b.logs.some(l => l.includes('рывка нет (проход 2)'))).toBe(true)
   })
   it('красное снимается — в журнале «красное «are» снято: слово сказано»', () => {

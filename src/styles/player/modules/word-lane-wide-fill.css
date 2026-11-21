@@ -37,20 +37,22 @@
 /* Неверное слово (проход 1 «Скажи», data-nudge на пилюле — racePhraseNudge.js / racePhraseWrongWord.js; v3.3.308, владелец: «заполнение красной линией больше на 90 % а потом обратно», отдельное красное свечение над пилюлей убрано —
    v3.3.307 выглядело «огромной красной штукой»): сама ЖИДКОСТЬ пилюли на миг становится красной, быстро уходит вперёд на 7 % ширины пилюли (v3.3.309: было до 90 % — «очень огромная») и плавно возвращается (0,4 с). Слой заливки и линия едут свойством translate (складывается с inline-transform пула),
    тёмная копия подписи — встречно (подпись стоит на месте); длина хода --nw (% ширины, NUDGE_EXTRA) пишет racePhraseNudge.fire(). Только transform-свойства и цвет, без filter. */
+/* v3.3.314 (владелец: «нужно чтобы краснела не вся пилюля, а только её рамка и та часть прогресс-бара, которая заходит на слово»): жидкость пилюли цвет НЕ меняет и не едет. Красные — рамка (outline ниже),
+   линия кромки (её собственные --c / --rgb) и ПОЛОСА .wlPillFill::after: стоит сразу за поверхностью жидкости (за правым краем слоя, внутри клипа), шириной --nw % и растёт от линии scaleX 0 → 1 → 0 вместе с кромкой. */
 .wlField .wlPill[data-wide][data-nudge] .wlPillSparks i { opacity: 1 !important; }
-.wlPill[data-wide][data-nudge]:not([data-lock]) { --c: rgb(255, 72, 62); --rgb: 255, 72, 62; }
-.wlPill[data-wide][data-nudge]:not([data-lock]) .wlPillFill, .wlPill[data-wide][data-nudge]:not([data-lock]) .wlPillSparks i { animation: wlNudgeFill 0.4s both; }
-.wlPill[data-wide][data-nudge]:not([data-lock]) .wlPillInkIn { animation: wlNudgeInk 0.4s both; }
+.wlPill[data-wide][data-nudge]:not([data-lock]) .wlPillSparks i { --c: rgb(255, 72, 62); --rgb: 255, 72, 62; --rim: rgb(255, 72, 62); animation: wlNudgeFill 0.4s both; }
+.wlPill[data-wide] .wlPillFill::after { content: ''; position: absolute; top: 0; bottom: 0; left: calc(100% - var(--wl-surf)); width: calc(var(--nw, 7) * 1%); background: rgb(255, 72, 62); transform: scaleX(0); transform-origin: 0 50%; pointer-events: none; }
+.wlPill[data-wide][data-nudge]:not([data-lock]) .wlPillFill::after { animation: wlNudgeBar 0.4s both; }
 @keyframes wlNudgeFill {
   0% { translate: 0 0; animation-timing-function: cubic-bezier(0.1, 0.8, 0.2, 1); }
   30% { translate: calc(var(--nw, 7) * 1%) 0; animation-timing-function: cubic-bezier(0.4, 0, 0.3, 1); }
   100% { translate: 0 0; }
 }
-@keyframes wlNudgeInk {
-  0% { translate: 0 0; animation-timing-function: cubic-bezier(0.1, 0.8, 0.2, 1); }
-  30% { translate: calc(var(--nw, 7) * -1%) 0; animation-timing-function: cubic-bezier(0.4, 0, 0.3, 1); }
-  100% { translate: 0 0; }
+@keyframes wlNudgeBar {
+  0% { transform: scaleX(0); animation-timing-function: cubic-bezier(0.1, 0.8, 0.2, 1); }
+  30% { transform: scaleX(1); animation-timing-function: cubic-bezier(0.4, 0, 0.3, 1); }
+  100% { transform: scaleX(0); }
 }
-@media (prefers-reduced-motion: reduce) { .wlPill[data-wide][data-nudge] .wlPillFill, .wlPill[data-wide][data-nudge] .wlPillSparks i, .wlPill[data-wide][data-nudge] .wlPillInkIn { animation: none; } }
-/* Неверное слово заметнее (владелец 2026-11-17: «сказал неверно намеренно и ничего не увидел»): кроме рывка кромки — вся пилюля на миг в красной обводке-ореоле (outline, без перерисовки заливки); держится, пока стоит data-nudge (≈ 0,36 с) */
+@media (prefers-reduced-motion: reduce) { .wlPill[data-wide][data-nudge] .wlPillFill::after, .wlPill[data-wide][data-nudge] .wlPillSparks i { animation: none; } }
+/* Рамка: вся пилюля на миг в красной обводке (outline, без перерисовки заливки); держится, пока стоит data-nudge (≈ 0,4 с) */
 .wlPill[data-wide][data-nudge]:not([data-lock]) { outline: 3px solid rgba(255, 70, 60, 0.9); outline-offset: 1px; }

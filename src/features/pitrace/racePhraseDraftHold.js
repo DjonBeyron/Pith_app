@@ -3,21 +3,25 @@
 // помолчал ≈2 с), а новый черновик Vosk «you» переписал заход целиком, и «are» откатилось. Правила:
 //  • слово из черновика принимается, только если громкость пика захода дошла до PEAK_MIN (0,008) — но лишь когда уровни вообще идут (LEVELS_MIN кусков): без уровня (тесты) защита молчит;
 //  • черновое слово, продержавшееся DRAFT_KEEP_MS (1 с) без отката, больше не откатывается — оно подтверждается (его сказали, потом помолчали): быстрые перестройки внутри одной речи (<1 с) откатываются как раньше.
+//  • v3.3.316 (журнал владельца 23:18: «первое слово само засчитала» — фон комнаты 0,007–0,011 прошёл порог 0,008, Vosk прочитал его как «where»; речь там же 0,11–0,18): одного порога мало — в заходе должен быть
+//    хоть один кусок ГОЛОСА по детектору voskVoice (порог от шума микрофона: в 4 раза громче фона). Слушатель передаёт это вторым аргументом level(); без него (тесты) правило молчит.
 // Чистая логика без таймеров: время подаёт слушатель.
 export const PEAK_MIN = 0.008
 export const LEVELS_MIN = 3
 export const DRAFT_KEEP_MS = 1000
 
 export function createDraftHold({ now = () => Date.now(), peakMin = PEAK_MIN, keepMs = DRAFT_KEEP_MS } = {}) {
-  let peak = 0, levels = 0
+  let peak = 0, levels = 0, voiced = false, told = false // voiced — в заходе был голос по детектору; told — детектор вообще докладывал
   const at = new Map() // «ключ|номер слова» → когда принято черновиком
   return {
     /** Кусок звука с громкостью rms (микрофон ученика) */
-    level(rms) { peak = Math.max(peak, Number(rms) || 0); levels += 1 },
+    level(rms, voice) { peak = Math.max(peak, Number(rms) || 0); levels += 1; if (voice != null) { told = true; if (voice) voiced = true } },
     /** Новый заход Vosk (или сброс): пик считается заново */
-    capture() { peak = 0; levels = 0 },
+    capture() { peak = 0; levels = 0; voiced = false; told = false },
     /** Заход пока похож на шум: уровни идут, а пик ниже порога — слова из такого захода не принимаем */
-    noise: () => levels >= LEVELS_MIN && peak < peakMin,
+    noise: () => levels >= LEVELS_MIN && (peak < peakMin || (told && !voiced)),
+    /** В заходе был голос по детектору (или детектор не докладывал) */
+    voiced: () => voiced || !told,
     peak: () => peak,
     /** Слово принято черновиком (запоминаем момент первого раза) */
     drafted(key, index) { const k = `${key}|${index}`; if (!at.has(k)) at.set(k, now()) },
@@ -31,6 +35,6 @@ export function createDraftHold({ now = () => Date.now(), peakMin = PEAK_MIN, ke
       for (; got.get(i) === false; i++) { const t = at.get(`${key}|${i}`); if (t != null && now() - t >= keepMs) out.push(i); else break }
       return out
     },
-    clear() { at.clear(); peak = 0; levels = 0 },
+    clear() { at.clear(); peak = 0; levels = 0; voiced = false; told = false },
   }
 }
