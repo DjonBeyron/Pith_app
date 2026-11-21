@@ -8,7 +8,7 @@ export default defineConfig([
   // dist/.claude — не код приложения; old/ — легаси-оболочка вне git и сборки
   // (в CI её нет; игнор нужен чтобы локальный `eslint .` совпадал с CI);
   // e2e-артефакты Playwright — сгенерированное
-  globalIgnores(['dist', '.claude', 'old', 'playwright-report', 'test-results']),
+  globalIgnores(['dist', '.claude', 'old', 'playwright-report', 'test-results', '_tail']), // _tail — одноразовые скрипты и данные хвоста Мии (Node), не код приложения
   {
     files: ['**/*.{js,jsx}'],
     extends: [

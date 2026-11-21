@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { calmSteps, wakeSteps, TAIL_FRAMES, REST_FRAME, MIN_STEPS, TAIL_MS, SLOW_TO_MS, WAKE_STEPS } from './miaTailCalm.js'
+import { calmSteps, wakeSteps, instantSteps, pulseSteps, INSTANT_CYCLES, TAIL_FRAMES, REST_FRAME, MIN_STEPS, TAIL_MS, SLOW_TO_MS, WAKE_STEPS } from './miaTailCalm.js'
 
 describe('хвост Мии затихает по порядку кадров', () => {
   it('из любого кадра: кадры идут подряд по циклу и заканчиваются кадром 1 (индекс 0)', () => {
@@ -32,5 +32,23 @@ describe('хвост снова дёргает', () => {
     expect(steps[0].ms).toBe(SLOW_TO_MS); expect(steps.at(-1).ms).toBe(TAIL_MS)
     expect(steps.every((x, i) => i === 0 || x.ms <= steps[i - 1].ms)).toBe(true)
     expect(next).toBe((REST_FRAME + WAKE_STEPS + 1) % TAIL_FRAMES)
+  })
+})
+
+describe('вариант «мгновенно» и вариант «дышит»', () => {
+  it('«мгновенно»: обычная скорость, по порядку, кадр 1 проходится три раза, стоп на третьем', () => {
+    for (let cur = 0; cur < TAIL_FRAMES; cur++) {
+      const s = instantSteps(cur)
+      s.forEach((x, i) => expect(x.f).toBe((cur + 1 + i) % TAIL_FRAMES))
+      expect(s.filter(x => x.f === REST_FRAME).length).toBe(INSTANT_CYCLES); expect(s.at(-1).f).toBe(REST_FRAME)
+      expect(s.slice(0, -1).every(x => x.ms === TAIL_MS)).toBe(true); expect(s.at(-1).ms).toBe(0)
+    }
+  })
+  it('«дышит»: кадры по порядку, выдержка и больше, и меньше обычной, без «медленно-медленно» (≤ 220 мс), дальше цикл CSS с next', () => {
+    const { steps, next } = pulseSteps(2)
+    steps.forEach((x, i) => expect(x.f).toBe((3 + i) % TAIL_FRAMES))
+    const ms = steps.map(x => x.ms); expect(Math.max(...ms)).toBeLessThanOrEqual(220); expect(Math.min(...ms)).toBeGreaterThanOrEqual(30)
+    expect(Math.max(...ms)).toBeGreaterThan(TAIL_MS); expect(Math.min(...ms)).toBeLessThan(TAIL_MS)
+    expect(next).toBe((2 + steps.length + 1) % TAIL_FRAMES)
   })
 })
