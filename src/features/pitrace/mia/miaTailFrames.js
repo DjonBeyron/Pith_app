@@ -13,8 +13,8 @@ const node = (tag, attrs) => ({ tag, attrs, children: [] })
 /** Дерево хвоста: контуры кадров и штрихи поз */
 export function miaTailTree() {
   return [
-    ...MIA_TAIL_FRAMES.map(f => node('path', { class: 'mt', 'data-n': String(f.n), style: `--s:${f.s}`, d: f.d, fill: TAIL_FILL, stroke: TAIL_LINE, strokeWidth: TAIL_LINE_W, strokeLinejoin: 'round' })),
-    ...MIA_TAIL_MARKS.map(m => node('path', { class: 'mk', 'data-n': String(m.n), style: `--s:${m.s}`, d: m.d, fill: TAIL_MARK, fillOpacity: '0.92' })),
+    ...MIA_TAIL_FRAMES.map(f => node('path', { class: 'mt', 'data-s': String(f.s), 'data-n': String(f.n), style: `--s:${f.s}`, d: f.d, fill: TAIL_FILL, stroke: TAIL_LINE, strokeWidth: TAIL_LINE_W, strokeLinejoin: 'round' })),
+    ...MIA_TAIL_MARKS.map(m => node('path', { class: 'mk', 'data-s': String(m.s), 'data-n': String(m.n), style: `--s:${m.s}`, d: m.d, fill: TAIL_MARK, fillOpacity: '0.92' })),
   ]
 }
 
