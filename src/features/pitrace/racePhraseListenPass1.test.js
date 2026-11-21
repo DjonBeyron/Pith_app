@@ -72,9 +72,9 @@ describe('проход 1: неполное совпадение ждёт под�
     voice(r); r.cur().cb.onPartial('nice to meet'); await end(r, 'nice to meet', 10)
     r.advance(SETTLE_WBW_MS - 100); expect(r.got).toEqual([])
     voice(r); r.advance(SETTLE_WBW_MS - 100); expect(r.got).toEqual([]) // голос отодвигает
-    r.cur().cb.onPartial('you'); r.advance(300); expect(r.cur().stopped).toBeGreaterThan(0); r.cur().cb.onResult('you', { words: [] }); expect(r.got).toEqual([{ phraseKey: 'nice to meet you', ratio: 1, heard: 'nice to meet you' }])
+    r.cur().cb.onPartial('you'); r.advance(300); expect(r.cur().stopped).toBeGreaterThan(0); r.cur().cb.onResult('you', { words: [] }); expect(r.got).toEqual([{ phraseKey: 'nice to meet you', ratio: 1, heard: 'you' }]) // v3.3.320: текст захода с подтверждённым словом в «прошлые» не идёт — heard только новое
     const q = rig([P.meet, P.from], { wordByWord: true }); await flush()
-    await end(q, 'nice to meet', 10); q.advance(SETTLE_WBW_MS); expect(q.got).toEqual([{ phraseKey: 'nice to meet you', ratio: 0.75, heard: 'nice to meet' }]) // так и не сказал — нечисто
+    await end(q, 'nice to meet', 10); q.advance(SETTLE_WBW_MS); expect(q.got).toEqual([{ phraseKey: 'nice to meet you', ratio: 0.75, heard: '' }]) // так и не сказал — нечисто
     r.l.stop(); q.l.stop()
   })
   it('договорена («where you from») итогом — в проходе 1 не сразу: пропущенное «are» ученик скажет по подсказке и дальше по порядку', async () => {
@@ -82,14 +82,14 @@ describe('проход 1: неполное совпадение ждёт под�
     r.cur().cb.onPartial('where you'); r.cur().cb.onResult('where you from', { words: [] }); r.advance(SETTLE_WBW_MS - 100); await flush()
     expect(r.got).toEqual([])
     r.cur().cb.onPartial('are'); expect(r.got).toEqual([]) // «where you from are» — по порядку только 3 из 4 (2026-11-09: слова не по порядку не засчитываются)
-    r.cur().cb.onPartial('are you from'); r.advance(300); expect(r.cur().stopped).toBeGreaterThan(0); r.cur().cb.onResult('are you from', { words: [] }); expect(r.got).toEqual([{ phraseKey: 'where are you from', ratio: 1, heard: 'where you from are you from' }])
+    r.cur().cb.onPartial('are you from'); r.advance(300); expect(r.cur().stopped).toBeGreaterThan(0); r.cur().cb.onResult('are you from', { words: [] }); expect(r.got).toEqual([{ phraseKey: 'where are you from', ratio: 1, heard: 'are you from' }])
     r.l.stop()
   })
   it('накопление между заходами — JOIN_WBW_MS (4 слова с паузами 2,5 с — 9 с), в проходе 2 — JOIN_MS', async () => {
     expect(JOIN_WBW_MS).toBeGreaterThan(JOIN_MS)
     const r = rig([P.meet, P.from], { wordByWord: true }); await flush()
     await end(r, 'where', 10); r.advance(JOIN_MS + 1000); await flush()
-    r.cur().cb.onPartial('are you from'); r.advance(300); expect(r.cur().stopped).toBeGreaterThan(0); r.cur().cb.onResult('are you from', { words: [] }); expect(r.got).toEqual([{ phraseKey: 'where are you from', ratio: 1, heard: 'where are you from' }])
+    r.cur().cb.onPartial('are you from'); r.advance(300); expect(r.cur().stopped).toBeGreaterThan(0); r.cur().cb.onResult('are you from', { words: [] }); expect(r.got).toEqual([{ phraseKey: 'where are you from', ratio: 1, heard: 'are you from' }])
     r.l.stop()
   })
 })

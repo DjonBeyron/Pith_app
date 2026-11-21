@@ -172,3 +172,16 @@ describe('журнал 10:49 (v3.3.318): дыхание засчитано, ло
     r.l.stop(); q.l.stop()
   })
 })
+
+describe('журнал 11:37 (v3.3.319): «стало очень хуже» — последнее слово «from» пять раз подряд не засчитано', () => {
+  it('итог «[unk] [unk] from you» подтверждает «you»; потом «from» (итогом) закрывает фразу с первого раза — старое «from» из того захода в услышанном не остаётся', async () => {
+    const FROM = { key: 'from', words: ['Where', 'are', 'you', 'from'] }
+    const r = rig([FROM], { wordByWord: true }); await flush()
+    r.cur().cb.onPartial('where are'); await end(r, 'where are', 10)
+    r.cur().cb.onPartial('[unk] [unk] from you'); await end(r, '[unk] [unk] from you', 10)
+    expect(r.words.some(w => w.index === 2 && !w.draft && !w.gone)).toBe(true); expect(r.got).toEqual([])
+    r.advance(1000); r.cur().cb.onPartial('from'); r.advance(400); r.cur().cb.onResult('from', { words: [] })
+    expect(r.got.map(g => g.ratio)).toEqual([1])
+    r.l.stop()
+  })
+})
