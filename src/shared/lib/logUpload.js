@@ -4,6 +4,7 @@
 import { supabase } from '../api/supabase.js'
 import { gameJournal, journalFileName } from './gameJournal.js'
 import { getDebugLines } from './debug.js'
+import { startModeHeadline } from './gameStartModeLog.js'
 import { APP_VERSION } from './version.js'
 
 export const MAX_TEXT = 3_000_000   // символов на файл; больше — режем (звук из json-отладки, потом хвост)
@@ -48,7 +49,7 @@ export async function collectLogs({ journal = null, journalSrc = gameJournal, de
   const note = commentFile(comment, at)
   if (note) out.push(note)
   if (!withLogs) return out.map(f => ({ name: f.name, text: fitText(f.name, f.text) })) // галочка «Отправить логи» снята — уходит только комментарий
-  const jText = journal?.text ?? journalSrc.text([`Pithy — журнал игры, v${APP_VERSION}`])
+  const jText = journal?.text ?? journalSrc.text([`Pithy — журнал игры, v${APP_VERSION}`, startModeHeadline()])
   if (jText && jText.trim()) out.push({ name: journal?.name ?? journalFileName(at), text: jText })
   if (debugLines.length) out.push({ name: `pithy-debug-${at.toISOString().slice(0, 19).replace(/[:T]/g, '-')}.txt`, text: debugLines.join('\n') })
   if (last) { const t = await textOf(last); if (t) out.push({ name: last.name, text: t }) }

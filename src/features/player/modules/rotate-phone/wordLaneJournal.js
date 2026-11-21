@@ -5,7 +5,7 @@ import { gameJournal, journalFileName } from '../../../../shared/lib/gameJournal
 import { pageSnapshot } from '../../../../shared/lib/gameJournalPage.js'
 
 /** Строки заголовка журнала */
-export function journalHeader({ version = '', ua = '', tap = false, ru = false, en = '—', snap = '—', at = new Date() } = {}) {
+export function journalHeader({ version = '', ua = '', tap = false, ru = false, en = '—', snap = '—', start = '', at = new Date() } = {}) {
   return [
     `Pithy — журнал игры, v${version}`,
     `выгружен: ${at.toLocaleString?.('ru-RU') ?? String(at)}`,
@@ -13,6 +13,7 @@ export function journalHeader({ version = '', ua = '', tap = false, ru = false, 
     `режим: ${tap ? 'пальцами (без микрофона)' : 'голосом (микрофон)'}`,
     `русская модель Vosk: ${ru ? 'готова (скачана)' : 'не готова'}; английская: ${en}`,
     `сейчас: ${snap}`,
+    ...(start ? [start] : []), // режим запуска звука и итог последнего старта (gameStartModeLog.startModeHeadline)
     'метка строки: мс от загрузки страницы, время дня; «Скопировать» — без строк [perf]/[suspects]/[салют]/mic-hold; группы: [start] старт Пита, [page] свернули/вернули, [pause] пауза, [audio] звук, [warm] прогрев, [race] гонка, [cat] Пит, [ru] русский, [speech] речь',
   ]
 }
@@ -26,8 +27,8 @@ export function buildJournalFile({ header = [], journal = gameJournal, at = new 
 }
 
 /** Заголовок из живых источников (шестерёнка вызывает при нажатии) */
-export function liveHeader({ version, tap, ru, en, nav = globalThis.navigator }) {
-  return journalHeader({ version, ua: String(nav?.userAgent ?? ''), tap, ru, en, snap: pageSnapshot({ nav }) })
+export function liveHeader({ version, tap, ru, en, start = '', nav = globalThis.navigator }) {
+  return journalHeader({ version, ua: String(nav?.userAgent ?? ''), tap, ru, en, start, snap: pageSnapshot({ nav }) })
 }
 
 /** Скопировать текст: clipboard API, нет его / отказ — скрытое поле + execCommand('copy'). → 'copied' | 'failed' */

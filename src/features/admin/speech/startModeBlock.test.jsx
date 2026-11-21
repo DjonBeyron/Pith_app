@@ -22,6 +22,14 @@ describe('блок «Режим запуска звука на iPhone»', () => 
     const html = renderToStaticMarkup(<StartModeBlock />)
     expect(html).toContain('audio-start-warn'); expect(html).toContain('Вернуть Playback')
   })
+  it('v3.3.336: в блоке есть кнопка отправки журнала в GitHub (общая SendLogButton), подсказка и итог последнего старта', () => {
+    vi.stubGlobal('localStorage', memStore())
+    const html = renderToStaticMarkup(<StartModeBlock />)
+    expect(html).toMatch(/<button[^>]*class="sendLogBtn"[^>]*data-testid="audio-start-send"[^>]*>📤 Отправить логи в GitHub<\/button>/)
+    expect(html).toContain('Сыграй в выбранном режиме, вернись сюда и нажми — в журнале будет хроника режима')
+    expect(html).toMatch(/data-testid="audio-start-last"[^>]*>Последний старт: /)
+    expect(readFileSync(new URL('./StartModeBlock.jsx', import.meta.url), 'utf8')).toContain("from '../../../shared/ui/SendLogButton.jsx'")
+  })
 })
 
 describe('вкладка «Голос»: порядок блоков', () => {

@@ -5,6 +5,7 @@ import { APP_VERSION } from '../../../../shared/lib/version.js'
 import { voskRuntime } from '../../../../shared/lib/vosk/voskRuntime.js'
 import { ruReady } from '../../../pitrace/raceRu.js'
 import { buildJournalFile, liveHeader, copyText, COPY_HOW, compactText } from './wordLaneJournal.js'
+import { startModeHeadline } from '../../../../shared/lib/gameStartModeLog.js'
 import { sendLogs } from '../../../../shared/lib/logUpload.js'
 import { saveDebugFile, SAVE_HOW } from './wordLaneDebugExport.js'
 import { readTapMode, voskLine } from './wordLaneHudSettings.js'
@@ -12,7 +13,7 @@ import { readTapMode, voskLine } from './wordLaneHudSettings.js'
 const enLine = () => { try { return voskLine(voskRuntime.snapshot()) } catch { return '—' } }
 
 /** Файл журнала из живых источников: { name, text, blob } */
-export const journalNow = () => buildJournalFile({ header: liveHeader({ version: APP_VERSION, tap: readTapMode(), ru: ruReady(), en: enLine() }) })
+export const journalNow = () => buildJournalFile({ header: liveHeader({ version: APP_VERSION, tap: readTapMode(), ru: ruReady(), en: enLine(), start: startModeHeadline() }) })
 
 /** «Скачать журнал» → что сказать человеку */
 export async function saveJournalNow() {

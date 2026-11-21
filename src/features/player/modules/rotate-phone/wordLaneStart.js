@@ -25,6 +25,7 @@ import { SETTLE_MAX_MS } from '../../../../shared/lib/gameAudioWarm.js'
 import { readTapMode } from './wordLaneHudSettings.js'
 import { setGameMicWanted } from '../../../../shared/lib/gameMicWant.js'
 import { readStartMode, startWaits, START_WAIT_MAX_MS } from '../../../../shared/lib/gameAudioSettings.js'
+import { gameStartModeLog } from '../../../../shared/lib/gameStartModeLog.js'
 import { renewAudioSession, renewNeed } from '../../../../shared/lib/gameAudioRenew.js'
 import { renewUntilLive } from '../../../../shared/lib/gameAudioRenewLive.js'
 import { armOutputCheck } from '../../../../shared/lib/gameAudioOutputCheck.js'
@@ -121,8 +122,9 @@ const installAudioLife = () => { installGameAudioLife(); installReturnClean() }
 
 export function startGameAudio({ cfg, audioSrc, lines, onLineReady = null, onMic = null, mic: useMic = wantsMic(cfg) }, deps = {}) {
   const { warm = gameAudioWarm, session = gameAudioSession, hold = gameMicHold, openMic = openGameMic, wake = wakeGameAudio, rewake = rewakeGameAudio, gateMaxMs = GATE_MAX_MS, trace = gameStartTrace, prefetch = prefetchWords, unlockCtx = unlockGameCtx, gate = waitWarmGate, install = installAudioLife, consume = consumeRewake, recreateCtx = recreateGameCtx, ensureCtx = ensureGameCtxRunning, raceGateMs = RACE_GATE_MS, ctxState = gameCtxState, chron = raceChron,
-    startMode = readStartMode, renew = renewAudioSession, renewLive = renewUntilLive, needRenew = renewNeed, armCheck = armOutputCheck, markTap = markGameTap, renewed = false } = deps
+    startMode = readStartMode, renew = renewAudioSession, renewLive = renewUntilLive, needRenew = renewNeed, armCheck = armOutputCheck, markTap = markGameTap, renewed = false, modeLog = gameStartModeLog } = deps
   trace.begin() // хронология старта: отсчёт от тапа
+  modeLog.begin() // хроника режима запуска «[start-mode]» (gameStartModeLog.js): только чтение состояния и строки журнала, синхронно; первый снимок — до любой смены типа сессии
   markTap() // уборка после возврата (gameAudioReturnClean.js) не трогает контексты, пока идёт старт
   install() // слушатели фона/возврата (gameAudioLife.js) и закрытие контекстов при возврате без игры (gameAudioReturnClean.js): идемпотентно
   const suspect = consume() // звук возвращался из фона/блокировки с прошлого старта → полный путь: старый контекст не доверен
@@ -144,9 +146,11 @@ export function startGameAudio({ cfg, audioSrc, lines, onLineReady = null, onMic
     if (useMic && startMode() !== 'default') pLog(`[audio] режим запуска звука: «${startMode()}» (Админ → «Голос» → «Микрофон игры»)`)
     setGameMicWanted(useMic)
     if (useMic) session.begin() // 1. тип аудиосессии (настройка в Админ → «Голос»): до открытия микрофона, в том же тапе. «Тапаю» — сессию записи не ставим вовсе
+    if (useMic) modeLog.mark('после begin (тип поставлен)')
     const fast = cfg?.plan?.game === 'race' // «Гонка»: реплика race_start НЕ ждёт микрофон (iOS открывает его 0,5–1,5 с) — звук поднимается сразу после resume контекста, микрофон открывается параллельно (нужен только к первой пилюле)
     const step = (name, label) => (fast ? chron.step(name, label) : null) // хронология «[start]» (raceStartChron.js) — только у гонки
     const micPromise = useMic ? openMic() : Promise.resolve(MIC_OFF) // 1. микрофон: getUserMedia вызывается синхронно в жесте (диалога нет, если доступ уже выдан); один поток на всю игру
+    if (useMic) modeLog.mark('getUserMedia вызван')
     unlockCtx() // 1. игровой AudioContext (Web Audio) — создать и resume() в этом же жесте, пока он жив
     const plan = wordsPlan({ cfg, lines })
     const revived = reviveWarm(warmItems(plan)) // страховка второго запуска: реестр «обработан» не доверен — отметки без буфера в памяти и оборванные докачки сбрасываются, файлы качаются заново, ворота ждут настоящий результат
@@ -166,11 +170,13 @@ export function startGameAudio({ cfg, audioSrc, lines, onLineReady = null, onMic
         const t0 = Date.now(); await Promise.race([micPromise.catch(() => null), new Promise(r => setTimeout(r, START_WAIT_MAX_MS))])
         pLog(`[race] старт: режим запуска «${startMode()}» — первая реплика ждала микрофон ${Date.now() - t0} мс`)
       }
+      modeLog.mark('первая реплика разрешена (onLineReady)')
       try { onLineReady?.() } catch { /* игра не зависит от колбэка */ }
     }
     return (async () => {
       const early = fast ? openLines().catch(e => pLog(`[race] быстрый старт звука не вышел (${e?.message ?? e}) — обычный путь`)) : null
       const mic = await micPromise
+      modeLog.afterMic(mic) // снимок после afterMic и серия снимков по таймеру (ничего не ждём)
       trace.mark('mic', { mic })
       if (useMic) step('mic', `getUserMedia ответил: ${mic}${mic === 'granted' ? ' — попап «Готовлю звук…»' : ''}`)
       try { onMic?.(mic) } catch { /* попап не мешает старту */ }
@@ -179,6 +185,7 @@ export function startGameAudio({ cfg, audioSrc, lines, onLineReady = null, onMic
       const quietMs = fast ? RACE_SETTLE_QUIET_MS : undefined // гонка: короче (буферам Web Audio нужен только 'running' контекст; прерванный settle ждёт и так)
       if (useMic) step('settle0', `«Готовлю звук»: жду, пока аудиосессия уляжется после смены на запись (iOS может прервать AudioContext): тишина ${quietMs ?? 250} мс без прерываний, потолок ${SETTLE_MAX_MS} мс`)
       const settled = await warm.settle(quietMs ? { quietMs } : undefined) // 2.
+      modeLog.mark(`сессия улеглась (settle): ${settled?.waitedMs ?? '—'} мс, прерываний ${settled?.interrupts ?? '—'}`)
       if (useMic) step('settle', `аудиосессия улеглась за ${settled.waitedMs} мс: прерываний ${settled.interrupts}, ctx=${settled.ctx ?? '—'}${settled.timedOut ? ' (не дождались — потолок)' : ''}`)
       trace.mark('settle', { waitedMs: settled.waitedMs, interrupts: settled.interrupts, ctx: settled.ctx ?? null, activation: settled.activation ?? null })
       const ctxRes = fast && gameCtxState() === 'running' ? { state: 'running', recreated: false, ms: 0 } : await ensureCtx({ why: suspect ? 'повторный старт после фона' : 'старт игры' }) // быстрый путь: уже running — не трогаем (пересоздание оборвало бы идущую реплику) // 2б. контекст ДОЛЖЕН быть 'running': resume() не завершился за 300 мс («мёртвый» после фона) → пересоздаём в этом же жесте

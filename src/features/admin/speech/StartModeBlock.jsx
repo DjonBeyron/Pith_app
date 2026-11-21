@@ -1,10 +1,15 @@
 import { useState } from 'react'
 import { readStartMode, writeStartMode, readAudioSessionMode, writeAudioSessionMode, DEFAULT_AUDIO_SESSION_MODE } from '../../../shared/lib/gameAudioSettings.js'
 import { describeAudioSession } from '../../../shared/lib/gameMicSession.js'
+import { lastStartLine, startModeHeadline } from '../../../shared/lib/gameStartModeLog.js'
+import { sendLogs } from '../../../shared/lib/logUpload.js'
+import { pLog } from '../../../shared/lib/debug.js'
+import SendLogButton from '../../../shared/ui/SendLogButton.jsx'
 
 // Админ → «Голос», первый блок: «Режим запуска звука на iPhone» (v3.3.334–335). Владелец: при старте игры на iPhone всплывает системный ползунок громкости и сам идёт вверх — игра не должна трогать громкость.
 // Ползунок двигает смена режима звука iOS на старте (запись → микрофон → playback), а не усиление игры. Пять режимов запуска для проверки на телефоне: настройка pithy_game_start_mode_v1 (gameAudioSettings.js),
-// читается на каждом старте игры. Режимы действуют только при типе аудиосессии игры «Playback весь сеанс» (умолчание) — если выбран другой, блок это показывает и даёт кнопку вернуть.
+// читается на каждом старте игры. v3.3.336: кнопка отправки журнала в GitHub (та же, что в админке и шестерёнке игры, с попапом комментария) и итог последнего старта из хроники
+// «[start-mode]» (gameStartModeLog.js). Режимы действуют только при типе аудиосессии игры «Playback весь сеанс» (умолчание) — если выбран другой, блок это показывает и даёт кнопку вернуть.
 const OPTS = [
   ['default', 'А · как сейчас', 'запись → микрофон → playback (две смены режима звука). Умолчание.'],
   ['direct', 'Б · сразу playback', 'playback ставится сразу в тапе, «запись» не ставится вовсе. Риск: iPhone может не дать микрофон — слова не будут слышны.'],
@@ -18,6 +23,9 @@ export default function StartModeBlock() {
   const [session, setSession] = useState(readAudioSessionMode)
   const pick = v => { writeStartMode(v); setMode(readStartMode()) }
   const fixSession = () => { writeAudioSessionMode(DEFAULT_AUDIO_SESSION_MODE); setSession(readAudioSessionMode()) }
+  const [sent, setSent] = useState('')
+  const [, refresh] = useState(0) // админка остаётся смонтированной под вкладками: итог последнего старта перечитывается по кнопке и при открытии попапа отправки
+  const send = (comment, opts) => { pLog(`[start-mode] отправка из блока режима запуска: ${startModeHeadline()}`); return sendLogs({ comment, ...opts }) } // строка в журнале: какой режим проверялся
   const sess = describeAudioSession(), works = session === DEFAULT_AUDIO_SESSION_MODE
   return (
     <section className="aspBlock" data-testid="start-mode-block">
@@ -36,7 +44,15 @@ export default function StartModeBlock() {
         </div>
       )}
       <div className="aspCapVal">{sess.supported ? `Тип звука iPhone сейчас: ${sess.type ?? '—'}` : 'На этом устройстве нет navigator.audioSession (нужен Safari 16.4+) — режимы ничего не меняют'}</div>
-      <p className="aspHint">В журнале игры после старта: «[audio] режим запуска звука: …». Пришли лог после каждого режима.</p>
+      <div className="aspRow">
+        <span className="aspCapVal" data-testid="audio-start-last">{lastStartLine()}</span>
+        <button type="button" className="aspChip" onClick={() => refresh(n => n + 1)}>Обновить</button>
+      </div>
+      <div className="aspRow">
+        <SendLogButton label="📤 Отправить логи в GitHub" send={send} onResult={setSent} onOpen={() => refresh(n => n + 1)} data-testid="audio-start-send" />
+        {sent && <span className="aspCapVal" data-testid="audio-start-sent">{sent}</span>}
+      </div>
+      <p className="aspHint">Сыграй в выбранном режиме, вернись сюда и нажми — в журнале будет хроника режима (строки «[start-mode] …» на каждом шаге старта). В комментарии напиши, что было с ползунком громкости, слышит ли игра голос, нет ли хрипа.</p>
     </section>
   )
 }

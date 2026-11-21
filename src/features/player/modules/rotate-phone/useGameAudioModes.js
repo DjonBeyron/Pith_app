@@ -5,6 +5,7 @@ import { gameMicHold } from '../../../../shared/lib/gameMicHold.js'
 import { gameAudioSession } from '../../../../shared/lib/gameMicSession.js'
 import { gameAudioWarm } from '../../../../shared/lib/gameAudioWarm.js'
 import { gameMicGesture } from '../../../../shared/lib/gameMicGesture.js'
+import { gameStartModeLog } from '../../../../shared/lib/gameStartModeLog.js'
 import { pLog } from '../../../../shared/lib/debug.js'
 import { gameMicWanted } from '../../../../shared/lib/gameMicWant.js'
 
@@ -13,7 +14,7 @@ import { gameMicWanted } from '../../../../shared/lib/gameMicWant.js'
 // возвращается при размонтировании (вместе с ним — прогрев звука gameAudioWarm). Дорожка не ожила после глушения (iOS глушит её за полсекунды до сворачивания) — поток сбрасывается и игра встаёт на паузу (reportAudioLoss → «Продолжить»); переоткрывать getUserMedia вне жеста нельзя: iOS показывает диалог доступа поверх игры (v3.3.128).
 
 /** Конец игры: все окна речи закрыты (дорожка снова enabled), прежний тип аудиосессии возвращён. Микрофон закрывает вызывающий — после этого */
-export function endGameAudio() { gameMicHold.reset(); gameAudioSession.end(); gameAudioWarm.end() }
+export function endGameAudio() { gameMicHold.reset(); gameAudioSession.end(); gameAudioWarm.end(); gameStartModeLog.cancel('конец звука игры') } // cancel — только снять таймеры снимков хроники «[start-mode]»
 
 export function useGameAudioModes(onReopened) {
   useEffect(() => {

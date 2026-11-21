@@ -18,6 +18,7 @@ import { closeKeptCapture } from './vosk/voskCapture.js'
 import { markMicGranted } from './micGrantFlag.js'
 import { autoNudgeAfterMic } from './gameVolumeNudge.js'
 import { gameMediaKeep } from './gameMediaKeep.js'
+import { gameStartModeLog, setStartModeMic } from './gameStartModeLog.js'
 import { gameAudioSession } from './gameMicSession.js'
 
 export { micRequestPending } from './gameMicRequest.js' // blur/focus от нашего диалога доступа — не уход (wordLanePauseEvents.js)
@@ -94,6 +95,7 @@ async function reuseStream() {
 /** Открыть игровой поток (из нажатия). После успеха режим сессии 'playback' ставит тип playback на весь сеанс (gameMicSession.afterMic); остальные режимы — no-op */
 export async function openGameMic() {
   const r = await openGameMicInner()
+  try { gameStartModeLog.micAnswer(r) } catch { /* хроника режима запуска (только чтение) не мешает микрофону */ }
   if (r === 'granted') { try { gameAudioSession.afterMic?.() } catch { /* сессия не мешает микрофону */ } }
   return r
 }
@@ -239,3 +241,5 @@ export function describeGameMic() {
   const ua = String((typeof navigator !== 'undefined' && navigator.userAgent) || '')
   return { constraints: opened ?? gameMicConstraints(), settings, platform: isIos() ? 'ios' : /Android/i.test(ua) ? 'android' : 'other', processing: isMicProcessingOn(), open: !!stream, idle, parked, tracks, audioSessionMode: readAudioSessionMode(), micHoldMode: readMicHoldMode(), gain: readMicGain() }
 }
+
+setStartModeMic(peekGameMic) // хроника режима запуска «[start-mode]» читает дорожки игрового потока (только чтение)
