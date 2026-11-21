@@ -21,15 +21,17 @@ export function createTailHold({ now = () => Date.now(), holdMs = TAIL_HOLD_MS }
 /** Текст без последнего слова */
 export const cutTail = text => String(text ?? '').split(/\s+/).filter(Boolean).slice(0, -1).join(' ')
 
-/** Разбор full (с хвостом) → тот же, но последнее слово фразы снято, если без хвоста (разбор cut) его нет. → { scores, held: [ключи кандидатов, где слово придержано] } */
-export function holdLast(full, cut) {
+/** Разбор full (с хвостом) → тот же, но ПЕРВОЕ и ПОСЛЕДНЕЕ слово фразы сняты, если без хвоста (разбор cut) их нет. → { scores, held: [ключи кандидатов, где слово придержано], first: придержано только первое слово }.
+ * v3.3.321 — и первое слово (владелец четыре журнала подряд: «первое слово само» — шум, дыхание, щелчок 0,13 с: Vosk отдаёт черновик «where» через 100 мс звука, а итог захода его не подтверждает). */
+export function holdLast(full, cut, holdFirst = true) {
   const held = []
+  let first = true // придержано только первое слово (последнее — нет): итог просим после паузы голоса, чтобы не рвать слитную речь
   const scores = full.map((s, n) => {
-    const i = s.hits.length - 1
-    if (i < 0 || !s.hits[i] || cut[n]?.hits[i]) return s
-    held.push(s.key)
-    const hits = s.hits.map((h, k) => h && k !== i), ok = hits.filter(Boolean).length
+    const drop = (holdFirst ? [0, s.hits.length - 1] : [s.hits.length - 1]).filter(i => i >= 0 && s.hits[i] && !cut[n]?.hits[i])
+    if (!drop.length) return s
+    held.push(s.key); if (drop.includes(s.hits.length - 1)) first = false
+    const hits = s.hits.map((h, k) => h && !drop.includes(k)), ok = hits.filter(Boolean).length
     return { ...s, hits, ok, ratio: hits.length ? ok / hits.length : 0 }
   })
-  return { scores, held }
+  return { scores, held, first: first && held.length > 0 }
 }

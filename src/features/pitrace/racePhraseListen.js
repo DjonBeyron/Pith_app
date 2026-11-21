@@ -43,7 +43,7 @@ const norm = list => (list ?? []).map(p => ({ key: p.key, words: (p.words ?? [])
  * и договорённая фраза тоже: пропущенное слово ученик ещё скажет по подсказке); меняется setPhrases(next, { wordByWord }).
  * Слушать начинает сразу. Зависимости (create, log, now, setTimer, clearTimer, listen, runtime) подставляются в тестах.
  */
-export function createPhraseListener({ phrases: phrasesIn, lang = 'en', getStream, isHeld = () => false, wordByWord: wbwIn = false, onWord, onEar, onLevel, onPhrase, onError, allowPartial = () => true, create = createWordListener, game2 = createGame2Listener, log = pLog, now = () => Date.now(), setTimer = setTimeout, clearTimer = clearTimeout }) {
+export function createPhraseListener({ phrases: phrasesIn, lang = 'en', getStream, isHeld = () => false, wordByWord: wbwIn = false, holdFirst = true, onWord, onEar, onLevel, onPhrase, onError, allowPartial = () => true, create = createWordListener, game2 = createGame2Listener, log = pLog, now = () => Date.now(), setTimer = setTimeout, clearTimer = clearTimeout }) {
   let phrases = norm(phrasesIn)
   let wordByWord = !!wbwIn
   let past = []   // услышанное закрытых заходов: [{ text, at }]
@@ -145,7 +145,7 @@ export function createPhraseListener({ phrases: phrasesIn, lang = 'en', getStrea
   }
   function decide(settled, draft = false) {
     if (disposed || !phrases.length) return false
-    if (wordByWord) promoteHeld()
+    if (wordByWord && (current || !curRaw.includes('[unk]'))) promoteHeld() // v3.3.321: заход переписан в одно «[unk]» — Vosk исправил догадку: не подтверждаем «продержавшееся» слово, оно откатится ниже (журнал 12:41: «where» с щелчка подтвердилось за миг до отката)
     const heard = heardNow()
     if (!heard && !(wordByWord && (curRaw.includes('[unk]') || [...sent.values()].some(g => g.size)))) return false // проход 1 идёт дальше и с пустым услышанным: v3.3.318 — заход из одного «[unk]» откатывает черновые слова (журнал 10:23: «you» → «[unk]», а «you» осталось); v3.3.320 — подтверждённые слова живут в sent, а не в тексте прошлых заходов (неполная фраза закрывается по паузе)
     let scores = score(heard, draft && curDraft)
@@ -153,11 +153,12 @@ export function createPhraseListener({ phrases: phrasesIn, lang = 'en', getStrea
       scores = scores.map(s => { const b = baseOf(s.key), hits = s.hits.map((h, i) => h && i < b), ok = hits.filter(Boolean).length; if (ok < s.ok && !blockedLogged) { blockedLogged = true; log(`[phrase-ear] новые слова в заходе с «[unk]» перед ними — черновиком не принимаю, жду итог ${rel()}`) } if (ok < s.ok && !unkTimer) { const mine = gen; unkTimer = setTimer(() => { unkTimer = 0; if (mine !== gen || disposed || !curDraft || !current) return; log(`[phrase-ear] слово за «[unk]» ждёт итог ${UNK_FINAL_MS} мс (черновик «${current}») — прошу итог захода ${rel()}`); ear?.stop?.() }, UNK_FINAL_MS) } return { ...s, hits, ok, ratio: hits.length ? ok / hits.length : 0 } })
     }
     if (wordByWord && draft) { // v3.3.314: последнее слово фразы хвостом черновика Vosk угадывает по первому звуку. v3.3.317 (журнал владельца 23:26: сказал «фриз» — черновик «you from», фраза засчитана): черновиком его не принимаем ВОВСЕ — хвост устоялся TAIL_HOLD_MS, просим итог захода (≈ 100 мс), решает он (чужое слово итог отдаёт как «[unk]»)
-      const r = holdLast(scores, score(heardNow(cutTail(current)))), mine = gen
+      const r = holdLast(scores, score(heardNow(cutTail(current))), holdFirst), mine = gen
       if (r.held.length) {
         scores = r.scores
-        if (!tailLogged) { tailLogged = true; log(`[phrase-ear] последнее слово фразы в черновике «${current}» — черновиком не принимаю, через ${TAIL_HOLD_MS} мс устойчивости прошу итог ${rel()}`) }
-        if (!tailTimer) tailTimer = setTimer(() => { tailTimer = 0; if (mine !== gen || disposed || !curDraft || !current) return; log(`[phrase-ear] последнее слово устоялось (черновик «${current}») — прошу итог захода ${rel()}`); ear?.stop?.() }, Math.max(1, tail.left()))
+        if (!tailLogged) { tailLogged = true; log(`[phrase-ear] первое / последнее слово фразы в черновике «${current}» — черновиком не принимаю, через ${TAIL_HOLD_MS} мс устойчивости прошу итог ${rel()}`) }
+        const ask = () => { tailTimer = 0; if (mine !== gen || disposed || !curDraft || !current) return; if (r.first && now() - voiceAt < TAIL_HOLD_MS) { tailTimer = setTimer(ask, 100); return } log(`[phrase-ear] первое / последнее слово устоялось (черновик «${current}») — прошу итог захода ${rel()}`); ear?.stop?.() } // первое слово: итог — только после паузы голоса TAIL_HOLD_MS (слитную речь не рвём: второе слово в черновике принимает первое и без итога)
+        if (!tailTimer) tailTimer = setTimer(ask, Math.max(1, tail.left()))
       }
     }
     words(scores, draft)

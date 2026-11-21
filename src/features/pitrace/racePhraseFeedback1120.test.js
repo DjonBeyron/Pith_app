@@ -185,3 +185,32 @@ describe('журнал 11:37 (v3.3.319): «стало очень хуже» — 
     r.l.stop()
   })
 })
+
+describe('журнал 12:41 (v3.3.320): «первое слово срабатывает, даже звука почти не было» — щелчок 0,13 с дал черновик «where», через 2,9 с Vosk исправил на «[unk]», а слово уже подтвердилось', () => {
+  const FROM = { key: 'from', words: ['Where', 'are', 'you', 'from'] }
+  const speak = r => { for (const v of [0.0015, 0.0265, 0.0084, 0.0016]) r.cur().cb.onLevel(v) }
+  it('первое слово черновиком не принимается: после паузы голоса просим итог; итог «[unk]» — слова нет', async () => {
+    const r = rig([FROM], { wordByWord: true, holdFirst: true }); await flush()
+    speak(r); r.cur().cb.onPartial('where'); expect(r.words).toEqual([])
+    r.advance(400); expect(r.cur().stopped).toBe(1); expect(r.words).toEqual([])
+    r.cur().cb.onResult('[unk]', { words: [] }); expect(r.words.filter(w => !w.gone)).toEqual([])
+    r.l.stop()
+  })
+  it('итог «where» — слово засчитано; слитная речь «where are» — первое слово принято вторым без итога и без разрыва захода', async () => {
+    const r = rig([FROM], { wordByWord: true, holdFirst: true }); await flush()
+    speak(r); r.cur().cb.onPartial('where'); r.advance(400); r.cur().cb.onResult('where', { words: [] })
+    expect(r.words.map(w => [w.index, !!w.draft])).toEqual([[0, false]])
+    const q = rig([FROM], { wordByWord: true, holdFirst: true }); await flush()
+    speak(q); q.cur().cb.onPartial('where'); q.advance(100); q.cur().cb.onPartial('where are')
+    expect(q.words.map(w => w.index)).toEqual([0, 1]); expect(q.cur().stopped).toBe(0)
+    q.l.stop(); r.l.stop()
+  })
+  it('пока голос идёт, итог не просим (слитную речь не рвём); порядок 3.3.320: слово держалось 1 с, потом заход стал «[unk]» — не подтверждается, а откатывается', async () => {
+    const r = rig([FROM], { wordByWord: true, holdFirst: true }); await flush()
+    speak(r); r.cur().cb.onPartial('where'); r.advance(250); r.cur().cb.onLevel(0.15); r.advance(100); expect(r.cur().stopped).toBe(0)
+    const q = rig([FROM], { wordByWord: true }); await flush() // без правила первого слова — тот самый журнал
+    speak(q); q.cur().cb.onPartial('where'); q.advance(2900); q.cur().cb.onPartial('[unk]')
+    expect(q.words.at(-1)).toMatchObject({ index: 0, gone: true }); expect(q.words.some(w => !w.draft && !w.gone)).toBe(false)
+    r.l.stop(); q.l.stop()
+  })
+})
