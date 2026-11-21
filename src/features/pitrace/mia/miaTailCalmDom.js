@@ -73,5 +73,5 @@ export function redLevelOf(stage, s0) {
 
 /** Живые пилюли сцены для wantStep: центр и нижний край — px от верха сцены */
 export function pillsOf(stage, s0) {
-  return [...stage.querySelectorAll('.wlPill')].map(el => { const r = el.getBoundingClientRect(); return { id: el, h: r.height, cy: r.top - s0.top + r.height / 2, bottom: r.bottom - s0.top, locked: el.hasAttribute('data-lock'), failed: el.hasAttribute('data-fail') } }).filter(p => p.h > 0)
+  return [...stage.querySelectorAll('.wlPill')].map(el => { const r = el.getBoundingClientRect(); return { id: el, h: r.height, bottom: r.bottom - s0.top, locked: el.hasAttribute('data-lock'), failed: el.hasAttribute('data-fail') } }).filter(p => p.h > 0)
 }
