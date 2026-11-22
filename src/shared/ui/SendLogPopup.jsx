@@ -13,7 +13,7 @@ const STOP = { onPointerDown: halt, onPointerUp: halt, onTouchStart: halt, onTou
 
 export default function SendLogPopup({ value, onChange, withLogs, onWithLogs, append, onAppend, onSend, onCancel }) {
   const ref = useRef(null)
-  useEffect(() => { ref.current?.focus() }, [])
+  useEffect(() => { const el = ref.current; if (!el) return; el.focus(); try { el.setSelectionRange(el.value.length, el.value.length) } catch { /* курсор останется в начале */ } }, []) // курсор — в конец: текст может начинаться с подставленного адреса блока таймлайна
   return createPortal(
     <div className="sendLogPop" role="dialog" aria-modal="true" aria-label="Комментарий к логам" data-no-unlock="" data-testid="send-log-popup" {...STOP}
       onClick={e => { halt(e); if (e.target === e.currentTarget) onCancel() }} onKeyDown={e => { if (e.key === 'Escape') onCancel() }}>

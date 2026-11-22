@@ -2,10 +2,11 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { visible, windowOf, axisTicks, scrollFor } from './timelineView.js'
 import { clock, dur, WHO, RES } from './timelineFormat.js'
 import { stageTitle } from './timelineStageNames.js'
+import { useMiddlePan } from './montage/useMiddlePan.js'
 
 // Лента «Таймлайна игры»: ось времени по горизонтали, дорожки строками, подписи дорожек закреплены слева (sticky). Стадии подписаны названием для админа (timelineStageNames.js), реплики — реальным текстом. Прокрутка — ВНУТРИ ленты (страница по горизонтали не едет).
 // В DOM только то, что попало в видимое окно времени (timelineView.visible): длинная игра не превращается в тысячи узлов; узкие соседние отрезки сливаются в блок «×N».
-// focus — { t, n }: прокрутить к моменту t (нажатие на паузу в списке); onPick({ kind, ref }) — карточка отрезка.
+// focus — { t, n }: прокрутить к моменту t (нажатие на паузу в списке); onPick({ kind, ref }) — карточка отрезка. Зажатая средняя кнопка мыши двигает ленту в любом её месте (useMiddlePan), как на «Монтаже».
 const LABEL_W = 62
 const ROWS = [['stages', 'Этапы'], ['pauses', 'Паузы'], ['pit', 'Пит'], ['mia', 'Мия'], ['dictor', 'Диктор'], ['turns', 'Пилюли'], ['answers', 'Игрок'], ['waits', 'Ждёт']] // паузы — сразу под этапами: главное для владельца и не прячется под карточкой отрезка
 
@@ -18,6 +19,7 @@ export default function TimelineRibbon({ m, pauses, scale, focus = null, selecte
   const [view, setView] = useState({ left: 0, width: 1200 })
   const total = Math.max(1, Math.ceil(m.dur * scale))
   const win = windowOf(view.left, view.width, scale)
+  useMiddlePan(ref, () => ref.current)
 
   useLayoutEffect(() => { // ширина окна и прокрутка читаются из контейнера: один слушатель scroll на ленту, обновление — не чаще кадра
     const el = ref.current; if (!el) return undefined

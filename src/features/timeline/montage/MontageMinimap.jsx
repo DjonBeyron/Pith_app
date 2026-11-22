@@ -11,6 +11,7 @@ export default function MontageMinimap({ mont, view, scale, ph, onLeft }) {
   const k = w / Math.max(1, mont.dur), rect = miniRect(view.left, view.width, scale, mont.dur, w)
   const go = e => { const r = ref.current.getBoundingClientRect(); onLeft(scrollFromMini(e.clientX - r.left, r.width, mont.dur, scale, view.width)) }
   const down = e => {
+    if (e.button > 0) return // средняя кнопка — панорама стола (useMiddlePan), правая — ничего
     e.preventDefault(); go(e)
     const up = () => { window.removeEventListener('pointermove', go); window.removeEventListener('pointerup', up); window.removeEventListener('pointercancel', up) }
     window.addEventListener('pointermove', go); window.addEventListener('pointerup', up); window.addEventListener('pointercancel', up)

@@ -4,7 +4,8 @@ import { readFileSync } from 'node:fs'
 import StartModeBlock from './StartModeBlock.jsx'
 import { START_MODES, START_MODE_KEY, AUDIO_SESSION_KEY } from '../../../shared/lib/gameAudioSettings.js'
 
-// Админ → «Голос»: блок «Режим запуска звука на iPhone» стоит ПЕРВЫМ, «Встряхни память» — вторым, всё остальное — в свёрнутом разделе «Старое» (v3.3.335, владелец не нашёл настройку среди 15 блоков).
+// Админ → «Голос»: блок «Режим запуска звука на iPhone». v3.3.344 (владелец: «режимы запуска звука закинь тоже в олд, встряхни память в самом верху»): блок переехал в свёрнутый раздел «Старое»,
+// первым во вкладке стоит «Встряхни память» (полный порядок вкладки — speechTabOrder.test.jsx).
 const memStore = (init = {}) => { const m = { ...init }; return { getItem: k => (k in m ? m[k] : null), setItem: (k, v) => { m[k] = String(v) }, removeItem: k => { delete m[k] } } }
 afterEach(() => vi.unstubAllGlobals())
 
@@ -38,11 +39,11 @@ describe('блок «Режим запуска звука на iPhone»', () => 
 })
 
 describe('вкладка «Голос»: порядок блоков', () => {
-  it('сначала режим запуска, потом «Встряхни память» (RaceBlock), остальное — внутри <details> «Старое»; в «Микрофон игры» дубля режима запуска нет', () => {
+  it('сначала «Встряхни память» (RaceBlock); режим запуска и всё остальное — внутри <details> «Старое»; в «Микрофон игры» дубля режима запуска нет', () => {
     const src = readFileSync(new URL('./AdminSpeechTab.jsx', import.meta.url), 'utf8')
     const at = s => { const i = src.indexOf(s); expect(i, s).toBeGreaterThan(-1); return i }
     const start = at('<StartModeBlock />'), race = at('<RaceBlock />'), old = at('<details className="aspOld"'), end = at('</details>')
-    expect(start).toBeLessThan(race); expect(race).toBeLessThan(old)
+    expect(race).toBeLessThan(old); expect(start).toBeGreaterThan(old); expect(start).toBeLessThan(end) // было: режим запуска первым, над «Встряхни память»
     for (const b of ['GameVolumeBlock', 'RehearsalPolishBlock', 'Game2Block', 'SpeechCapsBlock', 'SoundDiagBlock', 'GameMicBlock', 'GameSoundsBlock', 'GameTestBlock', 'SpeechSayBlock', 'SimpleTestsBlock', 'SpeechTestBlock', 'SpeechLogBlock', 'SpeechCaptureMemo', 'SpeechMemo']) {
       const i = at(`<${b}`, old); expect(src.indexOf(`<${b}`, old), b).toBeGreaterThan(old); expect(src.indexOf(`<${b}`, old), b).toBeLessThan(end); expect(i).toBeGreaterThan(0)
     }

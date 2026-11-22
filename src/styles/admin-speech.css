@@ -118,3 +118,6 @@
 .aspOld { margin-top: 12px; border: 1px solid #2c313a; border-radius: 12px; padding: 0 10px; }
 .aspOld[open] { padding-bottom: 10px; }
 .aspOldSum { cursor: pointer; padding: 12px 2px; font-size: 14px; font-weight: 600; color: #b9c0cc; list-style-position: inside; }
+/* Блок «Таймлайн игры» одной строкой под «Встряхни память» (features/timeline/TimelineOpenButton.jsx): заголовок · кнопка · короткий статус */
+.aspBlock.aspTlRow { flex-direction: row; flex-wrap: wrap; align-items: center; gap: 6px 10px; padding-top: 8px; padding-bottom: 8px; }
+.aspTlStatus { flex: 1 1 160px; min-width: 0; color: #8a8f9a; font-size: 12px; overflow-wrap: anywhere; }

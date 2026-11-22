@@ -8,6 +8,8 @@
 //  • ?tab=montage | pauses | ribbon | list — вкладка (по умолчанию: ширина окна от 900 px — «Монтаж», уже — «Паузы»); ?edit=1 — «Монтаж» сразу в режиме «✎ Правка».
 //    Черновик правок хранится в localStorage этого стенда (ключ pithy.timeline.edits.<id прохождения>) — перезагрузка страницы его не теряет; ?server=1 — ещё и в подставном «сервере» (runs[i].edits);
 //  • ?server=1 — подставной «сервер»: два сохранённых прохождения с других устройств (Android и iPhone), «☁ Сохранить на сервер» пишет в память страницы; ?server=empty — на сервере пусто;
+//  • ?send=1 — подставная отправка в GitHub (кнопки «В GitHub» и «💬 Комментарий в GitHub» у блоков): файлы складываются в window.__sent; ?voices=1 — подставная озвучка (короткий тестовый звук у реплик Пита и Мии
+//    и у русских слов диктора) — «▶ Слушать» и звук клипа по нажатию.
 //    ?server=error — сеть недоступна; ?server=slow — ответ через 4 с (состояние загрузки). Без ?server — сервера нет (кнопок сервера нет).
 import React from 'react'
 import { createRoot } from 'react-dom/client'
@@ -29,5 +31,11 @@ const server = mode ? {
     return { ok: true, bytes: JSON.stringify(value).length, count: value.runs.length } },
   saveEdits: async (run, draft) => { await wait(250); if (mode === 'error') return { ok: false, error: 'TypeError: Failed to fetch' }; const mine = run.savedAt ? run : packRun(run); value = { v: 1, runs: [...value.runs.filter(r => r.id !== mine.id), { ...mine, edits: draft }].slice(-3) }; window.__srvEdits = draft; return { ok: true } },
 } : null
-createRoot(document.getElementById('root')).render(React.createElement(TimelineScreen, { runs, server, tab0: q.get('tab') || null, edit0: q.get('edit') === '1', onClose: () => { document.title = 'closed' } }))
+// тестовый звук: 1,2 с тона 440 Гц (WAV, data:URL) — виден ход проигрывания
+const beep = () => { const sr = 8000, n = Math.round(sr * 1.2), b = new Uint8Array(44 + n), dv = new DataView(b.buffer); const w = (o, s) => [...s].forEach((c, i) => { b[o + i] = c.charCodeAt(0) }); w(0, 'RIFF'); dv.setUint32(4, 36 + n, true); w(8, 'WAVEfmt '); dv.setUint32(16, 16, true); dv.setUint16(20, 1, true); dv.setUint16(22, 1, true); dv.setUint32(24, sr, true); dv.setUint32(28, sr, true); dv.setUint16(32, 1, true); dv.setUint16(34, 8, true); w(36, 'data'); dv.setUint32(40, n, true); for (let i = 0; i < n; i++) b[44 + i] = 128 + Math.round(40 * Math.sin(i * 2 * Math.PI * 440 / sr)); let s = ''; b.forEach(c => { s += String.fromCharCode(c) }); return `data:audio/wav;base64,${btoa(s)}` }
+const voices = q.get('voices') ? { load: async () => { const url = beep(), ids = new Set(events.filter(e => e.k === 'line-start' && e.who !== 'dictor' && e.id !== 'race_good_ok').map(e => e.id)); // у race_good_ok озвучки нет — видно «нет озвучки (подпись)»
+  return { lines: Object.fromEntries([...ids].map(id => [id, { text: '', url, duration: 1.2 }])), lib: new Map(events.filter(e => e.who === 'dictor' && /[а-яё]/i.test(e.text)).map(e => [`ru:${e.text.toLowerCase()}`, { url, duration: 1.2 }])) } } } : null
+window.__sent = []
+const send = q.get('send') ? async (comment, opts, report, edits, pinned = []) => { window.__sent.push({ comment, opts, report: report.length, edits, pinned }); await wait(300); return `Отправлено в GitHub (${2 + pinned.length} ф.) — напиши мне «читай»` } : null
+createRoot(document.getElementById('root')).render(React.createElement(TimelineScreen, { runs, server, send, voices, tab0: q.get('tab') || null, edit0: q.get('edit') === '1', onClose: () => { document.title = 'closed' } }))
 </script></body></html>

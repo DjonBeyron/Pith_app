@@ -111,10 +111,10 @@ describe('отчёт таймлайна в отправке логов', () => {
 
 describe('вход из админки и стили', () => {
   const read = p => readFileSync(new URL(p, import.meta.url), 'utf8')
-  it('блок таймлайна стоит в Админ → «Голос» сразу после режима запуска, не в «Старом»', () => {
+  it('блок таймлайна стоит в Админ → «Голос» сразу под «Встряхни память», не в «Старом» (v3.3.344: режим запуска уехал в «Старое»)', () => {
     const tab = read('../admin/speech/AdminSpeechTab.jsx')
-    expect(tab.indexOf('<StartModeBlock />')).toBeLessThan(tab.indexOf('<TimelineOpenButton />')); expect(tab.indexOf('<TimelineOpenButton />')).toBeLessThan(tab.indexOf('<details className="aspOld"'))
-    expect(read('./TimelineOpenButton.jsx')).toContain('🎬 Таймлайн последней игры')
+    expect(tab.indexOf('<RaceBlock />')).toBeLessThan(tab.indexOf('<TimelineOpenButton />')); expect(tab.indexOf('<TimelineOpenButton />')).toBeLessThan(tab.indexOf('<details className="aspOld"'))
+    expect(read('./TimelineOpenButton.jsx')).toContain('>🎬 Таймлайн игры</button>')
   })
   it('страница не едет по горизонтали: прокрутка только внутри ленты, подписи дорожек закреплены', () => {
     const css = read('../../styles/timeline.css'), rib = read('../../styles/timeline-ribbon.css')

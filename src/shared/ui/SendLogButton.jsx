@@ -9,7 +9,7 @@ import SendLogPopup from './SendLogPopup.jsx'
 // «✗ Не отправилось» (красная, 6 с) → обратно в исходную подпись. Одна кнопка на все места: шестерёнка игры (WordLaneHud), итог «Встряхни память» (RaceJournalLinks), админка (AdminTab). send() → строка-результат
 // (shared/lib/logUpload.js: «Отправлено в GitHub (N ф.) — напиши мне «читай»» или «Не отправилось: …»); onResult(строка) отдаёт её наружу — в строку статуса под кнопкой, как раньше. stop — не пускать клик выше (итог игры).
 // Клик по кнопке открывает попап «Комментарий к логам» (SendLogPopup): текст уходит в send(comment) и в GitHub отдельным файлом. Черновик живёт, пока отправка не удалась (закрыл попап — не пропал).
-export default function SendLogButton({ send, label = 'Отправить в GitHub', onResult = null, onOpen = null, onSend = null, icon = null, stop = false, className = '', ...rest }) { // icon — значок вместо подписи (состояния — «…» / «✓» / «✗»); onOpen — попап открыт (игра ставит паузу); onSend — нажато «Отправить» (окно настроек закрывается)
+export default function SendLogButton({ send, label = 'Отправить в GitHub', onResult = null, onOpen = null, onSend = null, icon = null, stop = false, className = '', prefill = '', ...rest }) { // prefill — начало комментария: подставляется в поле при открытии окна (адрес блока таймлайна — features/timeline/TimelineBlockComment.jsx); icon — значок вместо подписи (состояния — «…» / «✓» / «✗»); onOpen — попап открыт (игра ставит паузу); onSend — нажато «Отправить» (окно настроек закрывается)
   const [st, setSt] = useState('idle') // idle | busy | ok | fail
   const [open, setOpen] = useState(false)
   const [draft, setDraft] = useState('')
@@ -28,6 +28,7 @@ export default function SendLogButton({ send, label = 'Отправить в Git
     shutGameMic('комментарий к логам: диктовка') // микрофон игры отпущен по-настоящему (треки остановлены): иначе iOS не даёт клавиатуре диктовать голосом; «Продолжить» откроет его заново
     try { const as = globalThis.navigator?.audioSession; if (as && as.type !== 'auto') { prevAs.current = as.type; pLog(`[mic] audioSession ${as.type} → auto: для диктовки iPhone игровая категория звука не нужна`); as.type = 'auto' } } catch { /* нет API — диктовка пойдёт как раньше */ }
     for (const ms of [500, 1500, 3000]) setTimeout(() => { try { pLog(`[mic] через ${ms} мс после отпускания: поток ${peekGameMic() ? 'ОТКРЫТ (не должен)' : 'закрыт'}, audioSession=${globalThis.navigator?.audioSession?.type ?? '—'}`) } catch { /* журнал не мешает */ } }, ms) // диагностика (владелец v3.3.276: «долго отпускает микрофон»): что видно из приложения после закрытия потока
+    if (prefill) setDraft(d => (d.startsWith(prefill) ? d : `${prefill}\n${d}`))
     setOpen(true); onOpen?.()
   }
   const go = async () => {

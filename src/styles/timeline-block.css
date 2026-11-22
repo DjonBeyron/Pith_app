@@ -1,0 +1,58 @@
+/* «Таймлайн игры»: блок и его действия — карточка блока в боковой панели монтажа, «▶ Слушать» (TimelineClipPlay.jsx), «💬 Комментарий в GitHub» (TimelineBlockComment.jsx), ход проигрывания на клипе,
+   выбор этапа / пилюли / ответа / отметки на столе, курсор панорамы средней кнопкой (useMiddlePan.js) и компактная шапка экрана (две строки). Базовые стили экрана — timeline.css. */
+
+/* Компактная шапка: название · выбор прохождения и сервер · «В GitHub» · «Закрыть» — одна строка; вкладки, порог и сводка — вторая */
+.tlHead { padding: 6px 12px; }
+.tlHead .tlTitle { margin-right: 0; }
+.tlHead .tlSrc { flex: 1 1 320px; min-width: 0; }
+.tlHead .tlSrc .tlSelect { flex: 0 1 380px; }
+.tlHead .tlSrcState { flex: 0 1 auto; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tlHead > .tlBtn, .tlHead > .sendLogBtn { flex: none; }
+.tlHead > .tlTitle + .tlBtn, .tlHead > .tlTitle + .sendLogBtn { margin-left: auto; } /* выбора прохождения нет — кнопки прижаты вправо */
+.tlBody { padding-top: 6px; gap: 6px; }
+.tlBar .tlSum { flex: 1 1 280px; min-width: 0; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* Карточка блока в боковой панели монтажа (не поверх экрана) */
+.tlCardSide { position: static; max-width: none; max-height: none; margin: 0; box-shadow: none; border-color: #5b7bd6; flex: none; }
+.tlCardActs { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.tlCardActs:empty { display: none; }
+.tlCmt { display: inline-flex; flex-wrap: wrap; gap: 6px; align-items: center; min-width: 0; }
+.tlCmtInfo { color: #b9bdc7; font-size: 12px; overflow-wrap: anywhere; }
+
+/* «▶ Слушать»: кнопка, полоска хода, подсказка, честная строка */
+.tlPlay { display: grid; grid-template-columns: auto minmax(40px, 1fr); gap: 4px 8px; align-items: center; flex: 1 1 100%; min-width: 0; }
+.tlPlayBtn { font-weight: 600; white-space: nowrap; }
+.tlPlayBtn[aria-pressed='true'] { background: #2b3550; border-color: #5b7bd6; color: #fff; }
+.tlPlayBar { position: relative; height: 6px; border-radius: 3px; background: #2c3039; overflow: hidden; }
+.tlPlayBar i { position: absolute; left: 0; top: 0; bottom: 0; width: 100%; background: #6fb3ff; transform-origin: left center; animation: tlPlayFill 1s linear both; }
+.tlPlayNote, .tlPlayHonest { grid-column: 1 / -1; color: #b9bdc7; font-size: 12px; overflow-wrap: anywhere; }
+.tlPlay[data-state='error'] .tlPlayNote, .tlPlay[data-has='0'] .tlPlayNote { color: #f5c451; }
+.tlPlayHonest { color: #8a8f9a; font-size: 11px; }
+@keyframes tlPlayFill { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+
+/* Клип, который сейчас звучит: заполнение по ходу звука */
+.mtgClipPlay { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 6px; background: rgba(255, 255, 255, 0.5); transform-origin: left center; animation: tlPlayFill 1s linear both; pointer-events: none; }
+.mtgClip[data-play] { outline: 2px solid #fff; outline-offset: 1px; z-index: 3; }
+.mtgClip[data-play='loading'] { opacity: 0.8; }
+
+/* Этап, пилюля, ответ, отметка — нажимаются (карточка блока справа) */
+.mtgCanvas [data-pick] { cursor: pointer; }
+.mtgCanvas [data-pick][data-on='1'] { outline: 2px solid #fff; outline-offset: -1px; }
+
+/* Панорама зажатой средней кнопкой мыши */
+[data-pan='mid'], [data-pan='mid'] * { cursor: grabbing !important; user-select: none; }
+
+/* Панель инструментов монтажа — одна строка; легенда и «как читать» — под кнопкой «?» */
+.mtg .mtgBar { flex-direction: row; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
+.mtgBar .mtgEditRow { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; padding: 3px 8px; }
+.mtgHelpBtn { min-width: 32px; font-weight: 700; }
+.mtgHelp { flex: 1 1 100%; display: flex; flex-direction: column; gap: 4px; padding: 6px 8px; border: 1px solid #2c3039; border-radius: 10px; background: #14161b; }
+.mtgBar .mtgPending { flex: 1 1 100%; }
+
+@media (max-width: 899px) {
+  .tlHead .tlTitle { margin-right: auto; }
+  .tlHead .tlSrc { order: 3; flex-basis: 100%; } /* телефон: название и кнопки — первой строкой, выбор прохождения — второй */
+  .tlHead .tlSrc .tlBtn { padding: 4px 8px; min-height: 28px; font-size: 12px; }
+  .tlHead .tlSrcState { white-space: normal; }
+  .tlBar .tlSum { white-space: normal; flex-basis: 100%; font-size: 11px; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; }
+}

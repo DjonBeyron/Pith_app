@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
-import { flushSync } from 'react-dom'
+import { useState, useEffect, useRef, useMemo, useCallback, useContext } from 'react'
+import { flushSync, createPortal } from 'react-dom'
 import RotatePhoneModule from '../../player/modules/rotate-phone/RotatePhoneModule.jsx'
 import { saveDebugFile, SAVE_HOW } from '../../player/modules/rotate-phone/wordLaneDebugExport.js'
 import { readTapMode, writeTapMode } from '../../player/modules/rotate-phone/wordLaneHudSettings.js'
@@ -24,6 +24,7 @@ import usePolishVoice from './usePolishVoice.js'
 import useTransVoice from './useTransVoice.js'
 import RacePhraseMeaning from './RacePhraseMeaning.jsx'
 import { whyNotIdle } from './launchWhy.js'
+import { RaceOldSlot } from './raceOldSlot.js'
 import '../../../styles/admin-rehearsal-polish.css'
 import '../../../styles/admin-race-ask.css'
 
@@ -32,6 +33,8 @@ import '../../../styles/admin-race-ask.css'
 // ниже сворачиваемая таблица «Озвучка Пита» (RaceVoiceTable: все реплики игры, смыслы фраз плана, переводы слов — текст, статус, переозвучка; правка текста главнее каталога);
 // ещё ниже — свёрнутый раздел «Старое (old), не в прод»: прежние кнопки (режимы, проходы, «Скачать отладку»), статус русской модели слуха и «Настройки» (фикстура плана — общая форма с «Шлифовкой репетиции»,
 // источник плана, прежняя озвучка реплик race_* / кусков / переводов, смыслы фраз, адрес модели, «Тап вместо речи»). Развёрнутость разделов — usePolishOpen (localStorage), по умолчанию всё свёрнуто.
+// v3.3.344 («два олда объедини»): во вкладке «Голос» старая часть рисуется НЕ здесь, а порталом в общем разделе «Старое» вкладки (raceOldSlot.js: место даёт AdminSpeechTab) — состояние блока остаётся одно;
+// блок сам по себе (тесты разметки, без вкладки) показывает её прежним свёрнутым разделом.
 // Любая кнопка запуска только ОТКРЫВАЕТ сцену игры на весь экран с попапом «Говорю / Тапаю» (pitrace/RaceAskPlate.jsx, внутри RotatePhoneModule): ответ — свежий жест, в нём же startGameAudio.
 // План с game: 'race' и round (raceOnly.js); один модуль игры на блок (RotatePhoneModule bare forceDebug startRef). Память и XP пишутся в симуляцию (sessionStorage), на сервер ничего не уходит.
 const SETTINGS_ID = 'race-settings'
@@ -64,12 +67,56 @@ export default function RaceBlock({ save = saveDebugFile }) {
   const linesAll = voice.pit.done >= voice.pit.total
   const chunksAll = voice.chunks.done >= voice.chunks.total
   const transAll = trans.done >= trans.total
+  const oldSlot = useContext(RaceOldSlot) // undefined — блок стоит сам по себе; null — место в общем «Старое» ещё не смонтировано; элемент — рисуем старую часть в нём
 
   const launch = useCallback(id => { flushSync(() => setRound(id)); startRef.current?.() }, []) // нода обновляется синхронно, чтобы start() взял план раунда и открыл сцену с попапом (полный экран — из этого тапа)
   const pickFixture = fixture => { const next = { ...rform, fixture, json: fixtureJson(fixture) }; setRform(next); saveRehearsalForm(next) }
   const flip = on => { setTap(on); writeTapMode(on) }
   async function exportLog() { setNote(SAVE_HOW[await save(raceDebugFile())] ?? SAVE_HOW.failed) }
   const summary = `${FIXTURES[rform.fixture]?.title ?? ''} · реплики ${voice.lines ? `${voice.pit.done}/${voice.pit.total}` : '…'} · тап: ${tap ? 'вкл' : 'выкл'}`
+
+  const old = ( // старая часть: прежние кнопки запуска, «Скачать отладку», модель слуха, «Настройки»
+    <>
+    <button type="button" className="aspSay rhpBig" onClick={() => launch(STAGES_ROUND)} disabled={!idle || !racePlan} data-testid="race-run-stages">{RACE_TITLES[STAGES_ROUND]}</button>
+    <div className="rhpVoiceRow">
+      <button type="button" className="aspChip" onClick={() => launch(null)} disabled={!idle || !racePlan} data-testid="race-run-full">Полная гонка</button>
+      {RACE_ROUNDS.map(r => <button key={r} type="button" className="aspChip" onClick={() => launch(r)} disabled={!idle || !racePlan} data-testid={`race-run-${r}`}>{RACE_TITLES[r]}</button>)}
+      <button type="button" className="aspChip" onClick={exportLog} data-testid="race-export">Скачать отладку</button>
+    </div>
+    {ru.status === 'ready' ? <p className="rhpHint" data-testid="race-ru-ready">Русская модель слуха скачана: проход B идёт голосом</p> : <><VoskReadyNotice vosk={ru} /><p className="rhpHint" data-testid="race-ru-need">Без русской модели проход B идёт тапом по трём пилюлям</p></>}
+    {note && <p className="rhpHint" role="status" data-testid="race-note">{note}</p>}
+    <PolishSettings open={isOpen(SETTINGS_ID)} onToggle={() => toggle(SETTINGS_ID)} summary={summary} testid="race-settings">
+      <p className="rhpHint">Один этап «Конвейер слов» из двух проходов (A и обратный B, между ними плашки нет) (скажи слово по переводу, назови перевод) и финал; в «Полной гонке» после него вершина и спуск. Память и XP — в симуляции.</p>
+      <label className="aspLabel">Фраза (фикстура плана)
+        <select className="aspInput" value={rform.fixture} disabled={playing} onChange={e => pickFixture(e.target.value)} data-testid="race-fixture">
+          {FIXTURE_IDS.map(id => <option key={id} value={id}>{FIXTURES[id].title}</option>)}
+        </select>
+      </label>
+      <RacePlanSource plan={racePlan} locked={playing} onDeps={setPlanDeps} />
+      <div className="rhpVoice">
+        <div className="rhpVoiceRow">
+          <span data-testid="race-lines-status">Реплики Пита (race_*, эпизод «Мия», финал): {voice.lines ? `озвучено ${voice.pit.done} из ${voice.pit.total}` : 'загружаю…'}</span>
+          <button type="button" className="aspChip" onClick={voice.voicePit} disabled={playing || working || !voice.lines || linesAll} data-testid="race-voice-lines">{voice.busy === 'lines' ? 'Озвучиваю…' : linesAll ? 'Реплики озвучены' : 'Озвучить реплики (ElevenLabs)'}</button>
+        </div>
+        <div className="rhpVoiceRow">
+          <span data-testid="race-chunks-status">Куски и слова фразы: озвучено {voice.chunks.done} из {voice.chunks.total}</span>
+          <button type="button" className="aspChip" onClick={voice.voiceChunks} disabled={playing || working || !racePlan || chunksAll} data-testid="race-voice-chunks">{voice.busy === 'chunks' ? 'Озвучиваю…' : chunksAll ? 'Куски озвучены' : 'Озвучить куски фразы'}</button>
+        </div>
+        <div className="rhpVoiceRow">
+          <span data-testid="race-trans-status">Переводы слов (русский голос Пита): озвучено {trans.done} из {trans.total}</span>
+          <button type="button" className="aspChip" onClick={trans.voice} disabled={playing || working || !racePlan || transAll} data-testid="race-voice-trans">{trans.busy ? 'Озвучиваю…' : transAll ? 'Переводы озвучены' : 'Озвучить переводы (ElevenLabs)'}</button>
+        </div>
+        {trans.busy && trans.step && <div className="aspHint" role="status">озвучиваю {trans.step}…</div>}
+        {Object.keys(trans.errors).length > 0 && <p className="aspErr" role="alert" data-testid="race-trans-error">Не озвучилось: {Object.entries(trans.errors).map(([k, e]) => `${k} (${e})`).join('; ')}. Нужны права админа и доступ к ElevenLabs.</p>}
+        {working && voice.step && <div className="aspHint" role="status">озвучиваю {voice.step}…</div>}
+        {voice.error && <p className="aspErr" role="alert" data-testid="race-voice-error">Не озвучилось: {voice.error}. Нужны права админа и доступ к ElevenLabs.</p>}
+      </div>
+      <RacePhraseMeaning plan={racePlan} locked={playing} />
+      <RuModelAddress locked={playing} />
+      <label className="aspLabelInline"><input type="checkbox" checked={tap} onChange={e => flip(e.target.checked)} disabled={playing} data-testid="race-tap-mode" /> Тап вместо речи (тап по дорожке засчитывает слово; флаг общий с игрой, перед стартом его выставляет плашка «Голосом / Пальцами»)</label>
+    </PolishSettings>
+    </>
+  )
 
   return (
     <section className="aspBlock rhpBlock" data-testid="race-block">
@@ -80,46 +127,7 @@ export default function RaceBlock({ save = saveDebugFile }) {
       {status.problem && <p className="aspErr" role="alert" data-testid="race-problem">{status.problem}</p>}
       {error && <p className="aspErr" role="alert" data-testid="race-error">{error}</p>}
       <RaceVoiceTable plan={racePlan} locked={playing} open={isOpen(VOICE_ID)} onToggle={() => toggle(VOICE_ID)} miaOpen={isOpen(MIA_VOICE_ID)} onMiaToggle={() => toggle(MIA_VOICE_ID)} onChange={voice.reload} />
-      <PolishSettings title="Старое (old), не в прод" open={isOpen(OLD_ID)} onToggle={() => toggle(OLD_ID)} summary={`режим кнопки: ${mainRaceTitle()}`} testid="race-old">
-        <button type="button" className="aspSay rhpBig" onClick={() => launch(STAGES_ROUND)} disabled={!idle || !racePlan} data-testid="race-run-stages">{RACE_TITLES[STAGES_ROUND]}</button>
-        <div className="rhpVoiceRow">
-          <button type="button" className="aspChip" onClick={() => launch(null)} disabled={!idle || !racePlan} data-testid="race-run-full">Полная гонка</button>
-          {RACE_ROUNDS.map(r => <button key={r} type="button" className="aspChip" onClick={() => launch(r)} disabled={!idle || !racePlan} data-testid={`race-run-${r}`}>{RACE_TITLES[r]}</button>)}
-          <button type="button" className="aspChip" onClick={exportLog} data-testid="race-export">Скачать отладку</button>
-        </div>
-        {ru.status === 'ready' ? <p className="rhpHint" data-testid="race-ru-ready">Русская модель слуха скачана: проход B идёт голосом</p> : <><VoskReadyNotice vosk={ru} /><p className="rhpHint" data-testid="race-ru-need">Без русской модели проход B идёт тапом по трём пилюлям</p></>}
-        {note && <p className="rhpHint" role="status" data-testid="race-note">{note}</p>}
-        <PolishSettings open={isOpen(SETTINGS_ID)} onToggle={() => toggle(SETTINGS_ID)} summary={summary} testid="race-settings">
-          <p className="rhpHint">Один этап «Конвейер слов» из двух проходов (A и обратный B, между ними плашки нет) (скажи слово по переводу, назови перевод) и финал; в «Полной гонке» после него вершина и спуск. Память и XP — в симуляции.</p>
-          <label className="aspLabel">Фраза (фикстура плана)
-            <select className="aspInput" value={rform.fixture} disabled={playing} onChange={e => pickFixture(e.target.value)} data-testid="race-fixture">
-              {FIXTURE_IDS.map(id => <option key={id} value={id}>{FIXTURES[id].title}</option>)}
-            </select>
-          </label>
-          <RacePlanSource plan={racePlan} locked={playing} onDeps={setPlanDeps} />
-          <div className="rhpVoice">
-            <div className="rhpVoiceRow">
-              <span data-testid="race-lines-status">Реплики Пита (race_*, эпизод «Мия», финал): {voice.lines ? `озвучено ${voice.pit.done} из ${voice.pit.total}` : 'загружаю…'}</span>
-              <button type="button" className="aspChip" onClick={voice.voicePit} disabled={playing || working || !voice.lines || linesAll} data-testid="race-voice-lines">{voice.busy === 'lines' ? 'Озвучиваю…' : linesAll ? 'Реплики озвучены' : 'Озвучить реплики (ElevenLabs)'}</button>
-            </div>
-            <div className="rhpVoiceRow">
-              <span data-testid="race-chunks-status">Куски и слова фразы: озвучено {voice.chunks.done} из {voice.chunks.total}</span>
-              <button type="button" className="aspChip" onClick={voice.voiceChunks} disabled={playing || working || !racePlan || chunksAll} data-testid="race-voice-chunks">{voice.busy === 'chunks' ? 'Озвучиваю…' : chunksAll ? 'Куски озвучены' : 'Озвучить куски фразы'}</button>
-            </div>
-            <div className="rhpVoiceRow">
-              <span data-testid="race-trans-status">Переводы слов (русский голос Пита): озвучено {trans.done} из {trans.total}</span>
-              <button type="button" className="aspChip" onClick={trans.voice} disabled={playing || working || !racePlan || transAll} data-testid="race-voice-trans">{trans.busy ? 'Озвучиваю…' : transAll ? 'Переводы озвучены' : 'Озвучить переводы (ElevenLabs)'}</button>
-            </div>
-            {trans.busy && trans.step && <div className="aspHint" role="status">озвучиваю {trans.step}…</div>}
-            {Object.keys(trans.errors).length > 0 && <p className="aspErr" role="alert" data-testid="race-trans-error">Не озвучилось: {Object.entries(trans.errors).map(([k, e]) => `${k} (${e})`).join('; ')}. Нужны права админа и доступ к ElevenLabs.</p>}
-            {working && voice.step && <div className="aspHint" role="status">озвучиваю {voice.step}…</div>}
-            {voice.error && <p className="aspErr" role="alert" data-testid="race-voice-error">Не озвучилось: {voice.error}. Нужны права админа и доступ к ElevenLabs.</p>}
-          </div>
-          <RacePhraseMeaning plan={racePlan} locked={playing} />
-          <RuModelAddress locked={playing} />
-          <label className="aspLabelInline"><input type="checkbox" checked={tap} onChange={e => flip(e.target.checked)} disabled={playing} data-testid="race-tap-mode" /> Тап вместо речи (тап по дорожке засчитывает слово; флаг общий с игрой, перед стартом его выставляет плашка «Голосом / Пальцами»)</label>
-        </PolishSettings>
-      </PolishSettings>
+      {oldSlot === undefined ? <PolishSettings title="Старое (old), не в прод" open={isOpen(OLD_ID)} onToggle={() => toggle(OLD_ID)} summary={`режим кнопки: ${mainRaceTitle()}`} testid="race-old">{old}</PolishSettings> : oldSlot ? createPortal(old, oldSlot) : null}
       {racePlan && <RotatePhoneModule linesRev={voice.rev} node={node} bare forceDebug startRef={startRef} onStatus={setStatus} onTap={setTap} />}
     </section>
   )

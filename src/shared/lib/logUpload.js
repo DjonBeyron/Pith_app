@@ -44,11 +44,12 @@ export function commentFile(comment, at = new Date(), version = APP_VERSION) {
 }
 
 /** Что отправляем: комментарий (если есть) + journal (файл с шапкой, если есть) + строки дебага + последний выгруженный файл → [{ name, text }] */
-export async function collectLogs({ journal = null, journalSrc = gameJournal, debugLines = getDebugLines(), last = lastFile, at = new Date(), comment = '', withLogs = true, extra = [] } = {}) { // extra — готовые файлы [{ name, text }] сверх журнала (отчёт «Таймлайна игры», features/timeline/timelineLog.js)
+export async function collectLogs({ journal = null, journalSrc = gameJournal, debugLines = getDebugLines(), last = lastFile, at = new Date(), comment = '', withLogs = true, extra = [], pinned = [] } = {}) { // extra — готовые файлы [{ name, text }] сверх журнала (отчёт «Таймлайна игры», features/timeline/timelineLog.js); pinned — файлы, без которых комментарий не понять (контекст блока таймлайна): уходят сразу за комментарием и при снятой галочке «Отправить логи»
   const out = []
   const note = commentFile(comment, at)
   if (note) out.push(note)
-  if (!withLogs) return out.map(f => ({ name: f.name, text: fitText(f.name, f.text) })) // галочка «Отправить логи» снята — уходит только комментарий
+  for (const f of pinned ?? []) if (f?.name && f.text) out.push({ name: f.name, text: f.text })
+  if (!withLogs) return out.map(f => ({ name: f.name, text: fitText(f.name, f.text) })) // галочка «Отправить логи» снята — уходит только комментарий (и pinned)
   const jText = journal?.text ?? journalSrc.text([`Pithy — журнал игры, v${APP_VERSION}`, startModeHeadline()])
   if (jText && jText.trim()) out.push({ name: journal?.name ?? journalFileName(at), text: jText })
   for (const f of extra ?? []) if (f?.name && f.text) out.push({ name: f.name, text: f.text })

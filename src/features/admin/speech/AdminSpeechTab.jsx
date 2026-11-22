@@ -19,6 +19,7 @@ import SpeechSayBlock from './SpeechSayBlock.jsx'
 import SoundDiagBlock from './SoundDiagBlock.jsx'
 import GameMicBlock from './GameMicBlock.jsx'
 import StartModeBlock from './StartModeBlock.jsx'
+import { RaceOldSlot } from './raceOldSlot.js'
 import TimelineOpenButton from '../../timeline/TimelineOpenButton.jsx'
 import GameVolumeBlock from './GameVolumeBlock.jsx'
 import GameSoundsBlock from './GameSoundsBlock.jsx'
@@ -37,6 +38,7 @@ export default function AdminSpeechTab() {
   useTabSilence(rootRef)
   const [caps] = useState(getCapabilities)
   const [perm, setPerm] = useState(null)
+  const [oldSlot, setOldSlot] = useState(null) // место в общем «Старое», куда RaceBlock рисует свою старую часть (raceOldSlot.js)
   const [reference, setReference] = useState(EXAMPLES[0])
   const [lang, setLang] = useState('en-US')
   const [log, setLog] = useState(readLog)
@@ -75,12 +77,14 @@ export default function AdminSpeechTab() {
     <div className="aeWrap" ref={rootRef}>
       <div className="aeHead"><span className="aeTitle">Голос (проба распознавания речи)</span></div>
       <p className="aeHint">Тест Web Speech API перед модулем «Сказать фразу». Ничего не отправляется на наш сервер и не сохраняется, кроме журнала в этом браузере.</p>
-      <StartModeBlock />
-      <TimelineOpenButton />
+      {/* v3.3.344 (владелец: «режимы запуска звука закинь тоже в олд, встряхни память в самом верху, а таймлайн под ним компактно. два олда объедини»): «Встряхни память» → таймлайн одной строкой → ОДНО «Старое» */}
+      <RaceOldSlot.Provider value={oldSlot}>
       <RaceBlock />
-      {/* v3.3.335 (владелец: «всё старое, кроме режима запуска и «Встряхни память» с настройками, — в олд»): остальные блоки вкладки свёрнуты в один раздел */}
+      <TimelineOpenButton />
       <details className="aspOld" data-testid="speech-old">
       <summary className="aspOldSum">🗄 Старое — прежние проверки и настройки (нажми, чтобы открыть)</summary>
+      <section className="aspBlock rhpBlock" data-testid="race-old-home"><h3 className="aspH">Встряхни память — старое (old), не в прод</h3><div ref={setOldSlot} data-testid="race-old-slot" /></section>
+      <StartModeBlock />
       <GameVolumeBlock />
       <RehearsalPolishBlock />
       <Game2Block />
@@ -96,6 +100,7 @@ export default function AdminSpeechTab() {
       <SpeechCaptureMemo />
       <SpeechMemo />
       </details>
+      </RaceOldSlot.Provider>
     </div>
   )
 }

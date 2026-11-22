@@ -5,10 +5,10 @@ import TimelinePauseCard from './TimelinePauseCard.jsx'
 
 // Вкладка «Паузы» — главное для владельца: ВСЕ паузы «игра молчит» длиннее порога карточками с реальным текстом реплик перед тишиной и после (TimelinePauseCard). Сверху итог
 // («долгих пауз N, всего X с из Y с игры»), сортировка (самые долгие сверху / по времени) и чипы этапов с суммой молчания — фильтр по этапу. Карточек может быть десятки: порциями (PAGE).
-// pauses — куски пауз (buildPauses), total — длина игры (мс), onGo(p) — «показать на ленте».
+// pauses — куски пауз (buildPauses), total — длина игры (мс), onGo(p) — «показать на ленте», block — комментарий к паузе в GitHub (TimelineBlockComment).
 export const PAGE = 40
 
-export default function TimelinePausesTab({ pauses, total, onGo }) {
+export default function TimelinePausesTab({ pauses, total, onGo, block = null }) {
   const [sort, setSort] = useState('long')
   const [act, setAct] = useState(null) // null — все этапы
   const [shown, setShown] = useState(PAGE)
@@ -29,7 +29,7 @@ export default function TimelinePausesTab({ pauses, total, onGo }) {
         </div>
       )}
       {!tot.n && <p className="tlMuted" data-testid="tl-pauses-none">Долгих пауз нет: никто не молчал дольше порога, когда игрока не ждали. Попробуй порог поменьше.</p>}
-      <div className="tlPList">{list.slice(0, shown).map(p => <TimelinePauseCard key={p.t} p={p} onGo={onGo} />)}</div>
+      <div className="tlPList">{list.slice(0, shown).map(p => <TimelinePauseCard key={p.t} p={p} onGo={onGo} block={block} />)}</div>
       {list.length > shown && <button type="button" className="tlBtn tlMore" onClick={() => setShown(n => n + PAGE)}>Показать ещё ({list.length - shown})</button>}
     </section>
   )

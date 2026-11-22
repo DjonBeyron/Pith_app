@@ -3,6 +3,7 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { readFileSync } from 'node:fs'
 import TimelineScreen, { WIDE_PX } from '../TimelineScreen.jsx'
 import TimelineMontage from './TimelineMontage.jsx'
+import MontageBar from './MontageBar.jsx'
 import { useMontageDraft } from './useMontageDraft.js'
 import { buildTimeline } from '../timelineModel.js'
 import { buildMontage } from './montageModel.js'
@@ -39,8 +40,10 @@ describe('вкладка «Монтаж»', () => {
     const s = screen({ tab0: 'montage' })
     expect([...s.matchAll(/class="mtgRow" data-row="([a-z]+)"/g)].map(x => x[1])).toEqual(['ruler', 'stages', 'pit', 'mia', 'dictor', 'pills', 'marks'])
     for (const label of ['Этапы', 'Пит', 'Мия', 'Диктор']) expect(s).toContain(`<div class="mtgLabel">${label}</div>`)
-    expect(s).toContain('клип = сколько реально звучало аудио; зазор = тишина')
-    for (const t of ['игра молчит', 'ждём игрока', 'анимация без речи', 'без озвучки (подпись)']) expect(s).toContain(t)
+    expect(s).toContain('data-testid="mtg-help"'); expect(s).not.toContain('клип = сколько реально звучало аудио') // v3.3.344: шапка компактная — легенда и «как читать» свёрнуты под «?»
+    const help = renderToStaticMarkup(<MontageBar draft={fakeDraft()} sum={{ removed: 0 }} summary="" help0 />)
+    expect(help).toContain('клип = сколько реально звучало аудио; зазор = тишина')
+    for (const t of ['игра молчит', 'ждём игрока', 'анимация без речи', 'без озвучки (подпись)']) expect(help).toContain(t)
     expect(s).toMatch(/class="mtgStage"[^>]*data-act="sprint"[^>]*><span>Конвейер слов — круг<em> · 16,0 с<\/em>/)
     expect(s).toContain('data-testid="mtg-mini"'); expect(s).toContain('data-testid="mtg-playhead"'); expect(s).toContain('В этот момент — 0:00,0')
     expect(s).not.toContain('data-testid="mtg-edits"') // правка выключена

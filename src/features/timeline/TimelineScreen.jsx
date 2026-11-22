@@ -5,8 +5,12 @@ import { buildSummary } from './timelineSummary.js'
 import { rows as buildRows, reportText } from './timelineReport.js'
 import { fitScale, zoom } from './timelineView.js'
 import { dur, THRESHOLDS, DEFAULT_THRESHOLD } from './timelineFormat.js'
-import { sourceList } from './timelineStore.js'
+import { sourceList, deviceLabel } from './timelineStore.js'
+import { blockHead } from './timelineBlock.js'
+import { blockContext } from './timelineBlockContext.js'
+import { blockFile, runEventsFile } from './timelineLog.js'
 import { useTimelineServer } from './useTimelineServer.js'
+import { useClipAudio } from './useClipAudio.js'
 import TimelineSources from './TimelineSources.jsx'
 import TimelineRibbon from './TimelineRibbon.jsx'
 import TimelineList from './TimelineList.jsx'
@@ -19,17 +23,22 @@ import { applyEdits, editsSummary } from './montage/montageEdits.js'
 import { editsText } from './montage/montageEditsText.js'
 import { useMontageDraft } from './montage/useMontageDraft.js'
 import SendLogButton from '../../shared/ui/SendLogButton.jsx'
+import { APP_VERSION } from '../../shared/lib/version.js'
 import '../../styles/timeline.css'
 import '../../styles/timeline-ribbon.css'
 import '../../styles/timeline-pauses.css'
+import '../../styles/timeline-block.css'
 
 // «Таймлайн игры» для админа (CONCEPT_TIMELINE.md): реальное прохождение «Встряхни память» на весь экран. Вкладки: «Монтаж» (монтажный стол — слои, клипы по реальной длине звука, зазоры тишины, указатель,
 // режим «Правка» с черновиком правок — montage/TimelineMontage.jsx; на ПК, ширина от WIDE_PX, экран открывается на ней), «Паузы» (на телефоне открывается первой: все паузы «игра молчит» дольше порога
 // карточками с реальным текстом реплик перед тишиной и после), «Лента» (ось времени, дорожки: этапы, паузы, Пит, Мия, диктор, пилюли, игрок, ожидания) и «Список» (хронология текстом).
+// ШАПКА КОМПАКТНАЯ (две строки): в первой — название, выбор прохождения с сервером, «В GitHub», «Закрыть»; во второй — вкладки, порог долгой паузы и сводка одной строкой. Столу монтажа остаётся больше 75 % высоты окна.
+// Любой блок (реплика, пилюля, ответ, этап, тишина, отсчёт, ожидание) на любой вкладке: карточка с «💬 Комментарий в GitHub» (адрес блока в комментарии + файл-контекст — timelineBlockContext.js), у реплики — «▶ Слушать»
+// (useClipAudio: озвучка из текущих настроек обычным <audio>; на «Монтаже» и «Ленте» клип играет по нажатию). voices — { load() → { lines, lib } } (TimelineOpenButton; null — звука нет).
 // Черновик правок монтажа (useMontageDraft) живёт здесь: хранилище устройства (store — подмена для тестов), сервер (server.saveEdits, runs[i].edits); в отправку логов уходит файлом со списком правок.
 // Экран открывается ВНЕ игры и на неё не влияет: читает готовые события трассы. runs — прохождения этого устройства (sceneTrace.runs()); server — { read, save } (shared/api/timelineApi.js через
 // TimelineOpenButton; стенд подставляет свой; null — сервера нет): сохранённые на сервере прохождения читаются при открытии экрана и по «↻ Обновить с сервера», в выборе прохождения подписан источник.
-// send(comment, opts, report, edits) — отправка логов в GitHub вместе с текстовым отчётом таймлайна и списком правок монтажа (edits — текст или ''); нет send — кнопки нет (стенд). server0 — начальное состояние сервера (тесты разметки).
+// send(comment, opts, report, edits, pinned) — отправка логов в GitHub вместе с текстовым отчётом таймлайна, списком правок монтажа (edits — текст или '') и файлами блока (pinned — уходят и без логов); нет send — кнопок нет. server0 — начальное состояние сервера (тесты разметки).
 export const DEFAULT_SCALE = 0.04 // 40 px на секунду: реплика в 2 с — блок 80 px
 export const PHONE_SCALE = 0.025  // узкий экран: 25 px на секунду — на 375 px видно ≈ 12 с
 export const WIDE_PX = 900        // экран шире — открывается на «Монтаже»
@@ -40,8 +49,9 @@ const vw = () => (typeof window === 'undefined' ? 0 : window.innerWidth)
 const LABEL_W = 62
 const EMPTY = { off: 'Игр в этом сеансе ещё не было — сыграй и вернись.', loading: 'Загружаю сохранённые игры с сервера…', ready: 'Игр в этом сеансе ещё не было, на сервере сохранённых игр тоже нет — сыграй и вернись.' }
 
-export default function TimelineScreen({ runs = [], onClose = null, send = null, tab0 = null, server = null, server0 = null, store = null, edit0 = false }) {
+export default function TimelineScreen({ runs = [], onClose = null, send = null, tab0 = null, server = null, server0 = null, store = null, edit0 = false, voices = null }) {
   const srv = useTimelineServer(server, server0)
+  const audio = useClipAudio(voices)
   const entries = useMemo(() => sourceList(runs, srv.state.runs), [runs, srv.state.runs])
   const [pick, setPick] = useState(null) // ключ выбранного прохождения; null — последнее этого устройства, а без них — последнее с сервера
   const cur = entries.find(e => e.key === pick) ?? entries.findLast(e => e.src === 'local') ?? entries[entries.length - 1] ?? null
@@ -77,25 +87,28 @@ export default function TimelineScreen({ runs = [], onClose = null, send = null,
     )
   }
   const fit = fitScale(m.dur, width - LABEL_W), scale = zoomed ?? (width < 600 ? PHONE_SCALE : DEFAULT_SCALE)
-  const near = sel ? (() => { const i = list.findIndex(r => r.ref === sel.ref); return i < 0 ? null : { prev: list.slice(0, i).findLast(r => r.ref !== sel.ref) ?? null, next: list.slice(i + 1).find(r => r.ref !== sel.ref) ?? null } })() : null
   const report = () => reportText(m, { threshold: thr, dropped: run.dropped })
   const editsTxt = () => { if (!draft.edits.length) return ''; const ed = applyEdits(base, draft.edits); return editsText(draft.edits, editsSummary(base, ed), { label: cur.label, missing: ed.missing }) }
   const go = p => { setTab('ribbon'); setSel({ kind: 'pause', ref: p }); setFocus({ t: p.t, n: (focus?.n ?? 0) + 1 }); if (bodyRef.current) bodyRef.current.scrollTop = 0 }
+  // комментарий к блоку: адрес и человеческая строка — в комментарий; файл-контекст (и все события игры с сервера: её журнала на устройстве нет) — в отправку
+  const block = send ? {
+    head: s => blockHead(s, m, cur.rid),
+    send: (s, comment, opts) => {
+      const c = blockContext({ sel: s, m, run, entry: cur, edits: editsTxt(), thr, device: cur.src === 'local' ? deviceLabel() : '', appVersion: APP_VERSION })
+      return send(comment, opts, report(), editsTxt(), [c && blockFile(c.text), cur.src === 'server' && runEventsFile(run, { label: cur.label })].filter(Boolean))
+    },
+  } : null
+  const pickSeg = s => { setSel(s); if (s?.kind === 'line') audio?.toggle(s.ref) } // лента: клип речи по нажатию ещё и звучит
   return (
     <div className="tl" data-testid="timeline" role="dialog" aria-label="Таймлайн игры">
-      <header className="tlHead">
+      <header className="tlHead" data-testid="tl-head">
         <b className="tlTitle">🎬 Таймлайн игры</b>
+        <TimelineSources entries={entries} cur={cur} onPick={k => { setPick(k); setSel(null); audio?.stop() }} srv={srv} hasServer={hasServer} />
         {send && <SendLogButton className="tlBtn" label="📤 В GitHub" send={(comment, opts) => send(comment, opts, report(), editsTxt())} onResult={setSent} data-testid="tl-send" />}
         {onClose && <button type="button" className="tlBtn" onClick={onClose} data-testid="tl-close">✕ Закрыть</button>}
       </header>
       <div className="tlBody" ref={bodyRef}>
-        <TimelineSources entries={entries} cur={cur} onPick={k => { setPick(k); setSel(null) }} srv={srv} hasServer={hasServer} />
-        <p className="tlSum" data-testid="tl-sum">
-          {entries.length === 1 && !hasServer && <span>{cur.label} · </span>}Прохождение <b>{dur(sum.dur)}</b> · Пит {dur(sum.speak.pit)} · Мия {dur(sum.speak.mia)} · диктор {dur(sum.speak.dictor)} · ждали игрока {dur(sum.player)} · <span className="tlRed">игра молчала {dur(sum.dead)}, долгих пауз {sum.longCount}</span>
-          {run.dropped > 0 && <span className="tlRed"> · начало трассы вытеснено ({run.dropped} соб.)</span>}
-        </p>
-        {sent && <p className="tlMuted" data-testid="tl-sent">{sent}</p>}
-        <div className="tlBar">
+        <div className="tlBar" data-testid="tl-bar">
           <div className="tlGroup" role="tablist">
             {TABS.map(([k, t]) => <button key={k} type="button" role="tab" aria-selected={tab === k} className="tlChip" onClick={() => setTab(k)} data-testid={`tl-tab-${k}`}>{t}</button>)}
           </div>
@@ -110,15 +123,20 @@ export default function TimelineScreen({ runs = [], onClose = null, send = null,
               <button type="button" className="tlChip" onClick={() => setScale(fit)} data-testid="tl-fit">всё прохождение</button>
             </div>
           )}
+          <p className="tlSum" data-testid="tl-sum">
+            {entries.length === 1 && !hasServer && <span>{cur.label} · </span>}Прохождение <b>{dur(sum.dur)}</b> · Пит {dur(sum.speak.pit)} · Мия {dur(sum.speak.mia)} · диктор {dur(sum.speak.dictor)} · ждали игрока {dur(sum.player)} · <span className="tlRed">игра молчала {dur(sum.dead)}, долгих пауз {sum.longCount}</span>
+            {run.dropped > 0 && <span className="tlRed"> · начало трассы вытеснено ({run.dropped} соб.)</span>}
+          </p>
         </div>
-        {tab === 'montage' && <TimelineMontage key={cur.key} base={base} draft={draft} scale0={vw() && vw() < 600 ? MONTAGE_PHONE : MONTAGE_SCALE} labelW={width < 600 ? 58 : 92} send={send ? (comment, opts, text) => send(comment, opts, report(), text) : null} edit0={edit0} label={cur.label} />}
-        {tab === 'pauses' && <TimelinePausesTab key={cur.key} pauses={pauses} total={sum.dur} onGo={go} />}
-        {tab === 'ribbon' && <TimelineRibbon m={m} pauses={pauses} scale={Math.max(scale, fit)} focus={focus} selected={sel} onPick={setSel} />}
+        {sent && <p className="tlMuted" data-testid="tl-sent">{sent}</p>}
+        {tab === 'montage' && <TimelineMontage key={cur.key} base={base} draft={draft} scale0={vw() && vw() < 600 ? MONTAGE_PHONE : MONTAGE_SCALE} labelW={width < 600 ? 58 : 92} send={send ? (comment, opts, text) => send(comment, opts, report(), text) : null} edit0={edit0} label={cur.label} audio={audio} block={block} rows={list} />}
+        {tab === 'pauses' && <TimelinePausesTab key={cur.key} pauses={pauses} total={sum.dur} onGo={go} block={block} />}
+        {tab === 'ribbon' && <TimelineRibbon m={m} pauses={pauses} scale={Math.max(scale, fit)} focus={focus} selected={sel} onPick={pickSeg} />}
         {tab === 'list' && <TimelineList rows={list} pauses={pauses} selected={sel} onPick={setSel} />}
         {tab === 'ribbon' && <p className="tlLegend">{[['pit', 'Пит'], ['mia', 'Мия'], ['dictor', 'диктор — слово, перевод, фраза голосом Пита'], ['silent', 'без озвучки (подпись)'], ['dead', 'игра молчит дольше порога']].map(([k, t]) => <span key={k}><i data-who={k} />{t}</span>)}</p>}
         {tab !== 'list' && tab !== 'montage' && <TimelineActs sum={sum} />}
       </div>
-      {tab !== 'pauses' && tab !== 'montage' && <TimelineCard sel={sel} near={near} onClose={() => setSel(null)} />}
+      {tab !== 'pauses' && tab !== 'montage' && <TimelineCard sel={sel} rows={list} onClose={() => { setSel(null); audio?.stop() }} audio={audio} block={block} />}
     </div>
   )
 }
