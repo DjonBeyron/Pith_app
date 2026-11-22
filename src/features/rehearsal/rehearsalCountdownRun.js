@@ -1,5 +1,6 @@
 import { startCountdown } from './rehearsalCountdownSound.js'
-import { countdownPlan } from './rehearsalCountdown.js'
+import { countdownPlan, countdownMs } from './rehearsalCountdown.js'
+import { scenePush } from '../../shared/lib/sceneTrace.js'
 
 // Запуск отсчёта стадии и ожидание его конца (директор актов — useRehearsalActs.js). Раньше ноты стартовали по таймеру «реплика + пауза», а стадия кончалась по другому таймеру (holdMs): если Пит договаривал дольше расчёта
 // (озвучка ждала слот до LINE_WAIT_MS) или ноты стартовали поздно, стадия могла смениться, не доиграв отсчёт. Теперь:
@@ -34,7 +35,7 @@ export function scheduleStageCount({ countAt, busyLeft = () => 0, gate, soft = f
   let stopExtra = null // то, что запускает onBegin (танец Пита на нотах гонки): снимается вместе с отсчётом
   let cancelled = false
   gate?.plan()
-  const begin = () => { gate?.run(); stop = start({ onDone: () => { stopExtra = null; gate?.done() }, plan: countdownPlan({ soft }), what }); try { stopExtra = onBegin?.({ soft }) ?? null } catch { /* украшение не мешает отсчёту */ } }
+  const begin = () => { gate?.run(); scenePush('count', { what, ms: countdownMs(countdownPlan({ soft })) }); stop = start({ onDone: () => { scenePush('count-end', {}); stopExtra = null; gate?.done() }, plan: countdownPlan({ soft }), what }); try { stopExtra = onBegin?.({ soft }) ?? null } catch { /* украшение не мешает отсчёту */ } }
   const wait = waited => {
     if (cancelled) return
     if (busyLeft() <= 0 || waited >= cap) { begin(); return }

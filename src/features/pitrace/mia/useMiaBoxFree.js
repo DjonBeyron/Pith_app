@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef } from 'react'
 import { createBoxFree, FREE_WINDOW_MS, FREE_WATCHDOG_MS } from './miaBoxFree.js'
+import { scenePush } from '../../../shared/lib/sceneTrace.js' // трасса сцены («Таймлайн игры»): только запись
 
 // Пит в коробке без Мии (директор гонки, useRaceActs; v3.3.290): Мия выпрыгнула одна (RaceMia → onStuck) → Пит просит помочь; касания по коробке (onHit) считает createBoxFree: два подряд — коробка снята (событие free,
 // отлетает без Мии, Пит благодарит), одно без второго — «попробуй быстрее». Конец финала (стадия boss-end) держится, пока коробку не сняли и Пит не договорил (afterCount опрашивает), но не дольше сторожа.
@@ -12,7 +13,7 @@ export function useMiaBoxFree({ mb, miaEvent, mspeech, running, rhAfter, log }) 
   useEffect(() => { const ts = timers.current; return () => { ts.forEach(clearTimeout); ts.clear() } }, [])
   const free = useCallback(why => {
     if (mb.m.solo !== 'stuck') return
-    log(`[mia] коробка снята (${why}): отлетает без Мии`)
+    log(`[mia] коробка снята (${why}): отлетает без Мии`); scenePush('answer', { res: 'win', idx: 'box', word: `коробка снята (${why})`, final: true })
     miaEvent({ t: 'free', stage: running })
     later(() => { done.current = true }, FREE_LEAVE_MS + mspeech.msOf('pit_back_1', 'pit') + 900)
   }, [mb, miaEvent, mspeech, running, later, log])
@@ -25,7 +26,7 @@ export function useMiaBoxFree({ mb, miaEvent, mspeech, running, rhAfter, log }) 
   const onStuck = useCallback(() => {
     if (mb.m.solo !== 'keep') return
     bf.current = createBoxFree(); done.current = false
-    log('[mia] Мия выпрыгнула одна: Пит просит помочь, ждём два касания по коробке')
+    log('[mia] Мия выпрыгнула одна: Пит просит помочь, ждём два касания по коробке'); scenePush('ask', { idx: 'box', what: 'задание игроку', word: 'сними коробку с Пита (два касания)', phrase: true })
     miaEvent({ t: 'stuck', stage: running })
     later(() => free('сторож: касаний не было'), FREE_WATCHDOG_MS)
   }, [mb, miaEvent, running, later, free, log])

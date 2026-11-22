@@ -1,0 +1,44 @@
+/* Лента «Таймлайна игры» (features/timeline/TimelineRibbon.jsx): горизонтальная прокрутка ВНУТРИ .tlScroll, подписи дорожек закреплены слева (sticky), отрезки — абсолютные блоки по времени.
+   Цвета говорящих — переменные .tl (timeline.css): Пит — оранжевый (как «спикер A» в редакторе сцен), Мия — сиреневый, диктор — голубой; «игра молчит» дольше порога — красный. */
+.tlScroll { overflow-x: auto; overflow-y: hidden; border: 1px solid #23262d; border-radius: 10px; background: #14161b; -webkit-overflow-scrolling: touch; overscroll-behavior-x: contain; flex: none; }
+.tlCanvas { position: relative; min-width: 100%; }
+.tlRow { display: flex; height: 32px; border-bottom: 1px solid #1d2027; }
+.tlRow:last-child { border-bottom: 0; }
+.tlRow[data-row='stages'] { height: 28px; background: #171a20; }
+.tlRow[data-row='answers'] { height: 22px; }
+.tlRow[data-row='pauses'] { background: rgba(229, 72, 77, 0.05); }
+.tlAxis { height: 22px; }
+.tlLabel {
+  position: sticky; left: 0; z-index: 3; flex: none; width: 62px; box-sizing: border-box; padding: 0 6px; display: flex; align-items: center;
+  background: #1b1e25; border-right: 1px solid #2c3039; color: #b9bdc7; font-size: 11px; white-space: nowrap; overflow: hidden;
+}
+.tlLane { position: relative; flex: none; height: 100%; }
+.tlTick { position: absolute; top: 0; bottom: 0; padding-left: 4px; border-left: 1px solid #2c3039; color: #8a8f9a; font-size: 11px; line-height: 22px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.tlSeg {
+  appearance: none; position: absolute; top: 4px; bottom: 4px; box-sizing: border-box; margin: 0; padding: 0 4px; border: 0; border-radius: 5px; cursor: pointer;
+  font: 11px/1 system-ui, -apple-system, sans-serif; color: #141414; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.tlSegOn { outline: 2px solid #fff; outline-offset: 1px; z-index: 2; }
+.tlSegMany { background: #3a3f4b; color: #cfd3dc; cursor: default; padding: 0 2px; font-size: 10px; }
+.tlStage { background: #2a2f3b; color: #dfe3ea; border-left: 2px solid #7f8796; border-radius: 0 5px 5px 0; top: 3px; bottom: 3px; }
+.tlStage[data-type='announce'] { background: #343046; border-left-color: #a99bf2; }
+.tlStage[data-type='summary'] { background: #2f3a33; border-left-color: #4ade80; }
+.tlLine[data-who='pit'] { background: var(--tl-pit); }
+.tlLine[data-who='mia'] { background: var(--tl-mia); }
+.tlLine[data-who='dictor'] { background: var(--tl-dictor); }
+.tlLine[data-silent='1'] { background: transparent; color: #e0e0e0; border: 1px dashed currentColor; }
+.tlLine[data-silent='1'][data-who='pit'] { color: var(--tl-pit); }
+.tlLine[data-silent='1'][data-who='mia'] { color: var(--tl-mia); }
+.tlPill { background: #4b5263; color: #fff; border-radius: 999px; }
+.tlPill[data-res='win'] { background: #2f8f57; }
+.tlPill[data-res='late'] { background: #7d8f2f; }
+.tlPill[data-res='miss'], .tlPill[data-res='fail'] { background: #a8792a; }
+.tlDot { top: 5px; bottom: 5px; width: 12px !important; margin-left: -6px; padding: 0; border-radius: 50%; background: #8a8f9a; }
+.tlDot[data-res='win'] { background: var(--tl-ok); }
+.tlDot[data-res='miss'] { background: var(--tl-warn); }
+.tlDot[data-res='fail'] { background: #ff8f93; }
+.tlWait { background: #2b3550; color: #cfd8f5; }
+.tlWait[data-kind='count'] { background: #3a3550; }
+.tlWait[data-kind='hold'] { background: repeating-linear-gradient(45deg, #2a2d35, #2a2d35 5px, #33373f 5px, #33373f 10px); color: #cfd3dc; }
+.tlDead { background: rgba(229, 72, 77, 0.28); color: #fff; padding: 0 2px; }
+.tlDead[data-long='1'] { background: var(--tl-dead); font-weight: 700; text-align: center; }

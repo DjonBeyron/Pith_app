@@ -26,7 +26,7 @@ import { useWordLaneControls } from './useWordLaneControls.js'
 import { useGameAudioModes, endGameAudio } from './useGameAudioModes.js'
 import { scheduleDictor } from './wordLaneDictorRun.js'
 import { useRaceActs as useRehearsalActs } from '../../../pitrace/useRaceActs.js' // директор актов: репетиция (useRehearsalActs) и «Гонка с Питом» (plan.game === 'race') — один хук
-import { engineKind, isStudentStage } from '../../../rehearsal/rehearsalKinds.js'
+import { engineKind, isStudentStage } from '../../../rehearsal/rehearsalKinds.js'; import { scenePush } from '../../../../shared/lib/sceneTrace.js'; import { scenePill, sceneClaim, sceneAnswer, sceneStageOut } from './wordLaneSceneTrace.js' // трасса сцены («Таймлайн игры»): только запись событий
 
 // Сценарий игры «Повтори за диктором» — директор. Рецепт (wordLaneRecipe) разложен на стадии (wordLaneStages); директор проходит их по порядку, у каждой стадии свои таймеры, и смена стадии их чистит.
 // ВСЕ таймеры стадии считаются от одной точки — s.at (её же берёт движок пилюль), иначе голос и картинка расходились бы:
@@ -100,15 +100,15 @@ export function useWordLaneFlow({ chunks, translation, lang, clips = null, audio
   // Реакции игры (зовёт движок пилюль, useWordLanePills). Обработчики свежие на каждый рендер (handlers), а fx — стабильный объект-обёртка: движку не нужно перезапускаться
   const handlers = {
     win(order, rect, rep = { last: true, count: 1 }) { // rep — у ученика: последний ли это кусок повтора и сколько в нём кусков; раунды «Порядок» / «Различи» награждают пилюлю сразу
-      rh.rec('win', { ...rep, order }); if (playNote(order)) { listenerRef.current?.mute(900); dbg.note('note') }
+      sceneAnswer('win', rep); rh.rec('win', { ...rep, order }); if (playNote(order)) { listenerRef.current?.mute(900); dbg.note('note'); scenePush('note', { order }) }
       catApi?.current?.react('love', 1600)
       catApi?.current?.peek?.()
       if (rep.last && !rep.res?.noXp && !(stages[sRef.current.idx]?.silent && !xpAllowed(getBossZoneNow()))) { xpApi.current?.add(XP_PER_PILL * rep.count, rect, XP_ARRIVE_MS); return true } // у повтора из нескольких кусков одна цифра («+6»), когда принят последний кусок; true — пилюля летит в счётчик (wordLaneRiseXp), число прибавляется и идёт вверх от счётчика, когда она долетела (XP_ARRIVE_MS)
     },
-    miss(e) { rh.rec('miss', e?.rep); const face = missFace(plan?.game === 'race'); if (face) catApi?.current?.react(face, 1300, !!stages[sRef.current.idx]?.step?.quiet) }, claim(e) { rh.claim?.(e.rep, e.ms, e.y) }, pre(e) { rh.pre?.(e.rep, e) }, spawn(e) { rh.spawn?.(e) }, // гонка (spawn — выезд пилюли: журнал переходов raceTransChron.js): на промах Пит не меняет лицо (missFace, wordLaneCatPeek.js)
+    miss(e) { rh.rec('miss', e?.rep); sceneAnswer('miss', e?.rep); const face = missFace(plan?.game === 'race'); if (face) catApi?.current?.react(face, 1300, !!stages[sRef.current.idx]?.step?.quiet) }, claim(e) { rh.claim?.(e.rep, e.ms, e.y); sceneClaim(e) }, pre(e) { rh.pre?.(e.rep, e) }, spawn(e) { rh.spawn?.(e); scenePill(e) }, // гонка (spawn — выезд пилюли: журнал переходов raceTransChron.js): на промах Пит не меняет лицо (missFace, wordLaneCatPeek.js)
     fail(e) {
       const st = stages[sRef.current.idx]
-      catApi?.current?.react('shy', 1300, !!st?.step?.quiet); rh.rec('fail', e.rep) // quiet («Разгон»): упущенная пилюля уезжает молча — голова Пита не двигается (react с still)
+      catApi?.current?.react('shy', 1300, !!st?.step?.quiet); rh.rec('fail', e.rep); sceneAnswer('fail', e.rep ?? e.prompt) // quiet («Разгон»): упущенная пилюля уезжает молча — голова Пита не двигается (react с still)
       const said = e.order || st?.type === 'take' || failMute(st) ? false : sayLine(rh.failLine(st) ?? (st?.step?.reps?.[0]?.parts?.length > 1 ? 'split_words' : 'try_again')) // не получилось сказать несколько кусков — кот советует говорить раздельно
       if (!said && !failMute(st)) flash(e.order ? 'Не успел — тапай дорожки, пока пилюли на экране' : 'Не успел — говори, пока пилюли на экране')
       if (!e.order && st?.step && !st.step.labels.length && !st.silent) { // вслепую: после «не успел» показываем, что это за кусок
@@ -136,7 +136,7 @@ export function useWordLaneFlow({ chunks, translation, lang, clips = null, audio
       gameMicHold.holdFor(sayMs) // окно речи диктора (глушение дорожки / фаза аудиосессии — режимы проверки на iPhone)
       say(parts)
     },
-    finished() { const at = sRef.current.idx; setS(p => ({ ...p, leaving: at })); later(() => rh.leave(stages[at], () => { if (sRef.current.idx === at && sRef.current.stage === 'run') next() }), rh.exitMs?.(stages[at]) ?? EXIT_PAUSE_MS) }, // exitMs — гонка: после круга фраз короче (useRaceActs) // rh.leave: дубль репетиции сначала дописывается (запись, слова), потом next
+    finished() { const at = sRef.current.idx; sceneStageOut(stages[at]); setS(p => ({ ...p, leaving: at })); later(() => rh.leave(stages[at], () => { if (sRef.current.idx === at && sRef.current.stage === 'run') next() }), rh.exitMs?.(stages[at]) ?? EXIT_PAUSE_MS) }, // exitMs — гонка: после круга фраз короче (useRaceActs) // rh.leave: дубль репетиции сначала дописывается (запись, слова), потом next
   }
   const handlersRef = useRef(handlers)
   useEffect(() => { handlersRef.current = handlers })
@@ -147,7 +147,7 @@ export function useWordLaneFlow({ chunks, translation, lang, clips = null, audio
 
   const finish = useCallback(() => {
     if (finishedRef.current) return
-    finishedRef.current = true; dbg.event('finish')
+    finishedRef.current = true; dbg.event('finish'); scenePush('end', {})
     stopVoice(); releaseNotes(); releaseClips({ keepWarm: true }); clearTimers(); endGameAudio(); closeGameMic()
     listenerRef.current?.dispose()
     onFinished?.()

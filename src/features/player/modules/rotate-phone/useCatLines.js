@@ -6,6 +6,7 @@ import { fillLine } from '../../../rehearsal/rehearsalLines.js'
 import { bufferMissing, recoverLine, nudgeCtx } from './wordLaneLineRecover.js'
 import { hasWordSlot } from './wordLaneClips.js'
 import { pLog } from '../../../../shared/lib/debug.js'
+import { sceneTrace, scenePush } from '../../../../shared/lib/sceneTrace.js'
 import { raceStart } from '../../../pitrace/raceStartTrace.js'
 import { raceChron } from '../../../pitrace/raceStartChron.js'
 import { silentPause, createSilentNote } from '../../../pitrace/raceSilentLine.js'
@@ -57,7 +58,9 @@ export function useCatLines({ lines, rate, catApi, listenerRef, waitMs = LINE_WA
     const { onSpeak, onEnd, pause: pause0 = LINE_PAUSE_MS, ...say } = extra
     const pause = silentPause(line, pause0) // гонка: неозвученная реплика — пауза после неё не дольше CAPTION_READ_MS (эха нет, raceSilentLine.js) // onSpeak({ ms, voiced }) — реплика пошла; onEnd — звук доиграл; pause — занятость после конца (секвенсор гонки: 0, отступ ведёт он сам)
     const done = () => { raceChron.step('ended', `первая реплика доиграла (ended источника): «${id}»`); if (pause === 0) busyRef.current = Math.min(busyRef.current, Date.now()); try { onEnd?.() } catch { /* секвенсор не ломает звук */ } } // реальный конец: «занят» снимается сразу, а не по оценке
+    sceneTrace.hint(id, line.text || line.caption) // трасса сцены: текст реплики, каким он звучит (sceneTrace.js; не бросает)
     const { ms, rise, timer, voiced } = startCatLine({ id, line, rate, catApi, listenerRef, onSound: () => raceStart.line({ id }), onEnd: done, ...say }) // «Гонка»: строка «[race] старт: …» — по ФАКТУ начала звука первой реплики
+    if (!voiced) scenePush('line-start', { who: 'pit', id, text: line.text || line.caption, ms: Math.round(rise + ms), silent: true }) // трасса сцены: реплика без звука (подпись) — конец по её длине
     if (!voiced && line.silent) noteSilent(id, rise + ms + pause) // «[say] реплика … без озвучки: подпись N мс» — раз на реплику
     if (!voiced) { raceStart.line({ voiced: false, id }); if (onEnd) setTimeout(done, rise + ms) } // звука не будет (только подпись): конец — по оценке
     try { onSpeak?.({ ms: rise + ms, voiced }) } catch { /* журнал не мешает */ }

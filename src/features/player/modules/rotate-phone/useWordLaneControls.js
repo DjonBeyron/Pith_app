@@ -7,6 +7,7 @@ import { endGameAudio } from './useGameAudioModes.js'
 import { closeGameMic } from '../../../../shared/lib/gameMic.js'
 import { gameMicGesture } from '../../../../shared/lib/gameMicGesture.js'
 import { pLog } from '../../../../shared/lib/debug.js'
+import { scenePush } from '../../../../shared/lib/sceneTrace.js'
 
 // Управление ходом игры «Повтори за диктором» из интерфейса (вынесено из useWordLaneFlow.js): «Ещё раз» после отказа слушателя, перезапуск ступени (HUD и «Продолжить» после паузы) и ПАУЗА.
 // Пауза (сворачивание приложения, useWordLanePause) — сразу и целиком: стадия 'paused' (эффекты стадий и слушателя снимаются сами, сцена пилюль становится idle — пул возвращается в исходное),
@@ -39,7 +40,7 @@ export function useWordLaneControls({ stages, sRef, setS, setMicEpoch, clearTime
     const n = resumeRep(stages, cur) // с текущего хода — только «Продолжить» в ступени ученика гонки
     const first = n > 0 ? st.idx : Math.max(0, st.step ? stages.findIndex(x => x.step === st.step) : st.idx)
     const total = (st.step ?? stages[st.idx + 1]?.step)?.reps?.length ?? '—'
-    if (cur.stage === 'paused') pLog(`[pause] продолжить: ступень ${st.sid ?? st.idx}, ход ${n + 1} из ${total} (${n > 0 ? 'с текущего' : 'с начала'})`)
+    if (cur.stage === 'paused') { scenePush('resume', { sid: st.sid }); pLog(`[pause] продолжить: ступень ${st.sid ?? st.idx}, ход ${n + 1} из ${total} (${n > 0 ? 'с текущего' : 'с начала'})`) }
     clearTimers(); stopVoice(); dbg.event('restart-stage', { idx: st.idx, to: first, rep: n })
     const at = performance.now()
     setS(p => ({ ...p, ...fresh, stage: 'run', idx: first, at, resume: n > 0 ? { at, n } : null })); setMicEpoch(e => e + 1)
@@ -59,7 +60,7 @@ export function useWordLaneControls({ stages, sRef, setS, setMicEpoch, clearTime
     cat.stop(); catApi?.current?.freeze?.()
     endGameAudio(); closeGameMic(); gameMicGesture.require() // окна речи закрыты, тип сессии возвращён, дорожка выключена (поток жив); включить её теперь может только тап
     if (already) return true
-    dbg.event('pause', { why, stage: cur.stage, idx: cur.idx }); pLog(`[pause] игра на паузе (${why}): ступень ${cur.stage}/${cur.idx}, микрофон выключен (поток жив) — включится только по тапу «Продолжить»`)
+    scenePush('pause', { why }); dbg.event('pause', { why, stage: cur.stage, idx: cur.idx }); pLog(`[pause] игра на паузе (${why}): ступень ${cur.stage}/${cur.idx}, микрофон выключен (поток жив) — включится только по тапу «Продолжить»`)
     const rep = cur.stage === 'run' ? sceneApi?.current?.resumeAt?.() ?? 0 : 0 // с какого хода «Продолжить» (гонка: сцена пилюль ещё жива — до смены стадии)
     flushSync(() => setS(p => ({ ...p, stage: 'paused', from: p.stage, rep, hint: [], note: '' }))) // сразу: эффекты стадий и слушатель снимаются до того, как сработает отложенный таймер
     return true

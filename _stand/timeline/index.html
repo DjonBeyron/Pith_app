@@ -1,0 +1,16 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>timeline stand</title>
+<style>body{margin:0;background:#0e1013;color:#fff;font-family:system-ui}</style></head>
+<body><div id="root"></div>
+<script type="module">
+// Стенд «Таймлайна игры» (dev, в сборку не входит): экран features/timeline/TimelineScreen.jsx на фикстуре событий трассы, без Supabase и без игры.
+//  • ?fixture=long — длинное прохождение (600 слов, ≈ 3000 событий: проверка, что в DOM не тысячи узлов); ?fixture=empty — пустое состояние; ?tab=list — сразу «Список».
+import React from 'react'
+import { createRoot } from 'react-dom/client'
+import TimelineScreen from '/src/features/timeline/TimelineScreen.jsx'
+import { fixtureEvents, longFixture } from '/src/features/timeline/timelineFixture.js'
+
+const q = new URLSearchParams(location.search), kind = q.get('fixture') || 'game'
+const events = kind === 'long' ? longFixture() : fixtureEvents()
+const runs = kind === 'empty' ? [] : [{ id: 1, at: Date.now() - 600000, meta: { game: 'race', only: 'pingpong', seed: 'r0' }, events: longFixture(40), dropped: 0 }, { id: 2, at: Date.now(), meta: { game: 'race', only: 'stages', seed: 'r1' }, events, dropped: 0 }]
+createRoot(document.getElementById('root')).render(React.createElement(TimelineScreen, { runs, tab0: q.get('tab') || 'ribbon', onClose: () => { document.title = 'closed' } }))
+</script></body></html>

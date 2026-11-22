@@ -33,7 +33,7 @@ import { createMiaSpeech, GAP_MS } from './mia/miaSpeech.js'
 import { audioPulse } from '../../shared/lib/gameAudioPulse.js'
 import { useMiaEnter } from './mia/useMiaEnter.js'
 import { miaAfterPass, miaSkip } from './mia/miaRound.js'
-import { afterLeaveSpeech } from './mia/miaLeave.js'; import { revBack } from './raceReverseTurn.js'; import { createLeadTimer, bossLeadMs } from './boss/bossLead.js'; import { revTimes, convSpeed } from './raceReverseTimes.js'; import { HELP_LINES } from './boss/bossHelp.js'; import { REV_START_SLACK_MS } from './raceReverseTurn.js'; import { useMiaPlate } from './mia/useMiaPlate.js'
+import { afterLeaveSpeech } from './mia/miaLeave.js'; import { revBack } from './raceReverseTurn.js'; import { createLeadTimer, bossLeadMs } from './boss/bossLead.js'; import { revTimes, convSpeed } from './raceReverseTimes.js'; import { HELP_LINES } from './boss/bossHelp.js'; import { REV_START_SLACK_MS } from './raceReverseTurn.js'; import { useMiaPlate } from './mia/useMiaPlate.js'; import { sceneRun, sceneStage, sceneAsk } from '../player/modules/rotate-phone/wordLaneSceneTrace.js'
 import { bossFill } from './boss/bossWords.js'
 import { DEMO_START, DEMO_IDS, demoPlan } from './boss/bossScale.js'
 import { playWordSlot, hasWordSlot, wordBufferMs } from '../player/modules/rotate-phone/wordLaneClips.js'
@@ -150,12 +150,12 @@ export function useRaceActs(args) {
     const key = `${running.idx}:${at}`
     if (box.entered === key) return undefined
     markEntered(box, key)
-    tr.stage(running); if (running.type === 'student' && !['sprint', 'catch', 'phrases'].includes(running.act)) tr.pill() // ступени «Вершины» без пилюль: переход кончается её началом
+    tr.stage(running); sceneStage(running); if (running.type === 'student' && !['sprint', 'catch', 'phrases'].includes(running.act)) tr.pill() // ступени «Вершины» без пилюль: переход кончается её началом
     const t = setTimeout(() => { apply({ t: 'enter', stage: running, from: resume?.at === at ? resume.n : 0 }) }, 0) // from — «Продолжить» с хода паузы: сыгранные ходы ступени остаются в результатах (raceState.enter)
     return () => clearTimeout(t)
   }, [running, at, resume, apply, box, tr])
 
-  useEffect(() => { if (on && stage === 'drop') { tr.begin('старт'); if (stages[0]?.charge) tr.plate(stages[0].round?.title) } }, [on, stage, tr, stages]) // вход в игру: переход «старт → первая ступень»; плашка заставки (charge) — сразу со стартом
+  useEffect(() => { if (on && stage === 'drop') { tr.begin('старт'); sceneRun(plan, stages); if (stages[0]?.charge) tr.plate(stages[0].round?.title) } }, [on, stage, tr, stages]) /* eslint-disable-line react-hooks/exhaustive-deps -- plan нужен только записи старта в трассу сцены (sceneRun): эффект от него не зависит */ // вход в игру: переход «старт → первая ступень»; плашка заставки (charge) — сразу со стартом
   const plateNow = on && !!running && running.type === 'announce' && rh.plateOk && !running.charge && !!plateText(running, plateCaption(lines, running.line))
   useEffect(() => { if (plateNow) tr.plate(running.round?.title || plateCaption(lines, running.line)) }, [plateNow, running, tr]) // eslint-disable-line react-hooks/exhaustive-deps -- lines читаются в момент показа
 
@@ -212,7 +212,7 @@ export function useRaceActs(args) {
     claim(rep, ms, y) { if (!running) return; lead.cancel(); tr.last(); if (ruOn) ruLog(rep, 'claim', rep?.pills?.[0]?.p); praiseRef.current = null; apply({ t: 'claim', stage: running, info: { idx: rep?.idx, ms, late: isLate(y), life: pillLifeMs(rep?.speed), fill: rep?.pills?.[0]?.p, tap: !!running.step?.tapOnly } }); speech.claim(praiseRef.current); praiseRef.current = null },
     /** Перед выездом пилюли (движок: событие 'pre'): в «Разгоне» Пит говорит русский перевод слова из библиотеки (raceTrans.js), в «Слушай и лови» — английское слово (rep.say, библиотека слов); озвучки нет — молча, пилюля выезжает сразу.
      *  Пилюля ждёт, пока он договорит (pitLeft) */
-    pre(rep, e) {
+    pre(rep, e) { sceneAsk(e)
       if (running?.act === 'phrases') { tr.pill(); if (rep?.demo) e?.demo?.(demo.kit()); else phr.pre(rep, e); return } // этап «Фразы»: демо-ход просит голос и ворота; иначе смысл / фраза голосом Пита (racePhraseVoice.js), ход ждёт его через pitLeft
       logPre(running, rep)
       if (ruOn) { listenerRef?.current?.resetSaid?.(); ru.start(rep?.idx) } // новое слово прохода B: журнал слушает его с чистого листа

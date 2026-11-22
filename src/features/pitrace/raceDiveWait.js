@@ -2,6 +2,8 @@
 // пока пилюля проходит (raceDodgeDrive.left). Директор (useRaceActs.pre) зовёт run(wait, talk): Пит уже на месте — talk сразу (обычно: нырок укладывается в отступ секвенсора raceSpeech.js 350 / 450 мс),
 // иначе talk — когда он встанет на место, и строка журнала «[dodge] речь ждала выныривания N мс». Пока ждём, pending() = true: директор держит пилюлю (pitLeft), она не выезжает раньше слова.
 // Страховка: дольше SURFACE_MAX_MS не ждём. cancel — смена стадии, выход. Часы и таймеры приходят аргументами (тесты).
+import { scenePush } from '../../shared/lib/sceneTrace.js' // трасса сцены («Таймлайн игры»): только запись
+
 export const SURFACE_MAX_MS = 1500
 
 export function createSurfaceWait({ now = () => performance.now(), setTimer = setTimeout, clearTimer = clearTimeout, log = () => {} } = {}) {
@@ -20,7 +22,7 @@ export function createSurfaceWait({ now = () => performance.now(), setTimer = se
         const waited = now() - t0, l = left() ?? 0
         if (l > 0 && waited < SURFACE_MAX_MS) { timer = setTimer(loop, Math.min(l, SURFACE_MAX_MS - waited)); return }
         pend = false
-        try { log(`[dodge] речь ждала выныривания ${Math.round(waited)} мс${l > 0 ? ' (страховка: дольше не ждём)' : ''}`) } catch { /* журнал не мешает игре */ }
+        try { log(`[dodge] речь ждала выныривания ${Math.round(waited)} мс${l > 0 ? ' (страховка: дольше не ждём)' : ''}`); scenePush('wait', { why: 'Пит выныривает к дорожке', ms: Math.round(waited) }) } catch { /* журнал не мешает игре */ }
         fn()
       }
       timer = setTimer(loop, l0)

@@ -6,6 +6,7 @@
 // onSpeak({ key, id, text, ms }) — Мия начала реплику (рот анимируется), onSpeak(null) — сброс. Всё внешнее приходит аргументами (тесты): часы, таймеры, кот, слушатель, слоты звука.
 import { miaLine, isChatter } from './miaLines.js'
 import { lineKey, lineMs } from '../../player/modules/rotate-phone/wordLaneCatLines.js'
+import { scenePush } from '../../../shared/lib/sceneTrace.js'
 
 export const GAP_MS = 350        // пауза между репликами
 export const CAPTION_TAIL_MS = 400
@@ -14,13 +15,14 @@ export const MIN_CAPTION_MS = 1600
 export const MIC_MUTE_PAD_MS = 600
 export const MAX_PIT_TRIES = 40      // сколько раз пробуем реплику Пита (шаг 300 мс ≈ 12 с), пока он занят переводами и репликами игры: дальше пропускаем, очередь не стоит
 
-export function createMiaSpeech({ now = () => Date.now(), setTimer = setTimeout, clearTimer = clearTimeout, play = () => false, has = () => false, bufferMs = () => 0, hold = null, snap = () => '', onCaption = () => {}, onSpeak = () => {}, log = () => {} } = {}) {
+export function createMiaSpeech({ now = () => Date.now(), setTimer = setTimeout, clearTimer = clearTimeout, play = () => false, has = () => false, bufferMs = () => 0, hold = null, snap = () => '', onCaption = () => {}, onSpeak = () => {}, log = () => {}, trace = scenePush } = {}) { // trace — трасса сцены («Таймлайн игры»): начало и конец реплики Мии; только запись, не бросает
   const src = { lines: null, cat: null, listener: null } // свежие реплики, кот и слушатель кладёт use() (из эффекта хука: рефы в рендере читать нельзя)
   let queue = [], timer = 0, playing = null, endAt = 0, capTimer = 0, seq = 0, playAt = 0
   const caption = (c, ms, why = '') => { clearTimer(capTimer); onCaption(c); if (c) { try { log(`[mia] подпись реплики ${c.key.split(':')[1]}${why ? ` — ${why}` : ''}: ${Math.round(ms)} мс`) } catch { /* журнал не мешает */ } } capTimer = c ? setTimer(() => onCaption(null), ms + CAPTION_TAIL_MS) : 0 } // подпись реплики над Мией; журнал — почему она появилась (владелец: «плашка с текстом за Мией, озвучивать нечего»)
 
   function finish(c) {
     if (playing !== c) return
+    if (c.who === 'mia') trace('line-end', { who: 'mia', id: c.id })
     playing = null; endAt = now() + GAP_MS; queue.shift(); kick()
   }
 
@@ -60,6 +62,7 @@ export function createMiaSpeech({ now = () => Date.now(), setTimer = setTimeout,
     if (!voiced) caption({ key: `${++seq}:${c.id}`, who, text }, ms, line?.url ? 'озвучка есть, но звук не загружен (нет слота)' : 'реплики нет в настройках озвучки (нет url)')
     else try { hold?.holdFor?.(ms) } catch { /* окно речи не обязательно */ }
     log(`[mia] реплика ${c.id}: ${voiced ? `звук ${Math.round(ms)} мс` : 'без озвучки, подпись'}`)
+    trace('line-start', { who: 'mia', id: c.id, text, ms: Math.round(ms), ...(voiced ? {} : { silent: true }) })
     if (voiced) {
       let started = false
       const ok = play(key, res => { if (!started && res?.play !== 'ok' && res?.play !== 'started') { caption({ key: `${++seq}:${c.id}`, who, text }, ms, `звук не стартовал (${res?.play ?? 'нет ответа'})`) } }, () => { started = true; log(`[mia] звук ${c.id} стартовал: ${snap()}`) }, end)
@@ -86,7 +89,7 @@ export function createMiaSpeech({ now = () => Date.now(), setTimer = setTimeout,
       kick()
     },
     /** Пауза, выход, конец игры: очередь и подпись сброшены */
-    stop() { clearTimer(timer); clearTimer(capTimer); timer = 0; capTimer = 0; queue = []; playing = null; onCaption(null); onSpeak(null) },
+    stop() { if (playing?.who === 'mia') trace('line-end', { who: 'mia', id: playing.id, why: 'stop' }); clearTimer(timer); clearTimer(capTimer); timer = 0; capTimer = 0; queue = []; playing = null; onCaption(null); onSpeak(null) },
     /** Оценка, сколько мс речи ещё впереди (очередь целиком, по длине звука или подписи): директор репетиции откладывает реплику следующей стадии на это время */
     leftMs: () => queue.reduce((a, c) => { const l = src.lines?.[c.id], text = l?.text || miaLine(c.id)?.text || '', full = (l?.url ? lineMs(l) : Math.max(MIN_CAPTION_MS, text.length * 65)) + GAP_MS; return a + (playing === c ? Math.max(GAP_MS, full - (now() - playAt)) : full) }, 0), // играющая реплика — только остаток (раньше считалась целиком: прерванная «mia_leave» держала следующую реплику Пита лишние секунды)
     pending: () => queue.length, // играющая реплика тоже стоит в голове очереди
