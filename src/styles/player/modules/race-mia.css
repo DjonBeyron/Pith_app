@@ -51,7 +51,8 @@
 .wlMiaCat.tail-js .cat-tail .on { opacity: 1; }
 @keyframes miaTailSlot { 0% { opacity: 1; } 11.1111% { opacity: 0; } 100% { opacity: 0; } }
 .wlMiaCat[data-paused] .cat-tail .mt, .wlMiaCat[data-paused] .cat-tail .mk { animation-play-state: paused; }
-.wlMiaCat[data-tail='pleased'] .cat-tail .mk { display: none; }
+/* «Довольна»: штрихи прячем через visibility, НЕ через display — display: none снимает CSS-анимацию штрихов, и после «довольна» они заводили цикл заново, со сдвигом от хвоста (штрихи чужого кадра поверх хвоста, v3.3.343) */
+.wlMiaCat[data-tail='pleased'] .cat-tail .mk { visibility: hidden; }
 @media (prefers-reduced-motion: reduce) { .wlMiaCat .cat-tail .mt, .wlMiaCat .cat-tail .mk { animation: none; } .wlMiaCat .cat-tail .mt:nth-child(1) { opacity: 1; } }
 
 /* Зрачок-щель (mia/miaSlit.js, владелец v3.3.287): в прыжке и на колких репликах зрачок сужается до тонкой вертикальной щели (v3.3.288: ширина ×0,42 — не слишком тонкая, высота ×0,96 — зрачок не касается век; на пиках речи --peak плавно расширяет зрачок, ширина до ×1,18). scale складывается с атрибутом transform

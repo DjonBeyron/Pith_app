@@ -29,7 +29,7 @@ describe('хвост Мии: кадры', () => {
   it('CSS: слот --tail-ms (90 мс, было 160), цикл 9 слотов, пауза, «довольна» без замирания', () => {
     const css = readFileSync(new URL('../../../styles/player/modules/race-mia.css', import.meta.url), 'utf8')
     expect(css).toContain('--tail-ms: 90ms'); expect(css).toContain('animation-delay: calc((var(--s) - 9 - var(--tail-from, 0)) * var(--tail-ms))'); expect(css).toContain('@keyframes miaTailSlot')
-    expect(css).toContain('animation-play-state: paused'); expect(css).toContain("[data-tail='pleased'] .cat-tail .mk { display: none; }"); expect(css).toContain('overflow: visible')
+    expect(css).toContain('animation-play-state: paused'); expect(css).toContain("[data-tail='pleased'] .cat-tail .mk { visibility: hidden; }"); expect(css).toContain('overflow: visible')
   })
   it('withTailFrames без хвоста не падает', () => { expect(withTailFrames({ children: [] })).toEqual({ children: [] }) })
 })

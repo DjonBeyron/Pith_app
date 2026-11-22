@@ -10,6 +10,9 @@ export const WAKE_STEPS = 6 // шагов разгона после покоя
 export const INSTANT_CYCLES = 3 // вариант «мгновенно»: сколько раз хвост проходит кадр 1, прежде чем встать на нём
 export const PULSE = { period: 18, periods: 3, amp: 1.15 } // вариант «дышит»: выдержка = TAIL_MS · 2^(amp · sin) — от ≈40 до ≈200 мс, период 18 кадров (два круга), три периода
 
+/** Сколько ещё держится видимый кадр CSS-цикла, мс: progress — доля цикла у его анимации (кадр виден первую девятую часть); не узнать — 0 */
+export const frameLeft = progress => (typeof progress === 'number' && progress >= 0 ? Math.max(0, TAIL_MS - progress * TAIL_MS * TAIL_FRAMES) : 0)
+
 const geo = (from, to, i, n) => Math.round(from * (to / from) ** (n <= 1 ? 1 : i / (n - 1))) // выдержка i-го из n шагов от from до to
 
 /** Расписание остановки от кадра cur: [{ f, ms }] — кадры по порядку цикла, выдержка растёт; последний шаг — REST_FRAME (держится, ms = 0) */

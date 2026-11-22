@@ -1,4 +1,4 @@
-import { calmSteps, wakeSteps, instantSteps, pulseSteps, REST_FRAME } from './miaTailCalm.js'
+import { calmSteps, wakeSteps, instantSteps, pulseSteps, frameLeft, REST_FRAME, TAIL_FRAMES } from './miaTailCalm.js'
 import { redLevel } from './miaTailWant.js'
 
 export const STOP_CYCLES = 1 // сколько раз хвост проходит кадр 1 после команды «стоп»: 1 — встаёт на первом же (≤ 0,8 с); 3 — как первый показанный вариант
@@ -31,15 +31,22 @@ function play(root, steps, later, done) {
 
 /** Хвост затихает. mode 'slow' (по умолчанию) — по порядку кадров с замедлением до кадра 1; 'instant' — обычная скорость, три прохода и мгновенный стоп на кадре 1. → отмена */
 export function calmTail(root, later, mode = 'slow', cycles) {
-  const cur = currentFrame(root) // читаем ДО класса tail-js: он гасит CSS-анимацию, и видимого кадра уже нет
+  const cur = currentFrame(root), left = slotLeft(root) // читаем ДО класса tail-js: он гасит CSS-анимацию, и видимого кадра уже нет
   root.classList.add('tail-js'); showFrame(root, cur)
-  return play(root, mode === 'instant' ? instantSteps(cur, cycles) : calmSteps(cur), later)
+  const steps = mode === 'instant' ? instantSteps(cur, cycles) : calmSteps(cur)
+  return play(root, left >= 1 ? [{ f: cur, ms: left }, ...steps] : steps, later) // текущий кадр доигрывает свой слот: раньше он срезался сразу (кадр на 20–60 мс вместо 90 — хвост «мелькал» на остановке)
+}
+
+/** Сколько мс ещё должен держаться кадр, видимый сейчас в CSS-цикле (0 — цикл не идёт или браузер не отдаёт анимацию) */
+function slotLeft(root) {
+  for (const n of root.querySelectorAll('.cat-tail .mt')) if (getComputedStyle(n).opacity === '1') return frameLeft(n.getAnimations?.()[0]?.effect?.getComputedTiming?.().progress)
+  return 0
 }
 
 /** Хвост снова дёргает: 'slow' — из покоя разгоняется по порядку, затем цикл CSS с нужного кадра; 'instant' — сразу обычный цикл. → отмена */
 export function wakeTail(root, later, mode = 'slow') {
   const resume = next => { root.style.setProperty('--tail-from', String(next)); root.classList.remove('tail-js') }
-  if (mode === 'instant') { resume(REST_FRAME + 1); return () => {} } // сразу обычная скорость с кадра 2
+  if (mode === 'instant') { resume((currentFrame(root) + 1) % TAIL_FRAMES); return () => {} } // сразу обычная скорость: из покоя — с кадра 2; если хвост ещё доходил до покоя — со следующего кадра (раньше перескакивал на кадр 2)
   const from = currentFrame(root) // читаем до показа: хвост мог не дойти до покоя (затихал, а его снова зовут)
   const { steps, next } = wakeSteps(from)
   return play(root, steps, later, () => resume(next))
