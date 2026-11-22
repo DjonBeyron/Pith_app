@@ -25,7 +25,7 @@ describe('замечания 2026-11-17', () => {
 describe('плашки с характером кота и плашка финала (владелец 2026-11-17)', () => {
   it('финал: отдельная серая плашка «Шкала памяти» с мини-описанием перед церемонией Мии', () => {
     const src = rd('./boss/raceStagesBoss.js')
-    expect(src).toContain("announce(act, { sid: 'boss-intro', brief: act.brief, look: { cat: 'mia' }, line: null })")
+    expect(src).toContain("announce(act, { sid: 'boss-intro', brief: act.brief, look: { cat: 'mia' }, line: null, ms: MIA_INTRO_MS })") // v3.3.344: заставка сцену не держит (пустые 1,7 с тишины перед церемонией)
     expect(rd('./raceRecipe.js')).toContain("title: 'Шкала памяти', brief: 'скажи слово, пока линия едет'")
   })
   it('data-cat: у плашек гонки по умолчанию pit (WordLaneTurnPlate soft), у плашки заставки тоже; CSS — фиолетовые Пит, серые Мия, ушки и усы', () => {

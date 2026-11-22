@@ -18,6 +18,8 @@ export const ROUND2_ANN_MS = 400     // «плашки» второго круг
 export const MIA_END_MS = 18000     // конец круга с Мией: потолок (реальную длину держит речь Мии и снятие коробки, boss/raceEndHold.js)
 export const MIA_ANN_MS = 1200       // церемония Мии (стадия `${act}3-ann`): минимум; на деле её держит речь Мии (очередь miaSpeech), три ноты ждут её конца…
 export const MIA_WAIT_CAP_MS = 90000 // …но не дольше этого (страховка: речь не должна встать насовсем)
+export const MIA_INTRO_MS = 0        // стадия-заставка перед церемонией Мии (`${act}3-intro-ann`, `boss-intro-ann`) сцену не держит: с v3.3.271 на ней нет ни плашки (её показывает церемония, пока Мия говорит за кадром), ни реплики —
+                                     // оставались 1,7 с пустой тишины после круга (владелец 2026-11-22: «перед допросом Мии игра долго молчит»). Стадия остаётся в списке: от неё считают маршрут Мии и «начать с этапа»
 
 export function createKit({ plan, rate = 1, lib = () => null, tap = false }) { // tap — «Тапаю»: все ступени без микрофона и Vosk (step.tapOnly), в том числе добранный второй круг
   const r = rate > 0 ? rate : 1
@@ -74,7 +76,7 @@ export function queueStages(kit, act, rep, o = {}) {
   push({ ...round(act.id, act.words, true), standby, demote })
   // Эпизод «Мия» (mia/raceMia.js): церемония прихода и круг с Мией стоят в списке всегда, но директор идёт на них вместо круга 2, когда слабых слов две и больше (miaRoute, miaRound.js); иначе их обходит nextIdx
   const sid3 = `${act.id}3`
-  announce(act, { sid: `${sid3}-intro`, kind: 'mia', title: 'Допрос у Мии', task: '', brief: 'Мия проверяет забытые слова', look: { cat: 'mia' }, line: null }) // плашка Мии (серая, кот Мия) перед церемонией (владелец 2026-11-17)
+  announce(act, { sid: `${sid3}-intro`, kind: 'mia', title: 'Допрос у Мии', task: '', brief: 'Мия проверяет забытые слова', look: { cat: 'mia' }, line: null, ms: MIA_INTRO_MS }) // плашка Мии (серая, кот Мия) перед церемонией (владелец 2026-11-17)
   Object.assign(kit.stages.at(-1), { mia: 'intro' })
   announce(act, { sid: sid3, kind: 'mia', title: '', task: '', line: 'pit_forgot', ms: MIA_ANN_MS, look: { cat: 'mia' } })
   Object.assign(kit.stages.at(-1), { mia: 'ann', miaPlate: { title: 'Допрос у Мии', brief: 'Мия проверяет забытые слова' }, waitCap: MIA_WAIT_CAP_MS, ...(o.revBack ? { revBack: o.revBack } : {}) }) // revBack — после B: на церемонии пилюли разворачиваются снизу вниз, пока идут диалоги (raceReverseTurn, back)

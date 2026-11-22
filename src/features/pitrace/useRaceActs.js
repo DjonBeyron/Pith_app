@@ -34,7 +34,7 @@ import { audioPulse } from '../../shared/lib/gameAudioPulse.js'
 import { useMiaEnter } from './mia/useMiaEnter.js'
 import { miaAfterPass, miaSkip } from './mia/miaRound.js'
 import { afterLeaveSpeech } from './mia/miaLeave.js'; import { revBack } from './raceReverseTurn.js'; import { createLeadTimer, leadAfter } from './boss/bossLead.js'; import { revTimes, convSpeed } from './raceReverseTimes.js'; import { REV_START_SLACK_MS } from './raceReverseTurn.js'; import { useMiaPlate } from './mia/useMiaPlate.js'; import { sceneRun, sceneStage, sceneAsk } from '../player/modules/rotate-phone/wordLaneSceneTrace.js'
-import { bossFill } from './boss/bossWords.js'
+import { bossFill } from './boss/bossWords.js'; import { markBossAnswer } from './boss/bossAnswer.js'
 import { DEMO_START, DEMO_IDS, demoPlan } from './boss/bossScale.js'
 import { playWordSlot, hasWordSlot, wordBufferMs } from '../player/modules/rotate-phone/wordLaneClips.js'
 import { gameMicHold } from '../../shared/lib/gameMicHold.js'
@@ -208,7 +208,7 @@ export function useRaceActs(args) {
     exitMs: st => (st?.act === 'phrases' ? PHRASE_EXIT_MS : st?.type === 'student' && stages[(st.idx ?? -9) + 1]?.act === 'phrases' ? PHRASE_ENTER_MS : miaComesNext(st) ? MIA.EXIT_MS : undefined), // перед церемонией Мии пауза короче: тишина между кругами и падение коробки тянулись слишком долго (владелец 2026-11-15); // круг фраз кончился: до следующей стадии PHRASE_EXIT_MS, а не 1,3 с (Пит уже договорил итог хода)
     plate: st => (st?.rev || st?.mia === 'intro' || st?.sid === 'boss-intro-ann' ? '' : st?.miaPlate ? (miaPlate.go ? plateText({ type: 'announce', round: st.miaPlate }) : '') : plateText(st, plateCaption(lines, st?.line))), // неозвученная реплика стадии — подписью на плашке (raceSilentLine.js)
     /** Слово прохода A / B принято (раньше, чем щёлкнет заливка): время ответа ms (от выезда пилюли) и y (положение пилюли, % высоты: ниже LATE_Y — ответ «в последний момент») — в результаты, и для точности слова (raceAccuracy.js) — окно жизни пилюли по её скорости, заливка голосом в миг зачёта, тап ли это; Пит говорит мини-реплику успеха, следующая пилюля ждёт его */
-    claim(rep, ms, y) { if (!running) return; lead.cancel(); tr.last(); if (ruOn) ruLog(rep, 'claim', rep?.pills?.[0]?.p); praiseRef.current = null; apply({ t: 'claim', stage: running, info: { idx: rep?.idx, ms, late: isLate(y), life: pillLifeMs(rep?.speed), fill: rep?.pills?.[0]?.p, tap: !!running.step?.tapOnly } }); speech.claim(praiseRef.current); praiseRef.current = null },
+    claim(rep, ms, y) { if (!running) return; lead.cancel(); tr.last(); if (running.act === 'boss') { const back = markBossAnswer(listenerRef?.current?.voice, ms); if (back) pLog(`[boss] слово ${(rep?.idx ?? 0) + 1} принято: ответ начат ${back} мс назад — отметка шкалы ставится на тот момент`) } if (ruOn) ruLog(rep, 'claim', rep?.pills?.[0]?.p); praiseRef.current = null; apply({ t: 'claim', stage: running, info: { idx: rep?.idx, ms, late: isLate(y), life: pillLifeMs(rep?.speed), fill: rep?.pills?.[0]?.p, tap: !!running.step?.tapOnly } }); speech.claim(praiseRef.current); praiseRef.current = null },
     /** Перед выездом пилюли (движок: событие 'pre'): в «Разгоне» Пит говорит русский перевод слова из библиотеки (raceTrans.js), в «Слушай и лови» — английское слово (rep.say, библиотека слов); озвучки нет — молча, пилюля выезжает сразу.
      *  Пилюля ждёт, пока он договорит (pitLeft) */
     pre(rep, e) { sceneAsk(e)

@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { setBossZoneNow } from './bossZoneNow.js'
+import { createTrail, lockAtAnswer, takeBossAnswerAt } from './bossAnswer.js'
 import { zoneAt, ZONES, EDGES, TICKS, spanOf, trackStep, lineOn, zoneRgb, marksStep, nextPill, fadeProgress } from './bossScale.js'
 
 // Шкала финала «Шкала памяти» поверх сцены игры (.wlStage; владелец 2026-11-15): справа вертикальная линейка с рисками цвета зоны и тусклым полупрозрачным фоном зон (зелёная 45 %, жёлтая 35 %, красная 20 % длины), без цифр.
@@ -21,6 +22,7 @@ export default function RaceBossScale({ live, show = true, flash = null, demo = 
     let raf = 0, tr = null, topShown = -1, blShown = -1, last = 0, fadedId = -1, exitId = -1 // exitId — пилюля, чья линия уже уходит слева направо;
     let fd = { id: null, from: null, p: 1 } // выцветание маркера последнего законченного слова (фиолетовый → серый, пока следующая пилюля не станет видна целиком)
     let slots = [] // маркеры слов (bossScale.marksStep): у каждого слова свой, живых не больше двух
+    const trail = createTrail() // путь линии текущего слова по кадрам: по нему отметка встаёт на место ответа (bossAnswer.js)
     const frame = now => {
       raf = requestAnimationFrame(frame)
       const dt = last ? Math.min(100, now - last) : 0
@@ -44,6 +46,8 @@ export default function RaceBossScale({ live, show = true, flash = null, demo = 
       const pills = [...field.querySelectorAll('.wlPill[data-wide]')].map(el => { const r = el.getBoundingClientRect(); return { el, h: r.height, top: r.top - b.top, bottom: r.bottom - b.top, locked: el.hasAttribute('data-lock'), failed: el.hasAttribute('data-fail') } }).filter(p => p.h > 0)
       const was = tr
       tr = trackStep(tr, pills, H, now)
+      if (tr && !tr.done) { if (tr.id !== was?.id) takeBossAnswerAt(); trail.push(tr.id, now, tr.y) } // след линии этого слова; у нового слова чужой (не забранный) момент ответа сброшен
+      else if (tr && was !== tr && pills.find(p => p.el === tr.el)?.locked) { tr = lockAtAnswer(tr, trail, takeBossAnswerAt()); if (tr.fixed) setBossZoneNow(zoneAt(Math.min(1, Math.max(0, tr.y / H)))) } // слово принято: линия, треугольник и зона — там, где пилюля была, когда ученик НАЧАЛ отвечать, а не в миг зачёта по итогу Vosk (bossAnswer.js)
       const el = line.current
       if (!el) return
       if (tr && tr.done && was !== tr && pills.find(p => p.el === tr.el)?.locked) clock.current.onZone?.(zoneAt(Math.min(1, Math.max(0, tr.y / H)))) // слово принято: его зона уходит в машину Мии (не принятые — красные по событиям движка)
@@ -67,7 +71,7 @@ export default function RaceBossScale({ live, show = true, flash = null, demo = 
         el.style.transform = `translate3d(0, ${y.toFixed(1)}px, 0)`
         el.dataset.zone = zoneAt(y / H)
       }
-      slots = marksStep(slots, { id: tr ? tr.id : null, y: tr ? Math.min(1, Math.max(0, tr.y / H)) : 0, now }) // слово взято в работу (линия коснулась шкалы) — у него маркер; он идёт за линией и замирает на ответе
+      slots = marksStep(slots, { id: tr ? tr.id : null, y: tr ? Math.min(1, Math.max(0, tr.y / H)) : 0, now, set: !!tr?.fixed && was !== tr }) // слово взято в работу (линия коснулась шкалы) — у него маркер; он идёт за линией и замирает на ответе
       if (tr?.done && fd.id !== tr.id) fd = { id: tr.id, from: null, p: 0 } // слово закончено (принято / «не успел» / ушло вниз): маркер начинает выцветать
       if (fd.id != null && fd.p < 1) {
         const cur = tr && !tr.done && tr.id !== fd.id ? pills.find(x => x.el === tr.el) : nextPill(pills, H) // следующая пилюля: уже взятая линией или ближайшая к шкале

@@ -82,9 +82,10 @@ export const flashOf = talk => (talk && FLASH_LINES[talk.id] ? { zone: FLASH_LIN
 /**
  * Маркеры слов (фиолетовые треугольники): по одному на слово, живых не больше MARKS_MAX. slots — [{ id, k (номер узла 0…2), y (доля длины шкалы), dying (мс смерти или 0) }], id — пилюля, которую толкает линия
  * (null — никакой), y — положение её линии (доля длины), now — часы. Новое слово создаёт маркер сверху; если живых уже MARKS_MAX, самый старый плавно гаснет; маркер идёт за линией своего слова вниз (не вверх)
- * и замирает на месте ответа; погасшие освобождают узел через MARK_FADE_MS. Возвращает новый список.
+ * и замирает на месте ответа; погасшие освобождают узел через MARK_FADE_MS. Возвращает новый список. set — слово принято, y — место ОТВЕТА (bossAnswer.lockAtAnswer: где линия была, когда ученик начал говорить):
+ * маркер встаёт ровно туда (один раз поднимается от места зачёта).
  */
-export function marksStep(slots, { id, y, now }) {
+export function marksStep(slots, { id, y, now, set = false }) {
   const out = slots.filter(s => !s.dying || now - s.dying <= MARK_FADE_MS).map(s => ({ ...s }))
   if (id != null && !out.some(s => s.id === id)) {
     const k = [0, 1, 2].find(i => !out.some(s => s.k === i))
@@ -92,6 +93,6 @@ export function marksStep(slots, { id, y, now }) {
     if (alive.length >= MARKS_MAX) alive[0].dying = now
     if (k != null) out.push({ id, k, y: 0, dying: 0 })
   }
-  if (id != null) { const m = out.find(s => s.id === id && !s.dying); if (m) m.y = Math.min(1, Math.max(m.y, y)) }
+  if (id != null) { const m = out.find(s => s.id === id && !s.dying); if (m) m.y = Math.min(1, set ? Math.max(0, y) : Math.max(m.y, y)) }
   return out
 }
