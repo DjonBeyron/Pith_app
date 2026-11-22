@@ -9,13 +9,18 @@ const memStore = (init = {}) => { const m = { ...init }; return { getItem: k => 
 afterEach(() => vi.unstubAllGlobals())
 
 describe('блок «Режим запуска звука на iPhone»', () => {
-  it('показывает все режимы А–Д, выбран режим из настройки; умолчание — «А · как сейчас»', () => {
+  it('показывает рабочие режимы (А и Г), выбран режим из настройки; умолчание — «А · как сейчас»; сломанные «direct» / «late» / «direct-wait» читаются как «А» (v3.3.337)', () => {
     vi.stubGlobal('localStorage', memStore())
     const html = renderToStaticMarkup(<StartModeBlock />)
     for (const m of START_MODES) expect(html).toContain(`data-value="${m}"`)
     expect(html).toMatch(/aria-checked="true"[^>]*data-value="default"/); expect(html).not.toContain('audio-start-warn')
-    vi.stubGlobal('localStorage', memStore({ [START_MODE_KEY]: 'direct' }))
-    expect(renderToStaticMarkup(<StartModeBlock />)).toMatch(/aria-checked="true"[^>]*data-value="direct"/)
+    vi.stubGlobal('localStorage', memStore({ [START_MODE_KEY]: 'wait' }))
+    expect(renderToStaticMarkup(<StartModeBlock />)).toMatch(/aria-checked="true"[^>]*data-value="wait"/)
+    for (const dead of ['direct', 'late', 'direct-wait']) {
+      vi.stubGlobal('localStorage', memStore({ [START_MODE_KEY]: dead }))
+      const h = renderToStaticMarkup(<StartModeBlock />)
+      expect(h, dead).toMatch(/aria-checked="true"[^>]*data-value="default"/); expect(h, dead).not.toContain(`data-value="${dead}"`)
+    }
   })
   it('тип аудиосессии игры не «Playback весь сеанс» — предупреждение, что режимы не действуют, и кнопка вернуть', () => {
     vi.stubGlobal('localStorage', memStore({ [AUDIO_SESSION_KEY]: 'auto' }))

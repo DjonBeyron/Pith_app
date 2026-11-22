@@ -7,7 +7,7 @@
 //  • 'phases' (экспериментальный): 'playback' на время речи Пита и диктора, 'play-and-record' на очередь ученика. Риск: playback при открытом захвате может приглушить/остановить дорожку микрофона.
 // Нет navigator.audioSession — всё no-op (в журнал уходит supported:false). Прежнее значение возвращаем в конце игры. Чистая логика: navigator и хранилище передаются снаружи (тесты).
 import { createAudioSession } from './speech/speechAudioSession.js'
-import { readAudioSessionMode, readStartMode, startDirect } from './gameAudioSettings.js'
+import { readAudioSessionMode } from './gameAudioSettings.js'
 import { gameAudioNote } from './gameAudioSink.js'
 
 export const SESSION_SPEAK = 'playback'
@@ -19,7 +19,6 @@ export function createGameAudioSession({ nav = globalThis.navigator, store = glo
   let changed = false // мы действительно меняли тип — в конце игры вернём прежний
   let prev = null
   let mode = 'auto'
-  let startMode = 'default' // режим запуска этой игры (gameAudioSettings.js): 'late' — до ответа микрофона тип не трогаем и при повторном begin()
   let held = false   // режим 'playback': после открытия микрофона тип playback поставлен и держится до конца игры (afterMic)
   let micOff = false // режим 'close': поток микрофона закрыт нами (между micClosed и micOpening) — тип 'play-and-record' в это время не ставим
 
@@ -39,16 +38,13 @@ export function createGameAudioSession({ nav = globalThis.navigator, store = glo
     begin() {
       if (active) { // повторный вызов (сцена игры, renew после фона: тип сброшен в 'auto')
         if (mode === 'playback' && held) apply(SESSION_SPEAK, 'begin-again') // v3.3.211: микрофон уже открыт — возвращаем playback, а не play-and-record (renewAudioSession на «Продолжить» ставил 'auto', и звук после паузы оставался тихим)
-        else if (mode !== 'auto' && !micOff && startMode !== 'late') apply(SESSION_LISTEN, 'begin-again')
+        else if (mode !== 'auto' && !micOff) apply(SESSION_LISTEN, 'begin-again')
         return
       } // повторный старт без конца прошлой игры (после фона тип мог сброситься): ставим тип заново — кроме закрытого микрофона ('close': иначе вернём «режим звонка» на речь Пита, v3.3.203)
       active = true; changed = false; micOff = false; held = false
       mode = readAudioSessionMode(store)
       prev = api.current()
       if (mode === 'auto') { report('begin', null, true); return }
-      const start = startMode = mode === 'playback' ? readStartMode(store) : 'default' // режим запуска (gameAudioSettings.js, v3.3.334): меняет только старт при типе 'playback'
-      if (startDirect(start)) { held = true; apply(SESSION_SPEAK, 'begin'); report(`begin:режим запуска ${start} — сразу playback, play-and-record не ставим`, SESSION_SPEAK, true); return }
-      if (start === 'late') { report('begin:режим запуска late — до микрофона тип не трогаем', null, true); return }
       apply(SESSION_LISTEN, 'begin')
     },
     /** Фаза игры: 'speak' (говорит Пит или диктор) / 'listen' (очередь ученика). Работает только в режиме 'phases' */

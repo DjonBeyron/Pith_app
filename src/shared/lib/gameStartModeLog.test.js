@@ -6,14 +6,14 @@ import { START_MODE_KEY, AUDIO_SESSION_KEY } from './gameAudioSettings.js'
 const store = (init = {}) => ({ getItem: k => init[k] ?? null })
 const track = (over = {}) => ({ readyState: 'live', muted: false, enabled: true, getSettings: () => ({ echoCancellation: false, noiseSuppression: false, autoGainControl: true, sampleRate: 48000 }), ...over })
 const world = (over = {}) => ({
-  nav: { audioSession: { type: 'playback', state: 'active' } }, doc: { visibilityState: 'visible' }, store: store({ [START_MODE_KEY]: 'direct' }),
+  nav: { audioSession: { type: 'playback', state: 'active' } }, doc: { visibilityState: 'visible' }, store: store({ [START_MODE_KEY]: 'wait' }),
   ctx: () => ({ state: 'running', sampleRate: 48000, baseLatency: 0.005, outputLatency: 0.021 }), others: () => [{ kind: 'sounds', state: 'running', rate: 48000 }], mic: () => ({ getAudioTracks: () => [track()] }), ...over,
 })
 
 describe('снимок и строка', () => {
   it('подставное окружение → строка одного вида со всеми полями', () => {
     expect(snapshotLine('после begin (тип поставлен)', startSnapshot(world()), { sinceMs: 12.4 })).toBe(
-      '[start-mode] после begin (тип поставлен): режим=direct, тип сессии игры=playback; audioSession=playback/active; ctx игры=running 48000 Гц задержка 5/21 мс; ctx звуков=running 48000 Гц; другие ctx=нет; '
+      '[start-mode] после begin (тип поставлен): режим=wait, тип сессии игры=playback; audioSession=playback/active; ctx игры=running 48000 Гц задержка 5/21 мс; ctx звуков=running 48000 Гц; другие ctx=нет; '
       + 'микрофон=live muted=нет enabled=да (эхо нет, шум нет, AGC да, 48000 Гц); вкладка=visible; +12 мс с тапа')
   })
   it('нет API, контекста и потока — не падает, пишет «нет»', () => {
@@ -46,8 +46,8 @@ describe('хроника старта', () => {
     expect(lines.map(l => l.slice(0, l.indexOf(':')))).toEqual(['[start-mode] тап (до смены типа)', '[start-mode] после begin (тип поставлен)', '[start-mode] getUserMedia вызван', '[start-mode] getUserMedia ответил', '[start-mode] после afterMic (микрофон'])
     expect(lines[0]).toMatch(/audioSession=auto\/active.*\+0 мс с тапа$/); expect(lines[1]).toMatch(/\+3 мс с тапа; изменилось: audioSession$/)
     expect(lines[2]).not.toContain('изменилось'); expect(lines[3]).toContain('getUserMedia ответил: granted (до afterMic)'); expect(lines[4]).toMatch(/\+603 мс с тапа; изменилось: audioSession$/)
-    expect(log.last()).toMatchObject({ mode: 'direct', type: 'playback', mic: 'granted' })
-    expect(lastStartLine(log.last())).toMatch(/^Последний старт: режим direct, тип после старта playback, микрофон granted/)
+    expect(log.last()).toMatchObject({ mode: 'wait', type: 'playback', mic: 'granted' })
+    expect(lastStartLine(log.last())).toMatch(/^Последний старт: режим wait, тип после старта playback, микрофон granted/)
   })
   it('серия по таймеру: 250, 500, 1000, 2000, 4000 мс после ответа микрофона; cancel снимает оставшиеся', () => {
     const { log, lines, timers, fire } = make()
@@ -70,7 +70,7 @@ describe('хроника старта', () => {
     expect(() => { log.begin(); log.mark('x'); log.micAnswer('granted'); log.afterMic('granted'); log.cancel() }).not.toThrow()
   })
   it('шапка отправки: режим, тип сессии игры, audioSession и итог последнего старта одной строкой', () => {
-    expect(startModeHeadline({ snap: () => startSnapshot(world()), last: null })).toBe('режим запуска звука: direct, тип сессии игры: playback; audioSession сейчас: playback/active; Последний старт: ещё не было (с загрузки страницы)')
+    expect(startModeHeadline({ snap: () => startSnapshot(world()), last: null })).toBe('режим запуска звука: wait, тип сессии игры: playback; audioSession сейчас: playback/active; Последний старт: ещё не было (с загрузки страницы)')
     expect(lastStartLine({ mode: 'late', sessionMode: 'auto', type: 'auto', mic: 'denied', tracks: 'нет потока', label: 'x' })).toContain('режим late (не действует: тип сессии игры auto), тип после старта auto, микрофон denied')
   })
 })

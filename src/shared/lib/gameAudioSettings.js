@@ -5,12 +5,13 @@
 //    к очереди ученика — «микрофон только в фазе ученика», приём «Сказать фразу»: запись не держит аудиосессию, пока говорит диктор; iOS может спросить доступ заново, всё пишется в отладку mic-hold).
 //  • pithy_game_web_audio_v1 — чем играют короткие звуки игры (реплики Пита, куски диктора, мяу/ноты, плашка): 'on' (по умолчанию) — Web Audio, буферы декодируются заранее и стартуют мгновенно (gameAudioCtx.js); 'off' — прежние <audio>-слоты
 //    (аварийный выключатель: если на каком-то телефоне Web Audio в сессии «запись + воспроизведение» молчит).
-//  • pithy_game_start_mode_v1 — РЕЖИМ ЗАПУСКА ЗВУКА (v3.3.334, владелец, iPhone: «при старте игры всплывает системный ползунок громкости и сам идёт вверх — игра не должна трогать громкость»). Ползунок двигает не усиление игры,
-//    а смена категории аудиосессии iOS: на старте тип меняется дважды (play-and-record в тапе → getUserMedia → playback). Режимы для проверки на телефоне, действуют при типе сессии 'playback' (умолчание):
-//    'default' — как было (ничего не меняется); 'direct' — сразу playback в тапе, play-and-record не ставим вовсе; 'late' — до микрофона тип не трогаем, playback — после его ответа;
-//    'wait' — как 'default', но первая реплика гонки ждёт ответ микрофона (звук не начинается в «режиме звонка»); 'direct-wait' — 'direct' + ожидание. Читается на каждом старте, перезагрузка не нужна.
+//  • pithy_game_start_mode_v1 — РЕЖИМ ЗАПУСКА ЗВУКА (v3.3.334, владелец, iPhone: «при старте игры громкость сама становится другой — игра не должна трогать громкость»). Итог проверки на телефоне (v3.3.337):
+//    — режимы 'direct' (сразу playback в тапе) и 'late' (тип до микрофона не трогаем) УБРАНЫ: на iPhone микрофон в них НЕ ОТКРЫВАЛСЯ («микрофон не открылся», «попробовать снова» не помогало) — iOS даёт запись только
+//      при типе play-and-record. Сохранённые 'direct' / 'late' / 'direct-wait' читаются как 'default' — телефон, где они были выбраны, сам возвращается к рабочему запуску;
+//    — «громкость другая» — это второй регулятор iOS: при открытом микрофоне звук страницы идёт через отдельную громкость (не «медиа» из шторки), даже при типе playback. Порядком шагов старта это не убрать.
+//    Остались: 'default' — как было; 'wait' — как было, но первая реплика гонки ждёт ответ микрофона (звук не начинается до смены типа). Читается на каждом старте, перезагрузка не нужна.
 export const START_MODE_KEY = 'pithy_game_start_mode_v1'
-export const START_MODES = ['default', 'direct', 'late', 'wait', 'direct-wait']
+export const START_MODES = ['default', 'wait']
 export const DEFAULT_START_MODE = 'default'
 export const START_WAIT_MAX_MS = 2500 // 'wait': дольше микрофон не ждём (диалог доступа) — реплика пойдёт как раньше
 export const AUDIO_SESSION_KEY = 'pithy_game_audio_session_v1'
@@ -35,9 +36,7 @@ export const readMicHoldMode = (store = globalThis.localStorage) => read(MIC_HOL
 export const writeMicHoldMode = (value, store = globalThis.localStorage) => write(MIC_HOLD_KEY, MIC_HOLD_MODES, DEFAULT_MIC_HOLD_MODE, value, store)
 export const readStartMode = (store = globalThis.localStorage) => read(START_MODE_KEY, START_MODES, DEFAULT_START_MODE, store)
 export const writeStartMode = (value, store = globalThis.localStorage) => write(START_MODE_KEY, START_MODES, DEFAULT_START_MODE, value, store)
-/** Режим запуска: тип 'playback' ставится сразу в тапе */
-export const startDirect = mode => mode === 'direct' || mode === 'direct-wait'
 /** Режим запуска: первая реплика гонки ждёт ответ микрофона */
-export const startWaits = mode => mode === 'wait' || mode === 'direct-wait'
+export const startWaits = mode => mode === 'wait'
 export const readWebAudioMode = (store = globalThis.localStorage) => read(WEB_AUDIO_KEY, WEB_AUDIO_MODES, DEFAULT_WEB_AUDIO_MODE, store)
 export const writeWebAudioMode = (value, store = globalThis.localStorage) => write(WEB_AUDIO_KEY, WEB_AUDIO_MODES, DEFAULT_WEB_AUDIO_MODE, value, store)
