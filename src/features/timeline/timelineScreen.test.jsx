@@ -25,21 +25,22 @@ describe('экран «Таймлайн игры»', () => {
   })
 
   it('лента: все дорожки, реплики с текстом и говорящим, пилюли с исходом, красная долгая пауза с длиной цифрами', () => {
-    const s = html()
+    const s = html({ tab0: 'ribbon' })
     for (const row of ['stages', 'pit', 'mia', 'dictor', 'turns', 'answers', 'waits', 'pauses']) expect(s, row).toContain(`data-row="${row}"`)
     for (const label of ['Этапы', 'Пит', 'Мия', 'Диктор', 'Пилюли', 'Игрок', 'Ждёт', 'Паузы']) expect(s).toContain(`<div class="tlLabel">${label}</div>`)
     expect(s).toMatch(/class="tlSeg tlLine"[^>]*data-who="pit"[^>]*>Встряхнём память, я говорю слова, а ты переводишь вслух</)
-    expect(s).toMatch(/class="tlSeg tlStage"[^>]*>Конвейер слов</)
+    expect(s).toMatch(/class="tlSeg tlStage"[^>]*title="Плашка: Конвейер слов \[sprint-ann\][^>]*>Плашка: Конвейер слов</)
     expect(s).toMatch(/class="tlSeg tlPill"[^>]*data-res="win"[^>]*>meet</)
     expect(s).toMatch(/data-long="1" data-testid="tl-dead-long">3,4 с</) // первая долгая пауза видна в первом окне ленты
     expect(s).toContain('долгих пауз 3'); expect(s).toContain('Прохождение <b>91,9 с</b>')
   })
 
-  it('под лентой: «Самые долгие паузы» (после чего — до чего) и сводка по этапам; порог 1 / 1,5 / 2 с', () => {
+  it('три вкладки «Паузы · Лента · Список», экран открывается на «Паузы»; сводка по этапам с названиями для админа; порог 1 / 1,5 / 2 с', () => {
     const s = html()
-    expect(count(s, /class="tlTopRow"/g)).toBe(3)
-    expect(s).toContain('после ответа «не успел» «bring» до реплики Пита race_catch, этап sprint1')
-    expect(s).toContain('<span class="tlActName">Слушай и лови</span>')
+    expect([...s.matchAll(/role="tab" aria-selected="(true|false)"[^>]*>([^<]+)</g)].map(x => `${x[2]}:${x[1]}`)).toEqual(['Паузы:true', 'Лента:false', 'Список:false'])
+    expect(s).toContain('data-testid="tl-pauses"'); expect(s).not.toContain('data-testid="tl-ribbon"'); expect(s).not.toContain('data-testid="tl-list"')
+    expect(count(s, /data-testid="tl-pause"/g)).toBe(3)
+    expect(s).toContain('<span class="tlActName">Конвейер слов — реверс</span>')
     for (const t of ['1,0 с', '1,5 с', '2,0 с']) expect(s).toContain(`>${t}</button>`)
     expect(s).toMatch(/aria-checked="true" class="tlChip">1,5 с</)
   })
@@ -59,7 +60,7 @@ describe('экран «Таймлайн игры»', () => {
   })
 
   it('длинная игра: в DOM не тысячи узлов — только окно времени, список — порциями', () => {
-    const events = longFixture(600), s = renderToStaticMarkup(<TimelineScreen runs={[run(events)]} />)
+    const events = longFixture(600), s = renderToStaticMarkup(<TimelineScreen runs={[run(events)]} tab0="ribbon" />)
     expect(events.length).toBeGreaterThan(2500)
     expect(count(s, /class="tlSeg/g)).toBeLessThan(300)
     const m = buildTimeline(events), p = buildPauses(m), list = renderToStaticMarkup(<TimelineList rows={rows(m, p)} pauses={p} />)

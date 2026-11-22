@@ -80,3 +80,20 @@ describe('трасса сцены (sceneTrace)', () => {
     expect(splitRuns([{ t: 1, k: 'note' }])[0].meta).toEqual({ auto: true })
   })
 })
+
+describe('подписка «прохождение закончилось» (onEnd)', () => {
+  it('подписчик зовётся на событии end с прохождением; отписка работает; на других событиях — нет', () => {
+    const { tr } = make(), got = []
+    const off = tr.onEnd(run => got.push([run.id, run.events.at(-1).k, run.events.length]))
+    tr.begin({ game: 'race' }); tr.push('stage-in', { sid: 'a' }); expect(got).toEqual([])
+    tr.push('end', {}); expect(got).toEqual([[1, 'end', 3]])
+    off(); tr.push('end', {}); expect(got).toHaveLength(1)
+  })
+
+  it('ошибка подписчика не ломает запись: push возвращает событие, остальные подписчики получают конец', () => {
+    const { tr } = make(), got = []
+    tr.onEnd(() => { throw new Error('подписчик упал') }); tr.onEnd(run => got.push(run.id))
+    tr.begin({})
+    expect(tr.push('end', {})).toMatchObject({ k: 'end' }); expect(got).toEqual([1]); expect(tr.events().at(-1).k).toBe('end')
+  })
+})

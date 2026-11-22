@@ -8,6 +8,7 @@ import LessonNavOverlay from './LessonNavOverlay.jsx'
 import AppPerfProbe from './AppPerfProbe.jsx'
 import { useAdmin } from './AdminContext.jsx'
 import { useIdlePrewarm } from './useIdlePrewarm.js'
+import { useTimelineAutosave } from '../features/timeline/timelineAutosave.js'
 import { useResumeHeal } from './resumeHeal.js'
 import { useVoskBackground } from '../shared/lib/vosk/useVoskBackground.js'
 import { confirmBoot } from '../shared/lib/shellClient.js'
@@ -27,7 +28,10 @@ const SCENE_CMP = new URLSearchParams(location.search).get('scene') === 'cmp'
 // рендерится поверх ShellV2, когда открыт (LessonNavContext.jsx)
 export default function App() {
   // Прогрев чанков плеера/повторения/админки в простое после ленты (useIdlePrewarm.js)
-  useIdlePrewarm(useAdmin().isRealAdmin)
+  const { isRealAdmin } = useAdmin()
+  useIdlePrewarm(isRealAdmin)
+  // Админ доиграл «Встряхни память» → таймлайн прохождения сам уходит на сервер (сыграть на телефоне, смотреть на ПК); у не-админа подписки нет (features/timeline/timelineAutosave.js)
+  useTimelineAutosave(isRealAdmin)
   // Возврат из фона: снять остатки блокировок и проверить, что панель вкладок кликабельна (resumeHeal.js)
   useResumeHeal()
   // Тихая фоновая предзагрузка модели Vosk (≈39 МБ) в кэш — без интерфейса, только в простое (shared/lib/vosk/voskBackground.js)

@@ -2,6 +2,8 @@
 // (features/timeline): дорожки ведущих и паузы. Событие — { t (мс, performance.now), k (вид), …поля }. Каждое дублируется в журнал игры строкой «[scene] {json}» (pLog → gameJournal): трасса уходит в GitHub
 // вместе с журналом, и таймлайн можно собрать из текста журнала (parseSceneLines). Запись дёшева и НИКОГДА не бросает: push в массив + одна строка журнала, без DOM, без await, без подписок — игра от неё не зависит.
 // Прохождение (run) начинает begin(мета) на старте игры; хранятся последние SCENE_RUNS прохождений сеанса страницы. Событие без begin открывает прохождение само (auto) — ничего не теряется.
+// onEnd(fn) — подписка «прохождение закончилось» (событие end): так таймлайн сам сохраняет игру на сервер (features/timeline/timelineAutosave.js), а игровой код о сервере не знает. Подписчик вызывается
+// синхронно внутри push, под try/catch: он обязан вернуться сразу (тяжёлое и сеть — отложить), его ошибка проглатывается.
 // Виды событий (k): run, stage-in, stage-out, line-start, line-end, ask, pill, claim, answer, note, count, count-end, wait, pause, resume, end — поля описаны в CONCEPT_TIMELINE.md.
 import { pLog } from './debug.js'
 
@@ -18,6 +20,8 @@ export function createSceneTrace({ now = () => globalThis.performance?.now?.() ?
   let seq = 0
   const texts = new Map() // id реплики Пита → текст, каким он прозвучит (кладёт useCatLines перед звуком)
   const miaIds = new Set() // id реплик Мии: её рот тоже сообщает cat-speak (тот же движок рта) — это не вторая реплика
+  const enders = new Set() // подписчики «прохождение закончилось»
+  const ended = run => { for (const fn of enders) { try { fn(run) } catch { /* подписчик не мешает игре */ } } }
   const open = (meta, auto) => {
     const run = { id: ++seq, at: clock(), meta: { ...meta, ...(auto ? { auto: true } : {}) }, events: [], dropped: 0 }
     runs.push(run); if (runs.length > keep) runs = runs.slice(-keep)
@@ -42,8 +46,15 @@ export function createSceneTrace({ now = () => globalThis.performance?.now?.() ?
     },
     /** Событие вида k с полями data → событие или null. Не бросает */
     push(k, data = {}) {
-      try { if (k === 'line-start' && data.who === 'mia') miaIds.add(String(data.id)); return put(runs[runs.length - 1] ?? open({}, true), String(k), data) } catch { return null }
+      try {
+        if (k === 'line-start' && data.who === 'mia') miaIds.add(String(data.id))
+        const run = runs[runs.length - 1] ?? open({}, true), ev = put(run, String(k), data)
+        if (k === 'end') ended(run)
+        return ev
+      } catch { return null }
     },
+    /** Подписка на конец прохождения (событие end): fn(run). → отписка */
+    onEnd(fn) { enders.add(fn); return () => enders.delete(fn) },
     /** Текст реплики Пита id, каким он звучит (с правками админа и подстановками) — возьмёт line-start */
     hint(id, text) { try { if (id != null && text) { if (texts.size > 400) texts.clear(); texts.set(String(id), cut(text)) } } catch { /* трасса не мешает игре */ } },
     /** Рот Пита пошёл (cat-speak): реплика каталога (есть hint) — who 'pit' с текстом; иначе слово / перевод / фраза голосом Пита — who 'dictor' */

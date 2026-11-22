@@ -1,8 +1,9 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { visible, windowOf, axisTicks, scrollFor } from './timelineView.js'
 import { clock, dur, WHO, RES } from './timelineFormat.js'
+import { stageTitle } from './timelineStageNames.js'
 
-// Лента «Таймлайна игры»: ось времени по горизонтали, дорожки строками, подписи дорожек закреплены слева (sticky). Прокрутка — ВНУТРИ ленты (страница по горизонтали не едет).
+// Лента «Таймлайна игры»: ось времени по горизонтали, дорожки строками, подписи дорожек закреплены слева (sticky). Стадии подписаны названием для админа (timelineStageNames.js), реплики — реальным текстом. Прокрутка — ВНУТРИ ленты (страница по горизонтали не едет).
 // В DOM только то, что попало в видимое окно времени (timelineView.visible): длинная игра не превращается в тысячи узлов; узкие соседние отрезки сливаются в блок «×N».
 // focus — { t, n }: прокрутить к моменту t (нажатие на паузу в списке); onPick({ kind, ref }) — карточка отрезка.
 const LABEL_W = 62
@@ -41,7 +42,7 @@ export default function TimelineRibbon({ m, pauses, scale, focus = null, selecte
   const cell = (key, v) => {
     if (!v.item) return many(v)
     const it = v.item
-    if (key === 'stages') return seg(v, scale, `tlStage${on(it)}`, it.title || it.sid, `${it.sid} — ${dur(it.end - it.t)}`, pick('stage', it), { 'data-type': it.type })
+    if (key === 'stages') return seg(v, scale, `tlStage${on(it)}`, stageTitle(it), `${stageTitle(it)} [${it.sid}] — ${dur(it.end - it.t)}`, pick('stage', it), { 'data-type': it.type })
     if (key === 'turns') return seg(v, scale, `tlPill${on(it)}`, it.word, `${it.word}: ${RES[it.res] ?? it.res}`, pick('turn', it), { 'data-res': it.res })
     if (key === 'answers') return seg(v, scale, `tlDot${on(it.ref)}`, '', `${RES[it.res] ?? it.res} ${it.word}`, pick('answer', it.ref), { 'data-res': it.res })
     if (key === 'waits') return seg(v, scale, 'tlWait', it.text, `${it.text} — ${dur(it.end - it.t)}`, pick(it.kind, it), { 'data-kind': it.kind })

@@ -2,15 +2,27 @@
 <style>body{margin:0;background:#0e1013;color:#fff;font-family:system-ui}</style></head>
 <body><div id="root"></div>
 <script type="module">
-// Стенд «Таймлайна игры» (dev, в сборку не входит): экран features/timeline/TimelineScreen.jsx на фикстуре событий трассы, без Supabase и без игры.
-//  • ?fixture=long — длинное прохождение (600 слов, ≈ 3000 событий: проверка, что в DOM не тысячи узлов); ?fixture=empty — пустое состояние; ?tab=list — сразу «Список».
+// Стенд «Таймлайна игры» (dev, в сборку не входит): экран features/timeline/TimelineScreen.jsx на фикстуре событий трассы, без сети и без игры.
+//  • ?fixture=long — длинное прохождение (600 слов, ≈ 3000 событий: проверка, что в DOM не тысячи узлов); ?fixture=empty — игр на этом устройстве нет; ?fixture=rev — игра с разворотом конвейера и Мией;
+//  • ?tab=pauses | ribbon | list — вкладка (по умолчанию «Паузы»);
+//  • ?server=1 — подставной «сервер»: два сохранённых прохождения с других устройств (Android и iPhone), «☁ Сохранить на сервер» пишет в память страницы; ?server=empty — на сервере пусто;
+//    ?server=error — сеть недоступна; ?server=slow — ответ через 4 с (состояние загрузки). Без ?server — сервера нет (кнопок сервера нет).
 import React from 'react'
 import { createRoot } from 'react-dom/client'
 import TimelineScreen from '/src/features/timeline/TimelineScreen.jsx'
 import { fixtureEvents, longFixture } from '/src/features/timeline/timelineFixture.js'
+import { reverseEvents, serverRuns } from '/src/features/timeline/timelineFixtureServer.js'
+import { packRun } from '/src/features/timeline/timelineStore.js'
 
-const q = new URLSearchParams(location.search), kind = q.get('fixture') || 'game'
-const events = kind === 'long' ? longFixture() : fixtureEvents()
+const q = new URLSearchParams(location.search), kind = q.get('fixture') || 'game', mode = q.get('server')
+const events = kind === 'long' ? longFixture() : kind === 'rev' ? reverseEvents() : fixtureEvents()
 const runs = kind === 'empty' ? [] : [{ id: 1, at: Date.now() - 600000, meta: { game: 'race', only: 'pingpong', seed: 'r0' }, events: longFixture(40), dropped: 0 }, { id: 2, at: Date.now(), meta: { game: 'race', only: 'stages', seed: 'r1' }, events, dropped: 0 }]
-createRoot(document.getElementById('root')).render(React.createElement(TimelineScreen, { runs, tab0: q.get('tab') || 'ribbon', onClose: () => { document.title = 'closed' } }))
+let value = { v: 1, runs: mode === '1' || mode === 'slow' ? serverRuns() : [] }
+const wait = ms => new Promise(r => setTimeout(r, ms))
+const server = mode ? {
+  read: async () => { await wait(mode === 'slow' ? 4000 : 250); return mode === 'error' ? { runs: [], error: 'TypeError: Failed to fetch' } : { runs: value.runs, error: null } },
+  save: async run => { await wait(250); if (mode === 'error') return { ok: false, error: 'TypeError: Failed to fetch' }; const mine = packRun(run); value = { v: 1, runs: [...value.runs.filter(r => r.id !== mine.id), mine].slice(-3) }; // как timelineApi.mergeRuns: то же id заменяется, остаются последние 3
+    return { ok: true, bytes: JSON.stringify(value).length, count: value.runs.length } },
+} : null
+createRoot(document.getElementById('root')).render(React.createElement(TimelineScreen, { runs, server, tab0: q.get('tab') || 'pauses', onClose: () => { document.title = 'closed' } }))
 </script></body></html>

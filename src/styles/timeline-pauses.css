@@ -1,0 +1,54 @@
+/* «Таймлайн игры»: вкладка «Паузы» (features/timeline/TimelinePausesTab.jsx), карточка паузы (TimelinePauseCard.jsx — она же в карточке отрезка на ленте) и строка источников с сервером
+   (TimelineSources.jsx). Цвета говорящих — переменные .tl (timeline.css). На 375 px всё в одну колонку, без горизонтальной прокрутки; от 760 px блоки «перед» и «после» стоят рядом. */
+.tlSrc { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; }
+.tlSrc .tlSelect { flex: 1 1 240px; max-width: 520px; text-overflow: ellipsis; }
+.tlSrcOne { color: #cfd3dc; overflow-wrap: anywhere; }
+.tlSrcState { flex: 1 1 100%; color: #8a8f9a; font-size: 12px; overflow-wrap: anywhere; }
+.tlSrcState.tlRed { color: #ff8f93; }
+
+.tlPTab { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.tlPSum { margin: 0; font-size: 15px; color: #dfe3ea; }
+.tlPSum b { color: #ff8f93; }
+.tlPSum .tlMuted { white-space: nowrap; }
+.tlPList { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; }
+
+.tlP {
+  display: flex; flex-direction: column; gap: 8px; min-width: 0; padding: 10px 12px; border-radius: 10px;
+  background: #14161b; border: 1px solid rgba(229, 72, 77, 0.35); border-left: 4px solid var(--tl-dead);
+}
+.tlP[data-anim='1'] { border-color: rgba(245, 196, 81, 0.4); border-left-color: var(--tl-warn); }
+.tlPHead { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px; }
+.tlPMs { font-size: 24px; line-height: 1.1; font-weight: 700; color: #ff8f93; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.tlP[data-anim='1'] .tlPMs { color: var(--tl-warn); }
+.tlPAt { color: #b9bdc7; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.tlPStage { flex: 1 1 180px; min-width: 0; font-weight: 600; color: #fff; overflow-wrap: anywhere; }
+.tlPGo { flex: none; padding: 4px 10px; min-height: 28px; font-size: 12px; align-self: center; }
+.tlPStage .tlPId { white-space: nowrap; }
+.tlPId { font: 11px/1.3 ui-monospace, Menlo, Consolas, monospace; font-style: normal; font-weight: 400; color: #6b707b; overflow-wrap: anywhere; }
+.tlPSides { display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; }
+.tlPSide { display: flex; flex-direction: column; gap: 2px; min-width: 0; padding: 7px 9px; border-radius: 8px; background: #1b1e25; border-left: 3px solid #4b5263; }
+.tlPSide[data-who='pit'] { border-left-color: var(--tl-pit); }
+.tlPSide[data-who='mia'] { border-left-color: var(--tl-mia); }
+.tlPSide[data-who='dictor'] { border-left-color: var(--tl-dictor); }
+.tlPSide[data-who='player'] { border-left-color: var(--tl-ok); }
+.tlPCap { font-size: 10px; font-weight: 600; letter-spacing: 0.07em; text-transform: uppercase; color: #8a8f9a; }
+.tlPLine { font-size: 15px; line-height: 1.35; color: #fff; overflow-wrap: anywhere; }
+.tlPWho { color: #b9bdc7; }
+.tlPSide[data-who='pit'] .tlPLine > .tlPWho { color: var(--tl-pit); }
+.tlPSide[data-who='mia'] .tlPLine > .tlPWho { color: var(--tl-mia); }
+.tlPSide[data-who='dictor'] .tlPLine > .tlPWho { color: var(--tl-dictor); }
+.tlPSide[data-who='player'] .tlPLine > .tlPWho { color: var(--tl-ok); }
+.tlPSaid { margin-top: 3px; padding-top: 4px; border-top: 1px dashed #2c3039; font-size: 12.5px; color: #b9bdc7; overflow-wrap: anywhere; }
+.tlPIn { margin: 0; padding: 6px 9px; border-radius: 8px; background: #1b1e25; color: #cfd3dc; font-size: 13px; overflow-wrap: anywhere; }
+.tlP[data-anim='1'] .tlPIn { background: rgba(245, 196, 81, 0.12); color: #f3dfa6; }
+
+/* карточка паузы внутри карточки отрезка на ленте — без второй рамки */
+.tlCard .tlP { padding: 0; border: 0; background: none; }
+.tlCard .tlPMs { font-size: 20px; }
+
+@media (min-width: 760px) {
+  .tlPSides { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (min-width: 1500px) {
+  .tlPList { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}

@@ -19,22 +19,22 @@ export function fixtureEvents(start = 5000) {
   go(200); say('pit', 'race_start', 'Встряхнём память, я говорю слова, а ты переводишь вслух', 3400, 500)
   stage(0, 'sprint-ann', 'sprint', 'announce', 'Конвейер слов', 'race_sprint_go'); go(250)
   say('pit', 'race_sprint_go', 'Поехали, говори перевод, пока слово не уехало', 2600, 100)
-  at('count', { what: '«sprint1» (плашка Конвейер слов)', ms: 2500 }); go(2500); at('count-end', {}); go(150)
-  stage(1, 'sprint1', 'sprint', 'student'); go(300)
+  at('count', { what: '«sprint» (плашка Конвейер слов)', ms: 2500 }); go(2500); at('count-end', {}); go(150)
+  stage(1, 'sprint', 'sprint', 'student'); go(300)
   word(0, 'win', 1300, ['race_good_1', 'отличное произношение', 1500]); word(1, 'win', 900); word(2, 'miss', 1700); word(3, 'win', 2100, ['race_good_3', 'вот это да, чисто', 1400]); word(4, 'fail', 3600)
-  at('stage-out', { idx: 1, sid: 'sprint1' }); go(2600) // долгая пауза 1: после хода — до плашки следующего круга
+  at('stage-out', { idx: 1, sid: 'sprint' }); go(2600) // долгая пауза 1: после хода — до плашки следующего круга
   stage(2, 'catch-ann', 'catch', 'announce', 'Слушай и лови', 'race_catch'); go(250)
   say('pit', 'race_catch', 'Теперь наоборот, я говорю слово, а ты ловишь перевод', 3100, 200)
   at('wait', { why: 'русская модель слуха', ms: 1200 }); go(100)
-  stage(3, 'catch1', 'catch', 'student'); go(250)
+  stage(3, 'catch', 'catch', 'student'); go(250)
   word(0, 'win', 1100, ['race_good_ok', 'Отлично', 700]); word(1, 'fail', 3400)
   at('line-start', { who: 'mia', id: 'mia_enter', text: 'Так, так, кто тут путает слова? Сейчас ускорим дорожку', ms: 3300 }); go(3300); at('line-end', { who: 'mia', id: 'mia_enter' }); go(350)
   say('pit', 'pit_mia_hello', 'Мия, только не быстро', 1500, 350)
   at('line-start', { who: 'mia', id: 'mia_fast', text: 'Быстро, быстро', ms: 1600, silent: true }); go(1600); at('line-end', { who: 'mia', id: 'mia_fast' }); go(300)
   word(2, 'win', 800); word(3, 'win', 950, ['race_good_2', 'звучит очень хорошо', 1500]); word(4, 'win', 700)
   at('line-start', { who: 'mia', id: 'mia_leave', text: 'Ладно, справились, я пошла', ms: 2100 }); go(2100); at('line-end', { who: 'mia', id: 'mia_leave' })
-  at('stage-out', { idx: 3, sid: 'catch1' }); go(1900) // долгая пауза 2
-  at('pause', { why: 'hidden' }); go(4200); at('resume', { sid: 'catch1' }); go(300)
+  at('stage-out', { idx: 3, sid: 'catch' }); go(1900) // долгая пауза 2
+  at('pause', { why: 'hidden' }); go(4200); at('resume', { sid: 'catch' }); go(300)
   stage(4, 'phrases-ann', 'phrases', 'announce', 'Конвейер ситуаций', 'race_phrases'); go(250)
   say('pit', 'race_phrases', 'Конвейер ситуаций, подбери фразу к ситуации', 2900, 400)
   stage(5, 'phrases1', 'phrases', 'student'); go(200)
@@ -48,7 +48,7 @@ export function fixtureEvents(start = 5000) {
 
 /** Длинное прохождение для проверки производительности: n слов подряд (≈ 6 событий на слово) */
 export function longFixture(n = 600, start = 1000) {
-  const ev = [{ t: start, k: 'run', run: 1, game: 'race', seed: 'long' }, { t: start + 10, k: 'stage-in', idx: 0, sid: 'sprint1', act: 'sprint', type: 'student', title: '' }]
+  const ev = [{ t: start, k: 'run', run: 1, game: 'race', seed: 'long' }, { t: start + 10, k: 'stage-in', idx: 0, sid: 'sprint', act: 'sprint', type: 'student', title: '' }]
   let t = start + 100
   for (let i = 0; i < n; i++) {
     const w = WORDS[i % WORDS.length]

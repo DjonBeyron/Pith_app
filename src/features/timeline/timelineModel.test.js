@@ -11,17 +11,17 @@ const m = buildTimeline(fixtureEvents(), { seed: 'r1' })
 describe('модель таймлайна: дорожки', () => {
   it('время — от начала прохождения; стадии идут встык, у ступени ученика есть отметка «ход кончен»', () => {
     expect(m.t0).toBe(5000)
-    expect(m.stages.map(s => s.sid)).toEqual(['sprint-ann', 'sprint1', 'catch-ann', 'catch1', 'phrases-ann', 'phrases1', 'summary'])
+    expect(m.stages.map(s => s.sid)).toEqual(['sprint-ann', 'sprint', 'catch-ann', 'catch', 'phrases-ann', 'phrases1', 'summary'])
     m.stages.slice(1).forEach((s, i) => expect(m.stages[i].end).toBe(s.t))
     const s1 = m.stages[1]; expect(s1.out).toBeGreaterThan(s1.t); expect(s1.out).toBeLessThan(s1.end)
-    expect(stageAt(m, s1.t + 10).sid).toBe('sprint1'); expect(stageAt(m, 0)).toBeNull()
+    expect(stageAt(m, s1.t + 10).sid).toBe('sprint'); expect(stageAt(m, 0)).toBeNull()
   })
 
   it('реплики разложены по говорящим, с текстом, длиной и концом по событию line-end', () => {
     const pit = m.lines.filter(l => l.who === 'pit'), mia = m.lines.filter(l => l.who === 'mia'), dic = m.lines.filter(l => l.who === 'dictor')
     expect(pit[0]).toMatchObject({ id: 'race_start', text: 'Встряхнём память, я говорю слова, а ты переводишь вслух', t: 200, end: 3600, why: 'done' })
     expect(mia.map(l => l.id)).toEqual(['mia_enter', 'mia_fast', 'mia_leave']); expect(mia[1].silent).toBe(true); expect(mia[1].end - mia[1].t).toBe(1600)
-    expect(dic[0]).toMatchObject({ text: 'встречать', sid: 'sprint1' })
+    expect(dic[0]).toMatchObject({ text: 'встречать', sid: 'sprint' })
     expect(lineText(pit[0])).toBe('Пит: «Встряхнём память, я говорю слова, а ты переводишь вслух» (race_start, 3,4 с)')
   })
 
@@ -38,8 +38,8 @@ describe('модель таймлайна: дорожки', () => {
   })
 
   it('ходы: пилюля от появления до исхода, промах не закрывает ход слова, смена стадии закрывает без исхода', () => {
-    const see = m.turns.find(u => u.word === 'see' && u.sid === 'sprint1'); expect(see.res).toBe('fail'); expect(see.end - see.t).toBe(3200)
-    expect(m.answers.filter(a => a.word === 'see' && a.sid === 'sprint1').map(a => [a.res, a.final])).toEqual([['miss', false], ['fail', true]])
+    const see = m.turns.find(u => u.word === 'see' && u.sid === 'sprint'); expect(see.res).toBe('fail'); expect(see.end - see.t).toBe(3200)
+    expect(m.answers.filter(a => a.word === 'see' && a.sid === 'sprint').map(a => [a.res, a.final])).toEqual([['miss', false], ['fail', true]])
     const meet = m.turns[0]; expect(meet).toMatchObject({ word: 'meet', res: 'win', ms: 1300, lane: 0 }); expect(meet.claimT - meet.t).toBe(1300)
     const ph = m.turns.filter(u => u.phrase); expect(ph.map(u => u.res)).toEqual(['win', 'miss'])
     const x = buildTimeline([{ t: 0, k: 'pill', idx: 0, word: 'a' }, { t: 500, k: 'stage-in', sid: 'b' }, { t: 900, k: 'end' }]); expect(x.turns[0]).toMatchObject({ res: 'none', end: 500 })
@@ -65,18 +65,18 @@ describe('паузы: «ждём игрока» и «игра молчит»', (
   })
 
   it('пилюля на экране без исхода — «ждём игрока», это не проблема: долгой паузой не считается', () => {
-    const bring = m.turns.find(u => u.word === 'bring' && u.sid === 'sprint1') // 3,6 с молчания, пока игрок не успел
+    const bring = m.turns.find(u => u.word === 'bring' && u.sid === 'sprint') // 3,6 с молчания, пока игрок не успел
     const inside = pauses.filter(p => p.t >= bring.t && p.end <= bring.end)
     expect(inside.map(p => p.kind)).toEqual(['player']); expect(inside[0].ms).toBe(3600); expect(inside[0].long).toBe(false)
     expect(playerSpans(m).some(s => s.t === bring.t && s.end === bring.end)).toBe(true)
   })
 
-  it('никто не говорит и игрока не ждём — «игра молчит»; дольше порога — долгая, с «после … до …» и стадией', () => {
+  it('никто не говорит и игрока не ждём — «игра молчит»; дольше порога — долгая, с «перед / после» (кто и полный текст) и стадией по-человечески', () => {
     const long = pauses.filter(p => p.long)
     expect(long.map(p => p.ms)).toEqual([3350, 1900, 3200])
-    expect(long[0]).toMatchObject({ kind: 'dead', sid: 'sprint1', before: 'после ответа «не успел» «bring»', after: 'до реплики Пита race_catch' })
-    expect(long[0].mid).toEqual(['catch-ann «Слушай и лови»']) // плашка следующего круга вышла внутри паузы
-    expect(long[2]).toMatchObject({ before: 'после реплики диктора «See you later»', after: 'до реплики Пита race_phrases_pick', sid: 'phrases1' })
+    expect(long[0]).toMatchObject({ kind: 'dead', sid: 'sprint', act: 'sprint', stage: 'Конвейер слов — круг', before: { who: 'player', text: 'не успел «bring»' }, after: { who: 'pit', id: 'race_catch', text: 'Теперь наоборот, я говорю слово, а ты ловишь перевод', quoted: true } })
+    expect(long[0].mid).toEqual(['Плашка: Конвейер слов (реверс)']) // плашка следующего круга вышла внутри паузы
+    expect(long[2]).toMatchObject({ before: { who: 'dictor', text: 'See you later', id: '' }, after: { who: 'pit', id: 'race_phrases_pick', note: 'без озвучки — подпись' }, sid: 'phrases1', stage: 'Фразы — круг 1 «Пойми»' })
   })
 
   it('порог — параметр: 1 с находит больше долгих пауз, 2 с — меньше; топ — самые длинные первыми', () => {
@@ -112,9 +112,9 @@ describe('сводка и текстовый отчёт', () => {
     expect(text[0]).toBe('== ТАЙМЛАЙН ИГРЫ ==')
     expect(text).toContain('   +12,860 с  Пит: «отличное произношение» (race_good_1, 1,5 с)')
     expect(text).toContain('   +52,120 с  Мия: «Быстро, быстро» (mia_fast, 1,6 с, без озвучки — подпись)')
-    expect(text).toContain('   +81,900 с  ⚠ пауза 3,2 с — игра молчит: после реплики диктора «See you later» до реплики Пита race_phrases_pick, этап phrases1')
-    expect(text).toContain('1. 3,4 с на +31,300 с: после ответа «не успел» «bring» до реплики Пита race_catch, этап sprint1; внутри паузы началась стадия catch-ann «Слушай и лови»')
-    expect(text.some(l => l.includes('catch «Слушай и лови»: 37,0 с; Пит 6,8 с, Мия 7,0 с'))).toBe(true)
+    expect(text).toContain('   +81,900 с  ⚠ пауза 3,2 с — игра молчит: перед: Диктор: «See you later»; после: Пит: «я описываю ситуацию, а ты тапни фразу, которая подходит» (без озвучки — подпись) [race_phrases_pick]; этап: Фразы — круг 1 «Пойми»')
+    expect(text.slice(text.indexOf('1. 3,4 с на 0:31 (+31,300 с) — этап: Конвейер слов — круг [sprint]')).slice(1, 5)).toEqual(['   перед:  игрок: не успел «bring»', '           последняя реплика: Диктор: «приносить» — 3,7 с до паузы', '   после:  Пит: «Теперь наоборот, я говорю слово, а ты ловишь перевод» [race_catch]', '   внутри: началась стадия «Плашка: Конвейер слов (реверс)»'])
+    expect(text.some(l => l.includes('Конвейер слов — реверс [catch]: 37,0 с; Пит 6,8 с, Мия 7,0 с'))).toBe(true)
     expect(reportLines(m, { dropped: 40 })[3]).toContain('начало трассы вытеснено (40 событий)')
     const order = rows(m, pauses).map(r => r.t); expect(order).toEqual([...order].sort((a, b) => a - b))
   })

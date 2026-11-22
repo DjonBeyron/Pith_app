@@ -1,31 +1,40 @@
 import { useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { buildTimeline } from './timelineModel.js'
-import { buildPauses, topDead } from './timelinePauses.js'
+import { buildPauses } from './timelinePauses.js'
 import { buildSummary } from './timelineSummary.js'
 import { rows as buildRows, reportText } from './timelineReport.js'
 import { fitScale, zoom } from './timelineView.js'
 import { dur, THRESHOLDS, DEFAULT_THRESHOLD } from './timelineFormat.js'
+import { sourceList } from './timelineStore.js'
+import { useTimelineServer } from './useTimelineServer.js'
+import TimelineSources from './TimelineSources.jsx'
 import TimelineRibbon from './TimelineRibbon.jsx'
 import TimelineList from './TimelineList.jsx'
 import TimelineCard from './TimelineCard.jsx'
-import TimelinePauses from './TimelinePauses.jsx'
+import TimelinePausesTab from './TimelinePausesTab.jsx'
+import TimelineActs from './TimelineActs.jsx'
 import SendLogButton from '../../shared/ui/SendLogButton.jsx'
 import '../../styles/timeline.css'
 import '../../styles/timeline-ribbon.css'
+import '../../styles/timeline-pauses.css'
 
-// «Таймлайн игры» для админа (CONCEPT_TIMELINE.md, шаг 1 — только просмотр): реальное прохождение «Встряхни память» на весь экран. Лента (ось времени, дорожки: этапы, Пит, Мия, диктор, пилюли, игрок,
-// ожидания, паузы) и «Список» (та же хронология текстом). Главное — паузы «игра молчит» дольше порога: красные отрезки, список самых долгих, сводка по этапам. Экран открывается ВНЕ игры и на неё не влияет:
-// читает готовые события трассы (runs — sceneTrace.runs()). send(comment, opts, report) — отправка логов в GitHub вместе с текстовым отчётом таймлайна; нет send — кнопки нет (стенд).
+// «Таймлайн игры» для админа (CONCEPT_TIMELINE.md — только просмотр): реальное прохождение «Встряхни память» на весь экран. Три вкладки: «Паузы» (открывается первой — главное для владельца: все паузы
+// «игра молчит» дольше порога карточками с реальным текстом реплик перед тишиной и после), «Лента» (ось времени, дорожки: этапы, паузы, Пит, Мия, диктор, пилюли, игрок, ожидания) и «Список» (хронология текстом).
+// Экран открывается ВНЕ игры и на неё не влияет: читает готовые события трассы. runs — прохождения этого устройства (sceneTrace.runs()); server — { read, save } (shared/api/timelineApi.js через
+// TimelineOpenButton; стенд подставляет свой; null — сервера нет): сохранённые на сервере прохождения читаются при открытии экрана и по «↻ Обновить с сервера», в выборе прохождения подписан источник.
+// send(comment, opts, report) — отправка логов в GitHub вместе с текстовым отчётом таймлайна; нет send — кнопки нет (стенд). server0 — начальное состояние сервера (тесты разметки).
 export const DEFAULT_SCALE = 0.04 // 40 px на секунду: реплика в 2 с — блок 80 px
 export const PHONE_SCALE = 0.025  // узкий экран: 25 px на секунду — на 375 px видно ≈ 12 с
+const TABS = [['pauses', 'Паузы'], ['ribbon', 'Лента'], ['list', 'Список']]
 const LABEL_W = 62
-const hasScene = r => r?.events?.some(e => e.k === 'stage-in' || e.k === 'line-start')
-const runName = r => `№${r.id}${r.at ? ` · ${new Date(r.at).toTimeString().slice(0, 5)}` : ''}${r.meta?.game ? ` · ${r.meta.game}${r.meta.only ? `/${r.meta.only}` : ''}` : ''} · ${r.events.length} соб.`
+const EMPTY = { off: 'Игр в этом сеансе ещё не было — сыграй и вернись.', loading: 'Загружаю сохранённые игры с сервера…', ready: 'Игр в этом сеансе ещё не было, на сервере сохранённых игр тоже нет — сыграй и вернись.' }
 
-export default function TimelineScreen({ runs = [], onClose = null, send = null, tab0 = 'ribbon' }) {
-  const usable = useMemo(() => runs.filter(hasScene), [runs])
-  const [runId, setRunId] = useState(null)
-  const run = usable.find(r => r.id === runId) ?? usable[usable.length - 1] ?? null
+export default function TimelineScreen({ runs = [], onClose = null, send = null, tab0 = 'pauses', server = null, server0 = null }) {
+  const srv = useTimelineServer(server, server0)
+  const entries = useMemo(() => sourceList(runs, srv.state.runs), [runs, srv.state.runs])
+  const [pick, setPick] = useState(null) // ключ выбранного прохождения; null — последнее этого устройства, а без них — последнее с сервера
+  const cur = entries.find(e => e.key === pick) ?? entries.findLast(e => e.src === 'local') ?? entries[entries.length - 1] ?? null
+  const run = cur?.run ?? null, shown = !!run
   const [thr, setThr] = useState(DEFAULT_THRESHOLD)
   const [tab, setTab] = useState(tab0)
   const [zoomed, setScale] = useState(null) // null — масштаб по умолчанию для ширины экрана
@@ -34,19 +43,23 @@ export default function TimelineScreen({ runs = [], onClose = null, send = null,
   const [width, setWidth] = useState(360)
   const [sent, setSent] = useState('')
   const bodyRef = useRef(null)
-  useLayoutEffect(() => { const read = () => setWidth(bodyRef.current?.clientWidth ?? 360); read(); window.addEventListener('resize', read); return () => window.removeEventListener('resize', read) }, [])
+  useLayoutEffect(() => { const read = () => setWidth(bodyRef.current?.clientWidth ?? 360); read(); window.addEventListener('resize', read); return () => window.removeEventListener('resize', read) }, [shown]) // shown: тело экрана появляется, когда пришли игры с сервера
 
   const m = useMemo(() => (run ? buildTimeline(run.events, run.meta) : null), [run])
   const pauses = useMemo(() => (m ? buildPauses(m, thr) : []), [m, thr])
   const sum = useMemo(() => (m ? buildSummary(m, pauses) : null), [m, pauses])
   const list = useMemo(() => (m ? buildRows(m, pauses) : []), [m, pauses])
-  const top = useMemo(() => topDead(pauses), [pauses])
 
+  const hasServer = !!server || !!server0
   if (!m) {
+    const st = srv.state
     return (
       <div className="tl" data-testid="timeline" role="dialog" aria-label="Таймлайн игры">
         <header className="tlHead"><b className="tlTitle">🎬 Таймлайн игры</b>{onClose && <button type="button" className="tlBtn" onClick={onClose}>✕ Закрыть</button>}</header>
-        <p className="tlEmpty" data-testid="tl-empty">Игр в этом сеансе ещё не было — сыграй и вернись.</p>
+        <div className="tlEmpty" data-testid="tl-empty" data-status={st.status}>
+          <p>{st.status === 'error' ? `Игр в этом сеансе ещё не было, а сервер недоступен: ${st.error || 'нет ответа'}. Сыграй на этом устройстве или обнови позже.` : EMPTY[st.status]}</p>
+          {hasServer && st.status !== 'loading' && <button type="button" className="tlBtn" onClick={srv.reload} data-testid="tl-reload">↻ Обновить с сервера</button>}
+        </div>
       </div>
     )
   }
@@ -57,20 +70,19 @@ export default function TimelineScreen({ runs = [], onClose = null, send = null,
     <div className="tl" data-testid="timeline" role="dialog" aria-label="Таймлайн игры">
       <header className="tlHead">
         <b className="tlTitle">🎬 Таймлайн игры</b>
-        {usable.length > 1 && <select className="tlSelect" aria-label="Прохождение" value={run.id} onChange={e => { setRunId(Number(e.target.value)); setSel(null) }}>{usable.map(r => <option key={r.id} value={r.id}>{runName(r)}</option>)}</select>}
         {send && <SendLogButton className="tlBtn" label="📤 В GitHub" send={(comment, opts) => send(comment, opts, reportText(m, { threshold: thr, dropped: run.dropped }))} onResult={setSent} data-testid="tl-send" />}
         {onClose && <button type="button" className="tlBtn" onClick={onClose} data-testid="tl-close">✕ Закрыть</button>}
       </header>
       <div className="tlBody" ref={bodyRef}>
+        <TimelineSources entries={entries} cur={cur} onPick={k => { setPick(k); setSel(null) }} srv={srv} hasServer={hasServer} />
         <p className="tlSum" data-testid="tl-sum">
-          {usable.length === 1 && <span>{runName(run)} · </span>}Прохождение <b>{dur(sum.dur)}</b> · Пит {dur(sum.speak.pit)} · Мия {dur(sum.speak.mia)} · диктор {dur(sum.speak.dictor)} · ждали игрока {dur(sum.player)} · <span className="tlRed">игра молчала {dur(sum.dead)}, долгих пауз {sum.longCount}</span>
+          {entries.length === 1 && !hasServer && <span>{cur.label} · </span>}Прохождение <b>{dur(sum.dur)}</b> · Пит {dur(sum.speak.pit)} · Мия {dur(sum.speak.mia)} · диктор {dur(sum.speak.dictor)} · ждали игрока {dur(sum.player)} · <span className="tlRed">игра молчала {dur(sum.dead)}, долгих пауз {sum.longCount}</span>
           {run.dropped > 0 && <span className="tlRed"> · начало трассы вытеснено ({run.dropped} соб.)</span>}
         </p>
         {sent && <p className="tlMuted" data-testid="tl-sent">{sent}</p>}
         <div className="tlBar">
           <div className="tlGroup" role="tablist">
-            <button type="button" role="tab" aria-selected={tab === 'ribbon'} className="tlChip" onClick={() => setTab('ribbon')}>Лента</button>
-            <button type="button" role="tab" aria-selected={tab === 'list'} className="tlChip" onClick={() => setTab('list')} data-testid="tl-tab-list">Список</button>
+            {TABS.map(([k, t]) => <button key={k} type="button" role="tab" aria-selected={tab === k} className="tlChip" onClick={() => setTab(k)} data-testid={`tl-tab-${k}`}>{t}</button>)}
           </div>
           <div className="tlGroup" role="radiogroup" aria-label="Порог долгой паузы">
             <span className="tlMuted">долгая от</span>
@@ -84,11 +96,13 @@ export default function TimelineScreen({ runs = [], onClose = null, send = null,
             </div>
           )}
         </div>
-        {tab === 'ribbon' ? <TimelineRibbon m={m} pauses={pauses} scale={Math.max(scale, fit)} focus={focus} selected={sel} onPick={setSel} /> : <TimelineList rows={list} pauses={pauses} selected={sel} onPick={setSel} />}
+        {tab === 'pauses' && <TimelinePausesTab key={cur.key} pauses={pauses} total={sum.dur} onGo={go} />}
+        {tab === 'ribbon' && <TimelineRibbon m={m} pauses={pauses} scale={Math.max(scale, fit)} focus={focus} selected={sel} onPick={setSel} />}
+        {tab === 'list' && <TimelineList rows={list} pauses={pauses} selected={sel} onPick={setSel} />}
         {tab === 'ribbon' && <p className="tlLegend">{[['pit', 'Пит'], ['mia', 'Мия'], ['dictor', 'диктор — слово, перевод, фраза голосом Пита'], ['silent', 'без озвучки (подпись)'], ['dead', 'игра молчит дольше порога']].map(([k, t]) => <span key={k}><i data-who={k} />{t}</span>)}</p>}
-        <TimelinePauses top={top} sum={sum} onGo={go} />
+        {tab !== 'list' && <TimelineActs sum={sum} />}
       </div>
-      <TimelineCard sel={sel} near={near} onClose={() => setSel(null)} />
+      {tab !== 'pauses' && <TimelineCard sel={sel} near={near} onClose={() => setSel(null)} />}
     </div>
   )
 }

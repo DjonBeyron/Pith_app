@@ -1,5 +1,5 @@
-/* «Таймлайн игры» для админа (features/timeline/TimelineScreen.jsx): оверлей на весь экран, шапка, сводка, панель (вкладки, порог, масштаб), список, карточка, блоки под лентой.
-   Лента с дорожками — timeline-ribbon.css. Тёмная тема админки (#14161b / #23262d). Минимальный экран 375×812: страница по горизонтали не едет — прокрутка только внутри ленты. */
+/* «Таймлайн игры» для админа (features/timeline/TimelineScreen.jsx): оверлей на весь экран, шапка, сводка, панель (вкладки, порог, масштаб), список, карточка, сводка по этапам.
+   Лента с дорожками — timeline-ribbon.css; вкладка «Паузы», карточка паузы и строка источников (сервер) — timeline-pauses.css. Тёмная тема админки (#14161b / #23262d). Минимальный экран 375×812: страница по горизонтали не едет — прокрутка только внутри ленты. */
 .tl {
   position: fixed; inset: 0; z-index: 9000; display: flex; flex-direction: column; overflow: hidden;
   background: #0e1013; color: #e0e0e0; font: 13px/1.35 system-ui, -apple-system, 'Segoe UI', sans-serif;
@@ -8,6 +8,7 @@
 }
 .tlHead { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 10px 12px; border-bottom: 1px solid #23262d; background: #14161b; }
 .tlTitle { font-size: 15px; margin-right: auto; white-space: nowrap; }
+.tlBtn:disabled { opacity: 0.55; cursor: default; }
 .tlBtn, .tlChip, .tlSelect {
   appearance: none; font: inherit; color: #e0e0e0; background: #1b1e25; border: 1px solid #2c3039; border-radius: 8px; padding: 6px 10px; min-height: 32px; cursor: pointer;
 }
@@ -19,7 +20,8 @@
 .tlSum b { color: #fff; }
 .tlRed { color: #ff8f93; }
 .tlMuted { margin: 0; color: #8a8f9a; font-size: 12px; }
-.tlEmpty { margin: auto; padding: 24px; text-align: center; color: #b9bdc7; font-size: 15px; }
+.tlEmpty { margin: auto; padding: 24px; text-align: center; color: #b9bdc7; font-size: 15px; display: flex; flex-direction: column; align-items: center; gap: 12px; }
+.tlEmpty p { margin: 0; max-width: 520px; }
 .tlBar { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; }
 .tlGroup { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
 .tlLegend { margin: 0; color: #8a8f9a; font-size: 12px; display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: center; }
@@ -53,17 +55,9 @@
 .tlItemQuiet[data-long='1'] { color: #ff8f93; }
 .tlMore { margin: 8px; }
 
-/* Под лентой: долгие паузы и сводка по этапам */
-.tlUnder { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); gap: 10px; }
+/* Сводка по этапам (под лентой и под списком пауз) */
 .tlBox { border: 1px solid #23262d; border-radius: 10px; background: #14161b; padding: 10px; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
 .tlH { margin: 0; font-size: 13px; font-weight: 600; }
-.tlTopRow {
-  appearance: none; font: inherit; color: inherit; text-align: left; cursor: pointer; background: rgba(229, 72, 77, 0.1); border: 1px solid rgba(229, 72, 77, 0.35); border-radius: 8px;
-  display: grid; grid-template-columns: 52px 78px minmax(0, 1fr); gap: 8px; padding: 7px 8px; align-items: baseline;
-}
-.tlTopMs { color: #ff8f93; font-variant-numeric: tabular-nums; }
-.tlTopT { color: #8a8f9a; font-size: 12px; font-variant-numeric: tabular-nums; white-space: nowrap; }
-.tlTopWhere { min-width: 0; overflow-wrap: anywhere; }
 .tlActs { display: flex; flex-direction: column; font-variant-numeric: tabular-nums; }
 .tlAct { display: grid; grid-template-columns: minmax(0, 1.5fr) repeat(4, minmax(0, 0.9fr)) minmax(0, 1.4fr); gap: 6px; padding: 5px 0; border-bottom: 1px solid #1d2027; font-size: 12px; }
 .tlAct > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

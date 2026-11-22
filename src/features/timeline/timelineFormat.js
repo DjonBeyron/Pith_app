@@ -13,9 +13,9 @@ export const stamp = ms => `+${ru(Math.max(0, ms) / 1000, 3)} с`
 export const dur = ms => (!ms ? '0 с' : Math.abs(ms) < 100 ? `${Math.round(ms)} мс` : ms >= 120000 ? `${Math.floor(ms / 60000)} мин ${Math.round((ms % 60000) / 1000)} с` : `${ru(ms / 1000, 1)} с`)
 /** Часы оси: «0:12» / «3:05,5» */
 export const clock = (ms, tenths = false) => { const s = Math.max(0, ms) / 1000, m = Math.floor(s / 60), r = s - m * 60; return `${m}:${tenths ? ru(r, 1).padStart(4, '0') : String(Math.floor(r)).padStart(2, '0')}` }
+/** Момент словами для карточки паузы: «на 2:13» */
+export const atClock = ms => `на ${clock(ms)}`
 /** Текст в «ёлочках», обрезанный до max знаков */
 export const quote = (text, max = 90) => { const t = String(text ?? '').trim(); return `«${t.length > max ? `${t.slice(0, max)}…` : t}»` }
-/** Название стадии для человека: заголовок плашки или sid */
-export const stageName = s => (s ? `${s.sid || '—'}${s.title ? ` «${s.title}»` : ''}` : 'до первой стадии')
 /** Реплика одной фразой: «Пит: «текст» (race_good_2, 1,8 с)» */
 export const lineText = l => `${WHO[l.who] ?? l.who}: ${quote(l.text || l.id)} (${l.who === 'dictor' ? '' : `${l.id}, `}${dur(l.end - l.t)}${l.silent ? ', без озвучки — подпись' : ''}${l.why && !['done', 'timer'].includes(l.why) ? `, оборвана: ${l.why}` : ''})`
