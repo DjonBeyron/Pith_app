@@ -38,3 +38,7 @@ export function stageTiming({ order = null, lead = 250, busyMs = 0, lineMs = 0, 
   const lineAt = hasLine ? start + 20 : null
   return { countAt: null, lineAt, holdMs: Math.max(minMs, start + lineLen, quiet && hasLine ? spoken(lineAt) : 0) }
 }
+
+/** Стадия с коротким хвостом (stage.lineTail, мс): плашка выходит ВМЕСТЕ с репликой (plateWithLine), а следом сразу идёт реплика следующей стадии — стадия кончается через lineTail после реплики, а не держит
+ *  плашку ещё 260 + stage.ms мс «после речи» (владелец 2026-11-22: 2,2 с тишины между двумя плашками «Фраз»). base — обычные { pause, minMs, quiet } для stageTiming; без lineTail — они же */
+export const lineTailOf = (st, base) => (st?.lineTail != null ? { pause: st.lineTail, minMs: 0, quiet: false } : base)

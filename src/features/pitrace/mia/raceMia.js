@@ -50,7 +50,7 @@ export function reduceMia(m, ev) {
       // повторный вход в ту же стадию (пауза и «Продолжить», перезапуск ступени): церемония начинается заново — реплики снова в очереди, коробка падает снова (раньше такой вход ничего не делал: оба молчали, пример не шёл)
       return { mia: { ...m, phase: 'in', act: stage.act, used: { ...m.used, [stage.act]: true }, streak: 0, wins: 0, seq: m.seq + 1, at: now + (ev.dropAt ?? stage.dropAt ?? MIA.DROP_AT), why: '', fast: false, jump: ev.jumpAt ?? stage.jumpAt ?? null, total: 0, won: {}, done: {}, reds: 0, redWins: 0, failed: {}, dug: {}, keep: false, solo: null, alone: false }, say: stage.script === 'boss' ? bossCeremony(!Object.keys(m.used ?? {}).some(k => k !== 'boss'), ev.bossShift ?? 0) : ceremony(), boost: null }
     }
-    if (stage?.mia === 'round') return m.phase === 'in' && m.act === stage.act ? { mia: m.fast && (!stage.silent || m.total === (stage.offset ?? 0) + (stage.words?.length ?? 0)) ? m : { ...m, fast: true, ...(stage.silent ? silentBlock(m, stage) : { rtotal: stage.words?.length ?? 0, rwon: {} }) }, say: [], boost: stage.noBoost ? null : MIA.BOOST } : none(m) // круг с Мией: дорожка быстрее и меняет цвет (fast) — с этого круга, а не с церемонии
+    if (stage?.mia === 'round') return m.phase === 'in' && m.act === stage.act ? { mia: m.fast && (!stage.silent || m.total === (stage.offset ?? 0) + (stage.words?.length ?? 0)) ? m : { ...m, fast: true, ...(stage.silent ? silentBlock(m, stage) : { rtotal: stage.words?.length ?? 0, rwon: {}, slip: {} }) }, say: [], boost: stage.noBoost ? null : MIA.BOOST } : none(m) // круг с Мией: дорожка быстрее и меняет цвет (fast) — с этого круга, а не с церемонии
     if (stage?.mia === 'hold') return m.phase === 'in' && m.act === stage.act ? { mia: m, say: stage.say ? [line(stage.say, 'mia')] : [], boost: null } : none(m) // служебная стадия внутри эпизода (финал: переключение слуха между блоками): Мия остаётся, говорит свою реплику
     if (stage?.mia === 'end') { // конец финала (стадия boss-end перед итогом): красных меньше пяти — Мия уходит с коробкой, пять и больше — Пит остаётся внутри до следующей встречи (коробка и Мия на сцене, пока Мия и Пит говорят)
       if (m.phase !== 'in' || m.act !== stage.act) return none(m)
@@ -88,8 +88,10 @@ export function reduceMia(m, ev) {
 function ordinaryRound(m, ev) {
   const { t, stage } = ev
   const word = stage.words?.[ev.idx]
-  const ok = t === 'win' || (t === 'fail' && !!word?.trap)          // ловушка: верно промолчать
-  const bad = t === 'miss' || (t === 'fail' && !word?.trap)
+  const i = ev.idx ?? 0, slipped = !!m.slip?.[i] // на этой пилюле уже сказали неверное (в ловушку «поверили»)
+  if (t === 'miss') return { mia: { ...m, streak: 0, slip: { ...(m.slip ?? {}), [i]: true } }, say: [], boost: null } // владелец 2026-11-22 («допрос сделай как в экзамене»): сказано неверно, а пилюля ещё едет и на неё можно ответить — Мия молчит (серия сброшена); колкость — когда пилюля ушла (fail)
+  const ok = t === 'win' || (t === 'fail' && !!word?.trap && !slipped)          // ловушка: верно промолчать
+  const bad = t === 'fail' && (!word?.trap || slipped)
   if (ok) {
     const streak = m.streak + 1, wins = m.wins + 1 // v3.3.297: три верных подряд больше не отпускают Мию с коробкой (владелец: коробка улетает, только когда ВСЕ слова круга сказаны верно — решает стадия-конец круга)
     const say = streak === 2 ? [line('mia_streak2', 'mia')] : wins % MIA.OK_EVERY === 1 ? [line(variantOf('mia_ok', m.hits + 1), 'mia')] : []

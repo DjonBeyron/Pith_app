@@ -14,7 +14,7 @@ import { earlyStageLine } from '../pitrace/raceOpening.js'
 import { raceStartId } from '../pitrace/raceTexts.js'
 import { stuckHint, hintEntry, sayWordHint } from './rehearsalHints.js'
 import { demoSummary } from './polish/polishDemo.js'
-import { stageTiming, countdownPlan } from './rehearsalCountdown.js'
+import { stageTiming, countdownPlan, lineTailOf } from './rehearsalCountdown.js'
 import { warmCountdown, releaseCountdown } from './rehearsalCountdownSound.js'
 import { createCountGate, scheduleStageCount, COUNT_POLL_MS } from './rehearsalCountdownRun.js'
 import { startNoteDance } from '../pitrace/raceNoteDance.js'; import { isWeakDevice } from '../../shared/lib/deviceTier.js'; import { reducedMotion } from '../player/modules/rotate-phone/laneConveyorDrive.js'
@@ -70,7 +70,7 @@ export function useRehearsalActs({ plan, stages, stage, at, stageObj, setS, sayL
   }, [on, stage, intro, early, sayLine, startLine, hold, race]) // eslint-disable-line react-hooks/exhaustive-deps -- stages[0].pause читается в момент старта
 
   // Раскладка стадии по времени: реплика Пита (ждёт, пока он договорит прошлую) и отсчёт тремя нотами (stage.count) — rehearsalCountdown.stageTiming
-  const timingOf = st => { const ln = lineOf(st); return stageTiming({ order: st.count ?? null, lead: LINE_AT_MS, busyMs: cat.busyLeft(), lineMs: ln ? lineMs(fillLine(lines?.[ln]), rate) : 0, pause: silentPause(lines?.[ln], st.pause ?? LINE_PAUSE_MS), minMs: silentMin(lines?.[ln], st.ms), hasLine: !!ln, quiet: lineVoiced(lines, ln), plan: countdownPlan({ soft: !!st.soft }) }) }
+  const timingOf = st => { const ln = lineOf(st); return stageTiming({ order: st.count ?? null, lead: LINE_AT_MS, busyMs: cat.busyLeft(), lineMs: ln ? lineMs(fillLine(lines?.[ln]), rate) : 0, hasLine: !!ln, ...lineTailOf(st, { pause: silentPause(lines?.[ln], st.pause ?? LINE_PAUSE_MS), minMs: silentMin(lines?.[ln], st.ms), quiet: lineVoiced(lines, ln) }), plan: countdownPlan({ soft: !!st.soft }) }) }
   useEffect(() => { if (!on) return undefined; warmCountdown(race); return releaseCountdown }, [on, race]) // ноты отсчёта декодируются заранее (первая должна прозвучать вовремя)
 
   // Реплика стадии и отсчёт (стартует, когда Пит договорил, и не отпускает стадию до конца нот); смена стадии, пауза и выход гасят таймеры и ноты
@@ -79,7 +79,7 @@ export function useRehearsalActs({ plan, stages, stage, at, stageObj, setS, sayL
     if (!running || (!lineOf(running) && !running.count)) return undefined
     const t = timingOf(running), ids = []
     let stopCount = null
-    if (lineOf(running)) ids.push(setTimeout(() => sayLine(lineOf(running)), t.lineAt))
+    if (lineOf(running)) ids.push(setTimeout(() => sayLine(lineOf(running), null, running.lineTail != null ? { pause: running.lineTail } : null), t.lineAt)) // lineTail — короткий хвост стадии: и Пит «занят» после реплики столько же (rehearsalCountdown.lineTailOf)
     if (t.countAt != null) stopCount = scheduleStageCount({ countAt: t.countAt, busyLeft: () => Math.max(cat.busyLeft(), running.waitCap && countWait?.() ? COUNT_POLL_MS : 0), cap: running.waitCap, gate, soft: !!running.soft, what: countWhat(stages, running), onBegin: running.soft ? () => startNoteDance({ game: document.querySelector('.wl'), lite: isWeakDevice(), still: reducedMotion(), log: pLog }) : null })
     return () => { ids.forEach(clearTimeout); stopCount?.() }
     // eslint-disable-next-line react-hooks/exhaustive-deps

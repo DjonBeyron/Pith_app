@@ -26,6 +26,7 @@ export const PHRASE_TAP_GAP_PCT = 16.4
 export const gapMs = (speed, pct = PHRASE_GAP_PCT) => Math.round((pct / (SPEED * speed)) * 1000)
 export const PHRASE_GAP_MS = gapMs(PHRASE_SPEED, PHRASE_TAP_GAP_PCT) // круг 1 / «Узнай»: ≈ 1147 мс при 0,55 — шаг 16,4 % высоты
 export const PHRASE_EXIT_MS = 300 // круг фраз кончился (fx.finished) — до плашки следующего круга столько (не EXIT_PAUSE_MS 1,3 с: Пит уже договорил итог хода, пилюли доезжают сами)
+export const PHRASE_LINE_TAIL_MS = 230 // плашка «Конвейер ситуаций» кончается через столько после реплики Пита (stage.lineTail): до «я описываю ситуацию…» ≈ 0,5 с (230 + задержка реплики следующей стадии 270), а не 2,2 с (владелец 2026-11-22)
 export const PHRASE_ENTER_MS = 500 // последняя ступень перед фразами кончилась — столько до плашки «Фразы» (не 1,3 с: перестройка дорожек в ленту и реплика Пита «теперь фразы» идут сразу, он не ждёт; владелец 2026-11-17)
 export const LANE = 1             // широкая лента — средняя дорожка (три дорожки съехались к центру)
 
@@ -50,7 +51,7 @@ export function phraseStep(id, turns, { round, mode, voice, speed, gap = gapMs(s
 export function phraseStages(kit, act) {
   const { push, announce, plan, tap } = kit
   const voice = !tap
-  announce(act); kit.stages.at(-1).plateWithLine = true // плашка «Конвейер ситуаций» выходит на слова Пита, а не после них (владелец v3.3.272)
+  announce(act); Object.assign(kit.stages.at(-1), { plateWithLine: true, lineTail: PHRASE_LINE_TAIL_MS }) // плашка «Конвейер ситуаций» выходит на слова Пита, а не после них (владелец v3.3.272)
   const r1 = round1Turns(act.phrases, plan.seed)
   announce(act, { sid: 'phrases1', title: '', task: '', line: ROUND_PLATES.pick.line, ms: ROUND2_ANN_MS }) // у дополнительных кругов плашек нет: только звук старта и реплика Пита (владелец 2026-11-17)
   push({ type: 'student', act: act.id, sid: 'phrases1', round: 1, turns: r1, step: phraseStep('phrases1', r1, { round: 1, mode: 'pick', voice: false, speed: PICK_SPEED }) }) // круг 1 — только тап

@@ -53,7 +53,7 @@ export function queueStep(kit, id, words, good, rep, o = {}) {
   return stepOf(id, {
     parts: words.map((_, i) => i), text: targets.join(' '), chunks: targets, chunkMs: targets.map(t => kit.msOf(t)),
     reps: words.map((w, i) => ({ parts: [i], lane: w.lane, speed: w.speed, ...rep(w) })),
-    extra: o.lang === 'ru' ? [] : vocabOf(targets, words.flatMap(w => [...w.confusers, ...kit.doubles(w.text)])), maxWords: 2, maxTries: 1, overlap: true,
+    extra: o.lang === 'ru' ? [] : vocabOf(targets, words.flatMap(w => [...w.confusers, ...kit.doubles(w.text)])), maxWords: 2, maxTries: 1, overlap: !o.solo, // o.solo («Допрос у Мии», владелец 2026-11-22: «как в экзамене»): следующая пилюля — только когда прежняя разрешилась (принята / ушла) и Мия договорила колкость (holdAll), а не когда прежняя «оглохла»: раньше колкость о прошлой пилюле звучала поверх следующей, и микрофон на это время был выключен
     boost: { k: 1 }, quiet: true, edge: true, holdAll: true, preSay: true, preGap: PRE_SAY_GAP_MS, claimGap: CLAIM_GAP_MS, goodAt: good.map(g => g.at),
     ...(o.lang ? { lang: o.lang } : {}), ...(o.tapOnly || kit.tap ? { tapOnly: true } : {}), ...(o.reverse ? { reverse: true } : {}), // reverse — обратный конвейер: слова едут снизу вверх, верные улетают вниз, Пит уворачивается от выезжающих (проход B «Конвейера слов»)
   })
@@ -68,7 +68,7 @@ export function queueStages(kit, act, rep, o = {}) {
   const { push, announce, plan } = kit
   const ctl = { lang: o.lang, tapOnly: !!o.tapOnly }
   const standby = standbyWords(act.words, plan).map(w => o.mapStandby?.(w) ?? w)
-  const round = (sid, list, first) => { const good = goodPlan(plan.seed, sid, list.length, { first, ids: o.goodIds }); return { type: 'student', act: act.id, sid, step: queueStep(kit, sid, list, good, rep, { target: o.target, lang: ctl.lang, tapOnly: ctl.tapOnly, reverse: o.reverse && sid === act.id }), words: list, good } } // обратный конвейер — только круг 1 прохода B; круг Мии идёт вниз (разворот — на церемонии, stage.revBack)
+  const round = (sid, list, first) => { const good = goodPlan(plan.seed, sid, list.length, { first, ids: o.goodIds }); return { type: 'student', act: act.id, sid, step: queueStep(kit, sid, list, good, rep, { target: o.target, lang: ctl.lang, tapOnly: ctl.tapOnly, reverse: o.reverse && sid === act.id, solo: sid === `${act.id}3` }), words: list, good } } // solo — круг «Допрос у Мии»: без очереди внахлёст // обратный конвейер — только круг 1 прохода B; круг Мии идёт вниз (разворот — на церемонии, stage.revBack)
   const demote = () => { if (o.tapLine) { const a = kit.stages.find(x => x.sid === (o.tapLineSid ?? `${act.id}-ann`)); if (a) a.line = o.tapLine } ctl.lang = undefined; ctl.tapOnly = true; kit.stages.filter(x => x.act === act.id && x.type === 'student').forEach(x => { delete x.step.lang; x.step.tapOnly = true }) }
   o.before?.()
   announce(act, o.plain ? { title: '', task: '', ms: ROUND2_ANN_MS } : o.plate ? { line: o.plateLine ?? null } : undefined)

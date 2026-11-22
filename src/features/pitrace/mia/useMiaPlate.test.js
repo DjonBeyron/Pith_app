@@ -46,7 +46,7 @@ describe('плашка Мии по реплике за кадром', () => {
   })
   it('разворот в реверс: стадия не ждёт реплику Пита про реверс целиком (REV_WAIT_CAP_MS), плашка фраз выходит вместе с репликой', () => {
     expect(REV_WAIT_CAP_MS).toBeLessThanOrEqual(1000)
-    expect(rd('../raceStagesPhrases.js')).toContain('plateWithLine = true'); expect(rd('../../rehearsal/useRehearsalActs.js')).toContain('running.plateWithLine ? null')
+    expect(rd('../raceStagesPhrases.js')).toContain('plateWithLine: true'); expect(rd('../../rehearsal/useRehearsalActs.js')).toContain('running.plateWithLine ? null')
   })
   it('комментарий к логам (SendLogButton): микрофон игры отпускается при открытии попапа', () => {
     expect(rd('../../../shared/ui/SendLogButton.jsx')).toContain("shutGameMic('комментарий к логам: диктовка')")

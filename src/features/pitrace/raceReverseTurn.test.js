@@ -73,7 +73,7 @@ describe('разворот назад (церемония Мии после B)',
     expect(miaColorOn(m, { sid: 'sprint3-ann', mia: 'ann' }, true)).toBe(false); expect(miaColorOn(m, { sid: 'sprint3-ann', mia: 'ann' }, true, true)).toBe(true)
   })
   it('проводка: плашка «Допрос у Мии» перед церемонией, три ноты ждут конца разворота (revBack.busy), круг Мии не обратный; привод конвейера слушает TURN_EVENT; тройная стрелка — маска ::after', () => {
-    expect(rd('./raceStageKit.js')).toContain("title: 'Допрос у Мии'"); expect(rd('./raceStageKit.js')).toContain("sid === act.id }), words: list")
+    expect(rd('./raceStageKit.js')).toContain("title: 'Допрос у Мии'"); expect(rd('./raceStageKit.js')).toContain("reverse: o.reverse && sid === act.id, solo: sid === `${act.id}3` }), words: list")
     expect(rd('./useRaceActs.js')).toContain('mspeech.pending() > 0 || revBack.busy'); expect(rd('./mia/miaRound.js')).toContain("st.mia === 'intro' ? j + 4")
     expect(rd('../player/modules/rotate-phone/laneConveyorDrive.js')).toContain("addEventListener?.('wl-conveyor-turn', onTurn)"); expect(TURN_EVENT).toBe('wl-conveyor-turn')
     expect(rd('../../styles/player/modules/race-reverse.css')).toContain('data-arrow'); expect(rd('../../styles/player/modules/race-reverse.css')).toContain('mask:')

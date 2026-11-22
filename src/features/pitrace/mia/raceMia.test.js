@@ -51,8 +51,8 @@ describe('эпизод «Мия»: пока она на коробке', () => {
   })
   it('ошибка сбрасывает серию и даёт колкость по кругу трёх вариантов', () => {
     let m = arrive(); const seen = []
-    for (let i = 0; i < 4; i++) { const r = reduceMia(m, ev(i % 2 ? 'fail' : 'miss', round3(), { idx: 1 })); m = r.mia; seen.push(ids(r)[0]); expect(m.streak).toBe(0) }
-    expect(seen).toEqual(['mia_miss_1', 'mia_miss_2', 'mia_miss_3', 'mia_miss_1'])
+    for (let i = 0; i < 4; i++) { const r = reduceMia(m, ev(i % 2 ? 'fail' : 'miss', round3(), { idx: 1 })); m = r.mia; seen.push(ids(r)[0]); expect(m.streak).toBe(0) } // v3.3.348: на miss (пилюля ещё едет) Мия молчит, колкость — на fail
+    expect(seen).toEqual([undefined, 'mia_miss_1', undefined, 'mia_miss_2'])
   })
   const end3 = (act = 'sprint') => ({ type: 'announce', act, sid: `${act}3-end`, mia: 'end', round: { kind: 'mia', title: '', task: '' } })
   const play = (m, results, stage = round3('sprint', [{ text: 'a' }, { text: 'b' }, { text: 'c' }, { text: 'd' }])) => { let st = reduceMia(m, ev('enter', stage)).mia; results.forEach((t, idx) => { st = reduceMia(st, ev(t, stage, { idx })).mia }); return st }

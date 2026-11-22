@@ -39,10 +39,10 @@ describe('экзамен: порядок речи на ошибке и «не у
   it('реплика «следующее слово» есть в каталоге, её говорит Пит', () => {
     expect(miaLine('boss_pit_next')).toMatchObject({ who: 'pit', text: 'Следующее слово' })
   })
-  it('«Допрос у Мии» (не экзамен) — как раньше: на ошибку одна колкость Мии, Пит ничего не добавляет', () => {
+  it('«Допрос у Мии» (не экзамен) : колкость Мии — когда пилюля ушла (на неверное слово при едущей пилюле молчит, v3.3.348), Пит ничего не добавляет', () => {
     const st = { mia: 'round', act: 'catch', sid: 'catch3', words: W }, m = reduceMia({ ...miaInit(), phase: 'in', act: 'catch' }, { t: 'enter', stage: st }).mia
     expect(brief(reduceMia(m, { t: 'fail', stage: st, idx: 0 }))).toEqual([['mia', 'mia_miss_1', '', 0]])
-    expect(brief(reduceMia(m, { t: 'miss', stage: st, idx: 0 }))).toEqual([['mia', 'mia_miss_1', '', 0]])
+    expect(brief(reduceMia(m, { t: 'miss', stage: st, idx: 0 }))).toEqual([])
   })
 })
 
